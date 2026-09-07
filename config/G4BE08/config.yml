@@ -1,0 +1,16 @@
+name: main
+# main.dol with the shared .ctors/.dtors DOL section split in two (tools/dol_sections.py split ... 0x8021C9E0)
+object: sys/main_split.dol
+object_base: orig/G4BE08
+extract_objects: true
+symbols: config/G4BE08/symbols.txt
+splits: config/G4BE08/splits.txt
+detect_objects: true
+detect_strings: true
+write_asm: true
+symbols_known: true
+fill_gaps: true
+# SN Systems ProDG debugger stub (ppcdown/fileserver/proview/tealeaf): hand-written asm with computed jumps
+skip_cfa_ranges:
+- start: .text:0x80062A60
+  end: .text:0x800659AC

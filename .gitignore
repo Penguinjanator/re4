@@ -1,0 +1,11 @@
+build/
+build.ninja
+.ninja_deps
+.ninja_log
+objdiff.json
+compile_commands.json
+orig/*/*
+!orig/*/.gitkeep
+__pycache__/
+*.pyc
+.vscode/
