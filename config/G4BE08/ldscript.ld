@@ -16,5 +16,9 @@ SECTIONS
 
   _SDA_BASE_ = 0x8031BEE0;
   _SDA2_BASE_ = 0x8032BEE0;
-  _stack_end = 0x8031ACE0;
+  /* Absolute symbols referenced by the Dolphin SDK objects (values from the original OSInit/OSThread code). */
+  _stack_addr = 0x8031ACE0;
+  _stack_end = 0x80316CE0;
+  __ArenaLo = 0x8031AD00;
+  __ArenaHi = 0x81780000;
 }

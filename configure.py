@@ -14,6 +14,7 @@
 
 import argparse
 import importlib.util
+import re
 import sys
 from pathlib import Path
 from typing import Any, Dict, List
@@ -190,7 +191,7 @@ config.linker_version = PRODG_VERSION
 config.prodg_ldscript = Path("config") / config.version / "ldscript.ld"
 config.prodg_sda_base = 0x8031BEE0
 config.prodg_sda2_base = 0x8032BEE0
-config.prodg_stack_end = 0x8031ACE0
+config.prodg_stack_end = 0x80316CE0  # _stack_end; _stack_addr (stack top) is 0x8031ACE0 (see ldscript.ld)
 # .init has no symbols in Bio4.sym; __start is defined in the linker script
 config.entry_override = "__start"
 
@@ -201,10 +202,13 @@ include_dirs = [
     project_root / "build" / config.version / "include",
 ]
 
-# Base flags for game code (ProDG / GCC 2.95). Optimization level to be confirmed.
+# Base flags for game code (ProDG / GCC 2.95).
+# -mfast-cast (not -mps-float): the original saves callee-saved FPRs in 8 bytes each and converts
+# s8/u8 to float through a stack byte + psq_l (qr2/qr4). -mps-float reserves 16 bytes per saved FPR,
+# which does not match any function in game/cam_ctrl that saves f31.
 cflags_game = [
     "-O2",
-    "-mps-float",
+    "-mfast-cast",
     *[f"-I {d.as_posix()}" for d in include_dirs],
     f"-DBUILD_VERSION={version_num}",
     f"-DVERSION_{config.version}",
@@ -214,24 +218,102 @@ if args.debug:
 else:
     cflags_game.append("-DNDEBUG=1")
 
-# Metrowerks cflags for Nintendo SDK libraries (prebuilt by Nintendo with CodeWarrior).
+# Nintendo Dolphin SDK libraries were prebuilt by Nintendo with CodeWarrior. The DOL carries
+# "<< Dolphin SDK - OS release build: May 21 2004 (0x2301) >>" (OS = SDK 2004 patch 1, i.e.
+# SDK_REVISION 1; the other libs are the Apr 5-7 2004 base builds, identical for revision 0/1).
+# Sources come from doldecomp/dolsdk2004 (src/lib/<Name>.c, headers in include/dolphin/).
+MWCC_SDK_VERSION = "GC/1.2.5n"
 cflags_mw_sdk = [
     "-nodefaults",
     "-proc gekko",
-    "-align powerpc",
-    "-enum int",
-    "-fp hardware",
+    "-fp hard",
     "-Cpp_exceptions off",
+    "-enum int",
+    "-char unsigned",
+    "-warn pragmas",
+    "-requireprotos",
+    "-pragma 'cats off'",
     "-O4,p",
     "-inline auto",
-    "-RTTI off",
-    "-fp_contract on",
-    "-str reuse",
-    *[f"-i {d.as_posix()}" for d in include_dirs],
-    f"-DBUILD_VERSION={version_num}",
-    f"-DVERSION_{config.version}",
-    "-DNDEBUG=1",
+    "-I-",
+    f"-i {(project_root / 'include').as_posix()}",
+    f"-i {(project_root / 'include' / 'libc').as_posix()}",
+    f"-i {(project_root / 'src' / 'lib').as_posix()}",
+    "-D__GEKKO__",
+    "-DSDK_REVISION=1",
 ]
+
+# SDK objects, grouped like the SDK archives they came from (os.a, gx.a, ...).
+# Runtime objects compiled with ProDG (libgcc, crt, SN debugger stub, __start,
+# __ppc_eabi_init, tors) are NOT listed here and stay in the ProDG "lib" library.
+SDK_LIBS: Dict[str, List[str]] = {
+    "os": [
+        "OS", "OSAlarm", "OSAlloc", "OSArena", "OSAudioSystem", "OSCache", "OSContext",
+        "OSError", "OSExec", "OSFatal", "OSFont", "OSInterrupt", "OSLink", "OSMemory",
+        "OSMutex", "OSReboot", "OSReset", "OSResetSW", "OSRtc", "OSSemaphore",
+        "OSStopwatch", "OSSync", "OSThread", "OSTime",
+    ],
+    "base": ["PPCArch"],
+    "exi": ["EXIBios", "EXIUart"],
+    "si": ["SIBios", "SISamplingRate"],
+    "db": ["db"],
+    "mtx": ["mtx", "mtxvec", "mtx44", "mtx44vec", "vec", "quat", "psmtx"],
+    "dvd": ["dvdlow", "dvdfs", "dvd", "dvdqueue", "dvderror", "dvdidutils", "dvdFatal", "fstload"],
+    "vi": ["vi"],
+    "pad": ["Pad", "Padclamp"],
+    "ai": ["ai"],
+    "ar": ["ar", "arq"],
+    "ax": ["AX", "AXAlloc", "AXAux", "AXCL", "AXOut", "AXSPB", "AXVPB", "AXProf", "AXComp", "DSPCode"],
+    "axfx": ["axfx", "reverb_hi", "reverb_std", "chorus", "delay", "reverb_hi_4ch"],
+    "mix": ["mix"],
+    "axart": ["axart", "axartsound", "axartcents", "axartenv", "axartlfo", "axart3d", "axartlpf"],
+    "syn": ["syn", "synctrl", "synenv", "synlfo", "synmix", "synpitch", "synsample", "synvoice", "synwt"],
+    "seq": ["seq"],
+    "dsp": ["dsp", "dsp_debug", "dsp_task"],
+    "card": [
+        "CARDBios", "CARDBlock", "CARDDir", "CARDCheck", "CARDMount", "CARDFormat", "CARDOpen",
+        "CARDCreate", "CARDRead", "CARDWrite", "CARDDelete", "CARDStat", "CARDNet", "CARDUnlock",
+        "CARDRdwr",
+    ],
+    "gx": [
+        "GXAttr", "GXGeometry", "GXLight", "GXTexture", "GXBump", "GXTev", "GXPixel", "GXTransform",
+        "GXInit", "GXFifo", "GXMisc", "GXFrameBuf", "GXPerf", "GXDraw", "GXDisplayList",
+    ],
+    "texPalette": ["texPalette"],
+    "fileCache": ["fileCache"],
+    "amcstubs": ["AmcExi2Stubs"],
+    "odemustubs": ["DebuggerDriver"],
+}
+SDK_UNIT_LIB: Dict[str, str] = {
+    f"lib/{name}.c": lib for lib, names in SDK_LIBS.items() for name in names
+}
+# Per-object deviations from cflags_mw_sdk (same as in doldecomp/dolsdk2004's Makefile). These
+# replace the base flag: MWCC keeps the first -O level it sees, so appending "-O3,p" has no effect.
+SDK_CFLAG_OVERRIDES: Dict[str, Dict[str, str]] = {
+    **{f"lib/{name}.c": {"-char unsigned": "-char signed"} for name in SDK_LIBS["dvd"]},
+    "lib/mtx.c": {"-char unsigned": "-char signed"},
+    "lib/mtx44.c": {"-char unsigned": "-char signed"},
+    "lib/CARDOpen.c": {"-char unsigned": "-char signed"},
+    "lib/EXIBios.c": {"-O4,p": "-O3,p"},
+}
+
+
+def sdk_cflags(unit: str) -> List[str]:
+    repl = SDK_CFLAG_OVERRIDES.get(unit)
+    if not repl:
+        return cflags_mw_sdk
+    return [repl.get(flag, flag) for flag in cflags_mw_sdk]
+
+
+def DolphinLib(lib_name: str, objects: List[Object]) -> Dict[str, Any]:
+    return {
+        "lib": lib_name,
+        "mw_version": MWCC_SDK_VERSION,
+        "cflags": cflags_mw_sdk,
+        "mwcc_depflag": "-MD",  # with -I- the default -MMD records no header dependencies
+        "progress_category": "sdk",
+        "objects": objects,
+    }
 
 Matching = True                   # Object matches and should be linked
 NonMatching = False               # Object does not match and should not be linked
@@ -250,14 +332,51 @@ spec.loader.exec_module(objects_mod)
 UNITS: List[str] = objects_mod.UNITS
 MATCHING: Dict[str, bool] = getattr(objects_mod, "MATCHING", {})
 
+# Split unit names come from splits.txt (game/ units are all named *.cpp there). A UNITS entry
+# may instead name a *.c source (newlib units): the Object keeps the split name, the source is the .c.
+split_units = set()
+with open(Path("config") / config.version / "splits.txt") as _f:
+    for _line in _f:
+        _m = re.match(r"^(\S+):\s*$", _line)
+        if _m:
+            split_units.add(_m.group(1))
+
 game_objects: List[Object] = []
 lib_objects: List[Object] = []
+sdk_objects: Dict[str, List[Object]] = {lib: [] for lib in SDK_LIBS}
 for unit in UNITS:
     status = MATCHING.get(unit, NonMatching)
+    name = unit
+    if unit not in split_units:
+        alt = str(Path(unit).with_suffix(".cpp"))
+        if alt in split_units:
+            name = alt
     if unit.startswith("game/"):
-        game_objects.append(Object(status, unit))
+        # GCC 2.95 linkonce sections (vtables, template instantiations, out-of-line inlines) are
+        # folded into .rodata / dropped the way the original link laid them out (see the tool).
+        game_objects.append(
+            Object(
+                status,
+                name,
+                source=unit,
+                post_build=[f"$python tools/fold_linkonce.py {{out}}"],
+                post_build_implicit=[Path("tools/fold_linkonce.py")],
+            )
+        )
+    elif unit in SDK_UNIT_LIB:
+        # The ProDG linker dead-stripped unreferenced SDK functions; drop them from our object too.
+        sdk_objects[SDK_UNIT_LIB[unit]].append(
+            Object(
+                status,
+                name,
+                source=unit,
+                cflags=sdk_cflags(unit),
+                post_build=[f"$python tools/strip_unused.py --unit {unit} {{out}}"],
+                post_build_implicit=[Path("tools/strip_unused.py"), Path("config") / config.version / "sym_map.tsv"],
+            )
+        )
     else:
-        lib_objects.append(Object(status, unit))
+        lib_objects.append(Object(status, name, source=unit))
 
 config.warn_missing_config = True
 config.warn_missing_source = False
@@ -270,14 +389,16 @@ config.libs = [
         "objects": game_objects,
     },
     {
-        # Nintendo SDK, MSL/libgcc runtime, SN debugger stub. Compiler varies per object;
-        # treated as ProDG by default until each library is identified.
+        # ProDG-compiled runtime: libgcc (_ashldi3, _divdi3, _eh, ...), crt (__start,
+        # __ppc_eabi_init, __main, tors, crtbegin), SN debugger stub (ppcdown, fileserver,
+        # proview, tealeaf), newlib libm, and third-party libs (CRI ADX/Sofdec) not yet identified.
         "lib": "lib",
         "mw_version": PRODG_VERSION,
         "cflags": cflags_game,
         "progress_category": "sdk",
         "objects": lib_objects,
     },
+    *[DolphinLib(lib, objs) for lib, objs in sdk_objects.items() if objs],
 ]
 
 config.progress_categories = [

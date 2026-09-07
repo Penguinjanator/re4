@@ -65,6 +65,9 @@ class Object:
             "keep_sections": None,
             "lib": None,
             "mw_version": None,
+            "mwcc_depflag": None,
+            "post_build": None,
+            "post_build_implicit": None,
             "progress_category": None,
             "scratch_preset_id": None,
             "shift_jis": None,
@@ -552,6 +555,9 @@ def generate_build_ninja(
     if config.linker_version is None:
         sys.exit("ProjectConfig.linker_version missing")
     n.variable("mw_version", Path(config.linker_version))
+    # MWCC dependency flag; objects may override with option "mwcc_depflag" (e.g. "-MD" when
+    # compiling with -I-, where -MMD treats every include path as a system path and records nothing)
+    n.variable("mwcc_depflag", "-MMD")
     n.variable("objdiff_report_args", make_flags_str(config.progress_report_args))
     n.newline()
 
@@ -740,12 +746,12 @@ def generate_build_ninja(
 
     # MWCC
     mwcc = compiler_path / "mwcceppc.exe"
-    mwcc_cmd = f"{CHAIN}{wrapper_cmd}{mwcc} $cflags -MMD -c $in -o $basedir"
+    mwcc_cmd = f"{CHAIN}{wrapper_cmd}{mwcc} $cflags $mwcc_depflag -c $in -o $basedir"
     mwcc_implicit: List[Optional[Path]] = [compilers_implicit or mwcc, wrapper_implicit]
 
     # MWCC with UTF-8 to Shift JIS wrapper
     mwcc_sjis_cmd = (
-        f"{CHAIN}{wrapper_cmd}{sjiswrap} {mwcc} $cflags -MMD -c $in -o $basedir"
+        f"{CHAIN}{wrapper_cmd}{sjiswrap} {mwcc} $cflags $mwcc_depflag -c $in -o $basedir"
     )
     mwcc_sjis_implicit: List[Optional[Path]] = [*mwcc_implicit, sjiswrap]
 
@@ -825,6 +831,14 @@ def generate_build_ninja(
         mwcc_pch_sjis_implicit.append(transform_dep)
         mwcc_extab_implicit.append(transform_dep)
         mwcc_sjis_extab_implicit.append(transform_dep)
+
+    # Optional per-object post-processing commands (Object option "post_build": list of shell
+    # commands, "{out}" = object path). Expanded per build edge; empty when unused.
+    mwcc_cmd += "$post_build"
+    mwcc_sjis_cmd += "$post_build"
+    mwcc_extab_cmd += "$post_build"
+    mwcc_sjis_extab_cmd += "$post_build"
+    prodg_cc_cmd += "$post_build"
 
     if is_windows():
         objcopy_replace_cmd = "move /y $basefile.keep.o $out > nul"
@@ -1303,6 +1317,15 @@ def generate_build_ninja(
                     variables["extab_padding"] = "".join(
                         f"{i:02x}" for i in obj.options["extab_padding"]
                     )
+            if obj.options["mwcc_depflag"]:
+                variables["mwcc_depflag"] = obj.options["mwcc_depflag"]
+            post_build = obj.options["post_build"]
+            if post_build:
+                # "{out}" in a command stands for the object path ($out is not visible to build-scoped variables)
+                variables["post_build"] = "".join(
+                    f" && {cmd.replace('{out}', serialize_path(obj.src_obj_path))}" for cmd in post_build
+                )
+                build_implcit = [*build_implcit, *(obj.options["post_build_implicit"] or [])]
             keep_sections = obj.options["keep_sections"]
             if keep_sections:
                 variables["objcopyflags"] = " ".join(f"-j {section}" for section in keep_sections)

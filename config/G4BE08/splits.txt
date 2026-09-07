@@ -560,6 +560,7 @@ game/isspace.cpp:
 
 game/errno.cpp:
 	.text       start:0x8006FC5C end:0x8006FC64
+	.sbss       start:0x80315CAC end:0x80315CB0 align:4 common
 
 game/locale.cpp:
 	.text       start:0x8006FC64 end:0x8006FC94
@@ -1926,6 +1927,7 @@ game/id_sys.cpp:
 	.text       start:0x80148D20 end:0x8014C730
 	.rodata     start:0x8023BE48 end:0x8023C2C0
 	.bss        start:0x802E00D4 end:0x802E025C
+	.bss        start:0x80313EB0 end:0x80313EE0 align:4 common
 	.sdata      start:0x80314BB8 end:0x80314BC8
 	.sbss       start:0x80315A9C end:0x80315AA0
 
@@ -2833,7 +2835,7 @@ lib/GXDraw.c:
 lib/GXDisplayList.c:
 	.text       start:0x801DB954 end:0x801DBB54
 	.bss        start:0x802F1F50 end:0x802F2528
-	.sbss       start:0x80315CA8 end:0x80315CB0
+	.sbss       start:0x80315CA8 end:0x80315CAC
 
 lib/mwsfdfrm.c:
 	.text       start:0x801DBB54 end:0x801DC7B4
@@ -3231,7 +3233,7 @@ lib/gcci.c:
 lib/gcci_sub.c:
 	.text       start:0x8021C8A8 end:0x8021C8B4
 	.data       start:0x80270498 end:0x802704A0
-	.bss        start:0x80313DB0 end:0x80313EE0
+	.bss        start:0x80313DB0 end:0x80313EB0
 
 lib/eabi.c:
 	.text       start:0x8021C8B4 end:0x8021C960
