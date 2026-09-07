@@ -74,18 +74,24 @@ def demangle_v2(sym):
     return sym  # plain C symbol
 
 def elf_symbols(obj):
-    out = subprocess.run([DTK, "elf", "info", obj], capture_output=True, text=True).stdout
+    """Read the ELF32 (big-endian) symbol table: list of (name, bind, defined)."""
+    import struct
+    data = open(obj, "rb").read()
+    shoff, = struct.unpack_from(">I", data, 0x20)
+    shentsize, shnum = struct.unpack_from(">HH", data, 0x2E)
+    shdrs = [struct.unpack_from(">IIIIIIIIII", data, shoff + i * shentsize) for i in range(shnum)]
     syms = []
-    in_syms = False
-    for line in out.splitlines():
-        if line.startswith("Symbols:"): in_syms = True; continue
-        if in_syms:
-            if not line.strip() or line.startswith("Relocations") or line.startswith("Metrowerks") or line.startswith("Split"):
-                if line.strip() and not line.strip().startswith("Section"): in_syms = False
+    for sh in shdrs:
+        if sh[1] != 2:  # SHT_SYMTAB
+            continue
+        strtab = shdrs[sh[6]]
+        for off in range(sh[4], sh[4] + sh[5], 16):
+            st_name, st_value, st_size, st_info, st_other, st_shndx = struct.unpack_from(">IIIBBH", data, off)
+            if st_name == 0 or (st_info & 0xF) == 3:  # unnamed / STT_SECTION
                 continue
-            parts = [p.strip() for p in line.split("|")]
-            if len(parts) >= 4 and parts[0].startswith("."):
-                syms.append((parts[0], int(parts[1], 16), int(parts[2], 16), parts[3]))
+            end = data.index(b"\0", strtab[4] + st_name)
+            name = data[strtab[4] + st_name:end].decode()
+            syms.append((name, st_info >> 4, st_shndx != 0))
     return syms
 
 def main():
@@ -102,15 +108,45 @@ def main():
     for i, l in enumerate(lines):
         m = re.match(r"^(\S+) = (\.\w+):0x([0-9A-F]+);", l)
         if m: by_addr[int(m.group(3), 16)] = i
+    by_dn = {}  # demangled -> list of addresses (all units), for undefined references
+    for (unit, dn), addrs in symmap.items():
+        by_dn.setdefault(dn, []).extend(addrs)
     renamed = 0
+
+    def rename(i, name):
+        nonlocal renamed
+        old = lines[i].split(" = ")[0]
+        if old != name:
+            lines[i] = name + lines[i][len(old):]
+            print(f"  {old} -> {name}")
+            renamed += 1
+
+    def make_global(i):
+        # A symbol defined global by the compiler, or referenced from another unit, cannot be local.
+        nonlocal renamed
+        if "scope:local" in lines[i]:
+            lines[i] = lines[i].replace("scope:local", "scope:global")
+            print(f"  {lines[i].split(' = ')[0]}: scope local -> global")
+            renamed += 1
+
     for obj in sys.argv[1:]:
         unit = os.path.relpath(obj, os.path.join(ROOT, "build", VER, "src")).rsplit(".", 1)[0]
         unit = unit + (".cpp" if os.path.exists(os.path.join(ROOT, "src", unit + ".cpp")) else ".c")
-        for sec, off, size, name in elf_symbols(obj):
+        if not any(u == unit for (u, _) in symmap) and any(u == unit[:-2] + ".cpp" for (u, _) in symmap):
+            unit = unit[:-2] + ".cpp"  # .c source for a split unit named *.cpp
+        for name, bind, defined in elf_symbols(obj):
             if name.startswith(".") or name.startswith("@") or name.startswith("_GLOBAL_"):
                 continue
             dn = demangle_v2(name)
             if dn is None: continue
+            if not defined:
+                # undefined reference: the target (in whatever unit) must be global and carry this name
+                cands = by_dn.get(dn, [])
+                if len(cands) == 1 and cands[0] in by_addr:
+                    i = by_addr[cands[0]]
+                    rename(i, name)
+                    make_global(i)
+                continue
             cands = symmap.get((unit, dn))
             if not cands:
                 continue
@@ -120,23 +156,21 @@ def main():
             addr = cands[0]
             i = by_addr.get(addr)
             if i is None: continue
-            old = lines[i].split(" = ")[0]
-            if old != name:
-                lines[i] = name + lines[i][len(old):]
-                print(f"  {old} -> {name}")
-                renamed += 1
+            rename(i, name)
+            if bind == 1:  # STB_GLOBAL
+                make_global(i)
     if renamed:
         open(symtxt_path, "w").write("\n".join(lines) + "\n")
         # keep sym_map.tsv's name column in sync
         cur = {}
         for l in lines:
-            m = re.match(r"^(\S+) = (\.\w+):0x([0-9A-F]+);", l)
-            if m: cur[int(m.group(3), 16)] = m.group(1)
+            m = re.match(r"^(\S+) = (\.\w+):0x([0-9A-F]+);.*scope:(\w+)", l)
+            if m: cur[int(m.group(3), 16)] = (m.group(1), m.group(4))
         mp = os.path.join(CFG, "sym_map.tsv"); rows = open(mp).read().splitlines()
         out = [rows[0]]
         for l in rows[1:]:
             f = l.split("\t"); a = int(f[0], 16)
-            if a in cur: f[5] = cur[a]
+            if a in cur: f[5], f[4] = cur[a]
             out.append("\t".join(f))
         open(mp, "w").write("\n".join(out) + "\n")
     print(f"{renamed} symbols renamed; re-run `python3 configure.py && ninja`")
