@@ -127,6 +127,18 @@ def main():
                 renamed += 1
     if renamed:
         open(symtxt_path, "w").write("\n".join(lines) + "\n")
+        # keep sym_map.tsv's name column in sync
+        cur = {}
+        for l in lines:
+            m = re.match(r"^(\S+) = (\.\w+):0x([0-9A-F]+);", l)
+            if m: cur[int(m.group(3), 16)] = m.group(1)
+        mp = os.path.join(CFG, "sym_map.tsv"); rows = open(mp).read().splitlines()
+        out = [rows[0]]
+        for l in rows[1:]:
+            f = l.split("\t"); a = int(f[0], 16)
+            if a in cur: f[5] = cur[a]
+            out.append("\t".join(f))
+        open(mp, "w").write("\n".join(out) + "\n")
     print(f"{renamed} symbols renamed; re-run `python3 configure.py && ninja`")
 
 if __name__ == "__main__":
