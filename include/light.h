@@ -46,7 +46,6 @@ public:
 class cLight08 : public cLight {
 public:
     cLight08();
-    ~cLight08();
 };
 
 class cLightWork;

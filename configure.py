@@ -359,8 +359,8 @@ for unit in UNITS:
                 status,
                 name,
                 source=unit,
-                post_build=[f"$python tools/fold_linkonce.py {{out}}"],
-                post_build_implicit=[Path("tools/fold_linkonce.py")],
+                post_build=[f"$python tools/fold_linkonce.py --unit {unit} {{out}}"],
+                post_build_implicit=[Path("tools/fold_linkonce.py"), Path("config") / config.version / "sym_map.tsv"],
             )
         )
     elif unit in SDK_UNIT_LIB:
