@@ -35,7 +35,8 @@ struct GlobalWork {
     u8 pad_5010[4];
     u32 flags_5014;        // 0x5014
     u8 pad_5018[0x8678 - 0x5018];
-    u8 debug_mode;         // 0x8678  0xF = camera rail debug draw
+    u8 debug_mode;         // 0x8678  debug page number (t_page), 0xF = camera rail debug draw
+    u8 debug_mode_bak;     // 0x8679  page saved by t_page
 };
 
 extern GlobalWork* pG;

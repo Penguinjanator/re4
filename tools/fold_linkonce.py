@@ -6,14 +6,23 @@ The game's SN linker handled linkonce sections in a way ngcld (with our linker s
     was kept, appended to that unit's .rodata in emission order; the weak symbol resolves to the
     first copy program-wide. We append them to .rodata here (symbols stay weak).
   * .gnu.linkonce.t.*  (template instantiations, out-of-line inline functions, implicit
-    destructors): exactly one copy exists in the DOL, inside the owning unit's .text stream. The
-    owning unit spells those out (explicit instantiation / explicit definition), so every weak
-    linkonce copy is dropped here and its symbols become weak undefined references.
+    destructors): exactly one copy exists in the DOL, appended to the owning unit's .text in
+    emission order. A linkonce function that sym_map.tsv lists for this unit is appended to
+    .text here; every other copy is dropped and its symbols become weak undefined references
+    (resolved to the owning unit's copy at link time).
 
-usage: fold_linkonce.py <object.o>     (rewrites the object in place)
+usage: fold_linkonce.py --unit game/foo.cpp <object.o>     (rewrites the object in place)
 """
+import argparse
+import os
 import struct
 import sys
+
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from sync_symbols import demangle_v2  # noqa: E402
+
+ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+VER = os.environ.get("RE4_VERSION", "G4BE08")
 
 SHT_NULL = 0
 SHT_PROGBITS = 1
@@ -84,16 +93,36 @@ class Elf:
             f.write(out)
 
 
+def unit_text_functions(unit):
+    """Demangled names of the .text functions the DOL has in this unit."""
+    names = set()
+    with open(os.path.join(ROOT, "config", VER, "sym_map.tsv")) as f:
+        next(f)
+        for line in f:
+            addr, size, sec, u, scope, name, dn = line.rstrip("\n").split("\t")
+            if u == unit and sec == ".text":
+                names.add(dn if dn and dn != "." else name)
+    return names
+
+
 def main():
-    if len(sys.argv) != 2:
-        sys.exit(__doc__)
-    path = sys.argv[1]
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--unit", required=True)
+    ap.add_argument("object")
+    args = ap.parse_args()
+    path = args.object
     elf = Elf(open(path, "rb").read())
     if not any(n.startswith(".gnu.linkonce.") for n in elf.names):
         return
+    owned = unit_text_functions(args.unit)
 
     symtab = elf.names.index(".symtab")
     syms = [list(struct.unpack(">IIIBBH", elf.contents[symtab][o : o + 16])) for o in range(0, len(elf.contents[symtab]), 16)]
+    strtab = elf.sections[symtab][6]
+
+    def sym_name(s):
+        strs = elf.contents[strtab]
+        return strs[s[0] : strs.index(b"\0", s[0])].decode()
 
     def rela_for(shndx):
         for i, sh in enumerate(elf.sections):
@@ -148,17 +177,43 @@ def main():
                 dead.add(rela)
             dead.add(i)
         elif kind == "t":
+            funcs = [s for s in syms if s[5] == i and (s[3] & 0xF) != STT_SECTION]
+            if any((demangle_v2(sym_name(s)) or sym_name(s)) in owned for s in funcs):
+                # this unit owns the only copy: append to .text
+                text = elf.names.index(".text")
+                body = elf.contents[text]
+                align = max(elf.sections[i][8], 4)
+                base = (len(body) + align - 1) // align * align
+                body += b"\0" * (base - len(body))
+                body += elf.contents[i]
+                for s in funcs:
+                    s[5] = text
+                    s[1] += base
+                rela = rela_for(i)
+                if rela is not None:
+                    dst = rela_for(text)
+                    if dst is None:
+                        dst = elf.add_section(".rela.text", SHT_RELA, 0, link=symtab, info=text, align=4, entsize=12)
+                    out = bytearray()
+                    for o in range(0, len(elf.contents[rela]), 12):
+                        r_off, r_info, r_add = struct.unpack(">IIi", elf.contents[rela][o : o + 12])
+                        sym, rtype = r_info >> 8, r_info & 0xFF
+                        if (syms[sym][3] & 0xF) == STT_SECTION and syms[sym][5] == i:
+                            sym = section_symbol(text)
+                            r_add += base
+                        out += struct.pack(">IIi", r_off + base, (sym << 8) | rtype, r_add)
+                    elf.contents[dst] += out
+                    dead.add(rela)
+                dead.add(i)
+                continue
             rela = rela_for(i)
             if rela is not None:
                 dead.add(rela)
-            for s in syms:
-                if s[5] == i:
-                    if (s[3] & 0xF) == STT_SECTION:
-                        continue  # dropped below
-                    s[5] = SHN_UNDEF
-                    s[1] = 0
-                    s[2] = 0
-                    s[3] = (STB_WEAK << 4) | (s[3] & 0xF)
+            for s in funcs:
+                s[5] = SHN_UNDEF
+                s[1] = 0
+                s[2] = 0
+                s[3] = (STB_WEAK << 4) | (s[3] & 0xF)
             dead.add(i)
         else:
             sys.exit(f"fold_linkonce: {path}: unhandled section {name}")

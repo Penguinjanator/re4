@@ -43,6 +43,14 @@ mark it Matching.
 - `include/dolphin/*.h` are CodeWarrior-only (SDK units); game code uses `include/vec.h` for Vec/Mtx/PS*.
 - Loops that search and set: `for (...) { if (hit) { ...; break; } }`; a `return` inside the loop gives a different tail.
 - Zeroed local arrays (`T* a[3] = {NULL, NULL, NULL}`) become a `memset` libcall with `crclr cr1eq`.
+- GCC 2.95 puts vtables of classes without a key function and template/inline instantiations in
+  `.gnu.linkonce.*` sections; `tools/fold_linkonce.py` (post-build for all `game/` objects) folds them
+  back the way the original linker did. Classes are declared in `include/cManager.h` (`cUnit`,
+  `cManager<T>`), `model.h` (`cCoord`, `cModel`), `em.h`, `obj.h`, `esp.h`, `light.h`.
+- `cUnit::operator delete` takes `unsigned int`, not `u32` (`u32` is `unsigned long`).
+- Header-owned strings (`cManager` messages, `__FILE__` from inline range checks via `#line`) appear in
+  each unit's `.rodata`; unused inline functions still emit their strings.
+- Field names must be agreed across units: a header field may only be renamed if you update every user.
 - Static locals show as `name.NNN` in objdiff; the DECL_UID suffix cannot be reproduced and is ignored by the report.
 
 - Struct field offsets come from the load/store displacements; write real structs, not casts.

@@ -11,6 +11,7 @@ public:
     u8 pad_1D8[0xDE0 - 0x1D8];
 
     cEm();
+    virtual ~cEm() {}
 };
 
 class cEmMgr : public cManager<cEm> {

@@ -640,7 +640,7 @@ void CameraControl::areaHitCheck()
     for (i = 0; i < d->numArea; i++, rec++) {
         area = rec->area;
         cut = rec->cut;
-        if (areaAttr(area, 0x20, attr) && areaHit(&pPL->trans, area, pPL->rot.y)) {
+        if (areaAttr(area, 0x20, attr) && areaHit(&pPL->pos, area, pPL->rot.y)) {
             if ((flags_2C & 0x10) || cut->camera_no != camera_no) {
                 switchCamera(rec);
             }
@@ -673,7 +673,7 @@ void CameraControl::areaHitCheck()
 
     if (area_no != -1 && !(flags_2C & 0x10)) {
         area = area_rec->area;
-        if (areaAttr(area, area_attr, attr) && areaHit(&pPL->trans, area, pPL->rot.y)) {
+        if (areaAttr(area, area_attr, attr) && areaHit(&pPL->pos, area, pPL->rot.y)) {
             return;
         }
     }
@@ -682,7 +682,7 @@ void CameraControl::areaHitCheck()
     for (i = 0; i < d->numArea; i++, rec++) {
         area = rec->area;
         cut = rec->cut;
-        if (areaAttr(area, area_attr, attr) && areaHit(&pPL->trans, area, pPL->rot.y)) {
+        if (areaAttr(area, area_attr, attr) && areaHit(&pPL->pos, area, pPL->rot.y)) {
             if ((flags_2C & 0x10) || cut->camera_no != camera_no) {
                 switchCamera(rec);
             }
@@ -821,7 +821,7 @@ void CameraControl::Check()
     if (pPL->pWep && pPL->pWep->x5) {
         return;
     }
-    PSVECSubtract(&pPL->getPartsPtr(1)->pos, &pPL->trans, &d);
+    PSVECSubtract(&pPL->getPartsPtr(1)->pos, &pPL->pos, &d);
     if (state != 0xB) {
         if (d.y <= 500.0f) {
             interp.set(3, &camera.param);
@@ -958,9 +958,9 @@ void CameraControl::CalcAim(CameraCut* cut)
         break;
     default:
         if (cut->flags & 1) {
-            PSVECAdd(&pPL->trans, &cut->aim_ofs, &aim);
+            PSVECAdd(&pPL->pos, &cut->aim_ofs, &aim);
         } else {
-            PSVECAdd(&pPL->trans, &offset0, &aim);
+            PSVECAdd(&pPL->pos, &offset0, &aim);
         }
         break;
     }

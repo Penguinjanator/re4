@@ -8,6 +8,8 @@
 // game/math_sub.cpp
 void RotMatrix(Mtx m, Vec* rot);
 void RotMatrixZXY(Mtx m, Vec* rot);
+void TransMatrix(Mtx m, Vec* pos);
+void ScaleMatrix(Mtx m, Vec* scale);
 
 // Debug-checked normalize: zero vectors are reported with the caller's file/line.
 #define VECNormalize(src, dst)                                                          \

@@ -209,7 +209,17 @@ def main():
             try:
                 s[1] = shift(s[5], s[1])
             except ValueError as e:
-                sys.exit(f"strip_unused: symbol {sym_name(s)}: {e}")
+                if (s[3] & 0xF) in (STT_FUNC, STT_OBJECT):
+                    sys.exit(f"strip_unused: symbol {sym_name(s)}: {e}")
+                # untyped label (gcc2_compiled., .LC*) inside a stripped function: keep it at
+                # the point where the removed range collapsed to
+                d = 0
+                for start, end in removed[s[5]]:
+                    if end <= s[1]:
+                        d += end - start
+                    elif start <= s[1]:
+                        d += s[1] - start
+                s[1] -= d
         remap[i] = len(new_syms)
         new_syms.append(s)
     elf.contents[symtab] = bytearray().join(struct.pack(">IIIBBH", *s) for s in new_syms)

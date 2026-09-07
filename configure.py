@@ -354,13 +354,20 @@ for unit in UNITS:
     if unit.startswith("game/"):
         # GCC 2.95 linkonce sections (vtables, template instantiations, out-of-line inlines) are
         # folded into .rodata / dropped the way the original link laid them out (see the tool).
+        # The newlib C units (game/*.c) were built with -ffunction-sections: functions nobody
+        # referenced were dropped by the linker while their .rodata strings stayed; strip them too.
+        post_build = [f"$python tools/fold_linkonce.py --unit {unit} {{out}}"]
+        post_build_implicit = [Path("tools/fold_linkonce.py"), Path("config") / config.version / "sym_map.tsv"]
+        if unit.endswith(".c"):
+            post_build.insert(0, f"$python tools/strip_unused.py --unit {name} {{out}}")
+            post_build_implicit.append(Path("tools/strip_unused.py"))
         game_objects.append(
             Object(
                 status,
                 name,
                 source=unit,
-                post_build=[f"$python tools/fold_linkonce.py --unit {unit} {{out}}"],
-                post_build_implicit=[Path("tools/fold_linkonce.py"), Path("config") / config.version / "sym_map.tsv"],
+                post_build=post_build,
+                post_build_implicit=post_build_implicit,
             )
         )
     elif unit in SDK_UNIT_LIB:
