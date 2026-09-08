@@ -377,6 +377,14 @@ mark it Matching.
 - VLA (`T* tbl[n]`) gives `stwux` plus `mr r25,r1` / `mr r1,r25`; `alloca` has no restore.
 - Empty `C() {}` / `~C() {}` produce the empty `__static_initialization_and_destruction_0` and both
   `global constructors/destructors keyed to` functions.
+- Case bodies identical to `default` written as separate `case N:` arms survive as explicit
+  `cmpwi N; beq default`; cases grouped with `default:` vanish but still count in the tree balance.
+- A byte field passed straight to a call whose prototype takes `u8` yields `lbz; clrlwi; mr` copies;
+  with an `int` prototype the load folds into the argument register.
+- A run of literal zero stores plus one `= zeroVar` store: the `zeroVar` store is emitted first, the
+  literals follow in source order.
+- A `static const Vec` shared by two functions with one `.rodata` copy lives in an inline helper
+  parsed before both.
 - Static locals show as `name.NNN` in objdiff; the DECL_UID suffix cannot be reproduced and is ignored by the report.
 - Unexplained words in `.rodata` (zero words, stray floats) are usually the constant pool of a function
   the original linker dead-stripped (bodies gone, pools kept, `STRIP_UNUSED` in objects.py): write a

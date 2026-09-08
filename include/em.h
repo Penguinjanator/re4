@@ -139,7 +139,9 @@ public:
     u8 x38D;              // 0x38D  (db_cam "set=")
     u8 pad_38E[0x398 - 0x38E];
     u8 emsetNo;           // 0x398
-    u8 pad_399[0x3B8 - 0x399];
+    u8 pad_399[0x3A8 - 0x399];
+    Vec x3A8;             // 0x3A8  (objTrolley objTrolleySetAdjust adds the car movement to it)
+    u8 pad_3B4[4];
     int dmgType;          // 0x3B8  (pl_sub SetPlDamage/SetSubDamage first argument)
     u8 pad_3BC[8];
     u32 status;           // 0x3C4  setStatus / clearStatus / checkStatus bits (bit0 = in battle, bit1, bit11)
@@ -207,7 +209,9 @@ public:
     class cMotBase* pMotBase;  // 0x7A4  (0x38 bytes)
     u8 pad_7A8[4];
     Vec bustBase[3];      // 0x7AC  Ashley: rest positions of parts 0x1D, 0x1E, 0x1A (pl_ashley moveBust)
-    u8 pad_7D0[0xD60 - 0x7D0];
+    u8 pad_7D0[0x9BC - 0x7D0];
+    f32 x9BC;             // 0x9BC  (objTrolley objTrolleyFallEM: rot.y when thrown off the car)
+    u8 pad_9C0[0xD60 - 0x9C0];
     Mtx rackMat;          // 0xD60  cEmRack push range matrix (setRange: rot * trans of the rack)
     Mtx rackInvMat;       // 0xD90  its inverse (adjustRange transforms the position into range space)
     f32 rackRange[4];     // 0xDC0  cEmRack push limits (adjustRange dir 0: [1], 1: -[2], 2: [0], 3: -[3])

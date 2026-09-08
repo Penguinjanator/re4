@@ -18,11 +18,13 @@ unsigned int strlen(const char* s);
 char* strcpy(char* dst, const char* src);
 }
 
+// Not the do { } while (0) form of the other units: the OSReport stays in the caller's block and
+// the preceding pLog->err argument loads are scheduled against it (setData).
 #define HALT()                                                    \
-    do {                                                          \
+    {                                                             \
         OSReport("HALT %s(%d)\n", __FILE__, __LINE__);            \
         *(volatile u32*) 0x11111111 = 0;                          \
-    } while (0)
+    }
 
 // The debug bar primitive is 0x20 bytes here (tile[2] is 0x40).
 struct DcTile {
@@ -39,12 +41,12 @@ struct DcTile {
 
 cDataCtrl DC;
 
-#line 50 "D:/Bio4/Prog/datactrl.cpp"
+#line 52 "D:/Bio4/Prog/datactrl.cpp"
 inline void cDataUnit::setName(char* s)
 {
     if (s != NULL) {
         if (strlen(s) > 0x1F) {
-            pLog->err(0, 0, "DATA NAME STRING OVER: %s", s);
+            pLog->err(0, 0, "DATANAME STRING OVER: %s", s);
             HALT();
         }
         strcpy(name, s);
@@ -174,6 +176,13 @@ void cDataUnit::setLoadToMram()
     int no;
 
     switch (condition) {
+    case 1:
+    case 3:
+    case 5:
+    case 6:
+    case 7:
+    case 8:
+        break;
     case 0:
         if (fixAddr == 0) {
             if (arg == 0) {
@@ -278,6 +287,13 @@ void cDataUnit::setLoadToAram()
     int no;
 
     switch (condition) {
+    case 1:
+    case 3:
+    case 5:
+    case 6:
+    case 7:
+    case 8:
+        break;
     case 0:
         if (arg == 0) {
             dest = DC.getAramFree(size);
@@ -343,22 +359,22 @@ void cDataUnit::setLoadToAram()
 #line 452 "D:/Bio4/Prog/datactrl.cpp"
                 dest = (u32) MEM_ALLOC(size, 0, 0xD);
             }
-            if (dest == 0) {
+            if (dest != 0) {
+                setMallocInfo(1, (void*) dest);
+                no = Aram.DmaTransReq(1, (u32) addr, dest, size, wait);
+                reqNo = no;
+                if (no >= 0) {
+                    command = 0;
+                    condition = 7;
+                    OSReport("DC:%s set ARAM_TO_ARAM\n", name);
+                } else {
+                    err = 3;
+                    checkMallocRelease();
+                    pLog->err(0, 0, "cDataUnit::setLoadToAram command error");
+                }
+            } else {
                 setClear();
                 setCommand(2, 0, 0);
-                break;
-            }
-            setMallocInfo(1, (void*) dest);
-            no = Aram.DmaTransReq(1, (u32) addr, dest, size, wait);
-            reqNo = no;
-            if (no >= 0) {
-                command = 0;
-                condition = 7;
-                OSReport("DC:%s set ARAM_TO_ARAM\n", name);
-            } else {
-                err = 3;
-                checkMallocRelease();
-                pLog->err(0, 0, "cDataUnit::setLoadToAram command error");
             }
         }
         break;
@@ -369,32 +385,32 @@ int cDataUnit::setClear()
 {
     command = 0;
     switch (condition) {
-    case 1:
-    case 3:
-        Dvd.ReadCancel(reqNo, 0x40);
-        Dvd.ReadCheck(reqNo, NULL, NULL, NULL);
-        OSReport("DC:%s set CLEAR\n", name);
-        break;
     case 5:
     case 6:
     case 7:
         Aram.DmaCancel(reqNo);
-        OSReport("DC:%s set CLEAR\n", name);
         break;
     case 2:
     case 4:
     case 8:
-        OSReport("DC:%s set CLEAR\n", name);
+        break;
+    case 1:
+    case 3:
+        Dvd.ReadCancel(reqNo, 0x40);
+        Dvd.ReadCheck(reqNo, NULL, NULL, NULL);
         break;
     case 0:
-        break;
+        goto clear;
     default:
-        return 1;
+        goto ret;
     }
+    OSReport("DC:%s set CLEAR\n", name);
+clear:
     checkMallocRelease();
-    condition = 0;
     addr = NULL;
     dest = 0;
+    condition = 0;
+ret:
     return 1;
 }
 
@@ -534,6 +550,8 @@ void cDataUnit::checkCommand()
 void cDataUnit::checkCondition()
 {
     switch (getCondition()) {
+    case 0:
+        break;
     case 1:
         checkLoadToMram();
         break;
@@ -570,6 +588,7 @@ u32 cDataCtrl::getAramFree(u32 size)
     AramArea tmp;
     int n;
     int i, j;
+    u32 k;
     u32 base;
     cDataUnit* u;
 
@@ -578,59 +597,62 @@ u32 cDataCtrl::getAramFree(u32 size)
         u = &unit[i];
         if (u->chk(1) != 0) {
             switch (u->getCondition()) {
-            case 3:
-            case 6:
-                tbl[n].addr = u->dest;
+            case 7:
+                tbl[n].addr = u->arg;
                 tbl[n].size = u->size;
                 n++;
-                break;
+                // fallthrough
             case 4:
             case 5:
                 tbl[n].addr = (u32) u->addr;
                 tbl[n].size = u->size;
                 n++;
                 break;
-            case 7:
-                tbl[n].addr = u->arg;
+            case 3:
+            case 6:
+                tbl[n].addr = u->dest;
                 tbl[n].size = u->size;
                 n++;
-                tbl[n].addr = (u32) u->addr;
-                tbl[n].size = u->size;
-                n++;
+                break;
+            case 0:
+            case 1:
+            case 2:
+            case 8:
                 break;
             }
         }
     }
-    if (n == 0) {
-        return ARAM_FREE_BASE;
-    }
-    for (i = 0; i < n - 1; i++) {
-        for (j = i; j < n; j++) {
-            if (tbl[i].addr > tbl[j].addr) {
-                tmp = tbl[i];
-                tbl[i] = tbl[j];
-                tbl[j] = tmp;
-            }
-        }
-    }
-    base = ARAM_FREE_BASE;
-    for (i = 0; i < n; i++) {
-        if ((int) (tbl[i].addr - base) >= (int) size) {
-            for (u = unit; u <= &unit[31]; u++) {
-                if (u->chk(1) != 0 && base == u->dest) {
-#line 852 "D:/Bio4/Prog/datactrl.cpp"
-                    HALT();
+    if (n != 0) {
+        for (i = 0; i < n - 1; i++) {
+            for (j = i; j < n; j++) {
+                if (tbl[i].addr > tbl[j].addr) {
+                    tmp = tbl[j];
+                    tbl[j] = tbl[i];
+                    tbl[i] = tmp;
                 }
             }
-            return base;
         }
-        base = tbl[i].addr + tbl[i].size;
+        base = ARAM_FREE_BASE;
+        for (i = 0; i < n; i++) {
+            if ((int) (tbl[i].addr - base) >= (int) size) {
+                for (k = 0; k < 32; k++) {
+                    u = &unit[k];
+                    if (u->chk(1) != 0 && base == u->dest) {
+#line 852 "D:/Bio4/Prog/datactrl.cpp"
+                        HALT();
+                    }
+                }
+                return base;
+            }
+            base = tbl[i].addr + tbl[i].size;
+        }
+        aramEnd = base + size;
+        if (aramEnd > ARAM_END - 1) {
+            return 0;
+        }
+        return base;
     }
-    aramEnd = base + size;
-    if (aramEnd > ARAM_END - 1) {
-        return 0;
-    }
-    return base;
+    return ARAM_FREE_BASE;
 }
 
 void cDataCtrl::init()
@@ -643,12 +665,14 @@ void cDataCtrl::init()
 void cDataCtrl::initDataUnit()
 {
     cDataUnit* u;
+    u32 i;
 
     aramEnd = ARAM_FREE_BASE;
     setAramSort(1);
     xA08 = 1;
     dbgHeap = 0;
-    for (u = unit; u <= &unit[31]; u++) {
+    for (i = 0; i < 32; i++) {
+        u = &unit[i];
         memclr_asm(u, sizeof(cDataUnit));
         u->flag &= ~1;
         u->setCondition(0);
@@ -661,7 +685,7 @@ void cDataCtrl::initDataUnit()
 
 void cDataCtrl::deleteAll()
 {
-    int i;
+    u32 i;
 
     for (i = 0; i < 32; i++) {
         unit[i].setDelete();
@@ -689,16 +713,18 @@ cDataUnit* cDataCtrl::setData(char* name)
 cDataUnit* cDataCtrl::getNewUnit()
 {
     cDataUnit* u;
+    u32 i;
 
-    for (u = unit; u <= &unit[31]; u++) {
+    for (i = 0; i < 32; i++) {
+        u = &unit[i];
         if (u->chk(1) == 0) {
             u->flag |= 1;
             u->setCondition(0);
             u->setCommand(0, 0, 0);
-            u->addr = NULL;
             u->err = 0;
             u->size = 0;
             u->name[0] = 0;
+            u->addr = NULL;
             return u;
         }
     }
@@ -724,49 +750,53 @@ int cDataCtrl::checkAramSort()
         return 0;
     }
     n = 0;
-    for (i = 0, u = unit; i < 32; i++, u++) {
+    for (i = 0; i < 32; i++) {
+        u = &unit[i];
         if (u->chk(1) != 0) {
-            if (u->getCommand() != 0) {
+            if (u->getCommand() == 0) {
+                switch (u->getCondition()) {
+                case 0:
+                case 1:
+                case 2:
+                    break;
+                case 4:
+                    tbl[n] = u;
+                    n++;
+                    break;
+                case 3:
+                case 5:
+                case 6:
+                case 7:
+                    return 0;
+                case 8:
+                    break;
+                }
+            } else {
                 return 0;
             }
-            switch (u->getCondition()) {
-            case 0:
-            case 1:
-            case 2:
-                break;
-            case 4:
-                tbl[n++] = u;
-                break;
-            case 3:
-            case 5:
-            case 6:
-            case 7:
-                return 0;
+        }
+    }
+    if (n != 0) {
+        for (i = 0; i < n - 1; i++) {
+            for (j = i; j < n; j++) {
+                if ((u32) tbl[i]->addr > (u32) tbl[j]->addr) {
+                    tmp = tbl[j];
+                    tbl[j] = tbl[i];
+                    tbl[i] = tmp;
+                }
             }
         }
-    }
-    if (n == 0) {
-        return 0;
-    }
-    for (i = 0; i < n - 1; i++) {
-        for (j = i; j < n; j++) {
-            if ((u32) tbl[i]->addr > (u32) tbl[j]->addr) {
-                tmp = tbl[i];
-                tbl[i] = tbl[j];
-                tbl[j] = tmp;
+        base = ARAM_FREE_BASE;
+        for (i = 0; i < n; i++) {
+            if (base < (u32) tbl[i]->addr) {
+                tbl[i]->setCommand(2, base, 0);
+                tbl[i]->setLoadToAram();
+                return 1;
             }
+            base += tbl[i]->size;
         }
+        aramEnd = base;
     }
-    base = ARAM_FREE_BASE;
-    for (i = 0; i < n; i++) {
-        if (base < (u32) tbl[i]->addr) {
-            tbl[i]->setCommand(2, base, 0);
-            tbl[i]->setLoadToAram();
-            return 1;
-        }
-        base += tbl[i]->size;
-    }
-    aramEnd = base;
     return 0;
 }
 
@@ -778,6 +808,8 @@ void cDataCtrl::dispDebug()
     int y;
     cDataUnit* u;
     u32 x0, x1;
+    u32 i;
+    int x;
 
     dispBase = ARAM_FREE_BASE;
     dispEnd = ARAM_END;
@@ -790,7 +822,9 @@ void cDataCtrl::dispDebug()
     }
     eprintf(0x28, 0x2E, 0, 0x17, "[ARAM DATA DISP]");
     y = 0x2E;
-    for (u = unit; u <= &unit[31]; u++) {
+    x = 0x1F8;
+    for (i = 0; i < 32; i++) {
+        u = &unit[i];
         if (u->chk(1) != 0) {
             u32 addr = 0;
             u32 size = 0;
@@ -815,7 +849,7 @@ void cDataCtrl::dispDebug()
             x1 = (u32) ((f32) (addr + size - dispBase) / (f32) (dispEnd - dispBase) * 400.0f);
             if (over == 0) {
                 p->code = GPU_TILE;
-                p->x0 = 0x1F8;
+                p->x0 = x;
                 p->y0 = x0 + 0x1E;
                 p->w = 5;
                 p->h = x1 - x0;
@@ -835,7 +869,7 @@ void cDataCtrl::dispDebug()
     if (over == 1) {
         x0 = (u32) ((f32) (aramEnd - dispBase) * 400.0f / (f32) (dispEnd - dispBase));
         tile[0].code = GPU_TILE;
-        tile[0].x0 = 0x1F8;
+        tile[0].x0 = x;
         tile[0].y0 = 0x1E;
         tile[0].w = 5;
         tile[0].h = x0;
@@ -847,7 +881,7 @@ void cDataCtrl::dispDebug()
         AddPrim(&MainOt[1], (u32*) &tile[0]);
     }
     tile[1].code = GPU_TILE;
-    tile[1].x0 = 0x1F8;
+    tile[1].x0 = x;
     tile[1].y0 = 0x1E;
     tile[1].w = 5;
     tile[1].h = 400;

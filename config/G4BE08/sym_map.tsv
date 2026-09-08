@@ -266,7 +266,7 @@ address	size	section	unit	scope	name	demangled
 0x800199A8	0x278	.text	game/emwep.cpp	global	emWepShotHitWindowCk	emWepShotHitWindowCk
 0x80019C20	0xFC	.text	game/emwep.cpp	global	cEmWep_setCloth	cEmWep::setCloth
 0x80019D1C	0xA8	.text	game/emwep.cpp	global	cEmWep_moveCloth	cEmWep::moveCloth
-0x80019DC4	0x370	.text	game/emwep.cpp	global	cEmWep_setParentMatCalc	cEmWep::setParentMatCalc
+0x80019DC4	0x370	.text	game/emwep.cpp	global	setParentMatCalc__6cEmWepi	cEmWep::setParentMatCalc
 0x8001A134	0x170	.text	game/emwep.cpp	global	createBack__t8cManager1Z3cEmi	cManager<cEm>::createBack
 0x8001A2A4	0x20	.text	game/emwep.cpp	global	cEmWep_dt_cEmWep	cEmWep::~cEmWep
 0x8001A2C4	0xAC	.text	game/item.cpp	global	healing	healing
@@ -872,17 +872,17 @@ address	size	section	unit	scope	name	demangled
 0x80041C50	0x20	.text	game/objSubWep.cpp	global	cObjGreFire_dt_cObjGreFire	cObjGreFire::~cObjGreFire
 0x80041C70	0x20	.text	game/objSubWep.cpp	global	cObjGreLight_dt_cObjGreLight	cObjGreLight::~cObjGreLight
 0x80041C90	0x20	.text	game/objSubWep.cpp	global	cObjEgg_dt_cObjEgg	cObjEgg::~cObjEgg
-0x80041CB0	0x228	.text	game/objTrolley.cpp	global	SetTrolley	SetTrolley
-0x80041ED8	0x4C	.text	game/objTrolley.cpp	global	cObjTrolley_move	cObjTrolley::move
+0x80041CB0	0x228	.text	game/objTrolley.cpp	global	SetTrolley__FPvT0P3VecT2	SetTrolley
+0x80041ED8	0x4C	.text	game/objTrolley.cpp	global	move__11cObjTrolley	cObjTrolley::move
 0x80041F24	0xCC	.text	game/objTrolley.cpp	global	objTrolley_R0_Set	objTrolley_R0_Set
 0x80041FF0	0x35C	.text	game/objTrolley.cpp	global	objTrolley_R0_Move	objTrolley_R0_Move
 0x8004234C	0x14C	.text	game/objTrolley.cpp	global	objTrolley_R0_Break	objTrolley_R0_Break
-0x80042498	0x48	.text	game/objTrolley.cpp	local	objTrolleySatClear	objTrolleySatClear
+0x80042498	0x48	.text	game/objTrolley.cpp	local	objTrolleySatClear__FP11cObjTrolley	objTrolleySatClear
 0x800424E0	0x29C	.text	game/objTrolley.cpp	global	objTrolleySatSet	objTrolleySatSet
 0x8004277C	0x54	.text	game/objTrolley.cpp	global	objTrolleyEscapeAction	objTrolleyEscapeAction
 0x800427D0	0x50C	.text	game/objTrolley.cpp	global	plobjTrolleyEscape	plobjTrolleyEscape
 0x80042CDC	0xFC	.text	game/objTrolley.cpp	global	plobjTrolleyDie	plobjTrolleyDie
-0x80042DD8	0x6C	.text	game/objTrolley.cpp	global	cObjTrolley_setMotion	cObjTrolley::setMotion
+0x80042DD8	0x6C	.text	game/objTrolley.cpp	global	setMotion__11cObjTrolleyPPv	cObjTrolley::setMotion
 0x80042E44	0x60	.text	game/objTrolley.cpp	global	objTrolleyPushMtx	objTrolleyPushMtx
 0x80042EA4	0x10C	.text	game/objTrolley.cpp	global	objTrolleyGetTrolleyNo	objTrolleyGetTrolleyNo
 0x80042FB0	0x114	.text	game/objTrolley.cpp	global	objTrolleyGetTrolleyNo2	objTrolleyGetTrolleyNo2
@@ -890,15 +890,15 @@ address	size	section	unit	scope	name	demangled
 0x80043240	0x15C	.text	game/objTrolley.cpp	global	objTrolleySetAdjust	objTrolleySetAdjust
 0x8004339C	0x24	.text	game/objTrolley.cpp	global	objTrolleyMoveAdjustPL	objTrolleyMoveAdjustPL
 0x800433C0	0xAC	.text	game/objTrolley.cpp	global	objTrolleyMoveAdjustEM	objTrolleyMoveAdjustEM
-0x8004346C	0x90	.text	game/objTrolley.cpp	global	cObjTrolley_ckTrolleyRide	cObjTrolley::ckTrolleyRide
-0x800434FC	0xB4	.text	game/objTrolley.cpp	global	cObjTrolley_ckTrolleyRideAdjust	cObjTrolley::ckTrolleyRideAdjust
-0x800435B0	0x10	.text	game/objTrolley.cpp	global	cObjTrolley_setStart	cObjTrolley::setStart
-0x800435C0	0x14	.text	game/objTrolley.cpp	global	cObjTrolley_set2ndStart	cObjTrolley::set2ndStart
-0x800435D4	0x18	.text	game/objTrolley.cpp	global	cObjTrolley_ckStop	cObjTrolley::ckStop
+0x8004346C	0x90	.text	game/objTrolley.cpp	global	ckTrolleyRide__11cObjTrolleyP3VecPUcT1	cObjTrolley::ckTrolleyRide
+0x800434FC	0xB4	.text	game/objTrolley.cpp	global	ckTrolleyRideAdjust__11cObjTrolleyP3VecT1	cObjTrolley::ckTrolleyRideAdjust
+0x800435B0	0x10	.text	game/objTrolley.cpp	global	setStart__11cObjTrolley	cObjTrolley::setStart
+0x800435C0	0x14	.text	game/objTrolley.cpp	global	set2ndStart__11cObjTrolley	cObjTrolley::set2ndStart
+0x800435D4	0x18	.text	game/objTrolley.cpp	global	ckStop__11cObjTrolley	cObjTrolley::ckStop
 0x800435EC	0x154	.text	game/objTrolley.cpp	global	objTrolleyHitCk	objTrolleyHitCk
 0x80043740	0xA4	.text	game/objTrolley.cpp	global	objTrolleyFallEM	objTrolleyFallEM
 0x800437E4	0xA8	.text	game/objTrolley.cpp	global	objTrolleyLostEM	objTrolleyLostEM
-0x8004388C	0x20	.text	game/objTrolley.cpp	global	cObjTrolley_dt_cObjTrolley	cObjTrolley::~cObjTrolley
+0x8004388C	0x20	.text	game/objTrolley.cpp	global	_._11cObjTrolley	cObjTrolley::~cObjTrolley
 0x800438AC	0x98	.text	game/objWep.cpp	global	__7cObjWep	cObjWep::cObjWep
 0x80043944	0x1E4	.text	game/objWep.cpp	global	move__7cObjWep	cObjWep::move
 0x80043B28	0xB0	.text	game/objWep.cpp	global	setDisp__7cObjWepii	cObjWep::setDisp
@@ -7545,7 +7545,7 @@ address	size	section	unit	scope	name	demangled
 0x80222E88	0x28	.rodata	game/objSubWep.cpp	global	cUnit_virtual_table_80222E88	cUnit virtual table
 0x80222EB0	0x280	.rodata	game/objTrolley.cpp	global	lbl_80222EB0	.
 0x80223130	0x40	.rodata	game/objTrolley.cpp	global	_vt.11cObjTrolley	cObjTrolley virtual table
-0x80223170	0x28	.rodata	game/objTrolley.cpp	global	cUnit_virtual_table_80223170	cUnit virtual table
+0x80223170	0x28	.rodata	game/objTrolley.cpp	local	cUnit_virtual_table_80223170	cUnit virtual table
 0x80223198	0xB0	.rodata	game/objWep.cpp	global	lbl_80223198	.
 0x80223248	0x228	.rodata	game/objWep.cpp	global	ofs.1065	ofs.1065
 0x80223470	0x1A8	.rodata	game/objWep.cpp	global	lbl_80223470	.

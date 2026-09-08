@@ -63,6 +63,8 @@ public:
     void move();
     void msgWindow(int mode);
     void lifeMeterDisp(int sw);
+    // sscrn reaches the count-down through this: `&Cckpt` is computed first, then + 0xB0
+    CountDown* getCountDown() { return &countDown; }
 };
 
 extern Cockpit Cckpt;

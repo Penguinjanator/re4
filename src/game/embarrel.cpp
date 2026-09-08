@@ -43,6 +43,22 @@ static EmBarrelFunc EmBarrel_R1_move_tbl[3] = {
     emBarrel_R1_R227Roll,
 };
 
+// SetBarrel and SetR227Barrel share the failure report and the light area origin: both live in
+// inline helpers parsed before either function, which is where the string and `ofs` sit in .rodata
+// (before SetBarrel's own `size` and constant pool).
+static inline void barrelInitFailed(cEmBarrel* em)
+{
+    pLog->err(0, 0, "SetBarrel() failed.");
+    EmMgr.destroy(em);
+}
+
+static inline void barrelLightInit(cEmBarrel* em, const Vec* size)
+{
+    static const Vec ofs = { 0.0f, 0.0f, 0.0f };
+
+    em->lightInfo.init2(0, 1, &ofs, size, 0x10);
+}
+
 cEmBarrel* SetBarrel(void* bin, void* tpl, Vec* pos, Vec* rot, u8 type, int etcNo)
 {
     cEmBarrel* em;
@@ -62,8 +78,7 @@ cEmBarrel* SetBarrel(void* bin, void* tpl, Vec* pos, Vec* rot, u8 type, int etcN
         em->rot = *rot;
     }
     if (em->modelInit(bin, tpl) == 0) {
-        pLog->err(0, 0, "SetBarrel() failed.");
-        EmMgr.destroy(em);
+        barrelInitFailed(em);
         return 0;
     }
     em->type = type;
@@ -94,10 +109,9 @@ cEmBarrel* SetBarrel(void* bin, void* tpl, Vec* pos, Vec* rot, u8 type, int etcN
     }
     em->hpMax = em->hp = 1000;
     {
-        static const Vec ofs = { 0.0f, 0.0f, 0.0f };
         static const Vec size = { 2000.0f, 2000.0f, 2000.0f };
 
-        em->lightInfo.init2(0, 1, &ofs, &size, 0x10);
+        barrelLightInit(em, &size);
     }
     zero = 0;
     em->lockParts = zero;
@@ -108,9 +122,9 @@ cEmBarrel* SetBarrel(void* bin, void* tpl, Vec* pos, Vec* rot, u8 type, int etcN
     em->be_flag &= ~0x01000000;
     em->be_flag &= ~0x10;
     w->etcNo = etcNo;
-    w->flags = zero;
     w->sndId = 0;
     w->bombTimer = 0;
+    w->flags = zero;
     flg = GetEtcFlgPtr(etcNo, pG->room_id);
     if (flg && (*flg & 1)) {
         em->hp = 0;
@@ -153,8 +167,7 @@ cEmBarrel* SetR227Barrel(Vec* pos, Vec* rot)
         em->rot = *rot;
     }
     if (em->modelInit(ROOM_ARC_PTR(pG->pRoomArc, 0x20), ROOM_ARC_PTR(pG->pRoomArc, 0x21)) == 0) {
-        pLog->err(0, 0, "SetBarrel() failed.");
-        EmMgr.destroy(em);
+        barrelInitFailed(em);
         return 0;
     }
     em->type = 1;
@@ -171,10 +184,9 @@ cEmBarrel* SetR227Barrel(Vec* pos, Vec* rot)
     YarareInit((cEmHit*) em, -350.0f, 0.0f, 0.0f, 700.0f, 1250.0f, 1, 3);
     em->hpMax = em->hp = 1000;
     {
-        static const Vec ofs = { 0.0f, 0.0f, 0.0f };
         static const Vec size = { 4000.0f, 4000.0f, 4000.0f };
 
-        em->lightInfo.init2(0, 1, &ofs, &size, 0x10);
+        barrelLightInit(em, &size);
     }
     em->lockParts = zero;
     em->lockOfs.x = 0.0f;
@@ -185,9 +197,9 @@ cEmBarrel* SetR227Barrel(Vec* pos, Vec* rot)
     em->be_flag &= ~0x10;
     em->xFC = 1;
     em->xFD = 2;
-    em->xFE = 0;
+    w->flags = 0;
+    em->xFE = zero;
     em->xFF = 0;
-    w->flags = zero;
     return em;
 }
 
@@ -369,6 +381,8 @@ void emBarrelDmCk2(cEmBarrel* em)
     case 0x12:
     case 0x13:
     case 0x29:
+    case 0x2C:
+    case 0x2D:
     default:
         dmg = 9999;
         break;
@@ -452,8 +466,8 @@ void emBarrelSetBreak(cEmBarrel* em, int kind)
             SndCall(6, 3, &em->pos, 0, 0, em);
         }
     }
-    em->xFD = 1;
     em->xFC = 1;
+    em->xFD = 1;
     em->xFE = 0;
     em->xFF = 0;
 }
@@ -544,9 +558,9 @@ void emBarrel_R1_Break(cEmBarrel* em)
 void emBarrel_R1_R227Roll(cEmBarrel* em)
 {
     EmBarrelWork* w = EMBARREL_WK(em);
-    Vec* pos;
     cModel* p;
     f32 floor;
+    f32 ang;
     f32 dist;
     f32 spin;
 
@@ -557,8 +571,8 @@ void emBarrel_R1_R227Roll(cEmBarrel* em)
             em->pos.y = em->mat[1][3];
             em->pos.z = em->mat[2][3];
             Matrix2AxisAngle(em->mat, &em->rot);
-            em->xFD = 1;
             em->xFC = 1;
+            em->xFD = 1;
             em->xFE = 0;
             em->xFF = 0;
             return;
@@ -581,18 +595,17 @@ void emBarrel_R1_R227Roll(cEmBarrel* em)
             return;
         }
     default:
-        pos = &em->pos;
         if (w->rollSe) {
             if (w->seTimer) {
                 w->seTimer--;
             } else {
-                w->sndId = SndCall(6, 6, pos, 0, 0, em);
+                w->sndId = SndCall(6, 6, &em->pos, 0, 0, em);
                 w->seTimer = 30;
             }
         }
         w->spd.y -= 10.0f;
-        PSVECAdd(pos, &w->spd, pos);
-        floor = EatMgr.getFloor(pos, 600.0f, 100000.0f, 0, 0);
+        PSVECAdd(&em->pos, &w->spd, &em->pos);
+        floor = EatMgr.getFloor(&em->pos, 600.0f, 100000.0f, 0, 0);
         if (em->pos.y < floor + w->floorOfs) {
             em->pos.y = floor + w->floorOfs;
             w->spd.y *= -0.3f;
@@ -602,10 +615,11 @@ void emBarrel_R1_R227Roll(cEmBarrel* em)
                 v = em->pos;
                 v.y -= w->floorOfs;
                 EstSet(0, -1, &v, 0, 1, 3, 0, 0, 0, 0);
-                SndCall(6, 2, pos, 0, 0, em);
+                SndCall(6, 2, &em->pos, 0, 0, em);
             }
         }
-        em->rot.y += Muku2(em->rot.y, GetXZAngle(&em->oldPos, pos), 0.012271847f);
+        ang = GetXZAngle(&em->oldPos, &em->pos);
+        em->rot.y += Muku2(em->rot.y, ang, 0.012271847f);
         em->rot.y = LIMIT_ANGLE(em->rot.y);
         dist = SQRTF((em->pos.x - em->oldPos.x) * (em->pos.x - em->oldPos.x) +
                      (em->pos.y - em->oldPos.y) * (em->pos.y - em->oldPos.y) +
@@ -618,7 +632,7 @@ void emBarrel_R1_R227Roll(cEmBarrel* em)
         p->rot.x += spin;
         p->rot.x = LIMIT_ANGLE(p->rot.x);
         RotMatrix(em->mat, &em->rot);
-        TransMatrix(em->mat, pos);
+        TransMatrix(em->mat, &em->pos);
         em->partsMatCalc();
         em->partsWorldCalc();
         if (emBarrelRollHitCk(em)) {
@@ -633,17 +647,19 @@ void emBarrel_R1_R227Roll(cEmBarrel* em)
 int emBarrelSetRollRoute(cEmBarrel* em)
 {
     EmBarrelWork* w = EMBARREL_WK(em);
-    EmiData* emi;
-    int idx;
+    u8* emi;
     int i;
+    int idx;
 
-    emi = (EmiData*) pG->pRoomEmi;
+    emi = (u8*) pG->pRoomEmi;
     if (emi == 0) {
         return 0;
     }
     idx = -1;
-    for (i = 0; i < ((EmiData*) pG->pRoomEmi)->n; i++) {
-        if (((EmiData*) pG->pRoomEmi)->entry[i].type == 6) {
+    for (i = 0; i < *(int*) pG->pRoomEmi; i++) {
+        u32 o = i * 0x40 + 8;
+
+        if (((u8*) pG->pRoomEmi)[o] == 6) {
             idx = i;
             break;
         }
@@ -652,29 +668,35 @@ int emBarrelSetRollRoute(cEmBarrel* em)
         return 0;
     }
     w->routeIdx = idx;
-    w->pRoute = &((EmiData*) pG->pRoomEmi)->entry[idx];
+    {
+        u32 o = idx * 0x40 + 8;
+
+        w->pRoute = (EmiEntry*) ((u8*) pGS->pRoomEmi + o);
+    }
     return 1;
 }
 
 int emBarrelSetRollSpd(cEmBarrel* em)
 {
     EmBarrelWork* w = EMBARREL_WK(em);
-    EmiData* emi;
+    u8* emi;
     EmiEntry* e;
     int idx;
     int i;
     f32 spd;
     Vec dir;
 
-    emi = (EmiData*) pG->pRoomEmi;
+    emi = (u8*) pG->pRoomEmi;
     if (emi == 0) {
         return 1;
     }
     e = w->pRoute;
     if ((e->pos.x - em->pos.x) * (e->pos.x - em->pos.x) + (e->pos.z - em->pos.z) * (e->pos.z - em->pos.z) < 250000.0f) {
         idx = -1;
-        for (i = w->routeIdx + 1; i < ((EmiData*) pG->pRoomEmi)->n; i++) {
-            if (((EmiData*) pG->pRoomEmi)->entry[i].type == 6) {
+        for (i = w->routeIdx + 1; i < *(int*) pG->pRoomEmi; i++) {
+            u32 o = i * 0x40 + 8;
+
+            if (((u8*) pG->pRoomEmi)[o] == 6) {
                 idx = i;
                 break;
             }
@@ -683,11 +705,16 @@ int emBarrelSetRollSpd(cEmBarrel* em)
             return 1;
         }
         w->routeIdx = idx;
-        e = w->pRoute = &((EmiData*) pG->pRoomEmi)->entry[idx];
+        {
+            u32 o = idx * 0x40 + 8;
+
+            e = (EmiEntry*) ((u8*) pGS->pRoomEmi + o);
+        }
+        w->pRoute = e;
     }
     PSVECSubtract(&e->pos, &em->pos, &dir);
     dir.y = 0.0f;
-#line 1017
+#line 1017 "D:/Bio4/Prog/embarrel.cpp"
     VECNormalize(&dir, &dir);
     spd = SQRTF(w->spd.x * w->spd.x + w->spd.z * w->spd.z) + 1.0f;
     if (spd < 50.0f) {
@@ -712,6 +739,7 @@ void cEmBarrel::setEff(u8 eff)
 void emBarrelSetBomb(cEmBarrel* em)
 {
     EmBarrelWork* w = EMBARREL_WK(em);
+    Camera* cam;
     cModel* p;
     Vec v;
     f32 d2;
@@ -741,10 +769,11 @@ void emBarrelSetBomb(cEmBarrel* em)
     w->bombTimer = 2;
     w->bombPos = v;
     w->bombRange = 6000.0f;
+    cam = &pGS->Cam;
     p = em->getPartsPtr(1);
-    d2 = (p->worldPos.x - pG->Cam.param.pos.x) * (p->worldPos.x - pG->Cam.param.pos.x) +
-         (p->worldPos.y - pG->Cam.param.pos.y) * (p->worldPos.y - pG->Cam.param.pos.y) +
-         (p->worldPos.z - pG->Cam.param.pos.z) * (p->worldPos.z - pG->Cam.param.pos.z);
+    d2 = (p->worldPos.x - cam->param.pos.x) * (p->worldPos.x - cam->param.pos.x) +
+         (p->worldPos.y - cam->param.pos.y) * (p->worldPos.y - cam->param.pos.y) +
+         (p->worldPos.z - cam->param.pos.z) * (p->worldPos.z - cam->param.pos.z);
     if (d2 < 400000000.0f) {
         power = 10.0f;
         if (d2 > 25000000.0f) {
@@ -763,6 +792,7 @@ void emBarrelSetBomb(cEmBarrel* em)
 void emBarrelSetBomb2(cEmBarrel* em)
 {
     EmBarrelWork* w = EMBARREL_WK(em);
+    Camera* cam;
     cModel* p;
     Vec v;
     f32 d2;
@@ -787,10 +817,11 @@ void emBarrelSetBomb2(cEmBarrel* em)
     w->bombTimer = 2;
     w->bombPos = v;
     w->bombRange = 4000.0f;
+    cam = &pGS->Cam;
     p = em->getPartsPtr(1);
-    d2 = (p->worldPos.x - pG->Cam.param.pos.x) * (p->worldPos.x - pG->Cam.param.pos.x) +
-         (p->worldPos.y - pG->Cam.param.pos.y) * (p->worldPos.y - pG->Cam.param.pos.y) +
-         (p->worldPos.z - pG->Cam.param.pos.z) * (p->worldPos.z - pG->Cam.param.pos.z);
+    d2 = (p->worldPos.x - cam->param.pos.x) * (p->worldPos.x - cam->param.pos.x) +
+         (p->worldPos.y - cam->param.pos.y) * (p->worldPos.y - cam->param.pos.y) +
+         (p->worldPos.z - cam->param.pos.z) * (p->worldPos.z - cam->param.pos.z);
     if (d2 < 400000000.0f) {
         power = 10.0f;
         if (d2 > 25000000.0f) {
@@ -821,18 +852,20 @@ void emBarrelEatSet(cEmBarrel* em)
         return;
     }
     if (w->sat == 0) {
-        v[0].x = -330.0f;
+        f32 r = 330.0f;
+
+        v[0].x = -r;
         v[0].y = 0.0f;
-        v[0].z = -330.0f;
-        v[1].x = 330.0f;
+        v[0].z = -r;
+        v[1].x = r;
         v[1].y = 0.0f;
-        v[1].z = -330.0f;
-        v[2].x = 330.0f;
+        v[1].z = -r;
+        v[2].x = r;
         v[2].y = 0.0f;
-        v[2].z = 330.0f;
-        v[3].x = -330.0f;
+        v[2].z = r;
+        v[3].x = -r;
         v[3].y = 0.0f;
-        v[3].z = 330.0f;
+        v[3].z = r;
         w->sat = EatMgr.create(&em->pos, &em->rot, v, 0x400000, 0, 1250.0f);
     } else {
         w->sat->flags |= 4;

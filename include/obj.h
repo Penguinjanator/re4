@@ -353,6 +353,17 @@ struct GondolaWork {
     void* breakMot;       // 0x64  break motion (R0_Break)
 };
 
+// Mine trolley work (game/objTrolley.cpp `cObjTrolley`): three cars (parts 0 / 4 / 8) with a
+// scenario and an effect collision piece each.
+struct TrolleyWork {
+    u32 flags;            // 0x00  bit0: start (setStart), bit1: 2nd start, bit2: stopped (ckStop)
+    int timer;            // 0x04
+    void* mot[9];         // 0x08  setMotion table: 0 run, 1 2nd run, 2/3 break (xFF), 4..8 player escape / die
+    class cSat* sat[3];   // 0x2C  scenario pieces per car (the SetTrolley / SatClear loops run over 5)
+    class cSat* sat2[5];  // 0x38  effect pieces per car
+    u8 ride;              // 0x4C  the player rides the trolley
+};
+
 // Chain link work (game/obj1d.cpp): hangs between two parts of a parent model, fades out when
 // the parent is lost.
 struct ChainWork {
@@ -497,6 +508,7 @@ public:
         GatlingWork gatling;
         MissileWork missile;
         GondolaWork gondola;
+        TrolleyWork trolley;
         ObjWepWork wep;
         LauncherWork launcher;
         RocketWork rocket;

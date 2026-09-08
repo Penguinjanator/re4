@@ -18,6 +18,10 @@
 #include "db_log.h"
 
 extern cEm* pPL;   // game/em.cpp
+// Struct-member view of pPL (the pGS trick): the load stays below the preceding stack stores.
+struct EmPtr {
+    cEm* p;
+};
 
 extern "C" {
 void EtcSetAddAmb(cModel* m, int a);                                                         // EtcModel.cpp
@@ -48,6 +52,7 @@ cEmBox* SetBox(void* bin, void* tpl, Vec* pos, Vec* rot, u8 type, int etcNo)
     cEmBox* em;
     EmBoxWork* w;
     u16* flg;
+    int zero;
 
     em = (cEmBox*) EmMgr.create(0x43);
     if (em == 0) {
@@ -200,13 +205,13 @@ cEmBox* SetBox(void* bin, void* tpl, Vec* pos, Vec* rot, u8 type, int etcNo)
     em->setStatus(0xB);
     em->be_flag &= ~0x01000000;
     em->be_flag &= ~0x10;
-    w->etcNo = etcNo;
     w->itemNo = -1;
+    w->etcNo = etcNo;
     w->flags = 0;
     w->breakBin = 0;
     w->breakTpl = 0;
     w->itemNum = 0;
-    flg = GetEtcFlgPtr(etcNo, pG->room_id);
+    flg = GetEtcFlgPtr(etcNo, pGS->room_id);
     if (flg && (*flg & 1)) {
         em->hp = 0;
     }
@@ -378,6 +383,14 @@ void emBoxDmCk(cEmBox* em)
     }
 }
 
+// Each break kind carries its own EstSet + fallback pair (a macro in the original: the arms are
+// full copies whose tails the compiler cross-jumps).
+#define EMBOX_BREAK_EFF(no, fallback)                                                       \
+    EstSet(0, -1, &em->pos, &em->rot, w->eff, no, 1, 0, (u32) em, 0);                     \
+    if (w->breakBin == 0 && w->breakTpl == 0) {                                            \
+        EstSet(0, -1, &em->pos, &em->rot, w->eff, fallback, 1, 0, (u32) em, 0);           \
+    }
+
 void emBoxSetBreak(cEmBox* em, u32 kind)
 {
     EmBoxWork* w = EMBOX_WK(em);
@@ -386,46 +399,36 @@ void emBoxSetBreak(cEmBox* em, u32 kind)
     em->be_flag &= ~2;
     if (w->eff != 0xFF) {
         switch (em->type) {
-        case 4:
-            EstSet(0, -1, &em->pos, &em->rot, w->eff, 0, 1, 0, (u32) em, 0);
+        default:
+            switch (kind) {
+            case 0:
+            default:
+                EMBOX_BREAK_EFF(0, 4);
+                break;
+            case 1:
+                EMBOX_BREAK_EFF(1, 4);
+                break;
+            case 2:
+                EMBOX_BREAK_EFF(2, 4);
+                break;
+            }
             break;
         case 5:
             switch (kind) {
-            default:
-                EstSet(0, -1, &em->pos, &em->rot, w->eff, 5, 1, 0, (u32) em, 0);
-                break;
             case 0:
-                EstSet(0, -1, &em->pos, &em->rot, w->eff, 5, 1, 0, (u32) em, 0);
+            default:
+                EMBOX_BREAK_EFF(5, 8);
                 break;
             case 1:
-                EstSet(0, -1, &em->pos, &em->rot, w->eff, 6, 1, 0, (u32) em, 0);
+                EMBOX_BREAK_EFF(6, 8);
                 break;
             case 2:
-                EstSet(0, -1, &em->pos, &em->rot, w->eff, 7, 1, 0, (u32) em, 0);
+                EMBOX_BREAK_EFF(7, 8);
                 break;
-            }
-            if (w->breakBin == 0 && w->breakTpl == 0) {
-                EstSet(0, -1, &em->pos, &em->rot, w->eff, 8, 1, 0, (u32) em, 0);
             }
             break;
-        default:
-            switch (kind) {
-            default:
-                EstSet(0, -1, &em->pos, &em->rot, w->eff, 0, 1, 0, (u32) em, 0);
-                break;
-            case 0:
-                EstSet(0, -1, &em->pos, &em->rot, w->eff, 0, 1, 0, (u32) em, 0);
-                break;
-            case 1:
-                EstSet(0, -1, &em->pos, &em->rot, w->eff, 1, 1, 0, (u32) em, 0);
-                break;
-            case 2:
-                EstSet(0, -1, &em->pos, &em->rot, w->eff, 2, 1, 0, (u32) em, 0);
-                break;
-            }
-            if (w->breakBin == 0 && w->breakTpl == 0) {
-                EstSet(0, -1, &em->pos, &em->rot, w->eff, 4, 1, 0, (u32) em, 0);
-            }
+        case 4:
+            EstSet(0, -1, &em->pos, &em->rot, w->eff, 0, 1, 0, (u32) em, 0);
             break;
         }
     }
@@ -541,6 +544,24 @@ void emBoxSatClear(cEmBox* em)
     }
 }
 
+// Unused in the shipped build (nothing calls it and the linker dropped it from .text; the unit
+// is in STRIP_UNUSED), but its constants (0.5f, 0.0f, 225000000.0f) are still in the unit's
+// constant pool between cEmBox::move's string and emBoxYarareInit's pool. The body only has
+// to reproduce that pool.
+static void emBoxSatSet(cEmBox* em)
+{
+    EmBoxWork* w = EMBOX_WK(em);
+    f32 hx = w->size.x * 0.5f;
+
+    if (hx == 0.0f) {
+        return;
+    }
+    if (w->sat0 != 0 && em->plDist2 > 225000000.0f) {
+        return;
+    }
+    emBoxSatClear(em);
+}
+
 void emBoxYarareInit(cEmBox* em)
 {
     EmBoxWork* w = EMBOX_WK(em);
@@ -557,11 +578,11 @@ void cEmBox::setEff(u8 eff)
     if (hp > 0) {
         return;
     }
-    if (w->breakBin == 0 && w->breakTpl == 0 && eff != 0xFF && type != 4) {
-        if (type == 5) {
-            EstSet(0, -1, &pos, &rot, eff, 8, 1, 0, (u32) this, 0);
+    if (w->breakBin == 0 && w->breakTpl == 0 && w->eff != 0xFF && type != 4) {
+        if (type != 5) {
+            EstSet(0, -1, &pos, &rot, w->eff, 4, 1, 0, (u32) this, 0);
         } else {
-            EstSet(0, -1, &pos, &rot, eff, 4, 1, 0, (u32) this, 0);
+            EstSet(0, -1, &pos, &rot, w->eff, 8, 1, 0, (u32) this, 0);
         }
     }
     if (w->breakBin && w->breakTpl) {
@@ -586,7 +607,6 @@ void emBoxActEvtCk(cEmBox* em)
     Vec lp;
     Vec a;
     Vec b;
-    u16 room;
 
     if (em->hp <= 0) {
         return;
@@ -596,33 +616,32 @@ void emBoxActEvtCk(cEmBox* em)
     }
     PSMTXInverse(em->mat, inv);
     PSMTXMultVec(inv, &pPL->pos, &lp);
-    if (lp.x > w->size.x + 50.0f) {
+    if (lp.x > w->size.x + 1000.0f) {
         return;
     }
-    if (lp.x < -(w->size.x + 50.0f)) {
+    if (lp.x < -(w->size.x + 1000.0f)) {
         return;
     }
-    if (lp.y > w->size.y + 1000.0f) {
+    if (lp.y > w->size.y + 0.0f) {
         return;
     }
     if (lp.y < -(w->size.y + 2000.0f)) {
         return;
     }
-    if (lp.z > w->size.z + 50.0f) {
+    if (lp.z > w->size.z + 1000.0f) {
         return;
     }
-    if (lp.z < -(w->size.z + 50.0f)) {
+    if (lp.z < -(w->size.z + 1000.0f)) {
         return;
     }
     a = em->pos;
-    b = pPL->pos;
+    b = (((EmPtr*) &pPL)->p)->pos;
     a.y += 200.0f;
     b.y = a.y;
     if (EatMgr.hitCheck(&a, &b, 0, 0, 0, 0)) {
         return;
     }
-    room = pG->room_id;
-    if (room == 0x100 || room == 0x101 || room == 0x103 || room == 0x106) {
+    if (pG->room_id == 0x100 || pG->room_id == 0x101 || pG->room_id == 0x103 || pG->room_id == 0x106) {
         ActBtn.set(1, 5, (int) emBoxAction, (int) em, 0, 1, 0, 0);
     }
 }
@@ -634,7 +653,7 @@ int checkNearOtherBarrel(cEmBox* em)
 
     for (i = 0; i <= 0x3F; i++) {
         if (getRoomEtc(i, 0x11, &other, 0) == 1 || getRoomEtc(i, 0x1E, &other, 0) == 1) {
-            if (other != em && other->hp > 0 && PSVECSquareDistance(&em->pos, &other->pos) < 2250000.0f) {
+            if (em != other && other->hp > 0 && PSVECSquareDistance(&em->pos, &other->pos) < 2250000.0f) {
                 return 1;
             }
         }
@@ -649,15 +668,17 @@ void emBoxAction(cEmBox* em)
     case 1:
     case 2:
     case 4:
+    case 6:
+    case 7:
     default:
-        cMes.MesSet(3, 100, 336 - cMes.mes[0].fontH - cMes.mes[0].lineSpace - 1, 1, 0, 0, 4);
+        cMes.MesSet(3, 100, 336 - cMes.getWork()->lineSpace - cMes.getWork()->fontH - 1, 1, 0, 0, 4);
         break;
     case 3:
     case 5:
         if (checkNearOtherBarrel(em) == 1) {
-            cMes.MesSet(5, 100, 336 - cMes.mes[0].fontH - cMes.mes[0].lineSpace - 1, 1, 0, 0, 4);
+            cMes.MesSet(5, 100, 336 - cMes.getWork()->lineSpace - cMes.getWork()->fontH - 1, 1, 0, 0, 4);
         } else {
-            cMes.MesSet(4, 100, 336 - cMes.mes[0].fontH - cMes.mes[0].lineSpace - 1, 1, 0, 0, 4);
+            cMes.MesSet(4, 100, 336 - cMes.getWork()->lineSpace - cMes.getWork()->fontH - 1, 1, 0, 0, 4);
         }
         break;
     }

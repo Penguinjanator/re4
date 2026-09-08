@@ -47,15 +47,17 @@ static f32 Height_ret;
 static f32 Add_power;
 static int Height_find;
 static inline void ISet(int& d, int v) { d = v; }
+static inline f32 FGet(f32& d) { return d; }
 
 void AddSandPowerSub(EspgenWork* w)
 {
-    Espgen43Work* p = (Espgen43Work*) w->work;
+    Espgen43Work* p;
     Vec v;
     u32 x;
     u32 z;
     int idx;
     int total;
+    int stride;
     int i;
     int j;
     int k;
@@ -63,6 +65,7 @@ void AddSandPowerSub(EspgenWork* w)
     if (w->id != 0x43) {
         return;
     }
+    p = (Espgen43Work*) w->work;
     v = Chk_pos;
     PSMTXMultVec(p->inv, &v, &v);
     if (v.x < (f32) (-p->nx / 2)) {
@@ -80,21 +83,22 @@ void AddSandPowerSub(EspgenWork* w)
     z = (u32) (v.z + (f32) (p->ny / 2));
     x = (u32) (v.x + (f32) (p->nx / 2));
     idx = z * (p->nx + 1) + x;
-    p->pos[idx].y += Add_power;
+    p->pos[idx].y += FGet(Add_power);
     total = (p->ny + 1) * (p->nx + 1);
+    stride = p->nx + 1;
     for (i = -3; i <= 3; i++) {
         for (j = -3; j <= 3; j++) {
             k = idx + i + j * (p->nx + 1);
-            if (k <= total && k >= p->nx + 1) {
-                p->pos[k].y -= Add_power * 0.02f;
+            if (k <= total && k >= stride) {
+                p->pos[k].y -= FGet(Add_power) * 0.02f;
             }
         }
     }
     for (i = -2; i <= 2; i++) {
         for (j = -2; j <= 2; j++) {
             k = idx + i + j * (p->nx + 1);
-            if (k <= total && k >= p->nx + 1) {
-                p->pos[k].y -= Add_power * 0.1f;
+            if (k <= total && k >= stride) {
+                p->pos[k].y -= FGet(Add_power) * 0.1f;
             }
         }
     }
@@ -102,16 +106,16 @@ void AddSandPowerSub(EspgenWork* w)
         for (j = -1; j <= 1; j++) {
             k = idx + i + j * (p->nx + 1);
             if (k <= total && k >= 0) {
-                p->pos[k].y += Add_power * 0.35f;
+                p->pos[k].y += FGet(Add_power) * 0.35f;
             }
         }
     }
     for (i = -3; i <= 3; i++) {
         for (j = -3; j <= 3; j++) {
             k = idx + i + j * (p->nx + 1);
-            if (k <= total && k >= p->nx + 1) {
-                p->pos[k].y = p->pos[k].y * 2.5f + p->pos[k + 1].y * 0.5f + p->pos[k + p->ny + 1].y * 0.5f +
-                              p->pos[k + p->ny + 2].y * 0.5f;
+            if (k <= total && k >= stride) {
+                p->pos[k].y = p->pos[k].y * 2.5f + p->pos[k + 1].y * 0.5f + p->pos[p->ny + k + 1].y * 0.5f +
+                              p->pos[p->ny + k + 2].y * 0.5f;
                 p->pos[k].y *= 0.25f;
             }
         }
@@ -130,12 +134,13 @@ void AddSandPower(Vec* pos, f32 power)
 
 void GetSandHeightSub(EspgenWork* w)
 {
-    Espgen43Work* p = (Espgen43Work*) w->work;
+    Espgen43Work* p;
     Vec v;
 
     if (w->id != 0x43) {
         return;
     }
+    p = (Espgen43Work*) w->work;
     v = Chk_pos;
     PSMTXMultVec(p->inv, &v, &v);
     if (v.x < (f32) (-p->nx / 2)) {
@@ -160,15 +165,15 @@ void GetSandHeightSub(EspgenWork* w)
 
 int GetSandHeight(Vec* pos, f32* height)
 {
-    if (pG->flags_500C & 2) {
-        ISet(Height_find, 0);
-        FSet(Height_ret, -100000000.0f);
-        Chk_pos = *pos;
-        EspgenApplyFunc(GetSandHeightSub);
-        *height = Height_ret;
-        return Height_find;
+    if (!(pG->flags_500C & 2)) {
+        return 0;
     }
-    return 0;
+    ISet(Height_find, 0);
+    FSet(Height_ret, -100000000.0f);
+    Chk_pos = *pos;
+    EspgenApplyFunc(GetSandHeightSub);
+    *height = Height_ret;
+    return Height_find;
 }
 
 #line 246 "D:/Bio4/Prog/Espgen43.cpp"
@@ -179,20 +184,24 @@ void Espgen43_Move00(EspgenWork* w)
     int i;
     int j;
     int k;
+    u32 n;
 
     pG->flags_500C |= 2;
     for (i = 1; i < p->ny; i++) {
         k = i * (p->nx + 1);
         for (j = 1; j < p->nx; j++) {
-            v.x = p->pos[k - 1].y - p->pos[k + 1].y;
+            Vec* n = &p->nrm[k];
+            Vec* q = &p->pos[k];
+            v.x = q[-1].y - q[1].y;
             v.y = 2.0f;
             v.z = p->pos[k - p->nx].y - p->pos[k + p->nx].y;
-            VECNormalize(&v, &p->nrm[k]);
+            VECNormalize(&v, n);
             k++;
         }
     }
-    DCStoreRange(p->pos, (p->nx + 1) * ((p->ny + 1) * sizeof(Vec)));
-    DCStoreRange(p->nrm, (p->nx + 1) * ((p->ny + 1) * sizeof(Vec)));
+    n = sizeof(Vec) * (p->nx + 1) * (p->ny + 1);
+    DCStoreRange(p->pos, n);
+    DCStoreRange(p->nrm, n);
 }
 
 void Espgen43_Move(EspgenWork* w)
@@ -211,8 +220,8 @@ void Espgen43_Trans(EspgenWork* w)
 
 void Espgen43_TransSub(EspgenWork* w)
 {
-    Espgen43Work* p = (Espgen43Work*) w->work;
-    GxStageWork* st = &pG->gxStage;
+    GxStageWork* st;
+    Espgen43Work* p;
     GXTexObj* tex;
     GXTlutObj* tlut;
     f32 r;
@@ -223,6 +232,8 @@ void Espgen43_TransSub(EspgenWork* w)
     if (w->flag & 2) {
         return;
     }
+    st = &pG->gxStage;
+    p = (Espgen43Work*) w->work;
     st->tevStage = 0;
     st->texMap = 0;
     st->texCoord = 0;
@@ -249,8 +260,8 @@ void Espgen43_TransSub(EspgenWork* w)
     commonClothLightSet(model.lightInfo.pLight, 5, model.pos, r);
     GXSetChanMatColor(4, p->color);
     {
-        Mtx mv;
         Mtx nrm;
+        Mtx mv;
         PSMTXConcat(pG->Cam.viewMat, p->mat, mv);
         PSMTXInverse(mv, nrm);
         PSMTXTranspose(nrm, nrm);
@@ -304,19 +315,11 @@ static int SetSand(Vec* pos, Vec* rot, f32 size, u32 nx, u32 ny)
 
 // Texture coordinate wrap: keeps the repeat in 0..1 by mirroring at 1.
 #define TEX_WRAP(v)                                                                                 \
-    if ((v) > 2.0f) {                                                                               \
-        f32 t_ = (v);                                                                               \
-        while (t_ > 2.0f) {                                                                         \
-            t_ -= 2.0f;                                                                             \
-        }                                                                                           \
-        (v) = t_;                                                                                   \
+    while ((v) > 2.0f) {                                                                            \
+        (v) -= 2.0f;                                                                                \
     }                                                                                               \
-    if ((v) > 1.0f) {                                                                               \
-        f32 t_ = (v);                                                                               \
-        while (t_ > 1.0f) {                                                                         \
-            t_ = 2.0f - t_;                                                                         \
-        }                                                                                           \
-        (v) = t_;                                                                                   \
+    while ((v) > 1.0f) {                                                                            \
+        (v) = 2.0f - (v);                                                                           \
     }
 
 int SetSandWork(EspgenWork* w, Vec* pos, Vec* rot, f32 size, f32 sizeRate, u32 nx, u32 ny)
@@ -338,10 +341,10 @@ int SetSandWork(EspgenWork* w, Vec* pos, Vec* rot, f32 size, f32 sizeRate, u32 n
     p->size = size;
     RotMatrix(p->mat, rot);
     PSMTXScale(m, p->size, p->size * sizeRate, p->size);
-    PSMTXConcat(m, p->mat, p->mat);
+    PSMTXConcat(p->mat, m, p->mat);
     PSMTXTransApply(p->mat, p->mat, pos->x, pos->y, pos->z);
     PSMTXInverse(p->mat, p->inv);
-    n = (p->nx + 1) * ((p->ny + 1) * sizeof(Vec));
+    n = sizeof(Vec) * (p->nx + 1) * (p->ny + 1);
 #line 445 "D:/Bio4/Prog/Espgen43.cpp"
     p->pos = (Vec*) MEM_ALLOC(n, 1, 13);
     if (p->pos == NULL) {
@@ -395,9 +398,10 @@ int SetSandWork(EspgenWork* w, Vec* pos, Vec* rot, f32 size, f32 sizeRate, u32 n
             *(f32*) d = (f32) i / p->ny * rep;
             TEX_WRAP(*(f32*) d);
             d += 4;
-            *(u16*) d = k + p->nx + 1;
+            k++;
+            *(u16*) d = p->nx + k;
             d += 2;
-            *(u16*) d = k + p->nx + 1;
+            *(u16*) d = p->nx + k;
             d += 2;
             *(f32*) d = (f32) j / p->nx * rep;
             TEX_WRAP(*(f32*) d);
@@ -405,7 +409,6 @@ int SetSandWork(EspgenWork* w, Vec* pos, Vec* rot, f32 size, f32 sizeRate, u32 n
             *(f32*) d = (f32) (i + 1) / p->ny * rep;
             TEX_WRAP(*(f32*) d);
             d += 4;
-            k++;
         }
         i++;
         if (i < p->ny) {
@@ -421,9 +424,10 @@ int SetSandWork(EspgenWork* w, Vec* pos, Vec* rot, f32 size, f32 sizeRate, u32 n
                 *(f32*) d = (f32) i / p->ny * rep;
                 TEX_WRAP(*(f32*) d);
                 d += 4;
-                *(u16*) d = k + p->nx + 1;
+                k++;
+                *(u16*) d = p->nx + k;
                 d += 2;
-                *(u16*) d = k + p->nx + 1;
+                *(u16*) d = p->nx + k;
                 d += 2;
                 *(f32*) d = (f32) j / p->nx * rep;
                 TEX_WRAP(*(f32*) d);
@@ -435,23 +439,29 @@ int SetSandWork(EspgenWork* w, Vec* pos, Vec* rot, f32 size, f32 sizeRate, u32 n
         }
     }
     fy = 0.0f;
-    for (i = 0; i < p->ny + 1; i++) {
-        fx = 0.0f;
-        k = i * (p->nx + 1);
-        for (j = 0; j < p->nx + 1; j++) {
-            p->pos[k].x = fx - (f32) (p->nx / 2);
-            p->pos[k].y = fRand1_1() * 0.15f;
-            p->pos[k].z = fy - (f32) (p->ny / 2);
-            p->nrm[k].x = 0.0f;
-            p->nrm[k].y = 1.0f;
-            p->nrm[k].z = 0.0f;
-            fx += 1.0f;
-            k++;
+    {
+        int x;
+        int y;
+        int idx;
+        for (y = 0; y < p->ny + 1; y++) {
+            fx = 0.0f;
+            idx = y * (p->nx + 1);
+            for (x = 0; x < p->nx + 1; x++) {
+                p->pos[idx].x = fx - (f32) (p->nx / 2);
+                p->pos[idx].y = fRand1_1() * 0.15f;
+                p->pos[idx].z = fy - (f32) (p->ny / 2);
+                p->nrm[idx].x = 0.0f;
+                p->nrm[idx].y = 1.0f;
+                p->nrm[idx].z = 0.0f;
+                fx += 1.0f;
+                idx++;
+            }
+            fy += 1.0f;
         }
-        fy += 1.0f;
     }
-    DCStoreRange(p->pos, (p->nx + 1) * ((p->ny + 1) * sizeof(Vec)));
-    DCStoreRange(p->nrm, (p->nx + 1) * ((p->ny + 1) * sizeof(Vec)));
+    n = sizeof(Vec) * (p->nx + 1) * (p->ny + 1);
+    DCStoreRange(p->pos, n);
+    DCStoreRange(p->nrm, n);
     DCStoreRange(p->dl, p->dlSize);
     return 1;
 }

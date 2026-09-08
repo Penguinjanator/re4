@@ -7,7 +7,6 @@
 #include "emrack.h"
 #include "emhit.h"
 #include "etc_model.h"
-#include "esp.h"
 #include "snd.h"
 #include "motion.h"
 #include "rnd.h"
@@ -19,6 +18,10 @@ extern "C" {
 void EtcSetAddAmb(cModel* m, int a);                                                         // EtcModel.cpp
 void EmAtCheck(cEm* em);                                                                     // at_mod.cpp
 void Em_R0_Scenario(cEm* em);                                                                // em_sub.cpp
+// esp.h declares the effect id as int; this unit passes the u8 `eff` byte straight into r7
+// (emRack_R1_Break: the byte load is shared by the compare and the calls), so it carries the
+// prototype with a u8 parameter.
+void EstSet(int a, int b, Vec* pos, Vec* rot, u8 c, int d, int e, int f, u32 g, void* h);
 }
 
 typedef void (*EmRackFunc)(cEmRack*);
@@ -406,7 +409,6 @@ void emRack_R1_Break(cEmRack* em)
 {
     EmRackWork* w = EMRACK_WK(em);
     u16* flg;
-    u8 eff;
 
     if (em->xFE == 0) {
         em->hp = 0;
@@ -417,26 +419,25 @@ void emRack_R1_Break(cEmRack* em)
         }
         switch (em->type) {
         default:
-            eff = w->eff;
-            if (eff == 0xFF) {
+            if (w->eff == 0xFF) {
                 break;
             }
             switch (em->xFF) {
             case 0:
             default:
-                EstSet((int) em, -1, 0, 0, eff, 3, 0, 0, (u32) em, 0);
+                EstSet((int) em, -1, 0, 0, w->eff, 3, 0, 0, (u32) em, 0);
                 SndCall(6, 0x33, &em->pos, 0, 0, em);
                 break;
             case 1:
-                EstSet((int) em, -1, 0, 0, eff, 5, 0, 0, (u32) em, 0);
+                EstSet((int) em, -1, 0, 0, w->eff, 5, 0, 0, (u32) em, 0);
                 SndCall(6, 0x33, &em->pos, 0, 0, em);
                 break;
             case 2:
-                EstSet((int) em, -1, 0, 0, eff, 0, 0, 0, (u32) em, 0);
+                EstSet((int) em, -1, 0, 0, w->eff, 0, 0, 0, (u32) em, 0);
                 SndCall(6, 0x33, &em->pos, 0, 0, em);
                 break;
             case 3:
-                EstSet((int) em, -1, 0, 0, eff, 4, 0, 0, (u32) em, 0);
+                EstSet((int) em, -1, 0, 0, w->eff, 4, 0, 0, (u32) em, 0);
                 SndCall(6, 0x33, &em->pos, 0, 0, em);
                 break;
             case 4:
@@ -444,32 +445,31 @@ void emRack_R1_Break(cEmRack* em)
             }
             break;
         case 4:
-            eff = w->eff;
-            if (eff == 0xFF) {
+            if (w->eff == 0xFF) {
                 break;
             }
             switch (em->xFF) {
             case 0:
             default:
-                EstSet(0, -1, &em->pos, &em->rot, eff, 3, 0, 0, 0, 0);
+                EstSet(0, -1, &em->pos, &em->rot, w->eff, 3, 0, 0, 0, 0);
                 SndCall(6, 0x33, &em->pos, 0, 0, em);
                 break;
             case 1:
-                EstSet(0, -1, &em->pos, &em->rot, eff, 5, 0, 0, 0, 0);
+                EstSet(0, -1, &em->pos, &em->rot, w->eff, 5, 0, 0, 0, 0);
                 SndCall(6, 0x33, &em->pos, 0, 0, em);
                 break;
             case 2:
-                EstSet(0, -1, &em->pos, &em->rot, eff, 0, 0, 0, 0, 0);
+                EstSet(0, -1, &em->pos, &em->rot, w->eff, 0, 0, 0, 0, 0);
                 SndCall(6, 0x33, &em->pos, 0, 0, em);
                 break;
             case 3:
-                EstSet(0, -1, &em->pos, &em->rot, eff, 4, 0, 0, 0, 0);
+                EstSet(0, -1, &em->pos, &em->rot, w->eff, 4, 0, 0, 0, 0);
                 SndCall(6, 0x33, &em->pos, 0, 0, em);
                 break;
             case 4:
                 break;
             case 5:
-                EstSet(0, -1, &em->pos, &em->rot, eff, 3, 0, 0, 0, 0);
+                EstSet(0, -1, &em->pos, &em->rot, w->eff, 3, 0, 0, 0, 0);
                 SndCall(6, 0x33, &em->pos, 0, 0, em);
                 break;
             }

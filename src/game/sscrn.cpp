@@ -66,8 +66,10 @@ struct MgrPtr {
 
 #define DVD_READ_N(name, dst, a, b, c, mode) DvdReadN(name, dst, a, b, c, mode, __FILE__, __LINE__)
 
-// Fade colours are word constants (`stw`), passed by address and block-scoped: an aggregate local
-// gets a reusable temp slot where a u32 whose address is taken later is spilled to a fixed slot.
+// Fade colours: word constants (`stw`) passed by address from block-scoped locals that share their
+// stack slot with the other blocks' temporaries (ItemInfo in SubScreenExec). Only a class with a
+// destructor is addressable at its declaration in g++ 2.95 and so gets a reusable temp slot; a
+// plain u32/union/GXColor whose address is taken later is spilled to a fixed slot of its own.
 union FadeColor {
     GXColor c;
     u32 w;
@@ -416,8 +418,11 @@ void SubScreenExec()
                     }
                 }
             }
-            wk->x1B6 = pG->flags_5010 & 0x10000000;
-            pG->flags_5010 &= ~0x10000000;
+            {
+                u32 t = pG->flags_5010 & 0x10000000;
+                wk->x1B6 = t;
+            }
+            BitOff(pG->flags_5010, 0x10000000);
             wk->save58 = pG->flags_58;
             BitSet(pG->flags_58, 0xFFFFFFFF);
             BitOff(pG->flags_58, 0x10000);
@@ -437,7 +442,7 @@ void SubScreenExec()
             if (pG->flags_54 & 0x40000000) {
                 IdTexRelease(6);
             }
-            Cckpt.countDown.saveDisp();
+            Cckpt.getCountDown()->saveDisp();
             systemVISetBlack(1);
             ScreenReSize(640, 448);
             systemVISetBlack(0);
@@ -461,8 +466,8 @@ void SubScreenExec()
             }
             TaskSuspend(0);
             RoomData.stopRelData();
-            DC.xA08 = 0;
             wk->pBuf = pG->pStageFont;
+            DC.xA08 = 0;
             MemorySwap(wk->pBuf, SS_ARAM, SS_ARAM_SIZE);
             MemSuspendHeap(4);
             if (wk->type & 0x10) {
@@ -540,8 +545,8 @@ void SubScreenExec()
 #line 808 "D:/Bio4/Prog/sscrn.cpp"
             wk->x23C = MEM_ALLOC(0x3E800, 1, 13);
             if (wk->type == 2) {
-                wk->x264 = 2;
                 wk->x265 = 2;
+                wk->x264 = 2;
             } else {
                 wk->x265 = 1;
                 wk->x264 = 1;
@@ -557,8 +562,10 @@ void SubScreenExec()
                 }
             }
             {
-                void* bss = 0;
-                if (wk->pModule->bssSize) {
+                void* bss;
+                if (wk->pModule->bssSize == 0) {
+                    bss = 0;
+                } else {
 #line 834 "D:/Bio4/Prog/sscrn.cpp"
                     bss = MEM_ALLOC(wk->pModule->bssSize, 1, 13);
                 }
@@ -718,7 +725,10 @@ void SubScreenExit()
             if (pG->flags_54 & 0x40000000) {
                 mercId.set();
             }
-            Cckpt.countDown.loadDisp();
+            {
+                Cockpit* ck = &Cckpt;
+                ck->countDown.loadDisp();
+            }
             {
                 FadeColor c0;
                 FadeColor c1;
@@ -796,6 +806,8 @@ void OpeSetOpenTerm(int no, f32 x, f32 y, f32 z, f32 ang)
     cPlayer* pl = pPL;
     int strTbl[24] = {3, 3, 0x33, 3, 0x33, 3, 3, 0x33, 3, 0x33, 0x33, 3, 3, 3, 0x33, 3, 3, 3, 3, 0x33, 3, 3, 3, 3};
     void* pMot = &pl->pMotion;
+    Vec pos;
+    Vec rot;
     int i;
 
     while (pl->checkEvent() != 1) {
@@ -804,18 +816,17 @@ void OpeSetOpenTerm(int no, f32 x, f32 y, f32 z, f32 ang)
     if (x != 0.0f) {
         wk->savePos = pPL->pos;
         wk->saveRot = pPL->rot;
+        pos.x = x;
+        pos.y = y;
+        pos.z = z;
+        pPL->setPos(&pos);
         {
-            Vec pos;
-            pos.x = x;
-            pos.y = y;
-            pos.z = z;
-            pPL->setPos(&pos);
-        }
-        {
-            Vec rot;
-            Vec* r = &rot;
-            r->x = 0.0f;
-            r->y = ang;
+            // OPEN: the target computes a fresh &pos here (`addi r9, r1, 0x68`, stores z through it)
+            // instead of reusing the one passed to setPos; no form found that keeps the slot shared
+            // without cse merging the two addresses.
+            Vec* r = &pos;
+            pos.x = 0.0f;
+            pos.y = ang;
             r->z = 0.0f;
             pPL->setAng(r);
         }
@@ -850,8 +861,6 @@ void OpeSetOpenTerm(int no, f32 x, f32 y, f32 z, f32 ang)
         return;
     }
     {
-        Vec pos;
-        Vec rot;
         pos.x = 111.0f;
         pos.y = -22.0f;
         pos.z = 66.0f;
@@ -891,8 +900,6 @@ void OpeSetOpenTermEnd()
 {
     SubScreenWork* wk = &SubScreenWk;
     cPlayer* pl = pPL;
-    FadeColor c0;
-    FadeColor c1;
 
     SndStrStopBlock(wk->strBlk);
     if (wk->pObj) {
@@ -901,16 +908,31 @@ void OpeSetOpenTermEnd()
         wk->pObj = 0;
     }
     PlSetEyeMode(0);
-    c0.w = 0x000000FF;
-    c1.w = 0x00000000;
-    FadeSet(0x80000000, &c0.c, &c1.c, 3, 0, 0);
+    {
+        FadeColor c0;
+        FadeColor c1;
+        c0.w = 0x000000FF;
+        c1.w = 0x00000000;
+        FadeSet(0x80000000, &c0.c, &c1.c, 3, 0, 0);
+    }
     FadeKill(2);
-    c0.w = 0x000000FF;
-    c1.w = 0x00000000;
-    FadeSet(0x80000001, &c0.c, &c1.c, 10, 0, 0);
+    {
+        FadeColor c0;
+        FadeColor c1;
+        c0.w = 0x000000FF;
+        c1.w = 0x00000000;
+        FadeSet(0x80000001, &c0.c, &c1.c, 10, 0, 0);
+    }
 }
 
-// The next unit (lib/ppcdown.c) starts 32-byte aligned in .text and .bss; the split object carries
-// the zero padding.
-asm(".text\n\t.balign 32, 0");
-asm(".section .bss,\"aw\",@nobits\n\t.balign 32\n\t.text");
+// The next unit (lib/ppcdown.c, an SDK library) starts 32-byte aligned in .text and .bss and the
+// split object carries the padding: 12 zero bytes after cManager<cMap>::roomInit in .text and
+// 0x1C bytes of .bss after IdNum (both depend on the absolute address, so `.balign` cannot
+// reproduce them). The .bss gap is a zero-initialised static referenced only by a never-called
+// inline (the dmg.cpp trick); the .text gap is emitted directly.
+static u8 sscrn_pad[0x1C];
+static inline u8* sscrnPad()
+{
+    return sscrn_pad;
+}
+asm(".text\n\t.long 0, 0, 0");

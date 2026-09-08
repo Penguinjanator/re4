@@ -10,6 +10,8 @@
 class cEmWep : public cEm {
 public:
     virtual void move();
+
+    void setParentMatCalc(int on);   // objTrolley objTrolleyMoveAdjustEM (0x80019DC4)
 };
 
 #endif

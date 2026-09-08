@@ -84,6 +84,11 @@ void excepRegConsoleDump(int error, u32 dsisr, u32 dar);
 // A store through a scalar reference is not a struct-member MEM: the static `addr` is reloaded
 // after it, as the original does.
 static inline void U32Set(u32& d, u32 v) { d = v; }
+// Struct-member view of a scalar global (the read.cpp EmInitFunc trick): a plain scalar store lets
+// the scheduler hoist the following pContext load above it.
+struct IntView {
+    int v;
+};
 
 #line 40 "D:/Bio4/Prog/exception.cpp"
 
@@ -482,11 +487,11 @@ void ErrorHandler(OSError error, OSContext* context, ...)
     u32 dsisr;
     u32 dar;
     u32* sp;
+    u32* cs;
     u32 pc;
     int i;
     int n;
     MemDump* w;
-    u32* cs;
     int col;
     static int timer = 0;
 
@@ -501,7 +506,7 @@ void ErrorHandler(OSError error, OSContext* context, ...)
     w = &test;
     n = 0;
     memclr_asm(w, sizeof(MemDump));
-    call_stack_num = n;
+    ((IntView*) &call_stack_num)->v = n;
     sp = (u32*) pContext->gpr[1];
     if (sp != 0 && sp != (u32*) -1) {
         i = 0;
@@ -561,8 +566,8 @@ void ErrorHandler(OSError error, OSContext* context, ...)
         if (i < call_stack_num) {
             cs = &call_stack[i];
             do {
-                pc = *cs++;
-                eprintf(x + 0xF0, y + 0x130 + i * 0x10, 0, 0, "%08X %s", pc, excepGetSymbolName(pc));
+                u32 addr = *cs++;
+                eprintf(x + 0xF0, y + 0x130 + i * 0x10, 0, 0, "%08X %s", addr, excepGetSymbolName(addr));
                 i++;
             } while (i < call_stack_num);
         }

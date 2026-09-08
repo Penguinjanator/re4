@@ -120,17 +120,15 @@ CRoomInfo* cRoomJmp::getRoomInfo(u8 stage, u8 idx)
 {
     u32* p = tbl;
     u32 ofs;
-    u32* blk;
 
     if (stage >= p[0]) {
         return 0;
     }
     ofs = (p + 1)[stage];
-    blk = (u32*) ((u8*) p + ofs);
-    if (idx >= blk[0]) {
+    if (idx >= *(u32*) ((u8*) p + ofs)) {
         return 0;
     }
-    return (CRoomInfo*) ((u8*) blk + 4 + idx * sizeof(CRoomInfo));
+    return (CRoomInfo*) ((u8*) p + ofs + 4 + idx * sizeof(CRoomInfo));
 }
 
 u8 cRoomJmp::getRoomIdx(u8 stage, u8 room)

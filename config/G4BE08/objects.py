@@ -1028,10 +1028,12 @@ STRIP_UNUSED = {
     "game/ctrl01.cpp",
     "game/trans_ot.cpp",
     "game/em_cloth.cpp",
+    "game/embox.cpp",
     "game/objWep.cpp",
     "game/cloth.cpp",
     "game/esp_app.cpp",
     "game/map_obj.cpp",
+    "game/Espgen43.cpp",
 }
 
 # Capcom sound library (game/snd_*.cpp): C++ with extern "C" functions, compiled unoptimised

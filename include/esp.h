@@ -318,6 +318,7 @@ extern "C" {
 int GetSandHeight(Vec* pos, f32* height);
 void AddSandPower(Vec* pos, f32 power);
 // game/eff_sys.cpp
+int EspChkTexId(int no);   // 1 when texture `no` has an object
 GXTexObj* EspGetTexObj(int no, int a);
 GXTlutObj* EspGetTlutObj(int no);
 }

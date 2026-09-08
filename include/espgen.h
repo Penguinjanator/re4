@@ -6,6 +6,8 @@
 #include "model.h"
 #include "light.h"
 #include "esp.h"
+#include "gx.h"
+#include "tpl.h"
 
 // Optional 0x1C byte parameter block handed down the sequence calls (copied into the generator work).
 struct EspSeqOpt {
@@ -60,25 +62,68 @@ struct SstArea {
     SstAreaEnt ent[1]; // 0x10
 };
 
+// One registered effect texture set (eff_sys espTexRegist), 0x54 bytes; owner 0xD2 = free.
+struct EspTexWk {
+    GXTexObj* pTexObj;   // 0x00 first of nTex objects pulled from cEspSystem::texObj
+    u16 nTex;            // 0x04
+    u8 pad_6[2];
+    GXTlutObj tlut;      // 0x08
+    TEXHeader* texHdr;   // 0x14 header of texture 0
+    Mtx mtx;             // 0x18
+    TEXPalette* pTpl;    // 0x48
+    EspAnmData* pAnm;    // 0x4C
+    u32 owner;           // 0x50
+};
+
+// Effect model (efm) registration (eff_sys efmRegist), 0x14 bytes.
+struct EspEfmMotTbl {
+    u32 num;           // 0x00
+    u32 ofs[1];        // 0x04 byte offsets of the motions from this header
+};
+struct EspEfmWk {
+    void* model;       // 0x00 model bin
+    void* tpl;         // 0x04
+    EspEfmMotTbl* mot; // 0x08 motion table (NULL when none)
+    void* x0C;         // 0x0C
+    u32 owner;         // 0x10 0xD2 = free
+};
+
+// Effect system work (game/eff_sys.cpp, g_pEspSys, sizeof 0xC5E8).
 struct cEspSystem {
-    u8 pad_0[0x71E4];
-    SstTbl sstTbl[0xD3];   // 0x71E4 room effect tables by owner id
-    u8 pad_7BC8[0x8680 - 0x7BC8];
-    SstArea* pSstArea;     // 0x8680
-    u8 pad_8684[0xC548 - 0x8684];
+    EspTexWk texWk[0x100];       // 0x0000 by texture id
+    EspEfmWk efmWk[0x100];       // 0x5400 by effect model id
+    SstTbl estTbl[0xD3];         // 0x6800 effect set tables by owner id
+    SstTbl sstTbl[0xD3];         // 0x71E4 room effect tables by owner id
+    SstTbl pathTbl[0xD3];        // 0x7BC8 path tables by owner id
+    u8 ownerCnt[0xD3];           // 0x85AC EspDataLoad count per owner
+    u8 pad_867F;
+    SstArea* pSstArea;           // 0x8680
+    GXTexObj texObj[0x1F4];      // 0x8684 texture object pool
+    u8 texObjFlag[0x3F];         // 0xC504 one bit per pool entry
+    u8 pad_C543[5];
     u32 xC548;         // 0xC548 number of esp slots in use
     u8* pEspBuf;       // 0xC54C esp pool (0x150 bytes per cEsp)
     u8* pEspBufSave;   // 0xC550 pool saved by EspArrayPush (esp.cpp)
     u32 xC554;         // 0xC554 number of esp slots
     u32 numSave;       // 0xC558 slot count saved by EspArrayPush
     cEsp* pDmy;        // 0xC55C dummy esp returned when the pool is full
-    u8 pad_C560[0xC568 - 0xC560];
+    u8 coreKind;       // 0xC560 next effect kind handed out by EspPullCoreKind (0x45..)
+    u8 toolState;      // 0xC561
+    u8 pad_C562[2];
+    u32 areaState;     // 0xC564 bit per area (GetAreaState)
     EspLightList lightList;  // 0xC568 lights the effects draw with (esp.cpp EspTrans -> cLightMgr::setEsp)
-    u8 pad_C58C[0xC598 - 0xC58C];
+    u8 pad_C58C[4];
+    int finalColSet;   // 0xC590 1 while finalCol.r == 0xFF (EffSetFinalCol)
+    GXColor finalCol;  // 0xC594
     f32 camPan;        // 0xC598 camera yaw in degrees (EspGetCameraPan)
     f32 camPan2;       // 0xC59C camera pitch in degrees (EspGetCameraPan2)
     u32 sstDispFlag;   // 0xC5A0 room effect display flags (bit per id)
     u32 sstAddAreaFlag;  // 0xC5A4
+    void (*toolCb[8])();   // 0xC5A8 tool state callbacks (state bits 0/1 set)
+    void (*toolCb2[8])();  // 0xC5C8 (state bits 0/1 clear)
+
+    int GetTexObjFlag(u32 no);
+    void SetTexObjFlag(u32 no, int flag);
 };
 extern cEspSystem* g_pEspSys;
 
