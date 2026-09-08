@@ -1,4 +1,5 @@
 #include "atari.h"
+#include "atari_init.h"
 #include "light.h"
 #include "dmg.h"
 #include "map_obj.h"
@@ -42,19 +43,14 @@ cObj* SetYagura(void* bin, void* tpl, Vec* pos, Vec* rot)
     static const Vec p1 = { 5000.0f, 5000.0f, 5000.0f };
 
     obj->lightInfo.init2(0, 1, &p0, &p1, 0x10);
-    // NOTE: the original keeps this 0.0f in f31 across the init() call and reuses it for the
-    // pos default, but its pool load is scheduled after the 1000.0f one (pool order 0, 1000);
-    // no source form found yet that gives that order (literals, locals before/after the call,
-    // a second local for 1000.0f all tried).
-    f32 zero = 0.0f;
-    obj->sub2B4.atari.init(0, 2, 0, zero, 1000.0f, -700.0f, 350.0f, 700.0f, 700.0f, 1000.0f);
+    AtariInit(&obj->sub2B4.atari, 0.0f, 1000.0f, -700.0f, 350.0f, 700.0f, 700.0f, 1000.0f, 0, 2, 0);
     obj->sub2B4.atari.throughOn();
     if (pos) {
         obj->pos = *pos;
     } else {
-        obj->pos.x = zero;
-        obj->pos.y = zero;
-        obj->pos.z = zero;
+        obj->pos.x = 0.0f;
+        obj->pos.y = 0.0f;
+        obj->pos.z = 0.0f;
     }
     obj->oldPos = obj->pos;
     if (rot) {

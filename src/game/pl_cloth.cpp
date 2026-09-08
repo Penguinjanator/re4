@@ -622,12 +622,12 @@ void testRibbonMoveGirl(cModel* pl, PlCloth* c)
 
 // One lapel of Ashley's alternate costume: the part is rotated away from the body by the angle the
 // chest (two parts, weighted) rises above it, then bent around the local Y and Z axes. The two
-// lapels are written out (the second copy's pointer locals become copies of the first's).
-// Not matched (94.7%): the original keeps one more pointer in a callee-saved register (r21) and
-// creates the second lapel's m3/axis pointer copies right after the first's (gcse), so the
-// pointer locals' register numbering differs.
+// lapels are written out (the second copy's pointer locals become gcse copies of the first's).
+// A plain block, not do/while(0): a loop note makes haifa treat the next insn as a full barrier,
+// which would pin the PRE copies behind the second lapel's first call. The inner block re-derives
+// `pm1`, so the first lapel's later uses go through the PRE copy and `pm1` itself dies in bb 0.
 #define LAPEL_MOVE(no, pa, pb, lift, sy, sz)                                        \
-    do {                                                                            \
+    {                                                                               \
         f32 ang;                                                                    \
         p = pl->getPartsPtr(no);                                                    \
         PSMTXIdentity(p->worldMat);                                                 \
@@ -649,6 +649,7 @@ void testRibbonMoveGirl(cModel* pl, PlCloth* c)
             ang = 0.0f;                                                             \
         }                                                                           \
         {                                                                           \
+            f32 (*pm1)[4] = m1;                                                     \
             f32 (*pm3)[4] = m3;                                                      \
             Vec* pax = &axis;                                                       \
             rot.x = -ang * lapel_rate_x;                                            \
@@ -666,8 +667,6 @@ void testRibbonMoveGirl(cModel* pl, PlCloth* c)
             PSMTXConcat(pm3, p->mat, p->mat);                                       \
             TransMatrix(p->mat, &p->worldPos);                                      \
             PSMTXConcat(p->mat, rotm, pm1);                                         \
-            pm3 = m3;                                                               \
-            pax = &axis;                                                            \
             axis.x = 0.0f;                                                          \
             axis.y = 0.0f;                                                          \
             axis.z = 1.0f;                                                          \
@@ -676,7 +675,7 @@ void testRibbonMoveGirl(cModel* pl, PlCloth* c)
             PSMTXConcat(pm3, p->mat, p->mat);                                       \
             TransMatrix(p->mat, &p->worldPos);                                      \
         }                                                                           \
-    } while (0)
+    }
 
 void girlLapelMove(cModel* pl)
 {

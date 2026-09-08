@@ -23,7 +23,7 @@ struct Esp4cWork {
 extern "C" {
 void Espgen45_Move00(EspgenWork* w);
 void Espgen45_TransSub(EspgenWork* w);
-int SetWaterWork45(EspgenWork* w, Vec* pos, Vec* rot, f32 size, f32 rate, u32 nx, u32 ny);
+int SetWaterWork45(EspgenWork* w, Vec* pos, Vec* rot, f32 size, u32 nx, u32 ny, f32 rate);
 }
 
 EspgenWork* g_pWater45;
@@ -170,7 +170,7 @@ int Espgen45_SetFreeWork(EspgenWork* w, EspGenWork* rec, EspSeqData* head, cMode
     rate = 1.0f - (f32) (int) rec->xFE / 255.0f;
     p->rotY = rec->xFE;
     PSVECScale(&rec->x58, &r, 6.28f / 360.0f);
-    if (SetWaterWork45(w, (Vec*) &rec->x0C, &r, rec->x88, rate, nx, ny) == 0) {
+    if (SetWaterWork45(w, (Vec*) &rec->x0C, &r, rec->x88, nx, ny, rate) == 0) {
         goto fail;
     }
     p->col.r = rec->x9C;
@@ -181,8 +181,8 @@ int Espgen45_SetFreeWork(EspgenWork* w, EspGenWork* rec, EspSeqData* head, cMode
     p->amb.g = rec->xA4 * 255.0f;
     p->amb.b = rec->xA8 * 255.0f;
     p->amb.a = rec->xAC * 255.0f;
-    p->xC0 = p->x18;
     p->mode = rec->xC8;
+    p->xC0 = p->x18;
     if (p->mode == 2) {
         p->damp = 0.5f - (f32) (s8) rec->xC9 * 0.005f;
         if (p->damp > 0.5f) {

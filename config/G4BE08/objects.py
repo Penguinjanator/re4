@@ -1085,6 +1085,7 @@ MATCHING.update({
     "game/pl_ashley.cpp": True,
     "game/pl_leon.cpp": True,
     "game/pl_push.cpp": True,
+    "game/pl_cloth.cpp": True,
 })
 
 # map object units (game/obj*.cpp)

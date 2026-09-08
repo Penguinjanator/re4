@@ -1,4 +1,5 @@
 #include "atari.h"
+#include "atari_init.h"
 #include "light.h"
 #include "dmg.h"
 #include "map_obj.h"
@@ -114,18 +115,14 @@ cObj* SetTrolley(void* bin, void* tpl, Vec* pos, Vec* rot)
     static const Vec p1 = { 5000.0f, 5000.0f, 5000.0f };
 
     obj->lightInfo.init2(0, 1, &p0, &p1, 0x10);
-    // NOTE: the original schedules `lfs f2 (1000)` before the 0.0 load and the three `li` after
-    // `fmr f1/f6` (same open issue as objGondola / objYagura / objMissile: the sched1 ranking of the
-    // arg copies, see the final report); no source form found yet.
-    f32 zero = 0.0f;
-    obj->sub2B4.atari.init(0, 2, 0, zero, 1000.0f, -700.0f, 350.0f, 700.0f, 700.0f, 1000.0f);
+    AtariInit(&obj->sub2B4.atari, 0.0f, 1000.0f, -700.0f, 350.0f, 700.0f, 700.0f, 1000.0f, 0, 2, 0);
     obj->sub2B4.atari.throughOn();
     if (pos) {
         obj->pos = *pos;
     } else {
-        obj->pos.x = zero;
-        obj->pos.y = zero;
-        obj->pos.z = zero;
+        obj->pos.x = 0.0f;
+        obj->pos.y = 0.0f;
+        obj->pos.z = 0.0f;
     }
     obj->oldPos = obj->pos;
     if (rot) {

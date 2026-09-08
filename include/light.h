@@ -7,6 +7,7 @@
 #include "cManager.h"
 #include "db_log.h"
 #include "main_mem.h"
+#include "lightPath.h"
 
 class cModel;
 class cEm;
@@ -143,14 +144,6 @@ public:
 class cLight08 : public cLight {
 public:
     cLight08();
-};
-
-// Light path follower kept in cLight::work (game/lightPath.cpp). Opaque here.
-class cLightPathData;
-class cLightPath {
-public:
-    void setPath(cLightPathData* data, u8 no);
-    int movePath();
 };
 
 // Path file header (cLightMgr::initPath): count, then offsets to each path from the header.

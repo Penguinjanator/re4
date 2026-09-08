@@ -1,4 +1,5 @@
 #include "atari.h"
+#include "atari_init.h"
 #include "light.h"
 #include "dmg.h"
 #include "map_obj.h"
@@ -36,12 +37,6 @@ void (*ObjMissile_R0_move_tbl[5])(cObjMissile*) = {
     objMissile_R0_Set, objMissile_R0_Parent, objMissile_R0_FireWait, objMissile_R0_Fire, objMissile_R0_Lost,
 };
 
-static inline void missileAtariInit(cObj* obj, f32 x, f32 y, f32 z, f32 rx, f32 rz, f32 w, f32 h, int parts, int flags, int cnt)
-{
-    obj->sub2B4.atari.init(parts, flags, cnt, x, y, z, rx, rz, w, h);
-    obj->sub2B4.atari.throughOn();
-}
-
 cObj* SetHeliMissile(void* bin, void* tpl, Vec* pos, Vec* rot, u8 type)
 {
     cObj* obj;
@@ -61,7 +56,8 @@ cObj* SetHeliMissile(void* bin, void* tpl, Vec* pos, Vec* rot, u8 type)
     static const Vec p1 = { 5000.0f, 5000.0f, 5000.0f };
 
     obj->lightInfo.init2(0, 1, &p0, &p1, 2);
-    missileAtariInit(obj, 0.0f, 1000.0f, -700.0f, 350.0f, 700.0f, 700.0f, 1000.0f, 0, 2, 0);
+    AtariInit(&obj->sub2B4.atari, 0.0f, 1000.0f, -700.0f, 350.0f, 700.0f, 700.0f, 1000.0f, 0, 2, 0);
+    obj->sub2B4.atari.throughOn();
     if (pos) {
         obj->pos = *pos;
     } else {

@@ -1,4 +1,5 @@
 #include "atari.h"
+#include "atari_init.h"
 #include "light.h"
 #include "dmg.h"
 #include "map_obj.h"
@@ -67,11 +68,6 @@ static void (*ObjGondola_R0_move_tbl[5])(cObjGondola*) = {
     objGondola_R0_Set, objGondola_R0_Move, objGondola_R0_Down, objGondola_R0_Up, objGondola_R0_Break,
 };
 
-static inline void gondolaAtariInit(cObj* obj, f32 x, f32 y, f32 z, f32 rx, f32 rz, f32 w, f32 h)
-{
-    obj->sub2B4.atari.init(0, 2, 0, x, y, z, rx, rz, w, h);
-}
-
 cObj* SetGondola(void* bin, void* tpl, Vec* pos, Vec* rot)
 {
     cObj* obj;
@@ -93,7 +89,7 @@ cObj* SetGondola(void* bin, void* tpl, Vec* pos, Vec* rot)
     static const Vec p1 = { 5000.0f, 5000.0f, 5000.0f };
 
     obj->lightInfo.init2(0, 1, &p0, &p1, 0x10);
-    gondolaAtariInit(obj, 0.0f, 1000.0f, -700.0f, 350.0f, 700.0f, 700.0f, 1000.0f);
+    AtariInit(&obj->sub2B4.atari, 0.0f, 1000.0f, -700.0f, 350.0f, 700.0f, 700.0f, 1000.0f, 0, 2, 0);
     obj->sub2B4.atari.throughOn();
     if (pos) {
         obj->pos = *pos;

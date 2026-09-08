@@ -35,7 +35,7 @@ void GetWaterCrossPosSub(EspgenWork* w);
 void Espgen42_Move00(EspgenWork* w);
 void Espgen42_TransSub(EspgenWork* w);
 void SetIndMtx(Espgen42Work* p);
-EspgenWork* SetWaterWork(EspgenWork* w, Vec* pos, Vec* rot, f32 size, f32 rate, u32 nx, u32 ny);
+EspgenWork* SetWaterWork(EspgenWork* w, Vec* pos, Vec* rot, f32 size, u32 nx, u32 ny, f32 rate);
 }
 
 static EspgenWork* g_pWater;
@@ -666,10 +666,10 @@ static EspgenWork* SetWater(Vec* pos, Vec* rot, f32 size, u32 nx, u32 ny)
         pLog->err(0, 0, "Espgen42 : work pull failed");
         return NULL;
     }
-    return SetWaterWork(w, pos, rot, size, 1.0f, nx, ny);
+    return SetWaterWork(w, pos, rot, size, nx, ny, 1.0f);
 }
 
-EspgenWork* SetWaterWork(EspgenWork* w, Vec* pos, Vec* rot, f32 size, f32 rate, u32 nx, u32 ny)
+EspgenWork* SetWaterWork(EspgenWork* w, Vec* pos, Vec* rot, f32 size, u32 nx, u32 ny, f32 rate)
 {
     Espgen42Work* p = (Espgen42Work*) w->work;
     Mtx m;
@@ -920,7 +920,7 @@ int Espgen42_SetFreeWork(EspgenWork* w, EspGenWork* rec, EspSeqData* head, cMode
     }
     rate = 1.0f - (f32) (int) rec->xFE / 255.0f;
     PSVECScale(&rec->x58, &r, 6.28f / 360.0f);
-    if (SetWaterWork(w, (Vec*) &rec->x0C, &r, rec->x88, rate, nx, ny) == NULL) {
+    if (SetWaterWork(w, (Vec*) &rec->x0C, &r, rec->x88, nx, ny, rate) == NULL) {
         goto fail;
     }
     p->col.r = rec->x9C;

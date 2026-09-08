@@ -964,10 +964,20 @@ void make_shadow_texture(ShadowMng* mng)
 
         MSet(pSelfShadowMng[g_SelfShdNum], mng);
         g_SelfShdNum++;
-        pG->flags_500C |= 1;
+        BitOn(pG->flags_500C, 1);
         GXLoadTexObj(&IndTex[shd_tex_no], 0);
         Vec up = {0.0f, 1.0f, 0.0f};
-        MTX_ZERO(sm);
+        sm[0][0] = 0.0f;
+        sm[0][1] = 0.0f;
+        sm[0][2] = 0.0f;
+        sm[0][3] = 0.0f;
+        sm[1][0] = 0.0f;
+        sm[1][1] = 0.0f;
+        sm[1][3] = 0.0f;
+        sm[2][0] = 0.0f;
+        sm[2][1] = 0.0f;
+        sm[2][2] = 0.0f;
+        sm[2][3] = 0.0f;
         sm[1][2] = shd_tex_scale_x;
         PSMTXIdentity(trans);
         trans[2][3] = shd_ofs + PSVECDistance(&mng->lightPos, &mng->target);
@@ -1016,7 +1026,9 @@ void make_shadow_texture(ShadowMng* mng)
             PSVECSubtract(&lpos, &pos, &d);
             rate = PSVECMag(&d) / mng->pLight->x1C;
             if (rate > 0.7f) {
-                a = ((1.0f - rate) * (10.0f / 3.0f)) * (f32) (int) a;
+                rate = 1.0f - rate;
+                rate *= 10.0f / 3.0f;
+                a = (f32) (int) a * rate;
             }
         }
         if (SHD_NO_SELF(mng)) {
@@ -1025,9 +1037,11 @@ void make_shadow_texture(ShadowMng* mng)
         p = mng->pModel[i];
     NEXT_MODEL:
         {
-            cModelInfo* info = p->pShMdInfo;
+            cModelInfo* info;
             cModel* n;
-            if (info == 0) {
+            if (p->pShMdInfo != 0) {
+                info = p->pShMdInfo;
+            } else {
                 info = p->pInfo;
             }
             if (SHD_NO_SELF(mng)) {
@@ -1097,6 +1111,7 @@ void make_shadow_texture(ShadowMng* mng)
 int shadowChkInFrustum(ShadowMng* mng, cModel* m)
 {
     int ret = 0;
+    cLightInfo* li = &m->lightInfo;
     Vec d;
     Vec pos;
     f32 r;
@@ -1115,7 +1130,18 @@ int shadowChkInFrustum(ShadowMng* mng, cModel* m)
         }
         r *= s;
     }
-    SHD_LIGHT_POS(m, pos, "shadowChkInFrustum() cCoord NO ERR %d");
+    if (li->x52 > 0) {
+        cModel* p = m->getPartsPtr(li->x52 - 1);
+        if ((u32) p < 0x80000000 || (u32) p > 0x82FFFFFF) {
+            pLog->err(0, 0, "shadowChkInFrustum() cCoord NO ERR %d", li->x52);
+            p = m;
+        }
+        PSMTXMultVecSR(p->mat, &li->ofs, &pos);
+        PSVECAdd(&pos, &p->worldPos, &pos);
+    } else {
+        PSMTXMultVecSR(m->mat, &li->ofs, &pos);
+        PSVECAdd(&pos, &m->pos, &pos);
+    }
     PSVECSubtract(&pos, &mng->lightPos, &d);
     dist = PSVECMag(&d);
     if (dist < r) {
@@ -1156,22 +1182,22 @@ void ProcShadowScrModel(cModel* m, ShadowMng* mngs)
     u32 num = 0;
     u32 i;
     u32 n;
+    u32 shdNum = g_Shd_num;
 
-    for (i = 0; i < g_Shd_num; i++) {
-        ShadowMng* mng = &mngs[i];
-        if (mng->pLight->xD > 2) {
+    for (i = 0; i < shdNum; i++, mngs++) {
+        if (mngs->pLight->xD > 2) {
             continue;
         }
-        if (((ShadowLightWork*) mng->pLight->work)->mode != 0) {
+        if (((ShadowLightWork*) mngs->pLight->work)->mode != 0) {
             continue;
         }
-        if (mng->self & 1) {
+        if (mngs->self & 1) {
             continue;
         }
-        if (shadowChkInFrustum(mng, m) == 0) {
+        if (shadowChkInFrustum(mngs, m) == 0) {
             continue;
         }
-        tbl[num++] = mng;
+        tbl[num++] = mngs;
     }
     if (num == 0) {
         return;
@@ -1202,6 +1228,7 @@ void shadowScrModelRender(ShadowMng* mngs)
     int cnt;
     u32 i;
     int n;
+    int num;
 
     obj = ObjMgr.pAlive;
     cnt = 0;
@@ -1214,7 +1241,7 @@ void shadowScrModelRender(ShadowMng* mngs)
         } else {
             cnt++;
         }
-        if ((obj->be_flag & 1) && (obj->be_flag & 0x80)) {
+        if (BitChk(obj->be_flag, 1) && BitChk(obj->be_flag, 0x80)) {
             ProcShadowScrModel(obj, mngs);
         }
     }
@@ -1229,7 +1256,7 @@ void shadowScrModelRender(ShadowMng* mngs)
         } else {
             cnt++;
         }
-        if ((em->be_flag & 1) && (em->be_flag & 0x80)) {
+        if (BitChk(em->be_flag, 1) && BitChk(em->be_flag, 0x80)) {
             ProcShadowScrModel(em, mngs);
         }
     }
@@ -1241,7 +1268,8 @@ void shadowScrModelRender(ShadowMng* mngs)
     GXSetTevSwapModeTable(2, 0, 1, 2, 3);
     GXSetTevSwapModeTable(3, 0, 1, 2, 3);
     mng = mngs;
-    for (n = 0; n < g_Shd_num; n++) {
+    num = g_Shd_num;
+    for (n = 0; n < num; n++) {
         ShadowLightWork* w = (ShadowLightWork*) mng->pLight->work;
         if (w->mode >= 1 && w->mode <= 4) {
             mng++;
