@@ -611,7 +611,7 @@ struct LadderWork {
     u32 flags;            // 0x00  bit0 motions set, bit1 off (setOff), bit2 partner climbing, bit3 transOld
     int status;           // 0x04  0 standing, 1 downed, 2 falling, 3 falling (timer done), 4 fall / reset motion
     int x08;              // 0x08
-    int ladderNum;        // 0x0C  rungs (setLadderInfo)
+    u32 ladderNum;        // 0x0C  rungs (setLadderInfo; converted unsigned)
     u8 pad_10[4];
     Vec basePos;          // 0x14  position at SetLadder (R1_Set restores it)
     f32 baseRotY;         // 0x20

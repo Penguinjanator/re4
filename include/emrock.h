@@ -4,12 +4,12 @@
 #include "types.h"
 #include "vec.h"
 #include "em.h"
+#include "embarrel.h"
 
 class cPlayer;
 struct EmAtkInfo;
 
-// Work of the rolling rock enemy (game/emrock.cpp), overlaid on cEm from 0x3E0. Partial layout:
-// only the fields the written routines touch are named.
+// Work of the rolling rock enemy (game/emrock.cpp), overlaid on cEm from 0x3E0.
 struct EmRockWork {
     u32 flags;            // 0x000 (0x3E0)  bit0: setParent flag (no matrix normalisation), bit1: transparent mode
     int timer;            // 0x004 (0x3E4)
@@ -21,34 +21,36 @@ struct EmRockWork {
     u32 x24;              // 0x024 (0x404)
     int rollWait;         // 0x028 (0x408)  Roll: frames before the floor check starts
     cEm* pParent;         // 0x02C (0x40C)  model the rock hangs on (setParent)
-    u32 x30;              // 0x030 (0x410)
+    u32 x30;              // 0x030 (0x410)  pParent at the time of setFall / setThrow
     int partsNo;          // 0x034 (0x414)  parts of pParent
     u32 sndId;            // 0x038 (0x418)  SndCall handle of the always sound
     int timer3;           // 0x03C (0x41C)  Roll: start delay
     void* mot0;           // 0x040 (0x420)  Drop motions (setDropMot)
     void* mot1;           // 0x044 (0x424)
-    void* mot2;           // 0x048 (0x428)
-    void* mot3;           // 0x04C (0x42C)
-    void* mot4;           // 0x050 (0x430)  setDropMot2
-    void* mot5;           // 0x054 (0x434)
+    void* mot2;           // 0x048 (0x428)  player death motion (plemDropDie)
+    void* mot3;           // 0x04C (0x42C)  sub character death motion (subemDropDie)
+    void* mot4;           // 0x050 (0x430)  setDropMot2: player escape motion (plemDropEscape)
+    void* mot5;           // 0x054 (0x434)  player find motion (plemDropFind)
     u8 pad_58[0x7C - 0x58];
     Vec spd;              // 0x07C (0x45C)
     u8 seFall[4];         // 0x088 (0x468)  SndCall blk / no / vol of the landing (setSeFall), 0xFF = none
     u8 se8C;              // 0x08C (0x46C)
-    u8 se8D[3];           // 0x08D (0x46D)
+    u8 se8D[3];           // 0x08D (0x46D)  SndCall of the player hit (emRockAtkCk), 0xFF = none
     u8 se90[3];           // 0x090 (0x470)
     u8 seAlways[3];       // 0x093 (0x473)  SndCall of the flying sound, 0xFF = none
     u8 alwaysWait;        // 0x096 (0x476)  frames between the always sound calls (4)
     u8 se97[3];           // 0x097 (0x477)
     u8 effFall[2];        // 0x09A (0x47A)  EstSet id / type when the rock lands (setEffFall), 0xFF = none
-    u8 eff9C[2];          // 0x09C (0x47C)
+    u8 eff9C[2];          // 0x09C (0x47C)  EmPlBloodSet2 arguments when the player is hit, 0xFF = none
     u8 eff9E[2];          // 0x09E (0x47E)
     u8 espKind;           // 0x0A0 (0x480)  EspPullCoreKind at creation
     u8 xA1;               // 0x0A1 (0x481)
-    u8 pad_A2[0xA];
+    u8 pad_A2[2];
+    int routeIdx;         // 0x0A4 (0x484)  current EMI route point (type 6) of the rolling rock
+    EmiEntry* pRoute;     // 0x0A8 (0x488)
     u8 started;           // 0x0AC (0x48C)  Set: the roll started
     u8 xAD;               // 0x0AD (0x48D)  Roll: room 104 flag
-    u8 xAE;               // 0x0AE (0x48E)  Drop2: the player escaped / died
+    u8 xAE;               // 0x0AE (0x48E)  Drop2 / escape: the player escaped / died
     u8 pad_AF;
     u32 sndId2;           // 0x0B0 (0x490)  Roll: rolling sound handle
     void* plMot[16];      // 0x0B4 (0x494)  player motions of the roll escape (setPlMotion)
@@ -67,9 +69,9 @@ public:
     virtual void move();
 
     void setParent(cEm* parent, int partsNo, int flag);
-    void setFall();
-    void setThrow(Vec* spd);
-    void setThrow2(Vec* spd);
+    void setFall(EmAtkInfo* atk);
+    void setThrow(Vec* spd, EmAtkInfo* atk);
+    void setThrow2(Vec* spd, EmAtkInfo* atk);
     void setSeFall(u8 blk, u8 no, u8 vol);
     void setEffFall(u8 id, u8 type);
     void setEffAlways(int id, int type);
@@ -104,23 +106,23 @@ int emRockSetRollRoute(cEmRock* em);
 int emRockSetRollSpd(cEmRock* em);
 int emRockRollStartCk(cEmRock* em);
 void plemRockEscape(cPlayer* pl);
-void plemRockSetEscapeRoute(cEmRock* em);
-int plemRockEscapeCk(cEmRock* em);
+int plemRockSetEscapeRoute();
+int plemRockEscapeCk(cPlayer* pl);
 void plemRockEscAction(cEmRock* em);
-void plemRockEscapeCamMove(cEmRock* em);
-void plemRockEscapeCamMove2(cEmRock* em);
+void plemRockEscapeCamMove(cPlayer* pl, f32 rate);
+void plemRockEscapeCamMove2(cPlayer* pl, int side);
 void plemRockDropDieCamMove(cEmRock* em);
 void emRockPushCamMove(cEmRock* em);
 void emRockPushCamMove2(cEmRock* em);
 void emRockDropCamMove(cEmRock* em);
 void emRockRunDownCk(cEmRock* em);
-void emRockAtkCk(cEmRock* em, struct EmAtkInfo* atk, int type, f32 r);
-void emRockPushCk(cEmRock* em, int a);
-void emRockDropHitCk(cEmRock* em);
-void emRockDropHitCkSub(cEmRock* em);
+int emRockAtkCk(cEmRock* em, struct EmAtkInfo* atk, int type, f32 r);
+void emRockPushCk(cEmRock* em, int frame);
+int emRockDropHitCk(cEmRock* em);
+int emRockDropHitCkSub(cEmRock* em);
 int emRockDropHitCkEm2b(cEmRock* em);
 void plemDropDie(cPlayer* pl);
-void subemDropDie(cEm* em);
+void subemDropDie();
 void emRockSatClear(cEmRock* em);
 void emRockSatSet(cEmRock* em);
 }

@@ -26,11 +26,9 @@ f32 GlobalWindAdd = 1.0471976f;
 // parts list.
 #define PEN_PARTS(m, c, no) ((c)->x54 ? (c)->x54[no] : (m)->getPartsPtr(no))
 
-// Pendulum work of a parts (cModel + 0x128).
-static inline PenParts* PEN_WORK(cModel* p)
-{
-    return (PenParts*) &p->pFloorNrm;
-}
+// Pendulum work of a parts (cModel + 0x128). A macro: an inline function would materialise the
+// base into a register (PenClothSet addresses x1C0 off the parts pointer).
+#define PEN_WORK(p) ((PenParts*) &(p)->pFloorNrm)
 
 // Collision of the link p0-p1 against the volumes: the border variant keeps the link end on
 // the sphere surface, the plain one pushes it out.
@@ -106,8 +104,8 @@ void PenClothSet(cModel* m, PenCloth* c, f32 len)
             continue;
         }
         parts = m->getPartsPtr(c->pParts[i]);
-        w = PEN_WORK(parts);
         PEN_WORK(parts)->x1C0 |= 0x06000000;
+        w = PEN_WORK(parts);
         if (c->pDown[i] == 0xFF) {
             if (c->pUp[i] == 0xFF) {
                 w->len = len;
@@ -129,8 +127,8 @@ void PenClothSet(cModel* m, PenCloth* c, f32 len)
             }
         } else {
             cModel* down = m->getPartsPtr(c->pDown[i]);
-            w->pos = parts->worldPos;
-            w->len = GetDistance3(&down->worldPos, &parts->worldPos);
+            w->pos = down->worldPos;
+            w->len = GetDistance3(&parts->worldPos, &down->worldPos);
             PSVECSubtract(&down->worldPos, &parts->worldPos, &w->dir);
 #line 119 "D:/Bio4/Prog/pendulum.cpp"
             VECNormalize(&w->dir, &w->nrm);
@@ -1460,35 +1458,44 @@ static void PenClothReset(cModel* m, PenCloth* c)
     u32 i;
 
     for (i = 0, pp = c->pParts; i < c->num; i++, pp++) {
-        f32 (*pm)[4];
+        cCoord* parent;
 
         parts = PEN_PARTS(m, c, *pp);
         w = PEN_WORK(parts);
-        pm = parts->pParent->mat;
+        parent = parts->pParent;
         RotMatrix(parts->worldMat, &parts->rot);
         TransMatrix(parts->worldMat, &parts->pos);
         ScaleMatrix(parts->worldMat, &parts->scale);
-        PSMTXConcat(pm, parts->worldMat, parts->mat);
-        PSMTXMultVec(pm, &parts->pos, &parts->worldPos);
+        PSMTXConcat(parent->mat, parts->worldMat, parts->mat);
+        PSMTXMultVec(parent->mat, &parts->pos, &parts->worldPos);
         PSMTXMultVec(parts->mat, &w->dir, &w->pos);
         w->oldPos = w->pos;
         w->speed.x = 0.0f;
         w->speed.y = 0.0f;
         w->speed.z = 0.0f;
     }
-    parts = m->getPartsPtr(0);
-    parts->oldWorldPos = parts->worldPos;
-    parts->x88 = parts->worldPos;
+    {
+        cModel* root = m->getPartsPtr(0);
+        root->oldWorldPos = root->worldPos;
+        root->x88 = root->worldPos;
+    }
 }
 
 void PenWindSet(f32 dir, f32 power, f32 x)
 {
     static const Vec vec0 = {0.0f, 0.0f, 1.0f};
-    Vec rot = {0.0f, dir, 0.0f};
+    // the constants enter the pool at their declaration (before the 0.0 of rot), the uses are
+    // folded to the literals
+    const f32 powerRate = 20.0f;
+    const f32 addRate = PI / 3.0f;
+    Vec rot;
 
+    rot.x = 0.0f;
+    rot.y = dir;
+    rot.z = 0.0f;
     RotVector((Vec*) &vec0, &rot, &GlobalWind);
-    PSVECScale(&GlobalWind, &GlobalWind, power * 20.0f);
-    GlobalWindAdd = x * (PI / 3.0f);
+    PSVECScale(&GlobalWind, &GlobalWind, power * powerRate);
+    GlobalWindAdd = x * addRate;
 }
 
 // The next unit's .sdata starts 8-byte aligned in the original link.

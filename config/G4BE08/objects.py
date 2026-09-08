@@ -1111,6 +1111,7 @@ MATCHING.update({
     "game/objRocket.cpp": True,
     "game/objSubWep.cpp": True,
     "game/objBull.cpp": True,
+    "game/obj13.cpp": True,
 })
 
 # media/utility units

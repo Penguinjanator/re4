@@ -101,6 +101,7 @@ static inline void U16Set(u16& d, u16 v) { d = v; }
 static inline void U32Set(u32& d, u32 v) { d = v; }
 static inline void PSet(void*& d, void* v) { d = v; }
 static inline void PSet(u32& d, void* v) { d = (u32) v; }
+static inline void PSet(cModel*& d, cModel* v) { d = v; }
 
 static inline u32* eventFlags()
 {
@@ -719,16 +720,8 @@ int CheckAshleyActive()
     if (pSUB == 0) {
         return 0;
     }
-    if (RouteCkPosToPosDis(&pPL->pos, &pSUB->pos) > 5000.0f) {
-        return 0;
-    }
-    if (SceAtCheckHideActive() == 1) {
-        return 0;
-    }
-    if (pG->flags_5014 & 0x20000000) {
-        return 0;
-    }
-    if (SubCharGetStatus() & 0x02000000) {
+    if (RouteCkPosToPosDis(&pPL->pos, &pSUB->pos) > 5000.0f || SceAtCheckHideActive() == 1 || (pG->flags_5014 & 0x20000000) ||
+        (SubCharGetStatus() & 0x02000000)) {
         return 0;
     }
     return 1;
@@ -757,7 +750,7 @@ static int sceAtFunc_door(SceAtWork* w, cModel* m)
     }
     pS->x94 = pG->flags_170;
     KeyStop(0xEFCF0000);
-    pG->flags_170 = -1;
+    BitSet(pG->flags_170, -1);
     lt = w->lockType;
     if (lt != 0 && !(doorUnlock()[w->lockFlag >> 5] & (0x80000000 >> (w->lockFlag & 31)))) {
         switch (lt) {
@@ -780,14 +773,14 @@ static int sceAtFunc_door(SceAtWork* w, cModel* m)
     FSet(pG->next_angle, w->dstAngle);
     U16Set(pG->room_id_prev, pG->room_id);
     U8Set(pG->x4FA2, pG->x4F9E);
-    U8Set(pG->next_stage, w->dstStage);
-    U8Set(pG->next_room_no, w->dstRoom);
-    U8Set(pG->next_point, w->dstX4F9E);
-    U8Set(pG->door_no, w->doorNo);
-    U8Set(pG->x20, 4);
-    U8Set(pG->x21, 0);
-    U8Set(pG->x22, 0);
-    U8Set(pG->x23, 0);
+    pG->next_stage = w->dstStage;
+    pG->next_room_no = w->dstRoom;
+    pG->next_point = w->dstX4F9E;
+    pG->door_no = w->doorNo;
+    pG->x20 = 4;
+    pG->x21 = 0;
+    pG->x22 = 0;
+    pG->x23 = 0;
     U16Set(pG->x4F90, 0);
     BitOff(pG->flags_54, 0x40);
     return 1;
@@ -820,10 +813,10 @@ static void setReleaseModelTbl(void* bin, void* tpl)
         SceAtReleaseModel* t = &releaseModelTbl[i];
 
         if (t->cnt == 0) {
-            t->cnt = 3;
-            t->bin = bin;
+                        t->bin = bin;
             t->tpl = tpl;
-            break;
+            t->cnt = 3;
+break;
         }
     }
 }
@@ -844,9 +837,9 @@ static void checkReleaseModelTbl()
                 if (t->tpl != 0) {
                     Mem_free(t->tpl);
                 }
+                t->bin = 0;
                 t->tpl = 0;
                 t->cnt = 0;
-                t->bin = 0;
             }
         }
     }
@@ -875,8 +868,8 @@ int itemZoom(SceAtWork* w)
     }
     sprintf(name, "SS/cmn/itm%02x.bin", it->id);
     sprintf(name2, "SS/cmn/itm%02x.tpl", it->id);
-    tpl = 0;
     bin = 0;
+    tpl = 0;
 #line 1008 "D:/Bio4/Prog/sce_at.cpp"
     ret = DvdReadN(name, 0, 0, 0, 0, 5, __FILE__, __LINE__);
     if (Dvd.ReadCheck(ret, 0, 0, &bin) < 0) {
@@ -912,8 +905,8 @@ void releaseModel(SceAtWork* w, int keep)
 {
     if ((w->item.flag & 2) && w->item.pModel != 0) {
         cObj* obj = (cObj*) w->item.pModel;
-        void* tpl = obj->pInfo->pTpl;
         void* bin = obj->pInfo->pData;
+        void* tpl = obj->pInfo->pTpl;
 
         ObjMgr.destroy(obj);
         setReleaseModelTbl(bin, tpl);
@@ -921,7 +914,7 @@ void releaseModel(SceAtWork* w, int keep)
         w->item.flag &= ~2;
     }
     if (w->item.flag & 8) {
-        w->item.pModel = p_imodel_bak;
+        PSet(w->item.pModel, p_imodel_bak);
         p_imodel_bak = 0;
         w->item.flag &= ~8;
         if (keep == 0) {
@@ -1079,6 +1072,8 @@ static void sceAtGetItem(SceAtWork* w)
         it->pModel->be_flag |= 2;
         it->flag |= 4;
     }
+    sel = 0;
+    cancel = 0;
     BitOn(pG->flags_5010, 2);
     disp_flag_bak = pG->flags_58;
     BitSet(pG->flags_58, -1);
@@ -1089,25 +1084,21 @@ static void sceAtGetItem(SceAtWork* w)
     itemExam.init(w->item.id, model, 0);
     LightMgr.offScr(0x20);
     LightMgr.create(0, 9, -2, 0);
-    sel = 0;
     sub_screen_open = sel;
-    cancel = 0;
     if (mes != 0) {
-        if (cMes.getWork()->result == 0) {
-            do {
-                itemExam.move();
-                itemExam.trans();
-                if (Key.trg & 0x40000000) {
-                    MessageControl* mc = &cMes;
+        while (cMes.getWork()->result == 0 && cancel == 0) {
+            itemExam.move();
+            itemExam.trans();
+            if (Key.trg & 0x40000000) {
+                MessageControl* mc = &cMes;
 
-                    for (i = 0; i <= 15; i++) {
-                        mc->Delete(i);
-                    }
-                    put = 0;
-                    cancel = 1;
+                for (i = 0; i <= 15; i++) {
+                    mc->Delete(i);
                 }
-                SceSleep(1);
-            } while (cMes.getWork()->result == 0 && cancel == 0);
+                put = 0;
+                cancel = 1;
+            }
+            SceSleep(1);
         }
         if (cancel == 0) {
             s8 res = cMes.getWork()->result;
@@ -1324,19 +1315,17 @@ static void sceAtGetItem_NoModel(SceAtWork* w)
     sub_screen_open = 0;
     cancel = 0;
     if (mes != 0) {
-        if (cMes.getWork()->result == 0) {
-            do {
-                if (Key.trg & 0x40000000) {
-                    MessageControl* mc = &cMes;
+        while (cMes.getWork()->result == 0 && cancel == 0) {
+            if (Key.trg & 0x40000000) {
+                MessageControl* mc = &cMes;
 
-                    for (i = 0; i <= 15; i++) {
-                        mc->Delete(i);
-                    }
-                    put = 0;
-                    cancel = 1;
+                for (i = 0; i <= 15; i++) {
+                    mc->Delete(i);
                 }
-                SceSleep(1);
-            } while (cMes.getWork()->result == 0 && cancel == 0);
+                put = 0;
+                cancel = 1;
+            }
+            SceSleep(1);
         }
         if (cancel == 0) {
             s8 res = cMes.getWork()->result;
@@ -1428,23 +1417,30 @@ static int sceAtFunc_item(SceAtWork* w, cModel* m)
     return 1;
 }
 
-#line 14 "D:/Bio4/Prog/flag_rsf.h"
+// Room save flag helpers as the original flag_rsf.h has them (HALT lines 17 / 21).
+static inline u32* RsfFlags(u16 room)
+{
+    return (u32*) (RoomData.getRoomSavePtr(room) + 4);
+}
+
 static inline void RsfSet(u16 room, int no)
 {
     if (no > 0x1F) {
+#line 17 "D:/Bio4/Prog/flag_rsf.h"
         OSReport("HALT %s(%d)\n", __FILE__, __LINE__);
         *(volatile u32*) 0x11111111 = 0;
     }
-    ((u32*) (RoomData.getRoomSavePtr(room) + 4))[(u32) no >> 5] |= 0x80000000 >> (no & 31);
+    RsfFlags(room)[(u32) no >> 5] |= 0x80000000 >> (no & 31);
 }
 
 static inline void RsfClear(u16 room, int no)
 {
     if (no > 0x1F) {
+#line 21 "D:/Bio4/Prog/flag_rsf.h"
         OSReport("HALT %s(%d)\n", __FILE__, __LINE__);
         *(volatile u32*) 0x11111111 = 0;
     }
-    ((u32*) (RoomData.getRoomSavePtr(room) + 4))[(u32) no >> 5] &= ~(0x80000000 >> (no & 31));
+    RsfFlags(room)[(u32) no >> 5] &= ~(0x80000000 >> (no & 31));
 }
 #line 1400 "D:/Bio4/Prog/sce_at.cpp"
 
@@ -1597,7 +1593,7 @@ static int sceAtFunc_damage(SceAtWork* w, cModel* m)
                 a = 1;
             }
             if (w->dmg.time != 0) {
-                b = w->dmg.x7;
+                b = (u8) w->dmg.time;
             }
             if (fl & 2) {
                 pPL->setDamage(w->dmg.kind, w->dmg.arg, w->dmg.power, a, b);
@@ -1622,7 +1618,7 @@ static int sceAtFunc_damage(SceAtWork* w, cModel* m)
                     a = 1;
                 }
                 if (w->dmg.time != 0) {
-                    b = w->dmg.x7;
+                    b = (u8) w->dmg.time;
                 }
                 if (fl & 2) {
                     pSUB->setDamage(w->dmg.kind, w->dmg.arg, w->dmg.power, a, b);

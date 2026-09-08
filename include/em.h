@@ -89,7 +89,9 @@ public:
     u8 pad_28B[0x290 - 0x28B];
     f32 frame;            // 0x290  motion frame (db_cam prints it as an int)
     u16 frameMax;         // 0x294
-    u8 pad_296[0x2A4 - 0x296];
+    u8 pad_296[0x29D - 0x296];
+    u8 x29D;              // 0x29D  (emrock plemRockEscape: MotionSetCore hokan of the escape run motion)
+    u8 pad_29E[0x2A4 - 0x29E];
     struct EmWork2A4* p2A4;  // 0x2A4  0x1FE-byte work (player.cpp mem_alloc; cam_ctrl reads its byte 5)
     u8 pad_2A8[0x2B4 - 0x2A8];
     // 0x2B4 .. 0x300  collision info (rect size at 0x2C0/0x2C4); wrapped so that cEm::cEm does not
@@ -164,7 +166,11 @@ public:
     u32 x3E0;             // 0x3E0  player: event walk flag / damage timer
     int x3E4;             // 0x3E4  player damage: 1 = turning towards x400
     u32 x3E8;             // 0x3E8  player damage (blow): water splash done
-    u8 pad_3EC[0x400 - 0x3EC];
+    int x3EC;             // 0x3EC  player damage (emrock plemRockEscape): EMI route point run to (-1 = none)
+    int x3F0;             // 0x3F0  emrock escape: frames since the last button press
+    int x3F4;             // 0x3F4  emrock escape: EMI goal sub type (plemRockEscapeCk)
+    int x3F8;             // 0x3F8  emrock escape: goal reached
+    int x3FC;             // 0x3FC  emrock escape: Rnd() & 1 (action button variant)
     union {
         f32 x400;         // 0x400  player: event turn limit / damage direction angle (123.0 = none)
         struct {

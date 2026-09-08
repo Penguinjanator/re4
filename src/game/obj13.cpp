@@ -673,6 +673,9 @@ void plobjLadderClimb(cPlayer* pl)
 
 int SubLadderClimbCk(cEm* em)
 {
+    const f32 distLim = 1000000.0f;
+    const f32 heightLim = 40000.0f;
+    const f32 angLim = PI / 2.0f;
     u32 i;
 
     if (pSUB == 0) {
@@ -687,13 +690,13 @@ int SubLadderClimbCk(cEm* em)
         if ((obj->be_flag & 0x201) == 1 && obj->id == 0x13 && obj->ckClimb()) {
             if ((em->pos.x - obj->pos.x) * (em->pos.x - obj->pos.x) + (em->pos.y - obj->pos.y) * (em->pos.y - obj->pos.y) +
                     (em->pos.z - obj->pos.z) * (em->pos.z - obj->pos.z) >
-                1000000.0f) {
+                distLim) {
                 continue;
             }
-            if (fabsf(Muku(&em->oldPos, &obj->pos, em->rot.y, PI)) > PI / 2.0f) {
+            if (fabsf(Muku(&em->oldPos, &obj->pos, em->rot.y, PI)) > angLim) {
                 continue;
             }
-            if (fabsf(em->pos.y - obj->pos.y) > 40000.0f) {
+            if (fabsf(em->pos.y - obj->pos.y) > heightLim) {
                 continue;
             }
             if (em->plDist2 > 100000000.0f || em->pos.y + 1000.0f < pPL->pos.y) {
@@ -826,7 +829,7 @@ void subobjLadderClimb(cEm* pl)
             }
             if (em->frame > 42.7f && em->frame < 43.3f) {
                 SndCall(5, 0xE, &em->getPartsPtr(0x18)->worldPos, em->id, 0, 0);
-                em->subFlags &= 0xFFDF;
+                BitOff16(em->subFlags, 0x20);
             }
         } else {
             if (em->frame > 11.7f && em->frame < 12.3f) {
@@ -837,7 +840,7 @@ void subobjLadderClimb(cEm* pl)
             }
             if (em->frame > 35.7f && em->frame < 36.3f) {
                 SndCall(5, 0xE, &em->getPartsPtr(0x18)->worldPos, em->id, 0, 0);
-                em->subFlags &= 0xFFDF;
+                BitOff16(em->subFlags, 0x20);
             }
         }
         em->subHideMode++;
@@ -853,7 +856,7 @@ void subobjLadderClimb(cEm* pl)
                 em->pos.y = fl;
             }
             EndSubDamage();
-            em->subFlags &= 0xFFDF;
+            BitOff16(em->subFlags, 0x20);
             em->atari.flags |= 0x100;
             em->atari.flags &= ~0x10;
         }
@@ -914,8 +917,8 @@ void objLadderDownActEvtCk(cObjLadder* obj)
         return;
     }
     PSMTXRotRad(m, 'y', obj->rot.y);
-    n = (f32) w->ladderNum;
     v.x = 0.0f;
+    n = (f32) w->ladderNum;
     v.y = n * 533.3329f;
     v.z = n * -194.1173f;
     PSMTXMultVecSR(m, &v, &v);
@@ -1089,14 +1092,15 @@ void plobjLadderReset(cPlayer* pl)
             v.z = 1450.51f;
             motA = 1;
             em->rot.y = obj->rot.y - PI / 2.0f;
+            em->rot.y = LIMIT_ANGLE(em->rot.y);
         } else {
             v.x = -890.014f;
             v.y = 0.0f;
             v.z = 1450.51f;
             motA = 0x41;
             em->rot.y = obj->rot.y + PI / 2.0f;
+            em->rot.y = LIMIT_ANGLE(em->rot.y);
         }
-        em->rot.y = LIMIT_ANGLE(em->rot.y);
         PSMTXMultVec(m, &v, &em->pos);
         MotionSetCore(em, &em->pMotion, w->mot[4], 0, 5, motA, 0);
         obj->setReset(0);
@@ -1225,8 +1229,8 @@ void cObjLadder::breakWindow()
 
     PSMTXRotRad(m, 'y', rot.y);
     TransMatrix(m, &pos);
-    n = (f32) w->ladderNum;
     v.x = 0.0f;
+    n = (f32) w->ladderNum;
     v.y = n * 533.3329f;
     v.z = n * -194.1173f;
     PSMTXMultVec(m, &v, &v);
@@ -1236,7 +1240,7 @@ void cObjLadder::breakWindow()
     for (i = 0; i < EmMgr.nArray; i++) {
         cEmWindow* em = (cEmWindow*) ((u8*) EmMgr.pArray + EmMgr.size * i);
 
-        if ((em->be_flag & 0x201) == 1 && em->id == 0x46 && em->hp > 0 && !(em->ChkStatus() & 1)) {
+        if ((em->be_flag & 0x201) == 1 && em->id == 0x46 && em->hp > 0 && (em->ChkStatus() & 1) == 0) {
             if ((em->pos.x - v.x) * (em->pos.x - v.x) + (em->pos.y - v.y) * (em->pos.y - v.y) + (em->pos.z - v.z) * (em->pos.z - v.z) <
                 4000000.0f) {
                 em->SetBreakAll(&v, 0, 0);

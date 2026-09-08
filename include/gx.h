@@ -147,6 +147,7 @@ void GXSetNumTevStages(u8 n);
 void GXSetTevOp(int id, int mode);
 void GXSetZCompLoc(u8 before_tex);
 void GXSetTevOrder(int stage, int coord, int map, int color);
+void GXEnableTexOffsets(int coord, u8 line_enable, u8 point_enable);
 void GXSetNumChans(u8 n);
 void GXSetChanMatColor(int chan, GXColor color);
 void GXSetChanCtrl(int chan, u8 enable, int amb_src, int mat_src, u32 light_mask, int diff_fn, int attn_fn);

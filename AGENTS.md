@@ -931,6 +931,52 @@ mark it Matching.
 - An inline helper taking `const Vec* size` evaluates `&size` as the parameter copy before the body's
   `&ofs`, reversing the `lis/addi` pairs of `init2(0, 1, &ofs, &size, 0x10)`; a helper that *returns*
   `&ofs` (shared `.rodata` copy) used as the argument keeps the argument order (embarrel).
+- global.c allocation priority is `floor_log2(refs)*refs/live_length` *truncated to an int* (`*10000`),
+  ties broken by pseudo number. REG_LIVE_LENGTH counts every insn *and note/label/barrier* in the range
+  (flow.c increments outside the `'i'`-class test), so deleted statements, block notes and jump layout
+  shift it. pl_leon setRightHand: `data` (5 refs/20) lost r30 to `info` (5 refs/19) only because the
+  do-while(0) HALT let cse rewrite the HALT store's 0 as `info` (a 5th ref); the plain-block HALT gives
+  info 4 refs and `data` wins. Hoisted invariants that never die (loop-invariant `lis` in a `for(;;)`)
+  all truncate to the same priority and are allocated in pseudo-number order.
+- `const f32 name = literal;` locals: the initialiser is expanded (creating the pool entry at that
+  point and a 4-byte frame slot) but emits no code, and every use is folded to the literal, so `h +
+  name` is computed where it is used while the pool order follows the declarations. pl_push emSandCheck
+  needs `const f32 sand = 800.0f; const f32 base = 300.0f;` (pool 800, 300, 0.0 with rot stored first).
+- Zero stores come out in pure source order (none first) when no store is the zero's last use: the
+  dying one is the *last* zero store in source (`x54 = 0` after `flags = 0`, pl_cloth testDressSetAda).
+- Two different QI zero stores separated by a call reuse one pseudo (callee-saved); the original's
+  fresh `li r0,0` after the call = the second group used an SImode zero: `u8` fields stored from `int`
+  values (an inline `PlRoutineSet(pl, int, int, int, int)`), cse cannot merge SI and QI zeros (pl_dmg).
+- `do { } while (0)` macro bodies emit NOTE_INSN_LOOP_BEG/END; haifa makes the first insn after a
+  loop note depend on *everything* before it (loop_notes → full barrier), so PRE copies inserted at
+  the block end cannot move above the next macro invocation. Written-out blocks with a plain `{ }`
+  (pl_cloth LAPEL_MOVE) let the copies schedule right after their `addi`s; re-deriving `pm1 = m1`
+  inside the inner block makes the first lapel's later uses go through the PRE copy (`mr r24,r27`).
+- PRE-created pseudos are numbered in *hash bucket order* (pre_delete walks `expr_hash_table`), with
+  `hash_expr` hashing `high(symbol_ref)` by the symbol *name* (so `.LC<n>` numbering and the table
+  size `max_uid/4|1` both matter); the insertions themselves come in bitmap-index (first-occurrence)
+  order. path PathGetMatEm: three dead `int x = 0;` initialisers (+3 uids) plus taking `&hpos.x[j]`
+  before `&key0` in the loop body give the target's spill slots and copy order. exception ErrorHandler
+  (LC64/symbol_err_tbl swap) has no solution with our `.LC` numbering — the original TU numbered its
+  constants differently (open).
+- gcse 2.95 PRE of a struct load across an if/else: to stop it, kill memory at the *join* (an empty
+  `asm volatile("" : : : "memory")` as the first statement after the if/else makes the join's loads
+  non-anticipatable; placed inside the arm it leaves the conversion paths jumping to the asm's label).
+  A `default:` arm that falls into `case 0:` gives its string `lis` an extra anti-dependence on the
+  `err` call (the call's `depend_count` tie-break then issues `lis` before `lwz pLog`); a `default:`
+  with its own `wrap = 2; break;` (cross-jumped) keeps `lwz pLog` first (TexRender CopyTexRenderMgr).
+- Reusing a dead pointer local for a later block (`p = &tile[0]; ... p = &tile[1]`) extends its live
+  range to the function end and gives it the top callee-saved register (datactrl dispDebug p=r31).
+- A variable set in the two paths of an unsigned float→int conversion is global-allocated; a second
+  such variable in another block must be a *different* local (block-scoped `u32 x0`) or the shared
+  pseudo's range covers both (datactrl loop x0 r6 vs over-block x0 r5).
+- `int n = 0; int base = 0;` declared inside an `if` block (C++ mid-block) put their `li`s in that
+  block next to the calls; at function scope they are hoisted to the prologue (stage subMissionSt1).
+- `SatMgr.destroy(p)` on the object is a direct `bl destroy__7cSatMgrP4cSat`; `sat->destroy(p)`
+  through a pointer is a vtable call (pl_debug satMakeTest) — check when a manager method is virtual.
+- objdiff REPLACE rows with identical text: the split object can carry a synthesized `R_PPC_NONE`
+  reloc (path `lfs f12,0(r29)`) or a symbol+addend spelled from a neighbouring symbol
+  (`globalCamera+0xe0` = `g_RndMgr-0x38`); compare bytes/addresses, not the row.
 
 ## Don'ts
 

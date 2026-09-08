@@ -96,14 +96,12 @@ struct SceAtField {
 
 // Damage area payload (type 0xA).
 struct SceAtDamage {
-    int time;         // 0x00 (0x5C)
-    u8 pad_4[3];
-    u8 x7;            // 0x07 (0x5F)
-    u8 kind;          // 0x08 (0x60)
-    u8 flags;         // 0x09 (0x61)  bit0, bit1 use `power`
-    u8 pad_A[2];
-    int arg;          // 0x0C (0x64)
-    f32 power;        // 0x10 (0x68)
+    int time;         // 0x00 (0x5C)  frames (0 = 1); its low byte doubles as the setDamage 5th argument
+    u8 kind;          // 0x04 (0x60)
+    u8 flags;         // 0x05 (0x61)  bit0, bit1 use `power`
+    u8 pad_6[2];
+    int arg;          // 0x08 (0x64)
+    f32 power;        // 0x0C (0x68)
 };
 
 // Hide area payload (type 0x12).

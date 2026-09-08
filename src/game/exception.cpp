@@ -476,6 +476,10 @@ void excepRegConsoleDump(int error, u32 dsisr, u32 dar)
     OSReport("\n");
 }
 
+// Not matched (99.5%): the loop-invariant `lis` of "DSISR: %08X  DAR: %08X" and of symbol_err_tbl
+// swap r15/r16. Both are gcse PRE pseudos created in hash-bucket order (hash of the symbol *name*,
+// table size max_uid/4|1); with our `.LC` numbering no uid count reproduces the target, so the original
+// TU numbered its string constants differently.
 void ErrorHandler(OSError error, OSContext* context, ...)
 {
     va_list ap;
@@ -490,8 +494,6 @@ void ErrorHandler(OSError error, OSContext* context, ...)
     int col;
     static int timer = 0;
 
-//@@BEGIN
-//@@END
     *pContext = *context;
     va_start(ap, context);
     dsisr = va_arg(ap, u32);

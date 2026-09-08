@@ -465,134 +465,132 @@ static void EspCommonTransShimmer(cEsp* esp, int type, u32 blur)
         }
     }
     GXTexObj tex;
+    f32 indMtx[2][3];
+    f32 dot;
     texGens = 0;
-    {
-        f32 indMtx[2][3];
-        f32 dot;
-        copyOk = 1;
-        fog.r = fog.g = fog.b = fog.a = 0;
-        GXSetFog(0, 0.0f, 0.0f, ZNEAR, ZFAR, fog);
-        if (esp->flags & 0x1000) {
-            if (GetDrawTmpBufType() != 2) {
-                copyOk = 0;
-            }
-            buf = GetDrawTmpBufAddr(2);
-        } else {
-            buf = GetDrawTmpBufAddr(1);
+    copyOk = 1;
+    fog.r = fog.g = fog.b = fog.a = 0;
+    GXSetFog(0, 0.0f, 0.0f, ZNEAR, ZFAR, fog);
+    if (esp->flags & 0x1000) {
+        if (GetDrawTmpBufType() != 2) {
+            copyOk = 0;
         }
-        ofs = 56.0f;
+        buf = GetDrawTmpBufAddr(2);
+    } else {
+        buf = GetDrawTmpBufAddr(1);
+    }
+    ofs = 56.0f;
+    if (pG->flags_5010 & 0x08000000) {
+        ofs = 0.0f;
+    }
+    if (copyOk) {
+        if (buf == NULL) {
+            pLog->warn(0, 0, "Esp0d() : not enough memory");
+            return;
+        }
+        GXSetTexCopySrc(0, (u32) ofs, (u32) Screen.width, (u32) (Screen.height - ofs));
+        GXSetTexCopyDst((u32) Screen.width / 2, (u32) ((f32) ((u32) Screen.height / 2) - ofs), 6, 1);
+        GXCopyTex(buf, 0);
+        GXPixModeSync();
+        GXInvalidateTexAll();
+    }
+    GXInitTexObj(&tex, buf, (u32) Screen.width / 2, (u32) ((f32) ((u32) Screen.height / 2) - ofs), 6, 0, 0, 0);
+    GXLoadTexObj(&tex, 1);
+    g_Get_tex_obj = tex;
+    Mtx tm;
+    Mtx pm;
+    if (ESP_PARTS_SCREEN(esp)) {
         if (pG->flags_5010 & 0x08000000) {
-            ofs = 0.0f;
-        }
-        if (copyOk) {
-            if (buf == NULL) {
-                pLog->warn(0, 0, "Esp0d() : not enough memory");
-                return;
-            }
-            GXSetTexCopySrc(0, (u32) ofs, (u32) Screen.width, (u32) (Screen.height - ofs));
-            GXSetTexCopyDst((u32) Screen.width / 2, (u32) ((f32) ((u32) Screen.height / 2) - ofs), 6, 1);
-            GXCopyTex(buf, 0);
-            GXPixModeSync();
-            GXInvalidateTexAll();
-        }
-        GXInitTexObj(&tex, buf, (u32) Screen.width / 2, (u32) ((f32) ((u32) Screen.height / 2) - ofs), 6, 0, 0, 0);
-        GXLoadTexObj(&tex, 1);
-        g_Get_tex_obj = tex;
-        Mtx tm;
-        Mtx pm;
-        if (ESP_PARTS_SCREEN(esp)) {
-            if (pG->flags_5010 & 0x08000000) {
-                PSMTXConcat(Matrix1, esp->mat, tm);
-            } else {
-                PSMTXConcat(Matrix2, esp->mat, tm);
-            }
-            GXLoadTexMtxImm(tm, 0x1E, 1);
-            GXSetTexCoordGen(texGens, 1, 0, 0x1E);
+            PSMTXConcat(Matrix1, esp->mat, tm);
         } else {
-            C_MTXLightPerspective(pm, pG->Cam.param.fovy, 1.3333334f, 0.5f, -0.6666667f, 0.5f, 0.5f);
-            PSMTXConcat(pm, esp->mat, tm);
-            GXLoadTexMtxImm(tm, 0x1E, 0);
-            GXSetTexCoordGen(texGens, 0, 0, 0x1E);
+            PSMTXConcat(Matrix2, esp->mat, tm);
         }
-        texGens++;
-        GXSetNumIndStages(1);
-        GXSetTexCoordGen(texGens, 1, 4, 0x3C);
-        texGens++;
-        GXSetIndTexOrder(0, 1, 0);
-        GXSetIndTexCoordScale(0, 0, 0);
-        if (ESP_PARTS_SCREEN(esp)) {
-            dot = 2500.0f;
-        } else {
-            Vec dir;
-            Vec d;
-            Vec p;
-            Camera* cam;
+        GXLoadTexMtxImm(tm, 0x1E, 1);
+        GXSetTexCoordGen(texGens, 1, 0, 0x1E);
+    } else {
+        C_MTXLightPerspective(pm, pG->Cam.param.fovy, 1.3333334f, 0.5f, -0.6666667f, 0.5f, 0.5f);
+        PSMTXConcat(pm, esp->mat, tm);
+        GXLoadTexMtxImm(tm, 0x1E, 0);
+        GXSetTexCoordGen(texGens, 0, 0, 0x1E);
+    }
+    texGens++;
+    GXSetNumIndStages(1);
+    GXSetTexCoordGen(texGens, 1, 4, 0x3C);
+    texGens++;
+    GXSetIndTexOrder(0, 1, 0);
+    GXSetIndTexCoordScale(0, 0, 0);
+    if (ESP_PARTS_SCREEN(esp)) {
+        dot = 2500.0f;
+    } else {
+        Vec dir;
+        Vec d;
+        Vec p;
+        Camera* cam;
 
-            if (esp->parent != pEffParentWorld) {
-                PSMTXMultVec(esp->parent->mat, &esp->pos, &p);
-            } else {
-                p = esp->pos;
-            }
-            cam = &pG->Cam;
-            dir.x = cam->param.at.x - cam->param.pos.x;
-            dir.y = cam->param.at.y - cam->param.pos.y;
-            dir.z = cam->param.at.z - cam->param.pos.z;
+        if (esp->parent != pEffParentWorld) {
+            PSMTXMultVec(esp->parent->mat, &esp->pos, &p);
+        } else {
+            p = esp->pos;
+        }
+        cam = &pG->Cam;
+        dir.x = cam->param.at.x - cam->param.pos.x;
+        dir.y = cam->param.at.y - cam->param.pos.y;
+        dir.z = cam->param.at.z - cam->param.pos.z;
 #line 865 "D:/Bio4/Prog/esp_sub.cpp"
-            VECNormalize(&dir, &dir);
-            d.x = p.x - cam->param.pos.x;
-            d.y = p.y - cam->param.pos.y;
-            d.z = p.z - cam->param.pos.z;
-            dot = PSVECDotProduct(&dir, &d);
-        }
-        if (dot < 1500.0f) {
-            dot = 1500.0f;
-        }
-        if (blur == 3) {
-            indMtx[1][1] = indMtx[0][0] = esp->colA * (1.0f / 255.0f) * 0.04f * 1000.0f / dot * scale;
-            indMtx[0][1] = 0.0f;
-            indMtx[0][2] = 0.0f;
-            indMtx[1][0] = 0.0f;
-            indMtx[1][2] = 0.0f;
-        } else {
-            static f32 prm1 = 0.5f;
-            static f32 prm2 = 0.0f;
-            static f32 prm3 = 0.0f;
-            static f32 prm4 = Screen.height * 0.5f / Screen.width;
+        VECNormalize(&dir, &dir);
+        d.x = p.x - cam->param.pos.x;
+        d.y = p.y - cam->param.pos.y;
+        d.z = p.z - cam->param.pos.z;
+        dot = PSVECDotProduct(&dir, &d);
+    }
+    if (dot < 1500.0f) {
+        dot = 1500.0f;
+    }
+    if (blur == 3) {
+        indMtx[1][1] = indMtx[0][0] = esp->colA * (1.0f / 255.0f) * 0.04f * 1000.0f / dot * scale;
+        indMtx[0][1] = 0.0f;
+        indMtx[0][2] = 0.0f;
+        indMtx[1][0] = 0.0f;
+        indMtx[1][2] = 0.0f;
+    } else {
+        static f32 prm1 = 0.5f;
+        static f32 prm2 = 0.0f;
+        static f32 prm3 = 0.0f;
+        static f32 prm4 = Screen.height * 0.5f / Screen.width;
 
-            indMtx[0][0] = prm1;
-            indMtx[0][1] = prm2;
-            indMtx[0][2] = 0.0f;
-            indMtx[1][0] = prm3;
-            indMtx[1][1] = prm4;
-            indMtx[1][2] = 0.0f;
-        }
-        GXSetIndTexMtx(1, indMtx, 1);
-        {
-            u8 signedOfs;
-            u8 replace;
+        indMtx[0][0] = prm1;
+        indMtx[0][1] = prm2;
+        indMtx[0][2] = 0.0f;
+        indMtx[1][0] = prm3;
+        indMtx[1][1] = prm4;
+        indMtx[1][2] = 0.0f;
+    }
+    GXSetIndTexMtx(1, indMtx, 1);
+    {
+        u8 signedOfs;
+        u8 replace;
 
-            switch (blur) {
-            case 1:
-                signedOfs = 0;
-                replace = 0;
-                break;
-            case 2:
-                signedOfs = 1;
-                replace = 0;
-                break;
-            case 3:
-                signedOfs = 0;
-                replace = 1;
-                break;
-            default:
-                pLog->err(0, 0, "ESP_SHIMMER : BLUR_TYPE[%x] invalid", blur);
-                signedOfs = 0;
-                replace = 1;
-                break;
-            }
-            stages = 1;
-            GXSetTevIndWarp(0, 0, signedOfs, replace, 1);
+        switch (blur) {
+        case 1:
+            signedOfs = 0;
+            replace = 0;
+            break;
+        case 2:
+            signedOfs = 1;
+            replace = 0;
+            break;
+        case 3:
+            signedOfs = 0;
+            replace = 1;
+            break;
+        default:
+            pLog->err(0, 0, "ESP_SHIMMER : BLUR_TYPE[%x] invalid", blur);
+            signedOfs = 0;
+            replace = 1;
+            break;
         }
+        stages = 1;
+        GXSetTevIndWarp(0, 0, signedOfs, replace, 1);
     }
     GXSetTevOrder(0, 0, 1, 4);
     GXSetTevColorIn(0, 0xF, 8, 0xA, 0xF);
@@ -605,15 +603,14 @@ static void EspCommonTransShimmer(cEsp* esp, int type, u32 blur)
         if (tw->owner == 0xD2) {
             pLog->err(0, 0, "ESP : Mask_TexId[%x] no data", no);
         } else {
-            GXTlutObj tlut;
             GXTexObj tex2;
             TEXDescriptor* td = TEXGet(tw->pTpl, esp->anmPtn2);
             TEXHeader* th = td->textureHeader;
 
             if (th->format == 8 || th->format == 9) {
                 GXInitTexObjCI(&tex2, th->data, th->width, th->height, th->format, 0, 0, 0, 1);
-                GXInitTlutObj(&tlut, td->CLUTHeader->data, td->CLUTHeader->format, td->CLUTHeader->numEntries);
-                GXLoadTlut(&tlut, 1);
+                GXInitTlutObj((GXTlutObj*) indMtx, td->CLUTHeader->data, td->CLUTHeader->format, td->CLUTHeader->numEntries);
+                GXLoadTlut((GXTlutObj*) indMtx, 1);
             } else {
                 GXInitTexObj(&tex2, th->data, th->width, th->height, th->format, 0, 0, 0);
             }

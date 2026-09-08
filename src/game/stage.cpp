@@ -297,12 +297,15 @@ void subMissionSt1()
     int count = 0;
     int i;
     int j;
-    int n;
-    int base;
 
     tbl = st1_target_tbl;
     t = tbl;
-    i = 0;
+    {
+    // room1 is read through an explicit byte offset: the target keeps `i*6` as its own index giv
+    // (`lhzx base, ofs`) instead of folding the table base into a second stepping pointer.
+    // Not matched (99.7%): the target's lhzx has (base, ofs) operand order and the roles of the
+    // three table registers (addi result / stepping t / lhzx base copy) are rotated.
+    u32 ofs = 0;
     do {
         p1 = GetEtcFlgPtr(t->no, t->room1);
         p2 = GetEtcFlgPtr(t->no, t->room2);
@@ -314,7 +317,7 @@ void subMissionSt1()
             count++;
         }
         if (pG->x4 != 0) {
-            if (G_ROOM_ID == (&tbl[i])->room1 && !(*p1 & 1)) {
+            if (G_ROOM_ID == ((SubMissionTarget*) ((u32) st1_target_tbl + ofs))->room1 && !(*p1 & 1)) {
                 if (getRoomEtcItem(t->no, &item, 1)) {
                     item->flags &= ~2;
                     pCoin = item;
@@ -328,8 +331,9 @@ void subMissionSt1()
             }
         }
         t++;
-        i++;
+        ofs += sizeof(SubMissionTarget);
     } while (t <= &tbl[14]);
+    }
 
     if (GetFree(0) != count) {
         timer = 150;
@@ -343,6 +347,9 @@ void subMissionSt1()
         if (count == 15) {
             pG->flags_51C0 |= 0x8000;
         }
+        int n = 0;
+        int base = 0;
+
         IdSys.kill(0xFF, 0x33);
         IdSys.set((void*) (pG->pArc->ofs_9C + (u32) pG->pArc), 0xFF, 0x33, 0x13, 5, 0);
         u = IdSys.unitPtr(0, 0x33);

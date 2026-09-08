@@ -9,8 +9,10 @@ class cSat;
 
 // One entry of the room "EMI" data (pG->pRoomEmi): 0x40 bytes, entries start at +8.
 struct EmiEntry {
-    u8 type;              // 0x00  6 = rolling barrel route point
-    u8 pad_1[3];
+    u8 type;              // 0x00  6 = rolling barrel / rock route point, 7 = rock escape goal, 8 = rock start trigger, 3 = rock event trigger
+    u8 sub;               // 0x01  sub type (emrock: event flag select / escape goal side)
+    u8 state;             // 0x02  emrock emRockAtkScrCk: 3 once the trigger fired
+    u8 pad_3;
     Vec pos;              // 0x04
     u8 pad_10[0x40 - 0x10];
 };

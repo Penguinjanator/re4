@@ -4568,8 +4568,8 @@ address	size	section	unit	scope	name	demangled
 0x80140474	0x4	.text	game/filter05.cpp	global	Filter05RoomInit__Fv	Filter05RoomInit
 0x80140478	0x4	.text	game/filter05.cpp	global	Filter05Trans__Fv	Filter05Trans
 0x8014047C	0x4	.text	game/filter05.cpp	global	Filter05SetParam__Fiiiiiiifff	Filter05SetParam
-0x80140480	0x100	.text	game/filter06.cpp	global	cParticle06_init	cParticle06::init
-0x80140580	0x420	.text	game/filter06.cpp	global	cParticle06_move	cParticle06::move
+0x80140480	0x100	.text	game/filter06.cpp	global	init__11cParticle06Ul	cParticle06::init
+0x80140580	0x420	.text	game/filter06.cpp	global	move__11cParticle06	cParticle06::move
 0x801409A0	0x20	.text	game/filter06.cpp	global	Filter06Init__Fv	Filter06Init
 0x801409C0	0x9C	.text	game/filter06.cpp	global	Filter06RoomInit__Fv	Filter06RoomInit
 0x80140A5C	0x240	.text	game/filter06.cpp	global	Filter06Trans__Fv	Filter06Trans
