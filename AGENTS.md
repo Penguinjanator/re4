@@ -356,6 +356,15 @@ mark it Matching.
 - Vec by-value parameters are passed by reference under the V4 ABI: callee code identical to `Vec*`.
 - A local `lim = 512.0f` shared by an `if` test and a `while` bound keeps one constant register; a
   repeated literal inside the loop is hoisted as a second pseudo and copied (`fmr`).
+- Manager work-scan loops whose range check survives only at the loop top come from a guarded
+  do-while (`i = 0; if (i < n) do { p = getWork(i); ... } while (++i < n);`) with the inline `getWork`
+  reading its fields through a local copy `cMgr* m = this;` (defeats thread_jumps). See map_obj.h.
+- In-class inlines of a vtable-owning class are emitted in declaration order, but an explicit
+  `virtual ~Mgr() {}` moves the base template's destructor relative to them; the implicit destructor
+  gives the DOL order. Manager accessors like `getWork` should be free `static inline XxxMgrWork()`.
+- `static int x = 0;` goes to `.sdata` with an explicit zero; unreferenced statics are still emitted.
+  `_GLOBAL_.I.<key>` is keyed to the first *initialized* public object or function; `.bss` globals
+  don't count.
 - Static locals show as `name.NNN` in objdiff; the DECL_UID suffix cannot be reproduced and is ignored by the report.
 - Unexplained words in `.rodata` (zero words, stray floats) are usually the constant pool of a function
   the original linker dead-stripped (bodies gone, pools kept, `STRIP_UNUSED` in objects.py): write a

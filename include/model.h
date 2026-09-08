@@ -214,6 +214,11 @@ public:
     void setParent(cModel* parent, Vec* pos, Vec* rot);
     void setParent(cModel* parent, int partsNo, Vec* pos, Vec* rot);
     void moveDataAddr(int ofs);   // model data moved by `ofs` bytes (block.cpp memory compaction)
+
+    // The managers the models allocate from (game/model.cpp, .sdata: &ModInfoMgr / &PartsMgr;
+    // sscrn SubScreenExitCore restores them after the sub screen swapped the area out).
+    static class cModInfoMgr* mm;
+    static class cPartsMgr* pm;
 };
 
 // Model info pool (game/model.cpp `ModInfoMgr`, 0x34 bytes): a cManager<cModelInfo>; the
@@ -232,6 +237,10 @@ public:
 };
 
 extern cModInfoMgr ModInfoMgr;
+
+// Parts pool (game/model.cpp `PartsMgr`, 0x34 bytes): a cManager<cParts>; layout opaque here.
+class cPartsMgr;
+extern cPartsMgr PartsMgr;
 
 // game/model.cpp (C linkage): parts `no` of a parts list (NULL when out of range).
 extern "C" cModel* GetPartsAddr(cModel* parts, int no);

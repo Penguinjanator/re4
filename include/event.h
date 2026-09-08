@@ -37,4 +37,10 @@ public:
 
 extern EventMgr EvtMgr;
 
+// game/event.cpp (C linkage): streamed sound blocks of the running event
+extern "C" {
+int SndStrPlayBlock(int a, int no, f32 vol);
+void SndStrStopBlock(int blk);
+}
+
 #endif

@@ -139,7 +139,7 @@ struct GlobalWork {
     u8 pad_4FAC[4];
     u8 wep_no;             // 0x4FB0  equipped weapon (cPlayer::weaponLoad(no, type))
     u8 wep_type;           // 0x4FB1
-    u8 pad_4FB2;
+    u8 wep_x4FB2;          // 0x4FB2  equipped weapon slot num >> 13 (sscrn SubScreenExit re-arms when it changed)
     u8 wep_lv;             // 0x4FB3  weapon upgrade level (em_dm_val: WeaponLevelTbl column, clamped to 7)
     u8 pad_4FB4[4];
     u8 x4FB8;              // 0x4FB8
@@ -148,7 +148,9 @@ struct GlobalWork {
     u8 costume2;           // 0x4FBB  Ashley costume (pl_cloth: 1 = ribbon + lapels instead of skirt + sweater)
     u8 pad_4FBC[2];
     u16 flags_4FBE;        // 0x4FBE  bit0: player data changed (pl_sub PlSelect/PlSetCostume/PlChangeData)
-    u8 pad_4FC0[0x500C - 0x4FC0];
+    Vec sub_pos;           // 0x4FC0  sub character start position (sce_sys ScenarioRoomInit)
+    f32 sub_angle;         // 0x4FCC
+    u8 pad_4FD0[0x500C - 0x4FD0];
     u32 flags_500C;        // 0x500C
     u32 flags_5010;        // 0x5010
     u32 flags_5014;        // 0x5014
@@ -160,7 +162,14 @@ struct GlobalWork {
     u32 flags_51E4;        // 0x51E4  (db_cam: 0x10 show the tool banner, 0x18 show the offset headers)
     u8 pad_51E8[0x52E8 - 0x51E8];
     u8 emlist[0x2000];     // 0x52E8  enemy list (ESL file) read by stage.cpp
-    u8 pad_72E8[0x832C - 0x72E8];
+    u8 pad_72E8[0x82E8 - 0x72E8];
+    u32 ope_x82E8;         // 0x82E8  sub screen "Ope" block (sscrn: memset(&pG->ope_x82E8, 0, 0x44) in SubScreenGameInit)
+    u8 ope_ow_type;        // 0x82EC  (sscrn OpeOwTypeSet)
+    u8 pad_82ED[3];
+    u32 ope_mdt_bits[3];   // 0x82F0  one bit per mdt number (sscrn OpeSetMdtNo)
+    u32 ope_x82FC;         // 0x82FC  (sscrn OpeOwTypeSet clears it)
+    s32 ope_mdt_no;        // 0x8300  (sscrn OpeGetMdtNo / OpeSetMdtNo; SubScreenGameInit: 0x18)
+    u8 pad_8304[0x832C - 0x8304];
     u32 x832C;             // 0x832C  (pl_sub PlSelect swaps it with x4F98 when the player changes)
     u8 pad_8330[0x833C - 0x8330];
     u32 em_die_cnt;        // 0x833C  enemies killed (em_set EmSetDieCnt)

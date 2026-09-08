@@ -43,6 +43,7 @@ cEmRack* SetRack(void* bin, void* tpl, Vec* pos, Vec* rot, u8 type, int etcNo)
     cEmRack* em;
     EmRackWork* w;
     u16* flg;
+    int zero;
 
     em = (cEmRack*) EmMgr.create(0x45);
     if (em == 0) {
@@ -104,7 +105,8 @@ cEmRack* SetRack(void* bin, void* tpl, Vec* pos, Vec* rot, u8 type, int etcNo)
 
         em->lightInfo.init2(0, 1, &ofs, &size, 0x10);
     }
-    em->lockParts = 0;
+    zero = 0;
+    em->lockParts = zero;
     em->lockOfs.x = 0.0f;
     em->lockOfs.y = 0.0f;
     em->lockOfs.z = 0.0f;
@@ -121,7 +123,7 @@ cEmRack* SetRack(void* bin, void* tpl, Vec* pos, Vec* rot, u8 type, int etcNo)
         at->setPriority(3);
         at->flags &= ~0x100;
     }
-    w->xEC = 0;
+    w->xEC = zero;
     w->sat[2] = 0;
     w->sat[1] = 0;
     w->sat[0] = 0;
@@ -163,7 +165,10 @@ void emRackDmCk(cEmRack* em)
         return;
     }
     type = em->type;
-    if (type < 0 || type > 1) {
+    if (type < 0) {
+        return;
+    }
+    if (type > 1) {
         return;
     }
     switch (DmgMgr.hitCheck(&em->pos, &hit)) {
@@ -274,18 +279,18 @@ void emRackDmCk(cEmRack* em)
             EmDmBloodSet2(em, w->eff, 2, 0, 0, 0);
         }
         break;
+    case 5:
+    case 6:
+    case 0xD:
+    case 0xE:
+    case 0xF:
+    case 0x12:
+    case 0x13:
     case 0x15:
-        em->xFC = 1;
-        em->xFD = 2;
-        em->xFE = 0;
-        em->xFF = 2;
-        break;
     case 0x29:
-        em->xFC = 1;
-        em->xFD = 2;
-        em->xFE = 0;
-        em->xFF = 2;
-        break;
+    case 0x2C:
+    case 0x2D:
+    case 0x2E:
     default:
         em->xFC = 1;
         em->xFD = 2;
@@ -405,14 +410,37 @@ void emRack_R1_Break(cEmRack* em)
     if (em->xFE == 0) {
         em->hp = 0;
         em->be_flag &= ~2;
-        flg = GetEtcFlgPtr(w->etcNo, pG->room_id);
+        flg = GetEtcFlgPtr(w->etcNo, pGS->room_id);
         if (flg) {
             *flg |= 1;
         }
         switch (em->type) {
-        case 2:
-        case 3:
-        case 5:
+        default:
+            eff = w->eff;
+            if (eff == 0xFF) {
+                break;
+            }
+            switch (em->xFF) {
+            case 0:
+            default:
+                EstSet((int) em, -1, 0, 0, eff, 3, 0, 0, (u32) em, 0);
+                SndCall(6, 0x33, &em->pos, 0, 0, em);
+                break;
+            case 1:
+                EstSet((int) em, -1, 0, 0, eff, 5, 0, 0, (u32) em, 0);
+                SndCall(6, 0x33, &em->pos, 0, 0, em);
+                break;
+            case 2:
+                EstSet((int) em, -1, 0, 0, eff, 0, 0, 0, (u32) em, 0);
+                SndCall(6, 0x33, &em->pos, 0, 0, em);
+                break;
+            case 3:
+                EstSet((int) em, -1, 0, 0, eff, 4, 0, 0, (u32) em, 0);
+                SndCall(6, 0x33, &em->pos, 0, 0, em);
+                break;
+            case 4:
+                break;
+            }
             break;
         case 4:
             eff = w->eff;
@@ -423,50 +451,33 @@ void emRack_R1_Break(cEmRack* em)
             case 0:
             default:
                 EstSet(0, -1, &em->pos, &em->rot, eff, 3, 0, 0, 0, 0);
+                SndCall(6, 0x33, &em->pos, 0, 0, em);
                 break;
             case 1:
                 EstSet(0, -1, &em->pos, &em->rot, eff, 5, 0, 0, 0, 0);
+                SndCall(6, 0x33, &em->pos, 0, 0, em);
                 break;
             case 2:
                 EstSet(0, -1, &em->pos, &em->rot, eff, 0, 0, 0, 0, 0);
+                SndCall(6, 0x33, &em->pos, 0, 0, em);
                 break;
             case 3:
                 EstSet(0, -1, &em->pos, &em->rot, eff, 4, 0, 0, 0, 0);
+                SndCall(6, 0x33, &em->pos, 0, 0, em);
                 break;
             case 4:
-                goto skip;
+                break;
             case 5:
                 EstSet(0, -1, &em->pos, &em->rot, eff, 3, 0, 0, 0, 0);
+                SndCall(6, 0x33, &em->pos, 0, 0, em);
                 break;
             }
-            SndCall(6, 0x33, &em->pos, 0, 0, em);
             break;
-        default:
-            eff = w->eff;
-            if (eff == 0xFF) {
-                break;
-            }
-            switch (em->xFF) {
-            case 0:
-            default:
-                EstSet((int) em, -1, 0, 0, eff, 3, 0, 0, (u32) em, 0);
-                break;
-            case 1:
-                EstSet((int) em, -1, 0, 0, eff, 5, 0, 0, (u32) em, 0);
-                break;
-            case 2:
-                EstSet((int) em, -1, 0, 0, eff, 0, 0, 0, (u32) em, 0);
-                break;
-            case 3:
-                EstSet((int) em, -1, 0, 0, eff, 4, 0, 0, (u32) em, 0);
-                break;
-            case 4:
-                goto skip;
-            }
-            SndCall(6, 0x33, &em->pos, 0, 0, em);
+        case 2:
+        case 3:
+        case 5:
             break;
         }
-    skip:
         emRackSatClear(em);
         em->xFE++;
     }
@@ -491,7 +502,7 @@ void emRack_R1_Shock(cEmRack* em)
         if (w->shockTimer != 0) {
             w->shockTimer--;
             p->rot.x = 0.0f;
-            if (pG->flags_51E4 & 1) {
+            if (pGS->flags_51E4 & 1) {
                 p->rot.x = fRand0_1() * 0.024543693f + 0.024543693f;
             }
         } else {

@@ -43,6 +43,7 @@ struct TASK {
 
 extern TASK* CTASK_MAIN;  // sentinel "main thread" task (-1)
 extern TASK* pCTask;      // task currently being scheduled
+extern OSThread* pParentThread;  // thread to return to from the scheduler
 
 // Struct-member views of the same symbols (the pLog trick, db_log.h): the original reloads pCTask
 // after every store through it and keeps the following pParentThread load in order, which GCC

@@ -295,7 +295,7 @@ address	size	section	unit	scope	name	demangled
 0x8001DBBC	0x98	.text	game/item.cpp	global	gld_order	gld_order
 0x8001DC54	0x40	.text	game/item.cpp	global	gld_cmp	gld_cmp
 0x8001DC94	0x23C	.text	game/item.cpp	global	cItemMgr_makeItemList	cItemMgr::makeItemList
-0x8001DED0	0x70	.text	game/item.cpp	global	cItemMgr_search	cItemMgr::search
+0x8001DED0	0x70	.text	game/item.cpp	global	search__8cItemMgrUs	cItemMgr::search
 0x8001DF40	0x80	.text	game/item.cpp	global	cItemMgr_minimumSearch	cItemMgr::minimumSearch
 0x8001DFC0	0x10	.text	game/item.cpp	global	order_cmp	order_cmp
 0x8001DFD0	0xC8	.text	game/item.cpp	global	cItemMgr_ordering	cItemMgr::ordering
@@ -318,7 +318,7 @@ address	size	section	unit	scope	name	demangled
 0x8001F2E8	0x38	.text	game/item.cpp	global	cItemMgr_flagclear	cItemMgr::flagclear
 0x8001F320	0x28	.text	game/item.cpp	global	cItemMgr_check	cItemMgr::check
 0x8001F348	0x8	.text	game/item.cpp	global	bareHand	bareHand
-0x8001F350	0x120	.text	game/item.cpp	global	cItemMgr_arm	cItemMgr::arm
+0x8001F350	0x120	.text	game/item.cpp	global	arm__8cItemMgrP8ItemWork	cItemMgr::arm
 0x8001F470	0x28	.text	game/item.cpp	global	reloadable__8cItemMgr	cItemMgr::reloadable
 0x8001F498	0x11C	.text	game/item.cpp	global	cItemMgr_reloadable_8001F498	cItemMgr::reloadable
 0x8001F5B4	0x28	.text	game/item.cpp	global	reload__8cItemMgr	cItemMgr::reload
@@ -403,7 +403,7 @@ address	size	section	unit	scope	name	demangled
 0x80023C14	0x68	.text	game/mercenaries.cpp	global	IdSetTexNo	IdSetTexNo
 0x80023C7C	0x64	.text	game/mercenaries.cpp	global	IdIsAnimEnd	IdIsAnimEnd
 0x80023CE0	0x174	.text	game/mercenaries.cpp	global	MercID_init	MercID::init
-0x80023E54	0x3C	.text	game/mercenaries.cpp	global	MercID_set	MercID::set
+0x80023E54	0x3C	.text	game/mercenaries.cpp	global	set__6MercID	MercID::set
 0x80023E90	0x54	.text	game/mercenaries.cpp	global	MercID_kill	MercID::kill
 0x80023EE4	0x58	.text	game/mercenaries.cpp	global	MercID_dispMissionStart	MercID::dispMissionStart
 0x80023F3C	0x58	.text	game/mercenaries.cpp	global	MercID_dispTimeUp	MercID::dispTimeUp
@@ -1290,7 +1290,7 @@ address	size	section	unit	scope	name	demangled
 0x80062508	0x438	.text	game/sscrn.cpp	global	OpeSetOpenTerm	OpeSetOpenTerm
 0x80062940	0x10	.text	game/sscrn.cpp	global	OpeSetOpenTermCancel	OpeSetOpenTermCancel
 0x80062950	0xD8	.text	game/sscrn.cpp	global	OpeSetOpenTermEnd	OpeSetOpenTermEnd
-0x80062A28	0x2C	.text	game/sscrn.cpp	global	cManager_cMap_roomInit	cManager<cMap>::roomInit
+0x80062A28	0x2C	.text	game/sscrn.cpp	global	roomInit__t8cManager1Z4cMap	cManager<cMap>::roomInit
 0x80062A54	0xC	.text	game/sscrn.cpp	global	fn_80062A54	.
 0x80062A60	0x88	.text	lib/ppcdown.c	global	fn_80062A60	.
 0x80062AE8	0xF0	.text	lib/ppcdown.c	global	DBcallback	DBcallback
@@ -3253,7 +3253,7 @@ address	size	section	unit	scope	name	demangled
 0x800D79E8	0x90	.text	game/cockpit.cpp	global	lifeMeterDisp__7Cockpiti	Cockpit::lifeMeterDisp
 0x800D7A78	0x260	.text	game/cockpit.cpp	global	LifeMeter_roomInit	LifeMeter::roomInit
 0x800D7CD8	0xC94	.text	game/cockpit.cpp	global	LifeMeter_move	LifeMeter::move
-0x800D896C	0xB0	.text	game/cockpit.cpp	global	LifeMeter_fix	LifeMeter::fix
+0x800D896C	0xB0	.text	game/cockpit.cpp	global	fix__9LifeMeteri	LifeMeter::fix
 0x800D8A1C	0x80	.text	game/cockpit.cpp	global	LifeMeter_disp	LifeMeter::disp
 0x800D8A9C	0x48	.text	game/cockpit.cpp	global	LifeMeter_frameOut	LifeMeter::frameOut
 0x800D8AE4	0x48	.text	game/cockpit.cpp	global	LifeMeter_frameIn	LifeMeter::frameIn
@@ -3273,8 +3273,8 @@ address	size	section	unit	scope	name	demangled
 0x800D9B88	0xE4	.text	game/cockpit.cpp	global	CountDown_warnTime	CountDown::warnTime
 0x800D9C6C	0x28	.text	game/cockpit.cpp	global	CountDown_getTime	CountDown::getTime
 0x800D9C94	0x8	.text	game/cockpit.cpp	global	CountDown_getFrame	CountDown::getFrame
-0x800D9C9C	0x44	.text	game/cockpit.cpp	global	CountDown_saveDisp	CountDown::saveDisp
-0x800D9CE0	0x68	.text	game/cockpit.cpp	global	CountDown_loadDisp	CountDown::loadDisp
+0x800D9C9C	0x44	.text	game/cockpit.cpp	global	saveDisp__9CountDown	CountDown::saveDisp
+0x800D9CE0	0x68	.text	game/cockpit.cpp	global	loadDisp__9CountDown	CountDown::loadDisp
 0x800D9D48	0xC	.text	game/cons.cpp	global	ConsInitRoom__FP8ConsRoom	ConsInitRoom
 0x800D9D54	0x64	.text	game/cons.cpp	global	ConsGetRoomValue__FUl	ConsGetRoomValue
 0x800D9DB8	0x14	.text	game/cString.cpp	global	__7cString	cString::cString
@@ -4447,7 +4447,7 @@ address	size	section	unit	scope	name	demangled
 0x801388E8	0x2C	.text	game/event.cpp	global	init__8EventMgr	EventMgr::init
 0x80138914	0xD0	.text	game/event.cpp	local	EventMgr_myRoomInit	EventMgr::myRoomInit
 0x801389E4	0x78	.text	game/event.cpp	global	EventMgr_DelAll	EventMgr::DelAll
-0x80138A5C	0x29C	.text	game/event.cpp	global	EventMgr_Run	EventMgr::Run
+0x80138A5C	0x29C	.text	game/event.cpp	global	Run__8EventMgr	EventMgr::Run
 0x80138CF8	0xE0	.text	game/event.cpp	global	EventMgr_IsAliveEvt	EventMgr::IsAliveEvt
 0x80138DD8	0x58	.text	game/event.cpp	global	EventMgr_EvtReadAram	EventMgr::EvtReadAram
 0x80138E30	0x3C	.text	game/event.cpp	global	EventMgr_EvtReadMram	EventMgr::EvtReadMram
@@ -5274,7 +5274,7 @@ address	size	section	unit	scope	name	demangled
 0x8017398C	0x10C	.text	game/pl_class.cpp	global	cPlayer_dmgCheck	cPlayer::dmgCheck
 0x80173A98	0x1C4	.text	game/pl_class.cpp	global	cPlayer_setDamage	cPlayer::setDamage
 0x80173C5C	0x64	.text	game/pl_class.cpp	global	cPlayer_visibleCtrl	cPlayer::visibleCtrl
-0x80173CC0	0x88	.text	game/pl_class.cpp	global	cPlayer_subScrCheck	cPlayer::subScrCheck
+0x80173CC0	0x88	.text	game/pl_class.cpp	global	subScrCheck__7cPlayer	cPlayer::subScrCheck
 0x80173D48	0xA0	.text	game/pl_class.cpp	global	setNoSuspend__7cPlayeri	cPlayer::setNoSuspend
 0x80173DE8	0x90	.text	game/pl_class.cpp	global	setFootwork__7cPlayer	cPlayer::setFootwork
 0x80173E78	0x234	.text	game/pl_class.cpp	local	cPlayer_seqSeCtrl	cPlayer::seqSeCtrl
@@ -5292,7 +5292,7 @@ address	size	section	unit	scope	name	demangled
 0x801747DC	0x150	.text	game/pl_class.cpp	global	endCamera__7cPlayer	cPlayer::endCamera
 0x8017492C	0x20	.text	game/pl_class.cpp	global	endEvent__7cPlayer	cPlayer::endEvent
 0x8017494C	0x13C	.text	game/pl_class.cpp	global	cPlayer_endEvent0	cPlayer::endEvent0
-0x80174A88	0x10	.text	game/pl_class.cpp	global	cPlayer_checkEvent	cPlayer::checkEvent
+0x80174A88	0x10	.text	game/pl_class.cpp	global	checkEvent__7cPlayer	cPlayer::checkEvent
 0x80174A98	0x74	.text	game/pl_class.cpp	global	cPlayer_beginAction	cPlayer::beginAction
 0x80174B0C	0x90	.text	game/pl_class.cpp	global	cPlayer_endAction	cPlayer::endAction
 0x80174B9C	0x2C	.text	game/pl_class.cpp	global	cPlayer_setSlow	cPlayer::setSlow
@@ -5647,7 +5647,7 @@ address	size	section	unit	scope	name	demangled
 0x80188790	0x3FC	.text	game/sce_at.cpp	global	sceAtItemFindCheck	sceAtItemFindCheck
 0x80188B8C	0xAC	.text	game/sce_at.cpp	global	SceAtItemFlgOn	SceAtItemFlgOn
 0x80188C38	0xB8	.text	game/sce_at.cpp	global	SceAtItemFlgCk	SceAtItemFlgCk
-0x80188CF0	0x44	.text	game/sce_at.cpp	global	SceAtItemFlgCk_80188CF0	SceAtItemFlgCk
+0x80188CF0	0x44	.text	game/sce_at.cpp	global	SceAtItemFlgCk__Fi	SceAtItemFlgCk
 0x80188D34	0x44	.text	game/sce_at.cpp	global	SceAtItemFindFlgCk	SceAtItemFindFlgCk
 0x80188D78	0xB8	.text	game/sce_at.cpp	global	sceAtItemFlgOn	sceAtItemFlgOn
 0x80188E30	0xC4	.text	game/sce_at.cpp	global	sceAtItemFlgCk	sceAtItemFlgCk
@@ -5725,14 +5725,14 @@ address	size	section	unit	scope	name	demangled
 0x8018F1EC	0xC	.text	game/sce_sys.cpp	global	scenarioSetOtStart	scenarioSetOtStart
 0x8018F1F8	0x24	.text	game/sce_sys.cpp	global	scenarioGetOtAddr	scenarioGetOtAddr
 0x8018F21C	0x7C	.text	game/sce_sys.cpp	global	SceTaskDelete	SceTaskDelete
-0x8018F298	0x198	.text	game/sce_sys.cpp	global	cSceSys_scheduler	cSceSys::scheduler
+0x8018F298	0x198	.text	game/sce_sys.cpp	global	scheduler__7cSceSys	cSceSys::scheduler
 0x8018F430	0x1E8	.text	game/sce_sys.cpp	global	SceExec	SceExec
 0x8018F618	0x44	.text	game/sce_sys.cpp	global	SceSleep	SceSleep
 0x8018F65C	0x3C	.text	game/sce_sys.cpp	global	SceExit	SceExit
-0x8018F698	0x44	.text	game/sce_sys.cpp	global	SceKill	SceKill
-0x8018F6DC	0x38	.text	game/sce_sys.cpp	global	SceKill_8018F6DC	SceKill
-0x8018F714	0x34	.text	game/sce_sys.cpp	global	SceKill_8018F714	SceKill
-0x8018F748	0x5C	.text	game/sce_sys.cpp	global	SceKill_8018F748	SceKill
+0x8018F698	0x44	.text	game/sce_sys.cpp	global	SceKill__Fi	SceKill
+0x8018F6DC	0x38	.text	game/sce_sys.cpp	global	SceKill__FP7ScePrim	SceKill
+0x8018F714	0x34	.text	game/sce_sys.cpp	global	SceKill__FP4TASK	SceKill
+0x8018F748	0x5C	.text	game/sce_sys.cpp	global	SceKill__FPFi_v	SceKill
 0x8018F7A4	0x40	.text	game/sce_sys.cpp	global	checkCTaskRange__7cSceSys	cSceSys::checkCTaskRange
 0x8018F7E4	0x8	.text	game/sce_sys.cpp	global	SceCTask	SceCTask
 0x8018F7EC	0x28	.text	game/sce_sys.cpp	global	SceExecInitCondition	SceExecInitCondition
@@ -5744,7 +5744,7 @@ address	size	section	unit	scope	name	demangled
 0x8018FB24	0x134	.text	game/sce_sys.cpp	global	SceExecEventCancel	SceExecEventCancel
 0x8018FC58	0x98	.text	game/sce_sys.cpp	global	SceSetEventCancel	SceSetEventCancel
 0x8018FCF0	0xC0	.text	game/sce_sys.cpp	global	scenarioCheckEventCancel	scenarioCheckEventCancel
-0x8018FDB0	0x44	.text	game/sce_sys.cpp	global	__static_initialization_and_destruction_0_8018FDB0	__static_initialization_and_destruction_0
+0x8018FDB0	0x44	.text	game/sce_sys.cpp	local	__static_initialization_and_destruction_0_8018FDB0	__static_initialization_and_destruction_0
 0x8018FDF4	0x2C	.text	game/sce_sys.cpp	global	global_constructors_keyed_to_ScenarioInit	global constructors keyed to ScenarioInit
 0x8018FE20	0xF4	.text	game/scheduler.cpp	global	TaskSchedulerInit	TaskSchedulerInit
 0x8018FF14	0x44	.text	game/scheduler.cpp	global	TaskAllClear	TaskAllClear

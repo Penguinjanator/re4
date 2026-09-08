@@ -30,7 +30,9 @@ public:
 // use are declared; the layout is still opaque.
 class cDataCtrl {
 public:
-    u8 pad_0[0xAA4];
+    u8 pad_0[0xA08];
+    s32 xA08;       // 0xA08  0 while the sub screen owns the ARAM area (sscrn), 1 otherwise
+    u8 pad_A0C[0xAA4 - 0xA0C];
 
     u32 getAramFree(u32 size);
     void init();
