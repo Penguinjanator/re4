@@ -25,11 +25,22 @@ public:
 
 class cModel;
 
+// One primitive part of a ModelData (dbmodule DrawObjWireframe): 0x20 header, then the GX-style stream.
+struct ModelPart {
+    u8 pad_0[0x18];
+    u32 size;        // 0x18  byte length of the primitive stream following the header
+    u32 nPoly;       // 0x1C  polygon count (debug statistics)
+};
+
 // Model data referenced by a bin (game/model.cpp `ModelData`); only the flag word is known.
 struct ModelData {
-    u8 pad_0[0x20];
+    u8 pad_0[0x1A];
+    u16 nParts;      // 0x1A  primitive part count (dbmodule DrawObjWireframe)
+    struct ModelPart* pParts;  // 0x1C  first part header (0x20 bytes + primitive stream)
     u32 flags;       // 0x20  bit30 (0x40000000): SmxGetFlag bit1
-    u8 pad_24[8];
+    u8 pad_24[4];
+    u8 shift;        // 0x28  vertex fixed-point shift (dbmodule: scale = 1 / (1 << shift))
+    u8 pad_29[3];
     u32 shapeOfs;    // 0x2C  offset of the shape (vertex delta) table (shape.cpp)
     void* vtxOrig;   // 0x30  original vertex positions (shape.cpp ResetShape source)
     u8 pad_34[4];

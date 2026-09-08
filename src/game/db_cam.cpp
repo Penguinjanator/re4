@@ -59,6 +59,11 @@ static inline void Inc(int& v) { v++; }
 static inline void Dec(int& v) { v--; }
 static inline void Set(int& v, int x) { v = x; }
 
+// adjust_qFPS keeps the edited shoulder offset record as a byte pointer (the original copies it
+// with memcpy and steps through it by byte offset).
+#define QOFS(p) ((QfpsOfs*) (p))
+#define QOFS_CAMPOS2 0xC
+
 // Column vectors -> matrix.
 #define MTX_SET_COLUMNS(m, c0, c1, c2, c3)                                                    \
     (m)[0][0] = (c0).x; (m)[1][0] = (c0).y; (m)[2][0] = (c0).z;                               \
@@ -441,6 +446,7 @@ void debugCamera::menu(Camera* cam, JOY* joy)
     static Vec target = {0.0f, 0.0f, 0.0f};
     static Vec up = {0.0f, 0.0f, -1.0f};
     int ret;
+    u8* d;
 
     if (mode == 0) {
         return;
@@ -492,9 +498,12 @@ void debugCamera::menu(Camera* cam, JOY* joy)
         } else {
             cameraBak = pG->Cam.param;
             ProjType = 2;
-            pG->Cam.param.pos = campos;
-            pG->Cam.param.at = target;
-            pG->Cam.up = up;
+            d = (u8*) &pG->Cam.param.pos;
+            memcpy(d, &campos, sizeof(Vec));
+            d = (u8*) &pG->Cam.param.at;
+            memcpy(d, &target, sizeof(Vec));
+            d = (u8*) &pG->Cam.up;
+            memcpy(d, &up, sizeof(Vec));
             pG->Cam.param.roll = 0.0f;
             CameraSetOrientationUp(&pG->Cam);
             pG->flags_60 |= 0x10000000;
@@ -974,7 +983,8 @@ void CameraDrawTarget(Camera* cam, int flag)
 
 void CameraDebugInformation()
 {
-    Camera* cam = &CamCtrl.camera;
+    CameraControl* cc = &CamCtrl;
+    Camera* cam = &cc->camera;
     eprintf(56, 266, 0, 15, "----- GAME CAMERA -----");
     eprintf(56, 280, 0, 15, "Cpos : (%.2f, %.2f, %.2f)", cam->param.pos.x, cam->param.pos.y, cam->param.pos.z);
     eprintf(56, 294, 0, 15, "Trgt : (%.2f, %.2f, %.2f)", cam->param.at.x, cam->param.at.y, cam->param.at.z);
@@ -1101,8 +1111,8 @@ void drawGround(int big)
 int adjust_qFPS(JOY* joy, int x, int y, int flag, int* out)
 {
     static const char* menu_str[5] = {"Select Site", "Symmetry", "Follow Grnd", "Fovy", "Reset"};
-    static QfpsOfs* p_offset;
-    static QfpsOfs* p_counter;
+    static u8* p_offset;   // byte pointers: the original copies the records with memcpy
+    static u8* p_counter;
     static int menu_no = 0;
     static int menu_level = 0;
     static int symmetry_flag = 1;
@@ -1122,8 +1132,9 @@ int adjust_qFPS(JOY* joy, int x, int y, int flag, int* out)
     Vec target;
     Vec campos;
     Vec close;
-    int ret = 0;
     int cx = 0;
+    int cy = 0;
+    int ret = 0;
     int i;
     int j;
 
@@ -1151,8 +1162,8 @@ int adjust_qFPS(JOY* joy, int x, int y, int flag, int* out)
     switch (menu_level) {
     case 0:
         if (joy->trg & JOY_B) {
-            menu_level = 0;
             menu_no = 0;
+            menu_level = 0;
             ret = -1;
             break;
         }
@@ -1192,8 +1203,8 @@ int adjust_qFPS(JOY* joy, int x, int y, int flag, int* out)
             if (joy->rep & JOY_RIGHT) {
                 FSet(g_local_floor_ratio, g_local_floor_ratio + step);
             }
-            g_local_floor_ratio =
-                g_local_floor_ratio < 0.0f ? 0.0f : (g_local_floor_ratio > 2.0f ? 2.0f : g_local_floor_ratio);
+            FSet(g_local_floor_ratio,
+                 g_local_floor_ratio < 0.0f ? 0.0f : (g_local_floor_ratio > 2.0f ? 2.0f : g_local_floor_ratio));
             if (joy->trg & JOY_A) {
                 ret = 5;
                 q->setFloorRatio(g_local_floor_ratio);
@@ -1248,13 +1259,17 @@ int adjust_qFPS(JOY* joy, int x, int y, int flag, int* out)
                 Inc(site_row);
             }
             site_row = site_row < 0 ? 0 : (site_row > 5 ? 5 : site_row);
-            Set(site_LR, site_col);
+            if (site_col == 0) {
+                site_LR = 0;
+            } else {
+                site_LR = site_col;
+            }
             if (site_row <= 2) {
                 Set(site_UMD, site_row);
                 Set(site_NF, 0);
             } else {
-                Set(site_UMD, site_row - 3);
                 Set(site_NF, 1);
+                Set(site_UMD, site_row - 3);
             }
             if (site_NF) {
                 if (site_LR) {
@@ -1271,20 +1286,20 @@ int adjust_qFPS(JOY* joy, int x, int y, int flag, int* out)
             }
             switch (q->site) {
             case 0:
-                p_offset = &g_local_ready[0][site_UMD];
-                p_counter = &g_local_ready[1][site_UMD];
+                p_offset = (u8*) &g_local_ready[0][site_UMD];
+                p_counter = (u8*) &g_local_ready[1][site_UMD];
                 break;
             case 1:
-                p_offset = &g_local_ready[1][site_UMD];
-                p_counter = &g_local_ready[0][site_UMD];
+                p_offset = (u8*) &g_local_ready[1][site_UMD];
+                p_counter = (u8*) &g_local_ready[0][site_UMD];
                 break;
             case 2:
-                p_offset = &g_local_trans[0][site_UMD];
-                p_counter = &g_local_trans[1][site_UMD];
+                p_offset = (u8*) &g_local_trans[0][site_UMD];
+                p_counter = (u8*) &g_local_trans[1][site_UMD];
                 break;
             case 3:
-                p_offset = &g_local_trans[1][site_UMD];
-                p_counter = &g_local_trans[0][site_UMD];
+                p_offset = (u8*) &g_local_trans[1][site_UMD];
+                p_counter = (u8*) &g_local_trans[0][site_UMD];
                 break;
             }
             switch (site_UMD) {
@@ -1327,18 +1342,18 @@ int adjust_qFPS(JOY* joy, int x, int y, int flag, int* out)
             BitOff(pG->flags_170, 0x40000000);
             menu_level = 1;
         } else if (joy->trg & JOY_A) {
-            PSMTXMultVec(inv, &g->Cam.param.pos, &p_offset->campos);
-            PSMTXMultVec(inv, &g->Cam.param.at, &p_offset->target);
+            PSMTXMultVec(inv, &g->Cam.param.pos, &QOFS(p_offset)->campos);
+            PSMTXMultVec(inv, &g->Cam.param.at, &QOFS(p_offset)->target);
             if (symmetry_flag) {
-                *p_counter = *p_offset;
-                FSet(p_counter->campos.x, -p_counter->campos.x);
-                FSet(p_counter->target.x, -p_counter->target.x);
+                memcpy(p_counter, p_offset, sizeof(QfpsOfs));
+                FSet(QOFS(p_counter)->campos.x, -QOFS(p_counter)->campos.x);
+                FSet(QOFS(p_counter)->target.x, -QOFS(p_counter)->target.x);
             }
             q->setAreaData(g_local_ready, g_local_trans);
-            ret = 3;
-            PSMTXMultVec(pPL->mat, &p_offset->campos2, &CamCtrl.camera.param.pos);
+            PSMTXMultVec(pPL->mat, &QOFS(p_offset)->campos2, &CamCtrl.camera.param.pos);
             CameraSetOrientationRoll(&CamCtrl.camera);
             menu_level = 3;
+            ret = 3;
         } else {
             ret = 1;
         }
@@ -1346,14 +1361,14 @@ int adjust_qFPS(JOY* joy, int x, int y, int flag, int* out)
     case 3:
         MotionMove(pPL, 0);
         if (joy->trg & JOY_B) {
-            PSMTXMultVec(pPL->mat, &p_offset->campos, &CamCtrl.camera.param.pos);
+            PSMTXMultVec(pPL->mat, &QOFS(p_offset)->campos, &CamCtrl.camera.param.pos);
             CameraSetOrientationRoll(&CamCtrl.camera);
             menu_level = 2;
         } else if (joy->trg & JOY_A) {
-            PSMTXMultVec(inv, &g->Cam.param.pos, &p_offset->campos2);
+            PSMTXMultVec(inv, &g->Cam.param.pos, &QOFS(p_offset)->campos2);
             if (symmetry_flag) {
-                p_counter->campos2 = p_offset->campos2;
-                FSet(p_counter->campos2.x, -p_counter->campos2.x);
+                memcpy(p_counter + QOFS_CAMPOS2, p_offset + QOFS_CAMPOS2, sizeof(Vec));
+                FSet(QOFS(p_counter)->campos2.x, -QOFS(p_counter)->campos2.x);
             }
             q->setAreaData(g_local_ready, g_local_trans);
             ret = 3;
@@ -1429,27 +1444,35 @@ int adjust_qFPS(JOY* joy, int x, int y, int flag, int* out)
     }
     for (i = 0; i < 5; i++) {
         int col = (menu_no == i) ? 4 : 0;
-        eprintf(x + cx * 8, y + i * 14, col, 0, "%s", menu_str[i]);
+        eprintf(x + cx * 8, y + (cy + i) * 14, col, 0, "%s", menu_str[i]);
         switch (i) {
         case 0:
             break;
         case 1:
-            eprintf(x + 96, y + i * 14, col, 0, symmetry_flag ? "ON-/---" : "---/OFF");
+            if (symmetry_flag) {
+                eprintf(x + (cx + 12) * 8, y + (cy + 1) * 14, col, 0, "ON-/---");
+            } else {
+                eprintf(x + (cx + 12) * 8, y + (cy + 1) * 14, col, 0, "---/OFF");
+            }
             break;
         case 2:
-            eprintf(x + 96, y + i * 14, col, 0, "%4.2f", g_local_floor_ratio);
+            eprintf(x + (cx + 12) * 8, y + (cy + 2) * 14, col, 0, "%4.2f", g_local_floor_ratio);
             break;
         case 3:
             if (menu_level == 5) {
                 for (j = 0; j < 2; j++) {
-                    eprintf(x + 96, y + (i + j) * 14, (near_far == j) ? 4 : 0, 0, "%s", fovy_str[j]);
-                    eprintf(x + 136, y + (i + j) * 14, 0, 0, "%3.1f", g_local_fovy[j]);
+                    eprintf(x + (cx + 12) * 8, y + (cy + 3 + j) * 14, (near_far == j) ? 4 : 0, 0, "%s", fovy_str[j]);
+                    eprintf(x + (cx + 17) * 8, y + (cy + 3 + j) * 14, 0, 0, "%3.1f", g_local_fovy[j]);
                 }
             }
             break;
         case 4:
             if (menu_level == 4) {
-                eprintf(x + 96, y + i * 14, col, 0, yes_no ? "YES/---" : "---/NO-");
+                if (yes_no) {
+                    eprintf(x + (cx + 12) * 8, y + (cy + 4) * 14, col, 0, "YES/---");
+                } else {
+                    eprintf(x + (cx + 12) * 8, y + (cy + 4) * 14, col, 0, "---/NO-");
+                }
             }
             break;
         }
@@ -1465,7 +1488,7 @@ int adjust_qFPS(JOY* joy, int x, int y, int flag, int* out)
                 if (i == site_col) {
                     col = (j == site_row) ? 4 : 0;
                 }
-                eprintf(x + 168 + i * 32, y + 14 + j * 14, col, 0, "%s", umd_str[j % 3]);
+                eprintf(x + (21 + i * 4) * 8, y + (cy + j + 1) * 14, col, 0, "%s", umd_str[j % 3]);
             }
         }
     }

@@ -10,7 +10,8 @@
 struct ArcFile {
     u8 pad_0[0x18];
     u32 ofs_18;   // 0x18  room texture data (room_tex)
-    u8 pad_1C[0x70 - 0x1C];
+    u8 pad_1C[0x6C - 0x1C];
+    u32 ofs_6C;   // 0x6C  system message table (dvd: MesData.ptr[4])
     u32 ofs_70;   // 0x70  TV-mode message table (tv_mode)
     u8 pad_74[0x9C - 0x74];
     u32 ofs_9C;   // 0x9C  sub-mission widget id data (stage)
@@ -21,7 +22,9 @@ struct ArcFile {
 struct GlobalWork {
     u8 pad_0[4];
     u8 x4;                 // 0x04  (stage: sub-mission coin marker only while set)
-    u8 pad_5[0x20 - 0x05];
+    u8 pad_5[0x18 - 0x05];
+    void* pFont;           // 0x18  ROM font header (dvd: RomFontSetting)
+    s32 x1C;               // 0x1C  1 = the message system is usable (dvd error screen)
     u8 x20;                // 0x20  (main_sub: 3/4/6 allow the blur filter)
     u8 pad_21[0x48 - 0x21];
     struct ArcFile* pArc;       // 0x48  current archive: offsets to its sub-files (room_tex, tv_mode)

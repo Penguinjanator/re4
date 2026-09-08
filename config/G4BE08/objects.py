@@ -762,6 +762,7 @@ MATCHING = {
     "game/t_prim.cpp": True,
     "game/t_util.cpp": True,
     "game/db_log.cpp": True,
+    "game/pl_body.cpp": True,
     "game/db_work.cpp": True,
     "game/yz2code.cpp": True,
     "lib/GXDisplayList.c": True,

@@ -213,6 +213,15 @@ mark it Matching.
 - Hardware registers are struct members at a base (`OS_BUS_CLOCK`: `lis 0x8000; lwz 0xF8(r)`), never
   `*(u32*)0x800000F8`; the GX FIFO is the linker symbol `GXWGFifo` (see gx.h).
 - A void-looking function whose last call's r3 is untouched may return that value.
+- libm/libc functions (`tanf`, `sqrtf`, `memcpy`...) must be declared `extern "C"` (fdlibm.h / the
+  newlib headers). A C++-linkage declaration makes the unit reference `tanf__Ff`; sync_symbols now
+  refuses to rename the C symbol and tells you.
+- A float variable assigned twice in one block never gets its chain tied by local-alloc (intermediates
+  in f0); one variable per chain gives the tied form. A variable used in two loops is globally allocated;
+  declare it inside each loop body for separate pseudos.
+- Unused `static const` arrays inside a function are still emitted before that function's pool;
+  file-scope unused statics are dropped; <=8-byte objects go to `.sdata2`. `int x = 0;` at file scope
+  lands in `.sdata`, not `.sbss`.
 - Static locals show as `name.NNN` in objdiff; the DECL_UID suffix cannot be reproduced and is ignored by the report.
 - Unexplained words in `.rodata` (zero words, stray floats) are usually the constant pool of a function
   the original linker dead-stripped (bodies gone, pools kept, `STRIP_UNUSED` in objects.py): write a

@@ -96,12 +96,14 @@ def elf_symbols(obj):
 
 def main():
     symmap = {}  # (unit, demangled) -> list of (address, current name)
+    unit_of = {}  # address -> owning split unit
     rows = []
     with open(os.path.join(CFG, "sym_map.tsv")) as f:
         next(f)
         for line in f:
             addr, size, sec, unit, scope, name, dn = line.rstrip("\n").split("\t")
             symmap.setdefault((unit, dn), []).append(int(addr, 16))
+            unit_of[int(addr, 16)] = unit
     symtxt_path = os.path.join(CFG, "symbols.txt")
     lines = open(symtxt_path).read().splitlines()
     by_addr = {}
@@ -152,6 +154,16 @@ def main():
                 cands = by_dn.get(dn, [])
                 if len(cands) == 1 and cands[0] in by_addr:
                     i = by_addr[cands[0]]
+                    old = lines[i].split(" = ")[0]
+                    if "__" in name and "__" not in old and old == dn.split("(")[0]:
+                        # the target is a C-linkage symbol; this unit declared it without extern "C".
+                        # Renaming it to the mangled name would break every other caller (silent ngcld exit 99).
+                        print(f"  {old}: referenced as {name}; declare it extern \"C\" (not renamed)")
+                        continue
+                    owner = unit_of.get(cands[0])
+                    if owner and os.path.exists(os.path.join(ROOT, "src", owner)):
+                        # the defining unit has source; its own sync is authoritative for the name
+                        continue
                     rename(i, name)
                     make_global(i)
                 continue

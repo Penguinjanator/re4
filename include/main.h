@@ -41,7 +41,9 @@ extern KeyWork Key;
 // System work (main.cpp `pSys`); only the fields other units read are named.
 struct SystemWork {
     u32 flags;     // 0x00  bit 30 = progressive/60Hz screen scaling, 0x08000000 = vibration on
-    u8 pad_4[6];
+    u8 pad_4[4];
+    u8 language;   // 0x08  0 JP, 1/2/7 EN, 3 DE, 4 FR, 5 ES, 6 IT (dvd error messages)
+    u8 region;     // 0x09  1 US, 2..6 EU, 7 ? (dvd: disc id game name)
     u8 brightness; // 0x0A  background brightness (Render_done -> Bg_brightness_set)
     u8 key_type;   // 0x0B  Key_type_tbl row (controller layout)
 };

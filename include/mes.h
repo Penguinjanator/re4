@@ -22,6 +22,19 @@ public:
     void setLayout(int no, int layout);
     void MesSet(int no, int x, int y, u32 attr, int a, int b, int c);
     void Delete(int no);
+    void Move();
+    void Trans();
+};
+
+// ROM font glyph renderer (game/mes.cpp), used by the dvd error screen before the message
+// system is up.
+class RomFont {
+public:
+    void* pFont;  // 0x00  OSFontHeader
+
+    RomFont(void* font);
+    void setup(void* image);
+    void draw(int x, int y, int cx, int cy);
 };
 
 struct MesDataWork {
