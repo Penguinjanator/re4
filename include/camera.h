@@ -29,6 +29,7 @@ extern "C" {
 void CameraSetOrientationRoll(Camera* cam);
 void CameraSetOrientationUp(Camera* cam);
 void CameraMove();
+void CameraGetUpVec(Camera* cam, Vec* up);
 }
 // game/camera.cpp (C++ linkage): loads the current projection matrix into GX
 void CameraCurrentProjection();

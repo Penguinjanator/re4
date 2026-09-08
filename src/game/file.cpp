@@ -53,7 +53,7 @@ int file_open(const char* name, int mode)
     return fd;
 }
 
-static int file_close(int fd)
+int file_close(int fd)
 {
     if (pG->flags_54 & 0x20000) {
         if (PCclose(fd) == 0) {

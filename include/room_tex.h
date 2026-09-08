@@ -7,6 +7,8 @@
 // game/room_tex.cpp: the room's cTexSys ("RoomTex", 256 texture objects).
 extern cTexSys* g_pRoomTexSys;
 
+void RoomTexRoomInit();   // C++ linkage (RoomTexRoomInit__Fv)
+
 extern "C" {
 void RoomTexInit();
 int RoomTexDataLoad(TexData* data, u32 owner);

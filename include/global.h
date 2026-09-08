@@ -82,6 +82,7 @@ static inline void BitOff(u32& f, u32 b) { f &= ~b; }
 // does, unless the store goes through a scalar reference. Use where the target asm shows the
 // global load after such a store (esp10, esp15, esp17 ...).
 static inline void FSet(f32& d, f32 v) { d = v; }
+static inline void BitOn16(u16& f, u16 b) { f |= b; }
 // Plain store through the same kind of reference (debug tools restoring saved flag words).
 static inline void BitSet(u32& f, u32 v) { f = v; }
 

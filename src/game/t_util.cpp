@@ -139,3 +139,8 @@ int ToolMenuDisp_cur(int x, int y, int flag, s8* cursor, TOOL_MENU* menu, int si
     }
     return -1;
 }
+
+// The next unit's .sdata (TexRender: 32-byte aligned vfilter tables) starts 32-byte aligned in
+// the original link, which leaves 0x1A zero bytes after `flicker`. The split object of TexRender
+// does not carry that alignment yet, so pad this unit's .sdata to the same boundary here.
+asm(".section .sdata,\"aw\"\n\t.balign 32\n\t.text");

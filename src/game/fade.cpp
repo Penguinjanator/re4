@@ -74,13 +74,12 @@ void FadeControl(int late)
         if (f->flags & 1) {
             if (f->count < f->time) {
                 u32 rem = f->time - f->count;
-                u32 cnt = f->count;
 
+                f->cur.r = (f->start.r * rem + f->end.r * f->count) / f->time;
+                f->cur.g = (f->start.g * rem + f->end.g * f->count) / f->time;
+                f->cur.b = (f->start.b * rem + f->end.b * f->count) / f->time;
+                f->cur.a = (f->start.a * rem + f->end.a * f->count) / f->time;
                 f->count++;
-                f->cur.r = (f->start.r * rem + f->end.r * cnt) / f->time;
-                f->cur.g = (f->start.g * rem + f->end.g * cnt) / f->time;
-                f->cur.b = (f->start.b * rem + f->end.b * cnt) / f->time;
-                f->cur.a = (f->start.a * rem + f->end.a * cnt) / f->time;
             } else {
                 f->cur = f->end;
                 if (f->flags & 2) {

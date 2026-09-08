@@ -15,9 +15,14 @@ struct EspGenPrmH {
     u16 xD0;           // 0xD0
     u16 xD2;           // 0xD2
 };
+struct EspGenPrmB {
+    u8 xCC, xCD, xCE, xCF;  // 0xCC
+    u8 xD0, xD1, xD2, xD3;  // 0xD0
+};
 union EspGenPrm {
     EspGenPrmW w;
     EspGenPrmH h;
+    EspGenPrmB b;
 };
 
 // Effect generator work (game/eff_sys.cpp, game/espgen*.cpp). Layout known only partially.
@@ -113,7 +118,10 @@ public:
     f32 scale;         // 0x74
     f32 scaleSpd;      // 0x78
     f32 scaleScale;    // 0x7C
-    u8 pad_80[4];
+    u8 x80;            // 0x80 (esp0c: copied into the est work colour bytes)
+    u8 x81;            // 0x81
+    u8 x82;            // 0x82
+    u8 x83;            // 0x83
     f32 colR;          // 0x84
     f32 colG;          // 0x88
     f32 colB;          // 0x8C
@@ -126,7 +134,7 @@ public:
     u8 xA5;            // 0xA5
     u8 xA6;            // 0xA6
     u8 xA7;            // 0xA7
-    u8 pad_A8[2];
+    u16 xA8;           // 0xA8
     u16 xAA;           // 0xAA
     u16 spdCnt;        // 0xAC frames the speed is applied (0 = always)
     u16 scaleCnt;      // 0xAE frames the scale speed is applied (0 = always)
@@ -136,7 +144,8 @@ public:
     u8 anmSpd;         // 0xB5
     u16 anmCnt;        // 0xB6
     f32 xB8;           // 0xB8
-    u8 pad_BC[0xF4 - 0xBC];
+    Mtx mat;           // 0xBC model matrix built by the Trans functions
+    u8 pad_EC[0xF4 - 0xEC];
     // 0xF4 vptr
 
     void* operator new(unsigned int size);
@@ -151,7 +160,13 @@ public:
     void ColorUpdate();
     void ApplyMatrix(Mtx m);
     void CommonStateSet();
+    void ChannelSet();
 };
+
+// game/esp3f.cpp: vector buffer owned by an effect (see esp3f.cpp for the class)
+class cEsp3f;
+int Esp3f_Alloc(u32 size, u32 num, cEsp3f** out, EspInfo* info);
+Vec* Esp3f_GetVecPtr(cEsp3f* p, u32 no);
 
 // game/esp.cpp
 void PushEsp(cEsp* esp);
@@ -159,13 +174,16 @@ extern "C" {
 int PullEsp(cEsp** out, int id);
 cEsp* EspGetDmyPtr();
 void EspAddOtAfterRender(cEsp* esp, void (*func)(cEsp*));
+// game/trans_ot.cpp
+void AddOtWorldPos(cEsp* esp, void (*func)(cEsp*), Vec* pos, int prio, f32 ofs);
 // game/esp_sub.cpp
 void EspCommonTrans(cEsp* esp);
 // game/eff_sys.cpp
 int EspGetAnmAddr(int no, EspAnmData** out);
+void EspTexSet(int anmNo, int ptn);
 int EspGetTplAddr(int no, void** out);
 // game/est.cpp
-int EstSet(int a, int b, Vec* pos, Vec* rot, int c, int d, int e, int f, u32 g, u32 h);
+int EstSet(int a, int b, Vec* pos, Vec* rot, int c, int d, int e, int f, u32 g, void* h);
 }
 // game/eff_sys.cpp
 int EspGenGetMoveLoop();

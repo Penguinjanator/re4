@@ -2,6 +2,7 @@
 #define T_UTIL_H
 
 #include "types.h"
+#include "global.h"
 #include "joy.h"
 
 // Debug tool helpers (game/t_util.cpp).

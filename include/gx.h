@@ -78,6 +78,25 @@ static inline void GXColor4u8(u8 r, u8 g, u8 b, u8 a)
     GXWGFifo.u8 = b;
     GXWGFifo.u8 = a;
 }
+
+static inline void GXNormal3s8(s8 x, s8 y, s8 z)
+{
+    GXWGFifo.s8 = x;
+    GXWGFifo.s8 = y;
+    GXWGFifo.s8 = z;
+}
+
+static inline void GXTexCoord2f32(f32 s, f32 t)
+{
+    GXWGFifo.f32 = s;
+    GXWGFifo.f32 = t;
+}
+
+static inline void GXPosition2u16(u16 x, u16 y)
+{
+    GXWGFifo.u16 = x;
+    GXWGFifo.u16 = y;
+}
 #endif
 
 // GX API entry points used by game code. Enum parameters are declared as plain ints: the
@@ -100,6 +119,7 @@ void GXClearVtxDesc(void);
 void GXSetVtxDesc(int attr, int type);
 void GXSetVtxAttrFmt(int vtxfmt, int attr, int cnt, int type, u8 frac);
 void GXLoadPosMtxImm(const f32 mtx[3][4], u32 id);
+void GXLoadNrmMtxImm(const f32 mtx[3][4], u32 id);
 void GXSetCurrentMtx(u32 id);
 void GXSetProjection(const f32 mtx[4][4], int type);
 void GXBegin(int type, int vtxfmt, u16 nverts);
@@ -108,8 +128,24 @@ void GXInitTexObjCI(GXTexObj* obj, void* image, u16 width, u16 height, int forma
 void GXInitTexObjLOD(GXTexObj* obj, int min_filt, int mag_filt, f32 min_lod, f32 max_lod, f32 lod_bias, u8 bias_clamp, u8 do_edge_lod, int max_aniso);
 void GXInitTlutObj(GXTlutObj* tlut_obj, void* lut, int fmt, u16 n_entries);
 void GXLoadTlut(GXTlutObj* tlut_obj, u32 tlut_name);
+// filter units
+void GXLoadTexObj(GXTexObj* obj, int id);
+void GXSetTevColor(int id, GXColor color);
+void GXSetTevColorIn(int stage, int a, int b, int c, int d);
+void GXSetTevAlphaIn(int stage, int a, int b, int c, int d);
+void GXSetTevColorOp(int stage, int op, int bias, int scale, u8 clamp, int out_reg);
+void GXSetTevAlphaOp(int stage, int op, int bias, int scale, u8 clamp, int out_reg);
+void GXSetTexCoordGen2(int dst_coord, int func, int src_param, u32 mtx, u8 normalize, u32 pt_texmtx);
+void GXSetAlphaUpdate(u8 update_enable);
+void GXSetCopyFilter(u8 aa, const u8 sample_pattern[12][2], u8 vf, const u8 vfilter[7]);
+void GXSetTexCopySrc(u16 left, u16 top, u16 wd, u16 ht);
+void GXSetTexCopyDst(u16 wd, u16 ht, int fmt, u8 mipmap);
+void GXCopyTex(void* dest, u8 clear);
+void GXPixModeSync(void);
+void GXInvalidateTexAll(void);
 #ifdef __cplusplus
 }
 #endif
+#define GXSetTexCoordGen(dst_coord, func, src_param, mtx) GXSetTexCoordGen2(dst_coord, func, src_param, mtx, 0, 125)
 
 #endif

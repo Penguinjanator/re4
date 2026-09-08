@@ -760,7 +760,7 @@ MATCHING = {
     "game/t_sc_shot.cpp": True,
     "game/t_log.cpp": True,
     "game/t_prim.cpp": True,
-    "game/t_util.cpp": False,  # .sdata 0x18 short - fix before re-enabling
+    "game/t_util.cpp": True,
     "lib/GXDisplayList.c": True,
     # Dolphin SDK (MWCC 1.2.5n, see configure.py SDK_LIBS)
     "lib/DebuggerDriver.c": True,
@@ -933,6 +933,8 @@ MATCHING = {
     "game/esp14.cpp": True,
     "game/esp17.cpp": True,
     "game/esp10.cpp": True,
+    "game/esp0c.cpp": True,
+    "game/esp0b.cpp": True,
     "game/filter05.cpp": True,
     "game/filter.cpp": True,
     "game/obj06.cpp": True,
@@ -948,4 +950,5 @@ MATCHING = {
     "game/tv_mode.cpp": True,
     "game/cString.cpp": True,
     "game/xml.cpp": True,
+    "game/room_tex.cpp": True,
 }

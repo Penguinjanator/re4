@@ -64,6 +64,22 @@ mark it Matching.
 - Zero-initialised static locals go to `.sdata`, uninitialised to `.bss`; `static const` locals are named
   symbols; anonymous constant-pool aggregates come from non-static constant expressions.
 - A block-local `Work* w = &work;` inside the branch vs at function top decides whether the `addi` is hoisted.
+- `pLog` is a `cLogPtr` struct wrapper (`include/db_log.h`): loading it as a struct member stops the
+  scheduler hoisting the load above stores through `this`. GX FIFO writes go through
+  `((GXHwRegs*)0xCC000000)->wgpipe` (`include/gx.h`), which gives `lis rX,0xCC01` + `-0x8000(rX)`.
+- Each extra int→float conversion in a block leaves a dead `mr` between two unused GPRs; a call or
+  `asm("")` between them prevents it.
+- Loop shapes: `if ((v = x) == 0) { do {...} while ((v = x) == 0); }` duplicates the entry test;
+  `for` + `break` gives `cmpwi`/`bgt` without ctr, `return` in the body gives `bdnz`.
+  `for (w = wk, i = 0; ...; w++, i++)` vs separate init changes callee-saved register choice.
+- A loop-invariant `&Global` held in a register (`addi r31,...,sym@l`) means the source used a pointer
+  variable (`MessageControl* m = &cMes`); a two-step `addi rX,rX,sym@l; addi rX,rX,4` comes from an inline
+  accessor returning `&this->member`.
+- Header-owned strings and initializer templates of unused inline functions are emitted in parse order;
+  all-zero aggregates emit nothing; constant pools are emitted at each function's end (`.rodata`
+  interleaves them).
+- Bio4.sym scopes are unreliable: symbols marked `local` in `sym_map.tsv` are often global (called from
+  other units) — check callers' asm before making them `static`.
 - Static locals show as `name.NNN` in objdiff; the DECL_UID suffix cannot be reproduced and is ignored by the report.
 
 - Struct field offsets come from the load/store displacements; write real structs, not casts.

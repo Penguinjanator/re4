@@ -14,7 +14,7 @@ public:
     // Ray from `top` down to `bottom`; returns the hit flags (bit2: no floor), hit point in `hit`.
     int hitCheck2(Vec* top, Vec* bottom, Vec* hit, u32* attr, int flag, int x);
     // Floor height under `pos`, searching `up` above and `down` below it.
-    f32 getFloor(Vec* pos, f32 up, f32 down, int a, int b);
+    f32 getFloor(Vec* pos, f32 up, f32 down, u32* attr, int flag);
 };
 
 extern cSatMgr SatMgr;

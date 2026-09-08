@@ -13,6 +13,7 @@ u32 VIGetTvFormat();
 u32 VIGetDTVStatus();
 void VIConfigure(const GXRenderModeObj* rm);
 void VIFlush();
+void DCInvalidateRange(void* addr, u32 nBytes);
 }
 
 #endif

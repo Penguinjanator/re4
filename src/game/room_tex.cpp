@@ -13,12 +13,12 @@ void RoomTexInit()
     g_pRoomTexSys = NULL;
 }
 
-static void RoomTexRoomInit()
+void RoomTexRoomInit()
 {
 #line 41
     g_pRoomTexSys = (cTexSys*) MEM_ALLOC(sizeof(cTexSys), 1, 0xD);
     g_pRoomTexSys->Init("RoomTex", 256);
-    RoomTexDataLoad((TexData*) ((u8*) pG->pArc + pG->pArc->ofs_18), 1);
+    RoomTexDataLoad((TexData*) (pG->pArc->ofs_18 + (u32) pG->pArc), 1);
 }
 
 int RoomTexDataLoad(TexData* data, u32 owner)

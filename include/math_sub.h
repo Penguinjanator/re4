@@ -32,6 +32,7 @@ f32 SQRTF(f32 x);
 f32 SINF(f32 x);
 f32 COSF(f32 x);
 f32 LIMIT_ANGLE(f32 x);
+f32 VecAngle(Vec* a, Vec* b);
 // lib math
 f32 sinf(f32 x);
 f32 cosf(f32 x);
