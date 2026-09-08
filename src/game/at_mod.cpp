@@ -148,13 +148,7 @@ static int priorityCheck(cEm* a, cEm* b)
     u8 pa = a->atari.flags & 0x18;
     u8 pb = b->atari.flags & 0x18;
 
-    if (pa == 0) {
-        return 0;
-    }
-    if (pa >= pb) {
-        return 1;
-    }
-    return 0;
+    return pa != 0 && pa >= pb;
 }
 
 void __em_at_core(cEm* a, cEm* b)
@@ -550,6 +544,13 @@ int At_em_sphere_sphere_ck(cEm* a, cEm* b)
         return 1;
     }
     return 0;
+}
+
+// Dead-stripped by the original linker: only its constant pool (a double 0.0) survives in .rodata
+// between At_em_sphere_sphere_ck's and EmHitCheck's pools. Body unknown.
+static int atModIsZero(f32 x)
+{
+    return x == 0.0;
 }
 
 int EmHitCheck(Vec* hit, Vec* nrm, Vec* a, Vec* b, int flag)

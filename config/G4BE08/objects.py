@@ -1003,6 +1003,7 @@ MATCHING = {
 # statics kept): tools/strip_unused.py removes the bodies of functions not in sym_map.tsv.
 STRIP_UNUSED = {
     "game/light.cpp",
+    "game/at_mod.cpp",
     "game/sub2.cpp",
     "game/exception.cpp",
     "game/camera.cpp",

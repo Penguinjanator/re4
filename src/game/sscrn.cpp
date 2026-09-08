@@ -105,21 +105,25 @@ void SubScreenAramRead()
     SubScreenWork* wk = &SubScreenWk;
     int stat;
     int size;
+    int req;
 
     wk->aramSize = 0;
 #line 119 "D:/Bio4/Prog/sscrn.cpp"
+    req = DVD_READ_N("rel/Sscrn.rel", 0, SS_ARAM, 0, 0, 9);
     wk->relOfs = wk->aramSize;
-    Dvd.ReadCheck(DVD_READ_N("rel/Sscrn.rel", 0, SS_ARAM, 0, 0, 9), &stat, &size, (void**) &wk->pModule);
+    Dvd.ReadCheck(req, &stat, &size, (void**) &wk->pModule);
     wk->aramSize += size;
     sscrnDataFilename(wk, "ss_cmmn.dat");
 #line 130 "D:/Bio4/Prog/sscrn.cpp"
+    req = DVD_READ_N(wk->path, 0, SS_ARAM + wk->aramSize, 0, 0, 9);
     wk->cmmnOfs = wk->aramSize;
-    Dvd.ReadCheck(DVD_READ_N(wk->path, 0, SS_ARAM + wk->aramSize, 0, 0, 9), &stat, &size, 0);
+    Dvd.ReadCheck(req, &stat, &size, 0);
     wk->aramSize += size;
     sscrnDataFilename(wk, "ss_pzzl.dat");
 #line 140 "D:/Bio4/Prog/sscrn.cpp"
+    req = DVD_READ_N(wk->path, 0, SS_ARAM + wk->aramSize, 0, 0, 9);
     wk->pzzlOfs = wk->aramSize;
-    Dvd.ReadCheck(DVD_READ_N(wk->path, 0, SS_ARAM + wk->aramSize, 0, 0, 9), &stat, &size, 0);
+    Dvd.ReadCheck(req, &stat, &size, 0);
     wk->aramSize += size;
     OSReport("SubScrn Data: 0x%08x\n", wk->aramSize);
     OSReport("SubScrn Free: 0x%08x\n", SS_ARAM_SIZE - wk->aramSize);
@@ -284,7 +288,7 @@ int SubScreenOpen(int type, int flags)
     if (pG->flags_5014 & 0x04000000) {
         return 0;
     }
-    pG->flags_5014 |= 0x04000000;
+    BitOn(pG->flags_5014, 0x04000000);
     wk->type = type;
     wk->flags = flags;
     wk->x34 = 0;
@@ -745,7 +749,9 @@ int OpeGetMdtNo()
 
 void OpeSetMdtNo(u32 no)
 {
-    BitOn(pG->ope_mdt_bits[no >> 5], 0x80000000 >> (no & 0x1F));
+    u32* tbl = pG->ope_mdt_bits;
+
+    BitOn(tbl[no >> 5], 0x80000000 >> (no & 0x1F));
     pG->ope_mdt_no = no;
 }
 

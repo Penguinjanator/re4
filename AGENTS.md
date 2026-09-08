@@ -593,6 +593,46 @@ mark it Matching.
   is the Tcl strtod with `float` mantissa/`float powersOf10[]`, `isspace()/isdigit()` unprototyped
   (`crclr`), `if (!isdigit(UCHAR(*p))) { p = pExp; goto done; }` after the exponent sign. vfscanf is the
   stock 1.8.2 source with `MB_CAPABLE` (`__mb_cur_max`, `_mbtowc_r`) and `u_char *__sccl ();` unprototyped.
+- (trans_ot/room_jmp/sce_sys) `-fcse-skip-blocks` rewrites a load after a skipped `if` block with the
+  address `sym+off(rBase)` it knew before the branch, keeping the base symbol live across a call
+  (`lwz r9, 0x88(r24)` + a second callee-saved register). The original avoided it with a different CFG
+  in front: `if (zlimit == 0.0f) z = 0.0f; else {...}` instead of `z = 0.0f; if (zlimit != 0.0f) {...}`
+  (AddOtWorldPos). Test with `-fno-cse-skip-blocks` on `cc1plus` to confirm the pass.
+- `&g_Table[CONST]` folds into `lis/la sym+off`; a `static inline T* tbl(int i) { return &g_Table[i]; }`
+  accessor gives the original `addi rX, rSym, off` (trans_ot `otWork(17)`, room_jmp `ofsTbl(p)[i]`,
+  sce_sys `eventFlags()[no >> 5]` for `lwzx/stwx` on a pG-relative array).
+- Argument order in the C prototype is fixed by the incoming-copy order at function entry: ints and
+  floats are assigned registers independently, so `(Vec* pos, f32 radius, u16 kind, f32 zlimit)` and
+  `(..., u16 kind, f32 radius, ...)` produce the same call ABI but different `mr`/`fmr` order and
+  callee-saved allocation (AddOtWorldPosRadius: kind r27 > func r26 only with radius declared before kind).
+- A struct local whose target frame slot is 8 bytes bigger than its declared size means the struct is
+  bigger in the original (GeoSphere is 0x18: trans_ot frames), not a compiler temp.
+- `for (...) { if (hit) { call(); ...; break; } }` with a *call* in the hit path is not rotated (initial
+  `b test`, test at the top); the rotated original (entry test duplicated, `bdnz`-less bottom test) comes
+  from `i = 0; if (i < n) { do { ... break; ... i++; } while (i < n); }` (roomdata clear). Without the
+  call the plain `for` rotates (roomdata load).
+- A search loop whose result is used *after* the loop with the address recomputed inside the loop
+  (`mulli; lis/addi Task; add; lbz`) had no loop notes: written with `goto` (sce_sys SceExec slot search).
+- `p = start; while ((p = get(p)) != 0) { if (p->x == t) { ...; break; } }` hoists the tail's constants
+  (`li r30,0`, `lis sym`) into callee-saved registers above the loop; `return` instead of `break` or a
+  `do {} while (p->x != t)` gives the non-hoisted form (sce_sys SceTaskDelete needs `break`).
+- A `u16` member written then immediately read back (`x1C = tbl->rel; if (x1C == 0) ...; f(x1C)`) is
+  forwarded as `clrlwi rX, rStore, 16` in the original; ours folds it to `mr` (roomdata linkRelData, open).
+- `static test test; ... tbl[test.state](&test)` re-forms the address each use; the original kept
+  `&test` in r31: `struct test* w = &test;` and use `w` (room_jmp RoomJump).
+- `int no; no = w->mode; switch (no) {...}` with the *same* int variable reused for a call result inside a
+  case (`no = pRj->checkRoomNo(...); if (no >= 0)`) gives `mr. r30, r3` into the switch register;
+  cse's jump equivalence stores that register where a `0` constant is needed in `case 0:` (room_jmp).
+- Zero-initialised statics with an explicit `= 0` (`static f32 rdir = 0.0f`) go to `.sdata`, not `.sbss`;
+  unreferenced initialised static locals are still emitted (cam_extra: `rnd_gain`, `rnd_on`, `sct_max`).
+- Declaring a C callee as returning `int` instead of `void` (cam_extra `IdTexDataLoad`) makes its own
+  `mr r3,rX` argument copy precede its `li` argument loads; the preceding call's return type
+  (`IdTexRelease`, `void`) did not matter there.
+- Passing a struct (not its member) to a varargs `%s` (`pLog->err(..., FileTbl[x1C])`) copies the 8 bytes
+  to the stack and passes its address (roomdata linkRelData — a bug in the original kept as is).
+- A class with a constructor and an *empty* `~T() {}` is what makes GCC 2.95 emit the
+  `global destructors keyed to` function next to the constructor one (roomdata cRoomData); the key is the
+  first emitted object, static or not (`St0_data_tbl` is non-static in the original).
 
 ## Don'ts
 
