@@ -16,6 +16,7 @@
 #include "main.h"
 #include "act_btn.h"
 #include "player.h"
+#include "pl_npc.h"
 #include "pl_sub.h"
 #include "pl_wep.h"
 #include "cockpit.h"

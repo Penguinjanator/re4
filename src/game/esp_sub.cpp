@@ -41,6 +41,22 @@ struct EspPtr {
 
 #define ESP_PARTS_SCREEN(esp) ((s8) (esp)->partsNo >= -8 && (s8) (esp)->partsNo <= -3)
 
+// Mask texture of a sprite: TPL pattern `ptn` of the texture work into `tex` (and its palette
+// into `tlut`). The addresses are evaluated before TEXGet (inline arguments).
+static inline void EspMaskTexInit(GXTexObj* tex, GXTlutObj* tlut, EspTexWk* tw, int ptn)
+{
+    TEXDescriptor* td = TEXGet(tw->pTpl, ptn);
+    TEXHeader* th = td->textureHeader;
+
+    if (th->format == 8 || th->format == 9) {
+        GXInitTexObjCI(tex, th->data, th->width, th->height, th->format, 0, 0, 0, 1);
+        GXInitTlutObj(tlut, td->CLUTHeader->data, td->CLUTHeader->format, td->CLUTHeader->numEntries);
+        GXLoadTlut(tlut, 1);
+    } else {
+        GXInitTexObj(tex, th->data, th->width, th->height, th->format, 0, 0, 0);
+    }
+}
+
 // Shared sprite draw: the sprite quad (g_EspCommonDisplayList) with the effect's texture, an
 // optional mask texture in TEV stage 1, screen-space or camera-relative placement.
 void EspCommonTrans(cEsp* esp)
@@ -252,16 +268,8 @@ void EspCommonTrans(cEsp* esp)
         } else {
             GXTexObj tex;
             GXTlutObj tlut;
-            TEXDescriptor* td = TEXGet(tw->pTpl, esp->anmPtn2);
-            TEXHeader* th = td->textureHeader;
 
-            if (th->format == 8 || th->format == 9) {
-                GXInitTexObjCI(&tex, th->data, th->width, th->height, th->format, 0, 0, 0, 1);
-                GXInitTlutObj(&tlut, td->CLUTHeader->data, td->CLUTHeader->format, td->CLUTHeader->numEntries);
-                GXLoadTlut(&tlut, 1);
-            } else {
-                GXInitTexObj(&tex, th->data, th->width, th->height, th->format, 0, 0, 0);
-            }
+            EspMaskTexInit(&tex, &tlut, tw, esp->anmPtn2);
             GXLoadTexObj(&tex, 1);
             GXLoadTexMtxImm(tw->mtx, 0x21, 1);
             GXSetTexCoordGen(1, 1, 4, 0x21);
@@ -546,7 +554,7 @@ static void EspCommonTransShimmer(cEsp* esp, int type, u32 blur)
     if (dot < 1500.0f) {
         dot = 1500.0f;
     }
-    if (blur == 3) {
+    if (blur != 3) {
         indMtx[1][1] = indMtx[0][0] = esp->colA * (1.0f / 255.0f) * 0.04f * 1000.0f / dot * scale;
         indMtx[0][1] = 0.0f;
         indMtx[0][2] = 0.0f;
@@ -604,16 +612,8 @@ static void EspCommonTransShimmer(cEsp* esp, int type, u32 blur)
             pLog->err(0, 0, "ESP : Mask_TexId[%x] no data", no);
         } else {
             GXTexObj tex2;
-            TEXDescriptor* td = TEXGet(tw->pTpl, esp->anmPtn2);
-            TEXHeader* th = td->textureHeader;
 
-            if (th->format == 8 || th->format == 9) {
-                GXInitTexObjCI(&tex2, th->data, th->width, th->height, th->format, 0, 0, 0, 1);
-                GXInitTlutObj((GXTlutObj*) indMtx, td->CLUTHeader->data, td->CLUTHeader->format, td->CLUTHeader->numEntries);
-                GXLoadTlut((GXTlutObj*) indMtx, 1);
-            } else {
-                GXInitTexObj(&tex2, th->data, th->width, th->height, th->format, 0, 0, 0);
-            }
+            EspMaskTexInit(&tex2, (GXTlutObj*) indMtx, tw, esp->anmPtn2);
             GXLoadTexObj(&tex2, 2);
             GXLoadTexMtxImm(tw->mtx, 0x21, 1);
             GXSetTexCoordGen(texGens, 1, 4, 0x21);

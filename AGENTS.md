@@ -491,6 +491,13 @@ mark it Matching.
   if the variable is `int`; a promoted `s8` moves the copy to the variable's initialisation.
 - Local `u8` array initialisers: 2 bytes -> `sth` immediate; 4 -> `stw 0` + `stb`s; 5+ -> `.rodata`
   template copy.
+- Store-block order, refined: dying-source stores first as [last member of D in RTL order] + [rest of
+  D in RTL order], then non-dying stores in RTL order; a byte store in the block is a barrier that
+  splits it into two such groups.
+- A constant kept in a callee-saved register across calls and stored later is a function-scope local
+  (`int zero = 0;`, `int type = 2;`) stored through the variable.
+- Float box tests with plain `blt/bgt` and a duplicated `blt` to the same label = separate
+  `if (v.x < a) continue;` statements, the duplicated test copied verbatim.
 - Static locals show as `name.NNN` in objdiff; the DECL_UID suffix cannot be reproduced and is ignored by the report.
 - Unexplained words in `.rodata` (zero words, stray floats) are usually the constant pool of a function
   the original linker dead-stripped (bodies gone, pools kept, `STRIP_UNUSED` in objects.py): write a

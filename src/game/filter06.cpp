@@ -1,6 +1,6 @@
 #include "filter.h"
-#include "light.h"
 #include "atari.h"
+#include "light.h"
 #include "gx.h"
 #include "main_sub.h"
 #include "main_mem.h"
