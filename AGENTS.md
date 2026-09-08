@@ -14,15 +14,26 @@ original DOL from split objects; every unit you match replaces one split object 
 - Types: `include/types.h` (u8..f64). Shared class/struct definitions go in `include/<name>.h`;
   check existing headers before adding a type, and only extend, never rewrite, structs other units use.
 - Globals seen via `r13`/`r2` (`@sda21`) are small-data; declare them `extern` with the exact symbol name.
-## Compiler version
+## Compiler
 
-The pack has five ProDG cc1plus builds (3.5/3.5b140 = GCC 2.95.2 SN v1.40, 3.7 = v1.46, 3.8.1 = v1.55,
-3.9.3 = 2.95.3 SN v1.76). All five emit byte-identical `.text` for esp0f/esp16/esp01/esp15, including the
-still-unmatched functions (dead `mr` from fpmem sharing, `0.0f + z` folding, `lfs; fmr` for `t = 0.0f`).
-So a remaining diff is never explained by "compiler version" with the tools we have: keep looking for a
-source form — except the cross-kind fpmem copy described under "Dead `mr`" below, which all five builds
-emit and the original never does. (Older assemblers reject `ldh`; 3.9.3 is the build.) The DOL has no compiler string; its
-GCCI is "Ver.1.09 Build Oct 8 2004".
+The compiler proper is a **native Linux `cc1plus`/`cc1` built from SN's GPL source drop, "2.95.3 SN BUILD
+v1.79 for Nintendo Gamecube"** (`build/compilers/ProDG/3.9.3-v1.79/`, untracked build output). SN's
+`cpp.exe` and `NgcAs.exe` from the 3.9.3 pack still run through wibo; `tools/ngccc.py` chains the three
+exactly like `ngccc.exe -v` shows (same cpp defines, `-G 1024` → `-G1024`, `-D__OPTIMIZE__` only for
+-O>0, `LANG=C` for the lexer). `configure.py --prodg-driver native` (default) selects it;
+`--prodg-driver ngccc` is the old `ngccc.exe` (cc1plus v1.76) path. Rebuild the binaries with
+`tools/sn-gcc/build.sh` with `SN_GCC_SRC` pointing at the extracted NGC_GNU_SRC/NGC source drop (copies the drop, CRLF→LF, `patches/linux-host.patch`
+= i386 Linux host config + a dangling-pointer fix in `cp/decl.c`, `make -m32 -static`, installs into
+`build/compilers/ProDG/3.9.3-v1.79/`; ~5 s). Why: the pack's five cc1plus builds (3.5/3.5b140 = GCC 2.95.2
+SN v1.40, 3.7 = v1.46, 3.8.1 = v1.55, 3.9.3 = 2.95.3 SN v1.76) all share one fpmem-address unspec
+between the GQR fast-cast conversions and the classic double-trick ones, so `reload_cse_regs` emits
+cross-kind `mr` copies the original never has (see "Dead `mr`" below). v1.79's `rs6000.md` uses unspec 17
+for the fast-cast family and 11 for the classic one, which is what the original binary does: on all 224
+ProDG units the v1.79 build produces byte-identical objects to v1.76 except the 16 that mix the two
+conversion kinds, and there the extra `mr`s disappear (Filter07/09/0bGXDraw, fadeDraw,
+Draw_line3d_local_222, Esp11_SetParam, EspStrip_draw_poly, Light02/05/06_Move went to 100%). A remaining
+diff is therefore never "compiler version": keep looking for a source form. The DOL has no compiler
+string; its GCCI is "Ver.1.09 Build Oct 8 2004".
 
 
 ## Per-unit compiler flags
@@ -104,12 +115,14 @@ mark it Matching.
   different scratch registers: a copy is inevitable unless a call, a label or an overwrite lies
   between them. Same-kind copies are in the original too (`mr r9,r11` in Filter07GXDraw, three in
   matched esp4c `move`).
-  **Blocker, not fixable from source:** the original compiler keeps TWO address values — one for the
+  **Cross-kind copies (fixed by the v1.79 compiler, see "Compiler"):** the original compiler keeps TWO
+  address values — one for the
   classic fpmem conversions (`stfd/lwz` fix, `stw/stw/lfd` float: `fix_truncdfsi2`/`floatsidf2`) and
   one for the GQR fast-cast ones (`psq_st`+`lbz/lhz`, `stb/sth`+`psq_l`: `fixuns_truncsfqi2`,
-  `floatqisf2`, `floathisf2`, ...). It never copies across the two kinds; ours (all five ProDG builds,
-  with `-mfast-cast`, `-mps-nodf`, `-mps-float`, `-msafe-sda`) emits one `(unspec [(const_int 0)] 11)`
-  for every conversion type, so `reload_cse_regs` also copies psq↔classic. Evidence: every extra `mr`
+  `floatqisf2`, `floathisf2`, ...). It never copies across the two kinds; the shipped cc1plus v1.76 (all
+  five ProDG builds, with `-mfast-cast`, `-mps-nodf`, `-mps-float`, `-msafe-sda`) emits one
+  `(unspec [(const_int 0)] 11)` for every conversion type, so `reload_cse_regs` also copies psq↔classic;
+  the v1.79 source build uses unspec 17 for the fast-cast family and matches. Evidence: every extra `mr`
   in Filter07/09/0bGXDraw (4 each), fadeDraw (u16 `psq_l` → int magic), esp15 `move`, esp19
   `Draw_line3d_local_222`, esp11 `Esp11_SetParam` is a cross-kind copy, and in esp11/esp19 the target
   shows the two chains directly: `mr r11,r10; mr r8,r10; mr r7,r10` (int→f32) interleaved with
@@ -117,9 +130,9 @@ mark it Matching.
   address. No matched unit has a cross-kind copy. Classify with the `.greg` dump: a `movsi` whose
   source register was last used by a `*_store1/_store/_load` of the other kind. Source forms cannot
   change the unspec (statement order, u8/int/u32/s16 at the conversion, `(u8)(f64)`, locals before
-  the `if`, u8 helper params, direct FIFO stores — all tried), so a block mixing a psq conversion and a
-  classic one without a call/label between them cannot match with the available compilers. Do not
-  spend more time on those functions; `rnd Rnd` (`clrlslwi`/`mr r0,r9`) is a different, plain
+  the `if`, u8 helper params, direct FIFO stores — all tried); with the v1.79 build these functions
+  match. If you still see a cross-kind copy, check that `build.ninja` uses `tools/ngccc.py` (run
+  `python3 configure.py`). `rnd Rnd` (`clrlslwi`/`mr r0,r9`) is a different, plain
   register-allocation diff.
 - Loop shapes: `if ((v = x) == 0) { do {...} while ((v = x) == 0); }` duplicates the entry test;
   `for` + `break` gives `cmpwi`/`bgt` without ctr, `return` in the body gives `bdnz`.

@@ -134,6 +134,13 @@ parser.add_argument(
     action="store_false",
     help="disable progress calculation",
 )
+parser.add_argument(
+    "--prodg-driver",
+    choices=["native", "ngccc"],
+    default="native",
+    help="how ProDG units are compiled: 'native' = SN cpp/ngcas via wibo + native cc1plus built "
+    "from the SN GCC 2.95.3 v1.79 source (tools/ngccc.py, default); 'ngccc' = ngccc.exe v1.76 via wibo",
+)
 args = parser.parse_args()
 
 config = ProjectConfig()
@@ -188,6 +195,21 @@ config.scratch_preset_id = None
 # once the first game function is matched; 3.9.3 (gcc 2.95.3) is the newest.
 PRODG_VERSION = "ProDG/3.9.3"
 config.linker_version = PRODG_VERSION
+# cc1/cc1plus built natively from SN's GPL source drop ("2.95.3 SN BUILD v1.79"): the shipped
+# ngccc.exe pack is v1.76, whose rs6000.md shares one fpmem-address unspec between the GQR
+# fast-cast conversions and the classic double-trick ones (dead `mr` copies the original never
+# has). Build/copy: /home/adityas/Projects/re4-orig/sn-gcc/build.sh (see AGENTS.md "Compiler").
+PRODG_NATIVE_DIR = Path("build") / "compilers" / (PRODG_VERSION + "-v1.79")
+if args.prodg_driver == "native":
+    if is_windows():
+        sys.exit("--prodg-driver native needs Linux (native cc1plus); use --prodg-driver ngccc")
+    for exe in ("cc1plus", "cc1"):
+        if not (PRODG_NATIVE_DIR / exe).exists():
+            sys.exit(
+                f"{PRODG_NATIVE_DIR / exe} missing: build it with re4-orig/sn-gcc/build.sh "
+                "(or configure with --prodg-driver ngccc)"
+            )
+    config.prodg_native_dir = PRODG_NATIVE_DIR
 config.prodg_ldscript = Path("config") / config.version / "ldscript.ld"
 config.prodg_sda_base = 0x8031BEE0
 config.prodg_sda2_base = 0x8032BEE0

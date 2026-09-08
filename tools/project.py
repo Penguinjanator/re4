@@ -179,6 +179,10 @@ class ProjectConfig:
         self.prodg_ldscript: Optional[Path] = (
             None  # Optional checked-in GNU ld script for ProDG linking
         )
+        # Directory with a native cc1/cc1plus (SN GCC 2.95.3 v1.79 source build). When set,
+        # ProDG units are compiled by tools/ngccc.py (SN cpp + native cc1plus + SN ngcas)
+        # instead of ngccc.exe.
+        self.prodg_native_dir: Optional[Path] = None
         self.version: Optional[str] = None  # Version name
         self.warn_missing_config: bool = False  # Warn on missing unit configuration
         self.warn_missing_source: bool = False  # Warn on missing source file
@@ -790,18 +794,33 @@ def generate_build_ninja(
 
     # ProDG GCC
     prodg_cc = compiler_path / "ngccc.exe"
-    if is_windows():
-        # ngccc requires SN_NGC_PATH (pointing to sn.ini) on Windows.
+    if config.prodg_native_dir is not None:
+        # SN cpp/ngcas through the wrapper, native cc1/cc1plus (see tools/ngccc.py).
+        prodg_driver = config.tools_dir / "ngccc.py"
         prodg_cc_cmd = (
-            f'{CHAIN}set "SN_NGC_PATH=$sn_ngc_path" && '
-            f"{wrapper_cmd}{prodg_cc} -c $in -o $out $cflags"
+            f"$python {prodg_driver} --prodg-dir $sn_ngc_path --wrapper {wrapper} "
+            f"--native-dir {config.prodg_native_dir} -c $in -o $out $cflags"
         )
+        prodg_cc_implicit: List[Optional[Path]] = [
+            compilers_implicit or prodg_cc,
+            wrapper_implicit,
+            prodg_driver,
+            config.prodg_native_dir / "cc1plus",
+            config.prodg_native_dir / "cc1",
+        ]
     else:
-        prodg_cc_cmd = (
-            f'SN_NGC_PATH="$sn_ngc_path" '
-            f"{wrapper_cmd}{prodg_cc} -c $in -o $out $cflags"
-        )
-    prodg_cc_implicit: List[Optional[Path]] = [compilers_implicit or prodg_cc, wrapper_implicit]
+        if is_windows():
+            # ngccc requires SN_NGC_PATH (pointing to sn.ini) on Windows.
+            prodg_cc_cmd = (
+                f'{CHAIN}set "SN_NGC_PATH=$sn_ngc_path" && '
+                f"{wrapper_cmd}{prodg_cc} -c $in -o $out $cflags"
+            )
+        else:
+            prodg_cc_cmd = (
+                f'SN_NGC_PATH="$sn_ngc_path" '
+                f"{wrapper_cmd}{prodg_cc} -c $in -o $out $cflags"
+            )
+        prodg_cc_implicit = [compilers_implicit or prodg_cc, wrapper_implicit]
 
     # GNU as
     gnu_as = binutils / f"powerpc-eabi-as{EXE}"

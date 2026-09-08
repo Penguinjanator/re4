@@ -967,6 +967,15 @@ MATCHING = {
     "game/filter03.cpp": True,
     "game/filter01.cpp": True,
     "game/filter04.cpp": True,
+    # units that mix GQR fast-cast and classic fpmem conversions: need the native v1.79 cc1plus
+    # (configure.py --prodg-driver native, the default; see AGENTS.md "Compiler")
+    "game/filter0b.cpp": True,
+    "game/fade.cpp": True,
+    "game/esp01.cpp": True,
+    "game/esp19.cpp": True,
+    "game/light02.cpp": True,
+    "game/light05.cpp": True,
+    "game/light06.cpp": True,
 }
 
 # C++ units with functions the original linker dead-stripped (bodies gone, constant pools and
