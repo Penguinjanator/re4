@@ -30,6 +30,7 @@ public:
     void throughOn() { flags &= ~0x300; }   // pass through enemies (mahoThroughOn)
     void throughOff() { flags |= 0x300; }
     void clrFlag100() { flags &= ~0x100; }  // obj20 SetObaModel
+    void scrOn() { flags &= ~0x200; flags |= 0x100; }  // obj00 setScrAtari
 };
 
 #endif

@@ -187,6 +187,11 @@ def place_linkonce(src: str, asm: str) -> None:
                     line = '\t.section\t".text"\n'
             elif s.startswith('.section\t".gnu.linkonce.d.'):
                 line = '\t.section\t".rodata"\n'
+            elif s in (".section\t.ctors", ".section\t.dtors"):
+                # the split objects carry their constructor pointers in `.ctor` / `.dtor`; the
+                # linker script collects those in input (address) order, so the compiled unit's
+                # entry lands in the same slot only under the same section name
+                line = "\t.section\t" + s.split("\t")[1][:-1] + '\n'
             out.append(line)
     with open(asm, "w", encoding="latin-1") as f:
         f.writelines(out)

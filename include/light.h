@@ -101,6 +101,8 @@ public:
 
     cLight();
     virtual ~cLight() {}
+    // the position actually applied (inlined into the hit checks; the out-of-line copy is stripped)
+    void getPos(Vec* dst) { *dst = curPos; }
     void move();
     cLight& operator=(cLightWork& w);
     int checkScr();
@@ -146,7 +148,7 @@ public:
 struct LightPathHeader {
     u8 num;            // 0x00
     u8 pad_1[3];
-    u32 ofs[1];        // 0x04
+    // 0x04: u32[num] byte offset of each path from the header (0 = none)
 };
 
 // Fog block (cLightEnv+0x8, copied to `fogNew` by setEnv).
@@ -160,7 +162,7 @@ struct LightFog {
 // Wind of the pendulum system (cLightEnv+0xEC).
 class cPenWind {
 public:
-    u8 dir;            // 0x00  angle 0..255
+    s8 dir;            // 0x00  angle -128..127 (units of pi/127)
     u8 power;          // 0x01
     u8 x2;             // 0x02
 
@@ -231,9 +233,11 @@ struct EspLightList {
     u8 num;            // 0x20
 };
 
-#line 465 "D:/Bio4/Prog/light.h"
+#line 463 "D:/Bio4/Prog/light.h"
 class cLightMgr : public cManager<cLight> {
 public:
+    static const f32 FarDistance;  // dead-stripped from the DOL (keys the unit's static ctor name)
+
     cLit* pLit;            // 0x34  lit the cuts are taken from (the room lit by default)
     cLightEnv env;         // 0x38 .. 0x13C  current cut environment
     u32 kindFlags[8];      // 0x13C  kind enable bits (onKind / offKind)
@@ -311,7 +315,7 @@ public:
     void endEvent();
     void dbSetRoomLit(cLit* lit);
     void inSscrn();
-    void outSscrn(int mode);
+    void outSscrn(u32 mode);
 
     // In-class inlines. GCC 2.95 emits every inline member of a class whose vtable it emits, so
     // light.cpp gets bodies for these that the original linker dead-stripped (light.cpp is in

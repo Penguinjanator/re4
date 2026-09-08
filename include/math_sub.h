@@ -60,6 +60,8 @@ void RotVector(Vec* src, Vec* rot, Vec* dst);
 f32 Muku(Vec* pos, Vec* target, f32 ang, f32 limit);
 // Step from `ang` towards `target`, at most +-limit.
 f32 Muku2(f32 ang, f32 target, f32 limit);
+// out = a + (b - a) * t
+void PosToPos(Vec* a, Vec* b, Vec* out, f32 t);
 // lib math
 f32 sinf(f32 x);
 f32 cosf(f32 x);

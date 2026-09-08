@@ -109,7 +109,7 @@ void tvModeMenu_progressive(TvModeWork* tv)
                     timer = 0;
                 }
                 if (timer > 300) {
-                    sel = cMes.work.cursor + 1;
+                    sel = cMes.mes[0].cursor + 1;
                     break;
                 }
                 TaskSleep(1);

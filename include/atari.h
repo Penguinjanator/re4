@@ -5,6 +5,8 @@
 #include "vec.h"
 #include "db_log.h"
 
+class cModel;
+
 // Scenario collision manager (game/atari.cpp). Only the entry points used by the effect
 // units are declared; the layout is opaque (sizeof 0x38).
 class cSatMgr {
@@ -28,6 +30,8 @@ public:
     int polySphereCk(Vec* a, Vec* b, f32 r, int x, int y, int flag);
     // Debug draw of the collision polygons (t_option "SCROLL VIEW").
     void disp(int flag);
+    // Model against the scenario (obj00: `SatMgr.check(this, 0)`).
+    int check(cModel* m, int flag);
 };
 
 extern cSatMgr SatMgr;

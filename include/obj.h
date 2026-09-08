@@ -127,6 +127,40 @@ struct Obj08Work {
     u8 estFlag;           // 0x60  1: the enemy-hit effect follows the target instead of the hit point
 };
 
+// Hanging object work (game/obj00.cpp): follows a parts of its parent (`oya`) with a slerp
+// blend, or falls as a three-point rope (obj00FallMove).
+struct Obj00Work {
+    u32 flags;            // 0x00  bit2: falling, bit3: blending toward the parent, bit5: fading out
+    void* pMot;           // 0x04
+    int motA;             // 0x08  MotionSetCore 4th argument
+    u32 motPrm;           // 0x0C  low 16 bits: MotionSetCore 6th argument
+    cModel* oya;          // 0x10  parent
+    int partsNo;          // 0x14  parts of the parent to follow
+    f32 rate;             // 0x18  blend rate (1.0 = parent matrix)
+    f32 rateSpd;          // 0x1C
+    s16 fallSpd[3][3];    // 0x20  rope point speeds * 10
+    u8 pad_32[2];
+    Mtx mat;              // 0x34  previous parent matrix
+    u8 seBlk;             // 0x64  landing SE
+    u8 seNo;              // 0x65
+    u8 seId;              // 0x66
+    u8 sePlayed;          // 0x67
+};
+
+// Chain link work (game/obj1d.cpp): hangs between two parts of a parent model, fades out when
+// the parent is lost.
+struct ChainWork {
+    u32 flags;            // 0x00  bit1: keep the parent parts matrices as they are (no axis normalize)
+    int timer;            // 0x04  frames before the fade-out (LostWait)
+    u8 pad_8[4];
+    cModel* parent;       // 0x0C
+    int parts1;           // 0x10
+    int parts2;           // 0x14
+    Vec ofs1;             // 0x18  offset in parts1
+    Vec ofs2;             // 0x24  offset in parts2
+    struct PenCloth* cloth;  // 0x30
+};
+
 // Ladder / tower work (game/objYagura.cpp).
 struct YaguraWork {
     u8 pad_0[0x20];
@@ -161,6 +195,8 @@ public:
         BellWork bell;
         IslandWork island;
         Obj08Work o8;
+        ChainWork chain;
+        Obj00Work o0;
     };
     u8 x3D0;              // 0x3D0
     u8 pad_3D1[3];

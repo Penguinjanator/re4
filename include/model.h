@@ -96,12 +96,21 @@ public:
     s16 shapeFrame;      // 0xD4
     u8 xD6;              // 0xD6  previous color[3]
     u8 pad_D7[0xDC - 0xD7];
-    u16 flagsDC;         // 0xDC  bit0: has uv scroll
-    u8 pad_DE[0xF0 - 0xDE];
+    u16 flagsDC;         // 0xDC  bit0: has uv scroll, bit2: texBlendTbl set
+    u16 blendRatio;      // 0xDE  (TexRender: 0xFF while rendered to texture)
+    u8 pad_E0;
+    u8 blendType;        // 0xE1
+    u8 pad_E2[2];
+    void* texBlendTbl;   // 0xE4  (TexRender: 6-byte table {1, 0, ?, ?, 0xF7, tex id})
+    u8 pad_E8[0xF0 - 0xE8];
     f32 uvScrollU;       // 0xF0
     f32 uvScrollV;       // 0xF4
 
     void addTplAddr(void* tpl);
+    void setTexBlendTbl(void* tbl);
+    void resetTexBlendTbl();
+    void setBlendRatio(u16 ratio);
+    void setBlendType(u8 type);
 };
 
 // Light set of a model (game/lightInfo.cpp), embedded in cModel at 0x164 (0x74 bytes).
@@ -144,14 +153,21 @@ public:
     u8 x103;         // 0x103  (scroll: 0x80 = SmxSetFlag bit3, 0xFF = off)
     Vec speed;       // 0x104
     Vec oldPos;      // 0x110  position before the speed was added (obj04 collision segment)
-    u8 pad_11C[0x12D - 0x11C];
+    u8 pad_11C[0x12C - 0x11C];
+    u8 x12C;         // 0x12C  (TexRenderModSet sets 2)
     u8 x12D;         // 0x12D  (pl_leon setModel sets 1)
     u8 x12E;         // 0x12E  2 = scroll (Smd) object
     u8 x12F;         // 0x12F  scroll: SmxWork.type2 (3 by default)
     void* pCldShMd;  // 0x130  (db_work "pCldShMd")
     u8 shdCol;       // 0x134  (db_work "SHD COL")
     u8 x135;         // 0x135  scroll: SmxWork.x3, db_work "CullMode"
-    u8 pad_136[0x150 - 0x136];
+    u8 x136;         // 0x136  TexRender: 2 while rendered to texture, 0 after
+    u8 x137;         // 0x137  TexRender: 0x10
+    u8 x138;         // 0x138  TexRender: 0x90
+    u8 x139;         // 0x139  mirror: 0xFF
+    u8 x13A;         // 0x13A  mirror: 0xFF
+    u8 x13B;         // 0x13B  mirror: 0xFF
+    u8 pad_13C[0x150 - 0x13C];
     // 0x150..0x15C: pendulum parts treat these three words as a Vec (obj14 adds the hit impulse
     // to parts 1/2 here); the object itself keeps its alpha at 0x154.
     f32 x150;              // 0x150

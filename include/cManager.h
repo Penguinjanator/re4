@@ -25,6 +25,9 @@ public:
     // size_t is `unsigned int` for this compiler; with u32 (unsigned long) GCC 2.95 would not
     // treat this as the usual deallocation function.
     void operator delete(void*, unsigned int) {}
+    // addListBack's `p->next = 0` goes through this: the argument copy gives the zero register a
+    // lifetime of 2 luids, which is what makes loop.c hoist `li rN, 0` out of createBack's loop
+    void setNext(cUnit* n) { next = n; }
 };
 
 // Fixed array work manager. Element stride is the runtime field `size`
@@ -112,30 +115,25 @@ public:
                 return;
             }
         }
-        if (pAlive == 0) {
+        q = pAlive;
+        if (q == 0) {
             pAlive = p;
             return;
         }
-        for (q = pAlive; q->next; q = (T*)q->next) {}
+        while (q->next) {
+            q = (T*)q->next;
+        }
         q->next = p;
-        p->next = 0;
+        p->setNext(0);
     }
 };
 
+// Member initializer list, in this order: the stores come out in this order (body assignments
+// would be rescheduled: the last use of the zero register first).
 template <class T>
 cManager<T>::cManager(u32 size, u8 flag)
+    : size(size), flag(flag), maxAlive(0), name("Mgr"), warnDiv(10), pArray(0), nArray(0), pAlive(0), x14(0), x18(0), x1C(0)
 {
-    this->size = size;
-    this->flag = flag;
-    maxAlive = 0;
-    name = "Mgr";
-    warnDiv = 10;
-    pArray = 0;
-    nArray = 0;
-    pAlive = 0;
-    x14 = 0;
-    x18 = 0;
-    x1C = 0;
 }
 
 template <class T>
@@ -152,13 +150,13 @@ void cManager<T>::setName(const char* n)
 template <class T>
 int cManager<T>::roomInit()
 {
-    maxAlive = 0;
     pArray = 0;
     nArray = 0;
     pAlive = 0;
     x14 = 0;
     x18 = 0;
     x1C = 0;
+    maxAlive = 0;
     return 1;
 }
 

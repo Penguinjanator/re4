@@ -76,10 +76,10 @@ address	size	section	unit	scope	name	demangled
 0x80009178	0x80	.text	game/cam_ctrl.cpp	global	getAttachCamera__13CameraControlP6cModel	CameraControl::getAttachCamera
 0x800091F8	0x1D8	.text	game/cam_ctrl.cpp	global	checkAttachCamera__13CameraControl	CameraControl::checkAttachCamera
 0x800093D0	0xDC	.text	game/cam_ctrl.cpp	global	cameraDataVersion__FPc	cameraDataVersion
-0x800094AC	0x48	.text	game/cam_ctrl.cpp	global	cManager_cLight_log	cManager<cLight>::log
-0x800094F4	0xBC	.text	game/cam_ctrl.cpp	global	cManager_cLight_countActiveWork	cManager<cLight>::countActiveWork
-0x800095B0	0x158	.text	game/cam_ctrl.cpp	global	cManager_cLight_create	cManager<cLight>::create
-0x80009708	0x24	.text	game/cam_ctrl.cpp	global	cManager_cLight_create_80009708	cManager<cLight>::create
+0x800094AC	0x48	.text	game/cam_ctrl.cpp	global	log__t8cManager1Z6cLightPCce	cManager<cLight>::log
+0x800094F4	0xBC	.text	game/cam_ctrl.cpp	global	countActiveWork__t8cManager1Z6cLight	cManager<cLight>::countActiveWork
+0x800095B0	0x158	.text	game/cam_ctrl.cpp	global	create__t8cManager1Z6cLighti	cManager<cLight>::create
+0x80009708	0x24	.text	game/cam_ctrl.cpp	global	create__t8cManager1Z6cLight	cManager<cLight>::create
 0x8000972C	0x4	.text	game/cam_ctrl.cpp	global	__static_initialization_and_destruction_0	__static_initialization_and_destruction_0
 0x80009730	0x2C	.text	game/cam_ctrl.cpp	global	global_constructors_keyed_to_g_pToolCamData	global constructors keyed to g_pToolCamData
 0x8000975C	0x2C	.text	game/cam_ctrl.cpp	global	global_destructors_keyed_to_g_pToolCamData	global destructors keyed to g_pToolCamData
@@ -478,72 +478,72 @@ address	size	section	unit	scope	name	demangled
 0x800275F8	0x130	.text	game/mes.cpp	global	__7RomFontPv	RomFont::RomFont
 0x80027728	0x124	.text	game/mes.cpp	global	setup__7RomFontPv	RomFont::setup
 0x8002784C	0xD0	.text	game/mes.cpp	global	draw__7RomFontiiii	RomFont::draw
-0x8002791C	0x44	.text	game/mes.cpp	global	MessageFont_getSize	MessageFont::getSize
-0x80027960	0x200	.text	game/mes.cpp	global	MessageFont_create	MessageFont::create
-0x80027B60	0x38	.text	game/mes.cpp	global	MessageFont_destroy	MessageFont::destroy
-0x80027B98	0x4C	.text	game/mes.cpp	global	MessageData_getAddr	MessageData::getAddr
-0x80027BE4	0x28	.text	game/mes.cpp	global	MessageData_getMesNum	MessageData::getMesNum
-0x80027C0C	0x18	.text	game/mes.cpp	global	MessageData_getSpaceWidth	MessageData::getSpaceWidth
+0x8002791C	0x44	.text	game/mes.cpp	global	getSize__11MessageFontsPScT2	MessageFont::getSize
+0x80027960	0x200	.text	game/mes.cpp	global	create__11MessageFontiiP10TEXPalettePUc	MessageFont::create
+0x80027B60	0x38	.text	game/mes.cpp	global	destroy__11MessageFont	MessageFont::destroy
+0x80027B98	0x4C	.text	game/mes.cpp	global	getAddr__11MessageDataii	MessageData::getAddr
+0x80027BE4	0x28	.text	game/mes.cpp	global	getMesNum__11MessageDatai	MessageData::getMesNum
+0x80027C0C	0x18	.text	game/mes.cpp	global	getSpaceWidth__11MessageData	MessageData::getSpaceWidth
 0x80027C24	0x94	.text	game/mes.cpp	global	setLayout__14MessageControlii	MessageControl::setLayout
-0x80027CB8	0xBC	.text	game/mes.cpp	global	MessageControl_setLanguage	MessageControl::setLanguage
-0x80027D74	0x54	.text	game/mes.cpp	global	MessageControl_setupFont	MessageControl::setupFont
-0x80027DC8	0x30	.text	game/mes.cpp	global	MessageControl_releaseFont	MessageControl::releaseFont
-0x80027DF8	0xC8	.text	game/mes.cpp	global	MessageControl_loadFont	MessageControl::loadFont
-0x80027EC0	0x174	.text	game/mes.cpp	global	MessageControl_init	MessageControl::init
-0x80028034	0xA0	.text	game/mes.cpp	local	MessageControl_gameInit	MessageControl::gameInit
-0x800280D4	0x94	.text	game/mes.cpp	global	MessageControl_roomInit	MessageControl::roomInit
-0x80028168	0x60	.text	game/mes.cpp	global	MessageControl_loadCommonFont	MessageControl::loadCommonFont
-0x800281C8	0x5C	.text	game/mes.cpp	global	MessageControl_loadSystemFont	MessageControl::loadSystemFont
+0x80027CB8	0xBC	.text	game/mes.cpp	global	setLanguage__14MessageControli	MessageControl::setLanguage
+0x80027D74	0x54	.text	game/mes.cpp	global	setupFont__14MessageControliiP10TEXPalettei	MessageControl::setupFont
+0x80027DC8	0x30	.text	game/mes.cpp	global	releaseFont__14MessageControli	MessageControl::releaseFont
+0x80027DF8	0xC8	.text	game/mes.cpp	global	loadFont__14MessageControliiPCci	MessageControl::loadFont
+0x80027EC0	0x174	.text	game/mes.cpp	global	init__14MessageControl	MessageControl::init
+0x80028034	0xA0	.text	game/mes.cpp	global	gameInit__14MessageControl	MessageControl::gameInit
+0x800280D4	0x94	.text	game/mes.cpp	global	roomInit__14MessageControl	MessageControl::roomInit
+0x80028168	0x60	.text	game/mes.cpp	global	loadCommonFont__14MessageControl	MessageControl::loadCommonFont
+0x800281C8	0x5C	.text	game/mes.cpp	global	loadSystemFont__14MessageControl	MessageControl::loadSystemFont
 0x80028224	0x154	.text	game/mes.cpp	global	stageInit__14MessageControl	MessageControl::stageInit
-0x80028378	0x80	.text	game/mes.cpp	global	MessageControl_loadStageFont	MessageControl::loadStageFont
-0x800283F8	0x80	.text	game/mes.cpp	global	MessageControl_loadEventFont	MessageControl::loadEventFont
-0x80028478	0x10	.text	game/mes.cpp	global	MessageControl_setState	MessageControl::setState
-0x80028488	0x10	.text	game/mes.cpp	global	MessageControl_unsetState	MessageControl::unsetState
-0x80028498	0x18	.text	game/mes.cpp	global	MessageControl_checkState	MessageControl::checkState
+0x80028378	0x80	.text	game/mes.cpp	global	loadStageFont__14MessageControl	MessageControl::loadStageFont
+0x800283F8	0x80	.text	game/mes.cpp	global	loadEventFont__14MessageControl	MessageControl::loadEventFont
+0x80028478	0x10	.text	game/mes.cpp	global	setState__14MessageControlUl	MessageControl::setState
+0x80028488	0x10	.text	game/mes.cpp	global	unsetState__14MessageControlUl	MessageControl::unsetState
+0x80028498	0x18	.text	game/mes.cpp	global	checkState__14MessageControlUl	MessageControl::checkState
 0x800284B0	0x88	.text	game/mes.cpp	global	Move__14MessageControl	MessageControl::Move
 0x80028538	0x94	.text	game/mes.cpp	global	Trans__14MessageControl	MessageControl::Trans
-0x800285CC	0x18	.text	game/mes.cpp	global	MessageControl_setFontSize	MessageControl::setFontSize
+0x800285CC	0x18	.text	game/mes.cpp	global	setFontSize__14MessageControliScSc	MessageControl::setFontSize
 0x800285E4	0x194	.text	game/mes.cpp	global	MesSet__14MessageControliiiUliii	MessageControl::MesSet
 0x80028778	0x38	.text	game/mes.cpp	global	Delete__14MessageControli	MessageControl::Delete
-0x800287B0	0x38	.text	game/mes.cpp	global	MessageControl_WaitEnd	MessageControl::WaitEnd
-0x800287E8	0x1F8	.text	game/mes.cpp	global	Message_init	Message::init
-0x800289E0	0x1C4	.text	game/mes.cpp	global	Message_move	Message::move
-0x80028BA4	0x458	.text	game/mes.cpp	global	Message_WidthCk	Message::WidthCk
-0x80028FFC	0x154	.text	game/mes.cpp	global	Message_QueSet	Message::QueSet
-0x80029150	0x78	.text	game/mes.cpp	global	Message_setNumber	Message::setNumber
-0x800291C8	0x50	.text	game/mes.cpp	global	Message_putSelCursol	Message::putSelCursol
-0x80029218	0x34	.text	game/mes.cpp	global	Message_putNextCursol	Message::putNextCursol
-0x8002924C	0x64	.text	game/mes.cpp	global	Message_setJump	Message::setJump
+0x800287B0	0x38	.text	game/mes.cpp	global	WaitEnd__14MessageControli	MessageControl::WaitEnd
+0x800287E8	0x1F8	.text	game/mes.cpp	global	init__7MessageiiiUliP11MessageFont	Message::init
+0x800289E0	0x1C4	.text	game/mes.cpp	global	move__7Message	Message::move
+0x80028BA4	0x458	.text	game/mes.cpp	global	WidthCk__7Message	Message::WidthCk
+0x80028FFC	0x154	.text	game/mes.cpp	global	QueSet__7MessageiP11MessageFont	Message::QueSet
+0x80029150	0x78	.text	game/mes.cpp	global	setNumber__7MessageUlUs	Message::setNumber
+0x800291C8	0x50	.text	game/mes.cpp	global	putSelCursol__7Message	Message::putSelCursol
+0x80029218	0x34	.text	game/mes.cpp	global	putNextCursol__7Messagei	Message::putNextCursol
+0x8002924C	0x64	.text	game/mes.cpp	global	setJump__7MessageUs	Message::setJump
 0x800292B0	0x174	.text	game/mes.cpp	global	setAttribute	setAttribute
 0x80029424	0x278	.text	game/mes.cpp	global	draw	draw
 0x8002969C	0x80	.text	game/mes.cpp	global	messageCamera	messageCamera
 0x8002971C	0x34	.text	game/mes.cpp	global	messageTrans	messageTrans
-0x80029750	0x88	.text	game/mes.cpp	global	Message_trans	Message::trans
-0x800297D8	0x170	.text	game/mes.cpp	global	Message_CommandExec	Message::CommandExec
-0x80029948	0x1C	.text	game/mes.cpp	global	Message_CommandArg	Message::CommandArg
-0x80029964	0xC	.text	game/mes.cpp	global	Message_WaitEnd	Message::WaitEnd
-0x80029970	0x88	.text	game/mes.cpp	global	Message_code00	Message::code00
-0x800299F8	0xC0	.text	game/mes.cpp	global	Message_code01	Message::code01
-0x80029AB8	0xE0	.text	game/mes.cpp	global	Message_code02	Message::code02
-0x80029B98	0x3C	.text	game/mes.cpp	global	Message_code03	Message::code03
-0x80029BD4	0x48	.text	game/mes.cpp	global	Message_code04	Message::code04
-0x80029C1C	0x38	.text	game/mes.cpp	global	Message_code05	Message::code05
-0x80029C54	0x30	.text	game/mes.cpp	global	Message_code06	Message::code06
-0x80029C84	0x68	.text	game/mes.cpp	global	Message_code07	Message::code07
-0x80029CEC	0x364	.text	game/mes.cpp	global	Message_code08	Message::code08
-0x8002A050	0x74	.text	game/mes.cpp	global	Message_code09	Message::code09
-0x8002A0C4	0x1E4	.text	game/mes.cpp	global	Message_code0a	Message::code0a
-0x8002A2A8	0x20	.text	game/mes.cpp	global	Message_code0b	Message::code0b
-0x8002A2C8	0x20	.text	game/mes.cpp	global	Message_code0c	Message::code0c
-0x8002A2E8	0x20	.text	game/mes.cpp	global	Message_code0d	Message::code0d
-0x8002A308	0x38	.text	game/mes.cpp	global	Message_code0e	Message::code0e
-0x8002A340	0xA4	.text	game/mes.cpp	global	Message_code0f	Message::code0f
-0x8002A3E4	0x54	.text	game/mes.cpp	global	Message_code10	Message::code10
-0x8002A438	0xB0	.text	game/mes.cpp	global	Message_code11	Message::code11
-0x8002A4E8	0x20	.text	game/mes.cpp	global	Message_code12	Message::code12
-0x8002A508	0xC8	.text	game/mes.cpp	global	__static_initialization_and_destruction_0_8002A508	__static_initialization_and_destruction_0
-0x8002A5D0	0x34	.text	game/mes.cpp	global	Message_dt_Message	Message::~Message
-0x8002A604	0x88	.text	game/mes.cpp	global	MessageControl_dt_MessageControl	MessageControl::~MessageControl
+0x80029750	0x88	.text	game/mes.cpp	global	trans__7Message	Message::trans
+0x800297D8	0x170	.text	game/mes.cpp	global	CommandExec__7Message	Message::CommandExec
+0x80029948	0x1C	.text	game/mes.cpp	global	CommandArg__7Message	Message::CommandArg
+0x80029964	0xC	.text	game/mes.cpp	global	WaitEnd__7Message	Message::WaitEnd
+0x80029970	0x88	.text	game/mes.cpp	global	code00__7Message	Message::code00
+0x800299F8	0xC0	.text	game/mes.cpp	global	code01__7Message	Message::code01
+0x80029AB8	0xE0	.text	game/mes.cpp	global	code02__7Message	Message::code02
+0x80029B98	0x3C	.text	game/mes.cpp	global	code03__7Message	Message::code03
+0x80029BD4	0x48	.text	game/mes.cpp	global	code04__7Message	Message::code04
+0x80029C1C	0x38	.text	game/mes.cpp	global	code05__7Message	Message::code05
+0x80029C54	0x30	.text	game/mes.cpp	global	code06__7Message	Message::code06
+0x80029C84	0x68	.text	game/mes.cpp	global	code07__7Message	Message::code07
+0x80029CEC	0x364	.text	game/mes.cpp	global	code08__7Message	Message::code08
+0x8002A050	0x74	.text	game/mes.cpp	global	code09__7Message	Message::code09
+0x8002A0C4	0x1E4	.text	game/mes.cpp	global	code0a__7Message	Message::code0a
+0x8002A2A8	0x20	.text	game/mes.cpp	global	code0b__7Message	Message::code0b
+0x8002A2C8	0x20	.text	game/mes.cpp	global	code0c__7Message	Message::code0c
+0x8002A2E8	0x20	.text	game/mes.cpp	global	code0d__7Message	Message::code0d
+0x8002A308	0x38	.text	game/mes.cpp	global	code0e__7Message	Message::code0e
+0x8002A340	0xA4	.text	game/mes.cpp	global	code0f__7Message	Message::code0f
+0x8002A3E4	0x54	.text	game/mes.cpp	global	code10__7Message	Message::code10
+0x8002A438	0xB0	.text	game/mes.cpp	global	code11__7Message	Message::code11
+0x8002A4E8	0x20	.text	game/mes.cpp	global	code12__7Message	Message::code12
+0x8002A508	0xC8	.text	game/mes.cpp	local	__static_initialization_and_destruction_0_8002A508	__static_initialization_and_destruction_0
+0x8002A5D0	0x34	.text	game/mes.cpp	global	_._7Message	Message::~Message
+0x8002A604	0x88	.text	game/mes.cpp	global	_._14MessageControl	MessageControl::~MessageControl
 0x8002A68C	0x2C	.text	game/mes.cpp	global	global_constructors_keyed_to_mes_col_tbl	global constructors keyed to mes_col_tbl
 0x8002A6B8	0x2C	.text	game/mes.cpp	global	global_destructors_keyed_to_mes_col_tbl	global destructors keyed to mes_col_tbl
 0x8002A6E4	0x244	.text	game/obj13.cpp	global	SetLadder	SetLadder
@@ -682,17 +682,17 @@ address	size	section	unit	scope	name	demangled
 0x800348D4	0x18	.text	game/obj1c.cpp	global	ckCrash__6cObj1c	cObj1c::ckCrash
 0x800348EC	0x15C	.text	game/obj1c.cpp	global	obj1cSpdMove	obj1cSpdMove
 0x80034A48	0x20	.text	game/obj1c.cpp	global	_._6cObj1c	cObj1c::~cObj1c
-0x80034A68	0x164	.text	game/obj1d.cpp	global	SetChain	SetChain
-0x80034BCC	0xA8	.text	game/obj1d.cpp	global	cObjChain_move	cObjChain::move
+0x80034A68	0x164	.text	game/obj1d.cpp	global	SetChain__FPvT0P3VecT2	SetChain
+0x80034BCC	0xA8	.text	game/obj1d.cpp	global	move__9cObjChain	cObjChain::move
 0x80034C74	0x78	.text	game/obj1d.cpp	global	obj1d_R1_Set	obj1d_R1_Set
 0x80034CEC	0x154	.text	game/obj1d.cpp	global	obj1d_R1_LostWait	obj1d_R1_LostWait
 0x80034E40	0x54	.text	game/obj1d.cpp	global	obj1d_R1_Lost	obj1d_R1_Lost
 0x80034E94	0x6A0	.text	game/obj1d.cpp	global	obj1d_R1_Parent	obj1d_R1_Parent
-0x80035534	0x88	.text	game/obj1d.cpp	global	cObjChain_setParent	cObjChain::setParent
-0x800355BC	0x88	.text	game/obj1d.cpp	global	cObjChain_setParent2	cObjChain::setParent2
-0x80035644	0x34	.text	game/obj1d.cpp	global	cObjChain_setChain	cObjChain::setChain
-0x80035678	0x44	.text	game/obj1d.cpp	global	cObjChain_chainMove	cObjChain::chainMove
-0x800356BC	0x20	.text	game/obj1d.cpp	global	cObjChain_dt_cObjChain	cObjChain::~cObjChain
+0x80035534	0x88	.text	game/obj1d.cpp	global	setParent__9cObjChainP6cModeliP3Veci	cObjChain::setParent
+0x800355BC	0x88	.text	game/obj1d.cpp	global	setParent2__9cObjChainP6cModeliP3VeciT3i	cObjChain::setParent2
+0x80035644	0x34	.text	game/obj1d.cpp	global	setChain__9cObjChainP8PenCloth	cObjChain::setChain
+0x80035678	0x44	.text	game/obj1d.cpp	global	chainMove__9cObjChain	cObjChain::chainMove
+0x800356BC	0x20	.text	game/obj1d.cpp	global	_._9cObjChain	cObjChain::~cObjChain
 0x800356DC	0x184	.text	game/obj20.cpp	global	SetObaModel	SetObaModel
 0x80035860	0x13C	.text	game/obj20.cpp	global	move__12cObjObaModel	cObjObaModel::move
 0x8003599C	0x20	.text	game/obj20.cpp	local	_._12cObjObaModel	cObjObaModel::~cObjObaModel
@@ -3038,7 +3038,7 @@ address	size	section	unit	scope	name	demangled
 0x800C9C34	0x6C	.text	game/at_sub.cpp	global	InterVectorXYZ	InterVectorXYZ
 0x800C9CA0	0x30	.text	game/at_sub.cpp	global	EatGetEffectType	EatGetEffectType
 0x800C9CD0	0x54	.text	game/at_sub.cpp	global	At_surface_point_rel	At_surface_point_rel
-0x800C9D24	0xE4	.text	game/atari.cpp	global	cSatMgr_check	cSatMgr::check
+0x800C9D24	0xE4	.text	game/atari.cpp	global	check__7cSatMgrP6cModeli	cSatMgr::check
 0x800C9E08	0x358	.text	game/atari.cpp	global	cSatMgr_checkRect	cSatMgr::checkRect
 0x800CA160	0xC0	.text	game/atari.cpp	global	cSatMgr_checkAir	cSatMgr::checkAir
 0x800CA220	0x180	.text	game/atari.cpp	global	atck	atck
@@ -3206,7 +3206,7 @@ address	size	section	unit	scope	name	demangled
 0x800D4CAC	0x158	.text	game/cam_qfps.cpp	global	setBlendData__14CameraQuasiFPSPvT1	CameraQuasiFPS::setBlendData
 0x800D4E04	0x158	.text	game/cam_qfps.cpp	global	getAreaData__14CameraQuasiFPSPA2_7QfpsOfsT1	CameraQuasiFPS::getAreaData
 0x800D4F5C	0x158	.text	game/cam_qfps.cpp	global	CameraQuasiFPS_setAreaData	CameraQuasiFPS::setAreaData
-0x800D50B4	0x36C	.text	game/cam_qfps.cpp	global	CameraQuasiFPS_setAreaData_800D50B4	CameraQuasiFPS::setAreaData
+0x800D50B4	0x36C	.text	game/cam_qfps.cpp	global	setAreaData__14CameraQuasiFPSP9CameraCut	CameraQuasiFPS::setAreaData
 0x800D5420	0x108	.text	game/cam_qfps.cpp	global	offsetCorrection	offsetCorrection
 0x800D5528	0x40	.text	game/cam_qfps.cpp	local	offsetArrayCorrection	offsetArrayCorrection
 0x800D5568	0x64	.text	game/cam_qfps.cpp	global	offsetCorrection__14CameraQuasiFPS	CameraQuasiFPS::offsetCorrection
@@ -3237,10 +3237,10 @@ address	size	section	unit	scope	name	demangled
 0x800D710C	0x20	.text	game/camera.cpp	global	CameraGetLookVec	CameraGetLookVec
 0x800D712C	0x28	.text	game/camera.cpp	global	CameraGetLookVecInverse	CameraGetLookVecInverse
 0x800D7154	0xFC	.text	game/camera.cpp	global	CamPos2ScrnVec	CamPos2ScrnVec
-0x800D7250	0x1C	.text	game/cDataSwap.cpp	global	cDataSwap_cDataSwap	cDataSwap::cDataSwap
-0x800D726C	0x28	.text	game/cDataSwap.cpp	global	cDataSwap_dt_cDataSwap	cDataSwap::~cDataSwap
-0x800D7294	0x158	.text	game/cDataSwap.cpp	global	cDataSwap_SwapOut	cDataSwap::SwapOut
-0x800D73EC	0xA4	.text	game/cDataSwap.cpp	global	cDataSwap_SwapIn	cDataSwap::SwapIn
+0x800D7250	0x1C	.text	game/cDataSwap.cpp	global	__9cDataSwap	cDataSwap::cDataSwap
+0x800D726C	0x28	.text	game/cDataSwap.cpp	global	_._9cDataSwap	cDataSwap::~cDataSwap
+0x800D7294	0x158	.text	game/cDataSwap.cpp	global	SwapOut__9cDataSwapUlUlUl	cDataSwap::SwapOut
+0x800D73EC	0xA4	.text	game/cDataSwap.cpp	global	SwapIn__9cDataSwap	cDataSwap::SwapIn
 0x800D7490	0x14	.text	game/cMotBase.cpp	global	cMotBase_cMotBase	cMotBase::cMotBase
 0x800D74A4	0x7C	.text	game/cMotBase.cpp	local	cMotBase_set	cMotBase::set
 0x800D7520	0x50	.text	game/cMotBase.cpp	global	cMotBase_set_800D7520	cMotBase::set
@@ -3250,7 +3250,7 @@ address	size	section	unit	scope	name	demangled
 0x800D7818	0xAC	.text	game/cockpit.cpp	global	Cockpit_roomInit	Cockpit::roomInit
 0x800D78C4	0x94	.text	game/cockpit.cpp	global	Cockpit_move	Cockpit::move
 0x800D7958	0x90	.text	game/cockpit.cpp	global	Cockpit_msgWindow	Cockpit::msgWindow
-0x800D79E8	0x90	.text	game/cockpit.cpp	global	Cockpit_lifeMeterDisp	Cockpit::lifeMeterDisp
+0x800D79E8	0x90	.text	game/cockpit.cpp	global	lifeMeterDisp__7Cockpiti	Cockpit::lifeMeterDisp
 0x800D7A78	0x260	.text	game/cockpit.cpp	global	LifeMeter_roomInit	LifeMeter::roomInit
 0x800D7CD8	0xC94	.text	game/cockpit.cpp	global	LifeMeter_move	LifeMeter::move
 0x800D896C	0xB0	.text	game/cockpit.cpp	global	LifeMeter_fix	LifeMeter::fix
@@ -3332,7 +3332,7 @@ address	size	section	unit	scope	name	demangled
 0x800DB758	0x4	.text	game/datactrl.cpp	global	cDataUnit_checkMramToMram	cDataUnit::checkMramToMram
 0x800DB75C	0x8C	.text	game/datactrl.cpp	global	cDataUnit_checkCommand	cDataUnit::checkCommand
 0x800DB7E8	0xBC	.text	game/datactrl.cpp	global	cDataUnit_checkCondition	cDataUnit::checkCondition
-0x800DB8A4	0x234	.text	game/datactrl.cpp	global	cDataCtrl_getAramFree	cDataCtrl::getAramFree
+0x800DB8A4	0x234	.text	game/datactrl.cpp	global	getAramFree__9cDataCtrlUl	cDataCtrl::getAramFree
 0x800DBAD8	0x4C	.text	game/datactrl.cpp	global	cDataCtrl_init	cDataCtrl::init
 0x800DBB24	0xB0	.text	game/datactrl.cpp	global	cDataCtrl_initDataUnit	cDataCtrl::initDataUnit
 0x800DBBD4	0x40	.text	game/datactrl.cpp	global	cDataCtrl_deleteAll	cDataCtrl::deleteAll
@@ -4752,7 +4752,7 @@ address	size	section	unit	scope	name	demangled
 0x8014DC0C	0xB0	.text	game/light.cpp	global	log__9cLightMgrPCce	cLightMgr::log
 0x8014DCBC	0x80	.text	game/light.cpp	global	init__9cLightMgrPPFP6cLight_v	cLightMgr::init
 0x8014DD3C	0x158	.text	game/light.cpp	global	roomInit__9cLightMgrP4cLitN21	cLightMgr::roomInit
-0x8014DE94	0xBC	.text	game/light.cpp	global	construct__9cLightMgrP6cLighti	cLightMgr::construct
+0x8014DE94	0xBC	.text	game/light.cpp	global	construct__9cLightMgrP6cLightUl	cLightMgr::construct
 0x8014DF50	0x6C	.text	game/light.cpp	global	create__9cLightMgrP10cLightWork	cLightMgr::create
 0x8014DFBC	0x54	.text	game/light.cpp	global	createBack__9cLightMgrP10cLightWork	cLightMgr::createBack
 0x8014E010	0x11C	.text	game/light.cpp	global	create__9cLightMgrP4cLitiii	cLightMgr::create
@@ -4831,7 +4831,7 @@ address	size	section	unit	scope	name	demangled
 0x8015148C	0x74C	.text	game/light.cpp	global	versionUp__4cLit	cLit::versionUp
 0x80151BD8	0x74	.text	game/light.cpp	global	getMaxLight__4cLit	cLit::getMaxLight
 0x80151C4C	0x50	.text	game/light.cpp	global	inSscrn__9cLightMgr	cLightMgr::inSscrn
-0x80151C9C	0xA8	.text	game/light.cpp	global	outSscrn__9cLightMgri	cLightMgr::outSscrn
+0x80151C9C	0xA8	.text	game/light.cpp	global	outSscrn__9cLightMgrUl	cLightMgr::outSscrn
 0x80151D44	0x74	.text	game/light.cpp	global	set__8cPenWind	cPenWind::set
 0x80151DB8	0x50	.text	game/light.cpp	global	__t8cManager1Z6cLightUlUc	cManager<cLight>::cManager
 0x80151E08	0x8	.text	game/light.cpp	local	setName__t8cManager1Z6cLightPCc	cManager<cLight>::setName
@@ -5001,10 +5001,10 @@ address	size	section	unit	scope	name	demangled
 0x8015A6A4	0x68	.text	game/model.cpp	global	cModelInfo_cModelInfo	cModelInfo::cModelInfo
 0x8015A70C	0x28	.text	game/model.cpp	global	cModelInfo_setTplAddr	cModelInfo::setTplAddr
 0x8015A734	0x40	.text	game/model.cpp	global	addTplAddr__10cModelInfoPv	cModelInfo::addTplAddr
-0x8015A774	0x14	.text	game/model.cpp	global	cModelInfo_setTexBlendTbl	cModelInfo::setTexBlendTbl
-0x8015A788	0x18	.text	game/model.cpp	global	cModelInfo_resetTexBlendTbl	cModelInfo::resetTexBlendTbl
-0x8015A7A0	0x8	.text	game/model.cpp	global	cModelInfo_setBlendRatio	cModelInfo::setBlendRatio
-0x8015A7A8	0x8	.text	game/model.cpp	global	cModelInfo_setBlendType	cModelInfo::setBlendType
+0x8015A774	0x14	.text	game/model.cpp	global	setTexBlendTbl__10cModelInfoPv	cModelInfo::setTexBlendTbl
+0x8015A788	0x18	.text	game/model.cpp	global	resetTexBlendTbl__10cModelInfo	cModelInfo::resetTexBlendTbl
+0x8015A7A0	0x8	.text	game/model.cpp	global	setBlendRatio__10cModelInfoUs	cModelInfo::setBlendRatio
+0x8015A7A8	0x8	.text	game/model.cpp	global	setBlendType__10cModelInfoUc	cModelInfo::setBlendType
 0x8015A7B0	0x40	.text	game/model.cpp	global	cModelInfo_setSpecular	cModelInfo::setSpecular
 0x8015A7F0	0x8C	.text	game/model.cpp	global	cModel_deleteModelData	cModel::deleteModelData
 0x8015A87C	0x84	.text	game/model.cpp	global	deleteModelInfo__6cModelP10cModelInfo	cModel::deleteModelInfo
@@ -5035,10 +5035,10 @@ address	size	section	unit	scope	name	demangled
 0x8015B810	0x28	.text	game/model.cpp	global	cModInfoMgr_construct	cModInfoMgr::construct
 0x8015B838	0xC8	.text	game/model.cpp	global	create__11cModInfoMgrPvT1	cModInfoMgr::create
 0x8015B900	0xC4	.text	game/model.cpp	global	GetPartsAddr	GetPartsAddr
-0x8015B9C4	0xC4	.text	game/model.cpp	global	GetModelInfoAddr	GetModelInfoAddr
+0x8015B9C4	0xC4	.text	game/model.cpp	global	GetModelInfoAddr__FP10cModelInfoi	GetModelInfoAddr
 0x8015BA88	0xB0	.text	game/model.cpp	global	GetModelInfoNum	GetModelInfoNum
-0x8015BB38	0x90	.text	game/model.cpp	global	ModelInfoRefrectOffAll	ModelInfoRefrectOffAll
-0x8015BBC8	0x60	.text	game/model.cpp	local	ModelInfoRefrectOn	ModelInfoRefrectOn
+0x8015BB38	0x90	.text	game/model.cpp	global	ModelInfoRefrectOffAll__FP6cModel	ModelInfoRefrectOffAll
+0x8015BBC8	0x60	.text	game/model.cpp	global	ModelInfoRefrectOn__FP6cModeli	ModelInfoRefrectOn
 0x8015BC28	0x58	.text	game/model.cpp	global	ModelInfoSetTrans	ModelInfoSetTrans
 0x8015BC80	0x23C	.text	game/model.cpp	global	drawBoundingBox	drawBoundingBox
 0x8015BEBC	0xAC	.text	game/model.cpp	global	error__6cModel	cModel::error
@@ -5127,14 +5127,14 @@ address	size	section	unit	scope	name	demangled
 0x80160ED8	0x218	.text	game/obj.cpp	global	cManager_cObj_destroy	cManager<cObj>::destroy
 0x801610F0	0x2C	.text	game/obj.cpp	global	global_constructors_keyed_to_cObjMgr_cObjMgr	global constructors keyed to cObjMgr::cObjMgr
 0x8016111C	0x2C	.text	game/obj.cpp	global	global_destructors_keyed_to_cObjMgr_cObjMgr	global destructors keyed to cObjMgr::cObjMgr
-0x80161148	0x148	.text	game/obj00.cpp	global	cObj00_move	cObj00::move
-0x80161290	0x17C	.text	game/obj00.cpp	global	SetObj00	SetObj00
-0x8016140C	0x54	.text	game/obj00.cpp	global	MotSetObj00	MotSetObj00
-0x80161460	0x2C	.text	game/obj00.cpp	global	OyaSetObj00	OyaSetObj00
+0x80161148	0x148	.text	game/obj00.cpp	global	move__6cObj00	cObj00::move
+0x80161290	0x17C	.text	game/obj00.cpp	global	SetObj00__FPvT0P3VecT2	SetObj00
+0x8016140C	0x54	.text	game/obj00.cpp	global	MotSetObj00__FP4cObjPvii	MotSetObj00
+0x80161460	0x2C	.text	game/obj00.cpp	global	OyaSetObj00__FP4cObjP6cModeli	OyaSetObj00
 0x8016148C	0x678	.text	game/obj00.cpp	global	obj00FallMove	obj00FallMove
 0x80161B04	0x41C	.text	game/obj00.cpp	global	obj00SetOya	obj00SetOya
-0x80161F20	0x74	.text	game/obj00.cpp	global	cObj00_setScrAtari	cObj00::setScrAtari
-0x80161F94	0x20	.text	game/obj00.cpp	global	cObj00_dt_cObj00	cObj00::~cObj00
+0x80161F20	0x74	.text	game/obj00.cpp	global	setScrAtari__6cObj00f	cObj00::setScrAtari
+0x80161F94	0x20	.text	game/obj00.cpp	global	_._6cObj00	cObj00::~cObj00
 0x80161FB4	0x9C	.text	game/obj01.cpp	global	cObj01_move	cObj01::move
 0x80162050	0x704	.text	game/obj01.cpp	global	cObj01_move00	cObj01::move00
 0x80162754	0x8C	.text	game/obj01.cpp	global	cObj01_move01	cObj01::move01
@@ -5329,32 +5329,32 @@ address	size	section	unit	scope	name	demangled
 0x80175CC8	0x58	.text	game/pl_cloth.cpp	global	PlClothMoveLeon__FP6cModelP7PlClothN21	PlClothMoveLeon
 0x80175D20	0x7C	.text	game/pl_cloth.cpp	global	PlClothSetGirl__FP6cModelP7PlClothN21i	PlClothSetGirl
 0x80175D9C	0x84	.text	game/pl_cloth.cpp	global	PlClothMoveGirl__FP6cModelP7PlClothN21	PlClothMoveGirl
-0x80175E20	0x20	.text	game/pl_cloth.cpp	global	PlClothSetLuis	PlClothSetLuis
-0x80175E40	0x38	.text	game/pl_cloth.cpp	global	PlClothMoveLuis	PlClothMoveLuis
-0x80175E78	0x44	.text	game/pl_cloth.cpp	global	PlClothSetAda	PlClothSetAda
-0x80175EBC	0x4C	.text	game/pl_cloth.cpp	global	PlClothMoveAda	PlClothMoveAda
-0x80175F08	0x104	.text	game/pl_cloth.cpp	global	testHairSetLeon	testHairSetLeon
-0x8017600C	0x20	.text	game/pl_cloth.cpp	global	testHairMoveLeon	testHairMoveLeon
-0x8017602C	0x128	.text	game/pl_cloth.cpp	global	testJacketSetLeon	testJacketSetLeon
-0x80176154	0x30	.text	game/pl_cloth.cpp	global	testJacketMoveLeon	testJacketMoveLeon
-0x80176184	0x104	.text	game/pl_cloth.cpp	global	testHolsterSetLeon	testHolsterSetLeon
-0x80176288	0x30	.text	game/pl_cloth.cpp	global	testHolsterMoveLeon	testHolsterMoveLeon
-0x801762B8	0x128	.text	game/pl_cloth.cpp	global	testHairSetGirl	testHairSetGirl
-0x801763E0	0x20	.text	game/pl_cloth.cpp	global	testHairMoveGirl	testHairMoveGirl
-0x80176400	0x12C	.text	game/pl_cloth.cpp	global	testSkirtSetGirl	testSkirtSetGirl
-0x8017652C	0x48	.text	game/pl_cloth.cpp	global	testSkirtMoveGirl	testSkirtMoveGirl
-0x80176574	0x100	.text	game/pl_cloth.cpp	global	testSweaterSetGirl	testSweaterSetGirl
-0x80176674	0x20	.text	game/pl_cloth.cpp	global	testSweaterMoveGirl	testSweaterMoveGirl
-0x80176694	0x108	.text	game/pl_cloth.cpp	global	testRibbonSetGirl	testRibbonSetGirl
-0x8017679C	0x20	.text	game/pl_cloth.cpp	global	testRibbonMoveGirl	testRibbonMoveGirl
-0x801767BC	0x4B8	.text	game/pl_cloth.cpp	global	girlLapelMove	girlLapelMove
-0x80176C74	0x108	.text	game/pl_cloth.cpp	global	testHairSetLuis	testHairSetLuis
-0x80176D7C	0x20	.text	game/pl_cloth.cpp	global	testHairMoveLuis	testHairMoveLuis
-0x80176D9C	0x11C	.text	game/pl_cloth.cpp	global	testDressSetAda	testDressSetAda
-0x80176EB8	0x20	.text	game/pl_cloth.cpp	global	testDressMoveAda	testDressMoveAda
-0x80176ED8	0x108	.text	game/pl_cloth.cpp	global	testHairSetAda	testHairSetAda
-0x80176FE0	0x20	.text	game/pl_cloth.cpp	global	testHairMoveAda	testHairMoveAda
-0x80177000	0x178	.text	game/pl_cloth.cpp	global	AdaRibbonSet	AdaRibbonSet
+0x80175E20	0x20	.text	game/pl_cloth.cpp	global	PlClothSetLuis__FP6cModelP7PlCloth	PlClothSetLuis
+0x80175E40	0x38	.text	game/pl_cloth.cpp	global	PlClothMoveLuis__FP6cModelP7PlCloth	PlClothMoveLuis
+0x80175E78	0x44	.text	game/pl_cloth.cpp	global	PlClothSetAda__FP6cModelP7PlClothN21i	PlClothSetAda
+0x80175EBC	0x4C	.text	game/pl_cloth.cpp	global	PlClothMoveAda__FP6cModelP7PlClothN21	PlClothMoveAda
+0x80175F08	0x104	.text	game/pl_cloth.cpp	global	testHairSetLeon__FP6cModelP7PlCloth	testHairSetLeon
+0x8017600C	0x20	.text	game/pl_cloth.cpp	global	testHairMoveLeon__FP6cModelP7PlCloth	testHairMoveLeon
+0x8017602C	0x128	.text	game/pl_cloth.cpp	global	testJacketSetLeon__FP6cModelP7PlCloth	testJacketSetLeon
+0x80176154	0x30	.text	game/pl_cloth.cpp	global	testJacketMoveLeon__FP6cModelP7PlCloth	testJacketMoveLeon
+0x80176184	0x104	.text	game/pl_cloth.cpp	global	testHolsterSetLeon__FP6cModelP7PlCloth	testHolsterSetLeon
+0x80176288	0x30	.text	game/pl_cloth.cpp	global	testHolsterMoveLeon__FP6cModelP7PlCloth	testHolsterMoveLeon
+0x801762B8	0x128	.text	game/pl_cloth.cpp	global	testHairSetGirl__FP6cModelP7PlClothi	testHairSetGirl
+0x801763E0	0x20	.text	game/pl_cloth.cpp	global	testHairMoveGirl__FP6cModelP7PlCloth	testHairMoveGirl
+0x80176400	0x12C	.text	game/pl_cloth.cpp	global	testSkirtSetGirl__FP6cModelP7PlClothi	testSkirtSetGirl
+0x8017652C	0x48	.text	game/pl_cloth.cpp	global	testSkirtMoveGirl__FP6cModelP7PlCloth	testSkirtMoveGirl
+0x80176574	0x100	.text	game/pl_cloth.cpp	global	testSweaterSetGirl__FP6cModelP7PlCloth	testSweaterSetGirl
+0x80176674	0x20	.text	game/pl_cloth.cpp	global	testSweaterMoveGirl__FP6cModelP7PlCloth	testSweaterMoveGirl
+0x80176694	0x108	.text	game/pl_cloth.cpp	global	testRibbonSetGirl__FP6cModelP7PlCloth	testRibbonSetGirl
+0x8017679C	0x20	.text	game/pl_cloth.cpp	global	testRibbonMoveGirl__FP6cModelP7PlCloth	testRibbonMoveGirl
+0x801767BC	0x4B8	.text	game/pl_cloth.cpp	global	girlLapelMove__FP6cModel	girlLapelMove
+0x80176C74	0x108	.text	game/pl_cloth.cpp	global	testHairSetLuis__FP6cModelP7PlCloth	testHairSetLuis
+0x80176D7C	0x20	.text	game/pl_cloth.cpp	global	testHairMoveLuis__FP6cModelP7PlCloth	testHairMoveLuis
+0x80176D9C	0x11C	.text	game/pl_cloth.cpp	global	testDressSetAda__FP6cModelP7PlClothi	testDressSetAda
+0x80176EB8	0x20	.text	game/pl_cloth.cpp	global	testDressMoveAda__FP6cModelP7PlCloth	testDressMoveAda
+0x80176ED8	0x108	.text	game/pl_cloth.cpp	global	testHairSetAda__FP6cModelP7PlCloth	testHairSetAda
+0x80176FE0	0x20	.text	game/pl_cloth.cpp	global	testHairMoveAda__FP6cModelP7PlCloth	testHairMoveAda
+0x80177000	0x178	.text	game/pl_cloth.cpp	global	AdaRibbonSet__FP6cModelP7PlClothPvT2	AdaRibbonSet
 0x80177178	0x98	.text	game/pl_sub.cpp	global	PlSelect	PlSelect
 0x80177210	0xBC	.text	game/pl_sub.cpp	global	PlSetCostume__Fv	PlSetCostume
 0x801772CC	0x104	.text	game/pl_sub.cpp	global	PlChangeData__Fv	PlChangeData
@@ -5759,7 +5759,7 @@ address	size	section	unit	scope	name	demangled
 0x80190490	0x80	.text	game/scheduler.cpp	global	TaskChain	TaskChain
 0x80190510	0x68	.text	game/scheduler.cpp	global	TaskExit__Fv	TaskExit
 0x80190578	0x30	.text	game/scheduler.cpp	global	TaskKill	TaskKill
-0x801905A8	0x78	.text	game/scheduler.cpp	global	TaskKill_801905A8	TaskKill
+0x801905A8	0x78	.text	game/scheduler.cpp	global	TaskKill__FP4TASK	TaskKill
 0x80190620	0x2C	.text	game/scheduler.cpp	global	TaskSuspend__Fi	TaskSuspend
 0x8019064C	0x40	.text	game/scheduler.cpp	global	TaskSignal__Fi	TaskSignal
 0x8019068C	0x18	.text	game/scheduler.cpp	global	TaskStatus	TaskStatus
@@ -5770,7 +5770,7 @@ address	size	section	unit	scope	name	demangled
 0x801907B4	0x28	.text	game/scheduler.cpp	global	iTaskExit	iTaskExit
 0x801907DC	0x50	.text	game/scheduler.cpp	global	iTaskSuspend	iTaskSuspend
 0x8019082C	0x8	.text	game/scheduler.cpp	global	iTaskStatus	iTaskStatus
-0x80190834	0x24	.text	game/scheduler.cpp	global	__static_initialization_and_destruction_0_80190834	__static_initialization_and_destruction_0
+0x80190834	0x24	.text	game/scheduler.cpp	local	__static_initialization_and_destruction_0_80190834	__static_initialization_and_destruction_0
 0x80190858	0x2C	.text	game/scheduler.cpp	global	global_constructors_keyed_to_CTASK_MAIN	global constructors keyed to CTASK_MAIN
 0x80190884	0xB8	.text	game/scroll.cpp	global	SmdInit__FP4cSmdP4cSmxT0	SmdInit
 0x8019093C	0x88	.text	game/scroll.cpp	global	SmdClear__Fi	SmdClear
@@ -5976,10 +5976,10 @@ address	size	section	unit	scope	name	demangled
 0x8019F1AC	0x168	.text	game/TexRender.cpp	global	RenderTexRenderMgr	RenderTexRenderMgr
 0x8019F314	0x2B4	.text	game/TexRender.cpp	global	CopyTexRenderMgr	CopyTexRenderMgr
 0x8019F5C8	0xC4	.text	game/TexRender.cpp	global	TransTexRenderMgr	TransTexRenderMgr
-0x8019F68C	0x30	.text	game/TexRender.cpp	global	TexRenderMng_TexRenderMng	TexRenderMng::TexRenderMng
-0x8019F6BC	0x2C	.text	game/TexRender.cpp	global	TexRenderMng_Init	TexRenderMng::Init
-0x8019F6E8	0x80	.text	game/TexRender.cpp	global	TexRenderMng_AllocBuf	TexRenderMng::AllocBuf
-0x8019F768	0x40	.text	game/TexRender.cpp	global	TexRenderMng_ReAllocBuf	TexRenderMng::ReAllocBuf
+0x8019F68C	0x30	.text	game/TexRender.cpp	global	__12TexRenderMng	TexRenderMng::TexRenderMng
+0x8019F6BC	0x2C	.text	game/TexRender.cpp	global	Init__12TexRenderMng	TexRenderMng::Init
+0x8019F6E8	0x80	.text	game/TexRender.cpp	global	AllocBuf__12TexRenderMng	TexRenderMng::AllocBuf
+0x8019F768	0x40	.text	game/TexRender.cpp	global	ReAllocBuf__12TexRenderMng	TexRenderMng::ReAllocBuf
 0x8019F7A8	0x7C	.text	game/TexRender.cpp	global	TexRenderInit	TexRenderInit
 0x8019F824	0x14C	.text	game/TexRender.cpp	global	TexRenderModSet	TexRenderModSet
 0x8019F970	0x94	.text	game/TexRender.cpp	global	TexRenderModRes	TexRenderModRes
@@ -5988,7 +5988,7 @@ address	size	section	unit	scope	name	demangled
 0x8019FB60	0x78	.text	game/TexRender.cpp	global	TexRenderCamAddOt	TexRenderCamAddOt
 0x8019FBD8	0x1BC	.text	game/TexRender.cpp	global	CamRenderPrev	CamRenderPrev
 0x8019FD94	0x64	.text	game/TexRender.cpp	global	CamRenderAfter	CamRenderAfter
-0x8019FDF8	0x60	.text	game/TexRender.cpp	global	__static_initialization_and_destruction_0_8019FDF8	__static_initialization_and_destruction_0
+0x8019FDF8	0x60	.text	game/TexRender.cpp	local	__static_initialization_and_destruction_0_8019FDF8	__static_initialization_and_destruction_0
 0x8019FE58	0x2C	.text	game/TexRender.cpp	global	global_constructors_keyed_to_g_TexUse	global constructors keyed to g_TexUse
 0x8019FE84	0xE4	.text	game/texture.cpp	global	Init__7cTexSysPCcUl	cTexSys::Init
 0x8019FF68	0x7C	.text	game/texture.cpp	global	Clear__7cTexSys	cTexSys::Clear
@@ -6029,18 +6029,18 @@ address	size	section	unit	scope	name	demangled
 0x801A5194	0x8	.text	game/TmpBuf.cpp	global	GetDrawTmpBufType__Fv	GetDrawTmpBufType
 0x801A519C	0x60	.text	game/trans.cpp	global	org_LoadTexObj	org_LoadTexObj
 0x801A51FC	0x178	.text	game/trans.cpp	global	Trans	Trans
-0x801A5374	0x8C	.text	game/trans.cpp	global	lightSetEm	lightSetEm
+0x801A5374	0x8C	.text	game/trans.cpp	global	lightSetEm__FP6cModel	lightSetEm
 0x801A5400	0x68	.text	game/trans.cpp	global	lightSetObj	lightSetObj
 0x801A5468	0x70	.text	game/trans.cpp	global	emTrans	emTrans
 0x801A54D8	0x4C	.text	game/trans.cpp	global	objTrans	objTrans
 0x801A5524	0x670	.text	game/trans.cpp	global	ModelTrans	ModelTrans
-0x801A5B94	0x88	.text	game/trans.cpp	global	commonScreenMat	commonScreenMat
+0x801A5B94	0x88	.text	game/trans.cpp	global	commonScreenMat__FP6cModel	commonScreenMat
 0x801A5C1C	0x468	.text	game/trans.cpp	global	commonScreenMatSub	commonScreenMatSub
 0x801A6084	0xA8	.text	game/trans.cpp	global	calcWeightMat	calcWeightMat
 0x801A612C	0x1C8	.text	game/trans.cpp	global	MakeWeightPaletteExt	MakeWeightPaletteExt
 0x801A62F4	0x1F8	.text	game/trans.cpp	global	MakeWeightPalette	MakeWeightPalette
 0x801A64EC	0x328	.text	game/trans.cpp	global	Render	Render
-0x801A6814	0x1B8	.text	game/trans.cpp	global	ModelRender	ModelRender
+0x801A6814	0x1B8	.text	game/trans.cpp	global	ModelRender__FP6cModel	ModelRender
 0x801A69CC	0xA10	.text	game/trans.cpp	global	commonModelTrans	commonModelTrans
 0x801A73DC	0x9C	.text	game/trans.cpp	global	cTexChg_move	cTexChg::move
 0x801A7478	0x298	.text	game/trans.cpp	global	ThermoShaderSetup	ThermoShaderSetup
@@ -6514,7 +6514,7 @@ address	size	section	unit	scope	name	demangled
 0x801D2970	0x1C4	.text	game/ik.cpp	global	ikCalc	ikCalc
 0x801D2B34	0x114	.text	game/ik.cpp	local	heel2toe	heel2toe
 0x801D2C48	0xCAC	.text	game/ik.cpp	global	InverseKinematics	InverseKinematics
-0x801D38F4	0x48	.text	game/mirror.cpp	global	MirrorDraw2	MirrorDraw2
+0x801D38F4	0x48	.text	game/mirror.cpp	global	MirrorDraw2__FP6cModel	MirrorDraw2
 0x801D393C	0x4C8	.text	game/mirror.cpp	local	mirrorModelTrans2	mirrorModelTrans2
 0x801D3E04	0x70	.text	game/yz2asm.cpp	global	yz2Decode_Decode	yz2Decode_Decode
 0x801D3E74	0x24	.text	game/yz2asm.cpp	global	yz2Decode_loop	yz2Decode_loop
@@ -7482,8 +7482,8 @@ address	size	section	unit	scope	name	demangled
 0x8021FBD8	0x23C	.rodata	game/mes.cpp	global	lbl_8021FBD8	.
 0x8021FE14	0x26	.rodata	game/mes.cpp	local	arg.1157	arg.1157
 0x8021FE3A	0xCE	.rodata	game/mes.cpp	global	lbl_8021FE3A	.
-0x8021FF08	0x18	.rodata	game/mes.cpp	global	MessageControl_virtual_table	MessageControl virtual table
-0x8021FF20	0x18	.rodata	game/mes.cpp	global	Message_virtual_table	Message virtual table
+0x8021FF08	0x18	.rodata	game/mes.cpp	global	_vt.14MessageControl	MessageControl virtual table
+0x8021FF20	0x18	.rodata	game/mes.cpp	global	_vt.7Message	Message virtual table
 0x8021FF38	0x3B0	.rodata	game/obj13.cpp	global	lbl_8021FF38	.
 0x802202E8	0x40	.rodata	game/obj13.cpp	global	cObjLadder_virtual_table	cObjLadder virtual table
 0x80220328	0x28	.rodata	game/obj13.cpp	global	cUnit_virtual_table_80220328	cUnit virtual table
@@ -7506,8 +7506,8 @@ address	size	section	unit	scope	name	demangled
 0x80221060	0x40	.rodata	game/obj1c.cpp	global	_vt.6cObj1c	cObj1c virtual table
 0x802210A0	0x28	.rodata	game/obj1c.cpp	local	cUnit_virtual_table_802210A0	cUnit virtual table
 0x802210C8	0x168	.rodata	game/obj1d.cpp	global	lbl_802210C8	.
-0x80221230	0x40	.rodata	game/obj1d.cpp	global	cObjChain_virtual_table	cObjChain virtual table
-0x80221270	0x28	.rodata	game/obj1d.cpp	global	cUnit_virtual_table_80221270	cUnit virtual table
+0x80221230	0x40	.rodata	game/obj1d.cpp	global	_vt.9cObjChain	cObjChain virtual table
+0x80221270	0x28	.rodata	game/obj1d.cpp	local	cUnit_virtual_table_80221270	cUnit virtual table
 0x80221298	0x170	.rodata	game/obj20.cpp	global	lbl_80221298	.
 0x80221408	0x40	.rodata	game/obj20.cpp	global	_vt.12cObjObaModel	cObjObaModel virtual table
 0x80221448	0x28	.rodata	game/obj20.cpp	local	cUnit_virtual_table_80221448	cUnit virtual table
@@ -8475,8 +8475,8 @@ address	size	section	unit	scope	name	demangled
 0x8023EF68	0x40	.rodata	game/obj.cpp	global	cObj_virtual_table	cObj virtual table
 0x8023EFA8	0x28	.rodata	game/obj.cpp	global	cUnit_virtual_table_8023EFA8	cUnit virtual table
 0x8023EFD0	0x1B8	.rodata	game/obj00.cpp	global	lbl_8023EFD0	.
-0x8023F188	0x40	.rodata	game/obj00.cpp	global	cObj00_virtual_table	cObj00 virtual table
-0x8023F1C8	0x28	.rodata	game/obj00.cpp	global	cUnit_virtual_table_8023F1C8	cUnit virtual table
+0x8023F188	0x40	.rodata	game/obj00.cpp	global	_vt.6cObj00	cObj00 virtual table
+0x8023F1C8	0x28	.rodata	game/obj00.cpp	local	cUnit_virtual_table_8023F1C8	cUnit virtual table
 0x8023F1F0	0x1C8	.rodata	game/obj01.cpp	global	lbl_8023F1F0	.
 0x8023F3B8	0x40	.rodata	game/obj01.cpp	global	cObj01_virtual_table	cObj01 virtual table
 0x8023F3F8	0x28	.rodata	game/obj01.cpp	global	cUnit_virtual_table_8023F3F8	cUnit virtual table
@@ -10182,7 +10182,7 @@ address	size	section	unit	scope	name	demangled
 0x80267179	0x3	.data	game/pl_cloth.cpp	global	lbl_80267179	.
 0x8026717C	0x54	.data	game/pl_cloth.cpp	global	girlHairMax	girlHairMax
 0x802671D0	0x54	.data	game/pl_cloth.cpp	global	girlHairMaxEvt	girlHairMaxEvt
-0x80267224	0x54	.data	game/pl_cloth.cpp	local	girlHairWindS	girlHairWindS
+0x80267224	0x54	.data	game/pl_cloth.cpp	global	girlHairWindS	girlHairWindS
 0x80267278	0x54	.data	game/pl_cloth.cpp	global	girlHairWindR	girlHairWindR
 0x802672CC	0xB4	.data	game/pl_cloth.cpp	global	girlHairAt	girlHairAt
 0x80267380	0xFC	.data	game/pl_cloth.cpp	global	girlHairAtEvt	girlHairAtEvt
@@ -10194,34 +10194,34 @@ address	size	section	unit	scope	name	demangled
 0x802675FC	0xC0	.data	game/pl_cloth.cpp	global	girlSkirtMaxEvt	girlSkirtMaxEvt
 0x802676BC	0xC0	.data	game/pl_cloth.cpp	global	girlSkirtWindS	girlSkirtWindS
 0x8026777C	0xC0	.data	game/pl_cloth.cpp	global	girlSkirtWindR	girlSkirtWindR
-0x8026783C	0x18C	.data	game/pl_cloth.cpp	local	girlSkirtAt	girlSkirtAt
-0x802679C8	0x18C	.data	game/pl_cloth.cpp	local	girlSkirtAtEvt	girlSkirtAtEvt
+0x8026783C	0x18C	.data	game/pl_cloth.cpp	global	girlSkirtAt	girlSkirtAt
+0x802679C8	0x18C	.data	game/pl_cloth.cpp	global	girlSkirtAtEvt	girlSkirtAtEvt
 0x80267B54	0x20	.data	game/pl_cloth.cpp	global	girlSweaterMax	girlSweaterMax
-0x80267B74	0x20	.data	game/pl_cloth.cpp	local	girlSweaterWindS	girlSweaterWindS
+0x80267B74	0x20	.data	game/pl_cloth.cpp	global	girlSweaterWindS	girlSweaterWindS
 0x80267B94	0x20	.data	game/pl_cloth.cpp	global	girlSweaterWindR	girlSweaterWindR
-0x80267BB4	0xD8	.data	game/pl_cloth.cpp	local	girlSweaterAt	girlSweaterAt
+0x80267BB4	0xD8	.data	game/pl_cloth.cpp	global	girlSweaterAt	girlSweaterAt
 0x80267C8C	0xC	.data	game/pl_cloth.cpp	global	girlRibbonP	girlRibbonP
 0x80267C98	0xC	.data	game/pl_cloth.cpp	global	girlRibbonUp	girlRibbonUp
-0x80267CA4	0xC	.data	game/pl_cloth.cpp	local	girlRibbonDp	girlRibbonDp
+0x80267CA4	0xC	.data	game/pl_cloth.cpp	global	girlRibbonDp	girlRibbonDp
 0x80267CB0	0x30	.data	game/pl_cloth.cpp	global	girlRibbonMax	girlRibbonMax
-0x80267CE0	0x30	.data	game/pl_cloth.cpp	local	girlRibbonWindS	girlRibbonWindS
-0x80267D10	0x30	.data	game/pl_cloth.cpp	local	girlRibbonWindR	girlRibbonWindR
+0x80267CE0	0x30	.data	game/pl_cloth.cpp	global	girlRibbonWindS	girlRibbonWindS
+0x80267D10	0x30	.data	game/pl_cloth.cpp	global	girlRibbonWindR	girlRibbonWindR
 0x80267D40	0x120	.data	game/pl_cloth.cpp	global	girlRibbonAt	girlRibbonAt
 0x80267E60	0x1A	.data	game/pl_cloth.cpp	global	luisHairP	luisHairP
 0x80267E7A	0x2	.data	game/pl_cloth.cpp	global	lbl_80267E7A	.
-0x80267E7C	0x1A	.data	game/pl_cloth.cpp	local	luisHairUp	luisHairUp
+0x80267E7C	0x1A	.data	game/pl_cloth.cpp	global	luisHairUp	luisHairUp
 0x80267E96	0x2	.data	game/pl_cloth.cpp	global	lbl_80267E96	.
 0x80267E98	0x1A	.data	game/pl_cloth.cpp	global	luisHairDp	luisHairDp
 0x80267EB2	0x2	.data	game/pl_cloth.cpp	local	lbl_80267EB2	.
 0x80267EB4	0x68	.data	game/pl_cloth.cpp	global	luisHairMax	luisHairMax
 0x80267F1C	0x68	.data	game/pl_cloth.cpp	global	luisHairWindS	luisHairWindS
-0x80267F84	0x68	.data	game/pl_cloth.cpp	local	luisHairWindR	luisHairWindR
+0x80267F84	0x68	.data	game/pl_cloth.cpp	global	luisHairWindR	luisHairWindR
 0x80267FEC	0xFC	.data	game/pl_cloth.cpp	global	luisHairAt	luisHairAt
 0x802680E8	0x92	.data	game/pl_cloth.cpp	global	adaDressP	adaDressP
 0x8026817A	0x2	.data	game/pl_cloth.cpp	local	lbl_8026817A	.
 0x8026817C	0x92	.data	game/pl_cloth.cpp	global	adaDressUp	adaDressUp
 0x8026820E	0x2	.data	game/pl_cloth.cpp	global	lbl_8026820E	.
-0x80268210	0x92	.data	game/pl_cloth.cpp	local	adaDressDp	adaDressDp
+0x80268210	0x92	.data	game/pl_cloth.cpp	global	adaDressDp	adaDressDp
 0x802682A2	0x2	.data	game/pl_cloth.cpp	global	lbl_802682A2	.
 0x802682A4	0x92	.data	game/pl_cloth.cpp	global	adaDressLp	adaDressLp
 0x80268336	0x2	.data	game/pl_cloth.cpp	global	lbl_80268336	.
@@ -10230,15 +10230,15 @@ address	size	section	unit	scope	name	demangled
 0x802683CC	0x248	.data	game/pl_cloth.cpp	global	adaDressMax	adaDressMax
 0x80268614	0x248	.data	game/pl_cloth.cpp	global	adaDressWindS	adaDressWindS
 0x8026885C	0x248	.data	game/pl_cloth.cpp	global	adaDressWindR	adaDressWindR
-0x80268AA4	0x4EC	.data	game/pl_cloth.cpp	local	adaDressAt	adaDressAt
+0x80268AA4	0x4EC	.data	game/pl_cloth.cpp	global	adaDressAt	adaDressAt
 0x80268F90	0xE	.data	game/pl_cloth.cpp	global	adaHairP	adaHairP
 0x80268F9E	0x2	.data	game/pl_cloth.cpp	global	lbl_80268F9E	.
-0x80268FA0	0xE	.data	game/pl_cloth.cpp	local	adaHairUp	adaHairUp
+0x80268FA0	0xE	.data	game/pl_cloth.cpp	global	adaHairUp	adaHairUp
 0x80268FAE	0x2	.data	game/pl_cloth.cpp	global	lbl_80268FAE	.
-0x80268FB0	0xE	.data	game/pl_cloth.cpp	local	adaHairDp	adaHairDp
+0x80268FB0	0xE	.data	game/pl_cloth.cpp	global	adaHairDp	adaHairDp
 0x80268FBE	0x2	.data	game/pl_cloth.cpp	global	lbl_80268FBE	.
 0x80268FC0	0x38	.data	game/pl_cloth.cpp	global	adaHairMax	adaHairMax
-0x80268FF8	0x38	.data	game/pl_cloth.cpp	local	adaHairWindS	adaHairWindS
+0x80268FF8	0x38	.data	game/pl_cloth.cpp	global	adaHairWindS	adaHairWindS
 0x80269030	0x38	.data	game/pl_cloth.cpp	global	adaHairWindR	adaHairWindR
 0x80269068	0xD8	.data	game/pl_cloth.cpp	global	adaHairAt	adaHairAt
 0x80269140	0x16	.data	game/pl_cloth.cpp	global	adaRibbonP	adaRibbonP
@@ -10247,9 +10247,9 @@ address	size	section	unit	scope	name	demangled
 0x8026916E	0x2	.data	game/pl_cloth.cpp	local	lbl_8026916E	.
 0x80269170	0x16	.data	game/pl_cloth.cpp	global	adaRibbonDp	adaRibbonDp
 0x80269186	0x2	.data	game/pl_cloth.cpp	local	lbl_80269186	.
-0x80269188	0x58	.data	game/pl_cloth.cpp	local	adaRibbonMax	adaRibbonMax
-0x802691E0	0x58	.data	game/pl_cloth.cpp	local	adaRibbonWindS	adaRibbonWindS
-0x80269238	0x58	.data	game/pl_cloth.cpp	local	adaRibbonWindR	adaRibbonWindR
+0x80269188	0x58	.data	game/pl_cloth.cpp	global	adaRibbonMax	adaRibbonMax
+0x802691E0	0x58	.data	game/pl_cloth.cpp	global	adaRibbonWindS	adaRibbonWindS
+0x80269238	0x58	.data	game/pl_cloth.cpp	global	adaRibbonWindR	adaRibbonWindR
 0x80269290	0x168	.data	game/pl_cloth.cpp	global	adaRibbonAt	adaRibbonAt
 0x802693F8	0xC	.data	game/pl_wep.cpp	global	vecz.1341	vecz.1341
 0x80269404	0xC	.data	game/pl_wep.cpp	global	vecz.1345	vecz.1345
@@ -10801,7 +10801,7 @@ address	size	section	unit	scope	name	demangled
 0x802D9028	0xCC	.bss	game/cockpit.cpp	global	Cckpt	Cckpt
 0x802D90F4	0x34	.bss	game/ctrl.cpp	global	CtrlMgr	CtrlMgr
 0x802D9128	0x40	.bss	game/datactrl.cpp	global	tile.900	tile.900
-0x802D9168	0xAA4	.bss	game/datactrl.cpp	local	DC	DC
+0x802D9168	0xAA4	.bss	game/datactrl.cpp	global	DC	DC
 0x802D9C0C	0x20	.bss	game/db_cam.cpp	global	cameraBak.956	cameraBak.956
 0x802D9C2C	0xC	.bss	game/db_cam.cpp	global	target_bak.982	target_bak.982
 0x802D9C38	0x20	.bss	game/db_cam.cpp	global	CamDbg	CamDbg
@@ -10942,7 +10942,7 @@ address	size	section	unit	scope	name	demangled
 0x802EAA98	0x40	.bss	game/sce_com.cpp	local	ItemEventTbl	ItemEventTbl
 0x802EAAD8	0xF8	.bss	game/sce_com.cpp	local	SceCam	SceCam
 0x802EABD0	0x138	.bss	game/sce_sys.cpp	global	SceSys	SceSys
-0x802EAD08	0x3B10	.bss	game/scheduler.cpp	local	Task	Task
+0x802EAD08	0x3B10	.bss	game/scheduler.cpp	global	Task	Task
 0x802EE818	0xC	.bss	game/scheduler.cpp	local	Sema	Sema
 0x802EE824	0x4	.bss	game/scheduler.cpp	local	lbl_802EE824	.
 0x802EE828	0x2C	.bss	game/sofdec.cpp	local	info.819	info.819
@@ -11807,13 +11807,13 @@ address	size	section	unit	scope	name	demangled
 0x80314CDC	0x4	.sdata	game/pl_class.cpp	global	lbl_80314CDC	.
 0x80314CE0	0x2	.sdata	game/pl_cloth.cpp	global	leonHolsterP	leonHolsterP
 0x80314CE2	0x2	.sdata	game/pl_cloth.cpp	global	lbl_80314CE2	.
-0x80314CE4	0x2	.sdata	game/pl_cloth.cpp	local	leonHolsterLp	leonHolsterLp
+0x80314CE4	0x2	.sdata	game/pl_cloth.cpp	global	leonHolsterLp	leonHolsterLp
 0x80314CE6	0x2	.sdata	game/pl_cloth.cpp	global	lbl_80314CE6	.
-0x80314CE8	0x2	.sdata	game/pl_cloth.cpp	local	leonHolsterRp	leonHolsterRp
+0x80314CE8	0x2	.sdata	game/pl_cloth.cpp	global	leonHolsterRp	leonHolsterRp
 0x80314CEA	0x2	.sdata	game/pl_cloth.cpp	local	lbl_80314CEA	.
-0x80314CEC	0x2	.sdata	game/pl_cloth.cpp	local	leonHolsterUp	leonHolsterUp
+0x80314CEC	0x2	.sdata	game/pl_cloth.cpp	global	leonHolsterUp	leonHolsterUp
 0x80314CEE	0x2	.sdata	game/pl_cloth.cpp	global	lbl_80314CEE	.
-0x80314CF0	0x2	.sdata	game/pl_cloth.cpp	local	leonHolsterDp	leonHolsterDp
+0x80314CF0	0x2	.sdata	game/pl_cloth.cpp	global	leonHolsterDp	leonHolsterDp
 0x80314CF2	0x2	.sdata	game/pl_cloth.cpp	global	lbl_80314CF2	.
 0x80314CF4	0x8	.sdata	game/pl_cloth.cpp	global	leonHolsterMax	leonHolsterMax
 0x80314CFC	0x8	.sdata	game/pl_cloth.cpp	global	leonHolsterWindS	leonHolsterWindS
@@ -12540,7 +12540,7 @@ address	size	section	unit	scope	name	demangled
 0x80315B74	0x4	.sbss	game/sce_sys.cpp	local	pCSceTask	pCSceTask
 0x80315B78	0x4	.sbss	game/sce_sys.cpp	local	SceExecOt	SceExecOt
 0x80315B7C	0x4	.sbss	game/scheduler.cpp	global	pCTask	pCTask
-0x80315B80	0x4	.sbss	game/scheduler.cpp	local	pParentThread	pParentThread
+0x80315B80	0x4	.sbss	game/scheduler.cpp	global	pParentThread	pParentThread
 0x80315B84	0x4	.sbss	game/scroll.cpp	global	pSmd	pSmd
 0x80315B88	0x4	.sbss	game/scroll.cpp	global	pSmdComn	pSmdComn
 0x80315B8C	0x4	.sbss	game/scroll.cpp	local	pSmx	pSmx

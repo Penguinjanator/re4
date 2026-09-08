@@ -13,7 +13,10 @@ struct ArcFile {
     u32 ofs_1C;   // 0x1C  vibration pattern table (pl_dmg: VibSetData)
     u32 ofs_20;   // 0x20  obstacle model bin (obj20 SetObaModel)
     u32 ofs_24;   // 0x24  obstacle model tpl
-    u8 pad_28[0x6C - 0x28];
+    u32 ofs_28;   // 0x28  message tables (mes: MesData.ptr[0..2])
+    u8 pad_2C[0x54 - 0x2C];
+    u32 ofs_54;   // 0x54  message table type 3 (mes: MesData.ptr[3])
+    u8 pad_58[0x6C - 0x58];
     u32 ofs_6C;   // 0x6C  system message table (dvd: MesData.ptr[4])
     u32 ofs_70;   // 0x70  TV-mode message table (tv_mode)
     u8 pad_74[0x9C - 0x74];
@@ -38,7 +41,8 @@ struct GlobalWork {
     u8 x20;                // 0x20  (main_sub: 3/4/6 allow the blur filter)
     u8 pad_21[0x28 - 0x21];
     u16 next_room;         // 0x28  room id (stage << 8 | room) being entered (snd: room BGM / door tables)
-    u8 pad_2A[0x40 - 0x2A];
+    u8 pad_2A[0x3C - 0x2A];
+    void* pStageFont;      // 0x3C  stage/event font buffer (mes: MessageControl::stageInit)
     void* pRoomArc;        // 0x40  current room archive (GetDataExt(pG->pRoomArc, "STB", 0))
     u8 pad_44[4];
     struct ArcFile* pArc;       // 0x48  current archive: offsets to its sub-files (room_tex, tv_mode)
@@ -55,7 +59,8 @@ struct GlobalWork {
     Camera Cam;            // 0x74 .. 0x16C  (Cam.param at 0x118)
     u8 pad_16C[4];
     u32 flags_170;         // 0x170  stop flags (debug tools save/restore it)
-    u8 pad_174[0x4F24 - 0x174];
+    u8 pad_174[0x4F20 - 0x174];
+    void* pRoomMes;        // 0x4F20  room message table (mes: MesData.ptr[1])
     void* pCoreCamData;    // 0x4F24  core camera data ("B40x")
     void* pRoomCamData;    // 0x4F28  room camera data ("B40x")
     u8 pad_4F2C[0x4F3C - 0x4F2C];
@@ -91,7 +96,9 @@ struct GlobalWork {
     u8 pad_4FB2[6];
     u8 x4FB8;              // 0x4FB8
     u8 costume;            // 0x4FB9  player costume (pl_leon: 2 = no cloth simulation)
-    u8 pad_4FBA[0x500C - 0x4FBA];
+    u8 x4FBA;              // 0x4FBA
+    u8 costume2;           // 0x4FBB  Ashley costume (pl_cloth: 1 = ribbon + lapels instead of skirt + sweater)
+    u8 pad_4FBC[0x500C - 0x4FBC];
     u32 flags_500C;        // 0x500C
     u32 flags_5010;        // 0x5010
     u32 flags_5014;        // 0x5014

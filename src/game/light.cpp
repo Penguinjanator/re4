@@ -36,6 +36,9 @@ struct LightCtrlWork {
 
 static LightFog fogNew;
 
+// value unknown: the linker dropped the object, only the `_GLOBAL_.I.FarDistance__9cLightMgr` name survives
+const f32 cLightMgr::FarDistance = 100000.0f;
+
 cLightMgr::cLightMgr() : cManager<cLight>(sizeof(cLight), 0)
 {
     setName("cLightMgr");
@@ -185,6 +188,9 @@ cLight* cLightMgr::create(cLit* lit, int cutNo, int lightNo, int flag)
         }
         l = create(w);
         if (l == 0) {
+            if (0) {
+                log("cLightMgr::create() WORK ALLOC FAILED", 0);
+            }
             return 0;
         }
         l->be_flag = flag | 3;
@@ -217,6 +223,9 @@ cLight* cLightMgr::createBack(cLit* lit, int cutNo, int lightNo, int flag)
         }
         l = createBack(w);
         if (!VALID_PTR(l)) {
+            if (0) {
+                log("cLightMgr::createBack() WORK ALLOC FAILED", 0);
+            }
             return 0;
         }
         l->be_flag = flag | 3;
@@ -307,9 +316,8 @@ int cLightMgr::setElecPower2(u8 pathNo, u8 idx)
         CtrlMgr.destroy(c);
         return 0;
     }
-    w->pPath = path;
+    w->pPath = w->pPath2 = path;
     w->idx = idx;
-    w->pPath2 = path;
     return 1;
 }
 
@@ -466,7 +474,7 @@ void cLightMgr::setModel2(cModel* m)
         if ((l->be_flag & 3) != 3) {
             continue;
         }
-        if (m->lightInfo.x50 & l->xF) {
+        if (l->xF & m->lightInfo.x50) {
             hit = 1;
         } else if (!(m->lightInfo.x50 & 0x41) && l->isParent(m)) {
             hit = 1;
@@ -485,7 +493,7 @@ void cLightMgr::setModel2(cModel* m)
         if (m->id == 2 && (((cObj*) m)->x3D0 & 1) && (l->attr & 4)) {
             continue;
         }
-        if (i <= 31 && !(m->lightInfo.x54 & (1 << i)) && !(pG->flags_5010 & 0x01000000)) {
+        if (i <= 31 && !((1 << i) & m->lightInfo.x54) && !(pG->flags_5010 & 0x01000000)) {
             if (!(pG->flags_5010 & 0x04000000)) {
                 continue;
             }
@@ -594,7 +602,7 @@ int lightHitCheckSphere(cModel* m, cLight* l)
     cLightInfo* li = &m->lightInfo;
 
     li->getPos(m, &pos);
-    lpos = l->curPos;
+    l->getPos(&lpos);
     if (GetDistance3(&pos, &lpos) < li->size.x + l->x1C || l->x1C == 0.0f) {
         return 1;
     }
@@ -612,8 +620,8 @@ int lightHitCheckCylinder(cModel* m, cLight* l)
     f32 r;
 
     c = li->getPos(m, &pos);
+    l->getPos(&lpos);
     r = l->x1C;
-    lpos = l->curPos;
     if (r == 0.0f) {
         return 1;
     }
@@ -632,36 +640,21 @@ int lightHitCheckCylinder(cModel* m, cLight* l)
 int lightHitCheckBBox(cModel* m, cLight* l)
 {
     Vec p;
-    cLightInfo* li = &m->lightInfo;
-    f32 r = l->x1C;
+    Vec* size;
     f32 sx;
-    f32 sy;
     f32 sz;
+    f32 sy;
 
-    if (r == 0.0f) {
+    if (l->x1C == 0.0f) {
         return 1;
     }
     p = l->curPos;
-    PSMTXMultVec(li->mat, &p, &p);
-    sx = li->size.x * m->scale.x;
-    sz = li->size.z * m->scale.z;
-    sy = li->size.y * m->scale.y;
-    if (p.x - r > sx) {
-        return 0;
-    }
-    if (p.x + r < -sx) {
-        return 0;
-    }
-    if (p.z - r > sz) {
-        return 0;
-    }
-    if (p.z + r < -sz) {
-        return 0;
-    }
-    if (p.y - r > sy) {
-        return 0;
-    }
-    if (p.y + r < -sy) {
+    PSMTXMultVec(m->lightInfo.mat, &p, &p);
+    size = &m->lightInfo.size;
+    sx = size->x * m->scale.x;
+    sy = size->y * m->scale.y;
+    sz = size->z * m->scale.z;
+    if (p.x - l->x1C > sx || p.x + l->x1C < -sx || p.z - l->x1C > sz || p.z + l->x1C < -sz || p.y - l->x1C > sy || p.y + l->x1C < -sy) {
         return 0;
     }
     return 1;
@@ -691,11 +684,14 @@ int cLightMgr::update(int cut_no, int hokan)
         cut_no = 0;
     }
     deleteScr();
-    cut = pLit->getCut(pLit->getSafeCutNo(cut_no));
+    cut_no = pLit->getSafeCutNo(cut_no);
+    cut = pLit->getCut(cut_no);
     registCut(cut, hokan);
     if (pLit->nMaxLight >= nArray) {
+        int max;
         pLog->err(0, 0, "cLightMgr::update() nMaxLight Over %d/%d", pLit->nMaxLight, nArray);
-        pLit->nMaxLight = nArray - 1;
+        max = nArray - 1;
+        pLit->nMaxLight = max;
     }
     n = pLit->nMaxLight - cut->nLight;
     if (n < 10) {
@@ -719,8 +715,10 @@ int cLightMgr::setThermo()
     cut = getCutAddr(0, 11);
     registCut(cut, 0);
     if (pLit->nMaxLight >= nArray) {
+        int max;
         pLog->err(0, 0, "cLightMgr::update() nMaxLight Over %d/%d", pLit->nMaxLight, nArray);
-        pLit->nMaxLight = nArray - 1;
+        max = nArray - 1;
+        pLit->nMaxLight = max;
     }
     for (i = 0; i < pLit->nMaxLight - cut->nLight; i++) {
         l = cManager<cLight>::create();
@@ -880,8 +878,6 @@ int cLightMgr::countScr()
 
 int cLightMgr::setEnv(cLightEnv* cut, int hokan)
 {
-    cPenWind* wind = &cut->wind;
-
     fogNew = cut->fog;
     if (hokan < 0) {
         hokanCnt = cut->hokan;
@@ -903,7 +899,7 @@ int cLightMgr::setEnv(cLightEnv* cut, int hokan)
     setBlur();
     setMipmap(cut);
     setTune(cut);
-    wind->set();
+    cut->wind.set();
     if (cut->tevScale[0] > 2) {
         pLog->err(0, 0, "setEnv() TEV_SCALE ERROR %d", cut->tevScale[0]);
         return 0;
@@ -960,15 +956,19 @@ int cLightMgr::setMipmap(cLightEnv* cut)
     min_lod = cut->minLod;
     max_lod = cut->maxLod;
     switch (cut->aniso) {
-    case 0:
-    case 1:
-    case 2:
-        aniso = cut->aniso;
-        break;
     default:
         pLog->err(0, 0, "cLightMgr::setMipmap() INVALIED ANISO %d", cut->aniso);
         cut->aniso = 0;
         aniso = 0;
+        break;
+    case 0:
+        aniso = 0;
+        break;
+    case 1:
+        aniso = 1;
+        break;
+    case 2:
+        aniso = 2;
         break;
     }
     if (lod_bias < -5.0f) {
@@ -1029,6 +1029,8 @@ int cLightMgr::initPath(LightPathHeader* p)
 
 cLightPathData* cLightMgr::getPathPtr(u8 no)
 {
+    u32 ofs;
+
     if (!VALID_PTR(pPath)) {
         pLog->err(0, 0, "cLightMgr::getPathPtr() PATH NOT INITIALIZED.");
         return 0;
@@ -1037,10 +1039,11 @@ cLightPathData* cLightMgr::getPathPtr(u8 no)
         pLog->err(0, 0, "cLightMgr::getPathPtr() INVALID ID %d.", no);
         return 0;
     }
-    if (pPath->ofs[no] == 0) {
+    ofs = *(u32*) (no * 4 + (u32) pPath + 4);
+    if (ofs == 0) {
         return 0;
     }
-    return (cLightPathData*) ((u8*) pPath + pPath->ofs[no]);
+    return (cLightPathData*) ((u8*) pPath + ofs);
 }
 
 LightPathHeader* cLightMgr::getPathHeader()
@@ -1135,12 +1138,14 @@ int cLight::setParent(u8 type, u32 id)
 int cLight::setParent(cModel* m)
 {
     u32 i;
+    u32 n;
 
     if (!VALID_PTR(m)) {
         pLog->err(0, 0, "cLight::setParent() INVALID PTR %08x", m);
         return 0;
     }
-    for (i = 0; i < EmMgr.nArray; i++) {
+    n = EmMgr.nArray;
+    for (i = 0; i < n; i++) {
         if ((cModel*) ((u8*) EmMgr.pArray + EmMgr.size * i) == m) {
             setParent(1, (parentId & 0xFFFF0000) | m->id);
             return 1;
@@ -1152,7 +1157,8 @@ int cLight::setParent(cModel* m)
             return 1;
         }
     }
-    for (i = 0; i < ObjMgr.nArray; i++) {
+    n = ObjMgr.nArray;
+    for (i = 0; i < n; i++) {
         if ((cModel*) ((u8*) ObjMgr.pArray + ObjMgr.size * i) == m) {
             setParent(4, (parentId & 0xFFFF0000) | i);
             return 1;
@@ -1192,22 +1198,17 @@ cModel* cLight::calcParent()
 cModel* cLight::getCoord()
 {
     cModel* p = pParent;
+    int partsNo = parent.partsNo;
 
-    if (p == 0) {
-        return 0;
+    if (p != 0 && IS_ALIVE(p) && partsNo < p->nParts) {
+        return p->getPartsPtr(partsNo);
     }
-    if (!IS_ALIVE(p)) {
-        return 0;
-    }
-    if (parent.partsNo >= p->nParts) {
-        return 0;
-    }
-    return p->getPartsPtr(parent.partsNo);
+    return 0;
 }
 
 int cLight::isParent(cModel* m)
 {
-    return pParent == m;
+    return m == pParent;
 }
 
 int cLight::getPos2(Vec* src, Vec* dst)
@@ -1219,8 +1220,8 @@ int cLight::calcPos(Vec* src, Vec* dst)
 {
     cModel* p;
     cModel* c;
-    u16 partsNo;
-    u16 no;
+    int partsNo;
+    int no;
 
     if (!VALID_PTR(dst)) {
         pLog->err(0, 0, "cLight::getPos() INVALED PTR %08x", dst);
@@ -1228,7 +1229,7 @@ int cLight::calcPos(Vec* src, Vec* dst)
     }
     switch (parentType) {
     default:
-        pLog->err(0, 0, "cLight::calcPos() INVALID PARENT TYPE %d    NO:%d", parentType, parentId);
+        pLog->err(0, 0, "Lit:calcPos() %d-%d INVALID PARENT TYPE", parentType, parentId);
         setParent(0, 1);
     case 0:
         *dst = *src;
@@ -1265,8 +1266,8 @@ int cLight::calcPos(Vec* src, Vec* dst)
 int cLight::getNormal(Vec* src, Vec* dst)
 {
     cModel* p;
-    u16 partsNo;
-    u16 no;
+    int partsNo;
+    int no;
 
     if (!VALID_PTR(dst)) {
         pLog->err(0, 0, "cLight::getNormal() INVALED PTR %08x", dst);
@@ -1278,12 +1279,11 @@ int cLight::getNormal(Vec* src, Vec* dst)
     case 0:
         *dst = *src;
         break;
-    case 1:
-        partsNo = parentId >> 16;
-        p = EmMgr.getEmPtr((u8) parentId, 0);
-        if (VALID_PTR(p) && IS_ALIVE(p) && partsNo < p->nParts) {
-            PSMTXMultVecSR(p->getPartsPtr(partsNo)->mat, src, dst);
-        } else {
+    case 1: {
+        u32 pid = parentId;
+        partsNo = pid >> 16;
+        p = EmMgr.getEmPtr((u8) pid, 0);
+        if (!(VALID_PTR(p) && IS_ALIVE(p) && partsNo < p->nParts)) {
             if (!(parentType == 1 && parent.no == 3)) {
                 if (!(pG->flags_60 & 0x80000000)) {
                     pLog->err(0, 0, "cLight::getNormal() FAILED.");
@@ -1293,26 +1293,30 @@ int cLight::getNormal(Vec* src, Vec* dst)
             *dst = *src;
             return 0;
         }
+        PSMTXMultVecSR(p->getPartsPtr(partsNo)->mat, src, dst);
         break;
-    case 2:
-        no = parentId & 0xFFFF;
-        partsNo = parentId >> 16;
+    }
+    case 2: {
+        u32 pid = parentId;
+        no = pid & 0xFFFF;
+        partsNo = pid >> 16;
         p = SmdGetGroupObjPtr(no);
         if (!VALID_PTR(p)) {
             pLog->err(0, 0, "cLight::getNormal() SCROLL No Error %d", no);
             *dst = *src;
             return 0;
         }
-        if (!IS_ALIVE(p) || partsNo >= p->nParts) {
-            pLog->err(0, 0, "cLight::getNormal() FAILED.");
-            *dst = *src;
-            return 0;
+        if (IS_ALIVE(p) && partsNo < p->nParts) {
+            PSMTXMultVecSR(p->getPartsPtr(partsNo)->mat, src, dst);
+            if (dst->x == 0.0f && dst->y == 0.0f && dst->z == 0.0f) {
+                dst->x = 0.001f;
+            }
+            break;
         }
-        PSMTXMultVecSR(p->getPartsPtr(partsNo)->mat, src, dst);
-        if (dst->x == 0.0f && dst->y == 0.0f && dst->z == 0.0f) {
-            dst->x = 1.0f;
-        }
-        break;
+        pLog->err(0, 0, "cLight::getNormal() FAILED.");
+        *dst = *src;
+        return 0;
+    }
     case 3:
         partsNo = parentId >> 16;
         no = parentId & 0xFFFF;
@@ -1325,20 +1329,21 @@ int cLight::getNormal(Vec* src, Vec* dst)
             PSMTXMultVecSR(p->getPartsPtr(partsNo)->mat, src, dst);
         }
         break;
-    case 4:
-        no = parentId & 0xFFFF;
-        partsNo = parentId >> 16;
+    case 4: {
+        u32 pid = parentId;
+        no = pid & 0xFFFF;
+        partsNo = pid >> 16;
         p = ObjMgr.getWork(no);
-        if (VALID_PTR(p) && IS_ALIVE(p) && partsNo < p->nParts) {
-            PSMTXMultVecSR(p->getPartsPtr(partsNo)->mat, src, dst);
-        } else {
+        if (!(VALID_PTR(p) && IS_ALIVE(p) && partsNo < p->nParts)) {
             if (!(pG->flags_60 & 0x80000000)) {
                 pLog->err(0, 0, "cLight::getNormal() FAILED.");
             }
             *dst = *src;
             return 0;
         }
+        PSMTXMultVecSR(p->getPartsPtr(partsNo)->mat, src, dst);
         break;
+    }
     }
     return 1;
 }
@@ -1410,8 +1415,8 @@ void cLightMgr::endEvent()
 
 void cLightMgr::dbSetRoomLit(cLit* lit)
 {
-    x184 = lit;
     pLit = lit;
+    x184 = lit;
 }
 
 cLightEnv* cLit::getCut(u16 no)
@@ -1441,19 +1446,17 @@ int cLit::versionUp()
 
     if (version <= 0x20) {
         for (i = 0; i < nCut; i++) {
-            if (VALID_PTR(getCut(i))) {
-                cut = getCut(i);
-                cut->lodBias = 0.0f;
+            if (VALID_PTR(cut = getCut(i))) {
                 cut->minLod = 0;
                 cut->maxLod = 5;
                 cut->aniso = 0;
+                cut->lodBias = 0.0f;
             }
         }
     }
     if (version <= 0x22) {
         for (i = 0; i < nCut; i++) {
-            if (VALID_PTR(getCut(i))) {
-                cut = getCut(i);
+            if (VALID_PTR(cut = getCut(i))) {
                 for (j = 0; j < cut->nLight; j++) {
                     w = cut->getLightWork(j);
                     if (w->kind != 0) {
@@ -1467,18 +1470,16 @@ int cLit::versionUp()
     }
     if (version <= 0x23) {
         for (i = 0; i < nCut; i++) {
-            if (VALID_PTR(getCut(i))) {
-                cut = getCut(i);
+            if (VALID_PTR(cut = getCut(i))) {
                 changed = 1;
-                cut->xFC = cut->x0;
                 cut->x100 = cut->x0;
+                cut->xFC = cut->x0;
             }
         }
     }
     if (version <= 0x24) {
         for (i = 0; i < nCut; i++) {
-            if (VALID_PTR(getCut(i))) {
-                cut = getCut(i);
+            if (VALID_PTR(cut = getCut(i))) {
                 for (j = 0; j < cut->nLight; j++) {
                     w = cut->getLightWork(j);
                     if (w->type == 1) {
@@ -1491,19 +1492,16 @@ int cLit::versionUp()
     }
     if (version <= 0x25) {
         for (i = 0; i < nCut; i++) {
-            if (VALID_PTR(getCut(i))) {
-                cut = getCut(i);
-                cut->tevScale[0] = 2;
+            if (VALID_PTR(cut = getCut(i))) {
                 changed = 1;
                 cut->tevScale[1] = 2;
+                cut->tevScale[0] = 2;
             }
         }
     }
     if (version <= 0x26) {
         for (i = 0; i < nCut; i++) {
-            if (VALID_PTR(getCut(i))) {
-                cut = getCut(i);
-                cut->pad_31[2] = 0;
+            if (VALID_PTR(cut = getCut(i))) {
                 changed = 1;
                 cut->tuneOn = 0;
                 cut->tune[0].r = 0;
@@ -1523,19 +1521,17 @@ int cLit::versionUp()
     }
     if (version <= 0x27) {
         for (i = 0; i < nCut; i++) {
-            if (VALID_PTR(getCut(i))) {
-                cut = getCut(i);
-                cut->contrast[2] = 0;
+            if (VALID_PTR(cut = getCut(i))) {
                 changed = 1;
                 cut->contrast[0] = 0;
                 cut->contrast[1] = 0;
+                cut->contrast[2] = 0;
             }
         }
     }
     if (version <= 0x28) {
         for (i = 0; i < nCut; i++) {
-            if (VALID_PTR(getCut(i))) {
-                cut = getCut(i);
+            if (VALID_PTR(cut = getCut(i))) {
                 cut->hokan = 0;
                 changed = 1;
             }
@@ -1543,8 +1539,7 @@ int cLit::versionUp()
     }
     if (version <= 0x29) {
         for (i = 0; i < nCut; i++) {
-            if (VALID_PTR(getCut(i))) {
-                cut = getCut(i);
+            if (VALID_PTR(cut = getCut(i))) {
                 for (j = 0; j < cut->nLight; j++) {
                     w = cut->getLightWork(j);
                     if (w->xF & 1) {
@@ -1557,8 +1552,7 @@ int cLit::versionUp()
     }
     if (version <= 0x2A) {
         for (i = 0; i < nCut; i++) {
-            if (VALID_PTR(getCut(i))) {
-                cut = getCut(i);
+            if (VALID_PTR(cut = getCut(i))) {
                 for (j = 0; j < cut->nLight; j++) {
                     w = cut->getLightWork(j);
                     w->x2B = 3;
@@ -1568,11 +1562,10 @@ int cLit::versionUp()
     }
     if (version <= 0x2B) {
         for (i = 0; i < nCut; i++) {
-            if (VALID_PTR(getCut(i))) {
-                cut = getCut(i);
-                cut->wind.x2 = 0;
+            if (VALID_PTR(cut = getCut(i))) {
                 cut->wind.dir = 0;
                 cut->wind.power = 0;
+                cut->wind.x2 = 0;
             }
         }
     }
@@ -1586,8 +1579,7 @@ int cLit::versionUp()
     }
     version = 0x2C;
     for (i = 0; i < nCut; i++) {
-        if (VALID_PTR(getCut(i))) {
-            cut = getCut(i);
+        if (VALID_PTR(cut = getCut(i))) {
             if (cut->tevScale[0] > 2) {
                 cut->tevScale[0] = 2;
             }
@@ -1615,32 +1607,38 @@ u32 cLit::getMaxLight()
 }
 
 // Sub screen (inventory) in: keep only the first 10 works alive for the item lights.
-static u32 nArrayBak;
-static cLight* pAliveBak;
+u32 nArrayBak;
+cLight* pAliveBak;
+
+// Scalar (reference) accesses: a struct-member access through `this` and a global scalar are
+// assumed independent, and the scheduler would hoist the load above the store.
+static inline cLight* PGet(cLight*& p) { return p; }
+static inline void PSet(cLight*& d, cLight* v) { d = v; }
 
 void cLightMgr::inSscrn()
 {
     deleteScr();
     nArrayBak = nArray;
     nArray = 10;
-    pAliveBak = pAlive;
+    pAliveBak = PGet(pAlive);
     offKind(0x7F);
 }
 
-void cLightMgr::outSscrn(int mode)
+void cLightMgr::outSscrn(u32 mode)
 {
-    nArray = nArrayBak;
-    pAlive = pAliveBak;
+    BitSet(nArray, nArrayBak);
+    PSet(pAlive, pAliveBak);
     switch (mode) {
+    case 0:
+    default:
+        LightMgr.update(0, 0);
+        break;
     case 1:
         LightMgr.update(CamCtrl.area_no, 0);
         break;
     case 2:
         pG->flags_5010 |= 0x04000000;
         LightMgr.setThermo();
-        break;
-    default:
-        LightMgr.update(0, 0);
         break;
     }
     LightMgr.onKind(0x7F);

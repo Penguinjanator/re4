@@ -526,7 +526,7 @@ UNITS = [
     "game/foot_shadow.cpp",
     "game/ik.cpp",
     "game/mirror.cpp",
-    "game/yz2asm.cpp",
+    "game/yz2asm.s",
     "lib/dummy.c",
     "lib/e_pow.c",
     "lib/e_sqrt.c",
@@ -997,6 +997,7 @@ STRIP_UNUSED = {
     "game/filter09.cpp",
     "game/shape.cpp",
     "game/geometry.cpp",
+    "game/obj00.cpp",
 }
 
 # Capcom sound library (game/snd_*.cpp): C++ with extern "C" functions, compiled unoptimised
@@ -1049,4 +1050,14 @@ MATCHING.update({
     "game/obj14.cpp": True,
     "game/obj1c.cpp": True,
     "game/obj08.cpp": True,
+    "game/obj1d.cpp": True,
+})
+
+# media/utility units
+MATCHING.update({
+    "game/cDataSwap.cpp": True,
+    "game/cinesco.cpp": True,
+    "game/yz2asm.s": True,
+    "game/scheduler.cpp": True,
+    "game/libgpu.cpp": True,
 })

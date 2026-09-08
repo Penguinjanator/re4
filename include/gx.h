@@ -160,6 +160,7 @@ void GXSetTevAlphaOp(int stage, int op, int bias, int scale, u8 clamp, int out_r
 void GXSetTexCoordGen2(int dst_coord, int func, int src_param, u32 mtx, u8 normalize, u32 pt_texmtx);
 void GXSetAlphaUpdate(u8 update_enable);
 void GXSetCopyFilter(u8 aa, const u8 sample_pattern[12][2], u8 vf, const u8 vfilter[7]);
+void GXSetScissor(u32 left, u32 top, u32 wd, u32 ht);
 void GXSetTexCopySrc(u16 left, u16 top, u16 wd, u16 ht);
 void GXSetTexCopyDst(u16 wd, u16 ht, int fmt, u8 mipmap);
 void GXCopyTex(void* dest, u8 clear);

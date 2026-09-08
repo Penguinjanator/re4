@@ -37,6 +37,8 @@ void PSMTXMultVecSR(const Mtx m, const Vec* src, Vec* dst);
 void PSMTXTransApply(const Mtx src, Mtx dst, f32 xT, f32 yT, f32 zT);
 
 void C_MTXOrtho(Mtx44 m, f32 t, f32 b, f32 l, f32 r, f32 n, f32 f);
+void C_MTXPerspective(Mtx44 m, f32 fovY, f32 aspect, f32 n, f32 f);
+void C_MTXLookAt(Mtx m, const Vec* camPos, const Vec* camUp, const Vec* target);
 void PSMTX44MultVec(const Mtx44 m, const Vec* src, Vec* dst);
 void C_MTXLightPerspective(Mtx m, f32 fovY, f32 aspect, f32 scaleS, f32 scaleT, f32 transS, f32 transT);
 
@@ -51,6 +53,14 @@ void PSVECCrossProduct(const Vec* a, const Vec* b, Vec* axb);
 f32 PSVECSquareDistance(const Vec* a, const Vec* b);
 f32 PSVECDistance(const Vec* a, const Vec* b);
 void C_VECReflect(const Vec* src, const Vec* normal, Vec* dst);
+
+typedef struct {
+    f32 x, y, z, w;
+} Quaternion;
+
+void C_QUATMtx(Quaternion* r, const Mtx m);
+void C_QUATSlerp(const Quaternion* p, const Quaternion* q, Quaternion* r, f32 t);
+void PSMTXQuat(Mtx m, const Quaternion* q);
 
 #ifdef __cplusplus
 }

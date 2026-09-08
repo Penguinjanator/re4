@@ -38,6 +38,7 @@ struct PenCloth {
 extern "C" {
 void PenClothSet(cModel* m, PenCloth* c, f32 len);
 void PenClothMove3(cModel* m, PenCloth* c);
+void PenClothMove(cModel* m, PenCloth* c);
 // global wind: direction (radians), strength, x (cPenWind::set in light.cpp)
 void PenWindSet(f32 dir, f32 power, f32 x);
 }
