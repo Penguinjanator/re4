@@ -141,7 +141,7 @@ void debugCamera::move(Camera* cam, JOY* joy, int flag)
                 numEm = 0;
             }
             while (--i) {
-                e = EmMgr.getWork(numEm);
+                e = EmMgrWork(numEm);
                 if ((e->be_flag & 1) && e->id <= 0x3F) {
                     break;
                 }
@@ -152,10 +152,10 @@ void debugCamera::move(Camera* cam, JOY* joy, int flag)
             }
         }
         if (joy->on & JOY_A) {
-            if (EmMgr.getWork(numEm)->be_flag & 1) {
-                cModel* parts = EmMgr.getWork(numEm)->getPartsPtr(0);
+            if (EmMgrWork(numEm)->be_flag & 1) {
+                cModel* parts = EmMgrWork(numEm)->getPartsPtr(0);
                 if (parts == NULL) {
-                    cam->param.at = EmMgr.getWork(numEm)->pos;
+                    cam->param.at = EmMgrWork(numEm)->pos;
                 } else {
                     cam->param.at = parts->worldPos;
                 }
@@ -166,7 +166,7 @@ void debugCamera::move(Camera* cam, JOY* joy, int flag)
             }
             CameraSetOrientationZeroRoll(cam);
         }
-        em = EmMgr.getWork(numEm);
+        em = EmMgrWork(numEm);
         if (em != NULL) {
             if ((em->be_flag & 1) && em != (cEm*) pPL) {
                 int col = 0;

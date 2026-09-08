@@ -189,6 +189,11 @@ def main():
             dn = demangle_v2(name)
             member_placeholder = dn is not None and "::" in dn and \
                 old == re.sub(r"(?<=.)_{2,}", "_", re.sub(r"[<>,\s\*&\(\)\[\]]+", "_", dn.replace("::", "__").replace("~", "dt_")).rstrip("_"))
+            # `Class_virtual_table` (Bio4.sym "Class virtual table") is a placeholder as well: a vtable's
+            # linkage name is always `_vt.<len>Class` (emitem/emtorch: em.o imports the placeholder name)
+            if dn is not None and dn.endswith(" virtual table") and \
+                    old == re.sub(r"\W+", "_", dn).strip("_"):
+                member_placeholder = True
             if not re.search(r"_[0-9A-F]{8}$", old) and not old.startswith(("fn_", "lbl_")) and not member_placeholder:
                 users = imported_by(old)
                 if users:

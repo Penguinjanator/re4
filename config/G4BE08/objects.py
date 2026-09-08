@@ -933,6 +933,7 @@ MATCHING = {
     "game/esp4d.cpp": True,
     "game/esp4e.cpp": True,
     "game/espgen01.cpp": True,
+    "game/est.cpp": True,
     "game/esp4c.cpp": True,
     "game/esp4b.cpp": True,
     "game/esp4a.cpp": True,
@@ -1002,6 +1003,7 @@ MATCHING = {
 # statics kept): tools/strip_unused.py removes the bodies of functions not in sym_map.tsv.
 STRIP_UNUSED = {
     "game/light.cpp",
+    "game/camera.cpp",
     "game/atariInfo.cpp",
     "game/flr_at.cpp",
     "game/at_sub.cpp",
@@ -1023,6 +1025,8 @@ STRIP_UNUSED = {
     "game/ctrl01.cpp",
     "game/trans_ot.cpp",
     "game/em_cloth.cpp",
+    "game/objWep.cpp",
+    "game/cloth.cpp",
 }
 
 # Capcom sound library (game/snd_*.cpp): C++ with extern "C" functions, compiled unoptimised
@@ -1098,6 +1102,9 @@ MATCHING.update({
     "game/em_dm_val.cpp": True,
     "game/et00.cpp": True,
     "game/emhit.cpp": True,
+    "game/emtorch.cpp": True,
+    "game/emitem.cpp": True,
+    "game/em.cpp": True,
 })
 
 # area / message units
@@ -1109,6 +1116,7 @@ MATCHING.update({
 MATCHING.update({
     "game/cam_sys.cpp": True,
     "game/cam_motion.cpp": True,
+    "game/camera.cpp": True,
 })
 
 # control (ctrl*) units
@@ -1118,5 +1126,22 @@ MATCHING.update({
     "game/ctrl10.cpp": True,
     "game/ctrl11.cpp": True,
     "game/ctrl12.cpp": True,
+    "game/ctrl14.cpp": True,
     "game/ctrl.cpp": True,
+})
+
+# lighting transfer
+MATCHING.update({
+    "game/trans_lit.cpp": True,
+})
+
+# collision / model helper units (atari, cloth, ik, mirror, pendulum ...)
+MATCHING.update({
+    "game/mirror.cpp": True,
+    "game/cloth.cpp": True,
+})
+
+# system / UI units
+MATCHING.update({
+    "game/main.cpp": True,
 })

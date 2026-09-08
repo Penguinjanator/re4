@@ -77,7 +77,7 @@ void CameraGameInit()
     Vec at = {0.0f, 0.0f, 0.0f};
     Vec pos = {0.0f, 1000.0f, 2000.0f};
 
-    CameraSetWithRoll(&pG->Cam, &pos, &at, 50.0f, 1.0f);
+    CameraSetWithRoll(&pG->Cam, &pos, &at, 0.0f, 50.0f);
     CameraSetOrientationRoll(&pG->Cam);
     ProjType = 1;
     CameraRoomInit();
@@ -85,7 +85,7 @@ void CameraGameInit()
 
 void CameraRoomInit()
 {
-    CamDbg.gain = 0.0f;
+    CamDbg.gain = 1.0f;
 }
 
 void CameraMove()
@@ -172,16 +172,30 @@ void CameraGetLookVecInverse(Camera* cam, Vec* look)
     look->z = -cam->dir.z;
 }
 
+// Never called; dead-stripped from the DOL. Its constant pool (0.0f, the int->float magic
+// double, -1.0f) is still in .rodata right before CamPos2ScrnVec's.
+static f32 ScrnY2Ratio(int y)
+{
+    f32 r = 0.0f;
+
+    if (y != 0) {
+        r = (f32) y + -1.0f;
+    }
+    return r;
+}
+
 void CamPos2ScrnVec(Vec* out, f32 sx, f32 sy)
 {
     f32 ang = pG->Cam.param.fovy;
+    f32 h = 480.0f;  // first constant of the pool
 
     out->x = sx - Screen.width * 0.5f;
     out->y = -(sy - Screen.height * 0.5f);
-    ang = ang * 0.5f;
-    ang = ang * PI / 180.0f;
     out->x *= 640.0f / Screen.width;
-    out->y *= 480.0f / Screen.height;
+    ang = ang * 0.5f;
+    ang = ang * PI;
+    ang = ang / 180.0f;
+    out->y *= h / Screen.height;
     FSet(out->z, -(cosf(ang) * 240.0f / sinf(ang)));
     PSMTXMultVecSR(pG->Cam.mat, out, out);
 }

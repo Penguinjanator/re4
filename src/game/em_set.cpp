@@ -93,7 +93,7 @@ int checkListId(int no)
         return 1;
     }
     for (i = 0; i < EmMgr.nArray; i++) {
-        cEm* em = EmMgr.getWork(i);
+        cEm* em = EmMgrWork(i);
 
         if ((em->be_flag & 0x201) == 1 && em->emsetNo == (u8) no) {
             return 0;
@@ -228,7 +228,7 @@ cEm* GetEmPtrFromList(int no)
         return 0;
     }
     for (i = 0; i < EmMgr.nArray; i++) {
-        cEm* em = EmMgr.getWork(i);
+        cEm* em = EmMgrWork(i);
 
         if ((em->be_flag & 0x201) == 1 && em->emsetNo == (u8) no) {
             return em;

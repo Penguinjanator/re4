@@ -78,13 +78,28 @@ struct MotionParts {
     Vec pos;         // 0x174  pose before the blend motion was applied
     Vec rot;         // 0x180
     Vec scale;       // 0x18C
-    u32 x198;        // 0x198
+    union {
+        u32 x198;    // 0x198
+        f32 ikAng;   // 0x198  ik: previous twist angle of the effector (InverseKinematics)
+    };
     u16 hist[6][3];  // 0x19C  key history: rot, pos, scale; then the same for the flipped histories
     u32 flags;       // 0x1C0  bit0 / bit16: animated this frame, bit17: scale cancelled, bit24-25: skip blend, bit26: no cross frame, bit28: hokan pending, bit29: skip, bit31: hokan pending (blend)
+                     //        ik (game/ik.cpp): bit2: IK chain root, bit4: 4-joint chain, bit6/bit11: floor search range, bit7: no IK,
+                     //        bit8: heel-to-toe, bit9: no floor, bit10: reach limit, bit12: twist, bit13-15: IK plane axis
+};
+
+// Parts-side IK state (game/ik.cpp), between the bind matrix (0xF8) and MotionParts (0x174).
+struct IkParts {
+    Mtx bindMat;     // 0xF8  bind pose matrix (PARTS_BIND_MAT)
+    f32 len;         // 0x128 bone length to the child parts
+    Mtx mat;         // 0x12C orientation of the IK plane (SetOrientationZY transposed)
+    Vec axis;        // 0x15C bend axis in parts space
+    Vec dir;         // 0x168 bind pose direction from the effector to the root
 };
 
 #define MOTION(m) (&((cMotModel*)(m))->mot)
 #define MOTION_PARTS(p) ((MotionParts*)((u8*)(p) + 0x174))
+#define IK_PARTS(p) ((IkParts*)((u8*)(p) + 0xF8))
 #define PARTS_BIND_MAT(p) (*(Mtx*)((u8*)(p) + 0xF8))
 
 // HermiteInterpolation parameter block.

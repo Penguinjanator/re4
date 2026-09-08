@@ -331,6 +331,41 @@ struct YaguraWork {
     void* pMotionVib;     // 0x20  vibration motion set by setVib()
 };
 
+// Player weapon object work (game/objWep.cpp `cObjWep`, a cObj subclass; see pl_wep.h).
+struct ObjWepWork {
+    void* pMotNormal;     // 0x00 (0x328)  idle motion (pWepArc)
+    void* pMotEmpty;      // 0x04 (0x32C)  idle motion with an empty magazine
+    f32 lockRandPitch;    // 0x08 (0x330)  lock random: pitch range (pl_wep PlWepLockRand), degrees -> radians in setAbility
+    f32 lockRandYaw;      // 0x0C (0x334)
+    f32 lockRandPitchStep;  // 0x10 (0x338)
+    f32 lockRandYawStep;  // 0x14 (0x33C)
+    u8 pad_18[8];
+    cModel* parent;       // 0x20 (0x348)  model the weapon hangs on (parentSet)
+    u16 x24;              // 0x24 (0x34C)  (cObjLauncher::init: 0x35)
+    u8 mode;              // 0x26 (0x34E)  0 stay, 1 ready, 2 fire, 3 down, 4 reload, 5 drop (move dispatch)
+    u8 step;              // 0x27 (0x34F)  step inside the mode
+    u8 disp;              // 0x28 (0x350)  bit0 draw the laser this frame, bit1 drawn last frame, bits 2-4 setDisp types 0/1/2
+    u8 pad_29[3];
+    u32 seHandle;         // 0x2C (0x354)  SndCall handle stopped by resetMotion
+    Vec marker;           // 0x30 (0x358)  laser sight end / hit marker position (pl_wep getMarkerPos, PlWepHitCheck2)
+    class cEm* target;    // 0x3C (0x364)  enemy the laser points at (GetWepTargetPos)
+};
+
+// Rocket launcher work (game/objRocket.cpp `cObjLauncher` : cObjWep).
+struct LauncherWork {
+    ObjWepWork wep;       // 0x00 .. 0x40
+    u32 flags;            // 0x40 (0x368)  bit0: a rocket is in flight
+    Vec from;             // 0x44 (0x36C)  launch line (getMarkerPos)
+    Vec to;               // 0x50 (0x378)
+    class cObjRocket* rocket;  // 0x5C (0x384)  loaded rocket (loadRocket)
+};
+
+// Rocket work (game/objRocket.cpp `cObjRocket`).
+struct RocketWork {
+    Vec oldPos;           // 0x00 (0x328)  position before this frame's motion (hit line start)
+    int timer;            // 0x0C (0x334)  flight frames left (300)
+};
+
 // Sub-object at cObj+0x2B4 (0x74 bytes): the collision info followed by scroll bookkeeping.
 struct ObjSub2B4 {
     cAtariInfo atari;     // 0x00 .. 0x4C  (flags at 0x1A)
@@ -348,7 +383,10 @@ public:
     u32 x21C;             // 0x21C  bit30 (0x40000000): set by obj26MatCalc when following a parent
     u8 pad_220[0x290 - 0x220];
     f32 motFrame;         // 0x290  MotionWork::seqFrame (objGondola R0_Up waits for frame 4105)
-    u8 pad_294[0x2A8 - 0x294];
+    u16 motSeqMax;        // 0x294  MotionWork::seqMax (objRocket: the rocket burns out at seqFrame >= seqMax - 1)
+    u8 pad_296[2];
+    f32 motSpeedRate;     // 0x298  MotionWork::speedRate (objWep resetMotion: 1.0)
+    u8 pad_29C[0x2A8 - 0x29C];
     struct MotionWork* motBlend;  // 0x2A8  MotionWork::blend (objGondola setVib: the sub motion work)
     u8 pad_2AC[4];
     u32 x2B0;             // 0x2B0  (obj18: parts matrices are only recomputed while 0)
@@ -373,6 +411,9 @@ public:
         GatlingWork gatling;
         MissileWork missile;
         GondolaWork gondola;
+        ObjWepWork wep;
+        LauncherWork launcher;
+        RocketWork rocket;
     };
     u8 x3D0;              // 0x3D0
     u8 pad_3D1[3];

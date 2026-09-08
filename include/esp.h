@@ -81,7 +81,11 @@ struct EspGenWork {
     u8 xFE;            // 0xFE
     u8 pad_FF[0x100 - 0xFF];
     // 0x100..0x12C: sequence record tail (records of an EspSeqData are 0x12C bytes)
-    u8 pad_100[0x108 - 0x100];
+    u8 pad_100[0x104 - 0x100];
+    u8 x104;           // 0x104 (espgen02: path id)
+    u8 x105;           // 0x105 (espgen02: path number)
+    u8 x106;           // 0x106 (espgen02: path position offset)
+    u8 x107;           // 0x107 (espgen02: path position random range)
     u8 type;           // 0x108 0 = esp, 1 = espgen
     u8 genId;          // 0x109 generator id (0xFF = loop marker)
     u8 x10A;           // 0x10A
@@ -91,13 +95,16 @@ struct EspGenWork {
     s8 x10E;           // 0x10E
     u8 x10F;           // 0x10F
     s16 x110;          // 0x110
-    u8 pad_112[0x124 - 0x112];
+    u8 pad_112[0x118 - 0x112];
+    Vec x118;          // 0x118 (espgen02: scale - 1 in 10ths)
     u8 x124;           // 0x124
     u8 x125;           // 0x125
     u8 x126;           // 0x126
     u8 x127;           // 0x127
     u8 x128;           // 0x128
-    u8 pad_129[0x12C - 0x129];
+    u8 x129;           // 0x129 (espgen02: rotation x in 1/256 turns)
+    u8 x12A;           // 0x12A (espgen02: rotation y)
+    u8 x12B;           // 0x12B (espgen02: path orientation mode bits)
 };
 
 // Effect sequence data block: 0x30 byte header followed by 0x12C byte records.
@@ -105,7 +112,11 @@ struct EspSeqData {
     u16 num;           // 0x00 number of records
     u8 pad_2[6];
     u16 flags;         // 0x08
-    u8 pad_A[0x30 - 0xA];
+    u8 parts;          // 0x0A default parts number (EstSet with no = -1)
+    u8 pad_B;
+    Vec pos;           // 0x0C default position (EstSet with pos = NULL)
+    Vec rot;           // 0x18 default rotation in degrees (EstSet with rot = NULL)
+    u8 pad_24[0x30 - 0x24];
     EspGenWork rec[1]; // 0x30
 };
 
@@ -223,26 +234,54 @@ int Esp3f_Alloc(u32 size, u32 num, cEsp3f** out, EspInfo* info);
 Vec* Esp3f_GetVecPtr(cEsp3f* p, u32 no);
 
 // game/esp.cpp
+typedef cEsp* (*EspCreateFunc)();
+typedef void (*EspTransFunc)(cEsp*);
+extern EspCreateFunc EspCreateTbl[0xFF];
+extern EspTransFunc EspTransTbl[0xFF];
 void PushEsp(cEsp* esp);
 extern "C" {
+void EspFuncTblSet(int id, EspCreateFunc create, EspTransFunc trans);
 int PullEsp(cEsp** out, int id);
 cEsp* EspGetDmyPtr();
 void EspAddOtAfterRender(cEsp* esp, void (*func)(cEsp*));
+void EspArrayClear();
+// game/esp_app.cpp
+void EffSetId();
+void EspFreeSizeCheckAll();
+void EffCrearRoomSeFunc();
+void EffAreaUpdate();
+void EffEm2d_setTexRender(cModel* m);
+void EspDrawLaserLine2(Vec* from, Vec* to, u8 r, u8 g, u8 b, u8 a);
+void EspSetGatling(Vec pos, Vec dir);   // Vec by value (obj15)
+void setPlWaterOtType();
+// game/eff_sys.cpp
+void EffSetAreaState(int no, int on);
+// game/esp_efm.cpp
+void EfmDelete(int a, int b, int c);
+void EfmDeleteEvent();
+void EfmArrayClear();
+// game/esp_app.cpp
+int EffAreaCheckInRoom(Vec* pos);
 // game/esp01.cpp
 void EspStrip_draw_poly(cEsp* esp, int no, Vec* v, u8 texRepeat, int flag);
 // game/trans_ot.cpp: AddOtWorldPos & co. are declared in trans_ot.h (void* data / u16 kind).
 // game/esp_sub.cpp
 void EspCommonTrans(cEsp* esp);
+int EspEstSetSelect(int a, int b, int c, cEsp** out, int d);   // objWep drawPoint: (0, 0x50, 0, &esp, 1)
+// game/esp_app.cpp: laser sight line (objWep drawLaserSight), Vec by value
+void EspDrawLaserLine(Vec from, Vec to, f32 width);
 // game/eff_sys.cpp
 int EspGetAnmAddr(int no, EspAnmData** out);
 void EspTexSet(int anmNo, int ptn);
 void* EspGetPathAddr(int id, int no);
-struct EspSeqData* EspGetEstAddr(u8 owner, u8 id, int a);
+struct EspSeqData* EspGetEstAddr(int owner, int id, int a);
+void EspGenSetMoveLoop(int loop);
+void EspGenLoopMove();
 // game/path.cpp
 int PathHasWeight(void* path);
 f32 PathGetLength(void* path);
-int PathGetPos(void* path, u32* seg, Vec* out, f32 dist);
-int PathGetPosEm(void* path, cModel* model, u32* seg, Vec* out, f32 dist);
+int PathGetPos(void* path, f32 dist, u16* seg, Vec* out);  // f32 second: callee copies f1 right after r3
+int PathGetPosEm(void* path, f32 dist, cModel* model, u16* seg, Vec* out);
 int EspGetTplAddr(int no, void** out);
 // game/est.cpp. void: no caller reads r3 after the call, and with an `int` result the call's
 // set of r3 changes the haifa depend counts, moving `li r3,0` to the end of the arg setup
@@ -264,6 +303,8 @@ struct EffParentWorldPtr {
 extern "C" void EspCallSeType(int type, Vec* pos);
 void EffCallRoomSeFunc(int no, Vec* pos);
 int EffAreaCheckNo(Vec* pos, u8 areaNo);
+void EspFootCall(int type, int no, Vec* pos);
+int EspPlWaterCall(int type, Vec* pos);
 // game/Espgen42.cpp
 int GetWaterHeight(Vec* pos, f32* height);
 extern "C" void AddWaterPower(Vec* pos, f32 power);

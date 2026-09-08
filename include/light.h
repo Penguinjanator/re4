@@ -14,7 +14,16 @@ class cEm;
 // Spot block of a light (0x40 bytes, cLight+0x38 / cLightWork+0x2C). Only the direction is known.
 struct LightSpot {
     Vec normal;        // 0x00 direction
-    u8 pad_C[0x40 - 0xC];
+    union {
+        f32 cutoff;    // 0x0C  spot cutoff angle (GXInitLightSpot); custom: a0
+        u32 flags;     // 0x0C  parallel: bit0 = direction is in view space
+    };
+    f32 fade;          // 0x10  distance fade width (trans_lit); custom: a1
+    f32 a2;            // 0x14  custom attenuation
+    f32 k0;            // 0x18
+    f32 k1;            // 0x1C
+    f32 k2;            // 0x20
+    u8 pad_24[0x40 - 0x24];
 };
 
 // Per-type work block (0x80 bytes, cLight+0x78 / cLightWork+0x6C). The first word is a colour
@@ -93,7 +102,7 @@ public:
     u8 x138;           // 0x138
     u8 pad_139[3];
     GXColor curColor;  // 0x13C color actually applied
-    s16 x140;          // 0x140  index in the cut (-1 = none)
+    u16 x140;          // 0x140  index in the cut (0xFFFF = none; trans_lit compares it zero-extended)
     u8 pad_142[2];
     Vec curPos;        // 0x144  position actually applied (db_work draws a sphere of radius x1C here)
     cModel* pParent;   // 0x150
@@ -172,7 +181,10 @@ public:
 // Light cut: environment block (0x104 bytes) followed by nLight cLightWork entries. The
 // manager keeps a copy of the current one at cLightMgr+0x38 (returned by getEnvPtr).
 struct cLightEnv {
-    u32 x0;          // 0x00  (versionUp 0x23 copies it to xFC / x100)
+    union {
+        u32 x0;          // 0x00  (versionUp 0x23 copies it to xFC / x100)
+        GXColor amb;     // 0x00  model ambient (trans_lit LightSetModel / cloth / water)
+    };
     u32 nLight;      // 0x04
     union {
         LightFog fog;    // 0x08
@@ -206,8 +218,14 @@ struct cLightEnv {
     u8 aniso;        // 0xF4
     s8 contrast[3];  // 0xF5  Filter00SetContrast
     f32 lodBias;     // 0xF8
-    u32 xFC;         // 0xFC
-    u32 x100;        // 0x100
+    union {
+        u32 xFC;         // 0xFC
+        GXColor ambSub;  // 0xFC  ambient of models without lightInfo.x50 bits 3/4 (trans_lit)
+    };
+    union {
+        u32 x100;        // 0x100
+        GXColor ambEsp;  // 0x100  ambient of effects / lightInfo.x50 bit3 models (trans_lit)
+    };
 
     cLightWork* getLightWork(int no);
     u32 getSize();
@@ -287,6 +305,10 @@ public:
     cLightEnv* getEnvPtr();  // 0x8014EFCC: &this->env (at +0x38)
     void setModel2(cModel* m);
     void setCloth(cModel* m);
+    // Every caller (cloth, espgen42/43/45) passes a light count in r5 that the body never reads:
+    // the original declaration had a second parameter the definition lacks. Same trick as
+    // dvd.h ReadCheckInfo.
+    void setClothN(cModel* m, int n) asm("setCloth__9cLightMgrP6cModel");
     void setEsp(EspLightList* list, u8 mask);
     int update(int area_no, int camera_no);
     int setThermo();

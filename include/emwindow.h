@@ -9,6 +9,8 @@
 // call are declared here.
 class cEmWindow : public cEmObj {
 public:
+    virtual void move();   // key function: the vtable stays in this unit (cEmMgr::construct stores it)
+
     int ChkStatus();        // etc flag word of this window (GetEtcFlgPtr), 0 when none; bit0 = broken
     void SetBreakModel();
 };

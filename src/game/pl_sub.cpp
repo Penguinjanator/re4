@@ -712,7 +712,7 @@ void PlReloadBullet()
     case 0x13:
     case 0x16:
     case 0x17:
-        pPL->pWep->pObj->setMotion();
+        pPL->pWep->pObj->setMotion(pPL);
         break;
     }
 }

@@ -39,7 +39,7 @@ void cEsp41::move()
         } else if (w->type == 0) {
             cModel* target = pPL;
             if (pG->flags_64 & 0x00800000) {
-                target = EmMgr.getWork(0);
+                target = EmMgrWork(0);
                 if (!(target->be_flag & 1)) {
                     return;
                 }

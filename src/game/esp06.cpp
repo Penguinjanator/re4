@@ -8,7 +8,8 @@ struct Esp06Work {
     u8 pathNo;    // 0x00 (gen->xC9)
     u8 flags;     // 0x01 bit0: loop, bit1: stop at the end, bit2: stopped, bit7: has matrix (gen->xCA)
     u16 pathId;   // 0x02 (gen->xC8)
-    u32 seg;      // 0x04 current path segment
+    u16 seg;      // 0x04 current path segment (PathGetPos reads/writes a halfword)
+    u8 pad_6[2];
     void* path;   // 0x08
     f32 dist;     // 0x0C distance along the path
     Vec ofs;      // 0x10 base position
@@ -50,12 +51,12 @@ int Esp06GetPathPos(cEsp06* esp)
 
     if (PathHasWeight(w->path)) {
         if (esp->pModel != NULL) {
-            ret = PathGetPosEm(w->path, esp->pModel, &w->seg, &esp->pos, w->dist);
+            ret = PathGetPosEm(w->path, w->dist, esp->pModel, &w->seg, &esp->pos);
         } else {
-            ret = PathGetPos(w->path, &w->seg, &esp->pos, w->dist);
+            ret = PathGetPos(w->path, w->dist, &w->seg, &esp->pos);
         }
     } else {
-        ret = PathGetPos(w->path, &w->seg, &esp->pos, w->dist);
+        ret = PathGetPos(w->path, w->dist, &w->seg, &esp->pos);
     }
     return ret;
 }

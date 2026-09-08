@@ -803,6 +803,7 @@ void CameraQuasiFPS::hitCheck(Mtx m, QfpsOfs* ofs, CameraParam* out)
         up = wa;
         dd = wb;
         if (cameraHitCheck(&hitC, &nrm, &up, &dd)) {
+            l0 = wa;
             if (pG->debug_mode == 0xF) {
                 l0 = hitC;
             }

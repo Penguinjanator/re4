@@ -173,9 +173,9 @@ public:
     u8 x136;         // 0x136  TexRender: 2 while rendered to texture, 0 after
     u8 x137;         // 0x137  TexRender: 0x10
     u8 x138;         // 0x138  TexRender: 0x90
-    s8 x139;         // 0x139  mirror: -1
-    s8 x13A;         // 0x13A  mirror: -1
-    s8 x13B;         // 0x13B  mirror: -1
+    u8 x139;         // 0x139  mirror: 0xFF; trans_lit adds it to the ambient colour
+    u8 x13A;         // 0x13A  mirror: 0xFF; trans_lit adds it to the ambient colour
+    u8 x13B;         // 0x13B  mirror: 0xFF; trans_lit adds it to the ambient colour
     u8 pad_13C[0x150 - 0x13C];
     // 0x150..0x15C: pendulum parts treat these three words as a Vec (obj14 adds the hit impulse
     // to parts 1/2 here); the object itself keeps its alpha at 0x154.
@@ -200,6 +200,7 @@ public:
     void partsWorldCalc();
     void setPos(Vec* pos);
     void setAng(Vec* ang);
+    void updateOldPos();   // oldPos = pos for the model and its parts (emMove)
     void push();   // pl_sub PlChangeData
     void drawAllBoundingBox(cModelInfo* info);
     void debugSkeletonDisp();
@@ -207,6 +208,11 @@ public:
     // MotionSetCore(this, &motion (0x1D8), data, a, b, c, d) / MotionMove(this, 0)
     void motionSet(void* data, int a, int b, int c, int d);  // void: a following call then keeps its arg li`s ranked below the `this` copy (pl_knife down00)
     int motionMove();
+    int isTrans();  // be_flag bit1 (visible) and be_flag != 0 (objWep / objRocket)
+    // Hang parts 0 on `parent` at pos / rot (objRocket loadRocket); the 4-argument form
+    // selects parts `partsNo` of the parent (-1: the parent itself).
+    void setParent(cModel* parent, Vec* pos, Vec* rot);
+    void setParent(cModel* parent, int partsNo, Vec* pos, Vec* rot);
 };
 
 // Model info pool (game/model.cpp `ModInfoMgr`, 0x34 bytes): a cManager<cModelInfo>; the

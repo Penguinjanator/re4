@@ -319,7 +319,7 @@ u32 PlWepHitCheck2(cModel* plm, Vec* p0, Vec* p1, int type, u32 flag, f32 len)
     if (pl != 0 && !(flag & 1)) {
         if (pl->pWep->pObj != 0) {
             wepSetWaterShot(p0, p1, type);
-            pG->bell_pos = pl->pWep->pObj->x358;
+            pG->bell_pos = pl->pWep->pObj->wep.marker;
             if (type == 0xD || (type >= 0x12 && type <= 0x13)) {
                 pG->bell_stat = 1;
             } else {
@@ -482,7 +482,7 @@ int cPlWep::getMarkerPos(Vec* out)
     if ((pl->stat & 0xFFFFFF00) != 0x00060100 || pl->xFF == 0) {
         return 0;
     }
-    *out = pObj->x358;
+    *out = pObj->wep.marker;
     return 1;
 }
 
@@ -950,10 +950,10 @@ void PlWepLockRand(cModel* plm, int flag, f32* pitch, f32* yaw)
     f32 sY;
 
     *pitch *= PI / 2.0f;
-    rP = wep->pObj->x330;
-    rY = wep->pObj->x334;
-    sP = wep->pObj->x338;
-    sY = wep->pObj->x33C;
+    rP = wep->pObj->wep.lockRandPitch;
+    rY = wep->pObj->wep.lockRandYaw;
+    sP = wep->pObj->wep.lockRandPitchStep;
+    sY = wep->pObj->wep.lockRandYawStep;
     if (flag & 1) {
         wep->pitch = *pitch;
         wep->x2C = *yaw;

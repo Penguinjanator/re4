@@ -20,6 +20,13 @@ static inline void ISet(int& d, int v)
     d = v;
 }
 
+// Table `type`. As an inline accessor the constant index stays `addi 0x88` after the symbol load
+// instead of folding into `g_OtWork+0x88`.
+static inline OtWork* otWork(int type)
+{
+    return &g_OtWork[type];
+}
+
 // Depth of `pos` along the camera look vector.
 static inline f32 OtDepth(Camera* cam, Vec* pos, Vec* look, Vec* d)
 {
@@ -96,8 +103,9 @@ OtData* MakeOtData(void* data)
 int AddOtWorldPos(void* data, void (*func)(void*), Vec* pos, u16 kind, f32 zlimit)
 {
     Camera* cam = &pG->Cam;
-    OtWork* w = &g_OtWork[17];
+    OtWork* w = otWork(17);
     OtData* p;
+    OtData* q;
     Vec look;
     Vec d;
     int idx;
@@ -111,17 +119,25 @@ int AddOtWorldPos(void* data, void (*func)(void*), Vec* pos, u16 kind, f32 zlimi
     }
     idx = 0xFFFF;
     z = 0.0f;
-    if (zlimit == 0.0f || (z = OtDepth(cam, pos, &look, &d)) >= zlimit) {
+    if (zlimit != 0.0f) {
+        CameraGetLookVecInverse(cam, &look);
+        d.x = pos->x - cam->param.pos.x;
+        d.y = pos->y - cam->param.pos.y;
+        d.z = pos->z - cam->param.pos.z;
+        z = PSVECDotProduct(&look, &d);
+    }
+    if (z >= zlimit) {
         no = (u16) (z * OT_MUL);
         if (no >= w->max) {
             no = w->max - 1;
         }
+        q = &w->list[no];
         idx = no;
         p->data = data;
         p->func = func;
         p->kind = kind;
-        p->next = w->list[idx].next;
-        w->list[idx].next = p;
+        p->next = q->next;
+        q->next = p;
     }
     return idx;
 }

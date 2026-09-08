@@ -71,8 +71,8 @@ public:
     void destroyNow(T* p);   // objRocket.cpp instantiates it (pl_wep weaponRelease)
     T* getPrevWork(T* p);
     int dieCheck();
-    void* arrayAlloc(u32 n);
-    void arrayFree();
+    int arrayAlloc(u32 n);   // memFree + memAlloc(size * n) + memClear; the definitions are in em.cpp (only cEmMgr instantiates them)
+    int arrayFree();         // 1 when there was an array
     void dispWorkNum(int x, int y);
 
     int deleteList(T* p) {

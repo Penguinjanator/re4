@@ -394,8 +394,8 @@ void knife_r3_down00(cPlayer* pl)
 
         int on = 1;
 
-        obj->x34E = on;
-        obj->x34F = 0;
+        obj->wep.mode = on;
+        obj->wep.step = 0;
         mot0 = pl->pMotTbl[0x57];
         mot1 = pl->pMotTbl[0x58];
         pl->x3E0 = on;

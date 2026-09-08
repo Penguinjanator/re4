@@ -53,9 +53,12 @@ public:
 extern cSatMgr SatMgr;
 
 // Effect collision manager (game/atari.cpp `EatMgr`, 0x260 bytes; has its own vtable).
+class AtEffInfo;
 class cEatMgr : public cSatMgr {
 public:
     u8 pad_38[0x260 - 0x38];
+
+    AtEffInfo* getEffInfo(int type);  // game/atari.cpp
 };
 
 extern cEatMgr EatMgr;

@@ -16,6 +16,10 @@ public:
     void dump(int id);          // 0x8001E970: drop item `id`
     int get(int id, int num);
     void debugWeapon(int id);
+    // equipped weapon (this->xC), objWep: reloadable(x, 0) / reload(x, 0) / trigger(x)
+    int reloadable();           // 0x8001F470
+    int reload();               // 0x8001F5B4
+    int trigger();              // 0x8001F7E8
 };
 
 extern cItemMgr ItemMgr;

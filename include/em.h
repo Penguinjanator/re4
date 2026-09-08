@@ -5,6 +5,7 @@
 #include "cManager.h"
 #include "model.h"
 #include "atariInfo.h"
+#include "main_mem.h"
 
 // Character work (game/em.cpp), sizeof 0xDE0. The player classes derive from it, so the
 // player-only fields the pl_* units touch live here too (they all sit below 0xDE0).
@@ -20,21 +21,31 @@ struct EmHitInfo {
     f32 rad;              // 0x28
 };
 
-// Damage info at cEm+0x324 (game/em.cpp). set(0, 10, kind, pos, rad, part) registers a hit.
+// Damage info at cEm+0x324 (game/em.cpp), 0x18 bytes. set(0, 10, kind, pos, rad, part) registers a hit.
 class cDmgInfo {
 public:
     union {
         u32 flags;        // 0x00
         struct {
             u8 stat;      // 0x00  bit0: a hit is registered, bit5 (pl_wep)
-            u8 x1;        // 0x01
+            u8 x1;        // 0x01  frames the hit stays registered (move: bit7 = hold, low bits count down)
             u16 x2;
         };
+        struct {
+            u8 pad_0[2];
+            u8 kind;      // 0x02  set() kind
+            u8 x3;
+        };
     };
+    Vec pos;              // 0x04  hit position
+    f32 rad;              // 0x10
+    EmHitInfo* part;      // 0x14  hit part
 
+    cDmgInfo();
     void set(int a, int b, u8 kind, Vec* pos, f32 rad, EmHitInfo* part);
     void set(int a, int b);   // stores the two bytes at 0/1 (pl_sub: set(0, 10), set(0, 0x80))
     void clear();
+    void move();              // counts x1 down; clears stat when it reaches 0
 };
 
 // Room water effect table registered at cEm::pRoomEff (pl_sub PlRegistRoomEff): 3 entries of
@@ -45,42 +56,75 @@ struct PlRoomEff {
     u8 type;
 };
 
+// Light area block (game/light_area.cpp) at cEm+0x30C: scales one light's colour on the model.
+struct EmLightArea {
+    u32 x0;          // 0x00
+    u32 flags;       // 0x04  bit0 active, bit1 scale valid
+    s32 lightNo;     // 0x08  cLight::x140 of the light to scale
+    f32 scale;       // 0x0C
+
+    int chk(u32 bit)
+    {
+        if (flags & bit) {
+            return 1;
+        }
+        return 0;
+    }
+};
+
 class cEm : public cModel {
 public:
     void* pMotion;        // 0x1D8  motion work head: current motion data, NULL = stopped (pl_push stopTarget)
     u8 pad_1DC[0x21A - 0x1DC];
     u16 motState;         // 0x21A  MotionWork::state (emobj EmObjMove clears it when no motion plays)
     u32 motFlags2;        // 0x21C  MotionWork::flags2 (emhit: bit30 = no matrix update before MotionMove)
-    u8 pad_220[0x290 - 0x220];
+    u8 pad_220[0x28A - 0x220];
+    u8 seNo;              // 0x28A  sound number + 1 to play at parts 0 this frame (emMove SndCall(8, ...)), 0 = none
+    u8 pad_28B[0x290 - 0x28B];
     f32 frame;            // 0x290  motion frame (db_cam prints it as an int)
     u16 frameMax;         // 0x294
     u8 pad_296[0x2A4 - 0x296];
     struct EmWork2A4* p2A4;  // 0x2A4  0x1FE-byte work (player.cpp mem_alloc; cam_ctrl reads its byte 5)
     u8 pad_2A8[0x2B4 - 0x2A8];
-    cAtariInfo atari;     // 0x2B4 .. 0x300  collision info (rect size at 0x2C0/0x2C4)
-    u8 pad_300[8];
-    void* pFootShadowTbl; // 0x308  player: foot shadow table (pl_leon: pl_fs_tbl)
-    u8 pad_30C[0x320 - 0x30C];
-    s16 hp;               // 0x320
-    s16 hpMax;            // 0x322
+    // 0x2B4 .. 0x300  collision info (rect size at 0x2C0/0x2C4); wrapped so that cEm::cEm does not
+    // run cAtariInfo's constructor (the original constructs only the cDmgInfo)
     union {
-        u32 flags_324;    // 0x324  (db_cam: upper 16 bits set = dead)
         struct {
-            u8 x324;      // 0x324  (pl_dmg: cleared when the damage motion ends)
-            u8 x325;      // 0x325  (pl_dmg: 5 at the end, bit7 while the damage motion plays)
-            u16 x326;
-        } st;
-        cDmgInfo dmg;     // 0x324  (obj08: dmg.set on a hit target)
-        struct {
-            u8 dmHit;     // 0x324  damage registered this frame (emhit emHitDmCk consumes it)
-            u8 dmType;    // 0x325  emhit: 1, 0x11 for weapon 0x10
-            u8 dmWep;     // 0x326  weapon id of the damage (cEmHit::ckDmgWeapon)
-            u8 dm327;
+            cAtariInfo atari;
         };
     };
-    Vec x328;             // 0x328  (obj14: damage position when EmGetDmPos has none)
-    f32 dmRad;            // 0x334  cDmgInfo::set rad
-    EmHitInfo* dmPart;    // 0x338  cDmgInfo::set part (emswitch: its rad decides the blood type)
+    u8 pad_300[8];
+    void* pFootShadowTbl; // 0x308  player: foot shadow table (pl_leon: pl_fs_tbl)
+    EmLightArea litArea;  // 0x30C  light_area: per-light colour scale (trans_lit lightSetColor)
+    u8 pad_31C[0x320 - 0x31C];
+    s16 hp;               // 0x320
+    s16 hpMax;            // 0x322
+    // 0x324 .. 0x33C: the cDmgInfo (em.cpp constructs it explicitly; a class with a constructor
+    // cannot sit in a union directly) and the same bytes under the names the other units use.
+    union {
+        struct {
+            cDmgInfo dmg; // 0x324  (obj08: dmg.set on a hit target)
+        };
+        struct {
+            union {
+                u32 flags_324;    // 0x324  (db_cam: upper 16 bits set = dead)
+                struct {
+                    u8 x324;      // 0x324  (pl_dmg: cleared when the damage motion ends)
+                    u8 x325;      // 0x325  (pl_dmg: 5 at the end, bit7 while the damage motion plays)
+                    u16 x326;
+                } st;
+                struct {
+                    u8 dmHit;     // 0x324  damage registered this frame (emhit emHitDmCk consumes it)
+                    u8 dmType;    // 0x325  emhit: 1, 0x11 for weapon 0x10
+                    u8 dmWep;     // 0x326  weapon id of the damage (cEmHit::ckDmgWeapon)
+                    u8 dm327;
+                };
+            };
+            Vec x328;             // 0x328  (obj14: damage position when EmGetDmPos has none)
+            f32 dmRad;            // 0x334  cDmgInfo::set rad
+            EmHitInfo* dmPart;    // 0x338  cDmgInfo::set part (emswitch: its rad decides the blood type)
+        };
+    };
     EmHitInfo hitInfo;    // 0x33C .. 0x368  (obj08: the player's hit part for the damage effect)
     u8 pad_368[0x370 - 0x368];
     f32 plDist2;          // 0x370  squared distance to the player (db_work prints its sqrt)
@@ -94,11 +138,18 @@ public:
     u8 emsetNo;           // 0x398
     u8 pad_399[0x3B8 - 0x399];
     int dmgType;          // 0x3B8  (pl_sub SetPlDamage/SetSubDamage first argument)
-    u8 pad_3BC[0x3C8 - 0x3BC];
+    u8 pad_3BC[8];
+    u32 status;           // 0x3C4  setStatus / clearStatus / checkStatus bits (bit0 = in battle, bit1, bit11)
     u32 flags_3C8;        // 0x3C8  (db_cam "Flag=")
     f32 x3CC;             // 0x3CC  (em_set: list entry s16 x1A * 1000)
     u8 x3D0;              // 0x3D0  (em_set: list entry byte 0xB)
-    u8 pad_3D1[0x3E0 - 0x3D1];
+    u8 itemFlag;          // 0x3D1  setItem 5th argument (setNoItem: 0)
+    u8 pad_3D2[4];
+    u16 itemNo;           // 0x3D6  setItem a (setNoItem: 0xFFFF)
+    u16 itemNum;          // 0x3D8  setItem b
+    u16 item3DA;          // 0x3DA  setItem c
+    u16 item3DC;          // 0x3DC  setItem d
+    u8 pad_3DE[2];
     u32 x3E0;             // 0x3E0  player: event walk flag / damage timer
     int x3E4;             // 0x3E4  player damage: 1 = turning towards x400
     u32 x3E8;             // 0x3E8  player damage (blow): water splash done
@@ -161,42 +212,61 @@ public:
     virtual void setItem(u16 a, u16 b, u16 c, u16 d, u8 e);  // 0x3D6.. item drop (0x3D1 flag)
     virtual void setNoItem();
     virtual int checkThrow();
-    void setStatus(int bit);     // flags_3C4 |= 1 << bit
+    void setStatus(int bit);     // status |= 1 << bit
     void clearStatus(int bit);
     int checkStatus(int stat);
+    int initWork();              // be_flag = 0x21, x12E = 0 (the constructor)
 };
 
+// Enemy manager (game/em.cpp). The construct id selects the class: 0 player, 1..0xE / others a
+// read-table enemy (EmInitFunc), 0x40.. the object enemies (cEmObj, cEmDoor, ...), 0xFF a plain cEm.
 class cEmMgr : public cManager<cEm> {
 public:
-    u32 x34;
+    u32 x34;              // 0x34  next cModel::serial (construct)
+
+    static const char* idName[96];   // debug names per construct id
 
     cEmMgr();
-    virtual ~cEmMgr();
-    virtual void* memAlloc(u32 size);
-    virtual void memFree(void* p);
-    virtual void memClear(cEm* p, u32 size);
+    // no user destructor: the synthesized one (and cManager<cEm>'s) land after the other inlines
+    virtual void* memAlloc(u32 size) { return MemAlloc(size, 1); }
+    virtual void memFree(void* p) { MemFree(p); }
+    virtual void memClear(cEm* p, u32 size) { memclr_asm(p, size); }
     virtual void log(const char* fmt, ...);
     virtual void destroy(cEm* p);   // em.cpp overrides the cManager one (pl_sub SubCharCtrl / PlDataRelease)
     virtual int construct(cEm* p, u32 id);
 
+    int arrayAlloc(u32 n);        // cManager<cEm>::arrayAlloc + pPL = pSUB = 0; returns 1
+    void move();                  // dieCheck, RouteCk, emMove for every alive work (or only pSUB when stopped)
     // first alive enemy with model id `id`, searching from `start->next` (or the list head)
     cEm* getEmPtr(int id, cEm* start);
-    int isBattle();
-
-    cEm* getWork(u32 no) {
-        if (no >= nArray) {
-            return 0;
-        }
-        return (cEm*)((u8*)pArray + size * no);
-    }
+    int isBattle();               // 1 when any alive enemy has status bit0
+    void destroyAll();            // killEm on every alive work (id != 0)
 };
 
 extern cEmMgr EmMgr;
 
+// Work `no` of the enemy manager, NULL when out of range. A free function: a cEmMgr member (even an
+// out-of-class inline) is emitted out of line into em.cpp, which owns the vtable (ctrl.h CtrlMgrWork).
+static inline cEm* EmMgrWork(u32 no)
+{
+    if (no >= EmMgr.nArray) {
+        return 0;
+    }
+    return (cEm*)((u8*)EmMgr.pArray + EmMgr.size * no);
+}
+
 // Pushable rack/crate enemy (game/emrack.cpp); only what pl_push calls.
 class cEmRack : public cEm {
 public:
+    virtual void move();   // key function: keeps the vtable in emrack.o (cEmMgr::construct stores it)
+
     int adjustRange(u8 dir);
 };
+
+extern "C" {
+void emMove(cEm* em);        // per-frame update of one alive work: distance to the player, damage info, move()
+void battleCheck(cEm* em);
+void killEm(cEm* em);
+}
 
 #endif

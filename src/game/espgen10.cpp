@@ -11,24 +11,6 @@ void espgen10_Move00(EspgenWork* w);
 void espgen10_Move01(EspgenWork* w);
 }
 
-// Effect controller 10: plays an effect sequence (EspSeqData) record by record.
-struct Espgen10Work {
-    EspSeqData* head;  // 0x14
-    cModel* model;     // 0x18
-    u32 serial;        // 0x1C model serial the controller was set up with
-    u16 cnt;           // 0x20 frame counter
-    u8 no;             // 0x22 next record
-    u8 flags;          // 0x23 bit0: parts matrix fixed, bit1: pass the rotation on
-    u16 parts;         // 0x24 parts number (0xFE: free position, 0xFF: none)
-    u8 pad_26[2];
-    u32 seed;          // 0x28
-    Mtx mtx;           // 0x2C
-    Vec pos;           // 0x5C
-    Vec rot;           // 0x68
-    u8 pad_74[0x90 - 0x74];
-    EspSeqOpt* p8;          // 0x90
-};
-
 int EspgenDataSet(EspSeqData* head, int no, EspInfo* info, u32* seed, cModel* model, u16 parts, Mtx* mtx, Vec* pos,
                   Vec* rot, EspSeqOpt* p8, int flag)
 {
@@ -51,26 +33,24 @@ int EspgenDataSet(EspSeqData* head, int no, EspInfo* info, u32* seed, cModel* mo
         if (flag == 0) {
             pos = NULL;
         }
-        if (EspSeqSet(rec, info, seed, model, mtx, 0, &esp, p8, pos, 0.0f)) {
-            goto ok;
+        if (EspSeqSet(rec, info, seed, model, mtx, 0, &esp, p8, pos, 0.0f) == 0) {
+            ret = 0;
         }
         break;
     }
     case 1:
-        if (EspgenSeqSet(head, no, info, model, parts, mtx, pos, rot, p8, flag)) {
-            goto ok;
+        if (EspgenSeqSet(head, no, info, model, parts, mtx, pos, rot, p8, flag) == 0) {
+            ret = 0;
         }
         break;
     default:
         pLog->err(0, 0, "ESP_CTRL : KIND[%d] is invalid.", rec->type);
+        ret = 0;
         break;
     }
-    ret = 0;
-ok:
     return ret;
 }
-
-void SetEspCore(EspgenWork* w, u16 a, u32 b, u8 c, u32 d, u8 e)
+void SetEspCore(EspgenWork* w, int a, u32 b, u8 c, u32 d, int e)
 {
     w->info.x0 = a;
     w->info.x2 = c;
@@ -79,7 +59,7 @@ void SetEspCore(EspgenWork* w, u16 a, u32 b, u8 c, u32 d, u8 e)
     w->info.x3 = e;
 }
 
-int PullEspEspgen(EspgenWork** out, u16 a, int c, u32 b, u32 d, u8 e, int front)
+int PullEspEspgen(EspgenWork** out, int a, int c, u32 b, u32 d, int e, int front)
 {
     int ret;
 

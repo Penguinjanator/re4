@@ -4,45 +4,94 @@
 #include "types.h"
 #include "vec.h"
 #include "model.h"
+#include "obj.h"
+#include "main.h"
 
-// Weapon objects (game/objWep.cpp, objRocket.cpp) as the player units see them: a cModel with the
-// weapon virtuals (vtable order from objWep's `cObjWep virtual table`; its fields sit inside the
-// cObj work area, so it is not a cObj subclass). Only what the player units touch is named; to be
-// merged into the obj headers when those units are decompiled.
-class cObjWep : public cModel {
+class cPlayer;
+
+// Player weapon object (game/objWep.cpp): a cObj whose work area holds ObjWepWork (`wep`, obj.h).
+// The vtable order is objWep's `cObjWep virtual table`; the in-class bodies are the ones the
+// original emits after the destructor (objWep owns the vtable, so every in-class inline is
+// emitted there: add none that the target lacks).
+class cObjWep : public cObj {
 public:
-    u8 pad_1D8[0x330 - 0x1D8];
-    f32 x330;            // 0x330  lock random: pitch range (pl_wep PlWepLockRand)
-    f32 x334;            // 0x334  lock random: yaw range
-    f32 x338;            // 0x338  lock random: pitch step
-    f32 x33C;            // 0x33C  lock random: yaw step
-    u8 pad_340[0x34E - 0x340];
-    u8 x34E;             // 0x34E  (knife down: 1)
-    u8 x34F;             // 0x34F  (knife down: 0)
-    u8 x350;             // 0x350  display flags (setDisp: type 0/1/2 -> bit 0x4/0x8/0x10)
-    u8 pad_351[7];
-    Vec x358;            // 0x358  muzzle / hit marker position (pl_wep getMarkerPos, PlWepHitCheck2)
-
-    virtual void moveAll();
-    virtual void moveStay();
-    virtual void moveReady();
-    virtual void moveFire();
-    virtual void moveDown();
-    virtual void moveReload();
-    virtual void moveDrop();
-    virtual void init();
-    virtual void setMotion();     // pl_sub PlReloadBullet
+    cObjWep();
+    virtual ~cObjWep() {}
+    virtual void move();
+    virtual void moveAll() {}
+    virtual void moveStay() {}
+    virtual void moveReady() {}
+    virtual void moveFire() {}
+    virtual void moveDown() {}
+    virtual void moveReload() {}
+    virtual void moveDrop() {}
+    virtual void init(cModel* parent) { setAbility(5.73f, 2.86f, 0.2864f, 0.2864f); }
+    virtual void setMotion(cPlayer* pl) {}    // pl_sub PlReloadBullet: the launcher fills the player's motion table
     virtual void interrupt();
-    virtual void endReload();
-    virtual int keyKamae();       // pl_sub joyKamae
-    virtual void fire();
-    virtual void beginReload();
+    virtual void endReload(int noReload);
+    void setAbility(f32 pitch, f32 yaw, f32 pitchStep, f32 yawStep) {
+        wep.lockRandPitch = pitch * 0.017453292f;
+        wep.lockRandYaw = yaw * 0.017453292f;
+        wep.lockRandPitchStep = pitchStep * 0.017453292f;
+        wep.lockRandYawStep = yawStep * 0.017453292f;
+    }
+    virtual int keyKamae() { return (Key.on >> 4) & 1; }   // pl_sub joyKamae
+    virtual void fire() {}
+    virtual void beginReload() {}
 
     void setDisp(int type, int on);
+    void parentSet(cModel* parent, int partsNo, Vec* pos, Vec* rot);
+    void parentRelease();
+    void resetMotion();
+    void trigger();
+    int bulletNum();
+    int reloadable();
+    void drawLaserSight(int draw, int noCalc);
+    void getMarkerPos(Vec* pos, Vec* at);
+    void satCheck();
 };
 
+// Rocket (game/objRocket.cpp): hangs on the launcher, flies with its motion and explodes on the
+// scenario / water / player weapon target line (`rocket`, obj.h).
+class cObjRocket : public cObj {
+public:
+    virtual ~cObjRocket() {}
+    virtual void beginEvent();
+    virtual void move();
+
+    void init();
+    void fire();
+
+    static const Vec lightPos;   // light set origin / range shared with the launcher (objRocket.cpp)
+    static const Vec lightSize;
+};
+
+// Rocket launcher (game/objRocket.cpp): carries a cObjRocket (`launcher`, obj.h) it launches.
 class cObjLauncher : public cObjWep {
 public:
+    cObjLauncher();
+    virtual ~cObjLauncher();
+    virtual void setNoSuspend(int on) {
+        if (on) {
+            be_flag |= 0x800;
+        } else {
+            be_flag &= ~0x800;
+        }
+        if (launcher.rocket) {
+            launcher.rocket->setNoSuspend(on);
+        }
+    }
+    virtual void moveFire();
+    virtual void moveDrop();
+    virtual void init(cModel* parent);
+    virtual void setMotion(cPlayer* pl);
+    virtual void interrupt();
+    virtual int keyKamae();
+
+    void loadRocket();
+    int ckBoss();
+    void launch();
+    void drop(int se);
     void grip(int a);
     void gripBack();
 };

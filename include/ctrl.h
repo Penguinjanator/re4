@@ -2,6 +2,7 @@
 #define CTRL_H
 
 #include "types.h"
+#include "vec.h"
 #include "db_log.h"
 #include "cManager.h"
 #include "main_mem.h"
@@ -85,6 +86,37 @@ int Ctrl12CntCk(cCtrl* c, int idx, u16 val);
 struct TexRenderMng* Ctrl12GetTexRenderEm2b(cCtrl* c);
 struct TexRenderMng* Ctrl12GetTexRenderEm2c(cCtrl* c);
 struct TexRenderMng* Ctrl12GetTexRenderEm32(cCtrl* c);
+
+// ctrl14: the dragon head (stage 4 el gigante fire statue) pieces and their fire.
+struct Ctrl14Work {
+    cModel* obj[5];    // 0x00  [0] base, [1] head, [2] unused, [3]/[4] jaws
+    u8 type;           // 0x14  dragon number (0..2)
+    u8 espKind;        // 0x15  EspPullCoreKind at creation
+    u8 flags;          // 0x16  bit0 moving, bit1 moved this frame
+    u8 pad_17;
+    s32 fireTimer;     // 0x18  frames the flame stays
+    s32 fireDelay;     // 0x1C  frames until the flame starts
+    class cSat* sat[3]; // 0x20  collision pieces
+};
+
+class cCtrl14 : public cCtrl {
+public:
+    virtual void move();
+    virtual void getPos(Vec* out);
+    virtual void getBaseMtx(Mtx m, int idx);
+    virtual f32 getDir();
+    virtual f32 getDir2();
+    virtual void addWidth(f32 x);
+    virtual void addHeight(f32 y);
+    virtual void addDir(f32 d);
+    virtual void setDir(f32 d);
+    virtual void resetDir();
+    virtual void setFire();
+    virtual int ckHitFire(Vec* p);
+    virtual int ckHitFireBlocked();
+};
+
+cCtrl* GetCtrlDragon(u32 type);
 
 cCtrl* GetCtrlCtrl11();
 u32 Ctrl11SetSe(cCtrl* c, cModel* m, s16 time, u16 no, int idx);

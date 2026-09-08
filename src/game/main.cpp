@@ -119,6 +119,17 @@ void DbmenuModuleInit();  // game/db_menu.cpp
         *(volatile u32*) 0x11111111 = 0;                          \
     } while (0)
 
+// Stores through a scalar reference are not struct-member MEMs, so GCC 2.95 assumes they may
+// alias pG/pSys/pRK and reloads the pointer after each one, as the original does.
+static inline void U8Set(u8& d, u8 v) { d = v; }
+static inline void S8Set(s8& d, s8 v) { d = v; }
+static inline void U16Set(u16& d, u16 v) { d = v; }
+static inline void U32Set(u32& d, u32 v) { d = v; }
+// Word store at a byte offset from a member array: `*(u32*) ((u8*) base + ofs)` is an
+// INDIRECT_REF of a cast (not of a PLUS_EXPR), so the MEM is not in-struct either.
+static inline void U32SetOfs(void* base, int ofs, u32 v) { *(u32*) ((u8*) base + ofs) = v; }
+static inline u32 U32GetOfs(void* base, int ofs) { return *(u32*) ((u8*) base + ofs); }
+
 #line 40 "D:/Bio4/Prog/main.cpp"
 
 const Vec vecZero = {0.0f, 0.0f, 0.0f};
@@ -144,21 +155,24 @@ static void systemScreenInit();
 int main()
 {
     int i;
+    int j;
+    int ret;
 
     systemStartInit();
-    for (;;) {
+RESTART:
+    {
         systemRestartInit();
         if (pRK->valid) {
-            pSys->flags = pRK->sys_flags;
-            pSys->language = pRK->language;
-            pSys->region = pRK->region;
-            pG->x4F93 = pRK->x16;
-            pSys->x4 = pRK->sys_x4;
-            for (i = 0; i < 4; i++) {
-                pSys->x10[i] = pRK->sys_x10[i];
+            U32Set(pSys->flags, pRK->sys_flags);
+            U8Set(pSys->language, pRK->language);
+            U8Set(pSys->region, pRK->region);
+            U8Set(pG->x4F93, pRK->x16);
+            U32Set(pSys->x4, pRK->sys_x4);
+            for (i = 0; i < 16; i += 4) {
+                U32SetOfs(pSys->x10, i, U32GetOfs(pRK->sys_x10, i));
             }
-            for (i = 0; i < 2; i++) {
-                pSys->x20[i] = pRK->sys_x20[i];
+            for (j = 0; j < 2; j++) {
+                U32SetOfs(pSys->x20, j * 4, pRK->sys_x20[j]);
             }
             if ((s32) pRK->g_flags_54 < 0) {
                 pG->flags_54 |= 0x80000000;
@@ -167,13 +181,14 @@ int main()
                 pG->flags_54 |= 0x40000000;
             }
         }
+        ret = 0;
         if (pG->flags_54 & 0x8) {
-            pG->room_id = 0x120;
+            U16Set(pG->room_id, 0x120);
             pG->x4F9F = 0;
             pSys->language = 1;
             pG->debug_mode = 0;
             pG->x4FB8 = 0;
-            pG->flags_6C &= ~0x2000;
+            BitOff(pG->flags_6C, 0x2000);
         }
         TaskExec(0, Title_task, 0);
         for (;;) {
@@ -190,10 +205,10 @@ int main()
             pG->flags_51E4++;
             TaskScheduler();
             ProcessTickGet(5, "TaskScheduler");
-            if (!(pG->flags_54 & 0x100000) || !(pG->flags_500C & 0x40000)) {
+            if (!(pG->flags_54 & 0x100000) || (pG->flags_500C & 0x40000)) {
                 IdSys.move();
             }
-            if (!(pG->flags_54 & 0x100000) || !(pG->flags_500C & 0x40000)) {
+            if (!(pG->flags_54 & 0x100000) || (pG->flags_500C & 0x40000)) {
                 IdSys.trans();
             }
             if (!(pG->flags_54 & 0x100000)) {
@@ -228,10 +243,11 @@ int main()
             while (vsync_cnt < GetSystemVcnt()) {}
             vsync_cnt = 0;
             systemVSyncPost();
-            pG->flags_54 &= ~0x10000000;
+            BitOff(pG->flags_54, 0x10000000);
             ProcessTickGet(0, "PROCESS TOTAL");
-            if (systemResetCheck() == 1) {
-                break;
+            ret = systemResetCheck();
+            if (ret == 1) {
+                goto RESTART;
             }
         }
     }
@@ -337,8 +353,11 @@ void systemRestartInit()
     FadeInit();
     CinescoInit();
     IdSys.roomInit();
-    for (i = 0; i < 16; i++) {
-        cMes.Delete(i);
+    {
+        MessageControl* mes = &cMes;
+        for (i = 0; i < 16; i++) {
+            mes->Delete(i);
+        }
     }
     DC.init();
     AllocDrawTmpBuf();
@@ -369,9 +388,9 @@ void systemRestartInit()
         BitOff(pG->flags_54, 0x10000);
     }
     if (pRK->brightness == 0) {
-        pRK->brightness = 0x40;
+        U8Set(pRK->brightness, 0x40);
     }
-    pSys->brightness = pRK->brightness;
+    U8Set(pSys->brightness, pRK->brightness);
 #line 752 "D:/Bio4/Prog/main.cpp"
     ret = DvdReadN("debug/roomInfo.dat", 0, 0, 0, 0, 5, __FILE__, __LINE__);
     if (Dvd.ReadCheck(ret, 0, 0, &roomInfoAddr) < 0) {
@@ -383,6 +402,8 @@ void systemRestartInit()
 
 static void systemScreenInit()
 {
+    GXRenderModeObj* rm = &Rmode;
+
     ZNEAR = 100.0f;
     ZFAR = 1000000.0f;
     ORTHO_T = 240.0f;
@@ -392,29 +413,29 @@ static void systemScreenInit()
     SetSystemVcnt(2);
     Screen.x = 0.0f;
     Screen.y = 0.0f;
-    Screen.width = (f32) Rmode.fbWidth;
-    Screen.height = (f32) Rmode.efbHeight;
-    pSys->brightness = 0x40;
-    OSReport("width = %d\n", Rmode.fbWidth);
-    OSReport("height = %d\n", Rmode.efbHeight);
+    Screen.width = (f32) rm->fbWidth;
+    Screen.height = (f32) rm->efbHeight;
+    U8Set(pSys->brightness, 0x40);
+    OSReport("width = %d\n", rm->fbWidth);
+    OSReport("height = %d\n", rm->efbHeight);
 }
 
 void systemWorkInit()
 {
     systemScreenInit();
-    pG->debug_mode = 1;
-    pG->debug_disp = -1;
-    pG->room_id = 0x120;
-    pG->next_room = pG->room_id;
-    pG->x4FB8 = 0;
-    pG->x8354 = 5;
-    pG->costume2 = 0;
-    pG->costume = 0;
+    S8Set(pG->debug_mode, 1);
+    S8Set(pG->debug_disp, -1);
+    U16Set(pG->room_id, 0x120);
+    U16Set(pG->next_room, pG->room_id);
+    U8Set(pG->x4FB8, 0);
+    U8Set(pG->x8354, 5);
+    U8Set(pG->costume2, 0);
+    U8Set(pG->costume, 0);
 #line 823 "D:/Bio4/Prog/main.cpp"
     pUser_name = (char*) mem_calloc(0x40, __FILE__, __LINE__, 1, 13);
-    pSys->language = 1;
-    pSys->region = 1;
-    pG->x4F93 = 1;
+    U8Set(pSys->language, 1);
+    U8Set(pSys->region, 1);
+    U8Set(pG->x4F93, 1);
 }
 
 void SetSystemVcnt(int vcnt)
@@ -445,11 +466,13 @@ int checkHardReset()
             pG->flags_54 |= 0x8000;
         }
     }
-    if ((pG->flags_54 & 0x8000) && !(pG->flags_54 & 0x200)) {
-        systemHardReset();
-        PADRecalibrate(0xF0000000);
-        OSResetSystem(0, 0, 0);
-        return 1;
+    if (pG->flags_54 & 0x8000) {
+        if (!(pG->flags_54 & 0x200)) {
+            systemHardReset();
+            PADRecalibrate(0xF0000000);
+            OSResetSystem(0, 0, 0);
+            return 1;
+        }
     }
     return 0;
 }
@@ -471,9 +494,13 @@ int systemResetCheck()
         Soft_reset_cnt = 0;
     }
     checkHardReset();
-    if (!(pG->flags_54 & 0x8000) && (pG->flags_54 & 0x4000000) && !(pG->flags_54 & 0x200)) {
-        systemSoftReset();
-        return 1;
+    if (!(pG->flags_54 & 0x8000)) {
+        if (pG->flags_54 & 0x4000000) {
+            if (!(pG->flags_54 & 0x200)) {
+                systemSoftReset();
+                return 1;
+            }
+        }
     }
     return 0;
 }
@@ -488,20 +515,20 @@ void systemResetCommon()
     ReleasePlData();
     ReleaseWepData();
     RoomData.stopRelData();
-    pRK->sys_flags = pSys->flags;
-    pRK->language = pSys->language;
-    pRK->region = pSys->region;
-    pRK->x16 = pG->x4F93;
-    pRK->sys_x4 = pSys->x4;
-    pRK->g_flags_54 = pG->flags_54;
+    U32Set(pRK->sys_flags, pSys->flags);
+    U8Set(pRK->language, pSys->language);
+    U8Set(pRK->region, pSys->region);
+    U8Set(pRK->x16, pG->x4F93);
+    U32Set(pRK->sys_x4, pSys->x4);
+    U32Set(pRK->g_flags_54, pG->flags_54);
     for (i = 0; i < 4; i++) {
-        pRK->sys_x10[i] = pSys->x10[i];
+        U32SetOfs(pRK->sys_x10, i * 4, pSys->x10[i]);
     }
     for (i = 0; i < 2; i++) {
-        pRK->sys_x20[i] = pSys->x20[i];
+        U32SetOfs(pRK->sys_x20, i * 4, pSys->x20[i]);
     }
-    pRK->x3C = pG->x8 >> 31;
-    pRK->valid = 1;
+    U32Set(pRK->x3C, pG->x8 >> 31);
+    U8Set(pRK->valid, 1);
 }
 
 void systemHardReset()
@@ -536,7 +563,7 @@ void systemSoftReset()
 
 void setLanguage()
 {
-    pSys->language = 1;
-    pSys->region = pSys->language;
-    pG->x4F93 = pSys->language;
+    U8Set(pSys->language, 1);
+    U8Set(pSys->region, pSys->language);
+    U8Set(pG->x4F93, pSys->language);
 }

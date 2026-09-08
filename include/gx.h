@@ -26,6 +26,10 @@ typedef struct {
 } GXTlutObj;  // 0x0C
 
 typedef struct {
+    u32 dummy[16];
+} GXLightObj;  // 0x40
+
+typedef struct {
     int viTVmode;               // 0x00
     u16 fbWidth;                // 0x04
     u16 efbHeight;              // 0x06
@@ -91,6 +95,13 @@ static inline void GXColor4u8(u8 r, u8 g, u8 b, u8 a)
     GXWGFifo->u8 = a;
 }
 
+static inline void GXNormal3f32(f32 x, f32 y, f32 z)
+{
+    GXWGFifo->f32 = x;
+    GXWGFifo->f32 = y;
+    GXWGFifo->f32 = z;
+}
+
 static inline void GXNormal3s8(s8 x, s8 y, s8 z)
 {
     GXWGFifo->s8 = x;
@@ -134,6 +145,7 @@ void GXSetZMode(u8 compare_enable, int func, u8 update_enable);
 void GXSetNumTexGens(u8 n);
 void GXSetNumTevStages(u8 n);
 void GXSetTevOp(int id, int mode);
+void GXSetZCompLoc(u8 before_tex);
 void GXSetTevOrder(int stage, int coord, int map, int color);
 void GXSetNumChans(u8 n);
 void GXSetChanMatColor(int chan, GXColor color);
@@ -193,6 +205,15 @@ void GXSetIndTexOrder(int ind_stage, int tex_coord, int tex_map);
 void GXSetIndTexCoordScale(int ind_stage, int scale_s, int scale_t);
 void GXSetIndTexMtx(int mtx_id, const f32 offset[2][3], s8 scale_exp);
 void GXSetTevIndWarp(int tev_stage, int ind_stage, u8 signed_offset, u8 replace_mode, int matrix_sel);
+// lighting (trans_lit)
+void GXInitLightAttn(GXLightObj* lt_obj, f32 a0, f32 a1, f32 a2, f32 k0, f32 k1, f32 k2);
+void GXInitLightAttnK(GXLightObj* lt_obj, f32 k0, f32 k1, f32 k2);
+void GXInitLightSpot(GXLightObj* lt_obj, f32 cutoff, int spot_func);
+void GXInitLightDistAttn(GXLightObj* lt_obj, f32 ref_distance, f32 ref_brightness, int dist_func);
+void GXInitLightPos(GXLightObj* lt_obj, f32 x, f32 y, f32 z);
+void GXInitLightDir(GXLightObj* lt_obj, f32 nx, f32 ny, f32 nz);
+void GXInitLightColor(GXLightObj* lt_obj, GXColor color);
+void GXLoadLightObjImm(GXLightObj* lt_obj, u32 light);
 #ifdef __cplusplus
 }
 #endif

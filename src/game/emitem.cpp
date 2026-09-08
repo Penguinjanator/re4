@@ -86,6 +86,7 @@ cEmItem* SetEmItem(void* bin, void* tpl, Vec* pos, Vec* rot, int type, int etcNo
     } else {
         em->lightInfo.init2(0, 1, &ofs, &size, 0x20);
     }
+    int rotType = 0;
     em->lockParts = 0;
     em->lockOfs.x = 0.0f;
     em->lockOfs.y = 0.0f;
@@ -94,7 +95,7 @@ cEmItem* SetEmItem(void* bin, void* tpl, Vec* pos, Vec* rot, int type, int etcNo
     em->be_flag &= ~0x01000000;
     em->be_flag &= ~0x10;
     w->flags = 0;
-    w->rotType = 0;
+    w->rotType = rotType;
     w->status = 0;
     w->rotAng.x = fRand1_1() * 3.1415927f;
     w->rotAng.y = fRand1_1() * 3.1415927f;

@@ -27,7 +27,7 @@ void EspStrip02_setup(cEsp02* esp);
 void esp02Trans_sub(cEsp02* esp);
 }
 
-static cEsp* Esp02_Create()
+cEsp* Esp02_Create()
 {
     return new cEsp02;
 }

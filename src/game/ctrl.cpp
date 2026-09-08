@@ -3,11 +3,6 @@
 #include "ctrl.h"
 #include "light.h"
 
-class cCtrl14 : public cCtrl {
-public:
-    virtual void move();
-};
-
 cCtrlMgr::cCtrlMgr() : cManager<cCtrl>(sizeof(cCtrl), 2)
 {
     setName("cCtrlMgr");

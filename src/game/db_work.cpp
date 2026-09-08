@@ -79,7 +79,7 @@ void cDbWork::dispEm()
     cEm* em;
 
     eprintf(32, 28, 4, 0, "ENEMY %d", no);
-    em = EmMgr.getWork(no);
+    em = EmMgrWork(no);
     if (Joy[0].rep & JOY_RIGHT) {
         no++;
     }

@@ -37,6 +37,12 @@ struct PlArc {
 };
 #define PL_ARC_PTR(arc, no) ((void*) ((arc)->ofs[no] + (u32) (arc)))
 
+// Room archive at pG->pRoomArc: offsets to its sub-files (GetDataExt finds them by tag; ctrl14 indexes it).
+struct RoomArc {
+    u32 ofs[0x10];
+};
+#define ROOM_ARC_PTR(arc, no) ((void*) (((RoomArc*) (arc))->ofs[no] + (u32) (arc)))
+
 // TEV stage / texture map / texture coord counters the model renderer allocates from (pG+0x184).
 struct GxStageWork {
     s32 tevStage;  // 0x00
