@@ -218,6 +218,8 @@ void GXLoadLightObjImm(GXLightObj* lt_obj, u32 light);
 void GXSetViewport(f32 left, f32 top, f32 wd, f32 ht, f32 nearz, f32 farz);
 void GXSetDstAlpha(u8 enable, u8 alpha);
 void GXClearBoundingBox(void);
+// water (Espgen42/espgen45)
+void* GXGetTexObjData(GXTexObj* obj);
 #ifdef __cplusplus
 }
 #endif

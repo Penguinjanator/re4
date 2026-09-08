@@ -40,26 +40,27 @@ public:
     void (*cancelFunc)(); // 0x18  task started by SceExecEventCancel
     int cancelArg;        // 0x1C
     u32 otag[16];         // 0x20  ordering table, otag[15] is the list head
-    u32 x60;              // 0x60
-    u32 x64;              // 0x64
+    u32 x60;              // 0x60  pG->flags_170 saved by SceUpCutStart
+    u32 x64;              // 0x64  pG->flags_54 saved by SceEventStart
     u32 stop_bak;         // 0x68  pG->flags_170 before the event cancel
-    u8 x6C;               // 0x6C
-    u8 x6D;               // 0x6D
-    u8 x6E;               // 0x6E
+    u8 x6C;               // 0x6C  1 = an up-cut is running (flags_170 saved in x60)
+    u8 x6D;               // 0x6D  1 = SceEventStart(0) told the managers
+    u8 x6E;               // 0x6E  SceEventStart nesting count
     u8 x6F;               // 0x6F
-    u8 x70;               // 0x70
+    u8 x70;               // 0x70  task flag saved by SceEventStart / SceUpCutStart
     u8 eventCancel;       // 0x71  1 = the running event may be cancelled
     s8 cancelFlagNo;      // 0x72  flags_174 bit set when the event is cancelled (-1 = none)
     u8 x73;               // 0x73  set while readEmData waits inside a scenario task
-    u8 x74;               // 0x74
+    u8 x74;               // 0x74  chapter number (SceSetChapterEnd)
     u8 x75;               // 0x75
     u8 x76;               // 0x76
-    u8 pad_77[3];
+    u8 x77;               // 0x77
+    s16 x78;              // 0x78  door area the chapter end returns through (-1 = none; sce_com)
     u16 x7A;              // 0x7A  0x3C, 0x5A with a sub character
     int sndFlag;          // 0x7C  1 = SndEventStrStop on event cancel
     cDmgInfo dmg;         // 0x80
     ScePrim prim[13];     // 0x98  slots 5..17
-    int x134;             // 0x134
+    ScePrim* x134;        // 0x134  task SceEventStart(!0) kills
 
     void scheduler();
     int checkCTaskRange();

@@ -453,6 +453,12 @@ mark it Matching.
 - An address-taken local the original reloads after every store through it is a one-member struct
   local (`struct { cEsp* p; } e; PullEsp(&e.p, id)`).
 - `static f32 v = 1.0f / (f32) n;` (function-local, runtime initialiser) is the `_.tmp_0` guard word.
+- Brute-force harness note: ninja does not notice sub-second source rewrites; delete the .o before
+  each rebuild or the scores are stale.
+- Byte stores through `this` are output-dependent on word stores through a work pointer (different
+  base pseudos), so they always follow them in a state-store block.
+- `return t == 0` with `u32 t = x & MASK` gives `andis.; mfcr; extrwi`; `return (x & MASK) != 0` gives
+  the bit-extract; `return t != 0` falls to the `li 1/bnelr/li 0` jump form.
 - Static locals show as `name.NNN` in objdiff; the DECL_UID suffix cannot be reproduced and is ignored by the report.
 - Unexplained words in `.rodata` (zero words, stray floats) are usually the constant pool of a function
   the original linker dead-stripped (bodies gone, pools kept, `STRIP_UNUSED` in objects.py): write a

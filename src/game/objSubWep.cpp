@@ -146,12 +146,13 @@ void cSubWep::scrAdjust()
     Vec hit;
     Vec nrm;
     Vec n;
+    const f32 ofs = 400.0f;
 
     p.x = 0.0f;
     p.y = 300.0f;
     p.z = 0.0f;
     PSMTXMultVec(mat, &p, &p);
-    a.x = p.x + 400.0f;
+    a.x = p.x + ofs;
     a.y = p.y;
     a.z = p.z;
     if (EatMgr.hitCheck(&p, &a, &hit, &n, 0, 0)) {
@@ -161,11 +162,11 @@ void cSubWep::scrAdjust()
         if (!(nrm.x == 0.0f && nrm.z == 0.0f)) {
 #line 170 "D:/Bio4/Prog/objSubWep.cpp"
             VECNormalize(&nrm, &nrm);
-            PSVECScale(&nrm, &nrm, 400.0f);
+            PSVECScale(&nrm, &nrm, ofs);
             PSVECAdd(&hit, &nrm, &pos);
         }
     }
-    a.x = p.x - 400.0f;
+    a.x = p.x - ofs;
     a.y = p.y;
     a.z = p.z;
     if (EatMgr.hitCheck(&p, &a, &hit, &n, 0, 0)) {
@@ -175,13 +176,13 @@ void cSubWep::scrAdjust()
         if (!(nrm.x == 0.0f && nrm.z == 0.0f)) {
 #line 180 "D:/Bio4/Prog/objSubWep.cpp"
             VECNormalize(&nrm, &nrm);
-            PSVECScale(&nrm, &nrm, 400.0f);
+            PSVECScale(&nrm, &nrm, ofs);
             PSVECAdd(&hit, &nrm, &pos);
         }
     }
     a.x = p.x;
     a.y = p.y;
-    a.z = p.z + 400.0f;
+    a.z = p.z + ofs;
     if (EatMgr.hitCheck(&p, &a, &hit, &n, 0, 0)) {
         nrm.x = n.x;
         nrm.y = 0.0f;
@@ -189,13 +190,13 @@ void cSubWep::scrAdjust()
         if (!(nrm.x == 0.0f && nrm.z == 0.0f)) {
 #line 190 "D:/Bio4/Prog/objSubWep.cpp"
             VECNormalize(&nrm, &nrm);
-            PSVECScale(&nrm, &nrm, 400.0f);
+            PSVECScale(&nrm, &nrm, ofs);
             PSVECAdd(&hit, &nrm, &pos);
         }
     }
     a.x = p.x;
     a.y = p.y;
-    a.z = p.z - 400.0f;
+    a.z = p.z - ofs;
     if (EatMgr.hitCheck(&p, &a, &hit, &n, 0, 0)) {
         nrm.x = n.x;
         nrm.y = 0.0f;
@@ -203,7 +204,7 @@ void cSubWep::scrAdjust()
         if (!(nrm.x == 0.0f && nrm.z == 0.0f)) {
 #line 200 "D:/Bio4/Prog/objSubWep.cpp"
             VECNormalize(&nrm, &nrm);
-            PSVECScale(&nrm, &nrm, 400.0f);
+            PSVECScale(&nrm, &nrm, ofs);
             PSVECAdd(&hit, &nrm, &pos);
         }
     }
@@ -246,6 +247,7 @@ void cSubWep::addSpeed()
         subWep.attr = info->flags;
         switch (type) {
         case 0:
+        default:
             subWep.effNo = info->eff13[0];
             subWep.effPrm = info->eff13[1];
             break;
@@ -268,10 +270,6 @@ void cSubWep::addSpeed()
         case 5:
             subWep.effNo = info->eff17[0];
             subWep.effPrm = info->eff17[1];
-            break;
-        default:
-            subWep.effNo = info->eff13[0];
-            subWep.effPrm = info->eff13[1];
             break;
         }
         if (type > 2) {
@@ -311,6 +309,7 @@ void cSubWep::addSpeed()
         subWep.attr = info->flags | 0x80000000;
         switch (type) {
         case 0:
+        default:
             subWep.effNo = info->eff13[0];
             subWep.effPrm = info->eff13[1];
             break;
@@ -321,10 +320,6 @@ void cSubWep::addSpeed()
         case 2:
             subWep.effNo = info->eff17[0];
             subWep.effPrm = info->eff17[1];
-            break;
-        default:
-            subWep.effNo = info->eff13[0];
-            subWep.effPrm = info->eff13[1];
             break;
         }
     } else {
@@ -362,17 +357,21 @@ void cSubWep::bounce(Vec* nrm)
 {
     Vec ref;
     f32 len;
+    const f32 lim = 0.7f;
+    const f32 minSpd = 50.0f;
+    const f32 rate = 0.5f;
+    const f32 rotRate = -0.8f;
 
     len = RootSumSquare3(&subWep.spd);
     C_VECReflect(&subWep.spd, nrm, &ref);
-    PSVECScale(&ref, &subWep.spd, len * 0.5f);
-    if (nrm->y > 0.0f && nrm->y < 0.7f) {
-        if (subWep.spd.y < 50.0f) {
-            subWep.spd.y = 50.0f;
+    PSVECScale(&ref, &subWep.spd, len * rate);
+    if (nrm->y > 0.0f && nrm->y < lim) {
+        if (subWep.spd.y < minSpd) {
+            subWep.spd.y = minSpd;
         }
     }
-    PSVECScale(&subWep.rotSpd, &subWep.rotSpd, -0.8f);
-    if (nrm->y > 0.7f) {
+    PSVECScale(&subWep.rotSpd, &subWep.rotSpd, rotRate);
+    if (nrm->y > lim) {
         if (fabsf(subWep.spd.y) > 10.0f) {
             if (subWep.flags & 1) {
                 scrAdjust();
@@ -383,7 +382,7 @@ void cSubWep::bounce(Vec* nrm)
                 subWep.seCnt0++;
             }
         }
-    } else if ((subWep.flags & 2) || (type == 1 && nrm->y > 0.7f)) {
+    } else if ((subWep.flags & 2) || (type == 1 && nrm->y > lim)) {
         subWep.flags |= 0x10;
         explode();
         ObjMgr.destroy(this);
@@ -416,9 +415,9 @@ cSubWep::cSubWep()
 
     sub2B4.atari.throughOn();
     lightInfo.init2(0, 1, &p0, &p1, 4);
-    subWep.flags = 0;
     subWep.seCnt0 = 0;
     subWep.seCnt1 = 0;
+    subWep.flags = 0;
     subWep.grav = 20.0f;
     subWep.rad = 50.0f;
     subWep.life = 10;
@@ -440,43 +439,39 @@ int cSubWep::init(Vec* rot, f32 power)
     Vec d;
     cModel* parts;
     cModel* parts2;
+    void* bin;
+    void* tpl;
 
     switch (type) {
     case 0:
-        if (modelInit(PL_ARC_PTR(pG->pPlArc, 0x6A), PL_ARC_PTR(pG->pPlArc, 0x6B)) == 0) {
-            goto fail;
-        }
+    default:
+        bin = PL_ARC_PTR(pG->pPlArc, 0x6A);
+        tpl = PL_ARC_PTR(pG->pPlArc, 0x6B);
         break;
     case 1:
-        if (modelInit(PL_ARC_PTR(pG->pPlArc, 0x6A), PL_ARC_PTR(pG->pPlArc, 0x6D)) == 0) {
-            goto fail;
-        }
+        bin = PL_ARC_PTR(pG->pPlArc, 0x6A);
+        tpl = PL_ARC_PTR(pG->pPlArc, 0x6D);
         break;
     case 2:
-        if (modelInit(PL_ARC_PTR(pG->pPlArc, 0x6A), PL_ARC_PTR(pG->pPlArc, 0x6F)) == 0) {
-            goto fail;
-        }
+        bin = PL_ARC_PTR(pG->pPlArc, 0x6A);
+        tpl = PL_ARC_PTR(pG->pPlArc, 0x6F);
         break;
     case 3:
-        if (modelInit(PL_ARC_PTR(pG->pPlArc, 0x7D), PL_ARC_PTR(pG->pPlArc, 0x7E)) == 0) {
-            goto fail;
-        }
+        bin = PL_ARC_PTR(pG->pPlArc, 0x7D);
+        tpl = PL_ARC_PTR(pG->pPlArc, 0x7E);
         break;
     case 4:
-        if (modelInit(PL_ARC_PTR(pG->pPlArc, 0x7D), PL_ARC_PTR(pG->pPlArc, 0x7F)) == 0) {
-            goto fail;
-        }
+        bin = PL_ARC_PTR(pG->pPlArc, 0x7D);
+        tpl = PL_ARC_PTR(pG->pPlArc, 0x7F);
         break;
     case 5:
-        if (modelInit(PL_ARC_PTR(pG->pPlArc, 0x7D), PL_ARC_PTR(pG->pPlArc, 0x80)) == 0) {
-            goto fail;
-        }
+        bin = PL_ARC_PTR(pG->pPlArc, 0x7D);
+        tpl = PL_ARC_PTR(pG->pPlArc, 0x80);
         break;
-    default:
-        if (modelInit(PL_ARC_PTR(pG->pPlArc, 0x6A), PL_ARC_PTR(pG->pPlArc, 0x6B)) == 0) {
-            goto fail;
-        }
-        break;
+    }
+    if (modelInit(bin, tpl) == 0) {
+        ObjMgr.destroy(this);
+        return 0;
     }
     if (type >= 3 && type <= 5) {
         scale.x = 0.5f;
@@ -513,14 +508,11 @@ int cSubWep::init(Vec* rot, f32 power)
         break;
     }
     return 1;
-fail:
-    ObjMgr.destroy(this);
-    return 0;
 }
 
 void setThrowSpeed(Vec* spd, f32 power)
 {
-    static const Vec speedGre = { 0.0f, 30.000004f, 283.5f };
+    static const Vec speedGre = { 0.0f, 30.000002f, 283.5f };
     static const Vec speedEgg = { 0.0f, 5.0f, 500.0f };
     static Vec h_ang = { -0.2617994f, 0.0f, 0.0f };
     Vec v;
@@ -529,13 +521,13 @@ void setThrowSpeed(Vec* spd, f32 power)
     cModel* parts;
 
     switch (pG->wep_no) {
+    default:
+        v = speedGre;
+        break;
     case 0x19:
     case 0x1F:
     case 0x20:
         v = speedEgg;
-        break;
-    default:
-        v = speedGre;
         break;
     }
     if (power > 0.1f) {
@@ -546,9 +538,9 @@ void setThrowSpeed(Vec* spd, f32 power)
         RotVector(&v, &h_ang, &v);
     }
     v.x = fRand1_1() * 15.0f;
-    ang.x = power * -0.7853982f;
-    ang.y = 0.0f;
     ang.z = 0.0f;
+    ang.y = 0.0f;
+    ang.x = power * -0.7853982f;
     RotVector(&v, &ang, &v);
     PSMTXMultVecSR(pPL->mat, &v, spd);
     parts = pPL->getPartsPtr(0);
@@ -568,6 +560,10 @@ cObjGrenade::cObjGrenade()
 void cObjGrenade::explode()
 {
     f32 wh;
+    int no;
+    int prm;
+    const f32 up = 1000.0f;
+    const f32 down = 3000.0f;
 
     if (GetWaterHeight(&pos, &wh) && pos.y <= wh) {
         EspSetWaterBomb(&pos);
@@ -578,7 +574,8 @@ void cObjGrenade::explode()
             return;
         }
         if (subWep.attr < 0 && subWep.effNo != 0xD2) {
-            EstSet(0, -1, &pos, 0, (u8) subWep.effNo, subWep.effPrm, 0, 0, 0, 0);
+            no = (u8) subWep.effNo;
+            prm = subWep.effPrm;
         } else {
             Vec a;
             Vec b;
@@ -586,17 +583,19 @@ void cObjGrenade::explode()
             u32 attr;
 
             a.x = pos.x;
-            a.y = pos.y + 1000.0f;
+            a.y = pos.y + up;
             a.z = pos.z;
             b.x = pos.x;
-            b.y = pos.y - 3000.0f;
+            b.y = pos.y - down;
             b.z = pos.z;
             attr = EatMgr.hitCheck(&a, &b, 0, &nrm, 0, 0);
             if (nrm.y > 0.9f && !(attr & 0x40)) {
                 EstSet(0, -1, &pos, 0, 0, 0x1A, 0, 0, 0, 0);
             }
-            EstSet(0, -1, &pos, 0, 0, 0xD, 0, 0, 0, 0);
+            no = 0;
+            prm = 0xD;
         }
+        EstSet(0, -1, &pos, 0, no, prm, 0, 0, 0, 0);
         SndCall(1, 0x14, &pos, 0, 0, 0);
     }
     BitOn(pG->flags_500C, 0x800000);
@@ -624,6 +623,10 @@ cObjGreFire::cObjGreFire()
 void cObjGreFire::explode()
 {
     f32 wh;
+    int no;
+    int prm;
+    const f32 up = 1000.0f;
+    const f32 down = 3000.0f;
 
     if (GetWaterHeight(&pos, &wh) && pos.y <= wh) {
         EspSetWaterBomb(&pos);
@@ -634,7 +637,8 @@ void cObjGreFire::explode()
             return;
         }
         if (subWep.attr < 0 && subWep.effNo != 0xD2) {
-            EstSet(0, -1, &pos, 0, (u8) subWep.effNo, subWep.effPrm, 0, 0, 0, 0);
+            no = (u8) subWep.effNo;
+            prm = subWep.effPrm;
         } else {
             Vec a;
             Vec b;
@@ -642,10 +646,10 @@ void cObjGreFire::explode()
             u32 attr;
 
             a.x = pos.x;
-            a.y = pos.y + 1000.0f;
+            a.y = pos.y + up;
             a.z = pos.z;
             b.x = pos.x;
-            b.y = pos.y - 3000.0f;
+            b.y = pos.y - down;
             b.z = pos.z;
             attr = EatMgr.hitCheck(&a, &b, 0, &nrm, 0, 0);
             if (nrm.y > 0.9f && !(attr & 0x40)) {
@@ -653,8 +657,10 @@ void cObjGreFire::explode()
                     EstSet(0, -1, &pos, 0, 0, 0x26, 0, 0, 0, 0);
                 }
             }
-            EstSet(0, -1, &pos, 0, 0, 0xB, 0, 0, 0, 0);
+            no = 0;
+            prm = 0xB;
         }
+        EstSet(0, -1, &pos, 0, no, prm, 0, 0, 0, 0);
         SndCall(1, 0x22, &pos, 0, 0, 0);
         dmgSet(1);
     }
@@ -677,6 +683,8 @@ cObjGreLight::cObjGreLight()
 void cObjGreLight::explode()
 {
     f32 wh;
+    int no;
+    int prm;
 
     if (GetWaterHeight(&pos, &wh) && pos.y <= wh) {
         EspSetWaterBomb(&pos);
@@ -687,11 +695,14 @@ void cObjGreLight::explode()
             return;
         }
         if (subWep.attr < 0 && subWep.effNo != 0xD2) {
-            EstSet(0, -1, &pos, 0, (u8) subWep.effNo, subWep.effPrm, 0, 0, 0, 0);
+            no = (u8) subWep.effNo;
+            prm = subWep.effPrm;
         } else {
             EstSet(0, -1, 0, 0, 0, 0x3F, 0, 0, 0, 0);
-            EstSet(0, -1, &pos, 0, 0, 0xC, 0, 0, 0, 0);
+            no = 0;
+            prm = 0xC;
         }
+        EstSet(0, -1, &pos, 0, no, prm, 0, 0, 0, 0);
         SndCall(1, 0x13, &pos, 0, 0, 0);
     }
     BitOn(pG->flags_500C, 0x800000);

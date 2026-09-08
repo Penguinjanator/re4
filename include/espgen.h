@@ -186,6 +186,38 @@ struct Espgen10Work {
     EspSeqOpt* p8;     // 0x90
 };
 
+// Water surface work shared by generators 42 (room water, game/Espgen42.cpp) and 45 (weather water,
+// game/espgen45.cpp): a (nx+1) x (ny+1) height field with two ping-pong height buffers, drawn through
+// a prebuilt display list with an indirect bump texture.
+struct Espgen42Work {
+    u8 pad_14[0xC];    // 0x14
+    Mtx mat;           // 0x20 grid -> world
+    Mtx inv;           // 0x50 world -> grid
+    u16 nx;            // 0x80 grid cells along x
+    u16 ny;            // 0x82 grid cells along z
+    u8 pad_84[4];
+    f32 size;          // 0x88 cell size
+    f32* hA;           // 0x8C height buffers (pG->flags_51E4 bit 0 selects the current one)
+    f32* hB;           // 0x90
+    Vec* nrm;          // 0x94
+    Vec* pos;          // 0x98
+    u8* dl;            // 0x9C display list
+    u32 dlSize;        // 0xA0
+    u8* bump;          // 0xA4 I8 bump texture (nx x ny)
+    GXColor col;       // 0xA8 tev colour
+    GXColor amb;       // 0xAC ambient colour (amb.a: light alpha)
+    u8 mode;           // 0xB0 wave model (1: second variant)
+    s8 stages;         // 0xB1 number of extra tev stages
+    u8 texId;          // 0xB2
+    u8 pad_B3;
+    u16 indS;          // 0xB4 indirect matrix parameters
+    u16 indT;          // 0xB6
+    f32 damp;          // 0xB8
+    f32 spread;        // 0xBC
+    u8 pad_C0[4];
+    u8 flag;           // 0xC4 (espgen45) bit0: the grid is bounded
+};
+
 typedef void (*EspgenMoveFunc)(EspgenWork* w);
 typedef void (*EspgenTransFunc)(EspgenWork* w);
 typedef int (*EspgenSetFreeWorkFunc)(EspgenWork* w, EspGenWork* rec, EspSeqData* head, cModel* model, u16 parts,
@@ -263,6 +295,13 @@ int Espgen43_SetFreeWork(EspgenWork* w, EspGenWork* rec, EspSeqData* head, cMode
                          Vec* pos, Vec* rot, EspSeqOpt* p8);
 
 // game/espgen45.cpp
+void Espgen45_static_init();
+void Estgen45SetTargetCamera(int on);
+void Estgen45SetTargetHeight(int on);
+void Estgen45SetSizeOverWrite(int on);
+void Estgen45SetColorOverWrite(int on);
+void Estgen45SetColorMul(int on);
+void Estgen45SetParamOverWrite(int on);
 void Espgen45_Move(EspgenWork* w);
 void Espgen45_Trans(EspgenWork* w);
 void Espgen45_Destruct(EspgenWork* w);

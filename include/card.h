@@ -21,6 +21,9 @@ public:
     }
 };
 
-extern "C" void CardFirstCheck();
+extern "C" {
+void CardFirstCheck();
+void CardSave(int a, int b);
+}
 
 #endif

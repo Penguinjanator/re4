@@ -278,37 +278,40 @@ int cPlPush::scrHitCheckSub(Vec* pos, f32 w, f32 h, f32 y, f32 side)
     return 0;
 }
 
-// Not matched (92%): the original references 800.0f first (pool order) with only the `lis`
-// surviving early in a callee-saved register; the load and add happen after the first two calls.
+// `const f32` locals: each takes a 4-byte frame slot and creates its pool entry at the declaration
+// (800 before 300 before the 0.0 of rot.x) without emitting code, so `h + sand` is computed where it
+// is used (after the first two calls) with only the `lis` hoisted into a callee-saved register.
 int cPlPush::emSandCheck(Vec* pos, f32 w, f32 h, f32 y)
 {
     Vec v0;
     Vec v1;
     Vec rot;
-    f32 len = h + 800.0f;
+    const f32 sand = 800.0f;
+    const f32 base = 300.0f;
+    f32 len;
 
-    v0.x = w;
-    v0.y = 300.0f;
-    v0.z = 0.0f;
     rot.x = 0.0f;
     rot.y = y;
     rot.z = 0.0f;
+    v0.x = w;
+    v0.y = base;
+    v0.z = 0.0f;
     RotVector(&v0, &rot, &v0);
     PSVECAdd(&v0, pos, &v0);
     v1.x = 0.0f;
     v1.y = 0.0f;
-    v1.z = h + 800.0f;
+    v1.z = h + sand;
     RotVector(&v1, &rot, &v1);
     PSVECAdd(&v1, &v0, &v1);
     if (SatMgr.hitCheck(&v0, &v1, 0, 0, 0, 0) == 0) {
         v0.x = -w;
-        v0.y = 300.0f;
+        v0.y = base;
         v0.z = 0.0f;
         RotVector(&v0, &rot, &v0);
         PSVECAdd(&v0, pos, &v0);
         v1.x = 0.0f;
         v1.y = 0.0f;
-        v1.z = h + 800.0f;
+        v1.z = h + sand;
         RotVector(&v1, &rot, &v1);
         PSVECAdd(&v1, &v0, &v1);
         if (SatMgr.hitCheck(&v0, &v1, 0, 0, 0, 0) == 0) {
@@ -357,3 +360,6 @@ int cPlPush::plAdjust()
     pPl->rot.y += Muku2(pPl->rot.y, ang, PI / 12.0f);
     return 1;
 }
+
+// the split object's .rodata is 8-aligned (0xE0, the pool ends at 0xDC)
+asm(".section .rodata; .balign 8");

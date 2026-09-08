@@ -126,7 +126,9 @@ struct GlobalWork {
     u16 cdown_add_sec;     // 0x4F7E  seconds to add to the count-down (cockpit CountDown::move consumes it)
     u8 pad_4F80[0x4F88 - 0x4F80];
     u8 x4F88;              // 0x4F88  (pl_sub PlGachaGet: > 2 keeps the raw button count)
-    u8 pad_4F89[0x4F8E - 0x4F89];
+    u8 x4F89;
+    u8 x4F8A;              // 0x4F8A  chapters ended (sce_com SceChapterEnd increments it)
+    u8 pad_4F8B[3];
     u16 x4F8E;             // 0x4F8E  nonzero = extra game (merchant: full price/tune tables, pSys->x4 weapon unlocks)
     u16 x4F90;             // 0x4F90  (room_jmp roomJumpExec clears it)
     u8 snd_tbl_no;         // 0x4F92  room BGM/stream table row (0..4) selected by the game flow
@@ -181,7 +183,7 @@ struct GlobalWork {
     u32 flags_51C0;        // 0x51C0  (stage: route flags)
     u8 pad_51C4[0x51E4 - 0x51C4];
     u32 flags_51E4;        // 0x51E4  (db_cam: 0x10 show the tool banner, 0x18 show the offset headers)
-    u8 pad_51E8[0x52E8 - 0x51E8];
+    u32 sce_free[64];      // 0x51E8  scenario free words (sce_com SetFree/GetFree)
     u8 emlist[0x2000];     // 0x52E8  enemy list (ESL file) read by stage.cpp
     u8 pad_72E8[0x82E8 - 0x72E8];
     u32 ope_x82E8;         // 0x82E8  sub screen "Ope" block (sscrn: memset(&pG->ope_x82E8, 0, 0x44) in SubScreenGameInit)
@@ -192,7 +194,9 @@ struct GlobalWork {
     s32 ope_mdt_no;        // 0x8300  (sscrn OpeGetMdtNo / OpeSetMdtNo; SubScreenGameInit: 0x18)
     u8 pad_8304[0x832C - 0x8304];
     u32 x832C;             // 0x832C  (pl_sub PlSelect swaps it with x4F98 when the player changes)
-    u8 pad_8330[0x833C - 0x8330];
+    u8 pad_8330[0x8338 - 0x8330];
+    u16 x8338;             // 0x8338  (sce_com SceChapterEnd clears it with the kill/shot counters)
+    u8 pad_833A[2];
     u32 em_die_cnt;        // 0x833C  enemies killed (em_set EmSetDieCnt)
     u32 em_die_cnt2;       // 0x8340
     u32 shotHit;           // 0x8344  (pl_wep PlWepHitCheck2: shots that hit something)

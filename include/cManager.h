@@ -77,6 +77,9 @@ public:
     int arrayAlloc(u32 n);   // memFree + memAlloc(size * n) + memClear; the definitions are in em.cpp (only cEmMgr instantiates them)
     int arrayFree();         // 1 when there was an array
     void dispWorkNum(int x, int y);
+    // Event brackets of every alive work (defined in sce_com.cpp, the only unit instantiating them).
+    void beginEvent(int mode);
+    void endEvent(int mode);
 
     int deleteList(T* p) {
         T* q;

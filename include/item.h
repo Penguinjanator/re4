@@ -11,7 +11,10 @@ struct ItemWork {
     u8 type;       // 0x05  inventory type (cItemMgr::type selects the visible set)
     u16 x6;        // 0x06  weapon tune levels, one nibble each: fire << 12 | mag << 8 | speed << 4 | ex (merchant)
     u16 x8;        // 0x08  top 3 bits: weapon slot attribute (sscrn: pG->wep_x4FB2), low 13: bullets loaded
-    u8 pad_A[4];
+    s8 x;          // 0x0A  case position (cells * 2) and orientation (puzzle pzlPlayer::save)
+    s8 y;          // 0x0B
+    s8 orient;     // 0x0C
+    u8 board;      // 0x0D  1 = in the case, 0 = on the spare board
 };
 
 // cItemMgr::ordering() output (cItemMgr::pOrder[], 8 bytes): the in-use slots holding one item id.
@@ -40,7 +43,7 @@ public:
     u8 pad_12;
     u8 type;                    // 0x13  inventory type (num(id) / search count only this type)
     ItemWork* pItems;           // 0x14
-    u8 pad_18[4];
+    ItemWork* pLast;            // 0x18  slot the last get() filled (puzzle PutInCase copies the piece position into it)
     s32 nItems;                 // 0x1C
     ItemOrder* pOrder;          // 0x20  ordering() result (merchant: sorted slots of one item id)
     s32 nOrder;                 // 0x24  entries in pOrder
@@ -58,6 +61,9 @@ public:
     void debugWeapon(int id);
     ItemWork* search(u16 id);   // 0x8001DED0: the in-use slot of this->type holding `id`, NULL if none
     void arm(ItemWork* p);      // 0x8001F350: equip `p` (NULL: bare hands)
+    void erase(ItemWork* p);    // remove slot `p` (puzzle removeExtraPiece)
+    void construct(ItemWork* out, u16 id);  // fill a slot template for item `id` (puzzle PutInCase)
+    int combine(ItemWork* a, ItemWork* b, int flag);  // merge b into a (puzzle cmbPiece)
     // equipped weapon (this->xC), objWep: reloadable(x, 0) / reload(x, 0) / trigger(x)
     int reloadable();           // 0x8001F470
     int reload();               // 0x8001F5B4

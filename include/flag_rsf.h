@@ -14,9 +14,11 @@ static inline u32* RsfFlags(u16 room)
     return (u32*) (RoomData.getRoomSavePtr(room) + 4);
 }
 
-static inline int RsfCheck(u16 room, int no)
+// The masked word itself (objRobo R0Init tests it directly: `andis.; beq`); `!= 0` would give
+// the `li 1 / li 0 / cmpwi` flag chain.
+static inline u32 RsfCheck(u16 room, int no)
 {
-    return (RsfFlags(room)[no >> 5] & (0x80000000 >> (no & 31))) != 0;
+    return RsfFlags(room)[no >> 5] & (0x80000000 >> (no & 31));
 }
 
 static inline void RsfSet(u16 room, int no)

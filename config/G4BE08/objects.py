@@ -1083,6 +1083,7 @@ MATCHING.update({
     "game/pl_knife.cpp": True,
     "game/pl_ashley.cpp": True,
     "game/pl_leon.cpp": True,
+    "game/pl_push.cpp": True,
 })
 
 # map object units (game/obj*.cpp)
@@ -1102,6 +1103,7 @@ MATCHING.update({
     "game/map_obj.cpp": True,
     "game/obj05.cpp": True,
     "game/objRocket.cpp": True,
+    "game/objSubWep.cpp": True,
 })
 
 # media/utility units

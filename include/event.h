@@ -27,7 +27,9 @@ public:
 // Event manager (game/event.cpp `EvtMgr`, 0x180 bytes); layout opaque.
 class EventMgr {
 public:
-    u8 pad_0[0x180];
+    u8 pad_0[0x34];
+    u32 x34;           // 0x34  running event key (sce_com SceChapterEnd: IsAliveEvt / GetEvt)
+    u8 pad_38[0x180 - 0x38];
 
     void init();
     void Run();
@@ -35,6 +37,9 @@ public:
     int GetBin(void** out, const char* name, int a);
     // Replaces the three window jump motions of the running event (emwindow ExeWindowEvent).
     void GetEmWindowFcv(void** a, void** b, void** c);
+    int IsAliveEvt(u32* key, int a, int b);
+    void GetEvt(u32* key, void** out);
+    void DelEvt(void* evt, int a);
 };
 
 extern EventMgr EvtMgr;

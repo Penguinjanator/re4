@@ -156,7 +156,7 @@ void satMakeTest(cPlayer* pl)
         eprintf(100, 100, 0, 0, "%d", sat->nArray);
         if (Joy[0].on & JOY_A) {
             if (pS0) {
-                sat->destroy(pS0);
+                SatMgr.destroy(pS0);   // on the object: devirtualised `bl destroy__7cSatMgrP4cSat`
                 pS0 = 0;
             }
             RotVector(&z0, &pl->rot, &pos);
@@ -279,8 +279,6 @@ void cPlMaho::regist(const char* code, void (*func)())
     num++;
 }
 
-// Not matched (98.8%): the original keeps `len` untied from the product (`fmuls f12; fdivs f25`)
-// and computes the second x as `fadds f25, f13, f25` with the result in len's register.
 void DrawGage(int x, int y, int h, int w, int now, int max, int color)
 {
     Vec pos;

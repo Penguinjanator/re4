@@ -47,6 +47,9 @@ cObj* SetObjRobo(void* bin, void* tpl, Vec* pos, Vec* rot);
 }
 void MotionSetCore(cModel* m, void* work, void* mot, int a, int b, int c, int d);
 
+// Pointer store through a reference: the following `pG` load is kept behind it.
+static inline void PSet(cSat*& d, cSat* v) { d = v; }
+
 // Event flag words at pG->flags_174 (the sce_sys accessor): recomputed at every use, so the base
 // is reloaded after the hit counter store.
 static inline u32* eventFlags()
@@ -157,11 +160,11 @@ void cObjRobo::R0Init(cObjRobo* robo)
         w->sat[i] = 0;
         w->eat[i] = 0;
     }
-    w->sat[0] = SatMgr.create(ROOM_ARC_PTR(pG->pRoomArc, 5), 0, &pos, &rot, 2);
-    w->sat[1] = SatMgr.create(ROOM_ARC_PTR(pG->pRoomArc, 5), 0, &pos, &rot, 3);
-    w->eat[0] = EatMgr.create(ROOM_ARC_PTR(pG->pRoomArc, 0x12), 0, &pos, &rot, 6);
-    w->eat[1] = EatMgr.create(ROOM_ARC_PTR(pG->pRoomArc, 0x12), 0, &pos, &rot, 7);
-    w->eat2 = EatMgr.create(ROOM_ARC_PTR(pG->pRoomArc, 0x12), 0, &robo->pos, &rot, 2);
+    PSet(w->sat[0], SatMgr.create(ROOM_ARC_PTR(pG->pRoomArc, 5), 0, &pos, &rot, 2));
+    PSet(w->sat[1], SatMgr.create(ROOM_ARC_PTR(pG->pRoomArc, 5), 0, &pos, &rot, 3));
+    PSet(w->eat[0], EatMgr.create(ROOM_ARC_PTR(pG->pRoomArc, 0x12), 0, &pos, &rot, 6));
+    PSet(w->eat[1], EatMgr.create(ROOM_ARC_PTR(pG->pRoomArc, 0x12), 0, &pos, &rot, 7));
+    PSet(w->eat2, EatMgr.create(ROOM_ARC_PTR(pG->pRoomArc, 0x12), 0, &robo->pos, &rot, 2));
     for (int i = 0; i < 2; i++) {
         Vec pos2 = { 0.0f, 0.0f, 0.0f };
         Vec rot2 = { 0.0f, 0.0f, 0.0f };
@@ -515,11 +518,11 @@ void cObjRobo::TaskSwitchFront(cObjRobo* robo)
 {
     cModel* parts;
     int i;
+    int j;
     f32 to = -1.483529806137085f;
     f32 from = 0.0f;
     f32 range;
     f32 base;
-    f32 max;
 
     i = 15;
     parts = robo->getPartsPtr(0x16);
@@ -533,25 +536,23 @@ void cObjRobo::TaskSwitchFront(cObjRobo* robo)
     }
     if (!(pG->flags_174 & 0x8000)) {
         BitOn(pG->flags_174, 0x8000);
-        max = (f32) i;
         range = to;
         base = from;
-        for (int j = 0; j < 15; j++) {
-            parts->rot.y = range * (f32) j / max + base;
+        for (j = 0; j < i; j++) {
+            parts->rot.y = range * (f32) j / (f32) i + base;
             SceSleep(1);
         }
-        parts->rot.y = to;
+        FSet(parts->rot.y, to);
         MotionSetCore(robo, &robo->pMotion, ROOM_ARC_PTR(pG->pRoomArc, 0x61), (int) ROOM_ARC_PTR(pG->pRoomArc, 0x66), 0xF0, 4, 0);
     } else {
         BitOff(pG->flags_174, 0x8000);
-        max = (f32) i;
         range = from - to;
         base = to;
-        for (int j = 0; j < 15; j++) {
-            parts->rot.y = range * (f32) j / max + base;
+        for (j = 0; j < i; j++) {
+            parts->rot.y = range * (f32) j / (f32) i + base;
             SceSleep(1);
         }
-        parts->rot.y = from;
+        FSet(parts->rot.y, from);
         MotionSetCore(robo, &robo->pMotion, ROOM_ARC_PTR(pG->pRoomArc, 0x62), (int) ROOM_ARC_PTR(pG->pRoomArc, 0x67), 0xF0, 4, 0);
     }
     BitOff(pG->flags_174, 0x4000);

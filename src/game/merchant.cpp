@@ -12,6 +12,12 @@
 #define LEVEL_MAX 32
 #define LIST_MAX 0xFF
 
+// ItemWork::x6 tune levels (the exclusive nibble is read as a byte)
+#define LV_FIRE(it) ((it)->x6 >> 12)
+#define LV_MAG(it) (((it)->x6 >> 8) & 0xF)
+#define LV_SPEED(it) (((it)->x6 >> 4) & 0xF)
+#define LV_EX(it) ((u8) (it)->x6 & 0xF)
+
 MerchantInfo merchant_info_A = {0, -10, -10, -10, -10, 10000, 5, 10, 10, 10, 20, 30, 70, 30, 10};
 
 LevelPrice level_price[] = {
@@ -190,6 +196,12 @@ LevelEntry level_r31a[] = {
 
 LevelEntry level_r31d[] = {
     {0x29, {7, 1, 3, 4}},
+    {0xFFFF},
+};
+
+// declared before its definition so that its size is unknown at the uses (full address, not @sda21)
+extern LevelEntry level_null[];
+LevelEntry level_null[] = {
     {0xFFFF},
 };
 
@@ -617,8 +629,6 @@ PriceEntry g_item_price_tbl[] = {
 };
 
 
-extern LevelEntry level_null[];
-
 static int g_item_price_tbl_num = sizeof(g_item_price_tbl) / sizeof(g_item_price_tbl[0]);
 
 MerchantCharacter merchantChar;
@@ -983,13 +993,16 @@ void stockDataAdd(MerchantData* d, StockEntry* tbl)
     StockEntry* s;
     int i;
 
-    for (i = 0, s = d->stock.e; i < STOCK_MAX && s->id != 0xFFFF; i++, s++) {
+    for (s = d->stock.e, i = 0; i < STOCK_MAX && s->id != 0xFFFF; i++, s++) {
         s->isNew = 0;
     }
     for (; tbl->id != 0xFFFF; tbl++) {
-        int found = 0;
+        int found;
+        int i;
 
-        for (i = 0, s = d->stock.e; i < STOCK_MAX; i++, s++) {
+        s = d->stock.e;
+        found = 0;
+        for (i = 0; i < STOCK_MAX; i++, s++) {
             if (s->id == 0xFFFF) {
                 break;
             }
@@ -1000,16 +1013,21 @@ void stockDataAdd(MerchantData* d, StockEntry* tbl)
             }
         }
         if (!found) {
-            for (i = 0, s = d->stock.e; i < STOCK_MAX; i++, s++) {
+            int added;
+            int i;
+
+            s = d->stock.e;
+            added = 0;
+            for (i = 0; i < STOCK_MAX; i++, s++) {
                 if (s->id == 0xFFFF) {
                     s->id = tbl->id;
                     add_stock(s, tbl);
                     s->isNew = 1;
-                    found = 1;
+                    added = 1;
                     break;
                 }
             }
-            if (!found) {
+            if (!added) {
                 pLog->err(0, 0, "stockDataAdd(): lack of stock table");
             }
         }
@@ -1030,16 +1048,19 @@ void levelDataInit(MerchantData* d)
 void levelDataAdd(MerchantData* d, LevelEntry* tbl)
 {
     LevelEntry* l;
-    int i;
     int j;
+    int i;
 
-    for (i = 0, l = d->level.e; i < LEVEL_MAX && l->id != 0xFFFF; i++, l++) {
+    for (l = d->level.e, i = 0; i < LEVEL_MAX && l->id != 0xFFFF; i++, l++) {
         l->isNew = 0;
     }
     for (; tbl->id != 0xFFFF; tbl++) {
-        int found = 0;
+        int found;
+        int i;
 
-        for (i = 0, l = d->level.e; i < LEVEL_MAX; i++, l++) {
+        l = d->level.e;
+        found = 0;
+        for (i = 0; i < LEVEL_MAX; i++, l++) {
             if (l->id == 0xFFFF) {
                 break;
             }
@@ -1055,19 +1076,23 @@ void levelDataAdd(MerchantData* d, LevelEntry* tbl)
             }
         }
         if (!found) {
-            for (i = 0; i < LEVEL_MAX; i++) {
-                if (d->level.e[i].id == 0xFFFF) {
-                    l = &d->level.e[i];
+            int added;
+            int i;
+
+            l = d->level.e;
+            added = 0;
+            for (i = 0; i < LEVEL_MAX; i++, l++) {
+                if (l->id == 0xFFFF) {
                     l->id = tbl->id;
                     for (j = 0; j < 4; j++) {
                         l->lv[j] = tbl->lv[j];
                     }
                     l->isNew = 1;
-                    found = 1;
+                    added = 1;
                     break;
                 }
             }
-            if (!found) {
+            if (!added) {
                 pLog->err(0, 0, "levelDataAdd(): lack of level table");
             }
         }
@@ -1174,15 +1199,15 @@ int Merchant::stockNum(u16 id)
         }
         return pG->costume != 2 && pG->costume != 3;
     case 0x7D:
-        if (ItemMgr.num(0x7F) == 0 && ItemMgr.num(0x7E) == 0 && ItemMgr.num(0x7D) == 0) {
-            return 1;
+        if (ItemMgr.num(0x7F) != 0 || ItemMgr.num(0x7E) != 0 || ItemMgr.num(0x7D) != 0) {
+            return 0;
         }
-        return 0;
+        return 1;
     case 0x7E:
-        if (ItemMgr.num(0x7F) == 0 && ItemMgr.num(0x7E) == 0) {
-            return 1;
+        if (ItemMgr.num(0x7F) != 0 || ItemMgr.num(0x7E) != 0) {
+            return 0;
         }
-        return 0;
+        return 1;
     case 0x7F:
         return ItemMgr.num(0x7F) == 0;
     }
@@ -1290,19 +1315,18 @@ int Merchant::stockSpecial(u16 id)
 
 int Merchant::specialTunable(ItemWork* item)
 {
-    if (stockSpecial(item->id) == 0 || (item->x6 >> 12) + 1 != WeaponId2MaxLevel(item->id, 0) ||
-        ((item->x6 >> 8) & 0xF) + 1 != WeaponId2MaxLevel(item->id, 1) ||
-        ((item->x6 >> 4) & 0xF) + 1 != WeaponId2MaxLevel(item->id, 2) ||
-        (item->x6 & 0xF) + 1 != WeaponId2MaxLevel(item->id, 3)) {
-        return 0;
+    if (stockSpecial(item->id) != 0 && LV_FIRE(item) + 1 == WeaponId2MaxLevel(item->id, 0) &&
+        LV_MAG(item) + 1 == WeaponId2MaxLevel(item->id, 1) && LV_SPEED(item) + 1 == WeaponId2MaxLevel(item->id, 2) &&
+        LV_EX(item) + 1 == WeaponId2MaxLevel(item->id, 3)) {
+        return 1;
     }
-    return 1;
+    return 0;
 }
 
 int Merchant::specialTuned(ItemWork* item)
 {
-    if ((item->x6 >> 12) + 1 > WeaponId2MaxLevel(item->id, 0) || ((item->x6 >> 8) & 0xF) + 1 > WeaponId2MaxLevel(item->id, 1) ||
-        ((item->x6 >> 4) & 0xF) + 1 > WeaponId2MaxLevel(item->id, 2) || (item->x6 & 0xF) + 1 > WeaponId2MaxLevel(item->id, 3)) {
+    if (LV_FIRE(item) + 1 > WeaponId2MaxLevel(item->id, 0) || LV_MAG(item) + 1 > WeaponId2MaxLevel(item->id, 1) ||
+        LV_SPEED(item) + 1 > WeaponId2MaxLevel(item->id, 2) || LV_EX(item) + 1 > WeaponId2MaxLevel(item->id, 3)) {
         return 1;
     }
     return 0;
@@ -1314,8 +1338,8 @@ int Merchant::tunable(ItemWork* item)
         return 0;
     }
     if (stockSpecial(item->id) == 0) {
-        if ((item->x6 >> 12) + 1 >= levelMax(item->id, 0) && ((item->x6 >> 8) & 0xF) + 1 >= levelMax(item->id, 1) &&
-            ((item->x6 >> 4) & 0xF) + 1 >= levelMax(item->id, 2) && (item->x6 & 0xF) + 1 >= levelMax(item->id, 3)) {
+        if (LV_FIRE(item) + 1 >= levelMax(item->id, 0) && LV_MAG(item) + 1 >= levelMax(item->id, 1) &&
+            LV_SPEED(item) + 1 >= levelMax(item->id, 2) && LV_EX(item) + 1 >= levelMax(item->id, 3)) {
             return 0;
         }
     } else {
@@ -1418,15 +1442,14 @@ int Merchant::makeExerciseList()
 {
     PriceEntry* p = pExer;
     int n;
-    int i;
     int j;
     ItemInfo info;
 
-    for (i = 0; i < LIST_MAX; i++) {
+    for (int i = 0; i < LIST_MAX; i++) {
         exerciseList[i] = 0;
     }
     n = 0;
-    for (i = 0; i < g_item_price_tbl_num; i++, p++) {
+    for (int i = 0; i < g_item_price_tbl_num; i++, p++) {
         ItemWork* item = ItemMgr.search(p->id);
 
         if (item == 0) {
@@ -1494,7 +1517,7 @@ int Merchant::buyupPrice(u16 id, int num)
     f32 rate3 = 0.9f;
 
     if (p == 0) {
-        pLog->err(0, 0, "buyupPrice() : 0x%02x not found", id);
+        pLog->err(0, 0, "buyupPriece() : 0x%02x not found", id);
         return 0;
     }
     n = num * 10;
@@ -1525,20 +1548,22 @@ int Merchant::buyupPrice(ItemWork* item, int num)
 
             switch (type) {
             case 0:
-                lvMax = (item->x6 >> 12) + 1;
+                lvMax = LV_FIRE(item) + 1;
                 break;
             case 1:
-                lvMax = ((item->x6 >> 8) & 0xF) + 1;
+                lvMax = LV_MAG(item) + 1;
                 break;
             case 2:
-                lvMax = ((item->x6 >> 4) & 0xF) + 1;
+                lvMax = LV_SPEED(item) + 1;
                 break;
             case 3:
-                lvMax = (item->x6 & 0xF) + 1;
+                lvMax = LV_EX(item) + 1;
                 break;
             }
             for (lv = 2; lv <= lvMax; lv++) {
-                price += (int) ((f32) levelupPrice(item, type, lv) * 0.5f);
+                f32 rate = 0.5f;
+
+                price += (int) ((f32) levelupPrice(item, type, lv) * rate);
             }
         }
     }
@@ -1585,8 +1610,8 @@ int Merchant::sellPrice(u16 id, int num)
             PriceEntry* e = exerciseItemId(bid);
 
             if (e) {
-                n = m * 10;
-                price += e->price * n;
+                int n2 = m * 10;
+                price += e->price * n2;
             } else {
                 pLog->err(0, 0, "sellPrice() : 0x%02x not found", id);
             }
@@ -1635,74 +1660,92 @@ int Merchant::sell(u16 id, int num, int* money)
     return 0;
 }
 
+// Dead-stripped in the original (STRIP_UNUSED): only its constant pool (0.0f, 0.01f) survives after sell's.
+static f32 merchant_dead_rate(f32 rate)
+{
+    if (rate != 0.0f) {
+        rate = rate * 0.01f;
+    }
+    return rate;
+}
+
 int Merchant::levelupItemNum()
 {
-    LevelEntry* l;
+    LevelEntry* l = level.e;
     int n = 0;
 
-    for (l = level.e; l->id != 0xFFFF; l++) {
-        if (levelPtr(l->id)) {
-            ItemMgr.ordering(l->id);
-            if (ItemMgr.nOrder > 0) {
-                n += ItemMgr.nOrder;
-            } else {
-                n++;
-            }
+    while (l->id != 0xFFFF) {
+        if (levelPtr(l->id) == 0) {
+            l++;
+            continue;
         }
+        ItemMgr.ordering(l->id);
+        if (ItemMgr.nOrder > 0) {
+            n += ItemMgr.nOrder;
+        } else {
+            n++;
+        }
+        l++;
     }
     return n;
 }
 
 LevelEntry* Merchant::levelupItemNo(int no)
 {
-    LevelEntry* l;
+    LevelEntry* l = level.e;
     int cnt = 0;
     int j;
 
-    for (l = level.e; l->id != 0xFFFF; l++) {
-        if (levelPtr(l->id)) {
-            ItemMgr.ordering(l->id);
-            if (ItemMgr.nOrder > 0) {
-                for (j = 0; j < ItemMgr.nOrder; j++) {
-                    if (cnt == no) {
-                        return l;
-                    }
-                    cnt++;
-                }
-            } else {
+    while (l->id != 0xFFFF) {
+        if (levelPtr(l->id) == 0) {
+            l++;
+            continue;
+        }
+        ItemMgr.ordering(l->id);
+        if (ItemMgr.nOrder > 0) {
+            for (j = 0; j < ItemMgr.nOrder; j++) {
                 if (cnt == no) {
                     return l;
                 }
                 cnt++;
             }
+        } else {
+            if (cnt == no) {
+                return l;
+            }
+            cnt++;
         }
+        l++;
     }
     return 0;
 }
 
 ItemWork* Merchant::levelupItemPtr(int no)
 {
-    LevelEntry* l;
+    LevelEntry* l = level.e;
     int cnt = 0;
     int j;
 
-    for (l = level.e; l->id != 0xFFFF; l++) {
-        if (levelPtr(l->id)) {
-            ItemMgr.ordering(l->id);
-            if (ItemMgr.nOrder > 0) {
-                for (j = 0; j < ItemMgr.nOrder; j++) {
-                    if (cnt == no) {
-                        return ItemMgr.pOrder[j].item;
-                    }
-                    cnt++;
-                }
-            } else {
+    while (l->id != 0xFFFF) {
+        if (levelPtr(l->id) == 0) {
+            l++;
+            continue;
+        }
+        ItemMgr.ordering(l->id);
+        if (ItemMgr.nOrder > 0) {
+            for (j = 0; j < ItemMgr.nOrder; j++) {
                 if (cnt == no) {
-                    return 0;
+                    return ItemMgr.pOrder[j].item;
                 }
                 cnt++;
             }
+        } else {
+            if (cnt == no) {
+                return 0;
+            }
+            cnt++;
         }
+        l++;
     }
     return 0;
 }

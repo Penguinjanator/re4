@@ -35,7 +35,7 @@ int isSelfUse = 1;
 int g_SelfShdNum = 0;
 f32 shadow_cammove_size = 1.0f;
 f32 shadow_add_dir_x_default = 0.1f;
-f32 shadow_add_dir_x = shadow_add_dir_x_default;
+volatile f32 shadow_add_dir_x = shadow_add_dir_x_default;
 static int g_Shd_num;
 static cObj** g_objTbl;
 int g_objNum;
@@ -44,21 +44,32 @@ ShadowMng* ShadowMngWork;
 static GXLightObj* light_obj;
 
 static void drawTexture2(GXTexObj* tex, s16 x, s16 y, s16 z, s16 w, s16 h);
+static inline void U16Set(u16& d, u16 v) { d = v; }
+// Flag test through a reference: the load is a plain scalar access that the scheduler keeps
+// below the preceding stores (a member read of pG is hoisted above them).
+static inline u32 BitChk(u32& f, u32 b) { return f & b; }
+static inline void PSet(cObj**& d, cObj** v) { d = v; }
+static inline void VSet(void*& d, void* v) { d = v; }
 
 // Light origin of `m`: lightInfo.ofs in the space of the coord lightInfo.x52 selects.
+// cLightInfo accessors: the address argument is a fresh `&m->lightInfo` computation at each
+// use, which gcse's PRE turns into the copies of the first one the original has.
+static inline int LightInfoParts(cLightInfo* li) { return li->x52; }
+static inline u8 LightInfoShape(cLightInfo* li) { return li->x51; }
+
 #define SHD_LIGHT_POS(m, pos, msg)                                                  \
     {                                                                               \
         cLightInfo* li = &(m)->lightInfo;                                           \
         if (li->x52 > 0) {                                                          \
             cModel* p = (m)->getPartsPtr(li->x52 - 1);                              \
             if ((u32) p < 0x80000000 || (u32) p > 0x82FFFFFF) {                     \
-                pLog->err(0, 0, msg, li->x52);                                      \
+                pLog->err(0, 0, msg, LightInfoParts(&(m)->lightInfo));              \
                 p = (m);                                                            \
             }                                                                       \
             PSMTXMultVecSR(p->mat, &li->ofs, &(pos));                               \
             PSVECAdd(&(pos), &p->worldPos, &(pos));                                 \
         } else {                                                                    \
-            PSMTXMultVecSR((m)->mat, &li->ofs, &(pos));                             \
+            PSMTXMultVecSR((m)->mat, &(m)->lightInfo.ofs, &(pos));                  \
             PSVECAdd(&(pos), &(m)->pos, &(pos));                                    \
         }                                                                           \
     }
@@ -91,23 +102,24 @@ ShadowMng* GetSelfShadowMng(int no)
 int ShdInit(ShdHeader* data)
 {
     u32* ofsTbl;
+    ShdEntry* e;
     int i;
 
     if (data == 0) {
-        g_objTbl = 0;
         g_objNum = 0;
+        g_objTbl = 0;
         return 0;
     }
     if (data->version > 0x41) {
-        pLog->err(0, 0, "ShdInit() INVALID VERSION[%x]");
+        pLog->err(0, 0, "ShdInit() INVALID VERSION[%x]", data->version);
         return 0;
     }
     g_objNum = data->num;
 #line 185 "D:/Bio4/Prog/shadow.cpp"
-    g_objTbl = (cObj**) MEM_CALLOC(data->num * 4, 1, 13);
+    PSet(g_objTbl, (cObj**) MEM_CALLOC(data->num * 4, 1, 13));
     ofsTbl = (u32*) ((u8*) data + data->tblOfs);
+    e = data->entry;
     for (i = 0; i < data->num; i++) {
-        ShdEntry* e = &data->entry[i];
         cObj* obj = ObjMgr.create();
         if (obj == 0) {
             continue;
@@ -118,7 +130,7 @@ int ShdInit(ShdHeader* data)
                 e->shdCol = 0xFF;
             }
         }
-        if (obj->modelInit((u8*) ofsTbl + ofsTbl[e->model], (u8*) pG->pArc + pG->pArc->ofs_10) == 0) {
+        if (obj->modelInit((u8*) ofsTbl + ofsTbl[e->model], (void*) (pG->pArc->ofs_10 + (u32) pG->pArc)) == 0) {
             ObjMgr.destroy(obj);
             continue;
         }
@@ -127,6 +139,7 @@ int ShdInit(ShdHeader* data)
         obj->pos = e->pos;
         obj->rot = e->rot;
         obj->scale = e->scale;
+        e++;
         {
             ModelBound* bound = &obj->pInfo->bound;
             Vec size;
@@ -144,13 +157,11 @@ int ShdInit(ShdHeader* data)
 
 cObj* ShdGetObjPtr(int no)
 {
-    int id = no;
-
-    if (id >= g_objNum) {
-        pLog->err(0, 0, "SgdGetObjPtr() id over %d");
-        id = 0;
+    if (no >= g_objNum) {
+        pLog->err(0, 0, "SgdGetObjPtr() id over %d", no);
+        no = 0;
     }
-    return g_objTbl[id];
+    return g_objTbl[no];
 }
 
 void ShadowInit()
@@ -228,23 +239,24 @@ ShadowMng* getShadowMng()
         return 0;
     }
     mng = &ShadowMngWork[g_Shd_num];
+    U16Set(mng->no, g_Shd_num);
     mng->num = 0;
-    mng->no = g_Shd_num;
     g_Shd_num++;
     return mng;
 }
 
 void ShadowTrans()
 {
-    int found = 0;
+    int found;
     cLight* l;
     cEm* em;
     cObj* obj;
     int cnt;
+    int cnt2;
 
     g_Shd_num = 0;
     g_SelfShdNum = 0;
-    if (pG->flags_58 & 0x02000000) {
+    if (BitChk(pG->flags_58, 0x02000000)) {
         return;
     }
     if (pG->flags_58 & 0x8000) {
@@ -255,6 +267,7 @@ void ShadowTrans()
     BitOff(pG->flags_5010, 0x4000);
     BitOff(pG->flags_5014, 0x00100000);
 
+    found = 0;
     l = LightMgr.pAlive;
     cnt = 0;
     while (l) {
@@ -302,15 +315,15 @@ void ShadowTrans()
     }
 
     em = EmMgr.pAlive;
-    cnt = 0;
+    cnt2 = 0;
     while (em) {
-        if (cnt != 0) {
+        if (cnt2 != 0) {
             em = (cEm*) em->next;
             if (em == 0) {
                 break;
             }
         } else {
-            cnt++;
+            cnt2++;
         }
         if ((em->be_flag & 3) != 3) {
             continue;
@@ -351,15 +364,15 @@ void ShadowTrans()
     }
 
     obj = ObjMgr.pAlive;
-    cnt = 0;
+    cnt2 = 0;
     while (obj) {
-        if (cnt != 0) {
+        if (cnt2 != 0) {
             obj = (cObj*) obj->next;
             if (obj == 0) {
                 break;
             }
         } else {
-            cnt++;
+            cnt2++;
         }
         if ((obj->be_flag & 3) != 3) {
             continue;
@@ -458,10 +471,10 @@ int Fit_ParallelShadowModelSet(cModel* m, int self)
         }
         if (g_Shd_num == SHADOW_NUM_MAX) {
             pLog->warn(0, 0, "ShadowModelSet():SHADOW NUM MAX!!");
-            break;
+            return ret;
         }
-        ret = 1;
         Fit_ParallelShadowModelAddOt(l, m, self);
+        ret = 1;
     }
     return ret;
 }
@@ -606,7 +619,7 @@ void shadowModelRender(ShadowMng* mng)
     pG->flags_5010 |= 0x100;
     if (mng->pTex == 0) {
 #line 846 "D:/Bio4/Prog/shadow.cpp"
-        mng->pTex = MEM_ALLOC(g_Shd_tex_size * g_Shd_tex_size, 1, 13);
+        VSet(mng->pTex, MEM_ALLOC(g_Shd_tex_size * g_Shd_tex_size, 1, 13));
         DCInvalidateRange(mng->pTex, g_Shd_tex_size * g_Shd_tex_size);
         if (mng->pTex == 0) {
             pLog->warn(0, 0, "ShadowModelRender() : not enough memory");
@@ -621,6 +634,7 @@ void make_comn_fit_light(ShadowMng* mng, cModel* m)
 {
     cLight* l = mng->pLight;
     ShadowLightWork* w = (ShadowLightWork*) l->work;
+    Vec pos;
     f32 dist;
     f32 r;
 
@@ -630,28 +644,25 @@ void make_comn_fit_light(ShadowMng* mng, cModel* m)
         l->getPos(&mng->lightPos);
     }
     mng->target = m->pos;
-    {
-        Vec pos;
-        SHD_LIGHT_POS(m, pos, "LightHitCheck() cCoord NO ERR %d");
-        mng->target = pos;
-    }
+    SHD_LIGHT_POS(m, pos, "LightHitCheck() cCoord NO ERR %d");
+    mng->target = pos;
     PSVECSubtract(&mng->target, &mng->lightPos, &mng->dir);
     dist = PSVECMag(&mng->dir);
 #line 916 "D:/Bio4/Prog/shadow.cpp"
     VECNormalize(&mng->dir, &mng->dir);
-    switch (m->lightInfo.x51 & 3) {
-    case 0:
-        r = m->lightInfo.size.y + m->lightInfo.size.y * 0.1f + 200.0f;
-        break;
+    switch (LightInfoShape(&m->lightInfo) & 3) {
     case 1:
         r = m->lightInfo.size.x + m->lightInfo.size.x * 0.1f + 200.0f;
+        break;
+    case 0:
+        r = m->lightInfo.size.y + m->lightInfo.size.y * 0.1f + 200.0f;
         break;
     default:
         r = SQRTF(m->lightInfo.size.x * m->lightInfo.size.x + m->lightInfo.size.y * m->lightInfo.size.y) * 1.15f + 100.0f;
         break;
     }
     mng->fov = atan2f(r, dist) * (360.0f / PI);
-    mng->fov -= w->x18;
+    mng->fov -= (f32) (int) w->x18;
     if (mng->fov < 1.0f) {
         mng->fov = 1.0f;
     }
@@ -676,26 +687,25 @@ void make_comn_fit_light(ShadowMng* mng, cModel* m)
 void make_comn_parallel_light(ShadowMng* mng, cModel* m)
 {
     cLight* l = mng->pLight;
-    ShadowLightWork* w = (ShadowLightWork*) l->work;
+    ShadowLightWork* w;
     Vec rot;
     Vec v;
     Mtx rm;
+    Vec pos;
     f32 dist;
     f32 r;
 
-    {
-        Vec pos;
-        SHD_LIGHT_POS(m, pos, "LightHitCheck() cCoord NO ERR %d");
-        mng->target = pos;
-    }
+    SHD_LIGHT_POS(m, pos, "LightHitCheck() cCoord NO ERR %d");
+    mng->target = pos;
     mng->lightPos = mng->target;
     mng->dir.x = shadow_add_dir_x;
     mng->dir.y = -1.0f;
     mng->dir.z = shadow_add_dir_x;
     PSVECNormalize(&mng->dir, &mng->dir);
+    w = (ShadowLightWork*) l->work;
+    rot.z = 0.0f;
     rot.x = (f32) w->rotX * 6.2831855f / 360.0f;
     rot.y = (f32) w->rotY * 6.2831855f / 360.0f;
-    rot.z = 0.0f;
     RotMatrix(rm, &rot);
     PSMTXMultVecSR(rm, &mng->dir, &v);
     PSVECScale(&v, &v, -5000.0f);
@@ -704,12 +714,12 @@ void make_comn_parallel_light(ShadowMng* mng, cModel* m)
     dist = PSVECMag(&mng->dir);
 #line 1022 "D:/Bio4/Prog/shadow.cpp"
     VECNormalize(&mng->dir, &mng->dir);
-    switch (m->lightInfo.x51 & 3) {
-    case 0:
-        r = m->lightInfo.size.y + m->lightInfo.size.y * 0.2f + 200.0f;
-        break;
+    switch (LightInfoShape(&m->lightInfo) & 3) {
     case 1:
         r = m->lightInfo.size.x + m->lightInfo.size.x * 0.2f + 200.0f;
+        break;
+    case 0:
+        r = m->lightInfo.size.y + m->lightInfo.size.y * 0.2f + 200.0f;
         break;
     default:
         r = SQRTF(m->lightInfo.size.x * m->lightInfo.size.x + m->lightInfo.size.y * m->lightInfo.size.y + m->lightInfo.size.z * m->lightInfo.size.z) * 1.2f + 200.0f;

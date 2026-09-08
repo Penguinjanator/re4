@@ -373,6 +373,11 @@ int EspPlWaterCall(int type, Vec* pos);
 // game/Espgen42.cpp
 int GetWaterHeight(Vec* pos, f32* height);
 extern "C" void AddWaterPower(Vec* pos, f32 power);
+extern "C" {
+void EspWaterInit();
+void Espgen42SetNoWater(int on);
+int GetWaterCrossPos(Vec* pos, Vec* dir, Vec* out);
+}
 // game/Espgen43.cpp
 extern "C" {
 int GetSandHeight(Vec* pos, f32* height);
