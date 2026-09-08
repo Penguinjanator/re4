@@ -102,14 +102,14 @@ extern f32 ZFAR;
     tileW = sx / w->rateX;                                                                           \
     if (w->ofsX != 0.0f) {                                                                        \
         if (w->ofsY != 0.0f) {                                                                    \
-            x = x0;                                                                               \
-            y = y0;                                                                               \
-            x1 = x + tileW * w->ofsX;                                                             \
-            y1 = y + tileH * w->ofsY;                                                             \
-            ss0 = s0 + ds * (1.0f - w->ofsX);                                                     \
-            st0 = t0 + dt * (1.0f - w->ofsY);                                                     \
-            ss1 = s1;                                                                             \
-            st1 = t1;                                                                             \
+            x = x0;                                                                           \
+            y = y0;                                                                           \
+            x1 = x + tileW * w->ofsX;                                                         \
+            y1 = y + tileH * w->ofsY;                                                         \
+            ss0 = s0 + ds * (1.0f - w->ofsX);                                                 \
+            st0 = t0 + dt * (1.0f - w->ofsY);                                                 \
+            ss1 = s1;                                                                         \
+            st1 = t1;                                                                         \
             if (!ind) {                                                                           \
                 ESP08_QUAD(x, y, x1, y1, ss0, st0, ss1, st1)                                      \
             }                                                                                               \
@@ -147,8 +147,7 @@ extern f32 ZFAR;
             }                                                                                     \
             if (!ind) {                                                                           \
                 ESP08_QUAD(x0, y, x1, y1, ss0, t0, s1, st1)                                       \
-            }                                                                                               \
-            if (ind) {                                                                        \
+            } else {                                                                          \
                 ESP08_QUAD2(x0, y, x1, y1, ss0, t0, s1, st1, u0, v0, u0 + du, v0 + dv)            \
             }                                                                                     \
             y = y1;                                                                               \
@@ -181,8 +180,7 @@ extern f32 ZFAR;
             }                                                                                     \
             if (!ind) {                                                                           \
                 ESP08_QUAD(x, y0, x1, y1, s0, st0, ss1, t1)                                       \
-            }                                                                                               \
-            if (ind) {                                                                        \
+            } else {                                                                          \
                 ESP08_QUAD2(x, y0, x1, y1, s0, st0, ss1, t1, u0, v0, u0 + du, v0 + dv)            \
             }                                                                                     \
             x = x1;                                                                               \
@@ -235,8 +233,7 @@ extern f32 ZFAR;
             }                                                                                     \
             if (!ind) {                                                                           \
                 ESP08_QUAD(x, y, x1, y1, s0, t0, ss1, st1)                                        \
-            }                                                                                               \
-            if (ind) {                                                                        \
+            } else {                                                                          \
                 ESP08_QUAD2(x, y, x1, y1, s0, t0, ss1, st1, u0, v0, u0 + du, v0 + dv)             \
             }                                                                                     \
             x = x1;                                                                               \
@@ -340,6 +337,52 @@ extern f32 ZFAR;
 cEsp* Esp08_Create()
 {
     return new cEsp08;
+}
+
+void cEsp08::move()
+{
+    Esp08Work* w = &work;
+
+    if (w->fadeFrames != 0) {
+        colA = w->colA0;
+    }
+    if (CommonMove()) {
+        if (!AnmMove()) {
+            PushEsp(this);
+            return;
+        }
+        w->ofsX += w->spdX;
+        w->ofsY += w->spdY;
+        while (w->ofsX > 1.0f) {
+            w->ofsX -= 1.0f;
+        }
+        while (w->ofsY > 1.0f) {
+            w->ofsY -= 1.0f;
+        }
+        while (w->ofsX < 0.0f) {
+            w->ofsX += 1.0f;
+        }
+        while (w->ofsY < 0.0f) {
+            w->ofsY += 1.0f;
+        }
+        if (w->fadeFrames != 0) {
+            if (pG->flags_5010 & 0x02000000) {
+                w->fadeCnt++;
+            } else {
+                if (w->fadeCnt == 0) {
+                    return;
+                }
+                w->fadeCnt--;
+            }
+            if (w->fadeCnt == 0) {
+                return;
+            }
+            if (w->fadeCnt >= w->fadeFrames) {
+                w->fadeCnt = w->fadeFrames;
+            }
+            colA = w->colA0 * (1.0f - (f32) w->fadeCnt / (f32) (int) w->fadeFrames);
+        }
+    }
 }
 
 void Esp08_Trans(cEsp08* esp)
@@ -614,10 +657,11 @@ void Esp08_TransShimmer(cEsp08* esp, int type)
         GXLoadTexMtxImm(tm, 0x1E, 1);
         GXSetTexCoordGen(0, 1, 0, 0x1E);
     } else {
+        f32 fovy = pG->Cam.param.fovy;
         if (pG->flags_54 & 0x800) {
-            C_MTXLightPerspective(pm, pG->Cam.param.fovy, 1.3333334f, 0.5f, -0.6666667f, 0.5f, 0.5f);
+            C_MTXLightPerspective(pm, fovy, 1.3333334f, 0.5f, -0.6666667f, 0.5f, 0.5f);
         } else {
-            C_MTXLightPerspective(pm, pG->Cam.param.fovy, 1.3333334f, 0.5f, -0.5f, 0.5f, 0.5f);
+            C_MTXLightPerspective(pm, fovy, 1.3333334f, 0.5f, -0.5f, 0.5f, 0.5f);
         }
         PSMTXConcat(pm, esp->mat, tm);
         GXLoadTexMtxImm(tm, 0x1E, 0);
@@ -640,7 +684,7 @@ void Esp08_TransShimmer(cEsp08* esp, int type)
         static f32 prm1 = 0.5f;
         static f32 prm2 = 0.0f;
         static f32 prm3 = 0.0f;
-        static f32 prm4 = Screen.height * 0.5f / Screen.width;
+        static f32 prm4 = Screen.width * 0.5f / Screen.width;   // sic (esp_sub uses height)
 
         indMtx[0][0] = prm1;
         indMtx[0][1] = prm2;
@@ -695,52 +739,6 @@ void Esp08_TransShimmer(cEsp08* esp, int type)
     GXSetTevDirect(0);
     GXSetTevDirect(1);
     LightMgr.setFog();
-}
-
-void cEsp08::move()
-{
-    Esp08Work* w = &work;
-
-    if (w->fadeFrames != 0) {
-        colA = w->colA0;
-    }
-    if (CommonMove()) {
-        if (!AnmMove()) {
-            PushEsp(this);
-            return;
-        }
-        w->ofsX += w->spdX;
-        w->ofsY += w->spdY;
-        while (w->ofsX > 1.0f) {
-            w->ofsX -= 1.0f;
-        }
-        while (w->ofsY > 1.0f) {
-            w->ofsY -= 1.0f;
-        }
-        while (w->ofsX < 0.0f) {
-            w->ofsX += 1.0f;
-        }
-        while (w->ofsY < 0.0f) {
-            w->ofsY += 1.0f;
-        }
-        if (w->fadeFrames != 0) {
-            if (pG->flags_5010 & 0x02000000) {
-                w->fadeCnt++;
-            } else {
-                if (w->fadeCnt == 0) {
-                    return;
-                }
-                w->fadeCnt--;
-            }
-            if (w->fadeCnt == 0) {
-                return;
-            }
-            if (w->fadeCnt >= w->fadeFrames) {
-                w->fadeCnt = w->fadeFrames;
-            }
-            colA = w->colA0 * (1.0f - (f32) w->fadeCnt / (f32) (int) w->fadeFrames);
-        }
-    }
 }
 
 int cEsp08::SetFreeWork(EspGenWork* gen, u32* seed)

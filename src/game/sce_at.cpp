@@ -138,6 +138,12 @@ static inline u32 saveItemBase(int ofs)
 {
     return (u32) pG + ofs;
 }
+// em_dead row address as an integer (the original adds the list offset after the row index).
+static inline u32 emDeadRow(int n)
+{
+    return n * 32 + (u32) pG + 0x501C;
+}
+#define EM_DEAD_BIT(n, i) (*(u32*) (((i) << 2) + emDeadRow(n)))
 #define SAVE_ITEM_HALF(i, ofs) (*(u16*) (saveItemBase(ofs) + ((i) << 4)))
 #define SAVE_ITEM_ROOM(i) SAVE_ITEM_HALF(i, 0x72EC)
 #define SAVE_ITEM_ID(i) SAVE_ITEM_HALF(i, 0x72EE)
@@ -1847,7 +1853,7 @@ void SceAtCheckHideProc()
     ScePrim* p;
 
     while ((w = sceAtGetOtAddr(w)) != 0) {
-        off = bitOff(w->flag);
+        off = !(w->flag & 1);
         if (off) {
             continue;
         }
@@ -1856,12 +1862,11 @@ void SceAtCheckHideProc()
         }
         step = w->hide.step;
         if (step != 0) {
-            break;
+            goto FOUND;
         }
     }
-    if (w == 0) {
-        return;
-    }
+    return;
+FOUND:
     switch (step) {
     case 0:
         break;
@@ -1925,7 +1930,8 @@ static int sceAtFunc_pos_jump(SceAtWork* w, cModel* m)
     Vec rot;
 
     pPL->setPos(&w->jumpPos);
-    rot.x = rot.z = 0.0f;
+    rot.x = 0.0f;
+    rot.z = 0.0f;
     rot.y = w->dstAngle;
     pPL->setAng(&rot);
     CamCtrl.qfps.setPlayerLocation(pPL->mat, pPL->pFloorNrm);
@@ -1982,7 +1988,11 @@ void SceAtRoomSet()
         case 0x10:
             if (!(w->x38 & 8)) {
                 w->x38 = (w->x38 & 0x80) | 8;
-                w->x4A = (w->ladder.level <= 0) ? 8 : 9;
+                if (w->ladder.level > 0) {
+                    w->x4A = 8;
+                } else {
+                    w->x4A = 9;
+                }
                 w->x44 = 5;
             }
             break;
@@ -2024,20 +2034,16 @@ void SceAtRoomSet()
 void sceAtSetScrAt(SceAtWork* w)
 {
     Vec pos;
-    Vec rot;
-    Vec poly[4];
     f32 h;
-    SceAtScrAt* s = &w->scr;
 
     if (w->area.type != 1) {
         return;
     }
-    if (s->created != 0) {
+    if (w->scr.created != 0) {
         return;
     }
-    rot.x = 0.0f;
-    rot.y = 0.0f;
-    rot.z = 0.0f;
+    Vec rot = { 0.0f, 0.0f, 0.0f };
+    Vec poly[4];
     if (w->pParent != 0) {
         cModel* p = w->pParent;
 
@@ -2072,16 +2078,16 @@ void sceAtSetScrAt(SceAtWork* w)
         poly[3].z = w->area.u.xz4.p[3].z - w->area.u.xz4.p[0].z;
     }
     h = w->area.u.xz4.h;
-    if (!(s->flags & 2)) {
-        if (!(s->flags & 4)) {
-            s->attr |= 0x40;
+    if (!(w->scr.flags & 2)) {
+        if (!(w->scr.flags & 4)) {
+            w->scr.attr |= 0x40;
         }
-        s->pSat = SatMgr.create(&pos, &rot, poly, s->attr, s->flag, h);
+        w->scr.pSat = SatMgr.create(&pos, &rot, poly, w->scr.attr, w->scr.flag, h);
     }
-    if (bitOff(s->flags)) {
-        s->pEat = EatMgr.create(&pos, &rot, poly, s->attr2, s->flag, h);
+    if (bitOff(w->scr.flags)) {
+        w->scr.pEat = EatMgr.create(&pos, &rot, poly, w->scr.attr2, w->scr.flag, h);
     }
-    s->created = 1;
+    w->scr.created = 1;
 }
 
 void sceAtDeleteScrAt(SceAtWork* w)
@@ -2142,21 +2148,11 @@ int sceAtPullAtNo(u8* out)
 
     memclr_asm(used, sizeof(used));
     w = sceAtSetOtStart();
-    goto TEST;
-BODY:
-    {
-        u32* f = used;
-
-        f[w->no >> 5] |= 0x80000000 >> (w->no & 31);
-    }
-TEST:
-    if ((w = sceAtGetOtAddr(w)) != 0) {
-        goto BODY;
+    while ((w = sceAtGetOtAddr(w)) != 0) {
+        ((u32*) used)[w->no >> 5] |= 0x80000000 >> (w->no & 31);
     }
     for (i = 0; i < 256; i++) {
-        u32* f = used;
-
-        if (!(f[i >> 5] & (0x80000000 >> (i & 31)))) {
+        if (!(((u32*) used)[i >> 5] & (0x80000000 >> (i & 31)))) {
             *out = i;
             return 1;
         }
@@ -2514,7 +2510,7 @@ int SceAtSearchLadder(cModel* m, Vec* pos, f32* ang, u8* level)
 {
     SceAtWork* w;
     SceAtLadder* l;
-    SceAtLadder* found = 0;
+    SceAtLadder* found;
     f32 best;
     f32 d;
 
@@ -2522,6 +2518,7 @@ int SceAtSearchLadder(cModel* m, Vec* pos, f32* ang, u8* level)
         return 0;
     }
     best = 4000000.0f;
+    found = 0;
     w = sceAtSetOtStart();
     while ((w = sceAtGetOtAddr(w)) != 0) {
         if (bitOff(w->flag)) {
@@ -3259,12 +3256,12 @@ void sceAtLink_check()
 {
     cEm* em;
     SceAtWork* w = sceAtSetOtStart();
-    SceAtItem* it;
     int flag;
 
     while ((w = sceAtGetOtAddr(w)) != 0) {
-        it = &w->item;
         switch (w->linkType) {
+        case 0:
+            break;
         case 1:
             em = GetEmPtrFromList(w->linkNo);
             if (em != 0) {
@@ -3275,11 +3272,10 @@ void sceAtLink_check()
                 }
             } else {
                 u32 d;
+                int no = w->linkNo;
 
                 if (pG->emlist_no >= 0) {
-                    u32* row = pG->em_dead[pG->emlist_no];
-
-                    d = row[w->linkNo >> 5] & (0x80000000 >> (w->linkNo & 31));
+                    d = EM_DEAD_BIT(pG->emlist_no, no >> 5) & (0x80000000 >> (no & 31));
                 } else {
                     d = 0;
                 }
@@ -3292,14 +3288,14 @@ void sceAtLink_check()
                 if (w->flag & 1) {
                     SceAtSetEnable(w->no, 0);
                 } else if (w->x35 == 3) {
-                    if (it->effType == 0 || it->effType == 6) {
-                        it->effType = sceAtCheckItemEffectCol(it->id);
+                    if (w->item.effType == 0 || w->item.effType == 6) {
+                        w->item.effType = sceAtCheckItemEffectCol(w->item.id);
                     }
-                    if (sceAtCheckSaveItem(it->id) == 0) {
+                    if (sceAtCheckSaveItem(w->item.id) == 0) {
                         SceAtSetEnable(w->no, 1);
-                        sceAtItemFlgOn(it);
-                        it->timer = 0x3D;
-                        it->flag2 |= 0x20;
+                        sceAtItemFlgOn(&w->item);
+                        w->item.timer = 0x3D;
+                        w->item.flag2 |= 0x20;
                     } else {
                         SceAtSetEnable(w->no, 1);
                     }
@@ -3309,15 +3305,17 @@ void sceAtLink_check()
                 w->linkType = 0;
                 w->linkNo = 0;
             }
-            if (w->x35 == 3 && bitOff(it->flag2)) {
+            if (w->x35 == 3 && bitOff(w->item.flag2)) {
                 em = GetEmPtrFromList(w->linkNo);
-                if (em != 0 && bitOff(it->flag2)) {
+                if (em != 0 && bitOff(w->item.flag2)) {
                     SceAtSetEmItem(em, w);
                 }
             }
             break;
-        case 2:
-            if (getRoomEtcBreak(w->linkNo, &em, 0) == 1) {
+        case 2: {
+            cEm* etc;
+
+            if (getRoomEtcBreak(w->linkNo, &etc, 0) == 1) {
                 if (*GetEtcFlgPtr(w->linkNo, pG->room_id) & 1) {
                     if (w->flag & 1) {
                         SceAtSetEnable(w->no, 0);
@@ -3331,6 +3329,7 @@ void sceAtLink_check()
                 pLog->err(4, 0, "ITEM SET[%d] failed: ETC[%d] not found", w->no - 0x80, w->linkNo);
             }
             break;
+        }
         }
     }
 }
@@ -3610,38 +3609,39 @@ int SceAtCheckSystemItemSet(u32 id, int* outId, int* outNum, Vec* pos, Vec* rot)
     switch (id) {
     case 0x1000:
         d.id = 0x24;
+        d.type = 0;
         d.x3 = 0;
         d.flags4 = 1;
-        d.type = 0;
         d.pos[0] = (s16) (pos->x / 10.0f);
         d.pos[1] = (s16) (pos->y / 10.0f);
         d.pos[2] = (s16) (pos->z / 10.0f);
         if (rot->z > 0.0f) {
-            d.rot[0] = (s16) (rot->x * 57.295776f) * 0x8000 / 180;
-            d.rot[1] = (s16) (rot->y * 57.295776f) * 0x8000 / 180;
+            d.rot[0] = (s16) (rot->x * 57.295776f) * 0x8000 / 360;
+            d.rot[1] = (s16) (rot->y * 57.295776f) * 0x8000 / 360;
             d.rot[2] = 0;
         } else {
-            d.rot[2] = 0;
             d.rot[0] = 0;
             d.rot[1] = 0;
+            d.rot[2] = 0;
         }
         d.hp = 1000;
         d.x1A = 1;
         d.xB = 0;
         EmSetEvent(&d);
-        break;
+        goto fail;
     case 0x1001:
         if (RandomItemCk(0x10, outId, outNum, 0) == 1) {
-            return 1;
+            break;
         }
-        break;
+        goto fail;
     case 0x1002:
         if (RandomItemCk(0x10, outId, outNum, 1) == 1) {
-            return 1;
+            break;
         }
-        break;
+        goto fail;
     case 0x1003:
         switch (pG->x4FB8) {
+        default:
         case 0:
             no = 0x18;
             num = 0xF;
@@ -3658,17 +3658,14 @@ int SceAtCheckSystemItemSet(u32 id, int* outId, int* outNum, Vec* pos, Vec* rot)
         case 5:
             *outId = 1;
             *outNum = 1;
-            return 1;
-        default:
-            no = 0x18;
-            num = 0xF;
-            break;
+            goto ok;
         }
         *outId = no;
         *outNum = num;
-        return 1;
+        break;
     case 0x1004:
         switch (pG->x4FB8) {
+        default:
         case 0:
             no = 0x18;
             num = 0xA;
@@ -3689,14 +3686,10 @@ int SceAtCheckSystemItemSet(u32 id, int* outId, int* outNum, Vec* pos, Vec* rot)
             no = 0;
             num = 5;
             break;
-        default:
-            no = 0x18;
-            num = 0xA;
-            break;
         }
         *outId = no;
         *outNum = num;
-        return 1;
+        break;
     case 0x1005:
         switch (pG->x4FB8) {
         case 0:
@@ -3707,13 +3700,13 @@ int SceAtCheckSystemItemSet(u32 id, int* outId, int* outNum, Vec* pos, Vec* rot)
             no = 4;
             num = 0x14;
             break;
-        case 3:
-            no = 0x20;
-            num = 0x19;
-            break;
         case 4:
             no = 0xE;
             num = 1;
+            break;
+        case 3:
+            no = 0x20;
+            num = 0x19;
             break;
         case 5:
             no = 4;
@@ -3726,15 +3719,18 @@ int SceAtCheckSystemItemSet(u32 id, int* outId, int* outNum, Vec* pos, Vec* rot)
         }
         *outId = no;
         *outNum = num;
-        return 1;
+        break;
     default:
         if (id <= 0xFFF) {
             *outId = id;
             *outNum = 0;
-            return 1;
+            break;
         }
-        break;
+        goto fail;
     }
+ok:
+    return 1;
+fail:
     *outId = 0xFFFF;
     *outNum = 0;
     return 0;

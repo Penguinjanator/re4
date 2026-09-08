@@ -94,6 +94,17 @@ static inline int IRef(int& v)
     return v;
 }
 
+static inline SystemWork* SysRef(SystemWork*& p)
+{
+    return p;
+}
+
+// Through a pointer parameter: `&Fade[2]` stays a loop-invariant pseudo (`addi rX, Fade+0x48@l`).
+static inline int fadeIsOn(FadeWork* f)
+{
+    return f->flags & 1;
+}
+
 #define SYS_FLAG_TBL ((u32*) &pSys->x4)
 
 // Struct-member view of pSys (the pLog trick): its load stays below preceding stores through `wk`.
@@ -233,7 +244,7 @@ int MercSysInitRoom(MercInit* pMInit)
     CamCtrl.Comeback(0);
     SceExec(0x12, (TaskFunc) MercSysMoveMain, (int) wk, 4, 2, 0);
     {
-        const int strTbl[5] = {0x3F, 0x40, 0x41, 0x42, 0x3D};
+        int strTbl[5] = {0x3F, 0x40, 0x41, 0x42, 0x3D};
 
         wk->strId = SndStrReq(0, strTbl[wk->mode], 0x80000003, 0, 0, 0.0f);
     }
@@ -663,7 +674,7 @@ int MercSysResultMove(MercSysWork* wk)
                 }
                 break;
             case 4:
-                if (!(Fade[2].flags & 1)) {
+                if (fadeIsOn(&Fade[2]) == 0) {
                     pRslt->quit();
                     delete pRslt;
                     swap.SwapIn();
@@ -692,8 +703,10 @@ void MercSysGetSaveWork(MercSaveWork* save)
     int i;
     int j;
 
+    // pSys read through a reference: its load is not hoisted above the stores through `save`
+    // (a plain pSys is a fixed scalar that a varying struct store never aliases).
     for (i = 0; i < 4; i++) {
-        u32 w = pSys->x10[i];
+        u32 w = SysRef(pSys)->x10[i];
 
         save->stage[i].score = (w & 0x0FFFFFFF) * 10;
         save->stage[i].mode = (w >> 28) & 7;
@@ -701,13 +714,13 @@ void MercSysGetSaveWork(MercSaveWork* save)
         for (j = 0; j < 5; j++) {
             int r = 0;
 
-            if (flagCk(pSys->x20, i * 15 + j * 3)) {
+            if (flagCk(SysRef(pSys)->x20, i * 15 + j * 3)) {
                 r = 4;
             }
-            if (flagCk(pSys->x20, i * 15 + j * 3 + 1)) {
+            if (flagCk(SysRef(pSys)->x20, i * 15 + j * 3 + 1)) {
                 r |= 2;
             }
-            if (flagCk(pSys->x20, i * 15 + j * 3 + 2)) {
+            if (flagCk(SysRef(pSys)->x20, i * 15 + j * 3 + 2)) {
                 r |= 1;
             }
             save->rank[j][i] = r;
@@ -721,19 +734,19 @@ void MercSysSetSaveWork(MercSaveWork* save)
     int j;
 
     for (i = 0; i < 4; i++) {
-        pSys->x10[i] = ((save->stage[i].score / 10) & 0x0FFFFFFF) | ((save->stage[i].mode & 7) << 28) |
-                       (save->stage[i].newFlag << 31);
+        SysRef(pSys)->x10[i] = ((save->stage[i].score / 10) & 0x0FFFFFFF) | ((save->stage[i].mode & 7) << 28) |
+                               (save->stage[i].newFlag << 31);
         for (j = 0; j < 5; j++) {
             int r = save->rank[j][i];
 
             if (r & 4) {
-                flagOn(pSys->x20, i * 15 + j * 3);
+                flagOn(SysRef(pSys)->x20, i * 15 + j * 3);
             }
             if (r & 2) {
-                flagOn(pSys->x20, i * 15 + j * 3 + 1);
+                flagOn(SysRef(pSys)->x20, i * 15 + j * 3 + 1);
             }
             if (r & 1) {
-                flagOn(pSys->x20, i * 15 + j * 3 + 2);
+                flagOn(SysRef(pSys)->x20, i * 15 + j * 3 + 2);
             }
         }
     }
@@ -1015,31 +1028,31 @@ int MercResult::init(MercSysWork* wk)
     static char data_name[] = "SS/___/omk_r1.dat";
     void* addr;
 
-    if (wk != NULL) {
-        setLangExt3(data_name + 3);
-#line 1866 "D:/Bio4/Prog/mercenaries.cpp"
-        Dvd.ReadCheck(DVD_READ_N(data_name, 0, 0, 0, 0, 5), 0, 0, &addr);
-        pData = addr;
-        IdTexRelease(4);
-        IdSys.roomInit();
-        pTex = DATA_PTR(pData, 0x10);
-        pIdRank[0] = DATA_PTR(pData, 0x14);
-        pIdRank[1] = DATA_PTR(pData, 0x18);
-        pIdRank[2] = DATA_PTR(pData, 0x1C);
-        pIdRank[3] = DATA_PTR(pData, 0x20);
-        pIdRank[4] = DATA_PTR(pData, 0x24);
-        pIdExtra = DATA_PTR(pData, 0x28);
-        pIdEnd = DATA_PTR(pData, 0x2C);
-        IdTexDataLoad(pTex, 7);
-        IdSys.set(pIdRank[wk->rslt.mode], 0xFF, ID_RESULT, 0x13, 6, 0);
-        step = 0;
-        cnt = 0;
-        x32 = 0;
-        x33 = 0;
-        return 1;
+    if (wk == NULL) {
+        pLog->err(0, 0, "St4ResultInitStage : pWk is NULL");
+        return 0;
     }
-    pLog->err(0, 0, "St4ResultInitStage : pWk is NULL");
-    return 0;
+    setLangExt3(data_name + 3);
+#line 1866 "D:/Bio4/Prog/mercenaries.cpp"
+    Dvd.ReadCheck(DVD_READ_N(data_name, 0, 0, 0, 0, 5), 0, 0, &addr);
+    pData = addr;
+    IdTexRelease(4);
+    IdSys.roomInit();
+    pTex = DATA_PTR(pData, 0x10);
+    pIdRank[0] = DATA_PTR(pData, 0x14);
+    pIdRank[1] = DATA_PTR(pData, 0x18);
+    pIdRank[2] = DATA_PTR(pData, 0x1C);
+    pIdRank[3] = DATA_PTR(pData, 0x20);
+    pIdRank[4] = DATA_PTR(pData, 0x24);
+    pIdExtra = DATA_PTR(pData, 0x28);
+    pIdEnd = DATA_PTR(pData, 0x2C);
+    IdTexDataLoad(pTex, 7);
+    IdSys.set(pIdRank[wk->rslt.mode], 0xFF, ID_RESULT, 0x13, 6, 0);
+    step = 0;
+    cnt = 0;
+    x32 = 0;
+    x33 = 0;
+    return 1;
 }
 
 int MercResult::move(MercSysWork* wk)

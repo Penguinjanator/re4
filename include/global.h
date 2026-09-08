@@ -80,9 +80,11 @@ struct SceAtSaveItem {
 struct GlobalWork {
     s32 dev_mode;          // 0x00  1 = development hardware (main: OSGetConsoleType & 0xF0000000)
     u8 x4;                 // 0x04  (stage: sub-mission coin marker only while set)
-    u8 pad_5[3];
-    u32 x8;                // 0x08  (main: bit 31 saved into pRK->x3C)
-    u8 pad_C[0x18 - 0x0C];
+    u8 save_no;            // 0x05  save file number last loaded/saved (card dataSelect)
+    u8 pad_6[2];
+    u32 x8;                // 0x08  card flags (card: 4 loaded, 8/0x10/0x20/0x40/0x80 CardSave modes, bit 31 first check done; main: bit 31 saved into pRK->x3C)
+    u8 pad_C[4];
+    u64 card_serial;       // 0x10  serial of the card the save file came from (card)
     void* pFont;           // 0x18  ROM font header (dvd: RomFontSetting)
     s32 x1C;               // 0x1C  1 = the message system is usable (dvd error screen)
     u8 x20;                // 0x20  (main_sub: 3/4/6 allow the blur filter)
@@ -147,7 +149,8 @@ struct GlobalWork {
     u8 x4F88;              // 0x4F88  (pl_sub PlGachaGet: > 2 keeps the raw button count)
     u8 x4F89;
     u8 x4F8A;              // 0x4F8A  chapters ended (sce_com SceChapterEnd increments it)
-    u8 pad_4F8B[3];
+    u8 pad_4F8B;
+    u16 save_cnt;          // 0x4F8C  times saved (card makeSaveData increments it)
     u16 x4F8E;             // 0x4F8E  nonzero = extra game (merchant: full price/tune tables, pSys->x4 weapon unlocks)
     u16 x4F90;             // 0x4F90  (room_jmp roomJumpExec clears it)
     u8 snd_tbl_no;         // 0x4F92  room BGM/stream table row (0..4) selected by the game flow
@@ -182,7 +185,9 @@ struct GlobalWork {
     u8 wep_type;           // 0x4FB1
     u8 wep_x4FB2;          // 0x4FB2  equipped weapon slot num >> 13 (sscrn SubScreenExit re-arms when it changed)
     u8 wep_lv;             // 0x4FB3  weapon upgrade level (em_dm_val: WeaponLevelTbl column, clamped to 7)
-    u8 pad_4FB4[4];
+    u8 wep_lv_mag;         // 0x4FB4  magazine tune level of the equipped weapon (item cItemMgr::arm)
+    u8 wep_lv_ex;          // 0x4FB5  exclusive tune level (item cItemMgr::arm)
+    u8 pad_4FB6[2];
     union {
         u32 x4FB8_32;      // 0x4FB8  the four bytes as one word (title: `& 0xFF0000FF` == 0 -> Leon with the default Ashley)
         struct {

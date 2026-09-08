@@ -855,15 +855,13 @@ void cDvdQueue::Initialize()
     if (w->fileNo != 0xFFFF) {
         entrynum = FileTbl[w->fileNo].entrynum;
         sprintf(name, "%s", FileTbl[w->fileNo].name);
-        n = name;
     } else {
         entrynum = DVDConvertPathToEntrynum(w->name);
         sprintf(name, "%s", w->name);
-        n = name;
     }
     if (pG->flags_54 & 0x20000) {
-        sprintf(buf, "d:\\bio4/data/%s", n);
-        sprintf(n, "%s", buf);
+        sprintf(buf, "d:\\bio4/data/%s", name);
+        sprintf(name, "%s", buf);
     }
     fileNo = w->fileNo;
     pBuff = w->dst;

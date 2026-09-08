@@ -58,6 +58,12 @@ int cEsp18::SetFreeWork(EspGenWork* gen, u32* seed)
 
 // Heat shimmer: the frame is copied into a texture and drawn back esp18_lp times through an
 // indirect texture, each layer scaled and offset a little more than the previous one.
+// Texture corner flip (see esp08.cpp: the combined test and the add-before-copy leaves keep
+// the `zero + z` adds and the copies from `zero`'s register).
+#define ESP18_FLIP_T(esp) \
+    ((ESP_PARTS_SCREEN(esp) && !((esp)->flags & 4)) || (!ESP_PARTS_SCREEN(esp) && ((esp)->flags & 4)))
+#define ESP_PARTS_SCREEN(esp) ((s8) (esp)->partsNo >= -8 && (s8) (esp)->partsNo <= -3)
+
 void Esp18_Trans(cEsp18* esp)
 {
     Esp18Work* w = &esp->work;
@@ -73,6 +79,7 @@ void Esp18_Trans(cEsp18* esp)
     f32 x0;
     f32 y0;
     f32 z;
+    f32 zero;
     f32 s0;
     f32 s1;
     f32 t0;
@@ -146,65 +153,38 @@ void Esp18_Trans(cEsp18* esp)
     ox = -anm->x4;
     oy = (f32) anm->x6;
     z = 1.0f;
-    if (ox == 0.0f) {
+    zero = 0.0f;
+    if (ox == zero) {
         ox = -anm->x0 * 0.5f;
     }
-    if (oy == 0.0f) {
+    if (oy == zero) {
         oy = anm->x2 * 0.5f;
     }
     x0 = ox * sx / anm->x0;
     y0 = oy * sy / anm->x2;
     if (esp->flags & 2) {
-        if ((s8) esp->partsNo >= -8 && (s8) esp->partsNo <= -3) {
-            if (!(esp->flags & 4)) {
-                s1 = 0.0f;
-                s0 = s1 + z;
-                t0 = s0;
-                t1 = s1;
-            } else {
-                s1 = 0.0f;
-                s0 = s1 + z;
-                t0 = s1;
-                t1 = s0;
-            }
+        if (ESP18_FLIP_T(esp)) {
+            s0 = zero + z;
+            s1 = zero;
+            t0 = s0;
+            t1 = s1;
         } else {
-            if (esp->flags & 4) {
-                s1 = 0.0f;
-                s0 = s1 + z;
-                t0 = s0;
-                t1 = s1;
-            } else {
-                s1 = 0.0f;
-                s0 = s1 + z;
-                t0 = s1;
-                t1 = s0;
-            }
+            s0 = zero + z;
+            t0 = zero;
+            s1 = zero;
+            t1 = s0;
         }
     } else {
-        if ((s8) esp->partsNo >= -8 && (s8) esp->partsNo <= -3) {
-            if (!(esp->flags & 4)) {
-                s0 = 0.0f;
-                s1 = s0 + z;
-                t1 = s0;
-                t0 = s1;
-            } else {
-                s0 = 0.0f;
-                s1 = s0 + z;
-                t0 = s0;
-                t1 = s1;
-            }
+        if (ESP18_FLIP_T(esp)) {
+            s0 = zero;
+            t0 = s0 + z;
+            t1 = s0;
+            s1 = t0;
         } else {
-            if (esp->flags & 4) {
-                s0 = 0.0f;
-                s1 = s0 + z;
-                t1 = s0;
-                t0 = s1;
-            } else {
-                s0 = 0.0f;
-                s1 = s0 + z;
-                t0 = s0;
-                t1 = s1;
-            }
+            s0 = zero;
+            s1 = s0 + z;
+            t0 = s0;
+            t1 = s1;
         }
     }
     static u32 esp18_lp = 8;
@@ -218,18 +198,18 @@ void Esp18_Trans(cEsp18* esp)
     for (i = 0; i < esp18_lp; i++) {
         GXTexObj tex;
         GXTlutObj tlut;
-        int type = 1;
 
         copyOk = 1;
         fog.r = fog.g = fog.b = fog.a = 0;
         GXSetFog(0, 0.0f, 0.0f, ZNEAR, ZFAR, fog);
         if (esp->flags & 0x1000) {
-            if (GetDrawTmpBufType() != 2) {
+            if (GetDrawTmpBufType() == 2) {
                 copyOk = 0;
             }
-            type = 2;
+            buf = GetDrawTmpBufAddr(2);
+        } else {
+            buf = GetDrawTmpBufAddr(1);
         }
-        buf = GetDrawTmpBufAddr(type);
         ofs = 56.0f;
         if (pG->flags_5010 & 0x08000000) {
             ofs = 0.0f;

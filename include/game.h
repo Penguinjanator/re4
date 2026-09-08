@@ -10,6 +10,7 @@ public:
 
     void* alloc();
     void save(void* data);
+    void load(void* data);
 };
 
 extern cGameSave GameSave;

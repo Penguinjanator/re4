@@ -542,6 +542,13 @@ mark it Matching.
   `do{}while(0)`: the loop notes of a do-while are a full sched1 barrier and change argument/`lis`
   ordering around it (read, main_sub, pl_leon, datactrl needed the plain form; nowhere did do-while
   help). Use the plain block everywhere.
+- A function with an `if (...) return 1;` and no return at the end keeps r3 = the incoming
+  parameter (no `li r3,1` in the tail).
+- `pSys->field` inside loops that store through a pointer parameter is hoisted (fixed scalar never
+  aliases a varying struct store); reading it through a reference (`SysRef(pSys)->x`) reloads it per
+  iteration like the target.
+- objdiff REPLACE rows on `lwz/stw off(rN)` with identical bytes = dtk-synthesized `Sym+off` relocs in
+  the split object; judge with a raw byte compare (relocated words masked).
 - Static locals show as `name.NNN` in objdiff; the DECL_UID suffix cannot be reproduced and is ignored by the report.
 - Unexplained words in `.rodata` (zero words, stray floats) are usually the constant pool of a function
   the original linker dead-stripped (bodies gone, pools kept, `STRIP_UNUSED` in objects.py): write a

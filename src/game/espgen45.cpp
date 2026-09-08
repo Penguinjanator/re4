@@ -23,8 +23,8 @@ struct Esp4cWork {
     u8 x3;        // 0x03
     s16 indS;     // 0x04 indirect matrix parameters (SetIndMtx)
     s16 indT;     // 0x06
-    f32 spread;   // 0x08
-    f32 damp;     // 0x0C
+    f32 damp;     // 0x08 (Espgen42Work::damp)
+    f32 spread;   // 0x0C (Espgen42Work::spread)
     Vec rot;      // 0x10 surface rotation (SetWaterWork45)
     u8 flag;      // 0x1C
     u8 x1D;       // 0x1D
@@ -33,6 +33,15 @@ struct Esp4cWork {
 };
 
 extern "C" {
+// game/trans_lit.cpp
+void commonWaterLightSet(cLight** list, int n, u32 alpha);
+// Dolphin SDK performance monitor registers (base/PPCArch.h)
+void PPCMtpmc1(u32 v);
+void PPCMtpmc2(u32 v);
+void PPCMtpmc3(u32 v);
+void PPCMtpmc4(u32 v);
+void PPCMtmmcr0(u32 v);
+void PPCMtmmcr1(u32 v);
 void Espgen45_Move00(EspgenWork* w);
 void Espgen45_TransSub(EspgenWork* w);
 void SetIndMtx_801291F4(Espgen42Work* p);   // the DOL's local SetIndMtx (Espgen42 owns the global one); sym_map name
@@ -58,7 +67,7 @@ static f32 g_sr = 0.0f;
 static f32 g_sg = 0.0f;
 static f32 g_sb = 0.0f;
 static f32 g_sa = 0.0f;
-static f32 inv_mul = 0.0f;
+static f32 inv_mul = 1.0f;
 static Esp4cWork g_Free;
 
 static inline void ISet(int& d, int v) { d = v; }
@@ -84,6 +93,179 @@ void Espgen45_static_init()
     g_sg = 0.0f;
     g_sb = 0.0f;
     g_sa = 0.0f;
+}
+
+// Bump texture (I8, 8x4 tiles) index of grid point (x, y).
+#define BUMP_INDEX(x, y, w1) (((y) / 4 * 32) * ((w1) >> 3) + ((x) / 8) * 32 + (((y) & 3) << 3) + ((x) & 7))
+// Noise texture (0xFE) index of grid point (x, y).
+#define NOISE_INDEX(x, y) ((((y) << 6) & 0xB00) + (((x) << 2) & 0xA0) + (((y) & 3) << 3) + ((x) & 7))
+
+// Unused neighbour weights; the reference parameters leave the literals in the frame.
+static inline void WaveDir(const f32& a, const f32& b, const f32& c, const f32& d)
+{
+}
+
+void Espgen45_Move00(EspgenWork* w)
+{
+    static f32 g45_wave_mul = 0.001f;
+    static f32 wt_pow = 10.0f;
+    Espgen42Work* p = (Espgen42Work*) w->work;
+    WaveDir(1.0f, 0.0f, 0.0f, 1.0f);
+    Vec v;
+    WaveDir(-1.0f, 0.0f, 0.0f, -1.0f);
+    Mtx m;
+    GXTexObj* tex;
+    u8* noise;
+    u32 frame;
+    f32 size;
+    f32 rate;
+    u8 rotY;
+    u8 mode;
+    int i;
+    int j;
+    int k;
+
+    pG->flags_500C |= 0x200;
+    frame = pG->flags_51E4 % 60;
+    if (g_bTargetCamera == 1) {
+        g_Target_x = pG->Cam.param.pos.x;
+        g_Target_z = pG->Cam.param.pos.z;
+    }
+    p->pos0.x = g_Target_x;
+    p->pos0.z = g_Target_z;
+    if (g_bTargetHeight == 1) {
+        p->pos0.y = g_Target_y;
+    } else {
+        p->pos0.y = p->xC0;
+    }
+    size = p->size;
+    if (g_bSizeOverWrite == 1) {
+        size = g_Size;
+    }
+    if (g_bSetParam == 0) {
+        PSMTXScale(p->mat, size, size * 0.05f + 100.0f, size);
+    } else {
+        RotMatrix(p->mat, &g_Free.rot);
+        PSMTXScale(m, size, size * 0.05f + 100.0f, size);
+        PSMTXConcat(p->mat, m, p->mat);
+    }
+    if (g_bSetParam == 0) {
+        rotY = p->rotY;
+    } else {
+        rotY = g_Free.x3;
+    }
+    rate = 1.0f - (f32) (int) rotY / 255.0f;
+    if (rate == 0.0f) {
+        rate = 0.0001f;
+    }
+    p->mat[1][1] *= rate;
+    PSMTXTransApply(p->mat, p->mat, p->pos0.x, p->pos0.y, p->pos0.z);
+    PSMTXInverse(p->mat, p->inv);
+    PPCMtpmc1(0);
+    PPCMtpmc2(0);
+    PPCMtpmc3(0);
+    PPCMtpmc4(0);
+    PPCMtmmcr1(0x78000000);
+    PPCMtmmcr0(0x42);
+    tex = EspGetTexObj(0xFE, frame);
+    if (tex == NULL) {
+        return;
+    }
+    noise = (u8*) GXGetTexObjData(tex) + 0x80000000;
+    u32 nx = p->nx;
+    u32 ny = p->ny;
+    f32 hx = (f32) (int) (nx / 2);
+    f32 hy = (f32) (int) (ny / 2);
+    f32 inx = 1.0f / (f32) (int) nx * inv_mul;
+    f32 iny = 1.0f / (f32) (int) ny * inv_mul;
+    if (g_bSetParam == 0) {
+        mode = p->mode;
+    } else {
+        mode = g_Free.type;
+    }
+    if (mode != 1) {
+        if ((pG->flags_64 & 0x00800000) && (Joy[0].on & 0x100)) {
+            f32* h = p->hB;
+            int idx = (int) ((f32) (int) (nx * ny) * 0.5f);
+            h[idx] -= wt_pow;
+        }
+        f32 damp;
+        f32 spread;
+        if (g_bSetParam == 0) {
+            damp = p->damp;
+        } else {
+            damp = g_Free.damp;
+        }
+        f32 cdamp = 2.0f - damp * 4.0f;
+        if (g_bSetParam == 0) {
+            spread = p->spread;
+        } else {
+            spread = g_Free.spread;
+        }
+        f32* cur;
+        f32* next;
+        if (pG->flags_51E4 & 1) {
+            cur = p->hA;
+            next = p->hB;
+        } else {
+            cur = p->hB;
+            next = p->hA;
+        }
+        f32 fy = 1.0f;
+        for (i = 1; i < p->ny; i++) {
+            u32 w1 = nx + 1;
+            f32 fx = 1.0f;
+            k = i * w1 + 1;
+            for (j = 1; j < nx; j++) {
+                f32 n = (f32) noise[NOISE_INDEX(j, i)] - 80.0f;
+                f32 sum = cur[k - 1] + cur[k + 1] + cur[k - (nx + 1)] + cur[k + (nx + 1)];
+                next[k] = damp * sum + cdamp * cur[k] - next[k];
+                next[k] = (n * g45_wave_mul + next[k]) * spread;
+                p->pos[k].y = next[k];
+                v.x = p->pos[k - 1].y - p->pos[k + 1].y;
+                v.y = 2.0f;
+                v.z = p->pos[k - nx].y - p->pos[k + nx].y;
+                PSVECScale(&v, &p->nrm[k], 0.4347826f);
+                p->bump[BUMP_INDEX(j, i, w1)] = (u8) (p->nrm[k].x * 255.0f * 2.0f + 128.0f);
+                p->nrm[k].x += (fx - hx) * inx;
+                p->nrm[k].y *= 0.25f;
+                p->nrm[k].z += (fy - hy) * iny;
+                fx += 1.0f;
+                k++;
+            }
+            fy += 1.0f;
+        }
+    } else {
+        for (i = 1; i < p->ny; i++) {
+            k = i * (p->nx + 1);
+            for (j = 1; j < p->nx; j++) {
+                int nz = noise[NOISE_INDEX(j, i)];
+                f32* hA = p->hA;
+                f32* hB = p->hB;
+                f32 sum = hA[k - 1] + hA[k + 1] + hA[k - 1 - p->ny] + hA[k + 1 + p->ny];
+                hB[k] += sum - hA[k] * 4.0f;
+                f32 n = (f32) nz - 80.0f;
+                hA[k] += n * 0.0001f + hB[k] * 0.04f;
+                hB[k] *= 0.92f;
+                p->pos[k].y = n * 0.0018f + hA[k];
+                v.x = p->pos[k - 1].y - p->pos[k + 1].y;
+                v.y = 2.0f;
+                v.z = p->pos[k - p->nx].y - p->pos[k + p->nx].y;
+                PSVECScale(&v, &p->nrm[k], 0.4347826f);
+                p->bump[BUMP_INDEX(j, i, p->nx + 1)] = (u8) (p->nrm[k].x * 255.0f * 2.0f + 128.0f);
+                p->nrm[k].x += ((f32) j - (f32) (p->nx / 2)) * (1.0f / (f32) p->nx);
+                p->nrm[k].y *= 0.25f;
+                p->nrm[k].z += ((f32) i - (f32) (p->ny / 2)) * (1.0f / (f32) p->ny);
+                k++;
+            }
+        }
+    }
+    {
+        u32 n = sizeof(Vec) * (p->ny + 1) * (p->nx + 1);
+        DCStoreRange(p->pos, n);
+        DCStoreRange(p->nrm, n);
+        DCStoreRange(p->bump, sizeof(Vec) * (p->ny + 1) * (p->nx + 1));
+    }
 }
 
 void Espgen45_Move(EspgenWork* w)

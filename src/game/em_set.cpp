@@ -201,7 +201,7 @@ cEm* EmSetFromList2(int no, int chkDead)
 }
 
 // Event enemy from a list entry outside the room list (never called in the DOL).
-static cEm* EmSetEvent(EmListData* d)
+cEm* EmSetEvent(EmListData* d)
 {
     cEm* em;
 
