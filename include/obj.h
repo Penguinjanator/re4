@@ -364,6 +364,27 @@ struct TrolleyWork {
     u8 ride;              // 0x4C  the player rides the trolley
 };
 
+// Falling pillar work (game/objPillar.cpp `cObjPillar`).
+struct PillarWork {
+    u32 flags;            // 0x00  bit0: set (ckSet), cleared by setBreak / setThrow / setFall
+    int timer;            // 0x04  frames before the fade out
+    int rnd;              // 0x08  Rnd() & 1: action button type 3 / 4
+    void* motBreak;       // 0x0C  setMotion
+    void* motThrow0;      // 0x10  setThrow: lift, throw
+    void* motThrow1;      // 0x14
+    void* motEscape;      // 0x18  R0_Escape
+    void* motFall0;       // 0x1C  setFall: fall, land
+    void* motFall1;       // 0x20
+    void* plMot;          // 0x24  player escape motion (plemEscape MotionSetCore)
+    int plMotA;           // 0x28  its 4th argument
+    Vec basePos;          // 0x2C  position at R0_Set (attack line end, plemEscape2 heading)
+    Vec target;           // 0x38  setBreak position (plemEscape heading)
+    Vec spd;              // 0x44  throw / fall speed
+    u32 seHandle;         // 0x50  SndCall handle of the rolling SE
+    class cSat* sat;      // 0x54  effect collision piece (objPillarEatSet)
+    u8 escaped;           // 0x58  1: the player escaped / was hit (no more action button)
+};
+
 // Chain link work (game/obj1d.cpp): hangs between two parts of a parent model, fades out when
 // the parent is lost.
 struct ChainWork {
@@ -509,6 +530,7 @@ public:
         MissileWork missile;
         GondolaWork gondola;
         TrolleyWork trolley;
+        PillarWork pillar;
         ObjWepWork wep;
         LauncherWork launcher;
         RocketWork rocket;

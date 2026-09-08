@@ -23,4 +23,9 @@ public:
 
 extern cSubChar* pSUB;   // game/em.cpp
 
+extern "C" {
+// game/pl_npc.cpp: partner condition bits for the HUD (cockpit: 1, 2, 8, 0x10, 0x24)
+u32 SubCharGetCondition();
+}
+
 #endif

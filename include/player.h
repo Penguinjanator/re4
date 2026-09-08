@@ -93,6 +93,7 @@ public:
     void checkCtrl();    // Key 0x400/0x100000 -> pG->flags_500C bits
     int subScrCheck();   // 1 when the sub screen may open (sscrn SubScreenCall)
     int checkEvent();    // 1 when the event routine is ready (sscrn OpeSetOpenTerm)
+    int getLifeLevel();  // 0 fine, 1 caution, 2 danger (cockpit meter colours)
     // game/pl_debug.cpp
     void debugInit();
     void debugMove();

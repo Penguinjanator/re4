@@ -277,8 +277,8 @@ void EspDrawLaserLine(Vec from, Vec to, f32 width);
 // game/eff_sys.cpp
 int EspGetAnmAddr(int no, EspAnmData** out);
 void EspTexSet(int anmNo, int ptn);
-void* EspGetPathAddr(int id, int no);
-struct EspSeqData* EspGetEstAddr(int owner, int id, int a);
+void* EspGetPathAddr(u32 owner, int id);
+struct EspSeqData* EspGetEstAddr(u32 owner, int id, int quiet);
 void EspGenSetMoveLoop(int loop);
 void EspGenLoopMove();
 // game/path.cpp
@@ -295,7 +295,7 @@ void EstSet(int a, int b, Vec* pos, Vec* rot, int c, int d, int e, int f, u32 g,
 // game/eff_sys.cpp
 int EspGenGetMoveLoop();
 extern cCoord* pEffParentWorld;
-extern char* owner_name_tbl[0xD3];   // effect owner names (debug display)
+extern char* owner_name_tbl[0xD1];   // effect owner names 0..0xD0 (debug display; eff_sys.cpp)
 // Struct-member view of the same pointer (the pLog trick, db_log.h): a load through it is not
 // hoisted above a preceding struct copy through `this` (esp01 move: `w->pos0 = pos; parent =
 // pEffParentWorld`). Only use where the target shows the load after such stores; wrapping the
@@ -321,7 +321,24 @@ void AddSandPower(Vec* pos, f32 power);
 int EspChkTexId(int no);   // 1 when texture `no` has an object
 GXTexObj* EspGetTexObj(int no, int a);
 GXTlutObj* EspGetTlutObj(int no);
+struct EspTexWk* EspGetTexWk(int id, int quiet);   // NULL (and an error unless quiet) when the id has no texture
+int EspGetTexOwner(int id, u32* out);
+int EspGetEfmAddr(int id, void** model, void** tpl);
+int EspGetEfmMotAddr(int id, u32 no, void** out);
+u8 EspPullCoreKind();
+int EffAreaDataLoad(struct SstArea* area);
+int EffIsSetFinalCol();
+void EffGetFinalCol(GXColor* col);
+void EffSetFinalCol(u8 r, u8 g, u8 b, u8 a);
+int EffGetAreaState(int no);
+void EffSetToolState(int state);
+u8 EffGetToolState();
+void EffClearToolState();
+void EffSetToolStateCallBack(int no, void (*on)(), void (*off)());
+void EffCallToolStateCallBack();
 }
+// game/eff_sys.cpp: quad display list shared by the sprite effects (esp_sub)
+extern u8 g_EspCommonDisplayList[0x60];
 // game/trans.cpp: fallback texture used when an effect texture id has no object
 extern GXTexObj Specular;
 

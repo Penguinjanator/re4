@@ -32,8 +32,12 @@ public:
         PSMTXIdentity(mat);
         PSMTXIdentity(worldMat);
         pParent = NULL;
-        scale.x = scale.y = scale.z = 1.0f;
-        prevScale.x = prevScale.y = prevScale.z = 1.0f;
+        scale.x = 1.0f;
+        scale.y = 1.0f;
+        scale.z = 1.0f;
+        prevScale.x = 1.0f;
+        prevScale.y = 1.0f;
+        prevScale.z = 1.0f;
     }
     virtual ~cCoord() {}
     virtual void matUpdate() {

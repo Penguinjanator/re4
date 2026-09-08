@@ -1152,6 +1152,8 @@ MATCHING.update({
     "game/cloth.cpp": True,
     "game/ik.cpp": True,
     "game/block.cpp": True,
+    "game/foot_shadow.cpp": True,
+    "game/foot_shadow_tbl.cpp": True,
 })
 
 # system / UI units
@@ -1159,4 +1161,9 @@ MATCHING.update({
     "game/main.cpp": True,
     "game/sub2.cpp": True,
     "game/dmg.cpp": True,
+})
+
+# effect system units
+MATCHING.update({
+    # "game/eff_sys.cpp": EspDataLoad 99.65% (r0/r9 choice for the table offsets), everything else 100%
 })

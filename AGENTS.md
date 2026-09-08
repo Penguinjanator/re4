@@ -391,6 +391,12 @@ mark it Matching.
   `addi rX,r1,ofs` per call.
 - KNOWN DEBT: `cUnit::beginEvent/endEvent` take an `int` in the original (sce_com loops, sscrn); the
   shared declaration in cManager.h is still `()`. Fix together with the em*/obj* owners.
+- A `&local` passed directly to a call is copied to a pseudo and PRE hoists it into a callee-saved
+  register (`mr rX,r4` ... `mr r4,rX`); the same call inside an inlined `static inline` helper taking
+  `Vec*` gets the address as a hard-register arg set that gcse never sees, so it is recomputed
+  `addi r4,r1,off` at each call. This is the lever for the OPEN `&local` reuse cases.
+- `alpha * rate * helper(...)`: the (inlined) call is evaluated first, so `lfs alpha` lands after the
+  `bl`; `helper(..., alpha * rate)` precomputes the product before the call.
 - Static locals show as `name.NNN` in objdiff; the DECL_UID suffix cannot be reproduced and is ignored by the report.
 - Unexplained words in `.rodata` (zero words, stray floats) are usually the constant pool of a function
   the original linker dead-stripped (bodies gone, pools kept, `STRIP_UNUSED` in objects.py): write a

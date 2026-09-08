@@ -26,7 +26,16 @@ struct ArcFile {
     u8 pad_58[0x6C - 0x58];
     u32 ofs_6C;   // 0x6C  system message table (dvd: MesData.ptr[4])
     u32 ofs_70;   // 0x70  TV-mode message table (tv_mode)
-    u8 pad_74[0x9C - 0x74];
+    u32 ofs_74;   // 0x74  HUD id textures (cockpit: IdTexDataLoad(.., 4))
+    u32 ofs_78;   // 0x78
+    u32 ofs_7C;   // 0x7C  life meter id data (cockpit, type 0x21)
+    u32 ofs_80;   // 0x80  action button id data (cockpit, type 0x20)
+    u32 ofs_84;   // 0x84  count-down id data (cockpit, type 0x23)
+    u32 ofs_88;   // 0x88  HUD id data type 0x30 (cockpit)
+    u32 ofs_8C;   // 0x8C
+    u32 ofs_90;   // 0x90
+    u32 ofs_94;   // 0x94  message window id data (cockpit, type 0x2F)
+    u32 ofs_98;   // 0x98  bullet icon id data (cockpit, type 0x32)
     u32 ofs_9C;   // 0x9C  sub-mission widget id data (stage)
 };
 
@@ -105,7 +114,8 @@ struct GlobalWork {
     Vec quake_ofs;         // 0x4F70
     u8 x4F7C;
     u8 door_no;            // 0x4F7D  door used to enter the room (index into the DSE door SE table)
-    u8 pad_4F7E[0x4F88 - 0x4F7E];
+    u16 cdown_add_sec;     // 0x4F7E  seconds to add to the count-down (cockpit CountDown::move consumes it)
+    u8 pad_4F80[0x4F88 - 0x4F80];
     u8 x4F88;              // 0x4F88  (pl_sub PlGachaGet: > 2 keeps the raw button count)
     u8 pad_4F89[0x4F90 - 0x4F89];
     u16 x4F90;             // 0x4F90  (room_jmp roomJumpExec clears it)

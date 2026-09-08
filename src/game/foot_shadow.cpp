@@ -28,6 +28,13 @@ struct ShadowInfo {
     f32 alpha;
 };
 
+// Attenuation of a shadow at `pos` for a light at `lpos` with squared range `range`.
+static inline f32 shadowRate(Vec* pos, Vec* lpos, f32 range)
+{
+    f32 d = PSVECSquareDistance(pos, lpos) / range;
+    return 1.0f - d * d;
+}
+
 void DrawFootShadow(cEm* em)
 {
     Vec dir;
@@ -91,7 +98,7 @@ void DrawFootShadow(cEm* em)
         } else {
             range = l->x1C;
         }
-        lpos = l->curPos;
+        l->getPos(&lpos);
         range *= range;
         if (PSVECSquareDistance(&pos, &lpos) > range) {
             continue;
@@ -106,8 +113,8 @@ void DrawFootShadow(cEm* em)
             dir.y = -1.0f;
             dir.z = 0.0f;
             rot.x = (f32) w->rotX * 6.2831855f / 360.0f;
-            rot.z = 0.0f;
             rot.y = (f32) w->rotY * 6.2831855f / 360.0f;
+            rot.z = 0.0f;
             PSMTXRotRad(m1, 'x', rot.x);
             PSMTXRotAxisRad(m2, &axis, rot.y);
             PSMTXConcat(m2, m1, m1);
@@ -160,33 +167,36 @@ void DrawFootShadow(cEm* em)
                 cModel* p = em->getPartsPtr(dat->parts);
                 ShadowInfo mid;
                 Vec ofs;
-                f32 size;
-                f32 d;
 
-                info.pos = p->worldPos;
-                PSVECScale(&dir, &ofs, -(info.pos.y - pos.y) * (1.0f / dir.y));
-                PSVECAdd(&info.pos, &ofs, &info.pos);
-                info.pos.y += (f32) w->height * 10.0f + 50.0f;
-                size = dat->size;
-                info.size = size;
-                info.alpha = (f32) dat->alpha;
-                d = PSVECSquareDistance(&info.pos, &lpos) / range;
-                drawShadowParts(tex, &info.pos, size, info.alpha * rate * (1.0f - d * d));
+                {
+                    f32 size;
+
+                    info.pos = p->worldPos;
+                    PSVECScale(&dir, &ofs, -(info.pos.y - pos.y) * (1.0f / dir.y));
+                    PSVECAdd(&info.pos, &ofs, &info.pos);
+                    info.pos.y += (f32) w->height * 10.0f + 50.0f;
+                    size = dat->size;
+                    info.size = size;
+                    info.alpha = (f32) dat->alpha;
+                    drawShadowParts(tex, &info.pos, size, info.alpha * rate * shadowRate(&info.pos, &lpos, range));
+                }
                 if (prevOn) {
                     if (prevCnt == 1) {
+                        f32 size;
+
                         PSVECAdd(&prev.pos, &info.pos, &mid.pos);
                         PSVECScale(&mid.pos, &mid.pos, 0.5f);
                         size = (prev.size + info.size) * 0.5f;
                         mid.size = size;
                         mid.alpha = (prev.alpha + info.alpha) * 0.5f;
-                        d = PSVECSquareDistance(&mid.pos, &lpos) / range;
-                        drawShadowParts(tex, &mid.pos, size, mid.alpha * rate * (1.0f - d * d));
+                        drawShadowParts(tex, &mid.pos, size, mid.alpha * rate * shadowRate(&mid.pos, &lpos, range));
                     } else if (prevCnt != 0) {
                         Vec step;
                         Vec diff;
                         f32 t;
                         f32 dt;
                         f32 s;
+                        f32 size;
                         u32 k;
 
                         dt = 1.0f / (f32) (prevCnt + 1);
@@ -200,8 +210,7 @@ void DrawFootShadow(cEm* em)
                             size = prev.size * s + info.size * t;
                             mid.size = size;
                             mid.alpha = prev.alpha * s + info.alpha * t;
-                            d = PSVECSquareDistance(&mid.pos, &lpos) / range;
-                            drawShadowParts(tex, &mid.pos, size, mid.alpha * rate * (1.0f - d * d));
+                            drawShadowParts(tex, &mid.pos, size, mid.alpha * rate * shadowRate(&mid.pos, &lpos, range));
                         }
                     }
                 }

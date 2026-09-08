@@ -783,26 +783,26 @@ address	size	section	unit	scope	name	demangled
 0x8003ADA0	0x50	.text	game/objMissile.cpp	global	setFire__11cObjMissileP3Vec	cObjMissile::setFire
 0x8003ADF0	0x154	.text	game/objMissile.cpp	global	objMissileBomb	objMissileBomb
 0x8003AF44	0x20	.text	game/objMissile.cpp	global	_._11cObjMissile	cObjMissile::~cObjMissile
-0x8003AF64	0x204	.text	game/objPillar.cpp	global	SetPillar	SetPillar
-0x8003B168	0x50	.text	game/objPillar.cpp	global	cObjPillar_move	cObjPillar::move
+0x8003AF64	0x204	.text	game/objPillar.cpp	global	SetPillar__FPvT0P3VecT2	SetPillar
+0x8003B168	0x50	.text	game/objPillar.cpp	global	move__10cObjPillar	cObjPillar::move
 0x8003B1B8	0x7C	.text	game/objPillar.cpp	global	objPillar_R0_Set	objPillar_R0_Set
 0x8003B234	0x2C0	.text	game/objPillar.cpp	global	objPillar_R0_Break	objPillar_R0_Break
 0x8003B4F4	0x5E4	.text	game/objPillar.cpp	global	objPillar_R0_Throw	objPillar_R0_Throw
 0x8003BAD8	0x184	.text	game/objPillar.cpp	global	objPillar_R0_Escape	objPillar_R0_Escape
 0x8003BC5C	0x248	.text	game/objPillar.cpp	global	objPillar_R0_Fall	objPillar_R0_Fall
-0x8003BEA4	0x8	.text	game/objPillar.cpp	global	cObjPillar_setMotion	cObjPillar::setMotion
-0x8003BEAC	0x18	.text	game/objPillar.cpp	global	cObjPillar_ckSet	cObjPillar::ckSet
-0x8003BEC4	0xE4	.text	game/objPillar.cpp	global	cObjPillar_setBreak	cObjPillar::setBreak
-0x8003BFA8	0xD0	.text	game/objPillar.cpp	global	cObjPillar_setThrow	cObjPillar::setThrow
-0x8003C078	0x98	.text	game/objPillar.cpp	global	cObjPillar_setFall	cObjPillar::setFall
+0x8003BEA4	0x8	.text	game/objPillar.cpp	global	setMotion__10cObjPillarPv	cObjPillar::setMotion
+0x8003BEAC	0x18	.text	game/objPillar.cpp	global	ckSet__10cObjPillar	cObjPillar::ckSet
+0x8003BEC4	0xE4	.text	game/objPillar.cpp	global	setBreak__10cObjPillarP3VecPvi	cObjPillar::setBreak
+0x8003BFA8	0xD0	.text	game/objPillar.cpp	global	setThrow__10cObjPillarPvN31i	cObjPillar::setThrow
+0x8003C078	0x98	.text	game/objPillar.cpp	global	setFall__10cObjPillarPvT1	cObjPillar::setFall
 0x8003C110	0x1E0	.text	game/objPillar.cpp	global	objPillarAtkCk	objPillarAtkCk
 0x8003C2F0	0x4C	.text	game/objPillar.cpp	global	EscapeAction	EscapeAction
-0x8003C33C	0x20C	.text	game/objPillar.cpp	global	plemEscape_8003C33C	plemEscape
+0x8003C33C	0x20C	.text	game/objPillar.cpp	local	plemEscape_8003C33C	plemEscape
 0x8003C548	0x260	.text	game/objPillar.cpp	global	EscapeCamMove	EscapeCamMove
 0x8003C7A8	0x64	.text	game/objPillar.cpp	global	EscapeAction2	EscapeAction2
 0x8003C80C	0x118	.text	game/objPillar.cpp	global	plemEscape2	plemEscape2
 0x8003C924	0xC8	.text	game/objPillar.cpp	global	objPillarEatSet	objPillarEatSet
-0x8003C9EC	0x20	.text	game/objPillar.cpp	local	cObjPillar_dt_cObjPillar	cObjPillar::~cObjPillar
+0x8003C9EC	0x20	.text	game/objPillar.cpp	global	_._10cObjPillar	cObjPillar::~cObjPillar
 0x8003CA0C	0x1F8	.text	game/objRobo.cpp	global	SetObjRobo	SetObjRobo
 0x8003CC04	0x3C	.text	game/objRobo.cpp	global	cObjRobo_move	cObjRobo::move
 0x8003CC40	0x58	.text	game/objRobo.cpp	global	cObjRobo_SetBeginEvent	cObjRobo::SetBeginEvent
@@ -3248,31 +3248,31 @@ address	size	section	unit	scope	name	demangled
 0x800D75E4	0x20C	.text	game/cMotBase.cpp	global	cMotBase_move	cMotBase::move
 0x800D77F0	0x28	.text	game/cockpit.cpp	global	gameInit__7Cockpit	Cockpit::gameInit
 0x800D7818	0xAC	.text	game/cockpit.cpp	global	roomInit__7Cockpit	Cockpit::roomInit
-0x800D78C4	0x94	.text	game/cockpit.cpp	global	Cockpit_move	Cockpit::move
-0x800D7958	0x90	.text	game/cockpit.cpp	global	Cockpit_msgWindow	Cockpit::msgWindow
+0x800D78C4	0x94	.text	game/cockpit.cpp	global	move__7Cockpit	Cockpit::move
+0x800D7958	0x90	.text	game/cockpit.cpp	global	msgWindow__7Cockpiti	Cockpit::msgWindow
 0x800D79E8	0x90	.text	game/cockpit.cpp	global	lifeMeterDisp__7Cockpiti	Cockpit::lifeMeterDisp
-0x800D7A78	0x260	.text	game/cockpit.cpp	global	LifeMeter_roomInit	LifeMeter::roomInit
-0x800D7CD8	0xC94	.text	game/cockpit.cpp	global	LifeMeter_move	LifeMeter::move
+0x800D7A78	0x260	.text	game/cockpit.cpp	global	roomInit__9LifeMeter	LifeMeter::roomInit
+0x800D7CD8	0xC94	.text	game/cockpit.cpp	global	move__9LifeMeter	LifeMeter::move
 0x800D896C	0xB0	.text	game/cockpit.cpp	global	fix__9LifeMeteri	LifeMeter::fix
-0x800D8A1C	0x80	.text	game/cockpit.cpp	global	LifeMeter_disp	LifeMeter::disp
-0x800D8A9C	0x48	.text	game/cockpit.cpp	global	LifeMeter_frameOut	LifeMeter::frameOut
-0x800D8AE4	0x48	.text	game/cockpit.cpp	global	LifeMeter_frameIn	LifeMeter::frameIn
-0x800D8B2C	0x90	.text	game/cockpit.cpp	global	ActionButton_roomInit	ActionButton::roomInit
-0x800D8BBC	0x1C8	.text	game/cockpit.cpp	global	ActionButton_move	ActionButton::move
-0x800D8D84	0xC	.text	game/cockpit.cpp	global	BulletInfo_roomInit	BulletInfo::roomInit
-0x800D8D90	0x32C	.text	game/cockpit.cpp	global	BulletInfo_move	BulletInfo::move
-0x800D90BC	0xA4	.text	game/cockpit.cpp	local	dispBulletDigit	dispBulletDigit
-0x800D9160	0x130	.text	game/cockpit.cpp	global	dispBulletIconMarkNo	dispBulletIconMarkNo
-0x800D9290	0xD0	.text	game/cockpit.cpp	global	CountDown_roomInit	CountDown::roomInit
-0x800D9360	0x590	.text	game/cockpit.cpp	global	CountDown_move	CountDown::move
-0x800D98F0	0xA8	.text	game/cockpit.cpp	global	CountDown_disp	CountDown::disp
-0x800D9998	0x64	.text	game/cockpit.cpp	global	CountDown_frameIn	CountDown::frameIn
-0x800D99FC	0x3C	.text	game/cockpit.cpp	global	CountDown_frameOut	CountDown::frameOut
-0x800D9A38	0x148	.text	game/cockpit.cpp	global	CountDown_initTime	CountDown::initTime
-0x800D9B80	0x8	.text	game/cockpit.cpp	global	CountDown_initTimeFrame	CountDown::initTimeFrame
-0x800D9B88	0xE4	.text	game/cockpit.cpp	global	CountDown_warnTime	CountDown::warnTime
-0x800D9C6C	0x28	.text	game/cockpit.cpp	global	CountDown_getTime	CountDown::getTime
-0x800D9C94	0x8	.text	game/cockpit.cpp	global	CountDown_getFrame	CountDown::getFrame
+0x800D8A1C	0x80	.text	game/cockpit.cpp	global	disp__9LifeMeteri	LifeMeter::disp
+0x800D8A9C	0x48	.text	game/cockpit.cpp	global	frameOut__9LifeMeter	LifeMeter::frameOut
+0x800D8AE4	0x48	.text	game/cockpit.cpp	global	frameIn__9LifeMeter	LifeMeter::frameIn
+0x800D8B2C	0x90	.text	game/cockpit.cpp	global	roomInit__12ActionButton	ActionButton::roomInit
+0x800D8BBC	0x1C8	.text	game/cockpit.cpp	global	move__12ActionButton	ActionButton::move
+0x800D8D84	0xC	.text	game/cockpit.cpp	global	roomInit__10BulletInfo	BulletInfo::roomInit
+0x800D8D90	0x32C	.text	game/cockpit.cpp	global	move__10BulletInfo	BulletInfo::move
+0x800D90BC	0xA4	.text	game/cockpit.cpp	local	dispBulletDigit__FUc	dispBulletDigit
+0x800D9160	0x130	.text	game/cockpit.cpp	global	dispBulletIconMarkNo__FUc	dispBulletIconMarkNo
+0x800D9290	0xD0	.text	game/cockpit.cpp	global	roomInit__9CountDown	CountDown::roomInit
+0x800D9360	0x590	.text	game/cockpit.cpp	global	move__9CountDown	CountDown::move
+0x800D98F0	0xA8	.text	game/cockpit.cpp	global	disp__9CountDowni	CountDown::disp
+0x800D9998	0x64	.text	game/cockpit.cpp	global	frameIn__9CountDown	CountDown::frameIn
+0x800D99FC	0x3C	.text	game/cockpit.cpp	global	frameOut__9CountDown	CountDown::frameOut
+0x800D9A38	0x148	.text	game/cockpit.cpp	global	initTime__9CountDowniii	CountDown::initTime
+0x800D9B80	0x8	.text	game/cockpit.cpp	global	initTimeFrame__9CountDownUl	CountDown::initTimeFrame
+0x800D9B88	0xE4	.text	game/cockpit.cpp	global	warnTime__9CountDowniii	CountDown::warnTime
+0x800D9C6C	0x28	.text	game/cockpit.cpp	global	getTime__9CountDownPiN21	CountDown::getTime
+0x800D9C94	0x8	.text	game/cockpit.cpp	global	getFrame__9CountDown	CountDown::getFrame
 0x800D9C9C	0x44	.text	game/cockpit.cpp	global	saveDisp__9CountDown	CountDown::saveDisp
 0x800D9CE0	0x68	.text	game/cockpit.cpp	global	loadDisp__9CountDown	CountDown::loadDisp
 0x800D9D48	0xC	.text	game/cons.cpp	global	ConsInitRoom__FP8ConsRoom	ConsInitRoom
@@ -3542,7 +3542,7 @@ address	size	section	unit	scope	name	demangled
 0x800EC9A8	0x34	.text	game/eff_sys.cpp	global	pathRelease	pathRelease
 0x800EC9DC	0x34	.text	game/eff_sys.cpp	global	efmRelease	efmRelease
 0x800ECA10	0x3C	.text	game/eff_sys.cpp	global	EspGetEfmAddr	EspGetEfmAddr
-0x800ECA4C	0x34	.text	game/eff_sys.cpp	local	EspGetEfmTplAddr__FiPPv	EspGetEfmTplAddr
+0x800ECA4C	0x34	.text	game/eff_sys.cpp	global	EspGetEfmTplAddr__FiPPv	EspGetEfmTplAddr
 0x800ECA80	0x60	.text	game/eff_sys.cpp	global	EspGetEfmMotAddr	EspGetEfmMotAddr
 0x800ECAE0	0x60	.text	game/eff_sys.cpp	global	EspPullCoreKind	EspPullCoreKind
 0x800ECB40	0x74	.text	game/eff_sys.cpp	global	GetTexObjFlag__10cEspSystemUl	cEspSystem::GetTexObjFlag
@@ -3562,10 +3562,10 @@ address	size	section	unit	scope	name	demangled
 0x800ECEA8	0x14	.text	game/eff_sys.cpp	global	EffClearToolState	EffClearToolState
 0x800ECEBC	0x20	.text	game/eff_sys.cpp	global	EffSetToolStateCallBack	EffSetToolStateCallBack
 0x800ECEDC	0x68	.text	game/eff_sys.cpp	global	EffCallToolStateCallBack	EffCallToolStateCallBack
-0x800ECF44	0x3C	.text	game/eff_sys.cpp	global	RoomEfmRegist__FP6cModeli	RoomEfmRegist
-0x800ECF80	0x30	.text	game/eff_sys.cpp	global	RoomEfmRegist__FPvT0i	RoomEfmRegist
+0x800ECF44	0x3C	.text	game/eff_sys.cpp	global	RoomEfmRegist__FP6cModelUc	RoomEfmRegist
+0x800ECF80	0x30	.text	game/eff_sys.cpp	global	RoomEfmRegist__FPvT0Uc	RoomEfmRegist
 0x800ECFB0	0xD4	.text	game/eff_sys.cpp	local	__static_initialization_and_destruction_0_800ECFB0	__static_initialization_and_destruction_0
-0x800ED084	0x20	.text	game/eff_sys.cpp	local	_._6cCoord	cCoord::~cCoord
+0x800ED084	0x20	.text	game/eff_sys.cpp	global	_._6cCoord	cCoord::~cCoord
 0x800ED0A4	0x5C	.text	game/eff_sys.cpp	global	matUpdate__6cCoord	cCoord::matUpdate
 0x800ED100	0x2C	.text	game/eff_sys.cpp	global	global_constructors_keyed_to_owner_name_tbl	global constructors keyed to owner_name_tbl
 0x800ED12C	0x2C	.text	game/eff_sys.cpp	global	global_destructors_keyed_to_owner_name_tbl	global destructors keyed to owner_name_tbl
@@ -4009,9 +4009,9 @@ address	size	section	unit	scope	name	demangled
 0x801137C4	0x48	.text	game/emtorch.cpp	global	setParent__8cEmTorchP6cModelii	cEmTorch::setParent
 0x8011380C	0x20	.text	game/emtorch.cpp	global	_._8cEmTorch	cEmTorch::~cEmTorch
 0x8011382C	0x290	.text	game/emtree.cpp	global	SetTree	SetTree
-0x80113ABC	0x4	.text	game/emtree.cpp	global	cEmTree_beginEvent	cEmTree::beginEvent
+0x80113ABC	0x4	.text	game/emtree.cpp	global	beginEvent__7cEmTree	cEmTree::beginEvent
 0x80113AC0	0x5C	.text	game/emtree.cpp	global	emTreeDmCk	emTreeDmCk
-0x80113B1C	0xDC	.text	game/emtree.cpp	global	cEmTree_move	cEmTree::move
+0x80113B1C	0xDC	.text	game/emtree.cpp	global	move__7cEmTree	cEmTree::move
 0x80113BF8	0x1C	.text	game/emtree.cpp	global	emTree_R0_Init	emTree_R0_Init
 0x80113C14	0x38	.text	game/emtree.cpp	local	emTree_R0_Move	emTree_R0_Move
 0x80113C4C	0x78	.text	game/emtree.cpp	global	emTree_R1_Set	emTree_R1_Set
@@ -4021,13 +4021,13 @@ address	size	section	unit	scope	name	demangled
 0x8011422C	0x7CC	.text	game/emtree.cpp	global	emTree_R1_Fall	emTree_R1_Fall
 0x801149F8	0x3B4	.text	game/emtree.cpp	global	emTree_R1_Throw	emTree_R1_Throw
 0x80114DAC	0x424	.text	game/emtree.cpp	global	emTree_R1_Shot	emTree_R1_Shot
-0x801151D0	0x58	.text	game/emtree.cpp	global	cEmTree_setParent	cEmTree::setParent
-0x80115228	0x20	.text	game/emtree.cpp	global	cEmTree_clearParent	cEmTree::clearParent
-0x80115248	0x120	.text	game/emtree.cpp	global	cEmTree_setFall	cEmTree::setFall
-0x80115368	0x10	.text	game/emtree.cpp	global	cEmTree_ckCatch	cEmTree::ckCatch
-0x80115378	0xC	.text	game/emtree.cpp	global	cEmTree_setCatch	cEmTree::setCatch
-0x80115384	0x3C	.text	game/emtree.cpp	global	cEmTree_setLost	cEmTree::setLost
-0x801153C0	0x20	.text	game/emtree.cpp	global	cEmTree_dt_cEmTree	cEmTree::~cEmTree
+0x801151D0	0x58	.text	game/emtree.cpp	global	setParent__7cEmTreeP6cModelii	cEmTree::setParent
+0x80115228	0x20	.text	game/emtree.cpp	global	clearParent__7cEmTree	cEmTree::clearParent
+0x80115248	0x120	.text	game/emtree.cpp	global	setFall__7cEmTree	cEmTree::setFall
+0x80115368	0x10	.text	game/emtree.cpp	global	ckCatch__7cEmTree	cEmTree::ckCatch
+0x80115378	0xC	.text	game/emtree.cpp	global	setCatch__7cEmTree	cEmTree::setCatch
+0x80115384	0x3C	.text	game/emtree.cpp	global	setLost__7cEmTree	cEmTree::setLost
+0x801153C0	0x20	.text	game/emtree.cpp	global	_._7cEmTree	cEmTree::~cEmTree
 0x801153E0	0xB0	.text	game/emwindow.cpp	global	SetWindow__FPvT0P3VecT2iUcT0	SetWindow
 0x80115490	0x230	.text	game/emwindow.cpp	global	ChkWindow	ChkWindow
 0x801156C0	0x5C4	.text	game/emwindow.cpp	global	cEmWindow_init	cEmWindow::init
@@ -5286,7 +5286,7 @@ address	size	section	unit	scope	name	demangled
 0x80174318	0x60	.text	game/pl_class.cpp	global	cPlayer_actCheck	cPlayer::actCheck
 0x80174378	0x58	.text	game/pl_class.cpp	global	beginDamage__7cPlayer	cPlayer::beginDamage
 0x801743D0	0x78	.text	game/pl_class.cpp	global	endDamage__7cPlayer	cPlayer::endDamage
-0x80174448	0xE4	.text	game/pl_class.cpp	global	cPlayer_getLifeLevel	cPlayer::getLifeLevel
+0x80174448	0xE4	.text	game/pl_class.cpp	global	getLifeLevel__7cPlayer	cPlayer::getLifeLevel
 0x8017452C	0xD8	.text	game/pl_class.cpp	global	beginEvent__7cPlayer	cPlayer::beginEvent
 0x80174604	0x1D8	.text	game/pl_class.cpp	global	interrupt__7cPlayer	cPlayer::interrupt
 0x801747DC	0x150	.text	game/pl_class.cpp	global	endCamera__7cPlayer	cPlayer::endCamera
@@ -7525,7 +7525,7 @@ address	size	section	unit	scope	name	demangled
 0x80221E90	0x28	.rodata	game/objMissile.cpp	local	cUnit_virtual_table_80221E90	cUnit virtual table
 0x80221EB8	0x288	.rodata	game/objPillar.cpp	global	lbl_80221EB8	.
 0x80222140	0x40	.rodata	game/objPillar.cpp	global	_vt.10cObjPillar	cObjPillar virtual table
-0x80222180	0x28	.rodata	game/objPillar.cpp	global	cUnit_virtual_table_80222180	cUnit virtual table
+0x80222180	0x28	.rodata	game/objPillar.cpp	local	cUnit_virtual_table_80222180	cUnit virtual table
 0x802221A8	0x400	.rodata	game/objRobo.cpp	global	lbl_802221A8	.
 0x802225A8	0x40	.rodata	game/objRobo.cpp	global	_vt.8cObjRobo	cObjRobo virtual table
 0x802225E8	0x28	.rodata	game/objRobo.cpp	global	cUnit_virtual_table_802225E8	cUnit virtual table
@@ -8373,7 +8373,7 @@ address	size	section	unit	scope	name	demangled
 0x802343B8	0x28	.rodata	game/emtorch.cpp	local	cUnit_virtual_table_802343B8	cUnit virtual table
 0x802343E0	0x298	.rodata	game/emtree.cpp	global	lbl_802343E0	.
 0x80234678	0x58	.rodata	game/emtree.cpp	global	_vt.7cEmTree	cEmTree virtual table
-0x802346D0	0x28	.rodata	game/emtree.cpp	global	cUnit_virtual_table_802346D0	cUnit virtual table
+0x802346D0	0x28	.rodata	game/emtree.cpp	local	cUnit_virtual_table_802346D0	cUnit virtual table
 0x802346F8	0x350	.rodata	game/emwindow.cpp	local	lbl_802346F8	.
 0x80234A48	0x58	.rodata	game/emwindow.cpp	global	_vt.9cEmWindow	cEmWindow virtual table
 0x80234AA0	0x28	.rodata	game/emwindow.cpp	global	cUnit_virtual_table_80234AA0	cUnit virtual table
