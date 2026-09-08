@@ -50,6 +50,7 @@ public:
     u32 x28;                    // 0x28  (sce_at: number shown with item 0x73)
     u32 x2C;                    // 0x2C  (sce_at: number shown with item 0x75)
 
+    void init();                // 0x8001D3FC: title: allocate/clear the inventory
     ItemWork* at(int no);       // 0x8001DB5C: slot `no` of pItems, NULL when no >= nItems
     int searchAt(ItemWork* p);  // 0x8001DB80: slot index of `p`, -1 if not in pItems
     void ordering(u16 id);      // 0x8001DFD0: collect the in-use slots holding `id` into pOrder (qsort by order_cmp)

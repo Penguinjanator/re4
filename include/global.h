@@ -183,10 +183,15 @@ struct GlobalWork {
     u8 wep_x4FB2;          // 0x4FB2  equipped weapon slot num >> 13 (sscrn SubScreenExit re-arms when it changed)
     u8 wep_lv;             // 0x4FB3  weapon upgrade level (em_dm_val: WeaponLevelTbl column, clamped to 7)
     u8 pad_4FB4[4];
-    u8 x4FB8;              // 0x4FB8
-    u8 costume;            // 0x4FB9  player costume (pl_leon: 2 = no cloth simulation)
-    u8 x4FBA;              // 0x4FBA
-    u8 costume2;           // 0x4FBB  Ashley costume (pl_cloth: 1 = ribbon + lapels instead of skirt + sweater)
+    union {
+        u32 x4FB8_32;      // 0x4FB8  the four bytes as one word (title: `& 0xFF0000FF` == 0 -> Leon with the default Ashley)
+        struct {
+            u8 x4FB8;      // 0x4FB8  player character: 0 Leon, 1 Ashley, 2 Ada, 3 HUNK, 4 Krauser, 5 Wesker, 6 Leon+Ashley
+            u8 costume;    // 0x4FB9  player costume (pl_leon: 2 = no cloth simulation)
+            u8 x4FBA;      // 0x4FBA
+            u8 costume2;   // 0x4FBB  Ashley costume (pl_cloth: 1 = ribbon + lapels instead of skirt + sweater)
+        };
+    };
     u8 pad_4FBC[2];
     u16 flags_4FBE;        // 0x4FBE  bit0: player data changed (pl_sub PlSelect/PlSetCostume/PlChangeData)
     Vec sub_pos;           // 0x4FC0  sub character start position (sce_sys ScenarioRoomInit)

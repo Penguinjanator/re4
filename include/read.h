@@ -24,4 +24,9 @@ extern ReadModule EmReadModule[4];
 extern ReadModule PlReadModule;
 extern ReadModule WepReadModule;
 
+extern "C" {
+void CoreDataRead();
+void OptionDataRead();
+}
+
 #endif

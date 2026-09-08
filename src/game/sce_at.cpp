@@ -468,10 +468,10 @@ int sceAtCheck_main(cEm* em, int type)
     char name[21] = {'N', 'D', 'E', 'I', 'F', 'M', 'P', 'J', 'T', 'S', 'd', 's', ' ', 'f', 'C', 'K', 'L', 'U', 'H', ' ', ' '};
     ItemInfo info;
     SceAtWork* w;
-    int flag = 1;
     int col = 0;
     int cnt = 0;
-    int hit = 0;
+    int flag = 1;
+    int hit;
     u32 ft;
     u8 t;
     int c;
@@ -493,6 +493,7 @@ int sceAtCheck_main(cEm* em, int type)
         }
         SatMgr.hitCheck(&pos, &front, &front, 0, 0, 0);
     }
+    hit = 0;
     w = sceAtSetOtStart();
     while ((w = sceAtGetOtAddr(w)) != 0) {
         if (bitOff(w->flag)) {
@@ -552,7 +553,7 @@ int sceAtCheck_main(cEm* em, int type)
                     continue;
                 }
                 if (RouteCkPosToPosDis(&pPL->pos, &pSUB->pos) < 5000.0f) {
-                    ActBtn.set(kind, w->x44, sceAtFunc_tbl[0x12].exclusive, (int) w, 1, 6, 2, (int) em);
+                    ActBtn.set(kind, w->x44, (int) sceAtFunc_tbl[0x12].func, (int) w, 1, 6, 2, (int) em);
                 }
                 continue;
             case 3:
@@ -564,7 +565,7 @@ int sceAtCheck_main(cEm* em, int type)
                 }
                 break;
             }
-            ActBtn.set(kind, w->x44, sceAtFunc_tbl[ft].exclusive, (int) w, c, 1, 2, (int) em);
+            ActBtn.set(kind, w->x44, (int) sceAtFunc_tbl[ft].func, (int) w, c, 1, 2, (int) em);
             continue;
         }
         if (!(t == 1 && w->func == 0 && (w->x38 & 2) && (flag & 4))) {
@@ -677,15 +678,16 @@ int sceAtHitCheck(SceAtWork* w, cModel* m, Vec* front, Vec* pos)
         }
     }
     if (area.type == 3) {
+        Vec cc;
         Vec c = {0.0f, 0.0f, 0.0f};
-        GeoCone cone;
-        GeoCone cone2;
+        GeoCone cone[2];
 
         c.x = area.u.eye.x;
         c.y = area.u.eye.y;
         c.z = area.u.eye.z;
-        if (AreaViewCheck(&area, &cone) == 1) {
-            ret = InScreenCheck(c) == 1;
+        cc = c;
+        if (AreaViewCheck(&area, cone) == 1) {
+            ret = InScreenCheck(&cc) == 1;
         }
     } else {
         hp = (w->x37 & 1) ? front : pos;
@@ -2333,9 +2335,6 @@ void SceAtGetCenterPos(Vec* out, int no)
 
 int SceAtSetParent(SceAtWork* w, cModel* parent, int flag)
 {
-    Vec inv;
-    SceAtItem* it = &w->item;
-
     if (parent == 0) {
         pLog->err(0, 0, "sceAtSetParent(): pParent == NULL");
         return 0;
@@ -2343,9 +2342,7 @@ int SceAtSetParent(SceAtWork* w, cModel* parent, int flag)
     if (w->pParent == parent) {
         return 0;
     }
-    inv.x = 0.0f;
-    inv.y = 0.0f;
-    inv.z = 0.0f;
+    Vec inv = { 0.0f, 0.0f, 0.0f };
     if (parent->scale.x != 0.0f) {
         inv.x = 1.0f / parent->scale.x;
     }
@@ -2358,60 +2355,60 @@ int SceAtSetParent(SceAtWork* w, cModel* parent, int flag)
     w->flag |= flag;
     w->parentParts = -1;
     w->pParent = parent;
-    if (w->area.type == 1) {
-        AreaXZ4* a = &w->area.u.xz4;
-
-        a->y -= parent->pos.y;
-        a->p[0].x -= parent->pos.x;
-        a->p[0].z -= parent->pos.z;
-        a->p[1].x -= parent->pos.x;
-        a->p[1].z -= parent->pos.z;
-        a->p[2].x -= parent->pos.x;
-        a->p[2].z -= parent->pos.z;
-        a->p[3].x -= parent->pos.x;
-        a->p[3].z -= parent->pos.z;
-        a->y *= inv.y;
-        a->p[0].x *= inv.x;
-        a->p[0].z *= inv.z;
-        a->p[1].x *= inv.x;
-        a->p[1].z *= inv.z;
-        a->p[2].x *= inv.x;
-        a->p[2].z *= inv.z;
-        a->p[3].x *= inv.x;
-        a->p[3].z *= inv.z;
-    } else if (w->area.type >= 2 && w->area.type <= 3) {
-        AreaCylinder* a = &w->area.u.cyl;
-
-        a->x -= parent->pos.x;
-        a->y -= parent->pos.y;
-        a->z -= parent->pos.z;
-        a->x *= inv.x;
-        a->y *= inv.y;
-        a->z *= inv.z;
-    } else {
+    switch (w->area.type) {
+    case 1:
+        w->area.u.xz4.y -= parent->pos.y;
+        w->area.u.xz4.p[0].x -= parent->pos.x;
+        w->area.u.xz4.p[0].z -= parent->pos.z;
+        w->area.u.xz4.p[1].x -= parent->pos.x;
+        w->area.u.xz4.p[1].z -= parent->pos.z;
+        w->area.u.xz4.p[2].x -= parent->pos.x;
+        w->area.u.xz4.p[2].z -= parent->pos.z;
+        w->area.u.xz4.p[3].x -= parent->pos.x;
+        w->area.u.xz4.p[3].z -= parent->pos.z;
+        w->area.u.xz4.y *= inv.y;
+        w->area.u.xz4.p[0].x *= inv.x;
+        w->area.u.xz4.p[0].z *= inv.z;
+        w->area.u.xz4.p[1].x *= inv.x;
+        w->area.u.xz4.p[1].z *= inv.z;
+        w->area.u.xz4.p[2].x *= inv.x;
+        w->area.u.xz4.p[2].z *= inv.z;
+        w->area.u.xz4.p[3].x *= inv.x;
+        w->area.u.xz4.p[3].z *= inv.z;
+        break;
+    case 2:
+    case 3:
+        w->area.u.cyl.x -= parent->pos.x;
+        w->area.u.xz4.y -= parent->pos.y;
+        w->area.u.cyl.z -= parent->pos.z;
+        w->area.u.cyl.x *= inv.x;
+        w->area.u.xz4.y *= inv.y;
+        w->area.u.cyl.z *= inv.z;
+        break;
+    default:
         return 0;
     }
     if (w->x35 == 3) {
-        it->pos.x -= parent->pos.x;
-        it->pos.y -= parent->pos.y;
-        it->pos.z -= parent->pos.z;
-        it->pos.x *= inv.x;
-        it->pos.y *= inv.y;
-        it->pos.z *= inv.z;
-        it->ofs.x *= inv.x;
-        it->ofs.y *= inv.y;
-        it->ofs.z *= inv.z;
-        if (it->effNo != 0) {
-            sceAtItemEffDelete(it);
+        w->item.pos.x -= parent->pos.x;
+        w->item.pos.y -= parent->pos.y;
+        w->item.pos.z -= parent->pos.z;
+        w->item.pos.x *= inv.x;
+        w->item.pos.y *= inv.y;
+        w->item.pos.z *= inv.z;
+        w->item.ofs.x *= inv.x;
+        w->item.ofs.y *= inv.y;
+        w->item.ofs.z *= inv.z;
+        if (w->item.effNo != 0) {
+            sceAtItemEffDelete(&w->item);
             sceAtItemEffSet(w, 0);
         }
-        if (it->pModel != 0) {
-            it->pModel->pos.x -= w->pParent->pos.x;
-            it->pModel->pos.y -= w->pParent->pos.y;
-            it->pModel->pos.z -= w->pParent->pos.z;
-            it->pModel->pos.x *= inv.x;
-            it->pModel->pos.y *= inv.y;
-            it->pModel->pos.z *= inv.z;
+        if (w->item.pModel != 0) {
+            w->item.pModel->pos.x -= w->pParent->pos.x;
+            w->item.pModel->pos.y -= w->pParent->pos.y;
+            w->item.pModel->pos.z -= w->pParent->pos.z;
+            w->item.pModel->pos.x *= inv.x;
+            w->item.pModel->pos.y *= inv.y;
+            w->item.pModel->pos.z *= inv.z;
             sceAtSetItemModelParent(w);
         }
     }
@@ -2429,10 +2426,10 @@ int SceAtSetParent(int no, cObj* obj, int flag)
     return 0;
 }
 
-int InScreenCheck(Vec pos)
+int InScreenCheck(Vec* pos)
 {
     Vec scr;
-    Vec p = pos;
+    Vec p = *pos;
 
     GetScreenPos(&p, &scr);
     if (Screen.width * 0.25f < scr.x && Screen.width * 0.75f > scr.x && Screen.height * 0.1f < scr.y &&

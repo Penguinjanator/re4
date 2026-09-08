@@ -252,7 +252,7 @@ int SceAtCheckHitModel(int no, cModel* m);
 void SceAtSetActColor(int no, int col);
 void SceAtGetCenterPos(Vec* out, int no);
 int SceAtSetParent(SceAtWork* w, cModel* parent, int flag);
-int InScreenCheck(Vec pos);
+int InScreenCheck(Vec* pos);
 void SceAtExecRoomJump(u16 room, Vec* pos, Vec* rot, int a);
 SceAtField* SceAtCheckFieldInfo(Vec* pos);
 int SceAtCheckLadder(cModel* m, Vec* pos, f32* ang, u8* level);

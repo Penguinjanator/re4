@@ -95,6 +95,13 @@ static inline int IRef(int& v)
 }
 
 #define SYS_FLAG_TBL ((u32*) &pSys->x4)
+
+// Struct-member view of pSys (the pLog trick): its load stays below preceding stores through `wk`.
+struct SystemWorkPtr {
+    SystemWork* p;
+};
+#define pSysS (((SystemWorkPtr*) &pSys)->p)
+#define SYS_FLAG_TBL_S ((u32*) &pSysS->x4)
 #define MID (&mercId.idsys)
 
 MercSysWork MercSysWk;
@@ -521,9 +528,9 @@ int MercSysResultInit(MercSysWork* wk)
         return 0;
     }
     Cckpt.getCountDown()->getTime(&min, &sec, &cs);
+    wk->rslt.time = min * 6000 + sec * 100 + cs;
     wk->rslt.maxCombo = wk->maxCombo;
     wk->rslt.kill = wk->kill;
-    wk->rslt.time = min * 6000 + sec * 100 + cs;
     wk->rslt.mode = wk->mode;
     wk->rslt.rank = 0;
     wk->rslt.score = wk->score;
@@ -553,26 +560,26 @@ int MercSysResultInit(MercSysWork* wk)
     wk->rslt.hiScore = save.stage[wk->stage].score;
     wk->rslt.hiMode = save.stage[wk->stage].mode;
     wk->rslt.newRecord = save.stage[wk->stage].newFlag;
-    if (!flagCk(SYS_FLAG_TBL, extFlagTbl[wk->stage])) {
+    if (!flagCk(SYS_FLAG_TBL_S, extFlagTbl[wk->stage])) {
         if (wk->rslt.rank > 3) {
-            flagOn(SYS_FLAG_TBL, extFlagTbl[wk->stage]);
+            flagOn(SYS_FLAG_TBL_S, extFlagTbl[wk->stage]);
             flagOn(&wk->flags, mercSysGetFlag[wk->stage]);
         }
     }
     {
-        SystemWork* sys = pSys;
         int cnt = 0;
+        int k;
         int j;
 
-        for (i = 0; i < 4; i++) {
+        for (k = 0; k < 4; k++) {
             for (j = 0; j < 5; j++) {
-                if (save.rank[j][i] > 4) {
+                if (save.rank[j][k] > 4) {
                     cnt++;
                 }
             }
         }
-        if (!(sys->x4 & 0x20000000) && cnt > 19) {
-            sys->x4 |= 0x20000000;
+        if (!(pSys->x4 & 0x20000000) && cnt > 19) {
+            pSys->x4 |= 0x20000000;
             wk->flags |= MF_ALL_RANK;
         }
     }

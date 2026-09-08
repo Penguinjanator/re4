@@ -158,13 +158,14 @@ void EprintfBufferClear()
 
 void EprintfBuffering(int w, int h, char* str)
 {
-    char* p = mess_keep_ptr;
+    char* p;
     char* dst = NULL;
     int i;
 
     if (mess_keep_ptr >= mess_keep_buffer + MESS_KEEP_SIZE - 0x40) {
         return;
     }
+    p = mess_keep_ptr;
     for (i = 0; i < MESS_PTR_NUM; i++) {
         if (MESS_PTR(i) == NULL) {
             dst = p;
@@ -282,8 +283,8 @@ void EprintfDrawing()
         s16 x0 = x;
         p += 7;
         if (pSys->flags & 0x40000000) {
-            h = (f32) h / 1.3333333f;
-            y = (f32) y / 1.3333333f + 56.0f;
+            h = (f32) h / 1.33333333f;
+            y = (f32) y / 1.33333333f + 56.0f;
         }
         while (*p != 0) {
             if (*p == '\n') {

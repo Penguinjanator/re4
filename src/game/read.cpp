@@ -1,4 +1,9 @@
 // game/read: room / core / option / enemy / player / weapon data loading (D:/Bio4/Prog/read.cpp).
+// 20/21 match (OptionDataRead is byte-identical; objdiff rows are reloc-only). Open: readEmData
+// allocates `m` r28 / `SceSys` r29 (target r29 / r28): `newSize` (6 refs / 54 insns, 2222) beats
+// `m` (14 refs / 198, 2121) in global.c priority; the original needs `m` >= 15 refs or 4 more insns
+// in newSize's range. A `ModuleFlagOff(m, b)` helper (load/store through `m` instead of BitOff16's
+// reference) still counts 14 refs; dead initialisers are deleted before the count.
 #include "types.h"
 #include "atari.h"
 #include "light.h"
@@ -99,6 +104,9 @@ ReadModule EmReadModule[4] __attribute__((aligned(32)));
 ReadModule PlReadModule __attribute__((aligned(32)));
 ReadModule WepReadModule __attribute__((aligned(32)));
 
+// Plain block, not do/while(0): the loop notes of a do/while are a sched1 barrier, and the
+// original's argument order around HALT (`lwz r4` / `addi r4,r31,__FILE__` before the string
+// `lis/addi r3` in decodeData, the `mfcr` form in ReadPlayerData) needs one scheduling region.
 #define HALT()                                                    \
     {                                                             \
         OSReport("HALT %s(%d)\n", __FILE__, __LINE__);            \
@@ -107,10 +115,6 @@ ReadModule WepReadModule __attribute__((aligned(32)));
 
 #define DVD_READ(no, dst, a, b, c, mode) DvdRead(no, dst, a, b, c, mode, __FILE__, __LINE__)
 #define DVD_READ_N(name, dst, a, b, c, mode) DvdReadN(name, dst, a, b, c, mode, __FILE__, __LINE__)
-
-// Clears a module flag bit through the module pointer: the mask stays a 32-bit `rlwinm` (like
-// BitOff16) while the load/store count as references of `m` (readEmData's r29/r28 allocation).
-static inline void ModuleFlagOff(ReadModule* m, u16 b) { m->flag &= ~b; }
 
 #define READ_BUFF_OFS 0x142800
 #define ROOM_ARC_SIZE 0x300000
@@ -440,7 +444,7 @@ int readEmData(ReadModule* m, int id, void* addr, u32 size)
             newSize = len;
         }
     } else {
-        ModuleFlagOff(m, 4);
+        BitOff16(m->flag, 4);
         pArc = addr;
         newSize = len;
     }
@@ -456,7 +460,7 @@ int readEmData(ReadModule* m, int id, void* addr, u32 size)
             m->flag |= 1;
         } else {
             newSize = dataSize;
-            ModuleFlagOff(m, 1);
+            BitOff16(m->flag, 1);
         }
     }
     m->id = id;

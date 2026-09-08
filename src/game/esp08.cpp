@@ -113,11 +113,11 @@ extern f32 ZFAR;
             if (!ind) {                                                                           \
                 ESP08_QUAD(x, y, x1, y1, ss0, st0, ss1, st1)                                      \
             } else {                                                                              \
-                u0 = 0.0f;                                                                        \
-                v0 = 0.0f;                                                                        \
+                f32 cu = 0.0f;                                                                        \
+                f32 cv = 0.0f;                                                                        \
                 du = w->ofsX / w->rateX;                                                             \
                 dv = w->ofsY / w->rateY;                                                             \
-                ESP08_QUAD2(x0, y0, x1, y1, ss0, st0, s1, t1, u0, v0, u0 + du, v0 + dv)           \
+                ESP08_QUAD2(x0, y0, x1, y1, ss0, st0, s1, t1, cu, cv, cu + du, cv + dv)           \
             }                                                                                     \
         }                                                                                         \
         y = y0 + tileH * w->ofsY;                                                                 \
@@ -242,31 +242,33 @@ extern f32 ZFAR;
 
 // Texture coordinate corners for the sprite orientation (flags bit1: flip s, bit2: flip t;
 // screen sprites are drawn upside down). The two orientation tests are combined in one
-// condition: the four leaves are then jump targets cse cannot see `z` through, which keeps
-// the `s1 + z` adds (with nested ifs cse folds 0 + z into z).
+// condition and the corners are built from a `zero` variable: the four leaves are then jump
+// targets where cse knows neither operand of `zero + z`, which keeps the adds (with nested ifs
+// and literals cse folds 0 + z into z). The flip-s leaves add first and copy after: the add
+// reads `zero`'s register, the copies come from the copied variable.
 #define ESP08_FLIP_T(esp) \
     ((ESP_PARTS_SCREEN(esp) && !((esp)->flags & 4)) || (!ESP_PARTS_SCREEN(esp) && ((esp)->flags & 4)))
 #define ESP08_TEXCOORD_SET()                                                                      \
     if (esp->flags & 2) {                                                                         \
         if (ESP08_FLIP_T(esp)) {                                                                  \
-            s1 = 0.0f;                                                                            \
-            s0 = s1 + z;                                                                          \
+            s0 = zero + z;                                                                        \
+            s1 = zero;                                                                            \
             t0 = s0;                                                                              \
             t1 = s1;                                                                              \
         } else {                                                                                  \
-            s1 = 0.0f;                                                                            \
-            s0 = s1 + z;                                                                          \
-            t0 = s1;                                                                              \
+            s0 = zero + z;                                                                        \
+            t0 = zero;                                                                            \
+            s1 = zero;                                                                            \
             t1 = s0;                                                                              \
         }                                                                                         \
     } else {                                                                                      \
         if (ESP08_FLIP_T(esp)) {                                                                  \
-            s0 = 0.0f;                                                                            \
-            s1 = s0 + z;                                                                          \
+            s0 = zero;                                                                            \
+            t0 = s0 + z;                                                                          \
             t1 = s0;                                                                              \
-            t0 = s1;                                                                              \
+            s1 = t0;                                                                              \
         } else {                                                                                  \
-            s0 = 0.0f;                                                                            \
+            s0 = zero;                                                                            \
             s1 = s0 + z;                                                                          \
             t0 = s0;                                                                              \
             t1 = s1;                                                                              \
@@ -355,6 +357,7 @@ void Esp08_Trans(cEsp08* esp)
     f32 oy;
     f32 x0;
     f32 z;
+    f32 zero;
     f32 s0;
     f32 s1;
     f32 t0;
@@ -434,15 +437,16 @@ void Esp08_Trans(cEsp08* esp)
     sy = esp->sizeY * esp->scale;
     ox = -anm->x4;
     oy = (f32) anm->x6;
-    if (ox == 0.0f) {
+    z = 1.0f;
+    zero = 0.0f;
+    if (ox == zero) {
         ox = -anm->x0 * 0.5f;
     }
-    if (oy == 0.0f) {
+    if (oy == zero) {
         oy = anm->x2 * 0.5f;
     }
     x0 = ox * sx / anm->x0;
     y0 = oy * sy / anm->x2;
-    z = 1.0f;
     ESP08_TEXCOORD_SET()
     ESP08_TILES()
     if (esp->flags & 0x4000) {
@@ -486,6 +490,7 @@ void Esp08_TransShimmer(cEsp08* esp, int type)
     f32 oy;
     f32 x0;
     f32 z;
+    f32 zero;
     f32 s0;
     f32 s1;
     f32 t0;
@@ -558,10 +563,11 @@ void Esp08_TransShimmer(cEsp08* esp, int type)
     ox = -anm->x4;
     oy = (f32) anm->x6;
     z = 1.0f;
-    if (ox == 0.0f) {
+    zero = 0.0f;
+    if (ox == zero) {
         ox = -anm->x0 * 0.5f;
     }
-    if (oy == 0.0f) {
+    if (oy == zero) {
         oy = anm->x2 * 0.5f;
     }
     x0 = ox * sx / anm->x0;

@@ -1,13 +1,16 @@
 // game/dvd: DVD read queue, ARAM DMA queue, disc error screen (D:/Bio4/Prog/dvd.cpp).
-// 51/55 functions match; every section has the original size and the data sections match. Still
-// off (register allocation / scheduling only, same instruction sequences):
-//  - readMain (98.6%): &pFilehead vs &pFilehead[depth] get r28/r29 swapped and one `*ph` reload after
-//    SndBgmDataReadCheck uses the sum register instead of the index form.
-//  - Initialize (98.5%): the `n = name` copy is scheduled before the DVDConvertPathToEntrynum call.
-//  - ErrCheck (99%): MesData.ptr / Snd.str base registers swapped, `driveStatus` load hoisted above
-//    the vsync_cnt store.
-//  - DiscChange (89%): the last `pSys->region == 6` test of SysIsEurope becomes a setcc; the original
-//    is an unfolded `||` chain (all five compares jump to one `li r0,1`).
+// 54/57 functions match (LinkQueue/MesSysMessage are byte-identical, objdiff shows reloc-only rows);
+// every section has the original size and the data sections match. Still off:
+//  - Initialize (98.5%): the `n = name` copy (`mr r28,r29`) sits after the DVDConvertPathToEntrynum
+//    call in the original; ours hoists the pseudo copy above the call (sched1 sees no dependence).
+//    Statement orders, `this->name`, `&name[0]`, a temp for the call result all tried.
+//  - ErrCheck (99.9%): `pMes`/`pStr` swap r20/r21. Both have 3 refs, live lengths 390/386
+//    (priority 76 vs 77 after the *10000 truncation); the original must land both in one bucket
+//    (pMes declared first wins the tie). Block-scoped locals and do-while notes do not change the
+//    count at global-alloc time; no statement found that adds the 4 insns / removes 1.
+//  - DiscChange (92%): the `game[4]` template copy loads words 0,8,c,4 in the original (ours
+//    0,4,8,c); every load/store has equal priority, so the original RTL order of the pieces must
+//    differ (declaration order, `char company[]`, `const char* game[]` tried).
 #include "types.h"
 #include "global.h"
 #include "map_obj.h"

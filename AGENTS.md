@@ -533,6 +533,11 @@ mark it Matching.
   `addi` untied from r3 and following loads are scheduled after the copy.
 - `int atk; w->atkHit = 0; atk = 0;` (assignment after the byte store) keeps the QI and SI zeros in
   separate registers and makes cse pick `atk` as the 0 stack argument of later calls.
+- `if (cond ? f() : g())` duplicates `cmpwi r3,0` into both arms; `hit = cond ? f() : g(); if (hit)`
+  gives the single shared compare after the join.
+- `0xFFu` (unsigned literal) in a ternary makes the following compare `cmplwi` rather than `cmpwi`.
+- Odd float constants: `0.05f` in the target is `0x3D4CCCCC`, obtainable only as `0.01f * 5.0f`
+  (constant-folded) — when a pool word is off by one ulp, look for a folded product.
 - Static locals show as `name.NNN` in objdiff; the DECL_UID suffix cannot be reproduced and is ignored by the report.
 - Unexplained words in `.rodata` (zero words, stray floats) are usually the constant pool of a function
   the original linker dead-stripped (bodies gone, pools kept, `STRIP_UNUSED` in objects.py): write a
@@ -1062,6 +1067,44 @@ mark it Matching.
 - objdiff REPLACE rows with identical text: the split object can carry a synthesized `R_PPC_NONE`
   reloc (path `lfs f12,0(r29)`) or a symbol+addend spelled from a neighbouring symbol
   (`globalCamera+0xe0` = `g_RndMgr-0x38`); compare bytes/addresses, not the row.
+- `x == 2 || x == 3 || ... || x == 6` on one lvalue is range-folded by fold_range_test, and five
+  separate `if (x == k) return 1;` make the last test a setcc (jump.c store-flag on a single-use
+  diamond). The unfolded chain (`cmpwi k; beq L1` x4, `cmpwi 6; bne L0; L1: li 1; b; L0: li 0`) is a
+  `||` of inline CALL_EXPRs: `SysRegionIs(2) || SysRegionIs(3) ...` with
+  `static inline int SysRegionIs(int r) { return pSys->region == r; }` — operand_equal_p refuses
+  expressions with TREE_SIDE_EFFECTS, and the shared true-label sits between the last `bne` and the
+  `li 1` so jump.c cannot make a setcc (dvd SysIsEurope, card has the same chain).
+- cse-follow-jumps decides `lwzx rD,rIdx,rBase` (index form) vs `lwz rD,0(rSum)` for `*ph` with
+  `ph = &pFilehead[depth]`: the sum register is replaced by the index form only inside the extended
+  block that knows the equivalence, i.e. blocks entered through a once-used label preceded by a
+  barrier (cse follows them TAKEN, then re-runs the fall-through). A block that starts with a label
+  entered by a `goto` from elsewhere (`snd_err:` shared by two error paths) is a fresh ebb and keeps
+  the sum form; the original duplicated the error block in both `if (r == -1)` arms and let jump2
+  cross-jump them (dvd readMain, also flips the r28/r29 allocation of ph vs &pFilehead).
+- The `mr; cmpwi` vs `mr.` question (mes) is a combine question: `P = r3; cmp P` right after a call
+  always fuses into `mr.` in our RTL; the copy survives unfused only when can_combine_p fails
+  (a set of r3 or a volatile insn between them, a label, or a non-REG dest). ~30 forms tried
+  (int/u16/s16/u32/volatile/register locals, switch, goto, `if ((code = f()) ..)`, inline wrappers
+  give `rlwinm; cmpwi`). Still open.
+- A do/while(0) HALT macro is a sched1 barrier (loop notes): with a plain `{ }` HALT the preceding
+  `pLog->err`/`OSReport` argument moves are ranked together with HALT's own `lis r4,__FILE__`,
+  which pulls `li r4,0`/`lwz r4` before the string `lis/addi r3|r6` (main_sub DLL_Link/DLL_Unlink,
+  read decodeData/ReadPlayerData/ReadWepData — the ReadPlayerData `mfcr` OPEN went away with it).
+  Units where the do/while form matches (eprintf, sce_com) keep it: try both per unit.
+- The `mr rN,rM` copy of a just-loaded global (`lwz r0,g; mr r7,r0; cmplw r0,..`) means the compare
+  read the global *before* the local was assigned: `if (mess_keep_ptr >= ..) return; p = mess_keep_ptr;`
+  — cse turns the second load into a copy of the first (eprintf EprintfBuffering). Also there:
+  `h / 1.3333333f` (7 digits) is 0x3faaaaaa; the original constant is 0x3faaaaab (`1.33333333f`).
+- ErrCheck-style `pMes`/`pStr` r20/r21 swaps between two 3-ref invariants: priority = int(30000/L);
+  L 390 vs 386 fall in buckets 76/77, so the later-declared one wins; the original's lengths must
+  share a bucket (then the lower pseudo wins). Block-scoped declarations and do/while notes do NOT
+  change REG_LIVE_LENGTH at global-alloc time (only real insns count there).
+- Asm-labelled *definitions* (`int IDSystem::setCkI(int) asm("setCk__8IDSystemUc")`) do not
+  assemble: SN's cc1plus emits the function-begin label as `.L_f*setCk__8IDSystemUc_s` (the `*`
+  of the asm name) and NgcAs rejects it. So the narrow-parameter masks (`clrlwi rP,rP,24` on a u8
+  parameter, id_sys setCk/dispSw/kill) cannot be reproduced by an int-parameter view; an explicit
+  `type & 0xFF` is folded away too (nonzero_bits knows the promoted parameter). Only a tool-side
+  rewrite of that label (or a compiler flag for argument promotion) would open these.
 
 ## Don'ts
 

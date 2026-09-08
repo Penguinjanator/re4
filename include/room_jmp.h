@@ -43,7 +43,7 @@ public:
     int checkRoomNo(s8 stage, int idx);
 };
 
-extern cRoomJmp* pRj;
+// room_jmp.cpp and title.cpp each own a file-scope `cRoomJmp* pRj` of their own.
 
 void RoomJump();
 extern "C" void GetNextPos(u8 stage, u8 room);

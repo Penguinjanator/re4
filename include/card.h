@@ -23,6 +23,7 @@ public:
 
 extern "C" {
 void CardFirstCheck();
+int CardCheckDone();
 void CardSave(int a, int b);
 int CardLoad();
 void CardSysSave();

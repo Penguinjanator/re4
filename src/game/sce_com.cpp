@@ -1391,7 +1391,8 @@ void SceDebugDisp(const char* fmt, ...)
     SceSys.x7A += 0xF;
 }
 
-static int DebugTrg()
+// Called from title.cpp with an argument (`DebugTrg(1)`): the parameter exists, the body ignores it.
+int DebugTrg(int)
 {
     return 0;
 }
