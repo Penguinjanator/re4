@@ -13,17 +13,30 @@
 
 // Effect controller 45: weather water surface (same height-field model as Espgen42, following the
 // camera). The Estgen45Set* entry points let the room script (esp4c) override its parameters.
-// TODO: Espgen45_Move00, SetIndMtx, Espgen45_TransSub and SetWaterWork45 are not written yet.
+// TODO: Espgen45_Move00 and Espgen45_TransSub are not written yet.
 
-// Parameter block handed over by esp4c (Esp4cWork, 0x20 bytes).
+// Parameter block handed over by esp4c (Esp4cWork, 0x20 bytes; the layout is esp4c.cpp's).
 struct Esp4cWork {
-    u8 x[0x20];
+    u8 type;      // 0x00
+    u8 x1;        // 0x01
+    u8 x2;        // 0x02
+    u8 x3;        // 0x03
+    s16 indS;     // 0x04 indirect matrix parameters (SetIndMtx)
+    s16 indT;     // 0x06
+    f32 spread;   // 0x08
+    f32 damp;     // 0x0C
+    Vec rot;      // 0x10 surface rotation (SetWaterWork45)
+    u8 flag;      // 0x1C
+    u8 x1D;       // 0x1D
+    u8 x1E;       // 0x1E
+    u8 x1F;       // 0x1F
 };
 
 extern "C" {
 void Espgen45_Move00(EspgenWork* w);
 void Espgen45_TransSub(EspgenWork* w);
-int SetWaterWork45(EspgenWork* w, Vec* pos, Vec* rot, f32 size, u32 nx, u32 ny, f32 rate);
+void SetIndMtx_801291F4(Espgen42Work* p);   // the DOL's local SetIndMtx (Espgen42 owns the global one); sym_map name
+EspgenWork* SetWaterWork45(EspgenWork* w, Vec* pos, Vec* rot, f32 size, u32 nx, u32 ny, f32 rate);
 }
 
 EspgenWork* g_pWater45;
@@ -89,6 +102,223 @@ void Espgen45_Trans(EspgenWork* w)
         AddOtDirect(0x10, w, (void (*)()) Espgen45_TransSub, 1, 0x80, NULL, 0.0f);
     }
     pG->flags_5010 &= ~0x20;
+}
+
+void SetIndMtx_801291F4(Espgen42Work* p)
+{
+    f32 m[2][3];
+    s16 indS;
+    s16 indT;
+
+    if (g_bSetParam == 0) {
+        indS = p->indS;
+    } else {
+        indS = g_Free.indS;
+    }
+    if (g_bSetParam == 0) {
+        indT = p->indT;
+    } else {
+        indT = g_Free.indT;
+    }
+    m[0][0] = (f32) indS * 0.001f + 0.01f;
+    m[0][1] = 0.0f;
+    m[0][2] = 0.0f;
+    m[1][0] = 0.0f;
+    m[1][1] = (f32) indT * 0.007f + 0.07f;
+    m[1][2] = 0.0f;
+    GXSetIndTexMtx(1, m, 1);
+}
+
+// Dead-stripped from the DOL (string kept): pulls a generator and sets the surface up.
+static EspgenWork* SetWater(Vec* pos, Vec* rot, f32 size, u32 nx, u32 ny)
+{
+    EspgenWork* w;
+
+    if (PullEspgen(&w) == 0) {
+        pLog->err(0, 0, "Espgen45 : work pull failed");
+        return NULL;
+    }
+    return SetWaterWork45(w, pos, rot, size, nx, ny, 1.0f);
+}
+
+EspgenWork* SetWaterWork45(EspgenWork* w, Vec* pos, Vec* rot, f32 size, u32 nx, u32 ny, f32 rate)
+{
+    Espgen42Work* p = (Espgen42Work*) w->work;
+    Mtx m;
+    u32 n;
+    u8* d;
+    int i;
+    int j;
+    int k;
+    f32 fx;
+    f32 fy;
+
+    w->id = 0x45;
+    p->nx = nx;
+    p->ny = ny;
+    p->size = size;
+    p->spread = 0.95f;
+    p->damp = 0.05f;
+    p->pos0 = *pos;
+    if (g_bSetParam == 0) {
+        PSMTXScale(p->mat, p->size, p->size * 0.05f + 100.0f, p->size);
+    } else {
+        RotMatrix(p->mat, &g_Free.rot);
+        PSMTXScale(m, p->size, p->size * 0.05f + 100.0f, p->size);
+        PSMTXConcat(p->mat, m, p->mat);
+    }
+    PSMTXTransApply(p->mat, p->mat, p->pos0.x, p->pos0.y, p->pos0.z);
+    PSMTXInverse(p->mat, p->inv);
+    if (rate == 0.0f) {
+        rate = 0.0002f;
+    }
+    p->mat[1][1] *= rate;
+    n = sizeof(f32) * (p->ny + 1) * (p->nx + 1);
+#line 1452 "D:/Bio4/Prog/espgen45.cpp"
+    p->hA = (f32*) MEM_ALLOC(n, 1, 13);
+    if (p->hA == NULL) {
+        goto nomem;
+    }
+    memclr_asm(p->hA, n);
+#line 1459 "D:/Bio4/Prog/espgen45.cpp"
+    p->hB = (f32*) MEM_ALLOC(n, 1, 13);
+    if (p->hB == NULL) {
+        goto nomem;
+    }
+    memclr_asm(p->hB, n);
+    n = sizeof(Vec) * (p->ny + 1) * (p->nx + 1);
+#line 1468 "D:/Bio4/Prog/espgen45.cpp"
+    p->pos = (Vec*) MEM_ALLOC(n, 1, 13);
+    if (p->pos == NULL) {
+        goto nomem;
+    }
+    memclr_asm(p->pos, n);
+#line 1475 "D:/Bio4/Prog/espgen45.cpp"
+    p->nrm = (Vec*) MEM_ALLOC(n, 1, 13);
+    if (p->nrm == NULL) {
+        goto nomem;
+    }
+    memclr_asm(p->nrm, n);
+#line 1484 "D:/Bio4/Prog/espgen45.cpp"
+    p->bump = (u8*) MEM_ALLOC(sizeof(Vec) * p->ny * p->nx, 1, 13);
+    if (p->bump == NULL) {
+        goto nomem;
+    }
+    p->dlSize = ((p->nx + 1) * (p->ny * 2) * 12 + 0x61) & ~0x1F;
+#line 1497 "D:/Bio4/Prog/espgen45.cpp"
+    p->dl = (u8*) MEM_ALLOC(p->dlSize, 1, 13);
+    if (p->dl == NULL) {
+    nomem:
+        pLog->err(0, 0, "Espgen45 : not enough memory");
+        PushEspgen(w);
+        return NULL;
+    }
+    memclr_asm(p->dl, p->dlSize);
+    GXClearVtxDesc();
+    GXSetVtxDesc(9, 3);
+    GXSetVtxDesc(10, 3);
+    GXSetVtxDesc(13, 1);
+    GXSetVtxAttrFmt(0, 9, 1, 4, 0);
+    GXSetVtxAttrFmt(0, 10, 0, 4, 0);
+    GXSetVtxAttrFmt(0, 13, 1, 4, 0);
+    d = p->dl;
+    *d = 0;
+    d++;
+    *d = 0x98;
+    d++;
+    *(u16*) d = (p->nx + 1) * (p->ny * 2);
+    d += 2;
+    for (i = 0; i < p->ny; i++) {
+        k = i * (p->nx + 1);
+        for (j = 0; j < p->nx + 1; j++) {
+            *(u16*) d = k;
+            d += 2;
+            *(u16*) d = k;
+            d += 2;
+            *(f32*) d = (f32) j / (f32) (p->nx + 1);
+            d += 4;
+            *(f32*) d = (f32) i / (f32) (p->ny + 1);
+            d += 4;
+            k++;
+            *(u16*) d = p->nx + k;
+            d += 2;
+            *(u16*) d = p->nx + k;
+            d += 2;
+            *(f32*) d = (f32) j / (f32) (p->nx + 1);
+            d += 4;
+            *(f32*) d = (f32) (i + 1) / (f32) (p->ny + 1);
+            d += 4;
+        }
+        i++;
+        if (i < p->ny) {
+            for (j = p->nx; j >= 0; j--) {
+                k = i * (p->nx + 1) + j;
+                *(u16*) d = k;
+                d += 2;
+                *(u16*) d = k;
+                d += 2;
+                *(f32*) d = (f32) j / (f32) (p->nx + 1);
+                d += 4;
+                *(f32*) d = (f32) i / (f32) (p->ny + 1);
+                d += 4;
+                k++;
+                *(u16*) d = p->nx + k;
+                d += 2;
+                *(u16*) d = p->nx + k;
+                d += 2;
+                *(f32*) d = (f32) j / (f32) (p->nx + 1);
+                d += 4;
+                *(f32*) d = (f32) (i + 1) / (f32) (p->ny + 1);
+                d += 4;
+            }
+        }
+    }
+    fy = 0.0f;
+    for (i = 0; i < p->ny + 1; i++) {
+        int idx = i * (p->nx + 1);
+        fx = 0.0f;
+        for (j = 0; j < p->nx + 1; j++) {
+            p->pos[idx].x = fx - (f32) (p->nx / 2);
+            fx += 1.0f;
+            p->pos[idx].y = fRand1_1() * 0.2f;
+            p->pos[idx].z = fy - (f32) (p->ny / 2);
+            p->nrm[idx].x = 0.0f;
+            p->nrm[idx].y = 1.0f;
+            p->nrm[idx].z = 0.0f;
+            p->hA[idx] = 0.0f;
+            p->hB[idx] = 0.0f;
+            p->nrm[idx].x += ((f32) j - (f32) (p->nx / 2)) * (1.0f / (f32) p->nx);
+            p->nrm[idx].y *= 0.25f;
+            p->nrm[idx].z += ((f32) i - (f32) (p->ny / 2)) * (1.0f / (f32) p->ny);
+            idx++;
+        }
+        fy += 1.0f;
+    }
+    {
+        static f32 g45_init_y = 0.0f;
+        static f32 g45_init_y2 = 0.0f;
+        for (j = 0; j < p->nx + 1; j++) {
+            p->pos[j].y = g45_init_y;
+        }
+        for (j = 0; j < p->nx + 1; j++) {
+            p->pos[p->ny * (p->nx + 1) + j].y = g45_init_y;
+        }
+        for (i = 0; i < p->ny + 1; i++) {
+            p->pos[i * (p->nx + 1)].y = g45_init_y2;
+        }
+        for (i = 0; i < p->ny + 1; i++) {
+            p->pos[i * (p->nx + 1) + p->nx].y = g45_init_y2;
+        }
+    }
+    n = sizeof(Vec) * (p->ny + 1) * (p->nx + 1);
+    DCStoreRange(p->pos, n);
+    DCStoreRange(p->nrm, n);
+    DCStoreRange(p->bump, sizeof(Vec) * (p->ny + 1) * (p->nx + 1));
+    n = sizeof(f32) * (p->ny + 1) * (p->nx + 1);
+    DCStoreRange(p->hA, n);
+    DCStoreRange(p->hB, n);
+    DCStoreRange(p->dl, p->dlSize);
+    return w;
 }
 
 void Espgen45_Destruct(EspgenWork* w)

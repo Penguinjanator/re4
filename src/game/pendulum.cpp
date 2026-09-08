@@ -118,10 +118,12 @@ void PenClothSet(cModel* m, PenCloth* c, f32 len)
                 w->nrm.z = 0.0f;
                 PSMTXMultVec(parts->mat, &w->dir, &w->pos);
             } else {
+                PenParts* nw;
                 n = m->getPartsPtr(c->pUp[i]);
-                w->len = PEN_WORK(n)->len;
-                w->dir = PEN_WORK(n)->dir;
-                w->nrm = PEN_WORK(n)->nrm;
+                nw = PEN_WORK(n);
+                w->len = nw->len;
+                w->dir = nw->dir;
+                w->nrm = nw->nrm;
                 w->pos = parts->worldPos;
                 PSMTXMultVecSR(m->mat, &w->dir, &v);
                 PSVECAdd(&w->pos, &v, &w->pos);
@@ -145,16 +147,20 @@ void PenClothSet(cModel* m, PenCloth* c, f32 len)
         parts = m->getPartsPtr(c->pParts[i]);
         w = PEN_WORK(parts);
         if (c->x08 && c->x08[i] < 0xFF) {
-            w->distL = GetDistance3(&w->pos, &PEN_WORK(m->getPartsPtr(c->x08[i]))->pos) * 0.5f;
+            cModel* p = m->getPartsPtr(c->x08[i]);
+            w->distL = GetDistance3(&w->pos, &PEN_WORK(p)->pos) * 0.5f;
         }
         if (c->x0C && c->x0C[i] < 0xFF) {
-            w->distR = GetDistance3(&w->pos, &PEN_WORK(m->getPartsPtr(c->x0C[i]))->pos) * 0.5f;
+            cModel* p = m->getPartsPtr(c->x0C[i]);
+            w->distR = GetDistance3(&w->pos, &PEN_WORK(p)->pos) * 0.5f;
         }
         if (c->x10 && c->x10[i] < 0xFF) {
-            w->distUL = GetDistance3(&w->pos, &PEN_WORK(m->getPartsPtr(c->x10[i]))->pos) * 0.5f;
+            cModel* p = m->getPartsPtr(c->x10[i]);
+            w->distUL = GetDistance3(&w->pos, &PEN_WORK(p)->pos) * 0.5f;
         }
         if (c->x14 && c->x14[i] < 0xFF) {
-            w->distUR = GetDistance3(&w->pos, &PEN_WORK(m->getPartsPtr(c->x14[i]))->pos) * 0.5f;
+            cModel* p = m->getPartsPtr(c->x14[i]);
+            w->distUR = GetDistance3(&w->pos, &PEN_WORK(p)->pos) * 0.5f;
         }
     }
 }
@@ -213,12 +219,17 @@ void PenClothMove(cModel* m, PenCloth* c)
     }
     at = 0;
     if (!(c->flags & 1)) {
-        at = penClothAtMake(c->x58 ? c->x58 : m, c->x34, c->x38);
+        cModel* am = m;
+        if (c->x58) {
+            am = c->x58;
+        }
+        at = penClothAtMake(am, c->x34, c->x38);
     }
+    rate = 1.0f;
     if (!(c->flags & 0x40)) {
         c->x48 += fRand0_1() * GlobalWindAdd;
         c->x48 = LIMIT_ANGLE(c->x48);
-        PSVECScale(&GlobalWind, &wind, sinf(c->x48) + 1.0f);
+        PSVECScale(&GlobalWind, &wind, sinf(c->x48) + rate);
     }
     for (i = 0, pp = c->pParts; i < c->num; i++, pp++) {
         parts = PEN_PARTS(m, c, *pp);
@@ -258,10 +269,11 @@ void PenClothMove(cModel* m, PenCloth* c)
                 if (v.x != 0.0f && v.z != 0.0f) {
                     PSVECNormalize(&v, &v);
                     PSVECScale(&v, &v, spdLen);
-                    rate = 1.0f;
                     if (c->x2C) {
                         rate = sinf(LIMIT_ANGLE(c->x48 + c->x2C[i])) + 1.0f;
                         PSVECScale(&v, &v, rate);
+                    } else {
+                        rate = 1.0f;
                     }
                     if (c->x30) {
                         PSVECScale(&v, &v, rate);
@@ -271,10 +283,11 @@ void PenClothMove(cModel* m, PenCloth* c)
                 }
             }
             if ((pG->flags_60 & 0x200) && !(c->flags & 0x40) && c->x30) {
-                rate = 0.0f;
                 if (c->x2C) {
                     rate = sinf(LIMIT_ANGLE(c->x48 + c->x2C[i])) + 1.0f;
                     PSVECScale(&GlobalWind, &wind, rate);
+                } else {
+                    rate = 0.0f;
                 }
                 if (c->x30) {
                     PSVECScale(&GlobalWind, &wind, rate);
@@ -496,12 +509,17 @@ void PenClothMove2(cModel* m, PenCloth* c)
     }
     at = 0;
     if (!(c->flags & 1)) {
-        at = penClothAtMake(c->x58 ? c->x58 : m, c->x34, c->x38);
+        cModel* am = m;
+        if (c->x58) {
+            am = c->x58;
+        }
+        at = penClothAtMake(am, c->x34, c->x38);
     }
+    rate = 1.0f;
     if (!(c->flags & 0x40)) {
         c->x48 += fRand0_1() * GlobalWindAdd;
         c->x48 = LIMIT_ANGLE(c->x48);
-        PSVECScale(&GlobalWind, &wind, sinf(c->x48) + 1.0f);
+        PSVECScale(&GlobalWind, &wind, sinf(c->x48) + rate);
     }
     for (i = 0, pp = c->pParts; i < c->num; i++, pp++) {
         parts = PEN_PARTS(m, c, *pp);
@@ -530,10 +548,11 @@ void PenClothMove2(cModel* m, PenCloth* c)
             }
             PSVECAdd(&w->pos, &w->speed, &w->pos);
             if ((pG->flags_60 & 0x200) && !(c->flags & 0x40) && c->x30) {
-                rate = 0.0f;
                 if (c->x2C) {
                     rate = sinf(LIMIT_ANGLE(c->x48 + c->x2C[i])) + 1.0f;
                     PSVECScale(&GlobalWind, &wind, rate);
+                } else {
+                    rate = 0.0f;
                 }
                 if (c->x30) {
                     PSVECScale(&GlobalWind, &wind, rate);
@@ -759,12 +778,17 @@ void PenClothMove3(cModel* m, PenCloth* c)
     }
     at = 0;
     if (!(c->flags & 1)) {
-        at = penClothAtMake(c->x58 ? c->x58 : m, c->x34, c->x38);
+        cModel* am = m;
+        if (c->x58) {
+            am = c->x58;
+        }
+        at = penClothAtMake(am, c->x34, c->x38);
     }
+    rate = 1.0f;
     if (!(c->flags & 0x40)) {
         c->x48 += fRand0_1() * GlobalWindAdd;
         c->x48 = LIMIT_ANGLE(c->x48);
-        PSVECScale(&GlobalWind, &wind, sinf(c->x48) + 1.0f);
+        PSVECScale(&GlobalWind, &wind, sinf(c->x48) + rate);
     }
     for (i = 0, pp = c->pParts; i < c->num; i++, pp++) {
         parts = PEN_PARTS(m, c, *pp);
@@ -793,10 +817,11 @@ void PenClothMove3(cModel* m, PenCloth* c)
             }
             PSVECAdd(&w->pos, &w->speed, &w->pos);
             if ((pG->flags_60 & 0x200) && !(c->flags & 0x40) && c->x30) {
-                rate = 0.0f;
                 if (c->x2C) {
                     rate = sinf(LIMIT_ANGLE(c->x48 + c->x2C[i])) + 1.0f;
                     PSVECScale(&GlobalWind, &wind, rate);
+                } else {
+                    rate = 0.0f;
                 }
                 if (c->x30) {
                     PSVECScale(&GlobalWind, &wind, rate);
@@ -1024,6 +1049,13 @@ static void penClothLinkMove(cModel* parts, PenParts* w, Vec* a, Vec* b, f32 max
     Draw_sphere(&w->pos, 3.0f, 0xFFFF0000, 1, 1);
 }
 
+// World position of a point given in a parts' space. Inline: the addresses of the frame locals
+// passed through it are set straight into the argument registers (no PRE copies).
+static inline void penPartsWorldPos(cModel* p, const Vec* ofs, Vec* out)
+{
+    PSMTXMultVec(p->mat, ofs, out);
+}
+
 // Build the world space collision volumes of the frame into the locked cache work.
 PenAtWork* penClothAtMake(cModel* m, PlClothAt* at, int n)
 {
@@ -1035,25 +1067,28 @@ PenAtWork* penClothAtMake(cModel* m, PlClothAt* at, int n)
     Vec d;
     Vec up;
     Vec zero;
+    PenAt* a;
     u32 i;
 
     if (at == 0 || n == 0 || m == 0) {
         return 0;
     }
+    a = wk->at;
+    wk->pAt = a;
     wk->num = n;
-    wk->pAt = wk->at;
-    for (i = 0; i < n; i++, at++) {
-        PenAt* a = &wk->at[i];
+    for (i = 0; i < n; i++, at++, a++) {
+        u8 no1 = at->parts1;
+        f32 rate = at->rate;
         cModel* p0 = m->getPartsPtr(at->parts0);
-        cModel* p1 = m->getPartsPtr(at->parts1);
+        cModel* p1 = m->getPartsPtr(no1);
 
-        PSMTXMultVec(p0->mat, &at->p0, &v0);
-        PSMTXMultVec(p1->mat, &at->p1, &v1);
+        penPartsWorldPos(p0, &at->p0, &v0);
+        penPartsWorldPos(p1, &at->p1, &v1);
         switch (at->x0) {
         case 0:
         default:
             a->type = 0;
-            PosToPos(&v1, &v0, &c, at->rate);
+            PosToPos(&v1, &v0, &c, rate);
             a->p0 = c;
             a->r = at->r;
             if (pG->flags_60 & 0x400) {

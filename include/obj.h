@@ -624,6 +624,43 @@ struct LadderWork {
     u8 etcNo;             // 0x88  etc model number (GetEtcFlgPtr)
 };
 
+// Enemy head work (game/obj16.cpp `cObj16`): a head model hung on parts `partsNo` of `body` that
+// looks at the player (obj16NeckMove), bites (R1_Atk / R1_Critical) and fades out when its
+// enemies die.
+struct Obj16Work {
+    u32 flags;            // 0x00  bit0: the lost-wait timer runs (setLostWait / clearLostWait)
+    int timer;            // 0x04  routine step timer
+    int atkTimer;         // 0x08  R1_Atk: attack frames left
+    u8 pad_C[4];
+    cModel* target;       // 0x10  enemy whose position / id the SEs use (SetObj16 3rd argument)
+    cModel* body;         // 0x14  enemy the head is attached to (SetObj16 4th argument)
+    int partsNo;          // 0x18  parts of `body` the head follows
+    int seTimer;          // 0x1C  frames between the type 2 / 3 loop SEs
+    u32 seHandle;         // 0x20  SndCall handle of the loop SE (SndStop)
+    int lostWait;         // 0x24  frames before the fade out when the enemies are dead (150)
+    int x28;              // 0x28
+    int dieEffTimer;      // 0x2C  frames before the die effect (setDieEff: 3)
+    int estTimer;         // 0x30  frames between the idle effects
+    f32 neckAng;          // 0x34  neck yaw toward the player (smoothed)
+    void* mot[11];        // 0x38  setMotData: 0-2 idle, 3-6 bite, 7-9 (unused), 10 ...
+    void* plMot;          // 0x64  setPlDmgMot: player damage motion (plemDmMStar)
+    int plMotA;           // 0x68  its MotionSetCore 4th argument
+    int x6C;              // 0x6C
+    s16 atkWait;          // 0x70  frames the kind 2 attack is disabled after a hit (90)
+    u8 x72;               // 0x72
+    u8 x73;               // 0x73
+    u8 x74;               // 0x74
+    u8 active;            // 0x75  the head is awake (R1_CoreMove picks the awake motions)
+    u8 x76;               // 0x76  (60, counts down)
+    u8 espKind;           // 0x77  effect owner kind (0x3D)
+    u8 espKind2;          // 0x78  effect owner kind of the attack effects (0x3E)
+    u8 x79;               // 0x79
+    u8 atkEnable;         // 0x7A  ckAtkEnable: R1_CoreMove ran this frame
+    u8 atkHit;            // 0x7B  ckAtkHit: obj16AtkCk hit the player this frame
+    Vec scale;            // 0x7C  target scale (setScale), blended into cModel::scale by move
+    class cCtrl* ctrl12;  // 0x88  GetCtrlCtrl12() (Ctrl12Set on a hit)
+};
+
 // Sub-object at cObj+0x2B4 (0x74 bytes): the collision info followed by scroll bookkeeping.
 struct ObjSub2B4 {
     // wrapped like cEm's so that cObj::cObj does not run cAtariInfo's constructor (the original
@@ -697,6 +734,7 @@ public:
         SubWepWork subWep;
         BullWork bull;
         LadderWork ladder;
+        Obj16Work o16;
     };
 
     cObj();

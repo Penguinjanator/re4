@@ -65,7 +65,7 @@ public:
     u32 getFrame();
     void saveDisp();
     void loadDisp();
-    int checkState();  // game/mercenaries.cpp
+    int checkState(u32 bit);  // game/mercenaries.cpp: (flags & bit) ? 1 : 0
 };
 
 class ActionButton {

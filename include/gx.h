@@ -221,6 +221,8 @@ void GXSetDstAlpha(u8 enable, u8 alpha);
 void GXClearBoundingBox(void);
 // water (Espgen42/espgen45)
 void* GXGetTexObjData(GXTexObj* obj);
+// filter08
+void GXSetDither(u8 dither);
 #ifdef __cplusplus
 }
 #endif

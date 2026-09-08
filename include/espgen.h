@@ -190,9 +190,14 @@ struct Espgen10Work {
 // game/espgen45.cpp): a (nx+1) x (ny+1) height field with two ping-pong height buffers, drawn through
 // a prebuilt display list with an indirect bump texture.
 struct Espgen42Work {
-    u8 pad_14[4];      // 0x14
-    f32 x18;           // 0x18 (espgen45: copied to xC0 by SetFreeWork)
-    u8 pad_1C[4];
+    union {
+        struct {
+            u8 pad_14[4];  // 0x14
+            f32 x18;       // 0x18 (espgen45: copied to xC0 by SetFreeWork)
+            u8 pad_1C[4];
+        };
+        Vec pos0;          // 0x14 (espgen45: surface centre, SetWaterWork45)
+    };
     Mtx mat;           // 0x20 grid -> world
     Mtx inv;           // 0x50 world -> grid
     u16 nx;            // 0x80 grid cells along x

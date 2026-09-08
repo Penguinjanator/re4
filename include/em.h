@@ -143,7 +143,9 @@ public:
     u8 x38D;              // 0x38D  (db_cam "set=")
     u8 pad_38E[0x398 - 0x38E];
     u8 emsetNo;           // 0x398
-    u8 pad_399[0x3A8 - 0x399];
+    u8 pad_399[4];
+    u8 x39D;              // 0x39D  (obj16: the type 1 head is drawn at half scale while set)
+    u8 pad_39E[0x3A8 - 0x39E];
     Vec x3A8;             // 0x3A8  (objTrolley objTrolleySetAdjust adds the car movement to it)
     u8 pad_3B4[4];
     int dmgType;          // 0x3B8  (pl_sub SetPlDamage/SetSubDamage first argument)

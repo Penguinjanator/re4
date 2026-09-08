@@ -2,6 +2,7 @@
 // thrown, roll after the player (with the escape event) or drop on him.
 
 #include "atari.h"
+#include "atari_init.h"
 #include "light.h"
 #include "dmg.h"
 #include "map_obj.h"
@@ -37,7 +38,11 @@ int EmAtkHitCk(void* info, Vec* a, Vec* b, int flag);   // em_sub.cpp
 void MotionSetCore(cModel* m, void* w, void* data, int seq, int hokan, int flags, int frame);   // motion.cpp (C++ linkage)
 // cGameSave::save is `save(void*)` by name but the original reads a second argument (-1 here);
 // ABI-identical redeclaration (dvd.h ReadCheckInfo).
-void GameSaveSave(cGameSave* g, void* data, int mode) asm("save__9cGameSavePv");
+int GameSaveSave(cGameSave* g, void* data, int mode) asm("save__9cGameSavePv");
+
+// setYarareCube(0, 400, 800, 400) with the float arguments' moves issued before the `li r4, 0`
+// (atari_init.h: GCC emits the argument moves in declaration order).
+void setYarareCubeF(cEmRock* em, f32 x, f32 y, f32 z, Vec* size) asm("setYarareCube__7cEmRockP3Vecfff");
 
 // The rock the player damage callbacks belong to: the original re-reads pl->dmgType at every use.
 #define PL_ROCK(pl) ((cEmRock*) (pl)->dmgType)
@@ -123,10 +128,10 @@ cEmRock* SetRock(void* bin, void* tpl, Vec* pos, Vec* rot, u8 type)
         break;
     }
     if (em->type != 3) {
-        em->atari.init(0, 0x2000, 10, 0.0f, -(em->scale.y * 1200.0f) * 0.5f, 0.0f, em->scale.x * 1200.0f * 0.5f,
-                       em->scale.x * 1200.0f * 0.5f, em->scale.x * 1200.0f * 0.5f, em->scale.y * 1200.0f * 0.5f);
+        atariInitF(&em->atari, 0.0f, -(em->scale.y * 1200.0f) * 0.5f, 0.0f, em->scale.x * 1200.0f * 0.5f,
+                   em->scale.x * 1200.0f * 0.5f, em->scale.x * 1200.0f * 0.5f, em->scale.y * 1200.0f * 0.5f, 0, 0x2000, 10);
     } else {
-        em->atari.init(0, 0x2000, 10, 0.0f, 2000.0f, 0.0f, 2700.0f, 2700.0f, 2700.0f, 2000.0f);
+        atariInitF(&em->atari, 0.0f, 2000.0f, 0.0f, 2700.0f, 2700.0f, 2700.0f, 2000.0f, 0, 0x2000, 10);
     }
     em->hp = 1000;
     em->hpMax = 1000;
@@ -148,7 +153,7 @@ cEmRock* SetRock(void* bin, void* tpl, Vec* pos, Vec* rot, u8 type)
     em->setStatus(0xB);
     em->be_flag &= ~0x01000000;
     em->atari.setPriority(3);
-    em->atari.flags &= ~0x100;
+    em->atari.clrFlag100();
     em->be_flag &= ~0x10;
     w->alwaysWait = 4;
     w->sndId = 0;
@@ -1098,7 +1103,7 @@ void cEmRock::setFall(EmAtkInfo* atk)
     pos.z = mat[2][3];
     RotMatrix(mat, &rot);
     PSMTXRotRad(m, 'z', 1.5707964f);
-    PSMTXConcat(m, mat, mat);
+    PSMTXConcat(mat, m, mat);
     TransMatrix(mat, &pos);
     oldPos = pos;
     if (w->pParent) {
@@ -1106,12 +1111,12 @@ void cEmRock::setFall(EmAtkInfo* atk)
     }
     w->pParent = 0;
     hp = 1;
-    setYarareCube(0, 400.0f, 800.0f, 400.0f);
+    setYarareCubeF(this, 400.0f, 800.0f, 400.0f, 0);
     if (atk) {
         w->pAtk = atk;
     } else {
-        emRockAtk.range = w->radius;
         w->pAtk = &emRockAtk;
+        emRockAtk.range = w->radius;
     }
     xFC = 1;
     xFD = 3;
@@ -1149,7 +1154,7 @@ void cEmRock::setThrow(Vec* spd, EmAtkInfo* atk)
     pos.z = mat[2][3];
     RotMatrix(mat, &rot);
     PSMTXRotRad(m, 'z', 1.5707964f);
-    PSMTXConcat(m, mat, mat);
+    PSMTXConcat(mat, m, mat);
     TransMatrix(mat, &pos);
     oldPos = pos;
     if (w->pParent) {
@@ -1157,12 +1162,12 @@ void cEmRock::setThrow(Vec* spd, EmAtkInfo* atk)
     }
     w->pParent = 0;
     hp = 1;
-    setYarareCube(0, 400.0f, 800.0f, 400.0f);
+    setYarareCubeF(this, 400.0f, 800.0f, 400.0f, 0);
     if (atk) {
         w->pAtk = atk;
     } else {
-        emRockAtk.range = w->radius;
         w->pAtk = &emRockAtk;
+        emRockAtk.range = w->radius;
     }
     xFC = 1;
     xFD = 4;
@@ -1200,7 +1205,7 @@ void cEmRock::setThrow2(Vec* spd, EmAtkInfo* atk)
     pos.z = mat[2][3];
     RotMatrix(mat, &rot);
     PSMTXRotRad(m, 'z', 1.5707964f);
-    PSMTXConcat(m, mat, mat);
+    PSMTXConcat(mat, m, mat);
     TransMatrix(mat, &pos);
     oldPos = pos;
     if (w->pParent) {
@@ -1208,12 +1213,12 @@ void cEmRock::setThrow2(Vec* spd, EmAtkInfo* atk)
     }
     w->pParent = 0;
     hp = 1;
-    setYarareCube(0, 400.0f, 800.0f, 400.0f);
+    setYarareCubeF(this, 400.0f, 800.0f, 400.0f, 0);
     if (atk) {
         w->pAtk = atk;
     } else {
-        emRockAtk.range = w->radius;
         w->pAtk = &emRockAtk;
+        emRockAtk.range = w->radius;
     }
     xFC = 1;
     xFD = 5;
@@ -1276,12 +1281,11 @@ void emRockAtkScrCk(cEmRock* em)
     }
     for (i = 0; i < *(int*) pG->pRoomEmi; i++) {
         u32 o = i * 0x40 + 8;
-        EmiEntry* e;
+        EmiEntry* e = (EmiEntry*) ((u8*) pG->pRoomEmi + o);
 
         if (((u8*) pG->pRoomEmi)[o] != 3) {
             continue;
         }
-        e = (EmiEntry*) ((u8*) pG->pRoomEmi + o);
         if (e->state == 3) {
             continue;
         }
@@ -1463,20 +1467,23 @@ int emRockRollStartCk(cEmRock* em)
 void plemRockEscape(cPlayer* pl)
 {
     EmRockWork* w = EMROCK_WK(PL_ROCK(pl));
-    void* mot = w->plMot[2];
-    void* mot2 = w->plMot[3];
+    void* mot;
+    void* mot2;
     Vec v;
     int lim;
     int n;
     int flag;
 
     pl->x378 = PL_ROCK(pl)->x378;
+    mot2 = w->plMot[3];
+    mot = w->plMot[2];
     switch (pl->xFE) {
     case 0:
         pl->x3E0 = 85;
         Cckpt.lifeMeterDisp(0);
         pl->pWep->setTrans(0, 0);
         switch (pG->room_no) {
+        case 4:
         default:
             FSet(pPL->pos.x, 57947.0f);
             FSet(pPL->pos.y, 3273.0f);
@@ -1548,11 +1555,13 @@ void plemRockEscape(cPlayer* pl)
                 pl->x3E0 = 0;
             }
         }
-        n = (int) pl->x3E0 / 10;
+        n = (int) pl->x3E0 / 20;
         if (n > 7) {
             n = 7;
         }
         if (n != pl->x3E4) {
+            f32 ratio;
+            f32 f;
             u32 cnt;
             u32 fr;
 
@@ -1584,8 +1593,10 @@ void plemRockEscape(cPlayer* pl)
                 mot2 = w->plMot[10];
                 break;
             }
+            ratio = pl->frame / (f32) pl->frameMax;
             cnt = ((RockMotData*) mot2)->maxFrame;
-            fr = (u32) ((f32) cnt * (pl->frame / (f32) pl->frameMax)) + 1;
+            f = (f32) cnt * ratio;
+            fr = (u32) f + 1;
             if (fr >= cnt) {
                 fr = 0;
             }
@@ -1599,7 +1610,10 @@ void plemRockEscape(cPlayer* pl)
             }
         }
         if (pl->x3EC != -1) {
-            RouteCkToPos(pl, &((EmiEntry*) ((u8*) pG->pRoomEmi + pl->x3EC * 0x40 + 8))->pos, &v, 0, 0);
+            u32 o = pl->x3EC * 0x40 + 8;
+            EmiEntry* e = (EmiEntry*) ((u8*) pG->pRoomEmi + o);
+
+            RouteCkToPos(pl, &e->pos, &v, 0, 0);
             pl->rot.y += Muku(&pl->pos, &v, pl->rot.y, 0.024543693f);
             pl->rot.y = LIMIT_ANGLE(pl->rot.y);
         }
@@ -1932,6 +1946,7 @@ void emRockPushCamMove2(cEmRock* em)
 
     emRockCam.param.fovy = 27.0f;
     switch (pG->room_no) {
+    case 4:
     default:
         p0.x = 53244.0f;
         p0.y = 3116.0f;

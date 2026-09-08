@@ -17,6 +17,7 @@ extern void* pSaveData;
 extern "C" {
 void GameLoad();
 void GameContinue(int mode);
+void GamePointInit(int mode);
 }
 
 #endif

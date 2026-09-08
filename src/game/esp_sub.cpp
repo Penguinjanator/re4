@@ -41,22 +41,6 @@ struct EspPtr {
 
 #define ESP_PARTS_SCREEN(esp) ((s8) (esp)->partsNo >= -8 && (s8) (esp)->partsNo <= -3)
 
-// Mask texture of a sprite: TPL pattern `ptn` of the texture work into `tex` (and its palette
-// into `tlut`). The addresses are evaluated before TEXGet (inline arguments).
-static inline void EspMaskTexInit(GXTexObj* tex, GXTlutObj* tlut, EspTexWk* tw, int ptn)
-{
-    TEXDescriptor* td = TEXGet(tw->pTpl, ptn);
-    TEXHeader* th = td->textureHeader;
-
-    if (th->format == 8 || th->format == 9) {
-        GXInitTexObjCI(tex, th->data, th->width, th->height, th->format, 0, 0, 0, 1);
-        GXInitTlutObj(tlut, td->CLUTHeader->data, td->CLUTHeader->format, td->CLUTHeader->numEntries);
-        GXLoadTlut(tlut, 1);
-    } else {
-        GXInitTexObj(tex, th->data, th->width, th->height, th->format, 0, 0, 0);
-    }
-}
-
 // Shared sprite draw: the sprite quad (g_EspCommonDisplayList) with the effect's texture, an
 // optional mask texture in TEV stage 1, screen-space or camera-relative placement.
 void EspCommonTrans(cEsp* esp)
@@ -66,7 +50,6 @@ void EspCommonTrans(cEsp* esp)
     static EspAnmData* s_pAnm;
     static int s_ptn_no;
     Mtx inv;
-    EspAnmData* anm;
     f32 sx;
     f32 sy;
     f32 ox;
@@ -139,22 +122,20 @@ void EspCommonTrans(cEsp* esp)
     }
     sx = esp->sizeX * esp->scale;
     sy = esp->sizeY * esp->scale;
-    anm = s_pAnm;
     if ((f32) s_pAnm->x4 == 0.0f) {
         ox = -0.5f;
     } else {
-        ox = (f32) -anm->x4 / anm->x0;
+        ox = (f32) -s_pAnm->x4 / s_pAnm->x0;
     }
-    if ((f32) anm->x6 == 0.0f) {
-        oy = 0.5f;
+    if ((f32) s_pAnm->x6 == 0.0f) {
+        oy = -0.5f;
     } else {
-        oy = (f32) anm->x6 / anm->x2 + -1.0f;
+        oy = (f32) s_pAnm->x6 / s_pAnm->x2 + -1.0f;
     }
     if (ESP_PARTS_SCREEN(esp)) {
         Mtx m;
 
         esp->mat[2][2] = 1.0f;
-        esp->mat[2][3] = 0.0f;
         esp->mat[0][0] = sx;
         esp->mat[0][1] = 0.0f;
         esp->mat[0][2] = 0.0f;
@@ -165,6 +146,7 @@ void EspCommonTrans(cEsp* esp)
         esp->mat[1][3] = oy * sy;
         esp->mat[2][0] = 0.0f;
         esp->mat[2][1] = 0.0f;
+        esp->mat[2][3] = 0.0f;
         if (esp->flags & 2) {
             esp->mat[0][0] = -sx;
             esp->mat[0][3] = -(ox * sx);
@@ -187,7 +169,6 @@ void EspCommonTrans(cEsp* esp)
         Mtx m2;
 
         esp->mat[2][2] = 1.0f;
-        esp->mat[2][3] = 0.0f;
         esp->mat[0][0] = sx;
         esp->mat[0][1] = 0.0f;
         esp->mat[0][2] = 0.0f;
@@ -198,6 +179,7 @@ void EspCommonTrans(cEsp* esp)
         esp->mat[1][3] = oy * sy;
         esp->mat[2][0] = 0.0f;
         esp->mat[2][1] = 0.0f;
+        esp->mat[2][3] = 0.0f;
         if (esp->flags & 2) {
             esp->mat[0][0] = -sx;
             esp->mat[0][3] = -(ox * sx);
@@ -220,7 +202,6 @@ void EspCommonTrans(cEsp* esp)
         Mtx m;
 
         esp->mat[2][2] = 1.0f;
-        esp->mat[2][3] = 0.0f;
         esp->mat[0][0] = sx;
         esp->mat[0][1] = 0.0f;
         esp->mat[0][2] = 0.0f;
@@ -231,6 +212,7 @@ void EspCommonTrans(cEsp* esp)
         esp->mat[1][3] = oy * sy;
         esp->mat[2][0] = 0.0f;
         esp->mat[2][1] = 0.0f;
+        esp->mat[2][3] = 0.0f;
         if (esp->flags & 2) {
             esp->mat[0][0] = -sx;
             esp->mat[0][3] = -(ox * sx);
@@ -268,9 +250,19 @@ void EspCommonTrans(cEsp* esp)
         } else {
             GXTexObj tex;
             GXTlutObj tlut;
+            GXTexObj* pTex = &tex;
+            GXTlutObj* pTlut = &tlut;
+            TEXDescriptor* td = TEXGet(tw->pTpl, esp->anmPtn2);
+            TEXHeader* th = td->textureHeader;
 
-            EspMaskTexInit(&tex, &tlut, tw, esp->anmPtn2);
-            GXLoadTexObj(&tex, 1);
+            if (th->format == 8 || th->format == 9) {
+                GXInitTexObjCI(pTex, th->data, th->width, th->height, th->format, 0, 0, 0, 1);
+                GXInitTlutObj(pTlut, td->CLUTHeader->data, td->CLUTHeader->format, td->CLUTHeader->numEntries);
+                GXLoadTlut(pTlut, 1);
+            } else {
+                GXInitTexObj(pTex, th->data, th->width, th->height, th->format, 0, 0, 0);
+            }
+            GXLoadTexObj(pTex, 1);
             GXLoadTexMtxImm(tw->mtx, 0x21, 1);
             GXSetTexCoordGen(1, 1, 4, 0x21);
             GXSetNumTevStages(2);
@@ -286,8 +278,13 @@ void EspCommonTrans(cEsp* esp)
             }
         }
     }
-    if ((!(pG->flags_5010 & 0x80) && (esp->flags & 0x8000)) || ((pG->flags_5010 & 0x80) && (esp->flags & 0x800000))) {
-        GXSetAlphaUpdate(1);
+    {
+        // The flag word is read into a local for the first test only: with two plain reads the
+        // pre-cse jump threading merges the compares; the original kept one compare in cr7.
+        u32 sysFlags = pG->flags_5010;
+        if ((!(sysFlags & 0x80) && (esp->flags & 0x8000)) || ((pG->flags_5010 & 0x80) && (esp->flags & 0x800000))) {
+            GXSetAlphaUpdate(1);
+        }
     }
     if (esp->flags & 0x200000) {
         GXSetZMode(1, 3, 1);
@@ -323,7 +320,7 @@ static void EspCommonTransShimmer(cEsp* esp, int type, u32 blur)
 {
     static Mtx Matrix1 = {
         {0.001953125f, 0.0f, 0.0f, 0.0f},
-        {0.0f, 0.0022321f, 0.0f, 0.0f},
+        {0.0f, 1.0f / 448.0f, 0.0f, 0.0f},
         {0.0f, 0.0f, 1.0f, 0.0f},
     };
     static Mtx Matrix2 = {
@@ -612,9 +609,19 @@ static void EspCommonTransShimmer(cEsp* esp, int type, u32 blur)
             pLog->err(0, 0, "ESP : Mask_TexId[%x] no data", no);
         } else {
             GXTexObj tex2;
+            GXTexObj* pTex = &tex2;
+            GXTlutObj* pTlut = (GXTlutObj*) indMtx;
+            TEXDescriptor* td = TEXGet(tw->pTpl, esp->anmPtn2);
+            TEXHeader* th = td->textureHeader;
 
-            EspMaskTexInit(&tex2, (GXTlutObj*) indMtx, tw, esp->anmPtn2);
-            GXLoadTexObj(&tex2, 2);
+            if (th->format == 8 || th->format == 9) {
+                GXInitTexObjCI(pTex, th->data, th->width, th->height, th->format, 0, 0, 0, 1);
+                GXInitTlutObj(pTlut, td->CLUTHeader->data, td->CLUTHeader->format, td->CLUTHeader->numEntries);
+                GXLoadTlut(pTlut, 1);
+            } else {
+                GXInitTexObj(pTex, th->data, th->width, th->height, th->format, 0, 0, 0);
+            }
+            GXLoadTexObj(pTex, 2);
             GXLoadTexMtxImm(tw->mtx, 0x21, 1);
             GXSetTexCoordGen(texGens, 1, 4, 0x21);
             GXSetTevOrder(1, texGens, 2, 4);
@@ -1619,3 +1626,6 @@ void Esp1b_SpTrans(cEsp* esp)
     GXSetVtxAttrFmt(0, 0xA, 0, 1, 0);
     GXSetVtxAttrFmt(0, 0xD, 1, 1, 0);
 }
+
+// The split object's .sdata is padded to 8 bytes.
+asm(".section .sdata; .balign 8");

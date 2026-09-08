@@ -626,7 +626,7 @@ address	size	section	unit	scope	name	demangled
 0x8002EF78	0xC0	.text	game/obj15.cpp	global	setBreak__11cObjGatling	cObjGatling::setBreak
 0x8002F038	0x20	.text	game/obj15.cpp	global	_._11cObjGatling	cObjGatling::~cObjGatling
 0x8002F058	0x2E0	.text	game/obj16.cpp	global	SetObj16	SetObj16
-0x8002F338	0x874	.text	game/obj16.cpp	local	cObj16_move	cObj16::move
+0x8002F338	0x874	.text	game/obj16.cpp	global	move__6cObj16	cObj16::move
 0x8002FBAC	0x44	.text	game/obj16.cpp	global	obj16_R1_Set	obj16_R1_Set
 0x8002FBF0	0x66C	.text	game/obj16.cpp	global	obj16_R1_CoreMove	obj16_R1_CoreMove
 0x8003025C	0x544	.text	game/obj16.cpp	global	obj16_R1_Atk	obj16_R1_Atk
@@ -634,24 +634,24 @@ address	size	section	unit	scope	name	demangled
 0x80030D6C	0x2B0	.text	game/obj16.cpp	global	obj16_R1_Damage	obj16_R1_Damage
 0x8003101C	0x44	.text	game/obj16.cpp	global	MotSetObj16	MotSetObj16
 0x80031060	0xE4	.text	game/obj16.cpp	global	obj16MatCalc	obj16MatCalc
-0x80031144	0x20	.text	game/obj16.cpp	global	cObj16_setScale	cObj16::setScale
-0x80031164	0xC	.text	game/obj16.cpp	global	cObj16_setDieEff	cObj16::setDieEff
-0x80031170	0x18	.text	game/obj16.cpp	global	cObj16_clearLostWait	cObj16::clearLostWait
-0x80031188	0x14	.text	game/obj16.cpp	global	cObj16_setLostWait	cObj16::setLostWait
-0x8003119C	0x1A4	.text	game/obj16.cpp	global	cObj16_setMotData	cObj16::setMotData
-0x80031340	0x10	.text	game/obj16.cpp	global	cObj16_setPlDmgMot	cObj16::setPlDmgMot
-0x80031350	0x24	.text	game/obj16.cpp	global	cObj16_setAtk	cObj16::setAtk
-0x80031374	0x24	.text	game/obj16.cpp	global	cObj16_setCritical	cObj16::setCritical
-0x80031398	0x20	.text	game/obj16.cpp	global	cObj16_setDamage	cObj16::setDamage
-0x800313B8	0x18	.text	game/obj16.cpp	global	cObj16_ckAtkEnable	cObj16::ckAtkEnable
+0x80031144	0x20	.text	game/obj16.cpp	global	setScale__6cObj16P3Vec	cObj16::setScale
+0x80031164	0xC	.text	game/obj16.cpp	global	setDieEff__6cObj16	cObj16::setDieEff
+0x80031170	0x18	.text	game/obj16.cpp	global	clearLostWait__6cObj16	cObj16::clearLostWait
+0x80031188	0x14	.text	game/obj16.cpp	global	setLostWait__6cObj16i	cObj16::setLostWait
+0x8003119C	0x1A4	.text	game/obj16.cpp	global	setMotData__6cObj16PvN10_1	cObj16::setMotData
+0x80031340	0x10	.text	game/obj16.cpp	global	setPlDmgMot__6cObj16Pvi	cObj16::setPlDmgMot
+0x80031350	0x24	.text	game/obj16.cpp	global	setAtk__6cObj16Uc	cObj16::setAtk
+0x80031374	0x24	.text	game/obj16.cpp	global	setCritical__6cObj16	cObj16::setCritical
+0x80031398	0x20	.text	game/obj16.cpp	global	setDamage__6cObj16	cObj16::setDamage
+0x800313B8	0x18	.text	game/obj16.cpp	global	ckAtkEnable__6cObj16	cObj16::ckAtkEnable
 0x800313D0	0x634	.text	game/obj16.cpp	global	obj16AtkCk	obj16AtkCk
 0x80031A04	0x1DC	.text	game/obj16.cpp	global	obj16PlHeadLost	obj16PlHeadLost
 0x80031BE0	0x3B0	.text	game/obj16.cpp	local	obj16NeckMove	obj16NeckMove
-0x80031F90	0x2C	.text	game/obj16.cpp	global	cObj16_setBurn	cObj16::setBurn
-0x80031FBC	0x18	.text	game/obj16.cpp	global	cObj16_ckAtkHit	cObj16::ckAtkHit
+0x80031F90	0x2C	.text	game/obj16.cpp	global	setBurn__6cObj16	cObj16::setBurn
+0x80031FBC	0x18	.text	game/obj16.cpp	global	ckAtkHit__6cObj16	cObj16::ckAtkHit
 0x80031FD4	0xFC	.text	game/obj16.cpp	global	plemDmMStar	plemDmMStar
 0x800320D0	0x170	.text	game/obj16.cpp	global	createBack__t8cManager1Z4cObji	cManager<cObj>::createBack
-0x80032240	0x20	.text	game/obj16.cpp	global	cObj16_dt_cObj16	cObj16::~cObj16
+0x80032240	0x20	.text	game/obj16.cpp	global	_._6cObj16	cObj16::~cObj16
 0x80032260	0x70	.text	game/obj19.cpp	global	__8cItemObj	cItemObj::cItemObj
 0x800322D0	0x34	.text	game/obj19.cpp	global	move__8cItemObj	cItemObj::move
 0x80032304	0xF8	.text	game/obj19.cpp	global	setItemObj__FPvT0P3VecT2	setItemObj
@@ -7495,7 +7495,7 @@ address	size	section	unit	scope	name	demangled
 0x80220788	0x28	.rodata	game/obj15.cpp	local	cUnit_virtual_table_80220788	cUnit virtual table
 0x802207B0	0x248	.rodata	game/obj16.cpp	global	lbl_802207B0	.
 0x802209F8	0x40	.rodata	game/obj16.cpp	global	_vt.6cObj16	cObj16 virtual table
-0x80220A38	0x28	.rodata	game/obj16.cpp	global	cUnit_virtual_table_80220A38	cUnit virtual table
+0x80220A38	0x28	.rodata	game/obj16.cpp	local	cUnit_virtual_table_80220A38	cUnit virtual table
 0x80220A60	0xD8	.rodata	game/obj19.cpp	global	lbl_80220A60	.
 0x80220B38	0x40	.rodata	game/obj19.cpp	global	_vt.8cItemObj	cItemObj virtual table
 0x80220B78	0x28	.rodata	game/obj19.cpp	local	cUnit_virtual_table_80220B78	cUnit virtual table

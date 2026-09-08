@@ -49,6 +49,10 @@ void EprintfFlush();
 extern int vsync_cnt;
 extern int eprintf_init;
 
+// Read through a reference: a MEM with neither the struct nor the scalar flag, so the load is
+// not hoisted above the preceding `vsync_cnt = 0` scalar store (ErrCheck).
+static inline s32 IRef(s32& v) { return v; }
+
 // Low memory globals (OSPhysicalToCached(0x00F8) = bus clock); a struct member so the
 // address splits into `lis 0x8000` + displacement.
 struct OSLowMem {
@@ -654,7 +658,9 @@ void cDvdQueue::readMain()
             case 8:
                 r = SndEmDataReadCheck((*ph)->sndArg);
                 if (r == -1) {
-                    goto snd_err;
+                    OSReport("DVD: Snd File not Read!!!\n");
+                    *ph += 2;
+                    return;
                 }
                 (*ph)->sndNo = r;
                 (*ph)[1].sndNo = r;
@@ -667,14 +673,13 @@ void cDvdQueue::readMain()
             case 3:
                 r = SndBgmDataReadCheck((*ph)->sndArg);
                 if (r == -1) {
-                snd_err:
                     OSReport("DVD: Snd File not Read!!!\n");
                     *ph += 2;
                     return;
                 }
                 (*ph)->sndNo = r;
-                t = r + 3;
                 (*ph)[1].sndNo = r;
+                t = r + 3;
                 Snd.bgm_mram -= ALIGN32((*ph)->size);
                 SndMem.blk_mram[t] = Snd.bgm_mram;
                 break;
@@ -1592,7 +1597,7 @@ int cDvd::ErrCheck(int disc, int flag)
             Render_swap();
             while (vsync_cnt < (int) GetSystemVcnt()) {}
             vsync_cnt = 0;
-            if (driveStatus != -1) {
+            if (IRef(driveStatus) != -1) {
                 systemResetCheck();
             }
         }
@@ -1850,22 +1855,17 @@ void RomFontMessage(u32 msg, int disc)
     }
 }
 
-// European region codes share one disc id.
+// European region codes share one disc id. The tests are inline calls: a `||` chain on the same
+// lvalue is range-folded (`subi; cmplwi`), separate `if`s make the last test a setcc; a chain of
+// CALL_EXPRs (side effects) is never merged by fold and gives the five compares to one `li 1`.
+static inline int SysRegionIs(int r)
+{
+    return pSys->region == r;
+}
+
 static inline int SysIsEurope()
 {
-    if (pSys->region == 2) {
-        return 1;
-    }
-    if (pSys->region == 3) {
-        return 1;
-    }
-    if (pSys->region == 4) {
-        return 1;
-    }
-    if (pSys->region == 5) {
-        return 1;
-    }
-    if (pSys->region == 6) {
+    if (SysRegionIs(2) || SysRegionIs(3) || SysRegionIs(4) || SysRegionIs(5) || SysRegionIs(6)) {
         return 1;
     }
     return 0;
@@ -1875,9 +1875,9 @@ int cDvd::DiscChange(int disc)
 {
     DVDDiskID id;
     DVDCommandBlock cb;
-    char company[3] = "08";
-    const char* game[4] = {"G4BJ", "G4BE", "G4BJ", "G4BJ"};
     int region = 0;
+    char company[] = "08";
+    const char* game[] = {"G4BJ", "G4BE", "G4BJ", "G4BJ"};
 
     if (pSys->region == 1) {
         region = 1;

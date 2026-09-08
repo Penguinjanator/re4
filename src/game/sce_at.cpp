@@ -99,6 +99,8 @@ static inline int bitOff(u32 v)
 static inline void U8Set(u8& d, u8 v) { d = v; }
 static inline void U16Set(u16& d, u16 v) { d = v; }
 static inline void U32Set(u32& d, u32 v) { d = v; }
+static inline void S16Set(s16& d, s16 v) { d = v; }
+static inline void S8Set(s8& d, s8 v) { d = v; }
 static inline void PSet(void*& d, void* v) { d = v; }
 static inline void PSet(u32& d, void* v) { d = (u32) v; }
 static inline void PSet(cModel*& d, cModel* v) { d = v; }
@@ -122,6 +124,36 @@ static inline u32* itemFlags()
 static inline u32* itemFindFlags()
 {
     return &pG->item_flags[4];
+}
+// pG->save_item as a pointer (the original adds the record offset to pG before the index).
+static inline SceAtSaveItem* saveItemTbl()
+{
+    return pG->save_item;
+}
+// Halfword fields of the save items: the original forms the address as integer arithmetic with the index
+// first (`idx*16 + ((u32)pG + ofs)`): non-struct MEM with an unflagged base, so pG is reloaded after
+// every store and the field offset is added to pG before the index (sthx base, idx).
+static inline u32 saveItemBase(int ofs)
+{
+    return (u32) pG + ofs;
+}
+#define SAVE_ITEM_HALF(i, ofs) (*(u16*) (saveItemBase(ofs) + (i) * 16))
+#define SAVE_ITEM_ROOM(i) SAVE_ITEM_HALF(i, 0x72EC)
+#define SAVE_ITEM_ID(i) SAVE_ITEM_HALF(i, 0x72EE)
+#define SAVE_ITEM_NUM(i) SAVE_ITEM_HALF(i, 0x72F0)
+#define SAVE_ITEM_POS(i, k) (*(s16*) (saveItemBase(0x72F2 + (k) * 2) + (i) * 16))
+#define SAVE_ITEM_TYPE(i) pG->save_item[i].type
+#define SAVE_ITEM_ATNO(i) pG->save_item[i].atNo
+#define SAVE_ITEM_EFF(i) pG->save_item[i].effType
+
+// Room save record words: item flags at +8, item-found flags at +0x18 (separate pointer pseudos keep the addi).
+static inline u32* roomItemFlags()
+{
+    return (u32*) (RoomData.getRoomSavePtr(pG->room_id) + 8);
+}
+static inline u32* roomItemFindFlags()
+{
+    return (u32*) (RoomData.getRoomSavePtr(pG->room_id) + 0x18);
 }
 
 #define MES_Y (0x150 - cMes.getWork()->lineSpace - cMes.getWork()->fontH - 1)
@@ -175,6 +207,11 @@ struct SceAtFuncTbl {
 
 static SceAtSysWork* pS;
 static SceAtSysWork SceAtSys;
+// Struct-member view of pS (the pLog trick): keeps its load below preceding stores through a work.
+struct SceAtSysPtr {
+    SceAtSysWork* p;
+};
+#define pSS (((SceAtSysPtr*) &pS)->p)
 static SceAtReleaseModel releaseModelTbl[8];
 static cModel* p_imodel_bak = NULL;
 static void* lbl_80314D6C = NULL;
@@ -1891,8 +1928,8 @@ static int sceAtFunc_pos_jump(SceAtWork* w, cModel* m)
     Vec rot;
 
     pPL->setPos(&w->jumpPos);
-    rot.y = w->dstAngle;
     rot.x = 0.0f;
+    rot.y = w->dstAngle;
     rot.z = 0.0f;
     pPL->setAng(&rot);
     CamCtrl.qfps.setPlayerLocation(pPL->mat, pPL->pFloorNrm);
@@ -1949,11 +1986,7 @@ void SceAtRoomSet()
         case 0x10:
             if (!(w->x38 & 8)) {
                 w->x38 = (w->x38 & 0x80) | 8;
-                if (w->ladder.level > 0) {
-                    w->x4A = 9;
-                } else {
-                    w->x4A = 8;
-                }
+                w->x4A = (w->ladder.level <= 0) ? 8 : 9;
                 w->x44 = 5;
             }
             break;
@@ -2108,16 +2141,25 @@ SceAtWork* SceAtPtr(int no)
 int sceAtPullAtNo(u8* out)
 {
     u32 used[8];
-    u32* f = used;
     SceAtWork* w;
     u32 i;
 
     memclr_asm(used, sizeof(used));
     w = sceAtSetOtStart();
-    while ((w = sceAtGetOtAddr(w)) != 0) {
+    goto TEST;
+BODY:
+    {
+        u32* f = used;
+
         f[w->no >> 5] |= 0x80000000 >> (w->no & 31);
     }
+TEST:
+    if ((w = sceAtGetOtAddr(w)) != 0) {
+        goto BODY;
+    }
     for (i = 0; i < 256; i++) {
+        u32* f = used;
+
         if (!(f[i >> 5] & (0x80000000 >> (i & 31)))) {
             *out = i;
             return 1;
@@ -2787,7 +2829,7 @@ void SceAtItemFlgOn(u16 flagNo, u16 saveNo)
         itemFlags()[flagNo >> 5] |= 0x80000000 >> (flagNo & 31);
     } else if (saveNo != 0) {
         if (RoomData.getRoomSavePtr(pG->room_id) != 0) {
-            ((u32*) (RoomData.getRoomSavePtr(pG->room_id) + 8))[saveNo >> 5] |= 0x80000000 >> (saveNo & 31);
+            roomItemFlags()[saveNo >> 5] |= 0x80000000 >> (saveNo & 31);
         }
     }
 }
@@ -2800,7 +2842,7 @@ int SceAtItemFlgCk(u16 flagNo, u16 saveNo)
         r = itemFlags()[flagNo >> 5] & (0x80000000 >> (flagNo & 31));
     } else if (saveNo != 0) {
         if (RoomData.getRoomSavePtr(pG->room_id) != 0) {
-            r = ((u32*) (RoomData.getRoomSavePtr(pG->room_id) + 8))[saveNo >> 5] & (0x80000000 >> (saveNo & 31));
+            r = roomItemFlags()[saveNo >> 5] & (0x80000000 >> (saveNo & 31));
         }
     }
     if (r != 0) {
@@ -2831,11 +2873,13 @@ int SceAtItemFindFlgCk(int no)
 
 void sceAtItemFlgOn(SceAtItem* it)
 {
-    if (it->flagNo != 0) {
-        itemFlags()[it->flagNo >> 5] |= 0x80000000 >> (it->flagNo & 31);
+    u16 no = it->flagNo;
+
+    if (no != 0) {
+        itemFlags()[no >> 5] |= 0x80000000 >> (no & 31);
     } else if (it->findFlagNo != 0) {
         if (RoomData.getRoomSavePtr(pG->room_id) != 0) {
-            ((u32*) (RoomData.getRoomSavePtr(pG->room_id) + 8))[it->findFlagNo >> 5] |= 0x80000000 >> (it->findFlagNo & 31);
+            roomItemFlags()[it->findFlagNo >> 5] |= 0x80000000 >> (it->findFlagNo & 31);
         }
     }
 }
@@ -2843,12 +2887,13 @@ void sceAtItemFlgOn(SceAtItem* it)
 int sceAtItemFlgCk(SceAtItem* it)
 {
     u32 r = 0;
+    u16 no = it->flagNo;
 
-    if (it->flagNo != 0) {
-        r = itemFlags()[it->flagNo >> 5] & (0x80000000 >> (it->flagNo & 31));
+    if (no != 0) {
+        r = itemFlags()[no >> 5] & (0x80000000 >> (no & 31));
     } else if (it->findFlagNo != 0) {
         if (RoomData.getRoomSavePtr(pG->room_id) != 0) {
-            r = ((u32*) (RoomData.getRoomSavePtr(pG->room_id) + 8))[it->findFlagNo >> 5] & (0x80000000 >> (it->findFlagNo & 31));
+            r = roomItemFlags()[it->findFlagNo >> 5] & (0x80000000 >> (it->findFlagNo & 31));
         }
     }
     if (r != 0) {
@@ -2859,11 +2904,13 @@ int sceAtItemFlgCk(SceAtItem* it)
 
 void sceAtItemFindFlgOn(SceAtItem* it)
 {
-    if (it->flagNo != 0) {
-        itemFindFlags()[it->flagNo >> 5] |= 0x80000000 >> (it->flagNo & 31);
+    u16 no = it->flagNo;
+
+    if (no != 0) {
+        itemFindFlags()[no >> 5] |= 0x80000000 >> (no & 31);
     } else if (it->findFlagNo != 0) {
         if (RoomData.getRoomSavePtr(pG->room_id) != 0) {
-            ((u32*) (RoomData.getRoomSavePtr(pG->room_id) + 0x18))[it->findFlagNo >> 5] |= 0x80000000 >> (it->findFlagNo & 31);
+            roomItemFindFlags()[it->findFlagNo >> 5] |= 0x80000000 >> (it->findFlagNo & 31);
         }
     }
 }
@@ -2871,12 +2918,13 @@ void sceAtItemFindFlgOn(SceAtItem* it)
 int sceAtItemFindFlgCk(SceAtItem* it)
 {
     u32 r = 0;
+    u16 no = it->flagNo;
 
-    if (it->flagNo != 0) {
-        r = itemFindFlags()[it->flagNo >> 5] & (0x80000000 >> (it->flagNo & 31));
+    if (no != 0) {
+        r = itemFindFlags()[no >> 5] & (0x80000000 >> (no & 31));
     } else if (it->findFlagNo != 0) {
         if (RoomData.getRoomSavePtr(pG->room_id) != 0) {
-            r = ((u32*) (RoomData.getRoomSavePtr(pG->room_id) + 0x18))[it->findFlagNo >> 5] & (0x80000000 >> (it->findFlagNo & 31));
+            r = roomItemFindFlags()[it->findFlagNo >> 5] & (0x80000000 >> (it->findFlagNo & 31));
         }
     }
     if (r != 0) {
@@ -2902,7 +2950,7 @@ int SceAtDestroy(int no)
 }
 
 #line 3850 "D:/Bio4/Prog/sce_at.cpp"
-int SceAtCreateExecAt(cModel* m, Vec* pos, int a, int b, int c, f32 h, int d, f32 ang, int e, f32 range, int prio, TaskFunc func, int arg, int flag)
+int SceAtCreateExecAt(cModel* m, Vec* pos, int a, int b, int c, f32 h, int d, f32 ang, int e, f32 range, int prio, TaskFunc func, int arg, u8 flag)
 {
     SceAtWork* w;
 
@@ -2927,8 +2975,8 @@ int SceAtCreateExecAt(cModel* m, Vec* pos, int a, int b, int c, f32 h, int d, f3
     w->flag = 7;
     w->x35 = 2;
     w->parentParts = -1;
-    w->angleRange = (s8) (range * 0.5f * 57.29578f);
     w->angle = (s8) (ang * 0.5f * 57.29578f);
+    w->angleRange = (s8) (range * 0.5f * 57.29578f);
     AreaDataInit(&w->area, &m->pos, 1, 1500.0f, h);
     w->area.u.xz4.y = (pos[0].y + pos[1].y + pos[2].y + pos[3].y) * 0.25f;
     w->area.u.xz4.p[0].x = pos[0].x;
@@ -2939,7 +2987,7 @@ int SceAtCreateExecAt(cModel* m, Vec* pos, int a, int b, int c, f32 h, int d, f3
     w->area.u.xz4.p[2].z = pos[2].z;
     w->area.u.xz4.p[3].x = pos[3].x;
     w->area.u.xz4.p[3].z = pos[3].z;
-    AddPrim(&pS->ot[w->x44], (u32*) w);
+    AddPrim(&pSS->ot[w->x44], (u32*) w);
     return w->no;
 }
 
@@ -2962,14 +3010,14 @@ int SceAtCreateFieldAt(cModel* m, Vec* pos, int a, int b, int c, f32 h, int d, f
     w->x39 = c;
     w->x4A = e;
     w->x44 = d;
-    w->x45 = 0;
     w->prio = 0;
     w->func = 0;
     w->arg = 0;
-    w->pParent = m;
-    w->parentParts = -1;
+    w->x45 = 0;
     w->flag = 7;
     w->x35 = 0xD;
+    w->parentParts = -1;
+    w->pParent = m;
     w->angle = (s8) (ang * 0.5f * 57.29578f);
     w->angleRange = (s8) (range * 0.5f * 57.29578f);
     AreaDataInit(&w->area, &m->pos, 1, 1500.0f, h);
@@ -2984,13 +3032,13 @@ int SceAtCreateFieldAt(cModel* m, Vec* pos, int a, int b, int c, f32 h, int d, f
     w->area.u.xz4.p[3].z = pos[3].z;
     w->field.value = val;
     w->field.pModel = m;
-    AddPrim(&pS->ot[w->x44], (u32*) w);
+    AddPrim(&pSS->ot[w->x44], (u32*) w);
     *out = &w->field;
     return w->no;
 }
 
 #line 3995 "D:/Bio4/Prog/sce_at.cpp"
-int SceAtCreateItemAt(Vec* pos, int id, int num, int effType, int saveNo, cModel* parent, int parts)
+int SceAtCreateItemAt(Vec* pos, u16 id, int num, int effType, int saveNo, cModel* parent, int parts)
 {
     SceAtWork* w;
     SceAtItem* it;
@@ -3012,15 +3060,15 @@ int SceAtCreateItemAt(Vec* pos, int id, int num, int effType, int saveNo, cModel
         if (sceAtCheckSaveItem(id) == 1) {
             saveNo = sceAtPullItemSaveWork();
             if (saveNo >= 0) {
-                pG->save_item[saveNo].room = pG->room_id;
-                pG->save_item[saveNo].type = 0;
-                pG->save_item[saveNo].atNo = 0;
-                pG->save_item[saveNo].id = id;
-                pG->save_item[saveNo].num = num;
-                pG->save_item[saveNo].effType = effType;
-                pG->save_item[saveNo].pos[0] = (s16) (pos->x / 10.0f);
-                pG->save_item[saveNo].pos[1] = (s16) (pos->y / 10.0f);
-                pG->save_item[saveNo].pos[2] = (s16) (pos->z / 10.0f);
+                SAVE_ITEM_ROOM(saveNo) = pG->room_id;
+                SAVE_ITEM_TYPE(saveNo) = 0;
+                SAVE_ITEM_ATNO(saveNo) = 0;
+                SAVE_ITEM_ID(saveNo) = id;
+                SAVE_ITEM_NUM(saveNo) = num;
+                SAVE_ITEM_EFF(saveNo) = effType;
+                SAVE_ITEM_POS(saveNo, 0) = (s16) (pos->x / 10.0f);
+                SAVE_ITEM_POS(saveNo, 1) = (s16) (pos->y / 10.0f);
+                SAVE_ITEM_POS(saveNo, 2) = (s16) (pos->z / 10.0f);
                 it->flag2 |= 8;
             } else {
                 pLog->err(0, 0, "SceAtCreateItemAt(): lack save work");
@@ -3112,15 +3160,15 @@ void SceAtReserveItemAt(int key, Vec* pos, int id, int num, int effType, int sav
         pLog->err(0, 0, "SceAtReserveItemAt(): save work over");
         return;
     }
-    pG->save_item[saveNo].room = pG->room_id;
-    pG->save_item[saveNo].type = 0;
-    pG->save_item[saveNo].atNo = 0;
-    pG->save_item[saveNo].id = id;
-    pG->save_item[saveNo].num = num;
-    pG->save_item[saveNo].effType = effType;
-    pG->save_item[saveNo].pos[0] = (s16) (pos->x / 10.0f);
-    pG->save_item[saveNo].pos[1] = (s16) (pos->y / 10.0f);
-    pG->save_item[saveNo].pos[2] = (s16) (pos->z / 10.0f);
+    saveItemTbl()[saveNo].room = pG->room_id;
+    saveItemTbl()[saveNo].type = 0;
+    saveItemTbl()[saveNo].atNo = 0;
+    saveItemTbl()[saveNo].id = id;
+    saveItemTbl()[saveNo].num = num;
+    saveItemTbl()[saveNo].effType = effType;
+    saveItemTbl()[saveNo].pos[0] = (s16) (pos->x / 10.0f);
+    saveItemTbl()[saveNo].pos[1] = (s16) (pos->y / 10.0f);
+    saveItemTbl()[saveNo].pos[2] = (s16) (pos->z / 10.0f);
 }
 
 void SceAtCancelItemAt(int key)
@@ -3128,18 +3176,16 @@ void SceAtCancelItemAt(int key)
     int i;
 
     for (i = 0; i <= 15; i++) {
-        SceAtReserve* r = &SceAtSys.reserve[i];
-
-        if (r->key == key) {
-            memclr_asm(&pG->save_item[r->saveNo], sizeof(SceAtSaveItem));
-            r->saveNo = 0;
-            r->key = 0;
+        if (SceAtSys.reserve[i].key == key) {
+            memclr_asm(&pG->save_item[SceAtSys.reserve[i].saveNo], sizeof(SceAtSaveItem));
+            SceAtSys.reserve[i].saveNo = 0;
+            SceAtSys.reserve[i].key = 0;
             break;
         }
     }
 }
 
-int sceAtCheckItemEffectCol(int id)
+int sceAtCheckItemEffectCol(u16 id)
 {
     ItemInfo info;
 
@@ -3153,12 +3199,12 @@ int sceAtCheckItemEffectCol(int id)
     case 3:
     case 4:
         return 5;
+    case 6:
+        return 4;
     case 0:
     case 5:
     case 7:
         return 2;
-    case 6:
-        return 4;
     case 8:
         return 3;
     case 0xC:
@@ -3319,24 +3365,24 @@ void SceAtSetSaveItem()
     SceAtWork* w;
 
     for (i = 0; i <= 0xFF; i++) {
-        if (pG->save_item[i].room == 0) {
+        if (saveItemTbl()[i].room == 0) {
             continue;
         }
-        if (pG->save_item[i].room != pG->room_id) {
+        if (saveItemTbl()[i].room != pG->room_id) {
             continue;
         }
-        switch (pG->save_item[i].type) {
+        switch (saveItemTbl()[i].type) {
         case 0:
-            pos.x = (f32) pG->save_item[i].pos[0] * 10.0f;
-            pos.y = (f32) pG->save_item[i].pos[1] * 10.0f;
-            pos.z = (f32) pG->save_item[i].pos[2] * 10.0f;
-            SceAtCreateItemAt(&pos, pG->save_item[i].id, pG->save_item[i].num, pG->save_item[i].effType, i, 0, -1);
+            pos.x = (f32) saveItemTbl()[i].pos[0] * 10.0f;
+            pos.y = (f32) saveItemTbl()[i].pos[1] * 10.0f;
+            pos.z = (f32) saveItemTbl()[i].pos[2] * 10.0f;
+            SceAtCreateItemAt(&pos, saveItemTbl()[i].id, saveItemTbl()[i].num, saveItemTbl()[i].effType, i, 0, -1);
             break;
         case 1:
-            w = SceAtPtr(pG->save_item[i].atNo);
+            w = SceAtPtr(saveItemTbl()[i].atNo);
             w->item.flag2 |= 8;
-            w->item.id = pG->save_item[i].id;
-            w->item.num = pG->save_item[i].num;
+            w->item.id = saveItemTbl()[i].id;
+            w->item.num = saveItemTbl()[i].num;
             w->item.saveNo = i;
             break;
         }
@@ -3348,7 +3394,7 @@ int sceAtPullItemSaveWork()
     int i;
 
     for (i = 0; i < 256; i++) {
-        if (pG->save_item[i].room == 0) {
+        if (saveItemTbl()[i].room == 0) {
             return i;
         }
     }
@@ -3365,7 +3411,7 @@ int SceAtCheckSaveItemId(int id)
     int i;
 
     for (i = 0; i < 256; i++) {
-        if (pG->save_item[i].room != 0 && pG->save_item[i].id == id) {
+        if (saveItemTbl()[i].room != 0 && saveItemTbl()[i].id == id) {
             return 1;
         }
     }
@@ -3428,12 +3474,12 @@ int SceAtSetItemModel(int no, cModel* m)
 {
     SceAtWork* w = SceAtPtr(no);
 
-    if (w != 0) {
-        SceAtSetItemModel(w, m);
-        return 1;
+    if (w == 0) {
+        pLog->err(0, 0, "SceAtSetItemModel(): AT NOT FOUND");
+        return 0;
     }
-    pLog->err(0, 0, "SceAtSetItemModel(): AT NOT FOUND");
-    return 0;
+    SceAtSetItemModel(w, m);
+    return 1;
 }
 
 int SceAtSetItemModel(SceAtWork* w, cModel* m)
@@ -3502,11 +3548,11 @@ cModel* SceAtItemModelPtr(int no)
         pLog->err(0, 0, "SceAtItemModelPtr(): AT NOT FOUND");
         return 0;
     }
-    if (w->x35 == 3) {
-        return w->item.pModel;
+    if (w->x35 != 3) {
+        pLog->err(0, 0, "SceAtItemModelPtr(): not ID == ITEM");
+        return 0;
     }
-    pLog->err(0, 0, "SceAtItemModelPtr(): not ID == ITEM");
-    return 0;
+    return w->item.pModel;
 }
 
 int SceAtItemHitCheck(SceAtWork* w, Vec* pos)
@@ -3796,12 +3842,12 @@ void sceAtSetItem(SceAtWork* w)
         it->num = num;
         s = sceAtPullItemSaveWork();
         if (s >= 0) {
-            pG->save_item[s].room = pG->room_id;
-            pG->save_item[s].type = r;
-            pG->save_item[s].atNo = w->no;
-            pG->save_item[s].id = id;
-            pG->save_item[s].num = num;
-            pG->save_item[s].effType = -1;
+            saveItemTbl()[s].room = pG->room_id;
+            saveItemTbl()[s].type = r;
+            saveItemTbl()[s].atNo = w->no;
+            saveItemTbl()[s].id = id;
+            saveItemTbl()[s].num = num;
+            saveItemTbl()[s].effType = -1;
         }
     }
     w->linkNo = 0;
@@ -3893,10 +3939,14 @@ void SceAtItemAutoArea(AreaData* area, Vec* pos, f32 size)
     Vec p = *pos;
 
     p.y -= 2000.0f;
-    if (size == 0.0f) {
-        size = 1500.0f;
+    {
+        f32 h = 3000.0f;
+
+        if (size == 0.0f) {
+            size = 1500.0f;
+        }
+        AreaDataInit(area, &p, 2, size + size, h);
     }
-    AreaDataInit(area, &p, 2, size + size, 3000.0f);
 }
 
 static void sceAtDeleteItem(SceAtWork* w)
