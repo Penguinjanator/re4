@@ -176,6 +176,14 @@ mark it Matching.
   `__builtin_memcpy`).
 - `.sdata` alignment padding a split object contains is reproduced with
   `asm(".section .sdata; .balign 8")`.
+- `subfic r0,rX,0; adde r3,r0,rX` is `return x == 0`; `return x != 0` compiles to a branch.
+- A `cmpw rCONST,rX` with the constant hoisted into a callee-saved register is a local like
+  `int dead = 10;` compared as `dead < x`.
+- A `do { ... } while (0)` macro body is a scheduling-region boundary: its stores do not mix with the
+  preceding block's stores.
+- Hardware registers are struct members at a base (`OS_BUS_CLOCK`: `lis 0x8000; lwz 0xF8(r)`), never
+  `*(u32*)0x800000F8`; the GX FIFO is the linker symbol `GXWGFifo` (see gx.h).
+- A void-looking function whose last call's r3 is untouched may return that value.
 - Static locals show as `name.NNN` in objdiff; the DECL_UID suffix cannot be reproduced and is ignored by the report.
 - Unexplained words in `.rodata` (zero words, stray floats) are usually the constant pool of a function
   the original linker dead-stripped (bodies gone, pools kept, `STRIP_UNUSED` in objects.py): write a
