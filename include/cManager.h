@@ -57,6 +57,7 @@ public:
     T* create();
     T* create(int id, u32 no);
     T* createBack(int id);
+    T* getPrevWork(T* p);
     int dieCheck();
     void* arrayAlloc(u32 n);
     void arrayFree();
@@ -261,6 +262,20 @@ inline void cManager<T>::destroy(T* p)
         log("%s::destroy() INVALID ID %d", name, flag);
         break;
     }
+}
+
+// The work in front of `p` in the array, or 0 at the front (scroll groups chain works this way).
+template <class T>
+T* cManager<T>::getPrevWork(T* p)
+{
+    p = (T*)((u8*)p - size);
+    if ((u32)p < (u32)pArray) {
+        return 0;
+    }
+    if ((u32)p < (u32)pArray + size * (nArray - 1)) {
+        return p;
+    }
+    return 0;
 }
 
 template <class T>

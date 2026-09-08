@@ -58,7 +58,7 @@ struct EspGenWork {
     f32 xEC;           // 0xEC
     f32 xF0;           // 0xF0
     f32 xF4;           // 0xF4
-    u8 pad_F8[4];
+    f32 xF8;           // 0xF8 (esp0e: visible cone angle in degrees)
     u8 xFC;            // 0xFC
     u8 xFD;            // 0xFD
     u8 xFE;            // 0xFE
@@ -177,7 +177,7 @@ int PullEsp(cEsp** out, int id);
 cEsp* EspGetDmyPtr();
 void EspAddOtAfterRender(cEsp* esp, void (*func)(cEsp*));
 // game/esp01.cpp
-void EspStrip_draw_poly(cEsp* esp, int no, Vec* v, int texRepeat, int flag);
+void EspStrip_draw_poly(cEsp* esp, int no, Vec* v, u8 texRepeat, int flag);
 // game/trans_ot.cpp
 void AddOtWorldPos(cEsp* esp, void (*func)(cEsp*), Vec* pos, int prio, f32 ofs);
 // game/esp_sub.cpp
@@ -198,6 +198,14 @@ int EstSet(int a, int b, Vec* pos, Vec* rot, int c, int d, int e, int f, u32 g, 
 // game/eff_sys.cpp
 int EspGenGetMoveLoop();
 extern cCoord* pEffParentWorld;
+// Struct-member view of the same pointer (the pLog trick, db_log.h): a load through it is not
+// hoisted above a preceding struct copy through `this` (esp01 move: `w->pos0 = pos; parent =
+// pEffParentWorld`). Only use where the target shows the load after such stores; wrapping the
+// global itself changes load order in units that already match (esp0b, esp1a, esp40).
+struct EffParentWorldPtr {
+    cCoord* p;
+};
+#define pEffParentWorldS (((EffParentWorldPtr*) &pEffParentWorld)->p)
 // game/esp_app.cpp
 extern "C" void EspCallSeType(int type, Vec* pos);
 void EffCallRoomSeFunc(int no, Vec* pos);

@@ -20,14 +20,31 @@ static inline f32 fabsf(f32 x)
 
 // game/math_sub.cpp
 void RotMatrix(Mtx m, Vec* rot);
-void RotMatrixZXY(Mtx m, Vec* rot);
 void TransMatrix(Mtx m, Vec* pos);
 void ScaleMatrix(Mtx m, Vec* scale);
 
 extern "C" {
 // game/math_sub.cpp (C linkage)
+void SetOrientationZX(Vec* z, Vec* x, Mtx m);
+void SetOrientationZY(Vec* z, Vec* y, Mtx m);
 void low_RotMatrix(Mtx m, Vec* rot);
+void RotMatrixZXY(Mtx m, Vec* rot);
 void Matrix2AxisAngle(Mtx m, Vec* rot);
+void VecRadLimit(Vec* v);
+f32 VecElevation(Vec* v);
+void MtxRotAxisPosRad(Mtx m, Vec* axis, Vec* pos, f32 rad);
+void VecLinearCombination(Vec* a, Vec* b, f32 s, f32 t, Vec* out);
+void VecInternalDivisionAngle(Vec* a, Vec* b, f32 s, Vec* out, f32 t);
+void VecLinearDecomposition(Vec* v, Vec* a, Vec* b, f32* s, f32* t);
+f32 hermite(f32* p, f32* v, f32 t);
+f32** malloc_2dim_array_f32(int n, int m);
+void free_2dim_array_f32(int n, int m, f32** p);
+int de_Boor_Cox(int n, f32* knot, int k, f32 t, f32* out);
+f32 MtxNNLUDecomposition(int n, f32* a, int* ip);
+f32 MtxNNInverse(int n, f32* m, f32* inv);
+void MtxNNMultVecSR(int n, int m, f32* mtx, f32* v, f32* out);
+void OrthographicProjection(Vec* p, Vec* out, Vec* dir, Vec* plane_p, Vec* plane_n);
+f32 IPOW(f32 x, int n);
 f32 SQRTF(f32 x);
 f32 SINF(f32 x);
 f32 COSF(f32 x);

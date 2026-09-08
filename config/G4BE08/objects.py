@@ -927,6 +927,7 @@ MATCHING = {
     "game/esp48.cpp": True,
     "game/esp47.cpp": True,
     "game/esp46.cpp": True,
+    "game/esp49.cpp": True,
     # esp01-esp1b
     "game/esp05.cpp": True,
     "game/esp0d.cpp": True,

@@ -17,6 +17,18 @@ int strcmp(const char* a, const char* b);
 
 extern char* pUser_name;
 
+// The original object carries 16 zero bytes of .sdata that no function references: four
+// zero-initialised statics (the names are lost) kept alive by an inline function this build never
+// calls. GCC 2.95 emits a static as soon as an inline body mentions it.
+static int hd_stat0 = 0;
+static int hd_stat1 = 0;
+static int hd_stat2 = 0;
+static int hd_stat3 = 0;
+static inline void hd_stat_clear()
+{
+    hd_stat0 = hd_stat1 = hd_stat2 = hd_stat3 = 0;
+}
+
 static int hdRead_malloc(const char* path, void** buf, int mode, int flag);
 static int hdWrite_main(const char* path, void* buf, int size);
 static void createBackupFile(const char* path);

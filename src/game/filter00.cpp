@@ -8,6 +8,16 @@
 #include "trans_ot.h"
 
 // Radial blur / contrast filter: copies the frame buffer to a half-size texture and blends it back.
+//
+// Not yet byte-exact (Render 95.7%, RenderContrast 94.2%; all other functions and the data match):
+//  * Render: the original materialises the zero for `col.r = col.g = col.b = 0` in the block that
+//    tests `pG->flags_500C & 0x80000` (li r11,0 before the andis.), ours in the block after it.
+//  * The full-screen quads outside the loop (blur_type 0/1 and RenderContrast): the original issues
+//    the first `sth` (position 0,0) before the `lfs Screen+8` of the next vertex's (u32) conversion;
+//    ProDG here schedules the load first. Inside the eff-spread loop (Screen address in r31) the
+//    same code matches, so it hinges on the `lis Screen+8@ha` dying at the load (sched1 register
+//    weight). Header/FIFO/pointer variants tried without success; see the loop version for the
+//    idiom that does match.
 
 #define BLUR_BUFF_SIZE 0x38000
 static const int zero = 0;

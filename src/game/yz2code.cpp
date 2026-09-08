@@ -13,8 +13,8 @@ struct Yz2InEv {
     u8* src;      // 0x00  compressed stream read pointer
     u8* heap;     // 0x04  work buffer start
     u8* free;     // 0x08  work buffer allocation pointer
-    int size0;    // 0x0C  first hex field of the header string
-    int size1;    // 0x10  second hex field of the header string
+    u32 size0;    // 0x0C  first hex field of the header string
+    u32 size1;    // 0x10  second hex field of the header string
 };
 
 static Yz2InEv in_ev;
@@ -62,15 +62,15 @@ struct Yz2Ctx {
 
 void Yz2DecodeSet(char* str, void* buf)
 {
-    u8* p = (u8*) str;
+    char* p = str;
 
-    in_ev.size0 = strtoul((char*) p, (char**) &p, 16);
+    in_ev.size0 = strtoul(p, &p, 16);
     p++;
-    in_ev.size1 = strtoul((char*) p, (char**) &p, 16);
+    in_ev.size1 = strtoul(p, &p, 16);
     in_ev.heap = (u8*) buf;
     in_ev.free = (u8*) buf;
-    p = (u8*) (((u32) p + 0x20) & ~0x1F);
-    in_ev.src = p;
+    p = (char*) (((u32) p + 0x20) & ~0x1F);
+    in_ev.src = (u8*) p;
 }
 
 static inline void* yz2Alloc(u32 size)

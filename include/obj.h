@@ -23,7 +23,8 @@ struct Obj03Work {
 struct ObjSub2B4 {
     u8 pad_0[0x1A];
     u16 flags;            // 0x1A
-    u8 pad_1C[0x74 - 0x1C];
+    u8 pad_1C[0x70 - 0x1C];
+    s32 blk;              // 0x70  scroll block the object belongs to (-2 free, -1 SetObjSmd)
 
     void clrFlags(u16 mask) { flags &= mask; }
 };
@@ -57,6 +58,7 @@ public:
     virtual void memFree();
     virtual void memClear(cObj* p, u32 size);
     virtual void log(const char* fmt, ...);
+    virtual void destroy(cObj* p);
     virtual int construct(cObj* p, int id);
 };
 

@@ -46,14 +46,15 @@ public:
 };
 
 cDbOption dbPl;
+static cDbOption* pT;
 
-// The tool work pointer is loaded as a struct member (see cLogPtr in db_log.h): with a plain
-// `cDbOption* pT` GCC hoists the second pT load in joySet above the first pad copy's stores.
+// joySet reloads pT between the two pad copies and the original compiler kept that load below
+// the first copy's stores. GCC 2.95 only keeps the order when the load is a struct member
+// (MEM_IN_STRUCT_P, see cLogPtr in db_log.h), so joySet reads pT through this view.
 struct cDbOptionPtr {
     cDbOption* p;
-    cDbOption* operator->() { return p; }
 };
-static cDbOptionPtr pT;
+#define PT_MEMBER (((cDbOptionPtr*) &pT)->p)
 
 void tp_init();
 void tp_menu();
@@ -95,8 +96,8 @@ void cDbOption::clear(u8 flag)
 
 void cDbOption::joySet()
 {
-    pT->joy[0] = Joy[0];
-    pT->joy[1] = Joy[1];
+    PT_MEMBER->joy[0] = Joy[0];
+    PT_MEMBER->joy[1] = Joy[1];
 }
 
 void cDbOption::move()
@@ -139,7 +140,7 @@ void ToolOption()
 
 void tp_init()
 {
-    pT.p = &dbPl;
+    pT = &dbPl;
     pT->clear(1);
 }
 
@@ -537,20 +538,20 @@ void tp_pl_weapon()
             break;
         }
         if (pT->joy[0].rpt & JOY_A) {
-            if (pT->cursor == WEP_NO && pT->rno[3] == WEP_TYPE) {
-                pT->cursor = 0;
-                pT->rno[3] = 0;
-                pT->rno[2] = 2;
-            } else {
+            if (pT->cursor != WEP_NO || pT->rno[3] != WEP_TYPE) {
                 cPlayer* pl = pPL;
                 pl->weaponRelease();
                 pl->weaponLoad(pT->cursor, pT->rno[3]);
                 pl->weaponInit();
-                pl->xFF = 0;
                 pl->xFC = 0;
                 pl->xFD = 0;
                 pl->xFE = 0;
+                pl->xFF = 0;
                 ItemMgr.debugWeapon(WeaponNo2WeaponId(pT->cursor, pT->rno[3]));
+            } else {
+                pT->cursor = 0;
+                pT->rno[3] = 0;
+                pT->rno[2] = 2;
             }
         }
         if (pT->joy[0].rpt & JOY_X) {
@@ -558,7 +559,7 @@ void tp_pl_weapon()
             pT->rno[3] = 0;
             pT->rno[2] = 2;
         }
-        printCursor(3, pT->cursor - (pT->rno[4] - 4));
+        printCursor(3, pT->cursor + 4 - pT->rno[4]);
         break;
     case 2:
         if (pT->joy[0].rpt & JOY_UP) {
@@ -687,9 +688,9 @@ void tp_pl_face()
         eprintf(32, (i + 5) * 14, 0, 0, pFileName[PL_COSTUME][i]);
     }
     if (pT->joy[0].rpt & JOY_UP) {
-        pT->cursor = (pT->cursor + 3) & 3;
+        pT->cursor = (u32) (pT->cursor + 3) % 4;
     } else if (pT->joy[0].rpt & JOY_DOWN) {
-        pT->cursor = (pT->cursor + 5) & 3;
+        pT->cursor = (u32) (pT->cursor + 5) % 4;
     }
     if (pT->joy[0].rpt & JOY_A) {
         if (pT->cursor == 0) {
@@ -750,14 +751,13 @@ void tp_scr_menu()
 
 void tp_scr_flag()
 {
-    int num = 5;
-
     eprintf(32, 42, 4, 0, "FLAG EDIT");
     eprintf(40, 56, pG->flags_6C & 0x2000 ? 0 : 20, 0, "BG COLOR GREEN");
     eprintf(40, 70, pG->flags_6C & 0x4000000 ? 0 : 20, 0, "LOG OFF");
     eprintf(40, 84, pG->flags_58 & 0x4000 ? 0 : 20, 0, "FOG OFF");
     eprintf(40, 98, Block.allDisp == 1 ? 0 : 20, 0, "BLOCK ALL DISP");
     eprintf(40, 112, pG->flags_6C & 0x400000 ? 0 : 20, 0, "ERROR CHECK");
+    int num = 5;
     printCursor(4, pT->cursor + 4);
     if (pT->joy[0].rpt & JOY_UP) {
         pT->cursor = (pT->cursor + num - 1) % num;
@@ -850,6 +850,8 @@ void tp_scr_view()
         case 4:
             TOOL_FLAG(OFS_DISP_FLG) &= ~0x8000000;
             TOOL_FLAG(OFS_DEBUG_FLG) |= 0x4000000;
+            break;
+        case 5:
             break;
         }
     }

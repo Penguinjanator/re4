@@ -99,6 +99,11 @@ static inline void GXTexCoord2f32(f32 s, f32 t)
     GXWGFifo.f32 = t;
 }
 
+static inline void GXMatrixIndex1u8(u8 idx)
+{
+    GXWGFifo.u8 = idx;
+}
+
 static inline void GXPosition2u16(u16 x, u16 y)
 {
     GXWGFifo.u16 = x;
@@ -152,6 +157,8 @@ void GXSetTexCopyDst(u16 wd, u16 ht, int fmt, u8 mipmap);
 void GXCopyTex(void* dest, u8 clear);
 void GXPixModeSync(void);
 void GXInvalidateTexAll(void);
+void GXDrawDone(void);
+void GXPeekZ(u16 x, u16 y, u32* z);
 #ifdef __cplusplus
 }
 #endif

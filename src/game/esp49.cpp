@@ -40,7 +40,7 @@ void cEsp49::move()
             return;
         }
         w->alpha = colA;
-        if (parent != pEffParentWorld && (parentCnt == 0xff || parentCnt <= cnt)) {
+        if (parent != pEffParentWorldS && (parentCnt == 0xff || parentCnt <= cnt)) {
             PSMTXMultVec(parent->mat, &pos, &wpos);
         } else {
             wpos = pos;

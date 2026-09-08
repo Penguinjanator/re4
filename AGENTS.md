@@ -103,6 +103,16 @@ mark it Matching.
   pre-computed into a variable. `ret = f(); ...; return ret;` in every branch stops cross-jumping of
   identical call tails.
 - `SetFreeWork(EspGenWork*, u32* seed)` is the real cEsp virtual signature (seed in r5).
+- GCC 2.95 emits *every* in-class inline member of a class whose vtable is emitted in the TU (key
+  function defined here), used or not. Unused inlines of non-polymorphic classes and unused free/static
+  inline functions are not emitted, but their string literals and float constants still land in
+  `.rodata`. So: stray constants/strings in the target `.rodata` with no body → an unused inline of a
+  non-polymorphic class or a free inline, never an extra member of the polymorphic class.
+- `switch` on a `u8` with `case 0:` sharing the default body: `cmpwi 2; beq; ble default; cmpwi 3; ...`.
+- Chained `a = b = c = 0` shares one zero register across `stw`/`stb`; separate statements get their own.
+- `#line N "D:/Bio4/Prog/<unit>.cpp"` before `MEM_ALLOC` reproduces `__FILE__`/`__LINE__` strings.
+- ProDG's scheduler ranks ready insns by register pressure before priority; no cross-block hoisting inside
+  functions with loops.
 - Static locals show as `name.NNN` in objdiff; the DECL_UID suffix cannot be reproduced and is ignored by the report.
 
 - Struct field offsets come from the load/store displacements; write real structs, not casts.

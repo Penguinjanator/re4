@@ -15,6 +15,7 @@ usage: fold_linkonce.py --unit game/foo.cpp <object.o>     (rewrites the object 
 """
 import argparse
 import os
+import re
 import struct
 import sys
 
@@ -101,7 +102,10 @@ def unit_text_functions(unit):
         for line in f:
             addr, size, sec, u, scope, name, dn = line.rstrip("\n").split("\t")
             if u == unit and sec == ".text":
-                names.add(dn if dn and dn != "." else name)
+                dn = dn if dn and dn != "." else name
+                names.add(dn)
+                # demangle_v2 drops template arguments (`cManager<cObj>::x` -> `cManager::x`)
+                names.add(re.sub(r"<[^<>]*>", "", dn))
     return names
 
 
