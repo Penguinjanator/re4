@@ -989,11 +989,11 @@ static void sceAtGetItem(SceAtWork* w)
     static int sub_screen_open;
     static int swep_flag;
     SceAtItem* it = &w->item;
-    cModel* model = w->item.pModel;
+    cModel* model = it->pModel;
     int y = 0x129 - cMes.getWork()->fontH - cMes.getWork()->lineSpace;
+    int cancel = 0;
     int mes = 0;
     int put = 1;
-    int cancel = 0;
     int sel;
     int i;
     ItemInfo info;
@@ -1125,7 +1125,7 @@ static void sceAtGetItem(SceAtWork* w)
     BitOff(pG->flags_58, 0x04000000);
     BitOff(pG->flags_58, 0x00002000);
     BitOff(pG->flags_58, 0x00000800);
-    itemExam.init(w->item.id, model, 0);
+    itemExam.init(it->id, model, 0);
     LightMgr.offScr(0x20);
     LightMgr.create(0, 9, -2, 0);
     sub_screen_open = sel;
@@ -2720,9 +2720,10 @@ static void sceAtItemFindCheck()
     SceAtWork* w = sceAtSetOtStart();
     SceAtItem* it;
     int off;
+    cModel* pm;
 
     while ((w = sceAtGetOtAddr(w)) != 0) {
-        off = bitOff(w->flag);
+        off = !(w->flag & 1);
         if (off) {
             continue;
         }
@@ -2753,11 +2754,14 @@ static void sceAtItemFindCheck()
                 if (!(it->flag2 & 2)) {
                     SceAtItemAutoArea(&w->area, &em->pos, it->size);
                 }
-                if (it->pModel != 0) {
-                    rot.x = 0.0f;
-                    rot.y = 0.0f;
-                    rot.z = 0.0f;
-                    it->pModel->setAng(&rot);
+                pm = it->pModel;
+                if (pm != 0) {
+                    Vec* rp = &rot;
+
+                    rp->x = 0.0f;
+                    rp->y = 0.0f;
+                    rp->z = 0.0f;
+                    pm->setAng(rp);
                 }
                 sceAtItemEffDelete(it);
                 it->effType = 2;

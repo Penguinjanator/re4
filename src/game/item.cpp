@@ -570,6 +570,7 @@ int cItemMgr::set_stage2(int no)
         ItemSet tbl[] = {{0x25, 1}, {0x30, 1}, {0x2C, 1}, {0x2E, 1}, {0x04, 50}, {0x20, 100}, {0x18, 10}, {0x07, 10},
                          {0x01, 1}, {0x02, 1}, {0x0E, 1}, {0x06, 1}, {0x14, 1}, {0x43, 1}, {0x44, 1}};
         PUT_TABLE(tbl, 1);
+        u16 on = 1;
         p = search(0x25);
         p->x6 = 0x1111;
         setBullet(p, WeaponId2ChargeNum(0x25, 2));
@@ -578,7 +579,7 @@ int cItemMgr::set_stage2(int no)
         setBullet(p, WeaponId2ChargeNum(0x30, 3));
         q = search(0x43);
         q->x8 = searchAt(p);
-        search(0x43)->x6 = 1;
+        search(0x43)->x6 = on;
         p = search(0x2C);
         p->x6 = 0x2012;
         setBullet(p, WeaponId2ChargeNum(0x2C, 3));
@@ -587,7 +588,7 @@ int cItemMgr::set_stage2(int no)
         setBullet(p, WeaponId2ChargeNum(0x2E, 3));
         q = search(0x44);
         q->x8 = searchAt(p);
-        search(0x44)->x6 = 1;
+        search(0x44)->x6 = on;
         arm(ItemMgr.search(0x25));
         pG->x4F98 = 40000;
         break;

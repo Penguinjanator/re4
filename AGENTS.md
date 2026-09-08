@@ -1130,6 +1130,45 @@ mark it Matching.
   parameter, id_sys setCk/dispSw/kill) cannot be reproduced by an int-parameter view; an explicit
   `type & 0xFF` is folded away too (nonzero_bits knows the promoted parameter). Only a tool-side
   rewrite of that label (or a compiler flag for argument promotion) would open these.
+- gcse PRE copies land at the *end of the block* that computes the expression, and in C++ a block
+  ends at every call (EH: flow appends `use (const_int 0)` after CALL_INSNs). An `&member`/`&local`
+  address computed in both arms of an if/else and used after the join therefore gets its copy
+  `mr r28,r29` right *after* the arm's `bl` (dvd Initialize: `sprintf(name, ..)` in both arms, then
+  `name` used directly after the join); a source-level `n = name;` is a cse copy at the statement
+  that sched1 hoists above the call. Write the global/member directly after the join, no local.
+- `lwz r9,g; <use r9>; mr r11,r9` with later blocks using r11 = the global read directly in a block
+  that cse cannot reach (a join with two predecessors after `a && b` / `a || b`, or a loop test):
+  gcse PRE re-loads it at the end of bb 0 and cse2 turns that into a copy whose register becomes
+  canonical (last use beyond the ebb) for every later block. A local `T* p = g;` merges all reads
+  into one register and hides the copy (pl_wep getAngle/getPitch `pPL`, scroll smxInit `pSmx`,
+  getWorkNum's loop bound `grp.nGroup` with a guarded do-while + `grp.num[i]` indexing).
+- A `li rY,C` loop counter issued *after* loop.c's hoisted `addi`/`lfs` in the preheader is a
+  reversed count-up loop (`for (i = 0; i < 3; i++)` with `i` unused in the body); `for (i = 3;
+  i != 0; i--)` puts the `li` at the statement position before the hoisted insns (pl_wep
+  wepSetWaterShot).
+- `(u8*)this + n*4 + 0x14` keeps `add this,idx; addi 0x14`; `(u8*)this + 0x14 + n*4` and
+  `&member[n]` fold the constant into the index (`addi idx,0x14; add`) (scroll getWorkPtr).
+- `if (a || b) return 0; return p;` shares one `li r3,0` block after the second test; two `if`s
+  each returning 0 give two `li r3,0; blr` tails (cManager getPrevWork). `if (!(f & 4)) return NULL;
+  return call();` keeps `li r3,0` in its own arm after the call arm; `flag ? call() : NULL` and
+  `if (flag) return call(); return NULL;` let jump.c hoist `li r3,0` above the branch because the
+  fallthrough arm then starts with a set of r3 (scroll SmdGetGroupNext).
+- A struct-member load reloaded after a store to an address-taken stack local (`lwz r9,0x15c(r3)`
+  twice around `stw r0,0x28(r1)`): the load was a reference read (`PRef(scr->pInfo)->pTpl`) — a MEM
+  with neither struct nor scalar flag conflicts with the fixed-address scalar store, while a plain
+  member read (in-struct vs fixed scalar) is hoisted/merged (esp_efm EfmSeqSet `model`/`tpl`).
+- OPEN (dvd DiscChange): the 16-byte `game[]` template copy loads words 0,8,c,4; sched2 gives our
+  word-4 load priority 9 (its `stw r9,4(r11)` is anti-dependent on the later `lwz r9,pSys`) so it
+  goes first; declaration order, `char company[3]`, `const char* const`, separate stores all tried.
+- OPEN (read readEmData): `newSize` (6 refs / 54 insns → 2222) beats `m` (14 refs / 198 → 2121);
+  `MEM_ALLOC(size)` vs `MEM_ALLOC(newSize)` makes no difference (cse rewrites `size` to the
+  later-used `newSize`). Needs `m` ≥ 15 refs or ≥ 4 more insns in newSize's range.
+- OPEN (esp_efm EfmSetObj04, emrock emRockRollStartCk, route_ck RouteCkPosToPosDis): the target
+  re-reads `w->x79` (`lbz r4`) in the else arm after `stw r24,0x6c(r31)` although cse1 following the
+  `beq` merges it in ours (`-fno-cse-follow-jumps` reproduces the reload but is not a per-unit
+  option); emrock's `mr r11,r9` pG copy has no third read to PRE; RouteCkPosToPosDis keeps
+  `mr r3,r31; mr r4,r29` before `rckLineHitCheck(from, to..)` where reload_cse deletes ours
+  (nothing sets r3/r4 or a label between the prologue and the call; goto/flat-if forms tried).
 
 ## Don'ts
 

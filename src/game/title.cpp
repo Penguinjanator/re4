@@ -1198,6 +1198,7 @@ int stageSelect(TitleWork* w)
     int ret = 0;
     MercSaveWork save;
     int i;
+    int mode;
 
     if (Key.trg & KEY_A) {
         ret = 1;
@@ -1216,7 +1217,7 @@ int stageSelect(TitleWork* w)
                 w->omkStage -= 1;
             }
         } else if (Key.rep & KEY_RIGHT) {
-            if (!(w->omkStage & 1)) {
+            if ((w->omkStage & 1) == 0) {
                 w->omkStage += 1;
             }
         }
@@ -1247,6 +1248,9 @@ int stageSelect(TitleWork* w)
         u->flags |= 8;
         IdSys.setTime(u, 0);
     }
+    // OPEN: the target sets mode = 0 right before MercSysGetSaveWork; written there, jump1 turns the
+    // first `if` into a store-flag (`xori/subfic/adde`). Before the flag blocks the li lands earlier.
+    mode = 0;
     {
         IdUnit* u;
         u = IdSys.unitPtr(1, ID_OMAKE);
@@ -1283,7 +1287,6 @@ int stageSelect(TitleWork* w)
         u->flags_7F |= 2;
     }
     {
-        int mode = 0;
         MercSysGetSaveWork(&save);
         if (pG->x4FB8 == 2) {
             mode = 1;
@@ -1341,10 +1344,12 @@ void titleExit(TitleWork* w)
         w->dbgRoom[w->dbgStage] = pRj->getRoomIdx(pG->stage_no, pG->room_no);
         w->dbgPoint = pG->x4F9F;
         w->dbgEmList = checkEmListNo(pRj->getRoomInfo(w->dbgStage, w->dbgRoom[w->dbgStage])->room_id);
+        // PERM_BEGIN_EXIT
         w->dbgX = 340;
-        w->dbgY = 60;
         w->loadNo = 1;
+        w->dbgY = 60;
         w->sndId = 0;
+        // PERM_END_EXIT
         while (!(Joy[0].trg & 0x1100)) {
             titleDebugMenu(w);
             TaskSleep(1);
@@ -1371,7 +1376,7 @@ void titleExit(TitleWork* w)
             pG->x4FB8 = 0;
             break;
         case 0x12:
-            pSys->x4 |= 0x40000000;
+            BitOn(pSys->x4, 0x40000000);
             pG->flags_54 |= 0x04000000;
             return;
         }
@@ -1426,20 +1431,22 @@ void titleExit(TitleWork* w)
     }
     pG->room_id_prev = 0xFFF;
     pG->emlist_no = -1;
-    if ((s32) pG->flags_54 < 0) {
-        G_ROOM_ID = 0x405;
-        pG->x4F9F = 0;
-        pG->x4F9E = 0;
-        FSet(pG->sub_pos.x, 28450.0f);
+    {
+        u8 point = 0;
+        if (pG->flags_54 & 0x80000000) {
+            G_ROOM_ID = 0x405;
+            pG->x4F9F = point;
+            pG->x4F9E = point;
+            FSet(pG->sub_pos.x, 28450.0f);
         FSet(pG->sub_pos.y, -16798.0f);
         FSet(pG->sub_pos.z, -40000.0f);
         FSet(pG->sub_angle, -2.49f);
-    } else if (pG->flags_54 & 0x40000000) {
+        } else if (pG->flags_54 & 0x40000000) {
         switch (w->omkStage) {
         case 0:
             G_ROOM_ID = 0x400;
-            pG->x4F9F = 0;
-            pG->x4F9E = 0;
+            pG->x4F9F = point;
+            pG->x4F9E = point;
             FSet(pG->sub_pos.x, -12400.0f);
             FSet(pG->sub_pos.y, 2576.0f);
             FSet(pG->sub_pos.z, 31080.0f);
@@ -1447,8 +1454,8 @@ void titleExit(TitleWork* w)
             break;
         case 1:
             G_ROOM_ID = 0x402;
-            pG->x4F9F = 0;
-            pG->x4F9E = 0;
+            pG->x4F9F = point;
+            pG->x4F9E = point;
             FSet(pG->sub_pos.x, 21035.0f);
             FSet(pG->sub_pos.y, 3065.0f);
             FSet(pG->sub_pos.z, -26370.0f);
@@ -1456,8 +1463,8 @@ void titleExit(TitleWork* w)
             break;
         case 2:
             G_ROOM_ID = 0x403;
-            pG->x4F9F = 0;
-            pG->x4F9E = 0;
+            pG->x4F9F = point;
+            pG->x4F9E = point;
             FSet(pG->sub_pos.x, 31558.0f);
             FSet(pG->sub_pos.y, 8314.0f);
             FSet(pG->sub_pos.z, 38823.0f);
@@ -1465,19 +1472,20 @@ void titleExit(TitleWork* w)
             break;
         case 3:
             G_ROOM_ID = 0x404;
-            pG->x4F9F = 0;
-            pG->x4F9E = 0;
+            pG->x4F9F = point;
+            pG->x4F9E = point;
             FSet(pG->sub_pos.x, -640.0f);
             FSet(pG->sub_pos.y, 0.0f);
             FSet(pG->sub_pos.z, -15890.0f);
             FSet(pG->sub_angle, 3.13f);
             break;
         }
-    } else {
-        pG->sub_pos = pG->next_pos;
-        FSet(pG->sub_angle, pG->next_angle);
-        G_ROOM_ID = pG->next_room;
-        pG->x4F9E = pG->next_point;
+        } else {
+            pG->sub_pos = pG->next_pos;
+            FSet(pG->sub_angle, pG->next_angle);
+            G_ROOM_ID = pG->next_room;
+            pG->x4F9E = pG->next_point;
+        }
     }
     if (w->sndId != 0) {
         while (SndEndCheck(w->sndId) == 0) {

@@ -436,6 +436,9 @@ u32 PlWepHitCheck3(Vec* pos, int type, u32 prio, f32 len)
     return n;
 }
 
+// `pPL` read directly in every test (no `cPlayer* pl` local): the `&&` join block cannot be
+// reached by cse, so gcse re-loads pPL at the end of the first block and cse2 makes it the
+// `mr r11,r9` copy every later block uses.
 f32 cPlWep::getAngle()
 {
     if (pPL->xFC != 0) {
@@ -1051,7 +1054,7 @@ void wepSetWaterShot(Vec* p0, Vec* p1, u8 type)
     case 6:
     case 0xF:
     case 0x2C:
-        for (i = 0; i < 3; i++) {
+        for (i = 0; i < 3; i++) {   // reversed by loop.c: `li r31,3` after the hoisted `addi`/`lfs`
             r.x = fRand1_1() * 2000.0f + p1->x;
             r.y = fRand1_1() * 2000.0f + p1->y;
             r.z = fRand1_1() * 2000.0f + p1->z;

@@ -264,6 +264,8 @@ int SmxGetFlag(cObj* obj)
     return flags;
 }
 
+// `pSmx` read directly in the loop test: gcse PRE re-loads it for the loop block and cse2 turns
+// that into the `mr r10,r9` copy the loop uses; a `cSmx* smx = pSmx` local merges both reads.
 void smxInit(cObj* obj, u8 id)
 {
     SmxWork* w = pSmx->work;
@@ -474,6 +476,8 @@ int cSmd::getWorkNum()
     u32 i;
 
     if (flags & 1) {
+        // guarded do-while + indexing: the loop test's second `grp.nGroup` read becomes the
+        // `mr r10,r0` PRE copy, and `grp.num[i]` gives the `addi r3,r3,0x14` after the compare
         i = 0;
         if (i < grp.nGroup) {
             do {
