@@ -20,10 +20,10 @@ f32 sinf(f32 x);
 extern u8 pl_fs_tbl[];   // game/foot_shadow_tbl.cpp (incomplete type: full address, not @sda21)
 
 #define HALT()                                                    \
-    do {                                                          \
+    {                                                             \
         OSReport("HALT %s(%d)\n", __FILE__, __LINE__);            \
         *(volatile u32*) 0x11111111 = 0;                          \
-    } while (0)
+    }
 
 #define VALID_PTR(p) ((u32) (p) >= 0x80000000 && (u32) (p) <= 0x82FFFFFF)
 

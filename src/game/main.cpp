@@ -114,10 +114,10 @@ void AllocDrawTmpBuf();   // game/TmpBuf.cpp
 void DbmenuModuleInit();  // game/db_menu.cpp
 
 #define HALT()                                                    \
-    do {                                                          \
+    {                                                             \
         OSReport("HALT %s(%d)\n", __FILE__, __LINE__);            \
         *(volatile u32*) 0x11111111 = 0;                          \
-    } while (0)
+    }
 
 // Stores through a scalar reference are not struct-member MEMs, so GCC 2.95 assumes they may
 // alias pG/pSys/pRK and reloads the pointer after each one, as the original does.

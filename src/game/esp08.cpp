@@ -112,7 +112,8 @@ extern f32 ZFAR;
             st1 = t1;                                                                             \
             if (!ind) {                                                                           \
                 ESP08_QUAD(x, y, x1, y1, ss0, st0, ss1, st1)                                      \
-            } else {                                                                              \
+            }                                                                                               \
+            if (ind) {                                                                        \
                 f32 cu = 0.0f;                                                                        \
                 f32 cv = 0.0f;                                                                        \
                 du = w->ofsX / w->rateX;                                                             \
@@ -146,7 +147,8 @@ extern f32 ZFAR;
             }                                                                                     \
             if (!ind) {                                                                           \
                 ESP08_QUAD(x0, y, x1, y1, ss0, t0, s1, st1)                                       \
-            } else {                                                                              \
+            }                                                                                               \
+            if (ind) {                                                                        \
                 ESP08_QUAD2(x0, y, x1, y1, ss0, t0, s1, st1, u0, v0, u0 + du, v0 + dv)            \
             }                                                                                     \
             y = y1;                                                                               \
@@ -179,7 +181,8 @@ extern f32 ZFAR;
             }                                                                                     \
             if (!ind) {                                                                           \
                 ESP08_QUAD(x, y0, x1, y1, s0, st0, ss1, t1)                                       \
-            } else {                                                                              \
+            }                                                                                               \
+            if (ind) {                                                                        \
                 ESP08_QUAD2(x, y0, x1, y1, s0, st0, ss1, t1, u0, v0, u0 + du, v0 + dv)            \
             }                                                                                     \
             x = x1;                                                                               \
@@ -232,7 +235,8 @@ extern f32 ZFAR;
             }                                                                                     \
             if (!ind) {                                                                           \
                 ESP08_QUAD(x, y, x1, y1, s0, t0, ss1, st1)                                        \
-            } else {                                                                              \
+            }                                                                                               \
+            if (ind) {                                                                        \
                 ESP08_QUAD2(x, y, x1, y1, s0, t0, ss1, st1, u0, v0, u0 + du, v0 + dv)             \
             }                                                                                     \
             x = x1;                                                                               \

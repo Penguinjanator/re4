@@ -46,10 +46,10 @@ struct SystemMemMap {
 };
 
 #define HALT()                                                    \
-    do {                                                          \
+    {                                                             \
         OSReport("HALT %s(%d)\n", __FILE__, __LINE__);            \
         *(volatile u32*) 0x11111111 = 0;                          \
-    } while (0)
+    }
 
 
 MemHeap Heap[MEM_HEAP_NUM];

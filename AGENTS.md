@@ -538,6 +538,10 @@ mark it Matching.
 - `0xFFu` (unsigned literal) in a ternary makes the following compare `cmplwi` rather than `cmpwi`.
 - Odd float constants: `0.05f` in the target is `0x3D4CCCCC`, obtainable only as `0.01f * 5.0f`
   (constant-folded) — when a pool word is off by one ulp, look for a folded product.
+- `HALT()` (and any OSReport-style error macro) is a plain `{ }` block in the original, not
+  `do{}while(0)`: the loop notes of a do-while are a full sched1 barrier and change argument/`lis`
+  ordering around it (read, main_sub, pl_leon, datactrl needed the plain form; nowhere did do-while
+  help). Use the plain block everywhere.
 - Static locals show as `name.NNN` in objdiff; the DECL_UID suffix cannot be reproduced and is ignored by the report.
 - Unexplained words in `.rodata` (zero words, stray floats) are usually the constant pool of a function
   the original linker dead-stripped (bodies gone, pools kept, `STRIP_UNUSED` in objects.py): write a
