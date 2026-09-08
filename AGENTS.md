@@ -20,7 +20,8 @@ The pack has five ProDG cc1plus builds (3.5/3.5b140 = GCC 2.95.2 SN v1.40, 3.7 =
 3.9.3 = 2.95.3 SN v1.76). All five emit byte-identical `.text` for esp0f/esp16/esp01/esp15, including the
 still-unmatched functions (dead `mr` from fpmem sharing, `0.0f + z` folding, `lfs; fmr` for `t = 0.0f`).
 So a remaining diff is never explained by "compiler version" with the tools we have: keep looking for a
-source form. (Older assemblers reject `ldh`; 3.9.3 is the build.) The DOL has no compiler string; its
+source form — except the cross-kind fpmem copy described under "Dead `mr`" below, which all five builds
+emit and the original never does. (Older assemblers reject `ldh`; 3.9.3 is the build.) The DOL has no compiler string; its
 GCCI is "Ver.1.09 Build Oct 8 2004".
 
 
@@ -98,13 +99,28 @@ mark it Matching.
   code) + store + load with a scratch register; after reload, `reload_cse_regs` replaces a later
   `loadaddr` with a copy of whichever hard register still holds the previous one (forgotten at a
   code label, at a call, or when that register is overwritten; deleted when both got the same
-  register). So the copies depend only on scratch-register allocation and sched1 order; `asm("")`
-  or a call between two conversions removes them. The filter GXDraw quads with a `(u8) alpha`
-  colour (filter07/09/0b) and `fadeDraw` still have one extra copy per conversion pair where the
-  original has none: tried and rejected (same or worse) — `u8` local for the alpha (function-scope
-  or block-scope: changes FPR assignment / GXInitTexObjLOD arg order), implicit f32→u8 parameter
-  conversion, `(u8)(int)`, `(u8)(u32)`, `(u8)(f64)`, an inline per-vertex helper, direct
-  `GXWGFifo->u8` stores (drops the `clrlwi`).
+  register). sched1 always hoists a `loadaddr` (no inputs, long chain through the store/load) to
+  the first free integer slot of the block, so two conversions in one block overlap and get
+  different scratch registers: a copy is inevitable unless a call, a label or an overwrite lies
+  between them. Same-kind copies are in the original too (`mr r9,r11` in Filter07GXDraw, three in
+  matched esp4c `move`).
+  **Blocker, not fixable from source:** the original compiler keeps TWO address values — one for the
+  classic fpmem conversions (`stfd/lwz` fix, `stw/stw/lfd` float: `fix_truncdfsi2`/`floatsidf2`) and
+  one for the GQR fast-cast ones (`psq_st`+`lbz/lhz`, `stb/sth`+`psq_l`: `fixuns_truncsfqi2`,
+  `floatqisf2`, `floathisf2`, ...). It never copies across the two kinds; ours (all five ProDG builds,
+  with `-mfast-cast`, `-mps-nodf`, `-mps-float`, `-msafe-sda`) emits one `(unspec [(const_int 0)] 11)`
+  for every conversion type, so `reload_cse_regs` also copies psq↔classic. Evidence: every extra `mr`
+  in Filter07/09/0bGXDraw (4 each), fadeDraw (u16 `psq_l` → int magic), esp15 `move`, esp19
+  `Draw_line3d_local_222`, esp11 `Esp11_SetParam` is a cross-kind copy, and in esp11/esp19 the target
+  shows the two chains directly: `mr r11,r10; mr r8,r10; mr r7,r10` (int→f32) interleaved with
+  `mr r3,r5; mr r30,r5; mr r29,r5` (f32→u8) where r5 is a fresh `loadaddr` although r10 held the
+  address. No matched unit has a cross-kind copy. Classify with the `.greg` dump: a `movsi` whose
+  source register was last used by a `*_store1/_store/_load` of the other kind. Source forms cannot
+  change the unspec (statement order, u8/int/u32/s16 at the conversion, `(u8)(f64)`, locals before
+  the `if`, u8 helper params, direct FIFO stores — all tried), so a block mixing a psq conversion and a
+  classic one without a call/label between them cannot match with the available compilers. Do not
+  spend more time on those functions; `rnd Rnd` (`clrlslwi`/`mr r0,r9`) is a different, plain
+  register-allocation diff.
 - Loop shapes: `if ((v = x) == 0) { do {...} while ((v = x) == 0); }` duplicates the entry test;
   `for` + `break` gives `cmpwi`/`bgt` without ctr, `return` in the body gives `bdnz`.
   `for (w = wk, i = 0; ...; w++, i++)` vs separate init changes callee-saved register choice.
