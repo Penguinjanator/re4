@@ -153,10 +153,33 @@ def main():
         by_dn.setdefault(dn, []).extend(addrs)
     renamed = 0
 
+    all_imports = None  # name -> set of split units importing it (built on first use)
+
+    def imported_by(old):
+        nonlocal all_imports
+        if all_imports is None:
+            all_imports = {}
+            objdir = os.path.join(ROOT, "build", VER, "obj")
+            for dp, _, fs in os.walk(objdir):
+                for f in fs:
+                    if not f.endswith(".o"): continue
+                    u = os.path.relpath(os.path.join(dp, f), objdir)
+                    for n, _, d in elf_symbols(os.path.join(dp, f)):
+                        if not d: all_imports.setdefault(n, set()).add(u)
+        return all_imports.get(old, set())
+
     def rename(i, name):
         nonlocal renamed
         old = lines[i].split(" = ")[0]
         if old != name:
+            # a real (non-placeholder) name that other split objects import under exactly that name is
+            # the linkage the program uses; a compiled definition with a different name means the unit
+            # declared it with the wrong linkage (e.g. C function defined without extern "C").
+            if not re.search(r"_[0-9A-F]{8}$", old) and not old.startswith(("fn_", "lbl_")):
+                users = imported_by(old)
+                if users:
+                    print(f"  {old}: keeping — imported by {sorted(users)[:3]} under this name; fix the definition's linkage (compiled as {name})")
+                    return
             # never create a duplicate: a global of that name defined elsewhere would make the split
             # objects' relocations resolve to the wrong address (this is a local of another unit)
             for j, l in enumerate(lines):

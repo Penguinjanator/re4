@@ -22,6 +22,11 @@ extern const char _ctype_[];
 
 #define isupper(c) ((_ctype_ + 1)[(unsigned)(c)] & _U)
 
+#define ERANGE 34
+#define LONG_MAX 2147483647L
+#define LONG_MIN (-2147483647L - 1)
+#define ULONG_MAX 4294967295UL
+
 /* string */
 extern char *strcpy(char *, const char *);
 

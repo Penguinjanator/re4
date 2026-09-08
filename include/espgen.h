@@ -43,6 +43,9 @@ typedef void (*EspgenMoveFunc)(EspgenWork* w);
 typedef void (*EspgenTransFunc)(EspgenWork* w);
 typedef int (*EspgenSetFreeWorkFunc)(EspgenWork* w, EspGenWork* rec, EspSeqData* head, cModel* model, u16 parts,
                                      Mtx* mtx, Vec* pos, Vec* rot, EspSeqOpt* p8, int flag);
+// the application generators (Espgen4x) take no flag argument
+typedef int (*EspgenSetFreeWorkAppFunc)(EspgenWork* w, EspGenWork* rec, EspSeqData* head, cModel* model,
+                                        u16 parts, Mtx* mtx, Vec* pos, Vec* rot, EspSeqOpt* p8);
 typedef void (*EspgenDestructFunc)(EspgenWork* w);
 
 extern "C" {
@@ -80,7 +83,7 @@ void Espgen44_Move(EspgenWork* w);
 void Espgen44_Trans(EspgenWork* w);
 void Espgen44_Destruct(EspgenWork* w);
 int Espgen44_SetFreeWork(EspgenWork* w, EspGenWork* rec, EspSeqData* head, cModel* model, u16 parts, Mtx* mtx,
-                         Vec* pos, Vec* rot, EspSeqOpt* p8, int flag);
+                         Vec* pos, Vec* rot, EspSeqOpt* p8);
 }
 
 #endif

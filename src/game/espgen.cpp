@@ -46,17 +46,17 @@ void Espgen42_Move(EspgenWork* w);
 void Espgen42_Trans(EspgenWork* w);
 void Espgen42_Destruct(EspgenWork* w);
 int Espgen42_SetFreeWork(EspgenWork* w, EspGenWork* rec, EspSeqData* head, cModel* model, u16 parts, Mtx* mtx,
-                         Vec* pos, Vec* rot, EspSeqOpt* p8, int flag);
+                         Vec* pos, Vec* rot, EspSeqOpt* p8);
 void Espgen43_Move(EspgenWork* w);
 void Espgen43_Trans(EspgenWork* w);
 void Espgen43_Destruct(EspgenWork* w);
 int Espgen43_SetFreeWork(EspgenWork* w, EspGenWork* rec, EspSeqData* head, cModel* model, u16 parts, Mtx* mtx,
-                         Vec* pos, Vec* rot, EspSeqOpt* p8, int flag);
+                         Vec* pos, Vec* rot, EspSeqOpt* p8);
 void Espgen45_Move(EspgenWork* w);
 void Espgen45_Trans(EspgenWork* w);
 void Espgen45_Destruct(EspgenWork* w);
 int Espgen45_SetFreeWork(EspgenWork* w, EspGenWork* rec, EspSeqData* head, cModel* model, u16 parts, Mtx* mtx,
-                         Vec* pos, Vec* rot, EspSeqOpt* p8, int flag);
+                         Vec* pos, Vec* rot, EspSeqOpt* p8);
 }
 // game/espgen40.cpp (declared with the record type in the original)
 void Espgen40_Move(EspGenWork* gen);
@@ -75,7 +75,7 @@ EspgenMoveFunc EspgenMoveTblApp[6] = {
 EspgenTransFunc EspgenTransTblApp[6] = {
     NULL, NULL, Espgen42_Trans, Espgen43_Trans, Espgen44_Trans, Espgen45_Trans,
 };
-EspgenSetFreeWorkFunc EspgenSetFreeWorkTblApp[6] = {
+EspgenSetFreeWorkAppFunc EspgenSetFreeWorkTblApp[6] = {
     NULL, NULL, Espgen42_SetFreeWork, Espgen43_SetFreeWork, Espgen44_SetFreeWork, Espgen45_SetFreeWork,
 };
 static EspgenDestructFunc EspgenDestructTblApp[6] = {
@@ -373,13 +373,14 @@ int EspgenMove()
     EspgenWork* base = EspgenArray;
     EspgenWork* w;
     int pause = 0;
-    u32 cnt = 0;
+    u32 cnt;
     u32 i;
     u32 max;
 
     if (pG->flags_5010 & 2) {
         pause = 1;
     }
+    cnt = 0;
     for (i = 0, w = base; i < nEspgen; i++, w++) {
         if (w->flag & 2) {
             w->flag &= ~3;
@@ -445,19 +446,18 @@ void EspgenDelete(int a, int b, int c)
     u32 i;
 
     for (i = 0, w = EspgenArray; i < nEspgen; i++, w++) {
-        if (!(w->flag & 1) || (w->flag & 2)) {
-            continue;
+        if ((w->flag & 1) && !(w->flag & 2)) {
+            if (a != 0 && w->info.x0 != a) {
+                continue;
+            }
+            if (b != 0 && w->info.x2 != b) {
+                continue;
+            }
+            if (c != 0 && w->info.x8 != c) {
+                continue;
+            }
+            PushEspgen(w);
         }
-        if (a != 0 && w->info.x0 != a) {
-            continue;
-        }
-        if (b != 0 && w->info.x2 != b) {
-            continue;
-        }
-        if (c != 0 && w->info.x8 != c) {
-            continue;
-        }
-        PushEspgen(w);
     }
 }
 
@@ -467,30 +467,26 @@ void EspgenDeleteEvent()
     u32 i;
 
     for (i = 0, w = EspgenArray; i < nEspgen; i++, w++) {
-        if (!(w->flag & 1) || (w->flag & 2)) {
-            continue;
+        if ((w->flag & 1) && !(w->flag & 2)) {
+            if (!(w->info.x0 & 1) && !(w->info.x0 & 0x800)) {
+                PushEspgen(w);
+            }
         }
-        if (!(w->info.x0 & 1)) {
-            continue;
-        }
-        if (w->info.x0 & 0x800) {
-            continue;
-        }
-        PushEspgen(w);
     }
 }
 
 int EspgenDispInfo()
 {
     static int max = 0;
-    EspgenWork* w;
-    int cnt = 0;
+    EspgenWork* w = EspgenArray;
+    int cnt;
     u32 i;
 
-    if (EspgenArray == NULL) {
+    if (w == NULL) {
         return 0;
     }
-    for (i = 0, w = EspgenArray; i < nEspgen; i++, w++) {
+    cnt = 0;
+    for (i = 0; i < nEspgen; i++, w++) {
         if ((w->flag & 1) && !(w->flag & 2)) {
             cnt++;
         }
@@ -538,8 +534,7 @@ int EspgenSetFreeWork(EspgenWork* w, EspGenWork* rec, EspSeqData* head, cModel* 
             }
         } else {
             if (EspgenSetFreeWorkTblApp[w->id - ESPGEN_APP_ID] != NULL) {
-                ret = EspgenSetFreeWorkTblApp[w->id - ESPGEN_APP_ID](w, rec, head, model, parts, mtx, pos, rot, p8,
-                                                                     flag);
+                ret = EspgenSetFreeWorkTblApp[w->id - ESPGEN_APP_ID](w, rec, head, model, parts, mtx, pos, rot, p8);
             }
         }
     }
@@ -561,14 +556,15 @@ int EspgenSeqSet(EspSeqData* head, int no, EspInfo* info, cModel* model, u16 par
         EspGenSetMoveLoop(rec->x110);
         return 1;
     }
-    if (!PullEspEspgen(&w, info->x0, info->x2, info->b.x7, info->x8, info->x3, 0)) {
+    if (PullEspEspgen(&w, info->x0, info->x2, info->b.x7, info->x8, info->x3, 0)) {
+        w->id = rec->genId;
+        w->xE = rec->x10A;
+        if (!EspgenSetFreeWork(w, rec, head, model, parts, mtx, pos, rot, p8, flag)) {
+            PushEspgen(w);
+            return 0;
+        }
+    } else {
         pLog->warn(6, 0, "ESP_CTRL : ESPGEN Pull failed!!");
-        return 0;
-    }
-    w->id = rec->genId;
-    w->xE = rec->x10A;
-    if (!EspgenSetFreeWork(w, rec, head, model, parts, mtx, pos, rot, p8, flag)) {
-        PushEspgen(w);
         return 0;
     }
     return 1;

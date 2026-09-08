@@ -30,7 +30,7 @@ struct PlCloth {
     u8* pUp;             // 0x18  upper neighbour per link
     u8* pDown;           // 0x1C  lower neighbour per link
     u32 x20;             // 0x20
-    u32 x24;             // 0x24
+    f32* pRate;          // 0x24  per-link rate (em_cloth: em18ClothRate, em37HairRate, ...)
     f32* pMax;           // 0x28  max swing per link
     f32* pWindS;         // 0x2C  wind phase per link
     f32* pWindR;         // 0x30  wind rate per link
@@ -68,6 +68,7 @@ class cObjChain {
 public:
     void setChain(PenCloth* c);
     void setParent(cModel* parent, int parts, Vec* ofs, int flag);
+    void setParent2(cModel* parent, int parts1, Vec* ofs1, int parts2, Vec* ofs2, int flag);
 };
 cObjChain* SetChain(void* bin, void* tpl, Vec* pos, Vec* rot);
 

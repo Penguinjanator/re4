@@ -366,7 +366,7 @@ void testHairSetLeon(cModel* pl, PlCloth* c)
     c->pUp = leonHairUp;
     c->pDown = leonHairDp;
     c->x20 = 0;
-    c->x24 = 0;
+    c->pRate = 0;
     c->pMax = leonHairMax;
     c->pWindS = leonHairWindS;
     c->pWindR = leonHairWindR;
@@ -403,7 +403,7 @@ void testJacketSetLeon(cModel* pl, PlCloth* c)
     c->pUp = leonJacketUp;
     c->pDown = leonJacketDp;
     c->x20 = 0;
-    c->x24 = 0;
+    c->pRate = 0;
     c->pMax = leonJacketMax;
     c->pWindS = leonJacketWindS;
     c->pWindR = leonJacketWindR;
@@ -442,7 +442,7 @@ void testHolsterSetLeon(cModel* pl, PlCloth* c)
     c->pUp = leonHolsterUp;
     c->pDown = leonHolsterDp;
     c->x20 = 0;
-    c->x24 = 0;
+    c->pRate = 0;
     c->pMax = leonHolsterMax;
     c->pWindS = leonHolsterWindS;
     c->pWindR = leonHolsterWindR;
@@ -489,7 +489,7 @@ void testHairSetGirl(cModel* pl, PlCloth* c, int evt)
         c->nAt = 5;
     }
     c->x20 = 0;
-    c->x24 = 0;
+    c->pRate = 0;
     c->x3C = 15.0f;
     c->x40 = 0.75f;
     c->x44 = 4;
@@ -529,7 +529,7 @@ void testSkirtSetGirl(cModel* pl, PlCloth* c, int evt)
     c->pWindS = girlSkirtWindS;
     c->pWindR = girlSkirtWindR;
     c->x20 = 0;
-    c->x24 = 0;
+    c->pRate = 0;
     c->x3C = 10.0f;
     c->x40 = 0.9f;
     c->x44 = 4;
@@ -563,7 +563,7 @@ void testSweaterSetGirl(cModel* pl, PlCloth* c)
     c->pUp = girlSweaterUp;
     c->pDown = girlSweaterDp;
     c->x20 = 0;
-    c->x24 = 0;
+    c->pRate = 0;
     c->pMax = girlSweaterMax;
     c->pWindS = girlSweaterWindS;
     c->pWindR = girlSweaterWindR;
@@ -597,7 +597,7 @@ void testRibbonSetGirl(cModel* pl, PlCloth* c)
     c->pUp = girlRibbonUp;
     c->pDown = girlRibbonDp;
     c->x20 = 0;
-    c->x24 = 0;
+    c->pRate = 0;
     c->pMax = girlRibbonMax;
     c->pWindS = girlRibbonWindS;
     c->pWindR = girlRibbonWindR;
@@ -722,7 +722,7 @@ void testHairSetLuis(cModel* pl, PlCloth* c)
     c->pUp = luisHairUp;
     c->pDown = luisHairDp;
     c->x20 = 0;
-    c->x24 = 0;
+    c->pRate = 0;
     c->pMax = luisHairMax;
     c->pWindS = luisHairWindS;
     c->pWindR = luisHairWindR;
@@ -771,7 +771,7 @@ void testDressSetAda(cModel* pl, PlCloth* c, int evt)
     c->pRight = 0;
     c->x14 = 0;
     c->x20 = 0;
-    c->x24 = 0;
+    c->pRate = 0;
     c->pModel = 0;
     c->x40 = rate;
     c->flags = 0;
@@ -800,7 +800,7 @@ void testHairSetAda(cModel* pl, PlCloth* c)
     c->pUp = adaHairUp;
     c->pDown = adaHairDp;
     c->x20 = 0;
-    c->x24 = 0;
+    c->pRate = 0;
     c->pWindS = adaHairWindS;
     c->pWindR = adaHairWindR;
     c->pMax = adaHairMax;
@@ -842,7 +842,7 @@ cObjChain* AdaRibbonSet(cModel* pl, PlCloth* c, void* bin, void* tpl)
     c->pUp = adaRibbonUp;
     c->pDown = adaRibbonDp;
     c->x20 = 0;
-    c->x24 = 0;
+    c->pRate = 0;
     c->pMax = adaRibbonMax;
     c->x3C = 10.0f;
     c->x40 = 0.8f;

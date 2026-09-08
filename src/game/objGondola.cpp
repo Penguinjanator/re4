@@ -255,6 +255,8 @@ void objGondola_R0_Break(cObjGondola* obj)
     Vec v;
     cModel* parts;
     f32 len;
+    Vec* cp;
+    Vec* ca;
     static Camera ObjGondolaCam;
 
     switch (obj->xFE) {
@@ -281,13 +283,13 @@ void objGondola_R0_Break(cObjGondola* obj)
         v.z = 0.0f;
         PSMTXMultVec(parts->mat, &v, &v);
         ObjGondolaCam.param.at = v;
-        len = (ObjGondolaCam.param.pos.x - ObjGondolaCam.param.at.x) * (ObjGondolaCam.param.pos.x - ObjGondolaCam.param.at.x) +
-              (ObjGondolaCam.param.pos.y - ObjGondolaCam.param.at.y) * (ObjGondolaCam.param.pos.y - ObjGondolaCam.param.at.y) +
-              (ObjGondolaCam.param.pos.z - ObjGondolaCam.param.at.z) * (ObjGondolaCam.param.pos.z - ObjGondolaCam.param.at.z);
-        ObjGondolaCam.up.z = 0.0f;
-        ObjGondolaCam.param.fovy = 50.0f;
-        ObjGondolaCam.up.x = 0.0f;
-        ObjGondolaCam.up.y = 1.0f;
+        cp = &ObjGondolaCam.param.pos;
+        ca = &ObjGondolaCam.param.at;
+        len = (cp->x - ca->x) * (cp->x - ca->x) + (cp->y - ca->y) * (cp->y - ca->y) + (cp->z - ca->z) * (cp->z - ca->z);
+    ObjGondolaCam.up.x = 0.0f;
+    ObjGondolaCam.up.z = 0.0f;
+    ObjGondolaCam.param.fovy = 50.0f;
+    ObjGondolaCam.up.y = 1.0f;
         ObjGondolaCam.dist = SQRTF(len);
         CameraSetOrientationUp(&ObjGondolaCam);
         CamCtrl.x250 = (s32) &ObjGondolaCam;
@@ -299,7 +301,7 @@ void objGondola_R0_Break(cObjGondola* obj)
                     MotionSetCore(obj, w->subWork, w->breakMot, 0, 0, 0, 0);
                     ((GondolaMotWork*) w->subWork)->flags2 &= ~0x10000000;
                     obj->motBlend = w->subWork;
-                    ((GondolaMotWork*) w->subWork)->blendRate = 1.0f;
+                    ((GondolaMotWork*) obj->motBlend)->blendRate = 1.0f;
                     ((GondolaMotWork*) obj->motBlend)->flags2 |= 0x80000000;
                 }
             }
@@ -587,7 +589,7 @@ void cObjGondola::setVib()
         MotionSetCore(this, w->subWork, w->subMot, 0, 0, 0, 0);
         ((GondolaMotWork*) w->subWork)->flags2 &= ~0x10000000;
         motBlend = w->subWork;
-        ((GondolaMotWork*) w->subWork)->blendRate = 1.0f;
+        ((GondolaMotWork*) motBlend)->blendRate = 1.0f;
         ((GondolaMotWork*) motBlend)->flags2 |= 0x80000000;
         QuakeExec(0, 0, 10, 30.0f, 2);
         VibSetData((VibDataTbl*) (pG->pArc->ofs_1C + (u32) pG->pArc), 7, 1);

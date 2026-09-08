@@ -302,9 +302,20 @@ mark it Matching.
   by address; non-static `const Vec` locals are copied to the stack.
 - A switch whose body is a dead local store keeps its compare instructions (branches removed after
   flow deleted the store): `cmpwi ...; b L` sequences with unused compares.
-- OPEN (emobj `setYarare`, em_set, id_sys): the target zero/sign-extends narrow (u8/u16/s16) values
-  at call sites or on entry (`extsh r4,r4`, `clrlwi r5,r6,16`, `clrlwi rX,rParam,24`) where ours
-  treats them as already extended; no source form found. Possibly one construct; collect cases.
+- Narrow values (u8/u16/s16) masked at call sites or after entry (`clrlwi rX,rY,24/16`, `extsh`) where
+  ours treats them as already extended: a u8/u16 struct member read *directly* in two places, the first
+  in a QI/HI-mode context (range fold `x >= 0xF8 && x <= 0xFD`, a `switch`), stays a QI/HI pseudo and
+  every later int use gets an explicit mask; a local `u8 v = p->member` is promoted and never masked.
+  Likewise `u32 no = rec->x6; if (no > 0x7F)` keeps `cmplwi 0x7f` where a u8 local folds to `andi.`.
+  Try this first on the id_sys/emobj/em_set OPEN cases.
+- `int susp = !(m->flag & bit); if (susp) return;` gives `xori; andi.; bne`; the direct
+  `if (!(x & bit))` gives plain `andi./beq`.
+- A single `return ret` reached by `goto ok` from several paths keeps `li r31,1` + `mr r3,r31`;
+  separate `return ret` statements are constant-propagated to `li r3,1`.
+- A global read after a store through an out-pointer is loaded first only if copied into a local
+  before the store. `u32 max = f(); if (w->id < max)` loads `id` after the call; `w->id < f()` keeps
+  `id` in a callee-saved register across it.
+- Zero-initialised function-pointer table `= { NULL }` lands in `.data`; uninitialised in `.bss`.
 - Static locals show as `name.NNN` in objdiff; the DECL_UID suffix cannot be reproduced and is ignored by the report.
 - Unexplained words in `.rodata` (zero words, stray floats) are usually the constant pool of a function
   the original linker dead-stripped (bodies gone, pools kept, `STRIP_UNUSED` in objects.py): write a

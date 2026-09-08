@@ -1420,7 +1420,7 @@ address	size	section	unit	scope	name	demangled
 0x8006B0C8	0x24	.text	game/atof.cpp	global	atof	atof
 0x8006B0EC	0x28	.text	game/atoi.cpp	global	atoi	atoi
 0x8006B114	0x80	.text	game/exit.cpp	global	exit	exit
-0x8006B194	0x31C	.text	game/mbtowc_r.cpp	local	_mbtowc_r	_mbtowc_r
+0x8006B194	0x31C	.text	game/mbtowc_r.cpp	global	_mbtowc_r	_mbtowc_r
 0x8006B4B0	0x98C	.text	game/qsort.cpp	global	qsort	qsort
 0x8006BE3C	0x330	.text	game/strtod2.cpp	global	strtod	strtod
 0x8006C16C	0x198	.text	game/strtoul.cpp	global	_strtoul_r	_strtoul_r

@@ -94,7 +94,6 @@ u32 AtBoxCapsuleCk3(Vec* box, Vec* p0, f32 r, Vec* p1)
     Vec p;
     f32 len;
     u32 n;
-    u32 i;
 
     if (At_box_sphere_ck(box, p0, r)) {
         return 1;
@@ -113,7 +112,8 @@ u32 AtBoxCapsuleCk3(Vec* box, Vec* p0, f32 r, Vec* p1)
     VECNormalize(&dir, &dir);
     PSVECScale(&dir, &dir, len);
     p = *p1;
-    for (i = n - 1; i > 0; i--) {
+    n--;
+    while (n-- != 0) {
         PSVECAdd(&p, &dir, &p);
         if (At_box_sphere_ck(box, &p, r)) {
             return 1;
@@ -129,7 +129,6 @@ u32 AtSphereCapsuleCk(Vec* c, Vec* p0, f32 r, f32 r2, Vec* p1)
     f32 rr;
     f32 len;
     u32 n;
-    u32 i;
 
     rr = (r + r2) * (r + r2);
     if (SQ_DIST(c, p0) < rr) {
@@ -152,7 +151,8 @@ u32 AtSphereCapsuleCk(Vec* c, Vec* p0, f32 r, f32 r2, Vec* p1)
         n = 2;
     }
     p = *p1;
-    for (i = n - 1; i > 0; i--) {
+    n--;
+    while (n-- != 0) {
         PSVECAdd(&p, &dir, &p);
         if (SQ_DIST(c, &p) < rr) {
             return 1;
@@ -167,7 +167,6 @@ void AtCapsuleDisp(Vec* p0, Vec* p1, f32 r, u32 color)
     Vec p;
     f32 len;
     u32 n;
-    u32 i;
 
     Draw_sphere(p0, r, color, 1, 1);
     Draw_sphere(p1, r, color, 1, 1);
@@ -182,7 +181,8 @@ void AtCapsuleDisp(Vec* p0, Vec* p1, f32 r, u32 color)
     VECNormalize(&dir, &dir);
     PSVECScale(&dir, &dir, len);
     p = *p1;
-    for (i = n - 1; i > 0; i--) {
+    n--;
+    while (n-- != 0) {
         PSVECAdd(&p, &dir, &p);
         Draw_sphere(&p, r, color, 1, 1);
     }
@@ -251,7 +251,8 @@ u32 At_poly_line_ck(AtPolyData* pd, Vec* out, AtPoly* poly, Vec* p0, Vec* p1, u3
     Vec c;
     Vec a;
     Vec b;
-    Vec* v0 = &pd->vtx[poly->v[0]];
+    Vec* vtx = pd->vtx;
+    Vec* v0 = &vtx[poly->v[0]];
     Vec* nrm = &pd->nrm[poly->n];
     f32 dp0;
     f32 dp1;
@@ -277,12 +278,12 @@ u32 At_poly_line_ck(AtPolyData* pd, Vec* out, AtPoly* poly, Vec* p0, Vec* p1, u3
     if (PSVECDotProduct(&c, &b) < 0.0f) {
         return 0;
     }
-    PSVECSubtract(p0, &pd->vtx[poly->v[1]], &b);
+    PSVECSubtract(p0, &vtx[poly->v[1]], &b);
     PSVECCrossProduct(&pd->edge[poly->e[1]], &a, &c);
     if (PSVECDotProduct(&c, &b) < 0.0f) {
         return 0;
     }
-    PSVECSubtract(p0, &pd->vtx[poly->v[2]], &b);
+    PSVECSubtract(p0, &vtx[poly->v[2]], &b);
     PSVECCrossProduct(&pd->edge[poly->e[2]], &a, &c);
     if (PSVECDotProduct(&c, &b) < 0.0f) {
         return 0;
@@ -347,6 +348,7 @@ u32 At_poly_sphere_ck(AtPolyData* pd, AtPoly* poly, Vec* oldPos, Vec* pos, f32 r
 {
     Vec tri[3];
     Vec n;
+    u32 attr;
 
     tri[0].x = pd->vtx[poly->v[0]].x;
     tri[0].y = pd->vtx[poly->v[0]].y;
@@ -360,7 +362,8 @@ u32 At_poly_sphere_ck(AtPolyData* pd, AtPoly* poly, Vec* oldPos, Vec* pos, f32 r
     n.x = pd->nrm[poly->n].x;
     n.y = pd->nrm[poly->n].y;
     n.z = pd->nrm[poly->n].z;
-    return At_poly_sphere_ck2(tri, &n, Get_poly_attr(poly), oldPos, pos, r, flag, mask);
+    attr = Get_poly_attr(poly);
+    return At_poly_sphere_ck2(tri, &n, attr, oldPos, pos, r, flag, mask);
 }
 
 u32 At_poly_sphere_ck2(Vec* tri, Vec* n, u32 attr, Vec* oldPos, Vec* pos, f32 r, u32 flag, u32 mask)
