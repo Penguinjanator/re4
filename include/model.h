@@ -154,7 +154,8 @@ public:
     u8 x103;         // 0x103  (scroll: 0x80 = SmxSetFlag bit3, 0xFF = off)
     Vec speed;       // 0x104
     Vec oldPos;      // 0x110  position before the speed was added (obj04 collision segment)
-    u8 pad_11C[0x12C - 0x11C];
+    u8 pad_11C[0x128 - 0x11C];
+    Vec* pFloorNrm;  // 0x128  player: floor normal the shoulder camera tilts with (cam_qfps setPlayerLocation)
     u8 x12C;         // 0x12C  (TexRenderModSet sets 2)
     u8 x12D;         // 0x12D  (pl_leon setModel sets 1)
     u8 x12E;         // 0x12E  2 = scroll (Smd) object

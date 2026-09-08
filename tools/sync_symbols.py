@@ -154,16 +154,25 @@ def main():
     renamed = 0
 
     all_imports = None  # name -> set of split units importing it (built on first use)
+    # split objects of the units being synced: replaced by the compiled objects, so their imports
+    # (placeholder names of the functions these units call) are not evidence of a name in use
+    own_split = {os.path.relpath(o, os.path.join(ROOT, "build", VER, "src")).rsplit(".", 1)[0] + ".o"
+                 for o in sys.argv[1:]}
 
     def imported_by(old):
         nonlocal all_imports
         if all_imports is None:
             all_imports = {}
             objdir = os.path.join(ROOT, "build", VER, "obj")
+            # only split objects the current link uses count: stale `auto_*` blobs of an earlier split
+            # still sit in build/obj and import every symbol under whatever name it had back then
+            ninja = open(os.path.join(ROOT, "build.ninja")).read() if os.path.exists(os.path.join(ROOT, "build.ninja")) else None
             for dp, _, fs in os.walk(objdir):
                 for f in fs:
                     if not f.endswith(".o"): continue
                     u = os.path.relpath(os.path.join(dp, f), objdir)
+                    if ninja is not None and os.path.relpath(os.path.join(dp, f), ROOT) not in ninja: continue
+                    if u in own_split: continue
                     for n, _, d in elf_symbols(os.path.join(dp, f)):
                         if not d: all_imports.setdefault(n, set()).add(u)
         return all_imports.get(old, set())

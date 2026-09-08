@@ -88,6 +88,7 @@ public:
     void beginDamage();
     void endDamage();
     int endCamera();
+    int isKamae();       // aiming (weapon routine ready/fire states, or the aim key held)
     void interrupt();
     void checkCtrl();    // Key 0x400/0x100000 -> pG->flags_500C bits
     // game/pl_debug.cpp

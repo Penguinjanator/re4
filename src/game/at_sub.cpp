@@ -253,6 +253,8 @@ u32 At_poly_line_ck(AtPolyData* pd, Vec* out, AtPoly* poly, Vec* p0, Vec* p1, u3
     Vec b;
     Vec* vtx = pd->vtx;
     Vec* v0 = &vtx[poly->v[0]];
+    Vec* v1;
+    Vec* v2;
     Vec* nrm = &pd->nrm[poly->n];
     f32 dp0;
     f32 dp1;
@@ -267,23 +269,27 @@ u32 At_poly_line_ck(AtPolyData* pd, Vec* out, AtPoly* poly, Vec* p0, Vec* p1, u3
     d1.x = p1->x - v0->x;
     d1.y = p1->y - v0->y;
     d1.z = p1->z - v0->z;
-    dp0 = d0.x * nrm->x + d0.y * nrm->y + d0.z * nrm->z;
-    dp1 = d1.x * nrm->x + d1.y * nrm->y + d1.z * nrm->z;
+    dp0 = d0.x * nrm->x + d0.y * nrm->y;
+    dp0 += d0.z * nrm->z;
+    dp1 = d1.x * nrm->x + d1.y * nrm->y;
+    dp1 += d1.z * nrm->z;
     if (dp0 * dp1 > 0.0f) {
         return 0;
     }
+    v1 = &vtx[poly->v[1]];
     PSVECSubtract(p1, p0, &a);
     PSVECSubtract(p0, v0, &b);
     PSVECCrossProduct(&pd->edge[poly->e[0]], &a, &c);
     if (PSVECDotProduct(&c, &b) < 0.0f) {
         return 0;
     }
-    PSVECSubtract(p0, &vtx[poly->v[1]], &b);
+    v2 = &vtx[poly->v[2]];
+    PSVECSubtract(p0, v1, &b);
     PSVECCrossProduct(&pd->edge[poly->e[1]], &a, &c);
     if (PSVECDotProduct(&c, &b) < 0.0f) {
         return 0;
     }
-    PSVECSubtract(p0, &vtx[poly->v[2]], &b);
+    PSVECSubtract(p0, v2, &b);
     PSVECCrossProduct(&pd->edge[poly->e[2]], &a, &c);
     if (PSVECDotProduct(&c, &b) < 0.0f) {
         return 0;
@@ -370,35 +376,38 @@ u32 At_poly_sphere_ck2(Vec* tri, Vec* n, u32 attr, Vec* oldPos, Vec* pos, f32 r,
 {
     Vec hp;
     Vec nn;
-    Vec v;
     f32 d;
     u32 hit;
     u32 i;
 
-    d = PSVECDotProduct(n, oldPos) - PSVECDotProduct(n, tri);
-    if (d < 0.0f) {
+    if (PSVECDotProduct(n, oldPos) - PSVECDotProduct(n, tri) < 0.0f) {
         return 0;
     }
     d = PSVECDotProduct(n, pos) - PSVECDotProduct(n, tri);
     hit = 99;
     if (fabsf(d) > r) {
+        Vec hp2;
+
         hit = 0;
         if (At_surface_line_ck(&hp, tri, n, oldPos, pos)) {
-            Vec nn2 = *n;
-            Vec hp2 = hp;
-            if (At_poly_point_rel(tri, &nn2, &hp2)) {
+            nn = *n;
+            hp2 = hp;
+            if (At_poly_point_rel(tri, &nn, &hp2)) {
                 hit = 1;
             }
         }
     } else {
+        Vec v;
+        Vec hp2;
+
         PSVECScale(n, &hp, d);
         PSVECSubtract(pos, &hp, &hp);
-        {
-            Vec nn2 = *n;
-            Vec hp2 = hp;
-            if (At_poly_point_rel(tri, &nn2, &hp2)) {
-                hit = 2;
-            } else if (!(flag & 0x20)) {
+        nn = *n;
+        hp2 = hp;
+        if (At_poly_point_rel(tri, &nn, &hp2) == 0) {
+            if (flag & 0x20) {
+                hit = 0;
+            } else {
                 for (i = 0; i < 3; i++) {
                     f32 len;
                     f32 dot;
@@ -416,15 +425,15 @@ u32 At_poly_sphere_ck2(Vec* tri, Vec* n, u32 attr, Vec* oldPos, Vec* pos, f32 r,
                         continue;
                     }
                     PSVECScale(&v, &hp, dot / len);
-                    PSVECAdd(&tri[i], &hp, &hp);
+                    PSVECAdd(&hp, &tri[i], &hp);
                     if (PSVECSquareDistance(pos, &hp) < r * r) {
                         hit = 2;
                         break;
                     }
                 }
-            } else {
-                hit = 0;
             }
+        } else {
+            hit = 2;
         }
         if (i == 3) {
             hit = 0;
@@ -484,7 +493,7 @@ static f32 At_zero_one(f64 a)
     if (a != 0.0) {
         return 1.0f;
     }
-    return 0.0f;
+    return (f32) a;
 }
 
 u32 Get_poly_attr(AtPoly* poly)
@@ -568,13 +577,15 @@ int Get_ang_dir(f32 ang)
     if (ang > 0.78539819f) {
         return 1;
     }
-    if (ang <= 0.78539819f) {
+    if (ang > 0.78539819f) {
+        return 1;
+    } else {
+        int dir = 0;
         if (ang < -0.78539819f) {
-            return 3;
+            dir = 3;
         }
-        return 0;
+        return dir;
     }
-    return 1;
 }
 
 // Dead-stripped by the original linker (only its rectangle template and constant survive).

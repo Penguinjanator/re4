@@ -508,6 +508,42 @@ mark it Matching.
 - `#line N` for an inline `MEM_ALLOC` inside a class body counts from the `class` line (ctrl.h: `#line 113`
   puts memAlloc on line 116).
 - `-0x602` mask (`and r0, r0, r11`) in every `_._7cCtrlXX` is the inlined `cUnit::~cUnit` (`be_flag &= ~0x601`).
+- (read) `bl ReadCheck__4cDvdi` with a `DvdReadInfo*` in r5: `cDvd::ReadCheck(int)` passes its uninitialised
+  `info` pointer through to readCheckMain, and read.cpp calls it with three arguments. An asm-labelled
+  member declaration reproduces the call (`int ReadCheckInfo(int, DvdReadInfo*) asm("ReadCheck__4cDvdi");`
+  in dvd.h); PMF casts give an indirect call.
+- `static` functions with unmangled names in sym_map (decodeData, readEm) were declared inside the
+  `extern "C" {}` block. "global constructors keyed to X": X is the first *public* function/initialised
+  object emitted, so everything before it in `.text` is static.
+- `memcpy(dst, src, n)` with typed pointers (`OSModuleHeader*`) expands inline to a libcall with
+  `crclr cr1eq`; `void*` operands give a plain prototyped `bl memcpy` (read readEmData).
+- A store to a scalar global followed by a struct-member load (`EmInitFunc = m->pInitFunc; return
+  m->pArc;`) lets ProDG hoist the load above the store; the original kept the order, so the global is
+  stored through a struct view (`((EmInitFuncPtr*)&EmInitFunc)->p`, the pLog trick on the store side).
+- A flag test through a `u16&` inline (`BitChk16(PlReadModule.flag, 2)`) materialises `sym+0x82` into a
+  register; `&PlReadModule` right after is then `subi r4, rX, 0x82` (cse related-value). `BitOn16` on a
+  global struct member gives `lis sym+ofs@ha; lhz/sth sym+ofs@l(r9)`, the plain `|=` after `&sym` is
+  known gives `addi sym@l` + displacement.
+- `lbzu r0, 4(rP)` at a loop top = `p += 4;` as the first statement of the body (combine merges the add
+  into the load); the biv init `p = (u8*)arc + n*4; p += 0xC;` as two statements gives `add rP; addi rP,rP`
+  where one expression leaves a temp (`add r9; addi rP, r9`).
+- Independent struct stores at a function end: the *last* source statement is issued first, then the rest
+  in order (`id, pArc, size, pModule, bssSize` -> `bssSize, id, pArc, size, pModule`).
+- `if (f() == 0) { fail; return 0; } success; return x;` lays the success block out as the fallthrough
+  (`beq fail`); the if/else form puts the fail block first.
+- A constant stored to a global and then assigned to a local (`pG->pPlArc = C; data = (u8*)C;`) is
+  cse'd into a copy and re-materialised as `lis/ori` before the preceding call; a local initialised at
+  the top shares its register with the store (ReadPlayerData).
+- `__attribute__((aligned(32)))` objects of size 0x98 in `.bss` (ReadModule) leave the 8-byte holes;
+  the unit ends with `asm(".section .bss; .balign 32")`.
+- OPEN (read ReadPlayerData): the PRE'd `type == 0` compare lives in a GPR (`mfcr r29`/`mtcrf 128`) in the
+  original, in cr4 in ours; the pass-0 "already used register" choice depends on the GPR allocation order
+  (r29 = pArc in the original). readEmData `m`/`newSize` swap r28/r29 (m has 14 refs, one more flips it).
+- newlib units: SN's shipped `va-ppc.h` (v393/include) differs from gcc's: `char gpr/fpr` (signed), its
+  own `va_arg` (`gpr + size <= 8`, `__va_longlong_p`) — `include/va_ppc.h` carries it. `strtod` (game/strtod2)
+  is the Tcl strtod with `float` mantissa/`float powersOf10[]`, `isspace()/isdigit()` unprototyped
+  (`crclr`), `if (!isdigit(UCHAR(*p))) { p = pExp; goto done; }` after the exponent sign. vfscanf is the
+  stock 1.8.2 source with `MB_CAPABLE` (`__mb_cur_max`, `_mbtowc_r`) and `u_char *__sccl ();` unprototyped.
 
 ## Don'ts
 

@@ -42,6 +42,13 @@ struct GondolaMotWork {
     f32 blendRate;        // 0xC8
 };
 
+// Struct-member view of pSUB (the pLog trick): the load stays below the preceding work store
+// (setRidePL: `w->rideSUB = 0; if (pSUB)`).
+struct SubCharPtr {
+    cSubChar* p;
+};
+#define pSUBS (((SubCharPtr*) &pSUB)->p)
+
 extern "C" {
 int MotionMove(cModel* m, int a);
 void DiedemoExec(int no, int a);
@@ -54,7 +61,7 @@ void objGondolaSatClear(cObjGondola* obj);
 void objGondolaSatSet(cObjGondola* obj);
 void objGondolaRideEmAdjust(cObjGondola* obj, Vec* d);
 }
-int MotionSetCore(cModel* m, void* work, void* mot, int a, int b, int c, int d);
+void MotionSetCore(cModel* m, void* work, void* mot, int a, int b, int c, int d);
 
 static void (*ObjGondola_R0_move_tbl[5])(cObjGondola*) = {
     objGondola_R0_Set, objGondola_R0_Move, objGondola_R0_Down, objGondola_R0_Up, objGondola_R0_Break,
@@ -70,6 +77,7 @@ cObj* SetGondola(void* bin, void* tpl, Vec* pos, Vec* rot)
     cObj* obj;
     GondolaWork* w;
     int i;
+    cEm** p;
 
     obj = ObjMgr.create(0x35);
     if (obj == 0) {
@@ -106,8 +114,9 @@ cObj* SetGondola(void* bin, void* tpl, Vec* pos, Vec* rot)
         w->sat[i] = 0;
         w->sat2[i] = 0;
     }
+    p = w->rideEm;
     for (i = 0; i < 5; i++) {
-        w->rideEm[i] = 0;
+        *p++ = 0;
     }
     w->ridePL = 0;
     w->rideSUB = 0;
@@ -378,44 +387,44 @@ void objGondolaSatSet(cObjGondola* obj)
         switch (i) {
         case 0:
         default:
-            hw = 1000.0f;
-            hd = 1500.0f;
-            cx = 0.0f;
-            cz = 0.0f;
             h = 0.0f;
+            hw = 1000.0f;
             r = 3000.0f;
+            cx = 0.0f;
+            hd = 1500.0f;
+            cz = 0.0f;
             break;
         case 1:
             hw = 1000.0f;
+            r = 1100.0f;
             hd = 100.0f;
             cx = 0.0f;
-            cz = 1500.0f;
             h = -100.0f;
-            r = 1100.0f;
+            cz = 1500.0f;
             break;
         case 2:
             hw = 1000.0f;
+            cz = -1500.0f;
+            r = 1100.0f;
             hd = 100.0f;
             cx = 0.0f;
-            cz = -1500.0f;
             h = -100.0f;
-            r = 1100.0f;
             break;
         case 3:
             hw = 100.0f;
+            r = 1100.0f;
             hd = 1500.0f;
             cx = 1000.0f;
-            cz = 0.0f;
             h = -100.0f;
-            r = 1100.0f;
+            cz = 0.0f;
             break;
         case 4:
             hw = 100.0f;
-            hd = 1500.0f;
             cx = -1000.0f;
-            cz = 0.0f;
-            h = -100.0f;
             r = 1100.0f;
+            hd = 1500.0f;
+            h = -100.0f;
+            cz = 0.0f;
             break;
         }
         poly[0].x = -hw + cx;
@@ -437,6 +446,57 @@ void objGondolaSatSet(cObjGondola* obj)
             w->sat[i] = SatMgr.create(&pos, &rot, poly, 0, 0x100, r);
         }
     }
+}
+
+// Never called (dead-stripped by the original linker, STRIP_UNUSED): only their constant pools
+// survive in .rodata (3000^2, pi, pi/3, 4250, 4343, 1850, 1950, 4828.03, 5000^2 / 4828.03, 5000^2).
+static int objGondolaRideAreaCk(cObjGondola* obj, cEm* em)
+{
+    Vec d;
+    f32 ang;
+
+    PSVECSubtract(&em->pos, &obj->pos, &d);
+    if (d.x * d.x + d.z * d.z > 9000000.0f) {
+        return 0;
+    }
+    ang = atan2f(d.x, d.z) - obj->rot.y;
+    if (ang > 3.1415927f) {
+        return 0;
+    }
+    if (ang < 1.0471976f) {
+        return 0;
+    }
+    if (d.x > 4250.0f) {
+        return 0;
+    }
+    if (d.x < 4343.0f) {
+        return 0;
+    }
+    if (d.z > 1850.0f) {
+        return 0;
+    }
+    if (d.z < 1950.0f) {
+        return 0;
+    }
+    if (d.y > 4828.03f) {
+        return 0;
+    }
+    if (d.x * d.x + d.y * d.y + d.z * d.z > 25000000.0f) {
+        return 0;
+    }
+    return 1;
+}
+
+static int objGondolaRideDistCk(cObjGondola* obj, cEm* em)
+{
+    Vec d;
+
+    PSVECSubtract(&em->pos, &obj->pos, &d);
+    d.y -= 4828.03f;
+    if (d.x * d.x + d.y * d.y + d.z * d.z > 25000000.0f) {
+        return 0;
+    }
+    return 1;
 }
 
 void cObjGondola::setMoveMotion(void* mot, int frame)
@@ -544,7 +604,7 @@ void cObjGondola::setRidePL()
     FSet(pPL->rot.y, 2.84f);
     pPL->setPos(&v);
     w->rideSUB = 0;
-    if (pSUB) {
+    if (pSUBS) {
         Vec v2;
 
         v2.x = -500.0f;
