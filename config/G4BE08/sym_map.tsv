@@ -6311,12 +6311,12 @@ address	size	section	unit	scope	name	demangled
 0x801C2B38	0x38	.text	game/esp18.cpp	global	cEsp18_SetFreeWork	cEsp18::SetFreeWork
 0x801C2B70	0x1180	.text	game/esp18.cpp	local	Esp18_Trans	Esp18_Trans
 0x801C3CF0	0x20	.text	game/esp18.cpp	global	cEsp18_dt_cEsp18	cEsp18::~cEsp18
-0x801C3D10	0x44	.text	game/esp19.cpp	global	Esp19_Create	Esp19_Create
-0x801C3D54	0x4C	.text	game/esp19.cpp	global	cEsp19_move	cEsp19::move
-0x801C3DA0	0x50	.text	game/esp19.cpp	global	cEsp19_SetFreeWork	cEsp19::SetFreeWork
-0x801C3DF0	0x370	.text	game/esp19.cpp	global	Draw_line3d_local_222_801C3DF0	Draw_line3d_local_222
+0x801C3D10	0x44	.text	game/esp19.cpp	global	Esp19_Create__Fv	Esp19_Create
+0x801C3D54	0x4C	.text	game/esp19.cpp	global	move__6cEsp19	cEsp19::move
+0x801C3DA0	0x50	.text	game/esp19.cpp	global	SetFreeWork__6cEsp19P10EspGenWorkPUl	cEsp19::SetFreeWork
+0x801C3DF0	0x370	.text	game/esp19.cpp	global	Draw_line3d_local_222__FP3VecT0PA3_fUlP4cEspf	Draw_line3d_local_222
 0x801C4160	0x178	.text	game/esp19.cpp	global	Esp19_Trans	Esp19_Trans
-0x801C42D8	0x20	.text	game/esp19.cpp	global	cEsp19_dt_cEsp19	cEsp19::~cEsp19
+0x801C42D8	0x20	.text	game/esp19.cpp	global	_._6cEsp19	cEsp19::~cEsp19
 0x801C42F8	0x44	.text	game/esp1a.cpp	global	Esp1a_Create	Esp1a_Create
 0x801C433C	0x210	.text	game/esp1a.cpp	global	cEsp1a_move	cEsp1a::move
 0x801C454C	0xCC	.text	game/esp1a.cpp	global	get_angle	get_angle

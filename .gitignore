@@ -9,3 +9,6 @@ orig/*/*
 __pycache__/
 *.pyc
 .vscode/
+
+# ProDG compiler temp files
+*.TMP.*
