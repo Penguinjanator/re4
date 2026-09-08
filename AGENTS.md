@@ -36,6 +36,22 @@ diff is therefore never "compiler version": keep looking for a source form. The 
 string; its GCCI is "Ver.1.09 Build Oct 8 2004".
 
 
+### Known compiler-build differences (v1.79 source vs the original build)
+
+Two argument-passing behaviours of the original binary are not produced by any source form with our
+cc1plus and are therefore compiler-build differences (the original is a later SN build):
+1. Argument-move order at calls with mixed int/float args: the original sometimes issues FP arg moves
+   before trailing integer constants (`mr r3; fmr f1; fmr f6; li r4; fmr f7; li r5; li r6` for
+   `init(int,int,int,f32 x7)`), GCC 2.95's `load_register_parameters` never does. A whole-tree
+   experiment harness exists at /home/adityas/Projects/re4-orig/sn-gcc-argorder/harness/ (10 s per
+   run over all game units, with `calls.tsv` = 1209 classified call sites); every candidate rule
+   either regresses matched functions or fails SetEmBarred's interleave, so NOTHING is installed.
+   Workaround: a floats-first asm-labelled redeclaration (include/atari_init.h) for the affected callee.
+2. Narrow-argument extension: the original sign/zero-extends narrow values at some call sites and
+   entries (`extsh`, `clrlwi 24/16`) where ours treats them as promoted. Workaround: asm-labelled
+   alias with the signed/narrow type (id_sys.h `setTimeS`).
+Do not spend unit time on either; use the workarounds and move on.
+
 ## Per-unit compiler flags
 
 Not every game unit is `-O2`. The sound driver (`snd_iss*/seq*/str*/sub*/main/efx/ram`) is C++ with
