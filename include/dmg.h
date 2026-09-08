@@ -27,8 +27,9 @@ class cDmgMgr {
 public:
     u8 pad_0[0x34];
 
-    // Registers a damage volume: kind, frames, centre, radius, height.
-    void set(int kind, int time, Vec* pos, f32 r, f32 h);
+    // Registers a damage volume: kind, frames, centre, radius, height. Returns 1 when a volume
+    // was created (int result: the call's set of r3 changes the haifa depend counts, obj10 dmgSet).
+    int set(int kind, int time, Vec* pos, f32 r, f32 h);
 };
 
 extern cDmgMgr DmgMgr;

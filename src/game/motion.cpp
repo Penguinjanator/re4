@@ -756,9 +756,12 @@ void MotionMoveCore(cModel* m, MotionWork* w, int flag)
     } while (++i < n);
 }
 
-static inline bool nearOne(f32 v, f32 eps)
+static inline int nearOne(f32 v, f32 eps)
 {
-    return fabsf(1.0f - v) < eps;
+    if (fabsf(1.0f - v) < eps) {
+        return 1;
+    }
+    return 0;
 }
 
 void MotionHokan(cModel* m, MotionWork* w)
@@ -780,7 +783,7 @@ void MotionHokan(cModel* m, MotionWork* w)
     f32 u;
     f32 s0, s1, s2;
     f32 n0, n1, n2;
-    f32 sy, sz, sx;
+    f32 sx, sz, sy;
     u32 fl;
 
     w->hokanCnt--;
@@ -876,7 +879,7 @@ void MotionHokan(cModel* m, MotionWork* w)
             MOTION_PARTS(p)->flags &= ~0x20000;
         }
         fl = MOTION_PARTS(p)->flags;
-        if (fl & 0x20000) {
+        if (MOTION_PARTS(p)->flags & 0x20000) {
             sz = 1.0f / p->pParent->scale.z;
             sx = 1.0f / p->pParent->scale.x;
             sy = 1.0f / p->pParent->scale.y;
@@ -908,13 +911,11 @@ void MotionGetSpeed(cModel* m, MotionWork* w, int flag, Vec* pos, Vec* rot)
 {
     HermitePrm prm;
     HermitePrm* pp = &prm;
-    Vec a;
-    Vec b;
+    Vec a = { 0.0f, 0.0f, 0.0f };
+    Vec b = { 0.0f, 0.0f, 0.0f };
     Mtx rm;
     int flip;
 
-    memset(&a, 0, sizeof(Vec));
-    memset(&b, 0, sizeof(Vec));
     w->frame = SEQ_FRAME(w->key0.frame);
     pp->flags = 0;
     w->rotPrev = w->rot;
@@ -974,11 +975,15 @@ void MotionGetSpeed(cModel* m, MotionWork* w, int flag, Vec* pos, Vec* rot)
             pos->x = -pos->x;
         }
     }
-    if ((w->flags & 0x400) && w->hokanCnt - 1 > 0) {
-        f32 t = (f32) (w->hokanMax + 1 - w->hokanCnt) / (f32) w->hokanMax;
-        f32 u = 1.0f - t;
-        pos->x = w->speed.x * u + pos->x * t;
-        pos->z = w->speed.z * u + pos->z * t;
+    if (w->flags & 0x400) {
+        int cnt = w->hokanCnt;
+
+        if (cnt - 1 > 0) {
+            f32 t = (f32) ((w->hokanMax + 1) - cnt) / (f32) w->hokanMax;
+            f32 u = 1.0f - t;
+            pos->x = w->speed.x * u + pos->x * t;
+            pos->z = w->speed.z * u + pos->z * t;
+        }
     }
     if (!(flag & 8)) {
         w->speed = *pos;

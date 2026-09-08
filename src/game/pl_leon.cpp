@@ -165,7 +165,7 @@ void cPlLeon::setWound()
 // default case has no `mr`); here `info` wins the register (live length 19 vs 21 insns).
 void cPlLeon::setRightHand(int no)
 {
-    int data;
+    void* data;
     cModelInfo* info;
 
     if (pBody->pRight) {
@@ -175,13 +175,13 @@ void cPlLeon::setRightHand(int no)
     }
     switch (no) {
     case 0:
-        data = (int) PL_ARC_PTR(pG->pPlArc, 0x12);
+        data = PL_ARC_PTR(pG->pPlArc, 0x12);
         break;
     case 1:
-        data = (int) pBody->pWepHand;
+        data = pBody->pWepHand;
         break;
     default:
-        data = no;
+        data = (void*) no;
         break;
     }
     if ((info = ModInfoMgr.create((void*) data, PL_ARC_PTR(pG->pPlArc, 0x11))) != 0) {

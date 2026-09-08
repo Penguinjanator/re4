@@ -1327,7 +1327,7 @@ void CameraControl::setMotionBaseMatPtr(Mtx* mat)
 
 void* CameraControl::getMotionInfoPtr()
 {
-    return ((CameraMotion*) extra)->info;
+    return &((CameraMotion*) extra)->info;
 }
 
 void CameraControl::clearAttachCamera()

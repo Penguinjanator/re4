@@ -192,8 +192,10 @@ f32 PathGetLength(void* path);
 int PathGetPos(void* path, u32* seg, Vec* out, f32 dist);
 int PathGetPosEm(void* path, cModel* model, u32* seg, Vec* out, f32 dist);
 int EspGetTplAddr(int no, void** out);
-// game/est.cpp
-int EstSet(int a, int b, Vec* pos, Vec* rot, int c, int d, int e, int f, u32 g, void* h);
+// game/est.cpp. void: no caller reads r3 after the call, and with an `int` result the call's
+// set of r3 changes the haifa depend counts, moving `li r3,0` to the end of the arg setup
+// (obj01/obj10 move00, obj10AddSpeed).
+void EstSet(int a, int b, Vec* pos, Vec* rot, int c, int d, int e, int f, u32 g, void* h);
 }
 // game/eff_sys.cpp
 int EspGenGetMoveLoop();

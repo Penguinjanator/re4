@@ -11,7 +11,7 @@
 #include "esp.h"
 #include "math_sub.h"
 
-int MotionSetCore(cModel* m, void* work, void* data, int a, int b, int c, int d);  // game/motion.cpp
+void MotionSetCore(cModel* m, void* work, void* data, int a, int b, int c, int d);  // game/motion.cpp (result unused here: void keeps the `mr r3` before the arg li`s)
 extern "C" {
 int MotionCheckCrossFrame(void* work, f32 frame);  // game/motion.cpp
 void PlSetDamageSe(int no);                        // game/pl_sub.cpp

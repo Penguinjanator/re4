@@ -19,9 +19,9 @@ inline void* operator new(unsigned int, void* p) { return p; }
 //   vtable slot 1 (0x10): move()
 class cCamera : public Camera {
 public:
-    virtual ~cCamera();
-    virtual void move();
-    virtual void unk_10();
+    virtual ~cCamera() {}
+    virtual void move() = 0;
+    void operator delete(void*) {}
 };
 
 class IdScope {

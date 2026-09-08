@@ -223,20 +223,20 @@ int obj10AddSpeed(cWepItem* obj)
     if (!(w->flags & 4)) {
         return 0;
     }
-    if (GetWaterHeight(&obj->pos, &wh) && obj->pos.y <= wh && pG->wep_no != 0xB && pG->wep_no != 0xC) {
+    if (GetWaterHeight(&obj->pos, &wh) && obj->pos.y <= wh && !(pG->wep_no == 0xB || pG->wep_no == 0xC)) {
         obj->pos.y = wh;
         if (!(w->flags7C & 8)) {
             EstSet(0, -1, &obj->pos, 0, w->estNo2, (u8) w->estPrm2, 0, 0, 0, 0);
             w->flags7C |= 8;
             AddWaterPower(&obj->pos, 0.5f);
             switch (obj->type) {
+            default:
+                SndCall(6, 0x64, &obj->pos, 0, 0, 0);
+                break;
             case 1:
                 SndCall(2, 0xA, &obj->pos, 0, 0, 0);
                 break;
             case 0x63:
-                break;
-            default:
-                SndCall(6, 0x64, &obj->pos, 0, 0, 0);
                 break;
             }
         }

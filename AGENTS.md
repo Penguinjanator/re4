@@ -269,6 +269,13 @@ mark it Matching.
   unnamed 4-byte gaps dtk labels as separate symbols.
 - gcse PRE of a struct load across an if/else is blocked by any memory kill in the arm: if the target
   lacks a PRE shape ours produces, the original arm stored to memory somewhere.
+- Every store to a `GlobalWork` field followed by a `pG` reload = the original stored through
+  reference setters (`U8Set/U16Set/U32Set`, `BitOn16`), not plain member stores. Four byte stores after
+  a call through one fresh pointer load = an inline with its own `cPlayer* p = pPL` local.
+- A `li rZ,0` in both arms of an if/else whose common tail follows = source-level tail duplication
+  (the rest of the function repeated in each arm; jump2 cross-jumps the suffix).
+- `x == 2 || x == 3` on a u8 returns as `subi 2; subfic 1; li 0; adde` (unsigned `<= 1` range fold).
+- Loop-invariant `cmpwi cr2/cr3/cr4` hoisted before a loop = a `switch (type)` inside the loop body.
 - Static locals show as `name.NNN` in objdiff; the DECL_UID suffix cannot be reproduced and is ignored by the report.
 - Unexplained words in `.rodata` (zero words, stray floats) are usually the constant pool of a function
   the original linker dead-stripped (bodies gone, pools kept, `STRIP_UNUSED` in objects.py): write a

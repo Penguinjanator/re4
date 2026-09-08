@@ -378,13 +378,13 @@ void Obj01SetEst(cObj* obj, int no0, int prm0, u32 type, int no1, int prm1, int 
         return;
     }
     w = &obj->o1;
-    w->type = type;
     w->estNo0 = no0;
     w->estPrm0 = prm0;
     w->estNo1 = no1;
     w->estPrm1 = prm1;
     w->estPrm2 = prm2;
     w->estNo2 = no2;
-    w->estPrm3 = prm3;
     w->estNo3 = no3;
+    w->estPrm3 = prm3;
+    w->type = type;
 }

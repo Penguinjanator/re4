@@ -1067,5 +1067,5 @@ void PlDataRelease()
     }
 }
 
+// the split object's .sdata is padded to 8 bytes after the three floats
 asm(".section .sdata; .balign 8");
-// end of unit

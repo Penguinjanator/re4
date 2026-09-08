@@ -1047,6 +1047,8 @@ MATCHING.update({
 
 # map object units (game/obj*.cpp)
 MATCHING.update({
+    "game/obj01.cpp": True,
+    "game/obj10.cpp": True,
     "game/obj19.cpp": True,
     "game/obj20.cpp": True,
     "game/obj26.cpp": True,
