@@ -263,6 +263,12 @@ mark it Matching.
   stays separate.
 - OPEN (mes `move`/`WidthCk`): `code = f(x); if (code == 0)` — original keeps `mr r4,r3; cmpwi r4,0`
   where ours combines to `mr. r4,r3`; ~20 forms tried.
+- `union { GXColor c; u32 w; } kc; kc.w = 0x6600FF32;` gives the `lis/ori/stw` word store for colour
+  constants; a `GXColor k = {..}` initializer gives per-byte `stb`s.
+- An 8-byte member anywhere in a class (`u64`) raises the object's `.bss` alignment to 8, creating the
+  unnamed 4-byte gaps dtk labels as separate symbols.
+- gcse PRE of a struct load across an if/else is blocked by any memory kill in the arm: if the target
+  lacks a PRE shape ours produces, the original arm stored to memory somewhere.
 - Static locals show as `name.NNN` in objdiff; the DECL_UID suffix cannot be reproduced and is ignored by the report.
 - Unexplained words in `.rodata` (zero words, stray floats) are usually the constant pool of a function
   the original linker dead-stripped (bodies gone, pools kept, `STRIP_UNUSED` in objects.py): write a
