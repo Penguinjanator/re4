@@ -35,13 +35,22 @@ static cObj** scrTbl;      // one entry per SMD work
 int nScrWork;
 static const u8 ScrObjIdNum = 16;
 
-// Never called in this build; keeps ScrIdRefTbl and ScrObjIdNum alive.
+// Never called in this build; keeps ScrIdRefTbl alive (GCC 2.95 emits statics an inline body
+// mentions).
 static inline const char* scrIdName(u32 no)
 {
     if (no < ScrObjIdNum) {
         return ScrIdRefTbl[no].name;
     }
     return NULL;
+}
+
+// Not in the DOL: the original linker dead-stripped it (tools/strip_unused.py does the same to
+// every function sym_map.tsv does not list). Taking the address is what makes GCC emit the
+// otherwise folded `static const` ScrObjIdNum into .sdata2, where the original object has it.
+const u8* SmdGetIdNumPtr()
+{
+    return &ScrObjIdNum;
 }
 
 int SmdInit(cSmd* smd, cSmx* smx, cSmd* comn)
@@ -257,13 +266,14 @@ int SmxGetFlag(cObj* obj)
 
 void smxInit(cObj* obj, u8 id)
 {
-    SmxWork* w = pSmx->work;
+    cSmx* smx = pSmx;
+    SmxWork* w = smx->work;
     int i;
 
-    for (i = 0; i < pSmx->nWork; i++, w++) {
+    for (i = 0; i < smx->nWork; i++, w++) {
         if (w->id == id) {
             smxInit(obj, w);
-            break;
+            return;
         }
     }
 }
@@ -271,6 +281,7 @@ void smxInit(cObj* obj, u8 id)
 void smxInit(cObj* obj, SmxWork* w)
 {
     cModelInfo* mi;
+    u32 col;
 
     if (w->id > 0xF9) {
         pLog->err(0, 0, "SmdInit() SMX WORK NUM ERR %d", w->id);
@@ -287,14 +298,16 @@ void smxInit(cObj* obj, SmxWork* w)
     obj->x135 = w->x3;
     mi = obj->pInfo;
     if (mi != NULL) {
-        *(u32*) mi->color = w->color;
-        if ((w->color & ~0xFF) == 0) {
-            mi->color[2] = 0xFF;
+        col = w->color;
+        *(u32*) mi->color = col;
+        if ((col & ~0xFF) == 0) {
             mi->color[0] = 0xFF;
             mi->color[1] = 0xFF;
+            mi->color[2] = 0xFF;
         }
-        *(u32*) mi->color2 = w->color2;
-        if ((w->color2 & ~0xFF) == 0) {
+        col = w->color2;
+        *(u32*) mi->color2 = col;
+        if ((col & ~0xFF) == 0) {
             mi->color2[3] = 0;
         } else {
             mi->color2[3] = 0xFF;
@@ -381,10 +394,12 @@ void BlockDestroy(int blk)
 {
     cObj* p = ObjMgr.pAlive;
     cObj* cur;
+    cObj* next;
 
     while (p != NULL) {
         cur = p;
-        p = (cObj*) p->next;
+        next = (cObj*) cur->next;
+        p = next;
         if (cur->x12E == 2 && cur->sub2B4.blk == blk) {
             ObjMgr.destroy(cur);
         }
@@ -395,7 +410,7 @@ void cSmd::slide(int ofs)
 {
     SmdWork* w = getWorkPtr(0);
     int nBin = 0;
-    int nTpl = 0;
+    int nTpl;
     u32* tbl;
     u32 addr;
     int i;
@@ -419,6 +434,7 @@ void cSmd::slide(int ofs)
         slideModelAddr(addr, ofs);
     }
     w = getWorkPtr(0);
+    nTpl = 0;
     for (i = 0; i < nWork; i++, w++) {
         if (w->id != 0xFF && !(w->flags & 0x10) && w->tplNo + 1 > nTpl) {
             nTpl = w->tplNo + 1;
@@ -432,7 +448,7 @@ void cSmd::slide(int ofs)
 
 SmdWork* cSmd::getWorkPtr(int no)
 {
-    return (flags & 1) ? (SmdWork*) &grp.num[grp.nGroup] : &work[no];
+    return (flags & 1) ? (SmdWork*) ((u8*) this + 0x14 + grp.nGroup * 4) : &work[no];
 }
 
 void* cSmd::getBinPtr(int no)
@@ -516,10 +532,7 @@ cObj* SmdGetGroupObjPtr2(u32 id)
 
 cObj* SmdGetGroupNext(cObj* obj)
 {
-    if (obj->x3D0 & 4) {
-        return ObjMgr.getPrevWork(obj);
-    }
-    return NULL;
+    return (obj->x3D0 & 4) ? ObjMgr.getPrevWork(obj) : NULL;
 }
 
 void SmdSetTrans(u32 id, int on)
@@ -530,19 +543,20 @@ void SmdSetTrans(u32 id, int on)
         pLog->err(0, 0, "SmdSetTrans() INVALID INDEX %d", id);
         return;
     }
-    while (obj != NULL) {
+    do {
         if (on == 1) {
             obj->be_flag |= 2;
         } else {
             obj->be_flag &= ~2;
         }
         obj = SmdGetGroupNext(obj);
-    }
+    } while (obj != NULL);
 }
 
 cObj* SetObjSmd(void* bin, void* tpl, Vec* pos, Vec* rot, int lightFlag, int front)
 {
     cObj* obj;
+    cModelInfo* mi;
     ModelBound* b;
     Vec size;
     Vec d;
@@ -564,11 +578,12 @@ cObj* SetObjSmd(void* bin, void* tpl, Vec* pos, Vec* rot, int lightFlag, int fro
     obj->setNoSuspend(1);
     obj->be_flag |= 0x20;
     obj->sub2B4.blk = -1;
-    b = &obj->pInfo->bound;
+    mi = obj->pInfo;
+    b = &mi->bound;
     size.x = b->size.x;
     size.y = b->size.y;
     size.z = b->size.z;
-    PSVECSubtract(&obj->pInfo->bound.center, &obj->pParts->pos, &d);
+    PSVECSubtract(&mi->bound.center, &obj->pParts->pos, &d);
     obj->lightInfo.init2(2, 1, &d, &size, lightFlag);
     return obj;
 }

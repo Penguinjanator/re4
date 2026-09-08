@@ -23,6 +23,21 @@ extern ReentStd* _impure_ptr;
 
 #define PI2 6.2831855f
 
+// Never called in this build: only their static results survive (.bss).
+static inline Vec* VecScaled(Vec* v, f32 s)
+{
+    static Vec ans;
+    PSVECScale(v, &ans, s);
+    return &ans;
+}
+
+static inline Vec* VecSum(Vec* a, Vec* b)
+{
+    static Vec ans;
+    PSVECAdd(a, b, &ans);
+    return &ans;
+}
+
 // Build a rotation matrix whose Z axis is `z` and whose X axis is `x` (orthonormalised).
 #line 15 "D:/Bio4/Prog/math_sub.cpp"
 void SetOrientationZX(Vec* z, Vec* x, Mtx m)
@@ -146,12 +161,7 @@ f32 VecAngle(Vec* a, Vec* b)
 
     l *= PSVECMag(b);
     d /= l;
-    if (d < -1.0f) {
-        return acosf(-1.0f);
-    } else if (d > 1.0f) {
-        return acosf(1.0f);
-    }
-    return acosf(d);
+    return acosf(d < -1.0f ? -1.0f : (d > 1.0f ? 1.0f : d));
 }
 
 f32 VecElevation(Vec* v)
@@ -278,9 +288,9 @@ void RotMatrix(Mtx m, Vec* rot)
     cy = cosf(rot->y);
     cz = cosf(rot->z);
     szcx = sz * cx;
-    czcx = cz * cx;
     szsx = sz * sx;
     czsx = cz * sx;
+    czcx = cz * cx;
 
     m[0][0] = cz * cy;
     m[0][1] = czsx * sy - szcx;
@@ -469,14 +479,14 @@ int de_Boor_Cox(int n, f32* knot, int k, f32 t, f32* out)
         tmp_B[n - 1][0] = 1.0f;
     }
 
-    for (k = 1; k < m; k++) {
+    for (j = 1; j < m; j++) {
         for (i = 0; i < n; i++) {
-            tmp_B[i][k] = 0.0f;
-            if (q[i + 1] != q[i + k + 1]) {
-                tmp_B[i][k] += (q[i + k + 1] - t) * tmp_B[i + 1][k - 1] / (q[i + k + 1] - q[i + 1]);
+            tmp_B[i][j] = 0.0f;
+            if (q[i + 1] != q[i + j + 1]) {
+                tmp_B[i][j] += (q[i + j + 1] - t) * tmp_B[i + 1][j - 1] / (q[i + j + 1] - q[i + 1]);
             }
-            if (q[i] != q[i + k]) {
-                tmp_B[i][k] += (t - q[i]) * tmp_B[i][k - 1] / (q[i + k] - q[i]);
+            if (q[i] != q[i + j]) {
+                tmp_B[i][j] += (t - q[i]) * tmp_B[i][j - 1] / (q[i + j] - q[i]);
             }
         }
     }
@@ -487,6 +497,20 @@ int de_Boor_Cox(int n, f32* knot, int k, f32 t, f32* out)
     Mem_free(q);
     free_2dim_array_f32(n + m, m, tmp_B);
     return 1;
+}
+
+// Never called in this build. GCC 2.95 emits the string literal and the initializer templates of
+// the local aggregates of an unused inline function at parse time; the original object carries
+// exactly these bytes between de_Boor_Cox's and MtxNNLUDecomposition's constant pools (the
+// message is shared with MtxNNLUDecomposition). The body is a guess that reproduces the bytes.
+static inline f32 MtxNNPivotSign(int n, f32* a, int* ip)
+{
+    fprintf(stderr, "Error: Can't calc Inverse Matrix !\n");
+    {
+        f32 sign[2] = {1.0f, -1.0f};
+        Vec zaxis = {0.0f, 0.0f, 1.0f};
+        return sign[n & 1] * zaxis.z * a[ip[0]];
+    }
 }
 
 // LU decomposition with partial pivoting of the n x n matrix `a` (row permutation in `ip`).
@@ -500,7 +524,7 @@ f32 MtxNNLUDecomposition(int n, f32* a, int* ip)
     f32 det;
     f32 max;
     f32 v;
-    f32 piv;
+    f32 t;
 
     for (i = 0; i < n; i++) {
         ip[i] = i;
@@ -509,29 +533,30 @@ f32 MtxNNLUDecomposition(int n, f32* a, int* ip)
     for (k = 0; k < n; k++) {
         max = -1.0f;
         for (i = k; i < n; i++) {
-            v = fabsf(a[ip[i] * n + k]);
+            v = a[ip[i] * n + k];
+            v = fabsf(v);
             if (v > max) {
                 max = v;
                 l = i;
             }
         }
         if (l != k) {
-            j = ip[k];
-            ip[k] = ip[l];
-            ip[l] = j;
+            j = ip[l];
+            ip[l] = ip[k];
+            ip[k] = j;
             det = -det;
         }
-        piv = a[ip[k] * n + k];
-        det *= piv;
-        if (piv == 0.0f) {
+        max = a[ip[k] * n + k];
+        det *= max;
+        if (max == 0.0f) {
             fprintf(stderr, "Error: Can't calc Inverse Matrix !\n");
             return 0.0f;
         }
         for (i = k + 1; i < n; i++) {
-            v = a[ip[i] * n + k] / piv;
-            a[ip[i] * n + k] = v;
+            t = a[ip[i] * n + k] / max;
+            a[ip[i] * n + k] = t;
             for (j = k + 1; j < n; j++) {
-                a[ip[i] * n + j] -= v * a[ip[k] * n + j];
+                a[ip[i] * n + j] -= t * a[ip[k] * n + j];
             }
         }
     }
@@ -628,17 +653,55 @@ f32 IPOW(f32 x, int n)
     return r;
 }
 
+// Fast reciprocal-square-root based sqrt (one Newton step), as the SDK inline asm.
 f32 SQRTF(f32 x)
 {
     f32 half = 0.5f;
     f32 three = 3.0f;
-    f32 g;
+    f32 r;
 
     if (x <= 0.00001f) {
         return 0.0f;
     }
-    asm("frsqrte %0, %1" : "=f"(g) : "f"(x));
-    return x * ((three - g * g * x) * (g * half));
+    asm("frsqrte 2, %1\n\t"
+        "fmuls 3, 2, 2\n\t"
+        "fmuls 4, 2, %2\n\t"
+        "fnmsubs 3, 3, %1, %3\n\t"
+        "fmuls 2, 3, 4\n\t"
+        "fmuls %0, %1, 2"
+        : "=f"(r)
+        : "f"(x), "f"(half), "f"(three)
+        : "fr2", "fr3", "fr4");
+    return r;
+}
+
+// Never called in this build (see MtxNNPivotSign): the sin/cos accuracy and timing test whose
+// strings and local aggregate initializers sit between SQRTF's and COSF's constant pools.
+static inline void SinCosTest()
+{
+    int i;
+    f32 a;
+
+    printf("\nsinf\n");
+    for (i = -30; i <= 30; i++) {
+        a = (f32) i * PI / 10.0f;
+        printf("% f:\t% f,% f\tdiff(% f)\n", a, sinf(a), SINF(a), sinf(a) - SINF(a));
+    }
+    printf("\n");
+    printf("\ncosf\n");
+    for (i = -30; i <= 30; i++) {
+        a = (f32) i * PI / 10.0f;
+        printf("% f:\t% f,% f\tdiff(% f)\n", a, cosf(a), COSF(a), cosf(a) - COSF(a));
+    }
+    printf("sinf =%d\n", 0);
+    printf("SINF =%d\n", 0);
+    printf("cosf =%d\n", 0);
+    printf("COSF =%d\n", 0);
+    {
+        f64 magic[1] = {4503601774854144.0};
+        f32 range[4] = {PI, 3.0f * PI, -3.0f * PI, 0.0f};
+        a = (f32) magic[0] + range[i & 3];
+    }
 }
 
 // Taylor series sin/cos on paired singles: Coeff holds the odd/even coefficients pairwise.
@@ -721,21 +784,30 @@ f32 COSF(f32 x)
     return r;
 }
 
-// Wrap an angle into [-PI, PI).
+// Wrap an angle into [-PI, PI) (SDK-style inline asm loop).
 f32 LIMIT_ANGLE(f32 x)
 {
     f32 min = -PI;
     f32 max = PI;
     f32 step = PI2;
 
-    if (!(x < max)) {
-        do {
-            x -= step;
-        } while (!(x < max));
-    } else {
-        while (x < min) {
-            x += step;
-        }
-    }
+    asm("fcmpu 0, %0, %2\n\t"
+        "blt 1f\n"
+        "0:\n\t"
+        "fsubs %0, %0, %3\n\t"
+        "fcmpu 0, %0, %2\n\t"
+        "bge 0b\n\t"
+        "b 2f\n"
+        "1:\n\t"
+        "fcmpu 0, %0, %1\n\t"
+        "bge 2f\n"
+        "3:\n\t"
+        "fadds %0, %0, %3\n\t"
+        "fcmpu 0, %0, %1\n\t"
+        "blt 3b\n"
+        "2:"
+        : "+f"(x)
+        : "f"(min), "f"(max), "f"(step)
+        : "cr0");
     return x;
 }

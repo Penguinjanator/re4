@@ -81,7 +81,7 @@ void cEsp0e::move()
         cModel* parts;
 
         if (partsNo >= pModel->nParts) {
-            pLog->err(0, 0, "ESP0E:PARTS_NO[%d] is invalid(MAX:%d).", partsNo, pModel->nParts);
+            pLog->err(0, 0, "ESP0E :PARTS_NO[%d] is invalid(MAX:%d).", partsNo, pModel->nParts);
             PushEsp(this);
             return;
         }
@@ -143,18 +143,19 @@ extern "C" void Esp0e_Trans(cEsp0e* esp)
 
     if (w->alpha > 0.01f) {
         cEsp tmp;
+        cEsp* p = &tmp;
         Mtx m;
 
         PSMTXIdentity(m);
-        tmp = *esp;
-        tmp.pModel = NULL;
-        tmp.life = 1;
-        tmp.partsNo = 0xF8;
-        tmp.id = 0;
-        tmp.pos.x = w->scr.x + w->gen->x18 * fRandSeed1_1(&w->seed);
-        tmp.pos.y = w->scr.y + w->gen->x1C * fRandSeed1_1(&w->seed);
-        tmp.pos.z = 1.0f;
-        tmp.colA *= w->alpha;
+        *p = *esp;
+        p->life = 1;
+        p->partsNo = 0xF8;
+        p->id = 0;
+        p->pModel = NULL;
+        p->pos.x = w->scr.x + w->gen->x18 * fRandSeed1_1(&w->seed);
+        p->pos.y = w->scr.y + w->gen->x1C * fRandSeed1_1(&w->seed);
+        p->pos.z = 1.0f;
+        p->colA *= w->alpha;
         if (w->sizeRate != 0.0f) {
             f32 s;
 
@@ -162,10 +163,10 @@ extern "C" void Esp0e_Trans(cEsp0e* esp)
             if (s < 0.0f) {
                 s = 0.0f;
             }
-            tmp.sizeX *= s;
-            tmp.sizeY *= s;
+            p->sizeX *= s;
+            p->sizeY *= s;
         }
-        EspCommonTrans(&tmp);
+        EspCommonTrans(p);
     }
 }
 
@@ -231,6 +232,7 @@ void Esp0e_HideCheck(cEsp* esp0)
     static s32 Zs_bias0e = 0;
     static const f32 hide_x_tbl[12] = { 0.0f, 0.5f, 0.86f, 1.0f, 0.86f, 0.5f, 0.0f, -0.5f, -0.86f, -1.0f, -0.86f, -0.5f };
     static const f32 hide_y_tbl[12] = { 1.0f, 0.86f, 0.5f, 0.0f, -0.5f, -0.86f, -1.0f, -0.86f, -0.5f, 0.0f, 0.5f, 0.86f };
+    static s32 Zs_bias0e_2 = 0;  // unreferenced 4-byte .sdata word after Zs_bias0e (name unknown)
     cEsp0e* esp = (cEsp0e*)esp0;
     Esp0eWork* w = &esp->work;
     Vec p;
@@ -238,6 +240,9 @@ void Esp0e_HideCheck(cEsp* esp0)
     s32 zi;
     f32 nz;
     f32 inv;
+    f32 inv2;
+    f32 m22;
+    f32 m23;
     f32 zv;
     f32 margin;
     f32 scale;
@@ -252,8 +257,11 @@ void Esp0e_HideCheck(cEsp* esp0)
     }
     nz = w->scrOld.z + 150.0f;
     inv = 1.0f / (ZFAR - ZNEAR);
-    zv = (-(ZFAR * ZNEAR) * inv + (-ZNEAR * inv) * nz) * Zscale;
-    zv = (1.0f / -nz) * zv + Zoffset;
+    inv2 = 1.0f / -nz;
+    m22 = -(ZNEAR) * inv;
+    m23 = -(ZFAR * ZNEAR) * inv;
+    zv = (m23 + m22 * nz) * Zscale;
+    zv = inv2 * zv + Zoffset;
     zi = (u32)(zv * 16777215.0f);
     if (pG->flags_54 & 0x800) {
         margin = 56.0f;
@@ -271,17 +279,18 @@ void Esp0e_HideCheck(cEsp* esp0)
         ox = hide_x_tbl[i] * w->hideR;
         oy = hide_y_tbl[i] * w->hideR;
         if (scale < 1.0f) {
-            ox = ox * scale * scale;
+            ox *= scale;
+            ox *= scale;
         }
         p.x = w->scrOld.x + ox;
         p.y = w->scrOld.y + oy;
-        if (p.x >= 0.0f && p.x <= Screen.width && p.y >= 0.0f + margin && p.y <= Screen.height - margin) {
+        if (p.x < 0.0f || p.x >= Screen.width || p.y < 0.0f + margin || p.y >= Screen.height - margin) {
+            hidden++;
+        } else {
             GXPeekZ((u16)p.x, (u16)p.y, &z);
             if (zi > (s32)(z - Zs_bias0e)) {
                 hidden++;
             }
-        } else {
-            hidden++;
         }
     }
     if (hidden == 12) {
@@ -316,8 +325,10 @@ int cEsp0e::SetFreeWork(EspGenWork* gen, u32* seed)
         w->dir.x = 0.0f;
         w->dir.y = 0.0f;
         w->dir.z = 1.0f;
-        rx = LIMIT_ANGLE(gen->xF0 * PI * 2.0f / 360.0f);
-        ry = LIMIT_ANGLE(gen->xF4 * PI * 2.0f / 360.0f);
+        rx = gen->xF0 * PI * 2.0f / 360.0f;
+        ry = gen->xF4 * PI * 2.0f / 360.0f;
+        rx = LIMIT_ANGLE(rx);
+        ry = LIMIT_ANGLE(ry);
         PSMTXRotRad(mx, 'Y', ry);
         PSMTXRotRad(my, 'X', rx);
         PSMTXConcat(mx, my, mx);

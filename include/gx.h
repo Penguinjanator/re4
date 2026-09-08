@@ -159,6 +159,8 @@ void GXPixModeSync(void);
 void GXInvalidateTexAll(void);
 void GXDrawDone(void);
 void GXPeekZ(u16 x, u16 y, u32* z);
+void GXSetFog(int type, f32 startz, f32 endz, f32 nearz, f32 farz, GXColor color);
+void GXSetChanAmbColor(int chan, GXColor color);
 #ifdef __cplusplus
 }
 #endif

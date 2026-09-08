@@ -12,12 +12,13 @@ u8 Rnd()
 {
     u16 r = Random;
     u32 n = ((u8) ((r >> 1) + (r >> 8)) << 8) | (u8) (r >> 1);
+    u32 m = n;
 
-    if (n == r) {
-        n += 0x101;
+    if (m == r) {
+        m = n + 0x101;
     }
-    Random = n;
-    return n >> 8;
+    Random = m;
+    return m >> 8;
 }
 
 f32 fRand0_1()

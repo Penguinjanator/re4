@@ -117,6 +117,14 @@ def main():
         nonlocal renamed
         old = lines[i].split(" = ")[0]
         if old != name:
+            # never create a duplicate: a global of that name defined elsewhere would make the split
+            # objects' relocations resolve to the wrong address (this is a local of another unit)
+            for j, l in enumerate(lines):
+                if j != i and l.startswith(name + " = "):
+                    print(f"  {old}: keeping (name {name} already defined at line {j+1}; this one is a local duplicate)")
+                    if "scope:global" in lines[i]:
+                        lines[i] = lines[i].replace("scope:global", "scope:local"); renamed += 1
+                    return
             lines[i] = name + lines[i][len(old):]
             print(f"  {old} -> {name}")
             renamed += 1

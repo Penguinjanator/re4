@@ -955,4 +955,5 @@ MATCHING = {
     "game/cString.cpp": True,
     "game/xml.cpp": True,
     "game/room_tex.cpp": True,
+    "game/math_sub.cpp": True,
 }

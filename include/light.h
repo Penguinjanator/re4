@@ -70,6 +70,16 @@ public:
 
 class cLightWork;
 
+// Environment block at cLightMgr+0x38 (returned by getEnvPtr). Only the depth-of-field
+// fields filter01 reads are known.
+struct cLightEnv {
+    u8 pad_0[0x28];
+    s32 x28;   // 0x28  focus depth (screen z, 0..65535)
+    u8 x2C;    // 0x2C
+    u8 x2D;    // 0x2D  focus level (0 = depth of field off)
+    u8 x2E;    // 0x2E  focus mode (0 near, 1 far)
+};
+
 class cLightMgr : public cManager<cLight> {
 public:
     u8 pad_34[0x180 - 0x34];
@@ -100,6 +110,8 @@ public:
     cLight* create(int kind, int type, int no, int x);  // 0x8014E21C (esp11)
     void update(int area_no, int camera_no);
     cLightPathData* getPathPtr(u8 no);
+    cLightEnv* getEnvPtr();  // 0x8014EFCC: &this->env (at +0x38)
+    void setFog();           // 0x8014FAC8
 };
 
 extern cLightMgr LightMgr;

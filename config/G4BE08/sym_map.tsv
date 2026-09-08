@@ -592,7 +592,7 @@ address	size	section	unit	scope	name	demangled
 0x8002D4A0	0x8	.text	game/obj13.cpp	global	cObjLadder_setCamera	cObjLadder::setCamera
 0x8002D4A8	0x48	.text	game/obj13.cpp	global	cManager_cObj_log	cManager<cObj>::log
 0x8002D4F0	0xBC	.text	game/obj13.cpp	global	cManager_cObj_countActiveWork	cManager<cObj>::countActiveWork
-0x8002D5AC	0x158	.text	game/obj13.cpp	global	cManager_cObj_create	cManager<cObj>::create
+0x8002D5AC	0x158	.text	game/obj13.cpp	global	create__t8cManager1Z4cObji	cManager<cObj>::create
 0x8002D704	0x20	.text	game/obj13.cpp	global	cObjLadder_dt_cObjLadder	cObjLadder::~cObjLadder
 0x8002D724	0x238	.text	game/obj14.cpp	global	SetObjBell	SetObjBell
 0x8002D95C	0x50	.text	game/obj14.cpp	global	cObjBell_move	cObjBell::move
@@ -650,7 +650,7 @@ address	size	section	unit	scope	name	demangled
 0x80031F90	0x2C	.text	game/obj16.cpp	global	cObj16_setBurn	cObj16::setBurn
 0x80031FBC	0x18	.text	game/obj16.cpp	global	cObj16_ckAtkHit	cObj16::ckAtkHit
 0x80031FD4	0xFC	.text	game/obj16.cpp	global	plemDmMStar	plemDmMStar
-0x800320D0	0x170	.text	game/obj16.cpp	global	cManager_cObj_createBack	cManager<cObj>::createBack
+0x800320D0	0x170	.text	game/obj16.cpp	global	createBack__t8cManager1Z4cObji	cManager<cObj>::createBack
 0x80032240	0x20	.text	game/obj16.cpp	global	cObj16_dt_cObj16	cObj16::~cObj16
 0x80032260	0x70	.text	game/obj19.cpp	global	cItemObj_cItemObj	cItemObj::cItemObj
 0x800322D0	0x34	.text	game/obj19.cpp	global	cItemObj_move	cItemObj::move
@@ -4562,7 +4562,7 @@ address	size	section	unit	scope	name	demangled
 0x8013F028	0x60	.text	game/filter01.cpp	global	Filter01RoomInit__Fv	Filter01RoomInit
 0x8013F088	0x148	.text	game/filter01.cpp	global	Filter01Trans__Fv	Filter01Trans
 0x8013F1D0	0x1184	.text	game/filter01.cpp	global	Filter01Render	Filter01Render
-0x80140354	0xD4	.text	game/filter01.cpp	local	Filter01SetParam_CamZ	Filter01SetParam_CamZ
+0x80140354	0xD4	.text	game/filter01.cpp	global	Filter01SetParam_CamZ	Filter01SetParam_CamZ
 0x80140428	0x48	.text	game/filter01.cpp	global	Filter01SetParam	Filter01SetParam
 0x80140470	0x4	.text	game/filter05.cpp	global	Filter05Init__Fv	Filter05Init
 0x80140474	0x4	.text	game/filter05.cpp	global	Filter05RoomInit__Fv	Filter05RoomInit
@@ -4771,7 +4771,7 @@ address	size	section	unit	scope	name	demangled
 0x8014E934	0xD8	.text	game/light.cpp	global	cLightMgr_move	cLightMgr::move
 0x8014EA0C	0x344	.text	game/light.cpp	global	cLightMgr_hokanMove	cLightMgr::hokanMove
 0x8014ED50	0x27C	.text	game/light.cpp	global	lightMove	lightMove
-0x8014EFCC	0x8	.text	game/light.cpp	global	cLightMgr_getEnvPtr	cLightMgr::getEnvPtr
+0x8014EFCC	0x8	.text	game/light.cpp	global	getEnvPtr__9cLightMgr	cLightMgr::getEnvPtr
 0x8014EFD4	0xC	.text	game/light.cpp	global	Light00_Move	Light00_Move
 0x8014EFE0	0x1EC	.text	game/light.cpp	global	cLightMgr_setModel2	cLightMgr::setModel2
 0x8014F1CC	0x134	.text	game/light.cpp	global	cLightMgr_setCloth	cLightMgr::setCloth
@@ -4791,7 +4791,7 @@ address	size	section	unit	scope	name	demangled
 0x8014FAB0	0x8	.text	game/light.cpp	global	cLightMgr_setFogEnd	cLightMgr::setFogEnd
 0x8014FAB8	0x8	.text	game/light.cpp	global	cLightMgr_getFogStart	cLightMgr::getFogStart
 0x8014FAC0	0x8	.text	game/light.cpp	global	cLightMgr_getFogEnd	cLightMgr::getFogEnd
-0x8014FAC8	0xF4	.text	game/light.cpp	global	cLightMgr_setFog	cLightMgr::setFog
+0x8014FAC8	0xF4	.text	game/light.cpp	global	setFog__9cLightMgr	cLightMgr::setFog
 0x8014FBBC	0x74	.text	game/light.cpp	global	cLightMgr_setBlur	cLightMgr::setBlur
 0x8014FC30	0x84	.text	game/light.cpp	global	cLightMgr_deleteScr	cLightMgr::deleteScr
 0x8014FCB4	0x78	.text	game/light.cpp	global	cLightMgr_offScr	cLightMgr::offScr
@@ -5800,7 +5800,7 @@ address	size	section	unit	scope	name	demangled
 0x80191818	0x40	.text	game/scroll.cpp	global	SmdGetGroupNext__FP4cObj	SmdGetGroupNext
 0x80191858	0xA8	.text	game/scroll.cpp	global	SmdSetTrans__FUli	SmdSetTrans
 0x80191900	0x164	.text	game/scroll.cpp	global	SetObjSmd__FPvT0P3VecT2ii	SetObjSmd
-0x80191A64	0x3C	.text	game/scroll.cpp	global	cManager_cObj_getPrevWork	cManager<cObj>::getPrevWork
+0x80191A64	0x3C	.text	game/scroll.cpp	global	getPrevWork__t8cManager1Z4cObjP4cObj	cManager<cObj>::getPrevWork
 0x80191AA0	0x90	.text	game/se_at.cpp	global	SeAtInit	SeAtInit
 0x80191B30	0x174	.text	game/se_at.cpp	global	SeAtCheck	SeAtCheck
 0x80191CA4	0xA4	.text	game/se_at.cpp	global	SeAtSetOnOff	SeAtSetOnOff
@@ -6219,9 +6219,9 @@ address	size	section	unit	scope	name	demangled
 0x801BA39C	0x1B8C	.text	game/esp08.cpp	global	Esp08_TransShimmer	Esp08_TransShimmer
 0x801BBF28	0x154	.text	game/esp08.cpp	global	cEsp08_SetFreeWork	cEsp08::SetFreeWork
 0x801BC07C	0x20	.text	game/esp08.cpp	global	cEsp08_dt_cEsp08	cEsp08::~cEsp08
-0x801BC09C	0x44	.text	game/esp09.cpp	local	Esp09_Create	Esp09_Create
+0x801BC09C	0x44	.text	game/esp09.cpp	global	Esp09_Create__Fv	Esp09_Create
 0x801BC0E0	0x13C	.text	game/esp09.cpp	global	Esp09_ClearPrevPos	Esp09_ClearPrevPos
-0x801BC21C	0x214	.text	game/esp09.cpp	global	cEsp09_move	cEsp09::move
+0x801BC21C	0x214	.text	game/esp09.cpp	global	move__6cEsp09	cEsp09::move
 0x801BC430	0xFC	.text	game/esp09.cpp	global	Esp09_Trans	Esp09_Trans
 0x801BC52C	0x9C	.text	game/esp09.cpp	global	EspChannelSet09	EspChannelSet09
 0x801BC5C8	0x1B4	.text	game/esp09.cpp	global	Esp09_Trans_Setup	Esp09_Trans_Setup
@@ -6231,8 +6231,8 @@ address	size	section	unit	scope	name	demangled
 0x801BCD1C	0x214	.text	game/esp09.cpp	global	Esp09_StripDrawPoly	Esp09_StripDrawPoly
 0x801BCF30	0x2C	.text	game/esp09.cpp	global	GetVecLen	GetVecLen
 0x801BCF5C	0x224	.text	game/esp09.cpp	global	Esp09_HideCheck	Esp09_HideCheck
-0x801BD180	0x44	.text	game/esp09.cpp	global	cEsp09_SetFreeWork	cEsp09::SetFreeWork
-0x801BD1C4	0x20	.text	game/esp09.cpp	global	cEsp09_dt_cEsp09	cEsp09::~cEsp09
+0x801BD180	0x44	.text	game/esp09.cpp	global	SetFreeWork__6cEsp09P10EspGenWorkPUl	cEsp09::SetFreeWork
+0x801BD1C4	0x20	.text	game/esp09.cpp	global	_._6cEsp09	cEsp09::~cEsp09
 0x801BD1E4	0x44	.text	game/esp0a.cpp	global	Esp0a_Create__Fv	Esp0a_Create
 0x801BD228	0x2D0	.text	game/esp0a.cpp	global	move__6cEsp0a	cEsp0a::move
 0x801BD4F8	0x280	.text	game/esp0a.cpp	global	Esp0a_Trans	Esp0a_Trans
@@ -6256,8 +6256,8 @@ address	size	section	unit	scope	name	demangled
 0x801BE630	0x44	.text	game/esp0e.cpp	global	Esp0e_Create__Fv	Esp0e_Create
 0x801BE674	0x2F8	.text	game/esp0e.cpp	global	move__6cEsp0e	cEsp0e::move
 0x801BE96C	0x184	.text	game/esp0e.cpp	global	Esp0e_Trans	Esp0e_Trans
-0x801BEAF0	0xC0	.text	game/esp0e.cpp	global	GetDistAlpha	GetDistAlpha
-0x801BEBB0	0x134	.text	game/esp0e.cpp	global	GetDirAlpha	GetDirAlpha
+0x801BEAF0	0xC0	.text	game/esp0e.cpp	local	GetDistAlpha	GetDistAlpha
+0x801BEBB0	0x134	.text	game/esp0e.cpp	local	GetDirAlpha	GetDirAlpha
 0x801BECE4	0x2B4	.text	game/esp0e.cpp	global	Esp0e_HideCheck	Esp0e_HideCheck
 0x801BEF98	0x230	.text	game/esp0e.cpp	global	SetFreeWork__6cEsp0eP10EspGenWorkPUl	cEsp0e::SetFreeWork
 0x801BF1C8	0x20	.text	game/esp0e.cpp	global	_._6cEsp0e	cEsp0e::~cEsp0e

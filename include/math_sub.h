@@ -52,6 +52,7 @@ f32 LIMIT_ANGLE(f32 x);
 f32 VecAngle(Vec* a, Vec* b);
 // game/sub2.cpp
 f32 RootSumSquare3(Vec* v);
+int GetScreenPos(Vec* pos, Vec* scr);
 // lib math
 f32 sinf(f32 x);
 f32 cosf(f32 x);
