@@ -19,6 +19,48 @@ struct Obj03Work {
     void* path;   // 0x18
 };
 
+class cObj;
+
+// Effect model work (game/obj04.cpp `Efm04`): a thrown/falling particle-like model.
+struct Efm04Work {
+    u8 pad_0[0xC];
+    f32 spdDamp;          // 0x0C  speed *= spdDamp every frame
+    Vec acc;              // 0x10  added to speed every frame
+    Vec rotSpd;           // 0x1C  added to rot every frame
+    f32 scaleXZ;          // 0x28
+    f32 scaleY;           // 0x2C
+    f32 scale;            // 0x30  scale = scale + scaleSpd, scaleSpd *= scaleDamp
+    f32 scaleSpd;         // 0x34
+    f32 scaleDamp;        // 0x38
+    u8 pad_3C[3];
+    u8 alpha0;            // 0x3F  alpha at the end of the fade-in
+    f32 r;                // 0x40
+    f32 g;                // 0x44
+    f32 b;                // 0x48
+    f32 a;                // 0x4C
+    f32 rMul;             // 0x50  fade-out multipliers
+    f32 gMul;             // 0x54
+    f32 bMul;             // 0x58
+    f32 aMul;             // 0x5C
+    u16 fadeStart;        // 0x60
+    u16 fadeLen;          // 0x62
+    u16 moveStart;        // 0x64
+    u16 scaleStart;       // 0x66
+    u16 life;             // 0x68  0 = forever
+    u16 frame;            // 0x6A
+    cObj* parent;         // 0x6C
+    u32 parentSerial;     // 0x70
+    cCoord* parentWorld;  // 0x74  pEffParentWorld when detached
+    u8 rotFrame;          // 0x78  frame to re-orient along the parent (0xFF = never)
+    u8 x79;
+    u8 stopped;           // 0x7A  bit0: came to rest
+    u8 x7B;
+    u32 flags;            // 0x7C  bit0: floor collision, bit1: scenario collision, bit3: MotionMove
+    f32 groundOfs;        // 0x80
+    f32 bounceXZ;         // 0x84
+    f32 bounceY;          // 0x88
+};
+
 // Sub-object at cObj+0x2B4 (0x74 bytes). Only the flag word obj03 clears is known.
 struct ObjSub2B4 {
     u8 pad_0[0x1A];
@@ -39,6 +81,7 @@ public:
     union {
         u8 work[0x3D0 - 0x328];  // 0x328 per-object work area
         Obj03Work obj03;
+        Efm04Work efm04;
     };
     u8 x3D0;              // 0x3D0
     u8 pad_3D1[3];

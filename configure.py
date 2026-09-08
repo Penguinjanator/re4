@@ -368,6 +368,10 @@ spec.loader.exec_module(objects_mod)
 UNITS: List[str] = objects_mod.UNITS
 MATCHING: Dict[str, bool] = getattr(objects_mod, "MATCHING", {})
 STRIP_UNUSED = set(getattr(objects_mod, "STRIP_UNUSED", ()))
+# game/ units whose source is not <unit>.cpp (e.g. C units of the sound library) and whose flags
+# deviate from cflags_game (flag -> replacement, like SDK_CFLAG_OVERRIDES).
+UNIT_SOURCE: Dict[str, str] = getattr(objects_mod, "UNIT_SOURCE", {})
+UNIT_CFLAG_OVERRIDES: Dict[str, Dict[str, str]] = getattr(objects_mod, "UNIT_CFLAG_OVERRIDES", {})
 
 # Split unit names come from splits.txt (game/ units are all named *.cpp there). A UNITS entry
 # may instead name a *.c source (newlib units): the Object keeps the split name, the source is the .c.
@@ -396,6 +400,9 @@ for unit in UNITS:
         post_build = [f"$python tools/fold_linkonce.py --unit {unit} {{out}}"]
         post_build_implicit = [Path("tools/fold_linkonce.py"), Path("config") / config.version / "sym_map.tsv"]
         cflags = cflags_game
+        if unit in UNIT_CFLAG_OVERRIDES:
+            repl = UNIT_CFLAG_OVERRIDES[unit]
+            cflags = [repl.get(flag, flag) for flag in cflags_game if repl.get(flag, flag)]
         if unit.endswith(".c"):
             post_build.insert(0, f"$python tools/strip_unused.py --gcc --unit {name} {{out}}")
             post_build_implicit.append(Path("tools/strip_unused.py"))
@@ -412,7 +419,7 @@ for unit in UNITS:
             Object(
                 status,
                 name,
-                source=unit,
+                source=UNIT_SOURCE.get(unit, unit),
                 cflags=cflags,
                 post_build=post_build,
                 post_build_implicit=post_build_implicit,

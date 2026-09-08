@@ -150,6 +150,27 @@ mark it Matching.
 - `.sdata` alignment padding a split object contains is reproduced with
   `asm(".section .sdata; .balign 8")`.
 - Static locals show as `name.NNN` in objdiff; the DECL_UID suffix cannot be reproduced and is ignored by the report.
+- Unexplained words in `.rodata` (zero words, stray floats) are usually the constant pool of a function
+  the original linker dead-stripped (bodies gone, pools kept, `STRIP_UNUSED` in objects.py): write a
+  never-called `static` function whose pool is exactly those constants at the right position (pools are
+  emitted per function, right before its body; `x != 0.0` gives a DF zero, `x != 0.0f` an SF zero) and add
+  the unit to `STRIP_UNUSED`. Aggregate templates/strings of `static inline` bodies are emitted at parse
+  time, so a dead function parsed before a live one can own strings the live one also uses
+  (`src/game/geometry.cpp`, `shape.cpp`).
+- The compiler never emits `psq_l f,0(rX),1,qrN` straight from a pointer; that is inline asm in the original
+  (`asm volatile("psq_l %0,0(%1),1,5" : "=f"(f) : "b"(p))`, store side `psq_st ... : "memory"`), with the
+  pointer post-incremented in the operand (`PSQ_L_S16(src++)`) and a `s16 tmp[1]` function-scope array as
+  the store target (`shape.cpp CalculateShape_new`). A compiler `(f32)` of a u16/s16 memory operand always
+  goes `lhz; sth tmp; psq_l tmp`.
+- `add rD, rA, rB` operand order: pointer arithmetic puts the pointer first (`ptr + i*8` → `add tbl, idx`),
+  integer arithmetic keeps the written order (`i*8 + (u32) tbl` → `add idx, tbl`).
+- `(u8*)d + (n * 2 + 3)` folds the constant into the multiply result first; `p = a + b; p = (p + 3) & ~3`
+  keeps the sum in its own register (`add r10; addi r9, r10, 3; clrrwi r10, r9`).
+- Parameter order of a function is only visible through prologue copy order (`mr`/`fmr` interleaving):
+  `(..., f32 rate, u8* dst)` copies `f31` before `r29`.
+- Cross-jumped return tails: `if (x) { if (cond) return 0; ... return fd; } return 0;` shares the outer
+  `li r3,0` with the inner early return (`file_open`); `if (call()) return -1; else ret = 0;` inside the
+  outer `if` keeps two `li r3,-1` (`file_close`).
 
 - Struct field offsets come from the load/store displacements; write real structs, not casts.
 - `rlwinm rX,rX,0,MB,ME` with wraparound = `x &= ~bit`; `ori` = `|= bit`.

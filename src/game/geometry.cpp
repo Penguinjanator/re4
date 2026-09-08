@@ -31,6 +31,16 @@ static inline void SetAxisMatrix(Mtx m, Vec* ax, Vec* ay, Vec* az, Vec* pos)
     m[1][3] = pos->y;
     m[2][3] = pos->z;
 }
+
+// Never called: the original linker dropped the body but kept its constant pool (one 0.0f, the
+// VECNormalize strings and the {0,1,0} template are shared with collision_point_cone_rev_play).
+static void collision_cone_axis(GeoCone* cone, Vec* axis)
+{
+    Vec up = {0.0f, 1.0f, 0.0f};
+
+    PSVECCrossProduct(&up, &cone->dir, axis);
+    VECNormalize(axis, axis);
+}
 #line 220
 
 int collision_point_cone_rev_play(Vec* p, GeoCone* cone, f32 margin)
@@ -116,13 +126,12 @@ int collision_sphere_hexahedron(GeoSphere* s, GeoHexahedron* h)
 static inline int collision_fanpole_check(GeoCone* cone)
 {
     Vec a = {1.0f, 0.0f, 0.5f};
-    Vec b = {0.0f, 0.5f, -0.5f};
-    f32 z[1] = {0.0f};
-    if (cone->dir.x != a.y || cone->dir.z != z[0]) {
+    f32 b[4] = {0.0f, 0.5f, -0.5f, 0.0f};
+    if (cone->dir.x != a.y || cone->dir.z != b[3]) {
         pLog->err(0, 0, "Fanpole is not vertical to the ground!\n");
         return 0;
     }
-    return a.x != b.y;
+    return a.x != b[1];
 }
 
 static inline int collision_cylinder_check(GeoCone* cone)

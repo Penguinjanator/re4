@@ -89,7 +89,9 @@ public:
 // Light set of a model (game/lightInfo.cpp), embedded in cModel at 0x164 (0x74 bytes).
 class cLightInfo {
 public:
-    u8 pad_0[0x54];
+    u8 pad_0[0x51];
+    u8 x51;          // 0x51  bits 0-1: 2 = follow the model matrix (obj04: updateMatrix each frame)
+    u8 pad_52[2];
     u32 x54;         // 0x54  (scroll: SmxWork.x4)
     u8 pad_58[0x74 - 0x58];
 
@@ -102,7 +104,7 @@ public:
 class cModel : public cCoord {
 public:
     cModel* pParts;  // 0xF4 child parts list
-    u8 pad_F8[4];
+    u32 serial;      // 0xF8  identity check for parent links (obj04: parent->serial == work.parentSerial)
     u8 xFC;          // 0xFC
     u8 xFD;          // 0xFD
     u8 xFE;          // 0xFE
@@ -112,13 +114,16 @@ public:
     u8 nParts;       // 0x102
     u8 x103;         // 0x103  (scroll: 0x80 = SmxSetFlag bit3, 0xFF = off)
     Vec speed;       // 0x104
-    u8 pad_110[0x12E - 0x110];
+    Vec oldPos;      // 0x110  position before the speed was added (obj04 collision segment)
+    u8 pad_11C[0x12E - 0x11C];
     u8 x12E;         // 0x12E  2 = scroll (Smd) object
     u8 x12F;         // 0x12F  scroll: SmxWork.type2 (3 by default)
     void* pCldShMd;  // 0x130  (db_work "pCldShMd")
     u8 shdCol;       // 0x134  (db_work "SHD COL")
     u8 x135;         // 0x135  scroll: SmxWork.x3, db_work "CullMode"
-    u8 pad_136[0x15C - 0x136];
+    u8 pad_136[0x154 - 0x136];
+    f32 alpha;             // 0x154  0..1 (obj04: work color a / 255)
+    u8 pad_158[4];
     cModelInfo* pInfo;     // 0x15C
     cModelInfo* pShMdInfo; // 0x160  (db_work "pShMdIfo")
     cLightInfo lightInfo;  // 0x164 .. 0x1D8

@@ -960,11 +960,28 @@ MATCHING = {
     "game/math_sub.cpp": True,
     "game/gx_sub.cpp": True,
     "game/shape.cpp": True,
+    "game/geometry.cpp": True,
+    "game/file.cpp": True,
 }
 
 # C++ units with functions the original linker dead-stripped (bodies gone, constant pools and
 # statics kept): tools/strip_unused.py removes the bodies of functions not in sym_map.tsv.
 STRIP_UNUSED = {
     "game/filter01.cpp",
+    "game/filter09.cpp",
     "game/shape.cpp",
+    "game/geometry.cpp",
 }
+
+# Capcom sound library (game/snd_*.cpp splits): plain C, compiled unoptimised (frame pointer in
+# r31, every local in a stack slot, no jump threading). The sources are src/game/snd_*.c.
+SND_UNITS = [
+    "game/snd_ram.cpp", "game/snd_main.cpp", "game/snd_efx.cpp", "game/snd_iss0.cpp",
+    "game/snd_iss1.cpp", "game/snd_iss2.cpp", "game/snd_iss3.cpp", "game/snd_iss4.cpp",
+    "game/snd_seq0.cpp", "game/snd_seq1.cpp", "game/snd_seq2.cpp", "game/snd_seq3.cpp",
+    "game/snd_str0.cpp", "game/snd_str1.cpp", "game/snd_str2.cpp", "game/snd_str3.cpp",
+    "game/snd_str4.cpp", "game/snd_sub0.cpp", "game/snd_sub1.cpp", "game/snd_sub2.cpp",
+    "game/snd_sub3.cpp",
+]
+UNIT_SOURCE = {u: u[:-4] + ".c" for u in SND_UNITS}
+UNIT_CFLAG_OVERRIDES = {u: {"-O2": "-O0 -fno-common"} for u in SND_UNITS}

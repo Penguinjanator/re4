@@ -5153,9 +5153,9 @@ address	size	section	unit	scope	name	demangled
 0x8016327C	0xA0	.text	game/obj03.cpp	global	__6cObj03	cObj03::cObj03
 0x8016331C	0x1C8	.text	game/obj03.cpp	global	move__6cObj03	cObj03::move
 0x801634E4	0x20	.text	game/obj03.cpp	global	_._6cObj03	cObj03::~cObj03
-0x80163504	0x5FC	.text	game/obj04.cpp	global	cObj04_move	cObj04::move
+0x80163504	0x5FC	.text	game/obj04.cpp	global	move__6cObj04	cObj04::move
 0x80163B00	0x8C	.text	game/obj04.cpp	global	Efm04RotMatrix	Efm04RotMatrix
-0x80163B8C	0x20	.text	game/obj04.cpp	global	cObj04_dt_cObj04	cObj04::~cObj04
+0x80163B8C	0x20	.text	game/obj04.cpp	global	_._6cObj04	cObj04::~cObj04
 0x80163BAC	0x930	.text	game/obj05.cpp	global	cObj05_move	cObj05::move
 0x801644DC	0x90	.text	game/obj05.cpp	global	Efm05RotMatrix	Efm05RotMatrix
 0x8016456C	0x20	.text	game/obj05.cpp	global	cObj05_dt_cObj05	cObj05::~cObj05

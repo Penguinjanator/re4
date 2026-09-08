@@ -33,24 +33,24 @@ int file_open(const char* name, int mode)
 {
     int fd;
 
-    if (!(pG->flags_54 & 0x20000)) {
-        return 0;
+    if (pG->flags_54 & 0x20000) {
+        if (mode == 0 || mode == 2) {
+            fd = PCcreat(name, 0);
+            if (fd == -1) {
+                return 0;
+            }
+        } else {
+            if (mode != 0) {
+                mode--;
+            }
+            fd = PCopen(name, mode, 0);
+            if (fd == -1) {
+                fd = 0;
+            }
+        }
+        return fd;
     }
-    if (mode == 0 || mode == 2) {
-        fd = PCcreat(name, 0);
-        if (fd == -1) {
-            return 0;
-        }
-    } else {
-        if (mode != 0) {
-            mode--;
-        }
-        fd = PCopen(name, mode, 0);
-        if (fd == -1) {
-            fd = 0;
-        }
-    }
-    return fd;
+    return 0;
 }
 
 int file_close(int fd)
@@ -58,11 +58,11 @@ int file_close(int fd)
     int ret;
 
     if (pG->flags_54 & 0x20000) {
-        if (PCclose(fd) == 0) {
-            ret = 0;
-        } else {
+        if (PCclose(fd) != 0) {
             ret = -1;
+            return ret;
         }
+        ret = 0;
     } else {
         ret = -1;
     }
