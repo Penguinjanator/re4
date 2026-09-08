@@ -1,7 +1,12 @@
 /* newlib 1.8.2 libc/locale/locale.c (MB_CAPABLE); _setlocale_r/setlocale were dead-stripped */
 #include "newlib_stdio.h"
 
+/* limits.h: ProDG chars are unsigned (-D__CHAR_UNSIGNED__) */
+#ifdef __CHAR_UNSIGNED__
+#define CHAR_MAX 255
+#else
 #define CHAR_MAX 127
+#endif
 #define LC_ALL 0
 #define LC_CTYPE 2
 

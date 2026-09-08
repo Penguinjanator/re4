@@ -29,6 +29,13 @@ public:
     // first alive enemy with model id `id`, searching from `start->next` (or the list head)
     cEm* getEmPtr(int id, cEm* start);
     int isBattle();
+
+    cEm* getWork(u32 no) {
+        if (no >= nArray) {
+            return 0;
+        }
+        return (cEm*)((u8*)pArray + size * no);
+    }
 };
 
 extern cEmMgr EmMgr;

@@ -282,6 +282,8 @@ SDK_LIBS: Dict[str, List[str]] = {
     "texPalette": ["texPalette"],
     "fileCache": ["fileCache"],
     "amcstubs": ["AmcExi2Stubs"],
+    # Metrowerks EABI runtime pieces the ProDG link pulled in (unoptimized CodeWarrior code)
+    "runtime": ["__ppc_eabi_init"],
     "odemustubs": ["DebuggerDriver"],
 }
 SDK_UNIT_LIB: Dict[str, str] = {
@@ -295,6 +297,7 @@ SDK_CFLAG_OVERRIDES: Dict[str, Dict[str, str]] = {
     "lib/mtx44.c": {"-char unsigned": "-char signed"},
     "lib/CARDOpen.c": {"-char unsigned": "-char signed"},
     "lib/EXIBios.c": {"-O4,p": "-O3,p"},
+    "lib/__ppc_eabi_init.c": {"-O4,p": "-O4,p -opt nopeephole"},
 }
 
 
@@ -314,6 +317,39 @@ def DolphinLib(lib_name: str, objects: List[Object]) -> Dict[str, Any]:
         "progress_category": "sdk",
         "objects": objects,
     }
+
+# newlib 1.8.2 libm (fdlibm) as shipped in SN ProDG's libm.a. The fdlibm sources (src/lib/fdlibm/)
+# were compiled as C++ through an #include wrapper (src/lib/<unit>.cpp): g++ 2.95 drops folded
+# static consts defined in an included file and keeps []-declared tables in small data. Literal
+# pools live in .sdata (-msafe-sda), tables up to the 792-byte two_over_pi are small data (-G),
+# fabs() stays a real call (-fno-builtin) and -mstrict-align gives the indexed float loads and the
+# y[1] addressing of the float trig wrappers.
+LIBM_UNITS = {
+    f"lib/{name}.c"
+    for name in [
+        "e_pow", "e_sqrt", "s_cos", "ef_pow", "k_cos", "k_sin", "e_atan2", "e_log10", "s_atan",
+        "s_fabs", "s_tan", "ef_acos", "ef_asin", "ef_atan2", "ef_sqrt", "sf_atan", "sf_cos",
+        "sf_fabs", "sf_sin", "sf_tan", "k_tan", "e_log", "e_rem_pio2", "kf_cos", "kf_sin", "kf_tan",
+        "ef_rem_pio2", "k_rem_pio2", "s_floor", "kf_rem_pio2", "sf_floor", "s_scalbn", "sf_scalbn",
+        "s_copysign", "sf_copysign",
+    ]
+}
+cflags_libm = [*cflags_game, "-msafe-sda", "-G 1024", "-fno-builtin", "-mstrict-align"]
+
+# gcc 2.95.3 libgcc2.c, one L_* section per unit (src/lib/libgcc2/ holds the verbatim sources plus
+# a tconfig.h shim). __clz_tab (256 bytes) sits in .sdata2, so -G is large here as well; functions
+# nobody referenced (__do_global_dtors, most of the exception runtime) were dropped by the linker.
+LIBGCC_UNITS = {
+    f"lib/{name}.c"
+    for name in [
+        "_ashldi3", "_ashrdi3", "_lshrdi3", "_divdi3", "_moddi3", "_udivdi3", "_umoddi3", "_pure",
+        "_eh", "__main", "_exit", "tors",
+    ]
+}
+cflags_libgcc = [*cflags_game, f"-I {(project_root / 'src' / 'lib' / 'libgcc2').as_posix()}", "-G 1024"]
+# crt-style objects (__main, _eh, tors): no small data at all (__terminate_func, _ctors_data in .data)
+cflags_crt = [*cflags_game, f"-I {(project_root / 'src' / 'lib' / 'libgcc2').as_posix()}", "-G 0"]
+LIBGCC_CFLAGS = {"lib/__main.c": cflags_crt, "lib/_eh.c": cflags_crt, "lib/tors.c": cflags_crt}
 
 Matching = True                   # Object matches and should be linked
 NonMatching = False               # Object does not match and should not be linked
@@ -354,18 +390,24 @@ for unit in UNITS:
     if unit.startswith("game/"):
         # GCC 2.95 linkonce sections (vtables, template instantiations, out-of-line inlines) are
         # folded into .rodata / dropped the way the original link laid them out (see the tool).
-        # The newlib C units (game/*.c) were built with -ffunction-sections: functions nobody
-        # referenced were dropped by the linker while their .rodata strings stayed; strip them too.
+        # The newlib C units (game/*.c) came out of SN's libc.a: the linker dropped the functions
+        # nobody referenced (their .rodata strings stayed) and unreferenced statics; strip them too.
         post_build = [f"$python tools/fold_linkonce.py --unit {unit} {{out}}"]
         post_build_implicit = [Path("tools/fold_linkonce.py"), Path("config") / config.version / "sym_map.tsv"]
+        cflags = cflags_game
         if unit.endswith(".c"):
-            post_build.insert(0, f"$python tools/strip_unused.py --unit {name} {{out}}")
+            post_build.insert(0, f"$python tools/strip_unused.py --gcc --unit {name} {{out}}")
             post_build_implicit.append(Path("tools/strip_unused.py"))
+            # newlib proper was built with -fno-common (fopen's _sn_iobf sits in its own .bss);
+            # errno.c's `int errno' is a common symbol the linker put at the end of .sbss.
+            if unit != "game/errno.c":
+                cflags = [*cflags_game, "-fno-common"]
         game_objects.append(
             Object(
                 status,
                 name,
                 source=unit,
+                cflags=cflags,
                 post_build=post_build,
                 post_build_implicit=post_build_implicit,
             )
@@ -380,6 +422,26 @@ for unit in UNITS:
                 cflags=sdk_cflags(unit),
                 post_build=[f"$python tools/strip_unused.py --unit {unit} {{out}}"],
                 post_build_implicit=[Path("tools/strip_unused.py"), Path("config") / config.version / "sym_map.tsv"],
+            )
+        )
+    elif unit in LIBGCC_UNITS:
+        lib_objects.append(
+            Object(
+                status,
+                name,
+                source=unit,
+                cflags=LIBGCC_CFLAGS.get(unit, cflags_libgcc),
+                post_build=[f"$python tools/strip_unused.py --gcc --unit {unit} {{out}}"],
+                post_build_implicit=[Path("tools/strip_unused.py"), Path("config") / config.version / "sym_map.tsv"],
+            )
+        )
+    elif unit in LIBM_UNITS:
+        lib_objects.append(
+            Object(
+                status,
+                name,
+                source=str(Path(unit).with_suffix(".cpp")),
+                cflags=cflags_libm,
             )
         )
     else:

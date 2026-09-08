@@ -23,13 +23,31 @@ public:
     virtual void matUpdate();
 };
 
+class cModel;
+
+// Light set of a model (game/lightInfo.cpp), embedded in cModel at 0x164 (0x74 bytes).
+class cLightInfo {
+public:
+    u8 pad_0[0x74];
+
+    int init2(int a, int b, const Vec* p0, const Vec* p1);
+    void updateMatrix(cModel* m);
+};
+
 // Model / model parts (game/model.cpp). Parts are cModel too, stride 0x1D8.
 class cModel : public cCoord {
 public:
     cModel* pParts;  // 0xF4 child parts list
-    u8 pad_F8[0x100 - 0xF8];
+    u8 pad_F8[4];
+    u8 xFC;          // 0xFC
+    u8 pad_FD[3];
     u8 id;           // 0x100
-    u8 pad_101[0x1D8 - 0x101];
+    u8 type;         // 0x101 per-object sub type
+    u8 nParts;       // 0x102
+    u8 pad_103[0x12E - 0x103];
+    u8 x12E;         // 0x12E
+    u8 pad_12F[0x164 - 0x12F];
+    cLightInfo lightInfo;  // 0x164 .. 0x1D8
 
     cModel();
     virtual ~cModel() {}
@@ -40,6 +58,8 @@ public:
     cModel* getPartsPtr(int no);
     void partsMatCalc();
     void partsWorldCalc();
+    void setPos(Vec* pos);
+    void setAng(Vec* ang);
 };
 
 #endif

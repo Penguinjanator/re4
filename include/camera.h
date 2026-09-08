@@ -16,13 +16,18 @@ struct CameraParam {
 // Camera state block used by camera.cpp / cam_sys.cpp (0xF8 bytes). Only the fields the
 // cam_ctrl unit touches are named; extend this, do not rewrite it.
 struct Camera {
-    u8 pad_0[0xA4];
+    Mtx mat;            // 0x00 camera orientation matrix (QuakeMain rotates the quake offset by it)
+    Mtx viewMat;        // 0x30 look-at matrix (C_MTXLookAt)
+    u8 pad_60[4];
+    Mtx44 projMat;      // 0x64 projection matrix
     CameraParam param;  // 0xA4 (pos 0xA4, at 0xB0, roll 0xBC, fovy 0xC0)
-    u8 pad_C4[0xF8 - 0xC4];
+    Vec up;             // 0xC4 up vector (C_MTXLookAt)
+    u8 pad_D0[0xF8 - 0xD0];
 };
 
 extern "C" {
 void CameraSetOrientationRoll(Camera* cam);
+void CameraSetOrientationUp(Camera* cam);
 void CameraMove();
 }
 

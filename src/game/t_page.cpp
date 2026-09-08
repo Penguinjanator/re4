@@ -27,7 +27,7 @@ void t_page_init()
 {
     TutilInitDefault();
     tp_exit_flg = 0;
-    tp_page_bak = pG->debug_mode = pG->debug_mode_bak;
+    tp_page_bak = pG->debug_mode = pG->debug_disp;
 }
 
 void t_page_main()
@@ -42,7 +42,7 @@ void t_page_main()
     }
     pG->debug_mode = (s8) pG->debug_mode < 0 ? 24 : ((s8) pG->debug_mode > 24 ? 0 : pG->debug_mode);
     if (Joy[0].trg & (JOY_A | JOY_B)) {
-        pG->debug_mode_bak = pG->debug_mode;
+        pG->debug_disp = pG->debug_mode;
         tp_exit_flg = 1;
     }
     if ((s8) pG->debug_mode == 0) {

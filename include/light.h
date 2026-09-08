@@ -33,6 +33,11 @@ public:
     void setSpotNormal(Vec* normal);
 };
 
+class cLight01 : public cLight {
+public:
+    cLight01();
+};
+
 class cLight02 : public cLight {
 public:
     cLight02();
@@ -43,9 +48,22 @@ public:
     cLight06();
 };
 
+class cLight07 : public cLight {
+public:
+    cLight07();
+};
+
 class cLight08 : public cLight {
 public:
     cLight08();
+};
+
+// Light path follower kept in cLight::work (game/lightPath.cpp). Opaque here.
+class cLightPathData;
+class cLightPath {
+public:
+    void setPath(cLightPathData* data, u8 no);
+    int movePath();
 };
 
 class cLightWork;
@@ -78,6 +96,7 @@ public:
     cLight* create(cLightWork* w);
     cLight* create(int type);
     void update(int area_no, int camera_no);
+    cLightPathData* getPathPtr(u8 no);
 };
 
 extern cLightMgr LightMgr;

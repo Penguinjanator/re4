@@ -62,6 +62,28 @@ public:
     void arrayFree();
     void dispWorkNum(int x, int y);
 
+    int deleteList(T* p) {
+        T* q;
+        if ((p->be_flag & 0x201) != 1) {
+            log("%s::deleteList() WORK IS ALREADY DEAD 0x%08X", name, p);
+            return 0;
+        }
+        q = pAlive;
+        if (q == p) {
+            pAlive = (T*)p->next;
+            p->next = 0;
+            return 1;
+        }
+        for (; q->next; q = (T*)q->next) {
+            if (q->next == p) {
+                q->next = p->next;
+                p->next = 0;
+                return 1;
+            }
+        }
+        log("%s::deleteList() WORK CANT FOUND 0x%08X", name, p);
+        return 0;
+    }
     void addListFront(T* p) {
         T* q;
         for (q = pAlive; q; q = (T*)q->next) {
@@ -206,6 +228,39 @@ T* cManager<T>::create(int id, u32 no)
     addListFront(p);
     countActiveWork();
     return p;
+}
+
+// Release a work: unlink it from the active list, then run its destructor (flag 0) or only
+// mark it (flag 1/2). Called on the manager object itself, so GCC inlines it.
+template <class T>
+inline void cManager<T>::destroy(T* p)
+{
+    if ((u32)p < 0x80000000 || (u32)p > 0x82FFFFFF) {
+        if (p != 0) {
+            log("%s::destroy() ERROR, INVALID  PTR %08X", name, p);
+        }
+        return;
+    }
+    deleteList(p);
+    switch (flag) {
+    case 0:
+        if ((p->be_flag & 0x201) != 1) {
+            log("%s::destroy() delete but not alive", name);
+            return;
+        }
+        delete p;
+        p->be_flag = 0;
+        break;
+    case 1:
+        p->be_flag |= 0x600;
+        break;
+    case 2:
+        p->be_flag |= 0x200;
+        break;
+    default:
+        log("%s::destroy() INVALID ID %d", name, flag);
+        break;
+    }
 }
 
 template <class T>

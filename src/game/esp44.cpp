@@ -8,7 +8,7 @@ public:
     u32 xF8;
 
     virtual void move();
-    virtual int SetFreeWork(EspGenWork* gen);
+    virtual int SetFreeWork(EspGenWork* gen, u32* seed);
 };
 
 cEsp* Esp44_Create()
@@ -20,7 +20,7 @@ void cEsp44::move()
 {
 }
 
-int cEsp44::SetFreeWork(EspGenWork* gen)
+int cEsp44::SetFreeWork(EspGenWork* gen, u32* seed)
 {
     if (EspGenGetMoveLoop() == 0) {
         EffCallRoomSeFunc((s8)gen->xC8, &pos);

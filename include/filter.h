@@ -46,4 +46,11 @@ void Filter0bInit();
 void Filter0bRoomInit();
 void Filter0bTrans();
 
+extern "C" {
+// filter00.cpp: additive radial blur request (highest priority wins)
+void Filter00SetAddSpread(u8 pri, int on, u8 r, u8 g, u8 b, u8 rate, u8 type, int num, f32 cx, f32 cy, f32 pow);
+// filter03.cpp
+void Filter03SetParam(int level, u8 r, u8 g, u8 b, u8 pri, int flag);
+}
+
 #endif

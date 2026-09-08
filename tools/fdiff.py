@@ -35,7 +35,7 @@ print(f"match: {L.get('match_percent')}  target size {L['size']}  ours size {R['
 def fmt(i):
     ins = i.get("instruction")
     if not ins: return ""
-    return f"{int(ins['address']):>5x} {ins['formatted']}"
+    return f"{int(ins.get('address', 0)):>5x} {ins['formatted']}"
 rows = 0
 for li, ri in zip(L["instructions"], R["instructions"]):
     kind = li.get("diff_kind") or ri.get("diff_kind") or ""

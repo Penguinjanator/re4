@@ -6,7 +6,7 @@ public:
     u32 xF8;
 
     virtual void move();
-    virtual int SetFreeWork(EspGenWork* gen);
+    virtual int SetFreeWork(EspGenWork* gen, u32* seed);
 };
 
 cEsp* Esp13_Create()
@@ -23,7 +23,7 @@ void cEsp13::move()
     }
 }
 
-int cEsp13::SetFreeWork(EspGenWork* gen)
+int cEsp13::SetFreeWork(EspGenWork* gen, u32* seed)
 {
     pLog->err(0, 0, "ESP : Invalid ID 'ESP13' ");
     return 0;

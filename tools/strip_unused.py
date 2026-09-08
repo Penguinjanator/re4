@@ -16,6 +16,7 @@ every symbol that is not listed for the unit in config/<ver>/sym_map.tsv, fixing
 contents, relocations, symbols and the Metrowerks .comment section.
 
 usage: strip_unused.py --unit lib/OS.c build/G4BE08/src/lib/OS.o
+       strip_unused.py --gcc --unit lib/_eh.c build/G4BE08/src/lib/_eh.o   (ProDG objects)
 """
 import argparse
 import os
@@ -107,6 +108,12 @@ class Elf:
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--unit", required=True)
+    ap.add_argument(
+        "--gcc",
+        action="store_true",
+        help="ProDG (gcc 2.95) object: .lcomm statics are untyped symbols, data only referenced from "
+        "stripped functions is stripped too, and surviving pointers to stripped functions become 0",
+    )
     ap.add_argument("object")
     args = ap.parse_args()
 
@@ -131,14 +138,29 @@ def main():
     # a per-section pool symbol (...data.0 / ...bss.0, NOTYPE at offset 0), so the linker could not
     # attribute those references to individual local objects and kept every local in such a section.
     # Local data with no reference at all (e.g. axartlfo's unused wave tables) was stripped.
+    # References from functions that are themselves stripped do not count (gcc's libgcc statics
+    # that only the dropped exception runtime used are gone from the DOL).
+    dead_funcs = {}
+    for s in syms:
+        shndx, stype = s[5], s[3] & 0xF
+        if shndx == 0 or shndx >= elf.shnum or stype != STT_FUNC:
+            continue
+        if sym_name(s) not in keep.get(elf.names[shndx], ()):
+            dead_funcs.setdefault(shndx, []).append((s[1], s[1] + s[2]))
+
+    def in_dead_func(shndx, off):
+        return args.gcc and any(start <= off < end for start, end in dead_funcs.get(shndx, ()))
+
     refcount = [0] * len(syms)
     pooled_sections = set()
     for i, sh in enumerate(elf.sections):
         if sh[1] != SHT_RELA:
             continue
         for o in range(0, len(elf.contents[i]), 12):
-            r_info = struct.unpack(">I", elf.contents[i][o + 4 : o + 8])[0]
+            r_off, r_info = struct.unpack(">II", elf.contents[i][o : o + 8])
             sym = r_info >> 8
+            if in_dead_func(sh[7], r_off):
+                continue
             refcount[sym] += 1
             s = syms[sym]
             if (s[3] & 0xF) in (STT_SECTION, 0) and s[5] != 0:
@@ -152,7 +174,11 @@ def main():
     removed_idx = set()
     for i, s in enumerate(syms):
         shndx, stype, bind = s[5], s[3] & 0xF, s[3] >> 4
-        if shndx == 0 or shndx >= elf.shnum or stype not in (STT_FUNC, STT_OBJECT):
+        if shndx == 0 or shndx >= elf.shnum:
+            continue
+        if args.gcc and stype == 0 and s[2] and not (elf.sections[shndx][2] & 0x4):
+            stype = STT_OBJECT  # gcc .lcomm statics are untyped
+        if stype not in (STT_FUNC, STT_OBJECT):
             continue
         secname = elf.names[shndx]
         name = sym_name(s)
@@ -240,10 +266,14 @@ def main():
             if target in removed:
                 r_off = shift(target, r_off)
             if sym in removed_idx:
-                sys.exit(
-                    f"strip_unused: {elf.names[target]} still references removed symbol "
-                    f"{sym_name(syms[sym])} (unit {args.unit})"
-                )
+                if not args.gcc or elf.sections[target][2] & 0x4:  # SHF_EXECINSTR
+                    sys.exit(
+                        f"strip_unused: {elf.names[target]} still references removed symbol "
+                        f"{sym_name(syms[sym])} (unit {args.unit})"
+                    )
+                # a surviving pointer to a stripped function: the linker left it zero
+                elf.contents[target][r_off : r_off + 4] = b"\0\0\0\0"
+                continue
             s = syms[sym]
             if (s[3] & 0xF) == STT_SECTION and s[5] in removed:
                 try:

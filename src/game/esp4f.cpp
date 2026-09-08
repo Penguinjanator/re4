@@ -11,7 +11,7 @@ public:
     Esp4fWork work;  // 0xF8
 
     virtual void move();
-    virtual int SetFreeWork(EspGenWork* gen);
+    virtual int SetFreeWork(EspGenWork* gen, u32* seed);
 };
 
 cEsp* Esp4f_Create()
@@ -40,7 +40,7 @@ void cEsp4f::move()
     }
 }
 
-int cEsp4f::SetFreeWork(EspGenWork* gen)
+int cEsp4f::SetFreeWork(EspGenWork* gen, u32* seed)
 {
     work.areaNo = gen->xC8;
     return 1;

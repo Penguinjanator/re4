@@ -2,6 +2,7 @@
 #define MAIN_SUB_H
 
 #include "types.h"
+#include "gx.h"
 
 // Render target description (game/main.cpp `Screen`, 0x18 bytes; layout partially known).
 struct ScreenInfo {
@@ -13,8 +14,10 @@ struct ScreenInfo {
 };
 
 extern ScreenInfo Screen;
+extern GXRenderModeObj Rmode;  // game/main_sub.cpp
 
 // game/main_sub.cpp
 int Render_checkBlurPermission();
+extern "C" void systemVISetBlack(int black);
 
 #endif

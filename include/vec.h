@@ -35,6 +35,8 @@ void PSMTXScale(Mtx m, f32 xS, f32 yS, f32 zS);
 void PSMTXMultVec(const Mtx m, const Vec* src, Vec* dst);
 void PSMTXMultVecSR(const Mtx m, const Vec* src, Vec* dst);
 
+void C_MTXOrtho(Mtx44 m, f32 t, f32 b, f32 l, f32 r, f32 n, f32 f);
+
 void PSVECAdd(const Vec* a, const Vec* b, Vec* ab);
 void PSVECSubtract(const Vec* a, const Vec* b, Vec* a_b);
 void PSVECScale(const Vec* src, Vec* dst, f32 scale);

@@ -12,10 +12,12 @@ public:
     void warn(int a, int b, const char* fmt, ...);
     void clear();
     void modeReset();
-    void modeSet(int mode);
+    int modeSet(int x, int y, int w, int h);   // window position/size (t_log: 0x30, 0x2A, 0xFF, 0x19)
     void disp();
-    void on();
+    int on(int flag);
     void add(int a, int b, const char* str);
+    int scrSet(s8 lines);                      // scroll by `lines`, clamped to [0, 100 - h]
+    int dispLineNum(int x, int y);
 };
 
 extern cLog* pLog;
