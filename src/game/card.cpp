@@ -61,11 +61,11 @@ void setMsgBG(int a, int b);
 int GameSaveSave(cGameSave* g, void* data, int mode) asm("save__9cGameSavePv");
 
 // Sub screen data archive (SndMem.sub_adr): offsets to its sub-files.
+// Archive header shared by the sub screen sound data (SndMem.sub_adr: [0] icon/banner TPL,
+// [1] message table) and ss/cmn/save_?.dat (CardID textures, save/load frames, file list, ...).
 struct CardArc {
     u32 pad_0[4];
-    u32 tplOfs;      // 0x10  icon/banner TPL
-    u32 mesOfs;      // 0x14  message table
-    u32 idOfs[6];    // 0x18  CardID data (textures, save/load frames, file list, ...)
+    u32 ofs[6];      // 0x10  offsets from the archive start
 };
 
 // Pointers of the game save block (pSaveData).
@@ -176,6 +176,11 @@ public:
 };
 
 void dispSaveInfo(int no, SaveInfo* info, u8 type, int broken);
+// cCard::exit passes the saved int width as a full word (`lwz`, not the `lhz 0x41a` narrowing a u16
+// parameter gets): int view of ScreenReSize.
+extern "C" void ScreenReSizeI(int w, int h) asm("ScreenReSize");
+// CardID::updateSaveInfo passes `0x40 + i` without the `clrlwi` truncation: int view of `type`.
+void dispSaveInfoI(int no, SaveInfo* info, int type, int broken) asm("dispSaveInfo__FiP8SaveInfoUci");
 
 int isDbgInfoAlloc = 0;
 static int isDbgInfoCached = 0;
@@ -231,9 +236,11 @@ Vec g_pos0_org;
 u8* pDbgSaveInfo[20];
 u32 CRCTable[256];
 
-static void* g_p_path_org;
-static void* g_p_hrmt_org;
-static void* g_p_spln_org;
+// Aggregates (MEM_IN_STRUCT_P): the stores in CardID::init stay ordered against the `u->` loads,
+// which plain pointer variables would not be (scalar at a fixed address vs struct member).
+static void* g_p_path_org[1];
+static void* g_p_hrmt_org[1];
+static void* g_p_spln_org[1];
 
 #define ROUNDUP(x, a) (((x) + ((a) - 1)) / (a) * (a))
 
@@ -460,6 +467,7 @@ void cCard::dataSelect()
     int i;
     CardSlot* s;
     int sel;
+    SaveInfo* info;
 
     if (slot != 2) {
         if (CARDProbeEx(slot, 0, 0) == -3) {
@@ -473,7 +481,7 @@ void cCard::dataSelect()
         eprintf(32, 380, 0, 0, "F block : %d", FREE_BLOCKS(slotw[slot]));
     }
     if (slotw[slot].fileFlag[fileNo] & 1) {
-        SaveInfo* info = (SaveInfo*) pInfo[fileNo];
+        info = (SaveInfo*) pInfo[fileNo];
         if (info->magic != 0x116) {
             eprintf2(12, 16, 220, 380, 0, 0, "DATA IS CORRUPTED");
             slotw[slot].fileFlag[fileNo] |= 2;
@@ -488,14 +496,13 @@ void cCard::dataSelect()
 
     switch (step) {
     case 0: {
-        int sl = slot;
         if (pG->card_serial == slotw[slot].serial) {
             fileNo = pG->save_no;
         } else {
             int found = 0;
             u32 n;
             for (n = 0; n < 20; n++) {
-                if (slotw[sl].fileFlag[n] & 1) {
+                if (slotw[slot].fileFlag[n] & 1) {
                     fileNo = n;
                     found = 1;
                     break;
@@ -507,9 +514,8 @@ void cCard::dataSelect()
                 n = fileNo + 1;
                 while (n <= 19) {
                     if (slotw[slot].fileFlag[n] & 1) {
-                        SaveInfo* pa = (SaveInfo*) pInfo[n];
-                        SaveInfo* pb = (SaveInfo*) pInfo[fileNo];
-                        if (OSCalendarTimeToTicks(&pa->time) > OSCalendarTimeToTicks(&pb->time)) {
+                        info = (SaveInfo*) pInfo[fileNo];
+                        if (OSCalendarTimeToTicks(&((SaveInfo*) pInfo[n])->time) > OSCalendarTimeToTicks(&info->time)) {
                             fileNo = n;
                             n = fileNo + 1;
                             continue;
@@ -557,9 +563,8 @@ void cCard::dataSelect()
         }
         break;
     case 2: {
-        int sl = slot;
         int blocks;
-        s = &slotw[sl];
+        s = &slotw[slot];
         blocks = FREE_BLOCKS(*s);
         if (s->fileFlag[fileNo] != 0) {
             if (type == 1) {
@@ -583,7 +588,7 @@ void cCard::dataSelect()
             }
         } else {
             if (type == 1) {
-                if (sl == 2) {
+                if (slot == 2) {
                     step = 4;
                     break;
                 }
@@ -766,7 +771,7 @@ void cCard::loadMain()
 void cCard::makeSaveData()
 {
     int i;
-    TEXPalette* tpl = (TEXPalette*) (pSubData->tplOfs + (u32) pSubData);
+    TEXPalette* tpl = (TEXPalette*) (pSubData->ofs[0] + (u32) pSubData);
     u8* buf = pSaveBuf;
     TEXDescriptor* d;
     u8* src;
@@ -821,7 +826,7 @@ void cCard::makeSaveData()
 void cCard::makeSystemSaveData()
 {
     int i;
-    TEXPalette* tpl = (TEXPalette*) (pSubData->tplOfs + (u32) pSubData);
+    TEXPalette* tpl = (TEXPalette*) (pSubData->ofs[0] + (u32) pSubData);
     u8* buf = pSysBuf;
     TEXDescriptor* d;
     u8* src;
@@ -1097,6 +1102,8 @@ void cCard::saveMain()
 void cCard::exit()
 {
     u32 i;
+    u32 c0;
+    u32 c1;
 
     switch (step) {
     case 0:
@@ -1113,8 +1120,8 @@ void cCard::exit()
             exitFlag = 1;
         } else {
             if (!(pG->x8 & 0x80)) {
-                u32 c0 = 0;
-                u32 c1 = 0xFF;
+                c0 = 0;
+                c1 = 0xFF;
                 FadeSet(0, (GXColor*) &c0, (GXColor*) &c1, 10, 0, 0);
             }
             step++;
@@ -1124,7 +1131,7 @@ void cCard::exit()
         if (Fade[0].flags & 1) {
             break;
         }
-        dispFlag = 0;
+        BitSet((u32&) dispFlag, 0);
         if (!(pG->x8 & 0x80)) {
             g_id->quit();
         }
@@ -1134,11 +1141,11 @@ void cCard::exit()
         if (!(pG->x8 & 0x80)) {
             pG->flags_58 = saveFlags58;
             SndStrReq(bgmStrId, 4, 200, 0);
-            ScreenReSize(scrWidth, 448);
+            ScreenReSizeI(scrWidth, 448);
             if (type != 0 || !(pG->x8 & 4)) {
                 if (!(pG->x8 & 0x10)) {
-                    u32 c0 = 0xFF;
-                    u32 c1 = 0;
+                    c0 = 0xFF;
+                    c1 = 0;
                     FadeSet(0x80000000, (GXColor*) &c0, (GXColor*) &c1, 10, 0, 0);
                 }
                 for (i = 0; i < 4; i++) {
@@ -1151,7 +1158,7 @@ void cCard::exit()
             }
         }
         BitOff(pG->x8, 0x7FFFFFF8);
-        MesData.ptr[0] = (u8*) pG->pArc + pG->pArc->ofs_28;
+        MesData.ptr[0] = (u8*) (pG->pArc->ofs_28 + (u32) pG->pArc);
         exitFlag = 1;
         break;
     }
@@ -1254,8 +1261,8 @@ void cCard::format()
             errCode = -0x209;
             mode = 5;
             step = sel;
-            sub2 = 0;
             sub = 0;
+            sub2 = 0;
             deleteAllMes();
             break;
         }
@@ -1264,6 +1271,10 @@ void cCard::format()
         cardMesSet(9, 0, 0);
         ret = CARDGetResultCode(slot);
         switch (ret) {
+        case 0:
+            formatted = 1;
+            step++;
+            break;
         case -3:
             if (type == 2) {
                 mode = 0;
@@ -1279,10 +1290,6 @@ void cCard::format()
             errorSet(ret);
             break;
         case -1:
-            break;
-        case 0:
-            formatted = 1;
-            step++;
             break;
         }
         break;
@@ -1358,11 +1365,11 @@ void cCard::fileDelete()
             break;
         case 2:
             CoreSeCall(5, 0, 0, 0, 0);
-            sub2 = 0;
+            sub = 0;
             errCode = -0x208;
             mode = 5;
             step = sel;
-            sub = 0;
+            sub2 = 0;
             break;
         }
         break;
@@ -1460,18 +1467,9 @@ void cCard::errorDisp()
                     setMsgWindow(0, 1);
                     mesNo = 3;
                 }
-            } else {
-                if (type == 2) {
-                    mesNo = 0x1B;
-                } else {
-                    mode = 6;
-                    step = 0;
-                    sub = 0;
-                    sub2 = 0;
-                    return;
-                }
+                break;
             }
-            break;
+            // fallthrough
         case -0xD:
             if (type == 2) {
                 mesNo = 0x1B;
@@ -1496,12 +1494,12 @@ void cCard::errorDisp()
                 attr = 0;
             }
             break;
-        case -0x202:
-            mode = 7;
-            step = 0;
-            sub = 0;
-            sub2 = 0;
-            return;
+        case -0x205:
+            setMsgWindow(0, 1);
+            attr = 0;
+            mesNo = 0x29;
+            cardcheck = 0;
+            break;
         case -0x203:
             if (pG->x8 & 0x80) {
                 mesNo = 0x29;
@@ -1516,12 +1514,12 @@ void cCard::errorDisp()
             mesNo = 0x14;
             attr = 0;
             break;
-        case -0x205:
-            setMsgWindow(0, 1);
-            attr = 0;
-            mesNo = 0x29;
-            cardcheck = 0;
-            break;
+        case -0x202:
+            mode = 7;
+            step = 0;
+            sub = 0;
+            sub2 = 0;
+            return;
         case -0x206:
             cardcheck = 0;
             mesNo = 0x25;
@@ -1792,7 +1790,7 @@ int cCard::initSub()
         return 0;
     }
     pSubData = (CardArc*) SndMem.sub_adr;
-    calcTplAddr((TEXPalette*) (pSubData->tplOfs + (u32) pSubData));
+    calcTplAddr((TEXPalette*) (pSubData->ofs[0] + (u32) pSubData));
     if (!(pG->x8 & 0x80)) {
         void* addr;
         int req;
@@ -1803,7 +1801,7 @@ int cCard::initSub()
         }
         pIdData = addr;
     }
-    MesData.ptr[0] = (u8*) (pSubData->mesOfs + (u32) pSubData);
+    MesData.ptr[0] = (u8*) (pSubData->ofs[1] + (u32) pSubData);
     return 1;
 }
 
@@ -2995,8 +2993,8 @@ void cCard::calcTplAddr(TEXPalette* tpl)
     if ((s32) tpl->descriptorArray < 0) {
         return;
     }
-    desc = (TEXDescriptor*) ((u32) tpl->descriptorArray + (u32) tpl);
-    tpl->descriptorArray = desc;
+    tpl->descriptorArray = (TEXDescriptor*) ((u32) tpl->descriptorArray + (u32) tpl);
+    desc = tpl->descriptorArray;
     for (i = 0; i < tpl->numDescriptors; i++, desc++) {
         desc->textureHeader = (TEXHeader*) ((u8*) tpl + (u32) desc->textureHeader);
         desc->CLUTHeader = (CLUTHeader*) ((u8*) tpl + (u32) desc->CLUTHeader);
@@ -3079,13 +3077,13 @@ void CardDbgCacheSet()
 }
 
 // Digits of `num` into id units idNo, idNo-1, ... (ones first).
-static inline void putNumber(IDSystem* id, int num, u8 idNo, int digits, u8 type)
+static inline void putNumber(IDSystem* id, int num, int idNo, int digits, u8 type)
 {
     int d[3];
     int i;
     IdUnit* u;
 
-    for (i = 0; i < digits; i++) {
+    for (i = 0; i <= digits - 1; i++) {
         d[i] = num % 10;
         num /= 10;
         u = id->unitPtr(idNo, type);
@@ -3265,25 +3263,28 @@ void CardID::updateSaveInfo(cCard* c)
     for (i = 0; i < 7; i++) {
         int type = 0x40 + i;
         s8 sl = c->slot;
-        int no = c->fileNo - 3;
+        int base = c->fileNo - 3;
+        int no = base + i;
         u32 f;
-        no += i;
+        // The original loop body spans more than 100 insn slots (notes included), so haifa never
+        // schedules it as one interblock region; the empty blocks add the missing BLOCK notes.
+        {{{{{{{{{{{{{{{{{{{{}}}}}}}}}}}}}}}}}}}}
         if (no < 0) {
             no += 20;
         }
         if (no > 19) {
             no -= 20;
         }
-        g_id->idsys.unitPtr(0x15, type)->flags |= 8;
-        f = c->slotw[sl].fileFlag[no];
+        g_id->idsys.unitPtrI(0x15, type)->flags |= 8;
+        f = (&c->slotw[sl])->fileFlag[no];
         if (f & 1) {
             if (f & 2) {
-                dispSaveInfo(no, (SaveInfo*) c->pInfo[(s8) no], type, 1);
+                dispSaveInfoI(no, (SaveInfo*) c->pInfo[(s8) no], type, 1);
             } else {
-                dispSaveInfo(no, (SaveInfo*) c->pInfo[(s8) no], type, 0);
+                dispSaveInfoI(no, (SaveInfo*) c->pInfo[(s8) no], type, 0);
             }
         } else {
-            dispSaveInfo(no, 0, type, 0);
+            dispSaveInfoI(no, 0, type, 0);
         }
     }
 }
@@ -3296,12 +3297,12 @@ void CardID::init(int type, CardArc* data)
     f32 zero;
 
     this->type = type;
-    pTex = (u8*) data + data->idOfs[0];
-    pSaveDat = (u8*) data + data->idOfs[1];
-    pFile = (u8*) data + data->idOfs[2];
-    pFrame = (u8*) data + data->idOfs[3];
-    pLoadDat = (u8*) data + data->idOfs[4];
-    pBg = (u8*) data + data->idOfs[5];
+    pTex = (u8*) (data->ofs[0] + (u32) data);
+    pSaveDat = (u8*) (data->ofs[1] + (u32) data);
+    pFile = (u8*) (data->ofs[2] + (u32) data);
+    pFrame = (u8*) (data->ofs[3] + (u32) data);
+    pLoadDat = (u8*) (data->ofs[4] + (u32) data);
+    pBg = (u8*) (data->ofs[5] + (u32) data);
     idsys.gameInit(0x100);
     IdTexRoomInit();
     IdTexDataLoad(pTex, 6);
@@ -3315,7 +3316,7 @@ void CardID::init(int type, CardArc* data)
     IdSys.kill(0xFF, 0x2A);
     idsys.set(pFrame, 0xFF, 0x18, 9, 3, 0);
     for (i = 0; i < 7; i++) {
-        idsys.set(pFile, 0xFF, 0x40 + i, 0xC, 6, 0);
+        idsys.setI(pFile, 0xFF, 0x40 + i, 0xC, 6, 0);
     }
     if (this->type == 1) {
         IdSys.set(pSaveDat, 0xFF, 0x10, 0xF, 2, 0);
@@ -3330,16 +3331,16 @@ void CardID::init(int type, CardArc* data)
     IdSys.unitPtr(1, 0x11)->dir |= 0xF;
     zero = 0.0f;
     for (i = 0; i < 7; i++) {
-        u = g_id->idsys.unitPtr(0x15, 0x40 + i);
-        v = g_id->idsys.unitPtr((u8) (i + 0x10), 0x18);
-        v->kind = 1;
+        u = g_id->idsys.unitPtrI(0x15, 0x40 + i);
+        IdUnit* q = g_id->idsys.unitPtr((u8) (i + 0x10), 0x18);
+        q->kind = 1;
         u->scr.x = u->scr.y = u->scr.z = zero;
-        g_id->idsys.unitParent(v, u);
+        g_id->idsys.unitParent(q, u);
     }
     u = g_id->idsys.unitPtr(0, 0x18);
-    g_p_path_org = u->path0;
-    g_p_hrmt_org = u->curve[0];
-    g_p_spln_org = u->path1;
+    g_p_path_org[0] = u->path0;
+    g_p_hrmt_org[0] = u->curve[0];
+    g_p_spln_org[0] = u->path1;
     g_pos0_org = u->scr;
     v = g_id->idsys.unitPtr(0xA, 0x18);
     u->path0 = 0;
@@ -3348,9 +3349,11 @@ void CardID::init(int type, CardArc* data)
     u->scr = v->scr;
     u->dir |= 0xF;
     IdSys.unitPtr(5, 0x10)->dir |= 0xF;
-    u = IdSys.unitPtr(2, 0x10);
-    u->no = 0;
-    u->flags_7F |= 2;
+    {
+        IdUnit* w = IdSys.unitPtr(2, 0x10);
+        w->no = 0;
+        w->flags_7F |= 2;
+    }
     state = 0;
     step = 0;
     x76 = 0;
@@ -3383,7 +3386,7 @@ void CardID::move(cCard* c)
             a->path1 = b->path1;
             a->scr = b->scr;
             FuncPathParametrize(a->path0, a->path1);
-            IdSys.setTimeS(a, (s8) a->curve[0]->key[a->curve[0]->num - 1].t);
+            idsys.setTimeS(a, (s8) a->curve[0]->key[a->curve[0]->num - 1].t);
             a->dir |= 0xF;
             setAction(0);
             IdSys.unitPtr(5, 0x10)->dir |= 0xF;
@@ -3402,7 +3405,7 @@ void CardID::wait(cCard* c)
         v = 0;
     }
     if (v) {
-        c->flag &= ~2;
+        BitOff(c->flag, 2);
         a = g_id->idsys.unitPtr(0, 0x18);
         b = g_id->idsys.unitPtr(0xA, 0x18);
         a->path0 = b->path0;
@@ -3446,7 +3449,8 @@ void CardID::normal(cCard* c)
         updateSaveInfo(c);
         up_down(c);
     } else {
-        IdSys.unitPtr(2, 0x10)->flags_7F |= 2;
+        u = IdSys.unitPtr(2, 0x10);
+        u->flags_7F |= 2;
     }
 }
 
@@ -3494,13 +3498,13 @@ void CardID::up_down(cCard* c)
         break;
     case 1:
         if (idsys.unitPtr(0, 0x18)->end & 1) {
-            a = idsys.unitPtr(0, 0x18);
-            a->path0 = g_p_path_org;
-            a->curve[0] = (Hermite1*) g_p_hrmt_org;
-            a->path1 = g_p_spln_org;
-            a->scr = g_pos0_org;
-            FuncPathParametrize(a->path0, a->path1);
-            IdSys.setTime(a, 0);
+            IdUnit* u = idsys.unitPtr(0, 0x18);
+            u->path0 = g_p_path_org[0];
+            u->curve[0] = (Hermite1*) g_p_hrmt_org[0];
+            u->path1 = g_p_spln_org[0];
+            u->scr = g_pos0_org;
+            FuncPathParametrize(u->path0, u->path1);
+            IdSys.setTime(u, 0);
             setAction(0);
             state = 2;
             step = 0;

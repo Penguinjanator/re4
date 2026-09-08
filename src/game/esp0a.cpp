@@ -28,6 +28,12 @@ void Esp0a_Trans(cEsp0a* esp);
 void Esp0a_Trans2(cEsp* esp);
 }
 
+// The pulled copy is kept in a one-member struct: the original reloads the pointer from its
+// stack slot after every store through it (esp_sub EspSeqSet idiom).
+struct EspPtr {
+    cEsp* p;
+};
+
 cEsp* Esp0a_Create()
 {
     return new cEsp0a;
@@ -79,29 +85,29 @@ void Esp0a_Trans(cEsp0a* esp)
         break;
     case 1: {
         cEsp* base;
-        cEsp* p;
+        EspPtr e;
         u32 i = 0;
 
         if (PullEsp(&base, 0)) {
             *base = *esp;
             base->id = 0;
             for (; i < 50; i++) {
-                if (PullEsp(&p, 0)) {
+                if (PullEsp(&e.p, 0)) {
                     Vec wpos;
 
-                    *p = *base;
-                    p->spd.x = p->spd.y = p->spd.z = 0.0f;
-                    p->scaleSpd = 0.0f;
-                    p->colRSpd = p->colGSpd = p->colBSpd = p->colASpd = 1.0f;
-                    p->xA8 = p->xAA = p->spdCnt = p->scaleCnt = 0;
-                    p->life = 1;
-                    p->cnt = 0;
-                    if (p->parent != pEffParentWorld) {
-                        PSMTXMultVec(p->parent->mat, &p->pos, &wpos);
+                    *e.p = *base;
+                    e.p->spd.x = e.p->spd.y = e.p->spd.z = 0.0f;
+                    e.p->scaleSpd = 0.0f;
+                    e.p->colRSpd = e.p->colGSpd = e.p->colBSpd = e.p->colASpd = 1.0f;
+                    e.p->xA8 = e.p->xAA = e.p->spdCnt = e.p->scaleCnt = 0;
+                    e.p->life = 1;
+                    e.p->cnt = 0;
+                    if (e.p->parent != pEffParentWorld) {
+                        PSMTXMultVec(e.p->parent->mat, &e.p->pos, &wpos);
                     } else {
-                        wpos = p->pos;
+                        wpos = e.p->pos;
                     }
-                    AddOtWorldPos(p, Esp0a_Trans2, &wpos, 8, 0.0f);
+                    AddOtWorldPos(e.p, Esp0a_Trans2, &wpos, 8, 0.0f);
                 }
                 if (!base->CommonMove()) {
                     break;

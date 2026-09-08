@@ -48,7 +48,6 @@ u32 ARAM_FREE_BASE;
 SndWorkPtr pSnd;
 u32 SndStrAramAddr[4] = { 0x700000, 0x740000, 0x780000, 0x7C0000 };
 
-static void SndBgmTblInit();
 
 static void sndCallErr(int blk, int no)
 {
@@ -153,7 +152,7 @@ void SndInit2()
     memclr_asm(callErr, sizeof(callErr));
 }
 
-static void SndBgmTblInit()
+void SndBgmTblInit()
 {
     SndBgmTbl* t = SndMem.bgm_tbl;
     u16* rl = (u16*) ((u8*) t + t->list_ofs);

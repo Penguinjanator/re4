@@ -310,6 +310,7 @@ void SndSePause(int on, s16 type);
 void SndSeAbsPause();
 void SndSePauseAll(int on);
 void SndSoftReset();
+void SndBgmTblInit();   // rebuild the room BGM table (game: cGameSave::load after clearGlobalSaveData)
 int SndBgmTblSet(u16 room, int no);
 void SndBgmTblSetEnable(int type, int save);
 void SndBgmTblSetDisable(int type, int save);

@@ -185,7 +185,7 @@ const CombInfo combination_info[] = {
 
 cItemMgr ItemMgr;
 
-int healing(int n)
+int healing(u16 n)
 {
     if (ItemMgr.x12 == 0) {
         if ((s16) pG->pl_life < (s16) pG->pl_life_max) {
@@ -243,34 +243,31 @@ f32 getPowerRatio(u16 id, s8 level)
 f32 getSpeedRatio(u16 id, s8 level)
 {
     ItemInfo info;
-    f32 ret = 0.0f;
 
-    if (ITEM_TYPE(id) == 1) {
-        return PlShotFrameTbl[WeaponId2WeaponNo(id)][level - 1] / 30.0f;
+    if (ITEM_TYPE(id) != 1) {
+        return 0.0f;
     }
-    return 0.0f;
+    return PlShotFrameTbl[WeaponId2WeaponNo(id)][level - 1] / 30.0f;
 }
 
 f32 getReloadRatio(u16 id, s8 level)
 {
     ItemInfo info;
-    f32 ret = 0.0f;
 
-    if (ITEM_TYPE(id) == 1) {
-        return PlReloadSpeedTbl[WeaponId2WeaponNo(id)][level - 1] / 30.0f;
+    if (ITEM_TYPE(id) != 1) {
+        return 0.0f;
     }
-    return 0.0f;
+    return PlReloadSpeedTbl[WeaponId2WeaponNo(id)][level - 1] / 30.0f;
 }
 
 f32 getBulletRatio(u16 id, s8 level)
 {
     ItemInfo info;
-    f32 ret = 0.0f;
 
-    if (ITEM_TYPE(id) == 1) {
-        return (f32) WeaponId2ChargeNum(id, level);
+    if (ITEM_TYPE(id) != 1) {
+        return 0.0f;
     }
-    return 0.0f;
+    return (f32) WeaponId2ChargeNum(id, level);
 }
 
 void cItemMgr::clear()
@@ -1562,16 +1559,16 @@ void cItemMgr::construct(ItemWork* p, u16 id)
     p->flags = 1;
     p->id = id;
     p->num = 0;
-    p->orient = 0;
     p->board = 0;
     p->x = 0;
     p->y = 0;
+    p->orient = 0;
     p->type = type;
     if (ITEM_TYPE(id) == 1) {
         switch (id) {
         case 0x40:
             p->id = 0x21;
-            if (pG->flags_51C0 & 0x8000) {
+            if (pGS->flags_51C0 & 0x8000) {
                 LV_FIRE_SET(p, 1);
             } else {
                 LV_FIRE_SET(p, 0);
@@ -1583,9 +1580,9 @@ void cItemMgr::construct(ItemWork* p, u16 id)
         case 0x34:
             LV_SET(p, 6, 0, 2, 5);
             break;
-        case 0x21:
         default:
-            p->x6 = 0;
+            LV_SET(p, 0, 0, 0, 0);
+            asm volatile("");
             break;
         }
         p->x8 = BULLET(p);
@@ -1654,14 +1651,14 @@ int cItemMgr::makeItemList(u8* list, int all, s8* pNum, s8* pNum2)
         if (all == 0) {
             if (itemUse(p, type)) {
                 switch (ITEM_TYPE(p->id)) {
+                case 5:
+                case 12:
+                    (*pNum2)++;
+                    break;
                 case 0:
                 case 7:
                     list[*pNum] = i;
                     (*pNum)++;
-                    break;
-                case 5:
-                case 12:
-                    (*pNum2)++;
                     break;
                 case 1:
                 case 2:
@@ -1674,10 +1671,10 @@ int cItemMgr::makeItemList(u8* list, int all, s8* pNum, s8* pNum2)
                 }
             }
         } else {
-            if (itemUse(p, type)) {
-                list[i] = i;
-            } else {
+            if (itemUse(p, type) == 0) {
                 list[i] = 0xFF;
+            } else {
+                list[i] = i;
             }
             cnt++;
         }
@@ -1764,6 +1761,7 @@ int cItemMgr::get(int id, int num)
 {
     ItemInfo info;
     ItemInfo inf;
+    ItemInfo* pInfo = &info;
     ItemWork* p;
     u16 max;
     int i;
@@ -1797,15 +1795,18 @@ int cItemMgr::get(int id, int num)
         MercSysSetBonusTime(num * 30);
         return 1;
     }
-    itemInfo(id, &inf);
-    if (inf.type == 5 || (inf.type >= 12 && inf.type <= 13)) {
+    itemInfoI(id, &inf);
+    switch (inf.type) {
+    case 5:
+    case 12:
+    case 13:
         p = pItems;
         for (i = 0; i < nItems; i++, p++) {
             if (itemUse(p, type) && id == p->id) {
                 int total;
 
                 if (num == 0) {
-                    itemInfo(id, &inf);
+                    itemInfoI(id, &inf);
                     num = inf.x3;
                 }
                 total = p->num + num;
@@ -1817,16 +1818,17 @@ int cItemMgr::get(int id, int num)
                 return 0;
             }
         }
+        break;
     }
-    itemInfo(id, &info);
-    if (info.type == 1 || info.type == 9) {
+    itemInfoI(id, pInfo);
+    if (pInfo->type == 1 || pInfo->type == 9) {
         num = 1;
         max = 1;
     } else {
         if (num == 0) {
-            num = info.x3;
+            num = pInfo->x3;
         }
-        max = info.x4;
+        max = pInfo->x4;
     }
     if (num > max) {
         pLog->err(0, 0, "cItemMgr::get(): Volume of ITEM(0x%02x) is OOL.", id);
@@ -1837,7 +1839,7 @@ int cItemMgr::get(int id, int num)
     for (i = 0; i < nItems; i++, p++) {
         if (itemEmpty(p)) {
             pLast = p;
-            construct(p, id);
+            constructI(p, id);
             p->num = num;
             break;
         }

@@ -53,14 +53,30 @@ class cLight;
 
 // One primitive part of a ModelData (dbmodule DrawObjWireframe): 0x20 header, then the GX-style stream.
 struct ModelPart {
-    u8 pad_0[0x18];
+    u8 pad_0[0xB];
+    u8 flags;        // 0x0B  material flags (trans shaderSetup): bit0 bump, bit1, bit2 alpha texture, bit4 specular texture in the tpl, bit7 specularSetup2
+    u8 texId;        // 0x0C  texture id (trans materialSetup)
+    u8 bumpTex;      // 0x0D  bump / indirect texture id
+    u8 alphaTex;     // 0x0E  alpha texture id
+    u8 specTex;      // 0x0F  Specular[] index (0xFF = 0)
+    u8 specR;        // 0x10  specular colour
+    u8 specG;        // 0x11
+    u8 specB;        // 0x12
+    u8 specType;     // 0x13  0: konst colour stage, 1: texture alpha
+    u8 alphaRef;     // 0x14  alpha compare reference when the model's x103 is 0xFF
+    u8 specPow;      // 0x15  specular scale (percent)
+    u8 pad_16;
+    u8 specTexOrg;   // 0x17  specular texture id when flags bit4 is set
     u32 size;        // 0x18  byte length of the primitive stream following the header
     u32 nPoly;       // 0x1C  polygon count (debug statistics)
 };
 
 // Header block ModelData::pHead points at (examine: the item's centre offset).
 struct ModelDataHead {
-    u32 x0;          // 0x00
+    union {
+        u32 x0;      // 0x00
+        u8 partsNo;  // 0x00  parts the model hangs on when it is not skinned (trans commonModelTrans)
+    };
     Vec center;      // 0x04  (examine copies it into parts 0's position)
 };
 
@@ -70,20 +86,21 @@ struct ModelData {
     u8 pad_4[0xC - 0x4];
     void* pClr;      // 0x0C  vertex colour array (GX_VA_CLR0, RGBA8; used when flags bit31 is set)
     void* pTex;      // 0x10  texture coordinate array (GX_VA_TEX0)
-    u8 pad_14[4];
-    u8 x18;          // 0x18  (mirror: 1 with x19 == 1 and x2A <= 0xFF selects the original vertex arrays)
+    void* pWeight;   // 0x14  skinning weights (trans MakeWeightPalette: Weight[x18] or WeightExt[x2A])
+    u8 x18;          // 0x18  (mirror: 1 with x19 == 1 and x2A <= 0xFF selects the original vertex arrays); weight entries
     u8 x19;          // 0x19
     u16 nParts;      // 0x1A  primitive part count (dbmodule DrawObjWireframe)
     struct ModelPart* pParts;  // 0x1C  first part header (0x20 bytes + primitive stream)
-    u32 flags;       // 0x20  bit31: s16 tex coords (frac 8), bit30 (0x40000000): SmxGetFlag bit1
-    u8 pad_24[4];
+    u32 flags;       // 0x20  bit31: s16 tex coords (frac 8), bit30 (0x40000000): SmxGetFlag bit1, bit29: s8 normals
+    u32 nTex;        // 0x24  texture count (trans: must be <= 0xF7)
     u8 shift;        // 0x28  vertex fixed-point shift (dbmodule: scale = 1 / (1 << shift))
     u8 pad_29;
-    u16 x2A;         // 0x2A
+    u16 x2A;         // 0x2A  extended weight entries (> 0xFF: WeightExt table)
     u32 shapeOfs;    // 0x2C  offset of the shape (vertex delta) table (shape.cpp)
     void* vtxOrig;   // 0x30  original vertex positions (shape.cpp ResetShape source)
     void* nrmOrig;   // 0x34  original vertex normals
     u16 nVtx;        // 0x38  vertex count (8 bytes each)
+    u16 nNrm;        // 0x3A  normal count
 };
 
 // Shape (morph) animation data referenced by cModelInfo::pShape (game/shape.cpp).
@@ -132,17 +149,23 @@ public:
     ShapeKey shape[5];   // 0xA8  blended shapes
     u32 shapeFlags;      // 0xD0  1: loop, 2: hold last frame, 4: reverse, 8: x100 weights
     s16 shapeFrame;      // 0xD4
-    u8 xD6;              // 0xD6  previous color[3]
-    u8 pad_D7[0xDC - 0xD7];
-    u16 flagsDC;         // 0xDC  bit0: has uv scroll, bit2: texBlendTbl set
-    u16 blendRatio;      // 0xDE  (TexRender: 0xFF while rendered to texture)
-    u8 pad_E0;
+    u8 xD6;              // 0xD6  previous color[3]; trans: GXSetBlendMode table index (bl[xD6])
+    u8 pad_D7;
+    f32 xD8;             // 0xD8  trans commonModelTrans: material alpha scale (alpha * x158 * xD8 < 1 -> scaled mat colour)
+    u16 flagsDC;         // 0xDC  bit0: has uv scroll, bit1: texture animation (pTexAnim), bit2: texBlendTbl set, bit3: alpha tex coord
+    u16 blendRatio;      // 0xDE  (TexRender: 0xFF while rendered to texture); low byte = TEV konst colour
+    u8 xE0;              // 0xE0  texture animation frame (trans commonScreenMatSub)
     u8 blendType;        // 0xE1
     u8 pad_E2[2];
     void* texBlendTbl;   // 0xE4  (TexRender: 6-byte table {1, 0, ?, ?, 0xF7, tex id})
-    u8 pad_E8[0xF0 - 0xE8];
-    f32 uvScrollU;       // 0xF0
+    f32 uvU;             // 0xE8  current uv scroll offset (trans materialSetup tex matrix)
+    f32 uvV;             // 0xEC
+    f32 uvScrollU;       // 0xF0  uv scroll speed per frame
     f32 uvScrollV;       // 0xF4
+    u8* pTexAnim;        // 0xF8  texture animation table: [1] = frame count, [4 + frame] = texture id
+    u8 pad_FC[0x11C - 0xFC];
+    u32 nAddTex;         // 0x11C  textures of pAddTpl appended after pTpl's (commonModelTrans)
+    struct TEXPalette* pAddTpl;  // 0x120  additional texture palette (addTplAddr)
 
     void addTplAddr(void* tpl);
     void setTexBlendTbl(void* tbl);
@@ -255,6 +278,8 @@ public:
     void setParent(cModel* parent, Vec* pos, Vec* rot);
     void setParent(cModel* parent, int partsNo, Vec* pos, Vec* rot);
     void moveDataAddr(int ofs);   // model data moved by `ofs` bytes (block.cpp memory compaction)
+    void partsFixMemory(int no);  // (pl_class setFootwork: 0x13)
+    void partsFixAdjust();        // (player cPlayer::move)
 
     // The managers the models allocate from (game/model.cpp, .sdata: &ModInfoMgr / &PartsMgr;
     // sscrn SubScreenExitCore restores them after the sub screen swapped the area out).
@@ -279,11 +304,29 @@ public:
 
 extern cModInfoMgr ModInfoMgr;
 
-// Parts pool (game/model.cpp `PartsMgr`, 0x34 bytes): a cManager<cParts>; layout opaque here.
-class cPartsMgr;
+// Parts work (game/model.cpp): a cUnit managed by PartsMgr; layout unknown (model.cpp passes the
+// real size to the cManager constructor).
+class cParts : public cUnit {
+public:
+};
+
+// Parts pool (game/model.cpp `PartsMgr`, 0x34 bytes): a cManager<cParts> (game.cpp instantiates
+// roomInit / arrayAlloc / arrayFree / dispWorkNum on it); no other member is known.
+class cPartsMgr : public cManager<cParts> {
+public:
+    cPartsMgr();
+    virtual ~cPartsMgr();
+    virtual void* memAlloc(u32 size);
+    virtual void memFree(void* p);
+    virtual void memClear(cParts* p, u32 size);
+    virtual void log(const char* fmt, ...);
+    virtual int construct(cParts* p, u32 id);
+};
 extern cPartsMgr PartsMgr;
 
 // game/model.cpp (C linkage): parts `no` of a parts list (NULL when out of range).
 extern "C" cModel* GetPartsAddr(cModel* parts, int no);
+// game/model.cpp (C linkage): relocate a TPL's file offsets to pointers (trans SpecularInit).
+extern "C" void calcTplAddr(struct TEXPalette* tpl);
 
 #endif

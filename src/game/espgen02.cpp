@@ -115,10 +115,12 @@ static f32 Calc_D256(Espgen02Work* p, u8 d, f32 rate)
     return ret;
 }
 
-// OPEN (99.94%): the shared 0.0f constant is loaded into colR here (cse picks the variable whose
-// last mention is latest in the insn chain: colR's `colA *= colR`); the target loads it into spdR
-// (spdR = f23, colR = f24). Declaration order, use order and a local copy for the PSVECScale
-// argument do not move spdR's last mention behind colR's.
+// OPEN (99.94%): both ours and the target load the shared 0.0f into spdR and copy it to scaleR
+// and colR (cse2 makes spdR the canonical register); the only diff is the FPR assignment
+// spdR/colR = f24/f23 (ours) vs f23/f24 (target), i.e. global-alloc priority: ours gives spdR
+// 5 refs (load, two copy sources, Calc_D256 set, PSVECScale use) against colR's 4, the target
+// ranks colR higher — colR has an extra reference or spdR one fewer there. Declaration order,
+// use order and a local copy for the PSVECScale argument tried.
 void espgen02_Update(EspgenWork* w)
 {
     Espgen02Work* p = (Espgen02Work*) w->work;

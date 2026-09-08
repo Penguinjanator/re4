@@ -1,0 +1,3334 @@
+// game/em_sub.cpp: the shared enemy helper library used by the enemy modules: damage position and
+// blood effects, hit box (yarare) checks against boxes, lines and spheres, the weapon target
+// lists, life and damage entry points for the player and the partner, the catch (grab) motion
+// helpers, and the item drops.
+
+#include "atari.h"
+#include "map_obj.h"
+#include "light.h"
+#include "widget.h"
+#include "em_sub.h"
+#include "emrack.h"
+#include "atariInfo.h"
+#include "player.h"
+#include "pl_npc.h"
+#include "pl_sub.h"
+#include "esp.h"
+#include "est.h"
+#include "item.h"
+#include "sce_at.h"
+#include "obj.h"
+#include "game.h"
+#include "pad.h"
+#include "dbmodule.h"
+#include "main.h"
+#include "rnd.h"
+#include "global.h"
+#include "math_sub.h"
+#include "db_log.h"
+
+extern "C" {
+int MotionMove(cModel* m, int a);   // motion.cpp
+}
+
+// EstSet with the two effect parameter bytes as u8 (the original prototype): an `int` passed to
+// them is masked at the call (`clrlwi 24`, EmDmBloodSet2/3).
+void EstSetB(int a, int b, Vec* pos, Vec* rot, int c, u8 d, int e, u8 f, u32 g, void* h) asm("EstSet");
+
+// The vehicle objects (objTrolley.cpp / objBull.cpp) as seen from here: the ride checks only.
+class cObjTrolley : public cObj {
+public:
+    int ckTrolleyRide(Vec* pos, u8* partsNo, Vec* out);
+    int ckTrolleyRideAdjust(Vec* pos, Vec* out);
+};
+
+class cObjBull : public cObj {
+public:
+    int ckBullRide(Vec* pos, u8* partsNo, Vec* out);
+    int ckBullRideAdjust(Vec* pos, Vec* out);
+};
+
+#define VALID_PTR(p) ((u32) (p) >= 0x80000000 && (u32) (p) <= 0x82FFFFFF)
+
+// Position offset by the trolley / bulldozer movement (adjust_add_set / VehicleAdjust).
+static Vec adjust_add = {0.0f, 0.0f, 0.0f};
+
+u32 No_drop_cnt = 0;
+u32 No_drop_cnt2 = 0;
+
+// Dead (upper 16 bits of cDmgInfo::flags set): the `li 1; andis.; bne; li 0; cmpwi` chain.
+static inline int EmIsDead(cEm* em)
+{
+    return (em->flags_324 & 0xFFFF0000) ? 1 : 0;
+}
+
+// The parts a hit box belongs to (partsNo is 1-based, 0 = the model itself).
+static inline cModel* HitParts(cEm* em, EmHitInfo* p)
+{
+    if (p->partsNo != 0) {
+        return em->getPartsPtr(p->partsNo - 1);
+    }
+    return em;
+}
+
+void Em_R0_Scenario(cEm* em)
+{
+    MotionMove(em, 0);
+}
+
+// Damage position / direction of the registered hit: the hit box centre line clamped to the box
+// height along its axis, from the damage position (x328) mapped into the parts' space.
+int EmGetDmPos(cEm* em, Vec* pos, Vec* dir)
+{
+    EmHitInfo* p = em->dmPart;
+    u32 type;
+    cModel* parts;
+    Mtx m;
+    Mtx inv;
+    Vec d;
+    Vec top;
+    Vec bottom;
+    Vec c;
+    Vec v;
+    Vec s;
+    f32 mag;
+
+    if (!VALID_PTR(p)) {
+        return 0;
+    }
+    if (p->flags & 0x4000) {
+        *pos = p->pos;
+        dir->x = 0.0f;
+        dir->y = GetXZAngle(pos, &em->x328);
+        dir->z = 0.0f;
+        return 1;
+    }
+    if (p->flags & 6) {
+        type = (p->flags & 2) ? 0 : 2;
+    } else {
+        type = 1;
+    }
+    parts = HitParts(em, p);
+    bottom = p->ofs;
+    top = p->ofs;
+    switch (type) {
+    case 0:
+        top.x += p->height;
+        break;
+    case 1:
+    default:
+        top.y += p->height;
+        break;
+    case 2:
+        top.z += p->height;
+        break;
+    }
+    PSMTXMultVec(parts->mat, &top, &top);
+    PSMTXMultVec(parts->mat, &bottom, &bottom);
+    PSVECAdd(&top, &bottom, &c);
+    PSVECScale(&c, &c, 0.5f);
+    s.x = 0.0f;
+    s.y = 0.0f;
+    s.z = p->width;
+    PSMTXMultVecSR(parts->mat, &s, &s);
+    mag = PSVECMag(&s);
+    PSMTXCopy(parts->mat, m);
+    TransMatrix(m, &bottom);
+    if (PSMTXInverse(m, inv) == 0) {
+        PSMTXIdentity(inv);
+    }
+    PSMTXMultVec(inv, &em->x328, &v);
+    switch (type) {
+    case 0:
+        d.x = 0.0f;
+        d.y = v.y;
+        d.z = v.z;
+        if (v.y == 0.0f && v.z == 0.0f) {
+            d.y = 1.0f;
+        }
+#line 164 "D:/Bio4/Prog/em_sub.cpp"
+        VECNormalize(&d, &d);
+        PSVECScale(&d, &d, mag);
+        d.x = v.x;
+        if (v.x < 0.0f) {
+            d.x = 0.0f;
+        }
+        if (v.x > p->height) {
+            d.x = p->height;
+        }
+        PSMTXMultVec(m, &d, pos);
+        break;
+    case 1:
+    default:
+        d.x = v.x;
+        d.y = 0.0f;
+        d.z = v.z;
+        if (v.x == 0.0f && v.z == 0.0f) {
+            d.x = 1.0f;
+        }
+#line 181
+        VECNormalize(&d, &d);
+        PSVECScale(&d, &d, mag);
+        d.y = v.y;
+        if (v.y < 0.0f) {
+            d.y = 0.0f;
+        }
+        if (v.y > p->height) {
+            d.y = p->height;
+        }
+        PSMTXMultVec(m, &d, pos);
+        break;
+    case 2:
+        d.x = v.x;
+        d.y = v.y;
+        d.z = 0.0f;
+        if (v.x == 0.0f && v.y == 0.0f) {
+            d.x = 1.0f;
+        }
+#line 197
+        VECNormalize(&d, &d);
+        PSVECScale(&d, &d, mag);
+        d.z = v.z;
+        if (v.z < 0.0f) {
+            d.z = 0.0f;
+        }
+        if (v.z > p->height) {
+            d.z = p->height;
+        }
+        PSMTXMultVec(m, &d, pos);
+        break;
+    }
+    dir->x = 0.0f;
+    dir->y = GetXZAngle(&c, &em->x328);
+    dir->z = 0.0f;
+    return 1;
+}
+
+// Pool of a helper the original linker dropped (0.0 / 0.5 / 1.0 after EmGetDmPos's pool).
+static void emGetDmPosDead(Vec* v)
+{
+    v->x = 0.0f;
+    v->y = 0.5f;
+    v->z = 1.0f;
+}
+
+// Blood burst at the damage position: the small burst for blades / the shotgun family, three
+// spread bursts for everything else.
+void EmDmBloodSet(cEm* em)
+{
+    Vec pos;
+    Vec dir;
+    Vec p;
+
+    if (EmGetDmPos(em, &pos, &dir) == 0) {
+        return;
+    }
+    switch (em->dmWep) {
+    default:
+        EstSet(0, -1, &pos, &dir, 0, 1, 0, 0, 0, 0);
+        p.x = fRand1_1() * 200.0f + pos.x;
+        p.y = fRand0_1() * 200.0f + (pos.y + 200.0f);
+        p.z = fRand1_1() * 200.0f + pos.z;
+        EstSet(0, -1, &p, &dir, 0, 2, 0, 0, 0, 0);
+        p.x = fRand1_1() * 250.0f + pos.x;
+        p.y = fRand0_1() * 150.0f + (pos.y - 150.0f);
+        p.z = fRand1_1() * 150.0f + pos.z;
+        EstSet(0, -1, &p, &dir, 0, 2, 0, 0, 0, 0);
+        p.x = fRand1_1() * 150.0f + pos.x;
+        p.y = fRand0_1() * 150.0f + (pos.y - 150.0f);
+        p.z = fRand1_1() * 250.0f + pos.z;
+        EstSet(0, -1, &p, &dir, 0, 2, 0, 0, 0, 0);
+        break;
+    case 1:
+    case 2:
+    case 3:
+    case 4:
+    case 0xB:
+    case 0xC:
+    case 0x10:
+    case 0x11:
+    case 0x1B:
+    case 0x1D:
+    case 0x26:
+    case 0x27:
+    case 0x2B:
+        EstSet(0, -1, &pos, &dir, 0, 0, 0, 0, 0, 0);
+        if (Rnd() & 1) {
+            p.x = fRand1_1() * 150.0f + pos.x;
+            p.y = fRand1_1() * 150.0f + pos.y;
+            p.z = fRand1_1() * 150.0f + pos.z;
+            EstSet(0, -1, &p, &dir, 0, 2, 0, 0, 0, 0);
+        }
+        if (Rnd() & 1) {
+            p.x = fRand1_1() * 150.0f + pos.x;
+            p.y = fRand1_1() * 150.0f + pos.y;
+            p.z = fRand1_1() * 150.0f + pos.z;
+            EstSet(0, -1, &p, &dir, 0, 2, 0, 0, 0, 0);
+        }
+        break;
+    }
+}
+
+// Effect `no` at the damage position (scattered by 50 when `rnd` is set), owned by `em`.
+void EmDmBloodSet2(cEm* em, int no, int prm, int rnd, int e, int f)
+{
+    Vec pos;
+    Vec dir;
+
+    if (EmGetDmPos(em, &pos, &dir) == 0) {
+        return;
+    }
+    if (rnd) {
+        pos.x = fRand1_1() * 50.0f + pos.x;
+        pos.y = fRand1_1() * 50.0f + pos.y;
+        pos.z = fRand1_1() * 50.0f + pos.z;
+    }
+    EstSetB(0, -1, &pos, &dir, no, prm, e, f, (u32) em, 0);
+}
+
+// EmDmBloodSet2 with the effect aligned to the enemy's rotation instead of the damage direction.
+void EmDmBloodSet3(cEm* em, int no, int prm, int rnd, int e, int f)
+{
+    Vec pos;
+    Vec dir;
+
+    if (EmGetDmPos(em, &pos, &dir) == 0) {
+        return;
+    }
+    if (rnd) {
+        pos.x = fRand1_1() * 50.0f + pos.x;
+        pos.y = fRand1_1() * 50.0f + pos.y;
+        pos.z = fRand1_1() * 50.0f + pos.z;
+    }
+    EstSetB(0, -1, &pos, &em->rot, no, prm, e, f, (u32) em, 0);
+}
+
+// Blood on the player at the height of `pos` (clamped to the player's hit box), facing the attacker.
+void EmPlBloodSet(cEm* em, Vec* pos, int type, int a, int b)
+{
+    cPlayer* pl = pPL;
+    EmHitInfo* hit = &pl->hitInfo;
+    Mtx m;
+    Vec p;
+    Vec q;
+    Vec rot;
+    Vec s;
+    cModel* parts;
+    f32 h;
+    f32 mag;
+
+    parts = pl->getPartsPtr(0);
+    p = parts->worldPos;
+    h = pos->y - p.y;
+    if (h > hit->height * 0.5f) {
+        h = hit->height * 0.5f;
+    }
+    if (h < -(hit->height * 0.7f)) {
+        h = -(hit->height * 0.7f);
+    }
+    s.x = 0.0f;
+    s.y = 0.0f;
+    s.z = hit->width;
+    PSMTXMultVecSR(parts->mat, &s, &s);
+    mag = PSVECMag(&s);
+    rot.x = 0.0f;
+    rot.y = GetXZAngle(&p, pos);
+    rot.z = 0.0f;
+    RotMatrix(m, &rot);
+    TransMatrix(m, &p);
+    q.x = 0.0f;
+    q.z = mag * 0.5f;
+    q.y = h;
+    q.y = fRand1_1() * 50.0f + q.y;
+    q.x = fRand1_1() * 50.0f + q.x;
+    PSMTXMultVec(m, &q, &q);
+    if (a == 0xFF || b == 0xFF) {
+        if (type != 1) {
+            EstSet(0, -1, &q, &rot, 0, 0, 0, 0, 0, 0);
+        } else {
+            EstSet(0, -1, &q, &rot, 0, 1, 0, 0, 0, 0);
+            EstSet(0, -1, &q, &rot, 0, 2, 0, 0, 0, 0);
+        }
+    } else {
+        EstSet(0, -1, &q, &rot, a, b, 0, 0, 0, 0);
+    }
+}
+
+// Blood at the player's registered damage position.
+void EmPlBloodSet2(cModel* m, Vec* p, int type, int a, int b)
+{
+    Vec pos;
+    Vec dir;
+
+    if (EmGetDmPos(pPL, &pos, &dir) == 0) {
+        return;
+    }
+    if (a == 0xFF || b == 0xFF) {
+        if (type != 1) {
+            EstSet(0, -1, &pos, &dir, 0, 0, 0, 0, 0, 0);
+        } else {
+            EstSet(0, -1, &pos, &dir, 0, 1, 0, 0, 0, 0);
+            EstSet(0, -1, &pos, &dir, 0, 2, 0, 0, 0, 0);
+        }
+    } else {
+        EstSet(0, -1, &pos, &dir, a, b, 0, 0, 0, 0);
+    }
+}
+
+// EmPlBloodSet for the partner.
+void EmSubBloodSet(cEm* em, Vec* pos, int type, int a, int b)
+{
+    cSubChar* sub = pSUB;
+    EmHitInfo* hit;
+    Mtx m;
+    Vec p;
+    Vec q;
+    Vec rot;
+    cModel* parts;
+    f32 h;
+
+    if (sub == 0) {
+        return;
+    }
+    hit = &sub->hitInfo;
+    parts = sub->getPartsPtr(0);
+    PSMTXMultVec(parts->mat, &hit->ofs, &p);
+    h = pos->y - p.y;
+    if (h > hit->height * 0.7f) {
+        h = hit->height * 0.7f;
+    }
+    if (h < -(hit->height * 0.7f)) {
+        h = -(hit->height * 0.7f);
+    }
+    rot.x = 0.0f;
+    rot.y = GetXZAngle(&p, pos);
+    rot.z = 0.0f;
+    RotMatrix(m, &rot);
+    TransMatrix(m, &p);
+    q.x = 0.0f;
+    q.y = h;
+    q.z = hit->width * 0.5f;
+    PSMTXMultVec(m, &q, &q);
+    if (a == 0xFF || b == 0xFF) {
+        if (type != 1) {
+            EstSet(0, -1, &q, &rot, 0, 0, 0, 0, 0, 0);
+        } else {
+            EstSet(0, -1, &q, &rot, 0, 1, 0, 0, 0, 0);
+            EstSet(0, -1, &q, &rot, 0, 2, 0, 0, 0, 0);
+        }
+    } else {
+        EstSet(0, -1, &q, &rot, a, b, 0, 0, 0, 0);
+    }
+}
+
+// Hit boxes of `em` inside the capsule box (8 corners) of a melee weapon: the one nearest to the
+// box axis, with rad = squared distance to `pos` and dist = squared distance from the axis.
+EmHitInfo* emBoxAtCk(cEm* em, Vec* box, Vec* pos, int flag)
+{
+    Mtx mat;
+    Mtx rm;
+    Vec top;
+    Vec bottom;
+    Vec center;
+    Vec dir;
+    Vec bc;
+    Vec up;
+    EmHitInfo* p;
+    EmHitInfo* ret;
+    cModel* parts;
+    f32 best;
+    f32 ang;
+    f32 d2;
+    f32 r;
+    int mask;
+
+    PSVECAdd(&box[2], &box[3], &bc);
+    PSVECAdd(&box[6], &bc, &bc);
+    PSVECAdd(&box[7], &bc, &bc);
+    PSVECScale(&bc, &bc, 0.25f);
+    PSVECSubtract(&bc, pos, &dir);
+#line 731
+    VECNormalize(&dir, &dir);
+    PSMTXIdentity(mat);
+    up.x = 0.0f;
+    up.y = 1.0f;
+    up.z = 0.0f;
+    ang = acosf(PSVECDotProduct(&up, &dir));
+    if (ang > 0.0f) {
+        if (ang < PI) {
+            PSVECCrossProduct(&up, &dir, &up);
+            PSMTXRotAxisRad(rm, &up, ang);
+            PSMTXConcat(rm, mat, mat);
+        } else {
+            PSMTXRotRad(rm, 'y', PI);
+            PSMTXConcat(mat, rm, mat);
+        }
+    }
+    mat[0][3] = pos->x;
+    mat[1][3] = pos->y;
+    mat[2][3] = pos->z;
+    if (PSMTXInverse(rm, mat) == 0) {
+        PSMTXIdentity(mat);
+    }
+    ret = 0;
+    best = 1e16f;
+    for (p = &em->hitInfo; p != 0; p = p->next) {
+        if (!(p->flags & 1)) {
+            continue;
+        }
+        if ((p->flags & 0x10) && HandgunCk(flag)) {
+            continue;
+        }
+        bottom = p->ofs;
+        top = p->ofs;
+        if (p->flags & 6) {
+            if (p->flags & 2) {
+                top.x += p->height;
+            } else {
+                top.z += p->height;
+            }
+        } else {
+            top.y += p->height;
+        }
+        parts = HitParts(em, p);
+        PSMTXMultVec(parts->mat, &top, &top);
+        PSMTXMultVec(parts->mat, &bottom, &bottom);
+        PSVECAdd(&top, &bottom, &center);
+        PSVECScale(&center, &center, 0.5f);
+        up.y = up.x = 0.0f;
+        up.z = p->width;
+        PSMTXMultVecSR(parts->mat, &up, &up);
+        r = PSVECMag(&up);
+        if (AtBoxCapsuleCk3(box, &top, r, &bottom) == 0) {
+            continue;
+        }
+        PSMTXMultVec(mat, &center, &up);
+        d2 = up.x * up.x + up.z * up.z;
+        if (d2 > best) {
+            continue;
+        }
+        mask = 0;
+        if (flag != 0x10) {
+            mask = 0x400000;
+        }
+        if (EatMgr.hitCheck(pos, &center, 0, 0, 0, mask) != 0) {
+            continue;
+        }
+        PSVECSubtract(&center, pos, &up);
+        p->rad = up.x * up.x + up.y * up.y + up.z * up.z;
+        p->dist = d2;
+        best = d2;
+        ret = p;
+    }
+    return ret;
+}
+
+// Hit boxes of `em` crossed by the line a-b (within `len` squared of `a`): the nearest one, with
+// pos = hit point, rad = squared distance a -> hit, dist = squared distance hit -> a.
+EmHitInfo* emLineAtCk(cEm* em, Vec* a, Vec* b, f32 len, int flag)
+{
+    Vec top;
+    Vec bottom;
+    Vec center;
+    Vec hit;
+    Vec s;
+    EmHitInfo* p;
+    EmHitInfo* ret = 0;
+    cModel* parts;
+    f32 best = len;
+    f32 d2;
+    f32 r;
+
+    for (p = &em->hitInfo; p != 0; p = p->next) {
+        if (!(p->flags & 1)) {
+            continue;
+        }
+        if ((p->flags & 0x10) && HandgunCk(flag)) {
+            continue;
+        }
+        parts = HitParts(em, p);
+        if (p->flags & 8) {
+            if (emLineCubeCrossCk(a, b, parts->mat, p->width, p->height, p->depth, &p->ofs, &hit) == 0) {
+                continue;
+            }
+        } else {
+            bottom = p->ofs;
+            top = p->ofs;
+            if (p->flags & 6) {
+                if (p->flags & 2) {
+                    top.x += p->height;
+                } else {
+                    top.z += p->height;
+                }
+            } else {
+                top.y += p->height;
+            }
+            PSMTXMultVec(parts->mat, &top, &top);
+            PSMTXMultVec(parts->mat, &bottom, &bottom);
+            PSVECAdd(&top, &bottom, &center);
+            PSVECScale(&center, &center, 0.5f);
+            s.x = 0.0f;
+            s.y = 0.0f;
+            s.z = p->width;
+            PSMTXMultVecSR(parts->mat, &s, &s);
+            r = PSVECMag(&s);
+            if (emLineCapsuleCrossCk(a, b, &top, &bottom, r, &hit) == 0) {
+                continue;
+            }
+        }
+        PSVECSubtract(a, &hit, &s);
+        d2 = s.x * s.x + s.y * s.y + s.z * s.z;
+        if (d2 > best) {
+            continue;
+        }
+        PSVECSubtract(&hit, a, &s);
+        p->rad = s.x * s.x + s.y * s.y + s.z * s.z;
+        p->dist = d2;
+        p->pos = hit;
+        best = d2;
+        ret = p;
+    }
+    return ret;
+}
+
+// emLineAtCk sorted by the XZ distance only, hit point returned in `out`.
+EmHitInfo* emLineAtCk2(cEm* em, Vec* a, Vec* b, Vec* out, int flag, f32 len)
+{
+    Vec top;
+    Vec bottom;
+    Vec center;
+    Vec hit;
+    Vec s;
+    EmHitInfo* p;
+    EmHitInfo* ret = 0;
+    cModel* parts;
+    f32 best = len;
+    f32 d2;
+    f32 r;
+
+    for (p = &em->hitInfo; p != 0; p = p->next) {
+        if (!(p->flags & 1)) {
+            continue;
+        }
+        if ((p->flags & 0x10) && HandgunCk(flag)) {
+            continue;
+        }
+        parts = HitParts(em, p);
+        if (p->flags & 8) {
+            if (emLineCubeCrossCk(a, b, parts->mat, p->width, p->height, p->depth, &p->ofs, &hit) == 0) {
+                continue;
+            }
+        } else {
+            bottom = p->ofs;
+            top = p->ofs;
+            if (p->flags & 6) {
+                if (p->flags & 2) {
+                    top.x += p->height;
+                } else {
+                    top.z += p->height;
+                }
+            } else {
+                top.y += p->height;
+            }
+            PSMTXMultVec(parts->mat, &top, &top);
+            PSMTXMultVec(parts->mat, &bottom, &bottom);
+            PSVECAdd(&top, &bottom, &center);
+            PSVECScale(&center, &center, 0.5f);
+            s.x = 0.0f;
+            s.y = 0.0f;
+            s.z = p->width;
+            PSMTXMultVecSR(parts->mat, &s, &s);
+            r = PSVECMag(&s);
+            if (emLineCapsuleCrossCk(a, b, &top, &bottom, r, &hit) == 0) {
+                continue;
+            }
+        }
+        PSVECSubtract(a, &hit, &s);
+        d2 = s.x * s.x + s.z * s.z;
+        if (d2 > best) {
+            continue;
+        }
+        best = d2;
+        ret = p;
+        *out = hit;
+    }
+    return ret;
+}
+
+// Pool of a helper the original linker dropped (a float -> u32 -> float round trip and a double
+// zero between emLineAtCk2's and emLineCapsuleCrossCk's pools).
+static f32 emLineAtCkDead(f32 len, f32 step)
+{
+    u32 n;
+
+    if (step == 0.0f) {
+        return 0.0f;
+    }
+    n = (u32) (len / step);
+    if ((f32) n != 0.0) {
+        return (f32) n;
+    }
+    return 0.0f;
+}
+
+// Segment a-b against the capsule top-bottom of radius r: 1 with the entry point in `hit`.
+int emLineCapsuleCrossCk(Vec* a, Vec* b, Vec* top, Vec* bottom, f32 r, Vec* hit)
+{
+    Mtx m;
+    Mtx inv;
+    Vec d;
+    Vec la;
+    Vec lb;
+    Vec c;
+    Vec up;
+    Vec e;
+    Vec f;
+    Vec g;
+    f32 len;
+    f32 ang;
+    f32 dist;
+    f32 dxz;
+    f32 t;
+    f32 h;
+    f32 distA;
+
+    PSMTXIdentity(m);
+    PSVECSubtract(top, bottom, &d);
+    len = SQRTF(d.x * d.x + d.y * d.y + d.z * d.z);
+    if (d.x == 0.0f && d.y == 0.0f && d.z == 0.0f) {
+        d.y = 1.0f;
+    }
+#line 1250
+    VECNormalize(&d, &d);
+    up.x = 0.0f;
+    up.y = 1.0f;
+    up.z = 0.0f;
+    ang = acosf(PSVECDotProduct(&d, &up));
+    if (ang > 0.01f && ang < PI - 0.01f) {
+        PSVECCrossProduct(&up, &d, &up);
+        PSMTXRotAxisRad(inv, &up, ang);
+        PSMTXConcat(inv, m, m);
+    }
+    TransMatrix(m, bottom);
+    if (PSMTXInverse(m, inv) == 0) {
+        PSMTXIdentity(inv);
+    }
+    PSMTXMultVec(inv, a, &la);
+    PSMTXMultVec(inv, b, &lb);
+    dist = (a->x - top->x) * (a->x - top->x) + (a->y - top->y) * (a->y - top->y) + (a->z - top->z) * (a->z - top->z);
+    if (dist < r * r) {
+        *hit = *a;
+        return 1;
+    }
+    dist = (a->x - bottom->x) * (a->x - bottom->x) + (a->y - bottom->y) * (a->y - bottom->y) +
+           (a->z - bottom->z) * (a->z - bottom->z);
+    if (dist < r * r) {
+        *hit = *a;
+        return 1;
+    }
+    dist = la.x * la.x + la.z * la.z;
+    if (la.y > 0.0f && la.y < len && dist < r * r) {
+        *hit = *a;
+        return 1;
+    }
+    if ((a->x - b->x) * (a->x - b->x) + (a->y - b->y) * (a->y - b->y) + (a->z - b->z) * (a->z - b->z) <= 0.1f) {
+        return 0;
+    }
+    if (LineSphereCrossCk(a, b, top, &c, r)) {
+        PSMTXMultVec(inv, &c, &d);
+        if (d.y < 0.0f || d.y > len) {
+            *hit = c;
+            return 1;
+        }
+    }
+    if (LineSphereCrossCk(a, b, bottom, &c, r)) {
+        PSMTXMultVec(inv, &c, &d);
+        if (d.y < 0.0f || d.y > len) {
+            *hit = c;
+            return 1;
+        }
+    }
+    dxz = (la.x - lb.x) * (la.x - lb.x) + (la.z - lb.z) * (la.z - lb.z);
+    if (dxz <= 0.1f) {
+        return 0;
+    }
+    PSVECSubtract(&lb, &la, &e);
+    PSVECScale(&la, &f, -1.0f);
+    t = (e.x * f.x + e.z * f.z) / dxz;
+    PSVECScale(&e, &g, t);
+    PSVECAdd(&g, &la, &g);
+    if (g.x * g.x + g.z * g.z >= r * r) {
+        return 0;
+    }
+    h = SQRTF(r * r - (g.x * g.x + g.z * g.z));
+    PSVECSubtract(&la, &g, &d);
+    PSVECScale(&d, &d, h / PSVECMag(&d));
+    PSVECAdd(&d, &g, &d);
+    distA = (la.x - d.x) * (la.x - d.x) + (la.y - d.y) * (la.y - d.y) + (la.z - d.z) * (la.z - d.z);
+    h = (la.x - lb.x) * (la.x - lb.x) + (la.y - lb.y) * (la.y - lb.y) + (la.z - lb.z) * (la.z - lb.z);
+    if (distA > h) {
+        return 0;
+    }
+    if (d.y < 0.0f) {
+        return 0;
+    }
+    if (d.y > len) {
+        return 0;
+    }
+    PSMTXMultVec(m, &d, &la);
+    PSVECSubtract(a, &la, &d);
+    PSVECSubtract(a, b, &up);
+    if (PSVECDotProduct(&d, &up) < 0.0f) {
+        return 0;
+    }
+    PSVECSubtract(b, &la, &d);
+    PSVECSubtract(b, a, &up);
+    if (PSVECDotProduct(&d, &up) < 0.0f) {
+        return 0;
+    }
+    *hit = la;
+    return 1;
+}
+
+// Segment a-b against the box (sx, sy, sz) at `ofs` in the space of `m`: the six faces as quads.
+int emLineCubeCrossCk(Vec* a, Vec* b, Mtx m, f32 sx, f32 sy, f32 sz, Vec* ofs, Vec* hit)
+{
+    Mtx mat;
+    Vec poly[4];
+    Vec c;
+    Vec v[8];
+
+    PSMTXMultVec(m, ofs, &c);
+    PSMTXCopy(m, mat);
+    TransMatrix(mat, &c);
+    v[0].x = -sx;
+    v[0].y = 0.0f;
+    v[0].z = sz;
+    v[1].x = sx;
+    v[1].y = 0.0f;
+    v[1].z = sz;
+    v[2].x = sx;
+    v[2].y = sy;
+    v[2].z = sz;
+    v[3].x = -sx;
+    v[3].y = sy;
+    v[3].z = sz;
+    v[4].x = -sx;
+    v[4].y = 0.0f;
+    v[4].z = -sz;
+    v[5].x = sx;
+    v[5].y = 0.0f;
+    v[5].z = -sz;
+    v[6].x = sx;
+    v[6].y = sy;
+    v[6].z = -sz;
+    v[7].x = -sx;
+    v[7].y = sy;
+    v[7].z = -sz;
+    PSMTXMultVec(mat, &v[0], &v[0]);
+    PSMTXMultVec(mat, &v[1], &v[1]);
+    PSMTXMultVec(mat, &v[2], &v[2]);
+    PSMTXMultVec(mat, &v[3], &v[3]);
+    PSMTXMultVec(mat, &v[4], &v[4]);
+    PSMTXMultVec(mat, &v[5], &v[5]);
+    PSMTXMultVec(mat, &v[6], &v[6]);
+    PSMTXMultVec(mat, &v[7], &v[7]);
+    poly[0] = v[0];
+    poly[1] = v[1];
+    poly[2] = v[2];
+    poly[3] = v[3];
+    if (emLinePolyCrossCk(a, b, poly, hit)) {
+        return 1;
+    }
+    poly[0] = v[1];
+    poly[1] = v[5];
+    poly[2] = v[6];
+    poly[3] = v[2];
+    if (emLinePolyCrossCk(a, b, poly, hit)) {
+        return 1;
+    }
+    poly[0] = v[5];
+    poly[1] = v[4];
+    poly[2] = v[7];
+    poly[3] = v[6];
+    if (emLinePolyCrossCk(a, b, poly, hit)) {
+        return 1;
+    }
+    poly[0] = v[4];
+    poly[1] = v[0];
+    poly[2] = v[3];
+    poly[3] = v[7];
+    if (emLinePolyCrossCk(a, b, poly, hit)) {
+        return 1;
+    }
+    poly[0] = v[3];
+    poly[1] = v[2];
+    poly[2] = v[6];
+    poly[3] = v[7];
+    if (emLinePolyCrossCk(a, b, poly, hit)) {
+        return 1;
+    }
+    poly[0] = v[1];
+    poly[1] = v[0];
+    poly[2] = v[4];
+    poly[3] = v[5];
+    if (emLinePolyCrossCk(a, b, poly, hit)) {
+        return 1;
+    }
+    return 0;
+}
+
+// Segment a-b (a on the front side) against the quad poly[4]: 1 with the crossing point in `hit`.
+int emLinePolyCrossCk(Vec* a, Vec* b, Vec* poly, Vec* hit)
+{
+    Vec e1;
+    Vec e2;
+    Vec n;
+    Vec p;
+    Vec c;
+    f32 da;
+    f32 db;
+    f32 ab;
+    f32 t;
+
+    PSVECSubtract(&poly[2], &poly[1], &e1);
+    PSVECSubtract(&poly[0], &poly[1], &e2);
+    PSVECCrossProduct(&e1, &e2, &n);
+    if (n.x == 0.0f && n.y == 0.0f && n.z == 0.0f) {
+        return 0;
+    }
+#line 1552
+    VECNormalize(&n, &n);
+    da = PSVECDotProduct(&n, a) - PSVECDotProduct(&n, &poly[1]);
+    if (da <= 0.0f) {
+        return 0;
+    }
+    db = PSVECDotProduct(&n, b) - PSVECDotProduct(&n, &poly[1]);
+    if (db >= 0.0f) {
+        return 0;
+    }
+    ab = fabsf(db);
+    t = ab / (da + ab);
+    PSVECSubtract(a, b, &p);
+    PSVECScale(&p, &p, t);
+    PSVECAdd(b, &p, &p);
+    PSVECSubtract(&p, &poly[1], &e1);
+    PSVECSubtract(&poly[0], &poly[1], &e2);
+    PSVECCrossProduct(&e1, &e2, &c);
+    if (PSVECDotProduct(&n, &c) < 0.0f) {
+        return 0;
+    }
+    PSVECSubtract(&p, &poly[2], &e1);
+    PSVECSubtract(&poly[1], &poly[2], &e2);
+    PSVECCrossProduct(&e1, &e2, &c);
+    if (PSVECDotProduct(&n, &c) < 0.0f) {
+        return 0;
+    }
+    PSVECSubtract(&p, &poly[3], &e1);
+    PSVECSubtract(&poly[2], &poly[3], &e2);
+    PSVECCrossProduct(&e1, &e2, &c);
+    if (PSVECDotProduct(&n, &c) < 0.0f) {
+        return 0;
+    }
+    PSVECSubtract(&p, &poly[0], &e1);
+    PSVECSubtract(&poly[3], &poly[0], &e2);
+    PSVECCrossProduct(&e1, &e2, &c);
+    if (PSVECDotProduct(&n, &c) < 0.0f) {
+        return 0;
+    }
+    *hit = p;
+    return 1;
+}
+
+// Hit boxes of `em` touched by the sphere (pos, r): the one best facing the pos2 -> pos direction
+// (or the nearest when pos2 is at pos); rad = squared distance centre -> pos.
+EmHitInfo* emSphereAtCk(cEm* em, Vec* pos, Vec* pos2, int flag, f32 r, f32 r2)
+{
+    Vec top;
+    Vec bottom;
+    Vec center;
+    Vec d;
+    Vec s;
+    Vec box[8] = {
+        {-500.0f, -450.0f, 0.0f},    {500.0f, -450.0f, 0.0f},    {-3000.0f, -800.0f, 15000.0f}, {3000.0f, -800.0f, 15000.0f},
+        {-500.0f, 450.0f, 0.0f},     {500.0f, 450.0f, 0.0f},     {-3000.0f, 800.0f, 15000.0f},  {3000.0f, 800.0f, 15000.0f},
+    };
+    EmHitInfo* p;
+    EmHitInfo* ret = 0;
+    cModel* parts;
+    f32 dist;
+    f32 bestRad;
+    f32 bestDot;
+    f32 rr;
+    f32 dp;
+
+    dist = (pos->x - pos2->x) * (pos->x - pos2->x) + (pos->y - pos2->y) * (pos->y - pos2->y) +
+           (pos->z - pos2->z) * (pos->z - pos2->z);
+    if (dist > 100.0f) {
+        PSVECSubtract(pos, pos2, &d);
+#line 1658
+        VECNormalize(&d, &d);
+    } else {
+        dist = 0.0f;
+    }
+    bestRad = 1e16f;
+    bestDot = -PI;
+    for (p = &em->hitInfo; p != 0; p = p->next) {
+        if (!(p->flags & 1)) {
+            continue;
+        }
+        if ((p->flags & 0x10) && HandgunCk(flag)) {
+            continue;
+        }
+        bottom = p->ofs;
+        top = p->ofs;
+        if (p->flags & 6) {
+            if (p->flags & 2) {
+                top.x += p->height;
+            } else {
+                top.z += p->height;
+            }
+        } else {
+            top.y += p->height;
+        }
+        parts = HitParts(em, p);
+        PSMTXMultVec(parts->mat, &top, &top);
+        PSMTXMultVec(parts->mat, &bottom, &bottom);
+        PSVECAdd(&top, &bottom, &center);
+        PSVECScale(&center, &center, 0.5f);
+        if (p->flags & 8) {
+            box[0].x = -p->width;
+            box[0].y = 0.0f;
+            box[0].z = -p->depth;
+            box[1].x = p->width;
+            box[1].y = 0.0f;
+            box[1].z = -p->depth;
+            box[2].x = -p->width;
+            box[2].y = 0.0f;
+            box[2].z = p->depth;
+            box[3].x = p->width;
+            box[3].y = 0.0f;
+            box[3].z = p->depth;
+            box[4].x = -p->width;
+            box[4].y = p->height;
+            box[4].z = -p->depth;
+            box[5].x = p->width;
+            box[5].y = p->height;
+            box[5].z = -p->depth;
+            box[6].x = -p->width;
+            box[6].y = p->height;
+            box[6].z = p->depth;
+            box[7].x = p->width;
+            box[7].y = p->height;
+            box[7].z = p->depth;
+            PSMTXMultVec(parts->mat, &box[0], &box[0]);
+            PSMTXMultVec(parts->mat, &box[1], &box[1]);
+            PSMTXMultVec(parts->mat, &box[2], &box[2]);
+            PSMTXMultVec(parts->mat, &box[3], &box[3]);
+            PSMTXMultVec(parts->mat, &box[4], &box[4]);
+            PSMTXMultVec(parts->mat, &box[5], &box[5]);
+            PSMTXMultVec(parts->mat, &box[6], &box[6]);
+            PSMTXMultVec(parts->mat, &box[7], &box[7]);
+            if (At_box_sphere_ck(box, pos, r) == 0) {
+                continue;
+            }
+        } else {
+            s.x = 0.0f;
+            s.y = 0.0f;
+            s.z = p->width;
+            PSMTXMultVecSR(parts->mat, &s, &s);
+            rr = PSVECMag(&s);
+            if (AtSphereCapsuleCk(pos, &top, r, rr, &bottom) == 0) {
+                continue;
+            }
+        }
+        PSVECSubtract(&center, pos, &s);
+        if (r != r2) {
+            if (fabsf(s.y) > r2 + p->width) {
+                continue;
+            }
+        }
+        p->rad = s.x * s.x + s.y * s.y + s.z * s.z;
+        if (dist > 0.0f) {
+#line 1781
+            VECNormalize(&s, &s);
+            dp = PSVECDotProduct(&d, &s);
+            if (dp < bestDot) {
+                if (dp < 0.6f) {
+                    continue;
+                }
+                if (p->rad >= bestRad) {
+                    continue;
+                }
+            }
+            bestDot = dp;
+            bestRad = p->rad;
+            ret = p;
+        } else {
+            p->rad = (pos->x - center.x) * (pos->x - center.x) + (pos->y - center.y) * (pos->y - center.y) +
+                     (pos->z - center.z) * (pos->z - center.z);
+            if (p->rad >= bestRad) {
+                continue;
+            }
+            bestRad = p->rad;
+            ret = p;
+        }
+    }
+    return ret;
+}
+
+// Enemies hit by the melee box: up to `max` entries, the farthest replaced when the list is full.
+u32 GetWepTargetList(Vec* box, Vec* pos, WepTarget* list, u32 max, int flag)
+{
+    u32 cnt = 0;
+    u32 i;
+    u32 j;
+    u32 worst;
+    cEm* em;
+    EmHitInfo* part;
+    EmHitInfo* q;
+    EmHitInfo* w;
+    f32 wr;
+
+    for (i = 0; i < EmMgr.nArray; i++) {
+        em = EmMgrWork(i);
+        if (!(em->be_flag & 1)) {
+            continue;
+        }
+        if (!(em->be_flag & 0x20)) {
+            continue;
+        }
+        if (em->id <= 0xF && em->id != 3 && em->id != 4) {
+            continue;
+        }
+        if (em->hp <= 0) {
+            continue;
+        }
+        if (EmIsDead(em)) {
+            continue;
+        }
+        if (flag == 0xE && em->id == 0x4F) {
+            continue;
+        }
+        part = emBoxAtCk(em, box, pos, flag);
+        if (part == 0) {
+            continue;
+        }
+        part->flags &= ~0x4000;
+        if (cnt < max) {
+            list[cnt].em = em;
+            list[cnt].part = part;
+            cnt++;
+            continue;
+        }
+        worst = 0;
+        wr = list[0].part->rad;
+        for (j = 1; j < max; j++) {
+            q = list[j].part;
+            w = list[worst].part;
+            if (q->dist <= 250000.0f) {
+                if (w->dist > 250000.0f) {
+                    continue;
+                }
+                if (q->rad < wr) {
+                    continue;
+                }
+                wr = q->rad;
+                worst = j;
+            } else {
+                if (w->dist <= 250000.0f && w->dist > q->dist) {
+                    continue;
+                }
+                wr = q->rad;
+                worst = j;
+            }
+        }
+        w = list[worst].part;
+        if (w->dist <= 250000.0f) {
+            if (part->dist > 250000.0f) {
+                continue;
+            }
+            if (w->rad < part->rad) {
+                continue;
+            }
+        } else {
+            if (part->dist <= 250000.0f) {
+                if (w->dist < part->dist) {
+                    continue;
+                }
+            }
+        }
+        list[worst].em = em;
+        list[worst].part = part;
+    }
+    return cnt;
+}
+
+// Enemies crossed by the shot line p0-p1 (stopped at the scenario hit), nearest first; the
+// hit-only 0x41/0x4E enemies are added last. Returns the count; `hit` / `nrm` / `attr` receive the
+// scenario hit (nrm zero when an enemy was hit).
+u32 GetWepTargetList2(Vec* p0, Vec* p1, WepTarget* list, u32 max, Vec* hit, Vec* nrm, u32* attr, int type,
+                      int flag)
+{
+    Mtx m;
+    Vec d;
+    u32 cnt = 0;
+    int i;
+    int j;
+    int worst;
+    u32 mask;
+    f32 dist;
+    f32 l;
+    cEm* em;
+    cEm* bestEm = 0;
+    EmHitInfo* bestPart = 0;
+    EmHitInfo* part;
+    cModel* parts;
+    WepTarget* lp;
+    WepTarget tmp;
+
+    mask = 0;
+    if (type != 0x10) {
+        mask = 0x400000;
+    }
+    *attr = EatMgr.hitCheck(p0, p1, hit, nrm, 0, mask);
+    if (*attr) {
+        dist = (p0->x - hit->x) * (p0->x - hit->x) + (p0->y - hit->y) * (p0->y - hit->y) +
+               (p0->z - hit->z) * (p0->z - hit->z);
+    } else {
+        *hit = *p1;
+        dist = 1e16f;
+        nrm->x = 0.0f;
+        nrm->y = 0.0f;
+        nrm->z = 0.0f;
+    }
+    if (pG->flags_60 & 0x1000) {
+        Draw_line3d(p0, hit, 0xFFFFFFFF, 0);
+    }
+    PSVECSubtract(p1, p0, &d);
+    if (d.x == d.z) {
+        PSMTXIdentity(m);
+    } else {
+        PSMTXRotRad(m, 'y', atan2f(d.x, d.z));
+    }
+    TransMatrix(m, p0);
+    if (PSMTXInverse(m, m) == 0) {
+        PSMTXIdentity(m);
+    }
+    for (i = 0; i < EmMgr.nArray; i++) {
+        em = EmMgrWork(i);
+        if ((em->be_flag & 0x201) != 1) {
+            continue;
+        }
+        if (em->id != 0x41 && em->id != 0x4E) {
+            continue;
+        }
+        if (em->hp <= 0) {
+            continue;
+        }
+        parts = em->getPartsPtr(0);
+        switch (em->id) {
+        case 0x2B:
+        case 0x2F:
+        case 0x31:
+        case 0x37:
+        case 0x38:
+        case 0x3B:
+        case 0x3E:
+        case 0x4D:
+            break;
+        default:
+            PSMTXMultVec(m, &parts->worldPos, &d);
+            if (d.z < -10000.0f) {
+                continue;
+            }
+            if (d.x > 10000.0f) {
+                continue;
+            }
+            if (d.x < -10000.0f) {
+                continue;
+            }
+            break;
+        }
+        part = emLineAtCk(em, p0, p1, dist, type);
+        if (part == 0) {
+            continue;
+        }
+        part->flags |= 0x4000;
+        if (bestPart != 0 && part->rad > bestPart->rad) {
+            continue;
+        }
+        bestPart = part;
+        bestEm = em;
+    }
+    if (bestPart) {
+        if (!(bestPart->flags & 0x20)) {
+            nrm->x = 0.0f;
+            nrm->y = 0.0f;
+            nrm->z = 0.0f;
+            dist = bestPart->rad;
+        } else {
+            if (max <= 0x13) {
+                max++;
+            }
+        }
+    }
+    lp = &list[cnt];
+    for (i = 0; i < EmMgr.nArray; i++) {
+        em = EmMgrWork(i);
+        if (!(em->be_flag & 1)) {
+            continue;
+        }
+        if (!(em->be_flag & 0x20)) {
+            continue;
+        }
+        if (em->id <= 0xF && em->id != 3 && em->id != 4) {
+            continue;
+        }
+        if ((flag & 1) && (em->id == 3 || em->id == 4)) {
+            continue;
+        }
+        switch (em->id) {
+        case 0x41:
+        case 0x4E:
+            continue;
+        case 0x42:
+        case 0x4F:
+            if (type == 0xE) {
+                continue;
+            }
+            break;
+        }
+        if (em->hp <= 0) {
+            continue;
+        }
+        if (em->id != 0x50) {
+            if (EmIsDead(em)) {
+                continue;
+            }
+        }
+        parts = em->getPartsPtr(0);
+        switch (em->id) {
+        case 0x2B:
+        case 0x2F:
+        case 0x31:
+        case 0x37:
+        case 0x38:
+        case 0x3B:
+        case 0x3E:
+        case 0x4D:
+            break;
+        default:
+            PSMTXMultVec(m, &parts->worldPos, &d);
+            if (d.z < -10000.0f) {
+                continue;
+            }
+            if (d.x > 10000.0f) {
+                continue;
+            }
+            if (d.x < -10000.0f) {
+                continue;
+            }
+            break;
+        }
+        l = dist;
+        if (type == 0x10 && (em->id == 0x43 || em->id == 0x4C)) {
+            l = 1e16f;
+        }
+        part = emLineAtCk(em, p0, p1, l, type);
+        if (part == 0) {
+            continue;
+        }
+        part->flags |= 0x4000;
+        if (part->flags & 0x20) {
+            if (max <= 0x13) {
+                max++;
+            }
+        }
+        if ((int) cnt < (int) max) {
+            lp->em = em;
+            lp->part = part;
+            lp++;
+            cnt++;
+            continue;
+        }
+        worst = 0;
+        for (j = 1; j < (int) max; j++) {
+            if (list[worst].part->rad <= list[j].part->rad) {
+                worst = j;
+            }
+        }
+        if (list[worst].part->rad > part->rad) {
+            list[worst].em = em;
+            list[worst].part = part;
+        }
+    }
+    for (i = 0; i < (int) cnt - 1; i++) {
+        for (j = i + 1; j < (int) cnt; j++) {
+            if (list[i].part->rad > list[j].part->rad) {
+                tmp = list[i];
+                list[i] = list[j];
+                list[j] = tmp;
+            }
+        }
+    }
+    if (bestPart) {
+        if ((int) cnt <= (int) max - 1 || cnt == 0) {
+            list[cnt].em = bestEm;
+            list[cnt].part = bestPart;
+            cnt++;
+        }
+    }
+    if (cnt != 0) {
+        nrm->x = 0.0f;
+        nrm->y = 0.0f;
+        nrm->z = 0.0f;
+    }
+    return cnt;
+}
+
+// Enemies inside the blast sphere (pos, r), nearest first.
+int GetWepTargetListBomb(Vec* pos, WepTarget* list, int max, int type, int flag, f32 r)
+{
+    Vec center;
+    Vec bottom;
+    Vec top;
+    int cnt = 0;
+    int i;
+    int j;
+    int worst;
+    u32 axis;
+    u32 mask;
+    f32 rr;
+    f32 r2;
+    cEm* em;
+    EmHitInfo* part;
+    cModel* parts;
+    WepTarget* lp;
+    WepTarget tmp;
+
+    switch (type) {
+    case 0xD:
+    case 0x12:
+    case 0x13:
+        PlBombHitCk(pos, r);
+        break;
+    }
+    if (pG->flags_60 & 0x1000) {
+        Draw_sphere(pos, r, 0xFFFF00FF, 1, 1);
+    }
+    lp = list;
+    for (i = 0; i < EmMgr.nArray; i++) {
+        em = EmMgrWork(i);
+        if (!(em->be_flag & 1)) {
+            continue;
+        }
+        if (!(em->be_flag & 0x20)) {
+            continue;
+        }
+        if (em->id <= 0xF && em->id != 3 && em->id != 4) {
+            continue;
+        }
+        if (em->hp <= 0) {
+            continue;
+        }
+        if (EmIsDead(em)) {
+            continue;
+        }
+        if (type == 0xE && em->id == 0x4F) {
+            continue;
+        }
+        if ((flag & 1) && (em->id == 3 || em->id == 4)) {
+            continue;
+        }
+        switch (em->id) {
+        case 3:
+            rr = r;
+            if (rr > 2500.0f) {
+                rr = 2500.0f;
+            }
+            break;
+        case 4:
+            rr = r;
+            if (rr > 1500.0f) {
+                rr = 1500.0f;
+            }
+            break;
+        case 0x40:
+        case 0x41:
+        case 0x42:
+        case 0x43:
+        case 0x44:
+        case 0x45:
+        case 0x46:
+        case 0x47:
+            rr = r;
+            break;
+        default:
+            rr = r;
+            break;
+        }
+        r2 = rr;
+        switch (type) {
+        case 0xD:
+        case 0x12:
+        case 0x13:
+        case 0x2D:
+            if (rr > 2000.0f) {
+                r2 = 2000.0f;
+            }
+            break;
+        }
+        part = emSphereAtCk(em, pos, pos, type, rr, r2);
+        if (part == 0) {
+            continue;
+        }
+        part->flags &= ~0x4000;
+        if (part->flags & 6) {
+            axis = (part->flags & 2) ? 0 : 2;
+        } else {
+            axis = 1;
+        }
+        parts = HitParts(em, part);
+        bottom = part->ofs;
+        top = part->ofs;
+        switch (axis) {
+        case 0:
+            top.x += part->height;
+            break;
+        case 1:
+        default:
+            top.y += part->height;
+            break;
+        case 2:
+            top.z += part->height;
+            break;
+        }
+        PSMTXMultVec(parts->mat, &top, &top);
+        PSMTXMultVec(parts->mat, &bottom, &bottom);
+        PSVECAdd(&top, &bottom, &center);
+        PSVECScale(&center, &center, 0.5f);
+        if (!(part->flags & 0x80)) {
+            mask = 0;
+            if (type != 0x10) {
+                mask = 0x400000;
+            }
+            if ((pos->x - center.x) * (pos->x - center.x) + (pos->y - center.y) * (pos->y - center.y) +
+                        (pos->z - center.z) * (pos->z - center.z) >
+                    (rr * 0.3f) * (rr * 0.3f) ||
+                em->id == 3 || em->id == 4 || em->id == 0x39) {
+                if (EatMgr.hitCheck(pos, &center, 0, 0, 0, mask) != 0) {
+                    continue;
+                }
+            }
+        }
+        if (cnt < max) {
+            lp->em = em;
+            lp->part = part;
+            lp++;
+            cnt++;
+            continue;
+        }
+        worst = 0;
+        for (j = 1; j < max; j++) {
+            if (list[worst].part->rad <= list[j].part->rad) {
+                worst = j;
+            }
+        }
+        if (list[worst].part->rad > part->rad) {
+            list[worst].em = em;
+            list[worst].part = part;
+        }
+    }
+    for (i = 0; i < cnt - 1; i++) {
+        for (j = i + 1; j < cnt; j++) {
+            if (list[i].part->rad > list[j].part->rad) {
+                tmp = list[i];
+                list[i] = list[j];
+                list[j] = tmp;
+            }
+        }
+    }
+    return cnt;
+}
+
+// Player inside the blast sphere: damage 9 (knock down) beyond the inner radius, 8 with a life
+// loss inside it. 1 when the player was hit.
+int PlBombHitCk(Vec* pos, f32 r)
+{
+    cModel* parts;
+    f32 d2;
+    f32 lim;
+
+    if ((s16) pG->pl_life <= 0) {
+        return 0;
+    }
+    if (EmIsDead(pPL)) {
+        return 0;
+    }
+    parts = pPL->getPartsPtr(0);
+    d2 = (pos->x - parts->worldPos.x) * (pos->x - parts->worldPos.x) +
+         (pos->y - parts->worldPos.y) * (pos->y - parts->worldPos.y) +
+         (pos->z - parts->worldPos.z) * (pos->z - parts->worldPos.z);
+    if (d2 > 36000000.0f) {
+        return 0;
+    }
+    if (d2 > (r + 300.0f) * (r + 300.0f)) {
+        return 0;
+    }
+    if ((G_WEP_ID & 0xFFFF0000) == 0x0D020000) {
+        lim = 1500.0f;
+    } else {
+        lim = 2500.0f;
+    }
+    if (d2 > lim * lim) {
+        PlSetDamage(9, 0, 0);
+        return 1;
+    }
+    if (EatMgr.hitCheck(pos, &parts->worldPos, 0, 0, 0, 0x400000) != 0) {
+        return 0;
+    }
+    LifeDownSet2(pPL, 1200, 0, (s16) pG->pl_life >= 501);
+    PlSetDamage(8, 0, 0);
+    VibSetData((VibDataTbl*) (pG->pArc->ofs_1C + (u32) pG->pArc), 7, 1);
+    return 1;
+}
+
+// Point the weapon line p0-p1 hits: the scenario (1), an enemy (2, 3 with flag 0x40) or nothing (0);
+// p1 is moved to the hit point.
+int GetWepTargetPos(Vec* p0, Vec* p1, int plCheck, int wepNo, cEm** outEm, int* outAttr)
+{
+    Mtx m;
+    Vec hit;
+    Vec h2;
+    Vec d;
+    int ret = 0;
+    int attr;
+    u32 i;
+    cEm* em;
+    cModel* parts;
+    EmHitInfo* part;
+    f32 dist;
+    f32 len;
+    f32 e2;
+    s16 life;
+
+    if (outEm) {
+        *outEm = 0;
+    }
+    attr = EatMgr.hitCheck(p0, p1, &hit, 0, 0, 0x400000);
+    if (attr) {
+        ret = 1;
+        if (outAttr) {
+            *outAttr = attr;
+        }
+    } else {
+        hit = *p1;
+    }
+    dist = (p0->x - hit.x) * (p0->x - hit.x) + (p0->y - hit.y) * (p0->y - hit.y) + (p0->z - hit.z) * (p0->z - hit.z);
+    len = dist;
+    PSVECSubtract(p1, p0, &d);
+    if (d.x == d.z) {
+        PSMTXIdentity(m);
+    } else {
+        PSMTXRotRad(m, 'y', atan2f(d.x, d.z));
+    }
+    TransMatrix(m, p0);
+    if (PSMTXInverse(m, m) == 0) {
+        PSMTXIdentity(m);
+    }
+    for (i = 0; i < EmMgr.nArray; i++) {
+        em = (cEm*) ((u8*) EmMgr.pArray + EmMgr.size * i);
+        if ((em->be_flag & 0x201) != 1) {
+            continue;
+        }
+        if (em->be_flag & 0x10000000) {
+            continue;
+        }
+        if (plCheck) {
+            if (i != 0) {
+                continue;
+            }
+            life = pG->pl_life;
+        } else {
+            if (i == 0) {
+                continue;
+            }
+            life = em->hp;
+        }
+        if (life <= 0) {
+            continue;
+        }
+        parts = em->getPartsPtr(0);
+        switch (em->id) {
+        case 0x2B:
+        case 0x2F:
+        case 0x31:
+        case 0x37:
+        case 0x38:
+        case 0x3B:
+        case 0x3E:
+        case 0x4D:
+            break;
+        default:
+            PSMTXMultVec(m, &parts->worldPos, &d);
+            if (d.z < -10000.0f) {
+                continue;
+            }
+            if (d.x > 10000.0f) {
+                continue;
+            }
+            if (d.x < -10000.0f) {
+                continue;
+            }
+            if (Front_check(pPL, em, PI / 2.0f) == 0) {
+                continue;
+            }
+            break;
+        }
+        part = emLineAtCk2(em, p0, p1, &h2, 0, len);
+        if (part == 0) {
+            continue;
+        }
+        e2 = (p0->x - h2.x) * (p0->x - h2.x) + (p0->y - h2.y) * (p0->y - h2.y) + (p0->z - h2.z) * (p0->z - h2.z);
+        if (e2 > dist) {
+            continue;
+        }
+        dist = e2;
+        hit = h2;
+        if (outEm) {
+            *outEm = em;
+        }
+        ret = 2;
+        if (part->flags & 0x40) {
+            ret = 3;
+        }
+    }
+    *p1 = hit;
+    return ret;
+}
+
+// Hit box of `em` the sphere (pos, r) touches, stepping along each capsule's axis; the contact
+// point on the axis goes to `out`.
+EmHitInfo* EmYarareContactCk(cEm* em, Vec* pos, Vec* out, f32 r)
+{
+    Vec top;
+    Vec bottom;
+    Vec s;
+    Vec q;
+    EmHitInfo* p;
+    cModel* parts;
+    f32 rr;
+    f32 len;
+    f32 step;
+    u32 n;
+    u32 i;
+
+    if (em->hp <= 0) {
+        return 0;
+    }
+    for (p = &em->hitInfo; p != 0; p = p->next) {
+        if (!(p->flags & 1)) {
+            continue;
+        }
+        if (p->flags & 8) {
+            continue;
+        }
+        bottom = p->ofs;
+        top = p->ofs;
+        if (p->flags & 6) {
+            if (p->flags & 2) {
+                top.x += p->height;
+            } else {
+                top.z += p->height;
+            }
+        } else {
+            top.y += p->height;
+        }
+        parts = HitParts(em, p);
+        PSMTXMultVec(parts->mat, &bottom, &bottom);
+        PSMTXMultVec(parts->mat, &top, &top);
+        s.x = 0.0f;
+        s.y = 0.0f;
+        s.z = p->width;
+        PSMTXMultVecSR(parts->mat, &s, &s);
+        rr = PSVECMag(&s);
+        if (SphereHitCk(pos, &top, r, rr)) {
+            if (out) {
+                *out = top;
+            }
+            return p;
+        }
+        if (SphereHitCk(pos, &bottom, r, rr)) {
+            if (out) {
+                *out = bottom;
+            }
+            return p;
+        }
+        PSVECSubtract(&top, &bottom, &s);
+        len = RootSumSquare3(&s);
+        n = (u32) (len / (rr + rr)) + 2;
+        step = len / (f32) n;
+        if (step < 0.01f) {
+            continue;
+        }
+#line 2785
+        VECNormalize(&s, &s);
+        PSVECScale(&s, &s, step);
+        q = bottom;
+        for (i = 1; i != n; i++) {
+            PSVECAdd(&q, &s, &q);
+            if (SphereHitCk(pos, &q, r, rr)) {
+                if (out) {
+                    *out = q;
+                }
+                return p;
+            }
+        }
+    }
+    return 0;
+}
+
+// Debug draw of the hit boxes (grey; red when the box took the current damage; off when dead).
+void EmYarareDisp(cEm* em)
+{
+    Vec top;
+    Vec bottom;
+    Vec s;
+    EmHitInfo* p;
+    cModel* parts;
+    u32 color;
+    u16 fl;
+
+    if (!(pG->flags_60 & 0x1000)) {
+        return;
+    }
+    for (p = &em->hitInfo; p != 0; p = p->next) {
+        fl = p->flags;
+        if (!(fl & 1)) {
+            continue;
+        }
+        color = 0x60606060;
+        if (EmIsDead(em) && em->dmPart == p) {
+            color = 0xFF000000;
+        }
+        if (em->hp <= 0) {
+            color = 0;
+        }
+        if (!(fl & 1)) {
+            color = 0;
+        }
+        if (fl & 8) {
+            parts = HitParts(em, p);
+            AtCubeDisp(parts->mat, p->width, p->height, p->depth, &p->ofs, color);
+        } else {
+            bottom = p->ofs;
+            top = p->ofs;
+            if (fl & 6) {
+                if (fl & 2) {
+                    top.x += p->height;
+                } else {
+                    top.z += p->height;
+                }
+            } else {
+                top.y += p->height;
+            }
+            parts = HitParts(em, p);
+            PSMTXMultVec(parts->mat, &bottom, &bottom);
+            PSMTXMultVec(parts->mat, &top, &top);
+            s.x = 0.0f;
+            s.y = 0.0f;
+            s.z = p->width;
+            PSMTXMultVecSR(parts->mat, &s, &s);
+            AtCapsuleDisp(&top, &bottom, PSVECMag(&s), color);
+        }
+    }
+}
+
+// Pool of a helper the original linker dropped (a double zero before LifeDownSet2's pool).
+static int emYarareDead(f32 v)
+{
+    return v != 0.0;
+}
+
+void EmScenario(cEm* em)
+{
+    if (em->pScenario) {
+        em->pScenario(em);
+    }
+}
+
+int LifeDownSet(cEm* em, int dmg, int flag)
+{
+    return LifeDownSet2(em, dmg, flag, 0);
+}
+
+// Take `dmg` (+-rnd) off the life of `em`: the player (id 0), the partner (ids 1..0xD) or an enemy.
+// flag bit0 leaves 1 life point. Returns the remaining life.
+int LifeDownSet2(cEm* em, int dmg, int rnd, int flag)
+{
+    int r;
+    int ret;
+    f32 rate;
+
+    r = (Rnd() << 8) | Rnd();
+    if (rnd != 0) {
+        dmg += r % (rnd * 2) - rnd;
+    }
+    if (em->id == 0) {
+        if ((s16) pG->pl_life <= 0) {
+            return 0;
+        }
+        rate = (f32) pG->x4F88 * 0.1f + 0.5f;
+        if (PlIsArmor()) {
+            rate *= 0.7f;
+        }
+        dmg = (int) ((f32) dmg * rate);
+        if (dmg > 100) {
+            if (dmg > 500) {
+                GameAddPoint(3);
+            } else {
+                GameAddPoint(2);
+            }
+        }
+        if (pG->x4F88 <= 2 && (s16) pG->pl_life > 300) {
+            flag |= 1;
+        }
+        if ((s16) pG->pl_life > 300 && (Rnd() & 3) == 0) {
+            flag |= 1;
+        }
+        if ((s16) pG->pl_life < dmg) {
+            dmg = (s16) pG->pl_life;
+        }
+        pG->pl_life -= dmg;
+        if ((s16) pG->pl_life <= 0) {
+            if (flag & 1) {
+                pG->pl_life = 1;
+            }
+            if ((s16) pG->pl_life < 0) {
+                pG->pl_life = 0;
+            }
+        }
+        if (pG->flags_68 & 0x800000) {
+            pG->pl_life = pG->pl_life_max;
+        }
+        if ((pG->flags_6C & 0x400) && (s16) pG->pl_life <= 1) {
+            pG->pl_life = 2;
+        }
+        ret = (s16) pG->pl_life;
+    } else if (em->id <= 0xD) {
+        if ((s16) pG->sub_life <= 0) {
+            return 0;
+        }
+        rate = (f32) pG->x4F88 * 0.1f + 0.5f;
+        dmg = (int) ((f32) dmg * rate);
+        if (dmg > 100) {
+            if (dmg > 500) {
+                GameAddPoint(3);
+            } else {
+                GameAddPoint(2);
+            }
+        }
+        if ((s16) pG->sub_life < dmg) {
+            dmg = (s16) pG->sub_life;
+        }
+        pG->sub_life -= dmg;
+        if ((s16) pG->sub_life <= 0) {
+            if (flag & 1) {
+                pG->sub_life = 1;
+            }
+            if ((s16) pG->sub_life < 0) {
+                pG->sub_life = 0;
+            }
+        }
+        if (pG->flags_68 & 0x800000) {
+            pG->sub_life = pG->sub_life_max;
+        }
+        if ((pG->flags_6C & 0x400) && (s16) pG->sub_life <= 1) {
+            pG->sub_life = 2;
+        }
+        ret = (s16) pG->sub_life;
+    } else {
+        if (pG->flags_68 & 0x20000) {
+            return em->hp;
+        }
+        if (em->hp <= 0) {
+            return 0;
+        }
+        switch (em->id) {
+        case 0x10: case 0x11: case 0x12: case 0x13: case 0x14: case 0x15: case 0x16: case 0x17:
+        case 0x18: case 0x19: case 0x1A: case 0x1B: case 0x1C: case 0x1D: case 0x1E: case 0x1F:
+        case 0x20: case 0x21: case 0x22: case 0x23: case 0x24: case 0x25: case 0x26:
+        case 0x28: case 0x29: case 0x2A: case 0x2B: case 0x2C: case 0x2D:
+        case 0x2F: case 0x30: case 0x31: case 0x32:
+        case 0x34: case 0x35:
+        case 0x37: case 0x38: case 0x39: case 0x3A:
+        case 0x3C:
+            if (pG->x4F88 > 5) {
+                rate = 1.0f - (f32) (int) (pG->x4F88 - 5) * 0.03f;
+            } else {
+                rate = 2.0f - (f32) pG->x4F88 * 0.2f;
+            }
+            dmg = (int) ((f32) dmg * rate);
+            if (em->id >= 0x10 && em->id <= 0x3F && dmg > 100) {
+                GameAddPoint(0xC);
+            }
+            break;
+        }
+        if (pG->flags_68 & 0x2000) {
+            dmg = em->hp;
+        }
+        if (em->hp < dmg) {
+            dmg = em->hp;
+        }
+        em->hp -= dmg;
+        if (em->hp <= 0 && (flag & 1)) {
+            em->hp = 1;
+        }
+        ret = em->hp;
+        if (ret <= 0 && (u32) (em->id - 0x10) <= 0x2F) {
+            GameAddPoint(0xD);
+        }
+    }
+    return ret;
+}
+
+// Player damage entry: register the hit, take the life, and start the damage motion `type`
+// (6/7 die, 8 knocked down; on 0 life 8 becomes 7 and the invincibility flags turn 6/7 into 2/8).
+void PlSetDamage(int type, int dmg, int flag)
+{
+    pPL->dmg.set(0, 0x1E);
+    pPL->x378 = pPL->x37C;
+    if (dmg != 0) {
+        LifeDownSet2(pPL, dmg, 0, flag);
+    }
+    if ((s16) pG->pl_life <= 0) {
+        if (type == 8) {
+            type = 7;
+        }
+        if (pG->flags_68 & 0x800000) {
+            pG->pl_life = pG->pl_life_max;
+            if (type == 6) {
+                type = 2;
+            }
+            if (type == 7) {
+                type = 8;
+            }
+        }
+    }
+    if ((s16) pG->pl_life <= 1 && (pG->flags_6C & 0x400)) {
+        pG->pl_life = 2;
+        if (type == 6) {
+            type = 2;
+        }
+        if (type == 7) {
+            type = 8;
+        }
+    }
+    if ((s16) pG->pl_life <= 0 && type != 6 && type != 7) {
+        cPlayer* p;
+
+        pG->pl_life = 0;
+        pPL->st.x325 = 0x80;
+        p = pPL;
+        p->xFC = 2;
+        p->xFD = 0;
+        p->xFE = 0;
+        p->xFF = 0;
+    } else {
+        pPL->setDamage((u8) type, 0, 123.0f, 0, 0xFF);
+    }
+}
+
+// Attack sphere of `info` at a (from b) against the player (and the partner unless noSub):
+// bit0 player hit, bit1 partner hit.
+int EmAtkHitCk(EmAtkInfo* info, Vec* a, Vec* b, int noSub)
+{
+    int ret = 0;
+    int hit;
+    int keep;
+    EmHitInfo* part;
+
+    hit = EmAtkHitCk2(info, a, b);
+    if (hit) {
+        keep = 0;
+        if (info->x0A & 4) {
+            keep = 1;
+        }
+        LifeDownSet2(pPL, info->dmg, 0, keep);
+        if (info->x0A & 8) {
+            pG->pl_life = 0;
+        }
+        PlSetDamage(hit - 1, 0, 0);
+        ret = 1;
+    }
+    if (noSub == 0) {
+        part = EmAtkHitSubCk2(info, a, b);
+        if (part) {
+            pSUB->dmg.set(0, 10, 0x18, b, part->rad, part);
+            ret |= 2;
+        }
+    }
+    return ret;
+}
+
+// Attack sphere against the player: 0 = miss, else the damage motion type + 1 (front/back, and the
+// height: 4 low, 2 middle).
+int EmAtkHitCk2(EmAtkInfo* info, Vec* a, Vec* b)
+{
+    Vec d;
+    Vec fwd;
+    cModel* parts;
+    EmHitInfo* part;
+    int ret;
+    f32 dy;
+
+    if (pG->flags_60 & 0x1000) {
+        Draw_sphere(a, info->range, 0xFFFF00FF, 1, 1);
+    }
+    if ((s16) pG->pl_life <= 0) {
+        return 0;
+    }
+    if (EmIsDead(pPL)) {
+        return 0;
+    }
+    parts = pPL->getPartsPtr(0);
+    if (EatMgr.hitCheck(&parts->worldPos, a, 0, 0, 0, 0) != 0) {
+        return 0;
+    }
+    part = emSphereAtCk(pPL, a, b, 0x18, info->range, info->range);
+    if (part == 0) {
+        return 0;
+    }
+    part->flags &= ~0x4000;
+    pPL->dmPart = part;
+    if ((a->x - b->x) * (a->x - b->x) + (a->z - b->z) * (a->z - b->z) < 10000.0f) {
+        PSVECSubtract(&pPL->pos, a, &d);
+    } else {
+        PSVECSubtract(a, b, &d);
+    }
+    fwd.x = 0.0f;
+    fwd.y = 0.0f;
+    fwd.z = 1.0f;
+    RotVector(&fwd, &pPL->rot, &fwd);
+    ret = PSVECDotProduct(&fwd, &d) >= 0.0f;
+    dy = a->y - pPL->pos.y;
+    if (dy < 800.0f) {
+        ret += 4;
+    } else if (dy < 1300.0f) {
+        ret += 2;
+    }
+    return ret + 1;
+}
+
+// Line a-b against the scenario and the player's hit boxes: the hit box (as the emhit.h cEm* view),
+// with the scenario hit in `hit` / `nrm` / `attr`.
+cEm* EmAtkLineHitCk(Vec* a, Vec* b, Vec* hit, Vec* nrm, u32* attr)
+{
+    Mtx m;
+    Vec d;
+    cPlayer* pl;
+    cModel* parts;
+    EmHitInfo* part;
+    int at;
+    f32 len;
+
+    at = EatMgr.hitCheck(a, b, hit, nrm, 0, 0x400000);
+    if (at) {
+        len = (a->x - hit->x) * (a->x - hit->x) + (a->y - hit->y) * (a->y - hit->y) + (a->z - hit->z) * (a->z - hit->z);
+    } else {
+        *hit = *b;
+        len = 1e16f;
+        nrm->x = 0.0f;
+        nrm->y = 0.0f;
+        nrm->z = 0.0f;
+    }
+    if (attr) {
+        *attr = at;
+    }
+    pl = pPL;
+    if (!(pl->be_flag & 1)) {
+        return 0;
+    }
+    if (!(pl->be_flag & 0x20)) {
+        return 0;
+    }
+    if ((s16) pG->pl_life <= 0) {
+        return 0;
+    }
+    if (EmIsDead(pl)) {
+        return 0;
+    }
+    PSVECSubtract(b, a, &d);
+    if (d.x == d.z) {
+        PSMTXIdentity(m);
+    } else {
+        PSMTXRotRad(m, 'y', atan2f(d.x, d.z));
+    }
+    TransMatrix(m, a);
+    if (PSMTXInverse(m, m) == 0) {
+        PSMTXIdentity(m);
+    }
+    parts = pl->getPartsPtr(0);
+    PSMTXMultVec(m, &parts->worldPos, &d);
+    if (d.z < -10000.0f) {
+        return 0;
+    }
+    if (d.x > 10000.0f) {
+        return 0;
+    }
+    if (d.x < -10000.0f) {
+        return 0;
+    }
+    part = emLineAtCk(pl, a, b, len, 0x18);
+    if (part == 0) {
+        return 0;
+    }
+    part->flags |= 0x4000;
+    return (cEm*) part;
+}
+
+// EmAtkLineHitCk for the partner.
+EmHitInfo* EmAtkLineHitCkSub(Vec* a, Vec* b, Vec* hit, Vec* nrm)
+{
+    Mtx m;
+    Vec d;
+    cSubChar* sub;
+    cModel* parts;
+    EmHitInfo* part;
+    f32 len;
+
+    if (pSUB == 0) {
+        return 0;
+    }
+    if (EatMgr.hitCheck(a, b, hit, nrm, 0, 0x400000)) {
+        len = (a->x - hit->x) * (a->x - hit->x) + (a->y - hit->y) * (a->y - hit->y) + (a->z - hit->z) * (a->z - hit->z);
+    } else {
+        *hit = *b;
+        len = 1e16f;
+        nrm->x = 0.0f;
+        nrm->y = 0.0f;
+        nrm->z = 0.0f;
+    }
+    sub = pSUB;
+    if (!(sub->be_flag & 1)) {
+        return 0;
+    }
+    if (!(sub->be_flag & 0x20)) {
+        return 0;
+    }
+    if ((s16) pG->sub_life <= 0) {
+        return 0;
+    }
+    if (EmIsDead(sub)) {
+        return 0;
+    }
+    PSVECSubtract(b, a, &d);
+    if (d.x == d.z) {
+        PSMTXIdentity(m);
+    } else {
+        PSMTXRotRad(m, 'y', atan2f(d.x, d.z));
+    }
+    TransMatrix(m, a);
+    if (PSMTXInverse(m, m) == 0) {
+        PSMTXIdentity(m);
+    }
+    parts = sub->getPartsPtr(0);
+    PSMTXMultVec(m, &parts->worldPos, &d);
+    if (d.z < -10000.0f) {
+        return 0;
+    }
+    if (d.x > 10000.0f) {
+        return 0;
+    }
+    if (d.x < -10000.0f) {
+        return 0;
+    }
+    part = emLineAtCk(sub, a, b, len, 0x18);
+    if (part == 0) {
+        return 0;
+    }
+    part->flags |= 0x4000;
+    return part;
+}
+
+// Damage from a line attack that hit the player's box `part`: life loss and the damage motion.
+void EmAtkSetDamagePL(cEm* part, EmAtkInfo* info, Vec* a, Vec* b)
+{
+    Vec d;
+    Vec fwd;
+    int type;
+    int keep;
+    f32 dy;
+
+    pPL->dmPart = (EmHitInfo*) part;
+    if ((a->x - b->x) * (a->x - b->x) + (a->z - b->z) * (a->z - b->z) < 10000.0f) {
+        PSVECSubtract(&pPL->pos, a, &d);
+    } else {
+        PSVECSubtract(b, a, &d);
+    }
+    fwd.x = 0.0f;
+    fwd.y = 0.0f;
+    fwd.z = 1.0f;
+    RotVector(&fwd, &pPL->rot, &fwd);
+    type = PSVECDotProduct(&fwd, &d) >= 0.0f;
+    dy = a->y - pPL->pos.y;
+    if (dy < 800.0f) {
+        type += 4;
+    } else if (dy < 1300.0f) {
+        type += 2;
+    }
+    keep = 0;
+    if (info->x0A & 4) {
+        keep = 1;
+    }
+    LifeDownSet2(pPL, info->dmg, 0, keep);
+    if (info->x0A & 8) {
+        pG->pl_life = 0;
+    }
+    PlSetDamage(type, 0, 0);
+}
+
+// Damage from a line attack that hit the partner's box `part`.
+void EmAtkSetDamageSub(EmHitInfo* part, EmAtkInfo* info, Vec* a, Vec* b)
+{
+    if (pSUB) {
+        pSUB->dmg.set(0, 10, 0x18, a, part->rad, part);
+    }
+}
+
+// Attack sphere against the partner: the hit box or NULL.
+EmHitInfo* EmAtkHitSubCk2(EmAtkInfo* info, Vec* a, Vec* b)
+{
+    cModel* parts;
+    EmHitInfo* part;
+
+    if (pG->flags_60 & 0x1000) {
+        Draw_sphere(a, info->range, 0xFFFF00FF, 1, 1);
+    }
+    if (pSUB == 0) {
+        return 0;
+    }
+    if (pSUB->hp <= 0) {
+        return 0;
+    }
+    if (EmIsDead(pSUB)) {
+        return 0;
+    }
+    parts = pSUB->getPartsPtr(0);
+    if (EatMgr.hitCheck(&parts->worldPos, a, 0, 0, 0, 0) != 0) {
+        return 0;
+    }
+    part = emSphereAtCk(pSUB, a, b, 0x18, info->range, info->range);
+    if (part == 0) {
+        return 0;
+    }
+    part->flags &= ~0x4000;
+    return part;
+}
+
+// Start the catch: turn the enemy and the player to face each other (ang offset for the player),
+// place the player at (x, y, z) in front of the enemy and run SetPlDamage(a).
+void EmCatchPLSet(cEm* em, u32 type, int a, f32 ang, f32 x, f32 y, f32 z)
+{
+    Mtx m;
+    Vec p;
+    Vec d;
+    f32 r;
+
+    r = em->rot.y;
+    r = LIMIT_ANGLE(r + Muku(&em->pos, &pPL->pos, r, PI));
+    em->catchTurn = Muku2(em->rot.y, r, PI);
+    r = pPL->rot.y;
+    r = LIMIT_ANGLE(r + Muku(&pPL->pos, &em->pos, r, PI) + ang);
+    pPL->catchTurn = Muku2(pPL->rot.y, r, PI);
+    PSMTXRotRad(m, 'y', LIMIT_ANGLE(pPL->rot.y + pPL->catchTurn));
+    TransMatrix(m, &pPL->pos);
+    p.x = x;
+    p.y = y;
+    p.z = z;
+    PSMTXMultVec(m, &p, &p);
+    PSVECSubtract(&p, &em->pos, &d);
+    pPL->atari.setPriority(1);
+    em->atari.setPriority(1);
+    switch (type) {
+    case 0:
+    default:
+        FSet(pPL->catchOfs.x, 0.0f);
+        FSet(pPL->catchOfs.y, 0.0f);
+        FSet(pPL->catchOfs.z, 0.0f);
+        em->catchOfs = d;
+        break;
+    case 1:
+        PSVECScale(&d, &pPL->catchOfs, -1.0f);
+        em->catchOfs.x = 0.0f;
+        em->catchOfs.y = 0.0f;
+        em->catchOfs.z = 0.0f;
+        break;
+    case 2:
+        PSVECScale(&d, &d, 0.5f);
+        PSVECScale(&d, &pPL->catchOfs, -1.0f);
+        em->catchOfs = d;
+        break;
+    }
+    em->x3A8 = em->pos;
+    pPL->x3A8 = pPL->pos;
+    em->dmgType = (int) pPL;
+    pPL->dmgType = (int) em;
+    pPL->x378 = em->x378;
+    SetPlDamage((int) em, (void (*)(cPlayer*)) a);
+}
+
+// EmCatchPLSet for the partner `sub`, in the enemy's frame.
+static void EmCatchSubSet(cEm* em, cEm* sub, u32 type, int a, f32 ang, f32 x, f32 y, f32 z)
+{
+    Mtx m;
+    Vec p;
+    Vec d;
+    f32 r;
+
+    r = em->rot.y;
+    r = LIMIT_ANGLE(r + Muku(&em->pos, &sub->pos, r, PI));
+    em->catchTurn = Muku2(em->rot.y, r, PI);
+    r = sub->rot.y;
+    r = LIMIT_ANGLE(r + Muku(&sub->pos, &em->pos, r, PI) + ang);
+    sub->catchTurn = Muku2(sub->rot.y, r, PI);
+    PSMTXRotRad(m, 'y', LIMIT_ANGLE(em->rot.y + em->catchTurn));
+    TransMatrix(m, &em->pos);
+    p.x = x;
+    p.y = y;
+    p.z = z;
+    PSMTXMultVec(m, &p, &p);
+    PSVECSubtract(&p, &sub->pos, &d);
+    PSVECScale(&d, &d, -1.0f);
+    sub->atari.setPriority(1);
+    em->atari.setPriority(1);
+    switch (type) {
+    case 0:
+    default:
+        sub->catchOfs.x = 0.0f;
+        sub->catchOfs.y = 0.0f;
+        sub->catchOfs.z = 0.0f;
+        em->catchOfs = d;
+        break;
+    case 1:
+        PSVECScale(&d, &sub->catchOfs, -1.0f);
+        em->catchOfs.x = 0.0f;
+        em->catchOfs.y = 0.0f;
+        em->catchOfs.z = 0.0f;
+        break;
+    case 2:
+        PSVECScale(&d, &d, 0.5f);
+        PSVECScale(&d, &sub->catchOfs, -1.0f);
+        em->catchOfs = d;
+        break;
+    }
+    em->x3A8 = em->pos;
+    sub->x3A8 = sub->pos;
+    em->dmgType = (int) sub;
+    sub->dmgType = (int) em;
+    sub->x378 = em->x378;
+    SetSubDamage((int) em, (void*) a);
+}
+
+// Per-frame motion of a caught model: follow the catcher's movement, close the catch offset by
+// `rate2`, turn by `rate` of the remaining angle.
+int EmCatchMotionMove(cEm* em, f32 rate, f32 rate2)
+{
+    cEm* target = (cEm*) em->dmgType;
+    Vec d;
+    f32 ry;
+    f32 step;
+    int ret;
+
+    PSVECSubtract(&target->pos, &target->x3A8, &d);
+    d.y = 0.0f;
+    PSVECAdd(&em->pos, &d, &em->pos);
+    PSVECScale(&em->catchOfs, &d, rate2);
+    d.y = 0.0f;
+    PSVECAdd(&em->pos, &d, &em->pos);
+    PSVECSubtract(&em->catchOfs, &d, &em->catchOfs);
+    ry = em->rot.y;
+    em->rot.y = ry + em->catchTurn;
+    em->rot.y = LIMIT_ANGLE(em->rot.y);
+    ret = MotionMove(em, 0);
+    step = em->catchTurn * rate;
+    em->rot.y = ry + step;
+    em->catchTurn -= step;
+    em->rot.y = LIMIT_ANGLE(em->rot.y);
+    RotMatrix(em->mat, &em->rot);
+    TransMatrix(em->mat, &em->pos);
+    ScaleMatrix(em->mat, &em->scale);
+    em->x3A8 = em->pos;
+    return ret;
+}
+
+// Rack (id 0x45) in the way of `em` moving to `pos` heading `ang`: 0 when one of the rack's
+// corner / edge points falls into the box in front of the position.
+int EmRackCk(cEm* em, Vec* pos, f32 ang)
+{
+    Vec v;
+    Mtx m;
+    u32 i;
+    cEm* e;
+    EmRackWork* w;
+    f32 hx;
+    f32 hz;
+
+    PSMTXRotRad(m, 'y', ang);
+    TransMatrix(m, pos);
+    if (PSMTXInverse(m, m) == 0) {
+        PSMTXIdentity(m);
+    }
+    for (i = 0; i < EmMgr.nArray; i++) {
+        e = (cEm*) ((u8*) EmMgr.pArray + EmMgr.size * i);
+        if ((e->be_flag & 0x201) != 1) {
+            continue;
+        }
+        if (e->id != 0x45) {
+            continue;
+        }
+        if (e->hp <= 0) {
+            continue;
+        }
+        if ((em->pos.x - e->pos.x) * (em->pos.x - e->pos.x) + (em->pos.y - e->pos.y) * (em->pos.y - e->pos.y) +
+                (em->pos.z - e->pos.z) * (em->pos.z - e->pos.z) >
+            25000000.0f) {
+            continue;
+        }
+        w = EMRACK_WK(e);
+        hx = w->size.x + 50.0f;
+        hz = w->size.z + 50.0f;
+        v.x = hx;
+        v.y = 0.0f;
+        v.z = hz;
+        PSMTXMultVec(e->mat, &v, &v);
+        PSMTXMultVec(m, &v, &v);
+        if (v.x < 400.0f && v.x > -400.0f && v.z < 2000.0f && v.z > 0.0f && v.y < 1000.0f && v.y > -1000.0f) {
+            return 0;
+        }
+        v.x = hx;
+        v.y = 0.0f;
+        v.z = -hz;
+        PSMTXMultVec(e->mat, &v, &v);
+        PSMTXMultVec(m, &v, &v);
+        if (v.x < 400.0f && v.x > -400.0f && v.z < 2000.0f && v.z > 0.0f && v.y < 1000.0f && v.y > -1000.0f) {
+            return 0;
+        }
+        v.x = -hx;
+        v.y = 0.0f;
+        v.z = hz;
+        PSMTXMultVec(e->mat, &v, &v);
+        PSMTXMultVec(m, &v, &v);
+        if (v.x < 400.0f && v.x > -400.0f && v.z < 2000.0f && v.z > 0.0f && v.y < 1000.0f && v.y > -1000.0f) {
+            return 0;
+        }
+        v.x = -hx;
+        v.y = 0.0f;
+        v.z = -hz;
+        PSMTXMultVec(e->mat, &v, &v);
+        PSMTXMultVec(m, &v, &v);
+        if (v.x < 400.0f && v.x > -400.0f && v.z < 2000.0f && v.z > 0.0f && v.y < 1000.0f && v.y > -1000.0f) {
+            return 0;
+        }
+        v.x = 0.0f;
+        v.y = 0.0f;
+        v.z = -hz;
+        PSMTXMultVec(e->mat, &v, &v);
+        PSMTXMultVec(m, &v, &v);
+        if (v.x < 400.0f && v.x > -400.0f && v.z < 2000.0f && v.z > 0.0f && v.y < 1000.0f && v.y > -1000.0f) {
+            return 0;
+        }
+        v.x = 0.0f;
+        v.y = 0.0f;
+        v.z = hz;
+        PSMTXMultVec(e->mat, &v, &v);
+        PSMTXMultVec(m, &v, &v);
+        if (v.x < 400.0f && v.x > -400.0f && v.z < 2000.0f && v.z > 0.0f && v.y < 1000.0f && v.y > -1000.0f) {
+            return 0;
+        }
+    }
+    return 1;
+}
+
+// Ammunition score of the inventory: the drop tables hold ammo back above it.
+int GetBulletPoint()
+{
+    u32 n;
+    int pt;
+
+    n = ItemMgr.bulletNumTotal(4);
+    if (pG->stage_no <= 1) {
+        pt = n;
+    } else {
+        pt = n / 2 + 1;
+    }
+    pt += ItemMgr.bulletNumTotal(0x18) * 2;
+    pt += ItemMgr.bulletNumTotal(0x20) / 5 + 1;
+    pt += ItemMgr.bulletNumTotal(0x6A) / 5 + 1;
+    ItemMgr.bulletNumTotal(0x72);
+    return pt + 5;
+}
+
+// Random ammunition drop by the weapons carried (item id / count), for the current character.
+void GetDropBullet(int* id, int* num)
+{
+    int i = 4;
+    int n = 0;
+    u8 r;
+    u32 total;
+
+    if (pG->flags_54 & 0x80000000) {
+        r = Rnd() % 100;
+        if (r <= 0x27) {
+            *id = 4;
+            if (Rnd() % 10 <= 6) {
+                *num = 10;
+            } else {
+                *num = 15;
+            }
+            return;
+        }
+        if (r <= 0x59) {
+            i = 0x20;
+            n = 25;
+            if (Rnd() % 10 > 5) {
+                n = 0;
+            }
+        } else if (r <= 0x5E) {
+            i = 7;
+            n = 3;
+            if (Rnd() % 10 > 7) {
+                n = 0;
+            }
+        } else {
+            i = 1;
+        }
+    } else if (pG->flags_54 & 0x40000000) {
+        r = Rnd() % 100;
+        switch (pG->x4FB8) {
+        case 0:
+        default:
+            if (r <= 0x36) {
+                *id = 4;
+                *num = 0;
+                return;
+            }
+            if (r <= 0x59) {
+                i = 0x18;
+                if ((Rnd() & 0xF) == 5) {
+                    n = 0;
+                } else {
+                    n = 5;
+                    if (Rnd() % 10 > 4) {
+                        n = 3;
+                    }
+                }
+            } else {
+                *id = 1;
+                *num = 0;
+                return;
+            }
+            break;
+        case 2:
+            if (r <= 0x1D) {
+            } else if (r <= 0x40) {
+                i = 0x20;
+                n = 25;
+                if (Rnd() % 10 > 5) {
+                    n = 0;
+                }
+            } else if (r <= 0x54) {
+                i = 2;
+            } else {
+                i = 7;
+                n = 3;
+                if (Rnd() % 10 > 7) {
+                    n = 0;
+                }
+            }
+            break;
+        case 3:
+            if (r > 0x4A) {
+                i = 1;
+            } else {
+                i = 0x20;
+                n = 25;
+                if (Rnd() % 10 > 5) {
+                    n = 0;
+                }
+            }
+            break;
+        case 4:
+            if (r <= 0x4A) {
+                i = 0x72;
+                n = 5;
+                if (Rnd() % 10 > 5) {
+                    n = 10;
+                }
+            } else {
+                i = 0xE;
+            }
+            break;
+        case 5:
+            if (r <= 0x18) {
+                break;
+            }
+            if (r <= 0x45) {
+                *id = 0;
+                *num = (Rnd() % 10 <= 7) ? 2 : 0;
+            }
+            if (r <= 0x4F) {
+                i = 7;
+                n = 3;
+                if (Rnd() % 10 > 7) {
+                    n = 0;
+                }
+            } else if (r <= 0x59) {
+                *id = 1;
+                *num = 0;
+                return;
+            } else if (r <= 0x5E) {
+                *id = 0xE;
+                *num = 0;
+                return;
+            } else {
+                *id = 2;
+                *num = 0;
+                return;
+            }
+            break;
+        }
+    } else {
+        total = ItemMgr.bulletNumTotal(4);
+        r = Rnd() % 100;
+        if (r > 0x28) {
+            if (pG->x8354 == 1) {
+                if (ItemMgr.num(0x2C) || ItemMgr.num(0x2D) || ItemMgr.num(0x94)) {
+                    if (Rnd() % 10 > 4) {
+                        Rnd();
+                        i = 0x18;
+                        if ((Rnd() & 0xF) == 5) {
+                            n = 0;
+                        } else {
+                            Rnd();
+                            n = 5;
+                            if (Rnd() % 10 > 4) {
+                                n = 3;
+                            }
+                        }
+                        goto set;
+                    }
+                }
+            }
+            if (total <= 0x3B) {
+                goto fallback;
+            }
+        }
+        r = Rnd() % 100;
+        if (r <= 0x13) {
+            if (ItemMgr.num(0x2C) || ItemMgr.num(0x2D) || ItemMgr.num(0x94)) {
+                i = 0x18;
+                if ((Rnd() & 0xF) == 5) {
+                    n = 0;
+                } else {
+                    n = 5;
+                    if (Rnd() % 10 > 4) {
+                        n = 3;
+                    }
+                }
+                goto set;
+            }
+        }
+        if ((u32) (r - 0x14) <= 0x13) {
+            if (ItemMgr.num(0x2E) || ItemMgr.num(0x2F)) {
+                i = 7;
+                n = 3;
+                if (Rnd() % 10 > 7) {
+                    n = 0;
+                }
+                goto set;
+            }
+        }
+        if ((u32) (r - 0x28) <= 0x13) {
+            if (ItemMgr.num(0x30) || ItemMgr.num(0x31) || ItemMgr.num(0x32) || ItemMgr.num(0x32) || ItemMgr.num(0x33) ||
+                ItemMgr.num(0x3E)) {
+                i = 0x20;
+                n = 25;
+                if (Rnd() % 10 > 5) {
+                    n = 0;
+                }
+                goto set;
+            }
+        }
+        if ((u32) (r - 0x3C) <= 0x13) {
+            if (ItemMgr.num(0x37)) {
+                if (Rnd() % 10 > 1) {
+                    Rnd();
+                    *id = 0x1A;
+                    *num = (Rnd() % 10 <= 7) ? 2 : 0;
+                    return;
+                }
+            }
+            if (ItemMgr.num(0x29) || ItemMgr.num(0x2A) || ItemMgr.num(0x2B)) {
+                Rnd();
+                *id = 0;
+                *num = (Rnd() % 10 <= 7) ? 2 : 0;
+                return;
+            }
+        }
+        if ((u32) (r - 0x50) <= 9) {
+            if (ItemMgr.num(0x36) || ItemMgr.num(0xAB)) {
+                Rnd();
+                *id = 0x46;
+                *num = (Rnd() % 10 <= 7) ? 2 : 0;
+                return;
+            }
+        }
+        if ((u32) (r - 0x5A) <= 9) {
+            switch (Rnd() % 3) {
+            case 1:
+                i = 2;
+                break;
+            case 2:
+                i = 0xE;
+                break;
+            default:
+                i = 1;
+                break;
+            }
+            *id = i;
+            *num = 0;
+            return;
+        }
+        if (ItemMgr.num(0x2C) || ItemMgr.num(0x2D) || ItemMgr.num(0x94)) {
+            if (Rnd() % 10 > 2) {
+                Rnd();
+                i = 0x18;
+                if ((Rnd() & 0xF) == 5) {
+                    n = 0;
+                } else {
+                    Rnd();
+                    n = 5;
+                    if (Rnd() % 10 > 4) {
+                        n = 3;
+                    }
+                }
+                goto set;
+            }
+        }
+        if (ItemMgr.num(0x30) || ItemMgr.num(0x31) || ItemMgr.num(0x32) || ItemMgr.num(0x32) || ItemMgr.num(0x33) ||
+            ItemMgr.num(0x3E)) {
+            if (Rnd() % 10 > 4) {
+                Rnd();
+                i = 0x20;
+                n = 25;
+                if (Rnd() % 10 > 5) {
+                    n = 0;
+                }
+                goto set;
+            }
+        }
+        if (ItemMgr.num(0x2E) || ItemMgr.num(0x2F)) {
+            if (Rnd() % 10 > 4) {
+                Rnd();
+                i = 7;
+                n = 3;
+                if (Rnd() % 10 > 7) {
+                    n = 0;
+                }
+                goto set;
+            }
+        }
+        if (ItemMgr.num(0x36)) {
+            if (Rnd() % 10 > 4) {
+                Rnd();
+                *id = 0x46;
+                *num = (Rnd() % 10 <= 7) ? 4 : 0;
+                return;
+            }
+        }
+        if (ItemMgr.num(0x29) || ItemMgr.num(0x2A) || ItemMgr.num(0x2B) || ItemMgr.num(0x37)) {
+            if (ItemMgr.num(0x37)) {
+                if (Rnd() % 10 > 4) {
+                    Rnd();
+                    *id = 0x1A;
+                    *num = (Rnd() % 10 <= 7) ? 2 : 0;
+                    return;
+                }
+            }
+            if (ItemMgr.num(0x29) || ItemMgr.num(0x2A) || ItemMgr.num(0x2B)) {
+                if (Rnd() % 10 > 4) {
+                    Rnd();
+                    *id = 0;
+                    *num = (Rnd() % 10 <= 7) ? 2 : 0;
+                    return;
+                }
+            }
+        }
+        if (Rnd() % 10 > 7) {
+            switch (Rnd() % 3) {
+            case 1:
+                i = 2;
+                break;
+            case 2:
+                i = 0xE;
+                break;
+            default:
+                i = 1;
+                break;
+            }
+            *id = i;
+            *num = 0;
+            return;
+        }
+    fallback:
+        *id = 4;
+        if (pG->stage_no > 1) {
+            *num = 20;
+        } else {
+            *num = 0;
+        }
+        return;
+    }
+set:
+    *id = i;
+    *num = n;
+}
+
+// Healing score of the inventory: herbs and sprays, the first aid spray counting double.
+int GetRecoveryPoint()
+{
+    int pt;
+
+    pt = ItemMgr.num(6);
+    pt += ItemMgr.num(5);
+    pt += ItemMgr.num(0x12);
+    pt += ItemMgr.num(0x13);
+    pt += ItemMgr.num(0x15);
+    pt += ItemMgr.num(0x14);
+    pt += ItemMgr.num(0x16) * 2;
+    return pt;
+}
+
+// Drop the enemy's item (setItem) at its position, once: flagged items go through the system item
+// table, item 0 rolls a random drop.
+void EmSetDropItem(cEm* em)
+{
+    Vec rot;
+    int id;
+    int num;
+
+    if (em->itemNo == 0xFFFF) {
+        return;
+    }
+    if (em->be_flag & 0x10000) {
+        return;
+    }
+    em->be_flag |= 0x10000;
+    if (em->itemNo == 0) {
+        RandomItemSet(em);
+        return;
+    }
+    if (SceAtItemFlgCk(em->item3DA, em->item3DC)) {
+        return;
+    }
+    SceAtItemFlgOn(em->item3DA, em->item3DC);
+    rot.x = 0.0f;
+    rot.y = em->rot.y;
+    rot.z = 1.0f;
+    if (SceAtCheckSystemItemSet(em->itemNo, &id, &num, &em->pos, &rot) != 1) {
+        return;
+    }
+    if (em->itemNo != id) {
+        em->itemNo = id;
+        em->itemNum = num;
+    }
+    if (TrolleyItemSetCk(&em->pos, em->itemNo, em->itemNum)) {
+        return;
+    }
+    if (BullItemSetCk(&em->pos, em->itemNo, em->itemNum)) {
+        return;
+    }
+    SceAtCancelItemAt((int) em);
+    SceAtCreateItemAt(&em->pos, em->itemNo, em->itemNum, (s8) em->itemFlag, -1, 0, -1);
+}
+
+// Reserve the enemy's item drop at its position (the enemy leaves before dying).
+void EmReserveDropItem(cEm* em)
+{
+    int id;
+    int num;
+
+    if (em->itemNo == 0xFFFF) {
+        return;
+    }
+    if (em->be_flag & 0x10000) {
+        return;
+    }
+    if (em->itemNo == 0) {
+        return;
+    }
+    if (SceAtCheckSystemItemSet(em->itemNo, &id, &num, (Vec*) &vecZero, (Vec*) &vecZero) != 1) {
+        return;
+    }
+    if (em->itemNo != id) {
+        em->itemNo = id;
+        em->itemNum = num;
+    }
+    SceAtReserveItemAt((int) em, &em->pos, em->itemNo, em->itemNum, (s8) em->itemFlag, -1);
+}
+
+// Random drop for the enemy type (RandomItemCk) placed at the enemy.
+void RandomItemSet(cEm* em)
+{
+    int id;
+    int num;
+
+    if (RandomItemCk(em->id, &id, &num, 0) != 1) {
+        return;
+    }
+    if (TrolleyItemSetCk(&em->pos, id, num)) {
+        return;
+    }
+    if (BullItemSetCk(&em->pos, id, num)) {
+        return;
+    }
+    SceAtCreateItemAt(&em->pos, id, num, -1, -1, 0, -1);
+}
+
+// Random drop table by enemy id: money (0x78), ammunition (GetDropBullet), healing items (5/6/0x19),
+// or the treasure of the special enemies; 1 with the item in outId / outNum.
+int RandomItemCk(int id, int* outId, int* outNum, int flag)
+{
+    u8 r;
+    u8 r0;
+    u8 r1;
+    u8 r2;
+    u8 r3;
+    int bullet;
+    int recov;
+    int itemId;
+    u32 num;
+    u32 lim;
+
+    r = Rnd() % 100;
+    bullet = GetBulletPoint();
+    recov = GetRecoveryPoint();
+    switch (id) {
+    case 0x10: case 0x11: case 0x12: case 0x13: case 0x14: case 0x15: case 0x16: case 0x17:
+    case 0x18: case 0x19: case 0x1A: case 0x1B: case 0x1C: case 0x1D: case 0x1E: case 0x1F:
+    case 0x20:
+    case 0x22:
+    case 0x36:
+        if (r <= 0x13) {
+            if ((s32) pG->flags_54 < 0) {
+                return 0;
+            }
+            if (pG->flags_54 & 0x40000000) {
+                return 0;
+            }
+            switch (id) {
+            case 0x11:
+            case 0x14:
+            case 0x19: case 0x1A: case 0x1B: case 0x1C: case 0x1D: case 0x1E: case 0x1F: case 0x20:
+            case 0x22:
+            case 0x36:
+                r0 = Rnd() % 6;
+                r1 = Rnd() % 6;
+                r2 = Rnd() % 6;
+                r3 = Rnd() % 6;
+                itemId = 0x78;
+                num = (r0 + (r1 + 20) + r2 + r3) * 5;
+                num = num / 10 * 10;
+                if ((Rnd() & 0x3F) == 0x1E) {
+                    num = 1980;
+                    if (Rnd() & 0xF) {
+                        num = 330;
+                    }
+                }
+                *outId = itemId;
+                *outNum = num;
+                return 1;
+            default:
+                r0 = Rnd() % 6;
+                r1 = Rnd() % 6;
+                r2 = Rnd() % 6;
+                r3 = Rnd() % 6;
+                itemId = 0x78;
+                num = (r0 + (r1 + 10) + r2 + r3) * 5;
+                num = num / 10 * 10;
+                if ((Rnd() & 0x3F) == 0x1E) {
+                    num = 990;
+                    if (Rnd() & 0xF) {
+                        num = 330;
+                    }
+                }
+                *outId = itemId;
+                *outNum = num;
+                return 1;
+            }
+        }
+        /* fallthrough */
+    case 0x25:
+        if (r > 0x3B) {
+            if (No_drop_cnt <= 2 || Rnd() % 10 <= 4) {
+                if (No_drop_cnt <= 5 && !(flag & 1)) {
+                    No_drop_cnt++;
+                    return 0;
+                }
+            }
+        }
+        No_drop_cnt = 0;
+        break;
+    case 0x23:
+        r0 = Rnd() % 3;
+        itemId = 0x78;
+        num = r0 * 10 + 20;
+        if ((Rnd() & 3) == 0) {
+            if (Rnd() & 1) {
+                num = (Rnd() & 1) * 10 + 10;
+            } else {
+                num = (Rnd() & 1) * 10 + 40;
+            }
+        }
+        *outId = itemId;
+        *outNum = num;
+        return 1;
+    case 0x3C:
+        if (r > 0x28) {
+            return 0;
+        }
+        break;
+    case 0x2D:
+        if (r > 0x3C) {
+            r0 = Rnd() % 100;
+            itemId = 0xB9;
+            if (r0 <= 0x31) {
+                itemId = 0xBA;
+            }
+            if (r0 <= 0xC) {
+                itemId = 0xBB;
+            }
+            *outId = itemId;
+            *outNum = 1;
+            return 1;
+        }
+        break;
+    case 0x3A:
+        break;
+    default:
+        return 0;
+    }
+    if (pG->x4FB8 != 1 && (u32) bullet < 30 && Rnd() % 10 > 4) {
+        GetDropBullet(outId, outNum);
+        return 1;
+    }
+    lim = 1;
+    if (pG->x4F88 <= 2) {
+        lim = 3;
+    }
+    if (pG->x4F88 > 7) {
+        lim = 0;
+    }
+    if ((u32) recov <= lim) {
+        if (recov == 0) {
+            No_drop_cnt2++;
+        }
+        if (Rnd() % 10 > 7 || No_drop_cnt2 > 2) {
+            if ((s16) pG->pl_life <= 500) {
+                itemId = 5;
+                if (Rnd() % 100 > 0x18) {
+                    itemId = 6;
+                }
+            } else {
+                itemId = 6;
+                if (ItemMgr.num(6) != 0 && Rnd() % 100 > 0x4A) {
+                    itemId = 0x19;
+                }
+            }
+            No_drop_cnt2 = 0;
+            *outId = itemId;
+            *outNum = 0;
+            return 1;
+        }
+    }
+    if (pG->x4FB8 == 1) {
+        return 0;
+    }
+    if ((u32) bullet < 0x96) {
+        GetDropBullet(outId, outNum);
+        return 1;
+    }
+    if (id == 0x2D) {
+        if (Rnd() & 3) {
+            itemId = 0xB9;
+        } else {
+            itemId = 0xBB;
+            if (Rnd() & 3) {
+                itemId = 0xBA;
+            }
+        }
+        *outId = itemId;
+        *outNum = 1;
+        return 1;
+    }
+    if (!(flag & 1)) {
+        return 0;
+    }
+    r0 = Rnd() % 6;
+    r1 = Rnd() % 6;
+    r2 = Rnd() % 6;
+    r3 = Rnd() % 6;
+    itemId = 0x78;
+    num = (r0 + (r1 + 20) + r2 + r3) * 5;
+    num = num / 10 * 10;
+    if ((Rnd() & 0x3F) == 0x1E) {
+        num = 990;
+        if (Rnd() & 0xF) {
+            num = 330;
+        }
+    }
+    *outId = itemId;
+    *outNum = num;
+    return 1;
+}
+
+// Model under the water surface (parts `parts` no more than 300 above it when given).
+int CheckInWater(cModel* m, int parts)
+{
+    f32 h;
+
+    if (GetWaterHeight(&m->pos, &h) == 0 || m->pos.y > h) {
+        return 0;
+    }
+    if (parts != 0) {
+        if (m->getPartsPtr(parts)->worldPos.y + 300.0f < h) {
+            return 0;
+        }
+    }
+    return 1;
+}
+
+// Weapon ids the hit boxes flagged 0x10 ignore (handguns, the TMP and the knife-like weapons).
+int HandgunCk(int wep)
+{
+    switch (wep) {
+    case 1:
+    case 2:
+    case 3:
+    case 4:
+    case 0x11:
+    case 0x26:
+    case 0x2B:
+        return 1;
+    }
+    return 0;
+}
+
+// Position of `em` (the player when NULL) plus `t` of its parts 0 movement this frame.
+static void GetPlPos(Vec* out, cEm* em, f32 t)
+{
+    Vec d;
+    cModel* parts;
+
+    if (em == 0) {
+        em = pPL;
+    }
+    parts = em->getPartsPtr(0);
+    PSVECSubtract(&parts->worldPos, &parts->x88, &d);
+    PSVECScale(&d, &d, t);
+    PSVECAdd(&em->pos, &d, out);
+}
+
+// Item dropped on the mine cart (room 21B): created on the cart the position is above; 1 when so.
+int TrolleyItemSetCk(Vec* pos, u16 id, int num)
+{
+    Vec out;
+    u8 parts;
+    u32 i;
+    cObj* obj;
+
+    if (pG->room_id != 0x21B) {
+        return 0;
+    }
+    for (i = 0; i < ObjMgr.nArray; i++) {
+        obj = (cObj*) ((u8*) ObjMgr.pArray + ObjMgr.size * i);
+        if ((obj->be_flag & 0x201) != 1) {
+            continue;
+        }
+        if (obj->id != 0x3B) {
+            continue;
+        }
+        if (((cObjTrolley*) obj)->ckTrolleyRide(pos, &parts, &out)) {
+            SceAtCreateItemAt(&out, id, num, -1, -1, obj, parts);
+            return 1;
+        }
+    }
+    return 0;
+}
+
+// Item dropped on the bulldozer (room 30F).
+int BullItemSetCk(Vec* pos, u16 id, int num)
+{
+    Vec out;
+    u8 parts;
+    u32 i;
+    cObj* obj;
+
+    if (pG->room_id != 0x30F) {
+        return 0;
+    }
+    for (i = 0; i < ObjMgr.nArray; i++) {
+        obj = (cObj*) ((u8*) ObjMgr.pArray + ObjMgr.size * i);
+        if ((obj->be_flag & 0x201) != 1) {
+            continue;
+        }
+        if (obj->id != 0x3E) {
+            continue;
+        }
+        if (((cObjBull*) obj)->ckBullRide(pos, &parts, &out)) {
+            SceAtCreateItemAt(&out, id, num, -1, -1, obj, parts);
+            return 1;
+        }
+    }
+    return 0;
+}
+
+void adjust_add_set(Vec* v)
+{
+    adjust_add = *v;
+}
+
+// Move `pos` with the vehicle it stands on (mine cart in room 21B, bulldozer in room 30F): 1 when a
+// vehicle adjusted it; on the bulldozer stage the vehicle offset is added otherwise.
+int VehicleAdjust(Vec* pos)
+{
+    Vec out;
+    cObj* obj;
+
+    if (pG->room_id == 0x21B) {
+        for (obj = ObjMgr.pAlive; obj != 0; obj = (cObj*) obj->next) {
+            if (obj->id != 0x3B) {
+                continue;
+            }
+            if (((cObjTrolley*) obj)->ckTrolleyRideAdjust(pos, &out)) {
+                *pos = out;
+                return 1;
+            }
+        }
+    }
+    if (pG->room_id == 0x30F) {
+        for (obj = ObjMgr.pAlive; obj != 0; obj = (cObj*) obj->next) {
+            if (obj->id != 0x3E) {
+                continue;
+            }
+            if (((cObjBull*) obj)->ckBullRideAdjust(pos, &out)) {
+                *pos = out;
+                return 1;
+            }
+        }
+        PSVECAdd(&adjust_add, pos, pos);
+    }
+    return 0;
+}

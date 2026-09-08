@@ -153,7 +153,11 @@ public:
     void unitLevel(IdUnit* u, u8 level);
     void unitParent(IdUnit* parent, IdUnit* child);
     IdUnit* unitPtr(u8 id, u8 type);
+    // card.cpp passes `0x40 + i` without the `clrlwi` truncation: int view of the type parameter.
+    IdUnit* unitPtrI(u8 id, int type) asm("unitPtr__8IDSystemUcUc");
     void set(void* data, u8 id, u8 type, u8 ot, u8 prio, u8 mode);
+    // card.cpp passes `0x40 + i` without the `clrlwi` truncation: int view of the type parameter.
+    void setI(void* data, u8 id, int type, u8 ot, u8 prio, u8 mode) asm("set__8IDSystemPvUcUcUcUcUc");
     void kill(u8 id, u8 type);
     void stop();
     void move();

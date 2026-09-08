@@ -90,7 +90,7 @@ extern "C" void Esp12_Trans(cEsp12* esp)
     GXSetBlendMode(esp->xA4, esp->xA5, esp->xA6, esp->xA7);
     esp->CommonStateSet();
     t = 0.0f;
-    tstep = 1.0f / (f32)(int)n;
+    tstep = 1.0f;
     if ((s8)esp->partsNo >= -8 && (s8)esp->partsNo <= -3) {
         pLog->err(0, 0, "ESP_12 : Parent is screen.");
         return;
@@ -110,7 +110,7 @@ extern "C" void Esp12_Trans(cEsp12* esp)
     GXSetVtxAttrFmt(0, 9, 1, 4, 0);
     GXSetVtxAttrFmt(0, 0xA, 0, 1, 0);
     GXSetVtxAttrFmt(0, 0xD, 1, 4, 0);
-    tstep = 1.0f / (f32)w->n;
+    tstep = tstep / (f32)w->n;
     camPos = pG->Cam.param.pos;
     nrm.x = nrm.y = nrm.z = 0.0f;
     GXBegin(0x98, 0, n * 2);

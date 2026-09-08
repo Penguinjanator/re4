@@ -89,6 +89,9 @@ public:
     void roomInit();
     int init();
     void construct(ItemWork* out, u16 id);  // fill a slot template for item `id` (puzzle PutInCase)
+    // get() passes its int id without the `clrlwi 16` the u16 parameter would get: the original
+    // build did not narrow it. Same function, int view of the parameter.
+    void constructI(ItemWork* out, int id) asm("construct__8cItemMgrP8ItemWorkUs");
     ItemWork* at(int no);       // 0x8001DB5C: slot `no` of pItems, NULL when no >= nItems
     int searchAt(ItemWork* p);  // 0x8001DB80: slot index of `p`, -1 if not in pItems
     int makeItemList(u8* list, int all, s8* pNum, s8* pNum2);
@@ -147,6 +150,8 @@ extern "C" {
 u8 WeaponId2WeaponNo(u16 id);
 u8 WeaponId2WeaponType(u16 id);
 void itemInfo(u16 id, ItemInfo* info);
+// int view of itemInfo for cItemMgr::get (no `clrlwi 16` of the int id in the original build)
+void itemInfoI(int id, ItemInfo* info) asm("itemInfo");
 // weapon item id -> its bullet item id (attr: ItemWork::x8 >> 13), charge count, max tune level per type
 u16 WeaponId2BulletId(u16 id, int attr);
 u8 WeaponId2ChargeNum(u16 id, int level);
@@ -157,7 +162,7 @@ f32 getSpeedRatio(u16 id, s8 level);
 f32 getReloadRatio(u16 id, s8 level);
 f32 getBulletRatio(u16 id, s8 level);
 // heal the player (ItemMgr.x12 0) or the sub character (1) by `n`; 0 when already at max
-int healing(int n);
+int healing(u16 n);
 int addMoney(int n);
 u16 bareHand();
 int itemCombineCheck(u16 id);

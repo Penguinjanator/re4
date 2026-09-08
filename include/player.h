@@ -17,14 +17,27 @@ struct EmWork2A4 {
     u8 x5;                       // 0x05
 };
 
-// Neck control (game/pl_class.cpp), 0x1C bytes at cEm::pNeck. Layout opaque here.
+class cPlayer;
+
+// Neck control (game/pl_class.cpp), 0x1C bytes at cEm::pNeck: turns the head towards the nearest
+// enemy with the neck motions blended into the player's motion (cEm::neckMot).
 class cPlNeck {
 public:
-    u8 pad_0[0x1C];
+    cPlayer* pl;         // 0x00
+    cEm* target;         // 0x04  enemy looked at
+    int timer;           // 0x08  frames left looking (0x7FFFFFFF: until the target changes)
+    u16 flags;           // 0x0C  bit0: the right-turn motion is set
+    u8 mode;             // 0x0E  0 off, 1 on, 2 -> 1 next frame (PlSetNeck)
+    u8 pad_F;
+    f32 ang;             // 0x10  current neck angle
+    void* motL;          // 0x14  left turn motion data
+    void* motR;          // 0x18  right turn motion data
 
-    cPlNeck();
-    void init(void* a, void* b, int c);  // a/b are range-checked pointers (motSet), c passed on
+    cPlNeck(cPlayer* pl);
+    void init(void* motL, void* motR, int frame);   // range-checked pointers (motSet), frame passed on
     void move();
+    void motSet(void* data, int frame);
+    cEm* getTarget();
     void setMode(int mode);   // stores byte 0xE (pl_sub PlSetNeck)
 };
 
@@ -38,12 +51,21 @@ public:
     cPlWaist();
     // cur = cur * (1 - rate) + target * rate; returns the delta applied
     f32 set(f32 target, f32 rate);
+
+    static const f32 ROT_LIMIT;   // pl_class.cpp (.sdata2), unused there
 };
 
-// Three-way motion blend (game/pl_class.cpp), 0xE8 bytes; `mot3` in player.cpp. Layout opaque here.
+// Three-way motion blend (game/pl_class.cpp), 0xE8 bytes; `mot3` in player.cpp: the model's own
+// motion (mot0) blended with mot1 (rate < 0) or mot2 (rate > 0) through MotionWork::blend.
 class cMot3 {
 public:
-    u8 pad_0[0xE8];
+    cModel* model;       // 0x00
+    f32 rate;            // 0x04  last move() rate, clamped to -1..1
+    void* mot0;          // 0x08
+    void* mot1;          // 0x0C
+    void* mot2;          // 0x10
+    int x14;             // 0x14  set() 7th argument: 1 = the blend work gets flags2 bit31
+    MotionWorkSub work;  // 0x18  the blended motion (em.h)
 
     cMot3();
     // set(model, motion0, motion1, motion2, MotionSetCore 4th arg, u8 mode, int, u16, u16)
@@ -58,32 +80,74 @@ extern f32 m3r[3];      // game/player.cpp  mot3 blend rates ([0] current, [1] t
 // Player (game/player.cpp, pl_*.cpp): a cEm with the player virtuals. Its fields are the cEm ones
 // (all below 0xDE0, see em.h). Vtable order (pl_class.cpp): cUnit/cCoord/cModel/cEm virtuals, then
 // the player ones below.
+// pl_npc.h's `pSUB` under a second name: pl_leon.cpp declares its own `cModel* pSUB`, so player.h
+// cannot declare the real one (cPlayer::subCharLiveCheck reads it).
+extern cEm* pSubEm asm("pSUB");
+
+// In-class bodies below are the ones the original emits after ~cPlayer at the end of pl_class.o
+// (in-class inline members of the class whose vtable the unit owns); other units drop their
+// linkonce copies (fold_linkonce). Add none that pl_class's target lacks.
 class cPlayer : public cEm {
 public:
     cPlayer();
     virtual ~cPlayer() {}
+    // The original cUnit::beginEvent/endEvent take an int (KNOWN DEBT, cManager.h); cPlayer's
+    // read it from r4 (pl_class.cpp).
     virtual void beginEvent();
     virtual void endEvent();
     virtual void move();
     virtual void setNoSuspend(int on);
-    virtual int checkXbutton();
+    virtual int checkXbutton() { return 0; }
     virtual void setModel() = 0;
-    virtual void setMotion();
+    virtual void setMotion() {}
     virtual void setRightHand(int no) = 0;
     virtual void setLeftHand(u32 no) = 0;
     virtual void setFace(int no) = 0;
-    virtual void setHead(int no);
-    virtual void setHead(void* bin, void* tpl);
-    virtual void setWound();
-    virtual void moveMatCalcBefore();
-    virtual void initCloth();
-    virtual void moveCloth();
+    virtual void setHead(int no) {}
+    virtual void setHead(void* bin, void* tpl) {}
+    virtual void setWound() {}
+    virtual void moveMatCalcBefore() {}
+    virtual void initCloth() {}
+    virtual void moveCloth() {}
+    // Partner (id 3) dead while the player is in routine 0: routine 6 (die), damage info 0x80.
+    void subCharLiveCheck()
+    {
+        cEm* sub = pSubEm;
+        if (sub && sub->id == 3 && sub->hp <= 0 && xFC == 0) {
+            xFF = 0;
+            xFC = 6;
+            xFD = 0;
+            xFE = 0;
+            dmg.set(0, 0x80);
+            pWep->pObj->interrupt();
+        }
+    }
 
     // game/player.cpp
     void init0();
     void init1();
     void startUp();
     // game/pl_class.cpp
+    // m0/seq0 when dmMotCk(), else m1/seq1. The overload hides cModel::motionSet: keep it reachable.
+    void motionSet(void* m0, void* seq0, void* m1, void* seq1, int hokan, int frame);
+    void motionSet(void* data, int a, int b, int c, int d) asm("motionSet__6cModelPviiii");
+    int actionSelect();  // routine 1 selection from the keys / action buttons; returns checkXbutton()
+    void dmgCheck();     // DmgMgr areas -> setDamage
+    void visibleCtrl();  // alpha fade with pG->flags_500C bit13
+    void seqSeCtrl();    // motion sequence sound (seNo) -> SndCall
+    void keyConfig();
+    void keyConfigTypeA();
+    void endEvent0(u32 mode);   // 0: to routine 0/1 idle, 1: flags_41C bit8, 2: routine 0
+    void beginAction();
+    void endAction(int routine);
+    void setSlow(f32 rate);
+    void moveEye();
+    void moveEyeNormal();
+    void moveEyeMotion();
+    void setLaserSight(int draw, int noCalc);
+    void moveBinocular();
+    void shadowCtrl();
+    int keyReload();
     void setFootwork();
     void beginDamage();
     void endDamage();
@@ -95,6 +159,9 @@ public:
     int subScrCheck();   // 1 when the sub screen may open (sscrn SubScreenCall)
     int checkEvent();    // 1 when the event routine is ready (sscrn OpeSetOpenTerm)
     int getLifeLevel();  // 0 fine, 1 caution, 2 danger (cockpit meter colours)
+
+    static const f32 SPEED_WALK_TURN;   // pl_class.cpp (.sdata2)
+    static const f32 SPEED_RUN_TURN;
     // game/pl_debug.cpp
     void debugInit();
     void debugMove();
@@ -189,6 +256,16 @@ void pl_R1_Event_ToWalk(cPlayer* pl);
 void pl_R1_Event_Smooth(cPlayer* pl);
 
 extern cPlayer* pPL;
+
+// game/player.cpp
+extern Vec PlFancePos;    // point behind the fence / window the player climbs to (pl_class windowCheck)
+extern int PlFanceFlag;   // 1 while a fence / window action runs
+// game/pl_class.cpp
+extern int PlKeyReloadType;   // reload key layout (cPlayer::keyReload)
+extern int PlReloadDirect;
+extern const f32 PlReloadSpeedTbl[45][3];  // per weapon: reload motion speed by level
+extern const f32 PlReloadEndTbl[45][3];    // per weapon: reload end frame by level
+extern const f32 PlShotFrameTbl[45][5];    // per weapon: shot frame by level
 
 // game/pl_sub.cpp: control helpers
 int joyFireOn();

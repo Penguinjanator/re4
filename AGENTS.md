@@ -573,6 +573,15 @@ mark it Matching.
   fields are plain stores gives the target's store schedule where plain int stores never do.
 - `insert_bct` refuses known loop counts < 3: a 2-iteration loop only becomes `mtctr/bdnz` if the
   count is not visible to loop.c.
+- Routine bytes: the `ff, fd, fc, fe` store order of an `xFC/xFD/xFE/xFF` state change comes from an
+  inline `PlRoutineSet(pl, int, int, int, int)` storing `fc, fd, fe, ff`; direct byte stores give
+  the dying-first order.
+- A static local aggregate with a `_.tmp_0` guard and per-member `stfs 0.0` is a class with a
+  constructor (`struct P { f32 x,y,z; P() {..} }`), not a POD initializer.
+- `register int r4v asm("r4"); int mode = r4v;` at entry reproduces reading an argument a
+  parameterless mangled name does not declare (`beginEvent()` reading r4).
+- `void f(...) asm("f__6cBase...");` in a derived class re-exposes a hidden base overload without a
+  body; `extern T* alias asm("sym");` gives a second name/type for a conflicting global.
 - Static locals show as `name.NNN` in objdiff; the DECL_UID suffix cannot be reproduced and is ignored by the report.
 - Unexplained words in `.rodata` (zero words, stray floats) are usually the constant pool of a function
   the original linker dead-stripped (bodies gone, pools kept, `STRIP_UNUSED` in objects.py): write a
@@ -1179,6 +1188,40 @@ mark it Matching.
   option); emrock's `mr r11,r9` pG copy has no third read to PRE; RouteCkPosToPosDis keeps
   `mr r3,r31; mr r4,r29` before `rckLineHitCheck(from, to..)` where reload_cse deletes ours
   (nothing sets r3/r4 or a label between the prologue and the call; goto/flat-if forms tried).
+- Sprite corner leaves (esp.h `ESP_SPRITE_CORNERS`): the `!flip-s, flip-t` leaf adds into `s1`
+  (`s0 = zero; s1 = s0 + z; t1 = s0; t0 = s1;`) in esp_sub/esp0f, into `t0` in esp08 — read the
+  target's `fadds` destination per unit. With the idiom esp_sub Shimmer/Nega and esp0f are 100%.
+- `x = 1; if (f() != 2) x = 0;` store-flags to `xori/subfic/adde` (jump.c: `reg_set_last` finds the
+  constant 1 across the call, BRANCH_COST 0 case "A is a power of two, B is 0"); the reversed test
+  `if (f() == 2) x = 0;` keeps `cmpwi/bne/li`. esp_sub Shimmer's `GetDrawTmpBufType() == 2` was
+  simply the real condition (esp18 already had it).
+- `EspSeqSet(rec, info, seed, model, mtx, int a, f32 f, cEsp** out, EspSeqOpt* p8, Vec* pos)` is the
+  real parameter order (prologue `mr r24,r8; fmr f31,f1; mr r25,r9; mr r28,r10; lwz r23,0xc0(r1)`),
+  callers are ABI-identical; its locals are `Vec v; Mtx m; Mtx m2; EspPtr e;` with the one `Vec`
+  reused for the RotMatrixZXY input and the PSMTXMultVecSR output (frame 0xb8).
+- Two constant-pool `lis` in one store block (0.0 vs 1.0 highs, EspCommonTrans' third arm) are
+  issued in the RTL order of the first statement using each constant: `mat[2][2] = 1.0f` written
+  after the first `= 0.0f` store puts the 0.0 `lis` first.
+- A `lis rX,0x4330` in a callee-saved register far above the int→float conversions that use it
+  (esp16 `Esp16_Trans`: `lis r31` after CameraCurrentProjection, `stw r31` in both if/else arms) is
+  cse canonicalising the arms' constant pseudos to an OLDER one on the ebb path: a dead conversion
+  earlier in the function (`rate = (f32)(int) n;`) whose result flow deletes; signed vs unsigned
+  matters because only the SI constant is shared (the DF magics differ). update_equiv_regs moves a
+  single-use constant next to its use, so the hoisted `lis` needs ≥ 2 live users (esp12's single
+  conversion cannot be reproduced that way, still OPEN together with the `lfs f12; fmr f29,f12`
+  copy for `t = 0.0f` in both units).
+- Constant pool order via a dead declaration initialiser: `f32 ang = (f32)(int) esp->cnt;` (esp18)
+  puts the signed DF magic before the `0.0f` of the next initialiser; flow deletes the load.
+- `Filter05SetParam` argument-move order is per call site: all-immediate (Espgen44_Destruct) wants
+  the floats-first alias, loaded arguments (Espgen44_SetFreeWork) want the floats between the 5th
+  and 6th ints (`(int a,b,c,d,e, f32 x,y,z, int f,g) asm("Filter05SetParam__Fiiiiiiifff")`), the
+  only one of 7 interleavings tried that matches — espgen44 is Matching with both.
+- espgen02_Update (OPEN, corrected): both ours and the target load the shared 0.0f into spdR and copy
+  to scaleR/colR; the diff is only spdR/colR = f24/f23 vs f23/f24 (global-alloc priority, spdR has
+  5 refs vs colR's 4 in ours).
+- `tools/fdiff.py` can fail with "Invalid control character" on units whose objdiff JSON contains raw
+  bytes (esp_sub Shimmer): read with `json.load(..., strict=False)`; concurrent fdiff runs share
+  `build/G4BE08/fdiff.json`, so a private copy with its own output path is safer.
 
 ## Don'ts
 

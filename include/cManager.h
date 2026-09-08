@@ -74,9 +74,11 @@ public:
     void destroyNow(T* p);   // objRocket.cpp instantiates it (pl_wep weaponRelease)
     T* getPrevWork(T* p);
     int dieCheck();
-    int arrayAlloc(u32 n);   // memFree + memAlloc(size * n) + memClear; the definitions are in em.cpp (only cEmMgr instantiates them)
+    int arrayAlloc(u32 n);   // memFree + memAlloc(size * n) + memClear (em.cpp, game.cpp instantiate them)
     int arrayFree();         // 1 when there was an array
-    void dispWorkNum(int x, int y);
+    // Debug print "alive/peak/total" (each minus `sub`) at (x, y) in colour `col`; returns the alive
+    // count, 0 with an invalid array (game.cpp gameMainLoop's manager table).
+    int dispWorkNum(int x, int y, int col, int sub);
     // Event brackets of every alive work (defined in sce_com.cpp, the only unit instantiating them).
     void beginEvent(int mode);
     void endEvent(int mode);
@@ -172,6 +174,33 @@ void cManager<T>::init(void (**tbl)(T*))
 {
     funcTbl = tbl;
     roomInit();
+}
+
+template <class T>
+int cManager<T>::arrayFree()
+{
+    int ret;
+
+    if (pArray) {
+        memFree(pArray);
+        pArray = 0;
+        ret = 1;
+    } else {
+        ret = 0;
+    }
+    return ret;
+}
+
+template <class T>
+int cManager<T>::arrayAlloc(u32 n)
+{
+    arrayFree();
+    pArray = (T*) memAlloc(size * n);
+    nArray = n;
+    if (n) {
+        memClear(pArray, size * n);
+    }
+    return 1;
 }
 
 // Works marked for deletion (flag 1 / 2 destroy): bit 0x400 deletes this frame, 0x200 arms 0x400.

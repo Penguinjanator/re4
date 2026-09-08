@@ -18,12 +18,15 @@ int EspgenDataSet(EspSeqData* head, int no, EspInfo* info, u32* seed, cModel* mo
     int ret = 1;
 
     if (info->x0 & 0x1000) {
-        cModel** list = EspEvModList;
+        // The table address is an integer here: the index register of the `lwzx` is r9
+        // (BASE_REGS), not r0 as a pointer base would give. Still open: the target keeps the
+        // address in r11 (ours shares model's r6) and `flag` in r30 (5 callee-saved registers).
+        u32 list = (u32) EspEvModList;
         u32 no = rec->x6;
         if (no > 0x7F) {
             model = NULL;
         } else {
-            model = list[no];
+            model = *(cModel**) (list + no * 4);
         }
     }
 

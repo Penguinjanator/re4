@@ -34,32 +34,7 @@ void EmYarareDisp(cEm* em);                         // em_sub.cpp
 void DrawOba(cModel* m);                            // at_mod.cpp
 }
 
-template <class T>
-int cManager<T>::arrayFree()
-{
-    int ret;
-
-    if (pArray) {
-        memFree(pArray);
-        pArray = 0;
-        ret = 1;
-    } else {
-        ret = 0;
-    }
-    return ret;
-}
-
-template <class T>
-int cManager<T>::arrayAlloc(u32 n)
-{
-    arrayFree();
-    pArray = (T*) memAlloc(size * n);
-    nArray = n;
-    if (n) {
-        memClear(pArray, size * n);
-    }
-    return 1;
-}
+// cManager<T>::arrayFree / arrayAlloc: definitions in cManager.h (game.cpp instantiates them too).
 
 const char* cEmMgr::idName[96] = {
     "PLAYER", "", "", "ASHLEY", "LUIS", "", "", "", "", "", "", "", "", "", "JET SKI", "MOTOR BOAT",

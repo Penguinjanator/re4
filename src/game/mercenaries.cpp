@@ -46,11 +46,34 @@ public:
 #define BEGIN_EVENT(p, mode) ((cUnitEvent*) (p))->beginEvent(mode)
 #define END_EVENT(p, mode) ((cUnitEvent*) (p))->endEvent(mode)
 
-// Fade colours as word constants (sscrn.cpp).
-union FadeColor {
-    GXColor c;
-    u32 w;
+// Full-screen fade between black and clear. The colour pair is a local of this inline (a class
+// with a destructor is in memory at its declaration, so every inlined copy shares one temp slot);
+// integrate.c maps the inline frame to a pseudo whose value is substituted into the hard-register
+// argument sets (`addi r5, r1, off` per call, never PRE'd) but a store of a *constant* through it
+// is rejected by recog (no store-immediate), so that store keeps the pseudo (`stw rZ, 4(rP)`,
+// `mr r4, rP`, PRE'd across blocks) while `black`, a local that is stale for const-equiv after
+// the `if` label, is stored through the substituted frame address. At frame offset 0 the frame
+// pseudo is the virtual frame register itself and everything is direct.
+struct FadeColorPair {
+    GXColor start;
+    GXColor end;
+    ~FadeColorPair() {}
 };
+
+static inline void FadeSetW(int no, u32 time, u32 z, int late)
+{
+    FadeColorPair col;
+    u32 black = 0xFF;
+
+    if (no & 0x80000000) {
+        *(u32*) &col.start = black;
+        *(u32*) &col.end = 0;
+    } else {
+        *(u32*) &col.start = 0;
+        *(u32*) &col.end = black;
+    }
+    FadeSet(no, &col.start, &col.end, time, z, late);
+}
 
 #define ARC_PTR(ofs) ((void*) (pG->pArc->ofs + (u32) pG->pArc))
 #define DATA_PTR(d, ofs) ((void*) (*(u32*) ((u8*) (d) + (ofs)) + (u32) (d)))
@@ -611,8 +634,6 @@ int MercSysResultMove(MercSysWork* wk)
     }
     {
         MercRsltSt* rs = &wk->rsltSt;
-        FadeColor c0;
-        FadeColor c1;
         u32 size;
 
         memset(rs, 0, sizeof(MercRsltSt));
@@ -634,9 +655,7 @@ int MercSysResultMove(MercSysWork* wk)
             case 1:
                 MercSysMoveScore(wk);
                 if (IdIsAnimEnd(&mercId.idsys, 0, ID_MERC_MES)) {
-                    c0.w = 0x00000000;
-                    c1.w = 0x000000FF;
-                    FadeSet(2, &c0.c, &c1.c, 0, 0, 0);
+                    FadeSetW(2, 0, 0, 0);
                     MercSysResultInit(wk);
                     disp_bak = pG->flags_58;
                     BitSet(pG->flags_58, 0xFFFFFFFF);
@@ -687,9 +706,7 @@ int MercSysResultMove(MercSysWork* wk)
             SceSleep(1);
         } while (rs->run != 0);
         SceSleep(1);
-        c0.w = 0x00000000;
-        c1.w = 0x000000FF;
-        FadeSet(2, &c0.c, &c1.c, 0, 0, 0);
+        FadeSetW(2, 0, 0, 0);
         CardSysSave();
         pG->flags_54 |= 0x04000000;
         CamCtrl.Comeback(0);
@@ -1058,8 +1075,6 @@ int MercResult::init(MercSysWork* wk)
 int MercResult::move(MercSysWork* wk)
 {
     int mes[4];
-    FadeColor c0;
-    FadeColor c1;
     int i;
 
     if (wk == NULL) {
@@ -1072,9 +1087,7 @@ int MercResult::move(MercSysWork* wk)
     mes[3] = wk->mes[8];
     switch (step) {
     case 0:
-        c0.w = 0x000000FF;
-        c1.w = 0x00000000;
-        FadeSet(0x80000002, &c0.c, &c1.c, 10, 0, 0);
+        FadeSetW(0x80000002, 10, 0, 0);
         step++;
         break;
     case 1:
@@ -1088,9 +1101,7 @@ int MercResult::move(MercSysWork* wk)
         IdSetTexNo(&IdSys, 0, ID_RESULT, wk->rslt.hiMode);
         IdSetNum(&IdSys, 0x41, ID_RESULT, wk->rslt.hiScore, 999999, 6, 0);
         if (Key.trg & KEY_A) {
-            c0.w = 0x00000000;
-            c1.w = 0x000000FF;
-            FadeSet(2, &c0.c, &c1.c, 10, 0, 0);
+            FadeSetW(2, 10, 0, 0);
             if (flagCk(&wk->flags, mercSysGetFlag[wk->stage])) {
                 step = 0xA;
             } else if (wk->flags & MF_ALL_RANK) {
@@ -1104,9 +1115,7 @@ int MercResult::move(MercSysWork* wk)
         if (Fade[2].flags & 1) {
             break;
         }
-        c0.w = 0x000000FF;
-        c1.w = 0x00000000;
-        FadeSet(0x80000002, &c0.c, &c1.c, 10, 0, 0);
+        FadeSetW(0x80000002, 10, 0, 0);
         IdSys.kill(0xFF, ID_RESULT);
         IdSys.set(pIdExtra, 0xFF, ID_RESULT, 0x13, 4, 0);
         for (i = 0; i < 4; i++) {
@@ -1140,9 +1149,7 @@ int MercResult::move(MercSysWork* wk)
             for (i = 0; i < 16; i++) {
                 m->Delete(i);
             }
-            c0.w = 0x00000000;
-            c1.w = 0x000000FF;
-            FadeSet(2, &c0.c, &c1.c, 10, 0, 0);
+            FadeSetW(2, 10, 0, 0);
             if (wk->flags & MF_ALL_RANK) {
                 step = 0x14;
             } else {
@@ -1154,9 +1161,7 @@ int MercResult::move(MercSysWork* wk)
         if (Fade[2].flags & 1) {
             break;
         }
-        c0.w = 0x000000FF;
-        c1.w = 0x00000000;
-        FadeSet(0x80000002, &c0.c, &c1.c, 10, 0, 0);
+        FadeSetW(0x80000002, 10, 0, 0);
         IdSys.kill(0xFF, ID_RESULT);
         IdSys.set(pIdEnd, 0xFF, ID_RESULT, 0x13, 4, 0);
         cnt = 0;
@@ -1179,9 +1184,7 @@ int MercResult::move(MercSysWork* wk)
             for (i = 0; i < 16; i++) {
                 m->Delete(i);
             }
-            c0.w = 0x00000000;
-            c1.w = 0x000000FF;
-            FadeSet(2, &c0.c, &c1.c, 10, 0, 0);
+            FadeSetW(2, 10, 0, 0);
             return 0;
         }
         break;
@@ -1218,15 +1221,11 @@ void AdaResult::init(int no)
 
 int AdaResult::move(int mesNo)
 {
-    FadeColor c0;
-    FadeColor c1;
     int i;
 
     switch (step) {
     case 0:
-        c0.w = 0x000000FF;
-        c1.w = 0x00000000;
-        FadeSet(0x80000002, &c0.c, &c1.c, 10, 0, 0);
+        FadeSetW(0x80000002, 10, 0, 0);
         IdSys.set(pId, 0xFF, ID_RESULT, 0x13, 4, 0);
         cnt = 0;
         step++;
@@ -1248,9 +1247,7 @@ int AdaResult::move(int mesNo)
             for (i = 0; i < 16; i++) {
                 m->Delete(i);
             }
-            c0.w = 0x00000000;
-            c1.w = 0x000000FF;
-            FadeSet(2, &c0.c, &c1.c, 10, 0, 0);
+            FadeSetW(2, 10, 0, 0);
             return 0;
         }
         break;

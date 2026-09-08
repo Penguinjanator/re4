@@ -20,8 +20,8 @@ struct EmHitInfo {
     f32 depth;            // 0x20  cube depth (YarareInitCube / YarareAddCube set it with flags bit3)
     u16 flags;            // 0x24  bit3 (0x8): cube, bit5 (0x20): the hit sets cDmgInfo bit5 too (pl_wep PlWepHitCheck2)
     s16 partsNo;          // 0x26  parts the effect is placed at (0 = the model itself), 1-based
-    f32 rad;              // 0x28
-    u8 pad_2C[4];
+    f32 rad;              // 0x28  squared distance hit point -> line start (em_sub emLineAtCk / emBoxAtCk)
+    f32 dist;             // 0x2C  squared distance of the hit from the aim line (em_sub GetWepTargetList sorts on it)
     EmHitInfo* next;      // 0x30  next hit box of the model (YarareAdd)
 };
 
@@ -76,6 +76,17 @@ struct EmLightArea {
     }
 };
 
+// Blend motion work (0xD0 bytes): a MotionWork (motion.h) without the trailing blend/flip/blendTbl
+// pointers. cEm::neckMot (0x42C) and cMot3::work are one; MotionWork::blend points at it.
+struct MotionWorkSub {
+    void* data;           // 0x00  MotionData*, NULL = no motion
+    u8 pad_4[0x44 - 0x4];
+    u32 flags2;           // 0x44  MotionWork::flags2 (bit28: no IK, bit31)
+    u8 pad_48[0xC8 - 0x48];
+    f32 blendRate;        // 0xC8  weight of this work in the owner's MotionMove blend
+    u8 pad_CC[4];
+};
+
 class cEm : public cModel {
 public:
     void* pMotion;        // 0x1D8  motion work head: current motion data, NULL = stopped (pl_push stopTarget)
@@ -86,14 +97,15 @@ public:
     Vec satPos;           // 0x244  pos after the scenario collision moved the model (atari at_pos_calc)
     u8 pad_250[0x28A - 0x250];
     u8 seNo;              // 0x28A  sound number + 1 to play at parts 0 this frame (emMove SndCall(8, ...)), 0 = none
-    u8 pad_28B[0x290 - 0x28B];
+    u8 seFlags28B;        // 0x28B  player: sound kind of the motion key (low 3 bits, pl_class seqSeCtrl)
+    u8 pad_28C[0x290 - 0x28C];
     f32 frame;            // 0x290  motion frame (db_cam prints it as an int)
     u16 frameMax;         // 0x294
     u8 pad_296[0x29D - 0x296];
     u8 x29D;              // 0x29D  (emrock plemRockEscape: MotionSetCore hokan of the escape run motion)
     u8 pad_29E[0x2A4 - 0x29E];
     struct EmWork2A4* p2A4;  // 0x2A4  0x1FE-byte work (player.cpp mem_alloc; cam_ctrl reads its byte 5)
-    u8 pad_2A8[4];
+    struct MotionWorkSub* blendMot;  // 0x2A8  MotionWork::blend: second motion blended in (pl_class: &neckMot / cMot3::work)
     u16* motFlip;         // 0x2AC  MotionWork::flip: parts index remap of flipped motions (emdoor: emDoor_xflip_tbl)
     u8 pad_2B0[4];
     // 0x2B4 .. 0x300  collision info (rect size at 0x2C0/0x2C4); wrapped so that cEm::cEm does not
@@ -143,13 +155,21 @@ public:
     Vec lockOfs;          // 0x380  lock-on point offset in the lockParts' matrix (pl_wep)
     u8 lockParts;         // 0x38C  parts the lock-on point follows (pl_wep; AutoTrack uses the low 3 bits)
     u8 x38D;              // 0x38D  (db_cam "set=")
-    u8 pad_38E[0x398 - 0x38E];
+    u8 pad_38E[2];
+    void (*pScenario)(cEm*);  // 0x390  em_sub EmScenario: called with the enemy when set
+    u8 pad_394[4];
     u8 emsetNo;           // 0x398
-    u8 pad_399[4];
-    u8 x39D;              // 0x39D  (obj16: the type 1 head is drawn at half scale while set)
-    u8 pad_39E[0x3A8 - 0x39E];
+    u8 pad_399[3];
+    union {
+        struct {
+            u8 x39C;
+            u8 x39D;      // 0x39D  (obj16: the type 1 head is drawn at half scale while set)
+            u8 pad_39E[0x3A8 - 0x39E];
+        };
+        Vec catchOfs;     // 0x39C  em_sub EmCatchPLSet: offset the caught model keeps to the catcher
+    };
     Vec x3A8;             // 0x3A8  (objTrolley objTrolleySetAdjust adds the car movement to it)
-    u8 pad_3B4[4];
+    f32 catchTurn;        // 0x3B4  em_sub EmCatchPLSet: rot.y left to turn (EmCatchMotionMove eats it)
     int dmgType;          // 0x3B8  (pl_sub SetPlDamage/SetSubDamage first argument)
     u8 rckFlag;           // 0x3BC  route_ck: bit0 = rckNear valid this frame (RouteCk clears it)
     s8 rckPoint;          // 0x3BD  route_ck: way point the enemy heads to (-1 = none)
@@ -188,18 +208,23 @@ public:
     u32 flags_420;        // 0x420  player: bit6 (0x40) knife routine ends into routine 0x11
     void** pMotTbl;       // 0x424  player: motion data table ([0] walk, [2] turn, [0x5F..0x6C] set by setMotion)
     void** pRegistMot;    // 0x428  player: registered motion table (pl_sub PlRegistMotion fills [0..11])
-    u8 pad_42C[0x4FC - 0x42C];
+    MotionWorkSub neckMot;   // 0x42C .. 0x4FC  player: neck turn motion (pl_class cPlNeck::motSet), blended via blendMot
     u8 x4FC;              // 0x4FC  (pl_sub PlChangeData/PlMotionReset clear it)
     u8 x4FD;              // 0x4FD
     u8 x4FE;              // 0x4FE
     u8 xButtonWait;       // 0x4FF  player: frames until the X button (partner command) is accepted again
-    u8 pad_500[8];
+    u8 pad_500[4];
+    u32 sndId504;         // 0x504  player: SndCall handle cPlayer::interrupt stops
     cModel* pLockEm;      // 0x508  player: locked-on enemy (pl_wep lock, knife aim)
     u8 pad_50C[0x518 - 0x50C];
     int gachaCnt;         // 0x518  player: button mash counter (pl_sub PlGacha*)
     u8 pad_51C[2];
     u8 eyeMode;           // 0x51E  player (pl_sub PlSetEyeMode)
-    u8 pad_51F[0x530 - 0x51F];
+    u8 binoMode;          // 0x51F  player: binocular step (cPlayer::moveBinocular 1 -> 2 -> 3 -> 0)
+    u8 dmgFlag520;        // 0x520  player: 1 once setDamage ran
+    u8 pad_521;
+    u16 dmgCnt522;        // 0x522  player: accumulated setDamage counts; a damage reaction starts past 0xFE
+    u8 pad_524[0x530 - 0x524];
     int subHideMode;      // 0x530  cSubChar (pl_sub SubCharCtrlHide)
     int subX534;          // 0x534  cSubChar (SubCharCtrlHide mode 0 sets 1)
     u8 pad_538[0x544 - 0x538];
@@ -215,20 +240,32 @@ public:
     u8 pad_58D[0x5C4 - 0x58D];
     u32 subSndId;         // 0x5C4  cSubChar: SndCall handle of the bulldozer SEs (objBull Sub_bull_*)
     f32 subX5C8;          // 0x5C8  cSubChar (obj13 SubLadderClimbCk: the partner climbs only while >= 1000)
-    u8 pad_5CC[0x740 - 0x5CC];
+    u8 pad_5CC[0x738 - 0x5CC];
+    int satCheckFlag;     // 0x738  player: SatMgr.check flag (player.cpp startUp / move)
+    u8 pad_73C[4];
     struct PlRoomEff* pRoomEff;  // 0x740  player: room water effect table (pl_sub PlRegistRoomEff/PlWaterProc)
     void* boss0;          // 0x744  player (pl_sub PlRegistBoss)
     void* boss1;          // 0x748
-    u8 pad_74C[0x788 - 0x74C];
+    Vec fallDir;          // 0x74C  player: -wallNrm of the ledge to drop from (pl_class fallCheck)
+    Vec jumpDir;          // 0x758  player: -normal of the jump-over wall (pl_class jumpCheck)
+    f32 jumpHeight;       // 0x764  player: floor height behind the jump wall minus pos.y
+    Vec actWallHit;       // 0x768  player: hit point of the action wall check (pl_class actWallCheck)
+    Vec actWallNrm;       // 0x774  player: its normal
+    u32 actWallAttr;      // 0x780  player: its scenario attribute (0 = no wall in front)
+    u8 pad_784[4];
     class cPlWep* pWep;   // 0x788  player: weapon control (pl_wep.cpp, 0x44 bytes)
     class cPlNeck* pNeck; // 0x78C  player: neck control (pl_class.cpp, 0x1C bytes)
     class cPlWaist* pWaist;  // 0x790  player: waist control (pl_class.cpp, 0xC bytes)
     class cPlBody* pBody; // 0x794  player: body / face / hand model set (pl_body.cpp, 0xF0 bytes)
-    u8 pad_798[0xC];
+    u8 pad_798[8];
+    class cPlPush* pPush; // 0x7A0  player: push-object control (pl_push.cpp, 0x10 bytes)
     class cMotBase* pMotBase;  // 0x7A4  (0x38 bytes)
     u8 pad_7A8[4];
     Vec bustBase[3];      // 0x7AC  Ashley: rest positions of parts 0x1D, 0x1E, 0x1A (pl_ashley moveBust)
-    u8 pad_7D0[0x9BC - 0x7D0];
+    u8 pad_7D0[0x890 - 0x7D0];
+    int x890;             // 0x890  player (Krauser): cleared by cPlayer::interrupt with pG->flags_5018 bit23
+    int x894;             // 0x894  player (Krauser): -1 -> 1 there
+    u8 pad_898[0x9BC - 0x898];
     f32 x9BC;             // 0x9BC  (objTrolley objTrolleyFallEM: rot.y when thrown off the car)
     u8 pad_9C0[0xD60 - 0x9C0];
     Mtx rackMat;          // 0xD60  cEmRack push range matrix (setRange: rot * trans of the rack)

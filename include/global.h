@@ -16,7 +16,11 @@ struct ArcFile {
     u32 ofs_20;   // 0x20  obstacle model bin (obj20 SetObaModel)
     u32 ofs_24;   // 0x24  obstacle model tpl
     u32 ofs_28;   // 0x28  message tables (mes: MesData.ptr[0..2])
-    u8 pad_2C[0x40 - 0x2C];
+    u32 ofs_2C;   // 0x2C  core light data (game: cLightMgr::roomInit core cLit)
+    u32 ofs_30;   // 0x30  core camera data (game: CameraControl::CoreDataRead)
+    u32 ofs_34;   // 0x34
+    u32 ofs_38;   // 0x38
+    u32 ofs_3C;   // 0x3C  light path data (game: cLightMgr::initPath)
     u32 ofs_40;   // 0x40  global illumination texture (read: CoreDataRead -> GlobalIlmTexInit)
     u32 ofs_44;   // 0x44  specular data 2..4 (SpecularInit)
     u32 ofs_48;   // 0x48
@@ -87,10 +91,15 @@ struct GlobalWork {
     u64 card_serial;       // 0x10  serial of the card the save file came from (card)
     void* pFont;           // 0x18  ROM font header (dvd: RomFontSetting)
     s32 x1C;               // 0x1C  1 = the message system is usable (dvd error screen)
-    u8 x20;                // 0x20  (main_sub: 3/4/6 allow the blur filter)
-    u8 x21;                // 0x21  (room_jmp roomJumpExit clears x21..x23 with x20 = 4)
-    u8 x22;
-    u8 x23;
+    union {
+        u32 mode32;        // 0x20  x20..x23 as one word (game: gameOption saves/restores it in Game.mode_bak)
+        struct {
+            u8 x20;        // 0x20  game task step (game_func_tbl index; main_sub: 3/4/6 allow the blur filter)
+            u8 x21;        // 0x21  sub step (room_jmp roomJumpExit clears x21..x23 with x20 = 4)
+            u8 x22;
+            u8 x23;
+        };
+    };
     u32 vtx_buf_no;        // 0x24  double-buffer index into cModelInfo::pPosBuf/pNrmBuf (mirror)
     union {
         u16 next_room;     // 0x28  room id (stage << 8 | room) being entered (snd: room BGM / door tables)
@@ -125,7 +134,8 @@ struct GlobalWork {
     u32 sceat_x17C;        // 0x17C  (sce_at SceAtWorkLoopInit clears both every frame)
     u32 sceat_x180;        // 0x180
     GxStageWork gxStage;   // 0x184  TEV stage / texmap / texcoord counters of the model renderer (mirror)
-    u8 pad_190[0x4F10 - 0x190];
+    Mtx mtxPalette[0xF8];  // 0x190  skinning matrix palette (trans.cpp calcWeightMat / MakeWeightPalette)
+    u8 pad_3010[0x4F10 - 0x3010];  // 0x3010  GXTexObj texObj[0xF8] (trans.cpp GxWork view of 0x184..0x4F14)
     s32 prim_base;         // 0x4F10  primitive buffer: first entry of the current frame (debug PrimitiveBuffDisp)
     f32 prim_rate;         // 0x4F14  worst free ratio of the primitive buffer seen so far
     s32 prim_cnt;          // 0x4F18  entries used so far this frame
@@ -145,8 +155,9 @@ struct GlobalWork {
     u8 x4F7C;
     u8 door_no;            // 0x4F7D  door used to enter the room (index into the DSE door SE table)
     u16 cdown_add_sec;     // 0x4F7E  seconds to add to the count-down (cockpit CountDown::move consumes it)
-    u8 pad_4F80[0x4F88 - 0x4F80];
-    u8 x4F88;              // 0x4F88  (pl_sub PlGachaGet: > 2 keeps the raw button count)
+    u8 pad_4F80[4];        // 0x4F80  start of the save block (game: cGameSave copies 0x4F80..0x8678)
+    s32 point;             // 0x4F84  difficulty point (game GameAddPoint, 0..0x2AF7)
+    u8 x4F88;              // 0x4F88  difficulty rank = point / 1000 (pl_sub PlGachaGet: > 2 keeps the raw button count)
     u8 x4F89;
     u8 x4F8A;              // 0x4F8A  chapters ended (sce_com SceChapterEnd increments it)
     u8 pad_4F8B;
@@ -210,7 +221,11 @@ struct GlobalWork {
     u32 item_flags[8];     // 0x519C  "ITEM_SET" flag words (t_flag; merchant: [0] bit 0x10000000 = item 0x40 sold)
     u32 flags_51BC;        // 0x51BC  (stage: 0x4 stage-1 loaded, 0x40000 sub-mission 1 done)
     u32 flags_51C0;        // 0x51C0  (stage: route flags)
-    u8 pad_51C4[0x51DC - 0x51C4];
+    u32 flags_51C4;        // 0x51C4
+    u32 door_flags_51C8;   // 0x51C8  (game DoorFlagInit presets bits of these three words)
+    u32 door_flags_51CC;   // 0x51CC
+    u32 door_flags_51D0;   // 0x51D0
+    u8 pad_51D4[0x51DC - 0x51D4];
     u32 door_unlock[2];    // 0x51DC  one bit per locked door (sce_at: SceAtWork::lockFlag)
     u32 flags_51E4;        // 0x51E4  (db_cam: 0x10 show the tool banner, 0x18 show the offset headers)
     u32 sce_free[64];      // 0x51E8  scenario free words (sce_com SetFree/GetFree)
@@ -224,7 +239,8 @@ struct GlobalWork {
     s32 ope_mdt_no;        // 0x8300  (sscrn OpeGetMdtNo / OpeSetMdtNo; SubScreenGameInit: 0x18)
     u8 pad_8304[0x832C - 0x8304];
     u32 x832C;             // 0x832C  (pl_sub PlSelect swaps it with x4F98 when the player changes)
-    u8 pad_8330[0x8338 - 0x8330];
+    u32 x8330;             // 0x8330  (game clearGlobalSaveData keeps x8330/x8334 across the clear)
+    u32 x8334;             // 0x8334
     u16 x8338;             // 0x8338  (sce_com SceChapterEnd clears it with the kill/shot counters)
     u16 x833A;             // 0x833A  (option: result screen counter next to x8338)
     u32 em_die_cnt;        // 0x833C  enemies killed (em_set EmSetDieCnt)

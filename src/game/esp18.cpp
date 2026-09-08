@@ -84,7 +84,7 @@ void Esp18_Trans(cEsp18* esp)
     f32 s1;
     f32 t0;
     f32 t1;
-    f32 ang;
+    f32 ang = (f32)(int)esp->cnt;
     f32 ofs = 0.0f;
     f32 rx;
     f32 ry;
