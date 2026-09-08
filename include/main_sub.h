@@ -16,14 +16,53 @@ struct ScreenInfo {
 extern ScreenInfo Screen;
 extern GXRenderModeObj Rmode;  // game/main_sub.cpp
 
+// game/main.cpp frame buffers
+extern void* pFrame_buff[2];
+extern void* pCurrent_buff;
+
+// Dolphin OSModuleHeader (REL header); only the fields main_sub uses are named.
+struct OSModuleHeader {
+    u8 pad_0[0x38];
+    void (*epilog)();  // 0x38
+    u8 pad_3C[4];
+};
+
 // game/main_sub.cpp
 int Render_checkBlurPermission();
 extern "C" {
-void systemVISetBlack(int black);
+void Render_init();
+void Render_before();
+void Render_done();
+void Render_swap();
+void UpdateNearClipDist();
 void SetNearClipDist(f32 dist);
+void Render_DrawSyncCallback(u16 token);
+void systemVISetBlack(int black);
 void SetScissorState();
 void SetNoScissor();
+void ScreenGXSet();
+void ScreenReSize(u16 w, u16 h);
+void EFBReSize(int w, int h);
+void SecToTime(u32 sec, u32* h, u32* m, u32* s);
+void InitGameTime();
+u32 GetGameTime(u32* h, u32* m, u32* s);
+void SetGameTime();
+void ScreenShotStart(char* name, int frame, int flag);
+void ScreenShotEnd();
+void SelfScreenShotInit();
+void StopwatchInit();
+void StopwatchStart();
+u32 StopwatchStop(const char* name);
+void after_render_proc();
+void Bg_brightness_set(f32 brightness);
+void DrawTpl(struct TEXPalette* tpl, int x, int y, int w, int h);
+void DrawTexture(GXTexObj* obj, s16 x, s16 y, s16 z, s16 w, s16 h);
+void DLL_Unlink(OSModuleHeader* module);
+void DLL_Link(OSModuleHeader* module, void* bss);
 }
+// main_sub.cpp also owns flag_render_after, AutoScreenShotExec, ScreenShotExec,
+// ScreenShotTriggerType, ScreenShotFilename[11]; declare them extern locally where needed
+// (a header extern would change main_sub's .sbss order).
 // game/TmpBuf.cpp
 void* GetDrawTmpBufAddr(int type);
 

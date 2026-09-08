@@ -99,14 +99,14 @@ int ToolMenuDisp_cur(int x, int y, int flag, s8* cursor, TOOL_MENU* menu, int si
         }
         old_menu = p;
     }
-    if (joy->rpt & JOY_DOWN) {
+    if (joy->rep & JOY_DOWN) {
         cursor_s++;
     }
-    if (joy->rpt & JOY_UP) {
+    if (joy->rep & JOY_UP) {
         cursor_s--;
     }
     cursor_s = cursor_s < 0 ? num - 1 : (cursor_s > num - 1 ? 0 : cursor_s);
-    if (joy->rpt & (JOY_DOWN | JOY_UP)) {
+    if (joy->rep & (JOY_DOWN | JOY_UP)) {
         flicker = 8;
     }
     if ((joy->trg & JOY_B) && (flag & TOOL_MENU_B_LAST)) {

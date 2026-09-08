@@ -146,7 +146,7 @@ void tvModeMenu_progressive(TvModeWork* tv)
         } else {
             cMes.MesSet(2, 100, 220, 0x1000051, 0, 0, 1);
         }
-        if (Key.flags_18 & 0x80000000) {
+        if (Key.trg & 0x80000000) {
             mes = &cMes;
             for (i = 0; i < 16; i++) {
                 mes->Delete(i);

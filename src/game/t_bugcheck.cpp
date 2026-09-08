@@ -178,12 +178,12 @@ void cToolBugcheck::menuLife()
                 TOOL_HALF(OFS_PL_LIFE) -= 25;
             }
             TOOL_HALF(OFS_PL_LIFE) = (s16) TOOL_HALF(OFS_PL_LIFE) < 0 ? 0 : ((s16) TOOL_HALF(OFS_PL_LIFE) > (s16) TOOL_HALF(OFS_PL_LIFE_MAX) ? TOOL_HALF(OFS_PL_LIFE_MAX) : TOOL_HALF(OFS_PL_LIFE));
-            if (Joy[0].rel & (JOY_R | JOY_L)) {
+            if (Joy[0].rep2 & (JOY_R | JOY_L)) {
                 lv = lifeLevel(20, TOOL_HALF(OFS_PL_LIFE_MAX), 1200);
-                if (Joy[0].rel & JOY_R) {
+                if (Joy[0].rep2 & JOY_R) {
                     lv++;
                 }
-                if (Joy[0].rel & JOY_L) {
+                if (Joy[0].rep2 & JOY_L) {
                     lv--;
                 }
                 if (lv >= 0) {
@@ -207,12 +207,12 @@ void cToolBugcheck::menuLife()
                 TOOL_HALF(OFS_SUB_LIFE) -= 25;
             }
             TOOL_HALF(OFS_SUB_LIFE) = (s16) TOOL_HALF(OFS_SUB_LIFE) < 0 ? 0 : ((s16) TOOL_HALF(OFS_SUB_LIFE) > (s16) TOOL_HALF(OFS_SUB_LIFE_MAX) ? TOOL_HALF(OFS_SUB_LIFE_MAX) : TOOL_HALF(OFS_SUB_LIFE));
-            if (Joy[0].rel & (JOY_R | JOY_L)) {
+            if (Joy[0].rep2 & (JOY_R | JOY_L)) {
                 lv = lifeLevel(5, TOOL_HALF(OFS_SUB_LIFE_MAX), 600);
-                if (Joy[0].rel & JOY_R) {
+                if (Joy[0].rep2 & JOY_R) {
                     lv++;
                 }
-                if (Joy[0].rel & JOY_L) {
+                if (Joy[0].rep2 & JOY_L) {
                     lv--;
                 }
                 if (lv >= 0) {
@@ -293,13 +293,13 @@ void cToolBugcheck::menu()
         } else {
             i = 0;
         }
-        if (Joy[0].rpt & 0x20002) {
+        if (Joy[0].rep & 0x20002) {
             i++;
         }
-        if (Joy[0].rpt & 0x10001) {
+        if (Joy[0].rep & 0x10001) {
             i--;
         }
-        if (Joy[0].rpt & JOY_A) {
+        if (Joy[0].rep & JOY_A) {
             i++;
         }
         i = i < 0 ? 2 : (i > 2 ? 0 : i);
@@ -322,13 +322,13 @@ void cToolBugcheck::menu()
         } else {
             i = 0;
         }
-        if (Joy[0].rpt & 0x20002) {
+        if (Joy[0].rep & 0x20002) {
             i++;
         }
-        if (Joy[0].rpt & 0x10001) {
+        if (Joy[0].rep & 0x10001) {
             i--;
         }
-        if (Joy[0].rpt & JOY_A) {
+        if (Joy[0].rep & JOY_A) {
             i++;
         }
         i = i < 0 ? 4 : (i > 4 ? 0 : i);

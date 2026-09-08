@@ -21,12 +21,14 @@ struct ArcFile {
 struct GlobalWork {
     u8 pad_0[4];
     u8 x4;                 // 0x04  (stage: sub-mission coin marker only while set)
-    u8 pad_5[0x48 - 0x05];
+    u8 pad_5[0x20 - 0x05];
+    u8 x20;                // 0x20  (main_sub: 3/4/6 allow the blur filter)
+    u8 pad_21[0x48 - 0x21];
     struct ArcFile* pArc;       // 0x48  current archive: offsets to its sub-files (room_tex, tv_mode)
     u8 pad_4C[8];
     u32 flags_54;          // 0x54
     u32 flags_58;          // 0x58
-    u8 pad_5C[4];
+    u32 time_base;         // 0x5C  OSTicksToSeconds at the last InitGameTime/SetGameTime
     u32 flags_60;          // 0x60
     u32 flags_64;          // 0x64
     u32 flags_68;          // 0x68
@@ -42,7 +44,8 @@ struct GlobalWork {
     Vec quake_ofs;         // 0x4F70
     u8 pad_4F7C[0x4F93 - 0x4F7C];
     u8 x4F93;              // 0x4F93
-    u8 pad_4F94[8];
+    u32 play_time;         // 0x4F94  seconds (SetGameTime accumulates into it)
+    u8 pad_4F98[4];
     u8 stage_no;           // 0x4F9C
     u8 room_no;            // 0x4F9D
     u8 pad_4F9E[2];
@@ -59,10 +62,13 @@ struct GlobalWork {
     u32 flags_500C;        // 0x500C
     u32 flags_5010;        // 0x5010
     u32 flags_5014;        // 0x5014
-    u8 pad_5018[0x51BC - 0x5018];
+    u32 flags_5018;        // 0x5018  (main_sub: 0x10000000 letterbox scissor)
+    u8 pad_501C[0x51BC - 0x501C];
     u32 flags_51BC;        // 0x51BC  (stage: 0x4 stage-1 loaded, 0x40000 sub-mission 1 done)
     u32 flags_51C0;        // 0x51C0  (stage: route flags)
-    u8 pad_51C4[0x52E8 - 0x51C4];
+    u8 pad_51C4[0x51E4 - 0x51C4];
+    u32 flags_51E4;        // 0x51E4  (db_cam: 0x10 show the tool banner, 0x18 show the offset headers)
+    u8 pad_51E8[0x52E8 - 0x51E8];
     u8 emlist[0x2000];     // 0x52E8  enemy list (ESL file) read by stage.cpp
     u8 pad_72E8[0x8358 - 0x72E8];
     s32 game_mode;         // 0x8358  (stage: 3 = no enemy list reload)

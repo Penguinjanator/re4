@@ -28,10 +28,10 @@ void ToolScreenShot()
         switch (cursor) {
         case 0:
             type = ScreenShotTriggerType;
-            if (Joy[0].rel & 0x20002) {
+            if (Joy[0].rep2 & 0x20002) {
                 type++;
             }
-            if (Joy[0].rel & 0x10001) {
+            if (Joy[0].rep2 & 0x10001) {
                 type--;
             }
             if (type >= 0) {
@@ -45,7 +45,7 @@ void ToolScreenShot()
             ScreenShotTriggerType = n;
             break;
         case 1:
-            if (Joy[0].rel & 0x30003) {
+            if (Joy[0].rep2 & 0x30003) {
                 if (pG->debug_disp == 0) {
                     pG->debug_disp = 1;
                 } else {

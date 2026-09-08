@@ -15,13 +15,38 @@ struct RK {
 
 extern RK* pRK;
 
-// Key/debug flags (main.cpp `Key`, 0xB8 bytes).
+// Logical key state (main.cpp `Key`, 0xB8 bytes), built from Joy[0] by pad.cpp PadRead through
+// Key_type_tbl. 64 logical keys, one bit each.
 struct KeyWork {
-    u8 pad_0[0x18];
-    u64 flags_18;   // 0x18  bit 31 = skip TV-mode prompt
-    u8 pad_20[0xB8 - 0x20];
+    s8 sx;     // 0x00  copies of Joy[0] (zero while the game is stopped)
+    s8 sy;     // 0x01
+    s8 ssx;    // 0x02
+    s8 ssy;    // 0x03
+    u8 trigL;  // 0x04
+    u8 trigR;  // 0x05
+    u8 x6;     // 0x06
+    u8 x7;     // 0x07
+    u64 old;   // 0x08
+    u64 on;    // 0x10
+    u64 trg;   // 0x18  (bit 31 = skip TV-mode prompt)
+    u64 rel;   // 0x20
+    u64 rep;   // 0x28
+    u64 rep2;  // 0x30
+    s8 rep_timer[64];   // 0x38
+    s8 rep2_timer[64];  // 0x78
 };
 
 extern KeyWork Key;
+
+// System work (main.cpp `pSys`); only the fields other units read are named.
+struct SystemWork {
+    u32 flags;     // 0x00  bit 30 = progressive/60Hz screen scaling, 0x08000000 = vibration on
+    u8 pad_4[6];
+    u8 brightness; // 0x0A  background brightness (Render_done -> Bg_brightness_set)
+    u8 key_type;   // 0x0B  Key_type_tbl row (controller layout)
+};
+extern SystemWork* pSys;
+
+extern "C" u32 GetSystemVcnt();
 
 #endif

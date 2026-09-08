@@ -194,25 +194,25 @@ static void move(FE_WORK* t)
     u32 cur;
     s16 sh;
 
-    if (joy->rpt & JOY_RIGHT) {
+    if (joy->rep & JOY_RIGHT) {
         t->cursor++;
     }
-    if (joy->rpt & JOY_LEFT) {
+    if (joy->rep & JOY_LEFT) {
         t->cursor--;
     }
-    if (joy->rpt & JOY_UP) {
+    if (joy->rep & JOY_UP) {
         t->cursor -= 16;
     }
-    if (joy->rpt & JOY_DOWN) {
+    if (joy->rep & JOY_DOWN) {
         t->cursor += 16;
     }
-    if (joy->rpt & 0x20000) {
+    if (joy->rep & 0x20000) {
         t->cursor++;
-    } else if (joy->rpt & 0x10000) {
+    } else if (joy->rep & 0x10000) {
         t->cursor--;
-    } else if (joy->rpt & 0x80000) {
+    } else if (joy->rep & 0x80000) {
         t->cursor -= 16;
-    } else if (joy->rpt & 0x40000) {
+    } else if (joy->rep & 0x40000) {
         t->cursor += 16;
     }
     if (t->cursor >= fe_data[t->page].bits) {
@@ -229,14 +229,14 @@ static void move(FE_WORK* t)
         }
         t->cursor += fe_data[t->page].bits;
     }
-    if (joy->rpt & JOY_R) {
+    if (joy->rep & JOY_R) {
         t->cursor = 0;
         t->page++;
         if (t->page > 11) {
             t->page = 0;
         }
     }
-    if (joy->rpt & JOY_L) {
+    if (joy->rep & JOY_L) {
         t->cursor = 0;
         t->page--;
         if (t->page < 0) {

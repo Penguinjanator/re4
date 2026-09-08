@@ -4,7 +4,7 @@ extern "C" {
 void* memset(void* dst, int c, unsigned int n);
 unsigned long strtoul(const char* s, char** end, int base);
 void yz2Decode_Decode(void* ctx, void* dst, u32 size, void* ev);
-void Yz2DecodeSet(char* str, void* buf);
+u32 Yz2DecodeSet(char* str, void* buf);
 void Yz2DecodeExec(void* dst);
 }
 
@@ -60,17 +60,20 @@ struct Yz2Ctx {
     int n;          // 0x58
 };
 
-void Yz2DecodeSet(char* str, void* buf)
+u32 Yz2DecodeSet(char* str, void* buf)
 {
     char* p = str;
+    u32 size;
 
     in_ev.size0 = strtoul(p, &p, 16);
     p++;
-    in_ev.size1 = strtoul(p, &p, 16);
+    size = strtoul(p, &p, 16);
+    in_ev.size1 = size;
     in_ev.heap = (u8*) buf;
     in_ev.free = (u8*) buf;
     p = (char*) (((u32) p + 0x20) & ~0x1F);
     in_ev.src = (u8*) p;
+    return size;
 }
 
 static inline void* yz2Alloc(u32 size)

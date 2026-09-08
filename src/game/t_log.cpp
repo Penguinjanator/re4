@@ -60,18 +60,18 @@ int LogMove()
     JOY_COPY(pT, 0x2C, 0);
     JOY_COPY(pT, 0x2C + sizeof(JOY), 1);
     pT->count++;
-    if (Joy[0].rpt != 0) {
+    if (Joy[0].rep != 0) {
         pT->count = 0;
     }
-    if (pT->joy[0].rpt & JOY_UP) {
+    if (pT->joy[0].rep & JOY_UP) {
         pLog->scrSet(pT->joy[0].on & JOY_A ? -5 : -1);
     }
-    if (pT->joy[0].rpt & JOY_DOWN) {
+    if (pT->joy[0].rep & JOY_DOWN) {
         pLog->scrSet(pT->joy[0].on & JOY_A ? 5 : 1);
     }
     pLog->scrSet(-(Joy[0].sy / 20));
     pLog->dispLineNum(24, 42);
-    if (pT->joy[0].rpt & JOY_B) {
+    if (pT->joy[0].rep & JOY_B) {
         pT->active = 0;
     }
     return pT->active;

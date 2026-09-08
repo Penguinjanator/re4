@@ -265,22 +265,20 @@ int checkSubMissionTarget(int stage, int no)
 {
     u16* p1;
     u16* p2;
-    int ret;
 
     if (stage != 1) {
         return 0;
     }
     p1 = GetEtcFlgPtr(st1_target_tbl[no].no, st1_target_tbl[no].room1);
     p2 = GetEtcFlgPtr(st1_target_tbl[no].no, st1_target_tbl[no].room2);
-    if (*p1 & 1) {
+    if ((*p1 & 1) == 0) {
+        if ((*p2 & 1) == 0) {
+            return 1;
+        }
+    } else {
         return 0;
     }
-    if (*p2 & 1) {
-        ret = 0;
-    } else {
-        ret = 1;
-    }
-    return ret;
+    return 0;
 }
 
 void subMissionSt1()
@@ -316,7 +314,7 @@ void subMissionSt1()
             count++;
         }
         if (pG->x4 != 0) {
-            if (G_ROOM_ID == tbl[i].room1 && !(*p1 & 1)) {
+            if (G_ROOM_ID == (&tbl[i])->room1 && !(*p1 & 1)) {
                 if (getRoomEtcItem(t->no, &item, 1)) {
                     item->flags &= ~2;
                     pCoin = item;

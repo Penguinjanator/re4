@@ -34,10 +34,10 @@ void t_page_main()
 {
     s8 page;
 
-    if (Joy[0].rpt & JOY_LEFT) {
+    if (Joy[0].rep & JOY_LEFT) {
         pG->debug_mode--;
     }
-    if (Joy[0].rpt & JOY_RIGHT) {
+    if (Joy[0].rep & JOY_RIGHT) {
         pG->debug_mode++;
     }
     pG->debug_mode = (s8) pG->debug_mode < 0 ? 24 : ((s8) pG->debug_mode > 24 ? 0 : pG->debug_mode);

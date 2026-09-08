@@ -1,4 +1,4 @@
-#include "snd.h"
+#include "snd_drv.h"
 
 int Snd_iss_req_para(u16 blk_no, u16 req_no, u8* para)
 {

@@ -271,19 +271,19 @@ void move(struct test* t)
         eprintf(t->x + ((i & 1) * 20 - 4) * 8, t->y + (i / 2 + 2) * 15, color, 0, "%s", menu[i].name);
     }
     eprintf(t->x + ((t->cursor & 1) * 20 - 5) * 8, t->y + (t->cursor / 2 + 2) * 15, 0, 0, ">");
-    if (joy->rpt & 0x80008) {
+    if (joy->rep & 0x80008) {
         t->cursor -= 2;
         if (t->cursor < 0) {
             t->cursor = (t->cursor & 1) ? MENU_NUM - 1 : MENU_NUM - 2;
         }
     }
-    if (joy->rpt & 0x40004) {
+    if (joy->rep & 0x40004) {
         t->cursor += 2;
         if (t->cursor >= n) {
             t->cursor = t->cursor & 1;
         }
     }
-    if (joy->rpt & 0x30003) {
+    if (joy->rep & 0x30003) {
         t->cursor ^= 1;
         if (t->cursor >= n) {
             t->cursor ^= 1;

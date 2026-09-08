@@ -141,6 +141,7 @@ public:
     void setPos(Vec* pos);
     void setAng(Vec* ang);
     void drawAllBoundingBox(cModelInfo* info);
+    void debugSkeletonDisp();
 };
 
 #endif

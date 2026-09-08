@@ -35,7 +35,7 @@ void cDbWork::move()
         return;
     }
     eprintf(16, 14, 0, 0, "MODEL WORK VIEWER");
-    if (Joy[0].rpt & JOY_UP) {
+    if (Joy[0].rep & JOY_UP) {
         switch (mode) {
         case 0:
             mode = 2;
@@ -48,7 +48,7 @@ void cDbWork::move()
             break;
         }
     }
-    if (Joy[0].rpt & JOY_DOWN) {
+    if (Joy[0].rep & JOY_DOWN) {
         switch (mode) {
         case 0:
             mode = 1;
@@ -80,10 +80,10 @@ void cDbWork::dispEm()
 
     eprintf(32, 28, 4, 0, "ENEMY %d", no);
     em = EmMgr.getWork(no);
-    if (Joy[0].rpt & JOY_RIGHT) {
+    if (Joy[0].rep & JOY_RIGHT) {
         no++;
     }
-    if (Joy[0].rpt & JOY_LEFT) {
+    if (Joy[0].rep & JOY_LEFT) {
         no--;
     }
     no = (no + EmMgr.nArray) % EmMgr.nArray;
@@ -105,10 +105,10 @@ void cDbWork::dispObj()
 
     obj = ObjMgr.getWork(no);
     eprintf(32, 28, 4, 0, "OBJ %d  [0x%08X]", no, obj);
-    if (Joy[0].rpt & JOY_RIGHT) {
+    if (Joy[0].rep & JOY_RIGHT) {
         no++;
     }
-    if (Joy[0].rpt & JOY_LEFT) {
+    if (Joy[0].rep & JOY_LEFT) {
         no--;
     }
     no = (no + ObjMgr.nArray) % ObjMgr.nArray;
@@ -212,10 +212,10 @@ void cDbWork::dispLit()
 
     eprintf(32, 28, 4, 0, "LIGHT %d", no);
     l = LightMgr.getWorkPtr(no);
-    if (Joy[0].rpt & JOY_RIGHT) {
+    if (Joy[0].rep & JOY_RIGHT) {
         no++;
     }
-    if (Joy[0].rpt & JOY_LEFT) {
+    if (Joy[0].rep & JOY_LEFT) {
         no--;
     }
     no = (no + LightMgr.nArray) % LightMgr.nArray;

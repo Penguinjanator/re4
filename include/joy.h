@@ -3,8 +3,17 @@
 
 #include "types.h"
 
-// Controller state (game/main.cpp `Joy[4]`, 0x268 bytes each). Only the fields the debug
-// tools read are named; extend the pads, never rewrite.
+// One vibration request (game/pad.cpp VibSet/VibControl), 0x10 bytes; Joy[0].vib[10].
+struct VibWork {
+    u16 type;   // 0x00  bit 15 = random level; low 4 bits = clear type (VibSetClearType)
+    u16 wait;   // 0x02  frames before it starts
+    u16 time;   // 0x04  frames left (0 = free)
+    u8 pad_6[2];
+    s32 level;  // 0x08  current level (<<7 / <<12 fixed point)
+    s32 add;    // 0x0C  per-frame level step
+};
+
+// Controller state (game/main.cpp `Joy[4]`, 0x268 bytes each), filled by pad.cpp PadRead.
 struct JOY {
     s8 sx;    // 0x00  main stick x
     s8 sy;    // 0x01  main stick y
@@ -12,15 +21,22 @@ struct JOY {
     s8 ssy;   // 0x03  sub stick y
     u8 trigL; // 0x04  analog L
     u8 trigR; // 0x05  analog R
-    u8 pad_6[2];
-    s8 x8;    // 0x08  tv_mode: -3/-2 counts toward the progressive-mode prompt
-    u8 pad_9[0x10 - 0x09];
+    u8 anaA;  // 0x06
+    u8 anaB;  // 0x07
+    s8 x8;    // 0x08  PADStatus err (tv_mode: -3/-2 counts toward the progressive-mode prompt)
+    u8 pad_9[3];
+    u32 old;  // 0x0C  `on` of the previous frame
     u32 on;   // 0x10  buttons currently held
     u32 trg;  // 0x14  buttons pressed this frame
-    u8 pad_18[4];
-    u32 rpt;  // 0x1C  buttons held, with auto-repeat
-    u32 rel;  // 0x20  buttons released this frame
-    u8 pad_24[0x268 - 0x24];
+    u32 rel;  // 0x18  buttons released this frame
+    u32 rep;  // 0x1C  buttons held, with auto-repeat (24/6 frames)
+    u32 rep2; // 0x20  buttons held, with fast auto-repeat (18/3 frames)
+    s8 rep_timer[32];   // 0x24
+    s8 rep2_timer[32];  // 0x44
+    u8 vib_state;       // 0x64  motor command last sent (Joy[0] only)
+    u8 pad_65[3];
+    VibWork vib[10];    // 0x68  (Joy[0] only)
+    u8 pad_108[0x268 - 0x108];
 };
 
 extern JOY Joy[4];
@@ -49,5 +65,14 @@ extern "C" void* memcpy(void* dst, const void* src, unsigned int n);
 #define JOY_X      0x0400
 #define JOY_Y      0x0800
 #define JOY_START  0x1000
+// pad.cpp PadRead: main stick direction (>= 30 units), sub stick direction (> 10 units)
+#define JOY_SRIGHT  0x00010000
+#define JOY_SLEFT   0x00020000
+#define JOY_SDOWN   0x00040000
+#define JOY_SUP     0x00080000
+#define JOY_SSLEFT  0x00100000
+#define JOY_SSRIGHT 0x00200000
+#define JOY_SSDOWN  0x00400000
+#define JOY_SSUP    0x00800000
 
 #endif

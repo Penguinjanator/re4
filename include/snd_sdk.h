@@ -38,9 +38,12 @@ void DCFlushRange(void* addr, u32 nBytes);
 void DCStoreRange(void* addr, u32 nBytes);
 void DCInvalidateRange(void* addr, u32 nBytes);
 u32 OSGetTick(void);
+void AXSetCompressor(u32 switch_);
 void AIInit(u8* stack);
+void AIReset(void);
 void* memclr_asm(void* dst, u32 n);
 char* strcpy(char* dst, const char* src);
+f64 pow(f64 x, f64 y);
 int strcmp(const char* a, const char* b);
 
 // The SDK's dolphin/gx/GXGeometry.h is included by every sound unit through dolphin.h. Its

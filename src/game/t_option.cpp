@@ -103,7 +103,7 @@ void cDbOption::joySet()
 void cDbOption::move()
 {
     pT->count++;
-    if (Joy[0].rpt != 0) {
+    if (Joy[0].rep != 0) {
         pT->count = 0;
     }
 }
@@ -154,16 +154,16 @@ void tp_menu()
         eprintf(32, (i + 4) * 14, 0, 0, menuStr[i]);
     }
     printCursor(3, pT->cursor + 4);
-    if (pT->joy[0].rpt & JOY_UP) {
+    if (pT->joy[0].rep & JOY_UP) {
         pT->cursor = (pT->cursor + 2) % 3;
-    } else if (pT->joy[0].rpt & JOY_DOWN) {
+    } else if (pT->joy[0].rep & JOY_DOWN) {
         pT->cursor = (pT->cursor + 4) % 3;
     }
-    if (pT->joy[0].rpt & JOY_A) {
+    if (pT->joy[0].rep & JOY_A) {
         pT->setRno(pT->cursor + 1, 0, 0, 0, 0, 0, 0, 0);
         pT->cursor = 0;
     }
-    if (pT->joy[0].rpt & JOY_B) {
+    if (pT->joy[0].rep & JOY_B) {
         pT->cursor = 2;
     }
 }
@@ -192,16 +192,16 @@ void tp_pl_menu()
         eprintf(32, (i + 4) * 14, 0, 0, menuStr[i]);
     }
     printCursor(3, pT->cursor + 4);
-    if (pT->joy[0].rpt & JOY_UP) {
+    if (pT->joy[0].rep & JOY_UP) {
         pT->cursor = (pT->cursor + 6) % 7;
-    } else if (pT->joy[0].rpt & JOY_DOWN) {
+    } else if (pT->joy[0].rep & JOY_DOWN) {
         pT->cursor = (pT->cursor + 8) % 7;
     }
-    if (pT->joy[0].rpt & JOY_A) {
+    if (pT->joy[0].rep & JOY_A) {
         pT->setRno(1, pT->cursor + 1, 0, 0, 0, 0, 0, 0);
         pT->cursor = 0;
     }
-    if (pT->joy[0].rpt & JOY_B) {
+    if (pT->joy[0].rep & JOY_B) {
         pT->cursor = 0;
         pT->setRno(0, 0, 0, 0, 0, 0, 0, 0);
     }
@@ -225,21 +225,21 @@ void tp_pl_flag()
     eprintf(40, 140, PlDbFlag & 2 ? 0 : 20, 0, "INFORMATION");
     eprintf(40, 154, pG->flags_68 & 8 ? 0 : 20, 0, "ATARI NO-HIT");
     printCursor(4, pT->cursor + 4);
-    if (pT->joy[0].rpt & JOY_UP) {
+    if (pT->joy[0].rep & JOY_UP) {
         pT->cursor = (pT->cursor + 7) % 8;
-    } else if (pT->joy[0].rpt & JOY_DOWN) {
+    } else if (pT->joy[0].rep & JOY_DOWN) {
         pT->cursor = (pT->cursor + 9) % 8;
     }
     if (pT->cursor == 2) {
-        if (pT->joy[0].rpt & JOY_RIGHT) {
+        if (pT->joy[0].rep & JOY_RIGHT) {
             PlKaiou++;
         }
-        if (pT->joy[0].rpt & JOY_LEFT) {
+        if (pT->joy[0].rep & JOY_LEFT) {
             PlKaiou--;
         }
         PlKaiou &= 7;
     }
-    if (pT->joy[0].rpt & JOY_A) {
+    if (pT->joy[0].rep & JOY_A) {
         switch (pT->cursor) {
         case 0:
             if ((s32) TOOL_FLAG(OFS_DEBUG_FLG + 12) < 0) {
@@ -294,7 +294,7 @@ void tp_pl_flag()
             break;
         }
     }
-    if (pT->joy[0].rpt & JOY_B) {
+    if (pT->joy[0].rep & JOY_B) {
         pT->setRno(1, 0, 0, 0, 0, 0, 0, 0);
         pT->cursor = 0;
     }
@@ -325,14 +325,14 @@ void tp_pl_life()
         }
         break;
     }
-    if ((pT->joy[0].rpt & JOY_UP) || (pT->joy[0].trg & 0x80000)) {
+    if ((pT->joy[0].rep & JOY_UP) || (pT->joy[0].trg & 0x80000)) {
         pT->cursor = 0;
     }
-    if ((pT->joy[0].rpt & JOY_DOWN) || (pT->joy[0].trg & 0x40000)) {
+    if ((pT->joy[0].rep & JOY_DOWN) || (pT->joy[0].trg & 0x40000)) {
         pT->cursor = 1;
     }
     printCursor(3, pT->cursor + 5);
-    if (pT->joy[0].rpt & JOY_B) {
+    if (pT->joy[0].rep & JOY_B) {
         pT->setRno(1, 0, 0, 0, 0, 0, 0, 0);
         pT->cursor = 3;
     }
@@ -378,7 +378,7 @@ void tp_pl_posmove()
     if ((Joy[0].on & JOY_Z) && pSUB != NULL && (pSUB->be_flag & 0x201) == 1) {
         pSUB->setPos(&pPL->pos);
     }
-    if (pT->joy[0].rpt & JOY_B) {
+    if (pT->joy[0].rep & JOY_B) {
         TOOL_FLAG(OFS_DEBUG_FLG + 8) &= ~8;
         TaskSuspend(0);
         TOOL_FLAG(OFS_STOP_FLG) = sfb;
@@ -455,7 +455,7 @@ void tp_pl_weapon()
         pT->rno[4] = 0;
         pT->rno[2] = 1;
     case 1:
-        if (pT->joy[0].rpt & JOY_UP) {
+        if (pT->joy[0].rep & JOY_UP) {
             pT->cursor = (pT->cursor + 45) % 46;
             if (pT->cursor == 45) {
                 pT->rno[4] = 21;
@@ -463,7 +463,7 @@ void tp_pl_weapon()
                 pT->rno[4] = pT->cursor;
             }
             pT->rno[3] = 0;
-        } else if (pT->joy[0].rpt & JOY_DOWN) {
+        } else if (pT->joy[0].rep & JOY_DOWN) {
             pT->cursor = (pT->cursor + 47) % 46;
             if (pT->cursor == 0) {
                 pT->rno[4] = 0;
@@ -474,70 +474,70 @@ void tp_pl_weapon()
         }
         switch (pT->cursor) {
         case 1:
-            if (pT->joy[0].rpt & (JOY_LEFT | JOY_RIGHT)) {
+            if (pT->joy[0].rep & (JOY_LEFT | JOY_RIGHT)) {
                 pT->rno[3] = pT->rno[3] == 0;
             }
             eprintf(200, (pT->cursor + 4) * 14, 0, 0, wepType[pT->rno[3]]);
             break;
         case 2:
-            if (pT->joy[0].rpt & (JOY_LEFT | JOY_RIGHT)) {
+            if (pT->joy[0].rep & (JOY_LEFT | JOY_RIGHT)) {
                 pT->rno[3] = pT->rno[3] == 0;
             }
             eprintf(208, (pT->cursor + 4) * 14, 0, 0, wepType[pT->rno[3]]);
             break;
         case 3:
-            if (pT->joy[0].rpt & (JOY_LEFT | JOY_RIGHT)) {
+            if (pT->joy[0].rep & (JOY_LEFT | JOY_RIGHT)) {
                 pT->rno[3] = pT->rno[3] == 0 ? 2 : 0;
             }
             eprintf(216, (pT->cursor + 4) * 14, 0, 0, wepType[pT->rno[3]]);
             break;
         case 11:
-            if (pT->joy[0].rpt & JOY_RIGHT) {
+            if (pT->joy[0].rep & JOY_RIGHT) {
                 pT->rno[3] = (pT->rno[3] + 1) % 4;
             }
-            if (pT->joy[0].rpt & JOY_LEFT) {
+            if (pT->joy[0].rep & JOY_LEFT) {
                 pT->rno[3] = (pT->rno[3] + 3) % 4;
             }
             eprintf(160, (pT->cursor + 4) * 14, 0, 0, wepType[pT->rno[3]]);
             break;
         case 14:
-            if (pT->joy[0].rpt & JOY_RIGHT) {
+            if (pT->joy[0].rep & JOY_RIGHT) {
                 pT->rno[3] = (pT->rno[3] + 1) % 2;
             }
-            if (pT->joy[0].rpt & JOY_LEFT) {
+            if (pT->joy[0].rep & JOY_LEFT) {
                 pT->rno[3] = (pT->rno[3] + 1) % 2;
             }
             eprintf(160, (pT->cursor + 4) * 14, 0, 0, bltType[pT->rno[3]]);
             break;
         case 9:
-            if (pT->joy[0].rpt & JOY_RIGHT) {
+            if (pT->joy[0].rep & JOY_RIGHT) {
                 pT->rno[3] = (pT->rno[3] + 1) % 3;
             }
-            if (pT->joy[0].rpt & JOY_LEFT) {
+            if (pT->joy[0].rep & JOY_LEFT) {
                 pT->rno[3] = (pT->rno[3] + 2) % 3;
             }
             eprintf(160, (pT->cursor + 4) * 14, 0, 0, scopeType[pT->rno[3]]);
             break;
         case 10:
-            if (pT->joy[0].rpt & JOY_RIGHT) {
+            if (pT->joy[0].rep & JOY_RIGHT) {
                 pT->rno[3] = (pT->rno[3] + 1) % 3;
             }
-            if (pT->joy[0].rpt & JOY_LEFT) {
+            if (pT->joy[0].rep & JOY_LEFT) {
                 pT->rno[3] = (pT->rno[3] + 2) % 3;
             }
             eprintf(232, (pT->cursor + 4) * 14, 0, 0, scopeType[pT->rno[3]]);
             break;
         case 13:
-            if (pT->joy[0].rpt & JOY_RIGHT) {
+            if (pT->joy[0].rep & JOY_RIGHT) {
                 pT->rno[3] = (pT->rno[3] + 1) % 3;
             }
-            if (pT->joy[0].rpt & JOY_LEFT) {
+            if (pT->joy[0].rep & JOY_LEFT) {
                 pT->rno[3] = (pT->rno[3] + 2) % 3;
             }
             eprintf(176, (pT->cursor + 4) * 14, 0, 0, rocketType[pT->rno[3]]);
             break;
         }
-        if (pT->joy[0].rpt & JOY_A) {
+        if (pT->joy[0].rep & JOY_A) {
             if (pT->cursor != WEP_NO || pT->rno[3] != WEP_TYPE) {
                 cPlayer* pl = pPL;
                 pl->weaponRelease();
@@ -554,7 +554,7 @@ void tp_pl_weapon()
                 pT->rno[2] = 2;
             }
         }
-        if (pT->joy[0].rpt & JOY_X) {
+        if (pT->joy[0].rep & JOY_X) {
             pT->cursor = 0;
             pT->rno[3] = 0;
             pT->rno[2] = 2;
@@ -562,48 +562,48 @@ void tp_pl_weapon()
         printCursor(3, pT->cursor + 4 - pT->rno[4]);
         break;
     case 2:
-        if (pT->joy[0].rpt & JOY_UP) {
+        if (pT->joy[0].rep & JOY_UP) {
             pT->cursor = (pT->cursor + 3) % 4;
             pT->rno[3] = 0;
-        } else if (pT->joy[0].rpt & JOY_DOWN) {
+        } else if (pT->joy[0].rep & JOY_DOWN) {
             pT->cursor = (pT->cursor + 5) % 4;
             pT->rno[3] = 0;
         }
         switch (pT->cursor) {
         case 0:
-            if (pT->joy[0].rpt & JOY_RIGHT) {
+            if (pT->joy[0].rep & JOY_RIGHT) {
                 WEP_LV_POWER = (WEP_LV_POWER + 1) % 7;
             }
-            if (pT->joy[0].rpt & JOY_LEFT) {
+            if (pT->joy[0].rep & JOY_LEFT) {
                 WEP_LV_POWER = (WEP_LV_POWER + 6) % 7;
             }
             break;
         case 1:
-            if (pT->joy[0].rpt & JOY_RIGHT) {
+            if (pT->joy[0].rep & JOY_RIGHT) {
                 WEP_LV_SPEED = (WEP_LV_SPEED + 1) % 3;
             }
-            if (pT->joy[0].rpt & JOY_LEFT) {
+            if (pT->joy[0].rep & JOY_LEFT) {
                 WEP_LV_SPEED = (WEP_LV_SPEED + 2) % 3;
             }
             break;
         case 2:
-            if (pT->joy[0].rpt & JOY_RIGHT) {
+            if (pT->joy[0].rep & JOY_RIGHT) {
                 WEP_LV_BULLET = (WEP_LV_BULLET + 1) % 6;
             }
-            if (pT->joy[0].rpt & JOY_LEFT) {
+            if (pT->joy[0].rep & JOY_LEFT) {
                 WEP_LV_BULLET = (WEP_LV_BULLET + 5) % 6;
             }
             break;
         case 3:
-            if (pT->joy[0].rpt & JOY_RIGHT) {
+            if (pT->joy[0].rep & JOY_RIGHT) {
                 WEP_LV_RELOAD = (WEP_LV_RELOAD + 1) % 5;
             }
-            if (pT->joy[0].rpt & JOY_LEFT) {
+            if (pT->joy[0].rep & JOY_LEFT) {
                 WEP_LV_RELOAD = (WEP_LV_RELOAD + 4) % 5;
             }
             break;
         }
-        if (pT->joy[0].rpt & (JOY_A | JOY_X)) {
+        if (pT->joy[0].rep & (JOY_A | JOY_X)) {
             pT->cursor = WEP_NO;
             pT->rno[3] = 0;
             pT->rno[2] = 1;
@@ -625,7 +625,7 @@ void tp_pl_weapon()
     eprintf(280, 84, 0, 0, "SPEED  Lv.%d", WEP_LV_SPEED + 1);
     eprintf(280, 98, 0, 0, "BULET  Lv.%d", WEP_LV_BULLET + 1);
     eprintf(280, 112, 0, 0, "RELOAD Lv.%d", WEP_LV_RELOAD + 1);
-    if (pT->joy[0].rpt & JOY_B) {
+    if (pT->joy[0].rep & JOY_B) {
         TOOL_FLAG(OFS_DISP_FLG) &= ~0x40000000;
         TOOL_FLAG(OFS_DISP_FLG) &= ~0x10000000;
         TaskSignal(0);
@@ -637,10 +637,10 @@ void tp_pl_weapon()
 void tp_pl_PlKill()
 {
     eprintf(32, 42, 4, 0, "PRESS A TO PLAYER WILL DIE.");
-    if (pT->joy[0].rpt & JOY_A) {
+    if (pT->joy[0].rep & JOY_A) {
         PlSetDamage(0, 9999, 0);
     }
-    if (pT->joy[0].rpt & JOY_B) {
+    if (pT->joy[0].rep & JOY_B) {
         pT->setRno(1, 0, 0, 0, 0, 0, 0, 0);
     }
 }
@@ -648,7 +648,7 @@ void tp_pl_PlKill()
 void tp_pl_mountweapon()
 {
     eprintf(32, 42, 4, 0, "MOUNT-WEAPON");
-    if (pT->joy[0].rpt & JOY_B) {
+    if (pT->joy[0].rep & JOY_B) {
         pT->setRno(1, 0, 0, 0, 0, 0, 0, 0);
     }
 }
@@ -687,12 +687,12 @@ void tp_pl_face()
     for (i = 0; i < 3; i++) {
         eprintf(32, (i + 5) * 14, 0, 0, pFileName[PL_COSTUME][i]);
     }
-    if (pT->joy[0].rpt & JOY_UP) {
+    if (pT->joy[0].rep & JOY_UP) {
         pT->cursor = (u32) (pT->cursor + 3) % 4;
-    } else if (pT->joy[0].rpt & JOY_DOWN) {
+    } else if (pT->joy[0].rep & JOY_DOWN) {
         pT->cursor = (u32) (pT->cursor + 5) % 4;
     }
-    if (pT->joy[0].rpt & JOY_A) {
+    if (pT->joy[0].rep & JOY_A) {
         if (pT->cursor == 0) {
             ShapeEnd(pl->pFace->pShape);
         } else {
@@ -706,7 +706,7 @@ void tp_pl_face()
             }
         }
     }
-    if (pT->joy[0].rpt & JOY_B) {
+    if (pT->joy[0].rep & JOY_B) {
         if (pData != NULL) {
             Debug_free(pData);
         }
@@ -734,16 +734,16 @@ void tp_scr_menu()
         eprintf(32, (i + 4) * 14, 0, 0, menuStr[i]);
     }
     printCursor(3, pT->cursor + 4);
-    if (pT->joy[0].rpt & JOY_UP) {
+    if (pT->joy[0].rep & JOY_UP) {
         pT->cursor = (pT->cursor + 1) % 2;
-    } else if (pT->joy[0].rpt & JOY_DOWN) {
+    } else if (pT->joy[0].rep & JOY_DOWN) {
         pT->cursor = (pT->cursor + 3) % 2;
     }
-    if (pT->joy[0].rpt & JOY_A) {
+    if (pT->joy[0].rep & JOY_A) {
         pT->setRno(2, pT->cursor + 1, 0, 0, 0, 0, 0, 0);
         pT->cursor = 0;
     }
-    if (pT->joy[0].rpt & JOY_B) {
+    if (pT->joy[0].rep & JOY_B) {
         pT->cursor = 0;
         pT->setRno(0, 0, 0, 0, 0, 0, 0, 0);
     }
@@ -759,12 +759,12 @@ void tp_scr_flag()
     eprintf(40, 112, pG->flags_6C & 0x400000 ? 0 : 20, 0, "ERROR CHECK");
     int num = 5;
     printCursor(4, pT->cursor + 4);
-    if (pT->joy[0].rpt & JOY_UP) {
+    if (pT->joy[0].rep & JOY_UP) {
         pT->cursor = (pT->cursor + num - 1) % num;
-    } else if (pT->joy[0].rpt & JOY_DOWN) {
+    } else if (pT->joy[0].rep & JOY_DOWN) {
         pT->cursor = (pT->cursor + num + 1) % num;
     }
-    if (pT->joy[0].rpt & JOY_A) {
+    if (pT->joy[0].rep & JOY_A) {
         switch (pT->cursor) {
         case 0:
             if (TOOL_FLAG(OFS_DEBUG_FLG + 12) & 0x2000) {
@@ -803,7 +803,7 @@ void tp_scr_flag()
             break;
         }
     }
-    if (pT->joy[0].rpt & JOY_B) {
+    if (pT->joy[0].rep & JOY_B) {
         pT->setRno(2, 0, 0, 0, 0, 0, 0, 0);
         pT->cursor = 0;
     }
@@ -820,10 +820,10 @@ void tp_scr_view()
     }
     eprintf(32, 42, 4, 0, "SCROLL VIEW");
     eprintf(32, 56, 0, 0, strMode[pT->cursor]);
-    if (pT->joy[0].rpt & (JOY_UP | JOY_RIGHT)) {
+    if (pT->joy[0].rep & (JOY_UP | JOY_RIGHT)) {
         pT->cursor = (pT->cursor + 7) % 6;
         chg = 1;
-    } else if (pT->joy[0].rpt & (JOY_DOWN | JOY_LEFT)) {
+    } else if (pT->joy[0].rep & (JOY_DOWN | JOY_LEFT)) {
         pT->cursor = (pT->cursor + 5) % 6;
         chg = 1;
     }
@@ -855,7 +855,7 @@ void tp_scr_view()
             break;
         }
     }
-    if (pT->joy[0].rpt & JOY_B) {
+    if (pT->joy[0].rep & JOY_B) {
         pT->setRno(2, 0, 0, 0, 0, 0, 0, 0);
         pT->cursor = 0;
     }

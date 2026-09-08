@@ -1,4 +1,4 @@
-#include "snd.h"
+#include "snd_drv.h"
 
 int Snd_se_reset_check(SND_CTRL_WORK* ctrl)
 {
@@ -17,8 +17,8 @@ int Snd_se_reset_check(SND_CTRL_WORK* ctrl)
             }
         }
         ctrl->reset_flag |= 0x10;
-        ctrl->x24 = 0;
-        ctrl->flag_26 = 0;
+        ctrl->se_state = 0;
+        ctrl->se_ctrl = 0;
         return 1;
     }
     return 0;
@@ -114,7 +114,7 @@ SND_REQ_WORK* Snd_open_req_work(void)
         return NULL;
     }
     for (i = 0; i < SND_REQ_MAX; i++) {
-        req = &Snd_req_work[ctrl->x18][i];
+        req = &Snd_req_work[ctrl->req_bank][i];
         if (req->status == 0) {
             return req;
         }
@@ -132,9 +132,19 @@ SND_REQ_WORK* Snd_search_req_work_snd_id(u32 snd_id, u8 type)
     for (i = 0; i < SND_REQ_BANK_MAX; i++) {
         for (j = 0; j < SND_REQ_MAX; j++) {
             req = &Snd_req_work[i][j];
-            if (req->status != 0 && !(req->type & 0x4) && (req->type & type) && req->snd_id == snd_id) {
-                return req;
+            if (req->status == 0) {
+                continue;
             }
+            if (req->type & 0x4) {
+                continue;
+            }
+            if (!(req->type & type)) {
+                continue;
+            }
+            if (req->snd_id != snd_id) {
+                continue;
+            }
+            return req;
         }
     }
     return NULL;

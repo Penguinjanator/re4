@@ -24,6 +24,15 @@ source form. (Older assemblers reject `ldh`; 3.9.3 is the build.) The DOL has no
 GCCI is "Ver.1.09 Build Oct 8 2004".
 
 
+## Per-unit compiler flags
+
+Not every game unit is `-O2`. The sound driver (`snd_iss*/seq*/str*/sub*/main/efx/ram`) is C++ with
+`extern "C"` linkage compiled at **-O0** (frame pointer in r31, every local in a stack slot, args reloaded
+before every use). `config/G4BE08/objects.py` has `UNIT_CFLAG_OVERRIDES` (flag -> replacement per unit).
+If a unit's functions all start with `stwu; mflr; stw r31; mr r31,r1` and reload parameters from the
+stack, suspect -O0 before spending time on -O2 forms. snd_drv.h/snd_sdk.h hold the driver types and
+the trick for pulling in SDK headers under ProDG.
+
 ## Workflow for one unit (`game/foo`)
 
 ```sh

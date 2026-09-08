@@ -22,7 +22,8 @@ struct Camera {
     Mtx44 projMat;      // 0x64 projection matrix
     CameraParam param;  // 0xA4 (pos 0xA4, at 0xB0, roll 0xBC, fovy 0xC0)
     Vec up;             // 0xC4 up vector (C_MTXLookAt)
-    u8 pad_D0[0xF8 - 0xD0];
+    u8 pad_D0[0xF4 - 0xD0];
+    f32 dist;           // 0xF4 |pos - at| (db_cam keeps it current for the debug camera)
 };
 
 extern "C" {

@@ -763,6 +763,7 @@ MATCHING = {
     "game/t_util.cpp": True,
     "game/db_log.cpp": True,
     "game/db_work.cpp": True,
+    "game/yz2code.cpp": True,
     "lib/GXDisplayList.c": True,
     # Dolphin SDK (MWCC 1.2.5n, see configure.py SDK_LIBS)
     "lib/DebuggerDriver.c": True,
@@ -971,6 +972,7 @@ MATCHING = {
 # C++ units with functions the original linker dead-stripped (bodies gone, constant pools and
 # statics kept): tools/strip_unused.py removes the bodies of functions not in sym_map.tsv.
 STRIP_UNUSED = {
+    "game/main_sub.cpp",
     "game/filter01.cpp",
     "game/filter09.cpp",
     "game/shape.cpp",
@@ -996,4 +998,18 @@ MATCHING.update({
     "game/snd_sub1.cpp": True,
     "game/snd_sub2.cpp": True,
     "game/snd_sub3.cpp": True,
+    "game/snd_iss1.cpp": True,
+    "game/snd_efx.cpp": True,
+    "game/snd_seq0.cpp": True,
+    "game/snd_seq1.cpp": True,
+    "game/snd_seq2.cpp": True,
+    "game/snd_seq3.cpp": True,
+    "game/snd_str0.cpp": True,
+    "game/snd_str1.cpp": True,
+    "game/snd_str2.cpp": True,
+    "game/snd_str3.cpp": True,
+    "game/snd_str4.cpp": True,
+    "game/snd_iss2.cpp": True,
+    "game/snd_iss3.cpp": True,
+    "game/snd_iss4.cpp": True,
 })
