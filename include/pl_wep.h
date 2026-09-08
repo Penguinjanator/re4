@@ -11,10 +11,17 @@
 // merged into the obj headers when those units are decompiled.
 class cObjWep : public cModel {
 public:
-    u8 pad_1D8[0x34E - 0x1D8];
+    u8 pad_1D8[0x330 - 0x1D8];
+    f32 x330;            // 0x330  lock random: pitch range (pl_wep PlWepLockRand)
+    f32 x334;            // 0x334  lock random: yaw range
+    f32 x338;            // 0x338  lock random: pitch step
+    f32 x33C;            // 0x33C  lock random: yaw step
+    u8 pad_340[0x34E - 0x340];
     u8 x34E;             // 0x34E  (knife down: 1)
     u8 x34F;             // 0x34F  (knife down: 0)
     u8 x350;             // 0x350  display flags (setDisp: type 0/1/2 -> bit 0x4/0x8/0x10)
+    u8 pad_351[7];
+    Vec x358;            // 0x358  muzzle / hit marker position (pl_wep getMarkerPos, PlWepHitCheck2)
 
     virtual void moveAll();
     virtual void moveStay();
@@ -53,7 +60,7 @@ public:
     cObjWep* pObj;       // 0x34  weapon object (cObjLauncher for the rocket launcher)
     cObjWep* pObj2;      // 0x38  second weapon object (rifles / launchers display part)
     u8 pad_3C[4];
-    u8 x40;              // 0x40  (lockMove clears it on Joy trigger)
+    u8 x40;              // 0x40  lock frames left (lockInit/lockNext: 10; lockMove clears it on a stick move)
     u8 pad_41[3];
 
     cPlWep();
@@ -61,16 +68,29 @@ public:
     f32 getPitch();
     void move();
     int getMarkerPos(Vec* out);
-    void lockInit();
+    cModel* lockInit();
     void lockMove();
-    void lockNext();
-    void setTrans(int type, int on);   // pObj/pObj2 display by weapon (pl_sub PlSetHand)
+    cModel* lockNext();
+    void setTrans(int on, int type);   // pObj/pObj2 display by weapon (pl_sub PlSetHand)
 };
 
 // knife/weapon collision (pl, top, bottom, type, flags, length)
-int PlWepHitCheck2(cModel* pl, Vec* p0, Vec* p1, int type, u32 flag, f32 len);
+u32 PlWepHitCheck2(cModel* pl, Vec* p0, Vec* p1, int type, u32 flag, f32 len);
 void PlWepLockCtrl(cModel* pl);
 
+extern "C" {
+u32 PlWepHitCheck3(Vec* pos, int type, u32 prio, f32 len);
+void PlWepAutoTrack(cModel* pl, int mode, f32 rate);
+void PlWepLockRandInit();
+void PlWepLockRand(cModel* pl, int flag, f32* pitch, f32* yaw);
+void PlSetLockPitch(cModel* pl);
+int GetWepSizeGroup(int no);
+int PlCornerCheck();
+cModel* SearchLockEm(Vec* pos, cModel* skip);
+cModel* SearchTargetEm(Vec* pos, cModel* skip, f32 range);
+}
+
 extern u8 lockCtr;
+extern void (*WeaponInitFunc)(cModel*);
 
 #endif

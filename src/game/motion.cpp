@@ -10,14 +10,23 @@ extern const Vec vecZero;
 extern "C" void* memset(void* dst, int c, unsigned int n);
 
 // Matrix copy written out as loops (the original never calls PSMTXCopy for these).
-#define MTX_COPY(src, dst)                     \
-    {                                          \
-        int i_, j_;                            \
-        for (i_ = 0; i_ < 3; i_++) {           \
-            for (j_ = 0; j_ < 4; j_++) {       \
-                (dst)[i_][j_] = (src)[i_][j_]; \
-            }                                  \
-        }                                      \
+#define MTX_COPY(src, dst)               \
+    {                                    \
+        MtxPtr s_ = (src);               \
+        MtxPtr d_ = (dst);               \
+        int i_ = 3;                      \
+        int j_;                          \
+        f32* sp_;                        \
+        f32* dp_;                        \
+        while (i_--) {                   \
+            dp_ = *d_;                   \
+            sp_ = *s_;                   \
+            for (j_ = 0; j_ < 4; j_++) { \
+                *dp_++ = *sp_++;         \
+            }                            \
+            s_++;                        \
+            d_++;                        \
+        }                                \
     }
 
 // Fixed 10.6 sequence frame -> float
@@ -77,6 +86,7 @@ void MotionClear(cModel* m, int flag)
     Mtx tmp;
     Mtx inv;
     int i;
+    int j;
 
     for (p = m->pParts; p != 0; p = p->pParts) {
         if (m != p->pParent) {
@@ -102,22 +112,22 @@ void MotionClear(cModel* m, int flag)
             w->cam->parts[i] = 0xFF;
         }
         w->cam->type = 0;
-        for (i = 0; i < 5; i++) {
-            memclr_asm(&w->cam->out[i], sizeof(Vec));
+        for (j = 0; j < 5; j++) {
+            memclr_asm(&w->cam->out[j], sizeof(Vec));
         }
     }
     MOTION(m)->data = 0;
 }
 
-void MotionSetCore(cModel* m, void* w_, void* data_, int seq_, int hokan, int flags, int frame_)
+void MotionSetCore(cModel* m, void* w_, void* data_, int seq_, int hokan, int flags, int frame)
 {
     MotionWork* w = (MotionWork*) w_;
     MotionData* data = (MotionData*) data_;
     u16* seq = (u16*) seq_;
-    u16 frame = frame_;
     HermitePrm prm;
-    u16 hist0[3];
-    u16 hist1[3];
+    HermitePrm* pp = &prm;
+    u16 hist0[3] = { 0, 0, 0 };
+    u16 hist1[3] = { 0, 0, 0 };
     Vec v0;
     Vec v1;
     Vec v2;
@@ -127,8 +137,6 @@ void MotionSetCore(cModel* m, void* w_, void* data_, int seq_, int hokan, int fl
     int f;
     int i;
 
-    memset(hist0, 0, sizeof(hist0));
-    memset(hist1, 0, sizeof(hist1));
     if (!(w->flags2 & 0x20000000)) {
         MOTION(m)->blend = 0;
     }
@@ -155,48 +163,49 @@ void MotionSetCore(cModel* m, void* w_, void* data_, int seq_, int hokan, int fl
         if (!(flags & 4)) {
             w->seqMax++;
         }
-        if (frame >= w->seqMax) {
-            frame = w->seqMax - 1;
+        if ((u32) frame >= w->seqMax) {
+            frame = (u16) (w->seqMax - 1);
         }
-        w->key2.x3 = 0;
         w->key0.x2 = 0;
         w->key0.x3 = 0;
-        w->seqFrame = (f32) frame;
+        w->seqFrame = (f32) (u16) frame;
         w->key1.x2 = 0;
         w->key1.x3 = 0;
         w->key2.x2 = 0;
+        w->key2.x3 = 0;
     } else {
         w->seq = (MotionSeqKey*) (seq + 2);
         w->seqMax = seq[0];
-        if (frame >= w->seqMax) {
-            frame = w->seqMax - 1;
+        if ((u32) frame >= w->seqMax) {
+            frame = (u16) (w->seqMax - 1);
         }
-        w->seqFrame = (f32) frame;
+        w->seqFrame = (f32) (u16) frame;
         if (((u8*) seq)[2] & 1) {
             w->flags = flags | 0x1000;
         } else {
-            w->flags = flags & ~0x1000;
+            w->flags = flags & 0xEFFF;
         }
     }
     if (w->seq == 0) {
-        u16 k = (u16) (w->seqFrame * 64.0f);
-        w->key1.frame = k;
-        w->key0.frame = k;
+        w->key0.frame = (u16) (w->seqFrame * 64.0f);
+        w->key1.frame = (u16) (w->seqFrame * 64.0f);
     } else {
-        w->key2 = w->seq[(u16) w->seqFrame];
-        w->key2.x3 = 0;
-        w->key0 = w->key2;
-        w->key1 = w->key2;
+        MotionSeqKey k = w->seq[(u16) w->seqFrame];
+
+        w->key0 = k;
+        w->key1 = k;
+        w->key2 = k;
         w->key2.x2 = 0;
+        w->key2.x3 = 0;
     }
-    w->maxFrame = (f32) data->maxFrame;
-    w->partsInfo = (u16*) ((u8*) data + 3);
-    w->nParts = data->nParts;
-    w->partsNo = (u8*) data + 3 + data->nParts * 2;
+    w->maxFrame = (f32) w->data->maxFrame;
+    w->partsInfo = (u16*) ((u8*) w->data + 3);
+    w->nParts = w->data->nParts;
+    w->partsNo = (u8*) w->data + (w->nParts * 2 + 3);
     if (!(w->flags2 & 0x10000000)) {
         IKInit(m, w);
     }
-    tbl = (u32*) (((u32) (w->partsNo + w->nParts) + 3) & ~3);
+    tbl = (u32*) ((w->nParts + (u32) w->partsNo + 3) & ~3);
     tbl++;
     if ((s32) tbl[0] >= 0) {
         for (i = 0; i < w->nParts; i++) {
@@ -204,8 +213,8 @@ void MotionSetCore(cModel* m, void* w_, void* data_, int seq_, int hokan, int fl
         }
     }
     w->keyTbl = tbl;
-    w->rootPosIdx = 0xFFFF;
     w->rootRotIdx = 0xFFFF;
+    w->rootPosIdx = 0xFFFF;
     if (w->cam != 0) {
         for (i = 0; i < 5; i++) {
             w->cam->parts[i] = 0xFF;
@@ -229,8 +238,7 @@ void MotionSetCore(cModel* m, void* w_, void* data_, int seq_, int hokan, int fl
             w->rootRotIdx = i;
             continue;
         }
-        cam = w->cam;
-        if (cam == 0) {
+        if (w->cam == 0) {
             continue;
         }
         if (ch != 6 && ch != 7) {
@@ -240,9 +248,9 @@ void MotionSetCore(cModel* m, void* w_, void* data_, int seq_, int hokan, int fl
             continue;
         }
         if (ch == 6) {
-            cam->type = 1;
+            w->cam->type = 1;
         } else if (ch == 7) {
-            cam->type = 2;
+            w->cam->type = 2;
         }
         pno = w->partsNo[i];
         if (kind == 4) {
@@ -305,17 +313,17 @@ void MotionSetCore(cModel* m, void* w_, void* data_, int seq_, int hokan, int fl
             f = 0;
         }
     }
-    prm.flags = 0;
-    prm.maxFrame = w->maxFrame;
+    pp->flags = 0;
+    pp->maxFrame = w->maxFrame;
     if (w->flags & 2) {
         if (!(w->flags & 0x1000)) {
-            prm.flags = 2;
+            pp->flags = 2;
         }
     } else {
         if (w->flags & 0x1000) {
-            prm.flags = 2;
+            pp->flags = 2;
         } else {
-            prm.flags = 0;
+            pp->flags = 0;
         }
     }
     if (w->seq == 0) {
@@ -324,39 +332,39 @@ void MotionSetCore(cModel* m, void* w_, void* data_, int seq_, int hokan, int fl
         u16 k = w->seq[f].frame;
         w->frame = (f32) (k >> 6) + (f32) (k & 0x3F) * 0.0015625f;
     }
-    prm.frame = w->frame;
     w->prevFrame = w->frame;
     w->prevFrame2 = w->frame;
+    pp->frame = w->frame;
     if (w->rootPosIdx != 0xFFFF) {
-        prm.type = w->partsInfo[w->rootPosIdx] >> 12;
-        prm.key = (u8*) w->keyTbl[w->rootPosIdx];
-        HermiteInterpolation(&prm, &w->pos, hist0);
+        pp->type = w->partsInfo[w->rootPosIdx] >> 12;
+        pp->key = (u8*) w->keyTbl[w->rootPosIdx];
+        HermiteInterpolation(pp, &w->pos, hist0);
         w->posPrev = w->pos;
     }
     if (w->rootRotIdx != 0xFFFF) {
-        prm.type = w->partsInfo[w->rootRotIdx] >> 12;
-        prm.key = (u8*) w->keyTbl[w->rootRotIdx];
-        HermiteInterpolation(&prm, &w->rot, hist1);
+        pp->type = w->partsInfo[w->rootRotIdx] >> 12;
+        pp->key = (u8*) w->keyTbl[w->rootRotIdx];
+        HermiteInterpolation(pp, &w->rot, hist1);
         w->rotPrev = w->rot;
     }
     if (w->rootPosIdx != 0xFFFF) {
-        prm.frame = 0.0f;
-        prm.type = w->partsInfo[w->rootPosIdx] >> 12;
-        prm.key = (u8*) w->keyTbl[w->rootPosIdx];
-        HermiteInterpolation(&prm, &v0, hist0);
-        prm.flags |= 2;
-        prm.frame = w->maxFrame;
-        HermiteInterpolation(&prm, &v1, hist0);
+        pp->frame = 0.0f;
+        pp->type = w->partsInfo[w->rootPosIdx] >> 12;
+        pp->key = (u8*) w->keyTbl[w->rootPosIdx];
+        HermiteInterpolation(pp, &v0, hist0);
+        pp->frame = w->maxFrame;
+        pp->flags |= 2;
+        HermiteInterpolation(pp, &v1, hist0);
         PSVECSubtract(&v1, &v0, &w->posDelta);
     }
     if (w->rootRotIdx != 0xFFFF) {
-        prm.frame = 0.0f;
-        prm.type = w->partsInfo[w->rootRotIdx] >> 12;
-        prm.key = (u8*) w->keyTbl[w->rootRotIdx];
-        HermiteInterpolation(&prm, &v0, hist1);
-        prm.flags |= 2;
-        prm.frame = w->maxFrame;
-        HermiteInterpolation(&prm, &v1, hist1);
+        pp->frame = 0.0f;
+        pp->type = w->partsInfo[w->rootRotIdx] >> 12;
+        pp->key = (u8*) w->keyTbl[w->rootRotIdx];
+        HermiteInterpolation(pp, &v0, hist1);
+        pp->frame = w->maxFrame;
+        pp->flags |= 2;
+        HermiteInterpolation(pp, &v1, hist1);
         PSVECSubtract(&v1, &v0, &w->rotDelta);
         VecRadLimit(&w->rotDelta);
     }
@@ -364,10 +372,10 @@ void MotionSetCore(cModel* m, void* w_, void* data_, int seq_, int hokan, int fl
     if (cam != 0) {
         if (cam->type != 0) {
             if (cam->parts[4] != 0xFF) {
-                prm.frame = 0.0f;
-                prm.type = w->partsInfo[cam->parts[4]] >> 12;
-                prm.key = (u8*) w->keyTbl[cam->parts[4]];
-                HermiteInterpolation(&prm, &v2, hist0);
+                pp->frame = 0.0f;
+                pp->type = w->partsInfo[cam->parts[4]] >> 12;
+                pp->key = (u8*) w->keyTbl[cam->parts[4]];
+                HermiteInterpolation(pp, &v2, hist0);
             }
             cam->frame = 0;
             if (cam->type == 1) {
@@ -390,67 +398,58 @@ void MotionSetCore(cModel* m, void* w_, void* data_, int seq_, int hokan, int fl
 u16 MotionMove(cModel* m)
 {
     static int new_add = 1;
-    MotionWork* w = MOTION(m);
-    MotionWork* b;
     cModel* p;
     Vec spd;
     Vec rot;
     Vec spd2;
     Vec rot2;
-    Mtx tmp;
-    Vec t58;
-    Vec t68;
-    Vec t78;
-    Mtx save;
     f32 rate;
     f32 inv;
 
-    if (w->blend != 0) {
-        w->blend->speedRate = w->speedRate;
+    if (MOTION(m)->blend != 0) {
+        MOTION(m)->blend->speedRate = MOTION(m)->speedRate;
     }
-    if (w->flags & 1) {
-        MotionGetSpeed(m, w, 0, &spd, &rot);
-        if (w->blend != 0) {
-            w->blend->flags2 |= 0x08000000;
-            b = w->blend;
-            rate = b->blendRate;
-            if (!(b->flags2 & 0x80000000)) {
+    if (MOTION(m)->flags & 1) {
+        MotionGetSpeed(m, MOTION(m), 0, &spd, &rot);
+        if (MOTION(m)->blend != 0) {
+            MOTION(m)->blend->flags2 |= 0x08000000;
+            rate = MOTION(m)->blend->blendRate;
+            if (!(MOTION(m)->blend->flags2 & 0x80000000)) {
                 if (rate != 0.0f) {
-                    b->hokanCnt = 0;
-                    MotionGetSpeed(m, w->blend, 0, &spd2, &rot2);
+                    MOTION(m)->blend->hokanCnt = 0;
+                    MotionGetSpeed(m, MOTION(m)->blend, 0, &spd2, &rot2);
                     inv = 1.0f - rate;
                     VecLinearCombination(&spd2, &spd, rate, inv, &spd);
                     VecLinearCombination(&rot2, &rot, rate, inv, &rot);
                 }
             } else {
                 if (rate != 0.0f) {
-                    b->hokanCnt = 0;
-                    MotionGetSpeed(m, w->blend, 0, &spd2, &rot2);
+                    MOTION(m)->blend->hokanCnt = 0;
+                    MotionGetSpeed(m, MOTION(m)->blend, 0, &spd2, &rot2);
                     VecLinearCombination(&spd2, &spd, rate, 1.0f, &spd);
                     VecLinearCombination(&rot2, &rot, rate, 1.0f, &rot);
                 }
             }
         }
-        MotionAddSpeed(m, w, &spd, &rot);
+        MotionAddSpeed(m, MOTION(m), &spd, &rot);
     }
-    MotionMoveCore(m, w, 0);
-    MotionSequenceCtrl(w);
+    MotionMoveCore(m, MOTION(m), 0);
+    MotionSequenceCtrl(MOTION(m));
     m->partsMatCalc();
-    w->flags &= ~0x2000;
-    if (w->blend != 0) {
-        w->blend->flags2 |= 0x08000000;
-        b = w->blend;
-        rate = b->blendRate;
-        if ((s32) b->flags2 >= 0) {
+    MOTION(m)->flags &= ~0x2000;
+    if (MOTION(m)->blend != 0) {
+        MOTION(m)->blend->flags2 |= 0x08000000;
+        rate = MOTION(m)->blend->blendRate;
+        if ((s32) MOTION(m)->blend->flags2 >= 0) {
             if (rate != 0.0f) {
-                MotionMoveCore(m, b, 0);
-                MotionSequenceCtrl(w->blend);
-                cModel_matBlend(m, w->blend->blendRate);
+                MotionMoveCore(m, MOTION(m)->blend, 0);
+                MotionSequenceCtrl(MOTION(m)->blend);
+                cModel_matBlend(m, MOTION(m)->blend->blendRate);
             } else {
-                MotionSequenceCtrl(b);
+                MotionSequenceCtrl(MOTION(m)->blend);
             }
         } else {
-            w->flags |= 0x2000;
+            MOTION(m)->flags |= 0x2000;
             for (p = m->pParts; p != 0; p = p->pParts) {
                 if (MOTION_PARTS(p)->flags & 0x03000000) {
                     continue;
@@ -464,8 +463,8 @@ u16 MotionMove(cModel* m)
                     memclr_asm(&p->scale, sizeof(Vec));
                 }
             }
-            MotionMoveCore(m, w->blend, 0);
-            MotionSequenceCtrl(w->blend);
+            MotionMoveCore(m, MOTION(m)->blend, 0);
+            MotionSequenceCtrl(MOTION(m)->blend);
             for (p = m->pParts; p != 0; p = p->pParts) {
                 if (MOTION_PARTS(p)->flags & 0x03000000) {
                     continue;
@@ -475,12 +474,17 @@ u16 MotionMove(cModel* m)
                     PSVECAdd(&MOTION_PARTS(p)->rot, &p->rot, &p->rot);
                     PSVECAdd(&MOTION_PARTS(p)->scale, &p->scale, &p->scale);
                 } else {
-                    PSVECScale(&p->rot, &t58, rate);
-                    PSVECScale(&p->pos, &t78, rate);
-                    PSVECAdd(&MOTION_PARTS(p)->pos, &t78, &t68);
-                    PSVECAdd(&MOTION_PARTS(p)->rot, &t58, (Vec*) tmp);
-                    p->pos = t68;
-                    p->rot = *(Vec*) tmp;
+                    Vec rotAdd;
+                    Vec rotScl;
+                    Vec posAdd;
+                    Vec posScl;
+
+                    PSVECScale(&p->rot, &rotScl, rate);
+                    PSVECScale(&p->pos, &posScl, rate);
+                    PSVECAdd(&MOTION_PARTS(p)->pos, &posScl, &posAdd);
+                    PSVECAdd(&MOTION_PARTS(p)->rot, &rotScl, &rotAdd);
+                    p->pos = posAdd;
+                    p->rot = rotAdd;
                     RotMatrix(p->worldMat, &p->rot);
                     TransMatrix(p->worldMat, &p->pos);
                     ScaleMatrix(p->worldMat, &p->scale);
@@ -488,64 +492,72 @@ u16 MotionMove(cModel* m)
                 }
             }
             if (new_add) {
-                cModel_matBlend(m, w->blend->blendRate);
+                cModel_matBlend(m, MOTION(m)->blend->blendRate);
             }
         }
     }
-    MTX_COPY(m->mat, save);
-    if (m->scale.x == 0.0f && m->scale.y == 0.0f && m->scale.z == 0.0f) {
-        PSMTXIdentity(tmp);
-    } else {
-        PSMTXScale(tmp, 1.0f / m->scale.x, 1.0f / m->scale.y, 1.0f / m->scale.z);
-    }
-    PSMTXConcat(m->mat, tmp, tmp);
-    MTX_COPY(tmp, m->mat);
-    m->partsWorldCalc();
-    InverseKinematics(m, 1);
-    MTX_COPY(save, m->mat);
-    m->partsWorldCalc();
-    if (w->hokanCnt != 0) {
-        MotionHokan(m, w);
+    {
+        Mtx tmp;
+        Mtx save;
+
+        MTX_COPY(m->mat, save);
+        if (m->scale.x != 0.0f || m->scale.y != 0.0f || m->scale.z != 0.0f) {
+            PSMTXScale(tmp, 1.0f / m->scale.x, 1.0f / m->scale.y, 1.0f / m->scale.z);
+        } else {
+            PSMTXIdentity(tmp);
+        }
+        PSMTXConcat(m->mat, tmp, tmp);
+        MTX_COPY(tmp, m->mat);
+        m->partsWorldCalc();
+        InverseKinematics(m, 1);
+        MTX_COPY(save, m->mat);
         m->partsWorldCalc();
     }
-    if (w->blendTbl != 0) {
-        u16* tbl = w->blendTbl;
-        int n = *(s32*) tbl;
-        tbl += 2;
-        if (n > 0) {
+    if (MOTION(m)->hokanCnt != 0) {
+        MotionHokan(m, MOTION(m));
+        m->partsWorldCalc();
+    }
+    if (MOTION(m)->blendTbl != 0) {
+        int n = *(s32*) MOTION(m)->blendTbl;
+        u16* tbl = MOTION(m)->blendTbl + 2;
+        int i;
+
+        {
+            Mtx m0;
+            Mtx m1;
+            Mtx mq;
             Quaternion q0;
             Quaternion q1;
             Quaternion q2;
-            Mtx m1;
-            Mtx mq;
             Mtx inv;
             cModel* dst;
             cModel* a;
             cModel* c;
+            int per;
             f32 r;
 
-            do {
-                dst = m->getPartsPtr(tbl[0]);
-                a = m->getPartsPtr(tbl[1]);
-                c = m->getPartsPtr(tbl[2]);
-                r = (f32) tbl[3] / 100.0f;
-                tbl += 4;
+            for (i = 0; i < n; i++) {
+                dst = m->getPartsPtr(*tbl++);
+                a = m->getPartsPtr(*tbl++);
+                c = m->getPartsPtr(*tbl++);
+                per = *tbl++;
+                r = (f32) per / 100.0f;
                 if (MOTION_PARTS(dst)->flags & 0x10000) {
                     MOTION_PARTS(dst)->flags &= ~0x10000;
                     continue;
                 }
                 MOTION_PARTS(dst)->flags &= ~0x10000000;
-                PSMTXIdentity(tmp);
-                tmp[0][0] = a->mat[0][0];
-                tmp[0][1] = a->mat[0][1];
-                tmp[0][2] = a->mat[0][2];
-                tmp[1][0] = a->mat[1][0];
-                tmp[1][1] = a->mat[1][1];
-                tmp[1][2] = a->mat[1][2];
-                tmp[2][0] = a->mat[2][0];
-                tmp[2][1] = a->mat[2][1];
-                tmp[2][2] = a->mat[2][2];
-                C_QUATMtx(&q0, tmp);
+                PSMTXIdentity(m0);
+                m0[0][0] = a->mat[0][0];
+                m0[0][1] = a->mat[0][1];
+                m0[0][2] = a->mat[0][2];
+                m0[1][0] = a->mat[1][0];
+                m0[1][1] = a->mat[1][1];
+                m0[1][2] = a->mat[1][2];
+                m0[2][0] = a->mat[2][0];
+                m0[2][1] = a->mat[2][1];
+                m0[2][2] = a->mat[2][2];
+                C_QUATMtx(&q0, m0);
                 PSMTXIdentity(m1);
                 m1[0][0] = c->mat[0][0];
                 m1[0][1] = c->mat[0][1];
@@ -574,11 +586,11 @@ u16 MotionMove(cModel* m)
                 ScaleMatrix(dst->mat, &dst->prevScale);
                 PSMTXInverse(dst->pParent->mat, inv);
                 PSMTXConcat(inv, dst->mat, dst->worldMat);
-            } while (--n);
+            }
         }
     }
     m->rot.y = LIMIT_ANGLE(m->rot.y);
-    return w->state;
+    return MOTION(m)->state;
 }
 
 u16 MotionMoveSub(cModel* m, MotionWork* w)
@@ -595,11 +607,12 @@ void MotionMoveCore(cModel* m, MotionWork* w, int flag)
 {
     static const char* kind_str[] = { "Em", "Obj", "Scr", "Shadow", "Mirror" };
     HermitePrm prm;
+    HermitePrm* pp = &prm;
     AttachCamera* cam;
     cModel* p;
     u16* flipTbl = MOTION(m)->flip;
     int n = w->nParts;
-    int i;
+    int i = 0;
     int flip;
 
     if (w->data == 0) {
@@ -611,26 +624,26 @@ void MotionMoveCore(cModel* m, MotionWork* w, int flag)
         w->frame = w->seqFrame;
     }
     w->prevFrame2 = w->prevFrame;
-    prm.frame = w->frame;
-    prm.maxFrame = w->maxFrame;
-    prm.flags = 0;
     w->prevFrame = w->frame;
+    pp->frame = w->frame;
+    pp->maxFrame = w->maxFrame;
+    pp->flags = 0;
     if (w->flags & 4) {
         if (w->seq == 0) {
-            prm.flags = 4;
+            pp->flags = 4;
         }
     }
     if (w->flags & 2) {
         if (!(w->flags & 0x1000)) {
-            prm.flags |= 2;
+            pp->flags |= 2;
         } else {
-            prm.flags &= ~2;
+            pp->flags &= ~2;
         }
     } else {
         if (w->flags & 0x1000) {
-            prm.flags |= 2;
+            pp->flags |= 2;
         } else {
-            prm.flags &= ~2;
+            pp->flags &= ~2;
         }
     }
     if (!(w->flags2 & 0x40000000)) {
@@ -652,9 +665,9 @@ void MotionMoveCore(cModel* m, MotionWork* w, int flag)
 #line 1067
         pLog->err(0, 0, "MotionMoveCore():%d Flip Info Error!", __LINE__);
     }
-    for (i = 0; i < n; i++) {
+    do {
+        int kind = w->partsInfo[i] & 0xFF;
         u16 info = w->partsInfo[i];
-        int kind = info & 0xFF;
         int ch = (info >> 8) & 0xF;
         int pno = w->partsNo[i];
 
@@ -662,27 +675,27 @@ void MotionMoveCore(cModel* m, MotionWork* w, int flag)
             if (cam == 0) {
                 continue;
             }
-            prm.type = info >> 12;
-            prm.key = (u8*) w->keyTbl[i];
+            pp->type = info >> 12;
+            pp->key = (u8*) w->keyTbl[i];
             if (i == cam->parts[0]) {
-                HermiteInterpolation(&prm, &cam->out[0], cam->hist[0]);
+                HermiteInterpolation(pp, &cam->out[0], cam->hist[0]);
                 if (w->flags & 0x40) {
                     cam->out[0].x = -cam->out[0].x;
                 }
             } else if (i == cam->parts[1]) {
-                HermiteInterpolation(&prm, &cam->out[1], cam->hist[1]);
+                HermiteInterpolation(pp, &cam->out[1], cam->hist[1]);
                 if (w->flags & 0x40) {
                     cam->out[1].x = -cam->out[1].x;
                 }
             } else if (i == cam->parts[2]) {
-                HermiteInterpolation(&prm, &cam->out[2], cam->hist[2]);
+                HermiteInterpolation(pp, &cam->out[2], cam->hist[2]);
                 if (w->flags & 0x40) {
                     cam->out[2].y = -cam->out[2].y;
                 }
             } else if (i == cam->parts[3]) {
-                HermiteInterpolation(&prm, &cam->out[3], cam->hist[3]);
+                HermiteInterpolation(pp, &cam->out[3], cam->hist[3]);
             } else if (i == cam->parts[4]) {
-                HermiteInterpolation(&prm, &cam->out[4], cam->hist[4]);
+                HermiteInterpolation(pp, &cam->out[4], cam->hist[4]);
                 cam->frame = (u8) (cam->out[4].y / 100.0f);
             }
             continue;
@@ -711,39 +724,39 @@ void MotionMoveCore(cModel* m, MotionWork* w, int flag)
         if ((s32) w->flags2 < 0) {
             MOTION_PARTS(p)->flags |= 0x80000000;
         }
-        prm.type = w->partsInfo[i] >> 12;
-        prm.key = (u8*) w->keyTbl[i];
+        pp->type = w->partsInfo[i] >> 12;
+        pp->key = (u8*) w->keyTbl[i];
         if (MOTION_PARTS(p)->flags & 0x04000000) {
-            prm.flags |= 8;
+            pp->flags |= 8;
         } else {
-            prm.flags &= ~8;
+            pp->flags &= ~8;
         }
         if (kind & 2) {
-            HermiteInterpolation(&prm, &p->rot, flip ? MOTION_PARTS(p)->hist[3] : MOTION_PARTS(p)->hist[0]);
+            HermiteInterpolation(pp, &p->rot, flip ? MOTION_PARTS(p)->hist[3] : MOTION_PARTS(p)->hist[0]);
             VecRadLimit(&p->rot);
             if (w->flags & 0x40) {
                 p->rot.y = -p->rot.y;
                 p->rot.z = -p->rot.z;
             }
         } else if (kind & 4) {
-            HermiteInterpolation(&prm, &p->pos, flip ? MOTION_PARTS(p)->hist[4] : MOTION_PARTS(p)->hist[1]);
+            HermiteInterpolation(pp, &p->pos, flip ? MOTION_PARTS(p)->hist[4] : MOTION_PARTS(p)->hist[1]);
             if (w->flags & 0x40) {
                 p->pos.x = -p->pos.x;
             }
         } else if (kind & 8) {
-            HermiteInterpolation(&prm, &p->scale, flip ? MOTION_PARTS(p)->hist[5] : MOTION_PARTS(p)->hist[2]);
+            HermiteInterpolation(pp, &p->scale, flip ? MOTION_PARTS(p)->hist[5] : MOTION_PARTS(p)->hist[2]);
         } else if (kind & 0x30) {
-            HermiteInterpolation(&prm, &p->rot, flip ? MOTION_PARTS(p)->hist[3] : MOTION_PARTS(p)->hist[0]);
+            HermiteInterpolation(pp, &p->rot, flip ? MOTION_PARTS(p)->hist[3] : MOTION_PARTS(p)->hist[0]);
             VecRadLimit(&p->rot);
             if (w->flags & 0x40) {
                 p->rot.y = -p->rot.y;
                 p->rot.z = -p->rot.z;
             }
         }
-    }
+    } while (++i < n);
 }
 
-static inline int nearOne(f32 v, f32 eps)
+static inline bool nearOne(f32 v, f32 eps)
 {
     return fabsf(1.0f - v) < eps;
 }
@@ -767,11 +780,12 @@ void MotionHokan(cModel* m, MotionWork* w)
     f32 u;
     f32 s0, s1, s2;
     f32 n0, n1, n2;
-    f32 sx, sy, sz;
+    f32 sy, sz, sx;
     u32 fl;
 
     w->hokanCnt--;
-    t = (f32) (w->hokanMax - w->hokanCnt) / (f32) w->hokanMax;
+    t = (f32) (w->hokanMax - w->hokanCnt);
+    t /= (f32) w->hokanMax;
     u = 1.0f - t;
     for (p = m->pParts; p != 0; p = p->pParts) {
         if (!(MOTION(m)->flags & 0x2000)) {
@@ -893,6 +907,7 @@ void MotionHokan(cModel* m, MotionWork* w)
 void MotionGetSpeed(cModel* m, MotionWork* w, int flag, Vec* pos, Vec* rot)
 {
     HermitePrm prm;
+    HermitePrm* pp = &prm;
     Vec a;
     Vec b;
     Mtx rm;
@@ -901,20 +916,20 @@ void MotionGetSpeed(cModel* m, MotionWork* w, int flag, Vec* pos, Vec* rot)
     memset(&a, 0, sizeof(Vec));
     memset(&b, 0, sizeof(Vec));
     w->frame = SEQ_FRAME(w->key0.frame);
-    prm.flags = 0;
+    pp->flags = 0;
     w->rotPrev = w->rot;
     w->posPrev = w->pos;
     if (w->flags & 2) {
         if (w->flags & 0x1000) {
-            prm.flags = 0;
+            pp->flags = 0;
         } else {
-            prm.flags = 2;
+            pp->flags = 2;
         }
     } else {
         if (w->flags & 0x1000) {
-            prm.flags = 2;
+            pp->flags = 2;
         } else {
-            prm.flags = 0;
+            pp->flags = 0;
         }
     }
     flip = 0;
@@ -922,18 +937,18 @@ void MotionGetSpeed(cModel* m, MotionWork* w, int flag, Vec* pos, Vec* rot)
         flip = 1;
     }
     if (w->rootPosIdx != 0xFFFF) {
-        prm.frame = w->frame;
-        prm.maxFrame = w->maxFrame;
-        prm.key = (u8*) w->keyTbl[w->rootPosIdx];
-        prm.type = w->partsInfo[w->rootPosIdx] >> 12;
-        HermiteInterpolation(&prm, &a, w->hist[flip][1]);
+        pp->frame = w->frame;
+        pp->maxFrame = w->maxFrame;
+        pp->key = (u8*) w->keyTbl[w->rootPosIdx];
+        pp->type = w->partsInfo[w->rootPosIdx] >> 12;
+        HermiteInterpolation(pp, &a, w->hist[flip][1]);
     }
     if (w->rootRotIdx != 0xFFFF) {
-        prm.frame = w->frame;
-        prm.maxFrame = w->maxFrame;
-        prm.key = (u8*) w->keyTbl[w->rootRotIdx];
-        prm.type = w->partsInfo[w->rootRotIdx] >> 12;
-        HermiteInterpolation(&prm, &b, w->hist[flip][0]);
+        pp->frame = w->frame;
+        pp->maxFrame = w->maxFrame;
+        pp->key = (u8*) w->keyTbl[w->rootRotIdx];
+        pp->type = w->partsInfo[w->rootRotIdx] >> 12;
+        HermiteInterpolation(pp, &b, w->hist[flip][0]);
     }
     PSVECSubtract(&b, &w->rotPrev, rot);
     PSVECSubtract(&a, &w->posPrev, pos);
@@ -985,21 +1000,22 @@ void MotionGetPosition(cModel* m, Vec* pos, Vec* rot)
 {
     MotionWork* w = MOTION(m);
     HermitePrm prm;
+    HermitePrm* pp = &prm;
     int flip;
 
     pos->x = pos->y = pos->z = 0.0f;
     rot->x = rot->y = rot->z = 0.0f;
     w->frame = SEQ_FRAME(w->key1.frame);
-    prm.flags = 0;
+    pp->flags = 0;
     if (w->flags & 2) {
         if (!(w->flags & 0x1000)) {
-            prm.flags = 2;
+            pp->flags = 2;
         }
     } else {
         if (w->flags & 0x1000) {
-            prm.flags = 2;
+            pp->flags = 2;
         } else {
-            prm.flags = 0;
+            pp->flags = 0;
         }
     }
     flip = 0;
@@ -1007,18 +1023,18 @@ void MotionGetPosition(cModel* m, Vec* pos, Vec* rot)
         flip = 1;
     }
     if (w->rootPosIdx != 0xFFFF) {
-        prm.frame = w->frame;
-        prm.maxFrame = w->maxFrame;
-        prm.key = (u8*) w->keyTbl[w->rootPosIdx];
-        prm.type = w->partsInfo[w->rootPosIdx] >> 12;
-        HermiteInterpolation(&prm, pos, w->hist[flip][1]);
+        pp->frame = w->frame;
+        pp->maxFrame = w->maxFrame;
+        pp->key = (u8*) w->keyTbl[w->rootPosIdx];
+        pp->type = w->partsInfo[w->rootPosIdx] >> 12;
+        HermiteInterpolation(pp, pos, w->hist[flip][1]);
     }
     if (w->rootRotIdx != 0xFFFF) {
-        prm.frame = w->frame;
-        prm.maxFrame = w->maxFrame;
-        prm.key = (u8*) w->keyTbl[w->rootRotIdx];
-        prm.type = w->partsInfo[w->rootRotIdx] >> 12;
-        HermiteInterpolation(&prm, rot, w->hist[flip][0]);
+        pp->frame = w->frame;
+        pp->maxFrame = w->maxFrame;
+        pp->key = (u8*) w->keyTbl[w->rootRotIdx];
+        pp->type = w->partsInfo[w->rootRotIdx] >> 12;
+        HermiteInterpolation(pp, rot, w->hist[flip][0]);
     }
 }
 

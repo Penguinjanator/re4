@@ -96,7 +96,9 @@ struct GlobalWork {
     u8 pad_4FAC[4];
     u8 wep_no;             // 0x4FB0  equipped weapon (cPlayer::weaponLoad(no, type))
     u8 wep_type;           // 0x4FB1
-    u8 pad_4FB2[6];
+    u8 pad_4FB2;
+    u8 wep_lv;             // 0x4FB3  weapon upgrade level (em_dm_val: WeaponLevelTbl column, clamped to 7)
+    u8 pad_4FB4[4];
     u8 x4FB8;              // 0x4FB8
     u8 costume;            // 0x4FB9  player costume (pl_leon: 2 = no cloth simulation)
     u8 x4FBA;              // 0x4FBA
@@ -117,7 +119,12 @@ struct GlobalWork {
     u8 emlist[0x2000];     // 0x52E8  enemy list (ESL file) read by stage.cpp
     u8 pad_72E8[0x832C - 0x72E8];
     u32 x832C;             // 0x832C  (pl_sub PlSelect swaps it with x4F98 when the player changes)
-    u8 pad_8330[0x8358 - 0x8330];
+    u8 pad_8330[0x8344 - 0x8330];
+    u32 shotHit;           // 0x8344  (pl_wep PlWepHitCheck2: shots that hit something)
+    u32 shotHit2;          // 0x8348
+    u32 shotTotal;         // 0x834C  shots fired
+    u32 shotTotal2;        // 0x8350
+    u8 pad_8354[4];
     s32 game_mode;         // 0x8358  (stage: 3 = no enemy list reload)
     u8 pad_835C[0x8678 - 0x835C];
     s8 debug_mode;         // 0x8678  debug page number (t_page), 0xF = camera rail debug draw

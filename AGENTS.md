@@ -253,6 +253,16 @@ mark it Matching.
   cmp .rodata bytes against the split object before flipping a flag.
 - In-class inline members of the class whose vtable the unit owns are emitted after the destructor at
   the end of `.text`.
+- Interblock scheduling is on: an independent `i++` in a loop's join block is hoisted into the loop
+  header unless `i` is used inside the diamond.
+- A store through a plain pointer variable (`*d = v`, no `+` in the address) is assumed to alias
+  `static` scalars and forces their reload; `p[i] = v` / `a->p[i].x = v` never aliases a fixed scalar.
+- A block ending in a call followed by a label gets a nop that blocks cross-jumping into its tail; a
+  dead trailing statement suppresses it and the tails merge one insn deeper.
+- Narrow zero stores reuse the nearest wider zero pseudo (HI before SI); the SI zero for pointers
+  stays separate.
+- OPEN (mes `move`/`WidthCk`): `code = f(x); if (code == 0)` — original keeps `mr r4,r3; cmpwi r4,0`
+  where ours combines to `mr. r4,r3`; ~20 forms tried.
 - Static locals show as `name.NNN` in objdiff; the DECL_UID suffix cannot be reproduced and is ignored by the report.
 - Unexplained words in `.rodata` (zero words, stray floats) are usually the constant pool of a function
   the original linker dead-stripped (bodies gone, pools kept, `STRIP_UNUSED` in objects.py): write a

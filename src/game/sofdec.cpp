@@ -26,6 +26,11 @@ f32 __float_huge = 1.0f / 0.0f;
 
 cSofdec Sofdec;
 
+static inline void SetU32(u32& d, u32 v)
+{
+    d = v;
+}
+
 // Sofdec frame count (1/100 s units after scaling) -> h:m:s.frac.
 void UsrSfcnt2time(int tscale, int count, int* h, int* m, int* s, int* f)
 {
@@ -205,42 +210,42 @@ void cSofdec::drawQuad(SofdecDraw* d)
     s16 nhw = -hw;
     s16 nhh = -hh;
 
-    PSMTXTrans(tm, 1.0f, 1.0f, 1.0f);
+    PSMTXTrans(tm, 0.0f, 0.0f, 0.0f);
     PSMTXConcat(d->mtx, tm, m);
     GXLoadPosMtxImm(m, 0);
     GXBegin(0x80, 0, 4);
     GXPosition3s16(hw, hh, 0);
-    GXTexCoord2f32(0.0f, 1.0f);
-    GXPosition3s16(hw, nhh, 0);
-    GXTexCoord2f32(0.0f, 0.0f);
-    GXPosition3s16(nhw, nhh, 0);
     GXTexCoord2f32(1.0f, 0.0f);
-    GXPosition3s16(nhw, hh, 0);
+    GXPosition3s16(hw, nhh, 0);
     GXTexCoord2f32(1.0f, 1.0f);
+    GXPosition3s16(nhw, nhh, 0);
+    GXTexCoord2f32(0.0f, 1.0f);
+    GXPosition3s16(nhw, hh, 0);
+    GXTexCoord2f32(0.0f, 0.0f);
 }
 
 void cSofdec::drawPolygon(SofdecDraw* d)
 {
     Mtx tm, m, sm, rx, ry, rz;
 
-    PSMTXTrans(tm, -800.0f, -800.0f, 512.0f);
+    PSMTXTrans(tm, 0.0f, 0.0f, -800.0f);
     PSMTXConcat(d->mtx, tm, m);
-    PSMTXScale(sm, 0.4f, 0.4f, 0.4f);
+    PSMTXScale(sm, 512.0f, 512.0f, 512.0f);
     PSMTXConcat(m, sm, m);
-    PSMTXRotRad(rx, 'X', -800.0f);
-    PSMTXRotRad(ry, 'Y', -800.0f);
-    PSMTXRotRad(rz, 'Z', -800.0f);
+    PSMTXRotRad(rx, 'X', 0.0f);
+    PSMTXRotRad(ry, 'Y', 0.0f);
+    PSMTXRotRad(rz, 'Z', 0.0f);
     PSMTXConcat(m, rx, m);
     PSMTXConcat(m, ry, m);
     PSMTXConcat(m, rz, m);
     GXLoadPosMtxImm(m, 0);
-    GXDrawTorus(0.0f, 0x10, 0xC);
+    GXDrawTorus(0.4f, 0x10, 0xC);
 }
 
 void cSofdec::setCamera(SofdecDraw* d)
 {
     Mtx44 proj;
-    Vec up = {1.0f, 0.0f, 0.0f};
+    Vec up = {0.0f, 1.0f, 0.0f};
     Vec pos = {0.0f, 0.0f, 400.0f};
     Vec target = {0.0f, 0.0f, 0.0f};
     f32 hh, hw;
@@ -370,9 +375,9 @@ int cSofdec::startApp()
     cprm->ftype = 1;
     cprm->max_bps = 8000000;
     cprm->nfrm_pool_wk = 4;
-    cprm->max_stm = 2;
     cprm->max_width = width;
     cprm->max_height = height;
+    cprm->max_stm = 2;
     cprm->wksize = mwPlyCalcWorkCprmSfd(cprm);
 #line 649 "D:/Bio4/Prog/sofdec.cpp"
     cprm->work = MEM_ALLOC(cprm->wksize, 1, 13);
@@ -454,24 +459,24 @@ void cSofdec::finishMovie()
     if (drw.tex.yuv.bufY != NULL) {
         Mem_free(drw.tex.yuv.bufY);
         Mem_free(drw.tex.yuv.bufUV);
-        drw.tex.yuv.bufUV = NULL;
         drw.tex.yuv.bufY = NULL;
+        drw.tex.yuv.bufUV = NULL;
     }
     systemVISetBlack(1);
     if (resized != 0) {
         ScreenReSize(0x280, 0x1C0);
     }
-    pG->flags_58 = save58;
-    pG->flags_170 = save170;
+    SetU32(pG->flags_58, save58);
+    SetU32(pG->flags_170, save170);
     SetSystemVcnt(vcnt);
-    pG->flags_500C &= ~0x10000000;
+    BitOff(pG->flags_500C, 0x10000000);
     if (!(pG->flags_5014 & 0x8000)) {
         MemDestroyHeap(11);
         Aram.DmaTransReq(1, 0x740000, heapStart, 0x500000, 1);
         MemSignalHeap(heapNo);
         MemSetCurrentHeap(heapNo);
     }
-    pG->flags_54 &= ~0x00100000;
+    BitOff(pG->flags_54, 0x00100000);
     if (!chkFlag(0x100)) {
         systemVISetBlack(0);
     }
@@ -487,10 +492,10 @@ int cSofdec::initWork(const char* fname)
             return 0;
         }
     }
-    save170 = pG->flags_170;
-    pG->flags_170 = 0xFFFFFFFF;
-    save58 = pG->flags_58;
-    pG->flags_58 = 0xFFFFFFFF;
+    SetU32(save170, pG->flags_170);
+    SetU32(pG->flags_170, 0xFFFFFFFF);
+    SetU32(save58, pG->flags_58);
+    SetU32(pG->flags_58, 0xFFFFFFFF);
     if (!(pG->flags_5014 & 0x8000)) {
         heapNo = MemGetCurrentHeap();
         heapStart = MemGetHeapStartAddr(heapNo);

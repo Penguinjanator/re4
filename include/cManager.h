@@ -68,6 +68,7 @@ public:
     T* create();
     T* create(int id, u32 no);
     T* createBack(int id);
+    void destroyNow(T* p);   // objRocket.cpp instantiates it (pl_wep weaponRelease)
     T* getPrevWork(T* p);
     int dieCheck();
     void* arrayAlloc(u32 n);

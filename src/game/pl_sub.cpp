@@ -72,27 +72,24 @@ void PlSelect(int no)
 
 int PlSetCostume()
 {
-    int c;
-
     if ((s32) pG->flags_54 < 0 || (pG->flags_54 & 0x40000000)) {
         return pG->costume;
     }
     if (pG->x4FB8 == 0) {
         if (pG->costume2 != 1) {
             if (ItemMgr.num(0xFE, 0)) {
-                c = 2;
+                U8Set(pG->costume, 2);
             } else if (pG->flags_51BC & 0x200000) {
-                c = 1;
+                U8Set(pG->costume, 1);
             } else {
-                c = 0;
+                U8Set(pG->costume, 0);
             }
         } else {
-            c = 3;
+            U8Set(pG->costume, 3);
         }
     } else {
-        c = pG->costume2;
+        U8Set(pG->costume, pG->costume2);
     }
-    U8Set(pG->costume, c);
     BitOn16(pG->flags_4FBE, 1);
     return pG->costume;
 }
@@ -314,11 +311,11 @@ void SetSubAux(int a, int b)
         return;
     }
     sub->xFC = 0;
-    sub->xFD = 0xF;
     sub->xFE = 0;
-    sub->xFF = 0;
     sub->subAux0 = a;
     sub->subAux1 = b;
+    sub->xFD = 0xF;
+    sub->xFF = 0;
 }
 
 void SetSubBulldozer(int a, int b)
@@ -710,14 +707,12 @@ void PlRegistRoomEff(PlRoomEff* eff)
 
 void PlReloadBullet()
 {
-    cPlayer* pl = pPL;
-
     switch (pG->wep_no) {
     case 0xD:
     case 0x13:
     case 0x16:
     case 0x17:
-        pl->pWep->pObj->setMotion();
+        pPL->pWep->pObj->setMotion();
         break;
     }
 }
@@ -893,7 +888,9 @@ int SubCharCheckHealing()
 {
     cSubChar* sub;
 
-    if (GetDistance(pPL->pos, pSUB->pos) > 12500000.0f) {
+    f32 limit = 25000000.0f;
+
+    if (GetDistance(pPL->pos, pSUB->pos) > limit) {
         return 0;
     }
     sub = pSUB;
@@ -913,10 +910,11 @@ int SubCharCheckHealing()
     case 0x12:
     case 0x13:
     case 0x14:
-        return 1;
+        break;
     default:
         return -1;
     }
+    return 1;
 }
 
 int SubCharMotionReset()
@@ -929,14 +927,14 @@ int SubCharMotionReset()
     if (sub->xFC != 0) {
         return 0;
     }
-    if (sub->xFD == 0 || sub->xFD == 1) {
-        sub->xFC = 0;
-        sub->xFD = 0;
-        sub->xFF = 1;
-        sub->xFE = 0;
-        return 1;
+    if (sub->xFD != 0 && sub->xFD != 1) {
+        return 0;
     }
-    return 0;
+    sub->xFC = 0;
+    sub->xFD = 0;
+    sub->xFF = 1;
+    sub->xFE = 0;
+    return 1;
 }
 
 void PlSetEyeMode(u8 mode)
@@ -963,7 +961,7 @@ int PlIsArmor()
     if (pG->x4FB8 != 0) {
         return 0;
     }
-    return pG->costume == 2;
+    return pG->costume == 2 || pG->costume == 3;
 }
 
 int PlSetWhistle()
@@ -980,24 +978,16 @@ int PlSetWhistle()
         return 0;
     }
     pl = pPL;
-    switch (pl->xFD) {
-    case 6:
+    if ((u32) pl->xFD > 6) {
+        return 0;
+    }
+    if (pl->xFD == 6) {
         switch (pl->xFE) {
         case 2:
         case 4:
         case 6:
             return 0;
         }
-        break;
-    case 0:
-    case 1:
-    case 2:
-    case 3:
-    case 4:
-    case 5:
-        break;
-    default:
-        return 0;
     }
     pl->interrupt();
     pl->xFC = 0;
@@ -1011,10 +1001,7 @@ int PlGetWeaponNo()
 {
     cPlayer* pl = pPL;
 
-    if ((pl->stat & 0xFFFF0000) == 0x000B0000 && pl->xFE != 3) {
-        return 0x10;
-    }
-    if (joyLKamae()) {
+    if (((pl->stat & 0xFFFF0000) == 0x000B0000 && pl->xFE != 3) || joyLKamae()) {
         return 0x10;
     }
     return pG->wep_no;
@@ -1025,14 +1012,14 @@ void PlSetFace(int no)
     int f;
 
     switch (no) {
+    default:
+        f = 0;
+        break;
     case 1:
         f = 1;
         break;
     case 2:
         f = 2;
-        break;
-    default:
-        f = 0;
         break;
     }
     pPL->setFace(f);
@@ -1048,30 +1035,37 @@ void SubCharSetFace(int no)
 void PlDataRelease()
 {
     cObj* obj;
+    cObj* objCur;
     cObj* objNext;
     cEm* em;
+    cEm* emCur;
     cEm* emNext;
 
     obj = ObjMgr.pAlive;
     while (obj) {
-        objNext = (cObj*) obj->next;
-        switch (obj->id) {
-        case 0x1A:
-        case 0x23:
-        case 0x29:
-        case 0x2A:
-        case 0x3A:
-            ObjMgr.destroy(obj);
-            break;
-        }
+        objCur = obj;
+        objNext = (cObj*) objCur->next;
         obj = objNext;
+        switch (objCur->id) {
+            case 0x1A:
+            case 0x23:
+            case 0x29:
+            case 0x2A:
+            case 0x3A:
+                ObjMgr.destroy(objCur);
+                break;
+            }
     }
     em = EmMgr.pAlive;
     while (em) {
-        emNext = (cEm*) em->next;
-        if (em->id == 0x4F) {
-            EmMgr.destroy(em);
-        }
+        emCur = em;
+        emNext = (cEm*) emCur->next;
         em = emNext;
+        if (emCur->id == 0x4F) {
+            EmMgr.destroy(emCur);
+        }
     }
 }
+
+asm(".section .sdata; .balign 8");
+// end of unit

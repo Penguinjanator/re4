@@ -1000,6 +1000,7 @@ STRIP_UNUSED = {
     "game/shape.cpp",
     "game/geometry.cpp",
     "game/obj00.cpp",
+    "game/pl_wep.cpp",
 }
 
 # Capcom sound library (game/snd_*.cpp): C++ with extern "C" functions, compiled unoptimised
@@ -1060,7 +1061,19 @@ MATCHING.update({
 MATCHING.update({
     "game/cDataSwap.cpp": True,
     "game/cinesco.cpp": True,
+    "game/sofdec.cpp": True,
     "game/yz2asm.s": True,
     "game/scheduler.cpp": True,
     "game/libgpu.cpp": True,
+})
+
+# enemy units (game/em*.cpp, et00)
+MATCHING.update({
+    "game/emdata.cpp": True,
+    "game/em_dm_val.cpp": True,
+})
+
+# area / message units
+MATCHING.update({
+    "game/area.cpp": True,
 })

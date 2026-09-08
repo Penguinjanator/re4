@@ -20,4 +20,6 @@ int EmGetDmPos(cEm* em, Vec* pos, Vec* dir);                                    
 void EmDmBloodSet2(cEm* em, int a, int type, int b, int c, int d);               // em_sub.cpp
 }
 
+void PlSetDamage(int type, int dmg, int flag);                                   // em_sub.cpp (C++ linkage)
+
 #endif

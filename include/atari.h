@@ -7,6 +7,17 @@
 
 class cModel;
 
+// One scenario collision piece (game/atari.cpp), returned by cSatMgr::create. Opaque apart
+// from the flag byte the owners toggle (emobj setSatMain / clrSat: bit2 = active).
+class cSat {
+public:
+    u8 pad_0[0x2A];
+    s8 flags;        // 0x2A  bit2: piece takes part in the collision checks (signed: `&= ~4` is a word rlwinm)
+    u8 pad_2B;
+
+    void setCoord(Vec* pos, Vec* rot);
+};
+
 // Scenario collision manager (game/atari.cpp). Only the entry points used by the effect
 // units are declared; the layout is opaque (sizeof 0x38).
 class cSatMgr {
@@ -17,7 +28,7 @@ public:
 
     // Runtime scenario piece from a polygon list (createFloorSat / createBoxSat / createSat by
     // flag bits 0x200 / 0x100); returns the registered piece or NULL.
-    void* create(Vec* pos, Vec* rot, Vec* poly, int n, int flag, f32 h);
+    cSat* create(Vec* pos, Vec* rot, Vec* poly, int n, int flag, f32 h);
     int destroy(void* sat);
     // Ray from `top` down to `bottom`; returns the hit flags (bit2: no floor), hit point in `hit`.
     int hitCheck2(Vec* top, Vec* bottom, Vec* hit, u32* attr, int flag, int x);
@@ -46,6 +57,11 @@ public:
 };
 
 extern cEatMgr EatMgr;
+
+extern "C" {
+// Effect type of a hitCheck attribute word (game/at_sub.cpp).
+int EatGetEffectType(u32 attr);
+}
 
 #line 8 "D:/Bio4/Prog/atari.h"
 

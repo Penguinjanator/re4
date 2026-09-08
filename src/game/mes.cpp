@@ -1233,7 +1233,6 @@ int Message::code07()
 int Message::code08()
 {
     int ret = 2;
-    s8 old;
 
     if (attr & 0x02000000) {
         return 0;
@@ -1282,7 +1281,7 @@ int Message::code08()
                 cursor = selNum - 1;
             }
         } else if (attr & 0x00800000) {
-            old = cursor;
+            s8 old = cursor;
             if (Key.trg & 0x01000000) {
                 cursor--;
                 if (cursor < 0) {
@@ -1306,7 +1305,7 @@ int Message::code08()
                 }
             }
         } else {
-            old = cursor;
+            s8 old = cursor;
             if (Key.trg & 0x08000000) {
                 cursor--;
                 if (cursor < 0) {

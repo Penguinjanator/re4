@@ -285,9 +285,6 @@ void AreaDataEdit(AreaData* area, u32 color, int flag, Mtx mtx, f32 rate)
 
     if ((Joy[0].on & JOY_Y) && (Joy[0].trg & JOY_X)) {
         switch (area->type) {
-        default:
-            pLog->warn(0, 0, AREA_TYPE_ERR, area->type);
-            return;
         case AREA_TYPE_XZ4:
             area->type = AREA_TYPE_CYLINDER;
             AreaGetCenterPos(&center, area);
@@ -303,6 +300,9 @@ void AreaDataEdit(AreaData* area, u32 color, int flag, Mtx mtx, f32 rate)
             AreaGetCenterPos(&center, area);
             AreaDataInit(area, &center, area->type, 4000.0f, 4000.0f);
             break;
+        default:
+            pLog->warn(0, 0, AREA_TYPE_ERR, area->type);
+            return;
         }
     }
 
@@ -345,8 +345,7 @@ void AreaDataEdit(AreaData* area, u32 color, int flag, Mtx mtx, f32 rate)
     }
 
     {
-        u8 type = area->type;
-        switch (type) {
+        switch (area->type) {
         case AREA_TYPE_XZ4:
             area_xz4_Edit(&area->u.xz4, color, flag, mtx, mode, vx, vy, dx, dy, rate);
             break;
@@ -357,7 +356,7 @@ void AreaDataEdit(AreaData* area, u32 color, int flag, Mtx mtx, f32 rate)
             area_eye_trigger_Edit(&area->u.eye, color, flag, mtx, mode, vx, vy, dx, dy, rate);
             break;
         default: {
-            pLog->warn(0, 0, AREA_TYPE_ERR, type);
+            pLog->warn(0, 0, AREA_TYPE_ERR, area->type);
             Vec zero = {0.0f, 0.0f, 0.0f};
             AreaDataInit(area, &zero, AREA_TYPE_XZ4, 2000.0f, 1000.0f);
             break;
@@ -365,6 +364,9 @@ void AreaDataEdit(AreaData* area, u32 color, int flag, Mtx mtx, f32 rate)
         }
     }
 }
+
+// The split object's .sdata (sel/Rcnt below) is 8-byte aligned.
+asm(".section .sdata,\"aw\"\n\t.balign 8\n\t.text");
 
 void area_xz4_Edit(AreaXZ4* a, u32 color, int flag, Mtx mtx, u32 mode, Vec vx, Vec vy, f32 dx, f32 dy, f32 rate)
 {
@@ -375,6 +377,9 @@ void area_xz4_Edit(AreaXZ4* a, u32 color, int flag, Mtx mtx, u32 mode, Vec vx, V
     Vec t;
     f32 r;
     u32 i;
+    f32* px;
+    f32* pz;
+    f32* d;
 
     Rcnt += rate * 3.0f;
     if (Rcnt > rate * 90.0f) {
@@ -399,6 +404,10 @@ void area_xz4_Edit(AreaXZ4* a, u32 color, int flag, Mtx mtx, u32 mode, Vec vx, V
         }
         break;
     case 1:
+        // The point is written back through plain float pointers (`*d = v`, no member access): such
+        // a store is assumed to alias the static `sel`, which is reloaded before the second store.
+        px = &a->p[0].x;
+        pz = &a->p[0].z;
         p.x = a->p[sel].x;
         p.y = a->y;
         p.z = a->p[sel].z;
@@ -406,8 +415,10 @@ void area_xz4_Edit(AreaXZ4* a, u32 color, int flag, Mtx mtx, u32 mode, Vec vx, V
         PSVECAdd(&t, &p, &p);
         PSVECScale(&vy, &t, dy);
         PSVECAdd(&t, &p, &p);
-        a->p[sel].x = p.x;
-        a->p[sel].z = p.z;
+        d = px + sel * 2;
+        *d = p.x;
+        d = pz + sel * 2;
+        *d = p.z;
         break;
     case 2:
         for (i = 0; i < 4; i++) {
@@ -964,6 +975,7 @@ void AreaDataHelpDisp(AreaData* area, int x, s16 y)
         HELP_LINE((Joy[0].on & (JOY_Y | JOY_A)) == JOY_Y, "  Y: height move");
         y += 16;
         HELP_LINE((Joy[0].on & (JOY_Y | JOY_A)) == (JOY_Y | JOY_A), "Y+A: Y pos move");
+        y += 16;
         break;
     case AREA_TYPE_CYLINDER:
         HELP_LINE(Joy[0].on & JOY_X, "  X: pos move");
@@ -973,6 +985,7 @@ void AreaDataHelpDisp(AreaData* area, int x, s16 y)
         HELP_LINE((Joy[0].on & (JOY_Y | JOY_A)) == JOY_Y, "  Y: height move");
         y += 16;
         HELP_LINE((Joy[0].on & (JOY_Y | JOY_A)) == (JOY_Y | JOY_A), "Y+A: Y pos move");
+        y += 16;
         break;
     case AREA_TYPE_EYE:
         HELP_LINE(Joy[0].on & JOY_X, "  X: pos move");
@@ -990,6 +1003,7 @@ void AreaDataHelpDisp(AreaData* area, int x, s16 y)
         }
         y += 16;
         HELP_LINE((Joy[0].on & (JOY_Y | JOY_A)) == (JOY_Y | JOY_A), "Y+A: front angle");
+        y += 16;
         break;
     }
 }

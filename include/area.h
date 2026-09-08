@@ -50,15 +50,17 @@ struct AreaEyeTrigger {
     f32 x28;
 };
 
+union AreaBody {
+    AreaXZ4 xz4;
+    AreaCylinder cyl;
+    AreaEyeTrigger eye;
+};
+
 struct AreaData {
     u8 flag;       // 0x00  1 = in use
     u8 type;       // 0x01  AREA_TYPE_*
     u16 x2;        // 0x02
-    union {
-        AreaXZ4 xz4;
-        AreaCylinder cyl;
-        AreaEyeTrigger eye;
-    } u;           // 0x04
+    AreaBody u;    // 0x04
 };
 
 struct GeoCone;

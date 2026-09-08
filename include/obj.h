@@ -199,6 +199,38 @@ struct Obj01Work {
     u32 flags7C;          // 0x7C  bit3: water splash done
 };
 
+// Thrown weapon item work (game/obj10.cpp `cWepItem`): the grenade layout (Obj01Work) with the
+// landing SE counters split out.
+struct WepItemWork {
+    u32 flags;            // 0x00  bit0 start motion, bit1 motion running, bit2 water / bounce check, bit3 rotate parts 0
+    void* pMot;           // 0x04
+    u8 pad_8[2];
+    u16 motPrm;           // 0x0A
+    Vec rotSpd;           // 0x0C
+    Vec spd;              // 0x18
+    f32 grav;             // 0x24
+    f32 rad;              // 0x28  bounce radius
+    int life;             // 0x2C  frames until the explosion (0 = now)
+    cModel* hold;         // 0x30  model holding it (follows `holdParts`)
+    int holdParts;        // 0x34
+    Vec holdOfs;          // 0x38
+    Vec holdRot;          // 0x44
+    int estNo0;           // 0x50  explosion effects (-1 = none: fade out instead)
+    int estPrm0;          // 0x54
+    int estNo1;           // 0x58
+    int estPrm1;          // 0x5C
+    int estNo2;           // 0x60  water splash
+    int estPrm2;          // 0x64
+    int estNo3;           // 0x68  underwater explosion
+    int estPrm3;          // 0x6C
+    u32 type;             // 0x70  0 plain, 1 water bomb, 2 explosive
+    int holdTimer;        // 0x74  frames until it leaves the holder's hand
+    u8 seLeft;            // 0x78  bounce SEs left to play
+    u8 seCnt;             // 0x79  bounce SEs played
+    u8 pad_7A[2];
+    u32 flags7C;          // 0x7C  bit3: water splash done
+};
+
 // Chain link work (game/obj1d.cpp): hangs between two parts of a parent model, fades out when
 // the parent is lost.
 struct ChainWork {
@@ -252,6 +284,7 @@ public:
         Obj00Work o0;
         Obj18Work o18;
         Obj01Work o1;
+        WepItemWork wepItem;
     };
     u8 x3D0;              // 0x3D0
     u8 pad_3D1[3];

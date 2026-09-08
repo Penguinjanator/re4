@@ -78,6 +78,7 @@ struct MotionParts {
     Vec pos;         // 0x174  pose before the blend motion was applied
     Vec rot;         // 0x180
     Vec scale;       // 0x18C
+    u32 x198;        // 0x198
     u16 hist[6][3];  // 0x19C  key history: rot, pos, scale; then the same for the flipped histories
     u32 flags;       // 0x1C0  bit0 / bit16: animated this frame, bit17: scale cancelled, bit24-25: skip blend, bit26: no cross frame, bit28: hokan pending, bit29: skip, bit31: hokan pending (blend)
 };

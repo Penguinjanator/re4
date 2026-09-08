@@ -14,7 +14,8 @@ struct EmHitInfo {
     u8 pad_0[0x18];
     f32 width;            // 0x18
     f32 height;           // 0x1C
-    u8 pad_20[6];
+    u8 pad_20[4];
+    u16 flags;            // 0x24  bit5 (0x20): the hit sets cDmgInfo bit5 too (pl_wep PlWepHitCheck2)
     s16 partsNo;          // 0x26  parts the effect is placed at (0 = the model itself), 1-based
     f32 rad;              // 0x28
 };
@@ -22,7 +23,14 @@ struct EmHitInfo {
 // Damage info at cEm+0x324 (game/em.cpp). set(0, 10, kind, pos, rad, part) registers a hit.
 class cDmgInfo {
 public:
-    u32 flags;            // 0x00
+    union {
+        u32 flags;        // 0x00
+        struct {
+            u8 stat;      // 0x00  bit0: a hit is registered, bit5 (pl_wep)
+            u8 x1;        // 0x01
+            u16 x2;
+        };
+    };
 
     void set(int a, int b, u8 kind, Vec* pos, f32 rad, EmHitInfo* part);
     void set(int a, int b);   // stores the two bytes at 0/1 (pl_sub: set(0, 10), set(0, 0x80))
@@ -40,7 +48,9 @@ struct PlRoomEff {
 class cEm : public cModel {
 public:
     void* pMotion;        // 0x1D8  motion work head: current motion data, NULL = stopped (pl_push stopTarget)
-    u8 pad_1DC[0x290 - 0x1DC];
+    u8 pad_1DC[0x21A - 0x1DC];
+    u16 motState;         // 0x21A  MotionWork::state (emobj EmObjMove clears it when no motion plays)
+    u8 pad_21C[0x290 - 0x21C];
     f32 frame;            // 0x290  motion frame (db_cam prints it as an int)
     u16 frameMax;         // 0x294
     u8 pad_296[0x2A4 - 0x296];
@@ -69,7 +79,8 @@ public:
     u8 pad_374[4];
     u32 x378;             // 0x378  (pl_sub EndPlDamage/EndSubDamage: x378 = x37C)
     u32 x37C;             // 0x37C
-    u8 pad_380[0x38D - 0x380];
+    Vec lockOfs;          // 0x380  lock-on point offset in the lockParts' matrix (pl_wep)
+    u8 lockParts;         // 0x38C  parts the lock-on point follows (pl_wep; AutoTrack uses the low 3 bits)
     u8 x38D;              // 0x38D  (db_cam "set=")
     u8 pad_38E[0x398 - 0x38E];
     u8 emsetNo;           // 0x398
