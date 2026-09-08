@@ -582,6 +582,13 @@ mark it Matching.
   parameterless mangled name does not declare (`beginEvent()` reading r4).
 - `void f(...) asm("f__6cBase...");` in a derived class re-exposes a hidden base overload without a
   body; `extern T* alias asm("sym");` gives a second name/type for a conflicting global.
+- Interblock scheduling threshold: haifa's `find_rgns` makes a loop one region only if its LUID span
+  is <= 100 (notes and deleted insns count). A loop body over that limit shows no speculative
+  hoisting (`mcrf cr7,cr0`, arg `li`s before the branch).
+- No `clrlwi` for `0x40 + i` passed to a `u8` parameter is only obtainable with an int-parameter
+  asm-labelled alias of the callee (`unitPtrI`, `setI` in id_sys.h).
+- Stores to a plain `static void*` are freely reordered against `u->member` loads; declaring them as
+  one-element arrays (`g_p[1]`) keeps the target's load/store interleave.
 - Static locals show as `name.NNN` in objdiff; the DECL_UID suffix cannot be reproduced and is ignored by the report.
 - Unexplained words in `.rodata` (zero words, stray floats) are usually the constant pool of a function
   the original linker dead-stripped (bodies gone, pools kept, `STRIP_UNUSED` in objects.py): write a

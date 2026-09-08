@@ -1622,22 +1622,22 @@ void emDoor_R1_Down(cEmDoor* em)
         emDoorDropWeapon(em);
         em->hp = 0;
         if (w->dir) {
-            w->spd = -0.122173f;
+            w->spd = -(7.0f * (PI / 180.0f));
         } else {
-            w->spd = 0.122173f;
+            w->spd = 7.0f * (PI / 180.0f);
         }
         em->pos.y += 40.0f;
         em->xFE++;
     case 1:
         if (w->dir) {
-            w->spd -= 0.0174533f;
+            w->spd -= PI / 180.0f;
             em->rot.x += w->spd;
             if (em->rot.x < -PI / 2) {
                 em->rot.x = -PI / 2;
                 em->xFE++;
             }
         } else {
-            w->spd += 0.0174533f;
+            w->spd += PI / 180.0f;
             em->rot.x += w->spd;
             if (em->rot.x > PI / 2) {
                 em->rot.x = PI / 2;
@@ -2123,35 +2123,30 @@ void emDoorLockMove(cEmDoor* em)
 }
 
 // `v` (in the closed door's space) is inside the door's passage box.
-#define NEAR_CK()                                          \
-    {                                                      \
-        f32 x;                                             \
-        f32 lim;                                           \
-                                                           \
-        ok = 1;                                            \
-        if (v.z > 1500.0f) {                               \
+#define NEAR_CK(X, LIM)                                    \
+    ok = 1;                                                \
+    if (v.z > 1500.0f) {                                   \
+        ok = 0;                                            \
+    }                                                      \
+    if (v.z < -1500.0f) {                                  \
+        ok = 0;                                            \
+    }                                                      \
+    if (v.y > 500.0f) {                                    \
+        ok = 0;                                            \
+    }                                                      \
+    if (v.y < -500.0f) {                                   \
+        ok = 0;                                            \
+    }                                                      \
+    X = v.x;                                               \
+    if (X > w->width + 150.0f) {                           \
+        ok = 0;                                            \
+    }                                                      \
+    if (w->pDoor) {                                        \
+        if (X < -(w->width * 3.0f + 150.0f)) {             \
             ok = 0;                                        \
         }                                                  \
-        if (v.z < -1500.0f) {                              \
-            ok = 0;                                        \
-        }                                                  \
-        if (v.y > 500.0f) {                                \
-            ok = 0;                                        \
-        }                                                  \
-        if (v.y < -500.0f) {                               \
-            ok = 0;                                        \
-        }                                                  \
-        x = v.x;                                           \
-        lim = w->width + 150.0f;                           \
-        if (x > lim) {                                     \
-            ok = 0;                                        \
-        }                                                  \
-        if (w->pDoor) {                                    \
-            lim = -(w->width * 3.0f + 150.0f);             \
-        } else {                                           \
-            lim = -lim;                                    \
-        }                                                  \
-        if (x < lim) {                                     \
+    } else {                                               \
+        if (X < -(w->width + 150.0f)) {                    \
             ok = 0;                                        \
         }                                                  \
     }
@@ -2160,6 +2155,12 @@ int emDoorDoorAutoCloseCk(cEmDoor* em)
 {
     EmDoorWork* w = EMDOOR_WK(em);
     Vec v;
+    f32 x0;
+    f32 lim0;
+    f32 x1;
+    f32 lim1;
+    f32 x2;
+    f32 lim2;
     int ok;
     u32 i;
 
@@ -2167,13 +2168,13 @@ int emDoorDoorAutoCloseCk(cEmDoor* em)
         return 0;
     }
     PSMTXMultVec(w->inv, &pPL->pos, &v);
-    NEAR_CK();
+    NEAR_CK(x0, lim0);
     if (ok) {
         return 0;
     }
     if (pSUB) {
         PSMTXMultVec(w->inv, &pSUB->pos, &v);
-        NEAR_CK();
+        NEAR_CK(x1, lim1);
         if (ok) {
             return 0;
         }
@@ -2205,7 +2206,7 @@ int emDoorDoorAutoCloseCk(cEmDoor* em)
             continue;
         }
         PSMTXMultVec(w->inv, &e->pos, &v);
-        NEAR_CK();
+        NEAR_CK(x2, lim2);
         if (ok) {
             return 0;
         }
@@ -2213,11 +2214,11 @@ int emDoorDoorAutoCloseCk(cEmDoor* em)
     if (em->ckObj() == 0) {
         return 0;
     }
-    em->flags_3C8 &= ~0x30000000;
     em->xFC = 1;
     em->xFD = 3;
     em->xFE = 0;
     em->xFF = 0;
+    em->flags_3C8 &= ~0x20000000;
     return 1;
 }
 
@@ -2232,9 +2233,10 @@ void emDoorYarareInit(cEmDoor* em)
     if (em->type == 7) {
         return;
     }
-    flags = 0x41;
     if (em->type == 0) {
         flags = 0x21;
+    } else {
+        flags = 0x41;
     }
     switch (em->type) {
     default:
@@ -2408,21 +2410,16 @@ void cEmDoor::setEff(u8 eff)
     EMDOOR_WK(this)->eff = eff;
 }
 
-// Pane `no` (parts no + 1, hit box hit[no + 1]) of a wooden door: a hit box while whole, hidden when broken.
-static inline void emDoorPaneSet(cEmDoor* em, u32 bit, int no, u16 flags)
-{
-    EmDoorWork* w = EMDOOR_WK(em);
-
-    if (!(em->flags_3C8 & bit)) {
-        YarareAddCube(em, &w->hit[no + 1], 0.0f, -300.0f, 0.0f, 300.0f, 600.0f, 65.0f, no, flags);
-    } else {
-        cModel* parts = em->getPartsPtr(no - 1);
-
-        parts->scale.x = 0.0f;
-        parts->scale.y = 0.0f;
-        parts->scale.z = 0.0f;
+// Pane `no` (parts no - 1, hit box hit[no + 1]) of a wooden door: a hit box while whole, hidden when broken.
+#define PANE_SET(no)                                                                          \
+    if (!(flags_3C8 & bit)) {                                                                 \
+        YarareAddCube(this, &w->hit[(no) + 1], 0.0f, -300.0f, 0.0f, 300.0f, 600.0f, 65.0f, no, flags); \
+    } else {                                                                                  \
+        parts = getPartsPtr((no) - 1);                                                        \
+        parts->scale.x = 0.0f;                                                                \
+        parts->scale.y = 0.0f;                                                                \
+        parts->scale.z = 0.0f;                                                                \
     }
-}
 
 void cEmDoor::setYarare()
 {
@@ -2440,21 +2437,21 @@ void cEmDoor::setYarare()
     if (type != 4) {
         hitInfo.height = 500.0f;
         bit = 0x8000;
-        emDoorPaneSet(this, bit, 2, flags);
+        PANE_SET(2);
         bit >>= 1;
-        emDoorPaneSet(this, bit, 3, flags);
+        PANE_SET(3);
         bit >>= 1;
-        emDoorPaneSet(this, bit, 4, flags);
+        PANE_SET(4);
         bit >>= 1;
-        emDoorPaneSet(this, bit, 5, flags);
+        PANE_SET(5);
         bit >>= 1;
-        emDoorPaneSet(this, bit, 6, flags);
+        PANE_SET(6);
         bit >>= 1;
-        emDoorPaneSet(this, bit, 7, flags);
+        PANE_SET(7);
         bit >>= 1;
-        emDoorPaneSet(this, bit, 8, flags);
+        PANE_SET(8);
         bit >>= 1;
-        emDoorPaneSet(this, bit, 9, flags);
+        PANE_SET(9);
     } else {
         flg = GetEtcFlgPtr(w->flagNo, pG->room_id);
         parts = getPartsPtr(1);
@@ -3210,24 +3207,24 @@ void cEmDoor::setOpenLock(int a)
 {
     EmDoorWork* w = EMDOOR_WK(this);
 
-    flags_3C8 |= 0x20000000;
-    w->flags |= 1;
     xFC = 1;
     xFD = 6;
     xFE = 0;
     xFF = a;
+    flags_3C8 |= 0x20000000;
+    w->flags |= 1;
 }
 
 void cEmDoor::setCloseLock(int a)
 {
     EmDoorWork* w = EMDOOR_WK(this);
 
-    flags_3C8 &= ~0x30000000;
-    w->flags |= 1;
     xFC = 1;
     xFD = 7;
     xFE = 0;
     xFF = 0;
+    flags_3C8 &= ~0x20000000;
+    w->flags |= 1;
 }
 
 void cEmDoor::setClose()

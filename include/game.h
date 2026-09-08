@@ -56,7 +56,7 @@ void primInit();
 void primFree();
 void GameLoad();
 void GameContinue(int mode);
-void GamePointInit(int mode);
+void GamePointInit(u32 mode);
 void GameAddPoint(int type);
 void GamePointBossReset();
 void PrimDispWorkNum(int x, int y, int col);

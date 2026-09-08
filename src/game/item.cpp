@@ -70,10 +70,12 @@ static inline void U16Set(u16& d, u16 v) { d = v; }
 static inline void U32Set(u32& d, u32 v) { d = v; }
 
 // slot in use and of inventory type `type`
-static inline int itemUse(ItemWork* p, u8 type)
+// (int parameter + cast: cItemMgr::num(int, u8) zero-extends its u8 argument before the loop in the
+// original build, which ours only does when the compare is written against a cast int)
+static inline int itemUse(ItemWork* p, int type)
 {
     if (p->flags & 1) {
-        return p->type == type;
+        return p->type == (u8) type;
     }
     return 0;
 }
@@ -1879,7 +1881,7 @@ int cItemMgr::use(ItemWork* p)
     case 0x17:
     case 0x35:
         p->num--;
-        if ((s32) pG->flags_6C < 0) {
+        if ((s32) pGS->flags_6C < 0) {
             if (p->num != 0) {
                 return 1;
             }
@@ -2041,7 +2043,7 @@ void cItemMgr::erase(ItemWork* p)
 
 int cItemMgr::dump(int id)
 {
-    return dump(search(id));
+    return dump(searchI(id));
 }
 
 int cItemMgr::dump(ItemWork* p)
@@ -3049,7 +3051,7 @@ void cItemMgr::debugNumDisp(int a)
 
 void cItemMgr::debugWeapon(int id)
 {
-    ItemWork* p = search(id);
+    ItemWork* p = searchI(id);
 
     if (p != 0) {
         pArm = p;

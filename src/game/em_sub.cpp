@@ -34,6 +34,9 @@ int MotionMove(cModel* m, int a);   // motion.cpp
 // EstSet with the two effect parameter bytes as u8 (the original prototype): an `int` passed to
 // them is masked at the call (`clrlwi 24`, EmDmBloodSet2/3).
 void EstSetB(int a, int b, Vec* pos, Vec* rot, int c, u8 d, int e, u8 f, u32 g, void* h) asm("EstSet");
+// AtSphereCapsuleCk with the float arguments declared first (atari_init.h idiom): the original
+// issues the `fmr` argument moves before the `addi r4` of the second point (emSphereAtCk).
+u32 AtSphereCapsuleCkF(Vec* c, f32 r, f32 r2, Vec* p0, Vec* p1) asm("AtSphereCapsuleCk");
 
 // The vehicle objects (objTrolley.cpp / objBull.cpp) as seen from here: the ride checks only.
 class cObjTrolley : public cObj {
@@ -47,6 +50,10 @@ public:
     int ckBullRide(Vec* pos, u8* partsNo, Vec* out);
     int ckBullRideAdjust(Vec* pos, Vec* out);
 };
+
+// Entry `n` of a target list written index first: the sum is formed with the index as the base
+// register (`add r9, r9, r31` / `stwx r29, r9, r31`) instead of the pointer.
+#define WEP_LIST(n) ((WepTarget*) ((n) * sizeof(WepTarget) + (u32) list))
 
 #define VALID_PTR(p) ((u32) (p) >= 0x80000000 && (u32) (p) <= 0x82FFFFFF)
 
@@ -69,6 +76,18 @@ static inline cModel* HitParts(cEm* em, EmHitInfo* p)
         return em->getPartsPtr(p->partsNo - 1);
     }
     return em;
+}
+
+// Work `no` of the enemy manager through a local manager pointer (map_obj.h getWork): the range
+// check survives at the top of the guarded do-while scans below (thread_jumps cannot fold it).
+static inline cEm* emWork(u32 no)
+{
+    cEmMgr* m = &EmMgr;
+
+    if (no >= m->nArray) {
+        return 0;
+    }
+    return (cEm*) ((u8*) m->pArray + m->size * no);
 }
 
 void Em_R0_Scenario(cEm* em)
@@ -886,7 +905,6 @@ int emLinePolyCrossCk(Vec* a, Vec* b, Vec* poly, Vec* hit)
     Vec c;
     f32 da;
     f32 db;
-    f32 ab;
     f32 t;
 
     PSVECSubtract(&poly[2], &poly[1], &e1);
@@ -897,19 +915,19 @@ int emLinePolyCrossCk(Vec* a, Vec* b, Vec* poly, Vec* hit)
     }
 #line 1552
     VECNormalize(&n, &n);
-    da = PSVECDotProduct(&n, a) - PSVECDotProduct(&n, &poly[1]);
+    da = PSVECDotProduct(&n, a) - PSVECDotProduct(&n, &poly[0]);
     if (da <= 0.0f) {
         return 0;
     }
-    db = PSVECDotProduct(&n, b) - PSVECDotProduct(&n, &poly[1]);
+    db = PSVECDotProduct(&n, b) - PSVECDotProduct(&n, &poly[0]);
     if (db >= 0.0f) {
         return 0;
     }
-    ab = fabsf(db);
-    t = ab / (da + ab);
+    db = fabsf(db);
+    t = db / (da + db);
     PSVECSubtract(a, b, &p);
     PSVECScale(&p, &p, t);
-    PSVECAdd(b, &p, &p);
+    PSVECAdd(&p, b, &p);
     PSVECSubtract(&p, &poly[1], &e1);
     PSVECSubtract(&poly[0], &poly[1], &e2);
     PSVECCrossProduct(&e1, &e2, &c);
@@ -940,19 +958,15 @@ int emLinePolyCrossCk(Vec* a, Vec* b, Vec* poly, Vec* hit)
 
 // Hit boxes of `em` touched by the sphere (pos, r): the one best facing the pos2 -> pos direction
 // (or the nearest when pos2 is at pos); rad = squared distance centre -> pos.
-EmHitInfo* emSphereAtCk(cEm* em, Vec* pos, Vec* pos2, int flag, f32 r, f32 r2)
+EmHitInfo* emSphereAtCk(cEm* em, Vec* pos, Vec* pos2, f32 r, int flag, f32 r2)
 {
     Vec top;
     Vec bottom;
     Vec center;
     Vec d;
     Vec s;
-    Vec box[8] = {
-        {-500.0f, -450.0f, 0.0f},    {500.0f, -450.0f, 0.0f},    {-3000.0f, -800.0f, 15000.0f}, {3000.0f, -800.0f, 15000.0f},
-        {-500.0f, 450.0f, 0.0f},     {500.0f, 450.0f, 0.0f},     {-3000.0f, 800.0f, 15000.0f},  {3000.0f, 800.0f, 15000.0f},
-    };
     EmHitInfo* p;
-    EmHitInfo* ret = 0;
+    EmHitInfo* ret;
     cModel* parts;
     f32 dist;
     f32 bestRad;
@@ -970,6 +984,7 @@ EmHitInfo* emSphereAtCk(cEm* em, Vec* pos, Vec* pos2, int flag, f32 r, f32 r2)
         dist = 0.0f;
     }
     bestRad = 1e16f;
+    ret = 0;
     bestDot = -PI;
     for (p = &em->hitInfo; p != 0; p = p->next) {
         if (!(p->flags & 1)) {
@@ -995,6 +1010,11 @@ EmHitInfo* emSphereAtCk(cEm* em, Vec* pos, Vec* pos2, int flag, f32 r, f32 r2)
         PSVECAdd(&top, &bottom, &center);
         PSVECScale(&center, &center, 0.5f);
         if (p->flags & 8) {
+            Vec box[8] = {
+                {-500.0f, -450.0f, 0.0f},   {500.0f, -450.0f, 0.0f},   {-3000.0f, -800.0f, 15000.0f}, {3000.0f, -800.0f, 15000.0f},
+                {-500.0f, 450.0f, 0.0f},    {500.0f, 450.0f, 0.0f},    {-3000.0f, 800.0f, 15000.0f},  {3000.0f, 800.0f, 15000.0f},
+            };
+
             box[0].x = -p->width;
             box[0].y = 0.0f;
             box[0].z = -p->depth;
@@ -1036,7 +1056,7 @@ EmHitInfo* emSphereAtCk(cEm* em, Vec* pos, Vec* pos2, int flag, f32 r, f32 r2)
             s.z = p->width;
             PSMTXMultVecSR(parts->mat, &s, &s);
             rr = PSVECMag(&s);
-            if (AtSphereCapsuleCk(pos, &top, r, rr, &bottom) == 0) {
+            if (AtSphereCapsuleCkF(pos, r, rr, &top, &bottom) == 0) {
                 continue;
             }
         }
@@ -1085,11 +1105,12 @@ u32 GetWepTargetList(Vec* box, Vec* pos, WepTarget* list, u32 max, int flag)
     cEm* em;
     EmHitInfo* part;
     EmHitInfo* q;
-    EmHitInfo* w;
     f32 wr;
 
-    for (i = 0; i < EmMgr.nArray; i++) {
-        em = EmMgrWork(i);
+    i = 0;
+    if (i < EmMgr.nArray) {
+        do {
+        em = emWork(i);
         if (!(em->be_flag & 1)) {
             continue;
         }
@@ -1114,8 +1135,8 @@ u32 GetWepTargetList(Vec* box, Vec* pos, WepTarget* list, u32 max, int flag)
         }
         part->flags &= ~0x4000;
         if (cnt < max) {
-            list[cnt].em = em;
             list[cnt].part = part;
+            list[cnt].em = em;
             cnt++;
             continue;
         }
@@ -1123,9 +1144,8 @@ u32 GetWepTargetList(Vec* box, Vec* pos, WepTarget* list, u32 max, int flag)
         wr = list[0].part->rad;
         for (j = 1; j < max; j++) {
             q = list[j].part;
-            w = list[worst].part;
             if (q->dist <= 250000.0f) {
-                if (w->dist > 250000.0f) {
+                if (WEP_LIST(worst)->part->dist > 250000.0f) {
                     continue;
                 }
                 if (q->rad < wr) {
@@ -1134,30 +1154,30 @@ u32 GetWepTargetList(Vec* box, Vec* pos, WepTarget* list, u32 max, int flag)
                 wr = q->rad;
                 worst = j;
             } else {
-                if (w->dist <= 250000.0f && w->dist > q->dist) {
+                if (WEP_LIST(worst)->part->dist <= 250000.0f && WEP_LIST(worst)->part->dist > q->dist) {
                     continue;
                 }
                 wr = q->rad;
                 worst = j;
             }
         }
-        w = list[worst].part;
-        if (w->dist <= 250000.0f) {
+        if (WEP_LIST(worst)->part->dist <= 250000.0f) {
             if (part->dist > 250000.0f) {
                 continue;
             }
-            if (w->rad < part->rad) {
+            if (WEP_LIST(worst)->part->rad < part->rad) {
                 continue;
             }
         } else {
             if (part->dist <= 250000.0f) {
-                if (w->dist < part->dist) {
+                if (WEP_LIST(worst)->part->dist < part->dist) {
                     continue;
                 }
             }
         }
-        list[worst].em = em;
-        list[worst].part = part;
+        WEP_LIST(worst)->part = part;
+        WEP_LIST(worst)->em = em;
+        } while (++i < EmMgr.nArray);
     }
     return cnt;
 }
@@ -1477,7 +1497,7 @@ int GetWepTargetListBomb(Vec* pos, WepTarget* list, int max, int type, int flag,
             }
             break;
         }
-        part = emSphereAtCk(em, pos, pos, type, rr, r2);
+        part = emSphereAtCk(em, pos, pos, rr, type, r2);
         if (part == 0) {
             continue;
         }
@@ -2094,7 +2114,7 @@ int EmAtkHitCk2(EmAtkInfo* info, Vec* a, Vec* b)
     if (EatMgr.hitCheck(&parts->worldPos, a, 0, 0, 0, 0) != 0) {
         return 0;
     }
-    part = emSphereAtCk(pPL, a, b, 0x18, info->range, info->range);
+    part = emSphereAtCk(pPL, a, b, info->range, 0x18, info->range);
     if (part == 0) {
         return 0;
     }
@@ -2317,7 +2337,7 @@ EmHitInfo* EmAtkHitSubCk2(EmAtkInfo* info, Vec* a, Vec* b)
     if (EatMgr.hitCheck(&parts->worldPos, a, 0, 0, 0, 0) != 0) {
         return 0;
     }
-    part = emSphereAtCk(pSUB, a, b, 0x18, info->range, info->range);
+    part = emSphereAtCk(pSUB, a, b, info->range, 0x18, info->range);
     if (part == 0) {
         return 0;
     }

@@ -99,7 +99,7 @@ struct Weight {
 };
 
 #define PTR_INVALID(p) ((s32) (p) >= 0 || (u32) (p) > 0x82FFFFFF)
-#define PTR_INVALID2(p) ((u32) (p) < 0x80000000 || (u32) (p) > 0x82FFFFFF)
+#define PTR_INVALID2(p) ((u32) (p) - 0x80000000 > 0x02FFFFFF)
 #define HALT()                                                    \
     {                                                             \
         OSReport("HALT %s(%d)\n", __FILE__, __LINE__);            \
@@ -121,6 +121,7 @@ struct IntView {
     int v;
 };
 #define ISET0(x) (((IntView*) &(x))->v = 0)
+#define IV(x) (((IntView*) &(x))->v)
 static inline void U32Set(u32& d, u32 v) { d = v; }
 
 u8 min_lod;
@@ -592,22 +593,26 @@ int commonScreenMat(cModel* m)
 
 #define UV_WRAP_HI(x)                       \
     {                                       \
-        f32 t = (x);                        \
-        if (t > 2.0f) {                     \
+        f32 a_ = (x);                       \
+        if (a_ > 2.0f) {                    \
+            f32 b_;                         \
             do {                            \
-                t -= 2.0f;                  \
-            } while (t > 2.0f);             \
-            (x) = t;                        \
+                b_ = a_ - 2.0f;             \
+                a_ = b_;                    \
+            } while (b_ > 2.0f);            \
+            (x) = b_;                       \
         }                                   \
     }
 #define UV_WRAP_LO(x)                       \
     {                                       \
-        f32 t = (x);                        \
-        if (t < 0.0f) {                     \
+        f32 a_ = (x);                       \
+        if (a_ < 0.0f) {                    \
+            f32 b_;                         \
             do {                            \
-                t += 2.0f;                  \
-            } while (t < 0.0f);             \
-            (x) = t;                        \
+                b_ = a_ + 2.0f;             \
+                a_ = b_;                    \
+            } while (b_ < 0.0f);            \
+            (x) = b_;                       \
         }                                   \
     }
 
@@ -616,24 +621,32 @@ int commonScreenMatSub(cModel* m, cModelInfo* info)
     calcWeightMat(m);
     for (; info != 0; info = info->pNext) {
         ModelData* d = info->pData;
-        void** posBuf;
-        void** nrmBuf;
+        ModelTexInfo* t = MODEL_TEX(info);
         void* src;
         void* buf;
+        u32 nVtx;
+        u32 n;
 
         if (info->flagsDC & 2) {
-            info->xE0++;
-            if (info->xE0 >= info->pTexAnim[1]) {
-                info->xE0 = 0;
+            t->frame++;
+            if (t->frame >= t->anim[1]) {
+                t->frame = 0;
             }
         }
-        if (!(pG->flags_170 & 0x08000000) && (info->flagsDC & 1)) {
-            info->uvU += info->uvScrollU;
-            info->uvV += info->uvScrollV;
-            UV_WRAP_HI(info->uvU);
-            UV_WRAP_HI(info->uvV);
-            UV_WRAP_LO(info->uvU);
-            UV_WRAP_LO(info->uvV);
+        if (!(pG->flags_170 & 0x08000000) && (t->flags & 1)) {
+            f32 u = t->u + t->su;
+            f32 v = t->v + t->sv;
+            t->u = u;
+            t->v = v;
+            if (u > 2.0f) {
+                do {
+                    u -= 2.0f;
+                } while (u > 2.0f);
+                t->u = u;
+            }
+            UV_WRAP_HI(t->v);
+            UV_WRAP_LO(t->u);
+            UV_WRAP_LO(t->v);
         }
         if (PTR_INVALID(d)) {
             pLog->err(0, 0, "commonScreenMatSub() : pHeader ptr err.");
@@ -650,29 +663,23 @@ int commonScreenMatSub(cModel* m, cModelInfo* info)
             pLog->warn(0, 0, "commonScreenMatSub() : VTX prim alloc failed.");
             return 0;
         }
-        posBuf = info->pPosBuf;
-        posBuf[pG->vtx_buf_no] = buf;
-        if (d->flags & 0x20000000) {
-            buf = GetPrimBuff((d->nNrm * 3 + 0x1F) & ~0x1F);
-        } else {
-            buf = GetPrimBuff((d->nNrm * 6 + 0x1F) & ~0x1F);
-        }
+        info->pPosBuf[pG->vtx_buf_no] = buf;
+        buf = GetPrimBuff((d->flags & 0x20000000) ? ((d->nNrm * 3 + 0x1F) & ~0x1F) : ((d->nNrm * 6 + 0x1F) & ~0x1F));
         if (PTR_INVALID2(buf)) {
             pLog->warn(0, 0, "commonScreenMatSub() : Nor prim alloc failed.");
             return 0;
         }
-        nrmBuf = info->pNrmBuf;
-        nrmBuf[pG->vtx_buf_no] = buf;
+        info->pNrmBuf[pG->vtx_buf_no] = buf;
         if (d->x2A > 0xFF) {
             MakeWeightPaletteExt((WeightExt*) d->pWeight, d->x2A);
         } else {
             MakeWeightPalette((Weight*) d->pWeight, d->x18);
         }
-        setupGQR6((d->shift << 24) | 0x00070000 | (d->shift << 8) | 7);
+        setupGQR6(((d->shift << 24) | (d->shift << 8)) | 0x00070007);
         src = d->vtxOrig;
         if (info->be_flag & 2) {
             int i;
-            src = posBuf[pG->vtx_buf_no];
+            src = info->pPosBuf[pG->vtx_buf_no];
             for (i = 0; i < 5; i++) {
                 if (i == 0) {
                     ResetShape(info, src);
@@ -682,21 +689,24 @@ int commonScreenMatSub(cModel* m, cModelInfo* info)
                 }
             }
         }
-        if (PTR_INVALID(posBuf[pG->vtx_buf_no]) || PTR_INVALID(src)) {
+        nVtx = d->nVtx;
+        if (PTR_INVALID(info->pPosBuf[pG->vtx_buf_no]) || PTR_INVALID(src)) {
             pLog->err(0, 0, "ComnScreenMatSub() PTR ERR");
             return 0;
         }
-        CalcSk1_x(posBuf[pG->vtx_buf_no], src, d->nVtx);
-        DCStoreRangeNoSync(posBuf[pG->vtx_buf_no], d->nVtx * 6);
+        CalcSk1_x(info->pPosBuf[pG->vtx_buf_no], src, nVtx);
+        DCStoreRangeNoSync(info->pPosBuf[pG->vtx_buf_no], d->nVtx * 6);
         setupGQR6(0x32073207);
         src = d->nrmOrig;
+        n = d->nNrm;
         if (d->flags & 0x20000000) {
+            void* dst = info->pNrmBuf[pG->vtx_buf_no];
             setupGQR6(0x20062006);
-            CalcSk1_x2(nrmBuf[pG->vtx_buf_no], src, d->nNrm);
+            CalcSk1_x2(dst, src, n);
         } else {
-            CalcSk1_x(nrmBuf[pG->vtx_buf_no], src, d->nNrm);
+            CalcSk1_x(info->pNrmBuf[pG->vtx_buf_no], src, n);
         }
-        DCStoreRangeNoSync(nrmBuf[pG->vtx_buf_no], d->nNrm * 6);
+        DCStoreRangeNoSync(info->pNrmBuf[pG->vtx_buf_no], d->nNrm * 6);
     }
     return 1;
 }
@@ -1187,12 +1197,12 @@ static void ThermoShaderSetup(cModel* m, cModelInfo* info, ModelPart* part)
     int st;
     int map;
 
+    ISET0(tev_stage);
     ISET0(tev_reg);
     ISET0(ind_stage);
     ISET0(tev_kcolor);
     ISET0(tex_map);
     ISET0(tex_coord);
-    ISET0(tev_stage);
     GXSetAlphaCompare(4, 0, 1, 4, 0xFF);
     GXSetBlendMode(1, 4, 5, 0);
     st = TEV_STAGE_ID();
@@ -1227,13 +1237,13 @@ static void shaderSetup(cModel* m, cModelInfo* info, ModelPart* part, Mtx mv)
         RefractShaderSetup(m, info, part, mv);
         return;
     }
+    ISET0(tev_stage);
     ISET0(ind_stage);
     ISET0(tev_reg);
     ISET0(tev_kcolor);
     ISET0(tex_map);
     ISET0(tex_coord);
     selfDone = 0;
-    ISET0(tev_stage);
     if ((pG->flags_500C & 1) && isSelfUse) {
         u32 i;
         for (i = 0; i < g_SelfShdNum; i++) {
@@ -2474,12 +2484,12 @@ static void RefractShaderSetup(cModel* m, cModelInfo* info, ModelPart* part, Mtx
     s8 kv;
     int scale;
 
+    ISET0(tev_stage);
     ISET0(ind_stage);
     ISET0(tev_reg);
     ISET0(tev_kcolor);
     ISET0(tex_map);
     ISET0(tex_coord);
-    ISET0(tev_stage);
     st = TEV_STAGE_ID();
     map = getTexMap();
     coord = getTexCoord();

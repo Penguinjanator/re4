@@ -32,7 +32,7 @@ EmHitInfo* emLineAtCk2(cEm* em, Vec* a, Vec* b, Vec* out, int flag, f32 len);
 int emLineCapsuleCrossCk(Vec* a, Vec* b, Vec* top, Vec* bottom, f32 r, Vec* hit);
 int emLineCubeCrossCk(Vec* a, Vec* b, Mtx m, f32 sx, f32 sy, f32 sz, Vec* ofs, Vec* hit);
 int emLinePolyCrossCk(Vec* a, Vec* b, Vec* poly, Vec* hit);
-EmHitInfo* emSphereAtCk(cEm* em, Vec* pos, Vec* pos2, int flag, f32 r, f32 r2);
+EmHitInfo* emSphereAtCk(cEm* em, Vec* pos, Vec* pos2, f32 r, int flag, f32 r2);
 u32 GetWepTargetList(Vec* box, Vec* pos, WepTarget* list, u32 max, int flag);
 u32 GetWepTargetList2(Vec* p0, Vec* p1, WepTarget* list, u32 max, Vec* hit, Vec* nrm, u32* attr, int type,
                       int flag);

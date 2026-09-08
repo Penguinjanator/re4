@@ -3077,11 +3077,13 @@ void CardDbgCacheSet()
 }
 
 // Digits of `num` into id units idNo, idNo-1, ... (ones first). A macro: every expansion shares
-// dispSaveInfo's `u`, `d` and `i` (the unit pointer is copied to the same register each time).
+// dispSaveInfo's `u` (the unit pointer is copied to the same register each time).
 #define putNumber(id, num_, idNo_, digits_, type)         \
     do {                                                  \
-        int num = (num_);                                 \
+        int d[3];                                         \
+        int i;                                            \
         int idNo = (idNo_);                               \
+        num = (num_);                                     \
         for (i = 0; i <= (digits_) - 1; i++) {            \
             d[i] = num % 10;                              \
             num /= 10;                                    \
@@ -3096,9 +3098,6 @@ void dispSaveInfo(int no, SaveInfo* info, u8 type, int broken)
 {
     IDSystem* id = &g_id->idsys;
     IdUnit* u;
-    int i;
-    int d[3];
-    IdUnit* u2;
     int chapter;
     int special;
     int chap;
@@ -3107,6 +3106,7 @@ void dispSaveInfo(int no, SaveInfo* info, u8 type, int broken)
     u32 m;
     u32 s;
     int cnt;
+    int num;
 
     putNumber(id, no + 1, 2, 2, type);
     u = id->unitPtr(0x16, type);
@@ -3123,30 +3123,30 @@ void dispSaveInfo(int no, SaveInfo* info, u8 type, int broken)
     id->unitPtr(0x21, type)->flags &= ~8;
     id->unitPtr(0x19, type)->flags &= ~8;
     if (broken) {
-        u2 = id->unitPtr(0x20, type);
+        u = id->unitPtr(0x20, type);
     } else {
         switch (info->mode) {
         case 1:
             if (chapter == 0x12) {
-                u2 = id->unitPtr(0x19, type);
+                u = id->unitPtr(0x19, type);
                 special = 1;
             } else {
-                u2 = id->unitPtr(7, type);
+                u = id->unitPtr(7, type);
             }
             break;
         case 2:
             chapter--;
-            u2 = id->unitPtr(6, type);
+            u = id->unitPtr(6, type);
             break;
         case 3:
-            u2 = id->unitPtr(0x21, type);
+            u = id->unitPtr(0x21, type);
             special = 1;
             break;
         default:
             goto skip;
         }
     }
-    u2->flags |= 8;
+    u->flags |= 8;
 skip:
     getChapterSection(chapter, &chap, &sec);
     u = id->unitPtr(5, type);
@@ -3221,41 +3221,40 @@ skip:
     if (pSys->language == 0) {
         switch (info->x3D) {
         case 1:
-            u = id->unitPtr(0x22, type);
+            id->unitPtr(0x22, type)->flags |= 8;
             break;
         case 3:
         default:
-            u = id->unitPtr(0x17, type);
+            id->unitPtr(0x17, type)->flags |= 8;
             break;
         case 5:
-            u = id->unitPtr(0x18, type);
+            id->unitPtr(0x18, type)->flags |= 8;
             break;
         }
     } else if (pSys->language == 1) {
         switch (info->x3D) {
         case 5:
         default:
-            u = id->unitPtr(0x17, type);
+            id->unitPtr(0x17, type)->flags |= 8;
             break;
         case 6:
-            u = id->unitPtr(0x18, type);
+            id->unitPtr(0x18, type)->flags |= 8;
             break;
         }
     } else {
         switch (info->x3D) {
         case 3:
-            u = id->unitPtr(0x22, type);
+            id->unitPtr(0x22, type)->flags |= 8;
             break;
         case 5:
         default:
-            u = id->unitPtr(0x17, type);
+            id->unitPtr(0x17, type)->flags |= 8;
             break;
         case 6:
-            u = id->unitPtr(0x18, type);
+            id->unitPtr(0x18, type)->flags |= 8;
             break;
         }
     }
-    u->flags |= 8;
 }
 
 void CardID::updateSaveInfo(cCard* c)

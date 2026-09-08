@@ -115,6 +115,8 @@ void DbMenuRoomInit();
 static inline void U16Set(u16& d, u16 v) { d = v; }
 static inline void U32Set(u32& d, u32 v) { d = v; }
 static inline void S32Set(s32& d, s32 v) { d = v; }
+// One flag test per call: fold would merge `(f & A) || (f & B)` on one lvalue into a single mask.
+static inline u32 Flag54(u32 b) { return pG->flags_54 & b; }
 
 union FadeColor {
     GXColor c;
@@ -285,7 +287,7 @@ void gameInit()
 void gameStageInit()
 {
     pLog->warn(1, 0, "-- R%03x ----------", pG->room_id);
-    if ((pG->flags_54 & 0x80000) || (pG->flags_54 & 0x100)) {
+    if (Flag54(0x80000) || Flag54(0x100)) {
         BitOn(pG->flags_54, 0x80);
     } else {
         BitOff(pG->flags_54, 0x80);
@@ -293,19 +295,22 @@ void gameStageInit()
     if ((s32) pSys->x4 < 0) {
         if ((s32) pG->flags_54 >= 0 && !(pG->flags_54 & 0x40000000) && pG->room_id == 0x120 &&
             ((pG->flags_54 & 0x2000) || pG->game_mode == 3)) {
+            Message* m = cMes.getMes(0);
+            int res;
+
             pG->flags_58 &= ~0x800;
             cMes.setLayout(0, 0);
-            cMes.MesSet(150, 100, 336 - cMes.mes[0].fontH - cMes.mes[0].lineSpace - 1, 1, 0, 0, 4);
-            while (cMes.mes[0].result == 0) {
+            cMes.MesSet(150, 100, 336 - m->fontH - m->lineSpace - 1, 1, 0, 0, 4);
+            while ((res = m->result) == 0) {
                 TaskSleep(1);
             }
-            switch (cMes.mes[0].result) {
-            case 2:
-                pG->costume2 = 0;
-                break;
+            switch (res) {
             case 1:
             default:
                 pG->costume2 = 1;
+                break;
+            case 2:
+                pG->costume2 = 0;
                 break;
             }
             PlSetCostume();
@@ -313,6 +318,8 @@ void gameStageInit()
     }
     if (!(pG->flags_68 & 0x2000000)) {
         switch (pG->stage_no) {
+        case 0:
+            break;
         case 1:
         case 2:
             if (pG->room_id != 0x22C && Dvd.GetDiscNo() == 1) {
@@ -782,23 +789,26 @@ void GameContinue(int mode)
 struct GlobalKeep {
     u8 b[0x68];
 };
+// GlobalWork 0x8330 .. 0x8338: also kept.
+struct GlobalKeep2 {
+    u32 x8330;
+    u32 x8334;
+};
 
 void clearGlobalSaveData()
 {
     GlobalKeep keep;
-    u32 x8330[2];
+    GlobalKeep2 keep2;
     u16 x4F8E = pG->x4F8E;
     u32 x4F98 = pG->x4F98;
     u8 x4F93 = pG->x4F93;
     u8 x8354 = pG->x8354;
     s32 game_mode = pG->game_mode;
 
-    x8330[0] = pG->x8330;
-    x8330[1] = pG->x8334;
+    keep2 = *(GlobalKeep2*) &pG->x8330;
     keep = *(GlobalKeep*) &pG->pl_life;
     memclr_asm(pG->pad_4F80, 0x36F8);
-    pG->x8334 = x8330[1];
-    pG->x8330 = x8330[0];
+    *(GlobalKeep2*) &pG->x8330 = keep2;
     *(GlobalKeep*) &pG->pl_life = keep;
     U16Set(pG->x4F8E, x4F8E);
     U32Set(pG->x4F98, x4F98);
@@ -1307,7 +1317,7 @@ void gameRoomMemInit()
     }
 }
 
-void GamePointInit(int mode)
+void GamePointInit(u32 mode)
 {
     switch (mode) {
     case 0:
@@ -1332,20 +1342,25 @@ void GamePointInit(int mode)
     case 1:
         pG->point = 0x270F;
         break;
-    case 2:
+    case 2: {
+        int v;
+
         switch (pG->room_id) {
+        case 0x401:
+        default:
+            v = 0x157C;
+            break;
         case 0x402:
-            pG->point = 0x1388;
+            v = 0x1388;
             break;
         case 0x403:
         case 0x404:
-            pG->point = 0xFA0;
-            break;
-        default:
-            pG->point = 0x157C;
+            v = 0xFA0;
             break;
         }
+        pG->point = v;
         break;
+    }
     }
     GameAddPoint(0);
 }
@@ -1371,22 +1386,22 @@ void GameAddPoint(int type)
     case 4:
         add = -5;
         break;
-    case 5:
-    case 8:
-        add = -1;
-        break;
     case 6:
         add = -25;
         break;
     case 7:
         add = -50;
         break;
-    case 9:
-    case 11:
-        add = 50;
+    case 5:
+    case 8:
+        add = -1;
         break;
     case 10:
         add = 1;
+        break;
+    case 9:
+    case 11:
+        add = 50;
         break;
     case 12:
         add = 2;
@@ -1445,15 +1460,26 @@ void GameAddPoint(int type)
         }
     }
     if (pG->flags_54 & 0x40000000) {
-        switch (pG->room_id) {
+        // One store after the switch (the arms share it); the room 0x401 label and the goto form
+        // reproduce the compare tree and the shared tail.
+        GlobalWork* g = pG;
+        int v;
+
+        switch (g->room_id) {
+        case 0x401:
+            goto skip;
         case 0x402:
-            S32Set(pG->point, 0x1388);
+            v = 0x1388;
             break;
         case 0x403:
         case 0x404:
-            S32Set(pG->point, 0xFA0);
+            v = 0xFA0;
             break;
+        default:
+            goto skip;
         }
+        g->point = v;
+    skip:;
     } else {
         switch (pG->x8354) {
         case 0:
@@ -1479,7 +1505,13 @@ void GameAddPoint(int type)
 
 void GamePointBossReset()
 {
-    if ((s32) pG->flags_54 < 0 || (pG->flags_54 & 0x40000000) || (pG->flags_54 & 0x80)) {
+    if ((s32) pG->flags_54 < 0) {
+        return;
+    }
+    if (pG->flags_54 & 0x40000000) {
+        return;
+    }
+    if (pG->flags_54 & 0x80) {
         return;
     }
     if (pG->point < 0x157C) {

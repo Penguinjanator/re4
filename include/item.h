@@ -96,6 +96,8 @@ public:
     int searchAt(ItemWork* p);  // 0x8001DB80: slot index of `p`, -1 if not in pItems
     int makeItemList(u8* list, int all, s8* pNum, s8* pNum2);
     ItemWork* search(u16 id);   // 0x8001DED0: the in-use slot of this->type holding `id`, NULL if none
+    // dump(int)/debugWeapon pass their int id without the `clrlwi 16` (original build). Same function.
+    ItemWork* searchI(int id) asm("search__8cItemMgrUs");
     ItemWork* minimumSearch(u16 id);
     void ordering(u16 id);      // 0x8001DFD0: collect the in-use slots holding `id` into pOrder (qsort by order_cmp)
     int get(int id, int num);
