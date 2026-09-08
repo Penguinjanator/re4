@@ -179,6 +179,13 @@ void dispSaveInfo(int no, SaveInfo* info, u8 type, int broken);
 
 int isDbgInfoAlloc = 0;
 static int isDbgInfoCached = 0;
+
+// Struct-member view of the cache bits (the pLog trick): a load through it stays below a
+// preceding fileFlag store (saveFileCheck).
+struct IntView {
+    int v;
+};
+#define DBG_CACHED (((IntView*) &isDbgInfoCached)->v)
 static cCard* pCard = 0;
 static CardID* g_id = 0;
 
@@ -2498,9 +2505,9 @@ int cCard::saveFileCheck(u8* sub, CardSlot* s)
             sprintf(fileName, "d:\\bio4/room/savedata%02d.dat", fileNo);
             if (file_exist(fileName)) {
                 BitOn(pSys->flags, 0x02000000);
-                BitOn(s->fileFlag[fileNo], 1);
+                s->fileFlag[fileNo] |= 1;
                 bit = 1 << fileNo;
-                if (isDbgInfoCached & bit) {
+                if (DBG_CACHED & bit) {
                     memcpy(pInfo[fileNo], pDbgSaveInfo[fileNo], 0x200);
                     OSReport("save Info data%d from cache.\n", fileNo);
                 } else {

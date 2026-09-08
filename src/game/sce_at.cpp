@@ -989,7 +989,7 @@ static void sceAtGetItem(SceAtWork* w)
     static int sub_screen_open;
     static int swep_flag;
     SceAtItem* it = &w->item;
-    cModel* model = it->pModel;
+    cModel* model = w->item.pModel;
     int y = 0x129 - cMes.getWork()->fontH - cMes.getWork()->lineSpace;
     int cancel = 0;
     int mes = 0;
@@ -1125,7 +1125,7 @@ static void sceAtGetItem(SceAtWork* w)
     BitOff(pG->flags_58, 0x04000000);
     BitOff(pG->flags_58, 0x00002000);
     BitOff(pG->flags_58, 0x00000800);
-    itemExam.init(it->id, model, 0);
+    itemExam.init(w->item.id, model, 0);
     LightMgr.offScr(0x20);
     LightMgr.create(0, 9, -2, 0);
     sub_screen_open = sel;
@@ -1236,9 +1236,9 @@ static void sceAtGetItem_NoModel(SceAtWork* w)
     static int swep_flag;
     SceAtItem* it = &w->item;
     int y = 0x129 - cMes.getWork()->fontH - cMes.getWork()->lineSpace;
+    int cancel = 0;
     int mes = 0;
     int put = 1;
-    int cancel = 0;
     int sel;
     int i;
     ItemInfo info;

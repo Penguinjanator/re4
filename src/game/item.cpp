@@ -353,9 +353,12 @@ int cItemMgr::set_game(int no)
         PutInCase(tbl[i].id, tbl[i].num, flag);                           \
     }
 
-#define TUNE(p, lv)                                                       \
-    (p)->x6 = lv;                                                         \
-    setBullet(p, WeaponId2ChargeNum((p)->id, LV_EX(p) + 1))
+#define LV_SET(p, f, m, sp, e)                                                                             \
+    LV_FIRE_SET(p, f);                                                                                    \
+    LV_MAG_SET(p, m);                                                                                     \
+    LV_SPEED_SET(p, sp);                                                                                  \
+    LV_EX_SET(p, e)
+#define CHARGE(p) setBullet(p, WeaponId2ChargeNum((p)->id, LV_EX(p) + 1))
 
 int cItemMgr::set_ada(int no)
 {
@@ -372,11 +375,14 @@ int cItemMgr::set_ada(int no)
         ItemSet tbl[] = {{0x21, 1}, {0x30, 1}, {0x2F, 1}, {0x45, 1}, {0x04, 30}, {0x20, 50}, {0x07, 5}, {0x01, 1}, {0x05, 1}};
         PUT_TABLE(tbl, 0);
         p = search(0x21);
-        TUNE(p, 0x5213);
+        LV_SET(p, 5, 2, 1, 3);
+        CHARGE(p);
         p = search(0x30);
-        TUNE(p, 0x5012);
+        LV_SET(p, 5, 0, 1, 2);
+        CHARGE(p);
         p = search(0x2F);
-        TUNE(p, 0x5011);
+        LV_SET(p, 5, 0, 1, 1);
+        CHARGE(p);
         q = search(0x45);
         q->x8 = searchAt(p);
         search(0x45)->x6 = 1;
@@ -400,9 +406,11 @@ int cItemMgr::set_char(int no)
         ItemSet tbl[] = {{0x27, 1}, {0x94, 1}, {0x04, 30}, {0x18, 10}, {0x05, 1}};
         PUT_TABLE(tbl, 0);
         p = search(0x27);
-        TUNE(p, 0x4112);
+        LV_SET(p, 4, 1, 1, 2);
+        CHARGE(p);
         p = search(0x94);
-        TUNE(p, 0x4023);
+        LV_SET(p, 4, 0, 2, 3);
+        CHARGE(p);
         arm(search(0x27));
         break;
     }
@@ -420,11 +428,14 @@ int cItemMgr::set_char(int no)
                          {0x07, 5}, {0x02, 1}, {0x02, 1}, {0x02, 1}, {0x05, 1}};
         PUT_TABLE(tbl, 0);
         p = search(0x21);
-        TUNE(p, 0x6213);
+        LV_SET(p, 6, 2, 1, 3);
+        CHARGE(p);
         p = search(0x30);
-        TUNE(p, 0x4012);
+        LV_SET(p, 4, 0, 1, 2);
+        CHARGE(p);
         p = search(0x2F);
-        TUNE(p, 0x5111);
+        LV_SET(p, 5, 1, 1, 1);
+        CHARGE(p);
         q = search(0x45);
         q->x8 = searchAt(p);
         search(0x45)->x6 = 1;
@@ -443,7 +454,8 @@ int cItemMgr::set_char(int no)
         ItemSet tbl[] = {{0x3E, 1}, {0x20, 50}, {0x01, 1}, {0x01, 1}, {0x01, 1}, {0x05, 1}};
         PUT_TABLE(tbl, 0);
         p = search(0x3E);
-        TUNE(p, 0x4012);
+        LV_SET(p, 4, 0, 1, 2);
+        CHARGE(p);
         arm(search(0x3E));
         break;
     }
@@ -474,14 +486,16 @@ int cItemMgr::set_char(int no)
                          {0x01, 1}, {0x0E, 1}, {0x0E, 1}, {0x0E, 1}, {0x02, 1}, {0x05, 1}};
         PUT_TABLE(tbl, 0);
         p = search(0x23);
-        TUNE(p, 0x6225);
+        LV_SET(p, 6, 2, 2, 5);
+        CHARGE(p);
         q = search(0x3F);
         q->x8 = searchAt(p);
         search(0x3F)->x6 = 1;
         p = search(0x2A);
-        TUNE(p, 0x1011);
+        LV_SET(p, 1, 0, 1, 1);
+        CHARGE(p);
         p = search(0x2F);
-        p->x6 = 0x5115;
+        LV_SET(p, 5, 1, 1, 5);
         setBullet(p, WeaponId2ChargeNum(0x2F, LV_EX(p) + 1));
         arm(search(0x23));
         break;
@@ -572,19 +586,19 @@ int cItemMgr::set_stage2(int no)
         PUT_TABLE(tbl, 1);
         u16 on = 1;
         p = search(0x25);
-        p->x6 = 0x1111;
+        LV_SET(p, 1, 1, 1, 1);
         setBullet(p, WeaponId2ChargeNum(0x25, 2));
         p = search(0x30);
-        p->x6 = 0x2022;
+        LV_SET(p, 2, 0, 2, 2);
         setBullet(p, WeaponId2ChargeNum(0x30, 3));
         q = search(0x43);
         q->x8 = searchAt(p);
         search(0x43)->x6 = on;
         p = search(0x2C);
-        p->x6 = 0x2012;
+        LV_SET(p, 2, 0, 1, 2);
         setBullet(p, WeaponId2ChargeNum(0x2C, 3));
         p = search(0x2E);
-        p->x6 = 0x2012;
+        LV_SET(p, 2, 0, 1, 2);
         setBullet(p, WeaponId2ChargeNum(0x2E, 3));
         q = search(0x44);
         q->x8 = searchAt(p);
@@ -608,14 +622,17 @@ int cItemMgr::set_stage2(int no)
                          {0x06, 1}, {0x15, 1}, {0x15, 1}, {0x15, 1}, {0x15, 1}, {0x15, 1}, {0x15, 1}};
         PUT_TABLE(tbl, 2);
         p = search(0x30);
-        p->x6 = 0x4023;
+        LV_SET(p, 4, 0, 2, 3);
         setBullet(p, WeaponId2ChargeNum(0x30, 4));
-        search(0x27)->x6 = 0x3113;
-        search(0x2F)->x6 = 0x3013;
+        p = search(0x27);
+        LV_SET(p, 3, 1, 1, 3);
+        p = search(0x2F);
+        LV_SET(p, 3, 0, 1, 3);
         p = search(0x94);
-        p->x6 = 0x3013;
+        LV_SET(p, 3, 0, 1, 3);
         setBullet(p, WeaponId2ChargeNum(0x94, 4));
-        search(0x29)->x6 = 0x2012;
+        p = search(0x29);
+        LV_SET(p, 2, 0, 1, 2);
         search(0x01)->num = 2;
         search(0x02)->num = 2;
         search(0x0E)->num = 2;
@@ -638,7 +655,8 @@ int cItemMgr::set_stage2(int no)
         p = search(0x30);
         LV_EX_SET(p, 1);
         p = search(0x2C);
-        TUNE(p, 4);
+        LV_SET(p, 0, 0, 0, 4);
+        CHARGE(p);
         arm(ItemMgr.search(0x2C));
         break;
     }
@@ -655,7 +673,8 @@ int cItemMgr::set_stage2(int no)
         ItemSet tbl[] = {{0x23, 1}, {0x2E, 1}, {0x01, 1}, {0x04, 50}, {0x07, 10}};
         PUT_TABLE(tbl, 1);
         p = search(0x2E);
-        TUNE(p, 4);
+        LV_SET(p, 0, 0, 0, 4);
+        CHARGE(p);
         arm(ItemMgr.search(0x23));
         break;
     }
@@ -683,22 +702,22 @@ int cItemMgr::set_stage3(int no)
                          {0x18, 10}, {0x00, 10}, {0x07, 10}, {0x01, 1}, {0x43, 1}, {0x45, 1}, {0x05, 1}};
         PUT_TABLE(tbl, 2);
         p = search(0x27);
-        p->x6 = 0x3123;
+        LV_SET(p, 3, 1, 2, 3);
         setBullet(p, WeaponId2ChargeNum(0x27, LV_EX(p) + 1));
         p = search(0x30);
-        p->x6 = 0x5225;
+        LV_SET(p, 5, 2, 2, 5);
         setBullet(p, WeaponId2ChargeNum(0x30, LV_EX(p) + 1));
         q = search(0x43);
         q->x8 = searchAt(p);
         search(0x43)->x6 = 1;
         p = search(0x2D);
-        p->x6 = 0x2012;
+        LV_SET(p, 2, 0, 1, 2);
         setBullet(p, WeaponId2ChargeNum(0x2D, LV_EX(p) + 1));
         p = search(0x29);
-        p->x6 = 0x4022;
+        LV_SET(p, 4, 0, 2, 2);
         setBullet(p, WeaponId2ChargeNum(0x29, LV_EX(p) + 1));
         p = search(0x2F);
-        p->x6 = 0x4024;
+        LV_SET(p, 4, 0, 2, 4);
         setBullet(p, WeaponId2ChargeNum(0x2F, LV_EX(p) + 1));
         q = search(0x45);
         q->x8 = searchAt(p);
@@ -722,22 +741,22 @@ int cItemMgr::set_stage3(int no)
                          {0x00, 10}, {0x07, 10}, {0x01, 1}, {0x43, 1}, {0x45, 1}, {0xC5, 1}, {0x05, 1}};
         PUT_TABLE(tbl, 2);
         p = search(0x27);
-        p->x6 = 0x3123;
+        LV_SET(p, 3, 1, 2, 3);
         setBullet(p, WeaponId2ChargeNum(0x27, LV_EX(p) + 1));
         p = search(0x30);
-        p->x6 = 0x5225;
+        LV_SET(p, 5, 2, 2, 5);
         setBullet(p, WeaponId2ChargeNum(0x30, LV_EX(p) + 1));
         q = search(0x43);
         q->x8 = searchAt(p);
         search(0x43)->x6 = 1;
         p = search(0x2D);
-        p->x6 = 0x2012;
+        LV_SET(p, 2, 0, 1, 2);
         setBullet(p, WeaponId2ChargeNum(0x2D, LV_EX(p) + 1));
         p = search(0x29);
-        p->x6 = 0x4022;
+        LV_SET(p, 4, 0, 2, 2);
         setBullet(p, WeaponId2ChargeNum(0x29, LV_EX(p) + 1));
         p = search(0x2F);
-        p->x6 = 0x4024;
+        LV_SET(p, 4, 0, 2, 4);
         setBullet(p, WeaponId2ChargeNum(0x2F, LV_EX(p) + 1));
         q = search(0xC5);
         q->x8 = searchAt(p);
@@ -903,7 +922,7 @@ int cItemMgr::set_debug(int no)
                          {0x09, 1}, {0x09, 1}, {0x09, 1}, {0x0A, 1}, {0x0A, 1}, {0x0A, 1}};
         PUT_TABLE(tbl, 3);
         p = search(0x36);
-        p->x6 = 0x2012;
+        LV_SET(p, 2, 0, 1, 2);
         setBullet(p, WeaponId2ChargeNum(0x36, LV_EX(p) + 1));
         q = search(0xAA);
         q->x8 = searchAt(p);
@@ -1513,7 +1532,7 @@ void cItemMgr::construct(ItemWork* p, u16 id)
     p->type = type;
     if (ITEM_TYPE(id) == 1) {
         if (id == 0x34) {
-            p->x6 = 0x6025;
+            LV_SET(p, 6, 0, 2, 5);
         } else if (id == 0x40) {
             p->id = 0x21;
             if (pG->flags_51C0 & 0x8000) {

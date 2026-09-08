@@ -563,6 +563,12 @@ mark it Matching.
   between a u16 call argument and a u8 store keeps an SImode pseudo hoisted into a callee-saved reg.
 - Read constant pools from the split `.o` bytes, not by hand-parsing the `.s`; objdiff scores pool
   values symbolically and hides wrong constants.
+- `INDIRECT_REF(PLUS)` marks a MEM in-struct; the same address through a `(u32)` cast does not:
+  `*(u16*)((i << 4) + u32helper(ofs))` gives `sthx base,idx` and a `pG` reload after every store.
+- A redundant second assignment (`parent = w->pParent;` again) makes REG_N_SETS=2 and stops regmove
+  from merging `lwz r0; mr r29,r0; cmpwi r0`.
+- Float `ble/bge` without `cror` = reversed `>`/`<`: write `if (!(a > b))`; `cror un,eq,lt; bso` is
+  the real `<=`.
 - Static locals show as `name.NNN` in objdiff; the DECL_UID suffix cannot be reproduced and is ignored by the report.
 - Unexplained words in `.rodata` (zero words, stray floats) are usually the constant pool of a function
   the original linker dead-stripped (bodies gone, pools kept, `STRIP_UNUSED` in objects.py): write a

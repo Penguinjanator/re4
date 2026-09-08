@@ -162,9 +162,10 @@ extern "C" void Esp16_Trans(cEsp16* esp)
     esp->ChannelSet();
     GXSetBlendMode(esp->xA4, esp->xA5, esp->xA6, esp->xA7);
     esp->CommonStateSet();
-    i = 0;
-    t = (f32)i;
+    rate = 0.0f;
+    t = rate;
     tw = 1.0f;
+    half = (f32)(int)n * rate;
     if ((s8)esp->partsNo >= -8 && (s8)esp->partsNo <= -3) {
         pLog->err(0, 0, "ESP_16 : Parent is screen.");
         return;
