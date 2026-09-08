@@ -50,6 +50,7 @@ static inline void U16Set(u16& d, u16 v) { d = v; }
 static inline u32 BitChk(u32& f, u32 b) { return f & b; }
 static inline void PSet(cObj**& d, cObj** v) { d = v; }
 static inline void VSet(void*& d, void* v) { d = v; }
+static inline void MSet(ShadowMng*& d, ShadowMng* v) { d = v; }
 
 // Light origin of `m`: lightInfo.ofs in the space of the coord lightInfo.x52 selects.
 // cLightInfo accessors: the address argument is a fresh `&m->lightInfo` computation at each
@@ -959,13 +960,13 @@ void make_shadow_texture(ShadowMng* mng)
         Mtx tm;
         Mtx sm;
         Mtx trans;
-        Vec up = {0.0f, 1.0f, 0.0f};
         GXColor c;
 
-        pSelfShadowMng[g_SelfShdNum] = mng;
+        MSet(pSelfShadowMng[g_SelfShdNum], mng);
         g_SelfShdNum++;
         pG->flags_500C |= 1;
         GXLoadTexObj(&IndTex[shd_tex_no], 0);
+        Vec up = {0.0f, 1.0f, 0.0f};
         MTX_ZERO(sm);
         sm[1][2] = shd_tex_scale_x;
         PSMTXIdentity(trans);
@@ -1015,15 +1016,17 @@ void make_shadow_texture(ShadowMng* mng)
             PSVECSubtract(&lpos, &pos, &d);
             rate = PSVECMag(&d) / mng->pLight->x1C;
             if (rate > 0.7f) {
-                a = (f32) (int) a * ((1.0f - rate) * (10.0f / 3.0f));
+                a = ((1.0f - rate) * (10.0f / 3.0f)) * (f32) (int) a;
             }
         }
         if (SHD_NO_SELF(mng)) {
             GXSetDstAlpha(1, a);
         }
         p = mng->pModel[i];
-        do {
+    NEXT_MODEL:
+        {
             cModelInfo* info = p->pShMdInfo;
+            cModel* n;
             if (info == 0) {
                 info = p->pInfo;
             }
@@ -1032,8 +1035,12 @@ void make_shadow_texture(ShadowMng* mng)
             } else {
                 shadowModelTrans2(p, info, mng->lookAt);
             }
-            p = (cModel*) p->pCldShMd;
-        } while (p && (p->be_flag & 0x12));
+            n = (cModel*) p->pCldShMd;
+            if (n && (n->be_flag & 0x12)) {
+                p = n;
+                goto NEXT_MODEL;
+            }
+        }
     }
     }
     GXSetViewport(0.0f, 0.0f, (f32) scrW, (f32) scrH, 0.0f, 1.0f);

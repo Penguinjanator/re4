@@ -467,6 +467,13 @@ mark it Matching.
   for PRE-hoisted increments and scratch numbering.
 - A small object referenced with the full `lis/addi` form although it sits in `.sdata`: an
   incomplete `extern T x[];` declaration before the definition.
+- Constant-pool order via `const f32 x = C;` locals at the function top: the initialiser is expanded
+  at the declaration (constant enters the pool first) while every use is folded to the literal.
+- Identical case bodies collapse into one only when the body that falls through into the join is one
+  of them: `default:` must share the `case 0:` label, not be a separate trailing body.
+- Loop invariants assigned inside the body (`range = to;` in the `for`) survive as an `fmr` copy /
+  shared double-trick registers hoisted by loop.c; the bound `j < i` with `i = 15` a variable gives
+  `cmpwi 0xf; blt`, a literal 15 gives `cmpwi 0xe; ble`.
 - Static locals show as `name.NNN` in objdiff; the DECL_UID suffix cannot be reproduced and is ignored by the report.
 - Unexplained words in `.rodata` (zero words, stray floats) are usually the constant pool of a function
   the original linker dead-stripped (bodies gone, pools kept, `STRIP_UNUSED` in objects.py): write a

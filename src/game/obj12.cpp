@@ -311,7 +311,6 @@ void cObj12::fallMove()
     f32 mag;
     f32 diff;
     f32 floor;
-    f32 sum;
 
     if (!(w->flags & 4)) {
         return;
@@ -435,11 +434,11 @@ void cObj12::fallMove()
     TransMatrix(mat, &node[0].pos);
     PSMTXMultVec(mat, &d, &d);
     TransMatrix(mat, &d);
-    sum = node[0].spd.x * node[0].spd.x + node[0].spd.y * node[0].spd.y + node[0].spd.z * node[0].spd.z +
+    mag = node[0].spd.x * node[0].spd.x + node[0].spd.y * node[0].spd.y + node[0].spd.z * node[0].spd.z +
           node[1].spd.x * node[1].spd.x + node[1].spd.y * node[1].spd.y + node[1].spd.z * node[1].spd.z +
           node[2].spd.x * node[2].spd.x + node[2].spd.y * node[2].spd.y + node[2].spd.z * node[2].spd.z;
     pos = d;
-    if (sum < 25.0f) {
+    if (mag < 25.0f) {
         pos.x = mat[0][3];
         pos.y = mat[1][3];
         pos.z = mat[2][3];

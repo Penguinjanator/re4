@@ -23,7 +23,7 @@ struct Esp4cWork {
 extern "C" {
 void Espgen45_Move00(EspgenWork* w);
 void Espgen45_TransSub(EspgenWork* w);
-EspgenWork* SetWaterWork45(EspgenWork* w, Vec* pos, Vec* rot, f32 size, f32 rate, u32 nx, u32 ny);
+int SetWaterWork45(EspgenWork* w, Vec* pos, Vec* rot, f32 size, f32 rate, u32 nx, u32 ny);
 }
 
 EspgenWork* g_pWater45;
@@ -53,24 +53,24 @@ static inline void U8Set(u8& d, u8 v) { d = v; }
 
 void Espgen45_static_init()
 {
-    ISet(g_bTargetHeight, 1);
-    FSet(g_Target_x, 10000000000.0f);
-    FSet(g_Target_y, -10000000000.0f);
-    FSet(g_Target_z, 100000000000.0f);
-    U8Set(g_a, 0);
-    FSet(g_sa, 0.0f);
-    ISet(g_bTargetCamera, 1);
-    ISet(g_bSizeOverWrite, 0);
-    ISet(g_bColorOverWrite, 0);
-    ISet(g_bColorMul, 0);
-    ISet(g_bSetParam, 0);
-    FSet(g_Size, 0.0f);
-    U8Set(g_r, 0);
-    U8Set(g_g, 0);
-    U8Set(g_b, 0);
-    FSet(g_sr, 0.0f);
-    FSet(g_sg, 0.0f);
-    FSet(g_sb, 0.0f);
+    g_bTargetCamera = 1;
+    g_bTargetHeight = 1;
+    g_Target_x = 10000000000.0f;
+    g_Target_y = -10000000000.0f;
+    g_Target_z = 100000000000.0f;
+    g_bSizeOverWrite = 0;
+    g_bColorOverWrite = 0;
+    g_bColorMul = 0;
+    g_bSetParam = 0;
+    g_Size = 0.0f;
+    g_r = 0;
+    g_g = 0;
+    g_b = 0;
+    g_a = 0;
+    g_sr = 0.0f;
+    g_sg = 0.0f;
+    g_sb = 0.0f;
+    g_sa = 0.0f;
 }
 
 void Espgen45_Move(EspgenWork* w)
@@ -140,8 +140,8 @@ int Espgen45_SetFreeWork(EspgenWork* w, EspGenWork* rec, EspSeqData* head, cMode
     }
     if (rec->flags & 0x4000) {
         p->flag |= 2;
-        p->flag |= 1;
         p->xC5 = rec->xC5;
+        p->flag |= 1;
     }
     if (rec->xFC != 0) {
         nx = rec->xFC;
@@ -167,10 +167,10 @@ int Espgen45_SetFreeWork(EspgenWork* w, EspGenWork* rec, EspSeqData* head, cMode
         pLog->warn(0, 0, "ESP_WATER : height (%d -> %d)", ny, n);
         ny = n;
     }
-    p->rotY = rec->xFE;
     rate = 1.0f - (f32) (int) rec->xFE / 255.0f;
+    p->rotY = rec->xFE;
     PSVECScale(&rec->x58, &r, 6.28f / 360.0f);
-    if (SetWaterWork45(w, (Vec*) &rec->x0C, &r, rec->x88, rate, nx, ny) == NULL) {
+    if (SetWaterWork45(w, (Vec*) &rec->x0C, &r, rec->x88, rate, nx, ny) == 0) {
         goto fail;
     }
     p->col.r = rec->x9C;
