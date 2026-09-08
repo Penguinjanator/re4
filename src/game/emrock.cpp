@@ -1,5 +1,9 @@
 // game/emrock.cpp: rolling rock enemy (cEmRock): boulders that hang on a parent, fall, get
 // thrown, roll after the player (with the escape event) or drop on him.
+//
+// Not yet byte-identical (see AGENTS.md OPEN items): SetRock (one byte-store position),
+// emRockRollStartCk (a `mr` copy of pG), plemRockEscapeCamMove2 / plemRockDropDieCamMove /
+// emRockPushCamMove / emRockDropCamMove (address forms of the camera tail). .rodata and .data match.
 
 #include "atari.h"
 #include "atari_init.h"
@@ -1871,6 +1875,7 @@ void plemRockDropDieCamMove(cEmRock* em)
 {
     Vec p;
     f32 len;
+    cModel* parts;
     Camera* gcam = &pG->Cam;
 
     emRockCam.param.fovy = 50.0f;
@@ -1884,14 +1889,16 @@ void plemRockDropDieCamMove(cEmRock* em)
         p.z = 0.0f;
     }
     PSMTXMultVec(em->mat, &p, &p);
-    PosToPos(&gcam->param.at, &pPL->getPartsPtr(0)->worldPos, &emRockCam.param.at, 0.1f);
+    parts = pPL->getPartsPtr(0);
+    PosToPos(&gcam->param.at, &parts->worldPos, &emRockCam.param.at, 0.1f);
     PosToPos(&gcam->param.pos, &p, &emRockCam.param.pos, 0.1f);
     {
-        Camera* cam = &emRockCam;
-        Vec* cp = &cam->param.pos;
-        Vec* ca = &cam->param.at;
+        Vec* cp = &emRockCam.param.pos;
+        Vec* ca = &emRockCam.param.at;
+        Camera* cam;
 
         len = (cp->x - ca->x) * (cp->x - ca->x) + (cp->y - ca->y) * (cp->y - ca->y) + (cp->z - ca->z) * (cp->z - ca->z);
+        cam = &emRockCam;
         cam->up.x = 0.0f;
         cam->up.y = 1.0f;
         cam->up.z = 0.0f;
@@ -1906,6 +1913,7 @@ void emRockPushCamMove(cEmRock* em)
 {
     Vec p;
     f32 len;
+    cModel* parts;
     Camera* gcam = &pG->Cam;
 
     emRockCam.param.fovy = 50.0f;
@@ -1932,14 +1940,16 @@ void emRockPushCamMove(cEmRock* em)
         p.z = -9193.0f;
         break;
     }
-    PosToPos(&gcam->param.at, &em->getPartsPtr(0)->worldPos, &emRockCam.param.at, 1.0f);
+    parts = em->getPartsPtr(0);
+    PosToPos(&gcam->param.at, &parts->worldPos, &emRockCam.param.at, 1.0f);
     emRockCam.param.pos = p;
     {
-        Camera* cam = &emRockCam;
-        Vec* cp = &cam->param.pos;
-        Vec* ca = &cam->param.at;
+        Vec* cp = &emRockCam.param.pos;
+        Vec* ca = &emRockCam.param.at;
+        Camera* cam;
 
         len = (cp->x - ca->x) * (cp->x - ca->x) + (cp->y - ca->y) * (cp->y - ca->y) + (cp->z - ca->z) * (cp->z - ca->z);
+        cam = &emRockCam;
         cam->up.x = 0.0f;
         cam->up.y = 1.0f;
         cam->up.z = 0.0f;
@@ -2008,8 +2018,8 @@ void emRockDropCamMove(cEmRock* em)
     Vec p1;
     f32 len;
     Camera* cam = &emRockCam;
-    Vec* cp;
-    Vec* ca;
+    Vec* cp = &cam->param.pos;
+    Vec* ca = &cam->param.at;
 
     cam->param.fovy = 50.0f;
     p0.x = -5217.81f;
@@ -2020,8 +2030,6 @@ void emRockDropCamMove(cEmRock* em)
     p1.z = -15051.18f;
     cam->param.pos = p0;
     cam->param.at = p1;
-    cp = &cam->param.pos;
-    ca = &cam->param.at;
     len = (cp->x - ca->x) * (cp->x - ca->x) + (cp->y - ca->y) * (cp->y - ca->y) + (cp->z - ca->z) * (cp->z - ca->z);
     cam->up.x = 0.0f;
     cam->up.y = 1.0f;

@@ -966,6 +966,49 @@ mark it Matching.
 - An inline helper taking `const Vec* size` evaluates `&size` as the parameter copy before the body's
   `&ofs`, reversing the `lis/addi` pairs of `init2(0, 1, &ofs, &size, 0x10)`; a helper that *returns*
   `&ofs` (shared `.rodata` copy) used as the argument keeps the argument order (embarrel).
+- (emrock) `cAtariInfo::init` with *computed* float arguments (`em->scale.x * 1200.0f * 0.5f`): plain
+  `atariInitF(&em->atari, ...)` with the constants written inline reproduces both arms (the `fmr f5,f4;
+  fmr f6,f5` chain and the `fmuls`-interleaved `li`s); `AtariInit` (pseudo constants) does not. The
+  `&em->atari` pseudo PRE'd into r28 for the later `setPriority`/`clrFlag100()` comes from the member
+  call form, so use `em->atari.clrFlag100()` (not `em->atari.flags &= ~0x100`, which re-derives the
+  address from `em`).
+- Any int-then-float call whose target issues the FPR moves before the `li`s can be redeclared with the
+  floats first under `asm("<mangled>")` (atari_init.h idiom): `setYarareCubeF(cEmRock*, f32, f32, f32,
+  Vec*) asm("setYarareCube__7cEmRockP3Vecfff")` fixes `fmr f3,f1` before `li r4,0` in setFall/setThrow.
+- A callee whose mangled name says one parameter but whose body reads r5 (`cGameSave::save(void*)` reads
+  an `int` in r5; every caller loads it) is declared through a free asm-labelled function with the real
+  parameters *and the real return type*: `int GameSaveSave(cGameSave*, void*, int) asm("save__9cGameSavePv")`.
+  Declared `void`, `li r3, GameSave@sda21` is issued before `li r5, -1`; with `int` the r3 output
+  dependence puts it last (the "callee return type" rule also applies to asm-labelled aliases).
+- `dx*dx + dy*dy + dz*dz` compared with a radius sum: compute `len` into its variable first and
+  `r = w->radius + 1000.0f` *after* it (`fadds` then `fmuls f0,f0,f0` tied), then `if (len > r * r)`;
+  with `r` computed before `len` the radius load is interleaved into the distance chain (emrock DropHitCk).
+- `if (atk) { ...; if (EmAtkHitCk(...)) { ...; return 1; } } return 0;` gives both tests `beq` to one
+  `li r3,0` block at the end; two separate `return 0`s put `li r3,0; b end` after the second test.
+- `pl->frame / (f32) pl->frameMax` (u16 member, `psq_l qr3`) times a u16 motion count held in a `u32`
+  local (`u32 cnt = hdr->maxFrame` → unsigned double trick) converted with `(u32)` gives the
+  `fcmpu 2^31/cror/bso` unsigned conversion; write the ratio into its own `f32` first when the target
+  computes it before the count (plemRockEscape).
+- `(int) pl->x3E0 / 20` on the `u32` cEm field gives the signed `mulhw 0x66666667; srawi 3` divide (obj13
+  uses the same `(int)` cast for signed tests; do not change the shared field type).
+- A pointer local `Camera* cam = &G;` + `FSet(cam->param.fovy, C)` keeps the store `stfs 0xc0(rCam)`
+  and, being a scalar-reference store, gives it a dependence on the following `lwz pG` so it is issued
+  before the `addi r5, r1, 8` argument; later `&G.param.at` written on the *global* are cse
+  related-values `addi r5, rCam, 0xb0` recomputed per call (a `cam->param.at` pointer form PRE's them
+  into callee-saved registers). In a block that follows a branch join the same `&G.param.at` is the
+  `lis rH, G+0xb0@ha` / `addi rX, rH, G+0xb0@l` pair with the high part shared (emrock cam functions).
+- OPEN (emrock plemRockEscapeCamMove2 / plemRockDropDieCamMove tails): after `PosToPos(..., &G.param.at)`
+  calls, the tail's `Vec* cp/ca = &G.param.pos/.at` reuse the calls' high pseudos (`addi r9, r29, G+0xa4@l`)
+  and `Camera* cam = &G` is a *fresh* `lis/addi` pair; ours relates `cam` to the newest pointer
+  (`subi r30, r9, 0xb0`). When the pointer comes from a struct copy with its own fresh `lis`
+  (emRockPushCamMove) the `subi r30, r9, 0xa4` form is what the target has. The cse related-value
+  chain needs the lo_sum to fold, which requires the high pseudo to be known in the tail's ebb; no
+  source form found that hides it (~10 tried). Also OPEN: SetRock's `w->seAlways[2] = 0` (last QI use of
+  the shared zero) is issued in source order by the original although the register dies there.
+- A zero word in `.rodata` between two functions' pools that no code references is the pool of a
+  dead-stripped `static` function (emrock: `static void emRockSpdClear()` with three `= 0.0f` stores
+  between setThrow2 and setYarareCube, unit added to `STRIP_UNUSED`); compare the `.rodata` words of
+  the compiled object against the split object directly, objdiff does not see it.
 - global.c allocation priority is `floor_log2(refs)*refs/live_length` *truncated to an int* (`*10000`),
   ties broken by pseudo number. REG_LIVE_LENGTH counts every insn *and note/label/barrier* in the range
   (flow.c increments outside the `'i'`-class test), so deleted statements, block notes and jump layout
