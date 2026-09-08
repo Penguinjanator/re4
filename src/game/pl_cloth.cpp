@@ -749,7 +749,7 @@ void testHairMoveLuis(cModel* pl, PlCloth* c)
 // `mode` reuses r0 after it); every form tried hoists either the zero stores or `mode`.
 void testDressSetAda(cModel* pl, PlCloth* c, int evt)
 {
-    int mode = 0;
+    int mode;
     f32 rate;
 
     c->num = 146;

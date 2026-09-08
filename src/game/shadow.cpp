@@ -35,7 +35,7 @@ int isSelfUse = 1;
 int g_SelfShdNum = 0;
 f32 shadow_cammove_size = 1.0f;
 f32 shadow_add_dir_x_default = 0.1f;
-volatile f32 shadow_add_dir_x = shadow_add_dir_x_default;
+f32 shadow_add_dir_x = shadow_add_dir_x_default;
 static int g_Shd_num;
 static cObj** g_objTbl;
 int g_objNum;
@@ -699,7 +699,7 @@ void make_comn_parallel_light(ShadowMng* mng, cModel* m)
     mng->target = pos;
     mng->lightPos = mng->target;
     mng->dir.x = shadow_add_dir_x;
-    mng->dir.y = -1.0f;
+    FSet(mng->dir.y, -1.0f);
     mng->dir.z = shadow_add_dir_x;
     PSVECNormalize(&mng->dir, &mng->dir);
     w = (ShadowLightWork*) l->work;
@@ -790,10 +790,10 @@ void make_fix_light(ShadowMng* mng)
 
 void SoftShadowGetEFB(ShadowMng* mng, int clear, f32 sx, f32 sy)
 {
-    u16 size;
+    int size;
 
     GXSetAlphaUpdate(1);
-    size = g_Shd_tex_size;
+    size = (u16) g_Shd_tex_size;
     GXSetTexCopySrc(0, 0, (u32) ((f32) size / sx), (u32) ((f32) size / sx));
     GXSetTexCopyDst((u32) ((f32) size / sy), (u32) ((f32) size / sy), 0x27, 1);
     GXCopyTex(mng->pTex, clear);
