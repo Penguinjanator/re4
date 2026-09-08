@@ -5,27 +5,30 @@
 #include "esp.h"
 #include "cloth.h"
 
+struct Esp4eWork {
+    Cloth* cloth;      // 0x00
+    GXTexObj tex;      // 0x04
+    GXTlutObj tlut;    // 0x24
+    f32 angX;          // 0x30 wave phase along x
+    f32 angY;          // 0x34 wave phase along y
+    s8 waveSpdX;       // 0x38
+    s8 waveSpdY;       // 0x39
+    s8 ampX;           // 0x3A
+    s8 ampY;           // 0x3B
+    f32 freqX;         // 0x3C
+    f32 freqY;         // 0x40
+    f32 power;         // 0x44
+    f32 ang;           // 0x48 global phase
+    f32 angSpd;        // 0x4C
+    f32 powerRate;     // 0x50
+    f32 rnd;           // 0x54 random factor
+};
+
 // Cloth sheet: a Cloth grid attached to the effect position, waving with a sine field.
 class cEsp4e : public cEsp {
 public:
-    Cloth* cloth;      // 0xF8
-    GXTexObj tex;      // 0xFC
-    GXTlutObj tlut;    // 0x11C
-    f32 angX;          // 0x128 wave phase along x
-    f32 angY;          // 0x12C wave phase along y
-    u8 waveSpdX;       // 0x130
-    u8 ampX;           // 0x131
-    u8 waveSpdY;       // 0x132
-    u8 ampY;           // 0x133
-    f32 freqX;         // 0x134
-    f32 freqY;         // 0x138
-    f32 power;         // 0x13C
-    f32 ang;           // 0x140 global phase
-    f32 angSpd;        // 0x144
-    f32 powerRate;     // 0x148
-    f32 rnd;           // 0x14C random factor
+    Esp4eWork w;       // 0xF8
 
-    virtual ~cEsp4e();
     virtual void move();
     virtual int SetFreeWork(EspGenWork* gen, u32* seed);
     virtual void Destruct();
@@ -45,6 +48,7 @@ void cEsp4e::move()
 {
     Vec pos0 = pos;
     Vec sp;
+    Esp4eWork* wk = &w;
     Cloth* c;
     f32 base;
     f32 rand;
@@ -54,6 +58,7 @@ void cEsp4e::move()
     f32 wy;
     f32 ay;
     f32 ax;
+    f32 s1;
     f32 s;
     u32 i;
     u32 j;
@@ -62,7 +67,7 @@ void cEsp4e::move()
         return;
     }
     pos = pos0;
-    c = cloth;
+    c = wk->cloth;
     if (c == NULL) {
         return;
     }
@@ -94,32 +99,30 @@ void cEsp4e::move()
     c->move();
     c->calcNormal();
 
-    ang += angSpd;
-    rand = rnd;
-    ang = LIMIT_ANGLE(ang);
-    s = SINF(ang);
-    s = SINF(ang * 0.3f) * (powerRate * s) + 1.0f;
-    angX = (f32) waveSpdX * 0.01f + angX;
-    angY = (f32) waveSpdY * 0.01f + angY;
-    stepY = freqX / c->ny;
-    stepX = freqY / c->nx;
-    wx = (f32) waveSpdY * 0.025f;
-    wy = (f32) ampY * 0.025f;
+    wk->ang += wk->angSpd;
+    rand = wk->rnd;
+    wk->ang = LIMIT_ANGLE(wk->ang);
+    s1 = SINF(wk->ang);
+    s = wk->powerRate * s1 * SINF(wk->ang * 0.3f) + 1.0f;
+    wk->angX = (f32) wk->waveSpdX * 0.01f + wk->angX;
+    wk->angY = (f32) wk->waveSpdY * 0.01f + wk->angY;
+    stepY = wk->freqX / c->ny;
+    stepX = wk->freqY / c->nx;
+    wx = (f32) wk->ampX * 0.025f;
+    wy = (f32) wk->ampY * 0.025f;
     PSVECScale(&sp, &sp, s);
-    ay = angX;
-    angX = LIMIT_ANGLE(angX);
-    angY = LIMIT_ANGLE(angY);
+    ay = wk->angX;
+    wk->angX = LIMIT_ANGLE(wk->angX);
+    wk->angY = LIMIT_ANGLE(wk->angY);
 
     for (i = 0; i < c->ny; i++) {
         base = SINF(ay) * wx;
         ay += stepY * rand * fRand0_1() + stepY;
-        ax = angY;
+        ax = wk->angY;
         for (j = 0; j < c->nx; j++) {
             f32 v = SINF(ax) * wy;
-            f32 st = stepX * rand * fRand0_1() + stepX;
-            v = base + v;
-            c->disturbance(v * s + power * s, j, i);
-            ax += st;
+            ax += stepX * rand * fRand0_1() + stepX;
+            c->disturbance((base + v) * s + wk->power * s, j, i);
             PSVECAdd(&c->spd[j + c->nx * i], &sp, &c->spd[j + c->nx * i]);
         }
     }
@@ -127,8 +130,8 @@ void cEsp4e::move()
 
 void cEsp4e::Destruct()
 {
-    if (cloth) {
-        cloth->Destroy();
+    if (w.cloth) {
+        w.cloth->Destroy();
     }
 }
 
@@ -138,36 +141,39 @@ void Esp4e_Trans()
 
 int cEsp4e::SetFreeWork(EspGenWork* gen, u32* seed)
 {
+    Esp4eWork* wk = &w;
     void* tpl;
     int ci;
     int nx;
     int ny;
-    f32 w;
-    f32 h;
+    f32 width;
+    f32 height;
     f32 d;
+    u32 t;
     int flag;
 
     if (!EspGetTplAddr(anmNo, &tpl)) {
         pLog->err(0, 0, "ESP4e : tex init invalid.");
         return 0;
     }
-    if (!PullCloth(&cloth)) {
+    if (!PullCloth(&wk->cloth)) {
         pLog->err(0, 0, "ESP4e : init invalid.");
         return 0;
     }
     d = 60.857143f;
-    ci = ClothTexSetUp(tpl, &tex, 0, &tlut);
+    ci = ClothTexSetUp(tpl, &wk->tex, 0, &wk->tlut);
     nx = (int) (sizeX / 200.0f * 36.0f);
     ny = (int) (sizeY / 200.0f * 24.0f);
-    w = gen->xD8 * 0.1f + 1.0f;
-    h = gen->xDC * 0.1f + 1.0f;
-    if (w == 0.0f) {
-        w = 0.001f;
+    width = gen->xD8 * 0.1f + 1.0f;
+    height = gen->xDC * 0.1f + 1.0f;
+    if (width == 0.0f) {
+        width = 0.001f;
     }
-    if (h == 0.0f) {
-        h = 0.001f;
+    if (height == 0.0f) {
+        height = 0.001f;
     }
-    flag = (gen->flags & 1) != 0;
+    t = gen->flags & 1;
+    flag = t == 0;
     if (nx < 2) {
         nx = 2;
     }
@@ -181,26 +187,24 @@ int cEsp4e::SetFreeWork(EspGenWork* gen, u32* seed)
         ny = 50;
     }
     if (ci) {
-        cloth->Set(rot, pos, nx, ny, w, &tex, h * (3000.0f / d / 23.0f), NULL, d, &tlut, flag);
+        wk->cloth->Set(rot, pos, nx, ny, width, &wk->tex, height * (3000.0f / d / 23.0f), NULL, d, &wk->tlut, flag);
     } else {
-        cloth->Set(rot, pos, nx, ny, w, &tex, h * (3000.0f / d / 23.0f), NULL, d, NULL, flag);
+        wk->cloth->Set(rot, pos, nx, ny, width, &wk->tex, height * (3000.0f / d / 23.0f), NULL, d, NULL, flag);
     }
     if (gen->xC2) {
-        cloth->x74 = 1;
+        wk->cloth->x74 = 1;
     }
-    waveSpdX = gen->xC8;
-    waveSpdY = gen->xC9;
-    ampX = gen->xCA;
-    ampY = gen->xCB;
-    freqX = (f32) (int) (gen->prm.w.xCC + 1) * 0.5f;
-    freqY = (f32) (int) (gen->prm.w.xD0 + 1) * 0.5f;
-    power = (f32) (int) gen->xD4 * 0.025f;
-    angSpd = (f32) (gen->xFC + 1) * 0.0025f;
-    powerRate = (f32) (gen->xFD + 1) * 0.07f;
-    rnd = (f32) (gen->xFE + 1) * 0.2f;
+    wk->waveSpdX = gen->xC8;
+    wk->ampX = gen->xC9;
+    wk->waveSpdY = gen->xCA;
+    wk->ampY = gen->xCB;
+    wk->freqX = (f32) (int) (gen->prm.w.xCC + 1) * 0.5f;
+    wk->freqY = (f32) (int) (gen->prm.w.xD0 + 1) * 0.5f;
+    wk->power = (f32) (int) gen->xD4 * 0.025f;
+    wk->angSpd = (f32) (gen->xFC + 1) * 0.0025f;
+    wk->powerRate = (f32) (gen->xFD + 1) * 0.07f;
+    wk->rnd = (f32) (gen->xFE + 1) * 0.2f;
     return 1;
 }
 
-cEsp4e::~cEsp4e()
-{
-}
+asm(".section .sdata; .balign 8");

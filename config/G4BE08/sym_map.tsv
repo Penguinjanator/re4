@@ -12,7 +12,7 @@ address	size	section	unit	scope	name	demangled
 0x80003A74	0x1E4	.text	game/cam_ctrl.cpp	global	calcAddr__13CameraControlP16CameraDataHeader	CameraControl::calcAddr
 0x80003C58	0x40	.text	game/cam_ctrl.cpp	global	RoomDataRead__13CameraControlP16CameraDataHeader	CameraControl::RoomDataRead
 0x80003C98	0x28	.text	game/cam_ctrl.cpp	global	CoreDataRead__13CameraControlP16CameraDataHeader	CameraControl::CoreDataRead
-0x80003CC0	0x3F4	.text	game/cam_ctrl.cpp	global	cameraHitCheck	cameraHitCheck
+0x80003CC0	0x3F4	.text	game/cam_ctrl.cpp	global	cameraHitCheck__FP3VecN30	cameraHitCheck
 0x800040B4	0x7C	.text	game/cam_ctrl.cpp	global	CameraSetCutData__FP6CameraP9CameraCut	CameraSetCutData
 0x80004130	0x5C	.text	game/cam_ctrl.cpp	global	AreaOnOff__13CameraControliii	CameraControl::AreaOnOff
 0x8000418C	0x64	.text	game/cam_ctrl.cpp	global	SetAreaAttr__13CameraControliiUc	CameraControl::SetAreaAttr
@@ -3190,22 +3190,22 @@ address	size	section	unit	scope	name	demangled
 0x800D3140	0x4C	.text	game/cam_motion.cpp	global	_._12CameraMotion	CameraMotion::~CameraMotion
 0x800D318C	0x218	.text	game/cam_motion.cpp	global	move__12CameraMotion	CameraMotion::move
 0x800D33A4	0x60	.text	game/cam_motion.cpp	global	CameraSequenceCtrl	CameraSequenceCtrl
-0x800D3404	0x8	.text	game/cam_qfps.cpp	global	CameraQuasiFPS_LRinfo	CameraQuasiFPS::LRinfo
-0x800D340C	0x8	.text	game/cam_qfps.cpp	global	CameraQuasiFPS_LRcheck	CameraQuasiFPS::LRcheck
-0x800D3414	0x168	.text	game/cam_qfps.cpp	global	CameraQuasiFPS_calcDepressionRatio	CameraQuasiFPS::calcDepressionRatio
-0x800D357C	0x3C	.text	game/cam_qfps.cpp	local	CameraQuasiFPS_setPlayerLocation	CameraQuasiFPS::setPlayerLocation
-0x800D35B8	0x478	.text	game/cam_qfps.cpp	global	CameraQuasiFPS_calcBaseMatrix	CameraQuasiFPS::calcBaseMatrix
-0x800D3A30	0x84	.text	game/cam_qfps.cpp	global	CameraQuasiFPS_checkFBLR	CameraQuasiFPS::checkFBLR
-0x800D3AB4	0x8	.text	game/cam_qfps.cpp	global	CameraQuasiFPS_setBlendRatio	CameraQuasiFPS::setBlendRatio
+0x800D3404	0x8	.text	game/cam_qfps.cpp	global	LRinfo__14CameraQuasiFPSPv	CameraQuasiFPS::LRinfo
+0x800D340C	0x8	.text	game/cam_qfps.cpp	global	LRcheck__14CameraQuasiFPS	CameraQuasiFPS::LRcheck
+0x800D3414	0x168	.text	game/cam_qfps.cpp	global	calcDepressionRatio__14CameraQuasiFPS	CameraQuasiFPS::calcDepressionRatio
+0x800D357C	0x3C	.text	game/cam_qfps.cpp	global	setPlayerLocation__14CameraQuasiFPSPA3_fP3Vec	CameraQuasiFPS::setPlayerLocation
+0x800D35B8	0x478	.text	game/cam_qfps.cpp	global	calcBaseMatrix__14CameraQuasiFPSPA3_f	CameraQuasiFPS::calcBaseMatrix
+0x800D3A30	0x84	.text	game/cam_qfps.cpp	global	checkFBLR__14CameraQuasiFPS	CameraQuasiFPS::checkFBLR
+0x800D3AB4	0x8	.text	game/cam_qfps.cpp	global	setBlendRatio__14CameraQuasiFPSf	CameraQuasiFPS::setBlendRatio
 0x800D3ABC	0x18	.text	game/cam_qfps.cpp	global	setBlendCount__14CameraQuasiFPSi	CameraQuasiFPS::setBlendCount
 0x800D3AD4	0x8	.text	game/cam_qfps.cpp	global	getFloorRatio__14CameraQuasiFPS	CameraQuasiFPS::getFloorRatio
 0x800D3ADC	0x8	.text	game/cam_qfps.cpp	global	setFloorRatio__14CameraQuasiFPSf	CameraQuasiFPS::setFloorRatio
-0x800D3AE4	0x274	.text	game/cam_qfps.cpp	local	CameraQuasiFPS_checkCameraType	CameraQuasiFPS::checkCameraType
-0x800D3D58	0x4D8	.text	game/cam_qfps.cpp	global	CameraQuasiFPS_calcOffset	CameraQuasiFPS::calcOffset
-0x800D4230	0xA7C	.text	game/cam_qfps.cpp	global	CameraQuasiFPS_hitCheck	CameraQuasiFPS::hitCheck
+0x800D3AE4	0x274	.text	game/cam_qfps.cpp	global	checkCameraType__14CameraQuasiFPS	CameraQuasiFPS::checkCameraType
+0x800D3D58	0x4D8	.text	game/cam_qfps.cpp	global	calcOffset__14CameraQuasiFPSP7QfpsOfs	CameraQuasiFPS::calcOffset
+0x800D4230	0xA7C	.text	game/cam_qfps.cpp	global	hitCheck__14CameraQuasiFPSPA3_fP7QfpsOfsP11CameraParam	CameraQuasiFPS::hitCheck
 0x800D4CAC	0x158	.text	game/cam_qfps.cpp	global	setBlendData__14CameraQuasiFPSPvT1	CameraQuasiFPS::setBlendData
 0x800D4E04	0x158	.text	game/cam_qfps.cpp	global	getAreaData__14CameraQuasiFPSPA2_7QfpsOfsT1	CameraQuasiFPS::getAreaData
-0x800D4F5C	0x158	.text	game/cam_qfps.cpp	global	CameraQuasiFPS_setAreaData	CameraQuasiFPS::setAreaData
+0x800D4F5C	0x158	.text	game/cam_qfps.cpp	global	setAreaData__14CameraQuasiFPSPA2_7QfpsOfsT1	CameraQuasiFPS::setAreaData
 0x800D50B4	0x36C	.text	game/cam_qfps.cpp	global	setAreaData__14CameraQuasiFPSP9CameraCut	CameraQuasiFPS::setAreaData
 0x800D5420	0x108	.text	game/cam_qfps.cpp	global	offsetCorrection	offsetCorrection
 0x800D5528	0x40	.text	game/cam_qfps.cpp	local	offsetArrayCorrection	offsetArrayCorrection
@@ -5195,16 +5195,16 @@ address	size	section	unit	scope	name	demangled
 0x80167C18	0x264	.text	game/obj10.cpp	global	SetObj10__FPvT0P3VecN22ffii	SetObj10
 0x80167E7C	0x40	.text	game/obj10.cpp	global	Obj10SetEst__FP4cObjiiUliiiiii	Obj10SetEst
 0x80167EBC	0x20	.text	game/obj10.cpp	global	_._8cWepItem	cWepItem::~cWepItem
-0x80167EDC	0x5B0	.text	game/obj12.cpp	local	cObj12_move	cObj12::move
-0x8016848C	0x150	.text	game/obj12.cpp	global	SetObj12	SetObj12
-0x801685DC	0x3C	.text	game/obj12.cpp	global	cObj12_setParent	cObj12::setParent
-0x80168618	0xC	.text	game/obj12.cpp	global	cObj12_chainMove	cObj12::chainMove
-0x80168624	0x1E4	.text	game/obj12.cpp	global	cObj12_setFall	cObj12::setFall
-0x80168808	0x1C	.text	game/obj12.cpp	global	cObj12_setFallSe	cObj12::setFallSe
-0x80168824	0x9B8	.text	game/obj12.cpp	global	cObj12_fallMove	cObj12::fallMove
-0x801691DC	0x290	.text	game/obj12.cpp	global	cObj12_throwMove	cObj12::throwMove
-0x8016946C	0x2C	.text	game/obj12.cpp	global	cObj12_setBurn	cObj12::setBurn
-0x80169498	0x20	.text	game/obj12.cpp	global	cObj12_dt_cObj12	cObj12::~cObj12
+0x80167EDC	0x5B0	.text	game/obj12.cpp	global	move__6cObj12	cObj12::move
+0x8016848C	0x150	.text	game/obj12.cpp	global	SetObj12__FPvT0P3VecT2	SetObj12
+0x801685DC	0x3C	.text	game/obj12.cpp	global	setParent__6cObj12P6cModelii	cObj12::setParent
+0x80168618	0xC	.text	game/obj12.cpp	global	chainMove__6cObj12	cObj12::chainMove
+0x80168624	0x1E4	.text	game/obj12.cpp	global	setFall__6cObj12P3VecUc	cObj12::setFall
+0x80168808	0x1C	.text	game/obj12.cpp	global	setFallSe__6cObj12UcUcUc	cObj12::setFallSe
+0x80168824	0x9B8	.text	game/obj12.cpp	global	fallMove__6cObj12	cObj12::fallMove
+0x801691DC	0x290	.text	game/obj12.cpp	global	throwMove__6cObj12	cObj12::throwMove
+0x8016946C	0x2C	.text	game/obj12.cpp	global	setBurn__6cObj12	cObj12::setBurn
+0x80169498	0x20	.text	game/obj12.cpp	global	_._6cObj12	cObj12::~cObj12
 0x801694B8	0x6CC	.text	game/obj18.cpp	global	SetObj18__FPvT0P3VecT2i	SetObj18
 0x80169B84	0x64	.text	game/obj18.cpp	global	DelObj18__FP4cObj	DelObj18
 0x80169BE8	0x35C	.text	game/obj18.cpp	global	move__6cObj18	cObj18::move
@@ -5278,7 +5278,7 @@ address	size	section	unit	scope	name	demangled
 0x80173D48	0xA0	.text	game/pl_class.cpp	global	setNoSuspend__7cPlayeri	cPlayer::setNoSuspend
 0x80173DE8	0x90	.text	game/pl_class.cpp	global	setFootwork__7cPlayer	cPlayer::setFootwork
 0x80173E78	0x234	.text	game/pl_class.cpp	local	cPlayer_seqSeCtrl	cPlayer::seqSeCtrl
-0x801740AC	0xDC	.text	game/pl_class.cpp	global	cPlayer_isKamae	cPlayer::isKamae
+0x801740AC	0xDC	.text	game/pl_class.cpp	global	isKamae__7cPlayer	cPlayer::isKamae
 0x80174188	0x84	.text	game/pl_class.cpp	global	checkCtrl__7cPlayer	cPlayer::checkCtrl
 0x8017420C	0x38	.text	game/pl_class.cpp	global	upDownCk	upDownCk
 0x80174244	0x44	.text	game/pl_class.cpp	global	cPlayer_keyConfig	cPlayer::keyConfig
@@ -8506,8 +8506,8 @@ address	size	section	unit	scope	name	demangled
 0x8023FDF8	0x40	.rodata	game/obj10.cpp	global	_vt.8cWepItem	cWepItem virtual table
 0x8023FE38	0x28	.rodata	game/obj10.cpp	local	cUnit_virtual_table_8023FE38	cUnit virtual table
 0x8023FE60	0x2A0	.rodata	game/obj12.cpp	global	lbl_8023FE60	.
-0x80240100	0x40	.rodata	game/obj12.cpp	global	cObj12_virtual_table	cObj12 virtual table
-0x80240140	0x28	.rodata	game/obj12.cpp	global	cUnit_virtual_table_80240140	cUnit virtual table
+0x80240100	0x40	.rodata	game/obj12.cpp	global	_vt.6cObj12	cObj12 virtual table
+0x80240140	0x28	.rodata	game/obj12.cpp	local	cUnit_virtual_table_80240140	cUnit virtual table
 0x80240168	0x228	.rodata	game/obj18.cpp	global	lbl_80240168	.
 0x80240390	0x40	.rodata	game/obj18.cpp	global	_vt.6cObj18	cObj18 virtual table
 0x802403D0	0x28	.rodata	game/obj18.cpp	local	cUnit_virtual_table_802403D0	cUnit virtual table

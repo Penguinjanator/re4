@@ -47,7 +47,8 @@ struct CameraCut {
     u8 flags;       // 0x03  bit 0: aim_ofs valid
     Vec aim_ofs;    // 0x04  added to the player position to get the aim point
     u16* frames;    // 0x10  key frame times
-    u8 pad_14[0x20 - 0x14];
+    f32 floor_ratio; // 0x14  shoulder camera floor ratio (cam_qfps setAreaData)
+    u8 pad_18[0x20 - 0x18];
     s32 num;        // 0x20  key count
     Vec* pos;       // 0x24
     Vec* at;        // 0x28

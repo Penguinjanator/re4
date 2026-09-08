@@ -316,6 +316,16 @@ mark it Matching.
   before the store. `u32 max = f(); if (w->id < max)` loads `id` after the call; `w->id < f()` keeps
   `id` in a callee-saved register across it.
 - Zero-initialised function-pointer table `= { NULL }` lands in `.data`; uninitialised in `.bss`.
+- Byte stores alias everything (alias.c: QImode store -> every global reloaded). Word/half stores
+  through a varying struct pointer never alias a fixed scalar; if the target reloads a global pointer
+  after such a store, the original stored through a scalar reference (`PSet(void*&, void*)`).
+- A sum written as two statements (`d = a*b + c*d; d += e*f;`) keeps the intermediate in the
+  variable's register instead of a temp tied to a dying operand.
+- An unused aggregate local still takes its frame slot.
+- KNOWN DEBT: cModel's real size is 0x320 (ctor initialises up to 0x31C: motion @0x1D8, cAtariInfo
+  @0x2B4 ...) but em.h/obj.h currently define those fields inside cEm/cObj. game/model needs the fields
+  moved into cModel with cEm/cObj starting at 0x320 — a coordinated refactor, do not start it while
+  em*/obj* agents are running.
 - Static locals show as `name.NNN` in objdiff; the DECL_UID suffix cannot be reproduced and is ignored by the report.
 - Unexplained words in `.rodata` (zero words, stray floats) are usually the constant pool of a function
   the original linker dead-stripped (bodies gone, pools kept, `STRIP_UNUSED` in objects.py): write a

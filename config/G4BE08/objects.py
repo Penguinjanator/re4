@@ -931,6 +931,7 @@ MATCHING = {
     "game/esp41.cpp": True,
     "game/esp42.cpp": True,
     "game/esp4d.cpp": True,
+    "game/esp4e.cpp": True,
     "game/esp4c.cpp": True,
     "game/esp4b.cpp": True,
     "game/esp4a.cpp": True,

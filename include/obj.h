@@ -147,6 +147,28 @@ struct Obj00Work {
     u8 sePlayed;          // 0x67
 };
 
+// Hanging / thrown object work (game/obj12.cpp `cObj12`): the obj00 layout with a life counter,
+// the landing SE moved to 0x68 and a rope `type` selecting the three rope offsets.
+struct Obj12Work {
+    u32 flags;            // 0x00  bit2: falling, bit3: blending toward the parent, bit7: keep the parent matrix, bit8: thrown, bit9: fading out after `life`
+    void* pMot;           // 0x04
+    int motResult;        // 0x08  MotionMove result of this frame
+    u32 motPrm;           // 0x0C
+    cModel* oya;          // 0x10  parent
+    int partsNo;          // 0x14
+    f32 rate;             // 0x18  blend rate (1.0 = parent matrix)
+    f32 rateSpd;          // 0x1C
+    s16 fallSpd[3][3];    // 0x20  rope point speeds * 10 (fallSpd[0] is the throw speed)
+    u8 pad_32[2];
+    Mtx mat;              // 0x34  previous parent matrix
+    int life;             // 0x64  frames before the fade out
+    u8 seBlk;             // 0x68  landing SE (0xFF = none)
+    u8 seNo;              // 0x69
+    u8 seId;              // 0x6A
+    u8 sePlayed;          // 0x6B
+    u8 type;              // 0x6C  rope offsets table index (setFall)
+};
+
 // Event costume / cloth model work (game/obj18.cpp): a model that follows a parts of its parent
 // (like obj00) and runs one of the cloth simulations by `type`.
 struct Obj18Work {
@@ -344,6 +366,7 @@ public:
         Obj08Work o8;
         ChainWork chain;
         Obj00Work o0;
+        Obj12Work o12;
         Obj18Work o18;
         Obj01Work o1;
         WepItemWork wepItem;

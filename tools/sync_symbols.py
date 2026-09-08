@@ -184,7 +184,12 @@ def main():
             # a real (non-placeholder) name that other split objects import under exactly that name is
             # the linkage the program uses; a compiled definition with a different name means the unit
             # declared it with the wrong linkage (e.g. C function defined without extern "C").
-            if not re.search(r"_[0-9A-F]{8}$", old) and not old.startswith(("fn_", "lbl_")):
+            # A sanitized `Class_method` placeholder of a member function (demangled `Class::method`)
+            # can never be the linkage name: members are always mangled.
+            dn = demangle_v2(name)
+            member_placeholder = dn is not None and "::" in dn and \
+                old == re.sub(r"(?<=.)_{2,}", "_", re.sub(r"[<>,\s\*&\(\)\[\]]+", "_", dn.replace("::", "__").replace("~", "dt_")).rstrip("_"))
+            if not re.search(r"_[0-9A-F]{8}$", old) and not old.startswith(("fn_", "lbl_")) and not member_placeholder:
                 users = imported_by(old)
                 if users:
                     print(f"  {old}: keeping — imported by {sorted(users)[:3]} under this name; fix the definition's linkage (compiled as {name})")
