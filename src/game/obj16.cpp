@@ -674,6 +674,7 @@ void obj16_R1_Critical(cObj16* obj)
     Vec head;
     Vec tgt;
     f32 d;
+    cModel* p;
 
     w->atkHit = 0;
     atk = 0;
@@ -699,29 +700,38 @@ void obj16_R1_Critical(cObj16* obj)
         head.x = obj->mat[0][3];
         head.y = obj->mat[1][3];
         head.z = obj->mat[2][3];
-        tgt = pPL->getPartsPtr(3)->worldPos;
-        if (pSUB) {
-            if (w->body) {
-                d = SQRTF((w->body->pos.x - pPL->pos.x) * (w->body->pos.x - pPL->pos.x) + (w->body->pos.y - pPL->pos.y) * (w->body->pos.y - pPL->pos.y) + (w->body->pos.z - pPL->pos.z) * (w->body->pos.z - pPL->pos.z));
-                if (d > SQRTF((w->body->pos.x - pSUB->pos.x) * (w->body->pos.x - pSUB->pos.x) + (w->body->pos.y - pSUB->pos.y) * (w->body->pos.y - pSUB->pos.y) + (w->body->pos.z - pSUB->pos.z) * (w->body->pos.z - pSUB->pos.z)) + 3000.0f) {
-                    tgt = pSUB->getPartsPtr(3)->worldPos;
-                }
+        // one `p` for both parts lookups: a pointer local assigned in two blocks is not
+        // local-allocated, so the worldPos copy's address register is not tied to r3
+        p = pPL->getPartsPtr(3);
+        tgt = p->worldPos;
+        if (pSUB && w->body) {
+            d = SQRTF((w->body->pos.x - pPL->pos.x) * (w->body->pos.x - pPL->pos.x) +
+                      (w->body->pos.y - pPL->pos.y) * (w->body->pos.y - pPL->pos.y) +
+                      (w->body->pos.z - pPL->pos.z) * (w->body->pos.z - pPL->pos.z));
+            if (d > SQRTF((w->body->pos.x - pSUB->pos.x) * (w->body->pos.x - pSUB->pos.x) +
+                          (w->body->pos.y - pSUB->pos.y) * (w->body->pos.y - pSUB->pos.y) +
+                          (w->body->pos.z - pSUB->pos.z) * (w->body->pos.z - pSUB->pos.z)) +
+                        3000.0f) {
+                p = pSUB->getPartsPtr(3);
+                tgt = p->worldPos;
             }
         }
+        // `w->timer = 14` repeated in every arm: the last arm's block then does not end in a
+        // call (no flow nop), so all four tails cross-jump into one MotionSetCore
         if (head.y - tgt.y > 500.0f) {
             MotionSetCore(obj, &obj->pMotion, w->mot[6], 0, 0, 0, 0);
-        w->timer = 14;
+            w->timer = 14;
         } else {
             f32 d2 = (head.x - tgt.x) * (head.x - tgt.x) + (head.z - tgt.z) * (head.z - tgt.z);
             if (d2 < 1440000.0f) {
                 MotionSetCore(obj, &obj->pMotion, w->mot[3], 0, 0, 0, 0);
-        w->timer = 14;
+                w->timer = 14;
             } else if (d2 < 3240000.0f) {
                 MotionSetCore(obj, &obj->pMotion, w->mot[4], 0, 0, 0, 0);
-        w->timer = 14;
+                w->timer = 14;
             } else {
                 MotionSetCore(obj, &obj->pMotion, w->mot[5], 0, 0, 0, 0);
-        w->timer = 14;
+                w->timer = 14;
             }
         }
         if (obj->type == 3) {
@@ -1202,7 +1212,7 @@ static void obj16NeckMove(cObj16* obj)
             tgt = pSUB->pos;
         }
     }
-    tgt.y += 500.0f;
+    tgt.y += 1600.0f;
     w->neckAng = w->neckAng * 0.9f + Muku(&body->pos, &tgt, body->rot.y, PI / 2) * 0.1f;
     switch (obj->type) {
     case 2:

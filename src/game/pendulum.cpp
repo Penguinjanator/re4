@@ -745,27 +745,41 @@ void PenClothMove2(cModel* m, PenCloth* c)
 
     if (pG->debug_mode == 8 && !(c->flags & 4)) {
         for (i = 0, pp = c->pParts; i < c->num; i++, pp++) {
+            PenParts* nw;
+            u32 no;
             parts = PEN_PARTS(m, c, *pp);
             w = PEN_WORK(parts);
             if (c->x08 && c->x08[i] < 0xFF) {
                 np = penPartsNo(m, c, c->x08[i]);
-                uw = PEN_WORK(np);
-                Draw_line3d(&w->pos, &uw->pos, 0xFF808080, 0);
+                nw = PEN_WORK(np);
+                Draw_line3d(&w->pos, &nw->pos, 0xFF808080, 0);
             }
             if (c->x0C && c->x0C[i] < 0xFF) {
                 np = penPartsNo(m, c, c->x0C[i]);
-                uw = PEN_WORK(np);
-                Draw_line3d(&w->pos, &uw->pos, 0xFF808080, 0);
+                nw = PEN_WORK(np);
+                Draw_line3d(&w->pos, &nw->pos, 0xFF808080, 0);
             }
-            if (c->x10 && (c ? c->x10[i] : 0xFFu) < 0xFF) {
-                np = penPartsNo(m, c, c->x10[i]);
-                uw = PEN_WORK(np);
-                Draw_line3d(&w->pos, &uw->pos, 0xFF808080, 0);
+            if (c->x10) {
+                no = 0xFF;
+                if (c) {
+                    no = c->x10[i];
+                }
+                if (no < 0xFF) {
+                    np = penPartsNo(m, c, no);
+                    nw = PEN_WORK(np);
+                    Draw_line3d(&w->pos, &nw->pos, 0xFF808080, 0);
+                }
             }
-            if (c->x14 && (c ? c->x14[i] : 0xFFu) < 0xFF) {
-                np = penPartsNo(m, c, c->x14[i]);
-                uw = PEN_WORK(np);
-                Draw_line3d(&w->pos, &uw->pos, 0xFF808080, 0);
+            if (c->x14) {
+                no = 0xFF;
+                if (c) {
+                    no = c->x14[i];
+                }
+                if (no < 0xFF) {
+                    np = penPartsNo(m, c, no);
+                    nw = PEN_WORK(np);
+                    Draw_line3d(&w->pos, &nw->pos, 0xFF808080, 0);
+                }
             }
         }
     }

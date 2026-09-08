@@ -97,11 +97,14 @@ struct OSLowMem {
 #define OSTicksToMicroseconds(ticks) (((ticks) * 8) / (OS_TIMER_CLOCK / 125000))
 #define VIPadFrameBufferWidth(width) ((u16) (((u16) (width) + 15) & ~15))
 
+// A plain block, not do/while(0): the loop notes of a do/while are a scheduling barrier, and the
+// original issues `li r4,0` of the preceding pLog->err before the string address (anti-dependence
+// on HALT's own `lis r4`), which needs one scheduling region (DLL_Link/DLL_Unlink, read.cpp too).
 #define HALT()                                                    \
-    do {                                                          \
+    {                                                             \
         OSReport("HALT %s(%d)\n", __FILE__, __LINE__);            \
         *(volatile u32*) 0x11111111 = 0;                          \
-    } while (0)
+    }
 
 #define VALID_PTR(p) ((u32) (p) >= 0x80000000 && (u32) (p) <= 0x82FFFFFF)
 
@@ -133,7 +136,7 @@ void* DefaultFifoObj;
 int ScreenShotTriggerType;
 void* DefaultFifo;
 int flag_render_after = 0;
-int ScreenShotCount = 0;
+int lbl_80314BFC = 0;  // ScreenShotCount: unreferenced, Bio4.sym has no name (strip_unused keeps lbl_ names)
 int AutoScreenShotExec = 0;
 char ScreenShotFilename[11];
 OSStopwatch SW;
@@ -149,7 +152,7 @@ void Render_init()
 
     SetTvMode(rm);
     pFrame_buff[0] = (void*) 0x80460000;
-    pFrame_buff[1] = pCurrent_buff =
+    pCurrent_buff = pFrame_buff[1] =
         (void*) (0x80460000 + VIPadFrameBufferWidth(rm->viWidth) * rm->xfbHeight * 2);
     DefaultFifo = (void*) 0x803F0000;
     VIConfigure(rm);
@@ -377,17 +380,17 @@ void ScreenShotEnd()
 }
 
 int ScreenShotExec = 0;
-int ScreenShotWait = 0;
+int lbl_80314C0C = 0;  // ScreenShotWait: unreferenced, Bio4.sym has no name
 
 void SelfScreenShotInit()
 {
     OSCalendarTime ct;
     OSTicksToCalendarTime(OSGetTime(), &ct);
     sprintf(ScreenShotFilename, "_%02d%02d%02d%02d_", ct.mon + 1, ct.mday, ct.hour, ct.min);
-    AutoScreenShotExec = 0;
     ScreenShotFrame = 0;
     ScreenShotTriggerType = 0;
     ScreenShotExec = 0;
+    AutoScreenShotExec = 0;
 }
 
 // Dead-stripped in the original (strings and constant pool survive in .rodata).

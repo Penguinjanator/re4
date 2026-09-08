@@ -526,6 +526,13 @@ mark it Matching.
 - An uninitialised `GXColor amb;` passed by value emits `stw rCalleeSaved, slot` (garbage register).
 - Argument-move order workaround is per call site: a call may need the floats-first asm-labelled
   redeclaration while another call of the same function in the unit matches with the real one.
+- flow.c appends `(use (const_int 0))` after any CALL_INSN that ends a block; jump2's cross-jump then
+  fails against the fallthrough, so one of N identical call tails stays unmerged unless the arm does
+  not end in the call (repeat a trailing store in every arm to let the tails merge deeper).
+- A pointer local assigned in two blocks is not local-allocated: a struct copy through it keeps the
+  `addi` untied from r3 and following loads are scheduled after the copy.
+- `int atk; w->atkHit = 0; atk = 0;` (assignment after the byte store) keeps the QI and SI zeros in
+  separate registers and makes cse pick `atk` as the 0 stack argument of later calls.
 - Static locals show as `name.NNN` in objdiff; the DECL_UID suffix cannot be reproduced and is ignored by the report.
 - Unexplained words in `.rodata` (zero words, stray floats) are usually the constant pool of a function
   the original linker dead-stripped (bodies gone, pools kept, `STRIP_UNUSED` in objects.py): write a

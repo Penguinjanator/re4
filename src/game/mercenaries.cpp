@@ -88,6 +88,12 @@ static inline void flagOn(u32* tbl, u32 no)
     tbl[no >> 5] |= 0x80000000 >> (no & 0x1F);
 }
 
+// Reading a global through a reference keeps its load below a preceding member store.
+static inline int IRef(int& v)
+{
+    return v;
+}
+
 #define SYS_FLAG_TBL ((u32*) &pSys->x4)
 #define MID (&mercId.idsys)
 
@@ -301,6 +307,7 @@ int MercSysMoveScore(MercSysWork* wk)
     int min;
     int sec;
     int cs;
+    int zero;
 
     if (wk == NULL) {
         pLog->err(0, 0, "St4ResultInitStage : pWk is NULL");
@@ -317,7 +324,7 @@ int MercSysMoveScore(MercSysWork* wk)
     if (!(wk->flags & MF_COMBO_OFF)) {
         if (wk->comboTimer > 0) {
             wk->comboTimer--;
-            if (wk->comboTimer > ComboTimerFlash) {
+            if (wk->comboTimer > IRef(ComboTimerFlash)) {
                 IdSetTrans(MID, 0x30, ID_MERC, 1);
                 IdSetColInit(MID, 0x30, ID_MERC);
                 IdSetColLoop(MID, 0x30, ID_MERC, 0);
@@ -351,7 +358,7 @@ int MercSysMoveScore(MercSysWork* wk)
     if (!(wk->flags & MF_BONUS_OFF)) {
         if (wk->bonusTimer > 0) {
             wk->bonusTimer--;
-            if (wk->bonusTimer > BonusTimerFlash) {
+            if (wk->bonusTimer > IRef(BonusTimerFlash)) {
                 IdSetTrans(MID, 0x40, ID_MERC, 1);
                 IdSetColInit(MID, 0x40, ID_MERC);
                 IdSetColLoop(MID, 0x40, ID_MERC, 0);
@@ -401,12 +408,13 @@ int MercSysMoveScore(MercSysWork* wk)
     IdSetTrans(MID, 0x20, ID_MERC, 1);
     IdSetNum(MID, 0x21, ID_MERC, wk->score, 9999999, 7, 0);
     // time added
+    zero = 0;
     if (wk->flags & MF_ADD_TIME) {
         wk->flags &= ~MF_ADD_TIME;
         min = wk->addTime / 60;
         sec = wk->addTime % 60;
-        cs = 0;
-        wk->addTime = 0;
+        cs = zero;
+        wk->addTime = zero;
         IdSetTrans(MID, 0x10, ID_MERC, 1);
         IdSetAnmStart(MID, 0x10, ID_MERC, 1);
         IdSetNum(MID, 0x15, ID_MERC, min, 9, 1, 1);
@@ -420,8 +428,11 @@ int MercSysMoveScore(MercSysWork* wk)
     IdSetNum(MID, 3, ID_MERC, sec, 99, 2, 1);
     IdSetNum(MID, 1, ID_MERC, cs, 99, 2, 1);
     {
-        int safe = min > 0 || sec > 29;
+        int safe = 1;
 
+        if (min <= 0) {
+            safe = sec > 29;
+        }
         if (safe == 0) {
             if (!(wk->flags & MF_TIME_WARN)) {
                 IdSetColStart(MID, 0, 0xFE, ID_MERC);
@@ -486,11 +497,12 @@ int MercSysMoveMain(MercSysWork* wk)
     } while (st[0] != 0);
     wk->flags &= ~(MF_COMBO_ON | MF_COMBO_OFF);
     IdSetTrans(&mercId.idsys, 0x30, ID_MERC, 0);
+    int zero = 0;
     wk->flags &= ~(MF_BONUS_ON | MF_BONUS_OFF);
     IdSetTrans(&mercId.idsys, 0x40, ID_MERC, 0);
-    wk->bonusTimer = 0;
-    wk->combo = 0;
-    wk->comboTimer = 0;
+    wk->combo = zero;
+    wk->comboTimer = zero;
+    wk->bonusTimer = zero;
     SndCall(6, 0x7A, 0, 0, 0, 0);
     MercSysResultMove(wk);
     return 1;
@@ -509,17 +521,18 @@ int MercSysResultInit(MercSysWork* wk)
         return 0;
     }
     Cckpt.getCountDown()->getTime(&min, &sec, &cs);
-    wk->rslt.score = wk->score;
     wk->rslt.maxCombo = wk->maxCombo;
     wk->rslt.kill = wk->kill;
     wk->rslt.time = min * 6000 + sec * 100 + cs;
     wk->rslt.mode = wk->mode;
     wk->rslt.rank = 0;
-    for (i = 0; i < 6; i++) {
-        if (RankTbl[wk->stage][i] > wk->rslt.score) {
+    wk->rslt.score = wk->score;
+    for (i = 0;; i++) {
+        if (i < 6 && RankTbl[wk->stage][i] <= wk->rslt.score) {
+            wk->rslt.rank = i;
+        } else {
             break;
         }
-        wk->rslt.rank = i;
     }
     if (wk->rslt.rank > 5) {
         pLog->err(0, 0, "MercSysResult : RankId error %d", wk->rslt.rank);

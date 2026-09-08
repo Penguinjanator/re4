@@ -66,20 +66,21 @@ cEm* EmSetEvent(EmListData* d);                          // game/em_set.cpp
 
 #define MTX_COPY(src, dst)               \
     {                                    \
+        MtxPtr d_;                       \
         MtxPtr s_ = (src);               \
-        MtxPtr d_ = (dst);               \
         int i_ = 3;                      \
         int j_;                          \
         f32* sp_;                        \
         f32* dp_;                        \
+        d_ = (dst);                      \
         while (i_--) {                   \
             dp_ = *d_;                   \
             sp_ = *s_;                   \
             for (j_ = 0; j_ < 4; j_++) { \
                 *dp_++ = *sp_++;         \
             }                            \
-            s_++;                        \
             d_++;                        \
+            s_++;                        \
         }                                \
     }
 
@@ -462,18 +463,17 @@ void SceAtCheck()
 
 int sceAtCheck_main(cEm* em, int type)
 {
-    char name[21] = {'N', 'D', 'E', 'I', 'F', 'M', 'P', 'J', 'T', 'S', 'd', 's', ' ', 'f', 'C', 'K', 'L', 'U', 'H', ' ', ' '};
     Vec pos;
     Vec front;
+    char name[21] = {'N', 'D', 'E', 'I', 'F', 'M', 'P', 'J', 'T', 'S', 'd', 's', ' ', 'f', 'C', 'K', 'L', 'U', 'H', ' ', ' '};
     ItemInfo info;
     SceAtWork* w;
     int flag = 1;
     int col = 0;
     int cnt = 0;
     int hit = 0;
-    int ft;
+    u32 ft;
     u8 t;
-    u8 x38;
     int c;
     int kind;
 
@@ -516,7 +516,8 @@ int sceAtCheck_main(cEm* em, int type)
             col = 0;
         }
         eprintf2(8, 0x10, cnt * 8 + 0x168, 8, col, 0, "%c", name[w->x35]);
-        cnt = (cnt + 1) & 7;
+        cnt++;
+        cnt &= 7;
         t = w->x35;
         if (t == 2 && w->func == 0) {
             continue;
@@ -525,8 +526,7 @@ int sceAtCheck_main(cEm* em, int type)
         if (w->func == 0) {
             ft = t;
         }
-        x38 = w->x38;
-        if (x38 & 8) {
+        if (w->x38 & 8) {
             c = 0;
             kind = w->x4A;
             if (w->x53 != 0) {
@@ -539,16 +539,8 @@ int sceAtCheck_main(cEm* em, int type)
             case 1:
                 c |= 0x80;
                 break;
-            case 3:
-                if (pG->x4 != 0) {
-                    itemInfo(w->item.id, &info);
-                    if (info.type != 7) {
-                        continue;
-                    }
-                }
-                break;
             case 0xE:
-                if (!(PlGetStatus() & 0x8000)) {
+                if (PlGetStatus() & 0x8000) {
                     continue;
                 }
                 break;
@@ -559,21 +551,28 @@ int sceAtCheck_main(cEm* em, int type)
                 if (SubCharHideCheck() != 1) {
                     continue;
                 }
-                if (RouteCkPosToPosDis(&pPL->pos, &pSUB->pos) >= 5000.0f) {
-                    continue;
+                if (RouteCkPosToPosDis(&pPL->pos, &pSUB->pos) < 5000.0f) {
+                    ActBtn.set(kind, w->x44, sceAtFunc_tbl[0x12].exclusive, (int) w, 1, 6, 2, (int) em);
                 }
-                ActBtn.set(kind, w->x44, sceAtFunc_tbl[0x12].exclusive, (int) w, 1, 6, 2, (int) em);
                 continue;
+            case 3:
+                if (pG->x4 != 0) {
+                    itemInfo(w->item.id, &info);
+                    if (info.type != 7) {
+                        continue;
+                    }
+                }
+                break;
             }
             ActBtn.set(kind, w->x44, sceAtFunc_tbl[ft].exclusive, (int) w, c, 1, 2, (int) em);
             continue;
         }
-        if (!(t == 1 && w->func == 0 && (x38 & 2) && (flag & 4))) {
-            if (!(x38 & flag)) {
+        if (!(t == 1 && w->func == 0 && (w->x38 & 2) && (flag & 4))) {
+            if (!(w->x38 & flag)) {
                 continue;
             }
         }
-        if ((u32) ft > 0x14) {
+        if (ft > 0x14) {
             continue;
         }
         if (hit != 0 && sceAtFunc_tbl[ft].exclusive != 0) {
@@ -598,24 +597,18 @@ void sceAtGetArea(AreaData* out, SceAtWork* w)
 {
     Mtx mat;
     Mtx pmat;
-    Vec zero;
-    Vec p[4];
-    cModel* src;
 
     *out = w->area;
     if (w->pParent == 0) {
         return;
     }
     if (w->parentParts >= 0) {
-        src = w->pParent->getPartsPtr(w->parentParts);
+        MTX_COPY(w->pParent->getPartsPtr(w->parentParts)->mat, pmat);
     } else {
-        src = w->pParent;
+        MTX_COPY(w->pParent->mat, pmat);
     }
-    MTX_COPY(src->mat, pmat);
     if (w->flag & 8) {
-        zero.x = 0.0f;
-        zero.y = 0.0f;
-        zero.z = 0.0f;
+        Vec zero = { 0.0f, 0.0f, 0.0f };
         low_RotMatrix(mat, &zero);
         mat[0][3] = pmat[0][3];
         mat[1][3] = pmat[1][3];
@@ -623,18 +616,17 @@ void sceAtGetArea(AreaData* out, SceAtWork* w)
     } else {
         MTX_COPY(pmat, mat);
     }
-    if (out->type == 1) {
+    Vec p[4];
+    switch (out->type) {
+    case 1:
+        p[0].y = p[1].y = p[2].y = p[3].y = out->u.xz4.y;
         p[0].x = out->u.xz4.p[0].x;
-        p[0].y = out->u.xz4.y;
         p[0].z = out->u.xz4.p[0].z;
         p[1].x = out->u.xz4.p[1].x;
-        p[1].y = out->u.xz4.y;
         p[1].z = out->u.xz4.p[1].z;
         p[2].x = out->u.xz4.p[2].x;
-        p[2].y = out->u.xz4.y;
         p[2].z = out->u.xz4.p[2].z;
         p[3].x = out->u.xz4.p[3].x;
-        p[3].y = out->u.xz4.y;
         p[3].z = out->u.xz4.p[3].z;
         PSMTXMultVec(mat, &p[0], &p[0]);
         PSMTXMultVec(mat, &p[1], &p[1]);
@@ -649,14 +641,17 @@ void sceAtGetArea(AreaData* out, SceAtWork* w)
         out->u.xz4.p[2].z = p[2].z;
         out->u.xz4.p[3].x = p[3].x;
         out->u.xz4.p[3].z = p[3].z;
-    } else if (out->type >= 2 && out->type <= 3) {
+        break;
+    case 2:
+    case 3:
         p[0].x = out->u.cyl.x;
         p[0].y = out->u.cyl.y;
         p[0].z = out->u.cyl.z;
         PSMTXMultVec(mat, &p[0], &p[0]);
         out->u.cyl.x = p[0].x;
-        out->u.cyl.z = p[0].z;
         out->u.cyl.y = p[0].y;
+        out->u.cyl.z = p[0].z;
+        break;
     }
 }
 
@@ -2974,8 +2969,8 @@ int SceAtCreateExecAt(cModel* m, Vec* pos, int a, int b, int c, f32 h, int d, f3
     w->flag = 7;
     w->x35 = 2;
     w->parentParts = -1;
-    w->angle = (s8) (ang * 0.5f * 57.29578f);
-    w->angleRange = (s8) (range * 0.5f * 57.29578f);
+    w->angle = (s8) (ang * 0.5f * 57.295776f);
+    w->angleRange = (s8) (range * 0.5f * 57.295776f);
     AreaDataInit(&w->area, &m->pos, 1, 1500.0f, h);
     w->area.u.xz4.y = (pos[0].y + pos[1].y + pos[2].y + pos[3].y) * 0.25f;
     w->area.u.xz4.p[0].x = pos[0].x;
@@ -3017,8 +3012,8 @@ int SceAtCreateFieldAt(cModel* m, Vec* pos, int a, int b, int c, f32 h, int d, f
     w->x35 = 0xD;
     w->parentParts = -1;
     w->pParent = m;
-    w->angle = (s8) (ang * 0.5f * 57.29578f);
-    w->angleRange = (s8) (range * 0.5f * 57.29578f);
+    w->angle = (s8) (ang * 0.5f * 57.295776f);
+    w->angleRange = (s8) (range * 0.5f * 57.295776f);
     AreaDataInit(&w->area, &m->pos, 1, 1500.0f, h);
     w->area.u.xz4.y = (pos[0].y + pos[1].y + pos[2].y + pos[3].y) * 0.25f;
     w->area.u.xz4.p[0].x = pos[0].x;
@@ -3221,11 +3216,23 @@ int sceAtCheckSaveItem(u16 id)
     return 0;
 }
 
+// Never emitted (only its string literal reaches .rodata, ahead of SceAtLinkEtcDead's).
+static inline void SceAtLinkEmFlag(int no)
+{
+    if (SceAtPtr(no) == 0) {
+        pLog->err(0, 0, "SceAtLinkEmFlag(): AT NOT FOUND");
+    }
+}
+
 void SceAtLinkEtcDead(int no, int etcNo, int on)
 {
     cEm* em;
-    SceAtWork* w = SceAtPtr(no);
+    SceAtWork* w;
 
+    if (0) {
+        SceAtLinkEmFlag(no);
+    }
+    w = SceAtPtr(no);
     if (w == 0) {
         pLog->err(0, 0, "SceAtLinkEtcDead(): AT NOT FOUND");
         return;
@@ -3242,8 +3249,8 @@ void SceAtLinkEtcDead(int no, int etcNo, int on)
             SceAtSetEnable(no, 1);
         }
     } else {
-        w->linkNo = 0;
         w->linkType = 0;
+        w->linkNo = 0;
         if (on == 1) {
             SceAtSetEnable(no, 1);
         } else {
@@ -3344,12 +3351,10 @@ int SceAtSetEmItem(cEm* em, int no)
 
 int SceAtSetEmItem(cEm* em, SceAtWork* w)
 {
-    SceAtItem* it = &w->item;
-
     if (em == 0) {
         return 0;
     }
-    EM_SET_ITEM(em, it->id, it->num, it->flagNo, it->findFlagNo, (s8) it->effType);
+    EM_SET_ITEM(em, w->item.id, w->item.num, w->item.flagNo, w->item.findFlagNo, (s8) w->item.effType);
     w->linkType = 0;
     return 1;
 }
@@ -3443,15 +3448,10 @@ void sceAtCheckItemModelParent(SceAtWork* w)
 
 void sceAtSetItemModelParent(SceAtWork* w)
 {
-    Vec inv;
-    SceAtItem* it = &w->item;
-
     if (w->pParent == 0) {
         return;
     }
-    inv.x = 0.0f;
-    inv.y = 0.0f;
-    inv.z = 0.0f;
+    Vec inv = { 0.0f, 0.0f, 0.0f };
     if (w->pParent->scale.x != 0.0f) {
         inv.x = 1.0f / w->pParent->scale.x;
     }
@@ -3461,9 +3461,9 @@ void sceAtSetItemModelParent(SceAtWork* w)
     if (w->pParent->scale.z != 0.0f) {
         inv.z = 1.0f / w->pParent->scale.z;
     }
-    it->pModel->be_flag &= ~0x4000;
-    it->pModel->pParts->scale = inv;
-    it->pModel->setParent(w->pParent, &it->pModel->pos, &it->pModel->rot);
+    w->item.pModel->be_flag &= ~0x4000;
+    w->item.pModel->pParts->scale = inv;
+    w->item.pModel->setParent(w->pParent, &w->item.pModel->pos, &w->item.pModel->rot);
 }
 
 int SceAtSetItemModel(int no, cModel* m)
@@ -3480,8 +3480,6 @@ int SceAtSetItemModel(int no, cModel* m)
 
 int SceAtSetItemModel(SceAtWork* w, cModel* m)
 {
-    SceAtItem* it = &w->item;
-
     if (w == 0) {
         pLog->err(0, 0, "SceAtSetItemModel(): pData == NULL");
         return 0;
@@ -3490,16 +3488,16 @@ int SceAtSetItemModel(SceAtWork* w, cModel* m)
         pLog->err(0, 0, "SceAtSetItemModel(): pObj == NULL");
         return 0;
     }
-    it->pModel = m;
-    if (it->id == 0xAF) {
+    w->item.pModel = m;
+    if (w->item.id == 0xAF) {
         m->x12F = 1;
     }
-    m->pos.x = it->pos.x;
-    m->pos.y = it->pos.y;
-    m->pos.z = it->pos.z;
-    if (it->rot.z > 0.0f) {
-        m->rot.x = it->rot.x;
-        m->rot.y = it->rot.y;
+    m->pos.x = w->item.pos.x;
+    m->pos.y = w->item.pos.y;
+    m->pos.z = w->item.pos.z;
+    if (w->item.rot.z > 0.0f) {
+        m->rot.x = w->item.rot.x;
+        m->rot.y = w->item.rot.y;
         m->rot.z = 0.0f;
     }
     m->setNoSuspend(0);
@@ -3509,30 +3507,26 @@ int SceAtSetItemModel(SceAtWork* w, cModel* m)
 
 int SceAtSetShootDownItem(SceAtWork* w, void* bin, void* tpl)
 {
-    Vec rot;
-    SceAtItem* it = &w->item;
+    Vec rot = { 0.0f, 0.0f, 0.0f };
     cEmItem* em;
 
-    rot.x = 0.0f;
-    rot.y = 0.0f;
-    rot.z = 0.0f;
-    if (it->rot.z > 0.0f) {
-        rot.x = it->rot.x;
-        rot.y = it->rot.y;
+    if (w->item.rot.z > 0.0f) {
+        rot.x = w->item.rot.x;
+        rot.y = w->item.rot.y;
     }
-    em = SetEmItem(bin, tpl, &it->pos, &rot, 0, 0);
+    em = SetEmItem(bin, tpl, &w->item.pos, &rot, 0, 0);
     if (em == 0) {
-        it->pModel = em;
+        w->item.pModel = em;
         return 0;
     }
-    switch (it->id) {
+    switch (w->item.id) {
     case 0x58:
     case 0x59:
         YarareInitCube(em, 0.0f, -85.0f, 0.0f, 85.0f, 170.0f, 300.0f, 0, 1);
         break;
     }
     em->setNoSuspend(1);
-    it->pModel = em;
+    w->item.pModel = em;
     return 1;
 }
 
@@ -3567,19 +3561,14 @@ int SceAtItemHitCheck(SceAtWork* w, Vec* pos)
         if (w->pParent != 0) {
             Mtx mat;
             Mtx pmat;
-            Vec zero;
-            cModel* src;
 
             if (w->parentParts >= 0) {
-                src = w->pParent->getPartsPtr(w->parentParts);
+                MTX_COPY(w->pParent->getPartsPtr(w->parentParts)->mat, pmat);
             } else {
-                src = w->pParent;
+                MTX_COPY(w->pParent->mat, pmat);
             }
-            MTX_COPY(src->mat, pmat);
             if (w->flag & 8) {
-                zero.x = 0.0f;
-                zero.y = 0.0f;
-                zero.z = 0.0f;
+                Vec zero = { 0.0f, 0.0f, 0.0f };
                 low_RotMatrix(mat, &zero);
                 mat[0][3] = pmat[0][3];
                 mat[1][3] = pmat[1][3];
@@ -3632,8 +3621,8 @@ int SceAtCheckSystemItemSet(u32 id, int* outId, int* outNum, Vec* pos, Vec* rot)
         d.pos[1] = (s16) (pos->y / 10.0f);
         d.pos[2] = (s16) (pos->z / 10.0f);
         if (rot->z > 0.0f) {
-            d.rot[0] = (s16) (rot->x * 57.29578f) * 0x8000 / 180;
-            d.rot[1] = (s16) (rot->y * 57.29578f) * 0x8000 / 180;
+            d.rot[0] = (s16) (rot->x * 57.295776f) * 0x8000 / 180;
+            d.rot[1] = (s16) (rot->y * 57.295776f) * 0x8000 / 180;
             d.rot[2] = 0;
         } else {
             d.rot[2] = 0;

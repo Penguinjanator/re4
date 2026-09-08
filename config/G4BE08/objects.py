@@ -1103,6 +1103,8 @@ MATCHING.update({
     "game/obj01.cpp": True,
     "game/obj10.cpp": True,
     "game/obj15.cpp": True,
+    "game/obj16.cpp": True,
+    "game/objGondola.cpp": True,
     "game/obj19.cpp": True,
     "game/obj20.cpp": True,
     "game/obj26.cpp": True,
@@ -1225,4 +1227,10 @@ MATCHING.update({
 
 MATCHING.update({
     "game/lightInfo.cpp": True,
+})
+
+# closer: plain-block HALT (li r4,0 before the string in DLL_Link/DLL_Unlink), lbl_ names for the
+# two unreferenced .sdata ints, chained/zero store orders
+MATCHING.update({
+    "game/main_sub.cpp": True,
 })

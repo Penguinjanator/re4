@@ -290,11 +290,11 @@ void objGondola_R0_Break(cObjGondola* obj)
         ObjGondolaCam.param.at = v;
         cp = &ObjGondolaCam.param.pos;
         ca = &ObjGondolaCam.param.at;
+        ObjGondolaCam.up.x = 0.0f;
+        ObjGondolaCam.up.z = 0.0f;
+        ObjGondolaCam.param.fovy = 50.0f;
+        ObjGondolaCam.up.y = 1.0f;
         len = (cp->x - ca->x) * (cp->x - ca->x) + (cp->y - ca->y) * (cp->y - ca->y) + (cp->z - ca->z) * (cp->z - ca->z);
-    ObjGondolaCam.up.x = 0.0f;
-    ObjGondolaCam.up.z = 0.0f;
-    ObjGondolaCam.param.fovy = 50.0f;
-    ObjGondolaCam.up.y = 1.0f;
         ObjGondolaCam.dist = SQRTF(len);
         CameraSetOrientationUp(&ObjGondolaCam);
         CamCtrl.x250 = (s32) &ObjGondolaCam;

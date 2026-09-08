@@ -241,59 +241,35 @@ extern f32 ZFAR;
     }
 
 // Texture coordinate corners for the sprite orientation (flags bit1: flip s, bit2: flip t;
-// screen sprites are drawn upside down).
+// screen sprites are drawn upside down). The two orientation tests are combined in one
+// condition: the four leaves are then jump targets cse cannot see `z` through, which keeps
+// the `s1 + z` adds (with nested ifs cse folds 0 + z into z).
+#define ESP08_FLIP_T(esp) \
+    ((ESP_PARTS_SCREEN(esp) && !((esp)->flags & 4)) || (!ESP_PARTS_SCREEN(esp) && ((esp)->flags & 4)))
 #define ESP08_TEXCOORD_SET()                                                                      \
     if (esp->flags & 2) {                                                                         \
-        if (ESP_PARTS_SCREEN(esp)) {                                                              \
-            if (!(esp->flags & 4)) {                                                              \
-                s1 = 0.0f;                                                                        \
-                s0 = s1 + z;                                                                      \
-                t0 = s0;                                                                          \
-                t1 = s1;                                                                          \
-            } else {                                                                              \
-                s1 = 0.0f;                                                                        \
-                s0 = s1 + z;                                                                      \
-                t0 = s1;                                                                          \
-                t1 = s0;                                                                          \
-            }                                                                                     \
+        if (ESP08_FLIP_T(esp)) {                                                                  \
+            s1 = 0.0f;                                                                            \
+            s0 = s1 + z;                                                                          \
+            t0 = s0;                                                                              \
+            t1 = s1;                                                                              \
         } else {                                                                                  \
-            if (esp->flags & 4) {                                                                 \
-                s1 = 0.0f;                                                                        \
-                s0 = s1 + z;                                                                      \
-                t0 = s0;                                                                          \
-                t1 = s1;                                                                          \
-            } else {                                                                              \
-                s1 = 0.0f;                                                                        \
-                s0 = s1 + z;                                                                      \
-                t0 = s1;                                                                          \
-                t1 = s0;                                                                          \
-            }                                                                                     \
+            s1 = 0.0f;                                                                            \
+            s0 = s1 + z;                                                                          \
+            t0 = s1;                                                                              \
+            t1 = s0;                                                                              \
         }                                                                                         \
     } else {                                                                                      \
-        if (ESP_PARTS_SCREEN(esp)) {                                                              \
-            if (!(esp->flags & 4)) {                                                              \
-                s0 = 0.0f;                                                                        \
-                s1 = s0 + z;                                                                      \
-                t1 = s0;                                                                          \
-                t0 = s1;                                                                          \
-            } else {                                                                              \
-                s0 = 0.0f;                                                                        \
-                s1 = s0 + z;                                                                      \
-                t0 = s0;                                                                          \
-                t1 = s1;                                                                          \
-            }                                                                                     \
+        if (ESP08_FLIP_T(esp)) {                                                                  \
+            s0 = 0.0f;                                                                            \
+            s1 = s0 + z;                                                                          \
+            t1 = s0;                                                                              \
+            t0 = s1;                                                                              \
         } else {                                                                                  \
-            if (esp->flags & 4) {                                                                 \
-                s0 = 0.0f;                                                                        \
-                s1 = s0 + z;                                                                      \
-                t1 = s0;                                                                          \
-                t0 = s1;                                                                          \
-            } else {                                                                              \
-                s0 = 0.0f;                                                                        \
-                s1 = s0 + z;                                                                      \
-                t0 = s0;                                                                          \
-                t1 = s1;                                                                          \
-            }                                                                                     \
+            s0 = 0.0f;                                                                            \
+            s1 = s0 + z;                                                                          \
+            t0 = s0;                                                                              \
+            t1 = s1;                                                                              \
         }                                                                                         \
     }
 
@@ -458,7 +434,6 @@ void Esp08_Trans(cEsp08* esp)
     sy = esp->sizeY * esp->scale;
     ox = -anm->x4;
     oy = (f32) anm->x6;
-    z = 1.0f;
     if (ox == 0.0f) {
         ox = -anm->x0 * 0.5f;
     }
@@ -467,6 +442,7 @@ void Esp08_Trans(cEsp08* esp)
     }
     x0 = ox * sx / anm->x0;
     y0 = oy * sy / anm->x2;
+    z = 1.0f;
     ESP08_TEXCOORD_SET()
     ESP08_TILES()
     if (esp->flags & 0x4000) {
