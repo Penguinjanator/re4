@@ -1,5 +1,5 @@
-#include "light.h"
 #include "atari.h"
+#include "light.h"
 #include "gx.h"
 #include "global.h"
 #include "math_sub.h"
@@ -89,7 +89,7 @@ void Esp18_Trans(cEsp18* esp)
     int texGens;
     void* buf;
 
-    if (!esp->ChannelSetI()) {
+    if (!esp->ChannelSet()) {
         return;
     }
     if (!EspGetAnmAddr(esp->anmNo, &anm)) {

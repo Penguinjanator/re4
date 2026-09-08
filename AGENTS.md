@@ -441,6 +441,18 @@ mark it Matching.
   preferences; inlining the expressions per test gives per-block pseudos.
 - Unused `.sdata` globals with no Bio4.sym name must keep the `lbl_XXXXXXXX` symbol name or
   strip_unused removes them.
+- Reading a static through a reference (`static inline f32 FRef(f32& v) { return v; }`) gives a MEM
+  with neither the struct nor the scalar flag: the load stays below preceding member stores and
+  blocks flow.c's dead-store elimination of an earlier store to the same member.
+- SN's `BRANCH_COST` is 0, so `&&` is never folded to `&`: a `subfic/adde ... and.` store-flag pair is
+  an explicit `&` in the source.
+- Byte stores of the literal `0xFF` share one `li rX,0xff`; a `u8`/`int` local `c = 0xFF` yields `li -1`.
+- A constant shared by two functions but emitted between them is a public `const Vec x = {..}`
+  (declared `extern const` first, defined at that point); `static const` at file scope is deferred.
+- `if (x <= 0.0f)` gives `cror un,eq,lt; bso`; `if (!(x > 0.0f))` gives a plain `ble`.
+- An address-taken local the original reloads after every store through it is a one-member struct
+  local (`struct { cEsp* p; } e; PullEsp(&e.p, id)`).
+- `static f32 v = 1.0f / (f32) n;` (function-local, runtime initialiser) is the `_.tmp_0` guard word.
 - Static locals show as `name.NNN` in objdiff; the DECL_UID suffix cannot be reproduced and is ignored by the report.
 - Unexplained words in `.rodata` (zero words, stray floats) are usually the constant pool of a function
   the original linker dead-stripped (bodies gone, pools kept, `STRIP_UNUSED` in objects.py): write a

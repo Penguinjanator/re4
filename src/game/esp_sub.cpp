@@ -10,13 +10,16 @@
 #include "rnd.h"
 #include "main_sub.h"
 #include "db_log.h"
+#include "tpl.h"
+#include "trans_ot.h"
 
 // game/trans_lit.cpp
-void commonEspLightSet(cLight** list, int n);
+extern "C" void commonEspLightSet(cLight** list, int n);
 
 extern "C" {
-void EspCommonTransShimmer(cEsp* esp, int type);
+static void EspCommonTransShimmer(cEsp* esp, int type, int blur);
 void EspCommonTransNega(cEsp* esp, int type);
+f32 EspGetCameraPan();   // game/esp.cpp
 int EspEstSetSelect(int a, int b, int c, cEsp** out, int d);
 void GetPosXY(Vec* p0, Vec* p1, Vec* p2, Vec* p3, f32 u, f32 v, Vec* out);
 void Esp1b_SpTrans(cEsp* esp);
@@ -30,8 +33,278 @@ struct EspPtr {
     cEsp* p;
 };
 
-// TODO: EspCommonTrans / EspCommonTransShimmer / EspCommonTransNega (0xA18 / 0x1088 / 0xB7C)
+#define ESP_PARTS_SCREEN(esp) ((s8) (esp)->partsNo >= -8 && (s8) (esp)->partsNo <= -3)
+
+// Shared sprite draw: the sprite quad (g_EspCommonDisplayList) with the effect's texture, an
+// optional mask texture in TEV stage 1, screen-space or camera-relative placement.
 void EspCommonTrans(cEsp* esp)
+{
+    static int s_proj_type;
+    static int s_tex_no;
+    static EspAnmData* s_pAnm;
+    static int s_ptn_no;
+    Mtx inv;
+    EspAnmData* anm;
+    f32 sx;
+    f32 sy;
+    f32 ox;
+    f32 oy;
+
+    if (esp->xEC != 0) {
+        EspCommonTransShimmer(esp, esp->xED, esp->xEC);
+        return;
+    }
+    if (esp->flags & 0x2000) {
+        EspCommonTransNega(esp, 2);
+        return;
+    }
+    GXSetBlendMode(esp->xA4, esp->xA5, esp->xA6, esp->xA7);
+    if (OtGetPrevKind() != 8) {
+        if (ESP_PARTS_SCREEN(esp)) {
+            Mtx44 proj;
+            s_proj_type = 0;
+            C_MTXOrtho(proj, 0.0f, 448.0f, 0.0f, 512.0f, 0.0f, -100.0f);
+            GXSetProjection(proj, 1);
+        } else {
+            s_proj_type = 1;
+            CameraCurrentProjection();
+        }
+        if (!EspGetAnmAddr(esp->anmNo, &s_pAnm)) {
+            pLog->err(0, 0, "ESP : TexId[%x] no data", esp->anmNo);
+            s_tex_no = -1;
+            return;
+        }
+        EspTexSet(esp->anmNo, esp->anmPtn);
+        s_tex_no = esp->anmNo;
+        s_ptn_no = esp->anmPtn;
+        esp->CommonStateSet();
+        GXClearVtxDesc();
+        GXSetVtxDesc(9, 1);
+        GXSetVtxDesc(0xA, 1);
+        GXSetVtxDesc(0xD, 1);
+        GXSetVtxAttrFmt(0, 9, 1, 1, 0);
+        GXSetVtxAttrFmt(0, 0xA, 0, 1, 0);
+        GXSetVtxAttrFmt(0, 0xD, 1, 1, 0);
+    } else {
+        if (ESP_PARTS_SCREEN(esp)) {
+            if (s_proj_type != 0) {
+                Mtx44 proj;
+                s_proj_type = 0;
+                C_MTXOrtho(proj, 0.0f, 448.0f, 0.0f, 512.0f, 0.0f, -100.0f);
+                GXSetProjection(proj, 1);
+            }
+        } else {
+            if (s_proj_type != 1) {
+                s_proj_type = 1;
+                CameraCurrentProjection();
+            }
+        }
+        if (s_tex_no != esp->anmNo) {
+            if (!EspGetAnmAddr(esp->anmNo, &s_pAnm)) {
+                pLog->err(0, 0, "ESP : TexId[%x] no data", esp->anmNo);
+                s_tex_no = -1;
+                return;
+            }
+        }
+        if (s_tex_no != esp->anmNo || s_ptn_no != esp->anmPtn) {
+            EspTexSet(esp->anmNo, esp->anmPtn);
+            s_ptn_no = esp->anmPtn;
+        }
+        s_tex_no = esp->anmNo;
+    }
+    if (!esp->ChannelSet()) {
+        return;
+    }
+    sx = esp->sizeX * esp->scale;
+    sy = esp->sizeY * esp->scale;
+    anm = s_pAnm;
+    if ((f32) s_pAnm->x4 == 0.0f) {
+        ox = -0.5f;
+    } else {
+        ox = (f32) -anm->x4 / anm->x0;
+    }
+    if ((f32) anm->x6 == 0.0f) {
+        oy = 0.5f;
+    } else {
+        oy = (f32) anm->x6 / anm->x2 + -1.0f;
+    }
+    if (ESP_PARTS_SCREEN(esp)) {
+        Mtx m;
+
+        esp->mat[2][2] = 1.0f;
+        esp->mat[2][3] = 0.0f;
+        esp->mat[0][0] = sx;
+        esp->mat[0][1] = 0.0f;
+        esp->mat[0][2] = 0.0f;
+        esp->mat[0][3] = ox * sx;
+        esp->mat[1][0] = 0.0f;
+        esp->mat[1][1] = sy;
+        esp->mat[1][2] = 0.0f;
+        esp->mat[1][3] = oy * sy;
+        esp->mat[2][0] = 0.0f;
+        esp->mat[2][1] = 0.0f;
+        if (esp->flags & 2) {
+            esp->mat[0][0] = -sx;
+            esp->mat[0][3] = -(ox * sx);
+            if (!(esp->flags & 4)) {
+                esp->mat[1][1] = -sy;
+                esp->mat[1][3] = -(oy * sy);
+            }
+        } else if (!(esp->flags & 4)) {
+            esp->mat[1][1] = -sy;
+            esp->mat[1][3] = -(oy * sy);
+        }
+        low_RotMatrix(m, &esp->rot);
+        PSMTXConcat(m, esp->mat, esp->mat);
+        esp->mat[0][3] += esp->pos.x;
+        esp->mat[1][3] += esp->pos.y;
+        esp->mat[2][3] += esp->pos.z;
+    } else if (!(esp->flags & 0x80001)) {
+        Mtx m;
+        Vec p;
+        Mtx m2;
+
+        esp->mat[2][2] = 1.0f;
+        esp->mat[2][3] = 0.0f;
+        esp->mat[0][0] = sx;
+        esp->mat[0][1] = 0.0f;
+        esp->mat[0][2] = 0.0f;
+        esp->mat[0][3] = ox * sx;
+        esp->mat[1][0] = 0.0f;
+        esp->mat[1][1] = sy;
+        esp->mat[1][2] = 0.0f;
+        esp->mat[1][3] = oy * sy;
+        esp->mat[2][0] = 0.0f;
+        esp->mat[2][1] = 0.0f;
+        if (esp->flags & 2) {
+            esp->mat[0][0] = -sx;
+            esp->mat[0][3] = -(ox * sx);
+            if (esp->flags & 4) {
+                esp->mat[1][1] = -sy;
+                esp->mat[1][3] = -(oy * sy);
+            }
+        } else if (esp->flags & 4) {
+            esp->mat[1][1] = -sy;
+            esp->mat[1][3] = -(oy * sy);
+        }
+        PSMTXRotRad(m, 'z', esp->rot.z);
+        PSMTXConcat(m, esp->mat, esp->mat);
+        PSMTXConcat(pG->Cam.viewMat, esp->parent->mat, m2);
+        PSMTXMultVec(m2, &esp->pos, &p);
+        esp->mat[0][3] += p.x;
+        esp->mat[1][3] += p.y;
+        esp->mat[2][3] += p.z;
+    } else {
+        Mtx m;
+
+        esp->mat[2][2] = 1.0f;
+        esp->mat[2][3] = 0.0f;
+        esp->mat[0][0] = sx;
+        esp->mat[0][1] = 0.0f;
+        esp->mat[0][2] = 0.0f;
+        esp->mat[0][3] = ox * sx;
+        esp->mat[1][0] = 0.0f;
+        esp->mat[1][1] = sy;
+        esp->mat[1][2] = 0.0f;
+        esp->mat[1][3] = oy * sy;
+        esp->mat[2][0] = 0.0f;
+        esp->mat[2][1] = 0.0f;
+        if (esp->flags & 2) {
+            esp->mat[0][0] = -sx;
+            esp->mat[0][3] = -(ox * sx);
+            if (esp->flags & 4) {
+                esp->mat[1][1] = -sy;
+                esp->mat[1][3] = -(oy * sy);
+            }
+        } else if (esp->flags & 4) {
+            esp->mat[1][1] = -sy;
+            esp->mat[1][3] = -(oy * sy);
+        }
+        low_RotMatrix(m, &esp->rot);
+        PSMTXConcat(m, esp->mat, esp->mat);
+        if (esp->flags & 0x80000) {
+            Mtx m3;
+            PSMTXRotRad(m3, 'y', EspGetCameraPan() * (3.1415927f / 180.0f));
+            PSMTXConcat(m3, esp->mat, esp->mat);
+        }
+        esp->mat[0][3] += esp->pos.x;
+        esp->mat[1][3] += esp->pos.y;
+        esp->mat[2][3] += esp->pos.z;
+        PSMTXConcat(esp->parent->mat, esp->mat, esp->mat);
+        PSMTXConcat(pG->Cam.viewMat, esp->mat, esp->mat);
+    }
+    PSMTXInverse(esp->mat, inv);
+    PSMTXTranspose(inv, inv);
+    GXLoadNrmMtxImm(inv, 0);
+    GXLoadPosMtxImm(esp->mat, 0);
+    GXSetCurrentMtx(0);
+    if (esp->flags & 0x4000) {
+        int no = esp->anmNo2;
+        EspTexWk* tw = EspGetTexWk(no, 1);
+        if (tw->owner == 0xD2) {
+            pLog->err(0, 0, "ESP : Mask_TexId[%x] no data", no);
+        } else {
+            GXTexObj tex;
+            GXTlutObj tlut;
+            TEXDescriptor* td = TEXGet(tw->pTpl, esp->anmPtn2);
+            TEXHeader* th = td->textureHeader;
+
+            if (th->format == 8 || th->format == 9) {
+                GXInitTexObjCI(&tex, th->data, th->width, th->height, th->format, 0, 0, 0, 1);
+                GXInitTlutObj(&tlut, td->CLUTHeader->data, td->CLUTHeader->format, td->CLUTHeader->numEntries);
+                GXLoadTlut(&tlut, 1);
+            } else {
+                GXInitTexObj(&tex, th->data, th->width, th->height, th->format, 0, 0, 0);
+            }
+            GXLoadTexObj(&tex, 1);
+            GXLoadTexMtxImm(tw->mtx, 0x21, 1);
+            GXSetTexCoordGen(1, 1, 4, 0x21);
+            GXSetNumTevStages(2);
+            GXSetNumTexGens(2);
+            GXSetTevOrder(1, 1, 1, 4);
+            GXSetTevColorIn(1, 0xF, 0xF, 0xF, 0);
+            GXSetTevColorOp(1, 0, 0, 0, 1, 0);
+            GXSetTevAlphaIn(1, 7, 4, 5, 7);
+            if (esp->flags & 0x20000) {
+                GXSetTevAlphaOp(1, 0, 0, 2, 1, 0);
+            } else {
+                GXSetTevAlphaOp(1, 0, 0, 0, 1, 0);
+            }
+        }
+    }
+    if ((!(pG->flags_5010 & 0x80) && (esp->flags & 0x8000)) || ((pG->flags_5010 & 0x80) && (esp->flags & 0x800000))) {
+        GXSetAlphaUpdate(1);
+    }
+    if (esp->flags & 0x200000) {
+        GXSetZMode(1, 3, 1);
+        GXSetDstAlpha(1, 0);
+    }
+    if (esp->flags & 0x100000) {
+        GXSetAlphaCompare(4, 0x80, 1, 4, 0x80);
+    }
+    if (esp->dispFlag & 0x10) {
+        Esp1b_SpTrans(esp);
+    } else {
+        GXCallDisplayList(g_EspCommonDisplayList, 0x60);
+    }
+    if (esp->flags & 0x4000) {
+        GXSetNumTevStages(1);
+        GXSetNumTexGens(1);
+    }
+    if (esp->flags & 0x200000) {
+        GXSetZMode(1, 3, 0);
+        GXSetDstAlpha(0, 0);
+    }
+    if (esp->flags & 0x100000) {
+        GXSetAlphaCompare(4, 1, 1, 4, 1);
+    }
+    if (esp->flags & 0x808000) {
+        GXSetAlphaUpdate(0);
+    }
+}
+
+// TODO: EspCommonTransShimmer (0x1088) / EspCommonTransNega (0xB7C)
+static void EspCommonTransShimmer(cEsp* esp, int type, int blur)
 {
 }
 
@@ -58,7 +331,7 @@ int cEsp::CommonMove()
     if (scaleCnt == 0 || scaleCnt <= cnt) {
         scale += scaleSpd;
         scaleSpd *= scaleScale;
-        if (!(scale >= 0.0f)) {
+        if (scale <= 0.0f) {
             PushEsp(this);
             return 0;
         }
@@ -118,73 +391,83 @@ int cEsp::SetFreeWork(EspGenWork* gen, u32* seed)
     return 1;
 }
 
-// One texture animation step; returns 0 when the animation ended.
-static inline int AnmStep(cEsp* esp, EspAnmData* anm, u8& ptn, u16& count, u8 spd)
-{
-    u32 time;
-
-    if (anm->xC == 0) {
-        time = 1;
-    } else {
-        time = anm->ptnTime[ptn];
-    }
-    count += spd;
-    while ((count >> 5) > time) {
-        ptn++;
-        count -= time << 5;
-        if (ptn >= anm->nPtn) {
-            switch (anm->xB & 3) {
-            case 0:
-                return 0;
-            case 1:
-                ptn = 0;
-                break;
-            case 2:
-                ptn = anm->x9 - 1;
-                break;
-            }
-        }
-    }
-    return 1;
-}
-
 int cEsp::AnmMove()
 {
     EspAnmData* anm;
+    u32 time;
 
     if (!EspGetAnmAddr(anmNo, &anm)) {
         pLog->err(0, 0, "ESP : TexId[%x] no data", anmNo);
         return 0;
     }
-    if (!AnmStep(this, anm, anmPtn, anmCnt, anmSpd)) {
-        return 0;
+    if (anm->xC == 0) {
+        time = 1;
+    } else {
+        time = anm->ptnTime[anm->nPtn + anmPtn];
+    }
+    anmCnt += anmSpd;
+    while ((anmCnt >> 5) > (u16) time) {
+        anmPtn++;
+        anmCnt -= time << 5;
+        if (anmPtn >= anm->nPtn) {
+            switch (anm->xB & 3) {
+            case 0:
+                return 0;
+            case 1:
+                anmPtn = 0;
+                break;
+            case 2:
+                anmPtn = anm->nPtn - 1;
+                break;
+            }
+        }
     }
     if (flags & 0x4000) {
         if (!EspGetAnmAddr(anmNo2, &anm)) {
             pLog->err(0, 0, "ESP : MaskTexId[%x] no data", anmNo);
             return 0;
         }
-        if (!AnmStep(this, anm, anmPtn2, anmCnt2, anmSpd)) {
-            return 0;
+        if (anm->xC == 0) {
+            time = 1;
+        } else {
+            time = anm->ptnTime[anm->nPtn + anmPtn2];
+        }
+        anmCnt2 += anmSpd;
+        while ((anmCnt2 >> 5) > (u16) time) {
+            anmPtn2++;
+            anmCnt2 -= time << 5;
+            if (anmPtn2 >= anm->nPtn) {
+                switch (anm->xB & 3) {
+                case 0:
+                    return 0;
+                case 1:
+                    anmPtn2 = 0;
+                    break;
+                case 2:
+                    anmPtn2 = anm->nPtn - 1;
+                    break;
+                }
+            }
         }
     }
     return 1;
 }
 
 #line 1730 "D:/Bio4/Prog/esp_sub.cpp"
-int cEsp::ChannelSetI()
+int cEsp::ChannelSet()
 {
     GXColor col;
     GXColor fin;
     Vec p;
     Vec dir;
     Vec d;
+    cEspSystem* sys = g_pEspSys;
 
     if (flags & 0x40) {
         GXSetTevOp(0, 0);
         GXSetTevColorIn(0, 0xF, 8, 0xA, 0xF);
         GXSetTevColorOp(0, 0, 0, 2, 1, 0);
-        commonEspLightSet(g_pEspSys->lightList.p, g_pEspSys->lightList.num);
+        commonEspLightSet(sys->lightList.p, sys->lightList.num);
     } else {
         GXSetTevOp(0, 0);
         if (flags & 0x80) {
@@ -209,10 +492,10 @@ int cEsp::ChannelSetI()
     }
     if (!(dispFlag & 4) && EffIsSetFinalCol()) {
         EffGetFinalCol(&fin);
-        col.r = col.r * fin.r >> 8;
-        col.g = col.g * fin.g >> 8;
-        col.b = col.b * fin.b >> 8;
-        col.a = col.a * fin.a >> 8;
+        col.r = (u32) col.r * fin.r >> 8;
+        col.g = (u32) col.g * fin.g >> 8;
+        col.b = (u32) col.b * fin.b >> 8;
+        col.a = (u32) col.a * fin.a >> 8;
     }
     if (x16 != 0) {
         Camera* cam;
@@ -233,19 +516,25 @@ int cEsp::ChannelSetI()
         d.y = p.y - cam->param.pos.y;
         d.z = p.z - cam->param.pos.z;
         dot = PSVECDotProduct(&dir, &d);
-        if (dot < (f32) x16 * 10.0f) {
-            f32 rate = 1.0f - ((f32) x16 * 10.0f - dot) / ((f32) (x16 - x14) * 10.0f);
+        if (dot < x16 * 10.0f) {
+            f32 rate = 1.0f - (x16 * 10.0f - dot) / ((x16 - x14) * 10.0f);
             if (dispFlag & 1) {
-                col.r = (u8) ((f32) col.r * rate);
-                col.g = (u8) ((f32) col.g * rate);
-                col.b = (u8) ((f32) col.b * rate);
+                col.r = (u8) (col.r * rate);
+                col.g = (u8) (col.g * rate);
+                col.b = (u8) (col.b * rate);
             } else {
-                col.a = (u8) ((f32) col.a * rate);
+                col.a = (u8) (col.a * rate);
             }
         }
     }
     GXSetChanMatColor(4, col);
-    return col.a != 0;
+    {
+        int ret = 0;
+        if (col.a != 0) {
+            ret = 1;
+        }
+        return ret;
+    }
 }
 
 void cEsp::ApplyMatrix(Mtx m)
@@ -291,7 +580,6 @@ int EspEstSetSelect(int a, int b, int c, cEsp** out, int d)
     EspGenWork* rec;
     EspInfo info;
     Mtx m;
-    u32 seed = 0x12345678;
     u8 type;
 
     head = EspGetEstAddr(a, b, 0);
@@ -303,22 +591,23 @@ int EspEstSetSelect(int a, int b, int c, cEsp** out, int d)
         pLog->err(0, 0, "EspEstSetSelect() : invalid no[%d] MAX=%d", c, head->num);
         return 0;
     }
+    u32 seed = 0x12345678;
     rec = &head->rec[c];
     type = rec->type;
-    if (type == 0) {
-        PSMTXIdentity(m);
-        memclr_asm(&info, sizeof(info));
-        if (d == 1) {
-            info.x0 |= 1;
+    if (type != 0) {
+        if (type == 1) {
+            pLog->err(0, 0, "EspEstSetSelect : can't call Espgen.");
+            return 0;
         }
-        return EspSeqSet(rec, &info, &seed, 0, &m, 0, out, 0, 0, 0.0f) == 1;
-    }
-    if (type == 1) {
-        pLog->err(0, 0, "EspEstSetSelect : can't call Espgen.");
+        pLog->err(0, 0, "EspEstSetSelect : KIND[%d] is invalid.", type);
         return 0;
     }
-    pLog->err(0, 0, "EspEstSetSelect : KIND[%d] is invalid.", type);
-    return 0;
+    PSMTXIdentity(m);
+    memclr_asm(&info, sizeof(info));
+    if (d == 1) {
+        info.x0 |= 1;
+    }
+    return EspSeqSet(rec, &info, &seed, 0, &m, 0, out, 0, 0, 0.0f) == 1;
 }
 
 int EspSeqSet(EspGenWork* rec, EspInfo* info, u32* seed, cModel* model, Mtx* mtx, int a, cEsp** out, EspSeqOpt* p8,
@@ -351,9 +640,7 @@ int EspSeqSet(EspGenWork* rec, EspInfo* info, u32* seed, cModel* model, Mtx* mtx
         *out = EspGetDmyPtr();
         return 0;
     }
-    if (PullEsp(&e.p, rec->x1) == 0) {
-        ret = 0;
-    } else {
+    if (PullEsp(&e.p, rec->x1) != 0) {
         e.p->info = *info;
         e.p->id = rec->x1;
         e.p->anmNo = rec->x2;
@@ -646,6 +933,8 @@ int EspSeqSet(EspGenWork* rec, EspInfo* info, u32* seed, cModel* model, Mtx* mtx
                 e.p->colA = (f32) e.p->x83;
             }
         }
+    } else {
+        ret = 0;
     }
     if (ret == 0) {
         *out = EspGetDmyPtr();
@@ -669,11 +958,11 @@ void GetPosXY(Vec* p0, Vec* p1, Vec* p2, Vec* p3, f32 u, f32 v, Vec* out)
     PSVECSubtract(p2, p3, &v1);
     PSVECScale(&v0, &v0, u);
     PSVECScale(&v1, &v1, u);
-    PSVECAdd(p0, &v0, &v0);
-    PSVECAdd(p3, &v1, &v1);
+    PSVECAdd(&v0, p0, &v0);
+    PSVECAdd(&v1, p3, &v1);
     PSVECSubtract(&v1, &v0, &v2);
     PSVECScale(&v2, &v2, v);
-    PSVECAdd(&v0, &v2, out);
+    PSVECAdd(&v2, &v0, out);
 }
 
 // esp1b work at cEsp+0xF8: the quad is subdivided div x div times.
@@ -714,8 +1003,8 @@ void Esp1b_SpTrans(cEsp* esp)
     GXSetVtxAttrFmt(0, 0xD, 1, 4, 0);
     div = w->div;
     p0.x = 0.0f;
-    p0.z = 1.0f;
     p0.y = 1.0f;
+    p0.z = 1.0f;
     p1.x = w->p1.x + 1.0f;
     p1.y = w->p1.y + 1.0f;
     p1.z = w->p1.z + 1.0f;
@@ -725,7 +1014,7 @@ void Esp1b_SpTrans(cEsp* esp)
     p3.x = w->p3.x + 0.0f;
     p3.y = w->p3.y + 0.0f;
     p3.z = w->p3.z + 1.0f;
-    GXBegin(0x80, 0, div * div * 4);
+    GXBegin(0x80, 0, div * 4 * div);
     step = 1.0f / (f32) div;
     v = 0.0f;
     tv = 0.0f;
@@ -756,8 +1045,8 @@ void Esp1b_SpTrans(cEsp* esp)
             u = u1;
             tu = tu1;
         }
-        v = v1;
-        tv = tv1;
+        v += step;
+        tv += step;
     }
     GXClearVtxDesc();
     GXSetVtxDesc(9, 1);

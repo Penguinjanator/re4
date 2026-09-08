@@ -176,13 +176,18 @@ struct EspAnmData {
     u16 x2;            // 0x02 texture height
     s16 x4;            // 0x04 sprite width
     s16 x6;            // 0x06 sprite height
-    u16 nPtn;          // 0x08 number of patterns
-    u8 x9;             // 0x09
-    u8 xA;
+    union {
+        u16 nPtn;      // 0x08 number of patterns
+        struct {
+            u8 x8;
+            u8 x9;     // 0x09 low byte of nPtn
+        };
+    };
+    u8 xA;             // 0x0A
     u8 xB;             // 0x0B bits 0-1: loop mode
     u8 xC;             // 0x0C 0 = fixed pattern time
     u8 pad_0D[3];
-    u8 ptnTime[1];     // 0x10 per-pattern display time
+    u8 ptnTime[1];     // 0x10 pattern table: nPtn entries, then the per-pattern display times
 };
 
 // Effect owner info at the head of every cEsp (copied as a block by esp3f).
@@ -286,11 +291,7 @@ public:
     int ColorUpdate();
     void ApplyMatrix(Mtx m);
     void CommonStateSet();
-    void ChannelSet();
-    // ChannelSet really returns `col.a != 0` (esp18 tests it). The void declaration above stays
-    // for the units that ignore the result (the callee's return type orders their argument
-    // set up); this asm-labelled alias is the same function with its real signature.
-    int ChannelSetI() asm("ChannelSet__4cEsp");
+    int ChannelSet();   // col.a != 0 (esp18 tests it)
 };
 
 // game/esp3f.cpp: vector buffer owned by an effect (see esp3f.cpp for the class)

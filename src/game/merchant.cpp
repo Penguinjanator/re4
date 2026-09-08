@@ -33,10 +33,6 @@ LevelPrice level_price[] = {
     {0x37, {4000, 5000, 7000, 9000, 12000, 20000, 0}, {0, 0, 0}, {2500, 5000, 0}, {1500, 2000, 2500, 3500, 5000, 0, 0}},
 };
 
-static LevelEntry level_null[] = {
-    {0xFFFF},
-};
-
 LevelEntry level_first[] = {
     {0x23, {2, 2, 2, 2}},
     {0x2C, {2, 1, 2, 2}},
@@ -621,10 +617,23 @@ PriceEntry g_item_price_tbl[] = {
 };
 
 
+extern LevelEntry level_null[];
+
 static int g_item_price_tbl_num = sizeof(g_item_price_tbl) / sizeof(g_item_price_tbl[0]);
 
 MerchantCharacter merchantChar;
 MerchantData merchantData[MERCHANT_NUM];
+
+// the tests below are kept apart (fold would merge two masks of one lvalue into a single andis.)
+static inline u32 chkFlag6C(u32 b)
+{
+    return pG->flags_6C & b;
+}
+
+static inline u32 chkFlag51C0(u32 b)
+{
+    return pG->flags_51C0 & b;
+}
 
 void merchant_stage1_full()
 {
@@ -687,7 +696,7 @@ void MerchantGameInit()
     stockDataInit(merchantData);
     levelDataInit(merchantData);
     merchantChar.setChar(0, 0, 0, 0, 0);
-    if ((pG->flags_6C & 0x00800000) || (pG->flags_6C & 0x00040000)) {
+    if (chkFlag6C(0x00800000) || chkFlag6C(0x00040000)) {
         if (pG->stage_no > 1) {
             merchant_stage1_full();
         }
@@ -750,6 +759,8 @@ void MerchantRoomInit()
             stockDataAdd(merchantData, stock_r112);
         }
         break;
+    case 0x11C:
+        break;
     }
     if (pG->room_id == 0x10E) {
         if (pG->flags_51C0 & 0x01000000) {
@@ -766,7 +777,7 @@ void MerchantRoomInit()
             }
         }
     }
-    if ((pG->flags_51C0 & 0x01000000) && !(pG->flags_51C0 & 0x2000)) {
+    if (chkFlag51C0(0x01000000) && !chkFlag51C0(0x2000)) {
         levelDataAdd(merchantData, level_1st_night);
         pG->flags_51C0 |= 0x2000;
     }
@@ -957,8 +968,10 @@ void add_stock(StockEntry* dst, StockEntry* src)
     case 3:
         if (src->id == 0x35 && pSys->language != 0) {
             dst->num = 1;
-            break;
+        } else {
+            dst->num += src->num;
         }
+        break;
     default:
         dst->num += src->num;
         break;
@@ -970,14 +983,13 @@ void stockDataAdd(MerchantData* d, StockEntry* tbl)
     StockEntry* s;
     int i;
 
-    for (i = 0; i < STOCK_MAX && d->stock.e[i].id != 0xFFFF; i++) {
-        d->stock.e[i].isNew = 0;
+    for (i = 0, s = d->stock.e; i < STOCK_MAX && s->id != 0xFFFF; i++, s++) {
+        s->isNew = 0;
     }
     for (; tbl->id != 0xFFFF; tbl++) {
         int found = 0;
 
-        for (i = 0; i < STOCK_MAX; i++) {
-            s = &d->stock.e[i];
+        for (i = 0, s = d->stock.e; i < STOCK_MAX; i++, s++) {
             if (s->id == 0xFFFF) {
                 break;
             }
@@ -988,8 +1000,7 @@ void stockDataAdd(MerchantData* d, StockEntry* tbl)
             }
         }
         if (!found) {
-            for (i = 0; i < STOCK_MAX; i++) {
-                s = &d->stock.e[i];
+            for (i = 0, s = d->stock.e; i < STOCK_MAX; i++, s++) {
                 if (s->id == 0xFFFF) {
                     s->id = tbl->id;
                     add_stock(s, tbl);
@@ -1022,14 +1033,13 @@ void levelDataAdd(MerchantData* d, LevelEntry* tbl)
     int i;
     int j;
 
-    for (i = 0; i < LEVEL_MAX && d->level.e[i].id != 0xFFFF; i++) {
-        d->level.e[i].isNew = 0;
+    for (i = 0, l = d->level.e; i < LEVEL_MAX && l->id != 0xFFFF; i++, l++) {
+        l->isNew = 0;
     }
     for (; tbl->id != 0xFFFF; tbl++) {
         int found = 0;
 
-        for (i = 0; i < LEVEL_MAX; i++) {
-            l = &d->level.e[i];
+        for (i = 0, l = d->level.e; i < LEVEL_MAX; i++, l++) {
             if (l->id == 0xFFFF) {
                 break;
             }
@@ -1046,8 +1056,8 @@ void levelDataAdd(MerchantData* d, LevelEntry* tbl)
         }
         if (!found) {
             for (i = 0; i < LEVEL_MAX; i++) {
-                l = &d->level.e[i];
-                if (l->id == 0xFFFF) {
+                if (d->level.e[i].id == 0xFFFF) {
+                    l = &d->level.e[i];
                     l->id = tbl->id;
                     for (j = 0; j < 4; j++) {
                         l->lv[j] = tbl->lv[j];
@@ -1112,12 +1122,15 @@ StockEntry* Merchant::stockPtr(u16 id)
 {
     StockEntry* s;
 
-    for (s = stock.e; s->id != 0xFFFF; s++) {
+    for (s = stock.e;; s++) {
+        if (s->id == 0xFFFF) {
+            return 0;
+        }
         if (id == s->id) {
-            return s;
+            break;
         }
     }
-    return 0;
+    return s;
 }
 
 void Merchant::stockAdd(u16 id, int num)
@@ -1161,24 +1174,15 @@ int Merchant::stockNum(u16 id)
         }
         return pG->costume != 2 && pG->costume != 3;
     case 0x7D:
-        if (ItemMgr.num(0x7F) != 0) {
-            return 0;
+        if (ItemMgr.num(0x7F) == 0 && ItemMgr.num(0x7E) == 0 && ItemMgr.num(0x7D) == 0) {
+            return 1;
         }
-        if (ItemMgr.num(0x7E) != 0) {
-            return 0;
-        }
-        if (ItemMgr.num(0x7D) != 0) {
-            return 0;
-        }
-        return 1;
+        return 0;
     case 0x7E:
-        if (ItemMgr.num(0x7F) != 0) {
-            return 0;
+        if (ItemMgr.num(0x7F) == 0 && ItemMgr.num(0x7E) == 0) {
+            return 1;
         }
-        if (ItemMgr.num(0x7E) != 0) {
-            return 0;
-        }
-        return 1;
+        return 0;
     case 0x7F:
         return ItemMgr.num(0x7F) == 0;
     }
@@ -1226,12 +1230,15 @@ LevelEntry* Merchant::levelPtr(u16 id)
             return 0;
         }
     }
-    for (; l->id != 0xFFFF; l++) {
+    for (;; l++) {
+        if (l->id == 0xFFFF) {
+            return 0;
+        }
         if (id == l->id) {
-            return l;
+            break;
         }
     }
-    return 0;
+    return l;
 }
 
 int Merchant::levelNew(u16 id)
@@ -1251,10 +1258,7 @@ int Merchant::levelNew()
     for (l = level.e; l->id != 0xFFFF; l++) {
         if (l->isNew) {
             if (l->id == 0x21) {
-                if (stockPtr(0x21)) {
-                    return 1;
-                }
-                if (stockPtr(0x40)) {
+                if (stockPtr(0x21) || stockPtr(0x40)) {
                     return 1;
                 }
             } else if (stockPtr(l->id)) {
@@ -1269,10 +1273,10 @@ s8 Merchant::levelMax(u16 id, int type)
 {
     LevelEntry* l = levelPtr(id);
 
-    if (l == 0) {
-        return 1;
+    if (l != 0) {
+        return l->lv[type];
     }
-    return l->lv[type];
+    return 1;
 }
 
 int Merchant::stockSpecial(u16 id)
@@ -1286,19 +1290,10 @@ int Merchant::stockSpecial(u16 id)
 
 int Merchant::specialTunable(ItemWork* item)
 {
-    if (stockSpecial(item->id) == 0) {
-        return 0;
-    }
-    if ((item->x6 >> 12) + 1 != WeaponId2MaxLevel(item->id, 0)) {
-        return 0;
-    }
-    if (((item->x6 >> 8) & 0xF) + 1 != WeaponId2MaxLevel(item->id, 1)) {
-        return 0;
-    }
-    if (((item->x6 >> 4) & 0xF) + 1 != WeaponId2MaxLevel(item->id, 2)) {
-        return 0;
-    }
-    if ((item->x6 & 0xF) + 1 != WeaponId2MaxLevel(item->id, 3)) {
+    if (stockSpecial(item->id) == 0 || (item->x6 >> 12) + 1 != WeaponId2MaxLevel(item->id, 0) ||
+        ((item->x6 >> 8) & 0xF) + 1 != WeaponId2MaxLevel(item->id, 1) ||
+        ((item->x6 >> 4) & 0xF) + 1 != WeaponId2MaxLevel(item->id, 2) ||
+        (item->x6 & 0xF) + 1 != WeaponId2MaxLevel(item->id, 3)) {
         return 0;
     }
     return 1;
@@ -1319,22 +1314,14 @@ int Merchant::tunable(ItemWork* item)
         return 0;
     }
     if (stockSpecial(item->id) == 0) {
-        if ((item->x6 >> 12) + 1 < levelMax(item->id, 0)) {
-            return 1;
+        if ((item->x6 >> 12) + 1 >= levelMax(item->id, 0) && ((item->x6 >> 8) & 0xF) + 1 >= levelMax(item->id, 1) &&
+            ((item->x6 >> 4) & 0xF) + 1 >= levelMax(item->id, 2) && (item->x6 & 0xF) + 1 >= levelMax(item->id, 3)) {
+            return 0;
         }
-        if (((item->x6 >> 8) & 0xF) + 1 < levelMax(item->id, 1)) {
-            return 1;
+    } else {
+        if (specialTuned(item) == 1) {
+            return 0;
         }
-        if (((item->x6 >> 4) & 0xF) + 1 < levelMax(item->id, 2)) {
-            return 1;
-        }
-        if ((item->x6 & 0xF) + 1 < levelMax(item->id, 3)) {
-            return 1;
-        }
-        return 0;
-    }
-    if (specialTuned(item) == 1) {
-        return 0;
     }
     return 1;
 }
@@ -1352,7 +1339,8 @@ int checkSellingItem(u16 id)
     switch (id) {
     case 0x40:
         if (pG->flags_51BC & 0x00040000) {
-            ret = (pG->item_flags[0] & 0x10000000) == 0;
+            u32 sold = pG->item_flags[0] & 0x10000000;
+            ret = sold == 0;
         } else {
             ret = 0;
         }
@@ -1367,12 +1355,13 @@ int checkSellingItem(u16 id)
 int Merchant::makeSellingList()
 {
     PriceEntry* p = pSell;
-    int n = 0;
+    int n;
     int i;
 
     for (i = 0; i < LIST_MAX; i++) {
         sellingList[i] = 0;
     }
+    n = 0;
     for (i = 0; i < g_item_price_tbl_num; i++, p++) {
         if (checkSellingItem(p->id) && stockPtr(p->id)) {
             sellingList[n] = i;
@@ -1394,12 +1383,15 @@ PriceEntry* Merchant::sellingItemNo(int no)
 
 PriceEntry* Merchant::sellingItemId(u16 id)
 {
-    PriceEntry* p;
+    PriceEntry* p = pSell;
 
-    for (p = pSell; p->id != 0xFFFF; p++) {
-        if (p->id == id) {
-            return p;
-        }
+    if (p->id != 0xFFFF) {
+        do {
+            if (p->id == id) {
+                return p;
+            }
+            p++;
+        } while (p->id != 0xFFFF);
     }
     return 0;
 }
@@ -1408,14 +1400,16 @@ int checkExerciseItem(u16 id)
 {
     int ret = 1;
 
-    if (id >= 0x54 && id <= 0x55) {
+    switch (id) {
+    case 0x54:
+    case 0x55:
+    case 0x7C:
+    case 0x7D:
+    case 0x7E:
+    case 0x7F:
+    case 0xA9:
         ret = 0;
-    }
-    if (id >= 0x7C && id <= 0x7F) {
-        ret = 0;
-    }
-    if (id == 0xA9) {
-        ret = 0;
+        break;
     }
     return ret;
 }
@@ -1423,7 +1417,7 @@ int checkExerciseItem(u16 id)
 int Merchant::makeExerciseList()
 {
     PriceEntry* p = pExer;
-    int n = 0;
+    int n;
     int i;
     int j;
     ItemInfo info;
@@ -1431,6 +1425,7 @@ int Merchant::makeExerciseList()
     for (i = 0; i < LIST_MAX; i++) {
         exerciseList[i] = 0;
     }
+    n = 0;
     for (i = 0; i < g_item_price_tbl_num; i++, p++) {
         ItemWork* item = ItemMgr.search(p->id);
 
@@ -1474,12 +1469,15 @@ PriceEntry* Merchant::exerciseItemNo(int no)
 
 PriceEntry* Merchant::exerciseItemId(u16 id)
 {
-    PriceEntry* p;
+    PriceEntry* p = pExer;
 
-    for (p = pExer; p->id != 0xFFFF; p++) {
-        if (p->id == id) {
-            return p;
-        }
+    if (p->id != 0xFFFF) {
+        do {
+            if (p->id == id) {
+                return p;
+            }
+            p++;
+        } while (p->id != 0xFFFF);
     }
     return 0;
 }
@@ -1489,20 +1487,27 @@ int Merchant::buyupPrice(u16 id, int num)
     ItemInfo info;
     PriceEntry* p = exerciseItemId(id);
     int price;
+    int n;
+    int type;
+    f32 rate1 = 1.0f;
+    f32 rate2 = 0.5f;
+    f32 rate3 = 0.9f;
 
     if (p == 0) {
         pLog->err(0, 0, "buyupPrice() : 0x%02x not found", id);
         return 0;
     }
-    price = p->price * (num * 10);
+    n = num * 10;
+    price = p->price * n;
     itemInfo(id, &info);
-    if (info.type == 5 || info.type == 0xC) {
-        return (int) ((f32) price * 1.0f);
+    type = info.type;
+    if (type == 5 || type == 0xC) {
+        return (int) ((f32) price * rate1);
     }
-    if (info.type == 1 || info.type == 2 || info.type == 3 || info.type == 6 || id == 0xFE) {
-        return (int) ((f32) price * 0.5f);
+    if (type != 1 && type != 2 && type != 3 && type != 6 && id != 0xFE) {
+        return (int) ((f32) price * rate3);
     }
-    return (int) ((f32) price * 0.9f);
+    return (int) ((f32) price * rate2);
 }
 
 int Merchant::buyupPrice(ItemWork* item, int num)
@@ -1561,12 +1566,14 @@ int Merchant::sellPrice(u16 id, int num)
     PriceEntry* p = sellingItemId(id);
     f32 rate = 1.0f - (f32) discount / 100.0f;
     int price;
+    int n;
 
     if (p == 0) {
         pLog->err(0, 0, "sellPriece() : 0x%02x not found", id);
         return 0;
     }
-    price = p->price * (num * 10);
+    n = num * 10;
+    price = p->price * n;
     if (id == 0x40 || id == 0x37) {
     } else if (id == 0x6D || id == 0x34) {
         price = 1000000;
@@ -1574,11 +1581,12 @@ int Merchant::sellPrice(u16 id, int num)
         itemInfo(id, &info);
         if (info.type == 1 && num == 1) {
             u16 bid = WeaponId2BulletId(id, 0);
-            int n = WeaponId2ChargeNum(id, 1);
+            int m = WeaponId2ChargeNum(id, 1);
             PriceEntry* e = exerciseItemId(bid);
 
             if (e) {
-                price += e->price * (n * 10);
+                n = m * 10;
+                price += e->price * n;
             } else {
                 pLog->err(0, 0, "sellPrice() : 0x%02x not found", id);
             }
@@ -1591,11 +1599,11 @@ int Merchant::sellUnit(u16 id)
 {
     PriceEntry* p = sellingItemId(id);
 
-    if (p) {
-        return p->unit;
+    if (p == 0) {
+        pLog->err(0, 0, "sellUnit() : 0x%02x not found", id);
+        return 0;
     }
-    pLog->err(0, 0, "sellUnit() : 0x%02x not found", id);
-    return 0;
+    return p->unit;
 }
 
 int Merchant::sell(u16 id, int num, int* money)
@@ -1604,27 +1612,27 @@ int Merchant::sell(u16 id, int num, int* money)
     int price = sellPrice(id, num);
     int point = (int) ((f32) price * 0.02f);
 
-    if (*money < price) {
-        return 0;
+    if (*money >= price) {
+        if (id == 0x40) {
+            pG->item_flags[0] |= 0x10000000;
+        }
+        *money -= price;
+        stockSub(id, num);
+        itemInfo(id, &ii);
+        if (ii.type == 1 && num != 0) {
+            u16 bid = WeaponId2BulletId(id, 0);
+            stockSub(bid, WeaponId2ChargeNum(id, 1));
+        }
+        if (point >= info->sellBig) {
+            favor += info->sellFavorBig;
+        } else {
+            favor += info->sellFavor;
+        }
+        favor = favor < 0 ? 0 : (favor > 100 ? 100 : favor);
+        discount = 0;
+        return 1;
     }
-    if (id == 0x40) {
-        pG->item_flags[0] |= 0x10000000;
-    }
-    *money -= price;
-    stockSub(id, num);
-    itemInfo(id, &ii);
-    if (ii.type == 1 && num != 0) {
-        u16 bid = WeaponId2BulletId(id, 0);
-        stockSub(bid, WeaponId2ChargeNum(id, 1));
-    }
-    if (point >= info->sellBig) {
-        favor += info->sellFavorBig;
-    } else {
-        favor += info->sellFavor;
-    }
-    favor = favor < 0 ? 0 : (favor > 100 ? 100 : favor);
-    discount = 0;
-    return 1;
+    return 0;
 }
 
 int Merchant::levelupItemNum()
@@ -1701,12 +1709,15 @@ ItemWork* Merchant::levelupItemPtr(int no)
 
 LevelPrice* Merchant::levelupItemPrice(u16 id)
 {
-    LevelPrice* p;
+    LevelPrice* p = pLevel;
 
-    for (p = pLevel; p->id != 0xFFFF; p++) {
-        if (p->id == id) {
-            return p;
-        }
+    if (p->id != 0xFFFF) {
+        do {
+            if (p->id == id) {
+                return p;
+            }
+            p++;
+        } while (p->id != 0xFFFF);
     }
     return 0;
 }

@@ -214,6 +214,10 @@ void GXInitLightPos(GXLightObj* lt_obj, f32 x, f32 y, f32 z);
 void GXInitLightDir(GXLightObj* lt_obj, f32 nx, f32 ny, f32 nz);
 void GXInitLightColor(GXLightObj* lt_obj, GXColor color);
 void GXLoadLightObjImm(GXLightObj* lt_obj, u32 light);
+// shadow
+void GXSetViewport(f32 left, f32 top, f32 wd, f32 ht, f32 nearz, f32 farz);
+void GXSetDstAlpha(u8 enable, u8 alpha);
+void GXClearBoundingBox(void);
 #ifdef __cplusplus
 }
 #endif

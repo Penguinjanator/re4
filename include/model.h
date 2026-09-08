@@ -161,7 +161,7 @@ public:
     s8 x52;          // 0x52  parts index + 1 the light origin follows (getPos), 0 = model
     u8 pad_53;
     u32 x54;         // 0x54  (scroll: SmxWork.x4); bit i: light i never applies (setModel2)
-    u8 pad_58[0x64 - 0x58];
+    Vec ofs;         // 0x58  light origin offset in the space of the coord x52 selects (shadow.cpp)
     Vec size;        // 0x64  hit check size: x radius, y half height (cylinder), xyz box half size
     u8 pad_70[0x74 - 0x70];
 

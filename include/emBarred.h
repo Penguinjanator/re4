@@ -6,6 +6,7 @@
 #include "em.h"
 
 class cSat;
+class cEmBarred;
 
 // Work of the barred gate enemy (game/emBarred.cpp), overlaid on cEm from 0x3E0.
 struct EmBarredWork {

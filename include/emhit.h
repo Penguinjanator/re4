@@ -56,6 +56,7 @@ void YarareAdd(cEm* em, EmHitInfo* box, f32 x, f32 y, f32 z, f32 w, f32 h, s16 n
 void YarareAddCube(cEm* em, EmHitInfo* box, f32 x, f32 y, f32 z, f32 w, f32 h, f32 d, s16 no, u16 flags);
 int EmGetDmPos(cEm* em, Vec* pos, Vec* dir);                                     // em_sub.cpp
 void EmDmBloodSet2(cEm* em, int a, int type, int b, int c, int d);               // em_sub.cpp
+int VehicleAdjust(Vec* pos);                                                     // em_sub.cpp: rides `pos` along the trolley (room 21B)
 }
 
 // Attack parameters handed to EmAtkSetDamagePL (obj15 Obj15_atk_info_tbl: {100.0, 8, 600, 0, 10, 0}).

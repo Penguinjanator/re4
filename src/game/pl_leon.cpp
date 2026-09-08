@@ -21,11 +21,13 @@ void ShapeEnd(void* info);
 extern cModel* pSUB;
 extern u8 pl_fs_tbl[];   // game/foot_shadow_tbl.cpp (incomplete type: full address, not @sda21)
 
+// Plain block, not do/while(0): the do-while's deleted back-jump lets cse rewrite the HALT store's
+// zero as `info` (one more ref), which makes `info` outrank `data` in global allocation order.
 #define HALT()                                                    \
-    do {                                                          \
+    {                                                             \
         OSReport("HALT %s(%d)\n", __FILE__, __LINE__);            \
         *(volatile u32*) 0x11111111 = 0;                          \
-    } while (0)
+    }
 
 #define VALID_PTR(p) ((u32) (p) >= 0x80000000 && (u32) (p) <= 0x82FFFFFF)
 
@@ -161,8 +163,6 @@ void cPlLeon::setWound()
     }
 }
 
-// Not matched (98%): the original allocates `data` before `info` (data and `no` share r30, so the
-// default case has no `mr`); here `info` wins the register (live length 19 vs 21 insns).
 void cPlLeon::setRightHand(int no)
 {
     void* data;

@@ -13,7 +13,6 @@
 #include "global.h"
 #include "item.h"
 #include "math_sub.h"
-#include "cmath.h"
 #include "esp.h"
 #include "est.h"
 #include "sscrn.h"
@@ -32,6 +31,7 @@ extern IDSystem IdSub;  // game/sscrn.cpp
 int GetDrawTmpBufType();
 
 extern "C" {
+float tanf(float);
 void getEFB();
 static void gxDraw(f32 x, f32 y, f32 z, f32 alpha, void* buf);
 void drawBuffer();
@@ -430,9 +430,9 @@ void ItemExamine::idSet()
     SubScreenWork* wk = &SubScreenWk;
     ItemInfo inf;
     int d[3];
-    IdUnit* u;
     int kind;
     int j;
+    int n;
     int val;
     int base;
     int base2;
@@ -484,7 +484,7 @@ void ItemExamine::idSet()
                 }
                 started = 0;
                 for (j = 2; j >= 0; j--) {
-                    u = pIdSys->unitPtr(base2 + j, 0x27);
+                    IdUnit* u = pIdSys->unitPtr(base2 + j, 0x27);
                     u->flags_7F |= 2;
                     u->no = d[j];
                     if (kind == 3) {
@@ -502,14 +502,15 @@ void ItemExamine::idSet()
                         }
                     }
                 }
-                for (j = 0; j <= 5; j++) {
+                for (n = 0; n <= 5; n++) {
                     IdUnit* a;
                     IdUnit* b;
                     IdUnit* c;
+                    IdUnit* u;
                     int l;
 
-                    u = pIdSys->unitPtr(base + j, 0x27);
-                    if (j < WeaponId2MaxLevel(id, kind)) {
+                    u = pIdSys->unitPtr(base + n, 0x27);
+                    if (n < WeaponId2MaxLevel(id, kind)) {
                         u->flags |= 8;
                     } else {
                         u->flags &= ~8;
@@ -518,7 +519,7 @@ void ItemExamine::idSet()
                     b = IdSub.unitPtr(2, 0x27);
                     c = IdSub.unitPtr(3, 0x27);
                     l = lv[kind];
-                    if (j < l) {
+                    if (n < l) {
                         if (l > WeaponId2MaxLevel(id, kind)) {
                             c = a;
                         } else {
@@ -532,7 +533,7 @@ void ItemExamine::idSet()
                 }
             }
         } else {
-            u = pIdSys->unitPtr(0, 0x27);
+            IdUnit* u = pIdSys->unitPtr(0, 0x27);
             u->flags &= ~8;
             u->dir |= 0xF;
         }
@@ -545,7 +546,7 @@ void ItemExamine::idSet()
     switch (mode) {
     case 0:
     case 1:
-        pIdSys->set((u8*) pG->pArc + pG->pArc->ofs_78, 0xFF, 0x26, 0x13, 0, 0);
+        pIdSys->set((void*) (pG->pArc->ofs_78 + (u32) pG->pArc), 0xFF, 0x26, 0x13, 0, 0);
         break;
     case 2:
         pIdSys->set(SS_ARC_PTR(wk->pExam, 7), 0xFF, 0x26, 0x13, 0, 0);
@@ -708,16 +709,16 @@ void ItemExamine::move()
     f32 step;
     int rotMode;
 
+    rotMode = 0;
     if (id == 0x93) {
         step = ROT_Y_STEP * 2.0f;
     } else {
         step = ROT_Y_STEP;
     }
-    rotMode = 0;
     if (info) {
         switch (mode) {
-        case 0:
-            switch (info->rot0) {
+        case 1:
+            switch (info->rot1) {
             case 0:
                 rotMode = 0;
                 break;
@@ -726,8 +727,8 @@ void ItemExamine::move()
                 break;
             }
             break;
-        case 1:
-            switch (info->rot1) {
+        case 0:
+            switch (info->rot0) {
             case 0:
                 rotMode = 0;
                 break;
@@ -774,12 +775,7 @@ void ItemExamine::move()
             if (Key.on & 0x800000) {
                 d -= dist_add;
             }
-            if (d < cap_dist_min) {
-                d = cap_dist_min;
-            } else if (d > cap_dist_max) {
-                d = cap_dist_max;
-            }
-            CameraCamposDistance(&itemCamera, d);
+            CameraCamposDistance(&itemCamera, d < cap_dist_min ? cap_dist_min : (d > cap_dist_max ? cap_dist_max : d));
         }
         if (Key.sx != 0) {
             CameraCamposRot(&itemCamera, 'Y', (f32) Key.sx * -0.06666667f * 0.017453292f);
@@ -805,22 +801,19 @@ void ItemExamine::move()
         Vec a;
         Vec c;
         Vec e;
-        f32 len;
-        f32 h;
         f32 dist;
         f32 r0;
         f32 r1;
         f32 r2;
-        IdUnit* u;
+        f32 h;
+        f32 len;
 
         len = SQRTF(b->size.x * b->size.x + b->size.y * b->size.y + b->size.z * b->size.z);
         if (info) {
             len /= info->scale;
         }
-        u = pIdSys->unitPtr(0xF2, 0x26);
-        a = u->scr;
-        u = pIdSys->unitPtr(0xF3, 0x26);
-        c = u->scr;
+        a = pIdSys->unitPtr(0xF2, 0x26)->scr;
+        c = pIdSys->unitPtr(0xF3, 0x26)->scr;
         PSVECAdd(&a, &c, &e);
         PSVECScale(&e, &e, 0.5f);
         h = 0.5f;
@@ -830,9 +823,11 @@ void ItemExamine::move()
         r2 = atan2f(e.y, dist);
         r0 = fabsf(r0 - r1);
         r0 = len * tanf((3.1415927f - r0) * h);
-        _campos.y = -(r0 * SINF(r2));
-        _campos.z = r0 * COSF(r2);
-        _target.y = _campos.y;
+        dist = r0 * SINF(r2);
+        r0 = r0 * COSF(r2);
+        _campos.y = -dist;
+        _campos.z = r0;
+        _target.y = -dist;
         itemCamera.param.pos = _campos;
         itemCamera.param.at = _target;
         itemCamera.up = _up;

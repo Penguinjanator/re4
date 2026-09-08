@@ -561,6 +561,25 @@ struct RoboWork {
     int timer;            // 0x84
 };
 
+// Player sub weapon work (game/objSubWep.cpp `cSubWep`: hand grenade / incendiary / flash / egg).
+struct SubWepWork {
+    u32 effNo;            // 0x00 (0x328)  landing effect (AtEffInfo pair by type; 0xD2 = none)
+    u8 effPrm;            // 0x04 (0x32C)
+    u8 pad_5[3];
+    s32 attr;             // 0x08 (0x330)  AtEffInfo::flags of the hit (bit31 set when known, bit0: solid ground)
+    u8 pad_C[8];
+    Vec rotSpd;           // 0x14 (0x33C)
+    Vec spd;              // 0x20 (0x348)
+    f32 grav;             // 0x2C (0x354)
+    f32 rad;              // 0x30 (0x358)  bounce radius
+    int life;             // 0x34 (0x35C)  frames until the explosion (-1: only on impact)
+    u8 pad_38[0x7C - 0x38];
+    u8 x7C;               // 0x7C (0x3A4)  (ctor: 3)
+    u8 seCnt0;            // 0x7D (0x3A5)  floor bounce SEs played
+    u8 seCnt1;            // 0x7E (0x3A6)  wall bounce SEs played
+    u8 flags;             // 0x7F (0x3A7)  bit0: explodes on the floor (fire / light), bit1: egg, bit4: hit a wall
+};
+
 // Sub-object at cObj+0x2B4 (0x74 bytes): the collision info followed by scroll bookkeeping.
 struct ObjSub2B4 {
     // wrapped like cEm's so that cObj::cObj does not run cAtariInfo's constructor (the original
@@ -631,6 +650,7 @@ public:
         RocketWork rocket;
         SpearWork spear;
         RoboWork robo;
+        SubWepWork subWep;
     };
 
     cObj();
