@@ -78,6 +78,11 @@ void itemInfo(u16 id, ItemInfo* info);
 u16 WeaponId2BulletId(u16 id, int attr);
 int WeaponId2ChargeNum(u16 id, int a);
 int WeaponId2MaxLevel(u16 id, int type);
+// weapon tune ratios at tune level `level` (examine: power x10 / speed, reload x100 percent)
+f32 getPowerRatio(u16 id, s8 level);
+f32 getSpeedRatio(u16 id, s8 level);
+f32 getReloadRatio(u16 id, s8 level);
+f32 getBulletRatio(u16 id, s8 level);
 }
 
 #endif

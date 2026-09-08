@@ -402,8 +402,9 @@ mark it Matching.
   registers live (call-clobber rule), so the `fmr` arg copies of a preceding `init(...)` call get
   boosted above its `li`s. That is why obj20's `cAtariInfo::init` (followed by `setPriority()` in the
   same block) matches while SetTrolley/SetGondola/SetYagura/SetHeliMissile/setScrAtari (no later call
-  in the block) don't: look for the call the original had after `init` in that block (or a block
-  boundary we introduced that the original didn't have).
+  in the block) don't: the seven `Set*` targets have NO later call in the block (verified), so the boost comes from
+  something else there — still OPEN. Note `birthing_insn_p` uses `bb_live_regs` left over from the
+  weight scan, which only matters for single-block scheduling regions.
 - `(f32)(int) w->u8field` gives the signed double trick instead of `psq_l qr2`; a `u32 x:8` bitfield
   gives the unsigned trick.
 - Struct copy from a global pointer with a reload between (`obj->pos = pPL->pos; obj->rot = pPL->rot`
@@ -434,6 +435,12 @@ mark it Matching.
 - Index-first `lhzx/lfsx/add rD,idx,base` = `(T*)(i * sizeof(T) + (u32)base)` written index first.
 - An early `return 0.0f` merged with the final return inserts a label that invalidates reload_cse:
   the following call re-copies a still-valid argument (`mr r4,r31`).
+- `fabsf` as volatile asm is a scheduling barrier; where the target loads an `.sdata` constant before
+  the `fabs`, use `__builtin_fabsf`.
+- Function-scope temporaries reused across several tests become global pseudos that inherit hard-reg
+  preferences; inlining the expressions per test gives per-block pseudos.
+- Unused `.sdata` globals with no Bio4.sym name must keep the `lbl_XXXXXXXX` symbol name or
+  strip_unused removes them.
 - Static locals show as `name.NNN` in objdiff; the DECL_UID suffix cannot be reproduced and is ignored by the report.
 - Unexplained words in `.rodata` (zero words, stray floats) are usually the constant pool of a function
   the original linker dead-stripped (bodies gone, pools kept, `STRIP_UNUSED` in objects.py): write a

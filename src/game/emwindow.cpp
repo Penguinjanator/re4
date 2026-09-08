@@ -252,7 +252,7 @@ int cEmWindow::init(void* bin, void* tpl, Vec* pos_, Vec* rot_, int type_, u8 et
     }
     {
         static const Vec zero = { 0.0f, 0.0f, 0.0f };
-        static const Vec lsize = { 500.0f, 500.0f, 500.0f };
+        static const Vec lsize = { 2000.0f, 2000.0f, 2000.0f };
 
         lightInfo.init2(0, 1, &zero, &lsize, 0x10);
     }
@@ -313,7 +313,7 @@ int cEmWindow::init(void* bin, void* tpl, Vec* pos_, Vec* rot_, int type_, u8 et
         pt[3].x = -500.0f;
         pt[3].y = -2000.0f;
         pt[3].z = -1000.0f;
-        no = SceAtCreateFieldAt(this, pt, 3, 0, 0, 3000.0f, 5, 0.0f, 0, 1.3962634f, 1, &out);
+        no = SceAtCreateFieldAt(this, pt, 3, 0, 0, 3000.0f, 5, 0.0f, 0, 1.3962635f, 1, &out);
         if (no == -1) {
             pLog->err(0, 0, "move : SceAt no create");
         }
@@ -330,7 +330,7 @@ int cEmWindow::init(void* bin, void* tpl, Vec* pos_, Vec* rot_, int type_, u8 et
         pt[3].x = -500.0f;
         pt[3].y = -2000.0f;
         pt[3].z = -1000.0f;
-        no = SceAtCreateFieldAt(this, pt, 3, 0, 0, 3000.0f, 5, -PI, 0, 1.3962634f, 1, &out);
+        no = SceAtCreateFieldAt(this, pt, 3, 0, 0, 3000.0f, 5, -PI, 0, 1.3962635f, 1, &out);
         if (no == -1) {
             pLog->err(0, 0, "move : SceAt no create");
         }
@@ -514,7 +514,7 @@ int cEmWindow::ExeWindowEvent()
     case 0:
         FSet(pPL->pos.x, 90.0f);
         FSet(pPL->pos.y, -1000.0f);
-        FSet(pPL->pos.z, -1605.0f);
+        FSet(pPL->pos.z, -1610.0f);
         FSet(pPL->rot.x, 0.0f);
         FSet(pPL->rot.y, 0.0f);
         FSet(pPL->rot.z, 0.0f);
@@ -647,7 +647,7 @@ void cEmWindow::CalFloor()
 
     v.x = 0.0f;
     v.y = 0.0f;
-    v.z = 1000.0f;
+    v.z = 2000.0f;
     RotVector(&v, &rot, &v);
     PSVECAdd(&v, &pos, &v);
     bottom.x = v.x;

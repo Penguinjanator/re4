@@ -89,15 +89,19 @@ struct EspGenWork {
             u16 xB6;   // 0xB6 (esp_efm: scale start frame)
             u16 xB8;   // 0xB8 (esp_efm: life)
             u16 xBA;   // 0xBA (esp_efm: start frame)
-            u8 pad_BC[4];
+            u8 xBC;    // 0xBC (esp_sub: start animation pattern)
+            u8 xBD;    // 0xBD (esp_sub: animation speed - 0x20)
+            u16 xBE;   // 0xBE (esp_sub: animation counter)
             u8 xC0;    // 0xC0 (esp_efm: parent release frame)
             u8 xC1;    // 0xC1
         };
     };
-    u8 xC2;            // 0xC2
-    u8 pad_C3[2];
-    u8 xC5;            // 0xC5
-    u8 pad_C6[2];
+    u8 xC2;            // 0xC2 (esp_sub: blend type, bl[] index)
+    u8 xC3;            // 0xC3 (esp_sub: cEsp xEC)
+    u8 xC4;            // 0xC4 (esp_sub: cEsp xED)
+    u8 xC5;            // 0xC5 (esp_sub: mask texture id)
+    u8 xC6;            // 0xC6 (esp_sub: cEsp x16 / 10)
+    u8 xC7;            // 0xC7 (esp_sub: cEsp x14 / 10)
     u8 xC8;            // 0xC8 per-effect parameters (SE number, area number, type, ...)
     u8 xC9;            // 0xC9
     u8 xCA;            // 0xCA
@@ -256,7 +260,18 @@ public:
     u16 anmCnt;        // 0xB6
     f32 xB8;           // 0xB8
     Mtx mat;           // 0xBC model matrix built by the Trans functions
-    u8 pad_EC[0xF4 - 0xEC];
+    union {
+        u8 pad_EC[0xF4 - 0xEC];
+        struct {
+            u8 xEC;        // 0xEC  (EspGenWork xC3; esp.cpp: 0 = plain EspCommonTrans)
+            u8 xED;        // 0xED  (EspGenWork xC4)
+            u16 anmCnt2;   // 0xEE  mask texture animation counter
+            u8 anmPtn2;    // 0xF0  mask texture animation pattern
+            u8 anmNo2;     // 0xF1  mask texture animation id (EspGenWork xC5)
+            u8 blendType;  // 0xF2  EspGenWork xC2 (3: colour bytes scaled by the fade)
+            u8 xF3;
+        };
+    };
     // 0xF4 vptr
 
     void* operator new(unsigned int size);

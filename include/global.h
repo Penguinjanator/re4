@@ -23,7 +23,11 @@ struct ArcFile {
     u32 ofs_4C;   // 0x4C
     u32 ofs_50;   // 0x50  debug effect data (eff_sys: EspDataLoad owner 0xD1)
     u32 ofs_54;   // 0x54  message table type 3 (mes: MesData.ptr[3])
-    u8 pad_58[0x6C - 0x58];
+    u32 ofs_58;   // 0x58  item examine light cuts 0..4 (examine ItemExamine::init)
+    u32 ofs_5C;   // 0x5C
+    u32 ofs_60;   // 0x60
+    u32 ofs_64;   // 0x64
+    u32 ofs_68;   // 0x68
     u32 ofs_6C;   // 0x6C  system message table (dvd: MesData.ptr[4])
     u32 ofs_70;   // 0x70  TV-mode message table (tv_mode)
     u32 ofs_74;   // 0x74  HUD id textures (cockpit: IdTexDataLoad(.., 4))

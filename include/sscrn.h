@@ -53,7 +53,9 @@ struct SubScreenWork {
     s32 relAddr;              // 0x1D8  Sscrn.rel address (0 while unlinked)
     SsArc* pCmmn;             // 0x1DC
     SsArc* pPzzl;             // 0x1E0
-    u8 pad_1E4[0x214 - 0x1E4];
+    u8 pad_1E4[0x200 - 0x1E4];
+    SsArc* pExam;             // 0x200  item examine id data archive (examine ItemExamine::idSet)
+    u8 pad_204[0x214 - 0x204];
     void* binoA;              // 0x214  CameraControl::GetBinocularIDAddr
     void* binoB;              // 0x218
     u32 x21C[8];              // 0x21C

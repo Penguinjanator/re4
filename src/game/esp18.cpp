@@ -220,10 +220,9 @@ void Esp18_Trans(cEsp18* esp)
     ang = 0.0f;
     for (i = 0; i < esp18_lp; i++) {
         GXTexObj tex;
-        Mtx tm;
-        Mtx pm;
-
+        GXTlutObj tlut;
         int type = 1;
+
         copyOk = 1;
         fog.r = fog.g = fog.b = fog.a = 0;
         GXSetFog(0, 0.0f, 0.0f, ZNEAR, ZFAR, fog);
@@ -252,6 +251,8 @@ void Esp18_Trans(cEsp18* esp)
         GXInitTexObj(&tex, buf, (u32) Screen.width / 2, (u32) ((f32) ((u32) Screen.height / 2) - ofs), 6, 0, 0, 0);
         GXLoadTexObj(&tex, 1);
         g_Get_tex_obj = tex;
+        Mtx tm;
+        Mtx pm;
         rx = sinf(ang) * prm2 * esp->colA * 0.01f;
         ry = cosf(ang) * prm3 * esp->colA * 0.01f;
         mul = esp18_mul_rate * 0.5f * esp18_div * (f32) i * w->depth * esp->colA * (1.0f / 255.0f) + 1.0f;
@@ -335,7 +336,6 @@ void Esp18_Trans(cEsp18* esp)
                 pLog->err(0, 0, "ESP : TexId[%x] no data", esp->anmNo);
             } else {
                 GXTexObj tex2;
-                GXTlutObj tlut;
                 TEXDescriptor* td = TEXGet(tw->pTpl, esp->anmPtn);
                 TEXHeader* th = td->textureHeader;
 

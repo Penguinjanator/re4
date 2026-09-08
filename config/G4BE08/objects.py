@@ -1184,3 +1184,7 @@ MATCHING.update({
 MATCHING.update({
     "game/obj09.cpp": True,
 })
+
+MATCHING.update({
+    "game/emwindow.cpp": True,
+})

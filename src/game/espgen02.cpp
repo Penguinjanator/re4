@@ -115,6 +115,10 @@ static f32 Calc_D256(Espgen02Work* p, u8 d, f32 rate)
     return ret;
 }
 
+// OPEN (99.94%): the shared 0.0f constant is loaded into colR here (cse picks the variable whose
+// last mention is latest in the insn chain: colR's `colA *= colR`); the target loads it into spdR
+// (spdR = f23, colR = f24). Declaration order, use order and a local copy for the PSVECScale
+// argument do not move spdR's last mention behind colR's.
 void espgen02_Update(EspgenWork* w)
 {
     Espgen02Work* p = (Espgen02Work*) w->work;

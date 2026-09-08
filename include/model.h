@@ -58,9 +58,16 @@ struct ModelPart {
     u32 nPoly;       // 0x1C  polygon count (debug statistics)
 };
 
+// Header block ModelData::pHead points at (examine: the item's centre offset).
+struct ModelDataHead {
+    u32 x0;          // 0x00
+    Vec center;      // 0x04  (examine copies it into parts 0's position)
+};
+
 // Model data referenced by a bin (game/model.cpp `ModelData`); only the flag word is known.
 struct ModelData {
-    u8 pad_0[0xC];
+    ModelDataHead* pHead;  // 0x00
+    u8 pad_4[0xC - 0x4];
     void* pClr;      // 0x0C  vertex colour array (GX_VA_CLR0, RGBA8; used when flags bit31 is set)
     void* pTex;      // 0x10  texture coordinate array (GX_VA_TEX0)
     u8 pad_14[4];

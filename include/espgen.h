@@ -11,13 +11,40 @@
 
 // Optional 0x1C byte parameter block handed down the sequence calls (copied into the generator work).
 struct EspSeqOpt {
-    u32 x0;            // 0x00
-    u32 x4;            // 0x04
-    u32 x8;            // 0x08
-    u32 xC;            // 0x0C
-    u32 x10;           // 0x10
-    u32 x14;           // 0x14
-    u32 x18;           // 0x18
+    union {
+        u32 x0;        // 0x00
+        struct {
+            u8 set;    // 0x00 bit0: speed, bit1: size, bit2: colour replace the record's (esp_sub EspSeqSet)
+            u8 mul;    // 0x01 same bits: multiply
+            u8 add;    // 0x02 same bits: add
+            u8 x3;
+        };
+    };
+    union {
+        struct {
+            u32 x4;    // 0x04
+            u32 x8;    // 0x08
+            u32 xC;    // 0x0C
+        };
+        Vec spd;       // 0x04
+    };
+    union {
+        u32 x10;       // 0x10
+        f32 sizeX;
+    };
+    union {
+        u32 x14;       // 0x14
+        f32 sizeY;
+    };
+    union {
+        u32 x18;       // 0x18
+        struct {
+            u8 r;      // 0x18
+            u8 g;
+            u8 b;
+            u8 a;
+        };
+    };
 };
 
 // Effect system work (game/eff_sys.cpp cEspSystem, g_pEspSys). Partial layout.
