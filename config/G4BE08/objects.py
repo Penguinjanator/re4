@@ -962,6 +962,10 @@ MATCHING = {
     "game/shape.cpp": True,
     "game/geometry.cpp": True,
     "game/file.cpp": True,
+    # GX FIFO units (linker-symbol GXWGFifo, see include/gx.h)
+    "game/filter03.cpp": True,
+    "game/filter01.cpp": True,
+    "game/filter04.cpp": True,
 }
 
 # C++ units with functions the original linker dead-stripped (bodies gone, constant pools and
@@ -973,8 +977,8 @@ STRIP_UNUSED = {
     "game/geometry.cpp",
 }
 
-# Capcom sound library (game/snd_*.cpp splits): plain C, compiled unoptimised (frame pointer in
-# r31, every local in a stack slot, no jump threading). The sources are src/game/snd_*.c.
+# Capcom sound library (game/snd_*.cpp): C++ with extern "C" functions, compiled unoptimised
+# (frame pointer in r31, every local in a stack slot, dead jumps kept).
 SND_UNITS = [
     "game/snd_ram.cpp", "game/snd_main.cpp", "game/snd_efx.cpp", "game/snd_iss0.cpp",
     "game/snd_iss1.cpp", "game/snd_iss2.cpp", "game/snd_iss3.cpp", "game/snd_iss4.cpp",
@@ -983,5 +987,13 @@ SND_UNITS = [
     "game/snd_str4.cpp", "game/snd_sub0.cpp", "game/snd_sub1.cpp", "game/snd_sub2.cpp",
     "game/snd_sub3.cpp",
 ]
-UNIT_SOURCE = {u: u[:-4] + ".c" for u in SND_UNITS}
-UNIT_CFLAG_OVERRIDES = {u: {"-O2": "-O0 -fno-common"} for u in SND_UNITS}
+UNIT_CFLAG_OVERRIDES = {u: {"-O2": "-O0"} for u in SND_UNITS}
+MATCHING.update({
+    "game/snd_ram.cpp": True,
+    "game/snd_main.cpp": True,
+    "game/snd_iss0.cpp": True,
+    "game/snd_sub0.cpp": True,
+    "game/snd_sub1.cpp": True,
+    "game/snd_sub2.cpp": True,
+    "game/snd_sub3.cpp": True,
+})

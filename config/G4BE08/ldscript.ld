@@ -21,4 +21,6 @@ SECTIONS
   _stack_end = 0x80316CE0;
   __ArenaLo = 0x8031AD00;
   __ArenaHi = 0x81780000;
+  /* GX write-gather FIFO (include/gx.h declares it as an extern object). */
+  GXWGFifo = 0xCC008000;
 }

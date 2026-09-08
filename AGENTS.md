@@ -74,10 +74,28 @@ mark it Matching.
   symbols; anonymous constant-pool aggregates come from non-static constant expressions.
 - A block-local `Work* w = &work;` inside the branch vs at function top decides whether the `addi` is hoisted.
 - `pLog` is a `cLogPtr` struct wrapper (`include/db_log.h`): loading it as a struct member stops the
-  scheduler hoisting the load above stores through `this`. GX FIFO writes go through
-  `((GXHwRegs*)0xCC000000)->wgpipe` (`include/gx.h`), which gives `lis rX,0xCC01` + `-0x8000(rX)`.
-- Each extra int→float conversion in a block leaves a dead `mr` between two unused GPRs; a call or
-  `asm("")` between them prevents it.
+  scheduler hoisting the load above stores through `this`.
+- GX FIFO: `GXWGFifo` is a linker-provided absolute symbol (`extern volatile WGPipe GXWGFifo[]` in
+  `include/gx.h`, `GXWGFifo = 0xCC008000` in `config/G4BE08/ldscript.ld`), so the stores are
+  `lis rX,GXWGFifo@ha` + `GXWGFifo@l(rX)` (same bytes as `lis 0xCC01`/`-0x8000`). objdiff shows the
+  reloc as ARG_MISMATCH against the split object; the report and the linked DOL are what count. The
+  address must be a SYMBOL_REF: with a constant address (`*(volatile WGPipe*)0xCC008000`, a struct
+  member at 0xCC000000, or a `const` pointer) the scheduler issues the `lis/lfs` of `Screen` and
+  the constant pool before the FIFO `lis`, and `*(volatile WGPipe*)0xCC008000` even gives `lis`/`ori`
+  into a base register. An 8-byte `extern volatile WGPipe GXWGFifo;` lands in small data (`@sda21`),
+  hence the incomplete array.
+- Dead `mr rX,rY` between unrelated GPRs around `-mfast-cast` conversions are copies of the fpmem
+  (stack slot) "address" pseudo: every conversion is split before sched1 into `loadaddr` (emits no
+  code) + store + load with a scratch register; after reload, `reload_cse_regs` replaces a later
+  `loadaddr` with a copy of whichever hard register still holds the previous one (forgotten at a
+  code label, at a call, or when that register is overwritten; deleted when both got the same
+  register). So the copies depend only on scratch-register allocation and sched1 order; `asm("")`
+  or a call between two conversions removes them. The filter GXDraw quads with a `(u8) alpha`
+  colour (filter07/09/0b) and `fadeDraw` still have one extra copy per conversion pair where the
+  original has none: tried and rejected (same or worse) — `u8` local for the alpha (function-scope
+  or block-scope: changes FPR assignment / GXInitTexObjLOD arg order), implicit f32→u8 parameter
+  conversion, `(u8)(int)`, `(u8)(u32)`, `(u8)(f64)`, an inline per-vertex helper, direct
+  `GXWGFifo->u8` stores (drops the `clrlwi`).
 - Loop shapes: `if ((v = x) == 0) { do {...} while ((v = x) == 0); }` duplicates the entry test;
   `for` + `break` gives `cmpwi`/`bgt` without ctr, `return` in the body gives `bdnz`.
   `for (w = wk, i = 0; ...; w++, i++)` vs separate init changes callee-saved register choice.
@@ -197,10 +215,6 @@ mark it Matching.
   rule, so permute the statements (`speed.x, speed.y, speed.z, pos.y` in source gives `x, y, pos.y, z`).
 - Parameter order only shows in register allocation of the copies; for the filter `GXDraw` helpers the
   order `(f32 x, y, z, u, v, u8 r, g, b, a, f32 scale, int div, int fmt, ...)` reproduces the target.
-- Dead `mr rX,rY` between unrelated GPRs in the fall-through path of a `(u32)` float conversion are PRE
-  copies of `lis @ha` high parts; the filter GXDraw quads still have one more of them than the original
-  (unsolved, together with the `lis 0xcc01` vs `lis Screen@ha` issue order).
-
 - Struct field offsets come from the load/store displacements; write real structs, not casts.
 - `rlwinm rX,rX,0,MB,ME` with wraparound = `x &= ~bit`; `ori` = `|= bit`.
 - Branch shape follows the source: `if/else if` chains vs `switch` produce different compare orders

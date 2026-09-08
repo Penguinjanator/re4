@@ -55,65 +55,66 @@ typedef union {
     f32 f32;
     f64 f64;
 } WGPipe;
-// The FIFO is addressed as a member of a struct at 0xCC000000: that makes GCC materialise the
-// address as `lis rX, 0xCC01` + `-0x8000(rX)` (what the game code has) instead of `lis`/`ori`
-// into a base register, and lets it CSE globals across the volatile stores.
-struct GXHwRegs {
-    u8 pad_0[0x8000];
-    volatile WGPipe wgpipe;   // 0xCC008000
-};
-#define GXWGFifo (((GXHwRegs*) 0xCC000000)->wgpipe)
+// The FIFO is a linker-provided absolute symbol (`GXWGFifo = 0xCC008000` in
+// config/G4BE08/ldscript.ld), the way the SDK's GXVert.h declares it for non-CodeWarrior
+// compilers. The address must be a SYMBOL_REF, not a constant: the scheduler then issues
+// `lis rX, GXWGFifo@ha` before the `lis/lfs` of the other globals in the block and the
+// `(u32)` float conversions share their `lis @ha` copies the way the original does. A
+// constant address (`(*(volatile WGPipe*)0xCC008000)` or a struct member at 0xCC000000)
+// reorders those loads. Declared as an incomplete array because an 8-byte extern object
+// would be placed in small data (`@sda21`).
+extern volatile WGPipe GXWGFifo[];
 
 static inline void GXPosition3f32(f32 x, f32 y, f32 z)
 {
-    GXWGFifo.f32 = x;
-    GXWGFifo.f32 = y;
-    GXWGFifo.f32 = z;
+    GXWGFifo->f32 = x;
+    GXWGFifo->f32 = y;
+    GXWGFifo->f32 = z;
 }
 
 static inline void GXPosition3s16(s16 x, s16 y, s16 z)
 {
-    GXWGFifo.s16 = x;
-    GXWGFifo.s16 = y;
-    GXWGFifo.s16 = z;
+    GXWGFifo->s16 = x;
+    GXWGFifo->s16 = y;
+    GXWGFifo->s16 = z;
 }
 
 static inline void GXColor4u8(u8 r, u8 g, u8 b, u8 a)
 {
-    GXWGFifo.u8 = r;
-    GXWGFifo.u8 = g;
-    GXWGFifo.u8 = b;
-    GXWGFifo.u8 = a;
+    GXWGFifo->u8 = r;
+    GXWGFifo->u8 = g;
+    GXWGFifo->u8 = b;
+    GXWGFifo->u8 = a;
 }
 
 static inline void GXNormal3s8(s8 x, s8 y, s8 z)
 {
-    GXWGFifo.s8 = x;
-    GXWGFifo.s8 = y;
-    GXWGFifo.s8 = z;
+    GXWGFifo->s8 = x;
+    GXWGFifo->s8 = y;
+    GXWGFifo->s8 = z;
 }
 
 static inline void GXTexCoord2f32(f32 s, f32 t)
 {
-    GXWGFifo.f32 = s;
-    GXWGFifo.f32 = t;
+    GXWGFifo->f32 = s;
+    GXWGFifo->f32 = t;
 }
 
 static inline void GXMatrixIndex1u8(u8 idx)
 {
-    GXWGFifo.u8 = idx;
+    GXWGFifo->u8 = idx;
 }
 
 static inline void GXPosition2u16(u16 x, u16 y)
 {
-    GXWGFifo.u16 = x;
-    GXWGFifo.u16 = y;
+    GXWGFifo->u16 = x;
+    GXWGFifo->u16 = y;
 }
 
 static inline void GXTexCoord2s16(s16 s, s16 t)
 {
-    GXWGFifo.s16 = s;
-    GXWGFifo.s16 = t;
+    GXWGFifo->s16 = s;
+    GXWGFifo->s16 = t;
 }
 #endif
 
