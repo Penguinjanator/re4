@@ -242,6 +242,17 @@ mark it Matching.
 - A local `arc = pG->pPlArc` reused across blocks becomes a global pseudo and ties pG's register; the
   original often re-reads `pG->field` per call. A function-scope `void* p = 0` in a callee-saved register
   gets reused by cse as the constant 0 argument of later calls.
+- Store-order rule (sched1): in a block of independent stores, stores whose source register dies
+  (last use) are issued first in RTL order, then the non-dying ones in RTL order. A constant shared by
+  several stores has one pseudo, so only its last store is a death; a value reused after a branch
+  sinks to the end of the block. Derive the source order from the target with this rule instead of
+  permuting blindly.
+- haifa tie-break: after a non-void call, the next call's arg `li`s outrank the `mr r3,this` copy;
+  declaring the callee `void` when the original ignores its result changes the order.
+- objdiff scores 100% even when constant-pool *values* differ (relocs compared symbolically): always
+  cmp .rodata bytes against the split object before flipping a flag.
+- In-class inline members of the class whose vtable the unit owns are emitted after the destructor at
+  the end of `.text`.
 - Static locals show as `name.NNN` in objdiff; the DECL_UID suffix cannot be reproduced and is ignored by the report.
 - Unexplained words in `.rodata` (zero words, stray floats) are usually the constant pool of a function
   the original linker dead-stripped (bodies gone, pools kept, `STRIP_UNUSED` in objects.py): write a
@@ -380,6 +391,10 @@ mark it Matching.
   the DOL; kept as out-of-class inlines so light.cpp does not get bodies).
 
 ## Don'ts
+
+- Never change the semantics of a shared tool (strip_unused.py, fold_linkonce.py, sync_symbols.py,
+  ngccc.py) to fit one unit. Make the new behaviour conditional on the evidence that distinguishes
+  your case, and re-run the full `ninja` + DOL check before and after.
 
 - Never run `git stash`, `git checkout -- <file>`, `git reset` or anything else that rewrites the shared
   working tree: other agents are editing it at the same time.
