@@ -400,7 +400,8 @@ void Esp09_HideCheck(cEsp* esp0)
     inv = 1.0f / (ZFAR - ZNEAR);
     m22 = -(ZNEAR) * inv;
     m23 = -(ZFAR * ZNEAR) * inv;
-    zv = (1.0f / -nz) * ((m23 + m22 * nz) * Zscale) + Zoffset;
+    zv = (m23 + m22 * nz) * Zscale;
+    zv = (1.0f / -nz) * zv + Zoffset;
     zi = (u32)(zv * 16777215.0f);
     if (s.x >= 0.0f && s.x <= 639.0f && s.y >= 0.0f && s.y <= 527.0f) {
         GXPixModeSync();

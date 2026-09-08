@@ -1,3 +1,13 @@
+// game/dvd: DVD read queue, ARAM DMA queue, disc error screen (D:/Bio4/Prog/dvd.cpp).
+// 51/55 functions match; every section has the original size and the data sections match. Still
+// off (register allocation / scheduling only, same instruction sequences):
+//  - readMain (98.6%): &pFilehead vs &pFilehead[depth] get r28/r29 swapped and one `*ph` reload after
+//    SndBgmDataReadCheck uses the sum register instead of the index form.
+//  - Initialize (98.5%): the `n = name` copy is scheduled before the DVDConvertPathToEntrynum call.
+//  - ErrCheck (99%): MesData.ptr / Snd.str base registers swapped, `driveStatus` load hoisted above
+//    the vsync_cnt store.
+//  - DiscChange (89%): the last `pSys->region == 6` test of SysIsEurope becomes a setcc; the original
+//    is an unfolded `||` chain (all five compares jump to one `li r0,1`).
 #include "types.h"
 #include "global.h"
 #include "map_obj.h"
@@ -27,11 +37,6 @@ void GXSetCopyClear(GXColor clear_clr, u32 clear_z);
 void GXCopyDisp(void* dest, u8 clear);
 void ADXGC_SetupDvdFs(int mode);
 void systemResetCheck();
-int SndEmDataReadCheck(u32 no);
-int SndBgmDataReadCheck(u32 no);
-void SndBlkInit(u32 type, u32 arg, u32 no);
-int SndStrStatusCk(u32 id, u32 status);
-void SndStrReq(u32 id, u32 req, u32 a, u32 b);
 u16 OSGetFontEncode();
 int OSInitFont(void* fontData);
 char* OSGetFontTexture(const char* string, void** image, s32* x, s32* y, s32* width);
@@ -55,36 +60,7 @@ struct OSLowMem {
 #define OS_TIMER_CLOCK (OS_BUS_CLOCK / 4)
 #define OSTicksToMilliseconds(ticks) ((ticks) / (OS_TIMER_CLOCK / 1000))
 
-// Sound driver work seen from here (game/snd.cpp `Snd`, 0xAE8 bytes).
-struct DvdSndStr {
-    u8 x0;      // 0x00  1 = in use
-    u8 pad_1[3];
-    u32 id;     // 0x04
-    u8 pad_8[2];
-    u16 xA;     // 0x0A  1 = streaming
-    u8 pad_C[4];
-};
-struct DvdSndWork {
-    u8 pad_0[0x20];
-    u32 loaded;         // 0x20  per-block "loaded" bits
-    u8 pad_24[0x44 - 0x24];
-    DvdSndStr str[4];   // 0x44
-    u32 mramBgm;        // 0x84  BGM MRAM allocation top (grows down)
-    u32 mramBgm2;       // 0x88
-    u8 pad_8C[0xAA0 - 0x8C];
-    u32 aramTop;        // 0xAA0  ARAM allocation pointer
-    u32 mramTop;        // 0xAA4  MRAM allocation pointer
-};
-extern DvdSndWork Snd;
-// ARAM / MRAM sound data map (game/snd.cpp `SndMem`, 0xA0 bytes).
-struct SndMemWork {
-    u32 x0[5];      // 0x00
-    u32 aram[14];   // 0x14  per block
-    u32 mram[14];   // 0x4C
-    u32 x84[7];     // 0x84
-};
-extern SndMemWork SndMem;
-extern u32 UseAramSize[14];
+#include "snd.h"
 
 // Stream work (snd_ram `Snd_str_work[4]`, 0x14C bytes), only the debug display fields.
 struct DvdSndStrWork {
@@ -111,11 +87,6 @@ enum {
     ST_COMPLETE = 2,
     ST_CANCEL = 3,
     ST_ERROR = 4
-};
-
-struct FileTblEntry {
-    const char* name;
-    s32 entrynum;
 };
 
 FileTblEntry FileTbl[] = {
@@ -527,7 +498,7 @@ void cDvdQueue::readInit()
             pFilehead[depth]->ofs = ofs;
             pFilehead[depth]->sndType = 0;
             pFilehead[depth]->dest = 0;
-            pFilehead[depth][1].type = -1;
+            pFilehead[depth][1].type = 0xFFFFFFFF;
             if (chk(0x6) && depth == 0) {
                 step = 3;
             } else {
@@ -691,8 +662,8 @@ void cDvdQueue::readMain()
                 t = r + 8;
             case 5:
             case 6:
-                SndMem.aram[t] = Snd.aramTop;
-                Snd.aramTop += ALIGN32((*ph)->size);
+                SndMem.blk_mram[t] = Snd.mram_top;
+                Snd.mram_top += ALIGN32((*ph)->size);
                 break;
             case 3:
                 r = SndBgmDataReadCheck((*ph)->sndArg);
@@ -705,12 +676,12 @@ void cDvdQueue::readMain()
                 (*ph)->sndNo = r;
                 t = r + 3;
                 (*ph)[1].sndNo = r;
-                Snd.mramBgm -= ALIGN32((*ph)->size);
-                SndMem.aram[t] = Snd.mramBgm;
+                Snd.bgm_mram -= ALIGN32((*ph)->size);
+                SndMem.blk_mram[t] = Snd.bgm_mram;
                 break;
             }
-            destAddr = SndMem.aram[t];
-            Snd.loaded &= ~(1 << t);
+            destAddr = SndMem.blk_mram[t];
+            Snd.blk_flag[0] &= ~(1 << t);
             remain = (*ph)->size;
             ofs = hedOfs[depth] + (*ph)->ofs;
             step++;
@@ -723,28 +694,28 @@ void cDvdQueue::readMain()
                 t = (*ph)->sndNo + 8;
             case 5:
             case 6:
-                SndMem.mram[t] = Snd.mramTop;
-                Snd.mramTop += ALIGN32((*ph)->size);
+                SndMem.blk_aram[t] = Snd.aram_top;
+                Snd.aram_top += ALIGN32((*ph)->size);
                 break;
             case 3:
                 t = (*ph)->sndNo + 3;
-                Snd.mramBgm2 -= ALIGN32((*ph)->size);
-                SndMem.mram[t] = Snd.mramBgm2;
+                Snd.bgm_aram -= ALIGN32((*ph)->size);
+                SndMem.blk_aram[t] = Snd.bgm_aram;
                 break;
             case 0:
-                SndMem.mram[0] = 0x4100;
+                SndMem.blk_aram[0] = 0x4100;
                 break;
             case 1:
-                SndMem.mram[1] = 0x44100;
+                SndMem.blk_aram[1] = 0x44100;
                 break;
             case 2:
-                SndMem.mram[2] = 0x174100;
+                SndMem.blk_aram[2] = 0x174100;
                 break;
             case 7:
-                SndMem.mram[7] = 0x1B4100;
+                SndMem.blk_aram[7] = 0x1B4100;
                 break;
             }
-            destAddr = SndMem.mram[t];
+            destAddr = SndMem.blk_aram[t];
             remain = (*ph)->size;
             ofs = hedOfs[depth] + (*ph)->ofs;
             step++;
@@ -1039,11 +1010,12 @@ int cAram::DmaTransReq(int type, u32 src, u32 dst, u32 len, int wait)
     } else {
         if (pList == 0) {
             pList = r;
+            r->next = 0;
         } else {
             for (p = pList; p->next; p = p->next) {}
             p->next = r;
+            r->next = 0;
         }
-        r->next = 0;
     }
     return no;
 }
@@ -1051,14 +1023,15 @@ int cAram::DmaTransReq(int type, u32 src, u32 dst, u32 len, int wait)
 AramReq* cAram::pullAramQueue(int* no)
 {
     int i;
-    AramReq* q = queue;
+    AramReq* r;
 
     for (i = 0; i < 16; i++) {
-        if (q[i].flag == 0) {
-            memclr_asm(&queue[i], sizeof(AramReq));
-            queue[i].flag |= 1;
+        if (queue[i].flag == 0) {
+            r = &queue[i];
+            memclr_asm(r, sizeof(AramReq));
+            r->flag |= 1;
             *no = i;
-            return &queue[i];
+            return r;
         }
     }
     return 0;
@@ -1107,7 +1080,7 @@ int cAram::DmaCancel(int no)
         for (p = pList; p->next; p = p->next) {
             if (p->next == &queue[no]) {
                 p->next = p->next->next;
-                queue[no].flag = 0;
+                (&queue[no])->clear();
                 ret = 1;
                 break;
             }
@@ -1414,10 +1387,11 @@ cDvdQueue* cDvd::pullReadQueue()
     int i;
     cDvdQueue* q;
 
-    for (i = 0, q = queue; i < 16; i++, q++) {
-        if (queue[i].chk(1) == 0) {
+    for (i = 0; i < 16; i++) {
+        q = &queue[i];
+        if (q->chk(1) == 0) {
             memclr_asm(q, sizeof(cDvdQueue));
-            queue[i].flag |= 1;
+            q->flag |= 1;
             q->no = reqNo++;
             if (reqNo == 0) {
                 reqNo = 1;
@@ -1457,40 +1431,44 @@ int cDvd::readCheckMain(int req, DvdReadInfo* info)
     cDvdQueue* q;
     int ret = 0;
 
-    if (req < 0) {
-        return req;
-    }
-    q = getQueuePtr(req);
-    if (q == 0) {
-        return -5;
-    }
-    switch (q->getStatus()) {
-    case ST_COMPLETE:
-        if (q->chk(0x800) == 1) {
-            if (info) {
-                memcpy(info->addr, q->addrTbl, sizeof(info->addr));
-                memcpy(info->size, q->sizeTbl, sizeof(info->size));
-                info->mramSize = q->mramSize;
-                info->aramSize = q->aramSize;
+    if (req >= 0) {
+        q = getQueuePtr(req);
+        if (q != 0) {
+            switch (q->getStatus()) {
+            case ST_READ:
+                break;
+            case ST_COMPLETE:
+                if (q->chk(0x800) == 1) {
+                    if (info) {
+                        memcpy(info->addr, q->addrTbl, sizeof(info->addr));
+                        memcpy(info->size, q->sizeTbl, sizeof(info->size));
+                        info->mramSize = q->mramSize;
+                        info->aramSize = q->aramSize;
+                    }
+                    ret = 1;
+                    q->PushQueue();
+                }
+                break;
+            case ST_CANCEL:
+                if (q->chk(0x800) == 1) {
+                    ret = -4;
+                    q->ErrMemFree();
+                    q->PushQueue();
+                }
+                break;
+            case ST_ERROR:
+                if (q->chk(0x800) == 1) {
+                    ret = q->err;
+                    q->ErrMemFree();
+                    q->PushQueue();
+                }
+                break;
             }
-            ret = 1;
-            q->PushQueue();
+        } else {
+            ret = -5;
         }
-        break;
-    case ST_CANCEL:
-        if (q->chk(0x800) == 1) {
-            ret = -4;
-            q->ErrMemFree();
-            q->PushQueue();
-        }
-        break;
-    case ST_ERROR:
-        if (q->chk(0x800) == 1) {
-            ret = q->err;
-            q->ErrMemFree();
-            q->PushQueue();
-        }
-        break;
+    } else {
+        ret = req;
     }
     return ret;
 }
@@ -1514,19 +1492,24 @@ int cDvd::ErrCheck(int disc, int flag)
     int cont = 1;
     int discNo = GetDiscNo();
     int shown = 0;
-    MesDataWork* md = &MesData;
-    DvdSndStr* str;
+    u8** pMes = MesData.ptr;
+    SndPlayWork* pStr = Snd.str_work;
     int paused = 0;
     int msg;
     int stat;
+    SndPlayWork* str;
 
     do {
         stat = DVDGetDriveStatus();
         msg = -1;
         driveStatus = stat;
         switch (stat) {
-        case DVD_STATE_COVER_OPEN:
-            msg = 2;
+        case DVD_STATE_BUSY:
+            if (flag == 0) {
+                cont = 0;
+            } else {
+                msg = 0;
+            }
             break;
         case DVD_STATE_END:
             if (discChanged == 1) {
@@ -1537,12 +1520,8 @@ int cDvd::ErrCheck(int disc, int flag)
         case DVD_STATE_FATAL_ERROR:
             msg = 1;
             break;
-        case DVD_STATE_BUSY:
-            if (flag == 0) {
-                cont = 0;
-            } else {
-                msg = 0;
-            }
+        case DVD_STATE_COVER_OPEN:
+            msg = 2;
             break;
         case DVD_STATE_NO_DISK:
             msg = 3;
@@ -1550,21 +1529,24 @@ int cDvd::ErrCheck(int disc, int flag)
         case DVD_STATE_WRONG_DISK:
             msg = 4;
             break;
+        case DVD_STATE_RETRY:
+            msg = 5;
+            break;
         case DVD_STATE_MOTOR_STOPPED:
             msg = 6;
             break;
         case DVD_STATE_PAUSING:
             break;
-        case DVD_STATE_RETRY:
-            msg = 5;
-            break;
         }
-        if ((pG->flags_54 & 0x8000) || (pG->flags_54 & 0x200)) {
+        if (pG->flags_54 & 0x8000) {
+            msg = -1;
+            cont = 0;
+        } else if (pG->flags_54 & 0x200) {
             msg = -1;
             cont = 0;
         }
         if (msg != -1) {
-            pG->flags_54 &= ~0x400;
+            BitOff(pG->flags_54, 0x400);
             if (shown == 0) {
                 if (pG->flags_54 & 0x40000) {
                     paused = 1;
@@ -1574,20 +1556,21 @@ int cDvd::ErrCheck(int disc, int flag)
                     Sofdec.PlayPause(1);
                 }
                 if (pG->x1C == 1) {
-                    md->ptr[4] = (u8*) pG->pArc + pG->pArc->ofs_6C;
+                    pMes[4] = (u8*) (pG->pArc->ofs_6C + (u32) pG->pArc);
                     cMes.setLayout(0xF, 5);
                 }
                 systemVISetBlack(0);
                 GXSetCopyClear(BkBlack, 0xFFFFFF);
                 GXCopyDisp(pCurrent_buff, 1);
                 ScreenReSize(0x200, 0x1C0);
-                for (str = Snd.str; str <= &Snd.str[3]; str++) {
-                    if (str->x0 == 1 && str->xA == 1) {
+                str = pStr;
+                do {
+                    if (str->used == 1 && str->blk == 1) {
                         if (SndStrStatusCk(str->id, 0x10)) {
                             SndStrReq(str->id, 8, 0, 0);
                         }
                     }
-                }
+                } while (++str <= &pStr[3]);
                 shown = 1;
             }
             Render_before();
@@ -1644,15 +1627,21 @@ static u16 mes_pos[8][9][2] = {
 
 void MesSysMessage(int msg, int disc)
 {
-    int f = (pG->flags_58 & 0x800) ? 1 : 0;
+    int f = 1;
+
+    if ((pG->flags_58 & 0x800) == 0) {
+        f = 0;
+    }
+    u16* pos = mes_pos[pSys->language][0];
     u16 mes_no[12] = {0, 0, 1, 3, 3, 6, 7, 8, 2, 4, 9, 9};
-    u16* pos = mes_pos[pSys->language][(u16) msg];
+    u16 no = msg;
 
     if (msg == 3 || msg == 4) {
         msg += disc * 7;
     } else if (msg == 6) {
         msg = disc + 6;
     }
+    pos += no * 2;
     cMes.MesSet(mes_no[msg], pos[0], pos[1], 0x01020090, 0xF, 0, 1);
     pG->flags_58 &= ~0x800;
     cMes.Move();
@@ -1679,7 +1668,7 @@ void RomFontPrint(int x, int y, const char* str)
     delete font;
 }
 
-void RomFontMessage(int msg, int disc)
+void RomFontMessage(u32 msg, int disc)
 {
     switch (msg) {
     case 1:
@@ -1862,6 +1851,27 @@ void RomFontMessage(int msg, int disc)
     }
 }
 
+// European region codes share one disc id.
+static inline int SysIsEurope()
+{
+    if (pSys->region == 2) {
+        return 1;
+    }
+    if (pSys->region == 3) {
+        return 1;
+    }
+    if (pSys->region == 4) {
+        return 1;
+    }
+    if (pSys->region == 5) {
+        return 1;
+    }
+    if (pSys->region == 6) {
+        return 1;
+    }
+    return 0;
+}
+
 int cDvd::DiscChange(int disc)
 {
     DVDDiskID id;
@@ -1872,20 +1882,20 @@ int cDvd::DiscChange(int disc)
 
     if (pSys->region == 1) {
         region = 1;
-    } else if (pSys->region == 2 || pSys->region == 3 || pSys->region == 4 || pSys->region == 5 || pSys->region == 6) {
+    } else if (SysIsEurope() == 1) {
         region = 2;
     } else if (pSys->region == 7) {
         region = 3;
     }
     DVDGenerateDiskID(&id, game[region], company, (u8) disc, 0xFF);
-    if (DVDCompareDiskID(DVDGetCurrentDiskID(), &id) != 1) {
-        discChanged = 1;
-        DVDChangeDiskAsync(&cb, &id, 0);
-        ErrCheck(disc, 1);
-        FileTblExistCheck();
-        return 1;
+    if (DVDCompareDiskID(DVDGetCurrentDiskID(), &id) == 1) {
+        return 0;
     }
-    return 0;
+    discChanged = 1;
+    DVDChangeDiskAsync(&cb, &id, 0);
+    ErrCheck(disc, 1);
+    FileTblExistCheck();
+    return 1;
 }
 
 int cDvd::GetDiscNo()
@@ -1912,47 +1922,49 @@ char* queue_stat[] = {"PUSH", "READ", "COMPLETE", "CANCEL", "ERROR"};
 
 void cDvd::queueStatusDisp()
 {
-    cDvdQueue* q = Dvd.queue;
     cDvdQueue* p;
     int i;
     int y = 0x40;
+    int y2;
     int x;
 
-    for (i = 0; i < 16; i++, y += 0x10) {
+    for (i = 0; i < 16; y += 0x10, i++) {
         eprintf(0x20, y, 0, 0x15, "[%2d]", i);
-        if (q[i].chk(1) == 1) {
-            eprintf(0x48, y, 0, 0x15, "%s %s", queue_stat[q[i].getStatus()], q[i].name);
+        p = &Dvd.queue[i];
+        if (Dvd.queue[i].chk(1) == 1) {
+            eprintf(0x48, y, 0, 0x15, "%s %s", queue_stat[Dvd.queue[i].getStatus()], p->name);
         }
     }
     y += 0x10;
     if (Dvd.pRead) {
-        for (i = 0; i < 16; i++) {
+        i = 0;
+        y2 = y + 0x10;
+        for (; i < 16; i++) {
             if (Dvd.pRead == &Dvd.queue[i]) {
                 eprintf(0x20, y, 0, 0x15, "READ : [%2d]", i);
             }
         }
-        y += 0x10;
     } else {
         eprintf(0x20, y, 0, 0x15, "READ :");
-        y += 0x10;
+        y2 = y + 0x10;
     }
     if (Dvd.pList) {
-        eprintf(0x20, y, 0, 0x15, "LIST : ");
+        eprintf(0x20, y2, 0, 0x15, "LIST : ");
         x = 0x58;
         for (p = Dvd.pList; p; p = p->next) {
             for (i = 0; i < 16; i++) {
                 if (p == &Dvd.queue[i]) {
                     if (p->next == 0) {
-                        eprintf(x, y, 0, 0x15, "[%2d]", i);
+                        eprintf(x, y2, 0, 0x15, "[%2d]", i);
                     } else {
-                        eprintf(x, y, 0, 0x15, "[%2d]-", i);
+                        eprintf(x, y2, 0, 0x15, "[%2d]-", i);
                     }
                     x += 0x28;
                 }
             }
         }
     } else {
-        eprintf(0x20, y, 0, 0x15, "LIST :");
+        eprintf(0x20, y2, 0, 0x15, "LIST :");
     }
 }
 
@@ -1972,9 +1984,12 @@ void cDvd::DiscReadInfo()
         eprintf2(0xA, 0x10, 0x20, 0x160, 0, 0, "%08x %06x %06x", fi->cb.offset, fi->cb.length, pRead->remain);
         eprintf2(0xA, 0x10, 0x20, 0x170, 0, 0, "%08x %06x %06x", fi->cb.currTransferSize, fi->cb.transferredSize, DVDGetTransferredSize(fi));
     }
-    for (s = Snd_str_work, y = 0x1AA; s <= &Snd_str_work[3]; s++, y -= 0x10) {
+    s = Snd_str_work;
+    y = 0x1AA;
+    do {
         if (s->status & 1) {
             eprintf2(0xA, 0x10, 0xF0, y, 0, 0, "%d %04x %04x %02x %02x %02x", s->no, s->status, s->req, s->err, s->cancel, s->state);
+            y -= 0x10;
         }
-    }
+    } while (++s <= &Snd_str_work[3]);
 }

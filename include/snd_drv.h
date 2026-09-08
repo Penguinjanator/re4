@@ -30,14 +30,17 @@ typedef struct {
     s8 vol;         // 0x06  < 0: from the DLS
     s8 x7;          // 0x07  aux A
     s8 x8;          // 0x08  aux B
-    u8 pad_9[1];
+    s8 curve_no;    // 0x09  distance curve selector (game/snd.cpp SndCall), -1 = none
     u16 pitch_lo;   // 0x0A  random pitch range
     u16 pitch_hi;   // 0x0C
-    u8 pad_E[2];
+    u8 inner_vol;   // 0x0E  volume % while the player is on a type-3 floor attribute (0 = off)
+    u8 xF;
     u8 srd_type;    // 0x10
     s8 span;        // 0x11
     s8 svol;        // 0x12
-    u8 pad_13[3];
+    s8 rnd_no;      // 0x13  random SE table selector (game/snd.cpp seRandomCheck)
+    u8 se_flag;     // 0x14  0x1/0x2/0x4 -> Snd_ctrl_work.x56 bits, 0x20 area volume control
+    u8 wall_vol;    // 0x15  volume % behind a wall (1..99), also the room BGM start volume
     u16 flag;       // 0x16  0x4 seq, 0x100 type 1, 0x2000 chained, 0x4000 may steal an equal priority voice, 0x8000 dummy
 } SND_SIT;
 

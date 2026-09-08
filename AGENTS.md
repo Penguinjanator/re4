@@ -279,6 +279,44 @@ mark it Matching.
   from the names in `sym_map.tsv`.
 - Data (`.rodata`/`.data`/`.bss`) in your unit must also match: define the globals the unit owns
   (see `[.data]`/`[.bss]` in `unit_info.py` output) with the right sizes and initial values.
+- A `lwz rX,0(rY); stw rX,0(rY)` no-op pair on a flag word is `volatile u32 flag` with an inlined
+  setter whose constant argument folds to `flag |= 0` (dvd `cDvdQueue::setStatus(0)`); a volatile flag
+  also explains every reload of the word right after a store to it (`flag &= ~a; flag |= b` → two
+  RMW pairs). The `li r9,1; andi.; bne; li r9,0; cmpwi r9,0` chains are an inline
+  `int chk(u32 b) { return (flag & b) ? 1 : 0; }`; `if (flag & b) return 1; return 0;` gives the
+  reversed `li 0; andi.; beq; li 1` chain (dvd, sofdec.h `isPlay`).
+- A store of a register that "happens" to hold a loop counter or a compared value is CSE reusing a
+  register known to be a constant on that path: after `if (depth == 0) {...}` the else-branch stores of
+  `= 0` use the `depth` register, and `pFilehead[depth]` becomes `lwz 0(rBase)` (index folded to 0)
+  (dvd readInit). Likewise `step = 0` right after `switch (step)` in `case 0:` stores the switch register.
+- `switch` on a `u32` field gives `cmplwi` in the compare tree (dvd `DvdHeader::type`, `RomFontMessage`'s
+  `u32 msg`), `int` gives `cmpwi`; a tree whose root is the lowest case with `ble default` comes from an
+  extra empty `case` below it (`case ST_READ: break;` in `readCheckMain`).
+- `if (a == 2 || a == 3 || ... )` on the same lvalue is range-folded (`subi; cmplwi`); five separate
+  `if (x == k) return 1;` statements keep the compare chain (dvd `SysIsEurope`).
+- A peeled first iteration (`lwz n = p->next; cmpwi; beq; cmpw n, q; bne loop` before the loop) with the
+  hit block duplicated is `for (p = list; p->next; p = p->next) { if (p->next == q) { ...; ret = 1;
+  break; } }` — `return 1` inside the body gives the rotated single-test loop instead (dvd DmaCancel).
+- An `if (c) { ret = X; } else if (...)`  chain whose `ret = X` blocks sit *after* the main body means the
+  source tested the inverse and put the big block first: `if (req >= 0) { ... } else ret = req;`.
+- `cDvd* d = &Dvd; ... d->pList` and plain `Dvd.pList` are not equivalent for GCSE: writing the global
+  directly gives the `mr r7,r9` address copy and a reload of `Dvd.pList` inside the loop that a local
+  pointer lets the compiler hoist (dvd LinkQueue).
+- Two copies of an address (`addi r0,r31,0xa8; mr r3,r0; mr r28,r0`) come from `sprintf(name, ...);
+  n = name;` (statement after the call) — `n = name; sprintf(n, ...)` coalesces them.
+- `for (i = 0; i < N; i++) a[i] = f(a[i])` over a constant-size array has no entry test and compares the
+  pointer to the last element (`cmplw; ble`); `for (p = a; p <= &a[N-1]; p++)` keeps an entry test. A
+  do-while over a global array with the base kept in a function-scope pointer (`DvdSndStr* pStr =
+  Snd.str; s = pStr; do {...} while (++s <= &pStr[3]);`) hoists the `lis/addi` to the function top.
+- `pos = mes_pos[lang][0]; pos += no * 2; f(pos[0], pos[1])` gives `lhzux`; indexing `pos[no*2]`,
+  `pos[no*2+1]` gives `lhzx` + `add`. Local array initialisers are copied after the declarations that
+  precede them in the source: a `pSys->x` read must be declared before the `u16 tbl[12] = {...}` to be
+  loaded first.
+- Callers passing an `int` to a `u8` parameter emit `clrlwi r4,r4,24`; if the target has it, the outer
+  function's own parameter is `int`, not `u8` (dvd `ReadNblk2Blk(int)`, `ReadCancel(int, int)`).
+- `bool ok = f(); if (ok)` materialises `li 1; bne; li 0; cmpwi` from the call result (dvd Watcher).
+- `int v = 1; if ((pG->flags & bit) == 0) v = 0;` is how a stored/compared flag test is written when the
+  target shows the `li/andis./bne/li` chain for a global; `(pG->flags & bit) ? 1 : 0` becomes `extrwi`.
 
 ## Don'ts
 

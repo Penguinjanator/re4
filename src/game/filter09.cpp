@@ -39,9 +39,9 @@ void Filter09Init()
 
 void Filter09RoomInit()
 {
-    g_bGet = 0;
     filter09_buff = 0;
     g_bUse = 0;
+    g_bGet = 0;
 }
 
 // Never called (the original linker dropped the body; its 0.0f pool constant stayed).

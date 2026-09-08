@@ -9,8 +9,14 @@
 // units are declared; the layout is opaque (sizeof 0x38).
 class cSatMgr {
 public:
-    u8 pad_0[0x38];
+    u8 pad_0[4];
+    u32 x4;          // 0x04  (pl_debug satMakeTest prints it)
+    u8 pad_8[0x38 - 0x8];
 
+    // Runtime scenario piece from a polygon list (createFloorSat / createBoxSat / createSat by
+    // flag bits 0x200 / 0x100); returns the registered piece or NULL.
+    void* create(Vec* pos, Vec* rot, Vec* poly, int n, int flag, f32 h);
+    int destroy(void* sat);
     // Ray from `top` down to `bottom`; returns the hit flags (bit2: no floor), hit point in `hit`.
     int hitCheck2(Vec* top, Vec* bottom, Vec* hit, u32* attr, int flag, int x);
     // Line segment `a`-`b` against the scenario; hit point and normal out. Returns 0 when nothing was hit.

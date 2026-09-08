@@ -968,6 +968,7 @@ MATCHING = {
     "game/filter03.cpp": True,
     "game/filter01.cpp": True,
     "game/filter04.cpp": True,
+    "game/dvd.cpp": False,  # 51/55 functions, all section sizes exact; readMain/Initialize/ErrCheck/DiscChange differ in register allocation only
     # units that mix GQR fast-cast and classic fpmem conversions: need the native v1.79 cc1plus
     # (configure.py --prodg-driver native, the default; see AGENTS.md "Compiler")
     "game/filter0b.cpp": True,
@@ -977,11 +978,17 @@ MATCHING = {
     "game/light02.cpp": True,
     "game/light05.cpp": True,
     "game/light06.cpp": True,
+    "game/filter07.cpp": True,
+    "game/filter09.cpp": True,
+    "game/esp11.cpp": True,
+    "game/esp15.cpp": True,
+    "game/esp03.cpp": True,
 }
 
 # C++ units with functions the original linker dead-stripped (bodies gone, constant pools and
 # statics kept): tools/strip_unused.py removes the bodies of functions not in sym_map.tsv.
 STRIP_UNUSED = {
+    "game/pl_debug.cpp",
     "game/main_sub.cpp",
     "game/filter01.cpp",
     "game/filter09.cpp",
@@ -1022,4 +1029,9 @@ MATCHING.update({
     "game/snd_iss2.cpp": True,
     "game/snd_iss3.cpp": True,
     "game/snd_iss4.cpp": True,
+})
+
+# player units (game/pl_*.cpp, debug, read)
+MATCHING.update({
+    "game/pl_event.cpp": True,
 })

@@ -46,6 +46,7 @@ struct SystemWork {
     u8 region;     // 0x09  1 US, 2..6 EU, 7 ? (dvd: disc id game name)
     u8 brightness; // 0x0A  background brightness (Render_done -> Bg_brightness_set)
     u8 key_type;   // 0x0B  Key_type_tbl row (controller layout)
+    u8 sound_mode; // 0x0C  0 mono, 1 stereo, 2 DPL2 (Snd_get_sound_mode / SndSetOutputMode)
 };
 extern SystemWork* pSys;
 

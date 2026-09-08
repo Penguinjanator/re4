@@ -153,6 +153,9 @@ public:
     void setAng(Vec* ang);
     void drawAllBoundingBox(cModelInfo* info);
     void debugSkeletonDisp();
+    // MotionSetCore(this, &motion (0x1D8), data, a, b, c, d) / MotionMove(this, 0)
+    int motionSet(void* data, int a, int b, int c, int d);
+    int motionMove();
 };
 
 #endif

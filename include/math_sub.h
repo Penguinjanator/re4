@@ -53,6 +53,11 @@ f32 VecAngle(Vec* a, Vec* b);
 // game/sub2.cpp
 f32 RootSumSquare3(Vec* v);
 int GetScreenPos(Vec* pos, Vec* scr);
+f32 GetDistance(Vec* a, Vec* b);
+f32 GetDistance3(Vec* a, Vec* b);
+void RotVector(Vec* src, Vec* rot, Vec* dst);
+// Angle step from `ang` towards `target` seen from `pos`, clamped to +-limit.
+f32 Muku(Vec* pos, Vec* target, f32 ang, f32 limit);
 // lib math
 f32 sinf(f32 x);
 f32 cosf(f32 x);

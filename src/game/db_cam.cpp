@@ -25,7 +25,6 @@ void CameraCamposRot(Camera* cam, char axis, f32 rad);
 void CameraTargetRot(Camera* cam, char axis, f32 rad);
 void CameraDolly(Camera* cam, Vec* mv);
 void Draw_line3d(Vec* a, Vec* b, u32 color, int flag);
-void PlWepMotSet(int no);
 void MotionMove(cModel* m, int flag);
 }
 

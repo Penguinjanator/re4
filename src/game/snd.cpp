@@ -1,43 +1,192 @@
-// game/snd: game-side sound interface (D:/Bio4/Prog/snd.cpp). NOT MATCHED: only the trivial
-// wrappers around the sound driver are here so far (they match). The rest of the unit (97
-// functions, 0x5AC4 bytes, -O2) still has to be written: SndInit / SndDriverInit (ARAM memory map
-// in `SndMem`, 0xA0 bytes of pointers filled from DVD files 0x60/0x68/0x6A/0x59 read to
-// 0x80370000), SndCall and the *SeCheck helpers, the room BGM/stream tables (`Snd`, 0xAE8 bytes,
-// pSnd), SndWatcher and the debug display (debugDisp, SndStatDisp) that prints through pLog.
-// Notes from the disassembly:
-//  - Snd.x20 is a flag word (bit 0x01000000: door SEs enabled; bit words at 0x20.. are also the
-//    per-block "loaded" bitmask read by sndExistCheck: word[blk >> 5] bit (0x80000000 >> (no&31))).
-//  - callErr is a static u32[14][32] bitmap of already reported illegal SE numbers (sndCallErr).
-//  - sndVolCalc/sndPitchCalc/sndFilterCalc interpolate tables at pSnd->x9C + ofs[i] (0xC0/0x140/0x1C0).
-//  - pSys->sound_mode (u8 at 0x0C) receives Snd_get_sound_mode() in SndInit.
+// game/snd: game-side sound interface (D:/Bio4/Prog/snd.cpp, -O2). Owns the game sound work
+// (`Snd`, pSnd), the sound data memory map (`SndMem`) and the room BGM / stream tables, and calls
+// into the C sound driver (src/game/snd_*.cpp, include/snd_drv.h).
+#include "types.h"
+#include "global.h"
+#include "map_obj.h"
+#include "light.h"
+#include "widget.h"
+#include "atari.h"
+#define SND_SDK_NO_GX
 #include "snd.h"
 #include "snd_drv.h"
+#include "dvd.h"
+#include "main.h"
+#include "main_mem.h"
+#include "room_data.h"
+#include "db_log.h"
+#include "player.h"
+#include "rnd.h"
+#include "math_sub.h"
+#include "eprintf.h"
+#include "flr_at.h"
 
-extern "C" void SndDriverInit();
+extern "C" void ADXT_SetOutputMono(int sw);
+void* GetDataExt(void* arc, const char* tag, int no);
+int AreaHitCheck(void* area, Vec* pos);
+int EspPlWaterCall(int no, Vec* pos);
+void EspFootCall(int no, int type, Vec* pos);
+void SeAtCheck();
 
-int EmSeCall(u16 no, Vec* pos, int a, u32 flag0, u32 flag1, int b)
+#define SND_FILE "D:/Bio4/Prog/snd.cpp"
+#define ALIGN32(x) (((x) + 0x1F) & ~0x1F)
+#define SND_DATA_TOP 0x80370000
+#define LOOP_IDX(x, max) ((x) < 0 ? (max) : ((x) > (max) ? 0 : (x)))
+#define CLAMP(x, lo, hi) ((x) < (lo) ? (lo) : ((x) > (hi) ? (hi) : (x)))
+
+SndWork Snd;
+SndMemWork SndMem;
+u32 UseAramSize[14];
+SndHistory History;
+SndRoomHdr DefEffTbl;
+static u32 callErr[14][32];
+u32 aram_buf[3];
+
+u16 StrFileTbl[2] = { 1, 0x5F };
+int str_flag = 1;
+u32 ARAM_FREE_BASE;
+SndWork* pSnd;
+u32 SndStrAramAddr[4] = { 0x700000, 0x740000, 0x780000, 0x7C0000 };
+
+static void SndBgmTblInit();
+
+static void sndCallErr(int blk, int no)
 {
-    return SndCall(8, no, pos, a, flag0 | flag1, b);
+    if (pG->flags_68 & 0x4) {
+        pLog->err(0, 0, "SndCall : blk %d No.%d Illegal SE No.", blk, no);
+        return;
+    }
+    if (SND_BIT_CK(callErr[blk], no)) {
+        return;
+    }
+    SND_BIT_SET(callErr[blk], no);
+    pLog->err(0, 0, "SndCall : blk %d No.%d Illegal SE No.", blk, no);
 }
 
-int RoomSeCall(u16 no, Vec* pos, u32 flag0, u32 flag1, int b)
+#line 78 SND_FILE
+static void* reverb_mem_alloc(u32 size)
 {
-    return SndCall(6, no, pos, 0, flag1 | flag0, b);
+    return MEM_ALLOC(size, 1, 13);
 }
 
-int PlSeCall(u16 no, Vec* pos, u32 flag0, u32 flag1, int b)
+void SndInit()
 {
-    return SndCall(1, no, pos, 0, flag0 | flag1, b);
+    int len;
+    int r;
+    u32 adr;
+    int i;
+
+    pSnd = &Snd;
+    ARInit(aram_buf, 3);
+    ARAlloc(0x6FC000);
+    ARQInit();
+    memclr_asm(pSnd, sizeof(SndWork));
+
+#line 120 SND_FILE
+    r = DvdRead(0, (void*) SND_DATA_TOP, 0, 0, 0, 0x11, __FILE__, __LINE__);
+    str_flag = Dvd.ReadCheck(r, &len, 0, 0) > 0;
+    adr = SND_DATA_TOP + ALIGN32(len);
+    for (i = 0; i < 2; i++) {
+        SndMem.str_file[i] = (SndStrFile*) (SND_DATA_TOP + ((u32*) SND_DATA_TOP)[i]);
+        Snd_str_blk_init(i, SndMem.str_file[i]);
+    }
+
+    SndMem.bgm_file = (u32*) adr;
+#line 133 SND_FILE
+    r = DvdRead(0x60, (void*) adr, 0, 0, 0, 0x11, __FILE__, __LINE__);
+    Dvd.ReadCheck(r, &len, 0, 0);
+    adr += ALIGN32(len);
+
+    SndMem.door_tbl = (SndDoorTbl*) adr;
+#line 140 SND_FILE
+    r = DvdRead(0x68, (void*) adr, 0, 0, 0, 0x11, __FILE__, __LINE__);
+    Dvd.ReadCheck(r, &len, 0, 0);
+    adr += ALIGN32(len);
+
+    SndMem.bgm_tbl = (SndBgmTbl*) adr;
+#line 147 SND_FILE
+    r = DvdRead(0x6A, (void*) adr, 0, 0, 0, 0x11, __FILE__, __LINE__);
+    Dvd.ReadCheck(r, &len, 0, 0);
+    adr += ALIGN32(len);
+
+    ARAM_FREE_BASE = 0x800000;
+    SndMem.blk_mram[0] = adr;
+    SndMem.blk_mram[1] = adr + 0x4000;
+    SndMem.blk_mram[2] = adr + 0x8000;
+    SndMem.blk_mram[7] = adr + 0xC000;
+    SndMem.mram_end = adr + 0x10000;
+    for (i = 3; i >= 0; i--) {
+        SndMem.str_buf[i] = SndMem.mram_end + 0x10000 + i * 0x8000;
+    }
+    SndMem.sub_adr = SndMem.str_buf[3] + 0x8000;
+#line 170 SND_FILE
+    r = DvdRead(0x59, (void*) SndMem.sub_adr, 0, 0, 0, 0x8001, __FILE__, __LINE__);
+    Dvd.ReadCheck(r, &len, 0, 0);
+    SndMem.sub_end = SndMem.sub_adr + len;
+
+    SndDriverInit();
+    pSys->sound_mode = Snd_get_sound_mode();
 }
 
-int CoreSeCall(u16 no, Vec* pos, u32 flag0, u32 flag1, int b)
+void SndInit2()
 {
-    return SndCall(0, no, pos, 0, flag0 | flag1, b);
+    int i;
+
+    memclr_asm(pSnd, sizeof(SndWork));
+    pSnd->mram_top = SndMem.mram_end;
+    pSnd->aram_top = 0x1F4100;
+    for (i = 0; i < 6; i++) {
+        pSnd->em_id[i] = 0xFF;
+    }
+    pSnd->bgm_mram = SndMem.mram_end + 0x10000;
+    pSnd->bgm_aram = 0x700000;
+    for (i = 0; i < 2; i++) {
+        pSnd->bgm_id[i] = 0xFF;
+    }
+    SndBgmTblInit();
+    pSnd->door_no = -1;
+    memclr_asm(UseAramSize, sizeof(UseAramSize));
+    memclr_asm(callErr, sizeof(callErr));
 }
 
-int FootSeCall(u16 no, Vec* pos, u32 flag0, u32 flag1)
+static void SndBgmTblInit()
 {
-    return SndCall(5, no, pos, 0, flag0 | flag1, 0);
+    SndBgmTbl* t = SndMem.bgm_tbl;
+    u16* rl = (u16*) ((u8*) t + t->list_ofs);
+    int i = 0;
+    int j;
+
+    while (*rl != 0xFFFF) {
+        SndRoomSave* rs = (SndRoomSave*) RoomData.getRoomSavePtr(*rl);
+        if (rs != NULL) {
+            u32* ofs = (u32*) ((u8*) SndMem.bgm_tbl + SndMem.bgm_tbl->room_ofs);
+            SndBgmRoom* room = (SndBgmRoom*) ((u8*) ofs + ofs[i]);
+            for (j = 0; j < 6; j++) {
+                rs->bgm[j] = room->e[0].bgm[j];
+                rs->str[j] = room->e[0].str[j];
+            }
+        }
+        rl++;
+        i++;
+    }
+}
+
+void SndDriverInit()
+{
+    int i;
+
+    Snd_system_init();
+    AXFXSetHooks(reverb_mem_alloc, Mem_free);
+    SndSetMasterVol(0x10001, 0x7F);
+    SndSetMasterVol(0x10002, 0x7F);
+    SndSetMasterVol(0x20001, 0x7F);
+    SndSetMasterVol(0x40001, 0x7F);
+    SndSetMasterVol(0x20002, 0x7F);
+    SndSetMasterVol(0x40002, 0x7F);
+    for (i = 0; i < 4; i++) {
+        Snd_str_aram_adrs_set(i, SndStrAramAddr[i]);
+        Snd_str_buff[i] = (u8*) SndMem.str_buf[i];
+    }
 }
 
 void SndSystemReset()
@@ -49,6 +198,1864 @@ void SndSystemReset()
     AXQuit();
     AIReset();
     SndDriverInit();
+}
+
+static s8 sndPanCalc(f32 angle)
+{
+    f32 a = fabsf(angle);
+
+    if (fabsf(angle) > 1.5707964f) {
+        a = 3.1415927f - a;
+    }
+    if (angle > 0.0f) {
+        return (u8) (a * 40.743664f + 64.0f);
+    }
+    return (u8) (64.0f - a * 40.743664f);
+}
+
+static s8 sndSpanCalc(f32 angle)
+{
+    return (u8) (127.0f - fabsf(angle) * 40.743664f);
+}
+
+static s8 sndVolCalcSub(SndCurveTbl* t, f32 dist, f32 vol)
+{
+    u32 i;
+    SndCurveEnt* e = t->e;
+    f32 r;
+
+    for (i = 0; i < t->num; i++, e++) {
+        if (dist < e->dist) {
+            break;
+        }
+    }
+    if (i == 0) {
+        r = (u16) e->val;
+    } else if (i == t->num) {
+        r = (u16) e[-1].val;
+    } else {
+        r = (f32) (u16) e[-1].val
+            - (f32) ((s16) e[-1].val - e->val) / (e->dist - e[-1].dist) * (dist - e[-1].dist);
+    }
+    return (u8) (vol * 0.0078125f * r);
+}
+
+static int sndVolCalc(int vol, int no, f32 dist)
+{
+    SndRoomHdr* h;
+    u32 ofs;
+
+    if (no == -1) {
+        return vol;
+    }
+    h = pSnd->hdr;
+    if (h == NULL) {
+        return vol;
+    }
+    ofs = h->vol_ofs[no];
+    if (ofs == 0) {
+        return vol;
+    }
+    return sndVolCalcSub((SndCurveTbl*) ((u8*) h + ofs), dist, (u8) vol);
+}
+
+static s16 sndPitchCalcSub(SndCurveTbl* t, f32 dist)
+{
+    u32 i;
+    SndCurveEnt* e = t->e;
+    f32 r;
+
+    for (i = 0; i < t->num; i++, e++) {
+        if (dist < e->dist) {
+            break;
+        }
+    }
+    if (i == 0) {
+        r = (u16) e->val;
+    } else if (i == t->num) {
+        r = (u16) e[-1].val;
+    } else {
+        r = (f32) (u16) e[-1].val
+            - (f32) ((s16) e[-1].val - e->val) / (e->dist - e[-1].dist) * (dist - e[-1].dist);
+    }
+    return (u16) r;
+}
+
+static s16 sndPitchCalc(int no, f32 dist)
+{
+    SndRoomHdr* h;
+    u32 ofs;
+
+    if (no == -1) {
+        return 0;
+    }
+    h = pSnd->hdr;
+    if (h == NULL) {
+        return 0;
+    }
+    ofs = h->pitch_ofs[no];
+    if (ofs == 0) {
+        return 0;
+    }
+    return sndPitchCalcSub((SndCurveTbl*) ((u8*) h + ofs), dist);
+}
+
+static int sndFilterCalc(int no, f32 dist)
+{
+    int ret = 0;
+    SndRoomHdr* h;
+    u32 ofs;
+    SndCurveTbl* t;
+    SndCurveEnt* e;
+    u32 i;
+
+    if (no == -1) {
+        return -1;
+    }
+    h = pSnd->hdr;
+    if (h == NULL) {
+        return ret;
+    }
+    ofs = h->filter_ofs[no];
+    if (ofs == 0) {
+        return ret;
+    }
+    t = (SndCurveTbl*) ((u8*) h + ofs);
+    e = t->e;
+    for (i = 0; i < t->num; i++, e++) {
+        if (dist < e->dist) {
+            ret = (s8) e->val;
+            break;
+        }
+    }
+    if (i == t->num) {
+        ret = (s8) e[-1].val;
+    }
+    return ret;
+}
+
+static int sndExistCheck(int blk, u32 no)
+{
+    if (!SND_BIT_CK(pSnd->blk_flag, blk)) {
+        return 0;
+    }
+    if (no >= Snd_iss_blk[blk].num) {
+        return 0;
+    }
+    if (Snd_iss_get_sit_type(blk, no) == 0x8000) {
+        return 0;
+    }
+    return 1;
+}
+
+static int sndWallCheckSub(Vec* pos)
+{
+    Vec a;
+    Vec b;
+    int ret = 0;
+
+    a = *pos;
+    b.x = pPL->pos.x;
+    b.y = pPL->pos.y + 1500.0f;
+    b.z = pPL->pos.z;
+    if (EatMgr.hitCheck(&a, &b, 0, 0, 0, 0x404000) != 0) {
+        ret = 1;
+    }
+    return ret;
+}
+
+static void sndWallCheck(SND_SIT* sit, u8* vol, u8* svol, Vec* pos)
+{
+    if (pos == NULL) {
+        return;
+    }
+    if (sit->wall_vol < 1 || sit->wall_vol > 99) {
+        return;
+    }
+    if (sndWallCheckSub(pos) != 1) {
+        return;
+    }
+    if (*vol != 0) {
+        *vol = (u8) ((f32) *vol * ((f32) sit->wall_vol / 100.0f));
+        if ((s8) *vol <= 0) {
+            *vol = 1;
+        }
+    }
+    if (*svol != 0) {
+        *svol = (u8) ((f32) *svol * ((f32) sit->wall_vol / 100.0f));
+        if ((s8) *svol <= 0) {
+            *svol = 1;
+        }
+    }
+}
+
+static void sndVolCtrlAtCheck(SND_SIT* sit, u8* vol, u8* svol, Vec* pos)
+{
+    FlrAt* at;
+
+    if (pos == NULL) {
+        return;
+    }
+    if (!(sit->se_flag & 0x20)) {
+        return;
+    }
+    at = FlrAtCheck(1, &pPL->pos, 0);
+    if (at == NULL) {
+        return;
+    }
+    if (AreaHitCheck(at->area, pos) != 0) {
+        return;
+    }
+    if (*vol != 0) {
+        *vol = 1;
+    }
+    if (*svol != 0) {
+        *svol = 1;
+    }
+}
+
+static int sndInnerVolCheck(SND_SIT* sit, u8* vol, u8* svol)
+{
+    int ret = 0;
+
+    if (sit->inner_vol == 0) {
+        return ret;
+    }
+    if (FlrAtCheck(3, &pPL->pos, 0) == NULL) {
+        return ret;
+    }
+    if (*vol != 0) {
+        *vol = (u8) ((f32) *vol * ((f32) sit->inner_vol / 100.0f));
+        if ((s8) *vol <= 0) {
+            *vol = 1;
+        }
+    }
+    if (*svol != 0) {
+        *svol = (u8) ((f32) *svol * ((f32) sit->inner_vol / 100.0f));
+        if ((s8) *svol <= 0) {
+            *svol = 1;
+        }
+    }
+    ret = 1;
+    return ret;
+}
+
+static void seRandomCheck(int blk, u16* no);
+
+static int footSeCheck(u16* no, Vec* pos)
+{
+    FlrAt* at;
+    int ret;
+
+    if (pos != NULL) {
+        if (*no >= 0x10 && *no <= 0x13) {
+            at = FlrAtCheck(0, pos, 2);
+            if (at == NULL) {
+                goto check;
+            }
+            *no += at->x44 * 30;
+        } else if (EspPlWaterCall(*no >> 1, pos) == 1) {
+            *no += 30;
+        } else {
+            at = FlrAtCheck(0, pos, 1);
+            if (at != NULL) {
+                if (*no <= 3) {
+                    EspFootCall(*no >> 1, at->x45, pos);
+                }
+                *no += at->x44 * 30;
+            } else {
+                if (*no <= 3) {
+                    EspFootCall(*no >> 1, pFlrSys->foot_esp[pFlrSys->no], pos);
+                }
+                *no += pFlrSys->foot_se[pFlrSys->no] * 30;
+            }
+        }
+    }
+check:
+    seRandomCheck(5, no);
+    ret = sndExistCheck(5, *no);
+    if (ret == 0) {
+        sndCallErr(5, *no);
+    }
+    return ret;
+}
+
+static int emSeCheck(u16* blk, u16* no, int id)
+{
+    int i;
+    int ret;
+    SndEmHist* h;
+    SndEmHist* free;
+
+    *blk = 0xFFFF;
+    for (i = 0; i < 6; i++) {
+        switch (id) {
+        case 0x10:
+        case 0x12:
+        case 0x13:
+            if (pSnd->em_id[i] == 0x10) {
+                *blk = i + 8;
+            }
+            break;
+        case 0x11:
+        case 0x14:
+        case 0x19:
+        case 0x1A:
+        case 0x1B:
+        case 0x1C:
+            if (pSnd->em_id[i] == 0x11) {
+                *blk = i + 8;
+            }
+            break;
+        case 0x1D:
+        case 0x1E:
+        case 0x1F:
+        case 0x20:
+            if (pSnd->em_id[i] == 0x1D) {
+                *blk = i + 8;
+            }
+            break;
+        case 0xFF:
+            *blk = 8;
+            break;
+        default:
+            if (pSnd->em_id[i] == id) {
+                *blk = i + 8;
+            }
+            break;
+        }
+    }
+    if (*blk == 0xFFFF) {
+        return 0;
+    }
+    seRandomCheck(*blk, no);
+    ret = sndExistCheck(*blk, *no);
+    if (ret == 1) {
+        free = NULL;
+        h = pSnd->em_hist;
+        for (i = 0; i < 32; i++, h++) {
+            if (h->used == 0) {
+                free = h;
+                continue;
+            }
+            if (h->id == (u16) id && h->no == *no) {
+                return 0;
+            }
+        }
+        if (free != NULL) {
+            free->id = id;
+            free->used = 1;
+            free->timer = 1;
+            free->no = *no;
+        }
+    } else {
+        sndCallErr(*blk, *no);
+    }
+    return ret;
+}
+
+static int wepSeCheck(u16* no, Vec* pos)
+{
+    int ret;
+
+    if (pos != NULL && *no == 0xF) {
+        FlrAt* at = FlrAtCheck(0, pos, 4);
+        if (at != NULL) {
+            *no += at->x46[0];
+        } else if (pFlrSys->pAt != NULL) {
+            *no += ((u8*) pFlrSys->pAt)[8];
+        }
+    }
+    ret = sndExistCheck(2, *no);
+    if (ret == 0) {
+        sndCallErr(2, *no);
+    }
+    return ret;
+}
+
+struct SndRndTbl {
+    u16 num;
+    u16 last;
+    u16 e[1];
+};
+
+static void seRandomCheck(int blk, u16* no)
+{
+    s8 retry = 5;
+    SND_SIT* sit;
+    s8 g;
+    u8* data;
+    u32* tbl;
+    SndRndTbl* t;
+
+    if (blk == 3 || blk == 4) {
+        return;
+    }
+    if (sndExistCheck(blk, *no) == 0) {
+        return;
+    }
+    sit = Snd_get_sit_adrs(blk, *no);
+    g = sit->rnd_no;
+    if (g == 0) {
+        return;
+    }
+    data = (u8*) SndMem.blk_mram[blk];
+    tbl = (u32*) (data + ((u32*) data)[1]);
+    if (tbl[g] == 0) {
+        return;
+    }
+    t = (SndRndTbl*) ((u8*) tbl + tbl[g]);
+    do {
+        *no = t->e[Rnd() % t->num];
+        retry--;
+    } while (*no == t->last && retry != 0);
+    t->last = *no;
+}
+
+u32 EmSeCall(int no, int id, Vec* pos, int vol0, int vol1, cUnit* obj)
+{
+    return SndCall(8, no, pos, id, vol0 | vol1, obj);
+}
+
+u32 RoomSeCall(int no, Vec* pos, int vol0, int vol1, cUnit* obj)
+{
+    return SndCall(6, no, pos, 0, vol1 | vol0, obj);
+}
+
+u32 PlSeCall(int no, Vec* pos, int vol0, int vol1, cUnit* obj)
+{
+    return SndCall(1, no, pos, 0, vol0 | vol1, obj);
+}
+
+u32 CoreSeCall(int no, Vec* pos, int vol0, int vol1, cUnit* obj)
+{
+    return SndCall(0, no, pos, 0, vol0 | vol1, obj);
+}
+
+u32 FootSeCall(int no, Vec* pos, int vol0, int vol1)
+{
+    return SndCall(5, no, pos, 0, vol0 | vol1, 0);
+}
+
+u32 DoorSeCall(int no)
+{
+    if (SND_BIT_CK(pSnd->blk_flag, 7)) {
+        return SndCall(7, no, 0, 0, 0, 0);
+    }
+    return 0;
+}
+
+static void getCam2SndAngle(f32* pan, f32* span, f32* dist, Vec* pos);
+
+u32 SndCall(u16 blk, u16 no, Vec* pos, int id, int vol, cUnit* obj)
+{
+    SND_SIT* sit;
+    u32 snd_id;
+    int ret;
+    f32 pan_f;
+    f32 dist;
+    s8 v;
+    s8 sv;
+    s8 pan;
+    s8 span;
+    int pan_calc = 1;
+    int vol_calc = 1;
+    int curve_ok = 1;
+    int pan_ok = 1;
+    s8 vol_ofs = 0;
+    s8 svol_ofs = 0;
+    s8 pitch_ofs = 0;
+    s8 filter_ofs = 0;
+    int seq = 0;
+    int inner = 0;
+    int i;
+
+    if (pG->flags_68 & 0x80000) {
+        return 0;
+    }
+    switch (blk) {
+    case 8:
+        ret = emSeCheck(&blk, &no, id);
+        break;
+    case 5:
+        ret = footSeCheck(&no, pos);
+        break;
+    case 2:
+        ret = wepSeCheck(&no, pos);
+        break;
+    default:
+        seRandomCheck(blk, &no);
+        ret = sndExistCheck(blk, no);
+        if (ret == 0) {
+            sndCallErr(blk, no);
+        }
+        break;
+    }
+    if (ret == 0) {
+        return 0;
+    }
+
+    Snd_ctrl_work.flag_58 = 0;
+    sit = Snd_get_sit_adrs(blk, no);
+    v = Snd_iss_get_sit_vol(blk, no);
+    sv = Snd_iss_get_sit_svol(blk, no);
+    pan = Snd_iss_get_sit_pan(blk, no);
+    span = Snd_iss_get_sit_span(blk, no);
+
+    if (sit->srd_type == 1 || (pG->flags_500C & 0x40000)) {
+        vol_calc = 0;
+        curve_ok = 0;
+        pan_calc = 0;
+        pan_ok = 0;
+    } else if (sit->curve_no == -1) {
+        curve_ok = 0;
+    }
+    if (sit->flag & 0x4) {
+        seq = 1;
+    }
+
+    if (pos != NULL) {
+        getCam2SndAngle(&pan_f, 0, &dist, pos);
+        if (seq == 0 && pan_ok == 1) {
+            if (sit->pan < 0) {
+                Snd_ctrl_work.flag_58 |= 0x2;
+                pan = sndPanCalc(pan_f);
+                Snd_ctrl_work.x49 = pan;
+            } else {
+                Snd_ctrl_work.x49 = sit->pan;
+                pan = sit->pan;
+                pan_calc = 0;
+            }
+            if (sit->span < 0) {
+                Snd_ctrl_work.flag_58 |= 0x4;
+                span = sndSpanCalc(pan_f);
+                Snd_ctrl_work.x4A = span;
+            } else {
+                Snd_ctrl_work.x4A = sit->span;
+                span = sit->span;
+                pan_calc = 0;
+            }
+            if (Snd_ctrl_work.flag_58 & 0x6) {
+                Snd_ctrl_work.flag_58 |= 0x100;
+                Snd_ctrl_work.x50 = 1;
+            }
+        }
+    } else {
+        vol_calc = 0;
+        Snd_ctrl_work.x50 = 0;
+        curve_ok = 0;
+        Snd_ctrl_work.flag_58 |= 0x100;
+        pan_calc = 0;
+    }
+
+    if (sit->curve_no >= 0 && pSnd->hdr != NULL && pSnd->hdr->curve_sel[sit->curve_no] != 0
+        && curve_ok == 1) {
+        SndCurveSel* cs = (SndCurveSel*) ((u8*) pSnd->hdr + pSnd->hdr->curve_sel[sit->curve_no]);
+        int m = 1;
+        int f;
+        if (pSys->sound_mode == 2) {
+            m = 0;
+        }
+        vol_ofs = cs->vol;
+        svol_ofs = cs->svol;
+        v = sndVolCalc(v, vol_ofs, dist);
+        sv = sndVolCalc(sv, svol_ofs, dist);
+        Snd_ctrl_work.flag_58 |= 0x400;
+        pitch_ofs = cs->pitch[m];
+        Snd_ctrl_work.x54 = sndPitchCalc(pitch_ofs, dist);
+        filter_ofs = cs->filter[m];
+        f = sndFilterCalc(filter_ofs, dist);
+        if (f != -1) {
+            Snd_ctrl_work.x4F = f;
+            Snd_ctrl_work.flag_58 |= 0x80;
+        }
+    } else {
+        vol_calc = 0;
+    }
+
+    if ((u8) vol != 0) {
+        vol_calc = 0;
+        sv = (s8) vol;
+        v = (s8) vol;
+    }
+
+    if (sit->x7 == -1) {
+        Snd_ctrl_work.flag_58 |= 0x20;
+        if (pSnd->hdr != NULL) {
+            SndEfxParam* p = &pSnd->hdr->efx[0];
+            if (pSys->sound_mode != 2) {
+                p = &pSnd->hdr->efx[1];
+            }
+            switch (blk) {
+            case 0:
+            case 1:
+                Snd_ctrl_work.x4D = (u8) p->aux_core;
+                break;
+            case 2:
+                Snd_ctrl_work.x4D = (u8) p->aux_wep;
+                break;
+            case 5:
+            case 6:
+                Snd_ctrl_work.x4D = (u8) p->aux_room;
+                break;
+            case 8:
+                Snd_ctrl_work.x4D = (u8) p->aux_em;
+                break;
+            default:
+                Snd_ctrl_work.x4D = 0;
+                break;
+            }
+        } else {
+            Snd_ctrl_work.x4D = 0;
+        }
+    }
+
+    Snd_ctrl_work.x4E = 0;
+    Snd_ctrl_work.x56 = 0;
+    Snd_ctrl_work.flag_58 |= 0x40;
+    if (sit->se_flag != 0) {
+        Snd_ctrl_work.flag_58 |= 0x840;
+        if (sit->se_flag & 0x2) {
+            Snd_ctrl_work.x56 = 1;
+        }
+        if (sit->se_flag & 0x4) {
+            Snd_ctrl_work.x56 |= 0x2;
+        }
+        if (sit->se_flag & 0x1) {
+            Snd_ctrl_work.x56 |= 0x4;
+        }
+    }
+    if (vol & ~0xFF) {
+        Snd_ctrl_work.flag_58 |= 0x800;
+        if (vol & 0x100) {
+            Snd_ctrl_work.x56 |= 0x1;
+        }
+        if (vol & 0x200) {
+            Snd_ctrl_work.x56 |= 0x2;
+        }
+        if (vol & 0x400) {
+            Snd_ctrl_work.x56 |= 0x4;
+        }
+    }
+
+    sndWallCheck(sit, (u8*) &v, (u8*) &sv, pos);
+    sndVolCtrlAtCheck(sit, (u8*) &v, (u8*) &sv, pos);
+    if (sit->inner_vol != 0) {
+        if (pos == NULL) {
+            inner = 1;
+        }
+        vol_calc = 1;
+        sndInnerVolCheck(sit, (u8*) &v, (u8*) &sv);
+    }
+
+    if (v == 0 || sv == 0) {
+        return 0;
+    }
+
+    Snd_ctrl_work.x4B = v;
+    Snd_ctrl_work.x4C = sv;
+    Snd_ctrl_work.flag_58 |= 0x18;
+    if (sit->srd_type == 1) {
+        Snd_ctrl_work.flag_58 &= 0x860;
+    }
+    snd_id = Snd_iss_req_para(blk, no, 0);
+
+    if (blk == 3 || blk == 4) {
+        pSnd->bgm_work[blk - 3].used = 1;
+        pSnd->bgm_work[blk - 3].id = snd_id;
+        pSnd->bgm_work[blk - 3].vol = v;
+        pSnd->bgm_work[blk - 3].vol_def = sit->vol;
+        pSnd->bgm_work[blk - 3].no = no;
+        OSReport("BGM%d seq %d play\n", blk - 3, no);
+    }
+    if (sit->srd_type == 3) {
+        vol_calc = 0;
+        pan_calc = 0;
+    }
+    if (snd_id == 0) {
+        return snd_id;
+    }
+
+    if (pan_calc != 0 || vol_calc != 0) {
+        SndSurWork* w = pSnd->sur;
+        for (i = 0; i < 48; i++, w++) {
+            if (w->type == 0) {
+                w->type = seq | 0x80;
+                w->id = snd_id;
+                w->no = no;
+                w->blk = blk;
+                w->svol_ofs = svol_ofs;
+                w->vol_ofs = vol_ofs;
+                w->pitch_ofs = pitch_ofs;
+                w->filter_ofs = filter_ofs;
+                w->pan_calc = pan_calc;
+                w->vol_calc = vol_calc;
+                w->inner = inner;
+                w->obj = obj;
+                if (pos != NULL) {
+                    w->pos = *pos;
+                    if ((vol & 0x80000000) || obj != NULL) {
+                        w->ppos = pos;
+                    }
+                }
+                break;
+            }
+        }
+    }
+
+    History.idx++;
+    History.idx = LOOP_IDX(History.idx, 24);
+    History.blk[History.idx] = blk;
+    History.no[History.idx] = no;
+    History.vol[History.idx] = v;
+    History.svol[History.idx] = sv;
+    History.pan[History.idx] = pan;
+    History.span[History.idx] = span;
+    History.num++;
+    if (History.num > 25) {
+        History.top++;
+    }
+    History.top = LOOP_IDX(History.top, 24);
+    History.num = CLAMP(History.num, 0, 25);
+    return snd_id;
+}
+
+int SndSetVol(u32 id, int vol, int time)
+{
+    int ret = 0;
+
+    switch (Snd_get_play_type(id)) {
+    case 1:
+        Snd_ctrl_work.x4C = vol;
+        Snd_ctrl_work.flag_58 = 0x18;
+        Snd_ctrl_work.x4B = vol;
+        ret = Snd_se_set_paras(id) == 0;
+        break;
+    case 2:
+        ret = Snd_seq_req(id, 1, time * 200, vol) == 0;
+        break;
+    case 4:
+        ret = SndStrReq(id, 4, time * 200, vol);
+        break;
+    }
+    return ret;
+}
+
+int SndSetDopPitch(u32 id, int pitch)
+{
+    int ret = 0;
+
+    if (Snd_get_play_type(id) == 1) {
+        Snd_ctrl_work.x54 = pitch;
+        Snd_ctrl_work.flag_58 = 0x400;
+        ret = Snd_se_set_paras(id) == 0;
+    }
+    return ret;
+}
+
+int SndStop(u32 id, int time)
+{
+    int ret = 0;
+
+    switch (Snd_get_play_type(id)) {
+    case 1:
+        ret = Snd_se_stop_one(id) == 0;
+        break;
+    case 2:
+        ret = Snd_seq_req(id, 2, time * 200, 0) == 0;
+        break;
+    case 4:
+        ret = SndStrReq(id, 8, time * 200, 0);
+        break;
+    }
+    return ret;
+}
+
+void SndBlkStop(int blk)
+{
+    BOOL lv = OSDisableInterrupts();
+    SND_VOICE_WORK* v;
+
+    for (v = Snd_voice_work; v <= &Snd_voice_work[SND_VOICE_MAX - 1]; v++) {
+        if (v->status != 0 && v->type == 1 && v->blk_no == blk) {
+            Snd_se_stop_one(v->snd_id);
+        }
+    }
+    OSRestoreInterrupts(lv);
+}
+
+int SndEndCheck(u32 id)
+{
+    int ret = 0;
+
+    switch (Snd_get_play_type(id)) {
+    case 0:
+        ret = 1;
+        break;
+    case 1:
+        ret = Snd_se_end_check(id) == 0;
+        break;
+    case 2:
+        ret = Snd_seq_end_check(id) == 0;
+        break;
+    case 4:
+        ret = Snd_str_end_check(id) == 0;
+        break;
+    }
+    return ret;
+}
+
+static s8 pullStrWorkNo();
+static SndPlayWork* getStrWork(int blk, int no);
+static SndPlayWork* getStrWork(u32 id);
+
+u32 SndStrReq(int blk, int no, int req, int time, int vol, f32 pos)
+{
+    SndPlayWork* w;
+    u32 smp = 0;
+
+    if (pG->flags_68 & 0x100000) {
+        return 0;
+    }
+    if (str_flag == 0) {
+        OSReport("SND: No STR Header.\n");
+        return 0;
+    }
+    if (req & 0x1) {
+        if (FileTbl[StrFileTbl[blk]].entrynum == -1) {
+            OSReport("SND: File Not Found : %s\n", FileTbl[StrFileTbl[blk]].name);
+            return 0;
+        }
+        if (no >= (int) SndMem.str_file[blk]->num) {
+            pLog->err(0, 0, "SND : Stream Req No. %d Illegal Req No.", no);
+            return 0;
+        }
+        w = getStrWork(blk, no);
+        if (blk == 1 || req >= 0) {
+            w = NULL;
+        }
+        if (w == NULL) {
+            s8 wk = pullStrWorkNo();
+            SndStrFile* sf;
+            SndStrEnt* e;
+            if (wk == -1) {
+                return 0;
+            }
+            w = &pSnd->str_work[wk];
+            if (pos != 0.0f) {
+                SND_SHD* shd = Snd_get_shd_adrs(blk, no);
+                u32 bs = Snd_str_get_buff_smp(blk, no);
+                smp = (u32) ((f32) shd->rate * pos) / bs;
+            }
+            sf = SndMem.str_file[blk];
+            e = (SndStrEnt*) ((u8*) sf + sf->ent_ofs) + no;
+            Snd_str_blk_init(blk, sf);
+            w->id = Snd_str_prepare(blk, no, (char*) FileTbl[StrFileTbl[blk]].name, wk);
+            w->blk = blk;
+            w->no = no;
+            if (blk == 1) {
+                Snd_str_init_para(w->id, 0x1000, 2);
+            }
+            if (vol != 0) {
+                w->vol = vol;
+            } else {
+                w->vol = e->vol;
+                if (time != 0) {
+                    vol = (s8) e->vol;
+                }
+            }
+            w->vol_def = e->vol;
+            w->used = 1;
+            if (pos != 0.0f) {
+                Snd_str_init_pos(w->id, smp);
+            }
+        } else {
+            if (w->stat != 1) {
+                return 0;
+            }
+            SndSetVol(w->id, w->vol_def, 2);
+            w->stat = 0;
+            return w->id;
+        }
+    } else {
+        if (no != -1) {
+            w = getStrWork(blk, no);
+            if (w == NULL) {
+                return 0;
+            }
+        } else {
+            w = &pSnd->str_work[blk];
+        }
+    }
+    if (w->id == 0) {
+        w->stat = 0;
+        w->no = -1;
+        w->used = 0;
+        return 0;
+    }
+    w->stat = (req == 8 || (req == 4 && vol == 0)) ? 1 : 0;
+    if (req & 0x2) {
+        pSnd->str_no[blk] = no;
+    }
+    if (Snd_str_req(w->id, req, time, vol) != 0) {
+        return 0;
+    }
+    return w->id;
+}
+
+int SndStrReq(u32 id, int req, int time, int vol)
+{
+    SndPlayWork* w;
+
+    if (pG->flags_68 & 0x100000) {
+        return 0;
+    }
+    w = getStrWork(id);
+    if (w == NULL) {
+        return 0;
+    }
+    w->stat = (req == 8 || (req == 4 && vol == 0)) ? 1 : 0;
+    return Snd_str_req(w->id, req, time, vol) == 0;
+}
+
+int SndStrStatusCk(int blk, int no, u32 status)
+{
+    SndPlayWork* w;
+    int s;
+
+    if (no == -1) {
+        w = &pSnd->str_work[blk];
+    } else {
+        w = getStrWork(blk, no);
+    }
+    if (w == NULL) {
+        return 0;
+    }
+    s = Snd_str_get_status(w->id);
+    if (s != -1 && (s & 0x1)) {
+        return (s & status) != 0;
+    }
+    w->used = 0;
+    w->id = 0;
+    w->stat = 0;
+    return 0;
+}
+
+int SndStrStatusCk(u32 id, u32 status)
+{
+    int s = Snd_str_get_status(id);
+
+    if (s != -1 && (s & 0x1) && (s & status)) {
+        return 1;
+    }
+    return 0;
+}
+
+static s8 pullStrWorkNo()
+{
+    s8 i;
+
+    for (i = 0; i < 4; i++) {
+        if (pSnd->str_work[i].used == 0) {
+            return i;
+        }
+    }
+    return -1;
+}
+
+static SndPlayWork* getStrWork(int blk, int no)
+{
+    SndPlayWork* w = pSnd->str_work;
+    int i;
+
+    for (i = 0; i < 4; i++, w++) {
+        if (w->used != 0 && w->blk == blk && w->no == no) {
+            return w;
+        }
+    }
+    return NULL;
+}
+
+static SndPlayWork* getStrWork(u32 id)
+{
+    SndPlayWork* w = pSnd->str_work;
+    int i;
+
+    for (i = 0; i < 4; i++, w++) {
+        if (w->used != 0 && w->id == id) {
+            return w;
+        }
+    }
+    return NULL;
+}
+
+int SndStrVolSet(int blk, int no, int time, int vol)
+{
+    SndPlayWork* w = getStrWork(blk, no);
+
+    if (w == NULL) {
+        return 0;
+    }
+    return SndStrReq(w->id, 4, vol, time);
+}
+
+int SndStrVolReset(int blk, int no, int time)
+{
+    SndPlayWork* w = getStrWork(blk, no);
+
+    if (w == NULL) {
+        return 0;
+    }
+    return SndStrReq(w->id, 4, time, w->vol_def);
+}
+
+static void sndSurroundCalc();
+static void debug_mute_check();
+static void debugDisp();
+
+void SndWatcher()
+{
+    u32 i;
+    FlrAt* at;
+
+    if (pG->flags_500C & 0x10000000) {
+        return;
+    }
+    if (!(pG->flags_170 & 0x800)) {
+        sndSurroundCalc();
+        SeAtCheck();
+    }
+    Snd_iss_control();
+
+    for (i = 0; i < 2; i++) {
+        SndPlayWork* w = &pSnd->bgm_work[i];
+        if (w->used == 1) {
+            if (Snd_seq_end_check(w->id) == 0) {
+                OSReport("SND: BGM %d STOP\n", i);
+                memclr_asm(w, sizeof(SndPlayWork));
+            } else {
+                SND_SEQ_WORK* s = Snd_search_seq_work_snd_id(w->id);
+                if (s != NULL) {
+                    w->vol = s->vol2 >> 8;
+                }
+            }
+        }
+    }
+
+    for (i = 0; i < 4; i++) {
+        SndPlayWork* w = &pSnd->str_work[i];
+        if (w->used == 1) {
+            if (w->stat == 1) {
+                w->timer++;
+                if (w->timer > 299) {
+                    SndStrReq(w->id, 8, 0, 0);
+                    pLog->err(0, 0, "SND: str stop");
+                    w->timer = 0;
+                }
+            } else {
+                w->timer = 0;
+            }
+            if (Snd_str_end_check(w->id) == 0) {
+                OSReport("SND: STREAM %d STOP\n", i);
+                memclr_asm(w, sizeof(SndPlayWork));
+            } else {
+                SND_STR_WORK* s = Snd_search_str_work_snd_id(w->id);
+                if (s != NULL) {
+                    w->vol = s->vol2 >> 8;
+                }
+            }
+        }
+    }
+
+    for (i = 0; i < 32; i++) {
+        if (pSnd->em_hist[i].used != 0) {
+            pSnd->em_hist[i].timer--;
+            if (pSnd->em_hist[i].timer == 0) {
+                memclr_asm(&pSnd->em_hist[i], sizeof(SndEmHist));
+            }
+        }
+    }
+
+    if (pG->flags_500C & 0x40000) {
+        return;
+    }
+    if (pG->flags_54 & 0x1000) {
+        return;
+    }
+    if (pSnd->room_ok == 0) {
+        return;
+    }
+    at = FlrAtCheck(2, &pPL->pos, 0xFF);
+    if (at == NULL) {
+        return;
+    }
+    for (i = 0; i < 2; i++) {
+        if ((at->x44 >> i) & 0x1) {
+            if (pSnd->bgm_at[i] != at->x2) {
+                int r;
+                if ((at->x45 >> i) & 0x1) {
+                    r = SndRoomBgmVolSet(i, (s8) at->x46[i], at->x48[i]);
+                } else {
+                    r = SndRoomBgmVolReset(i, at->x48[i]);
+                }
+                if (r == 1) {
+                    pSnd->bgm_at[i] = at->x2;
+                } else {
+                    pSnd->bgm_at[i] = -1;
+                }
+            }
+        }
+    }
+    if (at->x44 & 0x10) {
+        if (at->x45 & 0x10) {
+            if (at->str_vol != 0) {
+                SndStrReq(at->str_blk, at->str_no, 0x80000003, at->str_vol, 0, 0.0f);
+            } else {
+                SndStrReq(at->str_blk, at->str_no, 0x80000003, 0, 0, 0.0f);
+            }
+        } else {
+            if (at->str_vol != 0) {
+                SndStrReq(at->str_blk, at->str_no, 4, at->str_vol, 0, 0.0f);
+            } else {
+                SndStrReq(at->str_blk, at->str_no, 8, 0, 0, 0.0f);
+            }
+        }
+    }
+    debug_mute_check();
+    debugDisp();
+}
+
+static void nextRoomStreamCheck()
+{
+    SndRoomSave* rs = (SndRoomSave*) RoomData.getRoomSavePtr(pG->next_room);
+    int i;
+
+    for (i = 0; i < 4; i++) {
+        SndPlayWork* w = &pSnd->str_work[i];
+        int stop = 0;
+        if (rs == NULL) {
+            stop = 1;
+        } else {
+            u16 s = (u16) rs->str[0];
+            if (w->used != 0) {
+                if ((pG->flags_54 & 0x100) || (pG->flags_54 & 0x80000)) {
+                    stop = 1;
+                } else {
+                    SND_STR_WORK* sw = Snd_search_str_work_snd_id(w->id);
+                    if (sw->status & 0x8000) {
+                        SndStrReq(w->id, 8, 0, 0);
+                        continue;
+                    }
+                    if (!(s & 0x8000) || (u8) s != w->no || !(s & 0x4000)) {
+                        stop = 1;
+                    }
+                }
+            }
+        }
+        if (stop == 1) {
+            if (SndStrStatusCk(w->blk, w->no, 0x10) != 0) {
+                SndStrReq(i, -1, 4, 200, 0, 0.0f);
+            } else {
+                SndStrReq(w->id, 8, 0, 0);
+            }
+        }
+    }
+}
+
+static void nextRoomBgmCheck()
+{
+    SndRoomSave* rs = (SndRoomSave*) RoomData.getRoomSavePtr(pG->next_room);
+    int i;
+    int flag = 1;
+
+    for (i = 0; i < 2; i++) {
+        SndPlayWork* w = &pSnd->bgm_work[i];
+        if (i == 0) {
+            if (rs != NULL) {
+                u16 b = (u16) rs->bgm[0];
+                if ((b & 0x8000) && (u8) b == pSnd->bgm_id[0]) {
+                    flag = 0;
+                    if (!(b & 0x4000) && w->used != 0) {
+                        Snd_seq_req(w->id, 1, 200, 0);
+                        w->stat = 1;
+                    }
+                }
+            }
+            if ((pG->flags_54 & 0x100) || (pG->flags_54 & 0x80000)) {
+                flag = 1;
+            }
+            if (flag == 1) {
+                pSnd->bgm_mram = SndMem.mram_end + 0x10000;
+                pSnd->bgm_aram = 0x700000;
+                pSnd->bgm_id[i] = 0xFF;
+                SND_BIT_CLR(pSnd->blk_flag, i + 3);
+                if (w->used != 0) {
+                    Snd_seq_req(w->id, 1, 400, 0);
+                    w->stat = flag;
+                }
+            } else {
+                pSnd->bgm_mram = SndMem.blk_mram[i + 3];
+                pSnd->bgm_aram = SndMem.blk_aram[i + 3];
+            }
+        } else {
+            if (w->used != 0) {
+                Snd_seq_req(w->id, 1, 400, 0);
+                w->stat = 1;
+            }
+            pSnd->bgm_id[i] = 0xFF;
+            SND_BIT_CLR(pSnd->blk_flag, i + 3);
+        }
+    }
+}
+
+void SndNextRoomInit()
+{
+    int i;
+
+    nextRoomStreamCheck();
+    nextRoomBgmCheck();
+    SndSeAbsFadeOutAll_5msec(100);
+    Snd_seq_fade_out_type(2, 100);
+    memclr_asm(&pSnd->room_ok, sizeof(SndWork) - 0x90);
+    SND_BIT_CLR(pSnd->blk_flag, 6);
+    SND_BIT_CLR(pSnd->blk_flag, 5);
+    memclr_asm(&Snd_iss_blk[6], sizeof(SND_ISS_BLK));
+    memclr_asm(&Snd_iss_blk[5], sizeof(SND_ISS_BLK));
+    UseAramSize[6] = 0;
+    memclr_asm(callErr[6], sizeof(callErr[6]));
+    UseAramSize[5] = 0;
+    memclr_asm(callErr[5], sizeof(callErr[5]));
+    for (i = 0; i < 6; i++) {
+        pSnd->em_id[i] = 0xFF;
+        SND_BIT_CLR(pSnd->blk_flag, i + 8);
+        memclr_asm(&Snd_iss_blk[i + 8], sizeof(SND_ISS_BLK));
+        UseAramSize[i + 8] = 0;
+        memclr_asm(callErr[i + 8], sizeof(callErr[i + 8]));
+    }
+    SndReadAddrInit();
+}
+
+void SndReadAddrInit()
+{
+    pSnd->mram_top = SndMem.mram_end;
+    pSnd->aram_top = 0x1F4100;
+}
+
+int SndRoomStartInit()
+{
+    u32 i;
+    u32 j;
+    SndRoomSave* rs;
+
+    pSnd->hdr = (SndRoomHdr*) GetDataExt(pG->pRoomArc, "STB", 0);
+    memclr_asm(&DefEffTbl, sizeof(SndRoomHdr));
+    for (i = 0; i < 2; i++) {
+        DefEffTbl.efx[i].aux_core = 0;
+        DefEffTbl.efx[i].aux_em = 0;
+        DefEffTbl.efx[i].aux_wep = 0;
+        DefEffTbl.efx[i].aux_room = 0;
+        DefEffTbl.efx[i].preDelay = 0.05f;
+        DefEffTbl.efx[i].time = 1.0f;
+        DefEffTbl.efx[i].coloration = 0.5f;
+        DefEffTbl.efx[i].damping = 0.5f;
+        DefEffTbl.efx[i].mix = 0.5f;
+        DefEffTbl.efx[i].crosstalk = 0.5f;
+    }
+    if (pSnd->hdr == NULL) {
+        pSnd->hdr = &DefEffTbl;
+    }
+    if (pSnd->hdr != NULL) {
+        SndSetReverb();
+        for (i = 0; i < 32; i++) {
+            u32 ofs = pSnd->hdr->vol_ofs[i];
+            SndCurveTbl* t;
+            if (ofs != 0) {
+                t = (SndCurveTbl*) ((u8*) pSnd->hdr + ofs);
+                for (j = 0; j < t->num; j++) {
+                    t->e[j].dist *= t->scale;
+                }
+            }
+            ofs = pSnd->hdr->pitch_ofs[i];
+            if (ofs != 0) {
+                t = (SndCurveTbl*) ((u8*) pSnd->hdr + ofs);
+                for (j = 0; j < t->num; j++) {
+                    t->e[j].dist *= t->scale;
+                    t->e[j].val *= 100;
+                }
+            }
+            ofs = pSnd->hdr->filter_ofs[i];
+            if (ofs != 0) {
+                t = (SndCurveTbl*) ((u8*) pSnd->hdr + ofs);
+                for (j = 0; j < t->num; j++) {
+                    t->e[j].dist *= t->scale;
+                }
+            }
+        }
+    }
+    rs = (SndRoomSave*) RoomData.getRoomSavePtr(G_ROOM_ID);
+    if (rs != NULL) {
+        for (i = 0; i < 6; i++) {
+            pSnd->room_bgm[i] = rs->bgm[i];
+            pSnd->room_str[i] = rs->str[i];
+        }
+    }
+    memclr_asm(&History, sizeof(SndHistory));
+    History.idx = -1;
+    pSnd->bgm_at[0] = -1;
+    pSnd->bgm_at[1] = -1;
+    pSnd->room_ok = 1;
+    return 0;
+}
+
+// `DSE` sub-file of the room archive: door SE numbers per door for each room.
+struct SndDoorRoom {
+    u16 room;
+    u16 door[5];
+};
+struct SndDoorSe {
+    u32 num;
+    SndDoorRoom e[1];
+};
+
+int SndDoorSeLoad()
+{
+    u32 i;
+    SndDoorTbl* dt = SndMem.door_tbl;
+    u16 cnt = *(u16*) ((u8*) dt + dt->num_ofs);
+    u32 no = 0xFFFF;
+    int ret = -1;
+    SndDoorSe* d;
+
+    d = (SndDoorSe*) GetDataExt(pG->pRoomArc, "DSE", 0);
+    SND_BIT_CLR(pSnd->blk_flag, 7);
+    memclr_asm(callErr[7], sizeof(callErr[7]));
+    if (d != NULL && d->num != 0) {
+        for (i = 0; i < d->num; i++) {
+            if (d->e[i].room == pG->next_room) {
+                no = d->e[i].door[pG->door_no];
+                pG->door_no = 0;
+                break;
+            }
+        }
+    }
+    if (no < cnt && no != pSnd->door_no) {
+        u32* files = (u32*) ((u8*) dt + dt->file_ofs);
+#line 2389 SND_FILE
+        ret = DvdRead(0x69, 0, 0, files[no], 0, 0x8000, __FILE__, __LINE__);
+        pSnd->door_no = no;
+    } else if (no != 0xFFFF) {
+        SND_BIT_SET(pSnd->blk_flag, 7);
+    }
+    return ret;
+}
+
+void SndRoomBgmLoad()
+{
+    int i;
+
+    for (i = 0; i < 2; i++) {
+        u16 b = (u16) (pSnd->room_bgm[0] >> (i * 16));
+        if (b & 0x8000) {
+            SndPlayWork* w = &pSnd->bgm_work[i];
+            while (w->stat != 0) {
+                SndWatcher();
+            }
+            if (w->used == 0) {
+                SndBgmLoad((u8) b);
+            }
+        }
+    }
+}
+
+void SndRoomBgmStartCheck(int reset)
+{
+    int i;
+    int vol = 0;
+    int start = 0;
+
+    if (reset != 0) {
+        pG->snd_tbl_no = 0;
+    }
+    for (i = 0; i < 2; i++) {
+        u16 b;
+        if ((pG->flags_54 & 0x100) || reset != 0) {
+            b = (u16) (pSnd->room_bgm[pG->snd_tbl_no + 1] >> (i * 16));
+        } else {
+            b = (u16) (pSnd->room_bgm[0] >> (i * 16));
+        }
+        if (b & 0x8000) {
+            if (b & 0x4000) {
+                start = 1;
+            }
+            if (b & 0x2000) {
+                vol = 1;
+                start = 1;
+            }
+            if (start == 1) {
+                SndRoomBgmStart(i, vol);
+            }
+        }
+    }
+}
+
+int SndRoomBgmStart(u8 no, int vol)
+{
+    u16 b = (u16) (pSnd->room_bgm[0] >> (no * 16));
+    int seq = (b >> 8) & 0x3;
+    SndPlayWork* w;
+
+    if (!(b & 0x8000)) {
+        return 0;
+    }
+    w = &pSnd->bgm_work[no];
+    if (w->used != 0) {
+        if (seq == w->no) {
+            if (vol == 0) {
+                vol = w->vol_def;
+            }
+            Snd_seq_req(w->id, 1, 1, vol);
+        } else {
+            Snd_seq_req(w->id, 2, 0, 0);
+            SndCall(no + 3, seq, 0, 0, vol, 0);
+        }
+    } else {
+        SndCall(no + 3, seq, 0, 0, vol, 0);
+    }
+    w->stat = 0;
+    return 1;
+}
+
+void SndRoomBgmStop(u8 no, int time)
+{
+    SndPlayWork* w = &pSnd->bgm_work[no];
+
+    if (w->used != 1 || w->stat != 0) {
+        return;
+    }
+    w->stat = 1;
+    if (time != 0) {
+        Snd_seq_req(w->id, 1, time * 200, 0);
+    } else {
+        Snd_seq_req(w->id, 2, 0, 0);
+    }
+}
+
+int SndRoomBgmVolSet(u8 no, int vol, int time)
+{
+    SndPlayWork* w = &pSnd->bgm_work[no];
+
+    if (w->used != 1 || w->stat != 0) {
+        return 0;
+    }
+    return Snd_seq_req(w->id, 1, time, vol) == 0;
+}
+
+int SndRoomBgmVolReset(u8 no, int time)
+{
+    SndPlayWork* w = &pSnd->bgm_work[no];
+
+    if (w->used != 1 || w->stat != 0) {
+        return 0;
+    }
+    return Snd_seq_req(w->id, 1, time, w->vol_def) == 0;
+}
+
+int SndRoomBgmMute(u8 no, int on, int time)
+{
+    SndPlayWork* w = &pSnd->bgm_work[no];
+    int ret = 0;
+    int t = 1;
+
+    if (time != -1) {
+        t = time * 200;
+    }
+    if (w->used == 1 && w->stat == 0) {
+        if (on == 1) {
+            if (Snd_seq_fade_check(w->id) == 1) {
+                w->mute_vol = Snd_search_seq_work_snd_id(w->id)->fade_vol;
+            } else {
+                w->mute_vol = w->vol;
+            }
+            Snd_seq_req(w->id, 1, t, 1);
+            ret = 1;
+        } else {
+            if (w->mute_vol != 0) {
+                Snd_seq_req(w->id, 1, t, w->mute_vol);
+                ret = 1;
+            }
+            w->mute_vol = 0;
+        }
+    }
+    return ret;
+}
+
+void SndRoomBgmMuteAll(int on, int time)
+{
+    SndRoomBgmMute(0, on, time);
+    SndRoomBgmMute(1, on, time);
+}
+
+void SndRoomStrStartCheck()
+{
+    u32 s;
+
+    if (pG->flags_54 & 0x100) {
+        s = pSnd->room_str[pG->snd_tbl_no + 1];
+    } else {
+        s = pSnd->room_str[0];
+    }
+    if ((s & 0x8000) && (s & 0x4000)) {
+        SndRoomStrStart(1, 0, 1);
+    }
+}
+
+void SndRoomStrStart(int a, int time, int loop)
+{
+    int req = 3;
+
+    if (loop == 1) {
+        req = 0x80000003;
+    }
+    if (pSnd->room_str[0] & 0x8000) {
+        u8 no = (u8) pSnd->room_str[0];
+        if (SndStrStatusCk(0, no, 0x10) == 0) {
+            if (time != 0) {
+                SndStrReq(0, no, req, time * 200, 0, 0.0f);
+            } else {
+                SndStrReq(0, no, req, 0, 0, 0.0f);
+            }
+        } else {
+            SndPlayWork* w = getStrWork(0, no);
+            if (w->stat != 0) {
+                SndStrReq(w->id, 4, 600, w->vol_def);
+            }
+        }
+    }
+}
+
+void SndRoomStrStop(int time)
+{
+    SndPlayWork* w = getStrWork(0, (u8) pSnd->room_str[0]);
+
+    if (w == NULL || w->stat != 0) {
+        return;
+    }
+    if (time != 0) {
+        SndStrReq(w->id, 4, time * 200, 0);
+    } else {
+        SndStrReq(w->id, 8, 0, 0);
+    }
+}
+
+int SndRoomStrVolSet(int vol, int time)
+{
+    SndPlayWork* w = getStrWork(0, (u8) pSnd->room_str[0]);
+
+    if (w == NULL) {
+        return 0;
+    }
+    return SndStrReq(w->id, 4, time, vol);
+}
+
+int SndRoomStrVolReset(int time)
+{
+    SndPlayWork* w = getStrWork(0, (u8) pSnd->room_str[0]);
+
+    if (w == NULL) {
+        return 0;
+    }
+    return SndStrReq(w->id, 4, time, w->vol_def);
+}
+
+static void sndMuteSetMain(SndMute* m, u32 type, int on);
+
+void SndMuteSet(int bits, int on)
+{
+    if (bits & 0x10) {
+        sndMuteSetMain(&Snd.mute[0], 0x20001, on);
+    }
+    if (bits & 0x20) {
+        sndMuteSetMain(&Snd.mute[1], 0x40001, on);
+    }
+    if (bits & 0x40) {
+        sndMuteSetMain(&Snd.mute[2], 0x20002, on);
+    }
+    if (bits & 0x80) {
+        sndMuteSetMain(&Snd.mute[3], 0x40002, on);
+    }
+}
+
+static void sndMuteSetMain(SndMute* m, u32 type, int on)
+{
+    if (on == 1) {
+        if (m->on == 0) {
+            m->vol = SndGetMasterVol(type);
+            SndSetMasterVol(type, 0);
+            m->on = on;
+        }
+    } else if (m->on == 1) {
+        SndSetMasterVol(type, m->vol);
+        m->on = 0;
+    }
+}
+
+int SndSetMasterVol(u32 type, int vol)
+{
+    int ret = 0;
+    u32 t = 0;
+
+    if (type & 0x1) {
+        if (type & 0x10000) {
+            t = 0x2;
+        } else if (type & 0x20000) {
+            t = 0x8;
+        } else if (type & 0x40000) {
+            t = 0x20;
+        }
+    } else if (type & 0x2) {
+        if (type & 0x10000) {
+            t = 0x1;
+        } else if (type & 0x20000) {
+            t = 0x4;
+        } else if (type & 0x40000) {
+            t = 0x10;
+        }
+    }
+    if (t != 0) {
+        Snd_set_system_vol(t, vol);
+        Snd_reset_vol_all();
+        ret = 1;
+    }
+    return ret;
+}
+
+int SndGetMasterVol(u32 type)
+{
+    u32 t = 0;
+
+    if (type & 0x1) {
+        if (type & 0x10000) {
+            t = 0x2;
+        } else if (type & 0x20000) {
+            t = 0x8;
+        } else if (type & 0x40000) {
+            t = 0x20;
+        }
+    } else if (type & 0x2) {
+        if (type & 0x10000) {
+            t = 0x1;
+        } else if (type & 0x20000) {
+            t = 0x4;
+        } else if (type & 0x40000) {
+            t = 0x10;
+        }
+    }
+    if (t != 0) {
+        return (s8) Snd_get_system_vol(t);
+    }
+    return -1;
+}
+
+void SndSetOutputMode(int mode, int init)
+{
+    int efx = Snd_efx_get_status(0) == 1;
+
+    if (init != 0) {
+        pSys->sound_mode = Snd_sound_mode_init_load(mode);
+    } else {
+        if (efx == 1) {
+            Snd_efx_req(0, 0);
+        }
+        pSys->sound_mode = mode;
+        Snd_set_sound_mode(mode);
+        if (efx == 1) {
+            SndSetReverb();
+        }
+        Snd_reset_pan_all();
+        Snd_reset_vol_all();
+    }
+    if (pSys->sound_mode == 0) {
+        ADXT_SetOutputMono(1);
+    } else {
+        ADXT_SetOutputMono(0);
+    }
+}
+
+static void getCam2SndAngle(f32* pan, f32* span, f32* dist, Vec* pos)
+{
+    Camera* cam = &pG->Cam;
+    Mtx inv;
+    Mtx m;
+    Vec right;
+    Vec up = { 0.0f, 1.0f, 0.0f };
+    Vec fwd;
+    Vec out;
+
+    if (pos == NULL) {
+        return;
+    }
+    fwd.x = cam->mat[0][0];
+    fwd.y = cam->mat[1][0];
+    fwd.z = cam->mat[2][0];
+    PSVECCrossProduct(&fwd, &up, &right);
+    m[0][0] = fwd.x;
+    m[1][0] = fwd.y;
+    m[2][0] = fwd.z;
+    m[0][1] = up.x;
+    m[1][1] = up.y;
+    m[2][1] = up.z;
+    m[0][2] = right.x;
+    m[1][2] = right.y;
+    m[2][2] = right.z;
+    m[0][3] = pPL->pos.x;
+    m[1][3] = pPL->pos.y;
+    m[2][3] = pPL->pos.z;
+    PSMTXInverse(m, inv);
+    PSMTXMultVec(inv, pos, &out);
+    if (pan != NULL) {
+        *pan = atan2f(out.x, -out.z);
+    }
+    if (span != NULL) {
+        *span = atan2f(out.y, -out.z);
+    }
+    if (dist != NULL) {
+        f32 dx = pos->x - cam->param.pos.x;
+        f32 dy = pos->y - cam->param.pos.y;
+        f32 dz = pos->z - cam->param.pos.z;
+        *dist = SQRTF(dx * dx + dy * dy + dz * dz);
+    }
+}
+
+static void sndSurroundCalc()
+{
+    static int (*end_check_tbl[2])(u32) = { Snd_se_end_check, Snd_seq_end_check };
+    int i;
+    SndSurWork* w = pSnd->sur;
+    f32 pan;
+    f32 dist;
+
+    for (i = 0; i < 48; i++, w++) {
+        SND_SIT* sit;
+        int idx = 0;
+        if (w->type == 0) {
+            continue;
+        }
+        Snd_ctrl_work.flag_58 = 0;
+        if (w->type & 0x1) {
+            idx = 1;
+        }
+        switch (end_check_tbl[idx](w->id)) {
+        case 0:
+            memclr_asm(w, sizeof(SndSurWork));
+            break;
+        case 1:
+            sit = Snd_get_sit_adrs(w->blk, w->no);
+            if (w->obj != NULL) {
+                if ((w->obj->be_flag & 0x201) == 0x1) {
+                    getCam2SndAngle(&pan, 0, &dist, w->ppos);
+                    w->pos = *w->ppos;
+                } else {
+                    getCam2SndAngle(&pan, 0, &dist, &w->pos);
+                }
+            } else if (w->ppos != NULL) {
+                getCam2SndAngle(&pan, 0, &dist, w->ppos);
+                w->pos = *w->ppos;
+            } else {
+                getCam2SndAngle(&pan, 0, &dist, &w->pos);
+            }
+            if (w->inner != 0) {
+                Snd_ctrl_work.flag_58 |= 0x18;
+                Snd_ctrl_work.x4B = sit->vol;
+                Snd_ctrl_work.x4C = sit->svol;
+                sndInnerVolCheck(sit, &Snd_ctrl_work.x4B, &Snd_ctrl_work.x4C);
+            } else {
+                if (w->vol_calc != 0) {
+                    Snd_ctrl_work.flag_58 |= 0x418;
+                    Snd_ctrl_work.x4B = sndVolCalc(Snd_iss_get_sit_vol(w->blk, w->no), w->vol_ofs, dist);
+                    Snd_ctrl_work.x4C = sndVolCalc(Snd_iss_get_sit_svol(w->blk, w->no), w->svol_ofs, dist);
+                    sndWallCheck(sit, &Snd_ctrl_work.x4B, &Snd_ctrl_work.x4C, &w->pos);
+                    sndVolCtrlAtCheck(sit, &Snd_ctrl_work.x4B, &Snd_ctrl_work.x4C, &w->pos);
+                    sndInnerVolCheck(sit, &Snd_ctrl_work.x4B, &Snd_ctrl_work.x4C);
+                    Snd_ctrl_work.x54 = sndPitchCalc(w->pitch_ofs, dist);
+                    Snd_ctrl_work.x4F = sndFilterCalc(w->filter_ofs, dist);
+                    Snd_ctrl_work.flag_58 |= 0x80;
+                }
+                if (w->pan_calc != 0) {
+                    Snd_ctrl_work.flag_58 |= 0x6;
+                    if (sit->pan & 0x80) {
+                        Snd_ctrl_work.x49 = sndPanCalc(pan);
+                    } else {
+                        Snd_ctrl_work.flag_58 &= ~0x2;
+                        Snd_ctrl_work.x49 = sit->pan;
+                    }
+                    if (sit->span & 0x80) {
+                        Snd_ctrl_work.x4A = sndSpanCalc(pan);
+                    } else {
+                        Snd_ctrl_work.flag_58 &= ~0x4;
+                        Snd_ctrl_work.x4A = sit->span;
+                    }
+                }
+            }
+            if (Snd_ctrl_work.x4B == 0 || Snd_ctrl_work.x4C == 0) {
+                SndStop(w->id, 0);
+            } else {
+                Snd_se_set_paras(w->id);
+            }
+            break;
+        case 2: {
+            int vol;
+            int svol;
+            sit = Snd_get_sit_adrs(w->blk, w->no);
+            getCam2SndAngle(&pan, 0, &dist, &w->pos);
+            vol = sndVolCalc(Snd_iss_get_sit_vol(w->blk, w->no), w->vol_ofs, dist);
+            svol = sndVolCalc(Snd_iss_get_sit_svol(w->blk, w->no), w->svol_ofs, dist);
+            if (pSys->sound_mode == 2) {
+                Snd_seq_req(w->id, 1, 10, svol);
+            } else {
+                Snd_seq_req(w->id, 1, 10, vol);
+            }
+            break;
+        }
+        }
+    }
+}
+
+int SndStopCheck()
+{
+    if (Snd_se_pronounce_ck_all() != 0) {
+        return 0;
+    }
+    if (Snd_seq_pronounce_ck_type(2) != 0) {
+        return 0;
+    }
+    Snd_efx_req(0, 0);
+    return 1;
+}
+
+void SndAllStop()
+{
+    int i;
+
+    SndSeAbsFadeOutAll_sec(0);
+    Snd_seq_fade_out_type(3, 0);
+    for (i = 0; i < 4; i++) {
+        if (pSnd->str_work[i].used != 0) {
+            SndStrReq(pSnd->str_work[i].id, 8, 0, 0);
+        }
+    }
+}
+
+void SndAllFadeOut()
+{
+    int i;
+
+    SndSeAbsFadeOutAll_sec(2);
+    SndSeqFadeOutAll_sec(3, 2);
+    for (i = 0; i < 4; i++) {
+        if (pSnd->str_work[i].used != 0) {
+            SndStrReq(i, -1, 4, 400, 0, 0.0f);
+        }
+    }
 }
 
 void SndSePause(int on, s16 type)
@@ -77,6 +2084,471 @@ void SndSoftReset()
         Snd_iss_control();
     }
     Snd_efx_req(0, 0);
+}
+
+int SndBgmTblSet(u16 room, int no)
+{
+    SndRoomSave* rs = (SndRoomSave*) RoomData.getRoomSavePtr(room);
+    int ret = 0;
+    SndBgmRoom* r = NULL;
+    u16* rl;
+    u8 i;
+    u8 j;
+    u8 k;
+
+    if (rs == NULL) {
+        return ret;
+    }
+    rl = (u16*) ((u8*) SndMem.bgm_tbl + SndMem.bgm_tbl->list_ofs);
+    i = 0;
+    while (*rl != 0xFFFF) {
+        if (*rl == room) {
+            u32* ofs = (u32*) ((u8*) SndMem.bgm_tbl + SndMem.bgm_tbl->room_ofs);
+            r = (SndBgmRoom*) ((u8*) ofs + ofs[i]);
+            break;
+        }
+        rl++;
+        i++;
+    }
+    if (r == NULL) {
+        return ret;
+    }
+    for (j = 0; j < r->num; j++) {
+        if (r->e[j].id == no) {
+            for (k = 0; k < 6; k++) {
+                rs->bgm[k] = r->e[j].bgm[k];
+                rs->str[k] = r->e[j].str[k];
+                if (room == G_ROOM_ID) {
+                    pSnd->room_bgm[k] = r->e[j].bgm[k];
+                    pSnd->room_str[k] = r->e[j].str[k];
+                }
+            }
+            ret = 1;
+            break;
+        }
+    }
+    return ret;
+}
+
+void SndBgmTblSetEnable(int type, int save)
+{
+    SndRoomSave* rs = (SndRoomSave*) RoomData.getRoomSavePtr(G_ROOM_ID);
+    int i;
+
+    for (i = 0; i < 6; i++) {
+        if (type & 0x1) {
+            if (pSnd->room_bgm[i] & 0x8000) {
+                pSnd->room_bgm[i] |= 0x4000;
+            }
+            if (save == 1 && rs != NULL) {
+                if (rs->bgm[i] & 0x8000) {
+                    rs->bgm[i] |= 0x4000;
+                }
+            }
+        }
+        if (type & 0x2) {
+            if (pSnd->room_bgm[i] & 0x80000000) {
+                pSnd->room_bgm[i] |= 0x40000000;
+            }
+            if (save == 1 && rs != NULL) {
+                if (rs->bgm[i] & 0x80000000) {
+                    rs->bgm[i] |= 0x40000000;
+                }
+            }
+        }
+        if (type & 0x4) {
+            if (pSnd->room_str[i] & 0x8000) {
+                pSnd->room_str[i] |= 0x4000;
+            }
+            if (save == 1 && rs != NULL) {
+                if (rs->str[i] & 0x8000) {
+                    rs->str[i] |= ~0x4000;
+                }
+            }
+        }
+    }
+}
+
+void SndBgmTblSetDisable(int type, int save)
+{
+    SndRoomSave* rs = (SndRoomSave*) RoomData.getRoomSavePtr(G_ROOM_ID);
+    int i;
+
+    for (i = 0; i < 6; i++) {
+        if (type & 0x1) {
+            if (pSnd->room_bgm[i] & 0x8000) {
+                pSnd->room_bgm[i] &= ~0x4000;
+            }
+            if (save == 1 && rs != NULL) {
+                if (rs->bgm[i] & 0x8000) {
+                    rs->bgm[i] &= ~0x4000;
+                }
+            }
+        }
+        if (type & 0x2) {
+            if (pSnd->room_bgm[i] & 0x80000000) {
+                pSnd->room_bgm[i] &= ~0x40000000;
+            }
+            if (save == 1 && rs != NULL) {
+                if (rs->bgm[i] & 0x80000000) {
+                    rs->bgm[i] &= ~0x40000000;
+                }
+            }
+        }
+        if (type & 0x4) {
+            if (pSnd->room_str[i] & 0x8000) {
+                pSnd->room_str[i] &= ~0x4000;
+            }
+            if (save == 1 && rs != NULL) {
+                if (rs->str[i] & 0x8000) {
+                    rs->str[i] &= ~0x4000;
+                }
+            }
+        }
+    }
+}
+
+void SndSubScreenInit()
+{
+    pG->flags_170 |= 0x800;
+    SndSetMasterVol(0x10002, 0x3F);
+    SndSePauseAll(1);
+}
+
+void SndSubScreenExit()
+{
+    SndSetMasterVol(0x10002, 0x7F);
+    SndSePauseAll(0);
+    pG->flags_170 &= ~0x800;
+}
+
+void SndEventStrStop(int time)
+{
+    u32 i;
+
+    for (i = 0; i < 4; i++) {
+        SndPlayWork* w = &pSnd->str_work[i];
+        if (w->used != 0 && w->blk == 1) {
+            if (time != 0) {
+                SndStrReq(w->id, 4, time * 200, 0);
+            } else {
+                SndStop(w->id, 0);
+            }
+        }
+    }
+}
+
+void SndEventInit()
+{
+    pG->flags_170 |= 0x800;
+    Snd_se_fade_out_all(400);
+    SndSePauseAll(1);
+    SndRoomBgmMuteAll(1, 2);
+}
+
+void SndEventEnd()
+{
+    int i;
+
+    pG->flags_170 &= ~0x800;
+    SndSePauseAll(0);
+    for (i = 0; i < 2; i++) {
+        u8 no = i;
+        if (SndRoomBgmMute(no, 0, 1) == 0 && pSnd->bgm_work[i].used == 0) {
+            u16 b = (u16) (pSnd->room_bgm[0] >> (i * 16));
+            if (b & 0x8000) {
+                SND_SIT* sit = Snd_get_sit_adrs(i + 3, (b >> 8) & 0x3);
+                s8 vol = sit->wall_vol;
+                if (vol != 0) {
+                    SndRoomBgmStart(no, vol);
+                }
+            }
+        }
+    }
+}
+
+int SndEmDataReadCheck(int id)
+{
+    int i;
+
+    for (i = 0; i < 6; i++) {
+        if (!SND_BIT_CK(pSnd->blk_flag, i + 8)) {
+            return i;
+        }
+        if (pSnd->em_id[i] == id) {
+            return -1;
+        }
+    }
+    return -1;
+}
+
+void SndBlkInit(int type, int id, int no)
+{
+    int blk = type;
+    u32 adr;
+
+    if (type == 3) {
+        pSnd->bgm_id[no] = id;
+        blk = no + 3;
+    } else if (type == 8) {
+        pSnd->em_id[no] = id;
+        blk = no + 8;
+        OSReport("SND: blk %d, ID 0x%x\n", blk, id);
+    }
+    Snd_iss_blk[blk].aram = SndMem.blk_aram[blk];
+    adr = SndMem.blk_mram[blk];
+    if (blk != 3 && blk != 4) {
+        adr += *(u32*) adr;
+    }
+    Snd_iss_blk_init(blk, (void*) adr);
+    SND_BIT_SET(pSnd->blk_flag, blk);
+}
+
+void SndBgmLoad(int no)
+{
+    int r;
+
+    if (SndBgmDataReadCheck(no) == -1) {
+        return;
+    }
+#line 3784 SND_FILE
+    r = DvdRead(0x61, 0, 0, SndMem.bgm_file[no], 0, 0x8001, __FILE__, __LINE__);
+    Dvd.ReadCheck(r, 0, 0, 0);
+}
+
+int SndBgmDataReadCheck(int id)
+{
+    int i;
+
+    for (i = 0; i < 2; i++) {
+        if (!SND_BIT_CK(pSnd->blk_flag, i + 3)) {
+            return i;
+        }
+        if (pSnd->bgm_id[i] == id) {
+            return -1;
+        }
+    }
+    return -1;
+}
+
+void SndSetReverb()
+{
+    if (pSys->sound_mode == 2) {
+        SndEfxParam* p = &pSnd->hdr->efx[0];
+        Snd_efx_work[0].fx.dpl2.tempDisableFX = 0;
+        Snd_efx_work[0].fx.dpl2.preDelay = p->preDelay;
+        Snd_efx_work[0].fx.dpl2.time = p->time;
+        Snd_efx_work[0].fx.dpl2.coloration = p->coloration;
+        Snd_efx_work[0].fx.dpl2.damping = p->damping;
+        Snd_efx_work[0].fx.dpl2.mix = p->mix;
+        Snd_efx_req(0, 5);
+    } else {
+        SndEfxParam* p = &pSnd->hdr->efx[1];
+        Snd_efx_work[0].fx.hi.tempDisableFX = 0;
+        Snd_efx_work[0].fx.hi.preDelay = p->preDelay;
+        Snd_efx_work[0].fx.hi.time = p->time;
+        Snd_efx_work[0].fx.hi.coloration = p->coloration;
+        Snd_efx_work[0].fx.hi.damping = p->damping;
+        Snd_efx_work[0].fx.hi.crosstalk = p->crosstalk;
+        Snd_efx_work[0].fx.hi.mix = p->mix;
+        Snd_efx_req(0, 1);
+    }
+}
+
+static void debug_mute_check()
+{
+    static u8 flag_bak;
+    u8 f = 0;
+    u32 chg;
+    u32 off;
+    u32 on;
+
+    if (pG->flags_68 & 0x80000) {
+        f = 1;
+    }
+    if (pG->flags_68 & 0x100000) {
+        f |= 0x2;
+    }
+    chg = f ^ flag_bak;
+    off = flag_bak & chg;
+    on = f & chg;
+    if (on & 0x1) {
+        SndMuteSet(0x30, 1);
+    } else if (off & 0x1) {
+        SndMuteSet(0x30, 0);
+    }
+    if (on & 0x2) {
+        SndMuteSet(0xC0, 1);
+    } else if (off & 0x2) {
+        SndMuteSet(0xC0, 0);
+    }
+    flag_bak = f;
+}
+
+int SndStatDisp(int req)
+{
+    int i;
+    int y = 0x10;
+    int y2 = 0x10;
+    int ret = 0;
+    int stop = SndStopCheck();
+    int read = Dvd.ReadCheck(req, 0, 0, 0);
+
+    if (stop == 0) {
+        eprintf(0x18, 0x10, 0, 0, "Stop WAIT");
+        y = 0x20;
+        for (i = 0; i < 2; i++) {
+            SndPlayWork* w = &pSnd->bgm_work[i];
+            eprintf2(0xA, 0x10, 0x78, y2, 0, 0, "%2d %2d %3d %3d %3d %3d", w->used, w->stat, w->vol,
+                     w->vol_def, w->no, w->blk);
+            y2 += 0x10;
+        }
+        y2 += 0x10;
+        for (i = 0; i < 4; i++) {
+            SndPlayWork* w = &pSnd->str_work[i];
+            eprintf2(0xA, 0x10, 0x78, y2, 0, 0, "%2d %2d %3d %3d %3d %3d", w->used, w->stat, w->vol,
+                     w->vol_def, w->no, w->blk);
+            y2 += 0x10;
+        }
+    }
+    if (read == 0) {
+        eprintf(0x18, y, 0, 0, "Read WAIT");
+    }
+    if (stop != 0 && read != 0) {
+        ret = 1;
+    }
+    return ret;
+}
+
+static void debugDisp()
+{
+    static const char* mode_tbl[3] = { "  MONO", "STEREO", "  DPL2" };
+    static const char* rev_tbl[8] = { "   OFF", "    HI", "   STD", "CHORUS", " DELAY", "  DPL2", "  STOP", " ERROR" };
+    static const char* se_blk_tbl[14] = { "CORE", "PL  ", "WEP ", "BGM0", "BGM1", "FOOT", "ROOM", "DOOR",
+                                          "EM1 ", "EM2 ", "EM3 ", "EM4 ", 0, 0 };
+    int i;
+    s8 idx = History.top;
+    int y;
+    u16 y2;
+    u32 total = 0;
+    int d;
+
+    if (History.num != 0) {
+        eprintf2(7, 0xD, 0x20, 8, 4, 9, "BLK   NO VOL PAN SVOL SPAN");
+    }
+    y = 0x20;
+    for (i = 0; i < History.num; i++) {
+        int col = 0;
+        if (i == History.num - 1) {
+            col = 6;
+        }
+        eprintf2(7, 0xD, 0x20, y, col, 9, "%s %3d %3d %3d %4d %4d", se_blk_tbl[History.blk[idx]],
+                 History.no[idx], History.vol[idx], History.svol[idx], History.pan[idx], History.span[idx]);
+        y += 0x10;
+        idx++;
+        idx = LOOP_IDX(idx, 24);
+    }
+
+    eprintf2(7, 0xE, 0x20, 0x10, 6, 0xA, "BLK     NAME      ADDR   SIZE   USED   FREE");
+    eprintf2(7, 0xE, 0x20, 0x1E, 0, 0xA, "     OS RESERVE  %06x %06x", 0, 0x4000);
+    eprintf2(7, 0xE, 0x20, 0x2C, 0, 0xA, "     ZERO BUFFER %06x %06x", 0x4000, 0x100);
+    eprintf2(7, 0xE, 0x20, 0x3A, 0, 0xA, " %02d  CORE        %06x %06x %06x", 0, SndMem.blk_aram[0], 0x40000,
+             UseAramSize[0]);
+    d = 0x40000 - UseAramSize[0];
+    eprintf2(7, 0xE, 0x12A, 0x3A, d < 0 ? 2 : 0, 0xA, "%06x", __builtin_abs(d));
+    eprintf2(7, 0xE, 0x20, 0x48, 0, 0xA, " %02d  PLAYER      %06x %06x %06x", 1, SndMem.blk_aram[1], 0x130000,
+             UseAramSize[1]);
+    d = 0x130000 - UseAramSize[1];
+    eprintf2(7, 0xE, 0x12A, 0x48, d < 0 ? 2 : 0, 0xA, "%06x", __builtin_abs(d));
+    eprintf2(7, 0xE, 0x20, 0x56, 0, 0xA, " %02d  WEP         %06x %06x %06x", 2, SndMem.blk_aram[2], 0x40000,
+             UseAramSize[2]);
+    d = 0x40000 - UseAramSize[2];
+    eprintf2(7, 0xE, 0x12A, 0x56, d < 0 ? 2 : 0, 0xA, "%06x", __builtin_abs(d));
+    eprintf2(7, 0xE, 0x20, 0x64, 0, 0xA, " %02d  DOOR        %06x %06x %06x %06x", 7, SndMem.blk_aram[7], 0x40000,
+             UseAramSize[7], 0x40000 - UseAramSize[7]);
+    y2 = 0x72;
+    if (SND_BIT_CK(pSnd->blk_flag, 6)) {
+        y2 += 0xE;
+        eprintf2(7, 0xE, 0x20, y2, 0, 0xA, " %02d    ROOM", 6);
+        eprintf2(7, 0xE, 0x97, y2, 0, 0xA, "%06x %06x", SndMem.blk_aram[6], UseAramSize[6]);
+    }
+    if (SND_BIT_CK(pSnd->blk_flag, 5)) {
+        y2 += 0xE;
+        eprintf2(7, 0xE, 0x20, y2, 0, 0xA, " %02d    FOOT", 5);
+        eprintf2(7, 0xE, 0x97, y2, 0, 0xA, "%06x %06x", SndMem.blk_aram[5], UseAramSize[5]);
+    }
+    for (i = 0; i < 6; i++) {
+        u8 id = pSnd->em_id[i];
+        if (id == 0xFF) {
+            continue;
+        }
+        y2 += 0xE;
+        if (id > 0xF) {
+            eprintf2(7, 0xE, 0x20, y2, 0, 0xA, " %02d    EM%02X", i + 8, id);
+        } else if (id == 0xF) {
+            eprintf2(7, 0xE, 0x20, y2, 0, 0xA, " %02d    PL%02X", i + 8, id);
+        } else {
+            eprintf2(7, 0xE, 0x20, y2, 0, 0xA, " %02d    PL%02X", i + 8, id + 0xE);
+        }
+        eprintf2(7, 0xE, 0x97, y2, 0, 0xA, "%06x %06x", SndMem.blk_aram[i + 8], UseAramSize[i + 8]);
+        total += UseAramSize[i + 8];
+    }
+    for (i = 1; i >= 0; i--) {
+        u8 id = pSnd->bgm_id[i];
+        if (id == 0xFF) {
+            continue;
+        }
+        y2 += 0xE;
+        eprintf2(7, 0xE, 0x20, y2, 0, 0xA, " %02d    MI%03X", i + 3, id);
+        eprintf2(7, 0xE, 0x97, y2, 0, 0xA, "%06x %06x", SndMem.blk_aram[i + 3], UseAramSize[i + 3]);
+        total += UseAramSize[i + 3];
+    }
+    total += UseAramSize[6];
+    total += UseAramSize[5];
+    eprintf2(7, 0xE, 0x20, 0x72, 0, 0xA, "     ROOM FREE   %06x %06x %06x", 0x1F4100, 0x50BF00, total);
+    d = 0x50BF00 - total;
+    eprintf2(7, 0xE, 0x12A, 0x72, d < 0 ? 2 : 0, 0xA, "%06x", __builtin_abs(d));
+    y2 += 0xE;
+    eprintf2(7, 0xE, 0x20, y2, 0, 0xA, "     STREAM      %06x %06x", 0x700000, 0x100000);
+    y2 += 0xE;
+    eprintf2(7, 0xE, 0x20, y2, 0, 0xA, "     SUB SCREEN  %06x %06x", 0xD00000, 0x300000);
+    y2 += 0x1C;
+    eprintf2(7, 0xE, 0x20, y2, 0, 0xA, "FREE BASE   %06x", ARAM_FREE_BASE);
+    y2 += 0xE;
+    eprintf2(7, 0xE, 0x20, y2, 0, 0xA, "FREE LAST   %06x", 0xD00000);
+    y2 += 0xE;
+    eprintf2(7, 0xE, 0x20, y2, 0, 0xA, "FREE SIZE   %06x", 0xD00000 - ARAM_FREE_BASE);
+
+    eprintf2(7, 0xE, 0x1B0, 0x13B, 0, 9, "TOTAL %2d", Snd_ctrl_work.total_num);
+    eprintf2(7, 0xE, 0x1B0, 0x149, 0, 9, "SE    %2d", Snd_ctrl_work.axv_num);
+    eprintf2(7, 0xE, 0x1B0, 0x157, 0, 9, "STR   %2d", Snd_ctrl_work.str_num);
+    eprintf2(7, 0xE, 0x1B0, 0x165, 0, 9, "SEQ   %2d", Snd_ctrl_work.seq_num);
+    for (i = 0; i < 64; i++) {
+        if (Snd_voice_work[i].status != 0) {
+            eprintf2(8, 0xB, (i / 8) * 20 + 0xFA, (i % 8) * 14 + 0x13B, 4, 9, "%02d ", i);
+        } else {
+            eprintf2(8, 0xB, (i / 8) * 20 + 0xFA, (i % 8) * 14 + 0x13B, 7, 9, "%02d ", i);
+        }
+    }
+
+    if (0) {
+        eprintf2(7, 0xE, 0x20, 0x10, 6, 0xA, "SOUND MODE");
+        eprintf2(7, 0xE, 0x20, 0x1E, 0, 0xA, "%s", mode_tbl[pSys->sound_mode]);
+        eprintf2(7, 0xE, 0x20, 0x2C, 6, 0xA, "REVERB TYPE");
+        eprintf2(7, 0xE, 0x20, 0x3A, 0, 0xA, "%s", rev_tbl[Snd_efx_work[0].type]);
+        eprintf2(7, 0xE, 0x20, 0x48, 6, 0xA, "REVERB SETTINGS");
+        eprintf2(7, 0xE, 0x20, 0x56, 0, 0xA, "DELAY        %2.2f", Snd_efx_work[0].fx.hi.preDelay);
+        eprintf2(7, 0xE, 0x20, 0x64, 0, 0xA, "TIME         %2.2f", Snd_efx_work[0].fx.hi.time);
+        eprintf2(7, 0xE, 0x20, 0x72, 0, 0xA, "COLORATION   %2.2f", Snd_efx_work[0].fx.hi.coloration);
+        eprintf2(7, 0xE, 0x20, 0x80, 0, 0xA, "DAMPING      %2.2f", Snd_efx_work[0].fx.hi.damping);
+        eprintf2(7, 0xE, 0x20, 0x8E, 0, 0xA, "CROSSTALK    %2.2f", Snd_efx_work[0].fx.hi.crosstalk);
+        eprintf2(7, 0xE, 0x20, 0x9C, 0, 0xA, "MIX          %2.2f", Snd_efx_work[0].fx.hi.mix);
+        eprintf2(7, 0xE, 0x20, 0xAA, 6, 0xA, "DEFAULT AUX A");
+        eprintf2(7, 0xE, 0x20, 0xB8, 0, 0xA, "CORE           %3d", pSnd->hdr->efx[0].aux_core);
+        eprintf2(7, 0xE, 0x20, 0xC6, 0, 0xA, "WEAPON         %3d", pSnd->hdr->efx[0].aux_wep);
+        eprintf2(7, 0xE, 0x20, 0xD4, 0, 0xA, "ENEMY          %3d", pSnd->hdr->efx[0].aux_em);
+        eprintf2(7, 0xE, 0x20, 0xE2, 0, 0xA, "ROOM           %3d", pSnd->hdr->efx[0].aux_room);
+    }
 }
 
 void SndSeAbsFadeOutAll_sec(int sec)

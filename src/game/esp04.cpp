@@ -57,34 +57,46 @@ void move10(cEsp04* esp)
 {
     Esp04Work* w = &esp->work;
     f32 v;
-    s8 spd;
+    f32 x;
+    f32 y;
 
-    v = esp->pos.x;
-    if (esp->pos.x >= 512.0f) {
-        while (esp->pos.x >= 0.0f) {
+    // Wrap the position back into the screen. The original keeps the loaded coordinate (x/y)
+    // and the loop variable (v) in separate registers, which GCC's cse only does when the
+    // loaded variable's last mention is later than v's (see the trailing reloads below).
+    x = esp->pos.x;
+    v = x;
+    if (x >= 512.0f) {
+        while (v >= 0.0f) {
             esp->pos.x = v - esp->sizeX;
             v = esp->pos.x;
         }
-    } else if (esp->pos.x < -esp->sizeX) {
-        v = esp->pos.x;
-        while (v < 512.0f - esp->sizeX) {
-            v += esp->sizeX;
+    } else if (x < -esp->sizeX) {
+        if (x < 512.0f - esp->sizeX) {
+            v = x;
+            while (v < 512.0f - esp->sizeX) {
+                v += esp->sizeX;
+            }
+            esp->pos.x = v;
         }
-        esp->pos.x = v;
     }
-    v = esp->pos.y;
-    if (esp->pos.y >= 448.0f) {
-        while (esp->pos.y >= 0.0f) {
+    y = esp->pos.y;
+    v = y;
+    if (y >= 448.0f) {
+        while (v >= 0.0f) {
             esp->pos.y = v - esp->sizeY;
             v = esp->pos.y;
         }
-    } else if (esp->pos.y < -esp->sizeY) {
-        v = esp->pos.y;
-        while (v < 448.0f - esp->sizeX) {
-            v += esp->sizeY;
+    } else if (y < -esp->sizeY) {
+        if (y < 448.0f - esp->sizeX) {
+            v = y;
+            while (v < 448.0f - esp->sizeX) {
+                v += esp->sizeY;
+            }
+            esp->pos.y = v;
         }
-        esp->pos.y = v;
     }
+    x = esp->pos.x;  // dead: keeps x/y alive past v for cse (see above)
+    y = esp->pos.y;
 
     if (w->randX != 0) {
         esp->pos.x = w->pos0.x + (Rnd() % (w->randX * 2)) - (f32)w->randX;
@@ -108,18 +120,17 @@ void move10(cEsp04* esp)
     if (w->alphaWait != 0) {
         w->alphaWait--;
     } else {
-        spd = w->alphaSpd;
-        if (spd > 0) {
-            if ((int)esp->colA + spd > 255) {
+        if (w->alphaSpd > 0) {
+            if ((int)esp->colA + w->alphaSpd > 255) {
                 esp->colA = 255.0f;
             } else {
-                esp->colA += (f32)spd;
+                esp->colA += (f32)w->alphaSpd;
             }
-        } else if (spd < 0) {
-            if ((int)esp->colA + spd < 0) {
+        } else if (w->alphaSpd < 0) {
+            if ((int)esp->colA + w->alphaSpd < 0) {
                 esp->colA = 0.0f;
             } else {
-                esp->colA += (f32)spd;
+                esp->colA += (f32)w->alphaSpd;
             }
         }
     }

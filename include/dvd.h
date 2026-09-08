@@ -132,6 +132,7 @@ struct AramReq {
     AramReq* next;      // 0x14
 
     int chk(u32 bit) { return (flag & bit) ? 1 : 0; }
+    void clear() { flag = 0; }
 };
 
 // ARAM DMA queue (`Aram`, 0x1A8 bytes).
@@ -193,6 +194,13 @@ extern DvdReq DvdReqWork;
 extern cDvd Dvd;
 extern cAram Aram;
 
+// File name table (game/dvd.cpp); entrynum -1 = not on the disc.
+struct FileTblEntry {
+    const char* name;
+    s32 entrynum;
+};
+extern FileTblEntry FileTbl[];
+
 extern "C" {
 int DvdRead(int fileNo, void* dst, u32 aram, u32 ofs, u32 length, int mode, const char* file, int line);
 // Queue a file read; returns the request number. `mode` 3 = allocate the destination.
@@ -201,7 +209,7 @@ void MemorySwap(void* mram, u32 aram, u32 size);
 void DvdReadProc();
 void MesSysMessage(int msg, int disc);
 void RomFontPrint(int x, int y, const char* str);
-void RomFontMessage(int msg, int disc);
+void RomFontMessage(u32 msg, int disc);
 void RomFontSetting();
 }
 

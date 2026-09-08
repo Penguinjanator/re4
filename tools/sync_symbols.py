@@ -73,8 +73,9 @@ def demangle_v2(sym):
         return None
     return sym  # plain C symbol
 
-def elf_symbols(obj):
-    """Read the ELF32 (big-endian) symbol table: list of (name, bind, defined)."""
+def elf_symbols(obj, with_value=False):
+    """Read the ELF32 (big-endian) symbol table: list of (name, bind, defined)
+    (or (name, bind, defined, shndx, value) with with_value)."""
     import struct
     data = open(obj, "rb").read()
     shoff, = struct.unpack_from(">I", data, 0x20)
@@ -91,8 +92,28 @@ def elf_symbols(obj):
                 continue
             end = data.index(b"\0", strtab[4] + st_name)
             name = data[strtab[4] + st_name:end].decode()
-            syms.append((name, st_info >> 4, st_shndx != 0))
+            if with_value:
+                syms.append((name, st_info >> 4, st_shndx != 0, st_shndx, st_value))
+            else:
+                syms.append((name, st_info >> 4, st_shndx != 0))
     return syms
+
+def other_source_references(name, unit):
+    """True when a source file other than `unit` mentions `name` as a whole word."""
+    pat = re.compile(r"\b" + re.escape(name) + r"\b")
+    for dirpath, _, files in os.walk(os.path.join(ROOT, "src")):
+        for fn in files:
+            if not fn.endswith((".c", ".cpp", ".h", ".s")):
+                continue
+            path = os.path.join(dirpath, fn)
+            if os.path.relpath(path, os.path.join(ROOT, "src")) == unit:
+                continue
+            try:
+                if pat.search(open(path, errors="replace").read()):
+                    return True
+            except OSError:
+                pass
+    return False
 
 def main():
     symmap = {}  # (unit, demangled) -> list of (address, current name)
@@ -144,22 +165,54 @@ def main():
         unit = unit + (".cpp" if os.path.exists(os.path.join(ROOT, "src", unit + ".cpp")) else ".c")
         if not any(u == unit for (u, _) in symmap) and any(u == unit[:-2] + ".cpp" for (u, _) in symmap):
             unit = unit[:-2] + ".cpp"  # .c source for a split unit named *.cpp
+        # undefined names of the split object: disambiguates overloads (several sym_map entries share
+        # one demangled name) — the overload this unit calls is the one the split object imports
+        split_obj = os.path.join(ROOT, "build", VER, "obj", unit.rsplit(".", 1)[0] + ".o")
+        split_und = {n for n, _, d in elf_symbols(split_obj) if not d} if os.path.exists(split_obj) else set()
+        # overloads: several sym_map entries of this unit share one demangled name. The compiled
+        # object's definitions with that demangled name are paired with them in address order
+        # (source order is the original order), provided the counts agree.
+        obj_defs = {}
+        for name, bind, defined, shndx, value in elf_symbols(obj, with_value=True):
+            if defined and not name.startswith(".") and not name.startswith("_GLOBAL_"):
+                dn = demangle_v2(name)
+                if dn is not None:
+                    obj_defs.setdefault(dn, []).append((shndx, value, name, bind))
+        overload = {}  # mangled name -> address
+        for dn, defs in obj_defs.items():
+            cands = symmap.get((unit, dn))
+            if cands and len(cands) > 1 and len(cands) == len(defs):
+                for (_, _, name, bind), addr in zip(sorted(defs), sorted(cands)):
+                    overload[name] = addr
         for name, bind, defined in elf_symbols(obj):
             if name.startswith(".") or name.startswith("@") or name.startswith("_GLOBAL_"):
                 continue
             dn = demangle_v2(name)
             if dn is None: continue
+            if defined and name in overload:
+                i = by_addr.get(overload[name])
+                if i is not None:
+                    rename(i, name)
+                    if bind == 1:
+                        make_global(i)
+                continue
             if not defined:
                 # undefined reference: the target (in whatever unit) must be global and carry this name
                 cands = by_dn.get(dn, [])
+                if len(cands) > 1:
+                    narrowed = [a for a in cands if a in by_addr and lines[by_addr[a]].split(" = ")[0] in split_und]
+                    if len(narrowed) == 1:
+                        cands = narrowed
                 if len(cands) == 1 and cands[0] in by_addr:
                     i = by_addr[cands[0]]
                     old = lines[i].split(" = ")[0]
                     if "__" in name and "__" not in old and old == dn.split("(")[0]:
-                        # the target is a C-linkage symbol; this unit declared it without extern "C".
-                        # Renaming it to the mangled name would break every other caller (silent ngcld exit 99).
-                        print(f"  {old}: referenced as {name}; declare it extern \"C\" (not renamed)")
-                        continue
+                        # the target still carries its plain (map) name and this unit references the
+                        # C++-mangled name. Renaming is safe only while no other source declares the
+                        # plain name (an extern "C" caller would then fail to link: silent ngcld exit 99).
+                        if other_source_references(old, unit):
+                            print(f"  {old}: referenced as {name}; another source uses the plain name, declare it extern \"C\" (not renamed)")
+                            continue
                     owner = unit_of.get(cands[0])
                     if owner and os.path.exists(os.path.join(ROOT, "src", owner)):
                         # the defining unit has source; its own sync is authoritative for the name

@@ -120,11 +120,13 @@ void cEsp15::move()
             if (d > range * w->fadeRate) {
                 colA = colA * (1.0f - (d - range * w->fadeRate) / (range * (1.0f - w->fadeRate)));
             }
-            if (w->floorY != 0.0f && pos.y < w->floorY) {
-                flag2 = 0;
-            }
-            if (flag1 == 1 && flag2 == 0) {
-                pos.y = oldY;
+            if (w->floorY != 0.0f) {
+                if (pos.y < w->floorY) {
+                    flag2 = 0;
+                }
+                if (flag1 == 1 && flag2 == 0) {
+                    pos.y = oldY;
+                }
             }
         }
     }

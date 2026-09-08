@@ -73,7 +73,7 @@ extern "C" void Esp03_Trans(cEsp03* esp)
     Esp03Work* w = &esp->work;
     Vec* p;
     Vec* v;
-    u8 idx;
+    int idx;
     int i;
 
     GXSetZMode(1, 3, 0);
@@ -143,7 +143,8 @@ extern "C" void Esp03_Trans(cEsp03* esp)
         GXSetLineWidth((u8)w->width, 0);
         GXBegin(0xB0, 0, (u16)w->n);
         for (i = 0; i < w->n; i++) {
-            idx = (idx - 1) & 3;
+            idx--;
+            idx &= 3;
             p = &w->pts[idx];
             GXPosition3f32(p->x, p->y, p->z);
             GXColor4u8((u8)esp->colR, (u8)esp->colG, (u8)esp->colB, (u8)esp->colA);

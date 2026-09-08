@@ -44,9 +44,9 @@ void Filter07Init()
 
 void Filter07RoomInit()
 {
-    filter07_pLit = 0;
     filter07_buff = 0;
     filter07_noize = 0;
+    filter07_pLit = 0;
 }
 
 void Filter07Trans()

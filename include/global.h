@@ -26,7 +26,11 @@ struct GlobalWork {
     void* pFont;           // 0x18  ROM font header (dvd: RomFontSetting)
     s32 x1C;               // 0x1C  1 = the message system is usable (dvd error screen)
     u8 x20;                // 0x20  (main_sub: 3/4/6 allow the blur filter)
-    u8 pad_21[0x48 - 0x21];
+    u8 pad_21[0x28 - 0x21];
+    u16 next_room;         // 0x28  room id (stage << 8 | room) being entered (snd: room BGM / door tables)
+    u8 pad_2A[0x40 - 0x2A];
+    void* pRoomArc;        // 0x40  current room archive (GetDataExt(pG->pRoomArc, "STB", 0))
+    u8 pad_44[4];
     struct ArcFile* pArc;       // 0x48  current archive: offsets to its sub-files (room_tex, tv_mode)
     u8 pad_4C[8];
     u32 flags_54;          // 0x54
@@ -45,7 +49,10 @@ struct GlobalWork {
     void* pRoomCamData;    // 0x4F28  room camera data ("B40x")
     u8 pad_4F2C[0x4F70 - 0x4F2C];
     Vec quake_ofs;         // 0x4F70
-    u8 pad_4F7C[0x4F93 - 0x4F7C];
+    u8 x4F7C;
+    u8 door_no;            // 0x4F7D  door used to enter the room (index into the DSE door SE table)
+    u8 pad_4F7E[0x4F92 - 0x4F7E];
+    u8 snd_tbl_no;         // 0x4F92  room BGM/stream table row (0..4) selected by the game flow
     u8 x4F93;              // 0x4F93
     u32 play_time;         // 0x4F94  seconds (SetGameTime accumulates into it)
     u8 pad_4F98[4];

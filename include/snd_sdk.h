@@ -41,14 +41,17 @@ u32 OSGetTick(void);
 void AXSetCompressor(u32 switch_);
 void AIInit(u8* stack);
 void AIReset(void);
-void* memclr_asm(void* dst, u32 n);
+void memclr_asm(void* dst, u32 n);
 char* strcpy(char* dst, const char* src);
 f64 pow(f64 x, f64 y);
 int strcmp(const char* a, const char* b);
+void AXFXSetHooks(void* (*alloc)(u32), void (*free)(void*));
 
 // The SDK's dolphin/gx/GXGeometry.h is included by every sound unit through dolphin.h. Its
 // inline GXEnd is never called, but its two string literals are emitted (in this order) at the
-// start of each unit's .rodata.
+// start of each unit's .rodata. game/snd.cpp does not include the GX headers (no such strings
+// in its .rodata) and defines SND_SDK_NO_GX before including this file.
+#ifndef SND_SDK_NO_GX
 #line 118 "C:/DolphinSDK1.0/include/dolphin/gx/GXGeometry.h"
 static inline void GXEnd(void)
 {
@@ -58,7 +61,8 @@ static inline void GXEnd(void)
     }
     __GXinBegin = 0;
 }
-#line 60 "snd_sdk.h"
+#line 64 "snd_sdk.h"
+#endif
 
 #ifdef __cplusplus
 }
