@@ -162,10 +162,14 @@ extern "C" void Esp16_Trans(cEsp16* esp)
     esp->ChannelSet();
     GXSetBlendMode(esp->xA4, esp->xA5, esp->xA6, esp->xA7);
     esp->CommonStateSet();
-    rate = 0.0f;
-    t = rate;
+    t = 0.0f;
     tw = 1.0f;
-    half = (f32)(int)n * rate;
+    // Dead in the original too: only its 0x43300000 constant survives, shared through the cse
+    // path by both `(f32) w->nPt` conversions below (`lis r31, 0x4330` right after
+    // CameraCurrentProjection, `stw r31` in both arms). A signed conversion: the arms reload
+    // their unsigned magic double separately. Which expression it was is unknown; `t` is still
+    // set through a copy of the 0.0 pool load in the target (`lfs f12; fmr f29, f12`).
+    rate = (f32)(int)n;
     if ((s8)esp->partsNo >= -8 && (s8)esp->partsNo <= -3) {
         pLog->err(0, 0, "ESP_16 : Parent is screen.");
         return;

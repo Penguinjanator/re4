@@ -569,6 +569,10 @@ mark it Matching.
   from merging `lwz r0; mr r29,r0; cmpwi r0`.
 - Float `ble/bge` without `cror` = reversed `>`/`<`: write `if (!(a > b))`; `cror un,eq,lt; bso` is
   the real `<=`.
+- Work-struct init blocks: int/f32 fields written through reference setters (`ISet/FSet`) while u8
+  fields are plain stores gives the target's store schedule where plain int stores never do.
+- `insert_bct` refuses known loop counts < 3: a 2-iteration loop only becomes `mtctr/bdnz` if the
+  count is not visible to loop.c.
 - Static locals show as `name.NNN` in objdiff; the DECL_UID suffix cannot be reproduced and is ignored by the report.
 - Unexplained words in `.rodata` (zero words, stray floats) are usually the constant pool of a function
   the original linker dead-stripped (bodies gone, pools kept, `STRIP_UNUSED` in objects.py): write a

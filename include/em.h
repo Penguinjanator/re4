@@ -93,7 +93,9 @@ public:
     u8 x29D;              // 0x29D  (emrock plemRockEscape: MotionSetCore hokan of the escape run motion)
     u8 pad_29E[0x2A4 - 0x29E];
     struct EmWork2A4* p2A4;  // 0x2A4  0x1FE-byte work (player.cpp mem_alloc; cam_ctrl reads its byte 5)
-    u8 pad_2A8[0x2B4 - 0x2A8];
+    u8 pad_2A8[4];
+    u16* motFlip;         // 0x2AC  MotionWork::flip: parts index remap of flipped motions (emdoor: emDoor_xflip_tbl)
+    u8 pad_2B0[4];
     // 0x2B4 .. 0x300  collision info (rect size at 0x2C0/0x2C4); wrapped so that cEm::cEm does not
     // run cAtariInfo's constructor (the original constructs only the cDmgInfo)
     union {

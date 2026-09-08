@@ -293,57 +293,84 @@ int cItemMgr::set_game(int no)
     dump(0x7F);
     get(0x7C, 0);
     get(0x23, 1);
-    pLast->x = 2;
-    pLast->y = 1;
-    pLast->orient = 0;
-    pLast->board = 1;
-    arm(pLast);
+    {
+        ItemWork* p = pLast;
+        p->x = 2;
+        p->y = 1;
+        p->orient = 0;
+        p->board = 1;
+        arm(p);
+    }
     get(0x04, 20);
-    pLast->x = 7;
-    pLast->y = 0;
-    pLast->orient = 0;
-    pLast->board = 1;
+    {
+        ItemWork* p = pLast;
+        p->x = 7;
+        p->y = 0;
+        p->orient = 0;
+        p->board = 1;
+    }
     get(0x05, 1);
-    pLast->x = 6;
-    pLast->y = 3;
-    pLast->orient = 0;
-    pLast->board = 1;
+    {
+        ItemWork* p = pLast;
+        p->x = 6;
+        p->y = 3;
+        p->orient = 0;
+        p->board = 1;
+    }
     if (no != 0) {
         get(0x30, 0);
-        pLast->x = 12;
-        pLast->y = 1;
-        pLast->orient = 0;
-        pLast->board = 1;
+        {
+            ItemWork* p = pLast;
+            p->x = 12;
+            p->y = 1;
+            p->orient = 0;
+            p->board = 1;
+        }
         get(0x20, 0);
-        pLast->num = 100;
-        pLast->x = 17;
-        pLast->y = 0;
-        pLast->orient = 0;
-        pLast->board = 1;
+        {
+            ItemWork* p = pLast;
+            p->num = 100;
+            p->x = 17;
+            p->y = 0;
+            p->orient = 0;
+            p->board = 1;
+        }
         get(0x20, 0);
-        pLast->num = 100;
-        pLast->x = 17;
-        pLast->y = 2;
-        pLast->orient = 0;
-        pLast->board = 1;
+        {
+            ItemWork* p = pLast;
+            p->num = 100;
+            p->x = 17;
+            p->y = 2;
+            p->orient = 0;
+            p->board = 1;
+        }
         get(0x20, 0);
-        pLast->num = 100;
-        pLast->x = 17;
-        pLast->y = 4;
-        pLast->orient = 0;
-        pLast->board = 1;
+        {
+            ItemWork* p = pLast;
+            p->num = 100;
+            p->x = 17;
+            p->y = 4;
+            p->orient = 0;
+            p->board = 1;
+        }
         get(0x20, 0);
-        pLast->num = 100;
-        pLast->x = 13;
-        pLast->y = 4;
-        pLast->orient = 0;
-        pLast->board = 1;
+        {
+            ItemWork* p = pLast;
+            p->num = 100;
+            p->x = 13;
+            p->y = 4;
+            p->orient = 0;
+            p->board = 1;
+        }
         get(0x20, 0);
-        pLast->num = 100;
-        pLast->x = 9;
-        pLast->y = 4;
-        pLast->orient = 0;
-        pLast->board = 1;
+        {
+            ItemWork* p = pLast;
+            p->num = 100;
+            p->x = 9;
+            p->y = 4;
+            p->orient = 0;
+            p->board = 1;
+        }
     }
     return 0;
 }
@@ -1094,20 +1121,30 @@ int cItemMgr::setUp(int no)
     return ret;
 }
 
+static inline int flagNeg(u32& f)
+{
+    return (s32) f < 0;
+}
+
+static inline u32 chkFlag(u32& f, u32 b)
+{
+    return f & b;
+}
+
 void cItemMgr::gameInit()
 {
     clear();
     roomInit();
-    if ((s32) pG->flags_54 >= 0 && !(pG->flags_54 & 0x40000000)) {
+    if (!flagNeg(pG->flags_54) && !chkFlag(pG->flags_54, 0x40000000)) {
         if (pG->x4FB8 == 1) {
             type = 0;
         }
         set_game(0);
-        pG->x4F98 = 0;
         pG->x832C = 0;
+        pG->x4F98 = 0;
         get(0xAC, 1);
         get(0xAD, 1);
-        if ((pG->flags_6C & 0x00800000) || (pG->flags_6C & 0x00040000)) {
+        if (chkFlag(pG->flags_6C, 0x00800000) || chkFlag(pG->flags_6C, 0x00040000)) {
             get(0xAE, 1);
             get(0xAF, 1);
             get(0xB0, 1);
@@ -1182,7 +1219,7 @@ int cItemMgr::init()
     }
     nFlags = 8;
 #line 2522 "D:/Bio4/Prog/item.cpp"
-    pFlags = (u32*) MEM_ALLOC(nFlags * sizeof(u32), 1, 13);
+    pFlags = (u32*) MEM_ALLOC(0x20, 1, 13);
     if (pFlags == 0) {
         Mem_free(pItems);
         Mem_free(pOrder);
@@ -1523,17 +1560,16 @@ void cItemMgr::construct(ItemWork* p, u16 id)
     ItemInfo info;
 
     p->flags = 1;
-    p->orient = 0;
     p->id = id;
     p->num = 0;
+    p->orient = 0;
     p->board = 0;
     p->x = 0;
     p->y = 0;
     p->type = type;
     if (ITEM_TYPE(id) == 1) {
-        if (id == 0x34) {
-            LV_SET(p, 6, 0, 2, 5);
-        } else if (id == 0x40) {
+        switch (id) {
+        case 0x40:
             p->id = 0x21;
             if (pG->flags_51C0 & 0x8000) {
                 LV_FIRE_SET(p, 1);
@@ -1543,8 +1579,14 @@ void cItemMgr::construct(ItemWork* p, u16 id)
             LV_MAG_SET(p, 0);
             LV_SPEED_SET(p, 0);
             LV_EX_SET(p, 0);
-        } else {
+            break;
+        case 0x34:
+            LV_SET(p, 6, 0, 2, 5);
+            break;
+        case 0x21:
+        default:
             p->x6 = 0;
+            break;
         }
         p->x8 = BULLET(p);
         setBullet(p, WeaponId2ChargeNum(id, 1));

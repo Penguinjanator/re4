@@ -857,6 +857,7 @@ void cCard::makeSystemSaveData()
 void cCard::saveMain()
 {
     void (cCard::*makeFunc)();
+    char* name;
     u8* buf;
     int blocks;
     int nextMode;
@@ -869,9 +870,11 @@ void cCard::saveMain()
     }
     if (isSystem == 0) {
         if (slot == 2) {
-            sprintf(fileName, "d:\\bio4/room/savedata%02d.dat", fileNo);
+            name = fileName;
+            sprintf(name, "d:\\bio4/room/savedata%02d.dat", fileNo);
         } else {
-            sprintf(fileName, "bh4_data%02d", fileNo);
+            name = fileName;
+            sprintf(name, "bh4_data%02d", fileNo);
         }
         blocks = saveBlocks;
         buf = pSaveBuf;
@@ -879,9 +882,11 @@ void cCard::saveMain()
         nextMode = 8;
     } else {
         if (slot == 2) {
-            sprintf(fileName, "d:\\bio4/room/sysdata.dat");
+            name = fileName;
+            sprintf(name, "d:\\bio4/room/sysdata.dat");
         } else {
-            sprintf(fileName, "bh4_system");
+            name = fileName;
+            sprintf(name, "bh4_system");
         }
         blocks = sysBlocks;
         buf = pSysBuf;
@@ -899,16 +904,14 @@ void cCard::saveMain()
             if (slot == 2) {
                 step = 5;
             }
-            sub2 = 0;
-            sub = 0;
         } else {
             if (pG->x8 & 0x80) {
                 cardMesSet(0x27, 0, 0);
             }
             step++;
-            sub2 = 0;
-            sub = 0;
         }
+        sub = 0;
+        sub2 = 0;
         break;
     case 1:
         ret = sysfileRead(&sub, &sub2, 0);
@@ -923,8 +926,8 @@ void cCard::saveMain()
             if (slot == 2) {
                 step = 5;
             }
-            sub2 = 0;
             sub = 0;
+            sub2 = 0;
             break;
         }
         break;
@@ -937,8 +940,8 @@ void cCard::saveMain()
             } else {
                 step++;
             }
-            sub2 = 0;
             sub = 0;
+            sub2 = 0;
         } else if (ret < 0) {
             errorSet(-0x203);
         }
@@ -947,8 +950,8 @@ void cCard::saveMain()
         ret = fileCreate(&sub, blocks, &slotw[slot]);
         if (ret == 0) {
         } else if (ret > 0) {
-            sub2 = 0;
             sub = 0;
+            sub2 = 0;
             step++;
         } else if (ret < 0) {
             if (result == -5) {
@@ -988,7 +991,7 @@ void cCard::saveMain()
             if (DBIsDebuggerPresent()) {
                 BitOn(pG->flags_54, 0x20000);
             }
-            HDWrite_only(fileName, buf, blocks << 13);
+            HDWrite_only(name, buf, blocks << 13);
             if (dbg == 0) {
                 BitOff(pG->flags_54, 0x20000);
             }
@@ -996,8 +999,6 @@ void cCard::saveMain()
                 isDbgInfoCached &= ~(1 << fileNo);
                 mode = nextMode;
                 step = 0;
-                sub2 = 0;
-                sub = 0;
             } else {
                 if (pG->x8 & 0x80) {
                     step = 0xB;
@@ -1005,9 +1006,9 @@ void cCard::saveMain()
                 } else {
                     step = 0xA;
                 }
-                sub2 = 0;
-                sub = 0;
             }
+            sub = 0;
+            sub2 = 0;
         } else {
             ret = fileWrite(&sub, buf, blocks, &slotw[slot]);
             if (ret == 0) {
@@ -1049,8 +1050,6 @@ void cCard::saveMain()
             if (mode == 3) {
                 mode = nextMode;
                 step = 0;
-                sub = 0;
-                sub2 = 0;
             } else {
                 if (pG->x8 & 0x80) {
                     step = 0xB;
@@ -1058,9 +1057,9 @@ void cCard::saveMain()
                 } else {
                     step++;
                 }
-                sub2 = 0;
-                sub = 0;
             }
+            sub = 0;
+            sub2 = 0;
         } else if (ret < 0) {
             errorSet(-0x203);
         }
@@ -3264,10 +3263,11 @@ void CardID::updateSaveInfo(cCard* c)
     int i;
 
     for (i = 0; i < 7; i++) {
-        u8 type = 0x40 + i;
+        int type = 0x40 + i;
         s8 sl = c->slot;
-        int no = c->fileNo - 3 + i;
+        int no = c->fileNo - 3;
         u32 f;
+        no += i;
         if (no < 0) {
             no += 20;
         }

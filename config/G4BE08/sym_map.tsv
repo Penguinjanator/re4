@@ -3773,12 +3773,12 @@ address	size	section	unit	scope	name	demangled
 0x800FF274	0x310	.text	game/emdoor.cpp	global	emDoorSetDmgDoor	emDoorSetDmgDoor
 0x800FF584	0x134	.text	game/emdoor.cpp	global	emDoorSetBrkDoor	emDoorSetBrkDoor
 0x800FF6B8	0x50	.text	game/emdoor.cpp	global	emDoorBrkCk	emDoorBrkCk
-0x800FF708	0x124	.text	game/emdoor.cpp	global	cEmDoor_move	cEmDoor::move
+0x800FF708	0x124	.text	game/emdoor.cpp	global	move__7cEmDoor	cEmDoor::move
 0x800FF82C	0x1C	.text	game/emdoor.cpp	global	emDoor_R0_Init	emDoor_R0_Init
 0x800FF848	0x38	.text	game/emdoor.cpp	global	emDoor_R0_Move	emDoor_R0_Move
 0x800FF880	0x104	.text	game/emdoor.cpp	global	emDoor_R1_Set	emDoor_R1_Set
 0x800FF984	0x390	.text	game/emdoor.cpp	global	emDoor_R1_Open	emDoor_R1_Open
-0x800FFD14	0x218	.text	game/emdoor.cpp	local	emDoor_R1_Open2	emDoor_R1_Open2
+0x800FFD14	0x218	.text	game/emdoor.cpp	local	emDoor_R1_Open2__FP7cEmDoor	emDoor_R1_Open2
 0x800FFF2C	0x5DC	.text	game/emdoor.cpp	global	emDoor_R1_Down	emDoor_R1_Down
 0x80100508	0xC4	.text	game/emdoor.cpp	global	emDoor_R1_Downed	emDoor_R1_Downed
 0x801005CC	0x104	.text	game/emdoor.cpp	global	emDoor_R1_Close	emDoor_R1_Close
@@ -3792,36 +3792,36 @@ address	size	section	unit	scope	name	demangled
 0x8010137C	0x21C	.text	game/emdoor.cpp	global	emDoorLockMove	emDoorLockMove
 0x80101598	0x354	.text	game/emdoor.cpp	global	emDoorDoorAutoCloseCk	emDoorDoorAutoCloseCk
 0x801018EC	0x2E0	.text	game/emdoor.cpp	global	emDoorYarareInit	emDoorYarareInit
-0x80101BCC	0x364	.text	game/emdoor.cpp	global	cEmDoor_setLock	cEmDoor::setLock
-0x80101F30	0x30	.text	game/emdoor.cpp	global	cEmDoor_ckLock	cEmDoor::ckLock
-0x80101F60	0x27C	.text	game/emdoor.cpp	global	cEmDoor_setChain	cEmDoor::setChain
-0x801021DC	0x8	.text	game/emdoor.cpp	global	cEmDoor_setEff	cEmDoor::setEff
-0x801021E4	0x4E0	.text	game/emdoor.cpp	global	cEmDoor_setYarare	cEmDoor::setYarare
-0x801026C4	0xF0	.text	game/emdoor.cpp	global	cEmDoor_ckOpen	cEmDoor::ckOpen
-0x801027B4	0xE4	.text	game/emdoor.cpp	global	cEmDoor_ckKick	cEmDoor::ckKick
-0x80102898	0x240	.text	game/emdoor.cpp	global	cEmDoor_setOpen	cEmDoor::setOpen
-0x80102AD8	0x130	.text	game/emdoor.cpp	global	cEmDoor_setOpen2	cEmDoor::setOpen2
-0x80102C08	0x4AC	.text	game/emdoor.cpp	global	cEmDoor_setShock	cEmDoor::setShock
-0x801030B4	0x110	.text	game/emdoor.cpp	global	cEmDoor_setBreak	cEmDoor::setBreak
+0x80101BCC	0x364	.text	game/emdoor.cpp	global	setLock__7cEmDoorPvT1ii	cEmDoor::setLock
+0x80101F30	0x30	.text	game/emdoor.cpp	global	ckLock__7cEmDoor	cEmDoor::ckLock
+0x80101F60	0x27C	.text	game/emdoor.cpp	global	setChain__7cEmDoorPvT1	cEmDoor::setChain
+0x801021DC	0x8	.text	game/emdoor.cpp	global	setEff__7cEmDoorUc	cEmDoor::setEff
+0x801021E4	0x4E0	.text	game/emdoor.cpp	global	setYarare__7cEmDoor	cEmDoor::setYarare
+0x801026C4	0xF0	.text	game/emdoor.cpp	global	ckOpen__7cEmDoor	cEmDoor::ckOpen
+0x801027B4	0xE4	.text	game/emdoor.cpp	global	ckKick__7cEmDoorP3Vec	cEmDoor::ckKick
+0x80102898	0x240	.text	game/emdoor.cpp	global	setOpen__7cEmDoorP3Veciii	cEmDoor::setOpen
+0x80102AD8	0x130	.text	game/emdoor.cpp	global	setOpen2__7cEmDoori	cEmDoor::setOpen2
+0x80102C08	0x4AC	.text	game/emdoor.cpp	global	setShock__7cEmDooriP3Veci	cEmDoor::setShock
+0x801030B4	0x110	.text	game/emdoor.cpp	global	setBreak__7cEmDoorP3Vec	cEmDoor::setBreak
 0x801031C4	0x278	.text	game/emdoor.cpp	global	emDoorActEvtCk	emDoorActEvtCk
 0x8010343C	0xA0	.text	game/emdoor.cpp	global	emDoorAction	emDoorAction
 0x801034DC	0xA8	.text	game/emdoor.cpp	global	emDoorAction2	emDoorAction2
 0x80103584	0x3BC	.text	game/emdoor.cpp	global	plemDoorKick	plemDoorKick
 0x80103940	0x3B4	.text	game/emdoor.cpp	global	plemDoorOpen	plemDoorOpen
-0x80103CF4	0x4F8	.text	game/emdoor.cpp	global	cEmDoor_ckObj	cEmDoor::ckObj
-0x801041EC	0x38	.text	game/emdoor.cpp	global	cEmDoor_setOpenLock	cEmDoor::setOpenLock
-0x80104224	0x38	.text	game/emdoor.cpp	global	cEmDoor_setCloseLock	cEmDoor::setCloseLock
-0x8010425C	0x80	.text	game/emdoor.cpp	global	cEmDoor_setClose	cEmDoor::setClose
-0x801042DC	0x8C	.text	game/emdoor.cpp	global	cEmDoor_setDowned	cEmDoor::setDowned
-0x80104368	0x10	.text	game/emdoor.cpp	global	cEmDoor_setNormal	cEmDoor::setNormal
-0x80104378	0x8	.text	game/emdoor.cpp	global	cEmDoor_setKey	cEmDoor::setKey
+0x80103CF4	0x4F8	.text	game/emdoor.cpp	global	ckObj__7cEmDoor	cEmDoor::ckObj
+0x801041EC	0x38	.text	game/emdoor.cpp	global	setOpenLock__7cEmDoori	cEmDoor::setOpenLock
+0x80104224	0x38	.text	game/emdoor.cpp	global	setCloseLock__7cEmDoori	cEmDoor::setCloseLock
+0x8010425C	0x80	.text	game/emdoor.cpp	global	setClose__7cEmDoor	cEmDoor::setClose
+0x801042DC	0x8C	.text	game/emdoor.cpp	global	setDowned__7cEmDoori	cEmDoor::setDowned
+0x80104368	0x10	.text	game/emdoor.cpp	global	setNormal__7cEmDoor	cEmDoor::setNormal
+0x80104378	0x8	.text	game/emdoor.cpp	global	setKey__7cEmDoori	cEmDoor::setKey
 0x80104380	0x230	.text	game/emdoor.cpp	global	DoorOpenCk	DoorOpenCk
 0x801045B0	0x28	.text	game/emdoor.cpp	global	SubOpenDoorSet	SubOpenDoorSet
 0x801045D8	0x21C	.text	game/emdoor.cpp	global	subDoorKick	subDoorKick
 0x801047F4	0xD0	.text	game/emdoor.cpp	global	emDoorDropWeapon	emDoorDropWeapon
-0x801048C4	0x18	.text	game/emdoor.cpp	global	cEmDoor_setDoor	cEmDoor::setDoor
-0x801048DC	0xC	.text	game/emdoor.cpp	global	cEmDoor_setSeCancel	cEmDoor::setSeCancel
-0x801048E8	0x20	.text	game/emdoor.cpp	global	cEmDoor_dt_cEmDoor	cEmDoor::~cEmDoor
+0x801048C4	0x18	.text	game/emdoor.cpp	global	setDoor__7cEmDoorP7cEmDoor	cEmDoor::setDoor
+0x801048DC	0xC	.text	game/emdoor.cpp	global	setSeCancel__7cEmDoor	cEmDoor::setSeCancel
+0x801048E8	0x20	.text	game/emdoor.cpp	global	_._7cEmDoor	cEmDoor::~cEmDoor
 0x80104908	0x210	.text	game/emhit.cpp	global	SetEmHit	SetEmHit
 0x80104B18	0xB8	.text	game/emhit.cpp	global	emHitDmCk	emHitDmCk
 0x80104BD0	0x60	.text	game/emhit.cpp	global	move__6cEmHit	cEmHit::move
@@ -8346,7 +8346,7 @@ address	size	section	unit	scope	name	demangled
 0x80232490	0x1C0	.rodata	game/emdata.cpp	global	lbl_80232490	.
 0x80232650	0x480	.rodata	game/emdoor.cpp	global	lbl_80232650	.
 0x80232AD0	0x58	.rodata	game/emdoor.cpp	global	_vt.7cEmDoor	cEmDoor virtual table
-0x80232B28	0x28	.rodata	game/emdoor.cpp	global	cUnit_virtual_table_80232B28	cUnit virtual table
+0x80232B28	0x28	.rodata	game/emdoor.cpp	local	cUnit_virtual_table_80232B28	cUnit virtual table
 0x80232B50	0x1E8	.rodata	game/emhit.cpp	global	lbl_80232B50	.
 0x80232D38	0x58	.rodata	game/emhit.cpp	global	_vt.6cEmHit	cEmHit virtual table
 0x80232D90	0x28	.rodata	game/emhit.cpp	local	cUnit_virtual_table_80232D90	cUnit virtual table

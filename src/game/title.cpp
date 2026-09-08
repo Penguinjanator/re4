@@ -145,18 +145,20 @@ void Title_task()
 
 void titleInit(TitleWork* w)
 {
+    int req;
+
     ScreenReSize(640, 448);
 #line 147 "D:/Bio4/Prog/title.cpp"
-    int req = DvdReadN("SS/cmn/title.snd", 0, 0, 0, 0, 0x8000, __FILE__, __LINE__);
+    req = DvdReadN("SS/cmn/title.snd", 0, 0, 0, 0, 0x8000, __FILE__, __LINE__);
     READ_ERROR("title.snd read error!!");
-    // PERM_BEGIN_INIT
+    // The work fields are written through the reference setters (the order and the ISet/FSet
+    // forms decide the store schedule; found by brute force).
     ISet(w->req, req);
     w->mode = 1;
     w->xC = 0;
     w->step = 0;
     ISet(w->scroll, 0);
     FSet(w->speed, 1.5f);
-    // PERM_END_INIT
     pG->flags_5014 |= 0x8000;
     IdAllocBuffer();
 }
@@ -202,13 +204,11 @@ void titleWait(TitleWork* w)
             IdTexRoomInit();
             IdSys.roomInit();
             IdTexDataLoad(TITLE_ARC_PTR(w->pDat, 4), 7);
-            // PERM_BEGIN_WAIT
             CSet(w->mode, 2);
             ISet(w->sndFlag, 1);
             w->step = 0;
             ISet(w->cnt, 0);
             ISet(w->x48, 0);
-            // PERM_END_WAIT
             if (pRK->x17 != 0) {
                 w->mode = 5;
                 w->cnt = 585;
@@ -424,7 +424,6 @@ void titleMenuInit(TitleWork* w)
 #define TITLE_MENU_MOVE(w)                                                                 \
     {                                                                                      \
         int old = (w)->cursor;                                                             \
-        int i;                                                                             \
         if (Key.trg & KEY_UP) {                                                            \
             (w)->cursor = old - 1;                                                         \
         }                                                                                  \
@@ -435,14 +434,18 @@ void titleMenuInit(TitleWork* w)
         if (old != (w)->cursor) {                                                          \
             SndCall(0, 10, 0, 0, 0, 0);                                                    \
         }                                                                                  \
-        for (i = 0; i < (w)->menuNum; i++) {                                               \
-            if (i == (w)->cursor) {                                                        \
-                (w)->menu[i]->flags |= 8;                                                  \
-            } else {                                                                       \
-                (w)->menu[i]->flags &= ~8;                                                 \
+        {                                                                                  \
+            int i;                                                                         \
+            for (i = 0; i < (w)->menuNum; i++) {                                           \
+                if (i == (w)->cursor) {                                                    \
+                    (w)->menu[i]->flags |= 8;                                              \
+                } else {                                                                   \
+                    (w)->menu[i]->flags &= ~8;                                             \
+                }                                                                          \
             }                                                                              \
         }                                                                                  \
         if ((w)->menuNum > 1 && (Key.trg & (KEY_UP | KEY_DOWN))) {                        \
+            int i;                                                                         \
             for (i = 0; i < (w)->menuNum; i++) {                                           \
                 IdUnit* u = (w)->menu[i];                                                  \
                 u->timer[3] = 0;                                                           \
@@ -778,14 +781,12 @@ void titleMain(TitleWork* w)
             if (Joy[0].trg & 0x1100) {
                 w->mode = 7;
                 if ((s32) pG->flags_54 < 0 || (pG->flags_54 & 0x40000000)) {
-                    // PERM_BEGIN_MAIN8
                     w->saveSub = w->sub;
                     w->saveStep = w->step;
                     w->saveX3 = w->x3;
                     w->saveCnt = w->cnt;
                     w->mode = 6;
                     w->step = 0;
-                    // PERM_END_MAIN8
                 } else {
                     Snd.room_ok = 1;
                     c0.w = 0x00000000;
@@ -950,18 +951,23 @@ void titleSub(TitleWork* w)
                     SndStrReq(snd_id, 4, 200, 0);
                 } else if (pG->flags_54 & 0x40000000) {
                     if (!(pSys->x4 & 0x00400000)) {
-                        int i;
                         pSys->x4 |= 0x00400000;
-                        for (i = 0; i < 0x10; i += 4) {
-                            u8* tbl = (u8*) pSys + 0x10;
-                            *(u32*) ((u32) tbl + i) = 0;
+                        {
+                            int ofs;
+                            for (ofs = 0; ofs < 0x10; ofs += 4) {
+                                u8* tbl = (u8*) pSys + 0x10;
+                                *(u32*) ((u32) tbl + ofs) = 0;
+                            }
                         }
                         // OPEN: the target counts this 2-iteration loop with mtctr/bdnz as well; GCC 2.95's
                         // insert_bct refuses loops with a known count below 3, so the original's count was
                         // not visible to loop.c (form not found).
-                        for (i = 0; i < 8; i += 4) {
-                            u8* tbl = (u8*) pSys + 0x20;
-                            *(u32*) ((u32) tbl + i) = 0;
+                        {
+                            int ofs;
+                            for (ofs = 0; ofs < 8; ofs += 4) {
+                                u8* tbl = (u8*) pSys + 0x20;
+                                *(u32*) ((u32) tbl + ofs) = 0;
+                            }
                         }
                     }
                     if (DebugTrg(1)) {
@@ -1201,7 +1207,6 @@ int stageSelect(TitleWork* w)
 {
     int ret = 0;
     MercSaveWork save;
-    int i;
     int mode;
 
     if (Key.trg & KEY_A) {
@@ -1230,17 +1235,23 @@ int stageSelect(TitleWork* w)
             SndCall(0, 0x3E, 0, 0, 0, 0);
         }
     }
-    for (i = 0; i < 4; i++) {
-        IdUnit* u = IdSys.unitPtr(i + 0x11, ID_OMAKE);
-        u->no = i;
-        u->flags_7F |= 2;
+    {
+        int i;
+        for (i = 0; i < 4; i++) {
+            IdUnit* u = IdSys.unitPtr(i + 0x11, ID_OMAKE);
+            u->no = i;
+            u->flags_7F |= 2;
+        }
     }
-    for (i = 0; i < 4; i++) {
-        IdUnit* u = IdSys.unitPtr(i + 0x21, ID_OMAKE);
-        if (w->omkStage == i) {
-            u->flags &= ~8;
-        } else {
-            u->flags |= 8;
+    {
+        int i;
+        for (i = 0; i < 4; i++) {
+            IdUnit* u = IdSys.unitPtr(i + 0x21, ID_OMAKE);
+            if (w->omkStage == i) {
+                u->flags &= ~8;
+            } else {
+                u->flags |= 8;
+            }
         }
     }
     IdSys.unitPtr(0x31, ID_OMAKE)->flags &= ~8;
@@ -1304,9 +1315,11 @@ int stageSelect(TitleWork* w)
         if (pG->x4FB8 == 5) {
             mode = 4;
         }
+        int i;
+        int rank;
         for (i = 0; i < 4; i++) {
-            int rank = save.rank[mode][i];
             int j;
+            rank = save.rank[mode][i];
             if (rank == 0) {
                 IdSys.unitPtr(i * 16 + 0x40, ID_OMAKE)->flags &= ~8;
             } else {
@@ -1348,12 +1361,10 @@ void titleExit(TitleWork* w)
         w->dbgRoom[w->dbgStage] = pRj->getRoomIdx(pG->stage_no, pG->room_no);
         w->dbgPoint = pG->x4F9F;
         w->dbgEmList = checkEmListNo(pRj->getRoomInfo(w->dbgStage, w->dbgRoom[w->dbgStage])->room_id);
-        // PERM_BEGIN_EXIT
         w->loadNo = 1;
         w->dbgX = 340;
         w->dbgY = 60;
         w->sndId = 0;
-        // PERM_END_EXIT
         while (!(Joy[0].trg & 0x1100)) {
             titleDebugMenu(w);
             TaskSleep(1);
@@ -1454,7 +1465,7 @@ void titleExit(TitleWork* w)
             FSet(pG->sub_pos.x, -12400.0f);
             FSet(pG->sub_pos.y, 2576.0f);
             FSet(pG->sub_pos.z, 31080.0f);
-            FSet(pG->sub_angle, 2.4235f);
+            FSet(pG->sub_angle, 2.486f);
             break;
         case 1:
             G_ROOM_ID = 0x402;
@@ -1563,55 +1574,33 @@ void titleDebugMenu(TitleWork* w)
     }
     eprintf(x - 8, y + w->dbgCursor * 16, 0, 0, ">");
     y -= 16;
-    y += 16;
-    eprintf(x + 96, y, 4, 0, "%s", pl_type_tbl[pG->x4FB8]);
-    y += 16;
-    eprintf(x + 96, y, 4, 0, "");
-    y += 16;
-    eprintf(x + 96, y, 4, 0, "");
-    y += 16;
-    eprintf(x + 96, y, 4, 0, "%x", w->dbgStage);
-    y += 16;
-    eprintf(x + 96, y, 4, 0, "%02x", info->room);
-    y += 16;
-    eprintf(x + 96, y, 4, 0, "%x", w->dbgPoint);
-    y += 16;
-    eprintf(x + 96, y, 4, 0, "%s", getEmListDbgName(w->dbgEmList));
-    y += 16;
-    eprintf(x + 96, y, 4, 0, "%d", pG->debug_mode);
-    y += 16;
-    eprintf(x + 96, y, 4, 0, "%s", (pG->flags_68 & 0x00200000) ? "OFF" : "ON");
-    y += 16;
-    eprintf(x + 96, y, 4, 0, "%s", (pG->flags_6C & 0x800) ? "OFF" : "ON");
-    y += 16;
-    eprintf(x + 96, y, 4, 0, "%s", sound_mode[pSys->sound_mode]);
-    y += 16;
-    eprintf(x + 96, y, 4, 0, "%s", (pG->flags_68 & 0x04000000) ? "OFF" : "ON");
-    y += 16;
-    eprintf(x + 96, y, 4, 0, "%s", (pG->flags_6C & 0x00200000) ? "ON" : "OFF");
-    y += 16;
-    eprintf(x + 96, y, 4, 0, "%s", shoot_mode[(s8) pG->x4]);
-    y += 16;
-    eprintf(x + 96, y, 4, 0, "%d", pG->costume2);
-    y += 16;
-    eprintf(x + 96, y, 4, 0, "%s", language_tbl[pSys->language]);
-    y += 16;
-    eprintf(x + 96, y, 4, 0, "%s", language_tbl[pSys->region]);
-    y += 16;
-    eprintf(x + 96, y, 4, 0, "%s", language_tbl[pG->x4F93]);
+    eprintf(x + 96, y += 16, 4, 0, "%s", pl_type_tbl[pG->x4FB8]);
+    eprintf(x + 96, y += 16, 4, 0, "");
+    eprintf(x + 96, y += 16, 4, 0, "");
+    eprintf(x + 96, y += 16, 4, 0, "%x", w->dbgStage);
+    eprintf(x + 96, y += 16, 4, 0, "%02x", info->room);
+    eprintf(x + 96, y += 16, 4, 0, "%x", w->dbgPoint);
+    eprintf(x + 96, y += 16, 4, 0, "%s", getEmListDbgName(w->dbgEmList));
+    eprintf(x + 96, y += 16, 4, 0, "%d", pG->debug_mode);
+    eprintf(x + 96, y += 16, 4, 0, "%s", (pG->flags_68 & 0x00200000) ? "OFF" : "ON");
+    eprintf(x + 96, y += 16, 4, 0, "%s", (pG->flags_6C & 0x800) ? "OFF" : "ON");
+    eprintf(x + 96, y += 16, 4, 0, "%s", sound_mode[pSys->sound_mode]);
+    eprintf(x + 96, y += 16, 4, 0, "%s", (pG->flags_68 & 0x04000000) ? "OFF" : "ON");
+    eprintf(x + 96, y += 16, 4, 0, "%s", (pG->flags_6C & 0x00200000) ? "ON" : "OFF");
+    eprintf(x + 96, y += 16, 4, 0, "%s", shoot_mode[(s8) pG->x4]);
+    eprintf(x + 96, y += 16, 4, 0, "%d", pG->costume2);
+    eprintf(x + 96, y += 16, 4, 0, "%s", language_tbl[pSys->language]);
+    eprintf(x + 96, y += 16, 4, 0, "%s", language_tbl[pSys->region]);
+    eprintf(x + 96, y += 16, 4, 0, "%s", language_tbl[pG->x4F93]);
     if ((s32) pG->flags_54 < 0) {
-        y += 16;
-        eprintf(x + 96, y, 4, 0, "ADA GAME");
+        eprintf(x + 96, y += 16, 4, 0, "ADA GAME");
     } else if (pG->flags_54 & 0x40000000) {
-        y += 16;
-        eprintf(x + 96, y, 4, 0, "ETC GAME");
+        eprintf(x + 96, y += 16, 4, 0, "ETC GAME");
     } else {
         y += 16;
     }
-    y += 16;
-    eprintf(x + 96, y, 4, 0, "%s", game_mode_tbl[pG->x8354]);
-    y += 16;
-    eprintf(x + 96, y, 4, 0, "%s", (pG->flags_68 & 0x400) ? "OFF" : "ON");
+    eprintf(x + 96, y += 16, 4, 0, "%s", game_mode_tbl[pG->x8354]);
+    eprintf(x + 96, y += 16, 4, 0, "%s", (pG->flags_68 & 0x400) ? "OFF" : "ON");
 
     if (Joy[0].rep & 0x00080008) {
         w->dbgCursor--;
