@@ -983,6 +983,7 @@ MATCHING = {
     "game/esp11.cpp": True,
     "game/esp15.cpp": True,
     "game/esp03.cpp": True,
+    "game/esp1b.cpp": True,
 }
 
 # C++ units with functions the original linker dead-stripped (bodies gone, constant pools and

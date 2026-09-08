@@ -172,6 +172,11 @@ void GXSetTevDirect(int tev_stage);
 void GXSetFog(int type, f32 startz, f32 endz, f32 nearz, f32 farz, GXColor color);
 void GXSetChanAmbColor(int chan, GXColor color);
 void GXSetCopyClear(GXColor clear_clr, u32 clear_z);
+// indirect texturing (id_sys)
+void GXSetIndTexOrder(int ind_stage, int tex_coord, int tex_map);
+void GXSetIndTexCoordScale(int ind_stage, int scale_s, int scale_t);
+void GXSetIndTexMtx(int mtx_id, const f32 offset[2][3], s8 scale_exp);
+void GXSetTevIndWarp(int tev_stage, int ind_stage, u8 signed_offset, u8 replace_mode, int matrix_sel);
 #ifdef __cplusplus
 }
 #endif

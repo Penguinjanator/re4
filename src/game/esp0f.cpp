@@ -137,16 +137,16 @@ extern "C" void Esp0f_Trans(cEsp0f* esp)
                 t1 = s0;
             }
         } else {
-            if (!(esp->flags & 4)) {
-                s1 = 0.0f;
-                s0 = s1 + z;
-                t0 = s1;
-                t1 = s0;
-            } else {
+            if (esp->flags & 4) {
                 s1 = 0.0f;
                 s0 = s1 + z;
                 t0 = s0;
                 t1 = s1;
+            } else {
+                s1 = 0.0f;
+                s0 = s1 + z;
+                t0 = s1;
+                t1 = s0;
             }
         }
     } else {
@@ -163,16 +163,16 @@ extern "C" void Esp0f_Trans(cEsp0f* esp)
                 t1 = s1;
             }
         } else {
-            if (!(esp->flags & 4)) {
-                s0 = 0.0f;
-                s1 = s0 + z;
-                t0 = s0;
-                t1 = s1;
-            } else {
+            if (esp->flags & 4) {
                 s0 = 0.0f;
                 s1 = s0 + z;
                 t1 = s0;
                 t0 = s1;
+            } else {
+                s0 = 0.0f;
+                s1 = s0 + z;
+                t0 = s0;
+                t1 = s1;
             }
         }
     }

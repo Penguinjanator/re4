@@ -45,21 +45,24 @@ u32 aram_buf[3];
 u16 StrFileTbl[2] = { 1, 0x5F };
 int str_flag = 1;
 u32 ARAM_FREE_BASE;
-SndWork* pSnd;
+SndWorkPtr pSnd;
 u32 SndStrAramAddr[4] = { 0x700000, 0x740000, 0x780000, 0x7C0000 };
 
 static void SndBgmTblInit();
 
 static void sndCallErr(int blk, int no)
 {
+    u32* p;
+
     if (pG->flags_68 & 0x4) {
         pLog->err(0, 0, "SndCall : blk %d No.%d Illegal SE No.", blk, no);
         return;
     }
-    if (SND_BIT_CK(callErr[blk], no)) {
+    p = callErr[blk];
+    if (SND_BIT_CK(p, (u16) no)) {
         return;
     }
-    SND_BIT_SET(callErr[blk], no);
+    SND_BIT_SET(p, (u16) no);
     pLog->err(0, 0, "SndCall : blk %d No.%d Illegal SE No.", blk, no);
 }
 
@@ -76,11 +79,11 @@ void SndInit()
     u32 adr;
     int i;
 
-    pSnd = &Snd;
+    pSndRaw = &Snd;
     ARInit(aram_buf, 3);
     ARAlloc(0x6FC000);
     ARQInit();
-    memclr_asm(pSnd, sizeof(SndWork));
+    memclr_asm(pSndRaw, sizeof(SndWork));
 
 #line 120 SND_FILE
     r = DvdRead(0, (void*) SND_DATA_TOP, 0, 0, 0, 0x11, __FILE__, __LINE__);
@@ -110,13 +113,14 @@ void SndInit()
     adr += ALIGN32(len);
 
     ARAM_FREE_BASE = 0x800000;
-    SndMem.blk_mram[0] = adr;
-    SndMem.blk_mram[1] = adr + 0x4000;
-    SndMem.blk_mram[2] = adr + 0x8000;
-    SndMem.blk_mram[7] = adr + 0xC000;
-    SndMem.mram_end = adr + 0x10000;
+    SndMem.blk_mram[0] = (u8*) adr;
+    SndMem.blk_mram[1] = SndMem.blk_mram[0] + 0x4000;
+    SndMem.blk_mram[2] = SndMem.blk_mram[1] + 0x4000;
+    SndMem.blk_mram[7] = SndMem.blk_mram[2] + 0x4000;
+    SndMem.mram_end = SndMem.blk_mram[7] + 0x4000;
+    adr = (u32) SndMem.mram_end;
     for (i = 3; i >= 0; i--) {
-        SndMem.str_buf[i] = SndMem.mram_end + 0x10000 + i * 0x8000;
+        SndMem.str_buf[i] = adr + 0x10000 + i * 0x8000;
     }
     SndMem.sub_adr = SndMem.str_buf[3] + 0x8000;
 #line 170 SND_FILE
@@ -132,7 +136,7 @@ void SndInit2()
 {
     int i;
 
-    memclr_asm(pSnd, sizeof(SndWork));
+    memclr_asm(pSndRaw, sizeof(SndWork));
     pSnd->mram_top = SndMem.mram_end;
     pSnd->aram_top = 0x1F4100;
     for (i = 0; i < 6; i++) {
@@ -215,7 +219,7 @@ static s8 sndPanCalc(f32 angle)
 
 static s8 sndSpanCalc(f32 angle)
 {
-    return (u8) (127.0f - fabsf(angle) * 40.743664f);
+    return (s8) (127.0f - fabsf(angle) * 40.743664f);
 }
 
 static s8 sndVolCalcSub(SndCurveTbl* t, f32 dist, f32 vol)
@@ -256,7 +260,7 @@ static int sndVolCalc(int vol, int no, f32 dist)
     if (ofs == 0) {
         return vol;
     }
-    return sndVolCalcSub((SndCurveTbl*) ((u8*) h + ofs), dist, (u8) vol);
+    return sndVolCalcSub((SndCurveTbl*) ((u8*) h + ofs), dist, (s8) vol);
 }
 
 static s16 sndPitchCalcSub(SndCurveTbl* t, f32 dist)
@@ -336,7 +340,7 @@ static int sndFilterCalc(int no, f32 dist)
 
 static int sndExistCheck(int blk, u32 no)
 {
-    if (!SND_BIT_CK(pSnd->blk_flag, blk)) {
+    if (!SND_BIT_CK(pSndRaw->blk_flag, blk)) {
         return 0;
     }
     if (no >= Snd_iss_blk[blk].num) {
@@ -376,13 +380,13 @@ static void sndWallCheck(SND_SIT* sit, u8* vol, u8* svol, Vec* pos)
         return;
     }
     if (*vol != 0) {
-        *vol = (u8) ((f32) *vol * ((f32) sit->wall_vol / 100.0f));
+        *vol = (s8) ((f32) (s8) *vol * ((f32) (s8) sit->wall_vol / 100.0f));
         if ((s8) *vol <= 0) {
             *vol = 1;
         }
     }
     if (*svol != 0) {
-        *svol = (u8) ((f32) *svol * ((f32) sit->wall_vol / 100.0f));
+        *svol = (s8) ((f32) (s8) *svol * ((f32) (s8) sit->wall_vol / 100.0f));
         if ((s8) *svol <= 0) {
             *svol = 1;
         }
@@ -599,7 +603,7 @@ static void seRandomCheck(int blk, u16* no)
     if (g == 0) {
         return;
     }
-    data = (u8*) SndMem.blk_mram[blk];
+    data = SndMem.blk_mram[blk];
     tbl = (u32*) (data + ((u32*) data)[1]);
     if (tbl[g] == 0) {
         return;
@@ -1022,6 +1026,10 @@ u32 SndStrReq(int blk, int no, int req, int time, int vol, f32 pos)
         return 0;
     }
     if (req & 0x1) {
+        s8 wk;
+        SndStrFile* sf;
+        SndStrEnt* e;
+
         if (FileTbl[StrFileTbl[blk]].entrynum == -1) {
             OSReport("SND: File Not Found : %s\n", FileTbl[StrFileTbl[blk]].name);
             return 0;
@@ -1035,39 +1043,15 @@ u32 SndStrReq(int blk, int no, int req, int time, int vol, f32 pos)
             w = NULL;
         }
         if (w == NULL) {
-            s8 wk = pullStrWorkNo();
-            SndStrFile* sf;
-            SndStrEnt* e;
+            wk = pullStrWorkNo();
             if (wk == -1) {
                 return 0;
             }
-            w = &pSnd->str_work[wk];
+            w = &pSndRaw->str_work[wk];
             if (pos != 0.0f) {
                 SND_SHD* shd = Snd_get_shd_adrs(blk, no);
                 u32 bs = Snd_str_get_buff_smp(blk, no);
                 smp = (u32) ((f32) shd->rate * pos) / bs;
-            }
-            sf = SndMem.str_file[blk];
-            e = (SndStrEnt*) ((u8*) sf + sf->ent_ofs) + no;
-            Snd_str_blk_init(blk, sf);
-            w->id = Snd_str_prepare(blk, no, (char*) FileTbl[StrFileTbl[blk]].name, wk);
-            w->blk = blk;
-            w->no = no;
-            if (blk == 1) {
-                Snd_str_init_para(w->id, 0x1000, 2);
-            }
-            if (vol != 0) {
-                w->vol = vol;
-            } else {
-                w->vol = e->vol;
-                if (time != 0) {
-                    vol = (s8) e->vol;
-                }
-            }
-            w->vol_def = e->vol;
-            w->used = 1;
-            if (pos != 0.0f) {
-                Snd_str_init_pos(w->id, smp);
             }
         } else {
             if (w->stat != 1) {
@@ -1077,6 +1061,29 @@ u32 SndStrReq(int blk, int no, int req, int time, int vol, f32 pos)
             w->stat = 0;
             return w->id;
         }
+        sf = SndMem.str_file[blk];
+        e = (SndStrEnt*) ((u8*) sf + sf->ent_ofs);
+        e += no;
+        Snd_str_blk_init(blk, sf);
+        w->id = Snd_str_prepare(blk, no, (char*) FileTbl[StrFileTbl[blk]].name, wk);
+        w->blk = blk;
+        w->no = no;
+        if (blk == 1) {
+            Snd_str_init_para(w->id, 0x1000, 2);
+        }
+        if (vol != 0) {
+            w->vol = vol;
+        } else {
+            w->vol = e->vol;
+            if (time != 0) {
+                vol = (s8) e->vol;
+            }
+        }
+        w->vol_def = e->vol;
+        w->used = 1;
+        if (pos != 0.0f) {
+            Snd_str_init_pos(w->id, smp);
+        }
     } else {
         if (no != -1) {
             w = getStrWork(blk, no);
@@ -1084,23 +1091,20 @@ u32 SndStrReq(int blk, int no, int req, int time, int vol, f32 pos)
                 return 0;
             }
         } else {
-            w = &pSnd->str_work[blk];
+            w = &pSndRaw->str_work[blk];
         }
     }
     if (w->id == 0) {
-        w->stat = 0;
-        w->no = -1;
         w->used = 0;
+        w->no = -1;
+        w->stat = 0;
         return 0;
     }
     w->stat = (req == 8 || (req == 4 && vol == 0)) ? 1 : 0;
     if (req & 0x2) {
-        pSnd->str_no[blk] = no;
+        pSndRaw->str_no[blk] = no;
     }
-    if (Snd_str_req(w->id, req, time, vol) != 0) {
-        return 0;
-    }
-    return w->id;
+    return Snd_str_req(w->id, req, time, vol) ? 0 : w->id;
 }
 
 int SndStrReq(u32 id, int req, int time, int vol)
@@ -1133,11 +1137,14 @@ int SndStrStatusCk(int blk, int no, u32 status)
     }
     s = Snd_str_get_status(w->id);
     if (s != -1 && (s & 0x1)) {
-        return (s & status) != 0;
+        if (s & status) {
+            return 1;
+        }
+        return 0;
     }
-    w->used = 0;
     w->id = 0;
     w->stat = 0;
+    w->used = 0;
     return 0;
 }
 
@@ -1153,7 +1160,7 @@ int SndStrStatusCk(u32 id, u32 status)
 
 static s8 pullStrWorkNo()
 {
-    s8 i;
+    int i;
 
     for (i = 0; i < 4; i++) {
         if (pSnd->str_work[i].used == 0) {
@@ -1165,11 +1172,15 @@ static s8 pullStrWorkNo()
 
 static SndPlayWork* getStrWork(int blk, int no)
 {
-    SndPlayWork* w = pSnd->str_work;
+    SndPlayWork* w;
     int i;
 
-    for (i = 0; i < 4; i++, w++) {
-        if (w->used != 0 && w->blk == blk && w->no == no) {
+    for (i = 0; i < 4; i++) {
+        if (pSnd->str_work[i].used == 0) {
+            continue;
+        }
+        w = &pSnd->str_work[i];
+        if (w->blk == blk && w->no == no) {
             return w;
         }
     }
@@ -1178,11 +1189,15 @@ static SndPlayWork* getStrWork(int blk, int no)
 
 static SndPlayWork* getStrWork(u32 id)
 {
-    SndPlayWork* w = pSnd->str_work;
+    SndPlayWork* w;
     int i;
 
-    for (i = 0; i < 4; i++, w++) {
-        if (w->used != 0 && w->id == id) {
+    for (i = 0; i < 4; i++) {
+        if (pSnd->str_work[i].used == 0) {
+            continue;
+        }
+        w = &pSnd->str_work[i];
+        if (w->id == id) {
             return w;
         }
     }
@@ -1192,21 +1207,23 @@ static SndPlayWork* getStrWork(u32 id)
 int SndStrVolSet(int blk, int no, int time, int vol)
 {
     SndPlayWork* w = getStrWork(blk, no);
+    int ret = 0;
 
-    if (w == NULL) {
-        return 0;
+    if (w != NULL) {
+        ret = SndStrReq(w->id, 4, vol, time);
     }
-    return SndStrReq(w->id, 4, vol, time);
+    return ret;
 }
 
 int SndStrVolReset(int blk, int no, int time)
 {
     SndPlayWork* w = getStrWork(blk, no);
+    int ret = 0;
 
-    if (w == NULL) {
-        return 0;
+    if (w != NULL) {
+        ret = SndStrReq(w->id, 4, time, w->vol_def);
     }
-    return SndStrReq(w->id, 4, time, w->vol_def);
+    return ret;
 }
 
 static void sndSurroundCalc();
@@ -1228,7 +1245,7 @@ void SndWatcher()
     Snd_iss_control();
 
     for (i = 0; i < 2; i++) {
-        SndPlayWork* w = &pSnd->bgm_work[i];
+        SndPlayWork* w = &pSndRaw->bgm_work[i];
         if (w->used == 1) {
             if (Snd_seq_end_check(w->id) == 0) {
                 OSReport("SND: BGM %d STOP\n", i);
@@ -1243,7 +1260,7 @@ void SndWatcher()
     }
 
     for (i = 0; i < 4; i++) {
-        SndPlayWork* w = &pSnd->str_work[i];
+        SndPlayWork* w = &pSndRaw->str_work[i];
         if (w->used == 1) {
             if (w->stat == 1) {
                 w->timer++;
@@ -1268,10 +1285,10 @@ void SndWatcher()
     }
 
     for (i = 0; i < 32; i++) {
-        if (pSnd->em_hist[i].used != 0) {
-            pSnd->em_hist[i].timer--;
-            if (pSnd->em_hist[i].timer == 0) {
-                memclr_asm(&pSnd->em_hist[i], sizeof(SndEmHist));
+        if (pSndRaw->em_hist[i].used != 0) {
+            pSndRaw->em_hist[i].timer--;
+            if (pSndRaw->em_hist[i].timer == 0) {
+                memclr_asm(&pSndRaw->em_hist[i], sizeof(SndEmHist));
             }
         }
     }
@@ -1282,7 +1299,7 @@ void SndWatcher()
     if (pG->flags_54 & 0x1000) {
         return;
     }
-    if (pSnd->room_ok == 0) {
+    if (pSndRaw->room_ok == 0) {
         return;
     }
     at = FlrAtCheck(2, &pPL->pos, 0xFF);
@@ -1291,7 +1308,7 @@ void SndWatcher()
     }
     for (i = 0; i < 2; i++) {
         if ((at->x44 >> i) & 0x1) {
-            if (pSnd->bgm_at[i] != at->x2) {
+            if (pSndRaw->bgm_at[i] != at->x2) {
                 int r;
                 if ((at->x45 >> i) & 0x1) {
                     r = SndRoomBgmVolSet(i, (s8) at->x46[i], at->x48[i]);
@@ -1299,9 +1316,9 @@ void SndWatcher()
                     r = SndRoomBgmVolReset(i, at->x48[i]);
                 }
                 if (r == 1) {
-                    pSnd->bgm_at[i] = at->x2;
+                    pSndRaw->bgm_at[i] = at->x2;
                 } else {
-                    pSnd->bgm_at[i] = -1;
+                    pSndRaw->bgm_at[i] = -1;
                 }
             }
         }
@@ -1643,21 +1660,23 @@ void SndRoomBgmStop(u8 no, int time)
 int SndRoomBgmVolSet(u8 no, int vol, int time)
 {
     SndPlayWork* w = &pSnd->bgm_work[no];
+    int ret = 0;
 
-    if (w->used != 1 || w->stat != 0) {
-        return 0;
+    if (w->used == 1 && w->stat == 0) {
+        ret = Snd_seq_req(w->id, 1, time, vol) == 0;
     }
-    return Snd_seq_req(w->id, 1, time, vol) == 0;
+    return ret;
 }
 
 int SndRoomBgmVolReset(u8 no, int time)
 {
     SndPlayWork* w = &pSnd->bgm_work[no];
+    int ret = 0;
 
-    if (w->used != 1 || w->stat != 0) {
-        return 0;
+    if (w->used == 1 && w->stat == 0) {
+        ret = Snd_seq_req(w->id, 1, time, w->vol_def) == 0;
     }
-    return Snd_seq_req(w->id, 1, time, w->vol_def) == 0;
+    return ret;
 }
 
 int SndRoomBgmMute(u8 no, int on, int time)
@@ -1750,21 +1769,23 @@ void SndRoomStrStop(int time)
 int SndRoomStrVolSet(int vol, int time)
 {
     SndPlayWork* w = getStrWork(0, (u8) pSnd->room_str[0]);
+    int ret = 0;
 
-    if (w == NULL) {
-        return 0;
+    if (w != NULL) {
+        ret = SndStrReq(w->id, 4, time, vol);
     }
-    return SndStrReq(w->id, 4, time, vol);
+    return ret;
 }
 
 int SndRoomStrVolReset(int time)
 {
     SndPlayWork* w = getStrWork(0, (u8) pSnd->room_str[0]);
+    int ret = 0;
 
-    if (w == NULL) {
-        return 0;
+    if (w != NULL) {
+        ret = SndStrReq(w->id, 4, time, w->vol_def);
     }
-    return SndStrReq(w->id, 4, time, w->vol_def);
+    return ret;
 }
 
 static void sndMuteSetMain(SndMute* m, u32 type, int on);
@@ -2270,9 +2291,10 @@ void SndEventEnd()
 int SndEmDataReadCheck(int id)
 {
     int i;
+    u32* f = pSnd->blk_flag;
 
     for (i = 0; i < 6; i++) {
-        if (!SND_BIT_CK(pSnd->blk_flag, i + 8)) {
+        if (!SND_BIT_CK(f, i + 8)) {
             return i;
         }
         if (pSnd->em_id[i] == id) {
@@ -2296,7 +2318,7 @@ void SndBlkInit(int type, int id, int no)
         OSReport("SND: blk %d, ID 0x%x\n", blk, id);
     }
     Snd_iss_blk[blk].aram = SndMem.blk_aram[blk];
-    adr = SndMem.blk_mram[blk];
+    adr = (u32) SndMem.blk_mram[blk];
     if (blk != 3 && blk != 4) {
         adr += *(u32*) adr;
     }
@@ -2319,9 +2341,10 @@ void SndBgmLoad(int no)
 int SndBgmDataReadCheck(int id)
 {
     int i;
+    u32* f = pSnd->blk_flag;
 
     for (i = 0; i < 2; i++) {
-        if (!SND_BIT_CK(pSnd->blk_flag, i + 3)) {
+        if (!SND_BIT_CK(f, i + 3)) {
             return i;
         }
         if (pSnd->bgm_id[i] == id) {

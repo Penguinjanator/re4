@@ -222,6 +222,12 @@ mark it Matching.
 - Unused `static const` arrays inside a function are still emitted before that function's pool;
   file-scope unused statics are dropped; <=8-byte objects go to `.sdata2`. `int x = 0;` at file scope
   lands in `.sdata`, not `.sbss`.
+- cse canonical register: for `(set v x)`, `v` replaces `x` in the extended block only if `v`'s last
+  mention is later than `x`'s; otherwise `x` stays canonical and both live (`fmr`). A dead trailing
+  reload/copy (`p = pn;` after a loop) changes which one is canonical and thus the copy shapes.
+- `while (v < bound) v += step;` recomputes `bound` per iteration; `do/while` or `for` hoists it.
+- A `memcpy` whose destination is byte-pointer arithmetic (`(u8*)w + ofs`) keeps a following `.sdata`
+  load below the stores; `(u8*)&w->v` casts are stripped by the builtin and behave like a struct copy.
 - Static locals show as `name.NNN` in objdiff; the DECL_UID suffix cannot be reproduced and is ignored by the report.
 - Unexplained words in `.rodata` (zero words, stray floats) are usually the constant pool of a function
   the original linker dead-stripped (bodies gone, pools kept, `STRIP_UNUSED` in objects.py): write a

@@ -9,9 +9,9 @@
 #include "cManager.h"
 
 // Bit `no` of a u32 bitmap, MSB first (block loaded flags, callErr).
-#define SND_BIT_CK(a, no) ((a)[(no) >> 5] & (0x80000000 >> ((no) & 31)))
-#define SND_BIT_SET(a, no) ((a)[(no) >> 5] |= (0x80000000 >> ((no) & 31)))
-#define SND_BIT_CLR(a, no) ((a)[(no) >> 5] &= ~(0x80000000 >> ((no) & 31)))
+#define SND_BIT_CK(a, no) (((u32*) (a))[(u32) (no) >> 5] & (0x80000000 >> ((no) & 31)))
+#define SND_BIT_SET(a, no) (((u32*) (a))[(u32) (no) >> 5] |= (0x80000000 >> ((no) & 31)))
+#define SND_BIT_CLR(a, no) (((u32*) (a))[(u32) (no) >> 5] &= ~(0x80000000 >> ((no) & 31)))
 
 // Reverb parameters (room header `STB` efx[0] = DPL2, efx[1] = stereo).
 struct SndEfxParam {
@@ -148,7 +148,7 @@ struct SndWork {
     u32 blk_flag[1];         // 0x20  block loaded bits (SND_BIT_*)
     SndPlayWork bgm_work[2]; // 0x24
     SndPlayWork str_work[4]; // 0x44
-    u32 bgm_mram;            // 0x84  BGM MRAM allocation top (dvd.cpp grows it down)
+    u8* bgm_mram;            // 0x84  BGM MRAM allocation top (dvd.cpp grows it down)
     u32 bgm_aram;            // 0x88  BGM ARAM allocation top (grows down)
     u8 bgm_id[2];            // 0x8C
     u16 door_no;             // 0x8E  door SE table loaded
@@ -157,7 +157,7 @@ struct SndWork {
     SndRoomHdr* hdr;         // 0x9C
     SndSurWork sur[48];      // 0xA0
     SndEmHist em_hist[32];   // 0x9A0
-    u32 mram_top;            // 0xAA0  MRAM allocation pointer (dvd.cpp)
+    u8* mram_top;            // 0xAA0  MRAM allocation pointer (dvd.cpp)
     u32 aram_top;            // 0xAA4  ARAM allocation pointer (dvd.cpp)
     u8 em_id[8];             // 0xAA8  enemy id per enemy block (6 used)
     u32 room_bgm[6];         // 0xAB0  [0] current, [1..5] by pG->snd_tbl_no
@@ -173,9 +173,9 @@ struct SndMemWork {
     u32* bgm_file;           // 0x08  BGM file numbers
     SndDoorTbl* door_tbl;    // 0x0C
     SndBgmTbl* bgm_tbl;      // 0x10
-    u32 blk_mram[14];        // 0x14  per block MRAM data address (dvd.cpp fills it)
+    u8* blk_mram[14];        // 0x14  per block MRAM data address (dvd.cpp fills it)
     u32 blk_aram[14];        // 0x4C  per block ARAM sample address
-    u32 mram_end;            // 0x84  end of the fixed sound data in MRAM
+    u8* mram_end;            // 0x84  end of the fixed sound data in MRAM
     u32 str_buf[4];          // 0x88  stream buffers
     u32 sub_adr;             // 0x98  sub screen sound data
     u32 sub_end;             // 0x9C
@@ -203,7 +203,16 @@ extern u32 aram_buf[3];
 extern u16 StrFileTbl[2];
 extern int str_flag;
 extern u32 ARAM_FREE_BASE;
-extern SndWork* pSnd;
+// pSnd is loaded as a struct member (the pLog trick, db_log.h): a store through it makes GCC 2.95
+// reload the pointer before the next use and keep the stores in source order, which is what most of
+// snd.cpp shows. `pSndRaw` is the same symbol seen as a plain pointer (scalar load, no reloads) for
+// the few functions whose code only matches that way.
+struct SndWorkPtr {
+    SndWork* p;
+    SndWork* operator->() { return p; }
+};
+extern SndWorkPtr pSnd;
+extern SndWork* pSndRaw __asm__("pSnd");
 extern u32 SndStrAramAddr[4];
 
 void SndInit();

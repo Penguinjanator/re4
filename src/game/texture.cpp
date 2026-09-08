@@ -108,6 +108,7 @@ GXTexObj* cTexSys::PullTexObj(u32 num)
 {
     u32 start = 0;
     u32 cnt = 0;
+    u32 i;
     GXTexObj* obj;
 
     while (cnt != num) {
@@ -122,8 +123,8 @@ GXTexObj* cTexSys::PullTexObj(u32 num)
         }
     }
     obj = &pTexObj[start];
-    for (cnt = 0; cnt < num; cnt++) {
-        SetTexObjFlag(start + cnt, 1);
+    for (i = 0; i < num; i++) {
+        SetTexObjFlag(start + i, 1);
     }
     goto done;
 

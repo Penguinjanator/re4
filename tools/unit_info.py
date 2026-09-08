@@ -36,11 +36,22 @@ def main():
             addr, size, sec, uname, scope, name, dn = line.rstrip("\n").split("\t")
             if re.sub(r"\.(cpp|c)$", "", uname) == unit:
                 symmap[name] = (addr, size, sec, scope, dn)
+    # Per-function percentages come from `objdiff-cli diff` (the same numbers fdiff.py shows): the
+    # report's fuzzy_match_percent ignores relocation order, so it can say 100% for a function whose
+    # sda21 relocs are in a different order and that does not link identically.
     match = {}
-    for u in r["units"]:
-        if u["name"].split("/", 1)[1] == unit:
-            for fn in u.get("functions", []):
-                match[fn["name"]] = fn.get("fuzzy_match_percent", fn.get("measures", {}).get("fuzzy_match_percent", 0.0))
+    out = os.path.join("/tmp", f"unit_info_{unit.replace('/', '_')}.json")
+    d = subprocess.run([os.path.join(ROOT, "build/tools/objdiff-cli"), "diff", "-p", ROOT, "-u", f"main/{unit}", "-o", out, "--format", "json"], capture_output=True, text=True)
+    if d.returncode == 0 and os.path.exists(out):
+        j = json.load(open(out))
+        for fn in j["left"]["symbols"]:
+            if "instructions" in fn:
+                match[fn["name"]] = fn.get("match_percent", 0.0)
+    else:
+        for u in r["units"]:
+            if u["name"].split("/", 1)[1] == unit:
+                for fn in u.get("functions", []):
+                    match[fn["name"]] = fn.get("fuzzy_match_percent", fn.get("measures", {}).get("fuzzy_match_percent", 0.0))
     print(f"unit {unit}: {len(symmap)} symbols")
     for sec in (".text", ".ctor", ".dtor", ".rodata", ".data", ".bss", ".sdata", ".sbss", ".sdata2"):
         rows = [(v[0], k, v) for k, v in symmap.items() if v[2] == sec]

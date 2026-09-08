@@ -34,6 +34,7 @@ void PSMTXTrans(Mtx m, f32 xT, f32 yT, f32 zT);
 void PSMTXScale(Mtx m, f32 xS, f32 yS, f32 zS);
 void PSMTXMultVec(const Mtx m, const Vec* src, Vec* dst);
 void PSMTXMultVecSR(const Mtx m, const Vec* src, Vec* dst);
+void PSMTXTransApply(const Mtx src, Mtx dst, f32 xT, f32 yT, f32 zT);
 
 void C_MTXOrtho(Mtx44 m, f32 t, f32 b, f32 l, f32 r, f32 n, f32 f);
 void PSMTX44MultVec(const Mtx44 m, const Vec* src, Vec* dst);

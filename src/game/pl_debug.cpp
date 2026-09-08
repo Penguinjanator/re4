@@ -250,7 +250,7 @@ void PlWepMotSet(int no)
         mot = pl->pMotTbl[0];
         break;
     }
-    MotionSetCore(pl, pl->motion, mot, 0, 3, 5, 0);
+    MotionSetCore(pl, &pl->pMotion, mot, 0, 3, 5, 0);
 }
 
 cPlMaho::cPlMaho()

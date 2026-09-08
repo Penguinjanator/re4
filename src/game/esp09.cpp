@@ -264,6 +264,7 @@ void Esp09_PolyTrans(cEsp09* esp, u8 r, u8 g, u8 b, u8 a)
     Vec* p;
     Vec* p0;
     Vec* pp;
+    Vec* pn;
     int idx = w->idx;
     s8 n1 = w->n - 1;
     int i = 0;
@@ -275,14 +276,17 @@ void Esp09_PolyTrans(cEsp09* esp, u8 r, u8 g, u8 b, u8 a)
     esp->scale = 1.0f;
     spd = esp->scaleSpd;
     p = &w->pts[idx];
+    pn = p;
     for (i = 0; i < n1; i++) {
         p0 = p;
         pp = p;
+        pn--;
         idx--;
         if (idx < 0) {
+            pn = &w->pts[n1];
             idx = n1;
         }
-        p = &w->pts[idx];
+        p = pn;
         rate = (f32)i / (f32)n1;
         half = (rate * esp->sizeY + (1.0f - rate) * esp->sizeX) * 0.1f;
         PSVECSubtract(p, p0, &d);
@@ -320,6 +324,7 @@ void Esp09_PolyTrans(cEsp09* esp, u8 r, u8 g, u8 b, u8 a)
         PSVECAdd(p, &q[1], &v[2]);
         Esp09_StripDrawPoly(esp, i, v, r, g, b, &a);
     }
+    p = pn;  // dead: a later mention of p keeps it (not pn) as cse's canonical register in the loop
 }
 
 void Esp09_StripDrawPoly(cEsp09* esp, int no, Vec* v, u8 r, u8 g, u8 b, u8* a)
@@ -400,8 +405,7 @@ void Esp09_HideCheck(cEsp* esp0)
     inv = 1.0f / (ZFAR - ZNEAR);
     m22 = -(ZNEAR) * inv;
     m23 = -(ZFAR * ZNEAR) * inv;
-    zv = (m23 + m22 * nz) * Zscale;
-    zv = (1.0f / -nz) * zv + Zoffset;
+    zv = (1.0f / -nz) * ((m23 + m22 * nz) * Zscale) + Zoffset;
     zi = (u32)(zv * 16777215.0f);
     if (s.x >= 0.0f && s.x <= 639.0f && s.y >= 0.0f && s.y <= 527.0f) {
         GXPixModeSync();

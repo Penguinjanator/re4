@@ -17,6 +17,13 @@ struct ArcFile {
     u32 ofs_9C;   // 0x9C  sub-mission widget id data (stage)
 };
 
+// Player archive at pG->pPlArc: a table of byte offsets to the player's sub-files (models, textures,
+// motions, faces...). The pl_* units index it directly; the pointer is `ofs + (u32) arc`.
+struct PlArc {
+    u32 ofs[0x64];
+};
+#define PL_ARC_PTR(arc, no) ((void*) ((arc)->ofs[no] + (u32) (arc)))
+
 // Global game work (`pG`, game/main.cpp). Offsets come from the cam_ctrl unit; extend the
 // pads as other units reveal more fields, never rewrite.
 struct GlobalWork {
@@ -32,7 +39,8 @@ struct GlobalWork {
     void* pRoomArc;        // 0x40  current room archive (GetDataExt(pG->pRoomArc, "STB", 0))
     u8 pad_44[4];
     struct ArcFile* pArc;       // 0x48  current archive: offsets to its sub-files (room_tex, tv_mode)
-    u8 pad_4C[8];
+    u8 pad_4C[4];
+    struct PlArc* pPlArc;       // 0x50  player archive (pl_leon/pl_push: model, motion, face data offsets)
     u32 flags_54;          // 0x54
     u32 flags_58;          // 0x58
     u32 time_base;         // 0x5C  OSTicksToSeconds at the last InitGameTime/SetGameTime
@@ -66,9 +74,13 @@ struct GlobalWork {
     u16 pl_life_max;       // 0x4FA6
     u16 sub_life;          // 0x4FA8  Ashley
     u16 sub_life_max;      // 0x4FAA
-    u8 pad_4FAC[0x4FB8 - 0x4FAC];
+    u8 pad_4FAC[4];
+    u8 wep_no;             // 0x4FB0  equipped weapon (cPlayer::weaponLoad(no, type))
+    u8 wep_type;           // 0x4FB1
+    u8 pad_4FB2[6];
     u8 x4FB8;              // 0x4FB8
-    u8 pad_4FB9[0x500C - 0x4FB9];
+    u8 costume;            // 0x4FB9  player costume (pl_leon: 2 = no cloth simulation)
+    u8 pad_4FBA[0x500C - 0x4FBA];
     u32 flags_500C;        // 0x500C
     u32 flags_5010;        // 0x5010
     u32 flags_5014;        // 0x5014

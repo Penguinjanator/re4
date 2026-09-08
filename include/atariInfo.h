@@ -12,7 +12,10 @@
 // gives `rlwinm` instead of `andi.`.
 class cAtariInfo {
 public:
-    u8 pad_0[0x1A];
+    u8 pad_0[0xC];
+    f32 rectX;       // 0x0C  push rectangle half size along local X (pl_push)
+    f32 rectZ;       // 0x10  along local Z
+    u8 pad_14[6];
     u16 flags;       // 0x1A  bits 8-9 (0x300): collide with enemies (mahoThrough clears them)
     u8 pad_1C[0x4C - 0x1C];
 

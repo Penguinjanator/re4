@@ -79,7 +79,12 @@ public:
     cModelInfo* pNext;   // 0x14  next parts info
     u8 pad_18[0x38 - 0x18];
     ModelBound bound;    // 0x38
-    u8 pad_5C[0x8C - 0x5C];
+    f32 x5C;             // 0x5C  (pl_leon setModel: face info zeroes 0x5C/0x70/0x84)
+    u8 pad_60[0x70 - 0x60];
+    f32 x70;             // 0x70
+    u8 pad_74[0x84 - 0x74];
+    f32 x84;             // 0x84
+    u8 pad_88[4];
     u8 color[4];         // 0x8C  RGBA (word store; 0xFF fill when the RGB part is 0)
     u8 color2[4];        // 0x90  second RGBA (0x93 = 0 or 0xFF)
     u8 pad_94[0xA4 - 0x94];
@@ -126,7 +131,8 @@ public:
     u8 x103;         // 0x103  (scroll: 0x80 = SmxSetFlag bit3, 0xFF = off)
     Vec speed;       // 0x104
     Vec oldPos;      // 0x110  position before the speed was added (obj04 collision segment)
-    u8 pad_11C[0x12E - 0x11C];
+    u8 pad_11C[0x12D - 0x11C];
+    u8 x12D;         // 0x12D  (pl_leon setModel sets 1)
     u8 x12E;         // 0x12E  2 = scroll (Smd) object
     u8 x12F;         // 0x12F  scroll: SmxWork.type2 (3 by default)
     void* pCldShMd;  // 0x130  (db_work "pCldShMd")
@@ -146,7 +152,9 @@ public:
     virtual void setNoSuspend(int on);
 
     cModel* getPartsPtr(int no);
-    int modelInit(void* bin, void* tpl);
+    int modelInit(void* bin, void* tpl);  // returns the cModelInfo* (pl_leon range-checks it)
+    void addModel(cModelInfo* info);
+    void deleteModelInfo(cModelInfo* info);
     void partsMatCalc();
     void partsWorldCalc();
     void setPos(Vec* pos);
@@ -157,5 +165,15 @@ public:
     int motionSet(void* data, int a, int b, int c, int d);
     int motionMove();
 };
+
+// Model info pool (game/model.cpp `ModInfoMgr`, 0x34 bytes); layout opaque.
+class cModInfoMgr {
+public:
+    u8 pad_0[0x34];
+
+    cModelInfo* create(void* bin, void* tpl);
+};
+
+extern cModInfoMgr ModInfoMgr;
 
 #endif

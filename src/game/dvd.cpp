@@ -680,7 +680,7 @@ void cDvdQueue::readMain()
                 SndMem.blk_mram[t] = Snd.bgm_mram;
                 break;
             }
-            destAddr = SndMem.blk_mram[t];
+            destAddr = (u32) SndMem.blk_mram[t];
             Snd.blk_flag[0] &= ~(1 << t);
             remain = (*ph)->size;
             ofs = hedOfs[depth] + (*ph)->ofs;

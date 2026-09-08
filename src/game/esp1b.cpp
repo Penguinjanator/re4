@@ -1,6 +1,8 @@
 #include "atari.h"
 #include "esp.h"
 
+extern "C" void* memcpy(void* dst, const void* src, unsigned int n);
+
 struct Esp1bWork {
     int n;   // 0x00 number of points
     Vec v0;  // 0x04
@@ -49,11 +51,14 @@ int cEsp1b::SetFreeWork(EspGenWork* gen, u32* seed)
     }
     dispFlag |= 0x10;
     w->n = n;
-    w->v0 = *(Vec*)&gen->xD8;
-    w->v1 = *(Vec*)&gen->xE4;
-    w->v2 = *(Vec*)&gen->xF0;
+    memcpy((u8*)w + 4, &gen->xD8, sizeof(Vec));
+    memcpy((u8*)w + 0x10, &gen->xE4, sizeof(Vec));
+    memcpy((u8*)w + 0x1C, &gen->xF0, sizeof(Vec));
     PSVECScale(&w->v0, &w->v0, esp1b_scale);
     PSVECScale(&w->v1, &w->v1, esp1b_scale);
     PSVECScale(&w->v2, &w->v2, esp1b_scale);
     return 1;
 }
+
+// The split object's .sdata is padded to 8 bytes (the following unit is 8-aligned).
+asm(".section .sdata,\"aw\"\n\t.balign 8\n\t.text");
