@@ -385,6 +385,12 @@ mark it Matching.
   literals follow in source order.
 - A `static const Vec` shared by two functions with one `.rodata` copy lives in an inline helper
   parsed before both.
+- Register-argument addresses (`&local`) are precomputed into pseudos and cse merges later `&local`
+  uses in the same extended block; only the frame-offset-0 local is set straight into the hard reg and
+  recomputed. OPEN (sscrn FadeSet colour temps, `&pos` for setAng): how the original gets fresh
+  `addi rX,r1,ofs` per call.
+- KNOWN DEBT: `cUnit::beginEvent/endEvent` take an `int` in the original (sce_com loops, sscrn); the
+  shared declaration in cManager.h is still `()`. Fix together with the em*/obj* owners.
 - Static locals show as `name.NNN` in objdiff; the DECL_UID suffix cannot be reproduced and is ignored by the report.
 - Unexplained words in `.rodata` (zero words, stray floats) are usually the constant pool of a function
   the original linker dead-stripped (bodies gone, pools kept, `STRIP_UNUSED` in objects.py): write a
