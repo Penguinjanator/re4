@@ -286,6 +286,13 @@ mark it Matching.
   the `rlwimi` chain.
 - An inline `if (c) return 1; return 0;` materialises `li 0; bge; li 1; cmpwi`; `return c` gives
   `mfcr/extrwi`.
+- Vtable emission is in reverse class-declaration order; a vtable that needs an uninstantiated
+  template member instantiates it in place (strings between vtable groups).
+- Weak vtable copies: a later unit's reference binds to the first copy program-wide; symbols.txt must
+  name the first copy `_vt.<Class>` and the others `<Class>_virtual_table_<addr>`.
+- `extern "C"` functions with function-pointer parameters need `extern "C"` on the definition too.
+- Declare each C function in exactly one header (its owning unit's); a second declaration with a
+  different signature in another header is a compile error the moment both get included.
 - Static locals show as `name.NNN` in objdiff; the DECL_UID suffix cannot be reproduced and is ignored by the report.
 - Unexplained words in `.rodata` (zero words, stray floats) are usually the constant pool of a function
   the original linker dead-stripped (bodies gone, pools kept, `STRIP_UNUSED` in objects.py): write a
@@ -446,6 +453,38 @@ mark it Matching.
 - OPEN: independent `li rX,c` argument loads of a call are sometimes scheduled in a different order
   than ours (obj00 `setScrAtari` interleaves int/float arg moves, obj01 `EstSet` calls put `li r3,0`
   first while ours emits it last); the ProDG register-pressure tie-break is not understood.
+- (camera units) `(&cam->member)->y` stays pointer arithmetic (GCC 2.x builds `&x->m` as base+offset), so
+  matrix/column helpers taking `Vec*` (`getColumn(m, c, &v)`, `setColumns(m, &a, &b, &c, &d)` as static
+  inline functions in cam_sys) give `stfs 4(rP)` through the address register with the `.x` store via the
+  frame/base (cse picks the zero-offset form); plain `v.y = m[1][c]` gives frame-relative stores.
+- PRE (gcse) creates a pseudo set in *both* branches (`mr r27, r5` after the existing `addi`) for an
+  inline-parameter address computed in each arm and used after the join; call-argument `addi rN,r1,off`
+  are hard-register sets and are never PRE'd (a fresh `addi r4, r1, 8` after the join).
+- `w->maxFrame = (f32)(k & 0x3FFF); w->maxFrame += 1.0f;` (two statements) ties the add to the 1.0
+  register with the double trick first in the pool; `(f32)x + 1.0f` ties to the converted value.
+- `tbl = (u32*)((u32)w->partsNo + w->nParts); tbl = (u32*)(((u32)tbl + 3) & ~3);` keeps the sum in its
+  own register (cam_motion ctor) where the single expression reuses it.
+- Mtx copy loops (`while (i_--) { for (j...) *dp_++ = *sp_++; }`, MTX_COPY in motion.cpp/camera.cpp):
+  declaring/incrementing `d_` before `s_` decides which pointer gets r9/r11 and the `addi` order.
+- `for (i = 0; i < 2; i++) memclr_asm(&g_Arr[i], n)` gives a pointer loop with a *signed* `cmpw` end test;
+  the do/while pointer form gives `cmplw`. `for (j = 0; j < 1; j++) a[j] = 0` with `u32 j` gives the odd
+  `li r0,0; sth; addic. r0,r0,1; beq` one-iteration loop (ctrl12 move).
+- A `pLog->warn()` path that falls off the end of a non-void function (`if (!p) { warn; } else { ...
+  return idx; }`) leaves r3 = the warn call's r3 (trans_ot AddOt*Radius).
+- vtable emission order at finish_file is reverse class-declaration order, and marking a vtable that
+  holds a not-yet-instantiated template member (cManager<T>::destroy) instantiates it right there, so its
+  strings land between vtable groups: ctrl.h declares cCtrl00/01/10 *after* cCtrlMgr to get
+  `_vt.7cCtrl10, 01, 00, [destroy strings], _vt.8cCtrlMgr, cManager, cCtrl, cUnit`.
+- An in-class inline `getWork()`/ctor of a class whose vtable the unit owns is emitted out of line (grows
+  .text): use a free `static inline` (ctrl.h `CtrlMgrWork`) and no user-declared `cCtrl()` ctor.
+- Functions with function-pointer parameters declared inside `extern "C" {}` need `extern "C"` on the
+  definition too, or GCC 2.95 treats the definition as a C++ overload (`AddOtDirect__FiPvPFv_v...`).
+- Weak vtable copies (`_vt.7cCamera` in cam_extra and cam_motion): the reference in the later unit binds
+  to the first copy program-wide, so the first unit's copy must carry the `_vt.` name in symbols.txt and
+  the later copy a distinct one (`cCamera_virtual_table_8022C140`), otherwise the DOL differs.
+- `#line N` for an inline `MEM_ALLOC` inside a class body counts from the `class` line (ctrl.h: `#line 113`
+  puts memAlloc on line 116).
+- `-0x602` mask (`and r0, r0, r11`) in every `_._7cCtrlXX` is the inlined `cUnit::~cUnit` (`be_flag &= ~0x601`).
 
 ## Don'ts
 

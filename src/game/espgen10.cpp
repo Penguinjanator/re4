@@ -26,62 +26,57 @@ struct Espgen10Work {
     Vec pos;           // 0x5C
     Vec rot;           // 0x68
     u8 pad_74[0x90 - 0x74];
-    void* p8;          // 0x90
+    EspSeqOpt* p8;          // 0x90
 };
 
-static inline cModel* EvModGet(u8 no)
-{
-    if (no > 0x7F) {
-        return NULL;
-    }
-    return EspEvModList[no];
-}
-
-int EspgenDataSet(EspSeqData* head, int no, EspInfo* info, u32* seed, cModel* model, u8 parts, Mtx* mtx, Vec* pos,
-                  Vec* rot, void* p8, int flag)
+int EspgenDataSet(EspSeqData* head, int no, EspInfo* info, u32* seed, cModel* model, u16 parts, Mtx* mtx, Vec* pos,
+                  Vec* rot, EspSeqOpt* p8, int flag)
 {
     EspGenWork* rec = &head->rec[no];
     int ret = 1;
-    u8 kind;
 
     if (info->x0 & 0x1000) {
-        model = EvModGet(rec->x6);
+        cModel** list = EspEvModList;
+        u32 no = rec->x6;
+        if (no > 0x7F) {
+            model = NULL;
+        } else {
+            model = list[no];
+        }
     }
 
-    kind = rec->type;
-    switch (kind) {
+    switch (rec->type) {
     case 0: {
         cEsp* esp;
         if (flag == 0) {
             pos = NULL;
         }
         if (EspSeqSet(rec, info, seed, model, mtx, 0, &esp, p8, pos, 0.0f)) {
-            break;
+            goto ok;
         }
-        ret = 0;
         break;
     }
     case 1:
         if (EspgenSeqSet(head, no, info, model, parts, mtx, pos, rot, p8, flag)) {
-            break;
+            goto ok;
         }
-        ret = 0;
         break;
     default:
-        pLog->err(0, 0, "ESP_CTRL : KIND[%d] is invalid.", kind);
-        ret = 0;
+        pLog->err(0, 0, "ESP_CTRL : KIND[%d] is invalid.", rec->type);
         break;
     }
+    ret = 0;
+ok:
     return ret;
 }
 
 void SetEspCore(EspgenWork* w, u16 a, u32 b, u8 c, u32 d, u8 e)
 {
-    w->info.x3 = e;
     w->info.x0 = a;
     w->info.x2 = c;
     w->info.x4 = b;
     w->info.x8 = d;
+    w->info.x3 = e;
 }
 
 int PullEspEspgen(EspgenWork** out, u16 a, int c, u32 b, u32 d, u8 e, int front)
@@ -105,7 +100,6 @@ void espgen10_Update(EspgenWork* w)
     EspSeqData* head = p->head;
     EspGenWork* rec = &head->rec[p->no];
     cModel* model = p->model;
-    u16 parts;
 
     if (model != NULL) {
         if ((model->be_flag & 0x201) != 1 || model->serial != p->serial) {
@@ -113,13 +107,12 @@ void espgen10_Update(EspgenWork* w)
             return;
         }
     }
-    parts = p->parts;
-    if ((u32) (parts - 0xF8) <= 5 || parts == 0xFF) {
-        pLog->err(0, 0, "ESP_CTRL10 : PARTS_NO[%x] invalid.", parts);
+    if ((p->parts >= 0xF8 && p->parts <= 0xFD) || p->parts == 0xFF) {
+        pLog->err(0, 0, "ESP_CTRL10 : PARTS_NO[%x] invalid.", p->parts);
         PushEspgen(w);
         return;
     }
-    if (parts == 0xFE) {
+    if (p->parts == 0xFE) {
         PSMTXIdentity(p->mtx);
         RotMatrix(p->mtx, &p->rot);
         p->mtx[0][3] = p->pos.x;
@@ -136,12 +129,12 @@ void espgen10_Update(EspgenWork* w)
             Vec ofs;
             Vec r;
 
-            if (parts >= model->nParts) {
-                pLog->err(0, 0, "ESP_CTRL10 : PARTS_NO[%d] is invalid(MAX:%d).", parts, model->nParts);
+            if (p->parts >= model->nParts) {
+                pLog->err(0, 0, "ESP_CTRL10 : PARTS_NO[%d] is invalid(MAX:%d).", p->parts, model->nParts);
                 PushEspgen(w);
                 return;
             }
-            part = model->getPartsPtr(parts);
+            part = model->getPartsPtr(p->parts);
             PSMTXIdentity(p->mtx);
             PSVECAdd(&p->rot, &model->rot, &r);
             RotMatrix(p->mtx, &r);
@@ -159,20 +152,21 @@ void espgen10_Update(EspgenWork* w)
         PushEspgen(w);
         return;
     }
-    if (rec->x4 == p->cnt) {
-        do {
-            int flag = (p->flags & 2) ? 1 : 0;
-            if (!EspgenDataSet(head, p->no, &w->info, &p->seed, p->model, p->parts, &p->mtx, &p->pos, &p->rot, p->p8,
-                               flag)) {
-                return;
-            }
-            p->no++;
-            rec++;
-            if (p->no >= head->num) {
-                PushEspgen(w);
-                return;
-            }
-        } while (rec->x4 == p->cnt);
+    while (rec->x4 == p->cnt) {
+        int flag = 0;
+        if (p->flags & 2) {
+            flag = 1;
+        }
+        if (!EspgenDataSet(head, p->no, &w->info, &p->seed, p->model, p->parts, &p->mtx, &p->pos, &p->rot, p->p8,
+                           flag)) {
+            return;
+        }
+        p->no++;
+        rec++;
+        if (p->no >= head->num) {
+            PushEspgen(w);
+            break;
+        }
     }
     p->cnt++;
 }

@@ -64,12 +64,12 @@ cObj* SetObjGatling(void* bin, void* tpl, Vec* pos, Vec* rot)
     w = &obj->gatling;
     obj->sub2B4.atari.throughOn();
     obj->lightInfo.init2(0, 1, &p0, &p1, 0x10);
-    w->seHandle = 0;
     w->ride = 0;
     w->breakMode = 0;
     w->target = 0;
     w->seOn = 0;
     w->ammo = 40;
+    w->seHandle = 0;
     if (pos) {
         obj->pos = *pos;
     } else {
@@ -100,24 +100,24 @@ cObj* SetObjGatling(void* bin, void* tpl, Vec* pos, Vec* rot)
         w->hit[0] = SetEmHit((void*) (pG->pArc->ofs_20 + (u32) pG->pArc), (void*) (pG->pArc->ofs_24 + (u32) pG->pArc), &hpos, &hrot, 1);
         if (w->hit[0]) {
             w->hit[0]->setParent(obj, 0, 0);
-            YarareInitCube(w->hit[0], 1, 1, 430.0f, 0.0f, 520.0f, 300.0f, 1600.0f, 50.0f);
+            YarareInitCube(w->hit[0], 430.0f, 0.0f, 520.0f, 300.0f, 1600.0f, 50.0f, 1, 1);
         }
         w->hit[1] = SetEmHit((void*) (pG->pArc->ofs_20 + (u32) pG->pArc), (void*) (pG->pArc->ofs_24 + (u32) pG->pArc), &hpos, &hrot, 1);
         if (w->hit[1]) {
             w->hit[1]->setParent(obj, 0, 0);
-            YarareInitCube(w->hit[1], 1, 1, -430.0f, 0.0f, 520.0f, 300.0f, 1600.0f, 50.0f);
+            YarareInitCube(w->hit[1], -430.0f, 0.0f, 520.0f, 300.0f, 1600.0f, 50.0f, 1, 1);
         }
         w->hit[2] = SetEmHit((void*) (pG->pArc->ofs_20 + (u32) pG->pArc), (void*) (pG->pArc->ofs_24 + (u32) pG->pArc), &hpos, &hrot, 1);
         if (w->hit[2]) {
             w->hit[2]->setParent(obj, 0, 0);
-            YarareInitCube(w->hit[2], 1, 1, 0.0f, 0.0f, 0.0f, 300.0f, 1600.0f, 300.0f);
+            YarareInitCube(w->hit[2], 0.0f, 0.0f, 0.0f, 300.0f, 1600.0f, 300.0f, 1, 1);
         }
     }
     w->eat = 0;
     obj->xFC = 1;
-    obj->xFF = 0;
     obj->xFD = 0;
     obj->xFE = 0;
+    obj->xFF = 0;
     return obj;
 }
 
@@ -238,7 +238,7 @@ void obj15_R1_Set(cObjGatling* obj)
 static inline void obj15BreakCommon(cObjGatling* obj)
 {
     GatlingWork* w = &obj->gatling;
-    int i;
+    u32 i;
 
     SndStop(w->seHandle, 0);
     for (i = 0; i < 3; i++) {
@@ -256,10 +256,21 @@ static inline void obj15BreakCommon(cObjGatling* obj)
 void obj15_R1_Break(cObjGatling* obj)
 {
     GatlingWork* w = &obj->gatling;
+    u32 i;
 
     if (obj->xFE == 0) {
         EstSet(0, -1, &obj->pos, &obj->rot, 1, 0xD, 0, 0, 0, 0);
-        obj15BreakCommon(obj);
+        SndStop(w->seHandle, 0);
+        for (i = 0; i < 3; i++) {
+                if (w->hit[i]) {
+                        w->hit[i]->hp = 0;
+                        w->hit[i] = 0;
+                }
+        }
+        obj->be_flag &= ~2;
+        if (w->eat) {
+                w->eat->flags &= ~4;
+        }
         obj->xFE++;
     }
 }
@@ -289,11 +300,13 @@ void obj15BarrelMove(cObjGatling* obj)
     tpos.y += 1400.0f;
     if (parts) {
         Vec d;
+        f32 len;
         f32 ang;
 
         parts = obj->getPartsPtr(2);
         PSVECSubtract(&tpos, &parts->worldPos, &d);
-        ang = -atan2f(d.y, SQRTF(d.x * d.x + d.z * d.z));
+        len = SQRTF(d.x * d.x + d.z * d.z);
+        ang = -atan2f(d.y, len);
         parts->rot.x = parts->rot.x * 0.9f + ang * 0.1f;
         if (w->firing && (s16) pG->pl_life > 0) {
             parts = obj->getPartsPtr(3);
@@ -304,10 +317,18 @@ void obj15BarrelMove(cObjGatling* obj)
                 w->seHandle = SndCall(6, 0x24, &obj->pos, 0, 0, 0);
             }
         } else {
-            obj15SeStop(obj);
+            if (w->seOn) {
+                SndStop(w->seHandle, 0);
+                SndCall(6, 0x25, &obj->pos, 0, 0, 0);
+            }
+            w->seOn = 0;
         }
     } else {
-        obj15SeStop(obj);
+        if (w->seOn) {
+            SndStop(w->seHandle, 0);
+            SndCall(6, 0x25, &obj->pos, 0, 0, 0);
+        }
+        w->seOn = 0;
     }
 }
 
@@ -365,8 +386,10 @@ int obj15GunHitck(cObjGatling* obj)
             Vec sc;
             Vec erot;
             Vec d;
+            f32 len;
 
-            erot.x = -atan2f(dir.y, SQRTF(dir.x * dir.x + dir.z * dir.z));
+            len = SQRTF(dir.x * dir.x + dir.z * dir.z);
+            erot.x = -atan2f(dir.y, len);
             erot.y = atan2f(dir.x, dir.z);
             erot.z = 0.0f;
             PSVECScale(&dir, &sc, 30.0f);
@@ -380,15 +403,16 @@ int obj15GunHitck(cObjGatling* obj)
     }
     VibSetData((VibDataTbl*) (pG->pArc->ofs_1C + (u32) pG->pArc), 7, 1);
     SndCall(6, 0x15, &pPL->pos, 0, 0, 0);
-    QuakeExec(0, 0, 5, 11.0f, 2);
+    QuakeExec(0, 0, 5, 22.0f, 2);
     EmPlBloodSet2(obj, &obj->pos, 1, 1, 0x1C);
     info = Obj15_atk_info_tbl;
     EmAtkSetDamagePL(em, &info, &ofs, &mzl);
     return 1;
 }
 
-// Never called: its constant pool survives in .rodata (0.0, 150.0, 1000.0, 50000.0, 1.0).
-static inline void obj15GunHitckDbg(cObjGatling* obj)
+// Never called (dead-stripped by the original linker, STRIP_UNUSED): its constant pool survives
+// in .rodata (0.0, 150.0, 1000.0, 50000.0, 1.0).
+static void obj15GunHitckDbg(cObjGatling* obj)
 {
     Vec ofs;
     Vec mzl;
@@ -434,29 +458,29 @@ void cObjGatling::setReload()
 void obj15DmCk(cObjGatling* obj)
 {
     GatlingWork* w = &obj->gatling;
-    int i;
+    u32 i;
 
     if ((obj->stat & 0xFFFF0000) == 0x01010000) {
         return;
     }
     for (i = 0; i < 3; i++) {
         if (w->hit[i]) {
-            switch (w->hit[i]->ckDmgWeapon()) {
+            switch ((u32) w->hit[i]->ckDmgWeapon()) {
+            default:
+                EmDmBloodSet2(w->hit[i], 1, 0x1D, 0, 0, 0);
+                break;
             case 0:
                 break;
             case 0xD:
             case 0x12:
                 if (w->breakMode == 0) {
-                    obj->xFF = 0;
-                    obj->xFD = 1;
                     obj->xFC = 1;
+                    obj->xFD = 1;
                     obj->xFE = 0;
+                    obj->xFF = 0;
                     return;
                 }
                 SndCall(6, 0x16, &obj->pos, 0, 0, 0);
-                EmDmBloodSet2(w->hit[i], 1, 0x1D, 0, 0, 0);
-                break;
-            default:
                 EmDmBloodSet2(w->hit[i], 1, 0x1D, 0, 0, 0);
                 break;
             }
@@ -466,7 +490,9 @@ void obj15DmCk(cObjGatling* obj)
 
 void cObjGatling::setEat(void* data, int type)
 {
-    gatling.eat = EatMgr.create(data, 0, &pos, &rot, type);
+    GatlingWork* w = &gatling;
+
+    w->eat = EatMgr.create(data, 0, &pos, &rot, type);
 }
 
 void cObjGatling::setMaxRot(f32 r)
@@ -486,12 +512,25 @@ void cObjGatling::setBreakMode(u8 mode)
 
 void cObjGatling::setBreak()
 {
+    GatlingWork* w = &gatling;
+    u32 i;
+
     if ((stat & 0xFFFF0000) == 0x01010000) {
         return;
     }
-    obj15BreakCommon(this);
-    xFF = 0;
-    xFE = 1;
+    SndStop(w->seHandle, 0);
+    for (i = 0; i < 3; i++) {
+        if (w->hit[i]) {
+            w->hit[i]->hp = 0;
+            w->hit[i] = 0;
+        }
+    }
+    be_flag &= ~2;
+    if (w->eat) {
+        w->eat->flags &= ~4;
+    }
     xFC = 1;
     xFD = 1;
+    xFE = 1;
+    xFF = 0;
 }

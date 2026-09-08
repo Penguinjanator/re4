@@ -12,7 +12,7 @@ public:
     Mtx worldMat;   // 0x3C
     cCoord* pParent;  // 0x6C  parent coord (parts: the model; pl_ashley concatenates its mat)
     Vec worldPos;   // 0x70
-    u8 pad_7C[0xC];
+    Vec oldWorldPos;  // 0x7C  worldPos of the previous frame (cAtariInfo::getSpeedVector)
     Vec x88;        // 0x88  (pl_ashley moveBust: GetDistance3 from worldPos)
     Vec pos;        // 0x94
     Vec rot;        // 0xA0

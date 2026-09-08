@@ -27,7 +27,6 @@ void* GetDataExt(void* arc, const char* tag, int no);
 int AreaHitCheck(void* area, Vec* pos);
 int EspPlWaterCall(int no, Vec* pos);
 void EspFootCall(int no, int type, Vec* pos);
-void SeAtCheck();
 
 #define SND_FILE "D:/Bio4/Prog/snd.cpp"
 #define ALIGN32(x) (((x) + 0x1F) & ~0x1F)
@@ -478,9 +477,9 @@ static int footSeCheck(u16* no, Vec* pos)
                 *no += at->x44 * 30;
             } else {
                 if (*no <= 3) {
-                    EspFootCall(*no >> 1, pFlrSys->foot_esp[pFlrSys->no], pos);
+                    EspFootCall(*no >> 1, pFlrSys->foot_esp[pFlrSys->group], pos);
                 }
-                *no += pFlrSys->foot_se[pFlrSys->no] * 30;
+                *no += pFlrSys->foot_se[pFlrSys->group] * 30;
             }
         }
     }
@@ -576,8 +575,8 @@ static int wepSeCheck(u16* no, Vec* pos)
         FlrAt* at = FlrAtCheck(0, pos, 4);
         if (at != NULL) {
             *no += at->x46[0];
-        } else if (pFlrSys->pAt != NULL) {
-            *no += ((u8*) pFlrSys->pAt)[8];
+        } else if (pFlrSys->pData != NULL) {
+            *no += ((u8*) pFlrSys->pData)[8];
         }
     }
     ret = sndExistCheck(2, *no);

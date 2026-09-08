@@ -178,7 +178,8 @@ void CamPos2ScrnVec(Vec* out, f32 sx, f32 sy)
 
     out->x = sx - Screen.width * 0.5f;
     out->y = -(sy - Screen.height * 0.5f);
-    ang = ang * 0.5f * PI / 180.0f;
+    ang = ang * 0.5f;
+    ang = ang * PI / 180.0f;
     out->x *= 640.0f / Screen.width;
     out->y *= 480.0f / Screen.height;
     FSet(out->z, -(cosf(ang) * 240.0f / sinf(ang)));

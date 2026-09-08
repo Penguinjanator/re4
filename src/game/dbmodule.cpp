@@ -345,7 +345,7 @@ void Draw_poly_local(Vec* p, Mtx mtx, u32 color, int zupd)
     GXColor4u8(cg, cb, ca, cr);
 }
 
-void Draw_sphere(Vec pos, f32 r, u32 color, int zcmp, int zupd)
+void Draw_sphere(Vec* pos, f32 r, u32 color, int zcmp, int zupd)
 {
     Mtx m;
     GXColor c;
@@ -377,14 +377,14 @@ void Draw_sphere(Vec pos, f32 r, u32 color, int zcmp, int zupd)
     GXSetVtxAttrFmt(0, 9, 1, 4, 0);
     GXSetBlendMode(0, 4, 5, 0);
     PSMTXScale(m, r, r, r);
-    TransMatrix(m, &pos);
+    TransMatrix(m, pos);
     PSMTXConcat(pG->Cam.viewMat, m, m);
     GXLoadPosMtxImm(m, 0);
     GXSetCurrentMtx(0);
     GXCallDisplayList(sphere_buff, 0x3040);
 }
 
-void Draw_cylinder(Vec pos, f32 r, f32 h, u32 color)
+void Draw_cylinder(Vec* pos, f32 r, f32 h, u32 color)
 {
     Mtx m;
     GXColor c;
@@ -404,7 +404,7 @@ void Draw_cylinder(Vec pos, f32 r, f32 h, u32 color)
     GXSetVtxDesc(9, 1);
     GXSetVtxAttrFmt(0, 9, 1, 4, 0);
     PSMTXScale(m, r, h, r);
-    TransMatrix(m, &pos);
+    TransMatrix(m, pos);
     PSMTXConcat(pG->Cam.viewMat, m, m);
     GXLoadPosMtxImm(m, 0);
     GXSetCurrentMtx(0);

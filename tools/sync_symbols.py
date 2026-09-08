@@ -17,8 +17,8 @@ CFG = os.path.join(ROOT, "config", VER)
 DTK = os.path.join(ROOT, "build", "tools", "dtk")
 
 OPS = {"eq": "==", "ne": "!=", "lt": "<", "gt": ">", "le": "<=", "ge": ">=", "pl": "+", "mi": "-", "ml": "*", "dv": "/",
-       "md": "%", "as": "=", "apl": "+=", "ami": "-=", "aml": "*=", "adv": "/=", "vc": "[]", "cl": "()", "nw": "new",
-       "dl": "delete", "nt": "!", "ad": "&", "or": "|", "er": "^", "ls": "<<", "rs": ">>", "rf": "->", "pp": "++", "mm": "--",
+       "md": "%", "as": "=", "apl": "+=", "ami": "-=", "aml": "*=", "adv": "/=", "vc": "[]", "cl": "()", "nw": " new",
+       "dl": " delete", "nt": "!", "ad": "&", "or": "|", "er": "^", "ls": "<<", "rs": ">>", "rf": "->", "pp": "++", "mm": "--",
        "aor": "|=", "aad": "&=", "aer": "^=", "als": "<<=", "ars": ">>=", "cm": ",", "oo": "||", "aa": "&&", "co": "~"}
 
 def read_class(s):

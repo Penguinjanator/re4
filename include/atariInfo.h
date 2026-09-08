@@ -4,34 +4,47 @@
 #include "types.h"
 #include "vec.h"
 
+class cModel;
+
 // Character collision info (game/atariInfo.cpp), 0x4C bytes; embedded in cPlayer at 0x2B4.
-// Only the flag word the pl_* units touch is named. The flag helpers are parameterless in-class
-// inlines on purpose: the original accesses go `addi rX,this,0x2B4; lhz 0x1A(rX); andi. 0xFCFF`
-// (address computed once, used by the load and the store; the mask folded to 16 bits). A direct
-// member access folds the address into one displacement; an inline taking the bit as a parameter
-// gives `rlwinm` instead of `andi.`.
+// The flag helpers are parameterless in-class inlines on purpose: the original accesses go
+// `addi rX,this,0x2B4; lhz 0x1A(rX); andi. 0xFCFF` (address computed once, used by the load and
+// the store; the mask folded to 16 bits). A direct member access folds the address into one
+// displacement; an inline taking the bit as a parameter gives `rlwinm` instead of `andi.`.
 class cAtariInfo {
 public:
-    u8 pad_0[0xC];
-    f32 rectX;       // 0x0C  push rectangle half size along local X (pl_push)
+    Vec pos;         // 0x00  offset from the model (rotated by the model's rot)
+    f32 rectX;       // 0x0C  push rectangle half size along local X (pl_push) / cylinder radius
     f32 rectZ;       // 0x10  along local Z
-    u8 pad_14[4];
-    u16 x18;         // 0x18  (pl_dmg Pl_R0_Die sets 4)
-    u16 flags;       // 0x1A  bits 8-9 (0x300): collide with enemies (mahoThrough clears them)
-    u8 pad_1C[0x4C - 0x1C];
+    f32 h;           // 0x14  half height
+    s16 partsNo;     // 0x18  parts index + 1 the info follows, 0 = the model (pl_dmg Pl_R0_Die sets 4)
+    u16 flags;       // 0x1A  bit1: rectangle (dispRect), bits 3-4: priority, bits 8-9 (0x300): collide with enemies
+    f32 rectX2;      // 0x1C  rect size `move` interpolates rectX/rectZ towards
+    f32 rectZ2;      // 0x20
+    u16 cnt;         // 0x24  frames left of the interpolation
+    u16 x26;         // 0x26  (init0 sets 1)
+    u8 pad_28[4];
+    f32 x2C;         // 0x2C
+    u8 pad_30[0x48 - 0x30];
+    u32 x48;         // 0x48
 
     cAtariInfo();
-    // init0(type, flags, prio, pos x/y/z, rectX, rectZ, h, w): stores everything, flags |= 0x300.
-    void init0(int type, int flags, int prio, f32 x, f32 y, f32 z, f32 rx, f32 rz, f32 h, f32 w);
-    // init(type, prio, flags, ...) = init0(type, flags, prio, ...); flags |= 1  (r5/r6 swapped)
-    void init(int type, int prio, int flags, f32 x, f32 y, f32 z, f32 rx, f32 rz, f32 h, f32 w);
+    void init0(int parts, int cnt, int flags, f32 x, f32 y, f32 z, f32 rx, f32 rz, f32 w, f32 h);
+    // init(parts, flags, cnt, ...) = init0(parts, cnt, flags, ...); flags |= 1
+    void init(int parts, int flags, int cnt, f32 x, f32 y, f32 z, f32 rx, f32 rz, f32 w, f32 h);
     void setPriority(int prio);  // flags bits 3-4
-    // mode < 0: rect = (-1, -1), h/w = a/b, 0x24 = -mode; mode == 0: rect = h/w = a/b; > 0: h/w only
+    // mode < 0: rect = (100, 100), rect2 = a/b, cnt = -mode; mode == 0: rect = rect2 = a/b; > 0: rect2 only, cnt = mode
     void set(int mode, f32 a, f32 b);
     void move();
+    // World position (`getPos`) and the positions before/after this frame's move (`getSpeedVector`).
+    void getSpeedVector(cModel* m, Vec* oldPos, Vec* pos);
+    void getPos(cModel* m, Vec* out);
+    void disp(cModel* m);
+    void dispRect(cModel* m);
     void throughOn() { flags &= ~0x300; }   // pass through enemies (mahoThroughOn)
     void throughOff() { flags |= 0x300; }
     void clrFlag100() { flags &= ~0x100; }  // obj20 SetObaModel
+    void clrFlag200() { flags &= ~0x200; }  // emhit setParent: the parent no longer collides with enemies
     void scrOn() { flags &= ~0x200; flags |= 0x100; }  // obj00 setScrAtari
 };
 

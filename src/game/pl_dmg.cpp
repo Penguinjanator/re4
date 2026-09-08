@@ -331,7 +331,7 @@ void Pl_R0_Die(cPlayer* pl)
             SndCall(1, 0xD, &pl->getPartsPtr(4)->worldPos, 0, 0, 0);
             pl->setFace(1);
         }
-        pl->atari.x18 = 4;
+        pl->atari.partsNo = 4;
         pl->xFD = 1;
         pl->x3E0 = no;
     case 1:

@@ -21,17 +21,17 @@ class cCamera : public Camera {
 public:
     virtual ~cCamera() {}
     virtual void move() = 0;
-    void operator delete(void*) {}
+    void operator delete(void*, unsigned int) {}
 };
 
 // Screen-id (widget) application base: init/move/quit driven by the owning camera.
 class IDApplication {
 public:
     virtual ~IDApplication() {}
-    virtual void init(u8* type) {}
-    virtual void move(f32* zoom) {}
-    virtual void quit() {}
-    void operator delete(void*) {}
+    virtual void init(void* p) {}
+    virtual void move(void* p) {}
+    virtual void quit(void* p) {}
+    void operator delete(void*, unsigned int) {}
 };
 
 // Scope reticle ids (IdSys unit 0x25).
@@ -40,9 +40,9 @@ public:
     s32 save_a;  // 0x04
     s32 save_b;  // 0x08
 
-    virtual void init(u8* type);
-    virtual void move(f32* zoom);
-    virtual void quit();
+    virtual void init(void* type);
+    virtual void move(void* zoom);
+    virtual void quit(void* p);
     void save(int);
     void load(int);
 };
@@ -50,11 +50,17 @@ public:
 // Binocular ids (IdSys unit 0x27).
 class IdBinocular : public IDApplication {
 public:
-    u8 pad_4[0x40 - 0x04];
+    Vec scr1;    // 0x04  screen positions of the heading scale ends
+    Vec scr2;    // 0x10
+    Vec scr3;    // 0x1C
+    f32 fovy;    // 0x28  fovy of the previous frame
+    Vec scr35;   // 0x2C  zoom gauge origin
+    f32 sizeY;   // 0x38
+    f32 sizeX;   // 0x3C
 
-    virtual void init(u8* type);
-    virtual void move(f32* zoom);
-    virtual void quit();
+    void init(Camera* cam, void* tex, void* data);
+    virtual void move(void* cam);
+    virtual void quit(void* cam);
     void cutin();
 };
 
@@ -73,7 +79,7 @@ struct FocusAnimation {
 
 class CameraLookAt : public cCamera {
 public:
-    Vec ofs;  // 0xFC
+    cModel* parts;  // 0xFC  hand parts looked at
 
     CameraLookAt(Camera* cam);
     virtual ~CameraLookAt();
@@ -89,7 +95,7 @@ public:
 
 class CameraLookDownEm : public cCamera {
 public:
-    void* em;  // 0xFC
+    cModel* parts;  // 0xFC
 
     CameraLookDownEm(void* em, Vec* ofs);
     virtual ~CameraLookDownEm();
@@ -107,9 +113,8 @@ public:
     f32 angle_max;    // 0x12C
     u8 pad_130[8];
     f32 zoom;         // 0x138
-    Vec yure;         // 0x13C
-    f32 x148;         // 0x148
-    u8 pad_14C[9];
+    Vec yure;         // 0x13C  (x, y used; z = x144)
+    u8 pad_148[13];
     u8 type;          // 0x155
     u8 pad_156[2];
     IdScope id;       // 0x158

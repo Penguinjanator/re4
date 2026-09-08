@@ -5,13 +5,53 @@
 #include "vec.h"
 #include "em.h"
 
-// Hit-only enemy work (game/emhit.cpp): a cEm that exists to receive weapon damage for an
-// object (bell, ...). Only the entry points the object units use are declared.
+// Work of the hit-only enemy (game/emhit.cpp), overlaid on cEm from 0x3E0.
+struct EmHitWork {
+    u32 flags;            // 0x000 (0x3E0)
+    int timer;            // 0x004 (0x3E4)  beetle: frames before it fades out
+    u8 pad_8[4];
+    int status;           // 0x00C (0x3EC)  1 = damaged this frame (ckStatus / ckDmgWeapon)
+    cModel* pParent;      // 0x010 (0x3F0)  model the hit follows (setParent)
+    int partsNo;          // 0x014 (0x3F4)
+    int noNormalize;      // 0x018 (0x3F8)  setParent 3rd argument: keep the parent's scale
+    u8 pad_1C[0x224 - 0x1C];
+    Vec spd;              // 0x224 (0x604)  beetle fly-away speed
+    Vec size;             // 0x230 (0x610)  yarare box size
+    void* mot0;           // 0x23C (0x61C)  beetle motions (setBeetle)
+    void* mot1;           // 0x240 (0x620)
+    void* mot2;           // 0x244 (0x624)
+    u8 x248;              // 0x248 (0x628)  0xFF
+};
+
+#define EMHIT_WK(em) ((EmHitWork*) &(em)->x3E0)
+
+// Hit-only enemy: a cEm that exists to receive weapon damage for an object (bell, ...) or to
+// follow a parent model's parts (setParent); type 3 is the beetle that flies off when shot.
 class cEmHit : public cEm {
 public:
+    virtual void move();
+
+    int ckStatus();                                 // EmHitWork::status
     int ckDmgWeapon();                              // weapon id of the damage taken this frame, 0 = none
-    void setParent(cModel* parent, int a, int b);   // 0x8010539C
+    void setParent(cModel* parent, int partsNo, int noNormalize);   // 0x8010539C
+    void setBeetle(void* mot0, void* mot1, void* mot2);
 };
+
+extern "C" {
+cEmHit* SetEmHit(void* bin, void* tpl, Vec* pos, Vec* rot, int type);
+void emHitDmCk(cEmHit* em);
+void emHit_R0_Init(cEmHit* em);
+void emHit_R0_Move(cEmHit* em);
+void emHit_R1_Set(cEmHit* em);
+void emHit_R1_Parent(cEmHit* em);
+void emHit_R1_Break(cEmHit* em);
+void emHit_R1_Beetle(cEmHit* em);
+void emHitYarareInit(cEmHit* em);
+// obj14 calls this with (pos x, y, z, w, h, 1, 1); the real order is (em, s16 no, u16 flag, x, y, z, w, h)
+void YarareInit(cEmHit* em, f32 x, f32 y, f32 z, f32 rx, f32 rz, int a, int b);         // at_mod.cpp
+int EmGetDmPos(cEm* em, Vec* pos, Vec* dir);                                     // em_sub.cpp
+void EmDmBloodSet2(cEm* em, int a, int type, int b, int c, int d);               // em_sub.cpp
+}
 
 // Attack parameters handed to EmAtkSetDamagePL (obj15 Obj15_atk_info_tbl: {100.0, 8, 600, 0, 10, 0}).
 struct EmAtkInfo {
@@ -24,17 +64,14 @@ struct EmAtkInfo {
 };
 
 extern "C" {
-cEmHit* SetEmHit(void* bin, void* tpl, Vec* pos, Vec* rot, int flag);
-void YarareInit(cEmHit* em, f32 x, f32 y, f32 z, f32 rx, f32 rz, int a, int b);         // at_mod.cpp
-void YarareInitCube(cEmHit* em, int a, int b, f32 x, f32 y, f32 z, f32 rx, f32 rz, f32 h);  // at_mod.cpp
-int EmGetDmPos(cEm* em, Vec* pos, Vec* dir);                                     // em_sub.cpp
-void EmDmBloodSet2(cEm* em, int a, int type, int b, int c, int d);               // em_sub.cpp
+// obj15: (em, 430, 0, 520, 300, 1600, 50, 1, 1); floats before the ints reproduces the arg setup order
+void YarareInitCube(cEmHit* em, f32 x, f32 y, f32 z, f32 rx, f32 rz, f32 h, int a, int b);  // at_mod.cpp
 void EmPlBloodSet2(cModel* m, Vec* pos, int a, int b, int type);                 // em_sub.cpp
 // Line `a`-`b` against the enemies: the hit enemy or NULL; hit point / normal and the scenario attribute out.
 cEm* EmAtkLineHitCk(Vec* a, Vec* b, Vec* hit, Vec* nrm, u32* attr);              // em_sub.cpp
 void EmAtkSetDamagePL(cEm* em, EmAtkInfo* info, Vec* a, Vec* b);                 // em_sub.cpp
 }
 
-void PlSetDamage(int type, int dmg, int flag);                                   // em_sub.cpp (C++ linkage)
+void PlSetDamage(int type, int dmg, int flag);                                   // em_sub.cpp (C++ linkage; obj10 hitCkPl)
 
 #endif

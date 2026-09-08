@@ -255,6 +255,40 @@ struct GatlingWork {
     class cModel* target; // 0x40  aimed-at model (player when NULL)
 };
 
+// Helicopter missile work (game/objMissile.cpp `cObjMissile`): hangs from a parts of the
+// helicopter (setParent), then flies toward `target` (setFire) and explodes (objMissileBomb).
+struct MissileWork {
+    u32 x00;              // 0x00
+    int timer;            // 0x04  fire wait / flight frames
+    int hitWait;          // 0x08  frames before the hit checks start
+    cModel* parent;       // 0x0C
+    int partsNo;          // 0x10
+    int noNormalize;      // 0x14  keep the parent parts matrix as it is
+    Vec target;           // 0x18
+    class cEmHit* hit;    // 0x24
+    u8 hasTarget;         // 0x28
+    u8 pad_29[3];
+    Vec spd;              // 0x2C
+};
+
+// Gondola work (game/objGondola.cpp `cObjGondola`): a cable car the player / partner / up to
+// five enemies ride; five scenario collision quads follow it.
+struct GondolaWork {
+    u32 x00;              // 0x00
+    int timer;            // 0x04  break: frames before the sub motion starts
+    u8 ridePL;            // 0x08  player is on board (ckRide)
+    u8 pad_9[3];
+    int rideSUB;          // 0x0C  partner is on board
+    int cnt;              // 0x10  counts down every frame
+    Vec x14;              // 0x14
+    class cEm* rideEm[5]; // 0x20
+    class cSat* sat[5];   // 0x34
+    class cSat* sat2[5];  // 0x48
+    struct MotionWork* subWork;  // 0x5C  sub (vibration / break) motion work (setSubMotion)
+    void* subMot;         // 0x60  vibration motion (setVib)
+    void* breakMot;       // 0x64  break motion (R0_Break)
+};
+
 // Chain link work (game/obj1d.cpp): hangs between two parts of a parent model, fades out when
 // the parent is lost.
 struct ChainWork {
@@ -290,7 +324,11 @@ public:
     void* pMotion;        // 0x1D8 motion data (MotionMove) or NULL (matUpdate)
     u8 pad_1DC[0x21C - 0x1DC];
     u32 x21C;             // 0x21C  bit30 (0x40000000): set by obj26MatCalc when following a parent
-    u8 pad_220[0x2B0 - 0x220];
+    u8 pad_220[0x290 - 0x220];
+    f32 motFrame;         // 0x290  MotionWork::seqFrame (objGondola R0_Up waits for frame 4105)
+    u8 pad_294[0x2A8 - 0x294];
+    struct MotionWork* motBlend;  // 0x2A8  MotionWork::blend (objGondola setVib: the sub motion work)
+    u8 pad_2AC[4];
     u32 x2B0;             // 0x2B0  (obj18: parts matrices are only recomputed while 0)
     ObjSub2B4 sub2B4;     // 0x2B4 .. 0x328
     // 0x328: per-object work area
@@ -310,6 +348,8 @@ public:
         Obj01Work o1;
         WepItemWork wepItem;
         GatlingWork gatling;
+        MissileWork missile;
+        GondolaWork gondola;
     };
     u8 x3D0;              // 0x3D0
     u8 pad_3D1[3];

@@ -50,7 +50,8 @@ public:
     void* pMotion;        // 0x1D8  motion work head: current motion data, NULL = stopped (pl_push stopTarget)
     u8 pad_1DC[0x21A - 0x1DC];
     u16 motState;         // 0x21A  MotionWork::state (emobj EmObjMove clears it when no motion plays)
-    u8 pad_21C[0x290 - 0x21C];
+    u32 motFlags2;        // 0x21C  MotionWork::flags2 (emhit: bit30 = no matrix update before MotionMove)
+    u8 pad_220[0x290 - 0x220];
     f32 frame;            // 0x290  motion frame (db_cam prints it as an int)
     u16 frameMax;         // 0x294
     u8 pad_296[0x2A4 - 0x296];
@@ -70,9 +71,16 @@ public:
             u16 x326;
         } st;
         cDmgInfo dmg;     // 0x324  (obj08: dmg.set on a hit target)
+        struct {
+            u8 dmHit;     // 0x324  damage registered this frame (emhit emHitDmCk consumes it)
+            u8 dmType;    // 0x325  emhit: 1, 0x11 for weapon 0x10
+            u8 dmWep;     // 0x326  weapon id of the damage (cEmHit::ckDmgWeapon)
+            u8 dm327;
+        };
     };
     Vec x328;             // 0x328  (obj14: damage position when EmGetDmPos has none)
-    u8 pad_334[8];
+    f32 dmRad;            // 0x334  cDmgInfo::set rad
+    EmHitInfo* dmPart;    // 0x338  cDmgInfo::set part (emswitch: its rad decides the blood type)
     EmHitInfo hitInfo;    // 0x33C .. 0x368  (obj08: the player's hit part for the damage effect)
     u8 pad_368[0x370 - 0x368];
     f32 plDist2;          // 0x370  squared distance to the player (db_work prints its sqrt)
@@ -153,6 +161,8 @@ public:
     virtual void setItem(u16 a, u16 b, u16 c, u16 d, u8 e);  // 0x3D6.. item drop (0x3D1 flag)
     virtual void setNoItem();
     virtual int checkThrow();
+    void setStatus(int bit);     // flags_3C4 |= 1 << bit
+    void clearStatus(int bit);
     int checkStatus(int stat);
 };
 

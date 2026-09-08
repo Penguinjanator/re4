@@ -21,10 +21,12 @@ struct EtcSetData {
 };
 
 // EtcModel.cpp is C++ but exports its functions with C linkage (unmangled names in the DOL).
+// C++ linkage (sym_map: GetEtcFlgPtr__Fii, getRoomEtcItem__FiPP7EtcItemi)
+u16* GetEtcFlgPtr(int no, int room);   // etc flag word of etc model `no` in `room` (stage << 8 | room), 0 when none
+int getRoomEtcItem(int room, EtcItem** out, int a);
+
 extern "C" {
 void* GetEtcAddr(void* arc, const char* name);   // file `name` inside the room etc archive
-u16* GetEtcFlgPtr(int room, int no);
-int getRoomEtcItem(int room, EtcItem** out, int a);
 // Model a light of parent type 3 (room etc model) hangs on; 1 = found (light.cpp)
 int getRoomEtcOnLight(u32 id, class cModel** out, int flag);
 }

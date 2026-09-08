@@ -8,6 +8,7 @@ class Cockpit {
 public:
     u8 pad_0[0xCC];
 
+    void roomInit();
     void lifeMeterDisp(int sw);
 };
 

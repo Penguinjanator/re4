@@ -247,10 +247,13 @@ EmListData* GetListPtrFromEm(cEm* em)
 
 u8 GetEmIdFromList(u32 no)
 {
+    EmListData* list;
+
     if (no >= 0xFF) {
         return 0xFF;
     }
-    return EM_LIST(no)->id;
+    list = (EmListData*) pG->emlist;
+    return list[no].id;
 }
 
 void EmListSetAlive(int no, int on)

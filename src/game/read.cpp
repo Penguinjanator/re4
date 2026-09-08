@@ -23,8 +23,15 @@ void Yz2DecodeExec(void* dst);
 void SpecularInit(void* a, void* b, void* c, void* d);   // game/trans.cpp
 void GlobalIlmTexInit(void* p);
 void SceSleep(int frames);                // game/sce_sys.cpp
-extern void (*EmInitFunc)();              // game/em.cpp
+extern void* EmInitFunc;                  // game/em.cpp (set by the enemy dll prolog)
 }
+
+// The store into EmInitFunc in EmReadSearch keeps the following m->pArc load below it: the
+// original wrote it as a struct member (scalar-vs-struct alias heuristic), like pLog/pGS.
+struct EmInitFuncPtr {
+    void* p;
+};
+#define EM_INIT_FUNC (((EmInitFuncPtr*) &EmInitFunc)->p)
 
 // game/sce_sys.cpp
 class cSceSys {
@@ -56,7 +63,7 @@ public:
     OSModuleHeader* pModule;    // 0x88
     u32 size;                   // 0x8C  data size
     u32 bssSize;                // 0x90  size of the part after the data (dll + bss)
-    void (*pInitFunc)();        // 0x94  EmInitFunc set by the dll prolog
+    void* pInitFunc;            // 0x94  EmInitFunc set by the dll prolog
 
     ReadModule() { flag = 0; }
 };
@@ -92,7 +99,7 @@ ReadModule* pullEmModule();
 void ReadPlayerData(int type, int costume);
 void ReleasePlData();
 void ReleaseWepData();
-void ReadWepData(int no, int type);
+void ReadWepData(u32 no, u32 type);
 void ContinueWepData();
 }
 void* GetDataExt(void* arc, const char* tag, int no);
@@ -129,17 +136,18 @@ static ReadModule WepReadModule __attribute__((aligned(32)));
 
 // Pointer store through a reference: the original reloads pG after every pG->pXxx = ... store.
 static inline void PSet(void*& d, void* v) { d = v; }
+// Flag test through a reference: the flag address is materialised, and `&PlReadModule` right
+// after it becomes `addr - 0x82` (cse related-value).
+static inline int BitChk16(u16& f, u16 b) { return f & b; }
 
 // Replace the extension of a FileTbl name with "drs".
-static inline void setDrsName(char* name)
-{
-    while (*name != '.') {
-        name++;
-    }
-    name[1] = 'd';
-    name[2] = 'r';
-    name[3] = 's';
-}
+#define SET_DRS_NAME(p)         \
+    while (*(p) != '.') {       \
+        (p)++;                  \
+    }                           \
+    (p)[1] = 'd';               \
+    (p)[2] = 'r';               \
+    (p)[3] = 's'
 
 #line 50 "D:/Bio4/Prog/read.cpp"
 static void decodeData()
@@ -274,13 +282,13 @@ static void* readEm(int id, void* addr, u32 size)
     if (m == NULL) {
         return NULL;
     }
-    if (readEmData(m, id, addr, size)) {
-        setEmModule(m, id);
+    if (readEmData(m, id, addr, size) == 0) {
         pG->flags_58 = flags;
-        return m->pArc;
+        return NULL;
     }
+    setEmModule(m, id);
     pG->flags_58 = flags;
-    return NULL;
+    return m->pArc;
 }
 
 ReadFile EmFileTbl[64] = {
@@ -360,39 +368,40 @@ int readEmData(ReadModule* m, int id, void* addr, u32 size)
 {
     DvdReadInfo info;
     u32 len;
-    ReadFile* tbl;
     ReadFile* e;
     char* name;
     int req;
     int ret;
     int mode;
     void* pArc;
-    OSModuleHeader* pModule = NULL;
+    void* pModule = NULL;
     u32 bssSize = 0;
+    u32 newSize;
     u32 dataSize;
 
     switch (pG->x4FB8) {
-    case 2:
-        tbl = EmFileTbl_Ada;
+    case 0:
+    case 1:
+    default:
+        e = &EmFileTbl[id];
         break;
     case 3:
     case 5:
-        tbl = EmFileTbl_Wesker;
+        e = &EmFileTbl_Wesker[id];
+        break;
+    case 2:
+        e = &EmFileTbl_Ada[id];
         break;
     case 4:
-        tbl = EmFileTbl_Klauser;
-        break;
-    default:
-        tbl = EmFileTbl;
+        e = &EmFileTbl_Klauser[id];
         break;
     }
-    e = &tbl[id];
     if (e->file == 0) {
         return 0;
     }
     name = (char*) FileTbl[e->file].name;
     if (e->dll != 0) {
-        setDrsName(name);
+        SET_DRS_NAME(name);
         name = (char*) FileTbl[e->file].name;
     }
     if (Dvd.FileExistCheck(name, &len) < 0) {
@@ -429,61 +438,61 @@ int readEmData(ReadModule* m, int id, void* addr, u32 size)
         pArc = (void*) info.addr[0][0];
         if (len < size) {
             void* old = pArc;
+            newSize = size;
             Mem_free(old);
 #line 776 "D:/Bio4/Prog/read.cpp"
-            pArc = MEM_ALLOC(size, 1, 0xD);
+            pArc = MEM_ALLOC(newSize, 1, 0xD);
             if (pArc != old) {
                 return 0;
             }
         } else {
-            size = len;
+            newSize = len;
         }
     } else {
-        m->flag &= ~4;
+        BitOff16(m->flag, 4);
         pArc = addr;
-        size = len;
+        newSize = len;
     }
     if (e->dll != 0) {
-        pModule = (OSModuleHeader*) (*(u32*) ((u8*) pArc + 4) + (u32) pArc);
+        pModule = (void*) (*(u32*) ((u8*) pArc + 4) + (u32) pArc);
         dataSize = (u32) pModule - (u32) pArc;
         bssSize = len - dataSize;
         if (addr == NULL && dataSize < size) {
-            OSModuleHeader* old = pModule;
+            void* old = pModule;
 #line 814 "D:/Bio4/Prog/read.cpp"
-            pModule = (OSModuleHeader*) MEM_ALLOC(bssSize, 1, 0xD);
+            pModule = MEM_ALLOC(bssSize, 1, 0xD);
             memcpy(pModule, old, bssSize);
             m->flag |= 1;
         } else {
-            size = dataSize;
-            m->flag &= ~1;
+            newSize = dataSize;
+            BitOff16(m->flag, 1);
         }
     }
-    m->bssSize = bssSize;
     m->id = id;
     m->pArc = pArc;
-    m->size = size;
-    m->pModule = pModule;
+    m->size = newSize;
+    m->pModule = (OSModuleHeader*) pModule;
+    m->bssSize = bssSize;
     return 1;
 }
 
 void setEmModule(ReadModule* m, int id)
 {
-    ReadFile* tbl;
     ReadFile* e;
     void* bss;
 
     switch (pG->x4FB8) {
+    case 0:
+    default:
+        e = &EmFileTbl[id];
+        break;
     case 2:
-        tbl = EmFileTbl_Ada;
+        e = &EmFileTbl_Ada[id];
         break;
     case 4:
-        tbl = EmFileTbl_Klauser;
-        break;
-    default:
-        tbl = EmFileTbl;
+        e = &EmFileTbl_Klauser[id];
         break;
     }
-    e = &tbl[id];
     if (m->pModule != NULL) {
         if (!(m->flag & 2)) {
             bss = NULL;
@@ -507,9 +516,9 @@ void setEmModule(ReadModule* m, int id)
         m->pModule->prolog();
         m->pInitFunc = EmInitFunc;
     } else {
-        m->pInitFunc = NULL;
-        m->flag &= ~2;
         m->pModule = NULL;
+        BitOff16(m->flag, 2);
+        m->pInitFunc = NULL;
     }
 }
 
@@ -540,11 +549,11 @@ void* EmReadSearch(int id, void* addr, u32 size)
 
     id = checkAshleyId(id);
     m = SearchEmModule(id);
-    if (m == NULL) {
-        return readEm(id, addr, size);
+    if (m != NULL) {
+        EM_INIT_FUNC = m->pInitFunc;
+        return m->pArc;
     }
-    EmInitFunc = m->pInitFunc;
-    return m->pArc;
+    return readEm(id, addr, size);
 }
 
 ReadModule* SearchEmModule(int id)
@@ -563,12 +572,11 @@ ReadModule* SearchEmModule(int id)
 
 ReadModule* pullEmModule()
 {
-    ReadModule* m;
     int i;
 
-    for (m = EmReadModule, i = 0; i < 4; i++, m++) {
-        if (m->pArc == NULL) {
-            return m;
+    for (i = 0; i < 4; i++) {
+        if (EmReadModule[i].pArc == NULL) {
+            return &EmReadModule[i];
         }
     }
     return NULL;
@@ -580,11 +588,13 @@ void ReadPlayerData(int type, int costume)
     int req;
     int ret;
     int file;
-    int dll = 0;
-    u8* data = (u8*) PL_DATA_ADDR;
+    char* name;
+    int dll;
+    u8* data;
     u32 total;
     u32 max;
     u32 size;
+    u32 dataSize;
     u32 bssSize;
     void* pArc;
     OSModuleHeader* pModule;
@@ -596,26 +606,9 @@ void ReadPlayerData(int type, int costume)
     pG->flags_4FBE &= ~1;
     ReleasePlData();
     pG->pPlArc = (PlArc*) PL_DATA_ADDR;
+    data = (u8*) PL_DATA_ADDR;
+    dll = 0;
     switch (type) {
-    case 1:
-        file = (costume == 1) ? 0xBE : 0x22;
-        break;
-    case 2:
-        file = (costume == 1) ? 0xB4 : 0xA8;
-        dll = 0x1A;
-        break;
-    case 3:
-        file = 0xBC;
-        dll = 0xBD;
-        break;
-    case 4:
-        file = 0xC5;
-        dll = 0xC6;
-        break;
-    case 5:
-        file = 0xC7;
-        dll = 0xC8;
-        break;
     case 0:
     default:
         switch (costume) {
@@ -634,8 +627,36 @@ void ReadPlayerData(int type, int costume)
         }
         dll = 0;
         break;
+    case 1:
+        if (costume != 1) {
+            file = 0x22;
+        } else {
+            file = 0xBE;
+        }
+        break;
+    case 2:
+        if (costume != 1) {
+            file = 0xA8;
+        } else {
+            file = 0xB4;
+        }
+        dll = 0x1A;
+        break;
+    case 3:
+        file = 0xBC;
+        dll = 0xBD;
+        break;
+    case 4:
+        file = 0xC5;
+        dll = 0xC6;
+        break;
+    case 5:
+        file = 0xC7;
+        dll = 0xC8;
+        break;
     }
-    setDrsName((char*) FileTbl[file].name);
+    name = (char*) FileTbl[file].name;
+    SET_DRS_NAME(name);
 #line 1124 "D:/Bio4/Prog/read.cpp"
     req = DVD_READ_N(FileTbl[file].name, (void*) PL_DATA_ADDR, 0, 0, 0, 0x8100);
     while ((ret = Dvd.ReadCheckInfo(req, &info)) != 1) {
@@ -663,9 +684,10 @@ void ReadPlayerData(int type, int costume)
         ReleasePlData();
         pArc = (void*) PL_DATA_ADDR;
         pModule = (OSModuleHeader*) (*(u32*) (data + 4) + (u32) data);
-        size = (u32) pModule - (u32) data;
-        bssSize = total - size;
-        if (!(PlReadModule.flag & 2)) {
+        dataSize = (u32) pModule - (u32) data;
+        bssSize = size - dataSize;
+        size = dataSize;
+        if (!BitChk16(PlReadModule.flag, 2)) {
             bss = NULL;
             if (pModule->bssSize != 0) {
                 bss = &PlReadModule;
@@ -676,18 +698,18 @@ void ReadPlayerData(int type, int costume)
                     TaskSleep(1);
                 }
             }
-            PlReadModule.flag |= 2;
+            BitOn16(PlReadModule.flag, 2);
             DLL_Link(pModule, bss);
             pModule->prolog();
         } else {
             pModule = NULL;
         }
     }
-    PlReadModule.bssSize = bssSize;
     PlReadModule.id = file;
     PlReadModule.pArc = pArc;
     PlReadModule.size = size;
     PlReadModule.pModule = pModule;
+    PlReadModule.bssSize = bssSize;
 }
 
 void ReleasePlData()
@@ -778,13 +800,13 @@ ReadFile wep_data_klauser[46] = {
     { 0x00, 0x00, 0 }, { 0x00, 0x00, 0 },
 };
 
-void ReadWepData(int no, int type)
+void ReadWepData(u32 no, u32 type)
 {
     DvdReadInfo info;
     int req;
     int ret;
     u8* data;
-    ReadFile* tbl;
+    char* name;
     ReadFile* e;
     u32 total;
     u32 size;
@@ -798,6 +820,39 @@ void ReadWepData(int no, int type)
         data = (u8*) WEP_DATA_ADDR;
     }
     switch (pG->x4FB8) {
+    case 0:
+    default:
+        if (no == 0x19 || no == 0x1F || no == 0x20 || no == 0x16 || no == 0x17) {
+            no = 0x13;
+        } else if (no == 3 && type == 2) {
+            no = 0x12;
+        } else if (no == 0xB && type > 1) {
+            no = 0x14;
+        } else if (no == 9) {
+            switch (type) {
+            case 1:
+                no = 0x15;
+                break;
+            case 2:
+                no = 0x18;
+                break;
+            }
+        } else if (no == 0xA) {
+            switch (type) {
+            case 1:
+                no = 0x1F;
+                break;
+            case 2:
+                no = 0x20;
+                break;
+            }
+        } else if (no == 0xE && type == 1) {
+            no = 0x19;
+        } else if (no == 0xD && type == 2) {
+            no = 0x1E;
+        }
+        e = &wep_data_leon[no];
+        break;
     case 2:
         switch (no) {
         case 0x13:
@@ -809,7 +864,7 @@ void ReadWepData(int no, int type)
             no = 0x13;
             break;
         }
-        tbl = wep_data_ada;
+        e = &wep_data_ada[no];
         break;
     case 3:
         switch (no) {
@@ -822,7 +877,7 @@ void ReadWepData(int no, int type)
             no = 0x13;
             break;
         }
-        tbl = wep_data_hunk;
+        e = &wep_data_hunk[no];
         break;
     case 5:
         switch (no) {
@@ -838,7 +893,7 @@ void ReadWepData(int no, int type)
             no = 5;
             break;
         }
-        tbl = wep_data_wesker;
+        e = &wep_data_wesker[no];
         break;
     case 4:
         switch (no) {
@@ -851,37 +906,9 @@ void ReadWepData(int no, int type)
             no = 0x17;
             break;
         }
-        tbl = wep_data_klauser;
-        break;
-    case 0:
-    default:
-        if (no == 0x19 || no == 0x1F || no == 0x20 || no == 0x16 || no == 0x17) {
-            no = 0x13;
-        } else if (no == 3 && type == 2) {
-            no = 0x12;
-        } else if (no == 0xB && type != 0 && type != 1) {
-            no = 0x14;
-        } else if (no == 9) {
-            if (type == 1) {
-                no = 0x15;
-            } else if (type == 2) {
-                no = 0x18;
-            }
-        } else if (no == 0xA) {
-            if (type == 1) {
-                no = 0x1F;
-            } else if (type == 2) {
-                no = 0x20;
-            }
-        } else if (no == 0xE && type == 1) {
-            no = 0x19;
-        } else if (no == 0xD && type == 2) {
-            no = 0x1E;
-        }
-        tbl = wep_data_leon;
+        e = &wep_data_klauser[no];
         break;
     }
-    e = &tbl[no];
     if (e->file == 0) {
         return;
     }
@@ -892,7 +919,8 @@ void ReadWepData(int no, int type)
     ReleaseWepData();
     pG->x4F7C = pG->wep_no;
     if (e->dll != 0) {
-        setDrsName((char*) FileTbl[e->file].name);
+        name = (char*) FileTbl[e->file].name;
+        SET_DRS_NAME(name);
     }
 #line 1538 "D:/Bio4/Prog/read.cpp"
     req = DVD_READ_N(FileTbl[e->file].name, data, 0, 0, 0, 0x8001);
@@ -914,7 +942,7 @@ void ReadWepData(int no, int type)
     pModule = (OSModuleHeader*) (*(u32*) (data + 4) + (u32) data);
     size = (u32) pModule - (u32) data;
     bssSize = total - size;
-    if (!(WepReadModule.flag & 2)) {
+    if (!BitChk16(WepReadModule.flag, 2)) {
         bss = NULL;
         if (pModule->bssSize != 0) {
             bss = &WepReadModule;
@@ -925,7 +953,7 @@ void ReadWepData(int no, int type)
                 TaskSleep(1);
             }
         }
-        WepReadModule.flag |= 2;
+        BitOn16(WepReadModule.flag, 2);
         DLL_Link(pModule, bss);
         pModule->prolog();
     } else {
@@ -941,12 +969,14 @@ void ReadWepData(int no, int type)
 
 void ContinueWepData()
 {
+    u8 old;
     u8 wep;
 
     if (pG->x4FB8 != 1) {
+        old = pG->x4F7C;
         wep = pG->wep_no;
-        if (wep != pG->x4F7C) {
-            pG->wep_no = pG->x4F7C;
+        if (wep != old) {
+            pG->wep_no = old;
             pPL->weaponRelease();
             pPL->weaponLoad(wep, pG->wep_type);
             pPL->weaponInit();
@@ -957,19 +987,25 @@ void ContinueWepData()
 void* GetDataExt(void* arc, const char* tag, int no)
 {
     DataExtHeader* h = (DataExtHeader*) arc;
+    u32 num;
     u32 i;
-    int cnt = 0;
+    int cnt;
     u8* p;
 
     if (arc == NULL || tag == NULL) {
         pLog->err(0, 0, "GetDataExt() NULL POINTER %08x %08x", arc, tag);
         return NULL;
     }
-    p = (u8*) &h->ofs[h->num];
-    for (i = 0; i < h->num; i++, p += 4) {
+    num = h->num;
+    cnt = 0;
+    // tag table follows the offsets; p starts one entry early, the loop pre-increments (lbzu)
+    p = (u8*) arc + num * 4;
+    p += 0xC;
+    for (i = 0; i < num; i++) {
+        p += 4;
         if (p[0] == tag[0] && p[1] == tag[1] && p[2] == tag[2]) {
             if (cnt == no) {
-                return (void*) (h->ofs[i] + (u32) arc);
+                return (void*) (*(u32*) (i * 4 + (u32) arc + 0x10) + (u32) arc);
             }
             cnt++;
         }

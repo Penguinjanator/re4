@@ -950,6 +950,9 @@ MATCHING = {
     "game/light07.cpp": True,
     "game/light01.cpp": True,
     "game/at_sub2.cpp": True,
+    "game/atariInfo.cpp": True,
+    "game/flr_at.cpp": True,
+    "game/se_at.cpp": True,
     "game/cons.cpp": True,
     "game/TmpBuf.cpp": True,
     # misc engine units
@@ -991,6 +994,9 @@ MATCHING = {
 # statics kept): tools/strip_unused.py removes the bodies of functions not in sym_map.tsv.
 STRIP_UNUSED = {
     "game/light.cpp",
+    "game/atariInfo.cpp",
+    "game/flr_at.cpp",
+    "game/at_sub.cpp",
     "game/motion.cpp",
     "game/obj26.cpp",
     "game/pl_debug.cpp",
@@ -1000,9 +1006,12 @@ STRIP_UNUSED = {
     "game/shape.cpp",
     "game/geometry.cpp",
     "game/obj00.cpp",
+    "game/obj15.cpp",
     "game/pl_wep.cpp",
     "game/cam_motion.cpp",
     "game/cam_sys.cpp",
+    "game/ctrl01.cpp",
+    "game/trans_ot.cpp",
 }
 
 # Capcom sound library (game/snd_*.cpp): C++ with extern "C" functions, compiled unoptimised
@@ -1051,6 +1060,7 @@ MATCHING.update({
 MATCHING.update({
     "game/obj01.cpp": True,
     "game/obj10.cpp": True,
+    "game/obj15.cpp": True,
     "game/obj19.cpp": True,
     "game/obj20.cpp": True,
     "game/obj26.cpp": True,
@@ -1076,6 +1086,7 @@ MATCHING.update({
     "game/emdata.cpp": True,
     "game/em_dm_val.cpp": True,
     "game/et00.cpp": True,
+    "game/emhit.cpp": True,
 })
 
 # area / message units
@@ -1086,4 +1097,15 @@ MATCHING.update({
 # camera units
 MATCHING.update({
     "game/cam_sys.cpp": True,
+    "game/cam_motion.cpp": True,
+})
+
+# control (ctrl*) units
+MATCHING.update({
+    "game/ctrl00.cpp": True,
+    "game/ctrl01.cpp": True,
+    "game/ctrl10.cpp": True,
+    "game/ctrl11.cpp": True,
+    "game/ctrl12.cpp": True,
+    "game/ctrl.cpp": True,
 })

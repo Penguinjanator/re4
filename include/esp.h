@@ -4,6 +4,7 @@
 #include "types.h"
 #include "vec.h"
 #include "model.h"
+#include "trans_ot.h"
 
 struct EspGenPrmW {
     u32 xCC;           // 0xCC
@@ -229,8 +230,7 @@ cEsp* EspGetDmyPtr();
 void EspAddOtAfterRender(cEsp* esp, void (*func)(cEsp*));
 // game/esp01.cpp
 void EspStrip_draw_poly(cEsp* esp, int no, Vec* v, u8 texRepeat, int flag);
-// game/trans_ot.cpp
-void AddOtWorldPos(cEsp* esp, void (*func)(cEsp*), Vec* pos, int prio, f32 ofs);
+// game/trans_ot.cpp: AddOtWorldPos & co. are declared in trans_ot.h (void* data / u16 kind).
 // game/esp_sub.cpp
 void EspCommonTrans(cEsp* esp);
 // game/eff_sys.cpp
