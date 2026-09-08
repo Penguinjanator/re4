@@ -27,9 +27,13 @@ union EspGenPrm {
 
 // Effect generator work (game/eff_sys.cpp, game/espgen*.cpp). Layout known only partially.
 struct EspGenWork {
-    u8 pad_0[2];
+    u8 x0;             // 0x00
+    u8 x1;             // 0x01 esp id / generator sub type
     u8 x2;             // 0x02
-    u8 pad_3[5];
+    u8 x3;             // 0x03
+    u16 x4;            // 0x04 sequence time (espgen10 compares it with the frame counter)
+    u8 x6;             // 0x06 event model index (EspEvModList)
+    u8 x7;             // 0x07
     u32 flags;         // 0x08
     f32 x0C;           // 0x0C generator position (x0C, x10, x14 form a Vec)
     f32 x10;           // 0x10
@@ -37,9 +41,21 @@ struct EspGenWork {
     f32 x18;           // 0x18 (esp1a: min distance factor)
     f32 x1C;           // 0x1C (esp1a: max distance factor)
     f32 x20;           // 0x20
-    u8 pad_24[0x58 - 0x24];
+    Vec x24;           // 0x24
+    f32 x30;           // 0x30
+    Vec x34;           // 0x34
+    u8 pad_40[0x58 - 0x40];
     Vec x58;           // 0x58
-    u8 pad_64[0xC2 - 0x64];
+    u8 pad_64[0x88 - 0x64];
+    f32 x88;           // 0x88
+    u8 pad_8C[0x9C - 0x8C];
+    u8 x9C;            // 0x9C colour r
+    u8 x9D;            // 0x9D colour g
+    u8 x9E;            // 0x9E colour b
+    u8 x9F;            // 0x9F colour a
+    u8 pad_A0[0xAC - 0xA0];
+    f32 xAC;           // 0xAC
+    u8 pad_B0[0xC2 - 0xB0];
     u8 xC2;            // 0xC2
     u8 pad_C3[2];
     u8 xC5;            // 0xC5
@@ -63,6 +79,33 @@ struct EspGenWork {
     u8 xFD;            // 0xFD
     u8 xFE;            // 0xFE
     u8 pad_FF[0x100 - 0xFF];
+    // 0x100..0x12C: sequence record tail (records of an EspSeqData are 0x12C bytes)
+    u8 pad_100[0x108 - 0x100];
+    u8 type;           // 0x108 0 = esp, 1 = espgen
+    u8 genId;          // 0x109 generator id (0xFF = loop marker)
+    u8 x10A;           // 0x10A
+    u8 x10B;           // 0x10B
+    u8 x10C;           // 0x10C
+    u8 x10D;           // 0x10D
+    s8 x10E;           // 0x10E
+    u8 x10F;           // 0x10F
+    s16 x110;          // 0x110
+    u8 pad_112[0x124 - 0x112];
+    u8 x124;           // 0x124
+    u8 x125;           // 0x125
+    u8 x126;           // 0x126
+    u8 x127;           // 0x127
+    u8 x128;           // 0x128
+    u8 pad_129[0x12C - 0x129];
+};
+
+// Effect sequence data block: 0x30 byte header followed by 0x12C byte records.
+struct EspSeqData {
+    u16 num;           // 0x00 number of records
+    u8 pad_2[6];
+    u16 flags;         // 0x08
+    u8 pad_A[0x30 - 0xA];
+    EspGenWork rec[1]; // 0x30
 };
 
 // Texture animation data returned by EspGetAnmAddr (eff_sys.cpp). Partial layout.
@@ -85,7 +128,15 @@ struct EspInfo {
     u16 x0;            // 0x00
     u8 x2;             // 0x02
     u8 x3;             // 0x03
-    u32 x4;            // 0x04
+    union {
+        u32 x4;        // 0x04
+        struct {
+            u8 x4;     // 0x04
+            u8 x5;     // 0x05
+            u8 x6;     // 0x06
+            u8 x7;     // 0x07
+        } b;
+    };
     u32 x8;            // 0x08
 };
 

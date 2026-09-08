@@ -2,6 +2,7 @@
 #define FILTER_H
 
 #include "types.h"
+#include "vec.h"
 
 // Screen post-process filters (game/filter.cpp dispatches to game/filter00.cpp .. filter0b.cpp).
 int FilterInit();
@@ -57,6 +58,8 @@ extern "C" {
 void Filter00SetAddSpread(u32 pri, int on, u8 r, u8 g, u8 b, u8 rate, u8 type, u32 num, f32 cx, f32 cy, f32 pow);
 // filter03.cpp
 void Filter03SetParam(int level, u8 r, u8 g, u8 b, u8 pri, int flag);
+// filter06.cpp
+void Filter06SetParam(int a, int b, int c, int d, int e, Vec* pos, Vec* dir, int f, f32 x, f32 y, f32 z);
 }
 
 #endif

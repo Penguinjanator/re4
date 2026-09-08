@@ -11,8 +11,18 @@ struct EtcItem {
     Vec pos;     // 0x70
 };
 
+// One room etc model record handed to the Et*_init functions (et00.cpp).
+struct EtcSetData {
+    u8 pad_0[3];
+    u8 type;         // 0x03  WindowData row
+    u8 pad_4[0x10 - 0x4];
+    Vec rot;         // 0x10
+    Vec pos;         // 0x1C
+};
+
 // EtcModel.cpp is C++ but exports its functions with C linkage (unmangled names in the DOL).
 extern "C" {
+void* GetEtcAddr(void* arc, const char* name);   // file `name` inside the room etc archive
 u16* GetEtcFlgPtr(int room, int no);
 int getRoomEtcItem(int room, EtcItem** out, int a);
 // Model a light of parent type 3 (room etc model) hangs on; 1 = found (light.cpp)

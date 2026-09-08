@@ -22,7 +22,10 @@ extern void* pCurrent_buff;
 
 // Dolphin OSModuleHeader (REL header); only the fields main_sub uses are named.
 struct OSModuleHeader {
-    u8 pad_0[0x38];
+    u8 pad_0[0x20];
+    u32 bssSize;       // 0x20  (read.cpp: must fit the 0x80-byte area in front of a ReadModule)
+    u8 pad_24[0x34 - 0x24];
+    void (*prolog)();  // 0x34  (read.cpp calls it right after DLL_Link)
     void (*epilog)();  // 0x38
     u8 pad_3C[4];
 };

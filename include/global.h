@@ -8,13 +8,20 @@
 // Archive header at pG->pArc: a table of file offsets to the sub-files. Only the entries that
 // matched units use are named.
 struct ArcFile {
-    u8 pad_0[0x18];
+    u8 pad_0[0x10];
+    u32 ofs_10;   // 0x10  specular data (read: CoreDataRead -> SpecularInit)
+    u8 pad_14[4];
     u32 ofs_18;   // 0x18  room texture data (room_tex)
     u32 ofs_1C;   // 0x1C  vibration pattern table (pl_dmg: VibSetData)
     u32 ofs_20;   // 0x20  obstacle model bin (obj20 SetObaModel)
     u32 ofs_24;   // 0x24  obstacle model tpl
     u32 ofs_28;   // 0x28  message tables (mes: MesData.ptr[0..2])
-    u8 pad_2C[0x54 - 0x2C];
+    u8 pad_2C[0x40 - 0x2C];
+    u32 ofs_40;   // 0x40  global illumination texture (read: CoreDataRead -> GlobalIlmTexInit)
+    u32 ofs_44;   // 0x44  specular data 2..4 (SpecularInit)
+    u32 ofs_48;   // 0x48
+    u32 ofs_4C;   // 0x4C
+    u8 pad_50[4];
     u32 ofs_54;   // 0x54  message table type 3 (mes: MesData.ptr[3])
     u8 pad_58[0x6C - 0x58];
     u32 ofs_6C;   // 0x6C  system message table (dvd: MesData.ptr[4])
@@ -44,9 +51,9 @@ struct GlobalWork {
     u8 pad_2A[0x3C - 0x2A];
     void* pStageFont;      // 0x3C  stage/event font buffer (mes: MessageControl::stageInit)
     void* pRoomArc;        // 0x40  current room archive (GetDataExt(pG->pRoomArc, "STB", 0))
-    u8 pad_44[4];
+    void* pWepArc;         // 0x44  weapon data (read: ReadWepData)
     struct ArcFile* pArc;       // 0x48  current archive: offsets to its sub-files (room_tex, tv_mode)
-    u8 pad_4C[4];
+    void* pOptionData;     // 0x4C  SS/<lang>/option.dat (read: OptionDataRead)
     struct PlArc* pPlArc;       // 0x50  player archive (pl_leon/pl_push: model, motion, face data offsets)
     u32 flags_54;          // 0x54
     u32 flags_58;          // 0x58
@@ -64,7 +71,10 @@ struct GlobalWork {
     void* pRoomMes;        // 0x4F20  room message table (mes: MesData.ptr[1])
     void* pCoreCamData;    // 0x4F24  core camera data ("B40x")
     void* pRoomCamData;    // 0x4F28  room camera data ("B40x")
-    u8 pad_4F2C[0x4F3C - 0x4F2C];
+    void* pRoomRtp;        // 0x4F2C  room "RTP" data (read: ReadAreaData)
+    void* pRoomEmi;        // 0x4F30  room "EMI" data
+    void* pRoomOsd;        // 0x4F34  room "OSD" data
+    u8 pad_4F38[4];
     Vec bell_pos;          // 0x4F3C  floor point under the rung bell (obj14; flags_5010 bit29)
     u8 bell_stat;          // 0x4F48  2 = bell rung
     u8 pad_4F49[0x4F70 - 0x4F49];
@@ -79,13 +89,14 @@ struct GlobalWork {
     u32 play_time;         // 0x4F94  seconds (SetGameTime accumulates into it)
     u32 x4F98;             // 0x4F98  (pl_sub PlSelect swaps it with x832C)
     union {
+        u32 room_id32;     // 0x4F9C  stage/room and the two bytes after them as one word (em_set EmSetDie: `& 0xFFFF0000`)
         u16 room_id;       // 0x4F9C  stage << 8 | room as one halfword (obj14: room 004 test)
         struct {
             u8 stage_no;   // 0x4F9C
             u8 room_no;    // 0x4F9D
+            u8 pad_4F9E[2];
         };
     };
-    u8 pad_4F9E[2];
     u8 stage_prev;         // 0x4FA0  stage the current room data was loaded for (stage.cpp)
     u8 pad_4FA1[2];
     s8 emlist_no;          // 0x4FA3  enemy list currently loaded (stage.cpp), -1 = none
@@ -110,7 +121,7 @@ struct GlobalWork {
     u32 flags_5010;        // 0x5010
     u32 flags_5014;        // 0x5014
     u32 flags_5018;        // 0x5018  (main_sub: 0x10000000 letterbox scissor)
-    u8 pad_501C[0x51BC - 0x501C];
+    u32 em_dead[13][8];    // 0x501C  per enemy list (emlist_no): one bit per list entry, set when the enemy died (em_set)
     u32 flags_51BC;        // 0x51BC  (stage: 0x4 stage-1 loaded, 0x40000 sub-mission 1 done)
     u32 flags_51C0;        // 0x51C0  (stage: route flags)
     u8 pad_51C4[0x51E4 - 0x51C4];
@@ -119,7 +130,9 @@ struct GlobalWork {
     u8 emlist[0x2000];     // 0x52E8  enemy list (ESL file) read by stage.cpp
     u8 pad_72E8[0x832C - 0x72E8];
     u32 x832C;             // 0x832C  (pl_sub PlSelect swaps it with x4F98 when the player changes)
-    u8 pad_8330[0x8344 - 0x8330];
+    u8 pad_8330[0x833C - 0x8330];
+    u32 em_die_cnt;        // 0x833C  enemies killed (em_set EmSetDieCnt)
+    u32 em_die_cnt2;       // 0x8340
     u32 shotHit;           // 0x8344  (pl_wep PlWepHitCheck2: shots that hit something)
     u32 shotHit2;          // 0x8348
     u32 shotTotal;         // 0x834C  shots fired

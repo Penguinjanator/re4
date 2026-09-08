@@ -19,11 +19,13 @@ CameraMotion::CameraMotion(void* data, int hokan, int flags, f32 frame)
 
     memclr_asm(w, sizeof(CameraMotionWork));
     w->data = (MotionData*) data;
-    w->maxFrame = 1.0f + (f32) (((MotionData*) data)->maxFrame & 0x3FFF);
+    w->maxFrame = (f32) (((MotionData*) data)->maxFrame & 0x3FFF);
+    w->maxFrame += 1.0f;
     w->nParts = w->data->nParts;
     w->partsInfo = (u16*) ((u8*) w->data + 3);
     w->partsNo = (u8*) w->data + (w->nParts * 2 + 3);
-    tbl = (u32*) (((u32) w->partsNo + w->nParts + 3) & ~3);
+    tbl = (u32*) ((u32) w->partsNo + w->nParts);
+    tbl = (u32*) (((u32) tbl + 3) & ~3);
     tbl++;
     if ((s32) tbl[0] >= 0) {
         for (i = 0; i < w->nParts; i++) {
@@ -54,33 +56,34 @@ void CameraMotion::move()
     Vec at;
     Vec roll = {0.0f, 0.0f, 0.0f};
     Vec fov;
+    HermitePrm* pp = &prm;
     CameraMotionWork* w = &info;
     int i;
 
-    prm.frame = w->frame;
-    prm.maxFrame = w->maxFrame;
-    prm.flags = 2;
+    pp->frame = w->frame;
+    pp->maxFrame = w->maxFrame;
+    pp->flags = 2;
     for (i = 0; i < w->nParts; i++) {
-        prm.type = w->partsInfo[i] >> 12;
-        prm.key = (u8*) w->keyTbl[i];
+        pp->type = w->partsInfo[i] >> 12;
+        pp->key = (u8*) w->keyTbl[i];
         switch (w->partsNo[i]) {
         case 0:
-            HermiteInterpolation(&prm, &pos, w->hist[i]);
+            HermiteInterpolation(pp, &pos, w->hist[i]);
             break;
         case 1:
-            HermiteInterpolation(&prm, &at, w->hist[i]);
+            HermiteInterpolation(pp, &at, w->hist[i]);
             break;
         case 2:
-            HermiteInterpolation(&prm, &roll, w->hist[i]);
+            HermiteInterpolation(pp, &roll, w->hist[i]);
             break;
         case 3:
-            HermiteInterpolation(&prm, &fov, w->hist[i]);
+            HermiteInterpolation(pp, &fov, w->hist[i]);
             break;
         }
     }
     param.pos = pos;
     param.at = at;
-    param.roll = roll.x;
+    param.roll = roll.y;
     param.fovy = fov.y * 180.0f / PI;
     CameraSetOrientationRoll(this);
     if (base_mat) {
@@ -90,7 +93,7 @@ void CameraMotion::move()
         CameraSetOrientationUp(this);
     }
     end = 0;
-    if (CameraSequenceCtrl(w) == 4) {
+    if (CameraSequenceCtrl(&info) == 4) {
         end = 1;
     }
 }

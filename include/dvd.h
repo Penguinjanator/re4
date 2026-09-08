@@ -181,6 +181,10 @@ public:
     // the destination address through the non-NULL pointers; < 0 on failure.
     int ReadCheck(int req, int* result, int* size, void** addr);
     int ReadCheck(int req);
+    // read.cpp calls ReadCheck(int) with a DvdReadInfo* as a third argument (r5): the callee
+    // passes its uninitialised `info` pointer straight to readCheckMain, so the info block gets
+    // filled. This declaration is that entry point with the arguments the callers really pass.
+    int ReadCheckInfo(int req, DvdReadInfo* info) asm("ReadCheck__4cDvdi");
     int readCheckMain(int req, DvdReadInfo* info);
     cDvdQueue* getQueuePtr(u8 no);
     int ErrCheck(int disc, int flag);

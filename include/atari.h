@@ -29,6 +29,8 @@ public:
     // Runtime scenario piece from a polygon list (createFloorSat / createBoxSat / createSat by
     // flag bits 0x200 / 0x100); returns the registered piece or NULL.
     cSat* create(Vec* pos, Vec* rot, Vec* poly, int n, int flag, f32 h);
+    // Piece from prebuilt collision data (obj15 cObjGatling::setEat: EatMgr.create(data, 0, &pos, &rot, type)).
+    cSat* create(void* data, int flag, Vec* pos, Vec* rot, u8 type);
     int destroy(void* sat);
     // Ray from `top` down to `bottom`; returns the hit flags (bit2: no floor), hit point in `hit`.
     int hitCheck2(Vec* top, Vec* bottom, Vec* hit, u32* attr, int flag, int x);

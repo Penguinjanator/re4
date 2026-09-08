@@ -29,6 +29,9 @@ extern "C" void* memset(void* dst, int c, unsigned int n);
         }                                \
     }
 
+// Root key history for the current flip state: hist[flip][rot = 0 / pos = 1]
+#define MOT_HIST(w, flip, n) ((u16*) ((u8*) (w) + ((flip) * 12 + 8 + (n) * 6)))
+
 // Fixed 10.6 sequence frame -> float
 #define SEQ_FRAME(k) ((f32)((k) >> 6) + (f32)((k) & 0x3F) * 0.015625f)
 
@@ -180,11 +183,7 @@ void MotionSetCore(cModel* m, void* w_, void* data_, int seq_, int hokan, int fl
             frame = (u16) (w->seqMax - 1);
         }
         w->seqFrame = (f32) (u16) frame;
-        if (((u8*) seq)[2] & 1) {
-            w->flags = flags | 0x1000;
-        } else {
-            w->flags = flags & 0xEFFF;
-        }
+        w->flags = (((u8*) seq)[2] & 1) ? (flags | 0x1000) : (flags & 0xEFFF);
     }
     if (w->seq == 0) {
         w->key0.frame = (u16) (w->seqFrame * 64.0f);
@@ -199,13 +198,13 @@ void MotionSetCore(cModel* m, void* w_, void* data_, int seq_, int hokan, int fl
         w->key2.x3 = 0;
     }
     w->maxFrame = (f32) w->data->maxFrame;
-    w->partsInfo = (u16*) ((u8*) w->data + 3);
     w->nParts = w->data->nParts;
+    w->partsInfo = (u16*) ((u8*) w->data + 3);
     w->partsNo = (u8*) w->data + (w->nParts * 2 + 3);
     if (!(w->flags2 & 0x10000000)) {
         IKInit(m, w);
     }
-    tbl = (u32*) ((w->nParts + (u32) w->partsNo + 3) & ~3);
+    tbl = (u32*) (((u32) w->partsNo + w->nParts + 3) & ~3);
     tbl++;
     if ((s32) tbl[0] >= 0) {
         for (i = 0; i < w->nParts; i++) {
@@ -605,7 +604,6 @@ u16 MotionMoveSub(cModel* m, MotionWork* w)
 
 void MotionMoveCore(cModel* m, MotionWork* w, int flag)
 {
-    static const char* kind_str[] = { "Em", "Obj", "Scr", "Shadow", "Mirror" };
     HermitePrm prm;
     HermitePrm* pp = &prm;
     AttachCamera* cam;
@@ -707,6 +705,8 @@ void MotionMoveCore(cModel* m, MotionWork* w, int flag)
             }
         }
         if (pno >= m->nParts) {
+            static const char* kind_str[] = { "Em", "Obj", "Scr", "Shadow", "Mirror" };
+
             if (pPL == m) {
                 pLog->err(0, 0, "MotionMoveCore(): Pl, Invalid parts %d.", pno);
             } else {
@@ -942,14 +942,14 @@ void MotionGetSpeed(cModel* m, MotionWork* w, int flag, Vec* pos, Vec* rot)
         pp->maxFrame = w->maxFrame;
         pp->key = (u8*) w->keyTbl[w->rootPosIdx];
         pp->type = w->partsInfo[w->rootPosIdx] >> 12;
-        HermiteInterpolation(pp, &a, w->hist[flip][1]);
+        HermiteInterpolation(pp, &a, MOT_HIST(w, flip, 1));
     }
     if (w->rootRotIdx != 0xFFFF) {
         pp->frame = w->frame;
         pp->maxFrame = w->maxFrame;
         pp->key = (u8*) w->keyTbl[w->rootRotIdx];
         pp->type = w->partsInfo[w->rootRotIdx] >> 12;
-        HermiteInterpolation(pp, &b, w->hist[flip][0]);
+        HermiteInterpolation(pp, &b, MOT_HIST(w, flip, 0));
     }
     PSVECSubtract(&b, &w->rotPrev, rot);
     PSVECSubtract(&a, &w->posPrev, pos);
@@ -979,7 +979,8 @@ void MotionGetSpeed(cModel* m, MotionWork* w, int flag, Vec* pos, Vec* rot)
         int cnt = w->hokanCnt;
 
         if (cnt - 1 > 0) {
-            f32 t = (f32) ((w->hokanMax + 1) - cnt) / (f32) w->hokanMax;
+            int mx = w->hokanMax + 1;
+            f32 t = (f32) (mx - cnt) / (f32) w->hokanMax;
             f32 u = 1.0f - t;
             pos->x = w->speed.x * u + pos->x * t;
             pos->z = w->speed.z * u + pos->z * t;
@@ -1005,12 +1006,13 @@ void MotionGetPosition(cModel* m, Vec* pos, Vec* rot)
 {
     MotionWork* w = MOTION(m);
     HermitePrm prm;
-    HermitePrm* pp = &prm;
+    HermitePrm* pp;
     int flip;
 
     pos->x = pos->y = pos->z = 0.0f;
     rot->x = rot->y = rot->z = 0.0f;
     w->frame = SEQ_FRAME(w->key1.frame);
+    pp = &prm;
     pp->flags = 0;
     if (w->flags & 2) {
         if (!(w->flags & 0x1000)) {
@@ -1032,14 +1034,14 @@ void MotionGetPosition(cModel* m, Vec* pos, Vec* rot)
         pp->maxFrame = w->maxFrame;
         pp->key = (u8*) w->keyTbl[w->rootPosIdx];
         pp->type = w->partsInfo[w->rootPosIdx] >> 12;
-        HermiteInterpolation(pp, pos, w->hist[flip][1]);
+        HermiteInterpolation(pp, pos, MOT_HIST(w, flip, 1));
     }
     if (w->rootRotIdx != 0xFFFF) {
         pp->frame = w->frame;
         pp->maxFrame = w->maxFrame;
         pp->key = (u8*) w->keyTbl[w->rootRotIdx];
         pp->type = w->partsInfo[w->rootRotIdx] >> 12;
-        HermiteInterpolation(pp, rot, w->hist[flip][0]);
+        HermiteInterpolation(pp, rot, MOT_HIST(w, flip, 0));
     }
 }
 
@@ -1048,72 +1050,75 @@ u16 MotionSequenceCtrl(MotionWork* w)
     f32 f;
 
     w->key2 = w->key1;
-    if (w->flags & 8) {
-        w->state &= 0xFFF0;
-        w->key0.x2 = 0;
-        w->key1 = w->key0;
-        return w->state;
-    }
-    w->state = 0;
-    if (w->flags & 2) {
-        if (w->flags & 4) {
-            if (w->seqFrame <= 0.0f) {
-                w->state = 2;
-                f = w->seqFrame + (f32) w->seqMax;
-            } else {
-                f = w->seqFrame - w->speedRate * pG->mot_speed;
-            }
-            w->seqFrame = f;
-        } else {
-            if (w->seqFrame <= 0.0f) {
-                w->state = 8;
-                w->seqFrame = 0.0f;
-            } else {
-                f = w->seqFrame - w->speedRate * pG->mot_speed;
+    if (!(w->flags & 8)) {
+        w->state = 0;
+        if (w->flags & 2) {
+            if (w->flags & 4) {
+                if (w->seqFrame <= 0.0f) {
+                    w->state = 2;
+                    f = w->seqFrame + (f32) (int) w->seqMax;
+                } else {
+                    f = w->seqFrame - w->speedRate * pG->mot_speed;
+                }
                 w->seqFrame = f;
-            }
-        }
-    } else {
-        f = w->seqFrame = w->seqFrame + w->speedRate * pG->mot_speed;
-        if (w->flags & 4) {
-            if (f >= (f32) w->seqMax) {
-                w->state = 1;
-                w->seqFrame = f - (f32) (int) w->seqMax;
+            } else {
+                if (w->seqFrame <= 0.0f) {
+                    w->state = 8;
+                    w->seqFrame = 0.0f;
+                } else {
+                    f = w->seqFrame - w->speedRate * pG->mot_speed;
+                    w->seqFrame = f;
+                }
             }
         } else {
-            if (f >= (f32) w->seqMax) {
-                w->state = 4;
-                w->seqFrame = (f32) (w->seqMax - 1);
-            }
-        }
-    }
-    w->key1 = w->key0;
-    if (w->seq == 0) {
-        w->key0.frame = (u16) (w->seqFrame * 64.0f);
-    } else {
-        u16 fi = (u16) w->seqFrame;
-        f32 sf = w->seqFrame;
+            w->seqFrame = w->seqFrame + w->speedRate * pG->mot_speed;
+            if (w->flags & 4) {
+                u16 max = w->seqMax;
 
-        w->key0 = w->seq[fi];
-        if ((f32) fi != sf) {
-            u16 nx = (u16) (sf + 1.0f);
-            f32 frac = sf - (f32) (int) fi;
-
-            if (nx < w->seqMax) {
-                w->key0.frame = w->seq[fi].frame + (u16) (frac * (f32) (w->seq[nx].frame - w->seq[fi].frame));
+                if (w->seqFrame >= (f32) max) {
+                    w->state = 1;
+                    w->seqFrame = w->seqFrame - (f32) (int) max;
+                }
             } else {
-                f32 mf = w->maxFrame * 64.0f;
+                u16 max = w->seqMax;
 
-                if (mf == (f32) (int) w->seq[fi].frame) {
-                    w->key0.frame = (u16) (frac * 64.0f);
-                } else if (w->seq[0].frame == 0) {
-                    w->key0.frame = w->seq[fi].frame + (u16) (frac * (mf - (f32) (int) w->seq[fi].frame));
+                if (w->seqFrame >= (f32) max) {
+                    w->state = 4;
+                    w->seqFrame = (f32) (max - 1);
                 }
             }
         }
-        if ((f32) (int) w->key0.frame > w->maxFrame * 64.0f) {
-            pLog->err(0, 0, "MotSeqCtrl(@0x%08x): %.2f Invalid Seq. Frame", w, (f32) (int) w->key0.frame * 0.015625f);
+        w->key1 = w->key0;
+        if (w->seq == 0) {
+            w->key0.frame = (u16) (w->seqFrame * 64.0f);
+        } else {
+            u16 fi = (u16) w->seqFrame;
+
+            w->key0 = w->seq[fi];
+            if ((f32) fi != w->seqFrame) {
+                u16 nx = (u16) (w->seqFrame + 1.0f);
+                f32 frac = w->seqFrame - (f32) (int) fi;
+
+                if (nx >= w->seqMax) {
+                    f32 mf = w->maxFrame * 64.0f;
+
+                    if (mf == (f32) (int) w->seq[fi].frame) {
+                        w->key0.frame = (u16) (frac * 64.0f);
+                    } else if (w->seq[0].frame == 0) {
+                        w->key0.frame = w->seq[fi].frame + (u16) (frac * (mf - (f32) (int) w->seq[fi].frame));
+                    }
+                } else {
+                    w->key0.frame = w->seq[fi].frame + (u16) (frac * (f32) (w->seq[nx].frame - w->seq[fi].frame));
+                }
+            }
+            if ((f32) (int) w->key0.frame > w->maxFrame * 64.0f) {
+                pLog->err(0, 0, "MotSeqCtrl(@0x%08x): %.2f Invalid Seq. Frame", w, (f32) (int) w->key0.frame * 0.015625f);
+            }
         }
+    } else {
+        w->key1 = w->key0;
+        w->key0.x2 = 0;
+        w->state &= 0xFFF0;
     }
     return w->state;
 }
@@ -1150,8 +1155,8 @@ int MotionCheckCrossFrame(MotionWork* w, f32 frame)
     if (w->flags2 & 0x04000000) {
         return 0;
     }
-    prev = w->prevFrame2;
     cur = w->frame;
+    prev = w->prevFrame2;
     if (frame == 0.0f && cur == 0.0f && prev == 0.0f) {
         return 1;
     }
@@ -1185,41 +1190,38 @@ int HermiteInterpolation(HermitePrm* prm, Vec* out, u16* hist)
         Fcc_get_data_020, Fcc_get_data_021, Fcc_get_data_022, dummy,
         dummy,            dummy,            dummy,            Fcc_get_data_033,
     };
-    f32* o = (f32*) out;
+    f32 r = 0.0f;
     f32 frame = prm->frame;
     u8* p = prm->key;
+    f32* o = (f32*) out;
+    u16* hp = hist - 1;
+    f32 f0 = r;
+    f32 f1 = r;
+    int ret = 0;
+    int axis = 0;
     u16* frames;
     u8* data;
     f32 val[2];
     f32 tan[2];
-    f32 r;
-    f32 f0;
-    f32 f1;
-    int ret = 0;
-    int axis;
     int n;
-    int last;
+    int last = 0;
     int idx;
     int cnt;
     int found;
 
-    r = 0.0f;
-    f0 = r;
-    f1 = r;
-    hist--;
-    for (axis = 0; axis <= 2; axis++) {
+    for (; axis <= 2; axis++) {
         n = *(u16*) p;
         frames = (u16*) (p + 2);
-        data = (u8*) (frames + n);
-        hist++;
-        cnt = n;
+        data = p + n * 2 + 2;
+        hp++;
         found = 0;
         p = data + Fcc_next_axis_addr(prm->type, n);
+        cnt = n;
         if (prm->maxFrame <= frame) {
             if ((prm->flags & 6) == 4) {
                 frame -= prm->maxFrame;
                 if (!(prm->flags & 8)) {
-                    *hist = 0;
+                    *hp = 0;
                 }
             } else {
                 Fcc_get_data_tbl[prm->type](data, n - 1, 0, val, tan);
@@ -1228,19 +1230,19 @@ int HermiteInterpolation(HermitePrm* prm, Vec* out, u16* hist)
                 r = val[0];
             }
         }
-        if (prm->flags & 8) {
-            idx = 0;
+        if (!(prm->flags & 8)) {
+            idx = *hp;
         } else {
-            idx = *hist;
+            idx = 0;
         }
-        last = n - 1;
-        if (idx > last) {
+        if (idx > n - 1) {
             pLog->err(0, 0, "H.I.(): axis=%d, hist=%d nFrm=%d, Invalid key history.", axis, idx, n);
             idx = 0;
             ret = 1;
         }
+        last = n - 1;
         if (cnt != 0) {
-            u16* fp = &frames[idx];
+            u16* fp = (u16*) (idx * 2 + (u32) frames);
 
             do {
                 f0 = (f32) *fp;
@@ -1248,7 +1250,7 @@ int HermiteInterpolation(HermitePrm* prm, Vec* out, u16* hist)
                     Fcc_get_data_tbl[prm->type](data, idx, 0, val, tan);
                     r = val[0];
                     if (!(prm->flags & 8)) {
-                        *hist = idx;
+                        *hp = idx;
                     }
                     found = 1;
                     break;
@@ -1263,7 +1265,7 @@ int HermiteInterpolation(HermitePrm* prm, Vec* out, u16* hist)
                     if (frame < f1) {
                         Fcc_get_data_tbl[prm->type](data, idx, nx, val, tan);
                         if (!(prm->flags & 8)) {
-                            *hist = idx;
+                            *hp = idx;
                         }
                         break;
                     }
@@ -1272,7 +1274,7 @@ int HermiteInterpolation(HermitePrm* prm, Vec* out, u16* hist)
                     fp--;
                     idx--;
                     if (idx < 0) {
-                        fp = &frames[last];
+                        fp = (u16*) (last * 2 + (u32) frames);
                         idx = last;
                     }
                 } else {
@@ -1473,19 +1475,28 @@ int Fcc_next_axis_addr(int type, int n)
     return -1;
 }
 
-// Debug speed display: dead-stripped by the linker, only its strings, constants and static stay.
-static void MotionSpeedDisp(cModel* m, int x, int y)
-{
-    static Vec sv;
-    MotionWork* w = MOTION(m);
+// Debug speed display: dead-stripped by the linker, only the strings, constant pools and statics
+// remain. The three zeroed 4-byte statics survive as one unnamed 12-byte .sdata object; this stand-in
+// keeps the split label as its name (and the section forced) so strip_unused leaves it in place.
+static Vec lbl_80314C44 __attribute__((section(".sdata"))) = { 0.0f, 0.0f, 0.0f };
 
+void MotionSpeedDispHeader(int x, int y, f64 v)
+{
     eprintf(x, y, 0, 0, "MOTION SPEED ---");
     eprintf(x, y + 10, 0, 0, "GLOBAL: ");
-    eprintf(x, y + 20, 0, 0, "PLAYER: ");
-    eprintf(x, y + 30, 0, 0, "%s", "");
-    sv.x = sv.x * 0.01f + w->speed.x * 10.0f * 0.5f;
-    eprintf(x, y + 40, 0, 0, "%.2f", (f32) x * sv.x);
-    if (sv.y == 0.0f) {
-        sv.z = 2.0f;
+    if (v != 0.0) {
+        eprintf(x, y + 20, 0, 0, "PLAYER: ");
+    }
+}
+
+void MotionSpeedDisp(cModel* m, int x, int y)
+{
+    MotionWork* w = MOTION(m);
+
+    eprintf(x, y, 0, 0, "%s", (char*) w->data);
+    lbl_80314C44.x = lbl_80314C44.x * 0.01f + w->speed.x * 10.0f * 0.5f;
+    eprintf(x, y + 10, 0, 0, "%.2f", (f32) x * lbl_80314C44.x);
+    if (lbl_80314C44.y == 0.0f) {
+        lbl_80314C44.z = 2.0f;
     }
 }

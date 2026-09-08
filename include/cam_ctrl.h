@@ -138,7 +138,8 @@ public:
     u32 counter_58;               // 0x58
     CameraDataHeader* data;       // 0x5C
     Camera camera;                // 0x60
-    u8 pad_158[0x250 - 0x158];
+    Mtx prev_mat;                 // 0x158  camera matrix CamStick2World keeps while the cut changes
+    u8 pad_188[0x250 - 0x188];
     s32 x250;                     // 0x250  nonzero blocks the fall-check in Check()
     CameraInterpolation interp;   // 0x254
     CameraQuasiFPS qfps;          // 0x278
@@ -206,13 +207,13 @@ public:
     void endPushObject();
     void StartLookDownEm(void* em);
     void EndLookDownEm();
-    void startScope();
+    void startScope(Vec* pos, Vec* at);
     void endScope();
     void getTrajectory(Vec* pos, Vec* at);
     void saveScopeParam();
     void loadScopeParam();
-    void SetBinocularRange(f32 range);
-    void HoldBinocular(void* a, void* b, void* c, void* d);
+    void SetBinocularRange(f32 a, f32 b, f32 c, f32 d);
+    void HoldBinocular(void* id_a, void* id_b, Vec* pos, Vec* at);
     void LowerBinocular();
     void GetBinocularIDAddr(void** a, void** b);
     void MotionSet(void* motion, int frame, f32 speed);

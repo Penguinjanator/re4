@@ -276,6 +276,16 @@ mark it Matching.
   (the rest of the function repeated in each arm; jump2 cross-jumps the suffix).
 - `x == 2 || x == 3` on a u8 returns as `subi 2; subfic 1; li 0; adde` (unsigned `<= 1` range fold).
 - Loop-invariant `cmpwi cr2/cr3/cr4` hoisted before a loop = a `switch (type)` inside the loop body.
+- Dead strings: code under `if (0)` or after `return` still emits its string literals into `.rodata`.
+- Zeroed aggregate initialisers (`u16 h[3] = {0,0,0}`, `Vec a = {0,0,0}`) become `memset` libcalls
+  with `crclr cr1eq`.
+- SF constants have a tied GPR/FPR class: when a callee-saved GPR is free, the constant may land in the
+  GPR and be stored with `lwz/stw`.
+- Row-by-row matrix copy: `while (i--) { dp = *d; sp = *s; for (j<4) *dp++ = *sp++; s++; d++; }`
+  gives the `cmpwi -1` reversed outer loop. Byte assembly through a `union { f32 f; u8 b[4]; }` gives
+  the `rlwimi` chain.
+- An inline `if (c) return 1; return 0;` materialises `li 0; bge; li 1; cmpwi`; `return c` gives
+  `mfcr/extrwi`.
 - Static locals show as `name.NNN` in objdiff; the DECL_UID suffix cannot be reproduced and is ignored by the report.
 - Unexplained words in `.rodata` (zero words, stray floats) are usually the constant pool of a function
   the original linker dead-stripped (bodies gone, pools kept, `STRIP_UNUSED` in objects.py): write a

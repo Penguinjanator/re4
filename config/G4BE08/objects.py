@@ -1001,6 +1001,8 @@ STRIP_UNUSED = {
     "game/geometry.cpp",
     "game/obj00.cpp",
     "game/pl_wep.cpp",
+    "game/cam_motion.cpp",
+    "game/cam_sys.cpp",
 }
 
 # Capcom sound library (game/snd_*.cpp): C++ with extern "C" functions, compiled unoptimised
@@ -1073,9 +1075,15 @@ MATCHING.update({
 MATCHING.update({
     "game/emdata.cpp": True,
     "game/em_dm_val.cpp": True,
+    "game/et00.cpp": True,
 })
 
 # area / message units
 MATCHING.update({
     "game/area.cpp": True,
+})
+
+# camera units
+MATCHING.update({
+    "game/cam_sys.cpp": True,
 })

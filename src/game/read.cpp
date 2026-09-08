@@ -1,0 +1,980 @@
+// game/read: room / core / option / enemy / player / weapon data loading (D:/Bio4/Prog/read.cpp).
+#include "types.h"
+#include "atari.h"
+#include "light.h"
+#include "map_obj.h"
+#include "widget.h"
+#include "global.h"
+#include "main.h"
+#include "main_mem.h"
+#include "main_sub.h"
+#include "scheduler.h"
+#include "dvd.h"
+#include "db_log.h"
+#include "eprintf.h"
+#include "player.h"
+
+extern "C" {
+void OSReport(const char* fmt, ...);
+int sprintf(char* buf, const char* fmt, ...);
+void* memcpy(void* dst, const void* src, unsigned int n);
+u32 Yz2DecodeSet(char* str, void* buf);   // game/yz2code.cpp
+void Yz2DecodeExec(void* dst);
+void SpecularInit(void* a, void* b, void* c, void* d);   // game/trans.cpp
+void GlobalIlmTexInit(void* p);
+void SceSleep(int frames);                // game/sce_sys.cpp
+extern void (*EmInitFunc)();              // game/em.cpp
+}
+
+// game/sce_sys.cpp
+class cSceSys {
+public:
+    int wait;   // 0x00
+    u8 pad_4[0x73 - 0x04];
+    u8 x73;     // 0x73  set while readEmData waits inside a scenario task
+    u8 pad_74[0x138 - 0x74];
+    int checkCTaskRange();
+};
+extern cSceSys SceSys;
+
+// game/game.cpp
+struct GameWork {
+    u8 pad_0[0x18];
+    void* pWepBuf;   // 0x18  weapon data buffer (Klauser)
+    u8 pad_1C[0x1C - 0x1C];
+};
+extern GameWork Game;
+
+// One loaded data module. The first 0x80 bytes are the DLL's bss area (DLL_Link gets `this`).
+class ReadModule {
+public:
+    u8 bss[0x80];               // 0x00
+    u16 id;                     // 0x80
+    u16 flag;                   // 0x82  bit0 dll copied to its own block, bit1 linked,
+                                //       bit2 data allocated by DvdReadN, bit3 debug heap
+    void* pArc;                 // 0x84
+    OSModuleHeader* pModule;    // 0x88
+    u32 size;                   // 0x8C  data size
+    u32 bssSize;                // 0x90  size of the part after the data (dll + bss)
+    void (*pInitFunc)();        // 0x94  EmInitFunc set by the dll prolog
+
+    ReadModule() { flag = 0; }
+};
+
+// File table entry: FileTbl index of the data and of the dll, extra flag.
+struct ReadFile {
+    u16 file;
+    u16 dll;
+    u32 flag;
+};
+
+// Archive header behind GetDataExt: count, three words, offsets, then 4-byte tags.
+struct DataExtHeader {
+    u32 num;      // 0x00
+    u32 pad_4[3];
+    u32 ofs[1];   // 0x10
+};
+
+extern "C" {
+static void decodeData();
+static void* readEm(int id, void* addr, u32 size);
+static int checkAshleyId(int id);
+void ReadAreaData();
+void CoreDataRead();
+void OptionDataRead();
+void InitModule(ReadModule* m);
+int readEmData(ReadModule* m, int id, void* addr, u32 size);
+void setEmModule(ReadModule* m, int id);
+void EmReadInit();
+void* EmReadSearch(int id, void* addr, u32 size);
+ReadModule* SearchEmModule(int id);
+ReadModule* pullEmModule();
+void ReadPlayerData(int type, int costume);
+void ReleasePlData();
+void ReleaseWepData();
+void ReadWepData(int no, int type);
+void ContinueWepData();
+}
+void* GetDataExt(void* arc, const char* tag, int no);
+
+static void* in_data_addr;
+u32 out_data_size;
+u8 oldWepId;
+
+ReadModule EmReadModule[4] __attribute__((aligned(32)));
+static ReadModule PlReadModule __attribute__((aligned(32)));
+static ReadModule WepReadModule __attribute__((aligned(32)));
+
+#define HALT()                                                    \
+    do {                                                          \
+        OSReport("HALT %s(%d)\n", __FILE__, __LINE__);            \
+        *(volatile u32*) 0x11111111 = 0;                          \
+    } while (0)
+
+#define DVD_READ(no, dst, a, b, c, mode) DvdRead(no, dst, a, b, c, mode, __FILE__, __LINE__)
+#define DVD_READ_N(name, dst, a, b, c, mode) DvdReadN(name, dst, a, b, c, mode, __FILE__, __LINE__)
+
+#define READ_BUFF_OFS 0x142800
+#define ROOM_ARC_SIZE 0x300000
+#define CORE_DATA_ADDR ((void*) 0x80578000)
+#define CORE_DATA_MAX 0x234000
+#define OPTION_DATA_ADDR ((void*) 0x807AC000)
+#define OPTION_DATA_MAX 0x40000
+#define PL_DATA_ADDR 0x807EC000
+#define WEP_DATA_ADDR ((void*) 0x80904000)
+#define WEP_DATA_MAX 0x70000
+#define DLL_BSS_MAX 0x80
+
+#define ARC_PTR(field) ((void*) (pG->pArc->field + (u32) pG->pArc))
+
+// Pointer store through a reference: the original reloads pG after every pG->pXxx = ... store.
+static inline void PSet(void*& d, void* v) { d = v; }
+
+// Replace the extension of a FileTbl name with "drs".
+static inline void setDrsName(char* name)
+{
+    while (*name != '.') {
+        name++;
+    }
+    name[1] = 'd';
+    name[2] = 'r';
+    name[3] = 's';
+}
+
+#line 50 "D:/Bio4/Prog/read.cpp"
+static void decodeData()
+{
+    char buf[64];
+    u32 used;
+
+    out_data_size = Yz2DecodeSet((char*) in_data_addr, (void*) (MemGetHeapEndAddr(MemGetCurrentHeap()) - READ_BUFF_OFS));
+#line 59 "D:/Bio4/Prog/read.cpp"
+    PSet(pG->pRoomArc, MEM_ALLOC(ROOM_ARC_SIZE, 1, 0xD));
+    used = (u32) pG->pRoomArc - (u32) pG->pStageFont;
+    Mem_free(pG->pRoomArc);
+    if (out_data_size < ROOM_ARC_SIZE - used) {
+        out_data_size = ROOM_ARC_SIZE - used;
+    }
+#line 71 "D:/Bio4/Prog/read.cpp"
+    PSet(pG->pRoomArc, MEM_ALLOC(out_data_size, 1, 0xD));
+    if (pG->pRoomArc == NULL || (u32) pG->pRoomArc + out_data_size >= (u32) in_data_addr) {
+        sprintf(buf, "r%03x.dat", pG->room_id);
+        OSReport("-- %s DATA ENCODE ERROR!\n", buf);
+        OSReport("-- %s DATA TOO LARGE!\n", buf);
+        OSReport("--  pG->pRoom      = %x\n", pG->pRoomArc);
+        OSReport("--  out_data_size  = %x\n", out_data_size);
+        OSReport("--  read data addr = %x\n", in_data_addr);
+#line 82 "D:/Bio4/Prog/read.cpp"
+        HALT();
+    }
+    Yz2DecodeExec(pG->pRoomArc);
+    iTaskExit();
+}
+
+void ReadAreaData()
+{
+    char name[64];
+    int req;
+    u32 readTime;
+    u32 decodeTime;
+
+    sprintf(name, "st%x/r%03x.das", pG->stage_no, pG->room_id);
+    if (pG->flags_54 & 0x02000000) {
+        pG->flags_54 &= ~0x02000000;
+    } else {
+        StopwatchStart();
+#line 147 "D:/Bio4/Prog/read.cpp"
+        req = DVD_READ_N(name, (void*) (MemGetHeapEndAddr(MemGetCurrentHeap()) - READ_BUFF_OFS), 0, 0, 0, 0x8120);
+        while (Dvd.ReadCheck(req, 0, 0, &in_data_addr) != 1) {
+            TaskSleep(1);
+        }
+        readTime = StopwatchStop(NULL);
+        StopwatchStart();
+        iTaskExec(decodeData);
+        while (iTaskStatus() != 0) {
+            TaskSleep(1);
+        }
+        decodeTime = StopwatchStop(NULL);
+        OSReport("\n");
+        OSReport("********** DataReadTime   %f\n", (f32) readTime / 1000.0f);
+        OSReport("********** DataEncodeTime %f\n", (f32) decodeTime / 1000.0f);
+        OSReport("\n");
+        if (req < 0) {
+            pLog->err(0, 0, "ReadAreaData(): DvdReadReqNAlloc error! R%03x", pG->room_id);
+            return;
+        }
+    }
+    PSet(pG->pRoomRtp, GetDataExt(pG->pRoomArc, "RTP", 0));
+    PSet(pG->pRoomMes, GetDataExt(pG->pRoomArc, "MDT", 0));
+    PSet(pG->pRoomOsd, GetDataExt(pG->pRoomArc, "OSD", 0));
+    PSet(pG->pRoomEmi, GetDataExt(pG->pRoomArc, "EMI", 0));
+}
+
+void CoreDataRead()
+{
+    DvdReadInfo info;
+    int req;
+
+    pG->pArc = (ArcFile*) CORE_DATA_ADDR;
+#line 219 "D:/Bio4/Prog/read.cpp"
+    req = DVD_READ(3, CORE_DATA_ADDR, 0, 0, 0, 0x8001);
+    Dvd.ReadCheckInfo(req, &info);
+    SpecularInit(ARC_PTR(ofs_10), ARC_PTR(ofs_44), ARC_PTR(ofs_48), ARC_PTR(ofs_4C));
+    GlobalIlmTexInit(ARC_PTR(ofs_40));
+    if (info.size[0][0] > CORE_DATA_MAX) {
+        pLog->err(0, 0, "CORE_DATA IS TOO LARGE(%d/%d)", 0, CORE_DATA_MAX);
+        TaskSleep(60);
+    }
+}
+
+void OptionDataRead()
+{
+    DvdReadInfo info;
+    char name[64];
+    const char* lang[12] = { "jpn", "eng", "eng", "ger", "fra", "esp", "ita", "eng" };
+    int req;
+
+    sprintf(name, "SS/%3s/option.dat", lang[pSys->language]);
+    pG->pOptionData = OPTION_DATA_ADDR;
+#line 262 "D:/Bio4/Prog/read.cpp"
+    req = DVD_READ_N(name, OPTION_DATA_ADDR, 0, 0, 0, 0x11);
+    Dvd.ReadCheckInfo(req, &info);
+    if (info.size[0][0] > OPTION_DATA_MAX) {
+        pLog->err(0, 0, "OPTION_DAT IS TOO LARGE(%d/%d)", 0, OPTION_DATA_MAX);
+        TaskSleep(60);
+    }
+}
+
+void InitModule(ReadModule* m)
+{
+    if (m->pModule != NULL && (m->flag & 2)) {
+        DLL_Unlink(m->pModule);
+    }
+    if (m->pArc != NULL && (m->flag & 4)) {
+        if (m->flag & 8) {
+            Debug_free(m->pArc);
+        } else {
+            Mem_free(m->pArc);
+        }
+    }
+    if (m->pModule != NULL && (m->flag & 1)) {
+        Mem_free(m->pModule);
+    }
+    memclr_asm(m, sizeof(ReadModule));
+}
+
+static void* readEm(int id, void* addr, u32 size)
+{
+    u32 flags = pG->flags_58;
+    ReadModule* m;
+
+    BitSet(pG->flags_58, 0xFFFFFFFF);
+    BitOff(pG->flags_58, 0x800);
+    m = pullEmModule();
+    if (m == NULL) {
+        return NULL;
+    }
+    if (readEmData(m, id, addr, size)) {
+        setEmModule(m, id);
+        pG->flags_58 = flags;
+        return m->pArc;
+    }
+    pG->flags_58 = flags;
+    return NULL;
+}
+
+ReadFile EmFileTbl[64] = {
+    { 0x06, 0x00, 0 }, { 0x06, 0x00, 0 }, { 0x79, 0x7A, 1 }, { 0x62, 0x63, 1 },
+    { 0x49, 0x4A, 1 }, { 0x1B, 0x63, 1 }, { 0x18, 0x19, 1 }, { 0x18, 0x19, 1 },
+    { 0x18, 0x19, 1 }, { 0x18, 0x19, 1 }, { 0x18, 0x19, 1 }, { 0x18, 0x19, 1 },
+    { 0x18, 0x19, 1 }, { 0x18, 0x19, 1 }, { 0x75, 0x76, 1 }, { 0x5D, 0x5E, 1 },
+    { 0x18, 0x19, 1 }, { 0x1E, 0x1F, 1 }, { 0x2B, 0x2C, 1 }, { 0x38, 0x4F, 1 },
+    { 0x39, 0x50, 1 }, { 0x2E, 0x2F, 1 }, { 0x30, 0x31, 1 }, { 0x32, 0x33, 1 },
+    { 0x34, 0x35, 1 }, { 0x36, 0x37, 1 }, { 0x3A, 0x3B, 1 }, { 0x3C, 0x3D, 1 },
+    { 0x9D, 0x9E, 1 }, { 0xAA, 0xAB, 1 }, { 0xB0, 0xB1, 1 }, { 0x04, 0x05, 1 },
+    { 0x0C, 0x0D, 1 }, { 0x0E, 0x0F, 1 }, { 0x10, 0x11, 1 }, { 0x12, 0x13, 1 },
+    { 0x14, 0x15, 1 }, { 0x16, 0x17, 1 }, { 0x20, 0x21, 1 }, { 0x25, 0x26, 1 },
+    { 0x29, 0x2A, 1 }, { 0x3E, 0x3F, 1 }, { 0x40, 0x41, 1 }, { 0x43, 0x44, 1 },
+    { 0x47, 0x48, 1 }, { 0x4B, 0x4C, 1 }, { 0x53, 0x54, 1 }, { 0x55, 0x56, 1 },
+    { 0x57, 0x58, 1 }, { 0xA6, 0xA7, 1 }, { 0x96, 0x97, 1 }, { 0x18, 0x19, 1 },
+    { 0x64, 0x65, 1 }, { 0x7B, 0x7C, 1 }, { 0xA3, 0xA4, 1 }, { 0x18, 0x19, 1 },
+    { 0x99, 0x9A, 1 }, { 0x82, 0x83, 1 }, { 0xB8, 0xB9, 1 }, { 0x7F, 0x80, 1 },
+    { 0x8C, 0x8D, 1 }, { 0x9B, 0x9C, 1 }, { 0xB6, 0xB7, 1 }, { 0x18, 0x19, 1 },
+};
+ReadFile EmFileTbl_Ada[64] = {
+    { 0x06, 0x00, 0 }, { 0x06, 0x00, 0 }, { 0x79, 0x7A, 1 }, { 0x62, 0x63, 1 },
+    { 0x49, 0x4A, 1 }, { 0x1B, 0x63, 1 }, { 0x18, 0x19, 1 }, { 0x18, 0x19, 1 },
+    { 0x18, 0x19, 1 }, { 0x18, 0x19, 1 }, { 0x18, 0x19, 1 }, { 0x18, 0x19, 1 },
+    { 0x18, 0x19, 1 }, { 0x18, 0x19, 1 }, { 0x75, 0x76, 1 }, { 0x5D, 0x5E, 1 },
+    { 0x18, 0x19, 1 }, { 0x1E, 0x1F, 1 }, { 0x2B, 0x2C, 1 }, { 0x38, 0x4F, 1 },
+    { 0x39, 0x50, 1 }, { 0x2E, 0x2F, 1 }, { 0xE4, 0x31, 1 }, { 0x32, 0x33, 1 },
+    { 0x34, 0x35, 1 }, { 0x36, 0x37, 1 }, { 0x3A, 0x3B, 1 }, { 0x3C, 0x3D, 1 },
+    { 0xE5, 0x9E, 1 }, { 0xE6, 0xAB, 1 }, { 0xB0, 0xB1, 1 }, { 0xE7, 0x05, 1 },
+    { 0xE8, 0x0D, 1 }, { 0x0E, 0x0F, 1 }, { 0x10, 0x11, 1 }, { 0x12, 0x13, 1 },
+    { 0x14, 0x15, 1 }, { 0x16, 0x17, 1 }, { 0x20, 0x21, 1 }, { 0x25, 0x26, 1 },
+    { 0x29, 0x2A, 1 }, { 0x3E, 0x3F, 1 }, { 0x40, 0x41, 1 }, { 0x43, 0x44, 1 },
+    { 0x47, 0x48, 1 }, { 0x4B, 0x4C, 1 }, { 0x53, 0x54, 1 }, { 0x55, 0x56, 1 },
+    { 0x57, 0x58, 1 }, { 0xA6, 0xA7, 1 }, { 0x96, 0x97, 1 }, { 0x18, 0x19, 1 },
+    { 0x64, 0x65, 1 }, { 0x7B, 0x7C, 1 }, { 0xA3, 0xA4, 1 }, { 0x18, 0x19, 1 },
+    { 0x99, 0x9A, 1 }, { 0x82, 0x83, 1 }, { 0xB8, 0xB9, 1 }, { 0x7F, 0x80, 1 },
+    { 0x8C, 0x8D, 1 }, { 0x9B, 0x9C, 1 }, { 0xB6, 0xB7, 1 }, { 0x18, 0x19, 1 },
+};
+ReadFile EmFileTbl_Wesker[64] = {
+    { 0x06, 0x00, 0 }, { 0x06, 0x00, 0 }, { 0x79, 0x7A, 1 }, { 0x62, 0x63, 1 },
+    { 0x49, 0x4A, 1 }, { 0x1B, 0x63, 1 }, { 0x18, 0x19, 1 }, { 0x18, 0x19, 1 },
+    { 0x18, 0x19, 1 }, { 0x18, 0x19, 1 }, { 0x18, 0x19, 1 }, { 0x18, 0x19, 1 },
+    { 0x18, 0x19, 1 }, { 0x18, 0x19, 1 }, { 0x75, 0x76, 1 }, { 0x5D, 0x5E, 1 },
+    { 0x18, 0x19, 1 }, { 0x1E, 0x1F, 1 }, { 0x2B, 0x2C, 1 }, { 0x38, 0x4F, 1 },
+    { 0x39, 0x50, 1 }, { 0x2E, 0x2F, 1 }, { 0xE9, 0x31, 1 }, { 0x32, 0x33, 1 },
+    { 0x34, 0x35, 1 }, { 0x36, 0x37, 1 }, { 0x3A, 0x3B, 1 }, { 0x3C, 0x3D, 1 },
+    { 0xEA, 0x9E, 1 }, { 0xEB, 0xAB, 1 }, { 0xB0, 0xB1, 1 }, { 0xEC, 0x05, 1 },
+    { 0xED, 0x0D, 1 }, { 0x0E, 0x0F, 1 }, { 0x10, 0x11, 1 }, { 0x12, 0x13, 1 },
+    { 0x14, 0x15, 1 }, { 0x16, 0x17, 1 }, { 0x20, 0x21, 1 }, { 0x25, 0x26, 1 },
+    { 0x29, 0x2A, 1 }, { 0x3E, 0x3F, 1 }, { 0x40, 0x41, 1 }, { 0x43, 0x44, 1 },
+    { 0x47, 0x48, 1 }, { 0x4B, 0x4C, 1 }, { 0x53, 0x54, 1 }, { 0x55, 0x56, 1 },
+    { 0x57, 0x58, 1 }, { 0xA6, 0xA7, 1 }, { 0x96, 0x97, 1 }, { 0x18, 0x19, 1 },
+    { 0x64, 0x65, 1 }, { 0x7B, 0x7C, 1 }, { 0xA3, 0xA4, 1 }, { 0x18, 0x19, 1 },
+    { 0x99, 0x9A, 1 }, { 0x82, 0x83, 1 }, { 0xB8, 0xB9, 1 }, { 0x7F, 0x80, 1 },
+    { 0x8C, 0x8D, 1 }, { 0x9B, 0x9C, 1 }, { 0xB6, 0xB7, 1 }, { 0x18, 0x19, 1 },
+};
+ReadFile EmFileTbl_Klauser[64] = {
+    { 0x06, 0x00, 0 }, { 0x06, 0x00, 0 }, { 0x79, 0x7A, 1 }, { 0x62, 0x63, 1 },
+    { 0x49, 0x4A, 1 }, { 0x1B, 0x63, 1 }, { 0x18, 0x19, 1 }, { 0x18, 0x19, 1 },
+    { 0x18, 0x19, 1 }, { 0x18, 0x19, 1 }, { 0x18, 0x19, 1 }, { 0x18, 0x19, 1 },
+    { 0x18, 0x19, 1 }, { 0x18, 0x19, 1 }, { 0x75, 0x76, 1 }, { 0x5D, 0x5E, 1 },
+    { 0x18, 0x19, 1 }, { 0x1E, 0x1F, 1 }, { 0x2B, 0x2C, 1 }, { 0x38, 0x4F, 1 },
+    { 0x39, 0x50, 1 }, { 0x2E, 0x2F, 1 }, { 0xEE, 0x31, 1 }, { 0x32, 0x33, 1 },
+    { 0x34, 0x35, 1 }, { 0x36, 0x37, 1 }, { 0x3A, 0x3B, 1 }, { 0x3C, 0x3D, 1 },
+    { 0xEF, 0x9E, 1 }, { 0xF0, 0xAB, 1 }, { 0xB0, 0xB1, 1 }, { 0xF1, 0x05, 1 },
+    { 0xF2, 0x0D, 1 }, { 0x0E, 0x0F, 1 }, { 0x10, 0x11, 1 }, { 0x12, 0x13, 1 },
+    { 0x14, 0x15, 1 }, { 0x16, 0x17, 1 }, { 0x20, 0x21, 1 }, { 0x25, 0x26, 1 },
+    { 0x29, 0x2A, 1 }, { 0x3E, 0x3F, 1 }, { 0x40, 0x41, 1 }, { 0x43, 0x44, 1 },
+    { 0x47, 0x48, 1 }, { 0x4B, 0x4C, 1 }, { 0x53, 0x54, 1 }, { 0x55, 0x56, 1 },
+    { 0x57, 0x58, 1 }, { 0xA6, 0xA7, 1 }, { 0x96, 0x97, 1 }, { 0x18, 0x19, 1 },
+    { 0x64, 0x65, 1 }, { 0x7B, 0x7C, 1 }, { 0xA3, 0xA4, 1 }, { 0x18, 0x19, 1 },
+    { 0x99, 0x9A, 1 }, { 0x82, 0x83, 1 }, { 0xB8, 0xB9, 1 }, { 0x7F, 0x80, 1 },
+    { 0x8C, 0x8D, 1 }, { 0x9B, 0x9C, 1 }, { 0xB6, 0xB7, 1 }, { 0x18, 0x19, 1 },
+};
+
+int readEmData(ReadModule* m, int id, void* addr, u32 size)
+{
+    DvdReadInfo info;
+    u32 len;
+    ReadFile* tbl;
+    ReadFile* e;
+    char* name;
+    int req;
+    int ret;
+    int mode;
+    void* pArc;
+    OSModuleHeader* pModule = NULL;
+    u32 bssSize = 0;
+    u32 dataSize;
+
+    switch (pG->x4FB8) {
+    case 2:
+        tbl = EmFileTbl_Ada;
+        break;
+    case 3:
+    case 5:
+        tbl = EmFileTbl_Wesker;
+        break;
+    case 4:
+        tbl = EmFileTbl_Klauser;
+        break;
+    default:
+        tbl = EmFileTbl;
+        break;
+    }
+    e = &tbl[id];
+    if (e->file == 0) {
+        return 0;
+    }
+    name = (char*) FileTbl[e->file].name;
+    if (e->dll != 0) {
+        setDrsName(name);
+        name = (char*) FileTbl[e->file].name;
+    }
+    if (Dvd.FileExistCheck(name, &len) < 0) {
+        pLog->err(0, 0, "readEmData(): error! %s", name);
+        return 0;
+    }
+    mode = 1;
+    if (pG->x20 == 2) {
+        mode = 0x100;
+    }
+    if (addr == NULL) {
+#line 725 "D:/Bio4/Prog/read.cpp"
+        req = DVD_READ_N(name, NULL, 0, 0, 0, mode | 0x8004);
+    } else {
+#line 728 "D:/Bio4/Prog/read.cpp"
+        req = DVD_READ_N(name, addr, 0, 0, 0, mode | 0x8000);
+    }
+    while ((ret = Dvd.ReadCheckInfo(req, &info)) != 1) {
+        if (ret < 0) {
+            pLog->err(0, 0, "readEmData(): error! %s", name);
+            return 0;
+        }
+        if (SceSys.checkCTaskRange() == 1) {
+            SceSys.x73 = 1;
+            SceSleep(1);
+            SceSys.x73 = 0;
+        } else {
+            TaskSleep(1);
+        }
+    }
+    len = info.size[0][0];
+    if (addr == NULL) {
+        m->flag |= 4;
+        pArc = (void*) info.addr[0][0];
+        if (len < size) {
+            void* old = pArc;
+            Mem_free(old);
+#line 776 "D:/Bio4/Prog/read.cpp"
+            pArc = MEM_ALLOC(size, 1, 0xD);
+            if (pArc != old) {
+                return 0;
+            }
+        } else {
+            size = len;
+        }
+    } else {
+        m->flag &= ~4;
+        pArc = addr;
+        size = len;
+    }
+    if (e->dll != 0) {
+        pModule = (OSModuleHeader*) (*(u32*) ((u8*) pArc + 4) + (u32) pArc);
+        dataSize = (u32) pModule - (u32) pArc;
+        bssSize = len - dataSize;
+        if (addr == NULL && dataSize < size) {
+            OSModuleHeader* old = pModule;
+#line 814 "D:/Bio4/Prog/read.cpp"
+            pModule = (OSModuleHeader*) MEM_ALLOC(bssSize, 1, 0xD);
+            memcpy(pModule, old, bssSize);
+            m->flag |= 1;
+        } else {
+            size = dataSize;
+            m->flag &= ~1;
+        }
+    }
+    m->bssSize = bssSize;
+    m->id = id;
+    m->pArc = pArc;
+    m->size = size;
+    m->pModule = pModule;
+    return 1;
+}
+
+void setEmModule(ReadModule* m, int id)
+{
+    ReadFile* tbl;
+    ReadFile* e;
+    void* bss;
+
+    switch (pG->x4FB8) {
+    case 2:
+        tbl = EmFileTbl_Ada;
+        break;
+    case 4:
+        tbl = EmFileTbl_Klauser;
+        break;
+    default:
+        tbl = EmFileTbl;
+        break;
+    }
+    e = &tbl[id];
+    if (m->pModule != NULL) {
+        if (!(m->flag & 2)) {
+            bss = NULL;
+            if (m->pModule->bssSize != 0) {
+                bss = m;
+            }
+            if (m->pModule->bssSize > DLL_BSS_MAX) {
+                for (;;) {
+                    eprintf(100, 100, 0, 0, "BSS SIZE OVER!!!");
+                    if (e->dll != 0) {
+                        eprintf(100, 116, 0, 0, " %s", e->dll);
+                    } else {
+                        eprintf(100, 116, 0, 0, " %s", FileTbl[e->file].name);
+                    }
+                    TaskSleep(1);
+                }
+            }
+            DLL_Link(m->pModule, bss);
+            m->flag |= 2;
+        }
+        m->pModule->prolog();
+        m->pInitFunc = EmInitFunc;
+    } else {
+        m->pInitFunc = NULL;
+        m->flag &= ~2;
+        m->pModule = NULL;
+    }
+}
+
+void EmReadInit()
+{
+    int i;
+
+    for (i = 0; i < 4; i++) {
+        InitModule(&EmReadModule[i]);
+    }
+}
+
+static int checkAshleyId(int id)
+{
+    if (id == 3 || id == 5) {
+        if (pG->costume2 == 0) {
+            id = 3;
+        } else {
+            id = 5;
+        }
+    }
+    return id;
+}
+
+void* EmReadSearch(int id, void* addr, u32 size)
+{
+    ReadModule* m;
+
+    id = checkAshleyId(id);
+    m = SearchEmModule(id);
+    if (m == NULL) {
+        return readEm(id, addr, size);
+    }
+    EmInitFunc = m->pInitFunc;
+    return m->pArc;
+}
+
+ReadModule* SearchEmModule(int id)
+{
+    ReadModule* m;
+    int i;
+
+    id = checkAshleyId(id);
+    for (m = EmReadModule, i = 0; i < 4; i++, m++) {
+        if (m->id == (u16) id) {
+            return m;
+        }
+    }
+    return NULL;
+}
+
+ReadModule* pullEmModule()
+{
+    ReadModule* m;
+    int i;
+
+    for (m = EmReadModule, i = 0; i < 4; i++, m++) {
+        if (m->pArc == NULL) {
+            return m;
+        }
+    }
+    return NULL;
+}
+
+void ReadPlayerData(int type, int costume)
+{
+    DvdReadInfo info;
+    int req;
+    int ret;
+    int file;
+    int dll = 0;
+    u8* data = (u8*) PL_DATA_ADDR;
+    u32 total;
+    u32 max;
+    u32 size;
+    u32 bssSize;
+    void* pArc;
+    OSModuleHeader* pModule;
+    void* bss;
+
+    if (!(pG->flags_4FBE & 1)) {
+        return;
+    }
+    pG->flags_4FBE &= ~1;
+    ReleasePlData();
+    pG->pPlArc = (PlArc*) PL_DATA_ADDR;
+    switch (type) {
+    case 1:
+        file = (costume == 1) ? 0xBE : 0x22;
+        break;
+    case 2:
+        file = (costume == 1) ? 0xB4 : 0xA8;
+        dll = 0x1A;
+        break;
+    case 3:
+        file = 0xBC;
+        dll = 0xBD;
+        break;
+    case 4:
+        file = 0xC5;
+        dll = 0xC6;
+        break;
+    case 5:
+        file = 0xC7;
+        dll = 0xC8;
+        break;
+    case 0:
+    default:
+        switch (costume) {
+        default:
+            file = 6;
+            break;
+        case 1:
+            file = 0x5A;
+            break;
+        case 2:
+            file = 0x5B;
+            break;
+        case 3:
+            file = 0x79;
+            break;
+        }
+        dll = 0;
+        break;
+    }
+    setDrsName((char*) FileTbl[file].name);
+#line 1124 "D:/Bio4/Prog/read.cpp"
+    req = DVD_READ_N(FileTbl[file].name, (void*) PL_DATA_ADDR, 0, 0, 0, 0x8100);
+    while ((ret = Dvd.ReadCheckInfo(req, &info)) != 1) {
+        if (ret < 0) {
+            pLog->err(0, 0, "ReadPlayerData(): error! %s", FileTbl[file].name);
+#line 1139 "D:/Bio4/Prog/read.cpp"
+            HALT();
+        }
+        TaskSleep(1);
+    }
+    total = info.size[0][0] + info.size[0][1];
+    if (type == 0) {
+        max = 0x118000;
+    } else {
+        max = 0x188000;
+    }
+    if (total >= max) {
+        pLog->err(0, 0, "ERROR: PLAYER_DATA IS TOO LARGE");
+    }
+    size = total;
+    bssSize = 0;
+    pArc = NULL;
+    pModule = NULL;
+    if (dll != 0) {
+        ReleasePlData();
+        pArc = (void*) PL_DATA_ADDR;
+        pModule = (OSModuleHeader*) (*(u32*) (data + 4) + (u32) data);
+        size = (u32) pModule - (u32) data;
+        bssSize = total - size;
+        if (!(PlReadModule.flag & 2)) {
+            bss = NULL;
+            if (pModule->bssSize != 0) {
+                bss = &PlReadModule;
+            }
+            if (pModule->bssSize > DLL_BSS_MAX) {
+                for (;;) {
+                    eprintf(100, 100, 0, 0, "PL_DLL BSS SIZE OVER!!!");
+                    TaskSleep(1);
+                }
+            }
+            PlReadModule.flag |= 2;
+            DLL_Link(pModule, bss);
+            pModule->prolog();
+        } else {
+            pModule = NULL;
+        }
+    }
+    PlReadModule.bssSize = bssSize;
+    PlReadModule.id = file;
+    PlReadModule.pArc = pArc;
+    PlReadModule.size = size;
+    PlReadModule.pModule = pModule;
+}
+
+void ReleasePlData()
+{
+    if (PlReadModule.pArc != NULL) {
+        InitModule(&PlReadModule);
+        PlReadModule.pArc = NULL;
+    }
+}
+
+void ReleaseWepData()
+{
+    if (pG->x4F7C != 0xFF) {
+        InitModule(&WepReadModule);
+        pG->x4F7C = 0xFF;
+        oldWepId = 0xFF;
+    }
+}
+
+ReadFile wep_data_leon[46] = {
+    { 0xA1, 0xA2, 0 }, { 0x07, 0x08, 0 }, { 0x09, 0x0A, 0 }, { 0x81, 0x0A, 0 },
+    { 0x8A, 0x8B, 0 }, { 0x86, 0x87, 0 }, { 0x88, 0x89, 0 }, { 0x45, 0x46, 0 },
+    { 0x8E, 0x8F, 0 }, { 0x7D, 0x7E, 0 }, { 0x6F, 0x70, 0 }, { 0x6D, 0x6E, 0 },
+    { 0x71, 0x72, 0 }, { 0x73, 0x74, 0 }, { 0x23, 0x24, 0 }, { 0x84, 0x85, 0 },
+    { 0x77, 0x78, 0 }, { 0x90, 0x91, 0 }, { 0xAC, 0x0A, 0 }, { 0x66, 0x67, 0 },
+    { 0xAD, 0x6E, 0 }, { 0xF4, 0x7E, 0 }, { 0x00, 0x00, 0 }, { 0x00, 0x00, 0 },
+    { 0xF5, 0x7E, 0 }, { 0xF8, 0x24, 0 }, { 0x00, 0x00, 0 }, { 0x00, 0x00, 0 },
+    { 0x00, 0x00, 0 }, { 0x00, 0x00, 0 }, { 0xFB, 0x74, 0 }, { 0xF6, 0x70, 0 },
+    { 0xF7, 0x70, 0 }, { 0xAE, 0xAF, 0 }, { 0x00, 0x00, 0 }, { 0x00, 0x00, 0 },
+    { 0x00, 0x00, 0 }, { 0x00, 0x00, 0 }, { 0x00, 0x00, 0 }, { 0x00, 0x00, 0 },
+    { 0x00, 0x00, 0 }, { 0x00, 0x00, 0 }, { 0x00, 0x00, 0 }, { 0x00, 0x00, 0 },
+    { 0x00, 0x00, 0 }, { 0x00, 0x00, 0 },
+};
+ReadFile wep_data_ada[46] = {
+    { 0xCC, 0xCD, 0 }, { 0xD4, 0xD5, 0 }, { 0x00, 0x00, 0 }, { 0x00, 0x00, 0 },
+    { 0x00, 0x00, 0 }, { 0x00, 0x00, 0 }, { 0x00, 0x00, 0 }, { 0x00, 0x00, 0 },
+    { 0x00, 0x00, 0 }, { 0x00, 0x00, 0 }, { 0xD8, 0xD9, 0 }, { 0xD6, 0xD7, 0 },
+    { 0x00, 0x00, 0 }, { 0x00, 0x00, 0 }, { 0x00, 0x00, 0 }, { 0x00, 0x00, 0 },
+    { 0x00, 0x00, 0 }, { 0x00, 0x00, 0 }, { 0x00, 0x00, 0 }, { 0xB2, 0xB3, 0 },
+    { 0x00, 0x00, 0 }, { 0x00, 0x00, 0 }, { 0x00, 0x00, 0 }, { 0x00, 0x00, 0 },
+    { 0x00, 0x00, 0 }, { 0x00, 0x00, 0 }, { 0x00, 0x00, 0 }, { 0x00, 0x00, 0 },
+    { 0x00, 0x00, 0 }, { 0x00, 0x00, 0 }, { 0x00, 0x00, 0 }, { 0x00, 0x00, 0 },
+    { 0x00, 0x00, 0 }, { 0x00, 0x00, 0 }, { 0x00, 0x00, 0 }, { 0x00, 0x00, 0 },
+    { 0x00, 0x00, 0 }, { 0x00, 0x00, 0 }, { 0x00, 0x00, 0 }, { 0x00, 0x00, 0 },
+    { 0x00, 0x00, 0 }, { 0x00, 0x00, 0 }, { 0x00, 0x00, 0 }, { 0x00, 0x00, 0 },
+    { 0x00, 0x00, 0 }, { 0x00, 0x00, 0 },
+};
+static ReadFile wep_data_hunk[46] = {
+    { 0xCE, 0xCF, 0 }, { 0x00, 0x00, 0 }, { 0x00, 0x00, 0 }, { 0x00, 0x00, 0 },
+    { 0x00, 0x00, 0 }, { 0x00, 0x00, 0 }, { 0x00, 0x00, 0 }, { 0x00, 0x00, 0 },
+    { 0x00, 0x00, 0 }, { 0x00, 0x00, 0 }, { 0x00, 0x00, 0 }, { 0xDA, 0xDB, 0 },
+    { 0x00, 0x00, 0 }, { 0x00, 0x00, 0 }, { 0x00, 0x00, 0 }, { 0x00, 0x00, 0 },
+    { 0x00, 0x00, 0 }, { 0x00, 0x00, 0 }, { 0x00, 0x00, 0 }, { 0xDC, 0xDD, 0 },
+    { 0x00, 0x00, 0 }, { 0x00, 0x00, 0 }, { 0x00, 0x00, 0 }, { 0x00, 0x00, 0 },
+    { 0x00, 0x00, 0 }, { 0x00, 0x00, 0 }, { 0x00, 0x00, 0 }, { 0x00, 0x00, 0 },
+    { 0x00, 0x00, 0 }, { 0x00, 0x00, 0 }, { 0x00, 0x00, 0 }, { 0x00, 0x00, 0 },
+    { 0x00, 0x00, 0 }, { 0x00, 0x00, 0 }, { 0x00, 0x00, 0 }, { 0x00, 0x00, 0 },
+    { 0x00, 0x00, 0 }, { 0x00, 0x00, 0 }, { 0x00, 0x00, 0 }, { 0x00, 0x00, 0 },
+    { 0x00, 0x00, 0 }, { 0x00, 0x00, 0 }, { 0x00, 0x00, 0 }, { 0x00, 0x00, 0 },
+    { 0x00, 0x00, 0 }, { 0x00, 0x00, 0 },
+};
+static ReadFile wep_data_wesker[46] = {
+    { 0xD2, 0xD3, 0 }, { 0x00, 0x00, 0 }, { 0xE0, 0xE1, 0 }, { 0x00, 0x00, 0 },
+    { 0xF9, 0xFA, 0 }, { 0xFC, 0xFD, 0 }, { 0xE2, 0xE3, 0 }, { 0x00, 0x00, 0 },
+    { 0x00, 0x00, 0 }, { 0x00, 0x00, 0 }, { 0x00, 0x00, 0 }, { 0x00, 0x00, 0 },
+    { 0x00, 0x00, 0 }, { 0x00, 0x00, 0 }, { 0x00, 0x00, 0 }, { 0x00, 0x00, 0 },
+    { 0x00, 0x00, 0 }, { 0x00, 0x00, 0 }, { 0x00, 0x00, 0 }, { 0x00, 0x00, 0 },
+    { 0x00, 0x00, 0 }, { 0x00, 0x00, 0 }, { 0x00, 0x00, 0 }, { 0x00, 0x00, 0 },
+    { 0x00, 0x00, 0 }, { 0x00, 0x00, 0 }, { 0x00, 0x00, 0 }, { 0x00, 0x00, 0 },
+    { 0x00, 0x00, 0 }, { 0x00, 0x00, 0 }, { 0x00, 0x00, 0 }, { 0x00, 0x00, 0 },
+    { 0x00, 0x00, 0 }, { 0x00, 0x00, 0 }, { 0x00, 0x00, 0 }, { 0x00, 0x00, 0 },
+    { 0x00, 0x00, 0 }, { 0x00, 0x00, 0 }, { 0x00, 0x00, 0 }, { 0x00, 0x00, 0 },
+    { 0x00, 0x00, 0 }, { 0x00, 0x00, 0 }, { 0x00, 0x00, 0 }, { 0x00, 0x00, 0 },
+    { 0x00, 0x00, 0 }, { 0x00, 0x00, 0 },
+};
+ReadFile wep_data_klauser[46] = {
+    { 0xD0, 0xD1, 0 }, { 0x00, 0x00, 0 }, { 0x00, 0x00, 0 }, { 0x00, 0x00, 0 },
+    { 0x00, 0x00, 0 }, { 0x00, 0x00, 0 }, { 0x00, 0x00, 0 }, { 0x00, 0x00, 0 },
+    { 0x00, 0x00, 0 }, { 0x00, 0x00, 0 }, { 0x00, 0x00, 0 }, { 0x00, 0x00, 0 },
+    { 0x00, 0x00, 0 }, { 0x00, 0x00, 0 }, { 0x00, 0x00, 0 }, { 0x00, 0x00, 0 },
+    { 0x00, 0x00, 0 }, { 0x00, 0x00, 0 }, { 0x00, 0x00, 0 }, { 0x00, 0x00, 0 },
+    { 0x00, 0x00, 0 }, { 0x00, 0x00, 0 }, { 0x00, 0x00, 0 }, { 0xDE, 0xDF, 0 },
+    { 0x00, 0x00, 0 }, { 0x00, 0x00, 0 }, { 0x00, 0x00, 0 }, { 0x00, 0x00, 0 },
+    { 0xC3, 0xC4, 0 }, { 0x00, 0x00, 0 }, { 0x00, 0x00, 0 }, { 0x00, 0x00, 0 },
+    { 0x00, 0x00, 0 }, { 0x00, 0x00, 0 }, { 0x00, 0x00, 0 }, { 0x00, 0x00, 0 },
+    { 0x00, 0x00, 0 }, { 0x00, 0x00, 0 }, { 0x00, 0x00, 0 }, { 0x00, 0x00, 0 },
+    { 0x00, 0x00, 0 }, { 0x00, 0x00, 0 }, { 0x00, 0x00, 0 }, { 0x00, 0x00, 0 },
+    { 0x00, 0x00, 0 }, { 0x00, 0x00, 0 },
+};
+
+void ReadWepData(int no, int type)
+{
+    DvdReadInfo info;
+    int req;
+    int ret;
+    u8* data;
+    ReadFile* tbl;
+    ReadFile* e;
+    u32 total;
+    u32 size;
+    u32 bssSize;
+    OSModuleHeader* pModule;
+    void* bss;
+
+    if (pG->x4FB8 == 4) {
+        data = (u8*) Game.pWepBuf;
+    } else {
+        data = (u8*) WEP_DATA_ADDR;
+    }
+    switch (pG->x4FB8) {
+    case 2:
+        switch (no) {
+        case 0x13:
+        case 0x16:
+        case 0x17:
+        case 0x19:
+        case 0x1F:
+        case 0x20:
+            no = 0x13;
+            break;
+        }
+        tbl = wep_data_ada;
+        break;
+    case 3:
+        switch (no) {
+        case 0x13:
+        case 0x16:
+        case 0x17:
+        case 0x19:
+        case 0x1F:
+        case 0x20:
+            no = 0x13;
+            break;
+        }
+        tbl = wep_data_hunk;
+        break;
+    case 5:
+        switch (no) {
+        case 0x13:
+        case 0x16:
+        case 0x17:
+        case 0x19:
+        case 0x1F:
+        case 0x20:
+            no = 4;
+            break;
+        case 0x0A:
+            no = 5;
+            break;
+        }
+        tbl = wep_data_wesker;
+        break;
+    case 4:
+        switch (no) {
+        case 0x13:
+        case 0x16:
+        case 0x17:
+        case 0x19:
+        case 0x1F:
+        case 0x20:
+            no = 0x17;
+            break;
+        }
+        tbl = wep_data_klauser;
+        break;
+    case 0:
+    default:
+        if (no == 0x19 || no == 0x1F || no == 0x20 || no == 0x16 || no == 0x17) {
+            no = 0x13;
+        } else if (no == 3 && type == 2) {
+            no = 0x12;
+        } else if (no == 0xB && type != 0 && type != 1) {
+            no = 0x14;
+        } else if (no == 9) {
+            if (type == 1) {
+                no = 0x15;
+            } else if (type == 2) {
+                no = 0x18;
+            }
+        } else if (no == 0xA) {
+            if (type == 1) {
+                no = 0x1F;
+            } else if (type == 2) {
+                no = 0x20;
+            }
+        } else if (no == 0xE && type == 1) {
+            no = 0x19;
+        } else if (no == 0xD && type == 2) {
+            no = 0x1E;
+        }
+        tbl = wep_data_leon;
+        break;
+    }
+    e = &tbl[no];
+    if (e->file == 0) {
+        return;
+    }
+    if (oldWepId != 0xFF && no == oldWepId) {
+        return;
+    }
+    oldWepId = no;
+    ReleaseWepData();
+    pG->x4F7C = pG->wep_no;
+    if (e->dll != 0) {
+        setDrsName((char*) FileTbl[e->file].name);
+    }
+#line 1538 "D:/Bio4/Prog/read.cpp"
+    req = DVD_READ_N(FileTbl[e->file].name, data, 0, 0, 0, 0x8001);
+    while ((ret = Dvd.ReadCheckInfo(req, &info)) != 1) {
+        if (ret < 0) {
+            pLog->err(0, 0, "ReadWepData() DATA LOAD FAILED");
+#line 1547 "D:/Bio4/Prog/read.cpp"
+            HALT();
+        }
+        TaskSleep(1);
+    }
+    total = info.size[0][0] + info.size[0][1];
+    if (total > WEP_DATA_MAX) {
+        pLog->err(0, 0, "WEAPON_DATA IS TOO LARGE (DATA)");
+#line 1560 "D:/Bio4/Prog/read.cpp"
+        HALT();
+    }
+    pG->pWepArc = (void*) info.addr[0][0];
+    pModule = (OSModuleHeader*) (*(u32*) (data + 4) + (u32) data);
+    size = (u32) pModule - (u32) data;
+    bssSize = total - size;
+    if (!(WepReadModule.flag & 2)) {
+        bss = NULL;
+        if (pModule->bssSize != 0) {
+            bss = &WepReadModule;
+        }
+        if (pModule->bssSize > DLL_BSS_MAX) {
+            for (;;) {
+                eprintf(100, 100, 0, 0, "BSS SIZE OVER!!!");
+                TaskSleep(1);
+            }
+        }
+        WepReadModule.flag |= 2;
+        DLL_Link(pModule, bss);
+        pModule->prolog();
+    } else {
+        pModule = NULL;
+    }
+    WepReadModule.bssSize = bssSize;
+    WepReadModule.id = no;
+    WepReadModule.size = size;
+    WepReadModule.pModule = pModule;
+    WepReadModule.pArc = data;
+    pG->pWepArc = data;
+}
+
+void ContinueWepData()
+{
+    u8 wep;
+
+    if (pG->x4FB8 != 1) {
+        wep = pG->wep_no;
+        if (wep != pG->x4F7C) {
+            pG->wep_no = pG->x4F7C;
+            pPL->weaponRelease();
+            pPL->weaponLoad(wep, pG->wep_type);
+            pPL->weaponInit();
+        }
+    }
+}
+
+void* GetDataExt(void* arc, const char* tag, int no)
+{
+    DataExtHeader* h = (DataExtHeader*) arc;
+    u32 i;
+    int cnt = 0;
+    u8* p;
+
+    if (arc == NULL || tag == NULL) {
+        pLog->err(0, 0, "GetDataExt() NULL POINTER %08x %08x", arc, tag);
+        return NULL;
+    }
+    p = (u8*) &h->ofs[h->num];
+    for (i = 0; i < h->num; i++, p += 4) {
+        if (p[0] == tag[0] && p[1] == tag[1] && p[2] == tag[2]) {
+            if (cnt == no) {
+                return (void*) (h->ofs[i] + (u32) arc);
+            }
+            cnt++;
+        }
+    }
+    return NULL;
+}
+
+asm(".section .bss; .balign 32");

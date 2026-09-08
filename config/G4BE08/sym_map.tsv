@@ -55,13 +55,13 @@ address	size	section	unit	scope	name	demangled
 0x80008A4C	0x5C	.text	game/cam_ctrl.cpp	global	endPushObject__13CameraControl	CameraControl::endPushObject
 0x80008AA8	0xA8	.text	game/cam_ctrl.cpp	global	StartLookDownEm__13CameraControlPv	CameraControl::StartLookDownEm
 0x80008B50	0x6C	.text	game/cam_ctrl.cpp	global	EndLookDownEm__13CameraControl	CameraControl::EndLookDownEm
-0x80008BBC	0x80	.text	game/cam_ctrl.cpp	global	startScope__13CameraControl	CameraControl::startScope
+0x80008BBC	0x80	.text	game/cam_ctrl.cpp	global	startScope__13CameraControlP3VecT1	CameraControl::startScope
 0x80008C3C	0x94	.text	game/cam_ctrl.cpp	global	endScope__13CameraControl	CameraControl::endScope
 0x80008CD0	0x50	.text	game/cam_ctrl.cpp	global	getTrajectory__13CameraControlP3VecT1	CameraControl::getTrajectory
 0x80008D20	0x48	.text	game/cam_ctrl.cpp	global	saveScopeParam__13CameraControl	CameraControl::saveScopeParam
 0x80008D68	0x48	.text	game/cam_ctrl.cpp	global	loadScopeParam__13CameraControl	CameraControl::loadScopeParam
-0x80008DB0	0x24	.text	game/cam_ctrl.cpp	global	SetBinocularRange__13CameraControlf	CameraControl::SetBinocularRange
-0x80008DD4	0x90	.text	game/cam_ctrl.cpp	global	HoldBinocular__13CameraControlPvN31	CameraControl::HoldBinocular
+0x80008DB0	0x24	.text	game/cam_ctrl.cpp	global	SetBinocularRange__13CameraControlffff	CameraControl::SetBinocularRange
+0x80008DD4	0x90	.text	game/cam_ctrl.cpp	global	HoldBinocular__13CameraControlPvT1P3VecT3	CameraControl::HoldBinocular
 0x80008E64	0x8C	.text	game/cam_ctrl.cpp	global	LowerBinocular__13CameraControl	CameraControl::LowerBinocular
 0x80008EF0	0x1C	.text	game/cam_ctrl.cpp	global	GetBinocularIDAddr__13CameraControlPPvT1	CameraControl::GetBinocularIDAddr
 0x80008F0C	0x80	.text	game/cam_ctrl.cpp	global	MotionSet__13CameraControlPvif	CameraControl::MotionSet
@@ -205,7 +205,7 @@ address	size	section	unit	scope	name	demangled
 0x80012F54	0x18C	.text	game/emBar.cpp	global	emBarHitCk	emBarHitCk
 0x800130E0	0x48	.text	game/emBar.cpp	global	log__t8cManager1Z3cEmPCce	cManager<cEm>::log
 0x80013128	0xBC	.text	game/emBar.cpp	global	countActiveWork__t8cManager1Z3cEm	cManager<cEm>::countActiveWork
-0x800131E4	0x158	.text	game/emBar.cpp	global	cManager_cEm_create	cManager<cEm>::create
+0x800131E4	0x158	.text	game/emBar.cpp	global	create__t8cManager1Z3cEmi	cManager<cEm>::create
 0x8001333C	0x20	.text	game/emBar.cpp	global	cEmBar_dt_cEmBar	cEmBar::~cEmBar
 0x8001335C	0x330	.text	game/emwep.cpp	global	SetWeapon	SetWeapon
 0x8001368C	0x44	.text	game/emwep.cpp	global	cEmWep_beginEvent	cEmWep::beginEvent
@@ -606,25 +606,25 @@ address	size	section	unit	scope	name	demangled
 0x8002DEF8	0xC8	.text	game/obj14.cpp	global	obj14ClothSet	obj14ClothSet
 0x8002DFC0	0x24	.text	game/obj14.cpp	global	obj14ClothMove	obj14ClothMove
 0x8002DFE4	0x20	.text	game/obj14.cpp	global	_._8cObjBell	cObjBell::~cObjBell
-0x8002E004	0x364	.text	game/obj15.cpp	global	SetObjGatling	SetObjGatling
-0x8002E368	0xF8	.text	game/obj15.cpp	global	cObjGatling_move	cObjGatling::move
+0x8002E004	0x364	.text	game/obj15.cpp	global	SetObjGatling__FPvT0P3VecT2	SetObjGatling
+0x8002E368	0xF8	.text	game/obj15.cpp	global	move__11cObjGatling	cObjGatling::move
 0x8002E460	0x2D0	.text	game/obj15.cpp	global	obj15_R1_Set	obj15_R1_Set
 0x8002E730	0xD8	.text	game/obj15.cpp	global	obj15_R1_Break	obj15_R1_Break
 0x8002E808	0x1E4	.text	game/obj15.cpp	global	obj15BarrelMove	obj15BarrelMove
 0x8002E9EC	0x90	.text	game/obj15.cpp	global	obj15MatCalc	obj15MatCalc
 0x8002EA7C	0x340	.text	game/obj15.cpp	global	obj15GunHitck	obj15GunHitck
-0x8002EDBC	0x8	.text	game/obj15.cpp	local	cObjGatling_setRide	cObjGatling::setRide
-0x8002EDC4	0xC	.text	game/obj15.cpp	global	cObjGatling_setFire	cObjGatling::setFire
-0x8002EDD0	0xC	.text	game/obj15.cpp	global	cObjGatling_stopFire	cObjGatling::stopFire
-0x8002EDDC	0x10	.text	game/obj15.cpp	global	cObjGatling_ckReload	cObjGatling::ckReload
-0x8002EDEC	0xC	.text	game/obj15.cpp	global	cObjGatling_setReload	cObjGatling::setReload
+0x8002EDBC	0x8	.text	game/obj15.cpp	global	setRide__11cObjGatlingP3cEm	cObjGatling::setRide
+0x8002EDC4	0xC	.text	game/obj15.cpp	global	setFire__11cObjGatling	cObjGatling::setFire
+0x8002EDD0	0xC	.text	game/obj15.cpp	global	stopFire__11cObjGatling	cObjGatling::stopFire
+0x8002EDDC	0x10	.text	game/obj15.cpp	global	ckReload__11cObjGatling	cObjGatling::ckReload
+0x8002EDEC	0xC	.text	game/obj15.cpp	global	setReload__11cObjGatling	cObjGatling::setReload
 0x8002EDF8	0x10C	.text	game/obj15.cpp	global	obj15DmCk	obj15DmCk
-0x8002EF04	0x4C	.text	game/obj15.cpp	global	cObjGatling_setEat	cObjGatling::setEat
-0x8002EF50	0x8	.text	game/obj15.cpp	global	cObjGatling_setMaxRot	cObjGatling::setMaxRot
-0x8002EF58	0x18	.text	game/obj15.cpp	global	cObjGatling_ckBreak	cObjGatling::ckBreak
-0x8002EF70	0x8	.text	game/obj15.cpp	global	cObjGatling_setBreakMode	cObjGatling::setBreakMode
-0x8002EF78	0xC0	.text	game/obj15.cpp	global	cObjGatling_setBreak	cObjGatling::setBreak
-0x8002F038	0x20	.text	game/obj15.cpp	global	cObjGatling_dt_cObjGatling	cObjGatling::~cObjGatling
+0x8002EF04	0x4C	.text	game/obj15.cpp	global	setEat__11cObjGatlingPvi	cObjGatling::setEat
+0x8002EF50	0x8	.text	game/obj15.cpp	global	setMaxRot__11cObjGatlingf	cObjGatling::setMaxRot
+0x8002EF58	0x18	.text	game/obj15.cpp	global	ckBreak__11cObjGatling	cObjGatling::ckBreak
+0x8002EF70	0x8	.text	game/obj15.cpp	global	setBreakMode__11cObjGatlingUc	cObjGatling::setBreakMode
+0x8002EF78	0xC0	.text	game/obj15.cpp	global	setBreak__11cObjGatling	cObjGatling::setBreak
+0x8002F038	0x20	.text	game/obj15.cpp	global	_._11cObjGatling	cObjGatling::~cObjGatling
 0x8002F058	0x2E0	.text	game/obj16.cpp	global	SetObj16	SetObj16
 0x8002F338	0x874	.text	game/obj16.cpp	local	cObj16_move	cObj16::move
 0x8002FBAC	0x44	.text	game/obj16.cpp	global	obj16_R1_Set	obj16_R1_Set
@@ -3058,7 +3058,7 @@ address	size	section	unit	scope	name	demangled
 0x800CB424	0x19C	.text	game/atari.cpp	local	cEatMgr_registEffInfo	cEatMgr::registEffInfo
 0x800CB5C0	0x28	.text	game/atari.cpp	global	cEatMgr_getEffInfo	cEatMgr::getEffInfo
 0x800CB5E8	0xA4	.text	game/atari.cpp	global	cEatMgr_log	cEatMgr::log
-0x800CB68C	0xB8	.text	game/atari.cpp	global	cSatMgr_create	cSatMgr::create
+0x800CB68C	0xB8	.text	game/atari.cpp	global	create__7cSatMgrPviP3VecT3Uc	cSatMgr::create
 0x800CB744	0xB0	.text	game/atari.cpp	global	create__7cSatMgrP3VecN21iif	cSatMgr::create
 0x800CB7F4	0x298	.text	game/atari.cpp	global	polySphereCk__7cSatMgrP3VecT1fiii	cSatMgr::polySphereCk
 0x800CBA8C	0xE4	.text	game/atari.cpp	global	blkPolySphereCk	blkPolySphereCk
@@ -3222,7 +3222,7 @@ address	size	section	unit	scope	name	demangled
 0x800D68D8	0xB0	.text	game/cam_sys.cpp	global	CameraTargetRot	CameraTargetRot
 0x800D6988	0xB0	.text	game/cam_sys.cpp	global	CameraCamposRot	CameraCamposRot
 0x800D6A38	0x50	.text	game/cam_sys.cpp	global	CameraDolly	CameraDolly
-0x800D6A88	0x78	.text	game/cam_sys.cpp	local	CameraTargetDistance	CameraTargetDistance
+0x800D6A88	0x78	.text	game/cam_sys.cpp	local	CameraTargetDistance__FP6Cameraf	CameraTargetDistance
 0x800D6B00	0x78	.text	game/cam_sys.cpp	global	CameraCamposDistance	CameraCamposDistance
 0x800D6B78	0x64	.text	game/cam_sys.cpp	global	CameraSetWithRoll	CameraSetWithRoll
 0x800D6BDC	0x58	.text	game/camera.cpp	global	CameraSetProjection	CameraSetProjection
@@ -3638,7 +3638,7 @@ address	size	section	unit	scope	name	demangled
 0x800EF49C	0x8C	.text	game/em_set.cpp	global	checkListId	checkListId
 0x800EF528	0x304	.text	game/em_set.cpp	global	EmSetFromList	EmSetFromList
 0x800EF82C	0x2E4	.text	game/em_set.cpp	global	EmSetFromList2	EmSetFromList2
-0x800EFB10	0x214	.text	game/em_set.cpp	local	EmSetEvent	EmSetEvent
+0x800EFB10	0x214	.text	game/em_set.cpp	local	EmSetEvent__FP10EmListData	EmSetEvent
 0x800EFD24	0x84	.text	game/em_set.cpp	global	GetEmPtrFromList	GetEmPtrFromList
 0x800EFDA8	0x28	.text	game/em_set.cpp	global	GetListPtrFromEm	GetListPtrFromEm
 0x800EFDD0	0x24	.text	game/em_set.cpp	global	GetEmIdFromList	GetEmIdFromList
@@ -4028,7 +4028,7 @@ address	size	section	unit	scope	name	demangled
 0x80115378	0xC	.text	game/emtree.cpp	global	cEmTree_setCatch	cEmTree::setCatch
 0x80115384	0x3C	.text	game/emtree.cpp	global	cEmTree_setLost	cEmTree::setLost
 0x801153C0	0x20	.text	game/emtree.cpp	global	cEmTree_dt_cEmTree	cEmTree::~cEmTree
-0x801153E0	0xB0	.text	game/emwindow.cpp	global	SetWindow	SetWindow
+0x801153E0	0xB0	.text	game/emwindow.cpp	global	SetWindow__FPvT0P3VecT2iUcT0	SetWindow
 0x80115490	0x230	.text	game/emwindow.cpp	global	ChkWindow	ChkWindow
 0x801156C0	0x5C4	.text	game/emwindow.cpp	global	cEmWindow_init	cEmWindow::init
 0x80115C84	0x198	.text	game/emwindow.cpp	global	cEmWindow_move	cEmWindow::move
@@ -4037,11 +4037,11 @@ address	size	section	unit	scope	name	demangled
 0x80116860	0x184	.text	game/emwindow.cpp	global	cEmWindow_CalFloor	cEmWindow::CalFloor
 0x801169E4	0x8	.text	game/emwindow.cpp	global	cEmWindow_GetFloor	cEmWindow::GetFloor
 0x801169EC	0x58	.text	game/emwindow.cpp	local	cEmWindow_ChkBreakDir	cEmWindow::ChkBreakDir
-0x80116A44	0x40	.text	game/emwindow.cpp	global	cEmWindow_ChkStatus	cEmWindow::ChkStatus
+0x80116A44	0x40	.text	game/emwindow.cpp	global	ChkStatus__9cEmWindow	cEmWindow::ChkStatus
 0x80116A84	0x4C	.text	game/emwindow.cpp	global	cEmWindow_SetStatus	cEmWindow::SetStatus
 0x80116AD0	0xA0	.text	game/emwindow.cpp	global	cEmWindow_SetShake	cEmWindow::SetShake
 0x80116B70	0xCC	.text	game/emwindow.cpp	global	cEmWindow_SetBreakAll	cEmWindow::SetBreakAll
-0x80116C3C	0x140	.text	game/emwindow.cpp	global	cEmWindow_SetBreakModel	cEmWindow::SetBreakModel
+0x80116C3C	0x140	.text	game/emwindow.cpp	global	SetBreakModel__9cEmWindow	cEmWindow::SetBreakModel
 0x80116D7C	0x4C	.text	game/emwindow.cpp	global	cEmWindow_SetChangeModel	cEmWindow::SetChangeModel
 0x80116DC8	0x58	.text	game/emwindow.cpp	global	cEmWindow_SetAtariOff	cEmWindow::SetAtariOff
 0x80116E20	0x250	.text	game/emwindow.cpp	global	cEmWindow_SetBreakEsp	cEmWindow::SetBreakEsp
@@ -4097,7 +4097,7 @@ address	size	section	unit	scope	name	demangled
 0x8011995C	0x134	.text	game/esp_app.cpp	global	EffEm2d_setTexRender	EffEm2d_setTexRender
 0x80119A90	0x104	.text	game/esp_app.cpp	global	EspDrawLaserLine	EspDrawLaserLine
 0x80119B94	0x190	.text	game/esp_app.cpp	global	EspDrawLaserLine2	EspDrawLaserLine2
-0x80119D24	0x14C	.text	game/esp_app.cpp	local	EspSetGatling	EspSetGatling
+0x80119D24	0x14C	.text	game/esp_app.cpp	global	EspSetGatling	EspSetGatling
 0x80119E70	0x74	.text	game/esp_app.cpp	global	setPlWaterOtType	setPlWaterOtType
 0x80119EE4	0x8	.text	game/esp_efm.cpp	global	GetEfmMoveIdMax	GetEfmMoveIdMax
 0x80119EEC	0x40	.text	game/esp_efm.cpp	global	GetEfmMoveId	GetEfmMoveId
@@ -5502,9 +5502,9 @@ address	size	section	unit	scope	name	demangled
 0x8017F6F0	0x48	.text	game/read.cpp	global	ReleasePlData	ReleasePlData
 0x8017F738	0x48	.text	game/read.cpp	global	ReleaseWepData	ReleaseWepData
 0x8017F780	0x52C	.text	game/read.cpp	global	ReadWepData	ReadWepData
-0x8017FCAC	0x6C	.text	game/read.cpp	local	ContinueWepData	ContinueWepData
+0x8017FCAC	0x6C	.text	game/read.cpp	global	ContinueWepData	ContinueWepData
 0x8017FD18	0xD8	.text	game/read.cpp	global	GetDataExt__FPvPCci	GetDataExt
-0x8017FDF0	0x54	.text	game/read.cpp	global	__static_initialization_and_destruction_0_8017FDF0	__static_initialization_and_destruction_0
+0x8017FDF0	0x54	.text	game/read.cpp	local	__static_initialization_and_destruction_0_8017FDF0	__static_initialization_and_destruction_0
 0x8017FE44	0x2C	.text	game/read.cpp	global	global_constructors_keyed_to_ReadAreaData	global constructors keyed to ReadAreaData
 0x8017FE70	0x8	.text	game/rnd.cpp	local	RndInit__FUs	RndInit
 0x8017FE78	0x38	.text	game/rnd.cpp	global	Rnd	Rnd
@@ -6408,10 +6408,10 @@ address	size	section	unit	scope	name	demangled
 0x801C7C54	0xB4	.text	game/esp4f.cpp	global	move__6cEsp4f	cEsp4f::move
 0x801C7D08	0x10	.text	game/esp4f.cpp	global	SetFreeWork__6cEsp4fP10EspGenWorkPUl	cEsp4f::SetFreeWork
 0x801C7D18	0x20	.text	game/esp4f.cpp	global	_._6cEsp4f	cEsp4f::~cEsp4f
-0x801C7D38	0x104	.text	game/et00.cpp	global	EtXX_init	EtXX_init
+0x801C7D38	0x104	.text	game/et00.cpp	global	EtXX_init__FPvP10EtcSetDataPP9cEmWindowiPCcN24i	EtXX_init
 0x801C7E3C	0x3C	.text	game/et00.cpp	global	Et00_init	Et00_init
 0x801C7E78	0x3C	.text	game/et00.cpp	global	Et07_init	Et07_init
-0x801C7EB4	0x3C	.text	game/et00.cpp	local	Et1d_init	Et1d_init
+0x801C7EB4	0x3C	.text	game/et00.cpp	global	Et1d_init	Et1d_init
 0x801C7EF0	0x3C	.text	game/et00.cpp	global	Et25_init	Et25_init
 0x801C7F2C	0x3C	.text	game/et00.cpp	global	Et29_init	Et29_init
 0x801C7F68	0x3C	.text	game/et00.cpp	global	Et2c_init	Et2c_init
@@ -7491,8 +7491,8 @@ address	size	section	unit	scope	name	demangled
 0x80220518	0x40	.rodata	game/obj14.cpp	global	_vt.8cObjBell	cObjBell virtual table
 0x80220558	0x28	.rodata	game/obj14.cpp	local	cUnit_virtual_table_80220558	cUnit virtual table
 0x80220580	0x1C8	.rodata	game/obj15.cpp	local	lbl_80220580	.
-0x80220748	0x40	.rodata	game/obj15.cpp	global	cObjGatling_virtual_table	cObjGatling virtual table
-0x80220788	0x28	.rodata	game/obj15.cpp	global	cUnit_virtual_table_80220788	cUnit virtual table
+0x80220748	0x40	.rodata	game/obj15.cpp	global	_vt.11cObjGatling	cObjGatling virtual table
+0x80220788	0x28	.rodata	game/obj15.cpp	local	cUnit_virtual_table_80220788	cUnit virtual table
 0x802207B0	0x248	.rodata	game/obj16.cpp	global	lbl_802207B0	.
 0x802209F8	0x40	.rodata	game/obj16.cpp	global	cObj16_virtual_table	cObj16 virtual table
 0x80220A38	0x28	.rodata	game/obj16.cpp	global	cUnit_virtual_table_80220A38	cUnit virtual table
@@ -12433,7 +12433,7 @@ address	size	section	unit	scope	name	demangled
 0x803159F0	0x4	.sbss	game/eff_sys.cpp	local	g_EspToolSeqHedAddr	g_EspToolSeqHedAddr
 0x803159F4	0x4	.sbss	game/em.cpp	global	pPL	pPL
 0x803159F8	0x4	.sbss	game/em.cpp	global	pSUB	pSUB
-0x803159FC	0x4	.sbss	game/em.cpp	local	EmInitFunc	EmInitFunc
+0x803159FC	0x4	.sbss	game/em.cpp	global	EmInitFunc	EmInitFunc
 0x80315A00	0x4	.sbss	game/em.cpp	global	PlInitFunc	PlInitFunc
 0x80315A04	0x4	.sbss	game/em.cpp	local	battleCheckFlag	battleCheckFlag
 0x80315A08	0x4	.sbss	game/eprintf.cpp	local	mess_ptr_buff	mess_ptr_buff

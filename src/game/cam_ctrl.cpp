@@ -1216,12 +1216,12 @@ void CameraControl::EndLookDownEm()
     BitOn(pG->flags_500C, 0x2000000);
 }
 
-void CameraControl::startScope()
+void CameraControl::startScope(Vec* pos, Vec* at)
 {
     if (!(pG->flags_500C & 0x40)) {
         BitOn(pG->flags_500C, 0x40);
         BitOn(pG->flags_500C, 0x8000);
-        extra = new (extra_buf) CameraScope();
+        extra = new (extra_buf) CameraScope(pos, at);
         state = 0x10;
         BitOn(pG->flags_58, 0x40000000);
         AreaCheckOnOff(0);
@@ -1262,16 +1262,16 @@ void CameraControl::loadScopeParam()
     ((CameraScope*) extra)->id.load(0);
 }
 
-void CameraControl::SetBinocularRange(f32 range)
+void CameraControl::SetBinocularRange(f32 a, f32 b, f32 c, f32 d)
 {
-    ((CameraBinocular*) extra)->setRange(range);
+    ((CameraBinocular*) extra)->setRange(a, b, c, d);
 }
 
-void CameraControl::HoldBinocular(void* a, void* b, void* c, void* d)
+void CameraControl::HoldBinocular(void* id_a, void* id_b, Vec* pos, Vec* at)
 {
     BitOn(pG->flags_500C, 0x400);
     BitOn(pG->flags_500C, 0x8000);
-    extra = new (extra_buf) CameraBinocular(c, d, a, b);
+    extra = new (extra_buf) CameraBinocular(pos, at, id_a, id_b);
     state = 0xC;
     BitOn(pG->flags_58, 0x40000000);
     AreaCheckOnOff(0);

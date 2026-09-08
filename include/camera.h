@@ -22,17 +22,39 @@ struct Camera {
     Mtx44 projMat;      // 0x64 projection matrix
     CameraParam param;  // 0xA4 (pos 0xA4, at 0xB0, roll 0xBC, fovy 0xC0)
     Vec up;             // 0xC4 up vector (C_MTXLookAt)
-    u8 pad_D0[0xF4 - 0xD0];
+    Vec dir;            // 0xD0 pos - at, normalised (matrix column 2)
+    Vec right;          // 0xDC up x dir (matrix column 0)
+    u8 pad_E8[0xF4 - 0xE8];
     f32 dist;           // 0xF4 |pos - at| (db_cam keeps it current for the debug camera)
 };
 
 extern "C" {
-void CameraSetOrientationRoll(Camera* cam);
+// game/cam_sys.cpp
 void CameraSetOrientationUp(Camera* cam);
+void CameraSetOrientationRoll(Camera* cam);
+void CameraSetOrientationZeroRoll(Camera* cam);
+f32 CameraGetRoll(Camera* cam);
+void CameraRotAxisPosRad(Camera* cam, Vec* axis, Vec* pos, f32 rad);
+void CameraTargetRot(Camera* cam, char axis, f32 rad);
+void CameraCamposRot(Camera* cam, char axis, f32 rad);
+void CameraDolly(Camera* cam, Vec* d);
+void CameraCamposDistance(Camera* cam, f32 dist);
+void CameraSetWithRoll(Camera* cam, Vec* pos, Vec* at, f32 roll, f32 fovy);
+// game/camera.cpp
+void CameraSetProjection(int type);
+int CameraGetProjection();
+void CameraGameInit();
+void CameraRoomInit();
 void CameraMove();
+struct ViewFrustum* CameraViewFrustumPtr();
 void CameraGetUpVec(Camera* cam, Vec* up);
+void CameraGetLookVec(Camera* cam, Vec* look);
+void CameraGetLookVecInverse(Camera* cam, Vec* look);
+void CamPos2ScrnVec(Vec* out, f32 sx, f32 sy);
 }
 // game/camera.cpp (C++ linkage): loads the current projection matrix into GX
 void CameraCurrentProjection();
+struct JOY;
+void CamStick2World(Camera* cam, JOY* joy, Vec* out);
 
 #endif

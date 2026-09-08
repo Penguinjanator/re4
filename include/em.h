@@ -76,7 +76,7 @@ public:
     EmHitInfo hitInfo;    // 0x33C .. 0x368  (obj08: the player's hit part for the damage effect)
     u8 pad_368[0x370 - 0x368];
     f32 plDist2;          // 0x370  squared distance to the player (db_work prints its sqrt)
-    u8 pad_374[4];
+    f32 x374;             // 0x374  (em_set: 1e16 at creation)
     u32 x378;             // 0x378  (pl_sub EndPlDamage/EndSubDamage: x378 = x37C)
     u32 x37C;             // 0x37C
     Vec lockOfs;          // 0x380  lock-on point offset in the lockParts' matrix (pl_wep)
@@ -88,7 +88,9 @@ public:
     int dmgType;          // 0x3B8  (pl_sub SetPlDamage/SetSubDamage first argument)
     u8 pad_3BC[0x3C8 - 0x3BC];
     u32 flags_3C8;        // 0x3C8  (db_cam "Flag=")
-    u8 pad_3CC[0x3E0 - 0x3CC];
+    f32 x3CC;             // 0x3CC  (em_set: list entry s16 x1A * 1000)
+    u8 x3D0;              // 0x3D0  (em_set: list entry byte 0xB)
+    u8 pad_3D1[0x3E0 - 0x3D1];
     u32 x3E0;             // 0x3E0  player: event walk flag / damage timer
     int x3E4;             // 0x3E4  player damage: 1 = turning towards x400
     u32 x3E8;             // 0x3E8  player damage (blow): water splash done
