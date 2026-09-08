@@ -57,7 +57,21 @@ public:
 };
 #define BEGIN_EVENT(p, mode) ((cUnitEvent*) (p))->beginEvent(mode)
 
+// Struct-member view of the cModel manager pointers: a plain scalar store lets the scheduler hoist
+// the following pG load above it (the read.cpp EmInitFunc trick).
+struct MgrPtr {
+    void* p;
+};
+#define MGR_PTR(g) (((MgrPtr*) &(g))->p)
+
 #define DVD_READ_N(name, dst, a, b, c, mode) DvdReadN(name, dst, a, b, c, mode, __FILE__, __LINE__)
+
+// Fade colours are word constants (`stw`), passed by address and block-scoped: an aggregate local
+// gets a reusable temp slot where a u32 whose address is taken later is spilled to a fixed slot.
+union FadeColor {
+    GXColor c;
+    u32 w;
+};
 
 #define SS_ARAM 0xD00000
 #define SS_ARAM_SIZE 0x300000
@@ -355,9 +369,11 @@ void SubScreenExec()
             wk->stage = sscrnStageNo();
             wk->room = sscrnRoomNo(pG->room_id);
             {
-                u32 c0 = 0x00000000;
-                u32 c1 = 0x000000FF;
-                FadeSet(0, (GXColor*) &c0, (GXColor*) &c1, 3, 0, 0);
+                FadeColor c0;
+                FadeColor c1;
+                c0.w = 0x00000000;
+                c1.w = 0x000000FF;
+                FadeSet(0, &c0.c, &c1.c, 3, 0, 0);
             }
         case 1:
             if (Fade[0].flags & 1) {
@@ -435,9 +451,11 @@ void SubScreenExec()
             case 0x80:
                 break;
             default: {
-                u32 c0 = 0x000000FF;
-                u32 c1 = 0x00000000;
-                FadeSet(0x80000000, (GXColor*) &c0, (GXColor*) &c1, 3, 0, 0);
+                FadeColor c0;
+                FadeColor c1;
+                c0.w = 0x000000FF;
+                c1.w = 0x00000000;
+                FadeSet(0x80000000, &c0.c, &c1.c, 3, 0, 0);
                 break;
             }
             }
@@ -578,8 +596,8 @@ void SubScreenExitCore(SubScreenWork* wk)
         MemorySwap(wk->pBuf, SS_ARAM, SS_ARAM_SIZE);
         DC.xA08 = 1;
         RoomData.restartRelData();
-        cModel::mm = &ModInfoMgr;
-        cModel::pm = &PartsMgr;
+        MGR_PTR(cModel::mm) = &ModInfoMgr;
+        MGR_PTR(cModel::pm) = &PartsMgr;
         pG->flags_500C &= ~0x00040000;
     }
 }
@@ -702,9 +720,11 @@ void SubScreenExit()
             }
             Cckpt.countDown.loadDisp();
             {
-                u32 c0 = 0x000000FF;
-                u32 c1 = 0x00000000;
-                FadeSet(0x80000000, (GXColor*) &c0, (GXColor*) &c1, 3, 0, 0);
+                FadeColor c0;
+                FadeColor c1;
+                c0.w = 0x000000FF;
+                c1.w = 0x00000000;
+                FadeSet(0x80000000, &c0.c, &c1.c, 3, 0, 0);
             }
             TaskSignal(0);
             SndSubScreenExit();
@@ -772,27 +792,33 @@ void OpeOwTypeSet(u8 type)
 void OpeSetOpenTerm(int no, f32 x, f32 y, f32 z, f32 ang)
 {
     SubScreenWork* wk = &SubScreenWk;
-    int strTbl[24] = {3, 3, 0x33, 3, 0x33, 3, 3, 0x33, 3, 0x33, 0x33, 3, 3, 3, 0x33, 3, 3, 3, 3, 0x33, 3, 3, 3, 3};
+    wk->cancel = 0;
     cPlayer* pl = pPL;
-    Vec pos;
-    Vec rot;
+    int strTbl[24] = {3, 3, 0x33, 3, 0x33, 3, 3, 0x33, 3, 0x33, 0x33, 3, 3, 3, 0x33, 3, 3, 3, 3, 0x33, 3, 3, 3, 3};
+    void* pMot = &pl->pMotion;
     int i;
 
-    wk->cancel = 0;
     while (pl->checkEvent() != 1) {
         SceSleep(1);
     }
     if (x != 0.0f) {
         wk->savePos = pPL->pos;
         wk->saveRot = pPL->rot;
-        pos.x = x;
-        pos.y = y;
-        pos.z = z;
-        pPL->setPos(&pos);
-        pos.x = 0.0f;
-        pos.y = ang;
-        pos.z = 0.0f;
-        pPL->setAng(&pos);
+        {
+            Vec pos;
+            pos.x = x;
+            pos.y = y;
+            pos.z = z;
+            pPL->setPos(&pos);
+        }
+        {
+            Vec rot;
+            Vec* r = &rot;
+            r->x = 0.0f;
+            r->y = ang;
+            r->z = 0.0f;
+            pPL->setAng(r);
+        }
     }
     SceEventStart(0);
     pG->flags_54 |= 0x400;
@@ -803,7 +829,7 @@ void OpeSetOpenTerm(int no, f32 x, f32 y, f32 z, f32 ang)
     pl->setNoSuspend(1);
     PlSetEyeMode(1);
     wk->strBlk = SndStrPlayBlock(1, strTbl[no], 0.0f);
-    MotionSetCore(pl, &pl->pMotion, PL_ARC_PTR(pG->pPlArc, 0x79), 0, 0, 0x201, 0);
+    MotionSetCore(pl, pMot, PL_ARC_PTR(pG->pPlArc, 0x79), 0, 0, 0x201, 0);
     SceSleep(1);
     pG->flags_54 &= ~0x400;
     for (i = 0; i <= 20; i++) {
@@ -823,13 +849,17 @@ void OpeSetOpenTerm(int no, f32 x, f32 y, f32 z, f32 ang)
         ObjMgr.destroy(wk->pObj);
         return;
     }
-    pos.x = 111.0f;
-    pos.y = -22.0f;
-    pos.z = 66.0f;
-    rot.x = -0.48869219f;
-    rot.y = 0.31415927f;
-    rot.z = -0.73303829f;
-    wk->pObj->parentSet(pl, 0x10, &pos, &rot);
+    {
+        Vec pos;
+        Vec rot;
+        pos.x = 111.0f;
+        pos.y = -22.0f;
+        pos.z = 66.0f;
+        rot.x = -0.48869219f;
+        rot.y = 0.31415927f;
+        rot.z = -0.73303829f;
+        wk->pObj->parentSet(pl, 0x10, &pos, &rot);
+    }
     wk->pObj->setNoSuspend(1);
     pl->setLeftHand(2);
     while (MotionGetState(pl) == 0) {
@@ -861,6 +891,8 @@ void OpeSetOpenTermEnd()
 {
     SubScreenWork* wk = &SubScreenWk;
     cPlayer* pl = pPL;
+    FadeColor c0;
+    FadeColor c1;
 
     SndStrStopBlock(wk->strBlk);
     if (wk->pObj) {
@@ -869,15 +901,13 @@ void OpeSetOpenTermEnd()
         wk->pObj = 0;
     }
     PlSetEyeMode(0);
-    {
-        u32 c0 = 0x000000FF;
-        u32 c1 = 0x00000000;
-        FadeSet(0x80000000, (GXColor*) &c0, (GXColor*) &c1, 3, 0, 0);
-        FadeKill(2);
-        c0 = 0x000000FF;
-        c1 = 0x00000000;
-        FadeSet(0x80000001, (GXColor*) &c0, (GXColor*) &c1, 10, 0, 0);
-    }
+    c0.w = 0x000000FF;
+    c1.w = 0x00000000;
+    FadeSet(0x80000000, &c0.c, &c1.c, 3, 0, 0);
+    FadeKill(2);
+    c0.w = 0x000000FF;
+    c1.w = 0x00000000;
+    FadeSet(0x80000001, &c0.c, &c1.c, 10, 0, 0);
 }
 
 // The next unit (lib/ppcdown.c) starts 32-byte aligned in .text and .bss; the split object carries

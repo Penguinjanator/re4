@@ -148,7 +148,10 @@ static int priorityCheck(cEm* a, cEm* b)
     u8 pa = a->atari.flags & 0x18;
     u8 pb = b->atari.flags & 0x18;
 
-    return pa != 0 && pa >= pb;
+    if (pa != 0 && pa >= pb) {
+        return 1;
+    }
+    return 0;
 }
 
 void __em_at_core(cEm* a, cEm* b)

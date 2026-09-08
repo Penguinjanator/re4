@@ -3311,41 +3311,41 @@ address	size	section	unit	scope	name	demangled
 0x800DA7A8	0x2C	.text	game/ctrl.cpp	global	_GLOBAL_.D.__8cCtrlMgr	global destructors keyed to cCtrlMgr::cCtrlMgr
 0x800DA7D4	0x44	.text	game/datactrl.cpp	global	setCommand__9cDataUnitiUlUc	cDataUnit::setCommand
 0x800DA818	0x8	.text	game/datactrl.cpp	global	getCommand__9cDataUnit	cDataUnit::getCommand
-0x800DA820	0x8	.text	game/datactrl.cpp	global	cDataUnit_setCondition	cDataUnit::setCondition
+0x800DA820	0x8	.text	game/datactrl.cpp	global	setCondition__9cDataUniti	cDataUnit::setCondition
 0x800DA828	0x8	.text	game/datactrl.cpp	global	getCondition__9cDataUnit	cDataUnit::getCondition
-0x800DA830	0x7C	.text	game/datactrl.cpp	global	cDataUnit_checkMallocRelease	cDataUnit::checkMallocRelease
-0x800DA8AC	0x98	.text	game/datactrl.cpp	global	cDataUnit_setMallocInfo	cDataUnit::setMallocInfo
-0x800DA944	0x8	.text	game/datactrl.cpp	global	cDataUnit_fixMramAddr	cDataUnit::fixMramAddr
-0x800DA94C	0x5C	.text	game/datactrl.cpp	global	cDataUnit_isUseOk	cDataUnit::isUseOk
-0x800DA9A8	0xA0	.text	game/datactrl.cpp	global	cDataUnit_waitUseOk	cDataUnit::waitUseOk
-0x800DAA48	0x50	.text	game/datactrl.cpp	global	cDataUnit_isLoadOk	cDataUnit::isLoadOk
-0x800DAA98	0x88	.text	game/datactrl.cpp	global	cDataUnit_waitLoadOk	cDataUnit::waitLoadOk
-0x800DAB20	0x3E8	.text	game/datactrl.cpp	global	cDataUnit_setLoadToMram	cDataUnit::setLoadToMram
-0x800DAF08	0x338	.text	game/datactrl.cpp	global	cDataUnit_setLoadToAram	cDataUnit::setLoadToAram
+0x800DA830	0x7C	.text	game/datactrl.cpp	global	checkMallocRelease__9cDataUnit	cDataUnit::checkMallocRelease
+0x800DA8AC	0x98	.text	game/datactrl.cpp	global	setMallocInfo__9cDataUnitiPv	cDataUnit::setMallocInfo
+0x800DA944	0x8	.text	game/datactrl.cpp	global	fixMramAddr__9cDataUnitUl	cDataUnit::fixMramAddr
+0x800DA94C	0x5C	.text	game/datactrl.cpp	global	isUseOk__9cDataUnit	cDataUnit::isUseOk
+0x800DA9A8	0xA0	.text	game/datactrl.cpp	global	waitUseOk__9cDataUnit	cDataUnit::waitUseOk
+0x800DAA48	0x50	.text	game/datactrl.cpp	global	isLoadOk__9cDataUnit	cDataUnit::isLoadOk
+0x800DAA98	0x88	.text	game/datactrl.cpp	global	waitLoadOk__9cDataUnit	cDataUnit::waitLoadOk
+0x800DAB20	0x3E8	.text	game/datactrl.cpp	global	setLoadToMram__9cDataUnit	cDataUnit::setLoadToMram
+0x800DAF08	0x338	.text	game/datactrl.cpp	global	setLoadToAram__9cDataUnit	cDataUnit::setLoadToAram
 0x800DB240	0xE8	.text	game/datactrl.cpp	global	setClear__9cDataUnit	cDataUnit::setClear
-0x800DB328	0x58	.text	game/datactrl.cpp	global	cDataUnit_setDelete	cDataUnit::setDelete
-0x800DB380	0xC8	.text	game/datactrl.cpp	global	cDataUnit_checkLoadToMram	cDataUnit::checkLoadToMram
-0x800DB448	0xC8	.text	game/datactrl.cpp	global	cDataUnit_checkLoadToAram	cDataUnit::checkLoadToAram
-0x800DB510	0xA0	.text	game/datactrl.cpp	global	cDataUnit_checkAramToMram	cDataUnit::checkAramToMram
-0x800DB5B0	0xA8	.text	game/datactrl.cpp	global	cDataUnit_checkMramToAram	cDataUnit::checkMramToAram
-0x800DB658	0x100	.text	game/datactrl.cpp	global	cDataUnit_checkAramToAram	cDataUnit::checkAramToAram
-0x800DB758	0x4	.text	game/datactrl.cpp	global	cDataUnit_checkMramToMram	cDataUnit::checkMramToMram
-0x800DB75C	0x8C	.text	game/datactrl.cpp	global	cDataUnit_checkCommand	cDataUnit::checkCommand
-0x800DB7E8	0xBC	.text	game/datactrl.cpp	global	cDataUnit_checkCondition	cDataUnit::checkCondition
+0x800DB328	0x58	.text	game/datactrl.cpp	global	setDelete__9cDataUnit	cDataUnit::setDelete
+0x800DB380	0xC8	.text	game/datactrl.cpp	global	checkLoadToMram__9cDataUnit	cDataUnit::checkLoadToMram
+0x800DB448	0xC8	.text	game/datactrl.cpp	global	checkLoadToAram__9cDataUnit	cDataUnit::checkLoadToAram
+0x800DB510	0xA0	.text	game/datactrl.cpp	global	checkAramToMram__9cDataUnit	cDataUnit::checkAramToMram
+0x800DB5B0	0xA8	.text	game/datactrl.cpp	global	checkMramToAram__9cDataUnit	cDataUnit::checkMramToAram
+0x800DB658	0x100	.text	game/datactrl.cpp	global	checkAramToAram__9cDataUnit	cDataUnit::checkAramToAram
+0x800DB758	0x4	.text	game/datactrl.cpp	global	checkMramToMram__9cDataUnit	cDataUnit::checkMramToMram
+0x800DB75C	0x8C	.text	game/datactrl.cpp	global	checkCommand__9cDataUnit	cDataUnit::checkCommand
+0x800DB7E8	0xBC	.text	game/datactrl.cpp	global	checkCondition__9cDataUnit	cDataUnit::checkCondition
 0x800DB8A4	0x234	.text	game/datactrl.cpp	global	getAramFree__9cDataCtrlUl	cDataCtrl::getAramFree
 0x800DBAD8	0x4C	.text	game/datactrl.cpp	global	init__9cDataCtrl	cDataCtrl::init
-0x800DBB24	0xB0	.text	game/datactrl.cpp	global	cDataCtrl_initDataUnit	cDataCtrl::initDataUnit
-0x800DBBD4	0x40	.text	game/datactrl.cpp	global	cDataCtrl_deleteAll	cDataCtrl::deleteAll
+0x800DBB24	0xB0	.text	game/datactrl.cpp	global	initDataUnit__9cDataCtrl	cDataCtrl::initDataUnit
+0x800DBBD4	0x40	.text	game/datactrl.cpp	global	deleteAll__9cDataCtrl	cDataCtrl::deleteAll
 0x800DBC14	0x118	.text	game/datactrl.cpp	global	setData__9cDataCtrlPc	cDataCtrl::setData
-0x800DBD2C	0xB4	.text	game/datactrl.cpp	global	cDataCtrl_getNewUnit	cDataCtrl::getNewUnit
-0x800DBDE0	0x8	.text	game/datactrl.cpp	global	cDataCtrl_setAramSort	cDataCtrl::setAramSort
-0x800DBDE8	0x1A8	.text	game/datactrl.cpp	global	cDataCtrl_checkAramSort	cDataCtrl::checkAramSort
-0x800DBF90	0x410	.text	game/datactrl.cpp	global	cDataCtrl_dispDebug	cDataCtrl::dispDebug
-0x800DC3A0	0x20	.text	game/datactrl.cpp	global	cDataCtrl_initDummyId	cDataCtrl::initDummyId
-0x800DC3C0	0x80	.text	game/datactrl.cpp	global	cDataCtrl_setDummyId	cDataCtrl::setDummyId
-0x800DC440	0xA4	.text	game/datactrl.cpp	local	cDataCtrl_checkDummyId	cDataCtrl::checkDummyId
+0x800DBD2C	0xB4	.text	game/datactrl.cpp	global	getNewUnit__9cDataCtrl	cDataCtrl::getNewUnit
+0x800DBDE0	0x8	.text	game/datactrl.cpp	global	setAramSort__9cDataCtrli	cDataCtrl::setAramSort
+0x800DBDE8	0x1A8	.text	game/datactrl.cpp	global	checkAramSort__9cDataCtrl	cDataCtrl::checkAramSort
+0x800DBF90	0x410	.text	game/datactrl.cpp	global	dispDebug__9cDataCtrl	cDataCtrl::dispDebug
+0x800DC3A0	0x20	.text	game/datactrl.cpp	global	initDummyId__9cDataCtrl	cDataCtrl::initDummyId
+0x800DC3C0	0x80	.text	game/datactrl.cpp	global	setDummyId__9cDataCtrli	cDataCtrl::setDummyId
+0x800DC440	0xA4	.text	game/datactrl.cpp	global	checkDummyId__9cDataCtrl	cDataCtrl::checkDummyId
 0x800DC4E4	0xA0	.text	game/datactrl.cpp	global	check__9cDataCtrl	cDataCtrl::check
-0x800DC584	0x54	.text	game/datactrl.cpp	global	__static_initialization_and_destruction_0_800DC584	__static_initialization_and_destruction_0
+0x800DC584	0x54	.text	game/datactrl.cpp	local	__static_initialization_and_destruction_0_800DC584	__static_initialization_and_destruction_0
 0x800DC5D8	0x2C	.text	game/datactrl.cpp	global	global_constructors_keyed_to_cDataUnit_setCommand	global constructors keyed to cDataUnit::setCommand
 0x800DC604	0x2C	.text	game/datactrl.cpp	global	global_destructors_keyed_to_cDataUnit_setCommand	global destructors keyed to cDataUnit::setCommand
 0x800DC630	0x968	.text	game/db_cam.cpp	global	move__11debugCameraP6CameraP3JOYi	debugCamera::move
@@ -3726,7 +3726,7 @@ address	size	section	unit	scope	name	demangled
 0x800FA284	0x1D0	.text	game/embarrel.cpp	global	emBarrelDmCk	emBarrelDmCk
 0x800FA454	0x2BC	.text	game/embarrel.cpp	global	emBarrelDmCk2	emBarrelDmCk2
 0x800FA710	0x170	.text	game/embarrel.cpp	global	emBarrelSetBreak	emBarrelSetBreak
-0x800FA880	0xE4	.text	game/embarrel.cpp	global	cEmBarrel_move	cEmBarrel::move
+0x800FA880	0xE4	.text	game/embarrel.cpp	global	move__9cEmBarrel	cEmBarrel::move
 0x800FA964	0x1C	.text	game/embarrel.cpp	global	emBarrel_R0_Init	emBarrel_R0_Init
 0x800FA980	0x38	.text	game/embarrel.cpp	global	emBarrel_R0_Move	emBarrel_R0_Move
 0x800FA9B8	0x90	.text	game/embarrel.cpp	global	emBarrel_R1_Set	emBarrel_R1_Set
@@ -3734,13 +3734,13 @@ address	size	section	unit	scope	name	demangled
 0x800FAB38	0x38C	.text	game/embarrel.cpp	global	emBarrel_R1_R227Roll	emBarrel_R1_R227Roll
 0x800FAEC4	0xA8	.text	game/embarrel.cpp	global	emBarrelSetRollRoute	emBarrelSetRollRoute
 0x800FAF6C	0x1CC	.text	game/embarrel.cpp	global	emBarrelSetRollSpd	emBarrelSetRollSpd
-0x800FB138	0x8	.text	game/embarrel.cpp	global	cEmBarrel_setEff	cEmBarrel::setEff
+0x800FB138	0x8	.text	game/embarrel.cpp	global	setEff__9cEmBarrelUc	cEmBarrel::setEff
 0x800FB140	0x218	.text	game/embarrel.cpp	global	emBarrelSetBomb	emBarrelSetBomb
 0x800FB358	0x1C4	.text	game/embarrel.cpp	global	emBarrelSetBomb2	emBarrelSetBomb2
 0x800FB51C	0xF8	.text	game/embarrel.cpp	global	emBarrelEatSet	emBarrelEatSet
 0x800FB614	0x134	.text	game/embarrel.cpp	global	emBarrelRollHitCk	emBarrelRollHitCk
 0x800FB748	0x160	.text	game/embarrel.cpp	global	emBarrelRunDownCk	emBarrelRunDownCk
-0x800FB8A8	0x20	.text	game/embarrel.cpp	global	cEmBarrel_dt_cEmBarrel	cEmBarrel::~cEmBarrel
+0x800FB8A8	0x20	.text	game/embarrel.cpp	global	_._9cEmBarrel	cEmBarrel::~cEmBarrel
 0x800FB8C8	0x540	.text	game/embox.cpp	global	SetBox	SetBox
 0x800FBE08	0x2E4	.text	game/embox.cpp	global	emBoxDmCk	emBoxDmCk
 0x800FC0EC	0x3F0	.text	game/embox.cpp	global	emBoxSetBreak	emBoxSetBreak
@@ -5156,9 +5156,9 @@ address	size	section	unit	scope	name	demangled
 0x80163504	0x5FC	.text	game/obj04.cpp	global	move__6cObj04	cObj04::move
 0x80163B00	0x8C	.text	game/obj04.cpp	global	Efm04RotMatrix	Efm04RotMatrix
 0x80163B8C	0x20	.text	game/obj04.cpp	global	_._6cObj04	cObj04::~cObj04
-0x80163BAC	0x930	.text	game/obj05.cpp	global	cObj05_move	cObj05::move
+0x80163BAC	0x930	.text	game/obj05.cpp	global	move__6cObj05	cObj05::move
 0x801644DC	0x90	.text	game/obj05.cpp	global	Efm05RotMatrix	Efm05RotMatrix
-0x8016456C	0x20	.text	game/obj05.cpp	global	cObj05_dt_cObj05	cObj05::~cObj05
+0x8016456C	0x20	.text	game/obj05.cpp	global	_._6cObj05	cObj05::~cObj05
 0x8016458C	0x3C	.text	game/obj06.cpp	global	__7cObjBox	cObjBox::cObjBox
 0x801645C8	0x60	.text	game/obj06.cpp	global	move__7cObjBox	cObjBox::move
 0x80164628	0x20	.text	game/obj06.cpp	global	_._7cObjBox	cObjBox::~cObjBox
@@ -8339,7 +8339,7 @@ address	size	section	unit	scope	name	demangled
 0x80231ED0	0x28	.rodata	game/emBarred.cpp	global	cUnit_virtual_table_80231ED0	cUnit virtual table
 0x80231EF8	0x2A0	.rodata	game/embarrel.cpp	global	lbl_80231EF8	.
 0x80232198	0x58	.rodata	game/embarrel.cpp	global	_vt.9cEmBarrel	cEmBarrel virtual table
-0x802321F0	0x28	.rodata	game/embarrel.cpp	global	cUnit_virtual_table_802321F0	cUnit virtual table
+0x802321F0	0x28	.rodata	game/embarrel.cpp	local	cUnit_virtual_table_802321F0	cUnit virtual table
 0x80232218	0x1F8	.rodata	game/embox.cpp	local	lbl_80232218	.
 0x80232410	0x58	.rodata	game/embox.cpp	global	_vt.6cEmBox	cEmBox virtual table
 0x80232468	0x28	.rodata	game/embox.cpp	local	cUnit_virtual_table_80232468	cUnit virtual table
@@ -8392,7 +8392,7 @@ address	size	section	unit	scope	name	demangled
 0x80236510	0x390	.rodata	game/Espgen42.cpp	global	lbl_80236510	.
 0x802368A0	0x28	.rodata	game/Espgen42.cpp	global	cUnit_virtual_table_802368A0	cUnit virtual table
 0x802368C8	0x218	.rodata	game/Espgen43.cpp	global	lbl_802368C8	.
-0x80236AE0	0x28	.rodata	game/Espgen43.cpp	global	cUnit_virtual_table_80236AE0	cUnit virtual table
+0x80236AE0	0x28	.rodata	game/Espgen43.cpp	local	cUnit_virtual_table_80236AE0	cUnit virtual table
 0x80236B08	0x130	.rodata	game/espgen44.cpp	global	lbl_80236B08	.
 0x80236C38	0x3A0	.rodata	game/espgen45.cpp	global	lbl_80236C38	.
 0x80236FD8	0x28	.rodata	game/espgen45.cpp	global	cUnit_virtual_table_80236FD8	cUnit virtual table
@@ -8491,7 +8491,7 @@ address	size	section	unit	scope	name	demangled
 0x8023F640	0x28	.rodata	game/obj04.cpp	local	cUnit_virtual_table_8023F640	cUnit virtual table
 0x8023F668	0xD0	.rodata	game/obj05.cpp	global	lbl_8023F668	.
 0x8023F738	0x40	.rodata	game/obj05.cpp	global	_vt.6cObj05	cObj05 virtual table
-0x8023F778	0x28	.rodata	game/obj05.cpp	global	cUnit_virtual_table_8023F778	cUnit virtual table
+0x8023F778	0x28	.rodata	game/obj05.cpp	local	cUnit_virtual_table_8023F778	cUnit virtual table
 0x8023F7A0	0x40	.rodata	game/obj06.cpp	global	_vt.7cObjBox	cObjBox virtual table
 0x8023F7E0	0x28	.rodata	game/obj06.cpp	global	cUnit_virtual_table_8023F7E0	cUnit virtual table
 0x8023F808	0x168	.rodata	game/obj08.cpp	global	lbl_8023F808	.
@@ -12455,9 +12455,9 @@ address	size	section	unit	scope	name	demangled
 0x80315A40	0x4	.sbss	game/Espgen42.cpp	global	Add_power	Add_power
 0x80315A44	0x4	.sbss	game/Espgen42.cpp	global	Height_find	Height_find
 0x80315A48	0x4	.sbss	game/Espgen42.cpp	global	Cross_find	Cross_find
-0x80315A4C	0x4	.sbss	game/Espgen43.cpp	global	Height_ret_80315A4C	Height_ret
-0x80315A50	0x4	.sbss	game/Espgen43.cpp	global	Add_power_80315A50	Add_power
-0x80315A54	0x4	.sbss	game/Espgen43.cpp	global	Height_find_80315A54	Height_find
+0x80315A4C	0x4	.sbss	game/Espgen43.cpp	local	Height_ret_80315A4C	Height_ret
+0x80315A50	0x4	.sbss	game/Espgen43.cpp	local	Add_power_80315A50	Add_power
+0x80315A54	0x4	.sbss	game/Espgen43.cpp	local	Height_find_80315A54	Height_find
 0x80315A58	0x4	.sbss	game/espgen45.cpp	local	g_pWater45	g_pWater45
 0x80315A5C	0x4	.sbss	game/EtcModel.cpp	local	g_addr	g_addr
 0x80315A60	0x4	.sbss	game/EtcModel.cpp	local	g_LastNo	g_LastNo

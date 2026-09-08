@@ -51,8 +51,6 @@ struct SystemMemMap {
         *(volatile u32*) 0x11111111 = 0;                          \
     } while (0)
 
-static void Mem_free_h(void* p, int heap);
-static void Debug_free_h(void* p, int heap);
 
 MemHeap Heap[MEM_HEAP_NUM];
 static SystemMemMap SysMem;
@@ -388,7 +386,7 @@ void Mem_free(void* p)
     Mem_free_h(p, CurrentHeap);
 }
 
-static void Mem_free_h(void* p, int heap)
+void Mem_free_h(void* p, int heap)
 {
     if (heap == MEM_HEAP_CURRENT) {
         heap = CurrentHeap;
@@ -453,7 +451,7 @@ void Debug_free(void* p)
     Debug_free_h(p, CurrentDbgHeap);
 }
 
-static void Debug_free_h(void* p, int heap)
+void Debug_free_h(void* p, int heap)
 {
     if (heap == MEM_HEAP_CURRENT) {
         heap = CurrentDbgHeap;

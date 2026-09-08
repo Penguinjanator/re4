@@ -14,6 +14,9 @@ void* mem_calloc(u32 size, const char* file, int line, int a, int b);
 // Debug heap (CurrentDbgHeap). Debug_free is the out-of-line copy owned by main_mem.
 void* Debug_alloc(u32 size, int flag);
 void Debug_free(void* p);
+// Free to a given heap (MEM_HEAP_CURRENT = the current one); datactrl calls them directly.
+void Mem_free_h(void* p, int heap);
+void Debug_free_h(void* p, int heap);
 
 extern "C" {
 // game/memset_2.s

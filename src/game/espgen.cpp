@@ -42,21 +42,6 @@ int Espgen01_SetFreeWork(EspgenWork* w, EspGenWork* rec, EspSeqData* head, cMode
 void Espgen02_Move(EspgenWork* w);
 int Espgen02_SetFreeWork(EspgenWork* w, EspGenWork* rec, EspSeqData* head, cModel* model, u16 parts, Mtx* mtx,
                          Vec* pos, Vec* rot, EspSeqOpt* p8, int flag);
-void Espgen42_Move(EspgenWork* w);
-void Espgen42_Trans(EspgenWork* w);
-void Espgen42_Destruct(EspgenWork* w);
-int Espgen42_SetFreeWork(EspgenWork* w, EspGenWork* rec, EspSeqData* head, cModel* model, u16 parts, Mtx* mtx,
-                         Vec* pos, Vec* rot, EspSeqOpt* p8);
-void Espgen43_Move(EspgenWork* w);
-void Espgen43_Trans(EspgenWork* w);
-void Espgen43_Destruct(EspgenWork* w);
-int Espgen43_SetFreeWork(EspgenWork* w, EspGenWork* rec, EspSeqData* head, cModel* model, u16 parts, Mtx* mtx,
-                         Vec* pos, Vec* rot, EspSeqOpt* p8);
-void Espgen45_Move(EspgenWork* w);
-void Espgen45_Trans(EspgenWork* w);
-void Espgen45_Destruct(EspgenWork* w);
-int Espgen45_SetFreeWork(EspgenWork* w, EspGenWork* rec, EspSeqData* head, cModel* model, u16 parts, Mtx* mtx,
-                         Vec* pos, Vec* rot, EspSeqOpt* p8);
 }
 // game/espgen40.cpp (declared with the record type in the original)
 void Espgen40_Move(EspGenWork* gen);

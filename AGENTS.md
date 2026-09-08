@@ -365,6 +365,18 @@ mark it Matching.
 - `static int x = 0;` goes to `.sdata` with an explicit zero; unreferenced statics are still emitted.
   `_GLOBAL_.I.<key>` is keyed to the first *initialized* public object or function; `.bss` globals
   don't count.
+- Switch tree rule (stmt.c): after merging consecutive same-target cases into ranges, with n nodes
+  and r ranges the root is the node where cumulative cost (1 per node, 2 per range) reaches
+  (n+r+1)/2; exactly 3 nodes -> middle. Default-equal `case X: break;` labels shape the tree, so
+  enumerate every state the original enumerated.
+- `if (a != 0 && a >= b) return 1; return 0;` keeps `cmplw; li r3,1; bgelr; li r3,0`;
+  `return a != 0 && a >= b` gives the `subfc/adde` store flag. `ret = f(); if (ret != 0) {...}
+  return ret;` yields `mr. r3,r3`.
+- Inline accessors used as call arguments make precompute_arguments evaluate them before the
+  stack-argument stores; plain member reads reload the pointer after each store.
+- VLA (`T* tbl[n]`) gives `stwux` plus `mr r25,r1` / `mr r1,r25`; `alloca` has no restore.
+- Empty `C() {}` / `~C() {}` produce the empty `__static_initialization_and_destruction_0` and both
+  `global constructors/destructors keyed to` functions.
 - Static locals show as `name.NNN` in objdiff; the DECL_UID suffix cannot be reproduced and is ignored by the report.
 - Unexplained words in `.rodata` (zero words, stray floats) are usually the constant pool of a function
   the original linker dead-stripped (bodies gone, pools kept, `STRIP_UNUSED` in objects.py): write a

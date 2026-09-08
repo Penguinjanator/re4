@@ -162,21 +162,31 @@ public:
     Vec speed;       // 0x104
     Vec oldPos;      // 0x110  position before the speed was added (obj04 collision segment)
     u8 pad_11C[0x128 - 0x11C];
-    Vec* pFloorNrm;  // 0x128  player: floor normal the shoulder camera tilts with (cam_qfps setPlayerLocation)
-    u8 x12C;         // 0x12C  (TexRenderModSet sets 2)
-    u8 x12D;         // 0x12D  (pl_leon setModel sets 1)
-    u8 x12E;         // 0x12E  2 = scroll (Smd) object
-    u8 x12F;         // 0x12F  scroll: SmxWork.type2 (3 by default)
-    void* pCldShMd;  // 0x130  (db_work "pCldShMd")
-    u8 shdCol;       // 0x134  (db_work "SHD COL")
-    u8 x135;         // 0x135  scroll: SmxWork.x3, db_work "CullMode"
-    u8 x136;         // 0x136  TexRender: 2 while rendered to texture, 0 after
-    u8 x137;         // 0x137  TexRender: 0x10
-    u8 x138;         // 0x138  TexRender: 0x90
-    u8 x139;         // 0x139  mirror: 0xFF; trans_lit adds it to the ambient colour
-    u8 x13A;         // 0x13A  mirror: 0xFF; trans_lit adds it to the ambient colour
-    u8 x13B;         // 0x13B  mirror: 0xFF; trans_lit adds it to the ambient colour
-    u8 pad_13C[0x150 - 0x13C];
+    union {
+        struct {
+            Vec* pFloorNrm;  // 0x128  player: floor normal the shoulder camera tilts with (cam_qfps setPlayerLocation)
+            u8 x12C;         // 0x12C  (TexRenderModSet sets 2)
+            u8 x12D;         // 0x12D  (pl_leon setModel sets 1)
+            u8 x12E;         // 0x12E  2 = scroll (Smd) object
+            u8 x12F;         // 0x12F  scroll: SmxWork.type2 (3 by default)
+            void* pCldShMd;  // 0x130  (db_work "pCldShMd")
+            u8 shdCol;       // 0x134  (db_work "SHD COL")
+            u8 x135;         // 0x135  scroll: SmxWork.x3, db_work "CullMode"
+            u8 x136;         // 0x136  TexRender: 2 while rendered to texture, 0 after
+            u8 x137;         // 0x137  TexRender: 0x10
+            u8 x138;         // 0x138  TexRender: 0x90
+            u8 x139;         // 0x139  mirror: 0xFF; trans_lit adds it to the ambient colour
+            u8 x13A;         // 0x13A  mirror: 0xFF; trans_lit adds it to the ambient colour
+            u8 x13B;         // 0x13B  mirror: 0xFF; trans_lit adds it to the ambient colour
+            u8 pad_13C[0x150 - 0x13C];
+        };
+        // Effect model parts physics (obj05 cObj05::move runs its parts as loose particles).
+        struct {
+            int efmStat;     // 0x128  0 waiting, 1 flying, 2 at rest
+            Vec efmSpd;      // 0x12C
+            Vec efmRotSpd;   // 0x138
+        };
+    };
     // 0x150..0x15C: pendulum parts treat these three words as a Vec (obj14 adds the hit impulse
     // to parts 1/2 here); the object itself keeps its alpha at 0x154.
     f32 x150;              // 0x150

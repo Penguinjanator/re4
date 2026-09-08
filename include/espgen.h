@@ -175,6 +175,27 @@ void Espgen44_Trans(EspgenWork* w);
 void Espgen44_Destruct(EspgenWork* w);
 int Espgen44_SetFreeWork(EspgenWork* w, EspGenWork* rec, EspSeqData* head, cModel* model, u16 parts, Mtx* mtx,
                          Vec* pos, Vec* rot, EspSeqOpt* p8);
+
+// game/Espgen42.cpp
+void Espgen42_Move(EspgenWork* w);
+void Espgen42_Trans(EspgenWork* w);
+void Espgen42_Destruct(EspgenWork* w);
+int Espgen42_SetFreeWork(EspgenWork* w, EspGenWork* rec, EspSeqData* head, cModel* model, u16 parts, Mtx* mtx,
+                         Vec* pos, Vec* rot, EspSeqOpt* p8);
+
+// game/Espgen43.cpp
+void Espgen43_Move(EspgenWork* w);
+void Espgen43_Trans(EspgenWork* w);
+void Espgen43_Destruct(EspgenWork* w);
+int Espgen43_SetFreeWork(EspgenWork* w, EspGenWork* rec, EspSeqData* head, cModel* model, u16 parts, Mtx* mtx,
+                         Vec* pos, Vec* rot, EspSeqOpt* p8);
+
+// game/espgen45.cpp
+void Espgen45_Move(EspgenWork* w);
+void Espgen45_Trans(EspgenWork* w);
+void Espgen45_Destruct(EspgenWork* w);
+int Espgen45_SetFreeWork(EspgenWork* w, EspGenWork* rec, EspSeqData* head, cModel* model, u16 parts, Mtx* mtx,
+                         Vec* pos, Vec* rot, EspSeqOpt* p8);
 }
 
 #endif

@@ -114,6 +114,9 @@ void CopyTexRenderMgr(TexRenderMng* m)
         GXSetAlphaUpdate(1);
         if (m->sx == 0xE0) {
             ofs = (u32) ((f32) m->sy * 2.0f / 0.875f - (f32) m->sx * 2.0f);
+            // OPEN: the original if-arm has a memory kill here (an `asm volatile("" ::: "memory")`
+            // at this point reproduces the join's m->sy reload but leaves a jump-to-jump at the
+            // conversion's merge); the source construct behind it is unknown.
         } else {
             ofs = (m->sx >> 2) + (m->sx >> 4);
         }
@@ -312,9 +315,10 @@ void TexRenderModAddOtMirror(int ot, cModel* m)
         AddOtDirect(0x10, m, (void (*)()) MirrorDraw2, 0, 0x400, NULL, 0.0f);
     }
     m->be_flag |= 8;
-    m->x139 = -1;
-    m->x13A = -1;
-    m->x13B = -1;
+    {
+        u8 c = 0xFF;
+        m->x13B = m->x13A = m->x139 = c;
+    }
     m->alpha = 0.4f;
 }
 

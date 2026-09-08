@@ -160,6 +160,7 @@ void emRackDmCk(cEmRack* em)
     u8 wep;
     int type;
     Vec hit;
+    Vec* pos = &em->pos;
 
     if (em->hp <= 0) {
         return;
@@ -171,7 +172,7 @@ void emRackDmCk(cEmRack* em)
     if (type > 1) {
         return;
     }
-    switch (DmgMgr.hitCheck(&em->pos, &hit)) {
+    switch (DmgMgr.hitCheck(pos, &hit)) {
     case 1:
     case 4:
     case 5:

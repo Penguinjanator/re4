@@ -1091,6 +1091,7 @@ MATCHING.update({
     "game/obj18.cpp": True,
     "game/obj.cpp": True,
     "game/map_obj.cpp": True,
+    "game/obj05.cpp": True,
 })
 
 # media/utility units

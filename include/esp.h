@@ -3,6 +3,7 @@
 
 #include "types.h"
 #include "vec.h"
+#include "gx.h"
 #include "model.h"
 #include "trans_ot.h"
 
@@ -49,12 +50,17 @@ struct EspGenWork {
     Vec x58;           // 0x58
     u8 pad_64[0x88 - 0x64];
     f32 x88;           // 0x88
-    u8 pad_8C[0x9C - 0x8C];
+    f32 x8C;           // 0x8C
+    f32 x90;           // 0x90
+    f32 x94;           // 0x94 (Espgen43: extra z scale, +1)
+    f32 x98;           // 0x98
     u8 x9C;            // 0x9C colour r
     u8 x9D;            // 0x9D colour g
     u8 x9E;            // 0x9E colour b
     u8 x9F;            // 0x9F colour a
-    u8 pad_A0[0xAC - 0xA0];
+    f32 xA0;           // 0xA0 (Espgen43: second colour r/g/b/a as 0..1 floats)
+    f32 xA4;           // 0xA4
+    f32 xA8;           // 0xA8
     f32 xAC;           // 0xAC
     u8 pad_B0[0xC2 - 0xB0];
     u8 xC2;            // 0xC2
@@ -307,5 +313,15 @@ int EspPlWaterCall(int type, Vec* pos);
 // game/Espgen42.cpp
 int GetWaterHeight(Vec* pos, f32* height);
 extern "C" void AddWaterPower(Vec* pos, f32 power);
+// game/Espgen43.cpp
+extern "C" {
+int GetSandHeight(Vec* pos, f32* height);
+void AddSandPower(Vec* pos, f32 power);
+// game/eff_sys.cpp
+GXTexObj* EspGetTexObj(int no, int a);
+GXTlutObj* EspGetTlutObj(int no);
+}
+// game/trans.cpp: fallback texture used when an effect texture id has no object
+extern GXTexObj Specular;
 
 #endif
