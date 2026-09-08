@@ -113,6 +113,16 @@ mark it Matching.
 - `#line N "D:/Bio4/Prog/<unit>.cpp"` before `MEM_ALLOC` reproduces `__FILE__`/`__LINE__` strings.
 - ProDG's scheduler ranks ready insns by register pressure before priority; no cross-block hoisting inside
   functions with loops.
+- A global pointer loaded twice around a block copy: a plain `T* pT` gets the second load hoisted; reading
+  it as a struct member (`((Wrapper*)&pT)->p`, like `cLogPtr`) keeps it below the stores.
+- `for (...) { if (hit) { call; return; } }` duplicates the loop entry test; with `break` the loop is
+  rotated with a single bottom test. `if (a && b) {reset} else {load}` vs the swapped form controls
+  branch layout.
+- Unused `static const` scalars are emitted (`.sdata2`) only when an emitted function takes their address;
+  zero-initialised statics referenced only by a never-called inline are still emitted. Static locals are
+  emitted at their declaration; file-scope uninitialised statics after all function-local ones.
+- `s16 mem += (int)(s16)(float)` keeps `lha/extsh/add/sth`; without the `(int)` cast the front end
+  narrows to u16 arithmetic. A local `int num = 5` divisor gives `divw` by register, not the magic multiply.
 - Static locals show as `name.NNN` in objdiff; the DECL_UID suffix cannot be reproduced and is ignored by the report.
 
 - Struct field offsets come from the load/store displacements; write real structs, not casts.
