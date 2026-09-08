@@ -653,6 +653,44 @@ mark it Matching.
 - A class with a constructor and an *empty* `~T() {}` is what makes GCC 2.95 emit the
   `global destructors keyed to` function next to the constructor one (roomdata cRoomData); the key is the
   first emitted object, static or not (`St0_data_tbl` is non-static in the original).
+- (sscrn) A register argument whose address is a plain `(plus fp N)` / `(addressof reg)` is precomputed
+  into a pseudo (`preserve_subexpressions_p()` is 1 at -O2) and cse then merges every later `&local` of the
+  same variable in the extended block into that pseudo (callee-saved `mr r4, rN` copies). Only the local at
+  frame offset 0 (`(reg vsv)` at expand time) is set straight into the hard register and recomputed per
+  call. The bare `&far`/`&ab` (`addi r5, r1, 8` twice) vs `mr r5, r30` (`&ac`) split in sub2 comes from this.
+  OPEN: sscrn's fade colours (`stw 0xFF/0` into 8/0xC, `addi r4, r1, 8; addi r5, r1, 0xc` recomputed in
+  OpeSetOpenTermEnd, slots shared with a block-scoped `ItemInfo`) and OpeSetOpenTerm's second `&pos`
+  (fresh `addi r9, r1, 0x68` after `setPos(&pos)`): u32/union/GXColor/4-byte-class locals are spilled to
+  fixed slots (no sibling reuse, `purge_addressof`), BLKmode/dtor-class temps share slots but cse merges
+  the address; inline-with-parameters (`fadeW(no, u32 c0, u32 c1, t)`) gives fresh addresses but fixed
+  slots. ~25 forms tried.
+- `switch (lang) { case 1: ... case 2: ... }` with *identical* bodies keeps two tree nodes (bodies
+  cross-jumped afterwards): `cmpwi 1; beq; bgt` then `cmpwi 0`; a shared `case 1: case 2:` label makes a
+  range node and a different tree (sscrn sscrnSetLanguage).
+- `switch (room) { case 0x111..0x113: case 0x118..0x11B: return room - 0x10; } return room;` (u16 in/out)
+  gives the `cmpwi/bltlr/ble/bgtlr/bltlr` chain with `subi; clrlwi 16` (sscrn sscrnRoomNo).
+- `(u8)(u32 & 0x10000000)` folds to 0 at the tree level; storing through a `u32 t = x & mask; w->b = t;`
+  temporary keeps `rlwinm; stb` (sscrn x1B6, a harmless bug in the original).
+- `if (size == 0) bss = 0; else bss = alloc(size);` puts the `li r4, 0` between the compare and the
+  branch (jump.c moves the *first* arm's simple set above the jump); `void* bss = 0; if (size) ...`
+  schedules the `li` before the loads (sscrn DLL_Link).
+- `u32* tbl = pG->bits; BitOn(tbl[no >> 5], 0x80000000 >> (no & 0x1F))` (u32 `no`) gives
+  `rlwinm 29,3,29` + `lwzx/stwx` off a materialised `pG + 0x82F0`; indexing `pG->bits[...]` directly folds
+  the offset into the displacement (sscrn OpeSetMdtNo).
+- Two struct-member zero stores in an `if` body come out reversed (`x2AF = 0; x2AE = 0` → `stb 2AE; stb 2AF`);
+  three separate `= 0` statements `x; y; z` → `z, x, y` (sscrn GameInit / RoomInit / Miss).
+- `Cckpt.getCountDown()->f()` (inline accessor returning `&member`) inside a `for(;;)` task loop is hoisted as
+  a loop invariant (`addi r15, r9, Cckpt@l` at the top, `addi r3, r15, 0xb0` at the use); a block-local
+  `Cockpit* ck = &Cckpt; ck->countDown.f()` is not (`addi r3, r27, Cckpt@l; addi r3, r3, 0xb0` at the use).
+  SubScreenExec uses the first form, SubScreenExit the second.
+- The original `cUnit::beginEvent`/`endEvent` take an `int` (sce_com's `cManager<T>::beginEvent(int)` loops
+  pass r4, sscrn passes 0); the shared declaration is still `beginEvent()`, so sscrn calls it through a
+  vtable-compatible view class (`BEGIN_EVENT`). Changing cUnit means touching every override (obj*/em*).
+- A loop-local `u32 addr = *cs++` instead of reusing the function-level `pc` swaps the r28/r31 allocation of
+  the two (exception ErrorHandler call-stack loop).
+- A game unit followed by an SDK library unit carries absolute-address padding the assembler cannot
+  reproduce with `.balign`: sscrn ends with `asm(".text\n\t.long 0, 0, 0")` and a never-referenced
+  `static u8 pad[0x1C]` (kept alive by an unused inline) for the 0x1C `.bss` gap.
 
 ## Don'ts
 

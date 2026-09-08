@@ -5,6 +5,11 @@
 #include "vec.h"
 #include "cManager.h"
 
+// game/math_sub.cpp (C++ linkage; math_sub.h declares them too)
+void RotMatrix(Mtx m, Vec* rot);
+void TransMatrix(Mtx m, Vec* pos);
+void ScaleMatrix(Mtx m, Vec* scale);
+
 // Coordinate base (game/model.cpp). Layout known only partially; pads keep offsets exact.
 class cCoord : public cUnit {
 public:
@@ -20,9 +25,23 @@ public:
     Vec prevScale;  // 0xB8  scale before MotionHokan rescaled it (blend: interpolated scale)
     Mtx prevMat;    // 0xC4  worldMat of the previous motion (MotionHokan interpolates from it)
 
-    cCoord();
+    // In-class (eff_sys inlines the constructor into g_EffParentWorld's static initialiser and
+    // owns the first `_vt.6cCoord` copy together with the out-of-line ~cCoord/matUpdate bodies).
+    cCoord() {
+        be_flag = 1;
+        PSMTXIdentity(mat);
+        PSMTXIdentity(worldMat);
+        pParent = NULL;
+        scale.x = scale.y = scale.z = 1.0f;
+        prevScale.x = prevScale.y = prevScale.z = 1.0f;
+    }
     virtual ~cCoord() {}
-    virtual void matUpdate();
+    virtual void matUpdate() {
+        RotMatrix(worldMat, &rot);
+        TransMatrix(worldMat, &pos);
+        ScaleMatrix(worldMat, &scale);
+        PSMTXCopy(worldMat, mat);
+    }
 };
 
 class cModel;
@@ -84,7 +103,7 @@ struct ModelBound {
 class cModelInfo : public cUnit {
 public:
     ModelData* pData;    // 0x0C
-    u8 pad_10[4];
+    void* pTpl;          // 0x10  texture palette of the model (eff_sys RoomEfmRegist)
     cModelInfo* pNext;   // 0x14  next parts info
     u8 pad_18[0x38 - 0x18];
     ModelBound bound;    // 0x38
