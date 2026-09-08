@@ -15,9 +15,11 @@ struct GeoCone {
     f32 radius;  // 0x20  height * sin(angle), written by collision_point_cone_rev_play
 };
 
+// 0x18 bytes: the trans_ot AddOt* frames reserve 0x18 for the local sphere (only pos/r are touched).
 struct GeoSphere {
-    Vec pos;  // 0x00
-    f32 r;    // 0x0C
+    Vec pos;         // 0x00
+    f32 r;           // 0x0C
+    u8 pad_10[0x8];  // 0x10
 };
 
 // Six planes: outward normals, plus one corner point for planes 0-2 and another for 3-5.

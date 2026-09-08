@@ -90,7 +90,13 @@ public:
     s8 line;            // 0x72
     u8 x73;
     u16 numW;           // 0x74  width added by numbers/tables (code0a)
-    u16 lineH;          // 0x76
+    union {
+        u16 lineH;      // 0x76
+        struct {
+            u8 lineH_hi;    // 0x76
+            s8 lineSpace;   // 0x77  (embox emBoxAction: prompt y = 336 - fontH - lineSpace - 1)
+        };
+    };
     u16 charSpace;      // 0x78
     u16 x7A;
     u32 color;          // 0x7C

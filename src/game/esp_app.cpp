@@ -97,7 +97,13 @@ void Esp4e_Trans();
 typedef void (*EffSeFunc)(Vec* pos);
 
 EffSeFunc pSeFunc[8];
-TexRenderMng* g_pMgr;
+// The manager pointer is loaded as a struct member (the pLog trick, db_log.h): the original reloads
+// it after every store made through it.
+struct TexRenderMngPtr {
+    TexRenderMng* p;
+};
+TexRenderMngPtr g_pMgr;
+#define pMgr g_pMgr.p
 
 void EffSetId()
 {
@@ -374,47 +380,55 @@ int EffAreaCheckNo(Vec* pos, u8 areaNo)
 void EffEm2d_setTexRender(cModel* m)
 {
     static u8 buf[0x80];
+    u8* tbl = buf;
 
     if ((pG->flags_5010 & 0x10) == 0) {
-        if (!GetTexRenderMgr(&g_pMgr)) {
+        TexRenderMng* mgr;
+
+        if (!GetTexRenderMgr(&pMgr)) {
             pLog->err(0, 0, "EffEm2d_setTexRender() : Manager alloc failed!!");
             return;
         }
         BitOn(pG->flags_5010, 0x10);
-        g_pMgr->sx = 0x40;
-        g_pMgr->sy = 0x40;
-        g_pMgr->ReAllocBuf();
-        buf[0] = 4;
-        buf[1] = 0;
-        buf[4] = 0;
-        buf[5] = g_pMgr->texId;
-        buf[6] = 2;
-        buf[7] = g_pMgr->texId;
-        buf[8] = 4;
-        buf[9] = g_pMgr->texId;
-        buf[0xA] = 6;
-        buf[0xB] = g_pMgr->texId;
-        g_pMgr->repType = 1;
-        EstSet(0, -1, NULL, NULL, 0x25, 0x1F, g_pMgr->mask | 0x801, 0, 0, NULL);
+        mgr = pMgr;
+        mgr->sx = 0x40;
+        mgr->sy = 0x40;
+        pMgr->ReAllocBuf();
+        tbl[0] = 4;
+        tbl[1] = 0;
+        tbl[4] = 0;
+        tbl[5] = pMgr->texId;
+        tbl[6] = 2;
+        tbl[7] = pMgr->texId;
+        tbl[8] = 4;
+        tbl[9] = pMgr->texId;
+        tbl[0xA] = 6;
+        tbl[0xB] = pMgr->texId;
+        pMgr->repType = 1;
+        EstSet(0, -1, NULL, NULL, 0x25, 0x1F, pMgr->mask | 0x801, 0, 0, NULL);
     }
-    m->pInfo->setTexBlendTbl(buf);
+    m->pInfo->setTexBlendTbl(tbl);
     m->pInfo->setBlendRatio(0);
 }
 
 void EspDrawLaserLine(Vec from, Vec to, f32 width)
 {
-    cEsp19* esp;
+    cEsp* esp;
+    cEsp19* e;
+    Esp19Work* w;
 
     if (pG->flags_6C & 0x40) {
         return;
     }
-    if (!EspEstSetSelect(0, 3, 0, (cEsp**) &esp, 0)) {
+    if (!EspEstSetSelect(0, 3, 0, &esp, 0)) {
         return;
     }
-    esp->pos = from;
-    esp->w.target = to;
-    esp->w.len *= width;
-    if (pG->flags_5010 & 1) {
+    e = (cEsp19*) esp;
+    w = &e->w;
+    e->pos = from;
+    w->target = to;
+    w->len *= width;
+    if (pGS->flags_5010 & 1) {
         esp->xA4 = 1;
         esp->xA5 = 4;
         esp->xA6 = 5;
@@ -425,19 +439,21 @@ void EspDrawLaserLine(Vec from, Vec to, f32 width)
 
 void EspDrawLaserLine2(Vec* from, Vec* to, u8 r, u8 g, u8 b, u8 a)
 {
-    cEsp19* esp;
+    cEsp* esp;
 
-    if (EspEstSetSelect(0, 3, 0, (cEsp**) &esp, 1)) {
-        esp->pos = *from;
-        esp->w.target = *to;
+    if (EspEstSetSelect(0, 3, 0, &esp, 1)) {
+        cEsp19* e = (cEsp19*) esp;
+        e->pos = *from;
+        e->w.target = *to;
         esp->colR = (f32) r;
         esp->colG = (f32) g;
         esp->colB = (f32) b;
         esp->colA = (f32) a;
     }
-    if (EspEstSetSelect(0, 3, 0, (cEsp**) &esp, 1)) {
-        esp->pos = *to;
-        esp->w.target = *from;
+    if (EspEstSetSelect(0, 3, 0, &esp, 1)) {
+        cEsp19* e = (cEsp19*) esp;
+        e->pos = *to;
+        e->w.target = *from;
         esp->colR = (f32) r;
         esp->colG = (f32) g;
         esp->colB = (f32) b;

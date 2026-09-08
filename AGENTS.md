@@ -332,6 +332,14 @@ mark it Matching.
 - Store-block weight rule (generalises the store-order rule): each independent store has weight +1,
   minus 1 per source register that dies there; lowest weight first, ties in source order.
 - `x >= C && x <= C` on a float yields the `cror un,eq,gt / bns` pair.
+- `for (i = 0; i < 8; i++) Wk[i].flag = 0` compiles to a `mtctr 8` loop stepping the pointer down
+  from the last element.
+- A loop-invariant `li rX, mask` left inside a small loop = several separate `&= ~bit` statements
+  merged by combine after loop opt.
+- Fresh block-local pointer copies in a later section (instead of reusing function-level pointers)
+  shorten live ranges and re-rank callee-saved register assignment.
+- cModel size debt workaround: an unused `u8 pad[0x320 - sizeof(cModel)]` after a `cModel` local
+  reproduces the original frame footprint.
 - Static locals show as `name.NNN` in objdiff; the DECL_UID suffix cannot be reproduced and is ignored by the report.
 - Unexplained words in `.rodata` (zero words, stray floats) are usually the constant pool of a function
   the original linker dead-stripped (bodies gone, pools kept, `STRIP_UNUSED` in objects.py): write a

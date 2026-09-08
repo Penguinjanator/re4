@@ -46,7 +46,7 @@ int CameraGetProjection();
 void CameraGameInit();
 void CameraRoomInit();
 void CameraMove();
-struct ViewFrustum* CameraViewFrustumPtr();
+struct ViewFrustum* CameraViewFrustumPtr(Camera* cam);
 void CameraGetUpVec(Camera* cam, Vec* up);
 void CameraGetLookVec(Camera* cam, Vec* look);
 void CameraGetLookVecInverse(Camera* cam, Vec* look);

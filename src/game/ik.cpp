@@ -144,7 +144,7 @@ void IKInit(cModel* m, MotionWork* w)
                 IK_FLAGS(root) &= ~4;
                 pLog->err(2, 0, "IKInit(): IK plane error");
             } else {
-                SetOrientationZY(d, &axis, mtx);
+                SetOrientationZY(&IK_PARTS(root)->dir, &axis, mtx);
                 PSMTXTranspose(mtx, IK_PARTS(root)->mat);
                 axis.x = 1.0f;
                 axis.y = 0.0f;
@@ -224,10 +224,10 @@ static void heel2toe(Mtx m, cModel* p, Vec* pos)
     IK_FLAGS(p) |= 0x10000000;
     TransMatrix(toe->worldMat, &toe->pos);
     PSMTXConcat(toe->pParent->mat, toe->worldMat, toe->mat);
-    IK_FLAGS(toe) |= 0x10000000;
     toe->worldPos.x = toe->mat[0][3];
     toe->worldPos.y = toe->mat[1][3];
     toe->worldPos.z = toe->mat[2][3];
+    IK_FLAGS(toe) |= 0x10000000;
 }
 
 // Recompute the local matrix of `q` from its world matrix and flag it as posed by the IK.
@@ -392,8 +392,8 @@ void InverseKinematics(cModel* m, int flag)
                 } else {
                     sel = 1;
                 }
-                joint = p->pParts;
-                eff = joint->pParts;
+                cModel* j = p->pParts;
+                cModel* e = j->pParts;
                 switch (sel) {
                 case 0: {
                     Vec b;
@@ -404,10 +404,10 @@ void InverseKinematics(cModel* m, int flag)
                     Mtx rm;
                     Mtx rel;
                     Mtx jinv;
-                    PSMTXInverse(joint->mat, jinv);
-                    PSMTXConcat(jinv, eff->mat, rel);
-                    IK_TWIST_ANGLE(rel, eff);
-                    IK_TWIST_APPLY(joint, a, 0, 0.5f);
+                    PSMTXInverse(j->mat, jinv);
+                    PSMTXConcat(jinv, e->mat, rel);
+                    IK_TWIST_ANGLE(rel, e);
+                    IK_TWIST_APPLY(j, a, 0, 0.5f);
                     IK_TWIST_APPLY(p, a, 0, 0.25f);
                     break;
                 }
@@ -423,13 +423,13 @@ void InverseKinematics(cModel* m, int flag)
                     Vec a2;
                     Mtx jinv;
                     Mtx rr;
+                    PSMTXInverse(j->mat, jinv);
+                    PSMTXConcat(jinv, e->mat, rel);
                     Vec rot = {-1.5707964f, 1.5707964f, 0.0f};
-                    PSMTXInverse(joint->mat, jinv);
-                    PSMTXConcat(jinv, eff->mat, rel);
                     RotMatrix(rr, &rot);
                     PSMTXConcat(rr, rel, rel);
-                    IK_TWIST_ANGLE(rel, eff);
-                    IK_TWIST_APPLY(joint, ax, 1, 0.5f);
+                    IK_TWIST_ANGLE(rel, e);
+                    IK_TWIST_APPLY(j, ax, 1, 0.5f);
                     IK_TWIST_APPLY(p, ax, 1, 0.25f);
                     break;
                 }
@@ -446,26 +446,27 @@ void InverseKinematics(cModel* m, int flag)
                 }
             }
         } else if (IK_FLAGS(p) & 0x100) {
-            cModel* toe;
-            Vec b;
-            Vec t;
-            Vec d;
-            Vec up = {0.0f, 1.0f, 0.0f};
-            Vec c;
-            Mtx rm;
-            Mtx rel;
-            Mtx jinv;
-            joint = p->pParts;
-            eff = joint->pParts;
-            toe = eff->pParts;
-            ikCalc(p, joint, toe);
-            PSMTXConcat(joint->mat, eff->worldMat, eff->mat);
-            PSMTXInverse(eff->mat, jinv);
-            PSMTXConcat(jinv, toe->mat, rel);
-            IK_TWIST_ANGLE(rel, toe);
-            IK_TWIST_APPLY(eff, a, 0, 0.5f);
-            IK_TWIST_APPLY(joint, a, 0, 0.25f);
-            IK_TWIST_APPLY(p, a, 0, 0.125f);
+            cModel* j = p->pParts;
+            cModel* e = j->pParts;
+            cModel* toe = e->pParts;
+            ikCalc(p, j, toe);
+            PSMTXConcat(j->mat, e->worldMat, e->mat);
+            {
+                Vec b;
+                Vec t;
+                Vec d;
+                Vec up = {0.0f, 1.0f, 0.0f};
+                Vec c;
+                Mtx rm;
+                Mtx rel;
+                Mtx jinv;
+                PSMTXInverse(e->mat, jinv);
+                PSMTXConcat(jinv, toe->mat, rel);
+                IK_TWIST_ANGLE(rel, toe);
+                IK_TWIST_APPLY(e, a, 0, 0.5f);
+                IK_TWIST_APPLY(j, a, 0, 0.25f);
+                IK_TWIST_APPLY(p, a, 0, 0.125f);
+            }
             q = p;
             for (n = 0; n <= 3; n++) {
                 PSMTXInverse(q->pParent->mat, inv);

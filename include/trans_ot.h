@@ -43,8 +43,8 @@ void ClearOt();
 void clearOtWork(OtWork* w);
 OtData* MakeOtData(void* data);
 int AddOtWorldPos(void* data, void (*func)(void*), Vec* pos, u16 kind, f32 zlimit);
-int AddOtWorldPosRadius(void* data, void (*func)(void*), Vec* pos, u16 kind, f32 radius, f32 zlimit);
-int AddOtModelPosRadius(void* data, void (*func)(void*), Vec* pos, u16 kind, f32 radius, f32 zlimit);
+int AddOtWorldPosRadius(void* data, void (*func)(void*), Vec* pos, f32 radius, u16 kind, f32 zlimit);
+int AddOtModelPosRadius(void* data, void (*func)(void*), Vec* pos, f32 radius, u16 kind, f32 zlimit);
 // Queue `func` in ordering table `ot`; `no` is the slot (clamped), `pos`/`radius` do a frustum cull when given.
 int AddOtDirect(int ot, void* data, void (*func)(), u32 no, u16 flag, Vec* pos, f32 radius);
 int ExecOt(int type);

@@ -12,7 +12,8 @@
 // Hit box / damage part info (cEm+0x33C for the player; GetWepTargetList returns pointers to
 // these per target). Only what obj08 reads is named.
 struct EmHitInfo {
-    u8 pad_0[0x18];
+    u8 pad_0[0xC];
+    Vec pos;              // 0x0C  hit position in the parts (obj1b: the spear sticks here)
     f32 width;            // 0x18
     f32 height;           // 0x1C
     u8 pad_20[4];

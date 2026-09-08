@@ -1003,6 +1003,7 @@ MATCHING = {
 # statics kept): tools/strip_unused.py removes the bodies of functions not in sym_map.tsv.
 STRIP_UNUSED = {
     "game/light.cpp",
+    "game/sub2.cpp",
     "game/camera.cpp",
     "game/atariInfo.cpp",
     "game/flr_at.cpp",
@@ -1027,6 +1028,7 @@ STRIP_UNUSED = {
     "game/em_cloth.cpp",
     "game/objWep.cpp",
     "game/cloth.cpp",
+    "game/esp_app.cpp",
 }
 
 # Capcom sound library (game/snd_*.cpp): C++ with extern "C" functions, compiled unoptimised
@@ -1130,18 +1132,22 @@ MATCHING.update({
     "game/ctrl.cpp": True,
 })
 
-# lighting transfer
+# transfer units (lighting, ordering table)
 MATCHING.update({
     "game/trans_lit.cpp": True,
+    "game/trans_ot.cpp": True,
 })
 
 # collision / model helper units (atari, cloth, ik, mirror, pendulum ...)
 MATCHING.update({
     "game/mirror.cpp": True,
     "game/cloth.cpp": True,
+    "game/ik.cpp": True,
 })
 
 # system / UI units
 MATCHING.update({
     "game/main.cpp": True,
+    "game/sub2.cpp": True,
+    "game/dmg.cpp": True,
 })

@@ -150,7 +150,7 @@ void CamStick2World(Camera* cam, JOY* joy, Vec* out)
     }
 }
 
-ViewFrustum* CameraViewFrustumPtr()
+ViewFrustum* CameraViewFrustumPtr(Camera* cam)
 {
     return &View.worldFull;
 }

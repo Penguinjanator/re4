@@ -118,8 +118,9 @@ int AddOtWorldPos(void* data, void (*func)(void*), Vec* pos, u16 kind, f32 zlimi
         return 0xFFFF;
     }
     idx = 0xFFFF;
-    z = 0.0f;
-    if (zlimit != 0.0f) {
+    if (zlimit == 0.0f) {
+        z = 0.0f;
+    } else {
         CameraGetLookVecInverse(cam, &look);
         d.x = pos->x - cam->param.pos.x;
         d.y = pos->y - cam->param.pos.y;
@@ -135,117 +136,128 @@ int AddOtWorldPos(void* data, void (*func)(void*), Vec* pos, u16 kind, f32 zlimi
         idx = no;
         p->data = data;
         p->func = func;
-        p->kind = kind;
         p->next = q->next;
+        p->kind = kind;
         q->next = p;
     }
     return idx;
 }
 
-int AddOtWorldPosRadius(void* data, void (*func)(void*), Vec* pos, u16 kind, f32 radius, f32 zlimit)
+int AddOtWorldPosRadius(void* data, void (*func)(void*), Vec* pos, f32 radius, u16 kind, f32 zlimit)
 {
+    OtWork* w = otWork(17);
     Camera* cam;
-    OtWork* w = &g_OtWork[17];
     OtData* p;
+    OtData* q;
     Vec look;
     Vec d;
     GeoSphere sph;
-    int idx;
+    GeoHexahedron* h;
+    u32 no;
     f32 z;
 
     p = MakeOtData(data);
     if (p == 0) {
         pLog->warn(2, 0, "AddOtWorldPos():PrimBuffer OVERFLOW!!");
-    } else {
-        cam = &pG->Cam;
-        sph.pos = *pos;
-        sph.r = radius;
-        if (!collision_sphere_hexahedron(&sph, (GeoHexahedron*) CameraViewFrustumPtr())) {
+        return 0xFFFF;
+    }
+    cam = &pG->Cam;
+    h = (GeoHexahedron*) CameraViewFrustumPtr(cam);
+    sph.pos = *pos;
+    sph.r = radius;
+    if (!collision_sphere_hexahedron(&sph, h)) {
+        return 0xFFFF;
+    }
+    CameraGetLookVecInverse(cam, &look);
+    d.x = pos->x - cam->param.pos.x;
+    d.y = pos->y - cam->param.pos.y;
+    d.z = pos->z - cam->param.pos.z;
+    z = PSVECDotProduct(&look, &d);
+    if (z + radius < zlimit) {
+        if (zlimit != 0.0f) {
             return 0xFFFF;
         }
-        CameraGetLookVecInverse(cam, &look);
-        d.x = pos->x - cam->param.pos.x;
-        d.y = pos->y - cam->param.pos.y;
-        d.z = pos->z - cam->param.pos.z;
-        z = PSVECDotProduct(&look, &d);
-        if (z + radius < zlimit) {
-            if (zlimit != 0.0f) {
-                return 0xFFFF;
-            }
-            z = zlimit;
-        }
-        idx = (u16) (z * OT_MUL);
-        if (idx >= w->max) {
-            idx = w->max - 1;
-        }
-        p->data = data;
-        p->func = func;
-        p->kind = kind;
-        p->next = w->list[idx].next;
-        w->list[idx].next = p;
-        return idx;
+        z = zlimit;
     }
+    no = (u16) (z * OT_MUL);
+    if (no >= w->max) {
+        no = w->max - 1;
+    }
+    q = &w->list[no];
+    p->data = data;
+    p->func = func;
+    p->next = q->next;
+    p->kind = kind;
+    q->next = p;
+    return no;
 }
 
-int AddOtModelPosRadius(void* data, void (*func)(void*), Vec* pos, u16 kind, f32 radius, f32 zlimit)
+int AddOtModelPosRadius(void* data, void (*func)(void*), Vec* pos, f32 radius, u16 kind, f32 zlimit)
 {
+    OtWork* w = otWork(13);
     Camera* cam;
-    OtWork* w = &g_OtWork[13];
     OtData* p;
+    OtData* q;
     Vec look;
     Vec d;
     GeoSphere sph;
-    int idx;
+    GeoHexahedron* h;
+    u32 no;
     f32 z;
 
     p = MakeOtData(data);
     if (p == 0) {
         pLog->warn(2, 0, "AddOtWorldPos():PrimBuffer OVERFLOW!!");
-    } else {
-        cam = &pG->Cam;
-        sph.pos = *pos;
-        sph.r = radius;
-        if (!collision_sphere_hexahedron(&sph, (GeoHexahedron*) CameraViewFrustumPtr())) {
+        return 0xFFFF;
+    }
+    cam = &pG->Cam;
+    h = (GeoHexahedron*) CameraViewFrustumPtr(cam);
+    sph.pos = *pos;
+    sph.r = radius;
+    if (!collision_sphere_hexahedron(&sph, h)) {
+        return 0xFFFF;
+    }
+    CameraGetLookVecInverse(cam, &look);
+    d.x = pos->x - cam->param.pos.x;
+    d.y = pos->y - cam->param.pos.y;
+    d.z = pos->z - cam->param.pos.z;
+    z = PSVECDotProduct(&look, &d);
+    if (z + radius < zlimit) {
+        if (zlimit != 0.0f) {
             return 0xFFFF;
         }
-        CameraGetLookVecInverse(cam, &look);
-        d.x = pos->x - cam->param.pos.x;
-        d.y = pos->y - cam->param.pos.y;
-        d.z = pos->z - cam->param.pos.z;
-        z = PSVECDotProduct(&look, &d);
-        if (z + radius < zlimit) {
-            if (zlimit != 0.0f) {
-                return 0xFFFF;
-            }
-            z = zlimit;
-        }
-        idx = (u16) (z * 0.01f);
-        if (idx >= w->max) {
-            idx = w->max - 1;
-        }
-        p->data = data;
-        p->func = func;
-        p->kind = kind;
-        p->next = w->list[idx].next;
-        w->list[idx].next = p;
-        return idx;
+        z = zlimit;
     }
+    no = (u16) (z * 0.01f);
+    if (no >= w->max) {
+        no = w->max - 1;
+    }
+    q = &w->list[no];
+    p->data = data;
+    p->func = func;
+    p->next = q->next;
+    p->kind = kind;
+    q->next = p;
+    return no;
 }
 
 extern "C" int AddOtDirect(int ot, void* data, void (*func)(), u32 no, u16 flag, Vec* pos, f32 radius)
 {
     OtWork* w;
     OtData* p;
+    OtData* q;
     GeoSphere sph;
+    GeoHexahedron* h;
 
     if (radius != 0.0f && pos != 0) {
+        h = (GeoHexahedron*) CameraViewFrustumPtr(&pG->Cam);
         sph.pos = *pos;
         sph.r = radius;
-        if (!collision_sphere_hexahedron(&sph, (GeoHexahedron*) CameraViewFrustumPtr())) {
+        if (!collision_sphere_hexahedron(&sph, h)) {
             return 0xFFFF;
         }
     }
-    w = &g_OtWork[ot];
+    w = otWork(ot);
     p = MakeOtData(data);
     if (p == 0) {
         pLog->warn(2, 0, "AddOtDirect():PrimBuffer OVERFLOW!!");
@@ -254,11 +266,12 @@ extern "C" int AddOtDirect(int ot, void* data, void (*func)(), u32 no, u16 flag,
     if (no >= w->max) {
         no = (u16) (w->max - 1);
     }
+    q = &w->list[no];
     p->data = data;
     p->func = (void (*)(void*)) func;
+    p->next = q->next;
     p->kind = flag;
-    p->next = w->list[no].next;
-    w->list[no].next = p;
+    q->next = p;
     return no;
 }
 
@@ -313,6 +326,7 @@ static void SetOtMirrorWork(u32 no)
 void DeleteOtData(u32 type, u32 no)
 {
     OtWork* w;
+    OtData* q;
 
     if (type >= OT_MAX) {
         pLog->err(0, 0, "DeleteOtData() : invalid ot_type[%d] MAX=%d", type, OT_MAX);
@@ -323,5 +337,6 @@ void DeleteOtData(u32 type, u32 no)
         pLog->err(0, 0, "DeleteOtData() : invalid no[%d] MAX=%d", no, w->max);
         return;
     }
-    w->list[no].next = w->list[no].next->next;
+    q = &w->list[no];
+    q->next = q->next->next;
 }
