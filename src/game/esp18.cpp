@@ -24,9 +24,6 @@ public:
 
     virtual void move();
     virtual int SetFreeWork(EspGenWork* gen, u32* seed);
-    // The original tests ChannelSet's result here; esp.h declares it void (changing that would
-    // reorder the argument set up of the units that ignore it), so call it through an asm label.
-    int ChannelSetI() asm("ChannelSet__4cEsp");
 };
 
 extern "C" {

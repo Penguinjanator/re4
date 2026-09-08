@@ -394,16 +394,15 @@ ExamInfo* examInfo(int id, int ext)
 {
     ExamInfo* p;
     int i;
+    int n;
 
     if (ext) {
+        n = 2;
         p = exam_info_ext;
-        for (i = 0; i < 2; i++, p++) {
+        for (i = 0; i < n; i++, p++) {
             if (id == p->id) {
-                break;
+                return p;
             }
-        }
-        if (i < 2) {
-            return p;
         }
     }
     p = exam_info;
@@ -557,8 +556,10 @@ void ItemExamine::idSet()
 void ItemExamine::init(u16 id_, cModel* model_, u8 mode_)
 {
     static f32 c0 = -0.5f;
+    ModelDataHead* h;
     cModel* parts;
     cLit* lit;
+    ArcFile* arc;
     int i;
     u16 no;
 
@@ -571,22 +572,21 @@ void ItemExamine::init(u16 id_, cModel* model_, u8 mode_)
     model->be_flag |= 0x4000;
     saveParent = model->pParts->pParent;
     model->pParts->pParent = model;
+    h = model->pInfo->pData->pHead;
     savePartsPos = model->pParts->pos;
-    model->pParts->pos.x = model->pInfo->pData->pHead->center.x;
-    model->pParts->pos.y = model->pInfo->pData->pHead->center.y;
-    model->pParts->pos.z = model->pInfo->pData->pHead->center.z;
+    model->pParts->pos.x = h->center.x;
+    model->pParts->pos.y = h->center.y;
+    model->pParts->pos.z = h->center.z;
     savePartsRot = model->pParts->rot;
-    model->pParts->rot.x = 0.0f;
-    model->pParts->rot.z = 0.0f;
-    model->pParts->rot.y = 0.0f;
+    model->pParts->rot.x = model->pParts->rot.y = model->pParts->rot.z = 0.0f;
     mode = mode_;
     idSet();
     switch (mode) {
-    case 0:
-        info = examInfo(id, 0);
-        break;
     case 1:
         info = examInfo(id, 1);
+        break;
+    case 0:
+        info = examInfo(id, 0);
         break;
     case 2:
         info = 0;
@@ -629,31 +629,32 @@ void ItemExamine::init(u16 id_, cModel* model_, u8 mode_)
         VecLinearCombination(p0, &model->getPartsPtr(1)->worldPos, c, 1.0f - c0, &mid);
         PSVECScale(&mid, &mid, 0.5f);
         PSVECAdd(&mid, &p, &at);
-        itemCamera.param.pos = at;
         itemCamera.param.at = mid;
+        itemCamera.param.pos = at;
         itemCamera.dist = cap_dist_max;
         g_rad_x = 0.0f;
     } else {
-        lit = (cLit*) ((u8*) pG->pArc + pG->pArc->ofs_58);
+        arc = pG->pArc;
+        lit = (cLit*) (arc->ofs_58 + (u32) arc);
         if (info) {
             switch (info->light) {
             case 0:
-                lit = (cLit*) ((u8*) pG->pArc + pG->pArc->ofs_58);
+                lit = (cLit*) (arc->ofs_58 + (u32) arc);
                 break;
             case 1:
-                lit = (cLit*) ((u8*) pG->pArc + pG->pArc->ofs_5C);
+                lit = (cLit*) (arc->ofs_5C + (u32) arc);
                 break;
             case 2:
-                lit = (cLit*) ((u8*) pG->pArc + pG->pArc->ofs_60);
+                lit = (cLit*) (arc->ofs_60 + (u32) arc);
                 break;
             case 3:
-                lit = (cLit*) ((u8*) pG->pArc + pG->pArc->ofs_64);
+                lit = (cLit*) (arc->ofs_64 + (u32) arc);
                 break;
             case 4:
-                lit = (cLit*) ((u8*) pG->pArc + pG->pArc->ofs_68);
+                lit = (cLit*) (arc->ofs_68 + (u32) arc);
                 break;
             default:
-                lit = (cLit*) ((u8*) pG->pArc + pG->pArc->ofs_58);
+                lit = (cLit*) (pG->pArc->ofs_58 + (u32) pG->pArc);
                 break;
             }
         }

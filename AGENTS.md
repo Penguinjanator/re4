@@ -799,6 +799,54 @@ mark it Matching.
 - OPEN (datactrl dispDebug): global-alloc order p(r31) > u(r30) > this(r29) in the original; ours gives
   the loop pointer giv r31, this r30, p r29 (same refs and instructions; loop forms, declaration order,
   `unit[i]` indexing, do/while tried).
+- Index registers vs base registers (regclass `record_address_regs`): in `lwzx rD, rBase, rOfs` /
+  `add rP, rBase, rOfs` the offset pseudo prefers GENERAL_REGS (r0 first in the alloc order) when the
+  base pseudo is pointer-flagged (a pointer parameter/local), and BASE_REGS (r9/r11/r10...) when it is
+  not — both operands then count half as base. A table offset the target keeps in r9 while ours takes
+  r0 means the base was an integer (`u32 addr` parameter, `(EffData*) addr` local), not a pointer
+  (eff_sys EspDataLoad).
+- `y = C; loop { if (hit) { f(y); y += step; } }`: the target's `li rY, C` issued *last* in the preheader
+  (after loop.c's hoisted `lis`/`addi`s) and living in the highest callee-saved register is a
+  strength-reduced giv: `n = 0; ... f(C + n * step); n++` (esp EspMove, esp_app EffAreaUpdate).
+- update_equiv_regs (local-alloc.c): a pseudo set once to a constant and used once *in another basic
+  block* has its `li` moved to right before the use (short range, a caller-saved register such as r9
+  right before the `stw`); the same constant written at the store, or a local declared in the same
+  block, is hoisted by sched1 into a long-lived callee-saved register. `int repType = 1;` at the
+  function top with `mgr->repType = repType;` inside the `if` (esp_app EffEm2d_setTexRender).
+- A pointer local assigned in two places (`mgr = pMgr;` twice) has two deaths, is skipped by local-alloc
+  and gets a caller-saved register (r12) from global alloc; two distinct locals are local-allocated and
+  take r9 / r30 in alloc order.
+- Reading a global through a one-member struct *wrapper declaration* (`TexRenderMngPtr g_pMgr; g_pMgr.p`)
+  forces the `@sda21` address into a register (`li r8, g@sda21; lwz r9, 0(r8)`) whenever the member is
+  read as a value (`mgr = g_pMgr.p`, `this` of a method call) — `expand_expr` calls `memory_address`
+  on the BLKmode struct and constant addresses go through a pseudo "to be cse'd". A plain pointer
+  global with reference-setter stores (`BitSet(mgr->sx, 0x40)`, `ISet(mgr->repType, v)`) gives the
+  same reloads with direct `lwz r9, g@sda21`.
+- jump.c hoists a first-arm single set (`if (c) on = 0; else { on = 1; ... }` → `li 0` before the
+  branch, inverted test) only when the else arm *starts* with a set of the same variable; reading a
+  global into a local first (`u32 f = pG->flags_5010; on = 1; if (f & bit) ...`) keeps the target's
+  `beq; li r11,0; b` block (espgen EspgenIsActive).
+- local-alloc ties a dying operand to the result of a 3-operand insn (`fmuls fD, fD, fC` with the
+  `(f32)d` operand in fD) only when the result pseudo is block-local with one death; a float temp
+  assigned in both arms of an `if` (`t = (f32)d * c; ret = 1 - rate * t; ... else t = ...`) is global,
+  so nothing ties and d/c/1.0 take f13/f12/f11 after the products in f0 (espgen00/02 Calc_D256).
+- cse_around_loop (cse.c): for a `for`/`while` loop whose latch ebb ends at LOOP_END jumping back to the
+  header, an expression computed in the header that a REG_LOOP_TEST_P register of the latch also holds
+  (`sys + 0x10000` for high-offset members) is rewritten as a copy of that register, with a second copy
+  emitted after the matching computation before the loop: `mr r9,r10` before the loop and in the latch,
+  the header load using r9 (esp `operator new` loop 3). Goto loops never get it.
+- OPEN (esp `operator new`): writing that loop as `for` reproduces the copies but loop.c then moves the
+  `PushEsp(esp); goto found;` block behind `found:` (the guarded-exit-block motion above); no form found
+  that keeps both. Loops 1/2/4 must stay goto loops (a `for` strength-reduces `&esp->flag`).
+- OPEN (esp_app EffAreaUpdate / esp45 HideCheck): a loop.c-hoisted `lis` and an independent `or`/`li`
+  in the preheader are issued in the other order; both have equal priority/weight so the tie-break is
+  the RTL (LUID) order of the hoisted insns, which no source form changed.
+- OPEN (espgen02 espgen02_Update): three `f32 x = 0.0f` locals share one pool load; cse loads it into
+  the variable whose last mention is latest in the insn chain (ours colR, target spdR) — the target
+  mentions spdR after colR's `colA *= colR` somewhere we do not reproduce.
+- OPEN (Espgen43 AddSandPower): the `lis/addi Chk_pos` pair and the z-word temp of the 12-byte struct
+  copy swap r10/r11 (local-alloc priority order); memberwise, memcpy, pointer and statement-order forms
+  tried. SetSandWork also has an unidentified 8-byte frame slot and one more callee-saved GPR.
 
 ## Don'ts
 

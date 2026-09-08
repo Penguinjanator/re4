@@ -287,6 +287,10 @@ public:
     void ApplyMatrix(Mtx m);
     void CommonStateSet();
     void ChannelSet();
+    // ChannelSet really returns `col.a != 0` (esp18 tests it). The void declaration above stays
+    // for the units that ignore the result (the callee's return type orders their argument
+    // set up); this asm-labelled alias is the same function with its real signature.
+    int ChannelSetI() asm("ChannelSet__4cEsp");
 };
 
 // game/esp3f.cpp: vector buffer owned by an effect (see esp3f.cpp for the class)
