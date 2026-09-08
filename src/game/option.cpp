@@ -50,9 +50,12 @@ static inline int isLang(u8 lang, int n)
     return lang == n;
 }
 
-static inline bool isEurope(u8 lang)
+static inline int isEurope(u8 lang)
 {
-    return isLang(lang, 2) || isLang(lang, 3) || isLang(lang, 4) || isLang(lang, 5) || isLang(lang, 6);
+    if (isLang(lang, 2) || isLang(lang, 3) || isLang(lang, 4) || isLang(lang, 5) || isLang(lang, 6)) {
+        return 1;
+    }
+    return 0;
 }
 
 void setLangExt3(char* name)

@@ -53,11 +53,13 @@ static inline void barrelInitFailed(cEmBarrel* em)
     EmMgr.destroy(em);
 }
 
-static inline void barrelLightInit(cEmBarrel* em, const Vec* size)
+// One `.rodata` copy of the light offset shared by SetBarrel and SetR227Barrel (an inline parsed
+// before both); the address must be an argument expression so that `&ofs` is evaluated before `&size`.
+static inline const Vec* barrelLightOfs()
 {
     static const Vec ofs = { 0.0f, 0.0f, 0.0f };
 
-    em->lightInfo.init2(0, 1, &ofs, size, 0x10);
+    return &ofs;
 }
 
 cEmBarrel* SetBarrel(void* bin, void* tpl, Vec* pos, Vec* rot, u8 type, int etcNo)
@@ -112,7 +114,7 @@ cEmBarrel* SetBarrel(void* bin, void* tpl, Vec* pos, Vec* rot, u8 type, int etcN
     {
         static const Vec size = { 2000.0f, 2000.0f, 2000.0f };
 
-        barrelLightInit(em, &size);
+        em->lightInfo.init2(0, 1, barrelLightOfs(), &size, 0x10);
     }
     zero = 0;
     em->lockParts = zero;
@@ -187,7 +189,7 @@ cEmBarrel* SetR227Barrel(Vec* pos, Vec* rot)
     {
         static const Vec size = { 4000.0f, 4000.0f, 4000.0f };
 
-        barrelLightInit(em, &size);
+        em->lightInfo.init2(0, 1, barrelLightOfs(), &size, 0x10);
     }
     em->lockParts = zero;
     em->lockOfs.x = 0.0f;

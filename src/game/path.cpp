@@ -117,9 +117,9 @@ int PathGetMatEm(void* path, cModel* model, f32 dist, u16* seg, Mtx out)
     PathVtx* pn;
     PathVtx* pb;
     int step;
-    int j;
-    int k;
-    int idx;
+    int j = 0;    // dead initialisers: 3 more insn uids, which decides gcse's hash table size
+    int k = 0;    // and with it the spill-slot order of the PRE'd &local pseudos
+    int idx = 0;
     int ib;
     int in;
     f32 fstep;
@@ -146,8 +146,6 @@ int PathGetMatEm(void* path, cModel* model, f32 dist, u16* seg, Mtx out)
     static int dbg_tangent_base = 1;
     static int inter_flag = 1;
 
-//@@BEGIN
-//@@END
     len = PathGetLength(path);
     vtx = p->vtx;
     if (dist >= len || dist < 0.0f) {
@@ -204,13 +202,14 @@ int PathGetMatEm(void* path, cModel* model, f32 dist, u16* seg, Mtx out)
     }
 
     for (j = 0; j < 3; j++) {
+        f32* ph = &(&hpos.x)[j];   // first &hpos use before &key0/&key1: PRE inserts its copy first
         key0.t = 0.0f;
         key0.v = (&v0->pos.x)[j];
         key0.out = key0.in = (&d0.x)[j];
         key1.t = 1.0f;
         key1.v = (&v->pos.x)[j];
         key1.out = key1.in = (&d1.x)[j];
-        Hermite_1(&key0, &key1, t, &(&hpos.x)[j]);
+        Hermite_1(&key0, &key1, t, ph);
         Hermite_1_dt(&key0, &key1, t, &(&hvel.x)[j]);
     }
     PSMTXMultVec(m0, &hpos, &hpos);

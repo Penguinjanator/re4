@@ -351,7 +351,7 @@ address	size	section	unit	scope	name	demangled
 0x80020A54	0xC	.text	game/light_area.cpp	global	LightAreaDataLoad	LightAreaDataLoad
 0x80020A60	0xD4	.text	game/light_area.cpp	global	LightAreaUpdate	LightAreaUpdate
 0x80020B34	0x2FC	.text	game/light_area.cpp	global	LightAreaUpdateSub	LightAreaUpdateSub
-0x80020E30	0x64	.text	game/lightInfo.cpp	global	cLightInfo_cLightInfo	cLightInfo::cLightInfo
+0x80020E30	0x64	.text	game/lightInfo.cpp	global	__10cLightInfo	cLightInfo::cLightInfo
 0x80020E94	0x13C	.text	game/lightInfo.cpp	global	init2__10cLightInfoiiPC3VecT3i	cLightInfo::init2
 0x80020FD0	0x38	.text	game/lightInfo.cpp	global	getLightNum__10cLightInfo	cLightInfo::getLightNum
 0x80021008	0xE0	.text	game/lightInfo.cpp	global	updateMatrix__10cLightInfoP6cModel	cLightInfo::updateMatrix
@@ -4713,7 +4713,7 @@ address	size	section	unit	scope	name	demangled
 0x8014C6A4	0x2C	.text	game/id_sys.cpp	global	IdDebugFreeBuffer	IdDebugFreeBuffer
 0x8014C6D0	0x58	.text	game/id_sys.cpp	global	IdGetBufferAddr	IdGetBufferAddr
 0x8014C728	0x8	.text	game/id_sys.cpp	global	IdSetBufferType	IdSetBufferType
-0x8014C730	0x54	.text	game/id_tex.cpp	global	IdTexGameInit	IdTexGameInit
+0x8014C730	0x54	.text	game/id_tex.cpp	global	IdTexGameInit__Fv	IdTexGameInit
 0x8014C784	0x24	.text	game/id_tex.cpp	global	IdTexRoomInit	IdTexRoomInit
 0x8014C7A8	0x28	.text	game/id_tex.cpp	global	IdTexRelease	IdTexRelease
 0x8014C7D0	0xEC	.text	game/id_tex.cpp	global	IdTexDataLoad	IdTexDataLoad

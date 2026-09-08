@@ -887,6 +887,40 @@ mark it Matching.
 - OPEN (Espgen43 AddSandPower): the `lis/addi Chk_pos` pair and the z-word temp of the 12-byte struct
   copy swap r10/r11 (local-alloc priority order); memberwise, memcpy, pointer and statement-order forms
   tried. SetSandWork also has an unidentified 8-byte frame slot and one more callee-saved GPR.
+- `cAtariInfo::init(int,int,int,f32 x7)` `fmr`/`li` order (SetTrolley/SetGondola/SetYagura/SetHeliMissile/
+  SetPillar/SetBox/SetBarrel/SetEmSwitch/setScrAtari, also Espgen44_Destruct's `Filter05SetParam`,
+  emobj's `SatMgr.create`): NOT adjust_priority/birthing — SetYagura has no loop, >10 blocks and >100
+  insns, so every block is its own region and `bb_live_regs` never holds f1..f7 there. The `.sched`/
+  `.sched2` dumps show the seven FPR arg copies and the three `li`s with equal priority (7), equal
+  register weight (+1, nothing dies: the `zero` pseudo lives on for `pos = 0`, the copied hard regs f2/f5
+  are call args) and equal dependence count, so the ready list falls through to INSN_LUID: the target
+  order (`mr r3,this; fmr f1; fmr f6; li r4; fmr f7; li r5; li r6`, fpu one insn/cycle, sched2 keeping
+  sched1's order) is exactly what an RTL order "this, FPR args, GPR args" produces, and GCC's
+  `load_register_parameters` emits the moves in declaration order (ints first). Proven by an asm-labelled
+  redeclaration with the floats first (`include/atari_init.h`: `atariInitF(cAtariInfo*, f32 x7, int x3)
+  asm("init__10cAtariInfoiiifffffff")`, ABI-identical since GPR and FPR argument registers are numbered
+  independently); with the float constants passed through an inline (`AtariInit`) so they are pseudos
+  (cse shares the 0.0 with the `pos = 0` stores through the `if (pos)` branch; the 1000.0 pseudo feeding
+  both f2 and f7 gets the longer chain the target loads first). The same "FP arg moves before GPR arg
+  moves" appears in every unmatched int-then-float call site checked (embarrel/emBarred/emrock init,
+  emobj `create(..., int, int, f32)` with `lwz`/`lfs` args) but not for GPR args that are register copies
+  (`PSVECScale(&v, &v, f)` keeps `mr r3; mr r4; fmr f1`): a `calls.c` experiment that always emits arg 0,
+  then the FPR args, then the other GPR args flipped 13 functions and regressed 37 (all cases with
+  register-copy/`addi`/symbol GPR args after an FP arg), so the exact rule of the original compiler is
+  still unknown; use the redeclaration where the target shows the interleave.
+- A static function's position in `.text` is its definition position: `objTrolleySatClear` is defined
+  after `objTrolley_R0_Break` in the original (forward-declared before `move`), which objdiff's 100%
+  does not show — check `.text` symbol offsets against the split object before flipping.
+- A store block's weight-0 member is the one where the *work pointer* dies (its last use in the block):
+  SetBox's `w->itemNo = -1` is the last `w->` store in source although the target issues it first
+  (both `-1` and `w` die there); with it written first, `w` died at `itemNum = 0` and that store jumped
+  ahead instead.
+- A distance test computed into the function's existing `f32 spd` variable (`spd = dx*dx + dz*dz; if
+  (spd < K)`) lands in f1 (global pseudo, two assignments) where the inline expression ties `fmadds` to
+  the dying operand's f13 (embarrel emBarrelSetRollSpd).
+- An inline helper taking `const Vec* size` evaluates `&size` as the parameter copy before the body's
+  `&ofs`, reversing the `lis/addi` pairs of `init2(0, 1, &ofs, &size, 0x10)`; a helper that *returns*
+  `&ofs` (shared `.rodata` copy) used as the argument keeps the argument order (embarrel).
 
 ## Don'ts
 

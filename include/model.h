@@ -159,13 +159,14 @@ public:
     u8 x50;          // 0x50  cLight::xF kind mask the model accepts (0x41: parent lights only)
     u8 x51;          // 0x51  bits 0-1: 2 = follow the model matrix (obj04: updateMatrix each frame); hit check shape (0 cylinder, 1/3 sphere, 2 box)
     s8 x52;          // 0x52  parts index + 1 the light origin follows (getPos), 0 = model
-    u8 pad_53;
+    u8 x53;          // 0x53
     u32 x54;         // 0x54  (scroll: SmxWork.x4); bit i: light i never applies (setModel2)
     Vec ofs;         // 0x58  light origin offset in the space of the coord x52 selects (shadow.cpp)
     Vec size;        // 0x64  hit check size: x radius, y half height (cylinder), xyz box half size
-    u8 pad_70[0x74 - 0x70];
+    f32 radius;      // 0x70  bounding radius from size (init2: cylinder x + y, box length, sphere x)
 
-    int init2(int a, int b, const Vec* p0, const Vec* p1, int c);  // every caller passes a 5th int (r8); the body ignores it
+    cLightInfo();
+    int init2(int a, int b, const Vec* p0, const Vec* p1, int c);  // a -> x51, b -> x52, c -> x50
     void updateMatrix(cModel* m);
     u32 getLightNum();
     cModel* getPos(cModel* m, Vec* out);  // light origin of `m` (the parts x52 - 1 selects); returns the coord it belongs to

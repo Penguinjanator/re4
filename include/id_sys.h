@@ -193,6 +193,7 @@ void IdDebugAllocBuffer();
 void IdDebugFreeBuffer();
 void* IdGetBufferAddr(int type);
 void IdSetBufferType(int type);
+void IdTexGameInit();
 void IdTexRoomInit();
 void IdTexRelease(int id);
 int IdTexDataLoad(void* data, int id);

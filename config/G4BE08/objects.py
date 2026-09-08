@@ -1088,6 +1088,7 @@ MATCHING.update({
     "game/pl_push.cpp": True,
     "game/pl_cloth.cpp": True,
     "game/pl_dmg.cpp": True,
+    "game/path.cpp": True,
 })
 
 # map object units (game/obj*.cpp)
@@ -1201,6 +1202,8 @@ MATCHING.update({
     "game/objTrolley.cpp": True,
     "game/objYagura.cpp": True,
     "game/objMissile.cpp": True,
+    "game/emswitch.cpp": True,
+    "game/embarrel.cpp": True,
 })
 
 MATCHING.update({
@@ -1209,4 +1212,8 @@ MATCHING.update({
 
 MATCHING.update({
     "game/cMotBase.cpp": True,
+})
+
+MATCHING.update({
+    "game/lightInfo.cpp": True,
 })
