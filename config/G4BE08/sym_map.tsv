@@ -6214,11 +6214,11 @@ address	size	section	unit	scope	name	demangled
 0x801B8BF0	0x114	.text	game/esp07.cpp	global	SetFreeWork__6cEsp07P10EspGenWorkPUl	cEsp07::SetFreeWork
 0x801B8D04	0x20	.text	game/esp07.cpp	global	_._6cEsp07	cEsp07::~cEsp07
 0x801B8D24	0x44	.text	game/esp08.cpp	global	Esp08_Create	Esp08_Create
-0x801B8D68	0x1F0	.text	game/esp08.cpp	global	cEsp08_move	cEsp08::move
+0x801B8D68	0x1F0	.text	game/esp08.cpp	global	move__6cEsp08	cEsp08::move
 0x801B8F58	0x1444	.text	game/esp08.cpp	global	Esp08_Trans	Esp08_Trans
 0x801BA39C	0x1B8C	.text	game/esp08.cpp	global	Esp08_TransShimmer	Esp08_TransShimmer
-0x801BBF28	0x154	.text	game/esp08.cpp	global	cEsp08_SetFreeWork	cEsp08::SetFreeWork
-0x801BC07C	0x20	.text	game/esp08.cpp	global	cEsp08_dt_cEsp08	cEsp08::~cEsp08
+0x801BBF28	0x154	.text	game/esp08.cpp	global	SetFreeWork__6cEsp08P10EspGenWorkPUl	cEsp08::SetFreeWork
+0x801BC07C	0x20	.text	game/esp08.cpp	global	_._6cEsp08	cEsp08::~cEsp08
 0x801BC09C	0x44	.text	game/esp09.cpp	global	Esp09_Create__Fv	Esp09_Create
 0x801BC0E0	0x13C	.text	game/esp09.cpp	global	Esp09_ClearPrevPos	Esp09_ClearPrevPos
 0x801BC21C	0x214	.text	game/esp09.cpp	global	move__6cEsp09	cEsp09::move
@@ -8590,7 +8590,7 @@ address	size	section	unit	scope	name	demangled
 0x80248AA8	0xD8	.rodata	game/esp07.cpp	global	lbl_80248AA8	.
 0x80248B80	0x30	.rodata	game/esp07.cpp	global	cEsp07_virtual_table	cEsp07 virtual table
 0x80248BB0	0x258	.rodata	game/esp08.cpp	global	lbl_80248BB0	.
-0x80248E08	0x30	.rodata	game/esp08.cpp	global	cEsp08_virtual_table	cEsp08 virtual table
+0x80248E08	0x30	.rodata	game/esp08.cpp	global	_vt.6cEsp08	cEsp08 virtual table
 0x80248E38	0x200	.rodata	game/esp09.cpp	global	lbl_80248E38	.
 0x80249038	0x30	.rodata	game/esp09.cpp	global	cEsp09_virtual_table	cEsp09 virtual table
 0x80249068	0x98	.rodata	game/esp0a.cpp	global	lbl_80249068	.

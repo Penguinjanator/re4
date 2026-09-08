@@ -190,7 +190,9 @@ struct Espgen10Work {
 // game/espgen45.cpp): a (nx+1) x (ny+1) height field with two ping-pong height buffers, drawn through
 // a prebuilt display list with an indirect bump texture.
 struct Espgen42Work {
-    u8 pad_14[0xC];    // 0x14
+    u8 pad_14[4];      // 0x14
+    f32 x18;           // 0x18 (espgen45: copied to xC0 by SetFreeWork)
+    u8 pad_1C[4];
     Mtx mat;           // 0x20 grid -> world
     Mtx inv;           // 0x50 world -> grid
     u16 nx;            // 0x80 grid cells along x
@@ -209,13 +211,14 @@ struct Espgen42Work {
     u8 mode;           // 0xB0 wave model (1: second variant)
     s8 stages;         // 0xB1 number of extra tev stages
     u8 texId;          // 0xB2
-    u8 pad_B3;
+    u8 rotY;           // 0xB3 (espgen45) EspGenWork xFE
     u16 indS;          // 0xB4 indirect matrix parameters
     u16 indT;          // 0xB6
     f32 damp;          // 0xB8
     f32 spread;        // 0xBC
-    u8 pad_C0[4];
-    u8 flag;           // 0xC4 (espgen45) bit0: the grid is bounded
+    f32 xC0;           // 0xC0 (espgen45)
+    u8 flag;           // 0xC4 (espgen45) bit0: bounded grid (EspGenWork flags bit0), bit1: EspGenWork flags 0x4000
+    u8 xC5;            // 0xC5 (espgen45) EspGenWork xC5
 };
 
 typedef void (*EspgenMoveFunc)(EspgenWork* w);
@@ -302,6 +305,12 @@ void Estgen45SetSizeOverWrite(int on);
 void Estgen45SetColorOverWrite(int on);
 void Estgen45SetColorMul(int on);
 void Estgen45SetParamOverWrite(int on);
+void Estgen45SetTargetPos(f32 x, f32 z);
+void Estgen45SetHeight(f32 h);
+void Estgen45SetSize(f32 size);
+void Estgen45SetColor(u8 r, u8 g, u8 b, u8 a, f32 rs, f32 gs, f32 bs, f32 as);
+struct Esp4cWork;
+void Estgen45SetParam(Esp4cWork* w);
 void Espgen45_Move(EspgenWork* w);
 void Espgen45_Trans(EspgenWork* w);
 void Espgen45_Destruct(EspgenWork* w);

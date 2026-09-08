@@ -1512,9 +1512,6 @@ int Merchant::buyupPrice(u16 id, int num)
     int price;
     int n;
     int type;
-    f32 rate1 = 1.0f;
-    f32 rate2 = 0.5f;
-    f32 rate3 = 0.9f;
 
     if (p == 0) {
         pLog->err(0, 0, "buyupPriece() : 0x%02x not found", id);
@@ -1524,13 +1521,18 @@ int Merchant::buyupPrice(u16 id, int num)
     price = p->price * n;
     itemInfo(id, &info);
     type = info.type;
+    // OPEN: the original keeps the 0.5f/0.9f pool entries before the double-trick constant, loads
+    // 0.5f through a callee-saved high half (lis r29 at the entry) and lays the 0.9f body out
+    // first (its multiply tail cross-jumped into the 0.5f one); rate variables at the top give the
+    // pool order but keep the loads in f30/f31 from the entry. The parenthesised test keeps the
+    // [1,2] range fold apart from the == 3 compare, as the original.
     if (type == 5 || type == 0xC) {
-        return (int) ((f32) price * rate1);
+        return (int) ((f32) price * 1.0f);
     }
-    if (type != 1 && type != 2 && type != 3 && type != 6 && id != 0xFE) {
-        return (int) ((f32) price * rate3);
+    if ((type == 1 || type == 2) || (type == 3 || type == 6) || id == 0xFE) {
+        return (int) ((f32) price * 0.5f);
     }
-    return (int) ((f32) price * rate2);
+    return (int) ((f32) price * 0.9f);
 }
 
 int Merchant::buyupPrice(ItemWork* item, int num)

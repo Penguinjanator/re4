@@ -788,7 +788,7 @@ void make_fix_light(ShadowMng* mng)
     }
 }
 
-void SoftShadowGetEFB(ShadowMng* mng, int clear, f32 sx, f32 sy)
+void SoftShadowGetEFB(ShadowMng* mng, f32 sx, f32 sy, int clear)
 {
     int size;
 
@@ -801,13 +801,13 @@ void SoftShadowGetEFB(ShadowMng* mng, int clear, f32 sx, f32 sy)
     GXInvalidateTexAll();
 }
 
-void SoftShadowGXDraw(ShadowMng* mng, int div, f32 x, f32 y, f32 z, f32 u, f32 v, f32 alpha, f32 scale)
+void SoftShadowGXDraw(ShadowMng* mng, u32 div, f32 x, f32 y, f32 z, f32 u, f32 v, f32 alpha, f32 scale)
 {
     GXTexObj tex;
     Mtx44 proj;
     Mtx pos;
     GXColor amb;
-    u16 size;
+    u16 size = g_Shd_tex_size;
     u16 w;
     f32 tw;
     u8 a;
@@ -816,7 +816,6 @@ void SoftShadowGXDraw(ShadowMng* mng, int div, f32 x, f32 y, f32 z, f32 u, f32 v
     GXSetBlendMode(0, 1, 0, 0);
     GXSetCullMode(0);
     GXSetZMode(1, 7, 1);
-    size = g_Shd_tex_size;
     w = size / div;
     GXInitTexObj(&tex, mng->pTex, w, w, 1, 0, 0, 0);
     GXInitTexObjLOD(&tex, 1, 1, 0.0f, 0.0f, 0.0f, 0, 0, 0);
@@ -870,30 +869,31 @@ void MakeSoftShadow(ShadowMng* mng)
     static int fd = 2;
     f32 z = 65530.0f;
     f32 zero = 0.0f;
-    u8 a = 0xFF;
     f32 alpha;
     ShadowLightWork* w;
+    int a;
 
     SetNoScissor();
-    SoftShadowGetEFB(mng, 1, 0.5f, 1.0f);
-    alpha = (f32) a;
+    SoftShadowGetEFB(mng, 0.5f, 1.0f, 1);
+    a = 0xFF;
+    alpha = (f32) (u8) a;
     SoftShadowGXDraw(mng, 1, zero, zero, z, zero, zero, alpha, 1.0f);
     w = (ShadowLightWork*) mng->pLight->work;
     if (w->soft > 1) {
-        SoftShadowGetEFB(mng, 1, 1.0f, 2.0f);
+        SoftShadowGetEFB(mng, 1.0f, 2.0f, 1);
         SoftShadowGXDraw(mng, 2, zero, zero, z, zero, zero, alpha, 2.0f);
         if (w->soft > 2) {
-            SoftShadowGetEFB(mng, 1, fa, fb);
+            SoftShadowGetEFB(mng, fa, fb, 1);
             a = 0x80;
-            SoftShadowGXDraw(mng, fd, zero, zero, z, zero, zero, (f32) a, fc);
+            SoftShadowGXDraw(mng, fd, zero, zero, z, zero, zero, (f32) (u8) a, fc);
         }
-        SoftShadowGetEFB(mng, 1, 1.0f, 2.0f);
+        SoftShadowGetEFB(mng, 1.0f, 2.0f, 1);
         SoftShadowGXDraw(mng, 2, zero, zero, z, zero, zero, alpha, 0.25f);
     } else {
-        SoftShadowGetEFB(mng, 1, 1.0f, 2.0f);
+        SoftShadowGetEFB(mng, 1.0f, 2.0f, 1);
         SoftShadowGXDraw(mng, 2, zero, zero, z, zero, zero, alpha, 0.5f);
     }
-    SoftShadowGetEFB(mng, 1, 0.5f, 1.0f);
+    SoftShadowGetEFB(mng, 0.5f, 1.0f, 1);
     SetScissorState();
 }
 
@@ -901,6 +901,22 @@ f32 shd_ofs = 2000.0f;
 static f32 shd_tex_scale_x = 0.0003f;
 
 #define SHD_NO_SELF(mng) (!isSelfUse || !((mng)->self & 1))
+
+#define MTX_ZERO(m)                                                                 \
+    do {                                                                            \
+        m[0][0] = 0.0f;                                                             \
+        m[0][1] = 0.0f;                                                             \
+        m[0][2] = 0.0f;                                                             \
+        m[0][3] = 0.0f;                                                             \
+        m[1][0] = 0.0f;                                                             \
+        m[1][1] = 0.0f;                                                             \
+        m[1][2] = 0.0f;                                                             \
+        m[1][3] = 0.0f;                                                             \
+        m[2][0] = 0.0f;                                                             \
+        m[2][1] = 0.0f;                                                             \
+        m[2][2] = 0.0f;                                                             \
+        m[2][3] = 0.0f;                                                             \
+    } while (0)
 
 void make_shadow_texture(ShadowMng* mng)
 {
@@ -941,7 +957,7 @@ void make_shadow_texture(ShadowMng* mng)
         static int shd_tex_no = 0;
         static u8 s_c_p = 0x80;
         Mtx tm;
-        Mtx sm = {{0.0f, 0.0f, 0.0f, 0.0f}, {0.0f, 0.0f, shd_tex_scale_x, 0.0f}, {0.0f, 0.0f, 0.0f, 0.0f}};
+        Mtx sm;
         Mtx trans;
         Vec up = {0.0f, 1.0f, 0.0f};
         GXColor c;
@@ -950,6 +966,8 @@ void make_shadow_texture(ShadowMng* mng)
         g_SelfShdNum++;
         pG->flags_500C |= 1;
         GXLoadTexObj(&IndTex[shd_tex_no], 0);
+        MTX_ZERO(sm);
+        sm[1][2] = shd_tex_scale_x;
         PSMTXIdentity(trans);
         trans[2][3] = shd_ofs + PSVECDistance(&mng->lightPos, &mng->target);
         C_MTXLookAt(tm, &mng->lightPos, &up, &mng->target);
@@ -977,10 +995,9 @@ void make_shadow_texture(ShadowMng* mng)
     }
     GXClearBoundingBox();
     {
-        Mtx44 proj;
-        C_MTXPerspective(proj, mng->fov, 1.0f, ZNEAR, ZFAR);
-        GXSetProjection(proj, 0);
-    }
+    Mtx44 proj;
+    C_MTXPerspective(proj, mng->fov, 1.0f, ZNEAR, ZFAR);
+    GXSetProjection(proj, 0);
     for (i = 0; i < mng->num; i++) {
         cModel* m = mng->pModel[i];
         cModel* p;
@@ -998,7 +1015,7 @@ void make_shadow_texture(ShadowMng* mng)
             PSVECSubtract(&lpos, &pos, &d);
             rate = PSVECMag(&d) / mng->pLight->x1C;
             if (rate > 0.7f) {
-                a = (f32) a * ((1.0f - rate) * (10.0f / 3.0f));
+                a = (f32) (int) a * ((1.0f - rate) * (10.0f / 3.0f));
             }
         }
         if (SHD_NO_SELF(mng)) {
@@ -1017,6 +1034,7 @@ void make_shadow_texture(ShadowMng* mng)
             }
             p = (cModel*) p->pCldShMd;
         } while (p && (p->be_flag & 0x12));
+    }
     }
     GXSetViewport(0.0f, 0.0f, (f32) scrW, (f32) scrH, 0.0f, 1.0f);
     GXSetDstAlpha(0, 0);

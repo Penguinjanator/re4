@@ -521,6 +521,7 @@ void cObjRobo::TaskSwitchFront(cObjRobo* robo)
     int j;
     f32 to = -1.483529806137085f;
     f32 from = 0.0f;
+    f32 max;
     f32 range;
     f32 base;
 
@@ -536,20 +537,22 @@ void cObjRobo::TaskSwitchFront(cObjRobo* robo)
     }
     if (!(pG->flags_174 & 0x8000)) {
         BitOn(pG->flags_174, 0x8000);
-        range = to;
         base = from;
         for (j = 0; j < i; j++) {
-            parts->rot.y = range * (f32) j / (f32) i + base;
+            max = (f32) i;
+            range = to;
+            parts->rot.y = range * (f32) j / max + base;
             SceSleep(1);
         }
         FSet(parts->rot.y, to);
         MotionSetCore(robo, &robo->pMotion, ROOM_ARC_PTR(pG->pRoomArc, 0x61), (int) ROOM_ARC_PTR(pG->pRoomArc, 0x66), 0xF0, 4, 0);
     } else {
         BitOff(pG->flags_174, 0x8000);
-        range = from - to;
         base = to;
         for (j = 0; j < i; j++) {
-            parts->rot.y = range * (f32) j / (f32) i + base;
+            max = (f32) i;
+            range = from - to;
+            parts->rot.y = range * (f32) j / max + base;
             SceSleep(1);
         }
         FSet(parts->rot.y, from);
@@ -567,11 +570,12 @@ void cObjRobo::TaskSwitchBack(cObjRobo* robo)
 {
     cModel* parts;
     int i;
+    int j;
     f32 to = -1.483529806137085f;
     f32 from = 0.0f;
+    f32 max;
     f32 range;
     f32 base;
-    f32 max;
 
     i = 15;
     parts = robo->getPartsPtr(0x15);
@@ -585,25 +589,25 @@ void cObjRobo::TaskSwitchBack(cObjRobo* robo)
     }
     if (!(pG->flags_174 & 0x4000)) {
         BitOn(pG->flags_174, 0x4000);
-        max = (f32) i;
-        range = to;
         base = from;
-        for (int j = 0; j < 15; j++) {
+        for (j = 0; j < i; j++) {
+            max = (f32) i;
+            range = to;
             parts->rot.x = range * (f32) j / max + base;
             SceSleep(1);
         }
-        parts->rot.x = to;
+        FSet(parts->rot.x, to);
         MotionSetCore(robo, &robo->pMotion, ROOM_ARC_PTR(pG->pRoomArc, 0x22), (int) ROOM_ARC_PTR(pG->pRoomArc, 0x45), 0xF0, 4, 0);
     } else {
         BitOff(pG->flags_174, 0x4000);
-        max = (f32) i;
-        range = from - to;
         base = to;
-        for (int j = 0; j < 15; j++) {
+        for (j = 0; j < i; j++) {
+            max = (f32) i;
+            range = from - to;
             parts->rot.x = range * (f32) j / max + base;
             SceSleep(1);
         }
-        parts->rot.x = from;
+        FSet(parts->rot.x, from);
         MotionSetCore(robo, &robo->pMotion, ROOM_ARC_PTR(pG->pRoomArc, 0x62), (int) ROOM_ARC_PTR(pG->pRoomArc, 0x67), 0xF0, 4, 0);
     }
     BitOff(pG->flags_174, 0x8000);

@@ -666,6 +666,8 @@ void testRibbonMoveGirl(cModel* pl, PlCloth* c)
             PSMTXConcat(pm3, p->mat, p->mat);                                       \
             TransMatrix(p->mat, &p->worldPos);                                      \
             PSMTXConcat(p->mat, rotm, pm1);                                         \
+            pm3 = m3;                                                               \
+            pax = &axis;                                                            \
             axis.x = 0.0f;                                                          \
             axis.y = 0.0f;                                                          \
             axis.z = 1.0f;                                                          \
@@ -745,11 +747,11 @@ void testHairMoveLuis(cModel* pl, PlCloth* c)
     PenClothMove(pl, (PenCloth*) c);
 }
 
-// Not matched (75%): the original keeps the zero register live past `flags = 0` (its `li` is late and
-// `mode` reuses r0 after it); every form tried hoists either the zero stores or `mode`.
+// The zero stores come out in source order because none of them is the zero's last use: `x54 = 0`
+// is the last one (issued first). x44 is stored directly in both arms (jump2 folds the two `li`s
+// into `li 10; beq; li 2` after reload, so nothing is hoisted above the zero stores).
 void testDressSetAda(cModel* pl, PlCloth* c, int evt)
 {
-    int mode;
     f32 rate;
 
     c->num = 146;
@@ -767,23 +769,22 @@ void testDressSetAda(cModel* pl, PlCloth* c, int evt)
     rate = 0.7f;
     c->x48 = 0.0f;
     c->x4C = 1.0f;
-    c->x54 = 0;
     c->pRight = 0;
     c->x14 = 0;
     c->x20 = 0;
     c->pRate = 0;
     c->pModel = 0;
-//@@BEGIN
     c->x40 = rate;
     c->flags = 0;
-    mode = 10;
+    c->x54 = 0;
     if (evt) {
-        mode = 2;
+        c->x50 = rate;
+        c->x44 = 2;
+    } else {
+        c->x50 = rate;
+        c->x44 = 10;
     }
-    c->x50 = rate;
-    c->x44 = mode;
     PenClothSet(pl, (PenCloth*) c, 100.0f);
-//@@END
 }
 
 void testDressMoveAda(cModel* pl, PlCloth* c)

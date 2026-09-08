@@ -1005,6 +1005,7 @@ MATCHING = {
 STRIP_UNUSED = {
     "game/route_ck.cpp",
     "game/cockpit.cpp",
+    "game/merchant.cpp",
     "game/light.cpp",
     "game/at_mod.cpp",
     "game/sub2.cpp",

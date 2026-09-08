@@ -459,6 +459,14 @@ mark it Matching.
   base pseudos), so they always follow them in a state-store block.
 - `return t == 0` with `u32 t = x & MASK` gives `andis.; mfcr; extrwi`; `return (x & MASK) != 0` gives
   the bit-extract; `return t != 0` falls to the `li 1/bnelr/li 0` jump form.
+- Search loop `for (s = tbl;; s++) { if (s->id == END) return 0; if (id == s->id) break; } return s;`
+  gives the rotation with both tests at the bottom; a `return` inside the loop is not a jump to
+  end_label. `continue` keeps the loop label used, so `addi; lhz` at the bottom are not combined
+  into `lhzu`.
+- Per-loop block-scoped `for (int i ...)` counters change pseudo numbers and hence gcse's hash order
+  for PRE-hoisted increments and scratch numbering.
+- A small object referenced with the full `lis/addi` form although it sits in `.sdata`: an
+  incomplete `extern T x[];` declaration before the definition.
 - Static locals show as `name.NNN` in objdiff; the DECL_UID suffix cannot be reproduced and is ignored by the report.
 - Unexplained words in `.rodata` (zero words, stray floats) are usually the constant pool of a function
   the original linker dead-stripped (bodies gone, pools kept, `STRIP_UNUSED` in objects.py): write a
