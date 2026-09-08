@@ -171,6 +171,35 @@ mark it Matching.
 - Cross-jumped return tails: `if (x) { if (cond) return 0; ... return fd; } return 0;` shares the outer
   `li r3,0` with the inner early return (`file_open`); `if (call()) return -1; else ret = 0;` inside the
   outer `if` keeps two `li r3,-1` (`file_close`).
+- Screen filters (filter01/03/04/07/09/0b): `(u32) Screen.width` gives the `fcmpu 2^31/bso/xoris` unsigned
+  conversion; `SCR_W >> 1` then `divwu` is `(SCR_W >> 1) / div`. The `GXSetCopyFilter..GXInvalidateTexAll`
+  copy block keeps `&Rmode` in a callee-saved register only with a `GXRenderModeObj* rm = &Rmode` local.
+  Static `u8 vfilter[7]` tables are `__attribute__((aligned(32)))` (the 0x1C `.sdata` holes) and each unit
+  ends with `asm(".section .sdata; .balign 32")`.
+- A variable reassigned through itself (`zv = f(zv)`) keeps its register; a fresh expression in the call
+  argument combines with the dying operand (`fmadds f12,f12,...` vs `fmadds f13,...`). `a = x - 1.0f;
+  a *= 25.0f;` ties `lfs/fsubs/fmuls` to one register; `a = (x - 1.0f) * 25.0f` gives three.
+- `zero = 0.0f; call(); y = zero;` loads the constant before the call (the scheduler moves a pool load
+  above a call); with the assignment after the call it stays after. A dead `f32 x = 0.0f` initialiser at
+  the top only decides the constant pool order (the load itself is deleted).
+- Float-in-u8 round trips: `(f32) a` of a `u8 a = 0x60` local in the same block folds to `96.0f`; the
+  original keeps `stb/psq_l qr2` because the assignment is in another block (`a = 0x60` at the loop top,
+  use after a `switch`) or the value is an `int` cast down: `(f32)(u8) a`.
+- `u32 t = Joy[0].on & 0x400; f(t == 0)` gives `andi.; mfcr; extrwi ..,1,2` (store-flag); the inline
+  `(x & 0x400) == 0` gives `xori/extrwi`. `GXColor amb = {0,0,0,0xFF}` declared right before its use
+  (C++ mid-block declaration) keeps the `stw 0 / stb` next to the call; at the top it is hoisted.
+  `u8 c = 0xFF; amb.r = amb.g = amb.b = amb.a = c;` gives the `li -1` QImode chain.
+- A conditional `x12F = a < 250.0f ? 1 : 0` compiles to `mfcr`; the original `if/else` with constant
+  stores cross-jumps to `li 0; bge; li 1; stb`. `f32 ratio = a / b; w->a = (f32) c * ratio;` evaluates
+  the division before the u8 load; the inline product converts `c` first.
+- Stores through `FSet` (scalar references) keep a following `.sdata` load (`lfs f1, static@sda21`) after
+  them; plain member stores let ProDG hoist the load. Their emission order still follows the reverse-order
+  rule, so permute the statements (`speed.x, speed.y, speed.z, pos.y` in source gives `x, y, pos.y, z`).
+- Parameter order only shows in register allocation of the copies; for the filter `GXDraw` helpers the
+  order `(f32 x, y, z, u, v, u8 r, g, b, a, f32 scale, int div, int fmt, ...)` reproduces the target.
+- Dead `mr rX,rY` between unrelated GPRs in the fall-through path of a `(u32)` float conversion are PRE
+  copies of `lis @ha` high parts; the filter GXDraw quads still have one more of them than the original
+  (unsolved, together with the `lis 0xcc01` vs `lis Screen@ha` issue order).
 
 - Struct field offsets come from the load/store displacements; write real structs, not casts.
 - `rlwinm rX,rX,0,MB,ME` with wraparound = `x &= ~bit`; `ori` = `|= bit`.
