@@ -37,18 +37,36 @@ struct EspGenWork {
     u8 x6;             // 0x06 event model index (EspEvModList)
     u8 x7;             // 0x07
     u32 flags;         // 0x08
-    f32 x0C;           // 0x0C generator position (x0C, x10, x14 form a Vec)
-    f32 x10;           // 0x10
-    f32 x14;           // 0x14
+    union {
+        struct {
+            f32 x0C;   // 0x0C generator position (x0C, x10, x14 form a Vec)
+            f32 x10;   // 0x10
+            f32 x14;   // 0x14
+        };
+        Vec pos;       // 0x0C (esp_efm: copied as a Vec)
+    };
     f32 x18;           // 0x18 (esp1a: min distance factor)
     f32 x1C;           // 0x1C (esp1a: max distance factor)
     f32 x20;           // 0x20
     Vec x24;           // 0x24
     f32 x30;           // 0x30
     Vec x34;           // 0x34
-    u8 pad_40[0x58 - 0x40];
+    union {
+        u8 pad_40[0x58 - 0x40];
+        struct {
+            Vec x40;   // 0x40 (esp_efm: acceleration)
+            Vec x4C;   // 0x4C (esp_efm: acceleration random range)
+        };
+    };
     Vec x58;           // 0x58
-    u8 pad_64[0x88 - 0x64];
+    union {
+        u8 pad_64[0x88 - 0x64];
+        struct {
+            Vec x64;   // 0x64 (esp_efm: rotation random range)
+            Vec x70;   // 0x70 (esp_efm: rotation speed)
+            Vec x7C;   // 0x7C (esp_efm: rotation speed random range)
+        };
+    };
     f32 x88;           // 0x88
     f32 x8C;           // 0x8C
     f32 x90;           // 0x90
@@ -62,7 +80,20 @@ struct EspGenWork {
     f32 xA4;           // 0xA4
     f32 xA8;           // 0xA8
     f32 xAC;           // 0xAC
-    u8 pad_B0[0xC2 - 0xB0];
+    union {
+        u8 pad_B0[0xC2 - 0xB0];
+        struct {
+            u16 xB0;   // 0xB0 (esp_efm: fade start frame)
+            u16 xB2;   // 0xB2 (esp_efm: fade length)
+            u16 xB4;   // 0xB4 (esp_efm: move start frame)
+            u16 xB6;   // 0xB6 (esp_efm: scale start frame)
+            u16 xB8;   // 0xB8 (esp_efm: life)
+            u16 xBA;   // 0xBA (esp_efm: start frame)
+            u8 pad_BC[4];
+            u8 xC0;    // 0xC0 (esp_efm: parent release frame)
+            u8 xC1;    // 0xC1
+        };
+    };
     u8 xC2;            // 0xC2
     u8 pad_C3[2];
     u8 xC5;            // 0xC5
@@ -73,19 +104,28 @@ struct EspGenWork {
     u8 xCB;            // 0xCB
     EspGenPrm prm;     // 0xCC .. 0xD4: per-effect integer parameters (word or halfword view)
     u32 xD4;           // 0xD4
-    f32 xD8;           // 0xD8 per-effect float parameters
-    f32 xDC;           // 0xDC
-    f32 xE0;           // 0xE0
-    f32 xE4;           // 0xE4
-    f32 xE8;           // 0xE8
-    f32 xEC;           // 0xEC
-    f32 xF0;           // 0xF0
-    f32 xF4;           // 0xF4
-    f32 xF8;           // 0xF8 (esp0e: visible cone angle in degrees)
+    union {
+        struct {
+            f32 xD8;   // 0xD8 per-effect float parameters
+            f32 xDC;   // 0xDC
+            f32 xE0;   // 0xE0
+            f32 xE4;   // 0xE4
+            f32 xE8;   // 0xE8
+            f32 xEC;   // 0xEC
+            f32 xF0;   // 0xF0
+            f32 xF4;   // 0xF4
+            f32 xF8;   // 0xF8 (esp0e: visible cone angle in degrees)
+        };
+        struct {
+            Vec vD8;   // 0xD8 (esp_efm: obj05 burst centre / obj09 size)
+            Vec vE4;   // 0xE4 (esp_efm: bounce)
+            Vec vF0;   // 0xF0 (esp_efm: burst centre random range)
+        };
+    };
     u8 xFC;            // 0xFC
     u8 xFD;            // 0xFD
     u8 xFE;            // 0xFE
-    u8 pad_FF[0x100 - 0xFF];
+    u8 xFF;            // 0xFF (esp_efm: obj04 motion type)
     // 0x100..0x12C: sequence record tail (records of an EspSeqData are 0x12C bytes)
     u8 pad_100[0x104 - 0x100];
     u8 x104;           // 0x104 (espgen02: path id)

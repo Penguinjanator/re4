@@ -82,7 +82,9 @@ public:
     u8 pad_1DC[0x21A - 0x1DC];
     u16 motState;         // 0x21A  MotionWork::state (emobj EmObjMove clears it when no motion plays)
     u32 motFlags2;        // 0x21C  MotionWork::flags2 (emhit: bit30 = no matrix update before MotionMove)
-    u8 pad_220[0x28A - 0x220];
+    u8 pad_220[0x244 - 0x220];
+    Vec satPos;           // 0x244  pos after the scenario collision moved the model (atari at_pos_calc)
+    u8 pad_250[0x28A - 0x250];
     u8 seNo;              // 0x28A  sound number + 1 to play at parts 0 this frame (emMove SndCall(8, ...)), 0 = none
     u8 pad_28B[0x290 - 0x28B];
     f32 frame;            // 0x290  motion frame (db_cam prints it as an int)

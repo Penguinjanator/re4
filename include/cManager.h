@@ -28,6 +28,9 @@ public:
     // addListBack's `p->next = 0` goes through this: the argument copy gives the zero register a
     // lifetime of 2 luids, which is what makes loop.c hoist `li rN, 0` out of createBack's loop
     void setNext(cUnit* n) { next = n; }
+    // deleteList / destroy test the work through this (a derived class may hide it with its own
+    // test: cSat adds its active flag, which is why cManager<cSat>::destroy's check differs)
+    int isAlive() { return (be_flag & 0x201) == 1; }
 };
 
 // Fixed array work manager. Element stride is the runtime field `size`
@@ -77,7 +80,7 @@ public:
 
     int deleteList(T* p) {
         T* q;
-        if ((p->be_flag & 0x201) != 1) {
+        if (!p->isAlive()) {
             log("%s::deleteList() WORK IS ALREADY DEAD 0x%08X", name, p);
             return 0;
         }
@@ -266,7 +269,7 @@ inline void cManager<T>::destroy(T* p)
     deleteList(p);
     switch (flag) {
     case 0:
-        if ((p->be_flag & 0x201) != 1) {
+        if (!p->isAlive()) {
             log("%s::destroy() delete but not alive", name);
             return;
         }

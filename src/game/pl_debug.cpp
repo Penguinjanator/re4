@@ -142,7 +142,7 @@ void scrHitCheck(cPlayer* pl)
 void satMakeTest(cPlayer* pl)
 {
     if (sat_make_test) {
-        static void* pS0 = 0;
+        static cSat* pS0 = 0;
         static Vec quad[4] = {
             {-1000.0f, 0.0f, -1000.0f},
             {1000.0f, 0.0f, -1000.0f},
@@ -153,7 +153,7 @@ void satMakeTest(cPlayer* pl)
         Vec pos;
         cSatMgr* sat = &SatMgr;
 
-        eprintf(100, 100, 0, 0, "%d", sat->x4);
+        eprintf(100, 100, 0, 0, "%d", sat->nArray);
         if (Joy[0].on & JOY_A) {
             if (pS0) {
                 sat->destroy(pS0);

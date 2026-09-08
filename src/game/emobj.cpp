@@ -159,8 +159,6 @@ void cEmObj::clrEat()
 void cEmObj::setYarare(s16 no, Vec* pos, u16 flag, int cube, f32 w, f32 h, f32 rad)
 {
     Vec p;
-    int n;
-    int f;
 
     if (pos == 0) {
         p.x = 0.0f;
@@ -171,12 +169,15 @@ void cEmObj::setYarare(s16 no, Vec* pos, u16 flag, int cube, f32 w, f32 h, f32 r
         p.y = pos->y;
         p.z = pos->z;
     }
-    n = no;
-    f = flag | 1;
+    // OPEN: the target re-extends both parameters at the calls (`extsh r4, r4`, `clrlwi r5, r6, 16`
+    // after this HImode `ori r6, r6, 1`), i.e. combine did not know the incoming s16/u16 arguments
+    // were promoted (same as the id_sys OPEN case); int locals, narrow locals, casts, `flag | 1`
+    // in each arm and int callee prototypes all fold the extensions away.
+    flag |= 1;
     if (cube == 0) {
-        YarareInitCube(this, n, f, p.x, p.y, p.z, w, h, rad);
+        YarareInitCube(this, no, flag, p.x, p.y, p.z, w, h, rad);
     } else {
-        YarareInit(this, n, f, p.x, p.y, p.z, w, h);
+        YarareInit(this, no, flag, p.x, p.y, p.z, w, h);
     }
 }
 

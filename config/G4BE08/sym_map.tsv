@@ -3039,65 +3039,65 @@ address	size	section	unit	scope	name	demangled
 0x800C9CA0	0x30	.text	game/at_sub.cpp	global	EatGetEffectType	EatGetEffectType
 0x800C9CD0	0x54	.text	game/at_sub.cpp	global	At_surface_point_rel	At_surface_point_rel
 0x800C9D24	0xE4	.text	game/atari.cpp	global	check__7cSatMgrP6cModeli	cSatMgr::check
-0x800C9E08	0x358	.text	game/atari.cpp	global	cSatMgr_checkRect	cSatMgr::checkRect
-0x800CA160	0xC0	.text	game/atari.cpp	global	cSatMgr_checkAir	cSatMgr::checkAir
-0x800CA220	0x180	.text	game/atari.cpp	global	atck	atck
-0x800CA3A0	0x368	.text	game/atari.cpp	global	cSatMgr_scrAtCheckSphere	cSatMgr::scrAtCheckSphere
-0x800CA708	0x178	.text	game/atari.cpp	global	cSatMgr_scrAtCheckSphereAir	cSatMgr::scrAtCheckSphereAir
-0x800CA880	0x1B4	.text	game/atari.cpp	global	cSatMgr_wallAdjust	cSatMgr::wallAdjust
+0x800C9E08	0x358	.text	game/atari.cpp	global	checkRect__7cSatMgrP6cModel	cSatMgr::checkRect
+0x800CA160	0xC0	.text	game/atari.cpp	global	checkAir__7cSatMgrP6cModeli	cSatMgr::checkAir
+0x800CA220	0x180	.text	game/atari.cpp	global	atck__FP3VecT0P10cAtariInfoP6cModeli	atck
+0x800CA3A0	0x368	.text	game/atari.cpp	global	scrAtCheckSphere__7cSatMgrP6cModelP10cAtariInfoi	cSatMgr::scrAtCheckSphere
+0x800CA708	0x178	.text	game/atari.cpp	global	scrAtCheckSphereAir__7cSatMgrP6cModelP10cAtariInfoi	cSatMgr::scrAtCheckSphereAir
+0x800CA880	0x1B4	.text	game/atari.cpp	global	wallAdjust__7cSatMgrP3VecN21fii	cSatMgr::wallAdjust
 0x800CAA34	0x194	.text	game/atari.cpp	global	adjust__7cSatMgrP3VecN21fii	cSatMgr::adjust
 0x800CABC8	0x98	.text	game/atari.cpp	global	getFloor__7cSatMgrP3VecffPUli	cSatMgr::getFloor
-0x800CAC60	0xA4	.text	game/atari.cpp	global	cSatMgr_log	cSatMgr::log
-0x800CAD04	0x28	.text	game/atari.cpp	global	polyBitSet	polyBitSet
-0x800CAD2C	0x24	.text	game/atari.cpp	global	polyBitCk	polyBitCk
-0x800CAD50	0xB4	.text	game/atari.cpp	local	cSatBlock_lineOverlap	cSatBlock::lineOverlap
-0x800CAE04	0x500	.text	game/atari.cpp	global	cSatBlock_hitCheckSphere	cSatBlock::hitCheckSphere
-0x800CB304	0x54	.text	game/atari.cpp	global	cSatMgr_cSatMgr	cSatMgr::cSatMgr
-0x800CB358	0x4C	.text	game/atari.cpp	global	cEatMgr_cEatMgr	cEatMgr::cEatMgr
-0x800CB3A4	0x80	.text	game/atari.cpp	global	cEatMgr_initEffInfo	cEatMgr::initEffInfo
-0x800CB424	0x19C	.text	game/atari.cpp	local	cEatMgr_registEffInfo	cEatMgr::registEffInfo
+0x800CAC60	0xA4	.text	game/atari.cpp	global	log__7cSatMgrPCce	cSatMgr::log
+0x800CAD04	0x28	.text	game/atari.cpp	global	polyBitSet__FUl	polyBitSet
+0x800CAD2C	0x24	.text	game/atari.cpp	global	polyBitCk__FUl	polyBitCk
+0x800CAD50	0xB4	.text	game/atari.cpp	global	lineOverlap__9cSatBlockP3VecN21	cSatBlock::lineOverlap
+0x800CAE04	0x500	.text	game/atari.cpp	global	hitCheckSphere__9cSatBlockP3VecT1f	cSatBlock::hitCheckSphere
+0x800CB304	0x54	.text	game/atari.cpp	global	__7cSatMgr	cSatMgr::cSatMgr
+0x800CB358	0x4C	.text	game/atari.cpp	global	__7cEatMgr	cEatMgr::cEatMgr
+0x800CB3A4	0x80	.text	game/atari.cpp	global	initEffInfo__7cEatMgr	cEatMgr::initEffInfo
+0x800CB424	0x19C	.text	game/atari.cpp	global	registEffInfo__7cEatMgriP9AtEffInfo	cEatMgr::registEffInfo
 0x800CB5C0	0x28	.text	game/atari.cpp	global	getEffInfo__7cEatMgri	cEatMgr::getEffInfo
-0x800CB5E8	0xA4	.text	game/atari.cpp	global	cEatMgr_log	cEatMgr::log
+0x800CB5E8	0xA4	.text	game/atari.cpp	global	log__7cEatMgrPCce	cEatMgr::log
 0x800CB68C	0xB8	.text	game/atari.cpp	global	create__7cSatMgrPviP3VecT3Uc	cSatMgr::create
 0x800CB744	0xB0	.text	game/atari.cpp	global	create__7cSatMgrP3VecN21iif	cSatMgr::create
-0x800CB7F4	0x298	.text	game/atari.cpp	global	polySphereCk__7cSatMgrP3VecT1fiii	cSatMgr::polySphereCk
-0x800CBA8C	0xE4	.text	game/atari.cpp	global	blkPolySphereCk	blkPolySphereCk
-0x800CBB70	0x190	.text	game/atari.cpp	global	blkPolySphereCkCore	blkPolySphereCkCore
+0x800CB7F4	0x298	.text	game/atari.cpp	global	polySphereCk__7cSatMgrP3VecT1fiT1i	cSatMgr::polySphereCk
+0x800CBA8C	0xE4	.text	game/atari.cpp	global	blkPolySphereCk__FP4cSatP9cSatBlockP3VecT2fiT2i	blkPolySphereCk
+0x800CBB70	0x190	.text	game/atari.cpp	global	blkPolySphereCkCore__FP4cSatP9cSatBlockP3VecT2fiT2i	blkPolySphereCkCore
 0x800CBD00	0x5C	.text	game/atari.cpp	global	hitCheck__7cSatMgrP3VecN31ii	cSatMgr::hitCheck
 0x800CBD5C	0x1F8	.text	game/atari.cpp	global	hitCheck2__7cSatMgrP3VecN21PUlii	cSatMgr::hitCheck2
-0x800CBF54	0x1B4	.text	game/atari.cpp	global	blkPolyLineCk	blkPolyLineCk
-0x800CC108	0x1AC	.text	game/atari.cpp	global	blkPolyLineCkCore	blkPolyLineCkCore
-0x800CC2B4	0x2A4	.text	game/atari.cpp	global	destroy__7cSatMgrPv	cSatMgr::destroy
-0x800CC558	0x24	.text	game/atari.cpp	global	cSatMgr_construct	cSatMgr::construct
+0x800CBF54	0x1B4	.text	game/atari.cpp	global	blkPolyLineCk__FP4cSatP9cSatBlockP3VecT2iiT2PUl	blkPolyLineCk
+0x800CC108	0x1AC	.text	game/atari.cpp	global	blkPolyLineCkCore__FP4cSatP9cSatBlockP3VecT2iiT2PUl	blkPolyLineCkCore
+0x800CC2B4	0x2A4	.text	game/atari.cpp	global	destroy__7cSatMgrP4cSat	cSatMgr::destroy
+0x800CC558	0x24	.text	game/atari.cpp	global	construct__7cSatMgrP4cSatUl	cSatMgr::construct
 0x800CC57C	0x1BC	.text	game/atari.cpp	global	disp__7cSatMgri	cSatMgr::disp
-0x800CC738	0xCC	.text	game/atari.cpp	global	cSat_init	cSat::init
+0x800CC738	0xCC	.text	game/atari.cpp	global	init__4cSatP8cSatFileP3VecT2	cSat::init
 0x800CC804	0x54	.text	game/atari.cpp	global	setCoord__4cSatP3VecT1	cSat::setCoord
-0x800CC858	0x70	.text	game/atari.cpp	global	cSat_setMatrix	cSat::setMatrix
-0x800CC8C8	0xCC	.text	game/atari.cpp	global	cSat_op_assign	cSat::operator=
-0x800CC994	0xE8	.text	game/atari.cpp	global	cSat_blockInit	cSat::blockInit
-0x800CCA7C	0x280	.text	game/atari.cpp	local	cSat_disp	cSat::disp
-0x800CCCFC	0x8	.text	game/atari.cpp	global	cSatFile_getVertexPtr	cSatFile::getVertexPtr
-0x800CCD04	0x14	.text	game/atari.cpp	global	cSatFile_dataCheck	cSatFile::dataCheck
-0x800CCD18	0x14	.text	game/atari.cpp	global	cSatHeader_getSat	cSatHeader::getSat
-0x800CCD2C	0x548	.text	game/atari.cpp	global	createSat	createSat
-0x800CD274	0x534	.text	game/atari.cpp	global	createBoxSat	createBoxSat
-0x800CD7A8	0x49C	.text	game/atari.cpp	local	createFloorSat	createFloorSat
-0x800CDC44	0x100	.text	game/atari.cpp	global	at_pos_calc	at_pos_calc
-0x800CDD44	0x50	.text	game/atari.cpp	local	cManager_cSat_cManager	cManager<cSat>::cManager
-0x800CDD94	0x8	.text	game/atari.cpp	global	cManager_cSat_setName	cManager<cSat>::setName
-0x800CDD9C	0x48	.text	game/atari.cpp	global	cManager_cSat_log	cManager<cSat>::log
-0x800CDDE4	0xBC	.text	game/atari.cpp	global	cManager_cSat_countActiveWork	cManager<cSat>::countActiveWork
-0x800CDEA0	0x158	.text	game/atari.cpp	global	cManager_cSat_create	cManager<cSat>::create
-0x800CDFF8	0x24	.text	game/atari.cpp	global	cManager_cSat_create_800CDFF8	cManager<cSat>::create
-0x800CE01C	0x68	.text	game/atari.cpp	global	__static_initialization_and_destruction_0_800CE01C	__static_initialization_and_destruction_0
-0x800CE084	0x20	.text	game/atari.cpp	global	cSat_dt_cSat	cSat::~cSat
-0x800CE0A4	0x34	.text	game/atari.cpp	global	cSatMgr_dt_cSatMgr	cSatMgr::~cSatMgr
-0x800CE0D8	0x38	.text	game/atari.cpp	global	cSatMgr_memAlloc	cSatMgr::memAlloc
-0x800CE110	0x24	.text	game/atari.cpp	global	cSatMgr_memFree	cSatMgr::memFree
-0x800CE134	0x28	.text	game/atari.cpp	global	cSatMgr_memClear	cSatMgr::memClear
-0x800CE15C	0x34	.text	game/atari.cpp	global	cEatMgr_dt_cEatMgr	cEatMgr::~cEatMgr
-0x800CE190	0x34	.text	game/atari.cpp	global	cManager_cSat_dt_cManager	cManager<cSat>::~cManager
-0x800CE1C4	0x254	.text	game/atari.cpp	global	cManager_cSat_destroy	cManager<cSat>::destroy
+0x800CC858	0x70	.text	game/atari.cpp	global	setMatrix__4cSatPA3_f	cSat::setMatrix
+0x800CC8C8	0xCC	.text	game/atari.cpp	global	__as__4cSatP8cSatFile	cSat::operator=
+0x800CC994	0xE8	.text	game/atari.cpp	global	blockInit__4cSatP9cSatBlock	cSat::blockInit
+0x800CCA7C	0x280	.text	game/atari.cpp	global	disp__4cSatiUli	cSat::disp
+0x800CCCFC	0x8	.text	game/atari.cpp	global	getVertexPtr__8cSatFile	cSatFile::getVertexPtr
+0x800CCD04	0x14	.text	game/atari.cpp	global	dataCheck__8cSatFile	cSatFile::dataCheck
+0x800CCD18	0x14	.text	game/atari.cpp	global	getSat__10cSatHeaderi	cSatHeader::getSat
+0x800CCD2C	0x548	.text	game/atari.cpp	global	createSat__FP3VecUlf	createSat
+0x800CD274	0x534	.text	game/atari.cpp	global	createBoxSat__FP3VecUlf	createBoxSat
+0x800CD7A8	0x49C	.text	game/atari.cpp	local	createFloorSat__FP3VecUlf	createFloorSat
+0x800CDC44	0x100	.text	game/atari.cpp	global	at_pos_calc__FP6cModelP3Vec	at_pos_calc
+0x800CDD44	0x50	.text	game/atari.cpp	local	__t8cManager1Z4cSatUlUc	cManager<cSat>::cManager
+0x800CDD94	0x8	.text	game/atari.cpp	global	setName__t8cManager1Z4cSatPCc	cManager<cSat>::setName
+0x800CDD9C	0x48	.text	game/atari.cpp	global	log__t8cManager1Z4cSatPCce	cManager<cSat>::log
+0x800CDDE4	0xBC	.text	game/atari.cpp	global	countActiveWork__t8cManager1Z4cSat	cManager<cSat>::countActiveWork
+0x800CDEA0	0x158	.text	game/atari.cpp	global	create__t8cManager1Z4cSati	cManager<cSat>::create
+0x800CDFF8	0x24	.text	game/atari.cpp	global	create__t8cManager1Z4cSat	cManager<cSat>::create
+0x800CE01C	0x68	.text	game/atari.cpp	local	__static_initialization_and_destruction_0_800CE01C	__static_initialization_and_destruction_0
+0x800CE084	0x20	.text	game/atari.cpp	global	_._4cSat	cSat::~cSat
+0x800CE0A4	0x34	.text	game/atari.cpp	global	_._7cSatMgr	cSatMgr::~cSatMgr
+0x800CE0D8	0x38	.text	game/atari.cpp	global	memAlloc__7cSatMgrUl	cSatMgr::memAlloc
+0x800CE110	0x24	.text	game/atari.cpp	global	memFree__7cSatMgrPv	cSatMgr::memFree
+0x800CE134	0x28	.text	game/atari.cpp	global	memClear__7cSatMgrP4cSatUl	cSatMgr::memClear
+0x800CE15C	0x34	.text	game/atari.cpp	global	_._7cEatMgr	cEatMgr::~cEatMgr
+0x800CE190	0x34	.text	game/atari.cpp	global	_._t8cManager1Z4cSat	cManager<cSat>::~cManager
+0x800CE1C4	0x254	.text	game/atari.cpp	global	destroy__t8cManager1Z4cSatP4cSat	cManager<cSat>::destroy
 0x800CE418	0x2C	.text	game/atari.cpp	global	global_constructors_keyed_to_cSatMgr_check	global constructors keyed to cSatMgr::check
 0x800CE444	0x2C	.text	game/atari.cpp	global	global_destructors_keyed_to_cSatMgr_check	global destructors keyed to cSatMgr::check
 0x800CE470	0x34	.text	game/atariInfo.cpp	global	__10cAtariInfo	cAtariInfo::cAtariInfo
@@ -5175,15 +5175,15 @@ address	size	section	unit	scope	name	demangled
 0x80165274	0x20	.text	game/obj08.cpp	global	_._6cObj08	cObj08::~cObj08
 0x80165294	0x74	.text	game/obj09.cpp	global	AddForce	AddForce
 0x80165308	0x88	.text	game/obj09.cpp	global	dwdt	dwdt
-0x80165390	0x1DC	.text	game/obj09.cpp	local	CalcVel	CalcVel
+0x80165390	0x1DC	.text	game/obj09.cpp	local	CalcVel__FP4cObjf	CalcVel
 0x8016556C	0x36C	.text	game/obj09.cpp	global	Calc	Calc
-0x801658D8	0x6E4	.text	game/obj09.cpp	local	Obj09HitCheck	Obj09HitCheck
+0x801658D8	0x6E4	.text	game/obj09.cpp	local	Obj09HitCheck__FP4cObj	Obj09HitCheck
 0x80165FBC	0x1E8	.text	game/obj09.cpp	global	lu	lu
-0x801661A4	0xF8	.text	game/obj09.cpp	local	solve	solve
+0x801661A4	0xF8	.text	game/obj09.cpp	local	solve__FPA2_fPfPiT1	solve
 0x8016629C	0x6C	.text	game/obj09.cpp	global	LinerEquation3	LinerEquation3
-0x80166308	0x4A0	.text	game/obj09.cpp	local	calcPointHit	calcPointHit
-0x801667A8	0x6EC	.text	game/obj09.cpp	global	cObj09_move	cObj09::move
-0x80166E94	0x20	.text	game/obj09.cpp	local	cObj09_dt_cObj09	cObj09::~cObj09
+0x80166308	0x4A0	.text	game/obj09.cpp	local	calcPointHit__FP4cObjP9Efm09WorkP3VecN42	calcPointHit
+0x801667A8	0x6EC	.text	game/obj09.cpp	global	move__6cObj09	cObj09::move
+0x80166E94	0x20	.text	game/obj09.cpp	local	_._6cObj09	cObj09::~cObj09
 0x80166EB4	0x9C	.text	game/obj10.cpp	global	move__8cWepItem	cWepItem::move
 0x80166F50	0x650	.text	game/obj10.cpp	global	move00__8cWepItem	cWepItem::move00
 0x801675A0	0x8C	.text	game/obj10.cpp	global	move01__8cWepItem	cWepItem::move01
@@ -8269,11 +8269,11 @@ address	size	section	unit	scope	name	demangled
 0x8022B86C	0x8	.rodata	game/atari.cpp	global	lbl_8022B86C	.
 0x8022B874	0x28	.rodata	game/atari.cpp	global	poly0.987	poly0.987
 0x8022B89C	0xC4	.rodata	game/atari.cpp	global	lbl_8022B89C	.
-0x8022B960	0x48	.rodata	game/atari.cpp	global	cEatMgr_virtual_table	cEatMgr virtual table
-0x8022B9A8	0x48	.rodata	game/atari.cpp	global	cSatMgr_virtual_table	cSatMgr virtual table
-0x8022B9F0	0x48	.rodata	game/atari.cpp	global	cManager_cSat_virtual_table	cManager<cSat> virtual table
-0x8022BA38	0x28	.rodata	game/atari.cpp	global	cSat_virtual_table	cSat virtual table
-0x8022BA60	0x28	.rodata	game/atari.cpp	global	cUnit_virtual_table_8022BA60	cUnit virtual table
+0x8022B960	0x48	.rodata	game/atari.cpp	global	_vt.7cEatMgr	cEatMgr virtual table
+0x8022B9A8	0x48	.rodata	game/atari.cpp	global	_vt.7cSatMgr	cSatMgr virtual table
+0x8022B9F0	0x48	.rodata	game/atari.cpp	global	_vt.t8cManager1Z4cSat	cManager<cSat> virtual table
+0x8022BA38	0x28	.rodata	game/atari.cpp	global	_vt.4cSat	cSat virtual table
+0x8022BA60	0x28	.rodata	game/atari.cpp	local	cUnit_virtual_table_8022BA60	cUnit virtual table
 0x8022BA88	0x4C	.rodata	game/atariInfo.cpp	global	lbl_8022BA88	.
 0x8022BAD4	0x314	.rodata	game/block.cpp	global	lbl_8022BAD4	.
 0x8022BDE8	0x1A0	.rodata	game/cam_extra.cpp	global	lbl_8022BDE8	.
@@ -8499,7 +8499,7 @@ address	size	section	unit	scope	name	demangled
 0x8023F9B0	0x28	.rodata	game/obj08.cpp	local	cUnit_virtual_table_8023F9B0	cUnit virtual table
 0x8023F9D8	0x1C8	.rodata	game/obj09.cpp	global	lbl_8023F9D8	.
 0x8023FBA0	0x40	.rodata	game/obj09.cpp	global	_vt.6cObj09	cObj09 virtual table
-0x8023FBE0	0x28	.rodata	game/obj09.cpp	global	cUnit_virtual_table_8023FBE0	cUnit virtual table
+0x8023FBE0	0x28	.rodata	game/obj09.cpp	local	cUnit_virtual_table_8023FBE0	cUnit virtual table
 0x8023FC08	0xCC	.rodata	game/obj10.cpp	global	lbl_8023FC08	.
 0x8023FCD4	0xC	.rodata	game/obj10.cpp	global	spd.940	spd.940
 0x8023FCE0	0x118	.rodata	game/obj10.cpp	global	lbl_8023FCE0	.
@@ -10867,7 +10867,7 @@ address	size	section	unit	scope	name	demangled
 0x802DFF78	0x1C	.bss	game/game.cpp	global	Game	Game
 0x802DFF94	0x50	.bss	game/game.cpp	global	g_at_cnt	g_at_cnt
 0x802DFFE4	0x50	.bss	game/game.cpp	global	g_at_cyc	g_at_cyc
-0x802E0034	0x50	.bss	game/game.cpp	local	g_at2_cnt	g_at2_cnt
+0x802E0034	0x50	.bss	game/game.cpp	global	g_at2_cnt	g_at2_cnt
 0x802E0084	0x50	.bss	game/game.cpp	global	g_at2_cyc	g_at2_cyc
 0x802E00D4	0x138	.bss	game/id_sys.cpp	global	tmpId.870	tmpId.870
 0x802E020C	0x50	.bss	game/id_sys.cpp	global	IdSys	IdSys

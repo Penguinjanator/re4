@@ -71,7 +71,7 @@ struct Efm04Work {
     u16 scaleStart;       // 0x66
     u16 life;             // 0x68  0 = forever
     u16 frame;            // 0x6A
-    cObj* parent;         // 0x6C
+    cModel* parent;       // 0x6C  (esp_efm: the sequence's parent model)
     u32 parentSerial;     // 0x70
     cCoord* parentWorld;  // 0x74  pEffParentWorld when detached
     u8 rotFrame;          // 0x78  frame to re-orient along the parent (0xFF = never)
@@ -151,18 +151,24 @@ struct Efm05Work {
 struct Efm09Work {
     EfmCore core;         // 0x00
     f32 mass;             // 0x0C  size.x * size.y * size.z / 1e9 * mass_mul
-    f32 momentX;          // 0x10  moment_mul * mass * (size.y^2 + size.z^2) / 12
-    f32 momentY;          // 0x14
-    f32 momentZ;          // 0x18
+    union {
+        struct {
+            f32 momentX;  // 0x10  moment_mul * mass * (size.y^2 + size.z^2) / 12
+            f32 momentY;  // 0x14
+            f32 momentZ;  // 0x18
+        };
+        Vec moment;       // 0x10  (obj09 dwdt)
+    };
     u8 pad_1C[4];
     Vec pos;              // 0x20  = basePos at set up
     Vec basePos;          // 0x2C  EspGenWork x0C + random (y + 0.0001)
     Mtx mat;              // 0x38  identity at set up
-    Vec spd;              // 0x68  EspGenWork x24 + random, * mass * 100
-    Vec x74;              // 0x74  0 at set up
+    Vec spd;              // 0x68  EspGenWork x24 + random, * mass * 100 (obj09: velocity)
+    Vec x74;              // 0x74  0 at set up (obj09: world angular velocity, mat * rotSpd)
     Vec size;             // 0x80  EspGenWork xD8..xE0 * 100 + 250
-    u8 pad_8C[0xA4 - 0x8C];
-    Vec rotSpd;           // 0xA4  EspGenWork x70 + random (overlaps cObj x3D0 / callBack)
+    Vec force;            // 0x8C  force accumulated by AddForce, cleared every CalcVel
+    Vec torque;           // 0x98  torque accumulated by AddForce
+    Vec rotSpd;           // 0xA4  EspGenWork x70 + random (overlaps cObj x3D0 / callBack): local angular velocity
 };
 
 // Obstacle model work (game/obj20.cpp `SetObaModel`).
@@ -634,6 +640,16 @@ static inline cObj* ObjMgrWork(u32 no)
         return 0;
     }
     return (cObj*)((u8*)ObjMgr.pArray + ObjMgr.size * no);
+}
+
+struct EspGenWork;
+extern "C" {
+// game/esp_efm.cpp: creates the obj04 / obj05 / obj09 effect model of a sequence record
+// (`info` is the caller's EspInfo, esp.h). esp_sub.cpp EspSeqSet is the only caller.
+cObj* EfmSeqSet(EspGenWork* gen, EfmCore* info, u32* seed, cModel* parent, Mtx m, int x, f32 rate, Vec* ofs);
+// game/obj04.cpp / game/obj05.cpp: orient the model along `m`
+void Efm04RotMatrix(cObj* obj, Mtx m);
+void Efm05RotMatrix(cObj* obj, Mtx m);
 }
 
 #endif

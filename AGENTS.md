@@ -715,6 +715,26 @@ mark it Matching.
   vtable-compatible view class (`BEGIN_EVENT`). Changing cUnit means touching every override (obj*/em*).
 - A loop-local `u32 addr = *cs++` instead of reusing the function-level `pc` swaps the r28/r31 allocation of
   the two (exception ErrorHandler call-stack loop).
+- (cockpit) MEM_IN_STRUCT_P decides which loads survive a store: `*(f32*)((u8*)v + i*4)` (cast then deref, no
+  PLUS at the top of the INDIRECT_REF) is not in-struct, so a `static f32 a_ratio` is reloaded after every such
+  store while the address still folds to base+index (`lfsx r9,r10`); `v[i]` / `*(v + i)` are in-struct (the
+  load is hoisted) and an `f32&` parameter makes the address a general giv (stepping pointer with
+  displacements). `FSet(unitPtr()->rot.z, x)` on a call result keeps the following `pG` load below the store.
+- A `u8` function result (`u8 f()` declared so) assigned to a `u8` local is never masked (SUBREG_PROMOTED); an
+  `int` local holding a u8 result passed to two u8 parameters gets one PRE'd `clrlwi` before both calls
+  (BulletInfo::move `wepNo`). `u16 num = f()` with `u16 f()` compares `mr. r30,r3` directly and masks
+  `clrlwi 16` only after `num /= 10`.
+- A 2-byte `struct { u8 hi, lo; }` local lives in a GPR: `d.hi = v/10; d.lo = v%10` builds it with
+  `clrlwi/slwi/or`, a later `d.lo = x` inserts with `rlwinm 0,16,23 | clrlwi 24`, `d.hi` reads as `srwi 8`
+  (or `extrwi 8,16` when the hi insert was unmasked). One such variable reused for min/sec/cs shares r28;
+  an inline returning the struct by value spills it to the frame.
+- fold merges `!(x & A) && !(x & B)` on the same lvalue into one `andis.`; an inline `chk(u32 b) { return
+  pG->f & b; }` per test keeps the two `andis.`/`bne` (CountDown::move).
+- Extra `psq_l` pool copies in `.rodata` after the last float function = a dead-stripped function with the
+  same conversion formula (cockpit `TIME_FRAME` third copy, `STRIP_UNUSED`).
+- A `static` local `u8 cnt` / `char xchr[5]` pair (`cnt.NNNN` .sbss, `xchr.NNNN` .sdata) with a `%c` print is
+  the spinner `xchr[cnt]; cnt = (cnt + 1) & 3` (debug processBarDisp); config-file flag toggles in
+  ConfigSet are BitOn/BitOff (each `|=` reloads `pG`).
 - A game unit followed by an SDK library unit carries absolute-address padding the assembler cannot
   reproduce with `.balign`: sscrn ends with `asm(".text\n\t.long 0, 0, 0")` and a never-referenced
   `static u8 pad[0x1C]` (kept alive by an unused inline) for the 0x1C `.bss` gap.

@@ -25,8 +25,8 @@ int PathHasWeight(void* path)
 f32 PathGetLength(void* path)
 {
     Path* p = (Path*)path;
-    PathVtx* v = &p->vtx[p->num];
-    return (v - 1)->dist;
+    PathVtx* v = p->vtx;
+    return v[p->num - 1].dist;
 }
 
 int PathGetPos(void* path, f32 dist, u16* seg, Vec* out)
@@ -97,9 +97,12 @@ int PathGetPosEm(void* path, f32 dist, cModel* model, u16* seg, Vec* out)
     PathGetVtxMat(m1, model, v);
     PSMTXMultVec(m0, &prev->pos, &p0);
     PSMTXMultVec(m1, &v->pos, &p1);
-    PSVECSubtract(&p1, &p0, &tmp);
-    PSVECScale(&tmp, &tmp, dist);
-    PSVECAdd(&p0, &tmp, out);
+    {
+        Vec* pp = &p0;
+        PSVECSubtract(&p1, pp, &tmp);
+        PSVECScale(&tmp, &tmp, dist);
+        PSVECAdd(pp, &tmp, out);
+    }
     return 1;
 }
 
@@ -109,11 +112,16 @@ int PathGetMatEm(void* path, cModel* model, f32 dist, u16* seg, Mtx out)
     PathVtx* vtx;
     PathVtx* v;
     PathVtx* prev;
+    PathVtx* v0;
     PathVtx* pv;
+    PathVtx* pn;
+    PathVtx* pb;
     int step;
     int j;
     int k;
     int idx;
+    int ib;
+    int in;
     f32 fstep;
     f32 len;
     f32 t;
@@ -160,22 +168,30 @@ int PathGetMatEm(void* path, cModel* model, f32 dist, u16* seg, Mtx out)
     PathGetVtxMat(m1, model, v);
     PSMTXMultVec(m0, &prev->pos, &p0);
     PSMTXMultVec(m1, &v->pos, &p1);
-    PSVECSubtract(&p1, &p0, &tmp);
+    {
+        Vec* pp = &p0;
+        PSVECSubtract(&p1, pp, &tmp);
 #line 291 "D:/Bio4/Prog/path.cpp"
-    VECNormalize(&tmp, &fwd);
-    PSVECScale(&tmp, &tmp, t);
-    PSVECAdd(&p0, &tmp, &lpos);
+        VECNormalize(&tmp, &fwd);
+        PSVECScale(&tmp, &tmp, t);
+        PSVECAdd(pp, &tmp, &lpos);
+    }
 
+    v0 = v - step;
     for (k = 0; k < 2; k++) {
-        pv = (k == 0) ? prev : v;
+        pv = (k == 0) ? v0 : v;
         idx = pv - vtx;
+        ib = idx - 1;
+        in = idx + 1;
+        pb = &vtx[ib];
+        pn = &vtx[in];
         for (j = 0; j < 3; j++) {
             if (idx == 0) {
-                d = (&vtx[idx + 1].pos.x)[j] - (&pv->pos.x)[j];
-            } else if (idx == p->num - 1) {
-                d = (&pv->pos.x)[j] - (&vtx[idx - 1].pos.x)[j];
+                d = (&pn->pos.x)[j] - (&pv->pos.x)[j];
+            } else if (p->num - 1 == idx) {
+                d = (&pv->pos.x)[j] - (&pb->pos.x)[j];
             } else {
-                d = ((&vtx[idx + 1].pos.x)[j] - (&vtx[idx - 1].pos.x)[j]) * 0.5f;
+                d = ((&pn->pos.x)[j] - (&pb->pos.x)[j]) * 0.5f;
             }
             if (k == 0) {
                 (&d0.x)[j] = d;
@@ -187,7 +203,7 @@ int PathGetMatEm(void* path, cModel* model, f32 dist, u16* seg, Mtx out)
 
     for (j = 0; j < 3; j++) {
         key0.t = 0.0f;
-        key0.v = (&prev->pos.x)[j];
+        key0.v = (&v0->pos.x)[j];
         key0.out = key0.in = (&d0.x)[j];
         key1.t = 1.0f;
         key1.v = (&v->pos.x)[j];
@@ -197,7 +213,7 @@ int PathGetMatEm(void* path, cModel* model, f32 dist, u16* seg, Mtx out)
     }
     PSMTXMultVec(m0, &hpos, &hpos);
     PSMTXMultVecSR(m0, &hvel, &hvel);
-    PSMTXMultVecSR(m0, &prev->nrm, &n0);
+    PSMTXMultVecSR(m0, &(v - step)->nrm, &n0);
     PSMTXMultVecSR(m1, &v->nrm, &n1);
     PSVECSubtract(&n1, &n0, &tmp);
     PSVECScale(&tmp, &tmp, t);
@@ -431,3 +447,6 @@ void FuncPathClear(void* path)
     }
     d->n = 0;
 }
+
+// The split object's .sdata is 8-aligned.
+asm(".section .sdata; .balign 8");

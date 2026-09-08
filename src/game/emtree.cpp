@@ -76,7 +76,7 @@ cEmTree* SetTree(void* bin, void* tpl, Vec* pos, Vec* rot)
     em->hpMax = em->hp = 1000;
     {
         static const Vec ofs = { 0.0f, 0.0f, 0.0f };
-        static const Vec size = { 10000.0f, 10000.0f, 10000.0f };
+        static const Vec size = { 20000.0f, 20000.0f, 20000.0f };
 
         em->lightInfo.init2(0, 1, &ofs, &size, 0x10);
     }
@@ -337,7 +337,6 @@ void emTree_R1_Fall(cEmTree* em)
         { 500.0f, 3500.0f, 0.0f },
     };
     EmTreeNode node[3];
-    EmTreeNode* nd = node;
     EmTreeNode* nx;
     Vec b;
     Vec a;
@@ -352,36 +351,38 @@ void emTree_R1_Fall(cEmTree* em)
     em->hp = 0;
     floor = EatMgr.getFloor(&em->pos, 600.0f, 100000.0f, 0, 0) + 300.0f;
     for (i = 0; i < 3; i++) {
-        EmTreeNode* n = &nd[i];
+        EmTreeNode* n = &node[i];
         n->spd.x = w->pt[i].x;
         n->spd.y = w->pt[i].y;
         n->spd.z = w->pt[i].z;
     }
     for (i = 0; i < 3; i++) {
-        EmTreeNode* n = &nd[i];
+        EmTreeNode* n = &node[i];
         PSMTXMultVec(em->mat, &pt[i], &n->pos);
-        nd[i].old = nd[i].pos;
+        n->old = n->pos;
     }
     for (i = 0; i < 3; i++) {
-        EmTreeNode* n = &nd[i];
-        nx = &nd[i + 1];
+        EmTreeNode* n = &node[i];
         if (i == 2) {
-            nx = nd;
+            nx = node;
+        } else {
+            nx = &node[i + 1];
         }
         n->len = GetDistance3(&n->pos, &nx->pos);
     }
     for (i = 0; i < 3; i++) {
-        EmTreeNode* n = &nd[i];
+        EmTreeNode* n = &node[i];
         n->spd.y -= 20.0f;
         PSVECAdd(&n->pos, &n->spd, &n->pos);
         n->onFloor = 0;
     }
     for (k = 0; k < 30; k++) {
         for (i = 0; i < 3; i++) {
-            EmTreeNode* n = &nd[i];
-            nx = &nd[i + 1];
+            EmTreeNode* n = &node[i];
             if (i == 2) {
-                nx = nd;
+                nx = node;
+            } else {
+                nx = &node[i + 1];
             }
             PSVECSubtract(&nx->pos, &n->pos, &tmp);
             mag = PSVECMag(&tmp);
@@ -399,8 +400,18 @@ void emTree_R1_Fall(cEmTree* em)
             }
         }
     }
+    // TODO: the target keeps the loop bound &node[2] as two pseudos (`addi r0, r25, 0x58` in the
+    // k loop's latch, `mr r22, r0` before this loop); every form tried (pointer loop, hoisted bound
+    // variable, dead nx code with/without else, array vs pointer) gives one `addi r22`. The unused
+    // nx computation below reproduces the hoisted bound at least (without it the bound is
+    // rematerialised inside the loop).
     for (i = 0; i < 3; i++) {
-        EmTreeNode* n = &nd[i];
+        EmTreeNode* n = &node[i];
+        if (i == 2) {
+            nx = node;
+        } else {
+            nx = &node[i + 1];
+        }
         if (n->onFloor) {
             if (w->landed == 0 && n->spd.y < -50.0f) {
                 w->landed = 1;
@@ -434,12 +445,13 @@ void emTree_R1_Fall(cEmTree* em)
         PSVECScale(&n->spd, &n->spd, 0.999f);
     }
     for (i = 0; i < 3; i++) {
-        w->pt[i].x = nd[i].spd.x;
-        w->pt[i].y = nd[i].spd.y;
-        w->pt[i].z = nd[i].spd.z;
+        EmTreeNode* n = &node[i];
+        w->pt[i].x = n->spd.x;
+        w->pt[i].y = n->spd.y;
+        w->pt[i].z = n->spd.z;
     }
-    PSVECSubtract(&nd[0].pos, &nd[1].pos, &a);
-    PSVECSubtract(&nd[2].pos, &nd[1].pos, &b);
+    PSVECSubtract(&node[0].pos, &node[1].pos, &a);
+    PSVECSubtract(&node[2].pos, &node[1].pos, &b);
     PSVECCrossProduct(&b, &a, &c);
     PSVECCrossProduct(&a, &c, &b);
 #line 685 "D:/Bio4/Prog/emtree.cpp"
@@ -458,13 +470,13 @@ void emTree_R1_Fall(cEmTree* em)
     em->mat[1][2] = c.y;
     em->mat[2][2] = c.z;
     PSVECScale(&pt[0], &tmp, -1.0f);
-    TransMatrix(em->mat, &nd[0].pos);
+    TransMatrix(em->mat, &node[0].pos);
     PSMTXMultVec(em->mat, &tmp, &tmp);
     TransMatrix(em->mat, &tmp);
     em->pos = tmp;
-    mag = nd[0].spd.x * nd[0].spd.x + nd[0].spd.y * nd[0].spd.y + nd[0].spd.z * nd[0].spd.z
-        + nd[1].spd.x * nd[1].spd.x + nd[1].spd.y * nd[1].spd.y + nd[1].spd.z * nd[1].spd.z
-        + nd[2].spd.x * nd[2].spd.x + nd[2].spd.y * nd[2].spd.y + nd[2].spd.z * nd[2].spd.z;
+    mag = node[0].spd.x * node[0].spd.x + node[0].spd.y * node[0].spd.y + node[0].spd.z * node[0].spd.z
+        + node[1].spd.x * node[1].spd.x + node[1].spd.y * node[1].spd.y + node[1].spd.z * node[1].spd.z
+        + node[2].spd.x * node[2].spd.x + node[2].spd.y * node[2].spd.y + node[2].spd.z * node[2].spd.z;
     if (mag < 25.0f) {
         em->pos.x = em->mat[0][3];
         em->pos.y = em->mat[1][3];

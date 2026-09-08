@@ -99,7 +99,11 @@ struct GlobalWork {
     u32 flags_174;         // 0x174  (pl_sub joyFireOn: 0x20000000 in room 11C while flags_5014 bit31 is set)
     u8 pad_178[0x184 - 0x178];
     GxStageWork gxStage;   // 0x184  TEV stage / texmap / texcoord counters of the model renderer (mirror)
-    u8 pad_190[0x4F20 - 0x190];
+    u8 pad_190[0x4F10 - 0x190];
+    s32 prim_base;         // 0x4F10  primitive buffer: first entry of the current frame (debug PrimitiveBuffDisp)
+    f32 prim_rate;         // 0x4F14  worst free ratio of the primitive buffer seen so far
+    s32 prim_cnt;          // 0x4F18  entries used so far this frame
+    s32 prim_max;          // 0x4F1C  entries per frame (game: ConsGetRoomValue(8), 0x8000 while stopped)
     void* pRoomMes;        // 0x4F20  room message table (mes: MesData.ptr[1])
     void* pCoreCamData;    // 0x4F24  core camera data ("B40x")
     void* pRoomCamData;    // 0x4F28  room camera data ("B40x")

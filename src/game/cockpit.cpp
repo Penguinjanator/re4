@@ -98,14 +98,9 @@ void Cockpit::lifeMeterDisp(int sw)
 
 static f32 a_ratio = 0.9f;
 
-// smoothing towards `t`; the reference / pointer parameters are what make the stores alias
-// pG and a_ratio (both are reloaded after every store)
-static inline void approach(f32& v, f32 t)
-{
-    v = a_ratio * v + (1.0f - a_ratio) * t;
-}
-
-// the cast-then-deref store is not MEM_IN_STRUCT_P: a_ratio is reloaded after every store
+// Colour smoothing. The cast-then-deref store is not MEM_IN_STRUCT_P, so a_ratio is reloaded
+// after every store (the original reloads it per statement); a plain v[i] hoists it out of the loop
+// and a reference parameter turns the address into a stepping pointer.
 #define FIDX(p, i) (*(f32*) ((u8*) (p) + (i) * 4))
 static inline void approachIdx(f32* v, f32* t, int i)
 {
@@ -203,8 +198,8 @@ void LifeMeter::move()
     ang = METER_ANGLE(subLevel, 5.0f, 90.0f, 0.0f);
     FSet(IdSys.unitPtr(2, ID_LIFE)->rot.z, ang);
 
-    approach(life, (f32) (s16) pG->pl_life);
-    approach(subLife, (f32) (s16) pG->sub_life);
+    FSet(life, a_ratio * life + (1.0f - a_ratio) * (f32) (s16) pG->pl_life);
+    FSet(subLife, a_ratio * subLife + (1.0f - a_ratio) * (f32) (s16) pG->sub_life);
 
     u = IdSys.unitPtr(7, ID_LIFE);
     u2 = IdSys.unitPtr(8, ID_LIFE);
@@ -713,11 +708,23 @@ struct Digits {
     u8 lo;
 };
 
+static inline void U32Add(u32& d, u32 v)
+{
+    d += v;
+}
+
+// the inline keeps the two tests apart (fold would merge them into one `andis. 0xa`)
+static inline u32 chkFlag5014(u32 b)
+{
+    return pG->flags_5014 & b;
+}
+
 void CountDown::move()
 {
     f32 tbl[6] = {0.0f, 1.0f, -1.0f, 0.0f, 1.5f, -0.5f};
     int run = 1;
     IdUnit* u;
+    IdUnit* p;
     u32 t;
     Digits d;
     s8 oldTens;
@@ -730,17 +737,14 @@ void CountDown::move()
     if (run == 0) {
         return;
     }
-    if (pG->flags_5014 & 0x00080000) {
-        flags &= ~8;
-    } else if (pG->flags_5014 & 0x00020000) {
-        flags &= ~8;
-    } else if ((pG->flags_5010 & 0x10000000) || (pG->flags_170 & 0x10000000)) {
+    if (!chkFlag5014(0x00080000) && !chkFlag5014(0x00020000) &&
+        ((pG->flags_5010 & 0x10000000) || (pG->flags_170 & 0x10000000))) {
         flags |= 8;
     } else {
         flags &= ~8;
     }
     if (pG->cdown_add_sec != 0) {
-        BitSet(frame, frame + pG->cdown_add_sec * 30);
+        U32Add(frame, pG->cdown_add_sec * 30);
         pG->cdown_add_sec = 0;
     }
     if (!(pG->flags_64 & 0x00010000) && !(pG->flags_500C & 0x00040000) && !(flags & 8)) {
@@ -772,45 +776,46 @@ void CountDown::move()
         counter = (counter + 1) % 6;
     }
 
-    u = IdSys.unitPtr(6, ID_CDOWN);
-    u->no = 0xB;
-    u->flags_7F |= 2;
-    u = IdSys.unitPtr(7, ID_CDOWN);
-    u->no = 0xC;
-    u->flags_7F |= 2;
+    p = IdSys.unitPtr(6, ID_CDOWN);
+    p->no = 0xB;
+    p->flags_7F |= 2;
+    p = IdSys.unitPtr(7, ID_CDOWN);
+    p->no = 0xC;
+    p->flags_7F |= 2;
 
     d.hi = min / 10;
     d.lo = min % 10;
-    u = IdSys.unitPtr(0, ID_CDOWN);
-    u->no = d.hi;
-    u->flags_7F |= 2;
-    u = IdSys.unitPtr(1, ID_CDOWN);
-    u->no = d.lo;
-    u->flags_7F |= 2;
+    p = IdSys.unitPtr(0, ID_CDOWN);
+    p->no = d.hi;
+    p->flags_7F |= 2;
+    p = IdSys.unitPtr(1, ID_CDOWN);
+    p->no = d.lo;
+    p->flags_7F |= 2;
 
     d.hi = sec / 10;
     d.lo = sec % 10;
-    u = IdSys.unitPtr(2, ID_CDOWN);
-    u->no = d.hi;
-    u->flags_7F |= 2;
-    u = IdSys.unitPtr(3, ID_CDOWN);
-    u->no = d.lo;
-    u->flags_7F |= 2;
+    p = IdSys.unitPtr(2, ID_CDOWN);
+    p->no = d.hi;
+    p->flags_7F |= 2;
+    p = IdSys.unitPtr(3, ID_CDOWN);
+    p->no = d.lo;
+    p->flags_7F |= 2;
 
     d.hi = cs / 10;
     d.lo = cs % 10;
-    u = IdSys.unitPtr(4, ID_CDOWN);
-    u->no = d.hi;
-    u->flags_7F |= 2;
+    p = IdSys.unitPtr(4, ID_CDOWN);
+    p->no = d.hi;
+    p->flags_7F |= 2;
     if (ft != 0.0f) {
         t = (u32) ft;
-        ft -= (f32) (t / 10 * 10);
+        t = t / 10 * 10;
+        ft -= (f32) t;
         d.lo = (u8) (ft + tbl[counter]);
         d.lo = d.lo % 10;
     }
-    u = IdSys.unitPtr(5, ID_CDOWN);
-    u->no = d.lo;
-    u->flags_7F |= 2;
+    p = IdSys.unitPtr(5, ID_CDOWN);
+    p->no = d.lo;
+    p->flags_7F |= 2;
 }
 
 void CountDown::disp(int sw)
