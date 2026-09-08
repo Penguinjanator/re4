@@ -1667,15 +1667,15 @@ static int sceAtFunc_damage(SceAtWork* w, cModel* m)
             pt[0].x = w->area.u.xz4.p[0].x;
             pt[0].y = w->area.u.xz4.y;
             pt[0].z = w->area.u.xz4.p[0].z;
-            pt[1].x = w->area.u.xz4.p[1].x;
+            pt[1].x = w->area.u.xz4.p[3].x;
             pt[1].y = w->area.u.xz4.y;
-            pt[1].z = w->area.u.xz4.p[1].z;
+            pt[1].z = w->area.u.xz4.p[3].z;
             pt[2].x = w->area.u.xz4.p[2].x;
             pt[2].y = w->area.u.xz4.y;
             pt[2].z = w->area.u.xz4.p[2].z;
-            pt[3].x = w->area.u.xz4.p[3].x;
+            pt[3].x = w->area.u.xz4.p[1].x;
             pt[3].y = w->area.u.xz4.y;
-            pt[3].z = w->area.u.xz4.p[3].z;
+            pt[3].z = w->area.u.xz4.p[1].z;
             DmgMgr.set(w->dmg.kind, time, pt, w->area.u.xz4.h);
             break;
         case 2:
@@ -2419,11 +2419,11 @@ int SceAtSetParent(int no, cObj* obj, int flag)
 {
     SceAtWork* w = SceAtPtr(no);
 
-    if (w != 0) {
-        return SceAtSetParent(w, obj, flag);
+    if (w == 0) {
+        pLog->err(0, 0, "sceAtSetParent(): AT NOT FOUND");
+        return 0;
     }
-    pLog->err(0, 0, "sceAtSetParent(): AT NOT FOUND");
-    return 0;
+    return SceAtSetParent(w, obj, flag);
 }
 
 int InScreenCheck(Vec* pos)
