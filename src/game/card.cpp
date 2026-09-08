@@ -3076,30 +3076,31 @@ void CardDbgCacheSet()
     }
 }
 
-// Digits of `num` into id units idNo, idNo-1, ... (ones first).
-static inline void putNumber(IDSystem* id, int num, int idNo, int digits, u8 type)
-{
-    int d[3];
-    int i;
-    IdUnit* u;
-
-    for (i = 0; i <= digits - 1; i++) {
-        d[i] = num % 10;
-        num /= 10;
-        u = id->unitPtr(idNo, type);
-        idNo--;
-        u->flags_7F |= 2;
-        u->no = d[i];
-    }
-}
+// Digits of `num` into id units idNo, idNo-1, ... (ones first). A macro: every expansion shares
+// dispSaveInfo's `u`, `d` and `i` (the unit pointer is copied to the same register each time).
+#define putNumber(id, num_, idNo_, digits_, type)         \
+    do {                                                  \
+        int num = (num_);                                 \
+        int idNo = (idNo_);                               \
+        for (i = 0; i <= (digits_) - 1; i++) {            \
+            d[i] = num % 10;                              \
+            num /= 10;                                    \
+            u = (id)->unitPtr(idNo, type);                \
+            idNo--;                                       \
+            u->flags_7F |= 2;                             \
+            u->no = d[i];                                 \
+        }                                                 \
+    } while (0)
 
 void dispSaveInfo(int no, SaveInfo* info, u8 type, int broken)
 {
     IDSystem* id = &g_id->idsys;
     IdUnit* u;
+    int i;
+    int d[3];
     IdUnit* u2;
     int chapter;
-    int special = 0;
+    int special;
     int chap;
     int sec;
     u32 h;
@@ -3114,6 +3115,7 @@ void dispSaveInfo(int no, SaveInfo* info, u8 type, int broken)
         return;
     }
     u->flags |= 8;
+    special = 0;
     chapter = info->chapter;
     id->unitPtr(0x20, type)->flags &= ~8;
     id->unitPtr(7, type)->flags &= ~8;

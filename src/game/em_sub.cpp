@@ -690,7 +690,6 @@ int emLineCapsuleCrossCk(Vec* a, Vec* b, Vec* top, Vec* bottom, f32 r, Vec* hit)
     f32 dxz;
     f32 t;
     f32 h;
-    f32 distA;
 
     PSMTXIdentity(m);
     PSVECSubtract(top, bottom, &d);
@@ -764,9 +763,8 @@ int emLineCapsuleCrossCk(Vec* a, Vec* b, Vec* top, Vec* bottom, f32 r, Vec* hit)
     PSVECSubtract(&la, &g, &d);
     PSVECScale(&d, &d, h / PSVECMag(&d));
     PSVECAdd(&d, &g, &d);
-    distA = (la.x - d.x) * (la.x - d.x) + (la.y - d.y) * (la.y - d.y) + (la.z - d.z) * (la.z - d.z);
     h = (la.x - lb.x) * (la.x - lb.x) + (la.y - lb.y) * (la.y - lb.y) + (la.z - lb.z) * (la.z - lb.z);
-    if (distA > h) {
+    if ((la.x - d.x) * (la.x - d.x) + (la.y - d.y) * (la.y - d.y) + (la.z - d.z) * (la.z - d.z) > h) {
         return 0;
     }
     if (d.y < 0.0f) {
