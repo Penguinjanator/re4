@@ -2,6 +2,7 @@
 // item when shot, kicked (action button) or caught in a damage volume.
 
 #include "atari.h"
+#include "atari_init.h"
 #include "light.h"
 #include "dmg.h"
 #include "embox.h"
@@ -170,7 +171,7 @@ cEmBox* SetBox(void* bin, void* tpl, Vec* pos, Vec* rot, u8 type, int etcNo)
     default: {
         cAtariInfo* at = &em->atari;
 
-        at->init(0, 2, 0, 0.0f, 0.0f, 0.0f, 700.0f, 400.0f, 500.0f, 500.0f);
+        atariInitF(at, 0.0f, 0.0f, 0.0f, 700.0f, 400.0f, 500.0f, 500.0f, 0, 2, 0);
         at->setPriority(3);
         at->flags &= ~0x300;
         break;
@@ -178,7 +179,7 @@ cEmBox* SetBox(void* bin, void* tpl, Vec* pos, Vec* rot, u8 type, int etcNo)
     case 3: {
         cAtariInfo* at = &em->atari;
 
-        at->init(1, 0x2000, 10, 0.0f, 750.0f, 0.0f, 350.0f, 350.0f, 350.0f, 750.0f);
+        atariInitF(at, 0.0f, 750.0f, 0.0f, 350.0f, 350.0f, 350.0f, 750.0f, 1, 0x2000, 10);
         at->setPriority(3);
         at->flags &= ~0x100;
         break;
@@ -187,7 +188,7 @@ cEmBox* SetBox(void* bin, void* tpl, Vec* pos, Vec* rot, u8 type, int etcNo)
     case 7: {
         cAtariInfo* at = &em->atari;
 
-        at->init(1, 0x2000, 10, 0.0f, 750.0f, 0.0f, 300.0f, 300.0f, 300.0f, 750.0f);
+        atariInitF(at, 0.0f, 750.0f, 0.0f, 300.0f, 300.0f, 300.0f, 750.0f, 1, 0x2000, 10);
         at->setPriority(3);
         at->flags &= ~0x100;
         break;
@@ -205,12 +206,12 @@ cEmBox* SetBox(void* bin, void* tpl, Vec* pos, Vec* rot, u8 type, int etcNo)
     em->setStatus(0xB);
     em->be_flag &= ~0x01000000;
     em->be_flag &= ~0x10;
-    w->itemNo = -1;
     w->etcNo = etcNo;
     w->flags = 0;
     w->breakBin = 0;
     w->breakTpl = 0;
     w->itemNum = 0;
+    w->itemNo = -1;
     flg = GetEtcFlgPtr(etcNo, pGS->room_id);
     if (flg && (*flg & 1)) {
         em->hp = 0;

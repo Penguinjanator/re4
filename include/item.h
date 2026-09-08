@@ -68,6 +68,10 @@ public:
     int reloadable();           // 0x8001F470
     int reload();               // 0x8001F5B4
     int trigger();              // 0x8001F7E8
+    // sce_at: use one item of slot template `p` (id/num), item `id` available?, clear the per-frame flags
+    void use(ItemWork* p);      // 0x8001E3BC
+    int available(u16 id);      // 0x8001F2C4
+    void flagclear();           // 0x8001F2E8
 };
 
 extern cItemMgr ItemMgr;

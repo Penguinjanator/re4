@@ -16,8 +16,11 @@
 // game/trans_lit.cpp
 extern "C" void commonEspLightSet(cLight** list, int n);
 
+int GetDrawTmpBufType();        // game/TmpBuf.cpp (C++ linkage)
+extern GXTexObj g_Get_tex_obj;  // game/trans.cpp
+
 extern "C" {
-static void EspCommonTransShimmer(cEsp* esp, int type, int blur);
+static void EspCommonTransShimmer(cEsp* esp, int type, u32 blur);
 void EspCommonTransNega(cEsp* esp, u32 type);
 f32 EspGetCameraPan();   // game/esp.cpp
 int EspEstSetSelect(int a, int b, int c, cEsp** out, int d);
@@ -306,8 +309,9 @@ void EspCommonTrans(cEsp* esp)
     }
 }
 
-// TODO: EspCommonTransShimmer (0x1088) is not written yet; only its statics are in place.
-static void EspCommonTransShimmer(cEsp* esp, int type, int blur)
+// Heat shimmer sprite: the frame is copied into a texture and drawn back through an indirect
+// texture (blur 1..3 select the warp mode; type scales the distortion).
+static void EspCommonTransShimmer(cEsp* esp, int type, u32 blur)
 {
     static Mtx Matrix1 = {
         {0.001953125f, 0.0f, 0.0f, 0.0f},
@@ -319,11 +323,324 @@ static void EspCommonTransShimmer(cEsp* esp, int type, int blur)
         {0.0f, 0.0029762f, -0.167f, 0.0f},
         {0.0f, 0.0f, 1.0f, 0.0f},
     };
-    static f32 prm1 = 0.5f;
-    static f32 prm2 = 0.0f;
-    static f32 prm3 = 0.0f;
-    static f32 prm4;
-    static f32 aspect = Screen.height * (1.0f / 255.0f) / Screen.width;
+    Mtx44 proj;
+    Mtx inv;
+    EspAnmData* anm;
+    GXColor fog;
+    f32 sx;
+    f32 sy;
+    f32 ox;
+    f32 oy;
+    f32 x0;
+    f32 y0;
+    f32 z;
+    f32 s0;
+    f32 s1;
+    f32 t0;
+    f32 t1;
+    f32 ofs;
+    f32 scale;
+    u8 stages;
+    int texGens;
+    int copyOk;
+    void* buf;
+
+    scale = (f32) type * (1.0f / 32.0f) + 1.0f;
+    if (!esp->ChannelSet()) {
+        return;
+    }
+    if (!EspGetAnmAddr(esp->anmNo, &anm)) {
+        pLog->err(0, 0, "ESP : TexId[%x] no data", esp->anmNo);
+        return;
+    }
+    GXSetCullMode(0);
+    GXSetAlphaCompare(4, 1, 1, 4, 1);
+    GXSetZMode(1, 3, 0);
+    CameraCurrentProjection();
+    if (ESP_PARTS_SCREEN(esp)) {
+        PSMTXIdentity(esp->mat);
+        low_RotMatrix(esp->mat, &esp->rot);
+        TransMatrix(esp->mat, &esp->pos);
+        C_MTXOrtho(proj, 0.0f, 448.0f, 0.0f, 512.0f, 0.0f, -100.0f);
+        GXSetProjection(proj, 1);
+    } else if (!(esp->flags & 1)) {
+        Vec p;
+        Mtx m;
+
+        PSMTXIdentity(esp->mat);
+        PSMTXRotRad(esp->mat, 'z', esp->rot.z);
+        PSMTXConcat(pG->Cam.viewMat, esp->parent->mat, m);
+        PSMTXMultVec(m, &esp->pos, &p);
+        esp->mat[0][3] = p.x;
+        esp->mat[1][3] = p.y;
+        esp->mat[2][3] = p.z;
+    } else {
+        Mtx m;
+
+        PSMTXIdentity(esp->mat);
+        low_RotMatrix(esp->mat, &esp->rot);
+        TransMatrix(esp->mat, &esp->pos);
+        PSMTXConcat(pG->Cam.viewMat, esp->parent->mat, m);
+        PSMTXConcat(m, esp->mat, esp->mat);
+    }
+    PSMTXInverse(esp->mat, inv);
+    PSMTXTranspose(inv, inv);
+    GXLoadNrmMtxImm(inv, 0);
+    GXLoadPosMtxImm(esp->mat, 0);
+    GXSetCurrentMtx(0);
+    EspTexSet(esp->anmNo, esp->anmPtn);
+    GXSetAlphaCompare(4, 1, 1, 4, 1);
+    GXSetBlendMode(esp->xA4, esp->xA5, esp->xA6, esp->xA7);
+    GXClearVtxDesc();
+    GXSetVtxDesc(9, 1);
+    GXSetVtxDesc(0xA, 1);
+    GXSetVtxDesc(0xD, 1);
+    GXSetVtxAttrFmt(0, 9, 1, 4, 0);
+    GXSetVtxAttrFmt(0, 0xA, 0, 1, 0);
+    GXSetVtxAttrFmt(0, 0xD, 1, 4, 0);
+    sx = esp->sizeX * esp->scale;
+    sy = esp->sizeY * esp->scale;
+    ox = -anm->x4;
+    oy = (f32) anm->x6;
+    z = 1.0f;
+    if (ox == 0.0f) {
+        ox = -anm->x0 * 0.5f;
+    }
+    if (oy == 0.0f) {
+        oy = anm->x2 * 0.5f;
+    }
+    x0 = ox * sx / anm->x0;
+    y0 = oy * sy / anm->x2;
+    if (esp->flags & 2) {
+        if (ESP_PARTS_SCREEN(esp)) {
+            if (!(esp->flags & 4)) {
+                s1 = 0.0f;
+                s0 = s1 + z;
+                t0 = s0;
+                t1 = s1;
+            } else {
+                s1 = 0.0f;
+                s0 = s1 + z;
+                t0 = s1;
+                t1 = s0;
+            }
+        } else {
+            if (esp->flags & 4) {
+                s1 = 0.0f;
+                s0 = s1 + z;
+                t0 = s0;
+                t1 = s1;
+            } else {
+                s1 = 0.0f;
+                s0 = s1 + z;
+                t0 = s1;
+                t1 = s0;
+            }
+        }
+    } else {
+        if (ESP_PARTS_SCREEN(esp)) {
+            if (!(esp->flags & 4)) {
+                s0 = 0.0f;
+                s1 = s0 + z;
+                t1 = s0;
+                t0 = s1;
+            } else {
+                s0 = 0.0f;
+                s1 = s0 + z;
+                t0 = s0;
+                t1 = s1;
+            }
+        } else {
+            if (esp->flags & 4) {
+                s0 = 0.0f;
+                s1 = s0 + z;
+                t1 = s0;
+                t0 = s1;
+            } else {
+                s0 = 0.0f;
+                s1 = s0 + z;
+                t0 = s0;
+                t1 = s1;
+            }
+        }
+    }
+    GXTexObj tex;
+    {
+        f32 indMtx[2][3];
+        f32 dot;
+        int bufType = 1;
+
+        copyOk = 1;
+        fog.r = fog.g = fog.b = fog.a = 0;
+        GXSetFog(0, 0.0f, 0.0f, ZNEAR, ZFAR, fog);
+        if (esp->flags & 0x1000) {
+            if (GetDrawTmpBufType() != 2) {
+                copyOk = 0;
+            }
+            bufType = 2;
+        }
+        buf = GetDrawTmpBufAddr(bufType);
+        ofs = 56.0f;
+        if (pG->flags_5010 & 0x08000000) {
+            ofs = 0.0f;
+        }
+        if (copyOk) {
+            if (buf == NULL) {
+                pLog->warn(0, 0, "Esp0d() : not enough memory");
+                return;
+            }
+            GXSetTexCopySrc(0, (u32) ofs, (u32) Screen.width, (u32) (Screen.height - ofs));
+            GXSetTexCopyDst((u32) Screen.width / 2, (u32) ((f32) ((u32) Screen.height / 2) - ofs), 6, 1);
+            GXCopyTex(buf, 0);
+            GXPixModeSync();
+            GXInvalidateTexAll();
+        }
+        GXInitTexObj(&tex, buf, (u32) Screen.width / 2, (u32) ((f32) ((u32) Screen.height / 2) - ofs), 6, 0, 0, 0);
+        GXLoadTexObj(&tex, 1);
+        g_Get_tex_obj = tex;
+        Mtx tm;
+        Mtx pm;
+        if (ESP_PARTS_SCREEN(esp)) {
+            if (pG->flags_5010 & 0x08000000) {
+                PSMTXConcat(Matrix1, esp->mat, tm);
+            } else {
+                PSMTXConcat(Matrix2, esp->mat, tm);
+            }
+            GXLoadTexMtxImm(tm, 0x1E, 1);
+            GXSetTexCoordGen(0, 1, 0, 0x1E);
+        } else {
+            C_MTXLightPerspective(pm, pG->Cam.param.fovy, 1.3333334f, 0.5f, -0.6666667f, 0.5f, 0.5f);
+            PSMTXConcat(pm, esp->mat, tm);
+            GXLoadTexMtxImm(tm, 0x1E, 0);
+            GXSetTexCoordGen(0, 0, 0, 0x1E);
+        }
+        GXSetNumIndStages(1);
+        texGens = 2;
+        GXSetTexCoordGen(1, 1, 4, 0x3C);
+        GXSetIndTexOrder(0, 1, 0);
+        GXSetIndTexCoordScale(0, 0, 0);
+        if (ESP_PARTS_SCREEN(esp)) {
+            dot = 2500.0f;
+        } else {
+            Vec dir;
+            Vec d;
+            Vec p;
+            Camera* cam;
+
+            if (esp->parent != pEffParentWorld) {
+                PSMTXMultVec(esp->parent->mat, &esp->pos, &p);
+            } else {
+                p = esp->pos;
+            }
+            cam = &pG->Cam;
+            dir.x = cam->param.at.x - cam->param.pos.x;
+            dir.y = cam->param.at.y - cam->param.pos.y;
+            dir.z = cam->param.at.z - cam->param.pos.z;
+#line 865 "D:/Bio4/Prog/esp_sub.cpp"
+            VECNormalize(&dir, &dir);
+            d.x = p.x - cam->param.pos.x;
+            d.y = p.y - cam->param.pos.y;
+            d.z = p.z - cam->param.pos.z;
+            dot = PSVECDotProduct(&dir, &d);
+        }
+        if (dot < 1500.0f) {
+            dot = 1500.0f;
+        }
+        if (blur == 3) {
+            indMtx[1][1] = indMtx[0][0] = esp->colA * (1.0f / 255.0f) * 0.04f * 1000.0f / dot * scale;
+            indMtx[0][1] = 0.0f;
+            indMtx[0][2] = 0.0f;
+            indMtx[1][0] = 0.0f;
+            indMtx[1][2] = 0.0f;
+        } else {
+            static f32 prm1 = 0.5f;
+            static f32 prm2 = 0.0f;
+            static f32 prm3 = 0.0f;
+            static f32 prm4 = Screen.height * 0.5f / Screen.width;
+
+            indMtx[0][0] = prm1;
+            indMtx[0][1] = prm2;
+            indMtx[0][2] = 0.0f;
+            indMtx[1][0] = prm3;
+            indMtx[1][1] = prm4;
+            indMtx[1][2] = 0.0f;
+        }
+        GXSetIndTexMtx(1, indMtx, 1);
+        switch (blur) {
+        case 1:
+            GXSetTevIndWarp(0, 0, 0, 0, 1);
+            break;
+        case 2:
+            GXSetTevIndWarp(0, 0, 1, 0, 1);
+            break;
+        default:
+            pLog->err(0, 0, "ESP_SHIMMER : BLUR_TYPE[%x] invalid", blur);
+        case 3:
+            GXSetTevIndWarp(0, 0, 0, 1, 1);
+            break;
+        }
+    }
+    stages = 1;
+    GXSetTevOrder(0, 0, 1, 4);
+    GXSetTevColorIn(0, 0xF, 8, 0xA, 0xF);
+    GXSetTevColorOp(0, 0, 0, 0, 1, 0);
+    GXSetTevAlphaIn(0, 7, 7, 7, 5);
+    GXSetTevAlphaOp(0, 0, 0, 0, 1, 0);
+    if (esp->flags & 0x4000) {
+        int no = esp->anmNo2;
+        EspTexWk* tw = EspGetTexWk(no, 1);
+        if (tw->owner == 0xD2) {
+            pLog->err(0, 0, "ESP : Mask_TexId[%x] no data", no);
+        } else {
+            GXTlutObj tlut;
+            GXTexObj tex2;
+            TEXDescriptor* td = TEXGet(tw->pTpl, esp->anmPtn2);
+            TEXHeader* th = td->textureHeader;
+
+            if (th->format == 8 || th->format == 9) {
+                GXInitTexObjCI(&tex2, th->data, th->width, th->height, th->format, 0, 0, 0, 1);
+                GXInitTlutObj(&tlut, td->CLUTHeader->data, td->CLUTHeader->format, td->CLUTHeader->numEntries);
+                GXLoadTlut(&tlut, 1);
+            } else {
+                GXInitTexObj(&tex2, th->data, th->width, th->height, th->format, 0, 0, 0);
+            }
+            GXLoadTexObj(&tex2, 2);
+            GXLoadTexMtxImm(tw->mtx, 0x21, 1);
+            GXSetTexCoordGen(texGens, 1, 4, 0x21);
+            GXSetTevOrder(1, texGens, 2, 4);
+            GXSetTevColorIn(1, 0xF, 0xF, 0xF, 0);
+            GXSetTevColorOp(1, 0, 0, 0, 1, 0);
+            GXSetTevAlphaIn(1, 7, 4, 5, 7);
+            if (esp->flags & 0x20000) {
+                GXSetTevAlphaOp(1, 0, 0, 2, 1, 0);
+            } else {
+                GXSetTevAlphaOp(1, 0, 0, 0, 1, 0);
+            }
+            stages = 2;
+            texGens++;
+        }
+    }
+    GXSetNumTevStages(stages);
+    GXSetNumTexGens(texGens);
+    GXBegin(0x80, 0, 4);
+    GXPosition3f32(x0, y0, z);
+    GXNormal3s8(0, 1, 0);
+    GXTexCoord2f32(s0, t0);
+    GXPosition3f32(x0 + sx, y0, z);
+    GXNormal3s8(0, 1, 0);
+    GXTexCoord2f32(s1, t0);
+    GXPosition3f32(x0 + sx, y0 - sy, z);
+    GXNormal3s8(0, 1, 0);
+    GXTexCoord2f32(s1, t1);
+    GXPosition3f32(x0, y0 - sy, z);
+    GXNormal3s8(0, 1, 0);
+    GXTexCoord2f32(s0, t1);
+    GXSetNumTevStages(1);
+    GXSetNumTexGens(0);
+    GXSetNumIndStages(0);
+    GXSetTevDirect(0);
+    GXSetTevDirect(1);
+    LightMgr.setFog();
 }
 
 // Frame-buffer sprite: the frame is copied into a texture and drawn on the sprite quad,

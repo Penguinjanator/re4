@@ -19,6 +19,8 @@ public:
     void control(int mode);
     void analyze();
     void endDamage();
+    // scenario damage area hit (sce_at sceAtFunc_damage)
+    void setDamage(u8 kind, int arg, f32 power, int a, int b);
 };
 
 extern cSubChar* pSUB;   // game/em.cpp

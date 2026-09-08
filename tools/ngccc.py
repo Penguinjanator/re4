@@ -176,14 +176,14 @@ def place_linkonce(src: str, asm: str) -> None:
     from fold_linkonce import unit_text_functions  # noqa: E402
     from sync_symbols import demangle_v2  # noqa: E402
 
-    owned = unit_text_functions(rel.as_posix())
+    owned, foreign = unit_text_functions(rel.as_posix())
     out = []
     with open(asm, encoding="latin-1") as f:
         for line in f:
             s = line.strip()
             if s.startswith('.section\t".gnu.linkonce.t.'):
                 name = s[len('.section\t".gnu.linkonce.t.'):].split('"', 1)[0]
-                if (demangle_v2(name) or name) in owned:
+                if (demangle_v2(name) or name) in owned and name not in foreign:
                     line = '\t.section\t".text"\n'
             elif s.startswith('.section\t".gnu.linkonce.d.'):
                 line = '\t.section\t".rodata"\n'

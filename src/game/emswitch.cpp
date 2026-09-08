@@ -2,6 +2,7 @@
 // action button or by a hit.
 
 #include "atari.h"
+#include "atari_init.h"
 #include "light.h"
 #include "dmg.h"
 #include "emswitch.h"
@@ -142,7 +143,7 @@ cEmSwitch* SetEmSwitch(void* bin, void* tpl, Vec* pos, Vec* rot, int flagNo)
         em->lightInfo.init2(0, 1, &ofs, &size, 0x10);
     }
     f32 zero = 0.0f;
-    em->atari.init(0, 2, 0, zero, zero, -700.0f, 350.0f, 700.0f, 700.0f, 2000.0f);
+    AtariInit(&em->atari, zero, zero, -700.0f, 350.0f, 700.0f, 700.0f, 2000.0f, 0, 2, 0);
     em->atari.flags &= ~0x300;
     em->atari.setPriority(3);
     em->setStatus(1);

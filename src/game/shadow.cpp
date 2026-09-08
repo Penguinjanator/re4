@@ -899,25 +899,9 @@ void MakeSoftShadow(ShadowMng* mng)
 }
 
 f32 shd_ofs = 2000.0f;
-static f32 shd_tex_scale_x = 0.0003f;
+f32 shd_tex_scale_x = 0.0003f;  // trans.cpp SelfShadowSetup reads it
 
 #define SHD_NO_SELF(mng) (!isSelfUse || !((mng)->self & 1))
-
-#define MTX_ZERO(m)                                                                 \
-    do {                                                                            \
-        m[0][0] = 0.0f;                                                             \
-        m[0][1] = 0.0f;                                                             \
-        m[0][2] = 0.0f;                                                             \
-        m[0][3] = 0.0f;                                                             \
-        m[1][0] = 0.0f;                                                             \
-        m[1][1] = 0.0f;                                                             \
-        m[1][2] = 0.0f;                                                             \
-        m[1][3] = 0.0f;                                                             \
-        m[2][0] = 0.0f;                                                             \
-        m[2][1] = 0.0f;                                                             \
-        m[2][2] = 0.0f;                                                             \
-        m[2][3] = 0.0f;                                                             \
-    } while (0)
 
 void make_shadow_texture(ShadowMng* mng)
 {
@@ -1313,15 +1297,17 @@ void shadowShaderSetup2(cModel* m, ModelPart* part, ShadowMng** tbl, u32 num)
     static const GXColor col0 = {0, 0, 0, 0};
     static const GXColor col255 = {0xFF, 0xFF, 0xFF, 0xFF};
     GxStageWork* gs = &pG->gxStage;
-    u32 lightMask = 0;
+    ShadowMng* mng;
+    u32 lightMask;
     u32 i;
 
     gs->tevStage = 0;
     gs->texMap = 0;
     gs->texCoord = 0;
+    lightMask = 0;
     for (i = 0; i < num; i++) {
-        ShadowMng* mng = tbl[i];
         Vec p;
+        mng = tbl[i];
         Vec d;
         PSMTXMultVec(pG->Cam.viewMat, &mng->lightPos, &p);
         GXInitLightPos(&light_obj[i], p.x, p.y, p.z);
@@ -1330,13 +1316,13 @@ void shadowShaderSetup2(cModel* m, ModelPart* part, ShadowMng** tbl, u32 num)
         GXInitLightAttn(&light_obj[i], 1.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f);
         GXInitLightSpot(&light_obj[i], mng->fov * 0.9f, 1);
         GXInitLightColor(&light_obj[i], col_tbl[i]);
-        GXLoadLightObjImm(&light_obj[i], 1 << i);
         lightMask |= 1 << i;
+        GXLoadLightObjImm(&light_obj[i], 1 << i);
     }
     GXSetZMode(1, 3, 0);
     for (i = 0; i < num; i++) {
-        ShadowMng* mng = tbl[i];
         Mtx tm;
+        mng = tbl[i];
         PSMTXConcat(mng->texMat, m->pParts->mat, tm);
         GXLoadTexMtxImm(tm, 0x1E + i * 3, 0);
         GXSetTexCoordGen2(gs->texCoord, 0, 0, 0x1E + i * 3, 0, 0x7D);
@@ -1361,10 +1347,16 @@ void shadowShaderSetup2(cModel* m, ModelPart* part, ShadowMng** tbl, u32 num)
         gs->texCoord++;
     }
     if (pG->flags_5010 & 0x4000) {
-        ShadowMng* mng = tbl[0];
+        cLight* l;
         GXColor k;
-        k.a = mng->pLight->color.r;
-        k.r = k.g = k.b = mng->pLight->color.r;
+        u8 c;
+        mng = tbl[0];
+        l = mng->pLight;
+        k.a = l->color.r;
+        c = l->color.r;
+        k.b = c;
+        k.g = c;
+        k.r = c;
         GXSetTevKColor(0, k);
         GXSetTevKColorSel(gs->tevStage, 0xC);
         GXSetTevKAlphaSel(gs->tevStage, 0x1C);
@@ -1568,18 +1560,18 @@ void shadowModelTrans2(cModel* m, cModelInfo* info, Mtx viewMat)
 
 void TransLightTexture(GXTexObj* tex, GXTlutObj* tlut, s16 x, s16 y, s16 z, s16 w, s16 h, ShadowMng* mng, int flag2, int flag1)
 {
-    Mtx m;
-    Mtx44 proj;
     GXColor c;
-    GXColor k = {0xFF, 0, 0, 0};
     int scale;
 
     GXSetNumChans(1);
-    GXSetChanCtrl(4, 0, 0, 0, 0, 2, 2);
+    GXSetChanCtrl(4, 0, 0, 0, 0, 0, 2);
     c.r = c.g = c.b = c.a = 0xFF;
     GXSetChanAmbColor(0, c);
     GXSetChanMatColor(0, c);
-    k.a = k.g = k.b = 0xFF;
+    GXColor k = {0xFF, 0, 0, 0};
+    k.a = k.b = k.g = 0xFF;
+    Mtx m;
+    Mtx44 proj;
     PSMTXIdentity(m);
     GXLoadTexObj(tex, 0);
     if (tlut) {
@@ -1635,16 +1627,16 @@ void TransLightTexture(GXTexObj* tex, GXTlutObj* tlut, s16 x, s16 y, s16 z, s16 
 
 static void drawTexture2(GXTexObj* tex, s16 x, s16 y, s16 z, s16 w, s16 h)
 {
-    Mtx m;
-    Mtx44 proj;
     GXColor c;
 
     GXSetAlphaCompare(7, 0, 1, 7, 0);
     GXSetNumChans(1);
-    GXSetChanCtrl(4, 0, 0, 0, 0, 2, 2);
+    GXSetChanCtrl(4, 0, 0, 0, 0, 0, 2);
     c.r = c.g = c.b = c.a = 0xFF;
     GXSetChanAmbColor(0, c);
     GXSetChanMatColor(0, c);
+    Mtx m;
+    Mtx44 proj;
     PSMTXIdentity(m);
     GXLoadTexObj(tex, 0);
     GXLoadTexMtxImm(m, 0x1E, 1);
@@ -1685,12 +1677,12 @@ static void drawTexture2(GXTexObj* tex, s16 x, s16 y, s16 z, s16 w, s16 h)
 
 ShadowMng* GetCastShadowMngPtr(cModel* m)
 {
-    cLightMgr* lm = &LightMgr;
     ShadowMng tmp;
     u32 i;
+    u32 n = LightMgr.nArray;
 
-    for (i = 0; i < lm->nArray; i++) {
-        cLight* l = (cLight*) ((u8*) lm->pArray + lm->size * i);
+    for (i = 0; i < n; i++) {
+        cLight* l = (cLight*) ((u8*) LightMgr.pArray + LightMgr.size * i);
         ShadowLightWork* w;
         ShadowMng* mng;
 
@@ -1718,7 +1710,7 @@ ShadowMng* GetCastShadowMngPtr(cModel* m)
         if (l->xD != 2) {
             continue;
         }
-        if (lm->checkKind(l->kind) == 0) {
+        if (LightMgr.checkKind(l->kind) == 0) {
             continue;
         }
         tmp.pLight = l;

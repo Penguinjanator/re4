@@ -95,16 +95,25 @@ class Elf:
 
 
 def unit_text_functions(unit):
-    """Demangled names of the .text functions the DOL has in this unit."""
+    """Demangled names of the .text functions the DOL has in this unit, and the mangled names
+    of the .text functions sym_map.tsv assigns to *other* units (overloads sharing a demangled
+    name with one of ours, e.g. cManager<cObj>::create(int) owned by obj13 next to shadow's
+    cManager<cObj>::create(), must not be kept here)."""
     names = set()
+    foreign = set()
     with open(os.path.join(ROOT, "config", VER, "sym_map.tsv")) as f:
         next(f)
         for line in f:
             addr, size, sec, u, scope, name, dn = line.rstrip("\n").split("\t")
-            if u == unit and sec == ".text":
+            if sec != ".text":
+                continue
+            if u == unit:
                 dn = dn if dn and dn != "." else name
                 names.add(dn)
-    return names
+            elif dn and dn != "." and dn != name:
+                # a real mangled name (placeholders equal their demangled column)
+                foreign.add(name)
+    return names, foreign
 
 
 def main():
@@ -116,7 +125,7 @@ def main():
     elf = Elf(open(path, "rb").read())
     if not any(n.startswith(".gnu.linkonce.") for n in elf.names):
         return
-    owned = unit_text_functions(args.unit)
+    owned, foreign = unit_text_functions(args.unit)
 
     symtab = elf.names.index(".symtab")
     syms = [list(struct.unpack(">IIIBBH", elf.contents[symtab][o : o + 16])) for o in range(0, len(elf.contents[symtab]), 16)]
@@ -180,7 +189,7 @@ def main():
             dead.add(i)
         elif kind == "t":
             funcs = [s for s in syms if s[5] == i and (s[3] & 0xF) != STT_SECTION]
-            if any((demangle_v2(sym_name(s)) or sym_name(s)) in owned for s in funcs):
+            if any((demangle_v2(sym_name(s)) or sym_name(s)) in owned and sym_name(s) not in foreign for s in funcs):
                 # this unit owns the only copy: append to .text
                 text = elf.names.index(".text")
                 body = elf.contents[text]

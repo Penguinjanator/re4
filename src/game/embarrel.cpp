@@ -2,6 +2,7 @@
 // burning barrel of room 227 that rolls down the EMI route, running over the player and enemies.
 
 #include "atari.h"
+#include "atari_init.h"
 #include "light.h"
 #include "dmg.h"
 #include "embarrel.h"
@@ -98,7 +99,7 @@ cEmBarrel* SetBarrel(void* bin, void* tpl, Vec* pos, Vec* rot, u8 type, int etcN
     {
         cAtariInfo* at = &em->atari;
 
-        at->init(1, 0x2000, 10, 0.0f, 750.0f, 0.0f, 300.0f, 300.0f, 300.0f, 750.0f);
+        atariInitF(at, 0.0f, 750.0f, 0.0f, 300.0f, 300.0f, 300.0f, 750.0f, 1, 0x2000, 10);
         at->setPriority(3);
         at->flags &= ~0x100;
     }
@@ -177,7 +178,7 @@ cEmBarrel* SetR227Barrel(Vec* pos, Vec* rot)
     {
         cAtariInfo* at = &em->atari;
 
-        at->init(1, 0x2000, 10, 0.0f, 750.0f, 0.0f, 300.0f, 300.0f, 300.0f, 750.0f);
+        atariInitF(at, 0.0f, 750.0f, 0.0f, 300.0f, 300.0f, 300.0f, 750.0f, 1, 0x2000, 10);
         at->setPriority(3);
         at->flags &= ~0x100;
     }
@@ -691,7 +692,8 @@ int emBarrelSetRollSpd(cEmBarrel* em)
         return 1;
     }
     e = w->pRoute;
-    if ((e->pos.x - em->pos.x) * (e->pos.x - em->pos.x) + (e->pos.z - em->pos.z) * (e->pos.z - em->pos.z) < 250000.0f) {
+    spd = (e->pos.x - em->pos.x) * (e->pos.x - em->pos.x) + (e->pos.z - em->pos.z) * (e->pos.z - em->pos.z);
+    if (spd < 250000.0f) {
         idx = -1;
         for (i = w->routeIdx + 1; i < *(int*) pG->pRoomEmi; i++) {
             u32 o = i * 0x40 + 8;

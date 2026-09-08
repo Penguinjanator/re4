@@ -24,6 +24,7 @@ public:
 extern "C" {
 void CardFirstCheck();
 void CardSave(int a, int b);
+int CardLoad();
 }
 
 #endif

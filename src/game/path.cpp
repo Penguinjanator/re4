@@ -146,6 +146,8 @@ int PathGetMatEm(void* path, cModel* model, f32 dist, u16* seg, Mtx out)
     static int dbg_tangent_base = 1;
     static int inter_flag = 1;
 
+//@@BEGIN
+//@@END
     len = PathGetLength(path);
     vtx = p->vtx;
     if (dist >= len || dist < 0.0f) {

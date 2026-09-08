@@ -44,6 +44,13 @@ struct MineNode {
     int onFloor;      // 0x28
 };
 
+// lockParts = 0 through an int parameter: the zero becomes an SImode pseudo that every later
+// `= 0` store of SetMine reuses (one `li r30, 0`; a direct `lockParts = 0` gets its own QImode zero).
+static inline void LockPartsSet(cEm* em, int no)
+{
+    em->lockParts = no;
+}
+
 typedef void (*EmMineFunc)(cEmMine*);
 
 EmMineFunc EmMine_R0_move_tbl[4] = {
@@ -69,7 +76,9 @@ cEmMine* SetMine(void* bin, void* tpl, Vec* pos, Vec* spd, int type)
 {
     cEmMine* em;
     EmMineWork* w;
+    cAtariInfo* at;
     Vec v;
+    f32 len;
 
     em = (cEmMine*) EmMgr.createBack(0x4F);
     if (em == 0) {
@@ -91,22 +100,23 @@ cEmMine* SetMine(void* bin, void* tpl, Vec* pos, Vec* spd, int type)
         em->type = 1;
     }
     YarareInit(em, 0.0f, 0.0f, -100.0f, 300.0f, 10.0f, 1, 1);
-    em->atari.init(1, 0x2000, 10, 0.0f, 0.0f, 0.0f, 150.0f, 150.0f, 150.0f, 300.0f);
+    at = &em->atari;
+    at->init(1, 0x2000, 10, 0.0f, 0.0f, 0.0f, 150.0f, 150.0f, 150.0f, 300.0f);
     em->hp = 1;
     em->hpMax = 1000;
     {
         static const Vec ofs = { 0.0f, 0.0f, 0.0f };
-        static const Vec size = { 500.0f, 500.0f, 500.0f };
+        static const Vec size = { 2000.0f, 2000.0f, 2000.0f };
 
         em->lightInfo.init2(0, 1, &ofs, &size, 4);
     }
-    em->lockParts = 0;
+    LockPartsSet(em, 0);
     em->lockOfs.x = 0.0f;
     em->lockOfs.y = 0.0f;
     em->lockOfs.z = 0.0f;
     em->be_flag &= ~0x01000000;
-    em->atari.setPriority(3);
-    em->atari.flags &= ~0x300;
+    at->setPriority(3);
+    at->flags &= ~0x300;
     em->be_flag &= ~0x10;
     em->setStatus(1);
     em->setStatus(0xB);
@@ -136,7 +146,8 @@ cEmMine* SetMine(void* bin, void* tpl, Vec* pos, Vec* spd, int type)
     w->spd.x = v.x;
     w->spd.y = v.y;
     w->spd.z = v.z;
-    em->rot.x = -atan2f(v.y, SQRTF(v.x * v.x + v.z * v.z));
+    len = SQRTF(v.x * v.x + v.z * v.z);
+    em->rot.x = -atan2f(v.y, len);
     em->rot.y = atan2f(v.x, v.z);
     em->rot.z = 0.0f;
     RotMatrix(em->mat, &em->rot);
@@ -152,11 +163,11 @@ cEmMine* SetMine(void* bin, void* tpl, Vec* pos, Vec* spd, int type)
         }
     }
     if (type == 2) {
+        em->hp = 0;
         em->xFC = 1;
         em->xFD = 1;
         em->xFE = 0;
         em->xFF = 0;
-        em->hp = 0;
     } else {
         em->xFC = 1;
         em->xFD = 0;
@@ -224,6 +235,7 @@ void emMine_R1_Shot(cEmMine* em)
     Vec hit;
     f32 wh;
     f32 wh2;
+    f32 len;
     int attr;
     AtEffInfo* info;
 
@@ -241,15 +253,18 @@ void emMine_R1_Shot(cEmMine* em)
         break;
     }
     if (em->type == 1) {
-        if (w->searchWait == 0) {
+        if (w->searchWait != 0) {
+            w->searchWait--;
+        } else {
             emMineSearchEm(em, 0);
             emMineHomingEm(em);
-        } else {
-            w->searchWait--;
         }
     }
     PSVECAdd(&em->pos, &w->spd, &em->pos);
-    if (emMineHitCk(em) == 0) {
+    if (emMineHitCk(em) != 0) {
+        goto DELETE_EFFECT;
+    }
+    {
         w->hitFlag = 0;
         attr = EatMgr.hitCheck(&em->oldPos, &em->pos, &hit, &w->hitNrm, 0, 0x404000);
         if (attr) {
@@ -328,51 +343,52 @@ void emMine_R1_Shot(cEmMine* em)
                 em->xFE = 0;
                 SndCall(2, 0x14, &em->pos, 0, 0, em);
             }
-        } else {
-            if (GetWaterHeight(&em->pos, &wh2) && em->pos.y <= wh2) {
-                em->pos.y = wh2;
-                info = EatMgr.getEffInfo(2);
-                if (info) {
-                    if (!(info->eff0[0] == 0xD2 && info->eff0[1] == 1)) {
-                        EstSet(0, -1, &em->pos, 0, info->eff0[0], (u8) info->eff0[1], 0, 0, 0, 0);
-                    }
-                    w->effKind = (u8) info->eff6[0];
-                    w->effNo = (u8) info->eff6[1];
-                    SndCall(5, 0x24, &em->pos, 0, 0, em);
-                    AddWaterPower(&em->pos, 0.5f);
-                } else {
-                    EstSet(0, -1, &em->pos, 0, 0, 0x3A, 0, 0, 0, 0);
-                    w->effKind = 0;
-                    w->effNo = 0x39;
-                    SndCall(5, 0x24, &em->pos, 0, 0, em);
-                    AddWaterPower(&em->pos, 0.5f);
-                    w->effKind = 0;
-                    w->effNo = 0x39;
-                }
-                w->snd0 = 1;
-                w->snd1 = 0x17;
-                EffectEspDelete(0, w->espKind, em, 0);
-                EffectEspgenDelete(0, w->espKind, em);
-                EffectEfmDelete(0, w->espKind, em);
-                em->xFC = 1;
-                em->xFD = 3;
-                em->xFE = 0;
-                em->xFF = 0;
-                return;
-            }
-            PSVECSubtract(&em->pos, &em->oldPos, &d);
-            em->rot.x = -atan2f(d.y, SQRTF(d.x * d.x + d.z * d.z));
-            em->rot.y = atan2f(d.x, d.z);
-            em->rot.z = 0.0f;
-            RotMatrix(em->mat, &em->rot);
-            TransMatrix(em->mat, &em->pos);
-            em->partsWorldCalc();
+        DELETE_EFFECT:
+            EffectEspDelete(0, w->espKind, em, 0);
+            EffectEspgenDelete(0, w->espKind, em);
+            EffectEfmDelete(0, w->espKind, em);
             return;
         }
+        if (GetWaterHeight(&em->pos, &wh2) && em->pos.y <= wh2) {
+            em->pos.y = wh2;
+            info = EatMgr.getEffInfo(2);
+            if (info) {
+                if (!(info->eff0[0] == 0xD2 && info->eff0[1] == 1)) {
+                    EstSet(0, -1, &em->pos, 0, info->eff0[0], (u8) info->eff0[1], 0, 0, 0, 0);
+                }
+                w->effKind = (u8) info->eff6[0];
+                w->effNo = (u8) info->eff6[1];
+                SndCall(5, 0x24, &em->pos, 0, 0, em);
+                AddWaterPower(&em->pos, 0.5f);
+            } else {
+                EstSet(0, -1, &em->pos, 0, 0, 0x3A, 0, 0, 0, 0);
+                w->effKind = 0;
+                w->effNo = 0x39;
+                SndCall(5, 0x24, &em->pos, 0, 0, em);
+                AddWaterPower(&em->pos, 0.5f);
+                w->effKind = 0;
+                w->effNo = 0x39;
+            }
+            w->snd0 = 1;
+            w->snd1 = 0x17;
+            EffectEspDelete(0, w->espKind, em, 0);
+            EffectEspgenDelete(0, w->espKind, em);
+            EffectEfmDelete(0, w->espKind, em);
+            em->xFC = 1;
+            em->xFD = 3;
+            em->xFE = 0;
+            em->xFF = 0;
+            return;
+        }
+        PSVECSubtract(&em->pos, &em->oldPos, &d);
+        len = SQRTF(d.x * d.x + d.z * d.z);
+        em->rot.x = -atan2f(d.y, len);
+        em->rot.y = atan2f(d.x, d.z);
+        em->rot.z = 0.0f;
+        RotMatrix(em->mat, &em->rot);
+        TransMatrix(em->mat, &em->pos);
+        em->partsWorldCalc();
     }
-    EffectEspDelete(0, w->espKind, em, 0);
-    EffectEspgenDelete(0, w->espKind, em);
-    EffectEfmDelete(0, w->espKind, em);
 }
 
 void emMine_R1_ShotArrow(cEmMine* em)
@@ -382,6 +398,7 @@ void emMine_R1_ShotArrow(cEmMine* em)
     Vec hit;
     f32 wh;
     f32 wh2;
+    f32 len;
     int attr;
     AtEffInfo* info;
 
@@ -399,7 +416,10 @@ void emMine_R1_ShotArrow(cEmMine* em)
         break;
     }
     PSVECAdd(&em->pos, &w->spd, &em->pos);
-    if (emMineHitCk(em) == 0) {
+    if (emMineHitCk(em) != 0) {
+        goto DELETE_EFFECT;
+    }
+    {
         w->hitFlag = 0;
         attr = EatMgr.hitCheck(&em->oldPos, &em->pos, &hit, &w->hitNrm, 0, 0x404000);
         if (attr) {
@@ -475,48 +495,49 @@ void emMine_R1_ShotArrow(cEmMine* em)
             em->xFF = 0;
             em->xFE = 0;
             SndCall(1, 0x50, &em->pos, 0, 0, em);
-        } else {
-            if (GetWaterHeight(&em->pos, &wh2) && em->pos.y <= wh2) {
-                em->pos.y = wh2;
-                info = EatMgr.getEffInfo(2);
-                if (info) {
-                    if (!(info->eff0[0] == 0xD2 && info->eff0[1] == 1)) {
-                        EstSet(0, -1, &em->pos, 0, info->eff0[0], (u8) info->eff0[1], 0, 0, 0, 0);
-                    }
-                    w->effKind = (u8) info->eff6[0];
-                    w->effNo = (u8) info->eff6[1];
-                    SndCall(5, 0x24, &em->pos, 0, 0, em);
-                    AddWaterPower(&em->pos, 0.5f);
-                } else {
-                    EstSet(0, -1, &em->pos, 0, 0, 0x3A, 0, 0, 0, 0);
-                    w->effKind = 0;
-                    w->effNo = 0x39;
-                    SndCall(5, 0x24, &em->pos, 0, 0, em);
-                    AddWaterPower(&em->pos, 0.5f);
-                    w->effKind = 0;
-                    w->effNo = 0x39;
-                }
-                w->snd0 = 1;
-                w->snd1 = 0x17;
-                EffectEspDelete(0, w->espKind, em, 0);
-                EffectEspgenDelete(0, w->espKind, em);
-                EffectEfmDelete(0, w->espKind, em);
-                em->setLost();
-                return;
-            }
-            PSVECSubtract(&em->pos, &em->oldPos, &d);
-            em->rot.x = -atan2f(d.y, SQRTF(d.x * d.x + d.z * d.z));
-            em->rot.y = atan2f(d.x, d.z);
-            em->rot.z = 0.0f;
-            RotMatrix(em->mat, &em->rot);
-            TransMatrix(em->mat, &em->pos);
-            em->partsWorldCalc();
+        DELETE_EFFECT:
+            EffectEspDelete(0, w->espKind, em, 0);
+            EffectEspgenDelete(0, w->espKind, em);
+            EffectEfmDelete(0, w->espKind, em);
             return;
         }
+        if (GetWaterHeight(&em->pos, &wh2) && em->pos.y <= wh2) {
+            em->pos.y = wh2;
+            info = EatMgr.getEffInfo(2);
+            if (info) {
+                if (!(info->eff0[0] == 0xD2 && info->eff0[1] == 1)) {
+                    EstSet(0, -1, &em->pos, 0, info->eff0[0], (u8) info->eff0[1], 0, 0, 0, 0);
+                }
+                w->effKind = (u8) info->eff6[0];
+                w->effNo = (u8) info->eff6[1];
+                SndCall(5, 0x24, &em->pos, 0, 0, em);
+                AddWaterPower(&em->pos, 0.5f);
+            } else {
+                EstSet(0, -1, &em->pos, 0, 0, 0x3A, 0, 0, 0, 0);
+                w->effKind = 0;
+                w->effNo = 0x39;
+                SndCall(5, 0x24, &em->pos, 0, 0, em);
+                AddWaterPower(&em->pos, 0.5f);
+                w->effKind = 0;
+                w->effNo = 0x39;
+            }
+            w->snd0 = 1;
+            w->snd1 = 0x17;
+            EffectEspDelete(0, w->espKind, em, 0);
+            EffectEspgenDelete(0, w->espKind, em);
+            EffectEfmDelete(0, w->espKind, em);
+            em->setLost();
+            return;
+        }
+        PSVECSubtract(&em->pos, &em->oldPos, &d);
+        len = SQRTF(d.x * d.x + d.z * d.z);
+        em->rot.x = -atan2f(d.y, len);
+        em->rot.y = atan2f(d.x, d.z);
+        em->rot.z = 0.0f;
+        RotMatrix(em->mat, &em->rot);
+        TransMatrix(em->mat, &em->pos);
+        em->partsWorldCalc();
     }
-    EffectEspDelete(0, w->espKind, em, 0);
-    EffectEspgenDelete(0, w->espKind, em);
-    EffectEfmDelete(0, w->espKind, em);
 }
 
 void emMineSearchEm(cEmMine* em, int mode)
@@ -576,7 +597,7 @@ void emMineSearchEm(cEmMine* em, int mode)
         if (mode == 0) {
             if ((em->pos.x - e->pos.x) * (em->pos.x - e->pos.x) + (em->pos.y - e->pos.y) * (em->pos.y - e->pos.y) +
                     (em->pos.z - e->pos.z) * (em->pos.z - e->pos.z) >
-                450000000.0f) {
+                225000000.0f) {
                 continue;
             }
         }
@@ -589,12 +610,17 @@ void emMineSearchEm(cEmMine* em, int mode)
 #line 877 "D:/Bio4/Prog/emmine.cpp"
         VECNormalize(&v, &v);
         dot = PSVECDotProduct(&dir, &v);
-        if (dot >= 0.0f && dot >= best) {
-            if (EatMgr.hitCheck(&em->pos, &parts->worldPos, 0, 0, 0, 0x404000) == 0) {
-                w->pTarget = e;
-                best = dot;
-            }
+        if (dot < 0.0f) {
+            continue;
         }
+        if (dot < best) {
+            continue;
+        }
+        if (EatMgr.hitCheck(&em->pos, &parts->worldPos, 0, 0, 0, 0x404000) != 0) {
+            continue;
+        }
+        w->pTarget = e;
+        best = dot;
     }
 }
 
@@ -659,8 +685,8 @@ void emMine_R1_Set(cEmMine* em)
             em->hp = 1;
         }
         w->life = 150;
-        w->count = 17;
         w->timer = 1;
+        w->count = 17;
         em->xFE++;
         break;
     case 1:
@@ -682,7 +708,9 @@ void emMine_R1_Set(cEmMine* em)
                 SndCall(1, 5, &p, 0, 0, em);
             }
         }
-        if (w->life == 0) {
+        if (w->life != 0) {
+            w->life--;
+        } else {
             if (em->type == 2) {
                 em->setFall();
             } else {
@@ -690,7 +718,6 @@ void emMine_R1_Set(cEmMine* em)
             }
             return;
         }
-        w->life--;
         break;
     }
     RotMatrix(em->mat, &em->rot);
@@ -924,6 +951,8 @@ void emMine_R1_Fall(cEmMine* em)
     Vec nrm;
     Vec e0;
     Vec d;
+    MineNode* n;
+    MineNode* nn;
     f32 floor;
     f32 len;
     u32 i;
@@ -933,37 +962,36 @@ void emMine_R1_Fall(cEmMine* em)
     em->setStatus(1);
     floor = EatMgr.getFloor(&em->pos, 600.0f, 100000.0f, 0, 0) + 50.0f;
     for (i = 0; i < 3; i++) {
-        node[i].spd.x = w->pts[i].x;
-        node[i].spd.y = w->pts[i].y;
-        node[i].spd.z = w->pts[i].z;
-    }
-    for (i = 0; i < 3; i++) {
-        PSMTXMultVec(em->mat, &ofs[i], &node[i].pos);
-        node[i].oldPos = node[i].pos;
-    }
-    for (i = 0; i < 3; i++) {
         MineNode* n = &node[i];
-        MineNode* nn;
 
+        n->spd.x = w->pts[i].x;
+        n->spd.y = w->pts[i].y;
+        n->spd.z = w->pts[i].z;
+    }
+    for (i = 0; i < 3; i++) {
+        n = &node[i];
+        PSMTXMultVec(em->mat, &ofs[i], &n->pos);
+        n->oldPos = n->pos;
+    }
+    for (i = 0; i < 3; i++) {
+        n = &node[i];
         if (i == 2) {
             nn = &node[0];
         } else {
             nn = &node[i + 1];
         }
-        n->len = GetDistance3(&n->pos, &nn->pos);
+        len = GetDistance3(&n->pos, &nn->pos);
+        n->len = len;
     }
     for (i = 0; i < 3; i++) {
-        MineNode* n = &node[i];
-
+        n = &node[i];
         n->spd.y -= w->grav;
         PSVECAdd(&n->pos, &n->spd, &n->pos);
         n->onFloor = 0;
     }
     for (k = 0; k < 30; k++) {
         for (i = 0; i < 3; i++) {
-            MineNode* n = &node[i];
-            MineNode* nn;
-
+            n = &node[i];
             if (i == 2) {
                 nn = &node[0];
             } else {
@@ -971,7 +999,7 @@ void emMine_R1_Fall(cEmMine* em)
             }
             PSVECSubtract(&nn->pos, &n->pos, &d);
             len = PSVECMag(&d);
-            PSVECScale(&d, &d, 1.0f / len * ((n->len - len) * 0.5f));
+            PSVECScale(&d, &d, (n->len - len) * 0.5f * (1.0f / len));
             PSVECAdd(&nn->pos, &d, &nn->pos);
             PSVECSubtract(&n->pos, &d, &n->pos);
             if (n->pos.y < floor) {
@@ -985,8 +1013,7 @@ void emMine_R1_Fall(cEmMine* em)
         }
     }
     for (i = 0; i < 3; i++) {
-        MineNode* n = &node[i];
-
+        n = &node[i];
         if (n->onFloor) {
             n->spd.x *= fRand0_1() * 0.2f + 0.5f;
             n->spd.y *= -(fRand0_1() * 0.2f + 0.5f);
@@ -1002,9 +1029,11 @@ void emMine_R1_Fall(cEmMine* em)
         PSVECScale(&n->spd, &n->spd, 0.999f);
     }
     for (i = 0; i < 3; i++) {
-        w->pts[i].x = node[i].spd.x;
-        w->pts[i].y = node[i].spd.y;
-        w->pts[i].z = node[i].spd.z;
+        MineNode* n = &node[i];
+
+        w->pts[i].x = n->spd.x;
+        w->pts[i].y = n->spd.y;
+        w->pts[i].z = n->spd.z;
     }
     PSVECSubtract(&node[0].pos, &node[1].pos, &e0);
     PSVECSubtract(&node[2].pos, &node[1].pos, &e1);
@@ -1068,8 +1097,8 @@ void cEmMine::setParent(cEm* parent, int partsNo_)
 {
     EmMineWork* w = EMMINE_WK(this);
 
-    w->partsNo = partsNo_;
     w->pParent = parent;
+    w->partsNo = partsNo_;
     xFC = 1;
     xFD = 4;
     xFE = 0;
@@ -1078,21 +1107,23 @@ void cEmMine::setParent(cEm* parent, int partsNo_)
 
 void cEmMine::setLost()
 {
+    hp = 0;
     be_flag &= ~2;
     xFC = 1;
     xFD = 8;
     xFE = 0;
     xFF = 0;
-    hp = 0;
 }
 
 void cEmMine::setBomb()
 {
     EmMineWork* w = EMMINE_WK(this);
     Vec p;
+    int hit;
 
     hp = 0;
-    if (w->hitFlag) {
+    hit = w->hitFlag;
+    if (hit) {
         xFC = 1;
         xFD = 5;
         xFE = 0;
@@ -1163,31 +1194,89 @@ int emMineHitCk(cEmMine* em)
     EmHitInfo* part;
     int type;
     int partsNo;
+    f32 len;
 
     type = 0xE;
     if (em->type == 2) {
         type = 0x1C;
     }
-    if (GetWepTargetList2(&em->oldPos, &em->pos, &list, 1, &hit, &nrm, &attr, type, 0) == 0) {
-        return 0;
-    }
-    hitEm = list.em;
-    part = list.part;
-    hitEm->dmg.set(0, 2, type, &em->oldPos, part->rad, part);
-    if (part->flags & 0x4000) {
-        partsNo = 0;
-        if (part->partsNo != 0) {
-            partsNo = part->partsNo - 1;
-        }
-        PSMTXInverse(hitEm->getPartsPtr(partsNo)->mat, inv);
-        PSMTXMultVec(inv, &part->pos, &em->pos);
+    if (GetWepTargetList2(&em->oldPos, &em->pos, &list, 1, &hit, &nrm, &attr, type, 0) != 0) {
+        hitEm = list.em;
+        part = list.part;
+        hitEm->dmg.set(0, 2, type, &em->oldPos, part->rad, part);
+        if (part->flags & 0x4000) {
+            partsNo = 0;
+            if (part->partsNo != 0) {
+                partsNo = part->partsNo - 1;
+            }
+            PSMTXInverse(hitEm->getPartsPtr(partsNo)->mat, inv);
+            PSMTXMultVec(inv, &part->pos, &em->pos);
 #line 1723 "D:/Bio4/Prog/emmine.cpp"
-        VECNormalize(&em->pos, &dir);
-        PSVECScale(&dir, &dir, -50.0f);
-        PSVECAdd(&em->pos, &dir, &em->pos);
+            VECNormalize(&em->pos, &dir);
+            PSVECScale(&dir, &dir, -50.0f);
+            PSVECAdd(&em->pos, &dir, &em->pos);
+            switch (hitEm->id) {
+            default:
+                len = SQRTF(em->pos.x * em->pos.x + em->pos.z * em->pos.z);
+                em->rot.x = -atan2f(-em->pos.y, len);
+                em->rot.y = atan2f(-em->pos.x, -em->pos.z);
+                em->rot.z = 0.0f;
+                break;
+            case 0x40:
+            case 0x41:
+            case 0x43:
+            case 0x44:
+            case 0x45:
+            case 0x46:
+            case 0x47:
+            case 0x48:
+            case 0x49:
+            case 0x4A:
+            case 0x4B:
+            case 0x4C:
+            case 0x4D:
+            case 0x4E:
+            case 0x50:
+            case 0x51:
+                a.x = 0.0f;
+                a.y = 0.0f;
+                a.z = 0.0f;
+                b.x = 0.0f;
+                b.y = 0.0f;
+                b.z = 1.0f;
+                PSMTXMultVec(em->mat, &a, &a);
+                PSMTXMultVec(em->mat, &b, &b);
+                PSMTXMultVec(inv, &a, &a);
+                PSMTXMultVec(inv, &b, &b);
+                PSVECSubtract(&b, &a, &dir);
+                len = SQRTF(dir.x * dir.x + dir.z * dir.z);
+                em->rot.x = -atan2f(dir.y, len);
+                em->rot.y = atan2f(dir.x, dir.z);
+                em->rot.z = 0.0f;
+                break;
+            }
+        } else {
+            partsNo = 0;
+            em->pos.x = 0.0f;
+            em->pos.y = 0.0f;
+            em->pos.z = 0.0f;
+            em->rot.x = 0.0f;
+            em->rot.y = 0.0f;
+            em->rot.z = 0.0f;
+        }
+        em->scale.x = 2.0f;
+        em->scale.y = 2.0f;
+        em->scale.z = 2.0f;
         switch (hitEm->id) {
+        default:
+            if (em->type == 2) {
+                SndCall(1, 0x54, &em->pos, 0, 0, em);
+            }
+            break;
+        case 0x2A:
         case 0x40:
         case 0x41:
+        case 0x42:
         case 0x43:
         case 0x44:
         case 0x45:
@@ -1200,70 +1289,15 @@ int emMineHitCk(cEmMine* em)
         case 0x4C:
         case 0x4D:
         case 0x4E:
+        case 0x4F:
         case 0x50:
         case 0x51:
-            a.x = 0.0f;
-            a.y = 0.0f;
-            a.z = 0.0f;
-            b.x = 0.0f;
-            b.y = 0.0f;
-            b.z = 1.0f;
-            PSMTXMultVec(em->mat, &a, &a);
-            PSMTXMultVec(em->mat, &b, &b);
-            PSMTXMultVec(inv, &a, &a);
-            PSMTXMultVec(inv, &b, &b);
-            PSVECSubtract(&b, &a, &dir);
-            em->rot.x = -atan2f(dir.y, SQRTF(dir.x * dir.x + dir.z * dir.z));
-            em->rot.y = atan2f(dir.x, dir.z);
-            em->rot.z = 0.0f;
-            break;
-        default:
-            em->rot.x = -atan2f(-em->pos.y, SQRTF(em->pos.x * em->pos.x + em->pos.z * em->pos.z));
-            em->rot.y = atan2f(-em->pos.x, -em->pos.z);
-            em->rot.z = 0.0f;
+            SndCall(1, 0x50, &em->pos, 0, 0, em);
             break;
         }
-    } else {
-        partsNo = 0;
-        em->pos.x = 0.0f;
-        em->pos.y = 0.0f;
-        em->pos.z = 0.0f;
-        em->rot.x = 0.0f;
-        em->rot.y = 0.0f;
-        em->rot.z = 0.0f;
+        em->setParent(hitEm, partsNo);
+        emMine_R1_Parent(em);
+        return 1;
     }
-    em->scale.x = 2.0f;
-    em->scale.y = 2.0f;
-    em->scale.z = 2.0f;
-    switch (hitEm->id) {
-    default:
-        if (em->type == 2) {
-            SndCall(1, 0x54, &em->pos, 0, 0, em);
-        }
-        break;
-    case 0x2A:
-    case 0x40:
-    case 0x41:
-    case 0x42:
-    case 0x43:
-    case 0x44:
-    case 0x45:
-    case 0x46:
-    case 0x47:
-    case 0x48:
-    case 0x49:
-    case 0x4A:
-    case 0x4B:
-    case 0x4C:
-    case 0x4D:
-    case 0x4E:
-    case 0x4F:
-    case 0x50:
-    case 0x51:
-        SndCall(1, 0x50, &em->pos, 0, 0, em);
-        break;
-    }
-    em->setParent(hitEm, partsNo);
-    emMine_R1_Parent(em);
-    return 1;
+    return 0;
 }

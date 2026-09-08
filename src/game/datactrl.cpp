@@ -1,8 +1,10 @@
 // game/datactrl: streamed room data units in MRAM/ARAM (D:/Bio4/Prog/datactrl.cpp).
 // 37/38 functions match (the static-initializer trio is byte-identical, only named differently);
 // .rodata and all section sizes match. Still off:
-//  - dispDebug (92.8%): callee-saved register order only. The original allocates p=r31, u=r30, this=r29;
-//    ours gives the unit pointer r31, this r30, p r29 (same instructions). Not flagged Matching.
+//  - dispDebug (99.9%): only `x1` (the loop's second conversion result) lands in r7 instead of r5:
+//    x1 prefers r7 (the `subf` temp it dies into) and nothing blocks r7 here, while the original had
+//    r7 occupied across x1's range (an fpmem address pseudo of the conversions). Callee-saved order
+//    (p=r31 via reusing `p` for the tiles), block-scoped x0/x1 and the tile store order are fixed.
 #include "types.h"
 #include "global.h"
 #include "datactrl.h"
@@ -811,7 +813,6 @@ void cDataCtrl::dispDebug()
     int over;
     int y;
     cDataUnit* u;
-    u32 x0, x1;
     u32 i;
     int x;
 
@@ -832,6 +833,7 @@ void cDataCtrl::dispDebug()
         if (u->chk(1) != 0) {
             u32 addr = 0;
             u32 size = 0;
+            u32 x0, x1;
             switch (u->getCondition()) {
             case 0:
             case 1:
@@ -871,30 +873,33 @@ void cDataCtrl::dispDebug()
         }
     }
     if (over == 1) {
+        u32 x0;
+        p = &tile[0];
         x0 = (u32) ((f32) (aramEnd - dispBase) * 400.0f / (f32) (dispEnd - dispBase));
-        tile[0].code = GPU_TILE;
-        tile[0].x0 = x;
-        tile[0].y0 = 0x1E;
-        tile[0].w = 5;
-        tile[0].h = x0;
-        tile[0].z0 = 0;
-        tile[0].c0.r = 0x90;
-        tile[0].c0.g = 0x50;
-        tile[0].c0.b = 0x50;
-        tile[0].c0.cd = 0xFF;
-        AddPrim(&MainOt[1], (u32*) &tile[0]);
+        p->code = GPU_TILE;
+        p->x0 = x;
+        p->y0 = 0x1E;
+        p->z0 = 0;
+        p->w = 5;
+        p->h = x0;
+        p->c0.r = 0x90;
+        p->c0.g = 0x50;
+        p->c0.b = 0x50;
+        p->c0.cd = 0xFF;
+        AddPrim(&MainOt[1], (u32*) p);
     }
-    tile[1].code = GPU_TILE;
-    tile[1].x0 = x;
-    tile[1].y0 = 0x1E;
-    tile[1].w = 5;
-    tile[1].h = 400;
-    tile[1].z0 = 0;
-    tile[1].c0.r = 0x20;
-    tile[1].c0.g = 0x20;
-    tile[1].c0.b = 0x20;
-    tile[1].c0.cd = 0xFF;
-    AddPrim(&MainOt[1], (u32*) &tile[1]);
+    p = &tile[1];
+    p->code = GPU_TILE;
+    p->x0 = x;
+    p->y0 = 0x1E;
+    p->z0 = 0;
+    p->w = 5;
+    p->h = 400;
+    p->c0.r = 0x20;
+    p->c0.g = 0x20;
+    p->c0.b = 0x20;
+    p->c0.cd = 0xFF;
+    AddPrim(&MainOt[1], (u32*) p);
 }
 
 void cDataCtrl::initDummyId()

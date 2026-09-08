@@ -474,6 +474,13 @@ mark it Matching.
 - Loop invariants assigned inside the body (`range = to;` in the `for`) survive as an `fmr` copy /
   shared double-trick registers hoisted by loop.c; the bound `j < i` with `i = 15` a variable gives
   `cmpwi 0xf; blt`, a literal 15 gives `cmpwi 0xe; ble`.
+- The original stores to unit globals/members through scalar references far more often than
+  expected: `U16Set`, `VSet(ptr, MEM_ALLOC(..))`, `MSet`, `FSet(m->dir.y, -1.0f)` and reference
+  *reads* (`BitChk(pG->flags, bit)`) are what keep following `.sdata`/`pG` loads below the store.
+- Inline accessors taking `&m->member`: every such argument is a fresh `(plus m ofs)` that gcse PRE
+  turns into an `mr rX,rMember` copy.
+- `found = 1` written after a void call is scheduled above the `bl` into the callee-saved register.
+- A `goto LABEL` loop keeps the un-rotated body/test/`b` shape; `for(;;)`+`break` gets rotated.
 - Static locals show as `name.NNN` in objdiff; the DECL_UID suffix cannot be reproduced and is ignored by the report.
 - Unexplained words in `.rodata` (zero words, stray floats) are usually the constant pool of a function
   the original linker dead-stripped (bodies gone, pools kept, `STRIP_UNUSED` in objects.py): write a

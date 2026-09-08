@@ -63,6 +63,18 @@ struct GxStageWork {
     s32 texCoord;  // 0x08
 };
 
+// Item left in a room (pG->save_item[256], game/sce_at.cpp), 16 bytes.
+struct SceAtSaveItem {
+    u8 type;          // 0x00  0 item area, 1 item handed to an area
+    u8 atNo;          // 0x01
+    s8 effType;       // 0x02
+    u8 pad_3;
+    u16 room;         // 0x04  0 = free
+    u16 id;           // 0x06
+    u16 num;          // 0x08
+    s16 pos[3];       // 0x0A  / 10
+};
+
 // Global game work (`pG`, game/main.cpp). Offsets come from the cam_ctrl unit; extend the
 // pads as other units reveal more fields, never rewrite.
 struct GlobalWork {
@@ -78,7 +90,13 @@ struct GlobalWork {
     u8 x22;
     u8 x23;
     u32 vtx_buf_no;        // 0x24  double-buffer index into cModelInfo::pPosBuf/pNrmBuf (mirror)
-    u16 next_room;         // 0x28  room id (stage << 8 | room) being entered (snd: room BGM / door tables)
+    union {
+        u16 next_room;     // 0x28  room id (stage << 8 | room) being entered (snd: room BGM / door tables)
+        struct {
+            u8 next_stage; // 0x28  (sce_at sceAtFunc_door stores the door destination byte by byte)
+            u8 next_room_no;  // 0x29
+        };
+    };
     u8 next_point;         // 0x2A  spawn point in the next room (room_jmp CRoomInfo::setNextPos clears it)
     u8 pad_2B;
     Vec next_pos;          // 0x2C  player position in the next room (room_jmp)
@@ -102,7 +120,8 @@ struct GlobalWork {
     u32 flags_170;         // 0x170  stop flags (debug tools save/restore it)
     u32 flags_174;         // 0x174  (pl_sub joyFireOn: 0x20000000 in room 11C while flags_5014 bit31 is set)
     u32 flags_178;         // 0x178  (objRobo WalkHitCk: bit31 = the statue caught the player)
-    u8 pad_17C[0x184 - 0x17C];
+    u32 sceat_x17C;        // 0x17C  (sce_at SceAtWorkLoopInit clears both every frame)
+    u32 sceat_x180;        // 0x180
     GxStageWork gxStage;   // 0x184  TEV stage / texmap / texcoord counters of the model renderer (mirror)
     u8 pad_190[0x4F10 - 0x190];
     s32 prim_base;         // 0x4F10  primitive buffer: first entry of the current frame (debug PrimitiveBuffDisp)
@@ -181,11 +200,12 @@ struct GlobalWork {
     u32 item_flags[8];     // 0x519C  "ITEM_SET" flag words (t_flag; merchant: [0] bit 0x10000000 = item 0x40 sold)
     u32 flags_51BC;        // 0x51BC  (stage: 0x4 stage-1 loaded, 0x40000 sub-mission 1 done)
     u32 flags_51C0;        // 0x51C0  (stage: route flags)
-    u8 pad_51C4[0x51E4 - 0x51C4];
+    u8 pad_51C4[0x51DC - 0x51C4];
+    u32 door_unlock[2];    // 0x51DC  one bit per locked door (sce_at: SceAtWork::lockFlag)
     u32 flags_51E4;        // 0x51E4  (db_cam: 0x10 show the tool banner, 0x18 show the offset headers)
     u32 sce_free[64];      // 0x51E8  scenario free words (sce_com SetFree/GetFree)
     u8 emlist[0x2000];     // 0x52E8  enemy list (ESL file) read by stage.cpp
-    u8 pad_72E8[0x82E8 - 0x72E8];
+    SceAtSaveItem save_item[0x100];  // 0x72E8  items left in rooms (sce_at SceAtSetSaveItem)
     u32 ope_x82E8;         // 0x82E8  sub screen "Ope" block (sscrn: memset(&pG->ope_x82E8, 0, 0x44) in SubScreenGameInit)
     u8 ope_ow_type;        // 0x82EC  (sscrn OpeOwTypeSet)
     u8 pad_82ED[3];
@@ -196,7 +216,7 @@ struct GlobalWork {
     u32 x832C;             // 0x832C  (pl_sub PlSelect swaps it with x4F98 when the player changes)
     u8 pad_8330[0x8338 - 0x8330];
     u16 x8338;             // 0x8338  (sce_com SceChapterEnd clears it with the kill/shot counters)
-    u8 pad_833A[2];
+    u16 x833A;             // 0x833A  (option: result screen counter next to x8338)
     u32 em_die_cnt;        // 0x833C  enemies killed (em_set EmSetDieCnt)
     u32 em_die_cnt2;       // 0x8340
     u32 shotHit;           // 0x8344  (pl_wep PlWepHitCheck2: shots that hit something)

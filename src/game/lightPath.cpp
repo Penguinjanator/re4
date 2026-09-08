@@ -42,40 +42,24 @@ u32 cLightPathData::getSize()
 
 int cLightPath::setPath(cLightPathData* data, u8 no)
 {
-    if (!VALID_PTR(data)) {
-        pLog->err(0, 0, "setPath() INVALID PTR %08X", data);
-        return 0;
-    }
+    if (!VALID_PTR(data)) { pLog->err(0, 0, "setPath() INVALID PTR %08X", data); return 0; }
+    pCur = pStart = data;
     flag = no;
-    pStart = data;
-    pCur = data;
     return 1;
 }
-
 int cLightPath::movePath()
 {
     u8 v;
-
-    if (!VALID_PTR(pStart) || !VALID_PTR(pCur)) {
-        pLog->err(2, 0, "Light05() INVALID PATH DATA");
-        return 0;
-    }
+    if (!VALID_PTR(pStart) || !VALID_PTR(pCur)) { pLog->err(2, 0, "Light05() INVALID PATH DATA"); return 0; }
     v = pCur->data[0];
     if (v <= 200) {
-        if (flag & 2) {
-            v = 200 - v;
-        }
+        if (flag & 2) v = 200 - v;
         pCur = (cLightPathData*) ((u8*) pCur + 1);
-        return v;
+    } else if ((flag & 1) == 0) {
+        pCur = pStart;
+        v = pCur->data[0];
+        if (flag & 2) v = 200 - v;
+        pCur = (cLightPathData*) ((u8*) pCur + 1);
     }
-    if (flag & 1) {
-        return v;
-    }
-    pCur = pStart;
-    v = pCur->data[0];
-    if (flag & 2) {
-        v = 200 - v;
-    }
-    pCur = (cLightPathData*) ((u8*) pCur + 1);
     return v;
 }

@@ -84,6 +84,7 @@ void objTrolleyFallEM(cObjTrolley* obj);
 void objTrolleyLostEM(cObjTrolley* obj);
 }
 void MotionSetCore(cModel* m, void* work, void* mot, int a, int b, int c, int d);
+static void objTrolleySatClear(cObjTrolley* obj);
 
 void (*ObjTrolley_R0_move_tbl[3])(cObjTrolley*) = {
     objTrolley_R0_Set, objTrolley_R0_Move, objTrolley_R0_Break,
@@ -147,21 +148,6 @@ cObj* SetTrolley(void* bin, void* tpl, Vec* pos, Vec* rot)
     obj->xFF = 0;
     objTrolleySatSet((cObjTrolley*) obj);
     return obj;
-}
-
-static void objTrolleySatClear(cObjTrolley* obj)
-{
-    TrolleyWork* w = &obj->trolley;
-    int i;
-
-    for (i = 0; i < 5; i++) {
-        if (w->sat[i]) {
-            w->sat[i]->flags &= ~4;
-        }
-        if (w->sat2[i]) {
-            w->sat2[i]->flags &= ~4;
-        }
-    }
 }
 
 void cObjTrolley::move()
@@ -290,6 +276,21 @@ void objTrolley_R0_Break(cObjTrolley* obj)
         break;
     }
     obj->partsWorldCalc();
+}
+
+static void objTrolleySatClear(cObjTrolley* obj)
+{
+    TrolleyWork* w = &obj->trolley;
+    int i;
+
+    for (i = 0; i < 5; i++) {
+        if (w->sat[i]) {
+            w->sat[i]->flags &= ~4;
+        }
+        if (w->sat2[i]) {
+            w->sat2[i]->flags &= ~4;
+        }
+    }
 }
 
 void objTrolleySatSet(cObjTrolley* obj)

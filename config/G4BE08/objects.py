@@ -1003,6 +1003,7 @@ MATCHING = {
 # C++ units with functions the original linker dead-stripped (bodies gone, constant pools and
 # statics kept): tools/strip_unused.py removes the bodies of functions not in sym_map.tsv.
 STRIP_UNUSED = {
+    "game/shadow.cpp",
     "game/route_ck.cpp",
     "game/cockpit.cpp",
     "game/merchant.cpp",
@@ -1086,6 +1087,7 @@ MATCHING.update({
     "game/pl_leon.cpp": True,
     "game/pl_push.cpp": True,
     "game/pl_cloth.cpp": True,
+    "game/pl_dmg.cpp": True,
 })
 
 # map object units (game/obj*.cpp)
@@ -1192,4 +1194,19 @@ MATCHING.update({
 
 MATCHING.update({
     "game/emwindow.cpp": True,
+})
+
+# object units whose cAtariInfo::init argument order needed atari_init.h
+MATCHING.update({
+    "game/objTrolley.cpp": True,
+    "game/objYagura.cpp": True,
+    "game/objMissile.cpp": True,
+})
+
+MATCHING.update({
+    "game/item_model.cpp": True,
+})
+
+MATCHING.update({
+    "game/cMotBase.cpp": True,
 })

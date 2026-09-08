@@ -14,4 +14,9 @@ public:
 extern cGameSave GameSave;
 extern void* pSaveData;
 
+extern "C" {
+void GameLoad();
+void GameContinue(int mode);
+}
+
 #endif

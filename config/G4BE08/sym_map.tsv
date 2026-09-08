@@ -701,8 +701,8 @@ address	size	section	unit	scope	name	demangled
 0x80035B10	0xC4	.text	game/obj26.cpp	global	obj26_R1_Die	obj26_R1_Die
 0x80035BD4	0xCC	.text	game/obj26.cpp	global	obj26MatCalc	obj26MatCalc
 0x80035CA0	0x20	.text	game/obj26.cpp	global	_._6cObj26	cObj26::~cObj26
-0x80035CC0	0x234	.text	game/objBull.cpp	global	SetBull	SetBull
-0x80035EF4	0x4C	.text	game/objBull.cpp	global	cObjBull_move	cObjBull::move
+0x80035CC0	0x234	.text	game/objBull.cpp	global	SetBull__FPvT0P3VecT2Ul	SetBull
+0x80035EF4	0x4C	.text	game/objBull.cpp	global	move__8cObjBull	cObjBull::move
 0x80035F40	0xA4	.text	game/objBull.cpp	global	objBull_R0_Set	objBull_R0_Set
 0x80035FE4	0x200	.text	game/objBull.cpp	global	objBull_R0_Break1st	objBull_R0_Break1st
 0x800361E4	0x140	.text	game/objBull.cpp	global	objBull_R0_To2nd	objBull_R0_To2nd
@@ -717,7 +717,7 @@ address	size	section	unit	scope	name	demangled
 0x80036FD0	0x270	.text	game/objBull.cpp	global	objBull_R0_Collision	objBull_R0_Collision
 0x80037240	0x50	.text	game/objBull.cpp	global	objBullSatClear	objBullSatClear
 0x80037290	0x1E0	.text	game/objBull.cpp	global	objBullSatSet	objBullSatSet
-0x80037470	0xAC	.text	game/objBull.cpp	global	cObjBull_setMotion	cObjBull::setMotion
+0x80037470	0xAC	.text	game/objBull.cpp	global	setMotion__8cObjBullPPv	cObjBull::setMotion
 0x8003751C	0x34	.text	game/objBull.cpp	global	objBullPushMtx	objBullPushMtx
 0x80037550	0xBC	.text	game/objBull.cpp	local	objBullGetBullNo	objBullGetBullNo
 0x8003760C	0xC0	.text	game/objBull.cpp	global	objBullGetBullNo2	objBullGetBullNo2
@@ -725,32 +725,32 @@ address	size	section	unit	scope	name	demangled
 0x80037804	0x150	.text	game/objBull.cpp	global	objBullSetAdjust	objBullSetAdjust
 0x80037954	0x48	.text	game/objBull.cpp	local	objBullMoveAdjustPL	objBullMoveAdjustPL
 0x8003799C	0xC4	.text	game/objBull.cpp	global	objBullMoveAdjustEM	objBullMoveAdjustEM
-0x80037A60	0x90	.text	game/objBull.cpp	global	cObjBull_ckBullRide	cObjBull::ckBullRide
-0x80037AF0	0x8C	.text	game/objBull.cpp	global	cObjBull_ckBullRideAdjust	cObjBull::ckBullRideAdjust
+0x80037A60	0x90	.text	game/objBull.cpp	global	ckBullRide__8cObjBullP3VecPUcT1	cObjBull::ckBullRide
+0x80037AF0	0x8C	.text	game/objBull.cpp	global	ckBullRideAdjust__8cObjBullP3VecT1	cObjBull::ckBullRideAdjust
 0x80037B7C	0x1D0	.text	game/objBull.cpp	global	objBullHitCk	objBullHitCk
-0x80037D4C	0x18	.text	game/objBull.cpp	global	cObjBull_ckGoal	cObjBull::ckGoal
-0x80037D64	0x16C	.text	game/objBull.cpp	local	cObjBull_setRide	cObjBull::setRide
-0x80037ED0	0x18	.text	game/objBull.cpp	global	cObjBull_ckBreak1st	cObjBull::ckBreak1st
-0x80037EE8	0x18	.text	game/objBull.cpp	global	cObjBull_ckBreak2nd	cObjBull::ckBreak2nd
-0x80037F00	0x18	.text	game/objBull.cpp	global	cObjBull_ckBreak3rd	cObjBull::ckBreak3rd
-0x80037F18	0x18	.text	game/objBull.cpp	global	cObjBull_ckBreak4th	cObjBull::ckBreak4th
-0x80037F30	0x18	.text	game/objBull.cpp	global	cObjBull_ckLift	cObjBull::ckLift
-0x80037F48	0x18	.text	game/objBull.cpp	global	cObjBull_ckTruckGo	cObjBull::ckTruckGo
-0x80037F60	0x18	.text	game/objBull.cpp	global	cObjBull_ckLiftWait	cObjBull::ckLiftWait
+0x80037D4C	0x18	.text	game/objBull.cpp	global	ckGoal__8cObjBull	cObjBull::ckGoal
+0x80037D64	0x16C	.text	game/objBull.cpp	global	setRide__8cObjBull	cObjBull::setRide
+0x80037ED0	0x18	.text	game/objBull.cpp	global	ckBreak1st__8cObjBull	cObjBull::ckBreak1st
+0x80037EE8	0x18	.text	game/objBull.cpp	global	ckBreak2nd__8cObjBull	cObjBull::ckBreak2nd
+0x80037F00	0x18	.text	game/objBull.cpp	global	ckBreak3rd__8cObjBull	cObjBull::ckBreak3rd
+0x80037F18	0x18	.text	game/objBull.cpp	global	ckBreak4th__8cObjBull	cObjBull::ckBreak4th
+0x80037F30	0x18	.text	game/objBull.cpp	global	ckLift__8cObjBull	cObjBull::ckLift
+0x80037F48	0x18	.text	game/objBull.cpp	global	ckTruckGo__8cObjBull	cObjBull::ckTruckGo
+0x80037F60	0x18	.text	game/objBull.cpp	global	ckLiftWait__8cObjBull	cObjBull::ckLiftWait
 0x80037F78	0x1DC	.text	game/objBull.cpp	global	Sub_bull_drive	Sub_bull_drive
 0x80038154	0x160	.text	game/objBull.cpp	global	Sub_bull_operation	Sub_bull_operation
 0x800382B4	0x1C4	.text	game/objBull.cpp	global	Sub_bull_lookback	Sub_bull_lookback
 0x80038478	0x160	.text	game/objBull.cpp	global	Sub_bull_look	Sub_bull_look
 0x800385D8	0x270	.text	game/objBull.cpp	global	Sub_dm_bull	Sub_dm_bull
-0x80038848	0x6C	.text	game/objBull.cpp	global	cObjBull_setSubBullDrive	cObjBull::setSubBullDrive
-0x800388B4	0x60	.text	game/objBull.cpp	global	cObjBull_setSubBullFinger	cObjBull::setSubBullFinger
-0x80038914	0x6C	.text	game/objBull.cpp	global	cObjBull_setSubBullLookBack	cObjBull::setSubBullLookBack
-0x80038980	0x8	.text	game/objBull.cpp	global	cObjBull_getMoveFrameToLift	cObjBull::getMoveFrameToLift
-0x80038988	0x8	.text	game/objBull.cpp	global	cObjBull_getMoveFrameRtn	cObjBull::getMoveFrameRtn
-0x80038990	0x10	.text	game/objBull.cpp	global	cObjBull_setAdjustMode	cObjBull::setAdjustMode
-0x800389A0	0xC	.text	game/objBull.cpp	global	cObjBull_setBreakTruck	cObjBull::setBreakTruck
+0x80038848	0x6C	.text	game/objBull.cpp	global	setSubBullDrive__8cObjBull	cObjBull::setSubBullDrive
+0x800388B4	0x60	.text	game/objBull.cpp	global	setSubBullFinger__8cObjBull	cObjBull::setSubBullFinger
+0x80038914	0x6C	.text	game/objBull.cpp	global	setSubBullLookBack__8cObjBull	cObjBull::setSubBullLookBack
+0x80038980	0x8	.text	game/objBull.cpp	global	getMoveFrameToLift__8cObjBull	cObjBull::getMoveFrameToLift
+0x80038988	0x8	.text	game/objBull.cpp	global	getMoveFrameRtn__8cObjBull	cObjBull::getMoveFrameRtn
+0x80038990	0x10	.text	game/objBull.cpp	global	setAdjustMode__8cObjBullUcPFP4cObj_v	cObjBull::setAdjustMode
+0x800389A0	0xC	.text	game/objBull.cpp	global	setBreakTruck__8cObjBull	cObjBull::setBreakTruck
 0x800389AC	0x1D4	.text	game/objBull.cpp	global	SubCkNearEm	SubCkNearEm
-0x80038B80	0x20	.text	game/objBull.cpp	global	cObjBull_dt_cObjBull	cObjBull::~cObjBull
+0x80038B80	0x20	.text	game/objBull.cpp	global	_._8cObjBull	cObjBull::~cObjBull
 0x80038BA0	0x238	.text	game/objGondola.cpp	global	SetGondola__FPvT0P3VecT2	SetGondola
 0x80038DD8	0x64	.text	game/objGondola.cpp	global	move__11cObjGondola	cObjGondola::move
 0x80038E3C	0x48	.text	game/objGondola.cpp	global	objGondola_R0_Set	objGondola_R0_Set
@@ -939,9 +939,9 @@ address	size	section	unit	scope	name	demangled
 0x80045298	0x20	.text	game/objYagura.cpp	global	_._10cObjYagura	cObjYagura::~cObjYagura
 0x800452B8	0x158	.text	game/option.cpp	global	setLangExt3	setLangExt3
 0x80045410	0x40	.text	game/option.cpp	global	OptionOpenCheck	OptionOpenCheck
-0x80045450	0x17C	.text	game/option.cpp	global	OptionScreen_init	OptionScreen::init
-0x800455CC	0xB4	.text	game/option.cpp	global	OptionScreen_move	OptionScreen::move
-0x80045680	0x50	.text	game/option.cpp	global	OptionScreen_quit	OptionScreen::quit
+0x80045450	0x17C	.text	game/option.cpp	global	init__12OptionScreeni	OptionScreen::init
+0x800455CC	0xB4	.text	game/option.cpp	global	move__12OptionScreen	OptionScreen::move
+0x80045680	0x50	.text	game/option.cpp	global	quit__12OptionScreen	OptionScreen::quit
 0x800456D0	0x490	.text	game/option.cpp	global	top_menu	top_menu
 0x80045B60	0x8C	.text	game/option.cpp	global	back_to_top_menu	back_to_top_menu
 0x80045BEC	0x694	.text	game/option.cpp	global	retry_load_menu	retry_load_menu
@@ -949,11 +949,11 @@ address	size	section	unit	scope	name	demangled
 0x80046B50	0x6C4	.text	game/option.cpp	global	brightness_menu	brightness_menu
 0x80047214	0x3F0	.text	game/option.cpp	global	audio_menu	audio_menu
 0x80047604	0x134	.text	game/option.cpp	global	num	num
-0x80047738	0x90	.text	game/option.cpp	global	GameResult_init	GameResult::init
-0x800477C8	0x214	.text	game/option.cpp	global	GameResult_move	GameResult::move
-0x800479DC	0x38	.text	game/option.cpp	global	GameResult_quit	GameResult::quit
-0x80047A14	0x7C	.text	game/option.cpp	global	GameResult_omake_init	GameResult::omake_init
-0x80047A90	0x2C	.text	game/option.cpp	global	GameResult_omake_move	GameResult::omake_move
+0x80047738	0x90	.text	game/option.cpp	global	init__10GameResultPv	GameResult::init
+0x800477C8	0x214	.text	game/option.cpp	global	move__10GameResult	GameResult::move
+0x800479DC	0x38	.text	game/option.cpp	global	quit__10GameResult	GameResult::quit
+0x80047A14	0x7C	.text	game/option.cpp	global	omake_init__10GameResultPv	GameResult::omake_init
+0x80047A90	0x2C	.text	game/option.cpp	global	omake_move__10GameResult	GameResult::omake_move
 0x80047ABC	0x84	.text	game/option.cpp	global	init__10ChapterEndPvUc	ChapterEnd::init
 0x80047B40	0x3A8	.text	game/option.cpp	global	move__10ChapterEnd	ChapterEnd::move
 0x80047EE8	0x38	.text	game/option.cpp	global	quit__10ChapterEnd	ChapterEnd::quit
@@ -3241,11 +3241,11 @@ address	size	section	unit	scope	name	demangled
 0x800D726C	0x28	.text	game/cDataSwap.cpp	global	_._9cDataSwap	cDataSwap::~cDataSwap
 0x800D7294	0x158	.text	game/cDataSwap.cpp	global	SwapOut__9cDataSwapUlUlUl	cDataSwap::SwapOut
 0x800D73EC	0xA4	.text	game/cDataSwap.cpp	global	SwapIn__9cDataSwap	cDataSwap::SwapIn
-0x800D7490	0x14	.text	game/cMotBase.cpp	global	cMotBase_cMotBase	cMotBase::cMotBase
-0x800D74A4	0x7C	.text	game/cMotBase.cpp	local	cMotBase_set	cMotBase::set
-0x800D7520	0x50	.text	game/cMotBase.cpp	global	cMotBase_set_800D7520	cMotBase::set
-0x800D7570	0x74	.text	game/cMotBase.cpp	global	cMotBase_adjust	cMotBase::adjust
-0x800D75E4	0x20C	.text	game/cMotBase.cpp	global	cMotBase_move	cMotBase::move
+0x800D7490	0x14	.text	game/cMotBase.cpp	global	__8cMotBase	cMotBase::cMotBase
+0x800D74A4	0x7C	.text	game/cMotBase.cpp	global	set__8cMotBaseP9cMotModelP10MotionDataP3VecT3Uc	cMotBase::set
+0x800D7520	0x50	.text	game/cMotBase.cpp	global	set__8cMotBaseP9cMotModelP3VecT2Uc	cMotBase::set
+0x800D7570	0x74	.text	game/cMotBase.cpp	global	adjust__8cMotBase	cMotBase::adjust
+0x800D75E4	0x20C	.text	game/cMotBase.cpp	global	move__8cMotBase	cMotBase::move
 0x800D77F0	0x28	.text	game/cockpit.cpp	global	gameInit__7Cockpit	Cockpit::gameInit
 0x800D7818	0xAC	.text	game/cockpit.cpp	global	roomInit__7Cockpit	Cockpit::roomInit
 0x800D78C4	0x94	.text	game/cockpit.cpp	global	move__7Cockpit	Cockpit::move
@@ -4727,12 +4727,12 @@ address	size	section	unit	scope	name	demangled
 0x8014CB74	0x30	.text	game/item_model.cpp	global	ItemGetBinAddr	ItemGetBinAddr
 0x8014CBA4	0x30	.text	game/item_model.cpp	global	ItemGetTplAddr	ItemGetTplAddr
 0x8014CBD4	0x58	.text	game/item_model.cpp	global	ItemGetBinTplAddr	ItemGetBinTplAddr
-0x8014CC2C	0x20	.text	game/item_model.cpp	global	cItmSys_WorkClear	cItmSys::WorkClear
-0x8014CC4C	0x20	.text	game/item_model.cpp	global	cItmSys_Init	cItmSys::Init
-0x8014CC6C	0x98	.text	game/item_model.cpp	global	cItmSys_DataLoad	cItmSys::DataLoad
-0x8014CD04	0x18	.text	game/item_model.cpp	global	cItmSys_ItmRegist	cItmSys::ItmRegist
-0x8014CD1C	0x20	.text	game/item_model.cpp	global	cItmSys_GetBinAddr	cItmSys::GetBinAddr
-0x8014CD3C	0x24	.text	game/item_model.cpp	global	cItmSys_GetTplAddr	cItmSys::GetTplAddr
+0x8014CC2C	0x20	.text	game/item_model.cpp	global	WorkClear__7cItmSys	cItmSys::WorkClear
+0x8014CC4C	0x20	.text	game/item_model.cpp	global	Init__7cItmSys	cItmSys::Init
+0x8014CC6C	0x98	.text	game/item_model.cpp	global	DataLoad__7cItmSysUl	cItmSys::DataLoad
+0x8014CD04	0x18	.text	game/item_model.cpp	global	ItmRegist__7cItmSysPvT1Uc	cItmSys::ItmRegist
+0x8014CD1C	0x20	.text	game/item_model.cpp	global	GetBinAddr__7cItmSysUcPPv	cItmSys::GetBinAddr
+0x8014CD3C	0x24	.text	game/item_model.cpp	global	GetTplAddr__7cItmSysUcPPv	cItmSys::GetTplAddr
 0x8014CD60	0x10	.text	game/libgpu.cpp	global	AddPrim	AddPrim
 0x8014CD70	0x44	.text	game/libgpu.cpp	global	DelPrim	DelPrim
 0x8014CDB4	0x28	.text	game/libgpu.cpp	global	ClearOTagR	ClearOTagR
@@ -7516,7 +7516,7 @@ address	size	section	unit	scope	name	demangled
 0x80221630	0x28	.rodata	game/obj26.cpp	local	cUnit_virtual_table_80221630	cUnit virtual table
 0x80221658	0x280	.rodata	game/objBull.cpp	global	lbl_80221658	.
 0x802218D8	0x40	.rodata	game/objBull.cpp	global	_vt.8cObjBull	cObjBull virtual table
-0x80221918	0x28	.rodata	game/objBull.cpp	global	cUnit_virtual_table_80221918	cUnit virtual table
+0x80221918	0x28	.rodata	game/objBull.cpp	local	cUnit_virtual_table_80221918	cUnit virtual table
 0x80221940	0x298	.rodata	game/objGondola.cpp	global	lbl_80221940	.
 0x80221BD8	0x40	.rodata	game/objGondola.cpp	global	_vt.11cObjGondola	cObjGondola virtual table
 0x80221C18	0x28	.rodata	game/objGondola.cpp	local	cUnit_virtual_table_80221C18	cUnit virtual table
@@ -11857,7 +11857,7 @@ address	size	section	unit	scope	name	demangled
 0x80314DA4	0x4	.sdata	game/shadow.cpp	global	fc.917	fc.917
 0x80314DA8	0x4	.sdata	game/shadow.cpp	local	fd.918	fd.918
 0x80314DAC	0x4	.sdata	game/shadow.cpp	global	shd_ofs	shd_ofs
-0x80314DB0	0x4	.sdata	game/shadow.cpp	local	shd_tex_scale_x	shd_tex_scale_x
+0x80314DB0	0x4	.sdata	game/shadow.cpp	global	shd_tex_scale_x	shd_tex_scale_x
 0x80314DB4	0x4	.sdata	game/shadow.cpp	local	shd_tex_no.922	shd_tex_no.922
 0x80314DB8	0x1	.sdata	game/shadow.cpp	global	s_c_p.923	s_c_p.923
 0x80314DB9	0x3	.sdata	game/shadow.cpp	local	lbl_80314DB9	.

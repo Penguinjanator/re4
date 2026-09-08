@@ -1,4 +1,5 @@
 #include "atari.h"
+#include "atari_init.h"
 #include "light.h"
 #include "dmg.h"
 #include "map_obj.h"
@@ -101,9 +102,7 @@ cObj* SetPillar(void* bin, void* tpl, Vec* pos, Vec* rot)
     static const Vec p1 = { 5000.0f, 5000.0f, 5000.0f };
 
     obj->lightInfo.init2(0, 1, &p0, &p1, 0x10);
-    f32 zero = 0.0f;
-    f32 r = 400.0f;
-    obj->sub2B4.atari.init(0, 2, 0, zero, zero, zero, r, r, r, 5000.0f);
+    AtariInit(&obj->sub2B4.atari, 0.0f, 0.0f, 0.0f, 400.0f, 400.0f, 400.0f, 5000.0f, 0, 2, 0);
     obj->sub2B4.atari.clrFlag100();
     w->plMot = 0;
     w->plMotA = 0;

@@ -1,4 +1,5 @@
 #include "atari.h"
+#include "atari_init.h"
 #include "obj.h"
 #include "global.h"
 #include "math_sub.h"
@@ -344,6 +345,6 @@ void obj00SetOya(cObj00* obj)
 
 void cObj00::setScrAtari(f32 r)
 {
-    sub2B4.atari.init(1, 0x2000, 10, 0.0f, 0.0f, 0.0f, r, r, r * 0.8f, r);
+    atariInitF(&sub2B4.atari, 0.0f, 0.0f, 0.0f, r, r, r * 0.8f, r, 1, 0x2000, 10);
     sub2B4.atari.scrOn();
 }

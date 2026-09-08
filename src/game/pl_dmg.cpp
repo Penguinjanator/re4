@@ -24,6 +24,17 @@ void damageBlow(cPlayer* pl);
 void damageBlast(cPlayer* pl);
 void Pl_R0_Die(cPlayer* pl);
 
+// Routine bytes through int parameters: the four zeros become one SImode pseudo that cse cannot
+// merge with the QImode zero of `st.x324` stored before the EndPlDamage call, so the original's
+// second `li r0, 0` after the call is reproduced instead of a callee-saved zero.
+static inline void PlRoutineSet(cPlayer* pl, int r0, int r1, int r2, int r3)
+{
+    pl->xFC = r0;
+    pl->xFD = r1;
+    pl->xFE = r2;
+    pl->xFF = r3;
+}
+
 void Pl_R0_Damage(cPlayer* pl)
 {
     static void (*funcTbl[])(cPlayer*) = {
@@ -111,10 +122,7 @@ void damageNormal(cPlayer* pl)
                 pl->st.x324 = 0;
                 pl->st.x325 = 5;
                 EndPlDamage();
-                pl->xFF = 0;
-                pl->xFC = 0;
-                pl->xFD = 0;
-                pl->xFE = 0;
+                PlRoutineSet(pl, 0, 0, 0, 0);
             }
         }
         if (pl->x3E4 != 0) {
@@ -152,10 +160,7 @@ void damageNormal(cPlayer* pl)
             pl->st.x324 = 0;
             pl->st.x325 = 5;
             EndPlDamage();
-            pl->xFC = 0;
-            pl->xFD = 0;
-            pl->xFE = 0;
-            pl->xFF = 0;
+            PlRoutineSet(pl, 0, 0, 0, 0);
         }
         break;
     default:
@@ -270,10 +275,7 @@ void damageBlow(cPlayer* pl)
             pl->st.x324 = 0;
             pl->st.x325 = 5;
             EndPlDamage();
-            pl->xFC = 0;
-            pl->xFD = 0;
-            pl->xFE = 0;
-            pl->xFF = 0;
+            PlRoutineSet(pl, 0, 0, 0, 0);
         }
         break;
     }
@@ -308,10 +310,7 @@ void damageBlast(cPlayer* pl)
             pl->st.x324 = 0;
             pl->st.x325 = 5;
             EndPlDamage();
-            pl->xFC = 0;
-            pl->xFD = 0;
-            pl->xFE = 0;
-            pl->xFF = 0;
+            PlRoutineSet(pl, 0, 0, 0, 0);
         }
         break;
     }
