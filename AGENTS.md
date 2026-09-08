@@ -139,6 +139,16 @@ mark it Matching.
   separate statements `x; y; z` -> `z, x, y`). CSE reuses the newest register holding a constant.
 - A reload of a just-stored member is forwarded as `mr`; a local gives no copy. `if (c < n) x = c+1;
   else x = n;` yields an `mr` before the compare; `x = n; if (...) x = ...` loads into `x` directly.
+- `T* p = alloc(); g.p = p; p->init();` gives `mr r0,r3; stw r0`; assigning the call result directly
+  stores r3. Loading a wrapped global once into a local avoids per-store reloads.
+- `!(flag & 1)` as an `if` condition gives `xori; andi.` when the same test exists in two cross-jumped
+  branches; `(flag & 1) == 0` gives a plain `andi.`.
+- `*(u32*)(char_ptr + i*4) = 0` keeps the pointer `lwz` inside a `bdnz` loop (may alias) and prevents
+  loop reversal; a typed array store gets hoisted and the loop reversed.
+- `va_list`: include/va_ppc.h; `va_start` is a struct copy in C++ (g++ 2.95 does not inline
+  `__builtin_memcpy`).
+- `.sdata` alignment padding a split object contains is reproduced with
+  `asm(".section .sdata; .balign 8")`.
 - Static locals show as `name.NNN` in objdiff; the DECL_UID suffix cannot be reproduced and is ignored by the report.
 
 - Struct field offsets come from the load/store displacements; write real structs, not casts.
@@ -152,6 +162,9 @@ mark it Matching.
   (see `[.data]`/`[.bss]` in `unit_info.py` output) with the right sizes and initial values.
 
 ## Don'ts
+
+- Never run `git stash`, `git checkout -- <file>`, `git reset` or anything else that rewrites the shared
+  working tree: other agents are editing it at the same time.
 
 - Never edit `build/`, `build.ninja`, `objdiff.json`, or `config/G4BE08/splits.txt` by hand.
 - Do not run interactive `objdiff-cli diff`; use `tools/fdiff.py` (one-shot).
