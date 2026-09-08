@@ -79,7 +79,7 @@ void Esp11_SetParam(cEsp11* esp)
         return;
     }
     w->pLight->pos = esp->pos;
-    if (esp->parent != pEffParentWorld) {
+    if (esp->parent != pEffParentWorldS) {
         PSMTXMultVec(esp->parent->mat, &w->pLight->pos, &w->pLight->pos);
     }
     w->pLight->x1C = esp->sizeX * esp->scale * 10.0f;

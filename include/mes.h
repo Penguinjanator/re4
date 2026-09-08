@@ -18,6 +18,7 @@ public:
 
     MesWork* getWork() { return &work; }
 
+    void stageInit();
     void setLayout(int no, int layout);
     void MesSet(int no, int x, int y, u32 attr, int a, int b, int c);
     void Delete(int no);

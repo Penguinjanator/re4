@@ -29,6 +29,26 @@ class cModel;
 struct ModelData {
     u8 pad_0[0x20];
     u32 flags;       // 0x20  bit30 (0x40000000): SmxGetFlag bit1
+    u8 pad_24[8];
+    u32 shapeOfs;    // 0x2C  offset of the shape (vertex delta) table (shape.cpp)
+    void* vtxOrig;   // 0x30  original vertex positions (shape.cpp ResetShape source)
+    u8 pad_34[4];
+    u16 nVtx;        // 0x38  vertex count (8 bytes each)
+};
+
+// Shape (morph) animation data referenced by cModelInfo::pShape (game/shape.cpp).
+struct ShapeData {
+    u16 nFrame;      // 0x00  frame count (low 14 bits)
+    u8 num;          // 0x02  channel count
+    // u8  idx[num]      0x03  shape table index per channel
+    // u16 flags[num]    0x03 + num  bit2: active, bits 12-15: interpolation type
+    // s32 table[num]    4-aligned after that, preceded by a marker word (< 0 once relocated)
+};
+
+// One active shape channel of a model (cModelInfo+0xA8, 5 entries).
+struct ShapeKey {
+    f32 rate;        // 0x00
+    ShapeData* data; // 0x04
 };
 
 // Bounding volume of a model (cModelInfo+0x38).
@@ -41,14 +61,21 @@ struct ModelBound {
 // Per-model info block (game/model.cpp `cModelInfo`, at cModel+0x15C). Partial layout.
 class cModelInfo {
 public:
-    u8 pad_0[0xC];
+    u32 flags;           // 0x00  bit1: has shape animation (shape.cpp)
+    u8 pad_4[8];
     ModelData* pData;    // 0x0C
-    u8 pad_10[0x38 - 0x10];
+    u8 pad_10[4];
+    cModelInfo* pNext;   // 0x14  next parts info
+    u8 pad_18[0x38 - 0x18];
     ModelBound bound;    // 0x38
     u8 pad_5C[0x8C - 0x5C];
     u8 color[4];         // 0x8C  RGBA (word store; 0xFF fill when the RGB part is 0)
     u8 color2[4];        // 0x90  second RGBA (0x93 = 0 or 0xFF)
-    u8 pad_94[0xD6 - 0x94];
+    u8 pad_94[0xA4 - 0x94];
+    ShapeData* pShape;   // 0xA4  current shape animation, NULL when none (shape.cpp)
+    ShapeKey shape[5];   // 0xA8  blended shapes
+    u32 shapeFlags;      // 0xD0  1: loop, 2: hold last frame, 4: reverse, 8: x100 weights
+    s16 shapeFrame;      // 0xD4
     u8 xD6;              // 0xD6  previous color[3]
     u8 pad_D7[0xDC - 0xD7];
     u16 flagsDC;         // 0xDC  bit0: has uv scroll
@@ -68,6 +95,7 @@ public:
 
     int init2(int a, int b, const Vec* p0, const Vec* p1, int c);  // every caller passes a 5th int (r8); the body ignores it
     void updateMatrix(cModel* m);
+    u32 getLightNum();
 };
 
 // Model / model parts (game/model.cpp). Parts are cModel too, stride 0x1D8.
@@ -83,14 +111,16 @@ public:
     u8 type;         // 0x101 per-object sub type
     u8 nParts;       // 0x102
     u8 x103;         // 0x103  (scroll: 0x80 = SmxSetFlag bit3, 0xFF = off)
-    u8 pad_104[0x12E - 0x104];
+    Vec speed;       // 0x104
+    u8 pad_110[0x12E - 0x110];
     u8 x12E;         // 0x12E  2 = scroll (Smd) object
     u8 x12F;         // 0x12F  scroll: SmxWork.type2 (3 by default)
-    u8 pad_130[5];
-    u8 x135;         // 0x135  scroll: SmxWork.x3
+    void* pCldShMd;  // 0x130  (db_work "pCldShMd")
+    u8 shdCol;       // 0x134  (db_work "SHD COL")
+    u8 x135;         // 0x135  scroll: SmxWork.x3, db_work "CullMode"
     u8 pad_136[0x15C - 0x136];
     cModelInfo* pInfo;     // 0x15C
-    u8 pad_160[4];
+    cModelInfo* pShMdInfo; // 0x160  (db_work "pShMdIfo")
     cLightInfo lightInfo;  // 0x164 .. 0x1D8
 
     cModel();
@@ -105,6 +135,7 @@ public:
     void partsWorldCalc();
     void setPos(Vec* pos);
     void setAng(Vec* ang);
+    void drawAllBoundingBox(cModelInfo* info);
 };
 
 #endif

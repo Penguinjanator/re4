@@ -39,7 +39,7 @@ int file_open(const char* name, int mode)
     if (mode == 0 || mode == 2) {
         fd = PCcreat(name, 0);
         if (fd == -1) {
-            fd = 0;
+            return 0;
         }
     } else {
         if (mode != 0) {
@@ -55,13 +55,18 @@ int file_open(const char* name, int mode)
 
 int file_close(int fd)
 {
+    int ret;
+
     if (pG->flags_54 & 0x20000) {
         if (PCclose(fd) == 0) {
-            return 0;
+            ret = 0;
+        } else {
+            ret = -1;
         }
-        return -1;
+    } else {
+        ret = -1;
     }
-    return -1;
+    return ret;
 }
 
 int file_read(int fd, void* buf, int size)

@@ -18,6 +18,13 @@ extern GXRenderModeObj Rmode;  // game/main_sub.cpp
 
 // game/main_sub.cpp
 int Render_checkBlurPermission();
-extern "C" void systemVISetBlack(int black);
+extern "C" {
+void systemVISetBlack(int black);
+void SetNearClipDist(f32 dist);
+void SetScissorState();
+void SetNoScissor();
+}
+// game/TmpBuf.cpp
+void* GetDrawTmpBufAddr(int type);
 
 #endif

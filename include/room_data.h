@@ -8,7 +8,8 @@ class cRoomData {
 public:
     u8 pad_0[0x18];
     u8* pSave;   // 0x18  room save records, 0xD8 bytes each
-    u8 pad_1C[4];
+    u16 x1C;     // 0x1C  cleared before linkRelData (stage.cpp)
+    u16 x1E;
 
     void init();
     void initRoomSet();
@@ -18,6 +19,9 @@ public:
     // record for room `room` (stage << 8 | room_no), or NULL when the room has none
     u8* getRoomSavePtr(u16 room);
     void execInitFunc();
+    void stopRelData();
+    int checkRelRead(u16 room);
+    void linkRelData(u16 room);
 };
 
 extern cRoomData RoomData;

@@ -37,6 +37,7 @@ void PSMTXMultVecSR(const Mtx m, const Vec* src, Vec* dst);
 
 void C_MTXOrtho(Mtx44 m, f32 t, f32 b, f32 l, f32 r, f32 n, f32 f);
 void PSMTX44MultVec(const Mtx44 m, const Vec* src, Vec* dst);
+void C_MTXLightPerspective(Mtx m, f32 fovY, f32 aspect, f32 scaleS, f32 scaleT, f32 transS, f32 transT);
 
 void PSVECAdd(const Vec* a, const Vec* b, Vec* ab);
 void PSVECSubtract(const Vec* a, const Vec* b, Vec* a_b);

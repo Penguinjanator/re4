@@ -761,6 +761,8 @@ MATCHING = {
     "game/t_log.cpp": True,
     "game/t_prim.cpp": True,
     "game/t_util.cpp": True,
+    "game/db_log.cpp": True,
+    "game/db_work.cpp": True,
     "lib/GXDisplayList.c": True,
     # Dolphin SDK (MWCC 1.2.5n, see configure.py SDK_LIBS)
     "lib/DebuggerDriver.c": True,
@@ -956,4 +958,13 @@ MATCHING = {
     "game/xml.cpp": True,
     "game/room_tex.cpp": True,
     "game/math_sub.cpp": True,
+    "game/gx_sub.cpp": True,
+    "game/shape.cpp": True,
+}
+
+# C++ units with functions the original linker dead-stripped (bodies gone, constant pools and
+# statics kept): tools/strip_unused.py removes the bodies of functions not in sym_map.tsv.
+STRIP_UNUSED = {
+    "game/filter01.cpp",
+    "game/shape.cpp",
 }

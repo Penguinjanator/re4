@@ -263,6 +263,7 @@ void Esp09_PolyTrans(cEsp09* esp, u8 r, u8 g, u8 b, u8 a)
     Vec v[4];
     Vec* p;
     Vec* p0;
+    Vec* pp;
     int idx = w->idx;
     s8 n1 = w->n - 1;
     int i = 0;
@@ -276,12 +277,12 @@ void Esp09_PolyTrans(cEsp09* esp, u8 r, u8 g, u8 b, u8 a)
     p = &w->pts[idx];
     for (i = 0; i < n1; i++) {
         p0 = p;
-        p--;
+        pp = p;
         idx--;
         if (idx < 0) {
-            p = &w->pts[n1];
             idx = n1;
         }
+        p = &w->pts[idx];
         rate = (f32)i / (f32)n1;
         half = (rate * esp->sizeY + (1.0f - rate) * esp->sizeX) * 0.1f;
         PSVECSubtract(p, p0, &d);
@@ -308,15 +309,15 @@ void Esp09_PolyTrans(cEsp09* esp, u8 r, u8 g, u8 b, u8 a)
         PSVECScale(&up, &q[0], half);
         PSVECScale(&up, &q[1], -half);
         if (first == 0) {
-            PSVECAdd(p0, &q[0], &v[0]);
-            PSVECAdd(p0, &q[1], &v[1]);
+            PSVECAdd(pp, &q[0], &v[0]);
+            PSVECAdd(pp, &q[1], &v[1]);
             first = 1;
         } else {
-            v[0] = v[2];
-            v[1] = v[3];
+            v[0] = v[3];
+            v[1] = v[2];
         }
-        PSVECAdd(p, &q[0], &v[2]);
-        PSVECAdd(p, &q[1], &v[3]);
+        PSVECAdd(p, &q[0], &v[3]);
+        PSVECAdd(p, &q[1], &v[2]);
         Esp09_StripDrawPoly(esp, i, v, r, g, b, &a);
     }
 }
@@ -325,8 +326,9 @@ void Esp09_StripDrawPoly(cEsp09* esp, int no, Vec* v, u8 r, u8 g, u8 b, u8* a)
 {
     Esp09Work* w = &esp->work;
     EspAnmData* anm;
-    u8 step = (u8)(esp->colA / (w->n - 1));
+    int step = (u8)(esp->colA / (w->n - 1));
     f32 s;
+    f32 s2;
     f32 sw;
     f32 t0;
     f32 t1;
@@ -340,20 +342,23 @@ void Esp09_StripDrawPoly(cEsp09* esp, int no, Vec* v, u8 r, u8 g, u8 b, u8* a)
     t0 = 0.0f;
     s = sw * no + t0;
     GXBegin(0x80, 0, 4);
-    sw = s + sw;
-    GXPosition3f32(v[0].x, v[0].y, v[0].z);
+    s2 = s + sw;
+    GXPosition3f32(v->x, v->y, v->z);
     GXColor4u8(r, g, b, *a);
     GXTexCoord2f32(t0, s);
-    GXPosition3f32(v[1].x, v[1].y, v[1].z);
+    v++;
+    GXPosition3f32(v->x, v->y, v->z);
     GXColor4u8(r, g, b, *a);
     GXTexCoord2f32(t1, s);
     *a -= step;
-    GXPosition3f32(v[2].x, v[2].y, v[2].z);
+    v++;
+    GXPosition3f32(v->x, v->y, v->z);
     GXColor4u8(r, g, b, *a);
-    GXTexCoord2f32(t1, sw);
-    GXPosition3f32(v[3].x, v[3].y, v[3].z);
+    GXTexCoord2f32(t1, s2);
+    v++;
+    GXPosition3f32(v->x, v->y, v->z);
     GXColor4u8(r, g, b, *a);
-    GXTexCoord2f32(t0, sw);
+    GXTexCoord2f32(t0, s2);
 }
 
 f32 GetVecLen(Vec* a, Vec* b)
@@ -378,7 +383,10 @@ void Esp09_HideCheck(cEsp* esp0)
     Mtx m;
     u32 z;
     s32 zi;
+    f32 nz;
     f32 inv;
+    f32 m22;
+    f32 m23;
     f32 zv;
     u8 old = w->hidden;
 
@@ -387,16 +395,22 @@ void Esp09_HideCheck(cEsp* esp0)
     PSMTX44MultVec(pG->Cam.projMat, &v, &s);
     s.x = (s.x * 0.5f + 0.5f) * Screen.width;
     s.y = (-s.y * 0.5f + 0.5f) * Screen.height;
-    v.z += 150.0f;
+    nz = v.z + 150.0f;
+    v.z = nz;
     inv = 1.0f / (ZFAR - ZNEAR);
-    zv = (-(ZFAR * ZNEAR) * inv + (-ZNEAR * inv) * v.z) * Zscale;
-    zv = (1.0f / -v.z) * zv + Zoffset;
+    m22 = -(ZNEAR) * inv;
+    m23 = -(ZFAR * ZNEAR) * inv;
+    zv = (1.0f / -nz) * ((m23 + m22 * nz) * Zscale) + Zoffset;
     zi = (u32)(zv * 16777215.0f);
     if (s.x >= 0.0f && s.x <= 639.0f && s.y >= 0.0f && s.y <= 527.0f) {
         GXPixModeSync();
         GXDrawDone();
         GXPeekZ((u16)s.x, (u16)s.y, &z);
-        w->hidden = zi > (s32)(z - Zs_bias) ? 1 : 0;
+        if (zi > (s32)(z - Zs_bias)) {
+            w->hidden = 1;
+        } else {
+            w->hidden = 0;
+        }
     } else {
         w->hidden = 1;
     }

@@ -14,6 +14,15 @@ original DOL from split objects; every unit you match replaces one split object 
 - Types: `include/types.h` (u8..f64). Shared class/struct definitions go in `include/<name>.h`;
   check existing headers before adding a type, and only extend, never rewrite, structs other units use.
 - Globals seen via `r13`/`r2` (`@sda21`) are small-data; declare them `extern` with the exact symbol name.
+## Compiler version
+
+The pack has five ProDG cc1plus builds (3.5/3.5b140 = GCC 2.95.2 SN v1.40, 3.7 = v1.46, 3.8.1 = v1.55,
+3.9.3 = 2.95.3 SN v1.76). All five emit byte-identical `.text` for esp0f/esp16/esp01/esp15, including the
+still-unmatched functions (dead `mr` from fpmem sharing, `0.0f + z` folding, `lfs; fmr` for `t = 0.0f`).
+So a remaining diff is never explained by "compiler version" with the tools we have: keep looking for a
+source form. (Older assemblers reject `ldh`; 3.9.3 is the build.) The DOL has no compiler string; its
+GCCI is "Ver.1.09 Build Oct 8 2004".
+
 
 ## Workflow for one unit (`game/foo`)
 
@@ -123,6 +132,13 @@ mark it Matching.
   emitted at their declaration; file-scope uninitialised statics after all function-local ones.
 - `s16 mem += (int)(s16)(float)` keeps `lha/extsh/add/sth`; without the `(int)` cast the front end
   narrows to u16 arithmetic. A local `int num = 5` divisor gives `divw` by register, not the magic multiply.
+- Struct-member view of a global pointer (`pGS`, `pEffParentWorldS`, `pLog`) keeps its load after a
+  preceding store through `this`; but wrapping the global's *declaration* reorders loads in units that
+  already match, so use the view macro only where the target shows it.
+- Independent stores at a block end are issued in reverse RTL order (`a = b = c = 0` -> reverse;
+  separate statements `x; y; z` -> `z, x, y`). CSE reuses the newest register holding a constant.
+- A reload of a just-stored member is forwarded as `mr`; a local gives no copy. `if (c < n) x = c+1;
+  else x = n;` yields an `mr` before the compare; `x = n; if (...) x = ...` loads into `x` directly.
 - Static locals show as `name.NNN` in objdiff; the DECL_UID suffix cannot be reproduced and is ignored by the report.
 
 - Struct field offsets come from the load/store displacements; write real structs, not casts.

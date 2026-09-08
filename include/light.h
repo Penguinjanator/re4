@@ -17,7 +17,9 @@ public:
     f32 x1C;           // 0x1C (esp11: sizeX * scale * 10)
     GXColor color;     // 0x20 base color
     f32 power;         // 0x24
-    u8 pad_28[0x38 - 0x28];
+    u8 pad_28[2];
+    u8 attr;           // 0x2A  (db_work "ATTR")
+    u8 pad_2B[0x38 - 0x2B];
     Vec normal;        // 0x38 direction
     u8 pad_44[0x78 - 0x44];
     u8 work[0x40];     // 0x78 per-light-type work area
@@ -26,7 +28,9 @@ public:
     u8 pad_139[3];
     GXColor curColor;  // 0x13C color actually applied
     s16 x140;          // 0x140
-    u8 pad_142[0x1D4 - 0x142];
+    u8 pad_142[2];
+    Vec curPos;        // 0x144  position actually applied (db_work draws a sphere of radius x1C here)
+    u8 pad_150[0x1D4 - 0x150];
 
     cLight();
     virtual ~cLight() {}
@@ -73,7 +77,11 @@ class cLightWork;
 // Environment block at cLightMgr+0x38 (returned by getEnvPtr). Only the depth-of-field
 // fields filter01 reads are known.
 struct cLightEnv {
-    u8 pad_0[0x28];
+    u8 pad_0[0x8];
+    s32 x8;          // 0x08  gx_sub: 0 = the background colour has no rgb (alpha only)
+    u8 pad_C[8];
+    GXColor bgColor; // 0x14  background colour (gx_sub)
+    u8 pad_18[0x28 - 0x18];
     s32 x28;   // 0x28  focus depth (screen z, 0..65535)
     u8 x2C;    // 0x2C
     u8 x2D;    // 0x2D  focus level (0 = depth of field off)
@@ -99,6 +107,13 @@ public:
     cLight* getWork(u32 no) {
         if (no >= nArray) {
             dbgAssert(__FILE__, __LINE__);
+        }
+        return (cLight*)((u8*)pArray + size * no);
+    }
+    // range-checked variant returning NULL (db_work)
+    cLight* getWorkPtr(u32 no) {
+        if (no >= nArray) {
+            return 0;
         }
         return (cLight*)((u8*)pArray + size * no);
     }

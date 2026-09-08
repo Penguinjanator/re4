@@ -109,6 +109,12 @@ static inline void GXPosition2u16(u16 x, u16 y)
     GXWGFifo.u16 = x;
     GXWGFifo.u16 = y;
 }
+
+static inline void GXTexCoord2s16(s16 s, s16 t)
+{
+    GXWGFifo.s16 = s;
+    GXWGFifo.s16 = t;
+}
 #endif
 
 // GX API entry points used by game code. Enum parameters are declared as plain ints: the
@@ -134,6 +140,7 @@ void GXSetVtxDesc(int attr, int type);
 void GXSetVtxAttrFmt(int vtxfmt, int attr, int cnt, int type, u8 frac);
 void GXLoadPosMtxImm(const f32 mtx[3][4], u32 id);
 void GXLoadNrmMtxImm(const f32 mtx[3][4], u32 id);
+void GXLoadTexMtxImm(const f32 mtx[][4], u32 id, int type);
 void GXSetCurrentMtx(u32 id);
 void GXSetProjection(const f32 mtx[4][4], int type);
 void GXBegin(int type, int vtxfmt, u16 nverts);
@@ -159,8 +166,11 @@ void GXPixModeSync(void);
 void GXInvalidateTexAll(void);
 void GXDrawDone(void);
 void GXPeekZ(u16 x, u16 y, u32* z);
+void GXSetNumIndStages(u8 nstages);
+void GXSetTevDirect(int tev_stage);
 void GXSetFog(int type, f32 startz, f32 endz, f32 nearz, f32 farz, GXColor color);
 void GXSetChanAmbColor(int chan, GXColor color);
+void GXSetCopyClear(GXColor clear_clr, u32 clear_z);
 #ifdef __cplusplus
 }
 #endif

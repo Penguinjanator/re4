@@ -12,12 +12,16 @@ struct ArcFile {
     u32 ofs_18;   // 0x18  room texture data (room_tex)
     u8 pad_1C[0x70 - 0x1C];
     u32 ofs_70;   // 0x70  TV-mode message table (tv_mode)
+    u8 pad_74[0x9C - 0x74];
+    u32 ofs_9C;   // 0x9C  sub-mission widget id data (stage)
 };
 
 // Global game work (`pG`, game/main.cpp). Offsets come from the cam_ctrl unit; extend the
 // pads as other units reveal more fields, never rewrite.
 struct GlobalWork {
-    u8 pad_0[0x48];
+    u8 pad_0[4];
+    u8 x4;                 // 0x04  (stage: sub-mission coin marker only while set)
+    u8 pad_5[0x48 - 0x05];
     struct ArcFile* pArc;       // 0x48  current archive: offsets to its sub-files (room_tex, tv_mode)
     u8 pad_4C[8];
     u32 flags_54;          // 0x54
@@ -41,7 +45,10 @@ struct GlobalWork {
     u8 pad_4F94[8];
     u8 stage_no;           // 0x4F9C
     u8 room_no;            // 0x4F9D
-    u8 pad_4F9E[6];
+    u8 pad_4F9E[2];
+    u8 stage_prev;         // 0x4FA0  stage the current room data was loaded for (stage.cpp)
+    u8 pad_4FA1[2];
+    s8 emlist_no;          // 0x4FA3  enemy list currently loaded (stage.cpp), -1 = none
     u16 pl_life;           // 0x4FA4  (compared as s16 by the debug tools)
     u16 pl_life_max;       // 0x4FA6
     u16 sub_life;          // 0x4FA8  Ashley
@@ -52,9 +59,16 @@ struct GlobalWork {
     u32 flags_500C;        // 0x500C
     u32 flags_5010;        // 0x5010
     u32 flags_5014;        // 0x5014
-    u8 pad_5018[0x8678 - 0x5018];
-    u8 debug_mode;         // 0x8678  debug page number (t_page), 0xF = camera rail debug draw
-    u8 debug_disp;         // 0x8679  debug page shown by the game (0 = off); t_page/t_sc_shot edit it
+    u8 pad_5018[0x51BC - 0x5018];
+    u32 flags_51BC;        // 0x51BC  (stage: 0x4 stage-1 loaded, 0x40000 sub-mission 1 done)
+    u32 flags_51C0;        // 0x51C0  (stage: route flags)
+    u8 pad_51C4[0x52E8 - 0x51C4];
+    u8 emlist[0x2000];     // 0x52E8  enemy list (ESL file) read by stage.cpp
+    u8 pad_72E8[0x8358 - 0x72E8];
+    s32 game_mode;         // 0x8358  (stage: 3 = no enemy list reload)
+    u8 pad_835C[0x8678 - 0x835C];
+    s8 debug_mode;         // 0x8678  debug page number (t_page), 0xF = camera rail debug draw
+    s8 debug_disp;         // 0x8679  debug page shown by the game (0 = off); t_page/t_sc_shot edit it
 };
 
 extern GlobalWork* pG;
@@ -85,6 +99,14 @@ static inline void FSet(f32& d, f32 v) { d = v; }
 static inline void BitOn16(u16& f, u16 b) { f |= b; }
 // Plain store through the same kind of reference (debug tools restoring saved flag words).
 static inline void BitSet(u32& f, u32 v) { f = v; }
+
+// Struct-member view of pG (the pLog trick, db_log.h): a load through it is not hoisted above a
+// preceding struct-member store (esp15 SetFreeWork: `w->floorY = ...; if (pGS->flags ...)`), where
+// FSet would fold the address into `this` and a plain `pG` load moves above the store.
+struct GlobalWorkPtr {
+    GlobalWork* p;
+};
+#define pGS (((GlobalWorkPtr*) &pG)->p)
 
 // Same effect for the room camera data pointer store in CameraControl::RoomDataRead.
 #define G_ROOM_CAM_DATA (*(void**) ((u8*) pG + 0x4F28))

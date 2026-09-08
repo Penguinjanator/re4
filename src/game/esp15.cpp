@@ -147,8 +147,8 @@ int cEsp15::SetFreeWork(EspGenWork* gen, u32* seed)
     pos.y += w->range * fRandSeed1_1(seed);
     pos.z += w->range * fRandSeed1_1(seed);
     w->alpha = colA;
-    FSet(w->floorY, gen->xD8);
-    if (pG->flags_5010 & 0x02000000) {
+    w->floorY = gen->xD8;
+    if (pGS->flags_5010 & 0x02000000) {
         colA = 0.0f;
         w->cnt = w->cntMax;
     }

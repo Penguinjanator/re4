@@ -7,17 +7,7 @@
 #include "newlib_local.h"
 
 /* gcc 2.95 ginclude/va-ppc.h (System V.4) */
-typedef struct __va_list_tag {
-    unsigned char gpr;
-    unsigned char fpr;
-    char *overflow_arg_area;
-    char *reg_save_area;
-} __va_list[1], __gnuc_va_list[1];
-typedef __gnuc_va_list va_list;
-
-#define va_start(AP, LASTARG) \
-    (__builtin_next_arg(LASTARG), __builtin_memcpy((AP), __builtin_saveregs(), sizeof(__gnuc_va_list)))
-#define va_end(AP) ((void)0)
+#include "va_ppc.h"
 
 typedef long _fpos_t;
 typedef _fpos_t fpos_t;

@@ -60,6 +60,13 @@ public:
     virtual void log(const char* fmt, ...);
     virtual void destroy(cObj* p);
     virtual int construct(cObj* p, int id);
+
+    cObj* getWork(u32 no) {
+        if (no >= nArray) {
+            return 0;
+        }
+        return (cObj*)((u8*)pArray + size * no);
+    }
 };
 
 extern cObjMgr ObjMgr;

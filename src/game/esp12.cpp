@@ -75,9 +75,10 @@ extern "C" void Esp12_Trans(cEsp12* esp)
     f32 r;
     f32 wid;
 
-    n = w->n;
     if (esp->cnt < w->n) {
         n = esp->cnt + 1;
+    } else {
+        n = w->n;
     }
     if (!EspGetAnmAddr(esp->anmNo, &anm)) {
         pLog->err(0, 0, "ESP : TexId[%x] no data", esp->anmNo);

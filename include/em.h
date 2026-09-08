@@ -8,7 +8,14 @@
 // Enemy work (game/em.cpp), sizeof 0xDE0.
 class cEm : public cModel {
 public:
-    u8 pad_1D8[0xDE0 - 0x1D8];
+    u8 pad_1D8[0x320 - 0x1D8];
+    s16 hp;               // 0x320
+    s16 hpMax;            // 0x322
+    u8 pad_324[0x370 - 0x324];
+    f32 plDist2;          // 0x370  squared distance to the player (db_work prints its sqrt)
+    u8 pad_374[0x398 - 0x374];
+    u8 emsetNo;           // 0x398
+    u8 pad_399[0xDE0 - 0x399];
 
     cEm();
     virtual ~cEm() {}

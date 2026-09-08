@@ -367,6 +367,7 @@ assert spec.loader is not None
 spec.loader.exec_module(objects_mod)
 UNITS: List[str] = objects_mod.UNITS
 MATCHING: Dict[str, bool] = getattr(objects_mod, "MATCHING", {})
+STRIP_UNUSED = set(getattr(objects_mod, "STRIP_UNUSED", ()))
 
 # Split unit names come from splits.txt (game/ units are all named *.cpp there). A UNITS entry
 # may instead name a *.c source (newlib units): the Object keeps the split name, the source is the .c.
@@ -402,6 +403,11 @@ for unit in UNITS:
             # errno.c's `int errno' is a common symbol the linker put at the end of .sbss.
             if unit != "game/errno.c":
                 cflags = [*cflags_game, "-fno-common"]
+        elif unit in STRIP_UNUSED:
+            # C++ units whose original had functions the linker dead-stripped (their constant
+            # pools and statics stayed): drop the bodies after the linkonce fold.
+            post_build.append(f"$python tools/strip_unused.py --gcc --unit {name} {{out}}")
+            post_build_implicit.append(Path("tools/strip_unused.py"))
         game_objects.append(
             Object(
                 status,

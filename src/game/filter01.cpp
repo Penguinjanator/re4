@@ -41,20 +41,20 @@ void Filter01Init()
 {
     filter01_buff = 0;
     LightMgr.getEnvPtr()->x2D = 0;
-    g_LeFar.on = 0;
-    g_LeFar.mode = 1;
     g_LeNear.on = 0;
     g_LeNear.mode = 0;
+    g_LeFar.on = 0;
+    g_LeFar.mode = 1;
 }
 
 void Filter01RoomInit()
 {
     filter01_buff = 0;
     LightMgr.getEnvPtr()->x2D = 0;
-    g_LeFar.on = 0;
-    g_LeFar.mode = 1;
     g_LeNear.on = 0;
     g_LeNear.mode = 0;
+    g_LeFar.on = 0;
+    g_LeFar.mode = 1;
 }
 
 void Filter01Trans()
@@ -74,9 +74,23 @@ void Filter01Trans()
         if (g_LeFar.on) {
             AddOtDirect(0x12, &g_LeFar, (void (*)()) Filter01Render, 7, 0x400, 0, 0.0f);
         }
-        g_LeFar.on = 0;
         g_LeNear.on = 0;
+        g_LeFar.on = 0;
     }
+}
+
+// Copy the frame buffer to the half-size blur texture.
+static inline void Filter01CopyEFB(u8* vf)
+{
+    GXRenderModeObj* rm = &Rmode;
+
+    GXSetCopyFilter(rm->aa, rm->sample_pattern, 1, vf);
+    GXSetTexCopySrc(0, 0, SCR_W, SCR_H);
+    GXSetTexCopyDst(SCR_W / 2, SCR_H / 2, 6, 1);
+    GXCopyTex(filter01_buff, 0);
+    GXSetCopyFilter(rm->aa, rm->sample_pattern, 1, rm->vfilter);
+    GXPixModeSync();
+    GXInvalidateTexAll();
 }
 
 void Filter01Render(LensEffectWork* w)
@@ -88,10 +102,10 @@ void Filter01Render(LensEffectWork* w)
     GXColor amb;
     f32 lv = level_tbl1[(u8) w->level];
     f32 z = 0.0f;
-    f32 x = 0.0f;
-    f32 y = 0.0f;
-    f32 cx = 0.0f;
-    f32 cy = 0.0f;
+    f32 x;
+    f32 y;
+    f32 cx;
+    f32 cy;
     int i;
     static u8 vfilter[7] __attribute__((aligned(32))) = { 32, 0, 0, 0, 0, 0, 32 };
 
@@ -102,13 +116,7 @@ void Filter01Render(LensEffectWork* w)
     }
     DCInvalidateRange(filter01_buff, 0x38000);
     GXSetFog(0, 0.0f, 0.0f, ZNEAR, ZFAR, col);
-    GXSetCopyFilter(Rmode.aa, Rmode.sample_pattern, 1, vfilter);
-    GXSetTexCopySrc(0, 0, SCR_W, SCR_H);
-    GXSetTexCopyDst(SCR_W / 2, SCR_H / 2, 6, 1);
-    GXCopyTex(filter01_buff, 0);
-    GXSetCopyFilter(Rmode.aa, Rmode.sample_pattern, 1, Rmode.vfilter);
-    GXPixModeSync();
-    GXInvalidateTexAll();
+    Filter01CopyEFB(vfilter);
     GXSetAlphaCompare(7, 0, 1, 7, 0);
     GXInitTexObj(&tex, filter01_buff, SCR_W / 2, SCR_H / 2, 6, 0, 0, 0);
     GXInitTexObjLOD(&tex, 1, 1, 0.0f, 0.0f, 0.0f, 0, 0, 0);
@@ -142,6 +150,10 @@ void Filter01Render(LensEffectWork* w)
     GXSetVtxAttrFmt(0, 9, 1, 4, 0);
     GXSetVtxAttrFmt(0, 11, 1, 5, 0);
     GXSetVtxAttrFmt(0, 13, 1, 4, 0);
+    x = 0.0f;
+    y = 0.0f;
+    cx = 0.0f;
+    cy = 0.0f;
     switch (w->mode) {
     case 0:
         GXSetZMode(1, 6, 0);
@@ -164,7 +176,11 @@ void Filter01Render(LensEffectWork* w)
             n = 0;
             break;
         case 1:
+            n = 1;
+            break;
         case 2:
+            n = 1;
+            break;
         case 3:
             n = 1;
             break;
@@ -213,10 +229,11 @@ void Filter01Render(LensEffectWork* w)
             GXTexCoord2f32(0.0f, 1.0f);
         }
     } else if (w->type == 1) {
+        int n = 4;
         static f32 fc_z_plus = 100.0f;
 
         lv = w->level * 0.33f;
-        for (i = 0; i < 4; i++) {
+        for (i = 0; i < n; i++) {
             switch (i) {
             case 0:
                 x = cx - lv;
@@ -254,22 +271,17 @@ void Filter01Render(LensEffectWork* w)
             GXTexCoord2f32(0.0f, 1.0f);
         }
         if (w->level > 1.0f) {
-            f32 a = (w->level - 1.0f) * 25.0f;
+            f32 a = w->level - 1.0f;
             u8 alpha;
             static u8 vfilter[7] __attribute__((aligned(32))) = { 32, 0, 0, 0, 0, 0, 32 };
 
+            a *= 25.0f;
             if (a > 255.0f) {
                 a = 255.0f;
             }
             alpha = (u8) a;
             if (a > 0.0f) {
-                GXSetCopyFilter(Rmode.aa, Rmode.sample_pattern, 1, vfilter);
-                GXSetTexCopySrc(0, 0, SCR_W, SCR_H);
-                GXSetTexCopyDst(SCR_W / 2, SCR_H / 2, 6, 1);
-                GXCopyTex(filter01_buff, 0);
-                GXSetCopyFilter(Rmode.aa, Rmode.sample_pattern, 1, Rmode.vfilter);
-                GXPixModeSync();
-                GXInvalidateTexAll();
+                Filter01CopyEFB(vfilter);
                 GXBegin(0x80, 0, 4);
                 GXPosition3f32(x + 0.25f, y + 0.25f, z);
                 GXColor4u8(0xFF, 0xFF, 0xFF, alpha);
@@ -292,7 +304,7 @@ void Filter01Render(LensEffectWork* w)
 }
 
 // Never called: the original linker dropped the body but kept its statics and constant pool.
-inline void Filter01SetParam_ScrZ(int mode, u8 type, f32 level, f32 z)
+static void Filter01SetParam_ScrZ(int mode, u8 type, f32 level, f32 z)
 {
     static f32 Zscale = 1.0f;
     static f32 Zoffset = 1.0f;
@@ -305,34 +317,32 @@ void Filter01SetParam_CamZ(int mode, u8 type, f32 level, f32 camz)
 {
     static f32 Zscale = 1.0f;
     static f32 Zoffset = 1.0f;
-    f32 nz;
     f32 inv;
     f32 zv;
 
     if (camz == 0.0f) {
         camz = 0.01f;
     }
-    nz = -camz;
+    camz = -camz;
     inv = 1.0f / (ZFAR - ZNEAR);
-    zv = (-(ZFAR * ZNEAR) * inv + (-ZNEAR * inv) * nz) * Zscale;
-    zv = (1.0f / -nz) * zv + Zoffset;
-    Filter01SetParam(mode, (u32) (zv * 65535.0f), type, level);
+    zv = (-(ZFAR * ZNEAR) * inv + (-ZNEAR * inv) * camz) * Zscale;
+    Filter01SetParam(mode, (u32) (((1.0f / -camz) * zv + Zoffset) * 65535.0f), type, level);
 }
 
 void Filter01SetParam(int mode, int z, u8 type, f32 level)
 {
     if (mode == 0) {
         g_LeNear.on = 1;
-        g_LeNear.type = type;
         g_LeNear.mode = 0;
         g_LeNear.level = level;
         g_LeNear.z = z;
+        g_LeNear.type = type;
     } else {
         g_LeFar.on = 1;
-        g_LeFar.type = type;
         g_LeFar.mode = 1;
         g_LeFar.level = level;
         g_LeFar.z = z;
+        g_LeFar.type = type;
     }
 }
 
