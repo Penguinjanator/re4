@@ -73,21 +73,23 @@ void cEsp0a::move()
 void Esp0a_Trans(cEsp0a* esp)
 {
     Esp0aWork* w = &esp->work;
-    cEsp* base;
-    cEsp* p;
-    Vec wpos;
-    u32 i;
 
     switch (w->type) {
     case 0:
         break;
-    case 1:
+    case 1: {
+        cEsp* base;
+        cEsp* p;
+        u32 i;
+
         if (PullEsp(&base, 0)) {
             i = 0;
             *base = *esp;
             base->id = 0;
             for (; i < 50; i++) {
                 if (PullEsp(&p, 0)) {
+                    Vec wpos;
+
                     *p = *base;
                     p->spd.x = p->spd.y = p->spd.z = 0.0f;
                     p->scaleSpd = 0.0f;
@@ -111,6 +113,7 @@ void Esp0a_Trans(cEsp0a* esp)
             }
         }
         break;
+    }
     }
 }
 

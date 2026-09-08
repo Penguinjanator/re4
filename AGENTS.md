@@ -80,6 +80,19 @@ mark it Matching.
   interleaves them).
 - Bio4.sym scopes are unreliable: symbols marked `local` in `sym_map.tsv` are often global (called from
   other units) — check callers' asm before making them `static`.
+- Stores through raw pointers/references (non-struct MEMs) make GCC reload `pG` afterwards and keep
+  loads in source order; struct-member stores don't (`TOOL_FLAG` raw-offset accessors in `t_util.h`).
+- Uninitialised globals are emitted in order of *first declaration*, header externs included, so header
+  extern order dictates `.bss`/`.sbss` layout; initialised objects are emitted at their definition.
+  Statics/initialised globals ≤ 8 bytes go to `.sdata` (-G 8); 16-byte zero-initialised objects to `.data`.
+- `__attribute__((aligned(32)))` buffers create the 0x10 `.bss` holes; a 32-aligned following unit leaves
+  `.sdata` padding the split objects don't have (`t_util.cpp` pads with `asm(".section .sdata; .balign 32")`).
+- Clamps: `x = x < 0 ? A : (x > B ? 0 : x)` → li/mr chain, one store; `if (v >= 0) { n = v; if (n > M)
+  n = M; } else n = 0;` → blt/li-at-end. `if (c) { ...; return X; } rest; return Y;` lays out `rest` first.
+- Register args are evaluated left to right and kept live across a nested call in the argument list;
+  originals often compute the inner call into a local first.
+- `memcpy(dst, "literal")`/`strcpy` with a constant source inlines to word/byte moves; `char s[64] = ""`
+  → `lbz` + `memset(s+1, 0, 63)`; `Vec v = {0,0,0}` inside a loop → `memset` per iteration.
 - Static locals show as `name.NNN` in objdiff; the DECL_UID suffix cannot be reproduced and is ignored by the report.
 
 - Struct field offsets come from the load/store displacements; write real structs, not casts.
