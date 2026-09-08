@@ -4,6 +4,7 @@
 #include "types.h"
 
 // game/rnd.cpp: 16-bit LCG shared by the whole game (C linkage).
+void RndInit(u16 seed);  // C++ linkage (main.cpp systemStartInit)
 extern "C" {
 u8 Rnd();
 f32 fRand0_1();

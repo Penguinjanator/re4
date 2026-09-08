@@ -66,6 +66,7 @@ void PosToPos(Vec* a, Vec* b, Vec* out, f32 t);
 f32 sinf(f32 x);
 f32 cosf(f32 x);
 f32 atan2f(f32 y, f32 x);
+f32 acosf(f32 x);
 }
 
 // Debug-checked normalize: zero vectors are reported with the caller's file/line.

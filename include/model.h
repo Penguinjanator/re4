@@ -37,16 +37,22 @@ struct ModelPart {
 
 // Model data referenced by a bin (game/model.cpp `ModelData`); only the flag word is known.
 struct ModelData {
-    u8 pad_0[0x1A];
+    u8 pad_0[0xC];
+    void* pClr;      // 0x0C  vertex colour array (GX_VA_CLR0, RGBA8; used when flags bit31 is set)
+    void* pTex;      // 0x10  texture coordinate array (GX_VA_TEX0)
+    u8 pad_14[4];
+    u8 x18;          // 0x18  (mirror: 1 with x19 == 1 and x2A <= 0xFF selects the original vertex arrays)
+    u8 x19;          // 0x19
     u16 nParts;      // 0x1A  primitive part count (dbmodule DrawObjWireframe)
     struct ModelPart* pParts;  // 0x1C  first part header (0x20 bytes + primitive stream)
-    u32 flags;       // 0x20  bit30 (0x40000000): SmxGetFlag bit1
+    u32 flags;       // 0x20  bit31: s16 tex coords (frac 8), bit30 (0x40000000): SmxGetFlag bit1
     u8 pad_24[4];
     u8 shift;        // 0x28  vertex fixed-point shift (dbmodule: scale = 1 / (1 << shift))
-    u8 pad_29[3];
+    u8 pad_29;
+    u16 x2A;         // 0x2A
     u32 shapeOfs;    // 0x2C  offset of the shape (vertex delta) table (shape.cpp)
     void* vtxOrig;   // 0x30  original vertex positions (shape.cpp ResetShape source)
-    u8 pad_34[4];
+    void* nrmOrig;   // 0x34  original vertex normals
     u16 nVtx;        // 0x38  vertex count (8 bytes each)
 };
 
@@ -90,7 +96,8 @@ public:
     u8 pad_88[4];
     u8 color[4];         // 0x8C  RGBA (word store; 0xFF fill when the RGB part is 0)
     u8 color2[4];        // 0x90  second RGBA (0x93 = 0 or 0xFF)
-    u8 pad_94[0xA4 - 0x94];
+    void* pPosBuf[2];    // 0x94  double-buffered vertex position arrays (pG->vtx_buf_no selects)
+    void* pNrmBuf[2];    // 0x9C  double-buffered vertex normal arrays
     ShapeData* pShape;   // 0xA4  current shape animation, NULL when none (shape.cpp)
     ShapeKey shape[5];   // 0xA8  blended shapes
     u32 shapeFlags;      // 0xD0  1: loop, 2: hold last frame, 4: reverse, 8: x100 weights

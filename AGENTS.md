@@ -326,6 +326,12 @@ mark it Matching.
   @0x2B4 ...) but em.h/obj.h currently define those fields inside cEm/cObj. game/model needs the fields
   moved into cModel with cEm/cObj starting at 0x320 — a coordinated refactor, do not start it while
   em*/obj* agents are running.
+- Callee return type changes arg-setup order through dependence counts: an `int` result adds an
+  output dependence on r3 that pulls `li r3,0`/`mr r3` to the end of the arg block. Declare the callee
+  with its real return type (check the callee's own asm); `EstSet`, `MotionSetCore` are `void`.
+- Store-block weight rule (generalises the store-order rule): each independent store has weight +1,
+  minus 1 per source register that dies there; lowest weight first, ties in source order.
+- `x >= C && x <= C` on a float yields the `cror un,eq,gt / bns` pair.
 - Static locals show as `name.NNN` in objdiff; the DECL_UID suffix cannot be reproduced and is ignored by the report.
 - Unexplained words in `.rodata` (zero words, stray floats) are usually the constant pool of a function
   the original linker dead-stripped (bodies gone, pools kept, `STRIP_UNUSED` in objects.py): write a

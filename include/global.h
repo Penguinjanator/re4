@@ -37,16 +37,26 @@ struct PlArc {
 };
 #define PL_ARC_PTR(arc, no) ((void*) ((arc)->ofs[no] + (u32) (arc)))
 
+// TEV stage / texture map / texture coord counters the model renderer allocates from (pG+0x184).
+struct GxStageWork {
+    s32 tevStage;  // 0x00
+    s32 texMap;    // 0x04
+    s32 texCoord;  // 0x08
+};
+
 // Global game work (`pG`, game/main.cpp). Offsets come from the cam_ctrl unit; extend the
 // pads as other units reveal more fields, never rewrite.
 struct GlobalWork {
-    u8 pad_0[4];
+    s32 dev_mode;          // 0x00  1 = development hardware (main: OSGetConsoleType & 0xF0000000)
     u8 x4;                 // 0x04  (stage: sub-mission coin marker only while set)
-    u8 pad_5[0x18 - 0x05];
+    u8 pad_5[3];
+    u32 x8;                // 0x08  (main: bit 31 saved into pRK->x3C)
+    u8 pad_C[0x18 - 0x0C];
     void* pFont;           // 0x18  ROM font header (dvd: RomFontSetting)
     s32 x1C;               // 0x1C  1 = the message system is usable (dvd error screen)
     u8 x20;                // 0x20  (main_sub: 3/4/6 allow the blur filter)
-    u8 pad_21[0x28 - 0x21];
+    u8 pad_21[0x24 - 0x21];
+    u32 vtx_buf_no;        // 0x24  double-buffer index into cModelInfo::pPosBuf/pNrmBuf (mirror)
     u16 next_room;         // 0x28  room id (stage << 8 | room) being entered (snd: room BGM / door tables)
     u8 pad_2A[0x3C - 0x2A];
     void* pStageFont;      // 0x3C  stage/event font buffer (mes: MessageControl::stageInit)
@@ -67,7 +77,9 @@ struct GlobalWork {
     u8 pad_16C[4];
     u32 flags_170;         // 0x170  stop flags (debug tools save/restore it)
     u32 flags_174;         // 0x174  (pl_sub joyFireOn: 0x20000000 in room 11C while flags_5014 bit31 is set)
-    u8 pad_178[0x4F20 - 0x178];
+    u8 pad_178[0x184 - 0x178];
+    GxStageWork gxStage;   // 0x184  TEV stage / texmap / texcoord counters of the model renderer (mirror)
+    u8 pad_190[0x4F20 - 0x190];
     void* pRoomMes;        // 0x4F20  room message table (mes: MesData.ptr[1])
     void* pCoreCamData;    // 0x4F24  core camera data ("B40x")
     void* pRoomCamData;    // 0x4F28  room camera data ("B40x")
@@ -94,7 +106,8 @@ struct GlobalWork {
         struct {
             u8 stage_no;   // 0x4F9C
             u8 room_no;    // 0x4F9D
-            u8 pad_4F9E[2];
+            u8 x4F9E;
+            u8 x4F9F;      // 0x4F9F  (main: cleared with the room id on flags_54 bit 3)
         };
     };
     u8 stage_prev;         // 0x4FA0  stage the current room data was loaded for (stage.cpp)
@@ -137,11 +150,13 @@ struct GlobalWork {
     u32 shotHit2;          // 0x8348
     u32 shotTotal;         // 0x834C  shots fired
     u32 shotTotal2;        // 0x8350
-    u8 pad_8354[4];
+    u8 x8354;              // 0x8354  (main systemWorkInit: 5)
+    u8 pad_8355[3];
     s32 game_mode;         // 0x8358  (stage: 3 = no enemy list reload)
     u8 pad_835C[0x8678 - 0x835C];
     s8 debug_mode;         // 0x8678  debug page number (t_page), 0xF = camera rail debug draw
     s8 debug_disp;         // 0x8679  debug page shown by the game (0 = off); t_page/t_sc_shot edit it
+    u8 pad_867A[0x8680 - 0x867A];  // sizeof == 0x8680 (main: memclr_asm(pG, sizeof(GlobalWork)))
 };
 
 extern GlobalWork* pG;

@@ -10,6 +10,8 @@ public:
     u8 pad_0[0xAA4];
 
     u32 getAramFree(u32 size);
+    void init();
+    void check();
 };
 extern cDataCtrl DC;
 

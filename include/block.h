@@ -11,6 +11,8 @@ public:
     u8 pad_78[0x80 - 0x78];
 
     void dispAllBlock(int on);
+    void checkCommand();
+    void checkCondition();
 };
 
 extern cBlock Block;

@@ -932,6 +932,7 @@ MATCHING = {
     "game/esp42.cpp": True,
     "game/esp4d.cpp": True,
     "game/esp4e.cpp": True,
+    "game/espgen01.cpp": True,
     "game/esp4c.cpp": True,
     "game/esp4b.cpp": True,
     "game/esp4a.cpp": True,
@@ -1015,11 +1016,13 @@ STRIP_UNUSED = {
     "game/obj00.cpp",
     "game/obj15.cpp",
     "game/objGondola.cpp",
+    "game/obj12.cpp",
     "game/pl_wep.cpp",
     "game/cam_motion.cpp",
     "game/cam_sys.cpp",
     "game/ctrl01.cpp",
     "game/trans_ot.cpp",
+    "game/em_cloth.cpp",
 }
 
 # Capcom sound library (game/snd_*.cpp): C++ with extern "C" functions, compiled unoptimised

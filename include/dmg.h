@@ -30,6 +30,8 @@ public:
     // Registers a damage volume: kind, frames, centre, radius, height. Returns 1 when a volume
     // was created (int result: the call's set of r3 changes the haifa depend counts, obj10 dmgSet).
     int set(int kind, int time, Vec* pos, f32 r, f32 h);
+    // Damage volume containing `pos`: its kind (1/4/5/7 break the item enemies), 0 when none; `out` gets the hit point
+    int hitCheck(Vec* pos, Vec* out);
 };
 
 extern cDmgMgr DmgMgr;

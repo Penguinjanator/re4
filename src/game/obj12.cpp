@@ -6,7 +6,6 @@
 #include "snd.h"
 #include "rnd.h"
 #include "pad.h"
-#include "cmath.h"
 
 // Hanging object that can be thrown and falls as a three-point rope (obj00 variant with a rope
 // type, a life counter and a throw routine).
@@ -180,6 +179,7 @@ cObj* SetObj12(void* bin, void* tpl, Vec* pos, Vec* rot)
         if (obj->modelInit(bin, tpl) == 0) {
             pLog->err(0, 0, "SetObj12() modelInit() failed.");
             ObjMgr.destroy(obj);
+            return 0;
         } else {
             static const Vec p0 = { 0.0f, 0.0f, 0.0f };
             static const Vec p1 = { 500.0f, 500.0f, 500.0f };
@@ -271,12 +271,12 @@ void cObj12::setFall(Vec* spd, u8 type)
         }
     }
     w->flags |= 0x200;
-    w->life = 90;
     w->seBlk = 0xFF;
-    w->seNo = 0xFF;
     w->seId = 0;
     w->sePlayed = 0;
     w->type = type;
+    w->life = 90;
+    w->seNo = 0xFF;
 }
 
 void cObj12::setFallSe(u8 blk, u8 no, u8 id)
@@ -376,14 +376,18 @@ void cObj12::fallMove()
                     SndCall(w->seBlk, w->seNo, &pos, w->seId, 0, 0);
                 }
             }
-            if (w->type < 2 || w->type > 3) {
+            switch (w->type) {
+            default:
                 p->spd.x *= fRand0_1() * 0.2f + 0.5f;
                 p->spd.y *= -(fRand0_1() * 0.2f + 0.5f);
                 p->spd.z *= fRand0_1() * 0.2f + 0.5f;
-            } else {
+                break;
+            case 2:
+            case 3:
                 p->spd.x *= fRand0_1() * 0.2f + 0.4f;
                 p->spd.y *= -(fRand0_1() * 0.1f + 0.3f);
                 p->spd.z *= fRand0_1() * 0.2f + 0.4f;
+                break;
             }
             if (p->spd.y <= 20.0f && p->spd.y > 0.0f) {
                 p->spd.y = 0.0f;
@@ -501,7 +505,7 @@ void cObj12::throwMove()
 #line 1195 "D:/Bio4/Prog/obj12.cpp"
     VECNormalize(&dir, &dir);
     ang = acosf(PSVECDotProduct(&up, &dir));
-    if (ang > 0.01f && ang < 3.1316f) {
+    if (ang > 0.01f && ang < 3.1315927f) {
         PSVECCrossProduct(&up, &dir, &up);
         PSMTXRotAxisRad(m, &up, 0.62831855f);
         PSMTXConcat(m, mat, mat);

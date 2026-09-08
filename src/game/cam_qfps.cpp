@@ -25,6 +25,9 @@ static void offsetArrayCorrection(QfpsOfs (*o)[3]);
 
 #define PI 3.1415927f
 
+static inline void U8Set(u8& d, u8 v) { d = v; }
+static inline void S16Set(s16& d, s16 v) { d = v; }
+
 f32 g_crouch_cam_z_back = 600.0f;
 static f32 g_crouch_cam_y_down = 400.0f;
 
@@ -340,11 +343,7 @@ void CameraQuasiFPS::calcDepressionRatio()
         } else {
             angle_y = (f32) Key.ssy / C_RANGE;
         }
-        if (angle_y < -1.0f) {
-            angle_y = -1.0f;
-        } else if (angle_y > 1.0f) {
-            angle_y = 1.0f;
-        }
+        angle_y = angle_y < -1.0f ? -1.0f : (angle_y > 1.0f ? 1.0f : angle_y);
         t = -(f32) Key.ssx / C_RANGE;
         if (t < 0.0f) {
             angle_x = ANGLE_LEFT_LIMIT * t;
@@ -396,9 +395,7 @@ void CameraQuasiFPS::calcBaseMatrix(Mtx m)
         search_count = search_frame;
         flags |= 1;
     } else {
-        v0.x = pl_mat[0][3];
-        v0.y = pl_mat[1][3];
-        v0.z = pl_mat[2][3];
+        getColumn(pl_mat, 3, &v0);
         PSVECSubtract(&shoulder_aim, &v0, &v1);
         v2.x = 0.0f;
         v2.y = atan2f(v1.x, v1.z);
@@ -441,10 +438,11 @@ void CameraQuasiFPS::calcBaseMatrix(Mtx m)
             break;
         case 0x8000: {
             Vec t;
+            f32 yd = g_crouch_cam_y_down;
 
             PSVECScale(&v2, &t, g_crouch_cam_z_back);
             PSVECSubtract(&v3, &t, &v3);
-            v3.y -= g_crouch_cam_y_down;
+            v3.y -= yd;
             break;
         }
         }
@@ -454,19 +452,22 @@ void CameraQuasiFPS::calcBaseMatrix(Mtx m)
 
 int CameraQuasiFPS::checkFBLR()
 {
+    cPlayer* pl = pPL;
+
     if (pG->flags_5018 & 0x800000) {
         return 0;
     }
-    if (!pPL->isKamae()) {
-        if (LRcheck()) {
-            return 3;
+    if (pl->isKamae()) {
+        if (LRcheck() == 0) {
+            return 0;
         }
-        return 2;
-    }
-    if (LRcheck()) {
         return 1;
+    } else {
+        if (LRcheck() == 0) {
+            return 2;
+        }
+        return 3;
     }
-    return 0;
 }
 
 void CameraQuasiFPS::setBlendRatio(f32 r)
@@ -476,8 +477,8 @@ void CameraQuasiFPS::setBlendRatio(f32 r)
 
 void CameraQuasiFPS::setBlendCount(int n)
 {
-    blend_count = n;
     blend_timer = n;
+    blend_count = n;
     flags |= 4;
 }
 
@@ -493,31 +494,32 @@ void CameraQuasiFPS::setFloorRatio(f32 ratio)
 
 void CameraQuasiFPS::checkCameraType()
 {
-    u8 t;
-
     if (SubCharGetStatus() & 0x20000000) {
-        t = 1;
+        trans_type = 1;
     } else {
         switch (pG->x4FB8) {
+        case 0:
+            trans_type = 0;
+            break;
         case 1:
-            t = 2;
+            trans_type = 2;
             break;
         case 2:
-            t = 3;
+            trans_type = 3;
             break;
-        case 0:
         case 4:
+            trans_type = 4;
+            break;
         case 5:
-            t = pG->x4FB8;
+            trans_type = 5;
             break;
         default:
-            t = 0;
+            trans_type = 0;
             break;
         }
     }
-    trans_type = t;
     blend_dst = trans_tbl[trans_type];
-    if (pG->flags_64 & 0x20000000) {
+    if (pGS->flags_64 & 0x20000000) {
         blend_dst = g_transOfs[5];
     }
     switch (trans_type) {
@@ -525,84 +527,80 @@ void CameraQuasiFPS::checkCameraType()
     case 2:
         switch (PlGetWeaponNo()) {
         default:
-            t = 0;
+            ready_type = 0;
             break;
         case 8:
         case 0xB:
             switch (pG->wep_type) {
             case 0:
             case 1:
-                t = 1;
+                ready_type = 1;
                 break;
             default:
-                t = 0;
+                ready_type = 0;
                 break;
             }
             break;
         case 0x13:
         case 0x16:
         case 0x17:
-            t = 2;
+            ready_type = 2;
             break;
         case 0xE:
         case 0xF:
-            t = 3;
+            ready_type = 3;
             break;
         case 0xD:
         case 0x10:
-            t = 1;
+            ready_type = 1;
             break;
         }
         break;
     case 1:
-        t = 4;
+        ready_type = 4;
         break;
     case 3:
         switch (PlGetWeaponNo()) {
         default:
-            t = 5;
+            ready_type = 5;
             break;
         case 0xB:
             switch (pG->wep_type) {
             case 0:
             case 1:
-                t = 6;
+                ready_type = 6;
                 break;
             default:
-                t = 5;
+                ready_type = 5;
                 break;
             }
             break;
         case 0x13:
         case 0x16:
         case 0x17:
-            t = 7;
+            ready_type = 7;
             break;
         }
         break;
     case 4:
         if (pG->flags_5018 & 0x800000) {
-            t = 0xA;
-        } else if (PlGetWeaponNo() == 0x10) {
-            t = 9;
+            ready_type = 0xA;
+        } else if (PlGetWeaponNo() != 0x10) {
+            ready_type = 8;
         } else {
-            t = 8;
+            ready_type = 9;
         }
         break;
     case 5:
         switch (PlGetWeaponNo()) {
         default:
-            t = 0xC;
+            ready_type = 0xC;
             break;
         }
         break;
-    default:
-        goto skip;
     }
-    ready_type = t;
-skip:
     blend_src = ready_tbl[ready_type];
-    if (pG->flags_64 & 0x20000000) {
+    if (pGS->flags_64 & 0x20000000) {
         blend_src = g_readyOfs[14];
     }
 }
@@ -615,20 +613,20 @@ void CameraQuasiFPS::calcOffset(QfpsOfs* out)
     Vec c;
     QfpsOfs o[3];
     Mtx m;
-    int i;
 
     if (!(flags & 8)) {
         blend_timer--;
         if (blend_timer > 0) {
             blend_ratio = (f32) blend_timer / (f32) blend_count;
         } else {
-            flags &= ~6;
+            flags &= ~4;
             blend_ratio = 0.0f;
         }
     }
     if (flags & 4) {
         f32 r = blend_ratio;
         f32 r1 = 1.0f - r;
+        int i;
 
         for (i = 0; i < 3; i++) {
             VecLinearCombination(&old[i].campos, &cur[i].campos, r, r1, &o[i].campos);
@@ -638,19 +636,25 @@ void CameraQuasiFPS::calcOffset(QfpsOfs* out)
             o[i].fovy = r * old[i].fovy + r1 * cur[i].fovy;
         }
     } else {
+        QfpsOfs* p = cur;
+        int i;
+
         for (i = 0; i < 3; i++) {
-            o[i] = cur[i];
+            o[i] = p[i];
         }
     }
     switch (PlGetStatus()) {
     case 0x4000:
         break;
-    case 0x8000:
+    case 0x8000: {
+        int i;
+
         for (i = 0; i < 3; i++) {
             o[i].campos2.y -= g_crouch_cam_y_down * 0.5f;
             o[i].campos2.z += g_crouch_cam_z_back;
         }
         break;
+    }
     }
     {
         f32 ay = angle_y;
@@ -667,7 +671,7 @@ void CameraQuasiFPS::calcOffset(QfpsOfs* out)
             VecLinearCombination(&o[0].target, &o[1].target, ay, r1, &c);
             VecLinearCombination(&o[0].campos2, &o[1].campos2, ay, r1, &b);
             d = a;
-        } else {
+        } else if (ay < 0.0f) {
             f32 r1;
 
             ay = -ay;
@@ -908,25 +912,40 @@ void CameraQuasiFPS::setAreaData(QfpsOfs (*ready)[3], QfpsOfs (*trans)[3])
     }
 }
 
+#define OFS_COPY(src, dst)                 \
+    {                                      \
+        QfpsOfs (*d_)[3] = (dst);          \
+        QfpsOfs (*s_)[3] = (src);          \
+        int i_ = 2;                        \
+        int j_;                            \
+        QfpsOfs* sp_;                      \
+        QfpsOfs* dp_;                      \
+        while (i_--) {                     \
+            dp_ = *d_;                     \
+            sp_ = *s_;                     \
+            j_ = 3;                        \
+            while (j_--) {                 \
+                *dp_ = *sp_;               \
+                dp_++;                     \
+                sp_++;                     \
+            }                              \
+            d_++;                          \
+            s_++;                          \
+        }                                  \
+    }
+
 void CameraQuasiFPS::setAreaData(CameraCut* cut)
 {
     int i;
     int j;
     int k = 0;
+    QfpsOfs* p;
 
     if (cut == NULL) {
         return;
     }
-    for (i = 0; i < 2; i++) {
-        for (j = 0; j < 3; j++) {
-            g_readyOfs[14][i][j] = g_readyOfs[0][i][j];
-        }
-    }
-    for (i = 0; i < 2; i++) {
-        for (j = 0; j < 3; j++) {
-            g_transOfs[5][i][j] = g_transOfs[0][i][j];
-        }
-    }
+    OFS_COPY(g_readyOfs[0], g_readyOfs[14]);
+    OFS_COPY(g_transOfs[0], g_transOfs[5]);
     floor_ratio = cut->floor_ratio;
     if (cut->num == 0) {
         return;
@@ -935,17 +954,19 @@ void CameraQuasiFPS::setAreaData(CameraCut* cut)
         for (j = 0; j < 3; j++) {
             if (i <= 1) {
                 if (cut->flags & 0x30) {
-                    g_readyOfs[14][i][j].campos = cut->pos[k];
-                    g_readyOfs[14][i][j].target = cut->at[k];
-                    g_readyOfs[14][i][j].x24 = cut->roll[k];
-                    g_readyOfs[14][i][j].fovy = cut->fovy[k];
+                    p = &g_readyOfs[14][i][j];
+                    p->campos = cut->pos[k];
+                    p->target = cut->at[k];
+                    p->x24 = cut->roll[k];
+                    p->fovy = cut->fovy[k];
                 }
             } else {
                 if (!(cut->flags & 0x20)) {
-                    g_transOfs[5][i - 2][j].campos = cut->pos[k];
-                    g_transOfs[5][i - 2][j].target = cut->at[k];
-                    g_transOfs[5][i - 2][j].x24 = cut->roll[k];
-                    g_transOfs[5][i - 2][j].fovy = cut->fovy[k];
+                    p = &g_transOfs[5][i - 2][j];
+                    p->campos = cut->pos[k];
+                    p->target = cut->at[k];
+                    p->x24 = cut->roll[k];
+                    p->fovy = cut->fovy[k];
                 }
             }
             k++;
@@ -955,11 +976,13 @@ void CameraQuasiFPS::setAreaData(CameraCut* cut)
         for (j = 0; j < 3; j++) {
             if (i <= 1) {
                 if (cut->flags & 0x30) {
-                    g_readyOfs[14][i][j].campos2 = cut->pos[k];
+                    p = &g_readyOfs[14][i][j];
+                    p->campos2 = cut->pos[k];
                 }
             } else {
                 if (!(cut->flags & 0x20)) {
-                    g_transOfs[5][i - 2][j].campos2 = cut->pos[k];
+                    p = &g_transOfs[5][i - 2][j];
+                    p->campos2 = cut->pos[k];
                 }
             }
             k++;
@@ -1050,7 +1073,6 @@ void CameraQuasiFPS::bindAreaCamera(CameraAreaRec* rec)
             ready_tbl[1] = g_readyOfs[14];
             ready_tbl[2] = g_readyOfs[14];
             ready_tbl[3] = g_readyOfs[14];
-            ready_tbl[4] = g_readyOfs[14];
             ready_tbl[5] = g_readyOfs[14];
             ready_tbl[6] = g_readyOfs[14];
             ready_tbl[7] = g_readyOfs[14];
@@ -1197,10 +1219,16 @@ void CameraQuasiFPS::move()
         int i;
         int j;
 
-        CameraSetOrientationRoll(&c);
-        for (i = 0; i < 8; i++) {
-            PSMTXMultVec(c.mat, &View.localFull.point[i], &view_box[cnt].point[i]);
-            PSMTXMultVec(c.mat, &View.localFull.point[i], &view_box[cnt].point[i]);
+        {
+            ViewFrustum* vf = &View.localFull;
+            Vec* src;
+
+            CameraSetOrientationRoll(&c);
+            src = vf->point;
+            for (i = 0; i < 8; i++, src++) {
+                PSMTXMultVec(c.mat, src, &view_box[cnt].point[i]);
+                PSMTXMultVec(c.mat, src, &view_box[cnt].point[i]);
+            }
         }
         for (i = 0; i < 16; i++) {
             for (j = 0; j < 4; j++) {
@@ -1234,6 +1262,6 @@ void CameraQuasiFPS::move()
     cam.param.pos = c.param.pos;
     cam.param.at = c.param.at;
     reset = 0;
-    cam.param.roll = c.param.roll;
     cam.param.fovy = c.param.fovy;
+    cam.param.roll = c.param.roll;
 }

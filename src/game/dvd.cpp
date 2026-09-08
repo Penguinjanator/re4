@@ -36,7 +36,6 @@ void PADControlMotor(int chan, u32 cmd);
 void GXSetCopyClear(GXColor clear_clr, u32 clear_z);
 void GXCopyDisp(void* dest, u8 clear);
 void ADXGC_SetupDvdFs(int mode);
-void systemResetCheck();
 u16 OSGetFontEncode();
 int OSInitFont(void* fontData);
 char* OSGetFontTexture(const char* string, void** image, s32* x, s32* y, s32* width);

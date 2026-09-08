@@ -143,6 +143,8 @@ void GXSetAlphaCompare(int comp0, u8 ref0, int op, int comp1, u8 ref1);
 void GXClearVtxDesc(void);
 void GXSetVtxDesc(int attr, int type);
 void GXSetVtxAttrFmt(int vtxfmt, int attr, int cnt, int type, u8 frac);
+void GXSetArray(int attr, void* base_ptr, u8 stride);
+void GXCallDisplayList(void* list, u32 nbytes);
 void GXLoadPosMtxImm(const f32 mtx[3][4], u32 id);
 void GXLoadNrmMtxImm(const f32 mtx[3][4], u32 id);
 void GXLoadTexMtxImm(const f32 mtx[][4], u32 id, int type);

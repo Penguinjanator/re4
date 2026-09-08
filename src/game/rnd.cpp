@@ -3,7 +3,7 @@
 
 static u16 Random;
 
-static void RndInit(u16 seed)
+void RndInit(u16 seed)
 {
     Random = seed;
 }

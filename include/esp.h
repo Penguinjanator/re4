@@ -237,6 +237,7 @@ void EspCommonTrans(cEsp* esp);
 int EspGetAnmAddr(int no, EspAnmData** out);
 void EspTexSet(int anmNo, int ptn);
 void* EspGetPathAddr(int id, int no);
+struct EspSeqData* EspGetEstAddr(u8 owner, u8 id, int a);
 // game/path.cpp
 int PathHasWeight(void* path);
 f32 PathGetLength(void* path);

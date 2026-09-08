@@ -78,6 +78,12 @@ void Espgen00_Move(EspgenWork* w);
 int Espgen00_SetFreeWork(EspgenWork* w, EspGenWork* rec, EspSeqData* head, cModel* model, u16 parts, Mtx* mtx,
                          Vec* pos, Vec* rot, EspSeqOpt* p8, int flag);
 
+// game/espgen01.cpp
+void Espgen01_Move(EspgenWork* w);
+void Espgen01_Trans(EspgenWork* w);
+int Espgen01_SetFreeWork(EspgenWork* w, EspGenWork* rec, EspSeqData* head, cModel* model, u16 parts, Mtx* mtx,
+                         Vec* pos, Vec* rot, EspSeqOpt* p8, int flag);
+
 // game/espgen44.cpp
 void Espgen44_Move(EspgenWork* w);
 void Espgen44_Trans(EspgenWork* w);

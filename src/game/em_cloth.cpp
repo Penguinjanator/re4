@@ -293,6 +293,8 @@ void Em18ClothSet(cModel* m, PlCloth* c, int a)
     c->nAt = 15;
     c->x3C = 20.0f;
     c->pModel = m;
+    c->x40 = 0.1f;
+    c->x44 = 4;
     c->x48 = 0.0f;
     c->x4C = 0.05f;
     c->x50 = 0.0f;
@@ -302,8 +304,6 @@ void Em18ClothSet(cModel* m, PlCloth* c, int a)
         c->pRate = 0;
         c->x4C = 1.0f;
     }
-    c->x40 = 0.1f;
-    c->x44 = 4;
     PenClothSet(m, (PenCloth*) c, 100.0f);
 }
 
@@ -410,10 +410,10 @@ void Em33ClothSet(cModel* m, PlCloth* c, int small)
     c->x3C = 10.0f;
     c->x40 = 0.8f;
     c->x44 = 4;
+    c->pModel = m;
     c->x48 = 0.0f;
     c->x4C = 0.1f;
     c->x50 = 0.0f;
-    c->pModel = m;
     c->flags = 0x100;
     c->x54 = 0;
     PenClothSet(m, (PenCloth*) c, 100.0f);
@@ -448,20 +448,21 @@ void Em33ClothSet2(cModel* m, PlCloth* c, int small)
     c->x3C = 10.0f;
     c->x40 = 0.8f;
     c->x44 = 4;
+    c->pModel = m;
     c->x48 = 0.0f;
     c->x4C = 0.1f;
     c->x50 = 0.0f;
-    c->pModel = m;
     c->flags = 0x100;
     c->x54 = 0;
     PenClothSet(m, (PenCloth*) c, 100.0f);
 }
 
-static inline void em33PartsFollow(cModel* m, int no, int src)
+void Em33ClothMove2(cModel* m, PlCloth* c)
 {
-    cModel* p = m->getPartsPtr(no);
+    cModel* p;
 
-    p->rot.y = m->getPartsPtr(src)->rot.y;
+    p = m->getPartsPtr(0xA9);
+    p->rot.z = m->getPartsPtr(7)->rot.z;
     RotMatrix(p->worldMat, &p->rot);
     TransMatrix(p->worldMat, &p->pos);
     ScaleMatrix(p->worldMat, &p->scale);
@@ -469,12 +470,15 @@ static inline void em33PartsFollow(cModel* m, int no, int src)
     p->worldPos.x = p->mat[0][3];
     p->worldPos.y = p->mat[1][3];
     p->worldPos.z = p->mat[2][3];
-}
-
-void Em33ClothMove2(cModel* m, PlCloth* c)
-{
-    em33PartsFollow(m, 0xA9, 7);
-    em33PartsFollow(m, 0xB8, 0xB);
+    p = m->getPartsPtr(0xB8);
+    p->rot.z = m->getPartsPtr(0xB)->rot.z;
+    RotMatrix(p->worldMat, &p->rot);
+    TransMatrix(p->worldMat, &p->pos);
+    ScaleMatrix(p->worldMat, &p->scale);
+    PSMTXConcat(p->pParent->mat, p->worldMat, p->mat);
+    p->worldPos.x = p->mat[0][3];
+    p->worldPos.y = p->mat[1][3];
+    p->worldPos.z = p->mat[2][3];
     PenClothMove3(m, (PenCloth*) c);
 }
 
@@ -497,42 +501,42 @@ cObjChain* Em2bShortRopeSet(cModel* m, PlCloth* c, void* bin, void* tpl)
     rot.y = 0.0f;
     rot.z = 0.0f;
     chain = SetChain(bin, tpl, &pos, &rot);
-    if (chain) {
-        c->num = 5;
-        c->pParts = em2bShortRopeP;
-        c->pLeft = 0;
-        c->pRight = 0;
-        c->pUpLeft = 0;
-        c->x14 = 0;
-        c->pUp = em2bShortRopeUp;
-        c->pDown = em2bShortRopeDp;
-        c->x20 = 0;
-        c->pRate = 0;
-        c->pMax = 0;
-        c->pWindS = 0;
-        c->pWindR = 0;
-        c->pAt = em2bRopeAt;
-        c->nAt = 5;
-        c->x3C = 20.0f;
-        c->x40 = 0.8f;
-        c->x44 = 100;
-        c->x48 = 0.0f;
-        c->x4C = 0.1f;
-        c->x50 = 0.0f;
-        c->pModel = m;
-        c->flags = 0;
-        c->x54 = 0;
-        chain->setChain((PenCloth*) c);
-        pos.x = -290.0f;
-        pos.y = -162.95f;
-        pos.z = 655.0f;
-        ofs.x = -290.0f;
-        ofs.y = -412.32f;
-        ofs.z = 39.15f;
-        chain->setParent2(m, 3, &pos, 4, &ofs, 0);
-        return chain;
+    if (chain == 0) {
+        return 0;
     }
-    return 0;
+    c->num = 5;
+    c->pParts = em2bShortRopeP;
+    c->pLeft = 0;
+    c->pRight = 0;
+    c->pUpLeft = 0;
+    c->x14 = 0;
+    c->pUp = em2bShortRopeUp;
+    c->pDown = em2bShortRopeDp;
+    c->pMax = 0;
+    c->pWindS = 0;
+    c->pWindR = 0;
+    c->x20 = 0;
+    c->pRate = 0;
+    c->pAt = em2bRopeAt;
+    c->nAt = 5;
+    c->x3C = 20.0f;
+    c->x40 = 0.8f;
+    c->x44 = 100;
+    c->pModel = m;
+    c->x48 = 0.0f;
+    c->x4C = 0.1f;
+    c->x50 = 0.0f;
+    c->flags = 0;
+    c->x54 = 0;
+    chain->setChain((PenCloth*) c);
+    pos.x = -290.0f;
+    pos.y = -162.95f;
+    pos.z = 655.0f;
+    ofs.x = -290.0f;
+    ofs.y = -412.32f;
+    ofs.z = 39.15f;
+    chain->setParent2(m, 3, &pos, 4, &ofs, 0);
+    return chain;
 }
 
 void Em30ClothSet1(cModel* m, PlCloth* c)
@@ -607,3 +611,11 @@ void Em30ClothReset(cModel* m)
 {
     m->be_flag &= ~0x00E00000;
 }
+
+// Never called (dead-stripped by the original linker; only its 0.0f pool entry survives).
+static void Em30ClothStop(cModel* m, PlCloth* c)
+{
+    c->x48 = 0.0f;
+}
+
+asm(".section .sdata; .balign 8");

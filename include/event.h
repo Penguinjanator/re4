@@ -29,6 +29,7 @@ class EventMgr {
 public:
     u8 pad_0[0x180];
 
+    void init();
     // Looks a file of the running event up by name; 0 when it is not loaded.
     int GetBin(void** out, const char* name, int a);
 };
