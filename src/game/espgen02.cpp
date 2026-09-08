@@ -348,10 +348,10 @@ void espgen02_Update(EspgenWork* w)
                     pp = &p->pos;
                 }
                 if (p->flags & 1) {
-                    ret = EspSeqSet(rec, &w->info, &p->seed, p->model, &mtx, 1, &esp, p->pOpt, pp, ang);
+                    ret = EspSeqSet(rec, &w->info, &p->seed, p->model, &mtx, 1, ang, &esp, p->pOpt, pp);
                     ang += step;
                 } else {
-                    ret = EspSeqSet(rec, &w->info, &p->seed, p->model, &mtx, 0, &esp, p->pOpt, pp, 0.0f);
+                    ret = EspSeqSet(rec, &w->info, &p->seed, p->model, &mtx, 0, 0.0f, &esp, p->pOpt, pp);
                 }
                 if (ret) {
                     esp->ApplyMatrix(m3);

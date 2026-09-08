@@ -266,11 +266,10 @@ int SmxGetFlag(cObj* obj)
 
 void smxInit(cObj* obj, u8 id)
 {
-    cSmx* smx = pSmx;
-    SmxWork* w = smx->work;
+    SmxWork* w = pSmx->work;
     int i;
 
-    for (i = 0; i < smx->nWork; i++, w++) {
+    for (i = 0; i < pSmx->nWork; i++, w++) {
         if (w->id == id) {
             smxInit(obj, w);
             return;
@@ -448,7 +447,7 @@ void cSmd::slide(int ofs)
 
 SmdWork* cSmd::getWorkPtr(int no)
 {
-    return (flags & 1) ? (SmdWork*) ((u8*) this + 0x14 + grp.nGroup * 4) : &work[no];
+    return (flags & 1) ? (SmdWork*) ((u8*) this + grp.nGroup * 4 + 0x14) : &work[no];
 }
 
 void* cSmd::getBinPtr(int no)
@@ -475,9 +474,12 @@ int cSmd::getWorkNum()
     u32 i;
 
     if (flags & 1) {
-        u32* p = grp.num;
-        for (i = 0; i < grp.nGroup; i++) {
-            n += *p++;
+        i = 0;
+        if (i < grp.nGroup) {
+            do {
+                n += grp.num[i];
+                i++;
+            } while (i < grp.nGroup);
         }
     }
     return n;
@@ -532,7 +534,10 @@ cObj* SmdGetGroupObjPtr2(u32 id)
 
 cObj* SmdGetGroupNext(cObj* obj)
 {
-    return (obj->x3D0 & 4) ? ObjMgr.getPrevWork(obj) : NULL;
+    if (!(obj->x3D0 & 4)) {
+        return NULL;
+    }
+    return ObjMgr.getPrevWork(obj);
 }
 
 void SmdSetTrans(u32 id, int on)

@@ -556,6 +556,13 @@ mark it Matching.
   `fadds` vs `fmr` diff.
 - Two identical calls in if/else arms are not cross-jumped when the shared argument is a local read
   before the `if`.
+- Switch nodes sharing the default target: a leaf whose every exit goes to default vanishes (grouped
+  with `default:`), but a default-target node with a right sibling in its chain keeps `cmpwi N; beq
+  default`; both count for the tree balance.
+- `u8 stat = 1;` gives a QImode pseudo folded into the `stb` (late `li r0,1`); `int one = 1` shared
+  between a u16 call argument and a u8 store keeps an SImode pseudo hoisted into a callee-saved reg.
+- Read constant pools from the split `.o` bytes, not by hand-parsing the `.s`; objdiff scores pool
+  values symbolically and hides wrong constants.
 - Static locals show as `name.NNN` in objdiff; the DECL_UID suffix cannot be reproduced and is ignored by the report.
 - Unexplained words in `.rodata` (zero words, stray floats) are usually the constant pool of a function
   the original linker dead-stripped (bodies gone, pools kept, `STRIP_UNUSED` in objects.py): write a

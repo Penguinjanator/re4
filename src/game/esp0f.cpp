@@ -57,6 +57,7 @@ extern "C" void Esp0f_Trans(cEsp0f* esp)
     f32 x0;
     f32 y0;
     f32 z;
+    f32 zero;
     f32 s0;
     f32 s1;
     f32 t0;
@@ -115,67 +116,16 @@ extern "C" void Esp0f_Trans(cEsp0f* esp)
     ox = -anm->x4;
     oy = (f32)anm->x6;
     z = 1.0f;
-    if (ox == 0.0f) {
+    zero = 0.0f;
+    if (ox == zero) {
         ox = -anm->x0 * 0.5f;
     }
-    if (oy == 0.0f) {
+    if (oy == zero) {
         oy = anm->x2 * 0.5f;
     }
     x0 = ox * sx / anm->x0;
     y0 = oy * sy / anm->x2;
-    if (esp->flags & 2) {
-        if ((s8)esp->partsNo >= -8 && (s8)esp->partsNo <= -3) {
-            if (!(esp->flags & 4)) {
-                s1 = 0.0f;
-                s0 = s1 + z;
-                t0 = s0;
-                t1 = s1;
-            } else {
-                s1 = 0.0f;
-                s0 = s1 + z;
-                t0 = s1;
-                t1 = s0;
-            }
-        } else {
-            if (esp->flags & 4) {
-                s1 = 0.0f;
-                s0 = s1 + z;
-                t0 = s0;
-                t1 = s1;
-            } else {
-                s1 = 0.0f;
-                s0 = s1 + z;
-                t0 = s1;
-                t1 = s0;
-            }
-        }
-    } else {
-        if ((s8)esp->partsNo >= -8 && (s8)esp->partsNo <= -3) {
-            if (!(esp->flags & 4)) {
-                s0 = 0.0f;
-                s1 = s0 + z;
-                t1 = s0;
-                t0 = s1;
-            } else {
-                s0 = 0.0f;
-                s1 = s0 + z;
-                t0 = s0;
-                t1 = s1;
-            }
-        } else {
-            if (esp->flags & 4) {
-                s0 = 0.0f;
-                s1 = s0 + z;
-                t1 = s0;
-                t0 = s1;
-            } else {
-                s0 = 0.0f;
-                s1 = s0 + z;
-                t0 = s0;
-                t1 = s1;
-            }
-        }
-    }
+    ESP_SPRITE_CORNERS(esp, zero, z, s0, s1, t0, t1)
     fog.r = fog.g = fog.b = fog.a = 0;
     GXSetFog(0, 0.0f, 0.0f, ZNEAR, ZFAR, fog);
     buf = GetDrawTmpBufAddr(3);

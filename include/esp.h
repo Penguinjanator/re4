@@ -407,4 +407,38 @@ extern u8 g_EspCommonDisplayList[0x60];
 // game/trans.cpp: fallback texture used when an effect texture id has no object
 extern GXTexObj Specular;
 
+// Sprite texture-corner selection (esp_sub/esp0f/esp12/esp16/esp18 Trans; esp08 has its own leaf
+// shapes): flags bit1 flips s, bit2 flips t, screen sprites are drawn upside down. One combined
+// condition and corners built from a `zero` variable: each leaf is a jump target where cse knows
+// neither operand of `zero + z`, which keeps the `fadds` (nested ifs with literals fold 0 + z).
+#define ESP_SPRITE_SCREEN(esp) ((s8) (esp)->partsNo >= -8 && (s8) (esp)->partsNo <= -3)
+#define ESP_SPRITE_FLIP_T(esp)                                                                    \
+    ((ESP_SPRITE_SCREEN(esp) && !((esp)->flags & 4)) || (!ESP_SPRITE_SCREEN(esp) && ((esp)->flags & 4)))
+#define ESP_SPRITE_CORNERS(esp, zero, z, s0, s1, t0, t1)                                          \
+    if ((esp)->flags & 2) {                                                                       \
+        if (ESP_SPRITE_FLIP_T(esp)) {                                                             \
+            s0 = zero + z;                                                                        \
+            s1 = zero;                                                                            \
+            t0 = s0;                                                                              \
+            t1 = s1;                                                                              \
+        } else {                                                                                  \
+            s0 = zero + z;                                                                        \
+            t0 = zero;                                                                            \
+            s1 = zero;                                                                            \
+            t1 = s0;                                                                              \
+        }                                                                                         \
+    } else {                                                                                      \
+        if (ESP_SPRITE_FLIP_T(esp)) {                                                             \
+            s0 = zero;                                                                            \
+            s1 = s0 + z;                                                                          \
+            t1 = s0;                                                                              \
+            t0 = s1;                                                                              \
+        } else {                                                                                  \
+            s0 = zero;                                                                            \
+            s1 = s0 + z;                                                                          \
+            t0 = s0;                                                                              \
+            t1 = s1;                                                                              \
+        }                                                                                         \
+    }
+
 #endif

@@ -41,6 +41,39 @@ struct EspPtr {
 
 #define ESP_PARTS_SCREEN(esp) ((s8) (esp)->partsNo >= -8 && (s8) (esp)->partsNo <= -3)
 
+// Texture coordinate corners for the sprite orientation (flags bit1: flip s, bit2: flip t;
+// screen sprites are drawn upside down). One combined condition and corners built from a `zero`
+// variable: each leaf is a jump target where cse knows neither operand of `zero + z`, which
+// keeps the adds (nested ifs with literals fold 0 + z). The flip-s leaves add first, copy after.
+#define ESP_FLIP_T(esp)                                                                           \
+    ((ESP_PARTS_SCREEN(esp) && !((esp)->flags & 4)) || (!ESP_PARTS_SCREEN(esp) && ((esp)->flags & 4)))
+#define ESP_TEXCOORD_SET()                                                                        \
+    if (esp->flags & 2) {                                                                         \
+        if (ESP_FLIP_T(esp)) {                                                                    \
+            s0 = zero + z;                                                                        \
+            s1 = zero;                                                                            \
+            t0 = s0;                                                                              \
+            t1 = s1;                                                                              \
+        } else {                                                                                  \
+            s0 = zero + z;                                                                        \
+            t0 = zero;                                                                            \
+            s1 = zero;                                                                            \
+            t1 = s0;                                                                              \
+        }                                                                                         \
+    } else {                                                                                      \
+        if (ESP_FLIP_T(esp)) {                                                                    \
+            s0 = zero;                                                                            \
+            s1 = s0 + z;                                                                          \
+            t1 = s0;                                                                              \
+            t0 = s1;                                                                              \
+        } else {                                                                                  \
+            s0 = zero;                                                                            \
+            s1 = s0 + z;                                                                          \
+            t0 = s0;                                                                              \
+            t1 = s1;                                                                              \
+        }                                                                                         \
+    }
+
 // Shared sprite draw: the sprite quad (g_EspCommonDisplayList) with the effect's texture, an
 // optional mask texture in TEV stage 1, screen-space or camera-relative placement.
 void EspCommonTrans(cEsp* esp)
@@ -201,9 +234,9 @@ void EspCommonTrans(cEsp* esp)
     } else {
         Mtx m;
 
-        esp->mat[2][2] = 1.0f;
         esp->mat[0][0] = sx;
         esp->mat[0][1] = 0.0f;
+        esp->mat[2][2] = 1.0f;
         esp->mat[0][2] = 0.0f;
         esp->mat[0][3] = ox * sx;
         esp->mat[1][0] = 0.0f;
@@ -339,6 +372,7 @@ static void EspCommonTransShimmer(cEsp* esp, int type, u32 blur)
     f32 x0;
     f32 y0;
     f32 z;
+    f32 zero;
     f32 s0;
     f32 s1;
     f32 t0;
@@ -408,67 +442,16 @@ static void EspCommonTransShimmer(cEsp* esp, int type, u32 blur)
     ox = -anm->x4;
     oy = (f32) anm->x6;
     z = 1.0f;
-    if (ox == 0.0f) {
+    zero = 0.0f;
+    if (ox == zero) {
         ox = -anm->x0 * 0.5f;
     }
-    if (oy == 0.0f) {
+    if (oy == zero) {
         oy = anm->x2 * 0.5f;
     }
     x0 = ox * sx / anm->x0;
     y0 = oy * sy / anm->x2;
-    if (esp->flags & 2) {
-        if (ESP_PARTS_SCREEN(esp)) {
-            if (!(esp->flags & 4)) {
-                s1 = 0.0f;
-                s0 = s1 + z;
-                t0 = s0;
-                t1 = s1;
-            } else {
-                s1 = 0.0f;
-                s0 = s1 + z;
-                t0 = s1;
-                t1 = s0;
-            }
-        } else {
-            if (esp->flags & 4) {
-                s1 = 0.0f;
-                s0 = s1 + z;
-                t0 = s0;
-                t1 = s1;
-            } else {
-                s1 = 0.0f;
-                s0 = s1 + z;
-                t0 = s1;
-                t1 = s0;
-            }
-        }
-    } else {
-        if (ESP_PARTS_SCREEN(esp)) {
-            if (!(esp->flags & 4)) {
-                s0 = 0.0f;
-                s1 = s0 + z;
-                t1 = s0;
-                t0 = s1;
-            } else {
-                s0 = 0.0f;
-                s1 = s0 + z;
-                t0 = s0;
-                t1 = s1;
-            }
-        } else {
-            if (esp->flags & 4) {
-                s0 = 0.0f;
-                s1 = s0 + z;
-                t1 = s0;
-                t0 = s1;
-            } else {
-                s0 = 0.0f;
-                s1 = s0 + z;
-                t0 = s0;
-                t1 = s1;
-            }
-        }
-    }
+    ESP_TEXCOORD_SET()
     GXTexObj tex;
     f32 indMtx[2][3];
     f32 dot;
@@ -477,7 +460,7 @@ static void EspCommonTransShimmer(cEsp* esp, int type, u32 blur)
     fog.r = fog.g = fog.b = fog.a = 0;
     GXSetFog(0, 0.0f, 0.0f, ZNEAR, ZFAR, fog);
     if (esp->flags & 0x1000) {
-        if (GetDrawTmpBufType() != 2) {
+        if (GetDrawTmpBufType() == 2) {
             copyOk = 0;
         }
         buf = GetDrawTmpBufAddr(2);
@@ -681,6 +664,7 @@ void EspCommonTransNega(cEsp* esp, u32 type)
     f32 x0;
     f32 y0;
     f32 z;
+    f32 zero;
     f32 s0;
     f32 s1;
     f32 t0;
@@ -741,67 +725,16 @@ void EspCommonTransNega(cEsp* esp, u32 type)
     ox = -anm->x4;
     oy = (f32) anm->x6;
     z = 1.0f;
-    if (ox == 0.0f) {
+    zero = 0.0f;
+    if (ox == zero) {
         ox = -anm->x0 * 0.5f;
     }
-    if (oy == 0.0f) {
+    if (oy == zero) {
         oy = anm->x2 * 0.5f;
     }
     x0 = ox * sx / anm->x0;
     y0 = oy * sy / anm->x2;
-    if (esp->flags & 2) {
-        if (ESP_PARTS_SCREEN(esp)) {
-            if (!(esp->flags & 4)) {
-                s1 = 0.0f;
-                s0 = s1 + z;
-                t0 = s0;
-                t1 = s1;
-            } else {
-                s1 = 0.0f;
-                s0 = s1 + z;
-                t0 = s1;
-                t1 = s0;
-            }
-        } else {
-            if (esp->flags & 4) {
-                s1 = 0.0f;
-                s0 = s1 + z;
-                t0 = s0;
-                t1 = s1;
-            } else {
-                s1 = 0.0f;
-                s0 = s1 + z;
-                t0 = s1;
-                t1 = s0;
-            }
-        }
-    } else {
-        if (ESP_PARTS_SCREEN(esp)) {
-            if (!(esp->flags & 4)) {
-                s0 = 0.0f;
-                s1 = s0 + z;
-                t1 = s0;
-                t0 = s1;
-            } else {
-                s0 = 0.0f;
-                s1 = s0 + z;
-                t0 = s0;
-                t1 = s1;
-            }
-        } else {
-            if (esp->flags & 4) {
-                s0 = 0.0f;
-                s1 = s0 + z;
-                t1 = s0;
-                t0 = s1;
-            } else {
-                s0 = 0.0f;
-                s1 = s0 + z;
-                t0 = s0;
-                t1 = s1;
-            }
-        }
-    }
+    ESP_TEXCOORD_SET()
     fog.r = fog.g = fog.b = fog.a = 0;
     GXSetFog(0, 0.0f, 0.0f, ZNEAR, ZFAR, fog);
     buf = GetDrawTmpBufAddr(3);
@@ -1177,20 +1110,19 @@ int EspEstSetSelect(int a, int b, int c, cEsp** out, int d)
     if (d == 1) {
         info.x0 |= 1;
     }
-    return EspSeqSet(rec, &info, &seed, 0, &m, 0, out, 0, 0, 0.0f) == 1;
+    return EspSeqSet(rec, &info, &seed, 0, &m, 0, 0.0f, out, 0, 0) == 1;
 }
 
-int EspSeqSet(EspGenWork* rec, EspInfo* info, u32* seed, cModel* model, Mtx* mtx, int a, cEsp** out, EspSeqOpt* p8,
-              Vec* pos, f32 f)
+int EspSeqSet(EspGenWork* rec, EspInfo* info, u32* seed, cModel* model, Mtx* mtx, int a, f32 f, cEsp** out,
+              EspSeqOpt* p8, Vec* pos)
 {
     static int bl[6][4] = {
         {1, 4, 5, 0}, {1, 4, 1, 0}, {1, 1, 1, 0}, {1, 2, 1, 0}, {1, 2, 0, 0}, {1, 4, 3, 0},
     };
-    EspPtr e;
     Vec v;
     Mtx m;
     Mtx m2;
-    Vec r;
+    EspPtr e;
     f32 rnd;
     int ret;
     cModel* parts;
@@ -1249,10 +1181,10 @@ int EspSeqSet(EspGenWork* rec, EspInfo* info, u32* seed, cModel* model, Mtx* mtx
         e.p->spd.y += rec->x34.y * fRandSeed1_1(seed);
         e.p->spd.z += rec->x34.z * fRandSeed1_1(seed);
         if (a) {
-            r.x = 0.0f;
-            r.y = f;
-            r.z = 0.0f;
-            RotMatrixZXY(m, &r);
+            v.x = 0.0f;
+            v.y = f;
+            v.z = 0.0f;
+            RotMatrixZXY(m, &v);
             PSMTXMultVecSR(m, &e.p->spd, &e.p->spd);
         }
         e.p->spdScale = rec->x30;

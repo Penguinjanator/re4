@@ -141,6 +141,7 @@ static inline u32 saveItemBase(int ofs)
 // Non-struct store at a constant offset from a struct pointer (aliases every following global load, so
 // the original's `lwz pPL` stays behind the store).
 #define RAW_F32(p, ofs) (*(f32*) ((u32) (p) + (ofs)))
+#define RAW_U32(p, ofs) (*(u32*) ((u32) (p) + (ofs)))
 
 // em_dead row address as an integer (the original adds the list offset after the row index).
 static inline u32 emDeadRow(int n)
@@ -2557,6 +2558,7 @@ static void sceAtCamCtrlCheck()
     SceAtWork* w;
     f32 best = 100000000.0f;
     f32 r;
+    f32 r2;
     f32 d;
     f32 dy;
     f32 a;
@@ -2576,12 +2578,12 @@ static void sceAtCamCtrlCheck()
         } else {
             r = c->range;
         }
-        r = r * r;
+        r2 = r * r;
         d = PSVECSquareDistance(&pPL->pos, &c->pos);
-        if (r <= d) {
+        if (!(r2 > d)) {
             continue;
         }
-        if (best <= d) {
+        if (!(best > d)) {
             continue;
         }
         dy = pPL->pos.y - c->pos.y;
@@ -2618,7 +2620,7 @@ static void sceAtCamCtrlCheck()
         found = c;
     }
     if (found != 0) {
-        pS->pCamAt = found;
+        RAW_U32(pS, 0x120) = (u32) found;
         CamCtrl.qfps.LRinfo(found);
         return;
     }
@@ -2626,23 +2628,27 @@ static void sceAtCamCtrlCheck()
     if (ret < 0) {
         return;
     }
-    if (ret <= 1) {
+    if (ret > 1) {
+        if (ret == 2) {
+            RAW_U32(pS, 0x120) = (u32) &auto_work;
+            auto_work.pos = pPL->pos;
+            auto_work.angle = pPL->rot.y;
+            CamCtrl.qfps.LRinfo(&auto_work);
+        }
+    } else {
         if (pS->pCamAt != 0) {
-            if (250000.0f < PSVECSquareDistance(&pPL->pos, &pS->pCamAt->pos)) {
-                pS->pCamAt = 0;
+            f32 lim = 250000.0f;
+
+            if (lim < PSVECSquareDistance(&pPL->pos, &pS->pCamAt->pos)) {
+                RAW_U32(pS, 0x120) = 0;
             } else {
                 a = LIMIT_ANGLE(pS->pCamAt->angle - pPL->rot.y);
                 if (a < -1.2217305f || a > 1.2217305f) {
-                    pS->pCamAt = 0;
+                    RAW_U32(pS, 0x120) = 0;
                 }
             }
         }
         CamCtrl.qfps.LRinfo(pS->pCamAt);
-    } else if (ret == 2) {
-        pS->pCamAt = &auto_work;
-        auto_work.pos = pPL->pos;
-        auto_work.angle = pPL->rot.y;
-        CamCtrl.qfps.LRinfo(&auto_work);
     }
 }
 
@@ -2651,9 +2657,7 @@ static void sceAtDebugDisp()
     AreaData eye;
     Mtx mat;
     Mtx pmat;
-    Vec zero;
     SceAtWork* w;
-    cModel* src;
 
     if (pG->debug_mode != 0x11 && !(pG->flags_60 & 0x00400000)) {
         return;
@@ -2668,15 +2672,12 @@ static void sceAtDebugDisp()
             AreaDataDisp(&w->area, 0x80808080, 1, 0);
         } else {
             if (w->parentParts >= 0) {
-                src = w->pParent->getPartsPtr(w->parentParts);
+                MTX_COPY(w->pParent->getPartsPtr(w->parentParts)->mat, pmat);
             } else {
-                src = w->pParent;
+                MTX_COPY(w->pParent->mat, pmat);
             }
-            MTX_COPY(src->mat, pmat);
             if (w->flag & 8) {
-                zero.x = 0.0f;
-                zero.y = 0.0f;
-                zero.z = 0.0f;
+                Vec zero = { 0.0f, 0.0f, 0.0f };
                 low_RotMatrix(mat, &zero);
                 mat[0][3] = pmat[0][3];
                 mat[1][3] = pmat[1][3];
@@ -3973,40 +3974,41 @@ void sceAtItemEffSet(SceAtWork* w, cModel* m)
     if (it->effNo == 0) {
         return;
     }
-    if ((parent = w->pParent) == 0) {
+    parent = w->pParent;
+    if (parent == 0) {
         if (m == 0) {
             p.x = w->item.pos.x + it->ofs.x;
             p.y = it->pos.y + it->ofs.y;
             p.z = it->pos.z + it->ofs.z;
             switch (it->effType) {
             case 1:
-                EstSet(0, -1, &p, 0, 0, 0x21, 0xC00, it->effNo, 0, 0);
+                EstSet(0, -1, &p, 0, 0, 0x21, 0xC00, it->effNo, (u32) parent, parent);
                 break;
             case 3:
-                EstSet(0, -1, &p, 0, 0, 0x2C, 0xC00, it->effNo, 0, 0);
+                EstSet(0, -1, &p, 0, 0, 0x2C, 0xC00, it->effNo, (u32) parent, parent);
                 break;
             case 5:
-                EstSet(0, -1, &p, 0, 0, 0x2F, 0xC00, it->effNo, 0, 0);
+                EstSet(0, -1, &p, 0, 0, 0x2F, 0xC00, it->effNo, (u32) parent, parent);
                 break;
             case 4:
-                EstSet(0, -1, &p, 0, 0, 0x31, 0xC00, it->effNo, 0, 0);
+                EstSet(0, -1, &p, 0, 0, 0x31, 0xC00, it->effNo, (u32) parent, parent);
                 break;
             case 2:
-                EstSet(0, -1, &p, 0, 0, 0x33, 0xC00, it->effNo, 0, 0);
-                EstSet(0, -1, &p, 0, 0, 0x21, 0xC00, it->effNo, 0, 0);
+                EstSet(0, -1, &p, 0, 0, 0x33, 0xC00, it->effNo, (u32) parent, parent);
+                EstSet(0, -1, &p, 0, 0, 0x21, 0xC00, it->effNo, (u32) parent, parent);
                 break;
             case 7:
-                EstSet(0, -1, &p, 0, 0, 0x46, 0xC00, it->effNo, 0, 0);
-                EstSet(0, -1, &p, 0, 0, 0x21, 0xC00, it->effNo, 0, 0);
+                EstSet(0, -1, &p, 0, 0, 0x46, 0xC00, it->effNo, (u32) parent, parent);
+                EstSet(0, -1, &p, 0, 0, 0x21, 0xC00, it->effNo, (u32) parent, parent);
                 break;
             case 8:
                 q = p;
                 q.y -= 800.0f;
-                EstSet(0, -1, &q, 0, 0, 0x33, 0xC00, it->effNo, 0, 0);
-                EstSet(0, -1, &p, 0, 0, 0x21, 0xC00, it->effNo, 0, 0);
+                EstSet(0, -1, &q, 0, 0, 0x33, 0xC00, it->effNo, (u32) parent, parent);
+                EstSet(0, -1, &p, 0, 0, 0x21, 0xC00, it->effNo, (u32) parent, parent);
                 break;
             case 9:
-                EstSet(0, -1, &p, 0, 0, 0x4D, 0xC00, it->effNo, 0, 0);
+                EstSet(0, -1, &p, 0, 0, 0x4D, 0xC00, it->effNo, (u32) parent, parent);
                 break;
             case 6:
                 break;
@@ -4075,6 +4077,7 @@ void sceAtItemEffSet(SceAtWork* w, cModel* m)
     default:
         return;
     }
+    parent = w->pParent;
     p.x = it->pos.x + it->ofs.x;
     p.y = it->pos.y + it->ofs.y;
     p.z = it->pos.z + it->ofs.z;
@@ -4159,17 +4162,206 @@ void sceAtItemEffSet(SceAtWork* w, cModel* m)
             return;
         }
         EstSet((int) parent, -1, &p, 0, c, kind, 0xC00, it->effNo, 0, 0);
-        EstSet((int) parent, -1, &p, 0, 0, 0x2D, 0xC00, it->effNo, 0, 0);
-        break;
+        // fall through
     case 1:
-        EstSet((int) parent, -1, &p, 0, 0, 0x2D, 0xC00, it->effNo, 0, 0);
-        break;
-    case 6:
-        break;
     case 7:
     case 8:
     case 9:
         EstSet((int) parent, -1, &p, 0, 0, 0x2D, 0xC00, it->effNo, 0, 0);
+        break;
+    case 6:
+        break;
+    }
+}
+
+void sceAtItemDisappearEffSet(SceAtWork* w, cModel* m)
+{
+    Vec p;
+    SceAtItem* it = &w->item;
+    int c;
+    int kind;
+
+    if ((s8) pG->x4 != 0) {
+        return;
+    }
+    it->effNo = 0;
+    if (it->effType == 0) {
+        return;
+    }
+    it->effNo = EspPullCoreKind();
+    if (it->effNo == 0) {
+        return;
+    }
+    if (w->pParent == 0) {
+        if (m == 0) {
+            p.x = w->item.pos.x + it->ofs.x;
+            p.y = it->pos.y + it->ofs.y;
+            p.z = it->pos.z + it->ofs.z;
+            switch (it->effType) {
+            case 3:
+                EstSet(0, -1, &p, 0, 0, 0x2E, 0xC00, it->effNo, (u32) m, m);
+                break;
+            case 5:
+                EstSet(0, -1, &p, 0, 0, 0x30, 0xC00, it->effNo, (u32) m, m);
+                break;
+            case 4:
+                EstSet(0, -1, &p, 0, 0, 0x32, 0xC00, it->effNo, (u32) m, m);
+                break;
+            case 2:
+                EstSet(0, -1, &p, 0, 0, 0x34, 0xC00, it->effNo, (u32) m, m);
+                break;
+            case 7:
+                EstSet(0, -1, &p, 0, 0, 0x47, 0xC00, it->effNo, (u32) m, m);
+                break;
+            case 8:
+                p.y -= 800.0f;
+                EstSet(0, -1, &p, 0, 0, 0x34, 0xC00, it->effNo, (u32) m, m);
+                break;
+            case 1:
+            case 6:
+            case 9:
+                break;
+            }
+        } else {
+            p.x = m->pos.x + it->ofs.x;
+            p.y = m->pos.x + it->ofs.y;
+            p.z = m->pos.x + it->ofs.z;
+            switch (it->effType) {
+            case 3:
+                EstSet(0, -1, &p, 0, 0, 0x2E, 0xC00, it->effNo, 0, 0);
+                break;
+            case 5:
+                EstSet(0, -1, &p, 0, 0, 0x30, 0xC00, it->effNo, 0, 0);
+                break;
+            case 4:
+                EstSet(0, -1, &p, 0, 0, 0x32, 0xC00, it->effNo, 0, 0);
+                break;
+            case 2:
+                EstSet(0, -1, &p, 0, 0, 0x34, 0xC00, it->effNo, 0, 0);
+                break;
+            case 7:
+                EstSet(0, -1, &p, 0, 0, 0x47, 0xC00, it->effNo, 0, 0);
+                break;
+            case 8:
+                p.y -= 800.0f;
+                EstSet(0, -1, &p, 0, 0, 0x34, 0xC00, it->effNo, 0, 0);
+                break;
+            case 1:
+            case 6:
+            case 9:
+                break;
+            }
+        }
+        return;
+    }
+    switch (w->parentParts) {
+    case -1:
+    case 0:
+        break;
+    case 2:
+        if (pG->room_id != 0x30F) {
+            return;
+        }
+        break;
+    case 4:
+    case 8:
+        if (pG->room_id != 0x21B) {
+            return;
+        }
+        break;
+    default:
+        return;
+    }
+    p.x = it->pos.x + it->ofs.x;
+    p.y = it->pos.y + it->ofs.y;
+    p.z = it->pos.z + it->ofs.z;
+    kind = 0;
+    c = 0;
+    m = w->pParent;
+    switch (it->effType) {
+    case 3:
+        switch (w->parentParts) {
+        case -1:
+        case 0:
+            kind = 0x53;
+            break;
+        case 2:
+            c = 1;
+            kind = 0x20;
+            break;
+        case 4:
+            c = 1;
+            kind = 7;
+            break;
+        case 8:
+            c = 1;
+            kind = 0xD;
+            break;
+        }
+        EstSet((int) m, -1, &p, 0, c, kind, 0xC00, it->effNo, 0, 0);
+        break;
+    case 5:
+        switch (w->parentParts) {
+        case -1:
+        case 0:
+            kind = 0x54;
+            break;
+        case 2:
+            c = 1;
+            kind = 0x21;
+            break;
+        case 4:
+            c = 1;
+            kind = 9;
+            break;
+        case 8:
+            c = 1;
+            kind = 0xF;
+            break;
+        }
+        EstSet((int) m, -1, &p, 0, c, kind, 0xC00, it->effNo, 0, 0);
+        break;
+    case 4:
+        switch (w->parentParts) {
+        case -1:
+        case 0:
+            kind = 0x55;
+            break;
+        case 2:
+            c = 1;
+            kind = 0x22;
+            break;
+        case 4:
+            c = 1;
+            kind = 0xB;
+            break;
+        case 8:
+            c = 1;
+            kind = 0x11;
+            break;
+        }
+        EstSet((int) m, -1, &p, 0, c, kind, 0xC00, it->effNo, 0, 0);
+        break;
+    case 2:
+        switch (w->parentParts) {
+        case -1:
+        case 0:
+            kind = 0x56;
+            break;
+        case 2:
+            c = 1;
+            kind = 0x23;
+            break;
+        default:
+            return;
+        }
+        EstSet((int) m, -1, &p, 0, c, kind, 0xC00, it->effNo, 0, 0);
+        break;
+    case 1:
+    case 6:
+    case 7:
+    case 8:
+    case 9:
         break;
     }
 }

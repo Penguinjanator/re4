@@ -33,7 +33,7 @@ int EspgenDataSet(EspSeqData* head, int no, EspInfo* info, u32* seed, cModel* mo
         if (flag == 0) {
             pos = NULL;
         }
-        if (EspSeqSet(rec, info, seed, model, mtx, 0, &esp, p8, pos, 0.0f) == 0) {
+        if (EspSeqSet(rec, info, seed, model, mtx, 0, 0.0f, &esp, p8, pos) == 0) {
             ret = 0;
         }
         break;

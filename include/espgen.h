@@ -252,8 +252,8 @@ int EspgenGetCallNo();
 void EspgenIncCallNo();
 
 // game/esp_sub.cpp
-int EspSeqSet(EspGenWork* rec, EspInfo* info, u32* seed, cModel* model, Mtx* mtx, int a, cEsp** out, EspSeqOpt* p8,
-              Vec* pos, f32 f);
+int EspSeqSet(EspGenWork* rec, EspInfo* info, u32* seed, cModel* model, Mtx* mtx, int a, f32 f, cEsp** out,
+              EspSeqOpt* p8, Vec* pos);
 
 // game/est.cpp
 extern cModel* EspEvModList[0x80];

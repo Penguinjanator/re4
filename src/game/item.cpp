@@ -287,74 +287,63 @@ void cItemMgr::clear()
 
 int cItemMgr::set_game(int no)
 {
-    ItemWork* p;
-
     dump(0x7C);
     dump(0x7D);
     dump(0x7E);
     dump(0x7F);
     get(0x7C, 0);
     get(0x23, 1);
-    p = pLast;
-    p->x = 2;
-    p->y = 1;
-    p->orient = 0;
-    p->board = 1;
-    arm(p);
+    pLast->x = 2;
+    pLast->y = 1;
+    pLast->orient = 0;
+    pLast->board = 1;
+    arm(pLast);
     get(0x04, 20);
-    p = pLast;
-    p->x = 7;
-    p->y = 0;
-    p->orient = 0;
-    p->board = 1;
+    pLast->x = 7;
+    pLast->y = 0;
+    pLast->orient = 0;
+    pLast->board = 1;
     get(0x05, 1);
-    p = pLast;
-    p->x = 6;
-    p->y = 3;
-    p->orient = 0;
-    p->board = 1;
+    pLast->x = 6;
+    pLast->y = 3;
+    pLast->orient = 0;
+    pLast->board = 1;
     if (no != 0) {
         get(0x30, 0);
-        p = pLast;
-        p->x = 12;
-        p->y = 1;
-        p->orient = 0;
-        p->board = 1;
+        pLast->x = 12;
+        pLast->y = 1;
+        pLast->orient = 0;
+        pLast->board = 1;
         get(0x20, 0);
-        p = pLast;
-        p->num = 100;
-        p->x = 17;
-        p->y = 0;
-        p->orient = 0;
-        p->board = 1;
+        pLast->num = 100;
+        pLast->x = 17;
+        pLast->y = 0;
+        pLast->orient = 0;
+        pLast->board = 1;
         get(0x20, 0);
-        p = pLast;
-        p->num = 100;
-        p->x = 17;
-        p->y = 2;
-        p->orient = 0;
-        p->board = 1;
+        pLast->num = 100;
+        pLast->x = 17;
+        pLast->y = 2;
+        pLast->orient = 0;
+        pLast->board = 1;
         get(0x20, 0);
-        p = pLast;
-        p->num = 100;
-        p->x = 17;
-        p->y = 4;
-        p->orient = 0;
-        p->board = 1;
+        pLast->num = 100;
+        pLast->x = 17;
+        pLast->y = 4;
+        pLast->orient = 0;
+        pLast->board = 1;
         get(0x20, 0);
-        p = pLast;
-        p->num = 100;
-        p->x = 13;
-        p->y = 4;
-        p->orient = 0;
-        p->board = 1;
+        pLast->num = 100;
+        pLast->x = 13;
+        pLast->y = 4;
+        pLast->orient = 0;
+        pLast->board = 1;
         get(0x20, 0);
-        p = pLast;
-        p->num = 100;
-        p->x = 9;
-        p->y = 4;
-        p->orient = 0;
-        p->board = 1;
+        pLast->num = 100;
+        pLast->x = 9;
+        pLast->y = 4;
+        pLast->orient = 0;
+        pLast->board = 1;
     }
     return 0;
 }
@@ -371,7 +360,6 @@ int cItemMgr::set_game(int no)
 int cItemMgr::set_ada(int no)
 {
     if (no == 2) {
-        ItemSet tbl[] = {{0x21, 1}, {0x30, 1}, {0x2F, 1}, {0x45, 1}, {0x04, 30}, {0x20, 50}, {0x07, 5}, {0x01, 1}, {0x05, 1}};
         ItemWork* p;
         ItemWork* q;
         int i;
@@ -381,6 +369,7 @@ int cItemMgr::set_ada(int no)
         dump(0x7E);
         dump(0x7F);
         get(0x7C, 0);
+        ItemSet tbl[] = {{0x21, 1}, {0x30, 1}, {0x2F, 1}, {0x45, 1}, {0x04, 30}, {0x20, 50}, {0x07, 5}, {0x01, 1}, {0x05, 1}};
         PUT_TABLE(tbl, 0);
         p = search(0x21);
         TUNE(p, 0x5213);
@@ -400,7 +389,6 @@ int cItemMgr::set_char(int no)
 {
     switch (no) {
     case 0: {
-        ItemSet tbl[] = {{0x27, 1}, {0x94, 1}, {0x04, 30}, {0x18, 10}, {0x05, 1}};
         ItemWork* p;
         int i;
 
@@ -409,6 +397,7 @@ int cItemMgr::set_char(int no)
         dump(0x7E);
         dump(0x7F);
         get(0x7C, 0);
+        ItemSet tbl[] = {{0x27, 1}, {0x94, 1}, {0x04, 30}, {0x18, 10}, {0x05, 1}};
         PUT_TABLE(tbl, 0);
         p = search(0x27);
         TUNE(p, 0x4112);
@@ -418,8 +407,6 @@ int cItemMgr::set_char(int no)
         break;
     }
     case 2: {
-        ItemSet tbl[] = {{0x21, 1}, {0x30, 1}, {0x2F, 1}, {0x45, 1}, {0x04, 30}, {0x20, 100},
-                         {0x07, 5}, {0x02, 1}, {0x02, 1}, {0x02, 1}, {0x05, 1}};
         ItemWork* p;
         ItemWork* q;
         int i;
@@ -429,6 +416,8 @@ int cItemMgr::set_char(int no)
         dump(0x7E);
         dump(0x7F);
         get(0x7C, 0);
+        ItemSet tbl[] = {{0x21, 1}, {0x30, 1}, {0x2F, 1}, {0x45, 1}, {0x04, 30}, {0x20, 100},
+                         {0x07, 5}, {0x02, 1}, {0x02, 1}, {0x02, 1}, {0x05, 1}};
         PUT_TABLE(tbl, 0);
         p = search(0x21);
         TUNE(p, 0x6213);
@@ -443,7 +432,6 @@ int cItemMgr::set_char(int no)
         break;
     }
     case 3: {
-        ItemSet tbl[] = {{0x3E, 1}, {0x20, 50}, {0x01, 1}, {0x01, 1}, {0x01, 1}, {0x05, 1}};
         ItemWork* p;
         int i;
 
@@ -452,6 +440,7 @@ int cItemMgr::set_char(int no)
         dump(0x7E);
         dump(0x7F);
         get(0x7C, 0);
+        ItemSet tbl[] = {{0x3E, 1}, {0x20, 50}, {0x01, 1}, {0x01, 1}, {0x01, 1}, {0x05, 1}};
         PUT_TABLE(tbl, 0);
         p = search(0x3E);
         TUNE(p, 0x4012);
@@ -459,7 +448,6 @@ int cItemMgr::set_char(int no)
         break;
     }
     case 4: {
-        ItemSet tbl[] = {{0x52, 1}, {0x72, 20}, {0x72, 10}, {0x0E, 1}, {0x0E, 1}, {0x0E, 1}, {0x05, 1}};
         int i;
 
         dump(0x7C);
@@ -467,13 +455,12 @@ int cItemMgr::set_char(int no)
         dump(0x7E);
         dump(0x7F);
         get(0x7C, 0);
+        ItemSet tbl[] = {{0x52, 1}, {0x72, 20}, {0x72, 10}, {0x0E, 1}, {0x0E, 1}, {0x0E, 1}, {0x05, 1}};
         PUT_TABLE(tbl, 0);
         arm(search(0x52));
         break;
     }
     case 5: {
-        ItemSet tbl[] = {{0x23, 1}, {0x2A, 1}, {0x2F, 1}, {0x3F, 1}, {0x01, 1}, {0x01, 1}, {0x01, 1},
-                         {0x01, 1}, {0x0E, 1}, {0x0E, 1}, {0x0E, 1}, {0x02, 1}, {0x05, 1}};
         ItemWork* p;
         ItemWork* q;
         int i;
@@ -483,6 +470,8 @@ int cItemMgr::set_char(int no)
         dump(0x7E);
         dump(0x7F);
         get(0x7C, 0);
+        ItemSet tbl[] = {{0x23, 1}, {0x2A, 1}, {0x2F, 1}, {0x3F, 1}, {0x01, 1}, {0x01, 1}, {0x01, 1},
+                         {0x01, 1}, {0x0E, 1}, {0x0E, 1}, {0x0E, 1}, {0x02, 1}, {0x05, 1}};
         PUT_TABLE(tbl, 0);
         p = search(0x23);
         TUNE(p, 0x6225);
@@ -507,8 +496,6 @@ int cItemMgr::set_stage1(int no)
 
     switch (no) {
     case 0: {
-        ItemSet tbl[] = {{0x23, 1}, {0x2C, 1}, {0x2E, 1}, {0x30, 1}, {0x04, 50}, {0x18, 10}, {0x07, 10},
-                         {0x20, 100}, {0x01, 1}, {0x02, 1}, {0x0E, 1}, {0x15, 1}, {0x05, 1}};
         int i;
 
         ret = 1;
@@ -517,6 +504,8 @@ int cItemMgr::set_stage1(int no)
         dump(0x7E);
         dump(0x7F);
         get(0x7D, 0);
+        ItemSet tbl[] = {{0x23, 1}, {0x2C, 1}, {0x2E, 1}, {0x30, 1}, {0x04, 50}, {0x18, 10}, {0x07, 10},
+                         {0x20, 100}, {0x01, 1}, {0x02, 1}, {0x0E, 1}, {0x15, 1}, {0x05, 1}};
         PUT_TABLE(tbl, 1);
         search(0x01)->num = 5;
         search(0x02)->num = 5;
@@ -526,8 +515,6 @@ int cItemMgr::set_stage1(int no)
         break;
     }
     case 1: {
-        ItemSet tbl[] = {{0x25, 1}, {0x2C, 1}, {0x2E, 1}, {0x30, 1}, {0x44, 1}, {0x04, 50}, {0x18, 10}, {0x07, 10},
-                         {0x20, 100}, {0x01, 1}, {0x02, 1}, {0x0E, 1}, {0x15, 1}, {0x15, 1}, {0x05, 1}};
         ItemWork* p;
         ItemWork* q;
         int i;
@@ -538,6 +525,8 @@ int cItemMgr::set_stage1(int no)
         dump(0x7E);
         dump(0x7F);
         get(0x7D, 0);
+        ItemSet tbl[] = {{0x25, 1}, {0x2C, 1}, {0x2E, 1}, {0x30, 1}, {0x44, 1}, {0x04, 50}, {0x18, 10}, {0x07, 10},
+                         {0x20, 100}, {0x01, 1}, {0x02, 1}, {0x0E, 1}, {0x15, 1}, {0x15, 1}, {0x05, 1}};
         PUT_TABLE(tbl, 1);
         p = search(0x2C);
         LV_FIRE_SET(p, 2);
@@ -568,8 +557,6 @@ int cItemMgr::set_stage2(int no)
 
     switch (no) {
     case 0: {
-        ItemSet tbl[] = {{0x25, 1}, {0x30, 1}, {0x2C, 1}, {0x2E, 1}, {0x04, 50}, {0x20, 100}, {0x18, 10}, {0x07, 10},
-                         {0x01, 1}, {0x02, 1}, {0x0E, 1}, {0x06, 1}, {0x14, 1}, {0x43, 1}, {0x44, 1}};
         ItemWork* p;
         ItemWork* q;
         int i;
@@ -580,6 +567,8 @@ int cItemMgr::set_stage2(int no)
         dump(0x7E);
         dump(0x7F);
         get(0x7D, 0);
+        ItemSet tbl[] = {{0x25, 1}, {0x30, 1}, {0x2C, 1}, {0x2E, 1}, {0x04, 50}, {0x20, 100}, {0x18, 10}, {0x07, 10},
+                         {0x01, 1}, {0x02, 1}, {0x0E, 1}, {0x06, 1}, {0x14, 1}, {0x43, 1}, {0x44, 1}};
         PUT_TABLE(tbl, 1);
         p = search(0x25);
         p->x6 = 0x1111;
@@ -604,9 +593,6 @@ int cItemMgr::set_stage2(int no)
         break;
     }
     case 1: {
-        ItemSet tbl[] = {{0x27, 1}, {0x94, 1}, {0x2F, 1}, {0x30, 1}, {0x29, 1}, {0x45, 1}, {0x04, 50}, {0x18, 10},
-                         {0x07, 10}, {0x20, 100}, {0x00, 10}, {0x01, 1}, {0x02, 1}, {0x0E, 1}, {0x05, 1}, {0x06, 1},
-                         {0x06, 1}, {0x15, 1}, {0x15, 1}, {0x15, 1}, {0x15, 1}, {0x15, 1}, {0x15, 1}};
         ItemWork* p;
         int i;
 
@@ -616,6 +602,9 @@ int cItemMgr::set_stage2(int no)
         dump(0x7E);
         dump(0x7F);
         get(0x7E, 0);
+        ItemSet tbl[] = {{0x27, 1}, {0x94, 1}, {0x2F, 1}, {0x30, 1}, {0x29, 1}, {0x45, 1}, {0x04, 50}, {0x18, 10},
+                         {0x07, 10}, {0x20, 100}, {0x00, 10}, {0x01, 1}, {0x02, 1}, {0x0E, 1}, {0x05, 1}, {0x06, 1},
+                         {0x06, 1}, {0x15, 1}, {0x15, 1}, {0x15, 1}, {0x15, 1}, {0x15, 1}, {0x15, 1}};
         PUT_TABLE(tbl, 2);
         p = search(0x30);
         p->x6 = 0x4023;
@@ -634,7 +623,6 @@ int cItemMgr::set_stage2(int no)
         break;
     }
     case 2: {
-        ItemSet tbl[] = {{0x2C, 1}, {0x30, 1}, {0x01, 1}, {0x20, 100}, {0x18, 10}, {0x18, 10}};
         ItemWork* p;
         int i;
 
@@ -644,6 +632,7 @@ int cItemMgr::set_stage2(int no)
         dump(0x7E);
         dump(0x7F);
         get(0x7D, 0);
+        ItemSet tbl[] = {{0x2C, 1}, {0x30, 1}, {0x01, 1}, {0x20, 100}, {0x18, 10}, {0x18, 10}};
         PUT_TABLE(tbl, 1);
         p = search(0x30);
         LV_EX_SET(p, 1);
@@ -653,7 +642,6 @@ int cItemMgr::set_stage2(int no)
         break;
     }
     case 3: {
-        ItemSet tbl[] = {{0x23, 1}, {0x2E, 1}, {0x01, 1}, {0x04, 50}, {0x07, 10}};
         ItemWork* p;
         int i;
 
@@ -663,6 +651,7 @@ int cItemMgr::set_stage2(int no)
         dump(0x7E);
         dump(0x7F);
         get(0x7D, 0);
+        ItemSet tbl[] = {{0x23, 1}, {0x2E, 1}, {0x01, 1}, {0x04, 50}, {0x07, 10}};
         PUT_TABLE(tbl, 1);
         p = search(0x2E);
         TUNE(p, 4);
@@ -679,8 +668,6 @@ int cItemMgr::set_stage3(int no)
 
     switch (no) {
     case 0: {
-        ItemSet tbl[] = {{0x27, 1}, {0x30, 1}, {0x2D, 1}, {0x29, 1}, {0x2F, 1}, {0x04, 50}, {0x20, 100},
-                         {0x18, 10}, {0x00, 10}, {0x07, 10}, {0x01, 1}, {0x43, 1}, {0x45, 1}, {0x05, 1}};
         ItemWork* p;
         ItemWork* q;
         int i;
@@ -691,6 +678,8 @@ int cItemMgr::set_stage3(int no)
         dump(0x7E);
         dump(0x7F);
         get(0x7E, 0);
+        ItemSet tbl[] = {{0x27, 1}, {0x30, 1}, {0x2D, 1}, {0x29, 1}, {0x2F, 1}, {0x04, 50}, {0x20, 100},
+                         {0x18, 10}, {0x00, 10}, {0x07, 10}, {0x01, 1}, {0x43, 1}, {0x45, 1}, {0x05, 1}};
         PUT_TABLE(tbl, 2);
         p = search(0x27);
         p->x6 = 0x3123;
@@ -718,8 +707,6 @@ int cItemMgr::set_stage3(int no)
         break;
     }
     case 1: {
-        ItemSet tbl[] = {{0x27, 1}, {0x30, 1}, {0x2D, 1}, {0x29, 1}, {0x2F, 1}, {0x04, 50}, {0x20, 100}, {0x18, 10},
-                         {0x00, 10}, {0x07, 10}, {0x01, 1}, {0x43, 1}, {0x45, 1}, {0xC5, 1}, {0x05, 1}};
         ItemWork* p;
         ItemWork* q;
         int i;
@@ -730,6 +717,8 @@ int cItemMgr::set_stage3(int no)
         dump(0x7E);
         dump(0x7F);
         get(0x7E, 0);
+        ItemSet tbl[] = {{0x27, 1}, {0x30, 1}, {0x2D, 1}, {0x29, 1}, {0x2F, 1}, {0x04, 50}, {0x20, 100}, {0x18, 10},
+                         {0x00, 10}, {0x07, 10}, {0x01, 1}, {0x43, 1}, {0x45, 1}, {0xC5, 1}, {0x05, 1}};
         PUT_TABLE(tbl, 2);
         p = search(0x27);
         p->x6 = 0x3123;
@@ -766,7 +755,6 @@ int cItemMgr::set_range(int no)
 
     switch (no) {
     case 0: {
-        ItemSet tbl[] = {{0x2C, 1}, {0x30, 1}, {0x01, 1}, {0x20, 100}, {0x18, 10}, {0x18, 10}};
         ItemWork* p;
         int i;
 
@@ -776,6 +764,7 @@ int cItemMgr::set_range(int no)
         dump(0x7E);
         dump(0x7F);
         get(0x7D, 0);
+        ItemSet tbl[] = {{0x2C, 1}, {0x30, 1}, {0x01, 1}, {0x20, 100}, {0x18, 10}, {0x18, 10}};
         PUT_TABLE(tbl, 1);
         p = search(0x2C);
         LV_SPEED_SET(p, 1);
@@ -788,7 +777,6 @@ int cItemMgr::set_range(int no)
         break;
     }
     case 1: {
-        ItemSet tbl[] = {{0x23, 1}, {0x2E, 1}, {0x01, 1}, {0x04, 50}, {0x07, 10}};
         ItemWork* p;
         int i;
 
@@ -798,6 +786,7 @@ int cItemMgr::set_range(int no)
         dump(0x7E);
         dump(0x7F);
         get(0x7D, 0);
+        ItemSet tbl[] = {{0x23, 1}, {0x2E, 1}, {0x01, 1}, {0x04, 50}, {0x07, 10}};
         PUT_TABLE(tbl, 1);
         p = search(0x23);
         LV_MAG_SET(p, 2);
@@ -821,18 +810,16 @@ int cItemMgr::set_debug(int no)
 
     switch (no) {
     case 0: {
-        ItemSet tbl[] = {{0x05, 1}, {0x05, 1}, {0x08, 1}, {0x09, 1}, {0x0A, 1}, {0x95, 1}, {0x97, 1}, {0x06, 1},
-                         {0x19, 1}, {0x1C, 1}, {0x14, 1}, {0x16, 1}, {0x15, 1}, {0x12, 1}, {0x13, 1}};
         int i;
 
         ret = set_game(0);
+        ItemSet tbl[] = {{0x05, 1}, {0x05, 1}, {0x08, 1}, {0x09, 1}, {0x0A, 1}, {0x95, 1}, {0x97, 1}, {0x06, 1},
+                         {0x19, 1}, {0x1C, 1}, {0x14, 1}, {0x16, 1}, {0x15, 1}, {0x12, 1}, {0x13, 1}};
         PUT_TABLE(tbl, ret);
         arm(ItemMgr.search(0x23));
         break;
     }
     case 1: {
-        ItemSet tbl[] = {{0x25, 1}, {0x30, 1}, {0x2E, 1}, {0x2C, 1}, {0x36, 1}, {0x35, 1}, {0x44, 1}, {0xAA, 1},
-                         {0x42, 1}, {0x43, 1}, {0x01, 1}, {0x02, 1}, {0x0E, 1}, {0x04, 50}, {0x46, 5}, {0x05, 1}};
         int i;
 
         ret = 3;
@@ -841,6 +828,8 @@ int cItemMgr::set_debug(int no)
         dump(0x7E);
         dump(0x7F);
         get(0x7F, 0);
+        ItemSet tbl[] = {{0x25, 1}, {0x30, 1}, {0x2E, 1}, {0x2C, 1}, {0x36, 1}, {0x35, 1}, {0x44, 1}, {0xAA, 1},
+                         {0x42, 1}, {0x43, 1}, {0x01, 1}, {0x02, 1}, {0x0E, 1}, {0x04, 50}, {0x46, 5}, {0x05, 1}};
         PUT_TABLE(tbl, 3);
         search(0x01)->num = 5;
         search(0x02)->num = 5;
@@ -849,8 +838,6 @@ int cItemMgr::set_debug(int no)
         break;
     }
     case 2: {
-        ItemSet tbl[] = {{0x2D, 1}, {0x2F, 1}, {0x30, 1}, {0x27, 1}, {0x29, 1}, {0x23, 1}, {0x05, 1}, {0x05, 1},
-                         {0x01, 1}, {0x02, 1}, {0x0E, 1}, {0x18, 10}, {0x07, 10}, {0x20, 100}, {0x04, 50}, {0x00, 10}};
         int i;
 
         ret = 2;
@@ -859,6 +846,8 @@ int cItemMgr::set_debug(int no)
         dump(0x7E);
         dump(0x7F);
         get(0x7E, 0);
+        ItemSet tbl[] = {{0x2D, 1}, {0x2F, 1}, {0x30, 1}, {0x27, 1}, {0x29, 1}, {0x23, 1}, {0x05, 1}, {0x05, 1},
+                         {0x01, 1}, {0x02, 1}, {0x0E, 1}, {0x18, 10}, {0x07, 10}, {0x20, 100}, {0x04, 50}, {0x00, 10}};
         PUT_TABLE(tbl, 2);
         search(0x01)->num = 5;
         search(0x02)->num = 5;
@@ -867,8 +856,6 @@ int cItemMgr::set_debug(int no)
         break;
     }
     case 3: {
-        ItemSet tbl[] = {{0x23, 1}, {0x03, 1}, {0x05, 1}, {0x2A, 1}, {0x21, 1}, {0x25, 1}, {0x27, 1},
-                         {0x29, 1}, {0x37, 1}, {0x3F, 1}, {0x04, 50}, {0x00, 10}, {0x1A, 10}};
         int i;
 
         ret = 1;
@@ -877,13 +864,13 @@ int cItemMgr::set_debug(int no)
         dump(0x7E);
         dump(0x7F);
         get(0x7D, 0);
+        ItemSet tbl[] = {{0x23, 1}, {0x03, 1}, {0x05, 1}, {0x2A, 1}, {0x21, 1}, {0x25, 1}, {0x27, 1},
+                         {0x29, 1}, {0x37, 1}, {0x3F, 1}, {0x04, 50}, {0x00, 10}, {0x1A, 10}};
         PUT_TABLE(tbl, 1);
         arm(ItemMgr.search(0x23));
         break;
     }
     case 4: {
-        ItemSet tbl[] = {{0x30, 1}, {0x34, 1}, {0x2C, 1}, {0x2D, 1}, {0x94, 1},
-                         {0x2E, 1}, {0x2F, 1}, {0x20, 100}, {0x18, 10}, {0x07, 10}};
         int i;
 
         ret = 3;
@@ -892,15 +879,13 @@ int cItemMgr::set_debug(int no)
         dump(0x7E);
         dump(0x7F);
         get(0x7F, 0);
+        ItemSet tbl[] = {{0x30, 1}, {0x34, 1}, {0x2C, 1}, {0x2D, 1}, {0x94, 1},
+                         {0x2E, 1}, {0x2F, 1}, {0x20, 100}, {0x18, 10}, {0x07, 10}};
         PUT_TABLE(tbl, 3);
         arm(ItemMgr.search(0x23));
         break;
     }
     case 5: {
-        ItemSet tbl[] = {{0x36, 1}, {0x17, 1}, {0x35, 1}, {0x35, 1}, {0x6D, 1}, {0xAA, 1}, {0x46, 5}, {0x46, 5},
-                         {0x46, 5}, {0x46, 5}, {0x46, 5}, {0x46, 5}, {0x01, 1}, {0x01, 1}, {0x01, 1}, {0x02, 1},
-                         {0x02, 1}, {0x02, 1}, {0x0E, 1}, {0x0E, 1}, {0x0E, 1}, {0x08, 1}, {0x08, 1}, {0x08, 1},
-                         {0x09, 1}, {0x09, 1}, {0x09, 1}, {0x0A, 1}, {0x0A, 1}, {0x0A, 1}};
         ItemWork* p;
         ItemWork* q;
         int i;
@@ -911,6 +896,10 @@ int cItemMgr::set_debug(int no)
         dump(0x7E);
         dump(0x7F);
         get(0x7F, 0);
+        ItemSet tbl[] = {{0x36, 1}, {0x17, 1}, {0x35, 1}, {0x35, 1}, {0x6D, 1}, {0xAA, 1}, {0x46, 5}, {0x46, 5},
+                         {0x46, 5}, {0x46, 5}, {0x46, 5}, {0x46, 5}, {0x01, 1}, {0x01, 1}, {0x01, 1}, {0x02, 1},
+                         {0x02, 1}, {0x02, 1}, {0x0E, 1}, {0x0E, 1}, {0x0E, 1}, {0x08, 1}, {0x08, 1}, {0x08, 1},
+                         {0x09, 1}, {0x09, 1}, {0x09, 1}, {0x0A, 1}, {0x0A, 1}, {0x0A, 1}};
         PUT_TABLE(tbl, 3);
         p = search(0x36);
         p->x6 = 0x2012;
@@ -922,10 +911,6 @@ int cItemMgr::set_debug(int no)
         break;
     }
     case 6: {
-        ItemSet tbl[] = {{0x04, 50}, {0x18, 15}, {0x20, 100}, {0x07, 10}, {0x00, 10}, {0x04, 50}, {0x18, 15}, {0x20, 100},
-                         {0x07, 10}, {0x00, 10}, {0x04, 50}, {0x18, 15}, {0x20, 100}, {0x07, 10}, {0x00, 10}, {0x04, 50},
-                         {0x18, 15}, {0x20, 100}, {0x07, 10}, {0x00, 10}, {0x04, 50}, {0x18, 15}, {0x20, 100}, {0x07, 10},
-                         {0x00, 10}, {0x04, 50}, {0x18, 15}, {0x20, 100}, {0x07, 10}, {0x00, 10}};
         int i;
 
         dump(0x7C);
@@ -933,15 +918,15 @@ int cItemMgr::set_debug(int no)
         dump(0x7E);
         dump(0x7F);
         get(0x7C, 0);
+        ItemSet tbl[] = {{0x04, 50}, {0x18, 15}, {0x20, 100}, {0x07, 10}, {0x00, 10}, {0x04, 50}, {0x18, 15}, {0x20, 100},
+                         {0x07, 10}, {0x00, 10}, {0x04, 50}, {0x18, 15}, {0x20, 100}, {0x07, 10}, {0x00, 10}, {0x04, 50},
+                         {0x18, 15}, {0x20, 100}, {0x07, 10}, {0x00, 10}, {0x04, 50}, {0x18, 15}, {0x20, 100}, {0x07, 10},
+                         {0x00, 10}, {0x04, 50}, {0x18, 15}, {0x20, 100}, {0x07, 10}, {0x00, 10}};
         PUT_TABLE(tbl, 0);
         arm(0);
         break;
     }
     case 7: {
-        ItemSet tbl[] = {{0x05, 1}, {0x15, 1}, {0xA8, 1}, {0x16, 1}, {0x14, 1}, {0x13, 1}, {0x12, 1}, {0x1C, 1},
-                         {0x19, 1}, {0x06, 1}, {0x05, 1}, {0x15, 1}, {0xA8, 1}, {0x16, 1}, {0x14, 1}, {0x13, 1},
-                         {0x12, 1}, {0x1C, 1}, {0x19, 1}, {0x06, 1}, {0x05, 1}, {0x15, 1}, {0xA8, 1}, {0x16, 1},
-                         {0x14, 1}, {0x13, 1}, {0x12, 1}, {0x1C, 1}, {0x19, 1}, {0x06, 1}};
         int i;
 
         dump(0x7C);
@@ -949,15 +934,15 @@ int cItemMgr::set_debug(int no)
         dump(0x7E);
         dump(0x7F);
         get(0x7C, 0);
+        ItemSet tbl[] = {{0x05, 1}, {0x15, 1}, {0xA8, 1}, {0x16, 1}, {0x14, 1}, {0x13, 1}, {0x12, 1}, {0x1C, 1},
+                         {0x19, 1}, {0x06, 1}, {0x05, 1}, {0x15, 1}, {0xA8, 1}, {0x16, 1}, {0x14, 1}, {0x13, 1},
+                         {0x12, 1}, {0x1C, 1}, {0x19, 1}, {0x06, 1}, {0x05, 1}, {0x15, 1}, {0xA8, 1}, {0x16, 1},
+                         {0x14, 1}, {0x13, 1}, {0x12, 1}, {0x1C, 1}, {0x19, 1}, {0x06, 1}};
         PUT_TABLE(tbl, 0);
         arm(0);
         break;
     }
     case 8: {
-        ItemSet tbl[] = {{0x01, 1}, {0x01, 1}, {0x01, 1}, {0x01, 1}, {0x01, 1}, {0x01, 1}, {0x01, 1}, {0x01, 1},
-                         {0x01, 1}, {0x01, 1}, {0x02, 1}, {0x02, 1}, {0x02, 1}, {0x02, 1}, {0x02, 1}, {0x02, 1},
-                         {0x02, 1}, {0x02, 1}, {0x02, 1}, {0x02, 1}, {0x0E, 1}, {0x0E, 1}, {0x0E, 1}, {0x0E, 1},
-                         {0x0E, 1}, {0x0E, 1}, {0x0E, 1}, {0x0E, 1}, {0x0E, 1}, {0x0E, 1}};
         int i;
 
         dump(0x7C);
@@ -965,11 +950,22 @@ int cItemMgr::set_debug(int no)
         dump(0x7E);
         dump(0x7F);
         get(0x7C, 0);
+        ItemSet tbl[] = {{0x01, 1}, {0x01, 1}, {0x01, 1}, {0x01, 1}, {0x01, 1}, {0x01, 1}, {0x01, 1}, {0x01, 1},
+                         {0x01, 1}, {0x01, 1}, {0x02, 1}, {0x02, 1}, {0x02, 1}, {0x02, 1}, {0x02, 1}, {0x02, 1},
+                         {0x02, 1}, {0x02, 1}, {0x02, 1}, {0x02, 1}, {0x0E, 1}, {0x0E, 1}, {0x0E, 1}, {0x0E, 1},
+                         {0x0E, 1}, {0x0E, 1}, {0x0E, 1}, {0x0E, 1}, {0x0E, 1}, {0x0E, 1}};
         PUT_TABLE(tbl, 0);
         arm(0);
         break;
     }
     case 9: {
+        int i;
+
+        dump(0x7C);
+        dump(0x7D);
+        dump(0x7E);
+        dump(0x7F);
+        get(0x7C, 0);
         ItemSet tbl[] = {{0x08, 1}, {0x08, 1}, {0x08, 1}, {0x08, 1}, {0x08, 1}, {0x08, 1}, {0x08, 1}, {0x08, 1},
                          {0x08, 1}, {0x08, 1}, {0x08, 1}, {0x08, 1}, {0x08, 1}, {0x08, 1}, {0x08, 1}, {0x08, 1},
                          {0x08, 1}, {0x08, 1}, {0x08, 1}, {0x08, 1}, {0x09, 1}, {0x09, 1}, {0x09, 1}, {0x09, 1},
@@ -978,20 +974,11 @@ int cItemMgr::set_debug(int no)
                          {0x0A, 1}, {0x0A, 1}, {0x0A, 1}, {0x0A, 1}, {0x0A, 1}, {0x0A, 1}, {0x0A, 1}, {0x0A, 1},
                          {0x0A, 1}, {0x0A, 1}, {0x0A, 1}, {0x0A, 1}, {0x0A, 1}, {0x0A, 1}, {0x0A, 1}, {0x0A, 1},
                          {0x0A, 1}, {0x0A, 1}, {0x0A, 1}, {0x0A, 1}};
-        int i;
-
-        dump(0x7C);
-        dump(0x7D);
-        dump(0x7E);
-        dump(0x7F);
-        get(0x7C, 0);
         PUT_TABLE(tbl, 0);
         arm(0);
         break;
     }
     case 10: {
-        ItemSet tbl[] = {{0x97, 1}, {0x97, 1}, {0x97, 1}, {0x95, 1}, {0x95, 1}, {0x95, 1},
-                         {0x95, 1}, {0x95, 1}, {0x95, 1}, {0x95, 1}, {0x95, 1}};
         int i;
 
         dump(0x7C);
@@ -999,6 +986,8 @@ int cItemMgr::set_debug(int no)
         dump(0x7E);
         dump(0x7F);
         get(0x7C, 0);
+        ItemSet tbl[] = {{0x97, 1}, {0x97, 1}, {0x97, 1}, {0x95, 1}, {0x95, 1}, {0x95, 1},
+                         {0x95, 1}, {0x95, 1}, {0x95, 1}, {0x95, 1}, {0x95, 1}};
         PUT_TABLE(tbl, 0);
         arm(0);
         break;

@@ -438,15 +438,13 @@ u32 PlWepHitCheck3(Vec* pos, int type, u32 prio, f32 len)
 
 f32 cPlWep::getAngle()
 {
-    cPlayer* pl = pPL;
-
     if (pPL->xFC != 0) {
         return 0.0f;
     }
-    if (pl->xFD != 6 && pl->xFD != 0xB) {
+    if (pPL->xFD != 6 && pPL->xFD != 0xB) {
         return 0.0f;
     }
-    if (pl->xFE == 3) {
+    if (pPL->xFE == 3) {
         return 0.0f;
     }
     return pitch;
@@ -454,15 +452,13 @@ f32 cPlWep::getAngle()
 
 f32 cPlWep::getPitch()
 {
-    cPlayer* pl = pPL;
-
     if (pPL->xFC != 0) {
         return 0.0f;
     }
-    if (pl->xFD != 6 && pl->xFD != 0xB) {
+    if (pPL->xFD != 6 && pPL->xFD != 0xB) {
         return 0.0f;
     }
-    if (pl->xFE == 3) {
+    if (pPL->xFE == 3) {
         return 0.0f;
     }
     return m3r[0];
@@ -1055,7 +1051,7 @@ void wepSetWaterShot(Vec* p0, Vec* p1, u8 type)
     case 6:
     case 0xF:
     case 0x2C:
-        for (i = 3; i != 0; i--) {
+        for (i = 0; i < 3; i++) {
             r.x = fRand1_1() * 2000.0f + p1->x;
             r.y = fRand1_1() * 2000.0f + p1->y;
             r.z = fRand1_1() * 2000.0f + p1->z;

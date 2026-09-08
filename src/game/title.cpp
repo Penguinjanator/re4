@@ -63,11 +63,31 @@ static inline void BSet(u8& d, u8 v)
     d = v;
 }
 
+// Mercenaries character unlock bits live in pSys->x4 (bit numbers from the charBit table).
+static inline u32 omkFlagChk(u32 no)
+{
+    u32* tbl = &pSys->x4;
+    return tbl[no >> 5] & (0x80000000 >> (no & 0x1F));
+}
+
+// Sub-file of the core archive (pG->pArc): `ofs + (u32) arc` (integer arithmetic, ofs first).
+#define G_ARC_PTR(field) ((void*) (pG->pArc->field + (u32) pG->pArc))
+
 // Fade colours: word constants passed by address (see sscrn.cpp).
 union FadeColor {
     GXColor c;
     u32 w;
 };
+
+// Fade-in helper of the omake screens: the colours are set through a pointer to the first of the
+// two FadeColor locals (`stw 0x4(rP)` for the second one).
+static inline void fadeIn(FadeColor* fc, int time)
+{
+    fc[0].w = 0x000000FF;
+    fc[1].w = 0x00000000;
+    FadeSet(0x80000000, &fc[0].c, &fc[1].c, time, 0, 0);
+}
+
 
 // Read-error report of the original: the condition never holds, only the strings survive.
 #define READ_ERROR(msg)                                           \
@@ -533,6 +553,8 @@ int titleLevelSelect(TitleWork* w)
 void titleMain(TitleWork* w)
 {
     static int demo_loop_cnt = 0;
+    FadeColor c0;
+    FadeColor c1;
 
     pRK->x17 = 1;
     if (!(pG->flags_54 & 0x100) && (pSys->x4 & 0x40000000)) {
@@ -551,31 +573,39 @@ void titleMain(TitleWork* w)
         switch (sel) {
         case 1:
             Snd.room_ok = 1;
-            w->sndId = SndCall(6, pSys->language == 0 ? 0 : 2, 0, 0, 0, 0);
-            VibSetData((VibDataTbl*) ((u8*) pG->pArc + pG->pArc->ofs_1C), 0x10, 1);
-            {
-                FadeColor c0;
-                FadeColor c1;
-                c0.w = 0x00000000;
-                c1.w = 0x000000FF;
-                FadeSet(0, &c0.c, &c1.c, 90, 0, 0);
+            if (pSys->language == 0) {
+                w->sndId = SndCall(6, 0, 0, 0, 0, 0);
+            } else {
+                w->sndId = SndCall(6, 2, 0, 0, 0, 0);
             }
+            VibSetData((VibDataTbl*) G_ARC_PTR(ofs_1C), 0x10, 1);
+            c0.w = 0x00000000;
+            c1.w = 0x000000FF;
+            FadeSet(0, &c0.c, &c1.c, 90, 0, 0);
             w->step = 3;
+            break;
+        case 6:
+            titleLevelInit(w);
+            w->step = 2;
+            SndCall(0, 4, 0, 0, 0, 0);
             break;
         case 2:
         case 3:
-            if (sel == 2) {
+            switch (sel) {
+            case 2:
                 pG->flags_54 |= 0x80000000;
-            } else if (sel == 3) {
+                break;
+            case 3:
                 pG->flags_54 |= 0x40000000;
+                break;
             }
             w->saveStep = w->step;
             w->saveSub = w->sub;
             w->saveX3 = w->x3;
             w->saveCnt = w->cnt;
             w->mode = 6;
-            w->omkChar = 0;
             w->step = 0;
+            w->omkChar = 0;
             SndCall(0, 4, 0, 0, 0, 0);
             break;
         case 4:
@@ -586,19 +616,14 @@ void titleMain(TitleWork* w)
             IdTexRelease(7);
             IdSys.kill(0xFF, ID_TITLE);
             IdSys.kill(0xFF, ID_MENU);
-            MesData.ptr[2] = (u8*) pG->pArc + pG->pArc->ofs_28;
+            MesData.ptr[2] = (u8*) G_ARC_PTR(ofs_28);
             OptScrn.init(1);
-            IdTexDataLoad((u8*) pG->pArc + pG->pArc->ofs_74, 4);
+            IdTexDataLoad(G_ARC_PTR(ofs_74), 4);
             IdTexDataLoad(TITLE_ARC_PTR(w->pDat, 0xC), 6);
             IdSys.set(TITLE_ARC_PTR(w->pDat, 0xD), 0xFF, ID_OPTION, 0x13, 5, 0);
             w->saveCnt = w->cnt;
             w->step = 4;
             SndCall(0, 0x33, 0, 0, 0, 0);
-            break;
-        case 6:
-            titleLevelInit(w);
-            w->step = 2;
-            SndCall(0, 4, 0, 0, 0, 0);
             break;
         }
         if (w->step == 1 && !(pG->flags_54 & 8)) {
@@ -608,8 +633,6 @@ void titleMain(TitleWork* w)
             if (demo_loop_cnt > 0) {
                 demo_loop_cnt--;
                 if (demo_loop_cnt == 0) {
-                    FadeColor c0;
-                    FadeColor c1;
                     c0.w = 0x00000000;
                     c1.w = 0x000000FF;
                     FadeSet(0, &c0.c, &c1.c, 15, 0, 0);
@@ -628,15 +651,15 @@ void titleMain(TitleWork* w)
             w->step = 1;
         } else if (titleLevelSelect(w) != 0) {
             Snd.room_ok = 1;
-            w->sndId = SndCall(6, pSys->language == 0 ? 0 : 2, 0, 0, 0, 0);
-            VibSetData((VibDataTbl*) ((u8*) pG->pArc + pG->pArc->ofs_1C), 0x10, 1);
-            {
-                FadeColor c0;
-                FadeColor c1;
-                c0.w = 0x00000000;
-                c1.w = 0x000000FF;
-                FadeSet(0, &c0.c, &c1.c, 90, 0, 0);
+            if (pSys->language == 0) {
+                w->sndId = SndCall(6, 0, 0, 0, 0, 0);
+            } else {
+                w->sndId = SndCall(6, 2, 0, 0, 0, 0);
             }
+            VibSetData((VibDataTbl*) G_ARC_PTR(ofs_1C), 0x10, 1);
+            c0.w = 0x00000000;
+            c1.w = 0x000000FF;
+            FadeSet(0, &c0.c, &c1.c, 90, 0, 0);
             w->step = 3;
         }
         break;
@@ -676,13 +699,9 @@ void titleMain(TitleWork* w)
                 systemVISetBlack(1);
                 ScreenReSize(640, 448);
                 systemVISetBlack(0);
-                {
-                    FadeColor c0;
-                    FadeColor c1;
-                    c0.w = 0x000000FF;
-                    c1.w = 0x00000000;
-                    FadeSet(0x80000000, &c0.c, &c1.c, 15, 0, 0);
-                }
+                c0.w = 0x000000FF;
+                c1.w = 0x00000000;
+                FadeSet(0x80000000, &c0.c, &c1.c, 15, 0, 0);
                 w->sub++;
             }
             break;
@@ -718,13 +737,9 @@ void titleMain(TitleWork* w)
                 systemVISetBlack(1);
                 ScreenReSize(640, 448);
                 systemVISetBlack(0);
-                {
-                    FadeColor c0;
-                    FadeColor c1;
-                    c0.w = 0x000000FF;
-                    c1.w = 0x00000000;
-                    FadeSet(0x80000000, &c0.c, &c1.c, 15, 0, 0);
-                }
+                c0.w = 0x000000FF;
+                c1.w = 0x00000000;
+                FadeSet(0x80000000, &c0.c, &c1.c, 15, 0, 0);
                 w->sub++;
             }
             break;
@@ -759,15 +774,15 @@ void titleMain(TitleWork* w)
             if (Joy[0].trg & 0x1100) {
                 w->mode = 7;
                 if ((s32) pG->flags_54 < 0 || (pG->flags_54 & 0x40000000)) {
+                    // PERM_BEGIN_MAIN8
                     w->saveSub = w->sub;
                     w->saveStep = w->step;
                     w->saveX3 = w->x3;
                     w->saveCnt = w->cnt;
                     w->mode = 6;
                     w->step = 0;
+                    // PERM_END_MAIN8
                 } else {
-                    FadeColor c0;
-                    FadeColor c1;
                     Snd.room_ok = 1;
                     c0.w = 0x00000000;
                     c1.w = 0x000000FF;
@@ -846,6 +861,9 @@ void titleSub(TitleWork* w)
     static u32 snd_id;
     static int title_snd_wait = 7;
     int charBit[5] = {4, 4, 6, 5, 7};
+    FadeColor c0;
+    FadeColor c1;
+#define OMK_PTR(no) TITLE_ARC_PTR((TitleArc*) omk_addr, no)
 
     switch (w->step) {
     case 0:
@@ -861,13 +879,9 @@ void titleSub(TitleWork* w)
         if (w->req == 0) {
             break;
         }
-        {
-            FadeColor c0;
-            FadeColor c1;
-            c0.w = 0x00000000;
-            c1.w = 0x000000FF;
-            FadeSet(0, &c0.c, &c1.c, 5, 0, 0);
-        }
+        c0.w = 0x00000000;
+        c1.w = 0x000000FF;
+        FadeSet(0, &c0.c, &c1.c, 5, 0, 0);
         w->step++;
         if ((s32) pG->flags_54 < 0) {
             snd_id = SndStrReq(0, 60, 0x80000003, 0, 0, 0.0f);
@@ -887,22 +901,12 @@ void titleSub(TitleWork* w)
         }
         break;
     case 3: {
-        TitleArc* omk;
-        {
-            FadeColor c0;
-            FadeColor c1;
-            c0.w = 0x000000FF;
-            c1.w = 0x00000000;
-            FadeSet(0x80000000, &c0.c, &c1.c, 5, 0, 0);
-        }
-        omk = (TitleArc*) omk_addr;
-        IdTexDataLoad(TITLE_ARC_PTR(omk, 4), 6);
+        fadeIn(&c0, 5);
+        IdTexDataLoad(OMK_PTR(4), 6);
         IdSys.kill(0xFF, ID_TITLE);
         IdSys.kill(0xFF, ID_MENU);
-        omk = (TitleArc*) omk_addr;
-        IdSys.set(TITLE_ARC_PTR(omk, 5), 0xFF, ID_OMAKE_BG, 0x13, 5, 0);
-        omk = (TitleArc*) omk_addr;
-        IdSys.set(TITLE_ARC_PTR(omk, 6), 0xFF, ID_OMAKE, 0x13, 4, 0);
+        IdSys.set(OMK_PTR(5), 0xFF, ID_OMAKE_BG, 0x13, 5, 0);
+        IdSys.set(OMK_PTR(6), 0xFF, ID_OMAKE, 0x13, 4, 0);
         if (pG->flags_54 & 0x40000000) {
             if (!(pSys->x4 & 0x08000000)) {
                 IdSys.unitPtr(4, ID_OMAKE_BG)->flags &= ~8;
@@ -923,8 +927,6 @@ void titleSub(TitleWork* w)
     }
     case 4:
         if (Key.trg & KEY_B) {
-            FadeColor c0;
-            FadeColor c1;
             c0.w = 0x00000000;
             c1.w = 0x000000FF;
             FadeSet(0, &c0.c, &c1.c, 5, 0, 0);
@@ -932,51 +934,52 @@ void titleSub(TitleWork* w)
             SndCall(0, 5, 0, 0, 0, 0);
             SndStrReq(snd_id, 4, 200, 0);
         } else if (Key.trg & KEY_A) {
-            if (w->omkCursor != 0) {
-                FadeColor c0;
-                FadeColor c1;
+            if (w->omkCursor == 0) {
+                if ((s32) pG->flags_54 < 0) {
+                    w->mode = 7;
+                    c0.w = 0x00000000;
+                    c1.w = 0x000000FF;
+                    FadeSet(0, &c0.c, &c1.c, 90, 0, 0);
+                    pG->x4FB8 = 2;
+                    pG->costume = 1;
+                    w->sndId = SndCall(6, 6, 0, 0, 0, 0);
+                    SndStrReq(snd_id, 4, 200, 0);
+                } else if (pG->flags_54 & 0x40000000) {
+                    if (!(pSys->x4 & 0x00400000)) {
+                        int i;
+                        pSys->x4 |= 0x00400000;
+                        for (i = 0; i < 0x10; i += 4) {
+                            u8* tbl = (u8*) pSys + 0x10;
+                            *(u32*) ((u32) tbl + i) = 0;
+                        }
+                        // OPEN: the target counts this 2-iteration loop with mtctr/bdnz as well; GCC 2.95's
+                        // insert_bct refuses loops with a known count below 3, so the original's count was
+                        // not visible to loop.c (form not found).
+                        for (i = 0; i < 8; i += 4) {
+                            u8* tbl = (u8*) pSys + 0x20;
+                            *(u32*) ((u32) tbl + i) = 0;
+                        }
+                    }
+                    if (DebugTrg(1)) {
+                        BitOff(pSys->x4, 0x08000000);
+                        BitOff(pSys->x4, 0x02000000);
+                        BitOff(pSys->x4, 0x04000000);
+                        BitOff(pSys->x4, 0x01000000);
+                    }
+                    c0.w = 0x00000000;
+                    c1.w = 0x000000FF;
+                    FadeSet(0, &c0.c, &c1.c, 5, 0, 0);
+                    w->omkChar = 0;
+                    w->step = 6;
+                    SndCall(0, 60, 0, 0, 0, 0);
+                }
+            } else {
                 c0.w = 0x00000000;
                 c1.w = 0x000000FF;
                 FadeSet(0, &c0.c, &c1.c, 5, 0, 0);
                 w->step++;
                 SndCall(0, 5, 0, 0, 0, 0);
                 SndStrReq(snd_id, 4, 200, 0);
-            } else if ((s32) pG->flags_54 < 0) {
-                FadeColor c0;
-                FadeColor c1;
-                w->mode = 7;
-                c0.w = 0x00000000;
-                c1.w = 0x000000FF;
-                FadeSet(0, &c0.c, &c1.c, 90, 0, 0);
-                pG->x4FB8 = 2;
-                pG->costume = 1;
-                w->sndId = SndCall(6, 6, 0, 0, 0, 0);
-                SndStrReq(snd_id, 4, 200, 0);
-            } else if (pG->flags_54 & 0x40000000) {
-                FadeColor c0;
-                FadeColor c1;
-                if (!(pSys->x4 & 0x00400000)) {
-                    int i;
-                    pSys->x4 |= 0x00400000;
-                    for (i = 0; i < 4; i++) {
-                        *(u32*) ((u8*) pSys + 0x10 + i * 4) = 0;
-                    }
-                    for (i = 0; i < 2; i++) {
-                        *(u32*) ((u8*) pSys + 0x20 + i * 4) = 0;
-                    }
-                }
-                if (DebugTrg(1)) {
-                    BitOff(pSys->x4, 0x08000000);
-                    BitOff(pSys->x4, 0x02000000);
-                    BitOff(pSys->x4, 0x04000000);
-                    BitOff(pSys->x4, 0x01000000);
-                }
-                c0.w = 0x00000000;
-                c1.w = 0x000000FF;
-                FadeSet(0, &c0.c, &c1.c, 5, 0, 0);
-                w->omkChar = 0;
-                w->step = 6;
-                SndCall(0, 60, 0, 0, 0, 0);
             }
         } else if (Key.trg & (KEY_UP | KEY_DOWN)) {
             s8 old = w->omkCursor;
@@ -1003,13 +1006,7 @@ void titleSub(TitleWork* w)
             IdSys.kill(0xFF, ID_OMAKE_BG);
             IdSys.kill(0xFF, ID_OMAKE);
             Mem_free(w->pOmk);
-            {
-                FadeColor c0;
-                FadeColor c1;
-                c0.w = 0x000000FF;
-                c1.w = 0x00000000;
-                FadeSet(0x80000000, &c0.c, &c1.c, 5, 0, 0);
-            }
+            fadeIn(&c0, 5);
             w->mode = 5;
             w->step = w->saveStep;
             w->sub = w->saveSub;
@@ -1028,19 +1025,10 @@ void titleSub(TitleWork* w)
         }
         break;
     case 7: {
-        TitleArc* omk;
         int i;
-        {
-            FadeColor c0;
-            FadeColor c1;
-            c0.w = 0x000000FF;
-            c1.w = 0x00000000;
-            FadeSet(0x80000000, &c0.c, &c1.c, 5, 0, 0);
-        }
-        omk = (TitleArc*) omk_addr;
-        IdTexDataLoad(TITLE_ARC_PTR(omk, 4), 6);
-        omk = (TitleArc*) omk_addr;
-        IdSys.set(TITLE_ARC_PTR(omk, 7), 0xFF, ID_OMAKE, 0x13, 4, 0);
+        fadeIn(&c0, 5);
+        IdTexDataLoad(OMK_PTR(4), 6);
+        IdSys.set(OMK_PTR(7), 0xFF, ID_OMAKE, 0x13, 4, 0);
         for (i = 0; i < 5; i++) {
             IdUnit* u = IdSys.unitPtr(i, ID_OMAKE);
             u->no = i;
@@ -1071,13 +1059,11 @@ void titleSub(TitleWork* w)
             id_color_copy(0xFC, 4, ID_OMAKE);
         }
         if ((Key.on & 0x20000) && w->omkChar != 0) {
-            int bit = charBit[w->omkChar];
+            u32 bit = charBit[w->omkChar];
             u32* tbl = &pSys->x4;
             BitOn(tbl[bit >> 5], 0x80000000 >> (bit & 0x1F));
         }
         if (Key.trg & KEY_B) {
-            FadeColor c0;
-            FadeColor c1;
             c0.w = 0x00000000;
             c1.w = 0x000000FF;
             FadeSet(0, &c0.c, &c1.c, 5, 0, 0);
@@ -1085,7 +1071,7 @@ void titleSub(TitleWork* w)
             SndCall(0, 5, 0, 0, 0, 0);
         } else if (Key.trg & KEY_A) {
             if (w->omkChar != 0) {
-                int bit = charBit[w->omkChar];
+                u32 bit = charBit[w->omkChar];
                 u32* tbl = &pSys->x4;
                 if (!(tbl[bit >> 5] & (0x80000000 >> (bit & 0x1F)))) {
                     SndCall(0, 5, 0, 0, 0, 0);
@@ -1116,20 +1102,16 @@ void titleSub(TitleWork* w)
             }
             w->step = 10;
             w->omkStage = 0;
-            {
-                FadeColor c0;
-                FadeColor c1;
-                c0.w = 0x00000000;
-                c1.w = 0x000000FF;
-                FadeSet(0, &c0.c, &c1.c, 15, 0, 0);
-            }
+            c0.w = 0x00000000;
+            c1.w = 0x000000FF;
+            FadeSet(0, &c0.c, &c1.c, 15, 0, 0);
             SndCall(0, 0x3F, 0, 0, 0, 0);
         } else if (Key.rep & (KEY_RIGHT | KEY_LEFT)) {
             s8 old = w->omkChar;
             if (Key.rep & KEY_LEFT) {
-                w->omkChar = old - 1;
+                w->omkChar--;
             } else {
-                w->omkChar = old + 1;
+                w->omkChar++;
             }
             w->omkChar = w->omkChar < 0 ? 4 : (w->omkChar > 4 ? 0 : w->omkChar);
             if (old != w->omkChar) {
@@ -1149,16 +1131,12 @@ void titleSub(TitleWork* w)
             u->no = sel;
             u->flags_7F |= 2;
         }
-        if (w->omkChar != 0) {
-            int bit = charBit[w->omkChar];
-            u32* tbl = &pSys->x4;
-            if (!(tbl[bit >> 5] & (0x80000000 >> (bit & 0x1F)))) {
-                id_color_copy(0xFD, 5, ID_OMAKE);
-                IdSys.unitPtr(6, ID_OMAKE)->no = 5;
-                break;
-            }
+        if (w->omkChar == 0 || omkFlagChk(charBit[w->omkChar])) {
+            id_color_copy(0xFC, 5, ID_OMAKE);
+        } else {
+            id_color_copy(0xFD, 5, ID_OMAKE);
+            IdSys.unitPtr(6, ID_OMAKE)->no = 5;
         }
-        id_color_copy(0xFC, 5, ID_OMAKE);
         break;
     }
     case 9:
@@ -1176,16 +1154,11 @@ void titleSub(TitleWork* w)
             w->step = 11;
         }
         break;
-    case 11: {
-        FadeColor c0;
-        FadeColor c1;
-        c0.w = 0x000000FF;
-        c1.w = 0x00000000;
-        FadeSet(0x80000000, &c0.c, &c1.c, 15, 0, 0);
+    case 11:
+        fadeIn(&c0, 15);
         w->step = 12;
         stageSelectInit(w);
         break;
-    }
     case 12:
         if (Key.trg & KEY_B) {
             w->step = 6;
@@ -1201,8 +1174,6 @@ void titleSub(TitleWork* w)
             w->sndId = SndCall(6, 8, 0, 0, 0, 0);
         }
         if (w->sub > 30) {
-            FadeColor c0;
-            FadeColor c1;
             w->mode = 7;
             c0.w = 0x00000000;
             c1.w = 0x000000FF;
@@ -1234,19 +1205,19 @@ int stageSelect(TitleWork* w)
         s8 old = w->omkStage;
         if (Key.rep & KEY_UP) {
             if (old > 1) {
-                w->omkStage = old - 2;
+                w->omkStage -= 2;
             }
         } else if (Key.rep & KEY_DOWN) {
             if (old <= 1) {
-                w->omkStage = old + 2;
+                w->omkStage += 2;
             }
         } else if (Key.rep & KEY_LEFT) {
-            if (old & 1) {
-                w->omkStage = old - 1;
+            if (w->omkStage & 1) {
+                w->omkStage -= 1;
             }
         } else if (Key.rep & KEY_RIGHT) {
-            if (!(old & 1)) {
-                w->omkStage = old + 1;
+            if (!(w->omkStage & 1)) {
+                w->omkStage += 1;
             }
         }
         w->omkStage = w->omkStage < 0 ? 3 : (w->omkStage > 3 ? 0 : w->omkStage);
@@ -1311,9 +1282,9 @@ int stageSelect(TitleWork* w)
         u->no = 3;
         u->flags_7F |= 2;
     }
-    MercSysGetSaveWork(&save);
     {
         int mode = 0;
+        MercSysGetSaveWork(&save);
         if (pG->x4FB8 == 2) {
             mode = 1;
         }
@@ -1328,19 +1299,17 @@ int stageSelect(TitleWork* w)
         }
         for (i = 0; i < 4; i++) {
             int rank = save.rank[mode][i];
-            IdUnit* u = IdSys.unitPtr(i * 16 + 0x40, ID_OMAKE);
             int j;
             if (rank == 0) {
-                u->flags &= ~8;
+                IdSys.unitPtr(i * 16 + 0x40, ID_OMAKE)->flags &= ~8;
             } else {
-                u->flags |= 8;
+                IdSys.unitPtr(i * 16 + 0x40, ID_OMAKE)->flags |= 8;
             }
             for (j = 0; j < 5; j++) {
-                u = IdSys.unitPtr(i * 16 + 0x41 + j, ID_OMAKE);
                 if (j < rank) {
-                    u->flags |= 8;
+                    IdSys.unitPtr(i * 16 + 0x41 + j, ID_OMAKE)->flags |= 8;
                 } else {
-                    u->flags &= ~8;
+                    IdSys.unitPtr(i * 16 + 0x41 + j, ID_OMAKE)->flags &= ~8;
                 }
             }
             if (save.stage[i].score == 0) {
@@ -1348,7 +1317,7 @@ int stageSelect(TitleWork* w)
                     IdSys.unitPtr(i * 16 + 0x80 + j, ID_OMAKE)->flags &= ~8;
                 }
             } else {
-                u = IdSys.unitPtr(i * 16 + 0x88, ID_OMAKE);
+                IdUnit* u = IdSys.unitPtr(i * 16 + 0x88, ID_OMAKE);
                 u->flags |= 8;
                 u->flags_7F |= 2;
                 IdSetNum(&IdSys, i * 16 + 0x81, ID_OMAKE, save.stage[i].score, 9999999, 7, 0);

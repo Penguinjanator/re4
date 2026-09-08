@@ -296,13 +296,10 @@ template <class T>
 T* cManager<T>::getPrevWork(T* p)
 {
     p = (T*)((u8*)p - size);
-    if ((u32)p < (u32)pArray) {
+    if ((u32)p < (u32)pArray || (u32)p >= (u32)pArray + size * (nArray - 1)) {
         return 0;
     }
-    if ((u32)p < (u32)pArray + size * (nArray - 1)) {
-        return p;
-    }
-    return 0;
+    return p;
 }
 
 template <class T>

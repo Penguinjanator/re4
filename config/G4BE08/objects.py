@@ -1234,3 +1234,8 @@ MATCHING.update({
 MATCHING.update({
     "game/main_sub.cpp": True,
 })
+
+# esp closer: sprite corner idiom in Shimmer/Nega, EspSeqSet real parameter order (f32 before out)
+MATCHING.update({
+    "game/esp_sub.cpp": True,
+})

@@ -199,7 +199,7 @@ cEsp* SetEstTbl(EspgenWork* w, EspSeqData* head, int no)
 
     rec = &rec[no];
     PSMTXIdentity(m);
-    EspSeqSet(rec, &w->info, &p->seed, p->model, &m, 0, &esp, NULL, NULL, 0.0f);
+    EspSeqSet(rec, &w->info, &p->seed, p->model, &m, 0, 0.0f, &esp, NULL, NULL);
     return esp;
 }
 
