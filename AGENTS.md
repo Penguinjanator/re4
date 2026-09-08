@@ -235,6 +235,13 @@ mark it Matching.
 - OPEN (id_sys `setCk`/`dispSw`/`kill`): the target zero-extends one `u8` parameter (`clrlwi rX,rParam,24`)
   before using it as a bit-table index while other u8 params are never masked; no source form found yet
   (u8/int/u32 locals, casts, `& 0xFF`, inline helpers, references, bitfields all tried).
+- `if ((p = f()) != 0) {A} if (!p) {HALT}` keeps the compare in cr4 (`mcrf cr4,cr0`); two plain `if`s
+  let cse fold the second.
+- SN patched out jump tables: 4+ dense cases still give a compare tree; a `case` whose body is only
+  `break` still counts as a tree node; writing `default:` first lays the default body out first.
+- A local `arc = pG->pPlArc` reused across blocks becomes a global pseudo and ties pG's register; the
+  original often re-reads `pG->field` per call. A function-scope `void* p = 0` in a callee-saved register
+  gets reused by cse as the constant 0 argument of later calls.
 - Static locals show as `name.NNN` in objdiff; the DECL_UID suffix cannot be reproduced and is ignored by the report.
 - Unexplained words in `.rodata` (zero words, stray floats) are usually the constant pool of a function
   the original linker dead-stripped (bodies gone, pools kept, `STRIP_UNUSED` in objects.py): write a

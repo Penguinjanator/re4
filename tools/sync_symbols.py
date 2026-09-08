@@ -222,6 +222,12 @@ def main():
                     if owner and os.path.exists(os.path.join(ROOT, "src", owner)):
                         # the defining unit has source; its own sync is authoritative for the name
                         continue
+                    if not re.search(r"_[0-9A-F]{8}$", old) and not old.startswith(("fn_", "lbl_")):
+                        # only placeholders may be renamed from a reference; a real name that differs
+                        # from the reference means this unit declared the function with the wrong linkage/signature
+                        if old != name:
+                            print(f"  {old}: referenced as {name}; fix the declaration in the unit (not renamed)")
+                        continue
                     rename(i, name)
                     make_global(i)
                 continue

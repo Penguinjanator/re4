@@ -1698,11 +1698,8 @@ int SndRoomBgmMute(u8 no, int on, int time)
 {
     SndPlayWork* w = &pSnd->bgm_work[no];
     int ret = 0;
-    int t = 1;
+    int t = (time == -1) ? 1 : time * 200;
 
-    if (time != -1) {
-        t = time * 200;
-    }
     if (w->used == 1 && w->stat == 0) {
         if (on == 1) {
             if (Snd_seq_fade_check(w->id) == 1) {

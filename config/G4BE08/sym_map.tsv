@@ -5080,7 +5080,7 @@ address	size	section	unit	scope	name	demangled
 0x8015CF20	0xC	.text	game/motion.cpp	global	MotionBlendOff	MotionBlendOff
 0x8015CF2C	0x10	.text	game/motion.cpp	global	MotionPause	MotionPause
 0x8015CF3C	0x14C	.text	game/motion.cpp	global	MotionClear	MotionClear
-0x8015D088	0xA10	.text	game/motion.cpp	global	MotionSetCore	MotionSetCore
+0x8015D088	0xA10	.text	game/motion.cpp	global	MotionSetCore__FP6cModelPvT1iiii	MotionSetCore
 0x8015DA98	0x85C	.text	game/motion.cpp	global	MotionMove	MotionMove
 0x8015E2F4	0x58	.text	game/motion.cpp	global	MotionMoveSub	MotionMoveSub
 0x8015E34C	0x53C	.text	game/motion.cpp	global	MotionMoveCore	MotionMoveCore
