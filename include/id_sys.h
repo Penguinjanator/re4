@@ -159,6 +159,9 @@ public:
     void move();
     void beMove(IdUnit* u, int sw);
     void setTime(IdUnit* u, u16 time);
+    // option.cpp passes a sign-extended value (`extsh` before the call): the declaration it was
+    // compiled against took a signed short. Same function, signed view of the parameter.
+    void setTimeS(IdUnit* u, s16 time) asm("setTime__8IDSystemP6IdUnitUs");
     void movePos(IdUnit* u);
     void trans();
     void unitTrans(IdUnit* u);

@@ -1109,6 +1109,7 @@ MATCHING.update({
     "game/obj05.cpp": True,
     "game/objRocket.cpp": True,
     "game/objSubWep.cpp": True,
+    "game/objBull.cpp": True,
 })
 
 # media/utility units

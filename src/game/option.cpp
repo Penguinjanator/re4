@@ -130,8 +130,7 @@ void OptionScreen::init(int title)
     if (fromTitle != 0) {
         IdUnit* u = IdSys.unitPtr(0, ID_OPT_BG);
         Hermite1* h = u->curve[2];
-        int t = (int) h->key[h->num - 1].t;
-        IdSys.setTime(u, (s16) t);
+        IdSys.setTimeS(u, (s16) (int) h->key[h->num - 1].t);
     }
     IdSys.set(OPT_PTR(0x28), 0xFF, ID_OPT, 0x13, 3, 0);
     mode = 0;
@@ -274,26 +273,14 @@ int top_menu(OptionScreen* o)
         }
         return 0;
     } else {
-        s8 v;
-        s8 n;
-
         if (Key.trg & KEY_UP) {
             o->cursor--;
         }
         if (Key.trg & KEY_DOWN) {
             o->cursor++;
         }
-        v = o->cursor;
-        if (v >= 0) {
-            n = v;
-            if (n > 4) {
-                n = 4;
-            }
-        } else {
-            n = 0;
-        }
-        o->cursor = n;
-        if ((pG->flags_5014 & 0x8000) && n == 0 && (Key.trg & KEY_UP)) {
+        o->cursor = o->cursor < 0 ? 0 : (o->cursor > 4 ? 4 : o->cursor);
+        if ((pG->flags_5014 & 0x8000) && o->cursor == 0 && (Key.trg & KEY_UP)) {
             o->cursor = 1;
         }
         if (old != o->cursor) {
@@ -309,7 +296,7 @@ int top_menu(OptionScreen* o)
         if (o->cursor == i) {
             setColor(u, base);
         } else {
-            u->col0[0] = u->col0[1] = u->col0[2] = u->col0[3] = 0xFF;
+            u->col0[3] = u->col0[2] = u->col0[1] = u->col0[0] = 0xFF;
         }
         if ((pG->flags_5014 & 0x8000) && i == 0) {
             u->col0[0] = 0x40;
@@ -361,15 +348,15 @@ int retry_load_menu(OptionScreen* o)
                 static int y0 = 245;
                 int no;
 
-                if (o->sub != 0) {
-                    no = 0x8A;
-                } else {
+                if (o->sub == 0) {
                     no = 0x98;
+                } else {
+                    no = 0x8A;
                 }
                 cMes.MesSet(no, x0, y0, (o->mesAttr | 0x40) & ~0x80, 0, 0, 4);
-                confirm = 1;
                 cMes.getWork()->cursor = 1;
                 o->step = 1;
+                confirm = 1;
                 yes = 1;
                 SndCall(0, 0x37, 0, 0, 0, 0);
                 break;
@@ -383,27 +370,15 @@ int retry_load_menu(OptionScreen* o)
                 return 0;
             }
         } else {
-            s8 v;
-            s8 n;
-
             if (Key.trg & KEY_UP) {
                 o->sub--;
             }
             if (Key.trg & KEY_DOWN) {
                 o->sub++;
             }
-            v = o->sub;
-            if (v >= 0) {
-                n = v;
-                if (n > 3) {
-                    n = 3;
-                }
-            } else {
-                n = 0;
-            }
-            o->sub = n;
+            o->sub = o->sub < 0 ? 0 : (o->sub > 3 ? 3 : o->sub);
             if ((s32) pG->flags_54 < 0 || (pG->flags_54 & 0x40000000)) {
-                if (n == 1) {
+                if (o->sub == 1) {
                     if (Key.trg & KEY_UP) {
                         o->sub = 0;
                     }
@@ -425,7 +400,7 @@ int retry_load_menu(OptionScreen* o)
             if (o->sub == i) {
                 setColor(u, base);
             } else {
-                u->col0[0] = u->col0[1] = u->col0[2] = u->col0[3] = 0xFF;
+                u->col0[3] = u->col0[2] = u->col0[1] = u->col0[0] = 0xFF;
             }
             if (((s32) pG->flags_54 < 0 || (pG->flags_54 & 0x40000000)) && i == 1) {
                 u->col0[0] = 0x40;
@@ -487,20 +462,18 @@ int retry_load_menu(OptionScreen* o)
         } else {
             ScreenReSize(0x200, 0x1C0);
             if (o->fromTitle != 1) {
+                Cckpt.roomInit();
                 Cockpit* ck = &Cckpt;
-
-                ck->roomInit();
                 ck->move();
                 ck->life.fix(1);
                 ck->lifeMeterDisp(0);
             }
             IdTexDataLoad(OPT_PTR(0x20), 10);
             IdSys.set(OPT_PTR(0x24), 0xFF, ID_OPT_BG, 0x13, 4, 0);
-            u = IdSys.unitPtr(0, ID_OPT_BG);
             {
-                Hermite1* h = u->curve[2];
-                int t = (int) h->key[h->num - 1].t;
-                IdSys.setTime(u, (s16) t);
+                IdUnit* bg = IdSys.unitPtr(0, ID_OPT_BG);
+                Hermite1* h = bg->curve[2];
+                IdSys.setTimeS(bg, (s16) (int) h->key[h->num - 1].t);
             }
             IdSys.kill(0xFF, ID_OPT);
             IdSys.set(OPT_PTR(0x2C), 0xFF, ID_OPT, 0x13, 3, 0);
@@ -615,9 +588,6 @@ int controller_menu(OptionScreen* o)
     } else if (toggle_key(o, old)) {
         SndCall(0, 0x35, 0, 0, 0, 0);
     } else {
-        s8 v;
-        s8 n;
-
         old = o->sub;
         if (Key.trg & KEY_UP) {
             o->sub--;
@@ -633,16 +603,7 @@ int controller_menu(OptionScreen* o)
                 o->sub = 3;
             }
         }
-        v = o->sub;
-        if (v >= 0) {
-            n = v;
-            if (n > 3) {
-                n = 3;
-            }
-        } else {
-            n = 0;
-        }
-        o->sub = n;
+        o->sub = o->sub < 0 ? 0 : (o->sub > 3 ? 3 : o->sub);
         if (old != o->sub) {
             SndCall(0, 0x34, 0, 0, 0, 0);
         }
@@ -672,7 +633,7 @@ int controller_menu(OptionScreen* o)
         if (o->sub == i) {
             setColor(u, base);
         } else {
-            u->col0[0] = u->col0[1] = u->col0[2] = u->col0[3] = 0xFF;
+            u->col0[3] = u->col0[2] = u->col0[1] = u->col0[0] = 0xFF;
         }
         if (pG->x4FB8 != 0 && pG->x4FB8 != 4 && i == 2) {
             u->col0[0] = 0x40;
@@ -715,7 +676,7 @@ int controller_menu(OptionScreen* o)
         if (o->sub == i) {
             setColor(sel, base);
         } else {
-            sel->col0[0] = sel->col0[1] = sel->col0[2] = sel->col0[3] = 0xFF;
+            sel->col0[3] = sel->col0[2] = sel->col0[1] = sel->col0[0] = 0xFF;
         }
         uns->col0[0] = off->col0[0];
         uns->col0[1] = off->col0[1];
@@ -810,9 +771,6 @@ int brightness_menu(OptionScreen* o)
             }
         }
         {
-            s8 v;
-            s8 n;
-
             old = o->sub;
             if (Key.trg & KEY_UP) {
                 o->sub--;
@@ -820,16 +778,7 @@ int brightness_menu(OptionScreen* o)
             if (Key.trg & KEY_DOWN) {
                 o->sub++;
             }
-            v = o->sub;
-            if (v >= 0) {
-                n = v;
-                if (n > 1) {
-                    n = 1;
-                }
-            } else {
-                n = 0;
-            }
-            o->sub = n;
+            o->sub = o->sub < 0 ? 0 : (o->sub > 1 ? 1 : o->sub);
             if (old != o->sub) {
                 SndCall(0, 0x34, 0, 0, 0, 0);
             }
@@ -936,9 +885,6 @@ int audio_menu(OptionScreen* o)
         }
         SndCall(0, 0x3A, 0, 0, 0, 0);
     } else {
-        s8 v;
-        s8 n;
-
         old = o->sub;
         if (Key.trg & KEY_UP) {
             o->sub--;
@@ -946,16 +892,7 @@ int audio_menu(OptionScreen* o)
         if (Key.trg & KEY_DOWN) {
             o->sub++;
         }
-        v = o->sub;
-        if (v >= 0) {
-            n = v;
-            if (n > 3) {
-                n = 3;
-            }
-        } else {
-            n = 0;
-        }
-        o->sub = n;
+        o->sub = o->sub < 0 ? 0 : (o->sub > 3 ? 3 : o->sub);
         if (old != o->sub) {
             SndCall(0, 0x34, 0, 0, 0, 0);
         }
@@ -969,7 +906,7 @@ int audio_menu(OptionScreen* o)
         u = IdSys.unitPtr((u8) (i + 2), ID_OPT);
         if (o->sub == i) {
             setColor(u, base);
-        } else if (i == 3 || o->sound == i) {
+        } else if (i == 3 || i == o->sound) {
             u->col0[0] = 0xFF;
             u->col0[1] = 0xFF;
             u->col0[2] = 0xFF;
@@ -985,11 +922,11 @@ int audio_menu(OptionScreen* o)
     IdSys.unitPtr(0xB, ID_OPT)->flags &= ~8;
     IdSys.unitPtr(0xC, ID_OPT)->flags &= ~8;
     switch (pSys->sound_mode) {
-    case 0:
-        u = IdSys.unitPtr(0xB, ID_OPT);
-        break;
     case 1:
         u = IdSys.unitPtr(0xA, ID_OPT);
+        break;
+    case 0:
+        u = IdSys.unitPtr(0xB, ID_OPT);
         break;
     case 2:
         u = IdSys.unitPtr(0xC, ID_OPT);

@@ -344,6 +344,7 @@ static void objBull_R0_ToLift(cObjBull* obj)
 void objBull_R0_LiftWait(cObjBull* obj)
 {
     BullWork* w = &obj->bull;
+    int zero;
 
     objBullPushMtx(obj);
     switch (obj->xFE) {
@@ -355,11 +356,12 @@ void objBull_R0_LiftWait(cObjBull* obj)
     case 1:
         MotionSetCore(obj, &obj->pMotion, w->mot[3], 0, 0, 0x8001, (u16) ((*(u16*) w->mot[3] & 0x3FFF) - 1));
         MotionMove(obj, 0);
+        zero = 0;
         if (pG->flags_174 & 0x08000000) {
             obj->xFC = 6;
-            obj->xFD = 0;
-            obj->xFE = 0;
-            obj->xFF = 0;
+            obj->xFD = zero;
+            obj->xFE = zero;
+            obj->xFF = zero;
         }
         break;
     }
@@ -376,6 +378,7 @@ void objBull_R0_LiftWait(cObjBull* obj)
 void objBull_R0_Lift(cObjBull* obj)
 {
     BullWork* w = &obj->bull;
+    int zero;
 
     objBullPushMtx(obj);
     switch (obj->xFE) {
@@ -397,11 +400,12 @@ void objBull_R0_Lift(cObjBull* obj)
         obj->xFE++;
     case 3:
         MotionMove(obj, 0);
+        zero = 0;
         if (pG->flags_174 & 0x00400000) {
             obj->xFC = 7;
-            obj->xFD = 0;
-            obj->xFE = 0;
-            obj->xFF = 0;
+            obj->xFD = zero;
+            obj->xFE = zero;
+            obj->xFF = zero;
         }
         break;
     }
@@ -726,7 +730,7 @@ static int objBullGetBullNo(cObjBull* obj, Vec* pos)
 
     PSMTXInverse(Bull_MatOld, inv);
     PSMTXMultVec(inv, pos, &v);
-    if (v.x > -700.0f && v.x < 700.0f && v.y > 0.0f && v.y < 1000.0f && v.z > -2200.0f && v.z < 2200.0f) {
+    if (v.x > -2300.0f && v.x < 2300.0f && v.y > -500.0f && v.y < 1000.0f && v.z > -4400.0f && v.z < 4400.0f) {
         return 1;
     }
     return 0;
@@ -739,7 +743,7 @@ int objBullGetBullNo2(cObjBull* obj, Vec* pos)
 
     PSMTXInverse(obj->getPartsPtr(Bull_parts)->mat, inv);
     PSMTXMultVec(inv, pos, &v);
-    if (v.x > -700.0f && v.x < 700.0f && v.y > 0.0f && v.y < 1000.0f && v.z > -2200.0f && v.z < 2200.0f) {
+    if (v.x > -2300.0f && v.x < 2300.0f && v.y > 0.0f && v.y < 1000.0f && v.z > -4400.0f && v.z < 4400.0f) {
         return 1;
     }
     return 0;
@@ -830,8 +834,10 @@ void objBullMoveAdjustEM(cObjBull* obj)
                 ((cEmWep*) em)->setParentMatCalc(1);
             } else if (em->id == 3) {
                 objBullSetAdjust(obj, em);
-            } else if (em->id > 0xF && em->id <= 0x40) {
-                objBullSetAdjust(obj, em);
+            } else if (em->id > 0xF) {
+                if (em->id <= 0x40) {
+                    objBullSetAdjust(obj, em);
+                }
             }
         }
     }
@@ -923,20 +929,21 @@ void cObjBull::setRide()
     BullWork* w = &bull;
     Vec p;
     cModel* parts;
+    int zero = 0;
 
     parts = getPartsPtr(Bull_parts);
     p = parts->worldPos;
-    p.y += 500.0f;
+    p.y += 1000.0f;
     pPL->setPos(&p);
     pG->flags_500C |= 0x20;
     w->ride = 1;
     if (pSUB) {
         p = parts->worldPos;
-        p.y += 500.0f;
+        p.y += 1000.0f;
         p.z += -500.0f;
         pSUB->setPos(&p);
     }
-    w->timer = 0;
+    w->timer = zero;
     switch (w->type) {
     case 0:
     default:
@@ -1083,7 +1090,7 @@ void Sub_bull_operation(cEm* em)
     switch (em->xFE) {
     case 0:
         em->atari.throughOn();
-        MotionSetCore(em, &em->pMotion, ROOM_ARC_PTR(pG->pRoomArc, 51), 0, 3, 1, 0);
+        MotionSetCore(em, &em->pMotion, ROOM_ARC_PTR(pGS->pRoomArc, 51), 0, 3, 1, 0);
         em->xFE++;
     case 1:
         SubBullSeat(em);
@@ -1105,7 +1112,7 @@ void Sub_bull_lookback(cEm* em)
     switch (em->xFE) {
     case 0:
         em->atari.throughOn();
-        MotionSetCore(em, &em->pMotion, ROOM_ARC_PTR(pG->pRoomArc, 66), 0, 3, 1, 0);
+        MotionSetCore(em, &em->pMotion, ROOM_ARC_PTR(pGS->pRoomArc, 66), 0, 3, 1, 0);
         parts = em->getPartsPtr(3);
         if (em->xFF) {
             SndStop(em->subSndId, 0);
@@ -1133,7 +1140,7 @@ void Sub_bull_look(cEm* em)
     switch (em->xFE) {
     case 0:
         em->atari.throughOn();
-        MotionSetCore(em, &em->pMotion, ROOM_ARC_PTR(pG->pRoomArc, 67), 0, 3, 1, 0);
+        MotionSetCore(em, &em->pMotion, ROOM_ARC_PTR(pGS->pRoomArc, 67), 0, 3, 1, 0);
         em->xFE++;
     case 1:
         SubBullSeat(em);
@@ -1149,15 +1156,19 @@ void Sub_bull_look(cEm* em)
 void Sub_dm_bull(cEm* em)
 {
     int dmg;
+    int type = 2;
 
     pG->flags_5014 |= 0x00800000;
     em->setStatus(3);
-    em->dmType = 2;
+    em->dmType = type;
     switch (em->xFE) {
     case 0:
         em->atari.throughOn();
         dmg = 0;
         switch (em->dmWep) {
+        default:
+            dmg = 9999;
+            break;
         case 0xD:
         case 0x12:
         case 0x13:
@@ -1173,9 +1184,6 @@ void Sub_dm_bull(cEm* em)
         case 0xE:
         case 0x17:
         case 0x2A:
-            break;
-        default:
-            dmg = 9999;
             break;
         }
         LifeDownSet(em, dmg, 0);
@@ -1245,8 +1253,10 @@ int cObjBull::getMoveFrameRtn()
 
 void cObjBull::setAdjustMode(u8 mode, void (*func)(cObj*))
 {
-    bull.adjustFunc = func;
-    bull.adjustMode = mode;
+    BullWork* w = &bull;
+
+    w->adjustMode = mode;
+    w->adjustFunc = func;
 }
 
 void cObjBull::setBreakTruck()
@@ -1266,8 +1276,8 @@ int SubCkNearEm()
         return 0;
     }
     PSMTXInverse(pSUB->mat, inv);
-    PSMTXMultVec(inv, &pPL->pos, &v);
     zmin = -1000.0f;
+    PSMTXMultVec(inv, &pPL->pos, &v);
     if (v.x < -2000.0f) {
         zmin = -6000.0f;
     }
@@ -1288,10 +1298,25 @@ int SubCkNearEm()
 
         if ((em->be_flag & 0x201) == 1 && em->id > 0xF && em->id <= 0x20 && em->hp > 0 && (em->be_flag & 2)) {
             PSMTXMultVec(inv, &em->pos, &v);
-            if (v.x >= -2000.0f && v.x >= -2000.0f && v.z >= zmin && v.z <= 0.0f && v.y >= -1000.0f &&
-                v.y <= 2000.0f) {
-                return 1;
+            if (v.x < -2000.0f) {
+                continue;
             }
+            if (v.x < -2000.0f) {
+                continue;
+            }
+            if (v.z < zmin) {
+                continue;
+            }
+            if (v.z > 0.0f) {
+                continue;
+            }
+            if (v.y < -1000.0f) {
+                continue;
+            }
+            if (v.y > 2000.0f) {
+                continue;
+            }
+            return 1;
         }
     }
     return 0;

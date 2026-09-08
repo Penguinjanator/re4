@@ -69,7 +69,10 @@ struct SubScreenWork {
     u8 pad_26C[0x2AE - 0x26C];
     u8 x2AE;                  // 0x2AE  item 0x7C..0x7F owned -> 0..3
     u8 x2AF;                  // 0x2AF
-    u8 pad_2B0[0x31C - 0x2B0];
+    u8 pad_2B0[0x2FA - 0x2B0];
+    u16 x2FA;                 // 0x2FA  item id handed to the opened sub screen (sce_at sceAtGetItem)
+    u16 x2FC;                 // 0x2FC  its count
+    u8 pad_2FE[0x31C - 0x2FE];
     s32 mdtNo;                // 0x31C  OpeSetOpenTerm number
     s32 strBlk;               // 0x320  SndStrPlayBlock handle
     cObjWep* pObj;            // 0x324  OpeSetOpenTerm weapon object

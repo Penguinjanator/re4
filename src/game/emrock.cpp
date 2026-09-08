@@ -14,6 +14,7 @@
 #include "ctrl.h"
 #include "emrock.h"
 #include "emhit.h"
+#include "at_mod.h"
 #include "esp.h"
 #include "snd.h"
 #include "quake.h"
@@ -32,6 +33,19 @@ int MotionMove(cModel* m, int a);
 void EffectEspgenDelete(int a, int b, cModel* m);
 }
 void MotionSetCore(cModel* m, void* w, void* data, int seq, int hokan, int flags, int frame);   // motion.cpp (C++ linkage)
+
+// lockParts = 0 through an int parameter: the zero becomes an SImode pseudo shared with the
+// later `= 0` stores (emmine SetMine).
+static inline void LockPartsSet(cEm* em, int no)
+{
+    em->lockParts = no;
+}
+
+// Struct-member view of pPL (the pGS trick): the load stays below the preceding atari flag store.
+struct PlayerPtr {
+    cPlayer* p;
+};
+#define PLS (((PlayerPtr*) &pPL)->p)
 
 typedef void (*EmRockFunc)(cEmRock*);
 
@@ -57,11 +71,10 @@ static EmRockFunc EmRock_R1_move_tbl[9] = {
     emRock_R1_Drop2,
 };
 
-cEmRock* SetRock(void* bin, void* tpl, Vec* pos, Vec* rot, int type)
+cEmRock* SetRock(void* bin, void* tpl, Vec* pos, Vec* rot, u8 type)
 {
     cEmRock* em;
     EmRockWork* w;
-    cAtariInfo* at;
 
     em = (cEmRock*) EmMgr.createBack(0x4A);
     if (em == 0) {
@@ -75,12 +88,12 @@ cEmRock* SetRock(void* bin, void* tpl, Vec* pos, Vec* rot, int type)
         em->rot = *rot;
     }
     if (em->modelInit(bin, tpl) == 0) {
-        pLog->err(0, 0, "SetRock() failed.");
+        pLog->err(0, 0, "SetRock() ModelInit failed.");
         EmMgr.destroy(em);
         return 0;
     }
     em->type = type;
-    switch (type) {
+    switch (em->type) {
     case 0:
         break;
     case 1:
@@ -89,15 +102,14 @@ cEmRock* SetRock(void* bin, void* tpl, Vec* pos, Vec* rot, int type)
         em->scale.z = 4.2f;
         break;
     }
-    at = &em->atari;
     if (em->type != 3) {
-        at->init(0, 0x2000, 10, 0.0f, -(em->scale.z * 1200.0f) * 0.5f, 0.0f, em->scale.x * 1200.0f * 0.5f,
-                 em->scale.x * 1200.0f * 0.5f, em->scale.x * 1200.0f * 0.5f, em->scale.z * 1200.0f * 0.5f);
+        em->atari.init(0, 0x2000, 10, 0.0f, -(em->scale.y * 1200.0f) * 0.5f, 0.0f, em->scale.x * 1200.0f * 0.5f,
+                       em->scale.x * 1200.0f * 0.5f, em->scale.x * 1200.0f * 0.5f, em->scale.y * 1200.0f * 0.5f);
     } else {
-        at->init(0, 0x2000, 10, 0.0f, 2000.0f, 0.0f, 2700.0f, 2700.0f, 2700.0f, 2000.0f);
+        em->atari.init(0, 0x2000, 10, 0.0f, 2000.0f, 0.0f, 2700.0f, 2700.0f, 2700.0f, 2000.0f);
     }
-    em->hpMax = 1000;
     em->hp = 1000;
+    em->hpMax = 1000;
     {
         static const Vec ofs = { 0.0f, 0.0f, 0.0f };
         static const Vec size = { 10000.0f, 10000.0f, 10000.0f };
@@ -108,15 +120,15 @@ cEmRock* SetRock(void* bin, void* tpl, Vec* pos, Vec* rot, int type)
             em->lightInfo.init2(0, 1, &ofs, &size, 8);
         }
     }
-    em->lockParts = 0;
+    LockPartsSet(em, 0);
     em->lockOfs.x = 0.0f;
     em->lockOfs.y = 0.0f;
     em->lockOfs.z = 0.0f;
     em->setStatus(1);
     em->setStatus(0xB);
     em->be_flag &= ~0x01000000;
-    at->setPriority(3);
-    at->flags &= ~0x100;
+    em->atari.setPriority(3);
+    em->atari.flags &= ~0x100;
     em->be_flag &= ~0x10;
     w->alwaysWait = 4;
     w->sndId = 0;
@@ -481,9 +493,11 @@ void emRock_R1_Throw(cEmRock* em)
     nrm.z = 0.0f;
     EatMgr.adjust(&nrm, &em->oldPos, &em->pos, w->radius, 0x2001, 0);
     if (nrm.x != 0.0f || nrm.y != 0.0f || nrm.z != 0.0f) {
-        len = RootSumSquare3(&w->spd);
+        f32 spd;
+
+        spd = RootSumSquare3(&w->spd);
         C_VECReflect(&w->spd, &nrm, &d);
-        PSVECScale(&d, &w->spd, len * 0.99f);
+        PSVECScale(&d, &w->spd, spd * 0.99f);
         if (nrm.y < 0.5f) {
             em->be_flag &= ~2;
             em->pos.x = em->mat[0][3];
@@ -555,6 +569,7 @@ void emRock_R1_Throw(cEmRock* em)
 void emRock_R1_Throw2(cEmRock* em)
 {
     EmRockWork* w = EMROCK_WK(em);
+    cAtariInfo* at;
     Vec d;
     Vec nrm;
     f32 len;
@@ -564,7 +579,8 @@ void emRock_R1_Throw2(cEmRock* em)
     case 0:
         w->timer = 0;
         w->timer2 = 180;
-        em->atari.flags &= ~0x300;
+        at = &em->atari;
+        at->flags &= ~0x300;
         SndCall(6, 0x49, &em->pos, 0, 0, em);
         em->xFE++;
     case 1:
@@ -695,7 +711,7 @@ void emRock_R1_Roll(cEmRock* em)
         }
         emRockPushCk(em, 0);
         em->atari.flags &= ~0x200;
-        pPL->rot.y = em->rot.y;
+        PLS->rot.y = em->rot.y;
         SetPlDamage((int) em, (void (*)(cPlayer*)) plemRockEscape);
         w->timer3 = 75;
         w->spd.x = 0.0f;
@@ -745,7 +761,7 @@ void emRock_R1_Roll(cEmRock* em)
 
                     fp = em->pos;
                     fp.y -= w->radius;
-                    EstSet(0, -1, &fp, 0, 0, 0xC8, 0, 0, 0, 0);
+                    EstSet(0, -1, &fp, 0, 0xC8, 0, 0, 0, 0, 0);
                     SndCall(6, 7, &em->pos, 0, 0, em);
                     if (w->xAD == 0) {
                         w->xAD = 1;
@@ -845,6 +861,8 @@ void emRock_R1_Drop(cEmRock* em)
             em->xFE++;
         }
         break;
+    case 4:
+        break;
     }
     em->partsWorldCalc();
 }
@@ -871,10 +889,10 @@ void emRock_R1_Drop2(cEmRock* em)
     case 2:
         w->timer = 25;
         emRockPushCk(em, 50);
-        pPL->rot.y = -0.1f;
-        pPL->pos.x = -4924.0f;
-        pPL->pos.y = -11950.0f;
-        pPL->pos.z = -14770.0f;
+        FSet(pPL->rot.y, -0.1f);
+        FSet(pPL->pos.x, -4924.0f);
+        FSet(pPL->pos.y, -11950.0f);
+        FSet(pPL->pos.z, -14770.0f);
         pPL->setPos(&pPL->pos);
         pPL->st.x325 = 2;
         SetPlDamage((int) em, (void (*)(cPlayer*)) plemDropFind);
@@ -909,16 +927,20 @@ void emRock_R1_Drop2(cEmRock* em)
         if (w->timer) {
             w->timer--;
             if (w->timer == 0) {
-                if (w->xAE == 0) {
-                    if ((s16) pG->pl_life > 0) {
-                        w->xAE = 1;
-                        SetPlDamage((int) em, (void (*)(cPlayer*)) plemDropDie);
-                        pPL->xFF = 1;
-                    }
+                if (w->xAE != 0) {
+                    break;
                 }
-            } else if (w->xAE == 0) {
+                if ((s16) pG->pl_life > 0) {
+                    w->xAE = 1;
+                    SetPlDamage((int) em, (void (*)(cPlayer*)) plemDropDie);
+                    pPL->xFF = 1;
+                    break;
+                }
+            }
+            if (w->xAE == 0) {
                 switch (w->rnd) {
                 case 0:
+                default:
                     ActBtn.set(0x25, 5, (int) plemDropEscAction, (int) em, 0x42, 3, 0, 0);
                     break;
                 case 1:
@@ -961,18 +983,18 @@ void cEmRock::setSeFall(u8 blk, u8 no, u8 vol)
 {
     EmRockWork* w = EMROCK_WK(this);
 
-    w->seFall[3] = 0;
     w->seFall[0] = blk;
     w->seFall[1] = no;
     w->seFall[2] = vol;
+    w->seFall[3] = 0;
 }
 
 void cEmRock::setEffFall(u8 id, u8 type)
 {
     EmRockWork* w = EMROCK_WK(this);
 
-    w->effFall[1] = type;
     w->effFall[0] = id;
+    w->effFall[1] = type;
 }
 
 void cEmRock::setEffAlways(int id, int type)
@@ -1010,11 +1032,23 @@ void plemRockEscAction(cEmRock* em)
 void cEmRock::setPlMotion(void** mot)
 {
     EmRockWork* w = EMROCK_WK(this);
-    int i;
 
-    for (i = 0; i < 16; i++) {
-        w->plMot[i] = mot[i];
-    }
+    w->plMot[0] = *mot++;
+    w->plMot[1] = *mot++;
+    w->plMot[2] = *mot++;
+    w->plMot[3] = *mot++;
+    w->plMot[4] = *mot++;
+    w->plMot[5] = *mot++;
+    w->plMot[6] = *mot++;
+    w->plMot[7] = *mot++;
+    w->plMot[8] = *mot++;
+    w->plMot[9] = *mot++;
+    w->plMot[10] = *mot++;
+    w->plMot[11] = *mot++;
+    w->plMot[12] = *mot++;
+    w->plMot[13] = *mot++;
+    w->plMot[14] = *mot++;
+    w->plMot[15] = *mot++;
 }
 
 void cEmRock::setScale(f32 s)
@@ -1029,10 +1063,10 @@ void cEmRock::setDropMot(void* a, void* b, void* c, void* d)
 {
     EmRockWork* w = EMROCK_WK(this);
 
-    w->mot3 = d;
     w->mot0 = a;
     w->mot1 = b;
     w->mot2 = c;
+    w->mot3 = d;
     xFC = 1;
     xFD = 7;
     xFE = 0;
@@ -1043,13 +1077,13 @@ void cEmRock::setDropMot2(void* a, void* b, void* c, void* d, void* e, void* f, 
 {
     EmRockWork* w = EMROCK_WK(this);
 
-    w->plMot[15] = g;
     w->mot1 = a;
     w->mot2 = b;
     w->mot4 = c;
     w->mot5 = d;
     w->plMot[13] = e;
     w->plMot[14] = f;
+    w->plMot[15] = g;
     xFC = 1;
     xFD = 8;
     xFE = 0;
@@ -1097,6 +1131,6 @@ void emRockSatSet(cEmRock* em)
         w->pSat->flags |= 4;
         w->pSat->setCoord(&pos, &rot);
     } else {
-        w->pSat = EatMgr.create((u8*) pG->pRoomArc + ((u32*) pG->pRoomArc)[5], 0, &pos, &rot, 1);
+        w->pSat = EatMgr.create((void*) (((u32*) pG->pRoomArc)[5] + (u32) pG->pRoomArc), 0, &pos, &rot, 1);
     }
 }

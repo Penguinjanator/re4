@@ -40,7 +40,8 @@ struct IdTexData {
 
 int IdTexDataLoad(void* data, int id)
 {
-    IdTexData* d = (IdTexData*) data;
+    u32 addr = (u32) data;
+    IdTexData* d = (IdTexData*) addr;
     TexIdTbl* idTbl;
     TexOfsTbl* tplTbl;
     TexOfsTbl* anmTbl;
@@ -50,20 +51,26 @@ int IdTexDataLoad(void* data, int id)
         pLog->err(0, 0, "IdDataLoad():EffData [0x%x] Invalid.", data);
         return 0;
     }
-    idTbl = (TexIdTbl*) ((u8*) data + d->ofsId);
-    tplTbl = (TexOfsTbl*) ((u8*) data + d->ofsTpl);
-    anmTbl = (TexOfsTbl*) ((u8*) data + d->ofsAnm);
+    idTbl = (TexIdTbl*) (addr + d->ofsId);
+    tplTbl = (TexOfsTbl*) (addr + d->ofsTpl);
+    anmTbl = (TexOfsTbl*) (addr + d->ofsAnm);
     for (i = 0; i < idTbl->num; i++) {
+        TEXPalette* tpl = (TEXPalette*) ((u8*) tplTbl + tplTbl->ofs[i]);
+        TexAnm* anm = (TexAnm*) ((u8*) anmTbl + anmTbl->ofs[i]);
         u8 texId = idTbl->ent[i].id;
         int check = 1;
 
         if (texId == 0x80) {
             check = 0;
         }
-        g_pIdTexSys->TexRegist((TEXPalette*) ((u8*) tplTbl + tplTbl->ofs[i]),
-                               (TexAnm*) ((u8*) anmTbl + anmTbl->ofs[i]), texId, id, 0, check);
+        g_pIdTexSys->TexRegist(tpl, anm, texId, id, 0, check);
     }
     return 1;
+}
+
+static inline int getTexObj(u8 id, u16 no, GXTexObj** t)
+{
+    return g_pIdTexSys->GetTexObj(id, no, t);
 }
 
 void IdTexSet(u8 id, u8 no)
@@ -72,7 +79,7 @@ void IdTexSet(u8 id, u8 no)
     GXTexObj* tex;
     GXTlutObj* tlut;
 
-    if (g_pIdTexSys->GetTexObj(id, no, &tex) == 0) {
+    if (g_pIdTexSys->GetTexObj(id, (u8) (no + 0), &tex) == 0) {
         pLog->err(0, 0, "IdTexSet: TexId[%x] no data", id);
         return;
     }

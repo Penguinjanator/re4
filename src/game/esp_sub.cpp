@@ -1,5 +1,5 @@
-#include "light.h"
 #include "atari.h"
+#include "light.h"
 #include "gx.h"
 #include "global.h"
 #include "math_sub.h"

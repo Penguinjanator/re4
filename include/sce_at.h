@@ -131,10 +131,18 @@ struct SceAtShdDisp {
     u8 done;          // 0x03 (0x5F)
 };
 
+// Special key area payload (type 0xF, SceAtDataSet_exec fills it).
+struct SceAtSkey {
+    void* obj;        // 0x00 (0x5C)
+    TaskFunc func;    // 0x04 (0x60)
+    u8 prio;          // 0x08 (0x64)
+    u8 flag;          // 0x09 (0x65)
+};
+
 // Message request handed to SceAtSetMes (sce_com SceUpCut), 0xC bytes (type 5 payload).
 struct SceAtMesData {
-    u16 type;         // 0x00
-    u16 no;           // 0x02
+    s16 type;         // 0x00
+    s16 no;           // 0x02  < 0: no message
     u8 x4;            // 0x04  camera cut + 1
     u8 x5;            // 0x05  SE block select
     u16 x6;           // 0x06  SE + 1
@@ -194,6 +202,7 @@ struct SceAtWork {
         SceAtFlg flg;
         SceAtShdDisp shd;
         SceAtMesData mes;
+        SceAtSkey skey;
         SceAtField field;
         int value;            // 0x5C  save argument
         u16 useItem[2];       // 0x5C  type 0x11: [1] = item id
@@ -234,7 +243,7 @@ void sceAtDeleteScrAt(SceAtWork* w);
 void SceAtCheckMoveScrAt();
 SceAtWork* SceAtPtr(int no);
 int sceAtPullAtNo(u8* out);
-void SceAtSetDoorFunc(int no, void (*func)(), int arg);
+void SceAtSetDoorFunc(int no, TaskFunc func, int arg);
 // Area `no`: run `func(obj)` (prio, otPrio) when the player enters it.
 void SceAtDataSet_exec(int no, int prio, int a, TaskFunc func, void* obj, int b);
 void SceAtDataReset(int no);
@@ -251,8 +260,8 @@ SceAtField* SceAtCheckFieldInfo(Vec* pos);
 int SceAtCheckLadder(cModel* m, Vec* pos, f32* ang, u8* level);
 int SceAtSearchLadder(cModel* m, Vec* pos, f32* ang, u8* level);
 void SceAtDataEyeTriggreCopy(AreaData* out, SceAtWork* w);
-void SceAtItemFlgOn(int flagNo, int saveFlagNo);
-int SceAtItemFlgCk(int flagNo, int saveFlagNo);
+void SceAtItemFlgOn(u16 flagNo, u16 saveFlagNo);
+int SceAtItemFlgCk(u16 flagNo, u16 saveFlagNo);
 int SceAtItemFindFlgCk(int no);
 void sceAtItemFlgOn(SceAtItem* it);
 int sceAtItemFlgCk(SceAtItem* it);
@@ -269,7 +278,7 @@ int sceAtCheckItemEffectCol(int id);
 int sceAtCheckSaveItem(int id);
 void SceAtLinkEtcDead(int no, int etcNo, int on);
 void sceAtLink_check();
-int SceAtSetEmItem(int no, cEm* em);
+int SceAtSetEmItem(cEm* em, int no);
 void SceAtSetSaveItem();
 int sceAtPullItemSaveWork();
 void SceAtInitSaveItem();
@@ -280,7 +289,7 @@ int SceAtSetItemModel(int no, cModel* m);
 int SceAtSetShootDownItem(SceAtWork* w, void* bin, void* tpl);
 cModel* SceAtItemModelPtr(int no);
 int SceAtItemHitCheck(SceAtWork* w, Vec* pos);
-int SceAtCheckSystemItemSet(int id, int* outId, int* outNum, Vec* pos, Vec* rot);
+int SceAtCheckSystemItemSet(u32 id, int* outId, int* outNum, Vec* pos, Vec* rot);
 void sceAtSetItem(SceAtWork* w);
 void SceAtItemAutoArea(AreaData* area, Vec* pos, f32 size);
 void sceAtItemEffDelete(SceAtItem* it);

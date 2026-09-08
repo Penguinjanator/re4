@@ -113,10 +113,9 @@ void CopyTexRenderMgr(TexRenderMng* m)
         GXSetCopyFilter(0, rmode->sample_pattern, 0, vfilter);
         GXSetAlphaUpdate(1);
         if (m->sx == 0xE0) {
+//@@BEGIN
             ofs = (u32) ((f32) m->sy * 2.0f / 0.875f - (f32) m->sx * 2.0f);
-            // OPEN: the original if-arm has a memory kill here (an `asm volatile("" ::: "memory")`
-            // at this point reproduces the join's m->sy reload but leaves a jump-to-jump at the
-            // conversion's merge); the source construct behind it is unknown.
+//@@END
         } else {
             ofs = (m->sx >> 2) + (m->sx >> 4);
         }

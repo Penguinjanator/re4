@@ -301,7 +301,7 @@ address	size	section	unit	scope	name	demangled
 0x8001DFD0	0xC8	.text	game/item.cpp	global	ordering__8cItemMgrUs	cItemMgr::ordering
 0x8001E098	0x3C	.text	game/item.cpp	global	addMoney	addMoney
 0x8001E0D4	0x2E8	.text	game/item.cpp	global	get__8cItemMgrii	cItemMgr::get
-0x8001E3BC	0x470	.text	game/item.cpp	global	cItemMgr_use	cItemMgr::use
+0x8001E3BC	0x470	.text	game/item.cpp	global	use__8cItemMgrP8ItemWork	cItemMgr::use
 0x8001E82C	0x144	.text	game/item.cpp	global	erase__8cItemMgrP8ItemWork	cItemMgr::erase
 0x8001E970	0x38	.text	game/item.cpp	global	dump__8cItemMgri	cItemMgr::dump
 0x8001E9A8	0x54	.text	game/item.cpp	global	cItemMgr_dump_8001E9A8	cItemMgr::dump
@@ -314,8 +314,8 @@ address	size	section	unit	scope	name	demangled
 0x8001EC18	0x78	.text	game/item.cpp	global	itemCombine	itemCombine
 0x8001EC90	0x424	.text	game/item.cpp	global	combine__8cItemMgrP8ItemWorkT1i	cItemMgr::combine
 0x8001F0B4	0x210	.text	game/item.cpp	global	cItemMgr_partsCombine	cItemMgr::partsCombine
-0x8001F2C4	0x24	.text	game/item.cpp	global	cItemMgr_available	cItemMgr::available
-0x8001F2E8	0x38	.text	game/item.cpp	global	cItemMgr_flagclear	cItemMgr::flagclear
+0x8001F2C4	0x24	.text	game/item.cpp	global	available__8cItemMgrUs	cItemMgr::available
+0x8001F2E8	0x38	.text	game/item.cpp	global	flagclear__8cItemMgr	cItemMgr::flagclear
 0x8001F320	0x28	.text	game/item.cpp	global	cItemMgr_check	cItemMgr::check
 0x8001F348	0x8	.text	game/item.cpp	global	bareHand	bareHand
 0x8001F350	0x120	.text	game/item.cpp	global	arm__8cItemMgrP8ItemWork	cItemMgr::arm
@@ -1106,7 +1106,7 @@ address	size	section	unit	scope	name	demangled
 0x80054F3C	0x250	.text	game/pl_npc.cpp	global	cSubChar_checkAnotherRoute	cSubChar::checkAnotherRoute
 0x8005518C	0x180	.text	game/pl_npc.cpp	global	cSubChar_moveAnotherRoute	cSubChar::moveAnotherRoute
 0x8005530C	0x268	.text	game/pl_npc.cpp	global	cSubChar_damageCheck	cSubChar::damageCheck
-0x80055574	0x15C	.text	game/pl_npc.cpp	global	cSubChar_setDamage	cSubChar::setDamage
+0x80055574	0x15C	.text	game/pl_npc.cpp	global	setDamage__8cSubCharUcifii	cSubChar::setDamage
 0x800556D0	0x34	.text	game/pl_npc.cpp	global	cSubChar_registPlAction	cSubChar::registPlAction
 0x80055704	0x16C	.text	game/pl_npc.cpp	global	waterProc	waterProc
 0x80055870	0x1C8	.text	game/pl_npc.cpp	global	cSubChar_moveBust	cSubChar::moveBust
@@ -3896,14 +3896,14 @@ address	size	section	unit	scope	name	demangled
 0x8010A618	0xFC	.text	game/emrack.cpp	global	setRange__7cEmRackffff	cEmRack::setRange
 0x8010A714	0x108	.text	game/emrack.cpp	global	adjustRange__7cEmRackUc	cEmRack::adjustRange
 0x8010A81C	0x20	.text	game/emrack.cpp	global	_._7cEmRack	cEmRack::~cEmRack
-0x8010A83C	0x3E0	.text	game/emrock.cpp	global	SetRock	SetRock
-0x8010AC1C	0x4	.text	game/emrock.cpp	global	cEmRock_beginEvent	cEmRock::beginEvent
+0x8010A83C	0x3E0	.text	game/emrock.cpp	global	SetRock__FPvT0P3VecT2Uc	SetRock
+0x8010AC1C	0x4	.text	game/emrock.cpp	global	beginEvent__7cEmRock	cEmRock::beginEvent
 0x8010AC20	0x18	.text	game/emrock.cpp	global	emRockDmCk	emRockDmCk
-0x8010AC38	0xD8	.text	game/emrock.cpp	global	cEmRock_move	cEmRock::move
+0x8010AC38	0xD8	.text	game/emrock.cpp	global	move__7cEmRock	cEmRock::move
 0x8010AD10	0x1C	.text	game/emrock.cpp	global	emRock_R0_Init	emRock_R0_Init
-0x8010AD2C	0x38	.text	game/emrock.cpp	local	emRock_R0_Move	emRock_R0_Move
+0x8010AD2C	0x38	.text	game/emrock.cpp	global	emRock_R0_Move	emRock_R0_Move
 0x8010AD64	0xF0	.text	game/emrock.cpp	global	emRock_R1_Set	emRock_R1_Set
-0x8010AE54	0xAC	.text	game/emrock.cpp	local	emRock_R1_Lost	emRock_R1_Lost
+0x8010AE54	0xAC	.text	game/emrock.cpp	global	emRock_R1_Lost	emRock_R1_Lost
 0x8010AF00	0x360	.text	game/emrock.cpp	global	emRock_R1_Parent	emRock_R1_Parent
 0x8010B260	0x3D8	.text	game/emrock.cpp	global	emRock_R1_Fall	emRock_R1_Fall
 0x8010B638	0x580	.text	game/emrock.cpp	global	emRock_R1_Throw	emRock_R1_Throw
@@ -3915,22 +3915,22 @@ address	size	section	unit	scope	name	demangled
 0x8010CC98	0xE4	.text	game/emrock.cpp	global	plemDropFind	plemDropFind
 0x8010CD7C	0x1B4	.text	game/emrock.cpp	global	plemDropEscape	plemDropEscape
 0x8010CF30	0xE0	.text	game/emrock.cpp	global	emRockRollHitCk	emRockRollHitCk
-0x8010D010	0x58	.text	game/emrock.cpp	global	cEmRock_setParent	cEmRock::setParent
+0x8010D010	0x58	.text	game/emrock.cpp	global	setParent__7cEmRockP3cEmii	cEmRock::setParent
 0x8010D068	0x13C	.text	game/emrock.cpp	local	cEmRock_setFall	cEmRock::setFall
 0x8010D1A4	0x214	.text	game/emrock.cpp	global	cEmRock_setThrow	cEmRock::setThrow
 0x8010D3B8	0x214	.text	game/emrock.cpp	global	cEmRock_setThrow2	cEmRock::setThrow2
-0x8010D5CC	0x1C	.text	game/emrock.cpp	global	cEmRock_setSeFall	cEmRock::setSeFall
-0x8010D5E8	0x10	.text	game/emrock.cpp	global	cEmRock_setEffFall	cEmRock::setEffFall
-0x8010D5F8	0x4C	.text	game/emrock.cpp	global	cEmRock_setEffAlways	cEmRock::setEffAlways
-0x8010D644	0x84	.text	game/emrock.cpp	global	cEmRock_setYarareCube	cEmRock::setYarareCube
-0x8010D6C8	0x28	.text	game/emrock.cpp	global	cEmRock_setTransMode	cEmRock::setTransMode
+0x8010D5CC	0x1C	.text	game/emrock.cpp	global	setSeFall__7cEmRockUcUcUc	cEmRock::setSeFall
+0x8010D5E8	0x10	.text	game/emrock.cpp	global	setEffFall__7cEmRockUcUc	cEmRock::setEffFall
+0x8010D5F8	0x4C	.text	game/emrock.cpp	global	setEffAlways__7cEmRockii	cEmRock::setEffAlways
+0x8010D644	0x84	.text	game/emrock.cpp	global	setYarareCube__7cEmRockP3Vecfff	cEmRock::setYarareCube
+0x8010D6C8	0x28	.text	game/emrock.cpp	global	setTransMode__7cEmRocki	cEmRock::setTransMode
 0x8010D6F0	0x18C	.text	game/emrock.cpp	global	emRockAtkScrCk	emRockAtkScrCk
 0x8010D87C	0xA8	.text	game/emrock.cpp	global	emRockSetRollRoute	emRockSetRollRoute
 0x8010D924	0x1FC	.text	game/emrock.cpp	global	emRockSetRollSpd	emRockSetRollSpd
 0x8010DB20	0xD0	.text	game/emrock.cpp	global	emRockRollStartCk	emRockRollStartCk
 0x8010DBF0	0x7C4	.text	game/emrock.cpp	global	plemRockEscape	plemRockEscape
-0x8010E3B4	0x88	.text	game/emrock.cpp	global	cEmRock_setPlMotion	cEmRock::setPlMotion
-0x8010E43C	0x20	.text	game/emrock.cpp	global	cEmRock_setScale	cEmRock::setScale
+0x8010E3B4	0x88	.text	game/emrock.cpp	global	setPlMotion__7cEmRockPPv	cEmRock::setPlMotion
+0x8010E43C	0x20	.text	game/emrock.cpp	global	setScale__7cEmRockf	cEmRock::setScale
 0x8010E45C	0x50	.text	game/emrock.cpp	global	plemRockSetEscapeRoute	plemRockSetEscapeRoute
 0x8010E4AC	0xD4	.text	game/emrock.cpp	global	plemRockEscapeCk	plemRockEscapeCk
 0x8010E580	0x18	.text	game/emrock.cpp	global	plemRockEscAction	plemRockEscAction
@@ -3943,8 +3943,8 @@ address	size	section	unit	scope	name	demangled
 0x8010EFA4	0x148	.text	game/emrock.cpp	global	emRockRunDownCk	emRockRunDownCk
 0x8010F0EC	0x164	.text	game/emrock.cpp	global	emRockAtkCk	emRockAtkCk
 0x8010F250	0x120	.text	game/emrock.cpp	global	emRockPushCk	emRockPushCk
-0x8010F370	0x34	.text	game/emrock.cpp	global	cEmRock_setDropMot	cEmRock::setDropMot
-0x8010F3A4	0x50	.text	game/emrock.cpp	global	cEmRock_setDropMot2	cEmRock::setDropMot2
+0x8010F370	0x34	.text	game/emrock.cpp	global	setDropMot__7cEmRockPvN31	cEmRock::setDropMot
+0x8010F3A4	0x50	.text	game/emrock.cpp	global	setDropMot2__7cEmRockPvN61	cEmRock::setDropMot2
 0x8010F3F4	0xEC	.text	game/emrock.cpp	global	emRockDropHitCk	emRockDropHitCk
 0x8010F4E0	0xF4	.text	game/emrock.cpp	global	emRockDropHitCkSub	emRockDropHitCkSub
 0x8010F5D4	0x138	.text	game/emrock.cpp	global	emRockDropHitCkEm2b	emRockDropHitCkEm2b
@@ -3953,7 +3953,7 @@ address	size	section	unit	scope	name	demangled
 0x8010F864	0xC4	.text	game/emrock.cpp	global	cEmRock_setBreakR11E	cEmRock::setBreakR11E
 0x8010F928	0x3C	.text	game/emrock.cpp	global	emRockSatClear	emRockSatClear
 0x8010F964	0x104	.text	game/emrock.cpp	global	emRockSatSet	emRockSatSet
-0x8010FA68	0x20	.text	game/emrock.cpp	global	cEmRock_dt_cEmRock	cEmRock::~cEmRock
+0x8010FA68	0x20	.text	game/emrock.cpp	global	_._7cEmRock	cEmRock::~cEmRock
 0x8010FA88	0x4A4	.text	game/emshield.cpp	global	SetShield	SetShield
 0x8010FF2C	0x38	.text	game/emshield.cpp	global	beginEvent__9cEmShield	cEmShield::beginEvent
 0x8010FF64	0x74C	.text	game/emshield.cpp	global	emShieldDmCk	emShieldDmCk
@@ -4713,7 +4713,7 @@ address	size	section	unit	scope	name	demangled
 0x8014C6A4	0x2C	.text	game/id_sys.cpp	global	IdDebugFreeBuffer	IdDebugFreeBuffer
 0x8014C6D0	0x58	.text	game/id_sys.cpp	global	IdGetBufferAddr	IdGetBufferAddr
 0x8014C728	0x8	.text	game/id_sys.cpp	global	IdSetBufferType	IdSetBufferType
-0x8014C730	0x54	.text	game/id_tex.cpp	global	IdTexGameInit__Fv	IdTexGameInit
+0x8014C730	0x54	.text	game/id_tex.cpp	global	IdTexGameInit	IdTexGameInit
 0x8014C784	0x24	.text	game/id_tex.cpp	global	IdTexRoomInit	IdTexRoomInit
 0x8014C7A8	0x28	.text	game/id_tex.cpp	global	IdTexRelease	IdTexRelease
 0x8014C7D0	0xEC	.text	game/id_tex.cpp	global	IdTexDataLoad	IdTexDataLoad
@@ -5272,7 +5272,7 @@ address	size	section	unit	scope	name	demangled
 0x8017336C	0x80	.text	game/pl_class.cpp	global	dmMotCk__Fv	dmMotCk
 0x801733EC	0x5A0	.text	game/pl_class.cpp	global	cPlayer_actionSelect	cPlayer::actionSelect
 0x8017398C	0x10C	.text	game/pl_class.cpp	global	cPlayer_dmgCheck	cPlayer::dmgCheck
-0x80173A98	0x1C4	.text	game/pl_class.cpp	global	cPlayer_setDamage	cPlayer::setDamage
+0x80173A98	0x1C4	.text	game/pl_class.cpp	global	setDamage__7cPlayerUcifii	cPlayer::setDamage
 0x80173C5C	0x64	.text	game/pl_class.cpp	global	cPlayer_visibleCtrl	cPlayer::visibleCtrl
 0x80173CC0	0x88	.text	game/pl_class.cpp	global	subScrCheck__7cPlayer	cPlayer::subScrCheck
 0x80173D48	0xA0	.text	game/pl_class.cpp	global	setNoSuspend__7cPlayeri	cPlayer::setNoSuspend
@@ -5664,7 +5664,7 @@ address	size	section	unit	scope	name	demangled
 0x80189B00	0xE4	.text	game/sce_at.cpp	global	SceAtLinkEtcDead	SceAtLinkEtcDead
 0x80189BE4	0x284	.text	game/sce_at.cpp	global	sceAtLink_check	sceAtLink_check
 0x80189E68	0x44	.text	game/sce_at.cpp	global	SceAtSetEmItem	SceAtSetEmItem
-0x80189EAC	0x74	.text	game/sce_at.cpp	global	SceAtSetEmItem_80189EAC	SceAtSetEmItem
+0x80189EAC	0x74	.text	game/sce_at.cpp	global	SceAtSetEmItem__FP3cEmP9SceAtWork	SceAtSetEmItem
 0x80189F20	0x140	.text	game/sce_at.cpp	global	SceAtSetSaveItem	SceAtSetSaveItem
 0x8018A060	0x34	.text	game/sce_at.cpp	global	sceAtPullItemSaveWork	sceAtPullItemSaveWork
 0x8018A094	0x2C	.text	game/sce_at.cpp	global	SceAtInitSaveItem	SceAtInitSaveItem
@@ -5672,7 +5672,7 @@ address	size	section	unit	scope	name	demangled
 0x8018A108	0xA8	.text	game/sce_at.cpp	global	sceAtCheckItemModelParent	sceAtCheckItemModelParent
 0x8018A1B0	0xFC	.text	game/sce_at.cpp	global	sceAtSetItemModelParent	sceAtSetItemModelParent
 0x8018A2AC	0x64	.text	game/sce_at.cpp	global	SceAtSetItemModel	SceAtSetItemModel
-0x8018A310	0xEC	.text	game/sce_at.cpp	global	SceAtSetItemModel_8018A310	SceAtSetItemModel
+0x8018A310	0xEC	.text	game/sce_at.cpp	global	SceAtSetItemModel__FP9SceAtWorkP6cModel	SceAtSetItemModel
 0x8018A3FC	0x114	.text	game/sce_at.cpp	global	SceAtSetShootDownItem	SceAtSetShootDownItem
 0x8018A510	0x6C	.text	game/sce_at.cpp	global	SceAtItemModelPtr	SceAtItemModelPtr
 0x8018A57C	0x398	.text	game/sce_at.cpp	global	SceAtItemHitCheck	SceAtItemHitCheck
@@ -8361,7 +8361,7 @@ address	size	section	unit	scope	name	demangled
 0x80233638	0x28	.rodata	game/emrack.cpp	local	cUnit_virtual_table_80233638	cUnit virtual table
 0x80233660	0x4F0	.rodata	game/emrock.cpp	global	lbl_80233660	.
 0x80233B50	0x58	.rodata	game/emrock.cpp	global	_vt.7cEmRock	cEmRock virtual table
-0x80233BA8	0x28	.rodata	game/emrock.cpp	global	cUnit_virtual_table_80233BA8	cUnit virtual table
+0x80233BA8	0x28	.rodata	game/emrock.cpp	local	cUnit_virtual_table_80233BA8	cUnit virtual table
 0x80233BD0	0x2B8	.rodata	game/emshield.cpp	global	lbl_80233BD0	.
 0x80233E88	0x58	.rodata	game/emshield.cpp	global	_vt.9cEmShield	cEmShield virtual table
 0x80233EE0	0x28	.rodata	game/emshield.cpp	local	cUnit_virtual_table_80233EE0	cUnit virtual table

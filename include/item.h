@@ -40,14 +40,15 @@ public:
     u8 pad_0[0xC];
     ItemWork* pArm;             // 0x0C  equipped weapon slot (NULL = bare hands)
     u16 armId;                  // 0x10  equipped weapon item id
-    u8 pad_12;
+    u8 x12;                     // 0x12  (sce_at clears it before use())
     u8 type;                    // 0x13  inventory type (num(id) / search count only this type)
     ItemWork* pItems;           // 0x14
     ItemWork* pLast;            // 0x18  slot the last get() filled (puzzle PutInCase copies the piece position into it)
     s32 nItems;                 // 0x1C
     ItemOrder* pOrder;          // 0x20  ordering() result (merchant: sorted slots of one item id)
     s32 nOrder;                 // 0x24  entries in pOrder
-    u8 pad_28[0x30 - 0x28];
+    u32 x28;                    // 0x28  (sce_at: number shown with item 0x73)
+    u32 x2C;                    // 0x2C  (sce_at: number shown with item 0x75)
 
     ItemWork* at(int no);       // 0x8001DB5C: slot `no` of pItems, NULL when no >= nItems
     int searchAt(ItemWork* p);  // 0x8001DB80: slot index of `p`, -1 if not in pItems

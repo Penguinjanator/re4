@@ -82,7 +82,7 @@ public:
     void setBreakR11E();
 };
 
-cEmRock* SetRock(void* bin, void* tpl, Vec* pos, Vec* rot, int type);
+cEmRock* SetRock(void* bin, void* tpl, Vec* pos, Vec* rot, u8 type);
 
 extern "C" {
 void emRockDmCk(cEmRock* em);
