@@ -54,6 +54,10 @@ def target_symbols(unit):
             s.add(re.sub(r"_[0-9A-F]{8}$", "", name))
             if dn and dn != ".":
                 s.add(dn)
+                # gcc 2.95 vtable symbol for "Class virtual table" (every unit carries weak copies)
+                m = re.match(r"^(\w+) virtual table$", dn)
+                if m:
+                    s.add(f"_vt.{len(m.group(1))}{m.group(1)}")
     return names if seen else None
 
 

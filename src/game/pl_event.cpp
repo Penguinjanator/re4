@@ -45,16 +45,16 @@ void pl_R1_Event_ToWalk(cPlayer* pl)
         }
         goto set_walk;
     case 1:
-        ang = Muku(&pl->pos, &pl->evTarget, pl->rot.y, pl->evTurnSpeed);
+        ang = Muku(&pl->pos, &pl->evTarget, pl->rot.y, pl->x400);
         pl->rot.y += ang;
-        if (fabsf(ang) < pl->evTurnSpeed * 0.5f) {
+        if (fabsf(ang) < pl->x400 * 0.5f) {
         set_walk:
             pl->motionSet(pl->pMotTbl[2], 5, 0, 5, 0);
             pl->xFE = 2;
         }
         break;
     case 2:
-        ang = Muku(&pl->pos, &pl->evTarget, pl->rot.y, pl->evTurnSpeed);
+        ang = Muku(&pl->pos, &pl->evTarget, pl->rot.y, pl->x400);
         pl->rot.y += ang;
         if (GetDistance(&pl->pos, &pl->evTarget) < 10000.0f) {
             pl->motionSet(pl->pMotTbl[0], 5, 0, 1, 0);

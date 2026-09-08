@@ -58,6 +58,8 @@ f32 GetDistance3(Vec* a, Vec* b);
 void RotVector(Vec* src, Vec* rot, Vec* dst);
 // Angle step from `ang` towards `target` seen from `pos`, clamped to +-limit.
 f32 Muku(Vec* pos, Vec* target, f32 ang, f32 limit);
+// Step from `ang` towards `target`, at most +-limit.
+f32 Muku2(f32 ang, f32 target, f32 limit);
 // lib math
 f32 sinf(f32 x);
 f32 cosf(f32 x);

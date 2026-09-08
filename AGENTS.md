@@ -228,6 +228,13 @@ mark it Matching.
 - `while (v < bound) v += step;` recomputes `bound` per iteration; `do/while` or `for` hoists it.
 - A `memcpy` whose destination is byte-pointer arithmetic (`(u8*)w + ofs`) keeps a following `.sdata`
   load below the stores; `(u8*)&w->v` casts are stripped by the builtin and behave like a struct copy.
+- Identical local aggregate initializers in different functions are merged into one `.rodata`
+  template; if the original kept one per function, give each a distinct type.
+- Sibling blocks reuse freed stack slots first-fit; a nested block inside a live variable's block does
+  not. Reassigning a pointer local after calls forces it into a callee-saved register.
+- OPEN (id_sys `setCk`/`dispSw`/`kill`): the target zero-extends one `u8` parameter (`clrlwi rX,rParam,24`)
+  before using it as a bit-table index while other u8 params are never masked; no source form found yet
+  (u8/int/u32 locals, casts, `& 0xFF`, inline helpers, references, bitfields all tried).
 - Static locals show as `name.NNN` in objdiff; the DECL_UID suffix cannot be reproduced and is ignored by the report.
 - Unexplained words in `.rodata` (zero words, stray floats) are usually the constant pool of a function
   the original linker dead-stripped (bodies gone, pools kept, `STRIP_UNUSED` in objects.py): write a

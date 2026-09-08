@@ -24,7 +24,7 @@ struct IdUnit {
     u8 maskNo;       // 0x6F  mask texture frame
     u8 texCnt;       // 0x70
     u8 maskCnt;      // 0x71
-    s16 timer[4];    // 0x72  path / scale / color / rotation curve times
+    u16 timer[4];    // 0x72  (converted as s16)  path / scale / color / rotation curve times
     u8 vtxType;      // 0x7A  low nibble: anchor (IdCalcVertex)
     u8 loop;         // 0x7B  bit n: timer n loops
     u8 scaleType;    // 0x7C  0x10: scale x only, 0x20: y only
@@ -176,6 +176,7 @@ int IdGetAnmAddr(u8 id, TexAnm** out);
 void IdChannelSet(IdUnit* u);
 TexWk* IdGetTexWk(u8 id, int quiet);
 
+extern "C" {
 void idSysMove00(IdUnit* u);
 void IdCalcVertex(IdUnit* u);
 void idSysMove01(IdUnit* u);
@@ -184,7 +185,7 @@ void idSysMove03(IdUnit* u);
 void idSysMove04(IdUnit* u);
 void IdGeneralTrans(IdUnit* u);
 void IdCommonTrans(IdUnit* u);
-void IdNegativeTrans(IdUnit* u, int mode);
+void IdNegativeTrans(IdUnit* u, u32 mode);
 void IdShimmerTrans(IdUnit* u, int sub, int type);
 void IdAllocBuffer();
 void IdFreeBuffer();
@@ -192,5 +193,6 @@ void IdDebugAllocBuffer();
 void IdDebugFreeBuffer();
 void* IdGetBufferAddr(int type);
 void IdSetBufferType(int type);
+}
 
 #endif

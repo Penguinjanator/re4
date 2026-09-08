@@ -8,6 +8,7 @@
 #include "widget.h"
 #include "atari.h"
 #define SND_SDK_NO_GX
+#define SND_DRV_GAME_API
 #include "snd.h"
 #include "snd_drv.h"
 #include "dvd.h"
@@ -340,7 +341,9 @@ static int sndFilterCalc(int no, f32 dist)
 
 static int sndExistCheck(int blk, u32 no)
 {
-    if (!SND_BIT_CK(pSndRaw->blk_flag, blk)) {
+    u32* f = pSnd->blk_flag;
+
+    if (!SND_BIT_CK(f, (u16) blk)) {
         return 0;
     }
     if (no >= Snd_iss_blk[blk].num) {
@@ -610,43 +613,48 @@ static void seRandomCheck(int blk, u16* no)
     }
     t = (SndRndTbl*) ((u8*) tbl + tbl[g]);
     do {
-        *no = t->e[Rnd() % t->num];
+        *no = *(t->e + Rnd() % t->num);
         retry--;
     } while (*no == t->last && retry != 0);
     t->last = *no;
 }
 
+// The wrappers call SndCall through int-parameter function pointer types: no `clrlwi` on `no`, and
+// EmSeCall passes `id` in the pos slot and `pos` in the id slot, as the original binary does.
+typedef u32 (*SndCallFn)(int blk, int no, Vec* pos, int id, int vol, cUnit* obj);
+typedef u32 (*SndCallFn2)(int blk, int no, int id, Vec* pos, int vol, cUnit* obj);
+
 u32 EmSeCall(int no, int id, Vec* pos, int vol0, int vol1, cUnit* obj)
 {
-    return SndCall(8, no, pos, id, vol0 | vol1, obj);
+    return ((SndCallFn2) SndCall)(8, no, id, pos, vol0 | vol1, obj);
 }
 
 u32 RoomSeCall(int no, Vec* pos, int vol0, int vol1, cUnit* obj)
 {
-    return SndCall(6, no, pos, 0, vol1 | vol0, obj);
+    return ((SndCallFn) SndCall)(6, no, pos, 0, vol1 | vol0, obj);
 }
 
 u32 PlSeCall(int no, Vec* pos, int vol0, int vol1, cUnit* obj)
 {
-    return SndCall(1, no, pos, 0, vol0 | vol1, obj);
+    return ((SndCallFn) SndCall)(1, no, pos, 0, vol0 | vol1, obj);
 }
 
 u32 CoreSeCall(int no, Vec* pos, int vol0, int vol1, cUnit* obj)
 {
-    return SndCall(0, no, pos, 0, vol0 | vol1, obj);
+    return ((SndCallFn) SndCall)(0, no, pos, 0, vol0 | vol1, obj);
 }
 
 u32 FootSeCall(int no, Vec* pos, int vol0, int vol1)
 {
-    return SndCall(5, no, pos, 0, vol0 | vol1, 0);
+    return ((SndCallFn) SndCall)(5, no, pos, 0, vol0 | vol1, 0);
 }
 
 u32 DoorSeCall(int no)
 {
-    if (SND_BIT_CK(pSnd->blk_flag, 7)) {
-        return SndCall(7, no, 0, 0, 0, 0);
+    if (!SND_BIT_CK(pSnd->blk_flag, 7)) {
+        return 0;
     }
-    return 0;
+    return ((SndCallFn) SndCall)(7, no, 0, 0, 0, 0);
 }
 
 static void getCam2SndAngle(f32* pan, f32* span, f32* dist, Vec* pos);
@@ -926,13 +934,16 @@ u32 SndCall(u16 blk, u16 no, Vec* pos, int id, int vol, cUnit* obj)
 
 int SndSetVol(u32 id, int vol, int time)
 {
+    SND_CTRL_WORK* c = &Snd_ctrl_work;
     int ret = 0;
 
     switch (Snd_get_play_type(id)) {
+    case 0:
+        break;
     case 1:
-        Snd_ctrl_work.x4C = vol;
-        Snd_ctrl_work.flag_58 = 0x18;
-        Snd_ctrl_work.x4B = vol;
+        c->x4B = vol;
+        c->flag_58 = 0x18;
+        c->x4C = vol;
         ret = Snd_se_set_paras(id) == 0;
         break;
     case 2:
@@ -947,11 +958,12 @@ int SndSetVol(u32 id, int vol, int time)
 
 int SndSetDopPitch(u32 id, int pitch)
 {
+    SND_CTRL_WORK* c = &Snd_ctrl_work;
     int ret = 0;
 
     if (Snd_get_play_type(id) == 1) {
-        Snd_ctrl_work.x54 = pitch;
-        Snd_ctrl_work.flag_58 = 0x400;
+        c->x54 = pitch;
+        c->flag_58 = 0x400;
         ret = Snd_se_set_paras(id) == 0;
     }
     return ret;
@@ -962,6 +974,8 @@ int SndStop(u32 id, int time)
     int ret = 0;
 
     switch (Snd_get_play_type(id)) {
+    case 0:
+        break;
     case 1:
         ret = Snd_se_stop_one(id) == 0;
         break;
@@ -978,9 +992,10 @@ int SndStop(u32 id, int time)
 void SndBlkStop(int blk)
 {
     BOOL lv = OSDisableInterrupts();
-    SND_VOICE_WORK* v;
+    int i;
 
-    for (v = Snd_voice_work; v <= &Snd_voice_work[SND_VOICE_MAX - 1]; v++) {
+    for (i = 0; i < SND_VOICE_MAX; i++) {
+        SND_VOICE_WORK* v = &Snd_voice_work[i];
         if (v->status != 0 && v->type == 1 && v->blk_no == blk) {
             Snd_se_stop_one(v->snd_id);
         }
@@ -993,9 +1008,6 @@ int SndEndCheck(u32 id)
     int ret = 0;
 
     switch (Snd_get_play_type(id)) {
-    case 0:
-        ret = 1;
-        break;
     case 1:
         ret = Snd_se_end_check(id) == 0;
         break;
@@ -1004,6 +1016,9 @@ int SndEndCheck(u32 id)
         break;
     case 4:
         ret = Snd_str_end_check(id) == 0;
+        break;
+    case 0:
+        ret = 1;
         break;
     }
     return ret;
@@ -1723,8 +1738,10 @@ void SndRoomStrStartCheck()
     } else {
         s = pSnd->room_str[0];
     }
-    if ((s & 0x8000) && (s & 0x4000)) {
-        SndRoomStrStart(1, 0, 1);
+    if (s & 0x8000) {
+        if (s & 0x4000) {
+            SndRoomStrStart(1, 0, 1);
+        }
     }
 }
 
@@ -1871,10 +1888,7 @@ int SndGetMasterVol(u32 type)
             t = 0x10;
         }
     }
-    if (t != 0) {
-        return (s8) Snd_get_system_vol(t);
-    }
-    return -1;
+    return (t != 0) ? (s8) Snd_get_system_vol(t) : -1;
 }
 
 void SndSetOutputMode(int mode, int init)
@@ -2278,7 +2292,7 @@ void SndEventEnd()
         if (SndRoomBgmMute(no, 0, 1) == 0 && pSnd->bgm_work[i].used == 0) {
             u16 b = (u16) (pSnd->room_bgm[0] >> (i * 16));
             if (b & 0x8000) {
-                SND_SIT* sit = Snd_get_sit_adrs(i + 3, (b >> 8) & 0x3);
+                SND_SIT* sit = Snd_get_sit_adrs((u16) (i + 3), (b >> 8) & 0x3);
                 s8 vol = sit->wall_vol;
                 if (vol != 0) {
                     SndRoomBgmStart(no, vol);
@@ -2392,9 +2406,12 @@ static void debug_mute_check()
     if (pG->flags_68 & 0x100000) {
         f |= 0x2;
     }
-    chg = f ^ flag_bak;
-    off = flag_bak & chg;
-    on = f & chg;
+    {
+        u8 bak = flag_bak;
+        chg = f ^ bak;
+        on = f & chg;
+        off = bak & chg;
+    }
     if (on & 0x1) {
         SndMuteSet(0x30, 1);
     } else if (off & 0x1) {

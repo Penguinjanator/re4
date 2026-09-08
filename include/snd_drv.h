@@ -485,6 +485,60 @@ extern SND_STR_WORK Snd_str_work[SND_STR_MAX];
 extern u8* Snd_str_buff[SND_STR_MAX];
 extern SND_TEST_WORK Snd_test_work;
 
+#ifdef SND_DRV_GAME_API
+// Game-side view of the driver entry points (game/snd.cpp): the game's header declared the small
+// integer parameters as int, so callers pass ints and u32s without the clrlwi the u16/u8/s16
+// driver prototypes below would force (e.g. sndExistCheck -> Snd_iss_get_sit_type, seRandomCheck ->
+// Snd_get_sit_adrs). Return types match the driver.
+void Snd_soft_reset_req(void);
+int Snd_soft_reset_ck(void);
+void Snd_reset_pan_all(void);
+void Snd_reset_vol_all(void);
+void Snd_set_system_vol(int type, int vol);
+s16 Snd_get_system_vol(int type);
+void Snd_iss_blk_init(u32 blk_no, void* data);
+void Snd_str_blk_init(u32 blk_no, void* data);
+SND_SIT* Snd_get_sit_adrs(int blk_no, int req_no);
+SND_SHD* Snd_get_shd_adrs(u16 blk_no, u16 req_no);
+u16 Snd_iss_get_sit_type(int blk_no, int req_no);
+s8 Snd_iss_get_sit_vol(int blk_no, int req_no);
+s8 Snd_iss_get_sit_svol(int blk_no, int req_no);
+s8 Snd_iss_get_sit_pan(int blk_no, int req_no);
+s8 Snd_iss_get_sit_span(int blk_no, int req_no);
+void Snd_system_init(void);
+u32 Snd_sound_mode_init_load(u32 mode);
+u32 Snd_get_sound_mode(void);
+void Snd_set_sound_mode(u32 mode);
+void Snd_iss_control(void);
+int Snd_iss_req_para(int blk_no, int req_no, u8* para);
+int Snd_get_play_type(u32 snd_id);
+int Snd_se_set_paras(u32 snd_id);
+int Snd_se_end_check(u32 snd_id);
+int Snd_se_stop_one(u32 snd_id);
+int Snd_se_fade_out_all(s16 time);
+int Snd_se_fade_out_all2(s16 time);
+int Snd_se_pronounce_ck_all(void);
+int Snd_se_pause_on2(int type);
+int Snd_se_pause_on3(void);
+int Snd_se_pause_off2(int type);
+int Snd_efx_req(int no, int type);
+int Snd_efx_get_status(int no);
+int Snd_seq_req(u32 snd_id, u32 cmd, u32 time, u32 vol);
+void Snd_seq_fade_out_type(int type, s16 time);
+int Snd_seq_fade_check(u32 snd_id);
+int Snd_seq_end_check(u32 snd_id);
+int Snd_seq_pronounce_ck_type(int type);
+SND_SEQ_WORK* Snd_search_seq_work_snd_id(u32 snd_id);
+u32 Snd_str_prepare(u16 blk_no, u16 req_no, char* name, int no);
+int Snd_str_req(u32 snd_id, u32 cmd, u32 time, u32 vol);
+int Snd_str_get_status(u32 snd_id);
+int Snd_str_end_check(u32 snd_id);
+void Snd_str_aram_adrs_set(int no, u32 adr);
+SND_STR_WORK* Snd_search_str_work_snd_id(u32 snd_id);
+int Snd_str_init_para(u32 snd_id, int flag, int val);
+int Snd_str_init_pos(u32 snd_id, u32 pos);
+u32 Snd_str_get_buff_smp(u16 blk_no, u16 req_no);
+#else
 // snd_sub0.c
 extern s32 Snd_dls_vol_tbl[128];
 extern SND_LPF Snd_lpf_tbl[24];
@@ -762,6 +816,7 @@ void Snd_str_player_update(SND_STR_WORK* str);
 int Snd_str_init_para(u32 snd_id, s16 flag, s16 val);
 int Snd_str_init_pos(u32 snd_id, u32 pos);
 u32 Snd_str_get_buff_smp(u16 blk_no, u16 req_no);
+#endif  // SND_DRV_GAME_API
 
 #ifdef __cplusplus
 }

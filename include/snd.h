@@ -9,9 +9,9 @@
 #include "cManager.h"
 
 // Bit `no` of a u32 bitmap, MSB first (block loaded flags, callErr).
-#define SND_BIT_CK(a, no) (((u32*) (a))[(u32) (no) >> 5] & (0x80000000 >> ((no) & 31)))
-#define SND_BIT_SET(a, no) (((u32*) (a))[(u32) (no) >> 5] |= (0x80000000 >> ((no) & 31)))
-#define SND_BIT_CLR(a, no) (((u32*) (a))[(u32) (no) >> 5] &= ~(0x80000000 >> ((no) & 31)))
+#define SND_BIT_CK(a, no) (*((a) + ((u32) (no) >> 5)) & (0x80000000 >> ((no) & 31)))
+#define SND_BIT_SET(a, no) { u32* p_ = (a); p_[(u32) (no) >> 5] |= (0x80000000 >> ((no) & 31)); }
+#define SND_BIT_CLR(a, no) { u32* p_ = (a); p_[(u32) (no) >> 5] &= ~(0x80000000 >> ((no) & 31)); }
 
 // Reverb parameters (room header `STB` efx[0] = DPL2, efx[1] = stereo).
 struct SndEfxParam {

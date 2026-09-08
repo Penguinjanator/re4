@@ -652,10 +652,10 @@ address	size	section	unit	scope	name	demangled
 0x80031FD4	0xFC	.text	game/obj16.cpp	global	plemDmMStar	plemDmMStar
 0x800320D0	0x170	.text	game/obj16.cpp	global	createBack__t8cManager1Z4cObji	cManager<cObj>::createBack
 0x80032240	0x20	.text	game/obj16.cpp	global	cObj16_dt_cObj16	cObj16::~cObj16
-0x80032260	0x70	.text	game/obj19.cpp	global	cItemObj_cItemObj	cItemObj::cItemObj
-0x800322D0	0x34	.text	game/obj19.cpp	global	cItemObj_move	cItemObj::move
-0x80032304	0xF8	.text	game/obj19.cpp	global	setItemObj	setItemObj
-0x800323FC	0x20	.text	game/obj19.cpp	global	cItemObj_dt_cItemObj	cItemObj::~cItemObj
+0x80032260	0x70	.text	game/obj19.cpp	global	__8cItemObj	cItemObj::cItemObj
+0x800322D0	0x34	.text	game/obj19.cpp	global	move__8cItemObj	cItemObj::move
+0x80032304	0xF8	.text	game/obj19.cpp	global	setItemObj__FPvT0P3VecT2	setItemObj
+0x800323FC	0x20	.text	game/obj19.cpp	global	_._8cItemObj	cItemObj::~cItemObj
 0x8003241C	0x1D4	.text	game/obj1b.cpp	global	SetSpear	SetSpear
 0x800325F0	0x38	.text	game/obj1b.cpp	global	cObjSpear_beginEvent	cObjSpear::beginEvent
 0x80032628	0x130	.text	game/obj1b.cpp	global	cObjSpear_move	cObjSpear::move
@@ -694,13 +694,13 @@ address	size	section	unit	scope	name	demangled
 0x80035678	0x44	.text	game/obj1d.cpp	global	cObjChain_chainMove	cObjChain::chainMove
 0x800356BC	0x20	.text	game/obj1d.cpp	global	cObjChain_dt_cObjChain	cObjChain::~cObjChain
 0x800356DC	0x184	.text	game/obj20.cpp	global	SetObaModel	SetObaModel
-0x80035860	0x13C	.text	game/obj20.cpp	global	cObjObaModel_move	cObjObaModel::move
-0x8003599C	0x20	.text	game/obj20.cpp	local	cObjObaModel_dt_cObjObaModel	cObjObaModel::~cObjObaModel
-0x800359BC	0x98	.text	game/obj26.cpp	global	cObj26_move	cObj26::move
+0x80035860	0x13C	.text	game/obj20.cpp	global	move__12cObjObaModel	cObjObaModel::move
+0x8003599C	0x20	.text	game/obj20.cpp	local	_._12cObjObaModel	cObjObaModel::~cObjObaModel
+0x800359BC	0x98	.text	game/obj26.cpp	global	move__6cObj26	cObj26::move
 0x80035A54	0xBC	.text	game/obj26.cpp	global	obj26_R1_Set	obj26_R1_Set
 0x80035B10	0xC4	.text	game/obj26.cpp	global	obj26_R1_Die	obj26_R1_Die
 0x80035BD4	0xCC	.text	game/obj26.cpp	global	obj26MatCalc	obj26MatCalc
-0x80035CA0	0x20	.text	game/obj26.cpp	global	cObj26_dt_cObj26	cObj26::~cObj26
+0x80035CA0	0x20	.text	game/obj26.cpp	global	_._6cObj26	cObj26::~cObj26
 0x80035CC0	0x234	.text	game/objBull.cpp	global	SetBull	SetBull
 0x80035EF4	0x4C	.text	game/objBull.cpp	global	cObjBull_move	cObjBull::move
 0x80035F40	0xA4	.text	game/objBull.cpp	global	objBull_R0_Set	objBull_R0_Set
@@ -931,12 +931,12 @@ address	size	section	unit	scope	name	demangled
 0x80044FB4	0x24	.text	game/objWep.cpp	global	cObjWep_keyKamae	cObjWep::keyKamae
 0x80044FD8	0x4	.text	game/objWep.cpp	global	cObjWep_fire	cObjWep::fire
 0x80044FDC	0x4	.text	game/objWep.cpp	global	cObjWep_beginReload	cObjWep::beginReload
-0x80044FE0	0x1D4	.text	game/objYagura.cpp	global	SetYagura	SetYagura
-0x800451B4	0x34	.text	game/objYagura.cpp	global	cObjYagura_move	cObjYagura::move
+0x80044FE0	0x1D4	.text	game/objYagura.cpp	global	SetYagura__FPvT0P3VecT2	SetYagura
+0x800451B4	0x34	.text	game/objYagura.cpp	global	move__10cObjYagura	cObjYagura::move
 0x800451E8	0x68	.text	game/objYagura.cpp	global	objYagura_R0_Set	objYagura_R0_Set
-0x80045250	0x8	.text	game/objYagura.cpp	global	cObjYagura_setMotionVib	cObjYagura::setMotionVib
-0x80045258	0x40	.text	game/objYagura.cpp	local	cObjYagura_setVib	cObjYagura::setVib
-0x80045298	0x20	.text	game/objYagura.cpp	global	cObjYagura_dt_cObjYagura	cObjYagura::~cObjYagura
+0x80045250	0x8	.text	game/objYagura.cpp	global	setMotionVib__10cObjYaguraPv	cObjYagura::setMotionVib
+0x80045258	0x40	.text	game/objYagura.cpp	global	setVib__10cObjYagura	cObjYagura::setVib
+0x80045298	0x20	.text	game/objYagura.cpp	global	_._10cObjYagura	cObjYagura::~cObjYagura
 0x800452B8	0x158	.text	game/option.cpp	global	setLangExt3	setLangExt3
 0x80045410	0x40	.text	game/option.cpp	global	OptionOpenCheck	OptionOpenCheck
 0x80045450	0x17C	.text	game/option.cpp	global	OptionScreen_init	OptionScreen::init
@@ -992,11 +992,11 @@ address	size	section	unit	scope	name	demangled
 0x80049BEC	0x20	.text	game/pl_debug.cpp	global	reset__7cPlMaho	cPlMaho::reset
 0x80049C0C	0x30	.text	game/pl_debug.cpp	global	regist__7cPlMahoPCcPFv_v	cPlMaho::regist
 0x80049C3C	0x194	.text	game/pl_debug.cpp	global	DrawGage__Fiiiiiii	DrawGage
-0x80049DD0	0x38	.text	game/pl_dmg.cpp	global	Pl_R0_Damage	Pl_R0_Damage
-0x80049E08	0x610	.text	game/pl_dmg.cpp	global	damageNormal	damageNormal
-0x8004A418	0x62C	.text	game/pl_dmg.cpp	global	damageBlow	damageBlow
-0x8004AA44	0x18C	.text	game/pl_dmg.cpp	global	damageBlast	damageBlast
-0x8004ABD0	0x1E0	.text	game/pl_dmg.cpp	local	Pl_R0_Die	Pl_R0_Die
+0x80049DD0	0x38	.text	game/pl_dmg.cpp	global	Pl_R0_Damage__FP7cPlayer	Pl_R0_Damage
+0x80049E08	0x610	.text	game/pl_dmg.cpp	global	damageNormal__FP7cPlayer	damageNormal
+0x8004A418	0x62C	.text	game/pl_dmg.cpp	global	damageBlow__FP7cPlayer	damageBlow
+0x8004AA44	0x18C	.text	game/pl_dmg.cpp	global	damageBlast__FP7cPlayer	damageBlast
+0x8004ABD0	0x1E0	.text	game/pl_dmg.cpp	global	Pl_R0_Die__FP7cPlayer	Pl_R0_Die
 0x8004ADB0	0x38	.text	game/pl_event.cpp	global	Pl_R0_Event__FP7cPlayer	Pl_R0_Event
 0x8004ADE8	0x74	.text	game/pl_event.cpp	global	pl_R1_Event_Normal__FP7cPlayer	pl_R1_Event_Normal
 0x8004AE5C	0x18C	.text	game/pl_event.cpp	global	pl_R1_Event_ToWalk__FP7cPlayer	pl_R1_Event_ToWalk
@@ -3102,12 +3102,12 @@ address	size	section	unit	scope	name	demangled
 0x800CE444	0x2C	.text	game/atari.cpp	global	global_destructors_keyed_to_cSatMgr_check	global destructors keyed to cSatMgr::check
 0x800CE470	0x34	.text	game/atariInfo.cpp	global	cAtariInfo_cAtariInfo	cAtariInfo::cAtariInfo
 0x800CE4A4	0x48	.text	game/atariInfo.cpp	global	cAtariInfo_init0	cAtariInfo::init0
-0x800CE4EC	0x44	.text	game/atariInfo.cpp	global	cAtariInfo_init	cAtariInfo::init
+0x800CE4EC	0x44	.text	game/atariInfo.cpp	global	init__10cAtariInfoiiifffffff	cAtariInfo::init
 0x800CE530	0x44	.text	game/atariInfo.cpp	local	cAtariInfo_set	cAtariInfo::set
 0x800CE574	0x10C	.text	game/atariInfo.cpp	global	cAtariInfo_getSpeedVector	cAtariInfo::getSpeedVector
-0x800CE680	0x58	.text	game/atariInfo.cpp	global	cAtariInfo_move	cAtariInfo::move
+0x800CE680	0x58	.text	game/atariInfo.cpp	global	move__10cAtariInfo	cAtariInfo::move
 0x800CE6D8	0x78	.text	game/atariInfo.cpp	global	cAtariInfo_getPos	cAtariInfo::getPos
-0x800CE750	0x50	.text	game/atariInfo.cpp	global	cAtariInfo_setPriority	cAtariInfo::setPriority
+0x800CE750	0x50	.text	game/atariInfo.cpp	global	setPriority__10cAtariInfoi	cAtariInfo::setPriority
 0x800CE7A0	0x6C	.text	game/atariInfo.cpp	global	cAtariInfo_disp	cAtariInfo::disp
 0x800CE80C	0x1F0	.text	game/atariInfo.cpp	global	cAtariInfo_dispRect	cAtariInfo::dispRect
 0x800CE9FC	0xC	.text	game/block.cpp	global	cBlock_setOtStart	cBlock::setOtStart
@@ -4695,24 +4695,24 @@ address	size	section	unit	scope	name	demangled
 0x80149DEC	0xB4	.text	game/id_sys.cpp	global	beMove__8IDSystemP6IdUniti	IDSystem::beMove
 0x80149EA0	0x9C	.text	game/id_sys.cpp	global	setTime__8IDSystemP6IdUnitUs	IDSystem::setTime
 0x80149F3C	0x8C	.text	game/id_sys.cpp	global	movePos__8IDSystemP6IdUnit	IDSystem::movePos
-0x80149FC8	0x1F8	.text	game/id_sys.cpp	global	idSysMove00__FP6IdUnit	idSysMove00
-0x8014A1C0	0x1C0	.text	game/id_sys.cpp	global	IdCalcVertex__FP6IdUnit	IdCalcVertex
-0x8014A380	0x1A8	.text	game/id_sys.cpp	global	idSysMove01__FP6IdUnit	idSysMove01
-0x8014A528	0x43C	.text	game/id_sys.cpp	global	idSysMove02__FP6IdUnit	idSysMove02
-0x8014A964	0x210	.text	game/id_sys.cpp	global	idSysMove03__FP6IdUnit	idSysMove03
-0x8014AB74	0x138	.text	game/id_sys.cpp	global	idSysMove04__FP6IdUnit	idSysMove04
+0x80149FC8	0x1F8	.text	game/id_sys.cpp	global	idSysMove00	idSysMove00
+0x8014A1C0	0x1C0	.text	game/id_sys.cpp	global	IdCalcVertex	IdCalcVertex
+0x8014A380	0x1A8	.text	game/id_sys.cpp	global	idSysMove01	idSysMove01
+0x8014A528	0x43C	.text	game/id_sys.cpp	global	idSysMove02	idSysMove02
+0x8014A964	0x210	.text	game/id_sys.cpp	global	idSysMove03	idSysMove03
+0x8014AB74	0x138	.text	game/id_sys.cpp	global	idSysMove04	idSysMove04
 0x8014ACAC	0xE8	.text	game/id_sys.cpp	global	trans__8IDSystem	IDSystem::trans
 0x8014AD94	0x13C	.text	game/id_sys.cpp	global	unitTrans__8IDSystemP6IdUnit	IDSystem::unitTrans
-0x8014AED0	0x104	.text	game/id_sys.cpp	global	IdGeneralTrans__FP6IdUnit	IdGeneralTrans
-0x8014AFD4	0x430	.text	game/id_sys.cpp	global	IdCommonTrans__FP6IdUnit	IdCommonTrans
-0x8014B404	0x7A4	.text	game/id_sys.cpp	global	IdNegativeTrans__FP6IdUniti	IdNegativeTrans
-0x8014BBA8	0xA58	.text	game/id_sys.cpp	global	IdShimmerTrans__FP6IdUnitii	IdShimmerTrans
-0x8014C600	0x40	.text	game/id_sys.cpp	global	IdAllocBuffer__Fv	IdAllocBuffer
-0x8014C640	0x34	.text	game/id_sys.cpp	global	IdFreeBuffer__Fv	IdFreeBuffer
-0x8014C674	0x30	.text	game/id_sys.cpp	global	IdDebugAllocBuffer__Fv	IdDebugAllocBuffer
-0x8014C6A4	0x2C	.text	game/id_sys.cpp	global	IdDebugFreeBuffer__Fv	IdDebugFreeBuffer
-0x8014C6D0	0x58	.text	game/id_sys.cpp	global	IdGetBufferAddr__Fi	IdGetBufferAddr
-0x8014C728	0x8	.text	game/id_sys.cpp	global	IdSetBufferType__Fi	IdSetBufferType
+0x8014AED0	0x104	.text	game/id_sys.cpp	global	IdGeneralTrans	IdGeneralTrans
+0x8014AFD4	0x430	.text	game/id_sys.cpp	global	IdCommonTrans	IdCommonTrans
+0x8014B404	0x7A4	.text	game/id_sys.cpp	global	IdNegativeTrans	IdNegativeTrans
+0x8014BBA8	0xA58	.text	game/id_sys.cpp	global	IdShimmerTrans	IdShimmerTrans
+0x8014C600	0x40	.text	game/id_sys.cpp	global	IdAllocBuffer	IdAllocBuffer
+0x8014C640	0x34	.text	game/id_sys.cpp	global	IdFreeBuffer	IdFreeBuffer
+0x8014C674	0x30	.text	game/id_sys.cpp	global	IdDebugAllocBuffer	IdDebugAllocBuffer
+0x8014C6A4	0x2C	.text	game/id_sys.cpp	global	IdDebugFreeBuffer	IdDebugFreeBuffer
+0x8014C6D0	0x58	.text	game/id_sys.cpp	global	IdGetBufferAddr	IdGetBufferAddr
+0x8014C728	0x8	.text	game/id_sys.cpp	global	IdSetBufferType	IdSetBufferType
 0x8014C730	0x54	.text	game/id_tex.cpp	global	IdTexGameInit	IdTexGameInit
 0x8014C784	0x24	.text	game/id_tex.cpp	global	IdTexRoomInit	IdTexRoomInit
 0x8014C7A8	0x28	.text	game/id_tex.cpp	global	IdTexRelease	IdTexRelease
@@ -5080,7 +5080,7 @@ address	size	section	unit	scope	name	demangled
 0x8015CF20	0xC	.text	game/motion.cpp	global	MotionBlendOff	MotionBlendOff
 0x8015CF2C	0x10	.text	game/motion.cpp	global	MotionPause	MotionPause
 0x8015CF3C	0x14C	.text	game/motion.cpp	global	MotionClear	MotionClear
-0x8015D088	0xA10	.text	game/motion.cpp	global	MotionSetCore__FP6cModelPvT1iiii	MotionSetCore
+0x8015D088	0xA10	.text	game/motion.cpp	global	MotionSetCore	MotionSetCore
 0x8015DA98	0x85C	.text	game/motion.cpp	global	MotionMove	MotionMove
 0x8015E2F4	0x58	.text	game/motion.cpp	global	MotionMoveSub	MotionMoveSub
 0x8015E34C	0x53C	.text	game/motion.cpp	global	MotionMoveCore	MotionMoveCore
@@ -5284,7 +5284,7 @@ address	size	section	unit	scope	name	demangled
 0x80174244	0x44	.text	game/pl_class.cpp	global	cPlayer_keyConfig	cPlayer::keyConfig
 0x80174288	0x90	.text	game/pl_class.cpp	global	cPlayer_keyConfigTypeA	cPlayer::keyConfigTypeA
 0x80174318	0x60	.text	game/pl_class.cpp	global	cPlayer_actCheck	cPlayer::actCheck
-0x80174378	0x58	.text	game/pl_class.cpp	global	cPlayer_beginDamage	cPlayer::beginDamage
+0x80174378	0x58	.text	game/pl_class.cpp	global	beginDamage__7cPlayer	cPlayer::beginDamage
 0x801743D0	0x78	.text	game/pl_class.cpp	global	cPlayer_endDamage	cPlayer::endDamage
 0x80174448	0xE4	.text	game/pl_class.cpp	global	cPlayer_getLifeLevel	cPlayer::getLifeLevel
 0x8017452C	0xD8	.text	game/pl_class.cpp	global	beginEvent__7cPlayer	cPlayer::beginEvent
@@ -7497,7 +7497,7 @@ address	size	section	unit	scope	name	demangled
 0x802209F8	0x40	.rodata	game/obj16.cpp	global	cObj16_virtual_table	cObj16 virtual table
 0x80220A38	0x28	.rodata	game/obj16.cpp	global	cUnit_virtual_table_80220A38	cUnit virtual table
 0x80220A60	0xD8	.rodata	game/obj19.cpp	global	lbl_80220A60	.
-0x80220B38	0x40	.rodata	game/obj19.cpp	global	cItemObj_virtual_table	cItemObj virtual table
+0x80220B38	0x40	.rodata	game/obj19.cpp	global	_vt.8cItemObj	cItemObj virtual table
 0x80220B78	0x28	.rodata	game/obj19.cpp	local	cUnit_virtual_table_80220B78	cUnit virtual table
 0x80220BA0	0x298	.rodata	game/obj1b.cpp	global	lbl_80220BA0	.
 0x80220E38	0x40	.rodata	game/obj1b.cpp	global	cObjSpear_virtual_table	cObjSpear virtual table
@@ -7509,11 +7509,11 @@ address	size	section	unit	scope	name	demangled
 0x80221230	0x40	.rodata	game/obj1d.cpp	global	cObjChain_virtual_table	cObjChain virtual table
 0x80221270	0x28	.rodata	game/obj1d.cpp	global	cUnit_virtual_table_80221270	cUnit virtual table
 0x80221298	0x170	.rodata	game/obj20.cpp	global	lbl_80221298	.
-0x80221408	0x40	.rodata	game/obj20.cpp	global	cObjObaModel_virtual_table	cObjObaModel virtual table
-0x80221448	0x28	.rodata	game/obj20.cpp	global	cUnit_virtual_table_80221448	cUnit virtual table
+0x80221408	0x40	.rodata	game/obj20.cpp	global	_vt.12cObjObaModel	cObjObaModel virtual table
+0x80221448	0x28	.rodata	game/obj20.cpp	local	cUnit_virtual_table_80221448	cUnit virtual table
 0x80221470	0x180	.rodata	game/obj26.cpp	global	lbl_80221470	.
-0x802215F0	0x40	.rodata	game/obj26.cpp	global	cObj26_virtual_table	cObj26 virtual table
-0x80221630	0x28	.rodata	game/obj26.cpp	global	cUnit_virtual_table_80221630	cUnit virtual table
+0x802215F0	0x40	.rodata	game/obj26.cpp	global	_vt.6cObj26	cObj26 virtual table
+0x80221630	0x28	.rodata	game/obj26.cpp	local	cUnit_virtual_table_80221630	cUnit virtual table
 0x80221658	0x280	.rodata	game/objBull.cpp	global	lbl_80221658	.
 0x802218D8	0x40	.rodata	game/objBull.cpp	global	cObjBull_virtual_table	cObjBull virtual table
 0x80221918	0x28	.rodata	game/objBull.cpp	global	cUnit_virtual_table_80221918	cUnit virtual table
@@ -7553,8 +7553,8 @@ address	size	section	unit	scope	name	demangled
 0x802236C8	0x10	.rodata	game/objWep.cpp	local	lbl_802236C8	.
 0x802236D8	0x28	.rodata	game/objWep.cpp	global	cUnit_virtual_table_802236D8	cUnit virtual table
 0x80223700	0x1A8	.rodata	game/objYagura.cpp	global	lbl_80223700	.
-0x802238A8	0x40	.rodata	game/objYagura.cpp	global	cObjYagura_virtual_table	cObjYagura virtual table
-0x802238E8	0x28	.rodata	game/objYagura.cpp	global	cUnit_virtual_table_802238E8	cUnit virtual table
+0x802238A8	0x40	.rodata	game/objYagura.cpp	global	_vt.10cObjYagura	cObjYagura virtual table
+0x802238E8	0x28	.rodata	game/objYagura.cpp	local	cUnit_virtual_table_802238E8	cUnit virtual table
 0x80223910	0x160	.rodata	game/option.cpp	global	lbl_80223910	.
 0x80223A70	0x278	.rodata	game/pl_ashley.cpp	global	lbl_80223A70	.
 0x80223CE8	0xB8	.rodata	game/pl_ashley.cpp	global	cPlAshley_virtual_table	cPlAshley virtual table
@@ -11206,7 +11206,7 @@ address	size	section	unit	scope	name	demangled
 0x80312E0C	0xFA0	.bss	lib/gcci.c	local	gcg_ci_obj	gcg_ci_obj
 0x80313DAC	0x4	.bss	lib/gcci.c	global	gcg_ci_build_ptr	gcg_ci_build_ptr
 0x80313DB0	0x100	.bss	lib/gcci_sub.c	global	gcg_ci_root_dir	gcg_ci_root_dir
-0x80313EB0	0x30	.bss	lib/gcci_sub.c	local	IDSystem_m_scrn_mat	IDSystem::m_scrn_mat
+0x80313EB0	0x30	.bss	lib/gcci_sub.c	local	_8IDSystem.m_scrn_mat	IDSystem::m_scrn_mat
 0x80313EE0	0x4	.sdata	game/cam_ctrl.cpp	global	g_pToolCamData	g_pToolCamData
 0x80313EE4	0x4	.sdata	game/cam_ctrl.cpp	global	R_GAIN.1110	R_GAIN.1110
 0x80313EE8	0x4	.sdata	game/cam_ctrl.cpp	global	GAIN.1111	GAIN.1111

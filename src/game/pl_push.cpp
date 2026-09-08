@@ -10,7 +10,6 @@ int MotionSetCore(cModel* m, void* work, void* data, int a, int b, int c, int d)
 extern "C" {
 void MotionMove(cModel* m, int flag);                                    // game/motion.cpp
 void AddSpeed(cModel* m, const Vec* speed);                              // game/sub2.cpp
-f32 Muku2(f32 ang, f32 target, f32 limit);                               // game/sub2.cpp
 int At_em_rect_rect_ck(cModel* pl, cEm* em);                            // game/at_mod.cpp
 void EmAtCheck(cEm* em);                                                // game/at_mod.cpp
 int GetWepTargetPos(Vec* a, Vec* b, int c, int d, int e, int f);        // game/em_sub.cpp

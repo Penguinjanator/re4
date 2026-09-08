@@ -23,6 +23,19 @@ extern GXTexObj g_Get_tex_obj;  // game/trans.cpp
 
 Mtx IDSystem::m_scrn_mat;
 
+struct IdBlend {
+    int type;
+    int src;
+    int dst;
+    int op;
+};
+struct IdBlend2 {
+    int type;
+    int src;
+    int dst;
+    int op;
+};
+
 // Bit tables indexed by table type (ck / disp).
 #define ID_BIT_WORD(tbl, n) (*(u32*) (((n) >> 5 << 2) + (u32) (tbl)))
 static inline u32 IdBitGet(u32* tbl, u8 n) { return ID_BIT_WORD(tbl, n) & (0x80000000 >> (n & 0x1F)); }
@@ -170,13 +183,11 @@ static int cmp_id_no(IdData2* d, u8 id, int mode)
 
     switch (mode) {
     case 0:
+    default:
         no = d->id;
         break;
     case 1:
         no = d->parentNo;
-        break;
-    default:
-        no = d->id;
         break;
     }
     return no == id;
@@ -185,12 +196,15 @@ static int cmp_id_no(IdData2* d, u8 id, int mode)
 void IDSystem::set(void* data, u8 id, u8 type, u8 ot, u8 prio, u8 mode)
 {
     IdDataHeader* hdr = (IdDataHeader*) data;
-    u8* p = (u8*) data + 8;
+    IdData2* p2 = (IdData2*) ((u8*) data + 8);
+    IdData* p1 = (IdData*) ((u8*) data + 8);
     int ver;
     int sysVer;
     int i;
     int j;
     IdUnit* u;
+    IdUnit* c;
+    u32 a;
 
     setCk(type);
     IdBitOn(ck, type);
@@ -203,169 +217,213 @@ void IDSystem::set(void* data, u8 id, u8 type, u8 ot, u8 prio, u8 mode)
 
     for (i = 0; i < hdr->num; i++) {
         switch (ver) {
-        case 1: {
-            IdData* d = (IdData*) p;
-            p += sizeof(IdData);
-            if (id != 0xFF && d->id != id) {
-                break;
-            }
-            u = unitPull();
-            if (u == 0) {
-                pLog->err(0, 0, "IDSystem::set() work full (0x%02x miss)", hdr->num - i);
-                break;
-            }
-            u->flags = d->flags;
-            u->id = d->id;
-            u->unitNo = d->no;
-            u->level = d->level;
-            u->parentNo = d->parentNo;
-            u->x7 = d->x8;
-            u->kind = d->kind;
-            u->texId = d->texId;
-            u->vtxType = d->vtxType;
-            u->loop = d->loop;
-            u->scaleType = d->scaleType;
-            u->rotAxis = d->rotAxis;
-            u->dir = d->dir;
-            u->scr = d->pos;
-            u->vtx[0] = d->vtx[0];
-            u->vtx[1] = d->vtx[1];
-            u->vtx[2] = d->vtx[2];
-            u->vtx[3] = d->vtx[3];
-            u->sizeX = d->sizeX;
-            u->sizeY = d->sizeY;
-            u->col0[0] = d->col0[0];
-            u->col0[1] = d->col0[1];
-            u->col0[2] = d->col0[2];
-            u->col0[3] = d->col0[3];
-            u->col1[0] = 0;
-            u->col1[1] = 0;
-            u->col1[2] = 0;
-            u->col1[3] = 0;
-            u->rot = d->rot;
-            u->blendType = d->blendType;
-            u->transType = d->transType;
-            u->maskId = d->maskId;
-            u->flags_7F = d->flags_7F;
-            u->transSub = d->transSub;
-            u->path0 = d->ofs[0] ? (u8*) data + d->ofs[0] : 0;
-            u->path1 = d->ofs[1] ? (u8*) data + d->ofs[1] : 0;
-            u->curve[0] = (Hermite1*) (d->ofs[2] ? (u8*) data + d->ofs[2] : 0);
-            u->curve[1] = (Hermite1*) (d->ofs[3] ? (u8*) data + d->ofs[3] : 0);
-            u->curve[2] = (Hermite1*) (d->ofs[4] ? (u8*) data + d->ofs[4] : 0);
-            u->curve[3] = (Hermite1*) (d->ofs[5] ? (u8*) data + d->ofs[5] : 0);
-            if ((s32) pG->flags_60 >= 0) {
-                u->flags |= 0xD;
-            }
-            u->flags |= 0x2;
-            u->parent = 0;
-            if (d->parentNo != 0xFF) {
-                for (j = 0; j < num; j++) {
-                    IdUnit* c = &pUnit[j];
-                    if (c->flags != 0xFF && (c->flags & 0x2) && c->unitNo == d->parentNo) {
+        case 1:
+            if (id == 0xFF || p1->id == id) {
+                u = unitPull();
+                if (u == 0) {
+                    pLog->err(0, 0, "IDSystem::set() work full (0x%02x miss)", hdr->num - i);
+                } else {
+                    u->flags = p1->flags;
+                    u->id = p1->id;
+                    u->unitNo = p1->no;
+                    u->level = p1->level;
+                    u->parentNo = p1->parentNo;
+                    u->x7 = p1->x8;
+                    u->kind = p1->kind;
+                    u->texId = p1->texId;
+                    u->vtxType = p1->vtxType;
+                    u->loop = p1->loop;
+                    u->scaleType = p1->scaleType;
+                    u->rotAxis = p1->rotAxis;
+                    u->dir = p1->dir;
+                    u->scr = p1->pos;
+                    u->vtx[0] = p1->vtx[0];
+                    u->vtx[1] = p1->vtx[1];
+                    u->vtx[2] = p1->vtx[2];
+                    u->vtx[3] = p1->vtx[3];
+                    u->sizeX = p1->sizeX;
+                    u->sizeY = p1->sizeY;
+                    u->col0[0] = p1->col0[0];
+                    u->col0[1] = p1->col0[1];
+                    u->col0[2] = p1->col0[2];
+                    u->col0[3] = p1->col0[3];
+                    u->col1[0] = 0;
+                    u->col1[1] = 0;
+                    u->col1[2] = 0;
+                    u->col1[3] = 0;
+                    u->rot = p1->rot;
+                    u->blendType = p1->blendType;
+                    u->transType = p1->transType;
+                    u->maskId = p1->maskId;
+                    u->flags_7F = p1->flags_7F;
+                    u->transSub = p1->transSub;
+                    a = p1->ofs[0];
+                    if (a) {
+                        a += (u32) data;
+                    }
+                    u->path0 = (void*) a;
+                    a = p1->ofs[1];
+                    if (a) {
+                        a += (u32) data;
+                    }
+                    u->path1 = (void*) a;
+                    a = p1->ofs[2];
+                    if (a) {
+                        a += (u32) data;
+                    }
+                    u->curve[0] = (Hermite1*) a;
+                    a = p1->ofs[3];
+                    if (a) {
+                        a += (u32) data;
+                    }
+                    u->curve[1] = (Hermite1*) a;
+                    a = p1->ofs[4];
+                    if (a) {
+                        a += (u32) data;
+                    }
+                    u->curve[2] = (Hermite1*) a;
+                    a = p1->ofs[5];
+                    if (a) {
+                        a += (u32) data;
+                    }
+                    u->curve[3] = (Hermite1*) a;
+                    if ((s32) pG->flags_60 >= 0) {
+                        u->flags |= 0xD;
+                    }
+                    u->flags |= 0x2;
+                    c = 0;
+                    if (p1->parentNo != 0xFF) {
+                        for (j = 0; j < num; j++) {
+                            c = &pUnit[j];
+                            if (c->flags != 0xFF && (c->flags & 0x2) && p1->parentNo == c->unitNo) {
+                                u->parent = c;
+                                break;
+                            }
+                        }
+                    } else {
                         u->parent = c;
-                        break;
+                    }
+                    if (u->path0 != 0) {
+                        if (FuncPathParametrize(u->path0, u->path1) == 0) {
+                            pLog->err(0, 0, "IDSystem::set():[%02x,%02x] Path parametrization error!", u->type, u->unitNo);
+                            u->path0 = 0;
+                        }
+                    }
+                    u->type = type;
+                    u->ot = ot;
+                    u->prio = prio;
+                    if (p1->level > maxLevel) {
+                        maxLevel = p1->level;
                     }
                 }
             }
-            if (u->path0 != 0) {
-                if (FuncPathParametrize(u->path0, u->path1) == 0) {
-                    pLog->err(0, 0, "IDSystem::set():[%02x,%02x] Path parametrization error!", u->type, u->unitNo);
-                    u->path0 = 0;
-                }
-            }
-            u->type = type;
-            u->ot = ot;
-            u->prio = prio;
-            if (d->level > maxLevel) {
-                maxLevel = d->level;
-            }
+            p1++;
             break;
-        }
-        case 2: {
-            IdData2* d = (IdData2*) p;
-            p += sizeof(IdData2);
-            if (id != 0xFF) {
-                if (cmp_id_no(d, id, mode) == 0) {
-                    break;
-                }
-            }
-            u = unitPull();
-            if (u == 0) {
-                pLog->err(0, 0, "IDSystem::set() work full (0x%02x miss)", hdr->num - i);
-                break;
-            }
-            u->flags = d->flags;
-            u->id = d->id;
-            u->unitNo = d->no;
-            u->level = d->level;
-            u->parentNo = d->parentNo;
-            u->x7 = d->x8;
-            u->kind = d->kind;
-            u->texId = d->texId;
-            u->vtxType = d->vtxType;
-            u->loop = d->loop;
-            u->scaleType = d->scaleType;
-            u->rotAxis = d->rotAxis;
-            u->dir = d->dir;
-            u->scr = d->pos;
-            u->vtx[0] = d->vtx[0];
-            u->vtx[1] = d->vtx[1];
-            u->vtx[2] = d->vtx[2];
-            u->vtx[3] = d->vtx[3];
-            u->sizeX = d->sizeX;
-            u->sizeY = d->sizeY;
-            u->col0[0] = d->col0[0];
-            u->col0[1] = d->col0[1];
-            u->col0[2] = d->col0[2];
-            u->col0[3] = d->col0[3];
-            u->col1[0] = d->col1[0];
-            u->col1[1] = d->col1[1];
-            u->col1[2] = d->col1[2];
-            u->col1[3] = d->col1[3];
-            u->rot = d->rot;
-            u->blendType = d->blendType;
-            u->transType = d->transType;
-            u->maskId = d->maskId;
-            u->flags_7F = d->flags_7F;
-            u->transSub = d->transSub;
-            u->path0 = d->ofs[0] ? (u8*) data + d->ofs[0] : 0;
-            u->path1 = d->ofs[1] ? (u8*) data + d->ofs[1] : 0;
-            u->curve[0] = (Hermite1*) (d->ofs[2] ? (u8*) data + d->ofs[2] : 0);
-            u->curve[1] = (Hermite1*) (d->ofs[3] ? (u8*) data + d->ofs[3] : 0);
-            u->curve[2] = (Hermite1*) (d->ofs[4] ? (u8*) data + d->ofs[4] : 0);
-            u->curve[3] = (Hermite1*) (d->ofs[5] ? (u8*) data + d->ofs[5] : 0);
-            if ((s32) pG->flags_60 >= 0) {
-                u->flags |= 0xD;
-            }
-            u->flags |= 0x2;
-            u->parent = 0;
-            if (d->parentNo != 0xFF) {
-                for (j = 0; j < num; j++) {
-                    IdUnit* c = &pUnit[j];
-                    if (c->flags != 0xFF && (c->flags & 0x2) && c->unitNo == d->parentNo) {
+        case 2:
+            if (id == 0xFF || cmp_id_no(p2, id, mode) != 0) {
+                u = unitPull();
+                if (u == 0) {
+                    pLog->err(0, 0, "IDSystem::set() work full (0x%02x miss)", hdr->num - i);
+                } else {
+                    u->flags = p2->flags;
+                    u->id = p2->id;
+                    u->unitNo = p2->no;
+                    u->level = p2->level;
+                    u->parentNo = p2->parentNo;
+                    u->x7 = p2->x8;
+                    u->kind = p2->kind;
+                    u->texId = p2->texId;
+                    u->vtxType = p2->vtxType;
+                    u->loop = p2->loop;
+                    u->scaleType = p2->scaleType;
+                    u->rotAxis = p2->rotAxis;
+                    u->dir = p2->dir;
+                    u->scr = p2->pos;
+                    u->vtx[0] = p2->vtx[0];
+                    u->vtx[1] = p2->vtx[1];
+                    u->vtx[2] = p2->vtx[2];
+                    u->vtx[3] = p2->vtx[3];
+                    u->sizeX = p2->sizeX;
+                    u->sizeY = p2->sizeY;
+                    u->col0[0] = p2->col0[0];
+                    u->col0[1] = p2->col0[1];
+                    u->col0[2] = p2->col0[2];
+                    u->col0[3] = p2->col0[3];
+                    u->col1[0] = p2->col1[0];
+                    u->col1[1] = p2->col1[1];
+                    u->col1[2] = p2->col1[2];
+                    u->col1[3] = p2->col1[3];
+                    u->rot = p2->rot;
+                    u->blendType = p2->blendType;
+                    u->transType = p2->transType;
+                    u->maskId = p2->maskId;
+                    u->flags_7F = p2->flags_7F;
+                    u->transSub = p2->transSub;
+                    a = p2->ofs[0];
+                    if (a) {
+                        a += (u32) data;
+                    }
+                    u->path0 = (void*) a;
+                    a = p2->ofs[1];
+                    if (a) {
+                        a += (u32) data;
+                    }
+                    u->path1 = (void*) a;
+                    a = p2->ofs[2];
+                    if (a) {
+                        a += (u32) data;
+                    }
+                    u->curve[0] = (Hermite1*) a;
+                    a = p2->ofs[3];
+                    if (a) {
+                        a += (u32) data;
+                    }
+                    u->curve[1] = (Hermite1*) a;
+                    a = p2->ofs[4];
+                    if (a) {
+                        a += (u32) data;
+                    }
+                    u->curve[2] = (Hermite1*) a;
+                    a = p2->ofs[5];
+                    if (a) {
+                        a += (u32) data;
+                    }
+                    u->curve[3] = (Hermite1*) a;
+                    if ((s32) pG->flags_60 >= 0) {
+                        u->flags |= 0xD;
+                    }
+                    u->flags |= 0x2;
+                    c = 0;
+                    if (p2->parentNo != 0xFF) {
+                        for (j = 0; j < num; j++) {
+                            c = &pUnit[j];
+                            if (c->flags != 0xFF && (c->flags & 0x2) && p2->parentNo == c->unitNo) {
+                                u->parent = c;
+                                break;
+                            }
+                        }
+                    } else {
                         u->parent = c;
-                        break;
+                    }
+                    if (u->path0 != 0) {
+                        if (FuncPathParametrize(u->path0, u->path1) == 0) {
+                            pLog->err(0, 0, "IDSystem::set():[%02x,%02x] Path parametrization error!", u->type, u->unitNo);
+                            u->path0 = 0;
+                        }
+                    }
+                    u->type = type;
+                    u->ot = ot;
+                    u->prio = prio;
+                    if (p2->level > maxLevel) {
+                        maxLevel = p2->level;
+                    }
+                    if (id != 0xFF) {
+                        set(data, p2->no, type, ot, prio, 1);
                     }
                 }
             }
-            if (u->path0 != 0) {
-                if (FuncPathParametrize(u->path0, u->path1) == 0) {
-                    pLog->err(0, 0, "IDSystem::set():[%02x,%02x] Path parametrization error!", u->type, u->unitNo);
-                    u->path0 = 0;
-                }
-            }
-            u->type = type;
-            u->ot = ot;
-            u->prio = prio;
-            if (d->level > maxLevel) {
-                maxLevel = d->level;
-            }
-            if (id != 0xFF) {
-                set(data, d->no, type, ot, prio, 1);
-            }
+            p2++;
             break;
-        }
         }
     }
 
@@ -559,12 +617,12 @@ void idSysMove00(IdUnit* u)
     if (u->path0 != 0 && ((u8*) u->path0)[7] != 0) {
         int num;
         if (u->curve[0] != 0 && (num = u->curve[0]->num) != -1) {
-            t = Hermite_1CurveCalc(u->curve[0], (f32) u->timer[0]);
+            t = Hermite_1CurveCalc(u->curve[0], (f32) (s16) u->timer[0]);
             u->end &= ~0x1;
             if (!(u->dir & 0x1)) {
                 u->timer[0]++;
                 f32 endT = u->curve[0]->key[num - 1].t;
-                if ((f32) u->timer[0] >= endT) {
+                if ((f32) (s16) u->timer[0] >= endT) {
                     if (u->loop & 0x1) {
                         u->timer[0] = 0;
                     } else {
@@ -574,11 +632,12 @@ void idSysMove00(IdUnit* u)
                 }
             } else {
                 u->timer[0]--;
-                if (u->timer[0] <= 0) {
+                if ((s16) u->timer[0] <= 0) {
                     if (u->loop & 0x1) {
                         u->timer[0] = (u16) u->curve[0]->key[num - 1].t;
                     } else {
                         u->end |= 0x1;
+                        u->timer[0] = 0;
                     }
                 }
             }
@@ -679,12 +738,12 @@ void idSysMove01(IdUnit* u)
     if (u->curve[1] == 0 || (num = u->curve[1]->num) == 0) {
         return;
     }
-    s = Hermite_1CurveCalc(u->curve[1], (f32) u->timer[1]);
+    s = Hermite_1CurveCalc(u->curve[1], (f32) (s16) u->timer[1]);
     u->end &= ~0x2;
     if (!(u->dir & 0x2)) {
         u->timer[1]++;
         f32 endT = u->curve[1]->key[num - 1].t;
-        if ((f32) u->timer[1] >= endT) {
+        if ((f32) (s16) u->timer[1] >= endT) {
             if (u->loop & 0x2) {
                 u->timer[1] = 0;
             } else {
@@ -694,12 +753,12 @@ void idSysMove01(IdUnit* u)
         }
     } else {
         u->timer[1]--;
-        if (u->timer[1] <= 0) {
+        if ((s16) u->timer[1] <= 0) {
             if (u->loop & 0x2) {
                 u->timer[1] = (u16) u->curve[1]->key[num - 1].t;
             } else {
                 u->end |= 0x2;
-                u->timer[1] = u->timer[1];
+                u->timer[1] = 0;
             }
         }
     }
@@ -724,7 +783,7 @@ void idSysMove02(IdUnit* u)
     int num;
 
     if (u->curve[2] != 0 && (num = u->curve[2]->num) != 0) {
-        r = Hermite_1CurveCalc(u->curve[2], (f32) u->timer[2]);
+        r = Hermite_1CurveCalc(u->curve[2], (f32) (s16) u->timer[2]);
         if (*(u32*) u->col1 != 0) {
             u->col[0] = (1.0f - r) * u->col0[0] + r * u->col1[0];
             u->col[1] = (1.0f - r) * u->col0[1] + r * u->col1[1];
@@ -764,7 +823,7 @@ void idSysMove02(IdUnit* u)
         if (!(u->dir & 0x4)) {
             u->timer[2]++;
             f32 endT = u->curve[2]->key[num - 1].t;
-            if ((f32) u->timer[2] >= endT) {
+            if ((f32) (s16) u->timer[2] >= endT) {
                 if (u->loop & 0x4) {
                     u->timer[2] = 0;
                 } else {
@@ -774,12 +833,12 @@ void idSysMove02(IdUnit* u)
             }
         } else {
             u->timer[2]--;
-            if (u->timer[2] <= 0) {
+            if ((s16) u->timer[2] <= 0) {
                 if (u->loop & 0x4) {
                     u->timer[2] = (u16) u->curve[2]->key[num - 1].t;
                 } else {
                     u->end |= 0x3;
-                    u->timer[2] = u->timer[2];
+                    u->timer[2] = 0;
                 }
             }
         }
@@ -806,12 +865,12 @@ void idSysMove03(IdUnit* u)
 
     u->rotCur = u->rot;
     if (u->curve[3] != 0 && (num = u->curve[3]->num) != 0) {
-        a = Hermite_1CurveCalc(u->curve[3], (f32) u->timer[3]);
+        a = Hermite_1CurveCalc(u->curve[3], (f32) (s16) u->timer[3]);
         u->end &= ~0x4;
         if (!(u->dir & 0x8)) {
             u->timer[3]++;
             f32 endT = u->curve[3]->key[num - 1].t;
-            if ((f32) u->timer[3] >= endT) {
+            if ((f32) (s16) u->timer[3] >= endT) {
                 if (u->loop & 0x8) {
                     u->timer[3] = 0;
                 } else {
@@ -821,12 +880,12 @@ void idSysMove03(IdUnit* u)
             }
         } else {
             u->timer[3]--;
-            if (u->timer[3] <= 0) {
+            if ((s16) u->timer[3] <= 0) {
                 if (u->loop & 0x8) {
                     u->timer[3] = (u16) u->curve[3]->key[num - 1].t;
                 } else {
                     u->end |= 0x4;
-                    u->timer[3] = u->timer[3];
+                    u->timer[3] = 0;
                 }
             }
         }
@@ -932,14 +991,14 @@ void IDSystem::unitTrans(IdUnit* u)
         if (c->flags & 0x8) {
             switch (u->kind) {
             case 1:
-                if (c->parent == u) {
+                if (u == c->parent) {
                     unitTrans(c);
                 }
                 break;
             case 2: {
                 IdUnit* g = pUnit;
                 for (j = 0; j < num; j++, g++) {
-                    if (g->flags != 0xFF && g->parent == c) {
+                    if (g->flags != 0xFF && c == g->parent) {
                         unitTrans(g);
                     }
                 }
@@ -961,10 +1020,7 @@ void IdGeneralTrans(IdUnit* u)
         return;
     }
     GXColor col;
-    col.g = 0;
-    col.b = 0;
-    col.r = 0;
-    col.a = 0;
+    col.r = col.g = col.b = col.a = 0;
     GXSetFog(0, 0.0f, 0.0f, ZNEAR, ZFAR, col);
     switch (u->transType) {
     case 0:
@@ -988,15 +1044,6 @@ void IdGeneralTrans(IdUnit* u)
     LightMgr.setFog();
 }
 
-// GX_QUADS in immediate mode: matrix index, position, normal, one texture coordinate.
-static inline void IdVertex(Vec* v, f32 s, f32 t)
-{
-    GXMatrixIndex1u8(0);
-    GXPosition3f32(v->x, v->y, v->z);
-    GXNormal3s8(0, 1, 0);
-    GXTexCoord2f32(s, t);
-}
-
 static inline void IdVtxFmt()
 {
     GXClearVtxDesc();
@@ -1012,7 +1059,7 @@ static inline void IdVtxFmt()
 void IdCommonTrans(IdUnit* u)
 {
     int blend[5][4] = {
-        { 0, 1, 4, 5 }, { 0, 1, 4, 1 }, { 0, 1, 1, 1 }, { 0, 1, 2, 1 }, { 0, 1, 2, 0 },
+        { 1, 4, 5, 0 }, { 1, 4, 1, 0 }, { 1, 1, 1, 0 }, { 1, 2, 1, 0 }, { 1, 2, 0, 0 },
     };
 
     GXSetCullMode(0);
@@ -1058,23 +1105,35 @@ void IdCommonTrans(IdUnit* u)
     }
     IdVtxFmt();
     GXBegin(0x80, 0, 4);
-    IdVertex(&u->vtx[0], u->u0, u->v0);
-    IdVertex(&u->vtx[1], u->u1, u->v0);
-    IdVertex(&u->vtx[2], u->u1, u->v1);
-    IdVertex(&u->vtx[3], u->u0, u->v1);
+    {
+        Vec* v = u->vtx;
+        GXMatrixIndex1u8(0);
+        GXPosition3f32(v[0].x, v[0].y, v[0].z);
+        GXNormal3s8(0, 1, 0);
+        GXTexCoord2f32(u->u0, u->v0);
+        GXMatrixIndex1u8(0);
+        GXPosition3f32(v[1].x, v[1].y, v[1].z);
+        GXNormal3s8(0, 1, 0);
+        GXTexCoord2f32(u->u1, u->v0);
+        GXMatrixIndex1u8(0);
+        GXPosition3f32(v[2].x, v[2].y, v[2].z);
+        GXNormal3s8(0, 1, 0);
+        GXTexCoord2f32(u->u1, u->v1);
+        GXMatrixIndex1u8(0);
+        GXPosition3f32(v[3].x, v[3].y, v[3].z);
+        GXNormal3s8(0, 1, 0);
+        GXTexCoord2f32(u->u0, u->v1);
+    }
     GXSetAlphaUpdate(0);
 }
 
-void IdNegativeTrans(IdUnit* u, int mode)
+void IdNegativeTrans(IdUnit* u, u32 mode)
 {
-    int blend[5][4] = {
-        { 0, 1, 4, 5 }, { 0, 1, 4, 1 }, { 0, 1, 1, 1 }, { 0, 1, 2, 1 }, { 0, 1, 2, 0 },
+    IdBlend blend[5] = {
+        { 1, 4, 5, 0 }, { 1, 4, 1, 0 }, { 1, 1, 1, 0 }, { 1, 2, 1, 0 }, { 1, 2, 0, 0 },
     };
-    GXColor col = { 0, 0, 0, 0 };
+    GXColor col;
     void* buf;
-    Mtx pm;
-    Mtx tm;
-    Mtx tm2;
 
     GXSetCullMode(0);
     CameraCurrentProjection();
@@ -1088,8 +1147,9 @@ void IdNegativeTrans(IdUnit* u, int mode)
     IdTexSet(u->texId, u->no);
     IdChannelSet(u);
     GXSetAlphaCompare(4, 1, 1, 4, 1);
-    GXSetBlendMode(blend[u->blendType][0], blend[u->blendType][1], blend[u->blendType][2], blend[u->blendType][3]);
+    GXSetBlendMode(blend[u->blendType].type, blend[u->blendType].src, blend[u->blendType].dst, blend[u->blendType].op);
     IdVtxFmt();
+    col.r = col.g = col.b = col.a = 0;
     GXSetFog(0, 0.0f, 0.0f, ZNEAR, ZFAR, col);
 
     buf = IdGetBufferAddr(1);
@@ -1098,11 +1158,12 @@ void IdNegativeTrans(IdUnit* u, int mode)
     GXCopyTex(buf, 0);
     GXPixModeSync();
     GXInvalidateTexAll();
-    {
-        GXTexObj obj;
-        GXInitTexObj(&obj, buf, (u32) Screen.width >> 1, (u32) Screen.height >> 1, 6, 0, 0, 0);
-        GXLoadTexObj(&obj, 1);
-    }
+    GXTexObj obj;
+    GXInitTexObj(&obj, buf, (u32) Screen.width >> 1, (u32) Screen.height >> 1, 6, 0, 0, 0);
+    GXLoadTexObj(&obj, 1);
+    Mtx tm2;
+    Mtx pm;
+    Mtx tm;
     C_MTXLightPerspective(pm, pG->Cam.param.fovy, 1.3333334f, 0.5f, -0.5f, 0.5f, 0.5f);
     PSMTXConcat(IDSystem::m_scrn_mat, u->mat, tm);
     PSMTXConcat(pm, tm, tm2);
@@ -1137,10 +1198,25 @@ void IdNegativeTrans(IdUnit* u, int mode)
     GXSetTevAlphaOp(2, 0, 0, 0, 1, 0);
     GXSetNumTevStages(3);
     GXBegin(0x80, 0, 4);
-    IdVertex(&u->vtx[0], 0.0f, 0.0f);
-    IdVertex(&u->vtx[1], 1.0f, 0.0f);
-    IdVertex(&u->vtx[2], 1.0f, 1.0f);
-    IdVertex(&u->vtx[3], 0.0f, 1.0f);
+    {
+        Vec* v = u->vtx;
+        GXMatrixIndex1u8(0);
+        GXPosition3f32(v[0].x, v[0].y, v[0].z);
+        GXNormal3s8(0, 1, 0);
+        GXTexCoord2f32(0.0f, 0.0f);
+        GXMatrixIndex1u8(0);
+        GXPosition3f32(v[1].x, v[1].y, v[1].z);
+        GXNormal3s8(0, 1, 0);
+        GXTexCoord2f32(1.0f, 0.0f);
+        GXMatrixIndex1u8(0);
+        GXPosition3f32(v[2].x, v[2].y, v[2].z);
+        GXNormal3s8(0, 1, 0);
+        GXTexCoord2f32(1.0f, 1.0f);
+        GXMatrixIndex1u8(0);
+        GXPosition3f32(v[3].x, v[3].y, v[3].z);
+        GXNormal3s8(0, 1, 0);
+        GXTexCoord2f32(0.0f, 1.0f);
+    }
     GXSetNumTevStages(1);
     GXSetNumTexGens(0);
     GXSetNumIndStages(0);
@@ -1152,23 +1228,14 @@ void IdNegativeTrans(IdUnit* u, int mode)
 
 void IdShimmerTrans(IdUnit* u, int sub, int type)
 {
-    int blend[5][4] = {
-        { 0, 1, 4, 5 }, { 0, 1, 4, 1 }, { 0, 1, 1, 1 }, { 0, 1, 2, 1 }, { 0, 1, 2, 0 },
+    IdBlend2 blend[5] = {
+        { 1, 4, 5, 0 }, { 1, 4, 1, 0 }, { 1, 1, 1, 0 }, { 1, 2, 1, 0 }, { 1, 2, 0, 0 },
     };
-    GXTexObj obj;
-    GXColor col = { 0, 0, 0, 0 };
+    GXColor col;
     void* buf;
-    Mtx pm;
-    Mtx tm;
-    Mtx tm2;
     f32 scale;
-    u8 nStage = 1;
-    u8 nGen;
-    Vec zv = { 0.0f, 0.0f, -1.0f };
-    Vec* pz = &zv;
-    Vec dir;
-    Vec d2;
-    Vec d3;
+    int nStage;
+    int nGen = 0;
     f32 dot;
 
     scale = (f32) sub * (1.0f / 32.0f) + 1.0f;
@@ -1184,8 +1251,12 @@ void IdShimmerTrans(IdUnit* u, int sub, int type)
     IdTexSet(u->texId, u->no);
     IdChannelSet(u);
     GXSetAlphaCompare(4, 1, 1, 4, 1);
-    GXSetBlendMode(blend[u->blendType][0], blend[u->blendType][1], blend[u->blendType][2], blend[u->blendType][3]);
+    GXSetBlendMode(blend[u->blendType].type, blend[u->blendType].src, blend[u->blendType].dst, blend[u->blendType].op);
     IdVtxFmt();
+    GXTexObj obj;
+    Vec zv;
+    Vec* pz = &zv;
+    col.r = col.g = col.b = col.a = 0;
     GXSetFog(0, 0.0f, 0.0f, ZNEAR, ZFAR, col);
 
     buf = IdGetBufferAddr(2);
@@ -1198,6 +1269,9 @@ void IdShimmerTrans(IdUnit* u, int sub, int type)
     GXInitTexObjLOD(&obj, 1, 1, 0.0f, 0.0f, 0.0f, 0, 0, 0);
     GXLoadTexObj(&obj, 1);
     g_Get_tex_obj = obj;
+    Mtx tm2;
+    Mtx pm;
+    Mtx tm;
     C_MTXLightPerspective(pm, pG->Cam.param.fovy, 1.3333334f, 0.5f, -0.5f, 0.5f, 0.5f);
     nGen = 2;
     PSMTXConcat(IDSystem::m_scrn_mat, u->mat, tm);
@@ -1210,30 +1284,46 @@ void IdShimmerTrans(IdUnit* u, int sub, int type)
     GXSetIndTexCoordScale(0, 0, 0);
     {
         f32 indMtx[2][3];
-        d2 = dir;
+        Vec d3;
+        Vec d2;
+        d2.x = ((Vec*) indMtx)->x;
+        d2.y = ((Vec*) indMtx)->y;
+        d2.z = ((Vec*) indMtx)->z;
+        zv.x = 0.0f;
+        zv.y = 0.0f;
+        zv.z = -1.0f;
         d3 = d2;
         dot = PSVECDotProduct(pz, &d3);
         if (dot < 1500.0f) {
             dot = 1500.0f;
         }
-        indMtx[0][0] = indMtx[1][1] = u->col[3] * (1.0f / 255.0f) * 0.04f * 1000.0f / dot * scale;
+        indMtx[1][1] = indMtx[0][0] = u->col[3] * (1.0f / 255.0f) * 0.04f * 1000.0f / dot * scale;
         indMtx[0][1] = 0.0f;
         indMtx[0][2] = 0.0f;
         indMtx[1][0] = 0.0f;
         indMtx[1][2] = 0.0f;
         GXSetIndTexMtx(1, indMtx, 1);
     }
-    switch (type) {
-    case 2:
-        GXSetTevIndWarp(0, 0, 0, 0, 1);
-        break;
-    case 3:
-        GXSetTevIndWarp(0, 0, 1, 0, 1);
-        break;
-    default:
-        pLog->err(0, 0, "IdShimmerTrans:[%02x,%02x] BLUR_TYPE[%x] invalid", u->type, u->unitNo, type);
-        GXSetTevIndWarp(0, 0, 0, 1, 1);
-        break;
+    {
+        u8 signedOfs;
+        u8 replace;
+        switch (type) {
+        case 2:
+            signedOfs = 0;
+            replace = 0;
+            break;
+        case 3:
+            signedOfs = 1;
+            replace = 0;
+            break;
+        default:
+            pLog->err(0, 0, "IdShimmerTrans:[%02x,%02x] BLUR_TYPE[%x] invalid", u->type, u->unitNo, type);
+            signedOfs = 0;
+            replace = 1;
+            break;
+        }
+        nStage = 1;
+        GXSetTevIndWarp(0, 0, signedOfs, replace, 1);
     }
     GXSetTevOrder(0, 0, 1, 4);
     GXSetTevColorIn(0, 0xF, 8, 0xA, 0xF);
@@ -1243,21 +1333,23 @@ void IdShimmerTrans(IdUnit* u, int sub, int type)
     if (u->flags_7F & 0x1) {
         TexWk* wk = IdGetTexWk(u->maskId, 1);
         if (wk != 0) {
-            GXTexObj mobj;
-            GXTlutObj tlut;
             TEXDescriptor* td = TEXGet(wk->pTpl, u->maskNo);
-            TEXHeader* th = td->textureHeader;
-            if (th->format == 8 || th->format == 9) {
-                GXInitTexObjCI(&mobj, th->data, th->width, th->height, th->format, 0, 0, 0, 1);
-                GXInitTlutObj(&tlut, td->CLUTHeader->data, td->CLUTHeader->format, td->CLUTHeader->numEntries);
-                GXLoadTlut(&tlut, 1);
-            } else {
-                GXInitTexObj(&mobj, th->data, th->width, th->height, th->format, 0, 0, 0);
+            {
+                GXTexObj mobj;
+                GXTlutObj tlut;
+                TEXHeader* th = td->textureHeader;
+                if (th->format == 8 || th->format == 9) {
+                    GXInitTexObjCI(&mobj, th->data, th->width, th->height, th->format, 0, 0, 0, 1);
+                    GXInitTlutObj(&tlut, td->CLUTHeader->data, td->CLUTHeader->format, td->CLUTHeader->numEntries);
+                    GXLoadTlut(&tlut, 1);
+                } else {
+                    GXInitTexObj(&mobj, th->data, th->width, th->height, th->format, 0, 0, 0);
+                }
+                GXInitTexObjLOD(&mobj, 1, 1, (f32) td->textureHeader->minLOD, (f32) td->textureHeader->maxLOD,
+                                td->textureHeader->LODBias, 0, td->textureHeader->edgeLODEnable, 0);
+                nStage = 2;
+                GXLoadTexObj(&mobj, 2);
             }
-            th = td->textureHeader;
-            GXInitTexObjLOD(&mobj, 1, 1, (f32) th->minLOD, (f32) th->maxLOD, th->LODBias, 0, th->edgeLODEnable, 0);
-            nStage = 2;
-            GXLoadTexObj(&mobj, 2);
             {
                 Mtx im;
                 PSMTXIdentity(im);
@@ -1275,10 +1367,25 @@ void IdShimmerTrans(IdUnit* u, int sub, int type)
     GXSetNumTevStages(nStage);
     GXSetNumTexGens(nGen);
     GXBegin(0x80, 0, 4);
-    IdVertex(&u->vtx[0], 0.0f, 0.0f);
-    IdVertex(&u->vtx[1], 1.0f, 0.0f);
-    IdVertex(&u->vtx[2], 1.0f, 1.0f);
-    IdVertex(&u->vtx[3], 0.0f, 1.0f);
+    {
+        Vec* v = u->vtx;
+        GXMatrixIndex1u8(0);
+        GXPosition3f32(v[0].x, v[0].y, v[0].z);
+        GXNormal3s8(0, 1, 0);
+        GXTexCoord2f32(0.0f, 0.0f);
+        GXMatrixIndex1u8(0);
+        GXPosition3f32(v[1].x, v[1].y, v[1].z);
+        GXNormal3s8(0, 1, 0);
+        GXTexCoord2f32(1.0f, 0.0f);
+        GXMatrixIndex1u8(0);
+        GXPosition3f32(v[2].x, v[2].y, v[2].z);
+        GXNormal3s8(0, 1, 0);
+        GXTexCoord2f32(1.0f, 1.0f);
+        GXMatrixIndex1u8(0);
+        GXPosition3f32(v[3].x, v[3].y, v[3].z);
+        GXNormal3s8(0, 1, 0);
+        GXTexCoord2f32(0.0f, 1.0f);
+    }
     GXSetNumTevStages(1);
     GXSetNumTexGens(0);
     GXSetNumIndStages(0);
@@ -1324,6 +1431,14 @@ void* IdGetBufferAddr(int type)
 void IdSetBufferType(int type)
 {
     IdBuffType = type;
+}
+
+// Debug display helper stripped from the DOL; its statics remain in .sdata.
+static inline const char* IdDebugName()
+{
+    static char unknown[2] = "?";
+    static char name[10] = "";
+    return unknown[0] ? name : unknown;
 }
 
 IDSystem IdSys;

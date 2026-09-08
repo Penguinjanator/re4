@@ -32,6 +32,7 @@ extern u8 pl_fs_tbl[];   // game/foot_shadow_tbl.cpp (incomplete type: full addr
 
 // Store through a reference: a scalar (non-struct) MEM, so pG is reloaded after every store.
 static inline void PSet(void*& d, void* v) { d = v; }
+static inline void PSet(cModelInfo*& d, cModelInfo* v) { d = v; }
 
 cPlLeon::cPlLeon()
 {
@@ -76,72 +77,69 @@ void cPlLeon::move()
 void cPlLeon::setModel()
 {
     cModelInfo* info;
-    PlArc* arc;
+    cModelInfo* face;
 
-    arc = pG->pPlArc;
-    info = (cModelInfo*) modelInit(PL_ARC_PTR(arc, 4), PL_ARC_PTR(arc, 5));
+    info = (cModelInfo*) modelInit(PL_ARC_PTR(pG->pPlArc, 4), PL_ARC_PTR(pG->pPlArc, 5));
     if (!VALID_PTR(info)) {
-        goto failed;
+        pLog->err(0, 0, "cPlLeon::setModel() failed.");
+        return;
     }
     switch (pG->costume) {
     case 0:
     case 1:
     case 2:
     case 3:
-        arc = pG->pPlArc;
-        info = ModInfoMgr.create(PL_ARC_PTR(arc, 0xA), PL_ARC_PTR(arc, 5));
+        info = ModInfoMgr.create(PL_ARC_PTR(pG->pPlArc, 0xA), PL_ARC_PTR(pG->pPlArc, 5));
         if (!VALID_PTR(info)) {
-            goto failed;
+            pLog->err(0, 0, "cPlLeon::setModel() failed.");
+            return;
         }
         addModel(info);
         break;
     }
-    arc = pG->pPlArc;
-    info = ModInfoMgr.create(PL_ARC_PTR(arc, 0xD), PL_ARC_PTR(arc, 5));
+    info = ModInfoMgr.create(PL_ARC_PTR(pG->pPlArc, 0xD), PL_ARC_PTR(pG->pPlArc, 5));
     if (!VALID_PTR(info)) {
-        goto failed;
+        pLog->err(0, 0, "cPlLeon::setModel() failed.");
+        return;
     }
     addModel(info);
     pFace->pFace = info;
-    if (VALID_PTR(pFace->pFace)) {
-        pFace->pFace->x5C = 0.0f;
-        pFace->pFace->x84 = 0.0f;
-        pFace->pFace->x70 = 0.0f;
+    face = pFace->pFace;
+    if (VALID_PTR(face)) {
+        face->x84 = 0.0f;
+        face->x70 = 0.0f;
+        face->x5C = 0.0f;
     }
-    arc = pG->pPlArc;
-    info = ModInfoMgr.create(PL_ARC_PTR(arc, 8), PL_ARC_PTR(arc, 7));
+    info = ModInfoMgr.create(PL_ARC_PTR(pG->pPlArc, 8), PL_ARC_PTR(pG->pPlArc, 7));
     if (!VALID_PTR(info)) {
-        goto failed;
-    }
-    addModel(info);
-    pFace->pShape = info;
-    pFace->pHeadData = PL_ARC_PTR(pG->pPlArc, 8);
-    arc = pG->pPlArc;
-    info = ModInfoMgr.create(PL_ARC_PTR(arc, 6), PL_ARC_PTR(arc, 7));
-    if (!VALID_PTR(info)) {
-        goto failed;
+        pLog->err(0, 0, "cPlLeon::setModel() failed.");
+        return;
     }
     addModel(info);
-    pFace->pHair = info;
-    arc = pG->pPlArc;
-    info = ModInfoMgr.create(PL_ARC_PTR(arc, 9), PL_ARC_PTR(arc, 7));
+    PSet(pFace->pShape, info);
+    PSet(pFace->pHeadData, PL_ARC_PTR(pG->pPlArc, 8));
+    info = ModInfoMgr.create(PL_ARC_PTR(pG->pPlArc, 6), PL_ARC_PTR(pG->pPlArc, 7));
     if (!VALID_PTR(info)) {
-        goto failed;
+        pLog->err(0, 0, "cPlLeon::setModel() failed.");
+        return;
+    }
+    addModel(info);
+    PSet(pFace->pHair, info);
+    info = ModInfoMgr.create(PL_ARC_PTR(pG->pPlArc, 9), PL_ARC_PTR(pG->pPlArc, 7));
+    if (!VALID_PTR(info)) {
+        pLog->err(0, 0, "cPlLeon::setModel() failed.");
+        return;
     }
     addModel(info);
     info->flags |= 0x40;
-    pFace->pEye = info;
-    switch (pG->costume) {
-    case 1:
-    case 2:
-    case 3:
-        arc = pG->pPlArc;
-        info = ModInfoMgr.create(PL_ARC_PTR(arc, 0x10), PL_ARC_PTR(arc, 5));
+    PSet(pFace->pEye, info);
+    if (pG->costume >= 1 && pG->costume <= 3) {
+        info = ModInfoMgr.create(PL_ARC_PTR(pG->pPlArc, 0x10), PL_ARC_PTR(pG->pPlArc, 5));
         if (!VALID_PTR(info)) {
-            goto failed;
+            pLog->err(0, 0, "cPlLeon::setModel() failed.");
+            return;
         }
         addModel(info);
-        break;
     }
     if (pG->flags_51C0 & 0x20) {
         setWound();
@@ -150,18 +148,13 @@ void cPlLeon::setModel()
     setFace(0);
     setRightHand(0);
     setLeftHand(1);
-    return;
-
-failed:
-    pLog->err(0, 0, "cPlLeon::setModel() failed.");
 }
 
 void cPlLeon::setWound()
 {
     cModelInfo* info;
-    PlArc* arc = pG->pPlArc;
 
-    info = ModInfoMgr.create(PL_ARC_PTR(arc, 0xE), PL_ARC_PTR(arc, 0xF));
+    info = ModInfoMgr.create(PL_ARC_PTR(pG->pPlArc, 0xE), PL_ARC_PTR(pG->pPlArc, 0xF));
     if (!VALID_PTR(info)) {
         pLog->err(0, 0, "cPlLeon::setModel() failed.");
     } else {
@@ -169,10 +162,11 @@ void cPlLeon::setWound()
     }
 }
 
+// Not matched (98%): the original shares one register for `no` and `data` (no `mr` in the default case).
 void cPlLeon::setRightHand(int no)
 {
     cModelInfo* info;
-    PlArc* arc;
+    int data;
 
     if (pFace->pRight) {
         deleteModelInfo(pFace->pRight);
@@ -181,21 +175,21 @@ void cPlLeon::setRightHand(int no)
     }
     switch (no) {
     case 0:
-        arc = pG->pPlArc;
-        no = (int) PL_ARC_PTR(arc, 0x12);
+        data = (int) PL_ARC_PTR(pG->pPlArc, 0x12);
         break;
     case 1:
-        no = (int) pFace->pRightDataAlt;
+        data = (int) pFace->pRightDataAlt;
+        break;
+    default:
+        data = no;
         break;
     }
-    arc = pG->pPlArc;
-    info = ModInfoMgr.create((void*) no, PL_ARC_PTR(arc, 0x11));
-    if (info) {
+    if ((info = ModInfoMgr.create((void*) data, PL_ARC_PTR(pG->pPlArc, 0x11))) != 0) {
         addModel(info);
         pFace->pRight = info;
-        pFace->pRightData = (void*) no;
+        pFace->pRightData = (void*) data;
     }
-    if (info == 0) {
+    if (!info) {
 #line 353 "D:/Bio4/Prog/pl_leon.cpp"
         HALT();
     }
@@ -205,7 +199,6 @@ void cPlLeon::setLeftHand(u32 no)
 {
     cModelInfo* info;
     void* data;
-    PlArc* arc;
 
     if (pFace->pLeft) {
         deleteModelInfo(pFace->pLeft);
@@ -217,28 +210,22 @@ void cPlLeon::setLeftHand(u32 no)
     }
     switch (no) {
     case 0:
-        arc = pG->pPlArc;
-        data = PL_ARC_PTR(arc, 0x14);
+        data = PL_ARC_PTR(pG->pPlArc, 0x14);
         break;
     case 1:
-        arc = pG->pPlArc;
-        data = PL_ARC_PTR(arc, 0x15);
+        data = PL_ARC_PTR(pG->pPlArc, 0x15);
         break;
     case 2:
-        arc = pG->pPlArc;
-        data = PL_ARC_PTR(arc, 0x16);
+        data = PL_ARC_PTR(pG->pPlArc, 0x16);
         break;
     case 3:
-        arc = pG->pPlArc;
-        data = PL_ARC_PTR(arc, 0x17);
+        data = PL_ARC_PTR(pG->pPlArc, 0x17);
         break;
     case 4:
-        arc = pG->pPlArc;
-        data = PL_ARC_PTR(arc, 0x18);
+        data = PL_ARC_PTR(pG->pPlArc, 0x18);
         break;
     case 5:
-        arc = pG->pPlArc;
-        data = PL_ARC_PTR(arc, 0x19);
+        data = PL_ARC_PTR(pG->pPlArc, 0x19);
         break;
     default:
         data = (void*) no;
@@ -246,8 +233,7 @@ void cPlLeon::setLeftHand(u32 no)
     }
     pFace->leftNoPrev = pFace->leftNo;
     pFace->leftNo = no;
-    arc = pG->pPlArc;
-    info = ModInfoMgr.create(data, PL_ARC_PTR(arc, 0x11));
+    info = ModInfoMgr.create(data, PL_ARC_PTR(pGS->pPlArc, 0x11));
     if (info == 0) {
         pLog->err(0, 0, "cPlLeon::setLeftHand() ModInfoMgr.create() failed");
     } else {
@@ -260,22 +246,21 @@ void cPlLeon::setLeftHand(u32 no)
 void cPlLeon::setFace(int no)
 {
     void* data = 0;
-    PlArc* arc;
+    void* shape = pFace->pShape;
 
-    if (pFace->pShape == 0) {
+    if (shape == 0) {
         return;
     }
     switch (no) {
+    case 0:
+    default:
+        ShapeEnd(shape);
+        break;
     case 1:
-        arc = pG->pPlArc;
-        data = PL_ARC_PTR(arc, 0x62);
+        data = PL_ARC_PTR(pG->pPlArc, 0x62);
         break;
     case 2:
-        arc = pG->pPlArc;
-        data = PL_ARC_PTR(arc, 0x63);
-        break;
-    default:
-        ShapeEnd(pFace->pShape);
+        data = PL_ARC_PTR(pG->pPlArc, 0x63);
         break;
     }
     if (no != 0) {
@@ -286,7 +271,6 @@ void cPlLeon::setFace(int no)
 void cPlLeon::setHead(int no)
 {
     cModelInfo* info;
-    PlArc* arc;
 
     if (no != 0) {
         return;
@@ -300,8 +284,7 @@ void cPlLeon::setHead(int no)
     pFace->pHair = 0;
     deleteModelInfo(pFace->pEye);
     pFace->pEye = 0;
-    arc = pG->pPlArc;
-    info = ModInfoMgr.create(PL_ARC_PTR(arc, 0xB), PL_ARC_PTR(arc, 7));
+    info = ModInfoMgr.create(PL_ARC_PTR(pGS->pPlArc, 0xB), PL_ARC_PTR(pGS->pPlArc, 7));
     if (info) {
         addModel(info);
     }
@@ -331,22 +314,32 @@ int cPlLeon::checkXbutton()
     if (xButtonWait) {
         xButtonWait--;
     }
-    if (pSUB && pSUB->id == 3) {
-        pG->flags_5010 |= 4;
-        if (xButtonWait == 0 && SubCharCheckCtrl() && (Key.trg & 0x200)) {
-            if (SubCharGetStatus() & 0x40000000) {
-                SndCall(1, 0x37, &pParts->worldPos, 0, 0, 0);
-                SubCharCtrl(1, 0);
-            } else {
-                SndCall(1, 0x36, &pParts->worldPos, 0, 0, 0);
-                SubCharCtrl(0, 0);
-            }
-            xButtonWait = 8;
-            pG->flags_500C |= 0x800000;
-            return 1;
-        }
+    if (pSUB == 0) {
+        return 0;
     }
-    return 0;
+    if (pSUB->id != 3) {
+        return 0;
+    }
+    pG->flags_5010 |= 4;
+    if (xButtonWait != 0) {
+        return 0;
+    }
+    if (SubCharCheckCtrl() == 0) {
+        return 0;
+    }
+    if (!(Key.trg & 0x200)) {
+        return 0;
+    }
+    if (SubCharGetStatus() & 0x40000000) {
+        SndCall(1, 0x37, &pParts->worldPos, 0, 0, 0);
+        SubCharCtrl(1, 0);
+    } else {
+        SndCall(1, 0x36, &pParts->worldPos, 0, 0, 0);
+        SubCharCtrl(0, 0);
+    }
+    xButtonWait = 8;
+    pG->flags_500C |= 0x800000;
+    return 1;
 }
 
 void cPlLeon::initCloth()

@@ -42,6 +42,11 @@ def demangle_v2(sym):
     """Return `Class::Method` / `func` for a GNU v2 mangled name, ignoring argument types."""
     if sym.startswith("_GLOBAL_"):
         return None
+    # vtable: _vt.13Class  (Bio4.sym: "Class virtual table")
+    m = re.match(r"^_vt\.(.+)$", sym)
+    if m:
+        cls, _ = read_class(m.group(1))
+        return f"{cls} virtual table" if cls else None
     # destructor: _._13Class / _$_13Class
     m = re.match(r"^_[.$]_(.+)$", sym)
     if m:

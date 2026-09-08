@@ -4,6 +4,7 @@
 #include "types.h"
 #include "cManager.h"
 #include "model.h"
+#include "atariInfo.h"
 
 // Per-object work layouts (game/obj03.cpp ...), all overlaid at cObj+0x328.
 struct Obj03Work {
@@ -61,27 +62,53 @@ struct Efm04Work {
     f32 bounceY;          // 0x88
 };
 
-// Sub-object at cObj+0x2B4 (0x74 bytes). Only the flag word obj03 clears is known.
+// Obstacle model work (game/obj20.cpp `SetObaModel`).
+struct ObaModelWork {
+    u8 pad_0[0xC];
+    Vec ofs;              // 0x0C  position relative to the parent (parts) matrix
+    int partsNo;          // 0x18  parts of the parent followed by type 0
+    cObj* parent;         // 0x1C
+};
+
+// Fading attachment work (game/obj26.cpp): scales toward `tgtScale`, then shrinks and fades out.
+struct Obj26Work {
+    u8 pad_0[8];
+    cObj* parent;         // 0x08  followed parts 2 of this object
+    u8 pad_C[0xC];
+    Vec tgtScale;         // 0x18
+};
+
+// Ladder / tower work (game/objYagura.cpp).
+struct YaguraWork {
+    u8 pad_0[0x20];
+    void* pMotionVib;     // 0x20  vibration motion set by setVib()
+};
+
+// Sub-object at cObj+0x2B4 (0x74 bytes): the collision info followed by scroll bookkeeping.
 struct ObjSub2B4 {
-    u8 pad_0[0x1A];
-    u16 flags;            // 0x1A
-    u8 pad_1C[0x70 - 0x1C];
+    cAtariInfo atari;     // 0x00 .. 0x4C  (flags at 0x1A)
+    u8 pad_4C[0x70 - 0x4C];
     s32 blk;              // 0x70  scroll block the object belongs to (-2 free, -1 SetObjSmd)
 
-    void clrFlags(u16 mask) { flags &= mask; }
+    void clrFlags(u16 mask) { atari.flags &= mask; }
 };
 
 // Map object work (game/obj.cpp), sizeof 0x3D8. Per-object modules keep their state in `work`.
 class cObj : public cModel {
 public:
     void* pMotion;        // 0x1D8 motion data (MotionMove) or NULL (matUpdate)
-    u8 pad_1DC[0x2B4 - 0x1DC];
+    u8 pad_1DC[0x21C - 0x1DC];
+    u32 x21C;             // 0x21C  bit30 (0x40000000): set by obj26MatCalc when following a parent
+    u8 pad_220[0x2B4 - 0x220];
     ObjSub2B4 sub2B4;     // 0x2B4 .. 0x328
     // 0x328: per-object work area
     union {
         u8 work[0x3D0 - 0x328];  // 0x328 per-object work area
         Obj03Work obj03;
         Efm04Work efm04;
+        ObaModelWork obaModel;
+        Obj26Work obj26;
+        YaguraWork yagura;
     };
     u8 x3D0;              // 0x3D0
     u8 pad_3D1[3];

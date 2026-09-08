@@ -60,6 +60,7 @@ public:
     void startUp();
     // game/pl_class.cpp
     void setFootwork();
+    void beginDamage();
     // game/pl_debug.cpp
     void debugInit();
     void debugMove();

@@ -23,7 +23,14 @@ public:
     u8 pad_30C[0x320 - 0x30C];
     s16 hp;               // 0x320
     s16 hpMax;            // 0x322
-    u32 flags_324;        // 0x324  (db_cam: upper 16 bits set = dead)
+    union {
+        u32 flags_324;    // 0x324  (db_cam: upper 16 bits set = dead)
+        struct {
+            u8 x324;      // 0x324  (pl_dmg: cleared when the damage motion ends)
+            u8 x325;      // 0x325  (pl_dmg: 5 at the end, bit7 while the damage motion plays)
+            u16 x326;
+        } st;
+    };
     u8 pad_328[0x370 - 0x328];
     f32 plDist2;          // 0x370  squared distance to the player (db_work prints its sqrt)
     u8 pad_374[0x38D - 0x374];
@@ -33,9 +40,11 @@ public:
     u8 pad_399[0x3C8 - 0x399];
     u32 flags_3C8;        // 0x3C8  (db_cam "Flag=")
     u8 pad_3CC[0x3E0 - 0x3CC];
-    u32 x3E0;             // 0x3E0  player event: set to 1 when the walk-to-target motion starts
-    u8 pad_3E4[0x400 - 0x3E4];
-    f32 evTurnSpeed;      // 0x400  player event: max turn per frame (rad)
+    u32 x3E0;             // 0x3E0  player: event walk flag / damage timer
+    int x3E4;             // 0x3E4  player damage: 1 = turning towards x400
+    u32 x3E8;             // 0x3E8  player damage (blow): water splash done
+    u8 pad_3EC[0x400 - 0x3EC];
+    f32 x400;             // 0x400  player: event turn limit / damage direction angle (123.0 = none)
     Vec evTarget;         // 0x404  player event: walk-to position
     u8 pad_410[0x41C - 0x410];
     u32 flags_41C;        // 0x41C  player: bit8 (0x100) event motion done -> reset routine

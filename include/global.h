@@ -10,7 +10,10 @@
 struct ArcFile {
     u8 pad_0[0x18];
     u32 ofs_18;   // 0x18  room texture data (room_tex)
-    u8 pad_1C[0x6C - 0x1C];
+    u32 ofs_1C;   // 0x1C  vibration pattern table (pl_dmg: VibSetData)
+    u32 ofs_20;   // 0x20  obstacle model bin (obj20 SetObaModel)
+    u32 ofs_24;   // 0x24  obstacle model tpl
+    u8 pad_28[0x6C - 0x28];
     u32 ofs_6C;   // 0x6C  system message table (dvd: MesData.ptr[4])
     u32 ofs_70;   // 0x70  TV-mode message table (tv_mode)
     u8 pad_74[0x9C - 0x74];
@@ -20,7 +23,7 @@ struct ArcFile {
 // Player archive at pG->pPlArc: a table of byte offsets to the player's sub-files (models, textures,
 // motions, faces...). The pl_* units index it directly; the pointer is `ofs + (u32) arc`.
 struct PlArc {
-    u32 ofs[0x64];
+    u32 ofs[0x70];
 };
 #define PL_ARC_PTR(arc, no) ((void*) ((arc)->ofs[no] + (u32) (arc)))
 
