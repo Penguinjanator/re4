@@ -44,7 +44,7 @@ void cEmObj::EmObjMove()
     }
 }
 
-void cEmObj::setSat(Vec* pos, int n, int flag, f32 sx, f32 sy, f32 sz)
+void cEmObj::setSat(Vec* pos, int n, int flag, int cube, f32 sx, f32 sy, f32 sz)
 {
     EmObjWork* w = EMOBJ_WK(this);
 
@@ -100,7 +100,7 @@ void cEmObj::clrSat()
     x3E0 &= ~2;
 }
 
-void cEmObj::setEat(Vec* pos, int n, int flag, f32 sx, f32 sy, f32 sz)
+void cEmObj::setEat(Vec* pos, int n, int flag, int cube, f32 sx, f32 sy, f32 sz)
 {
     EmObjWork* w = EMOBJ_WK(this);
 

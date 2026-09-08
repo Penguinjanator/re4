@@ -90,12 +90,17 @@ void espgen00_UpdateMatrix(EspgenWork* w)
 static f32 Calc_D256(Espgen00Work* p, u8 d, f32 rate)
 {
     s8 v = d;
+    f32 t;
     f32 ret;
 
+    // t is assigned in both arms: a global pseudo, so local-alloc does not tie the
+    // (f32)d / constant operands to the product (d -> f13, 1/128 -> f12, 1.0 -> f11)
     if (v >= 0) {
-        ret = 1.0f - rate * ((f32) d * 0.0078125f);
+        t = (f32) d * 0.0078125f;
+        ret = 1.0f - rate * t;
     } else {
-        ret = rate * ((f32) v * -0.0078125f) * 10.0f + 1.0f;
+        t = (f32) v * -0.0078125f;
+        ret = rate * t * 10.0f + 1.0f;
     }
     return ret;
 }

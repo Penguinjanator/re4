@@ -122,7 +122,8 @@ struct GlobalWork {
     u16 cdown_add_sec;     // 0x4F7E  seconds to add to the count-down (cockpit CountDown::move consumes it)
     u8 pad_4F80[0x4F88 - 0x4F80];
     u8 x4F88;              // 0x4F88  (pl_sub PlGachaGet: > 2 keeps the raw button count)
-    u8 pad_4F89[0x4F90 - 0x4F89];
+    u8 pad_4F89[0x4F8E - 0x4F89];
+    u16 x4F8E;             // 0x4F8E  nonzero = extra game (merchant: full price/tune tables, pSys->x4 weapon unlocks)
     u16 x4F90;             // 0x4F90  (room_jmp roomJumpExec clears it)
     u8 snd_tbl_no;         // 0x4F92  room BGM/stream table row (0..4) selected by the game flow
     u8 x4F93;              // 0x4F93
@@ -170,7 +171,8 @@ struct GlobalWork {
     u32 flags_5010;        // 0x5010
     u32 flags_5014;        // 0x5014
     u32 flags_5018;        // 0x5018  (main_sub: 0x10000000 letterbox scissor)
-    u32 em_dead[13][8];    // 0x501C  per enemy list (emlist_no): one bit per list entry, set when the enemy died (em_set)
+    u32 em_dead[12][8];    // 0x501C  per enemy list (emlist_no): one bit per list entry, set when the enemy died (em_set)
+    u32 item_flags[8];     // 0x519C  "ITEM_SET" flag words (t_flag; merchant: [0] bit 0x10000000 = item 0x40 sold)
     u32 flags_51BC;        // 0x51BC  (stage: 0x4 stage-1 loaded, 0x40000 sub-mission 1 done)
     u32 flags_51C0;        // 0x51C0  (stage: route flags)
     u8 pad_51C4[0x51E4 - 0x51C4];

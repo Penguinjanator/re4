@@ -36,7 +36,6 @@ extern u32 g_at2_total_cyc;
 
 // pointer to game memory (0x80000000 .. 0x82FFFFFF)
 #define VALID_PTR(p) ((u32) (p) >= 0x80000000 && (u32) (p) <= 0x82FFFFFF)
-#define IS_ALIVE(p) (((p)->be_flag & 0x201) == 1)
 
 // polygons already tested during one check (one bit per polygon index)
 u8 polyBit[0x400];
@@ -711,7 +710,7 @@ int cSatMgr::polySphereCk(Vec* oldPos, Vec* pos, f32 r, int flag, Vec* nrm, int 
             Vec lo;
             Vec lp;
             cSatBlock* blk = sat->block;
-            memclr_asm(polyBit, (sat->nPoly + 7) >> 3);
+            memclr_asm(polyBit, (sat->nPoly + 7) / 8);
             PSMTXMultVec(sat->inv, oldPos, &lo);
             PSMTXMultVec(sat->inv, pos, &lp);
             if (blkPolySphereCk(sat, blk, &lo, &lp, r, flag, nrm, mask)) {
@@ -759,6 +758,7 @@ int blkPolySphereCkCore(cSat* sat, cSatBlock* blk, Vec* a, Vec* b, f32 r, int fl
     int start;
     int end;
     int i;
+    u16* idx;
 
     if (flag & 0x40) {
         start = 0;
@@ -770,19 +770,20 @@ int blkPolySphereCkCore(cSat* sat, cSatBlock* blk, Vec* a, Vec* b, f32 r, int fl
         start = 0;
         end = blk->n0 + blk->n1 + blk->n2;
     }
-    for (i = start; i < end; i++) {
-        AtPoly* poly = &sat->poly[blk->idx[i]];
-        if (polyBitCk(blk->idx[i])) {
+    idx = &blk->idx[start];
+    for (i = start; i < end; i++, idx++) {
+        AtPoly* poly = &sat->poly[*idx];
+        if (polyBitCk(*idx)) {
             continue;
         }
-        polyBitSet(blk->idx[i]);
+        polyBitSet(*idx);
         if (At_poly_sphere_ck((AtPolyData*) sat, poly, a, b, r, flag, mask)) {
             ret = 1;
             if (nrm) {
-                *nrm = sat->nrm[sat->poly[blk->idx[i]].n];
+                *nrm = sat->nrm[sat->poly[*idx].n];
             }
             if (pG->flags_60 & 0x08000000) {
-                sat->disp(blk->idx[i], 0x40FF0000, 1);
+                sat->disp(*idx, 0x40FF0000, 1);
             }
         }
     }
@@ -820,10 +821,7 @@ int cSatMgr::hitCheck2(Vec* a, Vec* b, Vec* hit, u32* attr, int flag, int mask)
     cur = *b;
     for (i = 0; i < nArray; i++) {
         cSat* sat = (cSat*) ((u8*) pArray + size * i);
-        if (!sat->isAlive()) {
-            continue;
-        }
-        {
+        if (sat->isAlive()) {
             cSatBlock* blk = sat->block;
             int r;
             memclr_asm(polyBit, (sat->nPoly >> 3) + 1);
@@ -967,7 +965,10 @@ void cSatMgr::destroy(cSat* p)
 
 int cSatMgr::construct(cSat* p, u32 id)
 {
+    // the alive flag before, the active flag after the constructor: keeps the vptr store last
+    p->be_flag = 1;
     new (p) cSat();
+    p->flags = 0;
     return 1;
 }
 
@@ -1361,19 +1362,20 @@ cSatFile* createSat(Vec* v, u32 attr, f32 h)
     for (i = 0; i < 4; i++) {
         Vec d0;
         Vec d1;
+        Vec* v0;
         p = &poly0[i * 2];
-        PSVECSubtract(&vtx[p->v[1]], &vtx[p->v[0]], &d0);
-        PSVECSubtract(&vtx[p->v[2]], &vtx[p->v[0]], &d1);
+        v0 = &vtx[p->v[0]];
+        PSVECSubtract(&vtx[p->v[1]], v0, &d0);
+        PSVECSubtract(&vtx[p->v[2]], v0, &d1);
         PSVECCrossProduct(&d0, &d1, &nrm[i]);
 #line 2661 "D:/Bio4/Prog/atari.cpp"
         VECNormalize(&nrm[i], &nrm[i]);
     }
     e = &nrm[4];
-    p = poly0;
-    for (i = 0; i < 8; i++, p++) {
-        Vec* v0 = &vtx[p->v[0]];
-        Vec* v1 = &vtx[p->v[1]];
-        Vec* v2 = &vtx[p->v[2]];
+    for (i = 0; i < 8; i++) {
+        Vec* v1 = (Vec*) (poly0[i].v[1] * sizeof(Vec) + (u32) vtx);
+        Vec* v0 = (Vec*) (poly0[i].v[0] * sizeof(Vec) + (u32) vtx);
+        Vec* v2 = (Vec*) (poly0[i].v[2] * sizeof(Vec) + (u32) vtx);
         e->x = v1->x - v0->x;
         e->y = v1->y - v0->y;
         e->z = v1->z - v0->z;
@@ -1480,19 +1482,20 @@ cSatFile* createBoxSat(Vec* v, u32 attr, f32 h)
     for (i = 0; i < 6; i++) {
         Vec d0;
         Vec d1;
+        Vec* v0;
         p = &poly0[i * 2];
-        PSVECSubtract(&vtx[p->v[1]], &vtx[p->v[0]], &d0);
-        PSVECSubtract(&vtx[p->v[2]], &vtx[p->v[0]], &d1);
+        v0 = &vtx[p->v[0]];
+        PSVECSubtract(&vtx[p->v[1]], v0, &d0);
+        PSVECSubtract(&vtx[p->v[2]], v0, &d1);
         PSVECCrossProduct(&d0, &d1, &nrm[i]);
 #line 2797 "D:/Bio4/Prog/atari.cpp"
         VECNormalize(&nrm[i], &nrm[i]);
     }
     e = &nrm[6];
-    p = poly0;
-    for (i = 0; i < 12; i++, p++) {
-        Vec* v0 = &vtx[p->v[0]];
-        Vec* v1 = &vtx[p->v[1]];
-        Vec* v2 = &vtx[p->v[2]];
+    for (i = 0; i < 12; i++) {
+        Vec* v1 = (Vec*) (poly0[i].v[1] * sizeof(Vec) + (u32) vtx);
+        Vec* v0 = (Vec*) (poly0[i].v[0] * sizeof(Vec) + (u32) vtx);
+        Vec* v2 = (Vec*) (poly0[i].v[2] * sizeof(Vec) + (u32) vtx);
         e->x = v1->x - v0->x;
         e->y = v1->y - v0->y;
         e->z = v1->z - v0->z;
@@ -1581,19 +1584,20 @@ static cSatFile* createFloorSat(Vec* v, u32 attr, f32 h)
     for (i = 0; i < 1; i++) {
         Vec d0;
         Vec d1;
+        Vec* v0;
         p = &poly0[i * 2];
-        PSVECSubtract(&vtx[p->v[1]], &vtx[p->v[0]], &d0);
-        PSVECSubtract(&vtx[p->v[2]], &vtx[p->v[0]], &d1);
+        v0 = &vtx[p->v[0]];
+        PSVECSubtract(&vtx[p->v[1]], v0, &d0);
+        PSVECSubtract(&vtx[p->v[2]], v0, &d1);
         PSVECCrossProduct(&d0, &d1, &nrm[i]);
 #line 2910 "D:/Bio4/Prog/atari.cpp"
         VECNormalize(&nrm[i], &nrm[i]);
     }
     e = &nrm[1];
-    p = poly0;
-    for (i = 0; i < 2; i++, p++) {
-        Vec* v0 = &vtx[p->v[0]];
-        Vec* v1 = &vtx[p->v[1]];
-        Vec* v2 = &vtx[p->v[2]];
+    for (i = 0; i < 2; i++) {
+        Vec* v1 = (Vec*) (poly0[i].v[1] * sizeof(Vec) + (u32) vtx);
+        Vec* v0 = (Vec*) (poly0[i].v[0] * sizeof(Vec) + (u32) vtx);
+        Vec* v2 = (Vec*) (poly0[i].v[2] * sizeof(Vec) + (u32) vtx);
         e->x = v1->x - v0->x;
         e->y = v1->y - v0->y;
         e->z = v1->z - v0->z;

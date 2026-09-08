@@ -107,6 +107,17 @@ static inline int WindowAlive(cEmWindow* em)
     return !(em->ChkStatus() & 1);
 }
 
+// Bit `no` of a u32 bit table (bit 0 = the top bit of the first word).
+static inline void TblBitOn(u32* tbl, u32 no)
+{
+    tbl[no >> 5] |= 0x80000000 >> (no & 0x1F);
+}
+
+static inline void TblBitOff(u32* tbl, u32 no)
+{
+    tbl[no >> 5] &= ~(0x80000000 >> (no & 0x1F));
+}
+
 cEmWindow* SetWindow(void* bin, void* tpl, Vec* pos, Vec* rot, int type, u8 etcNo, void* arc)
 {
     cEmWindow* em;
@@ -126,7 +137,6 @@ int ChkWindow(cModel* m, Vec* a, Vec* b, int id, u16* status, Vec* dir, Vec* pos
 {
     SceAtFieldInfo* info;
     cEmWindow* win;
-    int ok;
 
     if (out) {
         *out = 0;
@@ -151,12 +161,13 @@ int ChkWindow(cModel* m, Vec* a, Vec* b, int id, u16* status, Vec* dir, Vec* pos
         return 0;
     }
     if (m->id <= 0xF) {
-        ok = win->ChkEnableFence(1);
+        if (win->ChkEnableFence(1) == 0) {
+            return 0;
+        }
     } else {
-        ok = win->ChkEnableFence(2);
-    }
-    if (ok == 0) {
-        return 0;
+        if (win->ChkEnableFence(2) == 0) {
+            return 0;
+        }
     }
     if (m->id == 0) {
         if (WindowAlive(win) && win->type == 1) {
@@ -172,20 +183,31 @@ int ChkWindow(cModel* m, Vec* a, Vec* b, int id, u16* status, Vec* dir, Vec* pos
         dir->x = 0.0f;
         dir->y = 0.0f;
         dir->z = -1.0f;
-    } else if (Front_check(win, a, PI / 2) == 1 && Front_check(win, b, PI / 2) == 0) {
+        RotVector(dir, &win->rot, dir);
+        pos->x = win->pos.x;
+        pos->y = win->pos.y;
+        pos->z = win->pos.z;
+        if (out) {
+            *out = win;
+        }
+        *status = win->ChkStatus();
+        return 1;
+    }
+    if (Front_check(win, a, PI / 2) == 1 && Front_check(win, b, PI / 2) == 0) {
         dir->x = 0.0f;
         dir->y = 0.0f;
         dir->z = 1.0f;
-    } else {
-        return 0;
+        RotVector(dir, &win->rot, dir);
+        pos->x = win->pos.x;
+        pos->y = win->pos.y;
+        pos->z = win->pos.z;
+        if (out) {
+            *out = win;
+        }
+        *status = win->ChkStatus();
+        return 1;
     }
-    RotVector(dir, &win->rot, dir);
-    *pos = win->pos;
-    if (out) {
-        *out = win;
-    }
-    *status = win->ChkStatus();
-    return 1;
+    return 0;
 }
 
 int cEmWindow::init(void* bin, void* tpl, Vec* pos_, Vec* rot_, int type_, u8 etcNo, void* arc)
@@ -252,15 +274,15 @@ int cEmWindow::init(void* bin, void* tpl, Vec* pos_, Vec* rot_, int type_, u8 et
     if (WindowData[type].satType == 1) {
         cube = 0;
         if (WindowData[type].field == 1) {
-            setSat(&satPos, 0x40, 0, size.x, size.y, size.z);
+            setSat(&satPos, 0x40, 0, 0, size.x, size.y, size.z);
         }
-        setEat(&satPos, 0x400000, 0, size.x, size.y, size.z);
+        setEat(&satPos, 0x400000, 0, 0, size.x, size.y, size.z);
     } else {
         cube = 1;
         if (WindowData[type].field == 1) {
-            setSat(&satPos, 0x40, 1, size.x, size.y, size.z);
+            setSat(&satPos, 0x40, 0, 1, size.x, size.y, size.z);
         }
-        setEat(&satPos, 0, 1, size.x * 0.7f, size.y, size.z * 0.7f);
+        setEat(&satPos, 0, 0, 1, size.x * 0.7f, size.y, size.z * 0.7f);
     }
     size.z = (WindowData[type].sizeZ + 50.0f) * 0.5f;
     setYarare(0, &satPos, 0x21, cube, size.x, size.y, size.z);
@@ -291,7 +313,7 @@ int cEmWindow::init(void* bin, void* tpl, Vec* pos_, Vec* rot_, int type_, u8 et
         pt[3].x = -500.0f;
         pt[3].y = -2000.0f;
         pt[3].z = -1000.0f;
-        no = SceAtCreateFieldAt(this, pt, 3, 0, 0, 3000.0f, 0.0f, 1.3962634f, 5, 0, 1, &out);
+        no = SceAtCreateFieldAt(this, pt, 3, 0, 0, 3000.0f, 5, 0.0f, 0, 1.3962634f, 1, &out);
         if (no == -1) {
             pLog->err(0, 0, "move : SceAt no create");
         }
@@ -308,7 +330,7 @@ int cEmWindow::init(void* bin, void* tpl, Vec* pos_, Vec* rot_, int type_, u8 et
         pt[3].x = -500.0f;
         pt[3].y = -2000.0f;
         pt[3].z = -1000.0f;
-        no = SceAtCreateFieldAt(this, pt, 3, 0, 0, 3000.0f, -PI, 1.3962634f, 5, 0, 1, &out);
+        no = SceAtCreateFieldAt(this, pt, 3, 0, 0, 3000.0f, 5, -PI, 0, 1.3962634f, 1, &out);
         if (no == -1) {
             pLog->err(0, 0, "move : SceAt no create");
         }
@@ -327,7 +349,9 @@ void cEmWindow::move()
     EmObjMove();
     switch (xFC) {
     case 0:
-        w->rotBase = rot;
+        w->rotBase.x = rot.x;
+        w->rotBase.y = rot.y;
+        w->rotBase.z = rot.z;
         xFC = 1;
         if (WindowAlive(this)) {
             if (WindowData[type].breakEff == 1) {
@@ -340,7 +364,9 @@ void cEmWindow::move()
             rot.y = w->rotBase.y + (f32) (s8) ((s8) Rnd() % 3) * PI / 180.0f;
             w->shake--;
             if (w->shake <= 0) {
-                rot = w->rotBase;
+                rot.x = w->rotBase.x;
+                rot.y = w->rotBase.y;
+                rot.z = w->rotBase.z;
             }
         }
         break;
@@ -479,7 +505,9 @@ int cEmWindow::ExeWindowEvent()
     LadderEventTrans(0);
     BEGIN_EVENT(pPL, 0);
     pPL->setNoSuspend(1);
-    plPos = pPL->pos;
+    plPos.x = pPL->pos.x;
+    plPos.y = pPL->pos.y;
+    plPos.z = pPL->pos.z;
     pPL->setFace(2);
     w->breakDir = ChkBreakDir(&pPL->pos);
     switch (w->breakDir) {
@@ -664,13 +692,13 @@ int cEmWindow::ChkStatus()
     u16* flg;
 
     flg = GetEtcFlgPtr(getEtc(), pG->room_id);
-    if (flg == 0) {
-        return 0;
+    if (flg) {
+        return *flg;
     }
-    return *flg;
+    return 0;
 }
 
-void cEmWindow::SetStatus(int f)
+void cEmWindow::SetStatus(u16 f)
 {
     u16* flg;
 
@@ -750,7 +778,7 @@ int cEmWindow::SetChangeModel(void* bin, void* tpl)
 
 int cEmWindow::SetAtariOff()
 {
-    atari.throughOn();
+    atari.flags &= ~0x300;
     clrSat();
     clrEat();
     hp = 0;
@@ -758,30 +786,30 @@ int cEmWindow::SetAtariOff()
     return 1;
 }
 
-void cEmWindow::SetBreakEsp(int dir, int kind, int flag)
+int cEmWindow::SetBreakEsp(int dir, int kind, int flag)
 {
     Vec p;
     Vec r;
     int tblA[4][2] = { { 6, 0 }, { 7, 1 }, { 6, 0 }, { 7, 1 } };
     int tblB[4][2] = { { 6, 0 }, { 7, 1 }, { 3, 3 }, { 7, 1 } };
     u8 eff;
-    u8 id;
+    int id;
 
     eff = getEff();
     if (kind > 1) {
-        pLog->err(0, 0, "EmWindow : break_size limit over");
         kind = 1;
+        pLog->err(0, 0, "EmWindow : break_size limit over");
     }
     if (flag == 0) {
         if (dir > 3) {
-            pLog->err(0, 0, "EmWindow : espid faild!");
             dir = 0;
+            pLog->err(0, 0, "EmWindow : espid faild!");
         }
         id = tblA[dir][kind];
     } else {
         if (dir > 2) {
-            pLog->err(0, 0, "EmWindow : espid faild!");
             dir = 0;
+            pLog->err(0, 0, "EmWindow : espid faild!");
         }
         id = tblB[dir][kind];
     }
@@ -795,16 +823,17 @@ void cEmWindow::SetBreakEsp(int dir, int kind, int flag)
     r.x += rot.x;
     r.y += rot.y;
     r.z += rot.z;
-    EstSet(0, -1, &p, &r, eff, id, 0x801, 0, 0, 0);
+    EstSet(0, -1, &p, &r, eff, (u8) id, 0x801, 0, 0, 0);
 }
 
 void cEmWindow::SetEnableDamage(int on)
 {
+    int v = 1;
+
     if (on == 1) {
-        SetEtcFlag(0, 0);
-    } else {
-        SetEtcFlag(0, 1);
+        v = 0;
     }
+    SetEtcFlag(0, v);
 }
 
 int cEmWindow::ChkEnableDamage()
@@ -817,20 +846,18 @@ int cEmWindow::ChkEnableDamage()
 
 void cEmWindow::SetEtcFlag(u32 no, int on)
 {
-    EmWindowWork* w = EMWINDOW_WK(this);
-
     if (on == 1) {
-        w->etcFlag[no >> 5] |= 0x80000000 >> (no & 0x1F);
+        TblBitOn(EMWINDOW_WK(this)->etcFlag, no);
     } else {
-        w->etcFlag[no >> 5] &= ~(0x80000000 >> (no & 0x1F));
+        TblBitOff(EMWINDOW_WK(this)->etcFlag, no);
     }
 }
 
 int cEmWindow::ChkEtcFlag(u32 no)
 {
-    EmWindowWork* w = EMWINDOW_WK(this);
+    u32* flg = EMWINDOW_WK(this)->etcFlag;
 
-    if (w->etcFlag[no >> 5] & (0x80000000 >> (no & 0x1F))) {
+    if (flg[no >> 5] & (0x80000000 >> (no & 0x1F))) {
         return 1;
     }
     return 0;
@@ -842,9 +869,9 @@ int cEmWindow::SetEnableFence(int on, int kind)
 
     if (kind == 0 || kind == 1) {
         if (on == 1) {
-            w->etcFlag[0] &= ~0x40000000;
+            EMWINDOW_WK(this)->etcFlag[0] &= ~0x40000000;
         } else {
-            w->etcFlag[0] |= 0x40000000;
+            EMWINDOW_WK(this)->etcFlag[0] |= 0x40000000;
         }
     }
     if (kind == 0 || kind == 2) {
@@ -859,13 +886,15 @@ int cEmWindow::SetEnableFence(int on, int kind)
 
 int cEmWindow::ChkEnableFence(int kind)
 {
-    EmWindowWork* w = EMWINDOW_WK(this);
+    u32 t;
 
     if (kind == 1) {
-        return (w->etcFlag[0] & 0x40000000) != 0;
+        t = EMWINDOW_WK(this)->etcFlag[0] & 0x40000000;
+        return t == 0;
     }
     if (kind == 2) {
-        return (w->etcFlag[0] & 0x20000000) != 0;
+        t = EMWINDOW_WK(this)->etcFlag[0] & 0x20000000;
+        return t == 0;
     }
     return 0;
 }

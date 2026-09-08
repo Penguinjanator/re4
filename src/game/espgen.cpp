@@ -99,8 +99,11 @@ static inline int EspgenIsActive(EspgenWork* w)
     if (!(w->flag & 1) || (w->flag & 2)) {
         on = 0;
     } else {
+        // the flag load before `on = 1` keeps jump.c from hoisting `on = 0` above the first
+        // test (the else arm must not start with a set of `on`)
+        u32 f = pG->flags_5010;
         on = 1;
-        if (pG->flags_5010 & 0x10000000) {
+        if (f & 0x10000000) {
             on = w->info.x0 & 1;
         }
     }

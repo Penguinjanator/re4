@@ -35,13 +35,13 @@ public:
     u8 GetFloor();
     int ChkBreakDir(Vec* pos);
     int ChkStatus();        // etc flag word of this window (GetEtcFlgPtr), 0 when none; bit0 = broken
-    void SetStatus(int f);
+    void SetStatus(u16 f);
     int SetShake();
     int SetBreakAll(Vec* pos, int a, int b);
     int SetBreakModel();
     int SetChangeModel(void* bin, void* tpl);
     int SetAtariOff();
-    void SetBreakEsp(int dir, int kind, int flag);
+    int SetBreakEsp(int dir, int kind, int flag);
     void SetEnableDamage(int on);
     int ChkEnableDamage();
     void SetEtcFlag(u32 no, int on);

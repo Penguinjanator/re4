@@ -960,6 +960,7 @@ MATCHING = {
     "game/light01.cpp": True,
     "game/at_sub2.cpp": True,
     "game/atariInfo.cpp": True,
+    "game/atari.cpp": True,
     "game/flr_at.cpp": True,
     "game/se_at.cpp": True,
     "game/cons.cpp": True,
@@ -1037,6 +1038,8 @@ STRIP_UNUSED = {
     "game/map_obj.cpp",
     "game/Espgen43.cpp",
     "game/emtree.cpp",
+    "game/objRobo.cpp",
+    "game/atari.cpp",
 }
 
 # Capcom sound library (game/snd_*.cpp): C++ with extern "C" functions, compiled unoptimised
@@ -1170,6 +1173,8 @@ MATCHING.update({
 # effect system units
 MATCHING.update({
     "game/eff_sys.cpp": True,
+    "game/espgen.cpp": True,
+    "game/espgen00.cpp": True,
 })
 
 MATCHING.update({

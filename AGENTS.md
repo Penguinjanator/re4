@@ -427,6 +427,13 @@ mark it Matching.
 - A local at frame offset 0 is materialised per call; a block-scoped `Vec* pp = &p0;` declared after
   the first use gives "first use direct, later uses from a callee-saved pseudo".
 - `p = Vec()` for a POD in g++ 2.95 creates a zeroed temporary plus a block copy, not a `memset`.
+- `#line` must precede the *first* `__FILE__` use in the .cpp (dead functions included), otherwise a
+  second, shorter file-name string appears in `.rodata`.
+- PRE copy signature: `lfs f0; fadds ..,f0; fmr f11,f0` = a member load reused in later blocks by
+  gcse (no local); a member cached in a local is used straight with no `fmr`.
+- Index-first `lhzx/lfsx/add rD,idx,base` = `(T*)(i * sizeof(T) + (u32)base)` written index first.
+- An early `return 0.0f` merged with the final return inserts a label that invalidates reload_cse:
+  the following call re-copies a still-valid argument (`mr r4,r31`).
 - Static locals show as `name.NNN` in objdiff; the DECL_UID suffix cannot be reproduced and is ignored by the report.
 - Unexplained words in `.rodata` (zero words, stray floats) are usually the constant pool of a function
   the original linker dead-stripped (bodies gone, pools kept, `STRIP_UNUSED` in objects.py): write a

@@ -34,10 +34,10 @@ class cEmObj : public cEm {
 public:
     void EmObjInit();
     void EmObjMove();
-    void setSat(Vec* pos, int n, int flag, f32 sx, f32 sy, f32 sz);
+    void setSat(Vec* pos, int n, int flag, int cube, f32 sx, f32 sy, f32 sz);   // `cube` is unused (emwindow passes its setYarare cube flag; the mangled name needs the 4th int)
     void setSatMain();
     void clrSat();
-    void setEat(Vec* pos, int n, int flag, f32 sx, f32 sy, f32 sz);
+    void setEat(Vec* pos, int n, int flag, int cube, f32 sx, f32 sy, f32 sz);
     void setEatMain();
     void clrEat();
     void setYarare(s16 no, Vec* pos, u16 flag, int cube, f32 w, f32 h, f32 rad);
