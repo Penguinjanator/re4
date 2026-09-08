@@ -93,6 +93,7 @@ void PenClothSet(cModel* m, PenCloth* c, f32 len)
 {
     Vec v;
     cModel* parts;
+    cModel* n;   // one variable for the neighbour of both arms (it takes r12 in the original)
     PenParts* w;
     u32 i;
 
@@ -117,19 +118,19 @@ void PenClothSet(cModel* m, PenCloth* c, f32 len)
                 w->nrm.z = 0.0f;
                 PSMTXMultVec(parts->mat, &w->dir, &w->pos);
             } else {
-                PenParts* uw = PEN_WORK(m->getPartsPtr(c->pUp[i]));
-                w->len = uw->len;
-                w->dir = uw->dir;
-                w->nrm = uw->nrm;
+                n = m->getPartsPtr(c->pUp[i]);
+                w->len = PEN_WORK(n)->len;
+                w->dir = PEN_WORK(n)->dir;
+                w->nrm = PEN_WORK(n)->nrm;
                 w->pos = parts->worldPos;
                 PSMTXMultVecSR(m->mat, &w->dir, &v);
                 PSVECAdd(&w->pos, &v, &w->pos);
             }
         } else {
-            cModel* down = m->getPartsPtr(c->pDown[i]);
-            w->pos = down->worldPos;
-            w->len = GetDistance3(&parts->worldPos, &down->worldPos);
-            PSVECSubtract(&down->worldPos, &parts->worldPos, &w->dir);
+            n = m->getPartsPtr(c->pDown[i]);
+            w->pos = n->worldPos;
+            w->len = GetDistance3(&parts->worldPos, &n->worldPos);
+            PSVECSubtract(&n->worldPos, &parts->worldPos, &w->dir);
 #line 119 "D:/Bio4/Prog/pendulum.cpp"
             VECNormalize(&w->dir, &w->nrm);
         }
@@ -144,20 +145,16 @@ void PenClothSet(cModel* m, PenCloth* c, f32 len)
         parts = m->getPartsPtr(c->pParts[i]);
         w = PEN_WORK(parts);
         if (c->x08 && c->x08[i] < 0xFF) {
-            cModel* n = m->getPartsPtr(c->x08[i]);
-            w->distL = GetDistance3(&w->pos, &PEN_WORK(n)->pos) * 0.5f;
+            w->distL = GetDistance3(&w->pos, &PEN_WORK(m->getPartsPtr(c->x08[i]))->pos) * 0.5f;
         }
         if (c->x0C && c->x0C[i] < 0xFF) {
-            cModel* n = m->getPartsPtr(c->x0C[i]);
-            w->distR = GetDistance3(&w->pos, &PEN_WORK(n)->pos) * 0.5f;
+            w->distR = GetDistance3(&w->pos, &PEN_WORK(m->getPartsPtr(c->x0C[i]))->pos) * 0.5f;
         }
         if (c->x10 && c->x10[i] < 0xFF) {
-            cModel* n = m->getPartsPtr(c->x10[i]);
-            w->distUL = GetDistance3(&w->pos, &PEN_WORK(n)->pos) * 0.5f;
+            w->distUL = GetDistance3(&w->pos, &PEN_WORK(m->getPartsPtr(c->x10[i]))->pos) * 0.5f;
         }
         if (c->x14 && c->x14[i] < 0xFF) {
-            cModel* n = m->getPartsPtr(c->x14[i]);
-            w->distUR = GetDistance3(&w->pos, &PEN_WORK(n)->pos) * 0.5f;
+            w->distUR = GetDistance3(&w->pos, &PEN_WORK(m->getPartsPtr(c->x14[i]))->pos) * 0.5f;
         }
     }
 }

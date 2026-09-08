@@ -860,44 +860,43 @@ int itemZoom(SceAtWork* w)
         if (it->pModel != 0) {
             p_imodel_bak = it->pModel;
             it->pModel = 0;
-            it->flag |= 8;
+            w->item.flag |= 8;
         }
     }
-    if (it->pModel != 0) {
-        return 1;
-    }
-    sprintf(name, "SS/cmn/itm%02x.bin", it->id);
-    sprintf(name2, "SS/cmn/itm%02x.tpl", it->id);
-    bin = 0;
-    tpl = 0;
+    if (it->pModel == 0) {
+        sprintf(name, "SS/cmn/itm%02x.bin", it->id);
+        sprintf(name2, "SS/cmn/itm%02x.tpl", it->id);
+        bin = 0;
+        tpl = 0;
 #line 1008 "D:/Bio4/Prog/sce_at.cpp"
-    ret = DvdReadN(name, 0, 0, 0, 0, 5, __FILE__, __LINE__);
-    if (Dvd.ReadCheck(ret, 0, 0, &bin) < 0) {
-        pLog->err(0, 0, "Item model \"%s\" load faild!", name);
-        return 0;
-    }
+        ret = DvdReadN(name, 0, 0, 0, 0, 5, __FILE__, __LINE__);
+        if (Dvd.ReadCheck(ret, 0, 0, &bin) < 0) {
+            pLog->err(0, 0, "Item model \"%s\" load faild!", name);
+            return 0;
+        }
 #line 1018 "D:/Bio4/Prog/sce_at.cpp"
-    ret = DvdReadN(name2, 0, 0, 0, 0, 5, __FILE__, __LINE__);
-    if (Dvd.ReadCheck(ret, 0, 0, &tpl) < 0) {
-        if (bin != 0) {
-            Mem_free(bin);
+        ret = DvdReadN(name2, 0, 0, 0, 0, 5, __FILE__, __LINE__);
+        if (Dvd.ReadCheck(ret, 0, 0, &tpl) < 0) {
+            if (bin != 0) {
+                Mem_free(bin);
+            }
+            pLog->err(0, 0, "Item model \"%s\" load faild!", name2);
+            return 0;
         }
-        pLog->err(0, 0, "Item model \"%s\" load faild!", name2);
-        return 0;
+        obj = setItemObj(bin, tpl, (Vec*) &vecZero, (Vec*) &vecZero);
+        if (obj == 0) {
+            pLog->err(0, 0, "Item %d set faild!", it->id);
+            if (bin != 0) {
+                Mem_free(bin);
+            }
+            if (tpl != 0) {
+                Mem_free(tpl);
+            }
+            return 0;
+        }
+        SceAtSetItemModel(w, obj);
+        w->item.flag |= 2;
     }
-    obj = setItemObj(bin, tpl, (Vec*) &vecZero, (Vec*) &vecZero);
-    if (obj == 0) {
-        pLog->err(0, 0, "Item %d set faild!", it->id);
-        if (bin != 0) {
-            Mem_free(bin);
-        }
-        if (tpl != 0) {
-            Mem_free(tpl);
-        }
-        return 0;
-    }
-    SceAtSetItemModel(w, obj);
-    it->flag |= 2;
     return 1;
 }
 
@@ -1760,7 +1759,7 @@ int sceAtCheckLadderUp(SceAtLadder* l, cModel* m)
     for (i = 0; i < EmMgr.nArray; i++) {
         cEm* em = (cEm*) ((u8*) EmMgr.pArray + EmMgr.size * i);
 
-        if (em->id <= 0x20 && em != m) {
+        if (em->id <= 0x20 && m != em) {
             if (AreaHitCheck(&area, &em->pos) == 1) {
                 return 0;
             }
@@ -1892,8 +1891,8 @@ static int sceAtFunc_pos_jump(SceAtWork* w, cModel* m)
     Vec rot;
 
     pPL->setPos(&w->jumpPos);
-    rot.x = 0.0f;
     rot.y = w->dstAngle;
+    rot.x = 0.0f;
     rot.z = 0.0f;
     pPL->setAng(&rot);
     CamCtrl.qfps.setPlayerLocation(pPL->mat, pPL->pFloorNrm);
@@ -1950,7 +1949,11 @@ void SceAtRoomSet()
         case 0x10:
             if (!(w->x38 & 8)) {
                 w->x38 = (w->x38 & 0x80) | 8;
-                w->x4A = (w->ladder.level > 0) ? 9 : 8;
+                if (w->ladder.level > 0) {
+                    w->x4A = 9;
+                } else {
+                    w->x4A = 8;
+                }
                 w->x44 = 5;
             }
             break;
@@ -2054,18 +2057,16 @@ void sceAtSetScrAt(SceAtWork* w)
 
 void sceAtDeleteScrAt(SceAtWork* w)
 {
-    SceAtScrAt* s = &w->scr;
-
-    if (s->created == 1) {
-        if (!(s->flags & 2)) {
-            SatMgr.destroy(s->pSat);
+    if (w->scr.created == 1) {
+        if (!(w->scr.flags & 2)) {
+            SatMgr.destroy(w->scr.pSat);
         }
-        if (bitOff(s->flags)) {
-            EatMgr.destroy(s->pEat);
+        if (bitOff(w->scr.flags)) {
+            EatMgr.destroy(w->scr.pEat);
         }
-        s->pSat = 0;
-        s->pEat = 0;
-        s->created = 0;
+        w->scr.pSat = 0;
+        w->scr.pEat = 0;
+        w->scr.created = 0;
     }
 }
 
@@ -2107,16 +2108,17 @@ SceAtWork* SceAtPtr(int no)
 int sceAtPullAtNo(u8* out)
 {
     u32 used[8];
+    u32* f = used;
     SceAtWork* w;
     u32 i;
 
     memclr_asm(used, sizeof(used));
     w = sceAtSetOtStart();
     while ((w = sceAtGetOtAddr(w)) != 0) {
-        used[w->no >> 5] |= 0x80000000 >> (w->no & 31);
+        f[w->no >> 5] |= 0x80000000 >> (w->no & 31);
     }
     for (i = 0; i < 256; i++) {
-        if (!(used[i >> 5] & (0x80000000 >> (i & 31)))) {
+        if (!(f[i >> 5] & (0x80000000 >> (i & 31)))) {
             *out = i;
             return 1;
         }

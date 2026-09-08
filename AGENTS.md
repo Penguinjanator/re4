@@ -498,6 +498,13 @@ mark it Matching.
   (`int zero = 0;`, `int type = 2;`) stored through the variable.
 - Float box tests with plain `blt/bgt` and a duplicated `blt` to the same label = separate
   `if (v.x < a) continue;` statements, the duplicated test copied verbatim.
+- `.rodata` proves the include set: a unit whose `.rodata` lacks `"D:/Bio4/Prog/light.h"` did not
+  include light.h; header strings appear in include order.
+- Index register class: `add rD,rBase,rOfs` / `lwzx` with the offset in r9/r11 (BASE_REGS) instead of
+  r0 means the base pseudo is not pointer-flagged — a `u32 addr` *parameter*; a `u32 addr = (u32)ptr`
+  local does not work.
+- `u32 trg = Key.trg & MASK` (u64 truncated) tests as 32-bit `andis.`; a `u64 key` exclusive check
+  gives the `li 0; mr; rlwinm; or.` word-pair test.
 - Static locals show as `name.NNN` in objdiff; the DECL_UID suffix cannot be reproduced and is ignored by the report.
 - Unexplained words in `.rodata` (zero words, stray floats) are usually the constant pool of a function
   the original linker dead-stripped (bodies gone, pools kept, `STRIP_UNUSED` in objects.py): write a
