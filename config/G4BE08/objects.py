@@ -996,6 +996,8 @@ MATCHING = {
     "game/filter09.cpp": True,
     "game/filter0a.cpp": True,
     "game/filter08.cpp": True,
+    "game/filter02.cpp": True,
+    "game/filter00.cpp": True,
     "game/esp11.cpp": True,
     "game/esp15.cpp": True,
     "game/esp03.cpp": True,
@@ -1005,6 +1007,7 @@ MATCHING = {
 # C++ units with functions the original linker dead-stripped (bodies gone, constant pools and
 # statics kept): tools/strip_unused.py removes the bodies of functions not in sym_map.tsv.
 STRIP_UNUSED = {
+    "game/emrock.cpp",
     "game/shadow.cpp",
     "game/route_ck.cpp",
     "game/cockpit.cpp",
@@ -1044,6 +1047,7 @@ STRIP_UNUSED = {
     "game/emtree.cpp",
     "game/objRobo.cpp",
     "game/atari.cpp",
+    "game/pendulum.cpp",
 }
 
 # Capcom sound library (game/snd_*.cpp): C++ with extern "C" functions, compiled unoptimised

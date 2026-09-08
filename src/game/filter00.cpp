@@ -9,15 +9,8 @@
 
 // Radial blur / contrast filter: copies the frame buffer to a half-size texture and blends it back.
 //
-// Not yet byte-exact (Render 95.7%, RenderContrast 94.2%; all other functions and the data match):
-//  * Render: the original materialises the zero for `col.r = col.g = col.b = 0` in the block that
-//    tests `pG->flags_500C & 0x80000` (li r11,0 before the andis.), ours in the block after it.
-//  * The full-screen quads outside the loop (blur_type 0/1 and RenderContrast): the original issues
-//    the first `sth` (position 0,0) before the `lfs Screen+8` of the next vertex's (u32) conversion;
-//    ProDG here schedules the load first. Inside the eff-spread loop (Screen address in r31) the
-//    same code matches, so it hinges on the `lis Screen+8@ha` dying at the load (sched1 register
-//    weight). Header/FIFO/pointer variants tried without success; see the loop version for the
-//    idiom that does match.
+// Render: the zero for `col.r = col.g = col.b` is a block-local `int zero = 0` between the
+// `filter00_buff` and `flags_500C` tests (its `li` lands before the `andis.`).
 
 #define BLUR_BUFF_SIZE 0x38000
 static const int zero = 0;
@@ -102,8 +95,11 @@ void Filter00Render()
         pG->flags_500C &= ~0x80000;
         return;
     }
-    if (filter00_buff && (pG->flags_500C & 0x80000)) {
-        col.r = col.g = col.b = 0;
+    if (filter00_buff) {
+        int zero = 0;
+
+        if (pG->flags_500C & 0x80000) {
+        col.r = col.g = col.b = zero;
         col.a = blur_rate;
         GXSetTevColor(1, col);
         GXInitTexObj(&tex, filter00_buff, SCR_W / 2, SCR_H / 2, 6, 0, 0, 0);
@@ -235,6 +231,7 @@ void Filter00Render()
             }
         }
     }
+    }
     if (filter00_buff == 0) {
 #line 349 "D:/Bio4/Prog/filter00.cpp"
         filter00_buff = MEM_ALLOC(BLUR_BUFF_SIZE, 1, 13);
@@ -353,3 +350,5 @@ void Filter00RenderContrast()
     GXPosition2u16(0, SCR_H);
     GXTexCoord2f32(0.0f, 1.0f);
 }
+
+asm(".section .sdata,\"aw\"\n\t.balign 32\n\t.text");

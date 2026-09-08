@@ -57,7 +57,7 @@ union FadeColor {
 #define DVD_READ_N(name, dst, a, b, c, mode) DvdReadN(name, dst, a, b, c, mode, __FILE__, __LINE__)
 
 // Message y: below the bottom line of the message window.
-#define MES_Y(m) (336 - (m)->fontH - (m)->lineSpace - 1)
+#define MES_Y(m) (336 - (m)->lineSpace - (m)->fontH - 1)
 
 #define ID_MERC 0x22
 #define ID_MERC_MES 0x2C
@@ -134,12 +134,12 @@ int MercSysInitStage()
 {
     MercSysWork* wk = &MercSysWk;
 
-    if (wk != NULL) {
-        memset(wk, 0, sizeof(MercSysWork));
-        return 1;
+    if (wk == NULL) {
+        pLog->err(0, 0, "St4ResultInitStage : pWk is NULL");
+        return 0;
     }
-    pLog->err(0, 0, "St4ResultInitStage : pWk is NULL");
-    return 0;
+    memset(wk, 0, sizeof(MercSysWork));
+    return 1;
 }
 
 int MercSysInitRoom(MercInit* pMInit)
@@ -220,7 +220,7 @@ int MercSysInitRoom(MercInit* pMInit)
     CamCtrl.Comeback(0);
     SceExec(0x12, (TaskFunc) MercSysMoveMain, (int) wk, 4, 2, 0);
     {
-        int strTbl[5] = {0x3F, 0x40, 0x41, 0x42, 0x3D};
+        const int strTbl[5] = {0x3F, 0x40, 0x41, 0x42, 0x3D};
 
         wk->strId = SndStrReq(0, strTbl[wk->mode], 0x80000003, 0, 0, 0.0f);
     }
@@ -281,7 +281,7 @@ int MercSysMoveStart(MercSysWork* wk)
             MotionClear(smd, 0);
             ObjMgr.destroy(smd);
             CamCtrl.clearAttachCamera();
-            CamCtrl.flags_2C &= ~0x10;
+            CamCtrl.flags_2C &= ~8;
             st[0] = 0;
             break;
         }
@@ -760,8 +760,8 @@ int MercSysSetPoint(int kind, int pt)
     }
     wk->bonusScore += add;
     wk->score += defaultScoreTbl[kind];
-    wk->kill++;
     wk->killCnt++;
+    wk->kill++;
     return 1;
 }
 
@@ -778,7 +778,7 @@ int MercSysSetAddTime(int sec)
     }
     wk->addTime += sec;
     wk->flags |= MF_ADD_TIME;
-    return 1;
+    // no return: the original falls off the end (r3 still holds `sec`)
 }
 
 int MercSysSetBonusTime(int frames)
@@ -839,10 +839,10 @@ void IdSetColInit(IDSystem* id, int no, u8 type)
     if (u == NULL) {
         pLog->err(0, 0, "IdSetColInit : pIdUnit is NULL");
     } else {
-        u->col[3] = 255.0f;
         u->col[0] = 255.0f;
         u->col[1] = 255.0f;
         u->col[2] = 255.0f;
+        u->col[3] = 255.0f;
         u->curve[2] = NULL;
     }
 }
@@ -878,8 +878,8 @@ void IdSetColStart(IDSystem* id, int no, int src, u8 type)
         u->col1[1] = s->col1[1];
         u->col1[2] = s->col1[2];
         u->col1[3] = s->col1[3];
-        u->timer[2] = 0;
         u->curve[2] = s->curve[2];
+        u->timer[2] = 0;
     }
 }
 
@@ -894,8 +894,8 @@ void IdSetNum(IDSystem* id, int no, u8 type, int val, int max, int digits, int m
     if (val > max) {
         val = max;
     }
-    for (i = 0; i < digits; i++) {
-        d[i] = val % 10;
+    for (int j = 0; j < digits; j++) {
+        d[j] = val % 10;
         val /= 10;
     }
     show = mode;

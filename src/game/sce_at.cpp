@@ -2438,7 +2438,6 @@ int InScreenCheck(Vec pos)
 {
     Vec scr;
     Vec p = pos;
-    f32 dummy = 1e10f;
 
     GetScreenPos(&p, &scr);
     if (Screen.width * 0.25f < scr.x && Screen.width * 0.75f > scr.x && Screen.height * 0.1f < scr.y &&
@@ -3081,17 +3080,17 @@ int SceAtCreateItemAt(Vec* pos, u16 id, int num, int effType, int saveNo, cModel
     w->x37 |= 1;
     w->pParent = parent;
     w->parentParts = parts;
-        w->flag = 7;
-    w->x39 = 1;
-    w->x44 = 8;
-    w->x38 = 8;
+    w->flag = 7;
     w->x35 = 3;
+    w->x39 = 1;
+    w->x38 = 8;
+    w->x44 = 8;
     w->x4A = 0x28;
-SceAtItemAutoArea(&w->area, pos, 0.0f);
+    SceAtItemAutoArea(&w->area, pos, 0.0f);
     w->item.num = num;
-    w->item.findFlagNo = 0;
     w->item.id = id;
     w->item.flagNo = 0;
+    w->item.findFlagNo = 0;
     switch (effType) {
     case -1:
     case 0:
@@ -3127,7 +3126,7 @@ SceAtItemAutoArea(&w->area, pos, 0.0f);
     return w->no;
 }
 
-void SceAtReserveItemAt(int key, Vec* pos, int id, int num, int effType, int saveNo)
+void SceAtReserveItemAt(int key, Vec* pos, u16 id, int num, int effType, int saveNo)
 {
     int i;
 
@@ -3154,19 +3153,19 @@ void SceAtReserveItemAt(int key, Vec* pos, int id, int num, int effType, int sav
     saveNo = sceAtPullItemSaveWork();
     SceAtSys.reserve[i].saveNo = saveNo;
     SceAtSys.reserve[i].key = key;
-    if (saveNo < 0) {
+    if (saveNo >= 0) {
+        SAVE_ITEM_ROOM(saveNo) = pG->room_id;
+        SAVE_ITEM_TYPE(saveNo) = 0;
+        SAVE_ITEM_ATNO(saveNo) = 0;
+        SAVE_ITEM_ID(saveNo) = id;
+        SAVE_ITEM_NUM(saveNo) = num;
+        SAVE_ITEM_EFF(saveNo) = effType;
+        SAVE_ITEM_POS(saveNo, 0) = (s16) (pos->x / 10.0f);
+        SAVE_ITEM_POS(saveNo, 1) = (s16) (pos->y / 10.0f);
+        SAVE_ITEM_POS(saveNo, 2) = (s16) (pos->z / 10.0f);
+    } else {
         pLog->err(0, 0, "SceAtReserveItemAt(): save work over");
-        return;
     }
-    saveItemTbl()[saveNo].room = pG->room_id;
-    saveItemTbl()[saveNo].type = 0;
-    saveItemTbl()[saveNo].atNo = 0;
-    saveItemTbl()[saveNo].id = id;
-    saveItemTbl()[saveNo].num = num;
-    saveItemTbl()[saveNo].effType = effType;
-    saveItemTbl()[saveNo].pos[0] = (s16) (pos->x / 10.0f);
-    saveItemTbl()[saveNo].pos[1] = (s16) (pos->y / 10.0f);
-    saveItemTbl()[saveNo].pos[2] = (s16) (pos->z / 10.0f);
 }
 
 void SceAtCancelItemAt(int key)
@@ -3176,8 +3175,7 @@ void SceAtCancelItemAt(int key)
     for (i = 0; i <= 15; i++) {
         if (SceAtSys.reserve[i].key == key) {
             memclr_asm(&pG->save_item[SceAtSys.reserve[i].saveNo], sizeof(SceAtSaveItem));
-            SceAtSys.reserve[i].saveNo = 0;
-            SceAtSys.reserve[i].key = 0;
+            SceAtSys.reserve[i].saveNo = SceAtSys.reserve[i].key = 0;
             break;
         }
     }
@@ -3212,7 +3210,7 @@ int sceAtCheckItemEffectCol(u16 id)
     }
 }
 
-int sceAtCheckSaveItem(int id)
+int sceAtCheckSaveItem(u16 id)
 {
     ItemInfo info;
 
@@ -3363,24 +3361,24 @@ void SceAtSetSaveItem()
     SceAtWork* w;
 
     for (i = 0; i <= 0xFF; i++) {
-        if (saveItemTbl()[i].room == 0) {
+        if (SAVE_ITEM_ROOM(i) == 0) {
             continue;
         }
-        if (saveItemTbl()[i].room != pG->room_id) {
+        if (SAVE_ITEM_ROOM(i) != pG->room_id) {
             continue;
         }
-        switch (saveItemTbl()[i].type) {
+        switch (SAVE_ITEM_TYPE(i)) {
         case 0:
-            pos.x = (f32) saveItemTbl()[i].pos[0] * 10.0f;
-            pos.y = (f32) saveItemTbl()[i].pos[1] * 10.0f;
-            pos.z = (f32) saveItemTbl()[i].pos[2] * 10.0f;
-            SceAtCreateItemAt(&pos, saveItemTbl()[i].id, saveItemTbl()[i].num, saveItemTbl()[i].effType, i, 0, -1);
+            pos.x = (f32) SAVE_ITEM_POS(i, 0) * 10.0f;
+            pos.y = (f32) SAVE_ITEM_POS(i, 1) * 10.0f;
+            pos.z = (f32) SAVE_ITEM_POS(i, 2) * 10.0f;
+            SceAtCreateItemAt(&pos, SAVE_ITEM_ID(i), SAVE_ITEM_NUM(i), SAVE_ITEM_EFF(i), i, 0, -1);
             break;
         case 1:
-            w = SceAtPtr(saveItemTbl()[i].atNo);
+            w = SceAtPtr(SAVE_ITEM_ATNO(i));
+            U16Set(w->item.id, SAVE_ITEM_ID(i));
+            w->item.num = SAVE_ITEM_NUM(i);
             w->item.flag2 |= 8;
-            w->item.id = saveItemTbl()[i].id;
-            w->item.num = saveItemTbl()[i].num;
             w->item.saveNo = i;
             break;
         }
@@ -3409,7 +3407,7 @@ int SceAtCheckSaveItemId(int id)
     int i;
 
     for (i = 0; i < 256; i++) {
-        if (saveItemTbl()[i].room != 0 && saveItemTbl()[i].id == id) {
+        if (SAVE_ITEM_ROOM(i) != 0 && SAVE_ITEM_ID(i) == id) {
             return 1;
         }
     }

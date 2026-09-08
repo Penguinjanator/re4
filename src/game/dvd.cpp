@@ -1496,8 +1496,8 @@ int cDvd::ErrCheck(int disc, int flag)
     int cont = 1;
     int discNo = GetDiscNo();
     int shown = 0;
-    SndPlayWork* pStr = Snd.str_work;
     u8** pMes = MesData.ptr;
+    SndPlayWork* pStr = Snd.str_work;
     int paused = 0;
     int msg;
     int stat;

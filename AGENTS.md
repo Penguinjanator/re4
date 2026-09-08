@@ -521,6 +521,11 @@ mark it Matching.
   local does not work.
 - `u32 trg = Key.trg & MASK` (u64 truncated) tests as 32-bit `andis.`; a `u64 key` exclusive check
   gives the `li 0; mr; rlwinm; or.` word-pair test.
+- `mr rLong,rTmp; stb rTmp` (value stored and copied into a long-lived variable) = a reused block
+  temp (`u8 c; c = sr[ptn]; mat.r = c; r = c; c = sg[ptn]; ...`); multi-set `c` blocks coalescing.
+- An uninitialised `GXColor amb;` passed by value emits `stw rCalleeSaved, slot` (garbage register).
+- Argument-move order workaround is per call site: a call may need the floats-first asm-labelled
+  redeclaration while another call of the same function in the unit matches with the real one.
 - Static locals show as `name.NNN` in objdiff; the DECL_UID suffix cannot be reproduced and is ignored by the report.
 - Unexplained words in `.rodata` (zero words, stray floats) are usually the constant pool of a function
   the original linker dead-stripped (bodies gone, pools kept, `STRIP_UNUSED` in objects.py): write a

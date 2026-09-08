@@ -100,13 +100,17 @@ ReadModule PlReadModule __attribute__((aligned(32)));
 ReadModule WepReadModule __attribute__((aligned(32)));
 
 #define HALT()                                                    \
-    do {                                                          \
+    {                                                             \
         OSReport("HALT %s(%d)\n", __FILE__, __LINE__);            \
         *(volatile u32*) 0x11111111 = 0;                          \
-    } while (0)
+    }
 
 #define DVD_READ(no, dst, a, b, c, mode) DvdRead(no, dst, a, b, c, mode, __FILE__, __LINE__)
 #define DVD_READ_N(name, dst, a, b, c, mode) DvdReadN(name, dst, a, b, c, mode, __FILE__, __LINE__)
+
+// Clears a module flag bit through the module pointer: the mask stays a 32-bit `rlwinm` (like
+// BitOff16) while the load/store count as references of `m` (readEmData's r29/r28 allocation).
+static inline void ModuleFlagOff(ReadModule* m, u16 b) { m->flag &= ~b; }
 
 #define READ_BUFF_OFS 0x142800
 #define ROOM_ARC_SIZE 0x300000
@@ -436,7 +440,7 @@ int readEmData(ReadModule* m, int id, void* addr, u32 size)
             newSize = len;
         }
     } else {
-        BitOff16(m->flag, 4);
+        ModuleFlagOff(m, 4);
         pArc = addr;
         newSize = len;
     }
@@ -452,7 +456,7 @@ int readEmData(ReadModule* m, int id, void* addr, u32 size)
             m->flag |= 1;
         } else {
             newSize = dataSize;
-            BitOff16(m->flag, 1);
+            ModuleFlagOff(m, 1);
         }
     }
     m->id = id;

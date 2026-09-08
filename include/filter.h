@@ -59,8 +59,8 @@ void Filter00SetAddSpread(u32 pri, int on, u8 r, u8 g, u8 b, u8 rate, u8 type, u
 // filter03.cpp
 void Filter03SetParam(int level, u8 r, u8 g, u8 b, u8 pri, int flag);
 // filter06.cpp
-void Filter06SetParam(u32 level, int r, int g, int b, int a, Vec* spd, Vec* spdRand, int alphaMin, f32 rate, f32 alpha,
-                      f32 scale);
+void Filter06SetParam(u32 level, int r, int g, int b, int a, f32 rate, Vec* spd, f32 alpha, Vec* spdRand, f32 scale,
+                      int alphaMin);
 }
 
 #endif

@@ -13,6 +13,10 @@
 
 // Dust / snow particle filter: `num` line particles drift with a speed around the camera and
 // are wrapped back into a box (LR half width x34, up half height x38, depth x3C) around it.
+//
+// OPEN (cParticle06::move, 4 bytes): after `alpha = v` the original re-reads `alpha` for the
+// second product as `clrlwi rX, rStore, 24`; ours folds the mask away because combine knows the
+// first product (u8 * u8) >> 8 fits in 8 bits. Same phenomenon as roomdata linkRelData.
 
 class cParticle06 {
 public:
@@ -122,7 +126,7 @@ void cParticle06::move()
     }
     v = (alphaBase * (u8) a) >> 8;
     alpha = v;
-    v = (alpha * flt06.cur[3]) >> 8;
+    v = ((u32) alpha * flt06.cur[3]) >> 8;
     alpha = v;
     if (alpha < flt06.alphaMin) {
         alpha = flt06.alphaMin;
@@ -192,8 +196,8 @@ void Filter06Trans()
     }
 }
 
-void Filter06SetParam(u32 level, int r, int g, int b, int a, Vec* spd, Vec* spdRand, int alphaMin, f32 rate,
-                      f32 alpha, f32 scale)
+void Filter06SetParam(u32 level, int r, int g, int b, int a, f32 rate, Vec* spd, f32 alpha, Vec* spdRand, f32 scale,
+                      int alphaMin)
 {
     u32 i;
 

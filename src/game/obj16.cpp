@@ -674,8 +674,6 @@ void obj16_R1_Critical(cObj16* obj)
     Vec head;
     Vec tgt;
     f32 d;
-    f32 d2;
-    void* mot;
 
     w->atkHit = 0;
     atk = 0;
@@ -702,29 +700,30 @@ void obj16_R1_Critical(cObj16* obj)
         head.y = obj->mat[1][3];
         head.z = obj->mat[2][3];
         tgt = pPL->getPartsPtr(3)->worldPos;
-        if (pSUB && w->body) {
-            d = SQRTF((w->body->pos.x - pPL->pos.x) * (w->body->pos.x - pPL->pos.x) +
-                      (w->body->pos.y - pPL->pos.y) * (w->body->pos.y - pPL->pos.y) +
-                      (w->body->pos.z - pPL->pos.z) * (w->body->pos.z - pPL->pos.z));
-            if (d > SQRTF((w->body->pos.x - pSUB->pos.x) * (w->body->pos.x - pSUB->pos.x) +
-                          (w->body->pos.y - pSUB->pos.y) * (w->body->pos.y - pSUB->pos.y) +
-                          (w->body->pos.z - pSUB->pos.z) * (w->body->pos.z - pSUB->pos.z)) +
-                        3000.0f) {
-                tgt = pSUB->getPartsPtr(3)->worldPos;
+        if (pSUB) {
+            if (w->body) {
+                d = SQRTF((w->body->pos.x - pPL->pos.x) * (w->body->pos.x - pPL->pos.x) + (w->body->pos.y - pPL->pos.y) * (w->body->pos.y - pPL->pos.y) + (w->body->pos.z - pPL->pos.z) * (w->body->pos.z - pPL->pos.z));
+                if (d > SQRTF((w->body->pos.x - pSUB->pos.x) * (w->body->pos.x - pSUB->pos.x) + (w->body->pos.y - pSUB->pos.y) * (w->body->pos.y - pSUB->pos.y) + (w->body->pos.z - pSUB->pos.z) * (w->body->pos.z - pSUB->pos.z)) + 3000.0f) {
+                    tgt = pSUB->getPartsPtr(3)->worldPos;
+                }
             }
         }
-        // BF_BEGIN
         if (head.y - tgt.y > 500.0f) {
             MotionSetCore(obj, &obj->pMotion, w->mot[6], 0, 0, 0, 0);
-        } else if ((d2 = (head.x - tgt.x) * (head.x - tgt.x) + (head.z - tgt.z) * (head.z - tgt.z)) < 1440000.0f) {
-            MotionSetCore(obj, &obj->pMotion, w->mot[3], 0, 0, 0, 0);
-        } else if (d2 < 3240000.0f) {
-            MotionSetCore(obj, &obj->pMotion, w->mot[4], 0, 0, 0, 0);
-        } else {
-            MotionSetCore(obj, &obj->pMotion, w->mot[5], 0, 0, 0, 0);
-        }
-        // BF_END
         w->timer = 14;
+        } else {
+            f32 d2 = (head.x - tgt.x) * (head.x - tgt.x) + (head.z - tgt.z) * (head.z - tgt.z);
+            if (d2 < 1440000.0f) {
+                MotionSetCore(obj, &obj->pMotion, w->mot[3], 0, 0, 0, 0);
+        w->timer = 14;
+            } else if (d2 < 3240000.0f) {
+                MotionSetCore(obj, &obj->pMotion, w->mot[4], 0, 0, 0, 0);
+        w->timer = 14;
+            } else {
+                MotionSetCore(obj, &obj->pMotion, w->mot[5], 0, 0, 0, 0);
+        w->timer = 14;
+            }
+        }
         if (obj->type == 3) {
             EstSet((int) obj, -1, 0, 0, 0x10, 0x5D, 0, 0, (u32) obj, 0);
             SndCall(8, 0xA, &w->target->pos, w->target->id, 0, 0);
@@ -997,6 +996,7 @@ int obj16AtkCk(cObj16* obj, u32 kind, int partsNo)
     EmAtkInfo info;
     Vec pos;
     int hit;
+    f32 ang;
 
     if (body == 0) {
         return 0;
@@ -1030,6 +1030,46 @@ int obj16AtkCk(cObj16* obj, u32 kind, int partsNo)
     hit = EmAtkHitCk(&info, pp, pp, 0);
     if (hit & 1) {
         switch (kind) {
+        default:
+        case 0:
+            if (obj->type == 2) {
+                EmPlBloodSet2(obj, pp, 1, 0x10, 0x6D);
+            }
+            Ctrl12Set(w->ctrl12, 9, 0x1E);
+            if (obj->type == 2 && w->target) {
+                SndCall(8, 0x3E, &w->target->pos, w->target->id, 0, 0);
+            }
+            if (obj->type == 0xB && w->target) {
+                SndCall(8, 0x12, &w->target->pos, w->target->id, 0, 0);
+            }
+            VibSetData((VibDataTbl*) (pG->pArc->ofs_1C + (u32) pG->pArc), 7, 1);
+            QuakeExec(0, 0, 5, 22.0f, 2);
+            if (w->plMot && (s16) pG->pl_life > 0 && w->body) {
+                if (obj->type == 2) {
+                    EstSet((int) pPL, -1, 0, 0, 0x10, 0x74, 0, 0, (u32) pPL, 0);
+                }
+                if (obj->type == 0xB) {
+                    EstSet((int) pPL, -1, 0, 0, 0x31, 9, 0, 0, (u32) pPL, 0);
+                }
+                SetPlDamage((int) obj, plemDmMStar);
+                if (fabsf(Muku(&pPL->pos, &w->body->pos, pPL->rot.y, PI)) < PI / 2) {
+                    ang = Muku(&pPL->pos, &w->body->pos, pPL->rot.y, PI);
+                    FSet(pPL->rot.y, pPL->rot.y + ang);
+                    pPL->xFF = 0;
+                } else {
+                    ang = Muku(&w->body->pos, &pPL->pos, pPL->rot.y, PI);
+                    FSet(pPL->rot.y, pPL->rot.y + ang);
+                    pPL->xFF = 1;
+                }
+            } else {
+                if (obj->type == 2) {
+                    EstSet((int) obj, -1, 0, 0, 0x10, 0x73, 0, 0, (u32) obj, 0);
+                }
+                if (obj->type == 0xB) {
+                    EstSet((int) obj, -1, 0, 0, 0x31, 8, 0, 0, (u32) obj, 0);
+                }
+            }
+            break;
         case 1:
             if (obj->type == 2) {
                 EmPlBloodSet2(obj, pp, 1, 0x10, 0x6E);
@@ -1073,54 +1113,16 @@ int obj16AtkCk(cObj16* obj, u32 kind, int partsNo)
             VibSetData((VibDataTbl*) (pG->pArc->ofs_1C + (u32) pG->pArc), 7, 1);
             QuakeExec(0, 0, 5, 22.0f, 2);
             break;
-        case 0:
-        default:
-            if (obj->type == 2) {
-                EmPlBloodSet2(obj, pp, 1, 0x10, 0x6D);
-            }
-            Ctrl12Set(w->ctrl12, 9, 0x1E);
-            if (obj->type == 2 && w->target) {
-                SndCall(8, 0x3E, &w->target->pos, w->target->id, 0, 0);
-            }
-            if (obj->type == 0xB && w->target) {
-                SndCall(8, 0x12, &w->target->pos, w->target->id, 0, 0);
-            }
-            VibSetData((VibDataTbl*) (pG->pArc->ofs_1C + (u32) pG->pArc), 7, 1);
-            QuakeExec(0, 0, 5, 22.0f, 2);
-            if (w->plMot && (s16) pG->pl_life > 0 && w->body) {
-                if (obj->type == 2) {
-                    EstSet((int) pPL, -1, 0, 0, 0x10, 0x74, 0, 0, (u32) pPL, 0);
-                }
-                if (obj->type == 0xB) {
-                    EstSet((int) pPL, -1, 0, 0, 0x31, 9, 0, 0, (u32) pPL, 0);
-                }
-                SetPlDamage((int) obj, plemDmMStar);
-                if (fabsf(Muku(&pPL->pos, &w->body->pos, pPL->rot.y, PI)) < PI / 2) {
-                    pPL->rot.y += Muku(&pPL->pos, &w->body->pos, pPL->rot.y, PI);
-                    pPL->xFF = 0;
-                } else {
-                    pPL->rot.y += Muku(&w->body->pos, &pPL->pos, pPL->rot.y, PI);
-                    pPL->xFF = 1;
-                }
-            } else {
-                if (obj->type == 2) {
-                    EstSet((int) obj, -1, 0, 0, 0x10, 0x73, 0, 0, (u32) obj, 0);
-                }
-                if (obj->type == 0xB) {
-                    EstSet((int) obj, -1, 0, 0, 0x31, 8, 0, 0, (u32) obj, 0);
-                }
-            }
-            break;
         }
         w->atkHit = 1;
     }
     if (hit & 2) {
-        if (kind == 3) {
+        if (kind != 3) {
+            Ctrl12Set(w->ctrl12, 9, 0x1E);
+        } else {
             if (pSUB->id & 3) {
                 LifeDownSet(pSUB, 9999, 0);
             }
-        } else {
-            Ctrl12Set(w->ctrl12, 9, 0x1E);
         }
     }
     return 1;
@@ -1207,15 +1209,15 @@ static void obj16NeckMove(cObj16* obj)
     case 0xE:
         ang = w->neckAng * 0.5f;
         p = (Obj16Parts*) obj->getPartsPtr(1);
-        p->rot.y = ang;
-        p->rot.z = 0.0f;
         p->rot.x = 0.0f;
+        p->rot.y = ang;
         p->flags |= 0x40000000;
+        p->rot.z = 0.0f;
         p = (Obj16Parts*) obj->getPartsPtr(2);
-        p->rot.y = ang;
-        p->rot.z = 0.0f;
         p->rot.x = 0.0f;
+        p->rot.y = ang;
         p->flags |= 0x40000000;
+        p->rot.z = 0.0f;
         if (w->body) {
             cModel* bp = w->body->getPartsPtr(w->partsNo);
             dir.x = 0.0f;
@@ -1230,9 +1232,9 @@ static void obj16NeckMove(cObj16* obj)
             ang = asinf(dir.y);
             p = (Obj16Parts*) obj->getPartsPtr(0);
             p->rot.x = ang;
-            p->rot.z = 0.0f;
             p->rot.y = 0.0f;
             p->flags |= 0x40000000;
+            p->rot.z = 0.0f;
         }
         break;
     case 3:
@@ -1240,15 +1242,15 @@ static void obj16NeckMove(cObj16* obj)
     case 0xD:
         ang = w->neckAng * 0.5f;
         p = (Obj16Parts*) obj->getPartsPtr(1);
-        p->rot.y = ang;
-        p->rot.z = 0.0f;
         p->rot.x = 0.0f;
+        p->rot.y = ang;
         p->flags |= 0x40000000;
+        p->rot.z = 0.0f;
         p = (Obj16Parts*) obj->getPartsPtr(2);
-        p->rot.y = ang;
-        p->rot.z = 0.0f;
         p->rot.x = 0.0f;
+        p->rot.y = ang;
         p->flags |= 0x40000000;
+        p->rot.z = 0.0f;
         break;
     }
 }
