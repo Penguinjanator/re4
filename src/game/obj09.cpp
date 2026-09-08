@@ -222,8 +222,6 @@ static void Obj09HitCheck(cObj* obj)
     f32 mag1;
     f32 mag2;
     f32 dot;
-    f32 a;
-    f32 b;
     int i;
 
     if (obj->id != 9) {
@@ -253,10 +251,8 @@ static void Obj09HitCheck(cObj* obj)
         if (p.x > -w2->size.x * 0.5f && p.x < w2->size.x * 0.5f && p.y > -w2->size.y * 0.5f &&
             p.y < w2->size.y * 0.5f && p.z > -w2->size.z * 0.5f && p.z < w2->size.z * 0.5f) {
             depth = 1.0e16f;
-            a = p.x + w2->size.x;
-            b = n.x + w2->size.x;
-            if (a * b < 0.0f) {
-                d = fabsf(a);
+            if ((p.x + w2->size.x) * (n.x + w2->size.x) < 0.0f) {
+                d = fabsf(p.x + w2->size.x);
                 if (d < depth) {
                     depth = d;
                     nrm.x = -1.0f;
@@ -264,10 +260,8 @@ static void Obj09HitCheck(cObj* obj)
                     nrm.z = 0.0f;
                 }
             }
-            a = p.x - w2->size.x;
-            b = n.x - w2->size.x;
-            if (a * b < 0.0f) {
-                d = fabsf(a);
+            if ((p.x - w2->size.x) * (n.x - w2->size.x) < 0.0f) {
+                d = fabsf(p.x - w2->size.x);
                 if (d < depth) {
                     depth = d;
                     nrm.x = 1.0f;
@@ -275,10 +269,8 @@ static void Obj09HitCheck(cObj* obj)
                     nrm.z = 0.0f;
                 }
             }
-            a = p.y + w2->size.y;
-            b = n.y + w2->size.y;
-            if (a * b < 0.0f) {
-                d = fabsf(a);
+            if ((p.y + w2->size.y) * (n.y + w2->size.y) < 0.0f) {
+                d = fabsf(p.y + w2->size.y);
                 if (d < depth) {
                     depth = d;
                     nrm.x = 0.0f;
@@ -286,10 +278,8 @@ static void Obj09HitCheck(cObj* obj)
                     nrm.z = 0.0f;
                 }
             }
-            a = p.y - w2->size.y;
-            b = n.y - w2->size.y;
-            if (a * b < 0.0f) {
-                d = fabsf(a);
+            if ((p.y - w2->size.y) * (n.y - w2->size.y) < 0.0f) {
+                d = fabsf(p.y - w2->size.y);
                 if (d < depth) {
                     depth = d;
                     nrm.x = 0.0f;
@@ -297,10 +287,8 @@ static void Obj09HitCheck(cObj* obj)
                     nrm.z = 0.0f;
                 }
             }
-            a = p.z + w2->size.z;
-            b = n.z + w2->size.z;
-            if (a * b < 0.0f) {
-                d = fabsf(a);
+            if ((p.z + w2->size.z) * (n.z + w2->size.z) < 0.0f) {
+                d = fabsf(p.z + w2->size.z);
                 if (d < depth) {
                     depth = d;
                     nrm.x = 0.0f;
@@ -308,10 +296,8 @@ static void Obj09HitCheck(cObj* obj)
                     nrm.z = -1.0f;
                 }
             }
-            a = p.z - w2->size.z;
-            b = n.z - w2->size.z;
-            if (a * b < 0.0f) {
-                d = fabsf(a);
+            if ((p.z - w2->size.z) * (n.z - w2->size.z) < 0.0f) {
+                d = fabsf(p.z - w2->size.z);
                 if (d < depth) {
                     depth = d;
                     nrm.x = 0.0f;

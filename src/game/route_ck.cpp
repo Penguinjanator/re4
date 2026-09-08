@@ -105,7 +105,7 @@ int RouteCkToEm(cEm* em, cEm* target, Vec* out, int flag)
         }
     }
     em->rckPoint = em->rckNear = getNearInfo(em, 0, mask);
-    target->rckNear = em->rckNext = getNearInfo(target, 0, mask);
+    em->rckNext = target->rckNear = getNearInfo(target, 0, mask);
     p = em->rckPoint;
     if (p == -1) {
         *out = target->pos;
@@ -137,8 +137,8 @@ int RouteCkToEm(cEm* em, cEm* target, Vec* out, int flag)
     mask |= 0x80;
     p = em->rckPoint;
     pts = rtpPoint(rtpData());
-    pt = &pts[p];
-    d2 = (em->pos.z - pt->pos.z) * (em->pos.z - pt->pos.z) + (em->pos.x - pt->pos.x) * (em->pos.x - pt->pos.x);
+    pt = (RtpPoint*)(p * sizeof(RtpPoint) + (u32)pts);
+    d2 = (em->pos.x - pt->pos.x) * (em->pos.x - pt->pos.x) + (em->pos.z - pt->pos.z) * (em->pos.z - pt->pos.z);
     if (d2 < 62500.0f || (next != p && rckLineHitCheck(&a, &pts[next].pos, mask, flag) == 0)) {
         em->rckPoint = next;
     }
@@ -152,7 +152,6 @@ void RouteCkEscEm(cEm* em, cEm* from, Vec* out)
     RtpPoint* pt;
     RtpPoint* np;
     int mask;
-    s8 n;
     u32 i;
     f32 ang;
     f32 best;
@@ -161,13 +160,12 @@ void RouteCkEscEm(cEm* em, cEm* from, Vec* out)
     mask = em->atari.flags;
     PSVECSubtract(&em->pos, &from->pos, out);
     PSVECAdd(out, &em->pos, out);
-    n = getNearInfo(em, 0, mask);
-    em->rckNear = n;
-    if (n == -1) {
+    em->rckNear = getNearInfo(em, 0, mask);
+    if (em->rckNear == -1) {
         return;
     }
     rtp = rtpData();
-    pt = &rtpPoint(rtp)[n];
+    pt = &rtpPoint(rtp)[em->rckNear];
     *out = pt->pos;
     if (pt->nLink == 0) {
         return;
@@ -177,13 +175,15 @@ void RouteCkEscEm(cEm* em, cEm* from, Vec* out)
     for (i = 0; i < pt->nLink; i++) {
         rtp = rtpData();
         np = &rtpPoint(rtp)[rtpLink(rtp)[pt->linkOfs + i].point];
-        m = Muku(&em->pos, &np->pos, ang, PI);
-        if (fabsf(m) >= best) {
-            if (fabsf(np->pos.y - em->pos.y) <= 1000.0f) {
-                best = fabsf(m);
-                *out = np->pos;
-            }
+        m = fabsf(Muku(&em->pos, &np->pos, ang, PI));
+        if (m < best) {
+            continue;
         }
+        if (fabsf(np->pos.y - em->pos.y) > 1000.0f) {
+            continue;
+        }
+        best = m;
+        *out = np->pos;
     }
 }
 
@@ -222,7 +222,12 @@ int RouteCkToPos(cEm* em, Vec* target, Vec* out, int flag, f32* dist)
         if (rckLineHitCheck(&a, &b, mask, flag) == 0) {
             PosToPos(&a, &b, &c, 0.5f);
             if (SatMgr.getFloor(&c, 600.0f, 100000.0f, NULL, 0) > c.y - 2000.0f) {
-                goto direct;
+                *out = *target;
+                if (dist != NULL) {
+                    *dist = a.y - b.y;
+                    *dist = fabsf(*dist);
+                }
+                return 1;
             }
         }
     }
@@ -230,60 +235,70 @@ int RouteCkToPos(cEm* em, Vec* target, Vec* out, int flag, f32* dist)
     em->rckNext = getNearPoint(&b, 0, mask);
     p = em->rckPoint;
     if (p == -1) {
-        goto direct;
+        *out = *target;
+        if (dist != NULL) {
+            *dist = a.y - b.y;
+            *dist = fabsf(*dist);
+        }
+        return 1;
     }
     t = em->rckNext;
     if (t == -1) {
-        goto direct;
+        *out = *target;
+        if (dist != NULL) {
+            *dist = a.y - b.y;
+            *dist = fabsf(*dist);
+        }
+        return 1;
     }
     tbl = rtpNextTbl();
     next = rtpNext(tbl, p, t);
     if (next == -1) {
-        goto direct;
+        *out = *target;
+        if (dist != NULL) {
+            *dist = a.y - b.y;
+            *dist = fabsf(*dist);
+        }
+        return 1;
     }
     if ((flag & 1) && next == t) {
         if (fabsf(a.y - b.y) < 2000.0f) {
-            if (pG->pRoomRtp == NULL) {
-                goto direct;
-            }
-            if (rckLineHitCheck(&a, &b, mask, flag) == 0) {
-                goto direct;
+            if (pG->pRoomRtp == NULL || rckLineHitCheck(&a, &b, mask, flag) == 0) {
+                *out = *target;
+                if (dist != NULL) {
+                    *dist = a.y - b.y;
+                    *dist = fabsf(*dist);
+                }
+                return 1;
             }
         }
     }
     mask |= 0x80;
     p = em->rckPoint;
     pts = rtpPoint(rtpData());
-    pt = &pts[p];
-    d2 = (em->pos.z - pt->pos.z) * (em->pos.z - pt->pos.z) + (em->pos.x - pt->pos.x) * (em->pos.x - pt->pos.x);
+    pt = (RtpPoint*)(p * sizeof(RtpPoint) + (u32)pts);
+    d2 = (em->pos.x - pt->pos.x) * (em->pos.x - pt->pos.x) + (em->pos.z - pt->pos.z) * (em->pos.z - pt->pos.z);
     if (d2 < 62500.0f || (next != p && rckLineHitCheck(&a, &pts[next].pos, mask, flag) == 0)) {
         em->rckPoint = next;
     }
     *out = rtpPoint(rtpData())[em->rckPoint].pos;
     if (dist != NULL) {
+        int n;
         dmax = fabsf(a.y - b.y);
-        next = rtpNext(tbl, em->rckPoint, em->rckNext);
-        while (next != -1) {
-            f32 d = fabsf(a.y - rtpPoint(rtpData())[next].pos.y);
+        n = rtpNext(tbl, em->rckPoint, em->rckNext);
+        while (n != -1) {
+            f32 d = fabsf(a.y - rtpPoint(rtpData())[n].pos.y);
             if (d > dmax) {
                 dmax = d;
             }
-            if (next == em->rckNext) {
+            if (n == em->rckNext) {
                 break;
             }
-            next = rtpNext(tbl, next, em->rckNext);
+            n = rtpNext(tbl, n, em->rckNext);
         }
         *dist = dmax;
     }
     return 0;
-
-direct:
-    *out = *target;
-    if (dist != NULL) {
-        *dist = a.y - b.y;
-        *dist = fabsf(*dist);
-    }
-    return 1;
 }
 
 int RouteCkPosToPos(Vec* from, Vec* to, Vec* out)
@@ -300,8 +315,8 @@ int RouteCkPosToPos(Vec* from, Vec* to, Vec* out)
     f32 d2;
 
     a = *from;
-    a.y += 500.0f;
     b = *to;
+    a.y += 500.0f;
     b.y += 500.0f;
     if (pG->pRoomRtp == NULL) {
         *out = *to;
@@ -331,17 +346,17 @@ int RouteCkPosToPos(Vec* from, Vec* to, Vec* out)
     }
     rtp = rtpData();
     pts = rtpPoint(rtp);
-    pt = &pts[p];
-    d2 = (a.z - pt->pos.z) * (a.z - pt->pos.z) + (a.x - pt->pos.x) * (a.x - pt->pos.x);
+    pt = (RtpPoint*)(p * sizeof(RtpPoint) + (u32)pts);
+    d2 = (a.x - pt->pos.x) * (a.x - pt->pos.x) + (a.z - pt->pos.z) * (a.z - pt->pos.z);
     if (d2 < 62500.0f) {
-        *out = pts[next].pos;
+        *out = ((RtpPoint*)(next * sizeof(RtpPoint) + (u32)pts))->pos;
         return 0;
     }
-    if (rckLineHitCheck(&a, &pts[next].pos, 0, 0) != 0) {
-        *out = rtpPoint(rtpData())[p].pos;
-    } else {
+    if (rckLineHitCheck(&a, &pts[next].pos, 0, 0) == 0) {
         *out = rtpPoint(rtpData())[next].pos;
+        return 0;
     }
+    *out = rtpPoint(rtpData())[p].pos;
     return 0;
 }
 
@@ -373,8 +388,8 @@ f32 RouteCkPosToPosDis(Vec* from, Vec* to)
     int t;
 
     a = *from;
-    a.y += 500.0f;
     b = *to;
+    a.y += 500.0f;
     b.y += 500.0f;
     if (pG->pRoomRtp != NULL) {
         if (rckLineHitCheck(from, to, 0, 0) == 0) {
@@ -394,7 +409,7 @@ f32 RouteCkPosToPosDis(Vec* from, Vec* to)
         return RouteCkGetDist(p, t);
     }
 direct:
-    return SQRTF((from->z - to->z) * (from->z - to->z) + (from->x - to->x) * (from->x - to->x));
+    return SQRTF((from->x - to->x) * (from->x - to->x) + (from->z - to->z) * (from->z - to->z));
 }
 
 void RouteCkGetPoint(int no, Vec* out)
@@ -405,7 +420,7 @@ void RouteCkGetPoint(int no, Vec* out)
     if (rtp != NULL) {
         p = rtpPoint(rtp)[no].pos;
     } else {
-        memset(&p, 0, sizeof(Vec));
+        p = Vec();
     }
     *out = p;
 }
@@ -414,10 +429,7 @@ int RouteCkGetPointNumber()
 {
     RtpData* rtp = rtpData();
 
-    if (rtp == NULL) {
-        return -1;
-    }
-    return rtp->nPoint;
+    return rtp != NULL ? rtp->nPoint : -1;
 }
 
 f32 RouteCkGetDist(int a, int b)
@@ -504,6 +516,7 @@ s8 getNearPoint(Vec* pos, int a, int mask)
     Vec p2;
     RtpData* rtp;
     RtpPoint* pt;
+    int* ip;
     int n;
     int m;
     int i;
@@ -524,11 +537,11 @@ s8 getNearPoint(Vec* pos, int a, int mask)
         m = 10;
     }
     for (i = 0; i < m; i++) {
-        dist[i] = 4.0e15f;
+        dist[i] = 1.0e16f;
     }
     pt = rtpPoint(rtpData());
     for (i = 0; i < n; i++) {
-        d = (pos->y - pt->pos.y) * (pos->y - pt->pos.y) + (pos->x - pt->pos.x) * (pos->x - pt->pos.x) +
+        d = (pos->x - pt->pos.x) * (pos->x - pt->pos.x) + (pos->y - pt->pos.y) * (pos->y - pt->pos.y) +
             (pos->z - pt->pos.z) * (pos->z - pt->pos.z);
         for (j = m; j > 0; j--) {
             if (d > dist[j - 1]) {
@@ -548,12 +561,12 @@ s8 getNearPoint(Vec* pos, int a, int mask)
     if (a != 0) {
         return idx[0];
     }
+    pt = rtpPoint(rtpData());
     p2 = *pos;
     p2.y += 500.0f;
-    pt = rtpPoint(rtpData());
-    for (i = 0; i < m; i++) {
-        if (rckLineHitCheck(&p2, &pt[idx[i]].pos, mask, 0) == 0) {
-            return idx[i];
+    for (i = 0, ip = idx; i < m; i++, ip++) {
+        if (rckLineHitCheck(&p2, &pt[*ip].pos, mask, 0) == 0) {
+            return *ip;
         }
     }
     return -1;

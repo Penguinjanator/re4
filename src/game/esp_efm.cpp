@@ -18,13 +18,13 @@ u8 GetEfmMoveId(u32 no);
 void EfmDeleteSub(cObj* obj);
 void EfmDeleteEventSub(cObj* obj);
 cObj* EfmSetObj04(cObj* obj, EspGenWork* gen, EfmCore* info, u32* seed, cModel* parent, Mtx m, int x, f32 rate, Vec* ofs);
-cObj* EfmSetObj05(cObj* obj, EspGenWork* gen, EfmCore* info, u32* seed, cModel* parent, Mtx m, int x, f32 rate, Vec* ofs);
-cObj* EfmSetObj09(cObj* obj, EspGenWork* gen, EfmCore* info, u32* seed, cModel* parent, Mtx m, int x, f32 rate, Vec* ofs);
+cObj* EfmSetObj05(cObj* obj, EspGenWork* gen, EfmCore* info, u32* seed, cModel* parent, Mtx m, int x, f32 rate);
+cObj* EfmSetObj09(cObj* obj, EspGenWork* gen, EfmCore* info, u32* seed, cModel* parent, Mtx m, int x, f32 rate);
 void setModTexRender(cObj* obj, int no);
 cObj* SetEffModel(void* bin, void* tpl, Vec* pos, Vec* rot);   // embox.cpp declares it `void` locally
 }
 
-#define DEG2RAD (3.1415927f / 180.0f)
+#define DEG2RAD (3.14f / 180.0f)
 
 // Read a tuning static through a reference: the load is a MEM with neither the struct nor the
 // scalar flag, so it is not hoisted above the preceding member stores and keeps the store it
@@ -160,7 +160,6 @@ cObj* EfmSeqSet(EspGenWork* gen, EfmCore* info, u32* seed, cModel* parent, Mtx m
     void* model;
     void* tpl;
     u32 moveId;
-    int light;
 
     if (!(info->flg & 0x1000) && gen->x6 != 0) {
         parent = SmdGetObjPtr(gen->x6 - 1);
@@ -206,7 +205,8 @@ cObj* EfmSeqSet(EspGenWork* gen, EfmCore* info, u32* seed, cModel* parent, Mtx m
     }
     switch (moveId) {
     case 0:
-    case 3:
+    case 3: {
+        int light;
         obj = ObjMgr.createBack(4);
         if (obj == 0) {
             break;
@@ -225,10 +225,11 @@ cObj* EfmSeqSet(EspGenWork* gen, EfmCore* info, u32* seed, cModel* parent, Mtx m
             light = 8;
         }
         if (moveId == 3) {
-            size.x = obj->pInfo->bound.size.x;
-            size.y = obj->pInfo->bound.size.y;
-            size.z = obj->pInfo->bound.size.z;
-            PSVECSubtract(&obj->pInfo->bound.center, &obj->pParts->pos, &center);
+            ModelBound* bound = &obj->pInfo->bound;
+            size.x = bound->size.x;
+            size.y = bound->size.y;
+            size.z = bound->size.z;
+            PSVECSubtract(&bound->center, &obj->pParts->pos, &center);
             obj->lightInfo.init2(2, 1, &center, &size, light);
             obj->x103 = 0x80;
         } else {
@@ -240,7 +241,9 @@ cObj* EfmSeqSet(EspGenWork* gen, EfmCore* info, u32* seed, cModel* parent, Mtx m
             obj->setNoSuspend(1);
         }
         break;
-    case 1:
+    }
+    case 1: {
+        int light;
         obj = ObjMgr.createBack(5);
         if (obj == 0) {
             break;
@@ -260,11 +263,12 @@ cObj* EfmSeqSet(EspGenWork* gen, EfmCore* info, u32* seed, cModel* parent, Mtx m
         }
         obj->lightInfo.init2(0, 1, &efm_light_pos, &efm_light_size, light);
         obj->id = GetEfmMoveId(1);
-        obj = EfmSetObj05(obj, gen, info, seed, parent, m, x, rate, ofs);
+        obj = EfmSetObj05(obj, gen, info, seed, parent, m, x, rate);
         if (obj && (info->flg & 1)) {
             obj->setNoSuspend(1);
         }
         break;
+    }
     case 2:
         obj = ObjMgr.createBack(9);
         if (obj == 0) {
@@ -278,7 +282,7 @@ cObj* EfmSeqSet(EspGenWork* gen, EfmCore* info, u32* seed, cModel* parent, Mtx m
         obj->sub2B4.clrFlags(0xFCFF);
         obj->lightInfo.init2(0, 1, &efm_light_pos, &efm_light_size, 0x10);
         obj->id = GetEfmMoveId(2);
-        obj = EfmSetObj09(obj, gen, info, seed, parent, m, x, rate, ofs);
+        obj = EfmSetObj09(obj, gen, info, seed, parent, m, x, rate);
         if (obj && (info->flg & 1)) {
             obj->setNoSuspend(1);
         }
@@ -486,7 +490,7 @@ cObj* EfmSetObj04(cObj* obj, EspGenWork* gen, EfmCore* info, u32* seed, cModel* 
     return obj;
 }
 
-cObj* EfmSetObj05(cObj* obj, EspGenWork* gen, EfmCore* info, u32* seed, cModel* parent, Mtx m, int x, f32 rate, Vec* ofs)
+cObj* EfmSetObj05(cObj* obj, EspGenWork* gen, EfmCore* info, u32* seed, cModel* parent, Mtx m, int x, f32 rate)
 {
     Efm05Work* w = &obj->efm05;
     Vec v;
@@ -639,7 +643,7 @@ cObj* EfmSetObj05(cObj* obj, EspGenWork* gen, EfmCore* info, u32* seed, cModel* 
     return obj;
 }
 
-cObj* EfmSetObj09(cObj* obj, EspGenWork* gen, EfmCore* info, u32* seed, cModel* parent, Mtx m, int x, f32 rate, Vec* ofs)
+cObj* EfmSetObj09(cObj* obj, EspGenWork* gen, EfmCore* info, u32* seed, cModel* parent, Mtx m, int x, f32 rate)
 {
     Efm09Work* w = &obj->efm09;
     static f32 mass_mul = 1.0f;
@@ -697,7 +701,6 @@ cObj* SetEffModel(void* bin, void* tpl, Vec* pos, Vec* rot)
 {
     cObj* obj;
     Efm04Work* w;
-    int c;
 
     obj = ObjMgr.createBack(4);
     if (obj) {
@@ -717,17 +720,16 @@ cObj* SetEffModel(void* bin, void* tpl, Vec* pos, Vec* rot)
         w->flags = 0;
         obj->pos = *pos;
         w->spdDamp = 0.0f;
-        c = 0xFF;
         obj->rot = *rot;
         w->scaleXZ = 1.0f;
         w->scaleY = 1.0f;
         w->scale = 1.0f;
         w->rMul = 1.0f;
         w->gMul = 1.0f;
-        w->r0 = c;
-        w->g0 = c;
-        w->b0 = c;
-        w->a0 = c;
+        w->r0 = 0xFF;
+        w->g0 = 0xFF;
+        w->b0 = 0xFF;
+        w->a0 = 0xFF;
         w->r = (f32) w->r0;
         w->g = (f32) w->g0;
         w->b = (f32) w->b0;
@@ -738,7 +740,7 @@ cObj* SetEffModel(void* bin, void* tpl, Vec* pos, Vec* rot)
         obj->pInfo->color[0] = (u8) w->r;
         obj->pInfo->color[1] = (u8) w->g;
         obj->pInfo->color[2] = (u8) w->b;
-        obj->pInfo->color[3] = c;
+        obj->pInfo->color[3] = 0xFF;
         if (w->fadeStart == 0) {
             obj->alpha = w->a * (1.0f / 255.0f);
         } else {
@@ -771,3 +773,6 @@ void setModTexRender(cObj* obj, int no)
     obj->x137 = 0xF;
     obj->x138 = 0xB4;
 }
+
+// .sdata alignment padding of the split object
+asm(".section .sdata; .balign 8");

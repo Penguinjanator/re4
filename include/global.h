@@ -97,7 +97,8 @@ struct GlobalWork {
     u8 pad_16C[4];
     u32 flags_170;         // 0x170  stop flags (debug tools save/restore it)
     u32 flags_174;         // 0x174  (pl_sub joyFireOn: 0x20000000 in room 11C while flags_5014 bit31 is set)
-    u8 pad_178[0x184 - 0x178];
+    u32 flags_178;         // 0x178  (objRobo WalkHitCk: bit31 = the statue caught the player)
+    u8 pad_17C[0x184 - 0x17C];
     GxStageWork gxStage;   // 0x184  TEV stage / texmap / texcoord counters of the model renderer (mirror)
     u8 pad_190[0x4F10 - 0x190];
     s32 prim_base;         // 0x4F10  primitive buffer: first entry of the current frame (debug PrimitiveBuffDisp)

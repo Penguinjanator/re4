@@ -422,6 +422,11 @@ mark it Matching.
   right after the `bl`).
 - Loop pointers must be block-scoped (`T* n = &node[i];` inside each body) to be replaceable givs; a
   function-scope pointer reused across loops leaves an `mr rN,rGIV` copy.
+- Spilled `&local` pseudos get their stack slots in gcse hash order (table size = max_uid/4 | 1), so
+  slot rotation between ours and the target means the original has more RTL somewhere in the function.
+- A local at frame offset 0 is materialised per call; a block-scoped `Vec* pp = &p0;` declared after
+  the first use gives "first use direct, later uses from a callee-saved pseudo".
+- `p = Vec()` for a POD in g++ 2.95 creates a zeroed temporary plus a block copy, not a `memset`.
 - Static locals show as `name.NNN` in objdiff; the DECL_UID suffix cannot be reproduced and is ignored by the report.
 - Unexplained words in `.rodata` (zero words, stray floats) are usually the constant pool of a function
   the original linker dead-stripped (bodies gone, pools kept, `STRIP_UNUSED` in objects.py): write a

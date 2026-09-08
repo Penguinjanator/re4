@@ -97,13 +97,15 @@ void Esp4e_Trans();
 typedef void (*EffSeFunc)(Vec* pos);
 
 EffSeFunc pSeFunc[8];
-// The manager pointer is loaded as a struct member (the pLog trick, db_log.h): the original reloads
-// it after every store made through it.
+// The mask read after the `repType = 1` store goes through a struct-member view of the pointer
+// (the pLog trick, db_log.h) so it stays below the store; the other reads use the plain global.
+TexRenderMng* g_pMgr;
 struct TexRenderMngPtr {
     TexRenderMng* p;
 };
-TexRenderMngPtr g_pMgr;
-#define pMgr g_pMgr.p
+#define pMgr g_pMgr
+#define pMgrView (((TexRenderMngPtr*) &g_pMgr)->p)
+static inline void ISet(int& d, int v) { d = v; }
 
 void EffSetId()
 {
@@ -331,6 +333,9 @@ void EffAreaUpdate()
     }
     flag |= sys->sstAddAreaFlag;
     y = 0;
+    // y is the hit count; the row `0xE8 + y * 0x10` is a strength-reduced giv (its `li 0xE8` is
+    // the last preheader insn). OPEN (98.2%): the target issues `or flag` before the hoisted
+    // `lis "%d"`, ours the other way round.
     for (j = 0; j < 32; j++) {
         if (flag & (1 << j)) {
             if (pG->flags_6C & 0x8000) {
@@ -382,9 +387,11 @@ void EffEm2d_setTexRender(cModel* m)
 {
     static u8 buf[0x80];
     u8* tbl = buf;
+    int repType = 1;
 
     if ((pG->flags_5010 & 0x10) == 0) {
         TexRenderMng* mgr;
+        TexRenderMng* mgr2;
 
         if (!GetTexRenderMgr(&pMgr)) {
             pLog->err(0, 0, "EffEm2d_setTexRender() : Manager alloc failed!!");
@@ -392,26 +399,31 @@ void EffEm2d_setTexRender(cModel* m)
         }
         BitOn(pG->flags_5010, 0x10);
         mgr = pMgr;
-        mgr->sx = 0x40;
-        mgr->sy = 0x40;
+        BitSet(mgr->sx, 0x40);
+        BitSet(mgr->sy, 0x40);
         pMgr->ReAllocBuf();
         tbl[0] = 4;
         tbl[1] = 0;
         tbl[4] = 0;
-        tbl[5] = pMgr->texId;
+        mgr2 = pMgr;
+        tbl[5] = mgr2->texId;
         tbl[6] = 2;
-        tbl[7] = pMgr->texId;
+        tbl[7] = mgr2->texId;
         tbl[8] = 4;
-        tbl[9] = pMgr->texId;
+        tbl[9] = mgr2->texId;
         tbl[0xA] = 6;
-        tbl[0xB] = pMgr->texId;
-        pMgr->repType = 1;
+        tbl[0xB] = mgr2->texId;
+        ISet(mgr2->repType, repType);
         EstSet(0, -1, NULL, NULL, 0x25, 0x1F, pMgr->mask | 0x801, 0, 0, NULL);
     }
     m->pInfo->setTexBlendTbl(tbl);
     m->pInfo->setBlendRatio(0);
 }
 
+// OPEN (99.0%): the reloads of `esp` (address-taken, reloaded after every byte store) get r9/r11
+// in the opposite alternation to the target; the `lis` of the 0.8f pool address takes r9 in ours.
+// Local-alloc order differs, so the sched1 (pre-reload) order of the block differs even though the
+// final order is identical.
 void EspDrawLaserLine(Vec from, Vec to, f32 width)
 {
     cEsp* esp;

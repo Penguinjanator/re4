@@ -9,9 +9,16 @@ struct ItemWork {
     u16 num;       // 0x02  count / bullets
     u8 flags;      // 0x04  bit0 in use
     u8 type;       // 0x05  inventory type (cItemMgr::type selects the visible set)
-    u8 pad_6[2];
-    u16 x8;        // 0x08  top 3 bits: weapon slot attribute (sscrn: pG->wep_x4FB2)
+    u16 x6;        // 0x06  weapon tune levels, one nibble each: fire << 12 | mag << 8 | speed << 4 | ex (merchant)
+    u16 x8;        // 0x08  top 3 bits: weapon slot attribute (sscrn: pG->wep_x4FB2), low 13: bullets loaded
     u8 pad_A[4];
+};
+
+// cItemMgr::ordering() output (cItemMgr::pOrder[], 8 bytes): the in-use slots holding one item id.
+struct ItemOrder {
+    ItemWork* item;  // 0x00
+    u16 num;         // 0x04  copy of item->num
+    u8 pad_6[2];
 };
 
 // itemInfo() result (game/item.cpp).
@@ -35,8 +42,13 @@ public:
     ItemWork* pItems;           // 0x14
     u8 pad_18[4];
     s32 nItems;                 // 0x1C
-    u8 pad_20[0x30 - 0x20];
+    ItemOrder* pOrder;          // 0x20  ordering() result (merchant: sorted slots of one item id)
+    s32 nOrder;                 // 0x24  entries in pOrder
+    u8 pad_28[0x30 - 0x28];
 
+    ItemWork* at(int no);       // 0x8001DB5C: slot `no` of pItems, NULL when no >= nItems
+    int searchAt(ItemWork* p);  // 0x8001DB80: slot index of `p`, -1 if not in pItems
+    void ordering(u16 id);      // 0x8001DFD0: collect the in-use slots holding `id` into pOrder (qsort by order_cmp)
     int num(int id);            // 0x8001EB54: count of item `id` of this->type
     int num(int id, u8 type);   // 0x8001EAE4: count of item `id` of the given type (pl_sub: num(0xFE, 0))
     u16 bulletNum();            // 0x8001FC20: bulletNumCurrent() of the equipped weapon
@@ -62,6 +74,10 @@ extern "C" {
 u8 WeaponId2WeaponNo(u16 id);
 u8 WeaponId2WeaponType(u16 id);
 void itemInfo(u16 id, ItemInfo* info);
+// weapon item id -> its bullet item id (attr: ItemWork::x8 >> 13), charge count, max tune level per type
+u16 WeaponId2BulletId(u16 id, int attr);
+int WeaponId2ChargeNum(u16 id, int a);
+int WeaponId2MaxLevel(u16 id, int type);
 }
 
 #endif

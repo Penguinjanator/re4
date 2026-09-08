@@ -173,7 +173,7 @@ public:
         };
     };
     Vec evTarget;         // 0x404  player event: walk-to position
-    u8 pad_410[0x41C - 0x410];
+    Vec evTarget2;        // 0x410  player: position setPos'd while flags_420 bit7 is set (objRobo R0WaitGondola)
     u32 flags_41C;        // 0x41C  player: bit8 (0x100) event motion done -> reset routine
     u32 flags_420;        // 0x420  player: bit6 (0x40) knife routine ends into routine 0x11
     void** pMotTbl;       // 0x424  player: motion data table ([0] walk, [2] turn, [0x5F..0x6C] set by setMotion)

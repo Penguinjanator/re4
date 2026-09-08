@@ -1002,6 +1002,7 @@ MATCHING = {
 # C++ units with functions the original linker dead-stripped (bodies gone, constant pools and
 # statics kept): tools/strip_unused.py removes the bodies of functions not in sym_map.tsv.
 STRIP_UNUSED = {
+    "game/route_ck.cpp",
     "game/cockpit.cpp",
     "game/light.cpp",
     "game/at_mod.cpp",
@@ -1173,4 +1174,8 @@ MATCHING.update({
 
 MATCHING.update({
     "game/cockpit.cpp": True,
+})
+
+MATCHING.update({
+    "game/obj09.cpp": True,
 })

@@ -87,6 +87,7 @@ f32 CalcStopDist(f32 speed, f32 decel);
 // Move `pos` `dist` towards `target`; 1 when it arrived.
 int CalcMovePosDist(Vec* pos, Vec* target, f32 dist);
 // lib math
+f32 sqrtf(f32 x);
 f32 sinf(f32 x);
 f32 cosf(f32 x);
 f32 atan2f(f32 y, f32 x);

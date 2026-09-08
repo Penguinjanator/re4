@@ -24,6 +24,9 @@ void* memcpy(void* dst, const void* src, unsigned int n);
 
 // at_sub attribute filter bypass mode (cSatMgr::seCk of the manager running the check)
 int SEck;
+struct SEckView {
+    int v;
+};
 
 // game/game.cpp collision profiling counters (debug page 0x14)
 extern u32 g_at2_total;
@@ -449,9 +452,7 @@ int cSatBlock::lineOverlap(Vec* p, Vec* dir, Vec* absDir)
 // XZ segment a-b against segment c-d.
 static inline int lineCross(Vec* a, Vec* b, Vec* c, Vec* d)
 {
-    f32 dx = d->x - c->x;
-    f32 dz = d->z - c->z;
-    f32 denom = (b->x - a->x) * dz - (b->z - a->z) * dx;
+    f32 denom = (b->x - a->x) * (d->z - c->z) - (b->z - a->z) * (d->x - c->x);
     f32 ax;
     f32 az;
     f32 t;
@@ -462,35 +463,35 @@ static inline int lineCross(Vec* a, Vec* b, Vec* c, Vec* d)
     }
     ax = a->x - c->x;
     az = a->z - c->z;
-    t = az * dx - ax * dz;
-    if (t >= 0.0f) {
-        if (denom < 0.0f) {
-            return 0;
-        }
-        if (t > denom) {
-            return 0;
-        }
-    } else {
+    t = az * (d->x - c->x) - ax * (d->z - c->z);
+    if (t < 0.0f) {
         if (denom >= 0.0f) {
             return 0;
         }
         if (t < denom) {
             return 0;
         }
-    }
-    s = az * (b->x - a->x) - ax * (b->z - a->z);
-    if (s >= 0.0f) {
+    } else {
         if (denom < 0.0f) {
             return 0;
         }
-        if (s > denom) {
+        if (t > denom) {
             return 0;
         }
-    } else {
+    }
+    s = az * (b->x - a->x) - ax * (b->z - a->z);
+    if (s < 0.0f) {
         if (denom >= 0.0f) {
             return 0;
         }
         if (s < denom) {
+            return 0;
+        }
+    } else {
+        if (denom < 0.0f) {
+            return 0;
+        }
+        if (s > denom) {
             return 0;
         }
     }
@@ -502,51 +503,54 @@ int cSatBlock::hitCheckSphere(Vec* a, Vec* b, f32 r)
 {
     Vec c0;
     Vec c1;
+    f32 x0 = min.x;
+    f32 z0 = min.z;
     f32 cx = (a->x + b->x) * 0.5f;
     f32 cz = (a->z + b->z) * 0.5f;
     f32 hx = fabsf(a->x - b->x) * 0.5f + r;
     f32 hz = fabsf(a->z - b->z) * 0.5f + r;
-    f32 maxx = min.x + size.x;
-    f32 maxz;
+    f32 x1;
+    f32 z1;
 
-    if (maxx < cx - hx) {
+    if (x0 + size.x < cx - hx) {
         return 0;
     }
-    if (min.x > cx + hx) {
+    if (x0 - size.x > cx + hx) {
         return 0;
     }
-    maxz = min.z + size.z;
-    if (maxz < cz - hz) {
+    if (z0 + size.z < cz - hz) {
         return 0;
     }
-    if (min.z > cz + hz) {
+    if (z0 - size.z > cz + hz) {
         return 0;
     }
-    if (a->x >= min.x - r && a->x <= maxx + r && a->z >= min.z - r && a->z <= maxz + r) {
+    if (!(a->x < x0 - r || a->x > x0 + size.x + r || a->z < z0 - r || a->z > z0 + size.z + r)) {
         return 1;
     }
-    if (b->x >= min.x - r && b->x <= min.x + size.x + r && b->z >= min.z - r && b->z <= min.z + size.z + r) {
+    if (!(b->x < x0 - r || b->x > x0 + size.x + r || b->z < z0 - r || b->z > z0 + size.z + r)) {
         return 1;
     }
-    c0.x = min.x;
+    x1 = x0 + size.x + r;
+    z1 = z0 + size.z + r;
+    c0.x = x0;
     c0.y = 0.0f;
-    c0.z = min.z;
-    c1.x = min.x + size.x + r;
+    c0.z = z0;
+    c1.x = x1;
     c1.y = 0.0f;
-    c1.z = min.z;
+    c1.z = z0;
     if (lineCross(a, b, &c0, &c1)) {
         return 1;
     }
-    c0.z = c1.z = min.z + size.z + r;
+    c0.z = c1.z = z1;
     if (lineCross(a, b, &c0, &c1)) {
         return 1;
     }
-    c0.z = min.z;
-    c1.x = min.x;
+    c0.z = z0;
+    c1.x = x0;
     if (lineCross(a, b, &c0, &c1)) {
         return 1;
     }
-    c0.x = c1.x = min.x + size.x + r;
+    c1.x = c0.x = x1;
     if (lineCross(a, b, &c0, &c1)) {
         return 1;
     }
@@ -680,7 +684,7 @@ cSat* cSatMgr::create(Vec* pos, Vec* rot, Vec* poly, int attr, int flag, f32 h)
 // of the polygons, nrm (when given) receives the last hit normal. Returns 1 on a hit.
 int cSatMgr::polySphereCk(Vec* oldPos, Vec* pos, f32 r, int flag, Vec* nrm, int mask)
 {
-    int ret = 0;
+    int ret;
     u32 idx = 0;
     u32 i;
 
@@ -700,12 +704,10 @@ int cSatMgr::polySphereCk(Vec* oldPos, Vec* pos, f32 r, int flag, Vec* nrm, int 
         PPCMtmmcr1(0x78000000);
         PPCMtmmcr0(0x42);
     }
+    ret = 0;
     for (i = 0; i < nArray; i++) {
         cSat* sat = (cSat*) ((u8*) pArray + size * i);
-        if (!sat->isAlive()) {
-            continue;
-        }
-        {
+        if (sat->isAlive()) {
             Vec lo;
             Vec lp;
             cSatBlock* blk = sat->block;
@@ -813,7 +815,8 @@ int cSatMgr::hitCheck2(Vec* a, Vec* b, Vec* hit, u32* attr, int flag, int mask)
     int ret = 0;
     u32 i;
 
-    SEck = seCk;
+    // stored through a struct view: keeps the `cur = *b` loads below the store like the original
+    ((SEckView*) &SEck)->v = seCk;
     cur = *b;
     for (i = 0; i < nArray; i++) {
         cSat* sat = (cSat*) ((u8*) pArray + size * i);
@@ -863,30 +866,36 @@ int blkPolyLineCk(cSat* sat, cSatBlock* blk, Vec* a, Vec* b, int flag, int mask,
     adir.x = fabsf(dir.x);
     adir.y = fabsf(dir.y);
     adir.z = fabsf(dir.z);
-    mid.y = 0.0f;
     adir.y = 0.0f;
     dir.y = 0.0f;
+    mid.y = 0.0f;
     while (blk) {
         if (new_line_check == 0) {
             if (blk->hitCheckSphere(a, b, 0.0f)) {
                 if (blk->flag & 1) {
                     r = blkPolyLineCk(sat, (cSatBlock*) blk->idx, a, b, flag, mask, hit, pn);
+                    if (r) {
+                        ret = r;
+                    }
                 } else {
                     r = blkPolyLineCkCore(sat, blk, a, b, flag, mask, hit, pn);
-                }
-                if (r) {
-                    ret = r;
+                    if (r) {
+                        ret = r;
+                    }
                 }
             }
         } else {
             if (blk->lineOverlap(&mid, &dir, &adir)) {
                 if (blk->flag & 1) {
                     r = blkPolyLineCk(sat, (cSatBlock*) blk->idx, a, b, flag, mask, hit, pn);
+                    if (r) {
+                        ret = r;
+                    }
                 } else {
                     r = blkPolyLineCkCore(sat, blk, a, b, flag, mask, hit, pn);
-                }
-                if (r) {
-                    ret = r;
+                    if (r) {
+                        ret = r;
+                    }
                 }
             }
         }
@@ -915,7 +924,8 @@ int blkPolyLineCkCore(cSat* sat, cSatBlock* blk, Vec* a, Vec* b, int flag, int m
         end = blk->n0 + blk->n1 + blk->n2;
     }
     n = end - start;
-    idx = &blk->idx[start] - 1;
+    idx = &blk->idx[start];
+    idx--;
     while (n--) {
         u32 no;
         AtPoly* poly;
@@ -971,8 +981,8 @@ void cSatMgr::disp(int flag)
     sel = (flag >> 8) & 0xFF0000;
     for (i = 0; i < nArray; i++) {
         cSat* sat = (cSat*) ((u8*) pArray + size * i);
-        int s = 0;
-        int e = 0;
+        int s;
+        int e;
         int j;
         if (!VALID_PTR(sat)) {
             continue;
@@ -980,7 +990,9 @@ void cSatMgr::disp(int flag)
         if (!sat->isAlive()) {
             continue;
         }
-        switch (flag & 0xF) {
+        s = 0;
+        e = 0;
+        switch ((u32) flag & 0xF) {
         case 0:
             s = 0;
             e = sat->nPoly;
@@ -994,13 +1006,14 @@ void cSatMgr::disp(int flag)
             e = s + sat->nB;
             break;
         case 3:
+            s = sat->nPoly - sat->nC;
             e = sat->nPoly;
-            s = e - sat->nC;
             break;
         }
         for (j = s; j < e; j++) {
-            AtPoly* poly = &sat->poly[j];
-            u32 attr = ((poly->attrHi & 0xFF) << 16) | poly->attrLo;
+            AtPoly* poly = (AtPoly*) (j * sizeof(AtPoly) + (u32) sat->poly);
+            u32 attr = (poly->attrHi & 0xFF) << 16;
+            attr |= poly->attrLo;
             u32 color;
             int z;
             if (attr != 0) {
@@ -1112,43 +1125,49 @@ void cSat::disp(int no, u32 color, int zupd)
     Mtx m;
     Vec n;
     Vec w;
-    AtPoly* pl;
+    AtPoly* pt = poly;
+    Vec* vt = vtx;
     u16 i;
-    u32 c;
 
     PSMTXConcat(pG->Cam.viewMat, mat, m);
-    pl = &poly[no];
     for (i = 0; i < 3; i++) {
-        p[i].x = vtx[pl->v[i]].x;
-        p[i].y = vtx[pl->v[i]].y;
-        p[i].z = vtx[pl->v[i]].z;
+        AtPoly* pl = (AtPoly*) (no * sizeof(AtPoly) + (u32) pt);
+        Vec* v = (Vec*) (*(u16*) (i * 2 + (u32) pl) * sizeof(Vec) + (u32) vt);
+        p[i].x = v->x;
+        p[i].y = v->y;
+        p[i].z = v->z;
     }
     switch (zupd & 3) {
-    case 0:
+    case 0: {
+        AtPoly* pl = (AtPoly*) (no * sizeof(AtPoly) + (u32) pt);
         Draw_line3d_local(&p[0], &p[1], m, (pl->e[0] & 0x2000) ? 0x80808080 : color, 0);
         Draw_line3d_local(&p[1], &p[2], m, (pl->e[0] & 0x4000) ? 0x80808080 : color, 0);
         Draw_line3d_local(&p[0], &p[2], m, (pl->e[0] & 0x8000) ? 0x80808080 : color, 0);
         break;
+    }
     case 1:
         Draw_poly_local(p, m, color, 1);
         break;
     }
     PSVECAdd(&p[0], &p[1], &p[0]);
-    c = 0xFF;
+    color = 0xFF;
     PSVECAdd(&p[0], &p[2], &p[0]);
     PSVECScale(&p[0], &p[0], 1.0f / 3.0f);
-    n.x = nrm[pl->n].x;
-    n.y = nrm[pl->n].y;
-    n.z = nrm[pl->n].z;
+    {
+        AtPoly* pl = (AtPoly*) (no * sizeof(AtPoly) + (u32) poly);
+        n.x = nrm[pl->n].x;
+        n.y = nrm[pl->n].y;
+        n.z = nrm[pl->n].z;
+    }
     PSVECScale(&n, &p[1], 100.0f);
     PSVECAdd(&p[0], &p[1], &p[1]);
     PSMTXMultVec(mat, &p[0], &w);
     PSVECSubtract(&w, &pG->Cam.param.pos, &w);
     PSMTXMultVecSR(mat, &n, &n);
     if (PSVECDotProduct(&n, &w) > 0.0f) {
-        c = 0xFFFFFFFF;
+        color = 0xFFFFFFFF;
     }
-    Draw_line3d_local(&p[0], &p[1], m, c, 0);
+    Draw_line3d_local(&p[0], &p[1], m, color, 0);
 }
 
 Vec* cSatFile::getVertexPtr()

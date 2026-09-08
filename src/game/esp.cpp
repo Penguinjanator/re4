@@ -256,6 +256,9 @@ int EspMove()
     }
     if ((s32) pG->flags_60 >= 0 && pG->debug_mode == 0xE) {
         eprintf(0x20, 0x60, 0, 0xE, "TOTAL:%d", cnt);
+        // y counts printed rows; `0x70 + y * 0x10` is a strength-reduced giv whose `li 0x70` init
+        // is emitted by loop.c after the hoisted `lis`/`addi`s (a plain `y = 0x70; y += 0x10`
+        // schedules the li before the call).
         y = 0;
         for (i = 0; i < 0xD3; i++) {
             if (esp_num_list[i] != 0) {

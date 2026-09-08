@@ -3651,7 +3651,7 @@ address	size	section	unit	scope	name	demangled
 0x800EFFC0	0x578	.text	game/em_sub.cpp	global	EmGetDmPos	EmGetDmPos
 0x800F0538	0x330	.text	game/em_sub.cpp	global	EmDmBloodSet	EmDmBloodSet
 0x800F0868	0xCC	.text	game/em_sub.cpp	global	EmDmBloodSet2	EmDmBloodSet2
-0x800F0934	0xC8	.text	game/em_sub.cpp	local	EmDmBloodSet3	EmDmBloodSet3
+0x800F0934	0xC8	.text	game/em_sub.cpp	global	EmDmBloodSet3	EmDmBloodSet3
 0x800F09FC	0x250	.text	game/em_sub.cpp	global	EmPlBloodSet	EmPlBloodSet
 0x800F0C4C	0x11C	.text	game/em_sub.cpp	global	EmPlBloodSet2	EmPlBloodSet2
 0x800F0D68	0x1E8	.text	game/em_sub.cpp	global	EmSubBloodSet	EmSubBloodSet
@@ -4030,28 +4030,28 @@ address	size	section	unit	scope	name	demangled
 0x801153C0	0x20	.text	game/emtree.cpp	global	_._7cEmTree	cEmTree::~cEmTree
 0x801153E0	0xB0	.text	game/emwindow.cpp	global	SetWindow__FPvT0P3VecT2iUcT0	SetWindow
 0x80115490	0x230	.text	game/emwindow.cpp	global	ChkWindow	ChkWindow
-0x801156C0	0x5C4	.text	game/emwindow.cpp	global	cEmWindow_init	cEmWindow::init
-0x80115C84	0x198	.text	game/emwindow.cpp	global	cEmWindow_move	cEmWindow::move
-0x80115E1C	0x284	.text	game/emwindow.cpp	local	cEmWindow_DmCk	cEmWindow::DmCk
-0x801160A0	0x7C0	.text	game/emwindow.cpp	global	cEmWindow_ExeWindowEvent	cEmWindow::ExeWindowEvent
-0x80116860	0x184	.text	game/emwindow.cpp	global	cEmWindow_CalFloor	cEmWindow::CalFloor
-0x801169E4	0x8	.text	game/emwindow.cpp	global	cEmWindow_GetFloor	cEmWindow::GetFloor
-0x801169EC	0x58	.text	game/emwindow.cpp	local	cEmWindow_ChkBreakDir	cEmWindow::ChkBreakDir
+0x801156C0	0x5C4	.text	game/emwindow.cpp	global	init__9cEmWindowPvT1P3VecT3iUcT1	cEmWindow::init
+0x80115C84	0x198	.text	game/emwindow.cpp	global	move__9cEmWindow	cEmWindow::move
+0x80115E1C	0x284	.text	game/emwindow.cpp	global	DmCk__9cEmWindow	cEmWindow::DmCk
+0x801160A0	0x7C0	.text	game/emwindow.cpp	global	ExeWindowEvent__9cEmWindow	cEmWindow::ExeWindowEvent
+0x80116860	0x184	.text	game/emwindow.cpp	global	CalFloor__9cEmWindow	cEmWindow::CalFloor
+0x801169E4	0x8	.text	game/emwindow.cpp	global	GetFloor__9cEmWindow	cEmWindow::GetFloor
+0x801169EC	0x58	.text	game/emwindow.cpp	global	ChkBreakDir__9cEmWindowP3Vec	cEmWindow::ChkBreakDir
 0x80116A44	0x40	.text	game/emwindow.cpp	global	ChkStatus__9cEmWindow	cEmWindow::ChkStatus
-0x80116A84	0x4C	.text	game/emwindow.cpp	global	cEmWindow_SetStatus	cEmWindow::SetStatus
-0x80116AD0	0xA0	.text	game/emwindow.cpp	global	cEmWindow_SetShake	cEmWindow::SetShake
-0x80116B70	0xCC	.text	game/emwindow.cpp	global	cEmWindow_SetBreakAll	cEmWindow::SetBreakAll
+0x80116A84	0x4C	.text	game/emwindow.cpp	global	SetStatus__9cEmWindowi	cEmWindow::SetStatus
+0x80116AD0	0xA0	.text	game/emwindow.cpp	global	SetShake__9cEmWindow	cEmWindow::SetShake
+0x80116B70	0xCC	.text	game/emwindow.cpp	global	SetBreakAll__9cEmWindowP3Vecii	cEmWindow::SetBreakAll
 0x80116C3C	0x140	.text	game/emwindow.cpp	global	SetBreakModel__9cEmWindow	cEmWindow::SetBreakModel
-0x80116D7C	0x4C	.text	game/emwindow.cpp	global	cEmWindow_SetChangeModel	cEmWindow::SetChangeModel
-0x80116DC8	0x58	.text	game/emwindow.cpp	global	cEmWindow_SetAtariOff	cEmWindow::SetAtariOff
-0x80116E20	0x250	.text	game/emwindow.cpp	global	cEmWindow_SetBreakEsp	cEmWindow::SetBreakEsp
-0x80117070	0x34	.text	game/emwindow.cpp	global	cEmWindow_SetEnableDamage	cEmWindow::SetEnableDamage
-0x801170A4	0x34	.text	game/emwindow.cpp	global	cEmWindow_ChkEnableDamage	cEmWindow::ChkEnableDamage
-0x801170D8	0x50	.text	game/emwindow.cpp	global	cEmWindow_SetEtcFlag	cEmWindow::SetEtcFlag
-0x80117128	0x2C	.text	game/emwindow.cpp	global	cEmWindow_ChkEtcFlag	cEmWindow::ChkEtcFlag
-0x80117154	0x64	.text	game/emwindow.cpp	global	cEmWindow_SetEnableFence	cEmWindow::SetEnableFence
-0x801171B8	0x40	.text	game/emwindow.cpp	global	cEmWindow_ChkEnableFence	cEmWindow::ChkEnableFence
-0x801171F8	0x20	.text	game/emwindow.cpp	global	cEmWindow_dt_cEmWindow	cEmWindow::~cEmWindow
+0x80116D7C	0x4C	.text	game/emwindow.cpp	global	SetChangeModel__9cEmWindowPvT1	cEmWindow::SetChangeModel
+0x80116DC8	0x58	.text	game/emwindow.cpp	global	SetAtariOff__9cEmWindow	cEmWindow::SetAtariOff
+0x80116E20	0x250	.text	game/emwindow.cpp	global	SetBreakEsp__9cEmWindowiii	cEmWindow::SetBreakEsp
+0x80117070	0x34	.text	game/emwindow.cpp	global	SetEnableDamage__9cEmWindowi	cEmWindow::SetEnableDamage
+0x801170A4	0x34	.text	game/emwindow.cpp	global	ChkEnableDamage__9cEmWindow	cEmWindow::ChkEnableDamage
+0x801170D8	0x50	.text	game/emwindow.cpp	global	SetEtcFlag__9cEmWindowUli	cEmWindow::SetEtcFlag
+0x80117128	0x2C	.text	game/emwindow.cpp	global	ChkEtcFlag__9cEmWindowUl	cEmWindow::ChkEtcFlag
+0x80117154	0x64	.text	game/emwindow.cpp	global	SetEnableFence__9cEmWindowii	cEmWindow::SetEnableFence
+0x801171B8	0x40	.text	game/emwindow.cpp	global	ChkEnableFence__9cEmWindowi	cEmWindow::ChkEnableFence
+0x801171F8	0x20	.text	game/emwindow.cpp	global	_._9cEmWindow	cEmWindow::~cEmWindow
 0x80117218	0x30	.text	game/eprintf.cpp	global	BtoX__Fi	BtoX
 0x80117248	0xC	.text	game/eprintf.cpp	global	EprintfSetCurrentNo	EprintfSetCurrentNo
 0x80117254	0xB4	.text	game/eprintf.cpp	global	eprintf__FiiiiPCce	eprintf
@@ -8376,7 +8376,7 @@ address	size	section	unit	scope	name	demangled
 0x802346D0	0x28	.rodata	game/emtree.cpp	local	cUnit_virtual_table_802346D0	cUnit virtual table
 0x802346F8	0x350	.rodata	game/emwindow.cpp	local	lbl_802346F8	.
 0x80234A48	0x58	.rodata	game/emwindow.cpp	global	_vt.9cEmWindow	cEmWindow virtual table
-0x80234AA0	0x28	.rodata	game/emwindow.cpp	global	cUnit_virtual_table_80234AA0	cUnit virtual table
+0x80234AA0	0x28	.rodata	game/emwindow.cpp	local	cUnit_virtual_table_80234AA0	cUnit virtual table
 0x80234AC8	0x68	.rodata	game/eprintf.cpp	local	lbl_80234AC8	.
 0x80234B30	0x268	.rodata	game/esp.cpp	global	lbl_80234B30	.
 0x80234D98	0x2A0	.rodata	game/esp_app.cpp	local	lbl_80234D98	.

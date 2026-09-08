@@ -543,6 +543,24 @@ struct SpearWork {
     u8 espId;             // 0x70  effect owner id deleted on landing (0x32)
 };
 
+// Giant robot statue work (game/objRobo.cpp `cObjRobo`): the Salazar statue that walks after the
+// player over the bridge; two scenario / effect collision pieces per side, 14 hit boxes.
+struct RoboWork {
+    s8 routine;           // 0x00  R0Tbl index
+    s8 step;              // 0x01
+    u8 pad_2[0xA];
+    class cSat* sat[2];   // 0x0C  scenario pieces (front / back)
+    class cSat* eat[2];   // 0x14  effect pieces
+    class cEmHit* hit[14];  // 0x1C
+    class cSat* eat2;     // 0x54  effect piece at the model position
+    cObj* smd[2];         // 0x58  scroll objects following the feet (SetObjSmd)
+    f32 fallSpdY;         // 0x60
+    int cnt;              // 0x64
+    int hitCnt[6];        // 0x68  frames each bridge piece has been hit
+    f32 fallX;            // 0x80
+    int timer;            // 0x84
+};
+
 // Sub-object at cObj+0x2B4 (0x74 bytes): the collision info followed by scroll bookkeeping.
 struct ObjSub2B4 {
     // wrapped like cEm's so that cObj::cObj does not run cAtariInfo's constructor (the original
@@ -564,12 +582,15 @@ public:
     void* pMotion;        // 0x1D8 motion data (MotionMove) or NULL (matUpdate)
     u8 pad_1DC[0x21C - 0x1DC];
     u32 x21C;             // 0x21C  bit30 (0x40000000): set by obj26MatCalc when following a parent
-    u8 pad_220[0x290 - 0x220];
+    u8 pad_220[0x28B - 0x220];
+    u8 motEvent;          // 0x28B  MotionWork::key1.x3: event bits of the current sequence key (objRobo SE / effects)
+    u8 pad_28C[0x290 - 0x28C];
     f32 motFrame;         // 0x290  MotionWork::seqFrame (objGondola R0_Up waits for frame 4105)
     u16 motSeqMax;        // 0x294  MotionWork::seqMax (objRocket: the rocket burns out at seqFrame >= seqMax - 1)
     u8 pad_296[2];
     f32 motSpeedRate;     // 0x298  MotionWork::speedRate (objWep resetMotion: 1.0)
-    u8 pad_29C[0x2A8 - 0x29C];
+    u8 pad_29C[0x2A4 - 0x29C];
+    void* p2A4;           // 0x2A4  MotionWork::cam (objRobo SetObjRobo: 0x98-byte mem_alloc)
     struct MotionWork* motBlend;  // 0x2A8  MotionWork::blend (objGondola setVib: the sub motion work)
     u8 pad_2AC[4];
     u32 x2B0;             // 0x2B0  (obj18: parts matrices are only recomputed while 0)
@@ -609,6 +630,7 @@ public:
         LauncherWork launcher;
         RocketWork rocket;
         SpearWork spear;
+        RoboWork robo;
     };
 
     cObj();

@@ -33,6 +33,8 @@ public:
     void Run();
     // Looks a file of the running event up by name; 0 when it is not loaded.
     int GetBin(void** out, const char* name, int a);
+    // Replaces the three window jump motions of the running event (emwindow ExeWindowEvent).
+    void GetEmWindowFcv(void** a, void** b, void** c);
 };
 
 extern EventMgr EvtMgr;
