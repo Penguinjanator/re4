@@ -71,6 +71,13 @@ static inline void GXPosition3f32(f32 x, f32 y, f32 z)
     GXWGFifo.f32 = z;
 }
 
+static inline void GXPosition3s16(s16 x, s16 y, s16 z)
+{
+    GXWGFifo.s16 = x;
+    GXWGFifo.s16 = y;
+    GXWGFifo.s16 = z;
+}
+
 static inline void GXColor4u8(u8 r, u8 g, u8 b, u8 a)
 {
     GXWGFifo.u8 = r;
@@ -113,8 +120,10 @@ void GXSetNumTevStages(u8 n);
 void GXSetTevOp(int id, int mode);
 void GXSetTevOrder(int stage, int coord, int map, int color);
 void GXSetNumChans(u8 n);
+void GXSetChanMatColor(int chan, GXColor color);
 void GXSetChanCtrl(int chan, u8 enable, int amb_src, int mat_src, u32 light_mask, int diff_fn, int attn_fn);
 void GXSetLineWidth(u8 width, int tex_offsets);
+void GXSetAlphaCompare(int comp0, u8 ref0, int op, int comp1, u8 ref1);
 void GXClearVtxDesc(void);
 void GXSetVtxDesc(int attr, int type);
 void GXSetVtxAttrFmt(int vtxfmt, int attr, int cnt, int type, u8 frac);

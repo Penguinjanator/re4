@@ -40,7 +40,9 @@ public:
     cModel* pParts;  // 0xF4 child parts list
     u8 pad_F8[4];
     u8 xFC;          // 0xFC
-    u8 pad_FD[3];
+    u8 xFD;          // 0xFD
+    u8 xFE;          // 0xFE
+    u8 xFF;          // 0xFF  (t_option clears FC..FF after a weapon change)
     u8 id;           // 0x100
     u8 type;         // 0x101 per-object sub type
     u8 nParts;       // 0x102

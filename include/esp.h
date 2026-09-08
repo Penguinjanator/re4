@@ -31,9 +31,11 @@ struct EspGenWork {
     u8 x2;             // 0x02
     u8 pad_3[5];
     u32 flags;         // 0x08
-    u8 pad_0C[4];
+    f32 x0C;           // 0x0C generator position (x0C, x10, x14 form a Vec)
     f32 x10;           // 0x10
-    u8 pad_14[0x20 - 0x14];
+    f32 x14;           // 0x14
+    f32 x18;           // 0x18 (esp1a: min distance factor)
+    f32 x1C;           // 0x1C (esp1a: max distance factor)
     f32 x20;           // 0x20
     u8 pad_24[0x58 - 0x24];
     Vec x58;           // 0x58
@@ -157,7 +159,7 @@ public:
 
     int CommonMove();
     int AnmMove();
-    void ColorUpdate();
+    int ColorUpdate();
     void ApplyMatrix(Mtx m);
     void CommonStateSet();
     void ChannelSet();
@@ -174,6 +176,8 @@ extern "C" {
 int PullEsp(cEsp** out, int id);
 cEsp* EspGetDmyPtr();
 void EspAddOtAfterRender(cEsp* esp, void (*func)(cEsp*));
+// game/esp01.cpp
+void EspStrip_draw_poly(cEsp* esp, int no, Vec* v, int texRepeat, int flag);
 // game/trans_ot.cpp
 void AddOtWorldPos(cEsp* esp, void (*func)(cEsp*), Vec* pos, int prio, f32 ofs);
 // game/esp_sub.cpp
@@ -181,6 +185,12 @@ void EspCommonTrans(cEsp* esp);
 // game/eff_sys.cpp
 int EspGetAnmAddr(int no, EspAnmData** out);
 void EspTexSet(int anmNo, int ptn);
+void* EspGetPathAddr(int id, int no);
+// game/path.cpp
+int PathHasWeight(void* path);
+f32 PathGetLength(void* path);
+int PathGetPos(void* path, u32* seg, Vec* out, f32 dist);
+int PathGetPosEm(void* path, cModel* model, u32* seg, Vec* out, f32 dist);
 int EspGetTplAddr(int no, void** out);
 // game/est.cpp
 int EstSet(int a, int b, Vec* pos, Vec* rot, int c, int d, int e, int f, u32 g, void* h);
@@ -189,6 +199,7 @@ int EstSet(int a, int b, Vec* pos, Vec* rot, int c, int d, int e, int f, u32 g, 
 int EspGenGetMoveLoop();
 extern cCoord* pEffParentWorld;
 // game/esp_app.cpp
+extern "C" void EspCallSeType(int type, Vec* pos);
 void EffCallRoomSeFunc(int no, Vec* pos);
 int EffAreaCheckNo(Vec* pos, u8 areaNo);
 // game/Espgen42.cpp

@@ -47,6 +47,7 @@ f32 PSVECDotProduct(const Vec* a, const Vec* b);
 void PSVECCrossProduct(const Vec* a, const Vec* b, Vec* axb);
 f32 PSVECSquareDistance(const Vec* a, const Vec* b);
 f32 PSVECDistance(const Vec* a, const Vec* b);
+void C_VECReflect(const Vec* src, const Vec* normal, Vec* dst);
 
 #ifdef __cplusplus
 }

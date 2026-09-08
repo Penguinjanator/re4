@@ -93,6 +93,16 @@ mark it Matching.
   originals often compute the inner call into a local first.
 - `memcpy(dst, "literal")`/`strcpy` with a constant source inlines to word/byte moves; `char s[64] = ""`
   → `lbz` + `memset(s+1, 0, 63)`; `Vec v = {0,0,0}` inside a loop → `memset` per iteration.
+- The original never moves a load of a global (`pG`, a static float) above a store made through `this`
+  or a member pointer; ProDG does unless the store goes through a scalar reference — `FSet(f32&, f32)`,
+  `BitOn16(u16&, u16)` in `include/global.h` reproduce the original order. No compiler flag changes this.
+- `fabsf` is a volatile asm (`include/math_sub.h`) and acts as a scheduling barrier.
+- Frame layout: `Vec`/`Mtx` locals are 8-byte aligned; function-level locals in declaration order from
+  0x8, block-scoped ones after the block's temporaries, freed block slots reused — block scoping matters.
+- GCSE: an expression used in both `if/else` arms and after the join must be written inline, not
+  pre-computed into a variable. `ret = f(); ...; return ret;` in every branch stops cross-jumping of
+  identical call tails.
+- `SetFreeWork(EspGenWork*, u32* seed)` is the real cEsp virtual signature (seed in r5).
 - Static locals show as `name.NNN` in objdiff; the DECL_UID suffix cannot be reproduced and is ignored by the report.
 
 - Struct field offsets come from the load/store displacements; write real structs, not casts.

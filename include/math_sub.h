@@ -27,12 +27,14 @@ void ScaleMatrix(Mtx m, Vec* scale);
 extern "C" {
 // game/math_sub.cpp (C linkage)
 void low_RotMatrix(Mtx m, Vec* rot);
-void Matrix2AxisAngle(Mtx m, Vec* axis, f32* angle);
+void Matrix2AxisAngle(Mtx m, Vec* rot);
 f32 SQRTF(f32 x);
 f32 SINF(f32 x);
 f32 COSF(f32 x);
 f32 LIMIT_ANGLE(f32 x);
 f32 VecAngle(Vec* a, Vec* b);
+// game/sub2.cpp
+f32 RootSumSquare3(Vec* v);
 // lib math
 f32 sinf(f32 x);
 f32 cosf(f32 x);

@@ -10,12 +10,14 @@
 // Radial blur / contrast filter: copies the frame buffer to a half-size texture and blends it back.
 
 #define BLUR_BUFF_SIZE 0x38000
+static const int zero = 0;
+#define SET_COL(c, R, G, B, A) ((c).r = (R), (c).g = (G), (c).b = (B), (c).a = (A))
 #define SCR_W ((u32) Screen.width)
 #define SCR_H ((u32) Screen.height)
 
 static u8 blur_rate = 0x40;
 u8 blur_type = 0;
-u8 blur_power = 0;
+s8 blur_power = 0;
 static u8 eff_spread_pri = 0;
 int is_eff_spread_on = 0;
 static u8 eff_blur_r = 0;
@@ -32,25 +34,21 @@ u8 g_cont_level = 0;
 u8 g_cont_pow = 0;
 static u8 g_cont_bias = 0;
 
-extern "C" {
 void Filter00CommonInit();
 void Filter00Render();
 void Filter00RenderContrast();
-}
 
 void Filter00CommonInit()
 {
     blur_rate = 0;
     blur_type = 0;
-    is_eff_spread_on = 0;
     eff_spread_pri = 0;
+    is_eff_spread_on = 0;
     eff_spread_center_x = 0.0f;
     eff_spread_center_y = 0.0f;
     eff_spread_pow = 0.0f;
     eff_spread_num = 1.0f;
-    g_cont_level = 0;
-    g_cont_pow = 0;
-    g_cont_bias = 0;
+    g_cont_bias = g_cont_pow = g_cont_level = 0;
 }
 
 void Filter00Init()
@@ -84,6 +82,7 @@ void Filter00Render()
     Mtx44 proj;
     Mtx mv;
     GXColor col;
+    f32 pow;
     static int blur_scale = 0;
     static int bl[6][4] = {
         { 1, 4, 5, 0 }, { 1, 4, 1, 0 }, { 1, 1, 1, 0 }, { 1, 2, 1, 0 }, { 1, 2, 0, 0 }, { 1, 4, 3, 0 },
@@ -94,9 +93,7 @@ void Filter00Render()
         return;
     }
     if (filter00_buff && (pG->flags_500C & 0x80000)) {
-        col.r = 0;
-        col.g = 0;
-        col.b = 0;
+        col.r = col.g = col.b = 0;
         col.a = blur_rate;
         GXSetTevColor(1, col);
         GXInitTexObj(&tex, filter00_buff, SCR_W / 2, SCR_H / 2, 6, 0, 0, 0);
@@ -115,6 +112,8 @@ void Filter00Render()
         case 3:
             GXSetBlendMode(3, 4, 5, 0);
             break;
+        case 0:
+        case 1:
         default:
             GXSetBlendMode(1, 4, 5, 0);
             break;
@@ -131,9 +130,7 @@ void Filter00Render()
             GXSetTevAlphaIn(0, 7, 7, 7, 1);
             GXSetTevAlphaOp(0, 0, 0, 0, 1, 0);
         } else {
-            col.r = blur_power;
-            col.g = blur_power;
-            col.b = blur_power;
+            col.r = col.g = col.b = blur_power;
             col.a = blur_rate;
             GXSetTevColor(1, col);
             GXSetTevOrder(0, 0, 0, 0xFF);
@@ -150,18 +147,17 @@ void Filter00Render()
         if (blur_rate) {
             GXBegin(0x80, 0, 4);
             switch (blur_type) {
-            case 1: {
-                f32 s = (f32) blur_power * (1.0f / 1024.0f);
+            case 1:
+                pow = (f32) blur_power * (1.0f / 1024.0f);
                 GXPosition2u16(0, 0);
-                GXTexCoord2f32(s, s);
+                GXTexCoord2f32(pow, pow);
                 GXPosition2u16(SCR_W, 0);
-                GXTexCoord2f32(1.0f - s, s);
+                GXTexCoord2f32(1.0f - pow, pow);
                 GXPosition2u16(SCR_W, SCR_H);
-                GXTexCoord2f32(1.0f - s, 1.0f - s);
+                GXTexCoord2f32(1.0f - pow, 1.0f - pow);
                 GXPosition2u16(0, SCR_H);
-                GXTexCoord2f32(s, 1.0f - s);
+                GXTexCoord2f32(pow, 1.0f - pow);
                 break;
-            }
             case 0:
             default:
                 GXPosition2u16(0, 0);
@@ -184,7 +180,7 @@ void Filter00Render()
             GXSetTevAlphaIn(0, 7, 7, 7, 1);
             GXSetTevAlphaOp(0, 0, 0, 0, 1, 0);
             for (i = 0; (f32) i < eff_spread_num; i++) {
-                f32 cx, cy, pow;
+                f32 cx, cy, cx2, cy2;
 
                 col.r = eff_blur_r;
                 col.g = eff_blur_g;
@@ -207,15 +203,17 @@ void Filter00Render()
                 if (cy > 2.0f) {
                     cy = 2.0f;
                 }
+                cx2 = 1.0f - cx;
+                cy2 = 1.0f - cy;
                 GXBegin(0x80, 0, 4);
                 GXPosition2u16(0, 0);
                 GXTexCoord2f32(pow * cx, pow * cy);
                 GXPosition2u16(SCR_W, 0);
-                GXTexCoord2f32(1.0f - pow * (1.0f - cx), pow * cy);
+                GXTexCoord2f32(1.0f - pow * cx2, pow * cy);
                 GXPosition2u16(SCR_W, SCR_H);
-                GXTexCoord2f32(1.0f - pow * (1.0f - cx), 1.0f - pow * (1.0f - cy));
+                GXTexCoord2f32(1.0f - pow * cx2, 1.0f - pow * cy2);
                 GXPosition2u16(0, SCR_H);
-                GXTexCoord2f32(pow * cx, 1.0f - pow * (1.0f - cy));
+                GXTexCoord2f32(pow * cx, 1.0f - pow * cy2);
                 is_eff_spread_on = 0;
                 eff_spread_pri = 0;
                 if (eff_spread_num != 1.0f && (f32) i != eff_spread_num - 1.0f) {
@@ -257,7 +255,7 @@ void Filter00SetAlpha(u8 rate)
     blur_rate = rate;
 }
 
-void Filter00SetPower(u8 power)
+void Filter00SetPower(s8 power)
 {
     blur_power = power;
 }
@@ -273,7 +271,7 @@ void Filter00SetType(u32 type)
 
 void Filter00SetAddSpread(u32 pri, int on, u8 r, u8 g, u8 b, u8 rate, u8 type, u32 num, f32 cx, f32 cy, f32 pow)
 {
-    if (pri <= eff_spread_pri) {
+    if (eff_spread_pri >= pri) {
         eff_spread_pri = pri;
         is_eff_spread_on = on;
         eff_blur_r = r;
@@ -302,9 +300,7 @@ void Filter00RenderContrast()
     if (g_cont_level == 0) {
         return;
     }
-    col.r = g_cont_bias;
-    col.g = g_cont_bias;
-    col.b = g_cont_bias;
+    col.r = col.g = col.b = g_cont_bias;
     col.a = g_cont_pow;
     GXSetTevColor(1, col);
     GXSetColorUpdate(1);

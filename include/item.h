@@ -1,0 +1,23 @@
+#ifndef ITEM_H
+#define ITEM_H
+
+#include "types.h"
+
+// Inventory manager (game/item.cpp, 0x30 bytes). Layout opaque; only the entry points the
+// debug tools use are declared.
+class cItemMgr {
+public:
+    u8 pad_0[0x30];
+
+    int num(int id);            // 0x8001EB54: count of item `id` of this->x13 type
+    void dump(int id);          // 0x8001E970: drop item `id`
+    int get(int id, int num);
+    void debugWeapon(int id);
+};
+
+extern cItemMgr ItemMgr;
+
+// weapon number/type -> item id (0xFFFF when unknown)
+u16 WeaponNo2WeaponId(u8 no, u8 type);
+
+#endif

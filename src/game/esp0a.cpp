@@ -80,10 +80,9 @@ void Esp0a_Trans(cEsp0a* esp)
     case 1: {
         cEsp* base;
         cEsp* p;
-        u32 i;
+        u32 i = 0;
 
         if (PullEsp(&base, 0)) {
-            i = 0;
             *base = *esp;
             base->id = 0;
             for (; i < 50; i++) {
@@ -125,9 +124,6 @@ void Esp0a_Trans2(cEsp* esp)
 int cEsp0a::SetFreeWork(EspGenWork* gen, u32* seed)
 {
     Esp0aWork* w = &work;
-    cEsp* base;
-    cEsp* p;
-    u32 i;
 
     if (gen->xC9 != 0) {
         pLog->err(0, 0, "ESP0a : WK1 not 0!!");
@@ -135,9 +131,12 @@ int cEsp0a::SetFreeWork(EspGenWork* gen, u32* seed)
     w->type = gen->xCA;
     w->alpha = x83;
     switch (w->type) {
-    case 0:
+    case 0: {
+        cEsp* base;
+        cEsp* p;
+        u32 i = 0;
+
         if (PullEsp(&base, 0)) {
-            i = 0;
             *base = *this;
             base->id = 0;
             for (; i < 50; i++) {
@@ -159,6 +158,7 @@ int cEsp0a::SetFreeWork(EspGenWork* gen, u32* seed)
             }
         }
         break;
+    }
     case 1:
         flags |= 0x400;
         dispFlag |= 2;

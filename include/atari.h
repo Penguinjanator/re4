@@ -13,11 +13,23 @@ public:
 
     // Ray from `top` down to `bottom`; returns the hit flags (bit2: no floor), hit point in `hit`.
     int hitCheck2(Vec* top, Vec* bottom, Vec* hit, u32* attr, int flag, int x);
+    // Line segment `a`-`b` against the scenario; hit point and normal out. Returns 0 when nothing was hit.
+    int hitCheck(Vec* a, Vec* b, Vec* hit, Vec* nrm, int x, int y);
     // Floor height under `pos`, searching `up` above and `down` below it.
     f32 getFloor(Vec* pos, f32 up, f32 down, u32* attr, int flag);
+    // Debug draw of the collision polygons (t_option "SCROLL VIEW").
+    void disp(int flag);
 };
 
 extern cSatMgr SatMgr;
+
+// Effect collision manager (game/atari.cpp `EatMgr`, 0x260 bytes; has its own vtable).
+class cEatMgr : public cSatMgr {
+public:
+    u8 pad_38[0x260 - 0x38];
+};
+
+extern cEatMgr EatMgr;
 
 #line 8 "D:/Bio4/Prog/atari.h"
 
