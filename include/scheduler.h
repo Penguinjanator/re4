@@ -91,4 +91,7 @@ void iTaskSuspend();
 int iTaskStatus();
 }
 
+// C++ overload: kill the task `t` (sce_sys SceKill).
+void TaskKill(TASK* t);
+
 #endif

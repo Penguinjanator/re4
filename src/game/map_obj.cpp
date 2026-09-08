@@ -5,8 +5,6 @@
 
 cMapMgr MapMgr;
 
-int MapObjWork = 0;
-
 cMapMgr::cMapMgr() : cManager<cMap>(sizeof(cMap), 0)
 {
     setName("cMapMgr");
@@ -17,16 +15,18 @@ int cMapMgr::construct(cMap* p, u32 id)
     u8 n = 0;
     u32 i;
 
-    for (i = 0; i < nArray; i++) {
-        cMap* q = getWork(i);
-        if ((q->be_flag & 0x201) != 1 || q->id != (int)id) {
-            continue;
-        }
-        n++;
+    i = 0;
+    if (i < nArray) {
+        do {
+            cMap* q = getWork(i);
+            if ((q->be_flag & 0x201) == 1 && (int)id == q->id) {
+                n++;
+            }
+        } while (++i < nArray);
     }
     p = new (p) cMap;
-    p->index = n;
     p->id = id;
+    p->index = n;
     return 1;
 }
 
@@ -34,11 +34,14 @@ cMap* cMapMgr::room(int id, int no)
 {
     u32 i;
 
-    for (i = 0; i < nArray; i++) {
-        cMap* p = getWork(i);
-        if ((p->be_flag & 0x201) == 1 && p->id == id && p->index == no) {
-            return p;
-        }
+    i = 0;
+    if (i < nArray) {
+        do {
+            cMap* p = getWork(i);
+            if ((p->be_flag & 0x201) == 1 && id == p->id && no == p->index) {
+                return p;
+            }
+        } while (++i < nArray);
     }
     return 0;
 }
@@ -47,25 +50,31 @@ void cMapMgr::move()
 {
     u32 i;
 
-    for (i = 0; i < nArray; i++) {
-        cMap* p = getWork(i);
-        if ((p->be_flag & 0x201) == 1 && (p->be_flag & 0x20)) {
-            dieCheck();
-            p->move();
-            p->updateOldPos();
-        }
+    i = 0;
+    if (i < nArray) {
+        do {
+            cMap* p = getWork(i);
+            if ((p->be_flag & 0x201) == 1) {
+                if (p->be_flag & 0x20) {
+                    dieCheck();
+                    p->move();
+                    p->updateOldPos();
+                }
+            }
+        } while (++i < nArray);
     }
     dispInfo();
 }
 
 int cMapMgr::dispInfo()
 {
-    u32 n = 0;
     u32 i;
+    u32 n;
 
     if (pArray == 0) {
         return 0;
     }
+    n = 0;
     for (i = 0; i < nArray; i++) {
         cMap* p = (cMap*)((u8*)pArray + size * i);
         if ((p->be_flag & 0x201) == 1) {
@@ -78,8 +87,8 @@ int cMapMgr::dispInfo()
 
 cMap::cMap()
 {
-    be_flag |= 0x1023;
     x12E = 2;
+    be_flag |= 0x1023;
 }
 
 void cMap::move()
@@ -92,3 +101,6 @@ void cMap::move()
     timer = 0;
     xFC++;
 }
+
+// unreferenced (the second .sdata word of the unit; the map lost its name)
+static int MapObjTimer = 0;

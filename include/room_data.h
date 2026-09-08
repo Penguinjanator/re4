@@ -57,6 +57,7 @@ public:
     u16 x1E;
 
     cRoomData() { flag = 0; }
+    ~cRoomData() {}  // the empty destructor is what makes GCC emit the static destructor function
 
     void init();
     void initRoomSet();

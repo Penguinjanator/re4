@@ -1030,6 +1030,7 @@ STRIP_UNUSED = {
     "game/objWep.cpp",
     "game/cloth.cpp",
     "game/esp_app.cpp",
+    "game/map_obj.cpp",
 }
 
 # Capcom sound library (game/snd_*.cpp): C++ with extern "C" functions, compiled unoptimised
@@ -1088,6 +1089,7 @@ MATCHING.update({
     "game/obj1d.cpp": True,
     "game/obj18.cpp": True,
     "game/obj.cpp": True,
+    "game/map_obj.cpp": True,
 })
 
 # media/utility units
@@ -1145,6 +1147,7 @@ MATCHING.update({
     "game/mirror.cpp": True,
     "game/cloth.cpp": True,
     "game/ik.cpp": True,
+    "game/block.cpp": True,
 })
 
 # system / UI units

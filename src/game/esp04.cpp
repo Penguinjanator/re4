@@ -59,21 +59,23 @@ void move10(cEsp04* esp)
     f32 v;
     f32 x;
     f32 y;
+    f32 lim;
 
     // Wrap the position back into the screen. The original keeps the loaded coordinate (x/y)
     // and the loop variable (v) in separate registers, which GCC's cse only does when the
     // loaded variable's last mention is later than v's (see the trailing reloads below).
     x = esp->pos.x;
     v = x;
-    if (x >= 512.0f) {
+    lim = 512.0f;
+    if (x >= lim) {
         while (v >= 0.0f) {
             esp->pos.x = v - esp->sizeX;
             v = esp->pos.x;
         }
     } else if (x < -esp->sizeX) {
-        if (x < 512.0f - esp->sizeX) {
+        if (x < lim - esp->sizeX) {
             v = x;
-            while (v < 512.0f - esp->sizeX) {
+            while (v < lim - esp->sizeX) {
                 v += esp->sizeX;
             }
             esp->pos.x = v;
@@ -81,15 +83,16 @@ void move10(cEsp04* esp)
     }
     y = esp->pos.y;
     v = y;
-    if (y >= 448.0f) {
+    lim = 448.0f;
+    if (y >= lim) {
         while (v >= 0.0f) {
             esp->pos.y = v - esp->sizeY;
             v = esp->pos.y;
         }
     } else if (y < -esp->sizeY) {
-        if (y < 448.0f - esp->sizeX) {
+        if (y < lim - esp->sizeX) {
             v = y;
-            while (v < 448.0f - esp->sizeX) {
+            while (v < lim - esp->sizeX) {
                 v += esp->sizeY;
             }
             esp->pos.y = v;

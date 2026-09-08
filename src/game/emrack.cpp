@@ -18,7 +18,6 @@
 extern "C" {
 void EtcSetAddAmb(cModel* m, int a);                                                         // EtcModel.cpp
 void EmAtCheck(cEm* em);                                                                     // at_mod.cpp
-void YarareAddCube(cEmHit* em, EmHitInfo* info, int a, int b, f32 x, f32 y, f32 z, f32 w, f32 h, f32 d);  // at_mod.cpp
 void Em_R0_Scenario(cEm* em);                                                                // em_sub.cpp
 }
 
@@ -65,7 +64,7 @@ cEmRack* SetRack(void* bin, void* tpl, Vec* pos, Vec* rot, u8 type, int etcNo)
     EtcSetAddAmb(em, 8);
     w->eff = 0xFF;
     em->type = type;
-    switch (type) {
+    switch (em->type) {
     case 0:
     default:
         w->size.x = 700.0f;
@@ -155,17 +154,16 @@ cEmRack* SetRack(void* bin, void* tpl, Vec* pos, Vec* rot, u8 type, int etcNo)
 void emRackDmCk(cEmRack* em)
 {
     EmRackWork* w = EMRACK_WK(em);
+    EmHitInfo* part;
     u8 wep;
+    int type;
     Vec hit;
 
     if (em->hp <= 0) {
         return;
     }
-    switch (em->type) {
-    case 0:
-    case 1:
-        break;
-    default:
+    type = em->type;
+    if (type < 0 || type > 1) {
         return;
     }
     switch (DmgMgr.hitCheck(&em->pos, &hit)) {
@@ -173,11 +171,11 @@ void emRackDmCk(cEmRack* em)
     case 4:
     case 5:
     case 7:
+        em->hp = 0;
         em->xFC = 1;
         em->xFD = 2;
         em->xFE = 0;
         em->xFF = 0;
-        em->hp = 0;
         return;
     }
     if (em->dmHit == 0) {
@@ -224,11 +222,8 @@ void emRackDmCk(cEmRack* em)
         }
         return;
     }
+    part = em->dmPart;
     switch (em->dmWep) {
-    case 0:
-    case 0x14:
-        em->setDown(&em->x328);
-        break;
     case 1:
     case 2:
     case 3:
@@ -250,9 +245,7 @@ void emRackDmCk(cEmRack* em)
         }
         break;
     case 7:
-    case 8: {
-        EmHitInfo* part = em->dmPart;
-
+    case 8:
         if (part->rad < 36000000.0f) {
             if (w->xE8 <= 0.0f) {
                 em->xFC = 1;
@@ -281,12 +274,27 @@ void emRackDmCk(cEmRack* em)
             EmDmBloodSet2(em, w->eff, 2, 0, 0, 0);
         }
         break;
-    }
+    case 0x15:
+        em->xFC = 1;
+        em->xFD = 2;
+        em->xFE = 0;
+        em->xFF = 2;
+        break;
+    case 0x29:
+        em->xFC = 1;
+        em->xFD = 2;
+        em->xFE = 0;
+        em->xFF = 2;
+        break;
     default:
         em->xFC = 1;
         em->xFD = 2;
         em->xFE = 0;
         em->xFF = 2;
+        break;
+    case 0:
+    case 0x14:
+        em->setDown(&em->x328);
         break;
     }
 }
@@ -514,7 +522,11 @@ void emRackSatSet(cEmRack* em)
     if (em->hp <= 0) {
         return;
     }
-    em->atari.flags |= 0x200;
+    {
+        cAtariInfo* at = &em->atari;
+
+        at->flags |= 0x200;
+    }
     if (w->sat[0] != 0 && em->plDist2 > 225000000.0f) {
         return;
     }
@@ -550,8 +562,9 @@ void emRackSatSet(cEmRack* em)
     v[1].y = 1000.0f;
     v[2].y = 1000.0f;
     v[3].y = 1000.0f;
+    h = 500.0f;
     if (w->sat[1] == 0) {
-        w->sat[1] = EatMgr.create(&em->pos, &em->rot, v, 0x400000, 0, 500.0f);
+        w->sat[1] = EatMgr.create(&em->pos, &em->rot, v, 0x400000, 0, h);
     } else {
         w->sat[1]->flags |= 4;
         w->sat[1]->setCoord(&em->pos, &em->rot);
@@ -560,8 +573,9 @@ void emRackSatSet(cEmRack* em)
     v[1].y = 1500.0f;
     v[2].y = 1500.0f;
     v[3].y = 1500.0f;
+    h = 500.0f;
     if (w->sat[2] == 0) {
-        w->sat[2] = EatMgr.create(&em->pos, &em->rot, v, 0x400000, 0, 500.0f);
+        w->sat[2] = EatMgr.create(&em->pos, &em->rot, v, 0x400000, 0, h);
     } else {
         w->sat[2]->flags |= 4;
         w->sat[2]->setCoord(&em->pos, &em->rot);
@@ -595,12 +609,14 @@ void emRackYarareInit(cEmRack* em)
         break;
     case 1:
         YarareInitCube((cEmHit*) em, 0.0f, 0.0f, 0.0f, w->size.x, w->size.y, w->size.z, 0, 1);
-        YarareAddCube((cEmHit*) em, &w->hit[0].info, 0, 1, 0.0f, 1800.0f, 0.0f, 700.0f, 200.0f, 400.0f);
-        YarareAddCube((cEmHit*) em, &w->hit[1].info, 0, 1, -600.0f, 0.0f, 0.0f, 100.0f, w->size.y, 400.0f);
-        YarareAddCube((cEmHit*) em, &w->hit[2].info, 0, 1, 600.0f, 0.0f, 0.0f, 100.0f, w->size.y, 400.0f);
-        YarareAddCube((cEmHit*) em, &w->hit[3].info, 2, 1, 1000.0f, 0.0f, 0.0f, 500.0f, 800.0f, 450.0f);
+        YarareAddCube((cEmHit*) em, &w->hit[0].info, 0.0f, 1800.0f, 0.0f, 700.0f, 200.0f, 400.0f, 0, 1);
+        YarareAddCube((cEmHit*) em, &w->hit[1].info, -600.0f, 0.0f, 0.0f, 100.0f, w->size.y, 400.0f, 0, 1);
+        YarareAddCube((cEmHit*) em, &w->hit[2].info, 600.0f, 0.0f, 0.0f, 100.0f, w->size.y, 400.0f, 0, 1);
+        YarareAddCube((cEmHit*) em, &w->hit[3].info, 0.0f, 1000.0f, 0.0f, 500.0f, 800.0f, 450.0f, 2, 1);
         break;
     case 2:
+        YarareInitCube((cEmHit*) em, 0.0f, 0.0f, 0.0f, w->size.x, w->size.y, w->size.z, 0, 0x41);
+        break;
     case 3:
     case 5:
         YarareInitCube((cEmHit*) em, 0.0f, 0.0f, 0.0f, w->size.x, w->size.y, w->size.z, 0, 0x41);

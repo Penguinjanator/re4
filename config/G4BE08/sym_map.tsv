@@ -10267,11 +10267,11 @@ address	size	section	unit	scope	name	demangled
 0x8026BC30	0x170	.data	game/read.cpp	local	wep_data_wesker	wep_data_wesker
 0x8026BDA0	0x170	.data	game/read.cpp	global	wep_data_klauser	wep_data_klauser
 0x8026BF10	0x10	.data	game/room_jmp.cpp	global	tbl.1326	tbl.1326
-0x8026BF20	0x324	.data	game/roomdata.cpp	local	St0_data_tbl	St0_data_tbl
-0x8026C244	0x18C	.data	game/roomdata.cpp	local	St1_data_tbl	St1_data_tbl
-0x8026C3D0	0x228	.data	game/roomdata.cpp	local	St2_data_tbl	St2_data_tbl
-0x8026C5F8	0x270	.data	game/roomdata.cpp	local	St3_data_tbl	St3_data_tbl
-0x8026C868	0xD8	.data	game/roomdata.cpp	local	St4_data_tbl	St4_data_tbl
+0x8026BF20	0x324	.data	game/roomdata.cpp	global	St0_data_tbl	St0_data_tbl
+0x8026C244	0x18C	.data	game/roomdata.cpp	global	St1_data_tbl	St1_data_tbl
+0x8026C3D0	0x228	.data	game/roomdata.cpp	global	St2_data_tbl	St2_data_tbl
+0x8026C5F8	0x270	.data	game/roomdata.cpp	global	St3_data_tbl	St3_data_tbl
+0x8026C868	0xD8	.data	game/roomdata.cpp	global	St4_data_tbl	St4_data_tbl
 0x8026C940	0x50	.data	game/roomdata.cpp	local	Room_data_tbl	Room_data_tbl
 0x8026C990	0xA8	.data	game/sce_at.cpp	local	sceAtFunc_tbl	sceAtFunc_tbl
 0x8026CA38	0xC	.data	game/scroll.cpp	local	DmyZeroTpl	DmyZeroTpl

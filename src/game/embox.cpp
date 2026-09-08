@@ -23,7 +23,6 @@ extern "C" {
 void EtcSetAddAmb(cModel* m, int a);                                                         // EtcModel.cpp
 void LifeDownSet(cEm* em, int dmg, int a);                                                  // em_sub.cpp
 void EmAtCheck(cEm* em);                                                                     // at_mod.cpp
-void YarareAddCube(cEmHit* em, EmHitInfo* info, int a, int b, f32 x, f32 y, f32 z, f32 w, f32 h, f32 d);  // at_mod.cpp
 void SetEffModel(void* bin, void* tpl, Vec* pos, Vec* rot);                                  // esp_efm.cpp
 int getRoomEtc(int no, int kind, cEm** out, int a);                                          // EtcModel.cpp
 void SceAtCreateItemAt(Vec* pos, u16 no, int num, int a, int b, int c, int d);              // sce_at.cpp
@@ -547,7 +546,7 @@ void emBoxYarareInit(cEmBox* em)
     EmBoxWork* w = EMBOX_WK(em);
 
     YarareInitCube((cEmHit*) em, 0.0f, 0.0f, 0.0f, w->size.x * 0.5f + 50.0f, w->size.y, w->size.z * 0.5f + 50.0f, 0, 1);
-    YarareAddCube((cEmHit*) em, &w->hit, 0, 1, 0.0f, 0.0f, 0.0f, w->size.x * 0.5f * 0.5f, w->size.y * 0.8f, w->size.z * 0.5f * 0.8f);
+    YarareAddCube((cEmHit*) em, &w->hit, 0.0f, 0.0f, 0.0f, w->size.x * 0.5f * 0.5f, w->size.y * 0.8f, w->size.z * 0.5f * 0.8f, 0, 1);
 }
 
 void cEmBox::setEff(u8 eff)

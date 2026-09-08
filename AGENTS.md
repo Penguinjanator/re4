@@ -348,6 +348,14 @@ mark it Matching.
   larger than its variables, a zero-initialised static array referenced only by a never-called inline
   reproduces the gap.
 - A `goto RESTART` outer loop vs `for(;;)` changes where gcse hoists loop-invariant `lis` (main loop).
+- Hand-rolled `goto` loops (label + `if (...) goto loop`) get no loop notes: no invariant hoisting
+  and no givs, with an explicit `ofs += N` variable. A `found:` label inside the last loop's if-body
+  puts the shared exit block inside that loop.
+- A unit-owned global pointer the original reloads after every store through it is reproduced by
+  defining the global itself as a one-member struct (`TexRenderMngPtr g_pMgr; g_pMgr.p`).
+- Vec by-value parameters are passed by reference under the V4 ABI: callee code identical to `Vec*`.
+- A local `lim = 512.0f` shared by an `if` test and a `while` bound keeps one constant register; a
+  repeated literal inside the loop is hoisted as a second pseudo and copied (`fmr`).
 - Static locals show as `name.NNN` in objdiff; the DECL_UID suffix cannot be reproduced and is ignored by the report.
 - Unexplained words in `.rodata` (zero words, stray floats) are usually the constant pool of a function
   the original linker dead-stripped (bodies gone, pools kept, `STRIP_UNUSED` in objects.py): write a

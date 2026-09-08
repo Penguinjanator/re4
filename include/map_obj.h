@@ -31,12 +31,16 @@ public:
     virtual void memClear(cMap* p, u32 size) { memclr_asm(p, size); }
     virtual int construct(cMap* p, u32 id);
 
-    // work `no`, 0 when out of range (the loops below inline it: the range check stays)
+    // Work `no`, 0 when out of range. The callers' guarded do-while loops inline it with the
+    // range check kept at the loop top only: the `m` copy stops thread_jumps (user-variable
+    // operand) in the pass before cse1, after which cse propagates it and the pass after loop.c
+    // threads only the back edge past the check (a plain `no >= nArray` loses the check).
     cMap* getWork(u32 no) {
-        if (no >= nArray) {
+        cMapMgr* m = this;
+        if (no >= m->nArray) {
             return 0;
         }
-        return (cMap*)((u8*)pArray + size * no);
+        return (cMap*)((u8*)m->pArray + m->size * no);
     }
 
     cMap* room(int id, int no);   // the live work with type `id` and index `no`

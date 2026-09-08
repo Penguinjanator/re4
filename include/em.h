@@ -9,17 +9,20 @@
 
 // Character work (game/em.cpp), sizeof 0xDE0. The player classes derive from it, so the
 // player-only fields the pl_* units touch live here too (they all sit below 0xDE0).
-// Hit box / damage part info (cEm+0x33C for the player; GetWepTargetList returns pointers to
-// these per target). Only what obj08 reads is named.
+// Hit box ("yarare") / damage part info (cEm+0x33C for the player; GetWepTargetList returns
+// pointers to these per target), 0x34 bytes; extra boxes are chained through `next` (at_mod.cpp
+// YarareAdd / YarareAddCube).
 struct EmHitInfo {
-    u8 pad_0[0xC];
+    Vec ofs;              // 0x00  box centre offset from the model / parts (yarareInit0 x, y, z)
     Vec pos;              // 0x0C  hit position in the parts (obj1b: the spear sticks here)
     f32 width;            // 0x18
     f32 height;           // 0x1C
-    u8 pad_20[4];
-    u16 flags;            // 0x24  bit5 (0x20): the hit sets cDmgInfo bit5 too (pl_wep PlWepHitCheck2)
+    f32 depth;            // 0x20  cube depth (YarareInitCube / YarareAddCube set it with flags bit3)
+    u16 flags;            // 0x24  bit3 (0x8): cube, bit5 (0x20): the hit sets cDmgInfo bit5 too (pl_wep PlWepHitCheck2)
     s16 partsNo;          // 0x26  parts the effect is placed at (0 = the model itself), 1-based
     f32 rad;              // 0x28
+    u8 pad_2C[4];
+    EmHitInfo* next;      // 0x30  next hit box of the model (YarareAdd)
 };
 
 // Damage info at cEm+0x324 (game/em.cpp), 0x18 bytes. set(0, 10, kind, pos, rad, part) registers a hit.
@@ -126,8 +129,7 @@ public:
             EmHitInfo* dmPart;    // 0x338  cDmgInfo::set part (emswitch: its rad decides the blood type)
         };
     };
-    EmHitInfo hitInfo;    // 0x33C .. 0x368  (obj08: the player's hit part for the damage effect)
-    u8 pad_368[0x370 - 0x368];
+    EmHitInfo hitInfo;    // 0x33C .. 0x370  (obj08: the player's hit part for the damage effect)
     f32 plDist2;          // 0x370  squared distance to the player (db_work prints its sqrt)
     f32 x374;             // 0x374  (em_set: 1e16 at creation)
     u32 x378;             // 0x378  (pl_sub EndPlDamage/EndSubDamage: x378 = x37C)

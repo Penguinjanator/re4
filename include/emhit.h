@@ -47,8 +47,13 @@ void emHit_R1_Parent(cEmHit* em);
 void emHit_R1_Break(cEmHit* em);
 void emHit_R1_Beetle(cEmHit* em);
 void emHitYarareInit(cEmHit* em);
-// obj14 calls this with (pos x, y, z, w, h, 1, 1); the real order is (em, s16 no, u16 flag, x, y, z, w, h)
-void YarareInit(cEmHit* em, f32 x, f32 y, f32 z, f32 rx, f32 rz, int a, int b);         // at_mod.cpp
+// Hit box setup (game/at_mod.cpp): the model's own box (em->hitInfo) and extra boxes chained to it.
+// The parts number / flags come last: the callers' `li` argument loads are scheduled after the
+// float moves (emhit, obj14, obj15 ...).
+void YarareInit(cEm* em, f32 x, f32 y, f32 z, f32 w, f32 h, s16 no, u16 flags);
+void YarareInitCube(cEm* em, f32 x, f32 y, f32 z, f32 w, f32 h, f32 d, s16 no, u16 flags);
+void YarareAdd(cEm* em, EmHitInfo* box, f32 x, f32 y, f32 z, f32 w, f32 h, s16 no, u16 flags);
+void YarareAddCube(cEm* em, EmHitInfo* box, f32 x, f32 y, f32 z, f32 w, f32 h, f32 d, s16 no, u16 flags);
 int EmGetDmPos(cEm* em, Vec* pos, Vec* dir);                                     // em_sub.cpp
 void EmDmBloodSet2(cEm* em, int a, int type, int b, int c, int d);               // em_sub.cpp
 }
@@ -64,8 +69,6 @@ struct EmAtkInfo {
 };
 
 extern "C" {
-// obj15: (em, 430, 0, 520, 300, 1600, 50, 1, 1); floats before the ints reproduces the arg setup order
-void YarareInitCube(cEmHit* em, f32 x, f32 y, f32 z, f32 rx, f32 rz, f32 h, int a, int b);  // at_mod.cpp
 void EmPlBloodSet2(cModel* m, Vec* pos, int a, int b, int type);                 // em_sub.cpp
 // Line `a`-`b` against the enemies: the hit enemy or NULL; hit point / normal and the scenario attribute out.
 cEm* EmAtkLineHitCk(Vec* a, Vec* b, Vec* hit, Vec* nrm, u32* attr);              // em_sub.cpp
