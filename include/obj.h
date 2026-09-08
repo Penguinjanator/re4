@@ -5,6 +5,7 @@
 #include "cManager.h"
 #include "model.h"
 #include "atariInfo.h"
+#include "pendulum.h"
 
 // Per-object work layouts (game/obj03.cpp ...), all overlaid at cObj+0x328.
 struct Obj03Work {
@@ -78,6 +79,54 @@ struct Obj26Work {
     Vec tgtScale;         // 0x18
 };
 
+// Bell work (game/obj14.cpp): a hit-receiving enemy plus a pendulum chain for the swing.
+struct BellWork {
+    u8 pad_0[0xA];
+    u16 ringTimer;        // 0x0A  frames the "rung" state is reported to pG (90 after a hit)
+    class cEmHit* pEmHit; // 0x0C
+    struct PenCloth cloth;  // 0x10 .. 0x70
+};
+
+// Floating island work (game/obj1c.cpp): drifts back toward its home position, plays crash
+// motions and spawns effects while the player is on it.
+struct IslandWork {
+    u32 x00;              // 0x00
+    u8 pad_4[8];
+    int crashTimer;       // 0x0C  frames since setCrashBig (ckCrash)
+    int estTimer;         // 0x10  frames until the next idle effect
+    int crashEstWait;     // 0x14  frames the crash effect is suppressed
+    Vec spd;              // 0x18  push speed (setCrashBig)
+    Vec home;             // 0x24  position it drifts back to
+    u8 espKind;           // 0x30  effect kind (EspPullCoreKind)
+    u8 pad_31[3];
+    void* motIdle;        // 0x34  motions: idle / crash, and their big-scale (>= 1.5) variants
+    void* motCrash;       // 0x38
+    void* motIdleBig;     // 0x3C
+    void* motCrashBig;    // 0x40
+};
+
+// Thrown / shot object work (game/obj08.cpp): a projectile with gravity, scenario / enemy /
+// player hit checks and up to four effect sets.
+struct Obj08Work {
+    u32 flags;            // 0x00  bit0 start motion, bit1 motion running, bit3 rotate, bit4 enemy hit check, bit5 player hit check
+    void* pMot;           // 0x04
+    u8 pad_8[2];
+    u16 motPrm;           // 0x0A
+    Vec rotSpd;           // 0x0C
+    Vec spd;              // 0x18
+    f32 grav;             // 0x24
+    f32 rad;              // 0x28  hit radius (min 1.0)
+    cModel* parent;       // 0x2C  thrower (its id goes to SndCall)
+    int life;             // 0x30  frames left (-1 = forever)
+    void* pAtk;           // 0x34  EmAtkHitCk attack data
+    u32 atkFlags;         // 0x38  low 16 bits: GetWepTargetList flag, low byte: damage kind
+    u32 estNo[4];         // 0x3C  effects: 0 ?, 1 scenario hit / timeout, 2 floor hit, 3 enemy / player hit
+    u32 estPrm[4];        // 0x4C
+    u16 seBlk;            // 0x5C  hit SE (0xFFFF = none)
+    u16 seNo;             // 0x5E
+    u8 estFlag;           // 0x60  1: the enemy-hit effect follows the target instead of the hit point
+};
+
 // Ladder / tower work (game/objYagura.cpp).
 struct YaguraWork {
     u8 pad_0[0x20];
@@ -109,6 +158,9 @@ public:
         ObaModelWork obaModel;
         Obj26Work obj26;
         YaguraWork yagura;
+        BellWork bell;
+        IslandWork island;
+        Obj08Work o8;
     };
     u8 x3D0;              // 0x3D0
     u8 pad_3D1[3];
@@ -125,11 +177,11 @@ public:
     cObjMgr();
     virtual ~cObjMgr();
     virtual void* memAlloc(u32 size);
-    virtual void memFree();
+    virtual void memFree(void* p);
     virtual void memClear(cObj* p, u32 size);
     virtual void log(const char* fmt, ...);
     virtual void destroy(cObj* p);
-    virtual int construct(cObj* p, int id);
+    virtual int construct(cObj* p, u32 id);
 
     cObj* getWork(u32 no) {
         if (no >= nArray) {

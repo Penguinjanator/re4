@@ -7,7 +7,6 @@
 #include "db_log.h"
 #include "main.h"
 #include "snd.h"
-#include "pl_cloth.h"
 
 extern "C" {
 void OSReport(const char* fmt, ...);
@@ -103,8 +102,8 @@ void cPlLeon::setModel()
         return;
     }
     addModel(info);
-    pFace->pFace = info;
-    face = pFace->pFace;
+    pBody->pFace = info;
+    face = pBody->pFace;
     if (VALID_PTR(face)) {
         face->x84 = 0.0f;
         face->x70 = 0.0f;
@@ -116,23 +115,23 @@ void cPlLeon::setModel()
         return;
     }
     addModel(info);
-    PSet(pFace->pShape, info);
-    PSet(pFace->pHeadData, PL_ARC_PTR(pG->pPlArc, 8));
+    PSet(pBody->pShape, info);
+    PSet(pBody->pHeadData, PL_ARC_PTR(pG->pPlArc, 8));
     info = ModInfoMgr.create(PL_ARC_PTR(pG->pPlArc, 6), PL_ARC_PTR(pG->pPlArc, 7));
     if (!VALID_PTR(info)) {
         pLog->err(0, 0, "cPlLeon::setModel() failed.");
         return;
     }
     addModel(info);
-    PSet(pFace->pHair, info);
+    PSet(pBody->pHair, info);
     info = ModInfoMgr.create(PL_ARC_PTR(pG->pPlArc, 9), PL_ARC_PTR(pG->pPlArc, 7));
     if (!VALID_PTR(info)) {
         pLog->err(0, 0, "cPlLeon::setModel() failed.");
         return;
     }
     addModel(info);
-    info->flags |= 0x40;
-    PSet(pFace->pEye, info);
+    info->be_flag |= 0x40;
+    PSet(pBody->pEye, info);
     if (pG->costume >= 1 && pG->costume <= 3) {
         info = ModInfoMgr.create(PL_ARC_PTR(pG->pPlArc, 0x10), PL_ARC_PTR(pG->pPlArc, 5));
         if (!VALID_PTR(info)) {
@@ -162,23 +161,24 @@ void cPlLeon::setWound()
     }
 }
 
-// Not matched (98%): the original shares one register for `no` and `data` (no `mr` in the default case).
+// Not matched (98%): the original allocates `data` before `info` (data and `no` share r30, so the
+// default case has no `mr`); here `info` wins the register (live length 19 vs 21 insns).
 void cPlLeon::setRightHand(int no)
 {
-    cModelInfo* info;
     int data;
+    cModelInfo* info;
 
-    if (pFace->pRight) {
-        deleteModelInfo(pFace->pRight);
-        pFace->pRight = 0;
-        pFace->pRightData = 0;
+    if (pBody->pRight) {
+        deleteModelInfo(pBody->pRight);
+        pBody->pRight = 0;
+        pBody->pRightData = 0;
     }
     switch (no) {
     case 0:
         data = (int) PL_ARC_PTR(pG->pPlArc, 0x12);
         break;
     case 1:
-        data = (int) pFace->pRightDataAlt;
+        data = (int) pBody->pWepHand;
         break;
     default:
         data = no;
@@ -186,8 +186,8 @@ void cPlLeon::setRightHand(int no)
     }
     if ((info = ModInfoMgr.create((void*) data, PL_ARC_PTR(pG->pPlArc, 0x11))) != 0) {
         addModel(info);
-        pFace->pRight = info;
-        pFace->pRightData = (void*) data;
+        pBody->pRight = info;
+        pBody->pRightData = (void*) data;
     }
     if (!info) {
 #line 353 "D:/Bio4/Prog/pl_leon.cpp"
@@ -200,13 +200,13 @@ void cPlLeon::setLeftHand(u32 no)
     cModelInfo* info;
     void* data;
 
-    if (pFace->pLeft) {
-        deleteModelInfo(pFace->pLeft);
-        pFace->pLeft = 0;
-        pFace->pLeftData = 0;
+    if (pBody->pLeft) {
+        deleteModelInfo(pBody->pLeft);
+        pBody->pLeft = 0;
+        pBody->pLeftData = 0;
     }
     if (no == 0x63) {
-        no = pFace->leftNoPrev;
+        no = pBody->leftNoPrev;
     }
     switch (no) {
     case 0:
@@ -231,22 +231,22 @@ void cPlLeon::setLeftHand(u32 no)
         data = (void*) no;
         break;
     }
-    pFace->leftNoPrev = pFace->leftNo;
-    pFace->leftNo = no;
+    pBody->leftNoPrev = pBody->leftNo;
+    pBody->leftNo = no;
     info = ModInfoMgr.create(data, PL_ARC_PTR(pGS->pPlArc, 0x11));
     if (info == 0) {
         pLog->err(0, 0, "cPlLeon::setLeftHand() ModInfoMgr.create() failed");
     } else {
         addModel(info);
-        pFace->pLeft = info;
-        pFace->pLeftData = data;
+        pBody->pLeft = info;
+        pBody->pLeftData = data;
     }
 }
 
 void cPlLeon::setFace(int no)
 {
     void* data = 0;
-    void* shape = pFace->pShape;
+    void* shape = pBody->pShape;
 
     if (shape == 0) {
         return;
@@ -264,7 +264,7 @@ void cPlLeon::setFace(int no)
         break;
     }
     if (no != 0) {
-        ShapeSet(pFace->pShape, 0, data, 2);
+        ShapeSet(pBody->pShape, 0, data, 2);
     }
 }
 
@@ -275,15 +275,15 @@ void cPlLeon::setHead(int no)
     if (no != 0) {
         return;
     }
-    if (pFace->pShape == 0) {
+    if (pBody->pShape == 0) {
         return;
     }
-    deleteModelInfo(pFace->pShape);
-    pFace->pShape = 0;
-    deleteModelInfo(pFace->pHair);
-    pFace->pHair = 0;
-    deleteModelInfo(pFace->pEye);
-    pFace->pEye = 0;
+    deleteModelInfo(pBody->pShape);
+    pBody->pShape = 0;
+    deleteModelInfo(pBody->pHair);
+    pBody->pHair = 0;
+    deleteModelInfo(pBody->pEye);
+    pBody->pEye = 0;
     info = ModInfoMgr.create(PL_ARC_PTR(pGS->pPlArc, 0xB), PL_ARC_PTR(pGS->pPlArc, 7));
     if (info) {
         addModel(info);
@@ -294,15 +294,15 @@ void cPlLeon::setHead(void* bin, void* tpl)
 {
     cModelInfo* info;
 
-    if (pFace->pShape == 0) {
+    if (pBody->pShape == 0) {
         return;
     }
-    deleteModelInfo(pFace->pShape);
-    pFace->pShape = 0;
-    deleteModelInfo(pFace->pHair);
-    pFace->pHair = 0;
-    deleteModelInfo(pFace->pEye);
-    pFace->pEye = 0;
+    deleteModelInfo(pBody->pShape);
+    pBody->pShape = 0;
+    deleteModelInfo(pBody->pHair);
+    pBody->pHair = 0;
+    deleteModelInfo(pBody->pEye);
+    pBody->pEye = 0;
     info = ModInfoMgr.create(bin, tpl);
     if (info) {
         addModel(info);
@@ -340,18 +340,4 @@ int cPlLeon::checkXbutton()
     xButtonWait = 8;
     pG->flags_500C |= 0x800000;
     return 1;
-}
-
-void cPlLeon::initCloth()
-{
-    if (pG->costume != 2) {
-        PlClothSetLeon(this, &leonHair, &leonJacket, &leonHolster);
-    }
-}
-
-void cPlLeon::moveCloth()
-{
-    if (pG->costume != 2) {
-        PlClothMoveLeon(this, &leonHair, &leonJacket, &leonHolster);
-    }
 }

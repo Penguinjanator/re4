@@ -8,7 +8,10 @@
 class cModel;
 
 // Placement new used to construct camera objects inside CameraControl::extra_buf.
+#ifndef PLACEMENT_NEW_DEFINED
+#define PLACEMENT_NEW_DEFINED
 inline void* operator new(unsigned int, void* p) { return p; }
+#endif
 
 // Base class of the special-purpose cameras (game/cam_extra.cpp, cam_motion.cpp).
 // GNU v2 layout: Camera data first, then the vtable pointer at 0xF8 (size 0xFC).

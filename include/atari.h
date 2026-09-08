@@ -23,6 +23,9 @@ public:
     int hitCheck(Vec* a, Vec* b, Vec* hit, Vec* nrm, int x, int y);
     // Floor height under `pos`, searching `up` above and `down` below it.
     f32 getFloor(Vec* pos, f32 up, f32 down, u32* attr, int flag);
+    // Sphere of radius `r` moving from `a` to `b` against the scenario; `b` is pushed out of the
+    // polygons (cLight::hitAdjust). Returns 1 when the sphere was adjusted.
+    int polySphereCk(Vec* a, Vec* b, f32 r, int x, int y, int flag);
     // Debug draw of the collision polygons (t_option "SCROLL VIEW").
     void disp(int flag);
 };

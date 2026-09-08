@@ -3,6 +3,12 @@
 
 #include "types.h"
 
+// Placement new for the managers' construct(): the work is constructed in place.
+#ifndef PLACEMENT_NEW_DEFINED
+#define PLACEMENT_NEW_DEFINED
+inline void* operator new(unsigned int, void* p) { return p; }
+#endif
+
 // Base of every managed work object (cLight, cEsp, cObj, cEm, ...).
 // GCC 2.95 places the vptr after the fields of the class that introduces it.
 class cUnit {
@@ -37,21 +43,23 @@ public:
     u32 maxAlive;      // 0x20 peak active count
     const char* name;  // 0x24
     u32 warnDiv;       // 0x28 countActiveWork() warns when free works < nArray / warnDiv
-    u32 x2C;           // 0x2C set by init()
+    void (**funcTbl)(T*);  // 0x2C per-type move handlers, set by init() (cLight::move calls funcTbl[type])
     // 0x30 vptr
 
     cManager(u32 size, u8 flag);
-    virtual ~cManager();
+    // in-class: an out-of-class template definition is instantiated by the derived constructors'
+    // base cleanup and lands before setName in light.cpp; the DOL has it after the destructors
+    virtual ~cManager() {}
     virtual void* memAlloc(u32 size) = 0;
-    virtual void memFree() = 0;
+    virtual void memFree(void* p) = 0;
     virtual void memClear(T* p, u32 size) = 0;
     virtual void log(const char* fmt, ...);
     virtual void destroy(T* p);
-    virtual int construct(T* p, int id) = 0;
+    virtual int construct(T* p, u32 id) = 0;  // the id switch trees compare unsigned (cLightMgr, cCtrlMgr)
 
     void setName(const char* n);
     int roomInit();
-    void init(u32 x);
+    void init(void (**tbl)(T*));
     u32 countActiveWork();
     T* create(int id);
     T* create();
@@ -131,11 +139,6 @@ cManager<T>::cManager(u32 size, u8 flag)
 }
 
 template <class T>
-cManager<T>::~cManager()
-{
-}
-
-template <class T>
 void cManager<T>::log(const char* fmt, ...)
 {
 }
@@ -160,10 +163,29 @@ int cManager<T>::roomInit()
 }
 
 template <class T>
-void cManager<T>::init(u32 x)
+void cManager<T>::init(void (**tbl)(T*))
 {
-    x2C = x;
+    funcTbl = tbl;
     roomInit();
+}
+
+// Works marked for deletion (flag 1 / 2 destroy): bit 0x400 deletes this frame, 0x200 arms 0x400.
+template <class T>
+int cManager<T>::dieCheck()
+{
+    u32 i;
+    for (i = 0; i < nArray; i++) {
+        T* p = (T*)((u8*)pArray + size * i);
+        if (p->be_flag & 0x601) {
+            if (p->be_flag & 0x400) {
+                delete p;
+                p->be_flag = 0;
+            } else if (p->be_flag & 0x200) {
+                p->be_flag |= 0x400;
+            }
+        }
+    }
+    return 1;
 }
 
 template <class T>

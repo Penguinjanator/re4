@@ -337,6 +337,47 @@ mark it Matching.
 - `bool ok = f(); if (ok)` materialises `li 1; bne; li 0; cmpwi` from the call result (dvd Watcher).
 - `int v = 1; if ((pG->flags & bit) == 0) v = 0;` is how a stored/compared flag test is written when the
   target shows the `li/andis./bne/li` chain for a global; `(pG->flags & bit) ? 1 : 0` becomes `extrwi`.
+- File-scope `static const` aggregates are deferred to the end of the unit (they land after the
+  cManager template strings); a function-local static is emitted at its declaration, and a constant
+  shared by two functions at the front of `.rodata` is a class static member (`const Vec cItemObj::zero`,
+  obj19), which is emitted at its definition like any public object.
+- Class vtables are `_vt.<len><Class>`; when another unit's split object references the vtable (an
+  implicit inline constructor inlined into `cObjMgr::construct`) the symbols.txt entry must carry that
+  name or ngcld exits 99 silently. `sync_symbols.py` renames `X_virtual_table` placeholders now, and
+  `strip_unused.py` keeps them. A unit in `STRIP_UNUSED` must be synced once *without* the strip (the
+  strip deletes every function whose name is not yet in sym_map).
+- `switch` tree shapes: `case 0: case 1:` alone gives the linear `cmpwi 0; beq; cmpwi 1; beq; b default`;
+  an extra empty `case 2: break;` gives the balanced `cmpwi 1; beq; bgt default; cmpwi 0; bne default`
+  (obj26). Case labels that share the default body still shape the tree (`balance_case_nodes` counts
+  every node, a range as two) even though jump threading collapses their compares into `b default`:
+  obj14's weapon switch needs `case 5..0xA, 0xD, 0xF, 0x10, 0x12..0x18, 0x21, 0x28..0x2A, 0x2C, 0x2D:
+  default:` to reproduce the root/branch compares.
+- Independent constant stores at a block end come out in an order that is neither source nor reverse
+  (`[a,b,c,d]` often as `d,a,b,c`, float and integer stores interleaved by load latency); when several
+  fields are initialised, brute-force the statement order with a scripted variant loop (obj14ClothSet,
+  SetObj08 took ~10 variants each). Constant registers: an `SImode` zero store followed by a `u8` zero
+  store shares one `li 0`; the narrower store first gives two registers. Same for `-1`/`0xFFFF`.
+- A struct copy into `pG->member`, `memcpy(&pG->m, ...)`, `(u8*)&pG->m`, `&pG->m.x` or a `Vec&`/`Vec*`
+  helper all leave `pG` in its register for the next store; only `memcpy((u8*)pG + offset, ...)`
+  (byte-pointer arithmetic destination: not `MEM_IN_STRUCT_P`, alias set 0) makes the next `pG->x = v`
+  reload `pG` (obj14 `obj14_R1_Set`, esp1b). A `void*` destination is not inlined at all.
+- `stage_no`/`room_no` are also read as one `u16` (`lhz 0x4f9c; cmpwi 4` = room 004): `GlobalWork::room_id`
+  union. The four status bytes at cModel+0xFC are also compared as a word (`lwz; clrrwi 16; xoris 0x0100;
+  subfic; adde` = `(stat & 0xFFFF0000) == 0x01000000`): `cModel::stat` union (obj14 ckBreak).
+- `p ? p->id : 0` as a call argument gives two branches with `b`; `int id = 0; if (p) id = p->id;` gives
+  `li 0; cmpwi; beq; lbz` (obj08 SndCall).
+- Writing a sub-struct through its own pointer (`c = &w->cloth; c->x = ..`) makes CSE re-base every
+  store on `&w->cloth`; `w->cloth.x = ..` keeps the work base with the larger displacements and a
+  separate `addi` for the `&w->cloth` argument (obj14ClothSet).
+- In a `for (i = 0; i < n; i++)` over an array of pairs, the member used several times (`list[i].part`)
+  is strength-reduced into a pointer (`lwz 0(rP); addi rP,8`) while the one used once stays `lwzx`
+  indexed off the array base (obj08ToEmHitCk).
+- `MotionSetCore` has C++ linkage (`MotionSetCore__FP6cModelPvT1iiii`); `MotionMove`, `EmAtCheck`,
+  `SetEmHit`, `YarareInit`, `EmGetDmPos`, `EmDmBloodSet2`, `PenClothSet/Move3`, `EstSet` are C.
+- Header inlines that only *reference* a template member still instantiate it: the obj/esp/filter units
+  carry the four `cManager<cLight>::create(int)` strings and the `create() failed %s id:%d` one of
+  `create(int, u32)` because light.h declares `cLightMgr::createNew()`/`createNo()` (never called in
+  the DOL; kept as out-of-class inlines so light.cpp does not get bodies).
 
 ## Don'ts
 

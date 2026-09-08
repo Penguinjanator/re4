@@ -989,6 +989,7 @@ MATCHING = {
 # C++ units with functions the original linker dead-stripped (bodies gone, constant pools and
 # statics kept): tools/strip_unused.py removes the bodies of functions not in sym_map.tsv.
 STRIP_UNUSED = {
+    "game/light.cpp",
     "game/obj26.cpp",
     "game/pl_debug.cpp",
     "game/main_sub.cpp",
@@ -1036,6 +1037,8 @@ MATCHING.update({
 # player units (game/pl_*.cpp, debug, read)
 MATCHING.update({
     "game/pl_event.cpp": True,
+    "game/pl_knife.cpp": True,
+    "game/pl_ashley.cpp": True,
 })
 
 # map object units (game/obj*.cpp)
@@ -1043,4 +1046,7 @@ MATCHING.update({
     "game/obj19.cpp": True,
     "game/obj20.cpp": True,
     "game/obj26.cpp": True,
+    "game/obj14.cpp": True,
+    "game/obj1c.cpp": True,
+    "game/obj08.cpp": True,
 })

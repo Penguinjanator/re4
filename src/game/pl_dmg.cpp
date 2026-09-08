@@ -327,7 +327,7 @@ void Pl_R0_Die(cPlayer* pl)
         MotionSetCore(pl, &pl->pMotion, PL_ARC_PTR(pG->pPlArc, 0x4C), pG->pPlArc->ofs[0x4D] + (u32) pG->pPlArc, 5, 1, 0);
         EstSet((int) pl, -1, 0, 0, 3, ChkWaterEffectEnable(&pl->pos) ? 4 : 3, 0, 0, (u32) pl, (void*) no);
         pl->st.x325 |= 0x80;
-        if (pl->pFace->pHair) {
+        if (pl->pBody->pHair) {
             SndCall(1, 0xD, &pl->getPartsPtr(4)->worldPos, 0, 0, 0);
             pl->setFace(1);
         }

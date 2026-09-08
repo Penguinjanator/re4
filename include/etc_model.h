@@ -11,7 +11,12 @@ struct EtcItem {
     Vec pos;     // 0x70
 };
 
+// EtcModel.cpp is C++ but exports its functions with C linkage (unmangled names in the DOL).
+extern "C" {
 u16* GetEtcFlgPtr(int room, int no);
 int getRoomEtcItem(int room, EtcItem** out, int a);
+// Model a light of parent type 3 (room etc model) hangs on; 1 = found (light.cpp)
+int getRoomEtcOnLight(u32 id, class cModel** out, int flag);
+}
 
 #endif

@@ -47,7 +47,7 @@ struct SndCurveSel {
 struct SndCurveEnt {
     f32 dist;        // 0x00
     u16 x4;
-    s16 val;         // 0x06  (filter tables: s8 at 0x07)
+    u16 val;         // 0x06  read as s16 (pitch), s8 at 0x07 (filter), u8 at 0x07 (volume)
 };
 
 struct SndCurveTbl {

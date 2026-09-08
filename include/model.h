@@ -10,9 +10,10 @@ class cCoord : public cUnit {
 public:
     Mtx mat;        // 0x0C local matrix (rot * trans * scale)
     Mtx worldMat;   // 0x3C
-    u32 x6C;        // 0x6C
+    cCoord* pParent;  // 0x6C  parent coord (parts: the model; pl_ashley concatenates its mat)
     Vec worldPos;   // 0x70
-    u8 pad_7C[0x94 - 0x7C];
+    u8 pad_7C[0xC];
+    Vec x88;        // 0x88  (pl_ashley moveBust: GetDistance3 from worldPos)
     Vec pos;        // 0x94
     Vec rot;        // 0xA0
     Vec scale;      // 0xAC
@@ -24,6 +25,7 @@ public:
 };
 
 class cModel;
+class cLight;
 
 // One primitive part of a ModelData (dbmodule DrawObjWireframe): 0x20 header, then the GX-style stream.
 struct ModelPart {
@@ -69,11 +71,11 @@ struct ModelBound {
     Vec size;            // 0x18  (cLightInfo::init2 p1, copied field by field to the stack)
 };
 
-// Per-model info block (game/model.cpp `cModelInfo`, at cModel+0x15C). Partial layout.
-class cModelInfo {
+// Per-model info block (game/model.cpp `cModelInfo`, at cModel+0x15C), a cUnit managed by
+// ModInfoMgr (be_flag 0x00: bit1 has shape animation (shape.cpp), 0x40 pl_leon eye; next 0x04;
+// vptr 0x08). Partial layout.
+class cModelInfo : public cUnit {
 public:
-    u32 flags;           // 0x00  bit1: has shape animation (shape.cpp)
-    u8 pad_4[8];
     ModelData* pData;    // 0x0C
     u8 pad_10[4];
     cModelInfo* pNext;   // 0x14  next parts info
@@ -105,15 +107,21 @@ public:
 // Light set of a model (game/lightInfo.cpp), embedded in cModel at 0x164 (0x74 bytes).
 class cLightInfo {
 public:
-    u8 pad_0[0x51];
-    u8 x51;          // 0x51  bits 0-1: 2 = follow the model matrix (obj04: updateMatrix each frame)
-    u8 pad_52[2];
-    u32 x54;         // 0x54  (scroll: SmxWork.x4)
-    u8 pad_58[0x74 - 0x58];
+    Mtx mat;         // 0x00  light space matrix (lightHitCheckBBox transforms the light into it)
+    cLight* pLight[8];        // 0x30  lights applied to the model (cLightMgr::setModel2 / setCloth)
+    u8 x50;          // 0x50  cLight::xF kind mask the model accepts (0x41: parent lights only)
+    u8 x51;          // 0x51  bits 0-1: 2 = follow the model matrix (obj04: updateMatrix each frame); hit check shape (0 cylinder, 1/3 sphere, 2 box)
+    s8 x52;          // 0x52  parts index + 1 the light origin follows (getPos), 0 = model
+    u8 pad_53;
+    u32 x54;         // 0x54  (scroll: SmxWork.x4); bit i: light i never applies (setModel2)
+    u8 pad_58[0x64 - 0x58];
+    Vec size;        // 0x64  hit check size: x radius, y half height (cylinder), xyz box half size
+    u8 pad_70[0x74 - 0x70];
 
     int init2(int a, int b, const Vec* p0, const Vec* p1, int c);  // every caller passes a 5th int (r8); the body ignores it
     void updateMatrix(cModel* m);
     u32 getLightNum();
+    cModel* getPos(cModel* m, Vec* out);  // light origin of `m` (the parts x52 - 1 selects); returns the coord it belongs to
 };
 
 // Model / model parts (game/model.cpp). Parts are cModel too, stride 0x1D8.
@@ -121,10 +129,15 @@ class cModel : public cCoord {
 public:
     cModel* pParts;  // 0xF4 child parts list
     u32 serial;      // 0xF8  identity check for parent links (obj04: parent->serial == work.parentSerial)
-    u8 xFC;          // 0xFC
-    u8 xFD;          // 0xFD
-    u8 xFE;          // 0xFE
-    u8 xFF;          // 0xFF  (t_option clears FC..FF after a weapon change)
+    union {
+        u32 stat;    // 0xFC  the four status bytes as one word (obj14 ckBreak: word compares)
+        struct {
+            u8 xFC;  // 0xFC  routine / state
+            u8 xFD;  // 0xFD  routine index (move table)
+            u8 xFE;  // 0xFE  step
+            u8 xFF;  // 0xFF  (t_option clears FC..FF after a weapon change)
+        };
+    };
     u8 id;           // 0x100
     u8 type;         // 0x101 per-object sub type
     u8 nParts;       // 0x102
@@ -138,9 +151,12 @@ public:
     void* pCldShMd;  // 0x130  (db_work "pCldShMd")
     u8 shdCol;       // 0x134  (db_work "SHD COL")
     u8 x135;         // 0x135  scroll: SmxWork.x3, db_work "CullMode"
-    u8 pad_136[0x154 - 0x136];
+    u8 pad_136[0x150 - 0x136];
+    // 0x150..0x15C: pendulum parts treat these three words as a Vec (obj14 adds the hit impulse
+    // to parts 1/2 here); the object itself keeps its alpha at 0x154.
+    f32 x150;              // 0x150
     f32 alpha;             // 0x154  0..1 (obj04: work color a / 255)
-    u8 pad_158[4];
+    f32 x158;              // 0x158
     cModelInfo* pInfo;     // 0x15C
     cModelInfo* pShMdInfo; // 0x160  (db_work "pShMdIfo")
     cLightInfo lightInfo;  // 0x164 .. 0x1D8
@@ -161,15 +177,23 @@ public:
     void setAng(Vec* ang);
     void drawAllBoundingBox(cModelInfo* info);
     void debugSkeletonDisp();
+    void error();  // too many lights: flags the model and logs it
     // MotionSetCore(this, &motion (0x1D8), data, a, b, c, d) / MotionMove(this, 0)
-    int motionSet(void* data, int a, int b, int c, int d);
+    void motionSet(void* data, int a, int b, int c, int d);  // void: a following call then keeps its arg li`s ranked below the `this` copy (pl_knife down00)
     int motionMove();
 };
 
-// Model info pool (game/model.cpp `ModInfoMgr`, 0x34 bytes); layout opaque.
-class cModInfoMgr {
+// Model info pool (game/model.cpp `ModInfoMgr`, 0x34 bytes): a cManager<cModelInfo>; the
+// player units call the inline cManager::destroy on it (pl_ashley setRightHand/setLeftHand).
+class cModInfoMgr : public cManager<cModelInfo> {
 public:
-    u8 pad_0[0x34];
+    cModInfoMgr();
+    virtual ~cModInfoMgr();
+    virtual void* memAlloc(u32 size);
+    virtual void memFree(void* p);
+    virtual void memClear(cModelInfo* p, u32 size);
+    virtual void log(const char* fmt, ...);
+    virtual int construct(cModelInfo* p, u32 id);
 
     cModelInfo* create(void* bin, void* tpl);
 };

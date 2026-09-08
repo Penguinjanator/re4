@@ -17,9 +17,9 @@ public:
 
 extern "C" {
 int MotionMove(cModel* m, int a);
-int MotionSetCore(cModel* m, void* work, void* mot, int a, int b, int c, int d);
 void objYagura_R0_Set(cObjYagura* obj);
 }
+int MotionSetCore(cModel* m, void* work, void* mot, int a, int b, int c, int d);
 
 void (*ObjYagura_R0_move_tbl[1])(cObjYagura*) = { objYagura_R0_Set };
 
@@ -42,6 +42,10 @@ cObj* SetYagura(void* bin, void* tpl, Vec* pos, Vec* rot)
     static const Vec p1 = { 5000.0f, 5000.0f, 5000.0f };
 
     obj->lightInfo.init2(0, 1, &p0, &p1, 0x10);
+    // NOTE: the original keeps this 0.0f in f31 across the init() call and reuses it for the
+    // pos default, but its pool load is scheduled after the 1000.0f one (pool order 0, 1000);
+    // no source form found yet that gives that order (literals, locals before/after the call,
+    // a second local for 1000.0f all tried).
     f32 zero = 0.0f;
     obj->sub2B4.atari.init(0, 2, 0, zero, 1000.0f, -700.0f, 350.0f, 700.0f, 700.0f, 1000.0f);
     obj->sub2B4.atari.throughOn();
@@ -61,10 +65,10 @@ cObj* SetYagura(void* bin, void* tpl, Vec* pos, Vec* rot)
         obj->rot.z = 0.0f;
     }
     w->pMotionVib = 0;
-    obj->xFF = 0;
     obj->xFC = 0;
     obj->xFD = 0;
     obj->xFE = 0;
+    obj->xFF = 0;
     return obj;
 }
 

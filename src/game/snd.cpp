@@ -208,14 +208,17 @@ void SndSystemReset()
 static s8 sndPanCalc(f32 angle)
 {
     f32 a = fabsf(angle);
+    s8 pan;
 
-    if (fabsf(angle) > 1.5707964f) {
+    if (fabsf(angle) >= 1.5707964f) {
         a = 3.1415927f - a;
     }
-    if (angle > 0.0f) {
-        return (u8) (a * 40.743664f + 64.0f);
+    if (angle >= 0.0f) {
+        pan = (s8) (a * 40.743664f + 64.0f);
+    } else {
+        pan = (s8) (64.0f - a * 40.743664f);
     }
-    return (u8) (64.0f - a * 40.743664f);
+    return pan;
 }
 
 static s8 sndSpanCalc(f32 angle)
@@ -235,14 +238,15 @@ static s8 sndVolCalcSub(SndCurveTbl* t, f32 dist, f32 vol)
         }
     }
     if (i == 0) {
-        r = (u16) e->val;
+        r = (s16) e->val;
     } else if (i == t->num) {
-        r = (u16) e[-1].val;
+        r = (s16) e[-1].val;
     } else {
-        r = (f32) (u16) e[-1].val
-            - (f32) ((s16) e[-1].val - e->val) / (e->dist - e[-1].dist) * (dist - e[-1].dist);
+        u16 v = e[-1].val;
+        f32 d = (f32) ((s16) v - (s16) e->val) / (e->dist - e[-1].dist) * (dist - e[-1].dist);
+        r = (f32) (s16) v - d;
     }
-    return (u8) (vol * 0.0078125f * r);
+    return (s8) (vol * 0.0078125f * r);
 }
 
 static int sndVolCalc(int vol, int no, f32 dist)
@@ -276,14 +280,15 @@ static s16 sndPitchCalcSub(SndCurveTbl* t, f32 dist)
         }
     }
     if (i == 0) {
-        r = (u16) e->val;
+        r = (s16) e->val;
     } else if (i == t->num) {
-        r = (u16) e[-1].val;
+        r = (s16) e[-1].val;
     } else {
-        r = (f32) (u16) e[-1].val
-            - (f32) ((s16) e[-1].val - e->val) / (e->dist - e[-1].dist) * (dist - e[-1].dist);
+        u16 v = e[-1].val;
+        f32 d = (f32) ((s16) v - (s16) e->val) / (e->dist - e[-1].dist) * (dist - e[-1].dist);
+        r = (f32) (s16) v - d;
     }
-    return (u16) r;
+    return (s16) r;
 }
 
 static s16 sndPitchCalc(int no, f32 dist)
@@ -313,28 +318,29 @@ static int sndFilterCalc(int no, f32 dist)
     SndCurveTbl* t;
     SndCurveEnt* e;
     u32 i;
+    u32 num;
 
     if (no == -1) {
-        return -1;
-    }
-    h = pSnd->hdr;
-    if (h == NULL) {
-        return ret;
-    }
-    ofs = h->filter_ofs[no];
-    if (ofs == 0) {
-        return ret;
-    }
-    t = (SndCurveTbl*) ((u8*) h + ofs);
-    e = t->e;
-    for (i = 0; i < t->num; i++, e++) {
-        if (dist < e->dist) {
-            ret = (s8) e->val;
-            break;
+        ret = -1;
+    } else {
+        h = pSnd->hdr;
+        if (h != NULL) {
+            ofs = h->filter_ofs[no];
+            if (ofs != 0) {
+                t = (SndCurveTbl*) ((u8*) h + ofs);
+                e = t->e;
+                num = t->num;
+                for (i = 0; i < num; i++, e++) {
+                    if (dist < e->dist) {
+                        ret = (s8) e->val;
+                        break;
+                    }
+                }
+                if (i == t->num) {
+                    ret = (s8) e[-1].val;
+                }
+            }
         }
-    }
-    if (i == t->num) {
-        ret = (s8) e[-1].val;
     }
     return ret;
 }
@@ -355,21 +361,7 @@ static int sndExistCheck(int blk, u32 no)
     return 1;
 }
 
-static int sndWallCheckSub(Vec* pos)
-{
-    Vec a;
-    Vec b;
-    int ret = 0;
-
-    a = *pos;
-    b.x = pPL->pos.x;
-    b.y = pPL->pos.y + 1500.0f;
-    b.z = pPL->pos.z;
-    if (EatMgr.hitCheck(&a, &b, 0, 0, 0, 0x404000) != 0) {
-        ret = 1;
-    }
-    return ret;
-}
+static int sndWallCheckSub(Vec* pos);
 
 static void sndWallCheck(SND_SIT* sit, u8* vol, u8* svol, Vec* pos)
 {
@@ -394,6 +386,24 @@ static void sndWallCheck(SND_SIT* sit, u8* vol, u8* svol, Vec* pos)
             *svol = 1;
         }
     }
+}
+
+static int sndWallCheckSub(Vec* pos)
+{
+    Vec a;
+    Vec b;
+    int ret = 0;
+
+    a.x = pos->x;
+    a.y = pos->y;
+    a.z = pos->z;
+    b.x = pPL->pos.x;
+    b.y = pPL->pos.y + 1500.0f;
+    b.z = pPL->pos.z;
+    if (EatMgr.hitCheck(&a, &b, 0, 0, 0, 0x404000) != 0) {
+        ret = 1;
+    }
+    return ret;
 }
 
 static void sndVolCtrlAtCheck(SND_SIT* sit, u8* vol, u8* svol, Vec* pos)
@@ -425,25 +435,21 @@ static int sndInnerVolCheck(SND_SIT* sit, u8* vol, u8* svol)
 {
     int ret = 0;
 
-    if (sit->inner_vol == 0) {
-        return ret;
-    }
-    if (FlrAtCheck(3, &pPL->pos, 0) == NULL) {
-        return ret;
-    }
-    if (*vol != 0) {
-        *vol = (u8) ((f32) *vol * ((f32) sit->inner_vol / 100.0f));
-        if ((s8) *vol <= 0) {
-            *vol = 1;
+    if (sit->inner_vol != 0 && FlrAtCheck(3, &pPL->pos, 0) != NULL) {
+        if (*vol != 0) {
+            *vol = (s8) ((f32) (s8) *vol * ((f32) (s8) sit->inner_vol / 100.0f));
+            if ((s8) *vol <= 0) {
+                *vol = 1;
+            }
         }
-    }
-    if (*svol != 0) {
-        *svol = (u8) ((f32) *svol * ((f32) sit->inner_vol / 100.0f));
-        if ((s8) *svol <= 0) {
-            *svol = 1;
+        if (*svol != 0) {
+            *svol = (s8) ((f32) (s8) *svol * ((f32) (s8) sit->inner_vol / 100.0f));
+            if ((s8) *svol <= 0) {
+                *svol = 1;
+            }
         }
+        ret = 1;
     }
-    ret = 1;
     return ret;
 }
 
@@ -497,6 +503,9 @@ static int emSeCheck(u16* blk, u16* no, int id)
     *blk = 0xFFFF;
     for (i = 0; i < 6; i++) {
         switch (id) {
+        case 0xFF:
+            *blk = 8;
+            break;
         case 0x10:
         case 0x12:
         case 0x13:
@@ -522,9 +531,6 @@ static int emSeCheck(u16* blk, u16* no, int id)
                 *blk = i + 8;
             }
             break;
-        case 0xFF:
-            *blk = 8;
-            break;
         default:
             if (pSnd->em_id[i] == id) {
                 *blk = i + 8;
@@ -533,30 +539,31 @@ static int emSeCheck(u16* blk, u16* no, int id)
         }
     }
     if (*blk == 0xFFFF) {
-        return 0;
-    }
-    seRandomCheck(*blk, no);
-    ret = sndExistCheck(*blk, *no);
-    if (ret == 1) {
-        free = NULL;
-        h = pSnd->em_hist;
-        for (i = 0; i < 32; i++, h++) {
-            if (h->used == 0) {
-                free = h;
-                continue;
-            }
-            if (h->id == (u16) id && h->no == *no) {
-                return 0;
-            }
-        }
-        if (free != NULL) {
-            free->id = id;
-            free->used = 1;
-            free->timer = 1;
-            free->no = *no;
-        }
+        ret = 0;
     } else {
-        sndCallErr(*blk, *no);
+        seRandomCheck(*blk, no);
+        ret = sndExistCheck(*blk, *no);
+        if (ret == 1) {
+            free = NULL;
+            h = pSnd->em_hist;
+            for (i = 0; i < 32; i++, h++) {
+                if (h->used == 0) {
+                    free = h;
+                    continue;
+                }
+                if (h->id == (u16) id && h->no == *no) {
+                    return 0;
+                }
+            }
+            if (free != NULL) {
+                free->id = id;
+                free->used = 1;
+                free->no = *no;
+                free->timer = 1;
+            }
+        } else {
+            sndCallErr(*blk, *no);
+        }
     }
     return ret;
 }
@@ -661,6 +668,7 @@ static void getCam2SndAngle(f32* pan, f32* span, f32* dist, Vec* pos);
 
 u32 SndCall(u16 blk, u16 no, Vec* pos, int id, int vol, cUnit* obj)
 {
+    SND_CTRL_WORK* c = &Snd_ctrl_work;
     SND_SIT* sit;
     u32 snd_id;
     int ret;
@@ -670,12 +678,12 @@ u32 SndCall(u16 blk, u16 no, Vec* pos, int id, int vol, cUnit* obj)
     s8 sv;
     s8 pan;
     s8 span;
-    int pan_calc = 1;
-    int vol_calc = 1;
-    int curve_ok = 1;
-    int pan_ok = 1;
-    s8 vol_ofs = 0;
+    int pan_calc;
+    int vol_calc;
+    int curve_ok;
+    int pan_ok;
     s8 svol_ofs = 0;
+    s8 vol_ofs = 0;
     s8 pitch_ofs = 0;
     s8 filter_ofs = 0;
     int seq = 0;
@@ -685,6 +693,10 @@ u32 SndCall(u16 blk, u16 no, Vec* pos, int id, int vol, cUnit* obj)
     if (pG->flags_68 & 0x80000) {
         return 0;
     }
+    pan_calc = 1;
+    pan_ok = 1;
+    vol_calc = 1;
+    curve_ok = 1;
     switch (blk) {
     case 8:
         ret = emSeCheck(&blk, &no, id);
@@ -695,6 +707,8 @@ u32 SndCall(u16 blk, u16 no, Vec* pos, int id, int vol, cUnit* obj)
     case 2:
         ret = wepSeCheck(&no, pos);
         break;
+    case 3:
+    case 4:
     default:
         seRandomCheck(blk, &no);
         ret = sndExistCheck(blk, no);
@@ -707,7 +721,7 @@ u32 SndCall(u16 blk, u16 no, Vec* pos, int id, int vol, cUnit* obj)
         return 0;
     }
 
-    Snd_ctrl_work.flag_58 = 0;
+    c->flag_58 = 0;
     sit = Snd_get_sit_adrs(blk, no);
     v = Snd_iss_get_sit_vol(blk, no);
     sv = Snd_iss_get_sit_svol(blk, no);
@@ -729,57 +743,59 @@ u32 SndCall(u16 blk, u16 no, Vec* pos, int id, int vol, cUnit* obj)
     if (pos != NULL) {
         getCam2SndAngle(&pan_f, 0, &dist, pos);
         if (seq == 0 && pan_ok == 1) {
-            if (sit->pan < 0) {
-                Snd_ctrl_work.flag_58 |= 0x2;
+            s8 p = sit->pan;
+            if (p < 0) {
+                c->flag_58 |= 0x2;
                 pan = sndPanCalc(pan_f);
-                Snd_ctrl_work.x49 = pan;
+                c->x49 = pan;
             } else {
-                Snd_ctrl_work.x49 = sit->pan;
-                pan = sit->pan;
+                c->x49 = sit->pan;
+                pan = p;
                 pan_calc = 0;
             }
-            if (sit->span < 0) {
-                Snd_ctrl_work.flag_58 |= 0x4;
+            p = sit->span;
+            if (p < 0) {
+                c->flag_58 |= 0x4;
                 span = sndSpanCalc(pan_f);
-                Snd_ctrl_work.x4A = span;
+                c->x4A = span;
             } else {
-                Snd_ctrl_work.x4A = sit->span;
-                span = sit->span;
+                c->x4A = sit->span;
+                span = p;
                 pan_calc = 0;
             }
-            if (Snd_ctrl_work.flag_58 & 0x6) {
-                Snd_ctrl_work.flag_58 |= 0x100;
-                Snd_ctrl_work.x50 = 1;
+            if (c->flag_58 & 0x6) {
+                c->flag_58 |= 0x100;
+                c->x50 = 1;
             }
         }
     } else {
         vol_calc = 0;
-        Snd_ctrl_work.x50 = 0;
+        c->x50 = 0;
         curve_ok = 0;
-        Snd_ctrl_work.flag_58 |= 0x100;
+        c->flag_58 |= 0x100;
         pan_calc = 0;
     }
 
     if (sit->curve_no >= 0 && pSnd->hdr != NULL && pSnd->hdr->curve_sel[sit->curve_no] != 0
         && curve_ok == 1) {
-        SndCurveSel* cs = (SndCurveSel*) ((u8*) pSnd->hdr + pSnd->hdr->curve_sel[sit->curve_no]);
+        s8* cs = (s8*) pSnd->hdr + pSnd->hdr->curve_sel[sit->curve_no];
         int m = 1;
         int f;
         if (pSys->sound_mode == 2) {
             m = 0;
         }
-        vol_ofs = cs->vol;
-        svol_ofs = cs->svol;
+        vol_ofs = cs[1];
+        svol_ofs = cs[0];
         v = sndVolCalc(v, vol_ofs, dist);
         sv = sndVolCalc(sv, svol_ofs, dist);
-        Snd_ctrl_work.flag_58 |= 0x400;
-        pitch_ofs = cs->pitch[m];
-        Snd_ctrl_work.x54 = sndPitchCalc(pitch_ofs, dist);
-        filter_ofs = cs->filter[m];
+        c->flag_58 |= 0x400;
+        pitch_ofs = (cs + m)[2];
+        c->x54 = sndPitchCalc(pitch_ofs, dist);
+        filter_ofs = (cs + m)[4];
         f = sndFilterCalc(filter_ofs, dist);
         if (f != -1) {
-            Snd_ctrl_work.x4F = f;
-            Snd_ctrl_work.flag_58 |= 0x80;
+            c->x4F = f;
+            c->flag_58 |= 0x80;
         }
     } else {
         vol_calc = 0;
@@ -787,12 +803,12 @@ u32 SndCall(u16 blk, u16 no, Vec* pos, int id, int vol, cUnit* obj)
 
     if ((u8) vol != 0) {
         vol_calc = 0;
-        sv = (s8) vol;
         v = (s8) vol;
+        sv = (s8) vol;
     }
 
     if (sit->x7 == -1) {
-        Snd_ctrl_work.flag_58 |= 0x20;
+        c->flag_58 |= 0x20;
         if (pSnd->hdr != NULL) {
             SndEfxParam* p = &pSnd->hdr->efx[0];
             if (pSys->sound_mode != 2) {
@@ -800,53 +816,57 @@ u32 SndCall(u16 blk, u16 no, Vec* pos, int id, int vol, cUnit* obj)
             }
             switch (blk) {
             case 0:
+                c->x4D = (u8) p->aux_core;
+                break;
             case 1:
-                Snd_ctrl_work.x4D = (u8) p->aux_core;
+                c->x4D = (u8) p->aux_core;
                 break;
             case 2:
-                Snd_ctrl_work.x4D = (u8) p->aux_wep;
+                c->x4D = (u8) p->aux_wep;
                 break;
             case 5:
+                c->x4D = (u8) p->aux_room;
+                break;
             case 6:
-                Snd_ctrl_work.x4D = (u8) p->aux_room;
+                c->x4D = (u8) p->aux_room;
                 break;
             case 8:
-                Snd_ctrl_work.x4D = (u8) p->aux_em;
+                c->x4D = (u8) p->aux_em;
                 break;
             default:
-                Snd_ctrl_work.x4D = 0;
+                c->x4D = 0;
                 break;
             }
         } else {
-            Snd_ctrl_work.x4D = 0;
+            c->x4D = 0;
         }
     }
 
-    Snd_ctrl_work.x4E = 0;
-    Snd_ctrl_work.x56 = 0;
-    Snd_ctrl_work.flag_58 |= 0x40;
+    c->x4E = 0;
+    c->x56 = 0;
+    c->flag_58 |= 0x40;
     if (sit->se_flag != 0) {
-        Snd_ctrl_work.flag_58 |= 0x840;
+        c->flag_58 |= 0x840;
         if (sit->se_flag & 0x2) {
-            Snd_ctrl_work.x56 = 1;
+            c->x56 = 1;
         }
         if (sit->se_flag & 0x4) {
-            Snd_ctrl_work.x56 |= 0x2;
+            c->x56 |= 0x2;
         }
         if (sit->se_flag & 0x1) {
-            Snd_ctrl_work.x56 |= 0x4;
+            c->x56 |= 0x4;
         }
     }
     if (vol & ~0xFF) {
-        Snd_ctrl_work.flag_58 |= 0x800;
+        c->flag_58 |= 0x800;
         if (vol & 0x100) {
-            Snd_ctrl_work.x56 |= 0x1;
+            c->x56 |= 0x1;
         }
         if (vol & 0x200) {
-            Snd_ctrl_work.x56 |= 0x2;
+            c->x56 |= 0x2;
         }
         if (vol & 0x400) {
-            Snd_ctrl_work.x56 |= 0x4;
+            c->x56 |= 0x4;
         }
     }
 
@@ -860,15 +880,17 @@ u32 SndCall(u16 blk, u16 no, Vec* pos, int id, int vol, cUnit* obj)
         sndInnerVolCheck(sit, (u8*) &v, (u8*) &sv);
     }
 
+    // The original has an extra `li r0,1; cmpwi r0,0; bne` after these two tests (some constant
+    // check that GCC did not fold); nothing tried reproduces it.
     if (v == 0 || sv == 0) {
         return 0;
     }
 
-    Snd_ctrl_work.x4B = v;
-    Snd_ctrl_work.x4C = sv;
-    Snd_ctrl_work.flag_58 |= 0x18;
+    c->x4B = v;
+    c->x4C = sv;
+    c->flag_58 |= 0x18;
     if (sit->srd_type == 1) {
-        Snd_ctrl_work.flag_58 &= 0x860;
+        c->flag_58 &= 0x860;
     }
     snd_id = Snd_iss_req_para(blk, no, 0);
 
@@ -884,51 +906,52 @@ u32 SndCall(u16 blk, u16 no, Vec* pos, int id, int vol, cUnit* obj)
         vol_calc = 0;
         pan_calc = 0;
     }
-    if (snd_id == 0) {
-        return snd_id;
-    }
-
-    if (pan_calc != 0 || vol_calc != 0) {
-        SndSurWork* w = pSnd->sur;
-        for (i = 0; i < 48; i++, w++) {
-            if (w->type == 0) {
-                w->type = seq | 0x80;
-                w->id = snd_id;
-                w->no = no;
-                w->blk = blk;
-                w->svol_ofs = svol_ofs;
-                w->vol_ofs = vol_ofs;
-                w->pitch_ofs = pitch_ofs;
-                w->filter_ofs = filter_ofs;
-                w->pan_calc = pan_calc;
-                w->vol_calc = vol_calc;
-                w->inner = inner;
-                w->obj = obj;
-                if (pos != NULL) {
-                    w->pos = *pos;
-                    if ((vol & 0x80000000) || obj != NULL) {
-                        w->ppos = pos;
+    if (snd_id != 0) {
+        if (pan_calc != 0 || vol_calc != 0) {
+            for (i = 0; i < 48; i++) {
+                SndSurWork* w = &pSndRaw->sur[i];
+                if (w->type == 0) {
+                    u32 t = seq | 0x80;
+                    w->type = t;
+                    w->id = snd_id;
+                    w->no = no;
+                    w->blk = blk;
+                    w->svol_ofs = svol_ofs;
+                    w->vol_ofs = vol_ofs;
+                    w->pitch_ofs = pitch_ofs;
+                    w->filter_ofs = filter_ofs;
+                    w->pan_calc = pan_calc;
+                    w->vol_calc = vol_calc;
+                    w->inner = inner;
+                    w->obj = obj;
+                    if (pos != NULL) {
+                        w->pos.x = pos->x;
+                        w->pos.y = pos->y;
+                        w->pos.z = pos->z;
+                        if ((vol & 0x80000000) || obj != NULL) {
+                            w->ppos = pos;
+                        }
                     }
+                    break;
                 }
-                break;
             }
         }
-    }
 
-    History.idx++;
-    History.idx = LOOP_IDX(History.idx, 24);
-    History.blk[History.idx] = blk;
-    History.no[History.idx] = no;
-    History.vol[History.idx] = v;
-    History.svol[History.idx] = sv;
-    History.pan[History.idx] = pan;
-    History.span[History.idx] = span;
-    History.num++;
-    if (History.num > 25) {
-        History.top++;
+        History.idx++;
+        History.idx = LOOP_IDX(History.idx, 24);
+        History.blk[History.idx] = blk;
+        History.no[History.idx] = no;
+        History.vol[History.idx] = v;
+        History.svol[History.idx] = sv;
+        History.pan[History.idx] = pan;
+        History.span[History.idx] = span;
+        History.num++;
+        if (History.num > 25) {
+            History.top++;
+        }
+        History.top = LOOP_IDX(History.top, 24);
+        History.num = CLAMP(History.num, 0, 25);
     }
-    History.top = LOOP_IDX(History.top, 24);
-    History.num = CLAMP(History.num, 0, 25);
     return snd_id;
 }
 
@@ -1245,10 +1268,22 @@ static void sndSurroundCalc();
 static void debug_mute_check();
 static void debugDisp();
 
+// BGM/stream control part of a type-2 floor attribute (FlrAt + 0x44), addressed as one block.
+struct SndFlrAtBgm {
+    u8 slot_bits;    // 0x44  bit i: BGM slot i controlled, 0x10: stream
+    u8 set_bits;     // 0x45  bit i: set volume (else reset), 0x10: stream set
+    u8 vol[2];       // 0x46
+    s32 time[2];     // 0x48
+    u16 str_blk;     // 0x50
+    u16 str_no;      // 0x52
+    s32 str_vol;     // 0x54
+};
+
 void SndWatcher()
 {
     u32 i;
     FlrAt* at;
+    SndFlrAtBgm* b;
 
     if (pG->flags_500C & 0x10000000) {
         return;
@@ -1301,55 +1336,45 @@ void SndWatcher()
 
     for (i = 0; i < 32; i++) {
         if (pSndRaw->em_hist[i].used != 0) {
-            pSndRaw->em_hist[i].timer--;
-            if (pSndRaw->em_hist[i].timer == 0) {
-                memclr_asm(&pSndRaw->em_hist[i], sizeof(SndEmHist));
+            SndEmHist* h = &pSndRaw->em_hist[i];
+            h->timer--;
+            if (h->timer == 0) {
+                memclr_asm(h, sizeof(SndEmHist));
             }
         }
     }
 
-    if (pG->flags_500C & 0x40000) {
-        return;
-    }
-    if (pG->flags_54 & 0x1000) {
-        return;
-    }
-    if (pSndRaw->room_ok == 0) {
-        return;
-    }
-    at = FlrAtCheck(2, &pPL->pos, 0xFF);
-    if (at == NULL) {
-        return;
-    }
-    for (i = 0; i < 2; i++) {
-        if ((at->x44 >> i) & 0x1) {
-            if (pSndRaw->bgm_at[i] != at->x2) {
-                int r;
-                if ((at->x45 >> i) & 0x1) {
-                    r = SndRoomBgmVolSet(i, (s8) at->x46[i], at->x48[i]);
-                } else {
-                    r = SndRoomBgmVolReset(i, at->x48[i]);
-                }
-                if (r == 1) {
-                    pSndRaw->bgm_at[i] = at->x2;
-                } else {
-                    pSndRaw->bgm_at[i] = -1;
+    if (!(pG->flags_500C & 0x40000) && !(pG->flags_54 & 0x1000) && pSndRaw->room_ok != 0) {
+        at = FlrAtCheck(2, &pPL->pos, 0xFF);
+        if (at != NULL) {
+            b = (SndFlrAtBgm*) &at->x44;
+            for (i = 0; i < 2; i++) {
+                if ((b->slot_bits >> i) & 0x1) {
+                    if (pSndRaw->bgm_at[i] != at->x2) {
+                        int r;
+                        if ((b->set_bits >> i) & 0x1) {
+                            r = SndRoomBgmVolSet(i, (s8) b->vol[i], b->time[i]);
+                        } else {
+                            r = SndRoomBgmVolReset(i, b->time[i]);
+                        }
+                        pSndRaw->bgm_at[i] = (r == 1) ? at->x2 : -1;
+                    }
                 }
             }
-        }
-    }
-    if (at->x44 & 0x10) {
-        if (at->x45 & 0x10) {
-            if (at->str_vol != 0) {
-                SndStrReq(at->str_blk, at->str_no, 0x80000003, at->str_vol, 0, 0.0f);
-            } else {
-                SndStrReq(at->str_blk, at->str_no, 0x80000003, 0, 0, 0.0f);
-            }
-        } else {
-            if (at->str_vol != 0) {
-                SndStrReq(at->str_blk, at->str_no, 4, at->str_vol, 0, 0.0f);
-            } else {
-                SndStrReq(at->str_blk, at->str_no, 8, 0, 0, 0.0f);
+            if (b->slot_bits & 0x10) {
+                if (b->set_bits & 0x10) {
+                    if (b->str_vol != 0) {
+                        SndStrReq(b->str_blk, b->str_no, 0x80000003, b->str_vol, 0, 0.0f);
+                    } else {
+                        SndStrReq(b->str_blk, b->str_no, 0x80000003, 0, 0, 0.0f);
+                    }
+                } else {
+                    if (b->str_vol != 0) {
+                        SndStrReq(b->str_blk, b->str_no, 4, b->str_vol, 0, 0.0f);
+                    } else {
+                        SndStrReq(b->str_blk, b->str_no, 8, 0, 0, 0.0f);
+                    }
+                }
             }
         }
     }
@@ -1370,7 +1395,7 @@ static void nextRoomStreamCheck()
         } else {
             u16 s = (u16) rs->str[0];
             if (w->used != 0) {
-                if ((pG->flags_54 & 0x100) || (pG->flags_54 & 0x80000)) {
+                if ((pG->flags_54 & 0x100) || ((pG->flags_54 >> 19) & 1)) { // two tests, not merged into one mask
                     stop = 1;
                 } else {
                     SND_STR_WORK* sw = Snd_search_str_work_snd_id(w->id);
@@ -1413,7 +1438,7 @@ static void nextRoomBgmCheck()
                     }
                 }
             }
-            if ((pG->flags_54 & 0x100) || (pG->flags_54 & 0x80000)) {
+            if ((pG->flags_54 & 0x100) || ((pG->flags_54 >> 19) & 1)) { // two tests, not merged into one mask
                 flag = 1;
             }
             if (flag == 1) {
@@ -1473,25 +1498,32 @@ void SndReadAddrInit()
     pSnd->aram_top = 0x1F4100;
 }
 
+// Pitch curve entries hold a signed value (lha/sth); SndCurveEnt::val is u16 for the other curves.
+struct SndCurveEntS {
+    f32 dist;
+    u16 x4;
+    s16 val;
+};
+
 int SndRoomStartInit()
 {
     u32 i;
-    u32 j;
     SndRoomSave* rs;
+    SndEfxParam* e;
 
-    pSnd->hdr = (SndRoomHdr*) GetDataExt(pG->pRoomArc, "STB", 0);
+    pSndRaw->hdr = (SndRoomHdr*) GetDataExt(pG->pRoomArc, "STB", 0);
     memclr_asm(&DefEffTbl, sizeof(SndRoomHdr));
-    for (i = 0; i < 2; i++) {
-        DefEffTbl.efx[i].aux_core = 0;
-        DefEffTbl.efx[i].aux_em = 0;
-        DefEffTbl.efx[i].aux_wep = 0;
-        DefEffTbl.efx[i].aux_room = 0;
-        DefEffTbl.efx[i].preDelay = 0.05f;
-        DefEffTbl.efx[i].time = 1.0f;
-        DefEffTbl.efx[i].coloration = 0.5f;
-        DefEffTbl.efx[i].damping = 0.5f;
-        DefEffTbl.efx[i].mix = 0.5f;
-        DefEffTbl.efx[i].crosstalk = 0.5f;
+    for (i = 0, e = DefEffTbl.efx; i < 2; i++, e++) {
+        e->aux_core = 0;
+        e->aux_em = 0;
+        e->aux_wep = 0;
+        e->aux_room = 0;
+        e->preDelay = 0.05f;
+        e->time = 1.0f;
+        e->coloration = 0.5f;
+        e->damping = 0.5f;
+        e->mix = 0.5f;
+        e->crosstalk = 0.5f;
     }
     if (pSnd->hdr == NULL) {
         pSnd->hdr = &DefEffTbl;
@@ -1502,24 +1534,33 @@ int SndRoomStartInit()
             u32 ofs = pSnd->hdr->vol_ofs[i];
             SndCurveTbl* t;
             if (ofs != 0) {
+                u32 j;
+                SndCurveEnt* ce;
                 t = (SndCurveTbl*) ((u8*) pSnd->hdr + ofs);
-                for (j = 0; j < t->num; j++) {
-                    t->e[j].dist *= t->scale;
+                ce = t->e;
+                for (j = 0; j < t->num; j++, ce++) {
+                    ce->dist *= t->scale;
                 }
             }
             ofs = pSnd->hdr->pitch_ofs[i];
             if (ofs != 0) {
+                u32 j;
+                SndCurveEntS* ce;
                 t = (SndCurveTbl*) ((u8*) pSnd->hdr + ofs);
-                for (j = 0; j < t->num; j++) {
-                    t->e[j].dist *= t->scale;
-                    t->e[j].val *= 100;
+                ce = (SndCurveEntS*) t->e;
+                for (j = 0; j < t->num; j++, ce++) {
+                    ce->dist *= t->scale;
+                    ce->val *= 100;
                 }
             }
             ofs = pSnd->hdr->filter_ofs[i];
             if (ofs != 0) {
+                u32 j;
+                SndCurveEnt* ce;
                 t = (SndCurveTbl*) ((u8*) pSnd->hdr + ofs);
-                for (j = 0; j < t->num; j++) {
-                    t->e[j].dist *= t->scale;
+                ce = t->e;
+                for (j = 0; j < t->num; j++, ce++) {
+                    ce->dist *= t->scale;
                 }
             }
         }
@@ -1552,8 +1593,7 @@ struct SndDoorSe {
 int SndDoorSeLoad()
 {
     u32 i;
-    SndDoorTbl* dt = SndMem.door_tbl;
-    u16 cnt = *(u16*) ((u8*) dt + dt->num_ofs);
+    u16 cnt = *(u16*) ((u8*) SndMem.door_tbl + SndMem.door_tbl->num_ofs);
     u32 no = 0xFFFF;
     int ret = -1;
     SndDoorSe* d;
@@ -1569,14 +1609,13 @@ int SndDoorSeLoad()
                 break;
             }
         }
-    }
-    if (no < cnt && no != pSnd->door_no) {
-        u32* files = (u32*) ((u8*) dt + dt->file_ofs);
+        if (no < cnt && no != pSnd->door_no) {
 #line 2389 SND_FILE
-        ret = DvdRead(0x69, 0, 0, files[no], 0, 0x8000, __FILE__, __LINE__);
-        pSnd->door_no = no;
-    } else if (no != 0xFFFF) {
-        SND_BIT_SET(pSnd->blk_flag, 7);
+            ret = DvdRead(0x69, 0, 0, ((u32*) ((u8*) SndMem.door_tbl + SndMem.door_tbl->file_ofs))[no], 0, 0x8000, __FILE__, __LINE__);
+            pSnd->door_no = no;
+        } else if (no != 0xFFFF) {
+            SND_BIT_SET(pSnd->blk_flag, 7);
+        }
     }
     return ret;
 }
@@ -1634,27 +1673,28 @@ int SndRoomBgmStart(u8 no, int vol)
 {
     u16 b = (u16) (pSnd->room_bgm[0] >> (no * 16));
     int seq = (b >> 8) & 0x3;
+    int ret = 0;
     SndPlayWork* w;
 
-    if (!(b & 0x8000)) {
-        return 0;
-    }
-    w = &pSnd->bgm_work[no];
-    if (w->used != 0) {
-        if (seq == w->no) {
+    if (b & 0x8000) {
+        w = &pSnd->bgm_work[no];
+        if (w->used == 0) {
+            goto call;
+        }
+        if (seq != w->no) {
+            Snd_seq_req(w->id, 2, 0, 0);
+        call:
+            SndCall(no + 3, seq, 0, 0, vol, 0);
+        } else {
             if (vol == 0) {
                 vol = w->vol_def;
             }
             Snd_seq_req(w->id, 1, 1, vol);
-        } else {
-            Snd_seq_req(w->id, 2, 0, 0);
-            SndCall(no + 3, seq, 0, 0, vol, 0);
         }
-    } else {
-        SndCall(no + 3, seq, 0, 0, vol, 0);
+        w->stat = 0;
+        ret = 1;
     }
-    w->stat = 0;
-    return 1;
+    return ret;
 }
 
 void SndRoomBgmStop(u8 no, int time)
@@ -1916,19 +1956,19 @@ void SndSetOutputMode(int mode, int init)
 static void getCam2SndAngle(f32* pan, f32* span, f32* dist, Vec* pos)
 {
     Camera* cam = &pG->Cam;
-    Mtx inv;
-    Mtx m;
-    Vec right;
-    Vec up = { 0.0f, 1.0f, 0.0f };
-    Vec fwd;
     Vec out;
+    Vec fwd;
 
     if (pos == NULL) {
         return;
     }
-    fwd.x = cam->mat[0][0];
-    fwd.y = cam->mat[1][0];
-    fwd.z = cam->mat[2][0];
+    Vec up = { 0.0f, 1.0f, 0.0f };
+    Vec right;
+    Mtx m;
+    Mtx inv;
+    fwd.x = pG->Cam.mat[0][0];
+    fwd.y = pG->Cam.mat[1][0];
+    fwd.z = pG->Cam.mat[2][0];
     PSVECCrossProduct(&fwd, &up, &right);
     m[0][0] = fwd.x;
     m[1][0] = fwd.y;
@@ -1939,9 +1979,12 @@ static void getCam2SndAngle(f32* pan, f32* span, f32* dist, Vec* pos)
     m[0][2] = right.x;
     m[1][2] = right.y;
     m[2][2] = right.z;
-    m[0][3] = pPL->pos.x;
-    m[1][3] = pPL->pos.y;
-    m[2][3] = pPL->pos.z;
+    {
+        Vec* pp = &pPL->pos;
+        m[0][3] = pp->x;
+        m[1][3] = pp->y;
+        m[2][3] = pp->z;
+    }
     PSMTXInverse(m, inv);
     PSMTXMultVec(inv, pos, &out);
     if (pan != NULL) {
@@ -1962,17 +2005,19 @@ static void sndSurroundCalc()
 {
     static int (*end_check_tbl[2])(u32) = { Snd_se_end_check, Snd_seq_end_check };
     int i;
-    SndSurWork* w = pSnd->sur;
+    SND_CTRL_WORK* c = &Snd_ctrl_work;
     f32 pan;
     f32 dist;
 
-    for (i = 0; i < 48; i++, w++) {
+    for (i = 0; i < 48; i++) {
+        SndSurWork* w = &pSnd->sur[i];
         SND_SIT* sit;
-        int idx = 0;
+        int idx;
         if (w->type == 0) {
             continue;
         }
-        Snd_ctrl_work.flag_58 = 0;
+        c->flag_58 = 0;
+        idx = 0;
         if (w->type & 0x1) {
             idx = 1;
         }
@@ -1985,50 +2030,54 @@ static void sndSurroundCalc()
             if (w->obj != NULL) {
                 if ((w->obj->be_flag & 0x201) == 0x1) {
                     getCam2SndAngle(&pan, 0, &dist, w->ppos);
-                    w->pos = *w->ppos;
+                    w->pos.x = w->ppos->x;
+                    w->pos.y = w->ppos->y;
+                    w->pos.z = w->ppos->z;
                 } else {
                     getCam2SndAngle(&pan, 0, &dist, &w->pos);
                 }
             } else if (w->ppos != NULL) {
                 getCam2SndAngle(&pan, 0, &dist, w->ppos);
-                w->pos = *w->ppos;
+                w->pos.x = w->ppos->x;
+                w->pos.y = w->ppos->y;
+                w->pos.z = w->ppos->z;
             } else {
                 getCam2SndAngle(&pan, 0, &dist, &w->pos);
             }
             if (w->inner != 0) {
-                Snd_ctrl_work.flag_58 |= 0x18;
-                Snd_ctrl_work.x4B = sit->vol;
-                Snd_ctrl_work.x4C = sit->svol;
-                sndInnerVolCheck(sit, &Snd_ctrl_work.x4B, &Snd_ctrl_work.x4C);
+                c->flag_58 |= 0x18;
+                c->x4B = sit->vol;
+                c->x4C = sit->svol;
+                sndInnerVolCheck(sit, &c->x4B, &c->x4C);
             } else {
                 if (w->vol_calc != 0) {
-                    Snd_ctrl_work.flag_58 |= 0x418;
-                    Snd_ctrl_work.x4B = sndVolCalc(Snd_iss_get_sit_vol(w->blk, w->no), w->vol_ofs, dist);
-                    Snd_ctrl_work.x4C = sndVolCalc(Snd_iss_get_sit_svol(w->blk, w->no), w->svol_ofs, dist);
-                    sndWallCheck(sit, &Snd_ctrl_work.x4B, &Snd_ctrl_work.x4C, &w->pos);
-                    sndVolCtrlAtCheck(sit, &Snd_ctrl_work.x4B, &Snd_ctrl_work.x4C, &w->pos);
-                    sndInnerVolCheck(sit, &Snd_ctrl_work.x4B, &Snd_ctrl_work.x4C);
-                    Snd_ctrl_work.x54 = sndPitchCalc(w->pitch_ofs, dist);
-                    Snd_ctrl_work.x4F = sndFilterCalc(w->filter_ofs, dist);
-                    Snd_ctrl_work.flag_58 |= 0x80;
+                    c->flag_58 |= 0x418;
+                    c->x4B = sndVolCalc(Snd_iss_get_sit_vol(w->blk, w->no), w->vol_ofs, dist);
+                    c->x4C = sndVolCalc(Snd_iss_get_sit_svol(w->blk, w->no), w->svol_ofs, dist);
+                    sndWallCheck(sit, &c->x4B, &c->x4C, &w->pos);
+                    sndVolCtrlAtCheck(sit, &c->x4B, &c->x4C, &w->pos);
+                    sndInnerVolCheck(sit, &c->x4B, &c->x4C);
+                    c->x54 = sndPitchCalc(w->pitch_ofs, dist);
+                    c->x4F = sndFilterCalc(w->filter_ofs, dist);
+                    c->flag_58 |= 0x80;
                 }
                 if (w->pan_calc != 0) {
-                    Snd_ctrl_work.flag_58 |= 0x6;
+                    c->flag_58 |= 0x6;
                     if (sit->pan & 0x80) {
-                        Snd_ctrl_work.x49 = sndPanCalc(pan);
+                        c->x49 = sndPanCalc(pan);
                     } else {
-                        Snd_ctrl_work.flag_58 &= ~0x2;
-                        Snd_ctrl_work.x49 = sit->pan;
+                        c->flag_58 &= ~0x2;
+                        c->x49 = sit->pan;
                     }
                     if (sit->span & 0x80) {
-                        Snd_ctrl_work.x4A = sndSpanCalc(pan);
+                        c->x4A = sndSpanCalc(pan);
                     } else {
-                        Snd_ctrl_work.flag_58 &= ~0x4;
-                        Snd_ctrl_work.x4A = sit->span;
+                        c->flag_58 &= ~0x4;
+                        c->x4A = sit->span;
                     }
                 }
             }
-            if (Snd_ctrl_work.x4B == 0 || Snd_ctrl_work.x4C == 0) {
+            if (c->x4B == 0 || c->x4C == 0) {
                 SndStop(w->id, 0);
             } else {
                 Snd_se_set_paras(w->id);
@@ -2128,35 +2177,34 @@ int SndBgmTblSet(u16 room, int no)
     u8 j;
     u8 k;
 
-    if (rs == NULL) {
-        return ret;
-    }
-    rl = (u16*) ((u8*) SndMem.bgm_tbl + SndMem.bgm_tbl->list_ofs);
-    i = 0;
-    while (*rl != 0xFFFF) {
-        if (*rl == room) {
-            u32* ofs = (u32*) ((u8*) SndMem.bgm_tbl + SndMem.bgm_tbl->room_ofs);
-            r = (SndBgmRoom*) ((u8*) ofs + ofs[i]);
-            break;
+    if (rs != NULL) {
+
+        rl = (u16*) ((u8*) SndMem.bgm_tbl + SndMem.bgm_tbl->list_ofs);
+        i = 0;
+        // no block-scope declaration inside the body: that would stop GCC duplicating the exit test
+        while (*rl != 0xFFFF) {
+            if (*rl == room) {
+                r = (SndBgmRoom*) ((u8*) SndMem.bgm_tbl + SndMem.bgm_tbl->room_ofs + ((u32*) ((u8*) SndMem.bgm_tbl + SndMem.bgm_tbl->room_ofs))[i]);
+                break;
+            }
+            rl++;
+            i++;
         }
-        rl++;
-        i++;
-    }
-    if (r == NULL) {
-        return ret;
-    }
-    for (j = 0; j < r->num; j++) {
-        if (r->e[j].id == no) {
-            for (k = 0; k < 6; k++) {
-                rs->bgm[k] = r->e[j].bgm[k];
-                rs->str[k] = r->e[j].str[k];
-                if (room == G_ROOM_ID) {
-                    pSnd->room_bgm[k] = r->e[j].bgm[k];
-                    pSnd->room_str[k] = r->e[j].str[k];
+        if (r != NULL) {
+            for (j = 0; j < r->num; j++) {
+                if (r->e[j].id == no) {
+                    for (k = 0; k < 6; k++) {
+                        rs->bgm[k] = r->e[j].bgm[k];
+                        rs->str[k] = r->e[j].str[k];
+                        if (room == G_ROOM_ID) {
+                            pSnd->room_bgm[k] = r->e[j].bgm[k];
+                            pSnd->room_str[k] = r->e[j].str[k];
+                        }
+                    }
+                    ret = 1;
+                    break;
                 }
             }
-            ret = 1;
-            break;
         }
     }
     return ret;
@@ -2320,13 +2368,16 @@ void SndBlkInit(int type, int id, int no)
     int blk = type;
     u32 adr;
 
-    if (type == 3) {
-        pSnd->bgm_id[no] = id;
-        blk = no + 3;
-    } else if (type == 8) {
+    switch (type) {
+    case 8:
         pSnd->em_id[no] = id;
         blk = no + 8;
         OSReport("SND: blk %d, ID 0x%x\n", blk, id);
+        break;
+    case 3:
+        pSnd->bgm_id[no] = id;
+        blk = no + 3;
+        break;
     }
     Snd_iss_blk[blk].aram = SndMem.blk_aram[blk];
     adr = (u32) SndMem.blk_mram[blk];
@@ -2367,31 +2418,33 @@ int SndBgmDataReadCheck(int id)
 
 void SndSetReverb()
 {
+    SND_EFX_WORK* w = &Snd_efx_work[0];
+
     if (pSys->sound_mode == 2) {
         SndEfxParam* p = &pSnd->hdr->efx[0];
-        Snd_efx_work[0].fx.dpl2.tempDisableFX = 0;
-        Snd_efx_work[0].fx.dpl2.preDelay = p->preDelay;
-        Snd_efx_work[0].fx.dpl2.time = p->time;
-        Snd_efx_work[0].fx.dpl2.coloration = p->coloration;
-        Snd_efx_work[0].fx.dpl2.damping = p->damping;
-        Snd_efx_work[0].fx.dpl2.mix = p->mix;
+        w->fx.dpl2.tempDisableFX = 0;
+        w->fx.dpl2.preDelay = p->preDelay;
+        w->fx.dpl2.time = p->time;
+        w->fx.dpl2.coloration = p->coloration;
+        w->fx.dpl2.damping = p->damping;
+        w->fx.dpl2.mix = p->mix;
         Snd_efx_req(0, 5);
     } else {
         SndEfxParam* p = &pSnd->hdr->efx[1];
-        Snd_efx_work[0].fx.hi.tempDisableFX = 0;
-        Snd_efx_work[0].fx.hi.preDelay = p->preDelay;
-        Snd_efx_work[0].fx.hi.time = p->time;
-        Snd_efx_work[0].fx.hi.coloration = p->coloration;
-        Snd_efx_work[0].fx.hi.damping = p->damping;
-        Snd_efx_work[0].fx.hi.crosstalk = p->crosstalk;
-        Snd_efx_work[0].fx.hi.mix = p->mix;
+        w->fx.hi.tempDisableFX = 0;
+        w->fx.hi.preDelay = p->preDelay;
+        w->fx.hi.time = p->time;
+        w->fx.hi.coloration = p->coloration;
+        w->fx.hi.damping = p->damping;
+        w->fx.hi.crosstalk = p->crosstalk;
+        w->fx.hi.mix = p->mix;
         Snd_efx_req(0, 1);
     }
 }
 
 static void debug_mute_check()
 {
-    static u8 flag_bak;
+    static u8 flag_bak = 0; // explicit `= 0` puts it in .sdata (GCC 2.95 keeps zero initializers out of bss)
     u8 f = 0;
     u32 chg;
     u32 off;
@@ -2424,7 +2477,7 @@ static void debug_mute_check()
 
 int SndStatDisp(int req)
 {
-    int i;
+    u32 i;
     int y = 0x10;
     int y2 = 0x10;
     int ret = 0;
@@ -2467,7 +2520,7 @@ static void debugDisp()
     s8 idx = History.top;
     int y;
     u16 y2;
-    u32 total = 0;
+    u32 total;
     int d;
 
     if (History.num != 0) {
@@ -2480,12 +2533,13 @@ static void debugDisp()
             col = 6;
         }
         eprintf2(7, 0xD, 0x20, y, col, 9, "%s %3d %3d %3d %4d %4d", se_blk_tbl[History.blk[idx]],
-                 History.no[idx], History.vol[idx], History.svol[idx], History.pan[idx], History.span[idx]);
+                 History.no[idx], History.vol[idx], History.pan[idx], History.svol[idx], History.span[idx]);
         y += 0x10;
         idx++;
         idx = LOOP_IDX(idx, 24);
     }
 
+    total = 0;
     eprintf2(7, 0xE, 0x20, 0x10, 6, 0xA, "BLK     NAME      ADDR   SIZE   USED   FREE");
     eprintf2(7, 0xE, 0x20, 0x1E, 0, 0xA, "     OS RESERVE  %06x %06x", 0, 0x4000);
     eprintf2(7, 0xE, 0x20, 0x2C, 0, 0xA, "     ZERO BUFFER %06x %06x", 0x4000, 0x100);
@@ -2515,28 +2569,26 @@ static void debugDisp()
         eprintf2(7, 0xE, 0x97, y2, 0, 0xA, "%06x %06x", SndMem.blk_aram[5], UseAramSize[5]);
     }
     for (i = 0; i < 6; i++) {
-        u8 id = pSnd->em_id[i];
-        if (id == 0xFF) {
+        if (pSnd->em_id[i] == 0xFF) {
             continue;
         }
         y2 += 0xE;
-        if (id > 0xF) {
-            eprintf2(7, 0xE, 0x20, y2, 0, 0xA, " %02d    EM%02X", i + 8, id);
-        } else if (id == 0xF) {
-            eprintf2(7, 0xE, 0x20, y2, 0, 0xA, " %02d    PL%02X", i + 8, id);
+        if (pSnd->em_id[i] > 0xF) {
+            eprintf2(7, 0xE, 0x20, y2, 0, 0xA, " %02d    EM%02X", i + 8, pSnd->em_id[i]);
+        } else if (pSnd->em_id[i] != 0xF) {
+            eprintf2(7, 0xE, 0x20, y2, 0, 0xA, " %02d    PL%02X", i + 8, pSnd->em_id[i] + 0xE);
         } else {
-            eprintf2(7, 0xE, 0x20, y2, 0, 0xA, " %02d    PL%02X", i + 8, id + 0xE);
+            eprintf2(7, 0xE, 0x20, y2, 0, 0xA, " %02d    PL%02X", i + 8, pSnd->em_id[i]);
         }
         eprintf2(7, 0xE, 0x97, y2, 0, 0xA, "%06x %06x", SndMem.blk_aram[i + 8], UseAramSize[i + 8]);
         total += UseAramSize[i + 8];
     }
     for (i = 1; i >= 0; i--) {
-        u8 id = pSnd->bgm_id[i];
-        if (id == 0xFF) {
+        if (pSnd->bgm_id[i] == 0xFF) {
             continue;
         }
         y2 += 0xE;
-        eprintf2(7, 0xE, 0x20, y2, 0, 0xA, " %02d    MI%03X", i + 3, id);
+        eprintf2(7, 0xE, 0x20, y2, 0, 0xA, " %02d    MI%03X", i + 3, pSnd->bgm_id[i]);
         eprintf2(7, 0xE, 0x97, y2, 0, 0xA, "%06x %06x", SndMem.blk_aram[i + 3], UseAramSize[i + 3]);
         total += UseAramSize[i + 3];
     }

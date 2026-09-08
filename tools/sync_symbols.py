@@ -33,9 +33,21 @@ def read_class(s):
         for _ in range(int(m.group(1))):
             p, s = read_class(s); parts.append(p)
         return "::".join(parts), s
-    if s.startswith("t"):  # template class: t<len>Name<nargs>...  (args ignored)
+    if s.startswith("t"):  # template class: t<len>Name<nargs><args>  (`Z<type>` per type argument)
         m = re.match(r"t(\d+)", s); n = int(m.group(1)); s = s[m.end():]
-        return s[:n], s[n:]
+        name, s = s[:n], s[n:]
+        m = re.match(r"(\d)", s)
+        if m and s[m.end():].startswith("Z"):
+            args = []; rest = s[m.end():]
+            for _ in range(int(m.group(1))):
+                if not rest.startswith("Z"):
+                    return name, s  # non-type argument: leave the arguments out
+                cls, rest2 = read_class(rest[1:])
+                if cls is None:
+                    return name, s
+                args.append(cls); rest = rest2
+            return f"{name}<{', '.join(args)}>", rest
+        return name, s
     return None, s
 
 def demangle_v2(sym):
@@ -51,13 +63,13 @@ def demangle_v2(sym):
     m = re.match(r"^_[.$]_(.+)$", sym)
     if m:
         cls, _ = read_class(m.group(1))
-        return f"{cls}::~{cls}" if cls else None
+        return f"{cls}::~{re.sub(r'<.*', '', cls)}" if cls else None
     # constructor: __13Class...
     m = re.match(r"^__(\d+|Q\d|t\d+)(.*)$", sym)
     if m and not sym.startswith("___"):
         cls, _ = read_class(sym[2:])
         if cls:
-            return f"{cls}::{cls}"
+            return f"{cls}::{re.sub(r'<.*', '', cls)}"
     # operator: __eq__13Class or __eq__Fii
     m = re.match(r"^__([a-z]{2,3})__(.*)$", sym)
     if m and m.group(1) in OPS:
@@ -222,7 +234,8 @@ def main():
                     if owner and os.path.exists(os.path.join(ROOT, "src", owner)):
                         # the defining unit has source; its own sync is authoritative for the name
                         continue
-                    if not re.search(r"_[0-9A-F]{8}$", old) and not old.startswith(("fn_", "lbl_")):
+                    sanitized = re.sub(r"\W+", "_", dn).strip("_")  # Bio4.sym placeholder: `cSatMgr_polySphereCk`
+                    if not re.search(r"_[0-9A-F]{8}$", old) and not old.startswith(("fn_", "lbl_")) and old != sanitized:
                         # only placeholders may be renamed from a reference; a real name that differs
                         # from the reference means this unit declared the function with the wrong linkage/signature
                         if old != name:

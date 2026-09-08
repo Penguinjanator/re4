@@ -6,52 +6,122 @@
 #include "gx.h"
 #include "cManager.h"
 #include "db_log.h"
+#include "main_mem.h"
 
-#line 14 "D:/Bio4/Prog/light.h"
+class cModel;
+class cEm;
+
+// Spot block of a light (0x40 bytes, cLight+0x38 / cLightWork+0x2C). Only the direction is known.
+struct LightSpot {
+    Vec normal;        // 0x00 direction
+    u8 pad_C[0x40 - 0xC];
+};
+
+// Per-type work block (0x80 bytes, cLight+0x78 / cLightWork+0x6C). The first word is a colour
+// (cLit::versionUp copies it to the base colour for type 1 lights).
+struct LightSub {
+    GXColor color;     // 0x00
+    u8 pad_4[0x80 - 0x4];
+};
+
+// Path block (0x40 bytes, cLight+0xF8 / cLightWork+0xEC).
+struct LightPath {
+    u8 pad_0[0x40];
+};
+
+// One light entry of a light cut in the .lit file (0x12C bytes); cLight::operator= loads it.
+class cLight;
+class cLightWork {
+public:
+    u8 flag;           // 0x00  -> cLight::be_flag
+    u8 xD;             // 0x01  -> cLight::xD (spot type: 3 / 6 have a direction)
+    u8 type;           // 0x02  -> cLight::type (per-type move handler, construct id)
+    u8 xF;             // 0x03  -> cLight::xF (screen kind mask; 0x10 cloth, 0x40 set by versionUp)
+    Vec pos;           // 0x04
+    f32 x1C;           // 0x10
+    GXColor color;     // 0x14
+    f32 power;         // 0x18
+    u8 parentType;     // 0x1C
+    u8 kind;           // 0x1D
+    u8 attr;           // 0x1E
+    u8 x2B;            // 0x1F
+    u32 parentId;      // 0x20  parts no << 16 | parent no
+    u16 x30;           // 0x24  hit adjust radius
+    u16 x32;           // 0x26
+    u32 x34;           // 0x28
+    LightSpot spot;    // 0x2C
+    LightSub sub;      // 0x6C
+    LightPath path;    // 0xEC
+
+    cLightWork& operator=(cLight& l);
+};
 
 // One light work (sizeof 0x1D4). Per-type modules (light01..light10) keep their state in `work`.
 class cLight : public cUnit {
 public:
-    u8 pad_0C[4];
+    u8 xC;             // 0x0C
+    u8 xD;             // 0x0D  spot type (setSpotNormal accepts 3 and 6)
+    u8 type;           // 0x0E  per-type move handler index
+    u8 xF;             // 0x0F  screen kind mask
     Vec pos;           // 0x10
-    f32 x1C;           // 0x1C (esp11: sizeX * scale * 10)
+    f32 x1C;           // 0x1C (esp11: sizeX * scale * 10; hit check radius)
     GXColor color;     // 0x20 base color
     f32 power;         // 0x24
-    u8 pad_28[2];
+    u8 parentType;     // 0x28  0 none, 1 enemy, 2 scroll group, 3 room etc model, 4 object
+    u8 kind;           // 0x29  (0x7F = item light)
     u8 attr;           // 0x2A  (db_work "ATTR")
-    u8 pad_2B[0x38 - 0x2B];
-    Vec normal;        // 0x38 direction
-    u8 pad_44[0x78 - 0x44];
-    u8 work[0x40];     // 0x78 per-light-type work area
-    u8 pad_B8[0x138 - 0xB8];
+    u8 x2B;            // 0x2B
+    union {
+        u32 parentId;  // 0x2C  parts no << 16 | parent no
+        struct {
+            u16 partsNo;   // 0x2C
+            u16 no;        // 0x2E
+        } parent;
+    };
+    u16 x30;           // 0x30  hit adjust radius
+    u16 x32;           // 0x32
+    u32 x34;           // 0x34
+    union {
+        Vec normal;        // 0x38 direction
+        LightSpot spot;    // 0x38 .. 0x78
+    };
+    union {
+        u8 work[0x40];     // 0x78 per-light-type work area
+        LightSub sub;      // 0x78 .. 0xF8
+    };
+    LightPath path;    // 0xF8 .. 0x138
     u8 x138;           // 0x138
     u8 pad_139[3];
     GXColor curColor;  // 0x13C color actually applied
-    s16 x140;          // 0x140
+    s16 x140;          // 0x140  index in the cut (-1 = none)
     u8 pad_142[2];
     Vec curPos;        // 0x144  position actually applied (db_work draws a sphere of radius x1C here)
-    u8 pad_150[0x1D4 - 0x150];
+    cModel* pParent;   // 0x150
+    u8 pad_154[0x1D4 - 0x154];
 
     cLight();
     virtual ~cLight() {}
     void move();
-    void setSpotTarget(Vec* target);
+    cLight& operator=(cLightWork& w);
+    int checkScr();
+    void setPartsNo(int no);
+    int setParent(u8 type, u32 id);
+    int setParent(cModel* m);
+    cModel* calcParent();
+    cModel* getCoord();
+    int isParent(cModel* m);
+    int getPos2(Vec* src, Vec* dst);
+    int calcPos(Vec* src, Vec* dst);
+    int getNormal(Vec* src, Vec* dst);
+    void setTrans(int on);
+    void hitAdjust();
     void setSpotNormal(Vec* normal);
+    void setSpotTarget(Vec* target);
 };
 
 class cLight01 : public cLight {
 public:
     cLight01();
-};
-
-class cLight02 : public cLight {
-public:
-    cLight02();
-};
-
-class cLight06 : public cLight {
-public:
-    cLight06();
 };
 
 class cLight07 : public cLight {
@@ -72,38 +142,182 @@ public:
     int movePath();
 };
 
-class cLightWork;
-
-// Environment block at cLightMgr+0x38 (returned by getEnvPtr). Only the depth-of-field
-// fields filter01 reads are known.
-struct cLightEnv {
-    u8 pad_0[0x8];
-    s32 x8;          // 0x08  gx_sub: 0 = the background colour has no rgb (alpha only)
-    u8 pad_C[8];
-    GXColor bgColor; // 0x14  background colour (gx_sub)
-    u8 pad_18[0x28 - 0x18];
-    s32 x28;   // 0x28  focus depth (screen z, 0..65535)
-    u8 x2C;    // 0x2C
-    u8 x2D;    // 0x2D  focus level (0 = depth of field off)
-    u8 x2E;    // 0x2E  focus mode (0 near, 1 far)
+// Path file header (cLightMgr::initPath): count, then offsets to each path from the header.
+struct LightPathHeader {
+    u8 num;            // 0x00
+    u8 pad_1[3];
+    u32 ofs[1];        // 0x04
 };
 
+// Fog block (cLightEnv+0x8, copied to `fogNew` by setEnv).
+struct LightFog {
+    s32 type;          // 0x00  GX fog type (0 = off)
+    f32 start;         // 0x04
+    f32 end;           // 0x08
+    GXColor color;     // 0x0C
+};
+
+// Wind of the pendulum system (cLightEnv+0xEC).
+class cPenWind {
+public:
+    u8 dir;            // 0x00  angle 0..255
+    u8 power;          // 0x01
+    u8 x2;             // 0x02
+
+    void set();
+};
+
+// Light cut: environment block (0x104 bytes) followed by nLight cLightWork entries. The
+// manager keeps a copy of the current one at cLightMgr+0x38 (returned by getEnvPtr).
+struct cLightEnv {
+    u32 x0;          // 0x00  (versionUp 0x23 copies it to xFC / x100)
+    u32 nLight;      // 0x04
+    union {
+        LightFog fog;    // 0x08
+        struct {
+            s32 x8;          // 0x08  fog type; gx_sub: 0 = the background colour has no rgb (alpha only)
+            f32 fogStart;    // 0x0C
+            f32 fogEnd;      // 0x10
+            GXColor bgColor; // 0x14  fog / background colour (gx_sub)
+        };
+    };
+    u8 pad_18[0x28 - 0x18];
+    s32 x28;         // 0x28  focus depth (screen z, 0..65535)
+    u8 x2C;          // 0x2C
+    u8 x2D;          // 0x2D  focus level (0 = depth of field off)
+    u8 x2E;          // 0x2E  focus mode (0 near, 1 far)
+    u8 blurAlpha;    // 0x2F  Filter00SetAlpha
+    u8 tuneOn;       // 0x30  bit0: tune colours below are valid
+    u8 pad_31[3];
+    GXColor tune[3]; // 0x34
+    u8 tevScale[2];  // 0x40  -> gxCsScale
+    u8 pad_42[2];
+    f32 farRate;     // 0x44  far plane = fog end * (1 - farRate) + 1
+    u8 hokan;        // 0x48  fog interpolation frames
+    u8 pad_49[0xEC - 0x49];
+    cPenWind wind;   // 0xEC
+    u8 pad_EF;       // 0xEF
+    u8 blurType;     // 0xF0  Filter00SetType
+    s8 blurPower;    // 0xF1  Filter00SetPower
+    u8 minLod;       // 0xF2
+    u8 maxLod;       // 0xF3
+    u8 aniso;        // 0xF4
+    s8 contrast[3];  // 0xF5  Filter00SetContrast
+    f32 lodBias;     // 0xF8
+    u32 xFC;         // 0xFC
+    u32 x100;        // 0x100
+
+    cLightWork* getLightWork(int no);
+    u32 getSize();
+};
+
+// Light data file (.lit): cut offset table, then the cuts.
+class cLit {
+public:
+    u16 nCut;          // 0x00
+    u8 version;        // 0x02
+    u8 nMaxLight;      // 0x03
+    // 0x04: u32[nCut] byte offset of each cut from the file start (0 = none)
+
+    cLightEnv* getCut(u16 no);
+    int getSafeCutNo(int no);
+    int versionUp();
+    u32 getMaxLight();
+};
+
+// Light list a model / effect draws with (cModel::lightInfo.pLight, EspLightList).
+struct EspLightList {
+    cLight* p[8];      // 0x00
+    u8 num;            // 0x20
+};
+
+#line 465 "D:/Bio4/Prog/light.h"
 class cLightMgr : public cManager<cLight> {
 public:
-    u8 pad_34[0x180 - 0x34];
-    void* x180;
-    void* x184;
-    void* x188;
-    u8 pad_18C[0x208 - 0x18C];
+    cLit* pLit;            // 0x34  lit the cuts are taken from (the room lit by default)
+    cLightEnv env;         // 0x38 .. 0x13C  current cut environment
+    u32 kindFlags[8];      // 0x13C  kind enable bits (onKind / offKind)
+    u8 pad_15C[0x17C - 0x15C];
+    LightPathHeader* pPath;  // 0x17C
+    cLit* x180;            // 0x180  core lit
+    cLit* x184;            // 0x184  room lit
+    cLit* x188;            // 0x188  third lit
+    int cutNo;             // 0x18C
+    u8 hokanCnt;           // 0x190  fog interpolation frames left
+    u8 logOn;              // 0x191
+    u8 pad_192[2];
+    f32 elecPower;         // 0x194
+    u8 pad_198[4];
+    GXColor tune[3];       // 0x19C
+    f32 colBrendRate;      // 0x1A8
+    u32 x1AC;              // 0x1AC
+    u32 x1B0;              // 0x1B0
+    u8 pad_1B4[0x204 - 0x1B4];
+    u32 x204;              // 0x204
 
     cLightMgr();
-    virtual ~cLightMgr();
-    virtual void* memAlloc(u32 size);
-    virtual void memFree();
-    virtual void memClear(cLight* p, u32 size);
+    virtual void* memAlloc(u32 size) { return MEM_ALLOC(size, 1, 13); }
+    virtual void memFree(void* p) { Mem_free(p); }
+    virtual void memClear(cLight* p, u32 size) { memclr_asm(p, size); }
     virtual void log(const char* fmt, ...);
-    virtual int construct(cLight* p, int id);
+    virtual int construct(cLight* p, u32 id);
 
+    void init(void (**funcTbl)(cLight*));
+    int roomInit(cLit* core, cLit* room, cLit* third);
+    cLight* create(cLightWork* w);
+    cLight* createBack(cLightWork* w);
+    cLight* create(cLit* lit, int cutNo, int lightNo, int flag);
+    cLight* createBack(cLit* lit, int cutNo, int lightNo, int flag);
+    cLight* create(int kind, int type, int no, int x);  // 0x8014E21C (esp11)
+    cLight* createBack(int litNo, int cutNo, int lightNo, int flag);
+    f32 setElecPower(f32 d);
+    int setElecPower2(u8 pathNo, u8 idx);
+    int onKind(u8 kind);
+    int offKind(u8 kind);
+    int checkKind(u8 kind);
+    cLight* getKindLight(u8 kind);
+    int roomLitSet(cLit* lit);
+    int roomLitCheck();
+    int move();
+    void hokanMove();
+    cLightEnv* getEnvPtr();  // 0x8014EFCC: &this->env (at +0x38)
+    void setModel2(cModel* m);
+    void setCloth(cModel* m);
+    void setEsp(EspLightList* list, u8 mask);
+    int update(int area_no, int camera_no);
+    int setThermo();
+    int registCut(cLightEnv* cut, int hokan);
+    cLightEnv* getCutAddr(int litNo, int cutNo);
+    void setFogStart(f32 v);
+    void setFogEnd(f32 v);
+    f32 getFogStart();
+    f32 getFogEnd();
+    void setFog();           // 0x8014FAC8
+    void setBlur();
+    void deleteScr();
+    void offScr(u8 mask);
+    int countScr();
+    int setEnv(cLightEnv* cut, int hokan);
+    void setTune(cLightEnv* cut);
+    int setMipmap(cLightEnv* cut);
+    int loadLit(cLightWork* w, u32 n);
+    int saveLit(cLightWork* w);
+    cLit** getLitPPtr();
+    int initPath(LightPathHeader* p);
+    cLightPathData* getPathPtr(u8 no);
+    LightPathHeader* getPathHeader();
+    void setItemLight();
+    void beginEvent();
+    void endEvent();
+    void dbSetRoomLit(cLit* lit);
+    void inSscrn();
+    void outSscrn(int mode);
+
+    // In-class inlines. GCC 2.95 emits every inline member of a class whose vtable it emits, so
+    // light.cpp gets bodies for these that the original linker dead-stripped (light.cpp is in
+    // STRIP_UNUSED); their strings stay: "D:/Bio4/Prog/light.h" opens light.cpp's .rodata and every
+    // unit including light.h carries the cManager<cLight>::create(int) strings followed by the
+    // "create() failed %s id:%d" one of create(int, u32) (esp05, obj14/obj20/obj26/objYagura, ...).
     cLight* getWork(u32 no) {
         if (no >= nArray) {
             dbgAssert(__FILE__, __LINE__);
@@ -119,17 +333,21 @@ public:
     }
     cLight* createNew() { return cManager<cLight>::create(); }
     cLight* createNo(int id, u32 no) { return cManager<cLight>::create(id, no); }
-
-    cLight* create(cLightWork* w);
-    cLight* create(int type);
-    cLight* create(int kind, int type, int no, int x);  // 0x8014E21C (esp11)
-    void update(int area_no, int camera_no);
-    cLightPathData* getPathPtr(u8 no);
-    cLightEnv* getEnvPtr();  // 0x8014EFCC: &this->env (at +0x38)
-    void setFog();           // 0x8014FAC8
 };
 
 extern cLightMgr LightMgr;
+
+// Declared after the manager: the vtables come out in reverse declaration order
+// (cLight06, cLight02, cLightMgr, cManager<cLight>, cLight, cUnit in light.cpp's .rodata).
+class cLight02 : public cLight {
+public:
+    cLight02() {}
+};
+
+class cLight06 : public cLight {
+public:
+    cLight06() {}
+};
 
 // per-type move handlers (light01.cpp .. light10.cpp)
 void Light00_Move(cLight* l);
@@ -142,5 +360,12 @@ void Light06_Move(cLight* l);
 void Light07_Move(cLight* l);
 void Light08_Move(cLight* l);
 void Light10_Move(cLight* l);
+
+// game/light.cpp
+void lightMove(cLight* l);
+int lightHitCheck(cModel* m, cLight* l);
+int lightHitCheckSphere(cModel* m, cLight* l);
+int lightHitCheckCylinder(cModel* m, cLight* l);
+int lightHitCheckBBox(cModel* m, cLight* l);
 
 #endif

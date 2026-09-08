@@ -10,6 +10,7 @@ public:
     u8 pad_0[0x30];
 
     int num(int id);            // 0x8001EB54: count of item `id` of this->x13 type
+    int bulletNum();            // 0x8001FC20: bulletNumCurrent() of the equipped weapon
     void dump(int id);          // 0x8001E970: drop item `id`
     int get(int id, int num);
     void debugWeapon(int id);

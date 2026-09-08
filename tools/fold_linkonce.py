@@ -104,8 +104,6 @@ def unit_text_functions(unit):
             if u == unit and sec == ".text":
                 dn = dn if dn and dn != "." else name
                 names.add(dn)
-                # demangle_v2 drops template arguments (`cManager<cObj>::x` -> `cManager::x`)
-                names.add(re.sub(r"<[^<>]*>", "", dn))
     return names
 
 

@@ -148,7 +148,48 @@ def main(argv: List[str]) -> int:
                 if os.path.exists(out_path):
                     os.remove(out_path)
                 return rc
+            if cmd is cc1_cmd and lang == "c++":
+                place_linkonce(src, asm)
     return 0
+
+
+def place_linkonce(src: str, asm: str) -> None:
+    """Put the unit's own linkonce functions and every linkonce vtable back into .text / .rodata.
+
+    The DOL keeps template instantiations, out-of-line inlines and synthesized destructors at the
+    position the compiler emitted them (interleaved with __static_initialization_and_destruction_0
+    and the global constructor thunks, vtables interleaved with the regular ones); a whole-section
+    append cannot reproduce that. So the `.gnu.linkonce.t.<sym>` sections of functions sym_map.tsv
+    lists for this unit become plain `.text` here, before assembling, and the `.gnu.linkonce.d.*`
+    vtable sections become `.rodata` (the original linker kept every unit's copy). Unowned linkonce
+    functions stay in their sections; tools/fold_linkonce.py drops them after assembling.
+    """
+    root = Path(__file__).resolve().parent.parent
+    try:
+        rel = Path(src).resolve().relative_to(root / "src")
+    except ValueError:
+        return
+    sym_map = root / "config" / os.environ.get("RE4_VERSION", "G4BE08") / "sym_map.tsv"
+    if not sym_map.exists():
+        return
+    sys.path.insert(0, str(root / "tools"))
+    from fold_linkonce import unit_text_functions  # noqa: E402
+    from sync_symbols import demangle_v2  # noqa: E402
+
+    owned = unit_text_functions(rel.as_posix())
+    out = []
+    with open(asm, encoding="latin-1") as f:
+        for line in f:
+            s = line.strip()
+            if s.startswith('.section\t".gnu.linkonce.t.'):
+                name = s[len('.section\t".gnu.linkonce.t.'):].split('"', 1)[0]
+                if (demangle_v2(name) or name) in owned:
+                    line = '\t.section\t".text"\n'
+            elif s.startswith('.section\t".gnu.linkonce.d.'):
+                line = '\t.section\t".rodata"\n'
+            out.append(line)
+    with open(asm, "w", encoding="latin-1") as f:
+        f.writelines(out)
 
 
 if __name__ == "__main__":

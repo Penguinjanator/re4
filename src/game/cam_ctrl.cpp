@@ -818,7 +818,7 @@ void CameraControl::Check()
     if (flags_30 & 4) {
         return;
     }
-    if (pPL->pWep && pPL->pWep->x5) {
+    if (pPL->p2A4 && pPL->p2A4->x5) {
         return;
     }
     PSVECSubtract(&pPL->getPartsPtr(1)->pos, &pPL->pos, &d);

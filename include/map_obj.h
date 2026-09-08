@@ -21,9 +21,9 @@ public:
     cMapMgr();
     virtual ~cMapMgr();
     virtual void* memAlloc(u32 size);
-    virtual void memFree();
+    virtual void memFree(void* p);
     virtual void memClear(cMap* p, u32 size);
-    virtual int construct(cMap* p, int id);
+    virtual int construct(cMap* p, u32 id);
 
     cMap* getWork(u32 no) {
         if (no >= nArray) {

@@ -694,15 +694,15 @@ void tp_pl_face()
     }
     if (pT->joy[0].rep & JOY_A) {
         if (pT->cursor == 0) {
-            ShapeEnd(pl->pFace->pShape);
+            ShapeEnd(pl->pBody->pShape);
         } else {
             if (pData != NULL) {
                 Debug_free(pData);
             }
             if (HDReadDebugAlloc(pFileName[PL_COSTUME][pT->cursor - 1], &pData, 1)) {
-                ShapeSet(pl->pFace->pShape, 0, pData, 2);
+                ShapeSet(pl->pBody->pShape, 0, pData, 2);
             } else {
-                ShapeEnd(pl->pFace->pShape);
+                ShapeEnd(pl->pBody->pShape);
             }
         }
     }

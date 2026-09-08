@@ -23,7 +23,7 @@ struct ArcFile {
 // Player archive at pG->pPlArc: a table of byte offsets to the player's sub-files (models, textures,
 // motions, faces...). The pl_* units index it directly; the pointer is `ofs + (u32) arc`.
 struct PlArc {
-    u32 ofs[0x70];
+    u32 ofs[0x100];   // pl_knife indexes up to 0x87
 };
 #define PL_ARC_PTR(arc, no) ((void*) ((arc)->ofs[no] + (u32) (arc)))
 
@@ -58,7 +58,10 @@ struct GlobalWork {
     u8 pad_174[0x4F24 - 0x174];
     void* pCoreCamData;    // 0x4F24  core camera data ("B40x")
     void* pRoomCamData;    // 0x4F28  room camera data ("B40x")
-    u8 pad_4F2C[0x4F70 - 0x4F2C];
+    u8 pad_4F2C[0x4F3C - 0x4F2C];
+    Vec bell_pos;          // 0x4F3C  floor point under the rung bell (obj14; flags_5010 bit29)
+    u8 bell_stat;          // 0x4F48  2 = bell rung
+    u8 pad_4F49[0x4F70 - 0x4F49];
     Vec quake_ofs;         // 0x4F70
     u8 x4F7C;
     u8 door_no;            // 0x4F7D  door used to enter the room (index into the DSE door SE table)
@@ -67,8 +70,13 @@ struct GlobalWork {
     u8 x4F93;              // 0x4F93
     u32 play_time;         // 0x4F94  seconds (SetGameTime accumulates into it)
     u8 pad_4F98[4];
-    u8 stage_no;           // 0x4F9C
-    u8 room_no;            // 0x4F9D
+    union {
+        u16 room_id;       // 0x4F9C  stage << 8 | room as one halfword (obj14: room 004 test)
+        struct {
+            u8 stage_no;   // 0x4F9C
+            u8 room_no;    // 0x4F9D
+        };
+    };
     u8 pad_4F9E[2];
     u8 stage_prev;         // 0x4FA0  stage the current room data was loaded for (stage.cpp)
     u8 pad_4FA1[2];

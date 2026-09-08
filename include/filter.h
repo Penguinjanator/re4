@@ -46,6 +46,12 @@ void Filter0bInit();
 void Filter0bRoomInit();
 void Filter0bTrans();
 
+// filter00.cpp blur parameters (cLightMgr::setBlur)
+void Filter00SetAlpha(u8 alpha);
+void Filter00SetPower(s8 power);
+void Filter00SetType(u32 type);
+void Filter00SetContrast(u8 r, u8 g, u8 b);
+
 extern "C" {
 // filter00.cpp: additive radial blur request (highest priority wins)
 void Filter00SetAddSpread(u32 pri, int on, u8 r, u8 g, u8 b, u8 rate, u8 type, u32 num, f32 cx, f32 cy, f32 pow);

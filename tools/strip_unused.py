@@ -37,6 +37,10 @@ STB_LOCAL = 0
 DATA_GRANULE = 8  # the linker strips global data in 8-byte units (the remainder stays)
 
 
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from sync_symbols import demangle_v2  # noqa: E402
+
+
 def target_symbols(unit):
     """{section: set(names)} of symbols kept in the DOL for this unit (dtk _ADDR suffixes removed)."""
     names = {}
@@ -54,6 +58,12 @@ def target_symbols(unit):
             s.add(re.sub(r"_[0-9A-F]{8}$", "", name))
             if dn and dn != ".":
                 s.add(dn)
+                # gcc 2.95 names them after the first global of the unit (`_GLOBAL_.I.<key>`); the
+                # key need not be reproduced, the thunk is a local symbol
+                if dn.startswith("global constructors keyed to"):
+                    s.add("_GLOBAL_.I.*")
+                if dn.startswith("global destructors keyed to"):
+                    s.add("_GLOBAL_.D.*")
                 # gcc 2.95 vtable symbol for "Class virtual table" (every unit carries weak copies)
                 m = re.match(r"^(\w+) virtual table$", dn)
                 if m:
@@ -149,7 +159,11 @@ def main():
         shndx, stype = s[5], s[3] & 0xF
         if shndx == 0 or shndx >= elf.shnum or stype != STT_FUNC:
             continue
-        if sym_name(s) not in keep.get(elf.names[shndx], ()):
+        nm = sym_name(s)
+        ks = keep.get(elf.names[shndx], ())
+        if args.gcc and (demangle_v2(nm) or nm) in ks:
+            continue
+        if nm not in ks and not (nm.startswith("_GLOBAL_.I.") and "_GLOBAL_.I.*" in ks) and not (nm.startswith("_GLOBAL_.D.") and "_GLOBAL_.D.*" in ks):
             dead_funcs.setdefault(shndx, []).append((s[1], s[1] + s[2]))
 
     def in_dead_func(shndx, off):
@@ -187,6 +201,12 @@ def main():
         secname = elf.names[shndx]
         name = sym_name(s)
         if name in keep.get(secname, ()):
+            continue
+        if args.gcc and (demangle_v2(name) or name) in keep.get(secname, ()):
+            continue
+        if name.startswith("_GLOBAL_.I.") and "_GLOBAL_.I.*" in keep.get(secname, ()):
+            continue
+        if name.startswith("_GLOBAL_.D.") and "_GLOBAL_.D.*" in keep.get(secname, ()):
             continue
         if stype == STT_FUNC:
             removed.setdefault(shndx, []).append((s[1], s[1] + s[2]))

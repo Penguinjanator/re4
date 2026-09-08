@@ -6,15 +6,15 @@
 cPlBody::cPlBody(cModel* model)
 {
     pModel = model;
-    x08 = 0;
-    x00 = 0;
-    x04 = 0;
-    wepHand = 0;
-    x10 = 0;
+    pHeadData = 0;
+    pRightData = 0;
+    pLeftData = 0;
+    pWepHand = 0;
+    pShape = 0;
     x14 = 0;
     x18 = 0;
-    x1C = 0;
-    x20 = 0;
+    pRight = 0;
+    pLeft = 0;
     waist = 0.0f;
 }
 
@@ -90,5 +90,5 @@ void cPlBody::initWepHand(u32 hand)
 {
     // Unused; local static consts are still emitted (trailing 0, PI/2, 256 in .rodata).
     static const f32 hand_tbl[3] = {0.0f, PI * 0.5f, 256.0f};
-    wepHand = hand;
+    pWepHand = (void*) hand;
 }

@@ -116,7 +116,7 @@ void ClrShape(cModel* m)
     cModelInfo* info;
 
     for (info = m->pInfo; info != NULL; info = info->pNext) {
-        if (info->flags & 2) {
+        if (info->be_flag & 2) {
             info->shapeFrame = 0;
             info->pShape = NULL;
             info->shapeFlags = 0;
