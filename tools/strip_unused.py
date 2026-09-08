@@ -212,8 +212,11 @@ def main():
             removed.setdefault(shndx, []).append((s[1], s[1] + s[2]))
         elif bind != STB_LOCAL or (refcount[i] == 0 and shndx not in pooled_sections):
             # unreferenced data: the linker removed it in 8-byte units, leaving the last
-            # size % 8 bytes (unnamed, relocations dropped)
-            cut = s[2] - s[2] % DATA_GRANULE
+            # size % 8 bytes (unnamed, relocations dropped). Exception: an unreferenced *global* in
+            # a gcc object is dropped whole (light.cpp's `const f32 cLightMgr::FarDistance` left no
+            # .sdata2 behind), while function-local statics of a dead function keep their
+            # remainder (filter01's two 4-byte `.sdata` statics survive in the DOL).
+            cut = s[2] if (args.gcc and bind != STB_LOCAL) else s[2] - s[2] % DATA_GRANULE
             if cut:
                 removed.setdefault(shndx, []).append((s[1], s[1] + cut))
         else:
