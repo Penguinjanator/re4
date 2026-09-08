@@ -370,7 +370,8 @@ void EspgenArrayClear()
 
 int EspgenMove()
 {
-    EspgenWork* w = EspgenArray;
+    EspgenWork* base = EspgenArray;
+    EspgenWork* w;
     int pause = 0;
     u32 cnt = 0;
     u32 i;
@@ -379,7 +380,7 @@ int EspgenMove()
     if (pG->flags_5010 & 2) {
         pause = 1;
     }
-    for (i = 0; i < nEspgen; i++, w++) {
+    for (i = 0, w = base; i < nEspgen; i++, w++) {
         if (w->flag & 2) {
             w->flag &= ~3;
         } else if (EspgenIsActive(w)) {

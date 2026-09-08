@@ -113,7 +113,7 @@ u32 AtBoxCapsuleCk3(Vec* box, Vec* p0, f32 r, Vec* p1)
     VECNormalize(&dir, &dir);
     PSVECScale(&dir, &dir, len);
     p = *p1;
-    for (i = 1; i < n; i++) {
+    for (i = n - 1; i > 0; i--) {
         PSVECAdd(&p, &dir, &p);
         if (At_box_sphere_ck(box, &p, r)) {
             return 1;
@@ -152,7 +152,7 @@ u32 AtSphereCapsuleCk(Vec* c, Vec* p0, f32 r, f32 r2, Vec* p1)
         n = 2;
     }
     p = *p1;
-    for (i = 1; i < n; i++) {
+    for (i = n - 1; i > 0; i--) {
         PSVECAdd(&p, &dir, &p);
         if (SQ_DIST(c, &p) < rr) {
             return 1;
@@ -182,7 +182,7 @@ void AtCapsuleDisp(Vec* p0, Vec* p1, f32 r, u32 color)
     VECNormalize(&dir, &dir);
     PSVECScale(&dir, &dir, len);
     p = *p1;
-    for (i = 1; i < n; i++) {
+    for (i = n - 1; i > 0; i--) {
         PSVECAdd(&p, &dir, &p);
         Draw_sphere(&p, r, color, 1, 1);
     }

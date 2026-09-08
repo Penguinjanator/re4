@@ -254,6 +254,7 @@ void objGondola_R0_Break(cObjGondola* obj)
     Vec a;
     Vec v;
     cModel* parts;
+    f32 len;
     static Camera ObjGondolaCam;
 
     switch (obj->xFE) {
@@ -280,13 +281,14 @@ void objGondola_R0_Break(cObjGondola* obj)
         v.z = 0.0f;
         PSMTXMultVec(parts->mat, &v, &v);
         ObjGondolaCam.param.at = v;
+        len = (ObjGondolaCam.param.pos.x - ObjGondolaCam.param.at.x) * (ObjGondolaCam.param.pos.x - ObjGondolaCam.param.at.x) +
+              (ObjGondolaCam.param.pos.y - ObjGondolaCam.param.at.y) * (ObjGondolaCam.param.pos.y - ObjGondolaCam.param.at.y) +
+              (ObjGondolaCam.param.pos.z - ObjGondolaCam.param.at.z) * (ObjGondolaCam.param.pos.z - ObjGondolaCam.param.at.z);
+        ObjGondolaCam.up.z = 0.0f;
         ObjGondolaCam.param.fovy = 50.0f;
         ObjGondolaCam.up.x = 0.0f;
         ObjGondolaCam.up.y = 1.0f;
-        ObjGondolaCam.up.z = 0.0f;
-        ObjGondolaCam.dist = SQRTF((ObjGondolaCam.param.pos.x - ObjGondolaCam.param.at.x) * (ObjGondolaCam.param.pos.x - ObjGondolaCam.param.at.x) +
-                                   (ObjGondolaCam.param.pos.y - ObjGondolaCam.param.at.y) * (ObjGondolaCam.param.pos.y - ObjGondolaCam.param.at.y) +
-                                   (ObjGondolaCam.param.pos.z - ObjGondolaCam.param.at.z) * (ObjGondolaCam.param.pos.z - ObjGondolaCam.param.at.z));
+        ObjGondolaCam.dist = SQRTF(len);
         CameraSetOrientationUp(&ObjGondolaCam);
         CamCtrl.x250 = (s32) &ObjGondolaCam;
         if (w->timer) {

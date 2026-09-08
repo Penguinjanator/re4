@@ -293,6 +293,18 @@ mark it Matching.
 - `extern "C"` functions with function-pointer parameters need `extern "C"` on the definition too.
 - Declare each C function in exactly one header (its owning unit's); a second declaration with a
   different signature in another header is a compile error the moment both get included.
+- Placeholder names in sym_map.tsv for functions of unmatched units carry no linkage information;
+  only already-mangled entries prove C++ linkage. Check a caller's `bl` in the asm when unsure.
+- Cross-jumping merges a case body with the fall-through code only as far as it matches, then
+  retargets the jump to a new label; jumps to that new label are never merged again. Default-equal
+  cases must come first in source order.
+- `static const Vec` locals declared mid-function are emitted into `.rodata` at that point and passed
+  by address; non-static `const Vec` locals are copied to the stack.
+- A switch whose body is a dead local store keeps its compare instructions (branches removed after
+  flow deleted the store): `cmpwi ...; b L` sequences with unused compares.
+- OPEN (emobj `setYarare`, em_set, id_sys): the target zero/sign-extends narrow (u8/u16/s16) values
+  at call sites or on entry (`extsh r4,r4`, `clrlwi r5,r6,16`, `clrlwi rX,rParam,24`) where ours
+  treats them as already extended; no source form found. Possibly one construct; collect cases.
 - Static locals show as `name.NNN` in objdiff; the DECL_UID suffix cannot be reproduced and is ignored by the report.
 - Unexplained words in `.rodata` (zero words, stray floats) are usually the constant pool of a function
   the original linker dead-stripped (bodies gone, pools kept, `STRIP_UNUSED` in objects.py): write a
