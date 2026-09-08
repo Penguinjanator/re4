@@ -76,8 +76,14 @@ struct CameraDataHeader {
 
 // Per-attach-camera record registered by other units (only the frame count is used here).
 struct AttachCamera {
-    u8 pad_0[6];
-    u8 frame; // 0x06
+    u8 parts[5];    // 0x00  motion parts index feeding each channel (0xFF = none): 0/1 pos, 2/3 rot, 4 misc
+    u8 type;        // 0x05  0 = off, 1 = follows the model matrix, 2 = own matrix copy (MotionSetCore)
+    u8 frame;       // 0x06  (u8)(out[4].y / 100)
+    u8 pad_7;
+    Mtx* pMat;      // 0x08  &model->mat or &mat
+    Mtx mat;        // 0x0C
+    Vec out[5];     // 0x3C  interpolated channels (MotionMoveCore)
+    u16 hist[5][3]; // 0x78  key history per channel / axis
 };
 
 // B-spline rail work used by the Track/RailPan/RailBehind cameras (static CamBSpline, 0x3B8).

@@ -24,4 +24,15 @@ public:
     const char* emptyName() { return ""; }
 };
 
+// Event manager (game/event.cpp `EvtMgr`, 0x180 bytes); layout opaque.
+class EventMgr {
+public:
+    u8 pad_0[0x180];
+
+    // Looks a file of the running event up by name; 0 when it is not loaded.
+    int GetBin(void** out, const char* name, int a);
+};
+
+extern EventMgr EvtMgr;
+
 #endif

@@ -38,6 +38,7 @@ void PSMTXTransApply(const Mtx src, Mtx dst, f32 xT, f32 yT, f32 zT);
 
 void C_MTXOrtho(Mtx44 m, f32 t, f32 b, f32 l, f32 r, f32 n, f32 f);
 void C_MTXPerspective(Mtx44 m, f32 fovY, f32 aspect, f32 n, f32 f);
+void C_MTXFrustum(Mtx44 m, f32 t, f32 b, f32 l, f32 r, f32 n, f32 f);
 void C_MTXLookAt(Mtx m, const Vec* camPos, const Vec* camUp, const Vec* target);
 void PSMTX44MultVec(const Mtx44 m, const Vec* src, Vec* dst);
 void C_MTXLightPerspective(Mtx m, f32 fovY, f32 aspect, f32 scaleS, f32 scaleT, f32 transS, f32 transT);

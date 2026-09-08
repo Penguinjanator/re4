@@ -31,7 +31,7 @@ void Draw_sphere(Vec* pos, f32 r, u32 color, int zcmp, int zupd);
 void Draw_corn2(Vec* pos, Vec* dir, f32 len, f32 ang, u32 color);
 }
 
-#define AREA_TYPE_ERR "AREA_HIT_DAT : AREA_TYPE[%d] invalid."
+#define AREA_TYPE_ERR "AREA_HIT_DATA : AREA_TYPE[%d] invalid."
 
 int AreaHitCheck(void* area, Vec* pos)
 {
@@ -284,8 +284,10 @@ void AreaDataEdit(AreaData* area, u32 color, int flag, Mtx mtx, f32 rate)
     int mode;
 
     if ((Joy[0].on & JOY_Y) && (Joy[0].trg & JOY_X)) {
-        u8 type = area->type;
-        switch (type) {
+        switch (area->type) {
+        default:
+            pLog->warn(0, 0, AREA_TYPE_ERR, area->type);
+            return;
         case AREA_TYPE_XZ4:
             area->type = AREA_TYPE_CYLINDER;
             AreaGetCenterPos(&center, area);
@@ -301,9 +303,6 @@ void AreaDataEdit(AreaData* area, u32 color, int flag, Mtx mtx, f32 rate)
             AreaGetCenterPos(&center, area);
             AreaDataInit(area, &center, area->type, 4000.0f, 4000.0f);
             break;
-        default:
-            pLog->warn(0, 0, AREA_TYPE_ERR, type);
-            return;
         }
     }
 
@@ -726,7 +725,7 @@ void area_xz4_Disp(AreaXZ4* a, u32 color, int flag, Mtx mtx)
         }
     }
     Draw_poly(v, color, 0);
-    Draw_poly(w, color, 0);
+    Draw_poly(&v[2], color, 0);
     if (flag & 1) {
         Vec tri[3];
         u32 col = (color & 0x00FFFFFF) + ((color & 0xFF000000) >> 2);
@@ -781,6 +780,7 @@ void area_cylinder_Disp(AreaCylinder* a, u32 color, int flag, Mtx mtx)
     u32 j, k;
     u32 div = 16;
     f32 ang;
+    u32 col;
 
     for (j = 0; j < 2; j++) {
         if (j == 0) {
@@ -814,7 +814,8 @@ void area_cylinder_Disp(AreaCylinder* a, u32 color, int flag, Mtx mtx)
                     tri[2] = c;
                     Draw_poly(tri, color, 1);
                     if (flag & 1) {
-                        u32 col = (color & 0x00FFFFFF) + ((color & 0xFF000000) >> 2);
+                        col = color & 0x00FFFFFF;
+                        col += (color & 0xFF000000) >> 2;
                         tri2[0] = p;
                         tri2[1] = prev;
                         tri2[2] = prev;

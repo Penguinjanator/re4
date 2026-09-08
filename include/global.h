@@ -55,11 +55,12 @@ struct GlobalWork {
     u32 flags_64;          // 0x64
     u32 flags_68;          // 0x68
     u32 flags_6C;          // 0x6C
-    u8 pad_70[4];
+    f32 mot_speed;         // 0x70  motion frame step per game frame (MotionSequenceCtrl: speed * mot_speed)
     Camera Cam;            // 0x74 .. 0x16C  (Cam.param at 0x118)
     u8 pad_16C[4];
     u32 flags_170;         // 0x170  stop flags (debug tools save/restore it)
-    u8 pad_174[0x4F20 - 0x174];
+    u32 flags_174;         // 0x174  (pl_sub joyFireOn: 0x20000000 in room 11C while flags_5014 bit31 is set)
+    u8 pad_178[0x4F20 - 0x178];
     void* pRoomMes;        // 0x4F20  room message table (mes: MesData.ptr[1])
     void* pCoreCamData;    // 0x4F24  core camera data ("B40x")
     void* pRoomCamData;    // 0x4F28  room camera data ("B40x")
@@ -70,11 +71,13 @@ struct GlobalWork {
     Vec quake_ofs;         // 0x4F70
     u8 x4F7C;
     u8 door_no;            // 0x4F7D  door used to enter the room (index into the DSE door SE table)
-    u8 pad_4F7E[0x4F92 - 0x4F7E];
+    u8 pad_4F7E[0x4F88 - 0x4F7E];
+    u8 x4F88;              // 0x4F88  (pl_sub PlGachaGet: > 2 keeps the raw button count)
+    u8 pad_4F89[0x4F92 - 0x4F89];
     u8 snd_tbl_no;         // 0x4F92  room BGM/stream table row (0..4) selected by the game flow
     u8 x4F93;              // 0x4F93
     u32 play_time;         // 0x4F94  seconds (SetGameTime accumulates into it)
-    u8 pad_4F98[4];
+    u32 x4F98;             // 0x4F98  (pl_sub PlSelect swaps it with x832C)
     union {
         u16 room_id;       // 0x4F9C  stage << 8 | room as one halfword (obj14: room 004 test)
         struct {
@@ -98,7 +101,9 @@ struct GlobalWork {
     u8 costume;            // 0x4FB9  player costume (pl_leon: 2 = no cloth simulation)
     u8 x4FBA;              // 0x4FBA
     u8 costume2;           // 0x4FBB  Ashley costume (pl_cloth: 1 = ribbon + lapels instead of skirt + sweater)
-    u8 pad_4FBC[0x500C - 0x4FBC];
+    u8 pad_4FBC[2];
+    u16 flags_4FBE;        // 0x4FBE  bit0: player data changed (pl_sub PlSelect/PlSetCostume/PlChangeData)
+    u8 pad_4FC0[0x500C - 0x4FC0];
     u32 flags_500C;        // 0x500C
     u32 flags_5010;        // 0x5010
     u32 flags_5014;        // 0x5014
@@ -110,7 +115,9 @@ struct GlobalWork {
     u32 flags_51E4;        // 0x51E4  (db_cam: 0x10 show the tool banner, 0x18 show the offset headers)
     u8 pad_51E8[0x52E8 - 0x51E8];
     u8 emlist[0x2000];     // 0x52E8  enemy list (ESL file) read by stage.cpp
-    u8 pad_72E8[0x8358 - 0x72E8];
+    u8 pad_72E8[0x832C - 0x72E8];
+    u32 x832C;             // 0x832C  (pl_sub PlSelect swaps it with x4F98 when the player changes)
+    u8 pad_8330[0x8358 - 0x8330];
     s32 game_mode;         // 0x8358  (stage: 3 = no enemy list reload)
     u8 pad_835C[0x8678 - 0x835C];
     s8 debug_mode;         // 0x8678  debug page number (t_page), 0xF = camera rail debug draw
@@ -143,6 +150,8 @@ static inline void BitOff(u32& f, u32 b) { f &= ~b; }
 // global load after such a store (esp10, esp15, esp17 ...).
 static inline void FSet(f32& d, f32 v) { d = v; }
 static inline void BitOn16(u16& f, u16 b) { f |= b; }
+// `f &= ~b` with b a parameter keeps the 32-bit mask: `rlwinm` instead of the folded `andi.` (pl_sub).
+static inline void BitOff16(u16& f, u16 b) { f &= ~b; }
 // Plain store through the same kind of reference (debug tools restoring saved flag words).
 static inline void BitSet(u32& f, u32 v) { f = v; }
 

@@ -978,6 +978,7 @@ MATCHING = {
     "game/light02.cpp": True,
     "game/light05.cpp": True,
     "game/light06.cpp": True,
+    "game/light.cpp": True,
     "game/filter07.cpp": True,
     "game/filter09.cpp": True,
     "game/esp11.cpp": True,
@@ -990,6 +991,7 @@ MATCHING = {
 # statics kept): tools/strip_unused.py removes the bodies of functions not in sym_map.tsv.
 STRIP_UNUSED = {
     "game/light.cpp",
+    "game/motion.cpp",
     "game/obj26.cpp",
     "game/pl_debug.cpp",
     "game/main_sub.cpp",
@@ -1051,6 +1053,7 @@ MATCHING.update({
     "game/obj1c.cpp": True,
     "game/obj08.cpp": True,
     "game/obj1d.cpp": True,
+    "game/obj18.cpp": True,
 })
 
 # media/utility units

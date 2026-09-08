@@ -14,6 +14,10 @@ typedef struct {
 } GXColor;
 
 typedef struct {
+    s16 r, g, b, a;
+} GXColorS10;
+
+typedef struct {
     u32 dummy[8];
 } GXTexObj;  // 0x20
 
@@ -169,6 +173,15 @@ void GXInvalidateTexAll(void);
 void GXDrawDone(void);
 void GXPeekZ(u16 x, u16 y, u32* z);
 void GXSetNumIndStages(u8 nstages);
+// sofdec
+void GXSetTevSwapMode(int stage, int ras_sel, int tex_sel);
+void GXSetTevSwapModeTable(int table, int red, int green, int blue, int alpha);
+void GXSetTevKColor(int id, GXColor color);
+void GXSetTevKColorSel(int stage, int sel);
+void GXSetTevKAlphaSel(int stage, int sel);
+void GXSetTevColorS10(int id, GXColorS10 color);
+u32 GXGetTexBufferSize(u16 width, u16 height, u32 format, u8 mipmap, u8 max_lod);
+void GXDrawTorus(f32 rc, u8 numc, u8 numt);
 void GXSetTevDirect(int tev_stage);
 void GXSetFog(int type, f32 startz, f32 endz, f32 nearz, f32 farz, GXColor color);
 void GXSetChanAmbColor(int chan, GXColor color);

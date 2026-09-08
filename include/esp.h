@@ -212,5 +212,6 @@ void EffCallRoomSeFunc(int no, Vec* pos);
 int EffAreaCheckNo(Vec* pos, u8 areaNo);
 // game/Espgen42.cpp
 int GetWaterHeight(Vec* pos, f32* height);
+extern "C" void AddWaterPower(Vec* pos, f32 power);
 
 #endif

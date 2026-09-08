@@ -317,9 +317,11 @@ void MessageControl::setLanguage(int lang)
     case 6:
         MesData.lang = 5;
         break;
+    case 2:
+        MesData.lang = 1;
+        break;
     default:
         pLog->err(0, 0, "MesCtrl::setLanguage() Invalid LANG_TYPE");
-    case 2:
         MesData.lang = 1;
         break;
     }
@@ -357,7 +359,6 @@ void MessageControl::init()
     u32 sz = 0;
     int i;
     Message* m;
-    MesQue* q;
 
     if (Dvd.FileExistCheck("Font/common_j.fnt", &size) != -1) {
         sz = size;
@@ -383,10 +384,9 @@ void MessageControl::init()
     x11F8 = 0;
     state = 0;
     m = mes;
-    q = MsgQueue[0];
-    for (i = 0; i < 16; m++, q += 0x100, i++) {
+    for (i = 0; i < 16; m++, i++) {
         if (i <= 2) {
-            m->qbase = q;
+            m->qbase = MsgQueue[i];
         } else {
             m->qbase = NULL;
         }
@@ -739,7 +739,7 @@ void Message::WidthCk()
     int i;
     s8 l, r;
     u16* save;
-    int code;
+    u16 code;
 
     qp = qbase;
     y = baseY;
@@ -753,6 +753,9 @@ void Message::WidthCk()
     while (flags2 & 8) {
         if (isCtrlCode(*pMsg)) {
             switch (*pMsg) {
+            case 3:
+                n++;
+                break;
             case 1:
             case 4:
                 if ((s16) lineW[n] > 0) {
@@ -762,9 +765,6 @@ void Message::WidthCk()
                 break;
             case 2:
                 CommandExec();
-                break;
-            case 3:
-                n++;
                 break;
             case 7:
                 CommandExec();
@@ -776,10 +776,11 @@ void Message::WidthCk()
                 }
                 break;
             case 0xE:
-                if (CommandExec() == 2) {
-                    flags2 &= ~8;
+                if (CommandExec() != 2) {
+                    break;
                 }
-                break;
+                flags2 &= ~8;
+                // falls through into case 0xF (the original has no break here)
             case 0xF:
                 CommandExec();
                 break;
@@ -823,7 +824,7 @@ void Message::WidthCk()
             if (attr & 0x80000) {
                 lineX[i] = (0x200 - (s16) lineW[i]) >> 1;
             } else if (attr & 0x40000) {
-                u16 w = 0x200 - lineW[i];
+                int w = 0x200 - lineW[i];
                 lineX[i] = w - (0x200 - maxW) / 2;
             } else {
                 lineX[i] = (0x200 - maxW) >> 1;
@@ -840,9 +841,9 @@ void Message::WidthCk()
     if (attr & 0x10000) {
         y = (0x180 - n * (s16) lineH) >> 1;
     }
-    jumpIdx = 0;
-    qp = qbase;
     pMsg = save;
+    qp = qbase;
+    jumpIdx = 0;
 }
 
 void Message::QueSet(int code, MessageFont* fnt)
@@ -877,13 +878,14 @@ void Message::QueSet(int code, MessageFont* fnt)
             messageTrans(&q);
         }
     }
-    x += w + charSpace;
+    x += w + (s16) charSpace;
 }
 
 void Message::setNumber(u32 num, u16 digits)
 {
     s16 i;
     int d;
+    int t;
 
     numberSave = num;
     number = num;
@@ -898,10 +900,11 @@ void Message::setNumber(u32 num, u16 digits)
     if (i < digits) {
         d = 1;
         do {
-            d = (u16) d * 10;
+            t = (u16) d * 10;
+            d = t;
             i++;
         } while (i < digits);
-        digit = d;
+        digit = t;
     }
     digitSave = digit;
 }

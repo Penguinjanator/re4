@@ -3,18 +3,33 @@
 
 #include "types.h"
 #include "vec.h"
+#include "model.h"
 
-class cModel;
-
-// Weapon objects (game/objWep.cpp, objRocket.cpp) as the player units see them: really cObj
-// subclasses (obj.h), kept opaque here so the player units do not pull in obj.h. Only what the
-// player units touch is named; to be merged into the obj headers when those units are decompiled.
-class cObjWep {
+// Weapon objects (game/objWep.cpp, objRocket.cpp) as the player units see them: a cModel with the
+// weapon virtuals (vtable order from objWep's `cObjWep virtual table`; its fields sit inside the
+// cObj work area, so it is not a cObj subclass). Only what the player units touch is named; to be
+// merged into the obj headers when those units are decompiled.
+class cObjWep : public cModel {
 public:
-    u8 pad_0[0x34E];
+    u8 pad_1D8[0x34E - 0x1D8];
     u8 x34E;             // 0x34E  (knife down: 1)
     u8 x34F;             // 0x34F  (knife down: 0)
     u8 x350;             // 0x350  display flags (setDisp: type 0/1/2 -> bit 0x4/0x8/0x10)
+
+    virtual void moveAll();
+    virtual void moveStay();
+    virtual void moveReady();
+    virtual void moveFire();
+    virtual void moveDown();
+    virtual void moveReload();
+    virtual void moveDrop();
+    virtual void init();
+    virtual void setMotion();     // pl_sub PlReloadBullet
+    virtual void interrupt();
+    virtual void endReload();
+    virtual int keyKamae();       // pl_sub joyKamae
+    virtual void fire();
+    virtual void beginReload();
 
     void setDisp(int type, int on);
 };
@@ -49,6 +64,7 @@ public:
     void lockInit();
     void lockMove();
     void lockNext();
+    void setTrans(int type, int on);   // pObj/pObj2 display by weapon (pl_sub PlSetHand)
 };
 
 // knife/weapon collision (pl, top, bottom, type, flags, length)

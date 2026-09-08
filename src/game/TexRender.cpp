@@ -22,8 +22,8 @@ void ModelRender(cModel* m);
 void MirrorDraw2(cModel* m);
 
 TexRenderMng g_RndMgr[8];
-int g_RndMgrNum;
-int g_draw = 0;
+u32 g_RndMgrNum;
+static int g_draw = 0;
 int g_TexUse = 0;
 
 TexRenderMng* GetTexRenderMgrAddr(int no)
@@ -65,26 +65,29 @@ int GetTexRenderMgr(TexRenderMng** out)
         return 0;
     }
     (*out)->texId = (u8) g_RndMgrNum + 0xF8;
-    (*out)->mask = 8 << g_RndMgrNum;
+    {
+        // the original stores the mask through a u16 reference (the load of g_RndMgrNum below is
+        // not hoisted above a plain member store)
+        u16& mask = (*out)->mask;
+        mask = 8 << g_RndMgrNum;
+    }
     g_RndMgrNum++;
     (*out)->used = 1;
     return 1;
 }
 
 // EFB x offset that centres a 2x copy of the texture in the resized frame.
-static inline u32 texRenderOfs(TexRenderMng* m)
-{
-    if (m->sx == 0xE0) {
-        return (u32) ((f32) m->sy * 2.0f / 0.875f - (f32) m->sx * 2.0f);
-    }
-    return (m->sx >> 2) + (m->sx >> 4);
-}
-
 void RenderTexRenderMgr(TexRenderMng* m)
 {
-    u32 ofs = texRenderOfs(m);
-    u32 w = m->sx * 2 + ofs;
-    u32 h = m->sy * 2;
+    u32 ofs, w, h;
+
+    if (m->sx == 0xE0) {
+        ofs = (u32) ((f32) m->sy * 2.0f / 0.875f - (f32) m->sx * 2.0f);
+    } else {
+        ofs = (m->sx >> 2) + (m->sx >> 4);
+    }
+    w = m->sx * 2 + ofs;
+    h = m->sy * 2;
 
     if (w > 0x280) {
         pLog->err(0, 0, "RenderTexRenderMgr:: Invalid SX[%d]", w);
@@ -103,12 +106,17 @@ void CopyTexRenderMgr(TexRenderMng* m)
     static u8 vfilter[7] __attribute__((aligned(32))) = {32, 0, 0, 0, 0, 0, 32};
 
     if (pG->flags_5010 & 0x08000000) {
+        GXRenderModeObj* rmode = &Rmode;
         u32 ofs, w, h;
         int wrap;
 
-        GXSetCopyFilter(0, Rmode.sample_pattern, 0, vfilter);
+        GXSetCopyFilter(0, rmode->sample_pattern, 0, vfilter);
         GXSetAlphaUpdate(1);
-        ofs = texRenderOfs(m);
+        if (m->sx == 0xE0) {
+            ofs = (u32) ((f32) m->sy * 2.0f / 0.875f - (f32) m->sx * 2.0f);
+        } else {
+            ofs = (m->sx >> 2) + (m->sx >> 4);
+        }
         w = m->sx * 2;
         h = m->sy * 2;
         if (w > 0x280) {
@@ -123,7 +131,7 @@ void CopyTexRenderMgr(TexRenderMng* m)
         GXSetTexCopyDst(m->sx, m->sy, 6, 1);
         GXCopyTex(m->buf, 1);
         GXSetAlphaUpdate(0);
-        GXSetCopyFilter(Rmode.aa, Rmode.sample_pattern, 1, Rmode.vfilter);
+        GXSetCopyFilter(rmode->aa, rmode->sample_pattern, 1, rmode->vfilter);
         GXPixModeSync();
         GXInvalidateTexAll();
         switch (m->repType) {
@@ -160,7 +168,13 @@ void TransTexRenderMgr()
             AddOtDirect((u16) i, &g_RndMgr[i], (void (*)()) CopyTexRenderMgr, 0, 0x800, NULL, 0.0f);
         }
     }
-    g_TexUse = (pG->flags_60 & 0x80) ? 1 : 0;
+    {
+        u32 use = pG->flags_60 & 0x80;
+        if (use) {
+            use = 1;
+        }
+        g_TexUse = use;
+    }
 }
 
 TexRenderMng::TexRenderMng()
@@ -225,9 +239,9 @@ void TexRenderModSet(cModel* m, int parts, u8* tbl, TexRenderMng* mgr, int keepB
         pLog->err(0, 0, "TexRenderModSet() : failed!!");
         return;
     }
+    tbl[0] = 1;
     tbl[1] = 0;
     tbl[4] = 0xF7;
-    tbl[0] = 1;
     tbl[5] = mgr->texId;
     info = GetModelInfoAddr(m->pInfo, parts);
     if (info != NULL) {
@@ -297,11 +311,11 @@ void TexRenderModAddOtMirror(int ot, cModel* m)
     if (commonScreenMat(m)) {
         AddOtDirect(0x10, m, (void (*)()) MirrorDraw2, 0, 0x400, NULL, 0.0f);
     }
-    m->x13B = -1;
-    m->alpha = 0.4f;
     m->be_flag |= 8;
     m->x139 = -1;
     m->x13A = -1;
+    m->x13B = -1;
+    m->alpha = 0.4f;
 }
 
 void TexRenderCamAddOt(int ot, TexRenderCam* c, TexRenderEvt* evt, void* data)
@@ -312,25 +326,31 @@ void TexRenderCamAddOt(int ot, TexRenderCam* c, TexRenderEvt* evt, void* data)
     AddOtDirect(ot, c, (void (*)()) CamRenderAfter, 2, 1, NULL, 0.0f);
 }
 
+struct F32S {
+    f32 v;
+};
+
+static inline bool evtFlag(TexRenderEvt* e, u32 bit)
+{
+    return (e->flags & bit) != 0;
+}
+
 void CamRenderPrev(TexRenderCam* c)
 {
     TexRenderEvt* e = c->pEvt;
     int frame = e->frame;
-    bool b;
 
-    b = e->flags & 0x40000000;
-    if (b) {
+    if (evtFlag(e, 0x40000000)) {
         frame = e->frameB;
     }
-    b = e->flags & 0x08000000;
-    if (b) {
+    if (evtFlag(e, 0x08000000)) {
         frame = e->frameEnd - 1;
     }
     c->pCam = new (&c->cam) CameraMotion(c->data, 0, 0, (f32) frame);
-    c->cam.move();
+    c->pCam->move();
     c->save = pG->Cam;
-    pG->Cam = *c->pCam;
-    C_MTXPerspective(pG->Cam.projMat, pG->Cam.param.fovy, 4.0f / 3.0f, ZNEAR, ZFAR);
+    pGS->Cam = *c->pCam;
+    C_MTXPerspective(pGS->Cam.projMat, pGS->Cam.param.fovy, 4.0f / 3.0f, ((F32S*) &ZNEAR)->v, ((F32S*) &ZFAR)->v);
     C_MTXLookAt(pG->Cam.viewMat, &pG->Cam.param.pos, &pG->Cam.up, &pG->Cam.param.at);
 }
 

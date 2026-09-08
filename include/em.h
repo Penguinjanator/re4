@@ -25,6 +25,16 @@ public:
     u32 flags;            // 0x00
 
     void set(int a, int b, u8 kind, Vec* pos, f32 rad, EmHitInfo* part);
+    void set(int a, int b);   // stores the two bytes at 0/1 (pl_sub: set(0, 10), set(0, 0x80))
+    void clear();
+};
+
+// Room water effect table registered at cEm::pRoomEff (pl_sub PlRegistRoomEff): 3 entries of
+// {u32 id; u8 pad[3]; u8 type;} used as EstSet(..., id, type, ...) for the ripple / splash effects.
+struct PlRoomEff {
+    u32 id;
+    u8 pad_4[3];
+    u8 type;
 };
 
 class cEm : public cModel {
@@ -56,28 +66,64 @@ public:
     EmHitInfo hitInfo;    // 0x33C .. 0x368  (obj08: the player's hit part for the damage effect)
     u8 pad_368[0x370 - 0x368];
     f32 plDist2;          // 0x370  squared distance to the player (db_work prints its sqrt)
-    u8 pad_374[0x38D - 0x374];
+    u8 pad_374[4];
+    u32 x378;             // 0x378  (pl_sub EndPlDamage/EndSubDamage: x378 = x37C)
+    u32 x37C;             // 0x37C
+    u8 pad_380[0x38D - 0x380];
     u8 x38D;              // 0x38D  (db_cam "set=")
     u8 pad_38E[0x398 - 0x38E];
     u8 emsetNo;           // 0x398
-    u8 pad_399[0x3C8 - 0x399];
+    u8 pad_399[0x3B8 - 0x399];
+    int dmgType;          // 0x3B8  (pl_sub SetPlDamage/SetSubDamage first argument)
+    u8 pad_3BC[0x3C8 - 0x3BC];
     u32 flags_3C8;        // 0x3C8  (db_cam "Flag=")
     u8 pad_3CC[0x3E0 - 0x3CC];
     u32 x3E0;             // 0x3E0  player: event walk flag / damage timer
     int x3E4;             // 0x3E4  player damage: 1 = turning towards x400
     u32 x3E8;             // 0x3E8  player damage (blow): water splash done
     u8 pad_3EC[0x400 - 0x3EC];
-    f32 x400;             // 0x400  player: event turn limit / damage direction angle (123.0 = none)
+    union {
+        f32 x400;         // 0x400  player: event turn limit / damage direction angle (123.0 = none)
+        struct {
+            u16 subFlags;   // 0x400  sub character (cSubChar): bit7 (0x80) manual control, bit6 (0x40) ok to control, bit4 (0x10), bit3 (0x8) move-to, bit0
+            u16 subFlags2;  // 0x402  cSubChar (pl_sub SubCharMoveTo clears 0x60)
+        };
+    };
     Vec evTarget;         // 0x404  player event: walk-to position
     u8 pad_410[0x41C - 0x410];
     u32 flags_41C;        // 0x41C  player: bit8 (0x100) event motion done -> reset routine
     u32 flags_420;        // 0x420  player: bit6 (0x40) knife routine ends into routine 0x11
     void** pMotTbl;       // 0x424  player: motion data table ([0] walk, [2] turn, [0x5F..0x6C] set by setMotion)
-    u8 pad_428[0x4FF - 0x428];
+    void** pRegistMot;    // 0x428  player: registered motion table (pl_sub PlRegistMotion fills [0..11])
+    u8 pad_42C[0x4FC - 0x42C];
+    u8 x4FC;              // 0x4FC  (pl_sub PlChangeData/PlMotionReset clear it)
+    u8 x4FD;              // 0x4FD
+    u8 x4FE;              // 0x4FE
     u8 xButtonWait;       // 0x4FF  player: frames until the X button (partner command) is accepted again
     u8 pad_500[8];
     cModel* pLockEm;      // 0x508  player: locked-on enemy (pl_wep lock, knife aim)
-    u8 pad_50C[0x788 - 0x50C];
+    u8 pad_50C[0x518 - 0x50C];
+    int gachaCnt;         // 0x518  player: button mash counter (pl_sub PlGacha*)
+    u8 pad_51C[2];
+    u8 eyeMode;           // 0x51E  player (pl_sub PlSetEyeMode)
+    u8 pad_51F[0x530 - 0x51F];
+    int subHideMode;      // 0x530  cSubChar (pl_sub SubCharCtrlHide)
+    int subX534;          // 0x534  cSubChar (SubCharCtrlHide mode 0 sets 1)
+    u8 pad_538[0x544 - 0x538];
+    Vec subHidePos;       // 0x544  cSubChar hide position
+    u8 pad_550[0x568 - 0x550];
+    int subAux0;          // 0x568  cSubChar (SetSubAux/SetSubBulldozer arguments)
+    int subAux1;          // 0x56C
+    f32 subMoveTo[4];     // 0x570  cSubChar (SubCharMoveTo x, y, z, w)
+    u8 pad_580[4];
+    void* subMot0;        // 0x584  cSubChar registered motions (SubCharRegistMotion, SetSubDamage)
+    void* subMot1;        // 0x588
+    u8 subFlags58C;       // 0x58C  cSubChar (SetSubDamage sets 0x40)
+    u8 pad_58D[0x740 - 0x58D];
+    struct PlRoomEff* pRoomEff;  // 0x740  player: room water effect table (pl_sub PlRegistRoomEff/PlWaterProc)
+    void* boss0;          // 0x744  player (pl_sub PlRegistBoss)
+    void* boss1;          // 0x748
+    u8 pad_74C[0x788 - 0x74C];
     class cPlWep* pWep;   // 0x788  player: weapon control (pl_wep.cpp, 0x44 bytes)
     class cPlNeck* pNeck; // 0x78C  player: neck control (pl_class.cpp, 0x1C bytes)
     class cPlWaist* pWaist;  // 0x790  player: waist control (pl_class.cpp, 0xC bytes)
@@ -107,6 +153,7 @@ public:
     virtual void memFree(void* p);
     virtual void memClear(cEm* p, u32 size);
     virtual void log(const char* fmt, ...);
+    virtual void destroy(cEm* p);   // em.cpp overrides the cManager one (pl_sub SubCharCtrl / PlDataRelease)
     virtual int construct(cEm* p, u32 id);
 
     // first alive enemy with model id `id`, searching from `start->next` (or the list head)

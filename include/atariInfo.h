@@ -26,6 +26,8 @@ public:
     // init(type, prio, flags, ...) = init0(type, flags, prio, ...); flags |= 1  (r5/r6 swapped)
     void init(int type, int prio, int flags, f32 x, f32 y, f32 z, f32 rx, f32 rz, f32 h, f32 w);
     void setPriority(int prio);  // flags bits 3-4
+    // mode < 0: rect = (-1, -1), h/w = a/b, 0x24 = -mode; mode == 0: rect = h/w = a/b; > 0: h/w only
+    void set(int mode, f32 a, f32 b);
     void move();
     void throughOn() { flags &= ~0x300; }   // pass through enemies (mahoThroughOn)
     void throughOff() { flags |= 0x300; }

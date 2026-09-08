@@ -32,6 +32,9 @@ public:
     void disp(int flag);
     // Model against the scenario (obj00: `SatMgr.check(this, 0)`).
     int check(cModel* m, int flag);
+    // Sphere of radius `r` moving from `oldPos` to `pos`; `pos` is pushed out of the polygons and
+    // the hit normal goes to `nrm` (zero when nothing was hit). obj01 grenade bounce.
+    int adjust(Vec* nrm, Vec* oldPos, Vec* pos, f32 r, int flag, int x);
 };
 
 extern cSatMgr SatMgr;

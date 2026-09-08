@@ -389,6 +389,30 @@ mark it Matching.
   carry the four `cManager<cLight>::create(int)` strings and the `create() failed %s id:%d` one of
   `create(int, u32)` because light.h declares `cLightMgr::createNew()`/`createNo()` (never called in
   the DOL; kept as out-of-class inlines so light.cpp does not get bodies).
+- `if (c) n = a; else n = b + i * k;` where the else arm is a single simple set is emitted as
+  `n = b + i*k; cmp; bne; n = a;` (jump.c hoists the else move above the branch); the sequential
+  `n = b + i*k; if (c) n = a;` gives an `mr A',A` copy of the array base instead (obj00 FallMove).
+- Local array element access `s[i].f.x` folds the field offset into the frame base (`frame+0x48 +
+  i*stride`, indexed stores); `p = &s[i]; p->f.x` gives the stepping pointer with displacements
+  (`stfs 0x18(r7); addi r7,0x2c`). A block-scoped `p` becomes "not always computable" when it is set
+  after a conditional inside the loop, which stops biv elimination (`cmpwi i,2` stays instead of the
+  pointer compare): set `p = &s[i]` before the `if`.
+- `case 7: break;`-style nodes that share the default body still shape the tree (obj18 move needs
+  `case 0xB: break;`), and a two-value range `case 2: case 3:` emits `cmplwi hi; bgt; cmplwi lo; blt`
+  where `if (x >= 2 && x <= 3)` is range-folded to `subi/cmplwi` (obj01AddSpeed).
+- `w->x &= ~2; w->x &= ~0x20;` gives two `rlwinm` on one load/store (combine refuses the non-mask
+  constant); `&= ~0x22` loads the constant into a register (obj1d Lost).
+- `(u16) w->word` from memory is loaded as `lhz +2` (combine narrows the load); a `(f32)` of an s16
+  array element is `lhz; sth; psq_l qr5` (qr5 = s16, qr3 = u16).
+- Parts matrix normalisation: `if (v.x == 0 && v.y == 0 && v.z == 0) v.x = 1.0f;` before each
+  `VECNormalize` (obj00/obj1d SetOya), the column loads/stores are plain `m[r][c]` scalars.
+- An opaque manager class must carry its real size (`u8 pad[0x34]`) or `extern cDmgMgr DmgMgr`
+  lands in small data (`li r3, DmgMgr@sda21`).
+- NgcAs emits `R_PPC_REL14` relocations for `bc` (conditional) branches to local labels; objdiff
+  then shows the loop body as REPLACE lines although the bytes are identical (template copy loops).
+- OPEN: independent `li rX,c` argument loads of a call are sometimes scheduled in a different order
+  than ours (obj00 `setScrAtari` interleaves int/float arg moves, obj01 `EstSet` calls put `li r3,0`
+  first while ours emits it last); the ProDG register-pressure tie-break is not understood.
 
 ## Don'ts
 

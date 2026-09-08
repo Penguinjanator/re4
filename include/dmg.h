@@ -2,6 +2,7 @@
 #define DMG_H
 
 #include "types.h"
+#include "vec.h"
 #include "db_log.h"
 
 #line 8 "D:/Bio4/Prog/dmg.h"
@@ -20,5 +21,16 @@ public:
         return pData + no;
     }
 };
+
+// Damage volume manager (game/dmg.cpp `DmgMgr`, 0x34 bytes, a cManager); layout opaque.
+class cDmgMgr {
+public:
+    u8 pad_0[0x34];
+
+    // Registers a damage volume: kind, frames, centre, radius, height.
+    void set(int kind, int time, Vec* pos, f32 r, f32 h);
+};
+
+extern cDmgMgr DmgMgr;
 
 #endif

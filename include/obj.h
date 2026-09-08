@@ -147,6 +147,58 @@ struct Obj00Work {
     u8 sePlayed;          // 0x67
 };
 
+// Event costume / cloth model work (game/obj18.cpp): a model that follows a parts of its parent
+// (like obj00) and runs one of the cloth simulations by `type`.
+struct Obj18Work {
+    u32 flags;            // 0x00  bit3: blending toward the parent, bit6: cloth simulation off
+    u8 pad_4[0xC];
+    cModel* oya;          // 0x10  parent
+    int partsNo;          // 0x14
+    f32 rate;             // 0x18  blend rate (1.0 = parent matrix)
+    f32 rateSpd;          // 0x1C
+    u8 pad_20[0x14];
+    Mtx mat;              // 0x34  previous parent matrix
+    u32 x64;              // 0x64
+    u32 type;             // 0x68  SetObj18 type (cloth set)
+    u32 cmf;              // 0x6C  Obj18CmfSet/Get flag bits
+    cObj* child;          // 0x70  ribbon / rope object created by SetObj18
+    int x74;              // 0x74
+    u8 pad_78[0xC];
+    u8 debugFlag;         // 0x84
+    u8 pad_85[3];
+};
+
+// Grenade work (game/obj01.cpp): flies under gravity, bounces off the scenario, can be held by a
+// model (follows its parts) and explodes / lands in water after `life` frames.
+struct Obj01Work {
+    u32 flags;            // 0x00  bit0 start motion, bit1 motion running, bit2 water / bounce check, bit3 rotate parts 0
+    void* pMot;           // 0x04
+    u8 pad_8[2];
+    u16 motPrm;           // 0x0A
+    Vec rotSpd;           // 0x0C
+    Vec spd;              // 0x18
+    f32 grav;             // 0x24
+    f32 rad;              // 0x28  bounce radius
+    int life;             // 0x2C  frames until the explosion (0 = now)
+    cModel* hold;         // 0x30  model holding it (follows `holdParts`)
+    int holdParts;        // 0x34
+    Vec holdOfs;          // 0x38
+    Vec holdRot;          // 0x44
+    int estNo0;           // 0x50  explosion effects (-1 = none: fade out instead)
+    int estPrm0;          // 0x54
+    int estNo1;           // 0x58
+    int estPrm1;          // 0x5C
+    int estNo2;           // 0x60  water splash
+    int estPrm2;          // 0x64
+    int estNo3;           // 0x68  underwater explosion
+    int estPrm3;          // 0x6C
+    u32 type;             // 0x70  0 plain, 1 hand grenade, 2 incendiary, 3 flash, 4 ?
+    int holdTimer;        // 0x74  frames until it leaves the holder's hand
+    u8 seDone;            // 0x78  landing SE state
+    u8 pad_79[3];
+    u32 flags7C;          // 0x7C  bit3: water splash done
+};
+
 // Chain link work (game/obj1d.cpp): hangs between two parts of a parent model, fades out when
 // the parent is lost.
 struct ChainWork {
@@ -182,7 +234,8 @@ public:
     void* pMotion;        // 0x1D8 motion data (MotionMove) or NULL (matUpdate)
     u8 pad_1DC[0x21C - 0x1DC];
     u32 x21C;             // 0x21C  bit30 (0x40000000): set by obj26MatCalc when following a parent
-    u8 pad_220[0x2B4 - 0x220];
+    u8 pad_220[0x2B0 - 0x220];
+    u32 x2B0;             // 0x2B0  (obj18: parts matrices are only recomputed while 0)
     ObjSub2B4 sub2B4;     // 0x2B4 .. 0x328
     // 0x328: per-object work area
     union {
@@ -197,6 +250,8 @@ public:
         Obj08Work o8;
         ChainWork chain;
         Obj00Work o0;
+        Obj18Work o18;
+        Obj01Work o1;
     };
     u8 x3D0;              // 0x3D0
     u8 pad_3D1[3];

@@ -25,6 +25,7 @@ public:
     cPlNeck();
     void init(void* a, void* b, int c);  // a/b are range-checked pointers (motSet), c passed on
     void move();
+    void setMode(int mode);   // stores byte 0xE (pl_sub PlSetNeck)
 };
 
 // Waist control (game/pl_class.cpp), 0xC bytes at cEm::pWaist.
@@ -85,6 +86,9 @@ public:
     // game/pl_class.cpp
     void setFootwork();
     void beginDamage();
+    void endDamage();
+    int endCamera();
+    void interrupt();
     void checkCtrl();    // Key 0x400/0x100000 -> pG->flags_500C bits
     // game/pl_debug.cpp
     void debugInit();

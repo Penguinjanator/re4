@@ -51,5 +51,6 @@ struct SystemWork {
 extern SystemWork* pSys;
 
 extern "C" u32 GetSystemVcnt();
+extern "C" void SetSystemVcnt(int vcnt);
 
 #endif

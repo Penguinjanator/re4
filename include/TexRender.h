@@ -14,9 +14,9 @@ public:
     int used;        // 0x00
     GXTexObj texObj; // 0x04
     void* buf;       // 0x24  sx * sy * 4 bytes
-    u32 texId : 8;   // 0x28  0xF8 + slot (bit-fields: the halfword store may alias g_RndMgrNum)
-    u32 x29 : 8;
-    u32 mask : 16;   // 0x2A  8 << slot
+    u8 texId;        // 0x28  0xF8 + slot
+    u8 x29;
+    u16 mask;        // 0x2A  8 << slot
     u32 sx;          // 0x2C  texture size (EFB copy is 2x)
     u32 sy;          // 0x30
     int repType;     // 0x34  0 mirror, 1 repeat, 2 clamp
@@ -42,15 +42,14 @@ struct TexRenderEvt {
 struct TexRenderCam {
     CameraMotion cam;    // 0x000
     u8 pad_1D4[0x200 - 0x1D4];
-    Camera* pCam;        // 0x200  &cam
+    cCamera* pCam;       // 0x200  &cam
     Camera save;         // 0x204  pG->Cam while the render camera is active
     TexRenderEvt* pEvt;  // 0x2FC
     void* data;          // 0x300  motion data for CameraMotion
 };
 
 extern TexRenderMng g_RndMgr[8];
-extern int g_RndMgrNum;
-extern int g_draw;
+extern u32 g_RndMgrNum;
 extern int g_TexUse;
 
 extern "C" {
