@@ -91,16 +91,16 @@ public:
 #define EM_SET_ITEM(em, a, b, c, d, e) ((cEmSetItemView*) (em))->setItem(a, b, c, d, e)
 
 // Bit test evaluated as a value (the original's `xori; andi.` shape).
-static inline int bitOff(u32 v, u32 b)
+static inline int bitOff(u32 v)
 {
-    return !(v & b);
+    return !(v & 1);
 }
 
 static inline void U8Set(u8& d, u8 v) { d = v; }
 static inline void U16Set(u16& d, u16 v) { d = v; }
 static inline void U32Set(u32& d, u32 v) { d = v; }
 static inline void PSet(void*& d, void* v) { d = v; }
-static inline void PSet(SceAtWork*& d, void* v) { d = (SceAtWork*) v; }
+static inline void PSet(u32& d, void* v) { d = (u32) v; }
 
 static inline u32* eventFlags()
 {
@@ -123,7 +123,7 @@ static inline u32* itemFindFlags()
     return &pG->item_flags[4];
 }
 
-#define MES_Y (0x150 - cMes.getWork()->fontH - cMes.getWork()->lineSpace - 1)
+#define MES_Y (0x150 - cMes.getWork()->lineSpace - cMes.getWork()->fontH - 1)
 
 // One entry of the scenario area system (`SceAtSys`, 0x124 bytes).
 struct SceAtReserve {
@@ -134,9 +134,9 @@ struct SceAtReserve {
 
 struct SceAtSysWork {
     void* pAtData;             // 0x00   AEV file
-    SceAtWork* pAtWork;        // 0x04   its records (+0x10)
+    u32 pAtWork;               // 0x04   its records (+0x10), kept as an address
     void* pItemData;           // 0x08   ITA file
-    SceAtWork* pItemWork;      // 0x0C
+    u32 pItemWork;             // 0x0C
     u32 hitFlg[8];             // 0x10   areas hit this frame
     u32 execFlg[8];            // 0x30   areas executed this frame
     u32 ot[16];                // 0x50   ordering table, ot[15] is the list head
@@ -237,7 +237,6 @@ static SceAtFuncTbl sceAtFunc_tbl[21] = {
 void SceAtInit(void* atData, void* itemData)
 {
     int i;
-    SceAtWork* w;
 
     pS = &SceAtSys;
     pS->pAtData = 0;
@@ -262,7 +261,8 @@ void SceAtInit(void* atData, void* itemData)
             PSet(pS->pAtData, atData);
             PSet(pS->pAtWork, (u8*) atData + 0x10);
             for (i = ((SceAtFileHead*) pS->pAtData)->num - 1; i >= 0; i--) {
-                w = (SceAtWork*) ((u8*) pS->pAtWork + i * sizeof(SceAtWork));
+                SceAtWork* w = (SceAtWork*) (i * sizeof(SceAtWork) + pS->pAtWork);
+
                 AddPrim(&pS->ot[w->x44], (u32*) w);
             }
         }
@@ -276,9 +276,10 @@ void SceAtInit(void* atData, void* itemData)
             PSet(pS->pItemData, itemData);
             PSet(pS->pItemWork, (u8*) itemData + 0x10);
             for (i = ((SceAtFileHead*) pS->pItemData)->num - 1; i >= 0; i--) {
-                w = (SceAtWork*) ((u8*) pS->pItemWork + i * sizeof(SceAtWork));
-                w->no += 0x80;
-                w = (SceAtWork*) ((u8*) pS->pItemWork + i * sizeof(SceAtWork));
+                SceAtWork* w;
+
+                ((SceAtWork*) (i * sizeof(SceAtWork) + pS->pItemWork))->no += 0x80;
+                w = (SceAtWork*) (i * sizeof(SceAtWork) + pS->pItemWork);
                 AddPrim(&pS->ot[w->x44], (u32*) w);
             }
         }
@@ -340,7 +341,7 @@ static void sceAtDataLoopInit()
     SceAtWork* w = sceAtSetOtStart();
 
     while ((w = sceAtGetOtAddr(w)) != 0) {
-        if (bitOff(w->flag, 1)) {
+        if (bitOff(w->flag)) {
             continue;
         }
         if (w->x35 == 0) {
@@ -456,7 +457,7 @@ int sceAtCheck_main(cEm* em, int type)
     }
     w = sceAtSetOtStart();
     while ((w = sceAtGetOtAddr(w)) != 0) {
-        if (bitOff(w->flag, 1)) {
+        if (bitOff(w->flag)) {
             continue;
         }
         if (!(w->x39 & type)) {
@@ -1080,7 +1081,7 @@ static void sceAtGetItem(SceAtWork* w)
     }
     BitOn(pG->flags_5010, 2);
     disp_flag_bak = pG->flags_58;
-    pG->flags_58 = 0xFFFFFFFF;
+    BitSet(pG->flags_58, -1);
     BitOff(pG->flags_58, 0x00010000);
     BitOff(pG->flags_58, 0x04000000);
     BitOff(pG->flags_58, 0x00002000);
@@ -1088,24 +1089,30 @@ static void sceAtGetItem(SceAtWork* w)
     itemExam.init(w->item.id, model, 0);
     LightMgr.offScr(0x20);
     LightMgr.create(0, 9, -2, 0);
-    sub_screen_open = 0;
+    sel = 0;
+    sub_screen_open = sel;
+    cancel = 0;
     if (mes != 0) {
-        if (cMes.mes[0].result == 0) {
+        if (cMes.getWork()->result == 0) {
             do {
                 itemExam.move();
                 itemExam.trans();
                 if (Key.trg & 0x40000000) {
+                    MessageControl* mc = &cMes;
+
                     for (i = 0; i <= 15; i++) {
-                        cMes.Delete(i);
+                        mc->Delete(i);
                     }
                     put = 0;
                     cancel = 1;
                 }
                 SceSleep(1);
-            } while (cMes.mes[0].result == 0 && cancel == 0);
+            } while (cMes.getWork()->result == 0 && cancel == 0);
         }
         if (cancel == 0) {
-            sel = cMes.mes[0].result;
+            s8 res = cMes.getWork()->result;
+
+            sel = res;
             if (sel == 1) {
                 put = PutInCase(it->id, it->num, (s8) SubScreenWk.x2AE);
                 if (put != 1) {
@@ -1116,7 +1123,7 @@ static void sceAtGetItem(SceAtWork* w)
                     sub_screen_open = sel;
                     SubScreenWk.x2FC = it->num;
                 }
-            } else if (sel == 2) {
+            } else if (res == 2) {
                 put = 0;
             } else {
                 u16 n = it->num;
@@ -1315,21 +1322,26 @@ static void sceAtGetItem_NoModel(SceAtWork* w)
         break;
     }
     sub_screen_open = 0;
+    cancel = 0;
     if (mes != 0) {
-        if (cMes.mes[0].result == 0) {
+        if (cMes.getWork()->result == 0) {
             do {
                 if (Key.trg & 0x40000000) {
+                    MessageControl* mc = &cMes;
+
                     for (i = 0; i <= 15; i++) {
-                        cMes.Delete(i);
+                        mc->Delete(i);
                     }
                     put = 0;
                     cancel = 1;
                 }
                 SceSleep(1);
-            } while (cMes.mes[0].result == 0 && cancel == 0);
+            } while (cMes.getWork()->result == 0 && cancel == 0);
         }
         if (cancel == 0) {
-            sel = cMes.mes[0].result;
+            s8 res = cMes.getWork()->result;
+
+            sel = res;
             if (sel == 1) {
                 put = PutInCase(it->id, it->num, (s8) SubScreenWk.x2AE);
                 if (put != 1) {
@@ -1340,7 +1352,7 @@ static void sceAtGetItem_NoModel(SceAtWork* w)
                     sub_screen_open = sel;
                     SubScreenWk.x2FC = it->num;
                 }
-            } else if (sel == 2) {
+            } else if (res == 2) {
                 ITEM_CANCEL_NOMODEL();
             } else {
                 u16 n = it->num;
@@ -1806,7 +1818,7 @@ void SceAtCheckHideProc()
     ScePrim* p;
 
     while ((w = sceAtGetOtAddr(w)) != 0) {
-        off = bitOff(w->flag, 1);
+        off = bitOff(w->flag);
         if (off) {
             continue;
         }
@@ -1911,7 +1923,7 @@ void SceAtRoomSet()
             }
             break;
         case 1:
-            if (bitOff(w->x38, 1) && !(w->x38 & 8)) {
+            if (bitOff(w->x38) && !(w->x38 & 8)) {
                 w->x53 = 1;
                 w->x4A = 0x10;
                 w->x38 = (w->x38 & 0x80) | 8;
@@ -1960,7 +1972,7 @@ void SceAtRoomSet()
     }
     w = sceAtSetOtStart();
     while ((w = sceAtGetOtAddr(w)) != 0) {
-        if (bitOff(w->flag, 1)) {
+        if (bitOff(w->flag)) {
             continue;
         }
         if (w->x35 == 3) {
@@ -2038,7 +2050,7 @@ void sceAtSetScrAt(SceAtWork* w)
         }
         s->pSat = SatMgr.create(&pos, &rot, poly, s->attr, s->flag, h);
     }
-    if (bitOff(s->flags, 1)) {
+    if (bitOff(s->flags)) {
         s->pEat = EatMgr.create(&pos, &rot, poly, s->attr2, s->flag, h);
     }
     s->created = 1;
@@ -2052,7 +2064,7 @@ void sceAtDeleteScrAt(SceAtWork* w)
         if (!(s->flags & 2)) {
             SatMgr.destroy(s->pSat);
         }
-        if (bitOff(s->flags, 1)) {
+        if (bitOff(s->flags)) {
             EatMgr.destroy(s->pEat);
         }
         s->pSat = 0;
@@ -2066,7 +2078,7 @@ void SceAtCheckMoveScrAt()
     SceAtWork* w = sceAtSetOtStart();
 
     while ((w = sceAtGetOtAddr(w)) != 0) {
-        if (bitOff(w->flag, 1)) {
+        if (bitOff(w->flag)) {
             continue;
         }
         if (w->x35 != 0xB) {
@@ -2421,7 +2433,7 @@ SceAtField* SceAtCheckFieldInfo(Vec* pos)
     }
     w = sceAtSetOtStart();
     while ((w = sceAtGetOtAddr(w)) != 0) {
-        if (bitOff(w->flag, 1)) {
+        if (bitOff(w->flag)) {
             continue;
         }
         if (w->x35 != 0xD) {
@@ -2449,7 +2461,7 @@ int SceAtCheckLadder(cModel* m, Vec* pos, f32* ang, u8* level)
     w = sceAtSetOtStart();
     mp = &m->pos;
     while ((w = sceAtGetOtAddr(w)) != 0) {
-        if (bitOff(w->flag, 1)) {
+        if (bitOff(w->flag)) {
             continue;
         }
         if (w->x35 != 0x10) {
@@ -2482,7 +2494,7 @@ int SceAtSearchLadder(cModel* m, Vec* pos, f32* ang, u8* level)
     best = 4000000.0f;
     w = sceAtSetOtStart();
     while ((w = sceAtGetOtAddr(w)) != 0) {
-        if (bitOff(w->flag, 1)) {
+        if (bitOff(w->flag)) {
             continue;
         }
         if (!(w->x35 & 0x10)) {
@@ -2521,7 +2533,7 @@ static void sceAtCamCtrlCheck()
 
     w = sceAtSetOtStart();
     while ((w = sceAtGetOtAddr(w)) != 0) {
-        if (bitOff(w->flag, 1)) {
+        if (bitOff(w->flag)) {
             continue;
         }
         if (w->x35 != 0xC) {
@@ -2617,7 +2629,7 @@ static void sceAtDebugDisp()
     }
     w = sceAtSetOtStart();
     while ((w = sceAtGetOtAddr(w)) != 0) {
-        if (bitOff(w->flag, 1)) {
+        if (bitOff(w->flag)) {
             continue;
         }
         eprintf(0xC8, 0x20, 0, 0x11, "[SCENARIO ATARI VIEW]");
@@ -2678,7 +2690,7 @@ static void sceAtItemFindCheck()
     int off;
 
     while ((w = sceAtGetOtAddr(w)) != 0) {
-        off = bitOff(w->flag, 1);
+        off = bitOff(w->flag);
         if (off) {
             continue;
         }
@@ -3181,7 +3193,7 @@ void SceAtLinkEtcDead(int no, int etcNo, int on)
     if (getRoomEtcBreak(etcNo, &em, 1) != 1) {
         return;
     }
-    if (bitOff(*GetEtcFlgPtr(etcNo, pG->room_id), 1)) {
+    if (bitOff(*GetEtcFlgPtr(etcNo, pG->room_id))) {
         w->linkNo = etcNo;
         w->linkType = 2;
         if (on == 1) {
@@ -3254,9 +3266,9 @@ void sceAtLink_check()
                 w->linkType = 0;
                 w->linkNo = 0;
             }
-            if (w->x35 == 3 && bitOff(it->flag2, 1)) {
+            if (w->x35 == 3 && bitOff(it->flag2)) {
                 em = GetEmPtrFromList(w->linkNo);
-                if (em != 0 && bitOff(it->flag2, 1)) {
+                if (em != 0 && bitOff(it->flag2)) {
                     SceAtSetEmItem(em, w);
                 }
             }
@@ -3373,7 +3385,7 @@ void sceAtCheckItemModelParent(SceAtWork* w)
     p = sceAtSetOtStart();
     it = &w->item;
     while ((p = sceAtGetOtAddr(p)) != 0) {
-        if (bitOff(p->flag, 1)) {
+        if (bitOff(p->flag)) {
             continue;
         }
         if (p->x35 != 0x14) {
@@ -3736,7 +3748,7 @@ void sceAtSetItem(SceAtWork* w)
         }
         if (d == 0) {
             ok = 0;
-        } else if (bitOff(it->flag2, 1)) {
+        } else if (bitOff(it->flag2)) {
             if (em == 0) {
                 ok = 0;
             } else {
@@ -3748,9 +3760,9 @@ void sceAtSetItem(SceAtWork* w)
     case 2:
         if (getRoomEtcBreak(w->linkNo, &em, 1) == 0) {
             ok = 0;
-        } else if (bitOff(*GetEtcFlgPtr(w->linkNo, pG->room_id), 1)) {
+        } else if (bitOff(*GetEtcFlgPtr(w->linkNo, pG->room_id))) {
             ok = 0;
-        } else if (bitOff(it->flag2, 1) && em != 0) {
+        } else if (bitOff(it->flag2) && em != 0) {
             it->pos = em->pos;
             it->pos.y += 50.0f;
             if (it->rot.z == 0.0f) {
@@ -3804,7 +3816,7 @@ void sceAtSetItem(SceAtWork* w)
         w->x38 = 8;
         w->x4A = 0x28;
     }
-    if (bitOff(it->flag2, 1)) {
+    if (bitOff(it->flag2)) {
         if (it->flag2 & 0x10) {
             if (it->pModel != 0) {
                 it->pos = it->pModel->pos;

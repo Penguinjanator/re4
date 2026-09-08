@@ -307,7 +307,11 @@ mark it Matching.
   in a QI/HI-mode context (range fold `x >= 0xF8 && x <= 0xFD`, a `switch`), stays a QI/HI pseudo and
   every later int use gets an explicit mask; a local `u8 v = p->member` is promoted and never masked.
   Likewise `u32 no = rec->x6; if (no > 0x7F)` keeps `cmplwi 0x7f` where a u8 local folds to `andi.`.
-  Try this first on the id_sys/emobj/em_set OPEN cases.
+  Try this first on the id_sys/emobj/em_set OPEN cases. NOTE (option `setTime`): the original caller
+  sign-extends (`extsh`) an argument whose callee is mangled `Us` (u16) — no cast form gives `extsh`
+  for an unsigned parameter, so the original compiler extends narrow arguments at call sites in a way
+  ours does not (likely a compiler-build difference in argument promotion, like the FPR/GPR arg-move
+  order). Workaround: an asm-labelled signed alias (`setTimeS(IdUnit*, s16) asm("setTime__...Us")`).
 - `int susp = !(m->flag & bit); if (susp) return;` gives `xori; andi.; bne`; the direct
   `if (!(x & bit))` gives plain `andi./beq`.
 - A single `return ret` reached by `goto ok` from several paths keeps `li r31,1` + `mr r3,r31`;
@@ -481,6 +485,12 @@ mark it Matching.
   turns into an `mr rX,rMember` copy.
 - `found = 1` written after a void call is scheduled above the `bl` into the callee-saved register.
 - A `goto LABEL` loop keeps the un-rotated body/test/`b` shape; `for(;;)`+`break` gets rotated.
+- A value-context `a || b` inside an inline that returns it expands as `x = 0; if (!exp) goto L;
+  x = 1;` (`li 0` first); `if (a || b) return 1; return 0;` gives `beq L0; li 1; b; L0: li 0`.
+- A `switch` whose cases reassign the switched variable keeps the pre-switch copy (`mr r6,r30`) only
+  if the variable is `int`; a promoted `s8` moves the copy to the variable's initialisation.
+- Local `u8` array initialisers: 2 bytes -> `sth` immediate; 4 -> `stw 0` + `stb`s; 5+ -> `.rodata`
+  template copy.
 - Static locals show as `name.NNN` in objdiff; the DECL_UID suffix cannot be reproduced and is ignored by the report.
 - Unexplained words in `.rodata` (zero words, stray floats) are usually the constant pool of a function
   the original linker dead-stripped (bodies gone, pools kept, `STRIP_UNUSED` in objects.py): write a

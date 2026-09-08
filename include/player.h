@@ -89,6 +89,7 @@ public:
     void endDamage();
     int endCamera();
     int isKamae();       // aiming (weapon routine ready/fire states, or the aim key held)
+    int actCheck();      // 1 when the player may take an action button (act_btn checkPLStatus)
     void interrupt();
     void checkCtrl();    // Key 0x400/0x100000 -> pG->flags_500C bits
     int subScrCheck();   // 1 when the sub screen may open (sscrn SubScreenCall)

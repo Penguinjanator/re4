@@ -605,6 +605,25 @@ struct BullWork {
     u8 breakTruck;        // 0x63  setBreakTruck: Collision continues with step 2
 };
 
+// Ladder work (game/obj13.cpp `cObjLadder`): a ladder the player / partner climbs (plobjLadderClimb),
+// kicks down (plobjLadderDown) and stands up again (plobjLadderReset).
+struct LadderWork {
+    u32 flags;            // 0x00  bit0 motions set, bit1 off (setOff), bit2 partner climbing, bit3 transOld
+    int status;           // 0x04  0 standing, 1 downed, 2 falling, 3 falling (timer done), 4 fall / reset motion
+    int x08;              // 0x08
+    int ladderNum;        // 0x0C  rungs (setLadderInfo)
+    u8 pad_10[4];
+    Vec basePos;          // 0x14  position at SetLadder (R1_Set restores it)
+    f32 baseRotY;         // 0x20
+    int climbTimer;       // 0x24  frames the action button stays off after a climb (setClimb: 90)
+    int resetReserve;     // 0x28  setResetReserve: 60
+    int downTimer;        // 0x2C  setDown: 17 frames until status 3
+    cObj* pair;           // 0x30  second ladder object sharing the collision flags
+    int camera;           // 0x34  setCamera: camera cut of the climb (-1: the ladder cameras)
+    void* mot[20];        // 0x38  setMotion table (player / partner climb, down, reset motions)
+    u8 etcNo;             // 0x88  etc model number (GetEtcFlgPtr)
+};
+
 // Sub-object at cObj+0x2B4 (0x74 bytes): the collision info followed by scroll bookkeeping.
 struct ObjSub2B4 {
     // wrapped like cEm's so that cObj::cObj does not run cAtariInfo's constructor (the original
@@ -677,6 +696,7 @@ public:
         RoboWork robo;
         SubWepWork subWep;
         BullWork bull;
+        LadderWork ladder;
     };
 
     cObj();

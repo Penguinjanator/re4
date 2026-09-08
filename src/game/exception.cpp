@@ -490,6 +490,8 @@ void ErrorHandler(OSError error, OSContext* context, ...)
     int col;
     static int timer = 0;
 
+//@@BEGIN
+//@@END
     *pContext = *context;
     va_start(ap, context);
     dsisr = va_arg(ap, u32);

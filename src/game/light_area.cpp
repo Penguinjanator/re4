@@ -1,8 +1,10 @@
+#include "atari.h"
 #include "em.h"
 #include "area.h"
 #include "player.h"
 #include "pl_npc.h"
 #include "math_sub.h"
+#include "global.h"
 
 // One light area (0xD8 bytes): the light each character kind gets scaled inside the area.
 struct LightAreaData {
@@ -28,6 +30,9 @@ extern "C" {
 void LightAreaInit();
 int LightAreaDataLoad(LightAreaHed* p);
 void LightAreaUpdate();
+void LightAreaUpdateSub(cEm* em, int type);
+}
+
 // pl_wep.h view: the weapon object and the rocket a launcher carries
 struct LightAreaWep {
     u8 pad_0[0x34];
@@ -39,6 +44,9 @@ struct LightAreaLauncher {
     cEm* rocket;  // 0x384
 };
 
+#define WEP_OBJ() (((LightAreaWep*) em->pWep)->pObj)
+#define WEP_ROCKET(w) (((LightAreaLauncher*) (w))->rocket)
+
 static inline void LitAreaSet(EmLightArea* la, u32 bit)
 {
     la->flags |= bit;
@@ -49,9 +57,55 @@ static inline void LitAreaReset(EmLightArea* la, u32 bit)
     la->flags &= ~bit;
 }
 
-// the player's weapon object (pl_wep.h view) and the rocket a launcher carries
-#define WEP_OBJ() (((LightAreaWep*) pPL->pWep)->pObj)
-#define WEP_ROCKET(w) (((LightAreaLauncher*) (w))->rocket)
+// a light area that is not scaling starts from 1
+static inline void LitAreaScaleInit(EmLightArea* la)
+{
+    if (la->chk(2) == 0) {
+        la->scale = 1.0f;
+    }
+}
+
+void LightAreaInit()
+{
+    g_pLightAreaHed = 0;
+}
+
+int LightAreaDataLoad(LightAreaHed* p)
+{
+    g_pLightAreaHed = p;
+    return 1;
+}
+
+void LightAreaUpdate()
+{
+    u32 i;
+
+    if (g_pLightAreaHed == 0) {
+        return;
+    }
+    if (g_pLightAreaHed->num == 0) {
+        return;
+    }
+    for (i = 0; i < EmMgr.nArray; i++) {
+        cEm* em = (cEm*) ((u8*) EmMgr.pArray + EmMgr.size * i);
+        int type;
+
+        if ((em->be_flag & 0x201) != 1) {
+            continue;
+        }
+        if (em->litArea.chk(1) != 1) {
+            continue;
+        }
+        if (em == pPL) {
+            type = 0;
+        } else if (em == pSUB) {
+            type = 2;
+        } else {
+            type = 1;
+        }
+        LightAreaUpdateSub(em, type);
+    }
+}
 
 void LightAreaUpdateSub(cEm* em, int type)
 {
@@ -67,12 +121,10 @@ void LightAreaUpdateSub(cEm* em, int type)
 
     pos = em->pos;
     pos.y += 100.0f;
-    la = &em->litArea;
     hed = g_pLightAreaHed;
     d = hed->data;
-    if (la->chk(2) == 0) {
-        la->scale = 1.0f;
-    }
+    LitAreaScaleInit(&em->litArea);
+    la = &em->litArea;
     hit = 0;
     rate = 0.05f;
     for (i = 0; i < hed->num; i++, d++) {
@@ -109,7 +161,7 @@ void LightAreaUpdateSub(cEm* em, int type)
             la->flags &= ~2;
         }
     }
-    la->scale = scale;
+    FSet(la->scale, scale);
     if (em == pPL) {
         if (WEP_OBJ() != 0) {
             cEm* wep;
@@ -128,7 +180,7 @@ void LightAreaUpdateSub(cEm* em, int type)
                     LitAreaSet(&WEP_ROCKET(wep)->litArea, 1);
                     WEP_ROCKET(wep)->litArea.scale = scale;
                     WEP_ROCKET(wep)->litArea.lightNo = la->lightNo;
-                    if (pPL->litArea.chk(2)) {
+                    if (em->litArea.chk(2)) {
                         LitAreaSet(&WEP_ROCKET(wep)->litArea, 2);
                     } else {
                         LitAreaReset(&WEP_ROCKET(wep)->litArea, 2);

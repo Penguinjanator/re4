@@ -40,7 +40,7 @@ int retry_load_menu(OptionScreen* o);
 int controller_menu(OptionScreen* o);
 int brightness_menu(OptionScreen* o);
 int audio_menu(OptionScreen* o);
-void num(int val, int n, int mode, int base, int type, int reverse);
+void num(int val, int n, int mode, int base, u8 type, int reverse);
 }
 
 OptionScreen OptScrn;
@@ -325,7 +325,7 @@ int retry_load_menu(OptionScreen* o)
 {
     static int yes = 0;
     static u32 snd_id = 0;
-    s8 old = o->sub;
+    int old = o->sub;
     int confirm = 0;
     IdUnit* base;
     IdUnit* u;
@@ -489,63 +489,15 @@ int retry_load_menu(OptionScreen* o)
     return 0;
 }
 
-// Left/right on a controller option; 1 when the value changed.
-static inline int toggle_key(OptionScreen* o, int old)
-{
-    s8 v;
-
-    switch (old) {
-    case 0:
-        v = o->keyA;
-        if (Key.trg & KEY_LEFT) {
-            o->keyA = 1;
-        }
-        if (Key.trg & KEY_RIGHT) {
-            o->keyA = 0;
-        }
-        if (v != o->keyA) {
-            return 1;
-        }
-        break;
-    case 1:
-        v = o->keyB;
-        if (Key.trg & KEY_LEFT) {
-            o->keyB = 1;
-        }
-        if (Key.trg & KEY_RIGHT) {
-            o->keyB = 0;
-        }
-        if (v != o->keyB) {
-            return 1;
-        }
-        break;
-    case 2:
-        v = o->keyC;
-        if (Key.trg & KEY_LEFT) {
-            o->keyC = 0;
-        }
-        if (Key.trg & KEY_RIGHT) {
-            o->keyC = 1;
-        }
-        if (v != o->keyC) {
-            return 1;
-        }
-        break;
-    }
-    return 0;
-}
-
 int controller_menu(OptionScreen* o)
 {
     static int vib_time = 10;
     static int vib_level = 0xFF;
     static int x0 = 100;
     static int y0 = 245;
-    s8 old = o->sub;
+    int old = o->sub;
     IdUnit* base;
     IdUnit* u;
-    IdUnit* sel = 0;
-    IdUnit* uns = 0;
     IdUnit* off;
     int i;
 
@@ -585,30 +537,72 @@ int controller_menu(OptionScreen* o)
             return 0;
         }
         SndCall(0, 0x3A, 0, 0, 0, 0);
-    } else if (toggle_key(o, old)) {
-        SndCall(0, 0x35, 0, 0, 0, 0);
     } else {
-        old = o->sub;
-        if (Key.trg & KEY_UP) {
-            o->sub--;
+        int no = old;
+        s8 now;
+
+        switch (no) {
+        case 0:
+            old = o->keyA;
+            if (Key.trg & KEY_LEFT) {
+                o->keyA = 1;
+            }
+            if (Key.trg & KEY_RIGHT) {
+                o->keyA = 0;
+            }
+            now = o->keyA;
+            break;
+        case 1:
+            old = o->keyB;
+            if (Key.trg & KEY_LEFT) {
+                o->keyB = 1;
+            }
+            if (Key.trg & KEY_RIGHT) {
+                o->keyB = 0;
+            }
+            now = o->keyB;
+            break;
+        case 2:
+            old = o->keyC;
+            if (Key.trg & KEY_LEFT) {
+                o->keyC = 0;
+            }
+            if (Key.trg & KEY_RIGHT) {
+                o->keyC = 1;
+            }
+            now = o->keyC;
+            break;
+        default:
+            goto updown;
         }
-        if (Key.trg & KEY_DOWN) {
-            o->sub++;
-        }
-        if (pG->x4FB8 != 0 && pG->x4FB8 != 4 && o->sub == 2) {
+        if (old != now) {
+            SndCall(0, 0x35, 0, 0, 0, 0);
+        } else {
+        updown:
+            old = o->sub;
             if (Key.trg & KEY_UP) {
-                o->sub = 1;
+                o->sub--;
             }
             if (Key.trg & KEY_DOWN) {
-                o->sub = 3;
+                o->sub++;
             }
-        }
-        o->sub = o->sub < 0 ? 0 : (o->sub > 3 ? 3 : o->sub);
-        if (old != o->sub) {
-            SndCall(0, 0x34, 0, 0, 0, 0);
+            if (pG->x4FB8 != 0 && pG->x4FB8 != 4 && o->sub == 2) {
+                if (Key.trg & KEY_UP) {
+                    o->sub = 1;
+                }
+                if (Key.trg & KEY_DOWN) {
+                    o->sub = 3;
+                }
+            }
+            o->sub = o->sub < 0 ? 0 : (o->sub > 3 ? 3 : o->sub);
+            if (old != o->sub) {
+                SndCall(0, 0x34, 0, 0, 0, 0);
+            }
         }
     }
     base = IdSys.unitPtr(8, ID_OPT);
+    IdUnit* sel = 0;
+    IdUnit* uns = 0;
     if (old != o->sub) {
         IdSys.setTime(base, 0);
     }
@@ -750,7 +744,7 @@ int brightness_menu(OptionScreen* o)
     } else {
         if (old == 0) {
             u8 bright = pSys->brightness;
-            u8 n;
+            int n;
 
             if (Key.rep2 & KEY_LEFT) {
                 pSys->brightness--;
@@ -758,13 +752,15 @@ int brightness_menu(OptionScreen* o)
             if (Key.rep2 & KEY_RIGHT) {
                 pSys->brightness++;
             }
-            n = pSys->brightness;
-            if (n < DEFAULT + MIN_OFS) {
-                n = DEFAULT + MIN_OFS;
-            } else if (n > DEFAULT + MAX_OFS) {
-                n = DEFAULT + MAX_OFS;
+            if (pSys->brightness < DEFAULT + MIN_OFS) {
+                pSys->brightness = DEFAULT + MIN_OFS;
+            } else {
+                n = pSys->brightness;
+                if (n > DEFAULT + MAX_OFS) {
+                    n = DEFAULT + MAX_OFS;
+                }
+                pSys->brightness = n;
             }
-            pSys->brightness = n;
             pRK->brightness = pSys->brightness;
             if (bright != pSys->brightness) {
                 SndCall(0, 0x3B, 0, 0, 0, 0);
@@ -812,9 +808,11 @@ int brightness_menu(OptionScreen* o)
         }
     }
     for (i = 0; i < 2; i++) {
-        u = IdSys.unitPtr((u8) (3 - i), ID_OPT);
-        u->no = digits % 10;
+        int d = digits % 10;
+
         digits /= 10;
+        u = IdSys.unitPtr((u8) (3 - i), ID_OPT);
+        u->no = d;
         u->flags_7F |= 2;
         if (o->sub == 0) {
             setColor(u, base);
@@ -946,14 +944,14 @@ int audio_menu(OptionScreen* o)
 
 // Shows `val` as `n` decimal digits on the id units base.. (reverse: base - i); mode 1 hides
 // leading zeros.
-void num(int val, int n, int mode, int base, int type, int reverse)
+void num(int val, int n, int mode, int base, u8 type, int reverse)
 {
     u8 d[8];
     int show;
     int i;
 
-    for (i = 0; i < n; i++) {
-        d[i] = val % 10;
+    for (int j = 0; j < n; j++) {
+        d[j] = val % 10;
         val /= 10;
     }
     show = 1;
@@ -992,23 +990,20 @@ void GameResult::init(void* d)
     x7 = 0;
 }
 
-// Hit ratio in percent, rounded.
-static inline int hitRate(u32 hit, u32 total)
-{
-    if (total != 0) {
-        return (int) ((f32) hit * 100.0f / (f32) total + 0.5f);
-    }
-    return 0;
-}
-
 int GameResult::move()
 {
     u32 h;
     u32 m;
     u32 s;
     IdUnit* u;
+    int hit;
 
-    num(hitRate(pG->shotHit2, pG->shotTotal2), 3, 1, 1, ID_RESULT, 0);
+    if (pG->shotTotal2 != 0) {
+        hit = (int) ((f32) pG->shotHit2 * 100.0f / (f32) pG->shotTotal2 + 0.5f);
+    } else {
+        hit = 0;
+    }
+    num(hit, 3, 1, 1, ID_RESULT, 0);
     num(pG->em_die_cnt2, 4, 1, 0x11, ID_RESULT, 0);
     num(pG->x833A, 3, 1, 0x21, ID_RESULT, 0);
     SecToTime(pG->play_time, &h, &m, &s);
@@ -1033,10 +1028,8 @@ int GameResult::move()
 
 void GameResult::quit()
 {
-    Cockpit* ck = &Cckpt;
-
-    ck->roomInit();
-    ck->move();
+    Cckpt.roomInit();
+    Cckpt.move();
 }
 
 void GameResult::omake_init(void* d)
@@ -1066,15 +1059,6 @@ void ChapterEnd::init(void* d, u8 ch)
     chapter = ch;
 }
 
-// Digit unit `id` of the chapter end screen shows `no`.
-static inline void setDigit(u8 id, u8 no)
-{
-    IdUnit* u = IdSys.unitPtr(id, ID_RESULT);
-
-    u->flags_7F |= 2;
-    u->no = no;
-}
-
 int ChapterEnd::move()
 {
     static u8 char_per = 0xA;
@@ -1083,20 +1067,50 @@ int ChapterEnd::move()
     int sec;
     int chap2;
     int sec2;
+    IdUnit* u;
+    int hit;
 
     getChapterSection(chapter, &chap, &sec);
-    setDigit(0, chap);
-    setDigit(1, char_bar);
-    setDigit(2, sec);
-    setDigit(0x1A, sec - 1);
+    u = IdSys.unitPtr(0, ID_RESULT);
+    u->flags_7F |= 2;
+    u->no = chap;
+    u = IdSys.unitPtr(1, ID_RESULT);
+    u->flags_7F |= 2;
+    u->no = char_bar;
+    u = IdSys.unitPtr(2, ID_RESULT);
+    u->flags_7F |= 2;
+    u->no = sec;
+    u = IdSys.unitPtr(0x1A, ID_RESULT);
+    u->flags_7F |= 2;
+    u->no = sec - 1;
     getChapterSection(chapter + 1, &chap2, &sec2);
-    setDigit(3, chap2);
-    setDigit(4, char_bar);
-    setDigit(5, sec2);
-    num(hitRate(pG->shotHit, pG->shotTotal), 3, 1, 8, ID_RESULT, 1);
-    setDigit(9, char_per);
-    num(hitRate(pG->shotHit2, pG->shotTotal2), 3, 1, 0xC, ID_RESULT, 1);
-    setDigit(0xD, char_per);
+    u = IdSys.unitPtr(3, ID_RESULT);
+    u->flags_7F |= 2;
+    u->no = chap2;
+    u = IdSys.unitPtr(4, ID_RESULT);
+    u->flags_7F |= 2;
+    u->no = char_bar;
+    u = IdSys.unitPtr(5, ID_RESULT);
+    u->flags_7F |= 2;
+    u->no = sec2;
+    if (pG->shotTotal != 0) {
+        hit = (int) ((f32) pG->shotHit * 100.0f / (f32) pG->shotTotal + 0.5f);
+    } else {
+        hit = 0;
+    }
+    num(hit, 3, 1, 8, ID_RESULT, 1);
+    u = IdSys.unitPtr(9, ID_RESULT);
+    u->flags_7F |= 2;
+    u->no = char_per;
+    if (pG->shotTotal2 != 0) {
+        hit = (int) ((f32) pG->shotHit2 * 100.0f / (f32) pG->shotTotal2 + 0.5f);
+    } else {
+        hit = 0;
+    }
+    num(hit, 3, 1, 0xC, ID_RESULT, 1);
+    u = IdSys.unitPtr(0xD, ID_RESULT);
+    u->flags_7F |= 2;
+    u->no = char_per;
     num(pG->em_die_cnt, 3, 1, 0x10, ID_RESULT, 1);
     num(pG->em_die_cnt2, 3, 1, 0x13, ID_RESULT, 1);
     num(pG->x8338, 3, 1, 0x16, ID_RESULT, 1);
@@ -1106,8 +1120,6 @@ int ChapterEnd::move()
 
 void ChapterEnd::quit()
 {
-    Cockpit* ck = &Cckpt;
-
-    ck->roomInit();
-    ck->move();
+    Cckpt.roomInit();
+    Cckpt.move();
 }

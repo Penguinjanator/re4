@@ -1089,6 +1089,7 @@ MATCHING.update({
     "game/pl_cloth.cpp": True,
     "game/pl_dmg.cpp": True,
     "game/path.cpp": True,
+    "game/TexRender.cpp": True,
 })
 
 # map object units (game/obj*.cpp)

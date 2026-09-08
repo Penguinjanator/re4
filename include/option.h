@@ -14,9 +14,9 @@ public:
     s8 step;          // 0x03  sub menu state (retry/load: 1 confirm, 2 loading, 3 wait for the SE)
     s32 fromTitle;    // 0x04  init argument: 1 = opened from the title screen
     u32 mesAttr;      // 0x08  MesSet attribute word (0x91 in game, 0x94 from the title)
-    u8 keyA;          // 0x0C  controller: pSys->flags bit 31
-    u8 keyB;          // 0x0D  controller: vibration (bit 27)
-    u8 keyC;          // 0x0E  controller: bit 26
+    s8 keyA;          // 0x0C  controller: pSys->flags bit 31
+    s8 keyB;          // 0x0D  controller: vibration (bit 27)
+    s8 keyC;          // 0x0E  controller: bit 26
     u8 pad_F;
     s8 sound;         // 0x10  audio: 0 stereo, 1 mono, 2 surround
     u8 pad_11[3];

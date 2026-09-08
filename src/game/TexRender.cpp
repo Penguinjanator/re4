@@ -113,12 +113,14 @@ void CopyTexRenderMgr(TexRenderMng* m)
         GXSetCopyFilter(0, rmode->sample_pattern, 0, vfilter);
         GXSetAlphaUpdate(1);
         if (m->sx == 0xE0) {
-//@@BEGIN
             ofs = (u32) ((f32) m->sy * 2.0f / 0.875f - (f32) m->sx * 2.0f);
-//@@END
         } else {
             ofs = (m->sx >> 2) + (m->sx >> 4);
         }
+        // The original reloads m->sx and m->sy here in both paths: a memory kill at the top of the
+        // join block makes neither load anticipatable, so gcse does not PRE the if-arm's m->sy
+        // load into the else arm (an empty asm keeps the two conversion paths' jumps on the join).
+        asm volatile("" : : : "memory");
         w = m->sx * 2;
         h = m->sy * 2;
         if (w > 0x280) {
@@ -143,9 +145,12 @@ void CopyTexRenderMgr(TexRenderMng* m)
         case 2:
             wrap = 0;
             break;
-        default:
-            pLog->err(0, 0, "TexRenderMng:: Invalid REPTYPE[%d]", m->repType);
         case 0:
+            wrap = 2;
+            break;
+        default:   // its own `wrap = 2` (cross-jumped into case 0): with a fallthrough the err block's
+                   // string `lis` gains an anti-dependence on the call and is scheduled before `lwz pLog`
+            pLog->err(0, 0, "TexRenderMng:: Invalid REPTYPE[%d]", m->repType);
             wrap = 2;
             break;
         }

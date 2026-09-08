@@ -204,7 +204,8 @@ public:
     u8 subFlags58C;       // 0x58C  cSubChar (SetSubDamage sets 0x40)
     u8 pad_58D[0x5C4 - 0x58D];
     u32 subSndId;         // 0x5C4  cSubChar: SndCall handle of the bulldozer SEs (objBull Sub_bull_*)
-    u8 pad_5C8[0x740 - 0x5C8];
+    f32 subX5C8;          // 0x5C8  cSubChar (obj13 SubLadderClimbCk: the partner climbs only while >= 1000)
+    u8 pad_5CC[0x740 - 0x5CC];
     struct PlRoomEff* pRoomEff;  // 0x740  player: room water effect table (pl_sub PlRegistRoomEff/PlWaterProc)
     void* boss0;          // 0x744  player (pl_sub PlRegistBoss)
     void* boss1;          // 0x748

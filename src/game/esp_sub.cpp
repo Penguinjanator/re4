@@ -465,11 +465,10 @@ static void EspCommonTransShimmer(cEsp* esp, int type, u32 blur)
         }
     }
     GXTexObj tex;
+    texGens = 0;
     {
         f32 indMtx[2][3];
         f32 dot;
-        int bufType = 1;
-
         copyOk = 1;
         fog.r = fog.g = fog.b = fog.a = 0;
         GXSetFog(0, 0.0f, 0.0f, ZNEAR, ZFAR, fog);
@@ -477,9 +476,10 @@ static void EspCommonTransShimmer(cEsp* esp, int type, u32 blur)
             if (GetDrawTmpBufType() != 2) {
                 copyOk = 0;
             }
-            bufType = 2;
+            buf = GetDrawTmpBufAddr(2);
+        } else {
+            buf = GetDrawTmpBufAddr(1);
         }
-        buf = GetDrawTmpBufAddr(bufType);
         ofs = 56.0f;
         if (pG->flags_5010 & 0x08000000) {
             ofs = 0.0f;
@@ -507,16 +507,17 @@ static void EspCommonTransShimmer(cEsp* esp, int type, u32 blur)
                 PSMTXConcat(Matrix2, esp->mat, tm);
             }
             GXLoadTexMtxImm(tm, 0x1E, 1);
-            GXSetTexCoordGen(0, 1, 0, 0x1E);
+            GXSetTexCoordGen(texGens, 1, 0, 0x1E);
         } else {
             C_MTXLightPerspective(pm, pG->Cam.param.fovy, 1.3333334f, 0.5f, -0.6666667f, 0.5f, 0.5f);
             PSMTXConcat(pm, esp->mat, tm);
             GXLoadTexMtxImm(tm, 0x1E, 0);
-            GXSetTexCoordGen(0, 0, 0, 0x1E);
+            GXSetTexCoordGen(texGens, 0, 0, 0x1E);
         }
+        texGens++;
         GXSetNumIndStages(1);
-        texGens = 2;
-        GXSetTexCoordGen(1, 1, 4, 0x3C);
+        GXSetTexCoordGen(texGens, 1, 4, 0x3C);
+        texGens++;
         GXSetIndTexOrder(0, 1, 0);
         GXSetIndTexCoordScale(0, 0, 0);
         if (ESP_PARTS_SCREEN(esp)) {
@@ -566,21 +567,33 @@ static void EspCommonTransShimmer(cEsp* esp, int type, u32 blur)
             indMtx[1][2] = 0.0f;
         }
         GXSetIndTexMtx(1, indMtx, 1);
-        switch (blur) {
-        case 1:
-            GXSetTevIndWarp(0, 0, 0, 0, 1);
-            break;
-        case 2:
-            GXSetTevIndWarp(0, 0, 1, 0, 1);
-            break;
-        default:
-            pLog->err(0, 0, "ESP_SHIMMER : BLUR_TYPE[%x] invalid", blur);
-        case 3:
-            GXSetTevIndWarp(0, 0, 0, 1, 1);
-            break;
+        {
+            u8 signedOfs;
+            u8 replace;
+
+            switch (blur) {
+            case 1:
+                signedOfs = 0;
+                replace = 0;
+                break;
+            case 2:
+                signedOfs = 1;
+                replace = 0;
+                break;
+            case 3:
+                signedOfs = 0;
+                replace = 1;
+                break;
+            default:
+                pLog->err(0, 0, "ESP_SHIMMER : BLUR_TYPE[%x] invalid", blur);
+                signedOfs = 0;
+                replace = 1;
+                break;
+            }
+            stages = 1;
+            GXSetTevIndWarp(0, 0, signedOfs, replace, 1);
         }
     }
-    stages = 1;
     GXSetTevOrder(0, 0, 1, 4);
     GXSetTevColorIn(0, 0xF, 8, 0xA, 0xF);
     GXSetTevColorOp(0, 0, 0, 0, 1, 0);
