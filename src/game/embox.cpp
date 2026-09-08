@@ -44,7 +44,7 @@ EmBoxFunc EmBox_R1_move_tbl[2] = {
     emBox_R1_Break,
 };
 
-cEmBox* SetBox(void* bin, void* tpl, Vec* pos, Vec* rot, int type, int etcNo)
+cEmBox* SetBox(void* bin, void* tpl, Vec* pos, Vec* rot, u8 type, int etcNo)
 {
     cEmBox* em;
     EmBoxWork* w;
@@ -159,8 +159,8 @@ cEmBox* SetBox(void* bin, void* tpl, Vec* pos, Vec* rot, int type, int etcNo)
         w->size.z = 550.0f;
         break;
     }
-    w->sat1 = 0;
     w->sat0 = 0;
+    w->sat1 = 0;
     em->type = type;
     switch (em->type) {
     default: {
@@ -189,7 +189,6 @@ cEmBox* SetBox(void* bin, void* tpl, Vec* pos, Vec* rot, int type, int etcNo)
         break;
     }
     }
-    void* breakBin = 0;
     emBoxYarareInit(em);
     em->hpMax = em->hp = 1000;
     {
@@ -202,10 +201,10 @@ cEmBox* SetBox(void* bin, void* tpl, Vec* pos, Vec* rot, int type, int etcNo)
     em->setStatus(0xB);
     em->be_flag &= ~0x01000000;
     em->be_flag &= ~0x10;
-    w->itemNo = -1;
     w->etcNo = etcNo;
+    w->itemNo = -1;
     w->flags = 0;
-    w->breakBin = breakBin;
+    w->breakBin = 0;
     w->breakTpl = 0;
     w->itemNum = 0;
     flg = GetEtcFlgPtr(etcNo, pG->room_id);

@@ -13,6 +13,7 @@
 #include "db_log.h"
 #include "eprintf.h"
 #include "player.h"
+#include "read.h"
 
 extern "C" {
 void OSReport(const char* fmt, ...);
@@ -53,20 +54,6 @@ struct GameWork {
 extern GameWork Game;
 
 // One loaded data module. The first 0x80 bytes are the DLL's bss area (DLL_Link gets `this`).
-class ReadModule {
-public:
-    u8 bss[0x80];               // 0x00
-    u16 id;                     // 0x80
-    u16 flag;                   // 0x82  bit0 dll copied to its own block, bit1 linked,
-                                //       bit2 data allocated by DvdReadN, bit3 debug heap
-    void* pArc;                 // 0x84
-    OSModuleHeader* pModule;    // 0x88
-    u32 size;                   // 0x8C  data size
-    u32 bssSize;                // 0x90  size of the part after the data (dll + bss)
-    void* pInitFunc;            // 0x94  EmInitFunc set by the dll prolog
-
-    ReadModule() { flag = 0; }
-};
 
 // File table entry: FileTbl index of the data and of the dll, extra flag.
 struct ReadFile {
@@ -109,8 +96,8 @@ u32 out_data_size;
 u8 oldWepId;
 
 ReadModule EmReadModule[4] __attribute__((aligned(32)));
-static ReadModule PlReadModule __attribute__((aligned(32)));
-static ReadModule WepReadModule __attribute__((aligned(32)));
+ReadModule PlReadModule __attribute__((aligned(32)));
+ReadModule WepReadModule __attribute__((aligned(32)));
 
 #define HALT()                                                    \
     do {                                                          \

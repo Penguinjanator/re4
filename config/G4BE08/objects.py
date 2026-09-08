@@ -1004,6 +1004,7 @@ MATCHING = {
 STRIP_UNUSED = {
     "game/light.cpp",
     "game/sub2.cpp",
+    "game/exception.cpp",
     "game/camera.cpp",
     "game/atariInfo.cpp",
     "game/flr_at.cpp",
@@ -1086,6 +1087,7 @@ MATCHING.update({
     "game/obj08.cpp": True,
     "game/obj1d.cpp": True,
     "game/obj18.cpp": True,
+    "game/obj.cpp": True,
 })
 
 # media/utility units

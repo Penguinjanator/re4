@@ -4,8 +4,12 @@
 #include "types.h"
 
 // Sub screen (inventory / map / files) front end, game/sscrn.cpp. Layout still opaque.
+struct OSModuleHeader;
+
 struct SubScreenWork {
-    u8 pad_0[0x374];
+    u8 pad_0[0x344];
+    OSModuleHeader* pModule;  // 0x344  linked sub screen DLL
+    u8 pad_348[0x374 - 0x348];
 };
 
 extern SubScreenWork SubScreenWk;

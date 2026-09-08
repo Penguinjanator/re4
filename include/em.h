@@ -205,7 +205,12 @@ public:
     class cMotBase* pMotBase;  // 0x7A4  (0x38 bytes)
     u8 pad_7A8[4];
     Vec bustBase[3];      // 0x7AC  Ashley: rest positions of parts 0x1D, 0x1E, 0x1A (pl_ashley moveBust)
-    u8 pad_7D0[0xDE0 - 0x7D0];
+    u8 pad_7D0[0xD60 - 0x7D0];
+    Mtx rackMat;          // 0xD60  cEmRack push range matrix (setRange: rot * trans of the rack)
+    Mtx rackInvMat;       // 0xD90  its inverse (adjustRange transforms the position into range space)
+    f32 rackRange[4];     // 0xDC0  cEmRack push limits (adjustRange dir 0: [1], 1: -[2], 2: [0], 3: -[3])
+    u8 rackFlags;         // 0xDD0  cEmRack: bit4 (0x10) range set; SetRack initialises it to 0xF
+    u8 pad_DD1[0xDE0 - 0xDD1];
 
     cEm();
     virtual ~cEm() {}
@@ -261,6 +266,11 @@ class cEmRack : public cEm {
 public:
     virtual void move();   // key function: keeps the vtable in emrack.o (cEmMgr::construct stores it)
 
+    void setBreak();
+    void setDown(Vec* pos);
+    void setShock();
+    void setEff(u8 eff);
+    void setRange(f32 a, f32 b, f32 c, f32 d);
     int adjustRange(u8 dir);
 };
 

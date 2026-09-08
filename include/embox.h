@@ -41,7 +41,7 @@ public:
 };
 
 extern "C" {
-cEmBox* SetBox(void* bin, void* tpl, Vec* pos, Vec* rot, int type, int etcNo);
+cEmBox* SetBox(void* bin, void* tpl, Vec* pos, Vec* rot, u8 type, int etcNo);
 void emBoxDmCk(cEmBox* em);
 void emBoxSetBreak(cEmBox* em, u32 kind);
 void emBox_R0_Init(cEmBox* em);

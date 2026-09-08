@@ -6,6 +6,7 @@
 #include "model.h"
 #include "atariInfo.h"
 #include "pendulum.h"
+#include "main_mem.h"
 
 // Per-object work layouts (game/obj03.cpp ...), all overlaid at cObj+0x328.
 struct Obj03Work {
@@ -405,7 +406,13 @@ struct SpearWork {
 
 // Sub-object at cObj+0x2B4 (0x74 bytes): the collision info followed by scroll bookkeeping.
 struct ObjSub2B4 {
-    cAtariInfo atari;     // 0x00 .. 0x4C  (flags at 0x1A)
+    // wrapped like cEm's so that cObj::cObj does not run cAtariInfo's constructor (the original
+    // does not; the KNOWN DEBT cModel refactor will move this into cModel)
+    union {
+        struct {
+            cAtariInfo atari;     // 0x00 .. 0x4C  (flags at 0x1A)
+        };
+    };
     u8 pad_4C[0x70 - 0x4C];
     s32 blk;              // 0x70  scroll block the object belongs to (-2 free, -1 SetObjSmd)
 
@@ -466,22 +473,26 @@ public:
     u32 x34;
 
     cObjMgr();
-    virtual ~cObjMgr();
-    virtual void* memAlloc(u32 size);
-    virtual void memFree(void* p);
-    virtual void memClear(cObj* p, u32 size);
+    virtual void* memAlloc(u32 size) { return MemAlloc(size, 1); }
+    virtual void memFree(void* p) { MemFree(p); }
+    virtual void memClear(cObj* p, u32 size) { memclr_asm(p, size); }
     virtual void log(const char* fmt, ...);
     virtual void destroy(cObj* p);
-    virtual int construct(cObj* p, u32 id);
-
-    cObj* getWork(u32 no) {
-        if (no >= nArray) {
-            return 0;
-        }
-        return (cObj*)((u8*)pArray + size * no);
-    }
+    virtual int construct(cObj* p, u32 id);   // calls the int overload (obj.cpp)
+    int construct(cObj* p, int id);           // placement-new of the per-id class, or ObjInitFunc[id]
+    void move();                              // dieCheck, then objMove on every live object
 };
 
 extern cObjMgr ObjMgr;
+
+// Work `no` of ObjMgr, 0 when out of range. A free inline: an in-class one would be emitted out of
+// line in obj.cpp (the unit owns cObjMgr's vtable), which the DOL does not have.
+static inline cObj* ObjMgrWork(u32 no)
+{
+    if (no >= ObjMgr.nArray) {
+        return 0;
+    }
+    return (cObj*)((u8*)ObjMgr.pArray + ObjMgr.size * no);
+}
 
 #endif

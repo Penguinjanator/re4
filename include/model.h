@@ -213,6 +213,7 @@ public:
     // selects parts `partsNo` of the parent (-1: the parent itself).
     void setParent(cModel* parent, Vec* pos, Vec* rot);
     void setParent(cModel* parent, int partsNo, Vec* pos, Vec* rot);
+    void moveDataAddr(int ofs);   // model data moved by `ofs` bytes (block.cpp memory compaction)
 };
 
 // Model info pool (game/model.cpp `ModInfoMgr`, 0x34 bytes): a cManager<cModelInfo>; the

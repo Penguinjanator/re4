@@ -236,8 +236,6 @@ Vec* Esp3f_GetVecPtr(cEsp3f* p, u32 no);
 // game/esp.cpp
 typedef cEsp* (*EspCreateFunc)();
 typedef void (*EspTransFunc)(cEsp*);
-extern EspCreateFunc EspCreateTbl[0xFF];
-extern EspTransFunc EspTransTbl[0xFF];
 void PushEsp(cEsp* esp);
 extern "C" {
 void EspFuncTblSet(int id, EspCreateFunc create, EspTransFunc trans);
@@ -291,6 +289,7 @@ void EstSet(int a, int b, Vec* pos, Vec* rot, int c, int d, int e, int f, u32 g,
 // game/eff_sys.cpp
 int EspGenGetMoveLoop();
 extern cCoord* pEffParentWorld;
+extern char* owner_name_tbl[0xD3];   // effect owner names (debug display)
 // Struct-member view of the same pointer (the pLog trick, db_log.h): a load through it is not
 // hoisted above a preceding struct copy through `this` (esp01 move: `w->pos0 = pos; parent =
 // pEffParentWorld`). Only use where the target shows the load after such stores; wrapping the

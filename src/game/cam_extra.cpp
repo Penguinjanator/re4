@@ -18,12 +18,15 @@
 #include "mes.h"
 #include "cockpit.h"
 
+// Weapon archive (pG->pWepArc): offsets to its sub-files.
+#define WEP_ARC_PTR(no) PL_ARC_PTR((PlArc*) pG->pWepArc, no)
+
 extern "C" {
 void* memset(void* dst, int c, unsigned int n);
 f32 atan2f(f32, f32);
 void Filter01SetParam(int mode, int z, u8 type, f32 level);
 void IdTexRelease(int id);
-void IdTexDataLoad(void* data, int id);
+int IdTexDataLoad(void* data, int id);
 }
 
 extern u8 use_filter0a;
@@ -297,10 +300,13 @@ void CameraScope::move()
 {
     static f32 ZOOM_LIMIT_0 = 9.0f;
     static f32 ZOOM_LIMIT_1 = 3.0f;
-    static f32 SCOP_VEL_Y = 0.06283185f;
-    static f32 SCOP_VEL_X = 0.06283185f;
-    static f32 yure_spd = 0.06283185f;
+    static f32 SCOP_VEL_Y = 0.062831856f;
+    static f32 SCOP_VEL_X = 0.062831856f;
+    static f32 rnd_gain = 0.001f;   // unreferenced, still in .sdata
+    static int rnd_on = 1;          // unreferenced, still in .sdata
+    static f32 yure_spd = 0.062831856f;
     static f32 rnd_gain2 = 0.0005f;
+    static u8 sct_max = 0x96;       // unreferenced, still in .sdata
     static f32 x_yure_spd;
     static f32 y_yure_spd;
     static f32 xtime;
@@ -420,16 +426,16 @@ void IdScope::init(void* type)
 {
     s8 t = *(u8*) type;
 
-    IdTexDataLoad((u8*) pG->pWepArc + ((u32*) pG->pWepArc)[4], 0xB);
+    IdTexDataLoad(WEP_ARC_PTR(4), 0xB);
     switch (t) {
     case 0:
-        IdSys.set((u8*) pG->pWepArc + ((u32*) pG->pWepArc)[5], 0xFF, 0x25, 0x13, 6, 0);
+        IdSys.set(WEP_ARC_PTR(5), 0xFF, 0x25, 0x13, 6, 0);
         break;
     case 1:
-        IdSys.set((u8*) pG->pWepArc + ((u32*) pG->pWepArc)[6], 0xFF, 0x25, 0x13, 6, 0);
+        IdSys.set(WEP_ARC_PTR(6), 0xFF, 0x25, 0x13, 6, 0);
         break;
     case 2:
-        IdSys.set((u8*) pG->pWepArc + ((u32*) pG->pWepArc)[7], 0xFF, 0x25, 0x13, 6, 0);
+        IdSys.set(WEP_ARC_PTR(7), 0xFF, 0x25, 0x13, 6, 0);
         break;
     }
 }
@@ -548,17 +554,17 @@ CameraBinocular::~CameraBinocular()
 
 void CameraBinocular::setRange(f32 a, f32 b, f32 c, f32 d)
 {
-    x110 = c;
-    x11C = d;
-    x118 = b;
     x10C = a;
+    x110 = c;
+    x118 = b;
+    x11C = d;
 }
 
 void CameraBinocular::move()
 {
     static f32 zoom_limit = 3.0f;
-    static f32 BINO_VEL_Y = 0.06283185f;
-    static f32 BINO_VEL_X = 0.06283185f;
+    static f32 BINO_VEL_Y = 0.062831856f;
+    static f32 BINO_VEL_X = 0.062831856f;
     f32 old_zoom = x124;
     f32 gain;
     f32 add;
@@ -654,9 +660,9 @@ void IdBinocular::init(Camera* cam, void* a, void* b)
     IdTexDataLoad(a, 4);
     IdSys.set(b, 0xFF, 0x24, 0x13, 5, 0);
     scr1 = IdSys.unitPtr(1, 0x24)->scr;
-    scr3 = IdSys.unitPtr(3, 0x24)->scr;
-    scr2 = IdSys.unitPtr(2, 0x24)->scr;
-    if (pG->flags_500C & 0x1000) {
+    scr3 = IdSys.unitPtr(2, 0x24)->scr;
+    scr2 = IdSys.unitPtr(3, 0x24)->scr;
+    if (pGS->flags_500C & 0x1000) {
         IdSys.unitPtr(0x30, 0x24)->flags &= ~8;
         IdSys.unitPtr(0x1B, 0x24)->flags &= ~8;
     }
@@ -819,8 +825,11 @@ void IdBinocular::quit(void*)
     if (pG->flags_500C & 0x1000) {
         Cckpt.lifeMeterDisp(0);
     }
-    for (i = 0; i <= 0xF; i++) {
-        cMes.Delete(i);
+    {
+        MessageControl* mes = &cMes;
+        for (i = 0; i <= 0xF; i++) {
+            mes->Delete(i);
+        }
     }
 }
 
@@ -839,7 +848,7 @@ CameraPushObject::~CameraPushObject()
 
 void CameraPushObject::move()
 {
-    static f32 default_ofs[8] = {0.0f, 2000.0f, -2000.0f, 800.0f, 800.0f, 45.0f, 0.0f, 0.0f};
+    static f32 default_ofs[8] = {0.0f, 2000.0f, -2000.0f, 0.0f, 800.0f, 800.0f, 0.0f, 45.0f};
     Mtx inv;
     Mtx m;
     Mtx rot;

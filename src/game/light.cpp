@@ -1333,7 +1333,7 @@ int cLight::getNormal(Vec* src, Vec* dst)
         u32 pid = parentId;
         no = pid & 0xFFFF;
         partsNo = pid >> 16;
-        p = ObjMgr.getWork(no);
+        p = ObjMgrWork(no);
         if (!(VALID_PTR(p) && IS_ALIVE(p) && partsNo < p->nParts)) {
             if (!(pG->flags_60 & 0x80000000)) {
                 pLog->err(0, 0, "cLight::getNormal() FAILED.");

@@ -140,6 +140,11 @@ void cDmg::beginEvent()
 
 cDmgMgr DmgMgr;
 
-// The split object carries 16 unnamed zero bytes after DmgMgr (0x802DA150); dvd.cpp's .bss follows
-// at the 32-byte boundary and ngcld does not pad for it.
-asm(".section .bss; .skip 16; .text");
+// The split object carries 16 unnamed zero bytes after DmgMgr (0x802DA150): dvd.cpp's .bss follows
+// at the next 32-byte boundary and ngcld does not pad for it. A zero-initialised static referenced
+// only by a never-called inline is emitted after DmgMgr (first-declaration order) without a body.
+static u8 dmg_pad[16];
+static inline u8* dmgPad()
+{
+    return dmg_pad;
+}

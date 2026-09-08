@@ -79,7 +79,8 @@ struct FocusAnimation {
 
 class CameraLookAt : public cCamera {
 public:
-    cModel* parts;  // 0xFC  hand parts looked at
+    u8 pad_FC[4];
+    cModel* parts;  // 0x100  hand parts looked at
 
     CameraLookAt(Camera* cam);
     virtual ~CameraLookAt();

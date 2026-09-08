@@ -61,10 +61,15 @@ struct GlobalWork {
     void* pFont;           // 0x18  ROM font header (dvd: RomFontSetting)
     s32 x1C;               // 0x1C  1 = the message system is usable (dvd error screen)
     u8 x20;                // 0x20  (main_sub: 3/4/6 allow the blur filter)
-    u8 pad_21[0x24 - 0x21];
+    u8 x21;                // 0x21  (room_jmp roomJumpExit clears x21..x23 with x20 = 4)
+    u8 x22;
+    u8 x23;
     u32 vtx_buf_no;        // 0x24  double-buffer index into cModelInfo::pPosBuf/pNrmBuf (mirror)
     u16 next_room;         // 0x28  room id (stage << 8 | room) being entered (snd: room BGM / door tables)
-    u8 pad_2A[0x3C - 0x2A];
+    u8 next_point;         // 0x2A  spawn point in the next room (room_jmp CRoomInfo::setNextPos clears it)
+    u8 pad_2B;
+    Vec next_pos;          // 0x2C  player position in the next room (room_jmp)
+    f32 next_angle;        // 0x38
     void* pStageFont;      // 0x3C  stage/event font buffer (mes: MessageControl::stageInit)
     void* pRoomArc;        // 0x40  current room archive (GetDataExt(pG->pRoomArc, "STB", 0))
     void* pWepArc;         // 0x44  weapon data (read: ReadWepData)
@@ -92,7 +97,8 @@ struct GlobalWork {
     void* pRoomRtp;        // 0x4F2C  room "RTP" data (read: ReadAreaData)
     void* pRoomEmi;        // 0x4F30  room "EMI" data
     void* pRoomOsd;        // 0x4F34  room "OSD" data
-    u8 pad_4F38[4];
+    s8 area_no;            // 0x4F38  block trigger area the player stands in (block.cpp), -1 = none
+    u8 pad_4F39[3];
     Vec bell_pos;          // 0x4F3C  floor point under the rung bell (obj14; flags_5010 bit29)
     u8 bell_stat;          // 0x4F48  2 = bell rung
     u8 pad_4F49[0x4F70 - 0x4F49];
@@ -101,7 +107,8 @@ struct GlobalWork {
     u8 door_no;            // 0x4F7D  door used to enter the room (index into the DSE door SE table)
     u8 pad_4F7E[0x4F88 - 0x4F7E];
     u8 x4F88;              // 0x4F88  (pl_sub PlGachaGet: > 2 keeps the raw button count)
-    u8 pad_4F89[0x4F92 - 0x4F89];
+    u8 pad_4F89[0x4F90 - 0x4F89];
+    u16 x4F90;             // 0x4F90  (room_jmp roomJumpExec clears it)
     u8 snd_tbl_no;         // 0x4F92  room BGM/stream table row (0..4) selected by the game flow
     u8 x4F93;              // 0x4F93
     u32 play_time;         // 0x4F94  seconds (SetGameTime accumulates into it)
@@ -116,8 +123,14 @@ struct GlobalWork {
             u8 x4F9F;      // 0x4F9F  (main: cleared with the room id on flags_54 bit 3)
         };
     };
-    u8 stage_prev;         // 0x4FA0  stage the current room data was loaded for (stage.cpp)
-    u8 pad_4FA1[2];
+    union {
+        u16 room_id_prev;  // 0x4FA0  room_id of the previous room (room_jmp CRoomInfo::setNextPos)
+        struct {
+            u8 stage_prev; // 0x4FA0  stage the current room data was loaded for (stage.cpp)
+            u8 room_prev;  // 0x4FA1
+        };
+    };
+    u8 x4FA2;              // 0x4FA2  copy of x4F9E (room_jmp)
     s8 emlist_no;          // 0x4FA3  enemy list currently loaded (stage.cpp), -1 = none
     u16 pl_life;           // 0x4FA4  (compared as s16 by the debug tools)
     u16 pl_life_max;       // 0x4FA6

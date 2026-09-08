@@ -20,9 +20,18 @@ extern GXRenderModeObj Rmode;  // game/main_sub.cpp
 extern void* pFrame_buff[2];
 extern void* pCurrent_buff;
 
-// Dolphin OSModuleHeader (REL header); only the fields main_sub uses are named.
+// Dolphin OSSectionInfo / OSModuleHeader (REL header); only the fields the game uses are named.
+struct OSSectionInfo {
+    u32 offset;        // 0x00  bit 0: executable (exception.cpp takes the .text address from section 1)
+    u32 size;          // 0x04
+};
+
 struct OSModuleHeader {
-    u8 pad_0[0x20];
+    u32 id;            // 0x00
+    u8 pad_4[8];       // 0x04  link
+    u32 numSections;   // 0x0C
+    OSSectionInfo* sectionInfo;  // 0x10  (an offset before OSLink)
+    u8 pad_14[0x20 - 0x14];
     u32 bssSize;       // 0x20  (read.cpp: must fit the 0x80-byte area in front of a ReadModule)
     u8 pad_24[0x34 - 0x24];
     void (*prolog)();  // 0x34  (read.cpp calls it right after DLL_Link)

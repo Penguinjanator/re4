@@ -4,6 +4,7 @@
 #include "types.h"
 #include "vec.h"
 #include "model.h"
+#include "light.h"
 #include "esp.h"
 
 // Optional 0x1C byte parameter block handed down the sequence calls (copied into the generator work).
@@ -65,11 +66,17 @@ struct cEspSystem {
     u8 pad_7BC8[0x8680 - 0x7BC8];
     SstArea* pSstArea;     // 0x8680
     u8 pad_8684[0xC548 - 0x8684];
-    u32 xC548;         // 0xC548
+    u32 xC548;         // 0xC548 number of esp slots in use
     u8* pEspBuf;       // 0xC54C esp pool (0x150 bytes per cEsp)
-    u8 pad_C550[4];
+    u8* pEspBufSave;   // 0xC550 pool saved by EspArrayPush (esp.cpp)
     u32 xC554;         // 0xC554 number of esp slots
-    u8 pad_C558[0xC5A0 - 0xC558];
+    u32 numSave;       // 0xC558 slot count saved by EspArrayPush
+    cEsp* pDmy;        // 0xC55C dummy esp returned when the pool is full
+    u8 pad_C560[0xC568 - 0xC560];
+    EspLightList lightList;  // 0xC568 lights the effects draw with (esp.cpp EspTrans -> cLightMgr::setEsp)
+    u8 pad_C58C[0xC598 - 0xC58C];
+    f32 camPan;        // 0xC598 camera yaw in degrees (EspGetCameraPan)
+    f32 camPan2;       // 0xC59C camera pitch in degrees (EspGetCameraPan2)
     u32 sstDispFlag;   // 0xC5A0 room effect display flags (bit per id)
     u32 sstAddAreaFlag;  // 0xC5A4
 };

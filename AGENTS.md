@@ -340,6 +340,14 @@ mark it Matching.
   shorten live ranges and re-rank callee-saved register assignment.
 - cModel size debt workaround: an unused `u8 pad[0x320 - sizeof(cModel)]` after a `cModel` local
   reproduces the original frame footprint.
+- `*(u32*)((u8*)p + ofs)` (cast then deref) produces a MEM without `MEM_IN_STRUCT_P`, so it aliases
+  scalar globals and forces `pG/pSys/pRK` reloads; `p[i]` / `*(p + i)` does not.
+- `if (A || B) return 0;` places the `li r3,0` block after the second test; separate `if`s after the
+  first. `!(d >= 0.0f)` and `while (!(x <= 0.0f))` produce the `cror` form; `<`/`>` plain `bge/ble`.
+- ngcld does not honour a following unit's 32-byte `.bss` alignment: when the original unit's `.bss` is
+  larger than its variables, a zero-initialised static array referenced only by a never-called inline
+  reproduces the gap.
+- A `goto RESTART` outer loop vs `for(;;)` changes where gcse hoists loop-invariant `lis` (main loop).
 - Static locals show as `name.NNN` in objdiff; the DECL_UID suffix cannot be reproduced and is ignored by the report.
 - Unexplained words in `.rodata` (zero words, stray floats) are usually the constant pool of a function
   the original linker dead-stripped (bodies gone, pools kept, `STRIP_UNUSED` in objects.py): write a
