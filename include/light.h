@@ -12,7 +12,9 @@
 // One light work (sizeof 0x1D4). Per-type modules (light01..light10) keep their state in `work`.
 class cLight : public cUnit {
 public:
-    u8 pad_0C[0x20 - 0x0C];
+    u8 pad_0C[4];
+    Vec pos;           // 0x10
+    f32 x1C;           // 0x1C (esp11: sizeX * scale * 10)
     GXColor color;     // 0x20 base color
     f32 power;         // 0x24
     u8 pad_28[0x38 - 0x28];
@@ -95,6 +97,7 @@ public:
 
     cLight* create(cLightWork* w);
     cLight* create(int type);
+    cLight* create(int kind, int type, int no, int x);  // 0x8014E21C (esp11)
     void update(int area_no, int camera_no);
     cLightPathData* getPathPtr(u8 no);
 };

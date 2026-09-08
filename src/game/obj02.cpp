@@ -5,8 +5,8 @@
 extern "C" void MotionMove(cModel* m, int a);
 
 struct ObjScrSwingWork {
-    f32 ampZ;     // 0x00
-    f32 phaseZ;   // 0x04
+    f32 phaseZ;   // 0x00
+    f32 ampZ;     // 0x04
     f32 freqZ;    // 0x08
     f32 time;     // 0x0C
     f32 phaseX;   // 0x10
@@ -34,18 +34,8 @@ public:
     void moveSwingRot();
     void SetCallBack(void (*func)(cObj*));
 
-    // Swing parameters: period given in 1/10000 frames, phases restart at zero.
-    void SetSwingRot(f32 ax, f32 px, f32 ay, f32 py, f32 az, f32 pz) {
-        ObjScrSwingWork* w = (ObjScrSwingWork*)work;
-        w->time = 1.0f;
-        w->ampX = ax;
-        w->ampY = ay;
-        w->ampZ = az;
-        w->freqX = 6.2831855f / (px * 10000.0f);
-        w->freqY = 6.2831855f / (py * 10000.0f);
-        w->freqZ = 6.2831855f / (pz * 10000.0f);
-        w->phaseX = w->phaseY = w->phaseZ = 0.0f;
-    }
+    // NOTE: the original .rodata has 4 more float constants (0x10 bytes) whose source is unknown;
+    // an in-class SetSwingRot() reproduces them but ProDG emits its body out of line (not in target).
 };
 
 cObjScr::cObjScr()

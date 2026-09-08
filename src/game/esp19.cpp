@@ -38,7 +38,7 @@ int cEsp19::SetFreeWork(EspGenWork* gen, u32* seed)
 
     w->target = *(Vec*)&gen->xD8;
     if (gen->xE4 == 0.0f) {
-        w->len = 3000.0f;
+        w->len = 12000.0f;
     } else {
         w->len = gen->xE4;
     }
@@ -51,7 +51,7 @@ static void Draw_line3d_local_222(Vec* p0, Vec* p1, Mtx mtx, u32 color, cEsp* es
     Vec dir;
     f32 rate = 1.0f;
     f32 d;
-    u32 r, g, b, a;
+    u8 r, g, b, a;
 
     GXSetBlendMode(esp->xA4, esp->xA5, esp->xA6, esp->xA7);
     CameraCurrentProjection();
@@ -74,6 +74,10 @@ static void Draw_line3d_local_222(Vec* p0, Vec* p1, Mtx mtx, u32 color, cEsp* es
     GXSetVtxAttrFmt(0, 0xB, 1, 5, 0);
     GXLoadPosMtxImm(mtx, 0);
     GXSetCurrentMtx(0);
+    r = (color >> 16) & 0xFF;
+    g = (color >> 8) & 0xFF;
+    b = color & 0xFF;
+    a = 0xFF;
 
     end = *p1;
     PSVECSubtract(p1, p0, &dir);
@@ -85,13 +89,9 @@ static void Draw_line3d_local_222(Vec* p0, Vec* p1, Mtx mtx, u32 color, cEsp* es
         PSVECAdd(p0, &dir, &end);
         d = len;
     }
-    rate -= d / len;
+    rate = 1.0f - d / len;
 
     GXBegin(0xB0, 0, 2);
-    r = (color >> 16) & 0xFF;
-    g = (color >> 8) & 0xFF;
-    b = color & 0xFF;
-    a = 0xFF;
     GXPosition3f32(p0->x, p0->y, p0->z);
     GXColor4u8(r, g, b, a);
     GXPosition3f32(end.x, end.y, end.z);

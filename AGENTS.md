@@ -51,6 +51,19 @@ mark it Matching.
 - Header-owned strings (`cManager` messages, `__FILE__` from inline range checks via `#line`) appear in
   each unit's `.rodata`; unused inline functions still emit their strings.
 - Field names must be agreed across units: a header field may only be renamed if you update every user.
+- objdiff's 100% only covers functions present in the target; **also check the compiled object's `.text`
+  size equals the split object's** (`dtk elf info build/G4BE08/src/<unit>.o` vs `build/G4BE08/obj/<unit>.o`).
+  ProDG emits every in-class member function body out of line (to `.text`, not linkonce), so an inline
+  member the original never had grows `.text` and breaks the DOL even though objdiff reports 100%.
+- Fast-cast GQR mapping: explicit `(f32)` of a u8/u16/s8/s16 load → `psq_l` with qr2/qr3/qr4/qr5; f32→u8
+  stores use `psq_st qr2`; a value already in a register goes through the `0x43300000` double trick.
+- `x + -1.0f` gives `fadds -1.0`; `x - 1.0f` gives `fsubs`. `no / per` and `no % per` share one `divwu`.
+- Two consecutive `|=` on a u8 field merge into one store unless another store sits between them.
+- Stack slot order follows declaration order; float register assignment of same-lifetime locals depends on
+  declaration order. `for (i = n - 1; i >= 0; i--)` → `subic.`/`bge` loop.
+- Zero-initialised static locals go to `.sdata`, uninitialised to `.bss`; `static const` locals are named
+  symbols; anonymous constant-pool aggregates come from non-static constant expressions.
+- A block-local `Work* w = &work;` inside the branch vs at function top decides whether the `addi` is hoisted.
 - Static locals show as `name.NNN` in objdiff; the DECL_UID suffix cannot be reproduced and is ignored by the report.
 
 - Struct field offsets come from the load/store displacements; write real structs, not casts.

@@ -56,6 +56,7 @@ public:
     virtual void setNoSuspend(int on);
 
     cModel* getPartsPtr(int no);
+    int modelInit();
     void partsMatCalc();
     void partsWorldCalc();
     void setPos(Vec* pos);

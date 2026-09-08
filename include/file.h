@@ -3,15 +3,30 @@
 
 #include "types.h"
 
-// game/file.cpp: host file access through the SN file server, enabled by pG->flags_54 & 0x20000.
-extern "C" {
-int InitFile();
-int file_open(const char* name, int mode);   // 0/2: create, 1/3: open read-only / read-write
+// Host (SN debugger) file access (game/file.cpp). Returns a handle (0 = failure).
+#define FILE_OPEN_WRITE  0  // truncate/create
+#define FILE_OPEN_READ   1
+#define FILE_OPEN_RDWR   2  // create for writing
+
+int file_open(const char* path, int mode);
+void file_close(int fd);
 int file_read(int fd, void* buf, int size);
-int file_write(int fd, const void* buf, int size);
-int file_seek(int fd, int offset, int whence);
-int file_exist(const char* name);
-int file_path(const char* dir);
-}
+int file_write(int fd, void* buf, int size);
+int file_seek(int fd, int ofs, int whence);
+int file_exist(const char* path);
+char* file_path(char* path);
+
+// game/file_app.cpp: whole-file helpers on top of the above.
+int HDRead(const char* path, void* buf);
+int HDReadSeekLen(const char* path, void* buf, u32 ofs, int len);
+int HDReadMemAlloc(const char* path, void** buf);
+int HDReadDebugAlloc(const char* path, void** buf, int flag);
+int HDWrite(const char* path, void* buf, int size);
+int HDWrite_only(const char* path, void* buf, int size);
+int file_lock_check(const char* path);
+int file_lock(const char* path);
+int file_unlock(const char* path);
+char* get_lock_file(char* path);
+int file_lock_msg(int mode, const char* path, const char* user);
 
 #endif

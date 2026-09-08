@@ -936,6 +936,9 @@ MATCHING = {
     "game/filter05.cpp": True,
     "game/filter.cpp": True,
     "game/obj06.cpp": True,
+    "game/obj02.cpp": False,  # .rodata 0x10 short (see note in source)
+    "game/light07.cpp": True,
+    "game/light01.cpp": True,
     "game/at_sub2.cpp": True,
     "game/cons.cpp": True,
     "game/TmpBuf.cpp": True,

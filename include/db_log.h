@@ -20,7 +20,16 @@ public:
     int dispLineNum(int x, int y);
 };
 
-extern cLog* pLog;
+// The log pointer is wrapped in a struct: the original loads `pLog` as a struct member (GCC 2.95's
+// MEM_IN_STRUCT_P alias heuristic then keeps the load after preceding stores through `this`
+// pointers, e.g. cTexSys::Init stores nTexObj = 0 before loading pLog). A plain `cLog*` global
+// lets the scheduler hoist the pLog load above such stores.
+struct cLogPtr {
+    cLog* p;
+    cLog* operator->() { return p; }
+};
+
+extern cLogPtr pLog;
 
 // Debug break with source location (used by the header-inline range checks).
 extern void dbgAssert(const char* file, int line);

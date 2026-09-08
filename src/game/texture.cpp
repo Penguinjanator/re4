@@ -23,17 +23,21 @@ void cTexSys::Init(const char* name, u32 num)
     this->name = name;
     nTexObj = num;
 #line 53
-    if ((pTexObj = (GXTexObj*) MEM_ALLOC(num * sizeof(GXTexObj), 1, 0xD)) == NULL ||
-#line 60
-        (pFlag = (u8*) MEM_ALLOC(nTexObj / 8 + 1, 1, 0xD)) == NULL) {
+    if ((pTexObj = (GXTexObj*) MEM_ALLOC(num * sizeof(GXTexObj), 1, 0xD)) == NULL) {
         nTexObj = 0;
         pLog->err(0, 0, "%s::Init(): Memory Allocation Failed.", this->name);
-    } else {
-        for (i = 0; i < nTexObj; i++) {
-            SetTexObjFlag(i, 0);
-        }
-        Clear();
+        return;
     }
+#line 60
+    if ((pFlag = (u8*) MEM_ALLOC(nTexObj / 8 + 1, 1, 0xD)) == NULL) {
+        nTexObj = 0;
+        pLog->err(0, 0, "%s::Init(): Memory Allocation Failed.", this->name);
+        return;
+    }
+    for (i = 0; i < nTexObj; i++) {
+        SetTexObjFlag(i, 0);
+    }
+    Clear();
 }
 
 void cTexSys::Clear()
@@ -52,12 +56,12 @@ void cTexSys::Clear()
 
 int cTexSys::GetTexObjFlag(u32 no)
 {
-    if (no < nTexObj) {
-        if ((pFlag[no >> 3] >> (no & 7)) & 1) {
-            return 1;
-        }
-    } else {
+    if (no >= nTexObj) {
         pLog->err(0, 0, "%s::GetTexObjFlag : TexNo over [%d/%d]", name, no, nTexObj);
+        return 0;
+    }
+    if ((pFlag[no >> 3] >> (no & 7)) & 1) {
+        return 1;
     }
     return 0;
 }
@@ -92,8 +96,10 @@ int cTexSys::DataLoad(TexData* data, u32 owner, int clamp)
     tpls = (TexOfsTbl*) ((u8*) data + data->ofsTpl);
     anms = (TexOfsTbl*) ((u8*) data + data->ofsAnm);
     for (i = 0; i < ids->num; i++) {
-        TexRegist((TEXPalette*) ((u8*) tpls + tpls->ofs[i]), (TexAnm*) ((u8*) anms + anms->ofs[i]),
-                  ids->ent[i].id & 0xFF, owner, clamp, 1);
+        TEXPalette* tpl = (TEXPalette*) ((u8*) tpls + tpls->ofs[i]);
+        TexAnm* anm = (TexAnm*) ((u8*) anms + anms->ofs[i]);
+        u16 id = ids->ent[i].id;
+        TexRegist(tpl, anm, id, owner, clamp, 1);
     }
     return 1;
 }
@@ -119,11 +125,14 @@ GXTexObj* cTexSys::PullTexObj(u32 num)
     for (cnt = 0; cnt < num; cnt++) {
         SetTexObjFlag(start + cnt, 1);
     }
-    return obj;
+    goto done;
 
 full:
     pLog->err(0, 0, "%s::PullTexObj(): TEXOBJ MAX!!", name);
     return NULL;
+
+done:
+    return obj;
 }
 
 void cTexSys::CalcTplAddr(TEXPalette* tpl)
@@ -137,7 +146,7 @@ void cTexSys::CalcTplAddr(TEXPalette* tpl)
     if ((s32) tpl->descriptorArray < 0) {
         return;
     }
-    tpl->descriptorArray = (TEXDescriptor*) ((u8*) tpl + (u32) tpl->descriptorArray);
+    tpl->descriptorArray = (TEXDescriptor*) ((u32) tpl->descriptorArray + (u32) tpl);
     for (i = 0; i < tpl->numDescriptors; i++) {
         desc = &tpl->descriptorArray[i];
         desc->textureHeader = (TEXHeader*) ((u8*) tpl + (u32) desc->textureHeader);
@@ -155,7 +164,7 @@ int cTexSys::TexRegist(TEXPalette* tpl, TexAnm* anm, u8 id, u32 owner, int clamp
     TEXDescriptor* desc;
     TEXHeader* hdr;
     GXTexObj* obj;
-    u32 i;
+    int i;
 
     if (w->owner != 0) {
         if (check != 0) {
@@ -209,33 +218,33 @@ int cTexSys::GetTplAddr(u32 id, TEXPalette** out)
 {
     TexWk* w = &wk[id];
 
-    if (w->owner != 0) {
-        *out = w->pTpl;
-        return 1;
+    if (w->owner == 0) {
+        return 0;
     }
-    return 0;
+    *out = w->pTpl;
+    return 1;
 }
 
 int cTexSys::GetTexObj(u32 id, u32 no, GXTexObj** out)
 {
     TexWk* w = &wk[id];
 
-    if (w->owner != 0) {
-        *out = &w->pTexObj[no];
-        return 1;
+    if (w->owner == 0) {
+        return 0;
     }
-    return 0;
+    *out = &w->pTexObj[no];
+    return 1;
 }
 
 int cTexSys::GetAnmAddr(u32 id, TexAnm** out)
 {
     TexWk* w = &wk[id];
 
-    if (w->owner != 0) {
-        *out = w->pAnm;
-        return 1;
+    if (w->owner == 0) {
+        return 0;
     }
-    return 0;
+    *out = w->pAnm;
+    return 1;
 }
 
 int cTexSys::GetTlutObj(u32 id, GXTlutObj** out)
@@ -268,12 +277,12 @@ TexWk* cTexSys::GetTexWk(u32 id, int quiet)
 
 int cTexSys::TexRelease(u32 owner)
 {
+    TexWk* w;
     u32 i;
     u32 j;
     u32 base;
-    TexWk* w = wk;
 
-    for (i = 0; i < 256; w++, i++) {
+    for (w = wk, i = 0; i < 256; w++, i++) {
         if (w->owner == owner) {
             w->owner = 0;
             base = w->pTexObj - pTexObj;

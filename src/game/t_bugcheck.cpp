@@ -52,9 +52,9 @@ void cToolBugcheck::init()
 {
     BitSet(stop_bak, TOOL_FLAG(OFS_STOP_FLG));
     BitOn(TOOL_FLAG(OFS_STOP_FLG), ~0x4000);
-    cursor = 0;
     x = 80;
     y = 60;
+    cursor = 0;
 }
 
 void cToolBugcheck::main()
@@ -332,14 +332,11 @@ void cToolBugcheck::menu()
             i++;
         }
         i = i < 0 ? 4 : (i > 4 ? 0 : i);
-        switch (i) {
-        case 0:
+        if (i == 0) {
             TOOL_FLAG(OFS_DEBUG_FLG + 8) &= ~0x10000;
-            break;
-        default:
+        } else {
             TOOL_FLAG(OFS_DEBUG_FLG + 8) |= 0x10000;
             PlKaiou = i - 1;
-            break;
         }
         break;
     case 2:
