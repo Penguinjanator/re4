@@ -98,10 +98,21 @@ void Cockpit::lifeMeterDisp(int sw)
 
 static f32 a_ratio = 0.9f;
 
-// smoothing towards `t`; the reference parameter is what makes the store alias pG / a_ratio
+// smoothing towards `t`; the reference / pointer parameters are what make the stores alias
+// pG and a_ratio (both are reloaded after every store)
 static inline void approach(f32& v, f32 t)
 {
     v = a_ratio * v + (1.0f - a_ratio) * t;
+}
+
+static inline void approachCol(f32* v0, f32* v1, f32* t0, f32* t1)
+{
+    int i;
+
+    for (i = 0; i < 4; i++) {
+        v0[i] = a_ratio * v0[i] + (1.0f - a_ratio) * t0[i];
+        v1[i] = a_ratio * v1[i] + (1.0f - a_ratio) * t1[i];
+    }
 }
 
 void LifeMeter::roomInit()
@@ -169,18 +180,23 @@ void LifeMeter::move()
     IdUnit* u;
     IdUnit* u2;
     IdUnit* u3;
-    IdUnit* src = 0;
     cPlayer* pl = pPL;
+    IdUnit* src = 0;
+    IdUnit* src2;
     f32 ang;
     f32 rate;
     int i;
 
     if (pSUB && pSUB->id == 3) {
-        IdSys.unitPtr(1, ID_LIFE)->flags |= 8;
-        IdSys.unitPtr(3, ID_LIFE)->flags |= 8;
+        u = IdSys.unitPtr(1, ID_LIFE);
+        u->flags |= 8;
+        u = IdSys.unitPtr(3, ID_LIFE);
+        u->flags |= 8;
     } else {
-        IdSys.unitPtr(1, ID_LIFE)->flags &= ~8;
-        IdSys.unitPtr(3, ID_LIFE)->flags &= ~8;
+        u = IdSys.unitPtr(1, ID_LIFE);
+        u->flags &= ~8;
+        u = IdSys.unitPtr(3, ID_LIFE);
+        u->flags &= ~8;
     }
     level = lifeLevel(20, pG->pl_life_max, 1200);
     subLevel = lifeLevel(5, pG->sub_life_max, 600);
@@ -251,10 +267,7 @@ void LifeMeter::move()
         }
         break;
     }
-    for (i = 0; i < 4; i++) {
-        approach(col0[i], a[i]);
-        approach(col1[i], b[i]);
-    }
+    approachCol(col0, col1, a, b);
 
     if ((s16) pG->sub_life > (s16) pG->sub_life_max * 3 / 4) {
         for (i = 0; i < 4; i++) {
@@ -272,10 +285,7 @@ void LifeMeter::move()
             d[i] = (f32) c1[2][i];
         }
     }
-    for (i = 0; i < 4; i++) {
-        approach(subCol0[i], c[i]);
-        approach(subCol1[i], d[i]);
-    }
+    approachCol(subCol0, subCol1, c, d);
 
     switch (pl->getLifeLevel()) {
     case 0:
@@ -288,36 +298,42 @@ void LifeMeter::move()
         src = IdSys.unitPtr(0x0F, ID_LIFE);
         break;
     }
-    u = IdSys.unitPtr(0x12, ID_LIFE);
-    u->col0[0] = (u8) col0[0];
-    u->col0[1] = (u8) col0[1];
-    u->col0[2] = (u8) col0[2];
-    u->col0[3] = 0xFF;
-    u->col1[0] = (u8) col1[0];
-    u->col1[1] = (u8) col1[1];
-    u->col1[2] = (u8) col1[2];
-    u->col1[3] = 0xFF;
-    u->loop |= 4;
-    u->curve[2] = src->curve[2];
+    {
+        IdUnit* p = IdSys.unitPtr(0x12, ID_LIFE);
+
+        p->col0[0] = (u8) col0[0];
+        p->col0[1] = (u8) col0[1];
+        p->col0[2] = (u8) col0[2];
+        p->col0[3] = 0xFF;
+        p->col1[0] = (u8) col1[0];
+        p->col1[1] = (u8) col1[1];
+        p->col1[2] = (u8) col1[2];
+        p->col1[3] = 0xFF;
+        p->curve[2] = src->curve[2];
+        p->loop |= 4;
+    }
 
     if ((s16) pG->sub_life > (s16) pG->sub_life_max * 3 / 4) {
-        src = IdSys.unitPtr(0x11, ID_LIFE);
+        src2 = IdSys.unitPtr(0x11, ID_LIFE);
     } else if ((s16) pG->sub_life > (s16) pG->sub_life_max / 4) {
-        src = IdSys.unitPtr(0x10, ID_LIFE);
+        src2 = IdSys.unitPtr(0x10, ID_LIFE);
     } else {
-        src = IdSys.unitPtr(0x0F, ID_LIFE);
+        src2 = IdSys.unitPtr(0x0F, ID_LIFE);
     }
-    u = IdSys.unitPtr(3, ID_LIFE);
-    u->col0[0] = (u8) subCol0[0];
-    u->col0[1] = (u8) subCol0[1];
-    u->col0[2] = (u8) subCol0[2];
-    u->col0[3] = 0xFF;
-    u->col1[0] = (u8) subCol1[0];
-    u->col1[1] = (u8) subCol1[1];
-    u->col1[2] = (u8) subCol1[2];
-    u->col1[3] = 0xFF;
-    u->loop |= 4;
-    u->curve[2] = src->curve[2];
+    {
+        IdUnit* p = IdSys.unitPtr(3, ID_LIFE);
+
+        p->col0[0] = (u8) subCol0[0];
+        p->col0[1] = (u8) subCol0[1];
+        p->col0[2] = (u8) subCol0[2];
+        p->col0[3] = 0xFF;
+        p->col1[0] = (u8) subCol1[0];
+        p->col1[1] = (u8) subCol1[1];
+        p->col1[2] = (u8) subCol1[2];
+        p->col1[3] = 0xFF;
+        p->curve[2] = src2->curve[2];
+        p->loop |= 4;
+    }
 
     u = IdSys.unitPtr(0x13, ID_LIFE);
     u2 = IdSys.unitPtr(0x14, ID_LIFE);

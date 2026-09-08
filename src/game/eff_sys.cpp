@@ -9,6 +9,8 @@
 #include "os_vi.h"
 #include "db_log.h"
 
+// Remaining diff: EspDataLoad (99.65%) gets r0 instead of r9 for the id-table offset in both
+// registration loops (local-alloc order); all other functions and the data sections match.
 // Effect system core: the cEspSystem work (g_pEspSys), per-owner registration of the effect
 // data files (textures, effect set tables, room effect tables, paths, effect models) and the
 // small state accessors the game code uses.

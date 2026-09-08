@@ -95,6 +95,7 @@ cEmTree* SetTree(void* bin, void* tpl, Vec* pos, Vec* rot)
     w->pParent = 0;
     w->x20 = 0;
     w->pAtk = 0;
+    w->caught = 0;
     w->seFall[0] = 0xFF;
     w->seFall[1] = 0xFF;
     w->seFall[2] = 0;
@@ -116,10 +117,9 @@ cEmTree* SetTree(void* bin, void* tpl, Vec* pos, Vec* rot)
     w->effFall[1] = 0xFF;
     w->eff72[0] = 0xFF;
     w->eff72[1] = 0xFF;
+    w->sndId = 0;
     w->effHit[0] = 0xFF;
     w->effHit[1] = 0xFF;
-    w->sndId = 0;
-    w->caught = 0;
     em->pMotion = 0;
     w->estNo = 50;
     em->xFC = 1;
@@ -248,7 +248,7 @@ void emTree_R1_Lost(cEmTree* em)
     switch (em->xFE) {
     case 0:
         em->hp = 0;
-        em->atari.clrFlag200();
+        em->atari.flags &= ~0x200;
         em->be_flag &= ~2;
         w->timer = 30;
         em->xFE++;
@@ -509,7 +509,7 @@ void emTree_R1_Throw(cEmTree* em)
         SndStop(w->sndId, 0);
     } else if (w->pAtk) {
         if (EmAtkHitCk(w->pAtk, &em->pos, &em->oldPos, 1)) {
-            VibSetData((VibDataTbl*) ((u8*) pG->pArc + pG->pArc->ofs_1C), 7, 1);
+            VibSetData((VibDataTbl*) (pG->pArc->ofs_1C + (u32) pG->pArc), 7, 1);
             if (w->seHit[0] != 0xFF && w->seHit[1] != 0xFF) {
                 SndCall(w->seHit[0], w->seHit[1], &em->pos, w->seHit[2], 0, em);
             }
@@ -556,6 +556,7 @@ void emTree_R1_Shot(cEmTree* em)
     Mtx inv;
     EmHitInfo* part;
     int no;
+    f32 len;
 
     switch (em->xFE) {
     case 0:
@@ -608,7 +609,7 @@ void emTree_R1_Shot(cEmTree* em)
         em->partsWorldCalc();
         em->xFE = 2;
     } else if (w->pAtk && (part = (EmHitInfo*) EmAtkLineHitCk(&em->oldPos, &em->pos, &hitPos, &nrm, 0)) != 0) {
-        VibSetData((VibDataTbl*) ((u8*) pG->pArc + pG->pArc->ofs_1C), 7, 1);
+        VibSetData((VibDataTbl*) (pG->pArc->ofs_1C + (u32) pG->pArc), 7, 1);
         if (w->seHit[0] != 0xFF && w->seHit[1] != 0xFF) {
             SndCall(w->seHit[0], w->seHit[1], &em->pos, w->seHit[2], 0, em);
         }
@@ -629,13 +630,14 @@ void emTree_R1_Shot(cEmTree* em)
             }
             PSMTXInverse(pPL->getPartsPtr(no)->mat, inv);
             PSMTXMultVec(inv, &part->pos, &em->pos);
-            em->rot.x = -atan2f(-em->pos.y, SQRTF(em->pos.x * em->pos.x + em->pos.z * em->pos.z));
+            len = SQRTF(em->pos.x * em->pos.x + em->pos.z * em->pos.z);
+            em->rot.x = -atan2f(-em->pos.y, len);
             em->rot.y = atan2f(-em->pos.x, -em->pos.z);
             em->rot.z = 0.0f;
-            if ((s16) pG->pl_life > 0) {
-                w->fallTimer = 30;
-            } else {
+            if ((s16) pGS->pl_life <= 0) {
                 w->fallTimer = 0;
+            } else {
+                w->fallTimer = 30;
             }
             em->setParent(pPL, no, 0);
             emTree_R1_Parent(em);
@@ -661,7 +663,7 @@ void cEmTree::setParent(cModel* parent, int partsNo, int flag)
     xFD = 3;
     xFE = 0;
     xFF = 0;
-    ((cEm*) parent)->atari.clrFlag200();
+    ((cEm*) parent)->atari.flags &= ~0x200;
 }
 
 void cEmTree::clearParent()
@@ -687,8 +689,8 @@ void cEmTree::setFall()
         w->pt[i].y = fRand1_1() * 10.0f + 50.0f;
         w->pt[i].z = fRand1_1() * 10.0f;
     }
-    w->x20 = 0;
     w->pParent = 0;
+    w->x20 = 0;
     hp = 0;
     pos.x = mat[0][3];
     pos.y = mat[1][3];
@@ -803,7 +805,7 @@ void cEmTree::setCatch()
 void cEmTree::setLost()
 {
     be_flag &= ~2;
-    atari.clrFlag200();
+    atari.flags &= ~0x200;
     hp = 0;
     xFC = 1;
     xFD = 2;

@@ -9,6 +9,9 @@
 #include "os_vi.h"
 #include "db_log.h"
 
+// Remaining diffs: AddSandPower keeps the Chk_pos address in r10/r11 swapped (99%); SetSandWork
+// (95%) allocates i/j/i+1/j+1 and the pool addresses to other registers and has an 8-byte
+// frame slot we do not have (a local we cannot identify); everything else matches.
 // Effect controller 43: sand surface. A (nx+1) x (ny+1) height grid drawn as triangle strips
 // through a prebuilt display list; AddSandPower pushes the grid down around a world position
 // and GetSandHeight samples it (obj09).

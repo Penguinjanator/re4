@@ -330,13 +330,11 @@ void objPillar_R0_Throw(cObjPillar* obj)
 void objPillar_R0_Escape(cObjPillar* obj)
 {
     PillarWork* w = &obj->pillar;
-    Vec* pos = &obj->pos;
-    Vec* rot = &obj->rot;
 
     switch (obj->xFE) {
     case 0:
-        *pos = pPL->pos;
-        *rot = pPL->rot;
+        memcpy((u8*) obj + ((u32) &((cObj*) 0)->pos), &pPL->pos, sizeof(Vec));
+        memcpy((u8*) obj + ((u32) &((cObj*) 0)->rot), &pPL->rot, sizeof(Vec));
         MotionSetCore(obj, &obj->pMotion, w->motEscape, 0, 0, 0x8001, 0);
         SndStop(w->seHandle, 0);
         w->seHandle = SndCall(8, 0x2C, &obj->getPartsPtr(0)->worldPos, 0x31, 0, obj);
@@ -499,13 +497,13 @@ void objPillarAtkCk(cObjPillar* obj, Vec* pos)
             } else {
                 EstSet((int) pPL, -1, 0, 0, 0x29, 0x3B, 0, 0, (u32) pPL, 0);
             }
-            QuakeExec(0, 0, 5, 11.0f, 2);
+            QuakeExec(0, 0, 5, 22.0f, 2);
             SndCall(8, 0x25, &pPL->pos, 0x31, 0, pPL);
             w->escaped = 1;
             VibSetData((VibDataTbl*) (pG->pArc->ofs_1C + (u32) pG->pArc), 7, 1);
         }
         if (hit & 2) {
-            QuakeExec(0, 0, 5, 11.0f, 2);
+            QuakeExec(0, 0, 5, 22.0f, 2);
             VibSetData((VibDataTbl*) (pG->pArc->ofs_1C + (u32) pG->pArc), 7, 1);
         }
     }
@@ -528,11 +526,13 @@ static void plemEscape(cPlayer* pl)
     cEm* em = (cEm*) pl;
     cObjPillar* obj = (cObjPillar*) em->dmgType;
     PillarWork* w = &obj->pillar;
+    f32 ang = 0.0f;
 
     em->st.x325 = 2;
     switch (em->xFE) {
     case 0:
-        if (0.0f > Muku(&em->pos, &w->target, em->rot.y, PI)) {
+        ang = Muku(&em->pos, &w->target, em->rot.y, PI);
+        if (ang < 0.0f) {
             MotionSetCore(em, &em->pMotion, w->plMot, w->plMotA, 3, 0x41, 0);
         } else {
             MotionSetCore(em, &em->pMotion, w->plMot, w->plMotA, 3, 1, 0);
