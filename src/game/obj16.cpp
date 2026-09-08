@@ -674,6 +674,7 @@ void obj16_R1_Critical(cObj16* obj)
     Vec head;
     Vec tgt;
     f32 d;
+    f32 d2;
     void* mot;
 
     w->atkHit = 0;
@@ -700,9 +701,7 @@ void obj16_R1_Critical(cObj16* obj)
         head.x = obj->mat[0][3];
         head.y = obj->mat[1][3];
         head.z = obj->mat[2][3];
-        // BF_BEGIN
         tgt = pPL->getPartsPtr(3)->worldPos;
-        // BF_END
         if (pSUB && w->body) {
             d = SQRTF((w->body->pos.x - pPL->pos.x) * (w->body->pos.x - pPL->pos.x) +
                       (w->body->pos.y - pPL->pos.y) * (w->body->pos.y - pPL->pos.y) +
@@ -714,18 +713,17 @@ void obj16_R1_Critical(cObj16* obj)
                 tgt = pSUB->getPartsPtr(3)->worldPos;
             }
         }
+        // BF_BEGIN
         if (head.y - tgt.y > 500.0f) {
             MotionSetCore(obj, &obj->pMotion, w->mot[6], 0, 0, 0, 0);
+        } else if ((d2 = (head.x - tgt.x) * (head.x - tgt.x) + (head.z - tgt.z) * (head.z - tgt.z)) < 1440000.0f) {
+            MotionSetCore(obj, &obj->pMotion, w->mot[3], 0, 0, 0, 0);
+        } else if (d2 < 3240000.0f) {
+            MotionSetCore(obj, &obj->pMotion, w->mot[4], 0, 0, 0, 0);
         } else {
-            f32 d2 = (head.x - tgt.x) * (head.x - tgt.x) + (head.z - tgt.z) * (head.z - tgt.z);
-            if (d2 < 1440000.0f) {
-                MotionSetCore(obj, &obj->pMotion, w->mot[3], 0, 0, 0, 0);
-            } else if (d2 < 3240000.0f) {
-                MotionSetCore(obj, &obj->pMotion, w->mot[4], 0, 0, 0, 0);
-            } else {
-                MotionSetCore(obj, &obj->pMotion, w->mot[5], 0, 0, 0, 0);
-            }
+            MotionSetCore(obj, &obj->pMotion, w->mot[5], 0, 0, 0, 0);
         }
+        // BF_END
         w->timer = 14;
         if (obj->type == 3) {
             EstSet((int) obj, -1, 0, 0, 0x10, 0x5D, 0, 0, (u32) obj, 0);

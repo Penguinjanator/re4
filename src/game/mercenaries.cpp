@@ -157,16 +157,17 @@ int MercSysInitRoom(MercInit* pMInit)
     }
     memset(&wk->score, 0, sizeof(MercSysWork) - 0x24);
     GamePointInit(2);
-    if (pG->room_id == 0x400) {
-        wk->stage = 0;
-    } else if (pG->room_id == 0x402) {
-        wk->stage = 1;
-    } else if (pG->room_id == 0x403) {
-        wk->stage = 2;
-    } else if (pG->room_id == 0x404) {
-        wk->stage = 3;
-    } else {
-        pLog->err(0, 0, "St4ResultInitRoom : RoomNo failed");
+    wk->stage = 0;
+    if (pG->room_id != 0x400) {
+        if (pG->room_id == 0x402) {
+            wk->stage = 1;
+        } else if (pG->room_id == 0x403) {
+            wk->stage = 2;
+        } else if (pG->room_id == 0x404) {
+            wk->stage = 3;
+        } else {
+            pLog->err(0, 0, "St4ResultInitRoom : RoomNo failed");
+        }
     }
     wk->mode = 0;
     if (pG->x4FB8 == 0) {
@@ -509,9 +510,9 @@ int MercSysResultInit(MercSysWork* wk)
     }
     Cckpt.getCountDown()->getTime(&min, &sec, &cs);
     wk->rslt.score = wk->score;
-    wk->rslt.time = min * 6000 + sec * 100 + cs;
     wk->rslt.maxCombo = wk->maxCombo;
     wk->rslt.kill = wk->kill;
+    wk->rslt.time = min * 6000 + sec * 100 + cs;
     wk->rslt.mode = wk->mode;
     wk->rslt.rank = 0;
     for (i = 0; i < 6; i++) {

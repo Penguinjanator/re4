@@ -269,11 +269,15 @@ void PenClothMove(cModel* m, PenCloth* c)
                 if (v.x != 0.0f && v.z != 0.0f) {
                     PSVECNormalize(&v, &v);
                     PSVECScale(&v, &v, spdLen);
-                    if (c->x2C) {
-                        rate = sinf(LIMIT_ANGLE(c->x48 + c->x2C[i])) + 1.0f;
-                        PSVECScale(&v, &v, rate);
-                    } else {
+                    // the else arm starts with a set of `rate`, so jump.c moves the then arm's
+                    // constant above the test (the literal 1.0 below stays a separate pool load)
+                    if (c->x2C == 0) {
                         rate = 1.0f;
+                    } else {
+                        rate = c->x48;
+                        rate += c->x2C[i];
+                        rate = sinf(LIMIT_ANGLE(rate)) + 1.0f;
+                        PSVECScale(&v, &v, rate);
                     }
                     if (c->x30) {
                         PSVECScale(&v, &v, rate);
@@ -283,11 +287,13 @@ void PenClothMove(cModel* m, PenCloth* c)
                 }
             }
             if ((pG->flags_60 & 0x200) && !(c->flags & 0x40) && c->x30) {
-                if (c->x2C) {
-                    rate = sinf(LIMIT_ANGLE(c->x48 + c->x2C[i])) + 1.0f;
-                    PSVECScale(&GlobalWind, &wind, rate);
-                } else {
+                if (c->x2C == 0) {
                     rate = 0.0f;
+                } else {
+                    rate = c->x48;
+                    rate += c->x2C[i];
+                    rate = sinf(LIMIT_ANGLE(rate)) + 1.0f;
+                    PSVECScale(&GlobalWind, &wind, rate);
                 }
                 if (c->x30) {
                     PSVECScale(&GlobalWind, &wind, rate);
@@ -548,11 +554,13 @@ void PenClothMove2(cModel* m, PenCloth* c)
             }
             PSVECAdd(&w->pos, &w->speed, &w->pos);
             if ((pG->flags_60 & 0x200) && !(c->flags & 0x40) && c->x30) {
-                if (c->x2C) {
-                    rate = sinf(LIMIT_ANGLE(c->x48 + c->x2C[i])) + 1.0f;
-                    PSVECScale(&GlobalWind, &wind, rate);
-                } else {
+                if (c->x2C == 0) {
                     rate = 0.0f;
+                } else {
+                    rate = c->x48;
+                    rate += c->x2C[i];
+                    rate = sinf(LIMIT_ANGLE(rate)) + 1.0f;
+                    PSVECScale(&GlobalWind, &wind, rate);
                 }
                 if (c->x30) {
                     PSVECScale(&GlobalWind, &wind, rate);
@@ -817,11 +825,13 @@ void PenClothMove3(cModel* m, PenCloth* c)
             }
             PSVECAdd(&w->pos, &w->speed, &w->pos);
             if ((pG->flags_60 & 0x200) && !(c->flags & 0x40) && c->x30) {
-                if (c->x2C) {
-                    rate = sinf(LIMIT_ANGLE(c->x48 + c->x2C[i])) + 1.0f;
-                    PSVECScale(&GlobalWind, &wind, rate);
-                } else {
+                if (c->x2C == 0) {
                     rate = 0.0f;
+                } else {
+                    rate = c->x48;
+                    rate += c->x2C[i];
+                    rate = sinf(LIMIT_ANGLE(rate)) + 1.0f;
+                    PSVECScale(&GlobalWind, &wind, rate);
                 }
                 if (c->x30) {
                     PSVECScale(&GlobalWind, &wind, rate);

@@ -995,6 +995,7 @@ MATCHING = {
     "game/filter07.cpp": True,
     "game/filter09.cpp": True,
     "game/filter0a.cpp": True,
+    "game/filter08.cpp": True,
     "game/esp11.cpp": True,
     "game/esp15.cpp": True,
     "game/esp03.cpp": True,

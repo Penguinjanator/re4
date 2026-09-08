@@ -137,11 +137,11 @@ static inline u32 saveItemBase(int ofs)
 {
     return (u32) pG + ofs;
 }
-#define SAVE_ITEM_HALF(i, ofs) (*(u16*) (saveItemBase(ofs) + (i) * 16))
+#define SAVE_ITEM_HALF(i, ofs) (*(u16*) (saveItemBase(ofs) + ((i) << 4)))
 #define SAVE_ITEM_ROOM(i) SAVE_ITEM_HALF(i, 0x72EC)
 #define SAVE_ITEM_ID(i) SAVE_ITEM_HALF(i, 0x72EE)
 #define SAVE_ITEM_NUM(i) SAVE_ITEM_HALF(i, 0x72F0)
-#define SAVE_ITEM_POS(i, k) (*(s16*) (saveItemBase(0x72F2 + (k) * 2) + (i) * 16))
+#define SAVE_ITEM_POS(i, k) (*(s16*) (saveItemBase(0x72F2 + (k) * 2) + ((i) << 4)))
 #define SAVE_ITEM_TYPE(i) pG->save_item[i].type
 #define SAVE_ITEM_ATNO(i) pG->save_item[i].atNo
 #define SAVE_ITEM_EFF(i) pG->save_item[i].effType
@@ -3041,7 +3041,6 @@ int SceAtCreateFieldAt(cModel* m, Vec* pos, int a, int b, int c, f32 h, int d, f
 int SceAtCreateItemAt(Vec* pos, u16 id, int num, int effType, int saveNo, cModel* parent, int parts)
 {
     SceAtWork* w;
-    SceAtItem* it;
     void* bin;
     void* tpl;
     int ok;
@@ -3055,7 +3054,6 @@ int SceAtCreateItemAt(Vec* pos, u16 id, int num, int effType, int saveNo, cModel
     if (sceAtPullAtNo(&w->no) == 0) {
         return -1;
     }
-    it = &w->item;
     if (saveNo < 0) {
         if (sceAtCheckSaveItem(id) == 1) {
             saveNo = sceAtPullItemSaveWork();
@@ -3069,59 +3067,59 @@ int SceAtCreateItemAt(Vec* pos, u16 id, int num, int effType, int saveNo, cModel
                 SAVE_ITEM_POS(saveNo, 0) = (s16) (pos->x / 10.0f);
                 SAVE_ITEM_POS(saveNo, 1) = (s16) (pos->y / 10.0f);
                 SAVE_ITEM_POS(saveNo, 2) = (s16) (pos->z / 10.0f);
-                it->flag2 |= 8;
+                w->item.flag2 |= 8;
             } else {
                 pLog->err(0, 0, "SceAtCreateItemAt(): lack save work");
             }
         } else if (saveNo == -1) {
-            it->timer = 0x3D;
-            it->flag2 |= 0x20;
+            w->item.timer = 0x3D;
+            w->item.flag2 |= 0x20;
         }
     } else {
-        it->flag2 |= 8;
+        w->item.flag2 |= 8;
     }
     w->x37 |= 1;
     w->pParent = parent;
     w->parentParts = parts;
-    w->flag = 7;
-    w->x35 = 3;
+        w->flag = 7;
     w->x39 = 1;
     w->x44 = 8;
-    w->x4A = 0x28;
     w->x38 = 8;
-    SceAtItemAutoArea(&w->area, pos, 1000.0f);
-    it->num = num;
-    it->findFlagNo = 0;
-    it->id = id;
-    it->flagNo = 0;
+    w->x35 = 3;
+    w->x4A = 0x28;
+SceAtItemAutoArea(&w->area, pos, 0.0f);
+    w->item.num = num;
+    w->item.findFlagNo = 0;
+    w->item.id = id;
+    w->item.flagNo = 0;
     switch (effType) {
     case -1:
     case 0:
     case 6:
-        it->effType = sceAtCheckItemEffectCol(id);
+        w->item.effType = sceAtCheckItemEffectCol(id);
         break;
     default:
-        it->effType = effType;
+        w->item.effType = effType;
         break;
     }
-    it->pModel = 0;
-    it->saveNo = saveNo;
-    if (it->effType == 8) {
-        it->pos.x = pos->x;
-        it->pos.y = pos->y + 1000.0f;
-        it->pos.z = pos->z;
+    w->item.pModel = 0;
+    w->item.saveNo = saveNo;
+    if (w->item.effType == 8) {
+        w->item.pos.x = pos->x;
+        w->item.pos.y = pos->y + 1000.0f;
+        w->item.pos.z = pos->z;
     } else {
-        it->pos.x = pos->x;
-        it->pos.y = pos->y + 100.0f;
-        it->pos.z = pos->z;
+        w->item.pos.x = pos->x;
+        w->item.pos.y = pos->y + 100.0f;
+        w->item.pos.z = pos->z;
     }
     ok = ItemGetBinTplAddr(id, &bin, &tpl) ? 1 : 0;
     if (ok == 1) {
         obj = setItemObj(bin, tpl, (Vec*) &vecZero, (Vec*) &vecZero);
         SceAtSetItemModel(w, obj);
     }
-    if (it->effType != 8 && it->pModel != 0) {
-        it->pModel->be_flag &= ~2;
+    if (w->item.effType != 8 && w->item.pModel != 0) {
+        w->item.pModel->be_flag &= ~2;
     }
     sceAtCheckItemModelParent(w);
     sceAtItemEffSet(w, 0);

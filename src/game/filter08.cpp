@@ -137,22 +137,33 @@ void Filter08GXDraw(f32 x, f32 y, f32 z, f32 u, f32 v, f32 alpha, f32 alpha2, f3
 {
     GXTexObj tex;
     GXColor mat;
-    int r;
-    int g;
-    int b;
+    u8 r;
+    u8 g;
+    u8 b;
     f32 sw;
     f32 sh;
 
     if (mode == 1) {
-        mat.r = r = sr[ptn];
-        mat.g = g = sg[ptn];
-        mat.b = b = sb[ptn];
+        u8 c;
+
+        c = sr[ptn];
+        mat.r = c;
+        r = c;
+        c = sg[ptn];
+        mat.g = c;
+        g = c;
+        c = sb[ptn];
+        mat.b = c;
+        b = c;
         mat.a = 0xFF;
         GXInitTexObj(&tex, filter08_buff, (SCR_W >> 1) / div, (SCR_H >> 1) / div, 1, 0, 0, 0);
     } else {
-        mat.r = r = 0xFF;
-        mat.g = g = 0xFF;
-        mat.b = b = 0xFF;
+        mat.r = 0xFF;
+        r = 0xFF;
+        mat.g = 0xFF;
+        g = 0xFF;
+        mat.b = 0xFF;
+        b = 0xFF;
         mat.a = 0xFF;
         GXInitTexObj(&tex, filter08_buff, (SCR_W >> 1) / div, (SCR_H >> 1) / div, 6, 0, 0, 0);
     }
