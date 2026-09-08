@@ -1094,6 +1094,7 @@ MATCHING.update({
     "game/obj.cpp": True,
     "game/map_obj.cpp": True,
     "game/obj05.cpp": True,
+    "game/objRocket.cpp": True,
 })
 
 # media/utility units
@@ -1165,5 +1166,5 @@ MATCHING.update({
 
 # effect system units
 MATCHING.update({
-    # "game/eff_sys.cpp": EspDataLoad 99.65% (r0/r9 choice for the table offsets), everything else 100%
+    "game/eff_sys.cpp": True,
 })

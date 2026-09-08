@@ -105,14 +105,11 @@ static inline void approach(f32& v, f32 t)
     v = a_ratio * v + (1.0f - a_ratio) * t;
 }
 
-static inline void approachCol(f32* v0, f32* v1, f32* t0, f32* t1)
+// the cast-then-deref store is not MEM_IN_STRUCT_P: a_ratio is reloaded after every store
+#define FIDX(p, i) (*(f32*) ((u8*) (p) + (i) * 4))
+static inline void approachIdx(f32* v, f32* t, int i)
 {
-    int i;
-
-    for (i = 0; i < 4; i++) {
-        v0[i] = a_ratio * v0[i] + (1.0f - a_ratio) * t0[i];
-        v1[i] = a_ratio * v1[i] + (1.0f - a_ratio) * t1[i];
-    }
+    FIDX(v, i) = a_ratio * FIDX(v, i) + (1.0f - a_ratio) * t[i];
 }
 
 void LifeMeter::roomInit()
@@ -180,6 +177,7 @@ void LifeMeter::move()
     IdUnit* u;
     IdUnit* u2;
     IdUnit* u3;
+    IdUnit* u4;
     cPlayer* pl = pPL;
     IdUnit* src = 0;
     IdUnit* src2;
@@ -188,22 +186,22 @@ void LifeMeter::move()
     int i;
 
     if (pSUB && pSUB->id == 3) {
-        u = IdSys.unitPtr(1, ID_LIFE);
-        u->flags |= 8;
-        u = IdSys.unitPtr(3, ID_LIFE);
-        u->flags |= 8;
+        IdUnit* p = IdSys.unitPtr(1, ID_LIFE);
+        p->flags |= 8;
+        p = IdSys.unitPtr(3, ID_LIFE);
+        p->flags |= 8;
     } else {
-        u = IdSys.unitPtr(1, ID_LIFE);
-        u->flags &= ~8;
-        u = IdSys.unitPtr(3, ID_LIFE);
-        u->flags &= ~8;
+        IdUnit* p = IdSys.unitPtr(1, ID_LIFE);
+        p->flags &= ~8;
+        p = IdSys.unitPtr(3, ID_LIFE);
+        p->flags &= ~8;
     }
     level = lifeLevel(20, pG->pl_life_max, 1200);
     subLevel = lifeLevel(5, pG->sub_life_max, 600);
     ang = METER_ANGLE(level, 20.0f, -135.0f, -45.0f);
-    IdSys.unitPtr(0xFE, ID_LIFE)->rot.z = ang;
+    FSet(IdSys.unitPtr(0xFE, ID_LIFE)->rot.z, ang);
     ang = METER_ANGLE(subLevel, 5.0f, 90.0f, 0.0f);
-    IdSys.unitPtr(2, ID_LIFE)->rot.z = ang;
+    FSet(IdSys.unitPtr(2, ID_LIFE)->rot.z, ang);
 
     approach(life, (f32) (s16) pG->pl_life);
     approach(subLife, (f32) (s16) pG->sub_life);
@@ -267,7 +265,10 @@ void LifeMeter::move()
         }
         break;
     }
-    approachCol(col0, col1, a, b);
+    for (i = 0; i < 4; i++) {
+        approachIdx(col0, a, i);
+        approachIdx(col1, b, i);
+    }
 
     if ((s16) pG->sub_life > (s16) pG->sub_life_max * 3 / 4) {
         for (i = 0; i < 4; i++) {
@@ -285,7 +286,10 @@ void LifeMeter::move()
             d[i] = (f32) c1[2][i];
         }
     }
-    approachCol(subCol0, subCol1, c, d);
+    for (i = 0; i < 4; i++) {
+        approachIdx(subCol0, c, i);
+        approachIdx(subCol1, d, i);
+    }
 
     switch (pl->getLifeLevel()) {
     case 0:
@@ -336,33 +340,33 @@ void LifeMeter::move()
     }
 
     u = IdSys.unitPtr(0x13, ID_LIFE);
-    u2 = IdSys.unitPtr(0x14, ID_LIFE);
+    u4 = IdSys.unitPtr(0x14, ID_LIFE);
     switch (pl->getLifeLevel()) {
     case 0:
         u->flags &= ~8;
-        u2->flags &= ~8;
+        u4->flags &= ~8;
         break;
     case 1:
         u->flags |= 8;
-        u2->flags &= ~8;
+        u4->flags &= ~8;
         break;
     case 2:
         u->flags &= ~8;
-        u2->flags |= 8;
+        u4->flags |= 8;
         break;
     }
 
     u = IdSys.unitPtr(0x18, ID_LIFE);
-    u2 = IdSys.unitPtr(0x19, ID_LIFE);
+    u4 = IdSys.unitPtr(0x19, ID_LIFE);
     if ((s16) pG->sub_life > (s16) pG->sub_life_max * 3 / 4) {
         u->flags &= ~8;
-        u2->flags &= ~8;
+        u4->flags &= ~8;
     } else if ((s16) pG->sub_life > (s16) pG->sub_life_max / 4) {
         u->flags |= 8;
-        u2->flags &= ~8;
+        u4->flags &= ~8;
     } else {
         u->flags &= ~8;
-        u2->flags |= 8;
+        u4->flags |= 8;
     }
 
     if (pSUB) {
@@ -712,27 +716,31 @@ struct Digits {
 void CountDown::move()
 {
     f32 tbl[6] = {0.0f, 1.0f, -1.0f, 0.0f, 1.5f, -0.5f};
-    int run = (flags & 1) ? 1 : 0;
+    int run = 1;
     IdUnit* u;
     u32 t;
-    Digits dm;
-    Digits ds;
-    Digits dc;
+    Digits d;
     s8 oldTens;
     s8 newTens;
     f32 ft;
 
+    if ((flags & 1) == 0) {
+        run = 0;
+    }
     if (run == 0) {
         return;
     }
-    if (!(pG->flags_5014 & 0x00080000) && !(pG->flags_5014 & 0x00020000) &&
-        ((pG->flags_5010 & 0x10000000) || (pG->flags_170 & 0x10000000))) {
+    if (pG->flags_5014 & 0x00080000) {
+        flags &= ~8;
+    } else if (pG->flags_5014 & 0x00020000) {
+        flags &= ~8;
+    } else if ((pG->flags_5010 & 0x10000000) || (pG->flags_170 & 0x10000000)) {
         flags |= 8;
     } else {
         flags &= ~8;
     }
     if (pG->cdown_add_sec != 0) {
-        frame += pG->cdown_add_sec * 30;
+        BitSet(frame, frame + pG->cdown_add_sec * 30);
         pG->cdown_add_sec = 0;
     }
     if (!(pG->flags_64 & 0x00010000) && !(pG->flags_500C & 0x00040000) && !(flags & 8)) {
@@ -771,37 +779,37 @@ void CountDown::move()
     u->no = 0xC;
     u->flags_7F |= 2;
 
-    dm.hi = min / 10;
-    dm.lo = min % 10;
+    d.hi = min / 10;
+    d.lo = min % 10;
     u = IdSys.unitPtr(0, ID_CDOWN);
-    u->no = dm.hi;
+    u->no = d.hi;
     u->flags_7F |= 2;
     u = IdSys.unitPtr(1, ID_CDOWN);
-    u->no = dm.lo;
+    u->no = d.lo;
     u->flags_7F |= 2;
 
-    ds.hi = sec / 10;
-    ds.lo = sec % 10;
+    d.hi = sec / 10;
+    d.lo = sec % 10;
     u = IdSys.unitPtr(2, ID_CDOWN);
-    u->no = ds.hi;
+    u->no = d.hi;
     u->flags_7F |= 2;
     u = IdSys.unitPtr(3, ID_CDOWN);
-    u->no = ds.lo;
+    u->no = d.lo;
     u->flags_7F |= 2;
 
-    dc.hi = cs / 10;
-    dc.lo = cs % 10;
+    d.hi = cs / 10;
+    d.lo = cs % 10;
     u = IdSys.unitPtr(4, ID_CDOWN);
-    u->no = dc.hi;
+    u->no = d.hi;
     u->flags_7F |= 2;
     if (ft != 0.0f) {
         t = (u32) ft;
         ft -= (f32) (t / 10 * 10);
-        dc.lo = (u8) (ft + tbl[counter]);
-        dc.lo = dc.lo % 10;
+        d.lo = (u8) (ft + tbl[counter]);
+        d.lo = d.lo % 10;
     }
     u = IdSys.unitPtr(5, ID_CDOWN);
-    u->no = dc.lo;
+    u->no = d.lo;
     u->flags_7F |= 2;
 }
 

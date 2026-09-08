@@ -397,6 +397,21 @@ mark it Matching.
   `addi r4,r1,off` at each call. This is the lever for the OPEN `&local` reuse cases.
 - `alpha * rate * helper(...)`: the (inlined) call is evaluated first, so `lfs alpha` lands after the
   `bl`; `helper(..., alpha * rate)` precomputes the product before the call.
+- sched1 `adjust_priority`: an insn whose dependences resolve is boosted only if its dest register is
+  live at block end and set once ("birthing"). A LATER CALL in the same basic block marks the FP arg
+  registers live (call-clobber rule), so the `fmr` arg copies of a preceding `init(...)` call get
+  boosted above its `li`s. That is why obj20's `cAtariInfo::init` (followed by `setPriority()` in the
+  same block) matches while SetTrolley/SetGondola/SetYagura/SetHeliMissile/setScrAtari (no later call
+  in the block) don't: look for the call the original had after `init` in that block (or a block
+  boundary we introduced that the original didn't have).
+- `(f32)(int) w->u8field` gives the signed double trick instead of `psq_l qr2`; a `u32 x:8` bitfield
+  gives the unsigned trick.
+- Struct copy from a global pointer with a reload between (`obj->pos = pPL->pos; obj->rot = pPL->rot`
+  -> `lwz pPL` twice) = `memcpy((u8*)obj + offsetof(pos), &pPL->pos, sizeof(Vec))`.
+- `dx*dx + dy*dy + dz*dz`: the first product is fused into the second (`fmuls dy; fmadds dx`); the
+  standalone `fmuls` is the second term.
+- A local `class cEmRoom : public cEm` with N declared, undefined virtuals lets a unit call a
+  room-module enemy virtual slot without emitting a vtable (key function undefined).
 - Static locals show as `name.NNN` in objdiff; the DECL_UID suffix cannot be reproduced and is ignored by the report.
 - Unexplained words in `.rodata` (zero words, stray floats) are usually the constant pool of a function
   the original linker dead-stripped (bodies gone, pools kept, `STRIP_UNUSED` in objects.py): write a

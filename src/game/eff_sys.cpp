@@ -9,8 +9,9 @@
 #include "os_vi.h"
 #include "db_log.h"
 
-// Remaining diff: EspDataLoad (99.65%) gets r0 instead of r9 for the id-table offset in both
-// registration loops (local-alloc order); all other functions and the data sections match.
+// Matching. EspDataLoad takes the data address as a `u32` (not a pointer): with a pointer-flagged
+// base the table offsets are index registers (GENERAL_REGS, r0 first); with an integer base
+// regclass counts base/index equally and the offsets prefer BASE_REGS (r9/r11).
 // Effect system core: the cEspSystem work (g_pEspSys), per-owner registration of the effect
 // data files (textures, effect set tables, room effect tables, paths, effect models) and the
 // small state accessors the game code uses.
@@ -63,7 +64,7 @@ int EspgenMove();
 void EspInit();
 void EspRoomInit();
 GXTexObj* EspPullTexObj(u32 num);
-int EspDataLoad(EffData* data, u32 owner, int flag);
+int EspDataLoad(u32 addr, u32 owner, int flag);
 int EffAreaDataLoad(SstArea* area);
 int EspDataRelease(u32 owner, int flag, int warn);
 EspTexWk* EspGetTexWk(int id, int quiet);
@@ -286,8 +287,8 @@ void EspRoomInit()
         pt->owner = 0xD2;
         pt++;
     }
-    EspDataLoad((EffData*) (pG->pArc->ofs_14 + (u32) pG->pArc), 0, 0);
-    EspDataLoad((EffData*) (pG->pArc->ofs_50 + (u32) pG->pArc), 0xD1, 0);
+    EspDataLoad(pG->pArc->ofs_14 + (u32) pG->pArc, 0, 0);
+    EspDataLoad(pG->pArc->ofs_50 + (u32) pG->pArc, 0xD1, 0);
     g_nLoop = 200;
     sys->pEspBufSave = NULL;
     m = EspEvModList;
@@ -332,8 +333,9 @@ done:
     return obj;
 }
 
-int EspDataLoad(EffData* data, u32 owner, int flag)
+int EspDataLoad(u32 addr, u32 owner, int flag)
 {
+    EffData* data = (EffData*) addr;
     cEspSystem* sys = g_pEspSys;
     EffIdTbl* ids;
     EffOfsTbl* tpls;

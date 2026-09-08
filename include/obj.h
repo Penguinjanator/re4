@@ -24,9 +24,19 @@ struct Obj03Work {
 
 class cObj;
 
+// Effect owner info at the head of every Efm work (esp_efm.cpp copies the caller's EspInfo,
+// esp.h, into it; EfmDeleteSub matches flg / kind / pEm against g_Core_*).
+struct EfmCore {
+    u16 flg;              // 0x00
+    u8 kind;              // 0x02
+    u8 x3;                // 0x03
+    u32 x4;               // 0x04
+    cModel* pEm;          // 0x08
+};
+
 // Effect model work (game/obj04.cpp `Efm04`): a thrown/falling particle-like model.
 struct Efm04Work {
-    u8 pad_0[0xC];
+    EfmCore core;         // 0x00
     f32 spdDamp;          // 0x0C  speed *= spdDamp every frame
     Vec acc;              // 0x10  added to speed every frame
     Vec rotSpd;           // 0x1C  added to rot every frame
@@ -35,8 +45,18 @@ struct Efm04Work {
     f32 scale;            // 0x30  scale = scale + scaleSpd, scaleSpd *= scaleDamp
     f32 scaleSpd;         // 0x34
     f32 scaleDamp;        // 0x38
-    u8 pad_3C[3];
-    u8 alpha0;            // 0x3F  alpha at the end of the fade-in
+    union {
+        struct {
+            u8 pad_3C[3];
+            u8 alpha0;    // 0x3F  alpha at the end of the fade-in
+        };
+        struct {
+            u8 r0;        // 0x3C  start colour (EspGenWork x9C..x9F)
+            u8 g0;        // 0x3D
+            u8 b0;        // 0x3E
+            u8 a0;        // 0x3F
+        };
+    };
     f32 r;                // 0x40
     f32 g;                // 0x44
     f32 b;                // 0x48
@@ -60,22 +80,38 @@ struct Efm04Work {
     u8 x7B;
     u32 flags;            // 0x7C  bit0: floor collision, bit1: scenario collision, bit3: MotionMove
     f32 groundOfs;        // 0x80
-    f32 bounceXZ;         // 0x84
-    f32 bounceY;          // 0x88
+    union {
+        struct {
+            f32 bounceXZ; // 0x84
+            f32 bounceY;  // 0x88
+            f32 x8C;      // 0x8C
+        };
+        Vec bounce;       // 0x84  (EfmSetObj04: EspGenWork xE4 * 0.1)
+    };
 };
 
 // Effect model with loose parts (game/obj05.cpp `Efm05`): the obj04 scale / colour fade with the
 // parts burst parameters; each parts keeps its own state in its cModel (efmStat / efmSpd / efmRotSpd).
 struct Efm05Work {
-    u8 pad_0[0xC];
+    EfmCore core;         // 0x00
     Vec rotSpd;           // 0x0C  added to rot every frame
     f32 scaleXZ;          // 0x18
     f32 scaleY;           // 0x1C
     f32 scale;            // 0x20  scale = scale + scaleSpd, scaleSpd *= scaleDamp
     f32 scaleSpd;         // 0x24
     f32 scaleDamp;        // 0x28
-    u8 pad_2C[3];
-    u8 alpha0;            // 0x2F  alpha at the end of the fade-in
+    union {
+        struct {
+            u8 pad_2C[3];
+            u8 alpha0;    // 0x2F  alpha at the end of the fade-in
+        };
+        struct {
+            u8 r0;        // 0x2C  start colour (EspGenWork x9C..x9F)
+            u8 g0;        // 0x2D
+            u8 b0;        // 0x2E
+            u8 a0;        // 0x2F
+        };
+    };
     f32 r;                // 0x30
     f32 g;                // 0x34
     f32 b;                // 0x38
@@ -99,10 +135,34 @@ struct Efm05Work {
     f32 grav;             // 0x70  added to the parts speed y
     f32 spdDamp;          // 0x74  parts speed *= spdDamp
     u32 groundOfs;        // 0x78
-    f32 bounceXZ;         // 0x7C
-    f32 bounceY;          // 0x80
-    u8 pad_84[4];
+    union {
+        struct {
+            f32 bounceXZ; // 0x7C
+            f32 bounceY;  // 0x80
+            u8 pad_84[4];
+        };
+        Vec bounce;       // 0x7C  (EfmSetObj05: EspGenWork xE4 * 0.1)
+    };
     u32 seed;             // 0x88  fRandSeed1_1 seed
+};
+
+// Rigid body effect model work (game/obj09.cpp, set up by esp_efm EfmSetObj09): a box of
+// `size` with mass / moments of inertia, pushed by `spd` (momentum). Extends to cObj+0x3D8.
+struct Efm09Work {
+    EfmCore core;         // 0x00
+    f32 mass;             // 0x0C  size.x * size.y * size.z / 1e9 * mass_mul
+    f32 momentX;          // 0x10  moment_mul * mass * (size.y^2 + size.z^2) / 12
+    f32 momentY;          // 0x14
+    f32 momentZ;          // 0x18
+    u8 pad_1C[4];
+    Vec pos;              // 0x20  = basePos at set up
+    Vec basePos;          // 0x2C  EspGenWork x0C + random (y + 0.0001)
+    Mtx mat;              // 0x38  identity at set up
+    Vec spd;              // 0x68  EspGenWork x24 + random, * mass * 100
+    Vec x74;              // 0x74  0 at set up
+    Vec size;             // 0x80  EspGenWork xD8..xE0 * 100 + 250
+    u8 pad_8C[0xA4 - 0x8C];
+    Vec rotSpd;           // 0xA4  EspGenWork x70 + random (overlaps cObj x3D0 / callBack)
 };
 
 // Obstacle model work (game/obj20.cpp `SetObaModel`).
@@ -508,12 +568,20 @@ public:
     u8 pad_2AC[4];
     u32 x2B0;             // 0x2B0  (obj18: parts matrices are only recomputed while 0)
     ObjSub2B4 sub2B4;     // 0x2B4 .. 0x328
-    // 0x328: per-object work area
+    // 0x328: per-object work area (Efm09Work runs to the end of the object: x3D0 / callBack are
+    // inside the union so that they keep their offsets)
     union {
-        u8 work[0x3D0 - 0x328];  // 0x328 per-object work area
+        u8 work[0x3D8 - 0x328];  // 0x328 per-object work area
+        struct {
+            u8 pad_work[0x3D0 - 0x328];
+            u8 x3D0;              // 0x3D0
+            u8 pad_3D1[3];
+            void (*callBack)(cObj*);  // 0x3D4
+        };
         Obj03Work obj03;
         Efm04Work efm04;
         Efm05Work efm05;
+        Efm09Work efm09;
         ObaModelWork obaModel;
         Obj26Work obj26;
         YaguraWork yagura;
@@ -536,9 +604,6 @@ public:
         RocketWork rocket;
         SpearWork spear;
     };
-    u8 x3D0;              // 0x3D0
-    u8 pad_3D1[3];
-    void (*callBack)(cObj*);  // 0x3D4
 
     cObj();
     virtual ~cObj() {}

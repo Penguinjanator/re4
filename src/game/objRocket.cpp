@@ -338,6 +338,7 @@ void cObjLauncher::moveDrop()
 void cObjLauncher::drop(int se)
 {
     cObjWep* w;
+    f32 len = 10000.0f;   // unused in the original too: it only puts 10000 before 0.0 in the constant pool
 
     w = (cObjWep*) ObjMgr.createBack(0x23);
     if (w) {

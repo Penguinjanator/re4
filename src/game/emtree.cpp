@@ -337,53 +337,56 @@ void emTree_R1_Fall(cEmTree* em)
         { 500.0f, 3500.0f, 0.0f },
     };
     EmTreeNode node[3];
+    EmTreeNode* nd = node;
+    EmTreeNode* nx;
     Vec b;
     Vec a;
     Vec c;
     Vec tmp;
     f32 floor;
-    int i;
+    u32 i;
     u32 k;
-    EmTreeNode* n;
-    EmTreeNode* nx;
     f32 mag;
-    f32 sum;
+    f32 d;
 
     em->hp = 0;
     floor = EatMgr.getFloor(&em->pos, 600.0f, 100000.0f, 0, 0) + 300.0f;
     for (i = 0; i < 3; i++) {
-        node[i].spd.x = w->pt[i].x;
-        node[i].spd.y = w->pt[i].y;
-        node[i].spd.z = w->pt[i].z;
+        EmTreeNode* n = &nd[i];
+        n->spd.x = w->pt[i].x;
+        n->spd.y = w->pt[i].y;
+        n->spd.z = w->pt[i].z;
     }
     for (i = 0; i < 3; i++) {
-        PSMTXMultVec(em->mat, &pt[i], &node[i].pos);
-        node[i].old = node[i].pos;
+        EmTreeNode* n = &nd[i];
+        PSMTXMultVec(em->mat, &pt[i], &n->pos);
+        nd[i].old = nd[i].pos;
     }
     for (i = 0; i < 3; i++) {
-        n = &node[i];
-        nx = &node[i + 1];
+        EmTreeNode* n = &nd[i];
+        nx = &nd[i + 1];
         if (i == 2) {
-            nx = &node[0];
+            nx = nd;
         }
         n->len = GetDistance3(&n->pos, &nx->pos);
     }
     for (i = 0; i < 3; i++) {
-        n = &node[i];
+        EmTreeNode* n = &nd[i];
         n->spd.y -= 20.0f;
         PSVECAdd(&n->pos, &n->spd, &n->pos);
         n->onFloor = 0;
     }
     for (k = 0; k < 30; k++) {
         for (i = 0; i < 3; i++) {
-            n = &node[i];
-            nx = &node[i + 1];
+            EmTreeNode* n = &nd[i];
+            nx = &nd[i + 1];
             if (i == 2) {
-                nx = &node[0];
+                nx = nd;
             }
             PSVECSubtract(&nx->pos, &n->pos, &tmp);
             mag = PSVECMag(&tmp);
-            PSVECScale(&tmp, &tmp, (1.0f / mag) * ((n->len - mag) * 0.5f));
+            d = (n->len - mag) * 0.5f;
+            PSVECScale(&tmp, &tmp, (1.0f / mag) * d);
             PSVECAdd(&nx->pos, &tmp, &nx->pos);
             PSVECSubtract(&n->pos, &tmp, &n->pos);
             if (n->pos.y < floor) {
@@ -391,13 +394,13 @@ void emTree_R1_Fall(cEmTree* em)
                 n->onFloor = 1;
             }
             if (nx->pos.y < floor) {
-                nx->onFloor = 1;
                 nx->pos.y = floor;
+                nx->onFloor = 1;
             }
         }
     }
     for (i = 0; i < 3; i++) {
-        n = &node[i];
+        EmTreeNode* n = &nd[i];
         if (n->onFloor) {
             if (w->landed == 0 && n->spd.y < -50.0f) {
                 w->landed = 1;
@@ -431,12 +434,12 @@ void emTree_R1_Fall(cEmTree* em)
         PSVECScale(&n->spd, &n->spd, 0.999f);
     }
     for (i = 0; i < 3; i++) {
-        w->pt[i].x = node[i].spd.x;
-        w->pt[i].y = node[i].spd.y;
-        w->pt[i].z = node[i].spd.z;
+        w->pt[i].x = nd[i].spd.x;
+        w->pt[i].y = nd[i].spd.y;
+        w->pt[i].z = nd[i].spd.z;
     }
-    PSVECSubtract(&node[0].pos, &node[1].pos, &a);
-    PSVECSubtract(&node[2].pos, &node[1].pos, &b);
+    PSVECSubtract(&nd[0].pos, &nd[1].pos, &a);
+    PSVECSubtract(&nd[2].pos, &nd[1].pos, &b);
     PSVECCrossProduct(&b, &a, &c);
     PSVECCrossProduct(&a, &c, &b);
 #line 685 "D:/Bio4/Prog/emtree.cpp"
@@ -455,14 +458,14 @@ void emTree_R1_Fall(cEmTree* em)
     em->mat[1][2] = c.y;
     em->mat[2][2] = c.z;
     PSVECScale(&pt[0], &tmp, -1.0f);
-    TransMatrix(em->mat, &node[0].pos);
+    TransMatrix(em->mat, &nd[0].pos);
     PSMTXMultVec(em->mat, &tmp, &tmp);
     TransMatrix(em->mat, &tmp);
     em->pos = tmp;
-    sum = node[0].spd.x * node[0].spd.x + node[0].spd.y * node[0].spd.y + node[0].spd.z * node[0].spd.z
-        + node[1].spd.x * node[1].spd.x + node[1].spd.y * node[1].spd.y + node[1].spd.z * node[1].spd.z
-        + node[2].spd.x * node[2].spd.x + node[2].spd.y * node[2].spd.y + node[2].spd.z * node[2].spd.z;
-    if (sum < 25.0f) {
+    mag = nd[0].spd.x * nd[0].spd.x + nd[0].spd.y * nd[0].spd.y + nd[0].spd.z * nd[0].spd.z
+        + nd[1].spd.x * nd[1].spd.x + nd[1].spd.y * nd[1].spd.y + nd[1].spd.z * nd[1].spd.z
+        + nd[2].spd.x * nd[2].spd.x + nd[2].spd.y * nd[2].spd.y + nd[2].spd.z * nd[2].spd.z;
+    if (mag < 25.0f) {
         em->pos.x = em->mat[0][3];
         em->pos.y = em->mat[1][3];
         em->pos.z = em->mat[2][3];
