@@ -126,11 +126,11 @@ void titleInit(TitleWork* w)
     int req = DvdReadN("SS/cmn/title.snd", 0, 0, 0, 0, 0x8000, __FILE__, __LINE__);
     READ_ERROR("title.snd read error!!");
     // PERM_BEGIN_INIT
+    ISet(w->req, req);
     w->mode = 1;
-    w->scroll = 0;
-    w->req = req;
     w->xC = 0;
     w->step = 0;
+    ISet(w->scroll, 0);
     FSet(w->speed, 1.5f);
     // PERM_END_INIT
     pG->flags_5014 |= 0x8000;
@@ -178,11 +178,13 @@ void titleWait(TitleWork* w)
             IdTexRoomInit();
             IdSys.roomInit();
             IdTexDataLoad(TITLE_ARC_PTR(w->pDat, 4), 7);
-            w->mode = 2;
-            w->sndFlag = 1;
+            // PERM_BEGIN_WAIT
+            CSet(w->mode, 2);
+            ISet(w->sndFlag, 1);
             w->step = 0;
-            w->cnt = 0;
-            w->x48 = 0;
+            ISet(w->cnt, 0);
+            ISet(w->x48, 0);
+            // PERM_END_WAIT
             if (pRK->x17 != 0) {
                 w->mode = 5;
                 w->cnt = 585;
@@ -211,6 +213,8 @@ void titleWait(TitleWork* w)
 void titleNintendo(TitleWork* w)
 {
     static int wait_cnt = 0;
+    FadeColor c0;
+    FadeColor c1;
 
     if (PadCheckStatus(&Joy[1]) == 1) {
         FadeKill(0);
@@ -221,9 +225,7 @@ void titleNintendo(TitleWork* w)
         return;
     }
     switch (w->step) {
-    case 0: {
-        FadeColor c0;
-        FadeColor c1;
+    case 0:
         IdSys.set(TITLE_ARC_PTR(w->pDat, 0xB), 0xFF, ID_TITLE, 0x13, 6, 0);
         c0.w = 0x000000FF;
         c1.w = 0x00000000;
@@ -231,11 +233,8 @@ void titleNintendo(TitleWork* w)
         wait_cnt = 0;
         w->step++;
         break;
-    }
     case 1:
         if (wait_cnt++ > 60) {
-            FadeColor c0;
-            FadeColor c1;
             c0.w = 0x00000000;
             c1.w = 0x000000FF;
             FadeSet(0, &c0.c, &c1.c, 15, 0, 0);
@@ -243,7 +242,7 @@ void titleNintendo(TitleWork* w)
         }
         break;
     case 2:
-        if (!(Fade[0].flags & 1)) {
+        if ((Fade[0].flags & 1) == 0) {
             FadeKill(0);
             w->step = 0;
             w->mode = 3;
@@ -256,6 +255,8 @@ void titleNintendo(TitleWork* w)
 void titleWarning(TitleWork* w)
 {
     IdUnit* u = IdSys.unitPtr(0, ID_TITLE);
+    FadeColor c0;
+    FadeColor c1;
 
     w->cnt++;
     if (PadCheckStatus(&Joy[1]) == 1) {
@@ -272,8 +273,6 @@ void titleWarning(TitleWork* w)
             w->mode = 4;
         } else if (w->cnt > TTL_CANCEL_WARNING) {
             if (Key.trg & KEY_START) {
-                FadeColor c0;
-                FadeColor c1;
                 c0.w = 0x00000000;
                 c1.w = 0x000000FF;
                 FadeSet(0, &c0.c, &c1.c, 15, 0, 0);
@@ -282,7 +281,7 @@ void titleWarning(TitleWork* w)
         }
         break;
     case 1:
-        if (!(Fade[0].flags & 1)) {
+        if ((Fade[0].flags & 1) == 0) {
             FadeKill(0);
             w->cnt = 105;
             w->step = 0;
@@ -297,6 +296,8 @@ void titleLogo(TitleWork* w)
 {
     IdUnit* u = IdSys.unitPtr(0, ID_TITLE);
     static u32 LOGO_CALL_FRAME = TTL_CANCEL_DOLBY;
+    FadeColor c0;
+    FadeColor c1;
 
     w->cnt++;
     switch (w->step) {
@@ -305,8 +306,6 @@ void titleLogo(TitleWork* w)
             w->step = 2;
         } else if (w->cnt > TTL_CANCEL_CAPCOM) {
             if (Key.trg & KEY_START) {
-                FadeColor c0;
-                FadeColor c1;
                 c0.w = 0x00000000;
                 c1.w = 0x000000FF;
                 FadeSet(0, &c0.c, &c1.c, 15, 0, 0);
@@ -315,7 +314,7 @@ void titleLogo(TitleWork* w)
         }
         break;
     case 1:
-        if (!(Fade[0].flags & 1)) {
+        if ((Fade[0].flags & 1) == 0) {
             FadeKill(0);
             w->cnt = 230;
             w->step = 2;
@@ -327,8 +326,6 @@ void titleLogo(TitleWork* w)
             w->step = 4;
         } else if (w->cnt > TTL_CANCEL_CRI) {
             if (Key.trg & KEY_START) {
-                FadeColor c0;
-                FadeColor c1;
                 c0.w = 0x00000000;
                 c1.w = 0x000000FF;
                 FadeSet(0, &c0.c, &c1.c, 15, 0, 0);
@@ -337,7 +334,7 @@ void titleLogo(TitleWork* w)
         }
         break;
     case 3:
-        if (!(Fade[0].flags & 1)) {
+        if ((Fade[0].flags & 1) == 0) {
             FadeKill(0);
             w->cnt = 330;
             w->step = 4;
@@ -349,8 +346,6 @@ void titleLogo(TitleWork* w)
             w->step = 6;
         } else if (w->cnt > TTL_CANCEL_DOLBY) {
             if (Key.trg & KEY_START) {
-                FadeColor c0;
-                FadeColor c1;
                 c0.w = 0x00000000;
                 c1.w = 0x000000FF;
                 FadeSet(0, &c0.c, &c1.c, 15, 0, 0);
@@ -359,7 +354,7 @@ void titleLogo(TitleWork* w)
         }
         break;
     case 5:
-        if (!(Fade[0].flags & 1)) {
+        if ((Fade[0].flags & 1) == 0) {
             FadeKill(0);
             w->cnt = 585;
             w->step = 6;
@@ -426,18 +421,19 @@ void titleMenuInit(TitleWork* w)
         if ((w)->menuNum > 1 && (Key.trg & (KEY_UP | KEY_DOWN))) {                        \
             for (i = 0; i < (w)->menuNum; i++) {                                           \
                 IdUnit* u = (w)->menu[i];                                                  \
-                u->timer[0] = 0;                                                           \
                 u->timer[3] = 0;                                                           \
                 u->timer[1] = 0;                                                           \
                 u->timer[2] = 0;                                                           \
+                u->timer[0] = 0;                                                           \
             }                                                                              \
         }                                                                                  \
     }
 
 int titleMenuSelect(TitleWork* w)
 {
+    int ret = 0;
+
     if (Key.trg & KEY_A) {
-        int ret = 0;
         if (pSys->x4 & 0x40000000) {
             switch (w->cursor) {
             case 0:
@@ -664,7 +660,7 @@ void titleMain(TitleWork* w)
     case 5:
         switch (w->sub) {
         case 0:
-            if (!(Fade[0].flags & 1)) {
+            if ((Fade[0].flags & 1) == 0) {
                 w->sub++;
             }
             break;
@@ -691,7 +687,7 @@ void titleMain(TitleWork* w)
             }
             break;
         case 3:
-            if (!(Fade[0].flags & 1)) {
+            if ((Fade[0].flags & 1) == 0) {
                 w->sub = 0;
                 w->step = 1;
             }
@@ -701,7 +697,7 @@ void titleMain(TitleWork* w)
     case 6:
         switch (w->sub) {
         case 0:
-            if (!(Fade[0].flags & 1)) {
+            if ((Fade[0].flags & 1) == 0) {
                 w->sub++;
                 w->demoNo = w->demoNo == 0;
             }
@@ -733,7 +729,7 @@ void titleMain(TitleWork* w)
             }
             break;
         case 3:
-            if (!(Fade[0].flags & 1)) {
+            if ((Fade[0].flags & 1) == 0) {
                 w->step = 1;
             }
             break;
@@ -886,7 +882,7 @@ void titleSub(TitleWork* w)
         }
         break;
     case 2:
-        if (!(Fade[0].flags & 1)) {
+        if ((Fade[0].flags & 1) == 0) {
             w->step++;
         }
         break;
@@ -1002,7 +998,7 @@ void titleSub(TitleWork* w)
         }
         break;
     case 5:
-        if (!(Fade[0].flags & 1)) {
+        if ((Fade[0].flags & 1) == 0) {
             IdTexRelease(6);
             IdSys.kill(0xFF, ID_OMAKE_BG);
             IdSys.kill(0xFF, ID_OMAKE);
@@ -1024,7 +1020,7 @@ void titleSub(TitleWork* w)
         }
         break;
     case 6:
-        if (!(Fade[0].flags & 1)) {
+        if ((Fade[0].flags & 1) == 0) {
             IdTexRelease(6);
             IdSys.kill(0xFF, ID_OMAKE_BG);
             IdSys.kill(0xFF, ID_OMAKE);
@@ -1166,7 +1162,7 @@ void titleSub(TitleWork* w)
         break;
     }
     case 9:
-        if (!(Fade[0].flags & 1)) {
+        if ((Fade[0].flags & 1) == 0) {
             IdTexRelease(6);
             IdSys.kill(0xFF, ID_OMAKE_BG);
             IdSys.kill(0xFF, ID_OMAKE);
@@ -1174,7 +1170,7 @@ void titleSub(TitleWork* w)
         }
         break;
     case 10:
-        if (!(Fade[0].flags & 1)) {
+        if ((Fade[0].flags & 1) == 0) {
             IdSys.kill(0xFF, ID_OMAKE_BG);
             IdSys.kill(0xFF, ID_OMAKE);
             w->step = 11;

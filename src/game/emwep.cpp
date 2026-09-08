@@ -39,15 +39,15 @@ EmHitInfo* emLineAtCk(cEm* em, Vec* a, Vec* b, f32 len, int flag);              
 int CheckInWater(cModel* m, int a);                                                          // em_sub.cpp
 void GameAddPoint(int no);                                                                   // game.cpp
 static void emWep_R1_Parent(cEmWep* em);
+// The original is a `static plemEscape` (emBar.cpp has a global one); the name carries the split's
+// address suffix in sym_map.
+#define plemEscape plemEscape_80017688
+static void plemEscape(cPlayer* pl);
 }
 void MotionSetCore(cModel* m, void* w, void* data, int seq, int hokan, int flags, int frame);   // motion.cpp (C++ linkage)
 cObj* SetObj01(void* bin, void* tpl, Vec* pos, Vec* rot, Vec* spd, f32 grav, f32 rad, int life, int flags);   // obj01.cpp
 void Obj01SetEst(cObj* obj, int no0, int prm0, u32 type, int no1, int prm1, int no2, int prm2, int no3, int prm3);
 
-// The original is a `static plemEscape` (emBar.cpp has a global one); the name carries the split's
-// address suffix in sym_map.
-#define plemEscape plemEscape_80017688
-static void plemEscape(cPlayer* pl);
 
 // setYarareCube(0, x, y, z) with the float arguments' moves issued before the `li r4, 0`
 // (atari_init.h: GCC emits the argument moves in declaration order).
@@ -65,6 +65,13 @@ struct EmWepNode {
     f32 len;      // 0x24
     int onFloor;  // 0x28
 };
+
+// lockParts = 0 through an int parameter: the zero becomes an SImode pseudo shared with the
+// later `= 0` stores (emrock SetRock).
+static inline void LockPartsSet(cEm* em, int no)
+{
+    em->lockParts = no;
+}
 
 typedef void (*EmWepFunc)(cEmWep*);
 
@@ -139,14 +146,14 @@ cEmWep* SetWeapon(void* bin, void* tpl, Vec* pos, Vec* rot, u8 type)
             em->lightInfo.init2(0, 1, &ofs, &size, 2);
         }
     }
-    em->lockParts = 0;
+    LockPartsSet(em, 0);
     em->lockOfs.x = 0.0f;
     em->lockOfs.y = 0.0f;
     em->lockOfs.z = 0.0f;
     em->setStatus(0xB);
     em->be_flag &= ~0x01000000;
     em->atari.setPriority(3);
-    em->atari.flags &= ~0x300;
+    em->atari.throughOn();
     em->be_flag &= ~0x10;
     w->sceAtNo = -1;
     w->seThrow[3] = 4;
@@ -178,7 +185,6 @@ cEmWep* SetWeapon(void* bin, void* tpl, Vec* pos, Vec* rot, u8 type)
     w->sndId = 0;
     w->effFall[0] = 0xFF;
     w->espKind = 50;
-    w->effAlwaysParts = 0xFF;
     w->effFall[1] = 0xFF;
     w->effDamage[0] = 0xFF;
     w->effDamage[1] = 0xFF;
@@ -188,15 +194,16 @@ cEmWep* SetWeapon(void* bin, void* tpl, Vec* pos, Vec* rot, u8 type)
     w->effWater[1] = 0xFF;
     w->effAlways[0] = 0xFF;
     w->effAlways[1] = 0xFF;
+    w->effAlwaysParts = 0xFF;
+    w->effAlwaysWait = 0;
+    w->effAlwaysTimer = 0;
     w->effAlwaysOfs.x = 0.0f;
     w->effAlwaysOfs.y = 0.0f;
-    w->effAlwaysOfs.z = 0.0f;
     w->motEscape = 0;
     w->motBackjump = 0;
     w->motFront = 0;
     w->motEscape2 = 0;
-    w->effAlwaysWait = 0;
-    w->effAlwaysTimer = 0;
+    w->effAlwaysOfs.z = 0.0f;
     em->xFC = 1;
     em->xFD = 0;
     em->xFE = 0;
@@ -221,6 +228,7 @@ void emWepDmCk(cEmWep* em)
 {
     EmWepWork* w = EMWEP_WK(em);
     u8 wep;
+    u8 stat;
     int one;
     Vec p;
     Mtx m;
@@ -279,6 +287,7 @@ void emWepDmCk(cEmWep* em)
         emWepRocketBobm(em);
         break;
     case 9:
+        stat = 1;
         BitOn(pG->flags_5010, 0x20000);
         GameAddPoint(9);
         r.x = 0.0f;
@@ -294,7 +303,7 @@ void emWepDmCk(cEmWep* em)
         PlWepHitCheck2(0, &p, &p, 0x13, 3, 5000.0f);
         BitOn(pG->flags_5010, 0x20000000);
         memcpy((u8*) pG + ((u32) &((GlobalWork*) 0)->bell_pos), &em->pos, sizeof(Vec));
-        pG->bell_stat = 1;
+        pG->bell_stat = stat;
         em->setLost();
         break;
     case 0xC:
@@ -368,8 +377,10 @@ void cEmWep::move()
         if (w->alwaysTimer) {
             w->alwaysTimer--;
             if (w->alwaysTimer == 0) {
+                cModel* p = getPartsPtr(0);
+
                 w->alwaysTimer = w->alwaysWait;
-                SndCall(w->seAlways[0], w->seAlways[1], &getPartsPtr(0)->worldPos, w->seAlways[2], 0, this);
+                SndCall(w->seAlways[0], w->seAlways[1], &p->worldPos, w->seAlways[2], 0, this);
             }
         }
     }
@@ -1764,6 +1775,12 @@ void cEmWep::setFall(int type_, Vec* spd, f32 grav)
     for (i = 0; i < 3; i++) {
         if (spd) {
             switch (i) {
+            case 0:
+            default:
+                w->pt[i].x = spd->x;
+                w->pt[i].y = spd->y;
+                w->pt[i].z = spd->z;
+                break;
             case 1:
                 if (spd->x == 0.0f && spd->z == 0.0f) {
                     ang = 0.0f;
@@ -1787,12 +1804,6 @@ void cEmWep::setFall(int type_, Vec* spd, f32 grav)
                 w->pt[i].x = v.x;
                 w->pt[i].y = v.y;
                 w->pt[i].z = v.z;
-                break;
-            case 0:
-            default:
-                w->pt[i].x = spd->x;
-                w->pt[i].y = spd->y;
-                w->pt[i].z = spd->z;
                 break;
             }
         } else {
@@ -1919,6 +1930,7 @@ void cEmWep::setShot(Vec* spd, EmAtkInfo* atk)
     EmWepWork* w = EMWEP_WK(this);
     Vec v;
     Mtx m;
+    f32 len;
 
     if (spd) {
         v = *spd;
@@ -1935,7 +1947,8 @@ void cEmWep::setShot(Vec* spd, EmAtkInfo* atk)
     w->spd.x = v.x;
     w->spd.y = v.y;
     w->spd.z = v.z;
-    rot.x = -atan2f(v.y, SQRTF(v.x * v.x + v.z * v.z));
+    len = SQRTF(v.x * v.x + v.z * v.z);
+    rot.x = -atan2f(v.y, len);
     rot.y = atan2f(v.x, v.z);
     rot.z = 0.0f;
     w->grav = 0.0f;
@@ -1969,6 +1982,7 @@ void cEmWep::setShotArrow(Vec* spd, EmAtkInfo* atk)
     EmWepWork* w = EMWEP_WK(this);
     Vec v;
     Mtx m;
+    f32 len;
 
     if (spd) {
         v = *spd;
@@ -1985,7 +1999,8 @@ void cEmWep::setShotArrow(Vec* spd, EmAtkInfo* atk)
     w->spd.x = v.x;
     w->spd.y = v.y;
     w->spd.z = v.z;
-    rot.x = -atan2f(v.y, SQRTF(v.x * v.x + v.z * v.z));
+    len = SQRTF(v.x * v.x + v.z * v.z);
+    rot.x = -atan2f(v.y, len);
     rot.y = atan2f(v.x, v.z);
     rot.z = 0.0f;
     w->grav = 0.0f;
@@ -2018,6 +2033,7 @@ void cEmWep::setRocket(cEm* owner, Vec* spd, EmAtkInfo* atk)
     EmWepWork* w = EMWEP_WK(this);
     Vec v;
     Mtx m;
+    f32 len;
 
     if (spd) {
         v = *spd;
@@ -2034,7 +2050,8 @@ void cEmWep::setRocket(cEm* owner, Vec* spd, EmAtkInfo* atk)
     w->spd.x = v.x;
     w->spd.y = v.y;
     w->spd.z = v.z;
-    rot.x = -atan2f(v.y, SQRTF(v.x * v.x + v.z * v.z));
+    len = SQRTF(v.x * v.x + v.z * v.z);
+    rot.x = -atan2f(v.y, len);
     rot.y = atan2f(v.x, v.z);
     rot.z = 0.0f;
     w->grav = 0.0f;
@@ -2542,33 +2559,32 @@ int emWepShotHitWindowCk(Vec* a, Vec* b)
 void cEmWep::setCloth(cModel* owner)
 {
     EmWepWork* w = EMWEP_WK(this);
-    PenCloth* c = &w->cloth;
 
-    c->x58 = owner;
-    c->x54 = 0;
-    c->x08 = 0;
-    c->x0C = 0;
-    c->x10 = 0;
-    c->x14 = 0;
-    c->x2C = 0;
-    c->x30 = 0;
-    c->x20 = 0;
-    c->x24 = 0;
-    c->x44 = 0;
-    c->flags = 0;
-    c->num = 10;
-    c->pParts = emWepClothP;
-    c->pUp = emWepClothUp;
-    c->pDown = emWepClothDp;
-    c->pMax = emWepClothMax;
-    c->x34 = emWepAt;
-    c->x38 = 3;
-    c->x3C = 25.0f;
-    c->x40 = 0.6f;
-    c->x4C = 1.0f;
-    c->x50 = 0.0f;
-    c->x48 = 0.0f;
-    PenClothSet(this, c, 100.0f);
+    w->cloth.x58 = owner;
+    w->cloth.x08 = 0;
+    w->cloth.x0C = 0;
+    w->cloth.x10 = 0;
+    w->cloth.x14 = 0;
+    w->cloth.x2C = 0;
+    w->cloth.x30 = 0;
+    w->cloth.x20 = 0;
+    w->cloth.x24 = 0;
+    w->cloth.x44 = 0;
+    w->cloth.flags = 0;
+    w->cloth.x54 = 0;
+    w->cloth.num = 10;
+    w->cloth.pParts = emWepClothP;
+    w->cloth.pUp = emWepClothUp;
+    w->cloth.pDown = emWepClothDp;
+    w->cloth.pMax = emWepClothMax;
+    w->cloth.x34 = emWepAt;
+    w->cloth.x38 = 3;
+    w->cloth.x3C = 25.0f;
+    w->cloth.x40 = 0.6f;
+    w->cloth.x48 = 0.0f;
+    w->cloth.x4C = 1.0f;
+    w->cloth.x50 = 0.0f;
+    PenClothSet(this, &w->cloth, 100.0f);
     w->flags |= 4;
 }
 

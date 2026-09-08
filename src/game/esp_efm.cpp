@@ -34,6 +34,13 @@ static inline f32 FRef(f32& v)
     return v;
 }
 
+// Read a pointer member through a reference (no struct flag): the store to the stack local
+// `model` in between may alias it, so `scr->pInfo` is reloaded for `tpl` (EfmSeqSet).
+template <class T> static inline T PRef(T& v)
+{
+    return v;
+}
+
 // Effect model (Efm) set up: the effect sequence record `gen` creates an obj04 / obj05 / obj09
 // work in ObjMgr and fills its work from the record.
 
@@ -195,8 +202,8 @@ cObj* EfmSeqSet(EspGenWork* gen, EfmCore* info, u32* seed, cModel* parent, Mtx m
             pLog->err(0, 0, "ESP_EFM : SCR_MODEL_NO[%x] is invalid.", gen->x2);
             return 0;
         }
-        model = scr->pInfo->pData;
-        tpl = scr->pInfo->pTpl;
+        model = PRef(scr->pInfo)->pData;
+        tpl = PRef(scr->pInfo)->pTpl;
     } else {
         if (EspGetEfmAddr(gen->x2, &model, &tpl) == 0) {
             pLog->err(0, 0, "ESP_EFM : EFM_ID[%x] is invalid.", gen->x2);

@@ -189,16 +189,16 @@ int healing(int n)
 {
     if (ItemMgr.x12 == 0) {
         if ((s16) pG->pl_life < (s16) pG->pl_life_max) {
-            U16Set(pG->pl_life, pG->pl_life + n);
-            if ((s16) pG->pl_life_max < (s16) pG->pl_life) {
+            U16Set(pG->pl_life, n + pG->pl_life);
+            if ((s16) pG->pl_life > (s16) pG->pl_life_max) {
                 pG->pl_life = pG->pl_life_max;
             }
             return 1;
         }
     } else if (ItemMgr.x12 == 1) {
         if ((s16) pG->sub_life < (s16) pG->sub_life_max) {
-            U16Set(pG->sub_life, pG->sub_life + n);
-            if ((s16) pG->sub_life_max < (s16) pG->sub_life) {
+            U16Set(pG->sub_life, n + pG->sub_life);
+            if ((s16) pG->sub_life > (s16) pG->sub_life_max) {
                 pG->sub_life = pG->sub_life_max;
             }
             return 1;
@@ -215,6 +215,7 @@ int lifeLevel(int levels, s16 max, int base)
 f32 getPowerRatio(u16 id, s8 level)
 {
     ItemInfo info;
+    f32 ret;
 
     if (ITEM_TYPE(id) != 1) {
         return 0.0f;
@@ -222,13 +223,19 @@ f32 getPowerRatio(u16 id, s8 level)
     if (id == 0x36) {
         switch (level) {
         case 1:
-            return 2.0f;
+            ret = 2.0f;
+            break;
         case 2:
-            return 4.0f;
+            ret = 4.0f;
+            break;
         case 3:
-            return 6.0f;
+            ret = 6.0f;
+            break;
+        default:
+            ret = 0.0f;
+            break;
         }
-        return 0.0f;
+        return ret;
     }
     return WeaponLevelTbl[WeaponId2WeaponNo(id)][level - 1] / WeaponLevelTbl[2][0];
 }
@@ -239,9 +246,9 @@ f32 getSpeedRatio(u16 id, s8 level)
     f32 ret = 0.0f;
 
     if (ITEM_TYPE(id) == 1) {
-        ret = PlShotFrameTbl[WeaponId2WeaponNo(id)][level - 1] / 30.0f;
+        return PlShotFrameTbl[WeaponId2WeaponNo(id)][level - 1] / 30.0f;
     }
-    return ret;
+    return 0.0f;
 }
 
 f32 getReloadRatio(u16 id, s8 level)
@@ -250,9 +257,9 @@ f32 getReloadRatio(u16 id, s8 level)
     f32 ret = 0.0f;
 
     if (ITEM_TYPE(id) == 1) {
-        ret = PlReloadSpeedTbl[WeaponId2WeaponNo(id)][level - 1] / 30.0f;
+        return PlReloadSpeedTbl[WeaponId2WeaponNo(id)][level - 1] / 30.0f;
     }
-    return ret;
+    return 0.0f;
 }
 
 f32 getBulletRatio(u16 id, s8 level)
@@ -261,17 +268,18 @@ f32 getBulletRatio(u16 id, s8 level)
     f32 ret = 0.0f;
 
     if (ITEM_TYPE(id) == 1) {
-        ret = (f32) WeaponId2ChargeNum(id, level);
+        return (f32) WeaponId2ChargeNum(id, level);
     }
-    return ret;
+    return 0.0f;
 }
 
 void cItemMgr::clear()
 {
+    ItemWork* p = pItems;
     int i;
 
-    for (i = 0; i < nItems; i++) {
-        pItems[i].flags = 0;
+    for (i = 0; i < nItems; i++, p++) {
+        p->flags = 0;
     }
     flagclear();
     checkId = 0xFFFF;
@@ -1149,6 +1157,7 @@ void cItemMgr::roomInit()
 
 int cItemMgr::init()
 {
+    ItemWork* p;
     int i;
 
     nItems = 0x180;
@@ -1158,8 +1167,9 @@ int cItemMgr::init()
     if (pItems == 0) {
         return 0;
     }
-    for (i = 0; i < nItems; i++) {
-        pItems[i].flags = 0;
+    p = pItems;
+    for (i = 0; i < nItems; i++, p++) {
+        p->flags = 0;
     }
     nFlags = 8;
 #line 2522 "D:/Bio4/Prog/item.cpp"
@@ -1541,19 +1551,18 @@ void cItemMgr::construct(ItemWork* p, u16 id)
 
 ItemWork* cItemMgr::at(int no)
 {
-    if (no >= nItems) {
-        return 0;
+    if (no < nItems) {
+        return &pItems[no];
     }
-    return &pItems[no];
+    return 0;
 }
 
 int cItemMgr::searchAt(ItemWork* p)
 {
-    ItemWork* q = pItems;
     int i;
 
-    for (i = 0; i < nItems; i++, q++) {
-        if (p == q) {
+    for (i = 0; i < nItems; i++) {
+        if (p == &pItems[i]) {
             return i;
         }
     }
@@ -2296,11 +2305,11 @@ void cItemMgr::flagclear()
 
 int cItemMgr::check(u16 id)
 {
-    if (id != checkId) {
-        return 0;
+    if (id == checkId) {
+        checkId = 0xFFFF;
+        return 1;
     }
-    checkId = 0xFFFF;
-    return 1;
+    return 0;
 }
 
 u16 bareHand()

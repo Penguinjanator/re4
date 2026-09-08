@@ -71,6 +71,7 @@ static f32 inv_mul = 1.0f;
 static Esp4cWork g_Free;
 
 static inline void ISet(int& d, int v) { d = v; }
+static inline int IGet(int& d) { return d; }
 static inline void U8Set(u8& d, u8 v) { d = v; }
 
 void Espgen45_static_init()
@@ -309,6 +310,336 @@ void SetIndMtx_801291F4(Espgen42Work* p)
     m[1][1] = (f32) indT * 0.007f + 0.07f;
     m[1][2] = 0.0f;
     GXSetIndTexMtx(1, m, 1);
+}
+
+// Border quads of the unbounded surface: grid half sizes in grid units; the far edge is
+// g45_mul cells out, the near edge g45_mul2, normals follow SetWaterWork45's slope.
+#define G45_NXH ((f32) (int) (p->nx >> 1))
+#define G45_NXHN ((f32) (-(int) p->nx / 2))
+#define G45_NX ((f32) (int) p->nx)
+#define G45_NXN ((f32) (-(int) p->nx))
+#define G45_NY ((f32) (int) p->ny)
+#define G45_NYN ((f32) (-(int) p->ny))
+#define G45_NYU ((f32) p->ny)
+
+void Espgen45_TransSub(EspgenWork* w)
+{
+    static f32 g45_mul = 15.0f;
+    static f32 g45_mul2 = 1.0f;
+    GxStageWork* st;
+    Espgen42Work* p;
+    void* buf;
+    s32 stage;
+
+    if (!(w->flag & 1) || (w->flag & 2)) {
+        return;
+    }
+    st = &pG->gxStage;
+    p = (Espgen42Work*) w->work;
+    st->tevStage = 0;
+    st->texMap = 0;
+    st->texCoord = 0;
+    CameraCurrentProjection();
+    GXSetCullMode(0);
+    GXSetZMode(1, 3, 1);
+    cModel model;
+    u8 modelPad[0x320 - sizeof(cModel)];
+    PSMTXIdentity(model.mat);
+    {
+        static const Vec p0 = {0.0f, 0.0f, 0.0f};
+        static const Vec p1 = {10000.0f, 10000.0f, 10000.0f};
+        model.lightInfo.init2(1, 0, &p0, &p1, 0x10);
+    }
+    model.pos.x = p->mat[0][3];
+    model.pos.y = p->mat[1][3];
+    model.pos.z = p->mat[2][3];
+    LightMgr.setClothN(&model, 5);
+    GXColor amb = p->amb;
+    if (g_bColorOverWrite == 1) {
+        amb.r = (u8) (g_sr * 255.0f);
+        amb.g = (u8) (g_sg * 255.0f);
+        amb.b = (u8) (g_sb * 255.0f);
+        amb.a = (u8) (g_sa * 255.0f);
+    } else if (g_bColorMul == 1) {
+        amb.r = (u8) ((f32) amb.r * g_sr);
+        amb.g = (u8) ((f32) amb.g * g_sg);
+        amb.b = (u8) ((f32) amb.b * g_sb);
+        amb.a = (u8) ((f32) amb.a * g_sa);
+    }
+    commonWaterLightSet(model.lightInfo.pLight, 5, amb.a);
+    GXColor white;
+    white.r = white.g = white.b = white.a = 0xFF;
+    GXSetChanMatColor(4, white);
+    GXSetChanAmbColor(4, amb);
+    Mtx nrm;
+    Mtx mv;
+    Mtx tmp;
+    PSMTXConcat(pG->Cam.viewMat, p->mat, mv);
+    PSMTXCopy(p->mat, tmp);
+    tmp[1][3] = p->size * 0.05f + 100.0f;
+    PSMTXConcat(pG->Cam.viewMat, tmp, tmp);
+    PSMTXInverse(tmp, nrm);
+    PSMTXTranspose(nrm, nrm);
+    GXLoadNrmMtxImm(nrm, 0);
+    GXLoadPosMtxImm(mv, 0);
+    GXSetCurrentMtx(0);
+    GXSetBlendMode(1, 4, 5, 0);
+    buf = GetDrawTmpBufAddr(0xE);
+    if (buf == NULL) {
+        pLog->warn(0, 0, "Espgen45() : not enough memory");
+    } else {
+        f32 ofs = 56.0f;
+        GXSetTexCopySrc(0, (u32) ofs, (u32) Screen.width, (u32) (Screen.height - ofs));
+        GXSetTexCopyDst((u32) Screen.width / 2, (u32) ((f32) ((u32) Screen.height / 2) - ofs), 6, 1);
+        GXCopyTex(buf, 0);
+        GXPixModeSync();
+        GXInvalidateTexAll();
+        {
+            GXTexObj tex;
+            Mtx tm;
+            Mtx pm;
+            GXInitTexObj(&tex, buf, (u32) Screen.width / 2, (u32) ((f32) ((u32) Screen.height / 2) - ofs), 6, 0, 0, 0);
+            GXLoadTexObj(&tex, st->texMap);
+            C_MTXLightPerspective(pm, pG->Cam.param.fovy, 1.3333334f, 0.5f, -0.6666667f, 0.5f, 0.5f);
+            PSMTXConcat(pm, mv, tm);
+            GXLoadTexMtxImm(tm, 0x1E, 0);
+            GXSetTexCoordGen(st->texCoord, 0, 0, 0x1E);
+            GXColor col = p->col;
+            if (g_bColorOverWrite == 1) {
+                col.r = g_r;
+                col.g = g_g;
+                col.b = g_b;
+                col.a = g_a;
+            } else if (g_bColorMul == 1) {
+                col.r = (u8) ((f32) col.r * (f32) (int) g_r / 255.0f);
+                col.g = (u8) ((f32) col.g * (f32) (int) g_g / 255.0f);
+                col.b = (u8) ((f32) col.b * (f32) (int) g_b / 255.0f);
+                col.a = (u8) ((f32) col.a * (f32) (int) g_a / 255.0f);
+            }
+            GXSetTevColor(1, col);
+            GXSetTevOrder(st->tevStage, st->texCoord, st->texMap, 4);
+            GXSetTevColorIn(st->tevStage, 0xF, 2, 8, 0xF);
+            if (p->stages > 0) {
+                GXSetTevColorOp(st->tevStage, 0, 0, 2, 1, 0);
+            } else {
+                GXSetTevColorOp(st->tevStage, 0, 0, 0, 1, 0);
+            }
+            GXSetTevAlphaIn(st->tevStage, 7, 7, 7, 5);
+            GXSetTevAlphaOp(st->tevStage, 0, 0, 0, 1, 0);
+            stage = st->tevStage;
+            st->tevStage++;
+            st->texMap++;
+            st->texCoord++;
+            GXInitTexObj(&tex, p->bump, p->nx, p->ny, 1, 0, 0, 0);
+            GXLoadTexObj(&tex, st->texMap);
+            GXSetNumIndStages(1);
+            GXSetTexCoordGen(st->texCoord, 1, 4, 0x3C);
+            GXSetIndTexOrder(0, st->texCoord, st->texMap);
+            GXSetIndTexCoordScale(0, 0, 0);
+            SetIndMtx_801291F4(p);
+            GXSetTevIndWarp(stage, 0, 1, 0, 1);
+            st->texCoord++;
+            st->texMap++;
+            if (p->stages > 1) {
+                GXSetTevOrder(st->tevStage, st->texCoord, st->texMap, 4);
+                GXSetTevColorIn(st->tevStage, 0xF, 0, 0, 0xF);
+                GXSetTevColorOp(st->tevStage, 0, 0, 2, 1, 0);
+                GXSetTevAlphaIn(st->tevStage, 7, 7, 7, 5);
+                GXSetTevAlphaOp(st->tevStage, 0, 0, 0, 1, 0);
+                st->tevStage++;
+                st->texMap++;
+                st->texCoord++;
+            }
+            if (p->stages > 2) {
+                GXSetTevOrder(st->tevStage, st->texCoord, st->texMap, 4);
+                GXSetTevColorIn(st->tevStage, 0xF, 0, 0, 0xF);
+                GXSetTevColorOp(st->tevStage, 0, 0, 2, 1, 0);
+                GXSetTevAlphaIn(st->tevStage, 7, 7, 7, 5);
+                GXSetTevAlphaOp(st->tevStage, 0, 0, 0, 1, 0);
+                st->tevStage++;
+                st->texMap++;
+                st->texCoord++;
+            }
+        }
+        {
+            GXTexObj* tex2 = EspGetTexObj(p->texId, 0);
+            if (tex2 == NULL) {
+                pLog->err(0, 0, "Espgen45 : TexId[%x] invalid.", p->texId);
+                tex2 = &Specular;
+            }
+            GXLoadTexObj(tex2, st->texMap);
+        }
+        {
+            Mtx ms;
+            Mtx mt;
+            Mtx m3;
+            PSMTXCopy(pG->Cam.viewMat, m3);
+            PSMTXInverse(m3, m3);
+            PSMTXTranspose(m3, m3);
+            PSMTXScale(ms, 1.0f, -0.5f, 0.0f);
+            PSMTXTrans(mt, 0.5f, 0.5f, 1.0f);
+            PSMTXConcat(ms, m3, m3);
+            PSMTXConcat(mt, m3, m3);
+            GXLoadTexMtxImm(m3, 0x21, 0);
+        }
+        GXSetTexCoordGen(st->texCoord, 0, 1, 0x21);
+        GXSetTevOrder(st->tevStage, st->texCoord, st->texMap, 4);
+        GXSetTevColorIn(st->tevStage, 0xF, 0xA, 9, 0);
+        GXSetTevColorOp(st->tevStage, 0, 0, 0, 1, 0);
+        GXSetTevAlphaIn(st->tevStage, 7, 7, 7, 5);
+        GXSetTevAlphaOp(st->tevStage, 0, 0, 0, 1, 0);
+        st->tevStage++;
+        st->texMap++;
+        st->texCoord++;
+        if ((IGet(g_bSetParam) == 1 && (g_Free.flag & 2)) || (IGet(g_bSetParam) == 0 && (p->flag & 2))) {
+            u8 texId;
+            EspTexWk* tw;
+            if (g_bSetParam == 1) {
+                texId = g_Free.x1D;
+            } else {
+                texId = p->xC5;
+            }
+            tw = EspGetTexWk(texId, 1);
+            if (tw == NULL || tw->owner == 0xD2) {
+                pLog->err(0, 0, "ESP : Mask_TexId[%x] no data", texId);
+            } else {
+                // the same frame slots as the first block's tex/tm: PRE shares their addresses
+                GXTexObj tex;
+                GXTlutObj tlut;
+                TEXDescriptor* td = TEXGet(tw->pTpl, 0);
+                TEXHeader* th = td->textureHeader;
+
+                if (th->format == 8 || th->format == 9) {
+                    GXInitTexObjCI(&tex, th->data, th->width, th->height, th->format, 0, 0, 0, 1);
+                    GXInitTlutObj(&tlut, td->CLUTHeader->data, td->CLUTHeader->format, td->CLUTHeader->numEntries);
+                    GXLoadTlut(&tlut, 1);
+                } else {
+                    GXInitTexObj(&tex, th->data, th->width, th->height, th->format, 0, 0, 0);
+                }
+                GXLoadTexObj(&tex, st->texMap);
+                GXLoadTexMtxImm(tw->mtx, 0x21, 1);
+                GXSetTexCoordGen(st->texCoord, 1, 4, 0x21);
+                GXSetTevOrder(st->tevStage, st->texCoord, st->texMap, 4);
+                GXSetTevColorIn(st->tevStage, 0xF, 0xF, 0xF, 0);
+                GXSetTevColorOp(st->tevStage, 0, 0, 0, 1, 0);
+                GXSetTevAlphaIn(st->tevStage, 7, 4, 5, 7);
+                GXSetTevAlphaOp(st->tevStage, 0, 0, 0, 1, 0);
+                st->tevStage++;
+                st->texMap++;
+                st->texCoord++;
+            }
+        }
+        GXSetNumTevStages(st->tevStage);
+        GXSetNumTexGens(st->texCoord);
+        if (!(p->flag & 1)) {
+            Vec n;
+            f32 hx;
+            f32 hy;
+            f32 inx;
+            f32 iny;
+            f32 far;
+            f32 nx;
+            f32 nz;
+
+            GXClearVtxDesc();
+            GXSetVtxDesc(9, 1);
+            GXSetVtxDesc(0xA, 1);
+            GXSetVtxDesc(0xD, 1);
+            GXSetVtxAttrFmt(0, 9, 1, 4, 0);
+            GXSetVtxAttrFmt(0, 0xA, 0, 4, 0);
+            GXSetVtxAttrFmt(0, 0xD, 1, 4, 0);
+            hx = G45_NXH;
+            hy = (f32) (int) (p->ny >> 1);
+            inx = 1.0f / G45_NX * inv_mul;
+            iny = 1.0f / G45_NY * inv_mul;
+            far = g45_mul / g45_mul2;
+            GXBegin(0x80, 0, 4);
+            nx = (g45_mul2 * 0.0f - hx) * inx;
+            GXPosition3f32(G45_NXHN * g45_mul, 0.0f, G45_NYN * 0.5f * g45_mul);
+            GXNormal3f32(nx, 0.25f, (G45_NYN * g45_mul2 + hy) * iny * far);
+            GXTexCoord2f32(0.0f, 0.0f);
+            nz = (g45_mul2 * 0.0f - hy) * iny;
+            GXPosition3f32(G45_NXH * g45_mul, 0.0f, G45_NYN * 0.5f * g45_mul);
+            GXNormal3f32((G45_NX * g45_mul2 - hx) * inx, 0.25f, (G45_NYN * g45_mul2 + hy) * iny * far);
+            GXTexCoord2f32(1.0f, 0.0f);
+            GXPosition3f32(G45_NXH * g45_mul2, 0.0f, G45_NYN * 0.5f * g45_mul2);
+            GXNormal3f32((G45_NX * g45_mul2 - hx) * inx, 0.25f, nz);
+            GXTexCoord2f32(1.0f, 1.0f);
+            n.x = nx;
+            n.y = 0.25f;
+            n.z = nz;
+            GXPosition3f32(G45_NXHN * g45_mul2, 0.0f, G45_NYN * 0.5f * g45_mul2);
+            GXNormal3f32(n.x, n.y, n.z);
+            GXTexCoord2f32(0.0f, 1.0f);
+            GXBegin(0x80, 0, 4);
+            nz = (g45_mul2 * 0.0f - hy) * iny;
+            GXPosition3f32(G45_NXH * g45_mul2, 0.0f, G45_NYN * 0.5f * g45_mul2);
+            GXNormal3f32((G45_NX * g45_mul2 - hx) * inx, 0.25f, nz);
+            GXTexCoord2f32(0.0f, 0.0f);
+            GXPosition3f32(G45_NXH * g45_mul, 0.0f, G45_NYN * 0.5f * g45_mul);
+            GXNormal3f32((G45_NX * g45_mul2 - hx) * inx * far, 0.25f, nz);
+            GXTexCoord2f32(1.0f, 0.0f);
+            GXPosition3f32(G45_NXH * g45_mul, 0.0f, G45_NYU * 0.5f * g45_mul);
+            GXNormal3f32((G45_NX * g45_mul2 - hx) * inx * far, 0.25f, (G45_NY * g45_mul2 - hy) * iny);
+            GXTexCoord2f32(1.0f, 1.0f);
+            n.x = (G45_NX * g45_mul2 - hx) * inx;
+            n.y = 0.25f;
+            n.z = (G45_NY * g45_mul2 - hy) * iny;
+            GXPosition3f32(G45_NXH * g45_mul2, 0.0f, G45_NYU * 0.5f * g45_mul2);
+            GXNormal3f32(n.x, n.y, n.z);
+            GXTexCoord2f32(0.0f, 1.0f);
+            GXBegin(0x80, 0, 4);
+            nx = (g45_mul2 * 0.0f - hx) * inx;
+            GXPosition3f32(G45_NXHN * g45_mul2, 0.0f, G45_NYU * 0.5f * g45_mul2);
+            GXNormal3f32(nx, 0.25f, (G45_NY * g45_mul2 - hy) * iny);
+            GXTexCoord2f32(0.0f, 1.0f);
+            n.x = nx;
+            GXPosition3f32(G45_NXH * g45_mul2, 0.0f, G45_NYU * 0.5f * g45_mul2);
+            GXNormal3f32((G45_NX * g45_mul2 - hx) * inx, 0.25f, (G45_NY * g45_mul2 - hy) * iny);
+            GXTexCoord2f32(1.0f, 1.0f);
+            GXPosition3f32(G45_NXH * g45_mul, 0.0f, G45_NYU * 0.5f * g45_mul);
+            GXNormal3f32((G45_NX * g45_mul2 - hx) * inx * far, 0.25f, (G45_NY * g45_mul2 - hy) * iny * far);
+            GXTexCoord2f32(1.0f, 0.0f);
+            n.y = 0.25f;
+            n.z = (G45_NY * g45_mul2 - hy) * iny * far;
+            GXPosition3f32(G45_NXHN * g45_mul, 0.0f, G45_NYU * 0.5f * g45_mul);
+            GXNormal3f32(n.x, n.y, n.z);
+            GXTexCoord2f32(0.0f, 0.0f);
+            GXBegin(0x80, 0, 4);
+            nz = (g45_mul2 * 0.0f - hy) * iny;
+            nx = (g45_mul2 * 0.0f - hx) * inx;
+            GXPosition3f32(G45_NXHN * g45_mul, 0.0f, G45_NYN * 0.5f * g45_mul);
+            GXNormal3f32((G45_NXN * g45_mul2 + hx) * inx * far, 0.25f, nz);
+            GXTexCoord2f32(0.0f, 0.0f);
+            GXPosition3f32(G45_NXHN * g45_mul2, 0.0f, G45_NYN * 0.5f * g45_mul2);
+            GXNormal3f32(nx, 0.25f, nz);
+            GXTexCoord2f32(1.0f, 0.0f);
+            GXPosition3f32(G45_NXHN * g45_mul2, 0.0f, G45_NYU * 0.5f * g45_mul2);
+            GXNormal3f32(nx, 0.25f, (G45_NY * g45_mul2 - hy) * iny);
+            GXTexCoord2f32(1.0f, 1.0f);
+            n.x = (G45_NXN * g45_mul2 + hx) * inx * far;
+            n.y = 0.25f;
+            n.z = (G45_NY * g45_mul2 - hy) * iny;
+            GXPosition3f32(G45_NXHN * g45_mul, 0.0f, G45_NYU * 0.5f * g45_mul);
+            GXNormal3f32(n.x, n.y, n.z);
+            GXTexCoord2f32(0.0f, 1.0f);
+        }
+        GXClearVtxDesc();
+        GXSetVtxDesc(9, 3);
+        GXSetVtxDesc(10, 3);
+        GXSetVtxDesc(13, 1);
+        GXSetVtxAttrFmt(0, 9, 1, 4, 0);
+        GXSetVtxAttrFmt(0, 10, 0, 4, 0);
+        GXSetVtxAttrFmt(0, 13, 1, 4, 0);
+        GXSetArray(9, p->pos, sizeof(Vec));
+        GXSetArray(10, p->nrm, sizeof(Vec));
+        GXCallDisplayList(p->dl, p->dlSize);
+        GXSetNumTevStages(1);
+        GXSetNumTexGens(0);
+        GXSetNumIndStages(0);
+        GXSetTevDirect(0);
+        GXSetTevDirect(1);
+    }
 }
 
 // Dead-stripped from the DOL (string kept): pulls a generator and sets the surface up.

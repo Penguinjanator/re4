@@ -549,6 +549,13 @@ mark it Matching.
   iteration like the target.
 - objdiff REPLACE rows on `lwz/stw off(rN)` with identical bytes = dtk-synthesized `Sym+off` relocs in
   the split object; judge with a raw byte compare (relocated words masked).
+- Sprite texture-corner selection (esp_sub/esp08/esp18/esp0f/esp16 Trans): one condition
+  `(screen && !f4) || (!screen && f4)`, corners built from a `zero` variable with the flip-s leaves
+  adding first (`s0 = zero + z; s1 = zero;`): each leaf is a jump target with no cse knowledge of
+  `zero`/`z`, which keeps the `fadds` (nested ifs with literals fold `0 + z`). Fixes the family-wide
+  `fadds` vs `fmr` diff.
+- Two identical calls in if/else arms are not cross-jumped when the shared argument is a local read
+  before the `if`.
 - Static locals show as `name.NNN` in objdiff; the DECL_UID suffix cannot be reproduced and is ignored by the report.
 - Unexplained words in `.rodata` (zero words, stray floats) are usually the constant pool of a function
   the original linker dead-stripped (bodies gone, pools kept, `STRIP_UNUSED` in objects.py): write a

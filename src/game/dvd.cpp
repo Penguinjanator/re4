@@ -1,9 +1,9 @@
 // game/dvd: DVD read queue, ARAM DMA queue, disc error screen (D:/Bio4/Prog/dvd.cpp).
-// 54/57 functions match (LinkQueue/MesSysMessage are byte-identical, objdiff shows reloc-only rows);
-// every section has the original size and the data sections match. Still off:
-//  - Initialize (98.5%): the `n = name` copy (`mr r28,r29`) sits after the DVDConvertPathToEntrynum
-//    call in the original; ours hoists the pseudo copy above the call (sched1 sees no dependence).
-//    Statement orders, `this->name`, `&name[0]`, a temp for the call result all tried.
+// 55/57 functions match (LinkQueue/MesSysMessage are byte-identical, objdiff shows reloc-only rows);
+// every section has the original size and the data sections match. Initialize: no `n = name`
+// local; `name` is used directly after the if/else, so the `&name` copy (`mr r28,r29`) is a gcse
+// PRE copy inserted at the end of the else block, i.e. right after the DVDConvertPathToEntrynum
+// call (C++ EH ends the block at the call); a source-level copy is hoisted above the call. Still off:
 //  - ErrCheck (99.9%): `pMes`/`pStr` swap r20/r21. Both have 3 refs, live lengths 390/386
 //    (priority 76 vs 77 after the *10000 truncation); the original must land both in one bucket
 //    (pMes declared first wins the tie). Block-scoped locals and do-while notes do not change the
@@ -846,7 +846,6 @@ int cDvdQueue::Read()
 
 void cDvdQueue::Initialize()
 {
-    char* n;
     DvdReq* w = &DvdReqWork;
     char buf[0x40];
     int hed;
