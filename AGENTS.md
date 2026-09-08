@@ -412,6 +412,16 @@ mark it Matching.
   standalone `fmuls` is the second term.
 - A local `class cEmRoom : public cEm` with N declared, undefined virtuals lets a unit call a
   room-module enemy virtual slot without emitting a vtable (key function undefined).
+- Call arguments written as locals (`int parts = 0; f32 zero = 0.0f; init(parts, 2, parts, zero, ..)`)
+  create pseudos cse keeps across later calls: the float lands in a callee-saved register reused for
+  later `= 0.0f` stores, the int becomes the oldest zero pseudo every later `= 0` store reuses. Plain
+  constants give hard-register chains (`lfs f1; fmr f2,f1`) and fresh loads later.
+- sched1 flushes the pending memory list after 32 entries: in a block of >33 independent memory insns
+  the 34th becomes a barrier; within each half stores are grouped by source register in RTL order.
+- A float variable assigned in two places is never tied to a call's return register (`fmr f12,f1`
+  right after the `bl`).
+- Loop pointers must be block-scoped (`T* n = &node[i];` inside each body) to be replaceable givs; a
+  function-scope pointer reused across loops leaves an `mr rN,rGIV` copy.
 - Static locals show as `name.NNN` in objdiff; the DECL_UID suffix cannot be reproduced and is ignored by the report.
 - Unexplained words in `.rodata` (zero words, stray floats) are usually the constant pool of a function
   the original linker dead-stripped (bodies gone, pools kept, `STRIP_UNUSED` in objects.py): write a

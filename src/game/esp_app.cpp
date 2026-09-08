@@ -330,11 +330,12 @@ void EffAreaUpdate()
         }
     }
     flag |= sys->sstAddAreaFlag;
-    for (j = 0, y = 0xE8; j < 32; j++) {
+    y = 0;
+    for (j = 0; j < 32; j++) {
         if (flag & (1 << j)) {
             if (pG->flags_6C & 0x8000) {
-                eprintf(0x1D8, y, 0x16, 0, "%d", j);
-                y += 0x10;
+                eprintf(0x1D8, 0xE8 + y * 0x10, 0x16, 0, "%d", j);
+                y++;
             }
             EffSetAreaState(j, 1);
         } else {

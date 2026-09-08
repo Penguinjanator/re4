@@ -96,6 +96,14 @@ int PullEsp(cEsp** out, int id)
     return ret;
 }
 
+// OPEN (97.9%): the target's third loop has `mr r9,r10` (a copy of the sys+0x10000 base) before
+// the loop and in its latch, with the pEspBuf load reading r9. That is cse_around_loop (cse.c):
+// it only runs on a loop with LOOP_BEG/END notes whose latch jumps straight back to the header,
+// and it rewrites the header's `sys+0x10000` into the latch's REG_LOOP_TEST_P copy. Writing
+// loop3 as `for (i = start; i < sys->xC554; i++)` reproduces both copies exactly, but loop.c
+// (find_and_verify_loops) then moves the `PushEsp; goto found` block behind the found: block
+// (guarded exit block ending in a jump out of the loop). Loops 1/2 as for/while loops get
+// strength-reduced `&esp->flag` givs the target lacks, so they stay goto loops.
 void* cEsp::operator new(unsigned int size)
 {
     static u32 old_hit = 0;
@@ -248,11 +256,11 @@ int EspMove()
     }
     if ((s32) pG->flags_60 >= 0 && pG->debug_mode == 0xE) {
         eprintf(0x20, 0x60, 0, 0xE, "TOTAL:%d", cnt);
-        y = 0x70;
+        y = 0;
         for (i = 0; i < 0xD3; i++) {
             if (esp_num_list[i] != 0) {
-                eprintf(0x20, y, 0, 0xE, "%s:%d", owner_name_tbl[i], esp_num_list[i]);
-                y += 0x10;
+                eprintf(0x20, 0x70 + y * 0x10, 0, 0xE, "%s:%d", owner_name_tbl[i], esp_num_list[i]);
+                y++;
             }
         }
     }

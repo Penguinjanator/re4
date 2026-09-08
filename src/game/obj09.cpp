@@ -152,39 +152,39 @@ void Calc(cObj* obj, f32 dt)
     tmp.z = n[2][2];
 #line 274 "D:/Bio4/Prog/obj09.cpp"
     VECNormalize(&tmp, &tmp);
-    tmp2.x = tmp.x;
-    tmp2.y = tmp.y;
-    tmp2.z = tmp.z;
     n[2][0] = tmp.x;
     n[2][1] = tmp.y;
     n[2][2] = tmp.z;
     tmp.x = n[1][0];
     tmp.y = n[1][1];
     tmp.z = n[1][2];
+    tmp2.x = n[2][0];
+    tmp2.y = n[2][1];
+    tmp2.z = n[2][2];
     PSVECCrossProduct(&tmp, &tmp2, &tmp);
 #line 286 "D:/Bio4/Prog/obj09.cpp"
     VECNormalize(&tmp, &tmp);
     n[0][0] = tmp.x;
     n[0][1] = tmp.y;
     n[0][2] = tmp.z;
-    tmp2.x = tmp.x;
-    tmp2.y = tmp.y;
-    tmp2.z = tmp.z;
     tmp.x = n[2][0];
     tmp.y = n[2][1];
     tmp.z = n[2][2];
+    tmp2.x = n[0][0];
+    tmp2.y = n[0][1];
+    tmp2.z = n[0][2];
     PSVECCrossProduct(&tmp, &tmp2, &tmp);
     n[1][0] = tmp.x;
     n[1][1] = tmp.y;
     n[1][2] = tmp.z;
     {
+        int i_ = 2;
         MtxPtr d_ = w->mat;
         MtxPtr s_ = n;
-        int i_ = 3;
         int j_;
         f32* sp_;
         f32* dp_;
-        while (i_--) {
+        do {
             dp_ = *d_;
             sp_ = *s_;
             for (j_ = 0; j_ < 4; j_++) {
@@ -192,7 +192,7 @@ void Calc(cObj* obj, f32 dt)
             }
             d_++;
             s_++;
-        }
+        } while (--i_ != -1);
     }
 }
 
@@ -219,6 +219,8 @@ static void Obj09HitCheck(cObj* obj)
     f32 d;
     f32 mm;
     f32 ms;
+    f32 mag1;
+    f32 mag2;
     f32 dot;
     f32 a;
     f32 b;
@@ -253,51 +255,69 @@ static void Obj09HitCheck(cObj* obj)
             depth = 1.0e16f;
             a = p.x + w2->size.x;
             b = n.x + w2->size.x;
-            if (a * b < 0.0f && fabsf(a) < depth) {
-                depth = fabsf(a);
-                nrm.x = -1.0f;
-                nrm.y = 0.0f;
-                nrm.z = 0.0f;
+            if (a * b < 0.0f) {
+                d = fabsf(a);
+                if (d < depth) {
+                    depth = d;
+                    nrm.x = -1.0f;
+                    nrm.y = 0.0f;
+                    nrm.z = 0.0f;
+                }
             }
             a = p.x - w2->size.x;
             b = n.x - w2->size.x;
-            if (a * b < 0.0f && fabsf(a) < depth) {
-                depth = fabsf(a);
-                nrm.x = 1.0f;
-                nrm.y = 0.0f;
-                nrm.z = 0.0f;
+            if (a * b < 0.0f) {
+                d = fabsf(a);
+                if (d < depth) {
+                    depth = d;
+                    nrm.x = 1.0f;
+                    nrm.y = 0.0f;
+                    nrm.z = 0.0f;
+                }
             }
             a = p.y + w2->size.y;
             b = n.y + w2->size.y;
-            if (a * b < 0.0f && fabsf(a) < depth) {
-                depth = fabsf(a);
-                nrm.x = 0.0f;
-                nrm.y = -1.0f;
-                nrm.z = 0.0f;
+            if (a * b < 0.0f) {
+                d = fabsf(a);
+                if (d < depth) {
+                    depth = d;
+                    nrm.x = 0.0f;
+                    nrm.y = -1.0f;
+                    nrm.z = 0.0f;
+                }
             }
             a = p.y - w2->size.y;
             b = n.y - w2->size.y;
-            if (a * b < 0.0f && fabsf(a) < depth) {
-                depth = fabsf(a);
-                nrm.x = 0.0f;
-                nrm.y = 1.0f;
-                nrm.z = 0.0f;
+            if (a * b < 0.0f) {
+                d = fabsf(a);
+                if (d < depth) {
+                    depth = d;
+                    nrm.x = 0.0f;
+                    nrm.y = 1.0f;
+                    nrm.z = 0.0f;
+                }
             }
             a = p.z + w2->size.z;
             b = n.z + w2->size.z;
-            if (a * b < 0.0f && fabsf(a) < depth) {
-                depth = fabsf(a);
-                nrm.x = 0.0f;
-                nrm.y = 0.0f;
-                nrm.z = -1.0f;
+            if (a * b < 0.0f) {
+                d = fabsf(a);
+                if (d < depth) {
+                    depth = d;
+                    nrm.x = 0.0f;
+                    nrm.y = 0.0f;
+                    nrm.z = -1.0f;
+                }
             }
             a = p.z - w2->size.z;
             b = n.z - w2->size.z;
-            if (a * b < 0.0f && fabsf(a) < depth) {
-                depth = fabsf(a);
-                nrm.x = 0.0f;
-                nrm.y = 0.0f;
-                nrm.z = 1.0f;
+            if (a * b < 0.0f) {
+                d = fabsf(a);
+                if (d < depth) {
+                    depth = d;
+                    nrm.x = 0.0f;
+                    nrm.y = 0.0f;
+                    nrm.z = 1.0f;
+                }
             }
             if (depth == 1.0e16f) {
                 nrm.x = 0.0f;
@@ -308,11 +328,16 @@ static void Obj09HitCheck(cObj* obj)
             if (maxDepth < d) {
                 maxDepth = d;
             }
-            ms = PSVECMag(&w2->size);
-            if (ms < PSVECMag(&w1->size)) {
-                ms = PSVECMag(&w1->size);
+            mag1 = PSVECMag(&w2->size);
+            mag2 = PSVECMag(&w1->size);
+            if (mag1 < mag2) {
+                ms = mag2;
+            } else {
+                ms = mag1;
             }
             if (d > obj_max_ratio * ms) {
+                f32 m;
+
                 PSVECSubtract(&w1->basePos, &w2->basePos, &nrm);
                 if (nrm.x == 0.0f && nrm.y == 0.0f && nrm.z == 0.0f) {
                     nrm.y = 1.0f;
@@ -320,13 +345,13 @@ static void Obj09HitCheck(cObj* obj)
 #line 464 "D:/Bio4/Prog/obj09.cpp"
                 VECNormalize(&nrm, &nrm);
                 if (w2->mass > w1->mass * 2.0f) {
-                    mm = w1->mass * 2.0f;
+                    m = w1->mass * 2.0f;
                 } else if (w1->mass > w2->mass * 2.0f) {
-                    mm = w2->mass * 2.0f;
+                    m = w2->mass * 2.0f;
                 } else {
-                    mm = w2->mass + w1->mass;
+                    m = w2->mass + w1->mass;
                 }
-                PSVECScale(&nrm, &tmp, obj_move_pow * mm);
+                PSVECScale(&nrm, &tmp, obj_move_pow * m);
                 AddForce(pObj_ck, &w1->basePos, &tmp);
                 PSVECScale(&tmp, &tmp, -1.0f);
                 AddForce(obj, &w2->basePos, &tmp);
@@ -569,7 +594,7 @@ void cObj09::move()
     f32 h;
     f32 dist;
     cObj* p;
-    cObj* next;
+    cObj* q;
     void (*func)(cObj*);
     u32 cnt;
     int i;
@@ -583,9 +608,9 @@ void cObj09::move()
     func = Obj09HitCheck;
     p = (cObj*) ObjMgr.pAlive;
     while (p) {
-        next = (cObj*) p->next;
-        func(p);
-        p = next;
+        q = p;
+        p = (cObj*) p->next;
+        func(q);
     }
 
     old = w->basePos;

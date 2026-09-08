@@ -3955,9 +3955,9 @@ address	size	section	unit	scope	name	demangled
 0x8010F964	0x104	.text	game/emrock.cpp	global	emRockSatSet	emRockSatSet
 0x8010FA68	0x20	.text	game/emrock.cpp	global	cEmRock_dt_cEmRock	cEmRock::~cEmRock
 0x8010FA88	0x4A4	.text	game/emshield.cpp	global	SetShield	SetShield
-0x8010FF2C	0x38	.text	game/emshield.cpp	global	cEmShield_beginEvent	cEmShield::beginEvent
+0x8010FF2C	0x38	.text	game/emshield.cpp	global	beginEvent__9cEmShield	cEmShield::beginEvent
 0x8010FF64	0x74C	.text	game/emshield.cpp	global	emShieldDmCk	emShieldDmCk
-0x801106B0	0x198	.text	game/emshield.cpp	global	cEmShield_move	cEmShield::move
+0x801106B0	0x198	.text	game/emshield.cpp	global	move__9cEmShield	cEmShield::move
 0x80110848	0x1C	.text	game/emshield.cpp	global	emShield_R0_Init	emShield_R0_Init
 0x80110864	0x38	.text	game/emshield.cpp	global	emShield_R0_Move	emShield_R0_Move
 0x8011089C	0x78	.text	game/emshield.cpp	global	emShield_R1_Set	emShield_R1_Set
@@ -3965,9 +3965,9 @@ address	size	section	unit	scope	name	demangled
 0x80110A74	0xA4	.text	game/emshield.cpp	global	emShield_R1_Lost	emShield_R1_Lost
 0x80110B18	0x390	.text	game/emshield.cpp	global	emShield_R1_Parent	emShield_R1_Parent
 0x80110EA8	0x86C	.text	game/emshield.cpp	global	emShield_R1_Fall	emShield_R1_Fall
-0x80111714	0x4C	.text	game/emshield.cpp	global	cEmShield_setParent	cEmShield::setParent
-0x80111760	0x1D8	.text	game/emshield.cpp	global	cEmShield_setFall	cEmShield::setFall
-0x80111938	0x20	.text	game/emshield.cpp	global	cEmShield_dt_cEmShield	cEmShield::~cEmShield
+0x80111714	0x4C	.text	game/emshield.cpp	global	setParent__9cEmShieldP6cModelii	cEmShield::setParent
+0x80111760	0x1D8	.text	game/emshield.cpp	global	setFall__9cEmShieldfP3Vec	cEmShield::setFall
+0x80111938	0x20	.text	game/emshield.cpp	global	_._9cEmShield	cEmShield::~cEmShield
 0x80111958	0x1E8	.text	game/emswitch.cpp	local	emSwitchDmCk__FP9cEmSwitch	emSwitchDmCk
 0x80111B40	0x290	.text	game/emswitch.cpp	global	SetEmSwitch	SetEmSwitch
 0x80111DD0	0x70	.text	game/emswitch.cpp	global	move__9cEmSwitch	cEmSwitch::move
@@ -8364,7 +8364,7 @@ address	size	section	unit	scope	name	demangled
 0x80233BA8	0x28	.rodata	game/emrock.cpp	global	cUnit_virtual_table_80233BA8	cUnit virtual table
 0x80233BD0	0x2B8	.rodata	game/emshield.cpp	global	lbl_80233BD0	.
 0x80233E88	0x58	.rodata	game/emshield.cpp	global	_vt.9cEmShield	cEmShield virtual table
-0x80233EE0	0x28	.rodata	game/emshield.cpp	global	cUnit_virtual_table_80233EE0	cUnit virtual table
+0x80233EE0	0x28	.rodata	game/emshield.cpp	local	cUnit_virtual_table_80233EE0	cUnit virtual table
 0x80233F08	0x1F0	.rodata	game/emswitch.cpp	global	lbl_80233F08	.
 0x802340F8	0x58	.rodata	game/emswitch.cpp	global	_vt.9cEmSwitch	cEmSwitch virtual table
 0x80234150	0x28	.rodata	game/emswitch.cpp	local	cUnit_virtual_table_80234150	cUnit virtual table

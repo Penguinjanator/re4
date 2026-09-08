@@ -145,7 +145,11 @@ public:
     Vec x3A8;             // 0x3A8  (objTrolley objTrolleySetAdjust adds the car movement to it)
     u8 pad_3B4[4];
     int dmgType;          // 0x3B8  (pl_sub SetPlDamage/SetSubDamage first argument)
-    u8 pad_3BC[8];
+    u8 rckFlag;           // 0x3BC  route_ck: bit0 = rckNear valid this frame (RouteCk clears it)
+    s8 rckPoint;          // 0x3BD  route_ck: way point the enemy heads to (-1 = none)
+    s8 rckNext;           // 0x3BE  route_ck: way point nearest to the target
+    s8 rckNear;           // 0x3BF  route_ck: way point nearest to the enemy
+    u8 pad_3C0[4];
     u32 status;           // 0x3C4  setStatus / clearStatus / checkStatus bits (bit0 = in battle, bit1, bit11)
     u32 flags_3C8;        // 0x3C8  (db_cam "Flag=")
     f32 x3CC;             // 0x3CC  (em_set: list entry s16 x1A * 1000)

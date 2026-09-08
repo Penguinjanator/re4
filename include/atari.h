@@ -117,6 +117,7 @@ public:
     Mtx mat;         // 0x60  piece -> world
     Mtx inv;         // 0x90  world -> piece
 
+    cSat();
     void init(cSatFile* f, Vec* pos, Vec* rot);
     void setCoord(Vec* pos, Vec* rot);
     void setMatrix(Mtx m);
@@ -126,6 +127,12 @@ public:
     // alive and taking part in the checks (hides cUnit::isAlive for cManager<cSat>::destroy)
     int isAlive();
 };
+
+inline cSat::cSat()
+{
+    be_flag = 1;
+    flags = 0;
+}
 
 inline int cSat::isAlive()
 {

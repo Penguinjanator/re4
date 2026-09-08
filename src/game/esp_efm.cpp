@@ -343,8 +343,8 @@ cObj* EfmSetObj04(cObj* obj, EspGenWork* gen, EfmCore* info, u32* seed, cModel* 
     w->scaleY = gen->x8C * 0.005f;
     w->scale = 1.0f;
     rnd = gen->x90 * fRandSeed1_1(seed) * 0.005f;
-    w->scaleY += rnd;
     w->scaleXZ += rnd;
+    w->scaleY += rnd;
     w->scaleSpd = gen->x94;
     w->scaleDamp = gen->x98;
     w->r0 = gen->x9C;
@@ -384,8 +384,7 @@ cObj* EfmSetObj04(cObj* obj, EspGenWork* gen, EfmCore* info, u32* seed, cModel* 
     }
     obj->pInfo->xD6 = gen->xC2;
     obj->scale.y = w->scaleY * w->scale;
-    obj->scale.z = w->scaleXZ * w->scale;
-    obj->scale.x = obj->scale.z;
+    obj->scale.z = obj->scale.x = w->scaleXZ * w->scale;
     w->groundOfs = (f32) (int) gen->xD4;
     if (gen->prm.w.xCC != 0) {
         u8 c = gen->prm.b.xCF;
@@ -394,9 +393,9 @@ cObj* EfmSetObj04(cObj* obj, EspGenWork* gen, EfmCore* info, u32* seed, cModel* 
         } else {
             obj->be_flag |= 8;
         }
-        obj->x13B = c;
         obj->x139 = c;
         obj->x13A = c;
+        obj->x13B = c;
     }
     if (gen->prm.w.xD0 != 0) {
         setModTexRender(obj, gen->prm.w.xD0 - 1);
@@ -698,60 +697,58 @@ cObj* SetEffModel(void* bin, void* tpl, Vec* pos, Vec* rot)
 {
     cObj* obj;
     Efm04Work* w;
-    u8 c;
+    int c;
 
     obj = ObjMgr.createBack(4);
-    if (obj == 0) {
-        return obj;
+    if (obj) {
+        if (obj->modelInit(bin, tpl) == 0) {
+            ObjMgr.destroy(obj);
+            pLog->err(0, 0, "ESP_EFM : ModelInit() failed.");
+            return 0;
+        }
+        obj->sub2B4.clrFlags(0xFCFF);
+        obj->lightInfo.init2(0, 1, &efm_light_pos, &efm_light_size, 0x10);
+        obj->id = 4;
+        obj->setNoSuspend(1);
+        w = &obj->efm04;
+        w->core.flg = 1;
+        obj->be_flag |= 0x4000;
+        w->x79 = 0;
+        w->flags = 0;
+        obj->pos = *pos;
+        w->spdDamp = 0.0f;
+        c = 0xFF;
+        obj->rot = *rot;
+        w->scaleXZ = 1.0f;
+        w->scaleY = 1.0f;
+        w->scale = 1.0f;
+        w->rMul = 1.0f;
+        w->gMul = 1.0f;
+        w->r0 = c;
+        w->g0 = c;
+        w->b0 = c;
+        w->a0 = c;
+        w->r = (f32) w->r0;
+        w->g = (f32) w->g0;
+        w->b = (f32) w->b0;
+        w->a = (f32) w->a0;
+        w->bMul = 1.0f;
+        w->aMul = 1.0f;
+        obj->x12F = 1;
+        obj->pInfo->color[0] = (u8) w->r;
+        obj->pInfo->color[1] = (u8) w->g;
+        obj->pInfo->color[2] = (u8) w->b;
+        obj->pInfo->color[3] = c;
+        if (w->fadeStart == 0) {
+            obj->alpha = w->a * (1.0f / 255.0f);
+        } else {
+            obj->alpha = 0.0f;
+        }
+        obj->scale.y = w->scaleY * w->scale;
+        obj->scale.z = obj->scale.x = w->scaleXZ * w->scale;
+        w->parentWorld = pEffParentWorldS;
+        obj->move();
     }
-    if (obj->modelInit(bin, tpl) == 0) {
-        ObjMgr.destroy(obj);
-        pLog->err(0, 0, "ESP_EFM : ModelInit() failed.");
-        return 0;
-    }
-    obj->sub2B4.clrFlags(0xFCFF);
-    obj->lightInfo.init2(0, 1, &efm_light_pos, &efm_light_size, 0x10);
-    obj->id = 4;
-    obj->setNoSuspend(1);
-    w = &obj->efm04;
-    w->core.flg = 1;
-    obj->be_flag |= 0x4000;
-    w->x79 = 0;
-    w->flags = 0;
-    w->spdDamp = 0.0f;
-    obj->pos = *pos;
-    obj->rot = *rot;
-    w->scaleXZ = 1.0f;
-    w->scaleY = 1.0f;
-    w->scale = 1.0f;
-    c = 0xFF;
-    w->r0 = c;
-    w->g0 = c;
-    w->b0 = c;
-    w->a0 = c;
-    w->r = (f32) c;
-    w->g = (f32) c;
-    w->b = (f32) c;
-    w->a = (f32) c;
-    w->rMul = 1.0f;
-    w->gMul = 1.0f;
-    w->bMul = 1.0f;
-    w->aMul = 1.0f;
-    obj->x12F = 1;
-    obj->pInfo->color[0] = (u8) w->r;
-    obj->pInfo->color[1] = (u8) w->g;
-    obj->pInfo->color[2] = (u8) w->b;
-    obj->pInfo->color[3] = 0xFF;
-    if (w->fadeStart == 0) {
-        obj->alpha = w->a * (1.0f / 255.0f);
-    } else {
-        obj->alpha = 0.0f;
-    }
-    obj->scale.y = w->scaleY * w->scale;
-    obj->scale.z = w->scaleXZ * w->scale;
-    obj->scale.x = obj->scale.z;
-    w->parentWorld = pEffParentWorld;
-    obj->move();
     return obj;
 }
 

@@ -8,6 +8,8 @@
 #include "main.h"
 #include "gx.h"
 
+#line 30 "D:/Bio4/Prog/atari.cpp"
+
 extern "C" {
 // Dolphin SDK performance monitor registers (base/PPCArch.h)
 void PPCMtpmc1(u32 v);
@@ -53,7 +55,6 @@ void at_pos_calc(cModel* m, Vec* d);
 int cSatMgr::check(cModel* m, int flag)
 {
     cAtariInfo* info = &((cEm*) m)->atari;
-    cAtariInfo* head;
     int ret = 0;
 
     if (!(info->flags & 0x100)) {
@@ -62,14 +63,13 @@ int cSatMgr::check(cModel* m, int flag)
     if (info->flags & 2) {
         ret = checkRect(m);
     } else {
-        head = info;
         while (info->next) {
             info = info->next;
             if (scrAtCheckSphere(m, info, flag) != 0.0f) {
                 ret = 1;
             }
         }
-        if (scrAtCheckSphere(m, head, flag) != 0.0f) {
+        if (scrAtCheckSphere(m, &((cEm*) m)->atari, flag) != 0.0f) {
             ret = 1;
         }
     }
@@ -82,92 +82,90 @@ int cSatMgr::checkRect(cModel* m)
     Vec a;
     Vec b;
     int ret;
-    f32 rx = info->rectX;
-    f32 rz = info->rectZ;
 
     a.x = 0.0f;
     a.y = 0.0f;
-    a.z = rz * 0.9f;
-    b.x = rx;
+    a.z = info->rectZ * 0.9f;
+    b.x = info->rectX;
     b.y = 0.0f;
-    b.z = rz * 0.9f;
+    b.z = info->rectZ * 0.9f;
     ret = atck(&a, &b, info, m, 0);
     a.x = 0.0f;
     a.y = 0.0f;
     a.z = 0.0f;
-    b.x = rx;
+    b.x = info->rectX;
     b.y = 0.0f;
     b.z = 0.0f;
     ret |= atck(&a, &b, info, m, 0);
     a.x = 0.0f;
     a.y = 0.0f;
-    a.z = -rz * 0.9f;
-    b.x = rx;
+    a.z = -info->rectZ * 0.9f;
+    b.x = info->rectX;
     b.y = 0.0f;
-    b.z = -rz * 0.9f;
+    b.z = -info->rectZ * 0.9f;
     ret |= atck(&a, &b, info, m, 0);
     a.x = 0.0f;
     a.y = 0.0f;
-    a.z = rz * 0.9f;
-    b.x = -rx;
+    a.z = info->rectZ * 0.9f;
+    b.x = -info->rectX;
     b.y = 0.0f;
-    b.z = rz * 0.9f;
+    b.z = info->rectZ * 0.9f;
     ret |= atck(&a, &b, info, m, 0);
     a.x = 0.0f;
     a.y = 0.0f;
     a.z = 0.0f;
-    b.x = -rx;
+    b.x = -info->rectX;
     b.y = 0.0f;
     b.z = 0.0f;
     ret |= atck(&a, &b, info, m, 0);
     a.x = 0.0f;
     a.y = 0.0f;
-    a.z = -rz * 0.9f;
-    b.x = -rx;
+    a.z = -info->rectZ * 0.9f;
+    b.x = -info->rectX;
     b.y = 0.0f;
-    b.z = -rz * 0.9f;
+    b.z = -info->rectZ * 0.9f;
     ret |= atck(&a, &b, info, m, 0);
-    a.x = rx * 0.9f;
+    a.x = info->rectX * 0.9f;
     a.y = 0.0f;
     a.z = 0.0f;
-    b.x = rx * 0.9f;
+    b.x = info->rectX * 0.9f;
     b.y = 0.0f;
-    b.z = rz;
+    b.z = info->rectZ;
     ret |= atck(&a, &b, info, m, 0);
     a.x = 0.0f;
     a.y = 0.0f;
     a.z = 0.0f;
     b.x = 0.0f;
     b.y = 0.0f;
-    b.z = rz;
+    b.z = info->rectZ;
     ret |= atck(&a, &b, info, m, 0);
-    a.x = -rx * 0.9f;
+    a.x = -info->rectX * 0.9f;
     a.y = 0.0f;
     a.z = 0.0f;
-    b.x = -rx * 0.9f;
+    b.x = -info->rectX * 0.9f;
     b.y = 0.0f;
-    b.z = rz;
+    b.z = info->rectZ;
     ret |= atck(&a, &b, info, m, 0);
-    a.x = rx * 0.9f;
+    a.x = info->rectX * 0.9f;
     a.y = 0.0f;
     a.z = 0.0f;
-    b.x = rx * 0.9f;
+    b.x = info->rectX * 0.9f;
     b.y = 0.0f;
-    b.z = -rz;
+    b.z = -info->rectZ;
     ret |= atck(&a, &b, info, m, 0);
     a.x = 0.0f;
     a.y = 0.0f;
     a.z = 0.0f;
     b.x = 0.0f;
     b.y = 0.0f;
-    b.z = -rz;
+    b.z = -info->rectZ;
     ret |= atck(&a, &b, info, m, 0);
-    a.x = -rx * 0.9f;
+    a.x = -info->rectX * 0.9f;
     a.y = 0.0f;
     a.z = 0.0f;
-    b.x = -rx * 0.9f;
+    b.x = -info->rectX * 0.9f;
     b.y = 0.0f;
-    b.z = -rz;
+    b.z = -info->rectZ;
     ret |= atck(&a, &b, info, m, 0);
     return ret;
 }
@@ -175,18 +173,16 @@ int cSatMgr::checkRect(cModel* m)
 int cSatMgr::checkAir(cModel* m, int flag)
 {
     cAtariInfo* info = &((cEm*) m)->atari;
-    cAtariInfo* head;
     int ret = 0;
 
     if (info->flags & 0x100) {
-        head = info;
         while (info->next) {
             info = info->next;
             if (scrAtCheckSphereAir(m, info, flag) != 0.0f) {
                 ret = 1;
             }
         }
-        if (scrAtCheckSphereAir(m, head, flag) != 0.0f) {
+        if (scrAtCheckSphereAir(m, &((cEm*) m)->atari, flag) != 0.0f) {
             ret = 1;
         }
     }
@@ -259,9 +255,10 @@ f32 cSatMgr::scrAtCheckSphere(cModel* m, cAtariInfo* info, int flag)
             }
             up = m->pos;
             up.y += 50000.0f;
-            c = (pG->flags_51E4 & 0x3F) << 2;
+            c = pG->flags_51E4 & 0x3F;
+            c <<= 2;
             if (pG->debug_mode != 0) {
-                Draw_line3d(&m->pos, &up, (c << 8) | c | 0xFFFF0000, 0);
+                Draw_line3d(&m->pos, &up, 0xFFFF0000 | (c << 8) | c, 0);
             }
         }
     }
@@ -292,7 +289,10 @@ f32 cSatMgr::scrAtCheckSphereAir(cModel* m, cAtariInfo* info, int flag)
     f32 y;
     cModel* link;
 
-    if (info->flags & 0x100) {
+    if (!(info->flags & 0x100)) {
+        return 0.0f;
+    }
+    {
         mpos = m->pos;
         info->getSpeedVector(m, &oldPos, &pos);
         m->wallNrm.x = 0.0f;
@@ -400,10 +400,10 @@ f32 cSatMgr::getFloor(Vec* pos, f32 up, f32 down, u32* attr, int flag)
     bottom.x = pos->x;
     bottom.y = pos->y - down;
     bottom.z = pos->z;
-    if (hitCheck2(&top, &bottom, &hit, attr, 0x40, flag)) {
-        return hit.y;
+    if (hitCheck2(&top, &bottom, &hit, attr, 0x40, flag) == 0) {
+        return -100000.0f;
     }
-    return -100000.0f;
+    return hit.y;
 }
 
 void cSatMgr::log(const char* fmt, ...)
@@ -440,7 +440,7 @@ int cSatBlock::lineOverlap(Vec* p, Vec* dir, Vec* absDir)
     if (ad.z > absDir->z + size.z * 0.5f) {
         return 0;
     }
-    if (fabsf(d.x * dir->z - d.z * dir->x) > (size.z * absDir->x + size.x * absDir->z) * 0.5f) {
+    if (fabsf(d.x * dir->z - d.z * dir->x) > (size.x * absDir->z + size.z * absDir->x) * 0.5f) {
         return 0;
     }
     return 1;
@@ -568,16 +568,15 @@ void cEatMgr::initEffInfo()
     int i;
 
     for (i = 0; i < 8; i++) {
-        AtEffInfo* e = &effInfo[i];
-        memclr_asm(e, sizeof(AtEffInfo));
-        e->eff0[0] = 0xD2;
-        e->eff13[0] = 0xD2;
-        e->eff16[0] = 0xD2;
-        e->eff17[0] = 0xD2;
-        e->effGun[0] = 0xD2;
-        e->eff5[0] = 0xD2;
-        e->eff6[0] = 0xD2;
-        e->eff0D[0] = 0xD2;
+        memclr_asm(&effInfo[i], sizeof(AtEffInfo));
+        effInfo[i].eff0[0] = 0xD2;
+        effInfo[i].eff13[0] = 0xD2;
+        effInfo[i].eff16[0] = 0xD2;
+        effInfo[i].eff17[0] = 0xD2;
+        effInfo[i].effGun[0] = 0xD2;
+        effInfo[i].eff5[0] = 0xD2;
+        effInfo[i].eff6[0] = 0xD2;
+        effInfo[i].eff0D[0] = 0xD2;
         effOn[i] = 0;
     }
 }
@@ -587,35 +586,35 @@ void cEatMgr::registEffInfo(int type, AtEffInfo* src)
 {
     effOn[type] = 1;
     effInfo[type].flags = src->flags;
-    if (src->eff0[0] != 0xD2 || src->eff0[1] != 1) {
+    if (src->eff0[0] != 0xD2 || src->eff0[1] == 1) {
         effInfo[type].eff0[0] = src->eff0[0];
         effInfo[type].eff0[1] = src->eff0[1];
     }
-    if (src->eff13[0] != 0xD2 || src->eff0[1] != 1) {
+    if (src->eff13[0] != 0xD2 || src->eff0[1] == 1) {
         effInfo[type].eff13[0] = src->eff13[0];
         effInfo[type].eff13[1] = src->eff13[1];
     }
-    if (src->eff16[0] != 0xD2 || src->eff0[1] != 1) {
+    if (src->eff16[0] != 0xD2 || src->eff0[1] == 1) {
         effInfo[type].eff16[0] = src->eff16[0];
         effInfo[type].eff16[1] = src->eff16[1];
     }
-    if (src->eff17[0] != 0xD2 || src->eff0[1] != 1) {
+    if (src->eff17[0] != 0xD2 || src->eff0[1] == 1) {
         effInfo[type].eff17[0] = src->eff17[0];
         effInfo[type].eff17[1] = src->eff17[1];
     }
-    if (src->effGun[0] != 0xD2 || src->eff0[1] != 1) {
+    if (src->effGun[0] != 0xD2 || src->eff0[1] == 1) {
         effInfo[type].effGun[0] = src->effGun[0];
         effInfo[type].effGun[1] = src->effGun[1];
     }
-    if (src->eff5[0] != 0xD2 || src->eff0[1] != 1) {
+    if (src->eff5[0] != 0xD2 || src->eff0[1] == 1) {
         effInfo[type].eff5[0] = src->eff5[0];
         effInfo[type].eff5[1] = src->eff5[1];
     }
-    if (src->eff6[0] != 0xD2 || src->eff0[1] != 1) {
+    if (src->eff6[0] != 0xD2 || src->eff0[1] == 1) {
         effInfo[type].eff6[0] = src->eff6[0];
         effInfo[type].eff6[1] = src->eff6[1];
     }
-    if (src->eff0D[0] != 0xD2 || src->eff0[1] != 1) {
+    if (src->eff0D[0] != 0xD2 || src->eff0[1] == 1) {
         effInfo[type].eff0D[0] = src->eff0D[0];
         effInfo[type].eff0D[1] = src->eff0D[1];
     }
@@ -623,12 +622,10 @@ void cEatMgr::registEffInfo(int type, AtEffInfo* src)
 
 AtEffInfo* cEatMgr::getEffInfo(int type)
 {
-    AtEffInfo* p = 0;
-
-    if (effOn[type]) {
-        p = &effInfo[type];
+    if (effOn[type] != 0) {
+        return &effInfo[type];
     }
-    return p;
+    return 0;
 }
 
 void cEatMgr::log(const char* fmt, ...)
@@ -961,8 +958,6 @@ void cSatMgr::destroy(cSat* p)
 int cSatMgr::construct(cSat* p, u32 id)
 {
     new (p) cSat();
-    p->be_flag = 1;
-    p->flags = 0;
     return 1;
 }
 
@@ -1168,7 +1163,9 @@ int cSatFile::dataCheck()
 
 cSatFile* cSatHeader::getSat(int no)
 {
-    return (cSatFile*) ((u8*) this + *(u32*) (no * 4 + (u32) this + 4));
+    u32* tbl = ofs;
+
+    return (cSatFile*) ((u8*) this + *(u32*) (no * 4 + (u32) tbl));
 }
 
 // The three builders below with precomputed normals were dead-stripped by the linker; their
