@@ -697,6 +697,38 @@ mark it Matching.
 - A game unit followed by an SDK library unit carries absolute-address padding the assembler cannot
   reproduce with `.balign`: sscrn ends with `asm(".text\n\t.long 0, 0, 0")` and a never-referenced
   `static u8 pad[0x1C]` (kept alive by an unused inline) for the 0x1C `.bss` gap.
+- (datactrl) Array scans over a member array: `for (int i...) u = &unit[i]` gives the pointer loop with a
+  *signed* `cmpw` end test, `u32 i` gives `cmplw`; both without an entry test. A pointer loop
+  (`for (u = unit; u <= &unit[31]; u++)`) adds an entry test.
+- Switch tree shape, exactly: after `group_case_nodes` merges adjacent cases with the same target into
+  ranges, `balance_case_nodes` splits a list of n nodes/r ranges at the node where a countdown from
+  `(n + r + 1) / 2` (2 per range, 1 per single) reaches 0; lists of 3 split at the middle, lists of 1-2
+  stay linear. Empty `case k: break;` labels shape the tree (they are nodes whose target is the default),
+  so a root of 4 for values 1..8 means `case 0: break;` exists too; `case 5: case 6: case 7: case 8: break;`
+  (a range) moves the root of {0..4} from 2 to 3 (setLoadToMram/Aram).
+- A `case` body that falls through into the next case (`case 7: add(); /* fallthrough */ case 4: case 5:
+  add(); break;`) is the source of "duplicated tail" case bodies whose second half is not CSE'd with the
+  first (no reload merging across the label) (getAramFree).
+- loop.c (`find_and_verify_loops`) moves a block that ends in a jump out of the loop (`return X` inside a
+  loop, guarded by one conditional jump) to right after the nearest BARRIER outside all loops before the
+  return label. `if (n == 0) return 0;` before the loop creates such a barrier and the block lands there;
+  `if (n != 0) { loops } return 0;` leaves only the function-top early return, and the found block lands
+  after `if (aramSort == 0) return 0;` (checkAramSort). Blocks containing an inner loop are not moved.
+- A `default: return 1;` that shares the trailing `li r3,1` with the normal `return 1` after a store
+  block: write `default: goto ret;` with `ret: return 1;` after the stores. Without the label sched1
+  hoists the `li r3,1` above the stores and jump2 cannot cross-jump the default into it (setClear).
+- HALT-style macros as a plain `{ ... }` block instead of `do { } while (0)`: the OSReport stays in the
+  same basic block as the preceding `pLog->err`, so its `li r4,0` is issued before the string `addi r6`
+  (anti-dependence on the later `lis r4`); the do-while form gives `lis/addi r6` first (setData).
+- A constant shared by stores in the loop and after it from one callee-saved register
+  (`sth r21, 0xc(rP)` = 0x1F8 in three blocks) is a local assigned once *after* the preceding call
+  (`eprintf(...); x = 0x1F8;`); assigned at the function top it is scheduled before the call.
+- `Debug_free_h`/`Mem_free_h` (main_mem) are global (datactrl calls them) although Bio4.sym marks
+  them local; datactrl's `cDataUnit` empty ctor + `~cDataUnit() {}` reproduce the 32-element ctor/dtor
+  loops of `DC`'s static initializer.
+- OPEN (datactrl dispDebug): global-alloc order p(r31) > u(r30) > this(r29) in the original; ours gives
+  the loop pointer giv r31, this r30, p r29 (same refs and instructions; loop forms, declaration order,
+  `unit[i]` indexing, do/while tried).
 
 ## Don'ts
 

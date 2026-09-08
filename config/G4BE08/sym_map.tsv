@@ -3528,7 +3528,7 @@ address	size	section	unit	scope	name	demangled
 0x800EBDF0	0x2C	.text	game/eff_sys.cpp	global	EspGetTexOwner	EspGetTexOwner
 0x800EBE1C	0x30	.text	game/eff_sys.cpp	global	EspGetAnmAddr	EspGetAnmAddr
 0x800EBE4C	0x24	.text	game/eff_sys.cpp	global	EspChkTexId	EspChkTexId
-0x800EBE70	0x88	.text	game/eff_sys.cpp	local	EspCalcTplAddr	EspCalcTplAddr
+0x800EBE70	0x88	.text	game/eff_sys.cpp	local	EspCalcTplAddr__FP10TEXPalette	EspCalcTplAddr
 0x800EBEF8	0x1D4	.text	game/eff_sys.cpp	global	espTexRegist	espTexRegist
 0x800EC0CC	0xE8	.text	game/eff_sys.cpp	global	estRegist	estRegist
 0x800EC1B4	0x23C	.text	game/eff_sys.cpp	global	EspGetEstAddr	EspGetEstAddr
@@ -3542,11 +3542,11 @@ address	size	section	unit	scope	name	demangled
 0x800EC9A8	0x34	.text	game/eff_sys.cpp	global	pathRelease	pathRelease
 0x800EC9DC	0x34	.text	game/eff_sys.cpp	global	efmRelease	efmRelease
 0x800ECA10	0x3C	.text	game/eff_sys.cpp	global	EspGetEfmAddr	EspGetEfmAddr
-0x800ECA4C	0x34	.text	game/eff_sys.cpp	local	EspGetEfmTplAddr	EspGetEfmTplAddr
+0x800ECA4C	0x34	.text	game/eff_sys.cpp	local	EspGetEfmTplAddr__FiPPv	EspGetEfmTplAddr
 0x800ECA80	0x60	.text	game/eff_sys.cpp	global	EspGetEfmMotAddr	EspGetEfmMotAddr
 0x800ECAE0	0x60	.text	game/eff_sys.cpp	global	EspPullCoreKind	EspPullCoreKind
-0x800ECB40	0x74	.text	game/eff_sys.cpp	global	cEspSystem_GetTexObjFlag	cEspSystem::GetTexObjFlag
-0x800ECBB4	0xA4	.text	game/eff_sys.cpp	global	cEspSystem_SetTexObjFlag	cEspSystem::SetTexObjFlag
+0x800ECB40	0x74	.text	game/eff_sys.cpp	global	GetTexObjFlag__10cEspSystemUl	cEspSystem::GetTexObjFlag
+0x800ECBB4	0xA4	.text	game/eff_sys.cpp	global	SetTexObjFlag__10cEspSystemUli	cEspSystem::SetTexObjFlag
 0x800ECC58	0x8	.text	game/eff_sys.cpp	global	EspGenGetMoveLoop__Fv	EspGenGetMoveLoop
 0x800ECC60	0x8	.text	game/eff_sys.cpp	global	EspGenSetMoveLoop	EspGenSetMoveLoop
 0x800ECC68	0x74	.text	game/eff_sys.cpp	global	EspGenLoopMove	EspGenLoopMove
@@ -3562,11 +3562,11 @@ address	size	section	unit	scope	name	demangled
 0x800ECEA8	0x14	.text	game/eff_sys.cpp	global	EffClearToolState	EffClearToolState
 0x800ECEBC	0x20	.text	game/eff_sys.cpp	global	EffSetToolStateCallBack	EffSetToolStateCallBack
 0x800ECEDC	0x68	.text	game/eff_sys.cpp	global	EffCallToolStateCallBack	EffCallToolStateCallBack
-0x800ECF44	0x3C	.text	game/eff_sys.cpp	global	RoomEfmRegist	RoomEfmRegist
-0x800ECF80	0x30	.text	game/eff_sys.cpp	global	RoomEfmRegist_800ECF80	RoomEfmRegist
-0x800ECFB0	0xD4	.text	game/eff_sys.cpp	global	__static_initialization_and_destruction_0_800ECFB0	__static_initialization_and_destruction_0
-0x800ED084	0x20	.text	game/eff_sys.cpp	local	cCoord_dt_cCoord	cCoord::~cCoord
-0x800ED0A4	0x5C	.text	game/eff_sys.cpp	global	cCoord_matUpdate	cCoord::matUpdate
+0x800ECF44	0x3C	.text	game/eff_sys.cpp	global	RoomEfmRegist__FP6cModeli	RoomEfmRegist
+0x800ECF80	0x30	.text	game/eff_sys.cpp	global	RoomEfmRegist__FPvT0i	RoomEfmRegist
+0x800ECFB0	0xD4	.text	game/eff_sys.cpp	local	__static_initialization_and_destruction_0_800ECFB0	__static_initialization_and_destruction_0
+0x800ED084	0x20	.text	game/eff_sys.cpp	local	_._6cCoord	cCoord::~cCoord
+0x800ED0A4	0x5C	.text	game/eff_sys.cpp	global	matUpdate__6cCoord	cCoord::matUpdate
 0x800ED100	0x2C	.text	game/eff_sys.cpp	global	global_constructors_keyed_to_owner_name_tbl	global constructors keyed to owner_name_tbl
 0x800ED12C	0x2C	.text	game/eff_sys.cpp	global	global_destructors_keyed_to_owner_name_tbl	global destructors keyed to owner_name_tbl
 0x800ED158	0x5C	.text	game/em.cpp	global	__6cEmMgr	cEmMgr::cEmMgr
@@ -8322,8 +8322,8 @@ address	size	section	unit	scope	name	demangled
 0x8022E330	0x28	.rodata	game/dmg.cpp	local	cUnit_virtual_table_8022E330	cUnit virtual table
 0x8022E358	0x1D98	.rodata	game/dvd.cpp	global	lbl_8022E358	.
 0x802300F0	0xEC0	.rodata	game/eff_sys.cpp	global	lbl_802300F0	.
-0x80230FB0	0x30	.rodata	game/eff_sys.cpp	global	cCoord_virtual_table	cCoord virtual table
-0x80230FE0	0x28	.rodata	game/eff_sys.cpp	global	cUnit_virtual_table_80230FE0	cUnit virtual table
+0x80230FB0	0x30	.rodata	game/eff_sys.cpp	global	_vt.6cCoord	cCoord virtual table
+0x80230FE0	0x28	.rodata	game/eff_sys.cpp	local	cUnit_virtual_table_80230FE0	cUnit virtual table
 0x80231008	0x338	.rodata	game/em.cpp	global	lbl_80231008	.
 0x80231340	0x58	.rodata	game/em.cpp	global	_vt.6cEmObj	cEmObj virtual table
 0x80231398	0x48	.rodata	game/em.cpp	global	_vt.6cEmMgr	cEmMgr virtual table

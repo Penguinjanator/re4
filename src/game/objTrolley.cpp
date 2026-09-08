@@ -93,15 +93,6 @@ Vec Trolley_vec[3];         // car movement of this frame (objTrolleyGetAdjust)
 f32 Trolley_dir[3];         // car turn of this frame
 u8 Trolley_parts_tbl[3] = { 0, 4, 8 };
 
-static inline void trolleyAtariInit(cObj* obj, int parts, int flags, int cnt, f32 x, f32 y, f32 z, f32 rx, f32 rz, f32 w, f32 h)
-{
-    obj->sub2B4.atari.init(parts, flags, cnt, x, y, z, rx, rz, w, h);
-}
-static inline void trolleyAtariInit2(cObj* obj, f32 x, f32 y, f32 z, f32 rx, f32 rz, f32 w, f32 h)
-{
-    obj->sub2B4.atari.init(0, 2, 0, x, y, z, rx, rz, w, h);
-}
-
 cObj* SetTrolley(void* bin, void* tpl, Vec* pos, Vec* rot)
 {
     cObj* obj;
@@ -123,6 +114,9 @@ cObj* SetTrolley(void* bin, void* tpl, Vec* pos, Vec* rot)
     static const Vec p1 = { 5000.0f, 5000.0f, 5000.0f };
 
     obj->lightInfo.init2(0, 1, &p0, &p1, 0x10);
+    // NOTE: the original schedules `lfs f2 (1000)` before the 0.0 load and the three `li` after
+    // `fmr f1/f6` (same open issue as objGondola / objYagura / objMissile: the sched1 ranking of the
+    // arg copies, see the final report); no source form found yet.
     f32 zero = 0.0f;
     obj->sub2B4.atari.init(0, 2, 0, zero, 1000.0f, -700.0f, 350.0f, 700.0f, 700.0f, 1000.0f);
     obj->sub2B4.atari.throughOn();

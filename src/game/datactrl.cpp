@@ -1,4 +1,8 @@
 // game/datactrl: streamed room data units in MRAM/ARAM (D:/Bio4/Prog/datactrl.cpp).
+// 37/38 functions match (the static-initializer trio is byte-identical, only named differently);
+// .rodata and all section sizes match. Still off:
+//  - dispDebug (92.8%): callee-saved register order only. The original allocates p=r31, u=r30, this=r29;
+//    ours gives the unit pointer r31, this r30, p r29 (same instructions). Not flagged Matching.
 #include "types.h"
 #include "global.h"
 #include "datactrl.h"

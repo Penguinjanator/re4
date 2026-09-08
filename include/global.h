@@ -10,7 +10,7 @@
 struct ArcFile {
     u8 pad_0[0x10];
     u32 ofs_10;   // 0x10  specular data (read: CoreDataRead -> SpecularInit)
-    u8 pad_14[4];
+    u32 ofs_14;   // 0x14  core effect data (eff_sys: EspDataLoad owner 0)
     u32 ofs_18;   // 0x18  room texture data (room_tex)
     u32 ofs_1C;   // 0x1C  vibration pattern table (pl_dmg: VibSetData)
     u32 ofs_20;   // 0x20  obstacle model bin (obj20 SetObaModel)
@@ -21,7 +21,7 @@ struct ArcFile {
     u32 ofs_44;   // 0x44  specular data 2..4 (SpecularInit)
     u32 ofs_48;   // 0x48
     u32 ofs_4C;   // 0x4C
-    u8 pad_50[4];
+    u32 ofs_50;   // 0x50  debug effect data (eff_sys: EspDataLoad owner 0xD1)
     u32 ofs_54;   // 0x54  message table type 3 (mes: MesData.ptr[3])
     u8 pad_58[0x6C - 0x58];
     u32 ofs_6C;   // 0x6C  system message table (dvd: MesData.ptr[4])
