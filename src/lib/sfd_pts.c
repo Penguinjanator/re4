@@ -3,7 +3,7 @@
 #include "sfd.h"
 #include <string.h>
 
-#define PQ(sfd, strm) ((sfd)->buf[strm].ptsque)
+#define PQ(sfd, strm) ((sfd)->buf[strm].u.ring.ptsque)
 
 static Sint32 sfpts_Wrap(Sint32 n, Sint32 num)
 {
@@ -62,8 +62,8 @@ Sint32 SFPTS_ReadPtsQue(SFD sfd, Sint32 strm, Uint32 pos, SFPTS_ENT *out)
 
 	out->pts = -1;
 	ent = PQ(sfd, strm).ent;
-	ofst = sfd->buf[strm].ofst;
-	size = sfd->buf[strm].size;
+	ofst = sfd->buf[strm].u.ring.sup.ofst;
+	size = sfd->buf[strm].u.ring.sup.size;
 	if (ent == NULL) {
 		return 0;
 	}
@@ -135,11 +135,11 @@ Sint32 SFD_SetVideoPts(SFD sfd, Uint8 *buf, Sint32 size)
 	p = (Uint8 *)(((Uint32)buf + 7) & ~7);
 	size -= p - buf;
 	memset(p, 0, size);
-	sfd->buf[1].ptsque.ent = (SFPTS_ENT *)p;
-	sfd->buf[1].ptsque.num = size / 16;
-	sfd->buf[1].ptsque.cnt = 0;
-	sfd->buf[1].ptsque.wr = 0;
-	sfd->buf[1].ptsque.rd = 0;
+	sfd->buf[1].u.ring.ptsque.ent = (SFPTS_ENT *)p;
+	sfd->buf[1].u.ring.ptsque.num = size / 16;
+	sfd->buf[1].u.ring.ptsque.cnt = 0;
+	sfd->buf[1].u.ring.ptsque.wr = 0;
+	sfd->buf[1].u.ring.ptsque.rd = 0;
 	return 0;
 }
 

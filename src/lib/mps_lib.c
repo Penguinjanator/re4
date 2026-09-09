@@ -99,8 +99,8 @@ MPS MPS_Create(void)
 	mps->errcode = 0;
 	mps->x10 = 2;
 	mps->packhd.scr = -1;
-	mps->packhd.mux_rate = -1;
 	mps->packhd.rsv = -1;
+	mps->packhd.mux_rate = -1;
 	for (i = 0; i < 8; i++) {
 		mps->last_syshd.raw[i] = -1;
 	}

@@ -9,8 +9,8 @@ typedef struct MPS_OBJ *MPS;
 /* pack header (16 bytes, 8-byte aligned: holds the 64-bit SCR) */
 typedef struct {
 	Sint64 scr;
-	Sint32 mux_rate;
 	Sint32 rsv;
+	Sint32 mux_rate;      /* 0x0C (sfd_cre reads it) */
 } MPS_PACKHD;
 
 /* system header (32 bytes) */
@@ -63,5 +63,13 @@ extern MPSLIB_WORK *MPSLIB_libwork;
 
 Sint32 MPSLIB_CheckHn(MPS mps);
 Sint32 MPSLIB_SetErr(MPS mps, Sint32 code);
+MPS MPS_Create(void);
+Sint32 MPS_Destroy(MPS mps);
+Uint32 MPS_CheckDelim(Uint8 *p);
+Sint32 MPS_DecHd(MPS mps, Uint8 *data, Sint32 size, Sint32 *len, Sint32 *flags);
+Sint32 MPS_GetPackHd(MPS mps, MPS_PACKHD *hd);
+Sint32 MPS_GetSysHd(MPS mps, MPS_SYSHD *hd, Sint32 no);
+Sint32 MPS_GetLastSysHd(MPS mps, MPS_SYSHD *hd);
+Sint32 MPS_GetPketHd(MPS mps, MPS_PKETHD *hd);
 
 #endif

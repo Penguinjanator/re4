@@ -1792,6 +1792,22 @@ SDK/CRI MWCC register-allocation levers found on reverb_std, svm and ax_rna (MWC
   p r28, sfd r27`); ours gives locals first (`ver r31, fhd r30, sfh r29`) or params last. Inlined
   helper values, block scoping, `register`, statement order and a dozen structural variants tried.
 
+- Buffer-table access `sfd->buf[n].field` folds the table base into the displacement; to keep a pointer
+  across calls with the folded form use a shifted view type (`struct { Uint8 pad[0x1308]; SFBUF_WORK w; }`).
+- A 64-bit result assembled by statements (`hi <<= 32; hi |= pos; return hi;`) frees the argument
+  register for the intermediate; the single expression takes a fresh register.
+- `static Bool f() { if (a == b) return 1; return 0; }` inlined keeps `subf/cntlzw/srwi.`;
+  `return a == b;` inlined folds into `cmplw/bne`.
+- MWCC addresses all globals it defines in one .bss via one base (`sym@ha` + offsets).
+- A local `Char8 hdr[] = "..."` is a `mtctr` word-copy loop at its declaration point.
+- MPEG field extraction: explicit masks `(b >> 4) & 0xF` give `extrwi`/`rlwimi`; unmasked gives `srawi`.
+- `for (;;) { if (f()) goto found; ...; if (i >= 3) break; i++; } goto done; found: ...; done:`
+  reproduces the found block after the loop with both exits jumping past it.
+- OPEN (MWCC, blocking ~60 units): callee-saved/volatile register priority is a computed ranking, not
+  declaration or first-use order; brute force of declaration/statement/scope/`register`/types does
+  not move it. Also OPEN: `&wk->u.ring` kept in a callee-saved reg; ternary/if-else diamond sunk to its
+  use; `adr[8]` kept on the stack; `bne body; b end` after `mr.`.
+
 ## REL modules
 
 The game loads its rooms, enemies, weapons and debug tools as Nintendo REL overlays. `ninja` rebuilds the
