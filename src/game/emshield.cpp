@@ -552,18 +552,18 @@ void emShield_R1_Fall(cEmShield* em)
     em->setStatus(1);
     floor = EatMgr.getFloor(&em->pos, 600.0f, 100000.0f, 0, 0) + 80.0f;
     for (i = 0; i < 3; i++) {
-        EmTreeNode* n = &node[i];
+        n = &node[i];
         n->spd.x = w->pt[i].x;
         n->spd.y = w->pt[i].y;
         n->spd.z = w->pt[i].z;
     }
     for (i = 0; i < 3; i++) {
-        EmTreeNode* n = &node[i];
+        n = &node[i];
         PSMTXMultVec(em->mat, &pt[i], &n->pos);
         n->old = n->pos;
     }
     for (i = 0; i < 3; i++) {
-        EmTreeNode* n = &node[i];
+        n = &node[i];
         if (i == 2) {
             nx = node;
         } else {
@@ -572,14 +572,14 @@ void emShield_R1_Fall(cEmShield* em)
         n->len = GetDistance3(&n->pos, &nx->pos);
     }
     for (i = 0; i < 3; i++) {
-        EmTreeNode* n = &node[i];
+        n = &node[i];
         n->spd.y -= w->gravity;
         PSVECAdd(&n->pos, &n->spd, &n->pos);
         n->onFloor = 0;
     }
     for (k = 0; k < 30; k++) {
         for (i = 0; i < 3; i++) {
-            EmTreeNode* n = &node[i];
+            n = &node[i];
             if (i == 2) {
                 nx = node;
             } else {
@@ -602,7 +602,7 @@ void emShield_R1_Fall(cEmShield* em)
         }
     }
     for (i = 0; i < 3; i++) {
-        EmTreeNode* n = &node[i];
+        n = &node[i];
         if (i == 2) {
             nx = node;
         } else {
@@ -636,7 +636,7 @@ void emShield_R1_Fall(cEmShield* em)
         PSVECScale(&n->spd, &n->spd, 0.999f);
     }
     for (i = 0; i < 3; i++) {
-        EmTreeNode* n = &node[i];
+        n = &node[i];
         w->pt[i].x = n->spd.x;
         w->pt[i].y = n->spd.y;
         w->pt[i].z = n->spd.z;

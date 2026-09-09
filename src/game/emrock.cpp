@@ -149,8 +149,7 @@ cEmRock* SetRock(void* bin, void* tpl, Vec* pos, Vec* rot, u8 type)
             em->lightInfo.init2(0, 1, &ofs, &size, 8);
         }
     }
-    int zero = 0;
-    LockPartsSet(em, zero);
+    LockPartsSet(em, 0);
     em->lockOfs.x = 0.0f;
     em->lockOfs.y = 0.0f;
     em->lockOfs.z = 0.0f;
@@ -161,30 +160,30 @@ cEmRock* SetRock(void* bin, void* tpl, Vec* pos, Vec* rot, u8 type)
     em->atari.clrFlag100();
     em->be_flag &= ~0x10;
     w->alwaysWait = 4;
-    w->sndId = zero;
-    w->flags = zero;
-    w->x24 = zero;
+    w->sndId = 0;
+    w->flags = 0;
+    w->x24 = 0;
     w->pParent = 0;
-    w->x30 = zero;
+    w->x30 = 0;
     w->pAtk = 0;
-    w->xA1 = zero;
-    w->se8C = zero;
+    w->xA1 = 0;
+    w->se8C = 0;
     w->seFall[0] = 0xFF;
     w->seFall[1] = 0xFF;
-    w->seFall[2] = zero;
-    w->seFall[3] = zero;
+    w->seFall[2] = 0;
+    w->seFall[3] = 0;
     w->se8D[0] = 0xFF;
     w->se8D[1] = 0xFF;
-    w->se8D[2] = zero;
+    w->se8D[2] = 0;
     w->se97[0] = 0xFF;
     w->se97[1] = 0xFF;
-    w->se97[2] = zero;
+    w->se97[2] = 0;
     w->se90[0] = 0xFF;
     w->se90[1] = 0xFF;
-    w->se90[2] = zero;
+    w->se90[2] = 0;
     w->seAlways[0] = 0xFF;
     w->seAlways[1] = 0xFF;
-    w->seAlways[2] = zero;
+    w->seAlways[2] = 0;
     w->effFall[0] = 0xFF;
     w->effFall[1] = 0xFF;
     w->eff9E[0] = 0xFF;
@@ -196,9 +195,9 @@ cEmRock* SetRock(void* bin, void* tpl, Vec* pos, Vec* rot, u8 type)
     } else {
         w->radius = 2000.0f;
     }
-    w->started = zero;
+    w->started = 0;
     w->grav = 20.0f;
-    w->rollWait = zero;
+    w->rollWait = 0;
     em->pMotion = 0;
     w->plMot[2] = 0;
     w->plMot[3] = 0;
@@ -219,9 +218,9 @@ cEmRock* SetRock(void* bin, void* tpl, Vec* pos, Vec* rot, u8 type)
     em->setStatus(5);
     em->flags_3C8 &= ~1;
     em->xFC = 1;
-    em->xFD = zero;
-    em->xFE = zero;
-    em->xFF = zero;
+    em->xFD = 0;
+    em->xFE = 0;
+    em->xFF = 0;
     emRock_R0_Move(em);
     return em;
 }

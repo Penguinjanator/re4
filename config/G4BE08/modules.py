@@ -277,7 +277,7 @@ UNITS = {
     # t_mv (ToolMotionViewer), the full t_prim.cpp (18 functions), t_rck.cpp, t_sce_at.cpp (the same
     # object as t_sce's), t_tplview, the full t_util.cpp (TutilGet3DPosXZ* etc.), t_vib, tools.cpp.
     "Tools": [
-        ("Tools/db_light.cpp", None),
+        ("Tools/db_light.cpp", None, "tools/db_light_tools.cpp"),
         ("Tools/db_mod.cpp", "dbModSetViewFlag", None, {".rodata": 0x1640}),
         ("Tools/db_toolbase.cpp", "MakeCol"),
         ("Tools/t_atari.cpp", "ToolAtari", None, {".rodata": 0x259C}),
@@ -305,7 +305,7 @@ UNITS = {
     # t_esp, starts with __builtin_new/delete like t_lightarea), t_light's build of t_util.cpp, tools.cpp
     # with the module's linkonce tail.
     "t_esp": [
-        ("t_esp/db_light.cpp", None),
+        ("t_esp/db_light.cpp", None, "tools/db_light_esp.cpp"),
         ("t_esp/db_mod.cpp", "dbModSetViewFlag", None, {".rodata": 0x1640}),
         ("t_esp/db_port.cpp", "GetActiveModel", None, {".rodata": 0x23F4}),
         ("t_esp/db_widget.cpp", "DB_RECT::ChkHitRect", None, {".rodata": 0x2CCC}),

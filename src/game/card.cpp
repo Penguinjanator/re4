@@ -136,6 +136,8 @@ struct MesPos {
 #define SYS_SIZE 0x1E7C
 
 static inline void U16Inc(u16& v) { v++; }
+// Member read through a reference (no struct flag): stays below a preceding store to a static.
+static inline s32 IRef(s32& v) { return v; }
 static inline u32 bitChk(u32 f, u32 b) { return f & b; }
 
 #define KEY_A 0x80000000
@@ -1435,7 +1437,7 @@ void cCard::errorDisp()
     case 0:
         CoreSeCall(0x2A, 0, 0, 0, 0);
         cardcheck = 1;
-        switch (errCode) {
+        switch (IRef(errCode)) {
         case -3:
             if (type == 2) {
                 mesNo = 0x18;
@@ -1655,12 +1657,10 @@ void cCard::errorDisp()
                 } else {
                     mode = 1;
                 }
-// PERM-BEGIN
-                sub2 = 0;
                 step = 0;
                 sub = 0;
+                sub2 = 0;
                 formatted = 0;
-    // PERM-END
             }
             break;
         case -0x80:
@@ -1673,9 +1673,9 @@ void cCard::errorDisp()
                 } else {
                     mode = 1;
                 }
-                sub2 = 0;
                 step = 0;
                 sub = 0;
+                sub2 = 0;
                 formatted = 0;
             }
             break;
@@ -3082,20 +3082,18 @@ void CardDbgCacheSet()
 // Digits of `num` into id units idNo, idNo-1, ... (ones first). A macro: every expansion shares
 // dispSaveInfo's `u` (the unit pointer is copied to the same register each time).
 #define putNumber(id, num_, idNo_, digits_, type)         \
-    do {                                                  \
+    {                                                     \
         int d[3];                                         \
         int i;                                            \
-        int idNo = (idNo_);                               \
         num = (num_);                                     \
         for (i = 0; i <= (digits_) - 1; i++) {            \
             d[i] = num % 10;                              \
             num /= 10;                                    \
-            u = (id)->unitPtr(idNo, type);                \
-            idNo--;                                       \
+            u = (id)->unitPtr((idNo_) - i, type);         \
             u->flags_7F |= 2;                             \
             u->no = d[i];                                 \
         }                                                 \
-    } while (0)
+    }
 
 void dispSaveInfo(int no, SaveInfo* info, u8 type, int broken)
 {
@@ -3108,7 +3106,6 @@ void dispSaveInfo(int no, SaveInfo* info, u8 type, int broken)
     u32 h;
     u32 m;
     u32 s;
-    int cnt;
     int num;
 
     putNumber(id, no + 1, 2, 2, type);
@@ -3206,11 +3203,11 @@ skip:
         id->unitPtr(0x11, type)->flags |= 8;
         id->unitPtr(0x12, type)->flags |= 8;
     }
-    cnt = info->count + 1;
+    num = info->count + 1;
     if (info->mode == 3) {
-        cnt = info->count;
+        num = info->count;
     }
-    putNumber(id, cnt, 0x14, 2, type);
+    putNumber(id, num, 0x14, 2, type);
     if (broken) {
         id->unitPtr(0x13, type)->flags &= ~8;
         id->unitPtr(0x14, type)->flags &= ~8;
@@ -3334,12 +3331,14 @@ void CardID::init(int type, CardArc* data)
     IdSys.unitPtr(1, 0x11)->flags &= ~8;
     IdSys.unitPtr(1, 0x11)->dir |= 0xF;
     zero = 0.0f;
-    for (i = 0; i < 7; i++) {
-        u = g_id->idsys.unitPtrI(0x15, 0x40 + i);
-        IdUnit* q = g_id->idsys.unitPtr((u8) (i + 0x10), 0x18);
+    for (int j = 0; j < 7; j++) {
+        IdUnit* p = g_id->idsys.unitPtrI(0x15, 0x40 + j);
+        IdUnit* q = g_id->idsys.unitPtr((u8) (j + 0x10), 0x18);
         q->kind = 1;
-        u->scr.x = u->scr.y = u->scr.z = zero;
-        g_id->idsys.unitParent(q, u);
+        FSet(p->scr.z, zero);
+        FSet(p->scr.y, zero);
+        FSet(p->scr.x, zero);
+        g_id->idsys.unitParent(q, p);
     }
     u = g_id->idsys.unitPtr(0, 0x18);
     g_p_path_org[0] = u->path0;

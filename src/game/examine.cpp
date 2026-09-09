@@ -807,6 +807,10 @@ void ItemExamine::move()
         f32 r2;
         f32 h;
         f32 len;
+        f32 dif;
+        f32 r;
+        f32 y;
+        f32 z;
 
         len = SQRTF(b->size.x * b->size.x + b->size.y * b->size.y + b->size.z * b->size.z);
         if (info) {
@@ -821,13 +825,13 @@ void ItemExamine::move()
         r0 = atan2f(a.y, dist);
         r1 = atan2f(c.y, dist);
         r2 = atan2f(e.y, dist);
-        r0 = fabsf(r0 - r1);
-        r0 = len * tanf((3.1415927f - r0) * h);
-        dist = r0 * SINF(r2);
-        r0 = r0 * COSF(r2);
-        _campos.y = -dist;
-        _campos.z = r0;
-        _target.y = -dist;
+        dif = fabsf(r0 - r1);
+        r = len * tanf((3.1415927f - dif) * h);
+        y = r * SINF(r2);
+        z = r * COSF(r2);
+        _target.y = -y;
+        _campos.y = -y;
+        _campos.z = z;
         itemCamera.param.pos = _campos;
         itemCamera.param.at = _target;
         itemCamera.up = _up;

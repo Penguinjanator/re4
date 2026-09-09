@@ -44,11 +44,24 @@ def read_class(s):
                     return name, s  # non-type argument: leave the arguments out
                 cls, rest2 = read_class(rest[1:])
                 if cls is None:
+                    cls, rest2 = read_builtin(rest[1:])  # cVarRange<unsigned char> (t9cVarRange1ZUc)
+                if cls is None:
                     return name, s
                 args.append(cls); rest = rest2
             return f"{name}<{', '.join(args)}>", rest
         return name, s
     return None, s
+
+BUILTIN = {"c": "char", "s": "short", "i": "int", "l": "long", "x": "long long", "f": "float", "d": "double",
+           "r": "long double", "b": "bool", "v": "void", "w": "wchar_t"}
+
+def read_builtin(s):
+    """Parse a builtin type code (`Uc`, `Sc`, `i`, ...) as a template argument; returns (name, rest)."""
+    m = re.match(r"([US]?)([csilxfdrbvw])", s)
+    if not m:
+        return None, s
+    pre = {"U": "unsigned ", "S": "signed ", "": ""}[m.group(1)]
+    return pre + BUILTIN[m.group(2)], s[m.end():]
 
 def demangle_v2(sym):
     """Return `Class::Method` / `func` for a GNU v2 mangled name, ignoring argument types."""
@@ -70,6 +83,13 @@ def demangle_v2(sym):
         cls, _ = read_class(sym[2:])
         if cls:
             return f"{cls}::{re.sub(r'<.*', '', cls)}"
+    # conversion operator: __opi__13Class (Bio4.sym: "Class::operator int")
+    m = re.match(r"^__op([USP]*[csilxfdrbvw])__(.*)$", sym)
+    if m:
+        typ, _ = read_builtin(m.group(1))
+        cls, _ = read_class(m.group(2))
+        if typ and cls:
+            return f"{cls}::operator {typ}"
     # operator: __eq__13Class or __eq__Fii
     m = re.match(r"^__([a-z]{2,3})__(.*)$", sym)
     if m and m.group(1) in OPS:

@@ -96,25 +96,26 @@ void Espgen45_static_init()
     g_sa = 0.0f;
 }
 
+// u8 -> f32 through GQR2 from a stack byte (the compiler only emits psq_l from its own fpmem slot).
+#define PSQ_L_U8(p) ({ f32 f_; asm volatile("psq_l %0,0(%1),1,2" : "=f"(f_) : "b"(p) : "memory"); f_; })
+
 // Bump texture (I8, 8x4 tiles) index of grid point (x, y).
 #define BUMP_INDEX(x, y, w1) (((y) / 4 * 32) * ((w1) >> 3) + ((x) / 8) * 32 + (((y) & 3) << 3) + ((x) & 7))
 // Noise texture (0xFE) index of grid point (x, y).
 #define NOISE_INDEX(x, y) ((((y) << 6) & 0xB00) + (((x) << 2) & 0xA0) + (((y) & 3) << 3) + ((x) & 7))
-
-// Unused neighbour weights; the reference parameters leave the literals in the frame.
-static inline void WaveDir(const f32& a, const f32& b, const f32& c, const f32& d)
-{
-}
 
 void Espgen45_Move00(EspgenWork* w)
 {
     static f32 g45_wave_mul = 0.001f;
     static f32 wt_pow = 10.0f;
     Espgen42Work* p = (Espgen42Work*) w->work;
-    WaveDir(1.0f, 0.0f, 0.0f, 1.0f);
+    Vec d0;
+    Vec d1;
     Vec v;
-    WaveDir(-1.0f, 0.0f, 0.0f, -1.0f);
+    Vec d2;
+    Vec d3;
     Mtx m;
+    u8 tmp;
     GXTexObj* tex;
     u8* noise;
     u32 frame;
@@ -126,15 +127,23 @@ void Espgen45_Move00(EspgenWork* w)
     int j;
     int k;
 
-    pG->flags_500C |= 0x200;
+    d0.x = 1.0f;
+    d0.z = 0.0f;
+    d1.x = 0.0f;
+    d1.z = 1.0f;
+    d2.x = -1.0f;
+    d2.z = 0.0f;
+    d3.x = 0.0f;
+    d3.z = -1.0f;
     frame = pG->flags_51E4 % 60;
+    BitOn(pG->flags_500C, 0x200);
     if (g_bTargetCamera == 1) {
-        g_Target_x = pG->Cam.param.pos.x;
-        g_Target_z = pG->Cam.param.pos.z;
+        FSet(g_Target_x, pG->Cam.param.at.x);
+        FSet(g_Target_z, pG->Cam.param.at.z);
     }
-    p->pos0.x = g_Target_x;
+    FSet(p->pos0.x, g_Target_x);
     p->pos0.z = g_Target_z;
-    if (g_bTargetHeight == 1) {
+    if (IGet(g_bTargetHeight) == 1) {
         p->pos0.y = g_Target_y;
     } else {
         p->pos0.y = p->xC0;
@@ -174,11 +183,10 @@ void Espgen45_Move00(EspgenWork* w)
     }
     noise = (u8*) GXGetTexObjData(tex) + 0x80000000;
     u32 nx = p->nx;
-    u32 ny = p->ny;
     f32 hx = (f32) (int) (nx / 2);
-    f32 hy = (f32) (int) (ny / 2);
+    f32 hy = (f32) (int) (p->ny / 2);
     f32 inx = 1.0f / (f32) (int) nx * inv_mul;
-    f32 iny = 1.0f / (f32) (int) ny * inv_mul;
+    f32 iny = 1.0f / (f32) (int) p->ny * inv_mul;
     if (g_bSetParam == 0) {
         mode = p->mode;
     } else {
@@ -187,7 +195,7 @@ void Espgen45_Move00(EspgenWork* w)
     if (mode != 1) {
         if ((pG->flags_64 & 0x00800000) && (Joy[0].on & 0x100)) {
             f32* h = p->hB;
-            int idx = (int) ((f32) (int) (nx * ny) * 0.5f);
+            int idx = (int) ((f32) (int) (p->ny * p->nx) * 0.5f);
             h[idx] -= wt_pow;
         }
         f32 damp;
@@ -218,15 +226,17 @@ void Espgen45_Move00(EspgenWork* w)
             f32 fx = 1.0f;
             k = i * w1 + 1;
             for (j = 1; j < nx; j++) {
-                f32 n = (f32) noise[NOISE_INDEX(j, i)] - 80.0f;
-                f32 sum = cur[k - 1] + cur[k + 1] + cur[k - (nx + 1)] + cur[k + (nx + 1)];
+                tmp = noise[NOISE_INDEX(j, i)];
+                f32 n = PSQ_L_U8(&tmp) - 80.0f;
+                f32* c = &cur[k];
+                f32 sum = c[-1] + c[1] + c[-1 - (int) nx] + c[1 + (int) nx];
                 next[k] = damp * sum + cdamp * cur[k] - next[k];
                 next[k] = (n * g45_wave_mul + next[k]) * spread;
                 p->pos[k].y = next[k];
                 v.x = p->pos[k - 1].y - p->pos[k + 1].y;
                 v.y = 2.0f;
                 v.z = p->pos[k - nx].y - p->pos[k + nx].y;
-                PSVECScale(&v, &p->nrm[k], 0.4347826f);
+                PSVECScale(&v, &p->nrm[k], 1.0f / 2.3f);
                 p->bump[BUMP_INDEX(j, i, w1)] = (u8) (p->nrm[k].x * 255.0f * 2.0f + 128.0f);
                 p->nrm[k].x += (fx - hx) * inx;
                 p->nrm[k].y *= 0.25f;
@@ -252,7 +262,7 @@ void Espgen45_Move00(EspgenWork* w)
                 v.x = p->pos[k - 1].y - p->pos[k + 1].y;
                 v.y = 2.0f;
                 v.z = p->pos[k - p->nx].y - p->pos[k + p->nx].y;
-                PSVECScale(&v, &p->nrm[k], 0.4347826f);
+                PSVECScale(&v, &p->nrm[k], 1.0f / 2.3f);
                 p->bump[BUMP_INDEX(j, i, p->nx + 1)] = (u8) (p->nrm[k].x * 255.0f * 2.0f + 128.0f);
                 p->nrm[k].x += ((f32) j - (f32) (p->nx / 2)) * (1.0f / (f32) p->nx);
                 p->nrm[k].y *= 0.25f;
@@ -642,8 +652,9 @@ void Espgen45_TransSub(EspgenWork* w)
     }
 }
 
-// Dead-stripped from the DOL (string kept): pulls a generator and sets the surface up.
-static EspgenWork* SetWater(Vec* pos, Vec* rot, f32 size, u32 nx, u32 ny)
+// Dead-stripped from the DOL (string kept, no pool: STRIP_UNUSED): pulls a generator and sets the
+// surface up.
+static EspgenWork* SetWater(Vec* pos, Vec* rot, f32 size, u32 nx, u32 ny, f32 rate)
 {
     EspgenWork* w;
 
@@ -651,7 +662,7 @@ static EspgenWork* SetWater(Vec* pos, Vec* rot, f32 size, u32 nx, u32 ny)
         pLog->err(0, 0, "Espgen45 : work pull failed");
         return NULL;
     }
-    return SetWaterWork45(w, pos, rot, size, nx, ny, 1.0f);
+    return SetWaterWork45(w, pos, rot, size, nx, ny, rate);
 }
 
 EspgenWork* SetWaterWork45(EspgenWork* w, Vec* pos, Vec* rot, f32 size, u32 nx, u32 ny, f32 rate)
@@ -670,10 +681,10 @@ EspgenWork* SetWaterWork45(EspgenWork* w, Vec* pos, Vec* rot, f32 size, u32 nx, 
     p->nx = nx;
     p->ny = ny;
     p->size = size;
-    p->spread = 0.95f;
     p->damp = 0.05f;
+    p->spread = 0.95f;
     p->pos0 = *pos;
-    if (g_bSetParam == 0) {
+    if (IGet(g_bSetParam) == 0) {
         PSMTXScale(p->mat, p->size, p->size * 0.05f + 100.0f, p->size);
     } else {
         RotMatrix(p->mat, &g_Free.rot);
@@ -683,10 +694,10 @@ EspgenWork* SetWaterWork45(EspgenWork* w, Vec* pos, Vec* rot, f32 size, u32 nx, 
     PSMTXTransApply(p->mat, p->mat, p->pos0.x, p->pos0.y, p->pos0.z);
     PSMTXInverse(p->mat, p->inv);
     if (rate == 0.0f) {
-        rate = 0.0002f;
+        rate = 0.0001f;
     }
     p->mat[1][1] *= rate;
-    n = sizeof(f32) * (p->ny + 1) * (p->nx + 1);
+    n = sizeof(f32) * (p->nx + 1) * (p->ny + 1);
 #line 1452 "D:/Bio4/Prog/espgen45.cpp"
     p->hA = (f32*) MEM_ALLOC(n, 1, 13);
     if (p->hA == NULL) {
@@ -699,7 +710,7 @@ EspgenWork* SetWaterWork45(EspgenWork* w, Vec* pos, Vec* rot, f32 size, u32 nx, 
         goto nomem;
     }
     memclr_asm(p->hB, n);
-    n = sizeof(Vec) * (p->ny + 1) * (p->nx + 1);
+    n = sizeof(Vec) * (p->nx + 1) * (p->ny + 1);
 #line 1468 "D:/Bio4/Prog/espgen45.cpp"
     p->pos = (Vec*) MEM_ALLOC(n, 1, 13);
     if (p->pos == NULL) {
@@ -713,7 +724,7 @@ EspgenWork* SetWaterWork45(EspgenWork* w, Vec* pos, Vec* rot, f32 size, u32 nx, 
     }
     memclr_asm(p->nrm, n);
 #line 1484 "D:/Bio4/Prog/espgen45.cpp"
-    p->bump = (u8*) MEM_ALLOC(sizeof(Vec) * p->ny * p->nx, 1, 13);
+    p->bump = (u8*) MEM_ALLOC(sizeof(Vec) * p->nx * p->ny, 1, 13);
     if (p->bump == NULL) {
         goto nomem;
     }
@@ -787,10 +798,10 @@ EspgenWork* SetWaterWork45(EspgenWork* w, Vec* pos, Vec* rot, f32 size, u32 nx, 
         }
     }
     fy = 0.0f;
-    for (i = 0; i < p->ny + 1; i++) {
-        int idx = i * (p->nx + 1);
+    for (int i2 = 0; i2 < p->ny + 1; i2++) {
+        int idx = i2 * (p->nx + 1);
         fx = 0.0f;
-        for (j = 0; j < p->nx + 1; j++) {
+        for (int j2 = 0; j2 < p->nx + 1; j2++) {
             p->pos[idx].x = fx - (f32) (p->nx / 2);
             fx += 1.0f;
             p->pos[idx].y = fRand1_1() * 0.2f;
@@ -800,9 +811,9 @@ EspgenWork* SetWaterWork45(EspgenWork* w, Vec* pos, Vec* rot, f32 size, u32 nx, 
             p->nrm[idx].z = 0.0f;
             p->hA[idx] = 0.0f;
             p->hB[idx] = 0.0f;
-            p->nrm[idx].x += ((f32) j - (f32) (p->nx / 2)) * (1.0f / (f32) p->nx);
+            p->nrm[idx].x += ((f32) j2 - (f32) (p->nx / 2)) * (1.0f / (f32) p->nx);
             p->nrm[idx].y *= 0.25f;
-            p->nrm[idx].z += ((f32) i - (f32) (p->ny / 2)) * (1.0f / (f32) p->ny);
+            p->nrm[idx].z += ((f32) i2 - (f32) (p->ny / 2)) * (1.0f / (f32) p->ny);
             idx++;
         }
         fy += 1.0f;
@@ -876,7 +887,7 @@ int Espgen45_SetFreeWork(EspgenWork* w, EspGenWork* rec, EspSeqData* head, cMode
 
     if (EspGetTexObj(0xFE, 0) == NULL) {
         pLog->err(0, 0, "Espgen45 : WaterTex(0xfe) not found!");
-        goto fail;
+        return 0;
     }
     if (rec->flags & 1) {
         p->flag |= 1;
@@ -889,15 +900,15 @@ int Espgen45_SetFreeWork(EspgenWork* w, EspGenWork* rec, EspSeqData* head, cMode
     if (rec->xFC != 0) {
         nx = rec->xFC;
         if (nx > 0xB8) {
-            pLog->warn(0, 0, "ESP_WATER : width > 184");
             nx = 0xB8;
+            pLog->warn(0, 0, "ESP_WATER : width > 184");
         }
     }
     if (rec->xFD != 0) {
         ny = rec->xFD;
         if (ny > 0xB8) {
-            pLog->warn(0, 0, "ESP_WATER : height > 184");
             ny = 0xB8;
+            pLog->warn(0, 0, "ESP_WATER : height > 184");
         }
     }
     if (nx & 7) {
@@ -913,37 +924,35 @@ int Espgen45_SetFreeWork(EspgenWork* w, EspGenWork* rec, EspSeqData* head, cMode
     rate = 1.0f - (f32) (int) rec->xFE / 255.0f;
     p->rotY = rec->xFE;
     PSVECScale(&rec->x58, &r, 6.28f / 360.0f);
-    if (SetWaterWork45(w, (Vec*) &rec->x0C, &r, rec->x88, nx, ny, rate) == 0) {
-        goto fail;
-    }
-    p->col.r = rec->x9C;
-    p->col.g = rec->x9D;
-    p->col.b = rec->x9E;
-    p->col.a = rec->x9F;
-    p->amb.r = rec->xA0 * 255.0f;
-    p->amb.g = rec->xA4 * 255.0f;
-    p->amb.b = rec->xA8 * 255.0f;
-    p->amb.a = rec->xAC * 255.0f;
-    p->mode = rec->xC8;
-    p->xC0 = p->x18;
-    if (p->mode == 2) {
-        p->damp = 0.5f - (f32) (s8) rec->xC9 * 0.005f;
-        if (p->damp > 0.5f) {
-            p->damp = 0.5f;
+    if (SetWaterWork45(w, (Vec*) &rec->x0C, &r, rec->x88, nx, ny, rate) != 0) {
+        p->col.r = rec->x9C;
+        p->col.g = rec->x9D;
+        p->col.b = rec->x9E;
+        p->col.a = rec->x9F;
+        p->amb.r = rec->xA0 * 255.0f;
+        p->amb.g = rec->xA4 * 255.0f;
+        p->amb.b = rec->xA8 * 255.0f;
+        p->amb.a = rec->xAC * 255.0f;
+        p->mode = rec->xC8;
+        p->xC0 = p->x18;
+        if (p->mode == 2) {
+            p->damp = 0.5f - (f32) (s8) rec->xC9 * 0.005f;
+            if (p->damp > 0.5f) {
+                p->damp = 0.5f;
+            }
+            if (p->damp < 0.0f) {
+                p->damp = 0.0f;
+            }
+            p->spread = 0.99f - (f32) (int) rec->xCA * 0.001f;
         }
-        if (p->damp < 0.0f) {
-            p->damp = 0.0f;
-        }
-        p->spread = 0.99f - (f32) (int) rec->xCA * 0.001f;
+        p->texId = rec->x2;
+        p->indS = rec->prm.h.xCE;
+        p->indT = rec->prm.h.xD2;
+        p->stages = rec->xCB;
+        g_pWater45 = w;
+        Espgen45_Move(w);
+        return 1;
     }
-    p->texId = rec->x2;
-    p->indS = rec->prm.h.xCE;
-    p->indT = rec->prm.h.xD2;
-    p->stages = rec->xCB;
-    g_pWater45 = w;
-    Espgen45_Move(w);
-    return 1;
-fail:
     return 0;
 }
 

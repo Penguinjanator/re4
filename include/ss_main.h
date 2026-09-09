@@ -287,13 +287,13 @@ void sscrnModelClear(SUB_SCREEN* wk);
 void sscrnLightClear(SUB_SCREEN* wk);
 void sscrnLightCreate(SUB_SCREEN* wk, cLit* lit);
 void sscrnMainMenuInit(SUB_SCREEN* wk, int no);
-void numDisp(int id, int num, Vec* pos, u32 flags);
+void numDisp(u8 id, int num, Vec* pos, u32 flags);
 // ss_debug.cpp
 void SscrnDebugMenu(SUB_SCREEN* wk);
 // ss_pzzl.cpp
 void pieceModelInit(SUB_SCREEN* wk);
 // ss_model.cpp
-void weaponFilename(char* name, u16 no);
+void weaponFilename(char* name, int no);
 void playerModelInit();
 void leonModelInit(u16 no, u16 type);
 void ashleyModelInit();

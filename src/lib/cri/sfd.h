@@ -191,18 +191,65 @@ typedef struct {
 	Sint32 x10;
 } SFLIB_ERRINF;
 
+/* Sofdec file header analysis results (sfd_hds.c, 0x894 bytes): SFD_OBJ + 0x78, SFSEE_WORK + 0xC */
+#define SFHDS_RAW_SIZE 0x800
+
+typedef struct {
+	Sint32 codec;              /* 0x4C */
+	Sint32 layer;              /* 0x50 */
+	Sint32 chnum;              /* 0x54 */
+	Sint32 smphz;              /* 0x58 */
+} SFHDS_AUD;
+
+typedef struct {
+	Sint32 codec;              /* 0x5C */
+	Sint32 bitrate;            /* 0x60 */
+	Sint32 picw;               /* 0x64 */
+	Sint32 pich;               /* 0x68 */
+	Sint32 picrate;            /* 0x6C */
+	Sint32 ftr_eff;            /* 0x70 feature information present */
+	Sint32 ftr_coltype;        /* 0x74 */
+	Sint32 ftr_pictype;        /* 0x78 */
+	Sint32 ftr_fixflg;         /* 0x7C */
+	Sint32 ftr_shcfixflg;      /* 0x80 */
+	Sint32 ftr_expand;         /* 0x84 */
+	Sint32 ftr_gopn;           /* 0x88 */
+	Sint32 ftr_gopm;           /* 0x8C */
+} SFHDS_VID;
+
+typedef struct {
+	Sint32 valid;              /* 0x00 header analysed */
+	Sint32 ver_major;          /* 0x04 muxer tool version */
+	Sint32 ver_minor;          /* 0x08 */
+	Sint32 byterate;           /* 0x0C (negative for tool versions before 1.10) */
+	Sint32 hdrsiz;             /* 0x10 */
+	Sint32 packtype;           /* 0x14 */
+	Sint32 pketsizlen;         /* 0x18 */
+	Sint32 packsiz;            /* 0x1C */
+	Sint32 numelem_tot;        /* 0x20 */
+	Sint32 numelem_aud;        /* 0x24 */
+	Sint32 numelem_vid;        /* 0x28 */
+	Sint32 numelem_prv;        /* 0x2C */
+	Sint32 maxplylen_aud;      /* 0x30 */
+	Sint32 maxplylen_vid;      /* 0x34 */
+	Sint32 maxfrmnum;          /* 0x38 */
+	Sint32 stmid_prv1;         /* 0x3C 0xBD when present */
+	Sint32 stmid_prv2;         /* 0x40 0xBF when present */
+	Sint32 stmid_aud;          /* 0x44 first audio stream id (0xC0..0xDF) */
+	Sint32 stmid_vid;          /* 0x48 first video stream id (0xE0..0xEF) */
+	SFHDS_AUD aud;             /* 0x4C */
+	SFHDS_VID vid;             /* 0x5C */
+	Sint32 rawsiz;             /* 0x90 */
+	Uint8 raw[SFHDS_RAW_SIZE]; /* 0x94 */
+} SFHDS_FHD;
+
 /* seek support work supplied by the user through SFD_EntrySeek (sfd_see.c); the header analysis
  * results of the video / audio streams are kept here, followed by the user-set totals */
 typedef struct {
 	Sint32 analyzed;           /* 0x000 total time known */
 	Sint32 ncount;             /* 0x004 total time */
 	Sint32 tscale;             /* 0x008 */
-	Sint32 mps_hdr;            /* 0x00C system header analysed */
-	Uint8 pad010[0x018 - 0x010];
-	Sint32 mps_time;           /* 0x018 total time from the system header (ms) */
-	Uint8 pad01c[0x040 - 0x01C];
-	Sint32 mps_rate;           /* 0x040 byte rate from the system header */
-	Uint8 pad044[0x8A0 - 0x044];
+	SFHDS_FHD fhd;             /* 0x00C system header analysis */
 	Sint32 vhdr;               /* 0x8A0 video header analysed */
 	Sint32 vncount;            /* 0x8A4 */
 	Sint32 vtscale;            /* 0x8A8 */
@@ -247,7 +294,14 @@ typedef struct SFD_OBJ {
 	Sint32 req;                /* 0x4C requested state (3 = standby, 4 = start) */
 	Sint32 pause_sw;           /* 0x50 */
 	Sint32 pause_cnt;          /* 0x54 */
-	Uint8 pad58[0x950 - 0x58];
+	Uint8 pad58[0x74 - 0x58];
+	Sint32 pad74;
+	SFHDS_FHD fhd;             /* 0x78 file header analysis */
+	Uint8 pad90c[0x930 - 0x78 - sizeof(SFHDS_FHD)];
+	Sint32 numelem_aud;        /* 0x930 copied from fhd after (re)processing */
+	Sint32 numelem_vid;        /* 0x934 */
+	Sint32 numelem_prv;        /* 0x938 */
+	Uint8 pad93c[0x950 - 0x93C];
 	SFD_PLYINF plyinf;         /* 0x950 */
 	SFLIB_ERRINF err;          /* 0x9F0 */
 	Sint32 cond[SFD_COND_NUM]; /* 0xA04 */
@@ -318,6 +372,15 @@ Sint32 SFBUF_VfrmGetRead(SFD sfd, Sint32 buf, void **frm);
 Sint32 UTY_MulDiv(Sint32 a, Sint32 b, Sint32 c);
 Sint32 SFCON_IsEndcodeSkip(SFD sfd);
 Sint32 SFHDS_GetMuxVerNum(SFD sfd);
+Sint32 SFHDS_GetColType(SFD sfd);
+void SFHDS_ProcessHdr(SFHDS_FHD *fhd);
+void SFHDS_ReprocessHdr(SFD sfd);
+Bool SFHDS_IsSfdHeader(void *data, Sint32 size);
+Bool SFHDS_SetHdr(SFD sfd, Sint32 type, Uint8 *data, Sint32 size, Sint32 *result);
+void SFHDS_FinishFhd(SFHDS_FHD *fhd);
+void SFHDS_InitFhd(SFHDS_FHD *fhd);
+void SFHDS_Init(void);
+Sint32 SFMPS_GetConcatCnt(SFD sfd);
 void SFSEE_InitHn(SFSEE_HN *see);
 void SFSEE_ExecServer(SFD sfd);
 void SFSEE_FixAvPlay(SFD sfd, Sint32 a, Sint32 b);

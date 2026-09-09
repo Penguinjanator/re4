@@ -180,7 +180,7 @@ section	offset	size	unit	scope	name	demangled
 .text	0x00011684	0x3C4	st1_3/r11e.cpp	global	R11eInit__Fv	R11eInit
 .text	0x00011A48	0x190	st1_3/r11e.cpp	global	funcAshley	funcAshley
 .text	0x00011BD8	0x6C	st1_3/r11e.cpp	global	R11eMain__Fv	R11eMain
-.text	0x00011C44	0x150	st1_3/r11e.cpp	local	koya_destroy_check	koya_destroy_check
+.text	0x00011C44	0x150	st1_3/r11e.cpp	local	koya_destroy_check__Fv	koya_destroy_check
 .text	0x00011D94	0xBC	st1_3/r11e.cpp	global	koyaA_destroy	koyaA_destroy
 .text	0x00011E50	0xBC	st1_3/r11e.cpp	global	koyaB_destroy	koyaB_destroy
 .text	0x00011F0C	0xA4	st1_3/r11e.cpp	global	koyaA_delete	koyaA_delete
@@ -189,12 +189,12 @@ section	offset	size	unit	scope	name	demangled
 .text	0x00012150	0xE4	st1_3/r11e.cpp	global	sakuB_destroy	sakuB_destroy
 .text	0x00012234	0x74	st1_3/r11e.cpp	global	sakuA_delete	sakuA_delete
 .text	0x000122A8	0x74	st1_3/r11e.cpp	global	sakuB_delete	sakuB_delete
-.text	0x0001231C	0x4BC	st1_3/r11e.cpp	local	r11e_move_sasaeki1	r11e_move_sasaeki1
-.text	0x000127D8	0x240	st1_3/r11e.cpp	local	r11e_EmSet_exit	r11e_EmSet_exit
-.text	0x00012A18	0x190	st1_3/r11e.cpp	local	r11e_EmSet	r11e_EmSet
-.text	0x00012BA8	0xE4	st1_3/r11e.cpp	local	r11e_str_check	r11e_str_check
-.text	0x00012C8C	0xC8	st1_3/r11e.cpp	local	r11e_checkDoor102KeyUse	r11e_checkDoor102KeyUse
-.text	0x00012D54	0x54	st1_3/r11e.cpp	local	r11e_checkDoor	r11e_checkDoor
+.text	0x0001231C	0x4BC	st1_3/r11e.cpp	local	r11e_move_sasaeki1__Fv	r11e_move_sasaeki1
+.text	0x000127D8	0x240	st1_3/r11e.cpp	local	r11e_EmSet_exit__Fv	r11e_EmSet_exit
+.text	0x00012A18	0x190	st1_3/r11e.cpp	local	r11e_EmSet__Fv	r11e_EmSet
+.text	0x00012BA8	0xE4	st1_3/r11e.cpp	local	r11e_str_check__Fv	r11e_str_check
+.text	0x00012C8C	0xC8	st1_3/r11e.cpp	local	r11e_checkDoor102KeyUse__Fv	r11e_checkDoor102KeyUse
+.text	0x00012D54	0x54	st1_3/r11e.cpp	local	r11e_checkDoor__Fv	r11e_checkDoor
 .text	0x00012DA8	0x3B8	st1_3/r11e.cpp	global	fn_st1_3_12DA8	.
 .text	0x00013160	0x31C	st1_3/r11f.cpp	global	R11fInit__Fv	R11fInit
 .text	0x0001347C	0x1D8	st1_3/r11f.cpp	global	r11f_DoorReplace	r11f_DoorReplace

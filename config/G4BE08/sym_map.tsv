@@ -1380,9 +1380,9 @@ address	size	section	unit	scope	name	demangled
 0x80066374	0x20	.text	lib/sndvd.c	global	CheckSeekOffset	CheckSeekOffset
 0x80066394	0xDC	.text	lib/sndvd.c	local	DSIExcHandler	DSIExcHandler
 0x80066470	0x274	.text	lib/sndvd.c	global	DSIHandler	DSIHandler
-0x800666E4	0x14	.text	lib/sndvd.c	local	SNDVDEmuInit	SNDVDEmuInit
+0x800666E4	0x14	.text	lib/sndvd.c	global	SNDVDEmuInit	SNDVDEmuInit
 0x800666F8	0x84	.text	lib/sndvd.c	global	SNDVDEmuInitDSIHandler	SNDVDEmuInitDSIHandler
-0x8006677C	0xBC	.text	lib/sndvd.c	local	SNDVDEmuControl	SNDVDEmuControl
+0x8006677C	0xBC	.text	lib/sndvd.c	global	SNDVDEmuControl	SNDVDEmuControl
 0x80066838	0x274	.text	lib/e_atan2.c	global	atan2	atan2
 0x80066AAC	0x12C	.text	lib/e_log10.c	global	log10	log10
 0x80066BD8	0x234	.text	lib/s_atan.c	global	atan	atan

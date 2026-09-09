@@ -148,6 +148,9 @@ public:
     void printCursor(int x, int y);
     void clearWork();
     void clearSubMenu();
+#ifdef DB_LIGHT_SET_LOG_MODE
+    void setLogMode(int on);
+#endif
     int lightAnalysis();
 };
 
@@ -343,6 +346,33 @@ static inline cLight* curLight()
 {
     return LightMgr.getWorkPtr(pTool->top + pTool->row);
 }
+
+#ifdef DB_LIGHT_SET_TOOL_LIGHT
+// Tools / t_esp / t_sce / t_movie builds: load tool%02x.lit as the current light set (-1: reapply the
+// current camera area's lit). The first function of those objects.
+static int SetToolLight(int no)
+{
+    char path[0x100];
+
+    if (no == -1) {
+        int area = CamCtrl.area_no;
+        if (area == -1) {
+            area = 0;
+        }
+        LightMgr.update(area, -1);
+        return 1;
+    }
+    sprintf(path, path_tool, no);
+    cDbLit lit;
+    if (lit.fileLoad(path) == 0) {
+        return 0;
+    }
+    if (LitLoadWork(&lit, 0) == 0) {
+        return 0;
+    }
+    return 1;
+}
+#endif
 
 cLightTool::cLightTool() : modeSel(0, 2, 0)
 {
@@ -549,15 +579,12 @@ static void menu()
 {
     static const char* menu_name[] = {"EDIT", "PATH", "LOAD", "SAVE", "OPTION", "QUIT"};
     int i;
-    int y = 0x38;
     const char** name;
 
     eprintf(0x20, 0x2A, 4, pTool->color, "MENU");
     name = menu_name;
     for (i = 0; i < 6; i++) {
-        eprintf(0x20, y, 0, pTool->color, *name);
-        name++;
-        y += 14;
+        eprintf(0x20, 0x38 + i * 14, 0, pTool->color, *name++);
     }
     pTool->printCursor(3, pTool->cursor + 4);
     if (pTool->joy.rep & (JOY_UP | JOY_SUP)) {
@@ -591,17 +618,13 @@ static void edit_menu()
         "CUT SELECT", "LIGHT", "AMBIENT", "FOG", "MIRROR FOG", "FOCUS", "BLUR", "MIPMAP", "LIT TUNE",
         "LIT SCALE", "PARAMETER", "WIND",
     };
-    u32 i = 0;
-    int y;
+    u32 i;
     const char** name;
 
     eprintf(0x20, 0x2A, 4, pTool->color, "EDIT WORK");
     name = edit_name;
-    y = 0x38;
-    for (; i < sizeof(edit_name) / sizeof(char*); i++) {
-        eprintf(0x20, y, 0, pTool->color, *name);
-        name++;
-        y += 14;
+    for (i = 0; i < sizeof(edit_name) / sizeof(char*); i++) {
+        eprintf(0x20, 0x38 + i * 14, 0, pTool->color, *name++);
     }
     pTool->printCursor(3, pTool->cursor + 4);
     if (pTool->joy.rep & (JOY_UP | JOY_SUP)) {
@@ -626,37 +649,31 @@ static void edit_cutsel()
 {
     static const char* cut_onoff[] = {"1", "2", "4", "x"};
     static void (*cutsel_tbl[])() = {edit_cutsel_main, edit_cutsel_sub};
-    int i = 0;
-    int y;
-    int y2;
+    int i;
     cLightEnv* env;
     int line;
 
     eprintf(0x20, 0x2A, 4, pTool->color, "CUT TABLE");
     eprintf(0x20, 0x46, 4, pTool->color, "NO  LI AMB FOG  MFOG SHDW FOCUS BLR TUNE SCL");
-    y2 = 0x57;
-    y = 0x54;
-    for (; i < 20; i++) {
+    for (i = 0; i < 20; i++) {
         env = pTool->lit.getCut(pTool->top + i);
-        eprintf(0x20, y, pTool->top + i == pTool->cutNo ? 0 : 0x14, pTool->color, "%03d", pTool->top + i);
+        eprintf(0x20, 0x54 + i * 14, pTool->top + i == pTool->cutNo ? 0 : 0x14, pTool->color, "%03d", pTool->top + i);
         line = i + 6;
         if (PTR_OK(env)) {
-            eprintf(0x40, y, 0, pTool->color, "%2d               %d%d%d  %5d %3d", env->nLight, 0, 0, 0,
+            eprintf(0x40, 0x54 + i * 14, 0, pTool->color, "%2d               %d%d%d  %5d %3d", env->nLight, 0, 0, 0,
                     env->x28 / 10, env->blurAlpha);
-            drawColorTile(0x58, y2, 0x18, 8, env->x0);
-            drawColorTile(0x78, y2, 0x20, 8, *(u32*) &env->bgColor);
-            drawColorTile(0xA0, y2, 0x20, 8, *(u32*) &env->mfog.color);
+            drawColorTile(0x58, 0x57 + i * 14, 0x18, 8, env->x0);
+            drawColorTile(0x78, 0x57 + i * 14, 0x20, 8, *(u32*) &env->bgColor);
+            drawColorTile(0xA0, 0x57 + i * 14, 0x20, 8, *(u32*) &env->mfog.color);
             if (env->tuneOn & 1) {
-                drawColorTile(0x140, y2, 0x20, 8, *(u32*) &env->tune[0]);
+                drawColorTile(0x140, 0x57 + i * 14, 0x20, 8, *(u32*) &env->tune[0]);
             } else {
-                eprintf(0x140, y, 0, pTool->color, "OFF");
+                eprintf(0x140, 0x54 + i * 14, 0, pTool->color, "OFF");
             }
             eprintf(0x168, line * 14, 0, pTool->color, "%s", cut_onoff[env->tevScale[0] & 3]);
             eprintf(0x170, line * 14, 0, pTool->color, "%s", cut_onoff[env->tevScale[1] & 3]);
             eprintf(0x178, line * 14, 0, pTool->color, "%s", cut_onoff[env->pad_42[0] & 3]);
         }
-        y += 14;
-        y2 += 14;
     }
     cutsel_tbl[pTool->sub]();
 }
@@ -671,8 +688,7 @@ static void edit_cutsel_main()
         LitSaveWork(&pTool->lit, pTool->cutNo);
         pTool->top = 0;
         pTool->cursor = pTool->cutNo;
-        pTool->col = 0;
-        pTool->row = 0;
+        pTool->col = pTool->row = 0;
         pTool->init = 1;
     }
     base = pTool->top - 6;
@@ -704,7 +720,11 @@ static void edit_cutsel_main()
         }
     }
     if (pTool->joy.rep & JOY_L) {
-        pTool->cursor = pTool->cursor > 10 ? pTool->cursor - 10 : 0;
+        if (pTool->cursor - 10 > 0) {
+            pTool->cursor -= 10;
+        } else {
+            pTool->cursor = 0;
+        }
         if (pTool->top > pTool->cursor) {
             pTool->top = pTool->cursor;
         }
@@ -746,17 +766,13 @@ static void edit_cutsel_sub()
         "CUT", "COPY", "PASTE", "INSERT", "COPY TO BLANK CUT", "COPY TO ALL CUT",
     };
     int i;
-    int y;
     const char** name;
     int no;
 
     eprintf(0x150, 0x62, 4, pTool->color, "SUB MENU");
     name = cutsel_sub_name;
-    y = 0x70;
     for (i = 0; i < 6; i++) {
-        eprintf(0x150, y, 0, pTool->color, *name);
-        name++;
-        y += 14;
+        eprintf(0x150, 0x70 + i * 14, 0, pTool->color, *name++);
     }
     pTool->printCursor(0x29, pTool->subCursor + 8);
     if ((pTool->joy.rep & JOY_A) || (pTool->joy.trg & JOY_Y)) {
@@ -1141,10 +1157,7 @@ static void edit_light_select_sub()
         pTool->sub -= 20;
     }
     if (pTool->subCursor == 4) {
-        u8 num = pTool->areaNum;
-        if (num < 60) {
-            num = 60;
-        }
+        u8 num = (pTool->areaNum < 60) ? 60 : pTool->areaNum;
         if (pTool->joy.rep & JOY_RIGHT) {
             pTool->xD = (num + pTool->xD + 1) % num;
         } else if (pTool->joy.rep & JOY_LEFT) {
@@ -3031,8 +3044,7 @@ static void edit_ambient()
         if (pTool->joy.rep & JOY_A) {
             pTool->x8 = 2;
         } else if (pTool->joy.rep & JOY_B) {
-            pTool->editNo = 0;
-            pTool->sub = 0;
+            pTool->editNo = pTool->sub = 0;
             pTool->clearWork();
         } else if (pTool->joy.trg & JOY_Y) {
             pTool->x8 = 3;
@@ -4760,23 +4772,31 @@ void cLightTool::clearWork()
 
 void cLightTool::clearSubMenu()
 {
-    subCursor = 0;
-    xF = 0;
-    xE = 0;
-    xD = 0;
-    xC = 0;
+    subCursor = xC = xD = xE = xF = 0;
 }
+
+#ifdef DB_LIGHT_SET_LOG_MODE
+// t_esp build: error logging on / off (the log switch of the tool and of the manager).
+void cLightTool::setLogMode(int on)
+{
+    if (on == 1) {
+        pTool->flags |= 0x20;
+    } else {
+        pTool->flags &= ~0x20;
+    }
+    LightMgr.logOn = on;
+}
+#endif
 
 cDbLit::cDbLit()
 {
-    int i;
-    cLightEnv** p = cut;
+    u32 i;
 
     nCut = 0;
     version = 0;
     nMaxLight = 0;
     for (i = 0; i < 256; i++) {
-        *p++ = NULL;
+        cut[i] = NULL;
     }
 }
 
@@ -4923,15 +4943,15 @@ u32 cDbLit::createLit(cLit* dst)
     u32 ofs;
     u32 size;
     u32* tbl;
-    u8* p;
+    u32 n;
+    cLightEnv* c;
 
     if (!PTR_OK(dst)) {
         TOOL_ERR("cDbLit::createLit() POINTER ERR %08X", dst);
         return 0;
     }
     version = 0x2C;
-    nMaxLight = 0;
-    nCut = 0;
+    nMaxLight = nCut = 0;
     for (i = 0; i < 256; i++) {
         if (cut[i]) {
             nCut = i + 1;
@@ -4944,21 +4964,22 @@ u32 cDbLit::createLit(cLit* dst)
     tbl = (u32*) (dst + 1);
     ofs = nCut * 4 + 4;
     for (i = 0; i < nCut; i++) {
-        if (cut[i]) {
+        c = cut[i];
+        if (c) {
             tbl[i] = ofs;
-            ofs += sizeof(cLightEnv) + cut[i]->nLight * sizeof(cLightWork);
+            ofs += sizeof(cLightEnv) + c->nLight * sizeof(cLightWork);
         } else {
-            tbl[i] = (u32) cut[i];
+            tbl[i] = (u32) c;
         }
     }
-    p = (u8*) &tbl[nCut];
+    dst = (cLit*) &tbl[nCut];
     size = nCut * 4 + 4;
     for (i = 0; i < nCut; i++) {
         if (cut[i]) {
-            u32 n = cut[i]->nLight * sizeof(cLightWork) + sizeof(cLightEnv);
+            n = cut[i]->nLight * sizeof(cLightWork) + sizeof(cLightEnv);
+            memcpy(dst, cut[i], n);
+            dst = (cLit*) ((u8*) dst + n);
             size += n;
-            memcpy(p, cut[i], n);
-            p += n;
         }
     }
     return size;
@@ -5156,21 +5177,32 @@ int editColor(int x, int y, GXColor* col)
 
 const char* strFogType(int type)
 {
+    const char* s;
+
     switch (type) {
     case 0:
-        return "NONE";
+        s = "NONE";
+        break;
     case 2:
-        return "LINEAR";
+        s = "LINEAR";
+        break;
     case 4:
-        return "EXP";
+        s = "EXP";
+        break;
     case 5:
-        return "EXP2";
+        s = "EXP2";
+        break;
     case 6:
-        return "REV EXP";
+        s = "REV EXP";
+        break;
     case 7:
-        return "REV EXP2";
+        s = "REV EXP2";
+        break;
+    default:
+        s = "????";
+        break;
     }
-    return "????";
+    return s;
 }
 
 int fogTypeNext(int type)
@@ -5617,27 +5649,31 @@ int cLitPathTool::expand(cLightPathHeader* hdr)
     return 1;
 }
 
+// Path header as the tool writes it: count, then the offset table (cLightPathHeader keeps the table
+// implicit; the tool indexes it).
+struct LitPathHdr {
+    u8 num;      // 0x00
+    u8 pad_1[3];
+    u32 ofs[1];  // 0x04
+};
+
 int cLitPathTool::createPath(cLightPathHeader* dst)
 {
+    LitPathHdr* h = (LitPathHdr*) dst;
     u32 i;
-    u32* tbl;
     u8* p;
 
-    dst->pad_1[0] = 0;
-    dst->num = 0;
-    dst->pad_1[2] = 0;
-    dst->pad_1[1] = 0;
+    h->pad_1[0] = h->pad_1[1] = h->pad_1[2] = h->num = 0;
     for (i = 0; i < 256; i++) {
         if (path[i]) {
-            dst->num = i + 1;
+            h->num = i + 1;
         }
     }
-    tbl = (u32*) (dst + 1);
-    p = (u8*) &tbl[dst->num];
-    for (i = 0; i < dst->num; i++) {
+    p = (u8*) &h->ofs[h->num];
+    for (i = 0; i < h->num; i++) {
         if (path[i]) {
             u8* s = path[i]->data;
-            tbl[i] = (u32) p - (u32) dst;
+            ((u32*) dst)[i + 1] = (u32) p - (u32) dst;
             *p = *s;
             while (*s != 0xFF) {
                 s++;
@@ -5646,7 +5682,7 @@ int cLitPathTool::createPath(cLightPathHeader* dst)
             }
             p++;
         } else {
-            tbl[i] = (u32) path[i];
+            ((u32*) dst)[i + 1] = (u32) path[i];
         }
     }
     return 1;

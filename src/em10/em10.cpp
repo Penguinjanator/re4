@@ -327,7 +327,7 @@ void em10MouthPartsReset(cEm10* em);
 void em10SetDmWaterEff(cEm10* em, int a);
 void em10BombThrow(cEm10* em);
 int em10ThrowBombCk(cEm10* em);
-int em10SetDamageDoor(cEm10* em, int a);
+int em10SetDamageDoor(cEm10* em, int kind);
 void em10SetDamageRack(cEm10* em, int a);
 void em10AtkCk(cEm10* em, Vec* a, Vec* b, int c, int d);
 int em10IgnitionCk(cEm10* em);
@@ -352,7 +352,7 @@ extern "C" int em10TorchFrameAtkCk(cEm10* em);
 extern "C" int em10TorchFrameAtkCkSub(cEm10* em);
 extern "C" void em10PlHeadLost();
 extern "C" f32 em10GetPower(cEm10* em);
-extern "C" void em10WepSeEffSet(cEm10* em, cEmWep* wep, u8 type);
+extern "C" void em10WepSeEffSet(cEm10* em, cEmWep* wep, int type);
 extern "C" int em10ThrowScaCk(cEm10* em);
 extern "C" int em10ThrowNearCk(cEm10* em);
 extern "C" int em10WindowCk2(cEm10* em);
@@ -12542,7 +12542,7 @@ int em10LadderClimbCk(cEm10* em)
     }
     return 0;
 }
-extern "C" void em10WepSeEffSet(cEm10* em, cEmWep* wep, u8 type)
+extern "C" void em10WepSeEffSet(cEm10* em, cEmWep* wep, int type)
 {
     if (!wep) {
         return;
@@ -15211,15 +15211,15 @@ int em10CatchSubCk(cEm10* em)
     return 1;
 }
 
-extern "C" void em10CamMove(cEm10* em, int no, int shake, f32 rate)
+extern "C" void em10CamMove(cEm10* em, int no, f32 rate, int shake)
 {
     Em10Work* w = EM10_WK(em);
     Vec v;
     Vec hit;
     Vec d;
     Camera* c = &pG->Cam;
-    Vec* at;
-    Vec* pos;
+    cModel* p;
+    cModel* q;
 
     switch (no) {
     case 0:
@@ -15236,38 +15236,36 @@ extern "C" void em10CamMove(cEm10* em, int no, int shake, f32 rate)
         PSMTXMultVec(pPL->mat, &v, &w->x608);
         break;
     }
-    PSVECAdd(&pPL->getPartsPtr(4)->worldPos, &em->getPartsPtr(4)->worldPos, &v);
+    p = pPL->getPartsPtr(4);
+    q = em->getPartsPtr(4);
+    PSVECAdd(&p->worldPos, &q->worldPos, &v);
     PSVECScale(&v, &v, 0.5f);
     if (shake) {
-        at = &w->cam.param.at;
-        pos = &w->cam.param.pos;
-        PosToPos(&c->param.at, &v, at, rate);
-        PosToPos(&c->param.pos, &w->x608, pos, rate);
+        PosToPos(&c->param.at, &v, &w->cam.param.at, rate);
+        PosToPos(&c->param.pos, &w->x608, &w->cam.param.pos, rate);
         v.x = fRand1_1() * 10.0f;
         v.y = fRand1_1() * 10.0f;
         v.z = fRand1_1() * 10.0f;
-        PSVECAdd(pos, &v, pos);
-        PSVECAdd(at, &v, at);
+        PSVECAdd(&w->cam.param.pos, &v, &w->cam.param.pos);
+        PSVECAdd(&w->cam.param.at, &v, &w->cam.param.at);
     } else {
-        at = &w->cam.param.at;
-        pos = &w->cam.param.pos;
-        PosToPos(&c->param.at, &v, at, rate);
-        PosToPos(&c->param.pos, &w->x608, pos, rate);
+        PosToPos(&c->param.at, &v, &w->cam.param.at, rate);
+        PosToPos(&c->param.pos, &w->x608, &w->cam.param.pos, rate);
     }
     {
         f32 dx = w->cam.param.pos.x - w->cam.param.at.x;
         f32 dy = w->cam.param.pos.y - w->cam.param.at.y;
         f32 dz = w->cam.param.pos.z - w->cam.param.at.z;
         if (dx * dx + dy * dy + dz * dz > 100.0f) {
-            PSVECSubtract(pos, at, &d);
+            PSVECSubtract(&w->cam.param.pos, &w->cam.param.at, &d);
 #line 32709 "D:/Bio4/Prog/em10.cpp"
             VECNormalize(&d, &d);
             PSVECScale(&d, &d, 250.0f);
-            PSVECAdd(pos, &d, pos);
-            if (EatMgr.hitCheck(at, pos, &hit, 0, 0x8000, 0)) {
-                *pos = hit;
+            PSVECAdd(&w->cam.param.pos, &d, &w->cam.param.pos);
+            if (EatMgr.hitCheck(&w->cam.param.at, &w->cam.param.pos, &hit, 0, 0x8000, 0)) {
+                w->cam.param.pos = hit;
             }
-            PSVECSubtract(pos, &d, pos);
+            PSVECSubtract(&w->cam.param.pos, &d, &w->cam.param.pos);
         }
     }
     w->cam.up.x = 0.0f;
@@ -15346,10 +15344,10 @@ extern "C" int em10CsawAtkCk(cEm10* em)
             return 0;
         }
         r = Rnd() % 100;
-        if (r > 29 && pSys->region != 0) {
-            EmRoutineSet(em, 1, 0x31, hit, hit);
-        } else {
+        if (r <= 29 || pSys->region == 0) {
             EmRoutineSet(em, 1, 0x2F, hit, hit);
+        } else {
+            EmRoutineSet(em, 1, 0x31, hit, hit);
         }
         if (pG->x4F88 <= 3) {
             Ctrl12Set(w->pCtrl12, 6, 0x3C);
@@ -15383,4 +15381,366 @@ extern "C" int em10CsawAtkCk(cEm10* em)
         EmRoutineSet(em, 1, 0x2F, hit, hit);
         return 1;
     }
+}
+
+#define EM10_DOOR_IN_CK(v, in)                                                                     \
+    if (v.x < 500.0f && v.x > -500.0f && v.y < 500.0f && v.y > -500.0f && v.z < 1500.0f &&        \
+        v.z > 0.0f) {                                                                              \
+        in = 1;                                                                                    \
+    }
+
+int em10SetDamageDoor(cEm10* em, int kind)
+{
+    Mtx inv;
+    Vec v;
+    int ret = 0;
+    u32 i;
+    int in;
+    cEmDoor* d;
+    EmDoorWork* dw;
+
+    PSMTXInverse(em->mat, inv);
+    for (i = 0; i < EmMgr.nArray; i++) {
+        d = (cEmDoor*) ((u8*) EmMgr.pArray + EmMgr.size * i);
+        if (!(d->be_flag & 1)) {
+            continue;
+        }
+        if (!(d->be_flag & 0x20)) {
+            continue;
+        }
+        if (d->id != 0x41) {
+            continue;
+        }
+        if (d->hp <= 0) {
+            continue;
+        }
+        if ((em->pos.x - d->pos.x) * (em->pos.x - d->pos.x) + (em->pos.y - d->pos.y) * (em->pos.y - d->pos.y) +
+                (em->pos.z - d->pos.z) * (em->pos.z - d->pos.z) >
+            4000000.0f) {
+            continue;
+        }
+        dw = EMDOOR_WK(d);
+        in = 0;
+        v.x = 0.0f;
+        v.y = 0.0f;
+        v.z = 0.0f;
+        PSMTXMultVec(dw->mat, &v, &v);
+        PSMTXMultVec(inv, &v, &v);
+        EM10_DOOR_IN_CK(v, in);
+        v.x = dw->width * 0.5f;
+        v.y = 0.0f;
+        v.z = 0.0f;
+        PSMTXMultVec(dw->mat, &v, &v);
+        PSMTXMultVec(inv, &v, &v);
+        EM10_DOOR_IN_CK(v, in);
+        v.x = -dw->width * 0.5f;
+        v.y = 0.0f;
+        v.z = 0.0f;
+        PSMTXMultVec(dw->mat, &v, &v);
+        PSMTXMultVec(inv, &v, &v);
+        EM10_DOOR_IN_CK(v, in);
+        if (!in) {
+            continue;
+        }
+        switch (d->ckOpen()) {
+        case 1:
+        case 3:
+            break;
+        case 0:
+        default:
+            switch ((u32) kind) {
+            case 1:
+                d->setOpen(&em->pos, 0, 0, 0);
+                if (ret == 0) {
+                    ret = 1;
+                }
+                break;
+            case 2:
+                if (d->type == 0) {
+                    d->setBreak(&em->pos);
+                } else {
+                    d->setOpen(&em->pos, 0, 0, 0);
+                }
+                ret = 2;
+                break;
+            case 0:
+                d->setShock(0, &em->pos, 0);
+                if (ret == 0) {
+                    ret = 1;
+                }
+                break;
+            }
+            break;
+        case 2:
+            switch ((u32) kind) {
+            case 0:
+                d->setShock(0, &em->pos, 0);
+                if (ret == 0) {
+                    ret = 1;
+                }
+                break;
+            case 1:
+                if (d->hp > 1) {
+                    d->setShock(0, &em->pos, 0);
+                    if (ret == 0) {
+                        ret = 1;
+                    }
+                    break;
+                }
+            case 2:
+                if (d->type == 0) {
+                    d->setBreak(&em->pos);
+                } else {
+                    d->setOpen(&em->pos, 0, 0, 0);
+                }
+                ret = 2;
+                break;
+            }
+            break;
+        }
+    }
+    return ret;
+}
+
+cEmWep* em10MakeWeapon(cEm10* em, int type)
+{
+    Em10Work* w = EM10_WK(em);
+    Vec pos;
+    Vec rot;
+    cEmWep* wep = 0;
+
+    pos.x = 0.0f;
+    pos.y = 0.0f;
+    pos.z = 0.0f;
+    rot.x = 0.0f;
+    rot.y = 0.0f;
+    rot.z = 0.0f;
+    switch (type) {
+    case 0:
+    default:
+        break;
+    case 1:
+        if (w->mot[41] && w->mot[42]) {
+            wep = SetWeapon(w->mot[41], w->mot[42], &pos, &rot, 0);
+        }
+        break;
+    case 2:
+        if (w->x6C5 == 2) {
+            if (w->mot[63] && w->mot[64]) {
+                wep = SetWeapon(w->mot[63], w->mot[64], &pos, &rot, 0);
+            }
+        } else {
+            if (w->mot[65] && w->mot[66]) {
+                wep = SetWeapon(w->mot[65], w->mot[66], &pos, &rot, 0);
+            }
+        }
+        break;
+    case 0xB:
+        if (w->mot[65] && w->mot[66]) {
+            wep = SetWeapon(w->mot[65], w->mot[66], &pos, &rot, 0);
+            if (wep) {
+                wep->setCloth(em);
+            }
+        }
+        break;
+    case 3:
+        if (w->mot[63] && w->mot[64]) {
+            wep = SetWeapon(w->mot[63], w->mot[64], &pos, &rot, 0);
+        }
+        break;
+    case 0xA:
+        if (w->mot[77] && w->mot[78]) {
+            wep = SetWeapon(w->mot[77], w->mot[78], &pos, &rot, 0);
+        }
+        break;
+    case 4:
+        if (w->mot[67] && w->mot[68]) {
+            wep = SetWeapon(w->mot[67], w->mot[68], &pos, &rot, 0);
+        }
+        break;
+    case 5:
+        if (w->mot[43] && w->mot[44]) {
+            wep = SetWeapon(w->mot[43], w->mot[44], &pos, &rot, 0);
+        }
+        break;
+    case 6:
+        if (w->mot[69] && w->mot[70]) {
+            wep = SetWeapon(w->mot[69], w->mot[70], &pos, &rot, 0);
+        }
+        break;
+    case 0xF:
+        if (w->mot[69] && w->mot[70]) {
+            wep = SetWeapon(w->mot[69], w->mot[70], &pos, &rot, 0);
+            if (wep) {
+                wep->setEffAlways(0xCD, 0);
+                wep->setSeAlways(8, 0x60, em->id, 0x13);
+            }
+        }
+        break;
+    case 7:
+        if (w->mot[71] && w->mot[72]) {
+            wep = SetWeapon(w->mot[71], w->mot[72], &pos, &rot, 0);
+        }
+        break;
+    case 0x10:
+        if (w->mot[71] && w->mot[72]) {
+            wep = SetWeapon(w->mot[71], w->mot[72], &pos, &rot, 0);
+        }
+        break;
+    case 8:
+        if (w->mot[73] && w->mot[74]) {
+            wep = SetWeapon(w->mot[73], w->mot[74], &pos, &rot, 0);
+        }
+        break;
+    case 0xC:
+        wep = SetWeapon(PL_ARC_PTR(em->subArc, 0x18C), PL_ARC_PTR(em->subArc, 0x18D), &pos, &rot, 0);
+        break;
+    case 9:
+        wep = SetWeapon(PL_ARC_PTR(em->subArc, 0xA2), PL_ARC_PTR(em->subArc, 0xA3), &pos, &rot, 0);
+        break;
+    }
+    if (wep) {
+        em10WepSeEffSet(em, wep, type);
+        switch (type) {
+        case 4:
+        case 5:
+        case 8:
+        case 0xB:
+        case 0xC:
+            break;
+        default:
+            wep->be_flag |= 0x4000;
+            break;
+        }
+    }
+    return wep;
+}
+
+void em10SetDashMotion(cEm10* em)
+{
+    Em10Work* w = EM10_WK(em);
+    int flag = 5;
+    u32 v;
+    MotionData* m0;
+    void* m1;
+
+    if (em->flags_3C8 & 0x01000000) {
+        flag = 0x45;
+    }
+    v = em->emsetNo % 5;
+    if (CheckInWater(em, 0)) {
+        v = 1;
+    }
+    if ((s32) pG->flags_54 < 0 || (pG->flags_54 & 0x40000000)) {
+        if (v == 2) {
+            v = 1;
+        }
+        if (v == 4) {
+            v = 3;
+        }
+    }
+    m0 = (MotionData*) PL_ARC_PTR(em->subArc, 0xAE);
+    switch (v) {
+    default:
+        m1 = PL_ARC_PTR(em->subArc, 0xAF);
+        break;
+    case 1:
+        m1 = PL_ARC_PTR(em->subArc, 0xB0);
+        break;
+    case 2:
+        m1 = PL_ARC_PTR(em->subArc, 0xB1);
+        break;
+    case 3:
+        m1 = PL_ARC_PTR(em->subArc, 0xB2);
+        break;
+    case 4:
+        m1 = PL_ARC_PTR(em->subArc, 0xB3);
+        break;
+    }
+    if (w->pWep && w->wepType == 4) {
+        m0 = (MotionData*) PL_ARC_PTR(em->subArc, 0xF1);
+        switch (v) {
+        default:
+            m1 = PL_ARC_PTR(em->subArc, 0xF2);
+            break;
+        case 1:
+            m1 = PL_ARC_PTR(em->subArc, 0xF3);
+            break;
+        case 2:
+            m1 = PL_ARC_PTR(em->subArc, 0xF4);
+            break;
+        case 3:
+            m1 = PL_ARC_PTR(em->subArc, 0xF5);
+            break;
+        case 4:
+            m1 = PL_ARC_PTR(em->subArc, 0xF6);
+            break;
+        }
+    }
+    if (w->pWep && w->wepType == 1) {
+        m0 = (MotionData*) PL_ARC_PTR(em->subArc, 0x151);
+        switch (v) {
+        default:
+            m1 = PL_ARC_PTR(em->subArc, 0x152);
+            break;
+        case 1:
+            m1 = PL_ARC_PTR(em->subArc, 0x153);
+            break;
+        case 2:
+            m1 = PL_ARC_PTR(em->subArc, 0x154);
+            break;
+        case 3:
+            m1 = PL_ARC_PTR(em->subArc, 0x155);
+            break;
+        case 4:
+            m1 = PL_ARC_PTR(em->subArc, 0x156);
+            break;
+        }
+    }
+    if (w->pWep && w->wepType == 6) {
+        m0 = (MotionData*) PL_ARC_PTR(em->subArc, 0x140);
+        m1 = PL_ARC_PTR(em->subArc, 0x141);
+    }
+    if (w->pWep && (w->wepType == 7 || w->wepType == 0xB || w->wepType == 9)) {
+        m0 = (MotionData*) PL_ARC_PTR(em->subArc, 0xDE);
+        switch (v) {
+        default:
+            m1 = PL_ARC_PTR(em->subArc, 0xDF);
+            break;
+        case 1:
+            m1 = PL_ARC_PTR(em->subArc, 0xE0);
+            break;
+        case 2:
+            m1 = PL_ARC_PTR(em->subArc, 0xE1);
+            break;
+        case 3:
+            m1 = PL_ARC_PTR(em->subArc, 0xE2);
+            break;
+        case 4:
+            m1 = PL_ARC_PTR(em->subArc, 0xE3);
+            break;
+        }
+    }
+    if (em->type == 6) {
+        m0 = (MotionData*) PL_ARC_PTR(em->subArc, 0xA9);
+        m1 = PL_ARC_PTR(em->subArc, 0xAC);
+    }
+    if (w->pShield) {
+        m0 = (MotionData*) PL_ARC_PTR(em->subArc, 0x168);
+        m1 = PL_ARC_PTR(em->subArc, 0x169);
+    }
+    if (em->type == 0xA || em->type == 0xD) {
+        m0 = (MotionData*) PL_ARC_PTR(em->subArc, 0x10D);
+        m1 = PL_ARC_PTR(em->subArc, 0x10E);
+    }
+    if (w->pWep && w->wepType == 0xC) {
+        m0 = (MotionData*) PL_ARC_PTR(em->subArc, 0x17F);
+        m1 = PL_ARC_PTR(em->subArc, 0x180);
+    }
+    if (em->type == 2) {
+        m0 = (MotionData*) PL_ARC_PTR(em->subArc, 0x192);
+        m1 = PL_ARC_PTR(em->subArc, 0x193);
+    }
+    MotionSetCore(em, MOTION(em), m0, (int) m1, 5, flag,
+                  (u16) (u32) ((f32) (m0->maxFrame & 0x3FFF) * (f32) em->xFF / 256.0f));
 }

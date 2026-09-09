@@ -532,6 +532,7 @@ void emWep_R1_Fall(cEmWep* em)
         { { -140.0f, 30.0f, 140.0f }, { -140.0f, 30.0f, -140.0f }, { 200.0f, 30.0f, 0.0f } },
     };
     EmWepNode node[3];
+    EmWepNode* n;
     EmWepNode* nx;
     Vec b;
     Vec c;
@@ -547,18 +548,18 @@ void emWep_R1_Fall(cEmWep* em)
     em->setStatus(1);
     floor = EatMgr.getFloor(&em->pos, 600.0f, 100000.0f, 0, 0) + 50.0f;
     for (i = 0; i < 3; i++) {
-        EmWepNode* n = &node[i];
+        n = &node[i];
         n->spd.x = w->pt[i].x;
         n->spd.y = w->pt[i].y;
         n->spd.z = w->pt[i].z;
     }
     for (i = 0; i < 3; i++) {
-        EmWepNode* n = &node[i];
+        n = &node[i];
         PSMTXMultVec(em->mat, &ofs[w->fallType][i], &n->pos);
         n->old = n->pos;
     }
     for (i = 0; i < 3; i++) {
-        EmWepNode* n = &node[i];
+        n = &node[i];
         if (i == 2) {
             nx = node;
         } else {
@@ -567,14 +568,14 @@ void emWep_R1_Fall(cEmWep* em)
         n->len = GetDistance3(&n->pos, &nx->pos);
     }
     for (i = 0; i < 3; i++) {
-        EmWepNode* n = &node[i];
+        n = &node[i];
         n->spd.y -= w->grav;
         PSVECAdd(&n->pos, &n->spd, &n->pos);
         n->onFloor = 0;
     }
     for (k = 0; k < 30; k++) {
         for (i = 0; i < 3; i++) {
-            EmWepNode* n = &node[i];
+            n = &node[i];
             if (i == 2) {
                 nx = node;
             } else {
@@ -597,7 +598,7 @@ void emWep_R1_Fall(cEmWep* em)
         }
     }
     for (i = 0; i < 3; i++) {
-        EmWepNode* n = &node[i];
+        n = &node[i];
         if (n->onFloor) {
             if (w->seFall[3] == 0 && n->spd.y < -50.0f) {
                 w->seFall[3] = 1;
@@ -635,7 +636,7 @@ void emWep_R1_Fall(cEmWep* em)
         PSVECScale(&n->spd, &n->spd, 0.999f);
     }
     for (i = 0; i < 3; i++) {
-        EmWepNode* n = &node[i];
+        n = &node[i];
         w->pt[i].x = n->spd.x;
         w->pt[i].y = n->spd.y;
         w->pt[i].z = n->spd.z;

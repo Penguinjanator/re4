@@ -378,6 +378,12 @@ void SceExecInitCondition()
     ClearOTagR(&SceExecOt, 1);
 }
 
+// em_dead row address as an integer (the original adds the list offset after the row index), as in sce_at.
+static inline u32 emDeadRow(int n)
+{
+    return n * 32 + (u32) pG + 0x501C;
+}
+
 int SceExecCheckCondition_sub(SceCond* c)
 {
     cEm* em;
@@ -389,8 +395,8 @@ int SceExecCheckCondition_sub(SceCond* c)
     case 0:
         no = (u32) c->param;
         if (pG->emlist_no >= 0) {
-            row = pG->em_dead[pG->emlist_no];
-            bit = row[no >> 5] & (0x80000000 >> (no & 31));
+            // Row address as integer arithmetic (index first, the list offset added last), like sce_at.
+            bit = *(u32*) (((no >> 5) << 2) + emDeadRow(pG->emlist_no)) & (0x80000000 >> (no & 31));
         } else {
             bit = 0;
         }
@@ -405,7 +411,8 @@ int SceExecCheckCondition_sub(SceCond* c)
         break;
     case 2:
         em = (cEm*) c->param;
-        if (em->hp <= 0 && em->xFC == 3) {
+        // Raw (non-struct) read: keeps the load behind the store of `em` to its stack slot.
+        if (*(s16*) ((u32) em + 0x320) <= 0 && em->xFC == 3) {
             return 1;
         }
         break;

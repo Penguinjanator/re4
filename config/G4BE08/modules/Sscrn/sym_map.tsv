@@ -1166,8 +1166,8 @@ section	offset	size	unit	scope	name	demangled
 .data	0x00000950	0x4	Sscrn/ss_map.cpp	local	lbl_Sscrn_data_950	lbl_Sscrn_data_950
 .data	0x00000954	0x20	Sscrn/ss_map.cpp	local	lbl_Sscrn_data_954	lbl_Sscrn_data_954
 .data	0x00000974	0x4	Sscrn/ss_map.cpp	local	lbl_Sscrn_data_974	lbl_Sscrn_data_974
-.data	0x00000978	0x4	Sscrn/ss_map.cpp	global	lbl_Sscrn_data_978	lbl_Sscrn_data_978
-.data	0x0000097C	0x4	Sscrn/ss_map.cpp	global	lbl_Sscrn_data_97C	lbl_Sscrn_data_97C
+.data	0x00000978	0x4	Sscrn/ss_map.cpp	global	ssPlMotion	lbl_Sscrn_data_978
+.data	0x0000097C	0x4	Sscrn/ss_map.cpp	global	ssWepModel2	lbl_Sscrn_data_97C
 .data	0x00000980	0xC	Sscrn/ss_model.cpp	local	lbl_Sscrn_data_980	lbl_Sscrn_data_980
 .data	0x0000098C	0xC	Sscrn/ss_model.cpp	local	lbl_Sscrn_data_98C	lbl_Sscrn_data_98C
 .data	0x00000998	0x4	Sscrn/ss_model.cpp	local	lbl_Sscrn_data_998	lbl_Sscrn_data_998
@@ -1277,8 +1277,8 @@ section	offset	size	unit	scope	name	demangled
 .bss	0x0000030C	0x4	Sscrn/ss_map.cpp	local	lbl_Sscrn_bss_30C	lbl_Sscrn_bss_30C
 .bss	0x00000310	0x180	Sscrn/ss_map.cpp	global	lbl_Sscrn_bss_310	lbl_Sscrn_bss_310
 .bss	0x00000490	0x4	Sscrn/ss_map.cpp	global	lbl_Sscrn_bss_490	lbl_Sscrn_bss_490
-.bss	0x00000494	0x4	Sscrn/ss_map.cpp	global	lbl_Sscrn_bss_494	lbl_Sscrn_bss_494
-.bss	0x00000498	0x4	Sscrn/ss_map.cpp	global	lbl_Sscrn_bss_498	lbl_Sscrn_bss_498
+.bss	0x00000494	0x4	Sscrn/ss_map.cpp	global	ssPlModel	lbl_Sscrn_bss_494
+.bss	0x00000498	0x4	Sscrn/ss_map.cpp	global	ssWepModel	lbl_Sscrn_bss_498
 .bss	0x0000049C	0x4	Sscrn/ss_pzzl.cpp	local	lbl_Sscrn_bss_49C	lbl_Sscrn_bss_49C
 .bss	0x000004A0	0x4	Sscrn/ss_pzzl.cpp	local	lbl_Sscrn_bss_4A0	lbl_Sscrn_bss_4A0
 .bss	0x000004A4	0x30	Sscrn/ss_pzzl.cpp	global	lbl_Sscrn_bss_4A4	lbl_Sscrn_bss_4A4

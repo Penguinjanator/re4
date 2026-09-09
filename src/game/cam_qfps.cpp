@@ -1129,16 +1129,16 @@ void CameraQuasiFPS::bindAreaCamera(CameraAreaRec* rec)
 
 void CameraQuasiFPS::init()
 {
-    smooth_ratio = 0.8f;
-    CamSmth.ratio = 0.8f;
-    x1A8 = 0.0f;
-    flags &= ~7;
-    reset = 1;
-    search_frame = 0;
-    site = 2;
-    angle_y = 0.0f;
-    angle_x = 0.0f;
-    search_count = 0;
+    FSet(smooth_ratio, 0.8f);
+    FSet(CamSmth.ratio, 0.8f);
+    FSet(x1A8, 0.0f);
+    U8Set(reset, 1);
+    S16Set(search_frame, 0);
+    U8Set(site, 2);
+    BitOff(flags, 7);
+    FSet(angle_y, 0.0f);
+    FSet(angle_x, 0.0f);
+    S16Set(search_count, 0);
     if (pPL) {
         setPlayerLocation(pPL->mat, pPL->pFloorNrm);
     }

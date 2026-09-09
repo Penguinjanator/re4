@@ -189,7 +189,7 @@
 	lwz r3, 0x0(r3)
 	subi r3, r3, 0x4
 	lwz r3, 0x0(r3)
-	bl SNDVDEmuInit_800666E4
+	bl SNDVDEmuInit
 	b .L_80062D00
 .L_80062CEC:
 	li r3, 0x1

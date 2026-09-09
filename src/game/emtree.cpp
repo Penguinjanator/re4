@@ -337,6 +337,7 @@ void emTree_R1_Fall(cEmTree* em)
         { 500.0f, 3500.0f, 0.0f },
     };
     EmTreeNode node[3];
+    EmTreeNode* n;
     EmTreeNode* nx;
     Vec b;
     Vec a;
@@ -351,18 +352,18 @@ void emTree_R1_Fall(cEmTree* em)
     em->hp = 0;
     floor = EatMgr.getFloor(&em->pos, 600.0f, 100000.0f, 0, 0) + 300.0f;
     for (i = 0; i < 3; i++) {
-        EmTreeNode* n = &node[i];
+        n = &node[i];
         n->spd.x = w->pt[i].x;
         n->spd.y = w->pt[i].y;
         n->spd.z = w->pt[i].z;
     }
     for (i = 0; i < 3; i++) {
-        EmTreeNode* n = &node[i];
+        n = &node[i];
         PSMTXMultVec(em->mat, &pt[i], &n->pos);
         n->old = n->pos;
     }
     for (i = 0; i < 3; i++) {
-        EmTreeNode* n = &node[i];
+        n = &node[i];
         if (i == 2) {
             nx = node;
         } else {
@@ -371,14 +372,14 @@ void emTree_R1_Fall(cEmTree* em)
         n->len = GetDistance3(&n->pos, &nx->pos);
     }
     for (i = 0; i < 3; i++) {
-        EmTreeNode* n = &node[i];
+        n = &node[i];
         n->spd.y -= 20.0f;
         PSVECAdd(&n->pos, &n->spd, &n->pos);
         n->onFloor = 0;
     }
     for (k = 0; k < 30; k++) {
         for (i = 0; i < 3; i++) {
-            EmTreeNode* n = &node[i];
+            n = &node[i];
             if (i == 2) {
                 nx = node;
             } else {
@@ -400,13 +401,12 @@ void emTree_R1_Fall(cEmTree* em)
             }
         }
     }
-    // TODO: the target keeps the loop bound &node[2] as two pseudos (`addi r0, r25, 0x58` in the
-    // k loop's latch, `mr r22, r0` before this loop); every form tried (pointer loop, hoisted bound
-    // variable, dead nx code with/without else, array vs pointer) gives one `addi r22`. The unused
-    // nx computation below reproduces the hoisted bound at least (without it the bound is
-    // rematerialised inside the loop).
+    // `n` is one function-scope pointer shared by all the loops: the later mentions keep the
+    // inner loop's giv from being marked replaceable by record_giv, so loop.c emits its final value
+    // (`addi r0, node, 0x58` after the inner loop, inside the k loop) and cse2 turns this loop's
+    // bound into a copy of it (`mr r22, r0`). Block-scoped `n`s give one `addi r22` here.
     for (i = 0; i < 3; i++) {
-        EmTreeNode* n = &node[i];
+        n = &node[i];
         if (i == 2) {
             nx = node;
         } else {
@@ -445,7 +445,7 @@ void emTree_R1_Fall(cEmTree* em)
         PSVECScale(&n->spd, &n->spd, 0.999f);
     }
     for (i = 0; i < 3; i++) {
-        EmTreeNode* n = &node[i];
+        n = &node[i];
         w->pt[i].x = n->spd.x;
         w->pt[i].y = n->spd.y;
         w->pt[i].z = n->spd.z;

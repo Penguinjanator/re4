@@ -152,15 +152,15 @@ static void sfsee_ExecHeadAnaly(SFD sfd)
 	v = (SFTRN_IsSetup(sfd, 1) != 0);
 	if (v) {
 		wk->vhdr = 1;
-		if (wk->mps_hdr != 0 && wk->mps_time > 0) {
+		if (wk->fhd.valid != 0 && wk->fhd.byterate > 0) {
 			fsize = wk->fsize;
-			rate = wk->mps_rate;
+			rate = wk->fhd.maxplylen_vid;
 			if (fsize > 0 && rate > 0) {
 				ncount = UTY_MulDiv(fsize, 1000, rate);
 			} else {
-				ncount = wk->mps_time;
+				ncount = wk->fhd.byterate;
 			}
-		} else if (wk->mps_hdr != 0 && SFHDS_GetMuxVerNum(sfd) < 108) {
+		} else if (wk->fhd.valid != 0 && SFHDS_GetMuxVerNum(sfd) < 108) {
 			ncount = (wk->vncount * 2048) / 2018;
 		} else {
 			ncount = wk->vncount;

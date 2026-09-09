@@ -33,6 +33,8 @@ extern "C" void OSReport(const char* fmt, ...);
 extern "C" int sprintf(char* s, const char* fmt, ...);
 extern "C" int EspMove();
 extern "C" int EspgenMove();
+// SubScreenTask passes a second argument to MotionMove (pl_npc.cpp does the same: `li r4, 0`).
+u16 MotionMoveF(cModel* m, int flag) asm("MotionMove");
 
 #define DVD_READ_N(name, dst, a, b, c, mode) DvdReadN(name, dst, a, b, c, mode, __FILE__, __LINE__)
 
@@ -98,6 +100,8 @@ extern "C" void _unresolved()
 
 void sscrnCameraInit(SUB_SCREEN* wk, Camera* cam)
 {
+    const f32 zero = 0.0f;  // pool order: 0.0 first
+
     cam->param.pos.z = 5000.0f;
     cam->up.y = 1.0f;
     cam->up.z = 0.0f;
@@ -134,9 +138,9 @@ void dispScrollBar(u32 top, u32 n, u32 num, IdUnit* bar, IdUnit* up, IdUnit* dow
         f32 h = up->scr.y - down->scr.y;
         f32 rate = (f32) n / (f32) num;
         bar->sizeY = rate * h;
-        bar->flags |= 8;
         rate = (f32) top / (f32) num;
         bar->scr.y = up->pos.y - rate * (up->scr.y - down->scr.y);
+        bar->flags |= 8;
     } else {
         bar->flags &= ~8;
     }
@@ -172,12 +176,12 @@ void generalModelAlloc(SUB_SCREEN* wk)
 void SubScreenTask()
 {
     SUB_SCREEN* wk = &SubScreenWk;
-    SsExitInit* exitInit;
-    SsExitMain* exitMain;
+    SsTermMain* termMain = 0;
     SsShopInit* shopInit = 0;
     SsShopMain* shopMain = 0;
     SsTermInit* termInit = 0;
-    SsTermMain* termMain = 0;
+    SsExitInit* exitInit = new SsExitInit;
+    SsExitMain* exitMain;
     SsPzzlInit* pzzlInit;
     SsPzzlMain* pzzlMain;
     SsItemInit* itemInit;
@@ -188,23 +192,25 @@ void SubScreenTask()
     SsFileMain* fileMain;
     SsCapInit* capInit;
     SsCapMain* capMain;
-    Widget<SUB_SCREEN>* cur = 0;
+    Widget<SUB_SCREEN>* cur;
 
-    exitInit = new SsExitInit;
     exitMain = new SsExitMain;
     exitInit->connect(0, exitMain);
+    cur = 0;
     if (wk->type & 0x10) {
         shopInit = new SsShopInit;
         shopMain = new SsShopMain;
         shopInit->connect(0, shopMain);
         shopMain->connect(0, exitInit);
         cur = shopInit;
+        cur->init(wk);
     } else if (wk->type & 0x20) {
         termInit = new SsTermInit;
         termMain = new SsTermMain;
         termInit->connect(0, termMain);
         termMain->connect(0, exitInit);
         cur = termInit;
+        cur->init(wk);
     } else {
         pzzlInit = new SsPzzlInit;
         pzzlMain = new SsPzzlMain;
@@ -253,21 +259,25 @@ void SubScreenTask()
         playerModelInit();
         if (wk->type & 2) {
             cur = mapInit;
+            cur->init(wk);
         } else if (wk->type & 4) {
             wk->x1E4 = wk->pPzzl;
             cur = pzzlMain;
+            cur->init(wk);
         } else if (wk->type & 0x80) {
             cur = itemInit;
+            cur->init(wk);
         } else if (wk->type & 0x40) {
             cur = fileInit;
+            cur->init(wk);
         } else {
             wk->x1E4 = wk->pPzzl;
             cur = pzzlMain;
+            cur->init(wk);
         }
     }
-    cur->init(wk);
-    wk->x251 = 0;
     wk->x250 = 0;
+    wk->x251 = 0;
     TaskExec(2, (TaskFunc) weaponChangeTask, 0);
     while (wk->x28) {
         if (cur != exitInit && cur != exitMain && cur != shopInit && cur != shopMain && cur != termInit &&
@@ -291,7 +301,7 @@ void SubScreenTask()
                 ssWepModel->x158 = 1.0f - rate;
             }
             if (ssPlMotion) {
-                MotionMove(ssPlModel);
+                MotionMoveF(ssPlModel, 0);
             }
             if (ssWepModel2 && ssWepModel) {
                 switch (WeaponId2WeaponNo(ItemMgr.armId)) {
@@ -299,14 +309,14 @@ void SubScreenTask()
                 case 0x1F:
                 case 0x20:
                     if (pG->x4FB8 == 0) {
-                        MotionMove(ssWepModel);
+                        MotionMoveF(ssWepModel, 0);
                     } else {
                         ssWepModel->matUpdate();
                     }
                     break;
                 case 0x1C:
                     if (pG->x4FB8 == 4) {
-                        MotionMove(ssWepModel);
+                        MotionMoveF(ssWepModel, 0);
                     } else {
                         ssWepModel->matUpdate();
                     }
@@ -329,8 +339,10 @@ void SubScreenTask()
                 d[i] = v % 10;
                 v /= 10;
             }
-            for (i = 1; i <= 8; i++) {
-                IdUnit* u = IdSub.unitPtr(i, 2);
+            for (i = 0; i < 8;) {
+                IdUnit* u;
+                i++;
+                u = IdSub.unitPtr(i, 2);
                 u->flags |= 8;
                 u->flags_7F |= 2;
                 u->no = d[i - 1];
@@ -412,9 +424,17 @@ void SsItemExamine::init(SUB_SCREEN* wk)
     state = 0;
 }
 
-// ItemExamine model light info (cLightInfo::init2 origin / size).
-static const Vec exam_light_ofs = {0.0f, 0.0f, 0.0f};
-static const Vec exam_light_size = {10000.0f, 10000.0f, 0.0f};
+// `&local` arguments through an inlined helper are recomputed at every call (`addi r4, r1, 0x208`)
+// instead of being kept in a callee-saved register (integrate.c substitutes the frame address into
+// the hard-register argument set).
+static inline void ssItemInfo(u16 id, ItemInfo* info)
+{
+    itemInfo(id, info);
+}
+static inline int ssReadCheck(int req, int* size)
+{
+    return Dvd.ReadCheck(req, size, 0, 0);
+}
 
 // Item examine: reads the item's model (.bin) and texture (.tpl) into the examine buffer, shows it
 // with the examine camera and returns to the caller widget on cancel.
@@ -429,20 +449,24 @@ void SsItemExamine::move(SUB_SCREEN* wk)
 
     switch (state) {
     case 0: {
-        itemInfo(wk->x248->id, &info);
-        if (info.type == 1) {
+        ssItemInfo(wk->x248->id, &info);
+        switch (info.type) {
+        case 1:
             exam_id = ItemMgr.weaponId(wk->x248);
-        } else if (info.type == 9) {
+            break;
+        case 9:
             if (wk->x248->x6 == 1) {
                 exam_id = ItemMgr.weaponId(ItemMgr.at(wk->x248->x8));
             } else {
                 exam_id = wk->x248->id;
             }
-        } else {
+            break;
+        default:
             exam_id = wk->x248->id;
+            break;
         }
-        wk->x240 = wk->x23C;
-        itemInfo(exam_id, &info);
+        PSet(wk->x240, wk->x23C);
+        ssItemInfo(exam_id, &info);
         if (info.type == 0xD) {
             sprintf(name, "SS/item/cap%02d.bin", exam_id - 0xDB);
         } else {
@@ -453,13 +477,14 @@ void SsItemExamine::move(SUB_SCREEN* wk)
         state++;
     }
     case 1: {
-        int ret = Dvd.ReadCheck(exam_read_req, &size, 0, 0);
+        int ret = ssReadCheck(exam_read_req, &size);
         if (ret == 0) {
             break;
         }
         if (ret == 1) {
-            if (size & 0x1F) {
-                size += (u8) (0x20 - (size & 0x1F));
+            int s = size;
+            if (s & 0x1F) {
+                size = s + (u8) (0x20 - (s & 0x1F));
             }
             wk->x244 = (u8*) wk->x23C + size;
             state++;
@@ -469,7 +494,7 @@ void SsItemExamine::move(SUB_SCREEN* wk)
         break;
     }
     case 2: {
-        itemInfo(exam_id, &info);
+        ssItemInfo(exam_id, &info);
         if (info.type == 0xD) {
             sprintf(name2, "SS/item/cap%02d.tpl", exam_id - 0xDB);
         } else {
@@ -480,7 +505,7 @@ void SsItemExamine::move(SUB_SCREEN* wk)
         state++;
     }
     case 3: {
-        int ret = Dvd.ReadCheck(exam_read_req, &size, 0, 0);
+        int ret = ssReadCheck(exam_read_req, &size);
         if (ret == 0) {
             break;
         }
@@ -495,26 +520,32 @@ void SsItemExamine::move(SUB_SCREEN* wk)
         break;
     }
     case 4: {
+        // light info origin / size (emitted into .rodata here, before this function's pool)
+        static const Vec exam_light_ofs = {0.0f, 0.0f, 0.0f};
+        static const Vec exam_light_size = {10000.0f, 10000.0f, 0.0f};
         cMap* m = wk->x24C;
         m->modelInit(wk->x240, wk->x244);
         m->be_flag |= 0x4000;
         m->lightInfo.init2(0, 1, &exam_light_ofs, &exam_light_size, 0x20);
         m->partsMatCalc();
         m->partsWorldCalc();
-        itemInfo(exam_id, &info);
+        ssItemInfo(exam_id, &info);
         if (info.type == 1) {
             ItemWork* w = 0;
-            itemInfo(wk->x248->id, &info);
-            if (info.type == 1) {
+            ssItemInfo(wk->x248->id, &info);
+            switch (info.type) {
+            case 1:
                 w = wk->x248;
-            } else if (info.type == 9) {
+                break;
+            case 9:
                 w = ItemMgr.at(wk->x248->x8);
+                break;
             }
             if (w) {
                 exam.level((w->x6 >> 12) + 1, ((w->x6 >> 8) & 0xF) + 1, ((w->x6 >> 4) & 0xF) + 1, (w->x6b[1] & 0xF) + 1);
             }
         }
-        itemInfo(exam_id, &info);
+        ssItemInfo(exam_id, &info);
         if (info.type == 0xD) {
             exam.init(exam_id, m, 2);
         } else {
@@ -523,24 +554,24 @@ void SsItemExamine::move(SUB_SCREEN* wk)
         state++;
     }
     case 5: {
-        ItemExamine* ex = &exam;
         IdUnit* pos;
-        ex->move();
-        ex->trans();
+        exam.move();
+        exam.trans();
         pos = IdSub.unitPtr(0xFE, 0x27);
         cMes.setLayout(7, 2);
         cMes.MesSet(exam_id, (int) ((pos->scr.x + 320.0f) * 0.8f), (int) ((240.0f - pos->scr.y) * 0.8f), 0x20084, 7, 0, 4);
         if (Key.trg & 0x20000) {
-            itemInfo(exam_id, &info);
+            ssItemInfo(exam_id, &info);
             if (info.type == 0xD) {
                 SndStrReq(1, exam_id - 0x14, 0x80000003, 0, 0, 0.0f);
             }
         }
         if (Key.trg & 0xC0000000) {
-            ex->quit();
+            exam.quit();
             LightMgr.offKind(0x7F);
             wk->x24C->be_flag &= ~2;
             transit(0, wk);
+            SndCall(0, 5, 0, 0, 0, 0);
         }
         break;
     }
@@ -670,7 +701,6 @@ void clearZbuffer()
     static f32 clear_z = -0.99999f;
     Mtx44 proj;
     Mtx mtx;
-    GXColor col = {0x08, 0x08, 0x80, 0x1C};
 
     GXSetColorUpdate(0);
     GXSetAlphaUpdate(0);
@@ -691,7 +721,10 @@ void clearZbuffer()
     GXSetTevColorOp(0, 0, 0, 0, 1, 0);
     GXSetTevAlphaIn(0, 7, 7, 7, 7);
     GXSetTevAlphaOp(0, 0, 0, 0, 1, 0);
-    GXSetChanMatColor(4, col);
+    {
+        GXColor col = {0x08, 0x08, 0x80, 0x1C};
+        GXSetChanMatColor(4, col);
+    }
     GXSetBlendMode(1, 4, 1, 0);
     GXClearVtxDesc();
     GXSetVtxDesc(9, 1);
@@ -756,25 +789,33 @@ void sscrnLightCreate(SUB_SCREEN* wk, cLit* lit)
 // Three digit number display with the IdNum table `id`: unit 0 is the frame (placed at `pos`), units
 // 1..3 the digits (colour of IdSub 0x14/0xFD or 0xFE when flags bit 1 is set), 0x11..0x13 their
 // shadows; flags bit 0 hides the leading zeros.
-void numDisp(int id, int num, Vec* pos, u32 flags)
+void numDisp(u8 id, int num, Vec* pos, u32 flags)
 {
     IdUnit* col0 = IdSub.unitPtr(0xFD, 0x14);
     IdUnit* col1 = IdSub.unitPtr(0xFE, 0x14);
     IdUnit* u;
     int i;
 
-    IdNum.unitPtr(0, id)->flags &= ~8;
+    u = IdNum.unitPtr(0, id);
+    u->flags &= ~8;
     for (i = 1; i <= 3; i++) {
         u = IdNum.unitPtr(i, id);
         u->flags &= ~8;
         if (flags & 2) {
-            memcpy(u->col0, col1->col0, 4);
+            u->col0[0] = col1->col0[0];
+            u->col0[1] = col1->col0[1];
+            u->col0[2] = col1->col0[2];
+            u->col0[3] = col1->col0[3];
         } else {
-            memcpy(u->col0, col0->col0, 4);
+            u->col0[0] = col0->col0[0];
+            u->col0[1] = col0->col0[1];
+            u->col0[2] = col0->col0[2];
+            u->col0[3] = col0->col0[3];
         }
     }
     for (i = 0x11; i <= 0x13; i++) {
-        IdNum.unitPtr(i, id)->flags &= ~8;
+        u = IdNum.unitPtr(i, id);
+        u->flags &= ~8;
     }
     if (pos) {
         u8 d[3];
@@ -795,7 +836,8 @@ void numDisp(int id, int num, Vec* pos, u32 flags)
             u->flags |= 8;
             u->flags_7F |= 2;
             u->no = d[i];
-            IdNum.unitPtr(i + 0x11, id)->flags |= 8;
+            u = IdNum.unitPtr(i + 0x11, id);
+            u->flags |= 8;
         }
         u = IdNum.unitPtr(0, id);
         u->flags |= 8;
@@ -807,9 +849,10 @@ void weaponChangeRequest(u16 no, u16 type)
 {
     SUB_SCREEN* wk = &SubScreenWk;
 
+    if (pG->x4FB8 == 1) {
+        return;
+    }
     switch (pG->x4FB8) {
-    case 1:
-        break;
     case 0:
     case 2:
     case 3:
@@ -834,7 +877,7 @@ int weaponChangeReadCheck()
 
 int weaponChangeMoveCheck()
 {
-    return SubScreenWk.x250 == 3 || SubScreenWk.x250 == 4;
+    return SubScreenWk.x250 != 3 && SubScreenWk.x250 != 4;
 }
 
 // Weapon change task (TaskExec priority 2): fades the character and weapon models out, reads the
@@ -913,22 +956,22 @@ static void weaponChangeTask()
             case 2:
                 adaModelInit(wep_no, wep_type);
                 break;
-            case 3:
-                hunkModelInit(wep_no, wep_type);
-                break;
             case 4:
                 klauserModelInit(wep_no, wep_type);
+                break;
+            case 3:
+                hunkModelInit(wep_no, wep_type);
                 break;
             case 5:
                 weskerModelInit(wep_no, wep_type);
                 break;
             }
             if (ssPlModel) {
-                ssPlModel->be_flag |= 2;
+                BitOn(ssPlModel->be_flag, 2);
                 ssPlModel->alpha = 0.0f;
             }
             if (ssWepModel2) {
-                ssWepModel->be_flag |= 2;
+                BitOn(ssWepModel->be_flag, 2);
                 ssWepModel->alpha = 0.0f;
             }
             wk->wepChange[wep_slot].req = 0;
@@ -970,3 +1013,7 @@ void LightSetModel2(cModel* m)
 {
     LightMgr.setModel2(m);
 }
+
+// The split object's .data is 4 bytes longer than the variables (the next unit's .data starts
+// 8-aligned in the REL), like ss_file.
+asm(".section .data; .balign 8; .section .text");

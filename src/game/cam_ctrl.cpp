@@ -49,6 +49,143 @@ extern CameraBSpline CamBSpline;
 
 const f32 smooth_ratio[12] = {0.0f, 0.9f, 0.85f, 0.92f, 0.8f, 0.92f, 0.9f, 0.9f, 0.9f, 0.9f, 0.0f, 0.0f};
 
+// Byte-wise copy of the float `tmp` into the (unaligned) motion buffer.
+#define EXPORT_TMP(p)                             \
+    {                                             \
+        u8* s_ = (u8*) &tmp;                      \
+        int n_;                                   \
+        for (n_ = 0; n_ < 4; n_++) {              \
+            *(p)++ = s_[n_];                      \
+        }                                         \
+    }
+
+// Converts a rail cut into the CameraMotion key-frame format (cam_motion): header, 4 channels
+// (pos, at, roll, fovy) x 3 components of hermite keys {value, tangent in, tangent out}.
+int CameraControl::HermiteExport(CameraCut* cut, u8* buf)
+{
+    u8* p = buf;
+    u32* table;
+    u16* frames;
+    int i;
+    int j;
+    int k;
+    int k0;
+    int k1;
+    f32 tmp;
+    f32 v;
+    f32 tan;
+    f32 v0;
+    f32 v1;
+    f32 dt0;
+    f32 dt1;
+
+    *(u16*) p = (cut->num - 1) * 30;
+    p += 2;
+    *p++ = 4;
+    for (i = 0; i < 4; i++) {
+        switch (i) {
+        case 0:
+        case 1:
+            *(u16*) p = 4;
+            break;
+        case 2:
+        case 3:
+            *(u16*) p = 2;
+            break;
+        }
+        p += 2;
+    }
+    for (i = 0; i < 4; i++) {
+        *p++ = i;
+    }
+    *p++ = 0;
+    *(u32*) p = 0;
+    p += 4;
+    table = (u32*) p;
+    for (i = 0; i < 4; i++) {
+        *(u32*) p = 0;
+        p += 4;
+    }
+    for (i = 0; i < 4; i++) {
+        table[i] = p - buf;
+        for (j = 0; j < 3; j++) {
+            *(u16*) p = cut->num;
+            p += 2;
+            v = 0.0f;
+            v0 = 0.0f;
+            v1 = 0.0f;
+            frames = (u16*) p;
+            for (k = 0; k < cut->num; k++) {
+                if (cut->frames == NULL) {
+                    *(u16*) p = k * 30;
+                } else {
+                    *(u16*) p = cut->frames[k];
+                }
+                p += 2;
+            }
+            for (k = 0; k < cut->num; k++) {
+                k1 = k + 1;
+                k0 = k - 1;
+                if (k1 > cut->num - 1) {
+                    k1 = cut->num - 1;
+                }
+                if (k0 < 0) {
+                    k0 = 0;
+                }
+                switch (i) {
+                case 0:
+                    v = (&cut->pos[k].x)[j];
+                    v0 = (&cut->pos[k0].x)[j];
+                    v1 = (&cut->pos[k1].x)[j];
+                    break;
+                case 1:
+                    v = (&cut->at[k].x)[j];
+                    v0 = (&cut->at[k0].x)[j];
+                    v1 = (&cut->at[k1].x)[j];
+                    break;
+                case 2:
+                    v1 = cut->roll[k1];
+                    v = cut->roll[k];
+                    v0 = cut->roll[k0];
+                    break;
+                case 3:
+                    v1 = cut->fovy[k1] * DEG;
+                    v = cut->fovy[k] * DEG;
+                    v0 = cut->fovy[k0] * DEG;
+                    break;
+                }
+                tmp = v;
+                EXPORT_TMP(p);
+                dt0 = (f32) (frames[k] - frames[k0]);
+                dt1 = (f32) (frames[k1] - frames[k]);
+                if (k == 0) {
+                    tan = (v1 - v) / dt1;
+                } else if (k == cut->num - 1) {
+                    tan = (v - v0) / dt0;
+                } else {
+                    tan = (dt1 * ((v - v0) / dt0) + dt0 * ((v1 - v) / dt1)) / (dt0 + dt1);
+                }
+                tan *= dt0;
+                tmp = tan;
+                EXPORT_TMP(p);
+                EXPORT_TMP(p);
+            }
+        }
+        {
+            int rem = (p - buf) % 4;
+            if (rem) {
+                int pad = 4 - rem;
+                while (pad > 0) {
+                    *p++ = 0;
+                    pad--;
+                }
+            }
+        }
+    }
+    *(u16*) buf = frames[cut->num - 1];
+    return p - buf;
+}
+
 int CameraControl::IsChangeCamera()
 {
     if (flags_30 & 2) {
@@ -1314,6 +1451,297 @@ void CameraControl::r0_UpCut()
 {
 }
 
+void CameraControl::r0_RailBehind()
+{
+    static Camera camera_old;
+    static f32 move_z;
+    static Vec campos_ofs0 = {0.0f, 1800.0f, -1200.0f};
+    static Vec target_ofs0 = {0.0f, 0.0f, 1550.0f};
+    static Vec pos_old;
+    static int init_flg;
+    static int edge_camera;
+    static int c_rno;
+    static int key_flg;
+    static Vec ang;
+    static int nI = 1;
+    static int mI = 2;
+    static f32 rate = 0.95f;
+    Camera cam;
+    Mtx m;
+    Mtx inv;
+    Camera* c = &camera;
+    CameraCut* cut = area_rec->cut;
+    Vec xaxis = {1.0f, 0.0f, 0.0f};
+    Vec yaxis = {0.0f, 1.0f, 0.0f};
+    Vec zaxis = {0.0f, 0.0f, 1.0f};
+    Vec dir;
+    Vec v;
+    Vec d;
+    Vec p0;
+    Vec p1;
+    Vec p2;
+    Vec q;
+    Vec q2;
+    Vec hit;
+    Vec floor;
+    Vec a;
+    int reset = 0;
+    CameraBSpline* bs = &CamBSpline;
+    JOY* joy = &Joy[0];
+    int moved;
+    int edge;
+    f32 t;
+    f32 k;
+
+    switch (sub_state) {
+    case 0:
+        Parametrize(cut, bs);
+        if (cut->flags & 1) {
+            dbg_pos = cut->aim_ofs;
+            dbg_at = *(Vec*) &cut->floor_ratio;
+        } else {
+            dbg_pos = campos_ofs0;
+            dbg_at = target_ofs0;
+        }
+        pos_old = pPL->pos;
+        reset = 1;
+        memclr_asm(&camera_old, sizeof(Camera));
+        x36 = 0;
+        sub_state++;
+        ang.x = 0.0f;
+        ang.y = 0.0f;
+        ang.z = 0.0f;
+        init_flg = 1;
+        key_flg = 0xFF;
+        c_rno = 0;
+        edge_camera = 0;
+    case 1:
+        if (c_rno == 0) {
+            if (joy->trg & 0xF00000) {
+                if (joy->trg & 0x800000) {
+                    if (key_flg == 2) {
+                        key_flg = 0;
+                    } else {
+                        key_flg = 1;
+                    }
+                }
+                if (joy->trg & 0x400000) {
+                    if (key_flg == 1) {
+                        key_flg = 0;
+                    } else {
+                        key_flg = 2;
+                    }
+                }
+                if (joy->trg & 0x100000) {
+                    if (key_flg == 4) {
+                        key_flg = 0;
+                    } else {
+                        key_flg = 3;
+                    }
+                }
+                if (joy->trg & 0x200000) {
+                    if (key_flg == 3) {
+                        key_flg = 0;
+                    } else {
+                        key_flg = 4;
+                    }
+                }
+                c_rno++;
+            }
+            if (joy->trg & 0x200) {
+                ang.x = 0.0f;
+                ang.y = 0.0f;
+                ang.z = 0.0f;
+                key_flg = 0;
+            }
+        } else {
+            if (joy->on & 0xF00000) {
+                ang.y -= (f32) joy->ssx * x6E4;
+                ang.x -= (f32) joy->ssy * x6E4;
+                ang.y = ang.y < -x6D8 ? -x6D8 : (ang.y > x6D8 ? x6D8 : ang.y);
+                ang.x = ang.x < -x6DC ? -x6DC : (ang.x > x6DC ? x6DC : ang.x);
+                c_rno++;
+            } else {
+                if (c_rno < x6E0) {
+                    ang.x = 0.0f;
+                    ang.y = 0.0f;
+                    switch (key_flg) {
+                    case 0:
+                        break;
+                    case 1:
+                        ang.x = -x6DC;
+                        break;
+                    case 2:
+                        ang.x = x6DC;
+                        break;
+                    case 3:
+                        ang.y = x6D8;
+                        break;
+                    case 4:
+                        ang.y = -x6D8;
+                        break;
+                    }
+                }
+                c_rno = 0;
+            }
+        }
+        moved = 0;
+        if (PSVECDistance(&pos_old, &pPL->pos) > 50.0f) {
+            moved = 1;
+        }
+        searchRail(bs, cut, &aim, 0);
+        edge = 0;
+        if (cut->flags & 4) {
+            if (bs->t == 0.0f || bs->t == (f32) (cut->num - 1)) {
+                cam = camera_old;
+                edge = 1;
+            }
+        }
+        if (edge_camera != 0) {
+            if (edge == 0) {
+                edge_camera = 0;
+            }
+        } else {
+            if (edge == 1) {
+                edge_camera = 1;
+            }
+            if ((cut->flags & 8) && init_flg == 1) {
+                edge_camera = 0;
+                if (edge == 0) {
+                    init_flg = 0;
+                }
+            }
+        }
+        t = bs->t;
+        BSpline(bs, &cam, 0);
+        p0 = cam.param.at;
+        bs->t = t - 0.1f;
+        if (bs->t < 0.0f) {
+            bs->t = 0.0f;
+        }
+        BSpline(bs, &cam, 0);
+        p1 = cam.param.at;
+        bs->t = t + 0.1f;
+        if (bs->t > (f32) (cut->num - 1)) {
+            bs->t = (f32) (cut->num - 1);
+        }
+        BSpline(bs, &cam, 0);
+        p2 = cam.param.at;
+        PSVECSubtract(&p1, &p2, &dir);
+        dir.y = 0.0f;
+        switch (x36) {
+        case 0:
+            if (init_flg == 1 && edge_camera == 1) {
+                PSVECSubtract(&pPL->pos, &p0, &v);
+                if (PSVECDotProduct(&v, &dir) < 0.0f) {
+                    PSVECScale(&dir, &dir, -1.0f);
+                }
+            } else {
+                PSMTXRotRad(m, 'y', pPL->rot.y);
+                PSMTXMultVecSR(m, &zaxis, &v);
+                if (PSVECDotProduct(&v, &dir) < 0.0f) {
+                    PSVECScale(&dir, &dir, -1.0f);
+                }
+                reset = 1;
+            }
+            x36++;
+            break;
+        case 1:
+            PSVECSubtract(&pPL->pos, &c->param.pos, &v);
+            if (PSVECDotProduct(&v, &dir) < 0.0f) {
+                PSVECScale(&dir, &dir, -1.0f);
+            }
+            break;
+        }
+#line 2628 "D:/Bio4/Prog/cam_ctrl.cpp"
+        VECNormalize(&dir, &dir);
+        PSVECCrossProduct(&yaxis, &dir, &xaxis);
+        m[0][0] = xaxis.x;
+        m[1][0] = xaxis.y;
+        m[2][0] = xaxis.z;
+        m[0][1] = yaxis.x;
+        m[1][1] = yaxis.y;
+        m[2][1] = yaxis.z;
+        m[0][2] = dir.x;
+        m[1][2] = dir.y;
+        m[2][2] = dir.z;
+        m[0][3] = p0.x;
+        m[1][3] = p0.y;
+        m[2][3] = p0.z;
+        if (edge_camera) {
+            floor = p0;
+            floor.y = EatMgr.getFloor(&floor, 600.0f, 100000.0f, NULL, 0);
+        } else {
+            floor = pPL->pos;
+        }
+        PSMTXMultVecSR(m, &dbg_pos, &cam.param.pos);
+        PSVECAdd(&cam.param.pos, &floor, &cam.param.pos);
+        PSMTXMultVecSR(m, &dbg_at, &cam.param.at);
+        PSVECAdd(&cam.param.at, &floor, &cam.param.at);
+        if (!(cut->flags & 1)) {
+            cam.param.fovy = x6CC;
+            cam.param.roll = 0.0f;
+        } else {
+            cam.param.roll = 0.0f;
+        }
+        PSMTXInverse(m, inv);
+        PSMTXMultVec(inv, &cam.param.pos, &q);
+        if (moved) {
+            PSMTXMultVec(inv, &cam.param.at, &q2);
+            q2.x = q.x;
+            PSMTXMultVec(m, &q2, &cam.param.at);
+        }
+        if ((s32) pSys->flags < 0) {
+            PSVECScale(&ang, &a, -1.0f);
+        } else {
+            a = ang;
+        }
+        k = 1.0f / ((f32) mI + (f32) nI);
+        VecLinearCombination(&cam.param.at, &cam.param.pos, (f32) mI * k, (f32) nI * k, &floor);
+        PSVECSubtract(&cam.param.at, &cam.param.pos, &dir);
+        dir.y = 0.0f;
+        PSVECCrossProduct(&yaxis, &dir, &xaxis);
+        MtxRotAxisPosRad(m, &xaxis, &floor, a.x);
+        PSMTXMultVec(m, &cam.param.at, &cam.param.at);
+        PSMTXMultVec(m, &cam.param.pos, &cam.param.pos);
+        MtxRotAxisPosRad(m, &yaxis, &floor, a.y);
+        PSMTXMultVec(m, &cam.param.at, &cam.param.at);
+        PSMTXMultVec(m, &cam.param.pos, &cam.param.pos);
+        PSMTXRotRad(m, 'y', pPL->rot.y);
+        PSMTXMultVecSR(m, &zaxis, &v);
+        if (PSVECDotProduct(&v, &dir) < 0.0f) {
+            PSVECSubtract(&pos_old, &pPL->pos, &d);
+            pos_old = pPL->pos;
+            PSMTXMultVecSR(inv, &d, &d);
+            move_z += d.z;
+            if (move_z > x6D4 || move_z < -x6D4) {
+                if (edge_camera == 0) {
+                    x36 = 0;
+                }
+            }
+        } else {
+            move_z = 0.0f;
+        }
+        if (SatMgr.hitCheck(&cam.param.at, &cam.param.pos, &hit, NULL, 0x8000, 0)) {
+            cam.param.pos = hit;
+        }
+        if (edge_camera) {
+            CamSmth.ratio = rate;
+            cam.param.at = pPL->pos;
+            cam.param.at.y += 1550.0f;
+        } else {
+            CamSmth.ratio = x6E8;
+        }
+        cur = cam.param;
+        CamSmth.flags |= 1;
+        if (reset == 1) {
+            CamSmth.ratio = x6E8;
+        }
+        break;
+    }
+    pos_old = pPL->pos;
+}
+
 // Separate `on & bit` tests: fold merges `(on & a) || (on & b)` on one lvalue into one mask.
 static inline u32 JoyOn(JOY* j, u32 bit)
 {
@@ -1325,16 +1753,6 @@ static inline u32 JoyTrg(JOY* j, u32 bit)
     return j->trg & bit;
 }
 
-// The two stick pairs fold to one halfword test each; as one `||` chain fold merges all four bytes.
-static inline int JoySubStick(JOY* j)
-{
-    return j->ssx != 0 || j->ssy != 0;
-}
-
-static inline int JoyMainStick(JOY* j)
-{
-    return j->sx != 0 || j->sy != 0;
-}
 
 void CameraControl::r0_Free()
 {
@@ -1349,6 +1767,7 @@ void CameraControl::r0_Free()
     Vec tmp;
     Vec unused[2];
     JOY* joy = &Joy[0];
+    JOY* joy2 = joy;
     f32 rate;
 
     switch (sub_state) {
@@ -1388,16 +1807,15 @@ void CameraControl::r0_Free()
     case 1: {
         ang.y -= (f32) joy->ssx * 0.00125f;
         ang.x -= (f32) joy->ssy * 0.00125f;
-        ang.x = ang.x < -0.7853982f ? -0.7853982f : (ang.x > 1.099557f ? 1.099557f : ang.x);
+        ang.x = ang.x < -0.7853982f ? -0.7853982f : (ang.x > PI * 0.35f ? PI * 0.35f : ang.x);
         ang.y = ang.y < -PI ? PI : (ang.y > PI ? -PI : ang.y);
         {
-            cam_mat[0][3] = pPL->mat[0][3];
-            cam_mat[1][3] = pPL->mat[1][3];
-            cam_mat[2][3] = pPL->mat[2][3];
+            cam_mat[0][3] = pPLS->mat[0][3];
+            cam_mat[1][3] = pPLS->mat[1][3];
+            cam_mat[2][3] = pPLS->mat[2][3];
             Vec xaxis = {1.0f, 0.0f, 0.0f};
             Vec yaxis = {0.0f, 1.0f, 0.0f};
             Vec tofs;
-            Vec unused2;
             Vec a;
             if ((s32) pSys->flags < 0) {
                 PSVECScale(&ang, &a, -1.0f);
@@ -1413,7 +1831,7 @@ void CameraControl::r0_Free()
             PSMTXMultVec(m, &dbg_at, &dbg_at);
         }
         {
-            u8 st = x36;
+            char st = x36;
 
             switch (st) {
             case 0:
@@ -1431,7 +1849,9 @@ void CameraControl::r0_Free()
                 ang.y += d.y * 0.1f;
                 ang.x += d.x * 0.1f;
                 if (!JoyOn(joy, 0x200) && !JoyOn(joy, 0x20)) {
-                    if (PSVECMag(&d) < 0.05f || JoySubStick(joy) || JoyMainStick(joy)) {
+                    // the pairs fold to one halfword test each; the second pointer keeps fold
+                    // from merging all four bytes into one word compare
+                    if (PSVECMag(&d) < 0.05f || (joy->ssx != 0 || joy->ssy != 0) || (joy2->sx != 0 || joy2->sy != 0)) {
                         x36--;
                     }
                 }

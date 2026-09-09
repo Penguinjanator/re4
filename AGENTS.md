@@ -1705,7 +1705,8 @@ like the DOL.
   variants), then their own `"D:/Bio4/Prog/emXX.cpp"`, and share only cUnit's inline
   `beginEvent`/`endEvent`/`~cUnit`/`operator delete` (byte-identical, at the end).
 - Compiler flags: `cflags_game` + `-G 0` (no small data in RELs: every DOL global goes through
-  `lis/addi`). Post-build: `fold_linkonce.py --module <mod>` (see "Multi-object modules" below); no strip_unused (nothing is dead-stripped in a -r link).
+  `lis/addi`), plus the module's `CFLAGS` entry of config/G4BE08/modules.py (Sscrn:
+  `-fno-implement-inlines`, see the Sscrn subsection). Post-build: `fold_linkonce.py --module <mod>` (see "Multi-object modules" below); no strip_unused (nothing is dead-stripped in a -r link).
 - Toolchain: the original RELs came out of `ngcld -r` followed by SN's `snmakerel` (Nintendo's makerel
   port). We do the same: `tools/link_rel.py` links the units with `ngcld -r -T config/G4BE08/rel_ldscript.ld`
   (SN's preplf.ld layout: every section at 0, `_ctors`/`_dtors` labels and the `LONG(0)` terminators come
@@ -1977,11 +1978,88 @@ Then `MATCHING["st2_4/r22c.cpp"] = True` in `config/G4BE08/modules.py`, `python3
 - The DLL's model managers are `cSsPartsMgr`/`cSsModInfoMgr` (ss_main.h): constructed by the DOL's
   `__9cPartsMgr`/`__12cModInfoMgr` (asm-labelled ctors) but without a virtual destructor, so the static
   destructor inlines `cManager<T>::~cManager` (stores the cManager vtable) as the target does.
-- OPEN: getTplName's second loop lacks the `mr r10,r9; mr r11,r10` copies of `page+1` that the first
-  (identical) loop has; dispFileList's target has an 8-byte frame slot and a hoisted HI zero (`li r19,0`)
-  that ours lacks (and MessageDisplay::init the reverse: ours has the slot); sscrnCameraInit's store
-  order / pool order (0.0 first); weaponChangeRequest's linear case tree; weaponChangeMoveCheck's
-  `subfe/neg` form of `x == 3 || x == 4`.
+- Status: ss_cap, ss_debug, ss_file Matching (the REL is byte-identical with the three compiled);
+  ss_main has 55/58 functions byte-identical (open: sscrnCameraInit store order, SubScreenTask
+  register allocation / `lis pG@ha` hoisting, and the cManager<cMap>::log linkonce copy below).
+- **The module was compiled with `-fno-implement-inlines`** (config/G4BE08/modules.py `CFLAGS`,
+  wired through configure.py's `REL_CFLAGS`): SubScreenTask creates every screen's Init/Main widget
+  with per-class link counts (`SsFileMain` 5, `SsItemMain`/`SsPzzlMain` 6, `SsMapMain` 5,
+  `SsCapMain` 2, `SsExitMain` 0), which needs in-class constructors
+  `SsFileMain() : Widget<SUB_SCREEN>(5) {}`, yet no unit of the module has a constructor body (the
+  .sym lists none, the nameless blocks are exactly the cManager<cLight> / ~Widget / quit-init-move
+  copies). With the default flags g++ 2.95 emits every in-class inline member of a vtable-owning class
+  out of line (`__10SsFileMain`, 0xA4); cp/decl2.c `import_export_decl` makes a non-virtual inline
+  member external when `!flag_implement_inlines`, so the flag removes exactly those bodies while the
+  vtables, synthesized destructors and virtual inlines stay (verified: the three matched units are
+  byte-identical with and without the flag). All widget classes are now declared in ss_main.h
+  (SubScreenTask needs their sizes and vtables); each unit's own classes keep their relative order
+  (vtables are emitted in reverse declaration order per unit: ss_main's are SsExitInit, SsExitMain,
+  SsItemExamine — SsItemExamine last).
+- `static int file_wait[1]` (one-element array): the in-struct store `file_wait[0] = 0` keeps the
+  following `state++` load below it and stops cse from folding case 1's `state++` to `li r0,2`; the
+  case-0 block then has two pseudos and the `lis file_wait@ha` gets r11 instead of r9 (SsFileInit::move).
+- A loop variable shared by two identical loops (`int i, n` at function scope for both language
+  branches) gives both loops the `mr r10,r9; mr r11,r10` shape; per-branch locals lose them in the
+  second loop (getTplName).
+- Message slot address as one expression on a pointer variable, not the `getMes` inline
+  (`SS_MES(pm, no)` = `(no) * sizeof(Message) + (u32) (pm) + sizeof(u32)`, `MessageControl* pm = &cMes`
+  block-local): a reference argument built from it (`U16Set(SS_MES(pm, slot)->charSpace, v)`) is
+  computed in place into the parameter register (three sets of one `reg/v`), which makes cse lose the
+  `slot * 0xEC` product; the next `SS_MES(pm, slot)->lineH = zero` re-multiplies and gcse PRE turns it
+  into the `mulli; mr r9,r11; add r11,r11,r3; add r9,r9,r3` pair (dispFileList, mes.cpp setLayout).
+  The plain store with a `u16 zero = 0` local keeps `addi r9,r9,4; sth 0x76(r9)` unfolded; the
+  reference store folds to `sth 0x7c(r11)`. The zero local declared next to the stores has lifetime
+  >= 2 so loop.c hoists it (`li r19,0` in the preheader, threshold 71 x savings x lifetime >= 140
+  insns); declared at the body top it is hoisted too but its `li` lands before the `lis cMes@ha`.
+- Loop-body `int x, y` (block-local) give the loop its own pseudos: the title's x/y stay r30/r29 and
+  the loop's get r28/r29 (dispFileList); with function-level x/y both share registers.
+- `if (layout == 1) u->scr = IdSub.unitPtr(0xFD, 0x1E)->scr; else u->scr = IdSub.unitPtr(0xFB, 0x1E)->scr;`
+  (the struct copy repeated in both arms) is what lets jump2 merge the two call tails and PRE the
+  `lis r28, IdSub@ha` of both arms to the function top (MessageDisplay::init); a ternary index gives
+  one call with a `clrlwi`, plain arms leave `li r5; bl` unmerged (the `use` after the call).
+- `S16Set(x, ...)` for the member stores before a `pSys->language` read keeps the `lwz pSys` below
+  the `sth`s; store order `state = 0; tplState = 0; tplFirst = 1` gives the target's
+  `stb 0x12; stb 0x11; stb 0x10` (dying-first rule).
+- `u8 page = fw->page` plus direct `fw->page` reads in the same ebb: the local becomes
+  `lbz r8; clrlwi r27,r8,24` (the direct reads cse to the QI load pseudo, so `fw->page++` is
+  `addi r0,r8,1`); with only the local in use the load is a plain `lbz` (MessageDisplay::move).
+- `int* pReq = &file_tpl_req; sprintf(..); ...; *pReq = DVD_READ_N(..)` puts the `lis
+  file_tpl_req@ha` in a callee-saved register before the sprintf; `x = call()` expands the call first
+  (expr.c expand_assignment CALL_EXPR case) and loads the high part after it.
+- ss_file's `.data` is 4 bytes short of the split object: `asm(".section .data; .balign 8")` at the end
+  (the next unit's `.data` starts 8-aligned); ss_main the same.
+- ss_main: `switch (info.type)` (not if/else-if) for the `cmpwi 1; beq; cmpwi 9; beq; b` chains;
+  `&info`/`&size` recomputed per call through `static inline` wrappers (`ssItemInfo`, `ssReadCheck`);
+  `PSet(wk->x240, wk->x23C)` keeps the following `lhz exam_id` below the store; `exam.move();
+  exam.trans(); ... exam.quit()` (member calls, no local pointer) give the `mr r26,r30` PRE copy;
+  the static const Vecs of `cLightInfo::init2` are function-local statics (emitted before the pool);
+  numDisp takes `u8 id` (no `clrlwi` at the `unitPtr` calls) and copies `col0[0..3]` byte by byte
+  (a struct copy is `lwz/stw`); weaponChangeRequest is `if (x4FB8 == 1) return; switch (x4FB8)
+  {case 0: case 2..5:}` (the `cmpwi 1; beqlr` is a separate if); weaponChangeMoveCheck is
+  `x250 != 3 && x250 != 4` (`subfic/subfe/neg`); `BitOn(ssPlModel->be_flag, 2)` reloads the model
+  pointer for the following `alpha` store; the character switch order is Leon, Ashley, Ada,
+  Krauser(4), HUNK(3), Wesker (as playerModelInit). sscrnCameraInit needs `const f32 zero = 0.0f`
+  for the pool order (0.0 first).
+- SubScreenTask: `SsTermMain* termMain = 0` and the other three null widget pointers are declared
+  BEFORE `exitInit = new SsExitInit` (their `li`s are scheduled around the `__builtin_new` call and the
+  first ctor's `i = 0` cse's to the first of them), `cur = 0` after `exitInit->connect`, and every
+  branch calls `cur->init(wk)` itself (jump2 merges the call tails into the `& 0x40` branch's copy;
+  the final else copy stays because of the `use` after the call). The model loops call through a
+  function-pointer local (`void (*func)(cModel*) = sscrnModelTrans; for (m = MapMgr.pAlive; ...)
+  func(m)` -> `mtlr r31; blrl`). `MotionMoveF(m, 0)` (pl_npc.cpp alias) for the `li r4,0`.
+- OPEN (ss_main): sscrnCameraInit's nine stores come out `up.y, fov, up.x, up.z, ...` where the
+  target has `up.y, up.z, fov, at.x .. pos.y, up.x` (no permutation of the statements nor FSet
+  reproduces it; the pool order is right). SubScreenTask (96%): global-alloc swaps `wk`/`exitInit`
+  (r21/r20) and `cur` (r28/r27), ours hoists one `lis pG@ha` (r24) out of the while loop where the
+  target keeps three separate `lis` (two PRE'd before the weapon switch, one in the digit block), and
+  `&MapMgr` is a hoisted pointer (`addi r23, r11, MapMgr@l`) in the target. Ours instantiates
+  `cManager<cMap>::log` (0x48 linkonce, marked used by the virtual calls in countActiveWork/create)
+  which the original ss_main object lacks although cLight's `log` copy is in every unit; the extra
+  copy breaks fold_linkonce's keep_unnamed size sum, so the 0x414 nameless block (cLight, ~Widget,
+  quit/init/move) is currently dropped from ours.
+- The map model globals are named `ssPlModel`/`ssWepModel` (.bss 0x494/0x498, MapMgr works 0/1),
+  `ssPlMotion`/`ssWepModel2` (.data 0x978/0x97C), renamed by hand in symbols.txt/sym_map.tsv
+  (data labels have no .sym name for the sync tool); the generator attributes them to ss_map.cpp.
 
 ### Open
 

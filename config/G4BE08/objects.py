@@ -1151,6 +1151,7 @@ MATCHING.update({
     "game/emitem.cpp": True,
     "game/em.cpp": True,
     "game/emrack.cpp": True,
+    "game/emtree.cpp": True,
 })
 
 # area / message units
@@ -1379,6 +1380,13 @@ MATCHING.update({
     "lib/FSasync.c": True,
 })
 
+# SN libsn sndvd: DABR set through an "m" asm operand (stack slot + hard r3), DSIExcHandler as one
+# top-level asm block, uncached DI address `(0x0C006000 + i*4) | 0xC0000000` inside the copy loop,
+# empty asm keeping the default case's `bl ForceDvdDeIrq` from being cross-jumped (COMPILER-DIFF #6)
+MATCHING.update({
+    "lib/sndvd.c": True,
+})
+
 # AX FX standard reverb: `max_length << 2` in DLcreate decides `rv`'s callee-saved register
 MATCHING.update({
     "lib/reverb_std.c": True,
@@ -1404,4 +1412,11 @@ MATCHING.update({
     "lib/fileserver.c": True,
     "lib/eabi.c": True,
     "lib/__start.c": True,
+    "lib/tealeaf.c": True,
+})
+
+# item examine: single-assignment float locals for the camera setup (dist/r/y/z each die once, so
+# local-alloc orders the FPRs by refs/length), `-y` stores with target.y first
+MATCHING.update({
+    "game/examine.cpp": True,
 })

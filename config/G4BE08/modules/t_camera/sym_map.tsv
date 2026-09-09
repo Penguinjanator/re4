@@ -120,14 +120,14 @@ section	offset	size	unit	scope	name	demangled
 .text	0x00011E48	0xBC	t_camera/db_light.cpp	global	countActiveWork__t8cManager1Z6cLight	cManager<cLight>::countActiveWork
 .text	0x00011F04	0x158	t_camera/db_light.cpp	global	create__t8cManager1Z6cLighti	cManager<cLight>::create
 .text	0x0001205C	0x138	t_camera/db_light.cpp	global	create__t8cManager1Z6cLightiUl	cManager<cLight>::create
-.text	0x00012194	0x14	t_camera/db_light.cpp	global	cVarRange_unsigned_char_init	cVarRange<unsigned char>::init
-.text	0x000121A8	0x34	t_camera/db_light.cpp	global	cVarLoop_unsigned_char_limitUpper	cVarLoop<unsigned char>::limitUpper
-.text	0x000121DC	0x34	t_camera/db_light.cpp	global	cVarLoop_unsigned_char_limitLower	cVarLoop<unsigned char>::limitLower
-.text	0x00012210	0x68	t_camera/db_light.cpp	global	cVarLoop_unsigned_char_cVarLoop	cVarLoop<unsigned char>::cVarLoop
-.text	0x00012278	0x14	t_camera/db_light.cpp	global	cVarRange_unsigned_char_op_eq	cVarRange<unsigned char>::operator==
-.text	0x0001228C	0x50	t_camera/db_light.cpp	global	cVarRange_unsigned_char_op_dec	cVarRange<unsigned char>::operator--
-.text	0x000122DC	0x50	t_camera/db_light.cpp	global	cVarRange_unsigned_char_op_inc	cVarRange<unsigned char>::operator++
-.text	0x0001232C	0x8	t_camera/db_light.cpp	global	cVarRange_unsigned_char_operator_int	cVarRange<unsigned char>::operator int
+.text	0x00012194	0x14	t_camera/db_light.cpp	global	init__t9cVarRange1ZUcRCUcT1	cVarRange<unsigned char>::init
+.text	0x000121A8	0x34	t_camera/db_light.cpp	global	limitUpper__t8cVarLoop1ZUci	cVarLoop<unsigned char>::limitUpper
+.text	0x000121DC	0x34	t_camera/db_light.cpp	global	limitLower__t8cVarLoop1ZUci	cVarLoop<unsigned char>::limitLower
+.text	0x00012210	0x68	t_camera/db_light.cpp	global	__t8cVarLoop1ZUcRCUcN21	cVarLoop<unsigned char>::cVarLoop
+.text	0x00012278	0x14	t_camera/db_light.cpp	global	__eq__t9cVarRange1ZUci	cVarRange<unsigned char>::operator==
+.text	0x0001228C	0x50	t_camera/db_light.cpp	global	__mm__t9cVarRange1ZUci	cVarRange<unsigned char>::operator--
+.text	0x000122DC	0x50	t_camera/db_light.cpp	global	__pp__t9cVarRange1ZUci	cVarRange<unsigned char>::operator++
+.text	0x0001232C	0x8	t_camera/db_light.cpp	global	__opi__t9cVarRange1ZUc	cVarRange<unsigned char>::operator int
 .text	0x00012334	0x80	t_camera/db_light.cpp	global	destroyAll__t8cManager1Z6cLight	cManager<cLight>::destroyAll
 .text	0x000123B4	0x48	t_camera/db_light.cpp	global	_._5cUnit	cUnit::~cUnit
 .text	0x000123FC	0x4	t_camera/db_light.cpp	global	beginEvent__5cUnit	cUnit::beginEvent
