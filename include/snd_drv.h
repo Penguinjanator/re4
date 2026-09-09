@@ -170,7 +170,7 @@ typedef struct {
     u16 total_peak;         // 0x8C
     u16 total_num;          // 0x8E
     ARQRequest arq;         // 0x90
-    s32 dma_busy;           // 0xB0
+    volatile s32 dma_busy;  // 0xB0 (snd_test cb_dma_end/aram_dump_dma address the field through the struct base)
 } SND_CTRL_WORK;
 
 // Sound request (Snd_req_work[2][64], 0x2C bytes).

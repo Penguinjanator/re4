@@ -4045,3 +4045,102 @@ target) stays unresolved and `make_rel` then fails with "undefined symbol".
   r10/r11), route_ck RouteCkPosToPos (`lbzx` index in r0: the tbl base is pointer-flagged in the
   target), debug ProcessTickGet (proc_name store before proc_tick in the else arm), main_mem
   MemCheckHeapEnd (the `d->allocated` reload after the if/else; `li r3,0` between compare and branch).
+
+### Small tool RELs, fourth pass (t_light/t_scroll 37/42, t_movie/snd_test 58/77, t_movie/t_snd_vol 13/27 written; 2026-09)
+
+- bcmp-style byte compares align functions by symbol name: an out-of-line header inline (varargs
+  `cLog`-style body, no symbol in our object, `fn_<mod>_<addr>` in the split) shows as MISSING even when
+  its bytes match — compare the `.text` tails by hand before counting it as a residue (t_scroll).
+- Original-only shapes found in snd_test (none reproducible, all left as residues):
+  - A loop-invariant `Snd_voice_work` address that our reload rematerialises with `lis/addi` is, in
+    the original, spilled to a constant-pool word (`lis/addi/lwz 0(r)` of an anonymous `.rodata` word
+    emitted after the function's last string, i.e. at pool position) and costs one more callee-saved
+    register (disp_sequencer: one more stack slot for `ch_prio`). `static T* const p = &g` folds,
+    `*(T* const*)&p` gives a *named* word at declaration position — neither is the pool shape.
+  - Identical 1-char string literals (`">"`, `"<"`, `"D"`) are NOT merged across function groups in
+    the original (3 copies of `">"`, 2 of `"<"`/`"D"` in one unit) while longer strings are. Ours merges
+    them; distinct constants with identical bytes come from `">\0"` / `">\0\0"` literals
+    (`// COMPILER-DIFF: candidate #10`). Within a function (or a group of functions that the original
+    seems to share one literal between) keep the plain literal.
+  - `w->cur += dir` on an s8/s16 member with an int `dir` gives `add r0,rDir,rCur` in the original; every
+    source form (`dir + w->cur`, narrow locals, int temps, inline helpers) gives `add r0,rCur,rDir` here
+    (test_tbl_now_check, test_req_no_select: 1 word each). Shortened narrow arithmetic swaps a
+    `(subreg dir)` operand behind the loaded pseudo in our expand_binop.
+- `switch (w->mode) { case 5: ..; case 6: case 7: ..; default: .. }` is the source of the target's
+  `cmpwi 5; bne; ...; blt default; cmpwi 7; bgt default` chain (Snd_test_mode), not an if/else-if.
+- A function whose every `return 0;` shows no `li r3,0` in the target is `void` (snd_test
+  test_mode_menu/test_mode_move: the callers ignore the result).
+- Calls that pass a stale `r3` (no `mr r3,r31` before the 2nd/3rd `bl`) come from a hard-register
+  argument variable: `register SndTestWork* p asm("r3") = w;` then `f(p)` per call — GCC 2.95 never
+  restores an explicit hard-register variable after a call (Snd_test_disp_basic).
+- `lis/addi` + `stw r0,0xb0(r9)` for a single store to a global struct field (instead of the folded
+  `stw r0,sym+0xb0@l(r9)`) means the field is `volatile` (SND_CTRL_WORK::dma_busy; the DMA wait loop
+  `do {} while (ctrl->dma_busy != 0)` re-reads it for the same reason). Pointer-base form via a local
+  `SND_CTRL_WORK* ctrl = &Snd_ctrl_work;` alone is folded back by cse.
+- Zero-store order `stw 0x98; stw 0x90; stw 0x94` interleaved with an address computation is decided
+  by source order through the scheduler: the target order was `dirNum(0x90), dirTop(0x94), dirCur(0x98)`
+  in the source (directory_open) — try the permutations in a harness rather than reasoning.
+- String helpers: `while (*s++ != '.') {}` is rotated with a duplicated head; `do { c = *s++; } while
+  (c != '.');` gives the target's `bne <function start>` loop. `char c = *s; while (c) { ..; c = *++s; }`
+  gives `lbz; extsb; cmpwi; beqlr` + `lbzu` (change_to_cap); `while ((c = *s++) != 0)` gives the
+  `b test; body; test: addi; extsb; cmpwi` shape (get_dir_level).
+- A `path[i + 1]` whose target `add` has the pointer first (`add r9,r3,r11`) is `*(path + i + 1)`; the
+  plain subscript puts the index first in the sum here (dir_name_up).
+- `if (a) return 0; ... return 1;` vs `if (!a) { ...; return 1; } return 0;` decide whether `li r3,0` is
+  inline before the branch or out of line (blk_no_check inline, test_move_epara_* out of line) — check
+  each leaf function's tail separately.
+- A `s8 no = w->auxCur;` local set in every switch arm gives `extsb` at the load; the target's `lbz r11`
+  in every arm (also in the default arm that has no use) plus `extsb` at each use is gcse PRE of a
+  re-read `w->auxCur` used after the switch: drop the local and re-read the member.
+- t_snd_vol: `GXColor`-looking colour parameters that arrive in a GPR (`stw r4,slot; addi r4,r1,slot`)
+  are `u32` in the original (V4 passes aggregates by reference: our `GXColor col` param gives
+  `lwz r0,0(r4)`); pass `u32` and cast `(GXColor*) &col` at the Tprim call. The tool's work pointer is a
+  `Debug_alloc`'d struct reached through a `static` pointer that the original reloads after every
+  store: same struct-member wrapper as t_scroll (`struct SndVolWorkPtr { SndVolWork* p; }`), initialised
+  `= {NULL}` so it lands in `.data` next to the tables.
+
+### REL near-miss sweep (cSceObj x3, Tools/t_util Matching; r119 26/27, em3a 40/42, t_camera_data .rodata; 2026-09)
+
+- A constant-pool `lfs` the original issues AFTER struct stores through `this` (cSceObj setMove1_all's
+  0.01 after the two Vec copies): pool loads are `RTX_UNCHANGING_P` and never depend on stores, so the
+  constant is a function-local `static const f32 rate = 0.01f;` (emitted at its declaration = exactly
+  where the function's pool would be) read ONCE through a `const f32&` inline (`FCRef`) into a local:
+  the reference read is a MEM with neither the struct nor the scalar flag and `true_dependence` keeps
+  it below the stores; a direct use folds to the literal, two reference reads reload between the stores.
+- Stores whose following `pG` load must stay below them (r119 `sat[i] = SatMgr.create(..)`): a typed
+  `PSetSat(cSat*&, cSat*)` reference store with the call as the argument expression (the work pointer
+  is still reloaded after the call, r3 stored directly). The pG load position moves the two `addi`
+  table-address uses next to each other, which is what breaks the global-alloc live-length tie of the
+  pos/rot `lis` pseudos (pairs 1/2 were tied at 146/162 insns and fell to pseudo order).
+- Register-order lever: a loop counter and a strength-reduced giv with the same refs/lifetime are
+  allocated in pseudo order (counter first -> higher register); one more reference to the counter
+  (`if (best == -1) best = j; else if (..) best = j;` — two statements that jump2 cross-jumps back into
+  one `mr`) makes it 5 refs vs 4 and wins the register (t_util TutilGet3DPosXZ j = r10, j*4 = r8).
+- A `pG` read whose `lis pG@ha` the target issues after a preceding member store (em3aPatrolInit
+  `w->pRoute = 0; if (pG->pRoomEmi == 0)`): read `pG` through a reference inline (`GRef(pG)->x`); the
+  load then depends on the store and the store outranks the `lis` in sched1.
+- `.rodata` string order with two literals in one function in reverse code order (t_camera_data
+  "B404"/"EMPT"): `const char* const tag = "B404";` at the declarations parses the string first and
+  folds to the literal at the use (a non-const `const char*` local is kept in a register).
+- Sched1 register-weight rule, loads: `INSN_REG_WEIGHT` is +1 per SET (stores included) minus 1 per
+  death, so in a 12-byte template copy the word-8 load (last use of the `addi` base) has weight 0 and
+  is issued before the word-4 load (+1); sched2 (post-reload, no weights) only re-sorts through the
+  hard-register anti-dependence chains. The original issues 0,4,8 in r22a RopeMove / r40f BombSet
+  copy 1 and 0,8,4 in BombSet copy 2, so its tie-break is not this rule (OPEN, no source lever).
+- Local-alloc FPR order of constant temps (r40a first_init, r119 third SetTree block): qty priority
+  is refs*size/length with ties by qty number (assigned scanning the block BACKWARDS, so the later-
+  dying temp wins ties); f0 goes to the first allocated. Our sched1 issues the loads in LUID order
+  (x, y, addi, z), the original's allocation says z's range was not the shortest. `asm("" : "+f"(px))`
+  (two deaths -> global alloc -> f0) reproduces r40a's bytes but is not a documented COMPILER-DIFF.
+- cse1 path structure (r120 R120Event): our cse falls through into both `if (!(flags & 0x10))` event
+  bodies (their `high(EvtMgr)`/string highs become r29/r30) and the tail after the outer `if` starts a
+  new ebb whose PRE copy is rematerialised (`lis r9, pG@ha`); the original skipped both bodies
+  (fresh `lis` in each) and carried `high(pG)` into the tail (r31). Nested and two-`if` forms compile
+  identically (jump threading). OPEN.
+- t_mv mvInit: the then arm's `cursor = 0` literal always finds the SImode `zero` pseudo (or the
+  known-zero loaded byte) through cse `src_related`; the `asm("" : "+r"(c))` launder becomes
+  `mr r10, r29` (cse substitutes r29 into the asm input). Not a launder case.
+- Tool: `mcmp.py`-style masked compare (functions aligned by normalised name, reloc fields masked on
+  both sides, same-section branches resolved by target) plus `perm.py`/`variants.py` (statement
+  permutations / listed variants between two marker comments, ~0.35 s per variant) is the loop that
+  found the r119/t_util/em3a/t_camera_data fixes; keep them in a private /tmp dir.
