@@ -564,6 +564,8 @@ void cSubChar::moveFootwork()
 // Routine 0 / 1: walk or run after the player to subTarget.
 void cSubChar::moveMove()
 {
+    const f32 near = 400.0f;   // pool order: 400 precedes the turn angles
+
     switch (subSelf->xFE) {
     case 0:
         sub40A = 0;
@@ -1037,10 +1039,13 @@ void cSubChar::moveDown()
 // facing angle for the fence / window actions. 1 when found.
 int cSubChar::getScrActionPoint(Vec* opos, Vec* orot, u32 attr)
 {
-    Vec a = { 0.0f, 400.0f, 0.0f };
+    // `h` first: its pool entry precedes -1000 (and the const local's extra RTL gives the
+    // original's r22/r23 allocation and store schedule).
+    const f32 h = 400.0f;
+    Vec a = { 0.0f, h, 0.0f };
 
     PSVECAdd(&a, &pos, &a);
-    Vec b = { 0.0f, 400.0f, 1000.0f };   // initialised after the first call (mid-block declaration)
+    Vec b = { 0.0f, h, 1000.0f };   // initialised after the first call (mid-block declaration)
     Vec nrm;
     Vec hit;
     u32 r;
@@ -1051,7 +1056,7 @@ int cSubChar::getScrActionPoint(Vec* opos, Vec* orot, u32 attr)
     }
     PSVECScale(&nrm, &b, -1000.0f);
     PSVECAdd(&b, &pos, &b);
-    b.y += 400.0f;
+    b.y += h;
     r = SatMgr.hitCheck(&a, &b, &hit, &nrm, 0, 0);
     if (!(r & 0x01000000) || !(r & attr)) {
         return 0;
@@ -1064,6 +1069,15 @@ int cSubChar::getScrActionPoint(Vec* opos, Vec* orot, u32 attr)
     orot->x = 0.0f;
     orot->y = atan2(-nrm.x, -nrm.z);
     return 1;
+}
+
+// Never called: only its initializer template survives in `.rodata` (the `{0, 1000, 300}` words
+// between getScrActionPoint's pool and moveFance's).
+static inline void subFanceDummy(Vec* out)
+{
+    Vec v = { 0.0f, 1000.0f, 300.0f };
+
+    *out = v;
 }
 
 // Routine 0 / 8: climb over a fence.
@@ -1366,12 +1380,13 @@ f32 cSubChar::getJumpAdjY()
 {
     Vec v;
     f32 h;
+    const f32 far = 3800.0f;   // pool order 3800, 1500; `lim` at the top keeps 1500 in f31 across the calls
     const f32 lim = 1500.0f;
 
     v.x = -sub448.x;
     v.y = sub448.y;
     v.z = -sub448.z;
-    PSVECScale(&v, &v, 3800.0f);
+    PSVECScale(&v, &v, far);
     PSVECAdd(&v, &sub43C, &v);
     v.y += lim;
     h = SatMgr.getFloor(&v, 600.0f, 100000.0f, 0, 0);
@@ -1385,6 +1400,7 @@ f32 cSubChar::getJumpAdjY()
 // Slide the partner sideways off the posts while she jumps over a wall.
 void cSubChar::jumpAdjust()
 {
+    const f32 z = 300.0f;   // pool order: 300 before 0
     Vec a;
     Vec b;
 
@@ -1693,6 +1709,8 @@ void cSubChar::moveStoop()
 // Routine 0 / 0x12: wait on the ledge for the player to catch her.
 void cSubChar::moveFallWait()
 {
+    const f32 len = 1300.0f;         // pool order: 1300, 0.314 first
+    const f32 spd = 0.31415927f;
     Vec v;
     f32 ang;
 
@@ -2168,6 +2186,8 @@ void cSubChar::neckInit()
 // Turn the neck (parts 3) towards the player while neckSet() keeps asking for it.
 void cSubChar::neckCtrl()
 {
+    const f32 spdBack = 0.10471976f;   // pool order: the two speeds first
+    const f32 spdHome = 0.15707964f;
     cModel* p = getPartsPtr(3);
     int on = 1;
     f32 ang;
@@ -2722,6 +2742,9 @@ void cSubChar::backCheckCtrlMove()
 // An alive, non-battle enemy behind her (within 20000, in the back cone) with a clear line of sight.
 int cSubChar::checkBackEm()
 {
+    const f32 distFar = 400000000.0f;   // pool order: the far cone angle before the near ones
+    const f32 distNear = 25000000.0f;
+    const f32 angFar = 2.617994f;
     int i;
     int n = EmMgr.nArray;
 
@@ -2929,6 +2952,7 @@ void cSubChar::analyze()
 // subFlags2 bit8: a damage area 1500 ahead on the way to subTarget.
 void cSubChar::frontCheck()
 {
+    const f32 len = 1500.0f;   // pool order: 1500 before 0
     Vec d;
 
     BitOff16(subFlags2, 0x100);
@@ -2952,6 +2976,7 @@ void cSubChar::anaSatInfo()
     Vec a = { 0.0f, 400.0f, 0.0f };
     Vec b;
     u32 r;
+    const f32 dist = 360000.0f;   // pool order: 360000, 0.5236, pi
     const f32 lim = 0.5235988f;
 
     PSVECAdd(&a, &subSelf->pos, &a);

@@ -9,6 +9,9 @@
 // Sub screen (inventory / map / files / puzzle) front end, game/sscrn.cpp. The screen itself is
 // the Sscrn.rel DLL, linked into the ARAM-swapped area while it is open.
 class cObjWep;
+class cMap;
+struct ItemWork;
+struct SUB_SCREEN;
 
 // Sub screen data archive (ss_cmmn.dat / ss_pzzl.dat): a table of byte offsets to its sub-files.
 struct SsArc {
@@ -16,7 +19,9 @@ struct SsArc {
 };
 #define SS_ARC_PTR(arc, no) ((void*) ((arc)->ofs[no] + (u32) (arc)))
 
-struct SubScreenWork {
+// The work is the `SUB_SCREEN` of the Sscrn module's `Widget<SUB_SCREEN>` template (the module's
+// mangled names carry the tag); SubScreenWork is the DOL-side alias.
+struct SUB_SCREEN {
     char path[0x28];          // 0x000  "SS/<lang>/<file>" (sscrnSetLanguage / sscrnDataFilename)
     u8 x28;                   // 0x028
     u8 pad_29[3];
@@ -28,7 +33,7 @@ struct SubScreenWork {
     s32 x40;
     s32 x44;
     s32 x48;
-    s32 x4C;
+    int (*x4C)(SUB_SCREEN*);  // 0x04C  screen exit routine (Sscrn ss_*: sscrn_*_out), run until it returns 1
     u32 save170;              // 0x050  pG->flags_170 while open
     u32 save58;               // 0x054  pG->flags_58 while open
     Camera cam;               // 0x058  pG->Cam while open
@@ -60,7 +65,10 @@ struct SubScreenWork {
     void* binoB;              // 0x218
     u32 x21C[8];              // 0x21C
     void* x23C;               // 0x23C  0x3E800-byte buffer
-    u8 pad_240[0x264 - 0x240];
+    u8 pad_240[0x248 - 0x240];
+    ItemWork* x248;           // 0x248  selected item slot (Sscrn CapSelect)
+    cMap* x24C;               // 0x24C  MapMgr work 2 (Sscrn CapSelect)
+    u8 pad_250[0x264 - 0x250];
     u8 x264;                  // 0x264  2 for type 2, else 1
     u8 x265;                  // 0x265
     u8 pad_266[3];
@@ -72,7 +80,9 @@ struct SubScreenWork {
     u8 pad_2B0[0x2FA - 0x2B0];
     u16 x2FA;                 // 0x2FA  item id handed to the opened sub screen (sce_at sceAtGetItem)
     u16 x2FC;                 // 0x2FC  its count
-    u8 pad_2FE[0x31C - 0x2FE];
+    u8 pad_2FE[0x310 - 0x2FE];
+    s8* x310;                 // 0x310  Sscrn ss_cap cursor {row, column, row * 6 + column}
+    u8 pad_314[0x31C - 0x314];
     s32 mdtNo;                // 0x31C  OpeSetOpenTerm number
     s32 strBlk;               // 0x320  SndStrPlayBlock handle
     cObjWep* pObj;            // 0x324  OpeSetOpenTerm weapon object
@@ -96,6 +106,7 @@ struct SubScreenWork {
     u8 x366;                  // 0x366
     u8 pad_367[0x374 - 0x367];
 };
+typedef SUB_SCREEN SubScreenWork;
 
 extern SubScreenWork SubScreenWk;
 

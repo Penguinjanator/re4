@@ -124,7 +124,7 @@ struct Em10Work {
     u16 x656;             // 0x656 (0xA36)
     u32 x658;             // 0x658 (0xA38)
     u16 x65C;             // 0x65C (0xA3C)
-    u16 x65E;             // 0x65E (0xA3E)
+    s16 x65E;             // 0x65E (0xA3E)  em10CsawSignSe: chainsaw rev sound timer
     u16 x660;             // 0x660 (0xA40)
     u8 pad_662[2];
     u32 x664;             // 0x664 (0xA44)

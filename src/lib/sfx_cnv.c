@@ -25,14 +25,19 @@ void SFX_MakeTblZ16(SFX_OBJ *sfx, SFX_FRM *frm)
 void SFX_MakeTable(SFX_OBJ *sfx, SFX_FRM *frm, Sint32 type)
 {
 	Bool need;
-	Uint8 *tbl;
 	Sint32 i;
+	Uint8 *tbl;
 
 	need = TRUE;
 	if (sfx->tbl_type == SFX_TBL_NONE) {
 		need = FALSE;
 	} else if (sfx->tbl_type == type) {
 		switch (type) {
+		case SFX_TBL_ALP_LUMI:
+			if (SFXA_IsNeedUpdateLumiTbl(sfx->sfxa) != TRUE) {
+				need = FALSE;
+			}
+			break;
 		case SFX_TBL_LUMI:
 		case SFX_TBL_ALP3110:
 		case SFX_TBL_ALP3211:
@@ -40,15 +45,9 @@ void SFX_MakeTable(SFX_OBJ *sfx, SFX_FRM *frm, Sint32 type)
 		case SFX_TBL_YCC422_COLADJ:
 			need = FALSE;
 			break;
-		case SFX_TBL_ALP_LUMI:
-			if (SFXA_IsNeedUpdateLumiTbl(sfx->sfxa) != TRUE) {
-				need = FALSE;
-			}
-			break;
 		case 0:
-		case 3:
 		case SFX_TBL_Z32:
-		case SFX_TBL_Z16:
+		case SFX_TBL_Z32 + 1:
 		case SFX_TBL_NONE:
 		default:
 			break;
@@ -79,8 +78,9 @@ void SFX_MakeTable(SFX_OBJ *sfx, SFX_FRM *frm, Sint32 type)
 		CFT_MakeYcc422ColAdjTbl(sfx->buf[0]);
 		break;
 	case SFX_TBL_LUMI:
+		i = 0;
 		tbl = sfx->buf[0];
-		for (i = 0; i <= 15; i++) {
+		for (; i <= 15; i++) {
 			tbl[i] = 0;
 		}
 		for (i = 16; i <= 235; i++) {
@@ -90,7 +90,7 @@ void SFX_MakeTable(SFX_OBJ *sfx, SFX_FRM *frm, Sint32 type)
 			tbl[i] = 0xFF;
 		}
 		break;
-	case 3:
+	case 0:
 	case SFX_TBL_NONE:
 	default:
 		SFXLIB_Error(sfx, frm, "E201311: sfxcnv_MakeTable : compo is not support.");
@@ -100,20 +100,24 @@ void SFX_MakeTable(SFX_OBJ *sfx, SFX_FRM *frm, Sint32 type)
 
 Sint32 SFX_DecideTableAlph3(SFX_OBJ *sfx, Sint32 compo)
 {
-	switch (compo) {
-	case SFX_COMPO_0x51:
+	Sint32 fxtype;
+	Sint32 ret;
+
+	if (compo == SFX_COMPO_0x51) {
 		return SFX_TBL_ALP3110;
-	case SFX_COMPO_0x61:
+	}
+	if (compo == SFX_COMPO_0x61) {
 		return SFX_TBL_ALP3211;
 	}
-	switch (SFX_GetFxType(sfx)) {
-	case SFX_COMPO_0x51:
-		return SFX_TBL_ALP3110;
-	case SFX_COMPO_0x61:
-		return SFX_TBL_ALP3211;
-	default:
-		return SFX_TBL_ALP3211;
+	fxtype = SFX_GetFxType(sfx);
+	if (fxtype == SFX_COMPO_0x51) {
+		ret = SFX_TBL_ALP3110;
+	} else if (fxtype == SFX_COMPO_0x61) {
+		ret = SFX_TBL_ALP3211;
+	} else {
+		ret = SFX_TBL_ALP3211;
 	}
+	return ret;
 }
 
 Sint32 sfxcnv_IsCnvUpHalf(SFX_OBJ *sfx)

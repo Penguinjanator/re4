@@ -1501,6 +1501,20 @@ following `.data` unit by 4 (dummy: `asm(".section .data\n\t.balign 8\n\t.sectio
 - Float constant pool entries are emitted before the function's strings; a stray 4-byte zero word in
   `.rodata` between strings is a `0.0f` in a dead function.
 
+- `-fp_contract on` is required in `cflags_mw_cri` (`-fp fmadd` alone does not contract in 2.4.7).
+- Callee-saved order = declaration order, first declared -> highest register, after compiler
+  temporaries (strength-reduced pointers) which take r31/r30 first.
+- `long`/`Sint32` loop counters keep the entry guard and reload constants; `int` counters get it
+  folded. Loops <= 32 fully unroll; 64 and 192 don't (a 192-store clear is six macro loops of 32).
+- Functions emitted after their inlined uses are separate static helpers at the top plus a public
+  wrapper later; a standalone `if (c) return -1; return 0;` becomes `subfic/nor/srawi`, the inlined
+  copy keeps branches.
+- `.bss` first-reference order includes stripped functions and static helper bodies (dead getters
+  are needed to place variables).
+- OPEN (MWCC): anonymous float-literal pooling — our 2.4.7 pools >=3 literals of a function through a
+  `...rodata.0` base; the original never pools literal-only functions but does pool literals together
+  with strings. No flag reproduces it (all GC builds and -O levels tested).
+
 ## REL modules
 
 The game loads its rooms, enemies, weapons and debug tools as Nintendo REL overlays. `ninja` rebuilds the

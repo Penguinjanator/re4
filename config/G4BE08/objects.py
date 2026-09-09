@@ -1355,4 +1355,5 @@ MATCHING.update({
     "lib/mpv_bdec.c": True,
     "lib/sfx_lib.c": True,
     "lib/mwsfdlib.c": True,
+    "lib/sfd_aoap.c": True,
 })

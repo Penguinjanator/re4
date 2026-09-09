@@ -133,6 +133,8 @@ static inline u16 U16Ref(u16& v) { return v; }
 static inline int IRef(int& v) { return v; }
 static inline f32 FRef(f32& v) { return v; }
 static inline void ISet(int& d, int v) { d = v; }
+static inline void PSet(void*& d, void* v) { d = v; }
+static inline void PSet(ShadowMng*& d, ShadowMng* v) { d = v; }
 
 u8 min_lod;
 u8 max_lod;
@@ -146,9 +148,6 @@ int tex_coord;
 int ind_stage;
 int g_material_tex_coord;
 int g_specular_tev_stage;
-// struct-wrapped so the in-loop stores stay ordered against the following m->/d-> loads
-// (a plain void* store is a fixed scalar and floats freely; a one-element array or
-// (View*)&x cast gets its address hoisted out of the loop)
 void* g_prev_tpl_addr;
 void* g_prev_add_tpl_addr;
 
@@ -1002,9 +1001,10 @@ void commonModelTrans(cModel* m, cModelInfo* info, Mtx viewMat, int flag)
     int efbDone;
     int matSet;
 
-    g_pShdMng = 0;
+    PSet(g_pShdMng, 0);
     if ((pG->flags_5014 & 0x00100000) && (m->be_flag & 0x02000000) && !(pG->flags_58 & 0x00040000) &&
-        (pG->flags_5010 & 0x200) && !(pG->flags_5010 & 0x100)) {
+        (pG->flags_5010 & 0x200)) {
+        if (!(pG->flags_5010 & 0x100)) {
         g_pShdMng = GetCastShadowMngPtr(m);
         if (g_pShdMng != 0) {
             ShadowLightWork* w = (ShadowLightWork*) g_pShdMng->pLight->work;
@@ -1020,6 +1020,7 @@ void commonModelTrans(cModel* m, cModelInfo* info, Mtx viewMat, int flag)
                 }
                 g_pShdMng = 0;
             }
+        }
         }
     }
     efbDone = 0;
@@ -1046,8 +1047,8 @@ void commonModelTrans(cModel* m, cModelInfo* info, Mtx viewMat, int flag)
             }
         }
         if (info->be_flag & 0x20) {
-            matSet = 1;
             mat = *(GXColor*) info->color;
+            matSet = 1;
             GXSetChanMatColor(4, mat);
         } else if (matSet == 1) {
             mat = *(GXColor*) m->pInfo->color;
@@ -1158,8 +1159,8 @@ void commonModelTrans(cModel* m, cModelInfo* info, Mtx viewMat, int flag)
                 }
                 if ((s32) d->flags < 0) {
                     TEXHeader* wh = td->textureHeader;
-                    wh->wrapS = 1;
                     wh->wrapT = 1;
+                    wh->wrapS = 1;
                 }
                 if (td->textureHeader->minLOD == td->textureHeader->maxLOD) {
                     mip = 0;
@@ -1168,9 +1169,10 @@ void commonModelTrans(cModel* m, cModelInfo* info, Mtx viewMat, int flag)
                     mip = 1;
                     filt = 5;
                 }
-                edge = 1;
                 if (aniso == 0) {
                     edge = td->textureHeader->edgeLODEnable;
+                } else {
+                    edge = 1;
                 }
                 GXInitTexObj(&gx->texObj[i], td->textureHeader->data, td->textureHeader->width, td->textureHeader->height,
                              td->textureHeader->format, td->textureHeader->wrapS, td->textureHeader->wrapT, mip);
@@ -1182,8 +1184,8 @@ void commonModelTrans(cModel* m, cModelInfo* info, Mtx viewMat, int flag)
                 MODEL_EXT(m)->pTexChg->move(gx->texObj);
             }
         }
-        g_prev_tpl_addr = info->pTpl;
-        g_prev_add_tpl_addr = info->pAddTpl;
+        PSet(g_prev_tpl_addr, info->pTpl);
+        PSet(g_prev_add_tpl_addr, info->pAddTpl);
         nParts = d->nParts;
         part = d->pParts;
         if (m->scale.x == 1.0f && m->scale.y == 1.0f && m->scale.z == 1.0f) {
@@ -1211,6 +1213,7 @@ void commonModelTrans(cModel* m, cModelInfo* info, Mtx viewMat, int flag)
             }
             p = (u8*) part + 0x20;
             if ((u32) p & 0x1F) {
+#line 2044 "D:/Bio4/Prog/trans.cpp"
                 HALT();
             }
             GXCallDisplayList(p, part->size);

@@ -338,7 +338,7 @@ extern "C" int em10AtkDoorCk(cEm10* em);
 extern "C" int em10AtkRackCk(cEm10* em);
 extern "C" cModel* em10SearchTruck(cEm10* em);
 extern "C" void em10CallVoiceSe(cEm10* em, int no);
-extern "C" void em10TorchFrameAtkCk(cEm10* em);
+extern "C" int em10TorchFrameAtkCk(cEm10* em);
 extern "C" void em10TorchFrameAtkCkSub(cEm10* em);
 extern "C" void em10PlHeadLost();
 extern "C" f32 em10GetPower(cEm10* em);
@@ -358,6 +358,13 @@ extern "C" int em10ScreenInCk(cEm10* em);
 extern "C" int em10SetWanderRoute(cEm10* em);
 extern "C" void em10CamMoveTakeaway(cEm10* em);
 extern FootShadowTbl Em10_fs_tbl;
+extern "C" int em10ReturnCk(cEm10* em);
+extern "C" int em10BombThrowScaCk(cEm10* em);
+extern "C" void em10CsawSignSe(cEm10* em);
+extern "C" int em10ShotBowgunCk(cEm10* em);
+extern "C" int em10ThreatCk(cEm10* em);
+extern "C" int em10ClawCriAtkCk(cEm10* em);
+extern "C" void em10SetTakeawayPosUpdate(cEm10* em);
 int em10HideToStepCk(cEm10* em, int a);
 
 // Dead flag test (cDmgInfo upper 16 bits): an inline returning 0/1 gives the `li 1; andis.; bne; li 0` chain.
@@ -10107,4 +10114,384 @@ extern "C" void em10CamMoveTakeaway(cEm10* em)
     w->cam.param.fovy = 55.0f;
     CameraSetOrientationUp(&w->cam);
     CamCtrl.x250 = (s32) &w->cam;
+}
+
+extern "C" int em10ReturnCk(cEm10* em)
+{
+    Em10Work* w = EM10_WK(em);
+
+    if (w->flags & 0x20000000) {
+        return 0;
+    }
+    if (em->x3D0 != 1 && em->x3D0 != 3) {
+        return 0;
+    }
+    if (em->hp < em->hpMax / 2) {
+        return 0;
+    }
+    if (w->x524 < 3000.0f) {
+        return 0;
+    }
+    if (w->x52C < em->x3CC) {
+        return 0;
+    }
+    {
+        f32 dx = em->pos.x - w->x4D8.x;
+        f32 dy = em->pos.y - w->x4D8.y;
+        f32 dz = em->pos.z - w->x4D8.z;
+        if (dx * dx + dy * dy + dz * dz < 6250000.0f) {
+            if (EM_RTN(em, 1, 0x1B)) {
+                return 0;
+            }
+            EmRoutineSet(em, 1, 0x1B, 0, 0);
+            return 1;
+        }
+    }
+    w->flags |= 0x20000000;
+    w->x4F8 = em->pos;
+    EmRoutineSet(em, 1, 0x1B, 0, 0);
+    return 1;
+}
+
+extern "C" int em10BombThrowScaCk(cEm10* em)
+{
+    Vec a;
+    Vec b;
+
+    a.x = 300.0f;
+    a.y = 2000.0f;
+    a.z = 0.0f;
+    b.x = 300.0f;
+    b.y = 2000.0f;
+    b.z = 5000.0f;
+    PSMTXMultVec(em->mat, &a, &a);
+    PSMTXMultVec(em->mat, &b, &b);
+    if (EatMgr.hitCheck(&a, &b, 0, 0, 0, 0x404000)) {
+        return 0;
+    }
+    a.x = -300.0f;
+    a.y = 2000.0f;
+    a.z = 0.0f;
+    b.x = -300.0f;
+    b.y = 2000.0f;
+    b.z = 5000.0f;
+    PSMTXMultVec(em->mat, &a, &a);
+    PSMTXMultVec(em->mat, &b, &b);
+    return EatMgr.hitCheck(&a, &b, 0, 0, 0, 0x404000) == 0;
+}
+
+extern "C" void em10CsawSignSe(cEm10* em)
+{
+    Em10Work* w = EM10_WK(em);
+
+    if ((int) w->flags >= 0) {
+        return;
+    }
+    if (w->wepType != 4) {
+        return;
+    }
+    if ((s16) pG->pl_life <= 0) {
+        return;
+    }
+    if (em->plDist2 > 25000000.0f) {
+        if (w->x65C) {
+            w->x65C--;
+            return;
+        }
+        w->x65C = (u8) (Rnd() % 150) + 150;
+        w->x65E = 150;
+        w->x5C4 = SndCall(6, 0x4B, &em->pos, 0, 0, em);
+    } else {
+        if (w->x65E != 0) {
+            return;
+        }
+        SndStop(w->x5C4, 0);
+        w->x5C4 = SndCall(6, 0x3E, &em->pos, 0, 0, em);
+        w->x65E = 150;
+        w->x65C = (u8) (Rnd() % 150) + 150;
+    }
+}
+
+extern "C" int em10ShotBowgunCk(cEm10* em)
+{
+    Em10Work* w = EM10_WK(em);
+    int near;
+
+    if (w->wepType != 8) {
+        return 0;
+    }
+    if (!w->pWep) {
+        return 0;
+    }
+    if (em->flags_3C8 & 0x40) {
+        em->setWeaponFall();
+        return 0;
+    }
+    if ((G_ROOM_ID32 & 0xFFFF0000) == 0x01000000) {
+        return 0;
+    }
+    if (w->x58C) {
+        return 0;
+    }
+    if (w->pParasite) {
+        return 0;
+    }
+    if (w->flags & 0x80) {
+        return 0;
+    }
+    if (!em10ThrowScaCk(em)) {
+        return 0;
+    }
+    if (w->x696 == 0 && !(w->flags & 0x100)) {
+        return 0;
+    }
+    near = em10ThrowNearCk(em);
+    if (near) {
+        em->xFC = 1;
+        em->xFD = 0x17;
+        em->xFE = 0;
+        em->xFF = Rnd() & 1;
+        return 1;
+    }
+    if (em->plDist2 > 900000000.0f) {
+        return 0;
+    }
+    EmRoutineSet(em, 1, 0x21, 0, 0);
+    return 1;
+}
+
+// Parts (cModel-shaped) fields model.h does not name: the rotation offset Vec at 0x128 and the flag word at 0x1C0.
+#define PARTS_ROT_OFS(p) (*(Vec*) ((u8*) (p) + 0x128))
+#define PARTS_FLAGS(p) (*(u32*) ((u8*) (p) + 0x1C0))
+
+void em10WaistMove(cEm10* em)
+{
+    Em10Work* w = EM10_WK(em);
+    Vec v;
+    f32 r;
+    cModel* p;
+
+    if (w->flags & 0x00400000) {
+        return;
+    }
+    if (w->flags & 0x200) {
+        if (em->flags_3C8 & 0x01000000) {
+            v.x = 300.0f;
+            v.y = 0.0f;
+            v.z = 0.0f;
+        } else {
+            v.x = -300.0f;
+            v.y = 0.0f;
+            v.z = 0.0f;
+        }
+        PSMTXMultVec(em->mat, &v, &v);
+        w->x5D4 = w->x5D4 * 0.9f + Muku(&v, &pPL->pos, em->rot.y, 0.7853982f) * 0.1f;
+    } else {
+        w->x5D4 = w->x5D4 * 0.9f;
+    }
+    r = w->x5D4 * 0.5f;
+    p = em->getPartsPtr(1);
+    PARTS_FLAGS(p) |= 0x40000000;
+    PARTS_ROT_OFS(p).x = 0.0f;
+    PARTS_ROT_OFS(p).y = r;
+    PARTS_ROT_OFS(p).z = 0.0f;
+    p = em->getPartsPtr(2);
+    PARTS_FLAGS(p) |= 0x40000000;
+    PARTS_ROT_OFS(p).x = 0.0f;
+    PARTS_ROT_OFS(p).y = r;
+    PARTS_ROT_OFS(p).z = 0.0f;
+}
+
+extern "C" int em10TorchFrameAtkCk(cEm10* em)
+{
+    Em10Work* w = EM10_WK(em);
+    Mtx m;
+    Vec v;
+
+    if ((s16) pG->pl_life <= 0) {
+        return 0;
+    }
+    if (em10DeadCk(pPL)) {
+        return 0;
+    }
+    if (w->x697) {
+        return 0;
+    }
+    PSMTXInverse(em->mat, m);
+    PSMTXMultVec(m, &pPL->pos, &v);
+    if (!(v.x > 500.0f) && !(v.x < -500.0f) && !(v.z > 3500.0f) && !(v.z < 0.0f) && !(v.y > 1500.0f) && !(v.y < -500.0f)) {
+        w->x697 = 1;
+        SndCall(8, 0x8F, &pPL->pos, em->id, 0, pPL);
+        Ctrl12Set(w->pCtrl12, 9, 30);
+        SetPlDamage((int) em, plemDmFrame);
+        pPL->dmg.set(0, 30);
+        return 1;
+    }
+    return 0;
+}
+
+extern "C" int em10ThreatCk(cEm10* em)
+{
+    Em10Work* w = EM10_WK(em);
+    Mtx m;
+    Vec v;
+
+    if (pPL->xFC != 0) {
+        return 0;
+    }
+    if (pPL->xFD != 3) {
+        return 0;
+    }
+    if (w->pShield) {
+        return 0;
+    }
+    if (w->pParasite) {
+        return 0;
+    }
+    if (w->x58C) {
+        return 0;
+    }
+    if (w->flags & 0x80) {
+        return 0;
+    }
+    if (fabsf(Muku(&em->pos, &pPL->pos, em->rot.y, 3.1415927f)) > 0.7853982f) {
+        return 0;
+    }
+    PSMTXInverse(pPL->mat, m);
+    PSMTXMultVec(m, &em->pos, &v);
+    if (v.x > 3000.0f || v.x < -3000.0f) {
+        return 0;
+    }
+    if (v.x > -500.0f && v.x < 500.0f) {
+        return 0;
+    }
+    if (!(v.z < 1500.0f) && !(v.z > 5000.0f)) {
+        EmRoutineSet(em, 1, 0x16, 0, 0);
+        return 1;
+    }
+    return 0;
+}
+
+int em10ClawStickCK(cEm10* em)
+{
+    Em10Work* w = EM10_WK(em);
+    int r;
+
+    if (em->type != 10 && em->type != 13) {
+        return 0;
+    }
+    if (!(w->flags & 0x100)) {
+        if (!em10FindCk2(em)) {
+            return 0;
+        }
+        em->setFindPL();
+        w->x674 = 0;
+    }
+    if (w->x6BE == 2 && w->x6BF == 2) {
+        if (!em10FindCk2(em)) {
+            return 0;
+        }
+        if (w->flags & 0x08000000) {
+            return 0;
+        }
+        r = em10ClawCriAtkCk(em);
+        if (r) {
+            return 1;
+        }
+        if ((em->pos.x - w->x534.x) * (em->pos.x - w->x534.x) + (em->pos.z - w->x534.z) * (em->pos.z - w->x534.z) > 16000000.0f &&
+            !EM_RTN(em, 1, 0x11)) {
+            em10CallVoiceSe2(em, 0x71, 6);
+            w->x6AC = 0;
+            EmRoutineSet(em, 1, 0x11, 0, 0);
+            return 1;
+        }
+        return 0;
+    }
+    r = em10ClawCriAtkCk(em);
+    if (r) {
+        return 1;
+    }
+    EmRoutineSet(em, 1, 0x59, 0, 0);
+    return 1;
+}
+
+int em10LadderResetCk(cEm10* em)
+{
+    Em10Work* w = EM10_WK(em);
+    cObjLadder* o;
+    Vec v;
+
+    if (w->x54C.y - em->pos.y < 1000.0f) {
+        return 0;
+    }
+    for (o = (cObjLadder*) ObjMgr.pAlive; o; o = (cObjLadder*) o->next) {
+        f32 d;
+        if (o->id != 0x13) {
+            continue;
+        }
+        if (!o->ckReset()) {
+            continue;
+        }
+        v.x = 0.0f;
+        v.y = 0.0f;
+        v.z = 1432.0f;
+        PSMTXMultVec(o->mat, &v, &v);
+        d = (em->pos.x - v.x) * (em->pos.x - v.x) + (em->pos.z - v.z) * (em->pos.z - v.z);
+        if (d > 1210000.0f) {
+            if (d < 9000000.0f) {
+                em->setGoto(&v, 9);
+                return 1;
+            }
+        } else {
+            w->pLadder = o;
+            o->setResetReserve();
+            EmRoutineSet(em, 1, 0x42, 0, 0);
+            return 1;
+        }
+    }
+    return 0;
+}
+
+extern "C" void em10SetTakeawayPosUpdate(cEm10* em)
+{
+    Em10Work* w = EM10_WK(em);
+    u32 i;
+    u32 j;
+    f32 d;
+    f32 dy;
+
+    if (!pG->pRoomEmi) {
+        return;
+    }
+    for (i = 0; i < ((EmiData*) pG->pRoomEmi)->n; i++) {
+        EmiEntry* e = &((EmiData*) pG->pRoomEmi)->entry[i];
+        if (e->type != 5) {
+            continue;
+        }
+        if (e->sub == 0) {
+            continue;
+        }
+        if (e->sub != 1) {
+            continue;
+        }
+        d = (em->pos.x - e->pos.x) * (em->pos.x - e->pos.x) + (em->pos.z - e->pos.z) * (em->pos.z - e->pos.z);
+        dy = fabsf(em->pos.y - e->pos.y);
+        if (!(d < 16000000.0f && dy < 1000.0f)) {
+            continue;
+        }
+        for (j = 0; j < ((EmiData*) pG->pRoomEmi)->n; j++) {
+            EmiEntry* e2 = &((EmiData*) pG->pRoomEmi)->entry[j];
+            if (e2->type != 5) {
+                continue;
+            }
+            if (e2->sub != 0) {
+                continue;
+            }
+            if (e2->state != e->state) {
+                continue;
+            }
+            w->x4EC = e2->pos;
+            return;
+        }
+    }
 }

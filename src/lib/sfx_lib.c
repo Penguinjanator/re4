@@ -85,7 +85,7 @@ SFX_OBJ *SFX_Create(void *work, Sint32 wsize)
 	sfx->outbuf_height = 0;
 	sfx->x2c = 1;
 	sfx->x30 = 0;
-	sfx->x3c = 0;
+	sfx->tbl_type = 0;
 	sfx->buf[0] = (Uint8 *)(((Uint32)work + 0x1F) & ~0x1F);
 	sfx->buf[1] = sfx->buf[0] + SFX_BUF_SIZE;
 	sfx->buf[2] = sfx->buf[1] + SFX_BUF_SIZE;

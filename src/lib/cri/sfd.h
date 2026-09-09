@@ -19,6 +19,17 @@ typedef struct {
 	SFUO_CH ch[3];
 } SFUO;
 
+/* audio output (auto-play) driver work (sfd_aoap.c), at SFD_OBJ + 0x3474: user callbacks */
+typedef struct {
+	Sint32 x00;
+	Sint32 (*SetOutPan)(SFD sfd, Sint32 ch, Sint32 pan); /* 0x04 */
+	Sint32 (*GetOutPan)(SFD sfd, Sint32 ch);             /* 0x08 */
+	Sint32 (*SetOutVol)(SFD sfd, Sint32 vol);            /* 0x0C */
+	Sint32 (*GetOutVol)(SFD sfd);                        /* 0x10 */
+	void (*SetSpeed)(SFD sfd, Sint32 speed);             /* 0x14 */
+	Sint32 x18;
+} SFAOAP;
+
 /* concatenated-play work (sfd_con.c), at SFD_OBJ + 0xD28 */
 typedef struct {
 	Uint8 pad0[0x164];
@@ -141,7 +152,8 @@ typedef struct SFD_OBJ {
 	SFBUF_WORK buf[SFD_BUF_NUM]; /* 0x12E0 */
 	Uint8 pad1694[0x1F28 - 0x12E0 - SFD_BUF_NUM * sizeof(SFBUF_WORK)];
 	SFD_TR tr[SFD_TR_NUM];     /* 0x1F28 (tr[8].hn = SFUO *, tr[8].bufin = user-output SFBUF id) */
-	Uint8 pad218C[0x3490 - 0x1F28 - SFD_TR_NUM * sizeof(SFD_TR)];
+	Uint8 pad218C[0x3474 - 0x1F28 - SFD_TR_NUM * sizeof(SFD_TR)];
+	SFAOAP aoap;               /* 0x3474 (tr[7].hn) */
 	SFUO uo_tbl;               /* 0x3490 */
 } SFD_OBJ;
 
