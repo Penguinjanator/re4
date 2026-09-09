@@ -649,6 +649,15 @@ mark it Matching.
 - `if (a && b) {..} else if (c && d) {..}`: the else-if test block has two predecessors, so cse cannot
   reuse cr0 and gcse PREs the shared member load (`lfs f0; fmr f12,f0`); nested ifs share cr0.
 - Identical switch bodies written separately are cross-jumped into the *last* copy in source order.
+- gcse cprop of a `p = A` copy (A = an inline's parameter pseudo) is blocked by *any* other set of `p`
+  on a path; an in-loop `p = &x->m;` re-assignment is such a set, gets hoisted by loop.c and deleted by
+  cse2 as a no-op — reproduces a lone `mr rX,rA` copy. gcse runs one pass (MAX_PASSES 1).
+- After sched1, REG_LIVE_LENGTH counts only real insns: block notes/braces cannot shift global-alloc
+  priorities; only real insns in the range do.
+- jump2 cross-jump deletes the tail of the jump scanned *first*: to keep an if/else then-block in
+  place and have identical case bodies jump into it, write the case body arm before the if/else arm.
+- Early-return tests that branch to a *later test* (not the function end) mean the original nested
+  the ifs, not `if (!a) return;` chains.
 - Static locals show as `name.NNN` in objdiff; the DECL_UID suffix cannot be reproduced and is ignored by the report.
 - Unexplained words in `.rodata` (zero words, stray floats) are usually the constant pool of a function
   the original linker dead-stripped (bodies gone, pools kept, `STRIP_UNUSED` in objects.py): write a
@@ -1392,6 +1401,62 @@ mark it Matching.
   (local-alloc'd); and the SndStrReq `lfs f1` pool load is issued last (right before `bl`) although
   its `lis r29` sits at the block top — sched2 in ours hoists it at once. Reference stores (`BitSet`),
   `G_ROOM_ID`, `pGS`, a shared `zero` local, int/local forms of the 0.0f argument all tried.
+
+## CRI middleware (`lib/adx_*`, `lib/sfd_*`, ... — CodeWarrior 2.4.7)
+
+The CRI ADX/Sofdec libraries, the GCCI/MFCI CVFS interfaces and CRI's `UTY_*` helpers were prebuilt by
+CRI with **Metrowerks CodeWarrior 2.4.7** (the `.rodata` build strings say `Append: MW2407
+GC20Apr2004Patch1` = compiler 2.4.7 on the Apr 2004 patch 1 SDK; `GC/2.0`, `2.5`, `2.6`, `2.7` are all
+2.4.7 and produce identical code on every unit tried; `GC/2.0` is configured). Flags (`cflags_mw_cri` in
+configure.py, `CRI_LIBS` lists the units): `-O4,p -inline auto -sdata 0 -sdata2 0 -str readonly
+-use_lmw_stmw on -char signed`, no small data at all. Evidence: `stwu r1,-0x10; mflr; stw r0,0x14`
+prologue (1.2.5 emits `mflr; stw r0,4(r1); stwu`), `__div2i`/`__mod2i` runtime calls, `mr. r31,r3`,
+`stmw/lmw` saves, every 4-byte global addressed `lis/addi`, float constants and strings in `.rodata`.
+The ADX group was built Oct 8 2004, Sofdec Sep 22 2004. Headers: `src/lib/cri/` (`cri_xpt.h` types,
+`sj.h` stream-joint interface). Workflow is the SDK one (`strip_unused.py --unit` post-build, so dead
+functions must be written when their pools/statics survive). Bio4.sym `local` scopes are wrong for
+many CRI functions (`SFMEM_ExecServer`, `MPVM2V_Finish`, ...): a `static` that another split object
+imports makes ngcld exit 99 silently — bisect by swapping compiled objects for split ones in
+`build/G4BE08/main.elf.rsp`.
+
+MWCC idioms seen so far (2.4.7, -O4,p):
+- Uninitialised file-scope data (globals and statics) is emitted in order of **first reference** in
+  the code, not declaration; `= 0`-initialised scalars still go to `.bss` but at their declaration.
+  An original `.bss` order that no live function produces means a dead function referenced them
+  first (adx_bahx `ADXB_EntryAhxFunc`, adx_insh `ADXT_GetDmyBuf`).
+- Zero-initialised aggregates (`= {0}`) go to `.data`; a zero scalar in `.data` needs
+  `#pragma explicit_zero_data on` (gcci_sub). An unreferenced pointer to a dead-stripped function
+  is left as a zero word in `.data` (cft_common).
+- Statics of one section are addressed through the section pool symbol (`...bss.0`,
+  `lis/addi` once, then `lwz off(rBase)`); a global gets `lis/lwz sym@l`. A `volatile` scalar is
+  re-read after every store (`lwz` twice); a bare `x;` statement of a volatile is a real load.
+- The version string is kept alive by `static const Char8 *const volatile xxx_build = "..."` read
+  as a bare statement at the top of the init function (dead `lwz r0,0x3c(rPool)`).
+- Float constant pools are per function, emitted in function order; inside one function the order is
+  not use order (split constants over dead functions to reproduce a pool).
+- `if (x >= 0) return A; return A+1;` folds into `srwi/subi/add` arithmetic; the order of the `-1`
+  and the `lis` depends on which value the first branch returns (muldiv).
+- `Sint32 sz = sizeof(Sint64); if (sz < 8) for (;;) {}` is NOT folded (`li r0,8; cmpwi r0,8; bge`)
+  — CRI's compile-time check idiom (cmptime).
+- `ret = 1; else ret = 0; return ret;` keeps the branches; `if (c) return 1; return 0;` becomes
+  `neg/subfic` flag arithmetic.
+- Loops: `cnt = n + 1; while (--cnt) {...}` gives `addi; b check; body; check: subic.; bne` (the
+  UTY_Memcpy/MemsetDword loops); `while (cnt--)` / `for` become `mtctr/bdnz` and are unrolled 8x
+  at -O4. `for (i...) { p = &arr[i]; ... }` gives the direct `addi r31,r3,arr@l` induction pointer;
+  `p = arr; for (...; p++)` copies it through r0 (`addi r0; mr r31,r0`).
+- `if (a == NULL || n <= 0) return;` gives `beq end; cmpwi; bgt body; b end`; a separate
+  `if (n > 0)` gives `ble end`.
+- 64-bit compares: `x <= y` is `xoris/subfc/subfe/subfe/neg.`; `min = ts->min; if (t < min) min = t;
+  ts->min = min;` (if with a local) and `ts->max = (t > ts->max) ? t : ts->max` (ternary) give the
+  two branch shapes of sfd_tmr.
+- Locals: later declarations get lower frame offsets (sfx_set `inf`/`out`, adx_insh). Callee-saved
+  registers go r31 downward in declaration/parameter order; a pointer parameter copied to a local
+  (`Uint8 *p = dat`) is allocated after the other parameters (sud_lib).
+- 8-byte-aligned structs are copied with `lfd/stfd` pairs, 4-byte-aligned ones with `lwz/stw`
+  (mps_get).
+- OPEN (mpv_cmc `MPVCMC_InitMcOiRt/InitObj`): the original keeps `addi r5,r3,0x124` as a separate
+  base for six `stw off(r5)` stores into a member array while every source form tried (pointer local,
+  loops, casts, volatile, inline helper) folds the offsets into `r3`.
 
 ## REL modules
 

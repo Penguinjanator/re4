@@ -52,9 +52,23 @@ def fix_split_object(src: str, dst: str) -> None:
 R_PPC_ADDR32, R_PPC_ADDR16, R_PPC_ADDR16_LO, R_PPC_ADDR16_HI, R_PPC_ADDR16_HA = 1, 3, 4, 5, 6
 
 
+def field_bytes(kind: int, value: int) -> bytes:
+    if kind == R_PPC_ADDR32:
+        return struct.pack('>I', value & 0xFFFFFFFF)
+    if kind == R_PPC_ADDR16_HA:
+        return struct.pack('>H', ((value + 0x8000) >> 16) & 0xFFFF)
+    if kind == R_PPC_ADDR16_HI:
+        return struct.pack('>H', (value >> 16) & 0xFFFF)
+    return struct.pack('>H', value & 0xFFFF)
+
+
 def reset_global_fields(path: str) -> int:
-    """Rewrite the relocated field of every ADDR32/ADDR16* relocation against a defined GLOBAL/WEAK
-    symbol to the plain addend (what the original link left there). Returns the number of fields changed."""
+    """Two things the original link did that ngcld 3.9.3 -r does not:
+    * the relocated field of an ADDR32/ADDR16* relocation against a defined GLOBAL/WEAK symbol holds the
+      plain addend (ngcld adds the symbol's input-section displacement);
+    * relocations against absolute symbols (the linker script's GXWGFifo) are applied and dropped (the
+      RELA entries are removed; ngcld keeps them unresolved, and the RELs carry no relocation there).
+    Returns the number of fields changed."""
     elf = elffile.Elf(path)
     data = bytearray(open(path, 'rb').read())
     changed = 0
@@ -64,26 +78,34 @@ def reset_global_fields(path: str) -> int:
         target = elf.sections[rela_sec.info]
         if not (target.flags & 2) or target.type == elffile.SHT_NOBITS:  # SHF_ALLOC
             continue
+        kept = bytearray()
+        dropped = 0
         for i in range(rela_sec.size // 12):
-            off, info, addend = struct.unpack('>IIi', rela_sec.data[12 * i:12 * i + 12])
+            entry = rela_sec.data[12 * i:12 * i + 12]
+            off, info, addend = struct.unpack('>IIi', entry)
             kind = info & 0xFF
-            if kind not in (R_PPC_ADDR32, R_PPC_ADDR16, R_PPC_ADDR16_LO, R_PPC_ADDR16_HI, R_PPC_ADDR16_HA):
-                continue
             sym = elf.symbols[info >> 8]
-            if sym.bind not in (elffile.STB_GLOBAL, elffile.STB_WEAK) or sym.shndx in (elffile.SHN_UNDEF, elffile.SHN_COMMON, elffile.SHN_ABS):
-                continue
             pos = target.offset + off
-            if kind == R_PPC_ADDR32:
-                want = struct.pack('>I', addend & 0xFFFFFFFF)
-            elif kind == R_PPC_ADDR16_HA:
-                want = struct.pack('>H', ((addend + 0x8000) >> 16) & 0xFFFF)
-            elif kind == R_PPC_ADDR16_HI:
-                want = struct.pack('>H', (addend >> 16) & 0xFFFF)
-            else:
-                want = struct.pack('>H', addend & 0xFFFF)
-            if data[pos:pos + len(want)] != want:
-                data[pos:pos + len(want)] = want
-                changed += 1
+            if kind in (R_PPC_ADDR32, R_PPC_ADDR16, R_PPC_ADDR16_LO, R_PPC_ADDR16_HI, R_PPC_ADDR16_HA):
+                if sym.shndx == elffile.SHN_ABS:
+                    want = field_bytes(kind, sym.value + addend)
+                    data[pos:pos + len(want)] = want
+                    changed += 1
+                    dropped += 1
+                    continue
+                if sym.bind in (elffile.STB_GLOBAL, elffile.STB_WEAK) and sym.shndx not in (elffile.SHN_UNDEF, elffile.SHN_COMMON):
+                    want = field_bytes(kind, addend)
+                    if data[pos:pos + len(want)] != want:
+                        data[pos:pos + len(want)] = want
+                        changed += 1
+            kept += entry
+        if dropped:
+            # shrink the RELA section in place (the tail bytes stay unused in the file)
+            data[rela_sec.offset:rela_sec.offset + len(kept)] = kept
+            shoff = struct.unpack('>I', data[0x20:0x24])[0]
+            shentsize = struct.unpack('>H', data[0x2E:0x30])[0]
+            hdr = shoff + rela_sec.index * shentsize
+            struct.pack_into('>I', data, hdr + 20, len(kept))
     if changed:
         with open(path, 'wb') as f:
             f.write(data)

@@ -133,9 +133,9 @@ section	offset	size	unit	scope	name	demangled
 .text	0x000123FC	0x4	t_light/t_light.cpp	global	cUnit_beginEvent	cUnit::beginEvent
 .text	0x00012400	0x4	t_light/t_light.cpp	global	cUnit_endEvent	cUnit::endEvent
 .text	0x00012404	0x4	t_light/t_light.cpp	global	cUnit_op_delete	cUnit::operator delete
-.text	0x00012408	0x1A8	t_light/t_light.cpp	global	ToolLight	ToolLight
+.text	0x00012408	0x1A8	t_light/t_light.cpp	global	ToolLight__Fv	ToolLight
 .text	0x000125B0	0x3B8	t_light/t_light.cpp	global	fn_t_light_125B0	.
-.text	0x00012968	0xF4	t_light/t_light.cpp	global	ToolScroll	ToolScroll
+.text	0x00012968	0xF4	t_light/t_light.cpp	global	ToolScroll__Fv	ToolScroll
 .text	0x00012A5C	0x1EC	t_light/t_light.cpp	global	init	init
 .text	0x00012C48	0x26C	t_light/t_light.cpp	global	loadBinName	loadBinName
 .text	0x00012EB4	0x5D4	t_light/t_light.cpp	global	move	move

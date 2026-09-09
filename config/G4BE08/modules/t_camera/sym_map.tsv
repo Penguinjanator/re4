@@ -133,7 +133,7 @@ section	offset	size	unit	scope	name	demangled
 .text	0x000123FC	0x4	t_camera/t_camera.cpp	global	cUnit_beginEvent	cUnit::beginEvent
 .text	0x00012400	0x4	t_camera/t_camera.cpp	global	cUnit_endEvent	cUnit::endEvent
 .text	0x00012404	0x4	t_camera/t_camera.cpp	global	cUnit_op_delete	cUnit::operator delete
-.text	0x00012408	0x264	t_camera/t_camera.cpp	global	ToolCamera	ToolCamera
+.text	0x00012408	0x264	t_camera/t_camera.cpp	global	ToolCamera__Fv	ToolCamera
 .text	0x0001266C	0xE0	t_camera/t_camera.cpp	global	tcDataInitialize	tcDataInitialize
 .text	0x0001274C	0x128	t_camera/t_camera.cpp	local	tcInit	tcInit
 .text	0x00012874	0x21C	t_camera/t_camera.cpp	local	tcMenu	tcMenu

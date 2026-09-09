@@ -127,7 +127,7 @@ section	offset	size	unit	scope	name	demangled
 .text	0x00011914	0x4	t_sce/t_sce.cpp	global	__static_initialization_and_destruction_0	__static_initialization_and_destruction_0
 .text	0x00011918	0x2C	t_sce/t_sce.cpp	local	global_constructors_keyed_to_cFileList_init	global constructors keyed to cFileList::init
 .text	0x00011944	0x2C	t_sce/t_sce.cpp	local	global_destructors_keyed_to_cFileList_init	global destructors keyed to cFileList::init
-.text	0x00011970	0x1EC	t_sce/t_sce.cpp	global	ToolBlock	ToolBlock
+.text	0x00011970	0x1EC	t_sce/t_sce.cpp	global	ToolBlock__Fv	ToolBlock
 .text	0x00011B5C	0x138	t_sce/t_sce.cpp	global	tBlockInit_base	tBlockInit_base
 .text	0x00011C94	0x1C0	t_sce/t_sce.cpp	global	tBlockInit	tBlockInit
 .text	0x00011E54	0x7C	t_sce/t_sce.cpp	global	set_filename	set_filename
@@ -218,7 +218,7 @@ section	offset	size	unit	scope	name	demangled
 .text	0x0001D8C0	0xD0	t_sce/t_sce.cpp	local	tSceAtPreview_exit	tSceAtPreview_exit
 .text	0x0001D990	0x114	t_sce/t_sce.cpp	global	loadMesName	loadMesName
 .text	0x0001DAA4	0x3B8	t_sce/t_sce.cpp	global	fn_t_sce_1DAA4	.
-.text	0x0001DE5C	0x230	t_sce/t_sce.cpp	global	ToolSceItem	ToolSceItem
+.text	0x0001DE5C	0x230	t_sce/t_sce.cpp	global	ToolSceItem__Fv	ToolSceItem
 .text	0x0001E08C	0x128	t_sce/t_sce.cpp	global	tSceItemInit_base	tSceItemInit_base
 .text	0x0001E1B4	0x148	t_sce/t_sce.cpp	global	tSceItemInit	tSceItemInit
 .text	0x0001E2FC	0x9C	t_sce/t_sce.cpp	global	set_filename_1E2FC	set_filename

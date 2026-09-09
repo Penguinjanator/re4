@@ -1380,8 +1380,8 @@ static void TextureBlend(ModelPart* part, cModelInfo* info, int colIn, int alpha
 
     st = TEV_STAGE_ID();
     map = getTexMap();
-    t = MODEL_TEX(info);
     coord = getTexCoord();
+    t = MODEL_TEX(info);
     mtx = getTexMtx();
     {
         u8* btbl = (u8*) t->blendTbl;
@@ -1405,8 +1405,8 @@ static void TextureBlend(ModelPart* part, cModelInfo* info, int colIn, int alpha
     coord = getTexCoord();
     tbl = (u8*) t->blendTbl;
     for (i = 0; i < tbl[0]; i++) {
-        u8* e = tbl + 4;
         int ofs = i * 2;
+        u8* e = tbl + 4;
         u8 id = e[ofs];
         if (part->texId == id || id == 0xF7) {
             int reg;
@@ -1431,7 +1431,7 @@ static void TextureBlend(ModelPart* part, cModelInfo* info, int colIn, int alpha
             st = TEV_STAGE_ID();
             map = getTexMap();
             coord = getTexCoord();
-            k.r = k.a = k.g = k.b = (u8) t->blendRatio;
+            k.a = k.b = k.g = k.r = (u8) t->blendRatio;
             kc = k;
             GXSetTevKColor(getKColor(), kc);
             GXSetTevKColorSel(st, getKColorSel());
@@ -1451,7 +1451,7 @@ static void TextureBlend(ModelPart* part, cModelInfo* info, int colIn, int alpha
 static void TextureBlend2(ModelPart* part, cModelInfo* info, int colIn, int alphaIn)
 {
     int st;
-    ModelTexInfo* t = MODEL_TEX(info);
+    ModelTexInfo* t;
     int map;
     int coord;
     u32 mtx;
@@ -1461,9 +1461,13 @@ static void TextureBlend2(ModelPart* part, cModelInfo* info, int colIn, int alph
     st = TEV_STAGE_ID();
     map = getTexMap();
     coord = getTexCoord();
+    t = MODEL_TEX(info);
     mtx = getTexMtx();
-    if (t->blendRatio == 0xFF) {
-        loadBlendTex(part, (u8*) t->blendTbl, map);
+    {
+        u8* btbl = (u8*) t->blendTbl;
+        if (t->blendRatio == 0xFF) {
+            loadBlendTex(part, btbl, map);
+        }
     }
     GXSetTevOrder(st, coord, map, 4);
     GXSetTevColorIn(st, 0xF, 8, colIn, 0xF);
@@ -1473,7 +1477,7 @@ static void TextureBlend2(ModelPart* part, cModelInfo* info, int colIn, int alph
     tev_stage++;
     tex_map++;
     tex_coord++;
-    if (t->blendRatio == 0 || t->blendRatio == 0xFF) {
+    if (U16Ref(t->blendRatio) == 0 || t->blendRatio == 0xFF) {
         return;
     }
     st = TEV_STAGE_ID();
@@ -1481,12 +1485,15 @@ static void TextureBlend2(ModelPart* part, cModelInfo* info, int colIn, int alph
     coord = getTexCoord();
     tbl = (u8*) t->blendTbl;
     for (i = 0; i < tbl[0]; i++) {
-        u8 id = tbl[4 + i * 2];
+        int ofs = i * 2;
+        u8* e = tbl + 4;
+        u8 id = e[ofs];
         if (part->texId == id || id == 0xF7) {
             int reg;
             GXColor k;
             GXColor kc;
-            org_LoadTexObj(tbl[5 + i * 2], map);
+            e = tbl + 5;
+            org_LoadTexObj(e[ofs], map);
             if (t->flags & 1) {
                 GXSetTexCoordGen2(coord, 1, 4, mtx, 0, 0x7D);
             } else {
@@ -1504,7 +1511,7 @@ static void TextureBlend2(ModelPart* part, cModelInfo* info, int colIn, int alph
             st = TEV_STAGE_ID();
             map = getTexMap();
             coord = getTexCoord();
-            k.r = k.a = k.g = k.b = (u8) t->blendRatio;
+            k.a = k.b = k.g = k.r = (u8) t->blendRatio;
             kc = k;
             GXSetTevKColor(getKColor(), kc);
             GXSetTevKColorSel(st, getKColorSel());
@@ -1513,7 +1520,7 @@ static void TextureBlend2(ModelPart* part, cModelInfo* info, int colIn, int alph
             GXSetTevOrder(st, 0xFF, 0xFF, 4);
             GXSetTevColorIn(st, 0, getTevRegC(), 0xE, 0xF);
             GXSetTevColorOp(st, 0, 0, 0, 1, 0);
-            GXSetTevAlphaIn(st, 0, getTevReg(), 6, 7);
+            GXSetTevAlphaIn(st, 7, 7, 7, 0);
             GXSetTevAlphaOp(st, 0, 0, 0, 1, 0);
             tev_stage++;
             tev_reg++;
@@ -1524,7 +1531,7 @@ static void TextureBlend2(ModelPart* part, cModelInfo* info, int colIn, int alph
 static void TextureBlend3(ModelPart* part, cModelInfo* info, int colIn, int alphaIn)
 {
     static int use_alp = 1;
-    ModelTexInfo* t = MODEL_TEX(info);
+    ModelTexInfo* t;
     int st;
     int map;
     int coord;
@@ -1535,6 +1542,7 @@ static void TextureBlend3(ModelPart* part, cModelInfo* info, int colIn, int alph
     st = TEV_STAGE_ID();
     map = getTexMap();
     coord = getTexCoord();
+    t = MODEL_TEX(info);
     mtx = getTexMtx();
     GXSetTevOrder(st, coord, map, 4);
     GXSetTevColorIn(st, 0xF, 8, colIn, 0xF);
@@ -1544,7 +1552,7 @@ static void TextureBlend3(ModelPart* part, cModelInfo* info, int colIn, int alph
     tev_stage++;
     tex_map++;
     tex_coord++;
-    if (t->blendRatio == 0) {
+    if (U16Ref(t->blendRatio) == 0) {
         return;
     }
     st = TEV_STAGE_ID();
@@ -1552,9 +1560,13 @@ static void TextureBlend3(ModelPart* part, cModelInfo* info, int colIn, int alph
     coord = getTexCoord();
     tbl = (u8*) t->blendTbl;
     for (i = 0; i < tbl[0]; i++) {
-        u8 id = tbl[4 + i * 2];
+        int ofs = i * 2;
+        u8* e = tbl + 4;
+        u8 id = e[ofs];
         if (part->texId == id || id == 0xF7) {
-            u8 texId = tbl[5 + i * 2];
+            u8 texId;
+            e = tbl + 5;
+            texId = e[ofs];
             org_LoadTexObj(texId, map);
             if (t->flags & 1) {
                 GXSetTexCoordGen2(coord, 1, 4, mtx, 0, 0x7D);
@@ -1584,7 +1596,7 @@ static void TextureBlend3(ModelPart* part, cModelInfo* info, int colIn, int alph
                 } else {
                     GXSetTexCoordGen2(coord, 1, 4, 0x3C, 0, 0x7D);
                 }
-                k.r = k.a = k.g = k.b = (u8) t->blendRatio;
+                k.a = k.b = k.g = k.r = (u8) t->blendRatio;
                 kc = k;
                 GXSetTevKColor(getKColor(), kc);
                 GXSetTevKColorSel(st, getKColorSel());

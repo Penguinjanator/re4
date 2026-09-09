@@ -217,7 +217,7 @@ section	offset	size	unit	scope	name	demangled
 .text	0x0001C87C	0x8	Tools/Tools.cpp	global	cDbgWindowBase_GetCx	cDbgWindowBase::GetCx
 .text	0x0001C884	0x8	Tools/Tools.cpp	global	cDbgWindowBase_GetCy	cDbgWindowBase::GetCy
 .text	0x0001C88C	0x4	Tools/Tools.cpp	global	cDbgWindowBase_SetCurrentBottomButton	cDbgWindowBase::SetCurrentBottomButton
-.text	0x0001C890	0x2D8	Tools/Tools.cpp	global	ToolAtari	ToolAtari
+.text	0x0001C890	0x2D8	Tools/Tools.cpp	global	ToolAtari__Fv	ToolAtari
 .text	0x0001CB68	0xA0	Tools/Tools.cpp	global	init	init
 .text	0x0001CC08	0x104	Tools/Tools.cpp	local	menu_1CC08	menu
 .text	0x0001CD0C	0x7CC	Tools/Tools.cpp	local	edit_1CD0C	edit
@@ -240,7 +240,7 @@ section	offset	size	unit	scope	name	demangled
 .text	0x0001E050	0x4C	Tools/Tools.cpp	global	fn_Tools_1E050	.
 .text	0x0001E09C	0x2C	Tools/Tools.cpp	local	global_constructors_keyed_to_ToolAtari	global constructors keyed to ToolAtari
 .text	0x0001E0C8	0x2C	Tools/Tools.cpp	local	global_destructors_keyed_to_ToolAtari	global destructors keyed to ToolAtari
-.text	0x0001E0F4	0x5C	Tools/Tools.cpp	global	ToolCons	ToolCons
+.text	0x0001E0F4	0x5C	Tools/Tools.cpp	global	ToolCons__Fv	ToolCons
 .text	0x0001E150	0x160	Tools/Tools.cpp	global	toolInit	toolInit
 .text	0x0001E2B0	0x19C	Tools/Tools.cpp	global	ConsMove	ConsMove
 .text	0x0001E44C	0x128	Tools/Tools.cpp	local	soft_menu	soft_menu
@@ -270,7 +270,7 @@ section	offset	size	unit	scope	name	demangled
 .text	0x000203FC	0x340	Tools/Tools.cpp	local	tDrDataSave	tDrDataSave
 .text	0x0002073C	0x260	Tools/Tools.cpp	global	tDrSaveDataCreate	tDrSaveDataCreate
 .text	0x0002099C	0x3B8	Tools/Tools.cpp	global	fn_Tools_2099C	.
-.text	0x00020D54	0xB8	Tools/Tools.cpp	global	ToolEmInfo	ToolEmInfo
+.text	0x00020D54	0xB8	Tools/Tools.cpp	global	ToolEmInfo__Fv	ToolEmInfo
 .text	0x00020E0C	0x140	Tools/Tools.cpp	global	eminfoInit	eminfoInit
 .text	0x00020F4C	0x70	Tools/Tools.cpp	global	eminfoExit	eminfoExit
 .text	0x00020FBC	0x1B0	Tools/Tools.cpp	local	eminfo_r0_menu	eminfo_r0_menu
@@ -319,7 +319,7 @@ section	offset	size	unit	scope	name	demangled
 .text	0x000244D0	0x250	Tools/Tools.cpp	global	AreaNoExec_callback	AreaNoExec_callback
 .text	0x00024720	0x100	Tools/Tools.cpp	global	AreaNoUpdate_callback	AreaNoUpdate_callback
 .text	0x00024820	0x1A0	Tools/Tools.cpp	global	OptionExec	OptionExec
-.text	0x000249C0	0x1C50	Tools/Tools.cpp	global	ToolEspArea	ToolEspArea
+.text	0x000249C0	0x1C50	Tools/Tools.cpp	global	ToolEspArea__Fv	ToolEspArea
 .text	0x00026610	0x10C	Tools/Tools.cpp	global	tEspAreaInit	tEspAreaInit
 .text	0x0002671C	0x120	Tools/Tools.cpp	global	tEspAreaExit	tEspAreaExit
 .text	0x0002683C	0x3B8	Tools/Tools.cpp	global	fn_Tools_2683C	.
@@ -374,7 +374,7 @@ section	offset	size	unit	scope	name	demangled
 .text	0x0002BF14	0xB0	Tools/Tools.cpp	local	preview_init	preview_init
 .text	0x0002BFC4	0x98	Tools/Tools.cpp	local	preview_main	preview_main
 .text	0x0002C05C	0xD0	Tools/Tools.cpp	local	preview_exit	preview_exit
-.text	0x0002C12C	0x110	Tools/Tools.cpp	global	ToolFlrAt	ToolFlrAt
+.text	0x0002C12C	0x110	Tools/Tools.cpp	global	ToolFlrAt__Fv	ToolFlrAt
 .text	0x0002C23C	0x3B8	Tools/Tools.cpp	global	fn_Tools_2C23C	.
 .text	0x0002C5F4	0x24	Tools/Tools.cpp	global	__builtin_new	__builtin_new
 .text	0x0002C618	0x24	Tools/Tools.cpp	global	__builtin_vec_new	__builtin_vec_new
@@ -392,7 +392,7 @@ section	offset	size	unit	scope	name	demangled
 .text	0x0002D174	0x1FC8	Tools/Tools.cpp	global	t_lightarea_namespace_ToolLightAreaMain	t_lightarea_namespace::ToolLightAreaMain
 .text	0x0002F13C	0xBC	Tools/Tools.cpp	global	t_lightarea_namespace_tLightAreaInit	t_lightarea_namespace::tLightAreaInit
 .text	0x0002F1F8	0xC0	Tools/Tools.cpp	global	t_lightarea_namespace_tLightAreaExit	t_lightarea_namespace::tLightAreaExit
-.text	0x0002F2B8	0x20	Tools/Tools.cpp	global	ToolLightArea	ToolLightArea
+.text	0x0002F2B8	0x20	Tools/Tools.cpp	global	ToolLightArea__Fv	ToolLightArea
 .text	0x0002F2D8	0x3B8	Tools/Tools.cpp	global	fn_Tools_2F2D8	.
 .text	0x0002F690	0x1A4	Tools/Tools.cpp	global	cDbgEditWindow_LIGHT_AREA_AddButton	cDbgEditWindow<LIGHT_AREA>::AddButton
 .text	0x0002F834	0x80	Tools/Tools.cpp	global	cDbgEditWindow_LIGHT_AREA_copyBuffer	cDbgEditWindow<LIGHT_AREA>::copyBuffer
@@ -414,7 +414,7 @@ section	offset	size	unit	scope	name	demangled
 .text	0x00030F48	0x88	Tools/Tools.cpp	global	cDbgEditWindow_LIGHT_AREA_ButtonAllUpdate	cDbgEditWindow<LIGHT_AREA>::ButtonAllUpdate
 .text	0x00030FD0	0x1A4	Tools/Tools.cpp	global	cDbgEditWindow_LIGHT_AREA_ButtonPushCheck	cDbgEditWindow<LIGHT_AREA>::ButtonPushCheck
 .text	0x00031174	0x98	Tools/Tools.cpp	global	fn_Tools_31174	.
-.text	0x0003120C	0x84	Tools/Tools.cpp	global	ToolMes	ToolMes
+.text	0x0003120C	0x84	Tools/Tools.cpp	global	ToolMes__Fv	ToolMes
 .text	0x00031290	0x134	Tools/Tools.cpp	global	cMessageDebug_move	cMessageDebug::move
 .text	0x000313C4	0x64	Tools/Tools.cpp	global	cMessageDebug_init	cMessageDebug::init
 .text	0x00031428	0x138	Tools/Tools.cpp	global	cMessageDebug_menu	cMessageDebug::menu
@@ -430,7 +430,7 @@ section	offset	size	unit	scope	name	demangled
 .text	0x00032018	0x74	Tools/Tools.cpp	global	cIdToolMenu_ToolMenuLocate	cIdToolMenu::ToolMenuLocate
 .text	0x0003208C	0x34	Tools/Tools.cpp	global	cIdToolMenu_dt_cIdToolMenu	cIdToolMenu::~cIdToolMenu
 .text	0x000320C0	0x34	Tools/Tools.cpp	global	cMessageDebug_dt_cMessageDebug	cMessageDebug::~cMessageDebug
-.text	0x000320F4	0x94	Tools/Tools.cpp	global	ToolMotSeq	ToolMotSeq
+.text	0x000320F4	0x94	Tools/Tools.cpp	global	ToolMotSeq__Fv	ToolMotSeq
 .text	0x00032188	0x270	Tools/Tools.cpp	global	msqToolInit	msqToolInit
 .text	0x000323F8	0x1C0	Tools/Tools.cpp	local	msq_R0_Model	msq_R0_Model
 .text	0x000325B8	0x1E8	Tools/Tools.cpp	local	msq_R0_SeqLoad	msq_R0_SeqLoad
@@ -451,7 +451,7 @@ section	offset	size	unit	scope	name	demangled
 .text	0x00034E44	0x9C	Tools/Tools.cpp	global	msqErrorMessage	msqErrorMessage
 .text	0x00034EE0	0xBC	Tools/Tools.cpp	global	msqFrameSizeCk	msqFrameSizeCk
 .text	0x00034F9C	0x3B8	Tools/Tools.cpp	global	fn_Tools_34F9C	.
-.text	0x00035354	0xFC	Tools/Tools.cpp	global	ToolMotionViewer	ToolMotionViewer
+.text	0x00035354	0xFC	Tools/Tools.cpp	global	ToolMotionViewer__Fv	ToolMotionViewer
 .text	0x00035450	0x160	Tools/Tools.cpp	local	mvInit	mvInit
 .text	0x000355B0	0x244	Tools/Tools.cpp	local	mvMain	mvMain
 .text	0x000357F4	0xD0	Tools/Tools.cpp	local	mvQuit	mvQuit
@@ -474,7 +474,7 @@ section	offset	size	unit	scope	name	demangled
 .text	0x000366A8	0x58	Tools/Tools.cpp	global	TprimDrawPolyFn_s16	TprimDrawPolyFn_s16
 .text	0x00036700	0x5C	Tools/Tools.cpp	global	set_vtx_flat_f32	set_vtx_flat_f32
 .text	0x0003675C	0x5C	Tools/Tools.cpp	global	set_vtx_flat_s16	set_vtx_flat_s16
-.text	0x000367B8	0xDC	Tools/Tools.cpp	global	ToolRctRouteCheck	ToolRctRouteCheck
+.text	0x000367B8	0xDC	Tools/Tools.cpp	global	ToolRctRouteCheck__Fv	ToolRctRouteCheck
 .text	0x00036894	0x1B0	Tools/Tools.cpp	global	rckInit	rckInit
 .text	0x00036A44	0xAC	Tools/Tools.cpp	local	tool_quit	tool_quit
 .text	0x00036AF0	0x1B0	Tools/Tools.cpp	local	mode_main	mode_main
@@ -507,7 +507,7 @@ section	offset	size	unit	scope	name	demangled
 .text	0x000398B4	0x1E4	Tools/Tools.cpp	global	rckMakeEditData	rckMakeEditData
 .text	0x00039A98	0x80	Tools/Tools.cpp	global	rckSetFilename	rckSetFilename
 .text	0x00039B18	0x150	Tools/Tools.cpp	global	rckCameraMove	rckCameraMove
-.text	0x00039C68	0x230	Tools/Tools.cpp	global	ToolSceAt	ToolSceAt
+.text	0x00039C68	0x230	Tools/Tools.cpp	global	ToolSceAt__Fv	ToolSceAt
 .text	0x00039E98	0x150	Tools/Tools.cpp	global	tSceAtInit_base	tSceAtInit_base
 .text	0x00039FE8	0x170	Tools/Tools.cpp	global	tSceAtInit	tSceAtInit
 .text	0x0003A158	0x7C	Tools/Tools.cpp	global	set_filename	set_filename
@@ -567,7 +567,7 @@ section	offset	size	unit	scope	name	demangled
 .text	0x00041F74	0xD0	Tools/Tools.cpp	local	tSceAtPreview_exit	tSceAtPreview_exit
 .text	0x00042044	0x114	Tools/Tools.cpp	global	loadMesName	loadMesName
 .text	0x00042158	0x3B8	Tools/Tools.cpp	global	fn_Tools_42158	.
-.text	0x00042510	0x44	Tools/Tools.cpp	global	ToolTplView	ToolTplView
+.text	0x00042510	0x44	Tools/Tools.cpp	global	ToolTplView__Fv	ToolTplView
 .text	0x00042554	0x30	Tools/Tools.cpp	global	getTplname	getTplname
 .text	0x00042584	0x8DC	Tools/Tools.cpp	global	TplViewer	TplViewer
 .text	0x00042E60	0x3B8	Tools/Tools.cpp	global	fn_Tools_42E60	.
@@ -581,7 +581,7 @@ section	offset	size	unit	scope	name	demangled
 .text	0x00043A54	0x34	Tools/Tools.cpp	global	ToolMenuDisp	ToolMenuDisp
 .text	0x00043A88	0x278	Tools/Tools.cpp	global	ToolMenuDisp_cur	ToolMenuDisp_cur
 .text	0x00043D00	0x3B8	Tools/Tools.cpp	global	fn_Tools_43D00	.
-.text	0x000440B8	0x68	Tools/Tools.cpp	global	ToolVibEdit	ToolVibEdit
+.text	0x000440B8	0x68	Tools/Tools.cpp	global	ToolVibEdit__Fv	ToolVibEdit
 .text	0x00044120	0xD0	Tools/Tools.cpp	global	tvibInit	tvibInit
 .text	0x000441F0	0x40	Tools/Tools.cpp	global	tvibExit	tvibExit
 .text	0x00044230	0x3D8	Tools/Tools.cpp	local	tvib_R0_Select	tvib_R0_Select

@@ -645,7 +645,7 @@ section	offset	size	unit	scope	name	demangled
 .text	0x0003D3A4	0x54	t_esp/t_esp.cpp	global	t_esp_namespace_EspToolTrans	t_esp_namespace::EspToolTrans
 .text	0x0003D3F8	0x17C	t_esp/t_esp.cpp	global	t_esp_namespace_DrawPosCursor	t_esp_namespace::DrawPosCursor
 .text	0x0003D574	0x8B8	t_esp/t_esp.cpp	global	t_esp_namespace_ToolEspMain	t_esp_namespace::ToolEspMain
-.text	0x0003DE2C	0x20	t_esp/t_esp.cpp	global	ToolEsp	ToolEsp
+.text	0x0003DE2C	0x20	t_esp/t_esp.cpp	global	ToolEsp__Fv	ToolEsp
 .text	0x0003DE4C	0x3B8	t_esp/t_esp.cpp	global	fn_t_esp_3DE4C	.
 .text	0x0003E204	0x788	t_esp/t_esp.cpp	global	t_esp_namespace_ID_WINDOW_ID_WINDOW	t_esp_namespace::ID_WINDOW::ID_WINDOW
 .text	0x0003E98C	0x1B4	t_esp/t_esp.cpp	global	TutilInitDefault	TutilInitDefault

@@ -26,8 +26,10 @@ UNITS = {
     # carries its own cManager<cLight> instantiations behind its code (see LINKONCE below).
     "t_emlist": [
         ("t_emlist/t_emlist.cpp", None),
-        ("t_emlist/t_prim.cpp", "TprimInitEnv2D3D"),
-        ("t_emlist/t_util.cpp", "TutilInitDefault"),
+        ("t_emlist/t_prim.cpp", "TprimInitEnv2D3D", "tools/t_prim.cpp"),
+        # t_util's header strings (map_obj.h/light.h/widget.h) and its .data (old_menu, the menu
+        # statics) are not addressed by its code
+        ("t_emlist/t_util.cpp", "TutilInitDefault", "tools/t_util.cpp", {".rodata": 0x14E0, ".data": 0x29FC}),
         ("t_emlist/tools.cpp", "_prolog", "tools/tools.cpp"),
     ],
 }
@@ -56,4 +58,7 @@ MATCHING = {
     "st2_2/st2.cpp": True,
     "st2_3/st2.cpp": True,
     "st2_4/st2.cpp": True,
+    "t_emlist/t_prim.cpp": True,
+    "t_emlist/t_util.cpp": True,
+    "t_emlist/tools.cpp": True,
 }

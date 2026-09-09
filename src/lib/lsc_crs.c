@@ -3,12 +3,12 @@
 extern void SJCRS_Lock(void);
 extern void SJCRS_Unlock(void);
 
-void LSC_UnlockCrs(void)
+void LSC_UnlockCrs(Sint32 *msk)
 {
 	SJCRS_Unlock();
 }
 
-void LSC_LockCrs(void)
+void LSC_LockCrs(Sint32 *msk)
 {
 	SJCRS_Lock();
 }

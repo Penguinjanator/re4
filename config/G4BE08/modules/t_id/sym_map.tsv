@@ -34,7 +34,7 @@ section	offset	size	unit	scope	name	demangled
 .text	0x00004054	0x60	t_id/t_id.cpp	global	posScreen2GridLock	posScreen2GridLock
 .text	0x000040B4	0x2A4	t_id/t_id.cpp	global	toolIdInit	toolIdInit
 .text	0x00004358	0x144	t_id/t_id.cpp	local	toolIdQuit	toolIdQuit
-.text	0x0000449C	0x138	t_id/t_id.cpp	global	ToolInterfaceDesign	ToolInterfaceDesign
+.text	0x0000449C	0x138	t_id/t_id.cpp	global	ToolInterfaceDesign__Fv	ToolInterfaceDesign
 .text	0x000045D4	0x1F4	t_id/t_id.cpp	global	toolIdDrawSafeZone	toolIdDrawSafeZone
 .text	0x000047C8	0x84	t_id/t_id.cpp	global	toolIdSubMenuPosition	toolIdSubMenuPosition
 .text	0x0000484C	0x3B8	t_id/t_id.cpp	local	toolIdPrev	toolIdPrev

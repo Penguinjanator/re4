@@ -154,16 +154,14 @@ void emBarDmCk(cEmBar* em)
     case 0x28:
         wep = 0;
         break;
+    case 0x29:   // default-target node: makes the right sub-list 3 nodes so the 0x26-0x28 range is its root
+        break;
     }
     em->hp = 0;
+    // arm order matters for jump2's cross-jump: the SetBreak(0) arm must come first so the 7/8/0x21
+    // then-block stays in place (`ble` to the else block) and the case bodies jump into it; the
+    // explicit default-target cases (5, 6, 0xD..0xF, 0x12, 0x13, 0x29, 0x2A, 0x2C) shape the tree
     switch (em->dmWep) {
-    case 7:
-    case 8:
-    case 0x21:
-        if (!(em->dmRad > 36000000.0f)) {
-            emBarSetBreak(em, 1);
-            break;
-        }
     case 0:
     case 1:
     case 2:
@@ -184,6 +182,15 @@ void emBarDmCk(cEmBar* em)
     case 0x28:
     case 0x2B:
         emBarSetBreak(em, 0);
+        break;
+    case 7:
+    case 8:
+    case 0x21:
+        if (em->dmRad > 36000000.0f) {
+            emBarSetBreak(em, 0);
+        } else {
+            emBarSetBreak(em, 1);
+        }
         break;
     case 5:
     case 6:

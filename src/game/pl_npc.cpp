@@ -1470,12 +1470,12 @@ void cSubChar::moveHide()
     Vec b;
     Vec hit;
     f32 ang;
+    u32 r;
 
     switch (xFE) {
     case 0: {
         void* m;
         void* seq;
-        int hokan = 4;
 
         BitOff16(subFlags, 2);
         subHidePos.y += 300.0f;
@@ -1489,6 +1489,7 @@ void cSubChar::moveHide()
                 seq = 0;
             }
             xFE = 2;
+            r = 4;
         } else if (fabsf(ang) > 1.0471976f) {
             if (mot_ck()) {
                 m = SUB_MOT(subSelf, 0x16);
@@ -1498,6 +1499,7 @@ void cSubChar::moveHide()
                 seq = 0;
             }
             xFE = 1;
+            r = 4;
         } else {
             if (mot_ck()) {
                 m = SUB_MOT(subSelf, 0x16);
@@ -1507,8 +1509,9 @@ void cSubChar::moveHide()
                 seq = 0;
             }
             xFE = 5;
+            r = 4;
         }
-        MOT_SET(this, MOTION(this), m, seq, 7, (u16) hokan, 0);
+        MOT_SET(this, MOTION(this), m, seq, 7, (u16) r, 0);
         motionMove();
         xFE = 1;
         break;
@@ -1535,7 +1538,6 @@ void cSubChar::moveHide()
         xFE = 6;
         break;
     case 6: {
-        u32 r;
         f32 d;
         int up;
 
@@ -2505,11 +2507,11 @@ f32 cSubChar::getCliffHeight(f32 ang)
     f32 h;
 
     r.y = ang;
-    v.y = 300.0f;
+    v.z = 1000.0f;
     v.x = 0.0f;
+    v.y = 300.0f;
     r.x = 0.0f;
     r.z = 0.0f;
-    v.z = 1000.0f;
     RotVector(&v, &r, &v);
     PSVECAdd(&pos, &v, &v);
     h = pos.y - SatMgr.getFloor(&v, 600.0f, 100000.0f, 0, 0);

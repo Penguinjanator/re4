@@ -350,7 +350,8 @@ def DolphinLib(lib_name: str, objects: List[Object]) -> Dict[str, Any]:
 # was prebuilt by CRI with CodeWarrior >= 1.3.2 (`stwu/mflr/stw` 16-byte-frame prologue, `__div2i`
 # runtime calls, `mr.` tests) at -O4,p with no small data at all (every 4-byte global is addressed
 # `lis/addi`, float constants sit in .rodata): -sdata 0 -sdata2 0; string literals are in .rodata
-# (-str readonly). Headers live in src/lib/cri/.
+# (-str readonly) and callee-saved registers are saved with stmw/lmw (-use_lmw_stmw on). Headers live
+# in src/lib/cri/.
 MWCC_CRI_VERSION = "GC/2.0"
 cflags_mw_cri = [
     "-nodefaults",
@@ -366,6 +367,7 @@ cflags_mw_cri = [
     "-sdata 0",
     "-sdata2 0",
     "-str readonly",
+    "-use_lmw_stmw on",
     "-I-",
     f"-i {(project_root / 'include').as_posix()}",
     f"-i {(project_root / 'include' / 'libc').as_posix()}",

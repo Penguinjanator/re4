@@ -1,7 +1,11 @@
 /* ngcld -r script for the REL modules (tools/link_rel.py), after SN's preplf.ld: every output
  * section starts at 0, .ctors/.dtors get their null terminator from the script (the split objects
  * carry none), ngcld appends its BSS_TAG object itself (pointer at the end of .data, zero-size
- * __sn__bss__tag__ at the end of .bss) and COMMON symbols stay unallocated for tools/make_rel.py. */
+ * __sn__bss__tag__ at the end of .bss) and COMMON symbols stay unallocated for tools/make_rel.py.
+ * GXWGFifo is the same absolute symbol as in the DOL script (include/gx.h); ngcld -r keeps the
+ * relocations against it, tools/link_rel.py resolves them after the link (the original RELs carry the
+ * final lis/stfs -0x8000 words and no relocation there). */
+GXWGFifo = 0xCC008000;
 SECTIONS
 {
   .text   0 : { *(.text) *(.text.*) *(.gnu.linkonce.t.*) }

@@ -2871,7 +2871,7 @@ address	size	section	unit	scope	name	demangled
 0x800BCC38	0x1C	.text	lib/adx_stmc.c	global	ADXSTM_SetEos	ADXSTM_SetEos
 0x800BCC54	0xC	.text	lib/adx_stmc.c	global	ADXSTM_EntryEosFunc	ADXSTM_EntryEosFunc
 0x800BCC60	0xC4	.text	lib/adx_stmc.c	global	ADXSTM_Stop	ADXSTM_Stop
-0x800BCD24	0x70	.text	lib/adx_stmc.c	local	ADXSTM_StopNw	ADXSTM_StopNw
+0x800BCD24	0x70	.text	lib/adx_stmc.c	global	ADXSTM_StopNw	ADXSTM_StopNw
 0x800BCD94	0x84	.text	lib/adx_stmc.c	global	ADXSTM_Start	ADXSTM_Start
 0x800BCE18	0x1C	.text	lib/adx_stmc.c	global	ADXSTM_Tell	ADXSTM_Tell
 0x800BCE34	0x20	.text	lib/adx_stmc.c	global	ADXSTM_Seek	ADXSTM_Seek
@@ -6737,7 +6737,7 @@ address	size	section	unit	scope	name	demangled
 0x801E2CB8	0xCC	.text	lib/sfx_cnv.c	global	sfxcnv_IsCnvUpHalf	sfxcnv_IsCnvUpHalf
 0x801E2D84	0x2C	.text	lib/sfx_cnv.c	global	SFX_SetBottomUpPlnBuf	SFX_SetBottomUpPlnBuf
 0x801E2DB0	0x10	.text	lib/sfx_lib.c	global	SFX_GetCcirFx	SFX_GetCcirFx
-0x801E2DC0	0x4C	.text	lib/sfx_lib.c	local	SFXLIB_Error	SFXLIB_Error
+0x801E2DC0	0x4C	.text	lib/sfx_lib.c	global	SFXLIB_Error	SFXLIB_Error
 0x801E2E0C	0x60	.text	lib/sfx_lib.c	global	SFX_Destroy	SFX_Destroy
 0x801E2E6C	0x280	.text	lib/sfx_lib.c	global	SFX_Create	SFX_Create
 0x801E30EC	0x14	.text	lib/sfx_lib.c	global	SFX_SetErrFn	SFX_SetErrFn
@@ -6765,7 +6765,7 @@ address	size	section	unit	scope	name	demangled
 0x801E45F4	0x94	.text	lib/sfx_cnv_to_Y84C44.c	global	SFX_CnvFrmY84C44	SFX_CnvFrmY84C44
 0x801E4688	0x200	.text	lib/sfx_YCC420PLN_to_ARGB8888PLN.c	global	sfxcnv_CnvAlphFulYcc420plnToArgb8888	sfxcnv_CnvAlphFulYcc420plnToArgb8888
 0x801E4888	0x7C4	.text	lib/sfx_YCC420PLN_to_ARGB8888PLN.c	global	SFX_CnvFrmYcc420plnToArgb8888	SFX_CnvFrmYcc420plnToArgb8888
-0x801E504C	0x160	.text	lib/sfx_YCC420PLN_to_Y84C44.c	local	SFX_CnvFrmYcc420plnToY84C44	SFX_CnvFrmYcc420plnToY84C44
+0x801E504C	0x160	.text	lib/sfx_YCC420PLN_to_Y84C44.c	global	SFX_CnvFrmYcc420plnToY84C44	SFX_CnvFrmYcc420plnToY84C44
 0x801E51AC	0xD0	.text	lib/sfd_adxt.c	global	SFADXT_Seek	SFADXT_Seek
 0x801E527C	0x28	.text	lib/sfd_adxt.c	global	SFADXT_AddRead	SFADXT_AddRead
 0x801E52A4	0x28	.text	lib/sfd_adxt.c	global	SFADXT_GetRead	SFADXT_GetRead
@@ -7161,7 +7161,7 @@ address	size	section	unit	scope	name	demangled
 0x801FAC14	0x2C	.text	lib/mwsfdsl.c	global	MWSFLSC_IsFsStatErr	MWSFLSC_IsFsStatErr
 0x801FAC40	0x20	.text	lib/mwstm.c	global	MWSTM_GetStat	MWSTM_GetStat
 0x801FAC60	0x34	.text	lib/mwstm.c	global	MWSTM_ReqStop	MWSTM_ReqStop
-0x801FAC94	0x20	.text	lib/mwstm.c	local	MWSTM_ReqStart	MWSTM_ReqStart
+0x801FAC94	0x20	.text	lib/mwstm.c	global	MWSTM_ReqStart	MWSTM_ReqStart
 0x801FACB4	0x60	.text	lib/mwstm.c	global	MWSTM_SetFileRange	MWSTM_SetFileRange
 0x801FAD14	0x20	.text	lib/mwstm.c	global	MWSTM_Destroy	MWSTM_Destroy
 0x801FAD34	0x24	.text	lib/mwstm.c	global	MWSTM_Create	MWSTM_Create
@@ -7225,7 +7225,7 @@ address	size	section	unit	scope	name	demangled
 0x80200090	0x20	.text	lib/mpv_err.c	global	MPVERR_Init	MPVERR_Init
 0x802000B0	0xA8	.text	lib/mpv_frm.c	global	MPV_SkipFrmSj	MPV_SkipFrmSj
 0x80200158	0x170	.text	lib/mpv_frm.c	global	MPV_DecodeFrmSj	MPV_DecodeFrmSj
-0x802002C8	0x4	.text	lib/mpv_frm.c	local	MPVFRM_Init	MPVFRM_Init
+0x802002C8	0x4	.text	lib/mpv_frm.c	global	MPVFRM_Init	MPVFRM_Init
 0x802002CC	0x74	.text	lib/mpv_get.c	global	MPV_GetLinkFlg	MPV_GetLinkFlg
 0x80200340	0xC8	.text	lib/mpv_get.c	global	MPV_GetVbvBufSiz	MPV_GetVbvBufSiz
 0x80200408	0x60	.text	lib/mpv_get.c	global	MPV_GetBitRate	MPV_GetBitRate
@@ -7245,7 +7245,7 @@ address	size	section	unit	scope	name	demangled
 0x80202250	0x14	.text	lib/mpv_hdec.c	global	MPV_SetPicUsrBuf	MPV_SetPicUsrBuf
 0x80202264	0x1C	.text	lib/mpv_hdec.c	global	MPV_SetUsrSj	MPV_SetUsrSj
 0x80202280	0xF8	.text	lib/mpv_hdec.c	global	MPVHDEC_Init	MPVHDEC_Init
-0x80202378	0x30	.text	lib/mpv_lib.c	local	MPVLIB_CheckHn	MPVLIB_CheckHn
+0x80202378	0x30	.text	lib/mpv_lib.c	global	MPVLIB_CheckHn	MPVLIB_CheckHn
 0x802023A8	0x90	.text	lib/mpv_lib.c	global	MPV_GetCond	MPV_GetCond
 0x80202438	0xE4	.text	lib/mpv_lib.c	global	MPV_SetCond	MPV_SetCond
 0x8020251C	0x4	.text	lib/mpv_lib.c	global	MPV_MbCbFn	MPV_MbCbFn
@@ -7317,7 +7317,7 @@ address	size	section	unit	scope	name	demangled
 0x80215994	0x304	.text	lib/mpv_bdec.c	global	MPVBDEC_Init	MPVBDEC_Init
 0x80215C98	0xAC	.text	lib/mpv_cdec.c	global	MPVCDEC_NintraBlocks	MPVCDEC_NintraBlocks
 0x80215D44	0x454	.text	lib/mpv_cdec.c	global	MPVCDEC_IntraBlocks	MPVCDEC_IntraBlocks
-0x80216198	0x4	.text	lib/mpv_cdec.c	local	MPVCDEC_InitFrm	MPVCDEC_InitFrm
+0x80216198	0x4	.text	lib/mpv_cdec.c	global	MPVCDEC_InitFrm	MPVCDEC_InitFrm
 0x8021619C	0x20	.text	lib/mpv_cmc.c	global	MPVCMC_SetCcnt	MPVCMC_SetCcnt
 0x802161BC	0x40	.text	lib/mpv_cmc.c	global	MPVCMC_InitMcOiRt	MPVCMC_InitMcOiRt
 0x802161FC	0x8C	.text	lib/mpv_cmc.c	global	MPVCMC_InitObj	MPVCMC_InitObj
