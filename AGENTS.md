@@ -4283,3 +4283,18 @@ target) stays unresolved and `make_rel` then fails with "undefined symbol".
   (the raw byte dies in the target it does not) and flips the this/joy allocation (r31/r30). The
   `campos` word-0 temp in r30 (callee-saved, ours r3) is open too. menuFlag (141), move (160, ours 8
   bytes longer), adjust_qFPS (172) not attempted.
+- Work-pointer `lis` above the calloc `bl`: store through a pointer to the member
+  (`R205Work** wp = &work.p; *wp = MEM_CALLOC(..)`), placed after any earlier `pG->` op in the block.
+- `SetPosXYZ(m, x, y, z)` static inline owning the `Vec` local and the call: shared temp slot, args
+  evaluated before the stores, `addi r4,r1,8` per call (no PRE'd pseudo).
+- `AtariFlagsAnd(&p->atari, mask)` keeps `addi r9,p,0x2B4` + `lhz/sth 0x1A(r9)`; the u16& form folds.
+- `BitCk(f, A) || BitCk(f, B)` keeps two `andis.` on one load; `(f & A) || (f & B)` merges the masks.
+- `switch (cut) { case 0xD: case 0xE: ... }` gives `cmpwi 0xE; bgt; cmpwi 0xD; blt`; the `&&` range
+  folds to `addi/cmplwi`.
+- `while (A) { if (!B) { S; } else break; }` keeps B at the body top; `goto found;` instead of
+  `break` keeps an un-rotated poll loop.
+- A pointer local redefined later (`m = NULL; ... = m; ... m = f()`) keeps its `li` at the entry;
+  a single-use zero has its `li` moved to the store.
+- `on = (prev ^ cur) & cur` gives the target's `addi` order; `hp = 1` in the `mode == 1` arm
+  stores mode's register (cse jump-equiv).
+

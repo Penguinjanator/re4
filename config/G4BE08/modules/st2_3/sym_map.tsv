@@ -283,10 +283,10 @@ section	offset	size	unit	scope	name	demangled
 .text	0x0001CFA8	0x3B8	st2_3/r227.cpp	global	fn_st2_3_1CFA8	.
 .text	0x0001D360	0xF8	st2_3/r228.cpp	global	R228Init__Fv	R228Init
 .text	0x0001D458	0x4	st2_3/r228.cpp	global	R228Main__Fv	R228Main
-.text	0x0001D45C	0x11C	st2_3/r228.cpp	local	r228_execSalazarNeckDown	r228_execSalazarNeckDown
-.text	0x0001D578	0x638	st2_3/r228.cpp	local	r228_checkSalazarBattle	r228_checkSalazarBattle
-.text	0x0001DBB0	0x31C	st2_3/r228.cpp	local	r228_execEvent00	r228_execEvent00
-.text	0x0001DECC	0x2E8	st2_3/r228.cpp	global	r228_initEvent00	r228_initEvent00
+.text	0x0001D45C	0x11C	st2_3/r228.cpp	local	r228_execSalazarNeckDown__Fv	r228_execSalazarNeckDown
+.text	0x0001D578	0x638	st2_3/r228.cpp	local	r228_checkSalazarBattle__Fv	r228_checkSalazarBattle
+.text	0x0001DBB0	0x31C	st2_3/r228.cpp	local	r228_execEvent00__Fv	r228_execEvent00
+.text	0x0001DECC	0x2E8	st2_3/r228.cpp	global	r228_initEvent00__Fv	r228_initEvent00
 .text	0x0001E1B4	0x37C	st2_3/r228.cpp	global	Evt_R228S00_Func	Evt_R228S00_Func
 .text	0x0001E530	0x21C	st2_3/r228.cpp	global	Evt_R228S01_Func	Evt_R228S01_Func
 .text	0x0001E74C	0x328	st2_3/r228.cpp	global	Evt_R228S02_Func	Evt_R228S02_Func

@@ -57,6 +57,7 @@ struct R20cWorkPtr {
 };
 
 static R20cWorkPtr r20c_work;
+static inline void PSet(cSat*& d, cSat* v) { d = v; }
 
 Vec r20c_emGoto0 = {35700.0f, 3500.0f, 17000.0f};
 Vec r20c_emGoto1 = {34000.0f, 3500.0f, 10250.0f};
@@ -79,6 +80,32 @@ public:
     virtual void endEvent(int mode);
 };
 #define BEGIN_EVENT(p, mode) ((cUnitEvent*) (p))->beginEvent(mode)
+
+// The coordinates are read before `v` is written and the `&v` argument is recomputed per call
+// (an inlined helper: the address goes straight into the argument register).
+static inline void SetPosXYZ(cModel* m, f32 x, f32 y, f32 z)
+{
+    Vec v;
+
+    v.x = x;
+    v.y = y;
+    v.z = z;
+    m->setPos(&v);
+}
+
+static inline void SetAngXYZ(cModel* m, f32 x, f32 y, f32 z)
+{
+    Vec v;
+
+    v.x = x;
+    v.y = y;
+    v.z = z;
+    m->setAng(&v);
+}
+
+// COMPILER-DIFF: #4 — the original masks the u8 result of GetEmIdFromList before passing it on;
+// ours treats the return as promoted. An int view of the callee plus the (u8) cast gives the clrlwi.
+int GetEmIdFromListI(u32 no) asm("GetEmIdFromList");
 
 static void R20cEmSetMain();
 void R20cExecCageUp();
@@ -115,7 +142,7 @@ void R20cInit()
     }
     R20cExecShootInit();
     if (checkEmListNo(pG->room_id) == 3 && !(pG->flags_5018 & 0x04000000)) {
-        EmReadSearch(GetEmIdFromList(0xCB), 0, 0);
+        EmReadSearch((u8) GetEmIdFromListI(0xCB), 0, 0);
     }
     obj = SmdGetObjPtr(6);
     if (obj) {
@@ -127,8 +154,8 @@ void R20cInit()
             r20c_work.p->sat[i] = NULL;
             r20c_work.p->eat[i] = NULL;
         }
-        r20c_work.p->sat[0] = SatMgr.create(ROOM_ARC_PTR(pG->pRoomArc, 5), 0, &pos, &rot, 1);
-        r20c_work.p->eat[0] = EatMgr.create(ROOM_ARC_PTR(pG->pRoomArc, 0x12), 0, &pos, &rot, 1);
+        PSet(r20c_work.p->sat[0], SatMgr.create(ROOM_ARC_PTR(pG->pRoomArc, 5), 0, &pos, &rot, 1));
+        PSet(r20c_work.p->eat[0], EatMgr.create(ROOM_ARC_PTR(pG->pRoomArc, 0x12), 0, &pos, &rot, 1));
         R20cExecCageUp();
         if (RsfCheck(G_ROOM_ID, 3)) {
             R20cExecCageDown(0);
@@ -180,7 +207,6 @@ static void R20cEmSetMain()
 // Lifts the cage and the two doors out of sight, remembering their rest heights.
 void R20cExecCageUp()
 {
-    Vec pos;
     cObj* obj;
     cEm* door0;
     cEm* door1;
@@ -190,25 +216,16 @@ void R20cExecCageUp()
     getRoomEtcDoor(0xE, &door1, 1);
     if (obj) {
         r20c_work.p->cageY = obj->pos.y;
-        pos.x = obj->pos.x;
-        pos.y = obj->pos.y + 4000.0f;
-        pos.z = obj->pos.z;
-        obj->setPos(&pos);
+        SetPosXYZ(obj, obj->pos.x, obj->pos.y + 4000.0f, obj->pos.z);
     }
     if (door0) {
         r20c_work.p->doorY[0] = door0->pos.y;
-        pos.x = door0->pos.x;
-        pos.y = door0->pos.y + 4000.0f;
-        pos.z = door0->pos.z;
-        door0->setPos(&pos);
+        SetPosXYZ(door0, door0->pos.x, door0->pos.y + 4000.0f, door0->pos.z);
         door0->satPos = door0->pos;
     }
     if (door1) {
         r20c_work.p->doorY[1] = door1->pos.y;
-        pos.x = door1->pos.x;
-        pos.y = door1->pos.y + 4000.0f;
-        pos.z = door1->pos.z;
-        door1->setPos(&pos);
+        SetPosXYZ(door1, door1->pos.x, door1->pos.y + 4000.0f, door1->pos.z);
         door1->satPos = door1->pos;
     }
     if (r20c_work.p->sat[0]) {
@@ -222,7 +239,6 @@ void R20cExecCageUp()
 // Drops the cage and the doors to their rest heights; `lock` also locks the doors.
 void R20cExecCageDown(int lock)
 {
-    Vec pos;
     cObj* obj;
     cEm* door0;
     cEm* door1;
@@ -235,23 +251,14 @@ void R20cExecCageDown(int lock)
     getRoomEtcDoor(0xD, &door0, 1);
     getRoomEtcDoor(0xE, &door1, 1);
     if (obj) {
-        pos.x = obj->pos.x;
-        pos.y = r20c_work.p->cageY;
-        pos.z = obj->pos.z;
-        obj->setPos(&pos);
+        SetPosXYZ(obj, obj->pos.x, r20c_work.p->cageY, obj->pos.z);
     }
     if (door0) {
-        pos.x = door0->pos.x;
-        pos.y = r20c_work.p->doorY[0];
-        pos.z = door0->pos.z;
-        door0->setPos(&pos);
+        SetPosXYZ(door0, door0->pos.x, r20c_work.p->doorY[0], door0->pos.z);
         door0->satPos = door0->pos;
     }
     if (door1) {
-        pos.x = door1->pos.x;
-        pos.y = r20c_work.p->doorY[1];
-        pos.z = door1->pos.z;
-        door1->setPos(&pos);
+        SetPosXYZ(door1, door1->pos.x, r20c_work.p->doorY[1], door1->pos.z);
         door1->satPos = door1->pos;
     }
     if (lock == 1) {
@@ -274,11 +281,11 @@ void R20cExecCageDown(int lock)
 // the enemies of the wave are released.
 static void R20cExecCageMain()
 {
-    Vec pos;
     cObj* obj;
     cEm* door0;
     cEm* door1;
     int i;
+    int k;
 
     obj = SmdGetObjPtr(6);
     getRoomEtcDoor(0xD, &door0, 1);
@@ -313,23 +320,14 @@ static void R20cExecCageMain()
         SndCall(6, 0, &pPL->pos, 0, 0, 0);
         for (i = 0; i < 20; i++) {
             if (obj) {
-                pos.x = obj->pos.x;
-                pos.y = r20c_work.p->cageY + 4000.0f - (f32) i * 4000.0f / 20.0f;
-                pos.z = obj->pos.z;
-                obj->setPos(&pos);
+                SetPosXYZ(obj, obj->pos.x, r20c_work.p->cageY + 4000.0f - (f32) i * 4000.0f / 20.0f, obj->pos.z);
             }
             if (door0) {
-                pos.x = door0->pos.x;
-                pos.y = r20c_work.p->doorY[0] + 4000.0f - (f32) i * 4000.0f / 20.0f;
-                pos.z = door0->pos.z;
-                door0->setPos(&pos);
+                SetPosXYZ(door0, door0->pos.x, r20c_work.p->doorY[0] + 4000.0f - (f32) i * 4000.0f / 20.0f, door0->pos.z);
                 door0->satPos = door0->pos;
             }
             if (door1) {
-                pos.x = door1->pos.x;
-                pos.y = r20c_work.p->doorY[1] + 4000.0f - (f32) i * 4000.0f / 20.0f;
-                pos.z = door1->pos.z;
-                door1->setPos(&pos);
+                SetPosXYZ(door1, door1->pos.x, r20c_work.p->doorY[1] + 4000.0f - (f32) i * 4000.0f / 20.0f, door1->pos.z);
                 door1->satPos = door1->pos;
             }
             SceSleep(1);
@@ -356,8 +354,8 @@ static void R20cExecCageMain()
         SceSleep(50);
         CamCtrl.CutCall(9);
         r20c_work.p->resetCnt = 0;
-        for (i = 0; i < 2; i++) {
-            R20cExecCageEmResetSub(i)->setNoSuspend(1);
+        for (k = 0; k < 2; k++) {
+            R20cExecCageEmResetSub(k)->setNoSuspend(1);
         }
         while (CamCtrl.IsMotionEnd() == 0) {
             SceSleep(1);
@@ -453,7 +451,6 @@ static void R20cExecCageEmReset()
 // Painting end state: `mode` 1 = open (shot target hit), 0 = closed.
 void R20cKaigaMoved(int mode)
 {
-    Vec ang;
     cObj* obj7;
     cObj* obj9;
 
@@ -461,14 +458,8 @@ void R20cKaigaMoved(int mode)
     obj9 = SmdGetObjPtr(9);
     if (obj7 && obj9) {
         if (mode == 1) {
-            ang.x = obj7->rot.x;
-            ang.y = obj7->rot.y;
-            ang.z = 0.0f;
-            obj7->setAng(&ang);
-            ang.x = obj9->rot.x;
-            ang.y = obj9->rot.y;
-            ang.z = 0.0f;
-            obj9->setAng(&ang);
+            SetAngXYZ(obj7, obj7->rot.x, obj7->rot.y, 0.0f);
+            SetAngXYZ(obj9, obj9->rot.x, obj9->rot.y, 0.0f);
             pG->flags_174 |= 0x01000000;
             if (r20c_work.p->kaigaHit[0]) {
                 r20c_work.p->kaigaHit[0]->hp = 1;
@@ -478,20 +469,19 @@ void R20cKaigaMoved(int mode)
             }
             SceAtSetEnable(9, 0);
         } else {
-            ang.x = obj7->rot.x;
-            ang.y = obj7->rot.y;
-            ang.z = 3.1415927f;
-            obj7->setAng(&ang);
-            ang.x = obj9->rot.x;
-            ang.y = obj9->rot.y;
-            ang.z = 3.1415927f;
-            obj9->setAng(&ang);
+            s16 hp;
+
+            SetAngXYZ(obj7, obj7->rot.x, obj7->rot.y, 3.1415927f);
+            SetAngXYZ(obj9, obj9->rot.x, obj9->rot.y, 3.1415927f);
             pG->flags_174 &= ~0x01000000;
+            // COMPILER-DIFF: #5 — the original's `li r8,0` of the two `hp = 0` stores is one constant
+            // hoisted above the first null test (interblock motion); a local set here gives the shape.
+            hp = 0;
             if (r20c_work.p->kaigaHit[0]) {
-                r20c_work.p->kaigaHit[0]->hp = 0;
+                r20c_work.p->kaigaHit[0]->hp = hp;
             }
             if (r20c_work.p->kaigaHit[1]) {
-                r20c_work.p->kaigaHit[1]->hp = 0;
+                r20c_work.p->kaigaHit[1]->hp = hp;
             }
             SceAtSetEnable(9, 1);
         }
@@ -501,7 +491,6 @@ void R20cKaigaMoved(int mode)
 // Swings the painting open (`mode` 1) or closed.
 void R20cKaigaMove(int mode)
 {
-    Vec ang;
     cObj* obj7;
     cObj* obj9;
 
@@ -511,25 +500,13 @@ void R20cKaigaMove(int mode)
         if (mode == 1) {
             SndCall(6, 3, &obj7->pos, 0, 0, 0);
             if (pG->flags_174 & 0x01000000) {
-                ang.x = obj7->rot.x;
-                ang.y = obj7->rot.y;
-                ang.z = 0.0f;
-                obj7->setAng(&ang);
-                ang.x = obj9->rot.x;
-                ang.y = obj9->rot.y;
-                ang.z = 0.0f;
-                obj9->setAng(&ang);
+                SetAngXYZ(obj7, obj7->rot.x, obj7->rot.y, 0.0f);
+                SetAngXYZ(obj9, obj9->rot.x, obj9->rot.y, 0.0f);
             } else {
                 pG->flags_174 |= 0x01000000;
                 while (obj7->rot.z >= 0.0f) {
-                    ang.x = obj7->rot.x;
-                    ang.y = obj7->rot.y;
-                    ang.z = obj7->rot.z - 0.08726647f;
-                    obj7->setAng(&ang);
-                    ang.x = obj9->rot.x;
-                    ang.y = obj9->rot.y;
-                    ang.z = obj9->rot.z - 0.08726647f;
-                    obj9->setAng(&ang);
+                    SetAngXYZ(obj7, obj7->rot.x, obj7->rot.y, obj7->rot.z - 0.08726647f);
+                    SetAngXYZ(obj9, obj9->rot.x, obj9->rot.y, obj9->rot.z - 0.08726647f);
                     SceSleep(1);
                 }
                 R20cKaigaMoved(mode);
@@ -537,25 +514,13 @@ void R20cKaigaMove(int mode)
         } else {
             SndCall(6, 4, &obj7->pos, 0, 0, 0);
             if (!(pG->flags_174 & 0x01000000)) {
-                ang.x = obj7->rot.x;
-                ang.y = obj7->rot.y;
-                ang.z = 3.1415927f;
-                obj7->setAng(&ang);
-                ang.x = obj9->rot.x;
-                ang.y = obj9->rot.y;
-                ang.z = 3.1415927f;
-                obj9->setAng(&ang);
+                SetAngXYZ(obj7, obj7->rot.x, obj7->rot.y, 3.1415927f);
+                SetAngXYZ(obj9, obj9->rot.x, obj9->rot.y, 3.1415927f);
             } else {
                 pG->flags_174 &= ~0x01000000;
                 while (obj7->rot.z <= 3.1415927f) {
-                    ang.x = obj7->rot.x;
-                    ang.y = obj7->rot.y;
-                    ang.z = obj7->rot.z + 0.34906587f;
-                    obj7->setAng(&ang);
-                    ang.x = obj9->rot.x;
-                    ang.y = obj9->rot.y;
-                    ang.z = obj9->rot.z + 0.34906587f;
-                    obj9->setAng(&ang);
+                    SetAngXYZ(obj7, obj7->rot.x, obj7->rot.y, obj7->rot.z + 0.34906587f);
+                    SetAngXYZ(obj9, obj9->rot.x, obj9->rot.y, obj9->rot.z + 0.34906587f);
                     SceSleep(1);
                 }
                 R20cKaigaMoved(mode);
@@ -638,15 +603,16 @@ static void R20cExecShootMain()
     for (;;) {
         if (r20c_work.p->kaigaHit[0] && r20c_work.p->kaigaHit[0]->ckStatus() == 1) {
             SceExec(0x12, (TaskFunc) R20cDoorOpenMain, 0, 0, 2, 0);
-            break;
+            return;
         }
         if (r20c_work.p->kaigaHit[1] && r20c_work.p->kaigaHit[1]->ckStatus() == 1) {
-            R20cKaigaMove(0);
-            pG->flags_174 &= ~0x00800000;
-            break;
+            goto found;
         }
         SceSleep(1);
     }
+found:
+    R20cKaigaMove(0);
+    pG->flags_174 &= ~0x00800000;
 }
 
 static void R20cDoorOpenMain()

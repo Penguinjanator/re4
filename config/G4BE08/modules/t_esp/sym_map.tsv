@@ -1,5 +1,5 @@
 section	offset	size	unit	scope	name	demangled
-.text	0x00000000	0xB0	t_esp/db_light.cpp	local	SetToolLight__Fi	SetToolLight
+.text	0x00000000	0xB0	t_esp/db_light.cpp	global	SetToolLight__Fi	SetToolLight
 .text	0x000000B0	0x224	t_esp/db_light.cpp	global	__10cLightTool	cLightTool::cLightTool
 .text	0x000002D4	0x70	t_esp/db_light.cpp	global	_._10cLightTool	cLightTool::~cLightTool
 .text	0x00000344	0x7A4	t_esp/db_light.cpp	global	move__10cLightTool	cLightTool::move
@@ -142,12 +142,12 @@ section	offset	size	unit	scope	name	demangled
 .text	0x000127BC	0x100	t_esp/db_mod.cpp	global	dbModelQuit	dbModelQuit
 .text	0x000128BC	0x64	t_esp/db_mod.cpp	global	dbmodGetLabel	dbmodGetLabel
 .text	0x00012920	0x344	t_esp/db_mod.cpp	global	dbmodGetSet	dbmodGetSet
-.text	0x00012C64	0x48	t_esp/db_mod.cpp	global	DB_MODEL_FILES_init	DB_MODEL_FILES::init
+.text	0x00012C64	0x48	t_esp/db_mod.cpp	global	init__14DB_MODEL_FILES	DB_MODEL_FILES::init
 .text	0x00012CAC	0xC8	t_esp/db_mod.cpp	global	DB_MODEL_FILES_set	DB_MODEL_FILES::set
-.text	0x00012D74	0xE0	t_esp/db_mod.cpp	global	DB_MODEL_FILES_append	DB_MODEL_FILES::append
+.text	0x00012D74	0xE0	t_esp/db_mod.cpp	global	append__14DB_MODEL_FILESPc	DB_MODEL_FILES::append(char *)
 .text	0x00012E54	0x15C	t_esp/db_mod.cpp	global	DB_MODEL_FILES_read	DB_MODEL_FILES::read
 .text	0x00012FB0	0x98	t_esp/db_mod.cpp	global	DB_MODEL_FILES_set_12FB0	DB_MODEL_FILES::set
-.text	0x00013048	0x84	t_esp/db_mod.cpp	global	DB_MODEL_FILES_append_13048	DB_MODEL_FILES::append
+.text	0x00013048	0x84	t_esp/db_mod.cpp	global	append__14DB_MODEL_FILESPv	DB_MODEL_FILES::append(void *)
 .text	0x000130CC	0x78C	t_esp/db_mod.cpp	global	dbmodGetFilenames	dbmodGetFilenames
 .text	0x00013858	0x73C	t_esp/db_mod.cpp	global	dbModel	dbModel
 .text	0x00013F94	0x348	t_esp/db_mod.cpp	local	dbmod_no	dbmod_no
@@ -655,9 +655,9 @@ section	offset	size	unit	scope	name	demangled
 .text	0x0003F0A0	0x1CC	t_esp/tools.cpp	global	ToolsTask	ToolsTask
 .text	0x0003F26C	0x60	t_esp/tools.cpp	global	_epilog	_epilog
 .text	0x0003F2CC	0x58	t_esp/tools.cpp	global	_unresolved	_unresolved
-.text	0x0003F324	0xE0	t_esp/tools.cpp	global	ToolArrayPush	ToolArrayPush
-.text	0x0003F404	0xBC	t_esp/tools.cpp	global	ToolWorkPop	ToolWorkPop
-.text	0x0003F4C0	0x44	t_esp/tools.cpp	global	ToolEmArraySet	ToolEmArraySet
+.text	0x0003F324	0xE0	t_esp/tools.cpp	global	ToolArrayPush__Fi	ToolArrayPush
+.text	0x0003F404	0xBC	t_esp/tools.cpp	global	ToolWorkPop__Fi	ToolWorkPop
+.text	0x0003F4C0	0x44	t_esp/tools.cpp	global	ToolEmArraySet__Fi	ToolEmArraySet
 .text	0x0003F504	0x3B8	t_esp/tools.cpp	global	fn_t_esp_3F504	.
 .text	0x0003F8BC	0x78	t_esp/tools.cpp	global	cManager_cParts_arrayPush	cManager<cParts>::arrayPush
 .text	0x0003F934	0x78	t_esp/tools.cpp	global	cManager_cEm_arrayPush	cManager<cEm>::arrayPush
