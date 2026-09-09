@@ -754,7 +754,7 @@ static int MakeWeightPaletteExt(WeightExt* w, int n)
         total = 0.0f;
         ip = w->idx;
         wp = w->weight;
-        for (j = 0; j < ((volatile WeightExt*) w)->num; j++) {
+        for (j = 0; j < w->num; j++) {
             f32 rate = PSQ_L_U8(wp) * 0.01f;
             f32* s;
             if (j == w->num - 1) {

@@ -31,6 +31,7 @@
 #include "eprintf.h"
 #include "dbmodule.h"
 #include "main_mem.h"
+#include "atari_init.h"
 
 extern "C" {
 double atan2(double y, double x);
@@ -62,6 +63,11 @@ static inline void AtariOn(cAtariInfo* at, u16 b) { at->flags |= b; }
 static inline void AtariOff(cAtariInfo* at, u16 mask) { at->flags &= mask; }
 // MotionSetCore with the sequence table as the 4th argument (declared int in motion.h).
 #define MOT_SET(m, w, data, seq, a, b, c) MotionSetCore(m, w, data, (int) (seq), a, b, c)
+
+// pSUB stored through a struct view: keeps the base destructor's be_flag load below the store.
+struct SubCharPtr {
+    cSubChar* p;
+};
 
 const Vec cSubChar::atckPos = { -100.0f, 0.0f, -500.0f };
 const Vec cSubChar::atckPos2 = { 300.0f, 0.0f, -500.0f };
@@ -100,24 +106,24 @@ int cSubChar::mot_ck()
 
 cSubChar::cSubChar()
 {
-    subFlags2 = 0;
     subFlags = 0;
+    subFlags2 = 0;
     new (SUB_MOTBASE(this)) cMotBase;
     subSelf = this;
-    subLight = 0;
     subFunc = 0;
+    subLight = 0;
     neckInit();
-    eyeDir.x = 0.0f;
-    eyeDir.z = 0.4f;
     eyeDir.y = 0.0f;
+    eyeDir.z = 0.4f;
+    eyeDir.x = 0.0f;
 }
 
 cSubChar::~cSubChar()
 {
-    if (subLight) {
+    if (subLight && subLight->isAlive()) {
         LightMgr.destroy(subLight);
     }
-    pSUB = 0;
+    ((SubCharPtr*) &pSUB)->p = 0;
 }
 
 void cSubChar::init()
@@ -129,15 +135,19 @@ void cSubChar::init()
         static const Vec lightSize = { 1000.0f, 1000.0f, 0.0f };
         lightInfo.init2(0, 1, &lightOfs, &lightSize, 0x40);
     }
-    atari.init(1, 0x1000, 10, 0.0f, -200.0f, 0.0f, 300.0f, 200.0f, 400.0f, 900.0f);
+    atariInitF(&atari, 0.0f, -200.0f, 0.0f, 300.0f, 200.0f, 400.0f, 900.0f, 1, 0x1000, 10);
     if (subLight == 0) {
         subLight = LightMgr.createBack(0, 2, 0, 0);
         subLight->setParent(this);
     }
-    subSelf->lockParts = 4;
-    subSelf->lockOfs.z = 0.0f;
-    subSelf->lockOfs.x = 0.0f;
-    subSelf->lockOfs.y = 0.0f;
+    {
+        cSubChar* s = subSelf;
+
+        s->lockParts = 4;
+        s->lockOfs.x = 0.0f;
+        s->lockOfs.y = 0.0f;
+        s->lockOfs.z = 0.0f;
+    }
     subSelf->setStatus(1);
     subFlags |= 0x40;
     subFlags &= 0xFFF4;
@@ -884,8 +894,7 @@ void cSubChar::moveKagamu()
         subSelf->xFE = 1;
     case 1:
         subSelf->motionMove();
-        subSelf->xFF++;
-        if (subSelf->xFF > 5) {
+        if (++subSelf->xFF > 5) {
             subSelf->xFE = 2;
         }
         break;
@@ -936,14 +945,14 @@ void cSubChar::movePants()
         subSndId = SndCall(8, 0x16, &subSelf->pParts->worldPos, id, 0, 0);
         subSelf->xFE = 1;
     case 1:
-        if (MotionMove(subSelf)) {
+        if (MotionMoveF(subSelf, 0)) {
             MOT_SET(subSelf, MOTION(subSelf), SUB_MOT(subSelf, 0x22), 0, 7, 5, 0);
             subSelf->xFE = 2;
         }
         rot.y += Muku(&pos, &pPL->pos, rot.y, 0.31415927f);
         break;
     case 2:
-        MotionMove(subSelf);
+        MotionMoveF(subSelf, 0);
         rot.y += Muku(&pos, &pPL->pos, rot.y, 0.31415927f);
         if (!SUBFLAG2(this)->check(2)) {
             subSelf->xFE = 3;
@@ -951,20 +960,19 @@ void cSubChar::movePants()
         }
         break;
     case 3:
-        MotionMove(subSelf);
+        MotionMoveF(subSelf, 0);
         rot.y += Muku(&pos, &pPL->pos, rot.y, 0.31415927f);
         if (SUBFLAG2(this)->check(2)) {
             subSelf->xFE = 2;
         } else {
-            subSelf->xFF++;
-            if (subSelf->xFF > 30) {
+            if (++subSelf->xFF > 30) {
                 MOT_SET(subSelf, MOTION(subSelf), SUB_MOT(subSelf, 0x23), 0, 7, 5, 0);
                 subSelf->xFE = 4;
             }
         }
         break;
     case 4:
-        if (MotionMove(subSelf)) {
+        if (MotionMoveF(subSelf, 0)) {
             SubRoutineSet(this, 0, 0, 0, 0);
         }
         break;
@@ -1409,8 +1417,7 @@ void cSubChar::moveBack()
         xFE = 1;
     case 1:
         motionMove();
-        xFF++;
-        if (xFF > 30) {
+        if (++xFF > 30) {
             xFE = 2;
         }
         rot.y += Muku(&pos, &pPL->pos, rot.y, 0.31415927f);
@@ -1961,7 +1968,7 @@ void cSubChar::moveDamage()
         }
         break;
     case 2:
-        if (MotionMove(subSelf)) {
+        if (MotionMoveF(subSelf, 0)) {
             if (subHideMode == 7 || subHideMode == 9) {
                 hp = 0;
                 pG->sub_life = 0;

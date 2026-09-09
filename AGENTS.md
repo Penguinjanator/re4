@@ -1274,6 +1274,26 @@ mark it Matching.
 - `tools/fdiff.py` can fail with "Invalid control character" on units whose objdiff JSON contains raw
   bytes (esp_sub Shimmer): read with `json.load(..., strict=False)`; concurrent fdiff runs share
   `build/G4BE08/fdiff.json`, so a private copy with its own output path is safer.
+- (pl_npc) `cSubChar` is a cEm whose partner fields overlay the player ones (em.h unions at 0x378,
+  0x3E0, 0x3E4..0x400, 0x404..0x524 incl. a second `MotionWorkSub subBackMot` at 0x454, and the
+  0x5CC/0x7D4.. tail); `subFlags`/`subFlags2` are `cFlag`s: tests written as
+  `((cFlag*) &subFlags2)->check(bit)` reproduce the `lhz; mr rX,r0; clrlwi r0,r0,16` copies gcse PRE
+  gives a HImode member load (plain `& mask` tests fold adjacent halfword tests into one word compare
+  and never show the mask). `&= ~bit` on the u16 flags is `BitOff16` (`rlwinm`, not `andi.`).
+- Routine-byte blocks (`xFC..xFF` + a mode word): `SubRoutineSet(pl, fc, fd, fe, ff)` (int inline)
+  followed by the other stores gives the original order when the zero pseudo stays live (`RS(1,0,0,0);
+  mode = 2;` -> `fc, ff, stw, fd, fe`; `RS(1,0,0,0); dmHit = 0;` -> `324, fc, fd, fe, ff`); brute-force
+  the alternatives with a 6-line test file through tools/ngccc.py + `dtk elf disasm` (seconds).
+- A `switch` with a hidden `case N: break;` shifts the compare-tree root (moveFootwork needs
+  `case 0x34: break;`); `switch ((u32) f())` gives `cmplwi` range tests; a `default:` written first is
+  laid out first.
+- cAtariInfo flag stores through the info's address (`cAtariInfo* at = &atari; AtariOn(at, 0x300)`)
+  give `addi rX,this,0x2b4; lhz 0x1a(rX)`; a scalar-reference store on `at->flags` keeps a following
+  `lwz pG` below it.
+- Two `MotionSetCore` calls that share their tail in the target are `void* m; if (..) m = A; else
+  m = B; MotionSetCore(pl, .., m, ..)` (arms compute `arc->ofs[n]`, the `add` after the join); a
+  ternary index gives `lwzx`.
+- `MotionMove` is called with two arguments by the partner code (`MotionMoveF(m, 0) asm("MotionMove")`).
 
 ## Don'ts
 

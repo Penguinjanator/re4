@@ -245,11 +245,11 @@ u32 g_Etc_das_addr[0x68];
 
 void EtcModelDebugDisp()
 {
-    cEtcTbl* tbl = g_EtcTbl;
+    cEtcTbl* t = g_EtcTbl;   // the dead initializer keeps `&g_EtcTbl` live past the loop pointer's init (`mr r31, r9`)
     u32 i;
 
     for (i = 0; i < 0x40; i++) {
-        cEtcTbl* t = &tbl[i];
+        t = &g_EtcTbl[i];
         if (t->stat == 1) {
             Vec scr;
             Vec pos;

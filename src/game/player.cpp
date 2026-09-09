@@ -287,14 +287,13 @@ void cPlayer::init1()
     alpha = 1.0f;
     flags_41C = 0;
     Pl_func_tbl[0] = pl_R0_Move;
-    satCheckFlag = 0;
     xButtonWait = 0;
     pRoomEff = 0;
     flags_420 |= 0x800;
     sndId504 = 0;
     eyeMode = 0;
     boss0 = 0;
-    flags_41C = 0;
+    satCheckFlag = 0;
     partsWorldCalc();
     initCloth();
     if (pG->x4FB8 == 0) {
@@ -352,8 +351,15 @@ void cPlayer::move()
     if (pBody->pShape) {
         ShapeMove(pBody->pShape);
     }
-    moved = !((int) pos.x == (int) oldPos.x && (int) pos.y == (int) oldPos.y && (int) pos.z == (int) oldPos.z
-              && (stat & 0xFFFFFF00) == 0x100 && !(pG->flags_500C & 0x20) && (int) pG->flags_60 >= 0);
+    if ((int) pos.x == (int) oldPos.x && (int) pos.y == (int) oldPos.y && (int) pos.z == (int) oldPos.z
+        && (stat & 0xFFFFFF00) == 0x100 && !(pG->flags_500C & 0x20)) {
+        moved = 0;
+        if ((int) pG->flags_60 < 0) {
+            moved |= 1;
+        }
+    } else {
+        moved = 1;
+    }
     if (Key.trg & 0x10) {
         flags_420 &= ~0x1000;
     }

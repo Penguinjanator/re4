@@ -3097,13 +3097,6 @@ void RandomItemSet(cEm* em)
 // chance of `big` (or 330). Inline with the offsets as parameters: the `+ base` reaches RTL as a
 // separate add (fold would otherwise fold the literal into the sum) and the four Rnd() calls of one
 // expression are pre-expanded before any of the `% 6`.
-// `a < lim` with the limit arriving at RTL inlining time: keeps the `cmplwi lim; bge` form (fold turns a
-// literal `< C` into `<= C-1`).
-static inline int LessU(u32 a, u32 lim)
-{
-    return a < lim;
-}
-
 static inline u32 RandomHandgunAmmo(int base, int big)
 {
     u32 num;
@@ -3212,7 +3205,10 @@ int RandomItemCk(int id, int* outId, int* outNum, int flag)
     default:
         return 0;
     }
-    if (pG->x4FB8 != 1 && LessU(bullet, 30) && Rnd() % 10 > 4) {
+    // The bullet thresholds go through the `lim` variable: a literal `< 30` is folded to `<= 29`
+    // (`cmplwi 0x1d; bgt`), the variable keeps `cmplwi 0x1e; bge`.
+    lim = 30;
+    if (pG->x4FB8 != 1 && (u32) bullet < lim && Rnd() % 10 > 4) {
         GetDropBullet(outId, outNum);
         return 1;
     }
@@ -3249,20 +3245,23 @@ int RandomItemCk(int id, int* outId, int* outNum, int flag)
     if (pG->x4FB8 == 1) {
         return 0;
     }
-    if (LessU(bullet, 0x96)) {
+    lim = 0x96;
+    if ((u32) bullet < lim) {
         GetDropBullet(outId, outNum);
         return 1;
     }
     if (id == 0x2D) {
+        // `num = 1` in both arms: a one-statement `if` arm would be hoisted above the test.
         if (Rnd() & 3) {
             itemId = 0xB9;
+            num = 1;
         } else {
             itemId = 0xBB;
+            num = 1;
             if (Rnd() & 3) {
                 itemId = 0xBA;
             }
         }
-        num = 1;
         *outId = itemId;
         *outNum = num;
         return 1;
