@@ -3526,3 +3526,43 @@ target) stays unresolved and `make_rel` then fails with "undefined symbol".
   gcse time excludes cse-deleted dead initialisers; `asm volatile("")` before a loop disables its
   invariant motion (exception `ErrorHandler`, t_bugcheck).
 
+- Tools REL, fourth pass (t_motseq 15/21 written, src/Tools/t_motseq.cpp; t_rck 13/33 written, src/Tools/t_rck.cpp;
+  neither Matching; include/db_mod.h grew `DbModSlot::seqFlag` (0x148) and the dbModSetViewFlag/UnsetViewFlag/
+  MotionSetSeq(int, void*, u16, u16)/GetMotFilename declarations plus the `dbModMotionSetSeqI` u32-argument alias
+  (COMPILER-DIFF 4), 2026-09):
+  - t_motseq: work = `MsqWork` (0x1E10, `MsqSeq seq[1]` of 0x10C0 = `u16 num; u8 reverse; MotionSeqKey key[1024]` +
+    editor bytes, then mode/sub1..3, a JOY copy at 0x10D8, the eprintf colour byte 0x15B8 with an UNALIGNED
+    `GXColor bg` at 0x15B9 (`lwz 0x15b9` for the by-value GXSetCopyClear), seqNo/fileName at 0x1CA4/0x1CA8,
+    start/end/add/max 0x1DAC..0x1DB8, seMode 0x1DBC) behind the one-member struct `msqWork.p` (.data, `= {0}`);
+    routine table + `int msq_y_tbl[21]` follow it in .data. `msqSetMode(m)` = mode, sub1 = sub2 = sub3 = 0 as
+    four plain statements (each reloads the pointer, so the order is the source order).
+  - The Debug_alloc store with `lis rX,work@ha` before the call: `MsqWork*& wp = msqWork.p; wp = Debug_alloc(..)`.
+    Pool order 0.0 before 1000/3000 while the first store is a 1000: `f32 zero; zero = 0.0f;` assigned right
+    before the block and stored through the variable (the constant enters the pool at the assignment).
+  - `strcpy(p, "0.seq")`-style byte stores written out (`p[0]='0'; ... p[5]=0;` natural order gives the target's
+    `stb 5 first` schedule; the known-zero `sub1` register is stored for the terminator).
+  - A case body that is a fall-through target of another case in the target (`case 5: bl msqSaveFile; b case7`) is
+    TWO full copies in the source (case 5 with its own tail): the later copy keeps the known-zero register of the
+    switch region; a source-level fallthrough label has two predecessors and gets fresh `li 0`s.
+  - Default arm written first (`case 0: default:`) lays it out right after the compare tree; identical case bodies
+    cross-jump into the LAST copy (4/6 shared tail sits after case 6, so source order 4, 5, 6, 7).
+  - msqDisp: the flag/SE display block exists twice in the source (hand-inlined, strings once); its `int cx = 3`
+    is declared right before the "--SEQUENCE INFO--" eprintf so cse folds `cx*8` to 24 for the lines before the
+    Free loop and the SE line after the loop keeps `slwi r3,r17,3`; the loop y is the giv `238 + i * 14`.
+    Palette `GXColor c1/c2/c3 = {..}` locals are 4-byte ADDRESSOF slots (`stw 0; stb` init), `col` is a fourth.
+    `const f32` step constants (5, 4, 24, 25, 15) are declared right before the grid loop (after `x = 40; rc.w = 13`)
+    to get the target's pool order with 369 last.
+  - QuitCk: `cmpwi 0; beq L; cmpwi 1; L:` (dead second compare) is a switch whose case 1 shares the default body
+    (`case 0: S; case 1: default: S;`); ours merges the bodies fully and drops both compares (open, -8 bytes).
+    Sequence's lone dead `cmpwi r30,0` after the frame clamp is open too (no if/switch/dead-store form keeps it).
+  - SeqResize (open): the target's delete loop is un-rotated (`b LOOP` back edge) with a PRE'd `num - 1`
+    (`subi r0,r7,1` in both predecessors) and a real `lhz r7` reload after the `sth` — every while/for/do form
+    tried rotates the loop or forwards the store to the load (`clrlwi`).
+  - t_rck: `RckWork` (0x14AD4: mode/step/cursors/flags, `f32 curX, curY` used as a Vec, camMode, JOY copy at 0x28,
+    screen centre floats 0x290.., catchTimer/cur/near/lineStart/savedRtp, `RckHeader hdr` (magic "2RTP", nPoint,
+    nLine, nSq = nPoint², ofsLine, ofsNext), `RckPoint pt[128]` (Vec + lineOfs + nLine), `RckLine line[128][128]`
+    (s16 to, u16 len), `s8 next[128][128]`) and the 0x14818 save buffer, both behind one-member .bss structs;
+    rckSetNextPoint is Dijkstra over a 0x400-byte `RckNode[128]` frame array; the mode table is a local
+    `void (*tbl[6])()` template copied to the stack in ToolRctRouteCheck; `.data` ends with `.balign 8`.
+  - Screen-position conversions in the eprintf2 labels are `(u32)` (fcmpu 2^31/cror/bso pattern), the point
+    height snap is `(f32)(s8)((y + 62.5f) / 500.0f) * 500.0f` (`psq_st qr4` + `extsb`).

@@ -11,7 +11,9 @@
 struct DbModSlot {
     u32 x0;
     cModel* pModel;  // 0x04
-    u8 pad_8[0x2754 - 8];
+    u8 pad_8[0x148 - 8];
+    u16 seqFlag;     // 0x148  MotionSetCore flag word of the sequence (dbModMotionSetSeq; t_motseq copies its view flag here)
+    u8 pad_14A[0x2754 - 0x14A];
 };
 
 // Viewer state (pointer at Tools .bss 0x13AAE8); 0x3449 is the "model set loaded" byte t_mv tests.
@@ -29,6 +31,14 @@ void dbModelQuit();
 int dbModel(int mode);
 void dbModMotionMove();
 u32 dbModGetViewFlag();
+void dbModSetViewFlag(u32 flag);
+void dbModUnsetViewFlag(u32 flag);
+// Plays sequence `seq` (u16 count + MotionSeqKey[]) on slot `slot` from key `no`.
+void dbModMotionSetSeq(int slot, void* seq, u16 flag, u16 no);
+// COMPILER-DIFF 4: the original passes the u32 view flag / int key index without truncation
+void dbModMotionSetSeqI(int slot, void* seq, u32 flag, u32 no) asm("dbModMotionSetSeq");
+// Copies the motion file name of slot `slot` into `dst`.
+void dbModGetMotFilename(int slot, char* dst);
 }
 
 #endif
