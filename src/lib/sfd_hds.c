@@ -109,23 +109,23 @@ void sfhds_DoProcessHdr(SFH sfh, SFHDS_FHD *fhd)
 	}
 	fhd->byterate = rate;
 
-	fhd->hdrsiz = SFH_AnlyHdrSiz(sfh, &hdrsiz) ? hdrsiz : -1;
-	fhd->packtype = SFH_AnlyPackType(sfh, &packtype) ? packtype : -1;
-	fhd->pketsizlen = SFH_AnlyPketSizLen(sfh, &pketsizlen) ? pketsizlen : -1;
+	fhd->hdrsiz = (SFH_AnlyHdrSiz(sfh, &hdrsiz) == 0) ? -1 : hdrsiz;
+	fhd->packtype = (SFH_AnlyPackType(sfh, &packtype) == 0) ? -1 : packtype;
+	fhd->pketsizlen = (SFH_AnlyPketSizLen(sfh, &pketsizlen) == 0) ? -1 : pketsizlen;
 	if (fhd->pketsizlen == -1) {
 		fhd->pketsizlen = 2;
 	}
-	fhd->packsiz = SFH_AnlyPackSiz(sfh, &packsiz) ? packsiz : -1;
-	fhd->numelem_tot = SFH_AnlyNumElemTot(sfh, &numtot) ? numtot : -1;
-	fhd->numelem_aud = SFH_AnlyNumElemAud(sfh, &numaud) ? numaud : -1;
-	fhd->numelem_vid = SFH_AnlyNumElemVid(sfh, &numvid) ? numvid : -1;
-	fhd->numelem_prv = SFH_AnlyNumElemPrv(sfh, &numprv) ? numprv : -1;
-	fhd->maxplylen_aud = SFH_AnlyMaxPlyLenAud(sfh, &maxplyaud) ? maxplyaud : -1;
-	fhd->maxplylen_vid = SFH_AnlyMaxPlyLenVid(sfh, &maxplyvid) ? maxplyvid : -1;
-	fhd->maxfrmnum = SFH_AnlyMaxFrmNum(sfh, &maxfrm) ? maxfrm : -1;
+	fhd->packsiz = (SFH_AnlyPackSiz(sfh, &packsiz) == 0) ? -1 : packsiz;
+	fhd->numelem_tot = (SFH_AnlyNumElemTot(sfh, &numtot) == 0) ? -1 : numtot;
+	fhd->numelem_aud = (SFH_AnlyNumElemAud(sfh, &numaud) == 0) ? -1 : numaud;
+	fhd->numelem_vid = (SFH_AnlyNumElemVid(sfh, &numvid) == 0) ? -1 : numvid;
+	fhd->numelem_prv = (SFH_AnlyNumElemPrv(sfh, &numprv) == 0) ? -1 : numprv;
+	fhd->maxplylen_aud = (SFH_AnlyMaxPlyLenAud(sfh, &maxplyaud) == 0) ? -1 : maxplyaud;
+	fhd->maxplylen_vid = (SFH_AnlyMaxPlyLenVid(sfh, &maxplyvid) == 0) ? -1 : maxplyvid;
+	fhd->maxfrmnum = (SFH_AnlyMaxFrmNum(sfh, &maxfrm) == 0) ? -1 : maxfrm;
 
-	fhd->stmid_prv1 = (SFH_IsExistStmId(sfh, 0xBD, &ex_prv1) && ex_prv1 != 0) ? 0xBD : 0;
-	fhd->stmid_prv2 = (SFH_IsExistStmId(sfh, 0xBF, &ex_prv2) && ex_prv2 != 0) ? 0xBF : 0;
+	fhd->stmid_prv1 = (SFH_IsExistStmId(sfh, 0xBD, &ex_prv1) == 0 || ex_prv1 == 0) ? 0 : 0xBD;
+	fhd->stmid_prv2 = (SFH_IsExistStmId(sfh, 0xBF, &ex_prv2) == 0 || ex_prv2 == 0) ? 0 : 0xBF;
 	for (id = 0xC0; id <= 0xDF; id++) {
 		if (SFH_IsExistStmId(sfh, id, &ex_aud) && ex_aud != 0) {
 			break;
@@ -147,32 +147,32 @@ void sfhds_DoProcessHdr(SFH sfh, SFHDS_FHD *fhd)
 
 	id = fhd->stmid_aud;
 	if (id != 0) {
-		fhd->aud.codec = SFH_AnlyElemCodecAud(sfh, id, &acodec) ? acodec : -1;
-		fhd->aud.layer = SFH_AnlyElemLayer(sfh, id, &layer) ? layer : -1;
-		fhd->aud.chnum = SFH_AnlyElemChNum(sfh, id, &chnum) ? chnum : -1;
-		fhd->aud.smphz = SFH_AnlyElemSmpHz(sfh, id, &smphz) ? smphz : -1;
+		fhd->aud.codec = (SFH_AnlyElemCodecAud(sfh, id, &acodec) == 0) ? -1 : acodec;
+		fhd->aud.layer = (SFH_AnlyElemLayer(sfh, id, &layer) == 0) ? -1 : layer;
+		fhd->aud.chnum = (SFH_AnlyElemChNum(sfh, id, &chnum) == 0) ? -1 : chnum;
+		fhd->aud.smphz = (SFH_AnlyElemSmpHz(sfh, id, &smphz) == 0) ? -1 : smphz;
 	}
 
 	id = fhd->stmid_vid;
-	fhd->vid.codec = SFH_AnlyElemCodecVid(sfh, id, &vcodec) ? vcodec : -1;
-	fhd->vid.bitrate = SFH_AnlyElemBitRate(sfh, id, &bitrate) ? bitrate : -1;
+	fhd->vid.codec = (SFH_AnlyElemCodecVid(sfh, id, &vcodec) == 0) ? -1 : vcodec;
+	fhd->vid.bitrate = (SFH_AnlyElemBitRate(sfh, id, &bitrate) == 0) ? -1 : bitrate;
 	if (SFH_AnlyElemPicSz(sfh, id, &fhd->vid.picw, &fhd->vid.pich) == 0) {
 		fhd->vid.picw = -1;
 		fhd->vid.pich = -1;
 	}
-	fhd->vid.picrate = SFH_AnlyElemPicRate(sfh, id, &picrate) ? picrate : -1;
+	fhd->vid.picrate = (SFH_AnlyElemPicRate(sfh, id, &picrate) == 0) ? -1 : picrate;
 	if (SFH_IsEffFtrInf(sfh, id, &eff) == 0) {
 		eff = 0;
 	}
 	fhd->vid.ftr_eff = (eff != 0);
 	if (eff != 0) {
-		fhd->vid.ftr_coltype = SFH_AnlyFtrColType(sfh, id, &coltype) ? coltype : -1;
-		fhd->vid.ftr_pictype = SFH_AnlyFtrPicType(sfh, id, &pictype) ? pictype : -1;
-		fhd->vid.ftr_fixflg = SFH_AnlyFtrFixFlg(sfh, id, &fixflg) ? fixflg : -1;
-		fhd->vid.ftr_shcfixflg = SFH_AnlyFtrShcFixFlg(sfh, id, &shcfixflg) ? shcfixflg : -1;
-		fhd->vid.ftr_expand = SFH_AnlyFtrExpand(sfh, id, &expand) ? expand : -1;
-		fhd->vid.ftr_gopn = SFH_AnlyFtrGopN(sfh, id, &gopn) ? gopn : -1;
-		fhd->vid.ftr_gopm = SFH_AnlyFtrGopM(sfh, id, &gopm) ? gopm : -1;
+		fhd->vid.ftr_coltype = (SFH_AnlyFtrColType(sfh, id, &coltype) == 0) ? -1 : coltype;
+		fhd->vid.ftr_pictype = (SFH_AnlyFtrPicType(sfh, id, &pictype) == 0) ? -1 : pictype;
+		fhd->vid.ftr_fixflg = (SFH_AnlyFtrFixFlg(sfh, id, &fixflg) == 0) ? -1 : fixflg;
+		fhd->vid.ftr_shcfixflg = (SFH_AnlyFtrShcFixFlg(sfh, id, &shcfixflg) == 0) ? -1 : shcfixflg;
+		fhd->vid.ftr_expand = (SFH_AnlyFtrExpand(sfh, id, &expand) == 0) ? -1 : expand;
+		fhd->vid.ftr_gopn = (SFH_AnlyFtrGopN(sfh, id, &gopn) == 0) ? -1 : gopn;
+		fhd->vid.ftr_gopm = (SFH_AnlyFtrGopM(sfh, id, &gopm) == 0) ? -1 : gopm;
 	}
 	fhd->valid = 1;
 }

@@ -49,8 +49,8 @@ EspgenWork* SetWaterWork45(EspgenWork* w, Vec* pos, Vec* rot, f32 size, u32 nx, 
 }
 
 EspgenWork* g_pWater45;
-static int g_bTargetCamera = 0;
-static int g_bTargetHeight = 0;
+static int g_bTargetCamera = 1;
+static int g_bTargetHeight = 1;
 static int g_bSizeOverWrite = 0;
 static int g_bColorOverWrite = 0;
 static int g_bColorMul = 0;
@@ -72,6 +72,7 @@ static Esp4cWork g_Free;
 
 static inline void ISet(int& d, int v) { d = v; }
 static inline int IGet(int& d) { return d; }
+static inline f32 FGet(f32& d) { return d; }
 static inline void U8Set(u8& d, u8 v) { d = v; }
 
 void Espgen45_static_init()
@@ -803,17 +804,18 @@ EspgenWork* SetWaterWork45(EspgenWork* w, Vec* pos, Vec* rot, f32 size, u32 nx, 
         fx = 0.0f;
         for (jj = 0; jj < p->nx + 1; jj++) {
             p->pos[idx].x = fx - (f32) (int) (p->nx / 2);
-            fx += 1.0f;
             p->pos[idx].y = fRand1_1() * 0.2f;
+            fx += 1.0f;
             p->pos[idx].z = fy - (f32) (int) (p->ny / 2);
             p->nrm[idx].x = 0.0f;
             p->nrm[idx].y = 1.0f;
             p->nrm[idx].z = 0.0f;
             p->hA[idx] = 0.0f;
             p->hB[idx] = 0.0f;
-            p->nrm[idx].x += ((f32) jj - (f32) (int) (p->nx / 2)) * (1.0f / (f32) (int) p->nx);
-            p->nrm[idx].y *= 0.25f;
-            p->nrm[idx].z += ((f32) i2 - (f32) (int) (p->ny / 2)) * (1.0f / (f32) (int) p->ny);
+            Vec* n = &p->nrm[idx];
+            n->x += ((f32) jj - (f32) (int) (p->nx / 2)) * (1.0f / (f32) (int) p->nx);
+            n->z += ((f32) i2 - (f32) (int) (p->ny / 2)) * (1.0f / (f32) (int) p->ny);
+            n->y *= 0.25f;
             idx++;
         }
         fy += 1.0f;
@@ -821,17 +823,19 @@ EspgenWork* SetWaterWork45(EspgenWork* w, Vec* pos, Vec* rot, f32 size, u32 nx, 
     {
         static f32 g45_init_y = 0.0f;
         static f32 g45_init_y2 = 0.0f;
+        int base;
         for (j = 0; j < p->nx + 1; j++) {
-            p->pos[j].y = g45_init_y;
+            p->pos[j].y = FGet(g45_init_y);
         }
+        base = p->ny * (p->nx + 1);
         for (j = 0; j < p->nx + 1; j++) {
-            p->pos[p->ny * (p->nx + 1) + j].y = g45_init_y;
+            p->pos[base + j].y = FGet(g45_init_y);
         }
         for (i = 0; i < p->ny + 1; i++) {
-            p->pos[i * (p->nx + 1)].y = g45_init_y2;
+            p->pos[i * (p->nx + 1)].y = FGet(g45_init_y2);
         }
         for (i = 0; i < p->ny + 1; i++) {
-            p->pos[i * (p->nx + 1) + p->nx].y = g45_init_y2;
+            p->pos[i * (p->nx + 1) + p->nx].y = FGet(g45_init_y2);
         }
     }
     n = sizeof(Vec) * (p->ny + 1) * (p->nx + 1);

@@ -20,7 +20,7 @@ obj = os.path.join("build", VER, "src", unit + ".o")
 r = subprocess.run(["ninja", obj], cwd=ROOT, capture_output=True, text=True)
 if r.returncode != 0:
     print(r.stdout[-4000:]); print(r.stderr[-4000:]); sys.exit("build failed")
-out = os.path.join(ROOT, "build", VER, "fdiff.json")
+out = os.path.join(ROOT, "build", VER, f"fdiff.{os.getpid()}.json")  # per-process: agents run concurrently
 # objdiff names units <module>/<unit>: "main" for the DOL, the module name for REL units (st2_4/st2 -> st2_4/st2_4/st2)
 mod = unit.split("/", 1)[0]
 objdiff_unit = f"{mod}/{unit}" if os.path.isdir(os.path.join(ROOT, "config", VER, "modules", mod)) else f"main/{unit}"

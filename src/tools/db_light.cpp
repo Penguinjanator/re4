@@ -5249,12 +5249,15 @@ void initLightWork(cLight* l)
     l->type = 0;
     l->xD = 2;
     l->xF |= 0x57;
-    l->color.r = l->color.g = l->color.b = l->color.a = 0x80;
-    l->x1C = 5000.0f;
-    l->power = 1.0f;
+    l->color.r = 0x80;
+    l->color.g = 0x80;
+    l->color.b = 0x80;
+    l->color.a = 0x80;
     l->pos.x = 0.0f;
     l->pos.y = 0.0f;
     l->pos.z = 0.0f;
+    l->x1C = 5000.0f;
+    l->power = 1.0f;
     l->setParent(0, 0);
     l->kind = 0;
     l->attr = 0;
@@ -5262,9 +5265,11 @@ void initLightWork(cLight* l)
     memclr_asm(&l->spot, sizeof(LightSpot));
     memclr_asm(&l->sub, 0x40);
     memclr_asm(&l->path, sizeof(LightPath));
-    l->x138 = 0;
-    l->pad_139[0] = l->pad_139[1] = l->pad_139[2] = 0;
-    l->curColor.r = l->curColor.g = l->curColor.b = l->curColor.a = 0x80;
+    l->x138 = 0; l->pad_139[2] = l->pad_139[1] = l->pad_139[0] = 0;
+    l->curColor.r = 0x80;
+    l->curColor.g = 0x80;
+    l->curColor.b = 0x80;
+    l->curColor.a = 0x80;
 }
 
 void clear_move_free()

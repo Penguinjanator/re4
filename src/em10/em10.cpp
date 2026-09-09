@@ -15746,3 +15746,209 @@ void em10SetDashMotion(cEm10* em)
         MotionSetCore(em, MOTION(em), m0, (int) m1, 5, flag, fr);
     }
 }
+
+extern "C" int em10ShieldAtkCk(cEm10* em)
+{
+    Em10Work* w = EM10_WK(em);
+    Vec a;
+    Vec b;
+    Vec c;
+    u8 r;
+
+    if (w->x58C != 0) {
+        return 0;
+    }
+    if (w->pParasite != 0) {
+        return 0;
+    }
+    if (w->flags & 0x80) {
+        return 0;
+    }
+    if (w->pShield == 0) {
+        return 0;
+    }
+    if (w->x67C != 0) {
+        return 0;
+    }
+    if (Ctrl12Ck(w->pCtrl12, 6)) {
+        return 0;
+    }
+    if ((w->flags & 0x08000000) && pSUB) {
+        if (!(w->flags & 2)) {
+            return 0;
+        }
+        if (w->x510 > 0.7853982f) {
+            return 0;
+        }
+        if (fabsf(em->pos.y - pSUB->pos.y) > 1500.0f) {
+            return 0;
+        }
+        if (w->x514 > 4000000.0f) {
+            return 0;
+        }
+        a = em->pos;
+        b = pSUB->pos;
+        a.y += 1500.0f;
+        b.y += 1500.0f;
+        if (EatMgr.hitCheck(&a, &b, 0, 0, 0, 0x4000)) {
+            return 0;
+        }
+    } else {
+        if (!(w->flags & 1)) {
+            return 0;
+        }
+        if (w->x508 > 0.7853982f) {
+            return 0;
+        }
+        if (fabsf(em->pos.y - pPL->pos.y) > 1500.0f) {
+            return 0;
+        }
+        if (em->plDist2 > 4000000.0f) {
+            if (!em10PlRunCk(em)) {
+                return 0;
+            }
+            if (em->plDist2 > 18490000.0f) {
+                return 0;
+            }
+        }
+        if (pG->x4F88 <= 3) {
+            if (!em10ScreenInCk(em)) {
+                return 0;
+            }
+        }
+        a = em->pos;
+        c = pPL->pos;
+        a.y += 1500.0f;
+        c.y += 1500.0f;
+        if (EatMgr.hitCheck(&a, &c, 0, 0, 0, 0x4000)) {
+            return 0;
+        }
+    }
+    if (pG->x4F88 <= 1 && !EM_RTN(em, 1, 0x1B) && (r = Rnd() % 10, r > 4)) {
+        w->x67C = 30;
+        EmRoutineSet(em, 1, 0x1B, 0, 0);
+        return 1;
+    }
+    if (w->wepType == 0xB && (Rnd() & 1)) {
+        EmRoutineSet(em, 1, 0x26, 0, 0);
+    } else {
+        EmRoutineSet(em, 1, 0x27, 0, 0);
+    }
+    if (pG->x4F88 <= 3) {
+        Ctrl12Set(w->pCtrl12, 6, 60);
+        Ctrl12Set(w->pCtrl12, 8, 120);
+    } else if (pG->stage_no <= 2 && pG->x4F88 <= 9) {
+        Ctrl12Set(w->pCtrl12, 6, 30);
+        Ctrl12Set(w->pCtrl12, 8, 120);
+    }
+    return 1;
+}
+
+extern "C" void em10WalkRtnSet(cEm10* em)
+{
+    Em10Work* w = EM10_WK(em);
+    int r;
+
+    if (w->wepType == 0xC) {
+        if (w->pWep->getPartsPtr(2)->scale.x == 0.0f) {
+            em->setWeaponFall();
+        }
+    }
+    if (em10GotoCk(em)) {
+        return;
+    }
+    switch (em->x38D) {
+    case 0x24:
+        EmRoutineSet(em, 1, 0x50, 0, 0);
+        return;
+    case 0x25:
+        EmRoutineSet(em, 1, 0x50, 0, 1);
+        return;
+    case 0x2B:
+        EmRoutineSet(em, 1, 0x50, 0, 2);
+        return;
+    case 0x36:
+        EmRoutineSet(em, 1, 0x60, 0, 0);
+        return;
+    case 0x19:
+        EmRoutineSet(em, 1, 0x48, 0, 0);
+        return;
+    case 0x3E:
+        EmRoutineSet(em, 1, 0x6A, 0, 0);
+        return;
+    case 0x40:
+        EmRoutineSet(em, 1, 0x6C, 0, 0);
+        return;
+    case 0x23:
+        if (!(w->x52C < em->x3CC)) {
+            EmRoutineSet(em, 1, 0x4F, 0, 0);
+            return;
+        }
+        em->x38D = 0;
+        break;
+    case 0x3C:
+        if (!(w->x52C < em->x3CC)) {
+            EmRoutineSet(em, 1, 0x68, 0, 0);
+            return;
+        }
+        em->x38D = 0;
+        break;
+    }
+    if (w->pWep2 != 0 && w->pParasite == 0 && w->x58C == 0 && (w->pWep == 0 || w->wepType == 5)) {
+        em->setWeaponFall();
+        EmRoutineSet(em, 1, 0xC, 0, 0);
+        return;
+    }
+    if (em10IgnitionCk(em)) {
+        return;
+    }
+    if (em10ClawStickCK(em)) {
+        return;
+    }
+    if ((s16) pG->pl_life <= 0) {
+        EmRoutineSet(em, 1, 0x1B, 0, 0);
+        return;
+    }
+    if (em->flags_3C8 & 0x80) {
+        EmRoutineSet(em, 1, 0x11, 0, 0);
+        return;
+    }
+    if (em->x3D0 == 3) {
+        if (EM_RTN(em, 1, 0x1B)) {
+            return;
+        }
+        EmRoutineSet(em, 1, 0x1B, 0, 0);
+        return;
+    }
+    if (w->x51C > 2.7488937f) {
+        EmRoutineSet(em, 1, 0x15, 0, 0);
+        return;
+    }
+    if (w->wepType == 8 || w->wepType == 0xC) {
+        if (em->plDist2 < 9000000.0f && pG->x4F88 <= 9 && !(em->be_flag & 0x20000000)) {
+            w->x644 = 120;
+            EmRoutineSet(em, 1, 0x11, 0, 0);
+            return;
+        }
+        if (w->flags & 1) {
+            EmRoutineSet(em, 1, 0x1B, 0, 0);
+            return;
+        }
+    }
+    if (em10BackCk(em)) {
+        return;
+    }
+    if (em10StayCk(em)) {
+        return;
+    }
+    if (em->type == 0x16) {
+        EmRoutineSet(em, 1, 0x6D, 0, 0);
+        return;
+    }
+    r = em10DashCk(em);
+    if (r) {
+        return;
+    }
+    w->x6AC = Rnd() % 11;
+    EmRoutineSet(em, 1, 0x10, 0, 0);
+}

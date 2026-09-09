@@ -963,8 +963,7 @@ void emMine_R1_Fall(cEmMine* em)
     em->setStatus(1);
     floor = EatMgr.getFloor(&em->pos, 600.0f, 100000.0f, 0, 0) + 50.0f;
     for (i = 0; i < 3; i++) {
-        MineNode* n = &node[i];
-
+        n = &node[i];
         n->spd.x = w->pts[i].x;
         n->spd.y = w->pts[i].y;
         n->spd.z = w->pts[i].z;
@@ -1008,8 +1007,8 @@ void emMine_R1_Fall(cEmMine* em)
                 n->onFloor = 1;
             }
             if (nn->pos.y < floor) {
-                nn->onFloor = 1;
                 nn->pos.y = floor;
+                nn->onFloor = 1;
             }
         }
     }
@@ -1030,8 +1029,7 @@ void emMine_R1_Fall(cEmMine* em)
         PSVECScale(&n->spd, &n->spd, 0.999f);
     }
     for (i = 0; i < 3; i++) {
-        MineNode* n = &node[i];
-
+        n = &node[i];
         w->pts[i].x = n->spd.x;
         w->pts[i].y = n->spd.y;
         w->pts[i].z = n->spd.z;

@@ -2141,3 +2141,20 @@ Then `MATCHING["st2_4/r22c.cpp"] = True` in `config/G4BE08/modules.py`, `python3
 - A do-while `{}` macro flips FPR assignment of two independent RMW chains vs a plain block.
 - Constant folding needs the exact product literal (`0.8f * 1.2f`, `PI * 0.35f`, `1.33333333f`).
 - A `lis rX,0x8023` with no reloc in the split object next to our `@ha` reloc is a dtk pairing miss.
+
+- An expression computed identically at the end of both if/else arms is merged by jump2 into one insn
+  placed before the join label, ahead of the join block's own loads.
+- Frame size: total = ALIGN8(8 + ALIGN8(vars) + fpmem(8, +4 if `-(fp+gp)-8` not 8-aligned) + ALIGN8(fp+gp)).
+- gcse PRE pseudo numbering can wrap (hash mod table size) and flip two giv registers; one extra
+  pseudo before the copies (`int dead = 0;`, COMPILER-DIFF) fixes it. Register-priority ties are
+  broken by qty/allocno number, not host qsort.
+- A strength-reduced index passed to a call (`f(id - i)`) puts the giv init `li` after the hoisted
+  invariants; a separate variable puts it before. A `do{}while(0)` macro around a loop inflates the
+  loop-weighted refs of hoisted invariants.
+- A float local assigned twice gets global alloc; one variable per value keeps all local-alloc'd
+  (f31..f27 by declaration order). A loop counter shared by two loops is one low-priority pseudo.
+- `no = g->x; switch (no) { case N: num = N; }` folds the case constant into the switch register.
+- `bitTblChk((u32) used, i)` (integer table parameter of an inline) gives `lwzx` with the offset in a
+  BASE_REGS register.
+- Tools: fdiff.py writes a per-pid json (agents run concurrently); keep private helper scripts in
+  your own /tmp subdirectory -- /tmp is shared and files were overwritten.
