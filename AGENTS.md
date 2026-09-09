@@ -3862,3 +3862,16 @@ target) stays unresolved and `make_rel` then fails with "undefined symbol".
 - Tool: /tmp-style masked byte compare with difflib alignment when function sizes differ (relocs masked
   on both sides, same-section branches resolved by target) is the metric to brute-force statement orders
   with; position-based word compares are dominated by the shift after the first length change.
+- Menu enable flags from one value: chain `a.enable = b.enable = c.enable = d.enable = valid;`
+  reproduces the store order and base assignment; separate statements do not.
+- Clamp-then-store: `n = clamp(n); p->f = n;` reloads the pointer after the ternary; `p->f = ternary`
+  hoists the pointer loads above the clamp (LHS evaluated first).
+- A variable reused across `switch` cases keeps its register; a separate `n` shifts the others.
+- `if (a & 2) if (b & 2)` must be nested; `&&` on adjacent bytes folds into one `lwz`+`andis.`.
+- Loop with an exit flag: `if (hit) break;` + post-loop `if (hit) {..} else {..}` keeps the pool `lis`
+  out of the loop body (jump threading removes the post-loop test).
+- Both arms of a mode select spelled out (same tails) cross-jump into one block using the `andi.`
+  zero register; a single tail after the `if` starts a fresh `li 0`/`lis`.
+- A local function-pointer table initialised inside the function is a `.rodata` table copied to the
+  stack at entry.
+
