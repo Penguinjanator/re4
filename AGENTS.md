@@ -4439,3 +4439,16 @@ target) stays unresolved and `make_rel` then fails with "undefined symbol".
     last, ours issues `li 0` first and hoists the last zero store to the top (the FS path-pointer stores
     also move up); statement order, chains, in-class/out-of-class, an inlined base Init do not change it.
     ToolEspArea's r14/r15 (wait vs Joy@ha) and r22/r23 (`&tool`) swaps follow from those.
+- cse and in-struct stores: the FIRST load of a global pointer decides whether a later in-struct store
+  invalidates it; use the struct view (`pPLS`) for every read that must stay ordered, not just one.
+- `static inline SetAngV(cModel* m, Vec* v) { m->setAng(v); }`: every call is a fresh `addi r4,r1,N`
+  (integrate substitutes the caller's address into the hard-register arg set) -- no PRE copy.
+- Peeled first iteration with a duplicated `y = lim` store = `step; if (y < lim) y = lim; else { wait:
+  sleep; step; if (!(y < lim)) goto wait; y = lim; }`; `spd = 0.0f` after the preceding call.
+- `(T*) ((i) * sizeof(T) + (u32) p + 0x10)` puts the array offset last and index-first.
+- Two sibling `if` bodies needing the same Vec slots after a block that used one: declare the Vecs
+  once mid-function (per-block declarations best-fit into the earlier block's slot).
+- Three identical blocks with per-block cEmWrap member and task function: a macro, not an inline.
+- `EM_LIST(0x19 + (u32) n % 3)` gives `mulhwu 0xaaaaaaab; srwi 1`; `(f32) n` with `u32 n` gives the
+  2^52 magic without the 0x80000000 word.
+
