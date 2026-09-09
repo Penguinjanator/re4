@@ -151,7 +151,7 @@ static void sfsee_ExecHeadAnaly(SFD sfd)
 	}
 	v = (SFTRN_IsSetup(sfd, 1) != 0);
 	if (v) {
-		wk->vhdr = 1;
+		wk->shdr.analyzed = 1;
 		if (wk->fhd.valid != 0 && wk->fhd.byterate > 0) {
 			fsize = wk->fsize;
 			rate = wk->fhd.maxplylen_vid;
@@ -161,11 +161,11 @@ static void sfsee_ExecHeadAnaly(SFD sfd)
 				ncount = wk->fhd.byterate;
 			}
 		} else if (wk->fhd.valid != 0 && SFHDS_GetMuxVerNum(sfd) < 108) {
-			ncount = (wk->vncount * 2048) / 2018;
+			ncount = (wk->shdr.ncount * 2048) / 2018;
 		} else {
-			ncount = wk->vncount;
+			ncount = wk->shdr.ncount;
 		}
-		tscale = wk->vtscale;
+		tscale = wk->shdr.tscale;
 	} else if (a1 != 0) {
 		ncount = wk->a1ncount;
 		tscale = wk->a1tscale;

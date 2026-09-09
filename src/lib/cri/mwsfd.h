@@ -14,9 +14,23 @@ typedef struct {
 	Sint32 fmt;                /* 0x04 MwsfdBufFmt: 1 YCC420 planar (uphalf), 2 ..., 3 planar Y/Cb/Cr */
 	Sint32 width;              /* 0x08 */
 	Sint32 height;             /* 0x0C */
-	Uint8 pad10[0x30 - 0x10];
-	void *tblsrc;              /* 0x30 */
-	Uint8 pad34[0x88 - 0x34];
+	Sint32 x10;                /* 0x10 (SFD frame 0x08) */
+	Sint32 x14;                /* 0x14 (SFD frame 0x0C) */
+	Sint32 pstruct;            /* 0x18 */
+	Sint32 fps;                /* 0x1C */
+	Sint32 time;               /* 0x20 SFD frame 0x34 in fps units */
+	Sint32 x24;                /* 0x24 (SFD frame 0x34) */
+	Sint32 tunit;              /* 0x28 (SFD frame 0x18) */
+	Sint32 frmno;              /* 0x2C */
+	void *tblsrc;              /* 0x30 (mwl_convFrmInfFromSFD: SFD frame 0x30 in fps units) */
+	Sint32 x34;                /* 0x34 (SFD frame 0x30) */
+	Sint32 x38;                /* 0x38 (SFD frame 0x24) */
+	Sint32 x3c;                /* 0x3C (SFD frame 0x28) */
+	void *usrdat;              /* 0x40 picture user data */
+	Sint32 usrlen;             /* 0x44 */
+	Sint32 ftype;              /* 0x48 frame type decided by mwPlyGetCurFrm */
+	Sint32 x4c;
+	Uint8 ext[0x38];           /* 0x50 copy of the SFD frame's 0x48..0x80 */
 } MWS_FRM;
 
 typedef MWPLY_OBJ *MWPLY;
@@ -60,10 +74,25 @@ typedef struct {
 /* creation parameters kept in the player object (MWPLY_OBJ + 0x0C, 0x34 bytes) */
 typedef struct {
 	Sint32 mode;               /* 0x00 (2: no additional-info stream) */
-	Uint8 pad04[0x20 - 0x04];
+	Sint32 x04;
+	Sint32 x08;
+	Sint32 x0c;
+	Sint32 max_skip;           /* 0x10 frames mwPlyGetCurFrm may skip to catch up */
+	Uint8 pad14[0x20 - 0x14];
 	Sint32 compo;              /* 0x20 requested component layout (0 / 0x101: additional-info sj used) */
 	Uint8 pad24[0x34 - 0x24];
 } MWSFD_CRPRM;
+
+/* Sofdec header information collected by the header callback (mwsfdfrm.c, 0x14 bytes) */
+typedef struct {
+	Sint32 valid;              /* 0x00 */
+	Sint32 no;                 /* 0x04 header count when it was seen */
+	Sint32 ccs;                /* 0x08 colour type 3 */
+	Sint32 maxfrm;             /* 0x0C */
+	Sint32 fxtype;             /* 0x10 SFX component layout */
+} MWSFFRM_SFHINF;
+
+#define MWSFFRM_SFHINF_NUM 8
 
 /* player object (0x2B8 bytes; only the fields the matched units use are named) */
 struct MWPLY_OBJ {
@@ -77,7 +106,8 @@ struct MWPLY_OBJ {
 	void *lsc;                 /* 0x4C */
 	Sint32 compo_fix;          /* 0x50 component layout fixed at creation */
 	Sint32 compo;              /* 0x54 */
-	Uint8 pad58[0x60 - 0x58];
+	Sint32 noskip;             /* 0x58 never skip frames */
+	Sint32 x5c;
 	Sint32 sleep_bdr;          /* 0x60 sleeping at the idle border */
 	Sint32 mwply_svr_flg;      /* 0x64 handle server running */
 	Sint32 sfd_svr_flg;        /* 0x68 SFD_ExecOne running */
@@ -86,7 +116,12 @@ struct MWPLY_OBJ {
 	Sint8 linkstm;             /* 0x74 */
 	Sint8 linkstm_req;         /* 0x75 */
 	Sint8 pause_flg;           /* 0x76 */
-	Uint8 pad77[0x8C - 0x77];
+	Sint8 pad77;
+	Sint32 x78;                /* 0x78 cleared by mwSfdStop */
+	void *curfrm;              /* 0x7C frame handed out by mwPlyGetCurFrm */
+	Sint32 ngetfrm;            /* 0x80 frames got */
+	Sint32 nrelfrm;            /* 0x84 frames released */
+	Sint32 nskipdisp;          /* 0x88 frames skipped by mwPlyGetCurFrm */
 	Sint32 pic_struct;         /* 0x8C */
 	Sint32 chroma_format;      /* 0x90 */
 	Sint32 x94;
@@ -96,7 +131,19 @@ struct MWPLY_OBJ {
 	Sint32 chromapos_v;        /* 0xA4 */
 	Sint32 xa8;
 	SFX_OBJ *sfx;              /* 0xAC */
-	Uint8 padb0[0x190 - 0xB0];
+	Sint32 xb0;
+	Sint32 xb4;
+	Sint32 sfh_cnt;            /* 0xB8 Sofdec headers seen */
+	Sint32 sfh_cur;            /* 0xBC header of the current frame */
+	Sint32 sfh_wr;             /* 0xC0 next sfhinf slot */
+	MWSFFRM_SFHINF sfhinf[MWSFFRM_SFHINF_NUM]; /* 0xC4 */
+	Sint32 x164;               /* 0x164 (picusr_ptr == &x164: no picture user data) */
+	Uint8 pad168[0x17C - 0x168];
+	void *picusr_ptr;          /* 0x17C */
+	void *picusr_buf;          /* 0x180 picture user data copy */
+	Sint32 picusr_bsize;       /* 0x184 */
+	void *picusr_dat;          /* 0x188 */
+	Sint32 picusr_len;         /* 0x18C */
 	SJ ainf_sj;                /* 0x190 additional-info (tag) stream joint */
 	void *ainf_buf;            /* 0x194 */
 	Sint32 ainf_bsize;         /* 0x198 */
@@ -113,10 +160,23 @@ struct MWPLY_OBJ {
 	void *dir;                 /* 0x1C4 */
 	Sint32 ofst;               /* 0x1C8 */
 	Sint32 nsct;               /* 0x1CC */
-	SJ sji;                    /* 0x1D0 */
-	Uint8 pad1d4[0x294 - 0x1D4];
+	SJ sji;                    /* 0x1D0 input stream joint of the current play */
+	SJ file_sj;                /* 0x1D4 stream joint fed by the file stream */
+	Sint32 x1d8;
+	Sint32 flow_nsct;          /* 0x1DC (MWSFPLY_SetFlowLimit: 80% of it) */
+	Sint32 x1e0;
+	Sint32 x1e4;               /* 0x1E4 (2 at mwSfdStartSj) */
+	Sint32 x1e8;
+	Sint32 x1ec;
+	Sint32 x1f0;
+	SJ mem_sj;                 /* 0x1F4 memory stream joint (mwSfdStartMem) */
+	void *mem_buf;             /* 0x1F8 */
+	Sint32 mem_size;           /* 0x1FC */
+	Uint8 pad200[0x294 - 0x200];
 	MWSST_OBJ sst;             /* 0x294 */
-	Uint8 pad2ac[0x2B8 - 0x2AC];
+	Sint32 x2ac;
+	Sint32 x2b0;
+	Sint32 x2b4;               /* 0x2B4 cleared when the decoder is stopped */
 };
 
 typedef struct {

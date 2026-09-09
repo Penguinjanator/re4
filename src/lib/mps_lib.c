@@ -120,8 +120,8 @@ MPS MPS_Create(void)
 	mps->xd8 = 0;
 	mps->xdc = 0;
 	mps->xe0 = 0;
-	mps->xe4 = 0;
-	mps->xe8 = 0;
+	mps->sysfn = 0;
+	mps->sysobj = 0;
 	return mps;
 }
 

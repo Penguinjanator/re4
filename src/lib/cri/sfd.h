@@ -379,6 +379,12 @@ typedef struct {
 	Uint8 raw[SFHDS_RAW_SIZE]; /* 0x94 */
 } SFHDS_FHD;
 
+/* raw copies of the pack + system header (video one, audio one) kept for seeking (sfd_mps.c) */
+typedef struct {
+	Uint8 data[2][0xB0];       /* 0x00 */
+	Sint32 len[2];             /* 0x160 */
+} SFSEE_SYSHD;
+
 /* system stream analysis kept in the seek work (sfd_mps.c), SFSEE_WORK + 0x8A0 */
 typedef struct {
 	Sint32 analyzed;           /* 0x00 (sfd_see.c: vhdr) */
@@ -391,7 +397,8 @@ typedef struct {
 	Sint64 pts_min;            /* 0x20 */
 	Sint32 stmid_vid;          /* 0x28 first video stream id */
 	Sint32 stmid_aud;          /* 0x2C first audio stream id */
-} SFSEE_SHDR;
+	SFSEE_SYSHD syshd;         /* 0x30 */
+} SFSEE_SHDR;                  /* 0x198 */
 
 /* seek support work supplied by the user through SFD_EntrySeek (sfd_see.c); the header analysis
  * results of the video / audio streams are kept here, followed by the user-set totals */
@@ -591,7 +598,11 @@ typedef struct SFD_OBJ {
 /* 64-bit stream counters inside plyinf (SFD_OBJ + 0x9B0..0x9D8) seen through a separate view:
  * SFD_PLYINF itself has to stay 4-byte aligned (SFD_GetPlyInf copies it with a lwz/stw loop) */
 typedef struct {
-	Uint8 pad0[0x9B0];
+	Uint8 pad0[0x980];
+	Sint64 s_flow;             /* 0x980 system stream ring: flow count (sfd_mps.c) */
+	Sint64 s_byte;             /* 0x988 system stream bytes demultiplexed */
+	Sint64 s_skip;             /* 0x990 system stream bytes skipped */
+	Uint8 pad998[0x9B0 - 0x998];
 	Sint64 a_in_wcnt;          /* 0x9B0 audio input ring: written */
 	Sint64 a_in_rcnt;          /* 0x9B8 audio input ring: read */
 	Sint64 a_byte;             /* 0x9C0 audio bytes handed to the decoder */
@@ -672,7 +683,7 @@ typedef struct {
 	Sint32 rsv[3];             /* 0x10 */
 } SFBUF_RINF;
 
-Sint32 SFBUF_RingAddWrite(SFD sfd, Sint32 buf, Sint32 nbyte);
+Sint32 SFBUF_RingAddWrite(SFD sfd, Sint32 buf, Sint32 nbyte, Sint32 rsv); /* rsv: SFBUF_RINF.rsv[1] of the caller, unused */
 Sint32 SFBUF_RingGetWrite(SFD sfd, Sint32 buf, SFBUF_RINF *inf);
 Sint32 SFBUF_VfrmAddRead(SFD sfd, Sint32 buf, void *frm);
 Sint32 SFBUF_VfrmGetRead(SFD sfd, Sint32 buf, void **frm);

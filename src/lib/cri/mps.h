@@ -45,10 +45,28 @@ typedef struct MPS_OBJ {
 	Sint32 xd8;               /* 0xD8 */
 	Sint32 xdc;               /* 0xDC */
 	Sint32 xe0;               /* 0xE0 */
-	Sint32 xe4;               /* 0xE4 */
-	Sint32 xe8;               /* 0xE8 */
-	Uint8 padEC[0x100 - 0xEC];
+	void *sysfn;              /* 0xE4 system header callback (MPS_SetSystemFn) */
+	void *sysobj;             /* 0xE8 */
+	void *psmapfn;            /* 0xEC (MPS_SetPsMapFn) */
+	void *psmapobj;           /* 0xF0 */
+	void *pesfn;              /* 0xF4 PES header callback (MPS_SetPesFn) */
+	void *pesobj;             /* 0xF8 */
+	Sint32 xfc;
 } MPS_OBJ;
+
+/* MPS_PKETHD.raw */
+#define MPS_PKT_STMID 0
+#define MPS_PKT_TYPE 1
+#define MPS_PKT_IDX 2
+#define MPS_PKT_LEN 3
+#define MPS_PKT_STDBUF 4
+#define MPS_PKT_PAYLOAD 5
+
+/* start codes as MPS_CheckDelim classifies them */
+#define MPS_DELIM_PACK 0x10000
+#define MPS_DELIM_SYSHD 0x20000
+#define MPS_DELIM_PKET 0x40000
+#define MPS_DELIM_END 0x80000
 
 /* library work (mps_lib.c): header + num_hn handles */
 typedef struct {

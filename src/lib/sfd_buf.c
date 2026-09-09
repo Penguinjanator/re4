@@ -286,7 +286,7 @@ Sint32 SFBUF_RingAddRead(SFD sfd, Sint32 n, Sint32 nbyte)
 	return ret;
 }
 
-Sint32 SFBUF_RingAddWrite(SFD sfd, Sint32 n, Sint32 nbyte)
+Sint32 SFBUF_RingAddWrite(SFD sfd, Sint32 n, Sint32 nbyte, Sint32 rsv)
 {
 	SFBUF_HN *hn = SFBUF_GET_HN(sfd, n);
 	SFBUF_RING *ring = &hn->w.u.ring;

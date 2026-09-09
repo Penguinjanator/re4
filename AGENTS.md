@@ -1871,6 +1871,9 @@ functions instead of more source permutations:
   the original applies that rule to strings but not consistently to float literals.
 - M3 auto-inlining decisions for mid-size helpers (mwsfdsvr).
 Write the remaining CRI units for source completeness; flag only what matches.
+- M4 byte-swap store: our 2.4.7 folds any dead `store(bswap32(x))` into `stwbrx` regardless of
+  spelling (only `nopeephole` stops it, which breaks `rlwimi` merging); the Sofdec originals keep
+  `rlwinm/rlwimi x3/stw` (ADX originals do use `stwbrx`). Accept 16 bytes/function.
 
 - Inlined helper locals are laid out first-declared -> lowest frame offset (reverse of a function's
   own locals); each inlined call gets a block below the previous one.

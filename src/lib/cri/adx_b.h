@@ -73,7 +73,9 @@ typedef struct {
 	void *ahx;                                               /* 0xB4 */
 	Sint32 nsmpl;                                            /* 0xB8 */
 	Sint32 nsmpl96;                                          /* 0xBC */
-	Uint8 padc0[0xF8 - 0xC0];
+	Uint8 padc0[0xDC - 0xC0];
+	void *xdc;                                               /* 0xDC (adx_sjd: pl2setsfreqfunc called when set) */
+	Uint8 pade0[0xF8 - 0xE0];
 } ADXB_OBJ;
 
 #define ADXB_MAX_OBJ 16
