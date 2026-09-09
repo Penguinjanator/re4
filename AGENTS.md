@@ -4376,3 +4376,54 @@ target) stays unresolved and `make_rel` then fails with "undefined symbol".
   global in the module symbols.txt; the split object's ADDR32 field then holds A instead of S+A and
   the REL's .data differs (t_camera .data+0x56C/0x570 = tcLoad/tcSave). Keep the scopes local by hand
   until the functions exist.
+
+- Tools debug-tool editor template (include/dbg_tool.h, 2026-09): `cDbgFileSelectWindow` /
+  `cDbgOkCancelWindow` (cDbgWindow-derived, 0x348 / 0x238), `cDbgButtonTemplate<T>` (cDbgButtonBase +
+  `int (*pFunc)` and `void (*pUpdate)` `(int no, T*, cDbgButtonTemplate<T>*)` callbacks at 0x1C/0x20, 0x24), `cDbgEditWindow<T>`
+  (cDbgWindowBase + pWork/numWork/rows/top/execMode/copyCursor/copyWinMode/copyBuf T/bufValid/
+  pButton[128]/num/pCur/pTop/pBottom/the five work callbacks; virtual order dtor, GetCx, GetCy,
+  SetCurrentBottomButton, ButtonAllUpdate, LocalUpdate, LocalDisp, SetCurrentTopButton,
+  ButtonPushCheck), `cDbgToolMain<T>` (0x50: pMenu, pEdit, pSave, pLoad, pSaveOk, pLoadOk, pExitOk,
+  mode, ..., the callback copies, vptr at 0x4C). Units: t_esp_area (36/38, ToolEspArea -36),
+  t_lightarea (36/38, ToolLightAreaMain -36); .rodata/.data/.bss identical, function order identical,
+  not flipped. Idioms found there:
+  - A module's later copies of the header's linkonce functions are nameless (`fn_Tools_*`); pair them
+    by the gap after the previous named function, and check the ORDER of the block: the FileSelect
+    destructor is `virtual ~cDbgFileSelectWindow();` + `inline ... {}` defined AFTER LocalUpdate
+    (deferred inline, emitted after Init/LocalUpdate), the OkCancel destructor stays implicit (synthesized
+    when its vtable is written, emitted BEFORE its LocalUpdate).
+  - The sizeof(T) gap under the tool's spill slots (ESP 0x98, LIGHT 0xD8) is the frame of a once-inlined
+    helper with a T local (`T unused;` in CreateEditWindow): the inlined callee's frame is one stack temp,
+    freed after the statement, and the loop body's `Vec pos, scr` (declared inside the `for (;;)`) reuse
+    its start. A T local in LoadData would give two temps (LoadData is inlined again inside Update).
+  - `for (i...; i++, w++) { AreaData* a = &w->area; if (IsWorkAlive(w)) {... w->flags ... w->areaNo}`:
+    with `a` an unconditional giv, combine_givs makes the field loads a-relative (`lwz 0x30(rA)`,
+    `lbz -2(rA)`) while `w` stays the stepped base; `a` inside the `if` keeps them w-relative.
+  - Switch cases past cse's jump-following path length (PATHLENGTH 10 conditional jumps) lose the
+    cse'd `&Joy`: the four-case AreaNoExec takes `JOY* joy = &Joy[0]` right before `rep = joy->rep`
+    (so it does not live across the eprintf calls) and uses it in the cases; the return still reads
+    `Joy[0].trg` directly (the pointer is dead at the join).
+  - Consecutive `pG->flags |= a; pG->flags |= b;` fold into one `oris`; the target reloads pG between
+    them: use BitOn/BitOff (global.h) for every flag update in the tool bodies, not only in Init/Exit.
+  - The tool's first zero-initialised local is the zero register of the inlined cDbgToolMain
+    constructor's 22 stores and gets the callee-saved register (`u8 wait` in ESP, `int preview` in
+    LIGHT, declared before `tool`); the later `= 0` locals (u8 cnt, int cam, u8 wait, int plNoHit) take
+    their zero from the most recent zero pseudo and spill in declaration order.
+  - `if (m == 4) ... else if (m == 2) {} else if (m == 3) {} else wait = 1;` keeps the three compares
+    (`!= 2 && != 3` folds to subi/cmplwi); empty `case 4: case 5: break;` in Disp shape its tree.
+  - The window pointer of KeyCheck+LocalUpdate is a parameter (`WinUpdate(cDbgWindowBase*)`), the
+    AddButton column loop reads `pEdit` once into a local, InitAllWork keeps `e = pEdit; w = e->pWork`
+    locals: otherwise every store through the window reloads the tool member.
+  - t_lightarea defines the module's `__builtin_new/__builtin_vec_new/__builtin_delete`
+    (`Debug_alloc(size, 1)` / `Debug_free`) at the top of the unit; its works and the file image are
+    Debug_alloc'd and `MakeSaveData` (SaveData without the file) feeds `LightAreaDataLoad` every frame;
+    `((cUnitEventView*) pPL)->endEvent(0)` (st_mgr_event.h) is the `lha 0x18` virtual on the player.
+  - OPEN: the edit window's `new` null test is compared BEFORE the constructor's AddButton loop
+    (`cmpwi r31,0; mfcr r29` .. `mtcrf; bne` after `pEdit = e`; no branch around the body: not
+    -fcheck-new), so the hoisted `preview == 0` compare takes cr7 (`mfcr; slwi 28`); the three
+    OkCancel Init copies materialise `li r0,0` per window for pCur/pTop/pBottom while x1C/x20/num share
+    the hoisted zero (one pseudo here, chains/NULL/order do not split it); cDbgWindow::Init (db_toolbase,
+    19/20) and cDbgFileSelectWindow::Init schedule `li 1` before `li 0` and keep the LAST zero store
+    last, ours issues `li 0` first and hoists the last zero store to the top (the FS path-pointer stores
+    also move up); statement order, chains, in-class/out-of-class, an inlined base Init do not change it.
+    ToolEspArea's r14/r15 (wait vs Joy@ha) and r22/r23 (`&tool`) swaps follow from those.

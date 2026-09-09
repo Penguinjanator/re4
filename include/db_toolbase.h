@@ -47,25 +47,18 @@ public:
     }
 };
 
-// Strings of the header's display helpers (parse order = .rodata order).
+// The cursor mark of cDbgWindow::LocalDisp (a header inline owns it: it opens the .rodata string
+// group of every unit including this header, right after the Init message). The other display
+// strings of the group come from the file-select / ok-cancel window inlines of dbg_tool.h, which
+// every user of this header (db_toolbase.cpp included) parses after it.
 struct cDbgStr {
     static const char* cursor() { return ">"; }
-    static const char* nameHeader() { return "Name:                 "; }
-    static const char* nameBlank() { return "               "; }
-    static const char* noHeader() { return "No  :"; }
-    static const char* noBlank() { return " xx "; }
-    static const char* ok() { return "[OK]"; }
-    static const char* fmtNo() { return "%s%02d%s"; }
-    static const char* fmtName() { return "%s%s%02d%s"; }
-    static const char* fmtNum() { return " %02d"; }
-    static const char* okButton() { return " [OK] "; }
-    static const char* cancelButton() { return "[CANCEL]"; }
 };
 
 class cDbgWindowBase {
 public:
-    int x;              // 0x00  window column (8 px units)
-    int y;              // 0x04  window row (14 px units)
+    u32 x;              // 0x00  window column (8 px units; unsigned: the frame conversions use the 2^52 trick without xoris)
+    u32 y;              // 0x04  window row (14 px units)
     u32 w;              // 0x08  width in columns
     u32 h;              // 0x0C  height in rows
     int cxMax;          // 0x10  largest button cursor column
@@ -92,7 +85,7 @@ public:
     // inlined into cDbgWindow::AddButton; the tool modules are compiled with -fno-implement-inlines,
     // so no out-of-line body exists although cDbgButton's vtable is emitted there
     cDbgButton(int x_, int y_, const char* name, int cx_, int cy_) { Init(x_, y_, name, cx_, cy_); }
-    virtual ~cDbgButton();
+    virtual ~cDbgButton() {}
 };
 
 class cDbgWindow : public cDbgWindowBase {
@@ -103,16 +96,73 @@ public:
     cDbgButton* pTop;          // 0x230
     cDbgButton* pBottom;       // 0x234
 
-    virtual ~cDbgWindow();
-    virtual int GetCx();
-    virtual int GetCy();
-    virtual void SetCurrentBottomButton();
-    virtual void ButtonAllUpdate();
+    // Init: declared here for every user (both t_esp_area/t_lightarea and t_event call it out of
+    // line, `bl Init__10cDbgWindowiiPCc`), but db_toolbase.cpp emits it as an in-class inline
+    // between the deferred ~cDbgButton and ~cDbgWindow (saved_inlines order, class order); no single
+    // source form gives our cc1plus both, so the body is in-class only for the implementing unit.
+#ifndef DB_TOOLBASE_IMPLEMENTATION
+    void Init(int wx, int wy, const char* name);
+#else
+    void Init(int wx, int wy, const char* name)
+    {
+        x = wx;
+        y = wy;
+        w = strlen(name);
+        h = 1;
+        cxMax = 1;
+        cyMax = 1;
+        pName = name;
+        x1C = 0;
+        x20 = 0;
+        num = 0;
+        pCur = 0;
+        pBottom = 0;
+        pTop = 0;
+    }
+#endif
+    // the virtuals with bodies here are what the derived windows of dbg_tool.h inline (their
+    // synthesized destructors carry ~cDbgWindow's loop); LocalUpdate is the key function
+    virtual ~cDbgWindow()
+    {
+        u32 i;
+
+        for (i = 0; i < num; i++) {
+            if (pButton[i]) {
+                delete pButton[i];
+            }
+        }
+    }
+    virtual int GetCx()
+    {
+        if (pCur == 0) {
+            return 0;
+        }
+        return pCur->cx;
+    }
+    virtual int GetCy()
+    {
+        if (pCur == 0) {
+            return 0;
+        }
+        return pCur->cy;
+    }
+    virtual void SetCurrentTopButton() { pCur = pTop; }
+    virtual void SetCurrentBottomButton() { pCur = pBottom; }
+    virtual void ButtonAllUpdate()
+    {
+        u32 i;
+
+        for (i = 0; i < num; i++) {
+            cDbgButton* b = pButton[i];
+
+            if (b && b->pUpdate) {
+                b->pUpdate(b);
+            }
+        }
+    }
     virtual int LocalUpdate();
     virtual void LocalDisp();
-    virtual void SetCurrentTopButton();
 
-    void Init(int x, int y, const char* name);
     void AddButton(int x, int y, const char* name, int cx, int cy, void (*func)(cDbgButton*),
                    void (*update)(cDbgButton*));
     int FindButton(int cx, int cy, cDbgButton** out);
