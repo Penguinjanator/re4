@@ -2895,3 +2895,43 @@ target) stays unresolved and `make_rel` then fails with "undefined symbol".
 - COMPILER-DIFF candidate #9: loop exit-test duplication -- original `sub; b test; L: sleep; sub;
   test: bge L` (no duplicated entry test); our jump1 always duplicates it on rotated loops
   (r103/r105 `execOpenCover`).
+- Tools REL, second pass (t_mes, t_cons, tools.cpp Matching; t_tplview 3/4, 2026-09):
+  - Tools' `tools.cpp` needs `-DTOOLS_ARRAY` (modules.py CFLAGS, like t_id): with it the object is
+    byte-identical including the six `cManager<T>::arrayPush/arrayPop` instantiations behind the cLight
+    block (the module linkonce rule places them; no ngccc.py change needed).
+  - `SetToolLight` is `static` inside db_light.cpp behind DB_LIGHT_SET_TOOL_LIGHT; the Tools wrapper
+    (tools/db_light_tools.cpp) exports it with `asm(".globl SetToolLight__Fi")` — the object is otherwise
+    unchanged and sync_rel_symbols flips the symbols.txt scope to global.
+  - Menu list loops (`eprintf(x, y + i*14, 0, 0, tbl[i])`, 2-4 entries, reversed `subic./bne` with the
+    y and pointer givs initialised AFTER the PRE'd `lis` of a later string): an inlined `static inline
+    dispList(x, y, tbl, n)` helper. In place, the source-level inits precede the gcse insertion and the
+    biv is eliminated for a pointer compare (`cmpw; ble`). With a *frame-address* table whose `&tbl`
+    pseudo is gcse's reaching reg (`addi r11,r1,N; mr r24,r11` at the top), cprop puts that
+    pointer-flagged reg into the giv and maybe_eliminate_biv wins over the reversal: only the `*tbl++`
+    biv form reverses there (t_tplview main menu), the `tbl[i]` giv form is needed for a fresh table
+    (t_tplview size menu) — OPEN: one helper cannot give both.
+  - A string literal inside a `static inline` is emitted when the helper is parsed; when the target
+    puts it after a function's aggregate templates, the templates are public `const` objects defined
+    between (`extern const TplMenu3 x; const TplMenu3 x = {{..}};`, copied with `TplMenu3 m = x;`).
+  - `wk->a = wk->b = 0` chain then w/h/step stores: the chain's RTL order is a, b (both from one zero
+    pseudo), so b's store dies and is issued first, a's last (t_tplview reload block: `y, w, h, step, x`
+    comes from `wk->y = wk->x = 0; w; h; step`).
+  - Byte extraction of a colour word: `r = c >> 24; g = (c >> 16) & 0xFF; b = (c >> 8) & 0xFF; a = c &
+    0xFF` — the masks survive as `extrwi`, the `& 0xFF` of the memory operand becomes `lbz 3(rTbl)`;
+    four address-taken `u8` locals (frame 0x20..0x23, direct `stb N(r1)`), not a `u8[4]`/GXColor (SImode
+    aggregate -> ADDRESSOF pseudo, `addi rX,r1,N; mr` COMPILER-DIFF #3 shape).
+  - Fold reassociation (`fold-const.c associate`): `A + (B + C)` becomes `(A + C) + B`; to keep the
+    target's `srwi; addi; add(shift, n)` write the operands into locals in the target's evaluation
+    order (`u32 s = num >> 5; u32 n = num + 2; (s + n) * 4`); `ofs + 8 + (u32) buf` needs
+    `u32 ofs2 = ofs + 8;` first (t_cons save_main/read_main).
+  - `memcpy` with a `(void*)`-cast operand is a plain prototyped call; the target's `crclr cr1eq` block
+    move needs typed pointers on both operands (`(u32*)`).
+  - `t->num = i = 0` (chain) makes the loop counter's `li r9,0` the stored zero; separate statements
+    give two zero registers.
+  - `if (flag) ret = 0; else { if (c != lim) cursor = lim; else ret = 0; }` keeps the outer `li r27,0;
+    b end` and jumps the inner arm into it; with the inner arms swapped ours cross-jumps into the last
+    copy (COMPILER-DIFF #6 shape avoided by arm order).
+  - Deleting a plain buffer: `delete buf` (`__builtin_delete`, no null test); `delete[]` gives
+    `cmpwi/beq` + `__builtin_vec_delete`.
+  - OPEN (t_mv mvInit, unchanged): `pMv->cursor = 0` in the then arm is cse'd to the `u8 zero` register
+    and cross-jumped with the else arm's `cursor = zero`; the target keeps `li r10,0` in the then arm.

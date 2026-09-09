@@ -164,58 +164,59 @@ extern "C" void _unresolved()
 #include "espgen.h"
 #include "cons.h"
 
+// the bits say which pools to leave alone (the callers pass the pools they do not need)
 void ToolArrayPush(int flags)
 {
-    if (flags & 1) {
+    if (!(flags & 1)) {
         PartsMgr.arrayPush(500);
     }
-    if (flags & 2) {
+    if (!(flags & 2)) {
         EmMgr.arrayPush(64);
     }
-    if (flags & 4) {
+    if (!(flags & 4)) {
         ObjMgr.arrayPush(500);
     }
-    if (flags & 8) {
+    if (!(flags & 8)) {
         EspArrayPush(ConsGetRoomValue(2));
     }
-    if (flags & 0x10) {
+    if (!(flags & 0x10)) {
         EspgenArrayPush(0x80);
     }
-    if (flags & 0x20) {
+    if (!(flags & 0x20)) {
         CtrlMgr.arrayPush(0x80);
     }
-    if (flags & 0x80) {
+    if (!(flags & 0x80)) {
         EvtMgr.arrayPush(4);
     }
-    if (flags & 0x100) {
+    if (!(flags & 0x100)) {
         LightMgr.arrayPush(100);
     }
 }
 
 void ToolWorkPop(int flags)
 {
-    if (flags & 1) {
+    if (!(flags & 1)) {
         PartsMgr.arrayPop();
     }
-    if (flags & 2) {
+    if (!(flags & 2)) {
         EmMgr.arrayPop();
     }
-    if (flags & 4) {
+    if (!(flags & 4)) {
         ObjMgr.arrayPop();
     }
-    if (flags & 8) {
+    if (!(flags & 8)) {
         EspArrayPop();
     }
-    if (flags & 0x10) {
+    if (!(flags & 0x10)) {
         EspgenArrayPop();
     }
-    if (flags & 0x20) {
+    if (!(flags & 0x20)) {
         CtrlMgr.arrayPop();
     }
-    if (flags & 0x80) {
+    if (!(flags & 0x80)) {
         EvtMgr.arrayPop();
     }
-    if (flags & 0x100) {
+    if (!(flags & 0x100)) {
         LightMgr.arrayPop();
     }
 }

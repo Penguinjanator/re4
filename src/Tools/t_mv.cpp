@@ -19,7 +19,7 @@
 // db_mod's model viewer, with the debug camera on the Z button.
 
 void drawGround(int on);
-int SetToolLight(int no);      // db_light_tools.cpp (global: called from here)
+int SetToolLight(int no);      // db_light_tools.cpp exports it (asm .globl; static in db_light.cpp)
 void ToolArrayPush(int flag);  // tools.cpp linkonce tail
 void ToolWorkPop(int flag);
 

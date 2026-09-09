@@ -198,15 +198,19 @@ UNITS = {
     ],
     "t_event": [
         ("t_event/db_light.cpp", None, "tools/db_light.cpp"),
-        ("t_event/db_sctrl.cpp", "SctrlInitAxisRange", "tools/db_sctrl.cpp"),
-        ("t_event/db_filelist.cpp", "MakeCol"),
-        ("t_event/t_event.cpp", "ToolEvent", None, {".rodata": 0x1A80}),
+        # db_sctrl.o starts with the pool of a dead-stripped function (DF magic + 1.0f, unreferenced)
+        ("t_event/db_sctrl.cpp", "SctrlInitAxisRange", "tools/db_sctrl.cpp", {".rodata": 0x1640}),
+        # Tools' db_toolbase.cpp object (its linkonce base-class inlines end it), then the cFileList object;
+        # the file list instance (unreferenced from its own code) is the first 0x18 of .bss after db_light
+        ("t_event/db_toolbase.cpp", "MakeCol", "Tools/db_toolbase.cpp"),
+        ("t_event/db_filelist.cpp", "cFileList::init", "tools/db_filelist.cpp", {".rodata": 0x1A20, ".bss": 0xAC}),
+        ("t_event/t_event.cpp", "ToolEvent", None, {".rodata": 0x1A80, ".bss": 0xC4}),
         ("t_event/t_util.cpp", "TutilInitDefault", "tools/t_util_menu.cpp", {".rodata": 0x2508}),
         ("t_event/tools.cpp", "_prolog", "tools/tools.cpp"),
     ],
     "t_sce": [
         ("t_sce/db_light.cpp", None, "tools/db_light_v2.cpp"),
-        ("t_sce/db_filelist.cpp", "cFileList::init"),
+        ("t_sce/db_filelist.cpp", "cFileList::init", "tools/db_filelist.cpp", {".bss": 0xAC}),
         ("t_sce/t_block.cpp", "ToolBlock", None, {".rodata": 0x16A0}),
         # the same object as Tools' t_sce_at.cpp (D:/Bio4/Prog/t_sce_at.cpp)
         ("t_sce/t_sce_at.cpp", "ToolSceAt", "tools/t_sce_at.cpp", {".rodata": 0x1AD0}),
@@ -222,7 +226,7 @@ UNITS = {
     # tools.cpp end the same way, t_esp's with ToolEmArraySet too).
     "t_id": [
         ("t_id/db_path.cpp", None),
-        ("t_id/db_sctrl.cpp", "SctrlInitAxisRange", "tools/db_sctrl.cpp"),
+        ("t_id/db_sctrl.cpp", "SctrlInitAxisRange", "tools/db_sctrl.cpp", {".rodata": 0xF0}),
         ("t_id/t_id.cpp", "toolIdInit", None, {".rodata": 0x328, ".bss": 0xC}),
         ("t_id/t_util.cpp", 0xDBA0, "tools/t_util_id.cpp", {".rodata": 0xE48, ".data": 0x298, ".bss": 0x14DE34}),
         ("t_id/tools.cpp", "_prolog", "tools/tools.cpp"),
@@ -349,11 +353,13 @@ for _em in ["em10", "em11", "em12", "em13", "em14", "em15", "em16", "em17", "em1
 # import_export_decl: a vtable-owning class's non-virtual inline members are external under the flag).
 # Tools/t_event: cDbgButton's in-class constructor (db_toolbase.h) is inlined into cDbgWindow::AddButton
 # and has no out-of-line body in the module either (same flag, same evidence as Sscrn's widgets).
-# t_id/t_esp/Tools: tools.cpp defines ToolArrayPush/ToolWorkPop (t_esp: ToolEmArraySet) after _unresolved.
+# t_id/t_esp/Tools: tools.cpp defines ToolArrayPush/ToolWorkPop (t_esp: ToolEmArraySet) after _unresolved
+# (TOOLS_ARRAY; Tools' object with it is byte-identical to the split, the module linkonce rule places the
+# six cManager<T>::arrayPush/arrayPop instantiations behind the cLight block).
 CFLAGS = {
     "Sscrn": ["-fno-implement-inlines"],
     "t_id": ["-DTOOLS_ARRAY"],
-    "Tools": ["-fno-implement-inlines"],
+    "Tools": ["-fno-implement-inlines", "-DTOOLS_ARRAY"],
     "t_event": ["-fno-implement-inlines"],
 }
 
@@ -363,6 +369,10 @@ STRIP_UNUSED = {
     # the tool library objects are the t_emlist versions minus what the module never calls
     "t_camera/t_prim.cpp", "t_camera/t_util.cpp", "t_light/t_util.cpp", "t_event/t_util.cpp", "t_sce/t_util.cpp",
     "t_movie/t_util.cpp", "t_esp/t_util.cpp", "t_id/t_util.cpp",
+    # t_movie's t_prim.cpp is the full (Tools) build minus the functions the module never calls
+    "t_movie/t_prim.cpp",
+    # db_sctrl.cpp starts with the pool of a dead-stripped function
+    "t_id/db_sctrl.cpp", "t_event/db_sctrl.cpp",
 }
 
 # Units whose compiled object replaces the split object in the REL link.
@@ -406,11 +416,22 @@ MATCHING = {
     "t_light/tools.cpp": True,
     "t_sce/tools.cpp": True,
     "t_event/tools.cpp": True,
+    "t_id/tools.cpp": True,
+    "t_movie/t_prim.cpp": True,
+    "t_movie/t_movie.cpp": True,
+    "t_event/db_filelist.cpp": True,
+    "t_sce/db_filelist.cpp": True,
+    "t_id/db_path.cpp": True,
     "Sscrn/ss_cap.cpp": True,
     "Sscrn/ss_debug.cpp": True,
     "Sscrn/ss_file.cpp": True,
     "Sscrn/ss_item_draw.cpp": True,
     "Tools/t_prim.cpp": True,
+    "Tools/t_mes.cpp": True,
+    "Tools/t_cons.cpp": True,
+    "Tools/tools.cpp": True,
+    # single-unit enemy modules (src/<em>/<em>.cpp, the whole REL)
+    "em2e/em2e.cpp": True,
 }
 # The Ganado modules' per-enemy objects (src/<em>/<em>_set.cpp: entry points + EmXXInit/Set/WeaponSet).
 for _em in ["em10", "em11", "em12", "em13", "em14", "em15", "em16", "em17", "em19", "em1a", "em1b",
