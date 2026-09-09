@@ -2947,3 +2947,55 @@ target) stays unresolved and `make_rel` then fails with "undefined symbol".
     `cmpwi/beq` + `__builtin_vec_delete`.
   - OPEN (t_mv mvInit, unchanged): `pMv->cursor = 0` in the then arm is cse'd to the `u8 zero` register
     and cross-jumped with the else arm's `cursor = zero`; the target keeps `li r10,0` in the then arm.
+
+### Small tool RELs (t_light/t_light, t_id/tools+db_path, t_movie/t_movie+t_prim, t_event+t_sce/db_filelist matching; db_sctrl 15/22)
+
+- The "linkonce orphan" tail of t_id/t_esp/Tools (ToolArrayPush/ToolWorkPop[/ToolEmArraySet], one
+  cManager<cLight> block, cManager<T>::arrayPush/arrayPop x6) is tools.cpp itself built with
+  `-DTOOLS_ARRAY` (modules.py CFLAGS; t_esp also `-DTOOLS_EM_ARRAY`): plain functions after
+  `_unresolved`, then the deferred template bodies in instantiation order. `include/tools.h` declares
+  them; `cManager<T>::arrayPush(int)/arrayPop()` live in cManager.h; the Esp/Espgen pool swaps are
+  `extern "C" int` in esp.h/espgen.h, `ConsGetRoomValue` in cons.h. The bits of the flag word
+  *exclude* a pool (`if (!(flags & 1))` — bit 0 is the `xori/andi.` form).
+- `if (busy) return 0; body; return 1;` keeps `li r3,0` out of line after the body (`b end; li r3,0`);
+  `if (free) { body; return 1; } return 0;` gets the `li r3,0` hoisted above the branch (4 bytes short).
+- `t_id/linkonce.cpp`-style synthetic units are never right: a tail of named linkonce copies after the
+  last object is the last object's own deferred output. Likewise a "unit" whose ctor key is not its
+  first global function is two objects (t_event's db_filelist = Tools' db_toolbase.o + db_filelist.o).
+- Unreferenced .bss of a unit whose own code never touches it (the global `cFileList DbgFileList`,
+  driven by t_event.cpp) is attributed to the previous unit by the generator: pin it (`{".bss": 0xAC}`)
+  and name the label by hand in symbols.txt/sym_map.tsv (data labels are not synced).
+- A stray `DF magic + 1.0f` pool at the START of the next unit's .rodata (t_id/t_event db_sctrl at
+  0xF0/0x1640) is that unit's dead-stripped leading function (never-called `static f32 f(int i)
+  { return (f32) i + 1.0f; }` + STRIP_UNUSED), not a tail of the previous unit.
+- `cString("...")` temporaries share a freed aggregate slot only because the class has a user copy
+  constructor (BLKmode): cString.h declares `cString(const cString&)` (never defined; the DOL has none);
+  with an SImode class the temp gets its own slot (t_movie movie_test_main frame 0xC0 vs 0xC8).
+- `int col = (c) ? 6 : 0; f(..., (u8) col, ...)` gives the target's `clrlwi r7,r7,24` at the call; a
+  `u8 col` local (either form) folds it away. A u8 colour passed as int in several arms with one
+  PRE'd `clrlwi rX, rCol, 24` (db_sctrl sctrlMenu) is an `int col` set in two places (a dead `int col
+  = 0;` before the block plus `col = 0;` in the loop: REG_N_SETS 2 stops gcse cprop) passed as `(u8) col`.
+- Passing a struct by value to a varargs `%s` copies it to a temp and passes the address: movie_test_main's
+  0x24-byte `MovieFile f = movie_file[i]` copy is the plain local form (block move loop of 0x18 + 0xC).
+- `while (*p) { int c = *p; if (islower(c)) c -= 0x20; *p = c; p++; }` with `int c` keeps `subi` in
+  place (`char c` re-extends with `extsb`); `islower` is newlib's `(_ctype_ + 1)[(int)(c)] & _L`.
+- `pGS->debug_mode = ...` / `(*(u32*)((u8*)pGS + 0x68) & bit)` (the struct-view pG) keep the `lwz pG`
+  below a preceding store through the work pointer where plain `pG`/`TOOL_FLAG` let ours hoist it.
+- Clamps on s8 members: `w->cursor = w->cursor < 0 ? 0 : (w->cursor > 1 ? 1 : w->cursor);` gives the
+  target's `extsb r9,r0 ... li r0,0/1 ... stb r0` with the raw byte kept for the store; `s8 c = ...` locals
+  or if/else chains extend in place.
+- `FuncPathWork`-sized locals accessed through a pointer (`PathParam buf; FuncPathWork* param =
+  (FuncPathWork*) &buf;`) keep `&buf` in a callee-saved register (`lwz r0,4(r29)`); direct member reads
+  address the frame (db_path pathGrabLine/pathDraw).
+- `if (i > 0)` inside a loop body full of calls is the `cmpwi; mfcr rI; ... mtcrf 128, rI` CR spill
+  when `i`'s register is dead after `i+1` was computed (pathDraw, ours reproduces it).
+- A struct copy plus a byte store: `w->insertIdx = t + 1; w->insertPos = pt;` (byte store first in
+  source) gives `stw x; stb; stw y; stw z` (the stb waits for its `psq_st/lbz` latency chain).
+- Two consecutive stores of one value into two Vec locals: `g1.x = g0.x = v;` stores g1 first (chain
+  order), `g0.x = g1.x = v` the other way.
+- `int sx = (int)(v * 256.0f / 320.0f + 256.0f)` / `(int)(224.0f - y * 224.0f / 240.0f)` are the
+  screen-position conversions of the tool cursors (drawCursor); drawAxis' label y is `224.0f - w1.y`.
+- Rooms of unresolved diffs in db_sctrl: DbSctrl's `w->x/w->y/w->blink++` store order (target y, x, blink;
+  no statement order gives it), SctrlAdjustAxisRange's two stepping pointers, drawAxis' early `lis`
+  of the format string, drawScurve's `i`/`&wp` register swap (r26/r27), sctrlMenu's cross-jump of the
+  case-1 cursor call.

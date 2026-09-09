@@ -323,4 +323,8 @@ int Espgen45_SetFreeWork(EspgenWork* w, EspGenWork* rec, EspSeqData* head, cMode
                          Vec* pos, Vec* rot, EspSeqOpt* p8);
 }
 
+// Debug tools (tools.cpp ToolArrayPush/ToolWorkPop): swap the espgen pool like EspArrayPush.
+extern "C" int EspgenArrayPush(int num);
+extern "C" int EspgenArrayPop();
+
 #endif

@@ -87,6 +87,11 @@ public:
     void endEvent(int mode);
     // destroy() every alive work (debug tools: db_light LitLoadWork, Sscrn ss_main)
     void destroyAll();
+    // Debug tools (tools.cpp ToolArrayPush/ToolWorkPop): park the room's array in x18/x14/x1C and work
+    // on a fresh Debug_alloc'd one of `n` works; arrayPop frees it and restores the room's. Both
+    // return 1 when they did something.
+    int arrayPush(int n);
+    int arrayPop();
 
     int deleteList(T* p) {
         T* q;
@@ -290,6 +295,39 @@ T* cManager<T>::create(int id, u32 no)
     addListFront(p);
     countActiveWork();
     return p;
+}
+
+template <class T>
+int cManager<T>::arrayPush(int n)
+{
+    // `if (busy) return 0;` first: the `li r3,0` stays out of line after the body (an `if (free) {..;
+    // return 1;} return 0;` gets it hoisted above the branch)
+    if (x18 != 0) {
+        return 0;
+    }
+    x18 = (u32) pArray;
+    pArray = (T*) Debug_alloc(size * n, 1);
+    x1C = nArray;
+    nArray = n;
+    x14 = (u32) pAlive;
+    pAlive = 0;
+    return 1;
+}
+
+template <class T>
+int cManager<T>::arrayPop()
+{
+    if (x18 == 0) {
+        return 0;
+    }
+    Debug_free(pArray);
+    // statement order found by brute force (zero stores last in the schedule, pAlive restored last)
+    pArray = (T*) x18;
+    nArray = x1C;
+    x18 = 0;
+    x1C = 0;
+    pAlive = (T*) x14;
+    return 1;
 }
 
 template <class T>

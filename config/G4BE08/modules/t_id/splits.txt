@@ -8,13 +8,13 @@ Sections:
 
 t_id/db_path.cpp:
 	.text       start:0x00000000 end:0x00001368
-	.rodata     start:0x00000000 end:0x000000FC align:4
+	.rodata     start:0x00000000 end:0x000000F0 align:4
 	.data       start:0x00000000 end:0x00000030 align:4
 	.bss        start:0x00000000 end:0x0000000C align:4
 
 t_id/db_sctrl.cpp:
 	.text       start:0x00001368 end:0x000040B4
-	.rodata     start:0x000000FC end:0x00000328 align:4
+	.rodata     start:0x000000F0 end:0x00000328 align:4
 	.data       start:0x00000030 end:0x00000058 align:4
 
 t_id/t_id.cpp:

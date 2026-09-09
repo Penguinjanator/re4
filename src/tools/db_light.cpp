@@ -417,6 +417,20 @@ cLightTool::~cLightTool()
     pLog->modeReset();
 }
 
+static inline cLight* lightWorkNoChk(u32 no)
+{
+    return (cLight*) ((u8*) LightMgr.pArray + LightMgr.size * no);
+}
+
+static inline cObj* objWorkChkP(u32 no)
+{
+    cObjMgr* m = &ObjMgr;
+    if (no >= m->nArray) {
+        return 0;
+    }
+    return (cObj*) ((u8*) m->pArray + m->size * no);
+}
+
 int cLightTool::move()
 {
     static void (*routine_tbl[])() = {menu, edit, path, load, save, option, quit};
@@ -452,16 +466,22 @@ int cLightTool::move()
         ret = 1;
         break;
     case 2:
-        cutNo = gameCutNo = getCutNo();
+        gameCutNo = cutNo = getCutNo();
         eprintf(0xD8, 0, (pG->flags_51E4 & 0x10) ? 0 : 0x14, color, "PLAYER MODE");
         joy1 = Joy[1];
         ret = 2;
         break;
     case 10:
         eprintf(0xD8, 0x38, 4, 0, "MODE SELECT");
-        eprintf(0xD8, 0x46, modeSel == 0 ? 0 : 0x14, 0, "LIGHT");
-        eprintf(0xD8, 0x54, modeSel == 1 ? 0 : 0x14, 0, "CAMERA");
-        eprintf(0xD8, 0x62, modeSel == 2 ? 0 : 0x14, 0, "PREVIEW");
+        {
+            int c;
+            if (modeSel == 0) c = 0; else c = 0x14;
+            eprintf(0xD8, 0x46, c, 0, "LIGHT");
+            if (modeSel == 1) c = 0; else c = 0x14;
+            eprintf(0xD8, 0x54, c, 0, "CAMERA");
+            if (modeSel == 2) c = 0; else c = 0x14;
+            eprintf(0xD8, 0x62, c, 0, "PREVIEW");
+        }
         if (Joy[0].rep & JOY_UP) {
             modeSel--;
         }
@@ -471,11 +491,14 @@ int cLightTool::move()
         if (Joy[0].trg & (JOY_START | JOY_B | JOY_A)) {
             state = modeSel;
             Joy[0].trg &= ~(JOY_START | JOY_B | JOY_A);
-            switch (state) {
+            int st = state;
+            switch (st) {
             case 0:
                 pG->flags_60 |= 0x10000000;
+                color = st;
+                break;
             case 1:
-                color = state;
+                color = st;
                 break;
             case 2:
                 color = 1;
@@ -496,8 +519,8 @@ int cLightTool::move()
     if (Joy[0].rep) {
         blink = 0;
     }
-    for (i = 0; i < LightMgr.nArray; i++) {
-        LightMgr.getWork(i)->x140 = i;
+    for (u32 n = 0; n < LightMgr.nArray; n++) {
+        lightWorkNoChk(n)->x140 = n;
     }
     routine_tbl[routine]();
     LightMgr.move();
@@ -505,7 +528,7 @@ int cLightTool::move()
         if (state == 1) {
             CameraMove();
         } else {
-            pG->flags_170 &= ~0x40000000;
+            BitOff(pG->flags_170, 0x40000000);
             pG->flags_60 &= ~0x10000000;
         }
     } else {
@@ -520,7 +543,7 @@ int cLightTool::move()
     }
     if (pTool->flags & 0x10) {
         for (i = 0; i < ObjMgr.nArray; i++) {
-            cObj* obj = ObjMgrWork(i);
+            cObj* obj = objWorkChkP(i);
             if (obj->isAlive() && obj->lightInfo.getLightNum()) {
                 obj->drawAllBoundingBox(obj->pInfo);
             }
@@ -528,8 +551,13 @@ int cLightTool::move()
     }
     logX += (f32) Joy[0].ssx * 0.1f;
     logY -= (f32) Joy[0].ssy * 0.1f;
-    pLog->x = (int) logX;
-    pLog->y = (int) logY;
+    {
+        int x = (int) logX;
+        int y = (int) logY;
+        cLog* l = pLog.p;
+        l->x = x;
+        l->y = y;
+    }
     return ret;
 }
 
@@ -2257,7 +2285,7 @@ static void edit_light_type_shadow_fit()
     Light04Work* w = (Light04Work*) cur->work;
     f32 step = 5.0f;
     int ret = 1;
-    u8 col;
+    int c;
 
     switch (pTool->init) {
     case 0:
@@ -2325,14 +2353,18 @@ static void edit_light_type_shadow_fit()
         eprintf(0x40, 0x9A, 0, pTool->color, "%2d %s", cur->xD, shadow_type_name[cur->xD]);
     }
     eprintf(0x40, 0xA8, 0, pTool->color, "LIT_POS SET ");
+    // COMPILER-DIFF: 2 (the original zero-extends the u8 `col` once at the join for both uses; the
+    // launder sits in the arms so that gcse sees the extension's operand unmodified in the join block)
     if (w->flags & 2) {
         eprintf(0x40, 0xA8, 0, pTool->color, "                ON");
-        col = 0;
+        c = 0;
+        asm("" : "+r"(c));
     } else {
         eprintf(0x40, 0xA8, 0, pTool->color, "                OFF");
-        col = 0x14;
+        c = 0x14;
+        asm("" : "+r"(c));
     }
-    eprintf(0x40, 0xB6, col, pTool->color, "LIGHT_POS %6f %6f %6f", w->lightPos.x, w->lightPos.y, w->lightPos.z);
+    eprintf(0x40, 0xB6, (u8) c, pTool->color, "LIGHT_POS %6f %6f %6f", w->lightPos.x, w->lightPos.y, w->lightPos.z);
     eprintf(0x40, 0xC4, 0, pTool->color, "SELF_SHD %s", self_shd_name[w->selfShd]);
     eprintf(0x40, 0xD2, 0, pTool->color, "SOFT_SHD %s", soft_shd_name[w->softShd]);
     if (w->multiShd == 0) {
@@ -2341,7 +2373,7 @@ static void edit_light_type_shadow_fit()
         eprintf(0x40, 0xE0, 0, pTool->color, "MULTI_SHD ON");
     }
     eprintf(0x40, 0xEE, 0, pTool->color, "RANGE     %d", w->range);
-    eprintf(0x40, 0xFC, col, pTool->color, " [Y_BUTTON] Position Reset");
+    eprintf(0x40, 0xFC, (u8) c, pTool->color, " [Y_BUTTON] Position Reset");
     pTool->printCursor(7, pTool->init + 11);
     drawLightInfo(cur, 0xFFFFFFFF);
 }
@@ -2867,98 +2899,104 @@ f32 func_attn(cLight* l, f32 d)
 }
 
 // Attenuation curve of a custom light: a gx x gy .. gw x gh graph, the player distance and 1000-unit marks.
+// (the static names decide the gcse hash order of their `high` pseudos and thus the r20/r21
+// assignment of the loop's gx/gy address registers: x0/y0 reproduce it, gx/gy do not)
 void draw_light_graph(cLight* l)
 {
-    static f32 gx = 180.0f;
-    static f32 gy = 250.0f;
-    static f32 gw = 300.0f;
-    static f32 gh = 200.0f;
-    static f32 gs = 100.0f;
+    static f32 x0 = 180.0f;
+    static f32 y0 = 250.0f;
+    static f32 w0 = 300.0f;
+    static f32 h0 = 200.0f;
+    static f32 s0 = 100.0f;
     Vec a;
     Vec b;
     f32 scale;
     int i;
-    f32 d;
-    f32 t;
     f32 x;
+    f32 t;
     f32 v;
     u8 col;
     u32 lcol;
 
     if (l->x1C != 0.0f) {
-        scale = l->x1C / gw;
+        scale = l->x1C / w0;
     } else {
-        scale = 10000000.0f / gw;
+        scale = 10000000.0f / w0;
     }
-    a.x = gx;
-    a.y = gy;
+    a.x = x0;
+    a.y = y0;
     a.z = 0.0f;
-    b.x = gx + gw;
-    b.y = gy;
+    b.x = x0 + w0;
+    b.y = y0;
     b.z = 0.0f;
     Draw_line(&a, &b, 0xFFFFFFFF);
-    a.x = gx;
-    a.y = gy;
+    a.x = x0;
+    a.y = y0;
     a.z = 0.0f;
-    b.x = gx;
-    b.y = gy - gh;
+    b.x = x0;
+    b.y = y0 - h0;
     b.z = 0.0f;
     Draw_line(&a, &b, 0xFFFFFFFF);
-    for (i = 1; i < (int) gw; i++) {
-        v = func_attn(l, (f32) i * scale) * gs;
-        if (v > gh) {
-            v = gh;
+    for (i = 1; i < (int) w0; i++) {
+        v = func_attn(l, (f32) i * scale) * s0;
+        if (v > h0) {
+            v = h0;
         }
-        a.x = gx + (f32) i;
-        a.y = gy - v;
+        a.x = x0 + (f32) i;
+        a.y = y0 - v;
         a.z = 0.0f;
-        v = func_attn(l, (f32) (i + 1) * scale) * gs;
-        if (v > gh) {
-            v = gh;
+        v = func_attn(l, (f32) (i + 1) * scale) * s0;
+        if (v > h0) {
+            v = h0;
         }
-        b.x = gx + (f32) (i + 1);
-        b.y = gy - v;
-        b.z = b.y = b.x = 0.0f;
+        b.x = x0 + (f32) (i + 1);
+        b.y = y0 - v;
+        b.z = 0.0f;
         Draw_line(&a, &b, 0xE0E0E0E0);
     }
     a = pPL->pos;
     a.y += 1200.0f;
-    d = GetDistance3(&l->pos, &a);
-    t = d / scale;
-    if (d < l->x1C || l->x1C == 0.0f) {
-        a.x = gx + t;
-        a.y = gy;
+    x = GetDistance3(&l->pos, &a);
+    if (x < l->x1C || l->x1C == 0.0f) {
+        t = x / scale;
+        a.x = x0 + t;
+        a.y = y0;
         a.z = 0.0f;
-        b.x = gx + t;
-        b.y = gy - gh;
+        b.x = x0 + t;
+        b.y = y0 - h0;
         b.z = 0.0f;
         lcol = 0xFFFF0000;
     } else {
-        a.x = gx + gw;
-        a.y = gy;
-        a.z = t;
-        b.x = gx + gw;
-        b.y = gy - gh;
-        b.z = t;
+        a.x = x0 + w0;
+        a.y = y0;
+        a.z = 0.0f;
+        b.x = x0 + w0;
+        b.y = y0 - h0;
+        b.z = 0.0f;
         lcol = 0xFF000080;
     }
     Draw_line(&a, &b, lcol);
-    eprintf((int) gx + 0x78, (int) gy + 8, 0, pTool->color, "%3.6f", func_attn(l, d));
+    eprintf((int) x0 + 0x78, (int) y0 + 8, 0, pTool->color, "%3.6f", func_attn(l, x));
     for (x = 1000.0f; x < l->x1C || l->x1C == 0.0f; x += 1000.0f) {
-        a.x = gx + x / scale;
-        a.y = gy;
+        a.x = x0 + x / scale;
+        a.y = y0;
         a.z = 0.0f;
-        b.x = gx + x / scale;
-        b.y = gy - gh;
+        b.x = x0 + x / scale;
+        b.y = y0 - h0;
         b.z = 0.0f;
         Draw_line(&a, &b, 0x80808080);
     }
-    eprintf((int) gx, (int) gy + 8, 0, pTool->color, "%1.6f", func_attn(l, 1.0f));
+    eprintf((int) x0, (int) y0 + 8, 0, pTool->color, "%1.6f", func_attn(l, 1.0f));
+    v = func_attn(l, w0 * scale);
     col = 0;
-    if (func_attn(l, gw * scale) > 0.04f) {
+    if (v > 0.04f) {
         col = 6;
     }
-    eprintf((int) gx + 0xE6, (int) gy + 8, col, pTool->color, "%3.6f", func_attn(l, gw * scale));
+    {
+        int c = col;
+        asm("" : "+r"(c));  // COMPILER-DIFF: 2 (the original zero-extends the u8 for the int argument)
+        eprintf((int) x0 + 0xE6, (int) y0 + 8, (u8) c, pTool->color, "%3.6f", func_attn(l, w0 * scale));
+    }
 }
 // Parallel light: the direction is edited as two angles (static `ang`: x = pitch, y = yaw, z unused),
 // converted back to the unit normal (scaled by 1e6 in the light).
@@ -4664,6 +4702,13 @@ static const char* table_head[] = {
     "NO =======================================================",
 };
 
+// The row's swatch: a by-value GXColor parameter whose address is taken gets a 4-byte SImode stack
+// temp at the inline expansion (before the purge-time slot of the caller's address-taken `col`).
+static inline void drawColorTileC(int x, int y, int w, int h, GXColor c)
+{
+    DrawTile(x, y, w, h, &c);
+}
+
 // One row of the light table (first page of columns).
 static inline void printEditRow(cLight* l, int y, int c)
 {
@@ -4695,11 +4740,12 @@ static inline void printEditRow(cLight* l, int y, int c)
     }
     x += 4;
     if (l->type == 4) {
-        col.a = col.r = col.b = col.g = l->color.r;
+        col.a = l->color.r;
+        col.r = col.b = col.g = l->color.r;
     } else {
         col = l->color;
     }
-    drawColorTile(x * 8 + 1, y + 1, 0x16, 0xC, *(u32*) &col);
+    drawColorTileC(x * 8 + 1, y + 1, 0x16, 0xC, col);
     x += 4;
     eprintf(x * 8, y, c, pTool->color, "%1.1f", l->power);
     x += 4;
@@ -4732,11 +4778,11 @@ void printEditTable()
     int y;
     int no;
     int x;
-    int c;
+    u8 c;
     cLight* l;
 
     eprintf(0x20, 0x142, 4, pTool->color, table_head[page]);
-    for (i = 0, y = 0x150, no = pTool->top; i < pTool->rows; i++, y += 0xE, no++) {
+    for (i = 0, no = pTool->top; i < pTool->rows; i++, no++) {
         l = LightMgr.getWorkPtr(no);
         x = 4;
         if (pTool->editEnable()) {
@@ -4748,13 +4794,13 @@ void printEditTable()
         } else {
             c = 0x16;
         }
-        eprintf(x * 8, y, c, pTool->color, "%02d", no);
+        eprintf(x * 8, 0x150 + i * 14, c, pTool->color, "%02d", no);
         if (l->be_flag & 1) {
             if (page == 0) {
-                printEditRow(l, y, c);
+                printEditRow(l, 0x150 + i * 14, c);
             }
         } else {
-            eprintf(0x38, y, 0x14, pTool->color, "EMPTY WORK");
+            eprintf(0x38, 0x150 + i * 14, 0x14, pTool->color, "EMPTY WORK");
         }
     }
 }
@@ -5603,11 +5649,15 @@ void drawPath(int x, int y, cLightPathData* p, u8 flag, u32 cur)
     }
 }
 
+static inline cObj* objWorkNoChk(u32 no)
+{
+    return (cObj*) ((u8*) ObjMgr.pArray + ObjMgr.size * no);
+}
+
 int cLightTool::lightAnalysis()
 {
     u32 i;
     u32 n;
-    int y;
 
     if (!PTR_OK(anaTbl)) {
         return 0;
@@ -5616,32 +5666,34 @@ int cLightTool::lightAnalysis()
     memclr_asm(anaTbl, n * 4);
     anaNum = 0;
     for (i = 0; i < n; i++) {
-        cObj* obj = ObjMgrWork(i);
-        if (obj->isAlive() && obj->x12E == 2) {
-            cLightInfo* info = &obj->lightInfo;
-            if (info->getLightNum() > 4) {
-                int id = SmdGetWorkId(obj);
-                if (id != -1) {
-                    anaTbl[anaNum * 4 + 3] = id;
-                } else {
-                    anaTbl[anaNum * 4 + 3] = 0xFF;
+        if (objWorkNoChk(i)->isAlive()) {
+            cObj* obj = objWorkNoChk(i);
+            if (obj->x12E == 2) {
+                if (obj->lightInfo.getLightNum() > 4) {
+                    int id = SmdGetWorkId(obj);
+                    u8* p = (u8*) (anaNum * 4 + (u32) anaTbl);
+                    if (id != -1) {
+                        p[3] = id;
+                    } else {
+                        p[3] = 0xFF;
+                    }
+                    anaTbl[anaNum * 4] = obj->lightInfo.getLightNum();
+                    anaNum++;
                 }
-                anaTbl[anaNum * 4] = info->getLightNum();
-                anaNum++;
             }
         }
     }
-    n = pPL->lightInfo.getLightNum();
-    eprintf(0x1C8, 0x1C, 0, 0, "PL");
-    eprintf(0x1E0, 0x1C, n > 3 ? 0x16 : 0, 0, "%2d", n);
-    y = 0x2A;
+    {
+        u32 pln = pPL->lightInfo.getLightNum();
+        eprintf(0x1C8, 0x1C, 0, 0, "PL");
+        eprintf(0x1E0, 0x1C, pln > 3 ? 0x16 : 0, 0, "%2d", pln);
+    }
     for (i = 0; i < anaNum; i++) {
         if (anaTbl[i * 4 + 3] == 0xFF) {
-            eprintf(0x1C8, y, 0x16, 0, "-- %2d", anaTbl[i * 4]);
+            eprintf(0x1C8, 0x2A + i * 14, 0x16, 0, "-- %2d", anaTbl[i * 4]);
         } else {
-            eprintf(0x1C8, y, 0x16, 0, "%2d %2d", anaTbl[i * 4 + 3], anaTbl[i * 4]);
+            eprintf(0x1C8, 0x2A + i * 14, 0x16, 0, "%2d %2d", anaTbl[i * 4 + 3], anaTbl[i * 4]);
         }
-        y += 14;
     }
     return 1;
 }

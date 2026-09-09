@@ -10,6 +10,9 @@ public:
 
     cString();
     cString(const char* s);
+    // declared only: a user copy constructor makes the class BLKmode, so a `cString("...")` temporary
+    // shares a freed aggregate slot (t_movie movie_test_main: the temp sits in the file entry's slot)
+    cString(const cString& o);
     ~cString();
     cString& operator=(const cString& o);
     cString& operator+=(const cString& o);

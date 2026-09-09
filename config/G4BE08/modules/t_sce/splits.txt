@@ -10,7 +10,7 @@ t_sce/db_light.cpp:
 	.text       start:0x00000000 end:0x0001143C
 	.rodata     start:0x00000000 end:0x00001640 align:4
 	.data       start:0x00000000 end:0x00000500 align:4
-	.bss        start:0x00000000 end:0x000000C4 align:4
+	.bss        start:0x00000000 end:0x000000AC align:4
 	.bss        start:0x00004220 end:0x00004254 align:4 common
 
 t_sce/db_filelist.cpp:
@@ -18,6 +18,7 @@ t_sce/db_filelist.cpp:
 	.ctors      start:0x00000000 end:0x00000004
 	.dtors      start:0x00000000 end:0x00000004
 	.rodata     start:0x00001640 end:0x000016A0 align:4
+	.bss        start:0x000000AC end:0x000000C4 align:4
 
 t_sce/t_block.cpp:
 	.text       start:0x00011970 end:0x000155B4

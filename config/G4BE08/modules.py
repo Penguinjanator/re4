@@ -432,6 +432,7 @@ MATCHING = {
     "Tools/tools.cpp": True,
     # single-unit enemy modules (src/<em>/<em>.cpp, the whole REL)
     "em2e/em2e.cpp": True,
+    "em26/em26.cpp": True,
 }
 # The Ganado modules' per-enemy objects (src/<em>/<em>_set.cpp: entry points + EmXXInit/Set/WeaponSet).
 for _em in ["em10", "em11", "em12", "em13", "em14", "em15", "em16", "em17", "em19", "em1a", "em1b",
