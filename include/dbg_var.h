@@ -81,8 +81,10 @@ cVarLoop<T>::cVarLoop(const T& lo, const T& hi, const T& v)
 template <class T>
 int cVarLoop<T>::limitUpper(int d)
 {
-    int v = val + d;
+    // `range` before `v` (limitLower declares them the other way round): the declaration order
+    // decides the load / compare schedule of the entry block.
     int range = upper - lower + 1;
+    int v = val + d;
     while (v > upper) {
         v -= range;
     }

@@ -1881,12 +1881,16 @@ like the DOL.
   are `em10.cpp` (`"D:/Bio4/Prog/em10.cpp"`, cEm10 and the em10*/em1c*/plem10* helpers: .text
   0..0x43518 = 382 functions + the 0x3B8-byte template gap to 0x438D0, .rodata 0..0x1EC4, all 0x994
   bytes of .data, the 0x34-byte COMMON .bss — byte-identical in all 16, the split object
-  `build/G4BE08/<mod>/obj/<mod>/em10.o` is the same in every module) followed by two per-enemy
-  objects: `<mod>_prolog.cpp` (`_prolog` = `OSReport("em10 prolog Ok\n")` in every module, stores
-  EmXXInit/EmXXSet into EmInitFunc/.data+0; `_epilog`, `_unresolved`; 0x54 bytes) and `<mod>_set.cpp`
-  (EmXXInit/EmXXSet/EmXXWeaponSet, 0x780..0xA08 bytes; em1d/em1e/em1f/em20 also include light.h:
-  cManager<cLight> code the .sym skips and an unreferenced `"D:/Bio4/Prog/light.h"` string). The
-  real names of the two small files are not in the binary. The 28 other enemies (em18, em21..em3d,
+  `build/G4BE08/<mod>/obj/<mod>/em10.o` is the same in every module) followed by ONE per-enemy
+  object, unit `<mod>/<mod>_set.cpp` (src/<mod>/<mod>_set.cpp, all 16 Matching): `_prolog` =
+  `OSReport("em10 prolog Ok\n")` in every module + `EmInitFunc = EmXXInit; Em10SetFunc = EmXXSet;`
+  (no ctor loop), `_epilog`/`_unresolved` empty, then EmXXInit (`new (em) cEm10()`), EmXXSet,
+  EmXXWeaponSet (0x75C..0xB74 bytes). em1d/em1e/em1f/em20 include light.h (+ esp.h for the
+  trailing `EspDataLoad((u32) ARC(0x278), 0xCD, 0)`): their `.rodata` is [light.h string][prolog
+  string][five cManager<cLight> template strings] with the 0x3B8 cLight linkonce block after
+  EmXXWeaponSet - only one TU lays it out that way (a separate entry object would put the template
+  strings and the block before EmXXInit), which is why the former `<mod>_prolog.cpp` unit was
+  merged. The real file name is not in the binary. The 28 other enemies (em18, em21..em3d,
   em3e; .text 0x10C8..0x17034) start with `_prolog`/`_epilog`/`_unresolved` (same code, 4 `_prolog`
   variants), then their own `"D:/Bio4/Prog/emXX.cpp"`, and share only cUnit's inline
   `beginEvent`/`endEvent`/`~cUnit`/`operator delete` (byte-identical, at the end).
@@ -1913,7 +1917,8 @@ like the DOL.
     the generator derives them from the original fields; the few targets referenced both ways get
     `field_overrides` in rel.json. Our ngcld 3.9.3 -r also adds the displacement of the input section
     defining a *global* to the field (visible only from the second object on: em10's `_prolog` ->
-    `Em10Init`), the original linker did not; make_rel writes A back into every global field.
+    `Em10Init`), the original linker did not; make_rel writes A back into every global field. So a
+    zero field in the original never tells whether the reference crossed an object boundary.
   - module-0 relocations carry the *original main.elf's* section index in the section byte (.text 2,
     .rodata 5, .data 6, .bss 7, .sdata 8, .sbss 9, .sdata2 10); make_rel resolves DOL names through
     `config/G4BE08/symbols.txt` (not main.elf, whose names follow the compiled DOL units).
@@ -1950,6 +1955,14 @@ python3 tools/fdiff.py st2_4/r22c <mangled_symbol>
 ```
 
 Then `MATCHING["st2_4/r22c.cpp"] = True` in `config/G4BE08/modules.py`, `python3 configure.py && ninja`.
+
+Data of another (not yet compiled) unit of the same module has no name in the `.sym`, so a reference
+like `Em10SetFunc` (em10.cpp's `.data+0`) or `_vt.5cEm10` cannot be matched by demangled name;
+`sync_rel_symbols.py` resolves such undefined names through the relocations instead: the unit's split
+object (`build/G4BE08/<mod>/obj/<unit>.o`) must reference a `lbl_`/`fn_` placeholder at the same
+`.text` offsets with the same relocation types, and that placeholder is renamed. It reports the
+names it could not resolve; a name whose relocations do not line up (function order differs from the
+target) stays unresolved and `make_rel` then fails with "undefined symbol".
 
 ### Adding a module (every REL of disc 1 is configured; this is for another disc/build)
 
@@ -2123,6 +2136,37 @@ Then `MATCHING["st2_4/r22c.cpp"] = True` in `config/G4BE08/modules.py`, `python3
     the `lis` of both cover globals and the 220.0 constant instead of reusing the loop-hoisted registers;
     switchSymbol / str_check / initChurchBell differ only in callee-saved register choice or one
     load order.
+
+### Ganado per-enemy objects (em10..em20 `<mod>/<mod>_set.cpp`, all 16 Matching, 2026-09)
+
+- The 16 sources were generated from the target asm (the tables differ, the code does not); idioms:
+  `Em10Work* w = EM10_WK(em); switch (em->type) {...}` with one arm per model type, each arm a run
+  of `w->mot[i] = PL_ARC_PTR(em->subArc, N)` (`lwz subArc; lwz ofs; add; stw`, the subArc reload
+  after every store is the natural aliasing of a store through `w` against a load through `em`),
+  ending in `Em10SetSeTbl(em, K)`; then `w->x6C5 = K` (or `if (em->type == 6) w->x6C5 = 0; else
+  w->x6C5 = 1;` for the `li 1; bne; li 0; stb` shape) and `EmXXWeaponSet(em)`.
+- Archive stores are chained (each reload depends on the previous store), so their issue order IS
+  the source order (types 6 fill `mot[16]`/`mot[17]` between `mot[4]` and `mot[5]`). Zero stores are
+  free: write them after the archive store of the *segment* they are issued in (the run between two
+  `lwz subArc`), ascending by index; the dying zero store (`stw r11, 0xd0` = mot[40]) then comes
+  out first or mid-run exactly like the target.
+- Compare tree: the default arm's `em->type = K` store means `case K:` is a label of the default arm
+  (the node is real, its `beq default` is jump-threaded into `ble/blt default`: em11 `case 7:
+  default:` gives `cmpwi 8; beq; ble def; cmpwi 9; beq`, em12/em17/em13 `case 0: default:`, em1c
+  `case 7:`, em10 `case 0:`). em14 has `case 7:` as the tree root (`cmpwi 7; beq default`).
+- Variant types (em1d/em1e/em1f/em20): `case 15: case 19:` arms start with a reloaded `if (em->type
+  == 15) {mot[0], mot[1] = A} else {= B}` and share the rest; the default arm `case 14: case 18:
+  default: if (em->type == 18) {A} else {B; em->type = 14;}`. em20's `case 18` is a label INSIDE the
+  then-arm (`if (em->type == 18) { case 18: A } else {..}`: the switch jumps past the compare).
+  em1d's types 17/21 have no compare and share everything from `mot[2]`: `case 17: A; goto common17;
+  case 21: B; common17: ...` - two full copies compile to a different zero-store schedule in the
+  case-21 block (it would start at `mot[0]`; the target's starts at `mot[2]`), and the cross-jump
+  runs after sched1.
+- WeaponSet with `lbz type; cmpwi 4; bne` = `if (em->type == 4) { mot[67] = ..; [mot[68] = ..] }
+  else {..}` with the identical `add; stw` tail cross-jumped (em10/em15/em16; em16 differs in two
+  slots). em20's case 2 also does `em->flags_3C8 |= 0x10000000;` before its `Em10SetSeTbl`.
+- `Em10SetFunc` is em10.cpp's `.data+0` (declared in em10.h); `EmInitFunc` is game/em.cpp's
+  (`extern void (*EmInitFunc)(cEm*)`); `Em10SetSeTbl` is `extern "C"`.
 
 ### Sscrn (sub screen DLL, src/Sscrn/ss_*.cpp, include/ss_main.h)
 
@@ -2306,6 +2350,72 @@ Then `MATCHING["st2_4/r22c.cpp"] = True` in `config/G4BE08/modules.py`, `python3
 - The map model globals are named `ssPlModel`/`ssWepModel` (.bss 0x494/0x498, MapMgr works 0/1),
   `ssPlMotion`/`ssWepModel2` (.data 0x978/0x97C), renamed by hand in symbols.txt/sym_map.tsv
   (data labels have no .sym name for the sync tool); the generator attributes them to ss_map.cpp.
+- ss_term (src/Sscrn/ss_term.cpp, the codec call screen; 29/29 named functions byte-identical,
+  .data identical, NOT Matching: see the eof item below). Includes in .rodata order: light.h,
+  event.h, map_obj.h, widget.h, then `dbg_button.h` — which is now the REAL header (cDbgButtonBase
+  / cDbgWindowBase / cDbgButton with their inline virtuals; the 12 menu strings keep their parse
+  order, and event.cpp / sscrn.cpp / ss_main stay byte-identical because nothing there constructs
+  one). cDbgWindow (the 128-button debug window, key function LocalUpdate) is declared in
+  ss_term.cpp *after* MakeCol/DbgDrawBoxFill (its "AddButton(): new failed." string follows
+  MakeCol's pool), and SsTermInit/SsTermMain after it — so ss_term includes ss_main.h mid-file,
+  after cDbgWindow. Widget<SUB_SCREEN> must be completed before dbg_button.h (a `static inline`
+  reading `w->num` at the top) so its vtable comes out last: the .rodata vtable order is the
+  reverse declaration order SsTermMain, SsTermInit, cDbgWindow, cDbgButton, cDbgWindowBase,
+  cDbgButtonBase, Widget.
+  Idioms: `col += (u8)(a * 255.0f) << 24; ...` (MakeCol: `+` chains stay `add`, a single
+  expression turns the last one into `or`); cDbgButtonBase's x/y and cDbgWindowBase's x/y are
+  `u32` (the LocalDisp int->float conversions have no `xoris`); the box call needs
+  `f32 px/py/pw` conversions first, then `f32 ph = 14.0f; f32 bd = 2.0f;` locals and
+  `DbgDrawBoxFill(px - bd, py - bd, pw + 0.0f, ph + bd, ...)` (pool 2^52, 14, 2, 0, 0.7, 0.3);
+  `(y + 1) + b->y` needs an inline `dbgWindowRow(y)` (fold reassociates the literal otherwise);
+  cFileList::init's zero stores are `text, list, cursor, pattern, filter` and `dir(d, f)` passes two
+  uninitialised locals (no arg moves); `p = text; num = 0;` (not `num = 0; p = text`) keeps the
+  fresh `li r0,0` after a strchr loop whose exit register cse would reuse; `p += strlen(p); p += 2`;
+  `if (top + rows > num) end = num; else end = top + rows;` gives the `mr r28,r0` copy; the second
+  template array (`char defFilter[12]`) is declared mid-block after the first alloc/strcpy.
+  OpeMesTblInit reads the op archive through an inline `opArc(wk)` (pointer reloaded per statement
+  because the table stores may alias, and `ofs + (u32) arc` is not reassociated with the +0x400);
+  the un-rotated `for (;;) { if (!(s->time > cnt)) { if (!OpeSeqMove(s)) return 1; } else break; }`
+  keeps the test at the loop top; `MessageControl* m = &cMes; int i = 0;` declared AFTER the
+  preceding call keep `lis cMes` / `li i` below the `bl` (three Delete loops); the `state++` after
+  `sscrnMainMenuInit` is `IntSet(x10, 0)` so the following `pSys` load stays below it; the frame
+  needs `Vec pos; Vec ang = {0,0,0}; pos = term_pl_pos;` (pos slot first, memset second);
+  `modelOn = 0; ended = 0;` come out reversed; `wk->pzzlOfs + (u32) wk->pBuf` (offset first).
+  cFileList has an empty ctor and dtor (the empty static init pair and `global constructors
+  keyed to MakeCol`), and the file-scope instance is the unreferenced 0x18 of .bss after
+  term_read_req.
+- OPEN (ss_term eof, keeps the unit off MATCHING): the original writes the vtables of cDbgButton
+  and cDbgButtonBase (interface-unknown classes: only inline virtuals) and outputs `~cDbgButton`
+  first among the eof functions, `~cDbgButtonBase` after `~Widget`; ours writes neither vtable
+  (nothing references them: `AddButton` is never emitted) — .rodata is 0x30 short and the two
+  dtors are missing. finish_vtable_vardecl writes an unknown-interface vtable only when its symbol
+  was referenced, so the original had a reference our source does not create (or its later SN
+  build writes every completed vtable in round 1, which would also explain the exact vtable order).
+  `#pragma implementation "dbg_button.h"` makes ours write them but reorders the placed linkonce
+  block; not pursued. Also open: terminalCameraInit's pool has four extra floats after the 1.333
+  aspect (0.5, 3.1415927, 180, 240) that no instruction loads — mark_constant_pool drops
+  unreferenced entries in our build, and `const f32` locals / `if (0)` code / unused inlines all
+  emit nothing here (tested).
+- ss_model (src/Sscrn/ss_model.cpp, the character and weapon model builders; 40/47 byte-identical,
+  .rodata and .data identical, .text +12): include order map_obj.h, light.h, widget.h, atari.h;
+  `PL_ARC(n)` = `PL_ARC_PTR(pG->pPlArc, n)` re-read per call (pG reloaded); the model archive at
+  SUB_SCREEN::x210 is an `SsArc`; `ssModelAdd(m, bin, tpl)` = `m->addModel(ssModInfoMgr.create(bin,
+  tpl))` (cSsModInfoMgr got an asm-labelled `create__11cModInfoMgrPvT1`); the light set is one
+  `static inline ssModelLight(m)` whose two `static const Vec` are the single .rodata copy after
+  weaponFilename's strings; per-character `static Vec pos/rot; static f32 scale` locals land in
+  .data at their function (`SS_MODEL_PLACE` stores pos, rot, then scale z, y, x); weapon hang =
+  `wep->pParts->pParent = m->getPartsPtr(10)` + stores written per field (an inline taking f32
+  parameters hoists the constants across the call); the `scale = 0.5` half-scale switch needs
+  `case 0x13: case 0x16: case 0x17: break;` labels (they root the tree at 0x17 and let the compare
+  be shared with the later switches through `mfcr`/`mtcrf`) and a `cModel* p = wep->pParts` local
+  for the three stores; wep11 is two switches (`case 0: default:` / range pairs); wep01-04/06 are
+  `if (type == 0) .. else if (type == 1)`, wep10 `if (0) .. ; if (1) .. else ..`, wep13's colour
+  bytes are stored in index order and its `pParent` store is a `PSet` (the pG load must stay
+  below it); the unit ends with an unreferenced `static int = 0` (.data 0xA40). playerModelInit
+  passes the u8 weapon number/type through int-parameter aliases (COMPILER-DIFF 4). Residual: the
+  six character inits load the scale static's `lis` early into a callee-saved register (ours
+  right before the `lfs`; chain / local / order variants tried) and wep09Init's two modelInit arms
+  are cross-jumped in the original (compiler-build difference 6).
 
 ### Open
 
@@ -2520,6 +2630,58 @@ Then `MATCHING["st2_4/r22c.cpp"] = True` in `config/G4BE08/modules.py`, `python3
 - Things that did not move the needle (register / `lis @ha` pseudo choice): declaration order of
   locals, `int` vs `u32` counters, `xi = x` before the loop vs in the `for`, `by-value` vs `const&`
   GXColor helpers. The remaining db_light diffs are of that kind.
+- db_light, second pass (121/134 in t_camera, 121/135 Tools, 122/136 t_esp; .rodata/.data now byte-equal):
+  - Judge with a masked byte compare of the split vs compiled object (relocated fields masked on
+    *both* sides, 16-bit relocs sit at word+2): objdiff's % hid the `xAxis` value (it is (0,1,0)), the
+    editColor black template, `logX = 24.0f`, `sz = gamma2 = 0.25f`, `x1C = 3000.0f`, `* 0.1f` in move,
+    string-space mistakes and the 0x400921FB60000000 double (`atan2(..) * 127.0 / 3.14159265f`, an f32
+    PI widened).
+  - "First-entry init" blocks (`if (pTool->x8 == 0) { x9 = cur->xD; x8 = 1; }`) have an else arm with
+    a dead local set in both arms (`first = 1` / `first = 0`; one dead set is deleted by jump1, two
+    survive to cse): the then arm ends in a jump, cse cannot skip it, and the join's `pTool` load
+    re-uses the block's own `lis LightToolPtr@ha` instead of the hoisted one (select_type,
+    shadow_select_type, edit_light_id, edit_light_select_sub, edit_light_parent).
+  - Clamps are if/else with a store per arm (`if (cursor + 10 < 0xFF) cursor += 10; else cursor =
+    0xFF;`): the stores are cross-jumped after reload and the join is a new cse ebb (fresh `lis`);
+    `n = ..; if (n > 0xFE) n = 0xFF; store` is a skippable block that keeps the shared @ha register
+    (edit_cutsel_main).
+  - `cVarLoop::limitUpper` declares `range` before `v` (limitLower the other way round): the
+    declaration order decides the load/compare schedule of the entry block.
+  - A chain `l->x138 = pad[0] = pad[1] = pad[2] = 0` stores 138, 13b, 13a, 139 (initLightWork).
+  - drawPath: the data pointer steps (`u8* d = p->data` declared with the locals, `*d`, `d++`) while
+    `i` stays a counter; the `for` increments are written `xi += 4, i++, d++` (`addi xi` before
+    `addi i`).
+  - createLit: the same `cLightEnv* c` local in the table loop and the memcpy loop ties `c` to r4
+    (the memcpy argument) in both.
+  - cLitPathTool ctor: the else arm stores through a reference (`cLightPathHeader*& p = pLitPath; p =
+    getPathHeader()`), which evaluates `lis LitPathPtr@ha` before the call into a callee-saved reg.
+  - `static const` file-scope objects are output after the vtables in the original .rodata (finish_file
+    order: vtables, then deferred namespace statics, in declaration order): the black GXColor template
+    of editColor (0x1630) and the (0,1,0) axis (0x1634, an `f32[3]`: 4-aligned, a `Vec` would be 8).
+    tools/ngccc.py now puts module `.gnu.linkonce.d.*` vtables in `.rodata` in place (like the DOL
+    path) instead of fold_linkonce appending them; all 111 files still OK.
+  - printEditTable's header table is a file-scope `static const char* table_head[]` defined *before*
+    the inline row printer: an inline's string literals are emitted at parse time, a function-local
+    static's initializer strings after the body.
+  - editColor: `black` is a local copied from the deferred template (`GXColor black = blackTemplate;`
+    right before the first use: one `lwz` into a callee-saved reg, `stw` into `tmp` per DrawTile); a
+    `{0,0,0,0}` initializer folds to `li 0`. Open: the frame order tmp(0x8)/c(0xC) — both are
+    ADDRESSOF pseudos and ours forces `c` first (`c.g = 0` is `(plus (addressof c) 1)`), the
+    original forces `tmp` first while still storing c.r/c.g/c.b before the first DrawTile.
+  - COMPILER-DIFF #2 in edit_light_id_shadow: the original zero-extends the u8 `col` once before the
+    two uses of the else arm (`clrlwi r30,r30,24`, PRE-shared); reproduced with `int c = col; asm("" :
+    "+r"(c)); (u8) c` except that our sched1 places the mask after the arm's first call (calls do
+    not end sched blocks here). edit_cutsel's `line`: `u8 line = i + 6` gives the target's frame and
+    size but a `clrlwi` where the original has a plain `mr` (the reverse #2/#4 case), so `int line`
+    stays (-4 bytes).
+  - Open register-only diffs: edit_light_type_spotlight/direct/parallel (the `spotRot`/`dirRot`
+    `high` pseudo shares r30 with the `Vec* rot` pointer because the pointer's `addi` is scheduled
+    after the `x = 0` store in the original and before it in ours: `lis r30; stfs @l(r30); addi
+    r30,r30,@l`), drawLightInfo_SpotShadow (`mr r3/r4` of Draw_corn2 hoisted above the `len == 0`
+    branch — COMPILER-DIFF #5), edit_light_parent (`n` r8 vs r10: the case-2 temp `(id >> 16) + 101`
+    is not tied to `id >> 16`), lightAnalysis (+0x1C), move (+0x10), draw_light_graph (-0x34),
+    printEditTable (-0xC, one more callee-saved register and a smaller frame in the original),
+    edit_light_type_shadow_fit (-4).
 
 ### System units (file_app, pl_sub Matching; dvd, EtcModel, pl_class, mes, datactrl, read, objWep, lightPath, rnd, at_mod near)
 
@@ -2638,3 +2800,47 @@ Then `MATCHING["st2_4/r22c.cpp"] = True` in `config/G4BE08/modules.py`, `python3
     for the two hoisted loop invariants, declaration/statement order and inline forms do not move it.
   - pl_wep/pl_sub: `EspDataRelease` is now declared in esp.h (`extern "C" int (u32, int, int)`); a
     unit-local C declaration with `int` parameters is a compile error.
+
+- Tools REL debug-tool units (src/Tools/, 2026-09): the module (and t_event, the same db_toolbase object)
+  is compiled with `-fno-implement-inlines` (modules.py CFLAGS): `cDbgWindow::AddButton` inlines the
+  in-class `cDbgButton(x, y, name, cx, cy)` constructor (`pButton[num] = b = new cDbgButton(...)`: the
+  slot address is computed before `__builtin_new` because the RHS is not a CALL_EXPR; a helper call as RHS
+  evaluates the call first) and no out-of-line body exists although cDbgButton's vtable is in the object.
+  The ctor calls the header inline `cDbgButtonBase::Init` (its message string opens the .rodata).
+  db_toolbase.h's eleven display strings sit in a non-polymorphic struct of string-returning inlines.
+- Two adjacent unit boundaries were wrong: a `cFlag.set()` string right after a unit's vtables / pools
+  belongs to the NEXT unit's atari.h group (Tools t_atari 0x2578, t_rck 0x5000), like the rooms.
+- `14.0f + 2.0f` unfolded in the target (LocalDisp) = both operands are variables: `f32 fh = 14.0f;
+  f32 mgn = 2.0f;` declared in the same block are NOT folded by cse (the pool loads stay), while two
+  literals fold at the tree level; the pool order is declaration order of the variables, so put the
+  `(f32)` conversions (2^52 magic first) before them.
+- `(y + 1 + b->y)` reassociates to `addi (b->y),1; add`; the target's `addi y,1; add b->y` needs
+  `int by = y + 1;` as a loop-body local.
+- `(u8)(a*255) << 24` + ... with `+`: accumulate into one `u32 col` variable (`col += ...`) so combine
+  never sees the non-overlapping operands and keeps `add` instead of `or`.
+- A lone unreferenced 4-byte float word between two functions' pools (t_prim 10.0 before TprimDrawHtr,
+  t_util 0.0 before ToolMenuDisp) is reproduced by a public `const f32` object defined at that point
+  (`extern const f32 X; const f32 X = C;`); unused locals, dead expressions and `static const` locals
+  emit nothing (mark_constant_pool drops unreferenced pool entries).
+- A shared source can carry the "full" build of a file behind a define (`TPRIM_FULL`, `T_UTIL_FULL`;
+  src/Tools/t_prim.cpp and t_util.cpp are 3-line includes): the extra functions' pools replace the
+  parse-time template hacks the dead-stripped builds needed (their constants were those pools).
+  `configure.py`/tools/project.py now prefers an exact-case directory match, so src/Tools and
+  src/tools coexist.
+- Byte-store chains `p->a = p->b = 0` load the pointer once for both stores; a following separate byte
+  store reloads it (t_mv `pMv->step = pMv->cursor = 0; pMv->camMode = 0;`).
+- A `u8 zero = 0` (or `int ret = 0`) function-scope local kept in a callee-saved register reappears as
+  the source of a byte store in a branch arm while the other arm has its own `li rX,0`; ours merges
+  the literal arm into the variable (cse src_related through the SImode pseudo) and cross-jumps the
+  arms — OPEN (t_mv mvInit). Also OPEN: cDbgWindow::Init's zero stores are issued in RTL order with
+  no dying-store hoisting although the zero and `this` die at the last one (every reference-setter,
+  chain, volatile and return-value form tried).
+- Vec copies the target does with `lfs/stfs` are memberwise assignments; `*out = cur` gives `lwz/stw`.
+- `for (i = 0; i < 4; i++) f(&p[i])` with `int i`: the strength-reduced pointer loop compares with
+  `cmpw` (signed); the switch on the search result needs an explicit `case 0: break;` for the
+  `cmpwi 1; beq; ble default` tree shape.
+- Tools/tools.cpp: the split object is src/tools/tools.cpp (4 functions + the cLight block match) PLUS the
+  module's .gnu.linkonce orphans (ToolArrayPush/ToolWorkPop inline bodies, cManager<T>::arrayPush/Pop of
+  six managers) that the original ELF appended after .text; no compiled unit emits them yet, so the
+  unit stays unmatched and callers only declare `void ToolArrayPush(int)` / `ToolWorkPop(int)`.
+  t_mv also needs `SetToolLight(int)` global (db_light_tools.cpp has it `static`; the .sym scope is wrong).

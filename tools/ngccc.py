@@ -271,6 +271,11 @@ def place_linkonce_module(module: str, unit: str, asm: str, pre_obj: str, assemb
                     if kind == "drop":
                         continue
                     line = '\t.section\t".text"\n'
+                elif s.startswith('.section\t".gnu.linkonce.d.'):
+                    # vtables stay at their emission position in .rodata like in the DOL path
+                    # (t_camera db_light: a deferred `static const Vec` and editColor's colour template
+                    # follow the two vtables in the original .rodata; an appended copy puts them first)
+                    line = '\t.section\t".rodata"\n'
             elif mode is not None:
                 # inside the function: `.align/.weak/.type/label/.L_f*_s/body/.Lfe/.size`; the `.size`
                 # line ends it (section-independent directives such as `.comm` may follow)

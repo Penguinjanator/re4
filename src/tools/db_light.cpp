@@ -218,7 +218,8 @@ static const char* path_litpath = "x:\\soft/room/etc/core/litpath.bin";
 
 // direction editor scratch (a global in the original: the first .bss object)
 Vec spotRot;
-static const Vec xAxis = {1.0f, 0.0f, 0.0f};
+static const GXColor blackTemplate = {0, 0, 0, 0};
+static const f32 yAxis[3] = {0.0f, 1.0f, 0.0f};  // 4-aligned (an f32[3], not a Vec) after the vtables
 
 // The path header pointer is a struct member too: its load stays after the path table stores.
 struct cLitPathPtr {
@@ -407,7 +408,7 @@ cLightTool::cLightTool() : modeSel(0, 2, 0)
     }
     flags |= 4;
     anaNum = 0;
-    logX = 20.0f;
+    logX = 24.0f;
     logY = 140.0f;
 }
 
@@ -525,8 +526,8 @@ int cLightTool::move()
             }
         }
     }
-    logX += (f32) Joy[0].ssx * 0.05f;
-    logY -= (f32) Joy[0].ssy * 0.05f;
+    logX += (f32) Joy[0].ssx * 0.1f;
+    logY -= (f32) Joy[0].ssy * 0.1f;
     pLog->x = (int) logX;
     pLog->y = (int) logY;
     return ret;
@@ -684,7 +685,6 @@ static void edit_cutsel_main()
 {
     static const int cutsel_col[9] = {3, 10, 14, 19, 24, 29, 35, 39, 44};
     int base;
-    int n;
 
     if (pTool->init == 0) {
         LitSaveWork(&pTool->lit, pTool->cutNo);
@@ -712,11 +712,14 @@ static void edit_cutsel_main()
         }
     }
     if (pTool->joy.rep & JOY_R) {
-        n = pTool->cursor + 10;
-        if (n > 0xFE) {
-            n = 0xFF;
+        // if/else with a store in each arm (cross-jumped after reload): the join block is a new
+        // cse ebb, so the next `pTool` load re-materialises `lis LightToolPtr@ha`; a clamp into a
+        // temp (`if (n > 0xFE) n = 0xFF;`) is a skippable block that keeps the shared @ha register.
+        if (pTool->cursor + 10 < 0xFF) {
+            pTool->cursor += 10;
+        } else {
+            pTool->cursor = 0xFF;
         }
-        pTool->cursor = n;
         if (pTool->cursor > pTool->top + 19) {
             pTool->top = pTool->cursor - 19;
         }
@@ -1070,10 +1073,18 @@ static void edit_light_select_sub()
     cLight* cur = curLight();
     u32 i;
     int y;
+    int first;
 
+    // First-entry init blocks carry a dead `first` flag set in both arms: the else arm makes the
+    // block an if/else (the then arm ends in a jump, so cse cannot skip it), and the join block's
+    // `pTool` load re-uses the block's own `lis LightToolPtr@ha` instead of the hoisted one.
+    // A single dead set would be deleted by jump1 before cse; two sets survive until flow.
     if (pTool->xC == 0) {
         pTool->xC = 1;
         pTool->xD = pTool->cutNo;
+        first = 1;
+    } else {
+        first = 0;
     }
     eprintf(0x140, 0x46, 4, pTool->color, "SUB MENU");
     i = 0;
@@ -1309,10 +1320,14 @@ static void edit_light_id()
         edit_light_id_spotlock, edit_light_id_normal,
     };
     cLight* cur = curLight();
+    int first;
 
     if (pTool->xA == 0) {
         pTool->xB = cur->type;
         pTool->xA = 1;
+        first = 1;
+    } else {
+        first = 0;
     }
     eprintf(0x40, 0x8C, 4, pTool->color, "LIGHT PROPATY");
     eprintf(0x40, 0x9A, 0, pTool->color, "%2d %s", cur->type, light_id_name[cur->type]);
@@ -1576,16 +1591,21 @@ static void edit_light_id_shadow()
         eprintf(0x40, 0xC4, 0x14, pTool->color, "INV_TEX:");
         eprintf(0x40, 0xC4, col, pTool->color, "         %s", shadow_onoff[(w->flags >> 2) & 1]);
         eprintf(0x40, 0xD2, 0, pTool->color, "GND_DIST:");
-        eprintf(0x40, 0xD2, 0, pTool->color, "           %2d", w->gndDist);
+        eprintf(0x40, 0xD2, 0, pTool->color, "          %2d", w->gndDist);
     } else {
+        // COMPILER-DIFF: #2 -- the original zero-extends the u8 `col` once before this arm's two
+        // uses (`clrlwi r30,r30,24`); ours knows the promoted value fits. The launder + (u8) casts
+        // reproduce the mask and the register assignment (the mask is scheduled one call later).
+        int c = col;
+        asm("" : "+r"(c));
         eprintf(0x40, 0xB6, 0, pTool->color, "USE_TEX: ");
         eprintf(0x40, 0xC4, 0, pTool->color, "INV_TEX:");
-        eprintf(0x40, 0xC4, col, pTool->color, "         %s", shadow_onoff[(w->flags >> 2) & 1]);
+        eprintf(0x40, 0xC4, (u8) c, pTool->color, "         %s", shadow_onoff[(w->flags >> 2) & 1]);
         eprintf(0x40, 0xD2, 0, pTool->color, "TEX_NO :");
-        eprintf(0x40, 0xD2, col, pTool->color, "          %2x", w->gndDist);
+        eprintf(0x40, 0xD2, (u8) c, pTool->color, "         %2x", (u8) w->gndDist);
     }
     if (w->kind - 1 <= 3u) {
-        eprintf(0x40, 0xB6, 0x17, pTool->color, "          ON");
+        eprintf(0x40, 0xB6, 0x17, pTool->color, "         ON");
     } else {
         eprintf(0x40, 0xB6, 0, pTool->color, "         %s", shadow_onoff[w->flags & 1]);
     }
@@ -1832,11 +1852,15 @@ static void edit_light_parent()
     cObj* obj;
     u32 n;
     cModel* m;
+    int first;
 
     if (pTool->init == 0) {
         pTool->cursor = 0;
         pTool->x8 = cur->parentType;
         pTool->init = 1;
+        first = 1;
+    } else {
+        first = 0;
     }
     switch (pTool->cursor) {
     case 0:
@@ -2158,10 +2182,14 @@ void edit_light_type_shadow()
 int shadow_select_type()
 {
     cLight* cur = curLight();
+    int first;
 
     if (pTool->x8 == 0) {
         pTool->x9 = cur->xD;
         pTool->x8 = 1;
+        first = 1;
+    } else {
+        first = 0;
     }
     if (pTool->joy.rep & JOY_RIGHT) {
         pTool->x9 = (pTool->x9 + 4) % 3;
@@ -2518,10 +2546,14 @@ int select_type()
     cLight* cur = curLight();
     int ret;
     int col;
+    int first;
 
     if (pTool->x8 == 0) {
         pTool->x9 = cur->xD;
         pTool->x8 = 1;
+        first = 1;
+    } else {
+        first = 0;
     }
     if (pTool->joy.rep & JOY_RIGHT) {
         pTool->x9 = (pTool->x9 + 9) % 8;
@@ -2652,7 +2684,7 @@ static void edit_light_type_spotlight()
             rot->y = -(f32) pTool->joy.sx / 1000.0f;
             RotMatrix(m, rot);
             PSMTXMultVec(m, &sp->normal, &sp->normal);
-            PSVECCrossProduct(&sp->normal, &xAxis, rot);
+            PSVECCrossProduct(&sp->normal, (const Vec*) yAxis, rot);
             PSMTXRotAxisRad(m, rot, (f32) pTool->joy.sy / 1000.0f);
             PSMTXMultVec(m, &sp->normal, &sp->normal);
         }
@@ -2777,7 +2809,7 @@ static void edit_light_type_direct()
         rot.y = -(f32) pTool->joy.sx / 1000.0f;
         RotMatrix(m, &rot);
         PSMTXMultVec(m, &sp->normal, &sp->normal);
-        PSVECCrossProduct(&sp->normal, &xAxis, &rot);
+        PSVECCrossProduct(&sp->normal, (const Vec*) yAxis, &rot);
         PSMTXRotAxisRad(m, &rot, (f32) pTool->joy.sy / 1000.0f);
         PSMTXMultVec(m, &sp->normal, &sp->normal);
         if (sp->normal.x == 0.0f && sp->normal.y == 0.0f && sp->normal.z == 0.0f) {
@@ -2933,6 +2965,7 @@ void draw_light_graph(cLight* l)
 static void edit_light_type_parallel()
 {
     static Vec ang;
+    const f32 k = 1000000.0f;  // pool order: 1e6 before the step constants
     cLight* cur = curLight();
     LightSpot* sp = &cur->spot;
     f32 step = (pTool->joy.on & JOY_A) ? 10.0f : 1.0f;
@@ -3270,8 +3303,8 @@ static void edit_focus()
 // Contrast tone curve of the blur filter: axes, the (in, out) knee and the end segments.
 void draw_tone_curve()
 {
-    static f32 sz = 0.5f;
-    static f32 gamma2 = 0.5f;
+    static f32 sz = 0.25f;
+    static f32 gamma2 = 0.25f;
     static f32 gamma3 = 0.1f;
     cLightEnv* env = LightMgr.getEnvPtr();
     Vec a;
@@ -3743,7 +3776,7 @@ static void edit_wind()
             }
             CamStick2World(&pG->Cam, &Joy[0], &stick);
             if (Joy[0].on & 0xF0000) {
-                env->wind.dir = (int) (atan2(stick.x, stick.z) * 127.0 / 3.14159265358979);
+                env->wind.dir = (int) (atan2(stick.x, stick.z) * 127.0 / 3.14159265f);  // f32 PI widened: pool 0x400921FB60000000
             }
             break;
         case 1:
@@ -4624,7 +4657,13 @@ static void quit()
         pTool->routine = 0;
     }
 }
-// The light table: one row per light of the current cut (first page of columns only).
+// The light table header: defined before the inline row printer so that its strings precede the
+// row printer's strings in .rodata (an inline's string literals are emitted at parse time).
+static const char* table_head[] = {
+    "NO ID EMASK PA POSITION===== RAD COL INT TYPE KIND ATTR PR",
+    "NO =======================================================",
+};
+
 // One row of the light table (first page of columns).
 static inline void printEditRow(cLight* l, int y, int c)
 {
@@ -4688,10 +4727,6 @@ static inline void printEditRow(cLight* l, int y, int c)
 // The light table: one row per light of the current cut.
 void printEditTable()
 {
-    static const char* table_head[] = {
-        "NO ID EMASK PA POSITION=== RAD COL INT TYPE KIND ATTR PR",
-        "NO ==================================================",
-    };
     int page = pTool->col > 11;
     int i;
     int y;
@@ -4982,10 +5017,12 @@ u32 cDbLit::createLit(cLit* dst)
     }
     dst = (cLit*) &tbl[nCut];
     size = nCut * 4 + 4;
+    // the same `c` as the table loop: the memcpy argument ties it to r4 in both loops
     for (i = 0; i < nCut; i++) {
-        if (cut[i]) {
-            n = cut[i]->nLight * sizeof(cLightWork) + sizeof(cLightEnv);
-            memcpy(dst, cut[i], n);
+        c = cut[i];
+        if (c) {
+            n = c->nLight * sizeof(cLightWork) + sizeof(cLightEnv);
+            memcpy(dst, c, n);
             dst = (cLit*) ((u8*) dst + n);
             size += n;
         }
@@ -5005,9 +5042,8 @@ int editColor(int x, int y, GXColor* col)
     int ret = 1;
     f32 step;
     int link;
-    GXColor c;
     GXColor tmp;
-    const GXColor black = {0, 0, 0, 0};
+    GXColor c;
 
     switch (state) {
     case 0:
@@ -5027,6 +5063,9 @@ int editColor(int x, int y, GXColor* col)
     link = pTool->joy.on & JOY_Y;
     pTool->printCursor(x - 1, y + pTool->cursor);
     eprintf(x << 3, y * 14, 0, pTool->color, "R %3d", col->r);
+    // the original copies the deferred .rodata template into a register once (`lwz r24`) and
+    // stores that word into `tmp` before each DrawTile; a `{0,0,0,0}` initializer folds to `li 0`
+    GXColor black = blackTemplate;
     c.r = 0xFF;
     c.g = 0;
     c.b = 0;
@@ -5264,7 +5303,7 @@ void initLightWork(cLight* l)
     l->pos.x = 0.0f;
     l->pos.y = 0.0f;
     l->pos.z = 0.0f;
-    l->x1C = 5000.0f;
+    l->x1C = 3000.0f;
     l->power = 1.0f;
     l->setParent(0, 0);
     l->kind = 0;
@@ -5273,7 +5312,7 @@ void initLightWork(cLight* l)
     memclr_asm(&l->spot, sizeof(LightSpot));
     memclr_asm(&l->sub, 0x40);
     memclr_asm(&l->path, sizeof(LightPath));
-    l->x138 = 0; l->pad_139[2] = l->pad_139[1] = l->pad_139[0] = 0;
+    l->x138 = l->pad_139[0] = l->pad_139[1] = l->pad_139[2] = 0;
     l->curColor.r = 0x80;
     l->curColor.g = 0x80;
     l->curColor.b = 0x80;
@@ -5526,6 +5565,7 @@ void drawPath(int x, int y, cLightPathData* p, u8 flag, u32 cur)
     u32 i;
     u32 xi;
     f32 f;
+    u8* d = p->data;  // the data pointer steps (`lbzu`), `i` stays a counter for the `i == cur` tests
 
     a.x = (f32) x;
     a.y = (f32) (y - 10);
@@ -5541,7 +5581,7 @@ void drawPath(int x, int y, cLightPathData* p, u8 flag, u32 cur)
     b.y = (f32) (y + 100);
     b.z = 0.0f;
     Draw_line(&a, &b, 0xFFFFFFFF);
-    for (i = 0, xi = x; p->data[i] <= 200; i++, xi += 4) {
+    for (i = 0, xi = x; *d <= 200; xi += 4, i++, d++) {
         a.x = (f32) xi;
         a.y = (f32) y;
         a.z = 0.0f;
@@ -5549,7 +5589,7 @@ void drawPath(int x, int y, cLightPathData* p, u8 flag, u32 cur)
         b.y = (f32) (y + 100);
         b.z = 0.0f;
         Draw_line(&a, &b, (i == cur) ? 0x40A0A0A0 : 0x40404040);
-        f = (f32) p->data[i] * 0.5f;
+        f = (f32) *d * 0.5f;
         if (flag & 2) {
             f = 100.0f - f;
         }
@@ -5627,7 +5667,10 @@ cLitPathTool::cLitPathTool()
         memcpy(pLitPath, hdr, size);
         LightMgr.initPath((LightPathHeader*) pLitPath);
     } else {
-        pLitPath = (cLightPathHeader*) LightMgr.getPathHeader();
+        // through a reference: the store address (`lis LitPathPtr@ha`) is evaluated before the call
+        // and kept in a callee-saved register; a plain store forms it after the call
+        cLightPathHeader*& p = pLitPath;
+        p = (cLightPathHeader*) LightMgr.getPathHeader();
     }
     expand(pLitPath);
     if (PTR_OK(path[0])) {
@@ -5700,3 +5743,6 @@ int cLitPathTool::createPath(cLightPathHeader* dst)
     }
     return 1;
 }
+
+// the next object's .data is 8-aligned: the split object carries the 4-byte pad
+asm(".section .data; .balign 8");
