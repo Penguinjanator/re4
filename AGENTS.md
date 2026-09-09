@@ -2248,8 +2248,42 @@ target) stays unresolved and `make_rel` then fails with "undefined symbol".
   compiled); ss_main has 57/58 functions byte-identical (open: SubScreenTask register allocation /
   `lis pG@ha` hoisting / `cur->init(wk)` tail merging); ss_item is written (34 functions incl. dtors,
   25 byte-identical, .rodata/.data/.bss identical), open items below; ss_term (29/29 named
-  functions, eof block open) and ss_model (40/47) are written, see their items; ss_map, ss_pzzl,
-  ss_shop are unwritten.
+  functions, eof block open) and ss_model (40/47) are written, see their items; ss_map (src/Sscrn/
+  ss_map.cpp, 88/105 named functions byte-identical, .data/.bss identical, .rodata 8 bytes short:
+  see its item) and ss_pzzl (src/Sscrn/ss_pzzl.cpp, 33/64, .data identical, first pass) are
+  written; ss_shop is unwritten.
+- ss_map idioms (2026-09): include order light.h, map_obj.h, widget.h, atari.h (the cSat/Widget/
+  cUnit vtables come out in that reverse order after the widget vtables). The unit defines its own
+  `extern "C" inline LightSetModel2` before ss_main.h (the module's second copy, nameless 0x2C at
+  the eof before ~cSat / ~Widget). Uninitialised statics are declared BEFORE `#include "ss_main.h"`:
+  its externs of ssPlModel/ssWepModel (defined here) would otherwise put them first in .bss
+  (first-declaration order). Small local arrays of <= 8 bytes (`int x[2]`, `int x[1]`, `u8 x[4]`)
+  have an integer mode, get a pseudo at declaration and only receive a frame slot when their
+  address is first taken (put_var_into_stack): their slots follow all BLKmode locals, in
+  address-taking order (markGoalPosition: the `int[2]` table lands behind the 3/4/6-element ones
+  although declared between them; the `int[1]` singletons follow in switch-case order), while
+  their .rodata templates keep declaration order. `static const Vec` locals of a `static inline`
+  helper defined between two callers are the single .rodata copy at the helper's position
+  (mapModelLight before mapModelInit, after the mapColor tables); file-scope `static const`
+  tables (mark_model_tbl, map_cam_entire) come out at the eof after the vtables. getAreaNo is a
+  `switch ((u32) room)` with `case a ... b:` ranges (`cmplwi` trees), `case 0: default:` at the
+  top and no trailing return (the surviving `return 0` copy is stage 3's inner default). `(x &
+  (1 << n))` folds to `sraw/andi.`; `u32 bit = 1 << no;` keeps `slw/and.` (mapModeCheck). The
+  8-float `f32 tbl[8]` .data statics are debug camera presets of which only [0] is read.
+  Open: mapPositionCheck (-0x1C: the two cSat locals' ctor stores / debug-draw block layout),
+  mapColor (+0x14 frame spills), doorModelInit (-0x30), mapModelInit/markGoalPosition/
+  markMerchantPosition/markTreasureExist/markCoinDisp/markTreasureDisp (register allocation of
+  the table copies), zoomMove (target has 8 more bytes of frame + one more callee-saved reg),
+  mapChangeViewport (`map_vp_init = 1` store slot), MapModeSelect::init/move (timer store order,
+  `lwz pG` placement), SsMapInit/SsMapMain::move (+8/+4).
+- ss_pzzl notes (first pass, 2026-09): pzlBoard+0xC is a Mtx (puzzle.h `mat`, the board -> world
+  matrix caseModelMove sets); the grid cell size is a static member of a local class
+  (`pzlGrid::size`, the first word of the module's COMMON block, set to 100.0 by caseModelMove);
+  the `u16 x[2]` line width statics are `{ot, prio}` pairs `{0xF, 0}`; `.data` A44 is the message-
+  open flag, AD0 a 20-byte unreferenced table behind an `int = 0`; the second `setCommandId` of
+  the module is `static` here. Not tuned yet: every function that differs does so by a few
+  instructions (see bcmp), caseModelMove (-0x1D4: the matrix copies) and drawCursor/drawGridLine
+  (Mtx copy loops) are the big ones.
 - **The module was compiled with `-fno-implement-inlines`** (config/G4BE08/modules.py `CFLAGS`,
   wired through configure.py's `REL_CFLAGS`): SubScreenTask creates every screen's Init/Main widget
   with per-class link counts (`SsFileMain` 5, `SsItemMain`/`SsPzzlMain` 6, `SsMapMain` 5,

@@ -191,9 +191,25 @@ public:
     virtual void move(SUB_SCREEN* wk);
 };
 
+class MapFocus;
+class MapEntire;
+class MapZoomIn;
+class MapZoomOut;
+class MapRead;
+class MapModeSelect;
+
 class SsMapMain : public Widget<SUB_SCREEN> {
 public:
-    u8 pad_10[0x38 - 0x10];  // members: ss_map.cpp
+    int state;                 // 0x10  0 map, 1 main menu, 2 loading
+    int step;                  // 0x14  0 request the area data, 1 wait, 2 running
+    int readReq;               // 0x18
+    MapFocus* focus;           // 0x1C
+    MapEntire* entire;         // 0x20
+    MapZoomIn* zoomIn;         // 0x24
+    MapZoomOut* zoomOut;       // 0x28
+    MapRead* read;             // 0x2C
+    MapModeSelect* modeSel;    // 0x30
+    Widget<SUB_SCREEN>* cur;   // 0x34
 
     SsMapMain() : Widget<SUB_SCREEN>(5) {}
     virtual void init(SUB_SCREEN* wk);
@@ -210,9 +226,28 @@ public:
     virtual void move(SUB_SCREEN* wk);
 };
 
+class PzzlThinking;
+class PiecePopUp;
+class PiecePopDown;
+class PieceSelect;
+class PieceCombine;
+class PieceCommand;
+class CaseChange;
+
 class SsPzzlMain : public Widget<SUB_SCREEN> {
 public:
-    u8 pad_10[0x40 - 0x10];  // members: ss_pzzl.cpp
+    int state;                 // 0x10  0 puzzle, 1 main menu
+    int caseMove;              // 0x14  1 on the first frame (case model at the opening position)
+    PzzlThinking* thinking;    // 0x18
+    PiecePopUp* popUp;         // 0x1C
+    PiecePopDown* popDown;     // 0x20
+    PieceSelect* select;       // 0x24
+    PieceCommand* command;     // 0x28
+    PieceCombine* combine;     // 0x2C
+    SsItemExamine* exam;       // 0x30
+    CaseChange* caseChange;    // 0x34
+    Widget<SUB_SCREEN>* cur;   // 0x38
+    Widget<SUB_SCREEN>* next;  // 0x3C
 
     SsPzzlMain() : Widget<SUB_SCREEN>(6) {}
     virtual void init(SUB_SCREEN* wk);
@@ -328,7 +363,7 @@ public:
 };
 class cSsModInfoMgr : public cManager<cModelInfo> {
 public:
-    cSsModInfoMgr() asm("__12cModInfoMgr");
+    cSsModInfoMgr() asm("__11cModInfoMgr");
     virtual void* memAlloc(u32 size);
     virtual void memFree(void* p);
     virtual void memClear(cModelInfo* p, u32 size);

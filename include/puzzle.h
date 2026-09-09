@@ -2,6 +2,7 @@
 #define PUZZLE_H
 
 #include "types.h"
+#include "vec.h"
 
 // Attache case packing puzzle (game/puzzle.cpp): pieces on a grid board.
 struct ItemWork;
@@ -62,7 +63,7 @@ public:
     u8 pieceMax;      // 0x06
     u8 pad_7;
     pzlPiece** pieces;// 0x08
-    u8 pad_C[0x3C - 0xC];
+    Mtx mat;          // 0x0C  board -> world matrix (Sscrn ss_pzzl caseModelMove)
     s8 curX;          // 0x3C  cursor
     s8 curY;          // 0x3D
     s8 wallDir;       // 0x3E  ckInsideWall result side (1 left, 2 right, 3 up, 4 down)

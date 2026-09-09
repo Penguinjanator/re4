@@ -64,7 +64,8 @@ struct SUB_SCREEN {
     SsArc* pItem;             // 0x1E8  ss_item.dat archive (Sscrn ss_item)
     SsArc* pTerm;             // 0x1EC  ss_term.dat archive (Sscrn ss_term)
     void* pOpData;            // 0x1F0  op/opNN.das (Sscrn ss_term: the message/sequence archive at +0x400)
-    u8 pad_1F4[0x1FC - 0x1F4];
+    SsArc* pMapCmn;           // 0x1F4  ss_map.dat archive (Sscrn ss_map: common map data, pPzzl while the map is open)
+    SsArc* pMapArea;          // 0x1F8  SS/cmn/map_objNN.dat archive of the current area (Sscrn ss_map)
     SsArc* pFile;             // 0x1FC  ss_file.dat archive (Sscrn ss_file)
     SsArc* pExam;             // 0x200  item examine id data archive (examine ItemExamine::idSet)
     u8 pad_204[4];
@@ -95,16 +96,23 @@ struct SUB_SCREEN {
     u8 x269;                  // 0x269
     u16 x26A;                 // 0x26A
     s8 x26C;                  // 0x26C  Sscrn ss_item: command cursor
-    u8 pad_26D[0x2AE - 0x26D];
+    u8 pad_26D[3];
+    Mtx plMapMat;             // 0x270  player matrix on the map (Sscrn ss_map mapPositionCheck)
+    u8 x2A0;                  // 0x2A0
+    u8 mapRooms;              // 0x2A1  Sscrn ss_map: model count of the area's rooms (door models start there)
+    s8 mapFloor;              // 0x2A2  Sscrn ss_map: player floor (y / 100 rounded)
+    u8 pad_2A3[0x2AD - 0x2A3];
+    u8 x2AD;                  // 0x2AD  Sscrn ss_map mapCameraInit clears it
     u8 x2AE;                  // 0x2AE  item 0x7C..0x7F owned -> 0..3
     u8 x2AF;                  // 0x2AF
     class pzlPlayer* x2B0;    // 0x2B0  puzzle (case) player of the Sscrn puzzle screen
     u8 pad_2B4[0x2FA - 0x2B4];
     u16 x2FA;                 // 0x2FA  item id handed to the opened sub screen (sce_at sceAtGetItem)
     u16 x2FC;                 // 0x2FC  its count
-    u8 pad_2FE[0x304 - 0x2FE];
+    u8 pad_2FE[2];
+    ItemWork* x300;           // 0x300  Sscrn ss_pzzl: the extra piece's slot (get() result)
     ItemScreenWork* pItemWk;  // 0x304  Sscrn ss_item cursor state (9 bytes)
-    u8 pad_308[4];
+    struct SsMapWork* pMapWk; // 0x308  Sscrn ss_map work (mark models, camera, viewport; 0x104C bytes)
     SsFileWork* pFileWk;      // 0x30C  Sscrn ss_file cursor/page state
     s8* x310;                 // 0x310  Sscrn ss_cap cursor {row, column, row * 6 + column}
     u8 pad_314[0x31C - 0x314];
