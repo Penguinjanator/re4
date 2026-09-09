@@ -46,6 +46,7 @@ void SFX_MakeTable(SFX_OBJ *sfx, SFX_FRM *frm, Sint32 type)
 			}
 			break;
 		case 0:
+		case 3:
 		case SFX_TBL_Z32:
 		case SFX_TBL_Z16:
 		case SFX_TBL_NONE:
