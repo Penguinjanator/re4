@@ -39,6 +39,8 @@ void CameraTargetRot(Camera* cam, char axis, f32 rad);
 void CameraCamposRot(Camera* cam, char axis, f32 rad);
 void CameraDolly(Camera* cam, Vec* d);
 void CameraCamposDistance(Camera* cam, f32 dist);
+// Bio4.sym marks it local; the t_camera REL imports it (cam_sys.cpp defines it non-static)
+void CameraTargetDistance(Camera* cam, f32 dist);
 void CameraSetWithRoll(Camera* cam, Vec* pos, Vec* at, f32 roll, f32 fovy);
 // game/camera.cpp
 void CameraSetProjection(int type);

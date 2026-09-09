@@ -180,7 +180,7 @@ void CameraDolly(Camera* cam, Vec* d)
     CameraSetOrientationUp(cam);
 }
 
-static void CameraTargetDistance(Camera* cam, f32 dist)
+void CameraTargetDistance(Camera* cam, f32 dist)
 {
     Vec v;
 

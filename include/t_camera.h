@@ -6,6 +6,7 @@
 #include "camera.h"
 #include "joy.h"
 #include "cam_ctrl.h"
+#include "db_light.h"
 
 // game/cam_ctrl.cpp (declared here, not in cam_ctrl.h: a header extern would reorder cam_ctrl's .bss)
 extern CameraBSpline CamBSpline;
@@ -19,6 +20,11 @@ struct TcMenu {
 };
 
 // Tool-side records (the file records of cam_ctrl.h with the arrays inline).
+struct TcPoly {
+    s32 num;                     // 0x00
+    Vec pt[16];                  // 0x04
+};
+
 struct TcAdat {                  // camera hit area, 0x11C
     u8 enable;                   // 0x00  0xFF = free
     s8 area_no;                  // 0x01
@@ -31,8 +37,13 @@ struct TcAdat {                  // camera hit area, 0x11C
     Mtx mat;                     // 0x20
     f32 height;                  // 0x50
     f32 base_y;                  // 0x54
-    s32 num;                     // 0x58
-    Vec pt[16];                  // 0x5C
+    union {
+        struct {
+            s32 num;             // 0x58
+            Vec pt[16];          // 0x5C
+        };
+        TcPoly poly;             // 0x58  (tcAdatInit writes the corners through this view)
+    };
 };
 
 struct TcCdat {                  // camera cut, 0x394
@@ -67,15 +78,23 @@ struct TcLdat {                  // camera lerp, 0x10 (CameraLerp)
 
 // Tool work (0x644 bytes, the static instance behind `pTc`).
 struct TcWork {
-    u8 active;                   // 0x000  1 while the tool runs
-    u8 x1;                       // 0x001
-    u8 pad_2[0x8 - 0x2];
+    s8 routine;                  // 0x000  tcRoutineTbl index (tcInit, tcMenu, tcEdit, tcLoad, tcSave, tcQuit)
+    s8 editMode;                 // 0x001  tcEdit: 0 select, 1 edit
+    s8 x2;                       // 0x002
+    u8 pad_3;
+    s8 cursor;                   // 0x004  main menu cursor
+    s8 subCursor;                // 0x005  sub menu cursor
+    s8 x6;                       // 0x006
+    u8 pad_7;
     TcAdat* pAdat;               // 0x008  current area
     u8 pad_C[0x10 - 0xC];
     Camera cam;                  // 0x010  tool copy of pG->Cam
     u8 pad_108[0x10C - 0x108];
-    JOY joy;                     // 0x10C  pad snapshot
-    u8 pad_374[0x5DF - 0x374];
+    JOY joy;                     // 0x10C  pad snapshot (Joy[0]; trg at 0x120, rep at 0x128)
+    JOY joy2;                    // 0x374  Joy[1]
+    s8 mode;                     // 0x5DC  0 main menu, 1 sub menu
+    s8 editSel;                  // 0x5DD  0 area, 1 camera
+    u8 pad_5DE;
     s8 cdatNo;                   // 0x5DF  current camera data
     s8 adatNo;                   // 0x5E0  current area data
     s8 x5E1;                     // 0x5E1
@@ -83,14 +102,24 @@ struct TcWork {
     s8 adatNum;                  // 0x5E3
     s8 ldatNum;                  // 0x5E4
     u8 adatTypeNum[0x40];        // 0x5E5  per camera type
-    u8 pad_625[0x62F - 0x625];
+    u8 pad_625[0x627 - 0x625];
+    s8 x627;                     // 0x627
+    u8 pad_628[0x62E - 0x628];
+    u8 viewMode;                 // 0x62E  1 = working view
     u8 x62F;                     // 0x62F
-    u8 pad_630[0x634 - 0x630];
+    u8 pad_630[0x632 - 0x630];
+    u8 previewReq;               // 0x632
+    u8 preview;                  // 0x633  preview on
     s8 x634;                     // 0x634  CamCtrl+0x692
     s8 x635;                     // 0x635  CamCtrl+0x690
     s8 x636;                     // 0x636  CamCtrl+0x691
     u8 x637;                     // 0x637  pSys->xB
-    u8 pad_638[0x644 - 0x638];
+    u8 lightTool;                // 0x638  1 while the light tool runs
+    u8 areaDetail;               // 0x639
+    u8 blink;                    // 0x63A  frame counter
+    u8 pad_63B;
+    cLightTool* pLightTool;      // 0x63C
+    u8 pad_640[0x644 - 0x640];
 };
 
 extern TcWork* pTc;

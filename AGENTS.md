@@ -4309,3 +4309,61 @@ target) stays unresolved and `make_rel` then fails with "undefined symbol".
 - `on = (prev ^ cur) & cur` gives the target's `addi` order; `hp = 1` in the `mode == 1` arm
   stores mode's register (cse jump-equiv).
 
+
+### Small tool RELs, fifth pass (t_esp/db_port 51/68 written; t_camera/t_camera 19/57 partial; 2026-09)
+
+- db_port.cpp (src/t_esp/db_port.cpp, D:/Bio4/Prog/db_port.cpp; .data/.bss byte-equal, .rodata 0x10
+  short): the game bridge of the effect tool. Include set from the header strings: db_widget.h
+  (atari/light/map_obj/widget) then event.h. Everything except DB_DrawBox/DB_DrawBoxFill/DB_DrawString is
+  `extern "C"`; `font_draw(u8*, f32 r,g,b,a, s16 y, s16 x, s16 z, s16 w, s16 h)` is this unit's own copy
+  (not eprintf.cpp's) and `fontTMtx` is imported by name although static in the DOL (make_rel resolves
+  DOL names from symbols.txt regardless of scope, no DOL edit needed). `SetToolLight__Fi` is global in
+  the t_esp REL (LightToolStart calls it): tools/db_light_esp.cpp exports it like the Tools wrapper, the
+  t_esp symbols.txt scope was flipped by hand. `DB_MODEL_FILES` (db_mod.h) is a 0x85C class with an
+  inline ctor calling init(): EspToolInit's three `static DB_MODEL_FILES` locals produce the
+  `if (!guard) { init(); guard = 1; }` pairs in .bss, followed by the nine `static u8 tbl[0x20]`
+  texture-blend tables (function statics in text order), then the file-scope statics. The two
+  `DB_MODEL_FILES::append` overloads (char* 0xE0 / void* 0x84) were named by hand in symbols.txt.
+- Idioms found: `(f32) -(int) joy->trigL` = `lbz; neg; xoris` classic conversion, `(f32)(int)(u8) x`
+  = `lbz; xoris` (DB_GetKeybordData); `int idx = Sp_char_ck(c) - 0x20; (idx & 0x1F) * 8;
+  ((idx >> 5) & 7) * 16` = `clrlslwi 27,3` / `rlwinm 31,25,27` (font_draw); a `char name[5]` local is
+  BLKmode and stored frame-relative while `char name[8]` (DImode) gets an `addi` address pseudo
+  (LoadModEff); a `u8 zero = 0` declared mid-block AFTER the early-return compare gives the shared
+  callee-saved zero of two later byte stores without hoisting its `li` to the prologue; `if (mode ==
+  0) f = 0; else f = (u16)(8 << (mode - 1))` (SeqSet); `EstSet(m, -1, 0, 0, head, f | 1, 0, (u32) m,
+  0xCF, 0)` is the C++ overload; `DB_GetCursorPos`: `if (parts == 0xFF || flag)` (not `flag == 0`);
+  `if (ret == 0) { fail; return 0; } ok; return ret;` for the `beq fail` layout (LoadData); explicit
+  `->pNext->pNext...` chains (a loop compiles to `mtctr`); `EspGetPathAddr(pe->id, pe->owner)` with the
+  cEsp pulled into a plain local (`PullEsp(&esp, 6); pe = (DbPathEsp*) esp;` — the address-taken `esp`
+  would be reloaded after every call); the sp_3dgrid sizes are `(f32) -anm->x4` / `(f32) anm->x6`
+  (s16 fields) with `(f32)(int) anm->x0 * 0.5f` fallbacks and gen->x88/x8C read into locals right
+  after DB_GetCursorPos; GXColor byte stores in a 4-byte ADDRESSOF local come out in pure source
+  order (drawTexture2: g, a, b, r) and `Mtx m; Mtx44 proj;` declared after the colour calls give the
+  temp-0x8/m-0x10/proj-0x40/col-0x80 frame.
+- Residues (all register/schedule or compiler-build): GetActiveModel/DB_isGetComeEventTool/SeqSet keep
+  `int on = 1; if (!(flags & bit)) on = 0;` (evtToolOn inline) but SeqSet's zero-argument register and
+  the `r9/r11` naming differ; EspToolExit's `&CamDbg` stays `lis/addi` + `stb 0xf(r10)` in the target
+  (ours folds to CamDbg+0xF; the target's shared `li r8,0` also feeds the GXColor word); DB_GetCursorPos
+  moves `head` to r0 and loads `parts` into r3; DB_VecNullPartsPos/DB_VecMulEmPartsMat/sp_* differ in
+  callee-saved assignment of the pointer params; EspToolInit (0x1FC8) is written but -0xCC: the target
+  spills `&tbl1` into an anonymous `.rodata` word (the snd_test pool-spill shape, .rodata 0x28A8),
+  hoists the `i + 1` increment into a stack slot and keeps `EvtDebug` in r28/r29 pairs. DB_ConfigLoad
+  (-4) parses `[KEY] value` blocks into a 16 x 0x68 table (name, motNo, pos, ang, parOn/No/PtNo,
+  parPos/parAng) — structure identical, register order open.
+- t_camera.cpp (src/t_camera/t_camera.cpp) is PARTIAL: ToolCamera, tcDataInitialize, tcInit, tcMenu,
+  tcSubMenu, tcEdit, the twelve tc*dat helpers, tcNext*Ptr, head/tail/next_suffix, tcQuit,
+  tcToolCameraMove, tcPreviewOnOff, tcCurrentCameraNo are written (19 identical); tcEdit_select,
+  tcEdit_area, tcArea*, tcDrawArea, tcEdit_camera*, fix_camera_dat, edit_rail_*, edit_frame_no,
+  tcMoveOffsetPoint, tcCamera*Point, tcDrawOffset, tcDrawRail, tcLoad, tcSave are not. The unit defines
+  the .bss pools (tcTypeTbl/tcAdat/tcCdat/tcLdat/tcWork) and .data (`tcTypeName[9]`, `tcOnOff[2]`,
+  `tcMenuPos[12]`, pTc, the routine table, the main menu names). TcWork got the field names of the
+  offsets this unit touches (include/t_camera.h); `TcAdat::poly` (TcPoly view at 0x58) is what
+  tcAdatInit writes the corners through (`stfs 0x4(r27)` off `&a->num`). `tcNextCdatPtr(s8, int)`,
+  `tcNextAdatPtr(s8, int, int)`, `head/tail_suffix(s8)`, `next_suffix(s8, int)` take s8 (no `extsb`
+  at entry: `__FSc` mangling, symbols renamed by hand after the first sync). `CameraTargetDistance`
+  (cam_sys.cpp) is imported by the REL: made non-static, declared in camera.h, DOL scope flipped.
+- PITFALL (cost a REL mismatch): a partially written unit that declares the routine-table entries
+  it does not define as plain (non-static) functions makes `sync_rel_symbols` flip their scope to
+  global in the module symbols.txt; the split object's ADDR32 field then holds A instead of S+A and
+  the REL's .data differs (t_camera .data+0x56C/0x570 = tcLoad/tcSave). Keep the scopes local by hand
+  until the functions exist.

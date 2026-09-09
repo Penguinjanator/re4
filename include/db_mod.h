@@ -22,6 +22,22 @@ struct DbModState {
     u8 loaded;  // 0x3449
 };
 
+// File list handed to dbModelLoad (t_esp db_mod.cpp, 0x85C bytes: names / data pointers of the
+// bin, tpl and extra files of one event model). The constructor only inits; db_port.cpp keeps
+// three as function statics (their guard words follow each one in .bss).
+class DB_MODEL_FILES {
+public:
+    u8 pad[0x85C];
+
+    DB_MODEL_FILES() { init(); }
+    void init();
+    void set(int no, char* name);
+    void set(int no, void* data);
+    void append(char* name);
+    void append(void* data);
+    int read(int no);
+};
+
 extern DbModSlot dbModSlot[64];  // Tools .bss 0xE8
 extern DbModState* pDbModState;  // Tools .bss 0x13AAE8
 

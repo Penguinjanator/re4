@@ -3222,7 +3222,7 @@ address	size	section	unit	scope	name	demangled
 0x800D68D8	0xB0	.text	game/cam_sys.cpp	global	CameraTargetRot	CameraTargetRot
 0x800D6988	0xB0	.text	game/cam_sys.cpp	global	CameraCamposRot	CameraCamposRot
 0x800D6A38	0x50	.text	game/cam_sys.cpp	global	CameraDolly	CameraDolly
-0x800D6A88	0x78	.text	game/cam_sys.cpp	local	CameraTargetDistance__FP6Cameraf	CameraTargetDistance
+0x800D6A88	0x78	.text	game/cam_sys.cpp	global	CameraTargetDistance__FP6Cameraf	CameraTargetDistance
 0x800D6B00	0x78	.text	game/cam_sys.cpp	global	CameraCamposDistance	CameraCamposDistance
 0x800D6B78	0x64	.text	game/cam_sys.cpp	global	CameraSetWithRoll	CameraSetWithRoll
 0x800D6BDC	0x58	.text	game/camera.cpp	global	CameraSetProjection	CameraSetProjection
