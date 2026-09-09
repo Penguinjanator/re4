@@ -728,7 +728,7 @@ EspgenWork* SetWaterWork45(EspgenWork* w, Vec* pos, Vec* rot, f32 size, u32 nx, 
     if (p->bump == NULL) {
         goto nomem;
     }
-    p->dlSize = ((p->nx + 1) * (p->ny * 2) * 12 + 0x61) & ~0x1F;
+    p->dlSize = ((p->nx + 1) * 2 * p->ny * 12 + 0x61) & ~0x1F;
 #line 1497 "D:/Bio4/Prog/espgen45.cpp"
     p->dl = (u8*) MEM_ALLOC(p->dlSize, 1, 13);
     if (p->dl == NULL) {
@@ -750,7 +750,7 @@ EspgenWork* SetWaterWork45(EspgenWork* w, Vec* pos, Vec* rot, f32 size, u32 nx, 
     d++;
     *d = 0x98;
     d++;
-    *(u16*) d = (p->nx + 1) * (p->ny * 2);
+    *(u16*) d = (p->nx + 1) * 2 * p->ny;
     d += 2;
     for (i = 0; i < p->ny; i++) {
         k = i * (p->nx + 1);
@@ -763,15 +763,15 @@ EspgenWork* SetWaterWork45(EspgenWork* w, Vec* pos, Vec* rot, f32 size, u32 nx, 
             d += 4;
             *(f32*) d = (f32) i / (f32) (p->ny + 1);
             d += 4;
-            k++;
-            *(u16*) d = p->nx + k;
+            *(u16*) d = p->nx + (k + 1);
             d += 2;
-            *(u16*) d = p->nx + k;
+            *(u16*) d = p->nx + (k + 1);
             d += 2;
             *(f32*) d = (f32) j / (f32) (p->nx + 1);
             d += 4;
             *(f32*) d = (f32) (i + 1) / (f32) (p->ny + 1);
             d += 4;
+            k++;
         }
         i++;
         if (i < p->ny) {
@@ -785,10 +785,9 @@ EspgenWork* SetWaterWork45(EspgenWork* w, Vec* pos, Vec* rot, f32 size, u32 nx, 
                 d += 4;
                 *(f32*) d = (f32) i / (f32) (p->ny + 1);
                 d += 4;
-                k++;
-                *(u16*) d = p->nx + k;
+                *(u16*) d = p->nx + (k + 1);
                 d += 2;
-                *(u16*) d = p->nx + k;
+                *(u16*) d = p->nx + (k + 1);
                 d += 2;
                 *(f32*) d = (f32) j / (f32) (p->nx + 1);
                 d += 4;
@@ -800,20 +799,21 @@ EspgenWork* SetWaterWork45(EspgenWork* w, Vec* pos, Vec* rot, f32 size, u32 nx, 
     fy = 0.0f;
     for (int i2 = 0; i2 < p->ny + 1; i2++) {
         int idx = i2 * (p->nx + 1);
+        int jj;
         fx = 0.0f;
-        for (int j2 = 0; j2 < p->nx + 1; j2++) {
-            p->pos[idx].x = fx - (f32) (p->nx / 2);
+        for (jj = 0; jj < p->nx + 1; jj++) {
+            p->pos[idx].x = fx - (f32) (int) (p->nx / 2);
             fx += 1.0f;
             p->pos[idx].y = fRand1_1() * 0.2f;
-            p->pos[idx].z = fy - (f32) (p->ny / 2);
+            p->pos[idx].z = fy - (f32) (int) (p->ny / 2);
             p->nrm[idx].x = 0.0f;
             p->nrm[idx].y = 1.0f;
             p->nrm[idx].z = 0.0f;
             p->hA[idx] = 0.0f;
             p->hB[idx] = 0.0f;
-            p->nrm[idx].x += ((f32) j2 - (f32) (p->nx / 2)) * (1.0f / (f32) p->nx);
+            p->nrm[idx].x += ((f32) jj - (f32) (int) (p->nx / 2)) * (1.0f / (f32) (int) p->nx);
             p->nrm[idx].y *= 0.25f;
-            p->nrm[idx].z += ((f32) i2 - (f32) (p->ny / 2)) * (1.0f / (f32) p->ny);
+            p->nrm[idx].z += ((f32) i2 - (f32) (int) (p->ny / 2)) * (1.0f / (f32) (int) p->ny);
             idx++;
         }
         fy += 1.0f;

@@ -2131,3 +2131,13 @@ Then `MATCHING["st2_4/r22c.cpp"] = True` in `config/G4BE08/modules.py`, `python3
 - `Obj18Work* w = &obj->o18` produces `addi r11,r9,0x328; lwz 0x68(r11)` instead of a folded offset.
 - A single-variable fade helper (`c = 0xFF; start = c; c = 0; end = c;`) delays the `li r0,0` to just
   before its `stw`.
+
+- A `const T x[] = {..}` declared `extern` in a header is emitted at its definition; with internal
+  linkage it is deferred behind the cManager template strings (cam_ctrl `smooth_ratio`).
+- Empty in-class `C() {}`/`~C() {}` on a vtable-less class emits no body but makes its global object
+  emit at the definition point (controls `.bss` order vs deferred plain arrays).
+- `char st = member; switch (st) { ... member = st + 1; }` reuses the loaded byte for the increment.
+- `(on & A) || (on & B)` on one lvalue folds to one mask; separate `andi.` tests need inline helpers.
+- A do-while `{}` macro flips FPR assignment of two independent RMW chains vs a plain block.
+- Constant folding needs the exact product literal (`0.8f * 1.2f`, `PI * 0.35f`, `1.33333333f`).
+- A `lis rX,0x8023` with no reloc in the split object next to our `@ha` reloc is a dtk pairing miss.

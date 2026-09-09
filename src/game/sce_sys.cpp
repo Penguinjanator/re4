@@ -527,14 +527,7 @@ void SceExecEventCancel()
     if (SceSys.cancelFunc != 0) {
         SceExec(slot, SceSys.cancelFunc, SceSys.cancelArg, 2, 2, 0);
     }
-    {
-        GXColor start;
-        GXColor end;
-
-        *(u32*) &start = 0xFF;
-        *(u32*) &end = 0;
-        FadeSet(0x80000000, &start, &end, 10, 0, 0);
-    }
+    FadeSetW(0x80000000, 10, 0, 0);
 }
 
 void SceSetEventCancel(int on, TaskFunc func, int arg, int flagNo, int sndFlag)

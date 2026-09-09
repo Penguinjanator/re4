@@ -7108,7 +7108,7 @@ address	size	section	unit	scope	name	demangled
 0x801F7D28	0x74	.text	lib/sfh_main.c	global	getPicRate	getPicRate
 0x801F7D9C	0x19C	.text	lib/sfh_main.c	global	SFH_AnlyFtrFxType	SFH_AnlyFtrFxType
 0x801F7F38	0x19C	.text	lib/sfh_main.c	global	SFH_AnlyFtrGopM	SFH_AnlyFtrGopM
-0x801F80D4	0x19C	.text	lib/sfh_main.c	local	SFH_AnlyFtrGopN	SFH_AnlyFtrGopN
+0x801F80D4	0x19C	.text	lib/sfh_main.c	global	SFH_AnlyFtrGopN	SFH_AnlyFtrGopN
 0x801F8270	0x184	.text	lib/sfh_main.c	global	SFH_AnlyFtrExpand	SFH_AnlyFtrExpand
 0x801F83F4	0x188	.text	lib/sfh_main.c	global	SFH_AnlyFtrShcFixFlg	SFH_AnlyFtrShcFixFlg
 0x801F857C	0x188	.text	lib/sfh_main.c	global	SFH_AnlyFtrFixFlg	SFH_AnlyFtrFixFlg
@@ -7116,7 +7116,7 @@ address	size	section	unit	scope	name	demangled
 0x801F888C	0x188	.text	lib/sfh_main.c	global	SFH_AnlyFtrColType	SFH_AnlyFtrColType
 0x801F8A14	0x1BC	.text	lib/sfh_main.c	global	SFH_AnlyElemPicRate	SFH_AnlyElemPicRate
 0x801F8BD0	0x194	.text	lib/sfh_main.c	global	SFH_AnlyElemPicSz	SFH_AnlyElemPicSz
-0x801F8D64	0x174	.text	lib/sfh_main.c	local	SFH_AnlyElemBitRate	SFH_AnlyElemBitRate
+0x801F8D64	0x174	.text	lib/sfh_main.c	global	SFH_AnlyElemBitRate	SFH_AnlyElemBitRate
 0x801F8ED8	0x150	.text	lib/sfh_main.c	global	SFH_AnlyElemCodecVid	SFH_AnlyElemCodecVid
 0x801F9028	0x15C	.text	lib/sfh_main.c	global	SFH_AnlyElemSmpHz	SFH_AnlyElemSmpHz
 0x801F9184	0x14C	.text	lib/sfh_main.c	global	SFH_AnlyElemChNum	SFH_AnlyElemChNum

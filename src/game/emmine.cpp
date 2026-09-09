@@ -954,9 +954,10 @@ void emMine_R1_Fall(cEmMine* em)
     MineNode* n;
     MineNode* nn;
     f32 floor;
-    f32 len;
     u32 i;
     u32 k;
+    f32 mag;
+    f32 dd;
 
     em->hp = 0;
     em->setStatus(1);
@@ -980,8 +981,7 @@ void emMine_R1_Fall(cEmMine* em)
         } else {
             nn = &node[i + 1];
         }
-        len = GetDistance3(&n->pos, &nn->pos);
-        n->len = len;
+        n->len = GetDistance3(&n->pos, &nn->pos);
     }
     for (i = 0; i < 3; i++) {
         n = &node[i];
@@ -998,8 +998,9 @@ void emMine_R1_Fall(cEmMine* em)
                 nn = &node[i + 1];
             }
             PSVECSubtract(&nn->pos, &n->pos, &d);
-            len = PSVECMag(&d);
-            PSVECScale(&d, &d, (n->len - len) * 0.5f * (1.0f / len));
+            mag = PSVECMag(&d);
+            dd = (n->len - mag) * 0.5f;
+            PSVECScale(&d, &d, (1.0f / mag) * dd);
             PSVECAdd(&nn->pos, &d, &nn->pos);
             PSVECSubtract(&n->pos, &d, &n->pos);
             if (n->pos.y < floor) {
@@ -1059,10 +1060,10 @@ void emMine_R1_Fall(cEmMine* em)
     PSMTXMultVec(em->mat, &d, &d);
     TransMatrix(em->mat, &d);
     em->pos = d;
-    if (node[0].spd.x * node[0].spd.x + node[0].spd.y * node[0].spd.y + node[0].spd.z * node[0].spd.z +
-            node[1].spd.x * node[1].spd.x + node[1].spd.y * node[1].spd.y + node[1].spd.z * node[1].spd.z +
-            node[2].spd.x * node[2].spd.x + node[2].spd.y * node[2].spd.y + node[2].spd.z * node[2].spd.z <
-        25.0f) {
+    mag = node[0].spd.x * node[0].spd.x + node[0].spd.y * node[0].spd.y + node[0].spd.z * node[0].spd.z
+        + node[1].spd.x * node[1].spd.x + node[1].spd.y * node[1].spd.y + node[1].spd.z * node[1].spd.z
+        + node[2].spd.x * node[2].spd.x + node[2].spd.y * node[2].spd.y + node[2].spd.z * node[2].spd.z;
+    if (mag < 25.0f) {
         em->pos.x = em->mat[0][3];
         em->pos.y = em->mat[1][3];
         em->pos.z = em->mat[2][3];

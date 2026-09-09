@@ -364,13 +364,13 @@ static int SetToolLight(int no)
     }
     sprintf(path, path_tool, no);
     cDbLit lit;
-    if (lit.fileLoad(path) == 0) {
-        return 0;
+    if (lit.fileLoad(path)) {
+        if (LitLoadWork(&lit, 0) == 0) {
+            return 0;
+        }
+        return 1;
     }
-    if (LitLoadWork(&lit, 0) == 0) {
-        return 0;
-    }
-    return 1;
+    return 0;
 }
 #endif
 

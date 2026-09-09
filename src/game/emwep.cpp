@@ -599,6 +599,11 @@ void emWep_R1_Fall(cEmWep* em)
     }
     for (i = 0; i < 3; i++) {
         n = &node[i];
+        if (i == 2) {
+            nx = node;
+        } else {
+            nx = &node[i + 1];
+        }
         if (n->onFloor) {
             if (w->seFall[3] == 0 && n->spd.y < -50.0f) {
                 w->seFall[3] = 1;

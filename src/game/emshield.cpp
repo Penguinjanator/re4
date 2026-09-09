@@ -537,9 +537,10 @@ void emShield_R1_Fall(cEmShield* em)
     };
     EmTreeNode node[3];
     Vec b;
-    Vec a;
     Vec c;
+    Vec a;
     Vec tmp;
+    EmTreeNode* n;
     EmTreeNode* nx;
     f32 floor;
     u32 i;
@@ -643,23 +644,23 @@ void emShield_R1_Fall(cEmShield* em)
     }
     PSVECSubtract(&node[0].pos, &node[1].pos, &a);
     PSVECSubtract(&node[2].pos, &node[1].pos, &b);
-    PSVECCrossProduct(&b, &a, &c);
-    PSVECCrossProduct(&a, &c, &b);
-#line 956 "D:/Bio4/Prog/emshield.cpp"
+    PSVECCrossProduct(&a, &b, &c);
+    PSVECCrossProduct(&c, &a, &b);
+#line 973 "D:/Bio4/Prog/emshield.cpp"
     VECNormalize(&b, &b);
-#line 957 "D:/Bio4/Prog/emshield.cpp"
-    VECNormalize(&a, &a);
-#line 958 "D:/Bio4/Prog/emshield.cpp"
+#line 974 "D:/Bio4/Prog/emshield.cpp"
     VECNormalize(&c, &c);
+#line 975 "D:/Bio4/Prog/emshield.cpp"
+    VECNormalize(&a, &a);
     em->mat[0][0] = b.x;
     em->mat[1][0] = b.y;
     em->mat[2][0] = b.z;
-    em->mat[0][1] = a.x;
-    em->mat[1][1] = a.y;
-    em->mat[2][1] = a.z;
-    em->mat[0][2] = c.x;
-    em->mat[1][2] = c.y;
-    em->mat[2][2] = c.z;
+    em->mat[0][1] = c.x;
+    em->mat[1][1] = c.y;
+    em->mat[2][1] = c.z;
+    em->mat[0][2] = a.x;
+    em->mat[1][2] = a.y;
+    em->mat[2][2] = a.z;
     PSVECScale(&pt[0], &tmp, -1.0f);
     TransMatrix(em->mat, &node[0].pos);
     PSMTXMultVec(em->mat, &tmp, &tmp);

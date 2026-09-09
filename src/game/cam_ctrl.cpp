@@ -47,7 +47,8 @@ void* g_pToolCamData = NULL;
 static u8 CameraMotionBuffer[CAMERA_MOTION_BUFFER_SIZE];
 extern CameraBSpline CamBSpline;
 
-const f32 smooth_ratio[12] = {0.0f, 0.9f, 0.85f, 0.92f, 0.8f, 0.92f, 0.9f, 0.9f, 0.9f, 0.9f, 0.0f, 0.0f};
+// internal linkage: the table is deferred behind the cManager template strings in .rodata
+static const f32 smooth_ratio[12] = {0.0f, 0.9f, 0.85f, 0.92f, 0.8f, 0.92f, 0.9f, 0.9f, 0.9f, 0.9f, 0.0f, 0.0f};
 
 // Byte-wise copy of the float `tmp` into the (unaligned) motion buffer.
 #define EXPORT_TMP(p)                             \
@@ -1456,7 +1457,7 @@ void CameraControl::r0_RailBehind()
     static Camera camera_old;
     static f32 move_z;
     static Vec campos_ofs0 = {0.0f, 1800.0f, -1200.0f};
-    static Vec target_ofs0 = {0.0f, 0.0f, 1550.0f};
+    static Vec target_ofs0 = {0.0f, 1550.0f, 0.0f};
     static Vec pos_old;
     static int init_flg;
     static int edge_camera;
@@ -1757,7 +1758,7 @@ static inline u32 JoyTrg(JOY* j, u32 bit)
 void CameraControl::r0_Free()
 {
     static Vec campos_ofs0 = {0.0f, 1800.0f, -1200.0f};
-    static Vec target_ofs0 = {0.0f, 0.0f, 1550.0f};
+    static Vec target_ofs0 = {0.0f, 1550.0f, 0.0f};
     static Vec ang;
     static Mtx cam_mat;
     Camera cam;

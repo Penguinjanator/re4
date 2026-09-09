@@ -15741,6 +15741,8 @@ void em10SetDashMotion(cEm10* em)
         m0 = (MotionData*) PL_ARC_PTR(em->subArc, 0x192);
         m1 = PL_ARC_PTR(em->subArc, 0x193);
     }
-    MotionSetCore(em, MOTION(em), m0, (int) m1, 5, flag,
-                  (u16) (u32) ((f32) (m0->maxFrame & 0x3FFF) * (f32) em->xFF / 256.0f));
+    {
+        u16 fr = (u32) ((f32) (m0->maxFrame & 0x3FFF) * (f32) em->xFF / 256.0f);
+        MotionSetCore(em, MOTION(em), m0, (int) m1, 5, flag, fr);
+    }
 }

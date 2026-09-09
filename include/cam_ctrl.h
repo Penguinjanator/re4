@@ -268,6 +268,5 @@ void Parametrize(CameraCut* cut, CameraBSpline* bs);
 void BSpline(CameraBSpline* bs, Camera* cam, int mode);
 void searchRail(CameraBSpline* bs, CameraCut* cut, Vec* aim, int mode);
 
-extern const f32 smooth_ratio[12];
 
 #endif
