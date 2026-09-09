@@ -238,22 +238,79 @@ public:
     virtual void move(SUB_SCREEN* wk);
 };
 
-// ss_term.cpp (typewriter / terminal)
+// ss_term.cpp (the radio / codec call screen: Hunnigan and the partner models talk through the
+// op/opNN.das message sequences)
 class SsTermInit : public Widget<SUB_SCREEN> {
 public:
-    u8 pad_10[0x18 - 0x10];  // members: ss_term.cpp
+    int x10;
+    int state;  // 0x14  starts at 2
 
     virtual void init(SUB_SCREEN* wk);
     virtual void move(SUB_SCREEN* wk);
 };
 
+// One entry of the op message sequence table (0x10 bytes).
+struct TermSeq {
+    u16 x0;
+    s16 x2;    // 0x02  copied to SsTermMain::TermSub::x14
+    int time;  // 0x04  frame the entry fires at
+    int mesNo; // 0x08  message number (-1: wait for the message end)
+    int arg;   // 0x0C  message clear time; -1 ends the sequence
+};
+
+// One op number of ss_term's op table (SsTermMain::OpeMesTblInit, 0x14 bytes, 24 entries in .data).
+struct TermOpe {
+    int mdtNo;  // 0x00  0x8C ..
+    void* seq;  // 0x04  TermSeq table
+    void* mes;  // 0x08  message data (MesData type 2)
+    void* xC;
+    void* x10;
+};
+
 class SsTermMain : public Widget<SUB_SCREEN> {
 public:
-    u8 pad_10[0x8C - 0x10];  // members: ss_term.cpp
+    // The op message player (memset at init).
+    struct TermOpeWork {
+        u32 flags;    // 0x1C  0x08000000 voice stream started, 0x10000000 sequence ended / skipped
+        u32 str;      // 0x20  SndStrReq handle
+        int mesNo;    // 0x24
+        int seqIdx;   // 0x28
+        int mesWait;  // 0x2C  frames until the message is cleared
+        int seqCnt;   // 0x30  frame counter
+        int wait;     // 0x34  frames before the op starts (0x1E)
+        int mdtNo;    // 0x38
+        TermSeq* seq; // 0x3C
+        void* mes;    // 0x40
+        int x44;
+        int x48;
+    };
+    struct TermSub {
+        u8 pad_0[0x14];
+        int x14;      // 0x60  TermSeq::x2 of the last entry
+        int x18;      // 0x64  TermSeq::mesNo of the last entry
+        int count;    // 0x68  messages set / cleared
+        u8 pad_1C[0x40 - 0x1C];
+    };
+
+    int x10;          // 0x10
+    int modelOn;      // 0x14  models are set up
+    int ended;        // 0x18  end pose set
+    TermOpeWork ope;  // 0x1C
+    TermSub sub;      // 0x4C .. 0x8C
 
     virtual void init(SUB_SCREEN* wk);
     virtual void quit(SUB_SCREEN* wk);
     virtual void move(SUB_SCREEN* wk);
+
+    void OpeMesTblInit(SUB_SCREEN* wk);
+    void OpeMdtSet();
+    void OpeMdtSetNo(int no);
+    void OpeMdtSetSub(int mdtNo, void* seq, void* mes);
+    int OpeMesMove();
+    int OpeSeqMove(TermSeq* s);
+    void OpeMesSet(int no, int wait);
+    void OpeMesClear();
+    void OpeSndStrStop();
 };
 
 // The DLL's own model managers (ss_main.cpp; the DOL's PartsMgr/ModInfoMgr are swapped out while
@@ -277,6 +334,8 @@ public:
     virtual void memClear(cModelInfo* p, u32 size);
     virtual void log(const char* fmt, ...);
     virtual int construct(cModelInfo* p, u32 id);
+    // The DOL's cModInfoMgr::create (ss_model.cpp builds the models through the DLL manager).
+    cModelInfo* create(void* bin, void* tpl) asm("create__11cModInfoMgrPvT1");
 };
 extern cSsPartsMgr ssPartsMgr;
 extern cSsModInfoMgr ssModInfoMgr;
@@ -323,6 +382,8 @@ void adaModelInit(u16 no, u16 type);
 void klauserModelInit(u16 no, u16 type);
 void hunkModelInit(u16 no, u16 type);
 void weskerModelInit(u16 no, u16 type);
+void tel00ModelInit(cModel* m, SsArc* arc);
+void hunniganModelInit(cModel* m, void* data, u32 type);
 }
 
 #endif

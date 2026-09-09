@@ -62,10 +62,13 @@ struct SUB_SCREEN {
     SsArc* pPzzl;             // 0x1E0
     SsArc* x1E4;              // 0x1E4  puzzle screen data (SubScreenTask: pPzzl)
     SsArc* pItem;             // 0x1E8  ss_item.dat archive (Sscrn ss_item)
-    u8 pad_1EC[0x1FC - 0x1EC];
+    SsArc* pTerm;             // 0x1EC  ss_term.dat archive (Sscrn ss_term)
+    void* pOpData;            // 0x1F0  op/opNN.das (Sscrn ss_term: the message/sequence archive at +0x400)
+    u8 pad_1F4[0x1FC - 0x1F4];
     SsArc* pFile;             // 0x1FC  ss_file.dat archive (Sscrn ss_file)
     SsArc* pExam;             // 0x200  item examine id data archive (examine ItemExamine::idSet)
-    u8 pad_204[0x20C - 0x204];
+    u8 pad_204[4];
+    void* pPartner;           // 0x208  SS/cmn/ss_ocNNN.dat (Sscrn ss_term: the partner model data)
     void* pTplBuf;            // 0x20C  0x20000-byte file picture TPL buffer (Sscrn ss_file)
     void* x210;               // 0x210  weapon model data (pBuf + 0x2E5E00, Sscrn SubScreenTask / weaponChangeTask)
     void* binoA;              // 0x214  CameraControl::GetBinocularIDAddr
