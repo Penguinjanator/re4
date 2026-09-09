@@ -58,13 +58,14 @@ int tcDataExport(u8* buf)
     int j;
     int num;
     int size;
+    const char* const tag = "B404";  // parsed before "EMPT": the .rodata order is B404, EMPT (uses fold to the literal)
 
     memclr_asm(buf, 0x10);
     if (*(u16*) &pTc->cdatNum == 0) {
         strncpy((char*) buf, "EMPT", 4);
         return 4;
     }
-    strncpy((char*) buf, "B404", 4);
+    strncpy((char*) buf, tag, 4);
     hdr->numCut = pTc->cdatNum;
     hdr->numArea = pTc->adatNum;
     hdr->numLerp = pTc->ldatNum;

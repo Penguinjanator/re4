@@ -425,15 +425,23 @@ void cSceObj::setMove1_ang(u32 nFrame, Vec* dr, f32 acc, f32 dec, int flg)
     setMove1_all(nFrame, &basePos, dr, acc, dec, flg | 2);
 }
 
+static inline f32 FCRef(const f32& v) { return v; }
+
+// The 0.01 load is issued after the two Vec copies: a constant-pool load (RTX_UNCHANGING_P) never
+// depends on stores, so the constant is a function-local `static const f32` (emitted where the pool
+// would be) read through a const reference (a MEM with neither the struct nor the scalar flag, which
+// true_dependence keeps below the struct stores through `this`).
 void cSceObj::setMove1_all(u32 nFrame, Vec* dp, Vec* dr, f32 acc, f32 dec, int flg)
 {
+    static const f32 rate = 0.01f;
     flags = flg;
     step = mode = 0;
     frame = nFrame;
     dPos = *dp;
     dRot = *dr;
-    accR0 = acc * 0.01f;
-    decR0 = dec * 0.01f;
+    f32 r = FCRef(rate);
+    accR0 = acc * r;
+    decR0 = dec * r;
     decR = decR0;
     accR = accR0;
     setSrcDstPos();

@@ -106,6 +106,10 @@ static int mvInit()
     dbModelInit();
     SetToolLight(2);
     memclr_asm(pMv, 0x18);
+    // OPEN (+0x10): the original's then arm has its own `li r10, 0` for `cursor = 0`; ours reuses the
+    // `zero` register (r29) and cross-jumps the arms. Not a launder case: `asm("" : "+r"(c))` on a
+    // `u8 c = 0` becomes `mr r10, r29` (cse substitutes r29 into the asm input); switch, inverted
+    // if/else, early return, goto and a literal 0 in both arms all reuse r29 or the loaded byte.
     if (pDbModState->loaded == 0) {
         pMv->step = 1;
         pMv->cursor = 0;

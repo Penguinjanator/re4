@@ -430,6 +430,7 @@ MATCHING = {
     "st2_1/st2.cpp": True,
     "st2_1/r205.cpp": True,
     "st2_1/r20a.cpp": True,
+    "st2_1/r20c.cpp": True,
     "st2_2/st2.cpp": True,
     "st2_2/r211.cpp": True,
     "st2_2/r219.cpp": True,
@@ -485,6 +486,7 @@ MATCHING = {
     "Tools/t_cons.cpp": True,
     "Tools/tools.cpp": True,
     "Tools/t_tplview.cpp": True,
+    "Tools/t_util.cpp": True,
     "Tools/t_eminfo.cpp": True,
     # single-unit enemy modules (src/<em>/<em>.cpp, the whole REL)
     "em2e/em2e.cpp": True,

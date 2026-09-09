@@ -89,6 +89,9 @@ static inline int em3aDeadCk(cEm* em)
 // table, em3aPatrolInit's route pointer).
 static inline void IntSet(int& x, int v) { x = v; }
 static inline void EmiSet(EmiEntry*& p, EmiEntry* v) { p = v; }
+// Reference read of pG: the load depends on the preceding `w->pRoute = 0` store (a MEM with neither
+// the struct nor the scalar flag), which ranks the store above the `lis pG@ha` in em3aPatrolInit.
+static inline GlobalWork* GRef(GlobalWork*& p) { return p; }
 
 // Hover: keep the height between fl + 1800 and fl + 2000, apply and damp the speed, vibrate.
 static inline void em3aHoverMove(cEm3a* em, Em3aWork* w, f32 fl)
@@ -1307,7 +1310,7 @@ void em3aPatrolInit(cEm3a* em)
     u32 i;
 
     w->pRoute = 0;
-    if (pG->pRoomEmi == 0) {
+    if (GRef(pG)->pRoomEmi == 0) {
         return;
     }
     for (i = 0; i < ((EmiData*) pG->pRoomEmi)->n; i++) {

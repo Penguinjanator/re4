@@ -151,6 +151,8 @@ static void r113_execHide(int mode)
 
         // OPEN: the original issues this call's `li r3, 6` last (after the li r4..r8 and the spd load);
         // ours first. The mode 1 call below (no float load in the block) matches with the same source.
+        // sched1 dump: all six `li`s tie on priority/weight and ours takes LUID order (r3 first); a
+        // void alias, a Vec* local, u32 result local, or spd assigned after the call do not move it.
         SndCall(6, 0x14, &pSUB->pos, 0, 0, 0);
         goto open;
     wait_open:

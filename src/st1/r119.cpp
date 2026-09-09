@@ -43,6 +43,10 @@ static R119Work* r119_work;
 
 // Pointer store through a reference: the work pointer is reloaded after it.
 static inline void PSet(cEm*& d, cEm* v) { d = v; }
+// The six collision stores are reference stores too: the following `pG` load stays below the
+// `stw` into the work (a plain member store lets ours hoist it, which shifts the `addi` pairs of
+// the pos/rot table addresses apart and ties the rot/pos `lis` pseudos' live lengths).
+static inline void PSetSat(cSat*& d, cSat* v) { d = v; }
 
 static Vec r119_koyaPos[3] = {
     {112971.0f, 2262.0f, 16941.0f}, {117073.0f, 2262.0f, 17411.0f}, {121549.0f, 2262.0f, 15823.0f},
@@ -96,6 +100,10 @@ extern "C" void Evt_R119S00_Func(Event* e);
 extern "C" void Evt_R119S10_Func(Event* e);
 extern "C" void Evt_R119S20_Func(Event* e);
 
+// OPEN (6 words, third SetTree block): the x/z constant temps swap f0/f13 and `lwz pG` is issued
+// before the pos/rot stores (target: after `stfs rot.z`). The block differs from the first two only
+// in that the shared 2350/0.0 registers (f30/f31) die there; `pos.y` written last fixes the FPRs
+// but not the pG position (all 720 statement orders tried).
 void R119Init()
 {
     Vec pos;
@@ -124,12 +132,12 @@ void R119Init()
     SmdGetObjPtr(0x25)->be_flag |= 0x20;
     SmdGetObjPtr(0x24)->be_flag |= 0x20;
     SceExec(0x12, (TaskFunc) koya_destroy_check, 0, 0, 2, 0);
-    r119_work->sat[0] = SatMgr.create(ROOM_ARC_PTR(pG->pRoomArc, 0x1F), 0, &r119_koyaPos[0], &r119_koyaRot[0], 0);
-    r119_work->sat[1] = SatMgr.create(ROOM_ARC_PTR(pG->pRoomArc, 0x1F), 0, &r119_koyaPos[1], &r119_koyaRot[1], 0);
-    r119_work->sat[2] = SatMgr.create(ROOM_ARC_PTR(pG->pRoomArc, 0x1F), 0, &r119_koyaPos[2], &r119_koyaRot[2], 0);
-    r119_work->eat[0] = EatMgr.create(ROOM_ARC_PTR(pG->pRoomArc, 0x20), 0, &r119_koyaPos[0], &r119_koyaRot[0], 0);
-    r119_work->eat[1] = EatMgr.create(ROOM_ARC_PTR(pG->pRoomArc, 0x20), 0, &r119_koyaPos[1], &r119_koyaRot[1], 0);
-    r119_work->eat[2] = EatMgr.create(ROOM_ARC_PTR(pG->pRoomArc, 0x20), 0, &r119_koyaPos[2], &r119_koyaRot[2], 0);
+    PSetSat(r119_work->sat[0], SatMgr.create(ROOM_ARC_PTR(pG->pRoomArc, 0x1F), 0, &r119_koyaPos[0], &r119_koyaRot[0], 0));
+    PSetSat(r119_work->sat[1], SatMgr.create(ROOM_ARC_PTR(pG->pRoomArc, 0x1F), 0, &r119_koyaPos[1], &r119_koyaRot[1], 0));
+    PSetSat(r119_work->sat[2], SatMgr.create(ROOM_ARC_PTR(pG->pRoomArc, 0x1F), 0, &r119_koyaPos[2], &r119_koyaRot[2], 0));
+    PSetSat(r119_work->eat[0], EatMgr.create(ROOM_ARC_PTR(pG->pRoomArc, 0x20), 0, &r119_koyaPos[0], &r119_koyaRot[0], 0));
+    PSetSat(r119_work->eat[1], EatMgr.create(ROOM_ARC_PTR(pG->pRoomArc, 0x20), 0, &r119_koyaPos[1], &r119_koyaRot[1], 0));
+    PSetSat(r119_work->eat[2], EatMgr.create(ROOM_ARC_PTR(pG->pRoomArc, 0x20), 0, &r119_koyaPos[2], &r119_koyaRot[2], 0));
     koya_init();
     if (RsfCheck(G_ROOM_ID, 4)) {
         YaneA_delete();
@@ -159,7 +167,7 @@ void R119Init()
     rot.y = 0.0f;
     rot.z = 0.0f;
     tree = SetTree(ROOM_ARC_PTR(pG->pRoomArc, 0x22), ROOM_ARC_PTR(pG->pRoomArc, 0x23), &pos, &rot);
-    tree->lightInfo.x54 &= ~0x8000;
+    tree->lightInfo.x54 &= ~0x10000;
     pos.x = 109167.0f;
     pos.y = 2350.0f;
     pos.z = 18073.0f;
@@ -167,7 +175,7 @@ void R119Init()
     rot.y = 0.0f;
     rot.z = 0.0f;
     tree = SetTree(ROOM_ARC_PTR(pG->pRoomArc, 0x22), ROOM_ARC_PTR(pG->pRoomArc, 0x23), &pos, &rot);
-    tree->lightInfo.x54 &= ~0x8000;
+    tree->lightInfo.x54 &= ~0x10000;
     pos.x = 123623.0f;
     pos.y = 2350.0f;
     pos.z = 8190.0f;
@@ -175,7 +183,7 @@ void R119Init()
     rot.y = 0.0f;
     rot.z = 0.0f;
     tree = SetTree(ROOM_ARC_PTR(pG->pRoomArc, 0x22), ROOM_ARC_PTR(pG->pRoomArc, 0x23), &pos, &rot);
-    tree->lightInfo.x54 &= ~0x8000;
+    tree->lightInfo.x54 &= ~0x10000;
     if ((obj = SmdGetObjPtr(0x21)) != 0) {
         Vec ang = {-0.21598449f, -1.4628042f, -2.1205752f};
 
@@ -286,7 +294,7 @@ static void r119_EventGolemAppear()
     SceAtSetEnable(3, 1);
     SceAtSetEnable(4, 1);
     SceAtSetEnable(5, 1);
-    int cnt = 0;
+    u32 cnt = 0;
     for (;;) {
         int stat;
         cPlayer* pl;

@@ -1,5 +1,6 @@
 #include "types.h"
-#include "db_toolbase.h"
+#define DB_TOOLBASE_IMPLEMENTATION
+#include "dbg_tool.h"
 #include "global.h"
 #include "joy.h"
 #include "eprintf.h"
@@ -188,73 +189,3 @@ void cDbgWindow::LocalDisp()
     }
 }
 
-cDbgButton::~cDbgButton()
-{
-}
-
-void cDbgWindow::Init(int wx, int wy, const char* name)
-{
-    x = wx;
-    y = wy;
-    w = strlen(name);
-    h = 1;
-    cxMax = 1;
-    cyMax = 1;
-    pName = name;
-    x1C = 0;
-    x20 = 0;
-    num = 0;
-    pCur = 0;
-    pBottom = 0;
-    pTop = 0;
-}
-
-cDbgWindow::~cDbgWindow()
-{
-    u32 i;
-
-    for (i = 0; i < num; i++) {
-        if (pButton[i]) {
-            delete pButton[i];
-        }
-    }
-}
-
-int cDbgWindow::GetCx()
-{
-    if (pCur == 0) {
-        return 0;
-    }
-    return pCur->cx;
-}
-
-int cDbgWindow::GetCy()
-{
-    if (pCur == 0) {
-        return 0;
-    }
-    return pCur->cy;
-}
-
-void cDbgWindow::SetCurrentTopButton()
-{
-    pCur = pTop;
-}
-
-void cDbgWindow::SetCurrentBottomButton()
-{
-    pCur = pBottom;
-}
-
-void cDbgWindow::ButtonAllUpdate()
-{
-    u32 i;
-
-    for (i = 0; i < num; i++) {
-        cDbgButton* b = pButton[i];
-
-        if (b && b->pUpdate) {
-            b->pUpdate(b);
-        }
-    }
-}

@@ -78,6 +78,10 @@ extern "C" void R120Event()
         pG->flags_51C0 |= 0x10;
     }
     SceEventStart(0);
+    // OPEN (12 words): the original's cse1 extended block skips both event-read blocks (their
+    // EvtMgr/string `lis` are fresh) and carries `high(pG)` into the tail (r31, also used by the
+    // x4F8E test); ours falls through into them (string/EvtMgr highs PRE'd into r29/r30) and the
+    // tail's pG high is a rematerialised PRE copy. Nested and two-`if` forms compile identically.
     if (!(pG->flags_51C0 & 0x10)) {
         EvtMgr.EvtReadAram("event/evd/r120s01.evd", 0, 0, 0, 0);
         EvtMgr.EvtReadExec("event/evd/r120s00.evd", 0, 0);

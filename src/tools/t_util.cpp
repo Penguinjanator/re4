@@ -149,7 +149,12 @@ int TutilGet3DPosXZ(Vec* target, Vec* center, Vec* out, f32 step)
         best = ok[0] ? 0 : -1;
         for (j = 1; j < 4; j++) {
             if (ok[j]) {
-                if (best == -1 || dist[j] < dist[best]) {
+                // Two `best = j` statements (jump2 cross-jumps them into one `mr`): the extra
+                // reference gives `j` 5 refs at global-alloc time, so it outranks the `j*4` giv
+                // (4 refs) and takes r10 first; `best == -1 || ...` leaves them tied (giv first).
+                if (best == -1) {
+                    best = j;
+                } else if (dist[j] < dist[best]) {
                     best = j;
                 }
             }
