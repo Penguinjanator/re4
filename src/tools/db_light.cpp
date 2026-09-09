@@ -4729,12 +4729,17 @@ void cLightTool::printCursor(int x, int y)
     }
 }
 
+// White ambient for DrawTile: a struct returned by value (its temporary is the last frame slot).
+static inline GXColor whiteCol()
+{
+    GXColor c;
+    c.r = c.g = c.b = c.a = 0xFF;
+    return c;
+}
+
 void DrawTile(int x, int y, int w, int h, GXColor* color)
 {
-    Mtx44 proj;
-    Mtx mtx;
     GXColor col = *color;
-    GXColor amb;
 
     GXSetNumTexGens(0);
     GXSetNumTevStages(1);
@@ -4742,9 +4747,10 @@ void DrawTile(int x, int y, int w, int h, GXColor* color)
     GXSetTevOp(0, 4);
     GXSetNumChans(1);
     GXSetChanCtrl(0, 0, 0, 0, 0, 0, 2);
-    amb.r = amb.g = amb.b = amb.a = 0xFF;
-    GXSetChanAmbColor(0, amb);
+    GXSetChanAmbColor(0, whiteCol());
     GXSetChanMatColor(0, col);
+    Mtx44 proj;
+    Mtx mtx;
     C_MTXOrtho(proj, 0.0f, 448.0f, 0.0f, 512.0f, 0.0f, -100.0f);
     GXSetProjection(proj, 1);
     PSMTXIdentity(mtx);

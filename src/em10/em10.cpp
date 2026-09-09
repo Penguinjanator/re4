@@ -390,6 +390,8 @@ extern "C" int em10ThrowAxeCk(cEm10* em);
 extern "C" int em10CsawAtkCk(cEm10* em);
 extern "C" int em10CatchPLRtnCk(cEm10* em);
 extern "C" int em10BackCk(cEm10* em);
+extern "C" int em10StayCk(cEm10* em);
+extern "C" int em10DashCk(cEm10* em);
 
 // Dead flag test (cDmgInfo upper 16 bits): an inline returning 0/1 gives the `li 1; andis.; bne; li 0` chain.
 static inline int em10DeadCk(cEm* em)
@@ -15844,7 +15846,7 @@ extern "C" int em10ShieldAtkCk(cEm10* em)
     return 1;
 }
 
-extern "C" void em10WalkRtnSet(cEm10* em)
+void em10WalkRtnSet(cEm10* em)
 {
     Em10Work* w = EM10_WK(em);
     int r;
@@ -15951,4 +15953,214 @@ extern "C" void em10WalkRtnSet(cEm10* em)
     }
     w->x6AC = Rnd() % 11;
     EmRoutineSet(em, 1, 0x10, 0, 0);
+}
+
+void em10SlopeMove(cEm10* em)
+{
+    Em10Work* w = EM10_WK(em);
+    Vec a;
+    Vec b;
+    Vec c;
+    Mtx m;
+    f32 ang;
+    f32 t;
+    f32 fa;
+    f32 fb;
+
+    if (pG->flags_500C & 0x1000) {
+        return;
+    }
+    if (w->flags & 0x00400000) {
+        return;
+    }
+    if (w->flags & 0x400) {
+        return;
+    }
+    if (em->motFlags2 & 0x40000000) {
+        return;
+    }
+    if (em->hp <= 0) {
+        em->atari.rectZ = 0.0f;
+    } else if (w->pShield != 0 || em->type == 0xA || em->type == 0xD) {
+        em->atari.rectZ = em->atari.rectZ * 0.8f + 160.0f;
+    } else {
+        em->atari.rectZ = em->atari.rectZ * 0.8f + 50.0f;
+    }
+    em->atari.rectZ2 = em->atari.rectZ;
+    if (w->flags & 0x01000000) {
+        em->atari.rectX = em->atari.rectX * 0.7f + 180.0f;
+    } else if (w->pShield != 0) {
+        em->atari.rectX = em->atari.rectX * 0.7f + 150.0f;
+    } else {
+        em->atari.rectX = em->atari.rectX * 0.7f + 120.00001f;
+    }
+    em->atari.rectZ = em->atari.rectZ * 0.7f + 75.0f;
+    fb = em->atari.rectX;
+    em->atari.rectX2 = fb;
+    if (w->flags & 0x01000000) {
+        t = fb * em->scale.z - 100.0f;
+        a.x = 0.0f;
+        a.y = 1000.0f;
+        a.z = t;
+        b.x = 0.0f;
+        b.y = 1000.0f;
+        b.z = -t;
+        PSMTXMultVec(em->mat, &a, &a);
+        PSMTXMultVec(em->mat, &b, &b);
+        fa = SatMgr.getFloor(&a, 600.0f, 100000.0f, 0, 0);
+        fb = SatMgr.getFloor(&b, 600.0f, 100000.0f, 0, 0);
+        if (fa == -100000.0f) {
+            fa = em->pos.y;
+        }
+        if (fb == -100000.0f) {
+            fb = em->pos.y;
+        }
+        fa -= fb;
+        if (fa > 1500.0f) {
+            fa = 0.0f;
+        }
+        if (fa < -1500.0f) {
+            fa = 0.0f;
+        }
+        t = SQRTF((a.x - b.x) * (a.x - b.x) + (a.z - b.z) * (a.z - b.z));
+        ang = -atan2f(fa, t);
+        if (w->x668 != 0) {
+            w->x668--;
+        }
+    } else {
+        ang = 0.0f;
+        w->x668 = 30;
+    }
+    w->x598.x = w->x598.x * 0.95f + ang * 0.05f;
+    RotMatrix(m, &w->x598);
+    t = w->x598.x;
+    if (t > 0.0f) {
+        t -= 0.1f;
+        if (t < 0.0f) {
+            t = 0.0f;
+        }
+    } else {
+        t += 0.1f;
+        if (t > 0.0f) {
+            t = 0.0f;
+        }
+    }
+    if ((s16) w->x668 == 0 || (s16) w->x668 == 30) {
+        t = 0.0f;
+    }
+    t *= 150.0f;
+    w->x66C = w->x66C * 0.9f + t * 0.1f;
+    c.x = 0.0f;
+    c.y = 0.0f;
+    c.z = w->x66C;
+    PSMTXMultVecSR(em->mat, &c, &c);
+    PSVECAdd(&em->pos, &c, &em->pos);
+    PSMTXConcat(em->mat, m, em->mat);
+    TransMatrix(em->mat, &em->pos);
+}
+
+extern "C" int em10StayCk(cEm10* em)
+{
+    Em10Work* w = EM10_WK(em);
+    u32 i;
+    u32 n;
+
+    if (em10GotoCk(em)) {
+        return 1;
+    }
+    if (em->flags_3C8 & 0x40) {
+        return 0;
+    }
+    if (w->flags & 0x08000000) {
+        return 0;
+    }
+    if (em->type == 0x16) {
+        return 0;
+    }
+    if (em->flags_3C8 & 0x80) {
+        w->x6AC = Rnd() % 3;
+        EmRoutineSet(em, 1, 0x11, 0, 0);
+        return 1;
+    }
+    if (w->wepType == 9 && w->x640 != 0) {
+        EmRoutineSet(em, 1, 0x11, 0, 0);
+        return 1;
+    }
+    if (((G_ROOM_ID32 & 0xFFFF0000) == 0x01010000 || (G_ROOM_ID32 & 0xFFFF0000) == 0x01110000 ||
+         (G_ROOM_ID32 & 0xFFFF0000) == 0x04000000) &&
+        pPL->pos.y > 6000.0f && em->plDist2 < 144000000.0f) {
+        if (em->plDist2 < 36000000.0f) {
+            Vec tbl[4] = {
+                { 13913.0f, 215.0f, 322.0f },
+                { 10172.0f, 215.0f, 1311.0f },
+                { 14208.0f, 215.0f, -11076.0f },
+                { 23407.0f, 1215.0f, -1110.0f },
+            };
+            em->setGoto(&tbl[Rnd() & 3], 12);
+            return 0;
+        }
+        EmRoutineSet(em, 1, 0x1B, 0, 0);
+        return 1;
+    }
+    if (em->x3D0 == 3) {
+        if (EM_RTN(em, 1, 0x1B)) {
+            return 1;
+        }
+        EmRoutineSet(em, 1, 0x1B, 0, 0);
+        return 1;
+    }
+    if (em10ReturnCk(em)) {
+        return 1;
+    }
+    if (em->x3D0 == 0 && w->x6B8 == 0 && w->x52C > em->x3CC + 2000.0f) {
+        EmRoutineSet(em, 1, 0x1B, 0, 0);
+        return 1;
+    }
+    if (w->flags & 0x08000000) {
+        if (em10GoSubStayCk(em)) {
+            return 1;
+        }
+        return 0;
+    }
+    if (em->type == 0xA || em->type == 0xD) {
+        return 0;
+    }
+    n = 0;
+    for (i = 0; i < EmMgr.nArray; i++) {
+        cEm* e = (cEm*) ((u8*) EmMgr.pArray + EmMgr.size * i);
+        if ((e->be_flag & 0x201) == 1 && e->id > 0xF && e->id <= 0x20 && e->hp > 0 && e != em &&
+            e->checkStatus(5) && EM10_WK(e)->x524 < w->x524) {
+            n++;
+        }
+    }
+    if (pG->x4F88 <= 1 && n == 0) {
+        return 0;
+    }
+    if (pG->x4F88 <= 3 && n <= 1) {
+        return 0;
+    }
+    if (n <= 3) {
+        return 0;
+    }
+    if (em->x3D0 == 2) {
+        if (pG->x4F88 <= 3) {
+            if (w->x524 > 6000.0f) {
+                return 0;
+            }
+        } else {
+            if (w->x524 > 4000.0f) {
+                return 0;
+            }
+        }
+    }
+    if (n <= 7) {
+        if (w->x524 > 8000.0f) {
+            return 0;
+        }
+    }
+    if (w->x524 > 12000.0f) {
+        return 0;
+    }
+    EmRoutineSet(em, 1, 0x1B, 0, 0);
+    return 1;
 }

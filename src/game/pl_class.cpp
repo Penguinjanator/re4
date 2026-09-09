@@ -911,7 +911,7 @@ int cPlayer::isKamae()
 {
     if ((Key.on & 0x10) && (Key.on & 0x800)) {
         if (pG->x4FB8 == 0 || pG->x4FB8 == 4) {
-            return 1;
+            goto ok;
         }
     }
     if (xFD == 6) {
@@ -929,16 +929,17 @@ int cPlayer::isKamae()
         if (xFE == 3) {
             return 0;
         }
+    ok:
         return 1;
     }
     if (xFD == 0xB) {
         if (xFE != 3) {
-            return 1;
+            goto ok;
         }
         if (joyKamae() == 0) {
             return 0;
         }
-        return 1;
+        goto ok;
     }
     return 0;
 }

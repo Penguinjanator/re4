@@ -2069,8 +2069,10 @@ Then `MATCHING["st2_4/r22c.cpp"] = True` in `config/G4BE08/modules.py`, `python3
   menus) has 36 of 53 functions matched (skeleton, data and menus done; the disp/camera/target functions
   are left); the stage rooms are split (config/G4BE08/modules.py); r10d, r10e, r11a (st1_2), r109, r107,
   r10a (st1_1) and r102 (st1_1 + st1_3) are Matching, r108 (st1_1/st1_3) is written with 9/15 functions
-  exact; the other rooms are unwritten (the Evt_*_Func rooms need the Event class layout: event.cpp is
-  empty and event.h's `Event` has no fields);
+  exact; r11d (st1_3, 16/21 incl. reloc-only), r10f (st1_3, 11/14), r11e (st1_3, 16/18) and r119
+  (st1_2, 26/27: only Init's table-address registers differ) have full sources (include/obj00.h,
+  obj13.h, objGondola.h are their room-side views of the DOL objects); r100, r101, r104, r105, r10b,
+  r10c, r11b, r11c, r117, r11f, r120 (st1) and every st2/st4 room are unwritten;
   em_wrap.cpp matches in st1_0/st2_4 (Matching) and is one register-allocation diff away elsewhere.
 - The `.drs` archives are not rebuilt by `ninja` (`tools/drs.py rebuild` does one at a time); the
   sound bank's record types 1/2 and the p0/p1 parameters are not interpreted.
@@ -2106,6 +2108,64 @@ Then `MATCHING["st2_4/r22c.cpp"] = True` in `config/G4BE08/modules.py`, `python3
 - COMPILER-DIFF candidate #7: the original duplicates the leading insns of a two-predecessor loop-test
   block into both predecessors (pool load / `lfs; fadds; fcmpu; stfs`), leaving the constant in a
   caller-saved f13 reloaded after the call; our gcse only inserts with partial availability.
+- Room idioms found on r11d / r10f / r11e / r119 (src/st1/, 2026-09):
+  - `RsfSet`/`RsfClear` store through a cast-then-deref word (flag_rsf.h `RsfFlagWord`, not
+    `MEM_IN_STRUCT_P`): the rooms reload `pG` and their static work pointer *after* an RsfSet
+    (`lwz r0,4(r3); oris; stw; lwz r9,pG`), which only a store that may alias fixed scalars gives. It
+    does NOT explain the pool `lfs f1, 0.0` issued after the RsfSet store (r108/r118/r11d
+    execShowView: `RTX_UNCHANGING_P` loads never depend on stores) - still OPEN.
+  - Poll loops: `while (f() != 1) SceSleep(1);` = `b test; body; test: bl; cmpwi; bne` (r11d
+    checkIronDoorKeyUse); the SceSleep-first door swing (`SndCall; L: SceSleep; rot -= spd; ...;
+    if (!(rot < lim)) goto L`) is `goto open; wait: SceSleep(1); open: ...` like r113 (constants
+    reloaded per iteration because a goto loop has no loop notes).
+  - `int eff = EspPullCoreKind();` with `(u8) eff` at every use gives the `clrlwi r10,r23,24` at
+    EstSet and one PRE'd `clrlwi r30,r23,24` before the three Effect*Delete calls (r10f DoorOpen); a
+    `u8 eff` local masks nothing.
+  - Template-copied locals (`int list[11] = {...}`, `Vec pos = {..}`) whose copies the target issues
+    *after* a run of calls are declared mid-block after those calls (C++), and a `cEmWrap em;` whose
+    ctor `bl` follows them is declared after them too (r11d execEmAppear_end, r10f DoorOpen).
+  - COMPILER-DIFF #4 in the rooms: `setPtr(s16,..)`/`setEm(s16,..)` called with `int list[i]`
+    elements get `lwz` straight into r4 in the original (ours `lhz; extsh`): int-parameter aliases
+    `cEmWrapSetPtrI asm("setPtr__7cEmWrapsSci")`, `setEmI asm("setEm__FsSciii")` (r11d).
+  - `for (i = 0; i < 11; i++) f(list[i])` over a local array: pointer compare `cmplw r31,r28; ble`
+    needs a `u32 i` (`int i` gives `cmpw`); ours still initialises the loop pointer straight from the
+    template-copy register where the original keeps an extra `mr r4,r8`/`mr r31,r4` copy (OPEN).
+  - A work pointer whose element stores are followed by a reload of both the pointer and the element
+    (`stw r3,0(r9); lwz r11,work; lwzx r3,r11,r29`) is the one-member-struct global (r10f
+    `R10fWorkPtr r10f_work; r10f_work.p->gondola[i] = ...`); a typed `PSet(cObjGondola*&, ..)` gives
+    `stwx r3,r29,r9` (index first) instead. Single pointer fields keep the typed `PSet` (r11d `mi`,
+    r11e `rock[i]`, r119 `dog`).
+  - Two accessor results stored through one local (`cLight* l; l = LightMgr.getWorkPtr(2); l->power
+    = a; l = LightMgr.getWorkPtr(6); l->power = b;`) share one register (r10 twice); separate
+    expressions get r10/r11 (r119 ThunderFlagOn/Off).
+  - Repeated scroll-object blocks in the Evt_*_Func handlers (`w = SmdGetWorkPtr(id); if ((obj =
+    SmdGetObjPtr(id)) && w) { setPos(&w->pos); setAng(&w->rot); }` x4) are written out with two
+    function-scope locals (`cObj* obj` before `SmdWork* w`: obj r31, w r30); an inline helper with
+    its own locals swaps the registers. The `SetMod(name, obj, 5, 0, 2, 0); setPos; setAng; be_flag
+    |= 0x20; EspSetModelPtr` blocks are written out too: a helper taking the name string evaluates
+    the string address before the `SmdGetObjPtr` call (r119 Evt_R119S00/S20_Func).
+  - `pG->flags_60 >= 0` on the u32 field must be written `(int) pG->flags_60 >= 0` (`cmpwi; blt`);
+    the unsigned form folds to true and the whole test disappears.
+  - A call result tested and used in one block (`mr. r3,r3` after `SmdGetObjPtr`) is a block-local
+    variable; a function-scope `cObj* obj` also used in other blocks gets `mr. r31,r3`.
+  - `switch (e->funcMode)` with `cmpwi 1; beq; ble end; cmpwi 2; beq` has an empty `case 0: break;`.
+  - `if (cnt > 899) for (o = ObjMgr.pAlive; o; o = o->next)` is the plain rotated loop; an explicit
+    `&& ObjMgr.pAlive != 0` in the `if` adds a `mr r9,r0` copy of the head.
+  - Routine bytes `xFC..xFF = 0` written in that source order are issued `ff, fc, fd, fe` (r11e
+    funcAshley).
+  - OPEN (r11d checkEmReset): `for (;;) { while (count > 10) SceSleep(1); setEm(tbl[i]); i++; if
+    (i == 10) break; SceSleep(60); SceSleep(1); }` - the original keeps `cmpwi r31,9; li r3,0x3c;
+    addi r31,1; bne` with SceSleep(60) laid out before the inner loop body; ours hoists the `i+1`
+    into the outer loop header (interblock scheduling) and never cross-jumps the trailing
+    `SceSleep(1)` into the inner loop body. goto / do-while / `i++ == 9` forms tried.
+  - OPEN (r11e / r119 Init): the `lis` pseudos of the pos/rot table addresses passed to six
+    `SatMgr/EatMgr.create` calls get callee-saved registers pair-wise (rot above pos in the original,
+    pos above rot in ours for some pairs); arrays, eight separate statics, pointer locals and a dozen
+    symbol names tried (not a name-hash effect).
+  - OPEN (r10f GondolaGetOn/GetOff): `&posA[side]` is formed off the `mot` table's frame pseudo
+    (`add r4,r26,r23; addi r4,r4,0x18`) and `mulli r26,r22,0xc` is issued before the SndStrReq call
+    in the original; r11d appearLittleSister: a `void* zero` local's `li r31,0` survives next to the
+    `andis.` result that cse merges it with in ours.
 
 - Locals whose frame slot sits inside freed inline-table slots must be declared after the getter
   calls: `assign_stack_temp` best-fits into the merged freed region; only fresh allocations extend the

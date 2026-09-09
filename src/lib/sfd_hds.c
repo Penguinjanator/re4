@@ -16,6 +16,7 @@ extern void MEM_Copy(void *dst, const void *src, Uint32 nbytes);
 typedef void (*SFHDS_HDRCB)(void *obj, Uint8 *data, Sint32 size);
 
 static Uint8 sfhds_sfhlib_work[SFHDS_SFH_WORK_SIZE];
+static Sint32 sfhds_version_dummy; /* 4-byte .bss word after the work (referenced by a dead function) */
 
 /* the seek work's copy of the file header, when the seek work is attached and no concatenation
  * is going on (a macro: `#pragma dont_inline` around sfhds_SetHdrRaw would keep a static helper
@@ -39,16 +40,36 @@ Sint32 SFHDS_GetColType(SFD sfd)
 	return sfhds_GetVidColType(&sfd->fhd.vid);
 }
 
+/* muxer tool version as one number (1.10 -> 110) */
+static Sint32 sfhds_GetVerNum(SFHDS_FHD *fhd)
+{
+	return fhd->ver_major * 100 + fhd->ver_minor;
+}
+
 Sint32 SFHDS_GetMuxVerNum(SFD sfd)
 {
 	if (sfd->fhd.valid != 0) {
-		return sfd->fhd.ver_major * 100 + sfd->fhd.ver_minor;
+		return sfhds_GetVerNum(&sfd->fhd);
+	}
+	return 0;
+}
+
+/* first stream id in [first, last] present in the header, 0 when none */
+static Sint32 sfhds_SearchStmId(SFH sfh, Sint32 first, Sint32 last, Sint32 *exist)
+{
+	Sint32 id;
+
+	for (id = first; id <= last; id++) {
+		if (SFH_IsExistStmId(sfh, id, exist) && *exist != 0) {
+			return id;
+		}
 	}
 	return 0;
 }
 
 void sfhds_DoProcessHdr(SFH sfh, SFHDS_FHD *fhd)
 {
+	Sint32 ver;
 	Sint32 is_sfd;
 	Sint32 rate;
 	Sint32 major;
@@ -83,7 +104,6 @@ void sfhds_DoProcessHdr(SFH sfh, SFHDS_FHD *fhd)
 	Sint32 expand;
 	Sint32 gopn;
 	Sint32 gopm;
-	Sint32 ver;
 	Sint32 id;
 
 	if (SFH_IsSfdHeader(sfh, &is_sfd) == 0) {
@@ -99,7 +119,7 @@ void sfhds_DoProcessHdr(SFH sfh, SFHDS_FHD *fhd)
 	}
 	fhd->ver_major = major;
 	fhd->ver_minor = minor;
-	ver = fhd->ver_major * 100 + fhd->ver_minor;
+	ver = sfhds_GetVerNum(fhd);
 
 	if (SFH_AnlyByteRate(sfh, &rate) == 0) {
 		rate = 0;
@@ -124,26 +144,20 @@ void sfhds_DoProcessHdr(SFH sfh, SFHDS_FHD *fhd)
 	fhd->maxplylen_vid = (SFH_AnlyMaxPlyLenVid(sfh, &maxplyvid) == 0) ? -1 : maxplyvid;
 	fhd->maxfrmnum = (SFH_AnlyMaxFrmNum(sfh, &maxfrm) == 0) ? -1 : maxfrm;
 
-	fhd->stmid_prv1 = (SFH_IsExistStmId(sfh, 0xBD, &ex_prv1) == 0 || ex_prv1 == 0) ? 0 : 0xBD;
-	fhd->stmid_prv2 = (SFH_IsExistStmId(sfh, 0xBF, &ex_prv2) == 0 || ex_prv2 == 0) ? 0 : 0xBF;
-	for (id = 0xC0; id <= 0xDF; id++) {
-		if (SFH_IsExistStmId(sfh, id, &ex_aud) && ex_aud != 0) {
-			break;
-		}
-	}
-	if (id > 0xDF) {
+	if (SFH_IsExistStmId(sfh, 0xBD, &ex_prv1) && ex_prv1 != 0) {
+		id = 0xBD;
+	} else {
 		id = 0;
 	}
-	fhd->stmid_aud = id;
-	for (id = 0xE0; id <= 0xEF; id++) {
-		if (SFH_IsExistStmId(sfh, id, &ex_vid) && ex_vid != 0) {
-			break;
-		}
-	}
-	if (id > 0xEF) {
+	fhd->stmid_prv1 = id;
+	if (SFH_IsExistStmId(sfh, 0xBF, &ex_prv2) && ex_prv2 != 0) {
+		id = 0xBF;
+	} else {
 		id = 0;
 	}
-	fhd->stmid_vid = id;
+	fhd->stmid_prv2 = id;
+	fhd->stmid_aud = sfhds_SearchStmId(sfh, 0xC0, 0xDF, &ex_aud);
+	fhd->stmid_vid = sfhds_SearchStmId(sfh, 0xE0, 0xEF, &ex_vid);
 
 	id = fhd->stmid_aud;
 	if (id != 0) {
@@ -269,11 +283,21 @@ static Sint32 sfhds_GetStartCode(Uint8 *p)
 	return code;
 }
 
+/* set the header from the private stream 2 packet whose start code is at p */
+static Bool sfhds_SetHdrPkt(SFD sfd, Uint8 *p, Sint32 len, Sint32 *result)
+{
+	if (SFHDS_IsSfdHeader(p - 12, len + 12) == 0) {
+		return 0;
+	}
+	*result = sfhds_SetHdrRaw(sfd, p - 12, len + 12);
+	return 1;
+}
+
 /* the file header travels in a private stream 2 packet: `data` points at its payload */
 Bool SFHDS_SetHdr(SFD sfd, Sint32 type, Uint8 *data, Sint32 size, Sint32 *result)
 {
-	Sint32 len;
 	Uint8 *p;
+	Sint32 len;
 
 	*result = 0;
 	if (type != 2) {
@@ -288,11 +312,7 @@ Bool SFHDS_SetHdr(SFD sfd, Sint32 type, Uint8 *data, Sint32 size, Sint32 *result
 			return 0;
 		}
 	}
-	if (SFHDS_IsSfdHeader(p - 12, len + 12) == 0) {
-		return 0;
-	}
-	*result = sfhds_SetHdrRaw(sfd, p - 12, len + 12);
-	return 1;
+	return sfhds_SetHdrPkt(sfd, p, len, result);
 }
 
 void SFHDS_FinishFhd(SFHDS_FHD *fhd)
@@ -314,4 +334,10 @@ void SFHDS_InitFhd(SFHDS_FHD *fhd)
 void SFHDS_Init(void)
 {
 	SFH_Init(SFHDS_SFH_NUM, sfhds_sfhlib_work);
+}
+
+/* dead-stripped in the DOL; keeps the trailing .bss word */
+void SFHDS_Finish(void)
+{
+	sfhds_version_dummy = 0;
 }

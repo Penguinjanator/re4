@@ -196,19 +196,29 @@ void R119Main()
 // Lightning on: the two hut lights brighten (per tool state).
 static void r119_ThunderFlagOn()
 {
+    cLight* l;
+
     if (EffGetToolState() == 1) {
-        LightMgr.getWorkPtr(2)->power = r119_lightPow2B;
-        LightMgr.getWorkPtr(6)->power = r119_lightPow6B;
+        l = LightMgr.getWorkPtr(2);
+        l->power = r119_lightPow2B;
+        l = LightMgr.getWorkPtr(6);
+        l->power = r119_lightPow6B;
     } else if (EffGetToolState() == 2) {
-        LightMgr.getWorkPtr(2)->power = r119_lightPow2A;
-        LightMgr.getWorkPtr(6)->power = r119_lightPow6A;
+        l = LightMgr.getWorkPtr(2);
+        l->power = r119_lightPow2A;
+        l = LightMgr.getWorkPtr(6);
+        l->power = r119_lightPow6A;
     }
 }
 
 static void r119_ThunderFlagOff()
 {
-    LightMgr.getWorkPtr(2)->power = 0.509f;
-    LightMgr.getWorkPtr(6)->power = 0.897f;
+    cLight* l;
+
+    l = LightMgr.getWorkPtr(2);
+    l->power = 0.509f;
+    l = LightMgr.getWorkPtr(6);
+    l->power = 0.897f;
 }
 
 // Thunder every 240..385 frames.
@@ -591,33 +601,6 @@ extern "C" void koya_init()
     SmdSetTrans(0x2A, 0);
 }
 
-// The event's scroll objects handed to the event system (the four fences and the giant's model).
-static inline void r119_evtSetMod(Event* e, u32 id, char* name, Vec* pos, Vec* rot)
-{
-    cObj* obj;
-
-    if ((obj = SmdGetObjPtr(id)) != 0) {
-        e->SetMod(name, obj, 5, 0, 2, 0);
-        obj->setPos(pos);
-        obj->setAng(rot);
-        obj->be_flag |= 0x20;
-        e->EspSetModelPtr(obj);
-    }
-}
-
-// The scroll objects put back where the event left them.
-static inline void r119_evtRestoreObj(u32 id)
-{
-    SmdWork* w;
-    cObj* obj;
-
-    w = SmdGetWorkPtr(id);
-    if ((obj = SmdGetObjPtr(id)) != 0 && w != 0) {
-        obj->setPos(&w->pos);
-        obj->setAng(&w->rot);
-    }
-}
-
 static inline void r119_evtSetGiant(Event* e, char* name)
 {
     void* em;
@@ -651,6 +634,8 @@ extern "C" void Evt_R119S00_Func(Event* e)
 {
     Vec pos = {0.0f, 0.0f, 0.0f};
     Vec rot = {0.0f, 0.0f, 0.0f};
+    cObj* obj;
+    SmdWork* w;
 
     switch (e->funcMode) {
     case 0:
@@ -665,10 +650,34 @@ extern "C" void Evt_R119S00_Func(Event* e)
         switch (e->cut) {
         case 0:
             if (e->frame == 0) {
-                r119_evtSetMod(e, 0x21, "scr0000", &pos, &rot);
-                r119_evtSetMod(e, 0x22, "scr0100", &pos, &rot);
-                r119_evtSetMod(e, 0x25, "scr0200", &pos, &rot);
-                r119_evtSetMod(e, 0x24, "scr0300", &pos, &rot);
+                if ((obj = SmdGetObjPtr(0x21)) != 0) {
+                    e->SetMod("scr0000", obj, 5, 0, 2, 0);
+                    obj->setPos(&pos);
+                    obj->setAng(&rot);
+                    obj->be_flag |= 0x20;
+                    e->EspSetModelPtr(obj);
+                }
+                if ((obj = SmdGetObjPtr(0x22)) != 0) {
+                    e->SetMod("scr0100", obj, 5, 0, 2, 0);
+                    obj->setPos(&pos);
+                    obj->setAng(&rot);
+                    obj->be_flag |= 0x20;
+                    e->EspSetModelPtr(obj);
+                }
+                if ((obj = SmdGetObjPtr(0x25)) != 0) {
+                    e->SetMod("scr0200", obj, 5, 0, 2, 0);
+                    obj->setPos(&pos);
+                    obj->setAng(&rot);
+                    obj->be_flag |= 0x20;
+                    e->EspSetModelPtr(obj);
+                }
+                if ((obj = SmdGetObjPtr(0x24)) != 0) {
+                    e->SetMod("scr0300", obj, 5, 0, 2, 0);
+                    obj->setPos(&pos);
+                    obj->setAng(&rot);
+                    obj->be_flag |= 0x20;
+                    e->EspSetModelPtr(obj);
+                }
                 r119_evtSetGiant(e, "em2b00");
             }
             break;
@@ -722,7 +731,7 @@ extern "C" void Evt_R119S00_Func(Event* e)
             }
             break;
         default:
-            if (pG->flags_60 >= 0 && e->frame == 0) {
+            if ((int) pG->flags_60 >= 0 && e->frame == 0) {
                 r119_evtBridgeOn();
             }
             break;
@@ -732,13 +741,29 @@ extern "C" void Evt_R119S00_Func(Event* e)
         SmdSetTrans(0x2C, 1);
         SmdSetTrans(0x24, 0);
         SmdSetTrans(0x25, 0);
-        if (pG->flags_60 >= 0) {
+        if ((int) pG->flags_60 >= 0) {
             r119_evtBridgeOn();
         }
-        r119_evtRestoreObj(0x21);
-        r119_evtRestoreObj(0x22);
-        r119_evtRestoreObj(0x24);
-        r119_evtRestoreObj(0x25);
+        w = SmdGetWorkPtr(0x21);
+        if ((obj = SmdGetObjPtr(0x21)) != 0 && w != 0) {
+            obj->setPos(&w->pos);
+            obj->setAng(&w->rot);
+        }
+        w = SmdGetWorkPtr(0x22);
+        if ((obj = SmdGetObjPtr(0x22)) != 0 && w != 0) {
+            obj->setPos(&w->pos);
+            obj->setAng(&w->rot);
+        }
+        w = SmdGetWorkPtr(0x24);
+        if ((obj = SmdGetObjPtr(0x24)) != 0 && w != 0) {
+            obj->setPos(&w->pos);
+            obj->setAng(&w->rot);
+        }
+        w = SmdGetWorkPtr(0x25);
+        if ((obj = SmdGetObjPtr(0x25)) != 0 && w != 0) {
+            obj->setPos(&w->pos);
+            obj->setAng(&w->rot);
+        }
         break;
     }
 }
@@ -755,31 +780,78 @@ extern "C" void Evt_R119S20_Func(Event* e)
     Vec pos = {0.0f, 0.0f, 0.0f};
     Vec rot = {0.0f, 0.0f, 0.0f};
     cObj* obj;
+    SmdWork* w;
 
     switch (e->funcMode) {
+    case 0:
+        break;
     case 1:
         if (e->cut == 0 && e->frame == 0) {
-            r119_evtSetMod(e, 0x21, "scr0000", &pos, &rot);
-            r119_evtSetMod(e, 0x22, "scr0100", &pos, &rot);
-            r119_evtSetMod(e, 0x25, "scr0200", &pos, &rot);
-            r119_evtSetMod(e, 0x24, "scr0300", &pos, &rot);
+            if ((obj = SmdGetObjPtr(0x21)) != 0) {
+                e->SetMod("scr0000", obj, 5, 0, 2, 0);
+                obj->setPos(&pos);
+                obj->setAng(&rot);
+                obj->be_flag |= 0x20;
+                e->EspSetModelPtr(obj);
+            }
+            if ((obj = SmdGetObjPtr(0x22)) != 0) {
+                e->SetMod("scr0100", obj, 5, 0, 2, 0);
+                obj->setPos(&pos);
+                obj->setAng(&rot);
+                obj->be_flag |= 0x20;
+                e->EspSetModelPtr(obj);
+            }
+            if ((obj = SmdGetObjPtr(0x25)) != 0) {
+                e->SetMod("scr0200", obj, 5, 0, 2, 0);
+                obj->setPos(&pos);
+                obj->setAng(&rot);
+                obj->be_flag |= 0x20;
+                e->EspSetModelPtr(obj);
+            }
+            if ((obj = SmdGetObjPtr(0x24)) != 0) {
+                e->SetMod("scr0300", obj, 5, 0, 2, 0);
+                obj->setPos(&pos);
+                obj->setAng(&rot);
+                obj->be_flag |= 0x20;
+                e->EspSetModelPtr(obj);
+            }
             r119_evtSetGiant(e, "em2b00");
         }
         break;
     case 2:
-        r119_evtRestoreObj(0x21);
-        r119_evtRestoreObj(0x22);
-        r119_evtRestoreObj(0x24);
-        r119_evtRestoreObj(0x25);
-        if ((obj = SmdGetObjPtr(0x21)) != 0) {
-            Vec ang = {-0.21598449f, -1.4628042f, -2.1205752f};
-
-            obj->setAng(&ang);
+        w = SmdGetWorkPtr(0x21);
+        if ((obj = SmdGetObjPtr(0x21)) != 0 && w != 0) {
+            obj->setPos(&w->pos);
+            obj->setAng(&w->rot);
         }
-        if ((obj = SmdGetObjPtr(0x22)) != 0) {
-            Vec ang = {-1.259219f, 1.5707964f, 1.259219f};
+        w = SmdGetWorkPtr(0x22);
+        if ((obj = SmdGetObjPtr(0x22)) != 0 && w != 0) {
+            obj->setPos(&w->pos);
+            obj->setAng(&w->rot);
+        }
+        w = SmdGetWorkPtr(0x24);
+        if ((obj = SmdGetObjPtr(0x24)) != 0 && w != 0) {
+            obj->setPos(&w->pos);
+            obj->setAng(&w->rot);
+        }
+        w = SmdGetWorkPtr(0x25);
+        if ((obj = SmdGetObjPtr(0x25)) != 0 && w != 0) {
+            obj->setPos(&w->pos);
+            obj->setAng(&w->rot);
+        }
+        {
+            cObj* o;
 
-            obj->setAng(&ang);
+            if ((o = SmdGetObjPtr(0x21)) != 0) {
+                Vec ang = {-0.21598449f, -1.4628042f, -2.1205752f};
+
+                o->setAng(&ang);
+            }
+            if ((o = SmdGetObjPtr(0x22)) != 0) {
+                Vec ang = {-1.259219f, 1.5707964f, 1.259219f};
+
+                o->setAng(&ang);
+            }
         }
         break;
     }

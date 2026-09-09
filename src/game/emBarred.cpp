@@ -18,6 +18,11 @@
 
 extern cModel* pSUB;   // game/em.cpp
 
+// COMPILER-DIFF: 1 (argument-move order). cSatMgr::create(pos, rot, poly, attr, flag, h) with the
+// `fmr f1, h` move issued before the `mr attr` / `li flag` moves (emobj.cpp SatMgrCreateF); only the
+// sub[0] / sub[1] creates of emBarredEatSet show the interleave, the other call sites match as is.
+cSat* SatMgrCreateF(cSatMgr* m, Vec* pos, Vec* rot, Vec* poly, f32 h, int attr, int flag) asm("create__7cSatMgrP3VecN21iif");
+
 typedef void (*EmBarredFunc)(cEmBarred*);
 
 EmBarredFunc EmBarred_R1_move_tbl[4] = {
@@ -881,7 +886,7 @@ void emBarredEatSet(cEmBarred* em)
             poly[3].x = -hx;
             poly[3].y = 0.0f;
             poly[3].z = hy;
-            w->sub[0] = EatMgr.create(&em->pos, &em->rot, poly, attr, 0, h);
+            w->sub[0] = SatMgrCreateF(&EatMgr, &em->pos, &em->rot, poly, h, attr, 0);
         } else {
             w->sub[0]->flags |= 4;
             w->sub[0]->setCoord(&em->pos, &em->rot);
@@ -899,7 +904,7 @@ void emBarredEatSet(cEmBarred* em)
             poly[3].x = hx - 160.0f;
             poly[3].y = 0.0f;
             poly[3].z = hy;
-            w->sub[1] = EatMgr.create(&em->pos, &em->rot, poly, attr, 0, h);
+            w->sub[1] = SatMgrCreateF(&EatMgr, &em->pos, &em->rot, poly, h, attr, 0);
         } else {
             w->sub[1]->flags |= 4;
             w->sub[1]->setCoord(&em->pos, &em->rot);
@@ -967,7 +972,8 @@ int emBarredNearCk(cEmBarred* em)
     } else {
         r2 = 6250000.0f;
     }
-    if ((w->pos0.x - pPL->pos.x) * (w->pos0.x - pPL->pos.x) + (w->pos0.y - pPL->pos.y) * (w->pos0.y - pPL->pos.y) + (w->pos0.z - pPL->pos.z) * (w->pos0.z - pPL->pos.z) < r2) {
+    d = (w->pos0.x - pPL->pos.x) * (w->pos0.x - pPL->pos.x) + (w->pos0.y - pPL->pos.y) * (w->pos0.y - pPL->pos.y) + (w->pos0.z - pPL->pos.z) * (w->pos0.z - pPL->pos.z);
+    if (d < r2) {
         return 1;
     }
     for (i = 0; i < EmMgr.nArray; i++) {
@@ -985,13 +991,7 @@ int emBarredNearCk(cEmBarred* em)
         if (e == em) {
             continue;
         }
-        {
-            f32 dx = w->pos0.x - e->pos.x;
-            f32 dy = w->pos0.y - e->pos.y;
-            f32 dz = w->pos0.z - e->pos.z;
-
-            d = dx * dx + dy * dy + dz * dz;
-        }
+        d = (w->pos0.x - e->pos.x) * (w->pos0.x - e->pos.x) + (w->pos0.y - e->pos.y) * (w->pos0.y - e->pos.y) + (w->pos0.z - e->pos.z) * (w->pos0.z - e->pos.z);
         if (d < r2) {
             return 1;
         }

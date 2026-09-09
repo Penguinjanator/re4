@@ -387,7 +387,7 @@ void Espgen45_TransSub(EspgenWork* w)
     Mtx tmp;
     PSMTXConcat(pG->Cam.viewMat, p->mat, mv);
     PSMTXCopy(p->mat, tmp);
-    tmp[1][3] = p->size * 0.05f + 100.0f;
+    tmp[1][1] = p->size * 0.05f + 100.0f;
     PSMTXConcat(pG->Cam.viewMat, tmp, tmp);
     PSMTXInverse(tmp, nrm);
     PSMTXTranspose(nrm, nrm);
@@ -398,7 +398,9 @@ void Espgen45_TransSub(EspgenWork* w)
     buf = GetDrawTmpBufAddr(0xE);
     if (buf == NULL) {
         pLog->warn(0, 0, "Espgen45() : not enough memory");
-    } else {
+        return;
+    }
+    {
         f32 ofs = 56.0f;
         GXSetTexCopySrc(0, (u32) ofs, (u32) Screen.width, (u32) (Screen.height - ofs));
         GXSetTexCopyDst((u32) Screen.width / 2, (u32) ((f32) ((u32) Screen.height / 2) - ofs), 6, 1);
@@ -831,18 +833,18 @@ EspgenWork* SetWaterWork45(EspgenWork* w, Vec* pos, Vec* rot, f32 size, u32 nx, 
         for (j = 0; j < p->nx + 1; j++) {
             p->pos[base + j].y = FGet(g45_init_y);
         }
-        for (i = 0; i < p->ny + 1; i++) {
-            p->pos[i * (p->nx + 1)].y = FGet(g45_init_y2);
+        for (int i3 = 0; i3 < p->ny + 1; i3++) {
+            p->pos[i3 * (p->nx + 1)].y = FGet(g45_init_y2);
         }
-        for (i = 0; i < p->ny + 1; i++) {
-            p->pos[i * (p->nx + 1) + p->nx].y = FGet(g45_init_y2);
+        for (int i4 = 0; i4 < p->ny + 1; i4++) {
+            p->pos[i4 * (p->nx + 1) + p->nx].y = FGet(g45_init_y2);
         }
     }
-    n = sizeof(Vec) * (p->ny + 1) * (p->nx + 1);
+    n = sizeof(Vec) * (p->nx + 1) * (p->ny + 1);
     DCStoreRange(p->pos, n);
     DCStoreRange(p->nrm, n);
-    DCStoreRange(p->bump, sizeof(Vec) * (p->ny + 1) * (p->nx + 1));
-    n = sizeof(f32) * (p->ny + 1) * (p->nx + 1);
+    DCStoreRange(p->bump, sizeof(Vec) * (p->nx + 1) * (p->ny + 1));
+    n = sizeof(f32) * (p->nx + 1) * (p->ny + 1);
     DCStoreRange(p->hA, n);
     DCStoreRange(p->hB, n);
     DCStoreRange(p->dl, p->dlSize);

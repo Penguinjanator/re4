@@ -119,8 +119,8 @@ section	offset	size	unit	scope	name	demangled
 .text	0x00011D68	0xD4	Tools/db_light.cpp	global	expand__12cLitPathToolP16cLightPathHeader	cLitPathTool::expand
 .text	0x00011E3C	0xBC	Tools/db_light.cpp	global	createPath__12cLitPathToolP16cLightPathHeader	cLitPathTool::createPath
 .text	0x00011EF8	0xBC	Tools/db_light.cpp	global	countActiveWork__t8cManager1Z6cLight	cManager<cLight>::countActiveWork
-.text	0x00011FB4	0x158	Tools/db_light.cpp	global	cManager_cLight_create	cManager<cLight>::create
-.text	0x0001210C	0x138	Tools/db_light.cpp	global	cManager_cLight_create_1210C	cManager<cLight>::create
+.text	0x00011FB4	0x158	Tools/db_light.cpp	global	create__t8cManager1Z6cLighti	cManager<cLight>::create
+.text	0x0001210C	0x138	Tools/db_light.cpp	global	create__t8cManager1Z6cLightiUl	cManager<cLight>::create
 .text	0x00012244	0x14	Tools/db_light.cpp	global	init__t9cVarRange1ZUcRCUcT1	cVarRange<unsigned char>::init
 .text	0x00012258	0x34	Tools/db_light.cpp	global	limitUpper__t8cVarLoop1ZUci	cVarLoop<unsigned char>::limitUpper
 .text	0x0001228C	0x34	Tools/db_light.cpp	global	limitLower__t8cVarLoop1ZUci	cVarLoop<unsigned char>::limitLower

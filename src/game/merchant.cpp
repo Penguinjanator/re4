@@ -1509,6 +1509,9 @@ int Merchant::buyupPrice(u16 id, int num)
 {
     ItemInfo info;
     PriceEntry* p = exerciseItemId(id);
+    f32 half = 0.5f;
+    const f32 nine = 0.9f;
+    f32 result;
     int price;
     int n;
     int type;
@@ -1521,18 +1524,17 @@ int Merchant::buyupPrice(u16 id, int num)
     price = p->price * n;
     itemInfo(id, &info);
     type = info.type;
-    // OPEN: the original keeps the 0.5f/0.9f pool entries before the double-trick constant, loads
-    // 0.5f through a callee-saved high half (lis r29 at the entry) and lays the 0.9f body out
-    // first (its multiply tail cross-jumped into the 0.5f one); rate variables at the top give the
-    // pool order but keep the loads in f30/f31 from the entry. The parenthesised test keeps the
-    // [1,2] range fold apart from the == 3 compare, as the original.
+    // `half` (single-use variable: update_equiv_regs moves its load to the use, the lis stays in
+    // the prologue in r29) and `nine` (const: pool entry only) give the pool order 0.5, 0.9, magic;
+    // the 0.9 arm is written first (inverted test) and the three arms assign one float.
     if (type == 5 || type == 0xC) {
-        return (int) ((f32) price * 1.0f);
+        result = (f32) price;
+    } else if (!((type == 1 || type == 2) || (type == 3 || type == 6) || id == 0xFE)) {
+        result = (f32) price * nine;
+    } else {
+        result = (f32) price * half;
     }
-    if ((type == 1 || type == 2) || (type == 3 || type == 6) || id == 0xFE) {
-        return (int) ((f32) price * 0.5f);
-    }
-    return (int) ((f32) price * 0.9f);
+    return (int) result;
 }
 
 int Merchant::buyupPrice(ItemWork* item, int num)
