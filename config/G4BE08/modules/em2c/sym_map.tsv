@@ -57,7 +57,7 @@ section	offset	size	unit	scope	name	demangled
 .text	0x0000AC80	0x3DC	em2c/em2c.cpp	local	em2c_R1_Dm_Guard__FP5cEm2c	em2c_R1_Dm_Guard
 .text	0x0000B05C	0x1C8	em2c/em2c.cpp	local	em2c_R1_Dm_Freeze__FP5cEm2c	em2c_R1_Dm_Freeze
 .text	0x0000B224	0x3AC	em2c/em2c.cpp	local	em2c_R1_Dm_C_Freeze__FP5cEm2c	em2c_R1_Dm_C_Freeze
-.text	0x0000B5D0	0x98	em2c/em2c.cpp	local	em2cKickAction	em2cKickAction
+.text	0x0000B5D0	0x98	em2c/em2c.cpp	local	em2cKickAction__FP5cEm2c	em2cKickAction
 .text	0x0000B668	0x2F0	em2c/em2c.cpp	local	plemKick	plemKick
 .text	0x0000B958	0x288	em2c/em2c.cpp	local	em2c_R1_Dm_F_Normal__FP5cEm2c	em2c_R1_Dm_F_Normal
 .text	0x0000BBE0	0x230	em2c/em2c.cpp	local	em2c_R1_Dm_F_Blow__FP5cEm2c	em2c_R1_Dm_F_Blow
