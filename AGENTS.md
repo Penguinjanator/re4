@@ -3263,7 +3263,7 @@ target) stays unresolved and `make_rel` then fails with "undefined symbol".
   of the format string, drawScurve's `i`/`&wp` register swap (r26/r27), sctrlMenu's cross-jump of the
   case-1 cursor call.
 
-### Single-unit enemy modules (em2e, em26, em18, em34, em24 Matching; em30 22/23, em3a 36/39; src/<em>/<em>.cpp, 2026-09)
+### Single-unit enemy modules (em2e, em26, em18, em34, em24 Matching; em30 22/23, em3a 36/39, em3c 43/47; src/<em>/<em>.cpp, 2026-09)
 
 - Layout of every one-file enemy REL: `_prolog` (`OSReport("<em> prolog Ok\n")` + `EmInitFunc = EmXXInit`;
   em2e has no OSReport), empty `_epilog`/`_unresolved`, `EmXXInit` = `new (em) cEmXX()`, `emXXDmCk`, the
@@ -3371,6 +3371,61 @@ target) stays unresolved and `make_rel` then fails with "undefined symbol".
   the sum to f0 and the constant to f13 (ours swapped; ternary, if/else temp and operand order all
   give the same); em3aPatrolInit issues `lis pG@ha` after the `w->pRoute = 0` store (ours before;
   a reference store folds the address into `0x688(r3)` instead).
+- em3c (43/47 byte-identical, not Matching; include/em3c.h, 2026-09): four-type humanoid with a
+  parasite head object (em3cSetParasite = em30SetParasite's shape) and a head-burst cloth simulation
+  (em3cPartsBomb*: five points per parts overlaid on cParts+0x128, `Em3cPartsBomb`). Idioms:
+  - `if (em3cAtkCk(em, &v, no)) return 1;` followed by `p = GetPartsAddr(em->pParts, 0x1A);` gives
+    `cmpwi r3; li r3, 1; bne END` (jump.c's `if (...) {x = a; goto l;} x = b;` simplification: the
+    hard return register r3 of `return 1` matches the next call's r3 argument load, so the `li` moves
+    above the branch). The call must be the FIRST statement after the `if` (before the Vec stores);
+    a `return 0` followed by such a call gets the same `li r3, 0; bne END` shape.
+  - Three-term squared distance `dx*dx + dy*dy + dz*dz`: combine folds the FIRST product into the
+    fmadds, so the asm shows `fsubs/fmuls` on the *second* term first (`lfs 0x98` before `0x94`);
+    read the source order from the fmadds operands, not from the first load. Two terms keep source
+    order (`(pos.x - oldPos.x)^2 + (pos.z - oldPos.z)^2` in move: the target uses `oldPos - pos` for
+    the first SQRTF and `pos - oldPos` for the second). A partner distance tested with the hp
+    (`lha` scheduled inside the float chain, `fcmpu f13, f0`) is `if (pSUB) { f32 d = ...; if
+    (pSUB->hp > 0 && d < K) ... }`; the `&&` form loads/compares hp first.
+  - `cmpwi 3; bgt X; cmpwi 2; bge Y; X: li 0; b; Y: li 1` = `switch (em->type) { default: v = 0;
+    break; case 2: case 3: v = 1; break; }` (a childless range node tests the high bound, then the
+    low bound; `default:` written first lays its body first). `if (a > 3 || a < 2)` and every other
+    if-form is range-folded to `subi 2; cmplwi 1`. Conversely `subi 1; cmplwi 1; bgt` (em3cFootSe)
+    is `if (em->seNo == 1 || em->seNo == 2)`; a `case 1: case 2:` switch gives the two compares.
+  - The dead `lbz bell_stat; cmpwi 0; beq L; cmpwi 1; L:` pair (also em10FindCk's TODO) is
+    `f32 r; switch (pG->bell_stat) { case 0: r = 25000.0f; break; case 1: r = 25000.0f; break;
+    default: r = 25000.0f; break; }` with `d < r * r` and `w->plDist < r`: the identical arms are
+    cross-jumped, the compares survive, and `r` (three definitions) is never constant-folded so
+    `fmuls r, r` is emitted. OPEN: the target issues `lfs r` and the `fmuls` late in the block
+    (after the pos/bell loads); ours issues them first (all six source forms tried).
+  - Damage switch lists (balance_case_nodes: root = node where the cumulative cost, 1 per single,
+    2 per range, reaches `(n + ranges + 1) / 2`; exactly 3 nodes -> middle): the blood switch has
+    `0..6, 9..C, E..11, 14, 15, 1B, 1D, 26..28, 2B, 2C` + default (arm A, written first), `D, 12, 13,
+    29, 2D` (B), `7, 8, 21` (C), `17, 2A` (empty); the routine switch lists `0..4, 9..C, E, 10, 11,
+    1B, 1D, 26..28, 2B` as `break`, `5, 6, D, F, 12, 13, 29, 2A, 2C, 2D` + default (arm written
+    BEFORE the `7, 8, 21` arm so its body follows the tree and the `beq END` of `cmpwi 0xe` and
+    `cmpwi 0x2b` merge). Two identical arms written as separate `case 2:` / `case 3:` bodies (not
+    `case 2: case 3:`) reproduce two `beq` nodes to one label (em3cModelInit).
+  - Player callbacks: `pl->subArc = PL_EM(pl)->subArc; pl->dmType = 2;` (this order gives the
+    `stb` before the `stw`); `sub->rot.y = GetXZAngle(..); sub->rot.y += -0.17453292f; sub->rot.y =
+    LIMIT_ANGLE(sub->rot.y);` gives the `fmr f0, f1` copy with the first store dropped;
+    `w->actMode = 0; w->escaped = 1; pPLS->dmType = 2;` gets the 1/2 constants in r0 and the zero in
+    r11. `FSet(pPL->rot.y, pPL->rot.y + Muku(..))` when pPL is reloaded after the store
+    (em3cAtkCk); `pPLS->setNoSuspend(1)` after a `pG->flags_5010 |=` store; `pGS->x4F88` for the
+    difficulty table stores through `w` (`w->timer = 20; if (pGS->x4F88 <= 2) w->timer = 10;`);
+    `int far = 1; if (ang < PI / 12) far = 0;` with `ang` computed into an f32 local first so the
+    `li 1` follows the Muku call.
+  - `.data` whose size is not a multiple of 8 gets 4 pad bytes before the ngcld BSS tag:
+    `asm(".section .data\n\t.balign 8\n\t.text")` after the last table (em34's `em34_atk_pad` is the
+    same padding). `static f32 tbl[5][5][5] = { 0.0f };` (explicit zero) lands in `.data`.
+  - `EmSetDieCntE(em) asm("EmSetDieCnt")` again; `GetPlPos(Vec*, cEm*, f32)` (em_sub.cpp, marked
+    local in Bio4.sym) is called from the module and now declared in em_sub.h.
+  - OPEN: em3c_R1_Die_Normal's case-0 then-arm materialises a fresh `li r0, 0` for the EstSet stack
+    argument where ours reuses the switch register (xFE == 0, cse followed `beq case0`); every
+    switch/if form tried keeps the reuse (-4 bytes). em3cPartsBombSet: `add r29, rBase, rMult` for
+    `em3c_bomb_pt[kind]` and `add r0, rAdd, rTime` for `add + em3c_bomb_time[i]` (ours swapped; a
+    pointer local gives the first, a u16 parameter the second but with a `clrlwi` at entry).
+    em3cPartsBombControl (0x7C8 bytes, -12): structure identical, callee-saved assignment (em r18
+    vs r17, no r21 vs r20, ...) and three spill-slot numbers differ.
 - Tools REL, third pass (t_atari 16/17 functions, t_dr 13/15; src/Tools/t_atari.cpp, t_dr.cpp, 2026-09):
   - `cSat` has a constructor, `cSat() : cUnit(1) { flags = 0; }` (include/atari.h): t_atari's two
     `static cSat tbl[10]` arrays are built by the static-init loop as `stw 1; stw _vt.4cSat; stb 0,0x2a`
