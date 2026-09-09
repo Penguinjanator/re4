@@ -7,8 +7,8 @@
 #include "atariInfo.h"
 #include "main_mem.h"
 
-// Character work (game/em.cpp), sizeof 0xDE0. The player classes derive from it, so the
-// player-only fields the pl_* units touch live here too (they all sit below 0xDE0).
+// The player classes derive from cEm, so the player-only fields the pl_* units touch live in
+// cEm too (they all sit below 0xDE0).
 // Hit box ("yarare") / damage part info (cEm+0x33C for the player; GetWepTargetList returns
 // pointers to these per target), 0x34 bytes; extra boxes are chained through `next` (at_mod.cpp
 // YarareAdd / YarareAddCube).
@@ -60,24 +60,7 @@ struct PlRoomEff {
     u8 type;
 };
 
-// Light area block (game/light_area.cpp) at cEm+0x30C: scales one light's colour on the model.
-struct EmLightArea {
-    u32 x0;          // 0x00
-    u32 flags;       // 0x04  bit0 active, bit1 scale valid
-    s32 lightNo;     // 0x08  cLight::x140 of the light to scale
-    f32 scale;       // 0x0C
-
-    int chk(u32 bit)
-    {
-        if (flags & bit) {
-            return 1;
-        }
-        return 0;
-    }
-    void on(u32 bit) { flags |= bit; }   // player.cpp init1: `addi rX,this,0x30C; lwz/stw 4(rX)`
-};
-
-// Blend motion work (0xD0 bytes): a MotionWork (motion.h) without the trailing blend/flip/blendTbl
+// Blend motion work (0xD0 bytes): a MotionWork (model.h) without the trailing blend/flip/blendTbl
 // pointers. cEm::neckMot (0x42C) and cMot3::work are one; MotionWork::blend points at it.
 struct MotionWorkSub {
     void* data;           // 0x00  MotionData*, NULL = no motion
@@ -93,39 +76,10 @@ struct EmiEntry;   // embarrel.h
 class cSubChar;    // pl_npc.h
 class cLight;      // light.h
 
+// Character work (game/em.cpp), sizeof 0xDE0: the cModel (0x320, which carries the motion work,
+// the cAtariInfo, pFootShadowTbl and the light area) plus the fields below.
 class cEm : public cModel {
 public:
-    void* pMotion;        // 0x1D8  motion work head: current motion data, NULL = stopped (pl_push stopTarget)
-    u8 pad_1DC[0x218 - 0x1DC];
-    u16 motFlags;         // 0x218  MotionWork::flags (bit0: move the model by the root speed; pl_npc clears it)
-    u16 motState;         // 0x21A  MotionWork::state (emobj EmObjMove clears it when no motion plays)
-    u32 motFlags2;        // 0x21C  MotionWork::flags2 (emhit: bit30 = no matrix update before MotionMove)
-    u8 pad_220[0x244 - 0x220];
-    Vec satPos;           // 0x244  pos after the scenario collision moved the model (atari at_pos_calc)
-    u8 pad_250[0x28A - 0x250];
-    u8 seNo;              // 0x28A  sound number + 1 to play at parts 0 this frame (emMove SndCall(8, ...)), 0 = none
-    u8 seFlags28B;        // 0x28B  player: sound kind of the motion key (low 3 bits, pl_class seqSeCtrl)
-    u8 pad_28C[0x290 - 0x28C];
-    f32 frame;            // 0x290  motion frame (db_cam prints it as an int)
-    u16 frameMax;         // 0x294
-    u8 pad_296[0x29D - 0x296];
-    u8 x29D;              // 0x29D  (emrock plemRockEscape: MotionSetCore hokan of the escape run motion)
-    u8 pad_29E[0x2A4 - 0x29E];
-    struct EmWork2A4* p2A4;  // 0x2A4  0x1FE-byte work (player.cpp mem_alloc; cam_ctrl reads its byte 5)
-    struct MotionWorkSub* blendMot;  // 0x2A8  MotionWork::blend: second motion blended in (pl_class: &neckMot / cMot3::work)
-    u16* motFlip;         // 0x2AC  MotionWork::flip: parts index remap of flipped motions (emdoor: emDoor_xflip_tbl)
-    u8 pad_2B0[4];
-    // 0x2B4 .. 0x300  collision info (rect size at 0x2C0/0x2C4); wrapped so that cEm::cEm does not
-    // run cAtariInfo's constructor (the original constructs only the cDmgInfo)
-    union {
-        struct {
-            cAtariInfo atari;
-        };
-    };
-    u8 pad_300[8];
-    void* pFootShadowTbl; // 0x308  player: foot shadow table (pl_leon: pl_fs_tbl)
-    EmLightArea litArea;  // 0x30C  light_area: per-light colour scale (trans_lit lightSetColor)
-    u8 pad_31C[0x320 - 0x31C];
     s16 hp;               // 0x320
     s16 hpMax;            // 0x322
     // 0x324 .. 0x33C: the cDmgInfo (em.cpp constructs it explicitly; a class with a constructor

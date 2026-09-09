@@ -182,8 +182,8 @@ void objBull_R0_Break1st(cObjBull* obj)
     objBullPushMtx(obj);
     switch (obj->xFE) {
     case 0:
-        SndCall(6, 6, &obj->pParts[2].worldPos, 0, 0, obj);
-        SndCall(6, 7, &obj->pParts[2].worldPos, 0, 0, obj);
+        SndCall(6, 6, &((cParts*) obj->pParts)[2].worldPos, 0, 0, obj);
+        SndCall(6, 7, &((cParts*) obj->pParts)[2].worldPos, 0, 0, obj);
         w->x62 = 0;
         w->timer = 0;
         obj->xFE++;
@@ -234,8 +234,8 @@ void objBull_R0_To2nd(cObjBull* obj)
     case 0:
         w->timer = 0;
         MotionSetCore(obj, &obj->pMotion, w->mot[1], 0, 0, 0x8001, 0);
-        SndCall(6, 8, &obj->pParts[2].worldPos, 0, 0, obj);
-        SndCall(6, 9, &obj->pParts[2].worldPos, 0, 0, obj);
+        SndCall(6, 8, &((cParts*) obj->pParts)[2].worldPos, 0, 0, obj);
+        SndCall(6, 9, &((cParts*) obj->pParts)[2].worldPos, 0, 0, obj);
         obj->xFE++;
     case 1:
         w->cnt++;
@@ -266,8 +266,8 @@ void objBull_R0_Break2nd(cObjBull* obj)
     switch (obj->xFE) {
     case 0:
         w->timer = 0;
-        SndCall(6, 0xA, &obj->pParts[2].worldPos, 0, 0, obj);
-        SndCall(6, 0xB, &obj->pParts[2].worldPos, 0, 0, obj);
+        SndCall(6, 0xA, &((cParts*) obj->pParts)[2].worldPos, 0, 0, obj);
+        SndCall(6, 0xB, &((cParts*) obj->pParts)[2].worldPos, 0, 0, obj);
         w->x62 = 0;
         obj->xFE++;
     case 1:
@@ -316,8 +316,8 @@ static void objBull_R0_ToLift(cObjBull* obj)
     switch (obj->xFE) {
     case 0:
         w->timer = 0;
-        SndCall(6, 8, &obj->pParts[2].worldPos, 0, 0, obj);
-        SndCall(6, 9, &obj->pParts[2].worldPos, 0, 0, obj);
+        SndCall(6, 8, &((cParts*) obj->pParts)[2].worldPos, 0, 0, obj);
+        SndCall(6, 9, &((cParts*) obj->pParts)[2].worldPos, 0, 0, obj);
         MotionSetCore(obj, &obj->pMotion, w->mot[3], 0, 0, 0x8001, 0);
         obj->xFE++;
     case 1:
@@ -350,8 +350,8 @@ void objBull_R0_LiftWait(cObjBull* obj)
     switch (obj->xFE) {
     case 0:
         w->timer = 0;
-        SndCall(6, 0xA, &obj->pParts[2].worldPos, 0, 0, obj);
-        SndCall(6, 0xB, &obj->pParts[2].worldPos, 0, 0, obj);
+        SndCall(6, 0xA, &((cParts*) obj->pParts)[2].worldPos, 0, 0, obj);
+        SndCall(6, 0xB, &((cParts*) obj->pParts)[2].worldPos, 0, 0, obj);
         obj->xFE++;
     case 1:
         MotionSetCore(obj, &obj->pMotion, w->mot[3], 0, 0, 0x8001, (u16) ((*(u16*) w->mot[3] & 0x3FFF) - 1));
@@ -385,8 +385,8 @@ void objBull_R0_Lift(cObjBull* obj)
     case 0:
         w->timer = 0;
         MotionSetCore(obj, &obj->pMotion, w->mot[4], 0, 0, 0x8001, 0);
-        SndCall(6, 0xA, &obj->pParts[2].worldPos, 0, 0, obj);
-        SndCall(6, 0xB, &obj->pParts[2].worldPos, 0, 0, obj);
+        SndCall(6, 0xA, &((cParts*) obj->pParts)[2].worldPos, 0, 0, obj);
+        SndCall(6, 0xB, &((cParts*) obj->pParts)[2].worldPos, 0, 0, obj);
         obj->bull.flags |= 0x20;
         obj->xFE++;
     case 1:
@@ -428,8 +428,8 @@ void objBull_R0_To3rd(cObjBull* obj)
     case 0:
         w->timer = 0;
         MotionSetCore(obj, &obj->pMotion, w->mot[5], 0, 0, 0x8001, 0);
-        SndCall(6, 8, &obj->pParts[2].worldPos, 0, 0, obj);
-        SndCall(6, 9, &obj->pParts[2].worldPos, 0, 0, obj);
+        SndCall(6, 8, &((cParts*) obj->pParts)[2].worldPos, 0, 0, obj);
+        SndCall(6, 9, &((cParts*) obj->pParts)[2].worldPos, 0, 0, obj);
         obj->bull.flags &= ~0x20;
         obj->xFE++;
     case 1:
@@ -461,8 +461,8 @@ void objBull_R0_Break3rd(cObjBull* obj)
     switch (obj->xFE) {
     case 0:
         w->timer = 0;
-        SndCall(6, 0xA, &obj->pParts[2].worldPos, 0, 0, obj);
-        SndCall(6, 0xB, &obj->pParts[2].worldPos, 0, 0, obj);
+        SndCall(6, 0xA, &((cParts*) obj->pParts)[2].worldPos, 0, 0, obj);
+        SndCall(6, 0xB, &((cParts*) obj->pParts)[2].worldPos, 0, 0, obj);
         w->x62 = 0;
         obj->xFE++;
     case 1:
@@ -512,8 +512,8 @@ void objBull_R0_To4th(cObjBull* obj)
     case 0:
         w->timer = 0;
         MotionSetCore(obj, &obj->pMotion, w->mot[7], 0, 0, 0x8001, 0);
-        SndCall(6, 8, &obj->pParts[2].worldPos, 0, 0, obj);
-        SndCall(6, 9, &obj->pParts[2].worldPos, 0, 0, obj);
+        SndCall(6, 8, &((cParts*) obj->pParts)[2].worldPos, 0, 0, obj);
+        SndCall(6, 9, &((cParts*) obj->pParts)[2].worldPos, 0, 0, obj);
         obj->xFE++;
     case 1:
         w->cnt++;
@@ -545,8 +545,8 @@ void objBull_R0_Break4th(cObjBull* obj)
     case 0:
         w->timer = 0;
         w->x62 = 0;
-        SndCall(6, 0xA, &obj->pParts[2].worldPos, 0, 0, obj);
-        SndCall(6, 0xB, &obj->pParts[2].worldPos, 0, 0, obj);
+        SndCall(6, 0xA, &((cParts*) obj->pParts)[2].worldPos, 0, 0, obj);
+        SndCall(6, 0xB, &((cParts*) obj->pParts)[2].worldPos, 0, 0, obj);
         obj->xFE++;
     case 1:
         MotionSetCore(obj, &obj->pMotion, w->mot[8], 0, 0, 0x8001, 0);
@@ -595,8 +595,8 @@ void objBull_R0_Collision(cObjBull* obj)
     case 0:
         w->timer = 0;
         MotionSetCore(obj, &obj->pMotion, w->mot[9], 0, 0, 0x8001, 0);
-        SndCall(6, 8, &obj->pParts[2].worldPos, 0, 0, obj);
-        SndCall(6, 9, &obj->pParts[2].worldPos, 0, 0, obj);
+        SndCall(6, 8, &((cParts*) obj->pParts)[2].worldPos, 0, 0, obj);
+        SndCall(6, 9, &((cParts*) obj->pParts)[2].worldPos, 0, 0, obj);
         w->frame = (*(u16*) w->mot[9] & 0x3FFF) - 30;
         obj->bull.flags |= 0x40;
         w->x62 = 0;

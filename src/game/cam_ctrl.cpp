@@ -1069,7 +1069,7 @@ void CameraControl::Check()
     if (flags_30 & 4) {
         return;
     }
-    if (pPL->p2A4 && pPL->p2A4->x5) {
+    if (pPL->p2A4 && ((EmWork2A4*) pPL->p2A4)->x5) {
         return;
     }
     PSVECSubtract(&pPL->getPartsPtr(1)->worldPos, &pPL->pos, &d);

@@ -7184,7 +7184,7 @@ address	size	section	unit	scope	name	demangled
 0x801FCC08	0x22C	.text	lib/cftfx.c	global	cnvDynamicYcc420plnToA256UserTable	cnvDynamicYcc420plnToA256UserTable
 0x801FCE34	0x19C	.text	lib/cftfx.c	global	cnvStaticYcc420plnToA256V	cnvStaticYcc420plnToA256V
 0x801FCFD0	0x30	.text	lib/cftfx.c	global	CFT_Ycc420plnToA256V	CFT_Ycc420plnToA256V
-0x801FD000	0x2F8	.text	lib/cftfx.c	local	CFT_Argb420ToArgb8	CFT_Argb420ToArgb8
+0x801FD000	0x2F8	.text	lib/cftfx.c	global	CFT_Argb420ToArgb8	CFT_Argb420ToArgb8
 0x801FD2F8	0x16C	.text	lib/cftcoladj.c	global	CFT_MakeMtx3D	CFT_MakeMtx3D
 0x801FD464	0x188	.text	lib/cftcoladj.c	global	CFT_MakeInverseMtx3D	CFT_MakeInverseMtx3D
 0x801FD5EC	0x564	.text	lib/cftcoladj.c	global	CFT_MakeInvConvTableCustom	CFT_MakeInvConvTableCustom

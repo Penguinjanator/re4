@@ -82,7 +82,7 @@ void SmdClear(int mode)
         break;
     case 1:
         for (i = 0; i < 250; i++) {
-            if (scrObjTbl[i] != NULL && scrObjTbl[i]->sub2B4.blk != -1) {
+            if (scrObjTbl[i] != NULL && scrObjTbl[i]->blk != -1) {
                 scrObjTbl[i] = NULL;
             }
         }
@@ -96,7 +96,7 @@ void workInit(cObj* obj)
     obj->x12E = 2;
     obj->type = 0;
     obj->x12F = 3;
-    obj->sub2B4.blk = -2;
+    obj->blk = -2;
 }
 
 void SmdSetup(int blk)
@@ -130,11 +130,11 @@ int setObj(int blk)
             scrObjTbl[w->id] = obj;
         }
         scrTbl[i] = obj;
-        if (obj->sub2B4.blk != -2 && obj->sub2B4.blk != blk) {
-            pLog->err(0, 0, "Smd::setObj() REDECLARATION WORK %d. BLK %d and %d", w->id, obj->sub2B4.blk, blk);
+        if (obj->blk != -2 && obj->blk != blk) {
+            pLog->err(0, 0, "Smd::setObj() REDECLARATION WORK %d. BLK %d and %d", w->id, obj->blk, blk);
             continue;
         }
-        obj->sub2B4.blk = blk;
+        obj->blk = blk;
         if (SmdSetParam(obj, w) == 0) {
             return -1;
         }
@@ -401,7 +401,7 @@ void BlockDestroy(int blk)
         cur = p;
         next = (cObj*) cur->next;
         p = next;
-        if (cur->x12E == 2 && cur->sub2B4.blk == blk) {
+        if (cur->x12E == 2 && cur->blk == blk) {
             ObjMgr.destroy(cur);
         }
     }
@@ -586,7 +586,7 @@ cObj* SetObjSmd(void* bin, void* tpl, Vec* pos, Vec* rot, int lightFlag, int fro
     obj->rot = *rot;
     obj->setNoSuspend(1);
     obj->be_flag |= 0x20;
-    obj->sub2B4.blk = -1;
+    obj->blk = -1;
     mi = obj->pInfo;
     b = &mi->bound;
     size.x = b->size.x;

@@ -117,6 +117,9 @@ public:
     Mtx mat;         // 0x60  piece -> world
     Mtx inv;         // 0x90  world -> piece
 
+    // Tools t_atari's static cSat arrays (stw 1; stw vptr; stb 0 per element in the static init loop) and
+    // ss_map's cSat locals show the real constructor: alive flag through the base, active flags cleared.
+    cSat() : cUnit(1) { flags = 0; }
     void init(cSatFile* f, Vec* pos, Vec* rot);
     void setCoord(Vec* pos, Vec* rot);
     void setMatrix(Mtx m);

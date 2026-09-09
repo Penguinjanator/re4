@@ -324,6 +324,31 @@ mark it Matching.
   `mfcr/extrwi`.
 - Vtable emission is in reverse class-declaration order; a vtable that needs an uninstantiated
   template member instantiates it in place (strings between vtable groups).
+- Deferred inlines (`inline` members, in-class bodies, synthesized dtors) are emitted after
+  `__static_initialization_and_destruction_0` in *definition* order (saved_inlines, oldest first): header
+  in-class bodies in class order, then the unit's own `inline` definitions in file order, then the
+  template instantiations finish_file requests. An implicit (synthesized) derived dtor is saved at the
+  end of its class, before its in-class virtuals, and only instantiates the base `~cManager<T>` in
+  finish_file (so those land last, in vtable-walk order); a user-written `~cMgr() {}` instantiates it at
+  the definition point (game/model: `~cModInfoMgr, memAlloc, memFree, memClear, ~cParts, ~cPartsMgr,
+  ...` needs the mgr dtors implicit and memAlloc/memFree/memClear in-class in model.h).
+- A `static const` table referenced only by dead-stripped static functions is output by
+  wrapup_global_declarations at the end of finish_file's first pass: between the last vtable of the first
+  vtable group and a vtable needed only by a deferred inline (model: the 0x10 zero words between the
+  cCoord and cUnit vtable copies = `static const s32 ShadowPtNum[4]` used by the dead ShadowModelInit /
+  AddShadowModel).
+- A byte store `x = 0` makes a QImode zero pseudo that later word stores cannot share; `U8Set(x, 0)`
+  (u8& setter, promoted parameter) makes it SImode, and cse's skip-blocks path carries it over a
+  one-statement `if` so the word stores after the join reuse the same register (modelInit).
+- `Derived() : cUnit(1)` (base initializer) instead of `be_flag = 1;` in the body moves the constant's
+  pseudo before the vptr pseudo and gives it r0 (cModelInfo::cModelInfo); the store order is unchanged.
+- `for (i = 0; lim = n + 1, i < nArray - lim; i++)`: recomputing `n + 1` in the loop test reproduces
+  the entry guard + `mr r7, r0` PRE copy; `u32 lim = n + 1` before the loop gives one register, and
+  `nArray - (n + 1)` is reassociated by fold to `(nArray - 1) - n` (createSequential).
+- Deferred-inline `inline` functions that other units call out of line (`isTrans__6cModel`) must stay in
+  the .cpp: an in-class body would be inlined into those units.
+- A dead static function's pool and strings stay in `.rodata` (STRIP_UNUSED drops the body); write it
+  with the strings the target shows and reference the globals whose `.sdata`/`.data` slots it owns.
 - Weak vtable copies: a later unit's reference binds to the first copy program-wide; symbols.txt must
   name the first copy `_vt.<Class>` and the others `<Class>_virtual_table_<addr>`.
 - `extern "C"` functions with function-pointer parameters need `extern "C"` on the definition too.
@@ -362,10 +387,33 @@ mark it Matching.
 - A sum written as two statements (`d = a*b + c*d; d += e*f;`) keeps the intermediate in the
   variable's register instead of a temp tied to a dying operand.
 - An unused aggregate local still takes its frame slot.
-- KNOWN DEBT: cModel's real size is 0x320 (ctor initialises up to 0x31C: motion @0x1D8, cAtariInfo
-  @0x2B4 ...) but em.h/obj.h currently define those fields inside cEm/cObj. game/model needs the fields
-  moved into cModel with cEm/cObj starting at 0x320 — a coordinated refactor, do not start it while
-  em*/obj* agents are running.
+- `cModel` (include/model.h) is 0x320 bytes; `cEm`, `cObj`, `cMap` start their own fields at 0x320
+  (sizeof(cEm) 0xDE0, sizeof(cObj) 0x3D8, sizeof(cPlayer) 0xDE0, sizeof(cMap) 0x324 and all 391
+  probed field offsets unchanged by the refactor, verified with an offsetof harness before and after;
+  `cMotModel` is now an empty cModel subclass, 0x320 instead of 0x2B4). Layout (after cCoord's 0xF4 bytes):
+
+  | offset | field | notes |
+  |---|---|---|
+  | 0xF4 | `pParts` / `pPartsHead` | cModel* / cParts* views of the parts chain |
+  | 0xF8 | `serial` | |
+  | 0xFC | `stat` / `xFC..xFF` | word / byte views |
+  | 0x100 | `id`, `type`, `nParts`, `x103` | |
+  | 0x104 | `speed`, `oldPos`, `wallNrm` | Vec ×3 |
+  | 0x128 | `pFloorNrm`, `x12C..x12F`, `pCldShMd`, `shdCol`, `x135..x13B`, `fixParts`, `fixPos`, `x14C..x14F` | aliased by the obj05 `efmStat/efmSpd/efmRotSpd` view |
+  | 0x150 | `x150` / `x150w` | f32 / u32 |
+  | 0x154 | `alpha`, `x158`, `pInfo`, `pShMdInfo` | |
+  | 0x164 | `lightInfo` | cLightInfo, 0x74 bytes |
+  | 0x1D8 | `mot` | MotionWork (0xDC bytes); the cEm/cObj names (`pMotion`, `motFlags`, `motState`, `motFlags2`/`x21C`, `satPos`, `seNo`, `seFlags28B`/`motEvent`, `frame`/`motFrame`, `frameMax`/`motSeqMax`, `motSpeedRate`, `x29D`, `p2A4`, `blendMot`/`motBlend`, `motFlip`, `x2B0`) are an anonymous-struct view of it |
+  | 0x2B4 | `atari` | cAtariInfo (0x4C); wrapped in an anonymous struct so no member ctor runs, cModel::cModel calls `AtariInfoConstruct` |
+  | 0x300 | `x300`, `x304` | |
+  | 0x308 | `pFootShadowTbl` | |
+  | 0x30C | `litArea` | EmLightArea (0x10) |
+  | 0x31C | `pTexChg` | cTexChg* |
+  | 0x2B4 | `sub2B4` | ObjSub2B4: the object units' view of 0x2B4..0x320 |
+
+  `MotionSeqKey/MotionData/MotionWork`, `EmLightArea`, `ObjSub2B4` now live in model.h; `cParts`
+  (0x1D8, a cCoord with `pNext`, `bindMat`, `addRot`, `motParts`) and the two managers are declared
+  before cModel. `cObj::blk` sits at 0x324 (was `sub2B4.blk`). `p2A4` is `void*` (cam_ctrl casts it).
 - Callee return type changes arg-setup order through dependence counts: an `int` result adds an
   output dependence on r3 that pulls `li r3,0`/`mr r3` to the end of the arg block. Declare the callee
   with its real return type (check the callee's own asm); `EstSet`, `MotionSetCore` are `void`.
@@ -378,8 +426,8 @@ mark it Matching.
   merged by combine after loop opt.
 - Fresh block-local pointer copies in a later section (instead of reusing function-level pointers)
   shorten live ranges and re-rank callee-saved register assignment.
-- cModel size debt workaround: an unused `u8 pad[0x320 - sizeof(cModel)]` after a `cModel` local
-  reproduces the original frame footprint.
+- The `u8 pad[0x320 - sizeof(cModel)]` locals some units still carry are zero-length arrays now (a GNU
+  extension GCC 2.95 accepts); they take no frame space and can be deleted when the unit is touched.
 - `*(u32*)((u8*)p + ofs)` (cast then deref) produces a MEM without `MEM_IN_STRUCT_P`, so it aliases
   scalar globals and forces `pG/pSys/pRK` reloads; `p[i]` / `*(p + i)` does not.
 - `if (A || B) return 0;` places the `li r3,0` block after the second test; separate `if`s after the
@@ -3209,3 +3257,73 @@ target) stays unresolved and `make_rel` then fails with "undefined symbol".
   fall-through, cse-skip-blocks on the taken path) in every form tried (if/switch, taken-path else
   arm, dead sibling arm, nested if, duplicated condition), and flow2's tidy_fallthru + life_analysis
   delete a dead compare, so the shape is out of reach: em30 stays 22/23 (+8 bytes), not Matching.
+- Tools REL, third pass (t_atari 16/17 functions, t_dr 13/15; src/Tools/t_atari.cpp, t_dr.cpp, 2026-09):
+  - `cSat` has a constructor, `cSat() : cUnit(1) { flags = 0; }` (include/atari.h): t_atari's two
+    `static cSat tbl[10]` arrays are built by the static-init loop as `stw 1; stw _vt.4cSat; stb 0,0x2a`
+    and ss_map's `cSat` locals show the same three stores. game/atari.cpp `cSatMgr::construct` hand-wrote
+    the stores around `new (p) cSat()`; with the ctor it should be the placement new alone (not Matching,
+    left to its owner). The unit also emits `_vt.4cSat` + a nameless `_vt.5cUnit` copy in .rodata and the
+    cUnit inline dtor/beginEvent/endEvent/`__dl` copies after the static init (module linkonce rule).
+  - .bss order with ctor'd file-scope arrays: [function-local statics, at their function] [ctor'd arrays,
+    emitted while the static-init function is generated] [deferred plain file-scope statics]. t_atari's
+    `oldPos`/`hitLine` are `static Vec` locals of plmove10/hitcheck, `atWork` a file-scope static.
+  - A function reached through a routine table whose body also appears inline in another function of
+    the unit, with the out-of-line copy placed right after that function (t_atari `wk_edit` inside
+    `edit`): the source repeats the body; an `inline` copy would be deferred to the end of the file.
+  - Empty `if (trg & A) {} else if (trg & B) {} else if ...` arms give the `andi.; bne end` chains
+    (one `lwz` of the word, alternating r9/r11).
+  - Index-first `lhzx rD, rIdx, rBase` with the index in BASE_REGS (r10) and `lfsx/add rD, rIdx, rBase`:
+    `*(u16*) (w->cursor * 2 + (u32) &poly[no])` and `(Vec*) (idx * sizeof(Vec) + (u32) vtx)`.
+  - `u8 r = Rnd() % 20; v.x += r;` gives `mulhwu 0xcccccccd; clrlwi 24; xoris 0x8000` (signed double
+    trick on the zero-extended byte); `Vec v2; v2.x = v.x + n->x * 3000.0f` memberwise.
+  - Zero-store pairs `mode = 0; plMode = 0;` come out `stw plMode; stw mode` (the later source store dies
+    and is issued first) -- derive the source order from the target with the dying-first rule, every
+    Tools routine has several of these.
+  - t_dr has no entry in tools.cpp: `ToolDr`, `tDrInit` and a player-position display were unused
+    `static inline` functions whose strings are still emitted in parse order ("[DATAREAD ...]" + the two
+    path formats at the top, "[PLAYER]".."ANG:%f" between tDrArea_Move and tDr_getFilename,
+    "CAMERA MODE" after tDrSaveDataCreate); the routine table is an unreferenced extern-linkage `const`
+    array (`extern void (*const tDrFunc[5])();` then the definition) at the .rodata start.
+  - The t_dr work pointer is a one-member struct (`DrWorkPtr drWork; DR = drWork.p`): every store
+    through it, including `sth`/`stw`, reloads it (record alias set).
+  - Local routine tables `void (*tbl[3])() = {a, b, c}; tbl[DR->step]();` are .rodata templates copied
+    to the frame (3 lwz/stw) at the declaration point (between the previous function's and this
+    function's strings).
+  - s16 clamp with one store and no pointer reload: a `static inline` taking the work pointer with
+    `u16 v = w->areaNo; if ((s16) v >= lo) { if ((s16) v > hi) v = hi; } else v = lo; w->areaNo = v;`
+    gives `lhz; extsh; cmpwi; blt; cmpwi; ble; li hi; b; li lo; sth` (the u16 local keeps the HImode
+    load; an s16 local or direct field compares give `lha`).
+  - `n = top + 7; if (n > 128) end = 128; else end = n;` keeps `mr end, n; cmpwi n; ble; li end, 128`
+    (the ternary and `end = n; if (n > 128)` forms coalesce the copy away).
+  - A u8 colour that the target masks (`clrlwi`) at the call is `int col = c ? 6 : 0; f((u8) col)`
+    (multi-set pseudo, nonzero_bits unknown); `u8 col = c ? 6 : 0` is never masked.
+  - `p += strlen(p); p++;` (two statements) gives `add; addi 1`; `p += strlen(p) + 1` adds 1 first.
+    `size = len + 0x10; saveSize = n * 0x38 + size;` keeps `addi len,0x10` separate from the `addi n*0x38,0x10`
+    of the neighbouring store.
+  - `DrArea* a = (DrArea*) (no * sizeof(DrArea) + (u32) DR->area); a->flag` (index-first add with the
+    +0xA0 folded into the displacement) vs `DrArea* a = &DR->area[DR->areaNo]` (`mulli; addi 0xa0; add w, idx`)
+    -- both shapes occur in the same unit.
+  - Unit boundary: t_eminfo's .rodata pin is 0x3088 (its `cFlag.set()` string); the zero word at 0x3084 is
+    the linker's pad to t_eminfo's 8-aligned .rodata and stays in t_dr's split object (ours ends at
+    0x3084 -- do not `.balign 8` .rodata there: t_dr's .rodata starts 4-aligned at 0x2D6C).
+  - OPEN t_atari plmove10 (19 words): `Vec old = w->pos;` (struct copy, lwz/stw) followed by the three
+    `w->pos.x += ...` float RMW statements: the target issues the copy's `stw`s after the `stfs`s and the
+    x/y `lfs` before the copy's `lwz`s; ours the reverse. Copy placement (top/after/pointer/memcpy),
+    statement order, JOY pointer, `(f32)` factor order tried.
+  - OPEN t_dr tDrArea_ListDisp (-8 bytes): the target keeps the function-top `lis drWork@ha` in caller-saved
+    r6 for the straight-line blocks up to the `end` diamond and a second pseudo (`lis r31`) from the
+    `listTop < areaNo - 6` block on, then reloads `drWork.p` for the `>` eprintf; ours PREs one r31
+    pseudo for all and carries the pointer across the `end` diamond (cse-skip-blocks). tDrArea_Menu_main
+    (`a`/`lis` r28<->r30) is global-alloc order only (five declaration orders tried).
+  - t_motseq notes for the next pass (not written): the work is `Debug_alloc(0x1E10, 1)` behind a plain
+    pointer at .data 0x21E8 (`static MsqWork* pMsq` -- reloaded after every store like the t_dr one), the
+    routine table `.data 0x21EC` = {Model, SeqLoad, SeqMake, Sequence, SeqResize, File, QuitCk, Quit}
+    indexed by `mode` (+0x10C0; +0x10C4/0x10C8/0x10CC sub states, +0x10D4 file sub), 0x220C is a
+    21-entry `int` y table; the work holds `u16 num` (+0), `{u16 frame; u8 se; u8 flag}` frames from +4
+    (1024 max, 0x40 = one motion frame, 0x280 = 10), a JOY copy at +0x10D8 (`on` 0x10E8, `trg` 0x10EC,
+    `rep` 0x10F4), `u8 cursor` +0x10A2 (0..9 flag bits), +0x10A4..0x10B3 sixteen flag display bytes,
+    `u32 viewFlag` +0x10BC (dbModSetViewFlag/dbModUnsetViewFlag), `u32 x15AC` (copy-clear colour word),
+    `u8 se mode` +0x1DBC, `u32 seqNo` +0x1CA4 and the file name at +0x1CA8 ("%1d" digit patched before
+    the '.'), start/end/add/max frames at +0x1DAC..0x1DB8, `dbModSlot[0].pModel` (+0x1F8 max frame, +0x290
+    current frame, +0x294 motion count, +0x94 pos, +0xF4 parts list) everywhere; strings and pools in
+    .rodata are in the order listed by secdump.

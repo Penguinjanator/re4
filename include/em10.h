@@ -250,7 +250,8 @@ public:
 // The Ganado (em10.cpp). Vtable order after the cEm virtuals: the declaration order below.
 class cEm10 : public cEm {
 public:
-    cEm10() {}
+    // no user constructor: em10.cpp has no cEm10::cEm10 body (the in-class `cEm10() {}` would be
+    // emitted out of line like every in-class member), EmXXInit's `new (em) cEm10()` synthesizes it
     virtual ~cEm10();
     virtual void move();
     virtual void setNoSuspend(int on);

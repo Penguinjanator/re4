@@ -403,7 +403,7 @@ void cBlockUnit::setTrans(int on)
 
     for (i = 0; i < ObjMgr.nArray; i++) {
         cObj* o = (cObj*) ((u8*) ObjMgr.pArray + ObjMgr.size * i);
-        if ((o->be_flag & 0x201) == 1 && o->id == 2 && o->sub2B4.blk == no) {
+        if ((o->be_flag & 0x201) == 1 && o->id == 2 && o->blk == no) {
             if (on == 1) {
                 o->be_flag |= 2;
             } else {
@@ -597,7 +597,7 @@ void cBlockUnit::recalcModelAddr(int ofs)
     cObj* o;
 
     for (o = ObjMgr.pAlive; o != 0; o = (cObj*) o->next) {
-        if (o->id == 2 && o->sub2B4.blk == no) {
+        if (o->id == 2 && o->blk == no) {
             o->moveDataAddr(ofs);
         }
     }

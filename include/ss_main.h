@@ -264,9 +264,41 @@ public:
     virtual void move(SUB_SCREEN* wk);
 };
 
+class PzzlThinking;
+class PieceSelect;
+class CaseChange;
+class ShopTopMenu;
+class SellMenuSelect;
+class SellItemNum;
+class SellConfirm;
+class BuyMenuSelect;
+class BuyItemNum;
+class BuyConfirm;
+class BuyPuzzleEnd;
+class LvUpMenuSelect;
+class LvUpItemSelect;
+class LvUpConfirm;
+
 class SsShopMain : public Widget<SUB_SCREEN> {
 public:
-    u8 pad_10[0x58 - 0x10];  // members: ss_shop.cpp
+    PzzlThinking* thinking;    // 0x10  (ss_pzzl.cpp widgets: case placement of a bought item)
+    int x14;
+    int x18;
+    PieceSelect* select;       // 0x1C
+    CaseChange* caseChange;    // 0x20
+    ShopTopMenu* topMenu;      // 0x24
+    SellMenuSelect* sellSel;   // 0x28
+    SellItemNum* sellNum;      // 0x2C
+    SellConfirm* sellConf;     // 0x30
+    BuyMenuSelect* buySel;     // 0x34
+    BuyItemNum* buyNum;        // 0x38
+    BuyConfirm* buyConf;       // 0x3C
+    BuyPuzzleEnd* buyEnd;      // 0x40
+    LvUpMenuSelect* lvSel;     // 0x44
+    LvUpItemSelect* lvItem;    // 0x48
+    LvUpConfirm* lvConf;       // 0x4C
+    Widget<SUB_SCREEN>* cur;   // 0x50
+    Widget<SUB_SCREEN>* next;  // 0x54
 
     virtual void init(SUB_SCREEN* wk);
     virtual void quit(SUB_SCREEN* wk);

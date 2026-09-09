@@ -664,42 +664,13 @@ struct Obj16Work {
     class cCtrl* ctrl12;  // 0x88  GetCtrlCtrl12() (Ctrl12Set on a hit)
 };
 
-// Sub-object at cObj+0x2B4 (0x74 bytes): the collision info followed by scroll bookkeeping.
-struct ObjSub2B4 {
-    // wrapped like cEm's so that cObj::cObj does not run cAtariInfo's constructor (the original
-    // does not; the KNOWN DEBT cModel refactor will move this into cModel)
-    union {
-        struct {
-            cAtariInfo atari;     // 0x00 .. 0x4C  (flags at 0x1A)
-        };
-    };
-    u8 pad_4C[0x54 - 0x4C];
-    void* pFootShadowTbl; // 0x54 (cObj+0x308)  foot shadow table, the cEm field (event ExePacket_SetOm)
-    u8 pad_58[0x70 - 0x58];
-    s32 blk;              // 0x70  scroll block the object belongs to (-2 free, -1 SetObjSmd)
-
-    void clrFlags(u16 mask) { atari.flags &= mask; }
-};
-
-// Map object work (game/obj.cpp), sizeof 0x3D8. Per-object modules keep their state in `work`.
+// Map object work (game/obj.cpp), sizeof 0x3D8: the cModel (0x320; motion work `mot` / `pMotion`
+// / `motFrame`.., `sub2B4.atari`, `sub2B4.pFootShadowTbl` are cModel members, see model.h), the
+// scroll block and the per-object work area. Per-object modules keep their state in `work`.
 class cObj : public cModel {
 public:
-    void* pMotion;        // 0x1D8 motion data (MotionMove) or NULL (matUpdate)
-    u8 pad_1DC[0x21C - 0x1DC];
-    u32 x21C;             // 0x21C  bit30 (0x40000000): set by obj26MatCalc when following a parent
-    u8 pad_220[0x28B - 0x220];
-    u8 motEvent;          // 0x28B  MotionWork::key1.x3: event bits of the current sequence key (objRobo SE / effects)
-    u8 pad_28C[0x290 - 0x28C];
-    f32 motFrame;         // 0x290  MotionWork::seqFrame (objGondola R0_Up waits for frame 4105)
-    u16 motSeqMax;        // 0x294  MotionWork::seqMax (objRocket: the rocket burns out at seqFrame >= seqMax - 1)
-    u8 pad_296[2];
-    f32 motSpeedRate;     // 0x298  MotionWork::speedRate (objWep resetMotion: 1.0)
-    u8 pad_29C[0x2A4 - 0x29C];
-    void* p2A4;           // 0x2A4  MotionWork::cam (objRobo SetObjRobo: 0x98-byte mem_alloc)
-    struct MotionWork* motBlend;  // 0x2A8  MotionWork::blend (objGondola setVib: the sub motion work)
-    u8 pad_2AC[4];
-    u32 x2B0;             // 0x2B0  (obj18: parts matrices are only recomputed while 0)
-    ObjSub2B4 sub2B4;     // 0x2B4 .. 0x328
+    u8 pad_320[4];        // 0x320
+    s32 blk;              // 0x324  scroll block the object belongs to (-2 free, -1 SetObjSmd)
     // 0x328: per-object work area (Efm09Work runs to the end of the object: x3D0 / callBack are
     // inside the union so that they keep their offsets)
     union {

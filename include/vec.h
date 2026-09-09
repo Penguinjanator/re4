@@ -33,6 +33,7 @@ void PSMTXRotAxisRad(Mtx m, const Vec* axis, f32 rad);
 void PSMTXTrans(Mtx m, f32 xT, f32 yT, f32 zT);
 void PSMTXScale(Mtx m, f32 xS, f32 yS, f32 zS);
 void PSMTXMultVec(const Mtx m, const Vec* src, Vec* dst);
+void PSMTXMultVecArray(const Mtx m, const Vec* srcBase, Vec* dstBase, u32 count);
 void PSMTXMultVecSR(const Mtx m, const Vec* src, Vec* dst);
 void PSMTXTransApply(const Mtx src, Mtx dst, f32 xT, f32 yT, f32 zT);
 
