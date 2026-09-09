@@ -414,6 +414,10 @@ CRI_CFLAG_OVERRIDES: Dict[str, Dict[str, str]] = {
     # `deferred`; the DOL's .text/.rodata order is the reverse of the natural file order)
     "lib/mwsfdset.c": {"-inline auto": "-inline auto,deferred"},
     "lib/adx_fs.c": {"-inline auto": "-inline auto,deferred"},
+    # the VLC table generators: MPVVLC_Init (2nd in the file) calls the generators defined after it,
+    # .text is the reverse of the call order and .bss follows the reversed codegen order
+    "lib/mpv_vlc.c": {"-inline auto": "-inline auto,deferred"},
+    "lib/cftfx.c": {"-inline auto": "-inline auto,deferred"},
 }
 
 
@@ -626,6 +630,9 @@ REL_MATCHING: Dict[str, bool] = getattr(modules_mod, "MATCHING", {})
 REL_STRIP_UNUSED = set(getattr(modules_mod, "STRIP_UNUSED", ()))
 # extra compiler flags of a module (config/G4BE08/modules.py CFLAGS: Sscrn's -fno-implement-inlines)
 REL_CFLAGS: Dict[str, List[str]] = getattr(modules_mod, "CFLAGS", {})
+# per-unit additions appended after the module's (modules.py UNIT_CFLAGS: Tools/db_toolbase.cpp was
+# built with the default -fimplement-inlines, its in-class cDbgWindow::Init is in the object)
+REL_UNIT_CFLAGS: Dict[str, List[str]] = getattr(modules_mod, "UNIT_CFLAGS", {})
 rel_objects: List[Object] = []
 with open(config.config_path) as _f:
     _config_yml = _f.read()
@@ -661,7 +668,7 @@ for _mod in _module_names:
                 REL_MATCHING.get(unit, NonMatching),
                 unit,
                 source=_src[0] if _src and _src[0] else unit,
-                cflags=[*cflags_rel, f"-DREL_MODULE={_mod}", *REL_CFLAGS.get(_mod, [])],
+                cflags=[*cflags_rel, f"-DREL_MODULE={_mod}", *REL_CFLAGS.get(_mod, []), *REL_UNIT_CFLAGS.get(unit, [])],
                 post_build=_post,
                 post_build_implicit=_post_implicit,
             )

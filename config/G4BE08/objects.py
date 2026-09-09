@@ -1475,3 +1475,15 @@ MATCHING.update({
 MATCHING.update({
     "game/at_sub.cpp": True,
 })
+
+# mpv_vlc (CRI Sofdec VLC tables): `-inline auto,deferred` (CRI_CFLAG_OVERRIDES) — .text is the
+# reverse of the source order and .bss is laid out in *reverse declaration order* (no first-reference
+# placement under deferred), .rodata stays in declaration order; table fills are `for (i < n) *p++`
+# loops (<= 8 iterations unrolled without guard, 9..32 with the `li 0; cmpwi n; bge` guard, more as
+# 32-store mtctr loops); per-code-length groups are blocks with their own `k/i/v` (a shared `k`
+# chains consecutive one-iteration loops); `Sint16 v` fills give the `extsh` of 16-loops (I tables,
+# motion) while the P/B tables store the expression directly; the VLC area layout keeps the
+# run/level start in a copy (`rl = p`) and derives the lower tables from it (r18 base)
+MATCHING.update({
+    "lib/mpv_vlc.c": True,
+})

@@ -1907,6 +1907,18 @@ Write the remaining CRI units for source completeness; flag only what matches.
 - Volatile FPRs are assigned in declaration order (first declared -> lowest).
 - `lbz` without `extsb` before `cmpwi K` on a `Sint8` field is a single-use `== K` compare.
 
+- `-inline auto,deferred`: `.text` reverse source order, `.bss` reverse declaration order, `.rodata`
+  initialised objects in declaration order, float pools in codegen order.
+- Table-fill loops: n <= 8 unrolled with no guard; 9..32 unrolled behind a `li 0; cmpwi n; bge` guard;
+  > 32 as 32-store `mtctr` loops; a body containing a call-free inner fill loop is not unrolled.
+- Constants substituted by the unroller are not refolded (`li r0,4; ori r0,r0,0x700`).
+- FP locals get f31 downwards in declaration order; the loop counter declared last takes the lowest
+  callee-saved GPR.
+- Address-taken `sscanf` outputs are separate scalars with stack slots in declaration order top-down.
+- Paired-single inline asm needs the scheduler ON to reproduce swapped adjacent pairs; non-PS asm
+  bodies need `#pragma scheduling off`. Inline asm cannot use compiler pool constants: declare
+  `static const Float32 x` and use `x@ha`/`x@l`; GQR operands must be numeric.
+
 ## REL modules
 
 The game loads its rooms, enemies, weapons and debug tools as Nintendo REL overlays. `ninja` rebuilds the
