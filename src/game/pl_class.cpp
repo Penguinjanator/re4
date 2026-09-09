@@ -61,6 +61,21 @@ public:
 };
 #define END_EVENT(p, mode) ((cUnitEvent*) (p))->endEvent(mode)
 
+// Partner (id 3) dead while the player is in routine 0: routine 6 (die), damage info 0x80. An
+// inline member of the class whose vtable this unit owns: emitted here after the destructor.
+inline void cPlayer::subCharLiveCheck()
+{
+    cEm* sub = pSubEm;
+    if (sub && sub->id == 3 && sub->hp <= 0 && xFC == 0) {
+        xFF = 0;
+        xFC = 6;
+        xFD = 0;
+        xFE = 0;
+        dmg.set(0, 0x80);
+        pWep->pObj->interrupt();
+    }
+}
+
 // Routine bytes (state, routine, sub routine, step) written through an inline taking ints: the
 // stores come out in the original's order (ff, fd, fc, fe for a plain routine change).
 static inline void PlRoutineSet(cPlayer* pl, int r0, int r1, int r2, int r3)

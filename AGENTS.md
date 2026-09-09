@@ -414,8 +414,9 @@ mark it Matching.
   parsed before both.
 - Register-argument addresses (`&local`) are precomputed into pseudos and cse merges later `&local`
   uses in the same extended block; only the frame-offset-0 local is set straight into the hard reg and
-  recomputed. OPEN (sscrn FadeSet colour temps, `&pos` for setAng): how the original gets fresh
-  `addi rX,r1,ofs` per call.
+  recomputed. SOLVED (sscrn/mercenaries FadeSet colour temps, `&pos` for setAng): see "FadeSet colour
+  pair" below — the fresh `addi rX,r1,ofs` per call comes from a local of an INLINED helper, whose
+  frame address integrate.c substitutes straight into the hard-register argument sets.
 - KNOWN DEBT: `cUnit::beginEvent/endEvent` take an `int` in the original (sce_com loops, sscrn); the
   shared declaration in cManager.h is still `()`. Fix together with the em*/obj* owners.
 - A `&local` passed directly to a call is copied to a pseudo and PRE hoists it into a callee-saved
@@ -883,12 +884,28 @@ mark it Matching.
   same variable in the extended block into that pseudo (callee-saved `mr r4, rN` copies). Only the local at
   frame offset 0 (`(reg vsv)` at expand time) is set straight into the hard register and recomputed per
   call. The bare `&far`/`&ab` (`addi r5, r1, 8` twice) vs `mr r5, r30` (`&ac`) split in sub2 comes from this.
-  OPEN: sscrn's fade colours (`stw 0xFF/0` into 8/0xC, `addi r4, r1, 8; addi r5, r1, 0xc` recomputed in
-  OpeSetOpenTermEnd, slots shared with a block-scoped `ItemInfo`) and OpeSetOpenTerm's second `&pos`
-  (fresh `addi r9, r1, 0x68` after `setPos(&pos)`): u32/union/GXColor/4-byte-class locals are spilled to
-  fixed slots (no sibling reuse, `purge_addressof`), BLKmode/dtor-class temps share slots but cse merges
-  the address; inline-with-parameters (`fadeW(no, u32 c0, u32 c1, t)`) gives fresh addresses but fixed
-  slots. ~25 forms tried.
+- FadeSet colour pair (sscrn, mercenaries; `include/fade.h` `FadeColorPair`/`FadeSetW`): the recomputed
+  `addi r4, r1, 8; addi r5, r1, 0xc` before every `FadeSet` and the fresh `addi r9, r1, 0x68` for
+  `setAng(&pos)` after `setPos(&pos)` (OpeSetOpenTerm, `PlSetPosW`) are the locals of an INLINED helper.
+  Mechanism (`.rtl`/`.gcse`/`.greg` dumps): the caller's own `&local` is a `(plus vsv N)` that
+  `precompute_register_parameters` copies to a pseudo, which cse/gcse then merge and PRE hoist. A local
+  of an inlined `static inline` function lives in the inline's frame; integrate.c maps that frame to a
+  pseudo P with a `REG_EQUIV (plus vsv N)` and cse substitutes the constant address straight into the
+  hard-register arg sets (`(set r4 (plus fp 8))`), which `hash_scan_set` never enters into the gcse table
+  (hard-reg dest) — so the address is recomputed at every call and never PRE'd. Rules: (1) the colour pair
+  must be ONE local of the inline (`FadeColorPair col` with a user copy-ctor so it is BLKmode and every
+  inlined copy shares one 8-byte slot; two `GXColor`/`u32` locals get fixed spilled slots); (2) a store of
+  a CONSTANT through P is rejected by recog (no store-immediate on PPC), which cancels that substitution
+  group and keeps P (`stw rZ, 4(rP)`, `mr r4, rP`, PRE'd) — so write the constants through a value that
+  was set before a label (`black = 0xFF` set once between the two `if`s, both branches of an `if (no &
+  0x80000000)` for the 0/0xFF choice), which is why `FadeSetW` looks the way it does; (3) with the local at
+  frame offset 0 the frame register itself is substituted and everything is direct. Same lever for any
+  "second `&local` is fresh per call while the first is `mr r4, r30`" case: wrap the call in a
+  `static inline` helper that takes the address by pointer parameter (integrate substitutes the caller's
+  `&pos` for a read-only parameter) or owns the local. penClothAtMake's `&v1`: keep the header
+  `PSMTXMultVec(..., &v1)` inside the inline (`penPartsWorldPos`) and make the *case bodies* use one
+  `Vec* pv1 = &v1` pseudo declared after the header calls, so gcse has a pseudo to hoist (`addi r26, r1,
+  0x18` in the prologue) while the header call stays a fresh `addi r5, r1, 0x18`.
 - `switch (lang) { case 1: ... case 2: ... }` with *identical* bodies keeps two tree nodes (bodies
   cross-jumped afterwards): `cmpwi 1; beq; bgt` then `cmpwi 0`; a shared `case 1: case 2:` label makes a
   range node and a different tree (sscrn sscrnSetLanguage).

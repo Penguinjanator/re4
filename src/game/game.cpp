@@ -144,8 +144,8 @@ static inline void fadeSet(int no, u32 start, u32 end, u32 time)
     FadeCol c0;
     FadeCol c1;
 
-    c1.w = end;
     c0.w = start;
+    c1.w = end;
     FadeSet(no, &c0.c, &c1.c, time, 0, 0);
 }
 
@@ -569,7 +569,7 @@ void gameRoomInit()
     Block.check(0);
     Filter09SetbUse(0, 1);
     fadeSet(0x80000002, 0x000000FF, 0x00000000, 0);
-    fadeSet(0x80000001, 0x000000FF, 0x00000000, 20);
+    fadeSet(0x80000000, 0x000000FF, 0x00000000, 20);
     SubScreenWait(15);
     BitOff(pG->flags_54, 0x100000);
     DC.xA0C = 0;
@@ -1062,8 +1062,6 @@ void gameDiedemo(DiedemoWork* w)
     u64 trg;
 
     OSReport("--DIEDEMO START!!\n");
-    timer = 0;
-    cnt2 = 0;
     for (;;) {
         switch (step) {
         case 0:
@@ -1313,25 +1311,21 @@ void GamePointInit(u32 mode)
     case 1:
         pG->point = 0x270F;
         break;
-    case 2: {
-        int v;
-
+    case 2:
         switch (pG->room_id) {
         case 0x401:
         default:
-            v = 0x157C;
+            pG->point = 0x157C;
             break;
         case 0x402:
-            v = 0x1388;
+            pG->point = 0x1388;
             break;
         case 0x403:
         case 0x404:
-            v = 0xFA0;
+            pG->point = 0xFA0;
             break;
         }
-        pG->point = v;
         break;
-    }
     }
     GameAddPoint(0);
 }
@@ -1342,8 +1336,6 @@ void GameAddPoint(int type)
 
     switch (type) {
     default:
-        add = 0;
-        break;
     case 0:
         add = 0;
         break;

@@ -1049,6 +1049,7 @@ STRIP_UNUSED = {
     "game/objRobo.cpp",
     "game/atari.cpp",
     "game/pendulum.cpp",
+    "game/em_sub.cpp",
 }
 
 # Capcom sound library (game/snd_*.cpp): C++ with extern "C" functions, compiled unoptimised

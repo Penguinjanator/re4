@@ -110,18 +110,8 @@ public:
     virtual void initCloth() {}
     virtual void moveCloth() {}
     // Partner (id 3) dead while the player is in routine 0: routine 6 (die), damage info 0x80.
-    void subCharLiveCheck()
-    {
-        cEm* sub = pSubEm;
-        if (sub && sub->id == 3 && sub->hp <= 0 && xFC == 0) {
-            xFF = 0;
-            xFC = 6;
-            xFD = 0;
-            xFE = 0;
-            dmg.set(0, 0x80);
-            pWep->pObj->interrupt();
-        }
-    }
+    // Inline, but defined in pl_class.cpp: player.cpp's move() calls it out of line.
+    void subCharLiveCheck();
 
     // game/player.cpp
     void init0();

@@ -99,6 +99,9 @@ struct Weight {
 };
 
 #define PTR_INVALID(p) ((s32) (p) >= 0 || (u32) (p) > 0x82FFFFFF)
+// Written as shifts, not `& ~0x1F`: combine folds (x >> 5) << 5 into an AND whose mask is narrowed by
+// nonzero_bits (u16 * 6 -> rlwinm 0,12,26), which a literal `& ~0x1F` never gets.
+static inline u32 ALIGN32(u32 x) { return ((x + 0x1F) >> 5) << 5; }
 #define PTR_INVALID2(p) ((u32) (p) - 0x80000000 > 0x02FFFFFF)
 #define HALT()                                                    \
     {                                                             \
@@ -411,9 +414,11 @@ void objTrans(cModel* m)
 }
 
 // Light origin of the model in world space (lightInfo.ofs in the space of parts x52 - 1).
+// `p` is one function-scope local shared by every expansion (a block-scope `p` per expansion is
+// local-allocated and cannot take r31).
 #define LIGHT_POS(m, li, pos)                                           \
     {                                                                   \
-        cModel* p = (m)->getPartsPtr((li)->x52 - 1);                    \
+        p = (m)->getPartsPtr((li)->x52 - 1);                            \
         PSMTXMultVecSR(p->mat, &(li)->ofs, &(pos));                     \
         PSVECAdd(&(pos), &p->worldPos, &(pos));                         \
     }
@@ -427,6 +432,7 @@ void ModelTrans(cModel* m)
     int ot2;
     cLightInfo* li;
     f32 radius;
+    cModel* p;
 
     if ((pG->flags_5010 & 0x10000000) && !(m->be_flag & 0x800)) {
         return;
@@ -442,7 +448,9 @@ void ModelTrans(cModel* m)
         radius = 999999.0f;
     } else {
         radius = SQRTF(m->lightInfo.size.x * m->lightInfo.size.x + m->lightInfo.size.y * m->lightInfo.size.y + m->lightInfo.size.z * m->lightInfo.size.z);
-        if (m->scale.x != m->scale.y || m->scale.x != m->scale.z) {
+        if (m->scale.x == m->scale.y && m->scale.x == m->scale.z) {
+            radius *= m->scale.x;
+        } else {
             if (m->scale.x > m->scale.y) {
                 if (m->scale.x > m->scale.z) {
                     radius *= m->scale.x;
@@ -456,8 +464,6 @@ void ModelTrans(cModel* m)
                     radius *= m->scale.z;
                 }
             }
-        } else {
-            radius *= m->scale.x;
         }
     }
     ot = OT_MAX;
@@ -551,17 +557,17 @@ void ModelTrans(cModel* m)
                 DeleteOtData(ot2, (u16) ret2);
             }
         }
-        if (m->x12E != 0) {
-            lightSetObj(m);
-        } else {
+        if (m->x12E == 0) {
             lightSetEm(m);
+        } else {
+            lightSetObj(m);
         }
     } else {
         if (pG->flags_60 & 0x10) {
-            if (m->x12E != 0) {
-                lightSetObj(m);
-            } else {
+            if (m->x12E == 0) {
                 lightSetEm(m);
+            } else {
+                lightSetObj(m);
             }
         }
     }
@@ -623,6 +629,7 @@ int commonScreenMatSub(cModel* m, cModelInfo* info)
         ModelData* d = info->pData;
         ModelTexInfo* t = MODEL_TEX(info);
         void* src;
+        void* nsrc;
         void* buf;
         u32 nVtx;
         u32 n;
@@ -658,13 +665,13 @@ int commonScreenMatSub(cModel* m, cModelInfo* info)
         if (m->be_flag & 0x4000) {
             continue;
         }
-        buf = GetPrimBuff((d->nVtx * 6 + 0x1F) & ~0x1F);
+        buf = GetPrimBuff(ALIGN32(d->nVtx * 6));
         if (PTR_INVALID2(buf)) {
             pLog->warn(0, 0, "commonScreenMatSub() : VTX prim alloc failed.");
             return 0;
         }
         info->pPosBuf[pG->vtx_buf_no] = buf;
-        buf = GetPrimBuff((d->flags & 0x20000000) ? ((d->nNrm * 3 + 0x1F) & ~0x1F) : ((d->nNrm * 6 + 0x1F) & ~0x1F));
+        buf = GetPrimBuff((d->flags & 0x20000000) ? ALIGN32(d->nNrm * 3) : ALIGN32(d->nNrm * 6));
         if (PTR_INVALID2(buf)) {
             pLog->warn(0, 0, "commonScreenMatSub() : Nor prim alloc failed.");
             return 0;
@@ -697,14 +704,14 @@ int commonScreenMatSub(cModel* m, cModelInfo* info)
         CalcSk1_x(info->pPosBuf[pG->vtx_buf_no], src, nVtx);
         DCStoreRangeNoSync(info->pPosBuf[pG->vtx_buf_no], d->nVtx * 6);
         setupGQR6(0x32073207);
-        src = d->nrmOrig;
+        nsrc = d->nrmOrig;
         n = d->nNrm;
         if (d->flags & 0x20000000) {
             void* dst = info->pNrmBuf[pG->vtx_buf_no];
             setupGQR6(0x20062006);
-            CalcSk1_x2(dst, src, n);
+            CalcSk1_x2(dst, nsrc, n);
         } else {
-            CalcSk1_x(info->pNrmBuf[pG->vtx_buf_no], src, n);
+            CalcSk1_x(info->pNrmBuf[pG->vtx_buf_no], nsrc, n);
         }
         DCStoreRangeNoSync(info->pNrmBuf[pG->vtx_buf_no], d->nNrm * 6);
     }

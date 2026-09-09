@@ -1135,13 +1135,16 @@ PenAtWork* penClothAtMake(cModel* m, PlClothAt* at, int n)
         cModel* p0 = m->getPartsPtr(at->parts0);
         cModel* p1 = m->getPartsPtr(no1);
 
-        penPartsWorldPos(p0, &at->p0, &v0);
+        PSMTXMultVec(p0->mat, &at->p0, &v0);
         penPartsWorldPos(p1, &at->p1, &v1);
+        // &v1 inside the inline is a fresh `addi r5, r1, 0x18` (hard-reg arg set, never PRE'd); the case
+        // bodies share one pseudo that loop.c hoists (`addi r26, r1, 0x18`). See AGENTS.md "FadeSet colour pair".
+        Vec* pv1 = &v1;
         switch (at->x0) {
         case 0:
         default:
             a->type = 0;
-            PosToPos(&v1, &v0, &c, rate);
+            PosToPos(pv1, &v0, &c, rate);
             a->p0 = c;
             a->r = at->r;
             if (pG->flags_60 & 0x400) {
@@ -1152,9 +1155,9 @@ PenAtWork* penClothAtMake(cModel* m, PlClothAt* at, int n)
             a->type = 1;
             a->r = at->r;
             a->p0 = v0;
-            a->p1 = v1;
-            a->len = GetDistance3(&v0, &v1);
-            PSVECSubtract(&v1, &v0, &d);
+            a->p1 = *pv1;
+            a->len = GetDistance3(&v0, pv1);
+            PSVECSubtract(pv1, &v0, &d);
             ax.x = fabsf(d.x);
             ax.z = fabsf(d.z);
             if (ax.x < ax.z) {

@@ -772,16 +772,12 @@ void OpeOwTypeSet(u8 type)
     pG->ope_x82FC = 0;
 }
 
-// Player position through an inline helper: the caller's `&pos` (a `(plus vsv N)`) is substituted
-// for the read-only pointer parameter in the hard-register argument set and in the stores (fresh
-// `addi r4, r1, 0x68`, `stfs 0x68..0x70(r1)`), so no pseudo holds the address and the following
-// `Vec* r = &pos` for setAng is a fresh pseudo that cse cannot merge with it (`addi r9, r1, 0x68`,
-// `stfs f31, 8(r9)`). See AGENTS.md "FadeSet colour pair".
-static inline void PlSetPosW(cPlayer* pl, Vec* v, f32 x, f32 y, f32 z)
+// setPos through an inline helper: the caller's `&pos` (a `(plus vsv N)`) is substituted for the
+// read-only pointer parameter in the hard-register argument set (fresh `addi r4, r1, 0x68`, never
+// a pseudo), so the following `Vec* r = &pos` for setAng is a fresh pseudo that cse cannot merge
+// with it (`addi r9, r1, 0x68`, `stfs f31, 8(r9)`). See AGENTS.md "FadeSet colour pair".
+static inline void PlSetPosW(cPlayer* pl, Vec* v)
 {
-    v->x = x;
-    v->y = y;
-    v->z = z;
     pl->setPos(v);
 }
 
@@ -801,7 +797,10 @@ void OpeSetOpenTerm(int no, f32 x, f32 y, f32 z, f32 ang)
     if (x != 0.0f) {
         wk->savePos = pPL->pos;
         wk->saveRot = pPL->rot;
-        PlSetPosW(pPL, &pos, x, y, z);
+        pos.x = x;
+        pos.y = y;
+        pos.z = z;
+        PlSetPosW(pPL, &pos);
         {
             Vec* r = &pos;
             pos.x = 0.0f;

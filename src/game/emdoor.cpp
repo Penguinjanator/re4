@@ -3130,9 +3130,6 @@ void plemDoorOpen(cPlayer* pl)
     PSMTXMultVec(m, v, v);         \
     PSMTXMultVec(inv, v, v)
 
-// OPEN: the original hoists the loop's `&EmMgr` (lwz size off a copy of the header's address,
-// `mr r24,r8`); here loop.c rates the lo_sum "not desirable" (savings 2 * life 2 * threshold <
-// 314 loop insns) and recomputes it in the loop. Every other instruction matches.
 int cEmDoor::ckObj()
 {
     Vec v;
@@ -3141,8 +3138,10 @@ int cEmDoor::ckObj()
     u32 i;
 
     for (i = 0; i < EmMgr.nArray; i++) {
-        cEm* e = (cEm*) ((u8*) EmMgr.pArray + EmMgr.size * i);
-        EmRackWork* rw;
+        cEmMgr* m = &EmMgr;
+        u32 ofs = m->size * i;
+        cEm* e = (cEm*) ((u8*) m->pArray + ofs);
+        EmRackWork* rw = 0;
 
         if ((e->be_flag & 0x201) != 1) {
             continue;

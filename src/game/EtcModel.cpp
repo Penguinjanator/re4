@@ -246,10 +246,8 @@ u32 g_Etc_das_addr[0x68];
 void EtcModelDebugDisp()
 {
     cEtcTbl* t;
-    u32 i;
 
-    for (i = 0; i < 0x40; i++) {
-        t = &g_EtcTbl[i];
+    for (t = g_EtcTbl; t <= &g_EtcTbl[0x3F]; t++) {
         if (t->stat == 1) {
             Vec scr;
             Vec pos;
@@ -328,14 +326,15 @@ void* GetEtcAddr(void* arc, const char* name)
 void EtcModelInit()
 {
     int i;
+    u32 j;
 
     for (i = 0; i < 0x40; i++) {
         g_EtcTbl[i].stat = 0;
         g_EtcTbl[i].pData = 0;
         g_EtcTbl[i].pModel = 0;
     }
-    for (i = 0; i < 0x68; i++) {
-        g_Etc_das_addr[i] = 0;
+    for (j = 0; j < 0x68; j++) {
+        g_Etc_das_addr[j] = 0;
     }
     g_LastNo = 0;
     g_addr = 0;
@@ -344,14 +343,15 @@ void EtcModelInit()
 void EtcModelRoomInit()
 {
     int i;
+    u32 j;
 
     for (i = 0; i < 0x40; i++) {
         g_EtcTbl[i].stat = 0;
         g_EtcTbl[i].pData = 0;
         g_EtcTbl[i].pModel = 0;
     }
-    for (i = 0; i < 0x68; i++) {
-        g_Etc_das_addr[i] = 0;
+    for (j = 0; j < 0x68; j++) {
+        g_Etc_das_addr[j] = 0;
     }
     g_LastNo = 0;
     g_addr = 0;
@@ -380,10 +380,10 @@ int EtcModelListSet(EtcList* list)
         return 0;
     }
     d = list->data;
-    for (i = 0; i < list->num; i++, d++) {
-        if (EtcModelSet(d) == 1) {
-            if (g_LastNo < d->no) {
-                g_LastNo = d->no;
+    for (i = 0; i < list->num; i++) {
+        if (EtcModelSet(&d[i]) == 1) {
+            if (g_LastNo < d[i].no) {
+                g_LastNo = d[i].no;
             }
         }
     }
@@ -620,14 +620,17 @@ int Et09_init(void* arc, EtcSetData* d, cModel** out)
     EspDataLoad(GetEtcAddr(arc, "et09.eff"), 0x5D, 0);
     EspDataLoad(GetEtcAddr(arc, "obm4c.eff"), 0xCB, 0);
     bin = GetEtcAddr(arc, "et0900.bin");
-    em = SetDoor(bin, GetEtcAddr(arc, "et0900.tpl"), &d->pos, &d->rot, 3, d->type);
+    tpl = GetEtcAddr(arc, "et0900.tpl");
+    em = SetDoor(bin, tpl, &d->pos, &d->rot, 3, d->type);
     if (em == 0) {
         pLog->err(0, 0, "ET09:Mod err");
         return 0;
     }
     em->setEff(0x5D);
     em->setNoSuspend(1);
-    em->setChain(GetEtcAddr(arc, "obm4c00.bin"), GetEtcAddr(arc, "obm4c00.tpl"));
+    bin = GetEtcAddr(arc, "obm4c00.bin");
+    tpl = GetEtcAddr(arc, "obm4c00.tpl");
+    em->setChain(bin, tpl);
     *out = em;
     return 1;
 }
@@ -2874,33 +2877,24 @@ int GetEtcAmbType()
 {
     if (pG->room_id == 0x400 || pG->room_id == 0x403) {
         return 0;
-    }
-    if (pG->room_id == 0x402) {
+    } else if (pG->room_id == 0x402) {
         return 3;
-    }
-    if (pG->room_id >= 0x404 && pG->room_id <= 0x411) {
+    } else if (pG->room_id >= 0x404 && pG->room_id <= 0x411) {
         return 1;
-    }
-    if (pG->room_id == 0x331) {
+    } else if (pG->room_id == 0x331) {
         return 2;
-    }
-    if (pG->room_id == 0x108) {
+    } else if (pG->room_id == 0x108) {
         return 1;
-    }
-    if (pG->room_id == 0x106) {
+    } else if (pG->room_id == 0x106) {
         return 4;
-    }
-    if (pG->room_id == 0x102 || pG->room_id == 0x109 || pG->room_id == 0x119 || pG->room_id == 0x10A ||
-        pG->room_id == 0x10B || pG->room_id == 0x327 || pG->room_id == 0x30F || pG->room_id == 0x31D) {
+    } else if (pG->room_id == 0x102 || pG->room_id == 0x109 || pG->room_id == 0x119 || pG->room_id == 0x10A ||
+               pG->room_id == 0x10B || pG->room_id == 0x327 || pG->room_id == 0x30F || pG->room_id == 0x31D) {
         return 2;
-    }
-    if (pG->room_id >= 0x100 && pG->room_id <= 0x10B) {
+    } else if (pG->room_id >= 0x100 && pG->room_id <= 0x10B) {
         return 0;
-    }
-    if (pG->room_id >= 0x10C && pG->room_id <= 0x11E) {
+    } else if (pG->room_id >= 0x10C && pG->room_id <= 0x11E) {
         return 1;
-    }
-    {
+    } else {
         u32 room = pG->room_id;
         if (room >= 0x200 && room <= 0x22A) {
             return 3;

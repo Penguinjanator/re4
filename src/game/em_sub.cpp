@@ -1947,6 +1947,9 @@ int LifeDownSet2(cEm* em, int dmg, int rnd, int flag)
     r = (Rnd() << 8) | Rnd();
     if (rnd != 0) {
         dmg += r % (rnd * 2) - rnd;
+        // Dead store: it puts the signed int->float magic first in the pool (flow deletes the code); in
+        // this skipped block its constant pseudos stay off the cse path of the live conversions.
+        rate = (f32) dmg;
     }
     if (em->id == 0) {
         if ((s16) pG->pl_life <= 0) {
@@ -1973,20 +1976,20 @@ int LifeDownSet2(cEm* em, int dmg, int rnd, int flag)
         if ((s16) pG->pl_life < dmg) {
             dmg = (s16) pG->pl_life;
         }
-        pG->pl_life -= dmg;
+        HSet(pG->pl_life, pG->pl_life - dmg);
         if ((s16) pG->pl_life <= 0) {
             if (flag & 1) {
-                pG->pl_life = 1;
+                HSet(pG->pl_life, 1);
             }
             if ((s16) pG->pl_life < 0) {
-                pG->pl_life = 0;
+                HSet(pG->pl_life, 0);
             }
         }
         if (pG->flags_68 & 0x800000) {
-            pG->pl_life = pG->pl_life_max;
+            HSet(pG->pl_life, pG->pl_life_max);
         }
         if ((pG->flags_6C & 0x400) && (s16) pG->pl_life <= 1) {
-            pG->pl_life = 2;
+            HSet(pG->pl_life, 2);
         }
         ret = (s16) pG->pl_life;
     } else if (em->id <= 0xD) {
@@ -2005,20 +2008,20 @@ int LifeDownSet2(cEm* em, int dmg, int rnd, int flag)
         if ((s16) pG->sub_life < dmg) {
             dmg = (s16) pG->sub_life;
         }
-        pG->sub_life -= dmg;
+        HSet(pG->sub_life, pG->sub_life - dmg);
         if ((s16) pG->sub_life <= 0) {
             if (flag & 1) {
-                pG->sub_life = 1;
+                HSet(pG->sub_life, 1);
             }
             if ((s16) pG->sub_life < 0) {
-                pG->sub_life = 0;
+                HSet(pG->sub_life, 0);
             }
         }
         if (pG->flags_68 & 0x800000) {
-            pG->sub_life = pG->sub_life_max;
+            HSet(pG->sub_life, pG->sub_life_max);
         }
         if ((pG->flags_6C & 0x400) && (s16) pG->sub_life <= 1) {
-            pG->sub_life = 2;
+            HSet(pG->sub_life, 2);
         }
         ret = (s16) pG->sub_life;
     } else {
@@ -2104,13 +2107,19 @@ void PlSetDamage(int type, int dmg, int flag)
         pG->pl_life = 0;
         pPLS->st.x325 = 0x80;
         p = pPL;
-        p->xFF = 0;
         p->xFC = 2;
         p->xFD = 0;
         p->xFE = 0;
+        p->xFF = 0;
     } else {
         pPL->setDamage((u8) type, 0, 123.0f, 0, 0xFF);
     }
+}
+
+// Never called (dead-stripped by the original linker; only its PI/2 pool entry survives).
+static void EmSubDead0(f32* p)
+{
+    *p = PI / 2.0f;
 }
 
 // Attack sphere of `info` at a (from b) against the player (and the partner unless noSub):
@@ -2335,7 +2344,7 @@ void EmAtkSetDamagePL(cEm* part, EmAtkInfo* info, Vec* a, Vec* b)
     int keep;
     f32 dy;
 
-    pPL->dmPart = (EmHitInfo*) part;
+    PSet(pPL->dmPart, (EmHitInfo*) part);
     if ((a->x - b->x) * (a->x - b->x) + (a->z - b->z) * (a->z - b->z) < 10000.0f) {
         PSVECSubtract(&pPL->pos, a, &d);
     } else {
@@ -2454,6 +2463,12 @@ void EmCatchPLSet(cEm* em, f32 ang, u32 type, int a, f32 x, f32 y, f32 z)
     SetPlDamage((int) em, (void (*)(cPlayer*)) a);
 }
 
+// Never called (dead-stripped by the original linker; only its PI pool entry survives).
+static void EmSubDead1(f32* p)
+{
+    *p = PI;
+}
+
 // EmCatchPLSet for the partner `sub`, in the enemy's frame.
 static void EmCatchSubSet(cEm* em, cEm* sub, u32 type, int a, f32 ang, f32 x, f32 y, f32 z)
 {
@@ -2529,14 +2544,21 @@ int EmCatchMotionMove(cEm* em, f32 rate, f32 rate2)
     em->rot.y = LIMIT_ANGLE(em->rot.y);
     ret = MotionMove(em, 0);
     step = em->catchTurn * rate;
-    em->rot.y = ry + step;
+    ry += step;
     em->catchTurn -= step;
+    em->rot.y = ry;
     em->rot.y = LIMIT_ANGLE(em->rot.y);
     RotMatrix(em->mat, &em->rot);
     TransMatrix(em->mat, &em->pos);
     ScaleMatrix(em->mat, &em->scale);
     em->x3A8 = em->pos;
     return ret;
+}
+
+// Never called (dead-stripped by the original linker; only its 0.0f pool entry survives).
+static void EmSubDead2(f32* p)
+{
+    *p = 0.0f;
 }
 
 // Rack (id 0x45) in the way of `em` moving to `pos` heading `ang`: 0 when one of the rack's
