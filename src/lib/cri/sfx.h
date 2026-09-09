@@ -38,8 +38,8 @@ typedef struct {
 	Sint32 x30;                /* 0x30 */
 	SFXA_OBJ *sfxa;            /* 0x34 */
 	void *coladj;              /* 0x38 */
-	Sint32 x3c;                /* 0x3C */
-	Uint8 *buf[4];             /* 0x40 four 0x400-byte buffers carved from the work */
+	Sint32 tbl_type;           /* 0x3C type of the conversion table in buf[0] */
+	Uint8 *buf[4];             /* 0x40 four 0x400-byte buffers carved from the work (buf[0] = table) */
 	Sint32 pad50[2];           /* 0x50 */
 	void *work;                /* 0x58 */
 	Sint32 wsize;              /* 0x5C */
@@ -76,20 +76,41 @@ void SFXA_Destroy(SFXA_OBJ *sfxa);
 void SFXA_Init(void);
 void SFXSUD_Init(void);
 void CFT_Ycc420plnToArgb8888Init(void);
+Sint32 SFX_GetFxType(SFX_OBJ *sfx);
+Sint32 SFXA_IsNeedUpdateLumiTbl(SFXA_OBJ *sfxa);
+void SFXA_MakeAlpLumiTbl(SFXA_OBJ *sfxa, void *src, void *tbl);
+void SFXA_MakeAlp3110Tbl(SFXA_OBJ *sfxa, void *src, void *tbl);
+void SFXA_MakeAlp3211Tbl(SFXA_OBJ *sfxa, void *src, void *tbl);
+void SFXZ_MakeCnvZTbl(SFXZ_OBJ *sfxz, void *src, void *tbl);
+void CFT_MakeArgb8888ColAdjTbl(void *tbl);
+void CFT_MakeYcc422ColAdjTbl(void *tbl);
+
+/* SFX_MakeTable table types */
+#define SFX_TBL_LUMI 1
+#define SFX_TBL_ALP_LUMI 2
+#define SFX_TBL_ALP3110 4
+#define SFX_TBL_ALP3211 5
+#define SFX_TBL_Z32 0x0B
+#define SFX_TBL_Z16 0x0D
+#define SFX_TBL_ARGB8888_COLADJ 0x15
+#define SFX_TBL_YCC422_COLADJ 0x16
+#define SFX_TBL_NONE 0x64
 
 /* one colour plane of a decoded frame */
 typedef struct {
-	void *buf;                 /* 0x00 */
-	Sint32 pitch;              /* 0x04 */
+	Uint8 *buf;                /* 0x00 */
+	Sint32 width;              /* 0x04 */
 	Sint32 height;             /* 0x08 */
-	Sint32 x0c;                /* 0x0C */
+	Sint32 pitch;              /* 0x0C line stride (negative for bottom-up) */
 } SFX_PLN;
 
 /* frame description (0x88 bytes) */
 typedef struct {
 	Sint32 frmfmt;             /* 0x00 */
 	SFX_PLN pln[3];            /* 0x04 Y, Cb, Cr */
-	Uint8 pad34[0x88 - 0x34];
+	Uint8 pad34[0x4C - 0x34];
+	void *tblsrc;              /* 0x4C source data of the alpha/z conversion tables */
+	Uint8 pad50[0x88 - 0x50];
 } SFX_FRM;
 
 /* CFT (colour format transform) planar source description */
@@ -97,9 +118,9 @@ typedef struct {
 	void *y;                   /* 0x00 */
 	void *cb;                  /* 0x04 */
 	void *cr;                  /* 0x08 */
-	Sint32 ypitch;             /* 0x0C */
-	Sint32 cbpitch;            /* 0x10 */
-	Sint32 crpitch;            /* 0x14 */
+	Sint32 ywidth;             /* 0x0C */
+	Sint32 cbwidth;            /* 0x10 */
+	Sint32 crwidth;            /* 0x14 */
 	Sint32 pad18[4];           /* 0x18 (frame size only) */
 } CFT_YCC420PLN;
 

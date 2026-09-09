@@ -1038,12 +1038,12 @@ void cSubChar::moveDown()
 int cSubChar::getScrActionPoint(Vec* opos, Vec* orot, u32 attr)
 {
     Vec a = { 0.0f, 400.0f, 0.0f };
-    Vec b = { 0.0f, 400.0f, 1000.0f };
+
+    PSVECAdd(&a, &pos, &a);
+    Vec b = { 0.0f, 400.0f, 1000.0f };   // initialised after the first call (mid-block declaration)
     Vec nrm;
     Vec hit;
     u32 r;
-
-    PSVECAdd(&a, &pos, &a);
     PSMTXMultVec(mat, &b, &b);
     r = SatMgr.hitCheck(&a, &b, 0, &nrm, 0, 0);
     if (!(r & 0x01000000) || !(r & attr)) {
@@ -1060,8 +1060,8 @@ int cSubChar::getScrActionPoint(Vec* opos, Vec* orot, u32 attr)
     PSVECAdd(&b, &hit, &b);
     b.y = pos.y;
     *opos = b;
-    orot->x = 0.0f;
     orot->z = 0.0f;
+    orot->x = 0.0f;
     orot->y = atan2(-nrm.x, -nrm.z);
     return 1;
 }

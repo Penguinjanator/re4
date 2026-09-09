@@ -38,7 +38,7 @@ struct Em10Work {
     cModel* x184;         // 0x184 (0x564)
     cModel* x188;         // 0x188 (0x568)
     cModelInfo* x18C;     // 0x18C (0x56C)  head parts info (em10HeadSet)
-    cModel* x190;         // 0x190 (0x570)
+    cModelInfo* x190;     // 0x190 (0x570)  type 6: body parts info (em10ModelInit)
     cModelInfo* x194;     // 0x194 (0x574)  type 6: cloth parts info (em10ClothPartsSet)
     cModelInfo* x198;     // 0x198 (0x578)  type 6: goods parts info (em10GoodsPartsSet)
     cModelInfo* x19C;     // 0x19C (0x57C)  chainsaw Ganado: sack parts info (em10SackSet)
@@ -52,14 +52,7 @@ struct Em10Work {
     cModel* x1BC;         // 0x1BC (0x59C)
     cModel* x1C0;         // 0x1C0 (0x5A0)
     EmHitInfo hit[10];    // 0x1C4 (0x5A4)  extra hit boxes (YarareAdd in em10_R0_Init)
-    u8 x3CC[0xA4];        // 0x3CC (0x7AC)
-    Vec camPos;           // 0x470 (0x850)
-    Vec camAt;            // 0x47C (0x85C)
-    f32 x488;             // 0x488 (0x868)
-    Vec x48C;             // 0x48C (0x86C)
-    f32 x498;             // 0x498 (0x878)
-    u8 pad_49C[0x4C0 - 0x49C];
-    f32 x4C0;             // 0x4C0 (0x8A0)
+    Camera cam;           // 0x3CC (0x7AC)  takeaway camera (em10CamMoveTakeaway installs it as CamCtrl.x250)
     u8 x4C4;              // 0x4C4 (0x8A4)  chgSet value (cEm::x38D copy)
     u8 pad_4C5[3];
     Vec startPos;         // 0x4C8 (0x8A8)  pos at init
@@ -165,8 +158,8 @@ struct Em10Work {
     u8 x69E;              // 0x69E (0xA7E)  effect kind of the enemy (EffectEsp*Delete)
     u8 x69F;              // 0x69F (0xA7F)
     u8 x6A0;              // 0x6A0 (0xA80)
-    u8 x6A1;              // 0x6A1 (0xA81)
-    u8 x6A2;              // 0x6A2 (0xA82)
+    s8 x6A1;              // 0x6A1 (0xA81)  em10SetWaterEff: in-water splash interval
+    s8 x6A2;              // 0x6A2 (0xA82)  em10SetWaterEff: wading ripple interval
     u8 x6A3;              // 0x6A3 (0xA83)
     u8 x6A4;              // 0x6A4 (0xA84)
     u8 x6A5;              // 0x6A5 (0xA85)

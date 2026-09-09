@@ -1729,9 +1729,73 @@ Then `MATCHING["st2_4/r22c.cpp"] = True` in `config/G4BE08/modules.py`, `python3
   ctor call) and needs `Vec v` at frame offset 0 in cEmGuard::TaskMove for the recomputed `addi r4,r1,8`.
   OPEN: cEmWrap::setEm's `add r9, pG, idx` operand order / register choice (ours `add r9, idx, pG`; ~15
   forms of the EM_LIST access tried) — the only non-identical bytes in st1_1..st2_3/st4_0's em_wrap.
-- OPEN (rooms): r10d.cpp's .rodata is `[flag_rsf.h][r10d.cpp][HALT %s(%d)]` while every room that also
-  includes atari.h has `[..][HALT][flag_rsf.h][rNNN.cpp]`; include/flag_rsf.h gives `[HALT][flag_rsf.h]`
-  first. The code of R10dInit/Main matches (src/st1/r10d.cpp).
+- SOLVED (r10d .rodata order): it was a unit-boundary error, not an include-order one. The generator
+  gives unreferenced data to the preceding unit, so the `HALT %s(%d)` string that opens r10d.cpp's
+  group (`[HALT][flag_rsf.h][r10d.cpp]`, like every room) had been attributed to r10c.cpp (r10c's own
+  group ends with the cManager template strings) and r10e's HALT to r10d. Pins moved to 0xE40/0xE80
+  in modules.py; both rooms are Matching. Rule: a room's `.rodata` pin is the *first* string of its
+  `[cFlag.set()][atari.h ...][HALT][flag_rsf.h][rNNN.cpp]` group — a HALT string right after another
+  room's template strings belongs to the next room. Check: dump each split object's `.rodata`
+  strings (`readelf -x .rodata build/G4BE08/<mod>/obj/<mod>/rNNN.o`) and make sure no room group
+  starts with `D:/Bio4/Prog/flag_rsf.h` or ends with a lone HALT after the cManager strings.
+- Room-script idioms (src/st1/r10e, r11a, r109, r107, r102, r10a matched; r108 15 functions, 9 exact):
+  - Every room includes `include/st_room.h` after main_mem.h: it defines the module's 0x34-byte COMMON
+    placeholder (`asm(".comm common_<REL_MODULE>,52,4")`, REL_MODULE is a per-module `-D` configure.py
+    adds to every module unit) so a module whose common-owning room is compiled still links (the split
+    skeleton's `common_<mod>` merges with it), plus the scalar reference setters U8Set/U16Set/U32Set/
+    IntSet/FAdd/FSub (FSet is global.h's).
+  - `include/flag_rsf.h` is the original's shape (RsfSet/RsfClear/RsfCheck with `if (no > 0x1F) HALT`
+    at lines 17/21/25; constant `no` folds the check away): `RsfCheck(G_ROOM_ID, 0)` is
+    `lwz 4(r3); cmpwi 0; bge/blt` (sign test), higher bits `andis.`. `if (RsfCheck(..) == 0)` and
+    `if (RsfCheck(..))` are the two branch polarities.
+  - Room work: `static RNNNWork* rNNN_work; rNNN_work = (RNNNWork*) MEM_CALLOC(sizeof, 1, 0xd);` with
+    `#line N "D:/Bio4/Prog/rNNN.cpp"` (N from the mem_calloc line argument). Stores into the work after
+    a call reload the work pointer: write `rNNN_work->field = call(...)` directly (r109), and a store the
+    original reloads *both* the work and the field after is a reference store (`PSet(rNNN_work->evd, ..)`,
+    r102). Work pointers of `cSat*`/`cObj*` etc. get their own typed `PSet` per file.
+  - `SceExec(0x12, (TaskFunc) fn, 0, 0, 2, 0)` / `SceAtDataSet_exec(no, 0x12, 0, (TaskFunc) fn, 0, 1|2)`
+    are the task registrations; `EmSetFromList2(no, 1)`, `setEm(no, -1, 1, 1, 1)`, `SceCkFindPL(0)`,
+    `SceCountEmAlive(lo, hi)` the enemy calls; BGM/stream tasks are `for (;;)` loops with an `on` flag
+    whose `on = 1` is written *after* the SndRoom* call (the `li` then lands among the call's `li`s).
+  - `Vec ang = {a, b, c}` locals with all-constant initialisers are `.rodata` templates copied with
+    3 lwz/stw (r109, r102 `pos`); a Vec built from `stfs` of pool constants is memberwise stores, and
+    one member stored through a `Vec* pa = &ang` pointer while the others are direct gives the
+    `stfs f31, 4(r31)` / `stfs f0, 0x20(r1)` mix (r102 `ang`). A float kept in a callee-saved FPR across
+    a call and stored after it is a local `f32 ry = K;` declared before the call. `cPlayer* pl = pPLS`
+    (struct view of pPL) keeps the pPL load below the preceding Vec template stores.
+  - Vec/aggregate locals are temp slots rounded to 16 bytes (a Vec takes 0x10 of frame); address-taken
+    scalars (`cEm* torch; getRoomEtcTorch(0, &torch, 1)`) get their slot after every aggregate.
+  - Angle constants: some are `deg * (PI / 180.0f)` folds (r102: -5.4/-3/-1.2 deg), others only
+    reproduce as raw float literals (r109's Vecs) — use `numpy.float32(...)` shortest repr literals.
+  - `const f32 step = K;` at the function top puts K first in the constant pool while the uses stay
+    literal (r102 openCover, r108 openCover); `f32 w = 1000.0f;` (variable) before a float-heavy call
+    makes it the first pool entry and the shared `fmr` source (r108 YarareInitCube).
+  - Scroll objects: `SmdGetObjPtr(id)->be_flag |= 2` chains (r109 koya_init) are plain stores;
+    `BitOn(obj->be_flag, 0x20)` (reference) is needed where the original reloads another global
+    pointer after the store (r108 initPuzzle), and `static inline void setObj(cObj*& o, u32 id)
+    { o = SmdGetObjPtr(id); BitOn(o->be_flag, 0x20); }` (reference parameters) puts every `lis` of the
+    pointer globals into callee-saved registers before the first call.
+  - Event flag words `pG->flags_174[i]` in the rooms are `*(u32*) (((no >> 5) << 2) + (u32) &pG->flags_174)`
+    (cast-then-deref: the store forces a pG reload per loop iteration, r108).
+  - `EmListData d; d.id = ..; d.type = ..; ... EmSetEvent(&d)` blocks: the type byte is stored before
+    the halfword/word fields (own QI constant), `hp`, `x1A`, `xB` after `rot` (r10a).
+  - `0x150 - cMes.getWork()->fontH - cMes.getWork()->lineSpace - 1` (sce_com's source) compiles to
+    `0x150 - lineSpace - fontH` with our cc1plus; the rooms (r108 checkDoor/execPuzzle) need the
+    operands written `lineSpace` first to get the target's `lbz 0x19; lbz 0x77` order — sce_com has the
+    same mismatch in its own object.
+  - Room-local static tables in `.data` (r108 `R108Symbol r108_symbol[8]`, r109's Vec positions) are
+    non-const initialised statics; a table only read is `static const` and lands after the template
+    strings at the end of `.rodata` (r11a/r107/r10a `AtEffInfo`).
+  - cEm27::setWaterHeight (em27 module) is declared in include/em27.h; getRoomEtc*() in etc_model.h;
+    EventMgr::NameChange/SetEvt(void*, u32*) in event.h (the second SetEvt overload at 0x8013991C
+    takes a name; DOL symbols renamed by hand); EspDataLoad/EspGetEfmTplAddr in esp.h; EmSetEvent in
+    em_set.h; EmReadSearch in read.h.
+  - OPEN (r108): execShowView issues `lfs f1, 0.0` last (ours second) around the RsfSet store;
+    checkEmReset's `int list[11]` end pointer is `addi r29, r31, 0x28` from the array pseudo (ours folds to
+    `r1+0x30`; `int* p = list` forms tried); openCover's tail after the `do {} while (1)` loop re-materialises
+    the `lis` of both cover globals and the 220.0 constant instead of reusing the loop-hoisted registers;
+    switchSymbol / str_check / initChurchBell differ only in callee-saved register choice or one
+    load order.
 
 ### Open
 
@@ -1739,7 +1803,10 @@ Then `MATCHING["st2_4/r22c.cpp"] = True` in `config/G4BE08/modules.py`, `python3
   store, 122 `const char*` name tables and a
   64-entry `{char name[16]; const char** flag, *type, *set, *x}` id table, TOOL_MENU-like char[]
   menus) has 36 of 53 functions matched (skeleton, data and menus done; the disp/camera/target functions
-  are left); the stage rooms are split (config/G4BE08/modules.py) but only r10d.cpp's code is written;
+  are left); the stage rooms are split (config/G4BE08/modules.py); r10d, r10e, r11a (st1_2), r109, r107,
+  r10a (st1_1) and r102 (st1_1 + st1_3) are Matching, r108 (st1_1/st1_3) is written with 9/15 functions
+  exact; the other rooms are unwritten (the Evt_*_Func rooms need the Event class layout: event.cpp is
+  empty and event.h's `Event` has no fields);
   em_wrap.cpp matches in st1_0/st2_4 (Matching) and is one register-allocation diff away elsewhere.
 - The `.drs` archives are not rebuilt by `ninja` (`tools/drs.py rebuild` does one at a time); the
   sound bank's record types 1/2 and the p0/p1 parameters are not interpreted.

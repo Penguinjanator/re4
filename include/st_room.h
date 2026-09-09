@@ -23,5 +23,7 @@ static inline void U8Set(u8& d, u8 v) { d = v; }
 static inline void U16Set(u16& d, u16 v) { d = v; }
 static inline void U32Set(u32& d, u32 v) { d = v; }
 static inline void IntSet(int& d, int v) { d = v; }
+static inline void FAdd(f32& d, f32 v) { d += v; }
+static inline void FSub(f32& d, f32 v) { d -= v; }
 
 #endif

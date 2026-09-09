@@ -98,7 +98,9 @@ static inline void tutil_2d_env(f32* scale, Vec* size)
 static TOOL_MENU* old_menu = NULL;
 #else
 TOOL_MENU* old_menu = NULL;
+#ifndef T_UTIL_NO_NUM
 static int old_num = 0;  // unreferenced zero word between old_menu and the menu statics (name unknown)
+#endif
 #endif
 #endif
 

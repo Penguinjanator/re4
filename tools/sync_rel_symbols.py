@@ -24,6 +24,8 @@ CFG = os.path.join(ROOT, "config", VER)
 MODULES = os.path.join(CFG, "modules")
 SYM_RE = re.compile(r"^(\S+) = (\.\w+):0x([0-9A-F]+);(.*)$")
 KNOWN_SIZE = {}  # mangled name -> .text size, from every sym_map row already carrying that name
+KNOWN_SIZE_MOD = {}  # the same from module rows only: the DOL's -G 8 build of a plain function is not
+# the size of the modules' -G 0 build (game/t_prim.cpp's TprimInitEnv2D3D is 0x84, t_movie's 0x90)
 
 
 class SymbolFile:
@@ -53,6 +55,8 @@ class SymbolFile:
             # are the same code in the DOL and in every module), which tells overloads apart
             if f[5] != sanitize(dn) and not f[5].startswith(("fn_", "lbl_")) and f[5] != dn:
                 KNOWN_SIZE.setdefault(f[5], size)
+                if not is_dol:
+                    KNOWN_SIZE_MOD.setdefault(f[5], size)
         self.changed = 0
 
     def is_placeholder(self, key, dn):
@@ -153,8 +157,8 @@ def main():
                     # overloads share one demangled name (the .sym has no parameter lists): a known size
                     # of the mangled name selects the candidate, or says the module has no copy of it
                     # (a linkonce duplicate this object dropped: then it is not referenced either)
-                    if name in KNOWN_SIZE:
-                        cands = [k for k in cands if sf.size.get(k) == KNOWN_SIZE[name]]
+                    if name in KNOWN_SIZE_MOD:
+                        cands = [k for k in cands if sf.size.get(k) == KNOWN_SIZE_MOD[name]]
                         if not cands:
                             continue
                     cands = [k for k in cands if sf.is_placeholder(k, dn)]

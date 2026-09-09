@@ -30,10 +30,10 @@ void SFX_CnvFrmYcc420plnToY84C44(SFX_OBJ *sfx, SFX_FRM *frm, void *ybuf, void *c
 		src.y = frm->pln[0].buf;
 		src.cb = frm->pln[1].buf;
 		src.cr = frm->pln[2].buf;
-		src.ypitch = frm->pln[0].pitch;
-		src.cbpitch = frm->pln[1].pitch;
-		src.crpitch = frm->pln[2].pitch;
-		width = (sfx->outbuf_width == 0) ? frm->pln[0].pitch : sfx->outbuf_width;
+		src.ywidth = frm->pln[0].width;
+		src.cbwidth = frm->pln[1].width;
+		src.crwidth = frm->pln[2].width;
+		width = (sfx->outbuf_width == 0) ? frm->pln[0].width : sfx->outbuf_width;
 		height = sfxcnv_GetOutHeight(sfx, frm);
 		CFT_Ycc420plnToY84C44(&src, ybuf, cbuf, width, height);
 		break;

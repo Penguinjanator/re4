@@ -89,8 +89,8 @@ section	offset	size	unit	scope	name	demangled
 .text	0x0000D118	0x1C0	t_id/t_id.cpp	global	toolIdCalcVertex	toolIdCalcVertex
 .text	0x0000D2D8	0x20	t_id/t_id.cpp	global	toolIdMarkUseReset	toolIdMarkUseReset
 .text	0x0000D2F8	0x384	t_id/t_id.cpp	global	DbRandom	DbRandom
-.text	0x0000D67C	0xBC	t_id/t_id.cpp	global	cManager_cLight_countActiveWork	cManager<cLight>::countActiveWork
-.text	0x0000D738	0x158	t_id/t_id.cpp	global	cManager_cLight_create	cManager<cLight>::create
+.text	0x0000D67C	0xBC	t_id/t_id.cpp	global	countActiveWork__t8cManager1Z6cLight	cManager<cLight>::countActiveWork
+.text	0x0000D738	0x158	t_id/t_id.cpp	global	create__t8cManager1Z6cLighti	cManager<cLight>::create
 .text	0x0000D890	0x1C8	t_id/t_id.cpp	global	__static_initialization_and_destruction_0	__static_initialization_and_destruction_0
 .text	0x0000DA58	0x4	t_id/t_id.cpp	global	cUnit_beginEvent	cUnit::beginEvent
 .text	0x0000DA5C	0x4	t_id/t_id.cpp	global	cUnit_endEvent	cUnit::endEvent
@@ -579,7 +579,7 @@ section	offset	size	unit	scope	name	demangled
 .data	0x0000024C	0x14	t_id/t_id.cpp	local	lbl_t_id_data_24C	lbl_t_id_data_24C
 .data	0x00000260	0xC	t_id/t_id.cpp	local	lbl_t_id_data_260	lbl_t_id_data_260
 .data	0x0000026C	0x1C	t_id/t_id.cpp	local	lbl_t_id_data_26C	lbl_t_id_data_26C
-.data	0x00000288	0x18	t_id/t_id.cpp	local	lbl_t_id_data_288	lbl_t_id_data_288
+.data	0x00000288	0x10	t_id/t_id.cpp	local	lbl_t_id_data_288	lbl_t_id_data_288
 .bss	0x00000000	0xC	t_id/db_path.cpp	global	lbl_t_id_bss_0	lbl_t_id_bss_0
 .bss	0x0000000C	0x284	t_id/t_id.cpp	local	lbl_t_id_bss_C	lbl_t_id_bss_C
 .bss	0x00000290	0x4	t_id/t_id.cpp	local	lbl_t_id_bss_290	lbl_t_id_bss_290
@@ -604,5 +604,5 @@ section	offset	size	unit	scope	name	demangled
 .bss	0x0014DE24	0x4	t_id/t_id.cpp	global	lbl_t_id_bss_14DE24	lbl_t_id_bss_14DE24
 .bss	0x0014DE28	0x4	t_id/t_id.cpp	global	lbl_t_id_bss_14DE28	lbl_t_id_bss_14DE28
 .bss	0x0014DE2C	0x4	t_id/t_id.cpp	global	lbl_t_id_bss_14DE2C	lbl_t_id_bss_14DE2C
-.bss	0x0014DE30	0x128	t_id/t_id.cpp	global	lbl_t_id_bss_14DE30	lbl_t_id_bss_14DE30
+.bss	0x0014DE30	0x4	t_id/t_id.cpp	global	lbl_t_id_bss_14DE30	lbl_t_id_bss_14DE30
 .bss	0x0014DF58	0x34	t_id/t_id.cpp	global	common_t_id	common_t_id

@@ -6750,7 +6750,7 @@ address	size	section	unit	scope	name	demangled
 0x801E3264	0x90	.text	lib/sfx_alp.c	global	SFXA_Create	SFXA_Create
 0x801E32F4	0x40	.text	lib/sfx_alp.c	global	SFXA_Init	SFXA_Init
 0x801E3334	0x490	.text	lib/sfx_zmv.c	global	sfxzmv_MakeCnvZTbl	sfxzmv_MakeCnvZTbl
-0x801E37C4	0x138	.text	lib/sfx_zmv.c	local	SFXZ_MakeCnvZTbl	SFXZ_MakeCnvZTbl
+0x801E37C4	0x138	.text	lib/sfx_zmv.c	global	SFXZ_MakeCnvZTbl	SFXZ_MakeCnvZTbl
 0x801E38FC	0x6F0	.text	lib/sfx_zmv.c	global	sfxzmv_MakeOrgZ32TblByCCIR	sfxzmv_MakeOrgZ32TblByCCIR
 0x801E3FEC	0x320	.text	lib/sfx_zmv.c	global	sfxzmv_MakeOrgZ32TblByDirect	sfxzmv_MakeOrgZ32TblByDirect
 0x801E430C	0xD8	.text	lib/sfx_zmv.c	global	SFXZ_SetTagInf	SFXZ_SetTagInf

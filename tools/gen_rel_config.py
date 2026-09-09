@@ -341,6 +341,8 @@ def main():
                         if u not in refs and forced is None:
                             continue
                         later_local = [min_local[v] for v, _ in units[ui + 1:] if min_local[v] is not None]
+                        later_local += [data_starts[v][sname] for v, _ in units[ui + 1:]
+                                        if data_starts.get(v, {}).get(sname) is not None]
                         first_later = min(later_local) if later_local else None
                         for a in refs.get(u, []):
                             if a <= prev_max:
@@ -351,7 +353,8 @@ def main():
                         if not own and forced is None:
                             continue
                         if forced is not None:
-                            assert forced > prev_max and all(a >= forced for a in own), (name, u, sname, hex(forced))
+                            assert forced > prev_max and all(a >= forced for a in own), \
+                                (name, u, sname, hex(forced), hex(prev_max), [hex(a) for a in own if a < forced])
                             bounds[u] = forced
                         else:
                             # the first unit *with data* owns the section start (unreferenced leading

@@ -149,11 +149,8 @@ int g_specular_tev_stage;
 // struct-wrapped so the in-loop stores stay ordered against the following m->/d-> loads
 // (a plain void* store is a fixed scalar and floats freely; a one-element array or
 // (View*)&x cast gets its address hoisted out of the loop)
-struct PrevTplAddr {
-    void* v;
-};
-PrevTplAddr g_prev_tpl_addr;
-PrevTplAddr g_prev_add_tpl_addr;
+void* g_prev_tpl_addr;
+void* g_prev_add_tpl_addr;
 
 GXTexObj g_Get_tex_obj;
 Mtx specular_mat;
@@ -890,8 +887,8 @@ void Render()
     GXColor fogCol;
     GXColor c;
 
-    g_prev_tpl_addr.v = (void*) -1;
-    g_prev_add_tpl_addr.v = (void*) -1;
+    g_prev_tpl_addr = (void*) -1;
+    g_prev_add_tpl_addr = (void*) -1;
     GXSetCurrentGXThread();
     if (pG->flags_54 & 0x800) {
         pG->flags_5018 |= 0x10000000;
@@ -1144,7 +1141,7 @@ void commonModelTrans(cModel* m, cModelInfo* info, Mtx viewMat, int flag)
         if (pG->flags_60 & 0x20000000) {
             GXSetCullMode(1);
         }
-        if (g_prev_tpl_addr.v != info->pTpl || g_prev_add_tpl_addr.v != info->pAddTpl) {
+        if (g_prev_tpl_addr != info->pTpl || g_prev_add_tpl_addr != info->pAddTpl) {
             u32 n;
             for (i = 0; i < ((TEXPalette*) info->pTpl)->numDescriptors + info->nAddTex; i++) {
                 TEXPalette* tpl = (TEXPalette*) info->pTpl;
@@ -1185,8 +1182,8 @@ void commonModelTrans(cModel* m, cModelInfo* info, Mtx viewMat, int flag)
                 MODEL_EXT(m)->pTexChg->move(gx->texObj);
             }
         }
-        g_prev_tpl_addr.v = info->pTpl;
-        g_prev_add_tpl_addr.v = info->pAddTpl;
+        g_prev_tpl_addr = info->pTpl;
+        g_prev_add_tpl_addr = info->pAddTpl;
         nParts = d->nParts;
         part = d->pParts;
         if (m->scale.x == 1.0f && m->scale.y == 1.0f && m->scale.z == 1.0f) {

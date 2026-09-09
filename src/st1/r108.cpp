@@ -70,7 +70,20 @@ static inline void EvtFlagOff(u32 base, int no)
 {
     *(u32*) (((no >> 5) << 2) + base) &= ~(0x80000000 >> (no & 31));
 }
-static inline void PSet(cObj*& d, cObj* v) { d = v; }
+// Scroll objects fetched into the room's pointers (references: the address is evaluated before the
+// call and the flag stores go through scalar references, which reload the other pointer after them)
+static inline void r108_setObj(cObj*& o, u32 id)
+{
+    o = SmdGetObjPtr(id);
+    BitOn(o->be_flag, 0x20);
+}
+static inline void r108_setObj2(cObj*& a, cObj*& b, u32 idA, u32 idB)
+{
+    a = SmdGetObjPtr(idA);
+    b = SmdGetObjPtr(idB);
+    BitOn(a->be_flag, 0x20);
+    BitOn(b->be_flag, 0x20);
+}
 
 static void r108_execShowView_end();
 static void r108_execShowView();
@@ -259,12 +272,8 @@ extern "C" void r108_initPuzzle(int dial, int coverL, int coverR, int mesNo)
     for (i = 0; i <= 6; i++) {
         r108_symbol[i].eff = EspPullCoreKind();
     }
-    r108_dial = SmdGetObjPtr(dial);
-    r108_dial->be_flag |= 0x20;
-    PSet(r108_coverL, SmdGetObjPtr(coverL));
-    PSet(r108_coverR, SmdGetObjPtr(coverR));
-    r108_coverL->be_flag |= 0x20;
-    r108_coverR->be_flag |= 0x20;
+    r108_setObj(r108_dial, dial);
+    r108_setObj2(r108_coverL, r108_coverR, coverL, coverR);
     r108_mesNo = mesNo;
     SceAtSetEnable(0x82, 1);
     if ((m = SceAtItemModelPtr(0x82)) != 0) {
@@ -273,8 +282,8 @@ extern "C" void r108_initPuzzle(int dial, int coverL, int coverR, int mesNo)
     if (!(pG->flags_51BC & 0x8000)) {
         SceAtDataSet_exec(0xA, 0x12, 0, (TaskFunc) r108_execPuzzle, 0, 1);
     } else {
-        r108_coverL->pos.x += 220.0f;
-        r108_coverR->pos.x -= 220.0f;
+        FAdd(r108_coverL->pos.x, 220.0f);
+        FSub(r108_coverR->pos.x, 220.0f);
         if (!(pG->item_flags[0] & 0x40000000)) {
             SceAtDataSet_exec(0xA, 0x12, 0, (TaskFunc) r108_getItem, 0, 1);
             SceAtPtr(0xA)->x4A = 0x28;
@@ -329,15 +338,15 @@ extern "C" void r108_openCover()
     SndCall(6, 4, 0, 0, 0, 0);
     do {
         t += step;
-        r108_coverL->pos.x = x0 + t;
-        r108_coverR->pos.x = x1 - t;
+        FSet(r108_coverL->pos.x, x0 + t);
+        FSet(r108_coverR->pos.x, x1 - t);
         if (t >= 220.0f) {
             break;
         }
         SceSleep(1);
     } while (1);
-    r108_coverL->pos.x = x0 + 220.0f;
-    r108_coverR->pos.x = x1 - 220.0f;
+    FSet(r108_coverL->pos.x, x0 + 220.0f);
+    FSet(r108_coverR->pos.x, x1 - 220.0f);
     SceSleep(15);
 }
 

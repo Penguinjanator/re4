@@ -171,9 +171,11 @@ UNITS = {
     # draw*/pos*, 0x2D4C bytes) is the same object in t_id and t_event. The object with cFileList and
     # the `global constructors keyed to cFileList_init` (db_toolbase.h inlines; t_event's copy also has
     # the cDbgWindow/cDbgButton bodies) is db_filelist.cpp (name unknown). Each module's t_util.cpp is
-    # a different build (t_light: Init/QuitDefault only; t_event/t_sce: + ToolMenuDisp/_cur; t_id/
-    # t_camera: no out-of-line function at all, only the header strings, .data and the cManager<cLight>
-    # linkonce block). t_camera's t_prim.cpp has 5 functions and includes t_util.h's headers.
+    # a different build of src/tools/t_util.cpp (t_light/t_esp: Init/QuitDefault only, no .data,
+    # t_util_nomenu.cpp; t_event/t_sce/t_movie: + ToolMenuDisp/_cur with a local old_menu and no zero
+    # word, t_util_menu.cpp; t_id: no function, .data without the zero word, t_util_id.cpp; t_camera: no
+    # out-of-line function at all, only the header strings, .data and the cManager<cLight> linkonce
+    # block; Tools: the full file). t_camera's t_prim.cpp has 5 functions and includes t_util.h's headers.
     "t_camera": [
         ("t_camera/db_light.cpp", None, "tools/db_light.cpp"),
         ("t_camera/t_camera.cpp", "ToolCamera", None, {".rodata": 0x1640}),
@@ -221,7 +223,7 @@ UNITS = {
         ("t_id/db_path.cpp", None),
         ("t_id/db_sctrl.cpp", "SctrlInitAxisRange", "tools/db_sctrl.cpp"),
         ("t_id/t_id.cpp", "toolIdInit", None, {".rodata": 0x328, ".bss": 0xC}),
-        ("t_id/t_util.cpp", 0xDBA0, None, {".rodata": 0xE48}),
+        ("t_id/t_util.cpp", 0xDBA0, "tools/t_util_id.cpp", {".rodata": 0xE48, ".data": 0x298, ".bss": 0x14DE34}),
         ("t_id/tools.cpp", "_prolog", "tools/tools.cpp"),
         ("t_id/linkonce.cpp", "ToolArrayPush"),
     ],
@@ -241,28 +243,30 @@ UNITS = {
     "t_movie": [
         ("t_movie/db_light.cpp", None, "tools/db_light_v2.cpp"),
         ("t_movie/snd_test.cpp", "Snd_test_mode"),
-        ("t_movie/t_movie.cpp", "_prolog"),
+        ("t_movie/t_movie.cpp", "_prolog", None, {".rodata": 0x2644}),
         ("t_movie/t_prim.cpp", "TprimInitEnv2D3D"),
-        ("t_movie/t_se_at.cpp", "ToolSeAt"),
+        ("t_movie/t_se_at.cpp", "ToolSeAt", None, {".rodata": 0x2728}),
         ("t_movie/t_snd_vol.cpp", "getInfoData"),
-        ("t_movie/t_util.cpp", "TutilInitDefault", "tools/t_util_menu.cpp"),
+        ("t_movie/t_util.cpp", "TutilInitDefault", "tools/t_util_menu.cpp", {".rodata": 0x3510}),
     ],
     # Sscrn (sub screen): ss_cap/ss_debug/ss_file/ss_item/ss_main/ss_map/ss_pzzl/ss_shop/ss_term.cpp by
     # their __FILE__ strings, alphabetical like every other module; the weapon/character model tables
-    # (weaponFilename..wep19Init) between ss_map and ss_pzzl have no file string (ss_model.cpp). ss_main
-    # starts with the ss_Draw_* helpers, then _prolog (its constructors are keyed to _prolog); ss_term
-    # carries MakeCol/cDbgWindow/cFileList (constructors keyed to MakeCol).
+    # (weaponFilename..wep19Init) between ss_map and ss_pzzl have no file string (ss_model.cpp). ss_item
+    # ends with the ss_Draw_* helpers (their float constants sit before ss_main's header strings); ss_main
+    # starts at _prolog (its constructors are keyed to _prolog); ss_term carries MakeCol/cDbgWindow/
+    # cFileList (constructors keyed to MakeCol). Every unit's .rodata start is pinned at its header-string
+    # group (map_obj.h/light.h/widget.h...).
     "Sscrn": [
         ("Sscrn/ss_cap.cpp", None),
-        ("Sscrn/ss_debug.cpp", "SscrnDebugMenu"),
-        ("Sscrn/ss_file.cpp", "getMsgNum"),
-        ("Sscrn/ss_item.cpp", "itemNameDisp"),
-        ("Sscrn/ss_main.cpp", "ss_Draw_tpl"),
-        ("Sscrn/ss_map.cpp", "getStageNo"),
-        ("Sscrn/ss_model.cpp", "weaponFilename"),
-        ("Sscrn/ss_pzzl.cpp", "pzzlClearZ"),
-        ("Sscrn/ss_shop.cpp", "shopClearZ"),
-        ("Sscrn/ss_term.cpp", "MakeCol"),
+        ("Sscrn/ss_debug.cpp", "SscrnDebugMenu", None, {".rodata": 0x240}),
+        ("Sscrn/ss_file.cpp", "getMsgNum", None, {".rodata": 0x688}),
+        ("Sscrn/ss_item.cpp", "itemNameDisp", None, {".rodata": 0x928, ".data": 0x550}),
+        ("Sscrn/ss_main.cpp", "_prolog", None, {".rodata": 0xCD0}),
+        ("Sscrn/ss_map.cpp", "getStageNo", None, {".rodata": 0x1248, ".data": 0x590}),
+        ("Sscrn/ss_model.cpp", "weaponFilename", None, {".rodata": 0x22E0}),
+        ("Sscrn/ss_pzzl.cpp", "pzzlClearZ", None, {".rodata": 0x26D8}),
+        ("Sscrn/ss_shop.cpp", "shopClearZ", None, {".rodata": 0x2BC0}),
+        ("Sscrn/ss_term.cpp", "MakeCol", None, {".rodata": 0x3128}),
     ],
     # Tools: the general debug-tool module, one object per tool in file-name order: db_light.cpp (a
     # newer build than t_camera's: cLightTool ctor/move, lightAnalysis), db_mod.cpp (model viewer,
@@ -274,37 +278,40 @@ UNITS = {
     # object as t_sce's), t_tplview, the full t_util.cpp (TutilGet3DPosXZ* etc.), t_vib, tools.cpp.
     "Tools": [
         ("Tools/db_light.cpp", None),
-        ("Tools/db_mod.cpp", "dbModSetViewFlag"),
+        ("Tools/db_mod.cpp", "dbModSetViewFlag", None, {".rodata": 0x1640}),
         ("Tools/db_toolbase.cpp", "MakeCol"),
-        ("Tools/t_atari.cpp", "ToolAtari"),
-        ("Tools/t_cons.cpp", "ToolCons"),
-        ("Tools/t_dr.cpp", "tDrExit"),
-        ("Tools/t_eminfo.cpp", "ToolEmInfo"),
-        ("Tools/t_esp_area.cpp", "IsWorkAlive"),
-        ("Tools/t_flr_at.cpp", "flrAtInit"),
-        ("Tools/t_lightarea.cpp", "__builtin_new"),
-        ("Tools/t_mes.cpp", "ToolMes"),
-        ("Tools/t_motseq.cpp", "ToolMotSeq"),
-        ("Tools/t_mv.cpp", "ToolMotionViewer"),
+        ("Tools/t_atari.cpp", "ToolAtari", None, {".rodata": 0x259C}),
+        ("Tools/t_cons.cpp", "ToolCons", None, {".rodata": 0x29C8}),
+        ("Tools/t_dr.cpp", "tDrExit", None, {".rodata": 0x2D6C}),
+        ("Tools/t_eminfo.cpp", "ToolEmInfo", None, {".rodata": 0x30AC}),
+        ("Tools/t_esp_area.cpp", "IsWorkAlive", None, {".rodata": 0x3468}),
+        ("Tools/t_flr_at.cpp", "flrAtInit", None, {".rodata": 0x3A88}),
+        ("Tools/t_lightarea.cpp", "__builtin_new", None, {".rodata": 0x3FF8}),
+        ("Tools/t_mes.cpp", "ToolMes", None, {".rodata": 0x4680, ".data": 0x2170}),
+        ("Tools/t_motseq.cpp", "ToolMotSeq", None, {".rodata": 0x4860}),
+        ("Tools/t_mv.cpp", "ToolMotionViewer", None, {".rodata": 0x4E10, ".bss": 0x13DAD0}),
         ("Tools/t_prim.cpp", "TprimInitEnv2D3D"),
-        ("Tools/t_rck.cpp", "ToolRctRouteCheck"),
-        ("Tools/t_sce_at.cpp", "ToolSceAt", "tools/t_sce_at.cpp"),
-        ("Tools/t_tplview.cpp", "ToolTplView"),
-        ("Tools/t_util.cpp", "TutilInitDefault"),
+        ("Tools/t_rck.cpp", "ToolRctRouteCheck", None, {".rodata": 0x5024}),
+        ("Tools/t_sce_at.cpp", "ToolSceAt", "tools/t_sce_at.cpp", {".rodata": 0x53B8}),
+        ("Tools/t_tplview.cpp", "ToolTplView", None, {".rodata": 0x61B8}),
+        ("Tools/t_util.cpp", "TutilInitDefault", None, {".rodata": 0x6370}),
         ("Tools/t_vib.cpp", "ToolVibEdit"),
         ("Tools/tools.cpp", "_prolog"),
     ],
     # t_esp: yet another db_light.cpp build, a db_mod.cpp build with the model-set loader
     # (dbModBinName..dbModelSetCamera), db_port.cpp (GetActiveModel/MakeCol/DB_* helpers, the EspTool*
-    # bridge, the DB_RECT..DB_SLIDEBAR/DB_WINDOW..DB_PRIM_ARRAY widget classes), t_esp.cpp (namespace
+    # bridge), the DB_RECT..DB_SLIDEBAR and DB_WINDOW..DB_PRIM_ARRAY widget classes (two objects with
+    # their own header-string groups, names unknown: db_widget.cpp / db_window.cpp), t_esp.cpp (namespace
     # t_esp, starts with __builtin_new/delete like t_lightarea), t_light's build of t_util.cpp, tools.cpp
     # with the module's linkonce tail.
     "t_esp": [
         ("t_esp/db_light.cpp", None),
-        ("t_esp/db_mod.cpp", "dbModSetViewFlag"),
-        ("t_esp/db_port.cpp", "GetActiveModel"),
-        ("t_esp/t_esp.cpp", "__builtin_new"),
-        ("t_esp/t_util.cpp", "TutilInitDefault", "tools/t_util_nomenu.cpp"),
+        ("t_esp/db_mod.cpp", "dbModSetViewFlag", None, {".rodata": 0x1640}),
+        ("t_esp/db_port.cpp", "GetActiveModel", None, {".rodata": 0x23F4}),
+        ("t_esp/db_widget.cpp", "DB_RECT::ChkHitRect", None, {".rodata": 0x2CCC}),
+        ("t_esp/db_window.cpp", "DB_WINDOW::~DB_WINDOW", None, {".rodata": 0x3434}),
+        ("t_esp/t_esp.cpp", "__builtin_new", None, {".rodata": 0x3604}),
+        ("t_esp/t_util.cpp", "TutilInitDefault", "tools/t_util_nomenu.cpp", {".rodata": 0x53B0}),
         ("t_esp/tools.cpp", "_prolog"),
     ],
 }
@@ -334,6 +341,7 @@ STRIP_UNUSED = {
 } | {f"{_m}/cSceObj.cpp" for _m in ["st2_0", "st2_3", "st4_0"]} | {
     # the tool library objects are the t_emlist versions minus what the module never calls
     "t_camera/t_prim.cpp", "t_camera/t_util.cpp", "t_light/t_util.cpp", "t_event/t_util.cpp", "t_sce/t_util.cpp",
+    "t_movie/t_util.cpp", "t_esp/t_util.cpp", "t_id/t_util.cpp",
 }
 
 # Units whose compiled object replaces the split object in the REL link.
@@ -364,6 +372,9 @@ MATCHING = {
     "t_light/t_util.cpp": True,
     "t_event/t_util.cpp": True,
     "t_sce/t_util.cpp": True,
+    "t_movie/t_util.cpp": True,
+    "t_esp/t_util.cpp": True,
+    "t_id/t_util.cpp": True,
     "t_emlist/t_prim.cpp": True,
     "t_emlist/t_util.cpp": True,
     "t_emlist/tools.cpp": True,

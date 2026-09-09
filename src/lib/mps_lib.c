@@ -16,10 +16,51 @@ static MPS mpslib_hn_last;
 static const Char8 *cri_verstr_ptr;
 MPSLIB_WORK *MPSLIB_libwork;
 
+/* inlined copies; the public MPSLIB_CheckHn/MPSLIB_SetErr wrap them further down */
+static Sint32 mpslib_CheckHn(MPS mps)
+{
+	mpslib_hn_last = mps;
+	if (mps == NULL) {
+		return -1;
+	}
+	if (mps->used == MPS_HN_FREE) {
+		return -1;
+	}
+	return 0;
+}
+
+/* dead-stripped by the linker; puts cri_verstr_ptr before MPSLIB_libwork in .bss */
+const Char8 *MPS_GetVerStr(void)
+{
+	cri_verstr_ptr = MPSLIB_version_str;
+	return MPSLIB_version_str;
+}
+
+/* OPEN: inlined with mps == NULL the target loads MPSLIB_libwork as `lis/lwz r5, sym@l(r4)`; ours
+ * materialises the address (`lis/addi/lwz 0`) as the standalone MPS_SetErrFn does in both. */
+static Sint32 mpslib_SetErr(MPS mps, Sint32 code)
+{
+	MPSLIB_WORK *lw;
+
+	if (mps == NULL) {
+		lw = MPSLIB_libwork;
+		lw->errcode = code;
+		if (code != 0 && lw->errfn != NULL) {
+			lw->errfn(lw->errobj);
+		}
+	} else {
+		mps->errcode = code;
+		if (code != 0 && mps->errfn != NULL) {
+			mps->errfn(mps->errobj);
+		}
+	}
+	return code;
+}
+
 Sint32 MPS_Destroy(MPS mps)
 {
-	if (MPSLIB_CheckHn(mps) != 0) {
-		return MPSLIB_SetErr(NULL, 0xFF020103);
+	if (mpslib_CheckHn(mps) != 0) {
+		return mpslib_SetErr(NULL, 0xFF020103);
 	}
 	mps->used = MPS_HN_FREE;
 	return 0;
@@ -98,12 +139,15 @@ Sint32 MPSLIB_CheckHn(MPS mps)
 
 Sint32 MPS_SetErrFn(MPS mps, void (*fn)(void *obj), void *obj)
 {
+	MPSLIB_WORK *lw;
+
 	if (mps == NULL) {
-		MPSLIB_libwork->errfn = fn;
-		MPSLIB_libwork->errobj = obj;
+		lw = MPSLIB_libwork;
+		lw->errfn = fn;
+		lw->errobj = obj;
 	} else {
-		if (MPSLIB_CheckHn(mps) != 0) {
-			return MPSLIB_SetErr(NULL, 0xFF020101);
+		if (mpslib_CheckHn(mps) != 0) {
+			return mpslib_SetErr(NULL, 0xFF020101);
 		}
 		mps->errfn = fn;
 		mps->errobj = obj;
@@ -113,29 +157,15 @@ Sint32 MPS_SetErrFn(MPS mps, void (*fn)(void *obj), void *obj)
 
 Sint32 MPSLIB_SetErr(MPS mps, Sint32 code)
 {
-	MPSLIB_WORK *lw;
-
-	if (mps == NULL) {
-		lw = MPSLIB_libwork;
-		lw->errcode = code;
-		if (code != 0 && lw->errfn != NULL) {
-			lw->errfn(lw->errobj);
-		}
-	} else {
-		mps->errcode = code;
-		if (code != 0 && mps->errfn != NULL) {
-			mps->errfn(mps->errobj);
-		}
-	}
-	return code;
+	return mpslib_SetErr(mps, code);
 }
 
 void MPS_Finish(void)
 {
 	MPSLIB_WORK *lw;
 	MPS mps;
-	Sint32 num;
 	Sint32 i;
+	Sint32 num;
 
 	lw = MPSLIB_libwork;
 	num = lw->num_hn;
@@ -153,6 +183,7 @@ void MPS_Finish(void)
 Sint32 MPS_Init(Sint32 num_hn, void *work)
 {
 	static const Uint32 test_wrok = 0x01020304;
+	MPSLIB_WORK *lw;
 	MPS hn;
 	Sint32 i;
 
@@ -164,11 +195,14 @@ Sint32 MPS_Init(Sint32 num_hn, void *work)
 	}
 	MPSLIB_libwork = (MPSLIB_WORK *)work;
 	UTY_MemsetDword(work, 0, (sizeof(MPSLIB_WORK) + (num_hn - 1) * sizeof(MPS_OBJ)) / 4);
-	MPSLIB_libwork->errfn = NULL;
-	MPSLIB_libwork->errobj = NULL;
-	MPSLIB_libwork->errcode = 0;
+	lw = MPSLIB_libwork;
+	lw->errfn = NULL;
+	lw->errobj = NULL;
+	lw->errcode = 0;
 	MPSLIB_libwork->num_hn = num_hn;
 	hn = MPSLIB_libwork->hn;
+	/* OPEN: the target shares one zero register between the three NULL stores and i, and keeps
+	 * an unreachable `b` pair after the remainder loop */
 	for (i = 0; i < num_hn; i++) {
 		hn[i].used = MPS_HN_FREE;
 	}
