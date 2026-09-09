@@ -4452,3 +4452,14 @@ target) stays unresolved and `make_rel` then fails with "undefined symbol".
 - `EM_LIST(0x19 + (u32) n % 3)` gives `mulhwu 0xaaaaaaab; srwi 1`; `(f32) n` with `u32 n` gives the
   2^52 magic without the 0x80000000 word.
 
+- Vec temporaries loads-before-stores: `f32 x = a->pos.z; f32 y = ..; f32 z = ..; v.x = x; v.y = y;
+  v.z = z;` (plain member assignments interleave load/store; `FSetP`/Vec* helpers get hoisted).
+- `!(x & 1)` folds to `xori; andi.; beq`; the target's `andi.; bne` needs `(x & 1) == 0`.
+- Un-rotated `for(;;)` with calls: keep every exit in an `else` arm (`if (c) { body } else break;`).
+- `!(f & A) && !(f & B)` folds to one test; the target's two `andis./andi.` need nested ifs.
+- `FAdd(SmdGetObjPtr(n)->pos.y, spd)` keeps a static-pointer load below the store.
+- `u32 max = *(u16*) mot; (f32) max` gives `lhz` + `stw/lfd`; a `u16` local gives `sth/psq_l qr3`.
+- `int i` over `work->em[i]` gives count-down `li 0x70; subic.`; `u32 i` keeps `cmplwi`.
+- `p->total = p->cnt = call();` stores cnt then total from one work-pointer load.
+- Second cEmWrap alias `cEmWrapSetPtrI(...) asm("setPtr__7cEmWrapsSci")` for an untruncated u32 (#4).
+

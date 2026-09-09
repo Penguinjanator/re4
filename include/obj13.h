@@ -15,6 +15,7 @@ public:
     void setOff();
     void setOn();
     void setMotion(void** tbl);   // r400 setLadderMotion: the 20-entry motion table
+    void setDowned();             // r402 R402ExecEvent01Main: the ladder falls into place
 };
 
 // game/obj13.cpp: shows / hides the ladders of the running event (r101 Evt_R101S30_Func).

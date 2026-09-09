@@ -98,7 +98,7 @@ section	offset	size	unit	scope	name	demangled
 .text	0x0000ED04	0x50	em2d/em2d.cpp	global	em2dGetPlDir__FP5cEm2dP3Vec	em2dGetPlDir
 .text	0x0000ED54	0x254	em2d/em2d.cpp	global	em2dWallWalkCk__FP5cEm2d	em2dWallWalkCk
 .text	0x0000EFA8	0x138	em2d/em2d.cpp	global	em2dWallFallCk__FP5cEm2d	em2dWallFallCk
-.text	0x0000F0E0	0x30	em2d/em2d.cpp	global	em2dPlRunCk__Fv	em2dPlRunCk
+.text	0x0000F0E0	0x30	em2d/em2d.cpp	global	em2dPlRunCk__FP5cEm2d	em2dPlRunCk
 .text	0x0000F110	0x258	em2d/em2d.cpp	global	em2dDoorOpenCk__FP5cEm2d	em2dDoorOpenCk
 .text	0x0000F368	0x294	em2d/em2d.cpp	global	em2dFootSeMove__FP5cEm2d	em2dFootSeMove
 .text	0x0000F5FC	0x220	em2d/em2d.cpp	global	em2dSetdLandingEff__FP5cEm2d	em2dSetdLandingEff
