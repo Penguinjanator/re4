@@ -30,8 +30,8 @@ section	offset	size	unit	scope	name	demangled
 .text	0x00003D80	0x7C	st1_0/r100.cpp	local	r100_mes_gaikotu	r100_mes_gaikotu
 .text	0x00003DFC	0x28	st1_0/r100.cpp	local	r100_mes_gaikotu_bgm_down	r100_mes_gaikotu_bgm_down
 .text	0x00003E24	0x24	st1_0/r100.cpp	local	r100_mes_gaikotu_bgm_up	r100_mes_gaikotu_bgm_up
-.text	0x00003E48	0xBC	st1_0/r100.cpp	global	cManager_cLight_countActiveWork	cManager<cLight>::countActiveWork
-.text	0x00003F04	0x158	st1_0/r100.cpp	global	cManager_cLight_create	cManager<cLight>::create
+.text	0x00003E48	0xBC	st1_0/r100.cpp	global	countActiveWork__t8cManager1Z6cLight	cManager<cLight>::countActiveWork
+.text	0x00003F04	0x158	st1_0/r100.cpp	global	create__t8cManager1Z6cLighti	cManager<cLight>::create
 .text	0x0000405C	0x48	st1_0/r100.cpp	global	cUnit_dt_cUnit	cUnit::~cUnit
 .text	0x000040A4	0x4	st1_0/r100.cpp	global	cUnit_beginEvent	cUnit::beginEvent
 .text	0x000040A8	0x4	st1_0/r100.cpp	global	cUnit_endEvent	cUnit::endEvent

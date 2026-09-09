@@ -33,10 +33,6 @@ t_id/t_util.cpp:
 	.bss        start:0x0014DE34 end:0x0014DF58 align:4
 
 t_id/tools.cpp:
-	.text       start:0x0000DF58 end:0x0000E240
-	.rodata     start:0x00000F88 end:0x0000105C align:4
-
-t_id/linkonce.cpp:
-	.text       start:0x0000E240 end:0x0000ECEC
-	.rodata     start:0x0000105C end:0x00001128 align:4
+	.text       start:0x0000DF58 end:0x0000ECEC
+	.rodata     start:0x00000F88 end:0x00001128 align:4
 	.data       start:0x000002A0 end:0x000002A4 skip

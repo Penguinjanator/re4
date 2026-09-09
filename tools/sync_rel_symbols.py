@@ -8,6 +8,12 @@ Defined symbols rename entries of the unit's own module (config/<ver>/modules/<m
 through sym_map.tsv by unit + demangled name). Undefined symbols rename the placeholder of the
 definition make_rel.py will pick: the DOL (config/<ver>/symbols.txt, placeholders only) first, then the
 imported modules by ascending module id.
+
+Data symbols of another unit of the same module (`lbl_<mod>_<section>_<off>`: the .sym names no data,
+so no sym_map row can be matched by name) are resolved through the relocations: an undefined name no
+symbol file knows is renamed onto the module placeholder that the unit's split object
+(build/<ver>/<mod>/obj/<unit>.o) references at the same .text offsets with the same relocation types
+(e.g. em14_prolog's `Em10SetFunc` -> `lbl_em14_data_0`, Em14Init's `_vt.5cEm10` -> `lbl_em14_rodata_1BE0`).
 """
 import json
 import os
@@ -26,6 +32,37 @@ SYM_RE = re.compile(r"^(\S+) = (\.\w+):0x([0-9A-F]+);(.*)$")
 KNOWN_SIZE = {}  # mangled name -> .text size, from every sym_map row already carrying that name
 KNOWN_SIZE_MOD = {}  # the same from module rows only: the DOL's -G 8 build of a plain function is not
 # the size of the modules' -G 0 build (game/t_prim.cpp's TprimInitEnv2D3D is 0x84, t_movie's 0x90)
+
+
+def elf_text_relocs(obj):
+    """`.rela.text` of an ELF32 big-endian object: {offset: (type, symbol name, addend)}. Relocations
+    against section symbols are reported under the section's name (`.text`, `.rodata`, ...)."""
+    import struct
+    data = open(obj, "rb").read()
+    shoff, = struct.unpack_from(">I", data, 0x20)
+    shentsize, shnum, shstrndx = struct.unpack_from(">HHH", data, 0x2E)
+    shdrs = [struct.unpack_from(">IIIIIIIIII", data, shoff + i * shentsize) for i in range(shnum)]
+
+    def cstr(strtab_off, idx):
+        end = data.index(b"\0", strtab_off + idx)
+        return data[strtab_off + idx:end].decode()
+
+    sec_names = [cstr(shdrs[shstrndx][4], sh[0]) for sh in shdrs]
+    out = {}
+    for sh in shdrs:
+        if sh[1] != 4 or sec_names[sh[7]] != ".text":  # SHT_RELA applying to .text
+            continue
+        symtab = shdrs[sh[6]]
+        strtab = shdrs[symtab[6]]
+        for off in range(sh[4], sh[4] + sh[5], 12):
+            r_offset, r_info, r_addend = struct.unpack_from(">IIi", data, off)
+            st_name, _, _, st_info, _, st_shndx = struct.unpack_from(">IIIBBH", data, symtab[4] + (r_info >> 8) * 16)
+            if (st_info & 0xF) == 3:  # STT_SECTION
+                name = sec_names[st_shndx]
+            else:
+                name = cstr(strtab[4], st_name)
+            out[r_offset] = (r_info & 0xFF, name, r_addend)
+    return out
 
 
 class SymbolFile:
@@ -104,6 +141,40 @@ class SymbolFile:
         atomic_write(self.map_path, "\n".join(out) + "\n")
 
 
+def resolve_by_relocs(obj, unit, own, names):
+    """Rename module data placeholders that the unit's split object references where the compiled object
+    references `names` (same .text offsets, same relocation types, one placeholder per name)."""
+    split = os.path.join(ROOT, "build", VER, own.info["name"], "obj", unit.rsplit(".", 1)[0] + ".o")
+    if not os.path.isfile(split):
+        print(f"  {', '.join(names)}: unresolved (no split object {os.path.relpath(split, ROOT)})")
+        return
+    ours, theirs = elf_text_relocs(obj), elf_text_relocs(split)
+    for name in names:
+        targets = set()
+        for off, (rtype, sym, addend) in ours.items():
+            if sym != name:
+                continue
+            t = theirs.get(off)
+            if t is None or t[0] != rtype:
+                targets = None
+                break
+            targets.add((t[1], t[2] - addend))
+        if not targets or len(targets) != 1:
+            print(f"  {name}: unresolved (no matching relocation in the split object)")
+            continue
+        (sym, addend), = targets
+        if sym == name and addend == 0:
+            continue  # already named
+        if addend != 0 or not sym.startswith(("lbl_", "fn_")):
+            print(f"  {name}: unresolved (split object references {sym}+{addend:#x})")
+            continue
+        keys = [k for k, i in own.by_key.items() if own.lines[i].startswith(sym + " = ")]
+        if len(keys) != 1:
+            print(f"  {name}: unresolved ({sym} not in {os.path.relpath(own.path, ROOT)})")
+            continue
+        own.rename(keys[0], name, True)
+
+
 def main():
     dol = SymbolFile(os.path.join(CFG, "symbols.txt"), os.path.join(CFG, "sym_map.tsv"), True)
     modules = {}
@@ -127,11 +198,15 @@ def main():
         order = [own, dol] + [modules[n] for n in sorted(own.info["links"], key=lambda n: modules[n].info["module_id"])]
         # names whose size is known first, so an overload with a known size claims the placeholder before
         # an unknown one could
+        unresolved = []  # undefined names no symbol file knows by demangled name
         for name, bind, defined in sorted(elf_symbols(obj), key=lambda t: t[0] not in KNOWN_SIZE):
             if name.startswith((".", "@", "_GLOBAL_")):
                 continue
             dn = demangle_v2(name)
             if dn is None:
+                continue
+            if not defined and not any(dn in sf.by_dn for sf in order):
+                unresolved.append(name)
                 continue
             if defined:
                 cands = [k for k, u in own.by_dn.get(dn, []) if u == unit]
@@ -175,6 +250,8 @@ def main():
                     break
                 sf.rename(cands[0], name, True)
                 break
+        if unresolved:
+            resolve_by_relocs(obj, unit, own, unresolved)
     for sf in [dol, *modules.values()]:
         sf.save()
     print(f"{sum(sf.changed for sf in [dol, *modules.values()])} symbols changed; re-run `python3 configure.py && ninja`")

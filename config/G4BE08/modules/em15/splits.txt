@@ -12,10 +12,7 @@ em15/em10.cpp:
 	.data       start:0x00000000 end:0x00000990
 	.bss        start:0x00000000 end:0x00000034 align:4 common
 
-em15/em15_prolog.cpp:
-	.text       start:0x000438D0 end:0x00043924
-	.rodata     start:0x00001EC4 end:0x00001ED4 align:4
-
 em15/em15_set.cpp:
-	.text       start:0x00043924 end:0x00044244
+	.text       start:0x000438D0 end:0x00044244
+	.rodata     start:0x00001EC4 end:0x00001ED4 align:4
 	.data       start:0x00000990 end:0x00000994 skip
