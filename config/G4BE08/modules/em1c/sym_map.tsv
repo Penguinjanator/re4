@@ -381,7 +381,7 @@ section	offset	size	unit	scope	name	demangled
 .text	0x0004350C	0x4	em1c/em10.cpp	global	beginEvent__5cUnit	cUnit::beginEvent
 .text	0x00043510	0x4	em1c/em10.cpp	global	endEvent__5cUnit	cUnit::endEvent
 .text	0x00043514	0x4	em1c/em10.cpp	global	__dl__5cUnitPvUi	cUnit::operator delete
-.text	0x00043518	0x3B8	em1c/em10.cpp	global	fn_em1c_43518	.
+.text	0x00043518	0x3B8	em1c/em10_tmpl.cpp	global	fn_em1c_43518	.
 .text	0x000438D0	0x4C	em1c/em1c_set.cpp	global	_prolog	_prolog
 .text	0x0004391C	0x4	em1c/em1c_set.cpp	global	_epilog	_epilog
 .text	0x00043920	0x4	em1c/em1c_set.cpp	global	_unresolved	_unresolved
@@ -1990,12 +1990,12 @@ section	offset	size	unit	scope	name	demangled
 .rodata	0x00001B60	0x38	em1c/em10.cpp	local	lbl_em1c_rodata_1B60	lbl_em1c_rodata_1B60
 .rodata	0x00001B98	0x48	em1c/em10.cpp	local	lbl_em1c_rodata_1B98	lbl_em1c_rodata_1B98
 .rodata	0x00001BE0	0x138	em1c/em10.cpp	global	_vt.5cEm10	_vt.5cEm10
-.rodata	0x00001D18	0xA4	em1c/em10.cpp	global	lbl_em1c_rodata_1D18	lbl_em1c_rodata_1D18
-.rodata	0x00001DBC	0x28	em1c/em10.cpp	local	lbl_em1c_rodata_1DBC	lbl_em1c_rodata_1DBC
-.rodata	0x00001DE4	0x28	em1c/em10.cpp	local	lbl_em1c_rodata_1DE4	lbl_em1c_rodata_1DE4
-.rodata	0x00001E0C	0x38	em1c/em10.cpp	local	lbl_em1c_rodata_1E0C	lbl_em1c_rodata_1E0C
-.rodata	0x00001E44	0x28	em1c/em10.cpp	local	lbl_em1c_rodata_1E44	lbl_em1c_rodata_1E44
-.rodata	0x00001E6C	0x58	em1c/em10.cpp	local	lbl_em1c_rodata_1E6C	lbl_em1c_rodata_1E6C
+.rodata	0x00001D18	0x28	em1c/em10.cpp	global	lbl_em1c_rodata_1D18	lbl_em1c_rodata_1D18
+.rodata	0x00001DBC	0x28	em1c/em10_tmpl.cpp	local	lbl_em1c_rodata_1DBC	lbl_em1c_rodata_1DBC
+.rodata	0x00001DE4	0x28	em1c/em10_tmpl.cpp	local	lbl_em1c_rodata_1DE4	lbl_em1c_rodata_1DE4
+.rodata	0x00001E0C	0x38	em1c/em10_tmpl.cpp	local	lbl_em1c_rodata_1E0C	lbl_em1c_rodata_1E0C
+.rodata	0x00001E44	0x28	em1c/em10_tmpl.cpp	local	lbl_em1c_rodata_1E44	lbl_em1c_rodata_1E44
+.rodata	0x00001E6C	0x1C	em1c/em10_tmpl.cpp	local	lbl_em1c_rodata_1E6C	lbl_em1c_rodata_1E6C
 .rodata	0x00001EC4	0x10	em1c/em1c_set.cpp	local	lbl_em1c_rodata_1EC4	lbl_em1c_rodata_1EC4
 .data	0x00000000	0x4	em1c/em10.cpp	global	Em10SetFunc	Em10SetFunc
 .data	0x00000004	0x14	em1c/em10.cpp	local	lbl_em1c_data_4	lbl_em1c_data_4

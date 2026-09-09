@@ -381,7 +381,7 @@ section	offset	size	unit	scope	name	demangled
 .text	0x0004350C	0x4	em20/em10.cpp	global	beginEvent__5cUnit	cUnit::beginEvent
 .text	0x00043510	0x4	em20/em10.cpp	global	endEvent__5cUnit	cUnit::endEvent
 .text	0x00043514	0x4	em20/em10.cpp	global	__dl__5cUnitPvUi	cUnit::operator delete
-.text	0x00043518	0x3B8	em20/em10.cpp	global	fn_em20_43518	.
+.text	0x00043518	0x3B8	em20/em10_tmpl.cpp	global	fn_em20_43518	.
 .text	0x000438D0	0x4C	em20/em20_set.cpp	global	_prolog	_prolog
 .text	0x0004391C	0x4	em20/em20_set.cpp	global	_epilog	_epilog
 .text	0x00043920	0x4	em20/em20_set.cpp	global	_unresolved	_unresolved
@@ -2008,12 +2008,12 @@ section	offset	size	unit	scope	name	demangled
 .rodata	0x00001B60	0x38	em20/em10.cpp	local	lbl_em20_rodata_1B60	lbl_em20_rodata_1B60
 .rodata	0x00001B98	0x48	em20/em10.cpp	local	lbl_em20_rodata_1B98	lbl_em20_rodata_1B98
 .rodata	0x00001BE0	0x138	em20/em10.cpp	global	_vt.5cEm10	_vt.5cEm10
-.rodata	0x00001D18	0xA4	em20/em10.cpp	global	lbl_em20_rodata_1D18	lbl_em20_rodata_1D18
-.rodata	0x00001DBC	0x28	em20/em10.cpp	local	lbl_em20_rodata_1DBC	lbl_em20_rodata_1DBC
-.rodata	0x00001DE4	0x28	em20/em10.cpp	local	lbl_em20_rodata_1DE4	lbl_em20_rodata_1DE4
-.rodata	0x00001E0C	0x38	em20/em10.cpp	local	lbl_em20_rodata_1E0C	lbl_em20_rodata_1E0C
-.rodata	0x00001E44	0x28	em20/em10.cpp	local	lbl_em20_rodata_1E44	lbl_em20_rodata_1E44
-.rodata	0x00001E6C	0x58	em20/em10.cpp	local	lbl_em20_rodata_1E6C	lbl_em20_rodata_1E6C
+.rodata	0x00001D18	0x28	em20/em10.cpp	global	lbl_em20_rodata_1D18	lbl_em20_rodata_1D18
+.rodata	0x00001DBC	0x28	em20/em10_tmpl.cpp	local	lbl_em20_rodata_1DBC	lbl_em20_rodata_1DBC
+.rodata	0x00001DE4	0x28	em20/em10_tmpl.cpp	local	lbl_em20_rodata_1DE4	lbl_em20_rodata_1DE4
+.rodata	0x00001E0C	0x38	em20/em10_tmpl.cpp	local	lbl_em20_rodata_1E0C	lbl_em20_rodata_1E0C
+.rodata	0x00001E44	0x28	em20/em10_tmpl.cpp	local	lbl_em20_rodata_1E44	lbl_em20_rodata_1E44
+.rodata	0x00001E6C	0x1C	em20/em10_tmpl.cpp	local	lbl_em20_rodata_1E6C	lbl_em20_rodata_1E6C
 .rodata	0x00001EDC	0x10	em20/em20_set.cpp	local	lbl_em20_rodata_1EDC	lbl_em20_rodata_1EDC
 .rodata	0x00001EEC	0x28	em20/em20_set.cpp	local	lbl_em20_rodata_1EEC	lbl_em20_rodata_1EEC
 .rodata	0x00001F14	0x28	em20/em20_set.cpp	local	lbl_em20_rodata_1F14	lbl_em20_rodata_1F14

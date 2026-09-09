@@ -3684,3 +3684,49 @@ target) stays unresolved and `make_rel` then fails with "undefined symbol".
   in both). OPEN (r218, = r108 openCover tail): after each `do { pos.y += spd; if (..) break;
   SceSleep(1); } while (1)` the target re-materialises `lis work@ha` and the 2500.0 constant into
   fresh registers where ours reuses the loop's hoisted r28/f31; `cObj* o28/o29` get r31/r30 swapped.
+
+### t_esp window system (db_window Matching, db_widget 94/113, include/db_widget.h; 2026-09)
+
+- Unit pins of t_esp were one string too late: every header-string group of the module starts with
+  atari.h's `cFlag.set()` message, so db_port/db_widget/db_window/t_esp start 0x24 earlier
+  (0x23D0/0x2CA8/0x3410/0x35E0). The seven implicit destructors `~DB_WINDOW..~DB_SLIDEBAR` that sat at
+  the start of "db_window" are db_widget.o's linkonce tail (after its cManager<cLight> block):
+  db_window.o begins at `DB_MOUSE::DB_MOUSE`.
+- Implicit (synthesized) destructors of a class whose vtable a unit emits: the original compiler
+  synthesized them from the vtable entries alone; ours only synthesizes at a use inside a function.
+  A never-called `static` function that `delete`s a pointer of each class (dead-stripped, listed in
+  STRIP_UNUSED) makes ours emit the same seven bodies (no vptr store, size 0x20/0x44), in class
+  declaration order, after the template block. In-class `virtual ~X() {}` bodies are wrong (they
+  store the vptr, +0x10 each).
+- GNU v2 vtable order = virtual declaration order with the dtor where declared; the key method is
+  the first non-inline virtual in TYPE_METHODS order (ctor, dtor, then declaration order), so a
+  class whose dtor is implicit gets its vtable where its first user-declared virtual is defined.
+- Grouped `case A: case B:` labels with one body give a range-folded compare tree; the target's
+  per-value `beq` nodes with cross-jumped bodies mean each case had its OWN identical body
+  (`case S8: *(s8*)p = v; break; case U8: *(u8*)p = v; break;` compile identically and merge).
+- A parameter list the .sym cannot show: `DB_WINDOW::CallActiveChangeCallback` takes
+  `(DB_PRIMITIVE*, DB_KEYBORD*)` it never reads (the caller's `mr r5, r30` is the only evidence).
+- `id = (counter += 0x10)` in C++ re-reads the lvalue: `stw r9,counter; stw r9,id` then later
+  `lwz counter; stw id` (two stores of `id`).
+- `size.y = h; rect = DB_RECT(base.x, base.y, w, size.y); size.x = w;` — the reload of the
+  just-stored member is forwarded as `fmr f12,f2` while the untouched parameter is used directly;
+  the temp of a 4-arg inline ctor is stored through its `this` pseudo (`0xc(r9)`) and the first
+  member through the frame (`0x8(r1)`).
+- `!(a & 1) && !(a & 0x10)` is folded to `(a & 0x11) == 0` by fold_truthop; nested `if`s (or
+  `(a & bit) == 0` forms) keep two `andi.`. `int ok = (flags & 1) == 0; if (ok)` gives the
+  `xori; andi.; beq` first test of DB_NUMERIC::Update.
+- A `DB_PRIM_ARRAY::ChkMouseButton(DB_PRIMITIVE*, DB_MOUSE m, int)` by-value class parameter
+  (class with a ctor) is copied by the caller in 0x18-byte `lwz/stw` chunks and passed by address.
+- Store-order shapes seen here: `a = b = g = r = 1.0f` (chain) stores r, a, g, b; a DB_WINDOW
+  `DB_WINDOW* w = 0;` dead initializer is the zero register of the two preceding member stores;
+  `for (j = i; j != 0; j--) win[j] = win[j-1]` (u32) gives `mtctr i` after an `i != 0` test where a
+  do/while or signed loop keeps `subic.`.
+- Open (db_widget, sections byte-equal, 19 functions): DB_PRIMITIVE ctor's 60-store block order;
+  the seven `SetNumPointer` min/max stores (pool order 127,-128 but stores `a0` then `a4` after
+  the int stores — no statement/const-local order gives both); `&base`/`&size` kept in
+  callee-saved registers in DB_STRING::Draw / DB_WINDOW_TITLE::Draw (base.y via `4(r30)`, base.x
+  via `0x3c(r31)`: a PRE'd `(plus this 0x3c)`); DB_STRING ctor store schedule (vptr store between
+  the colour chain and `str = len = 0`); DB_NUMERIC2::OnCalcMsg keeps MIN/MAX cross-jumped and
+  DEFAULT separate (ours merges all three, COMPILER-DIFF #6 shape); AddPrimitive (-8),
+  CallActiveChangeCallback (`mr r9,r3` copy of this), DB_WINDOW ctor temp loads (`0xc(r1)` vs
+  `0xc(r9)`), DB_NUMERIC ctor (-4).

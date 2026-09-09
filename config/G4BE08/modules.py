@@ -329,24 +329,29 @@ UNITS = {
         ("t_esp/tools.cpp", "_prolog"),
     ],
 }
-# The 16 Ganado modules (em10..em20) are the same em10.cpp ("D:/Bio4/Prog/em10.cpp": cEm10 and its
-# em10*/em1c* helpers, .text 0-0x43518 + 0x3B8 bytes of template instantiations, .rodata 0-0x1EC4,
-# all of .data/.bss, byte-identical in every module), then ONE small per-enemy object whose name is
-# not in the binary (src/<em>/<em>_set.cpp): the SN entry points (_prolog: OSReport("em10 prolog Ok\n")
+# The 16 Ganado modules (em10..em20) are three objects. (1) The same em10.cpp ("D:/Bio4/Prog/em10.cpp":
+# cEm10 and its em10*/em1c*/plem10* helpers, .text 0-0x43518, .rodata 0-0x1D40, all of .data/.bss,
+# byte-identical in every module). (2) A header-only object whose name is not in the binary
+# (src/em10/em10_tmpl.cpp, shared too): the 0x3B8-byte nameless cManager<cLight> linkonce block
+# (.text 0x43518-0x438D0, the `bl`s resolve to em10.cpp's named countActiveWork/create(int)) and a
+# second copy of the [cFlag.set()][atari.h][light.h][dmg.h][ctrl.h] header strings + the five
+# cManager<cLight> strings (.rodata 0x1D40-0x1E88) - GCC 2.95 merges identical strings within one
+# translation unit, so the duplicated header strings prove a second object, and its block sits
+# before _prolog, so it is not the entry object. (3) ONE small per-enemy object, name not in the
+# binary either (src/<em>/<em>_set.cpp): the SN entry points (_prolog: OSReport("em10 prolog Ok\n")
 # in every module, EmInitFunc = EmXXInit, Em10SetFunc = EmXXSet; _epilog, _unresolved) followed by
-# EmXXInit/Set/WeaponSet. It is one object, like the other enemies' emXX.cpp (_prolog + the enemy
-# code): em1d/em1e/em1f/em20 include light.h, and their .rodata is [light.h string (parse time)]
-# ["em10 prolog Ok" (_prolog)] [cManager<cLight> template strings (end of file)] with the 0x3B8
-# cLight linkonce block after EmXXWeaponSet - only a single TU lays the strings out that way (an
-# entry object of its own would put the template strings and the block before EmXXInit). The
-# .rodata start is pinned (4th element) at em10.cpp's end because the light.h string is unreferenced.
-# (The zero ADDR16 fields of _prolog's EmXXInit/EmXXSet references say nothing about the object
-# boundary: the original linker never added the input-section displacement, see AGENTS.md.)
+# EmXXInit/Set/WeaponSet; its .rodata is [cFlag.set()][atari.h] (every module includes atari.h)
+# [light.h (em1d/em1e/em1f/em20 only)] ["em10 prolog Ok"] [cManager<cLight> strings (those four,
+# with a second 0x3B8 block after EmXXWeaponSet)]. The .rodata starts of (2) and (3) are pinned (4th
+# element) because their header strings are unreferenced. (The zero ADDR16 fields of _prolog's
+# EmXXInit/EmXXSet references say nothing about the object boundary: the original linker never added
+# the input-section displacement, see AGENTS.md.)
 for _em in ["em10", "em11", "em12", "em13", "em14", "em15", "em16", "em17", "em19", "em1a", "em1b",
             "em1c", "em1d", "em1e", "em1f", "em20"]:
     UNITS[_em] = [
         (f"{_em}/em10.cpp", None, "em10/em10.cpp"),
-        (f"{_em}/{_em}_set.cpp", "_prolog", None, {".rodata": 0x1EC4}),
+        (f"{_em}/em10_tmpl.cpp", 0x43518, "em10/em10_tmpl.cpp", {".rodata": 0x1D40}),
+        (f"{_em}/{_em}_set.cpp", "_prolog", None, {".rodata": 0x1E88}),
     ]
 
 # Module units the original REL link dead-stripped at function level (bodies gone, strings and constant
@@ -384,6 +389,8 @@ STRIP_UNUSED = {
     # db_widget.cpp: the never-called DB_SLIDEBAR constructor (pool kept) and the dead delete-all
     # helper that makes our cc1plus synthesize the implicit destructors
     "t_esp/db_widget.cpp",
+    # db_window.cpp: the dead helper that carries the DB_NUMERIC range table
+    "t_esp/db_window.cpp",
 }
 
 # Units whose compiled object replaces the split object in the REL link.
@@ -408,6 +415,7 @@ MATCHING = {
     "st2_1/st2.cpp": True,
     "st2_1/r20a.cpp": True,
     "st2_2/st2.cpp": True,
+    "st2_2/r211.cpp": True,
     "st2_3/st2.cpp": True,
     "st2_3/r22b.cpp": True,
     "st2_3/r229.cpp": True,
@@ -419,6 +427,7 @@ MATCHING = {
     "st4_0/r411.cpp": True,
     "st4_0/r40c.cpp": True,
     "t_emlist/t_emlist.cpp": True,
+    "t_esp/db_window.cpp": True,
     "t_camera/t_prim.cpp": True,
     "t_camera/t_util.cpp": True,
     "t_light/t_util.cpp": True,
@@ -463,3 +472,4 @@ MATCHING = {
 for _em in ["em10", "em11", "em12", "em13", "em14", "em15", "em16", "em17", "em19", "em1a", "em1b",
             "em1c", "em1d", "em1e", "em1f", "em20"]:
     MATCHING[f"{_em}/{_em}_set.cpp"] = True
+    MATCHING[f"{_em}/em10_tmpl.cpp"] = True
