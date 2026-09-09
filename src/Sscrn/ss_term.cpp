@@ -616,7 +616,7 @@ void partnerDataName(char* name, int no)
 
 int partnerType(int no)
 {
-    int tbl[24] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 2, 2, 2, 2, 3};
+    int tbl[24] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 2, 2, 2, 2, 3};
     return tbl[no];
 }
 

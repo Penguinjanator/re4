@@ -175,6 +175,8 @@ int healing(u16 n);
 int addMoney(int n);
 u16 bareHand();
 int itemCombineCheck(u16 id);
+// COMPILER-DIFF: 4 (int view: the original passes a u16 local without the zero-extension, ss_pzzl itemCommandType)
+int itemCombineCheckI(int id) asm("itemCombineCheck");
 int itemCombine(u16 a, u16 b, u16* result);
 int reload_main(ItemWork* wep, ItemWork* ammo, int max);
 u8 gld_order(u8 idx);

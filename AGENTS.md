@@ -2315,7 +2315,7 @@ target) stays unresolved and `make_rel` then fails with "undefined symbol".
   ss_map.cpp, 88/105 named functions byte-identical, .rodata/.data/.bss identical since 2026-09:
   the former 8-byte gap was doorModelInit's missing 2^52 pool entry (`(f32) (int) e->ang` of the u8
   angle, the classic double trick, not a fast-cast psq_l) plus the two file-scope `static const`
-  tables in the wrong order (map_cam_entire is defined before mark_model_tbl); see its item) and ss_pzzl (src/Sscrn/ss_pzzl.cpp, 33/64, .data identical, first pass) are
+  tables in the wrong order (map_cam_entire is defined before mark_model_tbl); see its item) and ss_pzzl (src/Sscrn/ss_pzzl.cpp, 45/64, .rodata/.data/.bss identical, second pass) are
   written; ss_shop (src/Sscrn/ss_shop.cpp, the merchant screen: 60/74 functions byte-identical incl.
   the 0x980 eof block, .rodata/.data/.bss identical, .text 8 bytes short) is written, see its item.
 - ss_shop idioms (2026-09): include order light.h, map_obj.h, widget.h (the three header strings), then
@@ -2418,11 +2418,56 @@ target) stays unresolved and `make_rel` then fails with "undefined symbol".
 - ss_pzzl notes (first pass, 2026-09): pzlBoard+0xC is a Mtx (puzzle.h `mat`, the board -> world
   matrix caseModelMove sets); the grid cell size is a static member of a local class
   (`pzlGrid::size`, the first word of the module's COMMON block, set to 100.0 by caseModelMove);
-  the `u16 x[2]` line width statics are `{ot, prio}` pairs `{0xF, 0}`; `.data` A44 is the message-
-  open flag, AD0 a 20-byte unreferenced table behind an `int = 0`; the second `setCommandId` of
-  the module is `static` here. Not tuned yet: every function that differs does so by a few
-  instructions (see bcmp), caseModelMove (-0x1D4: the matrix copies) and drawCursor/drawGridLine
-  (Mtx copy loops) are the big ones.
+  the line width statics are TWO `u16` scalars per line kind (`x_ot = 0xF; x_prio = 0`, each
+  loaded with its own `lis`; a `u16 x[2]` pair shares one base register); `.data` A44 is the
+  message-open flag, AD0 a 20-byte unreferenced table behind an `int = 0`; the second
+  `setCommandId` of the module is `static` here.
+- ss_pzzl second pass (2026-09, 45/64 byte-identical, .rodata/.data/.bss identical): the Mtx copies
+  are the word-copy loop, written as `MTX_COPY` = `MtxPtr d_ = dst; int i_ = 2; MtxPtr s_ = src;
+  do { dp_ = *d_; sp_ = *s_; for (j_..4) *dp_++ = *sp_++; d_++; s_++; } while (i_--);` (the
+  `li rX,2` of the counter is issued between the `d_` and `s_` inits in every copy of the unit, which
+  the motion.cpp `while (i_--)`/`i_ = 3` form gets wrong for a `src` that needs an `addi`).
+  caseModelMove: `const f32 size = 100.0f;` at the top (its pool entry precedes the 2^52 double;
+  the store is `FSet(pzlGrid::size, size)` so the following `wk->x2B0->caseBoard` load stays below
+  it), the `(f32) b->w` conversion is the double trick of an `int w = b->w;` local, two blocks share
+  the frame (`{ Mtx tmp; Vec p; Vec ax, ay, az; }` then `{ Vec scr2; Mtx mat; Vec t; Vec p; Mtx
+  mat2; }`: the freed block-1 slots are reused best-fit, the 0x10 remainder at 0xA8 stays a hole and
+  mat2 gets a fresh slot), the board matrix is rebuilt column by column from three Vec axes
+  (`ax.x = m->mat[0][0]; ax.y = m->mat[1][0]; ...; tmp[0][0] = ax.x; ...`) after a copy loop of
+  m->mat, and only `m->mat[1][1]` is read through a `f32* col = &m->mat[0][1]` pointer (`lfs
+  0x10(r6)` with the `addi r6, r28, 0x10` hoisted before the loop). Residual: one more callee-saved
+  register (sw/u/parts allocation). Other idioms: the `y + 1`/`x - 1` neighbours passed to
+  `getPiece`/`cellState`/`cell` are `(s8)` casts (`extsb` before the call, as puzzle.cpp does);
+  `g = pzlGrid::size` is read after the copy loop and `item = 0` after the early return
+  (drawCursor); `a.x = 0; a.y = 0; a.z = 0` in x, y, z order comes out x, z, y (drawGridLine),
+  whose colour/ot/prio statics are read into `u32 col; u16 ot, prio;` locals before each loop pair
+  (callee-saved, no reload after the calls) and whose board is read as `wk->x2B0->caseBoard->h`
+  twice (a `pzlBoard* bd` local reassigned for the space board is a global-alloc pseudo in r3);
+  cmpVer walks a `Vec* p = c->v; ... p++` pointer; screenPos2puzzlePos reads `pos.z` (not .y)
+  into a local before `tan`; puzzlePos2screenPos computes `ang = fovy * 0.5f * 0.017453292f`
+  into a local BEFORE `az = fabsf(out->z)` (the volatile asm is a barrier: constants expanded
+  after it stay after it); the shared light set is one `static inline pzzlModelLight(m)` (single
+  `static const Vec` pair between pieceModelDisp and pieceModelInit); pieceFrameDisp's
+  `VECNormalize:[%s/%d]` uses `__FILE__` under `#line 1158 "D:/Bio4/Prog/ss_pzzl.cpp"` (one FILE
+  string shared with SsPzzlInit::move's DVD_READ_N); pzzlEquipDisp has two unused 0x20-byte
+  locals (`u8 x[0x20]` after `scr` and after `pos`: frame 0xB0, pos at 0x58, info at 0x88),
+  `col = colorRRGGBBAA(..)` in a local before `pieceFrameDisp(arm->model, col, 3)` (a nested call
+  argument makes ours precompute `arm->model` into a callee-saved register) and two separate
+  `arm = pl->piecePtr(..)` calls in the if/else (cross-jumped); drawCursorInit is `const f32 big =
+  1000.0f` (its `lis` kept in r28 across the calls) with the corners written v[0].x, v[0].y, ..
+  v[3].y (dying-first puts v[3].y / v[2].x first); `if (c) ret = 0; else { body; ret = 1; }`
+  (back2PieceSelect), `case 1:` before `case 0:` (tempSpaceDisp), `if (n != 0) { .. ret = 1/0 }
+  else ret = 1` (isTerminable: the `n == 0` arm last); sscrn_pzzl_in/out_init use one reassigned
+  `IdUnit* u`; itemCommandType's case 6 keeps an `int id = item->id` with `switch ((u16) id)` and
+  calls `itemCombineCheckI` (item.h int view, COMPILER-DIFF 4) on both paths (an asm-labelled
+  alias never cross-jumps with the plain declaration: the symbol_ref string differs). numDisp calls
+  use the `numDispI` int view (no `clrlwi` of `0x40 + i`). Open: PieceCommand::move (-0x98: the
+  nested `command_id` switch tables), PieceCombine::move (-0x10), PieceSelect/PzzlThinking::move,
+  SsPzzlMain::init/move/quit, SsPzzlInit::move, pieceTblInit (the `piece_info` id switch tree),
+  pieceModelOrientation, pieceFrameDisp, getPieceVertex, pieceModelDisp (`&scr` PRE'd, COMPILER-
+  DIFF 3), pieceModelInit, pzzlCursorDisp (+4: `lwz r0,0x2b0; mr r3,r0` where the target loads
+  `this` into r3 after the `mr r30,r3` col copy), setCommandId, itemCommandType (`lhz r0; mr r3,r0;
+  clrlwi` of the raw u16 pass).
 - **The module was compiled with `-fno-implement-inlines`** (config/G4BE08/modules.py `CFLAGS`,
   wired through configure.py's `REL_CFLAGS`): SubScreenTask creates every screen's Init/Main widget
   with per-class link counts (`SsFileMain` 5, `SsItemMain`/`SsPzzlMain` 6, `SsMapMain` 5,
@@ -2571,6 +2616,28 @@ target) stays unresolved and `make_rel` then fails with "undefined symbol".
   aspect (0.5, 3.1415927, 180, 240) that no instruction loads — mark_constant_pool drops
   unreferenced entries in our build, and `const f32` locals / `if (0)` code / unused inlines all
   emit nothing here (tested).
+  Second pass (2026-09) findings: (a) `_._10cDbgButton` stores `_vt.14cDbgButtonBase` (0x3690,
+  the base vtable before the inlined `delete name`), nothing in the REL references
+  `_vt.10cDbgButton` (0x3630) — the referencing code was an emitted-then-dropped linkonce copy
+  (the REL rule drops unreferenced first copies): the original build outputs a *used* but
+  unreferenced comdat function (the implicit `cDbgButton::cDbgButton()` that the parsed
+  `AddButton`'s `new cDbgButton` marks used, and likewise `Widget<SUB_SCREEN>::Widget(int)`), our
+  cc1plus outputs comdat inlines only when `TREE_SYMBOL_REFERENCED` (decl2.c finish_file "stop
+  lying" loop) — a compiler-build difference. A dropped stand-in that constructs a cDbgButton
+  (`__attribute__((section(".gnu.linkonce.t.X")))` + modules.py LINKONCE_DROP) does write
+  `_vt.10cDbgButton` in round 1, `~cDbgButton` right after the static-init function and
+  `~cDbgButtonBase` in round 2 (tested), but the target's eof order also needs `~Widget` output
+  in round 1 with `init`/`move` in round 2 (i.e. `_._t6Widget1Z10SUB_SCREEN` referenced by
+  pre-finish_file code while `_vt.t6Widget` is not), which no source construct gives here
+  (a direct dtor call inlines; an explicit ctor instantiation writes the vtable in round 1 and
+  pulls init/move forward). Not applied. (b) The four dead floats are the pool of dead code
+  (`tan(fovy * 0.5f * PI / 180.0f)`, `/ 240.0f` — the screenPos2puzzlePos formula) that the
+  original kept: its varasm does not run mark_constant_pool (ours does, varasm.c
+  output_constant_pool). The only zero-code reproduction is a file-scope
+  `asm(".section .rodata; .long 0x3f000000,0x40490fdb,0x43340000,0x43700000; .text")` right after
+  terminalCameraInit (compiler-build difference candidate #10; not applied since the unit cannot
+  flip anyway). (c) partnerType's table had 12 leading zeros; the original has 14 (`{0 x14, 1 x5,
+  2 x4, 3}`, .rodata 0x2a8..0x308) — fixed.
 - ss_model (src/Sscrn/ss_model.cpp, the character and weapon model builders; 40/47 byte-identical,
   .rodata and .data identical, .text +12): include order map_obj.h, light.h, widget.h, atari.h;
   `PL_ARC(n)` = `PL_ARC_PTR(pG->pPlArc, n)` re-read per call (pG reloaded); the model archive at
@@ -2590,7 +2657,13 @@ target) stays unresolved and `make_rel` then fails with "undefined symbol".
   passes the u8 weapon number/type through int-parameter aliases (COMPILER-DIFF 4). Residual: the
   six character inits load the scale static's `lis` early into a callee-saved register (ours
   right before the `lfs`; chain / local / order variants tried) and wep09Init's two modelInit arms
-  are cross-jumped in the original (compiler-build difference 6).
+  are cross-jumped in the original (compiler-build difference 6). Second pass (2026-09): the
+  `lis` position is a consequence of the scale `lfs` staying BELOW the `m->rot = rot` word-copy
+  stores in the original (the load-of-a-global-above-a-member-store rule, "Matching rules" above)
+  while ours floats it above them (fixed scalar vs varying struct: no alias) so the `lis` stays
+  adjacent; a `static f32 x[1]` array makes the load in-struct (ordered after the stores, `lis`
+  hoisted into r29) but then every `m->scale.? = s` store re-reads it (3 `lfs`), and a `f32 sc =
+  x[0]` local moves the load above the copies. No FSet-style lever exists for the block copy.
 
 ### Open
 

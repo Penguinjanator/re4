@@ -36,7 +36,31 @@ extern "C" f64 tan(f64 x);
 
 #define DVD_READ_N(name, dst, a, b, c, mode) DvdReadN(name, dst, a, b, c, mode, __FILE__, __LINE__)
 
+// Matrix copy written out as loops (motion.cpp / camera.cpp shape; the original never calls
+// PSMTXCopy in this unit).
+#define MTX_COPY(src, dst)               \
+    {                                    \
+        MtxPtr d_ = (dst);               \
+        int i_ = 2;                      \
+        MtxPtr s_ = (src);               \
+        int j_;                          \
+        f32* sp_;                        \
+        f32* dp_;                        \
+        do {                             \
+            dp_ = *d_;                   \
+            sp_ = *s_;                   \
+            for (j_ = 0; j_ < 4; j_++) { \
+                *dp_++ = *sp_++;         \
+            }                            \
+            d_++;                        \
+            s_++;                        \
+        } while (i_--);                  \
+    }
+
+
 // ss_main.cpp
+// COMPILER-DIFF: 4 (int view of numDisp(u8, ..): no clrlwi of `0x40 + i` at the call, as in ss_item)
+extern "C" void numDispI(int id, int num, Vec* pos, u32 flags) asm("numDisp");
 extern "C" {
 void clearZbuffer();
 void idMainMenuFade(SUB_SCREEN* wk, int sw);
@@ -109,25 +133,33 @@ static int sscrn_pzzl_out(SUB_SCREEN* wk);
 static int msg_open = 0;
 int pzzlDbgNo = -12;
 f32 pzzlDbgPos = -300.0f;
-static u16 cursor_line_w[2] = {0xF, 0};
+static u16 cursor_line_w_ot = 0xF;
+static u16 cursor_line_w_prio = 0;
 static u32 cursor_line_col = 0x707040FF;
 static int cursor_line_blend = 10;
-static u16 grid_line_w0[2] = {0xD, 0};
-static u16 grid_line_w1[2] = {0xF, 0};
+static u16 grid_line_w0_ot = 0xD;
+static u16 grid_line_w0_prio = 0;
+static u16 grid_line_w1_ot = 0xF;
+static u16 grid_line_w1_prio = 0;
 static u32 grid_line_col0 = 0x404040FF;
 static u32 grid_line_col1 = 0x505050FF;
-static u16 frame_line_w[2] = {0xD, 0};
+static u16 frame_line_w_ot = 0xD;
+static u16 frame_line_w_prio = 0;
 static u32 frame_line_col = 0x5F4B37FF;
 static int frame_line_blend = 12;
 static f32 frame_line_len = 40.0f;
-static u16 frame_tile_w1[2] = {0xD, 0};
+static u16 frame_tile_w1_ot = 0xD;
+static u16 frame_tile_w1_prio = 0;
 static u32 frame_tile_col1 = 0;
 static int frame_tile_blend1 = 2;
-static u16 frame_tile_w2[2] = {0xF, 0};
+static u16 frame_tile_w2_ot = 0xF;
+static u16 frame_tile_w2_prio = 0;
 static u32 frame_tile_col2 = 0;
-static u16 frame_tile_w3[2] = {0xF, 0};
+static u16 frame_tile_w3_ot = 0xF;
+static u16 frame_tile_w3_prio = 0;
 static u32 frame_tile_col3 = 0;
-static u16 frame_tile_w4[2] = {0xF, 0};
+static u16 frame_tile_w4_ot = 0xF;
+static u16 frame_tile_w4_prio = 0;
 static u32 frame_tile_col4 = 0x30503080;
 static int frame_tile_blend4 = 0;
 static f32 piece_hand_scale = 30.0f;
@@ -171,14 +203,18 @@ u32 colorRRGGBBAA(u32 r, u32 g, u32 b, u32 a)
 
 int back2PieceSelect(SUB_SCREEN* wk)
 {
+    int ret;
+
     if (wk->x2B0->spaceBoard->getPieceNum() != 0) {
-        return 0;
+        ret = 0;
+    } else {
+        Cckpt.life.frameIn();
+        IdSub.unitPtr(0, 2)->dir &= 0xF0;
+        tempSpaceDisp(0);
+        idMainMenuFade(wk, 1);
+        ret = 1;
     }
-    Cckpt.life.frameIn();
-    IdSub.unitPtr(0, 2)->dir &= 0xF0;
-    tempSpaceDisp(0);
-    idMainMenuFade(wk, 1);
-    return 1;
+    return ret;
 }
 
 void pzzlEquipDisp(SUB_SCREEN* wk, int sw)
@@ -186,8 +222,10 @@ void pzzlEquipDisp(SUB_SCREEN* wk, int sw)
     pzlPlayer* pl = wk->x2B0;
     IdUnit* id[3];
     IdUnit* id2[3];
-    Vec pos;
     Vec scr;
+    u8 unused0[0x20];  // two unused 0x20-byte locals keep the original frame (0x38 / 0x68)
+    Vec pos;
+    u8 unused1[0x20];
     ItemInfo info;
     pzlPiece* arm;
     int i;
@@ -207,17 +245,13 @@ void pzzlEquipDisp(SUB_SCREEN* wk, int sw)
         arm = pl->piecePtr(ItemMgr.pArm);
         break;
     case 3:
-    case 6: {
-        ItemWork* w;
-
+    case 6:
         if (ItemMgr.num(ItemMgr.pArm) != 0 && ItemMgr.armId == ItemMgr.pArm->id) {
-            w = ItemMgr.pArm;
+            arm = pl->piecePtr(ItemMgr.pArm);
         } else {
-            w = ItemMgr.minimumSearch(ItemMgr.armId);
+            arm = pl->piecePtr(ItemMgr.minimumSearch(ItemMgr.armId));
         }
-        arm = pl->piecePtr(w);
         break;
-    }
     default:
         arm = 0;
         break;
@@ -226,11 +260,14 @@ void pzzlEquipDisp(SUB_SCREEN* wk, int sw)
         if (arm == pl->hand) {
             id[0]->flags &= ~8;
         } else {
+            u32 col;
+
             getPieceVertex(arm, &pos, 1);
             puzzlePos2screenPos(&pos, &scr);
             id[0]->flags |= 8;
             id[0]->scr = scr;
-            pieceFrameDisp(arm->model, colorRRGGBBAA(id[0]->col0[0], id[0]->col0[1], id[0]->col0[2], 0x20), 3);
+            col = colorRRGGBBAA(id[0]->col0[0], id[0]->col0[1], id[0]->col0[2], 0x20);
+            pieceFrameDisp(arm->model, col, 3);
         }
         id[1]->flags &= ~8;
         id[2]->flags &= ~8;
@@ -243,11 +280,14 @@ void pzzlEquipDisp(SUB_SCREEN* wk, int sw)
             }
             p = pl->piecePtr(w);
             if (p != pl->hand) {
+                u32 col;
+
                 getPieceVertex(p, &pos, 1);
                 puzzlePos2screenPos(&pos, &scr);
                 id[i + 1]->flags |= 8;
                 id[i + 1]->scr = scr;
-                pieceFrameDisp(p->model, colorRRGGBBAA(id[i + 1]->col0[0], id[i + 1]->col0[1], id[i + 1]->col0[2], 0x20), 3);
+                col = colorRRGGBBAA(id[i + 1]->col0[0], id[i + 1]->col0[1], id[i + 1]->col0[2], 0x20);
+                pieceFrameDisp(p->model, col, 3);
             }
         }
     } else {
@@ -329,45 +369,52 @@ void pzzlCursorDisp(SUB_SCREEN* wk, int sw)
 
 void drawCursorInit(SUB_SCREEN* wk, PzzlCursor* c)
 {
+    const f32 big = 1000.0f;
+
     wk->x2B0->caseBoard->clearState(0x80);
     wk->x2B0->spaceBoard->clearState(0x80);
     memclr_asm(c, sizeof(PzzlCursor));
-    c->v[3].y = 1000.0f;
-    c->v[2].x = -1000.0f;
-    c->v[0].x = 1000.0f;
-    c->v[0].y = -1000.0f;
-    c->v[1].x = -1000.0f;
-    c->v[1].y = -1000.0f;
-    c->v[2].y = 1000.0f;
-    c->v[3].x = 1000.0f;
+    c->v[0].x = big;
+    c->v[0].y = -big;
+    c->v[1].x = -big;
+    c->v[1].y = -big;
+    c->v[2].x = -big;
+    c->v[2].y = big;
+    c->v[3].x = big;
+    c->v[3].y = big;
 }
 
 // Extends the cursor frame corners by a vertex.
 void cmpVer(PzzlCursor* c, Vec* v)
 {
-    if (v->x < c->v[0].x) {
-        c->v[0].x = v->x;
+    Vec* p = c->v;
+
+    if (v->x < p->x) {
+        p->x = v->x;
     }
-    if (v->y > c->v[0].y) {
-        c->v[0].y = v->y;
+    if (v->y > p->y) {
+        p->y = v->y;
     }
-    if (v->x > c->v[1].x) {
-        c->v[1].x = v->x;
+    p++;
+    if (v->x > p->x) {
+        p->x = v->x;
     }
-    if (v->y > c->v[1].y) {
-        c->v[1].y = v->y;
+    if (v->y > p->y) {
+        p->y = v->y;
     }
-    if (v->x > c->v[2].x) {
-        c->v[2].x = v->x;
+    p++;
+    if (v->x > p->x) {
+        p->x = v->x;
     }
-    if (v->y < c->v[2].y) {
-        c->v[2].y = v->y;
+    if (v->y < p->y) {
+        p->y = v->y;
     }
-    if (v->x < c->v[3].x) {
-        c->v[3].x = v->x;
+    p++;
+    if (v->x < p->x) {
+        p->x = v->x;
     }
-    if (v->y < c->v[3].y) {
-        c->v[3].y = v->y;
+    if (v->y < p->y) {
+        p->y = v->y;
     }
 }
 
@@ -381,43 +428,45 @@ void drawCursor(SUB_SCREEN* wk, pzlBoard* b, int x, int y, PzzlCursor* c, int li
     Vec wa;
     Vec wd;
     Mtx mat;
-    ItemWork* item = 0;
-    f32 g = pzlGrid::size;
+    ItemWork* item;
+    f32 g;
     pzlPiece* piece;
     Vec e;
 
-    PSMTXCopy(b->mat, mat);
-    if (b->cellState(x, y) & 0x82) {
+    MTX_COPY(b->mat, mat);
+    g = pzlGrid::size;
+    if (b->cellState((s8) x, (s8) y) & 0x82) {
         return;
     }
-    *b->cell(x, y) |= 0x80;
-    piece = b->getPiece(x, y);
+    item = 0;
+    *b->cell((s8) x, (s8) y) |= 0x80;
+    piece = b->getPiece((s8) x, (s8) y);
     if (piece) {
         item = piece->item;
     }
     p.x = g * (f32) x;
     p.y = -g * (f32) y;
     p.z = 0.0f;
-    piece = b->getPiece(x, y + 1);
+    piece = b->getPiece((s8) x, (s8) (y + 1));
     if (piece && item == piece->item) {
         drawCursor(wk, b, x, y + 1, c, line);
     } else {
         a = p;
         a.y -= g;
         d = p;
-        d.x += g;
         d.y -= g;
+        d.x += g;
         PSMTXMultVec(mat, &a, &wa);
         PSMTXMultVec(mat, &d, &wd);
         if (line) {
-            ss_Draw_line3d(&wa, &wd, cursor_line_col, cursor_line_blend, 0, 0, cursor_line_w[0], cursor_line_w[1]);
+            ss_Draw_line3d(&wa, &wd, cursor_line_col, cursor_line_blend, 0, 0, cursor_line_w_ot, cursor_line_w_prio);
         }
         e = wa;
         cmpVer(c, &e);
         e = wd;
         cmpVer(c, &e);
     }
-    piece = b->getPiece(x, y - 1);
+    piece = b->getPiece((s8) x, (s8) (y - 1));
     if (piece && item == piece->item) {
         drawCursor(wk, b, x, y - 1, c, line);
     } else {
@@ -427,14 +476,14 @@ void drawCursor(SUB_SCREEN* wk, pzlBoard* b, int x, int y, PzzlCursor* c, int li
         PSMTXMultVec(mat, &a, &wa);
         PSMTXMultVec(mat, &d, &wd);
         if (line) {
-            ss_Draw_line3d(&wa, &wd, cursor_line_col, cursor_line_blend, 0, 0, cursor_line_w[0], cursor_line_w[1]);
+            ss_Draw_line3d(&wa, &wd, cursor_line_col, cursor_line_blend, 0, 0, cursor_line_w_ot, cursor_line_w_prio);
         }
         e = wa;
         cmpVer(c, &e);
         e = wd;
         cmpVer(c, &e);
     }
-    piece = b->getPiece(x - 1, y);
+    piece = b->getPiece((s8) (x - 1), (s8) y);
     if (piece && item == piece->item) {
         drawCursor(wk, b, x - 1, y, c, line);
     } else {
@@ -444,14 +493,14 @@ void drawCursor(SUB_SCREEN* wk, pzlBoard* b, int x, int y, PzzlCursor* c, int li
         PSMTXMultVec(mat, &a, &wa);
         PSMTXMultVec(mat, &d, &wd);
         if (line) {
-            ss_Draw_line3d(&wa, &wd, cursor_line_col, cursor_line_blend, 0, 0, cursor_line_w[0], cursor_line_w[1]);
+            ss_Draw_line3d(&wa, &wd, cursor_line_col, cursor_line_blend, 0, 0, cursor_line_w_ot, cursor_line_w_prio);
         }
         e = wa;
         cmpVer(c, &e);
         e = wd;
         cmpVer(c, &e);
     }
-    piece = b->getPiece(x + 1, y);
+    piece = b->getPiece((s8) (x + 1), (s8) y);
     if (piece && item == piece->item) {
         drawCursor(wk, b, x + 1, y, c, line);
     } else {
@@ -463,7 +512,7 @@ void drawCursor(SUB_SCREEN* wk, pzlBoard* b, int x, int y, PzzlCursor* c, int li
         PSMTXMultVec(mat, &a, &wa);
         PSMTXMultVec(mat, &d, &wd);
         if (line) {
-            ss_Draw_line3d(&wa, &wd, cursor_line_col, cursor_line_blend, 0, 0, cursor_line_w[0], cursor_line_w[1]);
+            ss_Draw_line3d(&wa, &wd, cursor_line_col, cursor_line_blend, 0, 0, cursor_line_w_ot, cursor_line_w_prio);
         }
         e = wa;
         cmpVer(c, &e);
@@ -481,64 +530,70 @@ void drawGridLine(SUB_SCREEN* wk)
     Vec wb;
     Vec wc;
     f32 g = pzlGrid::size;
-    pzlBoard* bd;
     int w;
     int h;
     int i;
+    u32 col;
+    u16 ot;
+    u16 prio;
 
-    PSMTXCopy(wk->x2B0->caseBoard->mat, mat);
-    bd = wk->x2B0->caseBoard;
-    h = bd->h;
-    w = bd->w;
+    MTX_COPY(wk->x2B0->caseBoard->mat, mat);
+    h = wk->x2B0->caseBoard->h;
+    w = wk->x2B0->caseBoard->w;
     a.x = 0.0f;
-    a.z = 0.0f;
     a.y = 0.0f;
+    a.z = 0.0f;
     b = a;
     b.y -= (f32) h * g;
+    col = grid_line_col0;
+    ot = grid_line_w0_ot;
+    prio = grid_line_w0_prio;
     for (i = 0; i <= w; i++) {
         PSMTXMultVec(mat, &a, &wa);
         PSMTXMultVec(mat, &b, &wb);
-        ss_Draw_line3d(&wa, &wb, grid_line_col0, 6, 0, 1, grid_line_w0[0], grid_line_w0[1]);
+        ss_Draw_line3d(&wa, &wb, col, 6, 0, 1, ot, prio);
         a.x += g;
         b.x += g;
     }
     a.x = 0.0f;
-    a.z = 0.0f;
     a.y = 0.0f;
+    a.z = 0.0f;
     b = a;
     b.x += (f32) w * g;
     for (i = 0; i <= h; i++) {
         PSMTXMultVec(mat, &a, &wa);
         PSMTXMultVec(mat, &b, &wc);
-        ss_Draw_line3d(&wa, &wc, grid_line_col0, 6, 0, 1, grid_line_w0[0], grid_line_w0[1]);
+        ss_Draw_line3d(&wa, &wc, col, 6, 0, 1, ot, prio);
         a.y -= g;
         b.y -= g;
     }
-    PSMTXCopy(wk->x2B0->spaceBoard->mat, mat);
-    bd = wk->x2B0->spaceBoard;
-    h = bd->h;
-    w = bd->w;
+    MTX_COPY(wk->x2B0->spaceBoard->mat, mat);
+    h = wk->x2B0->spaceBoard->h;
+    w = wk->x2B0->spaceBoard->w;
     a.x = 0.0f;
-    a.z = 0.0f;
     a.y = 0.0f;
+    a.z = 0.0f;
     b = a;
     b.y -= (f32) h * g;
+    col = grid_line_col1;
+    ot = grid_line_w1_ot;
+    prio = grid_line_w1_prio;
     for (i = 0; i <= w; i++) {
         PSMTXMultVec(mat, &a, &wa);
         PSMTXMultVec(mat, &b, &wb);
-        ss_Draw_line3d(&wa, &wb, grid_line_col1, 6, 0, 1, grid_line_w1[0], grid_line_w1[1]);
+        ss_Draw_line3d(&wa, &wb, col, 6, 0, 1, ot, prio);
         a.x += g;
         b.x += g;
     }
     a.x = 0.0f;
-    a.z = 0.0f;
     a.y = 0.0f;
+    a.z = 0.0f;
     b = a;
     b.x += (f32) w * g;
     for (i = 0; i <= h; i++) {
         PSMTXMultVec(mat, &a, &wa);
         PSMTXMultVec(mat, &b, &wb);
-        ss_Draw_line3d(&wa, &wb, grid_line_col1, 6, 0, 1, grid_line_w1[0], grid_line_w1[1]);
+        ss_Draw_line3d(&wa, &wb, col, 6, 0, 1, ot, prio);
         a.y -= g;
         b.y -= g;
     }
@@ -555,14 +610,16 @@ int puzzlePos2screenPos(Vec* pos, Vec* out)
     f32 az;
     f32 h;
     f32 w;
+    f32 ang;
 
     PSMTXInverse(pG->Cam.mat, inv);
     PSMTXMultVec(inv, pos, out);
     if (out->z > -fabsf(ZNEAR)) {
         return 0;
     }
+    ang = pG->Cam.param.fovy * 0.5f * 0.017453292f;
     az = fabsf(out->z);
-    h = az * tanf(pG->Cam.param.fovy * 0.5f * 0.017453292f);
+    h = az * tanf(ang);
     w = h * 1.3333334f;
     out->x = out->x * (320.0f / w);
     out->y = out->y * (240.0f / h);
@@ -573,7 +630,8 @@ int puzzlePos2screenPos(Vec* pos, Vec* out)
 void screenPos2puzzlePos(Vec* pos, Vec* out)
 {
     Camera* cam = &pG->Cam;
-    f32 h = fabsf((f32) (cam->param.pos.y * tan(cam->param.fovy * 0.5f * 3.1415927f / 180.0f)));
+    f32 pz = cam->param.pos.z;
+    f32 h = fabsf((f32) (pz * tan(cam->param.fovy * 0.5f * 3.1415927f / 180.0f)));
 
     out->x = pos->x * h / 240.0f;
     out->y = pos->y * h / 240.0f;
@@ -772,7 +830,8 @@ void pieceFrameDisp(cModel* m, u32 color, int type)
 
                 PSVECSubtract(&v[k], &v[i], &c);
                 if (c.x == 0.0f && c.y == 0.0f && c.z == 0.0f) {
-                    pLog->err(0, 0, "VECNormalize:[%s/%d]", __FILE__, 0x486);
+#line 1158 "D:/Bio4/Prog/ss_pzzl.cpp"
+                    pLog->err(0, 0, "VECNormalize:[%s/%d]", __FILE__, __LINE__);
                     c.x = 0.0f;
                     c.z = 0.0f;
                     c.y = 0.0f;
@@ -781,18 +840,18 @@ void pieceFrameDisp(cModel* m, u32 color, int type)
                 }
                 PSVECScale(&c, &c, frame_line_len);
                 PSVECAdd(&v[i], &c, &c);
-                ss_Draw_line3d(&v[i], &c, frame_line_col, frame_line_blend, 0, 1, frame_line_w[0], frame_line_w[1]);
+                ss_Draw_line3d(&v[i], &c, frame_line_col, frame_line_blend, 0, 1, frame_line_w_ot, frame_line_w_prio);
             }
         }
         break;
     case 1:
-        ss_Draw_tile3d(&v[0], &v[1], &v[3], &v[2], color, frame_tile_col1, frame_tile_blend1, frame_tile_w1[0], frame_tile_w1[1]);
+        ss_Draw_tile3d(&v[0], &v[1], &v[3], &v[2], color, frame_tile_col1, frame_tile_blend1, frame_tile_w1_ot, frame_tile_w1_prio);
         break;
     case 2:
-        ss_Draw_tile3d(&v[0], &v[1], &v[3], &v[2], color, frame_tile_col2, 1, frame_tile_w2[0], frame_tile_w2[1]);
+        ss_Draw_tile3d(&v[0], &v[1], &v[3], &v[2], color, frame_tile_col2, 1, frame_tile_w2_ot, frame_tile_w2_prio);
         break;
     case 3:
-        ss_Draw_tile3d(&v[0], &v[1], &v[3], &v[2], color, frame_tile_col3, 1, frame_tile_w3[0], frame_tile_w3[1]);
+        ss_Draw_tile3d(&v[0], &v[1], &v[3], &v[2], color, frame_tile_col3, 1, frame_tile_w3_ot, frame_tile_w3_prio);
         break;
     case 4:
         c.x = m->mat[0][2];
@@ -802,7 +861,7 @@ void pieceFrameDisp(cModel* m, u32 color, int type)
         for (p = v; p <= &v[3]; p++) {
             PSVECSubtract(p, &c, p);
         }
-        ss_Draw_tile3d(&v[0], &v[1], &v[3], &v[2], frame_tile_col4, frame_tile_blend4, 1, frame_tile_w4[0], frame_tile_w4[1]);
+        ss_Draw_tile3d(&v[0], &v[1], &v[3], &v[2], frame_tile_col4, frame_tile_blend4, 1, frame_tile_w4_ot, frame_tile_w4_prio);
         break;
     }
 }
@@ -843,7 +902,7 @@ void pieceModelDisp(SUB_SCREEN* wk)
     int i;
 
     for (i = 0; i < 0x3E; i++) {
-        numDisp(0x40 + i, 0, 0, 0);
+        numDispI(0x40 + i, 0, 0, 0);
     }
     pl = wk->x2B0;
     hand = pl->hand;
@@ -878,9 +937,9 @@ void pieceModelDisp(SUB_SCREEN* wk)
             itemInfo(item->id, &info);
             if (info.type == 1) {
                 if ((item->x8 >> 13) == 1) {
-                    numDisp(id, item->x8 & 0x1FFF, &scr, 3);
+                    numDispI(id, item->x8 & 0x1FFF, &scr, 3);
                 } else {
-                    numDisp(id, item->x8 & 0x1FFF, &scr, 1);
+                    numDispI(id, item->x8 & 0x1FFF, &scr, 1);
                 }
                 no++;
             } else {
@@ -888,7 +947,7 @@ void pieceModelDisp(SUB_SCREEN* wk)
                 if (info.type != 9) {
                     itemInfo(item->id, &info);
                     if (info.x4 != 1 || item->num != 1) {
-                        numDisp(id, item->num, &scr, 1);
+                        numDispI(id, item->num, &scr, 1);
                         no++;
                     }
                 }
@@ -903,6 +962,15 @@ void pieceModelDisp(SUB_SCREEN* wk)
         }
     }
     MapMgr.move();
+}
+
+// Light setting shared by the case and piece models (one static pair in .rodata).
+static inline void pzzlModelLight(cModel* m)
+{
+    static const Vec ofs = {0.0f, 0.0f, 0.0f};
+    static const Vec size = {1000.0f, 1000.0f, 0.0f};
+
+    m->lightInfo.init2(0, 0, &ofs, &size, 0x10);
 }
 
 void pieceModelInit(SUB_SCREEN* wk)
@@ -934,12 +1002,7 @@ void pieceModelInit(SUB_SCREEN* wk)
         m->modelInit(SS_ARC_PTR(wk->x1E4, 0x1A9), SS_ARC_PTR(wk->x1E4, 0x1A5));
         break;
     }
-    {
-        static const Vec ofs = {0.0f, 0.0f, 0.0f};
-        static const Vec size = {1000.0f, 1000.0f, 0.0f};
-
-        m->lightInfo.init2(0, 0, &ofs, &size, 0x10);
-    }
+    pzzlModelLight(m);
     m->x135 = 2;
     m->rot = case_rot;
     m->matUpdate();
@@ -961,12 +1024,7 @@ void pieceModelSet(pzlPiece* p)
     }
     m = p->model;
     m->modelInit(data[0], data[1]);
-    {
-        static const Vec ofs = {0.0f, 0.0f, 0.0f};
-        static const Vec size = {1000.0f, 1000.0f, 0.0f};
-
-        m->lightInfo.init2(0, 0, &ofs, &size, 0x10);
-    }
+    pzzlModelLight(m);
     m->x135 = 2;
     if (m->pInfo->be_flag & 2) {
         m->pInfo->be_flag &= ~2;
@@ -987,15 +1045,10 @@ void caseModelMove(int sw)
     cModel* m = MapMgr.getWork(3);
     cModel* parts = m->getPartsPtr(1);
     Vec scr;
-    Vec p;
-    Mtx mat;
-    Mtx mat2;
-    Mtx tmp;
-    Mtx tmp2;
     Vec q;
-    Vec t;
     pzlBoard* b;
     IdUnit* u3;
+    const f32 size = 100.0f;
 
     if (sw) {
         scr = ofsA;
@@ -1007,39 +1060,77 @@ void caseModelMove(int sw)
     PSVECScale(&u2->rotCur, &parts->rot, 0.017453292f);
     m->pos.z = pzzlDbgPos;
     m->matUpdate();
-    pzlGrid::size = 100.0f;
+    FSet(pzlGrid::size, size);
     b = wk->x2B0->caseBoard;
-    p.x = (f32) b->w * -0.5f * pzlGrid::size;
-    p.y = -0.0f;
-    p.z = 0.0f;
-    PSMTXMultVec(m->mat, &p, &p);
-    PSMTXCopy(m->mat, tmp);
-    tmp[0][3] = p.x;
-    tmp[1][3] = p.y;
-    tmp[2][3] = p.z;
-    PSMTXCopy(tmp, b->mat);
+    {
+        Mtx tmp;
+        Vec p;
+        Vec ax;
+        Vec ay;
+        Vec az;
+        int w = b->w;
+
+        p.x = (f32) w * -0.5f * pzlGrid::size;
+        p.y = -0.0f;
+        p.z = 0.0f;
+        PSMTXMultVec(m->mat, &p, &p);
+        MTX_COPY(m->mat, tmp);
+        ax.x = m->mat[0][0];
+        ax.y = m->mat[1][0];
+        ax.z = m->mat[2][0];
+        {
+            f32* col = &m->mat[0][1];
+            ay.x = m->mat[0][1];
+            ay.y = col[4];
+            ay.z = m->mat[2][1];
+        }
+        az.x = m->mat[0][2];
+        az.y = m->mat[1][2];
+        az.z = m->mat[2][2];
+        tmp[0][0] = ax.x;
+        tmp[1][0] = ax.y;
+        tmp[2][0] = ax.z;
+        tmp[0][1] = ay.x;
+        tmp[1][1] = ay.y;
+        tmp[2][1] = ay.z;
+        tmp[0][2] = az.x;
+        tmp[1][2] = az.y;
+        tmp[2][2] = az.z;
+        tmp[0][3] = p.x;
+        tmp[1][3] = p.y;
+        tmp[2][3] = p.z;
+        MTX_COPY(tmp, b->mat);
+    }
     u3 = IdSub.unitPtr(0, 0x10);
     b = wk->x2B0->spaceBoard;
     screenPos2puzzlePos(&u3->pos, &q);
     if (sw) {
         q = ofsB;
     }
-    PSMTXCopy(wk->x2B0->caseBoard->mat, mat2);
-    p.x = pzlGrid::size + pzlGrid::size;
-    p.y = 0.0f;
-    p.z = 0.0f;
-    PSMTXMultVecSR(mat2, &p, &p);
-    t.x = mat2[0][3];
-    t.y = mat2[1][3];
-    t.z = mat2[2][3];
-    PSVECAdd(&p, &t, &t);
-    PSMTXCopy(mat2, mat);
-    mat[0][3] = q.x;
-    mat[1][3] = t.y;
-    mat[2][3] = t.z;
-    PSMTXCopy(mat, b->mat);
-    puzzlePos2screenPos(&q, &scr);
-    u3->scr.y = scr.y;
+    {
+        Vec scr2;
+        Mtx mat;
+        Vec t;
+        Vec p;
+        Mtx mat2;
+
+        MTX_COPY(wk->x2B0->caseBoard->mat, mat2);
+        p.x = 0.0f;
+        p.y = pzlGrid::size + pzlGrid::size;
+        p.z = 0.0f;
+        PSMTXMultVecSR(mat2, &p, &p);
+        t.x = mat2[0][3];
+        t.y = mat2[1][3];
+        t.z = mat2[2][3];
+        PSVECAdd(&t, &p, &t);
+        MTX_COPY(mat2, mat);
+        mat[0][3] = q.x;
+        mat[1][3] = t.y;
+        mat[2][3] = t.z;
+        MTX_COPY(mat, b->mat);
+        puzzlePos2screenPos(&q, &scr2);
+        u3->scr.y = scr2.y;
+    }
 }
 
 void SsPzzlInit::init(SUB_SCREEN* wk)
@@ -1117,11 +1208,14 @@ void tempSpaceDisp(int sw)
 {
     IdUnit* u = IdSub.unitPtr(0, 0x10);
 
-    if (sw == 0) {
-        u->dir |= 0xF;
-    } else if (sw == 1) {
+    switch (sw) {
+    case 1:
         u->flags |= 8;
         u->dir &= 0xF0;
+        break;
+    case 0:
+        u->dir |= 0xF;
+        break;
     }
 }
 
@@ -1454,9 +1548,14 @@ void SsPzzlMain::quit(SUB_SCREEN* wk)
 
 void sscrn_pzzl_out_init(SUB_SCREEN* wk)
 {
-    IdSub.unitPtr(0xFE, 1)->dir |= 0xF;
-    IdSub.unitPtr(0xFD, 1)->dir |= 0xF;
-    IdSub.unitPtr(1, 0x1E)->dir |= 1;
+    IdUnit* u;
+
+    u = IdSub.unitPtr(0xFE, 1);
+    u->dir |= 0xF;
+    u = IdSub.unitPtr(0xFD, 1);
+    u->dir |= 0xF;
+    u = IdSub.unitPtr(1, 0x1E);
+    u->dir |= 1;
     if (wk->x265 == 2) {
         Cckpt.life.frameOut();
         wk->x269 = 1;
@@ -1482,8 +1581,12 @@ static int sscrn_pzzl_out(SUB_SCREEN* wk)
 
 void sscrn_pzzl_in_init(SUB_SCREEN* wk)
 {
-    IdSub.unitPtr(0xFE, 1)->dir &= 0xF0;
-    IdSub.unitPtr(0xFD, 1)->dir &= 0xF0;
+    IdUnit* u;
+
+    u = IdSub.unitPtr(0xFE, 1);
+    u->dir &= 0xF0;
+    u = IdSub.unitPtr(0xFD, 1);
+    u->dir &= 0xF0;
 }
 
 void PiecePopUp::init(SUB_SCREEN* wk)
@@ -1577,14 +1680,18 @@ int isTerminable(SUB_SCREEN* wk)
 {
     pzlPlayer* pl = wk->x2B0;
     int n = pl->spaceBoard->getPieceNum();
+    int ret;
 
-    if (n == 0) {
-        return 1;
+    if (n != 0) {
+        if (n == 1 && pl->spaceBoard->search(pl->extra)) {
+            ret = 1;
+        } else {
+            ret = 0;
+        }
+    } else {
+        ret = 1;
     }
-    if (n == 1 && pl->spaceBoard->search(pl->extra)) {
-        return 1;
-    }
-    return 0;
+    return ret;
 }
 
 int checkMsgWindow(SUB_SCREEN* wk)
@@ -2437,8 +2544,10 @@ int itemCommandType(ItemWork* item)
     case 5:
     case 0xC:
         return 3;
-    case 6:
-        switch (item->id) {
+    case 6: {
+        int id = item->id;  // COMPILER-DIFF: 4 (u16 local; the u16 view is only kept for the switch)
+
+        switch ((u16) id) {
         case 0x19:
         case 0x1C:
         case 0xA8:
@@ -2446,11 +2555,15 @@ int itemCommandType(ItemWork* item)
         case 8 ... 0xA:
             return 8;
         }
-        break;
+        if (itemCombineCheckI(id)) {
+            return 5;
+        }
+        return 4;
+    }
     case 0xE:
         return 9;
     }
-    if (itemCombineCheck(item->id)) {
+    if (itemCombineCheckI(item->id)) {
         return 5;
     }
     return 4;
