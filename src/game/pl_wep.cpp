@@ -26,7 +26,6 @@ struct WepTarget {
 };
 
 extern "C" {
-void EspDataRelease(int a, int b, int c);                 // game/eff_sys.cpp
 void EffectEspDelete(int a, int b, cModel* m, int c);     // game/est.cpp
 void EffectEspgenDelete(int a, int b, cModel* m);
 void EffectEfmDelete(int a, int b, cModel* m);

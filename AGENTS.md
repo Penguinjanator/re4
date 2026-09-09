@@ -2556,3 +2556,69 @@ Then `MATCHING["st2_4/r22c.cpp"] = True` in `config/G4BE08/modules.py`, `python3
   item init (`li r3,0x20` before `addi r4,__FILE__`), at_mod ComnHitCheck (first MTX_COPY counter in
   callee-saved r30 and the second copy's `dp_/sp_` both copied: the five s_/d_/i_ declaration orders
   do not change it).
+
+- Object/misc units (obj02, obj03, obj12, objPillar matching; obj00 7/8, obj1b 13/15, objRobo 15/19,
+  pad 11/12, room_jmp 14/17, filter06 5/7):
+  - Judging tool used: masked-word compare of every function (union of both objects' reloc fields
+    masked, same-section `bc`/`bl` relocs resolved to displacements, reloc targets compared as
+    `section+offset` with weak vtable symbols accepted by name or own copy) plus `.rodata/.data/.sdata`
+    word compares. objdiff's "99%" REPLACE rows on obj03/obj00 were all dtk `lbl+off` spellings.
+  - A dead-stripped out-of-line member whose pool survives is defined *between* the live functions
+    whose pools bracket it: obj03 `int cObj03::init()` between the ctor and `move` (one SF 0.0 store
+    puts the 4-byte zero before move's pool, which then needs the 8-byte pad for its DF magic), obj02
+    `cObjScr::SetSwingRot(f32, f32, f32)` after moveSwingRot with `1.0f / period`, `*= 10000.0f`,
+    `* 6.2831855f` (pool [1.0, 10000, 2pi]); both units in STRIP_UNUSED. A pool that starts 8-aligned
+    with a 4-byte SF entry first (`0 | 40.0 | 0 | DF magic | 500`) is an SF pool of a dead function
+    immediately before it, not an alignment rule.
+  - `.sdata` 8 bytes for one `u16` static (obj03 `hist`) and `.rodata` 4 bytes longer than the last
+    string (pad): `asm(".section .sdata; .balign 8")` / `asm(".section .rodata; .balign 8")` at the
+    end of the unit (the split objects carry the 8-byte alignment).
+  - The rope code is shared by obj00 FallMove, obj12 fallMove and obj1b_R1_Fall: function-scope
+    `Obj*Node* p, *n` (final giv value `addi r0, node, 0x58` after the k loop), the dead
+    `if (i == 2) n = node; else n = &node[i + 1];` block in the *hit* loop (obj12/obj1b have a switch
+    with six fRand calls there: 114 RTL insns > loop.c's `threshold` 73, so without the compare the
+    `&node[2]` bound is rematerialised at the loop bottom instead of `mr r26, r0` in the preheader),
+    one `f32 mag` for both `PSVECMag` in the k loop and the final speed sum (two assignments ->
+    `fmr f12, f1` after the call), `diff = (p->len - mag) * 0.5f; PSVECScale(&d, &d, (1.0f / mag) *
+    diff)`, and `obj->pos = d` written *before* the speed sum (the copy's word temps r9/r11 follow).
+  - obj1b setFall: the switch on `i` has `default:` sharing `case 0:` (the dispatch falls into case 0,
+    no `b end`); with that CFG haifa's speculative interblock motion pulls case 2's unreduced address
+    insns (`mulli i*12`, three `addi w+0x20/24/28`) into the dispatch block and copies them into case 1's
+    tail (update blocks). The angle test is `if (dir->x == 0.0f && dir->z == 0.0f) ang = 0.0f; else ang
+    = atan2f(dir->x, dir->z);` (the `&&` form: the else label has two jump uses, so cse cannot follow
+    into it and case 1 reloads both operands while case 2 gets the PRE copy `fmr f13, f0`); the `||`
+    form matches neither case.
+  - A pool `lis` kept in a callee-saved register *across a call* for one later load (objPillar
+    plemEscape `lis r30, 0.0@ha` before `bl Muku`): a dead `ang = 0.0f;` as the first statement of that
+    case block. The high pseudo is then set and used in the same basic block (REG_BASIC_BLOCK >= 0), so
+    update_equiv_regs does not move the `lis` next to its use; a function-top `f32 ang = 0.0f` puts the
+    set in block 0 and the `lis` lands after the call (`lis r9`).
+  - `obj->pos = obj->getPartsPtr(0)->worldPos` reuses r3 for the source address (`addi r3, r3, 0x70`);
+    `parts = obj->getPartsPtr(0); obj->pos = parts->worldPos;` keeps the call result (`addi r11, r3,
+    0x70`). `v = pPL->pos` loads pPL before the following `lfs 1000.0`; the struct view `pPLS->pos`
+    (cam_ctrl.cpp's `PlayerPtr`) issues the constant first (objPillar R0_Throw).
+  - VibSetDataCore (pad): store order `type, time, wait, level, add` (level last-but-one) gives the
+    target's `stw lvl` after the `lhz wait`; the other 119 permutations were tried by script.
+  - room_jmp getRoomInfo: `u32 base` (not `u8*`) with `u32 o = idx * 32 + 4; return (CRoomInfo*)(base
+    + o)` gives the target's `slwi; addi 4; add` tail (a pointer local folds the +4 into the base); the
+    remaining r0/r11/r9 assignment of ofs/n/base is open.
+  - OPEN, register only: obj00 FallMove's third-loop QI `1` gets r24 (ours) vs r23 (target): global.c
+    allocates A = the k loop's `k+1` giv (refs 4/len 46, prio 1739) and C = the k loop's SI `1` (7/102,
+    1372) before B = the hit loop's QI `1` (3/82 after the REG_EQUIV doubling, 365); B then takes the
+    first free register r24 in pass 0 because A already used it. The target's B took r23, i.e. r24 was
+    not yet "used so far" (A allocated after B) or conflicting; do-while/int-k/u8/shared-`one` forms do
+    not change the three priorities.
+  - OPEN (obj1b SetSpear, dying-store family): a 30-store work init where the 0xFF and 0 pseudos are
+    shared; ours issues the last use of each (`stb 0x6c`, `stb 0xfe`) first, the target keeps pure
+    source order (only the single-use 0x32 store is pulled forward). Moving the last statements does not
+    help (they stay last); `int/u8 ff/zero` locals and an int-parameter routine inline change the code.
+  - OPEN (obj1b obj1bHitCk): `mr r26, r28` (a second `&obj->pos` pseudo copied after `getPartsPtr`) used
+    for VECNormalize/PSVECAdd while PSMTXMultVec keeps the first pseudo; 90 placements of a `Vec* p`
+    local / `&obj->pos` uses tried (cse-skip-blocks folds any `p = &obj->pos` after the `if (partsNo)`
+    block into the argument pseudo).
+  - OPEN (objRobo R0Init): `lwz pG` for the SetEmHit arguments is issued after the three `li`s in the
+    target (ours between `li r5` and `li r6`), a store->load latency effect; `PSet(w->hit[i], 0)` breaks
+    the giv. TaskSwitchFront/Back: `max`/`range` FPR swap (f29/f30); ours has REG_LIVE_LENGTH 136 vs 80
+    for the two hoisted loop invariants, declaration/statement order and inline forms do not move it.
+  - pl_wep/pl_sub: `EspDataRelease` is now declared in esp.h (`extern "C" int (u32, int, int)`); a
+    unit-local C declaration with `int` parameters is a compile error.

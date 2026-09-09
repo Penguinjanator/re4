@@ -33,9 +33,7 @@ public:
     void moveRotate();
     void moveSwingRot();
     void SetCallBack(void (*func)(cObj*));
-
-    // NOTE: the original .rodata has 4 more float constants (0x10 bytes) whose source is unknown;
-    // an in-class SetSwingRot() reproduces them but ProDG emits its body out of line (not in target).
+    void SetSwingRot(f32 amp, f32 period, f32 phase);
 };
 
 cObjScr::cObjScr()
@@ -94,6 +92,19 @@ void cObjScr::moveSwingRot()
     rot.x = w->baseRot.x + w->ampX * sinf(w->freqX * w->time + w->phaseX);
     rot.y = w->baseRot.y + w->ampY * sinf(w->freqY * w->time + w->phaseY);
     rot.z = w->baseRot.z + w->ampZ * sinf(w->freqZ * w->time + w->phaseZ);
+}
+
+// Never called: the original linker dead-stripped the body (unit in STRIP_UNUSED) and kept its
+// pool [1.0, 10000.0, 2pi] right after moveSwingRot's; the body is a guess with that pool.
+void cObjScr::SetSwingRot(f32 amp, f32 period, f32 phase)
+{
+    ObjScrSwingWork* w = (ObjScrSwingWork*)work;
+    f32 f = 1.0f / period;
+
+    f *= 10000.0f;
+    w->ampY = amp;
+    w->freqY = f * 6.2831855f;
+    w->phaseY = phase;
 }
 
 void cObjScr::SetCallBack(void (*func)(cObj*))

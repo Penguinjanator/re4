@@ -339,7 +339,8 @@ void obj1b_R1_Fall(cObjSpear* obj)
     Obj1bNode* p;
     Obj1bNode* n;
     f32 floor;
-    f32 total;
+    f32 mag;
+    f32 diff;
 
     floor = EatMgr.getFloor(&obj->pos, 600.0f, 100000.0f, 0, 0) + 50.0f;
     for (i = 0; i < 3; i++) {
@@ -370,9 +371,6 @@ void obj1b_R1_Fall(cObjSpear* obj)
     }
     for (k = 0; k < 30; k++) {
         for (i = 0; i < 3; i++) {
-            f32 mag;
-            f32 diff;
-
             p = &node[i];
             if (i == 2) {
                 n = node;
@@ -382,8 +380,7 @@ void obj1b_R1_Fall(cObjSpear* obj)
             PSVECSubtract(&n->pos, &p->pos, &d);
             mag = PSVECMag(&d);
             diff = (p->len - mag) * 0.5f;
-            diff = (1.0f / mag) * diff;
-            PSVECScale(&d, &d, diff);
+            PSVECScale(&d, &d, (1.0f / mag) * diff);
             PSVECAdd(&n->pos, &d, &n->pos);
             PSVECSubtract(&p->pos, &d, &p->pos);
             if (p->pos.y < floor) {
@@ -398,6 +395,13 @@ void obj1b_R1_Fall(cObjSpear* obj)
     }
     for (i = 0; i < 3; i++) {
         p = &node[i];
+        // dead here, but its `i == 2` compare makes loop.c compute the `&node[2]` bound in the
+        // preheader, where cse2 copies it from the k loop's final giv value (see obj12)
+        if (i == 2) {
+            n = node;
+        } else {
+            n = &node[i + 1];
+        }
         if (p->hit) {
             if (w->sePlayed == 0 && p->spd.y < -50.0f) {
                 w->sePlayed = 1;
@@ -459,11 +463,11 @@ void obj1b_R1_Fall(cObjSpear* obj)
     TransMatrix(obj->mat, &node[0].pos);
     PSMTXMultVec(obj->mat, &d, &d);
     TransMatrix(obj->mat, &d);
-    total = node[0].spd.x * node[0].spd.x + node[0].spd.y * node[0].spd.y + node[0].spd.z * node[0].spd.z +
+    obj->pos = d;
+    mag = node[0].spd.x * node[0].spd.x + node[0].spd.y * node[0].spd.y + node[0].spd.z * node[0].spd.z +
             node[1].spd.x * node[1].spd.x + node[1].spd.y * node[1].spd.y + node[1].spd.z * node[1].spd.z +
             node[2].spd.x * node[2].spd.x + node[2].spd.y * node[2].spd.y + node[2].spd.z * node[2].spd.z;
-    obj->pos = d;
-    if (total < 25.0f) {
+    if (mag < 25.0f) {
         obj->pos.x = obj->mat[0][3];
         obj->pos.y = obj->mat[1][3];
         obj->pos.z = obj->mat[2][3];
@@ -644,14 +648,17 @@ void cObjSpear::setFall(u8 type, Vec* dir)
     for (i = 0; i < 3; i++) {
         if (dir) {
             switch (i) {
+            default:  // shares case 0: the dispatch falls into it (no `b end`), which lets haifa
+                      // pull case 2's address insns into the dispatch block and case 1's tail
             case 0:
                 w->spd[i].x = dir->x;
                 w->spd[i].y = dir->y;
                 w->spd[i].z = dir->z;
                 break;
             case 1:
-                ang = 0.0f;
-                if (dir->x != 0.0f || dir->z != 0.0f) {
+                if (dir->x == 0.0f && dir->z == 0.0f) {
+                    ang = 0.0f;
+                } else {
                     ang = atan2f(dir->x, dir->z);
                 }
                 PSMTXRotRad(m, 'y', ang + 1.5707964f);
@@ -660,8 +667,9 @@ void cObjSpear::setFall(u8 type, Vec* dir)
                 w->spd[i].y = v.y;
                 w->spd[i].z = v.z;
             case 2:
-                ang = 0.0f;
-                if (dir->x != 0.0f || dir->z != 0.0f) {
+                if (dir->x == 0.0f && dir->z == 0.0f) {
+                    ang = 0.0f;
+                } else {
                     ang = atan2f(dir->x, dir->z);
                 }
                 PSMTXRotRad(m, 'y', ang - 1.5707964f);

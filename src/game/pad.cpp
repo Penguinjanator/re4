@@ -380,8 +380,8 @@ void VibSetDataCore(VibData* d, u32 type)
         add = ((e->lvl1 - e->lvl0) << 12) / e->time;
         v->type = e->type | type;
         v->time = e->time;
-        v->level = lvl;
         v->wait = e->wait;
+        v->level = lvl;
         v->add = add;
     }
 }
@@ -430,3 +430,6 @@ void Pad_test()
     eprintf(32, 240, 0, 5, "TRIGGER_LEFT  %d", Joy[0].trigL);
     eprintf(32, 255, 0, 5, "TRIGGER_RIGHT %d", Joy[0].trigR);
 }
+
+// The split object's .rodata is 8-aligned and 4 bytes longer (padding after the last string).
+asm(".section .rodata; .balign 8");

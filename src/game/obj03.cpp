@@ -34,16 +34,16 @@ cObj03::cObj03()
     lightInfo.init2(1, 1, &p0, &p1, 1);
 }
 
-// Nobody calls this: the original linker dead-stripped it from .text (Bio4 is linked as a
-// library) but left its message string and a 4-byte constant of its pool (0x8023F51C, zero)
-// behind. ProDG emits the body out of line, so our .text is 0x4C bytes longer and .rodata
-// 4 bytes shorter than the split object until the build strips unreferenced game functions.
-inline int cObj03::init()
+// Nobody calls this: the original linker dead-stripped it from .text (unit in STRIP_UNUSED)
+// but left its message string and its 4-byte pool (one SF 0.0 at 0x8023F51C) behind, right
+// before move's pool; so it is defined out of line here, between the ctor and move.
+int cObj03::init()
 {
     if (modelInit(NULL, NULL) == 0) {
         pLog->err(0, 0, "cObj03::init() modelInit() was failed.");
         return 0;
     }
+    obj03.t = 0.0f;
     return 1;
 }
 
@@ -90,3 +90,6 @@ void cObj03::move()
         obj03.t -= obj03.length;
     }
 }
+
+// The split object's .sdata is 8 bytes (hist + padding to the 8-aligned next unit).
+asm(".section .sdata; .balign 8");

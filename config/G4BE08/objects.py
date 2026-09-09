@@ -1432,6 +1432,7 @@ MATCHING.update({
     "game/obj03.cpp": True,
     "game/obj02.cpp": True,
     "game/obj12.cpp": True,
+    "game/objPillar.cpp": True,
 })
 
 # system units: file_lock reads pUser_name directly in each arm (a `path =` reassignment gives a

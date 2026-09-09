@@ -57,6 +57,12 @@ void MotionSetCore(cModel* m, void* work, void* mot, int a, int b, int c, int d)
 #define plemEscape plemEscape_8003C33C
 extern "C" {
 static void plemEscape(cPlayer* pl);
+
+// struct view of pPL: the load stays below the preceding member stores (see cam_ctrl.cpp)
+struct PlayerPtr {
+    cPlayer* p;
+};
+#define pPLS (((PlayerPtr*) &pPL)->p)
 }
 
 void (*ObjPillar_R0_move_tbl[5])(cObjPillar*) = {
@@ -221,11 +227,12 @@ void objPillar_R0_Throw(cObjPillar* obj)
         }
         break;
     case 2:
-        obj->pos = obj->getPartsPtr(0)->worldPos;
+        parts = obj->getPartsPtr(0);
+        obj->pos = parts->worldPos;
         w->spd.x = 0.0f;
         w->spd.y = 0.0f;
         w->spd.z = 500.0f;
-        v = pPL->pos;
+        v = pPLS->pos;
         v.y += 1000.0f;
         PSVECSubtract(&v, &obj->pos, &d);
         len = SQRTF(d.x * d.x + d.z * d.z) / 500.0f;
@@ -525,11 +532,14 @@ static void plemEscape(cPlayer* pl)
     cEm* em = (cEm*) pl;
     cObjPillar* obj = (cObjPillar*) em->dmgType;
     PillarWork* w = &obj->pillar;
-    f32 ang = 0.0f;
+    f32 ang;
 
     em->st.x325 = 2;
     switch (em->xFE) {
     case 0:
+        // the dead 0.0f store creates the pool `lis` in this block before the call, so
+        // update_equiv_regs leaves it there (callee-saved) instead of moving it after Muku
+        ang = 0.0f;
         ang = Muku(&em->pos, &w->target, em->rot.y, PI);
         if (ang < 0.0f) {
             MotionSetCore(em, &em->pMotion, w->plMot, w->plMotA, 3, 0x41, 0);

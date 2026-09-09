@@ -368,6 +368,13 @@ void cObj12::fallMove()
     }
     for (i = 0; i < 3; i++) {
         p = &node[i];
+        // dead in this loop, but its `i == 2` compare makes loop.c compute the `&node[2]`
+        // bound in the preheader, where cse2 copies it from the k loop's final giv value
+        if (i == 2) {
+            n = node;
+        } else {
+            n = &node[i + 1];
+        }
         if (p->hit) {
             if (w->sePlayed == 0 && p->spd.y < -50.0f) {
                 w->sePlayed = 1;
@@ -434,10 +441,10 @@ void cObj12::fallMove()
     TransMatrix(mat, &node[0].pos);
     PSMTXMultVec(mat, &d, &d);
     TransMatrix(mat, &d);
+    pos = d;
     mag = node[0].spd.x * node[0].spd.x + node[0].spd.y * node[0].spd.y + node[0].spd.z * node[0].spd.z +
           node[1].spd.x * node[1].spd.x + node[1].spd.y * node[1].spd.y + node[1].spd.z * node[1].spd.z +
           node[2].spd.x * node[2].spd.x + node[2].spd.y * node[2].spd.y + node[2].spd.z * node[2].spd.z;
-    pos = d;
     if (mag < 25.0f) {
         pos.x = mat[0][3];
         pos.y = mat[1][3];

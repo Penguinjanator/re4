@@ -52,7 +52,6 @@ unsigned int strlen(const char* s);
 char* strchr(const char* s, int c);
 char* strstr(const char* s, const char* sub);
 // game/eff_sys.cpp
-void EspDataRelease(int owner, int flag, int warn);
 // game/read.cpp: SearchEmModule (C++ linkage) comes from read.h
 // game/shape.cpp
 void ClrShape(cModel* m);
