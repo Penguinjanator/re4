@@ -135,6 +135,9 @@ char *fftoa(double value, int prec, char fmt, int strip, char *sign)
     int ndig, exp, total, dp, n;
     double x, eps;
 
+    /* OPEN (7 words): the original issues `mr r25,r4` before the union's `fmr f0,f30` reload and
+     * allocates lo/sgn to r11/r10 (ours r8/r11: global-alloc order lo vs sgn, live length 13 vs 11);
+     * union shapes, statement/declaration/parameter orders and unsigned long all tried. */
     u.d = value;
     lo = u.w[1];
     hi = u.w[0];

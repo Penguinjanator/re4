@@ -2459,9 +2459,8 @@ int cSubChar::actionCheck()
 int cSubChar::ladder2Check()
 {
     Vec p;
-    u8 level;
-    Vec r;
     f32 ang;
+    u8 level;
     int up;
 
     if (!SceAtCheckLadder(this, &p, &ang, &level)) {
@@ -2470,16 +2469,20 @@ int cSubChar::ladder2Check()
     if (fabsf(subTarget.y - pos.y) < 1000.0f) {
         return 0;
     }
-    if ((pPL->stat & 0xFFFF0000) != 0x00100000) {
+    if ((pPL->stat & 0xFFFF0000) == 0x00100000) {
         return 0;
     }
-    setPos(&p);
-    r.y = ang;
-    r.z = 0.0f;
-    r.x = 0.0f;
-    setAng(&r);
+    {
+        Vec r;
+        f32 a = ang;
+        setPos(&p);
+        r.y = a;
+        r.x = 0.0f;
+        r.z = 0.0f;
+        setAng(&r);
+    }
     up = 1;
-    if ((s8) level <= 0) {
+    if ((s8) level > 0) {
         up = 0;
     }
     subHideMode = up;
@@ -3283,7 +3286,6 @@ int cSubChar::moveAnotherRoute()
 {
     EmiData* emi = (EmiData*) pG->pRoomEmi;
     EmiEntry* f = 0;
-    EmiEntry* e;
     int bad;
     int next;
     int i;
@@ -3293,33 +3295,24 @@ int cSubChar::moveAnotherRoute()
     if (emi->n == 0) {
         bad = 1;
     }
-    e = sub554;
-    if (e == 0) {
+    if (sub554 == 0) {
         bad = 1;
     }
     if (bad) {
         sub554 = f;
         return 1;
     }
-    if (e->state > 1) {
-        f32 dx = pos.x - pPL->pos.x;
-        f32 dy = pos.y - pPL->pos.y;
-        f32 dz = pos.z - pPL->pos.z;
-
-        dist = dx * dx + dy * dy + dz * dz;
+    if (sub554->state > 1) {
+        dist = (pos.x - pPL->pos.x) * (pos.x - pPL->pos.x) + (pos.y - pPL->pos.y) * (pos.y - pPL->pos.y) +
+               (pos.z - pPL->pos.z) * (pos.z - pPL->pos.z);
         if (dist < 4000000.0f) {
             return 1;
         }
     }
-    {
-        f32 dx = pos.x - e->pos.x;
-        f32 dy = pos.y - e->pos.y;
-        f32 dz = pos.z - e->pos.z;
-
-        dist = dx * dx + dy * dy + dz * dz;
-        if (dist > 1000000.0f) {
-            return 0;
-        }
+    dist = (pos.x - sub554->pos.x) * (pos.x - sub554->pos.x) + (pos.y - sub554->pos.y) * (pos.y - sub554->pos.y) +
+           (pos.z - sub554->pos.z) * (pos.z - sub554->pos.z);
+    if (dist > 1000000.0f) {
+        return 0;
     }
     next = -1;
     for (i = 0; i < *(int*) pG->pRoomEmi; i++) {

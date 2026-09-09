@@ -543,40 +543,46 @@ cModel* cPlWep::lockInit()
 }
 
 // Distance penalty by direction: inlined into rangeDist; its constants precede rangeDist's own.
-static inline f32 rangeAdd(Vec* pos, Vec* v, f32 d)
+// Lock-on distance score: the whole body (range clamp, far penalty, direction penalties) is one
+// inline with its constants as const locals declared first, which fixes the pool order
+// (0.87, 1.6e7, 2.25e8, 1e10, 4e10, 9e10, 1.6e11 before rangeDist's 0.0, 1e8, 1e12) and puts
+// the twice-used 1.6e7 high half into a callee-saved register hoisted above the calls.
+static inline f32 rangeAdd(Vec* pos, Vec* v, f32 d, f32& range)
 {
-    if (fabsf(GetXZAngleLocal(pos, v, pPL->rot.y)) < 0.87266463f) {
-        if (d > 16000000.0f) {
-            return d + 40000000000.0f;
-        }
-        return d;
-    }
-    if (d > 225000000.0f) {
-        return d + 160000000000.0f;
-    }
-    if (d > 16000000.0f) {
-        return d + 90000000000.0f;
-    }
-    return d + 10000000000.0f;
-}
+    const f32 angLim = 0.87266463f;
+    const f32 near = 16000000.0f;
+    const f32 far = 225000000.0f;
+    const f32 add0 = 10000000000.0f;
+    const f32 add1 = 40000000000.0f;
+    const f32 add2 = 90000000000.0f;
+    const f32 add3 = 160000000000.0f;
 
-f32 rangeDist(Vec* pos, cEm* em, f32 range)
-{
-    Vec v;
-    f32 d;
-
-    PSMTXMultVec(em->getPartsPtr(em->lockParts)->mat, &em->lockOfs, &v);
-    d = GetDistance(pos, &v);
     if (range == 0.0f) {
         range = 100000000.0f;
     }
     if (d > range) {
         return 1000000000000.0f;
     }
-    if (d > 225000000.0f) {
-        return d + 160000000000.0f;
+    if (d > far) {
+        d += add3;
+    } else if (fabsf(GetXZAngleLocal(pos, v, pPL->rot.y)) < angLim) {
+        if (d > near) {
+            d += add1;
+        }
+    } else if (d > near) {
+        d += add2;
+    } else {
+        d += add0;
     }
-    return rangeAdd(pos, &v, d);
+    return d;
+}
+
+f32 rangeDist(Vec* pos, cEm* em, f32 range)
+{
+    Vec v;
+
+    PSMTXMultVec(em->getPartsPtr(em->lockParts)->mat, &em->lockOfs, &v);
+    return rangeAdd(pos, &v, GetDistance(pos, &v), range);
 }
 
 void cPlWep::lockMove()
@@ -718,8 +724,7 @@ static int cornerCheckOld()
 int PlCornerCheck()
 {
     static Vec vecz = {0.0f, 0.0f, 500.0f};
-    cPlayer* pl = pPL;
-    Vec* hand = &pl->getPartsPtr(3)->worldPos;
+    Vec* hand = &pPL->getPartsPtr(3)->worldPos;
     Vec dir;
     Vec rot = {0.0f, 0.0f, 0.0f};
     Vec hit;
@@ -727,9 +732,9 @@ int PlCornerCheck()
     Vec a;
     Vec b;
 
-    rot.y = pl->rot.y;
+    rot.y = pPL->rot.y;
     dir = rot;
-    if ((pl->stat & 0xFFFF0000) == 0x000D0000) {
+    if ((pPL->stat & 0xFFFF0000) == 0x000D0000) {
         dir.y += PI;
         dir.y = LIMIT_ANGLE(dir.y);
     }

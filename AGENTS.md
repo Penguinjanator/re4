@@ -632,6 +632,10 @@ mark it Matching.
 - `if (c) x = a; else { x = b; ... }` hoists `x = a` above the test only when the else arm *starts*
   with `x = b`; an else arm starting with a call keeps it in place.
 - A function ending with `return 0;` makes every early `return 0` jump to that final `li r3,0`.
+- C frame slots (cc1): BLKmode locals get their slot at declaration, rounded to 8; address-taken
+  sub-word scalars are put in the stack at the first `&` in parse order; word-or-larger ones go
+  through ADDRESSOF and get slots at purge time, so they land after every sub-word slot.
+- `x == 0 && y == 0` on adjacent `short` struct members folds into a single `lwz; cmpwi 0`.
 - Static locals show as `name.NNN` in objdiff; the DECL_UID suffix cannot be reproduced and is ignored by the report.
 - Unexplained words in `.rodata` (zero words, stray floats) are usually the constant pool of a function
   the original linker dead-stripped (bodies gone, pools kept, `STRIP_UNUSED` in objects.py): write a
