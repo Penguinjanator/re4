@@ -4569,3 +4569,12 @@ target) stays unresolved and `make_rel` then fails with "undefined symbol".
   image (`Room/Em/mot_tbl.txt`, .data 0x500) parsed by mottbl* into a 0x4C.. table at .bss 0x13AAEC; .data = the
   15-entry routine table + `TOOL_MENU`-like `{name, id, flag}` 16-entry table + the string tables and the option
   values (0x46, 0x12C, 8, 0xB, 0x32, 8).
+- Cross-jump survivor for a shared `return 0`: `switch` with `case 0: default: return 0;` first and the
+  last case's inline `if (A && B) return 0;` with NO trailing return (em10ClimbOverCk).
+- Nested switches returning 0/1: outer `default: return 0;` FIRST; inner arms `case ..: break;
+  default: return 0; } return 1;` -> per-inner `li r3,0; bnelr; li r3,1; blr` (em10ArmorCk).
+- Reload hands scratch registers out round-robin over the spill set: identical arm bodies with one
+  such insn alternate r9/r11 and cannot all cross-jump (three arms -> 1 and 3 merge).
+- cse's `find_best_addr` rewrites `(mem (reg w))` to `(mem (plus em 0x3e0))` only for the zero-offset
+  member, so `w->flags` and `em->x3E0` merge while `w->x16c` stays w-relative.
+
