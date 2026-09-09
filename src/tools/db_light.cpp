@@ -3827,8 +3827,581 @@ static void path()
         break;
     }
 }
-static void load() {}
-static void save() {}
+// File number selector shared by the load / save pages: UP / DOWN step 0x10, LEFT / RIGHT step 1.
+#define FILE_NO_SELECT()                     \
+    if (pTool->joy.rep & JOY_UP) {           \
+        pTool->cursor += 0x10;               \
+    }                                        \
+    if (pTool->joy.rep & JOY_DOWN) {         \
+        pTool->cursor += 0xF0;               \
+    }                                        \
+    if (pTool->joy.rep & JOY_RIGHT) {        \
+        pTool->cursor++;                     \
+    }                                        \
+    if (pTool->joy.rep & JOY_LEFT) {         \
+        pTool->cursor += 0xFF;               \
+    }                                        \
+    pTool->cursor %= 0x100
+
+// The event tool's names the load / save pages use (EventDebug+0x20 / +0x48, inside its pad_0).
+struct EvtDebugNames {
+    u8 pad_0[0x20];
+    char name[0x28];  // 0x20
+    char str[0x18];   // 0x48
+};
+
+// Load page: source select (room local / server, event, tool, core, item), then the file number.
+// Odd editNo values load the file the even one selected.
+static void load()
+{
+    static u32 evtKey;
+    static int evtAction;
+    static u32 evName[8];
+    static char evStr[8];
+    char path[0x100];
+    void* evt;
+    EvtDebugNames* ev;
+    u32* key;
+
+    eprintf(0x20, 0x2A, 4, pTool->color, "LOAD");
+    switch (pTool->editNo) {
+    case 0:
+        pTool->clearWork();
+        pTool->editNo = 1;
+        pTool->cursor = (pG->flags_60 & 0x02000000) ? 2 : 1;
+    case 1:
+        eprintf(0x20, 0x38, 0, pTool->color, "ROOM LOCAL");
+        eprintf(0x20, 0x46, 0, pTool->color, "ROOM SERVER");
+        eprintf(0x20, 0x54, 0, pTool->color, "EVENT");
+        eprintf(0x20, 0x62, 0, pTool->color, "TOOL");
+        eprintf(0x20, 0x70, 0, pTool->color, "CORE");
+        eprintf(0x20, 0x7E, 0, pTool->color, "ITEM");
+        pTool->printCursor(3, pTool->cursor + 4);
+        if (pTool->joy.rep & JOY_UP) {
+            pTool->cursor = (pTool->cursor + 5) % 6;
+        } else if (pTool->joy.rep & JOY_DOWN) {
+            pTool->cursor = (pTool->cursor + 7) % 6;
+        }
+        if (pTool->joy.rep & JOY_A) {
+            switch (pTool->cursor) {
+            case 0:
+                pTool->editNo = 2;
+                pTool->cursor = 0;
+                break;
+            case 1:
+                pTool->editNo = 4;
+                pTool->cursor = 0;
+                break;
+            case 2:
+                pTool->editNo = 12;
+                ev = (EvtDebugNames*) &EvtDebug;
+                key = evName;
+                strcpy((char*) key, ev->name);
+                strcpy(evStr, ev->str);
+                if (EvtMgr.GetEvt(key, &evt) == 1) {
+                    evtKey = ((Event*) evt)->cut;
+                    if (evStr[0] == 's' || evStr[0] == 'S') {
+                        evtAction = 0;
+                    } else {
+                        evtAction = 1;
+                    }
+                }
+                pTool->cursor = (u8) evtKey;
+                break;
+            case 3:
+                pTool->editNo = 6;
+                pTool->cursor = 0;
+                break;
+            case 4:
+                pTool->editNo = 8;
+                pTool->cursor = 0;
+                break;
+            case 5:
+                pTool->editNo = 0x10;
+                pTool->cursor = 0;
+                break;
+            }
+        }
+        if (pTool->joy.rep & JOY_B) {
+            pTool->routine = pTool->editNo = 0;
+            pTool->clearWork();
+        }
+        break;
+    case 2:
+        sprintf(path, path_room_server, pG->stage_no, pG->stage_no, pG->room_no, pG->stage_no, pG->room_no,
+                pTool->cursor);
+        eprintf(0x20, 0x38, 0, pTool->color, "FILE NO:%02x", pTool->cursor);
+        eprintf(0x20, 0x54, 0, pTool->color, "%s", path);
+        FILE_NO_SELECT();
+        if (Joy[0].on & JOY_Y) {
+            eprintf(0x50, 0x70, 0x16, pTool->color, "OLD VERSION");
+        }
+        if (pTool->joy.rep & JOY_A) {
+            pTool->editNo = 3;
+        } else if (pTool->joy.rep & JOY_B) {
+            pTool->clearWork();
+            pTool->editNo = 1;
+        }
+        break;
+    case 3:
+        sprintf(path, path_room_server, pG->stage_no, pG->stage_no, pG->room_no, pG->stage_no, pG->room_no,
+                pTool->cursor);
+        if (pTool->lit.fileLoad(path)) {
+            pTool->cutNo = pTool->gameCutNo;
+            LitLoadWork(&pTool->lit, pTool->cutNo);
+            pTool->mode = (pTool->cursor != 1) ? 1 : 2;
+            pTool->routine = 0;
+            pTool->editNo = 0;
+            pTool->clearWork();
+        } else {
+            pTool->editNo = 10;
+        }
+        break;
+    case 4:
+        sprintf(path, path_room_local, pG->stage_no, pG->stage_no, pG->room_no, pG->stage_no, pG->room_no,
+                pTool->cursor);
+        eprintf(0x20, 0x38, 0, pTool->color, "FILE NO:%02x", pTool->cursor);
+        eprintf(0x20, 0x54, 0x16, pTool->color, "%s", path);
+        FILE_NO_SELECT();
+        if (Joy[0].on & JOY_Y) {
+            eprintf(0x50, 0x70, 0x16, pTool->color, "OLD VERSION");
+        }
+        if (pTool->joy.rep & JOY_A) {
+            pTool->editNo = 5;
+        } else if (pTool->joy.rep & JOY_B) {
+            pTool->clearWork();
+            pTool->editNo = 1;
+        }
+        break;
+    case 5:
+        sprintf(path, path_room_local, pG->stage_no, pG->stage_no, pG->room_no, pG->stage_no, pG->room_no,
+                pTool->cursor);
+        if (pTool->lit.fileLoad(path)) {
+            file_lock(path);
+            pTool->cutNo = pTool->gameCutNo;
+            LitLoadWork(&pTool->lit, pTool->cutNo);
+            pTool->mode = (pTool->cursor != 1) ? 1 : 2;
+            pTool->routine = 0;
+            pTool->editNo = 0;
+            pTool->clearWork();
+        } else {
+            pTool->editNo = 10;
+        }
+        break;
+    case 6:
+        sprintf(path, path_tool, pTool->cursor);
+        eprintf(0x20, 0x38, 0, pTool->color, "FILE NO:%02x", pTool->cursor);
+        eprintf(0x20, 0x54, 0, pTool->color, "%s", path);
+        FILE_NO_SELECT();
+        if (pTool->joy.rep & JOY_A) {
+            pTool->editNo = 7;
+        } else if (pTool->joy.rep & JOY_B) {
+            pTool->clearWork();
+            pTool->editNo = 1;
+        }
+        break;
+    case 7:
+        sprintf(path, path_tool, pTool->cursor);
+        if (pTool->lit.fileLoad(path)) {
+            pTool->cutNo = 0;
+            LitLoadWork(&pTool->lit, pTool->cutNo);
+            pTool->mode = 4;
+            pTool->routine = 0;
+            pTool->editNo = 0;
+            pTool->clearWork();
+        } else {
+            pTool->editNo = 10;
+        }
+        break;
+    case 8:
+        sprintf(path, path_core, pTool->cursor);
+        eprintf(0x20, 0x38, 0, pTool->color, "FILE NO:%02x", pTool->cursor);
+        eprintf(0x20, 0x54, 0, pTool->color, "%s", path);
+        FILE_NO_SELECT();
+        if (pTool->joy.rep & JOY_A) {
+            pTool->editNo = 9;
+        } else if (pTool->joy.rep & JOY_B) {
+            pTool->clearWork();
+            pTool->editNo = 1;
+        }
+        break;
+    case 9:
+        sprintf(path, path_core, pTool->cursor);
+        if (pTool->lit.fileLoad(path)) {
+            file_lock(path);
+            pTool->cutNo = 0;
+            LitLoadWork(&pTool->lit, pTool->cutNo);
+            pTool->mode = 3;
+            pTool->routine = 0;
+            pTool->editNo = 0;
+            pTool->clearWork();
+        } else {
+            pTool->editNo = 10;
+        }
+        break;
+    case 10:
+        eprintf(0x20, 0x38, 0, pTool->color, "FILE OPEN ERROR");
+        eprintf(0x20, 0x46, 0, pTool->color, "PUSH BUTTON TO CONTINUE");
+        if (pTool->joy.rep & (JOY_A | JOY_B)) {
+            pTool->editNo = 0;
+        }
+        break;
+    case 12:
+        if (evtAction == 0) {
+            sprintf(path, path_event, pG->stage_no, pG->room_no, evStr, evStr, pTool->cursor);
+        } else {
+            sprintf(path, path_event_action, evStr, evStr, pTool->cursor);
+        }
+        eprintf(0x20, 0x38, 0, pTool->color, "FILE NO:%03d", pTool->cursor);
+        eprintf(0x20, 0x54, 0x16, pTool->color, "%s", path);
+        FILE_NO_SELECT();
+        if (pTool->joy.rep & JOY_A) {
+            pTool->editNo = 13;
+        } else if (pTool->joy.rep & JOY_B) {
+            pTool->clearWork();
+            pTool->editNo = 1;
+        }
+        break;
+    case 13:
+        if (evtAction == 0) {
+            sprintf(path, path_event, pG->stage_no, pG->room_no, evStr, evStr, pTool->cursor);
+        } else {
+            sprintf(path, path_event_action, evStr, evStr, pTool->cursor);
+        }
+        if (pTool->lit.fileLoad(path)) {
+            file_lock(path);
+            pTool->cutNo = pTool->gameCutNo = 0;
+            LitLoadWork(&pTool->lit, pTool->cutNo);
+            pTool->mode = (pTool->cursor != 1) ? 1 : 2;
+            pTool->routine = 0;
+            pTool->editNo = 0;
+            pTool->clearWork();
+        } else {
+            pTool->editNo = 10;
+        }
+        break;
+    case 0x10:
+        sprintf(path, path_item, pTool->cursor);
+        eprintf(0x20, 0x38, 0, pTool->color, "FILE NO:%02x", pTool->cursor);
+        eprintf(0x20, 0x54, 0, pTool->color, "%s", path);
+        FILE_NO_SELECT();
+        if (pTool->joy.rep & JOY_A) {
+            pTool->editNo = 0x11;
+        } else if (pTool->joy.rep & JOY_B) {
+            pTool->clearWork();
+            pTool->editNo = 1;
+        }
+        break;
+    case 0x11:
+        sprintf(path, path_item, pTool->cursor);
+        if (pTool->lit.fileLoad(path)) {
+            pTool->cutNo = 0;
+            LitLoadWork(&pTool->lit, pTool->cutNo);
+            pTool->mode = 4;
+            pTool->routine = 0;
+            pTool->editNo = 0;
+            pTool->clearWork();
+        } else {
+            pTool->editNo = 10;
+        }
+        break;
+    }
+}
+// File number selector of the save pages: UP / RIGHT step 1, DOWN / LEFT step -1.
+#define SAVE_NO_SELECT()                                 \
+    if (pTool->joy.rep & (JOY_UP | JOY_RIGHT)) {         \
+        pTool->cursor++;                                 \
+    } else if (pTool->joy.rep & (JOY_DOWN | JOY_LEFT)) { \
+        pTool->cursor += 0xFF;                           \
+    }                                                    \
+    pTool->cursor %= 0x100
+
+// Save page: destination select, then the file number; odd editNo values write the file.
+static void save()
+{
+    static u32 evtKey;
+    static int evtAction;
+    static u32 evName[8];
+    static char evStr[8];
+    char path[0x100];
+    void* evt;
+    EvtDebugNames* ev;
+    u32* key;
+
+    eprintf(0x20, 0x2A, 4, pTool->color, "SAVE");
+    switch (pTool->editNo) {
+    case 0:
+        pTool->clearWork();
+        switch (pTool->mode) {
+        default:
+            pTool->cursor = (pG->flags_60 & 0x02000000) ? 2 : 1;
+            break;
+        case 4:
+            pTool->cursor = 2;
+            break;
+        case 3:
+            pTool->cursor = 3;
+            break;
+        }
+        pTool->editNo = 1;
+    case 1:
+        eprintf(0x20, 0x38, 0, pTool->color, "ROOM LOCAL");
+        eprintf(0x20, 0x46, 0, pTool->color, "ROOM SERVER");
+        eprintf(0x20, 0x54, 0, pTool->color, "EVENT");
+        eprintf(0x20, 0x62, 0, pTool->color, "TOOL");
+        eprintf(0x20, 0x70, 0, pTool->color, "CORE");
+        eprintf(0x20, 0x7E, 0, pTool->color, "PATH");
+        eprintf(0x20, 0x8C, 0, pTool->color, "ITEM");
+        pTool->printCursor(3, pTool->cursor + 4);
+        if (pTool->joy.rep & JOY_UP) {
+            pTool->cursor = (pTool->cursor + 6) % 7;
+        } else if (pTool->joy.rep & JOY_DOWN) {
+            pTool->cursor = (pTool->cursor + 8) % 7;
+        }
+        if (pTool->joy.rep & JOY_A) {
+            switch (pTool->cursor) {
+            case 0:
+                pTool->editNo = 2;
+                pTool->cursor = pTool->mode == 2;
+                break;
+            case 1:
+                pTool->editNo = 4;
+                pTool->cursor = pTool->mode == 2;
+                break;
+            case 2:
+                pTool->editNo = 14;
+                ev = (EvtDebugNames*) &EvtDebug;
+                key = evName;
+                strcpy((char*) key, ev->name);
+                strcpy(evStr, ev->str);
+                if (EvtMgr.GetEvt(key, &evt) == 1) {
+                    evtKey = ((Event*) evt)->cut;
+                    if (evStr[0] == 's' || evStr[0] == 'S') {
+                        evtAction = 0;
+                    } else {
+                        evtAction = 1;
+                    }
+                }
+                pTool->cursor = (u8) evtKey;
+                break;
+            case 3:
+                pTool->editNo = 6;
+                pTool->cursor = pTool->mode == 2;
+                break;
+            case 4:
+                pTool->editNo = 8;
+                pTool->cursor = pTool->mode == 2;
+                break;
+            case 5:
+                pTool->editNo = 12;
+                pTool->cursor = pTool->mode == 2;
+                break;
+            case 6:
+                pTool->editNo = 0x10;
+                pTool->cursor = pTool->mode == 2;
+                break;
+            }
+        }
+        if (pTool->joy.rep & JOY_B) {
+            pTool->routine = pTool->editNo = 0;
+            pTool->clearWork();
+        }
+        break;
+    case 2:
+        sprintf(path, path_room_server, pG->stage_no, pG->stage_no, pG->room_no, pG->stage_no, pG->room_no,
+                pTool->cursor);
+        eprintf(0x20, 0x38, 0, pTool->color, "FILE NO:%02x", pTool->cursor);
+        eprintf(0x20, 0x54, 0, pTool->color, "%s", path);
+        SAVE_NO_SELECT();
+        if (pTool->joy.rep & JOY_A) {
+            pTool->editNo = 3;
+        } else if (pTool->joy.rep & JOY_B) {
+            pTool->clearWork();
+            pTool->editNo = 1;
+        }
+        break;
+    case 3:
+        sprintf(path, path_room_server, pG->stage_no, pG->stage_no, pG->room_no, pG->stage_no, pG->room_no,
+                pTool->cursor);
+        if (pTool->editEnable()) {
+            LitSaveWork(&pTool->lit, pTool->cutNo);
+        }
+        if (pTool->lit.fileSave(path)) {
+            pTool->routine = 0;
+            pTool->editNo = 0;
+            pTool->clearWork();
+        } else {
+            pTool->editNo = 10;
+        }
+        break;
+    case 4:
+        sprintf(path, path_room_local, pG->stage_no, pG->stage_no, pG->room_no, pG->stage_no, pG->room_no,
+                pTool->cursor);
+        eprintf(0x20, 0x38, 0, pTool->color, "FILE NO:%02x", pTool->cursor);
+        eprintf(0x20, 0x54, 0x16, pTool->color, "%s", path);
+        SAVE_NO_SELECT();
+        if (pTool->joy.rep & JOY_A) {
+            pTool->editNo = 5;
+        } else if (pTool->joy.rep & JOY_B) {
+            pTool->clearWork();
+            pTool->editNo = 1;
+        }
+        break;
+    case 5:
+        sprintf(path, path_room_local, pG->stage_no, pG->stage_no, pG->room_no, pG->stage_no, pG->room_no,
+                pTool->cursor);
+        if (pTool->editEnable()) {
+            LitSaveWork(&pTool->lit, pTool->cutNo);
+        }
+        if (pTool->lit.fileSave(path)) {
+            file_unlock(path);
+            pTool->routine = 0;
+            pTool->editNo = 0;
+            pTool->clearWork();
+        } else {
+            pTool->editNo = 10;
+        }
+        break;
+    case 6:
+        sprintf(path, path_tool, pTool->cursor);
+        eprintf(0x20, 0x38, 0, pTool->color, "FILE NO:%02x", pTool->cursor);
+        eprintf(0x20, 0x54, 0, pTool->color, "%s", path);
+        SAVE_NO_SELECT();
+        if (pTool->joy.rep & JOY_A) {
+            pTool->editNo = 7;
+        } else if (pTool->joy.rep & JOY_B) {
+            pTool->clearWork();
+            pTool->editNo = 1;
+        }
+        break;
+    case 7:
+        sprintf(path, path_tool, pTool->cursor);
+        if (pTool->editEnable()) {
+            LitSaveWork(&pTool->lit, pTool->cutNo);
+        }
+        if (pTool->lit.fileSave(path)) {
+            pTool->routine = 0;
+            pTool->editNo = 0;
+            pTool->clearWork();
+        } else {
+            pTool->editNo = 10;
+        }
+        break;
+    case 8:
+        sprintf(path, path_core, pTool->cursor);
+        eprintf(0x20, 0x38, 0, pTool->color, "FILE NO:%02x", pTool->cursor);
+        eprintf(0x20, 0x54, 0x16, pTool->color, "%s", path);
+        SAVE_NO_SELECT();
+        if (pTool->joy.rep & JOY_A) {
+            pTool->editNo = 9;
+        } else if (pTool->joy.rep & JOY_B) {
+            pTool->clearWork();
+            pTool->editNo = 1;
+        }
+        break;
+    case 9:
+        sprintf(path, path_core, pTool->cursor);
+        if (pTool->editEnable()) {
+            LitSaveWork(&pTool->lit, pTool->cutNo);
+        }
+        if (pTool->lit.fileSave(path)) {
+            file_unlock(path);
+            pTool->routine = 0;
+            pTool->editNo = 0;
+            pTool->clearWork();
+        } else {
+            pTool->editNo = 10;
+        }
+        break;
+    case 10:
+        eprintf(0x20, 0x38, 0, pTool->color, "FILE OPEN ERROR");
+        eprintf(0x20, 0x46, 0, pTool->color, "PUSH BUTTON TO CONTINUE");
+        if (pTool->joy.rep & (JOY_A | JOY_B)) {
+            pTool->editNo = 0;
+        }
+        break;
+    case 12:
+        sprintf(path, path_litpath);
+        eprintf(0x20, 0x54, 0x16, pTool->color, "%s", path);
+        if (pTool->joy.rep & JOY_A) {
+            pTool->editNo = 13;
+        } else if (pTool->joy.rep & JOY_B) {
+            pTool->clearWork();
+            pTool->editNo = 1;
+        }
+        break;
+    case 13:
+        if (HDWrite(path_litpath, pLitPath, pLitPath->getSize())) {
+            file_unlock(path);
+            pTool->routine = 0;
+            pTool->editNo = 0;
+            pTool->clearWork();
+        } else {
+            pTool->editNo = 10;
+        }
+        break;
+    case 14:
+        if (evtAction == 0) {
+            sprintf(path, path_event, pG->stage_no, pG->room_no, evStr, evStr, pTool->cursor);
+        } else {
+            sprintf(path, path_event_action, evStr, evStr, pTool->cursor);
+        }
+        eprintf(0x20, 0x38, 0, pTool->color, "FILE NO:%03d", pTool->cursor);
+        eprintf(0x20, 0x54, 0x16, pTool->color, "%s", path);
+        SAVE_NO_SELECT();
+        if (pTool->joy.rep & JOY_A) {
+            pTool->editNo = 15;
+        } else if (pTool->joy.rep & JOY_B) {
+            pTool->clearWork();
+            pTool->editNo = 1;
+        }
+        break;
+    case 15:
+        if (evtAction == 0) {
+            sprintf(path, path_event, pG->stage_no, pG->room_no, evStr, evStr, pTool->cursor);
+        } else {
+            sprintf(path, path_event_action, evStr, evStr, pTool->cursor);
+        }
+        if (pTool->editEnable()) {
+            LitSaveWork(&pTool->lit, pTool->cutNo);
+        }
+        pTool->lit.preEventSave();
+        if (pTool->lit.fileSave(path)) {
+            file_unlock(path);
+            pTool->routine = 0;
+            pTool->editNo = 0;
+            pTool->clearWork();
+        } else {
+            pTool->editNo = 10;
+        }
+        break;
+    case 0x10:
+        sprintf(path, path_item, pTool->cursor);
+        eprintf(0x20, 0x38, 0, pTool->color, "FILE NO:%02x", pTool->cursor);
+        eprintf(0x20, 0x54, 0, pTool->color, "%s", path);
+        SAVE_NO_SELECT();
+        if (pTool->joy.rep & JOY_A) {
+            pTool->editNo = 0x11;
+        } else if (pTool->joy.rep & JOY_B) {
+            pTool->clearWork();
+            pTool->editNo = 1;
+        }
+        break;
+    case 0x11:
+        sprintf(path, path_item, pTool->cursor);
+        if (pTool->editEnable()) {
+            LitSaveWork(&pTool->lit, pTool->cutNo);
+        }
+        if (pTool->lit.fileSave(path)) {
+            pTool->routine = 0;
+            pTool->editNo = 0;
+            pTool->clearWork();
+        } else {
+            pTool->editNo = 10;
+        }
+        break;
+    }
+}
 // Tool options: object move, cut select, elec power / path, analyze, kind on/off, player light mask,
 // bounding box display.
 static void option()

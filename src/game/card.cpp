@@ -1055,6 +1055,8 @@ void cCard::saveMain()
             if (mode == 3) {
                 mode = nextMode;
                 step = 0;
+                sub = 0;
+                sub2 = 0;
             } else {
                 if (pG->x8 & 0x80) {
                     step = 0xB;
@@ -1062,15 +1064,15 @@ void cCard::saveMain()
                 } else {
                     step++;
                 }
+                sub = 0;
+                sub2 = 0;
             }
-            sub = 0;
-            sub2 = 0;
         } else if (ret < 0) {
             errorSet(-0x203);
         }
         break;
     case 10:
-        flag |= 1;
+        BitOn(flag, 1);
         BitOff(pG->flags_54, 0x200);
         cardMesSet(0xC, 0, 0);
         if (Key.trg & (KEY_START | KEY_Z)) {
@@ -1485,7 +1487,7 @@ void cCard::errorDisp()
             eprintf2(10, 16, 80, 170, 0, 0, "The Memory Card in Slot %c is not supported.", slot + 'A');
             break;
         case -0x201:
-            cMes.mes[0].setNumber(saveBlocks + sysBlocks, 2);
+            cMes.getWork()->setNumber(saveBlocks + sysBlocks, 2);
             if (type == 2) {
                 mesNo = 0x17;
             } else {
@@ -1506,8 +1508,8 @@ void cCard::errorDisp()
             } else {
                 mesNo = 1;
             }
-            attr = 0;
             cardcheck = 0;
+            attr = 0;
             break;
         case -0x204:
             cardcheck = 0;
@@ -1549,8 +1551,8 @@ void cCard::errorDisp()
             step = 3;
             cMes.mes[0].cursor = 1;
         }
-        sub2 = 0;
         sub = 0;
+        sub2 = 0;
         break;
     case 1:
         if (Key.trg & (KEY_START | KEY_Z)) {
@@ -1653,10 +1655,12 @@ void cCard::errorDisp()
                 } else {
                     mode = 1;
                 }
+// PERM-BEGIN
                 sub2 = 0;
-                formatted = 0;
                 step = 0;
                 sub = 0;
+                formatted = 0;
+    // PERM-END
             }
             break;
         case -0x80:
@@ -1670,9 +1674,9 @@ void cCard::errorDisp()
                     mode = 1;
                 }
                 sub2 = 0;
-                formatted = 0;
                 step = 0;
                 sub = 0;
+                formatted = 0;
             }
             break;
         }

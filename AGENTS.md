@@ -2038,3 +2038,18 @@ Then `MATCHING["st2_4/r22c.cpp"] = True` in `config/G4BE08/modules.py`, `python3
 - Branch arms ending in a call block cross-jumping of a shared tail (flow.c appends
   `(use (const_int 0))` after a block-ending CALL_INSN); duplicate the tail through a non-call
   statement into each arm to get the original's merged `li r7; bl`.
+
+- A ctor that stores a base field before the vptr store has it in a base-class initializer
+  (`Event::Event(u8) : cUnit(1)` -> `cUnit(u32 flag)` overload).
+- A `u32` passed to a `u8` ctor parameter with no `clrlwi`: declare an int-parameter alias with
+  `asm("__5EventUc")` and call it (GNU v2 ctors return `this`).
+- `pWork[i].field` written at every use (no element pointer local) reloads pWork after each store.
+- `if (ok) { body; return 1; } err; return 0;` places the err block at the end and cross-jumps it.
+- `int n = 37; for (i = 0; i < n; ...)` gives `blt end`; a literal bound folds to `i <= 36`/`ble`.
+- Prototyped `memset(p,0,12)` is a plain call; a zero aggregate initializer is the `crclr`+`memset`
+  libcall -- both coexist in one TU.
+- Address-taken scalars declared before a `char buf[]` get frame slots after the array unless the
+  array is declared in an inner block after the first `&scalar` use.
+- `Obj18Work* w = &obj->o18` produces `addi r11,r9,0x328; lwz 0x68(r11)` instead of a folded offset.
+- A single-variable fade helper (`c = 0xFF; start = c; c = 0; end = c;`) delays the `li r0,0` to just
+  before its `stw`.

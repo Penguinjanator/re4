@@ -59,22 +59,24 @@ struct SUB_SCREEN {
     s32 relAddr;              // 0x1D8  Sscrn.rel address (0 while unlinked)
     SsArc* pCmmn;             // 0x1DC
     SsArc* pPzzl;             // 0x1E0
-    u8 pad_1E4[0x1FC - 0x1E4];
+    SsArc* x1E4;              // 0x1E4  puzzle screen data (SubScreenTask: pPzzl)
+    u8 pad_1E8[0x1FC - 0x1E8];
     SsArc* pFile;             // 0x1FC  ss_file.dat archive (Sscrn ss_file)
     SsArc* pExam;             // 0x200  item examine id data archive (examine ItemExamine::idSet)
     u8 pad_204[0x20C - 0x204];
     void* pTplBuf;            // 0x20C  0x20000-byte file picture TPL buffer (Sscrn ss_file)
-    u8 pad_210[4];
+    void* x210;               // 0x210  weapon model data (pBuf + 0x2E5E00, Sscrn SubScreenTask / weaponChangeTask)
     void* binoA;              // 0x214  CameraControl::GetBinocularIDAddr
     void* binoB;              // 0x218
     class cLight* x21C[8];    // 0x21C  screen lights (Sscrn sscrnLightCreate / sscrnLightClear)
     void* x23C;               // 0x23C  0x3E800-byte buffer
-    u8 pad_240[0x248 - 0x240];
+    void* x240;               // 0x240  item examine model data (Sscrn SsItemExamine: x23C)
+    void* x244;               // 0x244  item examine texture data
     ItemWork* x248;           // 0x248  selected item slot (Sscrn CapSelect)
     cMap* x24C;               // 0x24C  MapMgr work 2 (Sscrn CapSelect)
     u8 x250;                  // 0x250  Sscrn weapon change task state (3 = done)
     s8 x251;                  // 0x251  weapon change request slot
-    u8 pad_252[2];
+    s16 x252;                 // 0x252  weapon change fade counter (Sscrn weaponChangeTask)
     struct {
         s32 req;              // 0x254  request pending
         u16 no;               // 0x258  weapon number

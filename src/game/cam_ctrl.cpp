@@ -15,6 +15,7 @@
 #include "math_sub.h"
 #include "dbmodule.h"
 #include "at_mod.h"
+#include "joy.h"
 
 extern "C" {
 int strncmp(const char* a, const char* b, unsigned int n);
@@ -33,12 +34,18 @@ void eprintf(int x, int y, int color, int a, const char* fmt, ...);
 
 #define PI 3.1415927f
 #define PI2 6.2831855f
+#define DEG 0.017453292f
+
+struct PlayerPtr {
+    cPlayer* p;
+};
+#define pPLS (((PlayerPtr*) &pPL)->p)
 
 void* g_pToolCamData = NULL;
 
 #define CAMERA_MOTION_BUFFER_SIZE 0x440
 static u8 CameraMotionBuffer[CAMERA_MOTION_BUFFER_SIZE];
-static CameraBSpline CamBSpline;
+extern CameraBSpline CamBSpline;
 
 const f32 smooth_ratio[12] = {0.0f, 0.9f, 0.85f, 0.92f, 0.8f, 0.92f, 0.9f, 0.9f, 0.9f, 0.9f, 0.0f, 0.0f};
 
@@ -1143,6 +1150,75 @@ void CameraControl::r0_Wait()
 {
 }
 
+void CameraControl::r0_Debug()
+{
+    Vec a;
+    Vec b;
+    Vec c;
+    Vec unused[2];  // 0x18-byte frame slot between c and m in the original
+    Mtx m;
+    CameraParam p;
+    Vec hit;
+    const Vec campos_ofs = {0.0f, 1900.0f, -2000.0f};
+    const Vec target_ofs = {0.0f, 1000.0f, 0.0f};
+    Camera* cam = &camera;
+    f32 rate;
+
+    switch (sub_state) {
+    case 0:
+        dbg_pos = campos_ofs;
+        dbg_at = target_ofs;
+        PSMTXMultVec(pPLS->mat, &dbg_pos, &p.pos);
+        PSVECAdd(&pPL->pos, &dbg_at, &p.at);
+        p.roll = 0.0f;
+        p.fovy = 55.0f;
+        cur = p;
+        CamSmth.flags |= 1;
+        sub_state++;
+        break;
+    case 1: {
+        JOY* joy = &Joy[0];
+        Vec* dp = &dbg_pos;
+        Vec* da = &dbg_at;
+
+        if (joy->ssx != 0) {
+            PSMTXRotRad(m, 'y', (f32) joy->ssx * 0.05f * DEG);
+            PSMTXMultVec(m, dp, dp);
+            PSMTXMultVec(m, da, da);
+        }
+        if (joy->ssy != 0) {
+            Vec up = {0.0f, 1.0f, 0.0f};
+
+            PSVECCrossProduct(dp, &up, &up);
+            PSMTXRotAxisRad(m, &up, (f32) joy->ssy * 0.05f * DEG);
+            PSMTXMultVec(m, dp, dp);
+            PSMTXMultVec(m, da, da);
+        }
+        rate = 0.8f;
+        if (joy->on == 0) {
+            if (counter_58++ > 30) {
+                rate = 0.8f * 1.2f;  // 0x3F75C290 (0.96f is 0x3F75C28F)
+            }
+        } else {
+            counter_58 = 0;
+        }
+        PSVECAdd(&pPL->pos, dp, &a);
+        PSVECAdd(&pPL->pos, da, &b);
+        PSVECScale(&cam->param.pos, &cam->param.pos, rate);
+        PSVECScale(&a, &c, 1.0f - rate);
+        PSVECAdd(&cam->param.pos, &c, &cam->param.pos);
+        PSVECScale(&cam->param.at, &cam->param.at, rate);
+        PSVECScale(&b, &c, 1.0f - rate);
+        PSVECAdd(&cam->param.at, &c, &cam->param.at);
+        if (SatMgr.hitCheck(&cam->param.at, &cam->param.pos, &hit, NULL, 0x8000, 0)) {
+            cam->param.pos = hit;
+        }
+        cur = cam->param;
+        break;
+    }
+    }
+}
+
 void CameraControl::r0_Fix()
 {
     Camera cam;
@@ -1236,6 +1312,156 @@ void CameraControl::r0_RailPan()
 
 void CameraControl::r0_UpCut()
 {
+}
+
+// Separate `on & bit` tests: fold merges `(on & a) || (on & b)` on one lvalue into one mask.
+static inline u32 JoyOn(JOY* j, u32 bit)
+{
+    return j->on & bit;
+}
+
+static inline u32 JoyTrg(JOY* j, u32 bit)
+{
+    return j->trg & bit;
+}
+
+// The two stick pairs fold to one halfword test each; as one `||` chain fold merges all four bytes.
+static inline int JoySubStick(JOY* j)
+{
+    return j->ssx != 0 || j->ssy != 0;
+}
+
+static inline int JoyMainStick(JOY* j)
+{
+    return j->sx != 0 || j->sy != 0;
+}
+
+void CameraControl::r0_Free()
+{
+    static Vec campos_ofs0 = {0.0f, 1800.0f, -1200.0f};
+    static Vec target_ofs0 = {0.0f, 0.0f, 1550.0f};
+    static Vec ang;
+    static Mtx cam_mat;
+    Camera cam;
+    Mtx m;
+    Vec hit;
+    Vec nrm;
+    Vec tmp;
+    Vec unused[2];
+    JOY* joy = &Joy[0];
+    f32 rate;
+
+    switch (sub_state) {
+    case 0: {
+        PSMTXIdentity(cam_mat);
+        cam_mat[0][3] = pPL->mat[0][3];
+        cam_mat[1][3] = pPL->mat[1][3];
+        cam_mat[2][3] = pPL->mat[2][3];
+        ang.x = 0.0f;
+        ang.y = pPL->rot.y;
+        ang.z = 0.0f;
+        Vec xaxis = {1.0f, 0.0f, 0.0f};
+        Vec yaxis = {0.0f, 1.0f, 0.0f};
+        Vec tofs;
+        Vec a;
+        if ((s32) pSys->flags < 0) {
+            PSVECScale(&ang, &a, -1.0f);
+        } else {
+            a = ang;
+        }
+        tofs = target_ofs0;
+        MtxRotAxisPosRad(m, &xaxis, &tofs, a.x);
+        PSMTXMultVec(m, &campos_ofs0, &dbg_pos);
+        PSMTXMultVec(m, &target_ofs0, &dbg_at);
+        MtxRotAxisPosRad(m, &yaxis, &tofs, a.y);
+        PSMTXMultVec(m, &dbg_pos, &dbg_pos);
+        PSMTXMultVec(m, &dbg_at, &dbg_at);
+        PSMTXMultVec(cam_mat, &dbg_pos, &cam.param.pos);
+        PSMTXMultVec(cam_mat, &dbg_at, &cam.param.at);
+        cam.param.roll = 0.0f;
+        cam.param.fovy = x6CC;
+        cur = cam.param;
+        CamSmth.flags |= 1;
+        x36 = 0;
+        sub_state++;
+    }
+    case 1: {
+        ang.y -= (f32) joy->ssx * 0.00125f;
+        ang.x -= (f32) joy->ssy * 0.00125f;
+        ang.x = ang.x < -0.7853982f ? -0.7853982f : (ang.x > 1.099557f ? 1.099557f : ang.x);
+        ang.y = ang.y < -PI ? PI : (ang.y > PI ? -PI : ang.y);
+        {
+            cam_mat[0][3] = pPL->mat[0][3];
+            cam_mat[1][3] = pPL->mat[1][3];
+            cam_mat[2][3] = pPL->mat[2][3];
+            Vec xaxis = {1.0f, 0.0f, 0.0f};
+            Vec yaxis = {0.0f, 1.0f, 0.0f};
+            Vec tofs;
+            Vec unused2;
+            Vec a;
+            if ((s32) pSys->flags < 0) {
+                PSVECScale(&ang, &a, -1.0f);
+            } else {
+                a = ang;
+            }
+            tofs = target_ofs0;
+            MtxRotAxisPosRad(m, &xaxis, &tofs, a.x);
+            PSMTXMultVec(m, &campos_ofs0, &dbg_pos);
+            PSMTXMultVec(m, &target_ofs0, &dbg_at);
+            MtxRotAxisPosRad(m, &yaxis, &tofs, a.y);
+            PSMTXMultVec(m, &dbg_pos, &dbg_pos);
+            PSMTXMultVec(m, &dbg_at, &dbg_at);
+        }
+        {
+            u8 st = x36;
+
+            switch (st) {
+            case 0:
+                if (JoyTrg(joy, 0x200) || JoyOn(joy, 0x200) || JoyOn(joy, 0x20)) {
+                    x36 = st + 1;
+                }
+                break;
+            case 1: {
+                Vec d;
+
+                d.x = 0.0f - ang.x;
+                d.y = pPL->rot.y - ang.y;
+                d.z = 0.0f;
+                VecRadLimit(&d);
+                ang.y += d.y * 0.1f;
+                ang.x += d.x * 0.1f;
+                if (!JoyOn(joy, 0x200) && !JoyOn(joy, 0x20)) {
+                    if (PSVECMag(&d) < 0.05f || JoySubStick(joy) || JoyMainStick(joy)) {
+                        x36--;
+                    }
+                }
+                break;
+            }
+            }
+        }
+        PSMTXMultVec(cam_mat, &dbg_pos, &cam.param.pos);
+        PSMTXMultVec(cam_mat, &dbg_at, &cam.param.at);
+        cam.param.roll = 0.0f;
+        cam.param.fovy = x6CC;
+        rate = 0.8f;
+        PSVECScale(&cam.param.pos, &cam.param.pos, rate);
+        PSVECScale(&cur.pos, &tmp, 1.0f - rate);
+        PSVECAdd(&cam.param.pos, &tmp, &cam.param.pos);
+        PSVECScale(&cam.param.at, &cam.param.at, rate);
+        PSVECScale(&cur.at, &tmp, 1.0f - rate);
+        PSVECAdd(&cam.param.at, &tmp, &cam.param.at);
+        {
+            Vec from = cam.param.at;
+            Vec to = cam.param.pos;
+
+            if (cameraHitCheck(&hit, &nrm, &from, &to)) {
+                cam.param.pos = hit;
+            }
+        }
+        cur = cam.param;
+        break;
+    }
+    }
 }
 
 void CamCtrlShoulderSetSearchFrame(s16 frame)
@@ -1449,6 +1675,10 @@ void CameraControl::debugDrawRail(CameraCut* cut)
         Ft_old = ft;
     }
 }
+
+CameraControl CamCtrl;
+CameraBSpline CamBSpline;
+CameraSmooth CamSmth;
 
 void CameraControl::UpCutCall(int no, Vec* pos, Vec* at, Vec* up, int sel)
 {

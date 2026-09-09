@@ -104,6 +104,8 @@ struct CameraBSpline {
     f32 roll[26];   // 0x280
     f32 fovy[26];   // 0x2E8
     f32 basis[26];  // 0x350  de_Boor_Cox output
+
+    CameraBSpline() {}  // empty: makes CamBSpline emit at its definition (cam_ctrl .bss order)
 };
 
 // ---------------------------------------------------------------------------
@@ -242,6 +244,11 @@ public:
     cModel* getAttachModel(cModel* model);
     AttachCamera* getAttachCamera(cModel* model);
     void checkAttachCamera();
+
+    // Empty ctor/dtor: cam_ctrl's `__static_initialization_and_destruction_0` and the
+    // `global constructors/destructors keyed to g_pToolCamData` pair.
+    CameraControl() {}
+    ~CameraControl() {}
 };
 
 extern CameraControl CamCtrl;

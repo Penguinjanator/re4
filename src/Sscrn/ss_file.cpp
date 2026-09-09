@@ -53,54 +53,7 @@ struct SsFileWork {
     u8 fileNo;    // 0x0D  1..29 (0 = the terminal log)
 };
 
-class SsFileInit : public Widget<SUB_SCREEN> {
-public:
-    int state;  // 0x10
-
-    virtual void init(SUB_SCREEN* wk);
-    virtual void move(SUB_SCREEN* wk);
-};
-
-class FileSelect;
-class MessageDisplay;
-
-class SsFileMain : public Widget<SUB_SCREEN> {
-public:
-    int state;                 // 0x10
-    int sndWait;               // 0x14
-    int sndCnt;                // 0x18
-    FileSelect* sel;           // 0x1C
-    MessageDisplay* disp;      // 0x20
-    Widget<SUB_SCREEN>* cur;   // 0x24
-    Widget<SUB_SCREEN>* next;  // 0x28
-
-    virtual void init(SUB_SCREEN* wk);
-    virtual void quit(SUB_SCREEN* wk);
-    virtual void move(SUB_SCREEN* wk);
-};
-
-class FileSelect : public Widget<SUB_SCREEN> {
-public:
-    int state;  // 0x10  0 none, 1 back to the game, 2 main menu
-
-    virtual void init(SUB_SCREEN* wk);
-    virtual void quit(SUB_SCREEN* wk);
-    virtual void move(SUB_SCREEN* wk);
-};
-
-class MessageDisplay : public Widget<SUB_SCREEN> {
-public:
-    u8 state;     // 0x10  0 reading, 1 closing, 2 wait for the close animation
-    u8 tplState;  // 0x11  picture: 0 shown, 1 request, 2 reading
-    u8 tplFirst;  // 0x12  1 until the first picture was read
-    u8 pad_13;
-    s16 x;        // 0x14
-    s16 y;        // 0x16
-
-    virtual void init(SUB_SCREEN* wk);
-    virtual void quit(SUB_SCREEN* wk);
-    virtual void move(SUB_SCREEN* wk);
-};
+// The widget classes (SsFileInit / SsFileMain / FileSelect / MessageDisplay) are declared in ss_main.h.
 
 extern "C" {
 int getMsgNum(int no);

@@ -718,12 +718,12 @@ void Event::DebugDisp()
     }
     eprintf(0x10, 0x20, col, 0, "[EVENT EXEC] EV:%s%s CUT:%02d/%02d FRM:%03d/%03d ALL:%04d/%04d", pData->room, pData->no, cut, maxCut,
             frame, maxFrame, totalFrame, maxTotalFrame);
-    dbgTotalFrame = totalFrame;
-    dbgMaxTotalFrame = maxTotalFrame;
-    dbgFrame = frame;
-    dbgMaxFrame = maxFrame;
     dbgCut = cut;
     dbgMaxCut = maxCut;
+    dbgFrame = frame;
+    dbgMaxFrame = maxFrame;
+    dbgTotalFrame = totalFrame;
+    dbgMaxTotalFrame = maxTotalFrame;
 }
 
 void Event::DebugDispTool()
@@ -944,30 +944,27 @@ int Event::ExePacket_SetOm(Event* evt)
 int Event::ExePacket_SetParts(Event* evt)
 {
     EvtPacket* pac = evt->pPacket;
-    char* nm;
 
     switch (pG->costume2) {
     case 0:
     default:
-        nm = pac->parts.name;
         switch (pG->costume) {
         case 1:
         case 2:
-            if (strcmp(nm, "ev000e") == 0 || strcmp(nm, "ev001e") == 0) {
-                return evt->ExePacket_SetPartsSub(nm, "em/pl00/pl000e.bin", "em/pl00/pl000a.tpl", pac->parts.oya);
+            if (strcmp(pac->parts.name, "ev000e") == 0 || strcmp(pac->parts.name, "ev001e") == 0) {
+                return evt->ExePacket_SetPartsSub(pac->parts.name, "em/pl00/pl000e.bin", "em/pl00/pl000a.tpl", pac->parts.oya);
             }
             break;
         }
-        return evt->ExePacket_SetPartsSub(nm, pac->parts.bin, pac->parts.tpl, pac->parts.oya);
+        return evt->ExePacket_SetPartsSub(pac->parts.name, pac->parts.bin, pac->parts.tpl, pac->parts.oya);
     case 1:
-        nm = pac->parts.name;
-        if (strcmp(nm, "ev000e") == 0) {
-            return evt->ExePacket_SetPartsSub(nm, "em/pl00/pl000e.bin", "em/pl00/pl000a.tpl", pac->parts.oya);
+        if (strcmp(pac->parts.name, "ev000e") == 0) {
+            return evt->ExePacket_SetPartsSub(pac->parts.name, "em/pl00/pl000e.bin", "em/pl00/pl000a.tpl", pac->parts.oya);
         }
-        if (strcmp(nm, "ev0104") == 0 || strcmp(nm, "ev0105") == 0) {
-            return evt->ExePacket_SetPartsSub(nm, pac->parts.bin, "event/model/ev0100/ev0100.tpl", pac->parts.oya);
+        if (strcmp(pac->parts.name, "ev0104") == 0 || strcmp(pac->parts.name, "ev0105") == 0) {
+            return evt->ExePacket_SetPartsSub(pac->parts.name, pac->parts.bin, "event/model/ev0100/ev0100.tpl", pac->parts.oya);
         }
-        return evt->ExePacket_SetPartsSub(nm, pac->parts.bin, pac->parts.tpl, pac->parts.oya);
+        return evt->ExePacket_SetPartsSub(pac->parts.name, pac->parts.bin, pac->parts.tpl, pac->parts.oya);
     }
 }
 
@@ -1052,11 +1049,13 @@ int Event::ExePacket_Cam(Event* evt)
     void* dat;
     EvtPacket* pac = evt->pPacket;
     int frm = 0;
+    void* zero;
 
     if (EvtMgr.GetBin(&dat, pac->mod.name, 0) == 0) {
         pLog->err(0, 0, "Event::ExePacket_Cam : dat failed");
         return 1;
     }
+    zero = 0;
     if (EvtChk(evt->status, 0x40000000)) {
         frm = evt->toolFrame;
     }
@@ -1065,7 +1064,8 @@ int Event::ExePacket_Cam(Event* evt)
     }
     CamCtrl.MotionSet(dat, 0, (f32) frm);
     pPL->be_flag |= 0x00200000;
-    evt->pFog = evt->pFocus = 0;
+    evt->pFog = (EvtFogData*) zero;
+    evt->pFocus = (EvtFocusData*) zero;
     evt->MotClear();
     if (!EvtChk(evt->status, 0x08000000)) {
         EventCutEffDelete();
@@ -1153,7 +1153,6 @@ int Event::ExePacket_Mot(Event* evt)
     void* dat;
     EvtPacket* pac = evt->pPacket;
     int frm = 0;
-    cObj* o;
     u32 t;
 
     if (EvtChk(evt->status, 0x40000000)) {
@@ -1180,14 +1179,14 @@ int Event::ExePacket_Mot(Event* evt)
     }
     ClrShape(m);
     if (m->x12E == 1 && m->id == 0x18) {
-        o = (cObj*) m;
-        t = o->o18.type;
+        Obj18Work* w = &((cObj*) m)->o18;
+        t = w->type;
         if ((t >= 1 && t <= 4) || t == 7 || t == 8 || t == 9 || t == 0xA || t == 0x13 || t == 0x14 || t == 0x15 || t == 0x16
             || t == 0xB) {
             m->be_flag |= 0x00200000;
         }
-        if (o->o18.type == 3 && o->o18.child != 0) {
-            o->o18.child->be_flag |= 0x00200000;
+        if (w->type == 3 && w->child != 0) {
+            w->child->be_flag |= 0x00200000;
         }
     }
     return 1;
@@ -2180,8 +2179,8 @@ char* EventMgr::NameChange(char* nm)
         pLog->err(0, 0, "EventMgr::EvtRead : Name size long failed [%s]", nm);
         return nm;
     }
+    strcpy(nameBuf, nm);
     dst = nameBuf;
-    strcpy(dst, nm);
     if (pG->costume2 == 1) {
         p = strchr(dst, 'r');
         if (p != 0 && NameCheck(p) == 1) {
@@ -2549,15 +2548,15 @@ int EventMgr::SetBin(char* nm, void* data, void* dat2, int flag)
 
 int EventMgr::GetBin(void** out, const char* nm, int a)
 {
-    u8 type[1];
-    char path[0x100];
+    u8 type;
     void* dat;
 
     if (out == 0) {
         return 0;
     }
     *out = 0;
-    if (binTbl.GetDat(&dat, type, nm, 0) == 0) {
+    if (binTbl.GetDat(&dat, &type, nm, 0) == 0) {
+        char path[0x100];
         pLog->warn(0, 0, "EventMgr::GetBin : non data[%s]", nm);
         if (a == 0) {
             strcpy(path, "x:/soft/room/");
@@ -2610,8 +2609,8 @@ int EventMgr::SetEvd(char* nm, void* data, void* dat2, int flag)
         return 0;
     }
     for (i = 0; i < hdr->nBin; i++) {
-        e = (EvtBinEntry*) ((u8*) hdr + hdr->binOfs) + i;
-        if (SetBin(e->name, (u8*) hdr + e->ofs, 0, flag) == 0) {
+        e = (EvtBinEntry*) (i * sizeof(EvtBinEntry) + (hdr->binOfs + (u32) hdr));
+        if (SetBin(e->name, (u8*) (e->ofs + (u32) hdr), 0, flag) == 0) {
             pLog->err(0, 0, "EventMgr::SetEvd : failed");
             return 0;
         }
@@ -2622,7 +2621,6 @@ int EventMgr::SetEvd(char* nm, void* data, void* dat2, int flag)
 int EventMgr::GetEvd(void** out, char* nm, int a)
 {
     u8 type;
-    char path[0x100];
     void* dat;
 
     if (out == 0) {
@@ -2630,6 +2628,7 @@ int EventMgr::GetEvd(void** out, char* nm, int a)
     }
     *out = 0;
     if (evdTbl.GetDat(&dat, &type, nm, 0) == 0) {
+        char path[0x100];
         pLog->warn(0, 0, "EventMgr::GetEvd : non data[%s]", nm);
         if (a == 0) {
             strcpy(path, "x:/soft/room/");
@@ -2754,7 +2753,7 @@ int EventMgr::DelRead(char* nm)
 int EventMgr::SetEvs(void* evs)
 {
     EvsHeader* hdr = (EvsHeader*) evs;
-    EvsEntry* e;
+    EvsEntry* tbl;
     u8* p;
     int i;
 
@@ -2762,10 +2761,10 @@ int EventMgr::SetEvs(void* evs)
         pLog->err(0, 0, "EventMgr::SetEvs : non addr");
         return 0;
     }
-    e = (EvsEntry*) ((u8*) hdr + hdr->tblOfs);
+    tbl = (EvsEntry*) (hdr->tblOfs + (u32) hdr);
     for (i = 0; i < hdr->num; i++) {
-        p = (u8*) hdr + e->ofs;
-        e++;
+        EvsEntry* e = &tbl[i];
+        p = (u8*) (e->ofs + (u32) hdr);
         if (SetEvd((char*) p, p, 0, 0) == 0) {
             pLog->err(0, 0, "EventMgr::SetEvs : SetEvd failed[%s]", p);
             return 0;
@@ -2826,10 +2825,11 @@ int EventMgr::EvtSndStrStop(u32* key, int blk, int mode)
 void EventMgr::EvtSndStrPlay(u32* key, int blk, int no, int mode, f32 vol)
 {
     Event* evt;
-    u32 id = 0;
+    u32 id;
     int cnt;
 
     if (GetEvt(key, (void**) &evt) == 1) {
+        id = 0;
         if (no == -1) {
             pLog->err(0, 0, "EventMgr::EvtSndStrPlay noStr == TarNon");
             return;

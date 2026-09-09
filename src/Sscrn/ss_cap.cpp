@@ -20,37 +20,7 @@
 
 #define DVD_READ_N(name, dst, a, b, c, mode) DvdReadN(name, dst, a, b, c, mode, __FILE__, __LINE__)
 
-class SsCapInit : public Widget<SUB_SCREEN> {
-public:
-    int state;  // 0x10
-
-    virtual void init(SUB_SCREEN* wk);
-    virtual void move(SUB_SCREEN* wk);
-};
-
-class CapSelect;
-
-class SsCapMain : public Widget<SUB_SCREEN> {
-public:
-    int state;              // 0x10
-    CapSelect* sel;         // 0x14
-    SsItemExamine* exam;    // 0x18
-    Widget<SUB_SCREEN>* cur;   // 0x1C
-    Widget<SUB_SCREEN>* next;  // 0x20
-
-    virtual void init(SUB_SCREEN* wk);
-    virtual void quit(SUB_SCREEN* wk);
-    virtual void move(SUB_SCREEN* wk);
-};
-
-class CapSelect : public Widget<SUB_SCREEN> {
-public:
-    int state;  // 0x10  0 none, 1 back, 2 exit
-
-    virtual void init(SUB_SCREEN* wk);
-    virtual void quit(SUB_SCREEN* wk);
-    virtual void move(SUB_SCREEN* wk);
-};
+// The widget classes (SsCapInit / SsCapMain / CapSelect) are declared in ss_main.h.
 
 extern "C" {
 void dispCapList(SUB_SCREEN* wk);

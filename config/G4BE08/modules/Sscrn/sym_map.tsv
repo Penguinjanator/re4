@@ -128,7 +128,7 @@ section	offset	size	unit	scope	name	demangled
 .text	0x0000C738	0x7C	Sscrn/ss_main.cpp	global	weaponChangeRequest	weaponChangeRequest
 .text	0x0000C7B4	0x2C	Sscrn/ss_main.cpp	global	weaponChangeReadCheck	weaponChangeReadCheck
 .text	0x0000C7E0	0x1C	Sscrn/ss_main.cpp	global	weaponChangeMoveCheck	weaponChangeMoveCheck
-.text	0x0000C7FC	0x3E0	Sscrn/ss_main.cpp	local	weaponChangeTask	weaponChangeTask
+.text	0x0000C7FC	0x3E0	Sscrn/ss_main.cpp	local	weaponChangeTask__Fv	weaponChangeTask
 .text	0x0000CBDC	0x3B8	Sscrn/ss_main.cpp	global	fn_Sscrn_CBDC	.
 .text	0x0000CF94	0x2C	Sscrn/ss_main.cpp	global	roomInit__t8cManager1Z10cModelInfo	cManager<cModelInfo>::roomInit
 .text	0x0000CFC0	0x60	Sscrn/ss_main.cpp	global	arrayFree__t8cManager1Z10cModelInfo	cManager<cModelInfo>::arrayFree

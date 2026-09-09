@@ -81,8 +81,8 @@ address	size	section	unit	scope	name	demangled
 0x800095B0	0x158	.text	game/cam_ctrl.cpp	global	create__t8cManager1Z6cLighti	cManager<cLight>::create
 0x80009708	0x24	.text	game/cam_ctrl.cpp	global	create__t8cManager1Z6cLight	cManager<cLight>::create
 0x8000972C	0x4	.text	game/cam_ctrl.cpp	global	__static_initialization_and_destruction_0	__static_initialization_and_destruction_0
-0x80009730	0x2C	.text	game/cam_ctrl.cpp	global	global_constructors_keyed_to_g_pToolCamData	global constructors keyed to g_pToolCamData
-0x8000975C	0x2C	.text	game/cam_ctrl.cpp	global	global_destructors_keyed_to_g_pToolCamData	global destructors keyed to g_pToolCamData
+0x80009730	0x2C	.text	game/cam_ctrl.cpp	global	_GLOBAL_.I.g_pToolCamData	global constructors keyed to g_pToolCamData
+0x8000975C	0x2C	.text	game/cam_ctrl.cpp	global	_GLOBAL_.D.g_pToolCamData	global destructors keyed to g_pToolCamData
 0x80009788	0xA0	.text	game/card.cpp	global	debugInfoDisp	debugInfoDisp
 0x80009828	0x34	.text	game/card.cpp	global	__5cCard	cCard::cCard
 0x8000985C	0x48	.text	game/card.cpp	global	_._5cCard	cCard::~cCard
@@ -10445,7 +10445,7 @@ address	size	section	unit	scope	name	demangled
 0x802705EC	0xC	.bss	game/cam_ctrl.cpp	global	Fc_old.1255	Fc_old.1255
 0x802705F8	0xC	.bss	game/cam_ctrl.cpp	local	Ft_old.1256	Ft_old.1256
 0x80270604	0x704	.bss	game/cam_ctrl.cpp	global	CamCtrl	CamCtrl
-0x80270D08	0x3B8	.bss	game/cam_ctrl.cpp	local	CamBSpline	CamBSpline
+0x80270D08	0x3B8	.bss	game/cam_ctrl.cpp	global	CamBSpline	CamBSpline
 0x802710C0	0x12C	.bss	game/cam_ctrl.cpp	global	CamSmth	CamSmth
 0x802711EC	0x440	.bss	game/cam_ctrl.cpp	local	CameraMotionBuffer	CameraMotionBuffer
 0x8027162C	0xC	.bss	game/card.cpp	global	g_pos0_org	g_pos0_org
