@@ -2627,7 +2627,7 @@ address	size	section	unit	scope	name	demangled
 0x800B15E0	0x4	.text	lib/adx_tlk.c	global	ADXT_GetTranspose	ADXT_GetTranspose
 0x800B15E4	0x4	.text	lib/adx_tlk.c	global	ADXT_SetTranspose	ADXT_SetTranspose
 0x800B15E8	0x150	.text	lib/adx_tlk.c	global	ADXT_Pause	ADXT_Pause
-0x800B1738	0x3C	.text	lib/adx_tlk.c	local	ADXT_GetErrCode	ADXT_GetErrCode
+0x800B1738	0x3C	.text	lib/adx_tlk.c	global	ADXT_GetErrCode	ADXT_GetErrCode
 0x800B1774	0xB0	.text	lib/adx_tlk.c	global	ADXT_ExecServer	ADXT_ExecServer
 0x800B1824	0x8	.text	lib/adx_tlk.c	global	ADXT_SetAutoRcvr	ADXT_SetAutoRcvr
 0x800B182C	0x40	.text	lib/adx_tlk.c	global	ADXT_SetSvrFreq	ADXT_SetSvrFreq
@@ -2637,7 +2637,7 @@ address	size	section	unit	scope	name	demangled
 0x800B1918	0x44	.text	lib/adx_tlk.c	global	ADXT_GetOutPan	ADXT_GetOutPan
 0x800B195C	0x104	.text	lib/adx_tlk.c	global	ADXT_SetOutPan	ADXT_SetOutPan
 0x800B1A60	0x58	.text	lib/adx_tlk.c	global	ADXT_GetNumChan	ADXT_GetNumChan
-0x800B1AB8	0x58	.text	lib/adx_tlk.c	local	ADXT_GetSfreq	ADXT_GetSfreq
+0x800B1AB8	0x58	.text	lib/adx_tlk.c	global	ADXT_GetSfreq	ADXT_GetSfreq
 0x800B1B10	0x58	.text	lib/adx_tlk.c	global	ADXT_GetNumSmpl	ADXT_GetNumSmpl
 0x800B1B68	0x518	.text	lib/adx_tlk.c	global	ADXT_GetTime	ADXT_GetTime
 0x800B2080	0x40	.text	lib/adx_tlk.c	global	ADXT_GetStat	ADXT_GetStat
@@ -2780,7 +2780,7 @@ address	size	section	unit	scope	name	demangled
 0x800B84D4	0x8	.text	lib/adx_sjd.c	global	ADXSJD_SetTrapNumSmpl	ADXSJD_SetTrapNumSmpl
 0x800B84DC	0xC	.text	lib/adx_sjd.c	global	ADXSJD_EntryTrapFunc	ADXSJD_EntryTrapFunc
 0x800B84E8	0x8	.text	lib/adx_sjd.c	global	ADXSJD_SetLnkSw	ADXSJD_SetLnkSw
-0x800B84F0	0x8	.text	lib/adx_sjd.c	local	ADXSJD_SetDecPos	ADXSJD_SetDecPos
+0x800B84F0	0x8	.text	lib/adx_sjd.c	global	ADXSJD_SetDecPos	ADXSJD_SetDecPos
 0x800B84F8	0x8	.text	lib/adx_sjd.c	global	ADXSJD_GetDecNumSmpl	ADXSJD_GetDecNumSmpl
 0x800B8500	0x5C	.text	lib/adx_sjd.c	global	ADXSJD_ExecServer	ADXSJD_ExecServer
 0x800B855C	0x4AC	.text	lib/adx_sjd.c	global	ADXSJD_ExecHndl	ADXSJD_ExecHndl
@@ -4978,12 +4978,12 @@ address	size	section	unit	scope	name	demangled
 0x80158EB0	0x44	.text	game/memset_2.cpp	global	mtxclr_asm	mtxclr_asm
 0x80158EF4	0x170	.text	game/model.cpp	global	__6cModel	cModel::cModel
 0x80159064	0x17C	.text	game/model.cpp	global	modelInit__6cModelPvT1	cModel::modelInit
-0x801591E0	0x90	.text	game/model.cpp	global	cModel_initJoint	cModel::initJoint
-0x80159270	0x30	.text	game/model.cpp	local	cModel_releaseJoint	cModel::releaseJoint
+0x801591E0	0x90	.text	game/model.cpp	global	initJoint__6cModelPv	cModel::initJoint
+0x80159270	0x30	.text	game/model.cpp	global	releaseJoint__6cModel	cModel::releaseJoint
 0x801592A0	0x1A0	.text	game/model.cpp	global	setPartsOffset__6cModelPv	cModel::setPartsOffset
-0x80159440	0x80	.text	game/model.cpp	global	cModel_setPartsParent	cModel::setPartsParent
+0x80159440	0x80	.text	game/model.cpp	global	setPartsParent__6cModel	cModel::setPartsParent
 0x801594C0	0x70	.text	game/model.cpp	global	partsMatCalc__6cModel	cModel::partsMatCalc
-0x80159530	0x2DC	.text	game/model.cpp	global	cModel_matBlend	cModel::matBlend
+0x80159530	0x2DC	.text	game/model.cpp	global	matBlend__6cModelf	cModel::matBlend
 0x8015980C	0x60	.text	game/model.cpp	global	zeroPartsPosInit__6cModelP3VecT1	cModel::zeroPartsPosInit
 0x8015986C	0x2E0	.text	game/model.cpp	global	partsWorldCalc__6cModel	cModel::partsWorldCalc
 0x80159B4C	0x44	.text	game/model.cpp	global	setParent__6cModelP6cModelP3VecT2	cModel::setParent
@@ -4991,24 +4991,24 @@ address	size	section	unit	scope	name	demangled
 0x80159C78	0x78	.text	game/model.cpp	global	updateOldPos__6cModel	cModel::updateOldPos
 0x80159CF0	0x11C	.text	game/model.cpp	global	setPos__6cModelP3Vec	cModel::setPos
 0x80159E0C	0x50	.text	game/model.cpp	global	setAng__6cModelP3Vec	cModel::setAng
-0x80159E5C	0x50	.text	game/model.cpp	global	cModel_setSca	cModel::setSca
+0x80159E5C	0x50	.text	game/model.cpp	global	setSca__6cModelP3Vec	cModel::setSca
 0x80159EAC	0x4E0	.text	game/model.cpp	global	debugSkeletonDisp__6cModel	cModel::debugSkeletonDisp
 0x8015A38C	0x34	.text	game/model.cpp	global	addModel__6cModelP10cModelInfo	cModel::addModel
 0x8015A3C0	0x124	.text	game/model.cpp	global	partsFixMemory__6cModeli	cModel::partsFixMemory
 0x8015A4E4	0x124	.text	game/model.cpp	global	partsFixAdjust__6cModel	cModel::partsFixAdjust
 0x8015A608	0x54	.text	game/model.cpp	global	push__6cModel	cModel::push
 0x8015A65C	0x48	.text	game/model.cpp	global	drawAllBoundingBox__6cModelP10cModelInfo	cModel::drawAllBoundingBox
-0x8015A6A4	0x68	.text	game/model.cpp	global	cModelInfo_cModelInfo	cModelInfo::cModelInfo
-0x8015A70C	0x28	.text	game/model.cpp	global	cModelInfo_setTplAddr	cModelInfo::setTplAddr
+0x8015A6A4	0x68	.text	game/model.cpp	global	__10cModelInfo	cModelInfo::cModelInfo
+0x8015A70C	0x28	.text	game/model.cpp	global	setTplAddr__10cModelInfoPv	cModelInfo::setTplAddr
 0x8015A734	0x40	.text	game/model.cpp	global	addTplAddr__10cModelInfoPv	cModelInfo::addTplAddr
 0x8015A774	0x14	.text	game/model.cpp	global	setTexBlendTbl__10cModelInfoPv	cModelInfo::setTexBlendTbl
 0x8015A788	0x18	.text	game/model.cpp	global	resetTexBlendTbl__10cModelInfo	cModelInfo::resetTexBlendTbl
 0x8015A7A0	0x8	.text	game/model.cpp	global	setBlendRatio__10cModelInfoUs	cModelInfo::setBlendRatio
 0x8015A7A8	0x8	.text	game/model.cpp	global	setBlendType__10cModelInfoUc	cModelInfo::setBlendType
-0x8015A7B0	0x40	.text	game/model.cpp	global	cModelInfo_setSpecular	cModelInfo::setSpecular
-0x8015A7F0	0x8C	.text	game/model.cpp	global	cModel_deleteModelData	cModel::deleteModelData
+0x8015A7B0	0x40	.text	game/model.cpp	global	setSpecular__10cModelInfoUcUcUc	cModelInfo::setSpecular
+0x8015A7F0	0x8C	.text	game/model.cpp	global	deleteModelData__6cModelP9ModelData	cModel::deleteModelData
 0x8015A87C	0x84	.text	game/model.cpp	global	deleteModelInfo__6cModelP10cModelInfo	cModel::deleteModelInfo
-0x8015A900	0xD0	.text	game/model.cpp	global	cModel_swapModelInfo	cModel::swapModelInfo
+0x8015A900	0xD0	.text	game/model.cpp	global	swapModelInfo__6cModelP9ModelDataP10cModelInfo	cModel::swapModelInfo
 0x8015A9D0	0x90	.text	game/model.cpp	global	moveDataAddr__6cModeli	cModel::moveDataAddr
 0x8015AA60	0xEC	.text	game/model.cpp	global	calcModelAddr	calcModelAddr
 0x8015AB4C	0x9C	.text	game/model.cpp	global	calcModelOffset	calcModelOffset
@@ -5016,23 +5016,23 @@ address	size	section	unit	scope	name	demangled
 0x8015ACB4	0x90	.text	game/model.cpp	global	calcTplAddr	calcTplAddr
 0x8015AD44	0x8C	.text	game/model.cpp	global	calcTplOffset	calcTplOffset
 0x8015ADD0	0x9C	.text	game/model.cpp	global	slideTplAddr__FPvi	slideTplAddr
-0x8015AE6C	0x68	.text	game/model.cpp	global	cModel_releaseModelInfo	cModel::releaseModelInfo
-0x8015AED4	0xB0	.text	game/model.cpp	global	cModel_makePartsList	cModel::makePartsList
-0x8015AF84	0x50	.text	game/model.cpp	global	cModel_setJointInfo	cModel::setJointInfo
-0x8015AFD4	0x228	.text	game/model.cpp	global	cModel_releasePartsList	cModel::releasePartsList
+0x8015AE6C	0x68	.text	game/model.cpp	global	releaseModelInfo__6cModel	cModel::releaseModelInfo
+0x8015AED4	0xB0	.text	game/model.cpp	global	makePartsList__6cModeli	cModel::makePartsList
+0x8015AF84	0x50	.text	game/model.cpp	global	setJointInfo__6cModelPv	cModel::setJointInfo
+0x8015AFD4	0x228	.text	game/model.cpp	global	releasePartsList__6cModeli	cModel::releasePartsList
 0x8015B1FC	0x40	.text	game/model.cpp	global	motionSet__6cModelPviiii	cModel::motionSet
 0x8015B23C	0x24	.text	game/model.cpp	global	motionMove__6cModel	cModel::motionMove
-0x8015B260	0x20	.text	game/model.cpp	global	cModel_motionPause	cModel::motionPause
+0x8015B260	0x20	.text	game/model.cpp	global	motionPause__6cModel	cModel::motionPause
 0x8015B280	0x84	.text	game/model.cpp	global	matUpdate__6cModel	cModel::matUpdate
-0x8015B304	0x84	.text	game/model.cpp	global	cParts_cParts	cParts::cParts
+0x8015B304	0x84	.text	game/model.cpp	global	__6cParts	cParts::cParts
 0x8015B388	0x13C	.text	game/model.cpp	global	getBoundingBox	getBoundingBox
 0x8015B4C4	0x54	.text	game/model.cpp	global	__9cPartsMgr	cPartsMgr::cPartsMgr
-0x8015B518	0xA4	.text	game/model.cpp	global	cPartsMgr_log	cPartsMgr::log
-0x8015B5BC	0x28	.text	game/model.cpp	global	cPartsMgr_construct	cPartsMgr::construct
-0x8015B5E4	0x134	.text	game/model.cpp	local	cPartsMgr_createSequential	cPartsMgr::createSequential
-0x8015B718	0x54	.text	game/model.cpp	global	__12cModInfoMgr	cModInfoMgr::cModInfoMgr
-0x8015B76C	0xA4	.text	game/model.cpp	global	cModInfoMgr_log	cModInfoMgr::log
-0x8015B810	0x28	.text	game/model.cpp	global	cModInfoMgr_construct	cModInfoMgr::construct
+0x8015B518	0xA4	.text	game/model.cpp	global	log__9cPartsMgrPCce	cPartsMgr::log
+0x8015B5BC	0x28	.text	game/model.cpp	global	construct__9cPartsMgrP6cPartsUl	cPartsMgr::construct
+0x8015B5E4	0x134	.text	game/model.cpp	global	createSequential__9cPartsMgrUl	cPartsMgr::createSequential
+0x8015B718	0x54	.text	game/model.cpp	global	__11cModInfoMgr	cModInfoMgr::cModInfoMgr
+0x8015B76C	0xA4	.text	game/model.cpp	global	log__11cModInfoMgrPCce	cModInfoMgr::log
+0x8015B810	0x28	.text	game/model.cpp	global	construct__11cModInfoMgrP10cModelInfoUl	cModInfoMgr::construct
 0x8015B838	0xC8	.text	game/model.cpp	global	create__11cModInfoMgrPvT1	cModInfoMgr::create
 0x8015B900	0xC4	.text	game/model.cpp	global	GetPartsAddr	GetPartsAddr
 0x8015B9C4	0xC4	.text	game/model.cpp	global	GetModelInfoAddr__FP10cModelInfoi	GetModelInfoAddr
@@ -5042,38 +5042,38 @@ address	size	section	unit	scope	name	demangled
 0x8015BC28	0x58	.text	game/model.cpp	global	ModelInfoSetTrans	ModelInfoSetTrans
 0x8015BC80	0x23C	.text	game/model.cpp	global	drawBoundingBox	drawBoundingBox
 0x8015BEBC	0xAC	.text	game/model.cpp	global	error__6cModel	cModel::error
-0x8015BF68	0x48	.text	game/model.cpp	global	cManager_cParts_log	cManager<cParts>::log
-0x8015BFB0	0xBC	.text	game/model.cpp	global	cManager_cParts_countActiveWork	cManager<cParts>::countActiveWork
-0x8015C06C	0x158	.text	game/model.cpp	global	cManager_cParts_create	cManager<cParts>::create
-0x8015C1C4	0x24	.text	game/model.cpp	global	cManager_cParts_create_8015C1C4	cManager<cParts>::create
-0x8015C1E8	0x50	.text	game/model.cpp	global	cManager_cParts_cManager	cManager<cParts>::cManager
-0x8015C238	0x8	.text	game/model.cpp	global	cManager_cParts_setName	cManager<cParts>::setName
-0x8015C240	0x138	.text	game/model.cpp	global	cManager_cParts_create_8015C240	cManager<cParts>::create
-0x8015C378	0x50	.text	game/model.cpp	global	cManager_cModelInfo_cManager	cManager<cModelInfo>::cManager
-0x8015C3C8	0x8	.text	game/model.cpp	global	cManager_cModelInfo_setName	cManager<cModelInfo>::setName
-0x8015C3D0	0xBC	.text	game/model.cpp	local	cManager_cModelInfo_countActiveWork	cManager<cModelInfo>::countActiveWork
-0x8015C48C	0x158	.text	game/model.cpp	global	cManager_cModelInfo_create	cManager<cModelInfo>::create
-0x8015C5E4	0x24	.text	game/model.cpp	global	cManager_cModelInfo_create_8015C5E4	cManager<cModelInfo>::create
-0x8015C608	0x70	.text	game/model.cpp	global	__static_initialization_and_destruction_0_8015C608	__static_initialization_and_destruction_0
-0x8015C678	0x20	.text	game/model.cpp	global	cModelInfo_dt_cModelInfo	cModelInfo::~cModelInfo
-0x8015C698	0x34	.text	game/model.cpp	global	cModInfoMgr_dt_cModInfoMgr	cModInfoMgr::~cModInfoMgr
-0x8015C6CC	0x28	.text	game/model.cpp	global	cModInfoMgr_memAlloc	cModInfoMgr::memAlloc
-0x8015C6F4	0x24	.text	game/model.cpp	global	cModInfoMgr_memFree	cModInfoMgr::memFree
-0x8015C718	0x28	.text	game/model.cpp	global	cModInfoMgr_memClear	cModInfoMgr::memClear
-0x8015C740	0x20	.text	game/model.cpp	global	cParts_dt_cParts	cParts::~cParts
-0x8015C760	0x34	.text	game/model.cpp	global	cPartsMgr_dt_cPartsMgr	cPartsMgr::~cPartsMgr
-0x8015C794	0x28	.text	game/model.cpp	global	cPartsMgr_memAlloc	cPartsMgr::memAlloc
-0x8015C7BC	0x24	.text	game/model.cpp	global	cPartsMgr_memFree	cPartsMgr::memFree
-0x8015C7E0	0x28	.text	game/model.cpp	global	cPartsMgr_memClear	cPartsMgr::memClear
-0x8015C808	0x20	.text	game/model.cpp	global	cModel_dt_cModel	cModel::~cModel
+0x8015BF68	0x48	.text	game/model.cpp	global	log__t8cManager1Z6cPartsPCce	cManager<cParts>::log
+0x8015BFB0	0xBC	.text	game/model.cpp	global	countActiveWork__t8cManager1Z6cParts	cManager<cParts>::countActiveWork
+0x8015C06C	0x158	.text	game/model.cpp	global	create__t8cManager1Z6cPartsi	cManager<cParts>::create
+0x8015C1C4	0x24	.text	game/model.cpp	global	create__t8cManager1Z6cParts	cManager<cParts>::create
+0x8015C1E8	0x50	.text	game/model.cpp	global	__t8cManager1Z6cPartsUlUc	cManager<cParts>::cManager
+0x8015C238	0x8	.text	game/model.cpp	global	setName__t8cManager1Z6cPartsPCc	cManager<cParts>::setName
+0x8015C240	0x138	.text	game/model.cpp	global	create__t8cManager1Z6cPartsiUl	cManager<cParts>::create
+0x8015C378	0x50	.text	game/model.cpp	global	__t8cManager1Z10cModelInfoUlUc	cManager<cModelInfo>::cManager
+0x8015C3C8	0x8	.text	game/model.cpp	global	setName__t8cManager1Z10cModelInfoPCc	cManager<cModelInfo>::setName
+0x8015C3D0	0xBC	.text	game/model.cpp	local	countActiveWork__t8cManager1Z10cModelInfo	cManager<cModelInfo>::countActiveWork
+0x8015C48C	0x158	.text	game/model.cpp	global	create__t8cManager1Z10cModelInfoi	cManager<cModelInfo>::create
+0x8015C5E4	0x24	.text	game/model.cpp	global	create__t8cManager1Z10cModelInfo	cManager<cModelInfo>::create
+0x8015C608	0x70	.text	game/model.cpp	local	__static_initialization_and_destruction_0_8015C608	__static_initialization_and_destruction_0
+0x8015C678	0x20	.text	game/model.cpp	global	_._10cModelInfo	cModelInfo::~cModelInfo
+0x8015C698	0x34	.text	game/model.cpp	global	_._11cModInfoMgr	cModInfoMgr::~cModInfoMgr
+0x8015C6CC	0x28	.text	game/model.cpp	global	memAlloc__11cModInfoMgrUl	cModInfoMgr::memAlloc
+0x8015C6F4	0x24	.text	game/model.cpp	global	memFree__11cModInfoMgrPv	cModInfoMgr::memFree
+0x8015C718	0x28	.text	game/model.cpp	global	memClear__11cModInfoMgrP10cModelInfoUl	cModInfoMgr::memClear
+0x8015C740	0x20	.text	game/model.cpp	global	_._6cParts	cParts::~cParts
+0x8015C760	0x34	.text	game/model.cpp	global	_._9cPartsMgr	cPartsMgr::~cPartsMgr
+0x8015C794	0x28	.text	game/model.cpp	global	memAlloc__9cPartsMgrUl	cPartsMgr::memAlloc
+0x8015C7BC	0x24	.text	game/model.cpp	global	memFree__9cPartsMgrPv	cPartsMgr::memFree
+0x8015C7E0	0x28	.text	game/model.cpp	global	memClear__9cPartsMgrP6cPartsUl	cPartsMgr::memClear
+0x8015C808	0x20	.text	game/model.cpp	global	_._6cModel	cModel::~cModel
 0x8015C828	0x4	.text	game/model.cpp	global	move__6cModel	cModel::move
 0x8015C82C	0x28	.text	game/model.cpp	global	setNoSuspend__6cModeli	cModel::setNoSuspend
 0x8015C854	0x24	.text	game/model.cpp	global	isTrans__6cModel	cModel::isTrans
 0x8015C878	0xC0	.text	game/model.cpp	global	getPartsPtr__6cModeli	cModel::getPartsPtr
-0x8015C938	0x218	.text	game/model.cpp	global	cManager_cModelInfo_destroy	cManager<cModelInfo>::destroy
-0x8015CB50	0x218	.text	game/model.cpp	global	cManager_cParts_destroy	cManager<cParts>::destroy
-0x8015CD68	0x34	.text	game/model.cpp	global	cManager_cParts_dt_cManager	cManager<cParts>::~cManager
-0x8015CD9C	0x34	.text	game/model.cpp	global	cManager_cModelInfo_dt_cManager	cManager<cModelInfo>::~cManager
+0x8015C938	0x218	.text	game/model.cpp	global	destroy__t8cManager1Z10cModelInfoP10cModelInfo	cManager<cModelInfo>::destroy
+0x8015CB50	0x218	.text	game/model.cpp	global	destroy__t8cManager1Z6cPartsP6cParts	cManager<cParts>::destroy
+0x8015CD68	0x34	.text	game/model.cpp	global	_._t8cManager1Z6cParts	cManager<cParts>::~cManager
+0x8015CD9C	0x34	.text	game/model.cpp	global	_._t8cManager1Z10cModelInfo	cManager<cModelInfo>::~cManager
 0x8015CDD0	0x2C	.text	game/model.cpp	global	global_constructors_keyed_to_cModel_mm	global constructors keyed to cModel::mm
 0x8015CDFC	0x2C	.text	game/model.cpp	global	global_destructors_keyed_to_cModel_mm	global destructors keyed to cModel::mm
 0x8015CE28	0xF8	.text	game/motion.cpp	global	PartsWorldPosCalc	PartsWorldPosCalc
@@ -6823,20 +6823,20 @@ address	size	section	unit	scope	name	demangled
 0x801E7028	0x64	.text	lib/sfd_buf.c	global	SFBUF_VfrmAddRead	SFBUF_VfrmAddRead
 0x801E708C	0x4C	.text	lib/sfd_buf.c	global	SFBUF_VfrmGetRead	SFBUF_VfrmGetRead
 0x801E70D8	0x20	.text	lib/sfd_buf.c	global	SFBUF_AddRtotSj	SFBUF_AddRtotSj
-0x801E70F8	0x54	.text	lib/sfd_buf.c	local	SFBUF_RingGetSj	SFBUF_RingGetSj
+0x801E70F8	0x54	.text	lib/sfd_buf.c	global	SFBUF_RingGetSj	SFBUF_RingGetSj
 0x801E714C	0x94	.text	lib/sfd_buf.c	global	SFBUF_GetWTot	SFBUF_GetWTot
 0x801E71E0	0x10	.text	lib/sfd_buf.c	global	SFBUF_GetRTot	SFBUF_GetRTot
 0x801E71F0	0x10	.text	lib/sfd_buf.c	global	SFBUF_GetRingBufSiz	SFBUF_GetRingBufSiz
 0x801E7200	0x5C	.text	lib/sfd_buf.c	global	SFBUF_RingSetDlm	SFBUF_RingSetDlm
 0x801E725C	0x64	.text	lib/sfd_buf.c	global	SFBUF_RingGetDlm	SFBUF_RingGetDlm
-0x801E72C0	0x238	.text	lib/sfd_buf.c	local	SFBUF_RingAddRead	SFBUF_RingAddRead
+0x801E72C0	0x238	.text	lib/sfd_buf.c	global	SFBUF_RingAddRead	SFBUF_RingAddRead
 0x801E74F8	0x128	.text	lib/sfd_buf.c	global	SFBUF_RingAddWrite	SFBUF_RingAddWrite
 0x801E7620	0x15C	.text	lib/sfd_buf.c	global	SFBUF_RingGetRead	SFBUF_RingGetRead
 0x801E777C	0x15C	.text	lib/sfd_buf.c	global	SFBUF_RingGetWrite	SFBUF_RingGetWrite
 0x801E78D8	0x34	.text	lib/sfd_buf.c	global	SFBUF_GetUoch	SFBUF_GetUoch
 0x801E790C	0x34	.text	lib/sfd_buf.c	global	SFBUF_SetUoch	SFBUF_SetUoch
 0x801E7940	0x1B8	.text	lib/sfd_buf.c	global	SFBUF_SetSupplySj	SFBUF_SetSupplySj
-0x801E7AF8	0xCC	.text	lib/sfd_buf.c	local	SFBUF_DestroySj	SFBUF_DestroySj
+0x801E7AF8	0xCC	.text	lib/sfd_buf.c	global	SFBUF_DestroySj	SFBUF_DestroySj
 0x801E7BC4	0x6D0	.text	lib/sfd_buf.c	global	SFBUF_InitHn	SFBUF_InitHn
 0x801E8294	0xA0	.text	lib/sfd_buf.c	global	SFBUF_Init	SFBUF_Init
 0x801E8334	0xBC	.text	lib/sfd_con.c	global	SFCON_ReadTotSmplQue	SFCON_ReadTotSmplQue
@@ -7034,7 +7034,7 @@ address	size	section	unit	scope	name	demangled
 0x801F55FC	0x74	.text	lib/sfd_tim.c	global	SFD_SetUsrTimeFn	SFD_SetUsrTimeFn
 0x801F5670	0x20	.text	lib/sfd_tim.c	global	SFD_CmpTime	SFD_CmpTime
 0x801F5690	0x5C	.text	lib/sfd_tim.c	global	SFD_SetUsrIsSkipFn	SFD_SetUsrIsSkipFn
-0x801F56EC	0x44	.text	lib/sfd_tim.c	local	SFTIM_ChkRegularTime	SFTIM_ChkRegularTime
+0x801F56EC	0x44	.text	lib/sfd_tim.c	global	SFTIM_ChkRegularTime	SFTIM_ChkRegularTime
 0x801F5730	0x164	.text	lib/sfd_tim.c	global	sftim_GetTimeExtClock	sftim_GetTimeExtClock
 0x801F5894	0x58	.text	lib/sfd_tim.c	global	sftim_GetTimeUfrm	sftim_GetTimeUfrm
 0x801F58EC	0x70	.text	lib/sfd_tim.c	global	sftim_GetTimeVsync	sftim_GetTimeVsync
@@ -7043,14 +7043,14 @@ address	size	section	unit	scope	name	demangled
 0x801F59DC	0x98	.text	lib/sfd_tim.c	global	SFTIM_GetTimeSub	SFTIM_GetTimeSub
 0x801F5A74	0xD0	.text	lib/sfd_tim.c	global	SFD_GetTime	SFD_GetTime
 0x801F5B44	0xC	.text	lib/sfd_tim.c	global	SFTIM_SetStartTime	SFTIM_SetStartTime
-0x801F5B50	0x7C	.text	lib/sfd_tim.c	local	SFTIM_GetVideoStartSample	SFTIM_GetVideoStartSample
+0x801F5B50	0x7C	.text	lib/sfd_tim.c	global	SFTIM_GetVideoStartSample	SFTIM_GetVideoStartSample
 0x801F5BCC	0xA8	.text	lib/sfd_tim.c	global	SFTIM_GetAudioStartSample	SFTIM_GetAudioStartSample
-0x801F5C74	0xE8	.text	lib/sfd_tim.c	local	SFTIM_IsStagnant	SFTIM_IsStagnant
+0x801F5C74	0xE8	.text	lib/sfd_tim.c	global	SFTIM_IsStagnant	SFTIM_IsStagnant
 0x801F5D5C	0x1D0	.text	lib/sfd_tim.c	global	SFTIM_VbIn	SFTIM_VbIn
-0x801F5F2C	0x38	.text	lib/sfd_tim.c	local	SFTIM_GetNextItime	SFTIM_GetNextItime
+0x801F5F2C	0x38	.text	lib/sfd_tim.c	global	SFTIM_GetNextItime	SFTIM_GetNextItime
 0x801F5F64	0x9C	.text	lib/sfd_tim.c	global	SFTIM_UpdateItime	SFTIM_UpdateItime
 0x801F6000	0x3C	.text	lib/sfd_tim.c	global	SFTIM_InitTtu	SFTIM_InitTtu
-0x801F603C	0x390	.text	lib/sfd_tim.c	local	SFTIM_InitHn	SFTIM_InitHn
+0x801F603C	0x390	.text	lib/sfd_tim.c	global	SFTIM_InitHn	SFTIM_InitHn
 0x801F63CC	0x14	.text	lib/sfd_tim.c	global	SFTIM_Init	SFTIM_Init
 0x801F63E0	0x1C	.text	lib/sfd_trn.c	global	SFTRN_IsSetup	SFTRN_IsSetup
 0x801F63FC	0x10	.text	lib/sfd_trn.c	global	SFTRN_GetTermFlg	SFTRN_GetTermFlg
@@ -7096,7 +7096,7 @@ address	size	section	unit	scope	name	demangled
 0x801F6FE0	0x30	.text	lib/sfd_tmr.c	global	SFTMR_InitTsum	SFTMR_InitTsum
 0x801F7010	0xA50	.text	lib/sfd_tst.c	global	SFTST_Calc	SFTST_Calc
 0x801F7A60	0x80	.text	lib/sfd_tst.c	global	SFTST_GoNextFrame	SFTST_GoNextFrame
-0x801F7AE0	0x8	.text	lib/sfd_tst.c	local	SFTST_SetAdjFlg	SFTST_SetAdjFlg
+0x801F7AE0	0x8	.text	lib/sfd_tst.c	global	SFTST_SetAdjFlg	SFTST_SetAdjFlg
 0x801F7AE8	0x8	.text	lib/sfd_tst.c	global	SFTST_Pause	SFTST_Pause
 0x801F7AF0	0x10	.text	lib/sfd_tst.c	global	SFTST_SetMovaveRange	SFTST_SetMovaveRange
 0x801F7B00	0x14	.text	lib/sfd_tst.c	global	SFTST_SetAdjPoff	SFTST_SetAdjPoff
@@ -8458,16 +8458,16 @@ address	size	section	unit	scope	name	demangled
 0x8023DEB8	0x2C8	.rodata	game/main_sub.cpp	global	lbl_8023DEB8	.
 0x8023E180	0x278	.rodata	game/math_sub.cpp	global	lbl_8023E180	.
 0x8023E3F8	0x528	.rodata	game/model.cpp	global	lbl_8023E3F8	.
-0x8023E920	0x40	.rodata	game/model.cpp	global	cModel_virtual_table	cModel virtual table
-0x8023E960	0x48	.rodata	game/model.cpp	global	cPartsMgr_virtual_table	cPartsMgr virtual table
-0x8023E9A8	0x48	.rodata	game/model.cpp	global	cManager_cParts_virtual_table	cManager<cParts> virtual table
-0x8023E9F0	0x30	.rodata	game/model.cpp	global	cParts_virtual_table	cParts virtual table
-0x8023EA20	0x48	.rodata	game/model.cpp	global	cModInfoMgr_virtual_table	cModInfoMgr virtual table
-0x8023EA68	0x48	.rodata	game/model.cpp	global	cManager_cModelInfo_virtual_table	cManager<cModelInfo> virtual table
-0x8023EAB0	0x28	.rodata	game/model.cpp	global	cModelInfo_virtual_table	cModelInfo virtual table
-0x8023EAD8	0x30	.rodata	game/model.cpp	global	cCoord_virtual_table_8023EAD8	cCoord virtual table
+0x8023E920	0x40	.rodata	game/model.cpp	global	_vt.6cModel	cModel virtual table
+0x8023E960	0x48	.rodata	game/model.cpp	global	_vt.9cPartsMgr	cPartsMgr virtual table
+0x8023E9A8	0x48	.rodata	game/model.cpp	global	_vt.t8cManager1Z6cParts	cManager<cParts> virtual table
+0x8023E9F0	0x30	.rodata	game/model.cpp	global	_vt.6cParts	cParts virtual table
+0x8023EA20	0x48	.rodata	game/model.cpp	global	_vt.11cModInfoMgr	cModInfoMgr virtual table
+0x8023EA68	0x48	.rodata	game/model.cpp	global	_vt.t8cManager1Z10cModelInfo	cManager<cModelInfo> virtual table
+0x8023EAB0	0x28	.rodata	game/model.cpp	global	_vt.10cModelInfo	cModelInfo virtual table
+0x8023EAD8	0x30	.rodata	game/model.cpp	local	cCoord_virtual_table_8023EAD8	cCoord virtual table
 0x8023EB08	0x10	.rodata	game/model.cpp	global	lbl_8023EB08	.
-0x8023EB18	0x28	.rodata	game/model.cpp	global	cUnit_virtual_table_8023EB18	cUnit virtual table
+0x8023EB18	0x28	.rodata	game/model.cpp	local	cUnit_virtual_table_8023EB18	cUnit virtual table
 0x8023EB40	0x248	.rodata	game/motion.cpp	global	lbl_8023EB40	.
 0x8023ED88	0x150	.rodata	game/obj.cpp	global	lbl_8023ED88	.
 0x8023EED8	0x48	.rodata	game/obj.cpp	global	_vt.7cObjMgr	cObjMgr virtual table

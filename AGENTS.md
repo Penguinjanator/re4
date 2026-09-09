@@ -1824,6 +1824,18 @@ functions instead of more source permutations:
 - M3 auto-inlining decisions for mid-size helpers (mwsfdsvr).
 Write the remaining CRI units for source completeness; flag only what matches.
 
+- Inlined helper locals are laid out first-declared -> lowest frame offset (reverse of a function's
+  own locals); each inlined call gets a block below the previous one.
+- `static inline` forces inlining of a helper too large for `-inline auto` (a source-level fix for
+  what looks like M3).
+- A variable with two definitions gets `mr r0,r3; ...; mr rX,r0` for a call result; single-definition
+  variables get a direct `mr`. `y = x` between two live variables stays `mr`; a fresh one folds to `li`.
+- Integer add chains reassociate (first addend added last); separate statements keep source order.
+- `const T *` parameters let MWCC CSE loads across stores through another pointer; a reloading
+  original means non-const parameters.
+- Volatile FPRs are assigned in declaration order (first declared -> lowest).
+- `lbz` without `extsb` before `cmpwi K` on a `Sint8` field is a single-use `== K` compare.
+
 ## REL modules
 
 The game loads its rooms, enemies, weapons and debug tools as Nintendo REL overlays. `ninja` rebuilds the

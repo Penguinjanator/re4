@@ -47,6 +47,101 @@ typedef struct {
 	Sint32 tot_que[32];        /* 0x1FC */
 } SFCON;
 
+/* timecode as the user passes it to SFD_Tc2Time (0x20 bytes) */
+typedef struct {
+	Sint32 type;               /* 0x00 frame rate (index into SFTIM_prate) */
+	Sint32 drop;               /* 0x04 drop frame */
+	Sint32 hour;               /* 0x08 */
+	Sint32 min;                /* 0x0C */
+	Sint32 sec;                /* 0x10 */
+	Sint32 frm;                /* 0x14 */
+	Sint32 frm2;               /* 0x18 added to frm */
+	Sint16 x1c;
+	Sint16 field;              /* 0x1E half frame */
+} SFTIM_TC;
+
+/* time with its timecode (0x2C bytes) */
+typedef struct {
+	Sint32 valid;              /* 0x00 */
+	SFTIM_TC tc;               /* 0x04 */
+	Sint32 val;                /* 0x24 */
+	Sint32 unit;               /* 0x28 */
+} SFTIM_TTU;
+
+typedef Sint32 (*SFTIM_FN)(SFD sfd, Sint32 *ncount, Sint32 *tscale);
+
+/* timing work (sfd_tim.c), the same memory as SFCON at SFD_OBJ + 0xD28 (SFD_TIM(sfd)) */
+typedef struct {
+	SFTIM_FN timefn[6];        /* 0x000 clock sources (SFTIM_SetTimeFn / cond 0xF) */
+	Bool (*isskipfn)();        /* 0x018 SFD_SetUsrIsSkipFn */
+	SFTIM_TC tc;               /* 0x01C */
+	SFTIM_TTU ttu0;            /* 0x03C (INT_MAX) */
+	SFTIM_TTU ttu1;            /* 0x068 (-1) */
+	SFTIM_TTU tot;             /* 0x094 (-1) total time (SFCON.tottime/tunit) */
+	SFTIM_TTU ttu3;            /* 0x0C0 (0) */
+	SFTIM_TTU vstart;          /* 0x0EC (-1) video start time */
+	SFTIM_TTU vofst;           /* 0x118 (INT_MAX) video start offset (SFTIM_GetVideoStartSample) */
+	Sint32 astart_smpl;        /* 0x144 SFTIM_SetStartTime */
+	Sint32 astart_sfreq;       /* 0x148 */
+	Sint32 x14c;
+	Sint64 x150;               /* 0x150 (-1) */
+	Sint64 as_pts;             /* 0x158 (-1) audio start PTS (90 kHz) */
+	Sint32 x160;
+	Sint32 ctime;              /* 0x164 (SFCON) */
+	Sint32 ctime_idx;          /* 0x168 */
+	Sint32 ctime_que[32];      /* 0x16C */
+	Sint32 tot_last;           /* 0x1EC (1) */
+	Sint32 x1f0;
+	Sint32 que_wr;             /* 0x1F4 */
+	Sint32 que_rd;             /* 0x1F8 */
+	Sint32 tot_que[32];        /* 0x1FC */
+	Sint32 vterm;              /* 0x27C (-5) video end time */
+	Sint32 vterm_unit;         /* 0x280 (1) */
+	Sint32 x284;               /* 0x284 (-5) */
+	Sint32 x288;               /* 0x288 (1) */
+	Sint32 cur;                /* 0x28C (-1) current time (SFTIM_GetTime) */
+	Sint32 cur_unit;           /* 0x290 (1) */
+	Sint32 itime;              /* 0x294 (-5) */
+	Sint32 itime_min;          /* 0x298 (INT_MAX) */
+	Sint32 itime_max;          /* 0x29C (0) */
+	Sint32 x2a0;               /* 0x2A0 (INT_MAX) */
+	Sint32 x2a4;
+	Sint32 vsync;              /* 0x2A8 vsync clock count */
+	Sint32 speed;              /* 0x2AC (1000) */
+	Sint32 x2b0;
+	Sint32 x2b4;
+	Sint32 x2b8;               /* 0x2B8 (1) */
+	Sint32 x2bc;               /* 0x2BC (100) frame decision count */
+	Float32 x2c0;              /* 0x2C0 (-1.0) */
+	Sint32 x2c4;               /* 0x2C4 last frame decision */
+	Float32 x2c8;              /* 0x2C8 (-1.0) last clock time seen */
+	Sint32 vcnt;               /* 0x2CC (-1) vsync count while requested */
+	Sint32 chg_base;           /* 0x2D0 clock at the last time change */
+	SFTIM_FN extfn;            /* 0x2D4 external clock (SFD_SetExtClockFn) */
+	Sint32 ext_last;           /* 0x2D8 (-5) */
+	Sint32 ext_cnt;            /* 0x2DC */
+	Sint32 ext_unit;           /* 0x2E0 (1) */
+	Sint32 ext_wrap;           /* 0x2E4 (-1) */
+	void *ext_obj;             /* 0x2E8 */
+	Sint32 x2ec;
+	Uint8 tst[0x1C0];          /* 0x2F0 (SFD_OBJ + 0x1018) */
+	Uint8 pad4b0[0x5B0 - 0x4B0];
+	Sint32 x5b0;
+	Sint32 x5b4;
+	Sint32 x5b8;
+} SFTIM_WORK;
+
+typedef SFTIM_WORK *SFTIM;
+
+/* library-wide timing work (SFLIB_WORK.tim) */
+typedef struct {
+	Sint32 vcnt;               /* 0x00 vsync count (SFTIM_VbIn) */
+	Sint32 x04;
+	Sint32 vrate;              /* 0x08 vsyncs per second (59940 = 59.94 Hz) */
+} SFTIM_LIB;
+
+extern const Sint32 SFTIM_prate[9];
+
 /* PTS queue entry (16 bytes, 8-byte aligned) */
 typedef struct {
 	Sint64 pts;
@@ -314,11 +409,50 @@ typedef struct {
 	Sint32 seekpos;            /* 0xDD4 SFD_SetSeekPos */
 } SFSEE_WORK;
 
+/* audio stream header analysis kept in the seek work (a1hdr / a2hdr and the words after them) */
+typedef struct {
+	Sint32 analyzed;           /* 0x00 */
+	Sint32 byterate;           /* 0x04 bytes per second */
+	Sint32 tunit;              /* 0x08 (1) */
+	Sint32 nch;                /* 0x0C */
+	Sint32 sfreq;              /* 0x10 */
+	Sint32 nsmpl;              /* 0x14 */
+} SFSEE_AHDR;
+
 typedef struct {
 	Sint32 x00;
 	Sint32 pos;                /* 0x04 requested seek position (-3: none) */
 	Sint32 x08;
 } SFSEE_REQ;
+
+/* ADX audio driver creation parameters (SFD_SetAdxtPara, 0x1C bytes) */
+typedef struct {
+	Sint32 bsize;              /* 0x00 ring buffer size */
+	Sint32 xsize;              /* 0x04 ring buffer extra size */
+	void *buf;                 /* 0x08 ring buffer (32-byte aligned) */
+	Sint32 maxnch;             /* 0x0C */
+	Sint32 x10;
+	Sint32 worksize;           /* 0x14 */
+	void *work;                /* 0x18 ADXT work (32-byte aligned) */
+} SFADXT_PARA;
+
+/* ADX audio driver work (sfd_adxt.c, tr[3].hn), SFD_OBJ + 0x33C0 */
+typedef struct {
+	void *adxt;                /* 0x00 ADXT handle */
+	SJ sj;                     /* 0x04 ring buffer stream joint fed by the transfer */
+	SFADXT_PARA para;          /* 0x08 */
+	Sint32 tcount;             /* 0x24 last time (-1) */
+	Sint32 tunit;              /* 0x28 (1) */
+	Sint32 pause;              /* 0x2C */
+	Sint32 discard;            /* 0x30 samples still to discard */
+	Sint32 seekflg;            /* 0x34 */
+	Sint32 smplofst;           /* 0x38 samples skipped before the audio start */
+	void (*func)(SFD sfd, Uint8 *data, Sint32 len, Sint32 *nbyte); /* 0x3C transfer state function */
+	Sint32 x40;
+	Sint32 svrfreq;            /* 0x44 (-1) */
+	Sint32 totbyte;            /* 0x48 bytes copied into the stream joint */
+	Sint32 x4c;
+} SFADXT_WORK;
 
 typedef struct {
 	SFSEE_WORK *wk;            /* 0x34C8 */
@@ -335,7 +469,9 @@ typedef struct SFD_OBJ {
 	Uint8 pad58[0x74 - 0x58];
 	Sint32 pad74;
 	SFHDS_FHD fhd;             /* 0x78 file header analysis */
-	Uint8 pad90c[0x930 - 0x78 - sizeof(SFHDS_FHD)];
+	Uint8 pad90c[0x920 - 0x78 - sizeof(SFHDS_FHD)];
+	Sint32 picrate;            /* 0x920 frame rate type (index into SFTIM_prate, 0: unknown) */
+	Uint8 pad924[0x930 - 0x924];
 	Sint32 numelem_aud;        /* 0x930 copied from fhd after (re)processing */
 	Sint32 numelem_vid;        /* 0x934 */
 	Sint32 numelem_prv;        /* 0x938 */
@@ -346,17 +482,36 @@ typedef struct SFD_OBJ {
 	Sint32 cond_def[SFD_COND_NUM]; /* 0xB94 */
 	Uint8 padD24[4];
 	/* 0xD28 */
-	SFCON con;                 /* 0xD28 */
-	Uint8 padFA4[0x1308 - 0xD28 - sizeof(SFCON)];
+	SFCON con;                 /* 0xD28 (also the SFTIM handle: &sfd->con) */
+	Uint8 padFA4[0x1018 - 0xD28 - sizeof(SFCON)];
+	Uint8 tst[0x1C0];          /* 0x1018 time stabiliser work (sfd_tst.c SFTST_WORK) */
+	Uint8 pad11D8[0x1308 - 0x11D8];
 	SFBUF_WORK buf[SFD_BUF_NUM]; /* 0x1308 */
 	SFD_VFRM vfrm[SFD_VFRM_NUM]; /* 0x16A8 */
-	SFD_TR tr[SFD_TR_NUM];     /* 0x1F28 (tr[2].hn = SFMPV_WORK *, tr[8].hn = SFUO *, tr[8].bufin = user-output SFBUF id) */
-	Uint8 pad218C[0x3474 - 0x1F28 - SFD_TR_NUM * sizeof(SFD_TR)];
+	SFD_TR tr[SFD_TR_NUM];     /* 0x1F28 (tr[2].hn = SFMPV_WORK *, tr[3].hn = SFADXT_WORK *, tr[8].hn = SFUO *, tr[8].bufin = user-output SFBUF id) */
+	Uint8 pad218C[0x33C0 - 0x1F28 - SFD_TR_NUM * sizeof(SFD_TR)];
+	SFADXT_WORK adxt;          /* 0x33C0 */
+	Uint8 pad3410[0x3474 - 0x3410];
 	SFAOAP aoap;               /* 0x3474 (tr[7].hn) */
 	SFUO uo_tbl;               /* 0x3490 */
 	Sint32 pad34c4;
 	SFSEE_HN see;              /* 0x34C8 */
 } SFD_OBJ;
+
+/* 64-bit stream counters inside plyinf (SFD_OBJ + 0x9B0..0x9D8) seen through a separate view:
+ * SFD_PLYINF itself has to stay 4-byte aligned (SFD_GetPlyInf copies it with a lwz/stw loop) */
+typedef struct {
+	Uint8 pad0[0x9B0];
+	Sint64 a_in_wcnt;          /* 0x9B0 audio input ring: written */
+	Sint64 a_in_rcnt;          /* 0x9B8 audio input ring: read */
+	Sint64 a_byte;             /* 0x9C0 audio bytes handed to the decoder */
+	Sint64 a_sj_wcnt;          /* 0x9C8 decoder stream joint: written */
+	Sint64 a_sj_rcnt;          /* 0x9D0 decoder stream joint: read */
+} SFD_CNT64;
+
+#define SFD_CNT(sfd) ((SFD_CNT64 *)(sfd))
+#define SFD_TIM(sfd) ((SFTIM)&(sfd)->con)
+#define SFTIM_LIBWK ((SFTIM_LIB *)SFLIB_libwork.tim)
 
 
 /* library-wide work (sfd_lib.c), 0x228 bytes */
@@ -451,7 +606,7 @@ Sint32 SFD_SetCond(SFD sfd, Sint32 id, Sint32 val);
 Sint32 SFD_GetHnStat(SFD sfd);
 Sint32 SFD_GetTime(SFD sfd, Sint32 *ncount, Sint32 *tscale);
 Sint32 SFD_SetSpeed(SFD sfd, Sint32 speed);
-Bool SFTIM_IsGetFrmTime(SFD sfd, void *frm);
+Bool SFTIM_IsGetFrmTime(SFD sfd, SFD_VFRM *frm);
 Bool SFTIM_IsGetFrmTimeTunit(SFD sfd, Sint32 ftime, Sint32 tunit);
 Bool SFTIM_IsVideoTerm(SFD sfd);
 

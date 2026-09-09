@@ -1,0 +1,426 @@
+/* CRI ADXT server (adx_tsvr.c): the per-handle state machine run from ADXT_ExecServer, the
+ * decoder-information stage and the decoder trap / stream end-of-sector callbacks (looping and
+ * linked files). Every function is instruction-identical to the original; the remaining diffs
+ * are callee-saved register permutations (M1). */
+#include <string.h>
+#include "cri_xpt.h"
+#include "sj.h"
+#include "adx_t.h"
+#include "adx_stm.h"
+
+extern void ADXERR_CallErrFunc1(Char8 *msg);
+extern void ADXERR_CallErrFunc2(Char8 *msg1, Char8 *msg2);
+extern void ADXERR_ItoA2(Sint32 a, Sint32 b, Char8 *str, Sint32 len);
+extern Sint32 ADXSJD_GetStat(void *sjd);
+extern Sint32 ADXSJD_GetNumChan(void *sjd);
+extern Sint32 ADXSJD_GetSfreq(void *sjd);
+extern Sint32 ADXSJD_GetNumLoop(void *sjd);
+extern Sint32 ADXSJD_GetBlkSmpl(void *sjd);
+extern void ADXSJD_SetMaxDecSmpl(void *sjd, Sint32 nsmpl);
+extern Sint32 ADXSJD_GetLpEndOfst(void *sjd);
+extern Sint32 ADXSJD_GetLpEndPos(void *sjd);
+extern Sint32 ADXSJD_GetLpStartPos(void *sjd);
+extern Sint32 ADXSJD_GetLpStartOfst(void *sjd);
+extern void ADXSJD_SetTrapNumSmpl(void *sjd, Sint32 nsmpl);
+extern void ADXSJD_SetTrapDtLen(void *sjd, Sint32 len);
+extern void ADXSJD_SetTrapCnt(void *sjd, Sint32 cnt);
+extern void ADXSJD_EntryTrapFunc(void *sjd, void (*fn)(ADXT adxt), void *obj);
+extern Sint32 ADXSJD_GetTotalNumSmpl(void *sjd);
+extern Sint32 ADXSJD_GetOutBps(void *sjd);
+extern Sint16 ADXSJD_GetDefOutVol(void *sjd);
+extern Sint32 ADXSJD_GetFormat(void *sjd);
+extern void *ADXSJD_GetSpsdInfo(void *sjd);
+extern Sint32 ADXSJD_GetDecNumSmpl(void *sjd);
+extern void ADXSJD_Stop(void *sjd);
+extern void ADXSJD_Start(void *sjd);
+extern void ADXSJD_ExecHndl(void *sjd);
+extern void ADXSJD_TermSupply(void *sjd);
+extern void ADXSJD_SetDecPos(void *sjd, Sint32 pos);
+extern void ADXSJD_TakeSnapshot(void *sjd);
+extern void ADXSJD_RestoreSnapshot(void *sjd);
+extern void ADXSTM_EntryEosFunc(ADXSTM stm, void (*fn)(ADXT adxt), void *obj);
+extern Sint32 ADXRNA_GetNumData(void *rna);
+extern Sint32 ADXRNA_GetNumRoom(void *rna);
+extern void ADXRNA_SetPlaySw(void *rna, Sint32 sw);
+extern void ADXRNA_SetTransSw(void *rna, Sint32 sw);
+extern void ADXRNA_SetBitPerSmpl(void *rna, Sint32 bps);
+extern void ADXRNA_SetSfreq(void *rna, Sint32 sfreq);
+extern void ADXRNA_SetNumChan(void *rna, Sint32 nch);
+extern void ADXRNA_SetTotalNumSmpl(void *rna, Sint32 nsmpl);
+extern void ADXRNA_SetOutVol(void *rna, Sint32 vol);
+extern Sint32 ADXRNA_SetStmHdInfo(void *rna, void *hdinfo);
+extern void ADXAMP_SetSfreq(void *amp, Sint32 sfreq);
+extern Sint32 LSC_GetStat(void *lsc);
+extern Sint32 ADX_DecodeFooter(Uint8 *data, Sint32 len, Sint16 *ofst);
+extern Sint32 ADX_ScanInfoCode(Uint8 *data, Sint32 len, Sint16 *ofst);
+extern Sint32 ADXT_GetStat(ADXT adxt);
+extern Sint32 ADXT_GetNumChan(ADXT adxt);
+extern void ADXT_Stop(ADXT adxt);
+extern void ADXT_GetTranspose(ADXT adxt, Sint32 *oct, Sint32 *cent);
+extern void ADXT_SetTranspose(ADXT adxt, Sint32 oct, Sint32 cent);
+extern Sint32 ADXT_SetOutPan(ADXT adxt, Sint32 ch, Sint32 pan);
+extern void ADXT_SetLnkSw(ADXT adxt, Sint32 sw);
+extern void adxt_start_stm(ADXT adxt, void *fname, void *dir, Sint32 ofst, Sint32 nsct);
+
+void (*adxt_enddecinfo_cbfn)(ADXT adxt, Sint32 sfreq, Sint32 nch, Sint32 nsmpl) = NULL;
+static Sint32 adxt_dbg_rna_ndata = 0;
+Sint32 adxt_dbg_ndt = 0;
+Sint32 adxt_dbg_nch = 0;
+
+static void adxt_stat_decinfo(ADXT adxt);
+void adxt_nlp_trap_entry(ADXT adxt);
+void adxt_eos_entry(ADXT adxt);
+void adxt_trap_entry(ADXT adxt);
+void adxt_trap_entry_lps(ADXT adxt);
+
+void ADXT_ExecHndl(ADXT adxt)
+{
+	Sint32 nch;
+	Sint32 i;
+	Sint32 ndata;
+	Sint32 nroom;
+	Sint32 nbyte;
+	void *sjd;
+	void *rna;
+	SJ sj;
+	SJCK ck;
+
+	if (adxt == NULL) {
+		ADXERR_CallErrFunc1("E02080842 ADXT_ExecHndl: parameter error");
+		return;
+	}
+	if (adxt->stat == ADXT_ISTAT_PLAYING) {
+		if (ADXSJD_GetStat(adxt->sjd) == 3) {
+			nch = ADXSJD_GetNumChan(adxt->sjd);
+			adxt_dbg_nch = nch;
+			for (i = 0; i < nch; i++) {
+				adxt_dbg_ndt = SJ_GetNumData(adxt->sjo[i], SJ_CK_DATA);
+				if (adxt_dbg_ndt >= 0x40) {
+					break;
+				}
+			}
+			if (i == nch) {
+				ADXRNA_SetTransSw(adxt->rna, 0);
+				adxt->stat = ADXT_ISTAT_PLAYEND_WAIT;
+			}
+		}
+	} else if (adxt->stat == ADXT_ISTAT_DECINFO) {
+		adxt_stat_decinfo(adxt);
+	} else if (adxt->stat == ADXT_ISTAT_PREP) {
+		rna = adxt->rna;
+		sjd = adxt->sjd;
+		ndata = ADXRNA_GetNumData(rna);
+		nroom = ADXRNA_GetNumRoom(rna);
+		if (ndata >= adxt->maxdecsmpl * 2 || nroom <= ADXSJD_GetBlkSmpl(sjd) || ADXSJD_GetStat(adxt->sjd) == 3) {
+			if (adxt->pausesw == 0) {
+				if (adxt->x72 == 0) {
+					ADXRNA_SetPlaySw(rna, 1);
+					adxt->x9c = 0;
+					adxt->startvsync = adxt_vsync_cnt;
+				}
+				adxt->stat = ADXT_ISTAT_PLAYING;
+			}
+			adxt->x71 = 1;
+		}
+		if (ADXSJD_GetStat(adxt->sjd) == 3) {
+			nch = ADXT_GetNumChan(adxt);
+			nbyte = adxt->maxdecsmpl * nch * 2;
+			for (i = 0; i < nch; i++) {
+				sj = adxt->sjo[i];
+				SJ_GetChunk(sj, SJ_CK_FREE, nbyte, &ck);
+				memset(ck.data, 0, ck.len);
+				SJ_PutChunk(sj, SJ_CK_DATA, &ck);
+			}
+		}
+	} else if (adxt->stat == ADXT_ISTAT_PLAYEND_WAIT) {
+		adxt_dbg_rna_ndata = ADXRNA_GetNumData(adxt->rna);
+		if (ADXRNA_GetNumData(adxt->rna) <= 0) {
+			ADXRNA_SetPlaySw(adxt->rna, 0);
+			adxt->stat = ADXT_ISTAT_PLAYEND;
+		}
+	}
+
+	if (adxt->stm != NULL && ADXT_GetStat(adxt) != 0) {
+		switch (adxt->mode) {
+		case 0:
+		case 1:
+			if (ADXSTM_GetStat(adxt->stm) == ADXSTM_STAT_END) {
+				ADXSJD_TermSupply(adxt->sjd);
+			}
+			break;
+		case 2:
+			ADXSJD_TermSupply(adxt->sjd);
+			break;
+		case 3:
+			break;
+		}
+	}
+	if (adxt->stm != NULL && ADXSTM_GetStat(adxt->stm) == ADXSTM_STAT_ERROR) {
+		adxt->errcode = -1;
+		adxt->stat = ADXT_ISTAT_ERROR;
+	}
+	if (adxt->lsc != NULL && LSC_GetStat(adxt->lsc) == 3) {
+		adxt->errcode = -1;
+		adxt->stat = ADXT_ISTAT_ERROR;
+	}
+}
+
+/* the decoder has read the header: size the decode step, set up looping / end handling and
+ * program the renderer */
+static void adxt_stat_decinfo(ADXT adxt)
+{
+	void *sjd;
+	Sint32 sfreq;
+	Sint32 nloop;
+	Sint32 blk;
+	Sint32 nch;
+	Sint32 nsmpl;
+	Sint32 tmp;
+	Sint32 lpendofst;
+	Sint32 lpendsct;
+	Sint32 sfreq2;
+	Char8 buf[32];
+	Sint32 oct;
+	Sint32 cent;
+
+	sjd = adxt->sjd;
+	oct = 0;
+	cent = 0;
+	if ((adxt->mode == 0 || adxt->mode == 1) && adxt->stmstart == 1) {
+		if (ADXSTM_GetStat(adxt->stm) == ADXSTM_STAT_EXEC) {
+			return;
+		}
+		if (adxt->sjf != NULL) {
+			SJ_Reset(adxt->sjf);
+		}
+		adxt_start_stm(adxt, adxt->stm_fname, adxt->stm_dir, adxt->stm_ofst, adxt->stm_nsct);
+		adxt->stmstart = 0;
+	}
+	if (ADXSJD_GetStat(sjd) != 2) {
+		return;
+	}
+	nch = ADXSJD_GetNumChan(sjd);
+	if (nch > adxt->maxnch) {
+		ADXERR_ItoA2(nch, adxt->maxnch, buf, 16);
+		ADXERR_CallErrFunc2("E9081001 adxt_stat_decinfo: can't play this number of channels", buf);
+		ADXT_Stop(adxt);
+		return;
+	}
+	sfreq = ADXSJD_GetSfreq(sjd);
+	nloop = ADXSJD_GetNumLoop(sjd);
+	if (nloop > 0) {
+		adxt->maxdecsmpl = sfreq / adxt->svrfreq * 3;
+	} else {
+		adxt->maxdecsmpl = sfreq / adxt->svrfreq * 3 / 2;
+	}
+	blk = ADXSJD_GetBlkSmpl(sjd) * 2;
+	adxt->maxdecsmpl = blk * ((adxt->maxdecsmpl + blk) / blk);
+	ADXSJD_SetMaxDecSmpl(sjd, adxt->maxdecsmpl);
+	if (nloop > 0) {
+		if (adxt->mode == 2) {
+			adxt->lpendmod = 0;
+		} else {
+			lpendofst = ADXSJD_GetLpEndOfst(sjd);
+			adxt->lpendmod = 0x800 - lpendofst % 0x800;
+			lpendsct = (lpendofst + 0x7FF) / 0x800;
+			adxt->lpendmod = adxt->lpendmod % 0x800;
+			adxt->lpendsct = lpendsct;
+			ADXSTM_SetEos(adxt->stm, lpendsct);
+			ADXSTM_EntryEosFunc(adxt->stm, adxt_eos_entry, adxt);
+		}
+		nsmpl = ADXSJD_GetLpEndPos(sjd);
+		adxt->trapnsmpl = ADXSJD_GetLpStartPos(sjd);
+		ADXSJD_SetTrapNumSmpl(sjd, adxt->trapnsmpl);
+		ADXSJD_SetTrapDtLen(sjd, 0);
+		ADXSJD_SetTrapCnt(sjd, 0);
+		ADXSJD_EntryTrapFunc(sjd, adxt_trap_entry_lps, adxt);
+	} else {
+		if (adxt->stm != NULL) {
+			ADXSTM_SetEos(adxt->stm, 0x7FFFFFFF);
+		}
+		ADXSJD_SetTrapNumSmpl(sjd, ADXSJD_GetTotalNumSmpl(sjd));
+		ADXSJD_SetTrapDtLen(sjd, 0);
+		ADXSJD_SetTrapCnt(sjd, 0);
+		ADXSJD_EntryTrapFunc(sjd, adxt_nlp_trap_entry, adxt);
+	}
+	sfreq2 = ADXSJD_GetSfreq(sjd);
+	nch = ADXSJD_GetNumChan(sjd);
+	nsmpl = ADXSJD_GetTotalNumSmpl(sjd);
+	tmp = ADXSJD_GetOutBps(sjd);
+	ADXRNA_SetBitPerSmpl(adxt->rna, tmp);
+	ADXRNA_SetSfreq(adxt->rna, sfreq2);
+	ADXRNA_SetNumChan(adxt->rna, nch);
+	ADXRNA_SetTotalNumSmpl(adxt->rna, nsmpl);
+	ADXRNA_SetOutVol(adxt->rna, adxt->outvol + ADXSJD_GetDefOutVol(adxt->sjd));
+	ADXT_GetTranspose(adxt, &oct, &cent);
+	if (oct != 0 || cent != 0) {
+		ADXT_SetTranspose(adxt, oct, cent);
+	}
+	if (ADXSJD_GetNumChan(adxt->sjd) == 1) {
+		ADXT_SetOutPan(adxt, 0, adxt->outpan[0]);
+	} else {
+		ADXT_SetOutPan(adxt, 0, adxt->outpan[0]);
+		ADXT_SetOutPan(adxt, 1, adxt->outpan[1]);
+	}
+	if (adxt->amp != NULL) {
+		ADXAMP_SetSfreq(adxt->amp, sfreq2);
+	}
+	if (ADXSJD_GetFormat(sjd) == 2) {
+		tmp = (Sint32)ADXSJD_GetSpsdInfo(sjd);
+		ADXRNA_SetStmHdInfo(adxt->rna, (void *)tmp);
+	}
+	ADXRNA_SetTransSw(adxt->rna, 1);
+	if (adxt_enddecinfo_cbfn != NULL) {
+		adxt_enddecinfo_cbfn(adxt, sfreq2, nch, nsmpl);
+	}
+	adxt->stat = ADXT_ISTAT_PREP;
+}
+
+/* non-loop end trap: with the link switch on, look for a following ADX file behind the footer
+ * (its info code) and restart the decoder on it */
+void adxt_nlp_trap_entry(ADXT adxt)
+{
+	void *sjd;
+	SJ sji;
+	SJCK ck;
+	SJCK ck3;
+	SJCK ck2;
+	SJCK ck4;
+	Sint16 ofst;
+	Sint16 ofst2;
+	Sint32 ofst1;
+	Sint32 n1;
+	Sint32 n2;
+	Sint32 ofst2v;
+
+	sjd = adxt->sjd;
+	sji = adxt->sji;
+	if (adxt->lnksw == 0) {
+		return;
+	}
+	ofst2 = 0;
+	SJ_GetChunk(sji, SJ_CK_DATA, 0x7FFFFFFF, &ck);
+	SJ_GetChunk(sji, SJ_CK_DATA, 0x7FFFFFFF, &ck2);
+	if (ADX_DecodeFooter(ck.data, ck.len, &ofst) != 0) {
+		ADXT_SetLnkSw(adxt, 0);
+		SJ_UngetChunk(sji, SJ_CK_DATA, &ck2);
+		SJ_UngetChunk(sji, SJ_CK_DATA, &ck);
+		return;
+	}
+	ofst1 = ofst;
+	n1 = ADX_ScanInfoCode(ck.data + ofst1, ck.len - ofst1, &ofst);
+	if (n1 == 0) {
+		n2 = -1;
+	} else {
+		n2 = ADX_ScanInfoCode(ck2.data, ck2.len, &ofst2);
+	}
+	ofst1 += ofst;
+	ofst2v = ofst2;
+	if (n1 != 0 && n2 != 0) {
+		SJ_UngetChunk(sji, SJ_CK_DATA, &ck2);
+		SJ_UngetChunk(sji, SJ_CK_DATA, &ck);
+		ADXT_SetLnkSw(adxt, 0);
+		return;
+	}
+	if (n1 == 0) {
+		SJ_UngetChunk(sji, SJ_CK_DATA, &ck2);
+		SJ_SplitChunk(&ck, ofst1, &ck, &ck3);
+		SJ_PutChunk(sji, SJ_CK_FREE, &ck);
+		SJ_UngetChunk(sji, SJ_CK_DATA, &ck3);
+	} else {
+		SJ_PutChunk(sji, SJ_CK_FREE, &ck);
+		SJ_SplitChunk(&ck2, ofst2v, &ck2, &ck4);
+		SJ_PutChunk(sji, SJ_CK_FREE, &ck2);
+		SJ_UngetChunk(sji, SJ_CK_DATA, &ck4);
+	}
+	adxt->decsmpl += ADXSJD_GetDecNumSmpl(sjd);
+	ADXSJD_Stop(sjd);
+	ADXSJD_Start(sjd);
+	ADXSJD_ExecHndl(sjd);
+	if (ADXSJD_GetStat(sjd) != 2) {
+		ADXT_SetLnkSw(adxt, 0);
+		return;
+	}
+	ADXSJD_SetMaxDecSmpl(sjd, adxt->maxdecsmpl);
+	ADXSJD_SetTrapNumSmpl(sjd, ADXSJD_GetTotalNumSmpl(sjd));
+	ADXSJD_SetTrapDtLen(sjd, 0);
+	ADXSJD_SetTrapCnt(sjd, 0);
+}
+
+/* stream end-of-sector callback (looping): seek back to the loop start sector */
+void adxt_eos_entry(ADXT adxt)
+{
+	ADXSTM stm;
+	void *sjd;
+	Sint32 ofst;
+
+	stm = adxt->stm;
+	sjd = adxt->sjd;
+	if (stm == NULL || sjd == NULL) {
+		return;
+	}
+	ofst = ADXSJD_GetLpStartOfst(sjd);
+	if (adxt->lpsw == 0) {
+		ADXSJD_SetTrapNumSmpl(adxt->sjd, -1);
+		ADXSTM_SetEos(adxt->stm, 0x7FFFFFFF);
+	} else {
+		ADXSTM_Seek(stm, ofst / 0x800);
+	}
+}
+
+/* decoder trap at the loop end: rewind the decoder to the loop start */
+void adxt_trap_entry(ADXT adxt)
+{
+	void *sjd;
+	SJ sji;
+	Sint32 lpstart;
+	Sint32 lpstartofst;
+	Sint32 lpend;
+	SJCK ck;
+
+	sjd = adxt->sjd;
+	sji = adxt->sji;
+	lpstart = ADXSJD_GetLpStartPos(sjd);
+	lpstartofst = ADXSJD_GetLpStartOfst(sjd);
+	lpend = ADXSJD_GetLpEndPos(sjd);
+	if ((adxt->mode == 2 || adxt->mode == 3) && adxt->lpsw == 0) {
+		ADXSJD_SetTrapNumSmpl(adxt->sjd, -1);
+		return;
+	}
+	SJ_GetChunk(sji, SJ_CK_DATA, adxt->lpendmod, &ck);
+	if (ck.len < adxt->lpendmod) {
+		ADXERR_CallErrFunc1("E8101201 adxt_trap_entry: not enough data");
+	}
+	SJ_PutChunk(sji, SJ_CK_FREE, &ck);
+	ADXSJD_SetTrapCnt(sjd, 0);
+	ADXSJD_SetTrapNumSmpl(sjd, adxt->trapnsmpl = lpend - lpstart);
+	ADXSJD_SetTrapDtLen(sjd, lpstartofst);
+	ADXSJD_SetDecPos(sjd, lpstart);
+	if (adxt->mode == 2) {
+		SJ_Reset(sji);
+		SJ_GetChunk(sji, SJ_CK_DATA, lpstartofst, &ck);
+		SJ_PutChunk(sji, SJ_CK_FREE, &ck);
+	}
+	ADXSJD_RestoreSnapshot(sjd);
+	adxt->lpcnt++;
+}
+
+/* first trap at the loop start: remember the decoder state and arm the loop end trap */
+void adxt_trap_entry_lps(ADXT adxt)
+{
+	void *sjd;
+	Sint32 lpstart;
+	Sint32 lpstartofst;
+	Sint32 lpend;
+
+	sjd = adxt->sjd;
+	lpstart = ADXSJD_GetLpStartPos(sjd);
+	lpstartofst = ADXSJD_GetLpStartOfst(sjd);
+	lpend = ADXSJD_GetLpEndPos(sjd);
+	ADXSJD_TakeSnapshot(sjd);
+	ADXSJD_SetTrapCnt(sjd, 0);
+	ADXSJD_SetTrapNumSmpl(sjd, adxt->trapnsmpl = lpend - lpstart);
+	ADXSJD_SetTrapDtLen(sjd, lpstartofst);
+	ADXSJD_SetDecPos(sjd, lpstart);
+	ADXSJD_EntryTrapFunc(sjd, adxt_trap_entry, adxt);
+}
