@@ -12,6 +12,7 @@ class cObjWep;
 class cMap;
 struct ItemWork;
 struct SUB_SCREEN;
+struct SsFileWork;
 
 // Sub screen data archive (ss_cmmn.dat / ss_pzzl.dat): a table of byte offsets to its sub-files.
 struct SsArc {
@@ -58,9 +59,12 @@ struct SUB_SCREEN {
     s32 relAddr;              // 0x1D8  Sscrn.rel address (0 while unlinked)
     SsArc* pCmmn;             // 0x1DC
     SsArc* pPzzl;             // 0x1E0
-    u8 pad_1E4[0x200 - 0x1E4];
+    u8 pad_1E4[0x1FC - 0x1E4];
+    SsArc* pFile;             // 0x1FC  ss_file.dat archive (Sscrn ss_file)
     SsArc* pExam;             // 0x200  item examine id data archive (examine ItemExamine::idSet)
-    u8 pad_204[0x214 - 0x204];
+    u8 pad_204[0x20C - 0x204];
+    void* pTplBuf;            // 0x20C  0x20000-byte file picture TPL buffer (Sscrn ss_file)
+    u8 pad_210[4];
     void* binoA;              // 0x214  CameraControl::GetBinocularIDAddr
     void* binoB;              // 0x218
     u32 x21C[8];              // 0x21C
@@ -71,16 +75,19 @@ struct SUB_SCREEN {
     u8 pad_250[0x264 - 0x250];
     u8 x264;                  // 0x264  2 for type 2, else 1
     u8 x265;                  // 0x265
-    u8 pad_266[3];
+    u8 x266;                  // 0x266  2: the player model is shown (Sscrn ss_file)
+    u8 pad_267[2];
     u8 x269;                  // 0x269
     u16 x26A;                 // 0x26A
     u8 pad_26C[0x2AE - 0x26C];
     u8 x2AE;                  // 0x2AE  item 0x7C..0x7F owned -> 0..3
     u8 x2AF;                  // 0x2AF
-    u8 pad_2B0[0x2FA - 0x2B0];
+    class pzlPlayer* x2B0;    // 0x2B0  puzzle (case) player of the Sscrn puzzle screen
+    u8 pad_2B4[0x2FA - 0x2B4];
     u16 x2FA;                 // 0x2FA  item id handed to the opened sub screen (sce_at sceAtGetItem)
     u16 x2FC;                 // 0x2FC  its count
-    u8 pad_2FE[0x310 - 0x2FE];
+    u8 pad_2FE[0x30C - 0x2FE];
+    SsFileWork* pFileWk;      // 0x30C  Sscrn ss_file cursor/page state
     s8* x310;                 // 0x310  Sscrn ss_cap cursor {row, column, row * 6 + column}
     u8 pad_314[0x31C - 0x314];
     s32 mdtNo;                // 0x31C  OpeSetOpenTerm number
@@ -99,7 +106,7 @@ struct SUB_SCREEN {
             u8 x34B;
         };
     };
-    u8 pad_34C[4];
+    u32 x34C;                 // 0x34C  Sscrn debug menu: bit0 open, bit4 debug disp, bit5 memory disp, bit6 reveil
     s32 debugMode;            // 0x350  pG->debug_mode while open
     s32 x354;                 // 0x354  pG->flags_68 bit 30 while open
     u8 pad_358[0x366 - 0x358];

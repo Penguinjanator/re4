@@ -713,13 +713,20 @@ int commonScreenMatSub(cModel* m, cModelInfo* info)
         if (m->be_flag & 0x4000) {
             continue;
         }
-        buf = GetPrimBuff(ALIGN32(d->nVtx * 6));
+        size = d->nVtx * 6;
+        buf = GetPrimBuff((size + 31) - ((size + 31) % 32));
         if (PTR_INVALID2(buf)) {
             pLog->warn(0, 0, "commonScreenMatSub() : VTX prim alloc failed.");
             return 0;
         }
         info->pPosBuf[pG->vtx_buf_no] = buf;
-        buf = GetPrimBuff(ALIGN32((d->flags & 0x20000000) ? d->nNrm * 3 : d->nNrm * 6));
+        if (d->flags & 0x20000000) {
+            size = d->nNrm * 3;
+            buf = GetPrimBuff(ALIGN32(size));
+        } else {
+            size = d->nNrm * 6;
+            buf = GetPrimBuff(ALIGN32(size));
+        }
         if (PTR_INVALID2(buf)) {
             pLog->warn(0, 0, "commonScreenMatSub() : Nor prim alloc failed.");
             return 0;
@@ -996,7 +1003,6 @@ void commonModelTrans(cModel* m, cModelInfo* info, Mtx viewMat, int flag)
         {0, 1, 0, 0},
     };
     Mtx mv;
-    GXColor mat;
     GxWork* gx = GXWORK();
     int efbDone;
     int matSet;
@@ -1047,12 +1053,10 @@ void commonModelTrans(cModel* m, cModelInfo* info, Mtx viewMat, int flag)
             }
         }
         if (info->be_flag & 0x20) {
-            mat = *(GXColor*) info->color;
+            GXSetChanMatColor(4, *(GXColor*) info->color);
             matSet = 1;
-            GXSetChanMatColor(4, mat);
         } else if (matSet == 1) {
-            mat = *(GXColor*) m->pInfo->color;
-            GXSetChanMatColor(4, mat);
+            GXSetChanMatColor(4, *(GXColor*) m->pInfo->color);
         }
         if (PTR_INVALID(info)) {
             pLog->err(0, 0, "commonModelTrans() pModelInfo INVALID PTR %08X", info);
@@ -1169,10 +1173,10 @@ void commonModelTrans(cModel* m, cModelInfo* info, Mtx viewMat, int flag)
                     mip = 1;
                     filt = 5;
                 }
-                if (aniso == 0) {
-                    edge = td->textureHeader->edgeLODEnable;
-                } else {
+                if (aniso != 0) {
                     edge = 1;
+                } else {
+                    edge = td->textureHeader->edgeLODEnable;
                 }
                 GXInitTexObj(&gx->texObj[i], td->textureHeader->data, td->textureHeader->width, td->textureHeader->height,
                              td->textureHeader->format, td->textureHeader->wrapS, td->textureHeader->wrapT, mip);
@@ -1207,8 +1211,7 @@ void commonModelTrans(cModel* m, cModelInfo* info, Mtx viewMat, int flag)
                 if (a < 1.0f) {
                     GXColor c = *(GXColor*) info->color;
                     c.a = (u8) ((f32) (int) c.a * a);
-                    mat = c;
-                    GXSetChanMatColor(4, mat);
+                    GXSetChanMatColor(4, c);
                 }
             }
             p = (u8*) part + 0x20;

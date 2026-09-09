@@ -1,0 +1,2301 @@
+// cLight is 0x154 bytes in this file (light.h)
+#define LIGHT_H_CLIGHT_154
+#include "types.h"
+#include "atari.h"
+#include "light.h"
+#include "event.h"
+#include "ctrl.h"
+#include "dbg_var.h"
+#include "global.h"
+#include "joy.h"
+#include "eprintf.h"
+#include "main_mem.h"
+#include "db_log.h"
+#include "dbmodule.h"
+#include "cam_ctrl.h"
+#include "camera.h"
+#include "obj.h"
+#include "file.h"
+#include "math_sub.h"
+#include "vec.h"
+#include "gx.h"
+#include "scroll.h"
+
+// Light editor (D:/Bio4/Prog/db_light.cpp): cLightTool (the editor), cDbLit (the .lit cuts being edited,
+// one Debug_alloc'd cLightEnv per cut) and cLitPathTool (the light path table). The same object is in
+// t_camera / t_light / t_event; t_sce / t_movie, Tools and t_esp carry other builds of this file.
+
+extern "C" {
+int sprintf(char* buf, const char* fmt, ...);
+char* strcpy(char* dst, const char* src);
+void* memset(void* dst, int c, unsigned int n);
+f32 atan2f(f32 y, f32 x);
+f64 atan2(f64 y, f64 x);
+f32 asinf(f32 x);
+f32 cosf(f32 x);
+f32 sinf(f32 x);
+}
+
+// A colour as one word (DrawTile swatches). The user copy constructor makes it BLKmode: every inlined
+// drawColorTile shares one frame slot (see the FadeSet colour pair note in AGENTS.md).
+struct GXColorW {
+    u32 w;
+    GXColorW() {}
+    GXColorW(const GXColorW& c) { w = c.w; }
+};
+
+// Focus block of cLightEnv (0x28..0x30), copied as a whole by lightPasteFocus.
+struct LightFocus {
+    s32 depth;
+    u8 x2C;
+    u8 level;
+    u8 mode;
+    u8 blurAlpha;
+};
+
+// Light data file being edited: cut count / version / max light count like cLit, then one pointer per
+// cut (Debug_alloc'd cLightEnv + its cLightWork entries; the tool keeps up to 256 cuts).
+class cDbLit {
+public:
+    u16 nCut;             // 0x00
+    u8 version;           // 0x02
+    u8 nMaxLight;         // 0x03
+    cLightEnv* cut[256];  // 0x04
+
+    cDbLit();
+    u32 size();
+    cLightEnv* getCut(u16 no);
+    int isCut(u16 no) { return cut[no] != NULL; }
+    int fileLoad(const char* path);
+    int init(cLit* lit);
+    void preEventSave();
+    int fileSave(const char* path);
+    u32 createLit(cLit* dst);
+};
+
+// Light path table being edited: one Debug_alloc'd copy per path, plus the path under edit.
+class cLitPathTool {
+public:
+    cLightPathData* path[256];  // 0x000
+    u8 edit[0x258];             // 0x400
+
+    cLitPathTool();
+    ~cLitPathTool();
+    int expand(cLightPathHeader* hdr);
+    int createPath(cLightPathHeader* dst);
+};
+
+class cLightTool {
+public:
+    u32 flags;             // 0x00  bit0: object move, bit2: analyze, bit3: cut select follows the camera,
+                           //       bit4: bounding boxes, bit5: log errors
+    u8 routine;            // 0x04  routine_tbl index
+    u8 editNo;             // 0x05  edit_tbl index
+    u8 sub;                // 0x06  sub routine of the current editor
+    u8 init;               // 0x07
+    u8 x8;                 // 0x08
+    u8 x9;                 // 0x09
+    u8 xA;                 // 0x0A
+    u8 xB;                 // 0x0B
+    u8 xC;                 // 0x0C
+    u8 xD;                 // 0x0D
+    u8 xE;                 // 0x0E
+    u8 xF;                 // 0x0F
+    u8 x10;                // 0x10
+    u8 x11;                // 0x11
+    u8 x12;                // 0x12
+    u8 x13;                // 0x13
+    u8 cutNo;              // 0x14  cut being edited
+    u8 gameCutNo;          // 0x15  cut the game camera selects
+    u8 areaNum;            // 0x16
+    u8 pad_17;
+    int mode;              // 0x18  0 room local, 1 room server, 2 event, 3 core, 4 tool, 5 item
+    u8 ret;                // 0x1C  move() result: 1 = running, 2 = player mode, 0 = quit
+    u8 state;              // 0x1D  0 init, 1 camera mode, 2 player mode, 10 mode select
+    u8 color;              // 0x1E
+    u8 colorBak;           // 0x1F
+    cVarLoop<u8> modeSel;  // 0x20
+    u8 cursor;             // 0x28
+    u8 blink;              // 0x29
+    u8 subCursor;          // 0x2A
+    u8 rows;               // 0x2B  light table rows per page
+    u8 anaNum;             // 0x2C
+    u8 pad_2D[3];
+    int col;               // 0x30  light table column
+    int row;               // 0x34  light table row
+    int top;               // 0x38  first light / cut shown
+    u8* anaTbl;            // 0x3C  lightAnalysis: 4 bytes per scroll object
+    cLight light;          // 0x40  copy buffer
+    cLightEnv* pCopyCut;   // 0x194
+    JOY joy;               // 0x198
+    JOY joy1;              // 0x400
+    f32 logX;              // 0x668
+    f32 logY;              // 0x66C
+    cDbLit lit;            // 0x670
+    cLitPathTool litPath;  // 0xA74
+
+    cLightTool();
+    ~cLightTool();
+    int move();
+    u32 dblCk(u32 bit);
+    int editEnable();
+    void updateLit();
+    void printCursor(int x, int y);
+    void clearWork();
+    void clearSubMenu();
+    int lightAnalysis();
+};
+
+// The tool pointer is a struct member: every store through it reloads the pointer.
+struct cLightToolPtr {
+    cLightTool* p;
+};
+
+void RotVector(Vec* v, Vec* rot);
+f32 LIMIT_ANGLE(f32 a);
+void moveOnPlaneXZ(Vec* pos, Vec* dir);
+int tcCurrentCameraNo();
+extern int DebugMenuSelected;
+extern cModel* pPLm asm("pPL");
+cModel* getRoomEtcOnLight(int no);
+
+// Debug heap pointers are checked for the MEM1 range before use.
+#define PTR_OK(p) (!((u32)(p) < 0x80000000 || (u32)(p) > 0x82FFFFFF))
+// Error messages go through pLog when bit 5 is set.
+#define TOOL_ERR(args...)            \
+    if (pTool->flags & 0x20) {       \
+        pLog->err(0, 0, args);       \
+    }
+
+// Menu tables (.data: `const char*` arrays, not const pointers)
+static const char* light_id_name[] = {
+    "NORMAL", "FLICK", "WAVE", "SPOT ROTATE", "SHADOW", "PATH", "FADE", "SHINE", "SPOT LOCK", "----",
+};
+static const char* light_type_name[] = {
+    "CONSTANT", "LINEAR", "QUADRATIC", "SPOT LIGHT", "CUSTOM", "PARALLEL", "SPOT QUAD", "LOCAL AMBIENT",
+    "----", "----", "----", "----", "----", "----", "----", "----",
+};
+static const char* shadow_type_name[] = {
+    "NORMAL", "PARALLEL", "FIX", "----", "----", "----", "----", "----", "----", "----", "----", "----",
+    "----", "----", "----", "----",
+};
+static const char* light_type_short[] = {
+    "CNST", "LINE", "QUAD", "SPOT", "CSTM", "PARA", "SPQU", "LAMB", "----", "----", "----", "----", "----",
+    "----", "----", "----",
+};
+static const char* shadow_type_short[] = {
+    "NORM", "PARA", "FIX ", "----", "----", "----", "----", "----", "----", "----", "----", "----", "----",
+    "----", "----", "----",
+};
+static const char* light_id_short[] = {
+    "NORM", "FLIC", "WAVE", "ROT ", "SHDW", "PATH", "FADE", "SHIN", "LOCK", "----", "----", "----", "----",
+    "----", "----", "----",
+};
+static const char* onoff_name[] = {"OFF", "1", "2", "3", "4", "5"};
+static const char* aniso_name[] = {"GX_ANISO_1", "GX_ANISO_2", "GX_ANISO_4"};
+static const char* parent_name[] = {"WORLD", "ENEMY", "SCROLL", "EtcModel", "OBJ"};
+static const char* parent_short[] = {"WL", "EM", "SC", "ET", "OM"};
+static const char* path_room_server = "y:/room/st%x/r%x%02x/r%x%02x%02x.lit";
+static const char* path_room_local = "x:\\soft/room/St%x/r%x%02x/r%x%02x%02x.lit";
+static const char* path_event = "x:\\soft/room/Event/r%x%02x/%s/etc/%s_%03d.lit";
+static const char* path_event_action = "x:\\soft/room/Event/Action/%s/etc/%s_%03d.lit";
+static const char* path_tool = "x:\\soft/room/tool%02x.lit";
+static const char* path_item = "x:\\soft/room/SubScreen/light/item%03d.lit";
+static const char* path_core = "x:\\soft/room/etc/core/core%02x.lit";
+static const char* path_litpath = "x:\\soft/room/etc/core/litpath.bin";
+
+static cLightToolPtr LightToolPtr;
+#define pTool (LightToolPtr.p)
+static cLightPathHeader* pLitPath;
+// The light count is a struct member: its load is not hoisted above the stores through pTool.
+struct LightWorkNum {
+    u32 n;
+};
+static LightWorkNum LightWorkNum_;
+#define nLightWork (LightWorkNum_.n)
+static cLightEnv* pLightEnv;
+
+static void menu();
+static void edit();
+static void edit_menu();
+static void edit_cutsel();
+static void edit_cutsel_main();
+static void edit_cutsel_sub();
+int lightCopyCut(int no);
+int lightPasteCut(int no);
+int lightPasteAmbient(int no);
+int lightPasteFog(int no);
+int lightPasteMFog(int no);
+int lightPasteShadow(int no);
+int lightPasteFocus(int no);
+int lightPasteBlur(int no);
+int lightPasteTune(int no);
+int lightPasteScale(int no);
+int lightPasteCutAll(int no);
+int lightPasteCutAll2(int no);
+cLightEnv* copyCut(cLightEnv* src);
+static void edit_light();
+static void edit_light_select();
+static void edit_light_select_sub();
+void lightCopyWork(cLight* dst, cLight* src);
+void lightCutWork(int no);
+void lightInsertWork(int no);
+static void edit_light_no();
+static void edit_light_id();
+static void edit_light_id_normal();
+static void edit_light_id_flick();
+static void edit_light_id_wave();
+static void edit_light_id_round();
+static void edit_light_id_shadow();
+static void edit_light_id_path();
+static void edit_light_id_fade();
+static void edit_light_id_shine();
+static void edit_light_id_spotlock();
+static void edit_light_eid();
+static void edit_light_parent();
+void posTranslate(cLight* l, u8 type, u32 id);
+static void edit_light_pos();
+static void edit_light_radius();
+static void edit_light_color();
+static void edit_light_intensity();
+static void edit_light_type();
+void edit_light_type_shadow();
+int shadow_select_type();
+static void edit_light_type_shadow_fit();
+static void edit_light_type_shadow_parallel();
+static void edit_light_type_shadow_fix();
+static void edit_light_kind();
+static void edit_light_attr();
+static void edit_light_priority();
+int select_type();
+static void edit_light_type_constant();
+static void edit_light_type_quad();
+static void edit_light_type_spotlight();
+static void edit_light_type_direct();
+static void edit_light_type_localamb();
+f32 func_attn(cLight* l, f32 d);
+void draw_light_graph(cLight* l);
+static void edit_light_type_parallel();
+static void edit_light_prop_sub();
+static void edit_ambient();
+static void edit_fog();
+static void edit_mirror_fog();
+void edit_fog_common(LightFog* fog);
+static void edit_focus();
+void draw_tone_curve();
+static void edit_blur();
+static void edit_mipmap();
+static void edit_tune();
+static void edit_scale();
+static void edit_param();
+static void edit_wind();
+static void path();
+static void load();
+static void save();
+static void option();
+static void quit();
+void printEditTable();
+void DrawTile(int x, int y, int w, int h, GXColor* color);
+int LitLoadWork(cDbLit* lit, int no);
+int LitSaveWork(cDbLit* lit, int no);
+int editColor(GXColor* col, int x, int y);
+const char* strFogType(int type);
+int fogTypeNext(int type);
+int fogTypeBack(int type);
+void initLightWork(cLight* l);
+void clear_move_free();
+void clear_type_free();
+int getCutNo();
+void drawLightInfo_SpotShadow(cLight* l, u32 color);
+void drawLightInfo(cLight* l, u32 color);
+int pathSelect();
+int pathEdit(int x, int y, u8 no, u8 flag, int mode);
+void drawPath(int x, int y, cLightPathData* p, u8 flag, u32 color);
+
+
+// Colour swatch: the colour word goes through a local of this inline, so its address is a fresh
+// `addi r7, r1, ofs` before every DrawTile call (gcse never sees the hard-register argument set).
+static inline void drawColorTile(int x, int y, int w, int h, u32 c)
+{
+    GXColorW col;
+    col.w = c;
+    DrawTile(x, y, w, h, (GXColor*) &col);
+}
+
+// The current light of the light table.
+static inline cLight* curLight()
+{
+    return LightMgr.getWorkPtr(pTool->top + pTool->row);
+}
+
+cLightTool::cLightTool() : modeSel(0, 2, 0)
+{
+    pTool = this;
+    ret = 1;
+    rows = 7;
+    mode = 1;
+    routine = editNo = sub = init = x8 = x9 = xA = xB = xC = xD = xE = xF = x10 = x11 = x12 = x13 = 0;
+    cursor = 0;
+    blink = 0;
+    subCursor = 0;
+    state = 0;
+    row = 0;
+    col = 0;
+    top = 0;
+    color = pGS->debug_mode;
+    colorBak = pGS->debug_mode;
+    pLightEnv = LightMgr.getEnvPtr();
+    nLightWork = LightMgr.nArray;
+    lit.init(*LightMgr.getLitPPtr());
+    areaNum = CamCtrl.AreaNum();
+    gameCutNo = cutNo = getCutNo();
+    LitLoadWork(&lit, cutNo);
+    pCopyCut = NULL;
+    initLightWork(&light);
+    pTool->flags |= 0x20;
+    anaTbl = (u8*) Debug_alloc(ObjMgr.nArray * 4, 1);
+    if (!PTR_OK(anaTbl)) {
+        TOOL_ERR("cLightTool() MEMORY ERROR");
+    }
+    flags |= 4;
+    anaNum = 0;
+    logX = 20.0f;
+    logY = 140.0f;
+}
+
+cLightTool::~cLightTool()
+{
+    pLog->modeReset();
+}
+
+int cLightTool::move()
+{
+    static void (*routine_tbl[])() = {menu, edit, path, load, save, option, quit};
+    int i;
+
+    eprintf(0x18, 0xE, 0, color, "LIGHT TOOL");
+    switch (mode) {
+    case 0:
+    case 1:
+        eprintf(0x1B0, 0xE, 0, color, "CUT%02d/%02d", cutNo, areaNum);
+        break;
+    case 4:
+        eprintf(0x1B8, 0xE, 0, color, "TOOL %02d", cutNo);
+        break;
+    case 2:
+        eprintf(0x1A8, 0xE, 0, color, "ROOM%02d/%02d", cutNo, areaNum);
+        break;
+    case 3:
+        eprintf(0x1B8, 0xE, 0, color, "CORE %02d", cutNo);
+        break;
+    }
+    switch (state) {
+    case 0:
+        joy = Joy[0];
+        joy1 = Joy[1];
+        ret = 1;
+        break;
+    case 1:
+        eprintf(0xD8, 0, (pG->flags_51E4 & 0x10) ? 0 : 0x14, color, "CAMERA MODE");
+        Joy[1] = Joy[0];
+        Joy[1].trg &= ~JOY_START;
+        memclr_asm(&joy, sizeof(JOY));
+        ret = 1;
+        break;
+    case 2:
+        cutNo = gameCutNo = getCutNo();
+        eprintf(0xD8, 0, (pG->flags_51E4 & 0x10) ? 0 : 0x14, color, "PLAYER MODE");
+        joy1 = Joy[1];
+        ret = 2;
+        break;
+    case 10:
+        eprintf(0xD8, 0x38, 4, 0, "MODE SELECT");
+        eprintf(0xD8, 0x46, modeSel == 0 ? 0 : 0x14, 0, "LIGHT");
+        eprintf(0xD8, 0x54, modeSel == 1 ? 0 : 0x14, 0, "CAMERA");
+        eprintf(0xD8, 0x62, modeSel == 2 ? 0 : 0x14, 0, "PREVIEW");
+        if (Joy[0].rep & JOY_UP) {
+            modeSel--;
+        }
+        if (Joy[0].rep & JOY_DOWN) {
+            modeSel++;
+        }
+        if (Joy[0].trg & (JOY_START | JOY_B | JOY_A)) {
+            state = modeSel;
+            Joy[0].trg &= ~(JOY_START | JOY_B | JOY_A);
+            switch (state) {
+            case 0:
+                pG->flags_60 |= 0x10000000;
+            case 1:
+                color = state;
+                break;
+            case 2:
+                color = 1;
+                updateLit();
+                pG->flags_60 &= ~0x10000000;
+                break;
+            }
+        }
+        break;
+    }
+    if (Joy[0].trg & JOY_START) {
+        if (state != 10) {
+            modeSel.val = state;
+            state = 10;
+        }
+    }
+    blink++;
+    if (Joy[0].rep) {
+        blink = 0;
+    }
+    for (i = 0; i < LightMgr.nArray; i++) {
+        LightMgr.getWork(i)->x140 = i;
+    }
+    routine_tbl[routine]();
+    LightMgr.move();
+    if (pG->flags_60 & 0x02000000) {
+        if (state == 1) {
+            CameraMove();
+        } else {
+            pG->flags_170 &= ~0x40000000;
+            pG->flags_60 &= ~0x10000000;
+        }
+    } else {
+        CameraMove();
+    }
+    if (pTool->flags & 1) {
+        ObjMgr.move();
+    }
+    CtrlMgr.move();
+    if (pTool->flags & 4) {
+        lightAnalysis();
+    }
+    if (pTool->flags & 0x10) {
+        for (i = 0; i < ObjMgr.nArray; i++) {
+            cObj* obj = ObjMgrWork(i);
+            if (obj->isAlive() && obj->lightInfo.getLightNum()) {
+                obj->drawAllBoundingBox(obj->pInfo);
+            }
+        }
+    }
+    logX += (f32) Joy[0].ssx * 0.05f;
+    logY -= (f32) Joy[0].ssy * 0.05f;
+    pLog->x = (int) logX;
+    pLog->y = (int) logY;
+    return ret;
+}
+
+u32 cLightTool::dblCk(u32 bit)
+{
+    return flags & bit;
+}
+
+int cLightTool::editEnable()
+{
+    if (mode == 3) {
+        return 1;
+    }
+    if (mode == 2) {
+        return 1;
+    }
+    if (mode == 4) {
+        return 1;
+    }
+    if (dblCk(8)) {
+        return 1;
+    }
+    return cutNo == gameCutNo;
+}
+
+void cLightTool::updateLit()
+{
+    if (editEnable()) {
+        LitSaveWork(&lit, cutNo);
+    }
+    if (LightMgr.x1AC & 1) {
+        if (PTR_OK(LightMgr.x1B0)) {
+            Mem_free(LightMgr.x1B0);
+        } else {
+            TOOL_ERR("cLightTool::updateLit() PTR ERR %08X", LightMgr.x1B0);
+        }
+    }
+    LightMgr.x1AC |= 1;
+#line 577 "D:/Bio4/Prog/db_light.cpp"
+    LightMgr.x1B0 = (cLit*) MEM_ALLOC(lit.size(), 1, 13);
+    if (!PTR_OK(LightMgr.x1B0)) {
+        TOOL_ERR("cLightTool::updateLit() MEM ALLOC FAILED");
+        return;
+    }
+    LightMgr.dbSetRoomLit(LightMgr.x1B0);
+    lit.createLit(LightMgr.x1B0);
+}
+
+static void menu()
+{
+    static const char* menu_name[] = {"EDIT", "PATH", "LOAD", "SAVE", "OPTION", "QUIT"};
+    int i;
+    int y = 0x38;
+    const char** name;
+
+    eprintf(0x20, 0x2A, 4, pTool->color, "MENU");
+    name = menu_name;
+    for (i = 0; i < 6; i++) {
+        eprintf(0x20, y, 0, pTool->color, *name);
+        name++;
+        y += 14;
+    }
+    pTool->printCursor(3, pTool->cursor + 4);
+    if (pTool->joy.rep & (JOY_UP | JOY_SUP)) {
+        pTool->cursor = (pTool->cursor + 5) % 6;
+    } else if (pTool->joy.rep & (JOY_DOWN | JOY_SDOWN)) {
+        pTool->cursor = (pTool->cursor + 7) % 6;
+    }
+    if (pTool->joy.rep & JOY_A) {
+        pTool->routine = pTool->cursor + 1;
+        pTool->editNo = pTool->sub = pTool->init = 0;
+        pTool->clearWork();
+    }
+    if (pTool->joy.rep & JOY_B) {
+        pTool->cursor = 5;
+    }
+}
+
+static void edit()
+{
+    static void (*edit_tbl[])() = {
+        edit_menu, edit_cutsel, edit_light, edit_ambient, edit_fog, edit_mirror_fog, edit_focus, edit_blur,
+        edit_mipmap, edit_tune, edit_scale, edit_param, edit_wind,
+    };
+
+    edit_tbl[pTool->editNo]();
+}
+
+static void edit_menu()
+{
+    static const char* edit_name[] = {
+        "CUT SELECT", "LIGHT", "AMBIENT", "FOG", "MIRROR FOG", "FOCUS", "BLUR", "MIPMAP", "LIT TUNE",
+        "LIT SCALE", "PARAMETER", "WIND",
+    };
+    u32 i = 0;
+    int y;
+    const char** name;
+
+    eprintf(0x20, 0x2A, 4, pTool->color, "EDIT WORK");
+    name = edit_name;
+    y = 0x38;
+    for (; i < sizeof(edit_name) / sizeof(char*); i++) {
+        eprintf(0x20, y, 0, pTool->color, *name);
+        name++;
+        y += 14;
+    }
+    pTool->printCursor(3, pTool->cursor + 4);
+    if (pTool->joy.rep & (JOY_UP | JOY_SUP)) {
+        pTool->cursor = (pTool->cursor + 11) % (sizeof(edit_name) / sizeof(char*));
+    } else if (pTool->joy.rep & (JOY_DOWN | JOY_SDOWN)) {
+        pTool->cursor = (pTool->cursor + 13) % (sizeof(edit_name) / sizeof(char*));
+    }
+    if (pTool->joy.rep & JOY_A) {
+        pTool->editNo = pTool->cursor + 1;
+        pTool->sub = pTool->init = pTool->x8 = pTool->x9 = pTool->xA = pTool->xB = 0;
+        pTool->top = 0;
+        pTool->clearWork();
+    }
+    if (pTool->joy.rep & JOY_B) {
+        pTool->routine = 0;
+        pTool->editNo = 0;
+        pTool->clearWork();
+    }
+}
+
+static void edit_cutsel()
+{
+    static const char* cut_onoff[] = {"1", "2", "4", "x"};
+    static void (*cutsel_tbl[])() = {edit_cutsel_main, edit_cutsel_sub};
+    int i = 0;
+    int y;
+    int y2;
+    cLightEnv* env;
+    int line;
+
+    eprintf(0x20, 0x2A, 4, pTool->color, "CUT TABLE");
+    eprintf(0x20, 0x46, 4, pTool->color, "NO  LI AMB FOG  MFOG SHDW FOCUS BLR TUNE SCL");
+    y2 = 0x57;
+    y = 0x54;
+    for (; i < 20; i++) {
+        env = pTool->lit.getCut(pTool->top + i);
+        eprintf(0x20, y, pTool->top + i == pTool->cutNo ? 0 : 0x14, pTool->color, "%03d", pTool->top + i);
+        line = i + 6;
+        if (PTR_OK(env)) {
+            eprintf(0x40, y, 0, pTool->color, "%2d               %d%d%d  %5d %3d", env->nLight, 0, 0, 0,
+                    env->x28 / 10, env->blurAlpha);
+            drawColorTile(0x58, y2, 0x18, 8, env->x0);
+            drawColorTile(0x78, y2, 0x20, 8, *(u32*) &env->bgColor);
+            drawColorTile(0xA0, y2, 0x20, 8, *(u32*) &env->mfog.color);
+            if (env->tuneOn & 1) {
+                drawColorTile(0x140, y2, 0x20, 8, *(u32*) &env->tune[0]);
+            } else {
+                eprintf(0x140, y, 0, pTool->color, "OFF");
+            }
+            eprintf(0x168, line * 14, 0, pTool->color, "%s", cut_onoff[env->tevScale[0] & 3]);
+            eprintf(0x170, line * 14, 0, pTool->color, "%s", cut_onoff[env->tevScale[1] & 3]);
+            eprintf(0x178, line * 14, 0, pTool->color, "%s", cut_onoff[env->pad_42[0] & 3]);
+        }
+        y += 14;
+        y2 += 14;
+    }
+    cutsel_tbl[pTool->sub]();
+}
+
+static void edit_cutsel_main()
+{
+    static const int cutsel_col[9] = {3, 10, 14, 19, 24, 29, 35, 39, 44};
+    int base;
+    int n;
+
+    if (pTool->init == 0) {
+        LitSaveWork(&pTool->lit, pTool->cutNo);
+        pTool->top = 0;
+        pTool->cursor = pTool->cutNo;
+        pTool->col = 0;
+        pTool->row = 0;
+        pTool->init = 1;
+    }
+    base = pTool->top - 6;
+    pTool->printCursor(cutsel_col[pTool->col], pTool->cursor - base);
+    if ((pTool->joy.rep & JOY_UP) || (pTool->joy.on & JOY_SUP)) {
+        if (pTool->cursor != 0) {
+            pTool->cursor--;
+        }
+        if (pTool->top > pTool->cursor) {
+            pTool->top = pTool->cursor;
+        }
+    }
+    if ((pTool->joy.rep & JOY_DOWN) || (pTool->joy.on & JOY_SDOWN)) {
+        if (pTool->cursor <= 0xFE) {
+            pTool->cursor++;
+        }
+        if (pTool->cursor > pTool->top + 19) {
+            pTool->top = pTool->cursor - 19;
+        }
+    }
+    if (pTool->joy.rep & JOY_R) {
+        n = pTool->cursor + 10;
+        if (n > 0xFE) {
+            n = 0xFF;
+        }
+        pTool->cursor = n;
+        if (pTool->cursor > pTool->top + 19) {
+            pTool->top = pTool->cursor - 19;
+        }
+    }
+    if (pTool->joy.rep & JOY_L) {
+        pTool->cursor = pTool->cursor > 10 ? pTool->cursor - 10 : 0;
+        if (pTool->top > pTool->cursor) {
+            pTool->top = pTool->cursor;
+        }
+    }
+    // the stick bits are the other way round from joy.h's names here
+    if ((pTool->joy.rep & JOY_RIGHT) || (pTool->joy.on & 0x20000)) {
+        pTool->col = (pTool->col + 10) % 9;
+    }
+    if ((pTool->joy.rep & JOY_LEFT) || (pTool->joy.on & 0x10000)) {
+        pTool->col = (pTool->col + 8) % 9;
+    }
+    if ((pTool->joy.rep & JOY_A) && pTool->col == 0) {
+        if (pTool->editEnable()) {
+            LitSaveWork(&pTool->lit, pTool->cutNo);
+        }
+        pTool->cutNo = pTool->cursor;
+        LitLoadWork(&pTool->lit, pTool->cutNo);
+        LitSaveWork(&pTool->lit, pTool->cutNo);
+    }
+    if (pTool->joy.trg & JOY_Y) {
+        pTool->clearSubMenu();
+        pTool->sub = 1;
+    }
+    if (pTool->joy.rep & JOY_B) {
+        if (!pTool->editEnable()) {
+            pTool->cutNo = pTool->gameCutNo;
+            LitLoadWork(&pTool->lit, pTool->cutNo);
+        }
+        pTool->editNo = 0;
+        pTool->sub = 0;
+        pTool->init = 0;
+        pTool->clearWork();
+    }
+}
+
+static void edit_cutsel_sub()
+{
+    static const char* cutsel_sub_name[] = {
+        "CUT", "COPY", "PASTE", "INSERT", "COPY TO BLANK CUT", "COPY TO ALL CUT",
+    };
+    int i;
+    int y;
+    const char** name;
+    int no;
+
+    eprintf(0x150, 0x62, 4, pTool->color, "SUB MENU");
+    name = cutsel_sub_name;
+    y = 0x70;
+    for (i = 0; i < 6; i++) {
+        eprintf(0x150, y, 0, pTool->color, *name);
+        name++;
+        y += 14;
+    }
+    pTool->printCursor(0x29, pTool->subCursor + 8);
+    if ((pTool->joy.rep & JOY_A) || (pTool->joy.trg & JOY_Y)) {
+        no = pTool->subCursor;
+        switch (no) {
+        case 0:
+            if (pTool->lit.getCut(pTool->cursor) != NULL) {
+                lightCopyCut(pTool->cursor);
+                Debug_free(pTool->lit.getCut(pTool->cursor));
+                pTool->lit.cut[pTool->cursor] = 0;
+            }
+            break;
+        case 1:
+            lightCopyCut(pTool->cursor);
+            break;
+        case 2:
+            switch (pTool->col) {
+            case 0:
+                lightPasteCut(pTool->cursor);
+                break;
+            case 1:
+                lightPasteAmbient(pTool->cursor);
+                break;
+            case 2:
+                lightPasteFog(pTool->cursor);
+                break;
+            case 3:
+                lightPasteMFog(pTool->cursor);
+                break;
+            case 4:
+                lightPasteShadow(pTool->cursor);
+                break;
+            case 5:
+                lightPasteFocus(pTool->cursor);
+                break;
+            case 6:
+                lightPasteBlur(pTool->cursor);
+                break;
+            case 7:
+                lightPasteTune(pTool->cursor);
+                break;
+            case 8:
+                lightPasteScale(pTool->cursor);
+                break;
+            }
+            if (pTool->cursor == pTool->cutNo) {
+                LitLoadWork(&pTool->lit, pTool->cutNo);
+            }
+            break;
+        case 3:
+            lightPasteCut(pTool->cursor);
+            if (pTool->cursor == pTool->cutNo) {
+                LitLoadWork(&pTool->lit, pTool->cutNo);
+            }
+            break;
+        case 4:
+            lightPasteCutAll(pTool->cursor);
+            break;
+        case 5:
+            lightPasteCutAll2(pTool->cursor);
+            break;
+        }
+        pTool->sub = 0;
+    }
+    if (pTool->joy.rep & JOY_UP) {
+        pTool->subCursor = (pTool->subCursor + 5) % 6;
+    }
+    if (pTool->joy.rep & JOY_DOWN) {
+        pTool->subCursor = (pTool->subCursor + 7) % 6;
+    }
+    if (pTool->joy.rep & JOY_B) {
+        pTool->sub = 0;
+    }
+}
+
+int lightCopyCut(int no)
+{
+    if (!pTool->lit.isCut(no)) {
+        return 0;
+    }
+    if (pTool->pCopyCut) {
+        Debug_free(pTool->pCopyCut);
+    }
+    pTool->pCopyCut = copyCut(pTool->lit.getCut(no));
+    return 1;
+}
+
+int lightPasteCut(int no)
+{
+    if (pTool->pCopyCut == NULL) {
+        return 0;
+    }
+    if (pTool->lit.isCut(no)) {
+        Debug_free(pTool->lit.getCut(no));
+    }
+    pTool->lit.cut[(u16) no] = copyCut(pTool->pCopyCut);
+    return 1;
+}
+
+int lightPasteAmbient(int no)
+{
+    if (pTool->lit.isCut(no) && pTool->pCopyCut) {
+        pTool->lit.getCut(no)->x0 = pTool->pCopyCut->x0;
+        return 1;
+    }
+    return 0;
+}
+
+int lightPasteFog(int no)
+{
+    if (pTool->lit.isCut(no) && pTool->pCopyCut) {
+        pTool->lit.getCut(no)->fog = pTool->pCopyCut->fog;
+        return 1;
+    }
+    return 0;
+}
+
+int lightPasteMFog(int no)
+{
+    if (pTool->lit.isCut(no) && pTool->pCopyCut) {
+        *(LightFog*) ((u8*) pTool->lit.getCut(no) + 0x18) = *(LightFog*) ((u8*) pTool->pCopyCut + 0x18);
+        return 1;
+    }
+    return 0;
+}
+
+int lightPasteShadow(int no)
+{
+    return 0;
+}
+
+int lightPasteFocus(int no)
+{
+    if (pTool->lit.isCut(no) && pTool->pCopyCut) {
+        *(LightFocus*) &pTool->lit.getCut(no)->x28 = *(LightFocus*) &pTool->pCopyCut->x28;
+        return 1;
+    }
+    return 0;
+}
+
+int lightPasteBlur(int no)
+{
+    if (pTool->lit.isCut(no) && pTool->pCopyCut) {
+        pTool->lit.getCut(no)->blurAlpha = pTool->pCopyCut->blurAlpha;
+        return 1;
+    }
+    return 0;
+}
+
+int lightPasteTune(int no)
+{
+    if (pTool->lit.isCut(no) && pTool->pCopyCut) {
+        *(LightFog*) ((u8*) pTool->lit.getCut(no) + 0x30) = *(LightFog*) ((u8*) pTool->pCopyCut + 0x30);
+        return 1;
+    }
+    return 0;
+}
+
+int lightPasteScale(int no)
+{
+    if (pTool->lit.isCut(no) && pTool->pCopyCut) {
+        pTool->lit.getCut(no)->tevScale[0] = pTool->pCopyCut->tevScale[0];
+        pTool->lit.getCut(no)->tevScale[1] = pTool->pCopyCut->tevScale[1];
+        pTool->lit.getCut(no)->pad_42[0] = pTool->pCopyCut->pad_42[0];
+        pTool->lit.getCut(no)->pad_42[1] = pTool->pCopyCut->pad_42[1];
+        return 1;
+    }
+    return 0;
+}
+
+int lightPasteCutAll(int no)
+{
+    int i;
+
+    if (!pTool->lit.isCut(no)) {
+        return 0;
+    }
+    for (i = 0; i < pTool->areaNum; i++) {
+        if (pTool->lit.isCut(i)) {
+            if (pTool->lit.getCut(i)->nLight != 0) {
+                continue;
+            }
+            Debug_free(pTool->lit.getCut(i));
+        }
+        pTool->lit.cut[(u16) i] = copyCut(pTool->lit.getCut(no));
+    }
+    return 1;
+}
+
+int lightPasteCutAll2(int no)
+{
+    int i;
+
+    if (!pTool->lit.isCut(no)) {
+        return 0;
+    }
+    for (i = 0; i < pTool->areaNum; i++) {
+        if (pTool->lit.isCut(i)) {
+            Debug_free(pTool->lit.getCut(i));
+        }
+        pTool->lit.cut[(u16) i] = copyCut(pTool->lit.getCut(no));
+    }
+    return 1;
+}
+
+cLightEnv* copyCut(cLightEnv* src)
+{
+    u32 size = src->nLight * sizeof(cLightWork) + sizeof(cLightEnv);
+    cLightEnv* dst = (cLightEnv*) Debug_alloc(size, 1);
+    memcpy(dst, src, size);
+    return dst;
+}
+
+static void edit_light()
+{
+    static void (*edit_light_tbl[40])() = {
+        edit_light_select, edit_light_no, edit_light_id, edit_light_eid, edit_light_parent, edit_light_pos,
+        edit_light_radius, edit_light_color, edit_light_intensity, edit_light_type, edit_light_kind,
+        edit_light_attr, edit_light_priority, NULL, NULL, NULL, NULL, NULL, NULL, NULL, edit_light_select_sub,
+        edit_light_prop_sub,
+    };
+
+    edit_light_tbl[pTool->sub]();
+    printEditTable();
+}
+
+static void edit_light_select()
+{
+    static int light_col[12] = {3, 6, 9, 0xF, 0x12, 0x20, 0x24, 0x28, 0x2C, 0x31, 0x36, 0x3B};
+    static int light_col_w[12] = {6, 0x18, 0x32, 0x32, 0x32, 0x32, 0x32, 0x32, 0x32, 0x32, 0x32, 0x32};
+    u32 i;
+    cLight* cur;
+
+    pTool->printCursor(light_col[pTool->col], pTool->row + 0x18);
+    if (pTool->joy.rep & 0x20002) {
+        pTool->col = (pTool->col + 13) % 12;
+    } else if (pTool->joy.rep & 0x10001) {
+        pTool->col = (pTool->col + 11) % 12;
+    }
+    if ((pTool->joy.rep & JOY_UP) || (pTool->joy.on & JOY_SUP)) {
+        if (pTool->row == 0) {
+            if (pTool->top != 0) {
+                pTool->top--;
+            } else {
+                pTool->row = pTool->rows - 1;
+                pTool->top = nLightWork - pTool->rows - 1;
+            }
+        } else {
+            pTool->row--;
+        }
+    } else if ((pTool->joy.rep & JOY_DOWN) || (pTool->joy.on & JOY_SDOWN)) {
+        if (pTool->row < pTool->rows - 1) {
+            pTool->row++;
+        } else if (pTool->top < (int) (nLightWork - pTool->rows - 1)) {
+            pTool->top++;
+        } else {
+            pTool->top = 0;
+            pTool->row = 0;
+        }
+    }
+    cur = curLight();
+    if (!(cur->be_flag & 1)) {
+        pTool->col = 0;
+    }
+    if (pTool->joy.rep & JOY_A) {
+        pTool->sub = pTool->col + 1;
+        pTool->init = pTool->x8 = pTool->x9 = pTool->xA = pTool->xB = 0;
+    } else if (pTool->joy.trg & JOY_Y) {
+        pTool->clearSubMenu();
+        pTool->sub += 20;
+    } else if (pTool->joy.rep & JOY_B) {
+        pTool->editNo = 0;
+        pTool->clearWork();
+    }
+    for (i = 0; i < nLightWork; i++) {
+        cLight* l = LightMgr.getWorkPtr(i);
+        if ((l->be_flag & 3) == 3) {
+            if (l == cur) {
+                u32 c = ((pG->flags_51E4 << 4) | 0xF) & 0xFF;
+                drawLightInfo(l, c | (c << 24 | c << 16 | c << 8));
+            } else {
+                drawLightInfo(l, 0x40404040);
+            }
+        }
+    }
+}
+
+static void edit_light_select_sub()
+{
+    static const char* light_sub_name[] = {
+        "CUT", "COPY", "INSERT", "DELETE", "PAGE", "CUT", "COPY", "PASTE", "DELETE", "PAGE",
+    };
+    cLight* cur = curLight();
+    u32 i;
+    int y;
+
+    if (pTool->xC == 0) {
+        pTool->xC = 1;
+        pTool->xD = pTool->cutNo;
+    }
+    eprintf(0x140, 0x46, 4, pTool->color, "SUB MENU");
+    i = 0;
+    y = 0x54;
+    for (; i < 5; i++) {
+        int idx = i;
+        if (pTool->col != 0) {
+            idx = i + 5;
+        }
+        eprintf(0x140, y, 0, pTool->color, light_sub_name[idx]);
+        y += 14;
+    }
+    eprintf(0x168, 0x8C, pTool->editEnable() ? 0 : 0x16, pTool->color, "%02d", pTool->cutNo);
+    if (pTool->cutNo != pTool->xD) {
+        eprintf(0x180, 0x8C, pTool->editEnable() ? 0 : 0x16, pTool->color, "--> %02d", pTool->xD);
+    }
+    pTool->printCursor(0x27, pTool->subCursor + 6);
+    if (pTool->joy.rep & JOY_UP) {
+        pTool->subCursor = (pTool->subCursor + 4) % 5u;
+    }
+    if (pTool->joy.rep & JOY_DOWN) {
+        pTool->subCursor = (pTool->subCursor + 6) % 5u;
+    }
+    if ((pTool->joy.rep & JOY_A) || (pTool->joy.trg & JOY_Y)) {
+        switch (pTool->subCursor) {
+        case 0:
+            lightCopyWork(&pTool->light, cur);
+            lightCutWork(pTool->top + pTool->row);
+            break;
+        case 1:
+            lightCopyWork(&pTool->light, cur);
+            break;
+        case 2:
+            switch (pTool->col) {
+            case 0:
+                if (pTool->light.be_flag & 1) {
+                    lightInsertWork(pTool->top + pTool->row);
+                    LightMgr.cManager<cLight>::create(pTool->light.type, pTool->top + pTool->row);
+                    lightCopyWork(cur, &pTool->light);
+                }
+                break;
+            case 1:
+                cur->type = pTool->light.type;
+                cur->sub = pTool->light.sub;
+                break;
+            case 2:
+                cur->xF = pTool->light.xF;
+                break;
+            case 3:
+                cur->parentType = pTool->light.parentType;
+                break;
+            case 4:
+                cur->pos = pTool->light.pos;
+                break;
+            case 5:
+                cur->x1C = pTool->light.x1C;
+                break;
+            case 6:
+                cur->color = pTool->light.color;
+                break;
+            case 7:
+                cur->power = pTool->light.power;
+                break;
+            case 8:
+                cur->xD = pTool->light.xD;
+                cur->spot = pTool->light.spot;
+                break;
+            }
+            cur->calcParent();
+            break;
+        case 3:
+            lightCutWork(pTool->top + pTool->row);
+            break;
+        case 4:
+            if (pTool->editEnable()) {
+                LitSaveWork(&pTool->lit, pTool->cutNo);
+            }
+            pTool->cutNo = pTool->xD;
+            LitLoadWork(&pTool->lit, pTool->cutNo);
+            LitSaveWork(&pTool->lit, pTool->cutNo);
+            break;
+        }
+        pTool->sub -= 20;
+    }
+    if (pTool->subCursor == 4) {
+        u8 num = pTool->areaNum;
+        if (num < 60) {
+            num = 60;
+        }
+        if (pTool->joy.rep & JOY_RIGHT) {
+            pTool->xD = (num + pTool->xD + 1) % num;
+        } else if (pTool->joy.rep & JOY_LEFT) {
+            pTool->xD = (num + pTool->xD - 1) % num;
+        }
+    }
+    if (pTool->joy.rep & JOY_B) {
+        pTool->sub -= 20;
+    }
+}
+
+void lightCopyWork(cLight* dst, cLight* src)
+{
+    dst->be_flag = src->be_flag;
+    dst->xC = src->xC;
+    dst->xD = src->xD;
+    dst->type = src->type;
+    dst->xF = src->xF;
+    dst->pos = src->pos;
+    dst->x1C = src->x1C;
+    dst->color = src->color;
+    dst->power = src->power;
+    dst->kind = src->kind;
+    dst->attr = src->attr;
+    dst->x2B = src->x2B;
+    dst->x30 = src->x30;
+    dst->x32 = src->x32;
+    dst->x34 = src->x34;
+    dst->setParent(src->parentType, src->parentId);
+    dst->spot = src->spot;
+    dst->sub = src->sub;
+    dst->path = src->path;
+    dst->x138 = src->x138;
+    dst->pad_139[0] = src->pad_139[0];
+    dst->pad_139[1] = src->pad_139[1];
+    dst->pad_139[2] = src->pad_139[2];
+    dst->curColor = src->curColor;
+}
+
+void lightCutWork(int no)
+{
+    int i;
+
+    for (i = no; i < (int) nLightWork - 2; i++) {
+        cLight* p = LightMgr.getWorkPtr(i);
+        cLight* n;
+        if (p && p->isAlive()) {
+            LightMgr.destroy(p);
+        }
+        n = LightMgr.getWorkPtr(i + 1);
+        if (n && n->isAlive()) {
+            cLightMgr* m = &LightMgr;
+            m->cManager<cLight>::create(n->type, i);
+            lightCopyWork(p, n);
+            LightMgr.destroy(n);
+        }
+    }
+}
+
+void lightInsertWork(int no)
+{
+    int i;
+
+    for (i = nLightWork - 2; i >= no; i--) {
+        cLight* p = LightMgr.getWorkPtr(i + 1);
+        cLight* n;
+        if (p && p->isAlive()) {
+            LightMgr.destroy(p);
+        }
+        n = LightMgr.getWorkPtr(i);
+        if (n && n->isAlive()) {
+            cLightMgr* m = &LightMgr;
+            m->cManager<cLight>::create(n->type, i + 1);
+            lightCopyWork(p, n);
+            LightMgr.destroy(n);
+        }
+    }
+}
+
+static void edit_light_no()
+{
+    u32 no = pTool->top + pTool->row;
+    cLight* cur = LightMgr.getWorkPtr(no);
+
+    if (cur->be_flag & 1) {
+        cur->be_flag ^= 2;
+    } else {
+        initLightWork(LightMgr.cManager<cLight>::create(0, no));
+    }
+    pTool->sub = 0;
+}
+
+// Per-type work areas at cLight+0x78 (light01.cpp .. light08.cpp keep their own copies).
+struct Light01Work {
+    u8 pad_0[4];
+    s8 range;  // 0x04
+};
+struct Light02Work {
+    f32 base;  // 0x00
+    f32 amp;   // 0x04
+    f32 freq;  // 0x08
+};
+struct Light03Work {
+    f32 rot[3];  // 0x00
+};
+struct Light04Work {
+    u16 flags;   // 0x00  bit0: inverse texture, bit2: use texture
+    u8 kind;     // 0x02  0 normal, 1..4 cast, 5 foot
+    s8 gndDist;  // 0x03
+    u8 pad_4[4];
+    u8 texNo;    // 0x08
+};
+struct Light05Work {
+    cLightPathData* pStart;  // 0x00
+    cLightPathData* pCur;    // 0x04
+    u8 flag;                 // 0x08  bit0 loop, bit1 inverse
+    u8 pad_9[3];
+    u8 pathNo;               // 0x0C
+    u8 pathIdx;              // 0x0D
+};
+struct Light06Work {
+    f32 start;  // 0x00
+    f32 speed;  // 0x04
+    f32 rate;   // 0x08
+};
+struct Light07Work {
+    f32 speed[3];  // 0x00
+};
+
+// Stick step of the numeric editors: A held multiplies it by 10.
+#define STICK_STEP(scale) ((f32) pTool->joy.sx * step / (scale))
+#define STICK_MUL() f32 step = (pTool->joy.on & JOY_A) ? 10.0f : 1.0f
+
+static void edit_light_id()
+{
+    static void (*light_id_tbl[])() = {
+        edit_light_id_normal, edit_light_id_flick, edit_light_id_wave, edit_light_id_round,
+        edit_light_id_shadow, edit_light_id_path, edit_light_id_fade, edit_light_id_shine,
+        edit_light_id_spotlock, edit_light_id_normal,
+    };
+    cLight* cur = curLight();
+
+    if (pTool->xA == 0) {
+        pTool->xB = cur->type;
+        pTool->xA = 1;
+    }
+    eprintf(0x40, 0x8C, 4, pTool->color, "LIGHT PROPATY");
+    eprintf(0x40, 0x9A, 0, pTool->color, "%2d %s", cur->type, light_id_name[cur->type]);
+    if (cur->type != pTool->xB) {
+        eprintf(0xC0, 0x9A, 6, pTool->color, "-> %d %s", pTool->xB, light_id_name[pTool->xB]);
+    }
+    light_id_tbl[cur->type]();
+    if (pTool->joy.rep & JOY_B) {
+        pTool->sub = 0;
+        pLog->modeSet(0x18, 0x8C, 0x1E, 10);
+    }
+}
+
+static void edit_light_id_normal()
+{
+    cLight* cur = curLight();
+
+    if (pTool->joy.rep & JOY_RIGHT) {
+        pTool->xB = (pTool->xB + 11) % 10;
+    } else if (pTool->joy.rep & JOY_LEFT) {
+        pTool->xB = (pTool->xB + 9) % 10;
+    } else if (pTool->joy.rep & JOY_A) {
+        if (pTool->xB != cur->type) {
+            cur->type = pTool->xB;
+            clear_move_free();
+        }
+    }
+}
+
+static void edit_light_id_flick()
+{
+    cLight* cur = curLight();
+    Light01Work* w = (Light01Work*) cur->work;
+    int n;
+    int v;
+
+    switch (pTool->init) {
+    case 0:
+        edit_light_id_normal();
+        break;
+    case 1:
+        drawColorTile(0x60, 0xD2, 0x30, 0x30, *(u32*) &cur->color);
+        if (pTool->joy.rep & 0x20002) {
+            v = w->range;
+            if (pTool->joy.on & JOY_A) {
+                n = v + 10;
+            } else {
+                n = v + 1;
+            }
+            w->range = n;
+            if (n & 0x80) {
+                w->range = 0;
+            }
+        }
+        if (pTool->joy.rep & 0x10001) {
+            v = w->range;
+            if (pTool->joy.on & JOY_A) {
+                n = v - 10;
+            } else {
+                n = v - 1;
+            }
+            w->range = n;
+            if (n & 0x80) {
+                w->range = 0x7F;
+            }
+        }
+        break;
+    }
+    if (pTool->joy.rep & JOY_UP) {
+        pTool->init = (pTool->init + 1) % 2;
+    }
+    if (pTool->joy.rep & JOY_DOWN) {
+        pTool->init = (pTool->init + 3) % 2;
+    }
+    if (pTool->joy.trg & JOY_Y) {
+        w->range = 0;
+    }
+    pTool->printCursor(7, pTool->init + 11);
+    eprintf(0x40, 0xA8, 0, pTool->color, "COLOR FLICK RANGE %d", w->range);
+    drawLightInfo(cur, 0xFFFFFFFF);
+}
+
+static void edit_light_id_wave()
+{
+    cLight* cur = curLight();
+    Light02Work* w = (Light02Work*) cur->work;
+
+    switch (pTool->init) {
+    case 0:
+        edit_light_id_normal();
+        break;
+    case 1:
+        {
+            STICK_MUL();
+            w->base += STICK_STEP(10000.0f);
+        }
+        break;
+    case 2:
+        {
+            STICK_MUL();
+            w->amp += STICK_STEP(10000.0f);
+        }
+        break;
+    case 3:
+        {
+            STICK_MUL();
+            w->freq += STICK_STEP(10000.0f);
+        }
+        break;
+    }
+    if (pTool->joy.rep & JOY_UP) {
+        pTool->init = (pTool->init + 3) % 4;
+    }
+    if (pTool->joy.rep & JOY_DOWN) {
+        pTool->init = (pTool->init + 5) % 4;
+    }
+    eprintf(0x40, 0xA8, 0, pTool->color, "CENTER %3.3f", w->base);
+    eprintf(0x40, 0xB6, 0, pTool->color, "RANGE  %3.3f", w->amp);
+    eprintf(0x40, 0xC4, 0, pTool->color, "SPEED   %3.3f", w->freq);
+    pTool->printCursor(7, pTool->init + 11);
+    drawLightInfo(cur, 0xFFFFFFFF);
+}
+
+static void edit_light_id_round()
+{
+    cLight* cur = curLight();
+    Light03Work* w = (Light03Work*) cur->work;
+
+    switch (pTool->init) {
+    case 0:
+        edit_light_id_normal();
+        break;
+    case 1:
+        if (pTool->joy.trg & JOY_Y) {
+            w->rot[0] = 0.0f;
+        }
+        {
+            STICK_MUL();
+            w->rot[0] += STICK_STEP(10000.0f);
+        }
+        break;
+    case 2:
+        if (pTool->joy.trg & JOY_Y) {
+            w->rot[1] = 0.0f;
+        }
+        {
+            STICK_MUL();
+            w->rot[1] += STICK_STEP(10000.0f);
+        }
+        break;
+    case 3:
+        if (pTool->joy.trg & JOY_Y) {
+            w->rot[2] = 0.0f;
+        }
+        {
+            STICK_MUL();
+            w->rot[2] += STICK_STEP(10000.0f);
+        }
+        break;
+    }
+    w->rot[0] = LIMIT_ANGLE(w->rot[0]);
+    w->rot[1] = LIMIT_ANGLE(w->rot[1]);
+    w->rot[2] = LIMIT_ANGLE(w->rot[2]);
+    if (pTool->joy.rep & JOY_UP) {
+        pTool->init = (pTool->init + 3) % 4;
+    }
+    if (pTool->joy.rep & JOY_DOWN) {
+        pTool->init = (pTool->init + 5) % 4;
+    }
+    eprintf(0x40, 0xA8, 0, pTool->color, "ROT X %3.3f", w->rot[0]);
+    eprintf(0x40, 0xB6, 0, pTool->color, "ROT Y %3.3f", w->rot[1]);
+    eprintf(0x40, 0xC4, 0, pTool->color, "ROT Z %3.3f", w->rot[2]);
+    eprintf(0x40, 0xEE, 0, pTool->color, "PUSH [Y] TO SET 0.0");
+    pTool->printCursor(7, pTool->init + 11);
+    drawLightInfo(cur, 0xFFFFFFFF);
+}
+
+static void edit_light_id_shadow()
+{
+    static const char* shadow_kind_name[] = {"NORMAL", "CAST", "CAST_ADD", "CAST2", "CAST_ADD2", "FOOT"};
+    static const char* shadow_onoff[] = {"OFF", "ON"};
+    cLight* cur = curLight();
+    Light04Work* w;
+    int step;
+    u8 col;
+
+    pLog->modeSet(0xC8, 0x8C, 0x1E, 10);
+    w = (Light04Work*) cur->work;
+    if ((*(u32*) &cur->color & 0xFFFFFF00) == 0) {
+        cur->color.r = 0xFF;
+        w->texNo = 0x5A;
+    }
+    if (cur->xD > 2) {
+        cur->xD = 0;
+    }
+    switch (pTool->init) {
+    case 0:
+        edit_light_id_normal();
+        break;
+    case 1:
+        if (pTool->joy.rep & JOY_RIGHT) {
+            w->kind++;
+        }
+        if (pTool->joy.rep & JOY_LEFT) {
+            w->kind--;
+        }
+        if (w->kind & 0x80) {
+            w->kind = 5;
+        }
+        if (w->kind > 5) {
+            w->kind = 0;
+        }
+        break;
+    case 2:
+        if (w->kind - 1 > 3u) {
+            if (pTool->joy.rep & JOY_RIGHT) {
+                w->flags |= 1;
+            }
+            if (pTool->joy.rep & JOY_LEFT) {
+                w->flags &= ~1;
+            }
+        }
+        break;
+    case 3:
+        if (pTool->joy.rep & JOY_RIGHT) {
+            w->flags |= 4;
+        }
+        if (pTool->joy.rep & JOY_LEFT) {
+            w->flags &= ~4;
+        }
+        break;
+    case 4:
+        if (pTool->joy.trg & JOY_Y) {
+            w->gndDist = 0;
+        }
+        step = (pTool->joy.on & JOY_A) ? 16 : 1;
+        if (pTool->joy.rep & JOY_RIGHT) {
+            w->gndDist += step;
+        }
+        if (pTool->joy.rep & JOY_LEFT) {
+            w->gndDist -= step;
+        }
+        break;
+    }
+    if (pTool->joy.rep & JOY_UP) {
+        pTool->init = (pTool->init + 4) % 5;
+    }
+    if (pTool->joy.rep & JOY_DOWN) {
+        pTool->init = (pTool->init + 6) % 5;
+    }
+    col = 0x14;
+    if (w->flags & 1) {
+        col = 0;
+    }
+    if (w->kind - 1 <= 3u) {
+        col = 0;
+    }
+    eprintf(0x40, 0xA8, 0, pTool->color, "KIND   : %s", shadow_kind_name[w->kind]);
+    if (w->kind == 5) {
+        eprintf(0x40, 0xB6, 0x14, pTool->color, "USE_TEX: ");
+        eprintf(0x40, 0xC4, 0x14, pTool->color, "INV_TEX:");
+        eprintf(0x40, 0xC4, col, pTool->color, "         %s", shadow_onoff[(w->flags >> 2) & 1]);
+        eprintf(0x40, 0xD2, 0, pTool->color, "GND_DIST:");
+        eprintf(0x40, 0xD2, 0, pTool->color, "           %2d", w->gndDist);
+    } else {
+        eprintf(0x40, 0xB6, 0, pTool->color, "USE_TEX: ");
+        eprintf(0x40, 0xC4, 0, pTool->color, "INV_TEX:");
+        eprintf(0x40, 0xC4, col, pTool->color, "         %s", shadow_onoff[(w->flags >> 2) & 1]);
+        eprintf(0x40, 0xD2, 0, pTool->color, "TEX_NO :");
+        eprintf(0x40, 0xD2, col, pTool->color, "          %2x", w->gndDist);
+    }
+    if (w->kind - 1 <= 3u) {
+        eprintf(0x40, 0xB6, 0x17, pTool->color, "          ON");
+    } else {
+        eprintf(0x40, 0xB6, 0, pTool->color, "         %s", shadow_onoff[w->flags & 1]);
+    }
+    eprintf(0x40, 0xEE, 0, pTool->color, "PUSH [Y] TO SET 0");
+    pTool->printCursor(7, pTool->init + 11);
+    drawLightInfo(cur, 0xFFFFFFFF);
+}
+
+static void edit_light_id_path()
+{
+    cLight* cur = curLight();
+    Light05Work* w = (Light05Work*) cur->work;
+
+    switch (pTool->init) {
+    case 0:
+        edit_light_id_normal();
+        break;
+    case 1:
+        if (pTool->joy.rep & 0x20002) {
+            w->pathNo++;
+            cur->x138 = 0;
+        }
+        if (pTool->joy.rep & 0x10001) {
+            w->pathNo--;
+            cur->x138 = 0;
+        }
+        if (pTool->joy.rep & JOY_A) {
+            cLightPathData* p = pTool->litPath.path[w->pathNo];
+            if (PTR_OK(p)) {
+                memcpy(pTool->litPath.edit, p, p->getSize());
+                pTool->x10 = pTool->x11 = pTool->x12 = pTool->x13 = 0;
+                pTool->init = 100;
+            }
+        }
+        break;
+    case 2:
+        if (pTool->joy.rep & (JOY_LEFT | JOY_RIGHT)) {
+            w->flag ^= 1;
+        }
+        break;
+    case 3:
+        if (pTool->joy.rep & (JOY_LEFT | JOY_RIGHT)) {
+            w->flag ^= 2;
+        }
+        break;
+    case 100:
+        if (pTool->joy.rep & JOY_B) {
+            pTool->joy.rep &= ~JOY_B;
+            pTool->init = 1;
+        }
+        break;
+    }
+    if (pTool->init < 100) {
+        if (pTool->joy.rep & JOY_UP) {
+            pTool->init = (pTool->init + 3) % 4;
+        }
+        if (pTool->joy.rep & JOY_DOWN) {
+            pTool->init = (pTool->init + 5) % 4;
+        }
+        pTool->printCursor(7, pTool->init + 11);
+        eprintf(0x40, 0xA8, 0, pTool->color, "PATH No:%d", w->pathNo);
+        eprintf(0x40, 0xB6, 0, pTool->color, "LOOP    %s", (w->flag & 1) ? "OFF" : "ON");
+        eprintf(0x40, 0xC4, 0, pTool->color, "INVERSE %s", (w->flag & 2) ? "ON" : "OFF");
+        drawLightInfo(cur, 0xFFFFFFFF);
+        if (PTR_OK(w->pStart)) {
+            drawPath(0xC8, 0x64, w->pStart, w->flag, 0xFFFFFFFF);
+        } else {
+            eprintf(0xC8, 0xA8, 0, pTool->color, "NO DATA");
+        }
+    } else {
+        eprintf(0x40, 0xA8, 0, pTool->color, "EDIT PATH No:%d", w->pathNo);
+        pathEdit(0x20, 0xC4, w->pathNo, w->flag, 0);
+    }
+}
+
+static void edit_light_id_fade()
+{
+    cLight* cur = curLight();
+    Light06Work* w = (Light06Work*) cur->work;
+
+    switch (pTool->init) {
+    case 0:
+        edit_light_id_normal();
+        break;
+    case 1:
+        if (pTool->joy.rep & JOY_RIGHT) {
+            ((Light06Work*) cur->work)->start += 0.1f;
+        }
+        if (pTool->joy.rep & JOY_LEFT) {
+            ((Light06Work*) cur->work)->start -= 0.1f;
+        }
+        if (pTool->joy.trg & JOY_Y) {
+            ((Light06Work*) cur->work)->start = 0.0f;
+        }
+        break;
+    case 2:
+        if (pTool->joy.rep & JOY_RIGHT) {
+            w->speed += 0.01f;
+        }
+        if (pTool->joy.rep & JOY_LEFT) {
+            w->speed -= 0.01f;
+        }
+        if (pTool->joy.trg & JOY_Y) {
+            w->speed = 0.0f;
+        }
+        break;
+    case 3:
+        if (pTool->joy.rep & JOY_A) {
+            cur->x138 = 0;
+        }
+        break;
+    }
+    if (pTool->joy.rep & JOY_UP) {
+        pTool->init = (pTool->init + 3) % 4;
+    }
+    if (pTool->joy.rep & JOY_DOWN) {
+        pTool->init = (pTool->init + 5) % 4;
+    }
+    pTool->printCursor(7, pTool->init + 11);
+    eprintf(0x40, 0xA8, 0, pTool->color, "START %f", w->start);
+    eprintf(0x40, 0xB6, 0, pTool->color, "SPEED %f", w->speed);
+    eprintf(0x40, 0xC4, 0, pTool->color, "PLAY");
+    drawLightInfo(cur, 0xFFFFFFFF);
+}
+
+static void edit_light_id_shine() {}
+static void edit_light_id_spotlock() {}
+static void edit_light_eid() {}
+static void edit_light_parent() {}
+void posTranslate(cLight* l, u8 type, u32 id) {}
+static void edit_light_pos() {}
+static void edit_light_radius() {}
+static void edit_light_color() {}
+static void edit_light_intensity() {}
+static void edit_light_type() {}
+
+void edit_light_type_shadow()
+{
+    cLight* cur = curLight();
+
+    static void (*shadow_type_tbl[3])() = {
+        edit_light_type_shadow_fit, edit_light_type_shadow_parallel, edit_light_type_shadow_fix,
+    };
+
+    eprintf(0x40, 0x8C, 4, pTool->color, "SHADOW PROPATY");
+    shadow_type_tbl[cur->xD]();
+    if (pTool->joy.rep & JOY_B) {
+        pTool->sub = 0;
+    }
+}
+
+int shadow_select_type()
+{
+    cLight* cur = curLight();
+
+    if (pTool->x8 == 0) {
+        pTool->x9 = cur->xD;
+        pTool->x8 = 1;
+    }
+    if (pTool->joy.rep & JOY_RIGHT) {
+        pTool->x9 = (pTool->x9 + 4) % 3;
+    }
+    if (pTool->joy.rep & JOY_LEFT) {
+        pTool->x9 = (pTool->x9 + 2) % 3;
+    }
+    if (pTool->joy.rep & JOY_A) {
+        cur->xD = pTool->x9;
+    }
+    eprintf(0x40, 0x9A, 0, pTool->color, "%2d %s", pTool->x9, shadow_type_name[pTool->x9]);
+    return 1;
+}
+
+static void edit_light_type_shadow_fit() {}
+static void edit_light_type_shadow_parallel() {}
+static void edit_light_type_shadow_fix() {}
+
+static void edit_light_kind() {}
+static void edit_light_attr() {}
+static void edit_light_priority() {}
+
+int select_type()
+{
+    cLight* cur = curLight();
+    int ret;
+    int col;
+
+    if (pTool->x8 == 0) {
+        pTool->x9 = cur->xD;
+        pTool->x8 = 1;
+    }
+    if (pTool->joy.rep & JOY_RIGHT) {
+        pTool->x9 = (pTool->x9 + 9) % 8;
+    }
+    if (pTool->joy.rep & JOY_LEFT) {
+        pTool->x9 = (pTool->x9 + 7) % 8;
+    }
+    if (pTool->joy.rep & JOY_A) {
+        if (cur->xD != pTool->x9) {
+            cur->xD = pTool->x9;
+            clear_type_free();
+        }
+    }
+    if (cur->xD == pTool->x9) {
+        col = 0;
+        ret = 1;
+    } else {
+        col = 6;
+        ret = 0;
+    }
+    eprintf(0x40, 0x9A, col, pTool->color, "%2d %s", pTool->x9, light_type_name[pTool->x9]);
+    return ret;
+}
+
+static void edit_light_type_constant() {}
+static void edit_light_type_quad() {}
+static void edit_light_type_spotlight() {}
+static void edit_light_type_direct() {}
+static void edit_light_type_localamb() {}
+
+// Attenuation of a custom light at distance d (the angular term is evaluated at 0).
+f32 func_attn(cLight* l, f32 d)
+{
+    LightSpot* s = &l->spot;
+    f32 c = 0.0f;
+    return (s->cutoff + s->fade * c + s->a2 * c) / (s->k0 + d * s->k1 + d * d * s->k2);
+}
+
+void draw_light_graph(cLight* l) {}
+static void edit_light_type_parallel() {}
+static void edit_light_prop_sub() {}
+static void edit_ambient() {}
+static void edit_fog() {}
+static void edit_mirror_fog() {}
+void edit_fog_common(LightFog* fog) {}
+static void edit_focus() {}
+void draw_tone_curve() {}
+static void edit_blur() {}
+static void edit_mipmap() {}
+static void edit_tune() {}
+static void edit_scale() {}
+static void edit_param() {}
+static void edit_wind() {}
+static void path() {}
+static void load() {}
+static void save() {}
+static void option() {}
+static void quit() {}
+void printEditTable() {}
+
+void cLightTool::printCursor(int x, int y)
+{
+    if (!(blink & 8)) {
+        eprintf(x * 8, y * 14, 0, pTool->color, ">");
+    }
+}
+
+void DrawTile(int x, int y, int w, int h, GXColor* color)
+{
+    Mtx44 proj;
+    Mtx mtx;
+    GXColor col = *color;
+    GXColor amb;
+
+    GXSetNumTexGens(0);
+    GXSetNumTevStages(1);
+    GXSetTevOrder(0, 0xFF, 0xFF, 4);
+    GXSetTevOp(0, 4);
+    GXSetNumChans(1);
+    GXSetChanCtrl(0, 0, 0, 0, 0, 0, 2);
+    amb.r = amb.g = amb.b = amb.a = 0xFF;
+    GXSetChanAmbColor(0, amb);
+    GXSetChanMatColor(0, col);
+    C_MTXOrtho(proj, 0.0f, 448.0f, 0.0f, 512.0f, 0.0f, -100.0f);
+    GXSetProjection(proj, 1);
+    PSMTXIdentity(mtx);
+    GXLoadPosMtxImm(mtx, 0);
+    GXSetCurrentMtx(0);
+    GXSetBlendMode(0, 1, 0, 0);
+    GXSetCullMode(0);
+    GXSetZMode(1, 3, 0);
+    GXClearVtxDesc();
+    GXSetVtxDesc(9, 1);
+    GXSetVtxAttrFmt(0, 9, 1, 3, 0);
+    GXBegin(0x80, 0, 4);
+    GXPosition3s16(x, y, 2);
+    GXPosition3s16(x + w, y, 2);
+    GXPosition3s16(x + w, y + h, 2);
+    GXPosition3s16(x, y + h, 2);
+}
+
+void cLightTool::clearWork()
+{
+    col = 0;
+    cursor = 0;
+    row = 0;
+}
+
+void cLightTool::clearSubMenu()
+{
+    subCursor = 0;
+    xF = 0;
+    xE = 0;
+    xD = 0;
+    xC = 0;
+}
+
+cDbLit::cDbLit()
+{
+    int i;
+
+    nMaxLight = 0;
+    nCut = 0;
+    version = 0;
+    for (i = 0; i < 256; i++) {
+        cut[i] = NULL;
+    }
+}
+
+u32 cDbLit::size()
+{
+    u32 i;
+    u32 size;
+
+    for (i = 0; i < 256; i++) {
+        if (cut[i]) {
+            nCut = i + 1;
+        }
+    }
+    size = nCut * 4 + 4;
+    for (i = 0; i < nCut; i++) {
+        if (cut[i]) {
+            size += cut[i]->getSize();
+        }
+    }
+    return size;
+}
+
+cLightEnv* cDbLit::getCut(u16 no)
+{
+    return cut[no];
+}
+
+int LitLoadWork(cDbLit* lit, int no)
+{
+    cLightEnv* env = lit->getCut(no);
+
+    LightMgr.destroyAll();
+    if (env == NULL) {
+        memclr_asm(pLightEnv, sizeof(cLightEnv));
+        return 0;
+    }
+    LightMgr.setEnv(env, -1);
+    LightMgr.loadLit(env->getLightWork(0), env->nLight);
+    return 1;
+}
+
+int LitSaveWork(cDbLit* lit, int no)
+{
+    u32 n;
+
+    if (lit->isCut(no)) {
+        Debug_free(lit->getCut(no));
+    }
+    n = LightMgr.countScr();
+    pLightEnv->nLight = n;
+    lit->cut[(u16) no] = (cLightEnv*) Debug_alloc(n * sizeof(cLightWork) + sizeof(cLightEnv), 1);
+    *lit->getCut(no) = *pLightEnv;
+    LightMgr.saveLit(lit->getCut(no)->getLightWork(0));
+    return 1;
+}
+
+int cDbLit::fileLoad(const char* path)
+{
+    cLit* buf;
+    int ret;
+
+    if (HDReadDebugAlloc(path, (void**) &buf, 1) == 0) {
+        TOOL_ERR("cDbLit::fileLoad() FILE NOT FOUND [%s]", path);
+        return 0;
+    }
+    buf->versionUp();
+    ret = init(buf);
+    Debug_free(buf);
+    return ret;
+}
+
+int cDbLit::init(cLit* lit)
+{
+    u32 i;
+
+    if (!PTR_OK(lit)) {
+        TOOL_ERR("cDbLit::init() MEMORY ERROR");
+        return 0;
+    }
+    for (i = 0; i < 256; i++) {
+        if (cut[i]) {
+            Debug_free(cut[i]);
+        }
+        cut[i] = NULL;
+    }
+    *(u32*) this = *(u32*) lit;
+    for (i = 0; i < nCut; i++) {
+        u32 ofs = ((u32*) (lit + 1))[i];
+        if (ofs) {
+            cLightEnv* src = (cLightEnv*) ((u8*) lit + ofs);
+            u32 size = src->nLight * sizeof(cLightWork) + sizeof(cLightEnv);
+            cLightEnv* dst = (cLightEnv*) Debug_alloc(size, 1);
+            memcpy(dst, src, size);
+            cut[i] = dst;
+        } else {
+            cut[i] = (cLightEnv*) ofs;
+        }
+    }
+    version = 0x2C;
+    return 1;
+}
+
+void cDbLit::preEventSave()
+{
+    u32 i;
+
+    for (i = 1; i < 256; i++) {
+        if (cut[i]) {
+            Debug_free(cut[i]);
+            cut[i] = NULL;
+        }
+    }
+}
+
+int cDbLit::fileSave(const char* path)
+{
+    u32 size;
+    cLit* buf;
+    int ret = 0;
+
+    size = this->size();
+    if (size == 0) {
+        return 0;
+    }
+    buf = (cLit*) Debug_alloc(size, 1);
+    if (buf == NULL) {
+        return 0;
+    }
+    size = createLit(buf);
+    if (size) {
+        if (HDWrite(path, buf, size)) {
+            ret = 1;
+        }
+    }
+    Debug_free(buf);
+    return ret;
+}
+
+u32 cDbLit::createLit(cLit* dst)
+{
+    u32 i;
+    u32 ofs;
+    u32 size;
+    u32* tbl;
+    u8* p;
+
+    if (!PTR_OK(dst)) {
+        TOOL_ERR("cDbLit::createLit() POINTER ERR %08X", dst);
+        return 0;
+    }
+    version = 0x2C;
+    nMaxLight = 0;
+    nCut = 0;
+    for (i = 0; i < 256; i++) {
+        if (cut[i]) {
+            nCut = i + 1;
+            if (cut[i]->nLight > nMaxLight) {
+                nMaxLight = cut[i]->nLight;
+            }
+        }
+    }
+    *(u32*) dst = *(u32*) this;
+    tbl = (u32*) (dst + 1);
+    ofs = nCut * 4 + 4;
+    for (i = 0; i < nCut; i++) {
+        if (cut[i]) {
+            tbl[i] = ofs;
+            ofs += sizeof(cLightEnv) + cut[i]->nLight * sizeof(cLightWork);
+        } else {
+            tbl[i] = (u32) cut[i];
+        }
+    }
+    p = (u8*) &tbl[nCut];
+    size = nCut * 4 + 4;
+    for (i = 0; i < nCut; i++) {
+        if (cut[i]) {
+            u32 n = cut[i]->nLight * sizeof(cLightWork) + sizeof(cLightEnv);
+            size += n;
+            memcpy(p, cut[i], n);
+            p += n;
+        }
+    }
+    return size;
+}
+
+int editColor(GXColor* col, int x, int y) { return 0; }
+
+const char* strFogType(int type)
+{
+    switch (type) {
+    case 0:
+        return "NONE";
+    case 2:
+        return "LINEAR";
+    case 4:
+        return "EXP";
+    case 5:
+        return "EXP2";
+    case 6:
+        return "REV EXP";
+    case 7:
+        return "REV EXP2";
+    }
+    return "????";
+}
+
+int fogTypeNext(int type)
+{
+    switch (type) {
+    case 0:
+        return 2;
+    case 2:
+        return 4;
+    case 4:
+        return 5;
+    case 5:
+        return 6;
+    case 6:
+        return 7;
+    case 7:
+        return 0;
+    }
+    return 0;
+}
+
+int fogTypeBack(int type)
+{
+    switch (type) {
+    case 0:
+        return 7;
+    case 2:
+        return 0;
+    case 4:
+        return 2;
+    case 5:
+        return 4;
+    case 6:
+        return 5;
+    case 7:
+        return 6;
+    }
+    return 0;
+}
+
+void initLightWork(cLight* l)
+{
+    l->be_flag |= 6;
+    l->type = 0;
+    l->xD = 2;
+    l->xF |= 0x57;
+    l->color.r = l->color.g = l->color.b = l->color.a = 0x80;
+    l->x1C = 5000.0f;
+    l->power = 1.0f;
+    l->pos.x = 0.0f;
+    l->pos.y = 0.0f;
+    l->pos.z = 0.0f;
+    l->setParent(0, 0);
+    l->kind = 0;
+    l->attr = 0;
+    l->x2B = 3;
+    memclr_asm(&l->spot, sizeof(LightSpot));
+    memclr_asm(&l->sub, 0x40);
+    memclr_asm(&l->path, sizeof(LightPath));
+    l->x138 = 0;
+    l->pad_139[0] = l->pad_139[1] = l->pad_139[2] = 0;
+    l->curColor.r = l->curColor.g = l->curColor.b = l->curColor.a = 0x80;
+}
+
+void clear_move_free()
+{
+    cLight* cur = curLight();
+
+    memclr_asm(&cur->sub, sizeof(LightSub));
+    if (cur->type == 1) {
+        cur->sub.color = cur->color;
+    }
+}
+
+void clear_type_free()
+{
+    memclr_asm(&curLight()->spot, sizeof(LightSpot));
+}
+
+int getCutNo()
+{
+    u8 no;
+
+    if (pG->flags_60 & 0x02000000) {
+        return 0;
+    }
+    if ((pG->flags_60 & 0x80000000) && DebugMenuSelected == 7) {
+        no = tcCurrentCameraNo();
+    } else {
+        no = (*LightMgr.getLitPPtr())->getSafeCutNo(CamCtrl.CurrentCameraNo());
+    }
+    return no;
+}
+
+void drawLightInfo_SpotShadow(cLight* l, u32 color) {}
+void drawLightInfo(cLight* l, u32 color) {}
+int pathSelect() { return 0; }
+int pathEdit(int x, int y, u8 no, u8 flag, int mode) { return 0; }
+void drawPath(int x, int y, cLightPathData* p, u8 flag, u32 color) {}
+
+int cLightTool::lightAnalysis()
+{
+    u32 i;
+    u32 n;
+    int y;
+
+    if (!PTR_OK(anaTbl)) {
+        return 0;
+    }
+    n = ObjMgr.nArray;
+    memclr_asm(anaTbl, n * 4);
+    anaNum = 0;
+    for (i = 0; i < n; i++) {
+        cObj* obj = ObjMgrWork(i);
+        if (obj->isAlive() && obj->x12E == 2) {
+            cLightInfo* info = &obj->lightInfo;
+            if (info->getLightNum() > 4) {
+                int id = SmdGetWorkId(obj);
+                if (id != -1) {
+                    anaTbl[anaNum * 4 + 3] = id;
+                } else {
+                    anaTbl[anaNum * 4 + 3] = 0xFF;
+                }
+                anaTbl[anaNum * 4] = info->getLightNum();
+                anaNum++;
+            }
+        }
+    }
+    n = pPLm->lightInfo.getLightNum();
+    eprintf(0x1C8, 0x1C, 0, 0, "PL");
+    eprintf(0x1E0, 0x1C, n > 3 ? 0x16 : 0, 0, "%2d", n);
+    y = 0x2A;
+    for (i = 0; i < anaNum; i++) {
+        if (anaTbl[i * 4 + 3] == 0xFF) {
+            eprintf(0x1C8, y, 0x16, 0, "-- %2d", anaTbl[i * 4]);
+        } else {
+            eprintf(0x1C8, y, 0x16, 0, "%2d %2d", anaTbl[i * 4 + 3], anaTbl[i * 4]);
+        }
+        y += 14;
+    }
+    return 1;
+}
+
+cLitPathTool::cLitPathTool()
+{
+    memclr_asm(path, sizeof(path));
+    memclr_asm(edit, sizeof(edit));
+    if (!(LightMgr.x1AC & 2)) {
+        cLightPathHeader* hdr;
+        u32 size;
+        LightMgr.x1AC |= 2;
+        hdr = (cLightPathHeader*) LightMgr.getPathHeader();
+        size = hdr->getSize() + 0x2800;
+        if (size <= 0xC7FF) {
+            size = 0xC800;
+        }
+        pLitPath = (cLightPathHeader*) Debug_alloc(size, 0);
+        if (!PTR_OK(pLitPath)) {
+            TOOL_ERR("cLitPathTool() Memory Alloc Failed");
+            return;
+        }
+        memcpy(pLitPath, hdr, size);
+        LightMgr.initPath((LightPathHeader*) pLitPath);
+    } else {
+        pLitPath = (cLightPathHeader*) LightMgr.getPathHeader();
+    }
+    expand(pLitPath);
+    if (PTR_OK(path[0])) {
+        memcpy(edit, path[0], path[0]->getSize());
+    }
+}
+
+cLitPathTool::~cLitPathTool()
+{
+}
+
+int cLitPathTool::expand(cLightPathHeader* hdr)
+{
+    u32 i;
+
+    if (!PTR_OK(hdr)) {
+        return 0;
+    }
+    memclr_asm(path, sizeof(path));
+    for (i = 0; i < hdr->num; i++) {
+        u32 ofs = ((u32*) (hdr + 1))[i];
+        if (ofs) {
+            cLightPathData* src = hdr->getPathData(i);
+            u32 size = src->getSize();
+            cLightPathData* dst = (cLightPathData*) Debug_alloc(size, 1);
+            path[i] = dst;
+            memcpy(dst, src, size);
+        } else {
+            path[i] = (cLightPathData*) ofs;
+        }
+    }
+    return 1;
+}
+
+int cLitPathTool::createPath(cLightPathHeader* dst)
+{
+    u32 i;
+    u32* tbl;
+    u8* p;
+
+    dst->pad_1[0] = 0;
+    dst->num = 0;
+    dst->pad_1[2] = 0;
+    dst->pad_1[1] = 0;
+    for (i = 0; i < 256; i++) {
+        if (path[i]) {
+            dst->num = i + 1;
+        }
+    }
+    tbl = (u32*) (dst + 1);
+    p = (u8*) &tbl[dst->num];
+    for (i = 0; i < dst->num; i++) {
+        if (path[i]) {
+            u8* s = path[i]->data;
+            tbl[i] = (u32) p - (u32) dst;
+            *p = *s;
+            while (*s != 0xFF) {
+                s++;
+                p++;
+                *p = *s;
+            }
+            p++;
+        } else {
+            tbl[i] = (u32) path[i];
+        }
+    }
+    return 1;
+}

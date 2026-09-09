@@ -278,6 +278,10 @@ public:
     void setParent(cModel* parent, Vec* pos, Vec* rot);
     void setParent(cModel* parent, int partsNo, Vec* pos, Vec* rot);
     void moveDataAddr(int ofs);   // model data moved by `ofs` bytes (block.cpp memory compaction)
+    // Copies the parts positions of a model bin (parts bin of an event costume, event SetPartsSub).
+    void setPartsOffset(void* bin);
+    // setPos / setAng / MotionClear(0) / matUpdate() (event ExeEndEvt puts the player back).
+    void zeroPartsPosInit(Vec* pos, Vec* rot);
     void partsFixMemory(int no);  // (pl_class setFootwork: 0x13)
     void partsFixAdjust();        // (player cPlayer::move)
 

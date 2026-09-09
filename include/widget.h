@@ -8,7 +8,15 @@
 #line 8 "D:/Bio4/Prog/widget.h"
 
 // Header-only widget helpers. Contents unknown; the debug tools include it after light.h and
-// its range check emits the file-name string into their .rodata.
+// its range check emits the file-name string into their .rodata. The file name is one string
+// shared with the Widget<T> constructor below: a STRING_CST of an instantiated template body is not
+// merged with the parse-time copy by output_constant_def (two copies), the inlined helper's
+// SYMBOL_REF is.
+static inline const char* widgetFileName()
+{
+    return __FILE__;
+}
+
 class cWidget {
 public:
     u8* pData;
@@ -16,7 +24,7 @@ public:
 
     u8* getData(u32 no) {
         if (no >= nData) {
-            dbgAssert(__FILE__, __LINE__);
+            dbgAssert(widgetFileName(), __LINE__);
         }
         return pData + no;
     }
@@ -36,11 +44,11 @@ public:
     Widget* cur;     // 0x08  current widget of the chain (transit target)
     // 0x0C vptr
 
-    Widget(int n) {
+    Widget(int n = 1) {
         int i;
         num = n;
         cur = this;
-        link = (Widget**) MEM_ALLOC(sizeof(Widget*) * num, 1, 13);
+        link = (Widget**) mem_alloc(sizeof(Widget*) * num, widgetFileName(), __LINE__, 1, 13);
         for (i = 0; i < num; i++) {
             link[i] = 0;
         }

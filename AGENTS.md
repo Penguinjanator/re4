@@ -1368,6 +1368,37 @@ mark it Matching.
 - A `switch` with a hidden `case N: break;` shifts the compare-tree root (moveFootwork needs
   `case 0x34: break;`); `switch ((u32) f())` gives `cmplwi` range tests; a `default:` written first is
   laid out first.
+- (pl_npc, Matching) Judge functions by masked *bytes* plus resolved reloc targets, not objdiff's
+  percentage: dtk synthesizes `Sym+off` relocs the compiled object lacks, so 30 byte-identical
+  functions showed 97-99%, and one "identical" function (jumpAdjust) had its pool words permuted —
+  the masked bytes matched while the constants were assigned to the wrong fields (a = {300,300,0},
+  not {0,0,300}). Compare pool *values through the reloc targets* before believing a match.
+- Constant-pool order idiom, confirmed on 9 functions: a `const f32 name = literal;` local declared
+  before the first use creates the pool entry at the declaration with every use folded, no code
+  change (moveMove 400 first, getScrActionPoint 400 before -1000, moveFallWait 1300/0.314 first,
+  neckCtrl both speeds first, checkBackEm 4e8/2.5e7/2.618, frontCheck 1500, anaSatInfo 360000,
+  jumpAdjust). A dead `f32 x = C;` is dropped at tree level and creates nothing; a const declared
+  *after* the stores is dropped too. An unreferenced pool word (the static initialiser's 1000) is
+  NOT a kept dead entry: mark_constant_pool drops those in the original as well — it is the pool of
+  a dead-stripped function emitted right after (an in-class inline of the vtable-owning class,
+  `cSubChar::farCheck`, unit in STRIP_UNUSED).
+- Unused `static inline` functions parsed at the END of a unit reorder the vtable/static-init output
+  (the static init's pool moved before the vtables): put dead pool-only helpers before the function
+  whose pool they precede.
+- `__static_initialization_and_destruction_0` is emitted before the out-of-class `inline` members
+  (setFace/setHand/initCloth/moveCloth) and the `_GLOBAL_.I` thunk; non-inline definitions of the
+  same empty virtuals land before it.
+- A switch whose adjacent same-target cases are tested one by one (`cmpwi 7 beq; cmpwi 8 beq` instead
+  of a range) had one body per case value (duplicated bodies, cross-jumped later): group_case_nodes
+  only merges consecutive values that share a label (moveDamage's subHideMode switches).
+- A value computed into a local before the member store (`f32 y = expr; eyeDir.y = y; if (eyeDir.z
+  == 0) eyeDir.x = y;`) issues the expression's constant loads before the compare's; the member-store
+  form (`eyeDir.y = expr; ... = eyeDir.y`) schedules the compare first. `x = x*z + y*(1-z)` written as
+  a member function of the static's class loads z before 1.0 (moveFace).
+- `SubRoutineSet(this, 0, md, 0, 0)` with `int md = 1;` declared at the top of the case block: the
+  `li r6, 1` is shared by both if/else arms and lets jump2 cross-jump their AtariOn tails (control).
+- Byte-store order rule (dmgCheck/control): the emitted order is not the source order; brute-force
+  the 3-4 statement permutations with a scripted loop (tools: ngccc.py, ~0.3 s per variant).
 - cAtariInfo flag stores through the info's address (`cAtariInfo* at = &atari; AtariOn(at, 0x300)`)
   give `addi rX,this,0x2b4; lhz 0x1a(rX)`; a scalar-reference store on `at->flags` keeps a following
   `lwz pG` below it.

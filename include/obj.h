@@ -292,8 +292,11 @@ struct Obj18Work {
     u32 type;             // 0x68  SetObj18 type (cloth set)
     u32 cmf;              // 0x6C  Obj18CmfSet/Get flag bits
     cObj* child;          // 0x70  ribbon / rope object created by SetObj18
-    int x74;              // 0x74
-    u8 pad_78[0xC];
+    int x74;              // 0x74  bit26 (0x04000000): event ControlTransFlag skips the child flags
+    union {
+        u8 pad_78[0xC];
+        u32 evName[3];    // 0x78  event model name of the packet that created it (event ExePacket_SetOm)
+    };
     u8 debugFlag;         // 0x84
     u8 pad_85[3];
 };
@@ -670,7 +673,9 @@ struct ObjSub2B4 {
             cAtariInfo atari;     // 0x00 .. 0x4C  (flags at 0x1A)
         };
     };
-    u8 pad_4C[0x70 - 0x4C];
+    u8 pad_4C[0x54 - 0x4C];
+    void* pFootShadowTbl; // 0x54 (cObj+0x308)  foot shadow table, the cEm field (event ExePacket_SetOm)
+    u8 pad_58[0x70 - 0x58];
     s32 blk;              // 0x70  scroll block the object belongs to (-2 free, -1 SetObjSmd)
 
     void clrFlags(u16 mask) { atari.flags &= mask; }

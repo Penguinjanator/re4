@@ -1010,6 +1010,7 @@ MATCHING = {
 # statics kept): tools/strip_unused.py removes the bodies of functions not in sym_map.tsv.
 STRIP_UNUSED = {
     "game/trans.cpp",
+    "game/pl_npc.cpp",
     "game/emobj.cpp",
     "game/emrock.cpp",
     "game/shadow.cpp",
@@ -1356,4 +1357,11 @@ MATCHING.update({
     "lib/sfx_lib.c": True,
     "lib/mwsfdlib.c": True,
     "lib/sfd_aoap.c": True,
+    "lib/adx_bsps.c": True,
+})
+
+# partner character (pl_npc): const f32 locals for pool order, per-value switch bodies, dead
+# `farCheck` inline whose pool word survives the strip (STRIP_UNUSED)
+MATCHING.update({
+    "game/pl_npc.cpp": True,
 })

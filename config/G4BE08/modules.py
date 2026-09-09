@@ -382,4 +382,5 @@ MATCHING = {
     "t_light/tools.cpp": True,
     "t_sce/tools.cpp": True,
     "t_event/tools.cpp": True,
+    "Sscrn/ss_cap.cpp": True,
 }

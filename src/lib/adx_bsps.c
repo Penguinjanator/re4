@@ -13,8 +13,8 @@ void ADXB_ExecOneSpsd(ADXB adxb)
 	Uint16 *inbuf;
 	Uint16 *out0;
 	Uint16 *out1;
-	Sint32 n;
 	Sint32 i;
+	Sint32 n;
 
 	inbuf = (Uint16 *)adxb->inbuf;
 	if (adxb->stat == ADXB_STAT_DECODE && ADXPD_GetStat(adxb->pd) == 0) {
@@ -28,7 +28,7 @@ void ADXB_ExecOneSpsd(ADXB adxb)
 		}
 		out0 = (Uint16 *)adxb->pcmbuf + adxb->wr_pos;
 		if (adxb->nch == 2) {
-			out1 = (Uint16 *)adxb->pcmbuf + adxb->pcmbuf_chofst + adxb->wr_pos;
+			out1 = (Uint16 *)adxb->pcmbuf + (adxb->pcmbuf_chofst + adxb->wr_pos);
 			for (i = 0; i < n; i++) {
 				out0[i] = inbuf[i * 2];
 				out1[i] = inbuf[i * 2 + 1];

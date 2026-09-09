@@ -3,6 +3,7 @@
 #define CRI_MWSFD_H
 
 #include "cri_xpt.h"
+#include "sj.h"
 
 typedef struct MWPLY_OBJ MWPLY_OBJ;
 typedef struct SFX_OBJ SFX_OBJ;
@@ -20,6 +21,65 @@ typedef struct {
 } SFX_FRM;
 
 typedef MWPLY_OBJ *MWPLY;
+
+/* sub-stream (audio side-stream) handle (mwsfdsst.c); the player embeds one at MWPLY_OBJ + 0x294 and
+ * its hn points at a second MWSST_OBJ whose hn is the core-library handle */
+typedef struct MWSST_OBJ {
+	Sint32 used;               /* 0x00 */
+	Sint32 x04;
+	Sint32 x08;
+	SJ sj;                     /* 0x0C */
+	void *buf;                 /* 0x10 work buffer (ring buffer at +0xC0) */
+	struct MWSST_OBJ *hn;      /* 0x14 */
+} MWSST_OBJ;
+
+typedef MWSST_OBJ *MWSST;
+
+/* core sub-stream library interface registered in mwsstmng.ifc */
+typedef struct {
+	void *x00;
+	void (*Finish)(void);                          /* 0x04 */
+	void *x08;
+	void *x0c;
+	void (*Destroy)(MWSST hn);                     /* 0x10 */
+	void (*StartSj)(MWSST hn, SJ sj);              /* 0x14 */
+	void (*Stop)(MWSST hn);                        /* 0x18 */
+	Sint32 (*GetStat)(MWSST hn);                   /* 0x1C */
+	void *x20;
+	void (*Pause)(MWSST hn, Sint32 sw);            /* 0x24 */
+	void (*SetOutVol)(MWSST hn, Sint32 vol);       /* 0x28 */
+	Sint32 (*GetOutVol)(MWSST hn);                 /* 0x2C */
+} MWSST_IF;
+
+/* player object (partial: only the fields the matched units use) */
+struct MWPLY_OBJ {
+	Uint8 pad0[0x40];
+	void *sfd;                 /* 0x40 */
+	Uint8 pad44[8];
+	void *lsc;                 /* 0x4C */
+	Uint8 pad50[0x74 - 0x50];
+	Sint8 linkstm;             /* 0x74 */
+	Sint8 linkstm_req;         /* 0x75 */
+	Uint8 pad76[0x294 - 0x76];
+	MWSST_OBJ sst;             /* 0x294 */
+};
+
+typedef struct {
+	MWSST_IF *ifc;             /* 0x00 */
+	Sint32 cnt;                /* 0x04 number of created handles */
+} MWSST_MNG;
+
+extern MWSST_MNG mwsstmng;
+
+void MWSST_Destroy(MWSST sst);
+void MWSST_Reset(MWPLY mwply);
+Sint32 MWSST_GetOutVol(MWSST sst);
+void MWSST_SetOutVol(MWSST sst, Sint32 vol);
+void MWSST_Pause(MWSST sst, Sint32 sw);
+Sint32 MWSST_GetStat(MWSST sst);
+void MWSST_Stop(MWSST sst);
+void MWSST_StartSj(MWSST sst);
+void MWSFSVM_GotoIdleBorder(void);
 
 /* mwPlyInitSfdFx creation parameters (0x20 bytes) */
 typedef struct {

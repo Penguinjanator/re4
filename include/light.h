@@ -107,7 +107,11 @@ public:
     u8 pad_142[2];
     Vec curPos;        // 0x144  position actually applied (db_work draws a sphere of radius x1C here)
     cModel* pParent;   // 0x150
+#ifndef LIGHT_H_CLIGHT_154
+    // The debug tool objects (tools/db_light.cpp) were built against a light.h revision where cLight
+    // ended here (the tool's cLight member is 0x154 bytes); the DOL's is 0x1D4.
     u8 pad_154[0x1D4 - 0x154];
+#endif
 
     cLight();
     virtual ~cLight() {}
@@ -188,7 +192,10 @@ struct cLightEnv {
             GXColor bgColor; // 0x14  fog / background colour (gx_sub)
         };
     };
-    u8 pad_18[0x28 - 0x18];
+    union {
+        LightFog mfog;   // 0x18  mirror fog (db_light "MIRROR FOG")
+        u8 pad_18[0x28 - 0x18];
+    };
     s32 x28;         // 0x28  focus depth (screen z, 0..65535)
     u8 x2C;          // 0x2C
     u8 x2D;          // 0x2D  focus level (0 = depth of field off)
@@ -266,7 +273,7 @@ public:
     GXColor tune[3];       // 0x19C
     f32 colBrendRate;      // 0x1A8
     u32 x1AC;              // 0x1AC
-    u32 x1B0;              // 0x1B0
+    cLit* x1B0;            // 0x1B0  lit built by the light tool (db_light updateLit), x1AC bit0: valid
     u8 pad_1B4[0x204 - 0x1B4];
     u32 x204;              // 0x204
 

@@ -149,6 +149,19 @@ def module_text_functions(module, unit):
     return rows
 
 
+def module_nameless_sizes(module, unit):
+    """Sizes of the nameless .text functions (fn_<mod>_<off>, no .sym name) the module sym_map assigns
+    to this unit: the original link's duplicate linkonce blocks."""
+    sizes = set()
+    with open(os.path.join(ROOT, "config", VER, "modules", module, "sym_map.tsv")) as f:
+        next(f)
+        for line in f:
+            sec, off, size, u, scope, name, dn = line.rstrip("\n").split("\t")
+            if sec == ".text" and u == unit and (dn == "." or dn == "") and name.startswith("fn_"):
+                sizes.add(int(size, 16))
+    return sizes
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--unit", required=True)
@@ -201,6 +214,18 @@ def main():
     if args.module:
         # no copy of this unit is named in the module: a nameless duplicate block, keep everything
         keep_all = not any(module_named(i) for i, n in enumerate(elf.names) if n.startswith(".gnu.linkonce.t."))
+        # Named copies next to a nameless duplicate block (Sscrn ss_debug: its own
+        # cManager<cParts>::dispWorkNum instantiations after the 0x3B8 cManager<cLight> block the
+        # .sym leaves nameless): the unnamed copies stay too when the module sym_map lists a
+        # nameless function of this unit whose size is exactly their total.
+        keep_unnamed = False
+        if not keep_all:
+            unnamed = [i for i, n in enumerate(elf.names) if n.startswith(".gnu.linkonce.t.") and not module_named(i)]
+            total = 0
+            for i in unnamed:
+                align = max(elf.sections[i][8], 4)
+                total = (total + align - 1) // align * align + elf.sections[i][5]
+            keep_unnamed = total > 0 and total in module_nameless_sizes(args.module, args.unit)
 
     for i, name in enumerate(elf.names):
         if not name.startswith(".gnu.linkonce."):
@@ -241,8 +266,10 @@ def main():
             dead.add(i)
         elif kind == "t":
             funcs = [s for s in syms if s[5] == i and (s[3] & 0xF) != STT_SECTION]
+            nameless = False
             if args.module:
-                keep = keep_all or module_named(i)
+                nameless = keep_all or (keep_unnamed and not module_named(i))
+                keep = nameless or module_named(i)
             else:
                 keep = any((demangle_v2(sym_name(s)) or sym_name(s)) in owned and sym_name(s) not in foreign for s in funcs)
             if keep:
@@ -254,7 +281,7 @@ def main():
                 body += b"\0" * (base - len(body))
                 body += elf.contents[i]
                 for s in funcs:
-                    if args.module and keep_all:
+                    if nameless:
                         # nameless duplicate: the code stays, calls resolve to the module's first copy
                         s[5] = SHN_UNDEF
                         s[1] = 0

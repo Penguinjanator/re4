@@ -101,6 +101,7 @@ public:
     void interrupt();
     void inSat();
     void debugMove();
+    int farCheck();   // never called; dead-stripped in the DOL, only its pool word (1000) survives
 };
 
 extern cSubChar* pSUB;   // game/em.cpp

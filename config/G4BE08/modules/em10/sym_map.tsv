@@ -208,7 +208,7 @@ section	offset	size	unit	scope	name	demangled
 .text	0x0002ED94	0x23C	em10/em10.cpp	global	em10WepSeEffSet	em10WepSeEffSet
 .text	0x0002EFD0	0x1A4	em10/em10.cpp	global	em10ShieldSet	em10ShieldSet
 .text	0x0002F174	0x1F4	em10/em10.cpp	global	em10HandSet__FP5cEm10i	em10HandSet
-.text	0x0002F368	0x174	em10/em10.cpp	global	setHand__5cEm10i	cEm10::setHand
+.text	0x0002F368	0x174	em10/em10.cpp	global	setHand__5cEm10ii	cEm10::setHand
 .text	0x0002F4DC	0x118	em10/em10.cpp	global	em10HeadSet__FP5cEm10i	em10HeadSet
 .text	0x0002F5F4	0x9C	em10/em10.cpp	global	em10ClothPartsSet	em10ClothPartsSet
 .text	0x0002F690	0x9C	em10/em10.cpp	global	em10GoodsPartsSet	em10GoodsPartsSet

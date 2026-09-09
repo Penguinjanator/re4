@@ -82,6 +82,8 @@ public:
     // Event brackets of every alive work (defined in sce_com.cpp, the only unit instantiating them).
     void beginEvent(int mode);
     void endEvent(int mode);
+    // destroy() every alive work (debug tools: db_light LitLoadWork, Sscrn ss_main)
+    void destroyAll();
 
     int deleteList(T* p) {
         T* q;
@@ -285,6 +287,18 @@ T* cManager<T>::create(int id, u32 no)
     addListFront(p);
     countActiveWork();
     return p;
+}
+
+template <class T>
+void cManager<T>::destroyAll()
+{
+    u32 i;
+    for (i = 0; i < nArray; i++) {
+        T* p = (T*)((u8*)pArray + size * i);
+        if (p->isAlive()) {
+            destroy(p);
+        }
+    }
 }
 
 // Release a work: unlink it from the active list, then run its destructor (flag 0) or only

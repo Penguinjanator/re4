@@ -8,6 +8,7 @@
 #include "emwep.h"
 #include "emshield.h"
 #include "pendulum.h"
+#include "pl_cloth.h"
 #include "camera.h"
 #include "obj.h"
 
@@ -35,8 +36,8 @@ struct Em10Work {
     cObj* x178;           // 0x178 (0x558)
     cObj* x17C;           // 0x17C (0x55C)
     cEm* pHead;           // 0x180 (0x560)  lost head enemy
-    cModel* x184;         // 0x184 (0x564)
-    cModel* x188;         // 0x188 (0x568)
+    cModelInfo* x184;     // 0x184 (0x564)  hand parts info (setHand(1))
+    cModelInfo* x188;     // 0x188 (0x568)  hand parts info (setHand(0))
     cModelInfo* x18C;     // 0x18C (0x56C)  head parts info (em10HeadSet)
     cModelInfo* x190;     // 0x190 (0x570)  type 6: body parts info (em10ModelInit)
     cModelInfo* x194;     // 0x194 (0x574)  type 6: cloth parts info (em10ClothPartsSet)
@@ -88,8 +89,8 @@ struct Em10Work {
     class cObj16* pParasite;  // 0x574 (0x954)  parasite object (em10SetParasite)
     cEm* x578[5];         // 0x578 (0x958)
     class cEmPartner* x58C;  // 0x58C (0x96C)  partner enemy of another module (virtual slots only)
-    cModel* x590;         // 0x590 (0x970)
-    cModel* x594;         // 0x594 (0x974)
+    cModel* x590;         // 0x590 (0x970)  belt chain object (em10BeltSet: cObjChain)
+    cModel* x594;         // 0x594 (0x974)  chain object of the chain Ganado (em10ChainSet: cObjChain)
     Vec x598;             // 0x598 (0x978)
     Vec x5A4;             // 0x5A4 (0x984)
     class cCtrl* pCtrl12; // 0x5B0 (0x990)  GetCtrlCtrl12()
@@ -136,7 +137,7 @@ struct Em10Work {
     u32 x674;             // 0x674 (0xA54)
     u8 pad_678[2];
     u16 x67A;             // 0x67A (0xA5A)
-    u16 x67C;             // 0x67C (0xA5C)
+    s16 x67C;             // 0x67C (0xA5C)  em10CatchSubRtnCk: lha
     u16 x67E;             // 0x67E (0xA5E)
     u16 x680;             // 0x680 (0xA60)
     s16 x682;             // 0x682 (0xA62)
@@ -254,7 +255,7 @@ public:
     virtual void move();
     virtual void setNoSuspend(int on);
     virtual int checkThrow();
-    virtual void setHand(int no);
+    virtual void setHand(int no, int type);
     virtual void setWeaponFall();
     virtual int ckFindPL();
     virtual void setFindPL();
@@ -346,7 +347,7 @@ public:
 
 class cObjBull : public cObj {
 public:
-    int ckBullRide(Vec* pos, u8* a, u8* b);
+    int ckBullRide(Vec* pos, u8* a, Vec* b);
 };
 
 // Hanging object (game/obj12.cpp): the Ganado's sack / lantern hangs on it.

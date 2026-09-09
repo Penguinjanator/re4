@@ -61,6 +61,9 @@ void waterProc(cSubChar* pl);
 // Collision flag bits set / cleared through the info's address (`cAtariInfo* at = &atari` locals).
 static inline void AtariOn(cAtariInfo* at, u16 b) { at->flags |= b; }
 static inline void AtariOff(cAtariInfo* at, u16 mask) { at->flags &= mask; }
+// Same as a raw (non-struct) store through the info's address: a following global load (pG)
+// stays below it (interrupt(), moveDamage).
+static inline void AtariOnRaw(cAtariInfo* at, u16 b) { *(u16*) ((u8*) at + 0x1a) |= b; }
 // MotionSetCore with the sequence table as the 4th argument (declared int in motion.h).
 #define MOT_SET(m, w, data, seq, a, b, c) MotionSetCore(m, w, data, (int) (seq), a, b, c)
 
@@ -80,11 +83,18 @@ struct SubEyeDir {
     f32 z;
     SubEyeDir()
     {
-        f32 lim = 1000.0f;   // dead initialiser: the original's pool has 1000 here
-
-        y = 0.0f;
         z = 0.0f;
+        y = 0.0f;
         x = 0.0f;
+        if (x > 1000.0f) {   // folded away by cse (x is known to be 0), but its 1000 stays in the pool
+            x = 1000.0f;
+        }
+    }
+    // Blend the current direction towards the target. A member function like limit(): the loads
+    // through `this` give the original's z-before-1.0 load order.
+    void mix()
+    {
+        x = x * z + y * (1.0f - z);
     }
     // Clamp the target and latch it into the current value while the mix is 0. A member function so
     // the accesses go through `this` (the original's pointer-form clamp block).
@@ -165,13 +175,14 @@ void cSubChar::init()
         s->lockOfs.z = 0.0f;
     }
     subSelf->setStatus(1);
+    // statement order brute-forced (store schedule + shared zero registers)
+    sub550 = 0;
     sub580 = 0;
-    subAux0 = 0;
-    subAux1 = 0;
+    be_flag |= 0x02200000;
     subFlags |= 0x40;
     subFlags &= 0xFFF4;
-    sub550 = 0;
-    be_flag |= 0x02200000;
+    subAux1 = 0;
+    subAux0 = 0;
     AtariOn(&atari, 0x300);
     YarareInit(this, 0.0f, -30.0f, 0.0f, 140.0f, 100.0f, 2, 1);
     YarareAdd(this, &subHit[0], 0.0f, 0.0f, 0.0f, 150.0f, 130.0f, 3, 1);
@@ -825,7 +836,10 @@ void cSubChar::moveBehind()
 {
     const Vec* ap;
 
-    switch (PlGetWeaponNo()) {
+    switch (PlGetWeaponNo()) {   // default first: its block is laid out first
+    default:
+        ap = &atckPos;
+        break;
     case 0xD:
     case 0x13:
     case 0x16:
@@ -835,16 +849,14 @@ void cSubChar::moveBehind()
     case 0x20:
         ap = &atckPos2;
         break;
-    default:
-        ap = &atckPos;
-        break;
     }
     if (xFE <= 0x13 && (subPlStatus & 0x10)) {
         subOfs = *ap;
-        subOfs.z -= pPL->pWep->getAngle() * 0.31830987f * 300.0f;
+        // reference stores: the following pPL loads stay below them
+        FSet(subOfs.z, subOfs.z - pPL->pWep->getAngle() * 0.31830987f * 300.0f);
         PSMTXMultVec(pPL->mat, &subOfs, &subOfs);
-        pos.x = pos.x * 0.7f + subOfs.x * 0.3f;
-        pos.z = pos.z * 0.7f + subOfs.z * 0.3f;
+        FSet(pos.x, pos.x * 0.7f + subOfs.x * 0.3f);
+        FSet(pos.z, pos.z * 0.7f + subOfs.z * 0.3f);
         rot.y += Muku2(rot.y, pPL->rot.y, 0.31415927f);
     }
     if (!(subPlStatus & 0x10)) {
@@ -1397,40 +1409,40 @@ f32 cSubChar::getJumpAdjY()
     return h;
 }
 
-// Slide the partner sideways off the posts while she jumps over a wall.
+// Slide the partner sideways (35) off the posts while she jumps over a wall: probes 300 to each
+// side at height 300, 800 forward.
 void cSubChar::jumpAdjust()
 {
-    const f32 z = 300.0f;   // pool order: 300 before 0
     Vec a;
     Vec b;
 
-    a.x = 0.0f;
-    a.y = 0.0f;
-    a.z = 300.0f;
+    a.x = 300.0f;
+    a.y = 300.0f;
+    a.z = 0.0f;
     PSMTXMultVec(mat, &a, &a);
-    b.x = 0.0f;
-    b.y = 0.0f;
+    b.x = 300.0f;
+    b.y = 300.0f;
     b.z = 800.0f;
     PSMTXMultVec(mat, &b, &b);
     if (!(SatMgr.hitCheck(&a, &b, 0, 0, 0, 0) & 0x80000)) {
         a.x = -35.0f;
-        a.y = 300.0f;
-        a.z = 300.0f;
+        a.y = 0.0f;
+        a.z = 0.0f;
         PSMTXMultVecSR(mat, &a, &a);
         PSVECAdd(&pos, &a, &pos);
     }
     a.x = -300.0f;
-    a.y = 0.0f;
-    a.z = 300.0f;
+    a.y = 300.0f;
+    a.z = 0.0f;
     PSMTXMultVec(mat, &a, &a);
     b.x = -300.0f;
-    b.y = 0.0f;
+    b.y = 300.0f;
     b.z = 800.0f;
     PSMTXMultVec(mat, &b, &b);
     if (!(SatMgr.hitCheck(&a, &b, 0, 0, 0, 0) & 0x80000)) {
         a.x = 35.0f;
-        a.y = 300.0f;
-        a.z = 300.0f;
+        a.y = 0.0f;
+        a.z = 0.0f;
         PSMTXMultVecSR(mat, &a, &a);
         PSVECAdd(&pos, &a, &pos);
     }
@@ -1924,16 +1936,17 @@ f32 cSubChar::getAdjustX(int attr)
 // Routine 1: damage reaction (subHideMode selects the motion / effect).
 void cSubChar::moveDamage()
 {
-    void* m = 0;
-
     if (subAux1) {
         ((void (*)()) subAux1)();
         return;
     }
+    void* m = 0;   // declared after the handler test: `li r30, 0` in the switch block
+
     switch (xFD) {
     case 0:
         beginDamage();
-        AtariOn(&atari, 0x300);
+        // raw store through the info's address: the pG load below stays after the flag store
+        AtariOnRaw(&atari, 0x300);
         if (pG->flags_68 & 0x800000) {
             switch (subHideMode) {
             case 7:
@@ -1944,14 +1957,24 @@ void cSubChar::moveDamage()
                 break;
             }
         }
+        // one body per value (no shared labels): the compare tree tests every value; the
+        // identical bodies are cross-jumped afterwards
         switch (subHideMode) {
         case 0:
-        case 2:
-        case 4:
             m = SUB_MOT(subSelf, 0x2E);
             break;
         case 1:
+            m = SUB_MOT(subSelf, 0x2F);
+            break;
+        case 2:
+            m = SUB_MOT(subSelf, 0x2E);
+            break;
         case 3:
+            m = SUB_MOT(subSelf, 0x2F);
+            break;
+        case 4:
+            m = SUB_MOT(subSelf, 0x2E);
+            break;
         case 5:
             m = SUB_MOT(subSelf, 0x2F);
             break;
@@ -1959,23 +1982,29 @@ void cSubChar::moveDamage()
             m = 0;
             break;
         case 7:
+            m = SUB_MOT(subSelf, 0x32);
+            EstSet((int) subSelf, -1, 0, 0, 4, ChkWaterEffectEnable(&pos) ? 6 : 5, 0, 0, (u32) subSelf, 0);
+            break;
         case 8:
             m = SUB_MOT(subSelf, 0x32);
             EstSet((int) subSelf, -1, 0, 0, 4, ChkWaterEffectEnable(&pos) ? 6 : 5, 0, 0, (u32) subSelf, 0);
             break;
         case 9:
+            m = SUB_MOT(subSelf, 0x31);
+            EstSet((int) subSelf, -1, 0, 0, 4, ChkWaterEffectEnable(&pos) ? 8 : 7, 0, 0, (u32) subSelf, 0);
+            break;
         case 10:
             m = SUB_MOT(subSelf, 0x31);
             EstSet((int) subSelf, -1, 0, 0, 4, ChkWaterEffectEnable(&pos) ? 8 : 7, 0, 0, (u32) subSelf, 0);
             break;
         case 11:
-            AtariOff(&atari, 0xFCFF);
             m = SUB_MOT(subSelf, 0x6A);
+            AtariOff(&atari, 0xFCFF);
             break;
         }
         MOT_SET(subSelf, MOTION(subSelf), m, 0, 3, 1, 0);
         setFace(1);
-        subSndId = SndCall(8, 9, &subSelf->pParts->worldPos, id, 0, 0);
+        SndCall(8, 9, &subSelf->pParts->worldPos, id, 0, 0);
         subSelf->xFD = 1;
     case 1:
         if (subSelf->frame >= 10.0f && subHideMode == 11 && landCheck()) {
@@ -1989,22 +2018,26 @@ void cSubChar::moveDamage()
             }
         }
         if (subSelf->motionMove()) {
-            switch (subHideMode) {
+            switch (subHideMode) {   // default first (laid out first); separate identical bodies
+            default:
+                setFace(0);
+                SubRoutineSet(this, 0, 0, 0, 0);
+                break;
             case 6:
             case 7:
-            case 9:
                 xFD = 2;
                 break;
             case 8:
+                xFD = 5;
+                break;
+            case 9:
+                xFD = 2;
+                break;
             case 10:
                 xFD = 5;
                 break;
             case 11:
                 xFD = 7;
-                break;
-            default:
-                setFace(0);
-                SubRoutineSet(this, 0, 0, 0, 0);
                 break;
             }
         }
@@ -2584,7 +2617,7 @@ void cSubChar::seqSeCtrl()
 {
     int no;
     int parts;
-    int blk;
+    u16 blk;   // u16: no mask before the u16 SndCall argument
 
     if (seNo == 0) {
         return;
@@ -2594,12 +2627,15 @@ void cSubChar::seqSeCtrl()
     blk = 5;
     switch (seFlags28B & 3) {
     case 0:
-        switch (no) {
+        switch ((u32) no) {   // unsigned: `cmplwi` range tests, case 0 as `< 1`
         case 0:
         case 2:
             parts = 0x14;
             blk = 5;
             no += 7;
+            break;
+        case 0x16:
+            parts = 0x14;
             break;
         case 1:
         case 3:
@@ -2607,17 +2643,14 @@ void cSubChar::seqSeCtrl()
             blk = 5;
             no += 7;
             break;
+        case 0x17:
+            parts = 0x18;
+            break;
         case 4:
         case 5:
             no += 7;
             break;
         case 6:
-            break;
-        case 0x16:
-            parts = 0x14;
-            break;
-        case 0x17:
-            parts = 0x18;
             break;
         default:
             parts = 0;
@@ -3020,7 +3053,7 @@ void cSubChar::control(int mode)
     if (hp <= 0) {
         return;
     }
-    BitOff16(subFlags, 0x1C);
+    BitOff16(subFlags, 0x18);
     subFlags |= 0x40;
     switch (mode) {
     case 0:
@@ -3043,10 +3076,10 @@ void cSubChar::control(int mode)
         if ((stat & 0xFFFF0000) != 0x00100000) {
             setPos(&pPL->pos);
         }
-        xFE = 0;
-        xFF = 1;
         xFC = 0;
         xFD = 0;
+        xFE = 0;
+        xFF = 1;
         AtariOn(&atari, 0x300);
     case 2:
         if (xFC == 5) {
@@ -3057,26 +3090,23 @@ void cSubChar::control(int mode)
             AtariOn(&atari, 0x300);
         }
         break;
-    case 4:
+    case 4: {
+        int md = 1;   // shared by both arms (`li r6, 1` before the test)
+
         BitOff16(subFlags, 2);
         subFlags |= 8;
         if (subMoveTo[0] != 193.0f) {
-            xFD = 1;
-            xFF = 0;
-            xFC = 0;
-            xFE = 0;
+            SubRoutineSet(this, 0, md, 0, 0);
             AtariOn(&atari, 0x300);
         } else if (subMoveTo[3] != 193.0f) {
             *(Vec*) subMoveTo = pos;
-            xFD = 1;
-            xFF = 0;
-            xFC = 0;
-            xFE = 0;
+            SubRoutineSet(this, 0, md, 0, 0);
             AtariOn(&atari, 0x300);
         } else {
             SubRoutineSet(this, 0, 0, 0, 0);
         }
         break;
+    }
     case 5:
         init();
         SubRoutineSet(this, 0, 0, 0, 0);
@@ -3084,7 +3114,7 @@ void cSubChar::control(int mode)
     case 6:
         if (xFC == 0 && SUBFLAG(this)->check(6)) {
             subFlags |= 2;
-            BitOff16(subFlags, 0x60);
+            BitOff16(subFlags, 0x40);
             SubRoutineSet(this, 0, 0, 0, 0);
         }
         break;
@@ -3609,13 +3639,17 @@ void cSubChar::moveFace()
     default:
         p->rot.x = 0.0f;
         break;
-    case 0:
-        eyeDir.y = ((f32) (int) (u8) (Rnd() % 200) * 0.01f - 1.0f) * 3.1415927f * 0.1f;
+    case 0: {
+        // computed into a local first: the constant loads precede the eyeDir.z test
+        f32 y = ((f32) (int) (u8) (Rnd() % 200) * 0.01f - 1.0f) * 3.1415927f * 0.1f;
+
+        eyeDir.y = y;
         if (eyeDir.z == 0.0f) {
-            eyeDir.x = eyeDir.y;
+            eyeDir.x = y;
         }
         p->rot.x = 0.0872664600610733f;
         break;
+    }
     case 1:
         p->rot.x = 0.1745329201221466f;
         break;
@@ -3677,7 +3711,9 @@ void cSubChar::moveFace()
         static int eyetime = 0;
 
         if (--eyetime < 0) {
-            eyeDir.y = eyeDir.y + ((f32) (int) (u8) (Rnd() % 200) * 0.01f - 1.0f) * 0.03141592815518379f;
+            f32 d = ((f32) (int) (u8) (Rnd() % 200) * 0.01f - 1.0f) * 0.03141592815518379f;
+
+            eyeDir.y += d;
             if (eyeDir.z == 0.0f) {
                 eyeDir.x = eyeDir.y;
             }
@@ -3689,7 +3725,7 @@ void cSubChar::moveFace()
     p->rot.y = eyeDir.x;
     p = getPartsPtr(0x21);
     p->rot.y = eyeDir.x;
-    eyeDir.x = eyeDir.x * eyeDir.z + eyeDir.y * (1.0f - eyeDir.z);
+    eyeDir.mix();
 }
 
 // Fade the shadow (shdCol) out while she is on a ledge / above the camera / on a slope.
@@ -3787,9 +3823,9 @@ void cSubChar::dmgCheck()
     case 5:
         LifeDownSet2(this, 300, 0, 0);
         if ((s16) pG->sub_life > 0) {
-            subHideMode = 2;
-            SubRoutineSet(this, 1, 0, 0, 0);
             dmType = 0x5A;
+            SubRoutineSet(this, 1, 0, 0, 0);
+            subHideMode = 2;
         } else {
             dmType = 0x80;
             SubRoutineSet(this, 2, 0, 0, 0);
@@ -3917,18 +3953,27 @@ void cSubChar::debugMove()
 
 int lbl_803140D4 = 0;   // unreferenced .sdata word after dbsubflag
 
-void cSubChar::setFace(int no)
+// Empty virtuals defined `inline` (out of class): emitted at the end of the unit after the static
+// initialisation function, before the global-constructor thunk.
+inline void cSubChar::setFace(int no)
 {
 }
 
-void cSubChar::setHand(int no)
+inline void cSubChar::setHand(int no)
 {
 }
 
-void cSubChar::initCloth()
+inline void cSubChar::initCloth()
 {
 }
 
-void cSubChar::moveCloth()
+inline void cSubChar::moveCloth()
 {
+}
+
+// Never called: the linker dead-stripped the body and kept its constant pool (the 1000 word after
+// the static initialiser's 0.0 at the end of `.rodata`).
+inline int cSubChar::farCheck()
+{
+    return subDist > 1000.0f;
 }
