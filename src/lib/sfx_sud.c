@@ -26,7 +26,7 @@ void SFX_SetPicUsrDat(SFX_OBJ *sfx, void *dat, Sint32 size)
 	sfx->usrdat_size = size;
 }
 
-static void SFXSUD_Init(void)
+void SFXSUD_Init(void)
 {
 	SUD_Init();
 }

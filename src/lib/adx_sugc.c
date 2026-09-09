@@ -22,10 +22,10 @@ void ADXGC_SetupDvdFs(ADXGC_DVDFS_PRM *prm)
 {
 	adxgcsdk_build;
 	cvFsEntryErrFunc(adxgc_err_dvd, NULL);
-	cvFsAddDev("mf", mfCiGetInterface, NULL);
+	cvFsAddDev("MFS", mfCiGetInterface, NULL);
 	cvFsEntryErrFunc(adxgc_err_dvd, NULL);
-	cvFsAddDev("gc", gcCiGetInterface, NULL);
-	cvFsSetDefDev("gc");
+	cvFsAddDev("GCD", gcCiGetInterface, NULL);
+	cvFsSetDefDev("GCD");
 	if (prm != NULL) {
 		gcCiSetRdMode(NULL, 0, 0, prm->rdmode);
 	} else {

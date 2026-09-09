@@ -607,8 +607,19 @@ if _missing and args.mode == "configure":
 for _mod in _module_names:
     for unit, _first, *_src in REL_UNITS.get(_mod, [(f"{_mod}/{_mod}.cpp", None)]):
         # a third element names a source shared by several modules (st2/st2.cpp ends every st2_* REL);
-        # a fourth (data section starts) is gen_rel_config.py's
-        rel_objects.append(Object(REL_MATCHING.get(unit, NonMatching), unit, source=_src[0] if _src and _src[0] else unit, cflags=cflags_rel))
+        # a fourth (data section starts) is gen_rel_config.py's.
+        # Linkonce sections are folded into .text/.rodata the way the module link kept them (every
+        # object's copies stay, see tools/fold_linkonce.py --module).
+        rel_objects.append(
+            Object(
+                REL_MATCHING.get(unit, NonMatching),
+                unit,
+                source=_src[0] if _src and _src[0] else unit,
+                cflags=cflags_rel,
+                post_build=[f"$python tools/fold_linkonce.py --module {_mod} --unit {unit} {{out}}"],
+                post_build_implicit=[Path("tools/fold_linkonce.py"), config.rel_config_dir / _mod / "sym_map.tsv"],
+            )
+        )
 config.reconfig_deps.append(Path("config") / config.version / "modules.py")
 config.reconfig_deps.extend(config.rel_config_dir / _mod / "rel.json" for _mod in _module_names)
 

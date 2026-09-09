@@ -6724,14 +6724,14 @@ address	size	section	unit	scope	name	demangled
 0x801E2654	0x50	.text	lib/sud_lib.c	global	SUD_AnalyTypeDivField	SUD_AnalyTypeDivField
 0x801E26A4	0x30	.text	lib/sud_lib.c	global	SUD_Init	SUD_Init
 0x801E26D4	0x8	.text	lib/sfx_set.c	global	SFX_GetColAdj	SFX_GetColAdj
-0x801E26DC	0x8	.text	lib/sfx_set.c	local	SFX_SetColAdj	SFX_SetColAdj
+0x801E26DC	0x8	.text	lib/sfx_set.c	global	SFX_SetColAdj	SFX_SetColAdj
 0x801E26E4	0x30	.text	lib/sfx_set.c	global	SFX_GetTagInf	SFX_GetTagInf
 0x801E2714	0x9C	.text	lib/sfx_set.c	global	SFX_SetTagInf	SFX_SetTagInf
 0x801E27B0	0x8	.text	lib/sfx_set.c	global	SFX_SetUnitWidth	SFX_SetUnitWidth
 0x801E27B8	0xC	.text	lib/sfx_set.c	global	SFX_SetOutBufSize	SFX_SetOutBufSize
 0x801E27C4	0x8	.text	lib/sfx_set.c	global	SFX_GetFxType	SFX_GetFxType
 0x801E27CC	0x8	.text	lib/sfx_set.c	global	SFX_SetFxType	SFX_SetFxType
-0x801E27D4	0x8	.text	lib/sfx_set.c	local	SFX_SetCompoMode	SFX_SetCompoMode
+0x801E27D4	0x8	.text	lib/sfx_set.c	global	SFX_SetCompoMode	SFX_SetCompoMode
 0x801E27DC	0x478	.text	lib/sfx_cnv.c	global	SFX_MakeTable	SFX_MakeTable
 0x801E2C54	0x64	.text	lib/sfx_cnv.c	global	SFX_DecideTableAlph3	SFX_DecideTableAlph3
 0x801E2CB8	0xCC	.text	lib/sfx_cnv.c	global	sfxcnv_IsCnvUpHalf	sfxcnv_IsCnvUpHalf
@@ -6760,7 +6760,7 @@ address	size	section	unit	scope	name	demangled
 0x801E44D0	0x2C	.text	lib/sfx_sud.c	global	SFX_GetTypeCcs	SFX_GetTypeCcs
 0x801E44FC	0x2C	.text	lib/sfx_sud.c	global	SFX_GetTypeDivField	SFX_GetTypeDivField
 0x801E4528	0xC	.text	lib/sfx_sud.c	global	SFX_SetPicUsrDat	SFX_SetPicUsrDat
-0x801E4534	0x20	.text	lib/sfx_sud.c	local	SFXSUD_Init	SFXSUD_Init
+0x801E4534	0x20	.text	lib/sfx_sud.c	global	SFXSUD_Init	SFXSUD_Init
 0x801E4554	0xA0	.text	lib/sfx_cnv_to_ARGB8888PLN.c	global	SFX_CnvFrmARGB8888	SFX_CnvFrmARGB8888
 0x801E45F4	0x94	.text	lib/sfx_cnv_to_Y84C44.c	global	SFX_CnvFrmY84C44	SFX_CnvFrmY84C44
 0x801E4688	0x200	.text	lib/sfx_YCC420PLN_to_ARGB8888PLN.c	global	sfxcnv_CnvAlphFulYcc420plnToArgb8888	sfxcnv_CnvAlphFulYcc420plnToArgb8888
@@ -6872,7 +6872,7 @@ address	size	section	unit	scope	name	demangled
 0x801E9EF8	0x120	.text	lib/sfd_lib.c	global	SFD_Init	SFD_Init
 0x801EA018	0x10	.text	lib/sfd_lib.c	global	SFD_IsVersionCompatible	SFD_IsVersionCompatible
 0x801EA028	0x8	.text	lib/sfd_mem.c	global	SFMEM_Seek	SFMEM_Seek
-0x801EA030	0x28	.text	lib/sfd_mem.c	local	SFMEM_AddRead	SFMEM_AddRead
+0x801EA030	0x28	.text	lib/sfd_mem.c	global	SFMEM_AddRead	SFMEM_AddRead
 0x801EA058	0x28	.text	lib/sfd_mem.c	global	SFMEM_GetRead	SFMEM_GetRead
 0x801EA080	0x30	.text	lib/sfd_mem.c	global	SFMEM_AddWrite	SFMEM_AddWrite
 0x801EA0B0	0x28	.text	lib/sfd_mem.c	global	SFMEM_GetWrite	SFMEM_GetWrite
@@ -6882,7 +6882,7 @@ address	size	section	unit	scope	name	demangled
 0x801EA0F0	0x8	.text	lib/sfd_mem.c	global	SFMEM_Standby	SFMEM_Standby
 0x801EA0F8	0x8	.text	lib/sfd_mem.c	global	SFMEM_Destroy	SFMEM_Destroy
 0x801EA100	0x8	.text	lib/sfd_mem.c	global	SFMEM_Create	SFMEM_Create
-0x801EA108	0x2C	.text	lib/sfd_mem.c	local	SFMEM_ExecServer	SFMEM_ExecServer
+0x801EA108	0x2C	.text	lib/sfd_mem.c	global	SFMEM_ExecServer	SFMEM_ExecServer
 0x801EA134	0x8	.text	lib/sfd_mem.c	global	SFMEM_Finish	SFMEM_Finish
 0x801EA13C	0x8	.text	lib/sfd_mem.c	global	SFMEM_Init	SFMEM_Init
 0x801EA144	0xC	.text	lib/sfd_mps.c	global	SFMPS_GetConcatCnt	SFMPS_GetConcatCnt
@@ -7153,7 +7153,7 @@ address	size	section	unit	scope	name	demangled
 0x801FAAA8	0x24	.text	lib/mwsfdrna.c	global	MWSFRNA_GetOutPan	MWSFRNA_GetOutPan
 0x801FAACC	0x24	.text	lib/mwsfdrna.c	global	MWSFRNA_SetOutPan	MWSFRNA_SetOutPan
 0x801FAAF0	0x24	.text	lib/mwsfdrna.c	global	MWSFRNA_GetOutVol	MWSFRNA_GetOutVol
-0x801FAB14	0x24	.text	lib/mwsfdrna.c	local	MWSFRNA_SetOutVol	MWSFRNA_SetOutVol
+0x801FAB14	0x24	.text	lib/mwsfdrna.c	global	MWSFRNA_SetOutVol	MWSFRNA_SetOutVol
 0x801FAB38	0x4	.text	lib/mwsfdrsc.c	global	mwPlyRestoreRsc	mwPlyRestoreRsc
 0x801FAB3C	0x4	.text	lib/mwsfdrsc.c	global	mwPlySaveRsc	mwPlySaveRsc
 0x801FAB40	0xA8	.text	lib/mwsfdsl.c	global	mwPlyLinkStm	mwPlyLinkStm
@@ -7297,7 +7297,7 @@ address	size	section	unit	scope	name	demangled
 0x802085B8	0x4	.text	lib/mpv_m2v.c	global	MPVM2V_SetCond	MPVM2V_SetCond
 0x802085BC	0x4	.text	lib/mpv_m2v.c	global	MPVM2V_Destroy	MPVM2V_Destroy
 0x802085C0	0x8	.text	lib/mpv_m2v.c	global	MPVM2V_Create	MPVM2V_Create
-0x802085C8	0x4	.text	lib/mpv_m2v.c	local	MPVM2V_Finish	MPVM2V_Finish
+0x802085C8	0x4	.text	lib/mpv_m2v.c	global	MPVM2V_Finish	MPVM2V_Finish
 0x802085CC	0x4	.text	lib/mpv_m2v.c	global	MPVM2V_Init	MPVM2V_Init
 0x802085D0	0x4498	.text	lib/mpvabdec.c	global	MPVABDEC_NintraBlock	MPVABDEC_NintraBlock
 0x8020CA68	0x4230	.text	lib/mpvabdec.c	global	MPVABDEC_IntraBlock	MPVABDEC_IntraBlock

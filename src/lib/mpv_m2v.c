@@ -23,7 +23,7 @@ void *MPVM2V_Create(void)
 	return NULL;
 }
 
-static void MPVM2V_Finish(void)
+void MPVM2V_Finish(void)
 {
 }
 

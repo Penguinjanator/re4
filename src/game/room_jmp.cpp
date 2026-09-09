@@ -120,15 +120,20 @@ CRoomInfo* cRoomJmp::getRoomInfo(u8 stage, u8 idx)
 {
     u32* p = tbl;
     u32 ofs;
+    u32 n;
+    u8* base;
 
     if (stage >= p[0]) {
         return 0;
     }
     ofs = (p + 1)[stage];
-    if (idx >= *(u32*) ((u8*) p + ofs)) {
+    n = *(u32*) ((u8*) p + ofs);
+    base = (u8*) p + ofs;
+    if (idx >= n) {
         return 0;
     }
-    return (CRoomInfo*) ((u8*) p + ofs + 4 + idx * sizeof(CRoomInfo));
+    // Only the r0/r9/r11 assignment of ofs/n/base still differs from the target.
+    return (CRoomInfo*) (base + (idx * sizeof(CRoomInfo) + 4));
 }
 
 u8 cRoomJmp::getRoomIdx(u8 stage, u8 room)

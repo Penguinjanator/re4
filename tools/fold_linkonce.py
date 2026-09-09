@@ -12,6 +12,22 @@ The game's SN linker handled linkonce sections in a way ngcld (with our linker s
     (resolved to the owning unit's copy at link time).
 
 usage: fold_linkonce.py --unit game/foo.cpp <object.o>     (rewrites the object in place)
+       fold_linkonce.py --module <mod> --unit <mod>/<file>.cpp <object.o>
+
+REL modules (--module): the original `ngcld -r` link kept every object's linkonce functions, appended
+to that object's .text in emission order, and resolved the (weak) names to the first copy in the
+module: the debug .sym names only that first copy, every later copy is a nameless block (e.g.
+t_emlist: t_emlist.cpp owns cManager<cLight>::countActiveWork/create(int) at 0x6174, t_util.cpp and
+tools.cpp each carry a nameless 0x3B8 block of log/countActiveWork/create(int)/create()/create(int,u32)
+whose `bl`s go to 0x6174). So for a module unit:
+  * if the module's sym_map.tsv names any of the object's linkonce functions for this unit (same
+    demangled name and size), exactly those are appended to .text (their symbols stay weak
+    definitions) and the others are dropped like in the DOL case (the original compiler did not emit
+    them there: t_emlist.cpp has no log/create()/create(int,u32) body although it has their strings);
+  * otherwise every linkonce function is appended to .text and its symbol becomes a weak undefined
+    reference, so the code stays (nameless, like the original block) while calls into it resolve to
+    the module's first copy — which tools/sync_rel_symbols.py must have named (it renames the
+    module's placeholder when the compiled object references the mangled name).
 """
 import argparse
 import os
@@ -116,16 +132,38 @@ def unit_text_functions(unit):
     return names, foreign
 
 
+def module_text_functions(module, unit):
+    """(demangled name or current name, size) of every .text function the module sym_map assigns to
+    this unit (module functions have no mangled names: the .sym gives demangled ones without
+    parameter lists, so overloads are told apart by size)."""
+    rows = set()
+    with open(os.path.join(ROOT, "config", VER, "modules", module, "sym_map.tsv")) as f:
+        next(f)
+        for line in f:
+            sec, off, size, u, scope, name, dn = line.rstrip("\n").split("\t")
+            if sec != ".text" or u != unit:
+                continue
+            dn = dn if dn and dn != "." else name
+            rows.add((dn, int(size, 16)))
+            rows.add((name, int(size, 16)))
+    return rows
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--unit", required=True)
+    ap.add_argument("--module", help="REL module name: keep policy of the module link (see the doc string)")
     ap.add_argument("object")
     args = ap.parse_args()
     path = args.object
     elf = Elf(open(path, "rb").read())
     if not any(n.startswith(".gnu.linkonce.") for n in elf.names):
         return
-    owned, foreign = unit_text_functions(args.unit)
+    if args.module:
+        owned, foreign = set(), set()
+        module_rows = module_text_functions(args.module, args.unit)
+    else:
+        owned, foreign = unit_text_functions(args.unit)
 
     symtab = elf.names.index(".symtab")
     syms = [list(struct.unpack(">IIIBBH", elf.contents[symtab][o : o + 16])) for o in range(0, len(elf.contents[symtab]), 16)]
@@ -149,6 +187,20 @@ def main():
 
     rodata = elf.names.index(".rodata") if ".rodata" in elf.names else None
     dead = set()
+
+    def module_named(shndx):
+        size = elf.sections[shndx][5]
+        for s in syms:
+            if s[5] != shndx or (s[3] & 0xF) == STT_SECTION:
+                continue
+            n = sym_name(s)
+            if (n, size) in module_rows or ((demangle_v2(n) or n), size) in module_rows:
+                return True
+        return False
+
+    if args.module:
+        # no copy of this unit is named in the module: a nameless duplicate block, keep everything
+        keep_all = not any(module_named(i) for i, n in enumerate(elf.names) if n.startswith(".gnu.linkonce.t."))
 
     for i, name in enumerate(elf.names):
         if not name.startswith(".gnu.linkonce."):
@@ -189,8 +241,12 @@ def main():
             dead.add(i)
         elif kind == "t":
             funcs = [s for s in syms if s[5] == i and (s[3] & 0xF) != STT_SECTION]
-            if any((demangle_v2(sym_name(s)) or sym_name(s)) in owned and sym_name(s) not in foreign for s in funcs):
-                # this unit owns the only copy: append to .text
+            if args.module:
+                keep = keep_all or module_named(i)
+            else:
+                keep = any((demangle_v2(sym_name(s)) or sym_name(s)) in owned and sym_name(s) not in foreign for s in funcs)
+            if keep:
+                # this unit owns the only copy (DOL) / the module link kept this copy: append to .text
                 text = elf.names.index(".text")
                 body = elf.contents[text]
                 align = max(elf.sections[i][8], 4)
@@ -198,8 +254,15 @@ def main():
                 body += b"\0" * (base - len(body))
                 body += elf.contents[i]
                 for s in funcs:
-                    s[5] = text
-                    s[1] += base
+                    if args.module and keep_all:
+                        # nameless duplicate: the code stays, calls resolve to the module's first copy
+                        s[5] = SHN_UNDEF
+                        s[1] = 0
+                        s[2] = 0
+                        s[3] = (STB_WEAK << 4) | (s[3] & 0xF)
+                    else:
+                        s[5] = text
+                        s[1] += base
                 rela = rela_for(i)
                 if rela is not None:
                     dst = rela_for(text)

@@ -1537,6 +1537,7 @@ void cSubChar::moveHide()
     case 6: {
         u32 r;
         f32 d;
+        int up;
 
         a.x = pos.x;
         a.y = subHidePos.y;
@@ -1559,8 +1560,8 @@ void cSubChar::moveHide()
                 break;
             }
         }
-        r = subHidePos.y > pos.y + 1000.0f;
-        RouteCkToPos(this, &b, &a, r | 2, &subX5C8);
+        up = subHidePos.y > pos.y + 1000.0f;
+        RouteCkToPos(this, &b, &a, up | 2, &subX5C8);
         subSelf->rot.y += Muku(&pos, &a, rot.y, 0.20943952f);
         motionMove();
         break;

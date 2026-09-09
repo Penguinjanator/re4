@@ -59,6 +59,14 @@ cc1plus and are therefore compiler-build differences (the original is a later SN
 4. Narrow-argument truncation: the original build does not truncate `int` -> `u16` arguments at call
    sites nor a wider value on a narrow `return`, but masks a u8-returning call assigned to a u16.
    Workaround: asm-labelled int-view / narrow-view declarations (item.h `constructI`, `searchI`).
+5. haifa interblock scheduling: our cc1plus's `find_rgns` never marks leaf blocks (only successor =
+   EXIT) as reached, so any function ending in a plain return block gets single-block regions and no
+   interblock motion; the original formed regions there (shadow `ShadowTrans` `mr r3,r31` hoist over
+   a small loop). A leaf-fixed build (/tmp/sngcc-leaf) forms the regions but then moves far more than
+   the original, so the original's motion policy differs too. Compiler-build difference, not source.
+6. Cross-jump survivor choice: our jump2 always keeps the *last* identical `li r3,1; b end` copy;
+   the original sometimes keeps an earlier arm's copy and cross-jumps later ones into it (pl_class
+   `isKamae`), and never merges single-insn tails (item `use`). Compiler-build difference.
 Do not spend unit time on any of these; use the workarounds and move on. POLICY: every workaround
 for a compiler-build difference (asm-labelled aliases, `asm("" : "+r"(x))` launders, `register ...
 asm("rN")`, dead `p = 0` initialisers used only to shift gcse/loop.c counts) must carry a comment
@@ -636,6 +644,11 @@ mark it Matching.
   sub-word scalars are put in the stack at the first `&` in parse order; word-or-larger ones go
   through ADDRESSOF and get slots at purge time, so they land after every sub-word slot.
 - `x == 0 && y == 0` on adjacent `short` struct members folds into a single `lwz; cmpwi 0`.
+- `int one = 1;` at function scope with a single use in another block: `update_equiv_regs` moves the
+  `li` next to the store, making a short qty that takes r0 ahead of a `lwz/rlwinm/stw` chain.
+- `if (a && b) {..} else if (c && d) {..}`: the else-if test block has two predecessors, so cse cannot
+  reuse cr0 and gcse PREs the shared member load (`lfs f0; fmr f12,f0`); nested ifs share cr0.
+- Identical switch bodies written separately are cross-jumped into the *last* copy in source order.
 - Static locals show as `name.NNN` in objdiff; the DECL_UID suffix cannot be reproduced and is ignored by the report.
 - Unexplained words in `.rodata` (zero words, stray floats) are usually the constant pool of a function
   the original linker dead-stripped (bodies gone, pools kept, `STRIP_UNUSED` in objects.py): write a

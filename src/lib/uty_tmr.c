@@ -20,10 +20,21 @@ static Sint64 utytmr_read(void)
 	return ((Sint64)hi << 32) | lo;
 }
 
-/* dead-stripped by the linker; owns the .rodata constants (int->double magic, 1000.0f, 1000000.0f) */
-Float32 UTY_TmrToUsec(Sint32 cnt)
+/* dead-stripped by the linker; they own the .rodata constants (int->float magic, 1000.0f, 1000000.0f;
+ * MWCC emits one pool per function in function order) */
+Float32 UTY_TmrToFloat(Sint32 cnt)
 {
-	return (Float32)cnt / 1000.0f * 1000000.0f;
+	return (Float32)cnt;
+}
+
+Float32 UTY_TmrToMsec(Float32 t)
+{
+	return t * 1000.0f;
+}
+
+Float32 UTY_TmrToUsec(Float32 t)
+{
+	return t * 1000000.0f;
 }
 
 Sint64 UTY_GetTmrUnit(void)

@@ -23,6 +23,7 @@ VER = os.environ.get("RE4_VERSION", "G4BE08")
 CFG = os.path.join(ROOT, "config", VER)
 MODULES = os.path.join(CFG, "modules")
 SYM_RE = re.compile(r"^(\S+) = (\.\w+):0x([0-9A-F]+);(.*)$")
+KNOWN_SIZE = {}  # mangled name -> .text size, from every sym_map row already carrying that name
 
 
 class SymbolFile:
@@ -37,6 +38,7 @@ class SymbolFile:
             if m:
                 self.by_key[(None if is_dol else m.group(2), int(m.group(3), 16))] = i
         self.by_dn = {}  # demangled -> [(key, unit)]
+        self.size = {}  # key -> size
         self.map_rows = open(map_path).read().splitlines()
         for l in self.map_rows[1:]:
             f = l.split("\t")
@@ -45,7 +47,20 @@ class SymbolFile:
             else:
                 key, unit, dn = (f[0], int(f[1], 16)), f[3], f[6]
             self.by_dn.setdefault(dn, []).append((key, unit))
+            size = int(f[1] if is_dol else f[2], 16)
+            self.size[key] = size
+            # a row that already carries a mangled name tells that name's size (template instantiations
+            # are the same code in the DOL and in every module), which tells overloads apart
+            if f[5] != sanitize(dn) and not f[5].startswith(("fn_", "lbl_")) and f[5] != dn:
+                KNOWN_SIZE.setdefault(f[5], size)
         self.changed = 0
+
+    def is_placeholder(self, key, dn):
+        """True when the entry still carries the generated name (sanitised demangled name, optionally
+        with the `_<offset>` suffix of a duplicate, or fn_/lbl_)."""
+        old = self.name(key)
+        base = sanitize(dn)
+        return old == base or old.startswith((base + "_", "fn_", "lbl_"))
 
     def name(self, key):
         return self.lines[self.by_key[key]].split(" = ")[0]
@@ -106,7 +121,9 @@ def main():
         # resolution order for undefined names: the module's other units (ngcld -r), then make_rel.py's
         # order (DOL, imported modules by ascending id)
         order = [own, dol] + [modules[n] for n in sorted(own.info["links"], key=lambda n: modules[n].info["module_id"])]
-        for name, bind, defined in elf_symbols(obj):
+        # names whose size is known first, so an overload with a known size claims the placeholder before
+        # an unknown one could
+        for name, bind, defined in sorted(elf_symbols(obj), key=lambda t: t[0] not in KNOWN_SIZE):
             if name.startswith((".", "@", "_GLOBAL_")):
                 continue
             dn = demangle_v2(name)
@@ -124,6 +141,20 @@ def main():
                 cands = [k for k, _ in sf.by_dn.get(dn, [])]
                 if not cands:
                     continue
+                if any(sf.name(k) == name for k in cands):
+                    break  # already named
+                if not sf.is_dol:
+                    # overloads share one demangled name (the .sym has no parameter lists): a known size
+                    # of the mangled name selects the candidate, or says the module has no copy of it
+                    # (a linkonce duplicate this object dropped: then it is not referenced either)
+                    if name in KNOWN_SIZE:
+                        cands = [k for k in cands if sf.size.get(k) == KNOWN_SIZE[name]]
+                        if not cands:
+                            continue
+                    cands = [k for k in cands if sf.is_placeholder(k, dn)]
+                    if not cands:
+                        print(f"  {name} -> {dn}: every candidate in {os.path.relpath(sf.path, ROOT)} already carries another mangled name (overload?), left alone")
+                        break
                 if len(cands) > 1:
                     print(f"  ambiguous reference {name} -> {dn}: {cands} (rename by hand)")
                     break

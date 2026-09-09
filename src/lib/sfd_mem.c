@@ -32,7 +32,7 @@ Sint32 SFMEM_Seek(void)
 	return 0;
 }
 
-static Sint32 SFMEM_AddRead(void *sfd)
+Sint32 SFMEM_AddRead(void *sfd)
 {
 	SFLIB_SetErr(sfd, 0xFF000501);
 }
@@ -82,7 +82,7 @@ Sint32 SFMEM_Create(void)
 	return 0;
 }
 
-static Sint32 SFMEM_ExecServer(SFD_OBJ *sfd)
+Sint32 SFMEM_ExecServer(SFD_OBJ *sfd)
 {
 	SFBUF_SetPrepFlg(sfd, sfd->sfbuf, 1);
 	return 0;

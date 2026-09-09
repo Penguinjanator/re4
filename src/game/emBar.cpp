@@ -160,12 +160,10 @@ void emBarDmCk(cEmBar* em)
     case 7:
     case 8:
     case 0x21:
-        if (em->dmRad > 36000000.0f) {
-            emBarSetBreak(em, 0);
-        } else {
+        if (!(em->dmRad > 36000000.0f)) {
             emBarSetBreak(em, 1);
+            break;
         }
-        break;
     case 0:
     case 1:
     case 2:
@@ -187,16 +185,16 @@ void emBarDmCk(cEmBar* em)
     case 0x2B:
         emBarSetBreak(em, 0);
         break;
+    case 5:
+    case 6:
     case 0xD:
     case 0xE:
     case 0xF:
     case 0x12:
     case 0x13:
-    case 0x16:
-    case 0x17:
-    case 0x18:
-    case 0x19:
-    case 0x1A:
+    case 0x29:
+    case 0x2A:
+    case 0x2C:
     default:
         emBarSetBreak(em, 1);
         break;

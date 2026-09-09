@@ -129,6 +129,7 @@ struct IntView {
 #define IV(x) (((IntView*) &(x))->v)
 static inline void U32Set(u32& d, u32 v) { d = v; }
 static inline void ISet(int& d, int v) { d = v; }
+static inline u16 U16Ref(u16& v) { return v; }
 
 u8 min_lod;
 u8 max_lod;
@@ -1359,12 +1360,11 @@ static void shaderSetup(cModel* m, cModelInfo* info, ModelPart* part, Mtx mv)
 static inline void loadBlendTex(ModelPart* part, u8* tbl, int map)
 {
     int i;
-    u8* e = &tbl[5];
     for (i = 0; i < tbl[0]; i++) {
+        u8* e = &tbl[5] + i * 2;
         if (part->texId == e[-1] || e[-1] == 0xF7) {
             org_LoadTexObj(e[0], map);
         }
-        e += 2;
     }
 }
 
@@ -1383,8 +1383,11 @@ static void TextureBlend(ModelPart* part, cModelInfo* info, int colIn, int alpha
     t = MODEL_TEX(info);
     coord = getTexCoord();
     mtx = getTexMtx();
-    if (t->blendRatio == 0xFF) {
-        loadBlendTex(part, (u8*) t->blendTbl, map);
+    {
+        u8* btbl = (u8*) t->blendTbl;
+        if (t->blendRatio == 0xFF) {
+            loadBlendTex(part, btbl, map);
+        }
     }
     GXSetTevOrder(st, coord, map, 4);
     GXSetTevColorIn(st, 0xF, 8, colIn, 0xF);
@@ -1394,7 +1397,7 @@ static void TextureBlend(ModelPart* part, cModelInfo* info, int colIn, int alpha
     tev_stage++;
     tex_map++;
     tex_coord++;
-    if (t->blendRatio == 0 || t->blendRatio == 0xFF) {
+    if (U16Ref(t->blendRatio) == 0 || t->blendRatio == 0xFF) {
         return;
     }
     st = TEV_STAGE_ID();
@@ -1402,12 +1405,15 @@ static void TextureBlend(ModelPart* part, cModelInfo* info, int colIn, int alpha
     coord = getTexCoord();
     tbl = (u8*) t->blendTbl;
     for (i = 0; i < tbl[0]; i++) {
-        u8 id = tbl[4 + i * 2];
+        u8* e = tbl + 4;
+        int ofs = i * 2;
+        u8 id = e[ofs];
         if (part->texId == id || id == 0xF7) {
             int reg;
             GXColor k;
             GXColor kc;
-            org_LoadTexObj(tbl[5 + i * 2], map);
+            e = tbl + 5;
+            org_LoadTexObj(e[ofs], map);
             if (t->flags & 1) {
                 GXSetTexCoordGen2(coord, 1, 4, mtx, 0, 0x7D);
             } else {

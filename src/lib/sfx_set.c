@@ -29,7 +29,7 @@ void *SFX_GetColAdj(SFX_OBJ *sfx)
 	return sfx->coladj;
 }
 
-static void SFX_SetColAdj(SFX_OBJ *sfx, void *coladj)
+void SFX_SetColAdj(SFX_OBJ *sfx, void *coladj)
 {
 	sfx->coladj = coladj;
 }
@@ -84,7 +84,7 @@ void SFX_SetFxType(SFX_OBJ *sfx, Sint32 fxtype)
 	sfx->fxtype = fxtype;
 }
 
-static void SFX_SetCompoMode(SFX_OBJ *sfx, Sint32 mode)
+void SFX_SetCompoMode(SFX_OBJ *sfx, Sint32 mode)
 {
 	sfx->compo_mode = mode;
 }

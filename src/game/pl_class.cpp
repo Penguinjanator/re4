@@ -1731,14 +1731,20 @@ cMot3::cMot3()
 
 void cMot3::set(cModel* m, void* m0, void* m1, void* m2, int a, u8 b, int c, u16 d, u16 e)
 {
+    // COMPILER-DIFF: 2 (narrow-argument extension at entry). The original zero-extends the u8
+    // parameter into a callee-saved register (`clrlwi r28, r9, 24`) before both int uses; ours
+    // treats it as promoted and no source form produces the mask.
+    int mode;
+    asm("clrlwi %0,%1,24" : "=r"(mode) : "r"(b));
+
     model = m;
     rate = 0.0f;
     mot0 = m0;
     mot1 = m1;
     mot2 = m2;
     x14 = c;
-    MotionSetCore(m, MOTION(m), m0, a, b, d, e);
-    set0(m1, e, b);
+    MotionSetCore(m, MOTION(m), m0, a, mode, d, e);
+    set0(m1, e, mode);
     ((cEm*) m)->blendMot->blendRate = 0.0f;
 }
 

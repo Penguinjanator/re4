@@ -25,7 +25,7 @@ Sint32 MWSFRNA_GetOutVol(MWPLY_OBJ *mwply)
 	return SFD_GetOutVol(mwply->sfd);
 }
 
-static void MWSFRNA_SetOutVol(MWPLY_OBJ *mwply, Sint32 vol)
+void MWSFRNA_SetOutVol(MWPLY_OBJ *mwply, Sint32 vol)
 {
 	SFD_SetOutVol(mwply->sfd, vol);
 }
