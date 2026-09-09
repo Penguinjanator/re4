@@ -4578,3 +4578,13 @@ target) stays unresolved and `make_rel` then fails with "undefined symbol".
 - cse's `find_best_addr` rewrites `(mem (reg w))` to `(mem (plus em 0x3e0))` only for the zero-offset
   member, so `w->flags` and `em->x3E0` merge while `w->x16c` stays w-relative.
 
+- A `Mtx` declared at function scope sits below block-scoped Vecs and can make gcse PRE insert a
+  frame `addi` at a loop entry, which flags the loop "phony" and blocks all invariant hoisting --
+  declare the matrix in the block that uses it (r224 `reva_move` 71% -> 98.7%).
+- `pPLS->rot.y = ..; pPLS->setPos(&p);` reloads `pPL` between the store and the call when a template
+  copy lies between them.
+- A virtual call then a member store on the same global object keeps the pointer callee-saved only
+  through a local (`cPlayer* pl = pPL`).
+- Check identity with a label-normalised instruction diff: objdiff marks `bc` REL14 relocs as REPLACE
+  with identical bytes.
+
