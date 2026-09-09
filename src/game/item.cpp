@@ -2620,7 +2620,7 @@ int cItemMgr::bulletNumTotal(int bulletId)
 
 u16 cItemMgr::bulletNum()
 {
-    return bulletNumCurrent();
+    return bulletNumCurrentS();
 }
 
 u32 cItemMgr::bulletNumCurrent()
@@ -2671,7 +2671,10 @@ int cItemMgr::bulletNum(ItemWork* p)
         }
         return BULLET(p);
     case 6:
-        if (p->id >= 8 && p->id <= 10) {
+        switch (p->id) {
+        case 8:
+        case 9:
+        case 10:
             return p->num;
         }
         return 0;

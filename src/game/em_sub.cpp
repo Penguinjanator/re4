@@ -1105,6 +1105,7 @@ u32 GetWepTargetList(Vec* box, Vec* pos, WepTarget* list, u32 max, int flag)
     cEm* em;
     EmHitInfo* part;
     EmHitInfo* q;
+    WepTarget* wp;
     f32 wr;
 
     i = 0;
@@ -1135,15 +1136,15 @@ u32 GetWepTargetList(Vec* box, Vec* pos, WepTarget* list, u32 max, int flag)
         }
         part->flags &= ~0x4000;
         if (cnt < max) {
-            list[cnt].part = part;
-            list[cnt].em = em;
+            WEP_LIST(cnt)->part = part;
+            WEP_LIST(cnt)->em = em;
             cnt++;
             continue;
         }
         worst = 0;
-        wr = list[0].part->rad;
+        wr = WEP_LIST(0)->part->rad;
         for (j = 1; j < max; j++) {
-            q = list[j].part;
+            q = WEP_LIST(j)->part;
             if (q->dist <= 250000.0f) {
                 if (WEP_LIST(worst)->part->dist > 250000.0f) {
                     continue;
@@ -1161,21 +1162,22 @@ u32 GetWepTargetList(Vec* box, Vec* pos, WepTarget* list, u32 max, int flag)
                 worst = j;
             }
         }
-        if (WEP_LIST(worst)->part->dist <= 250000.0f) {
+        wp = WEP_LIST(worst);
+        if (wp->part->dist <= 250000.0f) {
             if (part->dist > 250000.0f) {
                 continue;
             }
-            if (WEP_LIST(worst)->part->rad < part->rad) {
+            if (wp->part->rad < part->rad) {
                 continue;
             }
         } else {
             if (part->dist <= 250000.0f) {
-                if (WEP_LIST(worst)->part->dist < part->dist) {
+                if (wp->part->dist < part->dist) {
                     continue;
                 }
             }
         }
-        WEP_LIST(worst)->part = part;
+        wp->part = part;
         WEP_LIST(worst)->em = em;
         } while (++i < EmMgr.nArray);
     }
@@ -1193,17 +1195,17 @@ u32 GetWepTargetList2(Vec* p0, Vec* p1, WepTarget* list, u32 max, Vec* hit, Vec*
     u32 cnt = 0;
     int i;
     int j;
+    int k;
     int worst;
     u32 mask;
     f32 dist;
     f32 l;
-    cEm* em;
-    cEm* bestEm = 0;
-    EmHitInfo* bestPart = 0;
+    cEm* bestEm;
+    EmHitInfo* bestPart;
     EmHitInfo* part;
     cModel* parts;
-    WepTarget* lp;
-    WepTarget tmp;
+    cEm* em2;
+    EmHitInfo* part2;
 
     mask = 0;
     if (type != 0x10) {
@@ -1233,8 +1235,13 @@ u32 GetWepTargetList2(Vec* p0, Vec* p1, WepTarget* list, u32 max, Vec* hit, Vec*
     if (PSMTXInverse(m, m) == 0) {
         PSMTXIdentity(m);
     }
-    for (i = 0; i < EmMgr.nArray; i++) {
-        em = EmMgrWork(i);
+    bestPart = 0;
+    bestEm = 0;
+    i = 0;
+    if (i < (int) EmMgr.nArray) {
+        do {
+        cEm* em = emWork(i);
+
         if ((em->be_flag & 0x201) != 1) {
             continue;
         }
@@ -1278,6 +1285,7 @@ u32 GetWepTargetList2(Vec* p0, Vec* p1, WepTarget* list, u32 max, Vec* hit, Vec*
         }
         bestPart = part;
         bestEm = em;
+        } while (++i < (int) EmMgr.nArray);
     }
     if (bestPart) {
         if (!(bestPart->flags & 0x20)) {
@@ -1291,9 +1299,11 @@ u32 GetWepTargetList2(Vec* p0, Vec* p1, WepTarget* list, u32 max, Vec* hit, Vec*
             }
         }
     }
-    lp = &list[cnt];
-    for (i = 0; i < EmMgr.nArray; i++) {
-        em = EmMgrWork(i);
+    i = 0;
+    if (i < (int) EmMgr.nArray) {
+        do {
+        cEm* em = emWork(i);
+
         if (!(em->be_flag & 1)) {
             continue;
         }
@@ -1364,9 +1374,8 @@ u32 GetWepTargetList2(Vec* p0, Vec* p1, WepTarget* list, u32 max, Vec* hit, Vec*
             }
         }
         if ((int) cnt < (int) max) {
-            lp->em = em;
-            lp->part = part;
-            lp++;
+            list[cnt].part = part;
+            list[cnt].em = em;
             cnt++;
             continue;
         }
@@ -1377,23 +1386,27 @@ u32 GetWepTargetList2(Vec* p0, Vec* p1, WepTarget* list, u32 max, Vec* hit, Vec*
             }
         }
         if (list[worst].part->rad > part->rad) {
-            list[worst].em = em;
             list[worst].part = part;
+            list[worst].em = em;
         }
+        } while (++i < (int) EmMgr.nArray);
     }
-    for (i = 0; i < (int) cnt - 1; i++) {
-        for (j = i + 1; j < (int) cnt; j++) {
-            if (list[i].part->rad > list[j].part->rad) {
-                tmp = list[i];
-                list[i] = list[j];
-                list[j] = tmp;
+    for (k = 0; k < (int) cnt - 1; k++) {
+        for (j = k + 1; j < (int) cnt; j++) {
+            if (list[k].part->rad > list[j].part->rad) {
+                em2 = list[k].em;
+                part2 = list[k].part;
+                list[k].part = list[j].part;
+                list[k].em = list[j].em;
+                list[j].part = part2;
+                list[j].em = em2;
             }
         }
     }
     if (bestPart) {
         if ((int) cnt <= (int) max - 1 || cnt == 0) {
-            list[cnt].em = bestEm;
             list[cnt].part = bestPart;
+            list[cnt].em = bestEm;
             cnt++;
         }
     }
@@ -1414,16 +1427,16 @@ int GetWepTargetListBomb(Vec* pos, WepTarget* list, int max, int type, int flag,
     int cnt = 0;
     int i;
     int j;
+    int k;
     int worst;
     u32 axis;
     u32 mask;
     f32 rr;
     f32 r2;
-    cEm* em;
     EmHitInfo* part;
     cModel* parts;
-    WepTarget* lp;
-    WepTarget tmp;
+    cEm* em2;
+    EmHitInfo* part2;
 
     switch (type) {
     case 0xD:
@@ -1435,9 +1448,11 @@ int GetWepTargetListBomb(Vec* pos, WepTarget* list, int max, int type, int flag,
     if (pG->flags_60 & 0x1000) {
         Draw_sphere(pos, r, 0xFFFF00FF, 1, 1);
     }
-    lp = list;
-    for (i = 0; i < EmMgr.nArray; i++) {
-        em = EmMgrWork(i);
+    i = 0;
+    if (i < (int) EmMgr.nArray) {
+        do {
+        cEm* em = emWork(i);
+
         if (!(em->be_flag & 1)) {
             continue;
         }
@@ -1541,9 +1556,8 @@ int GetWepTargetListBomb(Vec* pos, WepTarget* list, int max, int type, int flag,
             }
         }
         if (cnt < max) {
-            lp->em = em;
-            lp->part = part;
-            lp++;
+            list[cnt].part = part;
+            list[cnt].em = em;
             cnt++;
             continue;
         }
@@ -1554,16 +1568,20 @@ int GetWepTargetListBomb(Vec* pos, WepTarget* list, int max, int type, int flag,
             }
         }
         if (list[worst].part->rad > part->rad) {
-            list[worst].em = em;
             list[worst].part = part;
+            list[worst].em = em;
         }
+        } while (++i < (int) EmMgr.nArray);
     }
-    for (i = 0; i < cnt - 1; i++) {
-        for (j = i + 1; j < cnt; j++) {
-            if (list[i].part->rad > list[j].part->rad) {
-                tmp = list[i];
-                list[i] = list[j];
-                list[j] = tmp;
+    for (k = 0; k < cnt - 1; k++) {
+        for (j = k + 1; j < cnt; j++) {
+            if (list[k].part->rad > list[j].part->rad) {
+                em2 = list[k].em;
+                part2 = list[k].part;
+                list[k].part = list[j].part;
+                list[k].em = list[j].em;
+                list[j].part = part2;
+                list[j].em = em2;
             }
         }
     }

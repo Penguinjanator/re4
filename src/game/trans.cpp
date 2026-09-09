@@ -948,8 +948,8 @@ void commonModelTrans(cModel* m, cModelInfo* info, Mtx viewMat, int flag)
     Mtx nrm;
     Mtx pm;
     GxWork* gx = GXWORK();
-    int efbDone = 0;
-    int matSet = 0;
+    int efbDone;
+    int matSet;
 
     g_pShdMng = 0;
     if ((pG->flags_5014 & 0x00100000) && (m->be_flag & 0x02000000) && !(pG->flags_58 & 0x00040000) &&
@@ -962,14 +962,17 @@ void commonModelTrans(cModel* m, cModelInfo* info, Mtx viewMat, int flag)
                 pLog->err(0, 0, "SHADOW_CAST : TEX_ID[%x] no data", w->texId);
                 g_pShdMng = 0;
             }
-            if (m->lightInfo.getLightNum() > 7) {
+            u32 n = m->lightInfo.getLightNum();
+            if (n > 7) {
                 if (!(pG->flags_64 & 0x00040000)) {
-                    pLog->err(0, 0, "CAST LIGHT NUM OVER %d");
+                    pLog->err(0, 0, "CAST LIGHT NUM OVER %d", n);
                 }
                 g_pShdMng = 0;
             }
         }
     }
+    efbDone = 0;
+    matSet = 0;
     for (; info != 0; info = info->pNext) {
         ModelData* d;
         void* tex;
@@ -991,9 +994,11 @@ void commonModelTrans(cModel* m, cModelInfo* info, Mtx viewMat, int flag)
         }
         if (info->be_flag & 0x20) {
             matSet = 1;
-            GXSetChanMatColor(4, *(GXColor*) info->color);
+            mat = *(GXColor*) info->color;
+            GXSetChanMatColor(4, mat);
         } else if (matSet == 1) {
-            GXSetChanMatColor(4, *(GXColor*) m->pInfo->color);
+            mat = *(GXColor*) m->pInfo->color;
+            GXSetChanMatColor(4, mat);
         }
         if (PTR_INVALID(info)) {
             pLog->err(0, 0, "commonModelTrans() pModelInfo INVALID PTR %08X", info);
@@ -1016,15 +1021,13 @@ void commonModelTrans(cModel* m, cModelInfo* info, Mtx viewMat, int flag)
             return;
         }
         if (m->be_flag & 0x4000) {
-            mat0 = m->mat;
             PSMTXConcat(m->mat, (f32(*)[4]) &info->x5C, pm);
         } else if (d->x18 <= 1 && d->x2A <= 0xFF && !(info->be_flag & 2) && d->x19 == 1) {
-            mat0 = m->mat;
             PSMTXConcat(m->getPartsPtr(d->pHead->partsNo)->mat, (f32(*)[4]) &info->x5C, pm);
         } else {
-            mat0 = m->mat;
             PSMTXConcat(m->pParts->mat, (f32(*)[4]) &info->x5C, pm);
         }
+        mat0 = m->mat;
         PSMTXConcat(viewMat, pm, mv);
         PSMTXInverse(mv, inv);
         PSMTXTranspose(inv, nrm);
@@ -1339,6 +1342,7 @@ static inline void loadBlendTex(ModelPart* part, u8* tbl, int map)
 static void TextureBlend(ModelPart* part, cModelInfo* info, int colIn, int alphaIn)
 {
     int st;
+    ModelTexInfo* t = MODEL_TEX(info);
     int map;
     int coord;
     u32 mtx;
@@ -1349,8 +1353,8 @@ static void TextureBlend(ModelPart* part, cModelInfo* info, int colIn, int alpha
     map = getTexMap();
     coord = getTexCoord();
     mtx = getTexMtx();
-    if (info->blendRatio == 0xFF) {
-        loadBlendTex(part, (u8*) info->texBlendTbl, map);
+    if (t->blendRatio == 0xFF) {
+        loadBlendTex(part, (u8*) t->blendTbl, map);
     }
     GXSetTevOrder(st, coord, map, 4);
     GXSetTevColorIn(st, 0xF, 8, colIn, 0xF);
@@ -1360,13 +1364,13 @@ static void TextureBlend(ModelPart* part, cModelInfo* info, int colIn, int alpha
     tev_stage++;
     tex_map++;
     tex_coord++;
-    if (info->blendRatio == 0 || info->blendRatio == 0xFF) {
+    if (t->blendRatio == 0 || t->blendRatio == 0xFF) {
         return;
     }
     st = TEV_STAGE_ID();
     map = getTexMap();
     coord = getTexCoord();
-    tbl = (u8*) info->texBlendTbl;
+    tbl = (u8*) t->blendTbl;
     for (i = 0; i < tbl[0]; i++) {
         u8 id = tbl[4 + i * 2];
         if (part->texId == id || id == 0xF7) {
@@ -1374,7 +1378,7 @@ static void TextureBlend(ModelPart* part, cModelInfo* info, int colIn, int alpha
             GXColor k;
             GXColor kc;
             org_LoadTexObj(tbl[5 + i * 2], map);
-            if (info->flagsDC & 1) {
+            if (t->flags & 1) {
                 GXSetTexCoordGen2(coord, 1, 4, mtx, 0, 0x7D);
             } else {
                 GXSetTexCoordGen2(coord, 1, 4, 0x3C, 0, 0x7D);
@@ -1391,7 +1395,7 @@ static void TextureBlend(ModelPart* part, cModelInfo* info, int colIn, int alpha
             st = TEV_STAGE_ID();
             map = getTexMap();
             coord = getTexCoord();
-            k.r = k.a = k.g = k.b = (u8) info->blendRatio;
+            k.r = k.a = k.g = k.b = (u8) t->blendRatio;
             kc = k;
             GXSetTevKColor(getKColor(), kc);
             GXSetTevKColorSel(st, getKColorSel());
@@ -1411,6 +1415,7 @@ static void TextureBlend(ModelPart* part, cModelInfo* info, int colIn, int alpha
 static void TextureBlend2(ModelPart* part, cModelInfo* info, int colIn, int alphaIn)
 {
     int st;
+    ModelTexInfo* t = MODEL_TEX(info);
     int map;
     int coord;
     u32 mtx;
@@ -1421,8 +1426,8 @@ static void TextureBlend2(ModelPart* part, cModelInfo* info, int colIn, int alph
     map = getTexMap();
     coord = getTexCoord();
     mtx = getTexMtx();
-    if (info->blendRatio == 0xFF) {
-        loadBlendTex(part, (u8*) info->texBlendTbl, map);
+    if (t->blendRatio == 0xFF) {
+        loadBlendTex(part, (u8*) t->blendTbl, map);
     }
     GXSetTevOrder(st, coord, map, 4);
     GXSetTevColorIn(st, 0xF, 8, colIn, 0xF);
@@ -1432,13 +1437,13 @@ static void TextureBlend2(ModelPart* part, cModelInfo* info, int colIn, int alph
     tev_stage++;
     tex_map++;
     tex_coord++;
-    if (info->blendRatio == 0 || info->blendRatio == 0xFF) {
+    if (t->blendRatio == 0 || t->blendRatio == 0xFF) {
         return;
     }
     st = TEV_STAGE_ID();
     map = getTexMap();
     coord = getTexCoord();
-    tbl = (u8*) info->texBlendTbl;
+    tbl = (u8*) t->blendTbl;
     for (i = 0; i < tbl[0]; i++) {
         u8 id = tbl[4 + i * 2];
         if (part->texId == id || id == 0xF7) {
@@ -1446,7 +1451,7 @@ static void TextureBlend2(ModelPart* part, cModelInfo* info, int colIn, int alph
             GXColor k;
             GXColor kc;
             org_LoadTexObj(tbl[5 + i * 2], map);
-            if (info->flagsDC & 1) {
+            if (t->flags & 1) {
                 GXSetTexCoordGen2(coord, 1, 4, mtx, 0, 0x7D);
             } else {
                 GXSetTexCoordGen2(coord, 1, 4, 0x3C, 0, 0x7D);
@@ -1463,7 +1468,7 @@ static void TextureBlend2(ModelPart* part, cModelInfo* info, int colIn, int alph
             st = TEV_STAGE_ID();
             map = getTexMap();
             coord = getTexCoord();
-            k.r = k.a = k.g = k.b = (u8) info->blendRatio;
+            k.r = k.a = k.g = k.b = (u8) t->blendRatio;
             kc = k;
             GXSetTevKColor(getKColor(), kc);
             GXSetTevKColorSel(st, getKColorSel());
@@ -1483,6 +1488,7 @@ static void TextureBlend2(ModelPart* part, cModelInfo* info, int colIn, int alph
 static void TextureBlend3(ModelPart* part, cModelInfo* info, int colIn, int alphaIn)
 {
     static int use_alp = 1;
+    ModelTexInfo* t = MODEL_TEX(info);
     int st;
     int map;
     int coord;
@@ -1502,19 +1508,19 @@ static void TextureBlend3(ModelPart* part, cModelInfo* info, int colIn, int alph
     tev_stage++;
     tex_map++;
     tex_coord++;
-    if (info->blendRatio == 0) {
+    if (t->blendRatio == 0) {
         return;
     }
     st = TEV_STAGE_ID();
     map = getTexMap();
     coord = getTexCoord();
-    tbl = (u8*) info->texBlendTbl;
+    tbl = (u8*) t->blendTbl;
     for (i = 0; i < tbl[0]; i++) {
         u8 id = tbl[4 + i * 2];
         if (part->texId == id || id == 0xF7) {
             u8 texId = tbl[5 + i * 2];
             org_LoadTexObj(texId, map);
-            if (info->flagsDC & 1) {
+            if (t->flags & 1) {
                 GXSetTexCoordGen2(coord, 1, 4, mtx, 0, 0x7D);
             } else {
                 GXSetTexCoordGen2(coord, 1, 4, 0x3C, 0, 0x7D);
@@ -1537,29 +1543,30 @@ static void TextureBlend3(ModelPart* part, cModelInfo* info, int colIn, int alph
                 map = getTexMap();
                 coord = getTexCoord();
                 org_LoadTexObj(texId, map);
-                if (info->flagsDC & 1) {
+                if (t->flags & 1) {
                     GXSetTexCoordGen2(coord, 1, 4, mtx, 0, 0x7D);
                 } else {
                     GXSetTexCoordGen2(coord, 1, 4, 0x3C, 0, 0x7D);
                 }
-                k.r = k.a = k.g = k.b = (u8) info->blendRatio;
+                k.r = k.a = k.g = k.b = (u8) t->blendRatio;
                 kc = k;
                 GXSetTevKColor(getKColor(), kc);
                 GXSetTevKColorSel(st, getKColorSel());
                 GXSetTevKAlphaSel(st, getKAlphaSel());
                 tev_kcolor++;
                 reg2 = tev_reg + 1;
+                reg = getTevReg(reg2);
                 GXSetTevOrder(st, coord, map, 0xFF);
-                if (info->blendRatio > 0xFF) {
+                if (t->blendRatio > 0xFF) {
                     GXSetTevColorIn(st, 0xF, 0xC, 9, 0xE);
-                    GXSetTevColorOp(st, 0, 0, 0, 1, getTevReg(reg2));
+                    GXSetTevColorOp(st, 0, 0, 0, 1, reg);
                     GXSetTevAlphaIn(st, 6, 6, 7, 4);
-                    GXSetTevAlphaOp(st, 0, 0, 0, 1, getTevReg(reg2));
+                    GXSetTevAlphaOp(st, 0, 0, 0, 1, reg);
                 } else {
                     GXSetTevColorIn(st, 0xF, 0xE, 9, 0xF);
-                    GXSetTevColorOp(st, 0, 0, 0, 1, getTevReg(reg2));
+                    GXSetTevColorOp(st, 0, 0, 0, 1, reg);
                     GXSetTevAlphaIn(st, 7, 6, 4, 7);
-                    GXSetTevAlphaOp(st, 0, 0, 0, 1, getTevReg(reg2));
+                    GXSetTevAlphaOp(st, 0, 0, 0, 1, reg);
                 }
                 tev_stage++;
                 tex_map++;
@@ -1586,7 +1593,7 @@ static void TextureBlend3(ModelPart* part, cModelInfo* info, int colIn, int alph
                 map = getTexMap();
                 coord = getTexCoord();
                 org_LoadTexObj(texId, map);
-                if (info->flagsDC & 1) {
+                if (t->flags & 1) {
                     GXSetTexCoordGen2(coord, 1, 4, mtx, 0, 0x7D);
                 } else {
                     GXSetTexCoordGen2(coord, 1, 4, 0x3C, 0, 0x7D);
@@ -1608,6 +1615,7 @@ static void TextureBlend3(ModelPart* part, cModelInfo* info, int colIn, int alph
 static void materialSetup(ModelPart* part, cModelInfo* info, int colIn, int alphaIn)
 {
     int st;
+    ModelTexInfo* t = MODEL_TEX(info);
     int map;
     int coord;
     u8 texId;
@@ -1617,23 +1625,23 @@ static void materialSetup(ModelPart* part, cModelInfo* info, int colIn, int alph
     coord = getTexCoord();
     g_material_tex_coord = coord;
     texId = part->texId;
-    if ((info->flagsDC & 2) && info->pTexAnim != 0) {
-        texId = info->pTexAnim[4 + info->xE0];
+    if ((t->flags & 2) && t->anim != 0) {
+        texId = t->anim[4 + t->frame];
     }
     org_LoadTexObj(texId, map);
-    if (info->flagsDC & 1) {
+    if (t->flags & 1) {
         u32 mtx = getTexMtx();
         Mtx m;
         PSMTXIdentity(m);
-        m[0][2] = info->uvU;
-        m[1][2] = info->uvV;
+        m[0][2] = t->u;
+        m[1][2] = t->v;
         GXLoadTexMtxImm(m, mtx, 1);
         GXSetTexCoordGen2(coord, 1, 4, mtx, 0, 0x7D);
     } else {
         GXSetTexCoordGen2(coord, 1, 4, 0x3C, 0, 0x7D);
     }
-    if (info->flagsDC & 4) {
-        u8 type = info->blendType;
+    if (t->flags & 4) {
+        u8 type = t->blendType;
         switch (type) {
         case 0:
             TextureBlend(part, info, colIn, alphaIn);
@@ -1887,7 +1895,7 @@ static void SetCastShadowLight(cModel* m, Vec* pos, Vec* dir, ShadowMng* mng)
 {
     static u8 cast_col1 = 0xC0;
     static GXColor cast_col2 = {0xFF, 0xFF, 0xFF, 0xFF};
-    static GXColor cast_col3 = {0xFF, 0, 0, 0};
+    static GXColor cast_col3 = {0, 0, 0, 0xFF};
     GXLightObj lobj;
     Vec p;
     Vec d;
@@ -2288,6 +2296,16 @@ void shaderReset()
     GXSetChanCtrl(0, 0, 0, 0, 0, 0, 2);
     GXSetChanCtrl(1, 0, 0, 0, 0, 0, 2);
     GXSetAlphaCompare(7, 0, 1, 7, 0);
+}
+
+// Dead-stripped in the DOL (STRIP_UNUSED): only its constant pool (0.0, 448.0, 1.0 and the signed
+// int -> float double) remains in .rodata between GetPrimBuff and updateMatrices.
+static void primBuffDebugDisp(int n)
+{
+    f32 zero = 0.0f;
+    f32 h = 448.0f;
+    f32 one = 1.0f;
+    GXSetViewport(zero, zero, h, one, (f32) n, one);
 }
 
 // Skin `n` vertices (s16 x/y/z + s16 matrix index, 8 bytes) from src into dst (s16 x/y/z, 6 bytes)

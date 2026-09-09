@@ -128,6 +128,8 @@ public:
     int bulletNumTotal(int bulletId);
     u16 bulletNum();            // 0x8001FC20: bulletNumCurrent() of the equipped weapon
     u32 bulletNumCurrent();     // 0x8001FC40
+    // bulletNum() returns it without the `clrlwi 16` (original build). Same function, u16 view.
+    u16 bulletNumCurrentS() asm("bulletNumCurrent__8cItemMgr");
     int bulletNum(u16 id);
     int bulletNum(ItemWork* p);
     int saveDataSize();

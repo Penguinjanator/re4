@@ -3138,7 +3138,7 @@ int cEmDoor::ckObj()
     u32 i;
 
     for (i = 0; i < EmMgr.nArray; i++) {
-        cEm* e = (cEm*) ((u8*) EmMgr.pArray + EmMgr.size * i);
+        cEm* e = (cEm*) (EmMgr.size * i + (u8*) EmMgr.pArray);
         EmRackWork* rw;
 
         if ((e->be_flag & 0x201) != 1) {

@@ -589,6 +589,12 @@ mark it Matching.
   asm-labelled alias of the callee (`unitPtrI`, `setI` in id_sys.h).
 - Stores to a plain `static void*` are freely reordered against `u->member` loads; declaring them as
   one-element arrays (`g_p[1]`) keeps the target's load/store interleave.
+- `psq_l f,0(rP),1,qrN` straight from a stepping pointer is inline asm; the compiler always goes
+  through a stack slot. Whole skinning kernels (`CalcSk1_x`, `setupGQR6`) are single `asm volatile`
+  bodies (NgcAs rejects `subis`; use `addis 0xE000`).
+- Locked-cache palette: `PSMTXReorder(m, (f32(*)[3])(0xE0000000 + i*0x30))` gives `mulli; subis`.
+- `cond ? A : B` as a call argument folds a common `(x+0x1F)&~0x1F` out of both arms; two if/else
+  calls keep the arm-specific masks and cross-jump only the `bl`.
 - Static locals show as `name.NNN` in objdiff; the DECL_UID suffix cannot be reproduced and is ignored by the report.
 - Unexplained words in `.rodata` (zero words, stray floats) are usually the constant pool of a function
   the original linker dead-stripped (bodies gone, pools kept, `STRIP_UNUSED` in objects.py): write a

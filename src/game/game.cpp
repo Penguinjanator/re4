@@ -1370,8 +1370,10 @@ void GameAddPoint(int type)
     int add;
 
     switch (type) {
-    case 0:
     default:
+        add = 0;
+        break;
+    case 0:
         add = 0;
         break;
     case 1:
