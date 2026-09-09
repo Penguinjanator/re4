@@ -21,7 +21,6 @@
 
 extern "C" {
 void EspDataRelease(int a, int b, int c);      // game/eff_sys.cpp
-void EspDataLoad(void* data, int a, int b);    // game/eff_sys.cpp
 void ReleaseWepData();                         // game/read.cpp
 void ReadPlayerData(int type, int costume);    // game/read.cpp
 void AddWaterPower(Vec* pos, f32 power);       // game/Espgen42.cpp

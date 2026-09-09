@@ -176,7 +176,9 @@ static void r108_initChurchBell()
     {
         f32 w = 1000.0f;
         f32 h = -3000.0f;
-        YarareInitCube(hit, 0.0f, 0.0f, 500.0f, w, h, w, 0, 1);
+        f32 x = 0.0f;
+        f32 z = 500.0f;
+        YarareInitCube(hit, x, x, z, w, h, w, 0, 1);
     }
     for (;;) {
         if (hit->ckStatus() == 1) {
