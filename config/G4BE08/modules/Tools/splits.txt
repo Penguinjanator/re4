@@ -40,13 +40,13 @@ Tools/t_cons.cpp:
 
 Tools/t_dr.cpp:
 	.text       start:0x0001F354 end:0x00020D54
-	.rodata     start:0x00002D6C end:0x000030AC align:4
+	.rodata     start:0x00002D6C end:0x00003088 align:4
 	.data       start:0x00000CD8 end:0x00000DB0 align:4
 	.bss        start:0x0013C7B0 end:0x0013C7B4 align:16
 
 Tools/t_eminfo.cpp:
 	.text       start:0x00020D54 end:0x0002428C
-	.rodata     start:0x000030AC end:0x00003468 align:4
+	.rodata     start:0x00003088 end:0x00003468 align:4
 	.data       start:0x00000DB0 end:0x00001E18 align:4
 	.bss        start:0x0013C7B4 end:0x0013C7BC align:4
 

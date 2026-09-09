@@ -130,7 +130,7 @@ UNITS = {
         ("st2_3/r228.cpp", "R228Init", "st2/r228.cpp", {".rodata": 0x2430}),
         ("st2_3/r229.cpp", "R229Init", "st2/r229.cpp", {".rodata": 0x26bc}),
         ("st2_3/r22a.cpp", "R22aInit", "st2/r22a.cpp", {".rodata": 0x28f8}),
-        ("st2_3/r22b.cpp", "R22bInit", "st2/r22b.cpp", {".rodata": 0x2a88}),
+        ("st2_3/r22b.cpp", "R22bInit", "st2/r22b.cpp", {".rodata": 0x2a78}),
         ("st2_3/" + _ST2[0], *_ST2[1:]),
     ],
     "st2_4": [
@@ -291,7 +291,9 @@ UNITS = {
         ("Tools/t_atari.cpp", "ToolAtari", None, {".rodata": 0x2578}),
         ("Tools/t_cons.cpp", "ToolCons", None, {".rodata": 0x29C8}),
         ("Tools/t_dr.cpp", "tDrExit", None, {".rodata": 0x2D6C}),
-        ("Tools/t_eminfo.cpp", "ToolEmInfo", None, {".rodata": 0x30AC}),
+        # t_eminfo.cpp's group starts with atari.h's cFlag.set() message (0x3088, 8-aligned: the 4-byte pad
+        # before it is the linker's, t_dr's .rodata ends at 0x3084)
+        ("Tools/t_eminfo.cpp", "ToolEmInfo", None, {".rodata": 0x3088}),
         ("Tools/t_esp_area.cpp", "IsWorkAlive", None, {".rodata": 0x3468}),
         ("Tools/t_flr_at.cpp", "flrAtInit", None, {".rodata": 0x3A88}),
         ("Tools/t_lightarea.cpp", "__builtin_new", None, {".rodata": 0x3FF8}),
@@ -366,6 +368,9 @@ CFLAGS = {
 STRIP_UNUSED = {
     f"{_m}/em_wrap.cpp" for _m in ["st1_0", "st1_1", "st1_2", "st1_3", "st2_0", "st2_1", "st2_2", "st2_3", "st2_4", "st4_0"]
 } | {f"{_m}/cSceObj.cpp" for _m in ["st2_0", "st2_3", "st4_0"]} | {
+    # rooms whose original object lost a never-called static function (strings and pool kept)
+    "st2_3/r229.cpp",
+
     # the tool library objects are the t_emlist versions minus what the module never calls
     "t_camera/t_prim.cpp", "t_camera/t_util.cpp", "t_light/t_util.cpp", "t_event/t_util.cpp", "t_sce/t_util.cpp",
     "t_movie/t_util.cpp", "t_esp/t_util.cpp", "t_id/t_util.cpp",
@@ -397,6 +402,8 @@ MATCHING = {
     "st2_1/st2.cpp": True,
     "st2_2/st2.cpp": True,
     "st2_3/st2.cpp": True,
+    "st2_3/r22b.cpp": True,
+    "st2_3/r229.cpp": True,
     "st2_4/st2.cpp": True,
     "st4_0/st4.cpp": True,
     "st4_0/r410.cpp": True,
@@ -416,6 +423,7 @@ MATCHING = {
     "t_emlist/t_util.cpp": True,
     "t_emlist/tools.cpp": True,
     "t_camera/tools.cpp": True,
+    "t_camera/t_camera_draw.cpp": True,
     "t_light/tools.cpp": True,
     "t_sce/tools.cpp": True,
     "t_event/tools.cpp": True,
@@ -438,6 +446,7 @@ MATCHING = {
     "em26/em26.cpp": True,
     "em18/em18.cpp": True,
     "em34/em34.cpp": True,
+    "em24/em24.cpp": True,
 }
 # The Ganado modules' per-enemy objects (src/<em>/<em>_set.cpp: entry points + EmXXInit/Set/WeaponSet).
 for _em in ["em10", "em11", "em12", "em13", "em14", "em15", "em16", "em17", "em19", "em1a", "em1b",

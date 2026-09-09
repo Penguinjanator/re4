@@ -2475,8 +2475,11 @@ target) stays unresolved and `make_rel` then fails with "undefined symbol".
   r10a (st1_1) and r102 (st1_1 + st1_3) are Matching, r108 (st1_1/st1_3) is written with 9/15 functions
   exact; r11d (st1_3, 16/21 incl. reloc-only), r10f (st1_3, 11/14), r11e (st1_3, 16/18) and r119
   (st1_2, 26/27: only Init's table-address registers differ) have full sources (include/obj00.h,
-  obj13.h, objGondola.h are their room-side views of the DOL objects); r100, r101, r104, r105, r10b,
-  r10c, r11b, r11c, r117, r11f, r120 (st1) and every st2/st4 room are unwritten;
+  obj13.h, objGondola.h are their room-side views of the DOL objects); r10c (st1_2, 15/23,
+  .rodata/.data equal) and r11b (st1_2, 8/14 + the nameless cLight block, .rodata equal) are written;
+  st4_0 r410, r40b, r411 and st2_3 r22b, r229 are Matching, r40a (8/9) and r22a (6/7) written;
+  r100, r11c, r117 (st1) and the other st2/st4 rooms are unwritten (cSceObj.cpp, which r40c/r406/
+  r40e/r220/r225 need, has no source yet);
   em_wrap.cpp matches in st1_0/st2_4 (Matching) and is one register-allocation diff away elsewhere.
 - db_light.cpp (src/tools/db_light.cpp: the light editor, 0x12408 of code in t_camera/t_light/t_event;
   Tools = the same object with `SetToolLight` in front (`tools/db_light_tools.cpp`, DB_LIGHT_SET_TOOL_LIGHT),
@@ -2588,6 +2591,71 @@ target) stays unresolved and `make_rel` then fails with "undefined symbol".
     (`add r4,r26,r23; addi r4,r4,0x18`) and `mulli r26,r22,0xc` is issued before the SndStrReq call
     in the original; r11d appearLittleSister: a `void* zero` local's `li r31,0` survives next to the
     `andis.` result that cse merges it with in ours.
+- Room idioms found on r10c / r11b / r229 / r22a (st1_2, st2_3) and r410 / r40b / r411 / r40a
+  (st4_0; r410, r40b, r411, r22b, r229 Matching, 2026-09):
+  - Work pointer reloaded after a store *through* it (`stw r3,0x74(r9); lwz r9,work; lwz 0x70(r9)`,
+    `sth hp; lwz work` chains) = the one-member struct global (`R10cWorkPtr r10c_work; .p->`) as in
+    r10f; stores into the work that are followed by a `pG`/`pPL`/`pSys` load in the original need a
+    typed `PSet(cSat*&, ..)` / `U32Set(cnt, cnt + 1)` on top (a struct store lets ours hoist the
+    fixed-scalar load above it). The calloc store whose `lis work@ha` sits in a callee-saved register
+    *before* earlier calls is a reference variable `R11bWork*& wp = r11b_work.p;` declared at the
+    top (`wp = MEM_CALLOC(..)`); ours then merges that `lis` with the PRE'd one of the later loads
+    (r11b -4 bytes, OPEN), r229 (no later loads in Init) matches.
+  - Two `EM_LIST(n)` byte stores with one `pG` load (`lbz flags; stb x3; ori; stb flags`) are written
+    through a local `EmListData* l = EM_LIST(n);` (a QI store reloads `pG` otherwise), and an
+    `EM_LIST(n)->x3 = 0` after an `EmSetFromList2(n, ..)` whose `pG + 0x5xx8` address is computed
+    *before* the call is `EmListData* l = EM_LIST(n); em = EmSetFromList2(n, 1); l->x3 = 0;`.
+  - `cPlayer* p = pPL; p->setPos(&v); p->setAng(&v)` when one `lwz pPL` feeds two calls (`mr r3,r30`
+    twice); `pPLS->setPos(); pPLS->setAng()` (the struct view, twice, no local) when the original
+    reloads pPL per call but keeps the first load below preceding Vec template stores (r10c ItemGet).
+  - Frame-slot reuse decides block scoping: r10c/r22a's rope event has `{ Mtx m; ... FadeSetW(2,30);
+    SceSleep(30); ObjMgr.destroy(obj); } { Vec pos2 = {..}; Vec ang2; f32 ry; Vec* pa = &ang2; ... }`
+    in each arm — the else arm's FadeSetW colour pair lands at a fresh 0x68 slot because `m` is still
+    live there, and `pos2` reuses 0x38 because `m` is dead; `Vec* pa = &ang2` declared at the block top
+    puts the `addi r28,r1,0x48` into a callee-saved register before the FadeSet.
+  - `if (RsfCheck(..) == 0) { SceSleep(1); } else break;` inside `for (;;)` is the un-rotated poll
+    (`test; bne exit; sleep; b test`); `do { .. if (c) break; SceSleep(1); } while (1);` for the
+    un-rotated mid-body break (r10c ItemGet), and `while (call() == 0) SceSleep(1)` for the
+    `b test` form.
+  - `dir ? (a < lim) : (a > lim)` as an `if` condition gives the `blt L; b L2; L34: ble L2` pair of
+    arms (r10c SwitchExec); `if (n == 0) return; if (n == 1) return;` keeps two `beq`s where
+    `n != 0 && n != 1` / a switch range-folds (r40a em_set).
+  - `int skip = 1; if ((e->status & 0x40000000) == 0) skip = 0;` in a `static inline` (`li 1; andis.;
+    bne; li 0; cmpwi`) — the `? 1 : 0` ternary on a single bit folds to `extrwi`; an inline helper
+    with `void*& mod` keeps one GetMod slot for every event cut (r11b Evt_R11BS00_Func).
+  - `cObj* obj = 0;` at the top *used* as an EstSet argument is the SI zero pseudo set in the first
+    block (`li r27,0` before the first branch) that later byte stores (`l->x3 = 0`) and stack args
+    share; unused it is deleted and the zero is created at the EstSet (r11b Init).
+  - `if (spdY < -100.0f) spdY *= 0.8f; else spdY *= 0.935f;` gives the cross-jumped `fmuls` after the
+    two `lfs f0` arms; `spdY *= k` with a `k` local fuses into the following `fmadds`. A member load
+    reused across blocks (`dy = obj->pos.y - lim; ... obj->pos.y < lim`) must be written twice
+    (gcse PRE copy `fmr f11,f0`), not cached in a local (r10c hako_down).
+  - A block of `for (i = 0; i < 80; i++) { SceSleep(1); .. }` with a constant start has no entry
+    test (`cmplwi 0x4f; ble` with `u32 i`); `f32 spd = 0.0f; f32 max = 100.0f;` declared mid-block
+    (after the `BitOn(obj->be_flag, 0x20)`) keep their `lfs` below the preceding calls (r22a EleDown).
+  - `FSet`/`FAdd`/`FSub` on `SmdGetObjPtr(id)->pos.y` where the original reloads `pPL` after the
+    store; `pPL->pos.y = K` stores that reload pPL between each other are `FSetP(pPL->pos.y, K)`
+    (r22a), `wheel->rotSpd.z` stores followed by a `pG` load are `FSet` too (r10c moveWheel).
+  - A room whose `.rodata` carries `"event/evd/rNNNsXX.evd"` / `"evt_.._func"` strings with no code
+    using them had a never-called static function (r229 `r229_evtSetup`): the original REL link did
+    strip room objects at function level too; add the unit to modules.py `STRIP_UNUSED`.
+  - Unit boundary: st2_3 r22b's group starts with the HALT string that r22a's pin had swallowed
+    (0x2A88 -> 0x2A78); always check the last words of the previous room's `.rodata`.
+  - TexRender rooms (r10c, r229, r11b): `u8* tbl = r10c_texTbl;` local for the blend table (`addi r25`
+    kept, `stb 0xf7,4(r25)`), `tex->sy = tex->sx = 0x40` chain, per-object `x136 = 2; x137 = 0x12;
+    x138 = 0xA0;` written in that order for every object (the scheduler emits 138,136,137 or
+    138,137,136 per block by itself); `TexRenderModRes(cModel*)` reads a parts number from r4:
+    `void TexRenderModResP(cModel*, int) asm("TexRenderModRes")`; `ModelInfoRefrectOn` is C++
+    (model.h). `u8 GetEmIdFromList()` passed on unmasked: `int GetEmIdFromListI(u32) asm(..)`.
+  - OPEN: independent `stfs` of two pool constants into a Vec (`v.x = 3145; v.z = 10394; v.y = 0`)
+    come out x-first in the original and z-first in ours whatever the statement order (r10c
+    EmEvent/EmEvent_exit, r40a first_init: the FPR pair f0/f13 swaps with them); the second word
+    pair of a `Vec = {..}` template copy is loaded 8-then-4 in ours (r10c/r22a rope event; `static
+    const Vec` sources fix the stores but not the loads); `-100.0f` in a nested `if` inside a large
+    loop is hoisted by our second loop pass and not by the original (r10c hako_down);
+    r10c SetEmHitAtari's 0.01/0.05/0.06 initialisers sit in the pool between the first if's
+    Yarare constants and its else constants while their loads precede the first RsfCheck;
+    r11b EmSetChange's `stb x3 = 0` is issued last by the original and second by ours.
 
 - Locals whose frame slot sits inside freed inline-table slots must be declared after the getter
   calls: `assign_stack_temp` best-fits into the merged freed region; only fresh allocations extend the

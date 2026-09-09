@@ -85,13 +85,13 @@ st2_3/r229.cpp:
 
 st2_3/r22a.cpp:
 	.text       start:0x0001FAA0 end:0x00020A90
-	.rodata     start:0x000028F8 end:0x00002A88
+	.rodata     start:0x000028F8 end:0x00002A78
 	.data       start:0x00000518 end:0x00000530 align:4
 	.bss        start:0x000001E8 end:0x000001EC align:4
 
 st2_3/r22b.cpp:
 	.text       start:0x00020A90 end:0x00020EA0
-	.rodata     start:0x00002A88 end:0x00002B00
+	.rodata     start:0x00002A78 end:0x00002B00
 	.bss        start:0x000001EC end:0x000001F0 align:4
 
 st2_3/st2.cpp:

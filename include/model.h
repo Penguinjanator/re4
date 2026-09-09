@@ -5,6 +5,7 @@
 #include "vec.h"
 #include "cManager.h"
 #include "atariInfo.h"
+#include "main_mem.h"
 
 // game/math_sub.cpp (C++ linkage; math_sub.h declares them too)
 void RotMatrix(Mtx m, Vec* rot);
@@ -329,13 +330,15 @@ struct ObjSub2B4 {
 
 // Model info pool (game/model.cpp `ModInfoMgr`, 0x34 bytes): a cManager<cModelInfo>; the
 // player units call the inline cManager::destroy on it (pl_ashley setRightHand/setLeftHand).
+// The destructor is the implicit one and the three memory hooks are in-class: model.o emits them
+// as `~cModInfoMgr, memAlloc, memFree, memClear` right after ~cModelInfo (the deferred-inline
+// order is the definition order; a user-written dtor would instantiate ~cManager early).
 class cModInfoMgr : public cManager<cModelInfo> {
 public:
     cModInfoMgr();
-    virtual ~cModInfoMgr();
-    virtual void* memAlloc(u32 size);
-    virtual void memFree(void* p);
-    virtual void memClear(cModelInfo* p, u32 size);
+    virtual void* memAlloc(u32 size) { return MemAlloc(size, 1); }
+    virtual void memFree(void* p) { MemFree(p); }
+    virtual void memClear(cModelInfo* p, u32 size) { memclr_asm(p, size); }
     virtual void log(const char* fmt, ...);
     virtual int construct(cModelInfo* p, u32 id);
 
@@ -367,10 +370,9 @@ public:
 class cPartsMgr : public cManager<cParts> {
 public:
     cPartsMgr();
-    virtual ~cPartsMgr();
-    virtual void* memAlloc(u32 size);
-    virtual void memFree(void* p);
-    virtual void memClear(cParts* p, u32 size);
+    virtual void* memAlloc(u32 size) { return MemAlloc(size, 1); }
+    virtual void memFree(void* p) { MemFree(p); }
+    virtual void memClear(cParts* p, u32 size) { memclr_asm(p, size); }
     virtual void log(const char* fmt, ...);
     virtual int construct(cParts* p, u32 id);
 
@@ -572,5 +574,7 @@ extern "C" void calcTplAddr(struct TEXPalette* tpl);
 
 // game/model.cpp: shows / hides model info `no` of `m` (the rooms hide the player's weapon models).
 extern "C" void ModelInfoSetTrans(cModel* m, int no, int on);
+// game/model.cpp: turns on the reflection flag of model info `no` (r11b: the water render targets).
+void ModelInfoRefrectOn(cModel* m, int no);
 
 #endif
