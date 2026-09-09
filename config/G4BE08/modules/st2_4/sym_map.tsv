@@ -5,8 +5,8 @@ section	offset	size	unit	scope	name	demangled
 .text	0x000000A8	0x7C	st2_4/r22c.cpp	global	cEmWrap_setPtr	cEmWrap::setPtr
 .text	0x00000124	0x40	st2_4/r22c.cpp	global	cEmWrap_isAlive	cEmWrap::isAlive
 .text	0x00000164	0x58	st2_4/r22c.cpp	global	cEmWrap_getHp	cEmWrap::getHp
-.text	0x000001BC	0x320	st2_4/r22c.cpp	global	R22cInit	R22cInit
-.text	0x000004DC	0x5C	st2_4/r22c.cpp	global	R22cMain	R22cMain
+.text	0x000001BC	0x320	st2_4/r22c.cpp	global	R22cInit__Fv	R22cInit
+.text	0x000004DC	0x5C	st2_4/r22c.cpp	global	R22cMain__Fv	R22cMain
 .text	0x00000538	0x8C	st2_4/r22c.cpp	local	r22c_BirdsFly	r22c_BirdsFly
 .text	0x000005C4	0x8C	st2_4/r22c.cpp	local	r22c_BeeFly	r22c_BeeFly
 .text	0x00000650	0xBC	st2_4/r22c.cpp	local	r22c_FireWorks	r22c_FireWorks
@@ -381,4 +381,4 @@ section	offset	size	unit	scope	name	demangled
 .data	0x00003924	0x3	st2_4/r22c.cpp	local	lbl_st2_4_data_3924	lbl_st2_4_data_3924
 .data	0x00003927	0x11	st2_4/r22c.cpp	local	lbl_st2_4_data_3927	lbl_st2_4_data_3927
 .bss	0x00000000	0x4	st2_4/r22c.cpp	global	lbl_st2_4_bss_0	lbl_st2_4_bss_0
-.bss	0x00000004	0x34	st2_4/st2.cpp	global	common_st2_4	common_st2_4
+.bss	0x00000004	0x34	st2_4/r22c.cpp	global	common_st2_4	common_st2_4

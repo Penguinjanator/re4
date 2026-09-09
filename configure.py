@@ -500,9 +500,11 @@ rel_objects: List[Object] = []
 with open(config.config_path) as _f:
     _module_names = re.findall(r"^\s+name:\s*(\S+)\s*$", _f.read(), re.M)
 for _mod in _module_names:
-    for unit, _first in REL_UNITS.get(_mod, [(f"{_mod}/{_mod}.cpp", None)]):
-        rel_objects.append(Object(REL_MATCHING.get(unit, NonMatching), unit, source=unit, cflags=cflags_rel))
+    for unit, _first, *_src in REL_UNITS.get(_mod, [(f"{_mod}/{_mod}.cpp", None)]):
+        # a third element names a source shared by several modules (st2/st2.cpp ends every st2_* REL)
+        rel_objects.append(Object(REL_MATCHING.get(unit, NonMatching), unit, source=_src[0] if _src else unit, cflags=cflags_rel))
 config.reconfig_deps.append(Path("config") / config.version / "modules.py")
+config.reconfig_deps.extend(config.rel_config_dir / _mod / "rel.json" for _mod in _module_names)
 
 config.warn_missing_config = True
 config.warn_missing_source = False

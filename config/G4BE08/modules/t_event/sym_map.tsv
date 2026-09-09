@@ -1,5 +1,5 @@
 section	offset	size	unit	scope	name	demangled
-.text	0x00000000	0x224	t_event/t_event.cpp	global	fn_t_event_0	cLightTool::cLightTool
+.text	0x00000000	0x224	t_event/t_event.cpp	local	cLightTool_cLightTool	cLightTool::cLightTool
 .text	0x00000000	0x224	t_event/t_event.cpp	local	cLightTool_cLightTool	cLightTool::cLightTool
 .text	0x00000224	0x70	t_event/t_event.cpp	local	cLightTool_dt_cLightTool	cLightTool::~cLightTool
 .text	0x00000294	0x7A4	t_event/t_event.cpp	local	cLightTool_move	cLightTool::move

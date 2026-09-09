@@ -69,14 +69,20 @@ void cPlayer::weaponRelease()
 {
     cObj* obj;
     cObj* objCur;
+    cObj* next;
 
+    // Guarded do-while testing `next` (a different pseudo than `obj`) at the bottom: jump2 cannot
+    // merge the two tests, so the loop keeps the rotated shape with the entry test.
     obj = ObjMgr.pAlive;
-    while (obj) {
-        objCur = obj;
-        obj = (cObj*) obj->next;
-        if (objCur->id == 0xA) {
-            ObjMgr.destroy(objCur);
-        }
+    if (obj) {
+        do {
+            objCur = obj;
+            next = (cObj*) objCur->next;
+            obj = next;
+            if (objCur->id == 0xA) {
+                ObjMgr.destroy(objCur);
+            }
+        } while (next);
     }
     if (pWep->pObj) {
         ObjMgr.destroyNow((cObj*) pWep->pObj);

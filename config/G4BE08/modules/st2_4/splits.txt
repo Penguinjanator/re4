@@ -11,9 +11,9 @@ st2_4/r22c.cpp:
 	.rodata     start:0x00000000 end:0x00000DD8 align:4
 	.data       start:0x00000000 end:0x00003938
 	.bss        start:0x00000000 end:0x00000004 align:4
+	.bss        start:0x00000004 end:0x00000038 align:4 common
 
 st2_4/st2.cpp:
 	.text       start:0x00004478 end:0x000049C0
 	.rodata     start:0x00000DD8 end:0x00000E28 align:4
 	.data       start:0x00003938 end:0x0000393C skip
-	.bss        start:0x00000004 end:0x00000038 align:4 common

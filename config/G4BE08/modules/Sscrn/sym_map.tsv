@@ -1,5 +1,5 @@
 section	offset	size	unit	scope	name	demangled
-.text	0x00000000	0x24	Sscrn/Sscrn.cpp	global	fn_Sscrn_0	SsCapInit::init
+.text	0x00000000	0x24	Sscrn/Sscrn.cpp	local	SsCapInit_init	SsCapInit::init
 .text	0x00000000	0x24	Sscrn/Sscrn.cpp	local	SsCapInit_init	SsCapInit::init
 .text	0x00000024	0x254	Sscrn/Sscrn.cpp	global	SsCapInit_move	SsCapInit::move
 .text	0x00000278	0x284	Sscrn/Sscrn.cpp	global	SsCapMain_init	SsCapMain::init

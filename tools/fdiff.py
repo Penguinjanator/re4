@@ -21,7 +21,10 @@ r = subprocess.run(["ninja", obj], cwd=ROOT, capture_output=True, text=True)
 if r.returncode != 0:
     print(r.stdout[-4000:]); print(r.stderr[-4000:]); sys.exit("build failed")
 out = os.path.join(ROOT, "build", VER, "fdiff.json")
-r = subprocess.run([os.path.join(ROOT, "build/tools/objdiff-cli"), "diff", "-p", ROOT, "-u", f"main/{unit}", a.symbol, "-o", out, "--format", "json"], capture_output=True, text=True)
+# objdiff names units <module>/<unit>: "main" for the DOL, the module name for REL units (st2_4/st2 -> st2_4/st2_4/st2)
+mod = unit.split("/", 1)[0]
+objdiff_unit = f"{mod}/{unit}" if os.path.isdir(os.path.join(ROOT, "config", VER, "modules", mod)) else f"main/{unit}"
+r = subprocess.run([os.path.join(ROOT, "build/tools/objdiff-cli"), "diff", "-p", ROOT, "-u", objdiff_unit, a.symbol, "-o", out, "--format", "json"], capture_output=True, text=True)
 if not os.path.exists(out):
     print(r.stdout[-2000:], r.stderr[-2000:]); sys.exit("objdiff failed")
 d = json.load(open(out)); os.remove(out)
@@ -29,8 +32,9 @@ def find(side):
     for s in d[side]["symbols"]:
         if s["name"] == a.symbol: return s
 L, R = find("left"), find("right")
-if L is None: sys.exit(f"{a.symbol} not in target unit (check the name in config/{VER}/symbols.txt)")
-if R is None: sys.exit(f"{a.symbol} not in compiled object (symbol name mismatch? run tools/sync_symbols.py)")
+symfile = f"config/{VER}/modules/{mod}/symbols.txt" if objdiff_unit.startswith(mod + "/") and mod != "main" else f"config/{VER}/symbols.txt"
+if L is None: sys.exit(f"{a.symbol} not in target unit (check the name in {symfile})")
+if R is None: sys.exit(f"{a.symbol} not in compiled object (symbol name mismatch? run tools/sync_symbols.py / sync_rel_symbols.py)")
 print(f"match: {L.get('match_percent')}  target size {L['size']}  ours size {R['size']}")
 def fmt(i):
     ins = i.get("instruction")

@@ -126,7 +126,7 @@ void LightAreaUpdateSub(cEm* em, int type)
     LitAreaScaleInit(&em->litArea);
     la = &em->litArea;
     hit = 0;
-    rate = 0.05f;
+    rate = 0.0f;
     for (i = 0; i < hed->num; i++, d++) {
         if (type == 0 && d->lightNoPl == 0xFF) {
             continue;

@@ -1,5 +1,5 @@
 section	offset	size	unit	scope	name	demangled
-.text	0x00000000	0xB0	Tools/Tools.cpp	global	fn_Tools_0	SetToolLight
+.text	0x00000000	0xB0	Tools/Tools.cpp	local	SetToolLight	SetToolLight
 .text	0x00000000	0xB0	Tools/Tools.cpp	local	SetToolLight	SetToolLight
 .text	0x000000B0	0x224	Tools/Tools.cpp	local	cLightTool_cLightTool	cLightTool::cLightTool
 .text	0x000002D4	0x70	Tools/Tools.cpp	local	cLightTool_dt_cLightTool	cLightTool::~cLightTool

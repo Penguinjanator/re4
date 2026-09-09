@@ -3287,6 +3287,7 @@ int cSubChar::moveAnotherRoute()
     int bad;
     int next;
     int i;
+    f32 dist;
 
     bad = emi == 0;
     if (emi->n == 0) {
@@ -3301,16 +3302,24 @@ int cSubChar::moveAnotherRoute()
         return 1;
     }
     if (e->state > 1) {
-        if ((pos.x - pPL->pos.x) * (pos.x - pPL->pos.x) + (pos.y - pPL->pos.y) * (pos.y - pPL->pos.y) +
-                (pos.z - pPL->pos.z) * (pos.z - pPL->pos.z) <
-            4000000.0f) {
+        f32 dx = pos.x - pPL->pos.x;
+        f32 dy = pos.y - pPL->pos.y;
+        f32 dz = pos.z - pPL->pos.z;
+
+        dist = dx * dx + dy * dy + dz * dz;
+        if (dist < 4000000.0f) {
             return 1;
         }
     }
-    if ((pos.x - e->pos.x) * (pos.x - e->pos.x) + (pos.y - e->pos.y) * (pos.y - e->pos.y) +
-            (pos.z - e->pos.z) * (pos.z - e->pos.z) >
-        1000000.0f) {
-        return 0;
+    {
+        f32 dx = pos.x - e->pos.x;
+        f32 dy = pos.y - e->pos.y;
+        f32 dz = pos.z - e->pos.z;
+
+        dist = dx * dx + dy * dy + dz * dz;
+        if (dist > 1000000.0f) {
+            return 0;
+        }
     }
     next = -1;
     for (i = 0; i < *(int*) pG->pRoomEmi; i++) {

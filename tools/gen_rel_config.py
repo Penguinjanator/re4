@@ -285,13 +285,29 @@ def main():
                             end = min(end, lo)
                             break
                 syms[i] = (s[0], s[1], end - s[1], s[3], s[4], s[5])
-        with open(os.path.join(out_dir, 'symbols.txt'), 'w') as f:
+        # names/scopes already synced from compiled units (sync_rel_symbols.py) survive a regeneration
+        sym_path = os.path.join(out_dir, 'symbols.txt')
+        existing = {}
+        if os.path.exists(sym_path):
+            for line in open(sym_path):
+                m = re.match(r'^(\S+) = (\.\w+):0x([0-9A-F]+);.*scope:(\w+)', line)
+                if m:
+                    existing[(m.group(2), int(m.group(3), 16))] = (m.group(1), m.group(4))
+        kept = 0
+        for i, (sec, off, sz, n, ty, scope) in enumerate(syms):
+            if (sec, off) in existing and existing[(sec, off)][0] != n:
+                syms[i] = (sec, off, sz, *existing[(sec, off)][:1], ty, existing[(sec, off)][1])
+                kept += 1
+        if kept:
+            print(f'note: {name}: kept {kept} synced symbol names')
+        with open(sym_path, 'w') as f:
             for sec, off, sz, n, ty, scope in syms:
                 f.write(f'{n} = {sec}:0x{off:08X}; // type:{ty} size:0x{sz:X} scope:{scope}\n')
         demangled = {a: dn for a, sz, scope, dn in funcs}
 
         # --- units ----------------------------------------------------------------------------------
-        units = unit_overrides.get(name, [(f'{name}/{name}.cpp', None)])
+        # (unit, first function[, shared source]) -> (unit, first function)
+        units = [tuple(u[:2]) for u in unit_overrides.get(name, [(f'{name}/{name}.cpp', None)])]
         starts = []
         for uname, first in units:
             if first is None:
@@ -370,6 +386,23 @@ def main():
                 if sname in sec_index and sec_size[sname]:
                     ranges[units[0][0]][sname] = (0, sec_size[sname])
 
+        # The COMMON block is g++ 2.95's .comm output for uninitialised static data members (template
+        # statics of cManager<T> & co. in the modules; the DOL's IDSystem::m_scrn_mat sits at the end of
+        # its .bss the same way). It is merged across objects, so any unit may carry it in the
+        # skeleton: the one whose code addresses it, else the first one with template instantiations.
+        common_owner = units[0][0]
+        if common_size:
+            bss_idx = sec_index['.bss']
+            users = [unit_of_text(r.offset) for r in rel.relocs if r.module == mod_id and r.section == text_idx
+                     and r.target_section == bss_idx and r.addend >= sec_size['.bss']]
+            if users:
+                common_owner = users[0]
+            else:
+                for a, sz, scope, dn in funcs:
+                    if '<' in dn:
+                        common_owner = unit_of_text(a)
+                        break
+
         # --- splits.txt ----------------------------------------------------------------------------
         aligns = {}
         prev_end = rel.section_info_offset + 8 * rel.num_sections
@@ -404,8 +437,8 @@ def main():
                     # linker-generated BSS_TAG pointer (see above): in no object
                     for sname, lo, hi in skips:
                         f.write(f'\t{sname:<11} start:0x{lo:08X} end:0x{hi:08X} skip\n')
-                    if common_size:
-                        f.write(f'\t{".bss":<11} start:0x{sec_size[".bss"]:08X} end:0x{full_size[".bss"]:08X} common\n')
+                if common_size and u == common_owner:
+                    f.write(f'\t{".bss":<11} start:0x{sec_size[".bss"]:08X} end:0x{full_size[".bss"]:08X} common\n')
                 f.write('\n')
 
         # --- rel.json ------------------------------------------------------------------------------
@@ -421,6 +454,8 @@ def main():
 
         # --- sym_map.tsv (unit_info.py / fdiff.py / sync_rel_symbols.py) ----------------------------
         def unit_at(sname, off):
+            if sname == '.bss' and off >= sec_size['.bss']:
+                return common_owner
             for u in ranges:
                 if sname in ranges[u] and ranges[u][sname][0] <= off < ranges[u][sname][1]:
                     return u

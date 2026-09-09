@@ -1,7 +1,16 @@
 /* SN Systems' rewrite of newlib 1.8.2 libc/stdio/vfprintf.c (FLOATING_POINT, WANT_PRINTF_LONG_LONG):
  * the __sfvwrite/iov machinery is replaced by direct writes (string streams) or a static 128-byte
- * write() buffer (`_vfwrite`), and the dtoa-based `cvt`/`exponent` by SN's own `fftoa`. */
+ * write() buffer (`_vfwrite`), and the dtoa-based `cvt`/`exponent` by SN's own `fftoa`.
+ * game/vfiprintf.c includes this file with INTEGER_ONLY defined (as newlib's vfiprintf.c does). */
 #include "newlib_stdio.h"
+
+#ifdef INTEGER_ONLY
+#define _VFPRINTF_R _vfiprintf_r
+#define _vfwrite _vfwrite_8006E684 /* sym_map name of vfiprintf's own static copy */
+#else
+#define _VFPRINTF_R _vfprintf_r
+#define FLOATING_POINT
+#endif
 
 typedef int wchar_t;
 typedef long long quad_t;
@@ -16,6 +25,7 @@ extern int _mbtowc_r(struct _reent *, wchar_t *, const char *, size_t, int *);
 extern size_t strlen(const char *);
 extern void *memchr(const void *, int, size_t);
 extern void *memcpy(void *, const void *, size_t);
+#ifdef FLOATING_POINT
 struct lconv {
     char *decimal_point; /* only member used here (the full struct is in game/locale) */
 };
@@ -27,12 +37,17 @@ extern double sn_fmod(double, double);
 extern double sn_log10(double);
 
 extern int _vfiprintf_r();
+#endif
 
+#ifdef FLOATING_POINT
 /* floatio.h */
 #define MAXEXP 308
 #define MAXFRACT 39
 #define BUF (MAXEXP + MAXFRACT + 1) /* + decimal point */
 #define DEFPREC 6
+#else
+#define BUF 40
+#endif
 
 /*
  * Macros for converting digits to letters and vice versa
@@ -54,6 +69,7 @@ extern int _vfiprintf_r();
 #define ZEROPAD 0x080   /* zero (as opposed to blank) pad */
 #define FPT 0x100       /* Floating point number */
 
+#ifdef FLOATING_POINT
 static int strround(char *str, int len)
 {
     int i;
@@ -265,6 +281,7 @@ char *fftoa(double value, int prec, char fmt, int strip, char *sign)
     }
     return str;
 }
+#endif /* FLOATING_POINT */
 
 static int _vfwrite(int fd, const char *buf, size_t len, int flush)
 {
@@ -294,6 +311,7 @@ static int _vfwrite(int fd, const char *buf, size_t len, int flush)
     return i;
 }
 
+#ifndef INTEGER_ONLY
 int vfprintf(FILE *fp, const char *fmt0, va_list ap)
 {
     const char *p = fmt0;
@@ -317,8 +335,9 @@ int vfprintf(FILE *fp, const char *fmt0, va_list ap)
     }
     return _vfiprintf_r(fp->_data, fp, fmt0, ap);
 }
+#endif
 
-int _vfprintf_r(struct _reent *data, FILE *fp, const char *fmt0, va_list ap)
+int _VFPRINTF_R(struct _reent *data, FILE *fp, const char *fmt0, va_list ap)
 {
     register char *fmt;   /* format string */
     register int ch;      /* character from fmt */
@@ -330,10 +349,12 @@ int _vfprintf_r(struct _reent *data, FILE *fp, const char *fmt0, va_list ap)
     int prec;             /* precision from format (%.3d), or -1 */
     char sign;            /* sign prefix (' ', '+', '-', or \0) */
     wchar_t wc;
+#ifdef FLOATING_POINT
     char *decimal_point = localeconv()->decimal_point;
     double _double;       /* double precision arguments %[eEfgG] */
     int strip;
     char expstr[7];       /* buffer for exponent string */
+#endif
     u_quad_t _uquad;      /* integer arguments %[diouxX] */
     enum { OCT, DEC, HEX } base; /* base for [diouxX] conversion */
     int dprec;            /* a copy of prec if [diouxX], 0 otherwise */
@@ -470,9 +491,11 @@ int _vfprintf_r(struct _reent *data, FILE *fp, const char *fmt0, va_list ap)
             } while (is_digit(ch));
             width = n;
             goto reswitch;
+#ifdef FLOATING_POINT
         case 'L':
             flags |= LONGDBL;
             goto rflag;
+#endif
         case 'h':
             flags |= SHORTINT;
             goto rflag;
@@ -504,6 +527,7 @@ int _vfprintf_r(struct _reent *data, FILE *fp, const char *fmt0, va_list ap)
             }
             base = DEC;
             goto number;
+#ifdef FLOATING_POINT
         case 'e':
         case 'E':
         case 'f':
@@ -533,6 +557,7 @@ int _vfprintf_r(struct _reent *data, FILE *fp, const char *fmt0, va_list ap)
             cp = fftoa(_double, prec, ch, strip, &sign);
             size = strlen(cp);
             break;
+#endif /* FLOATING_POINT */
         case 'n':
             if (flags & QUADINT)
                 *va_arg(ap, quad_t *) = ret;

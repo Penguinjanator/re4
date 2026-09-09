@@ -1411,13 +1411,18 @@ void cPlayer::moveEyeNormal()
             eyetime = Rnd() % 3 + 2;
         }
     }
-    if (eyeDir.y < -0.3141592741012573f) {
-        eyeDir.y = -0.3141592741012573f;
-    } else if (eyeDir.y > 0.3141592741012573f) {
-        eyeDir.y = 0.3141592741012573f;
-    }
-    if (eyeDir.z == 0.0f) {
-        eyeDir.x = eyeDir.y;
+    {
+        PlEyeDir* e = &eyeDir;
+        f32 mn = -0.3141592741012573f;
+        f32 mx = 0.3141592741012573f;
+        if (e->y < mn) {
+            e->y = mn;
+        } else if (e->y > mx) {
+            e->y = mx;
+        }
+        if (e->z == 0.0f) {
+            e->x = e->y;
+        }
     }
     p = getPartsPtr(0x20);
     p->rot.y = eyeDir.x;

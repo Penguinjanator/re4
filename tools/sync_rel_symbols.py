@@ -99,10 +99,13 @@ def main():
         mod, stem = rel.split(os.sep, 1)[0], rel.rsplit(".", 1)[0]
         if mod not in modules:
             sys.exit(f"{obj}: {mod} is not a REL module (config/{VER}/modules/{mod}/ missing)")
-        unit = stem + (".cpp" if os.path.exists(os.path.join(ROOT, "src", stem + ".cpp")) else ".c")
         own = modules[mod]
-        # resolution order of make_rel.py for undefined names
-        order = [dol] + [modules[n] for n in sorted(own.info["links"], key=lambda n: modules[n].info["module_id"])]
+        # the unit name as in splits.txt (the source may be shared, e.g. st2_0/st2.cpp -> src/st2/st2.cpp)
+        units = {u for lst in own.by_dn.values() for _, u in lst}
+        unit = next((u for u in units if u.rsplit(".", 1)[0] == stem), stem + ".cpp")
+        # resolution order for undefined names: the module's other units (ngcld -r), then make_rel.py's
+        # order (DOL, imported modules by ascending id)
+        order = [own, dol] + [modules[n] for n in sorted(own.info["links"], key=lambda n: modules[n].info["module_id"])]
         for name, bind, defined in elf_symbols(obj):
             if name.startswith((".", "@", "_GLOBAL_")):
                 continue

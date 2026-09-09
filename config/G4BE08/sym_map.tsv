@@ -1445,8 +1445,8 @@ address	size	section	unit	scope	name	demangled
 0x8006D094	0xD4	.text	game/vfprintf.cpp	local	_vfwrite	_vfwrite
 0x8006D168	0xD8	.text	game/vfprintf.cpp	global	vfprintf	vfprintf
 0x8006D240	0x1444	.text	game/vfprintf.cpp	global	_vfprintf_r	_vfprintf_r
-0x8006E684	0xD4	.text	game/vfiprintf.cpp	global	_vfwrite_8006E684	_vfwrite
-0x8006E758	0x12F4	.text	game/vfiprintf.cpp	local	_vfiprintf_r	_vfiprintf_r
+0x8006E684	0xD4	.text	game/vfiprintf.cpp	local	_vfwrite_8006E684	_vfwrite
+0x8006E758	0x12F4	.text	game/vfiprintf.cpp	global	_vfiprintf_r	_vfiprintf_r
 0x8006FA4C	0x1B0	.text	game/strtol.cpp	global	_strtol_r	_strtol_r
 0x8006FBFC	0x38	.text	game/strtol.cpp	global	strtol	strtol
 0x8006FC34	0x14	.text	game/isdigit.cpp	global	isdigit	isdigit

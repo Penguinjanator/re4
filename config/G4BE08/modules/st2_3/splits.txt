@@ -7,9 +7,13 @@ Sections:
 	.bss        type:bss align:4
 
 st2_3/st2_3.cpp:
-	.text       start:0x00000000 end:0x000213E8
-	.rodata     start:0x00000000 end:0x00002B50
+	.text       start:0x00000000 end:0x00020EA0
+	.rodata     start:0x00000000 end:0x00002B00
 	.data       start:0x00000000 end:0x00000530 align:4
-	.data       start:0x00000530 end:0x00000534 skip
 	.bss        start:0x00000000 end:0x000001F0 align:4
 	.bss        start:0x000001F0 end:0x00000224 align:4 common
+
+st2_3/st2.cpp:
+	.text       start:0x00020EA0 end:0x000213E8
+	.rodata     start:0x00002B00 end:0x00002B50
+	.data       start:0x00000530 end:0x00000534 skip
