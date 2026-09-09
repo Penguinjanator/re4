@@ -83,6 +83,15 @@ clang build differs only by an extra `.size` from an uninitialised local in SN's
 cannot change DOL/REL bytes). The residues described as "which equivalent register", "`lis sym@ha`
 pseudo choice", "qty tie", "LUID tie" are v1.79-source-vs-original differences, not host effects.
 
+### Later SN build search (negative, 2026-09-09)
+No SN GCC for GameCube newer than cc1plus v1.76 (binary) / v1.79 (GPL source, 2003-06) exists in any
+public place (decomp.me/decomp.dev packs, archive.org sn_sys_consoles_2 / prodg-gamecube / GameCubeSDK,
+MarioCube, GitHub, Wayback of snsys.com whose support downloads were login-only). RE4's crt0 links
+libsn v60 (public pack: v59, 2003-07), so Capcom had post-3.9.3 support patches, presumably including
+the compiler build that produces differences #1-#9. If a later drop ever surfaces: build it with
+tools/sn-gcc/build.sh into its own dir, smoke-test emwep `setThrow` (#1) and pl_class `isKamae` (#6),
+then remove `// COMPILER-DIFF:` workarounds one at a time.
+
 ## Per-unit compiler flags
 
 Not every game unit is `-O2`. The sound driver (`snd_iss*/seq*/str*/sub*/main/efx/ram`) is C++ with
