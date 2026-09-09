@@ -336,6 +336,14 @@ for _em in ["em10", "em11", "em12", "em13", "em14", "em15", "em16", "em17", "em1
 # Module units the original REL link dead-stripped at function level (bodies gone, strings and constant
 # pools kept, like the DOL's SDK/dead game functions): tools/strip_unused.py --module removes every
 # function the module's sym_map.tsv does not list for the unit (configure.py adds the post-build step).
+# Extra compiler flags per module. Sscrn was built with -fno-implement-inlines: its widget classes carry
+# in-class constructors (`SsFileMain() : Widget<SUB_SCREEN>(5) {}` — the per-class link counts SubScreenTask
+# inlines) that no unit emits out of line, while every DOL unit emits such members (cp/decl2.c
+# import_export_decl: a vtable-owning class's non-virtual inline members are external under the flag).
+CFLAGS = {
+    "Sscrn": ["-fno-implement-inlines"],
+}
+
 STRIP_UNUSED = {
     f"{_m}/em_wrap.cpp" for _m in ["st1_0", "st1_1", "st1_2", "st1_3", "st2_0", "st2_1", "st2_2", "st2_3", "st2_4", "st4_0"]
 } | {f"{_m}/cSceObj.cpp" for _m in ["st2_0", "st2_3", "st4_0"]} | {

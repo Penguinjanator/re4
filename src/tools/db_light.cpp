@@ -338,19 +338,6 @@ static inline void drawColorTile(int x, int y, int w, int h, u32 c)
     DrawTile(x, y, w, h, (GXColor*) &col);
 }
 
-// A colour taken by value (editColor): the BLKmode copy is the DrawTile argument, one slot for all.
-struct GXColorV {
-    GXColor c;
-    GXColorV() {}
-    GXColorV(const GXColorV& o) { c = o.c; }
-} __attribute__((aligned(4)));
-static inline void drawTile(int x, int y, int w, int h, GXColor c)
-{
-    GXColorW col;
-    col.w = *(u32*) &c;
-    DrawTile(x, y, w, h, (GXColor*) &col);
-}
-
 // The current light of the light table.
 static inline cLight* curLight()
 {
@@ -3842,7 +3829,180 @@ static void path()
 }
 static void load() {}
 static void save() {}
-static void option() {}
+// Tool options: object move, cut select, elec power / path, analyze, kind on/off, player light mask,
+// bounding box display.
+static void option()
+{
+    static const char* onoff[] = {"OFF", "ON"};
+    f32 step = (pTool->joy.on & JOY_A) ? 0.3f : 0.1f;
+    cLightPathData* p;
+    cLightPathData* q;
+    u32 i;
+    int c;
+
+    eprintf(0x20, 0x2A, 4, pTool->color, "OPTION");
+    switch (pTool->editNo) {
+    case 0:
+        switch (pTool->sub) {
+        case 0:
+            if (pTool->joy.rep & JOY_A) {
+                pTool->flags ^= 1;
+            }
+            break;
+        case 1:
+            if (pTool->joy.rep & JOY_A) {
+                pTool->flags ^= 8;
+            }
+            break;
+        case 2:
+            LightMgr.setElecPower(step * 0.01f * (f32) pTool->joy.sx);
+            if (pTool->joy.rep & JOY_RIGHT) {
+                LightMgr.setElecPower(step);
+            }
+            if (pTool->joy.rep & JOY_LEFT) {
+                LightMgr.setElecPower(-step);
+            }
+            if (pTool->joy.trg & JOY_Y) {
+                step = (LightMgr.elecPower == 1.0f) ? -1.0f : 1.0f;
+                LightMgr.setElecPower(step);
+            }
+            break;
+        case 3:
+            if (pTool->joy.rep & JOY_RIGHT) {
+                pTool->init++;
+            }
+            if (pTool->joy.rep & JOY_LEFT) {
+                pTool->init--;
+            }
+            if (pTool->joy.rep & JOY_A) {
+                LightMgr.setElecPower2(pTool->init, 1);
+            }
+            if (pTool->joy.trg & JOY_Y) {
+                p = pTool->litPath.path[pTool->init];
+                if (p != NULL) {
+                    memcpy(pTool->litPath.edit, p, p->getSize());
+                    pTool->x10 = pTool->x11 = pTool->x12 = pTool->x13 = 0;
+                    pTool->editNo = 1;
+                }
+            }
+            q = LightMgr.getPathPtr(pTool->init);
+            if (PTR_OK(q)) {
+                drawPath(0x32, 0xFA, q, 0, 0xFFFFFFFF);
+            } else {
+                eprintf(0x32, 0xFA, 0, pTool->color, "NO DATA");
+            }
+            break;
+        case 4:
+            if (pTool->joy.rep & JOY_A) {
+                pTool->flags ^= 4;
+            }
+            break;
+        case 5:
+            if (pTool->joy.rep & JOY_A) {
+                pTool->editNo = 2;
+                pTool->sub = 0;
+            }
+            break;
+        case 6:
+            if (pTool->joy.rep & JOY_A) {
+                switch (pPL->lightInfo.x50) {
+                case 1:
+                    pPL->lightInfo.x50 = 2;
+                    break;
+                case 2:
+                    pPL->lightInfo.x50 = 4;
+                    break;
+                case 4:
+                    pPL->lightInfo.x50 = 8;
+                    break;
+                case 8:
+                    pPL->lightInfo.x50 = 0x10;
+                    break;
+                case 0x10:
+                    pPL->lightInfo.x50 = 0x40;
+                    break;
+                case 0x40:
+                    pPL->lightInfo.x50 = 1;
+                    break;
+                }
+            }
+            break;
+        case 7:
+            if (pTool->joy.rep & JOY_A) {
+                pTool->flags ^= 0x10;
+            }
+            break;
+        }
+        if (pTool->joy.rep & JOY_UP) {
+            pTool->sub = (pTool->sub + 7) % 8;
+        }
+        if (pTool->joy.rep & JOY_DOWN) {
+            pTool->sub = (pTool->sub + 9) % 8;
+        }
+        eprintf(0x20, 0x38, 0, pTool->color, "OBJ MOVE      %s", onoff[(pTool->flags & 1) ? 1 : 0]);
+        eprintf(0x20, 0x46, 0, pTool->color, "CUT SELECT    %s", onoff[(pTool->flags & 8) ? 1 : 0]);
+        eprintf(0x20, 0x54, 0, pTool->color, "ELEC POWER    %1.2f", LightMgr.elecPower);
+        eprintf(0x20, 0x62, 0, pTool->color, "ELEC PATH     %d", pTool->init);
+        eprintf(0x20, 0x70, 0, pTool->color, "ANALYZE       %s", onoff[(pTool->flags & 4) >> 2]);
+        eprintf(0x20, 0x7E, 0, pTool->color, "KIND ON/OFF");
+        switch (pPL->lightInfo.x50) {
+        case 1:
+            eprintf(0x20, 0x8C, 0, pTool->color, "PL EMASK      PLAYER");
+            break;
+        case 2:
+            eprintf(0x20, 0x8C, 0, pTool->color, "PL EMASK      ENEMY");
+            break;
+        case 4:
+            eprintf(0x20, 0x8C, 0, pTool->color, "PL EMASK      OBJ");
+            break;
+        case 8:
+            eprintf(0x20, 0x8C, 0, pTool->color, "PL EMASK      EFFECT");
+            break;
+        case 0x10:
+            eprintf(0x20, 0x8C, 0, pTool->color, "PL EMASK      SCROLL");
+            break;
+        case 0x40:
+            eprintf(0x20, 0x8C, 0, pTool->color, "PL EMASK      SUBCHAR");
+            break;
+        }
+        eprintf(0x20, 0x9A, 0, pTool->color, "BB DISP       %s", onoff[(pTool->flags & 0x10) ? 1 : 0]);
+        pTool->printCursor(3, pTool->sub + 4);
+        if (pTool->joy.rep & JOY_B) {
+            pTool->routine = 0;
+        }
+        break;
+    case 1:
+        pathEdit(0x32, 0xFA, pTool->init, 0, 0);
+        if (pTool->joy.rep & JOY_B) {
+            pTool->editNo = 0;
+        }
+        break;
+    case 2:
+        eprintf(0x40, 0x8C, 4, pTool->color, "KIND");
+        for (i = 0; i < 32; i++) {
+            eprintf(0x40 + i * 8, 0x9A, LightMgr.checkKind(i) ? 0 : 0x14, pTool->color, "%d", i % 10);
+        }
+        if (pTool->joy.rep & JOY_RIGHT) {
+            pTool->sub++;
+        }
+        if (pTool->joy.rep & JOY_LEFT) {
+            pTool->sub--;
+        }
+        if (pTool->joy.rep & JOY_A) {
+            if (LightMgr.checkKind(pTool->sub)) {
+                LightMgr.offKind(pTool->sub);
+            } else {
+                LightMgr.onKind(pTool->sub);
+            }
+        }
+        if (pTool->joy.rep & JOY_B) {
+            pTool->editNo = 0;
+        }
+        c = (pG->flags_51E4 % 30 > 14) ? 0x14 : 0;
+        eprintf((pTool->sub + 8) << 3, 0xA8, c, pTool->color, "^");
+        break;
+    }
+}
 // Quit confirmation: YES leaves the tool (restoring the debug page colour), NO goes back to the menu.
 static void quit()
 {
@@ -4240,11 +4400,12 @@ int editColor(int x, int y, GXColor* col)
     static f32 g;
     static f32 b;
     static f32 a;
-    static const GXColor black = {0, 0, 0, 0};
     int ret = 1;
     f32 step;
     int link;
     GXColor c;
+    GXColor tmp;
+    const GXColor black = {0, 0, 0, 0};
 
     switch (state) {
     case 0:
@@ -4263,41 +4424,50 @@ int editColor(int x, int y, GXColor* col)
     step = (pTool->joy.on & JOY_A) ? 1.5f : 0.1f;
     link = pTool->joy.on & JOY_Y;
     pTool->printCursor(x - 1, y + pTool->cursor);
-    eprintf(x * 8, y * 14, 0, pTool->color, "R %3d", col->r);
-    drawTile((x + 6) * 8, y * 14 + 4, 0x80, 6, black);
+    eprintf(x << 3, y * 14, 0, pTool->color, "R %3d", col->r);
     c.r = 0xFF;
     c.g = 0;
     c.b = 0;
-    drawTile((x + 6) * 8, y * 14 + 4, col->r >> 1, 6, c);
+    tmp = black;
+    DrawTile(((x + 6) << 3), y * 14 + 4, 0x80, 6, &tmp);
+    tmp = c;
+    DrawTile(((x + 6) << 3), y * 14 + 4, col->r >> 1, 6, &tmp);
     y++;
-    eprintf(x * 8, y * 14, 0, pTool->color, "G %3d", col->g);
-    drawTile((x + 6) * 8, y * 14 + 4, 0x80, 6, black);
+    eprintf(x << 3, y * 14, 0, pTool->color, "G %3d", col->g);
     c.r = 0;
     c.g = 0xFF;
     c.b = 0;
-    drawTile((x + 6) * 8, y * 14 + 4, col->g >> 1, 6, c);
+    tmp = black;
+    DrawTile(((x + 6) << 3), y * 14 + 4, 0x80, 6, &tmp);
+    tmp = c;
+    DrawTile(((x + 6) << 3), y * 14 + 4, col->g >> 1, 6, &tmp);
     y++;
-    eprintf(x * 8, y * 14, 0, pTool->color, "B %3d", col->b);
-    drawTile((x + 6) * 8, y * 14 + 4, 0x80, 6, black);
+    eprintf(x << 3, y * 14, 0, pTool->color, "B %3d", col->b);
     c.r = 0;
     c.g = 0;
     c.b = 0xFF;
-    drawTile((x + 6) * 8, y * 14 + 4, col->b >> 1, 6, c);
+    tmp = black;
+    DrawTile(((x + 6) << 3), y * 14 + 4, 0x80, 6, &tmp);
+    tmp = c;
+    DrawTile(((x + 6) << 3), y * 14 + 4, col->b >> 1, 6, &tmp);
     y++;
-    eprintf(x * 8, y * 14, 0, pTool->color, "A %1.1f", (f32) col->a * 0.0078125f);
-    drawTile((x + 6) * 8, y * 14 + 4, 0x80, 6, black);
+    eprintf(x << 3, y * 14, 0, pTool->color, "A %1.1f", (f32) col->a * 0.0078125f);
     c.r = 200;
     c.g = 200;
     c.b = 200;
-    drawTile((x + 6) * 8, y * 14 + 4, col->a >> 1, 6, c);
+    tmp = black;
+    DrawTile(((x + 6) << 3), y * 14 + 4, 0x80, 6, &tmp);
+    tmp = c;
+    DrawTile(((x + 6) << 3), y * 14 + 4, col->a >> 1, 6, &tmp);
     y += 2;
-    drawTile((x + 8) * 8, y * 14, 0x2A, 0x2A, *col);
+    tmp = *col;
+    DrawTile(((x + 8) << 3), y * 14, 0x2A, 0x2A, &tmp);
     if (link) {
-        eprintf(x * 8, y * 14, 0, pTool->color, "LINK");
+        eprintf(x << 3, y * 14, 0, pTool->color, "LINK");
     }
     y++;
     if (pTool->joy.on & JOY_A) {
-        eprintf(x * 8, y * 14, 0, pTool->color, "TURBO");
+        eprintf(x << 3, y * 14, 0, pTool->color, "TURBO");
     }
     if (link) {
         if (pTool->joy.rep & JOY_RIGHT) {

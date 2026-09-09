@@ -624,6 +624,8 @@ REL_MATCHING: Dict[str, bool] = getattr(modules_mod, "MATCHING", {})
 # module units the original REL link dead-stripped at function level (stage em_wrap.cpp/cSceObj.cpp):
 # tools/strip_unused.py --module keeps what the module's sym_map.tsv names for the unit
 REL_STRIP_UNUSED = set(getattr(modules_mod, "STRIP_UNUSED", ()))
+# extra compiler flags of a module (config/G4BE08/modules.py CFLAGS: Sscrn's -fno-implement-inlines)
+REL_CFLAGS: Dict[str, List[str]] = getattr(modules_mod, "CFLAGS", {})
 rel_objects: List[Object] = []
 with open(config.config_path) as _f:
     _config_yml = _f.read()
@@ -659,7 +661,7 @@ for _mod in _module_names:
                 REL_MATCHING.get(unit, NonMatching),
                 unit,
                 source=_src[0] if _src and _src[0] else unit,
-                cflags=[*cflags_rel, f"-DREL_MODULE={_mod}"],
+                cflags=[*cflags_rel, f"-DREL_MODULE={_mod}", *REL_CFLAGS.get(_mod, [])],
                 post_build=_post,
                 post_build_implicit=_post_implicit,
             )

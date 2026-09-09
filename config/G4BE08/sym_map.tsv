@@ -4987,7 +4987,7 @@ address	size	section	unit	scope	name	demangled
 0x8015980C	0x60	.text	game/model.cpp	global	zeroPartsPosInit__6cModelP3VecT1	cModel::zeroPartsPosInit
 0x8015986C	0x2E0	.text	game/model.cpp	global	partsWorldCalc__6cModel	cModel::partsWorldCalc
 0x80159B4C	0x44	.text	game/model.cpp	global	setParent__6cModelP6cModelP3VecT2	cModel::setParent
-0x80159B90	0xE8	.text	game/model.cpp	global	cModel_setParent_80159B90	cModel::setParent
+0x80159B90	0xE8	.text	game/model.cpp	global	setParent__6cModelP6cModeliP3VecT3	cModel::setParent
 0x80159C78	0x78	.text	game/model.cpp	global	updateOldPos__6cModel	cModel::updateOldPos
 0x80159CF0	0x11C	.text	game/model.cpp	global	setPos__6cModelP3Vec	cModel::setPos
 0x80159E0C	0x50	.text	game/model.cpp	global	setAng__6cModelP3Vec	cModel::setAng
@@ -7371,7 +7371,7 @@ address	size	section	unit	scope	name	demangled
 0x8021B31C	0x60	.text	lib/mfci.c	global	mfCiTell	mfCiTell
 0x8021B37C	0xF4	.text	lib/mfci.c	global	mfCiSeek	mfCiSeek
 0x8021B470	0x98	.text	lib/mfci.c	global	mfCiClose	mfCiClose
-0x8021B508	0x230	.text	lib/mfci.c	local	mfCiOpen	mfCiOpen
+0x8021B508	0x230	.text	lib/mfci.c	global	mfCiOpen	mfCiOpen
 0x8021B738	0x10C	.text	lib/mfci.c	global	mfCiGetFileSize	mfCiGetFileSize
 0x8021B844	0x14	.text	lib/mfci.c	global	mfCiEntryErrFunc	mfCiEntryErrFunc
 0x8021B858	0xC	.text	lib/mfci.c	global	mfCiExecServer	mfCiExecServer

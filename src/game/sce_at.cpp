@@ -1157,7 +1157,7 @@ static void sceAtGetItem(SceAtWork* w)
             SceSleep(1);
         }
         if (cancel == 0) {
-            int res = cMes.getWork()->result;
+            s8 res = cMes.getWork()->result;
 
             sel = res;
             if (sel == 1) {
@@ -1170,7 +1170,7 @@ static void sceAtGetItem(SceAtWork* w)
                     sub_screen_open = sel;
                     SubScreenWk.x2FC = it->num;
                 }
-            } else if (cMes.getWork()->result == 2) {
+            } else if (res == 2) {
                 put = 0;
             } else {
                 u16 n = it->num;
@@ -1384,7 +1384,9 @@ static void sceAtGetItem_NoModel(SceAtWork* w)
             SceSleep(1);
         }
         if (cancel == 0) {
-            sel = cMes.getWork()->result;
+            s8 res = cMes.getWork()->result;
+
+            sel = res;
             if (sel == 1) {
                 put = PutInCase(it->id, it->num, (s8) SubScreenWk.x2AE);
                 if (put != 1) {
@@ -1395,7 +1397,7 @@ static void sceAtGetItem_NoModel(SceAtWork* w)
                     sub_screen_open = sel;
                     SubScreenWk.x2FC = it->num;
                 }
-            } else if (cMes.getWork()->result == 2) {
+            } else if (res == 2) {
                 ITEM_CANCEL_NOMODEL();
             } else {
                 u16 n = it->num;
@@ -3685,7 +3687,10 @@ int SceAtCheckSystemItemSet(u32 id, int* outId, int* outNum, Vec* pos, Vec* rot)
         }
         goto fail;
     case 0x1003:
-        switch (pG->x4FB8) {
+        // The switches run on the result variables (the case-5 `num = 5` of 0x1004 folds into the
+        // switch register, 0x1005's arms load straight into `no`).
+        no = pG->x4FB8;
+        switch (no) {
         default:
         case 0:
             no = 0x18;
@@ -3709,7 +3714,8 @@ int SceAtCheckSystemItemSet(u32 id, int* outId, int* outNum, Vec* pos, Vec* rot)
         *outNum = num;
         break;
     case 0x1004:
-        switch (pG->x4FB8) {
+        num = pG->x4FB8;
+        switch (num) {
         default:
         case 0:
             no = 0x18;
@@ -3736,7 +3742,8 @@ int SceAtCheckSystemItemSet(u32 id, int* outId, int* outNum, Vec* pos, Vec* rot)
         *outNum = num;
         break;
     case 0x1005:
-        switch (pG->x4FB8) {
+        no = pG->x4FB8;
+        switch (no) {
         case 0:
             no = 4;
             num = 0x14;
@@ -3766,15 +3773,17 @@ int SceAtCheckSystemItemSet(u32 id, int* outId, int* outNum, Vec* pos, Vec* rot)
         *outNum = num;
         break;
     default:
-        if (id <= 0xFFF) {
-            *outId = id;
-            *outNum = 0;
-            break;
-        }
-        goto fail;
+        goto other;
     }
 ok:
     return 1;
+other:
+    // The plain-id fallback sits behind the `return 1` in the original layout.
+    if (id <= 0xFFF) {
+        *outId = id;
+        *outNum = 0;
+        goto ok;
+    }
 fail:
     *outId = 0xFFFF;
     *outNum = 0;

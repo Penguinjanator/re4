@@ -1624,6 +1624,20 @@ SDK/CRI MWCC register-allocation levers found on reverb_std, svm and ax_rna (MWC
   `-inline` level reproduces it).
 - Stack slot order: first-declared aggregate local gets the highest frame offset.
 
+- `-inline auto,deferred` (via `CRI_CFLAG_OVERRIDES`) allows inlining of functions defined later and
+  emits functions in reverse source order; units whose accessors inline a later helper (mwsfdset,
+  adx_fs) are written in reverse order with the override. `.rodata` string order = codegen order.
+- `#pragma dont_inline on/off` around the *caller* stops a big static from being inlined while it
+  keeps its own body.
+- Same-lifetime temporaries take volatile registers in declaration order (first declared -> lowest);
+  brute-forcing declaration permutations is cheap and fixed several sfd_mpvf functions.
+- `p = base; p += n; p -= 8;` as three statements keeps `add; subi`; one expression reassociates.
+- A pointer local used with both a constant and a variable index materialises a base register with the
+  constant use folded into the parent pointer.
+- OPEN (MWCC): member-address kept in a callee-saved reg across a call with one use; pooled strings in
+  reverse use order; dead `b end` after an empty `case N: break;`; static-function literal placement;
+  callee-saved order of parameters not by declaration/lifetime/use count.
+
 ## REL modules
 
 The game loads its rooms, enemies, weapons and debug tools as Nintendo REL overlays. `ninja` rebuilds the

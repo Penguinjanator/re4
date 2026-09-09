@@ -1909,7 +1909,6 @@ void cCard::makeCardStatus(CardSlot* s)
         spd2 = (spd & ~(3 << (2 * i))) | (3 << (2 * i));
         fmt = fmt2;
         spd = spd2;
-/*/BF*/
     }
     spd2 &= ~(3 << (2 * ICON_NUM));
     s->stat.iconFormat = fmt2;

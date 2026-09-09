@@ -6,10 +6,15 @@
 #include "cam_extra.h"
 #include "cam_motion.h"
 #include "db_log.h"
+#include "atari.h"
 #include "light.h"
 #include "model.h"
 #include "player.h"
 #include "em.h"
+#include "main_mem.h"
+#include "math_sub.h"
+#include "dbmodule.h"
+#include "at_mod.h"
 
 extern "C" {
 int strncmp(const char* a, const char* b, unsigned int n);
@@ -184,6 +189,107 @@ void CameraControl::RoomDataRead(CameraDataHeader* room)
 void CameraControl::CoreDataRead(CameraDataHeader* core)
 {
     pG->pCoreCamData = calcAddr(core);
+}
+
+int cameraHitCheck(Vec* pos, Vec* nrm, Vec* from, Vec* to)
+{
+    static f32 R_GAIN = 1.1f;
+    static f32 GAIN = 1.33f;
+    Vec posA;
+    Vec posB;
+    Vec posC;
+    Vec nrmA;
+    Vec nrmB;
+    Vec nrmC;
+    Vec p;
+    Vec hp;
+    Vec hn;
+    int hitA;
+    int hitB;
+    int hitC;
+    int ret = 0;
+    int first;
+    f32 dist;
+    f32 d;
+
+    hitA = EmHitCheck(&posA, &nrmA, from, to, 1);
+    hitB = ObjHitCheck(&posB, &nrmB, from, to, 1);
+    hitC = SatMgr.hitCheck(from, to, &posC, &nrmC, 0x8000, 0x1C2810);
+    if (hitA | hitB | hitC) {
+        dist = 0.0f;
+        first = 1;
+        if (hitA) {
+            dist = PSVECDistance(from, &posA);
+            first = 0;
+            *pos = posA;
+            *nrm = nrmA;
+        }
+        if (hitB) {
+            d = PSVECDistance(from, &posB);
+            if (first || d < dist) {
+                dist = d;
+                first = 0;
+                *pos = posB;
+                *nrm = nrmB;
+            }
+        }
+        if (hitC) {
+            d = PSVECDistance(from, &posC);
+            if (first || d < dist) {
+                *pos = posC;
+                *nrm = nrmC;
+            }
+        }
+        ret = 1;
+    }
+    if (pSubEm && pSubEm->id == 3) {
+        cAtariInfo at;
+        cModel* parts;
+        Vec w;
+
+        at = pSubEm->atari;
+        if (at.partsNo != 0) {
+            parts = pSubEm->getPartsPtr(at.partsNo - 1);
+        } else {
+            parts = pSubEm;
+        }
+        if (parts) {
+            f32 r;
+            int hit = 0;
+
+            at.pos.y -= 1000.0f;
+            at.h += 1000.0f;
+            PSMTXMultVec(parts->mat, &at.pos, &w);
+            r = at.rectX * R_GAIN;
+            if (ret) {
+                p = *pos;
+            } else {
+                p = *to;
+            }
+            if (w.y <= p.y) {
+                if (p.y <= w.y + at.h) {
+                    Vec a;
+                    Vec b;
+
+                    a = w;
+                    b = p;
+                    a.y = 0.0f;
+                    b.y = 0.0f;
+                    if (PSVECDistance(&b, &a) <= r) {
+                        hit = 1;
+                    }
+                }
+            }
+            if (hit == 1) {
+                at.rectX *= GAIN;
+                if (ObaLineHitChk(pSubEm, &at, from, &p, &hp, &hn)) {
+                    ret = 1;
+                    *pos = hp;
+                }
+            }
+        }
+    }
+    return ret;
 }
 
 void CameraSetCutData(Camera* cam, CameraCut* cut)
@@ -1160,7 +1266,6 @@ f32 CameraControl::getCameraDirection()
 
 void Parametrize(CameraCut* cut, CameraBSpline* bs)
 {
-    int n;
     int i;
     f32* B;
     f32* Binv;
@@ -1173,22 +1278,22 @@ void Parametrize(CameraCut* cut, CameraBSpline* bs)
     f32* roll;
     f32* fovy;
 
-    bs->num = n = cut->num;
-    if (n > 1) {
+    bs->num = cut->num;
+    if (bs->num > 1) {
 #line 3058 "D:/Bio4/Prog/cam_ctrl.cpp"
-        B = (f32*) MEM_ALLOC(sizeof(f32) * n * n, 1, 0xd);
-        Binv = (f32*) MEM_ALLOC(sizeof(f32) * n * n, 1, 0xd);
-        px = (f32*) MEM_ALLOC(sizeof(f32) * n, 1, 0xd);
-        py = (f32*) MEM_ALLOC(sizeof(f32) * n, 1, 0xd);
-        pz = (f32*) MEM_ALLOC(sizeof(f32) * n, 1, 0xd);
-        ax = (f32*) MEM_ALLOC(sizeof(f32) * n, 1, 0xd);
-        ay = (f32*) MEM_ALLOC(sizeof(f32) * n, 1, 0xd);
-        az = (f32*) MEM_ALLOC(sizeof(f32) * n, 1, 0xd);
-        roll = (f32*) MEM_ALLOC(sizeof(f32) * n, 1, 0xd);
-        fovy = (f32*) MEM_ALLOC(sizeof(f32) * n, 1, 0xd);
+        B = (f32*) MEM_ALLOC(sizeof(f32) * bs->num * bs->num, 1, 0xd);
+        Binv = (f32*) MEM_ALLOC(sizeof(f32) * bs->num * bs->num, 1, 0xd);
+        px = (f32*) MEM_ALLOC(sizeof(f32) * bs->num, 1, 0xd);
+        py = (f32*) MEM_ALLOC(sizeof(f32) * bs->num, 1, 0xd);
+        pz = (f32*) MEM_ALLOC(sizeof(f32) * bs->num, 1, 0xd);
+        ax = (f32*) MEM_ALLOC(sizeof(f32) * bs->num, 1, 0xd);
+        ay = (f32*) MEM_ALLOC(sizeof(f32) * bs->num, 1, 0xd);
+        az = (f32*) MEM_ALLOC(sizeof(f32) * bs->num, 1, 0xd);
+        roll = (f32*) MEM_ALLOC(sizeof(f32) * bs->num, 1, 0xd);
+        fovy = (f32*) MEM_ALLOC(sizeof(f32) * bs->num, 1, 0xd);
         bs->k = 2;
-        if (bs->k > n - 1) {
-            bs->k = n - 1;
+        if (bs->k > bs->num - 1) {
+            bs->k = bs->num - 1;
         }
         for (i = 0; i < bs->num; i++) {
             px[i] = cut->pos[i].x;
@@ -1250,8 +1355,8 @@ void searchRail(CameraBSpline* bs, CameraCut* cut, Vec* aim, int)
     f32 min = 10000000000.0f;
     int found = 0;
     int i;
+    f32 dot;
     f32 s;
-    f32 u;
     f32 dist;
 
     for (i = 0; i < cut->num - 1; i++) {
@@ -1259,22 +1364,23 @@ void searchRail(CameraBSpline* bs, CameraCut* cut, Vec* aim, int)
         d.y = 0.0f;
         PSVECSubtract(aim, &cut->at[i], &v);
         v.y = 0.0f;
-        s = PSVECDotProduct(&d, &v);
-        s = s / PSVECMag(&d);
+        dot = PSVECDotProduct(&d, &v);
+        s = dot / PSVECMag(&d);
         PSVECSubtract(aim, &cut->at[i + 1], &v);
         v.y = 0.0f;
-        u = PSVECDotProduct(&d, &v);
-        u = u / PSVECMag(&d);
-        if (s * u < 0.0f) {
+        dot = PSVECDotProduct(&d, &v);
+        dot = dot / PSVECMag(&d);
+        dot = s * dot;
+        if (dot < 0.0f) {
             d.y = cut->at[i + 1].y - cut->at[i].y;
             PSVECScale(&d, &v, s / PSVECMag(&d));
             PSVECAdd(&v, &cut->at[i], &v);
             dist = PSVECDistance(aim, &v);
             if (dist < min) {
                 min = dist;
-                found = 1;
-                bs->seg = i;
                 bs->t = (f32) i + s / PSVECMag(&d);
+                bs->seg = i;
+                found = 1;
             }
         }
     }
@@ -1321,8 +1427,12 @@ void CameraControl::debugDrawRail(CameraCut* cut)
 
     for (i = 0; i < 100; i++) {
         de_Boor_Cox(cut->num, NULL, bs->k, (f32) ((cut->num - 1) * i) / 100.0f + 0.0f, bs->basis);
-        fc.x = fc.y = fc.z = 0.0f;
-        ft.x = ft.y = ft.z = 0.0f;
+        fc.x = 0.0f;
+        fc.y = 0.0f;
+        fc.z = 0.0f;
+        ft.x = 0.0f;
+        ft.y = 0.0f;
+        ft.z = 0.0f;
         for (j = 0; j < cut->num; j++) {
             fc.x += bs->basis[j] * bs->px[j];
             fc.y += bs->basis[j] * bs->py[j];

@@ -117,11 +117,10 @@ static inline int BeFlgChk(cUnit* u, u32 mask)
 // The event model list entry when `no` is a valid index.
 static inline cModel* EspEvModGet(int no)
 {
-    cModel* m = 0;
     if (no >= 0 && no < 0x80) {
-        m = EspEvModList[no];
+        return EspEvModList[no];
     }
-    return m;
+    return 0;
 }
 
 // Index of `e` in the manager's work array (-1 when it is not one of them).
@@ -395,27 +394,25 @@ void Event::EspToolSetMod(int no, char* nm)
     u32 i;
     int size;
     u8 c;
-    char* p;
 
     buf = (char*) Debug_alloc(1000000, 1);
     EvtDebug.pModel[no].pScr = 0;
     strcpy(mname, nm);
-    p = mname;
-    for (i = 2; i < strlen(p); i++) {
-        c = p[i];
+    for (i = 2; i < strlen(mname); i++) {
+        c = mname[i];
         if ((c >= '0' && c <= '9') || (c >= 'a' && c <= 'f')) {
-            p[i + 2] = '0';
-            p[i + 3] = '0';
+            mname[i + 2] = '0';
+            mname[i + 3] = '0';
             break;
         }
     }
-    if (pG->costume == 1 && strcmp(p, "pl0000") == 0) {
+    if (pG->costume == 1 && strcmp(mname, "pl0000") == 0) {
         strcpy(mname, "pl0800");
     }
-    if (pG->costume == 2 && strcmp(p, "pl0000") == 0) {
+    if (pG->costume == 2 && strcmp(mname, "pl0000") == 0) {
         strcpy(mname, "pl0a00");
     }
-    sprintf(path, "%s/evt_bin_%s.xml", "x:/soft/room/event/evd", p);
+    sprintf(path, "%s/evt_bin_%s.xml", "x:/soft/room/event/evd", mname);
     size = HDRead(path, buf);
     if (size != 0) {
         buf[size] = 0;
@@ -2202,6 +2199,7 @@ int EventMgr::EvtReadSub(char* nm, int aram, int em, int* out, int wait, u32 sz)
     char* p;
     u32 size;
     void* r;
+    void* addr;
     ReadModule* mod;
 
     if (out != 0) {
@@ -2235,9 +2233,10 @@ int EventMgr::EvtReadSub(char* nm, int aram, int em, int* out, int wait, u32 sz)
     if (aram == 0) {
         if (em != 0) {
             if (fresh == 1) {
-                size = unit->size;
-                if (sz > size) {
+                if (sz > unit->size) {
                     size = sz;
+                } else {
+                    size = unit->size;
                 }
                 r = EmReadSearch(em, 0, size);
                 if (out != 0) {
@@ -2265,8 +2264,9 @@ int EventMgr::EvtReadSub(char* nm, int aram, int em, int* out, int wait, u32 sz)
             }
             MemorySwap(mod->pArc, (u32) unit->addr, unit->size);
             readEm[no].swapped = 1;
+            r = mod->pArc;
             if (out != 0) {
-                *out = (int) mod->pArc;
+                *out = (int) r;
             }
         } else {
             unit->setCommand(1, 0, 1);
@@ -2276,15 +2276,17 @@ int EventMgr::EvtReadSub(char* nm, int aram, int em, int* out, int wait, u32 sz)
                 pLog->err(0, 0, "readEvent() : out of memory (0x%x)[%s]", unit->size, nm);
                 return 0;
             }
+            addr = unit->addr;
             if (out != 0) {
-                *out = (int) unit->addr;
+                *out = (int) addr;
             }
         }
     } else {
         if (em != 0) {
-            size = unit->size;
-            if (sz > size) {
+            if (sz > unit->size) {
                 size = sz;
+            } else {
+                size = unit->size;
             }
             r = EmReadSearch(em, 0, size);
             if (out != 0) {
@@ -2391,19 +2393,18 @@ int EventMgr::EvtFree(char* nm)
         return 0;
     }
     em = readEm[no].em;
-    if (unit == 0) {
-        return 1;
+    if (unit != 0) {
+        if (unit->waitLoadOk() == 0) {
+            pLog->err(0, 0, "EvtFree() : out of memory (0x%x)[%s]", unit->size, nm);
+        }
+        if (em != 0 && readEm[no].swapped == 1) {
+            mod = SearchEmModule(em);
+            MemorySwap(mod->pArc, (u32) unit->addr, unit->size);
+            readEm[no].swapped = 0;
+            EspEmDataSwapPop(em);
+        }
+        unit->setCommand(3, 0, 0);
     }
-    if (unit->waitLoadOk() == 0) {
-        pLog->err(0, 0, "EvtFree() : out of memory (0x%x)[%s]", unit->size, nm);
-    }
-    if (em != 0 && readEm[no].swapped == 1) {
-        mod = SearchEmModule(em);
-        MemorySwap(mod->pArc, (u32) unit->addr, unit->size);
-        readEm[no].swapped = 0;
-        EspEmDataSwapPop(em);
-    }
-    unit->setCommand(3, 0, 0);
     return 1;
 }
 
@@ -2479,7 +2480,10 @@ int EventMgr::SetEvt(char* nm, Event** out)
         return 0;
     }
     evt->status |= 0x01000000;
-    strcpy(EvtMgr.evtName, nm);
+    {
+        EventMgr* m = &EvtMgr;
+        strcpy(m->evtName, nm);
+    }
     if (out != 0) {
         *out = evt;
     }
@@ -2545,7 +2549,7 @@ int EventMgr::SetBin(char* nm, void* data, void* dat2, int flag)
 
 int EventMgr::GetBin(void** out, const char* nm, int a)
 {
-    u8 type;
+    u8 type[1];
     char path[0x100];
     void* dat;
 
@@ -2553,7 +2557,7 @@ int EventMgr::GetBin(void** out, const char* nm, int a)
         return 0;
     }
     *out = 0;
-    if (binTbl.GetDat(&dat, &type, nm, 0) == 0) {
+    if (binTbl.GetDat(&dat, type, nm, 0) == 0) {
         pLog->warn(0, 0, "EventMgr::GetBin : non data[%s]", nm);
         if (a == 0) {
             strcpy(path, "x:/soft/room/");
@@ -2781,42 +2785,42 @@ int EventMgr::EvtSndStrStop(u32* key, int blk, int mode)
     }
     no = evt->strNo[blk];
     id = evt->strId[blk];
-    if (no == -1) {
-        return 0;
-    }
-    if (id != 0) {
-        if (SndStrReq(id, 8, 0, 0) == 1) {
-            do {
-                if (mode == 0) {
-                    break;
-                }
-                if (mode == 1) {
-                    TaskSleep(1);
-                }
-                if (mode == 2) {
-                    SceSleep(1);
-                }
-            } while (SndStrStatusCk(id, 0x10) != 0);
+    if (no != -1) {
+        if (id != 0) {
+            if (SndStrReq(id, 8, 0, 0) == 1) {
+                do {
+                    if (mode == 0) {
+                        break;
+                    }
+                    if (mode == 1) {
+                        TaskSleep(1);
+                    }
+                    if (mode == 2) {
+                        SceSleep(1);
+                    }
+                } while (SndStrStatusCk(id, 0x10) != 0);
+            }
+        } else {
+            if (SndStrReq(blk, no, 8, 0, 0, 0.0f) == 1) {
+                do {
+                    if (mode == 0) {
+                        break;
+                    }
+                    if (mode == 1) {
+                        TaskSleep(1);
+                    }
+                    if (mode == 2) {
+                        SceSleep(1);
+                    }
+                } while (SndStrStatusCk(blk, no, 0x10) != 0);
+            }
         }
-    } else {
-        if (SndStrReq(blk, no, 8, 0, 0, 0.0f) == 1) {
-            do {
-                if (mode == 0) {
-                    break;
-                }
-                if (mode == 1) {
-                    TaskSleep(1);
-                }
-                if (mode == 2) {
-                    SceSleep(1);
-                }
-            } while (SndStrStatusCk(blk, no, 0x10) != 0);
-        }
+        evt->strId[blk] = 0;
+        evt->strNo[blk] = -1;
+        OSReport("EventMgr::EvtSndStrStop : stop (%d)\n", blk);
+        return 1;
     }
-    evt->strId[blk] = 0;
-    evt->strNo[blk] = -1;
-    OSReport("EventMgr::EvtSndStrStop : stop (%d)\n", blk);
-    return 1;
+    return 0;
 }
 
 void EventMgr::EvtSndStrPlay(u32* key, int blk, int no, int mode, f32 vol)
