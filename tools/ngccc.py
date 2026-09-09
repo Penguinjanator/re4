@@ -248,6 +248,12 @@ def place_linkonce_module(module: str, unit: str, asm: str, pre_obj: str, assemb
             decision[s.name] = ("drop", sym.name)
         elif (dn, sym.size) in rows or (sym.name, sym.size) in rows:
             decision[s.name] = ("named", sym.name)
+        elif unit_start[unit] == min(unit_start.values()):
+            # the module's first object: every linkonce copy here is a first copy, and an unreferenced
+            # first copy vanished in the original link (the .sym names the referenced ones). The
+            # single-unit enemy modules (em2e...) include light.h and get the 0x3B8 cManager<cLight>
+            # block this way although their REL has none of it.
+            decision[s.name] = ("drop", sym.name)
         else:
             cls = dn.rsplit("::", 1)[0] if "::" in dn else None
             users = class_units.get(cls, set()) if cls else set()

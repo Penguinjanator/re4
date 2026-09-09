@@ -399,6 +399,9 @@ MATCHING = {
     "st2_3/st2.cpp": True,
     "st2_4/st2.cpp": True,
     "st4_0/st4.cpp": True,
+    "st4_0/r410.cpp": True,
+    "st4_0/r40b.cpp": True,
+    "st4_0/r411.cpp": True,
     "t_emlist/t_emlist.cpp": True,
     "t_camera/t_prim.cpp": True,
     "t_camera/t_util.cpp": True,
@@ -433,6 +436,8 @@ MATCHING = {
     # single-unit enemy modules (src/<em>/<em>.cpp, the whole REL)
     "em2e/em2e.cpp": True,
     "em26/em26.cpp": True,
+    "em18/em18.cpp": True,
+    "em34/em34.cpp": True,
 }
 # The Ganado modules' per-enemy objects (src/<em>/<em>_set.cpp: entry points + EmXXInit/Set/WeaponSet).
 for _em in ["em10", "em11", "em12", "em13", "em14", "em15", "em16", "em17", "em19", "em1a", "em1b",

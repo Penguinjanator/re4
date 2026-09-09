@@ -2999,3 +2999,74 @@ target) stays unresolved and `make_rel` then fails with "undefined symbol".
   no statement order gives it), SctrlAdjustAxisRange's two stepping pointers, drawAxis' early `lis`
   of the format string, drawScurve's `i`/`&wp` register swap (r26/r27), sctrlMenu's cross-jump of the
   case-1 cursor call.
+
+### Single-unit enemy modules (em2e, em26, em18, em34 Matching; em30 22/23; src/<em>/<em>.cpp, 2026-09)
+
+- Layout of every one-file enemy REL: `_prolog` (`OSReport("<em> prolog Ok\n")` + `EmInitFunc = EmXXInit`;
+  em2e has no OSReport), empty `_epilog`/`_unresolved`, `EmXXInit` = `new (em) cEmXX()`, `emXXDmCk`, the
+  class `move` (damage check, `EmXX_R0_move_tbl[xFC](this)`, `EmMgr.destroy` on 0xFF, then
+  `EmAtCheck/atari.move()/SatMgr.check(this, 0)`), the static routines, the free helpers, and the
+  cUnit linkonce copies at the end. `.data` = the routine tables in definition order (the R0 table is
+  a non-static global, the others `static`), then any static tables (em26 `u16 flip[32]`, `EmAtkInfo`).
+  `.rodata` = [cFlag.set()][atari.h][light.h][dmg.h][ctrl.h...] header strings in include order (they
+  prove the include set), the prolog string, then per-function strings/`static const Vec`s/pools.
+  The 0x34-byte COMMON block of a module with `common_size: 52` (em18) is `asm(".comm common_em18,52,4")`.
+- tools/ngccc.py `place_linkonce_module`: unnamed `.gnu.linkonce.t.*` copies of the module's FIRST
+  object are dropped (an unreferenced first copy vanished in the original link) — the single-unit
+  modules include light.h and would otherwise carry the 0x3B8 cManager<cLight> block.
+- Types: `Em2eWork`/`Em30Work`/... overlay cEm at 0x3E0 (include/em2e.h ...); `hit[N]` EmHitInfo boxes
+  at +0xC (YarareAdd), the RouteCk block at +0x214..+0x258 (em30/em34: routeAng, routeAngAbs, subAng,
+  subAngAbs, targetAng, targetAngAbs, targetDist, routePos, subRoutePos, targetPos, pTarget, neckAng),
+  `PlCloth cloth1/cloth2` at +0x25C/+0x2BC.
+- Damage switches: reproduce the compare tree by listing the default-grouped cases explicitly (they
+  are real nodes: em30 `5,6,D,E,F,12,13,2C,2D`; em26 `5,6,D,E,F,12,13,29,2C,2D`; em34 `5,6,D,E,F,12,13`;
+  em18 BloodSet `case 0: case 0x14: default: break;`), and give a case its own duplicate arm when its
+  node is not merged with an adjacent same-label node (em26 `case 0x2B:` written FIRST with a copy of
+  the X0 body: `bne default; b X0` remnant; em18 BloodSet's [9..A] and [B..C,0x10] X0 arms). The
+  survivor of identical arms is the last one in source order and falls into the shared `li r6..bl` tail;
+  the `default:` arm is written last and keeps its own full call (block ends in the call).
+- `switch ((u32) no) { case 0: default: ... case 1: ... case 2: ... }` gives `cmpwi 1; beq; cmplwi 1;
+  blt default; cmpwi 2; beq` (em30SetParasite, em26 Dm_Small kind); the int-promoted `switch (em->type)`
+  with `case 0: default:` gives `cmpwi 1; beq; ble default; cmpwi 3; ble/beq` (em34's type switches,
+  default body laid out first when written first).
+- `EmRoutineSet(em, fc, fd, fe, ff)` (int inline) is the default routine store; em30_R0_Init needs
+  PLAIN byte stores instead: with the int inline the SI zero pseudo lands in r9 and reload_cse deletes
+  the following MotionSetCore `li r9, 0`; a QImode zero (`em->xFD = 0`) keeps it (mode-size check).
+- Shared constant pseudos across calls: em2e `int zero` for `lockParts = zero; w->flags = zero;
+  EmRoutineSet(em, 1, zero, ..)` (the QI `lockParts = 0` before any SI zero would get its own `li`);
+  `int one = 1` declared mid-block after the call the target's `li rN, 1` follows (em18 before
+  `setStatus(one)`, em34 after YarareInit) for the routine `1` kept in a callee-saved register.
+- Argument load order: `void* tplE = ARC(0xF);` before `ModInfoMgr.create(ARC(0xE), tplE)` puts the
+  0xF offset load first (em18); `void* binR = ARC(0x13)` at the top precomputes the second create's
+  bin across the first call (em18HandSet); a `void* tpl = ARC(8)` local after the modelInit check.
+- `if (em->modelInit(ARC(4), ARC(5)) == 0) { pLog->err(..); xFC = 0xFF; return; }` inside EACH type arm:
+  identical strings let jump2 merge the arms from `add r4` on (em26, em34 em33 arms), different strings
+  keep them apart (em2e). `ok = modelInit(...)` in the arms + one check after does not merge (call at
+  block end).
+- Player/partner loads after work stores: `w->pTarget = pPLS` / `pSUBS` (struct views, defined per
+  unit) keep `lwz pPL` below the preceding `stfs` (em30/em34 RouteCk); `pGS->room_id32`, `pGS->flags_170`
+  the same for pG (em26 R0_Init, em18 Trade); `BitOn(w->flags, 0x20)` before `EmRoutineSet` + `pPL->dmg.set`
+  (em18 TradeAction).
+- Distance tests are inline expressions: `(a.x - b.x) * (a.x - b.x) + (a.y - b.y) * ... < K` (em2e DmCk,
+  em26 near check with `Camera* cam = &pG->Cam;` computed before the getPartsPtr call); f32 locals give
+  another register/issue order.
+- em2e: `w->timer = Rnd() % 90 + 60` (the `%` is shortened to u8: `clrlwi 24`), the known-zero reuse
+  (`if (w->timer) w->timer--; else {RS(1,..,0)}` stores the zeros from the timer register), `Vec spd`
+  memberwise `= 0, 0, 10` per routine, SetWallMatrix's `VECNormalize` needs `#line 694`.
+- em18: `KeyStop(0xEFCF0000)` (u64 arg: `li r3, 0; lis r4`), `SndCall(8, n, &em->pos, em->id, 0, 0)`
+  (last arg 0, not em); a hidden `case 2: default: break;` in R1_Die_Normal's xFE switch (`cmpwi 1;
+  beq; bgt end; cmpwi 0; bne end`); `fabsfE` ("=&f" early-clobber fabs asm) reproduces the
+  COMPILER-DIFF #5 copy of the shared `fabsf(lp.y) > 700` check in ActEvtSetTrade.
+- em26: unreferenced constants between em26_R1_Atk's pool and em26AtkCk's (`-400, 0, 2000, -500, 400`)
+  are a `static const f32 [5]` inside em26AtkCk; its body is `if (w->atkHit) return 0;` (the early
+  return's label keeps `mr r3, r31` before getPartsPtr) then a block with `EmAtkInfo* atk =
+  &em26_atk_info; cModel* p = ...; int hit = ...;` (the `&info` lis/addi lands before the call) and a
+  final `return 0` shared by both failure paths.
+- em34: `static EmAtkInfo em34_atk_tbl[1]` + `static int em34_atk_pad = 0` (the 4 zero bytes after it);
+  `em34AtkCk(em, no, parts)` indexes the table `no << 4`.
+- OPEN (em30DmCk tail): the original ends the `hp > 0` else arm with `lbz r3, dmWep; cmpwi r3, 0x21`
+  and no branch (r3 = return value): a `return em->dmWep` on the taken path of `== 0x21` whose branch
+  only jump2 removed. Our cse folds the returned value to `li r3, 0x21` (record_jump_equiv on the
+  fall-through, cse-skip-blocks on the taken path) in every form tried (if/switch, taken-path else
+  arm, dead sibling arm, nested if, duplicated condition), and flow2's tidy_fallthru + life_analysis
+  delete a dead compare, so the shape is out of reach: em30 stays 22/23 (+8 bytes), not Matching.
