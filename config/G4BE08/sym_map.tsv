@@ -11148,12 +11148,12 @@ address	size	section	unit	scope	name	demangled
 0x8030B458	0x80	.bss	lib/mpv_vlc.c	global	mpvvlt_mbai_i_1	mpvvlt_mbai_i_1
 0x8030B4D8	0x200	.bss	lib/mpv_vlc.c	local	mpvvlt_mbai_i_0	mpvvlt_mbai_i_0
 0x8030B6D8	0x4	.bss	lib/mpv_vlc.c	local	mpvvlc_run_level_8	mpvvlc_run_level_8
-0x8030B6DC	0x4	.bss	lib/mpv_vlc.c	local	mpvvlc_run_level_4	mpvvlc_run_level_4
+0x8030B6DC	0x4	.bss	lib/mpv_vlc.c	global	mpvvlc_run_level_4	mpvvlc_run_level_4
 0x8030B6E0	0x4	.bss	lib/mpv_vlc.c	global	mpvvlc_run_level_2	mpvvlc_run_level_2
-0x8030B6E4	0x4	.bss	lib/mpv_vlc.c	local	mpvvlc_run_level_1	mpvvlc_run_level_1
+0x8030B6E4	0x4	.bss	lib/mpv_vlc.c	global	mpvvlc_run_level_1	mpvvlc_run_level_1
 0x8030B6E8	0x4	.bss	lib/mpv_vlc.c	global	mpvvlc_run_level_0a	mpvvlc_run_level_0a
 0x8030B6EC	0x4	.bss	lib/mpv_vlc.c	global	mpvvlc_run_level_0b	mpvvlc_run_level_0b
-0x8030B6F0	0x4	.bss	lib/mpv_vlc.c	local	mpvvlc_run_level_0c	mpvvlc_run_level_0c
+0x8030B6F0	0x4	.bss	lib/mpv_vlc.c	global	mpvvlc_run_level_0c	mpvvlc_run_level_0c
 0x8030B6F4	0x4	.bss	lib/mpv_vlc.c	global	mpvvlc2_c_dcsiz	mpvvlc2_c_dcsiz
 0x8030B6F8	0x4	.bss	lib/mpv_vlc.c	global	mpvvlc2_y_dcsiz	mpvvlc2_y_dcsiz
 0x8030B6FC	0x4	.bss	lib/mpv_vlc.c	global	mpvvlc_c_dcsiz	mpvvlc_c_dcsiz
@@ -11176,7 +11176,7 @@ address	size	section	unit	scope	name	demangled
 0x8030F970	0x4	.bss	lib/dct_fsri.c	global	dctfsri_version_dummy	dctfsri_version_dummy
 0x8030F974	0x4	.bss	lib/dct_fsri.c	global	lbl_8030F974	.
 0x8030F978	0x40	.bss	lib/mpv_bdec.c	global	mpvbdec_dfl_iqm	mpvbdec_dfl_iqm
-0x8030F9B8	0x40	.bss	lib/mpv_bdec.c	local	mpvbdec_zigzag	mpvbdec_zigzag
+0x8030F9B8	0x40	.bss	lib/mpv_bdec.c	global	mpvbdec_zigzag	mpvbdec_zigzag
 0x8030F9F8	0x20	.bss	lib/mpv_cmc.c	global	mpvcmc_oneref	mpvcmc_oneref
 0x8030FA18	0x200	.bss	lib/dct_ac.c	global	dctac_i_const	dctac_i_const
 0x8030FC18	0x200	.bss	lib/dct_ac.c	global	dctac_f_const	dctac_f_const

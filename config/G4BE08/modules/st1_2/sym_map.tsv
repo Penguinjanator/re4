@@ -32,13 +32,13 @@ section	offset	size	unit	scope	name	demangled
 .text	0x00004390	0x410	st1_2/r10c.cpp	local	hako_down	hako_down
 .text	0x000047A0	0x27C	st1_2/r10c.cpp	local	r10c_ItemGet	r10c_ItemGet
 .text	0x00004A1C	0xA0	st1_2/r10c.cpp	global	eat_swap	eat_swap
-.text	0x00004ABC	0xBC	st1_2/r10c.cpp	global	cManager_cLight_countActiveWork	cManager<cLight>::countActiveWork
-.text	0x00004B78	0x158	st1_2/r10c.cpp	global	cManager_cLight_create	cManager<cLight>::create
+.text	0x00004ABC	0xBC	st1_2/r10c.cpp	global	countActiveWork__t8cManager1Z6cLight	cManager<cLight>::countActiveWork
+.text	0x00004B78	0x158	st1_2/r10c.cpp	global	create__t8cManager1Z6cLighti	cManager<cLight>::create
 .text	0x00004CD0	0x40	st1_2/r10d.cpp	global	R10dInit__Fv	R10dInit
 .text	0x00004D10	0x4	st1_2/r10d.cpp	global	R10dMain__Fv	R10dMain
 .text	0x00004D14	0x1E0	st1_2/r10e.cpp	global	R10eInit__Fv	R10eInit
 .text	0x00004EF4	0x4	st1_2/r10e.cpp	global	R10eMain__Fv	R10eMain
-.text	0x00004EF8	0x3C	st1_2/r10e.cpp	local	R10e_door_set	R10e_door_set
+.text	0x00004EF8	0x3C	st1_2/r10e.cpp	local	R10e_door_set__Fv	R10e_door_set
 .text	0x00004F34	0x5AC	st1_2/r119.cpp	global	R119Init__Fv	R119Init
 .text	0x000054E0	0x24	st1_2/r119.cpp	global	R119Main__Fv	R119Main
 .text	0x00005504	0x11C	st1_2/r119.cpp	local	r119_ThunderFlagOn	r119_ThunderFlagOn
@@ -182,8 +182,8 @@ section	offset	size	unit	scope	name	demangled
 .rodata	0x00000D74	0x28	st1_2/r10c.cpp	local	lbl_st1_2_rodata_D74	lbl_st1_2_rodata_D74
 .rodata	0x00000D9C	0x28	st1_2/r10c.cpp	local	lbl_st1_2_rodata_D9C	lbl_st1_2_rodata_D9C
 .rodata	0x00000DC4	0x38	st1_2/r10c.cpp	local	lbl_st1_2_rodata_DC4	lbl_st1_2_rodata_DC4
-.rodata	0x00000DFC	0x54	st1_2/r10c.cpp	local	lbl_st1_2_rodata_DFC	lbl_st1_2_rodata_DFC
-.rodata	0x00000E68	0x28	st1_2/r10d.cpp	local	lbl_st1_2_rodata_E68	lbl_st1_2_rodata_E68
+.rodata	0x00000DFC	0x44	st1_2/r10c.cpp	local	lbl_st1_2_rodata_DFC	lbl_st1_2_rodata_DFC
+.rodata	0x00000E68	0x18	st1_2/r10d.cpp	local	lbl_st1_2_rodata_E68	lbl_st1_2_rodata_E68
 .rodata	0x00000EA8	0x18	st1_2/r10e.cpp	local	lbl_st1_2_rodata_EA8	lbl_st1_2_rodata_EA8
 .rodata	0x00000F88	0x18	st1_2/r119.cpp	local	lbl_st1_2_rodata_F88	lbl_st1_2_rodata_F88
 .rodata	0x00000FA0	0x18	st1_2/r119.cpp	local	lbl_st1_2_rodata_FA0	lbl_st1_2_rodata_FA0

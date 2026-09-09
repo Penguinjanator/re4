@@ -131,6 +131,7 @@ static inline void U32Set(u32& d, u32 v) { d = v; }
 static inline u16 U16Ref(u16& v) { return v; }
 static inline int IRef(int& v) { return v; }
 static inline f32 FRef(f32& v) { return v; }
+static inline void ISet(int& d, int v) { d = v; }
 
 u8 min_lod;
 u8 max_lod;
@@ -2569,13 +2570,13 @@ static void RefractShaderSetup(cModel* m, cModelInfo* info, ModelPart* part, Mtx
     static f32 mul_y = 1.0f;
     GXColor kc;
     GXColor k;
-    GXColor k2;
     int st;
     int map;
     int coord;
     u32 mtx;
     int ind;
-    s8 kv;
+    u8 kv;
+    s8 kvs;
     int scale;
 
     ISET0(tev_stage);
@@ -2600,6 +2601,8 @@ static void RefractShaderSetup(cModel* m, cModelInfo* info, ModelPart* part, Mtx
     GXSetTevOrder(st, coord, map, 4);
     kv = 0xFF;
     switch (gxCsScale[m->x12D]) {
+    case 0:
+        break;
     case 1:
         kv = 0x80;
         break;
@@ -2607,10 +2610,9 @@ static void RefractShaderSetup(cModel* m, cModelInfo* info, ModelPart* part, Mtx
         kv = 0x40;
         break;
     }
+    kvs = kv;
     k.a = kv;
-    k.r = kv;
-    k.g = kv;
-    k.b = kv;
+    k.r = k.g = k.b = kvs;
     kc = k;
     GXSetTevKColor(getKColor(), kc);
     GXSetTevKColorSel(st, getKColorSel());
@@ -2634,6 +2636,8 @@ static void RefractShaderSetup(cModel* m, cModelInfo* info, ModelPart* part, Mtx
     if (m->x136 == 1) {
         f32 indMtx[2][3];
         f32 s;
+        int map;
+        int coord;
         __GXSetIndirectMask(0);
         s = (f32) m->x137 * 0.001953125f;
         indMtx[0][0] = 0.0f;
@@ -2652,19 +2656,22 @@ static void RefractShaderSetup(cModel* m, cModelInfo* info, ModelPart* part, Mtx
     } else {
         f32 indMtx[2][3];
         f32 s;
+        int map;
+        int coord;
+        ModelTexInfo* t = MODEL_TEX(info);
         __GXSetIndirectMask(0);
         s = (f32) m->x137 * 0.001953125f;
         indMtx[0][0] = 0.0f;
-        indMtx[0][1] = s;
-        indMtx[0][2] = -s;
         indMtx[1][0] = s;
+        indMtx[0][2] = -s;
+        indMtx[0][1] = s;
         indMtx[1][1] = 0.0f;
         indMtx[1][2] = s * 1.35f;
         GXSetIndTexMtx(2, indMtx, 1);
         map = getTexMap();
         coord = getTexCoord();
         if (info->flagsDC & 4) {
-            loadBlendTex(part, (u8*) info->texBlendTbl, map);
+            loadBlendTex(part, t->blendTbl, map);
         } else {
             org_LoadTexObj(part->texId, map);
         }
@@ -2691,9 +2698,11 @@ static void RefractShaderSetup(cModel* m, cModelInfo* info, ModelPart* part, Mtx
         if (m->be_flag & 0x01000000) {
             GlobalIlluminationSetup(part, isBit(info->pData->flags, 0x20000000));
         }
+        GXColor k;
+        int st;
         st = TEV_STAGE_ID();
-        k2.r = k2.a = k2.g = k2.b = m->x138;
-        kc = k2;
+        k.r = k.a = k.g = k.b = m->x138;
+        kc = k;
         GXSetTevKColor(getKColor(), kc);
         GXSetTevKColorSel(st, getKColorSel());
         GXSetTevKAlphaSel(st, getKAlphaSel());
@@ -2710,48 +2719,51 @@ static void RefractShaderSetup(cModel* m, cModelInfo* info, ModelPart* part, Mtx
             alphaSetup(m, part, info, 0);
         }
     }
-    st = TEV_STAGE_ID();
-    GXSetTevOrder(st, 0xFF, 0xFF, 4);
-    GXSetTevColorIn(st, 0xF, 0xF, 0xF, 0);
-    switch (m->x12D) {
-    case 0:
-    case 1:
-        switch (gxCsScale[m->x12D]) {
+    {
+        int st;
+        st = TEV_STAGE_ID();
+        GXSetTevOrder(st, 0xFF, 0xFF, 4);
+        GXSetTevColorIn(st, 0xF, 0xF, 0xF, 0);
+        switch (m->x12D) {
         case 0:
+        case 1:
+            switch (gxCsScale[m->x12D]) {
+            case 0:
+                scale = 0;
+                break;
+            case 1:
+                scale = 1;
+                break;
+            case 2:
+                scale = 2;
+                break;
+            default:
+                scale = 0;
+                pLog->err(0, 0, "ShaderSetup() TEV_SCALE ERROR %d", gxCsScale[m->x12D]);
+                break;
+            }
+            break;
+        case 4:
             scale = 0;
             break;
-        case 1:
+        case 5:
             scale = 1;
             break;
-        case 2:
+        case 6:
             scale = 2;
             break;
         default:
             scale = 0;
-            pLog->err(0, 0, "ShaderSetup() TEV_SCALE ERROR %d", gxCsScale[m->x12D]);
+            pLog->err(0, 0, "ShaderSetup() TEV_SCALE ERROR %d", m->x12D);
             break;
         }
-        break;
-    case 4:
-        scale = 0;
-        break;
-    case 5:
-        scale = 1;
-        break;
-    case 6:
-        scale = 2;
-        break;
-    default:
-        scale = 0;
-        pLog->err(0, 0, "ShaderSetup() TEV_SCALE ERROR %d", m->x12D);
-        break;
+        GXSetTevColorOp(st, 0, 0, scale, 1, 0);
+        GXSetTevAlphaIn(st, 7, 7, 7, 0);
+        GXSetTevAlphaOp(st, 0, 0, 0, 1, 0);
+        GXSetNumTevStages(++tev_stage);
+        GXSetNumTexGens(IRef(tex_coord));
+        GXSetNumIndStages(IRef(ind_stage));
     }
-    GXSetTevColorOp(st, 0, 0, scale, 1, 0);
-    GXSetTevAlphaIn(st, 7, 7, 7, 0);
-    GXSetTevAlphaOp(st, 0, 0, 0, 1, 0);
-    GXSetNumTevStages(++tev_stage);
-    GXSetNumTexGens(IRef(tex_coord));
-    GXSetNumIndStages(IRef(ind_stage));
 }
 
 // Copy the frame buffer below the top 56 lines at half size into g_Get_tex_obj (refraction source).

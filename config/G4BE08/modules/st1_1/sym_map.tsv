@@ -46,8 +46,8 @@ section	offset	size	unit	scope	name	demangled
 .text	0x00003B58	0x118	st1_1/r101.cpp	local	r101_callGanadoVoice	r101_callGanadoVoice
 .text	0x00003C70	0x58	st1_1/r101.cpp	global	Evt_R101S21_Func	Evt_R101S21_Func
 .text	0x00003CC8	0x150	st1_1/r101.cpp	global	Evt_R101S30_Func	Evt_R101S30_Func
-.text	0x00003E18	0xBC	st1_1/r101.cpp	global	cManager_cLight_countActiveWork	cManager<cLight>::countActiveWork
-.text	0x00003ED4	0x158	st1_1/r101.cpp	global	cManager_cLight_create	cManager<cLight>::create
+.text	0x00003E18	0xBC	st1_1/r101.cpp	global	countActiveWork__t8cManager1Z6cLight	cManager<cLight>::countActiveWork
+.text	0x00003ED4	0x158	st1_1/r101.cpp	global	create__t8cManager1Z6cLighti	cManager<cLight>::create
 .text	0x0000402C	0x178	st1_1/r102.cpp	global	R102Init__Fv	R102Init
 .text	0x000041A4	0x4	st1_1/r102.cpp	global	R102Main__Fv	R102Main
 .text	0x000041A8	0x198	st1_1/r102.cpp	local	r102_execEvent00	r102_execEvent00
@@ -153,11 +153,11 @@ section	offset	size	unit	scope	name	demangled
 .text	0x0000C550	0x3B8	st1_1/r106.cpp	global	fn_st1_1_C550	.
 .text	0x0000C908	0x16C	st1_1/r107.cpp	global	R107Init__Fv	R107Init
 .text	0x0000CA74	0x20	st1_1/r107.cpp	global	R107Main__Fv	R107Main
-.text	0x0000CA94	0x94	st1_1/r107.cpp	local	r107_setFish	r107_setFish
-.text	0x0000CB28	0x150	st1_1/r107.cpp	global	r104_openKiln_main	r104_openKiln_main
-.text	0x0000CC78	0x24	st1_1/r107.cpp	local	r104_openedKiln	r104_openedKiln
-.text	0x0000CC9C	0x24	st1_1/r107.cpp	local	r104_openKiln	r104_openKiln
-.text	0x0000CCC0	0x70	st1_1/r107.cpp	local	r107_checkBgmPlay	r107_checkBgmPlay
+.text	0x0000CA94	0x94	st1_1/r107.cpp	local	r107_setFish__Fv	r107_setFish
+.text	0x0000CB28	0x150	st1_1/r107.cpp	global	r104_openKiln_main__Fii	r104_openKiln_main
+.text	0x0000CC78	0x24	st1_1/r107.cpp	local	r104_openedKiln__Fi	r104_openedKiln
+.text	0x0000CC9C	0x24	st1_1/r107.cpp	local	r104_openKiln__Fi	r104_openKiln
+.text	0x0000CCC0	0x70	st1_1/r107.cpp	local	r107_checkBgmPlay__Fv	r107_checkBgmPlay
 .text	0x0000CD30	0x3B8	st1_1/r107.cpp	global	fn_st1_1_CD30	.
 .text	0x0000D0E8	0x188	st1_1/r108.cpp	global	R108Init__Fv	R108Init
 .text	0x0000D270	0x4	st1_1/r108.cpp	global	R108Main__Fv	R108Main
@@ -177,7 +177,7 @@ section	offset	size	unit	scope	name	demangled
 .text	0x0000E130	0x3B8	st1_1/r108.cpp	global	fn_st1_1_E130	.
 .text	0x0000E4E8	0x278	st1_1/r109.cpp	global	R109Init__Fv	R109Init
 .text	0x0000E760	0x4	st1_1/r109.cpp	global	R109Main__Fv	R109Main
-.text	0x0000E764	0x180	st1_1/r109.cpp	global	koya_init	koya_init
+.text	0x0000E764	0x180	st1_1/r109.cpp	global	koya_init__Fv	koya_init
 .text	0x0000E8E4	0x3B8	st1_1/r109.cpp	global	fn_st1_1_E8E4	.
 .text	0x0000EC9C	0x168	st1_1/r10a.cpp	global	EmSetNormal	EmSetNormal
 .text	0x0000EE04	0xC8	st1_1/r10a.cpp	global	EmSetZouenA	EmSetZouenA

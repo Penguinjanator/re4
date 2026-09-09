@@ -1351,4 +1351,6 @@ MATCHING.update({
     "lib/sfd_trn.c": True,
     "lib/lsc_svr.c": True,
     "lib/mwsfdsvm.c": True,
+    "lib/sfx_YCC420PLN_to_Y84C44.c": True,
+    "lib/mpv_bdec.c": True,
 })

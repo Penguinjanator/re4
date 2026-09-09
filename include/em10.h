@@ -65,7 +65,7 @@ struct Em10Work {
     Vec startPos;         // 0x4C8 (0x8A8)  pos at init
     f32 startRotY;        // 0x4D4 (0x8B4)  rot.y at init
     Vec x4D8;             // 0x4D8 (0x8B8)
-    u32 x4E4;             // 0x4E4 (0x8C4)
+    class cObjLadder* pLadder;  // 0x4E4 (0x8C4)  ladder being climbed / reset
     void* pSwitch;        // 0x4E8 (0x8C8)  setSwitch
     Vec x4EC;             // 0x4EC (0x8CC)
     Vec x4F8;             // 0x4F8 (0x8D8)
@@ -84,8 +84,8 @@ struct Em10Work {
     Vec x534;             // 0x534 (0x914)
     Vec x540;             // 0x540 (0x920)
     Vec x54C;             // 0x54C (0x92C)
-    u32 x558;             // 0x558 (0x938)
-    u32 x55C;             // 0x55C (0x93C)
+    class cEmWindow* pWindow;  // 0x558 (0x938)  window the Ganado breaks (em10_R1_WindowAtk)
+    cEm* pTruck;          // 0x55C (0x93C)  truck enemy model the Ganado drives (em10SearchTruck)
     class cObjGondola* pGondola;  // 0x560 (0x940)  em10GetGondola (room 10F)
     u32 x564;             // 0x564 (0x944)
     class cObjGatling* pGatling;  // 0x568 (0x948)
@@ -243,7 +243,7 @@ public:
     virtual void v58();
     virtual int v60();
     virtual void v68();
-    virtual void v70();
+    virtual int v70();
     virtual void v78();
     virtual int v80();
     virtual void v88(Vec* pos, f32 range);

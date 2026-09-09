@@ -165,11 +165,11 @@ void cSubChar::init()
         s->lockOfs.z = 0.0f;
     }
     subSelf->setStatus(1);
-    subFlags |= 0x40;
-    subFlags &= 0xFFF4;
     subAux0 = 0;
     subAux1 = 0;
     sub580 = 0;
+    subFlags |= 0x40;
+    subFlags &= 0xFFF4;
     sub550 = 0;
     be_flag |= 0x02200000;
     AtariOn(&atari, 0x300);
@@ -2269,12 +2269,12 @@ int cSubChar::plDownCheck()
 int cSubChar::fanceCheck()
 {
     Vec a = { 0.0f, 400.0f, -300.0f };
-    Vec b = { 0.0f, 400.0f, 600.0f };
-    Vec hit;
-    Vec nrm;
 
     PSMTXMultVec(subSelf->mat, &a, &a);
+    Vec b = { 0.0f, 400.0f, 600.0f };
     PSMTXMultVec(subSelf->mat, &b, &b);
+    Vec hit;
+    Vec nrm;
     if (!(SatMgr.hitCheck(&a, &b, &hit, &nrm, 0, 0) & 0x20)) {
         return 0;
     }
@@ -3370,20 +3370,22 @@ void cSubChar::damageCheck()
     }
     interrupt();
     switch (dmWep) {
-    default:
-        dmType = 1;
+    default: {
+        u8 one = 1;
+        dmType = one;
         LifeDownSet2(this, 9999, 0, 0);
         if (pG->flags_5010 & 8) {
-            SubRoutineSet(this, 1, 0, 0, 0);
+            SubRoutineSet(this, one, 0, 0, 0);
             subHideMode = 11;
         } else if ((s16) pG->sub_life > 0) {
-            SubRoutineSet(this, 1, 0, 0, 0);
+            SubRoutineSet(this, one, 0, 0, 0);
             subHideMode = 2;
         } else {
             dmType = 0x80;
             SubRoutineSet(this, 2, 0, 0, 0);
         }
         break;
+    }
     case 0xD:
     case 0x12:
     case 0x13:

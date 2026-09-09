@@ -9,6 +9,9 @@
 
 extern "C" void* memset(void* dst, int c, unsigned int n);
 
+// int store through a reference (keeps the following loads below it, like global.h BitOn)
+static inline void IntSet(int& d, int v) { d = v; }
+
 // Room-script enemy handle (include/em_wrap.h): the first object of every stage REL (st1_0..st4_0). No
 // __FILE__ string: the file name is not in the binary. The original REL link dead-stripped the members no
 // room of the module calls (config/G4BE08/modules.py STRIP_UNUSED), leaving their strings and constant
@@ -158,8 +161,8 @@ void cEmGuard::TaskMove(cEmGuard* g)
                 break;
             }
         } else if (g->alerted != 1) {
-            ISet(g->alerted, 1);
-            ISet(g->step, 0);
+            IntSet(g->alerted, 1);
+            IntSet(g->step, 0);
             em->setGoto(&pPL->pos, 0);
             em->setCharacter(0);
             em->setGuard_r(g->guard_r);

@@ -457,6 +457,9 @@ extern "C" int sprintf(char* buf, const char* fmt, ...);
 extern cEm* pPLem asm("pPL");
 extern "C" void memclr_asm(void* p, u32 size);
 extern "C" unsigned int strlen(const char* s);
+// The list index is stored through a reference in emlist_r0_target: the store then keeps the
+// following `pG` loads in the search loops (a plain member store lets them hoist).
+static inline void ISet(int& d, int v) { d = v; }
 
 // The editor's view of a list entry (em_set.h EmListData with signed hp / x1A: the tool prints them
 // with lha).
@@ -526,6 +529,15 @@ static void emlist_r0_load();
 static void emlist_r0_clear();
 static void emlist_r0_sort();
 static void emlist_r0_set_exit();
+
+// The original object carries 0x34 bytes of uninitialised static data members, which g++ 2.95 emits
+// as COMMON (snmakerel appends them behind .bss; nothing references them, so their names and the
+// header that defined them are unknown — probably `Mtx IDSystem::m_scrn_mat` (0x30, the block every
+// em module has) plus one word). Reproduced as one COMMON object of that size.
+struct EmListCommon {
+    static u8 block[0x34];
+};
+u8 EmListCommon::block[0x34];
 
 // The work pointer is a struct member: every store through it reloads the pointer.
 struct EmListCtrl {
@@ -798,7 +810,6 @@ static void emlist_r0_target()
 {
     Vec v;
     EmListEnt* p = EMLIST_ENT(EmList.wk->listNo);
-    int old;
     int i;
 
     switch (EmList.wk->step) {
@@ -822,7 +833,7 @@ static void emlist_r0_target()
             break;
         }
         if (EmList.wk->joy.rep2 & JOY_L) {
-            old = EmList.wk->listNo;
+            int old = EmList.wk->listNo;
             if (EmList.wk->listNo > 0) {
                 do {
                     EmList.wk->listNo--;
@@ -843,7 +854,7 @@ static void emlist_r0_target()
             emlistCursorToTarget();
         }
         if (EmList.wk->joy.rep2 & JOY_R) {
-            old = EmList.wk->listNo;
+            int old = EmList.wk->listNo;
             if (EmList.wk->listNo <= 0xFD) {
                 do {
                     EmList.wk->listNo++;
@@ -1054,7 +1065,7 @@ static void emlist_r0_target()
         }
         if (!(EmList.wk->joy.on & JOY_A)) {
             if (EmList.wk->joy.rep2 & JOY_L) {
-                old = EmList.wk->listNo;
+                int old = EmList.wk->listNo;
                 if (EmList.wk->listNo > 0) {
                     do {
                         EmList.wk->listNo--;
@@ -1075,7 +1086,7 @@ static void emlist_r0_target()
                 emlistCursorToTarget();
             }
             if (EmList.wk->joy.rep2 & JOY_R) {
-                old = EmList.wk->listNo;
+                int old = EmList.wk->listNo;
                 if (EmList.wk->listNo <= 0xFD) {
                     do {
                         EmList.wk->listNo++;
@@ -1096,17 +1107,16 @@ static void emlist_r0_target()
                 emlistCursorToTarget();
             }
         } else {
+            // both rotations pick the step from the A button; in the L arm the compiler knows A is held
+            // (else branch), which only leaves pi/64's constant-pool entry behind
             if (EmList.wk->joy.on & JOY_L) {
-                p->rot[1] = (s16) (LIMIT_ANGLE((f32) (s16) p->rot[1] * (3.1415927f / 16384.0f) + 3.1415927f / 32.0f) *
-                                   (16384.0f / 3.1415927f));
+                f32 ang = (f32) (s16) p->rot[1] * (3.1415927f / 16384.0f);
+                ang += (EmList.wk->joy.on & JOY_A) ? 3.1415927f / 32.0f : 3.1415927f / 64.0f;
+                p->rot[1] = (s16) (LIMIT_ANGLE(ang) * (16384.0f / 3.1415927f));
             }
             if (EmList.wk->joy.on & JOY_R) {
                 f32 ang = (f32) (s16) p->rot[1] * (3.1415927f / 16384.0f);
-                if (EmList.wk->joy.on & JOY_A) {
-                    ang -= 3.1415927f / 32.0f;
-                } else {
-                    ang -= 3.1415927f / 64.0f;
-                }
+                ang -= (EmList.wk->joy.on & JOY_A) ? 3.1415927f / 32.0f : 3.1415927f / 64.0f;
                 p->rot[1] = (s16) (LIMIT_ANGLE(ang) * (16384.0f / 3.1415927f));
             }
         }
@@ -2109,7 +2119,7 @@ void emlist_file_menu_disp()
 
     x = 0x28;
     y = 0xC8;
-    for (i = 0; i <= 30; i++, y += 0x10) {
+    for (i = 0; i <= 30; y += 0x10, i++) {
         if (i == 11 || i == 21) {
             x += 0xA0;
             y = 0xD8;
@@ -2140,28 +2150,28 @@ void emlist_file_menu_disp()
                         eprintf(x, y, col, 0, "emlen%02d.esl", i - 11);
                         break;
                     case 0:
-                        eprintf(x, y, col, 0, "Stage 1 Day", i - 11);
+                        eprintf(x, y, col, 0, "Stage 1 Day");
                         break;
                     case 1:
-                        eprintf(x, y, col, 0, "Stage 1 Night", i - 11);
+                        eprintf(x, y, col, 0, "Stage 1 Night");
                         break;
                     case 2:
-                        eprintf(x, y, col, 0, "Stage 2 -1st-", i - 11);
+                        eprintf(x, y, col, 0, "Stage 2 -1st-");
                         break;
                     case 3:
-                        eprintf(x, y, col, 0, "Stage 2 -2nd-", i - 11);
+                        eprintf(x, y, col, 0, "Stage 2 -2nd-");
                         break;
                     case 4:
-                        eprintf(x, y, col, 0, "Stage 2 -3rd-", i - 11);
+                        eprintf(x, y, col, 0, "Stage 2 -3rd-");
                         break;
                     case 5:
-                        eprintf(x, y, col, 0, "Stage 2 -4th-", i - 11);
+                        eprintf(x, y, col, 0, "Stage 2 -4th-");
                         break;
                     case 6:
-                        eprintf(x, y, col, 0, "Stage 3 -1st-", i - 11);
+                        eprintf(x, y, col, 0, "Stage 3 -1st-");
                         break;
                     case 7:
-                        eprintf(x, y, col, 0, "Stage 3 -2nd-", i - 11);
+                        eprintf(x, y, col, 0, "Stage 3 -2nd-");
                         break;
                     }
                 }

@@ -25,7 +25,7 @@ section	offset	size	unit	scope	name	demangled
 .text	0x00002118	0xF8	em27/em27.cpp	global	em27MotionMoveScale	em27MotionMoveScale
 .text	0x00002210	0x1B0	em27/em27.cpp	global	em27WaterEffSet	em27WaterEffSet
 .text	0x000023C0	0x90	em27/em27.cpp	global	em27JumpCk	em27JumpCk
-.text	0x00002450	0x14	em27/em27.cpp	global	cEm27_setWaterHeight	cEm27::setWaterHeight
+.text	0x00002450	0x14	em27/em27.cpp	global	setWaterHeight__5cEm27f	cEm27::setWaterHeight
 .text	0x00002464	0x4	em27/em27.cpp	global	cUnit_beginEvent	cUnit::beginEvent
 .text	0x00002468	0x4	em27/em27.cpp	global	cUnit_endEvent	cUnit::endEvent
 .text	0x0000246C	0x20	em27/em27.cpp	global	cEm27_dt_cEm27	cEm27::~cEm27

@@ -31,6 +31,12 @@ typedef struct {
 	Sint32 nbyte;        /* 0x2C */
 } MPV_FRM;
 
+/* run/level VLC table selector (mpv_bdec.c) */
+typedef struct {
+	Uint32 *tbl;
+	Sint32 bits;
+} MPV_RUNLEVEL;
+
 typedef struct MPV_OBJ *MPV;
 
 typedef struct MPV_OBJ {
@@ -58,7 +64,12 @@ typedef struct MPV_OBJ {
 	Uint8 pad2C0[0x358 - 0x2C0];
 	Sint32 m2v_mode;                /* 0x358 */
 	Uint8 pad35C[0xD00 - 0x35C];
-	Uint8 work[1];                  /* 0xD00 */
+	Uint8 work[0x1100 - 0xD00];     /* 0xD00 */
+	Uint16 bitmsk[16];              /* 0x1100 */
+	Sint8 zigzag[64];               /* 0x1120 */
+	Uint8 pad1160[0x1260 - 0x1160];
+	Uint8 group_tbl[32];            /* 0x1260 */
+	MPV_RUNLEVEL rl[6];             /* 0x1280 */
 } MPV_OBJ;
 
 Sint32 MPVLIB_CheckHn(MPV_OBJ *mpv);

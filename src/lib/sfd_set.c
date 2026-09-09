@@ -80,6 +80,7 @@ Sint32 SFD_SetCond(SFD sfd, Sint32 id, Sint32 val)
 	SFD hn;
 
 	if (sfd == NULL) {
+		/* OPEN: target allocates hn to r31 and the hoisted id*4 to r28 (ours the reverse). */
 		p = SFLIB_libwork.hn;
 		for (i = 0; i < 8; i++, p++) {
 			hn = *p;

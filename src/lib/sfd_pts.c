@@ -24,15 +24,36 @@ Sint32 SFPTS_IsPtsQueFull(SFD sfd, Sint32 strm)
 	return PQ(sfd, strm).cnt >= PQ(sfd, strm).num;
 }
 
+static Sint32 sfpts_SearchPts(SFPTS_ENT *ent, Sint32 idx, Sint32 cnt, Sint32 num, Uint32 pos, Uint32 ofst,
+			      Uint32 size, Uint32 end)
+{
+	Uint32 st;
+	Uint32 en;
+	Sint32 i;
+
+	for (i = 0; i < cnt; i++) {
+		st = ent[idx].pos;
+		en = ent[idx].pos + ent[idx].len;
+		if (en <= end) {
+			if (st <= pos && pos < en) {
+				return i;
+			}
+		} else {
+			if ((st <= pos && pos < end) || (ofst <= pos && pos < en - size)) {
+				return i;
+			}
+		}
+		idx = sfpts_Wrap(idx + 1, num);
+	}
+	return -1;
+}
+
 Sint32 SFPTS_ReadPtsQue(SFD sfd, Sint32 strm, Uint32 pos, SFPTS_ENT *out)
 {
-	SFBUF_WORK *bw;
 	SFPTS_ENT *ent;
 	Uint32 ofst;
 	Uint32 size;
 	Uint32 end;
-	Uint32 st;
-	Uint32 en;
 	Sint32 cnt;
 	Sint32 num;
 	Sint32 idx;
@@ -40,10 +61,9 @@ Sint32 SFPTS_ReadPtsQue(SFD sfd, Sint32 strm, Uint32 pos, SFPTS_ENT *out)
 	Sint32 i;
 
 	out->pts = -1;
-	bw = &sfd->buf[strm];
-	ent = bw->ptsque.ent;
-	ofst = bw->ofst;
-	size = bw->size;
+	ent = PQ(sfd, strm).ent;
+	ofst = sfd->buf[strm].ofst;
+	size = sfd->buf[strm].size;
 	if (ent == NULL) {
 		return 0;
 	}
@@ -51,35 +71,16 @@ Sint32 SFPTS_ReadPtsQue(SFD sfd, Sint32 strm, Uint32 pos, SFPTS_ENT *out)
 	if (pos >= end) {
 		pos -= size;
 	}
-	cnt = bw->ptsque.cnt;
+	cnt = PQ(sfd, strm).cnt;
 	if (cnt != 0) {
-		rd = bw->ptsque.rd;
-		num = bw->ptsque.num;
-		idx = rd;
-		for (i = 0; i < cnt; i++) {
-			st = ent[idx].pos;
-			en = ent[idx].pos + ent[idx].len;
-			if (en <= end) {
-				if (st <= pos && pos < en) {
-					goto found;
-				}
-			} else {
-				if (st <= pos && pos < end) {
-					goto found;
-				}
-				if (ofst <= pos && pos < en - size) {
-					goto found;
-				}
-			}
-			idx = sfpts_Wrap(idx + 1, num);
-		}
-		i = -1;
-found:
+		num = PQ(sfd, strm).num;
+		rd = PQ(sfd, strm).rd;
+		i = sfpts_SearchPts(ent, rd, cnt, num, pos, ofst, size, end);
 		if (i != -1) {
 			idx = sfpts_Wrap(rd + i, num);
-			bw->ptsque.cnt -= i;
-			bw->ptsque.rd = idx;
-			*out = bw->ptsque.ent[idx];
+			PQ(sfd, strm).cnt -= i;
+			PQ(sfd, strm).rd = idx;
+			*out = PQ(sfd, strm).ent[idx];
 		}
 	}
 	return 0;
