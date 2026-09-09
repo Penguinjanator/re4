@@ -12,7 +12,14 @@
 # register all stage-2 room Init/Main pairs in St2_data_tbl, then the SN REL entry points _prolog
 # (ctors, setTbl), _epilog (dtors) and _unresolved (HALT)). st1_*/st4_0 have st1.cpp/st4.cpp the same way.
 _ST2 = ("st2.cpp", "set", "st2/st2.cpp")
+_ST1 = ("st1.cpp", "set", "st1/st1.cpp")
 UNITS = {
+    "st1_1": [("st1_1/st1_1.cpp", None), ("st1_1/" + _ST1[0], *_ST1[1:])],
+    "st1_2": [("st1_2/st1_2.cpp", None), ("st1_2/" + _ST1[0], *_ST1[1:])],
+    "st1_3": [("st1_3/st1_3.cpp", None), ("st1_3/" + _ST1[0], *_ST1[1:])],
+    # st1_0: r100.cpp (village) with its cManager<cLight>/cUnit linkonce copies, r120.cpp (the cabin cutscene
+    # rooms; its nameless cManager<cLight> block follows it), then st1.cpp
+    "st1_0": [("st1_0/r100.cpp", None), ("st1_0/r120.cpp", "R120Init"), ("st1_0/" + _ST1[0], *_ST1[1:])],
     "st2_0": [("st2_0/st2_0.cpp", None), ("st2_0/" + _ST2[0], *_ST2[1:])],
     "st2_1": [("st2_1/st2_1.cpp", None), ("st2_1/" + _ST2[0], *_ST2[1:])],
     "st2_2": [("st2_2/st2_2.cpp", None), ("st2_2/" + _ST2[0], *_ST2[1:])],
@@ -24,6 +31,12 @@ UNITS = {
     # tools.cpp (D:/Bio4/Prog/tools.cpp: _prolog runs the ctors and ToolsTask, which dispatches
     # DebugMenuSelected to the Tool* entry of every tool module). Each object that includes light.h
     # carries its own cManager<cLight> instantiations behind its code (see LINKONCE below).
+    # tools.cpp is also the last object of t_camera/t_light/t_sce/t_event (same bytes); t_esp/Tools/t_id
+    # have their linkonce orphan sections behind it and t_movie has other objects after it.
+    "t_camera": [("t_camera/t_camera.cpp", None), ("t_camera/tools.cpp", "_prolog", "tools/tools.cpp")],
+    "t_light": [("t_light/t_light.cpp", None), ("t_light/tools.cpp", "_prolog", "tools/tools.cpp")],
+    "t_sce": [("t_sce/t_sce.cpp", None), ("t_sce/tools.cpp", "_prolog", "tools/tools.cpp")],
+    "t_event": [("t_event/t_event.cpp", None), ("t_event/tools.cpp", "_prolog", "tools/tools.cpp")],
     "t_emlist": [
         ("t_emlist/t_emlist.cpp", None),
         ("t_emlist/t_prim.cpp", "TprimInitEnv2D3D", "tools/t_prim.cpp"),
@@ -53,6 +66,10 @@ for _em in ["em10", "em11", "em12", "em13", "em14", "em15", "em16", "em17", "em1
 
 # Units whose compiled object replaces the split object in the REL link.
 MATCHING = {
+    "st1_0/st1.cpp": True,
+    "st1_1/st1.cpp": True,
+    "st1_2/st1.cpp": True,
+    "st1_3/st1.cpp": True,
     "st2_0/st2.cpp": True,
     "st2_1/st2.cpp": True,
     "st2_2/st2.cpp": True,
@@ -61,4 +78,8 @@ MATCHING = {
     "t_emlist/t_prim.cpp": True,
     "t_emlist/t_util.cpp": True,
     "t_emlist/tools.cpp": True,
+    "t_camera/tools.cpp": True,
+    "t_light/tools.cpp": True,
+    "t_sce/tools.cpp": True,
+    "t_event/tools.cpp": True,
 }

@@ -1330,4 +1330,10 @@ MATCHING.update({
     "lib/sfx_cnv_to_ARGB8888PLN.c": True,
     "lib/mwsfx_Y84C44.c": True,
     "lib/mwsfx_ARGB8888PLN.c": True,
+    "lib/mpv_get.c": True,
+    "lib/dummy.c": True,
+    "lib/sfd_vom.c": True,
+    "lib/mps_get.c": True,
+    "lib/adx_rnaa.c": True,
+    "lib/adx_amp.c": True,
 })

@@ -10,13 +10,11 @@ S for local symbols), which is out of the 16-bit range for anything but tiny mod
 every conditional branch as `.text + offset`, so the rewrite also makes the split objects look like
 assembler output. Compiled objects are linked as they are.
 
-After the link the ADDR32/ADDR16* fields of relocations against GLOBAL/WEAK symbols defined in the
-module are reset to the addend: the original linker left those fields as the compiler wrote them (A;
-the debug RELs show field 0 for every global in a displaced section, e.g. t_util's flag backups in
-t_emlist/t_light) while ngcld 3.9.3 -r adds the symbol's input-section displacement (field = disp + A
-for globals, S + A for locals). Local symbols already come out as S + A, like the original. Nothing
-changes for a module whose globals all sit in the first input section of their kind (displacement 0),
-which is every single-object module.
+After the link, relocations against absolute symbols (the linker script's GXWGFifo) are applied and
+their RELA entries removed: ngcld -r keeps them unresolved, the original RELs carry the final
+`lis 0xCC01` / `-0x8000` words and no relocation there (snmakerel resolved them). The other field
+difference to the original link (ngcld adds the input-section displacement of a global symbol to
+ADDR16/32 fields, the original left the plain addend) is handled by tools/make_rel.py.
 """
 import os
 import shutil
@@ -62,13 +60,9 @@ def field_bytes(kind: int, value: int) -> bytes:
     return struct.pack('>H', value & 0xFFFF)
 
 
-def reset_global_fields(path: str) -> int:
-    """Two things the original link did that ngcld 3.9.3 -r does not:
-    * the relocated field of an ADDR32/ADDR16* relocation against a defined GLOBAL/WEAK symbol holds the
-      plain addend (ngcld adds the symbol's input-section displacement);
-    * relocations against absolute symbols (the linker script's GXWGFifo) are applied and dropped (the
-      RELA entries are removed; ngcld keeps them unresolved, and the RELs carry no relocation there).
-    Returns the number of fields changed."""
+def resolve_absolute_relocs(path: str) -> int:
+    """Apply and drop every ADDR32/ADDR16* relocation against an SHN_ABS symbol (the script's GXWGFifo).
+    Returns the number of relocations resolved."""
     elf = elffile.Elf(path)
     data = bytearray(open(path, 'rb').read())
     changed = 0
@@ -85,19 +79,13 @@ def reset_global_fields(path: str) -> int:
             off, info, addend = struct.unpack('>IIi', entry)
             kind = info & 0xFF
             sym = elf.symbols[info >> 8]
-            pos = target.offset + off
-            if kind in (R_PPC_ADDR32, R_PPC_ADDR16, R_PPC_ADDR16_LO, R_PPC_ADDR16_HI, R_PPC_ADDR16_HA):
-                if sym.shndx == elffile.SHN_ABS:
-                    want = field_bytes(kind, sym.value + addend)
-                    data[pos:pos + len(want)] = want
-                    changed += 1
-                    dropped += 1
-                    continue
-                if sym.bind in (elffile.STB_GLOBAL, elffile.STB_WEAK) and sym.shndx not in (elffile.SHN_UNDEF, elffile.SHN_COMMON):
-                    want = field_bytes(kind, addend)
-                    if data[pos:pos + len(want)] != want:
-                        data[pos:pos + len(want)] = want
-                        changed += 1
+            if kind in (R_PPC_ADDR32, R_PPC_ADDR16, R_PPC_ADDR16_LO, R_PPC_ADDR16_HI, R_PPC_ADDR16_HA) and sym.shndx == elffile.SHN_ABS:
+                pos = target.offset + off
+                want = field_bytes(kind, sym.value + addend)
+                data[pos:pos + len(want)] = want
+                changed += 1
+                dropped += 1
+                continue
             kept += entry
         if dropped:
             # shrink the RELA section in place (the tail bytes stay unused in the file)
@@ -146,7 +134,7 @@ def main() -> int:
     if res.returncode != 0 and os.path.exists(out_path):
         os.remove(out_path)
     if res.returncode == 0:
-        reset_global_fields(out_path)
+        resolve_absolute_relocs(out_path)
     return res.returncode
 
 

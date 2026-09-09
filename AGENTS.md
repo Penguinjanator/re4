@@ -1454,9 +1454,38 @@ MWCC idioms seen so far (2.4.7, -O4,p):
   (`Uint8 *p = dat`) is allocated after the other parameters (sud_lib).
 - 8-byte-aligned structs are copied with `lfd/stfd` pairs, 4-byte-aligned ones with `lwz/stw`
   (mps_get).
+- Error returns: `b end` straight after a `bl SFLIB_SetErr` with no `li r3` = `return SFLIB_SetErr(..)`
+  (the callee's result is returned); `beqlr` after a NULL test = `return p;` not `return NULL;`.
+- A `switch` with one live case and `beq case; bge default; b default` has a second case label that
+  shares the default body (`case 2: default:`); `beq case; b default` is a lone case.
+- A `mtctr n; loop; ... li r3,0` search with an early exit to the code after it is an inlined
+  `static` helper `for (...) { if (p->used == 0) return p; p++; } return NULL;`.
+- 32-byte struct copies are unrolled `lwz/stw` pairs, 128-byte ones become a `mtctr 16` loop of
+  `lwz/lwzu/stw/stwu` with both pointers pre-decremented by 4 (`subi r5,rDst,4`).
+- Division by a constant: `mulhw M; add; srawi s` with a "negative" magic means the unsigned magic
+  M gives d = 2^(32+s)/M (mpv_get: 0x91A2B3C5, s=10 → /1800).
+- `crclr cr1eq` before a `bl` = the callee is variadic (`MWSFSVM_Error(const Char8 *fmt, ...)`).
+- Register order of callee-saved variables is neither declaration nor first-use order (mpv_frm
+  `MPV_SkipFrmSj`: original mpv=r31, code=r30, sj=r29, ours r29/r31/r30; sfd_uo `SFUO_Create`
+  reuses the `uo` register as the stepping induction pointer; sfx_alp `SFXA_Create` constant
+  registers) — OPEN, all statement permutations of SFXA_Create's init block were brute-forced.
 - OPEN (mpv_cmc `MPVCMC_InitMcOiRt/InitObj`): the original keeps `addi r5,r3,0x124` as a separate
   base for six `stw off(r5)` stores into a member array while every source form tried (pointer local,
   loops, casts, volatile, inline helper) folds the offsets into `r3`.
+
+### SN libsn / ProDG runtime units (`lib/dummy`, `tealeaf`, `FSasync`, `sndvd`, `fileserver`, `crt0`, ...)
+
+`dummy` (stdio syscall stubs), `tealeaf` (`__cvt_fp2unsigned`, `__va_arg`, `__div2i`-style aliases
+that `b` to libgcc) and `FSasync` are GCC 2.95 -O2 like the game (`stwu -8; mflr; stw r0,0xc`, `stmw`,
+`first.183` statics, r9/r11 temporaries) but with **no small data** (`LIBSN_UNITS` in configure.py:
+`cflags_game + -G 0`, `strip_unused.py --gcc`). `proview`, `ppcdown`, `fileserver` (`addi r31,r4,0`
+copies, `lis rX,sym@h; nop`), `eabi` (`_savefpr_14/_restfpr_14`) and `__start` (`.init`) are hand-written
+assembly; `crt0` is only the data half of that assembly (two 32-byte message buffers, the libsn
+version words, `LinkFiddle = {__mod2i, 0}`); `crtbegin` is `.ctor/.dtor` `-1` sentinels;
+`builtin-delete` is SN's libstdc++ `operator new/delete` warning unit (C++, everything stripped but
+the `bad_alloc` type-info name and the four warning strings). The split object's `.data` alignment
+(dtk reports 2**3) is what the DOL layout needs: a GCC object with a 4-aligned `.data` shifts every
+following `.data` unit by 4 (dummy: `asm(".section .data\n\t.balign 8\n\t.section .text")`).
 
 ## REL modules
 
@@ -1525,7 +1554,7 @@ like the DOL.
   variants), then their own `"D:/Bio4/Prog/emXX.cpp"`, and share only cUnit's inline
   `beginEvent`/`endEvent`/`~cUnit`/`operator delete` (byte-identical, at the end).
 - Compiler flags: `cflags_game` + `-G 0` (no small data in RELs: every DOL global goes through
-  `lis/addi`). No `fold_linkonce`/`strip_unused` post-build yet for module units.
+  `lis/addi`). Post-build: `fold_linkonce.py --module <mod>` (see "Multi-object modules" below); no strip_unused (nothing is dead-stripped in a -r link).
 - Toolchain: the original RELs came out of `ngcld -r` followed by SN's `snmakerel` (Nintendo's makerel
   port). We do the same: `tools/link_rel.py` links the units with `ngcld -r -T config/G4BE08/rel_ldscript.ld`
   (SN's preplf.ld layout: every section at 0, `_ctors`/`_dtors` labels and the `LONG(0)` terminators come
@@ -1596,15 +1625,56 @@ Then `MATCHING["st2_4/r22c.cpp"] = True` in `config/G4BE08/modules.py`, `python3
    is a new snmakerel/ngcld case for `tools/make_rel.py` (the `--verify` output names the region);
    never patch bytes by hand.
 
+### Multi-object modules (t_emlist, st1_0, the tool modules)
+
+- Unit boundaries from the `.sym`: the `"D:/Bio4/Prog/<file>.cpp"` HALT strings, function-name prefixes
+  and the `.rodata` header-string groups (`light.h`/`atari.h`/... appear once per object that includes
+  them, at parse time, i.e. before that object's function strings; template strings at the object's end).
+  t_emlist = t_emlist.cpp (0x0..0x6388), t_prim.cpp (0x6388), t_util.cpp (0x6B2C), tools.cpp (0x7330);
+  st1_0 = r100.cpp, r120.cpp (0x40B0), st1.cpp (0x5D28). Data the code never addresses (header strings,
+  `.data` of a dead inline) is assigned with the 4th UNITS element `{".rodata": start, ".data": start}`.
+- Shared sources: `src/tools/tools.cpp` (`_prolog` = ctors + `ToolsTask()`, the `DebugMenuSelected`
+  switch of 23 Tool* entries, `_unresolved` HALT at line 142; the headers are included *after* the
+  functions — its `.rodata` has the entry-point strings before atari.h/light.h/event.h/ctrl.h) is the
+  last object of every tool module (byte-identical in t_emlist/t_camera/t_light/t_sce/t_event; in
+  t_esp/Tools/t_id the linkonce orphan sections follow it, t_movie has more objects after it).
+  `src/st1/st1.cpp` (29 rooms, HALT line 144) ends st1_0..st1_3. `src/tools/t_prim.cpp` / `t_util.cpp`
+  are the full versions of the DOL's dead-stripped game/t_prim, game/t_util (different builds per tool
+  module: t_light's t_util has only Init/QuitDefault, t_camera's t_prim only 5 functions).
+- Linkonce in the module link (`fold_linkonce.py --module`): `ngcld -r` kept *every* object's
+  `.gnu.linkonce.t.*` copies, appended to that object's .text in emission order, and the weak names
+  resolve to the module's first copy — the `.sym` names only that copy, later copies are nameless
+  `fn_<mod>_<off>` blocks (0x3B8 = log/countActiveWork/create(int)/create()/create(int,u32) of
+  `cManager<cLight>` for every object that merely includes light.h). The fold keeps the copies the
+  module sym_map names for the unit (demangled name + size) or, for a unit with none named, all of
+  them as nameless code with weak-undefined symbols. The first copy's body set is *not* what our
+  compiler emits for the same include set (t_emlist.cpp has countActiveWork + create(int) only, ours
+  gives 5): the fold drops the rest, sizes decide.
+- `sync_rel_symbols.py` resolves overloads by size: a mangled name already carried by a DOL or module
+  sym_map row (`create__t8cManager1Z6cLighti` = 0x158) only claims a placeholder of that size, and an
+  entry that already carries another mangled name is never renamed (message "left alone").
+- Field rules seen with displaced sections: a *global* symbol's ADDR16/32 field is A (make_rel writes it
+  back), a *local*'s is S+A — so scopes are visible: t_util's `globalCamera` is `static` (field 0x140),
+  its five flag backups are globals (field 0), t_prim's Vrect/Orect/FlipMode/`bl` are statics.
+- `GXWGFifo` (absolute, `include/gx.h`) is defined in `config/G4BE08/rel_ldscript.ld` too; ngcld -r keeps
+  the relocations against it, `tools/link_rel.py` applies and drops them after the link (the RELs have
+  the final `lis 0xCC01`/`-0x8000` words and no relocation).
+- `.bss` of a compiled module unit is invisible to the split object compare (NOBITS); check sizes with
+  readelf, and remember unreferenced `.bss` objects survive the -r link (t_prim's 0x20 behind
+  ToolBuffer, dropped by the DOL link).
+
 ### Open
 
+- t_emlist.cpp (0x6174 of code: a 0x3E0 work block behind a global pointer reloaded after *every*
+  store — raw-offset accessors or a byte-store-heavy struct — 124 `const char*` name tables and a
+  64-entry `{char name[16]; const char** flag, *type, *set, *x}` id table, TOOL_MENU-like char[]
+  menus), st2_4/r22c.cpp, st1_0/r100.cpp + r120.cpp are split but not matched.
 - The `.drs` archives are not rebuilt by `ninja` (`tools/drs.py rebuild` does one at a time); the
   sound bank's record types 1/2 and the p0/p1 parameters are not interpreted.
-- Unit boundaries inside the big modules (Tools has ~39 source files) are not known; `fold_linkonce`/
-  `strip_unused` for module units; the `.gnu.linkonce` layout in the tool modules (their original ELFs
-  had 12 extra sections between .text and .ctors).
-- `sync_rel_symbols.py` renames one candidate per demangled name; overloads/duplicates are reported
-  and left for a hand edit of the module's symbols.txt.
+- Unit boundaries inside the big modules (Tools has ~39 source files) are not known; `strip_unused`
+  for module units (nothing is stripped in a -r link, so probably never needed); the `.gnu.linkonce`
+  orphan sections of Sscrn/t_esp/t_event/t_id/t_movie/Tools/t_sce (their original ELFs had 12 extra
+  sections between .text and .ctors, concatenated behind .text in the REL).
 
 ## Don'ts
 

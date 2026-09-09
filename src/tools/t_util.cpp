@@ -13,15 +13,15 @@
 // REL with a tool). The DOL's game/t_util.cpp is a different version of this file: there the menu drawer
 // is out of line and the cursor helpers were dead-stripped; here ToolMenuDisp_cur is an inline nobody
 // calls (its strings and statics still land in the object) and TutilMoveCursor/TutilGetScreenPos exist.
-// The flag backups are globals (the relocations against them carry no section offset).
 
 void GameStopModeEnd();
 extern "C" void GXGetProjectionv(f32* p);
 extern "C" void GXGetViewportv(f32* vp);
 extern "C" void GXProject(f32 x, f32 y, f32 z, const f32 mtx[3][4], const f32* pm, const f32* vp, f32* sx, f32* sy, f32* sz);
 
-// Copies of the pG flag words the tools modify, restored by TutilQuitDefault.
-Camera globalCamera;
+// Copies of the pG flag words the tools modify, restored by TutilQuitDefault. The camera copy is a
+// static (its relocations carry the section offset), the flag words are globals (theirs do not).
+static Camera globalCamera;
 u32 debug_flg_bak[4];   // pG->flags_60 .. flags_6C
 u32 stop_flg_bak;       // pG->flags_170
 u32 disp_flg_bak;       // pG->flags_58

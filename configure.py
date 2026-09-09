@@ -443,6 +443,11 @@ LIBM_UNITS = {
 }
 cflags_libm = [*cflags_game, "-msafe-sda", "-G 1024", "-fno-builtin", "-mstrict-align"]
 
+# SN Systems libsn (ProDG runtime: stdio stubs, debugger stub, fp/64-bit helpers): GCC 2.95 -O2 with
+# no small data (`first.183` of dummy.c sits in .data).
+LIBSN_UNITS = {f"lib/{name}.c" for name in ["dummy", "tealeaf", "FSasync", "sndvd", "fileserver", "crt0"]}
+cflags_libsn = [*cflags_game, "-G 0"]
+
 # gcc 2.95.3 libgcc2.c, one L_* section per unit (src/lib/libgcc2/ holds the verbatim sources plus
 # a tconfig.h shim). __clz_tab (256 bytes) sits in .sdata2, so -G is large here as well; functions
 # nobody referenced (__do_global_dtors, most of the exception runtime) were dropped by the linker.
@@ -563,6 +568,17 @@ for unit in UNITS:
                 name,
                 source=unit,
                 cflags=LIBGCC_CFLAGS.get(unit, cflags_libgcc),
+                post_build=[f"$python tools/strip_unused.py --gcc --unit {unit} {{out}}"],
+                post_build_implicit=[Path("tools/strip_unused.py"), Path("config") / config.version / "sym_map.tsv"],
+            )
+        )
+    elif unit in LIBSN_UNITS:
+        lib_objects.append(
+            Object(
+                status,
+                name,
+                source=unit,
+                cflags=cflags_libsn,
                 post_build=[f"$python tools/strip_unused.py --gcc --unit {unit} {{out}}"],
                 post_build_implicit=[Path("tools/strip_unused.py"), Path("config") / config.version / "sym_map.tsv"],
             )

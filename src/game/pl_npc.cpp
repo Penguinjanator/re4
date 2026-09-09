@@ -1112,11 +1112,11 @@ int cSubChar::landCheck()
     Vec nrm;
 
     PSVECAdd(&a, &pos, &a);
-    if (!SatMgr.hitCheck(&a, &pos, &hit, &nrm, 0, 0)) {
-        return 0;
+    if (SatMgr.hitCheck(&a, &pos, &hit, &nrm, 0, 0)) {
+        pos.y = hit.y;
+        return 1;
     }
-    pos.y = hit.y;
-    return 1;
+    return 0;
 }
 
 // Player damage handlers while the partner drops down a ledge (SetPlDamage).
@@ -1458,7 +1458,7 @@ void cSubChar::moveBack()
 // Routine 0 / 0xF: run the scenario's own handler (SetSubAux).
 void cSubChar::moveAux()
 {
-    ((void (*)()) subAux0)();
+    ((void (*)(cSubChar*)) subAux0)(this);
 }
 
 // Routine 0 / 0x10: run to the hide spot (SubCharCtrlHide) and duck / climb into it.
@@ -2051,7 +2051,7 @@ void cSubChar::moveDie()
 // Routine 3: the bulldozer scenario's own handler (SetSubBulldozer).
 void cSubChar::moveBull()
 {
-    ((void (*)()) subAux0)();
+    ((void (*)(cSubChar*)) subAux0)(this);
 }
 
 // Routine 5: scenario event: walk to subHidePos along the route.
@@ -2502,14 +2502,15 @@ int cSubChar::ladder2Check()
 // Drop from the partner's height to the floor 1000 ahead in direction `ang` (100000 when < 800).
 f32 cSubChar::getCliffHeight(f32 ang)
 {
+    const f32 len = 1000.0f;
     Vec v;
     Vec r;
     f32 h;
 
     r.y = ang;
-    v.z = 1000.0f;
     v.x = 0.0f;
     v.y = 300.0f;
+    v.z = len;
     r.x = 0.0f;
     r.z = 0.0f;
     RotVector(&v, &r, &v);
@@ -2623,8 +2624,8 @@ void cSubChar::backCheckSet(void* mot)
 
         MOT_SET(this, &subBackMot, mot, 0, 3, 4, 0);
         subBackMot.blendRate = rate;
-        subBackMot.flags2 |= 0x80000000;
         blendMot = &subBackMot;
+        subBackMot.flags2 |= 0x80000000;
     } else {
         blendMot = 0;
         subBackMot.blendRate = 0.0f;
@@ -3457,9 +3458,9 @@ void cSubChar::setDamage(u8 kind, int arg, f32 power, int a, int b)
         sub52C = 123.0f;
     }
     xFC = 1;
-    xFF = 0;
     xFD = 0;
     xFE = 0;
+    xFF = 0;
     subHideMode = kind;
 }
 
@@ -3759,7 +3760,8 @@ void cSubChar::interrupt()
     setFace(0);
     setHand(0);
     at->setPriority(0);
-    AtariOn(at, 0x300);
+    // Scalar (non-struct) store through the pointer: keeps the pG load below it (cAtariInfo::flags).
+    *(u16*) ((u8*) at + 0x1a) |= 0x300;
     BitOff(pG->flags_5010, 0x20000);
     BitOff16(subFlags, 0x20);
     if (subSndId) {
@@ -3779,14 +3781,14 @@ int SubCharHideCheck()
         return 0;
     }
     switch (sub->xFD) {
+    default:
+        return 0;
     case 0:
     case 1:
     case 2:
     case 5:
     case 6:
         return 1;
-    default:
-        return 0;
     }
 }
 
