@@ -2481,15 +2481,16 @@ target) stays unresolved and `make_rel` then fails with "undefined symbol".
 - db_light.cpp (src/tools/db_light.cpp: the light editor, 0x12408 of code in t_camera/t_light/t_event;
   Tools = the same object with `SetToolLight` in front (`tools/db_light_tools.cpp`, DB_LIGHT_SET_TOOL_LIGHT),
   t_esp = Tools + `cLightTool::setLogMode` (`tools/db_light_esp.cpp`, DB_LIGHT_SET_LOG_MODE); every
-  other function of those three objects is byte-identical to t_camera's) is fully written: 111 of
-  134 functions byte-identical modulo relocs (Tools 112/135, t_esp 113/136), the rest differ by
-  register assignment / `lis @ha` pseudo sharing (see the db_light idioms at the end of this file):
-  cLightTool::move (+0x10), lightAnalysis (+0x1C), draw_light_graph (-0x34), printEditTable (-0xC),
-  editColor (-0x18: the tmp/c/conv frame slots), edit_cutsel (line = i + 6 copies through a temp),
-  edit_cutsel_main (the L-block recomputes `cursor - 10`), edit_light_type_shadow_fit (-4),
-  edit_light_id_shadow / edit_light_id / edit_light_parent / spotlight / direct / parallel /
-  shadow_select_type / select_type / drawLightInfo_SpotShadow / drawPath / cLitPathTool ctor /
-  createLit / limitUpper (register or `lis` pseudo choice only). Not MATCHING anywhere yet.
+  other function of those three objects is byte-identical to t_camera's) is fully written: 128 of
+  134 functions byte-identical modulo relocs (Tools 129/135, t_esp 129/136; .rodata/.data/.bss
+  byte-equal), see the db_light idioms at the end of this file. Remaining: printEditTable (-8:
+  the flag-column `x*8` constants are cprop-folded in ours, the target keeps `x` a variable after
+  the first `"P"/"-"` diamond and has two surviving `mr rX,y` giv copies), editColor (-0x10: the
+  `tmp`/`c` 4-byte slot order — a by-value GXColor helper puts a 4-byte expansion-time temp first but
+  one per inlined call), draw_light_graph (14 words: the `%1.6f` eprintf's `li r5,0` is scheduled
+  2nd in the target and `col` gets r5 there), edit_cutsel (-4, the reverse #2/#4 `u8 line` case),
+  edit_light_id_shadow (3 words, #2 mask one call later), edit_light_parent (r8/r10 for `n`, the
+  case-2 `(id >> 16) + 101` temp untied). Not MATCHING anywhere yet.
   t_sce / t_movie (`tools/db_light_v2.cpp`, 0x1143C, unwritten): 120 of t_camera's functions are
   byte-identical there too, but the object has no cLightTool ctor/dtor/move/lightAnalysis/getCutNo,
   no cLitPathTool ctor/dtor/expand and no cVarRange/cVarLoop members except limitUpper/limitLower
@@ -2730,6 +2731,76 @@ target) stays unresolved and `make_rel` then fails with "undefined symbol".
     is not tied to `id >> 16`), lightAnalysis (+0x1C), move (+0x10), draw_light_graph (-0x34),
     printEditTable (-0xC, one more callee-saved register and a smaller frame in the original),
     edit_light_type_shadow_fit (-4).
+- db_light, third pass (128/134 in t_camera; lightAnalysis, move, shadow_fit, drawLightInfo_SpotShadow,
+  spotlight, direct, parallel now byte-identical):
+  - `ObjMgrWork(i)` (obj.h) has the `no >= nArray` range check; lightAnalysis' scan loop has none:
+    a local `objWorkNoChk(i)` (`pArray + size * no`). `if (objWorkNoChk(i)->isAlive()) { cObj* obj =
+    objWorkNoChk(i); ...}` gives the target's `lwzx r0,r11,r9` (be_flag through the folded address)
+    plus a separate `add r31,r11,r9` for the pointer; one `obj` local used for both gives `lwz 0(r31)`.
+    move's bounding-box loop *keeps* the check (`blt L1; li r31,0; b L2`), written with a
+    `cObjMgr* m = &ObjMgr` pointer inside the inline (`objWorkChkP`); the plain obj.h form lets
+    thread_jumps + cse fold the check away (ours), the pointer form does not.
+  - `addi r3,rObj,0x164; mr r29,r3` (an address computed into the argument register, then copied) is
+    a gcse PRE copy: `obj->lightInfo.getLightNum()` called twice with an if/else *between* the two
+    calls (the join label ends cse's ebb, so the second `&obj->lightInfo` is PRE'd: the precomputed
+    argument pseudo dies at the `mr r3` and local-alloc gives it r3). A `cLightInfo* info` local
+    gives `addi r30; mr r3,r30` — cse rewrites the later `&obj->lightInfo` into a copy of the arg
+    pseudo even when it sits in a then-block (conditional jumps do not end cse's ebb; only labels do).
+  - Two identical `0x150 + i*14`-style givs (`eprintf(x, 0x2A + i * 14, ...)` in *each* arm of an
+    if/else inside the loop) are NOT combined by combine_givs when each is single-use (loop.c refuses
+    to combine into a single-use DEST_REG giv): two `li rY,0x2a` in the preheader and two `addi 0xe`
+    in the latch. A `y += 14` variable gives one.
+  - A common address in both arms of a store diamond (`stb r3,3(r9)` / `stb r26,3(r9)` after ONE
+    `lbz anaNum; lwz anaTbl; slwi; add`) is a pointer local computed before the `if`:
+    `u8* p = (u8*) (anaNum * 4 + (u32) anaTbl);` (integer sum: index first in the `add`).
+  - `int st = state; switch (st) { case 0: ...; case 1: color = st; }` reuses the switch register for
+    the store (`stb r11,0x1e`); `color = state` reloads the member because the case label starts a new
+    cse ebb. The `if (c) x = 0; else x = 0x14;` diamond order: `int c; if (modeSel == 0) c = 0; else
+    c = 0x14; eprintf(.., c, ..)` gives the target's `li r5,0x14; beq; li r5,0` (jump.c's "x = b; if
+    (...) x = a" hoists the *else* set when both arms are single constant sets and the if/else is a
+    statement); the ternary `modeSel == 0 ? 0 : 0x14` as a call argument gives `li 0; bne; li 0x14`.
+  - `gameCutNo = cutNo = getCutNo();` (dying-first rule: the store of the chain's last assignment is
+    issued first, so the target's `stb 0x15; stb 0x14` order needs cutNo innermost).
+  - `BitOff(pG->flags_170, ..)` (reference store) makes the following `pG->flags_60 &= ~..` reload
+    `pG` from a PRE'd `high(pG)` register (`lis r28,pG@ha` inserted at every state-switch exit).
+  - `pLog->x = (int) logX; pLog->y = (int) logY;` with one `lwz pLog` and no `lfs logY` reload: `int x
+    = (int) logX; int y = (int) logY; cLog* l = pLog.p; l->x = x; l->y = y;` (the `sth` through
+    pLog->p may alias `this->logY` and `pLog` itself).
+  - draw_light_graph: the static graph parameters are `x0/y0/w0/h0/s0` — the static names decide
+    gcse's `high(sym)` hash order and thus which of the two loop-hoisted address pseudos (gx/gy) gets
+    r20/r21 (`gx/gy`, `x/y`(clash), `px..`, `graph_x..` all gave the swap). The distance and the
+    1000-step marker share ONE variable `x` (`x = GetDistance3(..); if (x < l->x1C ..) { t = x / scale;
+    ...}; func_attn(l, x); for (x = 1000.0f; ...)`) — that puts d in f30 and issues `fmr f1,f30` before
+    `mr r3,r26` in the `%3.6f` call; `t = d / scale` is computed inside the then-arm only (the else arm
+    stores the compare's 0.0 register as a.z/b.z). `col`: `v = func_attn(l, w0*scale); col = 0; if (v >
+    0.04f) col = 6;` then `int c = col; asm("" : "+r"(c)); eprintf(.., (u8) c, ..)` (COMPILER-DIFF 2:
+    the original masks the u8 argument; `col` must not cross the call so its `li` stays after the `bl`).
+  - COMPILER-DIFF 2 with two uses (edit_light_type_shadow_fit): `int c; if (..) { eprintf(ON); c = 0;
+    asm("" : "+r"(c)); } else { eprintf(OFF); c = 0x14; asm("" : "+r"(c)); }` then `(u8) c` at both
+    eprintfs: the launder must sit in the ARMS — gcse's LCM only hoists/shares an expression whose
+    operands are not set earlier in the same block as its first occurrence (`clrlwi r5,r5,24; mr r27,r5`
+    at the join = the first extension into the arg register plus the PRE copy for the second use). With
+    the asm in the join block (`int c = col; asm; (u8) c` twice) both uses extend separately.
+  - COMPILER-DIFF 5 (drawLightInfo_SpotShadow): `Vec* pp = &pos; Vec* pn = &n; asm("" : "+r"(pp),
+    "+r"(pn));` before the `if (len == 0.0f)` puts Draw_corn2's `mr r3,r25; mr r4,r26` above the
+    branch (the laundered pseudos die at the call's arg copies and take r3/r4 in local-alloc).
+  - `lis r30,spotRot@ha; stfs @l(r30); addi r30,r30,@l` (the `high` and the `Vec* rot` pointer share
+    a register): compute `f32 sx = -(f32) pTool->joy.sx / 1000.0f;` BEFORE `Vec* rot = &spotRot;`
+    (the psq_l/fneg/fdivs chain then follows the `x = 0` store and the `addi` is issued after it).
+    spotlight's per-case `step` is ONE function-scope `f32 step` (cases 2 and 3 share f11); parallel's
+    case 1 uses two variables (`c` for normal.x, `d` for normal.z) with the function-scope `const f32
+    k` (one `f32 c` reused for both chains swaps f30/f31).
+  - printEditTable: `y` is a giv (`0x150 + i * 14` written at each use: the `%02d` eprintf, the
+    `printEditRow(l, 0x150 + i * 14, c)` argument, the EMPTY WORK eprintf) — its reduced register is
+    `li r23,0x150` after the hoisted `lis` and the row printer's non-const `int y` parameter copy
+    survives as `mr r29,r23` (the target has a second copy `mr r26,r23` used by the first "%s" column
+    only — unexplained). `u8 c` (the colour goes through a temp: `li r5,..; mr r31,r5`), `col.a =
+    l->color.r; col.r = col.b = col.g = l->color.r;` (two loads: a first, then g, b, r), and the swatch
+    through a by-value helper (`drawColorTileC(int, int, int, int, GXColor c) { DrawTile(.., &c); }`: an
+    address-taken by-value parameter gets a 4-byte SImode `assign_stack_temp` at the expansion, before
+    the purge-time slot of the address-taken `col`, so the frame is temp 0x8 / col 0xC / fpmem 0x10).
+    Each inlined call of such a helper allocates its OWN 4-byte temp (keep=1 slots are never freed), so
+    editColor's nine DrawTiles cannot use it (frame +0x20).
 
 ### System units (file_app, pl_sub Matching; dvd, EtcModel, pl_class, mes, datactrl, read, objWep, lightPath, rnd, at_mod near)
 

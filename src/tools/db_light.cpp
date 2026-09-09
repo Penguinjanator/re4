@@ -2698,6 +2698,7 @@ static void edit_light_type_spotlight()
     Mtx m;
     Vec pos;
     Vec dir;
+    f32 step;
 
     switch (pTool->init) {
     case 0:
@@ -2711,9 +2712,10 @@ static void edit_light_type_spotlight()
         }
         spotRot.x = 0.0f;
         {
+            f32 sx = -(f32) pTool->joy.sx / 1000.0f;
             Vec* rot = &spotRot;
             rot->z = 0.0f;
-            rot->y = -(f32) pTool->joy.sx / 1000.0f;
+            rot->y = sx;
             RotMatrix(m, rot);
             PSMTXMultVec(m, &sp->normal, &sp->normal);
             PSVECCrossProduct(&sp->normal, (const Vec*) yAxis, rot);
@@ -2729,7 +2731,7 @@ static void edit_light_type_spotlight()
         }
         break;
     case 2: {
-        f32 step = (pTool->joy.on & JOY_A) ? 3.0f : 1.0f;
+        step = (pTool->joy.on & JOY_A) ? 3.0f : 1.0f;
         sp->cutoff += (f32) pTool->joy.sy * step / 100.0f;
         sp->cutoff += (f32) pTool->joy.sx * step / 100.0f;
         if (sp->cutoff < 1.0f) {
@@ -2745,7 +2747,7 @@ static void edit_light_type_spotlight()
         break;
     }
     case 3: {
-        f32 step = (pTool->joy.on & JOY_A) ? 5.0f : 1.0f;
+        step = (pTool->joy.on & JOY_A) ? 5.0f : 1.0f;
         sp->fade += (f32) pTool->joy.sx * step;
         sp->fade += (f32) pTool->joy.sy * step;
         if (pTool->joy.trg & JOY_Y) {
@@ -2837,13 +2839,17 @@ static void edit_light_type_direct()
             sp->normal.y = 0.0f;
         }
         rot.x = 0.0f;
-        rot.z = 0.0f;
-        rot.y = -(f32) pTool->joy.sx / 1000.0f;
-        RotMatrix(m, &rot);
-        PSMTXMultVec(m, &sp->normal, &sp->normal);
-        PSVECCrossProduct(&sp->normal, (const Vec*) yAxis, &rot);
-        PSMTXRotAxisRad(m, &rot, (f32) pTool->joy.sy / 1000.0f);
-        PSMTXMultVec(m, &sp->normal, &sp->normal);
+        {
+            f32 sx = -(f32) pTool->joy.sx / 1000.0f;
+            Vec* r = &rot;
+            r->z = 0.0f;
+            r->y = sx;
+            RotMatrix(m, r);
+            PSMTXMultVec(m, &sp->normal, &sp->normal);
+            PSVECCrossProduct(&sp->normal, (const Vec*) yAxis, r);
+            PSMTXRotAxisRad(m, r, (f32) pTool->joy.sy / 1000.0f);
+            PSMTXMultVec(m, &sp->normal, &sp->normal);
+        }
         if (sp->normal.x == 0.0f && sp->normal.y == 0.0f && sp->normal.z == 0.0f) {
 #line 3099 "D:/Bio4/Prog/db_light.cpp"
             pLog->err(0, 0, "VECNormalize:[%s/%d]", __FILE__, __LINE__);
@@ -3026,20 +3032,19 @@ static void edit_light_type_parallel()
     }
     case 1: {
         Vec* a = &ang;
-        f32 k;
         f32 c;
+        f32 d;
         a->x = LIMIT_ANGLE(a->x);
         a->y = LIMIT_ANGLE(a->y);
         c = cosf(a->x);
         c *= sinf(a->y);
-        k = 1000000.0f;
         c *= k;
         sp->normal.x = c;
         sp->normal.y = sinf(a->x) * k;
-        c = cosf(a->x);
-        c *= cosf(a->y);
-        c *= k;
-        sp->normal.z = c;
+        d = cosf(a->x);
+        d *= cosf(a->y);
+        d *= k;
+        sp->normal.z = d;
         break;
     }
     }
@@ -5423,11 +5428,18 @@ void drawLightInfo_SpotShadow(cLight* l, u32 color)
     PSMTXConcat(m2, m, m);
     PSMTXMultVecSR(m, &dir, &dir);
     l->getNormal(&dir, &n);
-    len = l->x1C;
-    if (len == 0.0f) {
-        len = 2000.0f;
+    {
+        // COMPILER-DIFF: 5 (the original's interblock scheduler hoists Draw_corn2's `mr r3/r4` above
+        // the `len == 0` branch; the laundered pointers put the copies there)
+        Vec* pp = &pos;
+        Vec* pn = &n;
+        asm("" : "+r"(pp), "+r"(pn));
+        len = l->x1C;
+        if (len == 0.0f) {
+            len = 2000.0f;
+        }
+        Draw_corn2(pp, pn, len, (f32) w->texNo, 0xFFFFFFFF);
     }
-    Draw_corn2(&pos, &n, len, (f32) w->texNo, 0xFFFFFFFF);
 }
 // Position sphere / hit radius / direction line of a light.
 void drawLightInfo(cLight* l, u32 color)
