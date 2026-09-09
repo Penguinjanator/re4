@@ -10,7 +10,7 @@
 #include "pl_wep.h"
 #include "pl_cloth.h"
 
-// 0x1FE-byte work at cEm::p2A4 (player.cpp mem_alloc); only the byte cam_ctrl reads is named.
+// 0x98-byte work at cEm::p2A4 (player.cpp init1 mem_alloc); only the byte cam_ctrl reads is named.
 struct EmWork2A4 {
     u8 x0;
     u8 pad_1[4];

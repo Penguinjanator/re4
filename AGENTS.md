@@ -1278,6 +1278,47 @@ mark it Matching.
 - `tools/fdiff.py` can fail with "Invalid control character" on units whose objdiff JSON contains raw
   bytes (esp_sub Shimmer): read with `json.load(..., strict=False)`; concurrent fdiff runs share
   `build/G4BE08/fdiff.json`, so a private copy with its own output path is safer.
+- (player) cse's extended block ends at a label with two uses: `if (k & 4) {..} else if (k & 8) {..}`
+  (join label used twice) makes the `&Key` address after the following calls a fresh `lis/addi`,
+  while two separate `if`s let cse carry it in a callee-saved register (pl_R1_Run). `u64 key =
+  Key.on;` tested twice keeps the low word in a register (`rlwinm r10,r12` without a reload);
+  `Key.on & bit` twice reloads both words after the store between them.
+- jump.c store-flag: every if/else or `x = !(...)` form of `if (c5 && f60 >= 0) moved = 0; else moved
+  = 1;` becomes `srwi r26,r0,31` (the hoisted `x = 0` + `if (c) x = 1` diamond, A=0/B=1). The
+  original's `li r26,0; cmpwi; bge L; li r26,1` needs a CODE_LABEL between the jump and `x = 1`:
+  `if (c5) { moved = 0; if (f60 >= 0) goto ok; } moved = 1; ok:` (the label shared with the outer
+  failure path blocks the pattern; cPlayer::move).
+- A `u32 frame` local converted with `(u16) frame` at its uses gives one `clrlwi r30,r6,16` after
+  the if/else join (Walk/Run motionSet + neck init); a `u16 frame` local gets the extension folded
+  per branch (`lbz r30` / `li r30,0` / `clrlwi` inside the float arm).
+- Dying-zero-store promotion: the zero store that comes first in the target's block is the *last* in
+  source (init1: `satCheckFlag = 0` after `boss0 = 0`); the QI zero of an early `u8 = 0` stays its own
+  pseudo (`li r0,0`) only when it precedes every SI zero store.
+- Objects with constructors (`cMot3 mot3`, the `m3r` rates) are emitted at their definition, not
+  deferred like plain uninitialised globals: define them after the function whose static local
+  precedes them in `.bss` (player.cpp: after pl_R1_Turn180's `dd0`). A `f32 x[3]` whose static
+  initializer stores one pool 0.0 three times (`stfs 0,m3r@l; stfs 4; stfs 8`) is a class with a
+  constructor `r[0] = r[1] = r[2] = 0.0f` (a POD `{0,0,0}` is static data, an inline-call initializer
+  gives `stfsu`); other units keep the `extern f32 m3r[3]` view through an asm-labelled alias
+  declared at the same header position (`extern cMot3Rate m3rObj asm("m3r")`, .bss order = first
+  declaration).
+- An inline member of the vtable-owning class defined *out of class* in that unit (`inline void
+  cPlayer::subCharLiveCheck() {..}` in pl_class.cpp, declared in-class in player.h) is still emitted
+  after the destructor in declaration order, and every other unit calls it out of line (cPlayer::move
+  `bl subCharLiveCheck__7cPlayer`); an in-class body would be inlined there.
+- Static data members mangle as `_7cPlayer.SPEED_WALK_TURN`; sync_symbols demangles them now
+  (renamed the pl_class placeholders). Function-local statics with a DECL_UID suffix
+  (`pl_move_func_tbl.1272`) are matched by base name in strip_unused (`--gcc`), so an unreferenced
+  static table of a STRIP_UNUSED unit survives like in the DOL.
+- `pl->x3E0++; if (pl->x3E0 >= 5 && pl->x3E0 <= 14)` compiles to `subi r11,r9,4; cmplwi 9` on the old
+  value (combine folds through the increment) with the store issued before the compare (JumpFall).
+- Identical case bodies written twice (`case 0xB:` and `case 0xC:` each with the full body, Crouch)
+  keep two tree nodes (`cmpwi 0xc; beq; blt`); a shared `case 0xB: case 0xC:` label is a range
+  (`subi; cmplwi 1; ble`). Turn180's `switch (x4FB8)` needs `case 0:` as its own arm (same body as
+  default) plus `case 5:` grouped with `default:` for the `cmpwi 2` root.
+- (player) `pl->pNeck->motL = 0` followed by a global read (`PlFanceFlag`): the load stays below the
+  store only through a `void*&` setter (`PSet`), like the `pG` reloads. `hp = pGS->pl_life` (struct
+  view) after `pPL = this` keeps `lwz pG` below the scalar store.
 - (pl_npc) `cSubChar` is a cEm whose partner fields overlay the player ones (em.h unions at 0x378,
   0x3E0, 0x3E4..0x400, 0x404..0x524 incl. a second `MotionWorkSub subBackMot` at 0x454, and the
   0x5CC/0x7D4.. tail); `subFlags`/`subFlags2` are `cFlag`s: tests written as

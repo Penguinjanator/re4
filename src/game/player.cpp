@@ -74,7 +74,8 @@ static inline void U16Set2(u16& a, u16& b, u16 v)
 static inline void PSet(void*& d, void* v) { d = v; }
 
 // Routine bytes written through an inline taking ints (pl_class.cpp): the stores come out in the
-// original's order and the zero stays an SImode constant.
+// original's order and the zero stays an SImode constant. Routine changes that also set the hokan
+// (x4FD = 5) or a frame are direct byte stores in the original (see pl_R1_Walk / pl_R1_Run).
 static inline void PlRoutineSet(cPlayer* pl, int r0, int r1, int r2, int r3)
 {
     pl->xFC = r0;
@@ -374,6 +375,7 @@ moveChecked:
     subCharLiveCheck();
     Pl_func_tbl[xFC](this);
     if (pG->flags_68 & 0x00010000) {
+        // the u8 compared as an int (`cmpwi -1`): the original's test, always true
         if (PlKaiou != -1) {
             for (i = 0; i < PlKaiou + 1; i++) {
                 Pl_func_tbl[xFC](this);

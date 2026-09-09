@@ -2658,8 +2658,8 @@ int GetBulletPoint()
         pt = n / 2 + 1;
     }
     pt += ItemMgr.bulletNumTotal(0x18) * 2;
-    pt += ItemMgr.bulletNumTotal(0x20) / 5 + 1;
-    pt += ItemMgr.bulletNumTotal(0x6A) / 5 + 1;
+    pt += (u32) ItemMgr.bulletNumTotal(0x20) / 5 + 1;
+    pt += (u32) ItemMgr.bulletNumTotal(0x6A) / 5 + 1;
     ItemMgr.bulletNumTotal(0x72);
     return pt + 5;
 }
@@ -3194,8 +3194,8 @@ int RandomItemCk(int id, int* outId, int* outNum, int flag)
             if (r0 <= 0xC) {
                 itemId = 0xBB;
             }
-            num = 1;
             *outId = itemId;
+            num = 1;
             *outNum = num;
             return 1;
         }
@@ -3251,18 +3251,17 @@ int RandomItemCk(int id, int* outId, int* outNum, int flag)
         return 1;
     }
     if (id == 0x2D) {
-        // `num = 1` in both arms: a one-statement `if` arm would be hoisted above the test.
+        // The else arm starts with the Rnd() call: with a plain `itemId = 0xBB` first, jump.c hoists
+        // the `itemId = 0xB9` of the then arm above the test.
         if (Rnd() & 3) {
             itemId = 0xB9;
-            num = 1;
+        } else if (Rnd() & 3) {
+            itemId = 0xBA;
         } else {
             itemId = 0xBB;
-            if (Rnd() & 3) {
-                itemId = 0xBA;
-            }
-            num = 1;
         }
         *outId = itemId;
+        num = 1;
         *outNum = num;
         return 1;
     }

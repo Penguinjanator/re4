@@ -111,6 +111,8 @@ struct Weight {
 
 // u8 -> f32 through GQR2 straight from memory: the compiler only emits psq_l from a stack slot.
 #define PSQ_L_U8(p) ({ f32 f_; asm volatile("psq_l %0,0(%1),1,2" : "=f"(f_) : "b"(p) : "memory"); f_; })
+// Loads straight into the named variable so the asm output shares the variable's (global) register.
+#define PSQ_L_U8_TO(dst, p) asm volatile("psq_l %0,0(%1),1,2" : "=f"(dst) : "b"(p) : "memory")
 
 static inline int isBit(u32 f, u32 b)
 {
@@ -749,22 +751,19 @@ static int MakeWeightPaletteExt(WeightExt* w0, int n)
         Mtx m;
         f32 total;
         int j;
-        u16* ip;
-        u8* wp;
 
         memclr_asm(m, sizeof(Mtx));
         total = 0.0f;
-        ip = w->idx;
-        wp = w->weight;
         for (j = 0; j < w->num; j++) {
-            f32 rate = PSQ_L_U8(wp) * 0.01f;
+            f32 rate;
             f32* s;
+            PSQ_L_U8_TO(rate, &w->weight[j]);
+            rate *= 0.01f;
             if (j == w->num - 1) {
                 rate = 1.0f - total;
             }
-            s = (f32*) gx->mtx[*ip];
             total += rate;
-            cnt++;
+            s = (f32*) gx->mtx[w->idx[j]];
             m[0][0] += *s++ * rate;
             m[0][1] += *s++ * rate;
             m[0][2] += *s++ * rate;
@@ -777,8 +776,7 @@ static int MakeWeightPaletteExt(WeightExt* w0, int n)
             m[2][1] += *s++ * rate;
             m[2][2] += *s++ * rate;
             m[2][3] += *s++ * rate;
-            ip++;
-            wp++;
+            cnt++;
         }
         PSMTXReorder(m, (f32(*)[3]) (0xE0000000 + i * 0x30));
     }
@@ -786,36 +784,36 @@ static int MakeWeightPaletteExt(WeightExt* w0, int n)
     return cnt;
 }
 
-static int MakeWeightPalette(Weight* w, int n)
+static int MakeWeightPalette(Weight* w0, int n)
 {
     GxWork* gx = GXWORK();
-    int cnt = 0;
+    int cnt;
     int i;
+    u32 wa = (u32) w0;
+#define w ((Weight*) wa)
 
-    if (PTR_INVALID(w)) {
+    if (PTR_INVALID(w0)) {
         pLog->err(0, 0, "MakeWeightPalette() PTR ERR");
         return 0;
     }
-    for (i = 0; i < n; i++, w++) {
+    cnt = 0;
+    for (i = 0; i < n; i++, wa += sizeof(Weight)) {
         Mtx m;
         f32 total;
         int j;
-        u8* ip;
-        u8* wp;
 
         memclr_asm(m, sizeof(Mtx));
         total = 0.0f;
-        ip = w->idx;
-        wp = w->weight;
         for (j = 0; j < w->num; j++) {
-            f32 rate = PSQ_L_U8(wp) * 0.01f;
+            f32 rate;
             f32* s;
+            PSQ_L_U8_TO(rate, &w->weight[j]);
+            rate *= 0.01f;
             if (j == w->num - 1) {
                 rate = 1.0f - total;
             }
-            s = (f32*) gx->mtx[*ip];
             total += rate;
-            cnt++;
+            s = (f32*) gx->mtx[w->idx[j]];
             m[0][0] += *s++ * rate;
             m[0][1] += *s++ * rate;
             m[0][2] += *s++ * rate;
@@ -828,11 +826,11 @@ static int MakeWeightPalette(Weight* w, int n)
             m[2][1] += *s++ * rate;
             m[2][2] += *s++ * rate;
             m[2][3] += *s++ * rate;
-            ip++;
-            wp++;
+            cnt++;
         }
         PSMTXReorder(m, (f32(*)[3]) (0xE0000000 + i * 0x30));
     }
+#undef w
     return cnt;
 }
 
