@@ -216,6 +216,7 @@ MATCHING = {
     "st2_2/st2.cpp": True,
     "st2_3/st2.cpp": True,
     "st2_4/st2.cpp": True,
+    "st4_0/st4.cpp": True,
     "t_emlist/t_prim.cpp": True,
     "t_emlist/t_util.cpp": True,
     "t_emlist/tools.cpp": True,

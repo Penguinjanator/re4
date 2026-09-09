@@ -26,6 +26,7 @@ Sint32 SFPTS_IsPtsQueFull(SFD sfd, Sint32 strm)
 
 Sint32 SFPTS_ReadPtsQue(SFD sfd, Sint32 strm, Uint32 pos, SFPTS_ENT *out)
 {
+	SFBUF_WORK *bw;
 	SFPTS_ENT *ent;
 	Uint32 ofst;
 	Uint32 size;
@@ -39,9 +40,10 @@ Sint32 SFPTS_ReadPtsQue(SFD sfd, Sint32 strm, Uint32 pos, SFPTS_ENT *out)
 	Sint32 i;
 
 	out->pts = -1;
-	ent = PQ(sfd, strm).ent;
-	ofst = sfd->buf[strm].ofst;
-	size = sfd->buf[strm].size;
+	bw = &sfd->buf[strm];
+	ent = bw->ptsque.ent;
+	ofst = bw->ofst;
+	size = bw->size;
 	if (ent == NULL) {
 		return 0;
 	}
@@ -49,37 +51,35 @@ Sint32 SFPTS_ReadPtsQue(SFD sfd, Sint32 strm, Uint32 pos, SFPTS_ENT *out)
 	if (pos >= end) {
 		pos -= size;
 	}
-	cnt = PQ(sfd, strm).cnt;
+	cnt = bw->ptsque.cnt;
 	if (cnt != 0) {
-		rd = PQ(sfd, strm).rd;
-		num = PQ(sfd, strm).num;
+		rd = bw->ptsque.rd;
+		num = bw->ptsque.num;
 		idx = rd;
 		for (i = 0; i < cnt; i++) {
 			st = ent[idx].pos;
 			en = ent[idx].pos + ent[idx].len;
 			if (en <= end) {
-				if (st > pos || pos >= en) {
-					goto next;
+				if (st <= pos && pos < en) {
+					goto found;
 				}
 			} else {
 				if (st <= pos && pos < end) {
 					goto found;
 				}
-				if (ofst > pos || pos >= en - size) {
-					goto next;
+				if (ofst <= pos && pos < en - size) {
+					goto found;
 				}
 			}
-			goto found;
-next:
 			idx = sfpts_Wrap(idx + 1, num);
 		}
 		i = -1;
 found:
 		if (i != -1) {
 			idx = sfpts_Wrap(rd + i, num);
-			PQ(sfd, strm).cnt -= i;
-			PQ(sfd, strm).rd = idx;
-			*out = PQ(sfd, strm).ent[idx];
+			bw->ptsque.cnt -= i;
+			bw->ptsque.rd = idx;
+			*out = bw->ptsque.ent[idx];
 		}
 	}
 	return 0;

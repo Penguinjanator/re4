@@ -219,10 +219,10 @@ section	offset	size	unit	scope	name	demangled
 .text	0x0002FE7C	0x10C	em10/em10.cpp	global	em10WindowCk__FP5cEm10	em10WindowCk
 .text	0x0002FF88	0x350	em10/em10.cpp	global	em10DoorOpenCk__FP5cEm10i	em10DoorOpenCk
 .text	0x000302D8	0x260	em10/em10.cpp	global	em10AtkDoorCk	em10AtkDoorCk
-.text	0x00030538	0x3C0	em10/em10.cpp	global	em10SetDamageDoor	em10SetDamageDoor
+.text	0x00030538	0x3C0	em10/em10.cpp	global	em10SetDamageDoor__FP5cEm10i	em10SetDamageDoor
 .text	0x000308F8	0x2EC	em10/em10.cpp	global	em10RackBreakCk__FP5cEm10	em10RackBreakCk
 .text	0x00030BE4	0x1DC	em10/em10.cpp	global	em10AtkRackCk	em10AtkRackCk
-.text	0x00030DC0	0x200	em10/em10.cpp	global	em10SetDamageRack	em10SetDamageRack
+.text	0x00030DC0	0x200	em10/em10.cpp	global	em10SetDamageRack__FP5cEm10i	em10SetDamageRack
 .text	0x00030FC0	0x230	em10/em10.cpp	global	em10LadderClimbCk__FP5cEm10	em10LadderClimbCk
 .text	0x000311F0	0x360	em10/em10.cpp	global	em10VLadderClimbCk__FP5cEm10	em10VLadderClimbCk
 .text	0x00031550	0x168	em10/em10.cpp	global	em10LadderResetCk__FP5cEm10	em10LadderResetCk
@@ -273,7 +273,7 @@ section	offset	size	unit	scope	name	demangled
 .text	0x00038420	0x410	em10/em10.cpp	global	em10StayCk	em10StayCk
 .text	0x00038830	0x1A8	em10/em10.cpp	global	em10GoSubStayCk	em10GoSubStayCk
 .text	0x000389D8	0x6C	em10/em10.cpp	global	em10ChainSawMove__FP5cEm10	em10ChainSawMove
-.text	0x00038A44	0x1188	em10/em10.cpp	global	em10AtkCk	em10AtkCk
+.text	0x00038A44	0x1188	em10/em10.cpp	global	em10AtkCk__FP5cEm10P3VecT1ii	em10AtkCk
 .text	0x00039BCC	0x324	em10/em10.cpp	global	em10GatlingHitCk	em10GatlingHitCk
 .text	0x00039EF0	0x16C	em10/em10.cpp	global	em10BellAtkCk	em10BellAtkCk
 .text	0x0003A05C	0x15C	em10/em10.cpp	global	em10TorchFrameAtkCk	em10TorchFrameAtkCk
@@ -346,7 +346,7 @@ section	offset	size	unit	scope	name	demangled
 .text	0x0004039C	0x424	em10/em10.cpp	global	em10SetTakeawayPos	em10SetTakeawayPos
 .text	0x000407C0	0x168	em10/em10.cpp	global	em10SetTakeawayPosUpdate	em10SetTakeawayPosUpdate
 .text	0x00040928	0x11C	em10/em10.cpp	global	em10ReturnPosCk	em10ReturnPosCk
-.text	0x00040A44	0x33C	em10/em10.cpp	global	em10GotoPosCk	em10GotoPosCk
+.text	0x00040A44	0x33C	em10/em10.cpp	global	em10GotoPosCk__FP5cEm10	em10GotoPosCk
 .text	0x00040D80	0x134	em10/em10.cpp	global	em10SetWaterEff__FP5cEm10	em10SetWaterEff
 .text	0x00040EB4	0x138	em10/em10.cpp	global	em10ReturnCk	em10ReturnCk
 .text	0x00040FEC	0x1CC	em10/em10.cpp	global	em10BombNeckMove__FP5cEm10	em10BombNeckMove
@@ -354,9 +354,9 @@ section	offset	size	unit	scope	name	demangled
 .text	0x000412E0	0x180	em10/em10.cpp	global	em10ThrowScaCk	em10ThrowScaCk
 .text	0x00041460	0x140	em10/em10.cpp	global	em10BombThrowScaCk	em10BombThrowScaCk
 .text	0x000415A0	0x80	em10/em10.cpp	global	em10SetAtkWait	em10SetAtkWait
-.text	0x00041620	0x114	em10/em10.cpp	global	em10IgnitionCk	em10IgnitionCk
-.text	0x00041734	0x164	em10/em10.cpp	global	em10ClawStickCK	em10ClawStickCK
-.text	0x00041898	0xA0	em10/em10.cpp	global	em10FindLostCk	em10FindLostCk
+.text	0x00041620	0x114	em10/em10.cpp	global	em10IgnitionCk__FP5cEm10	em10IgnitionCk
+.text	0x00041734	0x164	em10/em10.cpp	global	em10ClawStickCK__FP5cEm10	em10ClawStickCK
+.text	0x00041898	0xA0	em10/em10.cpp	global	em10FindLostCk__FP5cEm10	em10FindLostCk
 .text	0x00041938	0x25C	em10/em10.cpp	global	em10PlHeadLost	em10PlHeadLost
 .text	0x00041B94	0x1C0	em10/em10.cpp	global	em10BombThrow__FP5cEm10	em10BombThrow
 .text	0x00041D54	0x68	em10/em10.cpp	global	em10GetGondola__FP5cEm10	em10GetGondola

@@ -127,6 +127,8 @@ void RNARES_Init(void)
 			rnares_aram_ptr = ARAlloc(RNARES_DEF_ARAM_SIZE);
 		}
 		memset(rnares_obj, 0, sizeof(rnares_obj));
+		/* OPEN: target allocates the i*0x2000 induction variable first (r4), then the 0x1000
+		 * constant, the sum temp and the hoisted aram_ptr load; ours puts the induction last. */
 		n = rnares_nbuf;
 		res = rnares_obj;
 		for (i = 0; i < n; i++, res++) {

@@ -135,9 +135,9 @@ def main():
                     if len(cands) > 1:
                         print(f"  ambiguous {name} -> {dn} in {unit}: {cands} (rename by hand)")
                     continue
-                if name in KNOWN_SIZE and own.size.get(cands[0]) != KNOWN_SIZE[name]:
+                if any(n != name and sz == own.size.get(cands[0]) and demangle_v2(n) == dn for n, sz in KNOWN_SIZE.items()):
                     # an overload the module does not have (cEmWrap::setReset(int, int) where only
-                    # setReset() survived): the single candidate belongs to the other overload
+                    # setReset() survived): the single candidate has the other overload's known size
                     continue
                 own.rename(cands[0], name, bind == 1)
                 continue

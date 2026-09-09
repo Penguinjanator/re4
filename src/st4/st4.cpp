@@ -102,12 +102,12 @@ extern "C" void _epilog()
 extern "C" void _unresolved()
 {
     OSReport("unresolved...\n");
-#line 150 "D:/Bio4/Prog/st4.cpp"
+#line 121 "D:/Bio4/Prog/st4.cpp"
     HALT();
 }
 
-// never called (kept by the REL link)
-static void st4_initAdaGame()
+// R405Init (r405.cpp) calls it: the Ada game flag
+void st4_initAdaGame()
 {
     if (!(pG->flags_51C4 & 0x20000000)) {
         pG->flags_51C4 |= 0x20000000;

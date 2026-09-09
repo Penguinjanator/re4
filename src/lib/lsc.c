@@ -165,6 +165,8 @@ Sint32 LSC_EntryFileRange(LSC lsc, Char8 *fname, void *dir, Sint32 ofst, Sint32 
 		LSC_CallErrFunc("E0011: Illigal parameter fname=%s\n", fname);
 		return -1;
 	}
+	/* OPEN: target computes id's temporaries before ent's (slwi r4 in place, r6 for the mod) while
+	 * keeping ent in r31/id in r30; every ordering/helper/local form tried gives one or the other. */
 	ent = lsc_GetWrEntry(lsc);
 	id = lsc_GetNewId(lsc);
 	ent->id = id;

@@ -935,8 +935,7 @@ void cSubChar::moveKagamu()
         if (Key.on & 0x810) {
             subSelf->subHideMode = 0;
         } else {
-            subSelf->subHideMode++;
-            if (subSelf->subHideMode > 30) {
+            if (++subSelf->subHideMode > 30) {
                 MOT_SET(subSelf, MOTION(subSelf), SUB_MOT(subSelf, 0x45), 0, 3, 5, 0);
                 AtariOn(&subSelf->atari, 0x200);
                 subSelf->xFE = 5;
@@ -2323,13 +2322,13 @@ int cSubChar::windowCheck()
         if (EmRackCk(this, &pos, ang) == 0) {
             return 3;
         }
-        if (w->ChkBreakDir(&subSelf->pos) != 2) {
-            sub52C = atan2(-dir.x, -dir.z);
-            return 1;
+        if (w->ChkBreakDir(&subSelf->pos) == 2) {
+            subFlags2 |= 0x80;
+            SubRoutineSet(this, 0, 0x12, 0, 0);
+            return 2;
         }
-        subFlags2 |= 0x80;
-        SubRoutineSet(this, 0, 0x12, 0, 0);
-        return 2;
+        sub52C = atan2(-dir.x, -dir.z);
+        return 1;
     }
     return 0;
 }
@@ -2724,13 +2723,14 @@ void cSubChar::backCheckCtrlMove()
 int cSubChar::checkBackEm()
 {
     int i;
+    int n = EmMgr.nArray;
 
-    for (i = 0; i < EmMgr.nArray; i++) {
+    for (i = 0; i < n; i++) {
         cEm* em = (cEm*) ((u8*) EmMgr.pArray + EmMgr.size * i);
         f32 d;
         f32 ang;
 
-        if (!em->isAlive()) {
+        if ((em->be_flag & 0x201) != 1) {
             continue;
         }
         if (em->hp <= 0) {
@@ -2751,11 +2751,11 @@ int cSubChar::checkBackEm()
         }
         ang = GetXZAngleLocal(&pos, &em->pos, rot.y);
         if (d < 25000000.0f) {
-            if (!(ang >= 2.3561945f) && ang > -2.3561945f) {
+            if (ang < 2.3561945f && ang > -2.3561945f) {
                 continue;
             }
         } else {
-            if (!(ang >= 2.617994f) && ang > -2.617994f) {
+            if (ang < 2.617994f && ang > -2.617994f) {
                 continue;
             }
         }

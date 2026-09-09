@@ -128,7 +128,6 @@ struct IntView {
 #define ISET0(x) (((IntView*) &(x))->v = 0)
 #define IV(x) (((IntView*) &(x))->v)
 static inline void U32Set(u32& d, u32 v) { d = v; }
-static inline void ISet(int& d, int v) { d = v; }
 static inline u16 U16Ref(u16& v) { return v; }
 static inline int IRef(int& v) { return v; }
 static inline f32 FRef(f32& v) { return v; }
@@ -1297,7 +1296,7 @@ static void shaderSetup(cModel* m, cModelInfo* info, ModelPart* part, Mtx mv)
     ISET0(tex_coord);
     ISET0(ind_stage);
     selfDone = 0;
-    if ((pG->flags_500C & 1) && isSelfUse) {
+    if ((pGS->flags_500C & 1) && isSelfUse) {
         u32 i;
         for (i = 0; i < g_SelfShdNum; i++) {
             if (GetSelfShadowMng(i)->pModel[0] == m) {
@@ -1312,12 +1311,17 @@ static void shaderSetup(cModel* m, cModelInfo* info, ModelPart* part, Mtx mv)
         }
     }
     if (selfDone == 0) {
+        int colIn;
+        int alphaIn;
         if (g_pShdMng != 0) {
             ShadowCastSetup(part, m);
-            materialSetup(part, info, 0, 0);
+            colIn = 0;
+            alphaIn = 0;
         } else {
-            materialSetup(part, info, 0xA, 5);
+            colIn = 0xA;
+            alphaIn = 5;
         }
+        materialSetup(part, info, colIn, alphaIn);
     }
     if (part->flags & 0x80) {
         specularSetup2(part, 0);
@@ -2563,12 +2567,9 @@ static void RefractShaderSetup(cModel* m, cModelInfo* info, ModelPart* part, Mtx
 {
     static f32 mul_x = 1.0f;
     static f32 mul_y = 1.0f;
-    f32 indMtx[2][3];
-    Mtx m2;
-    Mtx44 proj;
-    Mtx dummy;
     GXColor kc;
     GXColor k;
+    GXColor k2;
     int st;
     int map;
     int coord;
@@ -2587,10 +2588,14 @@ static void RefractShaderSetup(cModel* m, cModelInfo* info, ModelPart* part, Mtx
     map = getTexMap();
     coord = getTexCoord();
     GXLoadTexObj(&g_Get_tex_obj, map);
-    mtx = getTexMtx();
-    C_MTXLightPerspective(proj, pG->Cam.param.fovy, 1.33333333f, 0.5f, -0.66666667f, 0.5f, 0.5f);
-    PSMTXConcat(proj, mv, m2);
-    GXLoadTexMtxImm(m2, mtx, 0);
+    {
+        Mtx m2;
+        Mtx proj;
+        mtx = getTexMtx();
+        C_MTXLightPerspective(proj, pG->Cam.param.fovy, 1.33333333f, 0.5f, -0.66666667f, 0.5f, 0.5f);
+        PSMTXConcat(proj, mv, m2);
+        GXLoadTexMtxImm(m2, mtx, 0);
+    }
     GXSetTexCoordGen2(coord, 0, 0, mtx, 0, 0x7D);
     GXSetTevOrder(st, coord, map, 4);
     kv = 0xFF;
@@ -2603,7 +2608,9 @@ static void RefractShaderSetup(cModel* m, cModelInfo* info, ModelPart* part, Mtx
         break;
     }
     k.a = kv;
-    k.g = k.b = k.r = kv;
+    k.r = kv;
+    k.g = kv;
+    k.b = kv;
     kc = k;
     GXSetTevKColor(getKColor(), kc);
     GXSetTevKColorSel(st, getKColorSel());
@@ -2625,6 +2632,7 @@ static void RefractShaderSetup(cModel* m, cModelInfo* info, ModelPart* part, Mtx
     tex_map++;
     tex_coord++;
     if (m->x136 == 1) {
+        f32 indMtx[2][3];
         f32 s;
         __GXSetIndirectMask(0);
         s = (f32) m->x137 * 0.001953125f;
@@ -2642,6 +2650,7 @@ static void RefractShaderSetup(cModel* m, cModelInfo* info, ModelPart* part, Mtx
         ind = IND_STAGE_ID();
         GXSetIndTexOrder(ind, coord, map);
     } else {
+        f32 indMtx[2][3];
         f32 s;
         __GXSetIndirectMask(0);
         s = (f32) m->x137 * 0.001953125f;
@@ -2683,8 +2692,8 @@ static void RefractShaderSetup(cModel* m, cModelInfo* info, ModelPart* part, Mtx
             GlobalIlluminationSetup(part, isBit(info->pData->flags, 0x20000000));
         }
         st = TEV_STAGE_ID();
-        k.r = k.a = k.g = k.b = m->x138;
-        kc = k;
+        k2.r = k2.a = k2.g = k2.b = m->x138;
+        kc = k2;
         GXSetTevKColor(getKColor(), kc);
         GXSetTevKColorSel(st, getKColorSel());
         GXSetTevKAlphaSel(st, getKAlphaSel());

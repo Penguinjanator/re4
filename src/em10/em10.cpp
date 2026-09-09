@@ -316,6 +316,18 @@ void em10MouthPartsReset(cEm10* em);
 void em10SetDmWaterEff(cEm10* em, int a);
 void em10BombThrow(cEm10* em);
 void em10ThrowBombCk(cEm10* em);
+void em10SetDamageDoor(cEm10* em, int a);
+void em10SetDamageRack(cEm10* em, int a);
+void em10AtkCk(cEm10* em, Vec* a, Vec* b, int c, int d);
+int em10IgnitionCk(cEm10* em);
+int em10ClawStickCK(cEm10* em);
+int em10FindLostCk(cEm10* em);
+void em10GotoPosCk(cEm10* em);
+extern "C" void em10TorchFrameAtkCk(cEm10* em);
+extern "C" void em10TorchFrameAtkCkSub(cEm10* em);
+extern "C" void em10PlHeadLost();
+extern "C" f32 em10GetPower(cEm10* em);
+extern "C" void plem10KickCamMove(cPlayer* pl, int a);
 int em10HideRtnCk2(cEm10* em);
 int em10HideToStepCk(cEm10* em, int a);
 
@@ -324,6 +336,7 @@ static inline int em10DeadCk(cEm* em)
 {
     return (em->flags_324 & 0xFFFF0000) ? 1 : 0;
 }
+
 
 static inline int em10DmgDeadCk(cDmgInfo* d)
 {
@@ -4708,6 +4721,54 @@ static void em10_R1_AttackWait(cEm10* em)
 
 static void em10_R1_R100TurnWalk(cEm10* em)
 {
+    Em10Work* w = EM10_WK(em);
+    PlArc* arc;
+    void* m0;
+    void* m1;
+    int flag;
+
+    em->dmg.x1 = 0x80;
+    switch (em->xFE) {
+    case 0:
+        em10SetWaitMotion(em, 0);
+        w->x4 = 90;
+        em->xFE++;
+    case 1:
+        MotionMoveF(em, 0);
+        if (w->x4) {
+            w->x4--;
+            break;
+        }
+        em->xFE++;
+    case 2:
+        arc = em->subArc;
+        m0 = PL_ARC_PTR(arc, 0x18);
+        m1 = PL_ARC_PTR(arc, 0x19);
+        flag = (w->x518 < 0.0f) ? 0x41 : 1;
+        if (w->pShield) {
+            m0 = PL_ARC_PTR(arc, 0x16C);
+            m1 = PL_ARC_PTR(arc, 0x16D);
+            flag = (em->flags_3C8 & 0x1000000) ? 0x41 : 1;
+        }
+        if (em->type == 10 || em->type == 13) {
+            m0 = PL_ARC_PTR(arc, 0x116);
+            m1 = PL_ARC_PTR(arc, 0x117);
+        }
+        MotionSetCore(em, MOTION(em), m0, (int) m1, 10, flag, 0);
+        em->xFE++;
+    case 3:
+        if (MotionMoveF(em, 0)) {
+            em->xFE++;
+        }
+        break;
+    case 4:
+        em10SetWalkMotion(em, 7);
+        em->xFE++;
+    case 5:
+        MotionMoveF(em, 0);
+        break;
+    }
+    em10HandSet(em, 0);
 }
 
 static void em10_R1_R100Cliff(cEm10* em)
@@ -4720,6 +4781,49 @@ static void em10_R1_R101Bucket(cEm10* em)
 
 static void em10_R1_R101Suki(cEm10* em)
 {
+    Em10Work* w = EM10_WK(em);
+
+    switch (em->xFE) {
+    case 0:
+        MotionSetCore(em, MOTION(em), PL_ARC_PTR(em->subArc, 0x1B5), (int) PL_ARC_PTR(em->subArc, 0x1B6), 3, 5, 0);
+        w->x4 = Rnd() % 5 + 5;
+        EstSetEm(em, -1, 0, 0, 0x10, 0x15, 0, w->x69E, em, 0);
+        em->xFE++;
+    case 1:
+        if (em->seFlags28B & 0x20) {
+            SndCall(6, 0x10, &em->pos, 0, 0, em);
+        }
+        if (em->seFlags28B & 1) {
+            EstSetEm(em, -1, 0, 0, 0x10, 0xF, 0, 0, em, 0);
+        }
+        if (em->seFlags28B & 4) {
+            EstSetEm(em, -1, 0, 0, 0x10, 0x11, 0, 0, em, 0);
+        }
+        if (MotionMoveF(em, 0)) {
+            if (w->x4) {
+                w->x4--;
+                EstSetEm(em, -1, 0, 0, 0x10, 0x15, 0, w->x69E, em, 0);
+            } else {
+                em->xFE++;
+            }
+        }
+        break;
+    case 2:
+        MotionSetCore(em, MOTION(em), PL_ARC_PTR(em->subArc, 0x1B7), 0, 3, 1, 0);
+        em->xFE++;
+    case 3:
+        if (MotionMoveF(em, 0)) {
+            em->xFE = 0;
+        }
+        break;
+    }
+    if (!em10FindCk(em, 0)) {
+        if (w->flags & 0x100) {
+            em10WalkRtnSet(em);
+        } else {
+            em10HandSet(em, 0);
+        }
+    }
 }
 
 static void em10_R1_Work(cEm10* em)
@@ -4797,6 +4901,51 @@ static void em10_R1_R300TakeAshley(cEm10* em)
 
 static void em10_R1_R30FBullJump(cEm10* em)
 {
+    Em10Work* w = EM10_WK(em);
+    Vec v;
+    int end;
+
+    switch (em->xFE) {
+    case 0:
+        MotionSetCore(em, MOTION(em), PL_ARC_PTR((PlArc*) pG->pRoomArc, 0x39), (int) PL_ARC_PTR((PlArc*) pG->pRoomArc, 0x3A), 3, 1, 0);
+        em10CallVoiceSe2(em, w->se6D7, 8);
+        em->xFE++;
+    case 1:
+        w->flags |= 0x10080000;
+        em->setStatus(3);
+        end = MotionMoveF(em, 0);
+        if (em->seFlags28B & 4) {
+            f32 y;
+            v = em->pos;
+            v.y = em->oldPos.y;
+            y = SatMgr.getFloor(&v, 600.0f, 100000.0f, 0, 0);
+            if (em->pos.y < y) {
+                em->pos.y = y;
+                w->x5A4.y = 0.0f;
+                SndCall(8, 5, &em->pos, em->id, 0, em);
+            } else if (!end) {
+                break;
+            }
+            MotionSetCore(em, MOTION(em), PL_ARC_PTR(em->subArc, 0x25), 0, 3, 1, 0);
+            MotionMoveF(em, 0);
+            em->xFE = 2;
+        }
+        break;
+    case 2:
+        if (ChkWaterEffectEnable(&em->pos)) {
+            EstSet(0, -1, &em->pos, &em->rot, 0x10, 0x31, 0, 0, (u32) em, 0);
+        } else {
+            EstSet(0, -1, &em->pos, &em->rot, 0x10, 0x17, 0, 0, (u32) em, 0);
+        }
+        em->xFE++;
+    case 3:
+        if (MotionMoveF(em, 0)) {
+            w->x67C = 15;
+            em10WalkRtnSet(em);
+        }
+        break;
+    }
+    em10HandSet(em, 0);
 }
 
 static void em10_R1_R320Gatling(cEm10* em)
@@ -4896,6 +5045,57 @@ static void em10_R1_EvtWalk(cEm10* em)
 
 static void em10_R1_Pickup(cEm10* em)
 {
+    Em10Work* w = EM10_WK(em);
+    int flag;
+
+    if ((w->flags & 0x100) && (em->flags_3C8 & 0x2000)) {
+        w->flags |= 0x40000;
+    }
+    switch (em->xFE) {
+    case 0:
+        flag = (em->flags_3C8 & 0x1000000) ? 0x41 : 1;
+        MotionSetCore(em, MOTION(em), PL_ARC_PTR(em->subArc, 0x76), (int) PL_ARC_PTR(em->subArc, 0x77), 10, flag, 0);
+        em->xFE++;
+    case 1:
+        if ((em->seFlags28B & 4) && w->pWep2) {
+            if (em->flags_3C8 & 0x10000) {
+                w->pWep = em10MakeWeapon(em, w->wep2Type);
+                if (w->pWep) {
+                    w->wepType = w->wep2Type;
+                } else {
+                    w->wepType = 0;
+                }
+            } else {
+                w->pWep2->setTransMode(1);
+                w->pWep = w->pWep2;
+                w->wepType = w->wep2Type;
+                w->wep2Type = 0;
+                w->pWep2 = 0;
+            }
+            em10WeaponSet(em);
+        }
+        if (MotionMoveF(em, 0)) {
+            cEmWep* wep = w->pWep;
+            u8 type = w->wepType;
+            if (wep && type == 4 && !(w->flags & 0x80000000)) {
+                EmRoutineSet(em, 1, 0xE, 0, 0);
+                break;
+            }
+            if (wep && type == 9 && w->x640 == 0 && (w->x524 < 15000.0f || em->x3D0 == 2) && (w->flags & 1)) {
+                if (em->flags_3C8 & 0x10000) {
+                    EmRoutineSet(em, 1, 0xF, 0, 0);
+                    break;
+                }
+                if (em->pos.y > pPL->pos.y - 500.0f) {
+                    EmRoutineSet(em, 1, 0xF, 0, 0);
+                    break;
+                }
+            }
+            em10WalkRtnSet(em);
+        }
+        break;
+    }
+    em10HandSet(em, 0);
 }
 
 static void em10_R1_Find(cEm10* em)
@@ -4947,6 +5147,47 @@ static void em10_R1_Find(cEm10* em)
 
 static void em10_R1_C_SawStart(cEm10* em)
 {
+    Em10Work* w = EM10_WK(em);
+
+    if (w->flags & 0x100) {
+        w->flags |= 0x40000;
+    }
+    switch (em->xFE) {
+    case 0:
+        if (em->flags_3C8 & 0x1000000) {
+            MotionSetCore(em, MOTION(em), PL_ARC_PTR(em->subArc, 0xE7), (int) PL_ARC_PTR(em->subArc, 0xE8), 10, 0x41, 0);
+        } else {
+            MotionSetCore(em, MOTION(em), PL_ARC_PTR(em->subArc, 0xE7), (int) PL_ARC_PTR(em->subArc, 0xE8), 10, 1, 0);
+        }
+        EstSetEm(em, -1, 0, 0, 0x10, 0x2B, 0, 0, em, 0);
+        w->x4 = 30;
+        em->xFE++;
+    case 1:
+        if (em->seFlags28B & 4) {
+            if (em->type == 0x16) {
+                EstSetEm(w->pWep, -1, 0, 0, 0x10, 0x96, 0, w->x69C, w->pWep, 0);
+            } else {
+                EstSetEm(w->pWep, -1, 0, 0, 0x10, 9, 0, w->x69C, w->pWep, 0);
+            }
+            w->flags |= 0x80000000;
+            w->x65C = Rnd() % 150 + 150;
+            SndCall(6, 0x4C, &em->pos, 0, 0, em);
+            w->x684 = 60;
+            em10FindNotify(em);
+        }
+        if (MotionMoveF(em, 0)) {
+            if (em->flags_3C8 & 0x2000000) {
+                EmRoutineSet(em, 1, 0x11, 0, 0);
+            } else {
+                em10WalkRtnSet(em);
+            }
+        } else if ((em->seFlags28B & 1) && w->x51C > 1.9634955f) {
+            EmRoutineSet(em, 1, 0x15, 0, 0);
+        }
+        break;
+    }
+    em10BreathSe(em);
+    em10HandSet(em, 0);
 }
 
 static void em10_R1_BombIgnition(cEm10* em)
@@ -4987,6 +5228,34 @@ static void em10_R1_BombIgnition(cEm10* em)
 
 static void em10_R1_br_Walk(cEm10* em)
 {
+    Em10Work* w = EM10_WK(em);
+
+    if (em->hp > 0) {
+        if (pG->flags_64 & 0x2000000) {
+            EmRoutineSet(em, 1, 0, 0, 0);
+        } else if (!em10GotoCk(em) && !em10DoorOpenCk(em, 0) && !em10RackBreakCk(em) && !em10LadderClimbCk(em) && !em10VLadderClimbCk(em) && !em10LadderResetCk(em) && !em10JumpDownCk(em) && !em10JumpCk(em)) {
+            em10ReturnStartPosCk(em);
+            if (!em10ClimbOverCk(em) && !em10WindowCk(em)) {
+                if ((em->flags_3C8 & 0x400) && w->x5EC == 0 && w->x634 > 30 && fabsf(Muku(&em->pos, &pPL->pos, em->rot.y, PI)) < 0.5235988f) {
+                    EmRoutineSet(em, 1, 0x1C, 0, 0);
+                } else if (!em10IgnitionCk(em) && !em10ClawStickCK(em) && !em10FindLostCk(em)) {
+                    if (w->flags & 0x20000000) {
+                        f32 dx = em->pos.x - w->x4D8.x;
+                        f32 dz = em->pos.z - w->x4D8.z;
+                        if (dx * dx + dz * dz < 4000000.0f) {
+                            w->flags &= ~0x20000000;
+                            EmRoutineSet(em, 1, 1, 0, 0);
+                            return;
+                        }
+                        if (em->plDist2 < 4000000.0f && w->x530 < em->x3CC) {
+                            w->flags &= ~0x20000000;
+                        }
+                    }
+                    em10GotoPosCk(em);
+                }
+            }
+        }
+    }
 }
 
 static void em10_R1_Walk(cEm10* em)
@@ -4995,6 +5264,30 @@ static void em10_R1_Walk(cEm10* em)
 
 static void em10_R1_br_Dash(cEm10* em)
 {
+    Em10Work* w = EM10_WK(em);
+
+    if (em->hp > 0) {
+        if (pG->flags_64 & 0x2000000) {
+            EmRoutineSet(em, 1, 0, 0, 0);
+        } else if (!em10GotoCk(em) && !em10DoorOpenCk(em, 0) && !em10RackBreakCk(em) && !em10LadderClimbCk(em) && !em10VLadderClimbCk(em) && !em10LadderResetCk(em) && !em10JumpDownCk(em) && !em10JumpCk(em)) {
+            em10ReturnStartPosCk(em);
+            if (!em10ClimbOverCk(em) && !em10WindowCk(em) && !em10IgnitionCk(em) && !em10ClawStickCK(em) && !em10FindLostCk(em)) {
+                if (w->flags & 0x20000000) {
+                    f32 dx = em->pos.x - w->x4D8.x;
+                    f32 dz = em->pos.z - w->x4D8.z;
+                    if (dx * dx + dz * dz < 4000000.0f) {
+                        w->flags &= ~0x20000000;
+                        EmRoutineSet(em, 1, 1, 0, 0);
+                        return;
+                    }
+                    if (em->plDist2 < 4000000.0f && w->x530 < em->x3CC) {
+                        w->flags &= ~0x20000000;
+                    }
+                }
+                em10GotoPosCk(em);
+            }
+        }
+    }
 }
 
 static void em10_R1_Dash(cEm10* em)
@@ -5266,6 +5559,45 @@ static void em10_R1_DownWakeWait(cEm10* em)
 
 static void em10_R1_DownWake(cEm10* em)
 {
+    Em10Work* w = EM10_WK(em);
+    int flag;
+
+    switch (em->xFE) {
+    case 0:
+        flag = (MOTION(em)->flags & 0x40) ? 0x41 : 1;
+        if (w->flags & 0x20) {
+            MotionSetCore(em, MOTION(em), PL_ARC_PTR(em->subArc, 0x6D), (int) PL_ARC_PTR(em->subArc, 0x6E), 15, flag, 0);
+        } else if (em->type == 6) {
+            MotionSetCore(em, MOTION(em), PL_ARC_PTR(em->subArc, 0xAA), (int) PL_ARC_PTR(em->subArc, 0xAD), 15, flag, 0);
+        } else {
+            MotionSetCore(em, MOTION(em), PL_ARC_PTR(em->subArc, 0x6F), (int) PL_ARC_PTR(em->subArc, 0x70), 15, flag, 0);
+        }
+        if (!(w->flags & 0x80)) {
+            em10CallVoiceSe2(em, w->se6D1, 8);
+        }
+        em->xFE++;
+    case 1:
+        if (em->seFlags28B & 0x80) {
+            w->flags |= 0x18;
+            w->flags |= 0x1000000;
+            em->setStatus(3);
+        } else {
+            w->flags &= ~0x10;
+            w->flags &= ~0x1000000;
+        }
+        if (MotionMoveF(em, 0)) {
+            em10WalkRtnSet(em);
+        } else {
+            if (em->plDist2 > 6250000.0f && w->pParasite && w->x6C5 != 1 && w->pParasite->ckAtkEnable()) {
+                w->pParasite->setAtk(1);
+            }
+            if (em->seFlags28B & 2) {
+                em10SetDmWaterEff(em, 0);
+            }
+        }
+        break;
+    }
+    em10HandSet(em, 0);
 }
 
 static void em10_R1_Crash(cEm10* em)
@@ -5562,6 +5894,61 @@ static void em10_R1_ShieldAtk(cEm10* em)
 
 static void em10_R1_TorchFrame(cEm10* em)
 {
+    Em10Work* w = EM10_WK(em);
+    int flag;
+
+    switch (em->xFE) {
+    case 0:
+        flag = (em->flags_3C8 & 0x1000000) ? 0x41 : 1;
+        w->x8 = 0;
+        MotionSetCore(em, MOTION(em), PL_ARC_PTR(em->subArc, 0x84), (int) PL_ARC_PTR(em->subArc, 0x85), 10, flag, 0);
+        w->x682 = 60;
+        w->x8 = 1;
+        SndCall(8, 0x8C, &em->pos, em->id, 0, em);
+        w->x4 = 10;
+        w->x697 = 0;
+        w->x698 = 0;
+        em->xFE++;
+    case 1:
+        if (w->x4) {
+            f32 a;
+            w->x4--;
+            if ((w->flags & 0x8000000) && pSUB) {
+                a = Muku(&em->pos, &pSUB->pos, em->rot.y, 0.09817477f);
+            } else {
+                a = Muku(&em->pos, &pPL->pos, em->rot.y, 0.09817477f);
+            }
+            em->rot.y += a;
+            em->rot.y = LIMIT_ANGLE(em->rot.y);
+        }
+        if ((em->seFlags28B & 1) && w->pWep) {
+            em10TorchFrameAtkCk(em);
+            em10TorchFrameAtkCkSub(em);
+        }
+        if (em->seFlags28B & 2) {
+            EstSetEm(em, -1, 0, 0, 0x10, 0x23, 0, w->x69E, em, 0);
+        }
+        if (em->seFlags28B & 0x20) {
+            w->x5C0 = SndCall(8, 0x8D, &em->pos, em->id, 0, em);
+        }
+        if (MotionMoveF(em, 0)) {
+            if (w->x697 == 0) {
+                GameAddPoint(0xB);
+            }
+            if (w->x697) {
+                w->x67C = 15;
+                if (pG->x4F88 <= 3) {
+                    w->x67C = 45;
+                }
+                if (pG->x4F88 <= 1) {
+                    w->x67C = 90;
+                }
+            }
+            em10WalkRtnSet(em);
+        }
+        break;
+    }
+    em10HandSet(em, 0);
 }
 
 static void em10_R1_SukiAtk(cEm10* em)
@@ -5578,6 +5965,34 @@ static void em10_R1_ClawAtk(cEm10* em)
 
 static void em10_R1_br_CSawWalkAtk(cEm10* em)
 {
+    Em10Work* w = EM10_WK(em);
+
+    if (em->hp > 0) {
+        if (pG->flags_64 & 0x2000000) {
+            EmRoutineSet(em, 1, 0, 0, 0);
+        } else if (!em10GotoCk(em) && !em10DoorOpenCk(em, 0) && !em10RackBreakCk(em) && !em10LadderClimbCk(em) && !em10VLadderClimbCk(em) && !em10LadderResetCk(em) && !em10JumpDownCk(em) && !em10JumpCk(em)) {
+            em10ReturnStartPosCk(em);
+            if (!em10ClimbOverCk(em) && !em10WindowCk(em)) {
+                if ((em->flags_3C8 & 0x400) && w->x5EC == 0 && w->x634 > 30 && fabsf(Muku(&em->pos, &pPL->pos, em->rot.y, PI)) < 0.5235988f) {
+                    EmRoutineSet(em, 1, 0x1C, 0, 0);
+                } else if (!em10IgnitionCk(em) && !em10ClawStickCK(em) && !em10FindLostCk(em)) {
+                    if (w->flags & 0x20000000) {
+                        f32 dx = em->pos.x - w->x4D8.x;
+                        f32 dz = em->pos.z - w->x4D8.z;
+                        if (dx * dx + dz * dz < 4000000.0f) {
+                            w->flags &= ~0x20000000;
+                            EmRoutineSet(em, 1, 1, 0, 0);
+                            return;
+                        }
+                        if (em->plDist2 < 4000000.0f && w->x530 < em->x3CC) {
+                            w->flags &= ~0x20000000;
+                        }
+                    }
+                    em10GotoPosCk(em);
+                }
+            }
+        }
+    }
 }
 
 static void em10_R1_CSawWalkAtk(cEm10* em)
@@ -5590,6 +6005,52 @@ static void em10_R1_ClawWalkAtk(cEm10* em)
 
 static void em10_R1_br_ClawCriAtk(cEm10* em)
 {
+    Em10Work* w = EM10_WK(em);
+    Vec v;
+    Vec p;
+    Mtx* m;
+
+    if (em->hp <= 0) {
+        return;
+    }
+    if (em->xFE != 5) {
+        return;
+    }
+    if (!(em->seFlags28B & 1)) {
+        return;
+    }
+    {
+        p.x = 500.0f;
+        p.y = 0.0f;
+        p.z = 0.0f;
+        m = &em->getPartsPtr(10)->mat;
+        PSMTXMultVec(*m, &p, &p);
+        v.x = 0.0f;
+        v.y = 0.0f;
+        v.z = 0.0f;
+        PSMTXMultVec(*m, &v, &v);
+        em10AtkCk(em, &v, &p, 0xE, 0);
+        v.x = -300.0f;
+        v.y = 0.0f;
+        v.z = 0.0f;
+        PSMTXMultVec(*m, &v, &v);
+        em10AtkCk(em, &v, &p, 0xE, 0);
+        v.x = -600.0f;
+        v.y = 0.0f;
+        v.z = 0.0f;
+        PSMTXMultVec(*m, &v, &v);
+        em10AtkCk(em, &v, &p, 0xE, 0);
+        switch (pG->x4FB8) {
+        case 0:
+        case 3:
+        case 5:
+            if (pSys->region && w->x697 && (s16) pG->pl_life <= 0) {
+                pG->pl_life = 1;
+                EmRoutineSet(em, 1, 0x2E, 0, 0);
+            }
+            break;
+        }
+    }
 }
 
 static void em10_R1_ClawCriAtk(cEm10* em)
@@ -5670,6 +6131,43 @@ static void em10_R1_br_C_SawAtk(cEm10* em)
 
 static void em10_R1_C_SawAtk(cEm10* em)
 {
+    Em10Work* w = EM10_WK(em);
+    int flag;
+
+    if (w->flags & 0x100) {
+        w->flags |= 0x40000;
+    }
+    switch (em->xFE) {
+    case 0:
+        flag = (em->flags_3C8 & 0x1000000) ? 0x41 : 1;
+        MotionSetCore(em, MOTION(em), PL_ARC_PTR(em->subArc, 0xE9), (int) PL_ARC_PTR(em->subArc, 0xEA), 10, flag, 0x1E);
+        w->x697 = 0;
+        w->x6BB = 0;
+        w->x4 = 5;
+        SndStop(w->x5C4, 0);
+        w->x5C4 = SndCall(6, 0x50, &em->pos, 0, 0, em);
+        SndStop(w->x5B8, 0);
+        SndStop(w->x5BC, 0);
+        w->x5B8 = SndCall(6, 0x3D, &em->pos, 0, 0, em);
+        em->xFE++;
+    case 1:
+        if (w->x4) {
+            w->x4--;
+            em->rot.y += Muku(&em->pos, &w->x54C, em->rot.y, 0.09817477f);
+            em->rot.y = LIMIT_ANGLE(em->rot.y);
+        }
+        if (MotionMoveF(em, 0)) {
+            if (w->x697 == 0) {
+                GameAddPoint(0xB);
+            }
+            em10WalkRtnSet(em);
+        } else if (em->seFlags28B & 1) {
+            em10SetDamageDoor(em, 2);
+            em10SetDamageRack(em, 2);
+        }
+        break;
+    }
+    em10HandSet(em, 0);
 }
 
 static void em10_R1_C_SawHit(cEm10* em)
@@ -5737,6 +6235,43 @@ static void em10_R1_C_SawCriHit(cEm10* em)
 
 static void plem10_C_SawCriHit(cPlayer* pl)
 {
+    cEm* em;
+
+    pG->flags_5010 |= 0x8000;
+    pl->dmg.set(0, 10);
+    em = (cEm*) pl->dmgType;
+    pl->subArc = em->subArc;
+    switch (pl->xFE) {
+    case 0:
+        MotionSetCore(pl, MOTION(pl), PL_ARC_PTR(pl->subArc, 0x103), 0, 5, 1, 0);
+        pl->atari.set(10, 400.0f, 700.0f);
+        pl->x3E8 = SndCall(1, 0xC, &pPL->pos, 0, 0, pPL);
+        pl->xFE++;
+    case 1:
+        if (MOTION(pl)->seqFrame > 17.7f && MOTION(pl)->seqFrame < 18.3f) {
+            pG->pl_life = 0;
+            SndStop(pl->x3E8, 0);
+            em10PlHeadLost();
+        }
+        if (MOTION(pl)->seqFrame > 76.7f && MOTION(pl)->seqFrame < 77.3f) {
+            EstSetEm(pl, -1, 0, 0, 0x10, 0x4D, 0, 0, pl, 0);
+        }
+        if (MOTION(pl)->seqFrame > 39.7f && MOTION(pl)->seqFrame < 40.3f) {
+            SndCall(5, 4, &pl->pos, 0, 0, pl);
+        }
+        if (MOTION(pl)->seqFrame > 70.7f && MOTION(pl)->seqFrame < 71.3f) {
+            SndCall(5, 5, &pl->pos, 0, 0, pl);
+        }
+        if (EmCatchMotionMove(pl, 0.3f, 0.2f)) {
+            pl->xFE++;
+        }
+        break;
+    }
+    pl->x3A8 = pl->pos;
+    pl->subArc = pl->subArc2;
+    if ((s16) pG->pl_life <= 0) {
+        SndStop(pl->x3E8, 0);
+    }
 }
 
 static void em10_R1_br_Catch(cEm10* em)
@@ -5780,6 +6315,52 @@ static void em10_R1_NeckHang_Luis(cEm10* em)
 
 static void subem10_NeckHang_Luis(cSubChar* sub)
 {
+    cSubChar* s = pSUB;
+    cEm* em;
+
+    BitOn(pG->flags_5010, 0x10000);
+    BitOn(pG->flags_5014, 0x20000000);
+    s->dmg.set(0, 10);
+    em = (cEm*) s->dmgType;
+    s->subArc = em->subArc;
+    switch (s->xFE) {
+    case 0:
+        MotionSetCore(s, MOTION(s), PL_ARC_PTR(s->subArc, 0x297), 0, 5, 1, 0);
+        SubCharSetFace(1);
+        s->atari.set(10, 480.00003f, 400.0f);
+        SndCall(8, 9, &s->pos, s->id, 0, s);
+        s->xFE++;
+    case 1:
+        EmCatchMotionMove(s, 0.3f, 0.2f);
+        em = (cEm*) s->dmgType;
+        if (em->xFC != 1 && em->xFD != 0x34) {
+            EndSubDamage();
+            s->dmg.set(0, 0x1E);
+        } else {
+            s->xFE = ((cEm*) s->dmgType)->xFE;
+        }
+        break;
+    case 2:
+        MotionSetCore(s, MOTION(s), PL_ARC_PTR(s->subArc, 0x299), 0, 5, 1, 0);
+        SndCall(8, 0x11, &s->pos, s->id, 0, s);
+        s->subHideMode = 15;
+        s->xFE++;
+    case 3:
+        if (MotionMoveF(s, 0)) {
+            EndSubDamage();
+            s->dmg.set(0, 0x1E);
+        } else if (s->subHideMode) {
+            s->subHideMode--;
+            em = (cEm*) s->dmgType;
+            if (em->xFC != 1 && em->xFD != 0x34) {
+                EndSubDamage();
+                s->dmg.set(0, 0x1E);
+            }
+        }
+        break;
+    }
+    s->x3A8 = s->pos;
+    s->subArc = s->subArc2;
 }
 
 static void em10_R1_NeckHang_Ashley(cEm10* em)
@@ -5796,6 +6377,47 @@ static void em10_R1_Backhold(cEm10* em)
 
 static void plem10_Backhold(cPlayer* pl)
 {
+    cEm* em;
+    PlArc* arc;
+
+    BitOn(pG->flags_5010, 0x8000);
+    BitOn(pG->flags_5010, 0x2000);
+    em = (cEm*) pl->dmgType;
+    arc = em->subArc;
+    pl->subArc = arc;
+    switch (pl->xFE) {
+    case 0:
+        MotionSetCore(pl, MOTION(pl), PL_ARC_PTR(arc, 0x29A), 0, 5, 1, 0);
+        PlSetFace(1);
+        pl->pWep->setTrans(0, 0);
+        pl->atari.set(10, 480.00003f, 400.0f);
+        pl->dmg.set(0, 10);
+        pl->xFE++;
+    case 1:
+        EmCatchMotionMove(pl, 0.3f, 0.2f);
+        em = (cEm*) pPL->dmgType;
+        if (!EM_RTN(em, 1, 0x37)) {
+            pl->pWep->setTrans(1, 0);
+            EndPlDamage();
+            pl->dmg.set(0, 0x1E);
+        } else {
+            pl->xFE = em->xFE;
+        }
+        break;
+    case 2:
+        MotionSetCore(pl, MOTION(pl), PL_ARC_PTR(arc, 0x29B), 0, 5, 1, 0);
+        pl->xFE++;
+    case 3:
+        pl->dmg.x1 = 2;
+        if (MotionMoveF(pl, 0)) {
+            pl->pWep->setTrans(1, 0);
+            EndPlDamage();
+            pl->dmg.set(0, 0x1E);
+        }
+        break;
+    }
+    pl->x3A8 = pl->pos;
+    pl->subArc = pl->subArc2;
 }
 
 static void em10_R1_Bombhold(cEm10* em)
@@ -5804,6 +6426,58 @@ static void em10_R1_Bombhold(cEm10* em)
 
 static void plem10_Bombhold(cPlayer* pl)
 {
+    cEm* em;
+    PlArc* arc;
+
+    pG->flags_5010 |= 0x8000;
+    pl->dmg.set(0, 10);
+    em = (cEm*) pl->dmgType;
+    arc = em->subArc;
+    pl->subArc = arc;
+    switch (pl->xFE) {
+    case 0:
+        MotionSetCore(pl, MOTION(pl), PL_ARC_PTR(arc, 0x29A), 0, 5, 1, 0);
+        PlSetFace(1);
+        pl->pWep->setTrans(0, 0);
+        pl->atari.set(10, 480.00003f, 400.0f);
+        pl->xFE++;
+    case 1:
+        EmCatchMotionMove(pl, 0.3f, 0.2f);
+        em = (cEm*) pPL->dmgType;
+        if (!EM_RTN(em, 1, 0x38)) {
+            pl->pWep->setTrans(1, 0);
+            EndPlDamage();
+            pl->dmg.set(0, 0x1E);
+        } else {
+            pl->xFE = ((cEm*) pl->dmgType)->xFE;
+        }
+        break;
+    case 2:
+        pG->pl_life = 0;
+        EstSetEm(pl, -1, 0, 0, 0x10, 0x4E, 0, 0, pl, 0);
+        pl->x3E0 = 3;
+        pl->xFE++;
+    case 3:
+        EmCatchMotionMove(pl, 0.3f, 0.2f);
+        if (pl->x3E0) {
+            pl->x3E0--;
+            if (pl->x3E0 == 0) {
+                pl->be_flag &= ~2;
+            }
+        }
+        break;
+    case 4:
+        MotionSetCore(pl, MOTION(pl), PL_ARC_PTR(arc, 0x29B), 0, 5, 1, 0);
+        pl->xFE++;
+    case 5:
+        if (MotionMoveF(pl, 0)) {
+            pl->pWep->setTrans(1, 0);
+            EndPlDamage();
+        }
+        break;
+    }
+    pl->x3A8 = pl->pos;
+    pl->subArc = pl->subArc2;
 }
 
 static void em10_R1_br_DashCatch(cEm10* em)
@@ -5849,6 +6523,40 @@ static void em10_R1_Dm_Flash(cEm10* em)
 
 static void em10_R1_Dm_Claw(cEm10* em)
 {
+    Em10Work* w = EM10_WK(em);
+
+    w->x686 = Rnd() % 150 + 150;
+    w->flags &= ~8;
+    em10FindCk2(em);
+    w->flags |= 0x100;
+    w->x654 = 0x1C2;
+    switch (em->xFE) {
+    case 0:
+        w->flags &= ~0x8000000;
+        em10MouthPartsReset(em);
+        if (w->x6BE != 4) {
+            w->x6BE = 3;
+        }
+        if (w->x6BF != 4) {
+            w->x6BF = 3;
+        }
+        if (fabsf(Muku(&em->pos, &em->dmg.pos, em->rot.y, PI)) < 1.5707964f) {
+            MotionSetCore(em, MOTION(em), PL_ARC_PTR(em->subArc, 0x10F), (int) PL_ARC_PTR(em->subArc, 0x110), 3, 1, 0);
+        } else {
+            MotionSetCore(em, MOTION(em), PL_ARC_PTR(em->subArc, 0x111), (int) PL_ARC_PTR(em->subArc, 0x112), 3, 1, 0);
+        }
+        em10SetDamageVoice(em, w->se6C7, w->se6C6);
+        w->x5F0 = pG->bell_pos;
+        em->xFE++;
+    case 1:
+        if (MotionMoveF(em, 0)) {
+            em10WalkRtnSet(em);
+        } else if (em->seFlags28B & 1) {
+            em10CallVoiceSe2(em, w->se6D1, 8);
+        }
+        break;
+    }
+    em10HandSet(em, 0);
 }
 
 static void em10_R1_Dm_Claw_Big(cEm10* em)
@@ -5907,6 +6615,58 @@ static void em10_R1_Dm_Showtay(cEm10* em)
 
 static void em10_R1_Dm_Heel(cEm10* em)
 {
+    Em10Work* w = EM10_WK(em);
+
+    switch (em->xFE) {
+    case 0:
+        w->flags &= ~0x8000000;
+        em10MouthPartsReset(em);
+        if (w->x6BE != 4) {
+            w->x6BE = 3;
+        }
+        if (w->x6BF != 4) {
+            w->x6BF = 3;
+        }
+        MotionSetCore(em, MOTION(em), PL_ARC_PTR(em->subArc, 0x2B7), (int) PL_ARC_PTR(em->subArc, 0x2B8), 3, 1, 0);
+        w->flags &= ~0x20;
+        if (em->hp <= 0) {
+            em10LostHead(em, 1, 0);
+            em->setWeaponFall();
+            if (w->pShield) {
+                w->pShield->setFall(20.0f, 0);
+                w->pShield = 0;
+            }
+        }
+        if (!(w->flags & 0x80)) {
+            em10CallVoiceSe2(em, w->se6D0, 8);
+        }
+        if (w->pParasite && w->pParasite->ckAtkEnable()) {
+            w->pParasite->setDamage();
+        }
+        if (w->x58C && w->x58C->vB8()) {
+            w->x58C->vC0();
+        }
+        em10SetDmWaterEff(em, 0);
+        SndStop(w->x5C4, 0);
+        GameAddPoint(9);
+        w->x10 = 10;
+        em->xFE++;
+    case 1:
+        if (em->seFlags28B & 0x80) {
+            w->flags |= 0x10;
+            w->flags |= 0x1000000;
+            em->setStatus(3);
+        }
+        if (MotionMoveF(em, 0)) {
+            if (em->hp <= 0) {
+                EmRoutineSet(em, 3, 0, 0, 0);
+            } else {
+                EmRoutineSet(em, 1, 0x1E, 0, 0);
+            }
+        }
+        break;
+    }
+    em10HandSet(em, 0);
 }
 
 static void em10_R1_Dm_DashUp(cEm10* em)
@@ -5947,6 +6707,61 @@ static void em10_R1_Dm_DashUp(cEm10* em)
 
 static void em10_R1_Dm_DashDown(cEm10* em)
 {
+    Em10Work* w = EM10_WK(em);
+    int flag;
+
+    switch (em->xFE) {
+    case 0:
+        w->flags &= ~0x8000000;
+        em10MouthPartsReset(em);
+        if (w->x6BE != 4) {
+            w->x6BE = 3;
+        }
+        if (w->x6BF != 4) {
+            w->x6BF = 3;
+        }
+        flag = 1;
+        if (em->dmPart->partsNo == 0x13) {
+            flag = 0x41;
+        }
+        if (em->dmPart->partsNo == 0x14) {
+            flag = 0x41;
+        }
+        MotionSetCore(em, MOTION(em), PL_ARC_PTR(em->subArc, 0x59), (int) PL_ARC_PTR(em->subArc, 0x5A), 3, flag, 0);
+        w->flags &= ~0x20;
+        em10SetDamageVoice(em, w->se6CE, w->se6C6);
+        em10SetDmWaterEff(em, 0);
+        SndStop(w->x5C4, 0);
+        if (w->pParasite && w->pParasite->ckAtkEnable()) {
+            w->pParasite->setDamage();
+        }
+        if (w->x58C && w->x58C->vB8()) {
+            w->x58C->vC0();
+        }
+        em->xFE++;
+    case 1:
+        if (em->seFlags28B & 0x80) {
+            w->flags |= 0x10;
+            w->flags |= 0x1000000;
+            em->setStatus(3);
+        }
+        if (em->seFlags28B & 1) {
+            if (ChkWaterEffectEnable(&em->pos)) {
+                EstSetEm(em, -1, 0, 0, 0x10, 0x32, 0, 0, em, 0);
+            } else {
+                EstSetEm(em, -1, 0, 0, 0x10, 0x1A, 0, 0, em, 0);
+            }
+        }
+        if (MotionMoveF(em, 0)) {
+            if (em->hp <= 0) {
+                EmRoutineSet(em, 3, 0, 0, 1);
+            } else {
+                EmRoutineSet(em, 1, 0x1E, 0, 0);
+            }
+        }
+        break;
+    }
+    em10HandSet(em, 0);
 }
 
 static void em10_R1_Dm_Blow(cEm10* em)
@@ -6105,6 +6920,43 @@ static void em10_R1_Die_Normal(cEm10* em)
 
 static void em10_R1_Die_RunDown(cEm10* em)
 {
+    Em10Work* w = EM10_WK(em);
+
+    switch (em->xFE) {
+    case 0:
+        em10MouthPartsReset(em);
+        em10SetPoint(em);
+        MotionSetCore(em, MOTION(em), PL_ARC_PTR(em->subArc, 0x59), (int) PL_ARC_PTR(em->subArc, 0x5A), 3, 1, 0);
+        em->hp = 0;
+        w->flags &= ~0x20;
+        em10SetDamageVoice(em, w->se6CE, w->se6C6);
+        em10SetDmWaterEff(em, 0);
+        SndStop(w->x5C4, 0);
+        em->setWeaponFall();
+        if (w->pShield) {
+            w->pShield->setFall(20.0f, 0);
+            w->pShield = 0;
+        }
+        em->xFE++;
+    case 1:
+        if (em->seFlags28B & 0x80) {
+            w->flags |= 0x10;
+            w->flags |= 0x1000000;
+            em->setStatus(3);
+        }
+        if (em->seFlags28B & 1) {
+            if (ChkWaterEffectEnable(&em->pos)) {
+                EstSetEm(em, -1, 0, 0, 0x10, 0x32, 0, 0, em, 0);
+            } else {
+                EstSetEm(em, -1, 0, 0, 0x10, 0x1A, 0, 0, em, 0);
+            }
+        }
+        if (MotionMoveF(em, 0)) {
+            EmRoutineSet(em, 3, 0, 0, 1);
+        }
+        break;
+    }
+    em10HandSet(em, 0);
 }
 
 static void em10_R1_Die_Bomb(cEm10* em)
@@ -6113,6 +6965,44 @@ static void em10_R1_Die_Bomb(cEm10* em)
 
 static void plemDmFrame(cPlayer* pl)
 {
+    cEm* em = (cEm*) pl->dmgType;
+    int end;
+    int dmg;
+
+    pl->subArc = em->subArc;
+    pl->dmg.set(0, 0x1E);
+    switch (pl->xFE) {
+    case 0:
+        MotionSetCore(pl, MOTION(pl), PL_ARC_PTR(pl->subArc, 0x29C), 0, 3, 1, 0);
+        PlSetDamageSe(0);
+        EstSetEm(pl, -1, 0, 0, 0x10, 0x28, 0, 0, pl, 0);
+        VibSetData((VibDataTbl*) (pG->pArc->ofs_1C + (u32) pG->pArc), 0xB, 1);
+        pl->x3E0 = 50;
+        pl->xFE++;
+    case 1:
+        end = MotionMoveF(pl, 0);
+        if (pl->x3E0) {
+            dmg = 10;
+            dmg = (int) (em10GetPower((cEm10*) pl) * (f32) dmg);
+            if ((pl->flags_3C8 & 4) && !(pG->flags_54 & 0x20)) {
+                dmg = (dmg + 1) / 2;
+            }
+            LifeDownSet(pPL, dmg, 0);
+            pl->x3E0--;
+            if (pl->x3E0 == 0 && (s16) pG->pl_life <= 0) {
+                PlSetDamageSe(0xD);
+                PlSetDamage(6, 0, 0);
+                break;
+            }
+        }
+        if (end) {
+            EndPlDamage();
+            pl->dmg.set(0, 0xF);
+        }
+        break;
+    }
+    plem10KickCamMove(pl, pl->xFF);
+    pl->subArc = pl->subArc2;
 }
 
 static void plem10DmGondolaShake(cPlayer* pl)
@@ -6124,8 +7014,8 @@ static void subem10DmGondolaShake(cSubChar* sub)
     cSubChar* s = pSUB;
 
     s->dmg.x1 = 2;
-    pG->flags_5010 |= 0x10000;
-    pG->flags_5014 |= 0x20000000;
+    BitOn(pG->flags_5010, 0x10000);
+    BitOn(pG->flags_5014, 0x20000000);
     switch (s->xFE) {
     case 0:
         MotionSetCore(s, MOTION(s), PL_ARC_PTR(s->subArc, 0x43), 0, 3, 1, 0);
@@ -6288,6 +7178,34 @@ static void em10FSAction(cEm10* em)
 
 static void plem10FS(cPlayer* pl)
 {
+    cEm* em = (cEm*) pl->dmgType;
+
+    pl->subArc = em->subArc;
+    pl->dmg.set(0, 0x1E);
+    pG->flags_5014 |= 0x40000000;
+    switch (pl->xFE) {
+    case 0:
+        MotionSetCore(pl, MOTION(pl), PL_ARC_PTR(pl->subArc, 0xD6), 0, 0, 1, 0);
+        GameAddPoint(9);
+        pl->atari.flags |= 8;
+        pl->xFF = Rnd() & 1;
+        pl->xFE++;
+    case 1:
+        if (MOTION(pl)->seqFrame > 9.7f && MOTION(pl)->seqFrame < 10.3f) {
+            SndCall(1, 0x11, &pl->pos, 0, 0, pPL);
+            SndCall(1, 0x10, &pl->pos, 0, 0, pPL);
+        }
+        if (MOTION(pl)->seqFrame > 60.7f && MOTION(pl)->seqFrame < 61.3f) {
+            SndCall(1, 0x43, &pl->pos, 0, 0, pPL);
+            SndCall(1, 0x44, &pl->pos, 0, 0, pPL);
+        }
+        if (MotionMoveF(pl, 0)) {
+            EndPlDamage();
+            pl->dmg.set(0, 0xF);
+        }
+        break;
+    }
+    pl->subArc = pl->subArc2;
 }
 
 static void plem10KneeKick(cPlayer* pl)

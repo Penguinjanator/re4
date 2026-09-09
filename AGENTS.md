@@ -1691,17 +1691,59 @@ Then `MATCHING["st2_4/r22c.cpp"] = True` in `config/G4BE08/modules.py`, `python3
   omake and stage cases; `switch (i - 11)` with `i - 11` in every call reduces the giv (`li r28, -0xb`)
   but cse folds the argument per case.
 
+### Stage (room script) modules st1_0..st1_3, st2_0..st2_4, st4_0
+
+- Layout of every stage REL (config/G4BE08/modules.py UNITS): `em_wrap.cpp` (src/st/em_wrap.cpp,
+  include/em_wrap.h: cEmControl/cEmPatrol/cEmGuard + the cEmWrap enemy handle with ~50 members + free
+  `setEm`/`SceCkFindPL`; no __FILE__ string, the real file name is unknown), then `cSceObj.cpp`
+  (st2_0/st2_3/st4_0 only, src/st/cSceObj.cpp, "D:/Bio4/Prog/cSceObj.cpp"), then one object per room
+  (`rNNN.cpp`, sources in src/st1/, src/st2/, src/st4/ — r102/r103/r108 are the same object in st1_1 and
+  st1_3, so room sources are keyed by stage, not module), then st1.cpp/st2.cpp/st4.cpp (st4.cpp includes
+  map_obj.h/light.h/widget.h/atari.h, hence header strings + a cManager<cLight> block after its code, and
+  defines the global `st4_initAdaGame` that r405 calls). Room .text starts are the first function of the
+  room (usually `RNNNInit`; r10a.cpp starts at EmSetNormal, r208.cpp at setResetNum (offset, the name is
+  also in r222.cpp), r210.cpp at asl_wait, r40a.cpp at r40a_DuraluminCaseOpen, r405.cpp at snd_tbl_set —
+  a `bl` to a function of the *previous* unit with an S+A field in the REL means the boundary is wrong;
+  make_rel --verify shows it). Room .rodata starts are pinned at the room's first header string (each
+  room's group is `[cFlag.set() string][atari.h/event.h/map_obj.h/light.h/widget.h...][HALT][flag_rsf.h]
+  [rNNN.cpp]`, header strings are unreferenced); pointer tables referenced only from data need a pinned
+  .data start too (st2_3 r21b.cpp: .data 0xA8).
+- **The original REL link dead-stripped em_wrap.cpp and cSceObj.cpp at function level** (like the DOL's
+  SDK objects: bodies gone, every string and constant pool kept, functions in declaration order): each
+  module keeps exactly the members its rooms transitively call (st1_0: none, 0 bytes of .text; st2_4:
+  six). `tools/strip_unused.py --gcc --module <mod> --unit <mod>/em_wrap.cpp` reproduces it from the
+  module's sym_map.tsv (modules.py `STRIP_UNUSED` names the units; overloads are told apart by size once
+  the row carries a mangled name, and anything still referenced from surviving code is kept — NgcAs
+  writes intra-object `bl`s as `.text+off`). Room objects were not stripped (st4.cpp keeps the unused
+  static helper... which turned out to be referenced from r405). em_wrap.cpp exists in two revisions:
+  st2_4/st4_0 have no cEmControl/cEmPatrol/cEmGuard (no "cEmControl::SetPatrol" string, no 0.0/1000/100
+  pool: src/st/em_wrap_v2.cpp = `#define EM_WRAP_NO_CONTROL` + include). Members that no module kept
+  (isTrans, setMove, ..., get_l_pl) are written from their strings/pools only.
+- em_wrap idioms: the getters are `if (isAlive() == 1) return pEm->x; err(...); return 0;` (fail block
+  laid out first with `beq`); `checkStatus` is `return pEm->checkStatus(stat) != 0 ? 1 : 0;` inside the
+  `if` (the ternary keeps the unmerged `li r3,0; b end`); `setPtr(cEm*, int)` stores `alive = a; no = -1;
+  pEm = em; list = -1;` with `int a = (be_flag & 0x201) == 1` (one `li -1` for both narrow stores);
+  `setPtr(s16, s8, int)` is `if (p != 0) return setPtr(p, errOn); return setEm(...)`; the patrol wrap is
+  `if (next < 0) wrap = nPoint - 1; else wrap = (next > nPoint - 1) ? 0 : next; p->cur = wrap;` (fresh
+  variable, one store); SceCkFindPL computes `cEm* p = pArray + size * i` *before* `cEmWrap em;` (the
+  ctor call) and needs `Vec v` at frame offset 0 in cEmGuard::TaskMove for the recomputed `addi r4,r1,8`.
+  OPEN: cEmWrap::setEm's `add r9, pG, idx` operand order / register choice (ours `add r9, idx, pG`; ~15
+  forms of the EM_LIST access tried) — the only non-identical bytes in st1_1..st2_3/st4_0's em_wrap.
+- OPEN (rooms): r10d.cpp's .rodata is `[flag_rsf.h][r10d.cpp][HALT %s(%d)]` while every room that also
+  includes atari.h has `[..][HALT][flag_rsf.h][rNNN.cpp]`; include/flag_rsf.h gives `[HALT][flag_rsf.h]`
+  first. The code of R10dInit/Main matches (src/st1/r10d.cpp).
+
 ### Open
 
 - t_emlist.cpp (0x6174 of code: a 0x3E0 work block behind a struct-member pointer reloaded after every
   store, 122 `const char*` name tables and a
   64-entry `{char name[16]; const char** flag, *type, *set, *x}` id table, TOOL_MENU-like char[]
   menus) has 36 of 53 functions matched (skeleton, data and menus done; the disp/camera/target functions
-  are left); st2_4/r22c.cpp, st1_0/r100.cpp + r120.cpp are split but not matched.
+  are left); the stage rooms are split (config/G4BE08/modules.py) but only r10d.cpp's code is written;
+  em_wrap.cpp matches in st1_0/st2_4 (Matching) and is one register-allocation diff away elsewhere.
 - The `.drs` archives are not rebuilt by `ninja` (`tools/drs.py rebuild` does one at a time); the
   sound bank's record types 1/2 and the p0/p1 parameters are not interpreted.
-- Unit boundaries inside the big modules (Tools has ~39 source files) are not known; `strip_unused`
-  for module units (nothing is stripped in a -r link, so probably never needed); the `.gnu.linkonce`
+- Unit boundaries inside the big modules (Tools has ~39 source files) are not known; the `.gnu.linkonce`
   orphan sections of Sscrn/t_esp/t_event/t_id/t_movie/Tools/t_sce (their original ELFs had 12 extra
   sections between .text and .ctors, concatenated behind .text in the REL).
 

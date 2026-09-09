@@ -247,11 +247,11 @@ section	offset	size	unit	scope	name	demangled
 .text	0x00011910	0xDC	st4_0/r411.cpp	local	r411_checkEmSet2	r411_checkEmSet2
 .text	0x000119EC	0xE0	st4_0/r411.cpp	local	r411_checkEmSet3	r411_checkEmSet3
 .text	0x00011ACC	0x20	st4_0/st4.cpp	global	set__FiPFv_vT1	set
-.text	0x00011AEC	0x16C	st4_0/st4.cpp	global	setTbl	setTbl
+.text	0x00011AEC	0x16C	st4_0/st4.cpp	global	setTbl__Fv	setTbl
 .text	0x00011C58	0x64	st4_0/st4.cpp	global	_prolog	_prolog
 .text	0x00011CBC	0x60	st4_0/st4.cpp	global	_epilog	_epilog
 .text	0x00011D1C	0x58	st4_0/st4.cpp	global	_unresolved	_unresolved
-.text	0x00011D74	0x20	st4_0/st4.cpp	local	st4_initAdaGame__Fv	st4_initAdaGame
+.text	0x00011D74	0x20	st4_0/st4.cpp	global	st4_initAdaGame__Fv	st4_initAdaGame
 .text	0x00011DD4	0x0	st4_0/st4.cpp	global	lbl_st4_0_text_11DD4	lbl_st4_0_text_11DD4
 .text	0x00011E10	0x0	st4_0/st4.cpp	global	lbl_st4_0_text_11E10	lbl_st4_0_text_11E10
 .text	0x00011E24	0x0	st4_0/st4.cpp	global	lbl_st4_0_text_11E24	lbl_st4_0_text_11E24

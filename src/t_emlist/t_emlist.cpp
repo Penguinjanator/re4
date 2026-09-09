@@ -836,7 +836,7 @@ static void emlist_r0_target()
                 } while (EmList.wk->listNo > 0);
             }
             if (!EMLIST_ROOM_MATCH(p)) {
-                EmList.wk->listNo = old;
+                ISet(EmList.wk->listNo, old);
             }
             p = EMLIST_ENT(EmList.wk->listNo);
             emlistCamToPoin();
@@ -857,7 +857,7 @@ static void emlist_r0_target()
                 } while (EmList.wk->listNo <= 0xFD);
             }
             if (!EMLIST_ROOM_MATCH(p)) {
-                EmList.wk->listNo = old;
+                ISet(EmList.wk->listNo, old);
             }
             p = EMLIST_ENT(EmList.wk->listNo);
             emlistCamToPoin();
@@ -951,6 +951,7 @@ static void emlist_r0_target()
                 EmList.wk->xC = 0;
                 EmList.wk->x24 = 0;
                 break;
+            case 12:
             default:
                 EmList.wk->routine = 0;
                 EmList.wk->step = 0;
@@ -979,7 +980,7 @@ static void emlist_r0_target()
         if (EmList.wk->joy.trg & JOY_A) {
             EmList.wk->x50 = emlist_catch_em();
             if (EmList.wk->x50 != -1) {
-                EmList.wk->listNo = EmList.wk->x50;
+                ISet(EmList.wk->listNo, EmList.wk->x50);
                 p = EMLIST_ENT(EmList.wk->listNo);
             }
         }
@@ -994,14 +995,14 @@ static void emlist_r0_target()
         }
         if (EmList.wk->joy.trg & JOY_X) {
             if (p->id != 0) {
-                for (i = EmList.wk->listNo; i <= 0xFE; i++) {
+                i = EmList.wk->listNo;
+                while (i <= 0xFE) {
                     if (EMLIST_ENT_I(i)->id == 0) {
+                        ISet(EmList.wk->listNo, i);
+                        p = EMLIST_ENT(EmList.wk->listNo);
                         break;
                     }
-                }
-                if (i <= 0xFE) {
-                    ISet(EmList.wk->listNo, i);
-                    p = EMLIST_ENT(EmList.wk->listNo);
+                    i++;
                 }
                 if (p->id != 0) {
                     for (i = EmList.wk->listNo; i >= 0; i--) {
@@ -1027,7 +1028,6 @@ static void emlist_r0_target()
                     EmList.wk->cur.rot[2] = 0;
                     EmList.wk->cur.xA = 0;
                 }
-                p->flags |= 1;
                 p->id = EmList.wk->cur.id;
                 p->type = EmList.wk->cur.type;
                 p->x3 = EmList.wk->cur.x3;
@@ -1035,20 +1035,20 @@ static void emlist_r0_target()
                 p->xB = EmList.wk->cur.xB;
                 p->x1A = EmList.wk->cur.x1A;
                 p->hp = EmList.wk->cur.hp;
-                p->rot[2] = EmList.wk->cur.rot[2];
-                *(u32*) &p->rot[0] = *(u32*) &EmList.wk->cur.rot[0];
+                memcpy((u32*) ((u8*) p + 0x12), (u32*) ((u8*) &EmList.wk->cur + 0x12), 6);
+                p->flags |= 1;
+                *(u16*) ((u8*) p + 0x18) = (pG->stage_no << 8) | pG->room_no;
                 p->xA = 0;
-                p->room = (pG->stage_no << 8) | pG->room_no;
                 PSVECSubtract(&pG->Cam.param.at, &pG->Cam.param.pos, &v);
                 {
-                    f32 t = (pPLem->pos.y - pG->Cam.param.pos.y) / v.y;
+                    f32 vy = v.y;
                     v.y = 0.0f;
-                    PSVECScale(&v, &v, t);
+                    PSVECScale(&v, &v, (pPLem->pos.y - pG->Cam.param.pos.y) / vy);
                 }
                 PSVECAdd(&pG->Cam.param.pos, &v, &v);
-                p->pos[0] = (s16) (v.x * 0.1f);
-                p->pos[1] = (s16) (pPLem->pos.y * 0.1f);
-                p->pos[2] = (s16) (v.z * 0.1f);
+                ((s16*) p->pos)[0] = (s16) (v.x * 0.1f);
+                ((s16*) p->pos)[1] = (s16) (pPLem->pos.y * 0.1f);
+                ((s16*) p->pos)[2] = (s16) (v.z * 0.1f);
                 emlist_em_move_to_cursor__Fv(p);
             }
         }
@@ -1059,7 +1059,7 @@ static void emlist_r0_target()
                     do {
                         EmList.wk->listNo--;
                         if (EmList.wk->listNo < 0) {
-                            EmList.wk->listNo = 0;
+                            ISet(EmList.wk->listNo, 0);
                         }
                         p = EMLIST_ENT(EmList.wk->listNo);
                         if (EMLIST_ROOM_MATCH(p)) {
@@ -1068,7 +1068,7 @@ static void emlist_r0_target()
                     } while (EmList.wk->listNo > 0);
                 }
                 if (!EMLIST_ROOM_MATCH(p)) {
-                    EmList.wk->listNo = old;
+                    ISet(EmList.wk->listNo, old);
                 }
                 p = EMLIST_ENT(EmList.wk->listNo);
                 emlistCamToPoin();
@@ -1080,7 +1080,7 @@ static void emlist_r0_target()
                     do {
                         EmList.wk->listNo++;
                         if (EmList.wk->listNo > 0xFE) {
-                            EmList.wk->listNo = 0xFE;
+                            ISet(EmList.wk->listNo, 0xFE);
                         }
                         p = EMLIST_ENT(EmList.wk->listNo);
                         if (EMLIST_ROOM_MATCH(p)) {
@@ -1089,7 +1089,7 @@ static void emlist_r0_target()
                     } while (EmList.wk->listNo <= 0xFD);
                 }
                 if (!EMLIST_ROOM_MATCH(p)) {
-                    EmList.wk->listNo = old;
+                    ISet(EmList.wk->listNo, old);
                 }
                 p = EMLIST_ENT(EmList.wk->listNo);
                 emlistCamToPoin();
