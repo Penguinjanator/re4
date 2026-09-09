@@ -6,9 +6,9 @@
 # has no per-object information, so a module is one unit "<mod>/<mod>.cpp" unless listed here.
 # Data sections are attributed to units by the relocations from the unit's code (see the tool).
 UNITS = {
-    # r22c: room 2-2c (shooting gallery); st2_4.cpp: set/setTbl + the SN REL entry points
+    # r22c: room 2-2c (shooting gallery); st2.cpp (__FILE__ "D:/Bio4/Prog/st2.cpp"): set/setTbl + the SN REL entry points
     # (_prolog runs the ctors then calls setTbl, _epilog runs the dtors, _unresolved traps).
-    "st2_4": [("st2_4/r22c.cpp", "cEmWrap::cEmWrap"), ("st2_4/st2_4.cpp", "set")],
+    "st2_4": [("st2_4/r22c.cpp", "cEmWrap::cEmWrap"), ("st2_4/st2.cpp", "set")],
 }
 
 # Units whose compiled object replaces the split object in the REL link.

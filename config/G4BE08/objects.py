@@ -1273,3 +1273,8 @@ MATCHING.update({
 MATCHING.update({
     "game/id_tex.cpp": True,
 })
+
+# UI/system closer (stage)
+MATCHING.update({
+    "game/stage.cpp": True,
+})

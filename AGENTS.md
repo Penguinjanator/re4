@@ -1347,6 +1347,32 @@ mark it Matching.
   m = B; MotionSetCore(pl, .., m, ..)` (arms compute `arc->ofs[n]`, the `add` after the join); a
   ternary index gives `lwzx`.
 - `MotionMove` is called with two arguments by the partner code (`MotionMoveF(m, 0) asm("MotionMove")`).
+- Frame size = ALIGN16(8 fixed + ALIGN8(vars) + 8 fpmem + ALIGN8(gp+fp saves)): the "unexplained
+  8-byte slot before the fpmem slot" (merchant buyupPrice/sellPrice, option) is usually this 16-byte
+  rounding, not a local. A frame that is 0x10 bigger with the *address-taken* locals starting 0x10
+  later (`addi r28, r1, 0x18` instead of `0x8`) is an unused aggregate local declared before them
+  (option `ChapterEnd::move`: `Vec unused;` — addressof slots are assigned after declared aggregates).
+- cse_insn's `(set REG0 REG1)` swap: `tbl = &sym; t = tbl;` gets rewritten to `t = &sym; tbl = t`
+  (the lo_sum's dest becomes the copy's dest) when t's REGNO_LAST_UID is later than tbl's and the
+  previous non-note insn is tbl's set. Any statement between the two (`ofs = 0;`) blocks it, so the
+  `addi` result stays `tbl` and the stepping pointer is the `mr` copy; a second copy taken from `t`
+  (`t0 = t`) after that is what cse2 turns into the "lhzx base" register (stage subMissionSt1).
+- global.c priority truncation ties (`int(10000*log2(refs)*refs/len)`): OpeSetOpenTerm's params x
+  (4 refs/216) and z (2 refs/54) both give 370, so the lower pseudo (x) wins f30; the original
+  breaks the tie the other way. REG_LIVE_LENGTH here is `recompute_reg_usage` after sched1 (real
+  insns only: block notes and store order changes do not count) — one more real insn in x's range is
+  needed, not found yet (OPEN).
+- loop.c invariant threshold with a call in the loop is `1 + n_non_fixed_regs` = 71: a `lis` (savings
+  1, lifetime 1) is hoisted out of an outer loop only while the loop has <= 71 real insns at loop pass
+  2. merchant buyupPrice(ItemWork*) hoists ours (65 insns) but not the original's — its outer loop
+  had >= 72 pre-combine insns (OPEN: which extra RTL).
+- Dump-script note: the build passes no `-G` to cc1plus (cflags have none); a hand-run cc1plus with
+  `-G1024` changes small-data references and callee-saved counts. Use `-O2 -mfast-cast -da` only.
+- mercenaries MercSysInitRoom (OPEN): the `wk->stage = 0` zero is a reload-materialised pseudo in
+  the original (`li r11,0` right before the `stw`, after `lwz pG`), ours a sched1-hoisted `li r0,0`
+  (local-alloc'd); and the SndStrReq `lfs f1` pool load is issued last (right before `bl`) although
+  its `lis r29` sits at the block top — sched2 in ours hoists it at once. Reference stores (`BitSet`),
+  `G_ROOM_ID`, `pGS`, a shared `zero` local, int/local forms of the 0.0f argument all tried.
 
 ## Don'ts
 

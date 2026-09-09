@@ -299,13 +299,14 @@ void subMissionSt1()
     int j;
 
     tbl = st1_target_tbl;
-    t = tbl;
     {
-    // room1 is read through an explicit byte offset: the target keeps `i*6` as its own index giv
-    // (`lhzx base, ofs`) instead of folding the table base into a second stepping pointer.
-    // Not matched (99.7%): the target's lhzx has (base, ofs) operand order and the roles of the
-    // three table registers (addi result / stepping t / lhzx base copy) are rotated.
+    // `ofs = 0` between `tbl = ...` and `t = tbl` keeps cse from rewriting the lo_sum to set `t`
+    // (cse_insn's (set REG0 REG1) swap needs the previous insn to be REG1's set), so the addi
+    // result stays `tbl` and `t`/`t0` are copies. room1 is read through `(u32) t0 + ofs`: the
+    // base is a register (base-first `lhzx`) that cse2 makes a copy of `t`.
     u32 ofs = 0;
+    t = tbl;
+    SubMissionTarget* t0 = t;
     do {
         p1 = GetEtcFlgPtr(t->no, t->room1);
         p2 = GetEtcFlgPtr(t->no, t->room2);
@@ -317,7 +318,7 @@ void subMissionSt1()
             count++;
         }
         if (pG->x4 != 0) {
-            if (G_ROOM_ID == ((SubMissionTarget*) ((u32) st1_target_tbl + ofs))->room1 && !(*p1 & 1)) {
+            if (G_ROOM_ID == ((SubMissionTarget*) ((u32) t0 + ofs))->room1 && !(*p1 & 1)) {
                 if (getRoomEtcItem(t->no, &item, 1)) {
                     item->flags &= ~2;
                     pCoin = item;

@@ -211,6 +211,11 @@ if args.prodg_driver == "native":
             )
     config.prodg_native_dir = PRODG_NATIVE_DIR
 config.prodg_ldscript = Path("config") / config.version / "ldscript.ld"
+# REL modules (config.yml `modules:`): ngcld -r with rel_ldscript.ld, then tools/make_rel.py rebuilds the
+# REL from the ELF, config/G4BE08/modules/<mod>/rel.json and the DOL symbols (AGENTS.md "REL modules").
+config.rel_ldscript = Path("config") / config.version / "rel_ldscript.ld"
+config.rel_config_dir = Path("config") / config.version / "modules"
+config.rel_dol_symbols = Path("config") / config.version / "symbols.txt"
 config.prodg_sda_base = 0x8031BEE0
 config.prodg_sda2_base = 0x8032BEE0
 config.prodg_stack_end = 0x80316CE0  # _stack_end; _stack_addr (stack top) is 0x8031ACE0 (see ldscript.ld)
@@ -481,6 +486,24 @@ for unit in UNITS:
     else:
         lib_objects.append(Object(status, name, source=unit))
 
+# REL module units: config/G4BE08/modules.py (UNITS boundaries, MATCHING) plus one default unit
+# "<mod>/<mod>.cpp" per module of config.yml. REL code has no small data (every DOL global goes
+# through lis/addi: -G 0), so cflags_game minus small data.
+cflags_rel = [*cflags_game, "-G 0"]
+spec = importlib.util.spec_from_file_location("modules", Path("config") / config.version / "modules.py")
+modules_mod = importlib.util.module_from_spec(spec)
+assert spec.loader is not None
+spec.loader.exec_module(modules_mod)
+REL_UNITS: Dict[str, List] = getattr(modules_mod, "UNITS", {})
+REL_MATCHING: Dict[str, bool] = getattr(modules_mod, "MATCHING", {})
+rel_objects: List[Object] = []
+with open(config.config_path) as _f:
+    _module_names = re.findall(r"^\s+name:\s*(\S+)\s*$", _f.read(), re.M)
+for _mod in _module_names:
+    for unit, _first in REL_UNITS.get(_mod, [(f"{_mod}/{_mod}.cpp", None)]):
+        rel_objects.append(Object(REL_MATCHING.get(unit, NonMatching), unit, source=unit, cflags=cflags_rel))
+config.reconfig_deps.append(Path("config") / config.version / "modules.py")
+
 config.warn_missing_config = True
 config.warn_missing_source = False
 config.libs = [
@@ -502,11 +525,19 @@ config.libs = [
         "objects": lib_objects,
     },
     *[DolphinLib(lib, objs) for lib, objs in sdk_objects.items() if objs],
+    {
+        "lib": "Rel",
+        "mw_version": PRODG_VERSION,
+        "cflags": cflags_rel,
+        "progress_category": "rel",
+        "objects": rel_objects,
+    },
 ]
 
 config.progress_categories = [
     ProgressCategory("game", "Game Code"),
     ProgressCategory("sdk", "SDK/Runtime Code"),
+    ProgressCategory("rel", "REL Modules"),
 ]
 config.progress_each_module = args.verbose
 config.progress_report_args = []

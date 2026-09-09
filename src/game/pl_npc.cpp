@@ -3171,6 +3171,7 @@ int cSubChar::checkAnotherRoute()
     int i;
     u8 id;
     int j;
+    f32 dist;
 
     // Stored through a plain pointer (not a member reference) so the scheduler keeps the pG
     // load below it: a member store never conflicts with a fixed scalar load in GCC 2.95.
@@ -3198,10 +3199,15 @@ int cSubChar::checkAnotherRoute()
         if (e->pad_3 > 1) {
             continue;
         }
-        if ((pos.x - e->pos.x) * (pos.x - e->pos.x) + (pos.y - e->pos.y) * (pos.y - e->pos.y) +
-                (pos.z - e->pos.z) * (pos.z - e->pos.z) >
-            4000000.0f) {
-            continue;
+        {
+            f32 dx = pos.x - e->pos.x;
+            f32 dy = pos.y - e->pos.y;
+            f32 dz = pos.z - e->pos.z;
+
+            dist = dx * dx + dy * dy + dz * dz;
+            if (dist > 4000000.0f) {
+                continue;
+            }
         }
         if (e->pad_3 == 1) {
             int ok = 0;
@@ -3219,9 +3225,14 @@ int cSubChar::checkAnotherRoute()
                 if (f->pad_3 != 2) {
                     continue;
                 }
-                if ((pPL->pos.x - f->pos.x) * (pPL->pos.x - f->pos.x) + (pPL->pos.z - f->pos.z) * (pPL->pos.z - f->pos.z) >
-                    16000000.0f) {
-                    continue;
+                {
+                    f32 dx = pPL->pos.x - f->pos.x;
+                    f32 dz = pPL->pos.z - f->pos.z;
+
+                    dist = dx * dx + dz * dz;
+                    if (dist > 16000000.0f) {
+                        continue;
+                    }
                 }
                 if (fabsf(pPL->pos.y - f->pos.y) > 500.0f) {
                     continue;
@@ -3245,11 +3256,9 @@ int cSubChar::checkAnotherRoute()
         return 0;
     }
     found = -1;
-    for (i = 0; i < *(int*) pG->pRoomEmi; i++) {
-        u32 o = i * 0x40 + 8;
-
-        e = (EmiEntry*) ((u8*) pG->pRoomEmi + o);
-        if (((u8*) pG->pRoomEmi)[o] != 0xB) {
+    for (i = 0; i < ((EmiData*) pG->pRoomEmi)->n; i++) {
+        e = &((EmiData*) pG->pRoomEmi)->entry[i];
+        if (e->type != 0xB) {
             continue;
         }
         if (e->state != 1) {

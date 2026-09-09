@@ -1,0 +1,17 @@
+Sections:
+	.text       type:code align:4
+	.ctors      type:rodata align:4
+	.dtors      type:rodata align:4
+	.rodata     type:rodata align:8
+	.data       type:data align:4
+	.bss        type:bss align:32
+
+t_movie/t_movie.cpp:
+	.text       start:0x00000000 end:0x00020B98
+	.ctors      start:0x00000000 end:0x00000004
+	.dtors      start:0x00000000 end:0x00000004
+	.rodata     start:0x00000000 end:0x00003650
+	.data       start:0x00000000 end:0x00000EC0 align:4
+	.data       start:0x00000EC0 end:0x00000EC4 skip
+	.bss        start:0x00000000 end:0x00009338 align:32
+	.bss        start:0x00009338 end:0x0000936C align:4 common

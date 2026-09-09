@@ -1310,12 +1310,7 @@ struct PlEyeDir {
     f32 x;   // current
     f32 y;   // target
     f32 z;   // mix
-    PlEyeDir()
-    {
-        x = 0.0f;
-        y = 0.0f;
-        z = 0.0f;
-    }
+    PlEyeDir() { x = y = z = 0.0f; }
 };
 
 // Eyelid (parts 0x1C) blink sequence on `timer` and the eye direction (parts 0x20/0x21) wander:
@@ -1327,25 +1322,26 @@ void cPlayer::moveEyeNormal()
     cModel* p;
 
     p = getPartsPtr(0x1C);
+    // Every case written out separately in ascending order: jump2 cross-jumps the identical
+    // bodies into the last copy, which gives the target's body layout (3, 4, 0x1E, 0x58, 0x5A,
+    // 0x5D, 0x5E, 0x5F, 0x60, 0x61, 0x62) and constant-pool order.
     switch (timer++) {
-    case 0:
-        eyeDir.y = ((f32) (Rnd() % 200) * 0.01f - 1.0f) * 3.1415927f * 0.1f;
+    default:
+        p->rot.x = 0.0f;
+        break;
+    case 0: {
+        f32 y = ((f32) (Rnd() % 200) * 0.01f - 1.0f) * 3.1415927f * 0.1f;
+        eyeDir.y = y;
         if (eyeDir.z == 0.0f) {
-            eyeDir.x = eyeDir.y;
+            eyeDir.x = y;
         }
-    case 6:
-    case 0x5A:
         p->rot.x = 0.0872664600610733f;
         break;
+    }
     case 1:
-    case 5:
-    case 0x5B:
-    case 0x61:
         p->rot.x = 0.1745329201221466f;
         break;
     case 2:
-    case 0x5C:
-    case 0x5F:
         p->rot.x = 0.3490658402442932f;
         break;
     case 3:
@@ -1353,6 +1349,12 @@ void cPlayer::moveEyeNormal()
         break;
     case 4:
         p->rot.x = 0.24434609711170197f;
+        break;
+    case 5:
+        p->rot.x = 0.1745329201221466f;
+        break;
+    case 6:
+        p->rot.x = 0.0872664600610733f;
         break;
     case 0x1E:
         eyeDir.y = 0.0f;
@@ -1367,21 +1369,33 @@ void cPlayer::moveEyeNormal()
             timer = 0x5A;
         }
         break;
+    case 0x5A:
+        p->rot.x = 0.0872664600610733f;
+        break;
+    case 0x5B:
+        p->rot.x = 0.1745329201221466f;
+        break;
+    case 0x5C:
+        p->rot.x = 0.3490658402442932f;
+        break;
     case 0x5D:
         p->rot.x = 0.296705961227417f;
         break;
     case 0x5E:
         p->rot.x = 0.33161255717277527f;
         break;
+    case 0x5F:
+        p->rot.x = 0.3490658402442932f;
+        break;
     case 0x60:
         p->rot.x = 0.2617993950843811f;
+        break;
+    case 0x61:
+        p->rot.x = 0.1745329201221466f;
         break;
     case 0x62:
         p->rot.x = 0.0872664600610733f;
         timer = 10;
-        break;
-    default:
-        p->rot.x = 0.0f;
         break;
     }
     p->matUpdate();
@@ -1389,7 +1403,8 @@ void cPlayer::moveEyeNormal()
         static int eyetime = 0;
 
         if (--eyetime < 0) {
-            eyeDir.y = eyeDir.y + ((f32) (Rnd() % 200) * 0.01f - 1.0f) * 0.03141592815518379f;
+            f32 d = ((f32) (Rnd() % 200) * 0.01f - 1.0f) * 0.03141592815518379f;
+            eyeDir.y += d;
             if (eyeDir.z == 0.0f) {
                 eyeDir.x = eyeDir.y;
             }

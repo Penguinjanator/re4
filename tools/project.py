@@ -904,6 +904,20 @@ def generate_build_ninja(
             rspfile="$out.rsp",
             rspfile_content="$in_newline",
         )
+        n.rule(
+            name="link_rel",
+            command=f'$python {config.tools_dir / "link_rel.py"} "$linker_path" "$wrapper_path" "$sn_ngc_path" '
+            '$rel_ldscript $out $out.rsp',
+            description="LINK $out",
+            rspfile="$out.rsp",
+            rspfile_content="$in_newline",
+        )
+        n.rule(
+            name="make_rel",
+            command=f'$python {config.tools_dir / "make_rel.py"} --config $rel_json --dol-symbols $dol_symbols '
+            "--out $out $rel_links $in",
+            description="REL $out",
+        )
     else:
         n.rule(
             name="link",
@@ -1124,10 +1138,18 @@ def generate_build_ninja(
             self.units = module_config["units"]
             self.inputs: List[str] = []
             self.prodg_ldscript: Optional[Path] = None
+            self.rel_json: Optional[Path] = None
+            self.rel_links: List[str] = []
 
-            if linker_family == "prodg":
-                if self.module_id != 0:
-                    sys.exit("ProDG linker mode currently supports only the main DOL module")
+            if linker_family == "prodg" and self.module_id != 0:
+                if config.rel_ldscript is None or config.rel_config_dir is None or config.rel_dol_symbols is None:
+                    sys.exit("ProDG REL modules need rel_ldscript, rel_config_dir and rel_dol_symbols in configure.py")
+                self.rel_json = config.rel_config_dir / self.name / "rel.json"
+                if not self.rel_json.is_file():
+                    sys.exit(f"{self.rel_json} missing: run tools/gen_rel_config.py")
+                with open(self.rel_json, "r", encoding="utf-8") as f:
+                    self.rel_links = json.load(f)["links"]
+            elif linker_family == "prodg":
                 configured_ldscript = cast(Optional[Path], getattr(config, "prodg_ldscript", None))
                 if configured_ldscript is not None and configured_ldscript.is_file():
                     self.prodg_ldscript = configured_ldscript
@@ -1161,11 +1183,48 @@ def generate_build_ninja(
         def partial_output(self) -> Path:
             if self.module_id == 0:
                 return build_path / f"{self.name}.elf"
+            elif linker_family == "prodg":
+                return build_path / self.name / f"{self.name}.elf"
             else:
                 return build_path / self.name / f"{self.name}.plf"
 
         def write(self, n: ninja_syntax.Writer) -> None:
             n.comment(f"Link {self.name}")
+            if self.module_id != 0 and linker_family == "prodg":
+                # ngcld -r into a relocatable ELF, then tools/make_rel.py writes the REL the way
+                # snmakerel did (see AGENTS.md "REL modules")
+                elf_path = self.partial_output()
+                n.build(
+                    outputs=elf_path,
+                    rule="link_rel",
+                    inputs=self.inputs,
+                    implicit=[config.rel_ldscript, *linker_implicit, config.tools_dir / "link_rel.py",
+                              config.tools_dir / "elffile.py"],
+                    variables={
+                        "sn_ngc_path": compilers / config.linker_version,
+                        "linker_path": serialize_path(linker),
+                        "wrapper_path": serialize_path(wrapper) if wrapper else "",
+                        "rel_ldscript": serialize_path(config.rel_ldscript),
+                    },
+                    order_only="post-compile",
+                )
+                link_elfs = [build_path / m / f"{m}.elf" for m in self.rel_links]
+                n.build(
+                    outputs=self.output(),
+                    rule="make_rel",
+                    inputs=elf_path,
+                    implicit=[self.rel_json, config.rel_dol_symbols, *link_elfs,
+                              config.tools_dir / "make_rel.py", config.tools_dir / "elffile.py",
+                              config.tools_dir / "relfile.py"],
+                    variables={
+                        "rel_json": serialize_path(self.rel_json),
+                        "dol_symbols": serialize_path(config.rel_dol_symbols),
+                        "rel_links": " ".join(f"--link {m}={serialize_path(p)}" for m, p in zip(self.rel_links, link_elfs)),
+                    },
+                    order_only="post-link",
+                )
+                n.newline()
+                return
             if self.module_id == 0:
                 elf_path = build_path / f"{self.name}.elf"
                 if linker_family == "prodg":
@@ -1568,7 +1627,8 @@ def generate_build_ninja(
             rspfile_content="$in_newline",
         )
         generated_rels: List[str] = []
-        for idx, link in enumerate(build_config["links"]):
+        # ProDG modules are written by make_rel in their LinkStep
+        for idx, link in enumerate(build_config["links"] if linker_family != "prodg" else []):
             # Map module names to link steps
             link_steps_local = list(
                 filter(

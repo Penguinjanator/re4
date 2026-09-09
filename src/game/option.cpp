@@ -1063,6 +1063,8 @@ int ChapterEnd::move()
 {
     static u8 char_per = 0xA;
     static u8 char_bar = 0xB;
+    // 16 unused frame bytes before the address-taken ints (0x18..0x28 in the original): an
+    // aggregate local that is never referenced still takes its slot.
     Vec unused;
     int chap;
     int sec;

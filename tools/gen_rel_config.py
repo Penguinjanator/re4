@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
-"""Generate config/<ver>/modules/<mod>/{splits.txt,symbols.txt,rel.json} for every REL module listed
-in config/<ver>/config.yml, from the original REL and the debug build's Bio4.<mod>.sym.
+"""Generate config/<ver>/modules/<mod>/{splits.txt,symbols.txt,sym_map.tsv,rel.json} for every REL module
+listed in config/<ver>/config.yml, from the original REL and the debug build's Bio4.<mod>.sym.
 
-usage: gen_rel_config.py <config.yml> <disc files dir>      (e.g. config/G4BE08/config.yml /tmp/re4disc/files)
+usage: gen_rel_config.py <config.yml> <dir with the Bio4.<mod>.sym files>
+       (e.g. config/G4BE08/config.yml orig/G4BE08/files)
 
 What the debug .sym gives us for a module: every .text function (offset, size, scope, demangled name);
 nothing about data and nothing about which object a function came from (all are "<mod>.preplf").
@@ -287,6 +288,7 @@ def main():
         with open(os.path.join(out_dir, 'symbols.txt'), 'w') as f:
             for sec, off, sz, n, ty, scope in syms:
                 f.write(f'{n} = {sec}:0x{off:08X}; // type:{ty} size:0x{sz:X} scope:{scope}\n')
+        demangled = {a: dn for a, sz, scope, dn in funcs}
 
         # --- units ----------------------------------------------------------------------------------
         units = unit_overrides.get(name, [(f'{name}/{name}.cpp', None)])
@@ -416,6 +418,19 @@ def main():
         with open(os.path.join(out_dir, 'rel.json'), 'w') as f:
             json.dump(info, f, indent=2)
             f.write('\n')
+
+        # --- sym_map.tsv (unit_info.py / fdiff.py / sync_rel_symbols.py) ----------------------------
+        def unit_at(sname, off):
+            for u in ranges:
+                if sname in ranges[u] and ranges[u][sname][0] <= off < ranges[u][sname][1]:
+                    return u
+            return units[-1][0]
+
+        with open(os.path.join(out_dir, 'sym_map.tsv'), 'w') as f:
+            f.write('section\toffset\tsize\tunit\tscope\tname\tdemangled\n')
+            for sec, off, sz, n, ty, scope in syms:
+                dn = demangled.get(off, '.') if sec == '.text' and ty == 'function' else n
+                f.write(f'{sec}\t0x{off:08X}\t0x{sz:X}\t{unit_at(sec, off)}\t{scope}\t{n}\t{dn}\n')
         nfun = sum(1 for s in syms if s[4] == 'function')
         print(f'{name}: id {mod_id}, {nfun} functions, {len(syms) - nfun} labels, {len(units)} unit(s), links {links}')
 

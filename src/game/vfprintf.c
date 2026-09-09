@@ -120,8 +120,8 @@ char *fftoa(double value, int prec, char fmt, int strip, char *sign)
     double x, eps;
 
     u.d = value;
-    hi = u.w[0];
     lo = u.w[1];
+    hi = u.w[0];
     mant = hi & 0xfffff;
     se = hi >> 20;
     sgn = se & 0x800;
@@ -230,8 +230,8 @@ char *fftoa(double value, int prec, char fmt, int strip, char *sign)
         } else {
             dp = 1;
         }
-        for (j = total; j > dp; j--)
-            p[j] = p[j - 1];
+        for (i = total; i > dp; i--)
+            p[i] = p[i - 1];
         p[dp] = '.';
     } else {
         total--;
