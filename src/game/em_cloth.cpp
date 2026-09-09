@@ -575,7 +575,6 @@ void Em30ClothMove1(cModel* m, PlCloth* c)
 
 void Em30ClothSet2(cModel* m, PlCloth* c)
 {
-    c->x54 = 0;
     c->num = 30;
     c->pParts = em30ClothP2;
     c->pLeft = em30ClothLp2;
@@ -599,6 +598,7 @@ void Em30ClothSet2(cModel* m, PlCloth* c)
     c->x4C = 0.05f;
     c->x50 = 0.0f;
     c->flags = 0;
+    c->x54 = 0;
     PenClothSet(m, (PenCloth*) c, 100.0f);
 }
 

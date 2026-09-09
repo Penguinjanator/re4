@@ -16164,3 +16164,105 @@ extern "C" int em10StayCk(cEm10* em)
     EmRoutineSet(em, 1, 0x1B, 0, 0);
     return 1;
 }
+
+extern "C" void em10SetTakeawayPos(cEm10* em)
+{
+    Em10Work* w = EM10_WK(em);
+    Vec best;
+    Vec c;
+    int found = -1;
+    f32 bestAng = 0.0f;
+    f32 bestD = 0.0f;
+    f32 d;
+    f32 ang;
+    f32 a;
+    u32 i;
+    SceAtWork* p;
+
+    if (pG->pRoomEmi) {
+        for (i = 0; i < ((EmiData*) pG->pRoomEmi)->n; i++) {
+            EmiEntry* e = &((EmiData*) pG->pRoomEmi)->entry[i];
+            if (e->type != 5) {
+                continue;
+            }
+            if (e->sub != 0) {
+                continue;
+            }
+            if (e->pad_3 != 0) {
+                continue;
+            }
+            if (!RouteCkConnectPosCk(&em->pos, &e->pos)) {
+                continue;
+            }
+            if (found == -1) {
+                found = 1;
+                best = e->pos;
+                bestD = (em->pos.x - e->pos.x) * (em->pos.x - e->pos.x) +
+                        (em->pos.y - e->pos.y) * (em->pos.y - e->pos.y) +
+                        (em->pos.z - e->pos.z) * (em->pos.z - e->pos.z);
+                a = GetXZAngle(&em->pos, &e->pos);
+                bestAng = fabsf(Muku(&em->pos, &pPL->pos, a, 3.1415927f));
+            } else {
+                d = (em->pos.x - e->pos.x) * (em->pos.x - e->pos.x) +
+                    (em->pos.y - e->pos.y) * (em->pos.y - e->pos.y) +
+                    (em->pos.z - e->pos.z) * (em->pos.z - e->pos.z);
+                a = GetXZAngle(&em->pos, &e->pos);
+                ang = fabsf(Muku(&em->pos, &pPL->pos, a, 3.1415927f));
+                if (ang < 1.5707964f && bestAng < ang) {
+                    best = e->pos;
+                    bestD = d;
+                    bestAng = ang;
+                } else if (bestAng < 1.5707964f || d < bestD) {
+                    best = e->pos;
+                    bestD = d;
+                    bestAng = ang;
+                }
+            }
+        }
+        if (found != -1) {
+            w->x4EC = best;
+            return;
+        }
+    }
+    p = sceAtSetOtStart();
+    found = -1;
+    while ((p = sceAtGetOtAddr(p)) != 0) {
+        if (!(p->flag & 1)) {
+            continue;
+        }
+        if (p->x35 != 1) {
+            continue;
+        }
+        AreaGetCenterPos(&c, &p->area);
+        if (found == -1) {
+            found = 1;
+            best = c;
+            bestD = (em->pos.x - c.x) * (em->pos.x - c.x) + (em->pos.y - c.y) * (em->pos.y - c.y) +
+                    (em->pos.z - c.z) * (em->pos.z - c.z);
+            a = GetXZAngle(&em->pos, &c);
+            bestAng = fabsf(Muku(&em->pos, &pPL->pos, a, 3.1415927f));
+        } else {
+            d = (em->pos.x - c.x) * (em->pos.x - c.x) + (em->pos.y - c.y) * (em->pos.y - c.y) +
+                (em->pos.z - c.z) * (em->pos.z - c.z);
+            a = GetXZAngle(&em->pos, &c);
+            ang = fabsf(Muku(&em->pos, &pPL->pos, a, 3.1415927f));
+            if (ang < 1.5707964f && bestAng < ang) {
+                best = c;
+                bestD = d;
+                bestAng = ang;
+            } else if (bestAng < 1.5707964f || d < bestD) {
+                best = c;
+                bestD = d;
+                bestAng = ang;
+            }
+        }
+    }
+    if (found == -1) {
+        w->x4EC.x = 0.0f;
+        w->x4EC.y = 0.0f;
+        w->x4EC.z = 0.0f;
+    } else {
+        best.y += 300.0f;
+        w->x4EC = best;
+    }
+}

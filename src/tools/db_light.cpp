@@ -28,7 +28,9 @@
 
 // Light editor (D:/Bio4/Prog/db_light.cpp): cLightTool (the editor), cDbLit (the .lit cuts being edited,
 // one Debug_alloc'd cLightEnv per cut) and cLitPathTool (the light path table). The same object is in
-// t_camera / t_light / t_event; t_sce / t_movie, Tools and t_esp carry other builds of this file.
+// t_camera / t_light / t_event; Tools adds SetToolLight in front of it (tools/db_light_tools.cpp,
+// DB_LIGHT_SET_TOOL_LIGHT), t_esp also cLightTool::setLogMode (tools/db_light_esp.cpp,
+// DB_LIGHT_SET_LOG_MODE); t_sce / t_movie carry an older build (tools/db_light_v2.cpp, unwritten).
 
 extern "C" {
 int sprintf(char* buf, const char* fmt, ...);

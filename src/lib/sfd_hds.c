@@ -24,20 +24,18 @@ static Sint32 sfhds_version_dummy; /* 4-byte .bss word after the work (reference
 #define SFHDS_GET_SEE_FHD(sfd) \
 	((sfd)->see.wk == NULL ? NULL : SFMPS_GetConcatCnt(sfd) > 0 ? NULL : &(sfd)->see.wk->fhd)
 
-static Sint32 sfhds_GetVidColType(SFHDS_VID *vid)
+Sint32 SFHDS_GetColType(SFD sfd)
 {
+	SFHDS_FHD *fhd = &sfd->fhd;
+	SFHDS_VID *vid = &fhd->vid;
+
+	if (fhd->valid == 0) {
+		return -1;
+	}
 	if (vid->ftr_eff != 0) {
 		return vid->ftr_coltype;
 	}
 	return -1;
-}
-
-Sint32 SFHDS_GetColType(SFD sfd)
-{
-	if (sfd->fhd.valid == 0) {
-		return -1;
-	}
-	return sfhds_GetVidColType(&sfd->fhd.vid);
 }
 
 /* muxer tool version as one number (1.10 -> 110) */

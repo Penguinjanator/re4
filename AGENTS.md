@@ -2074,6 +2074,23 @@ Then `MATCHING["st2_4/r22c.cpp"] = True` in `config/G4BE08/modules.py`, `python3
   obj13.h, objGondola.h are their room-side views of the DOL objects); r100, r101, r104, r105, r10b,
   r10c, r11b, r11c, r117, r11f, r120 (st1) and every st2/st4 room are unwritten;
   em_wrap.cpp matches in st1_0/st2_4 (Matching) and is one register-allocation diff away elsewhere.
+- db_light.cpp (src/tools/db_light.cpp: the light editor, 0x12408 of code in t_camera/t_light/t_event;
+  Tools = the same object with `SetToolLight` in front (`tools/db_light_tools.cpp`, DB_LIGHT_SET_TOOL_LIGHT),
+  t_esp = Tools + `cLightTool::setLogMode` (`tools/db_light_esp.cpp`, DB_LIGHT_SET_LOG_MODE); every
+  other function of those three objects is byte-identical to t_camera's) is fully written: 111 of
+  134 functions byte-identical modulo relocs (Tools 112/135, t_esp 113/136), the rest differ by
+  register assignment / `lis @ha` pseudo sharing (see the db_light idioms at the end of this file):
+  cLightTool::move (+0x10), lightAnalysis (+0x1C), draw_light_graph (-0x34), printEditTable (-0xC),
+  editColor (-0x18: the tmp/c/conv frame slots), edit_cutsel (line = i + 6 copies through a temp),
+  edit_cutsel_main (the L-block recomputes `cursor - 10`), edit_light_type_shadow_fit (-4),
+  edit_light_id_shadow / edit_light_id / edit_light_parent / spotlight / direct / parallel /
+  shadow_select_type / select_type / drawLightInfo_SpotShadow / drawPath / cLitPathTool ctor /
+  createLit / limitUpper (register or `lis` pseudo choice only). Not MATCHING anywhere yet.
+  t_sce / t_movie (`tools/db_light_v2.cpp`, 0x1143C, unwritten): 120 of t_camera's functions are
+  byte-identical there too, but the object has no cLightTool ctor/dtor/move/lightAnalysis/getCutNo,
+  no cLitPathTool ctor/dtor/expand and no cVarRange/cVarLoop members except limitUpper/limitLower
+  (the vtable is still there), starts with SetToolLight and its .bss ends with a 0x1C object at 0xA8
+  instead of pLightEnv: an older build whose tool object lives elsewhere.
 - The `.drs` archives are not rebuilt by `ninja` (`tools/drs.py rebuild` does one at a time); the
   sound bank's record types 1/2 and the p0/p1 parameters are not interpreted.
 - Unit boundaries inside the big modules (Tools has ~39 source files) are not known; the `.gnu.linkonce`
@@ -2218,3 +2235,42 @@ Then `MATCHING["st2_4/r22c.cpp"] = True` in `config/G4BE08/modules.py`, `python3
   BASE_REGS register.
 - Tools: fdiff.py writes a per-pid json (agents run concurrently); keep private helper scripts in
   your own /tmp subdirectory -- /tmp is shared and files were overwritten.
+
+- db_light (tool module, 0x12408): every store through the tool pointer reloads it (a struct member,
+  `LightToolPtr.p`); a group of u8 stores through it with *one* load is a chain
+  (`p->a = p->b = p->c = 0`: all `p->` loads precede the stores, and the stores come out outer,
+  innermost, ..., i.e. `x10 = x11 = x12 = x13 = 0` stores 10, 13, 12, 11). A `bool` is 4 bytes here.
+- A pointer global whose load must stay *after* a store through an unrelated pointer type (pathSelect:
+  `path[i] = NULL; createPath(pLitPath)`) is a struct member too (record alias set 0);
+  a plain static is hoisted above the store.
+- Menu loops: `eprintf(x, C + i * 14, ..., *name++)` (y a giv of i, the name a separate pointer biv)
+  gives `li rY,C` last in the preheader and keeps `i` (`cmplwi i,N; ble`); a `y += 14` variable or
+  `tbl[i]` indexing drops the counter for a pointer compare.
+- `for (i = 0; p->data[i] <= 200; i++)` with an unsigned x step (`u32 xi += 4`) converts with the
+  2^52 magic (no `xoris`); `(f32) (int) (u8) x` / `(f32) (s16) (u16) x` pick the signed conversion of
+  a zero-extended byte / half (`lbz; xoris` / `lhz; sth; psq_l qr5`).
+- `static int state = 0;` goes to .data (explicit zero init), `static f32 val;` to .bss; function-local
+  statics are emitted in text order, file-scope statics after them in declaration order.
+- `#line N "D:/Bio4/Prog/db_light.cpp"` before a `VECNormalize(...)` macro use reproduces its
+  `__LINE__` (0xBA1, 0xC1B, 0xFF2).
+- A `GXColor black = {0,0,0,0}` local is folded to `li 0`; the original loads the constant from .rodata
+  once (r24) and copies it (`stw r24, 8(r1)`) into a 4-byte `GXColor tmp` local before each
+  `DrawTile(&tmp)`: by-value GXColor helpers give 8-byte BLKmode temps instead.
+- `GXSetChanAmbColor(0, whiteCol())` (inline returning the struct) plus `Mtx44 proj; Mtx mtx;`
+  declared *after* the colour calls lays the frame out as arg temp 0x8, proj 0x10, mtx 0x50, colour
+  0x80 (DrawTile).
+- `if (a) { if (b == 0) return 0; return 1; } return 0;` puts `li r3,0` before each `beq` to the
+  epilogue (SetToolLight); `if (!a) return 0; if (!b) return 0; return 1;` shares one `li r3,0` block.
+- `cursor = (mode == 2)` is a setcc (`xori; subfic; adde`); `!= 2` (and every other spelling) branches.
+- `pTool->cursor %= 0x100` on a u8 member gives `rlwinm r0,r0,0,23,23; subf` (the range-narrowed
+  `% 256`).
+- `u8 num = (a < 60) ? 60 : a;` keeps the `clrlwi` truncation at the join; `u8 num = a; if (num < 60)
+  num = 60;` drops it.
+- In a switch with `default:` written first, the default body precedes the case bodies and the case
+  stores cross-jump into one `stb` (save's mode -> cursor).
+- `sprintf(path, ...)` then `cDbLit lit;` (a mid-block declaration) constructs after the call.
+- A switch on `pTool->cursor` inside `case 1:` whose cases all end in `pTool->x8 = 2/3/4; cursor = 0`
+  is emitted as one shared tail (`stb r0,0x28; stb r11,0x6`) with `li` pairs per case (edit_tune).
+- Things that did not move the needle (register / `lis @ha` pseudo choice): declaration order of
+  locals, `int` vs `u32` counters, `xi = x` before the loop vs in the `for`, `by-value` vs `const&`
+  GXColor helpers. The remaining db_light diffs are of that kind.
