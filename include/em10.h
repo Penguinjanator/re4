@@ -344,7 +344,11 @@ class cObjBell : public cObj {
 public:
     void setBreak();
     int ckBreakEnable();
+    int ckBreak();
 };
+
+// game/obj14.cpp: creates the bell object (st2 r218).
+cObj* SetObjBell(void* bin, void* tpl, Vec* pos, Vec* rot);
 
 class cObjBull : public cObj {
 public:

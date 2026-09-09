@@ -26,4 +26,8 @@ static inline void IntSet(int& d, int v) { d = v; }
 static inline void FAdd(f32& d, f32 v) { d += v; }
 static inline void FSub(f32& d, f32 v) { d -= v; }
 
+// The stage-2/4 rooms call SceMesCamSndSet with a fourth argument (`li r6, 4`) the DOL's
+// three-parameter definition (sce_com.cpp) never reads: the room build had an older prototype.
+void SceMesCamSndSet4(int no, int cut, int se, int flags) asm("SceMesCamSndSet");
+
 #endif

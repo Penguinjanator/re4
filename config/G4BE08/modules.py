@@ -318,10 +318,13 @@ UNITS = {
     "t_esp": [
         ("t_esp/db_light.cpp", None, "tools/db_light_esp.cpp"),
         ("t_esp/db_mod.cpp", "dbModSetViewFlag", None, {".rodata": 0x1640}),
-        ("t_esp/db_port.cpp", "GetActiveModel", None, {".rodata": 0x23F4}),
-        ("t_esp/db_widget.cpp", "DB_RECT::ChkHitRect", None, {".rodata": 0x2CCC}),
-        ("t_esp/db_window.cpp", "DB_WINDOW::~DB_WINDOW", None, {".rodata": 0x3434}),
-        ("t_esp/t_esp.cpp", "__builtin_new", None, {".rodata": 0x3604}),
+        # every header-string group of this module starts with atari.h's cFlag.set() message
+        ("t_esp/db_port.cpp", "GetActiveModel", None, {".rodata": 0x23D0}),
+        # db_widget.o ends with its linkonce tail: the cManager<cLight> block, then the seven implicit
+        # destructors its vtables mark used (DB_WINDOW..DB_SLIDEBAR); db_window.o starts at DB_MOUSE
+        ("t_esp/db_widget.cpp", "DB_RECT::ChkHitRect", None, {".rodata": 0x2CA8}),
+        ("t_esp/db_window.cpp", "DB_MOUSE::DB_MOUSE", None, {".rodata": 0x3410}),
+        ("t_esp/t_esp.cpp", "__builtin_new", None, {".rodata": 0x35E0}),
         ("t_esp/t_util.cpp", "TutilInitDefault", "tools/t_util_nomenu.cpp", {".rodata": 0x53B0}),
         ("t_esp/tools.cpp", "_prolog"),
     ],
@@ -378,6 +381,9 @@ STRIP_UNUSED = {
     "t_movie/t_prim.cpp",
     # db_sctrl.cpp starts with the pool of a dead-stripped function
     "t_id/db_sctrl.cpp", "t_event/db_sctrl.cpp",
+    # db_widget.cpp: the never-called DB_SLIDEBAR constructor (pool kept) and the dead delete-all
+    # helper that makes our cc1plus synthesize the implicit destructors
+    "t_esp/db_widget.cpp",
 }
 
 # Units whose compiled object replaces the split object in the REL link.
@@ -400,6 +406,7 @@ MATCHING = {
     "st1_3/st1.cpp": True,
     "st2_0/st2.cpp": True,
     "st2_1/st2.cpp": True,
+    "st2_1/r20a.cpp": True,
     "st2_2/st2.cpp": True,
     "st2_3/st2.cpp": True,
     "st2_3/r22b.cpp": True,

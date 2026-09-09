@@ -1141,12 +1141,12 @@ section	offset	size	unit	scope	name	demangled
 .bss	0x000000B3	0x1	t_camera/t_camera.cpp	local	lbl_t_camera_bss_B3	lbl_t_camera_bss_B3
 .bss	0x000000B4	0x100	t_camera/t_camera.cpp	local	lbl_t_camera_bss_B4	lbl_t_camera_bss_B4
 .bss	0x000001B4	0x100	t_camera/t_camera.cpp	local	lbl_t_camera_bss_1B4	lbl_t_camera_bss_1B4
-.bss	0x000002B4	0x400	t_camera/t_camera.cpp	global	tcTypeTbl	lbl_t_camera_bss_2B4
-.bss	0x000006B4	0x6A80	t_camera/t_camera.cpp	global	tcAdat	lbl_t_camera_bss_6B4
-.bss	0x00007134	0xE500	t_camera/t_camera.cpp	global	tcCdat	lbl_t_camera_bss_7134
-.bss	0x00015634	0x400	t_camera/t_camera.cpp	global	tcLdat	lbl_t_camera_bss_15634
+.bss	0x000002B4	0x400	t_camera/t_camera.cpp	global	tcTypeTbl	tcTypeTbl
+.bss	0x000006B4	0x6A80	t_camera/t_camera.cpp	global	tcAdat	tcAdat
+.bss	0x00007134	0xE500	t_camera/t_camera.cpp	global	tcCdat	tcCdat
+.bss	0x00015634	0x400	t_camera/t_camera.cpp	global	tcLdat	tcLdat
 .bss	0x00015A34	0x644	t_camera/t_camera.cpp	global	tcWork	tcWork
-.bss	0x00016078	0xF8	t_camera/t_camera_data.cpp	global	tcGameCamera	lbl_t_camera_bss_16078
+.bss	0x00016078	0xF8	t_camera/t_camera_data.cpp	global	tcGameCamera	tcGameCamera
 .bss	0x00016170	0x10	t_camera/t_camera_draw.cpp	local	lbl_t_camera_bss_16170	lbl_t_camera_bss_16170
 .bss	0x00016180	0x10	t_camera/t_prim.cpp	local	lbl_t_camera_bss_16180	lbl_t_camera_bss_16180
 .bss	0x00016190	0x4	t_camera/t_prim.cpp	local	lbl_t_camera_bss_16190	lbl_t_camera_bss_16190

@@ -3566,3 +3566,66 @@ target) stays unresolved and `make_rel` then fails with "undefined symbol".
     `void (*tbl[6])()` template copied to the stack in ToolRctRouteCheck; `.data` ends with `.balign 8`.
   - Screen-position conversions in the eprintf2 labels are `(u32)` (fcmpu 2^31/cror/bso pattern), the point
     height snap is `(f32)(s8)((y + 62.5f) / 500.0f) * 500.0f` (`psq_st qr4` + `extsb`).
+
+### Stage rooms, third pass (cSceObj.cpp 17/18; r220, r40c, r20a Matching; r40f 8/9, r218 5/8, 2026-09)
+
+- `src/st/cSceObj.cpp` + `include/cSceObj.h` (0xF8-byte mover, no vtable: `move` dispatches through a
+  *local* `int (cSceObj::*tbl[3])()` copied from its `.rodata` template; a class without virtuals makes
+  g++ 2.95 call the PMF without the index test). `accFrame/cstFrame/decFrame/cnt/frame` are `u32`
+  (2^52 magic without `xoris`, `fixuns_truncsfsi2` with the 2^31 compare). Idioms found there:
+  - `MTX_COPY` inside an inlined member: `MtxPtr d_ = (dst); MtxPtr s_ = (src);` (both initialised at
+    the declaration) gives the target's `addi r7,s; addi r8,d` giv registers; sce_at.cpp's
+    `d_ = (dst)` assignment form swaps them here.
+  - Inline helpers whose frame is one `Vec d`: `&d` is the inline frame base (`(plus fp N)` at offset
+    0), so `PSVECSubtract(target, .., &d)` gets `addi r5,r1,N; mr r27,r5` (arg first, copy after) while a
+    hand-written `Vec d` local of the caller precomputes a pseudo (`addi r27; mr r5,r27`).
+  - A second `if (obj)` block right after a first one is jump-threaded (`beq` straight to the end)
+    unless something sits between the label and the compare: `cModel* o = obj; if (o) {...}` in the
+    second block (cSceObj moveTo) keeps the target's `beq` to the second test AND stops gcse from
+    PRE-copying `&d` (`mr r25,r27`) — the same frame slot `(plus r31,0x28)` is one gcse expression
+    across `case 0`'s `Vec pos` and `case 6`'s inline `Vec d`.
+  - `step = mode = 0;` (chain) then `frame = n;` gives `stb 0; stw 1c; stb 2` (setMove1_all); separate
+    statements put `stb 2` before `stb 0`.
+  - The in-class ctor zeroes 46 floats: source order = member order but `srcPos, dstPos, srcRot,
+    dstRot` (src before dst); the target's `stfs` stream is RTL order except that the last (dying)
+    store jumps forward to where haifa's pending-memory flush (32 refs) splits the block (18th in
+    r220, 25th in r40c) — no source change needed, ours reproduces it. The `sub[i] = NULL` loop is
+    the LAST statement (forward `bdnz` with `u32 i`, the `mtctr` set up among the stores).
+  - OPEN: setMove1_all issues `lfs f0,0.01` before the two `Vec` struct copies (target after them,
+    `lis` stays early); 20 source forms (chains, FSet, locals, do-while, copies first) tried.
+- Rooms with a stack `cSceObj` (r220 moveElevator, r40c): `int evt = 1;` declared BEFORE the
+  `cSceObj elv;` is compared after the ctor's loop label → survives as `li r0,1; cmpwi cr3,r0,1` (cse
+  cannot see across the label, cprop cannot substitute into `cmpwi`); `int up = dir == 0;` there is
+  `subfic; adde`. A loop counter reused by two loops (the `sub[]` search and the 90-frame loop) is
+  globally allocated (r31): give the call-free search its own `u32 n` (r11).
+- Range tests: `type >= 0x13 && type <= 0x14 && lid && box` folds to `subi/cmplwi 1`; `if (type <=
+  0x14) if (type >= 0x13)` gets `cmpwi 0x12; ble` (fold's `X >= C` → `X > C-1`); the target's
+  `cmpwi cr2,0x14; bgt; cmpwi 0x13; blt` is a `switch (type) { case 0x13: case 0x14: ... }` (cr2 kept
+  for the second switch on the same value). Two zero-tests of one flag word (`(f & A) == 0 && (f & B)
+  == 0`) fold to one mask: `static inline u32 flagBit(u32 f, u32 bit) { return f & bit; }` and
+  `flagBit(f, A) == 0 && flagBit(f, B) == 0` keeps the two `andi./andis.` (r220 initElevator).
+- `if (SceMesGetSelection() != 1) { Comeback; SceEventEnd; SceExit; } else {...}` lays the fail arm
+  out first (r40f). `while (em->ckGoto()) SceSleep(1);` = `b test; L: bl SceSleep; test: ...; li r3,1;
+  bne L`. Countdown `for (i = 0; i < 20; i++) SceSleep(1);` = `li 0x14; L: ..; subic.; bne`.
+- `SceMesCamSndSet` is called by the st2/st4 rooms with a 4th argument (`li r6,4`) the DOL's
+  3-parameter definition never reads: `SceMesCamSndSet4(...) asm("SceMesCamSndSet")` in st_room.h.
+- TexRender object setup (r20a): `x136 = 2; x137 = 8; x138 = 0x20; alpha = 0.7f;` with alpha LAST
+  gives the target's `stfs alpha; stb 136; stb 137; stb 138` (the dying last store goes first).
+- `const f32 ry = PI;` in the mid-block declarations plus `f32 y = ry;` right before the call whose
+  successor stores it: the `lis PI@ha` lands at the function top (r18) and `lfs f31` before the call
+  (r20a CarryOnShoulder); `f32 ry = PI;` alone loads at its declaration, `const` alone folds to a
+  literal at the use. `Vec* pa = &ang; pa->y = y;` with `ang.x/z` direct gives `stfs f31,4(r21)`.
+- Template-copied Vecs and a `Vec rot = {0,0,0}; rot.y = -PI;` declared mid-block after the
+  `setNoSuspend` calls (frame slots still in declaration order: the whole declaration group moves).
+- cEmDoor `setCloseLock`: the room-side `cEmDoorSetCloseLock(cEm*) asm("setCloseLock__7cEmDoori")`
+  alias (r101/r105/r411) is needed in r20a too. `getRoomEtcDoor(no, &work->door, 1) == 0` then
+  `work->door = NULL` stores r3 (cse knows it is 0).
+- Death bits of the loaded enemy list: `int list = pG->emlist_no; if (list >= 0) v = *(u32*)((list <<
+  5) + (u32) pG + 0x501C) & (0x80000000 >> (no & 31)); else v = 0;` (r218, like r101's emDeadClear);
+  `while (1) { if (a) { if (b) break; } SceSleep(1); }` stays un-rotated (the `while (!(a && b))`
+  form is rotated).
+- OPEN (r40f BombSet): the first of two `Vec p = {..}` template copies loads its words 0,4,8 in the
+  target and 0,8,4 in ours (the r10c/r22a "second word pair" OPEN item; the second copy is 8-then-4
+  in both). OPEN (r218, = r108 openCover tail): after each `do { pos.y += spd; if (..) break;
+  SceSleep(1); } while (1)` the target re-materialises `lis work@ha` and the 2500.0 constant into
+  fresh registers where ours reuses the loop's hoisted r28/f31; `cObj* o28/o29` get r31/r30 swapped.
