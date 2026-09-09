@@ -1432,6 +1432,48 @@ mark it Matching.
   (local-alloc'd); and the SndStrReq `lfs f1` pool load is issued last (right before `bl`) although
   its `lis r29` sits at the block top — sched2 in ours hoists it at once. Reference stores (`BitSet`),
   `G_ROOM_ID`, `pGS`, a shared `zero` local, int/local forms of the 0.0f argument all tried.
+- Giv final value (loop.c) as a later loop's bound: an `addi r0, base, 0x58` right after an inner
+  loop's exit (inside the outer loop's latch) plus `mr rB, r0` in the next loop's preheader is
+  loop.c's `final_giv_value` of the inner loop's pointer giv, copied by cse2 into the later loop's
+  `&node[2]` bound. record_giv only skips the "replaceable" shortcut when the giv register is
+  mentioned *after* the loop (REGNO_LAST_UID beyond loop_end), so the pointer must be ONE
+  function-scope variable shared by all the node loops (`EmTreeNode* n; ... n = &node[i];`);
+  block-scoped `EmTreeNode* n = &node[i]` per loop gives a fresh `addi rB` instead. The later loop
+  also needs the dead `if (i == 2) nx = node; else nx = &node[i + 1];` block: its `i == 2` compare
+  makes loop.c place the bound in the preheader (without it `&node[2]` is rematerialised at the
+  loop bottom, `where = insn` when threshold < insn_count). emtree/emwep/emshield/emmine R1_Fall.
+- Tail-`Normalize` blocks: read the *frame offsets* of the three Vecs from the `lfs` of the mat
+  stores, not the names — emshield's tail is emwep's (`Vec b, c, a; Cross(a,b,c); Cross(c,a,b);
+  Normalize b, c, a`), not emtree's, and the `#line` numbers follow the real source.
+- `u16 flags = p->flags; u32 fl = flags;` (promoted HImode load widened) gives `mr r11, r0`; an
+  `int` load copied into a `u16` gives `clrlwi 16` (em_sub EmYarareDisp, still 1 word off: the
+  original's copy is not cprop'ed into the later tests while ours propagates one of them).
+- A `u8` member passed to two int-parameter inlines (`EmSetDieCk(em->emsetNo)`;
+  `EmSetDieOn(em->emsetNo)`) is one QImode load + `mr r6, r9` copy with `clrlwi 24` at each use;
+  a `u8 no = em->emsetNo` local is promoted and never masked (em_set EmSetDie).
+- Zero-store block order (PenCloth setters): the dying zero store is the *last* zero statement in
+  source and is issued first; put that member (`c->x54 = 0` in Em30ClothSet2) after `flags = 0`.
+- A distance sum whose result register is the *variable's* callee-saved FPR (not the tied f13 of a
+  dying operand) means the variable is assigned in two places: assign the player-distance check to
+  the same `d` as the loop's check (emBarred emBarredNearCk).
+- OPEN family, likely one compiler-build difference (candidate #8, FPR argument deaths): the
+  original ranks the prologue copy `fmr fN, f1` of a float parameter *after* every GPR copy and
+  store of the block (emwep setThrow `mr r26,r5; addi w; fmr f30,f1`, emshield setFall
+  `mr r31,r4; stw pMotion; fmr f29,f1`, emwep setFall matched only because grav is the last
+  parameter), i.e. as if f1 did not die there (weight +1); the same "FP arg register does not die"
+  reading explains compiler-build difference 1 (`fmr f1, x` arg moves issued before `li`/`mr`
+  int arg moves). No source form changes it; the SatMgrCreateF / atariInitF floats-first aliases
+  remain the workaround at call sites (emBarred emBarredEatSet sub[0]/sub[1]).
+- Dying-register tie-break not applied by the original (OPEN): emrock SetRock's `stb r30, 0x95`
+  (last use of the zero pseudo) stays in source order and `li r30, 0` is re-materialised after the
+  next label; emwep emWep_R1_ShotArrow's `mr r3, part` (part dies) is issued *last* of the arg
+  moves where ours puts a dying copy first. Both look like a spilled/REG_EQUIV pseudo reloaded
+  per label region, but a shared `zero` variable is allocated a register (even a 9th callee-saved).
+- Byte-compare tool of record: judge functions by masked words with intra-object branches resolved
+  by *target symbol* (NgcAs emits REL14 for every conditional branch and REL24 for local `bl`s; a
+  size change in an earlier function shifts every later displacement without a real diff), and
+  accept the split object's raw `lis rX, 0x8023` words whose `lfs` lives in another block (dtk
+  could not pair them; the linked bytes are identical).
 
 ## CRI middleware (`lib/adx_*`, `lib/sfd_*`, ... — CodeWarrior 2.4.7)
 

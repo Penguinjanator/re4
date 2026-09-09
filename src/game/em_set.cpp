@@ -297,8 +297,6 @@ void EmListSetAlive(int no, int on)
 
 void EmSetDie(cEm* em)
 {
-    u8 no;
-
     if (pG->flags_68 & 0x04000000) {
         return;
     }
@@ -308,11 +306,10 @@ void EmSetDie(cEm* em)
     if (pG->flags_6C & 0x00080000) {
         return;
     }
-    no = em->emsetNo;
-    if (EmSetDieCk(no)) {
+    if (EmSetDieCk(em->emsetNo)) {
         return;
     }
-    EmSetDieOn(no);
+    EmSetDieOn(em->emsetNo);
 }
 
 void EmSetDieCnt()

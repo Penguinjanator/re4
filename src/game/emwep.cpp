@@ -2,12 +2,12 @@
 // a three-node rope), throw (axes, scythes, dynamite, grenades) or shoot (arrows, rockets) at the
 // player, with the player's escape routines of the grenade.
 //
-// Not yet byte-identical (.rodata / .data and every section size match): emWep_R1_Fall (the biv of
-// the second node loop is not eliminated, and emtree's open `&node[2]` bound issue), setThrow (the
-// `fmr` copy of grav vs the `w` addi in the prologue), emWep_R1_ShotArrow (EmAtkSetDamagePL/Sub
-// `mr` argument order), emWepEscapeCamMove (fovy store scheduled below the pPL load, constant
-// registers), emWepShotHitWindowCk (one more loop-invariant `lis` hoisted), setCloth (the x50 = 0.0
-// store scheduled before the pointer stores).
+// Not yet byte-identical (.rodata / .data and every section size match): setThrow (the `fmr` copy
+// of grav ranks last among the prologue moves in the original, as if the incoming f1 did not die
+// there: FPR-argument death rule, see emshield setFall / AGENTS.md), emWep_R1_ShotArrow
+// (EmAtkSetDamagePL/Sub: the `mr r3, part` copy of a dying pseudo is issued last in the original,
+// not first), emWepEscapeCamMove (fovy store scheduled below the pPL load, constant registers),
+// setCloth (the x50 = 0.0 store scheduled before the pointer stores).
 
 #include "atari.h"
 #include "map_obj.h"
@@ -532,6 +532,9 @@ void emWep_R1_Fall(cEmWep* em)
         { { -140.0f, 30.0f, 140.0f }, { -140.0f, 30.0f, -140.0f }, { 200.0f, 30.0f, 0.0f } },
     };
     EmWepNode node[3];
+    // one pointer shared by every node loop (emtree emTree_R1_Fall): the later mentions keep the
+    // k-body loop's giv from being marked replaceable, loop.c emits its final value `&node[2]`
+    // after that loop and cse2 makes the last loop's bound a copy of it (`mr r25, r0`)
     EmWepNode* n;
     EmWepNode* nx;
     Vec b;
@@ -599,6 +602,8 @@ void emWep_R1_Fall(cEmWep* em)
     }
     for (i = 0; i < 3; i++) {
         n = &node[i];
+        // dead in this loop (flow deletes it) but its `i == 2` compare is what makes loop.c put the
+        // loop bound in the preheader instead of rematerialising `&node[2]` at the bottom
         if (i == 2) {
             nx = node;
         } else {

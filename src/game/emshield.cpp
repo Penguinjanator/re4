@@ -1,5 +1,8 @@
 // game/emshield.cpp: shield enemy (cEmShield): a wooden shield carried by an enemy that loses its
 // planks when shot and falls to the ground as a three-node rope.
+//
+// Not yet byte-identical: emShieldDmCk (0xB0 bytes short: switch/damage layout), setFall (the
+// `fmr f29, gravity` prologue copy ranks last in the original: FPR-argument death rule, AGENTS.md).
 
 #include "atari.h"
 #include "map_obj.h"
@@ -540,7 +543,7 @@ void emShield_R1_Fall(cEmShield* em)
     Vec c;
     Vec a;
     Vec tmp;
-    EmTreeNode* n;
+    EmTreeNode* n;    // shared by every node loop (emtree emTree_R1_Fall: the giv final-value copy)
     EmTreeNode* nx;
     f32 floor;
     u32 i;

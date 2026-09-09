@@ -149,6 +149,11 @@ cEmRock* SetRock(void* bin, void* tpl, Vec* pos, Vec* rot, u8 type)
             em->lightInfo.init2(0, 1, &ofs, &size, 8);
         }
     }
+    // OPEN (SetRock): the original issues `stb r30, 0x95` (seAlways[2] = 0, the last use of the zero
+    // pseudo in this block) in source order although the register dies there, and re-materialises
+    // `li r30, 0` after the next join label; ours hoists the dying store to the block top. The
+    // shape is what reload gives a *spilled* REG_EQUIV-0 pseudo (per-label region `li`, QI use via
+    // `li r0, 0`), but a `zero` variable is allocated a register here (r28 / a 9th callee-saved reg).
     LockPartsSet(em, 0);
     em->lockOfs.x = 0.0f;
     em->lockOfs.y = 0.0f;

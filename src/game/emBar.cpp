@@ -348,6 +348,11 @@ void cEmBar::setMotion(void* mot)
     EMBAR_WK(this)->motion = mot;
 }
 
+// OPEN: em / p (= &parts->mat) take r30 / r31 where the original has r31 / r30. global.c priority
+// is floor_log2(refs)*refs/live_length: ours em 6 refs / 83 insns (1445) vs p 4 / 53 (1509), so p
+// wins r31; the original needs one more em reference or a 3-insn longer p range (a 7th em ref,
+// e.g. `return em != 0`, flips it but adds code). Every rewrite of the three checks (goto tail,
+// nested ifs, int hit, Mtx* local, cEm* view) gives the same 6/4 counts.
 int emBarHitCk(cEmBar* em)
 {
     Vec v;

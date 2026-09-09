@@ -1050,6 +1050,7 @@ STRIP_UNUSED = {
     "game/esp_app.cpp",
     "game/map_obj.cpp",
     "game/Espgen43.cpp",
+    "game/esp43.cpp",
     "game/emtree.cpp",
     "game/objRobo.cpp",
     "game/atari.cpp",

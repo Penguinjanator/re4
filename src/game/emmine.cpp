@@ -1,6 +1,10 @@
 // game/emmine.cpp: mine / arrow enemy (cEmMine): the mine thrower's mines (homing when the
 // weapon level is high enough) and the crossbow arrows. They fly, stick to the scenario or an
 // enemy, beep and explode (mines) or fall down as a three-node rope (arrows).
+//
+// Not yet byte-identical: emMine_R1_Shot / emMine_R1_ShotArrow (0x60 bytes long) / setBomb, and
+// emMine_R1_Fall's three spilled `&node[i]` pseudos rotate their stack slots (gcse hash order:
+// the original has a different insn count somewhere in the function).
 
 #include "atari.h"
 #include "map_obj.h"
@@ -997,6 +1001,8 @@ void emMine_R1_Fall(cEmMine* em)
                 nn = &node[i + 1];
             }
             PSVECSubtract(&nn->pos, &n->pos, &d);
+            // `mag` is assigned again after the loops (the speed test), so the call result is not
+            // tied to it (`fmr f12, f1`); `dd` keeps the (len - mag) * 0.5 chain in f1 (emtree).
             mag = PSVECMag(&d);
             dd = (n->len - mag) * 0.5f;
             PSVECScale(&d, &d, (1.0f / mag) * dd);

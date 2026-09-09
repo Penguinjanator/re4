@@ -1,5 +1,10 @@
 // game/emBarred.cpp: barred gate enemy (cEmBarred): iron gates that rise for the player when he
 // stands near, drop back shut, and can be shot open (type 6).
+//
+// Not yet byte-identical: SetEmBarred (the atari init argument interleave that no calls.c rule
+// reproduces, AGENTS.md compiler-build difference 1; switch tree and the YarareInitCube tails).
+// emBarredEatSet only differs in two `lis 0x8023` words the split object carries without a
+// relocation (their `lfs` sits in another block); the linked bytes are identical.
 
 #include "atari.h"
 #include "light.h"
