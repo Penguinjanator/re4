@@ -36,16 +36,37 @@ static inline void ssWidgetDelete(Widget<SUB_SCREEN>* w)
 // Item examine screen (ss_main.cpp; ss_cap/ss_file/ss_item chain into it).
 class SsItemExamine : public Widget<SUB_SCREEN> {
 public:
-    u8 pad_10[0x70 - 0x10];
+    u8 state;   // 0x10
+    u8 pad_11[0x70 - 0x11];
 
     virtual void init(SUB_SCREEN* wk);
     virtual void move(SUB_SCREEN* wk);
 };
 
 // The DLL's own model managers (ss_main.cpp; the DOL's PartsMgr/ModInfoMgr are swapped out while
-// the sub screen is open).
-extern cPartsMgr ssPartsMgr;
-extern cModInfoMgr ssModInfoMgr;
+// the sub screen is open). They are constructed by the DOL's cPartsMgr/cModInfoMgr constructors,
+// but the module's view of the classes has no virtual destructor: the static destructor inlines
+// cManager<T>::~cManager (stores the cManager vtable) instead of calling _._9cPartsMgr.
+class cSsPartsMgr : public cManager<cParts> {
+public:
+    cSsPartsMgr() asm("__9cPartsMgr");
+    virtual void* memAlloc(u32 size);
+    virtual void memFree(void* p);
+    virtual void memClear(cParts* p, u32 size);
+    virtual void log(const char* fmt, ...);
+    virtual int construct(cParts* p, u32 id);
+};
+class cSsModInfoMgr : public cManager<cModelInfo> {
+public:
+    cSsModInfoMgr() asm("__12cModInfoMgr");
+    virtual void* memAlloc(u32 size);
+    virtual void memFree(void* p);
+    virtual void memClear(cModelInfo* p, u32 size);
+    virtual void log(const char* fmt, ...);
+    virtual int construct(cModelInfo* p, u32 id);
+};
+extern cSsPartsMgr ssPartsMgr;
+extern cSsModInfoMgr ssModInfoMgr;
 
 extern "C" {
 // ss_main.cpp

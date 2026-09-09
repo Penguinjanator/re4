@@ -67,12 +67,19 @@ struct SUB_SCREEN {
     u8 pad_210[4];
     void* binoA;              // 0x214  CameraControl::GetBinocularIDAddr
     void* binoB;              // 0x218
-    u32 x21C[8];              // 0x21C
+    class cLight* x21C[8];    // 0x21C  screen lights (Sscrn sscrnLightCreate / sscrnLightClear)
     void* x23C;               // 0x23C  0x3E800-byte buffer
     u8 pad_240[0x248 - 0x240];
     ItemWork* x248;           // 0x248  selected item slot (Sscrn CapSelect)
     cMap* x24C;               // 0x24C  MapMgr work 2 (Sscrn CapSelect)
-    u8 pad_250[0x264 - 0x250];
+    u8 x250;                  // 0x250  Sscrn weapon change task state (3 = done)
+    s8 x251;                  // 0x251  weapon change request slot
+    u8 pad_252[2];
+    struct {
+        s32 req;              // 0x254  request pending
+        u16 no;               // 0x258  weapon number
+        u16 type;             // 0x25A  weapon type
+    } wepChange[2];           // 0x254  Sscrn weaponChangeRequest
     u8 x264;                  // 0x264  2 for type 2, else 1
     u8 x265;                  // 0x265
     u8 x266;                  // 0x266  2: the player model is shown (Sscrn ss_file)

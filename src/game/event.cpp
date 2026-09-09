@@ -43,7 +43,7 @@
 
 extern "C" {
 void OSReport(const char* fmt, ...);
-void* memset(void* dst, int c, unsigned int n);
+void* memset(...);   // unprototyped in the original (crclr cr1eq before every call)
 char* strcpy(char* dst, const char* src);
 char* strcat(char* dst, const char* src);
 int strcmp(const char* a, const char* b);
@@ -436,7 +436,7 @@ void Event::EspToolSetMod(int no, char* nm)
         EvtDebug.pModel[no].pModel = (cModel*) modNo;
         EvtDebug.pModel[no].x638 = mod->x12F;
         EvtDebug.pModel[no].x639 = mod->lightInfo.x50;
-        if (mod->x12E == 1) {
+        if (mod->x12C == 1) {
             EvtDebug.pModel[no].flags |= 0x80000000;
         }
         if (BeFlgChk(mod, 0x1000) == 1) {
@@ -528,12 +528,12 @@ int Event::RunTool(int mode, int arg)
         }
         break;
     }
-    cut = 0;
-    totalFrame = 0;
     pPacket = (EvtPacket*) (pData->pacOfs + (u32) pData);
-    toolFrame = frm;
     toolCut = c;
+    totalFrame = 0;
     frame = 0;
+    cut = 0;
+    toolFrame = frm;
     toolFrame2 = frm;
     FadeKillAll();
     if (CalMaxFrame(&maxFrame, 0) == 0) {
@@ -626,7 +626,7 @@ void Event::ControlTransFlag()
     u8 type;
     cModel* oya;
     int state;
-    cObj* o;
+    Obj18Work* w;
 
     n = datTbl.GetNumDat();
     if (mesWait != 0) {
@@ -674,29 +674,29 @@ void Event::ControlTransFlag()
                 m->be_flag |= 2;
             }
             if (m->x12E == 1 && m->id == 0x18) {
-                o = (cObj*) m;
-                if (o->o18.type == 3 && o->o18.child != 0 && !(o->o18.x74 & 0x04000000)) {
-                    if (m->be_flag & 0x20) {
-                        o->o18.child->be_flag |= 0x20;
+                w = &((cObj*) m)->o18;
+                if (w->type == 3 && w->child != 0 && !(((cObj*) m)->o18.x74 & 0x04000000)) {
+                    if ((m->be_flag & 0x20) == 0) {
+                        w->child->be_flag &= ~0x20;
                     } else {
-                        o->o18.child->be_flag &= ~0x20;
+                        w->child->be_flag |= 0x20;
                     }
-                    if (m->isTrans()) {
-                        o->o18.child->be_flag |= 2;
+                    if (m->isTrans() == 0) {
+                        w->child->be_flag &= ~2;
                     } else {
-                        o->o18.child->be_flag &= ~2;
+                        w->child->be_flag |= 2;
                     }
                 }
                 if (obj18GetOya(&oya, (cObj*) m) == 1) {
-                    if (oya->be_flag & 0x20) {
-                        m->be_flag |= 0x20;
-                    } else {
+                    if ((oya->be_flag & 0x20) == 0) {
                         m->be_flag &= ~0x20;
-                    }
-                    if (oya->isTrans()) {
-                        m->be_flag |= 2;
                     } else {
+                        m->be_flag |= 0x20;
+                    }
+                    if (oya->isTrans() == 0) {
                         m->be_flag &= ~2;
+                    } else {
+                        m->be_flag |= 2;
                     }
                 }
             }
@@ -838,11 +838,11 @@ int Event::ExePacket_SetPl(Event* evt)
 
     BEGIN_EVENT(pPL, 0);
     pPL->setNoSuspend(1);
-    if (evt->SetMod(pac->mod.name, pPL, 0, 0, 2, 0)) {
-        evt->EspSetModelPtr(pPL);
-    } else {
+    if (evt->SetMod(pac->mod.name, pPL, 0, 0, 2, 0) == 0) {
         pLog->err(0, 0, "Event::ExePacket_SetPl : failed");
+        return 1;
     }
+    evt->EspSetModelPtr(pPL);
     return 1;
 }
 
@@ -853,12 +853,12 @@ int Event::ExePacket_SetEm(Event* evt)
 
 int Event::ExePacket_SetOm(Event* evt)
 {
+    EvtPacket* pac = evt->pPacket;
     Vec pos;
     Vec rot;
     void* bin;
     void* tpl;
-    EvtPacket* pac = evt->pPacket;
-    int type = 0;
+    int type;
     cObj* obj;
     int i;
 
@@ -885,10 +885,11 @@ int Event::ExePacket_SetOm(Event* evt)
             {"pl", 2, 5},       {"em", 2, 0xC},      {"evm", 3, 0},      {"ev", 2, 0xD},      {"obm", 3, 0},
             {"et", 2, 0xE},     {"scr", 3, 0xF},     {"wep", 3, 0x10},   {"eff", 3, 0x11},
         };
-        for (i = 0; i < 49; i++) {
-            OmTbl* t = &tbl[i];
-            if (strncmp(pac->mod.name, t->name, t->len) == 0) {
-                type = t->type;
+        int num = sizeof(tbl) / sizeof(OmTbl);
+        type = 0;
+        for (i = 0; i < num; i++) {
+            if (strncmp(pac->mod.name, tbl[i].name, tbl[i].len) == 0) {
+                type = tbl[i].type;
                 break;
             }
         }
@@ -906,7 +907,8 @@ int Event::ExePacket_SetOm(Event* evt)
     case 0x10:
     case 0x12 ... 0x16:
     case 0x18:
-        obj->be_flag |= 0x05000010;
+        obj->be_flag |= 0x10;
+        obj->be_flag |= 0x05000000;
         break;
     }
     switch (type) {
@@ -931,11 +933,11 @@ int Event::ExePacket_SetOm(Event* evt)
     if (strcmp(pac->mod.name, "pl0000") == 0) {
         evt->pOya = obj;
     }
-    if (evt->SetMod(pac->mod.name, obj, 2, 0, 2, 0)) {
-        evt->EspSetModelPtr(obj);
-    } else {
+    if (evt->SetMod(pac->mod.name, obj, 2, 0, 2, 0) == 0) {
         pLog->err(0, 0, "Event::ExePacket_SetOm : failed");
+        return 1;
     }
+    evt->EspSetModelPtr(obj);
     return 1;
 }
 
@@ -1063,17 +1065,13 @@ int Event::ExePacket_Cam(Event* evt)
     }
     CamCtrl.MotionSet(dat, 0, (f32) frm);
     pPL->be_flag |= 0x00200000;
-    evt->pFocus = 0;
-    evt->pFog = 0;
+    evt->pFog = evt->pFocus = 0;
     evt->MotClear();
     if (!EvtChk(evt->status, 0x08000000)) {
         EventCutEffDelete();
-        if (EvtChk(evt->status, 0x40000000)) {
-            if (EvtChk(evt->status, 0x40000000) && pac->cut != evt->toolCut) {
-                return 1;
-            }
+        if (EvtChk(evt->status, 0x40000000) == 0 || (EvtChk(evt->status, 0x40000000) && pac->cut == evt->toolCut)) {
+            EventCutEstSet(evt->effNo + 0xC4, evt->cut);
         }
-        EventCutEstSet(evt->effNo + 0xC4, evt->cut);
     }
     return 1;
 }
@@ -1219,11 +1217,11 @@ int Event::ExePacket_Shp(Event* evt)
     } else {
         w = m;
     }
-    if (EvtMgr.GetBin(&dat, pac->mod.bin, 0)) {
-        ShapeSet(w, (s16) frm, dat, 2);
-    } else {
+    if (EvtMgr.GetBin(&dat, pac->mod.bin, 0) == 0) {
         pLog->err(0, 0, "Event::ExePacket_Shp : dat failed");
+        return 1;
     }
+    ShapeSet(w, (s16) frm, dat, 2);
     return 1;
 }
 
@@ -1235,6 +1233,7 @@ int Event::ExePacket_Esp(Event* evt)
     EvtPacket* pac = evt->pPacket;
     char* nm = pac->esp.name;
     int ret;
+    int e;
 
     ret = strcmp(nm, "");
     if (ret == 0) {
@@ -1263,11 +1262,12 @@ int Event::ExePacket_Esp(Event* evt)
         EstSet((int) m, -1, &pos, &rot, 1, pac->esp.parts, 1, 0, 0, 0);
     }
     if (pac->esp.type == 5) {
-        if (evt->effNo == -1 || evt->effNo > 1) {
+        e = evt->effNo;
+        if (e == -1 || e > 1) {
             pLog->err(0, 0, "Event::ExePacket_SetEff : NoWork failed");
             return 1;
         }
-        EstSet((int) m, -1, &pos, &rot, evt->effNo + 0xC4, pac->esp.parts, 1, (u8) (evt->effNo + 0x37), 0, 0);
+        EstSet((int) m, -1, &pos, &rot, e + 0xC4, pac->esp.parts, 1, (u8) (e + 0x37), 0, 0);
     }
     if (pac->esp.type == 6) {
         EstSet((int) m, -1, &pos, &rot, 0x54, pac->esp.parts, 1, 0, 0, 0);
@@ -1277,23 +1277,23 @@ int Event::ExePacket_Esp(Event* evt)
 
 int Event::ExePacket_Lit(Event* evt)
 {
-    void* dat;
+    cLit* dat;
     EvtPacket* pac = evt->pPacket;
 
     if (EvtChk(EvtDebug.flags, 0x20000000)) {
         return 1;
     }
-    if (EvtMgr.GetBin(&dat, pac->mod.name, 0) == 0) {
+    if (EvtMgr.GetBin((void**) &dat, pac->mod.name, 0) == 0) {
         pLog->err(0, 0, "Event::ExePacket_Lit : dat failed");
         return 1;
     }
     if (EvtChk(evt->status, 0x40000000)) {
-        if (evt->toolCut == evt->cut && evt->pLit == (cLit*) dat) {
+        if (evt->toolCut == evt->cut && evt->pLit == dat) {
             return 1;
         }
     }
-    evt->pLit = (cLit*) dat;
-    LightMgr.roomLitSet((cLit*) dat);
+    evt->pLit = dat;
+    LightMgr.roomLitSet(dat);
     LightMgr.update(0, -1);
     return 1;
 }

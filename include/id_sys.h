@@ -159,6 +159,9 @@ public:
     // card.cpp passes `0x40 + i` without the `clrlwi` truncation: int view of the type parameter.
     void setI(void* data, u8 id, int type, u8 ot, u8 prio, u8 mode) asm("set__8IDSystemPvUcUcUcUcUc");
     void kill(u8 id, u8 type);
+    // COMPILER-DIFF: item 4 (narrow-argument truncation). Sscrn IdNumErase passes `0x40 + i` without
+    // the `clrlwi`: int view of the type parameter.
+    void killI(u8 id, int type) asm("kill__8IDSystemUcUc");
     void stop();
     void move();
     void beMove(IdUnit* u, int sw);

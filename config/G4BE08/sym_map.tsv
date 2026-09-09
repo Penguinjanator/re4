@@ -5026,11 +5026,11 @@ address	size	section	unit	scope	name	demangled
 0x8015B280	0x84	.text	game/model.cpp	global	matUpdate__6cModel	cModel::matUpdate
 0x8015B304	0x84	.text	game/model.cpp	global	cParts_cParts	cParts::cParts
 0x8015B388	0x13C	.text	game/model.cpp	global	getBoundingBox	getBoundingBox
-0x8015B4C4	0x54	.text	game/model.cpp	global	cPartsMgr_cPartsMgr	cPartsMgr::cPartsMgr
+0x8015B4C4	0x54	.text	game/model.cpp	global	__9cPartsMgr	cPartsMgr::cPartsMgr
 0x8015B518	0xA4	.text	game/model.cpp	global	cPartsMgr_log	cPartsMgr::log
 0x8015B5BC	0x28	.text	game/model.cpp	global	cPartsMgr_construct	cPartsMgr::construct
 0x8015B5E4	0x134	.text	game/model.cpp	local	cPartsMgr_createSequential	cPartsMgr::createSequential
-0x8015B718	0x54	.text	game/model.cpp	global	cModInfoMgr_cModInfoMgr	cModInfoMgr::cModInfoMgr
+0x8015B718	0x54	.text	game/model.cpp	global	__12cModInfoMgr	cModInfoMgr::cModInfoMgr
 0x8015B76C	0xA4	.text	game/model.cpp	global	cModInfoMgr_log	cModInfoMgr::log
 0x8015B810	0x28	.text	game/model.cpp	global	cModInfoMgr_construct	cModInfoMgr::construct
 0x8015B838	0xC8	.text	game/model.cpp	global	create__11cModInfoMgrPvT1	cModInfoMgr::create
@@ -6691,7 +6691,7 @@ address	size	section	unit	scope	name	demangled
 0x801E10DC	0x8C	.text	lib/mwsfdset.c	global	mwSfdGetOutVol	mwSfdGetOutVol
 0x801E1168	0x78	.text	lib/mwsfdset.c	global	mwSfdSetOutVol	mwSfdSetOutVol
 0x801E11E0	0xD0	.text	lib/mwsfdset.c	global	mwSfdGetTime	mwSfdGetTime
-0x801E12B0	0x9C	.text	lib/mwsfdset.c	local	mwSfdGetStat	mwSfdGetStat
+0x801E12B0	0x9C	.text	lib/mwsfdset.c	global	mwSfdGetStat	mwSfdGetStat
 0x801E134C	0x18	.text	lib/mwsfdset.c	global	MWSFD_IsEnableHndl	MWSFD_IsEnableHndl
 0x801E1364	0x48	.text	lib/mwsfdset.c	global	MWSFD_SetFlowLimit	MWSFD_SetFlowLimit
 0x801E13AC	0x34	.text	lib/mwsfdset.c	global	MWSFD_SetCond	MWSFD_SetCond
@@ -11760,8 +11760,8 @@ address	size	section	unit	scope	name	demangled
 0x80314C0C	0x4	.sdata	game/main_sub.cpp	global	lbl_80314C0C	.
 0x80314C10	0x8	.sdata	game/math_sub.cpp	global	powx	powx
 0x80314C18	0x8	.sdata	game/math_sub.cpp	global	sum	sum
-0x80314C20	0x4	.sdata	game/model.cpp	global	cModel_mm	cModel::mm
-0x80314C24	0x4	.sdata	game/model.cpp	local	cModel_pm	cModel::pm
+0x80314C20	0x4	.sdata	game/model.cpp	global	_6cModel.mm	cModel::mm
+0x80314C24	0x4	.sdata	game/model.cpp	global	_6cModel.pm	cModel::pm
 0x80314C28	0x4	.sdata	game/model.cpp	global	col.846	col.846
 0x80314C2C	0x4	.sdata	game/model.cpp	global	lbl_80314C2C	.
 0x80314C30	0x4	.sdata	game/motion.cpp	global	new_add.651	new_add.651

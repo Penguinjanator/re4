@@ -2145,6 +2145,13 @@ SceAtWork* SceAtPtr(int no)
     return 0;
 }
 
+// Bit table test with the table as an integer address: the index is not pointer-flagged, so the word offset
+// lands in a base register and comes first in `lwzx`.
+static inline u32 bitTblChk(u32 tbl, u32 i)
+{
+    return *(u32*) (((i >> 5) << 2) + tbl) & (0x80000000 >> (i & 31));
+}
+
 int sceAtPullAtNo(u8* out)
 {
     u32 used[8];
@@ -2157,7 +2164,7 @@ int sceAtPullAtNo(u8* out)
         ((u32*) used)[w->no >> 5] |= 0x80000000 >> (w->no & 31);
     }
     for (i = 0; i < 256; i++) {
-        if (!(((u32*) used)[i >> 5] & (0x80000000 >> (i & 31)))) {
+        if (!bitTblChk((u32) used, i)) {
             *out = i;
             return 1;
         }
@@ -2426,6 +2433,19 @@ int SceAtSetParent(int no, cObj* obj, int flag)
     return SceAtSetParent(w, obj, flag);
 }
 
+// Dead-stripped by the original linker (STRIP_UNUSED): only its constant pool (1e10) survives in
+// `.rodata` between SceAtSetParent(int, cObj*, int) and InScreenCheck.
+static int sceAtFarCheck(Vec* a, Vec* b)
+{
+    f32 dx = a->x - b->x;
+    f32 dz = a->z - b->z;
+
+    if (dx * dx + dz * dz > 10000000000.0f) {
+        return 1;
+    }
+    return 0;
+}
+
 int InScreenCheck(Vec* pos)
 {
     Vec scr;
@@ -2573,12 +2593,14 @@ static void sceAtCamCtrlCheck()
             continue;
         }
         c = &w->cam;
+        // `r * r` in both arms: jump2 cross-jumps the shared `fmuls` into the join, ahead of the pPL load.
         if (pS->pCamAt == c) {
             r = pS->pCamAt->range + pS->pCamAt->range2;
+            r2 = r * r;
         } else {
             r = c->range;
+            r2 = r * r;
         }
-        r2 = r * r;
         d = PSVECSquareDistance(&pPL->pos, &c->pos);
         if (!(r2 > d)) {
             continue;
@@ -2658,6 +2680,10 @@ static void sceAtDebugDisp()
     Mtx mat;
     Mtx pmat;
     SceAtWork* w;
+    // COMPILER-DIFF: gcse PRE pseudo numbering. One extra pseudo before the matrix copies: without it the
+    // second copy's `s_ + 16` / `d_ + 16` expressions (regs 123/124) hash to buckets 76/0 of the 77-bucket
+    // table, so the dst giv is numbered (and allocated, r8) before the src giv; the original has src in r8.
+    int dead = 0;
 
     if (pG->debug_mode != 0x11 && !(pG->flags_60 & 0x00400000)) {
         return;

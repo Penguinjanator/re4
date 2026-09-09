@@ -99,7 +99,7 @@ section	offset	size	unit	scope	name	demangled
 .text	0x0000FA20	0x58	t_camera/db_light.cpp	global	preEventSave__6cDbLit	cDbLit::preEventSave
 .text	0x0000FA78	0x90	t_camera/db_light.cpp	global	fileSave__6cDbLitPCc	cDbLit::fileSave
 .text	0x0000FB08	0x1B0	t_camera/db_light.cpp	global	createLit__6cDbLitP4cLit	cDbLit::createLit
-.text	0x0000FCB8	0x9A0	t_camera/db_light.cpp	global	editColor__FP7GXColorii	editColor
+.text	0x0000FCB8	0x9A0	t_camera/db_light.cpp	global	editColor__FiiP7GXColor	editColor
 .text	0x00010658	0x8C	t_camera/db_light.cpp	global	strFogType__Fi	strFogType
 .text	0x000106E4	0x70	t_camera/db_light.cpp	global	fogTypeNext__Fi	fogTypeNext
 .text	0x00010754	0x70	t_camera/db_light.cpp	global	fogTypeBack__Fi	fogTypeBack

@@ -72,6 +72,8 @@ public:
     virtual void endEvent(int mode);
 };
 #define END_EVENT(p, mode) ((cUnitEvent*) (p))->endEvent(mode)
+struct PlPtr { cPlayer* p; };
+#define pPLS (((PlPtr*) &pPL)->p)
 
 // r103.cpp (the same module)
 extern "C" void r103_initCesspit(R113Cesspit* c);
@@ -147,6 +149,8 @@ static void r113_execHide(int mode)
         const f32 add = 0.1f;
         f32 spd = 0.0f;
 
+        // OPEN: the original issues this call's `li r3, 6` last (after the li r4..r8 and the spd load);
+        // ours first. The mode 1 call below (no float load in the block) matches with the same source.
         SndCall(6, 0x14, &pSUB->pos, 0, 0, 0);
         goto open;
     wait_open:
@@ -186,41 +190,59 @@ static void r113_EventRideShoulder_end()
 // Leon lifts Ashley onto his shoulders to reach the window.
 static void r113_EventRideShoulder()
 {
-    Vec pos0 = {3237.0f, 767.0f, -28450.0f};
-    Vec pos1 = {0.0f, 0.0f, 662.5f};
-    Vec pos2 = {100.49f, 0.0f, -474.38f};
-    Vec rot = {0.0f, 0.0f, 0.0f};
-    Vec pos;
-    Vec pos3;
-    Mtx m;
-    Vec ang;
+    int i;
 
     SceAtSetEnable(3, 0);
-    pG->door_unlock[0] |= 0x08000000;
+    BitOn(pG->door_unlock[0], 0x08000000);
     r113_work->strId = 0;
     SceEventStart(0);
     SceSetEventCancel(1, (TaskFunc) r113_EventRideShoulder_end, 0, -1, 1);
     SubCharCtrl(5, 0);
-    r113_work->strId = SndStrReq(1, 0x27, 0x80000003, 0, 0, 0.0f);
+    U32Set(r113_work->strId, SndStrReq(1, 0x27, 0x80000003, 0, 0, 0.0f));
     pPL->setNoSuspend(1);
     pSUB->setNoSuspend(1);
     PlSetHand(1, 0);
-    rot.y = -1.5707964f;
-    low_RotMatrix(m, &rot);
-    TransMatrix(m, &pos0);
-    PSMTXMultVec(m, &pos1, &pos);
-    pPL->setPos(&pos);
-    ang.x = 0.0f;
-    ang.y = 1.5707964f;
-    ang.z = 0.0f;
-    pPL->setAng(&ang);
-    low_RotMatrix(m, &pPL->rot);
-    TransMatrix(m, &pos);
-    PSMTXMultVec(m, &pos2, &pos3);
-    pSUB->setPos(&pos3);
-    pSUB->setAng(&pPL->rot);
-    pPL->motionSet(ROOM_ARC_PTR(pG->pRoomArc, 0x1F), 0xA, 0, 1, 0);
-    pSUB->motionSet(ROOM_ARC_PTR(pG->pRoomArc, 0x20), 0xA, 0, 1, 0);
+    {
+        Vec pos0 = {3237.0f, 767.0f, -28450.0f};
+        Vec pos1 = {0.0f, 0.0f, 662.5f};
+        Vec pos2 = {100.49f, 0.0f, -474.38f};
+        Vec rot = {0.0f, 0.0f, 0.0f};
+        Vec pos;
+        Vec pos3;
+        Mtx m;
+        Vec ang;
+        const f32 ryc = 1.5707964f;
+
+        rot.y = -1.5707964f;
+        low_RotMatrix(m, &rot);
+        TransMatrix(m, &pos0);
+        PSMTXMultVec(m, &pos1, &pos);
+        {
+            // OPEN: the original hoists this constant's `lis` into r17 at the function top and issues
+            // the `lfs f31` right before setPos; ours keeps both at the declaration.
+            f32 ry = ryc;
+            cPlayer* pl = pPLS;
+            Vec* pa = &ang;
+
+            pl->setPos(&pos);
+            ang.x = 0.0f;
+            pa->y = ry;
+            ang.z = 0.0f;
+            pl->setAng(&ang);
+        }
+        low_RotMatrix(m, &pPL->rot);
+        TransMatrix(m, &pos);
+        PSMTXMultVec(m, &pos2, &pos3);
+        {
+            cSubChar* sub = pSUB;
+            Vec* prot = &pPL->rot;
+
+            sub->setPos(&pos3);
+            sub->setAng(prot);
+        }
+        pPL->motionSet(ROOM_ARC_PTR(pG->pRoomArc, 0x1F), 0xA, 0, 1, 0);
+        pSUB->motionSet(ROOM_ARC_PTR(pG->pRoomArc, 0x20), 0xA, 0, 1, 0);
+    }
     while (MotionGetState(pPL) != 4) {
         SceSleep(1);
     }
@@ -233,13 +255,13 @@ static void r113_EventRideShoulder()
     SndCall(6, 0xB, 0, 0, 0, 0);
     SceSleep(10);
     SndCall(6, 0, 0, 0, 0, 0);
-    SceMesSet(5, 0xF0, 1, 0x64, 0x150 - cMes.getWork()->lineSpace - cMes.getWork()->fontH - 1);
-    SceSleep(75);
     {
-        int i;
+        MessageControl* mes = &cMes;
 
+        SceMesSet(5, 0xF0, 1, 0x64, 0x150 - mes->getWork()->lineSpace - mes->getWork()->fontH - 1);
+        SceSleep(75);
         for (i = 0; i < 16; i++) {
-            cMes.Delete(i);
+            mes->Delete(i);
         }
     }
     r113_work->strId = 0;

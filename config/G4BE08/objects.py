@@ -1360,6 +1360,7 @@ MATCHING.update({
     "lib/sfd_aoap.c": True,
     "lib/adx_bsps.c": True,
     "lib/mwsfdsst.c": True,
+    "lib/mwsfdset.c": True,
 })
 
 # partner character (pl_npc): const f32 locals for pool order, per-value switch bodies, dead

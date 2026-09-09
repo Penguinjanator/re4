@@ -408,7 +408,12 @@ CRI_LIBS: Dict[str, List[str]] = {
 CRI_UNIT_LIB: Dict[str, str] = {
     f"lib/{name}.c": lib for lib, names in CRI_LIBS.items() for name in names
 }
-CRI_CFLAG_OVERRIDES: Dict[str, Dict[str, str]] = {}
+CRI_CFLAG_OVERRIDES: Dict[str, Dict[str, str]] = {
+    # deferred inlining: accessors inline MWSFD_IsEnableHndl/mwPlyGetSfdHn defined at the file top,
+    # and the functions are emitted in reverse source order (mwcc 2.4.7 always reverses under
+    # `deferred`; the DOL's .text/.rodata order is the reverse of the natural file order)
+    "lib/mwsfdset.c": {"-inline auto": "-inline auto,deferred"},
+}
 
 
 def cri_cflags(unit: str) -> List[str]:

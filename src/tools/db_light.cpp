@@ -309,7 +309,7 @@ void printEditTable();
 void DrawTile(int x, int y, int w, int h, GXColor* color);
 int LitLoadWork(cDbLit* lit, int no);
 int LitSaveWork(cDbLit* lit, int no);
-int editColor(GXColor* col, int x, int y);
+int editColor(int x, int y, GXColor* col);
 const char* strFogType(int type);
 int fogTypeNext(int type);
 int fogTypeBack(int type);
@@ -2066,7 +2066,7 @@ static void edit_light_color()
     cLight* cur = curLight();
 
     eprintf(0x40, 0x8C, 4, pTool->color, "LIGHT PROPATY");
-    if (editColor(&cur->color, 8, 11) == 0) {
+    if (editColor(8, 11, &cur->color) == 0) {
         pTool->sub = 0;
     }
 }
@@ -2626,13 +2626,16 @@ static void edit_light_type_spotlight()
             sp->normal.z = 1.0f;
         }
         spotRot.x = 0.0f;
-        spotRot.z = 0.0f;
-        spotRot.y = -(f32) pTool->joy.sx / 1000.0f;
-        RotMatrix(m, &spotRot);
-        PSMTXMultVec(m, &sp->normal, &sp->normal);
-        PSVECCrossProduct(&sp->normal, &xAxis, &spotRot);
-        PSMTXRotAxisRad(m, &spotRot, (f32) pTool->joy.sy / 1000.0f);
-        PSMTXMultVec(m, &sp->normal, &sp->normal);
+        {
+            Vec* rot = &spotRot;
+            rot->z = 0.0f;
+            rot->y = -(f32) pTool->joy.sx / 1000.0f;
+            RotMatrix(m, rot);
+            PSMTXMultVec(m, &sp->normal, &sp->normal);
+            PSVECCrossProduct(&sp->normal, &xAxis, rot);
+            PSMTXRotAxisRad(m, rot, (f32) pTool->joy.sy / 1000.0f);
+            PSMTXMultVec(m, &sp->normal, &sp->normal);
+        }
         if (sp->normal.x == 0.0f && sp->normal.y == 0.0f && sp->normal.z == 0.0f) {
 #line 2977 "D:/Bio4/Prog/db_light.cpp"
             pLog->err(0, 0, "VECNormalize:[%s/%d]", __FILE__, __LINE__);
@@ -2677,11 +2680,12 @@ static void edit_light_type_spotlight()
     }
     if (Joy[0].on & JOY_A) {
         f32 r;
-        pos = cur->curPos;
+        cur->getPos(&pos);
         cur->getNormal(&sp->normal, &dir);
-        r = cur->x1C;
-        if (r == 0.0f) {
+        if (cur->x1C == 0.0f) {
             r = 3000.0f;
+        } else {
+            r = cur->x1C;
         }
         PSVECScale(&dir, &dir, r);
         Draw_corn3(&pos, &dir, sp->cutoff, 0xFFFFFFFF);
@@ -2696,7 +2700,107 @@ static void edit_light_type_spotlight()
     drawLightInfo(cur, 0xFFFFFFFF);
 }
 
-static void edit_light_type_direct() {}
+// Custom attenuation editor: A0..K2 of the spot block, stepped by the gear table.
+#define EDIT_DIRECT_PARAM(field)                                              \
+    sp->field += (f32) pTool->joy.sx * gear_step[gear] * step;                \
+    if (pTool->joy.trg & JOY_Y) {                                             \
+        sp->field = 0.0f;                                                     \
+    }
+
+static void edit_light_type_direct()
+{
+    static Vec rot;
+    static int gear;
+    static f32 gear_step[4] = {1e-9f, 1e-7f, 1e-5f, 1e-3f};
+    cLight* cur = curLight();
+    LightSpot* sp = &cur->spot;
+    f32 step = (pTool->joy.on & JOY_A) ? 100.0f : 1.0f;
+    int ret = 1;
+    Mtx m;
+
+    if (PSVECMag(&sp->normal) < 0.9f) {
+        sp->normal.x = 0.0f;
+        sp->normal.z = 1.0f;
+        sp->normal.y = 0.0f;
+    }
+    switch (pTool->init) {
+    case 0:
+        ret = select_type();
+        gear = 0;
+        break;
+    case 1:
+        EDIT_DIRECT_PARAM(cutoff);
+        break;
+    case 2:
+        EDIT_DIRECT_PARAM(fade);
+        break;
+    case 3:
+        EDIT_DIRECT_PARAM(a2);
+        break;
+    case 4:
+        EDIT_DIRECT_PARAM(k0);
+        break;
+    case 5:
+        EDIT_DIRECT_PARAM(k1);
+        break;
+    case 6:
+        EDIT_DIRECT_PARAM(k2);
+        break;
+    case 7:
+        if (PSVECMag(&sp->normal) < 0.9f) {
+            sp->normal.x = 0.0f;
+            sp->normal.z = 1.0f;
+            sp->normal.y = 0.0f;
+        }
+        rot.x = 0.0f;
+        rot.z = 0.0f;
+        rot.y = -(f32) pTool->joy.sx / 1000.0f;
+        RotMatrix(m, &rot);
+        PSMTXMultVec(m, &sp->normal, &sp->normal);
+        PSVECCrossProduct(&sp->normal, &xAxis, &rot);
+        PSMTXRotAxisRad(m, &rot, (f32) pTool->joy.sy / 1000.0f);
+        PSMTXMultVec(m, &sp->normal, &sp->normal);
+        if (sp->normal.x == 0.0f && sp->normal.y == 0.0f && sp->normal.z == 0.0f) {
+#line 3099 "D:/Bio4/Prog/db_light.cpp"
+            pLog->err(0, 0, "VECNormalize:[%s/%d]", __FILE__, __LINE__);
+            sp->normal.z = 0.0f;
+            sp->normal.y = 0.0f;
+            sp->normal.x = 0.0f;
+        } else {
+            PSVECNormalize(&sp->normal, &sp->normal);
+        }
+        drawLightInfo(cur, 0xFFFFFFFF);
+        break;
+    }
+    if (ret) {
+        if (pTool->joy.rep & JOY_UP) {
+            pTool->init = (pTool->init + 7) % 8;
+        }
+        if (pTool->joy.rep & JOY_DOWN) {
+            pTool->init = (pTool->init + 9) % 8;
+        }
+    }
+    if (pTool->joy.rep & JOY_RIGHT) {
+        gear = (gear + 1) % 4;
+    }
+    if (pTool->joy.rep & JOY_LEFT) {
+        gear = (gear + 3) % 4;
+    }
+    pTool->printCursor(7, pTool->init + 11);
+    if (pTool->init != 0) {
+        eprintf(0x40, 0x9A, 0, pTool->color, "%2d %s", cur->xD, light_type_name[cur->xD]);
+    }
+    eprintf(0x40, 0xA8, 0, pTool->color, "A0 %5.4f", sp->cutoff);
+    eprintf(0x40, 0xB6, 0, pTool->color, "A1 %5.4f", sp->fade);
+    eprintf(0x40, 0xC4, 0, pTool->color, "A2 %5.4f", sp->a2);
+    eprintf(0x40, 0xD2, 0, pTool->color, "K0 %5.4f", sp->k0);
+    eprintf(0x40, 0xE0, 0, pTool->color, "K1 %5.4f", sp->k1);
+    eprintf(0x40, 0xEE, 0, pTool->color, "K2 %5.4f", sp->k2);
+    eprintf(0x40, 0xFC, 0, pTool->color, "NORMAL");
+    eprintf(0x40, 0x118, 0, pTool->color, "GEAR %d", gear + 1);
+    draw_light_graph(cur);
+}
+
 static void edit_light_type_localamb()
 {
     EDIT_SMOOTH_EDGE();
@@ -2710,15 +2814,488 @@ f32 func_attn(cLight* l, f32 d)
     return (s->cutoff + s->fade * c + s->a2 * c) / (s->k0 + d * s->k1 + d * d * s->k2);
 }
 
-void draw_light_graph(cLight* l) {}
-static void edit_light_type_parallel() {}
+// Attenuation curve of a custom light: a gx x gy .. gw x gh graph, the player distance and 1000-unit marks.
+void draw_light_graph(cLight* l)
+{
+    static f32 gx = 180.0f;
+    static f32 gy = 250.0f;
+    static f32 gw = 300.0f;
+    static f32 gh = 200.0f;
+    static f32 gs = 100.0f;
+    Vec a;
+    Vec b;
+    f32 scale;
+    int i;
+    f32 d;
+    f32 t;
+    f32 x;
+    f32 v;
+    u8 col;
+    u32 lcol;
+
+    if (l->x1C != 0.0f) {
+        scale = l->x1C / gw;
+    } else {
+        scale = 10000000.0f / gw;
+    }
+    a.x = gx;
+    a.y = gy;
+    a.z = 0.0f;
+    b.x = gx + gw;
+    b.y = gy;
+    b.z = 0.0f;
+    Draw_line(&a, &b, 0xFFFFFFFF);
+    a.x = gx;
+    a.y = gy;
+    a.z = 0.0f;
+    b.x = gx;
+    b.y = gy - gh;
+    b.z = 0.0f;
+    Draw_line(&a, &b, 0xFFFFFFFF);
+    for (i = 1; i < (int) gw; i++) {
+        v = func_attn(l, (f32) i * scale) * gs;
+        if (v > gh) {
+            v = gh;
+        }
+        a.x = gx + (f32) i;
+        a.y = gy - v;
+        a.z = 0.0f;
+        v = func_attn(l, (f32) (i + 1) * scale) * gs;
+        if (v > gh) {
+            v = gh;
+        }
+        b.x = gx + (f32) (i + 1);
+        b.y = gy - v;
+        b.z = 0.0f;
+        Draw_line(&a, &b, 0xE0E0E0E0);
+    }
+    a = pPLm->pos;
+    a.y += 1200.0f;
+    d = GetDistance3(&l->pos, &a);
+    t = d / scale;
+    if (d < l->x1C || l->x1C == 0.0f) {
+        a.x = gx + t;
+        a.y = gy;
+        a.z = 0.0f;
+        b.x = gx + t;
+        b.y = gy - gh;
+        b.z = 0.0f;
+        lcol = 0xFFFF0000;
+    } else {
+        a.x = gx + gw;
+        a.y = gy;
+        a.z = t;
+        b.x = gx + gw;
+        b.y = gy - gh;
+        b.z = t;
+        lcol = 0xFF000080;
+    }
+    Draw_line(&a, &b, lcol);
+    eprintf((int) gx + 0x78, (int) gy + 8, 0, pTool->color, "%3.6f", func_attn(l, d));
+    for (x = 1000.0f; x < l->x1C || l->x1C == 0.0f; x += 1000.0f) {
+        a.x = gx + x / scale;
+        a.y = gy;
+        a.z = 0.0f;
+        b.x = gx + x / scale;
+        b.y = gy - gh;
+        b.z = 0.0f;
+        Draw_line(&a, &b, 0x80808080);
+    }
+    eprintf((int) gx, (int) gy + 8, 0, pTool->color, "%1.6f", func_attn(l, 1.0f));
+    col = 0;
+    if (func_attn(l, gw * scale) > 0.04f) {
+        col = 6;
+    }
+    eprintf((int) gx + 0xE6, (int) gy + 8, col, pTool->color, "%3.6f", func_attn(l, gw * scale));
+}
+// Parallel light: the direction is edited as two angles (static `ang`: x = pitch, y = yaw, z unused),
+// converted back to the unit normal (scaled by 1e6 in the light).
+static void edit_light_type_parallel()
+{
+    static Vec ang;
+    cLight* cur = curLight();
+    LightSpot* sp = &cur->spot;
+    f32 step = (pTool->joy.on & JOY_A) ? 10.0f : 1.0f;
+    int ret = 1;
+
+    switch (pTool->init) {
+    case 0: {
+        Vec* a = &ang;
+        f32 cx;
+        f32 cz;
+        pTool->cursor = 0;
+        a->x = asinf(sp->normal.y / 1000000.0f);
+        cx = sp->normal.x / 1000000.0f;
+        cx = cx / cosf(a->x);
+        cz = sp->normal.z / 1000000.0f;
+        cz = cz / cosf(a->x);
+        a->y = atan2f(cx, cz);
+        a->z = 0.0f;
+        pTool->init = 1;
+    }
+    case 1: {
+        Vec* a = &ang;
+        f32 k;
+        f32 c;
+        a->x = LIMIT_ANGLE(a->x);
+        a->y = LIMIT_ANGLE(a->y);
+        c = cosf(a->x);
+        c *= sinf(a->y);
+        k = 1000000.0f;
+        c *= k;
+        sp->normal.x = c;
+        sp->normal.y = sinf(a->x) * k;
+        c = cosf(a->x);
+        c *= cosf(a->y);
+        c *= k;
+        sp->normal.z = c;
+        break;
+    }
+    }
+    switch (pTool->cursor) {
+    case 0:
+        ret = select_type();
+        break;
+    case 1: {
+        Vec* a = &ang;
+        a->y += (f32) pTool->joy.sx * step / 1000.0f;
+        a->y += (f32) pTool->joy.sy * step / 1000.0f;
+        if (pTool->joy.trg & JOY_Y) {
+            a->y = 0.0f;
+        }
+        break;
+    }
+    case 2:
+        ang.x += (f32) pTool->joy.sx * step / 1000.0f;
+        ang.x += (f32) pTool->joy.sy * step / 1000.0f;
+        if (pTool->joy.trg & JOY_Y) {
+            ang.x = 0.0f;
+        }
+        break;
+    case 3:
+        if (pTool->joy.rep & JOY_A) {
+            sp->flags ^= 1;
+        }
+        break;
+    case 4:
+        step = (pTool->joy.on & JOY_A) ? 5.0f : 1.0f;
+        sp->fade += (f32) pTool->joy.sx * step;
+        sp->fade += (f32) pTool->joy.sy * step;
+        if (pTool->joy.trg & JOY_Y) {
+            sp->fade = 0.0f;
+        }
+        break;
+    }
+    if (ret) {
+        if (pTool->joy.rep & JOY_UP) {
+            pTool->cursor = (pTool->cursor + 4) % 5;
+        }
+        if (pTool->joy.rep & JOY_DOWN) {
+            pTool->cursor = (pTool->cursor + 6) % 5;
+        }
+    }
+    pTool->printCursor(7, pTool->cursor + 11);
+    if (pTool->cursor != 0) {
+        eprintf(0x40, 0x9A, 0, pTool->color, "%2d %s", cur->xD, light_type_name[cur->xD]);
+    }
+    eprintf(0x40, 0xA8, 0, pTool->color, "DIR Y:%3.0f", ang.y * 180.0f / 3.1415927f);
+    eprintf(0x40, 0xB6, 0, pTool->color, "DIR X:%3.0f", ang.x * 180.0f / 3.1415927f);
+    eprintf(0x40, 0xC4, (sp->flags & 1) ? 0 : 0x14, pTool->color, "LOCAL DIR");
+    eprintf(0x40, 0xD2, 0, pTool->color, "SMOOTH EDGE %6f", sp->fade);
+}
 static void edit_light_prop_sub() {}
-static void edit_ambient() {}
-static void edit_fog() {}
-static void edit_mirror_fog() {}
-void edit_fog_common(LightFog* fog) {}
-static void edit_focus() {}
-void draw_tone_curve() {}
+// Ambient colours of the cut: model / enemy+object / effect.
+static void edit_ambient()
+{
+    static u32 amb_copy = 0;
+    cLightEnv* env = LightMgr.getEnvPtr();
+    int ret = 0;
+
+    eprintf(0x20, 0x2A, 4, pTool->color, "AMBIENT");
+    switch (pTool->x8) {
+    case 0:
+        pTool->x8 = 1;
+        pTool->x9 = 0;
+    case 1:
+        if (pTool->joy.rep & JOY_UP) {
+            pTool->x9 = (pTool->x9 + 2) % 3;
+        }
+        if (pTool->joy.rep & JOY_DOWN) {
+            pTool->x9 = (pTool->x9 + 4) % 3;
+        }
+        if (pTool->joy.rep & JOY_A) {
+            pTool->x8 = 2;
+        } else if (pTool->joy.rep & JOY_B) {
+            pTool->editNo = 0;
+            pTool->sub = 0;
+            pTool->clearWork();
+        } else if (pTool->joy.trg & JOY_Y) {
+            pTool->x8 = 3;
+            pTool->xA = 0;
+        }
+        break;
+    case 2:
+        switch (pTool->x9) {
+        case 0:
+            ret = editColor(4, 8, &env->amb);
+            break;
+        case 1:
+            ret = editColor(4, 8, &env->ambSub);
+            break;
+        case 2:
+            ret = editColor(4, 8, &env->ambEsp);
+            break;
+        }
+        if (ret == 0) {
+            pTool->x8 = 1;
+        }
+        break;
+    case 3:
+        eprintf(0x140, 0x46, 4, pTool->color, "SUB MENU");
+        eprintf(0x140, 0x54, 0, pTool->color, "COPY");
+        eprintf(0x140, 0x62, 0, pTool->color, "PASTE");
+        pTool->printCursor(0x27, pTool->xA + 6);
+        if (pTool->joy.rep & JOY_UP) {
+            pTool->xA = (pTool->xA + 1) % 2;
+        }
+        if (pTool->joy.rep & JOY_DOWN) {
+            pTool->xA = (pTool->xA + 3) % 2;
+        }
+        if ((pTool->joy.rep & JOY_A) || (pTool->joy.trg & JOY_Y)) {
+            switch (pTool->xA) {
+            case 0:
+                switch (pTool->x9) {
+                case 0:
+                    amb_copy = env->x0;
+                    break;
+                case 1:
+                    amb_copy = env->xFC;
+                    break;
+                case 2:
+                    amb_copy = env->x100;
+                    break;
+                }
+                break;
+            case 1:
+                switch (pTool->x9) {
+                case 0:
+                    env->x0 = amb_copy;
+                    break;
+                case 1:
+                    env->xFC = amb_copy;
+                    break;
+                case 2:
+                    env->x100 = amb_copy;
+                    break;
+                }
+                break;
+            }
+            pTool->x8 = 1;
+        }
+        if (pTool->joy.rep & JOY_B) {
+            pTool->x8 = 1;
+        }
+        break;
+    }
+    eprintf(0x20, 0x38, 0, pTool->color, "SCROLL");
+    drawColorTile(0x60, 0x38, 0x30, 0xD, env->x0);
+    eprintf(0x20, 0x46, 0, pTool->color, "EM+OBJ");
+    drawColorTile(0x60, 0x46, 0x30, 0xD, env->xFC);
+    eprintf(0x20, 0x54, 0, pTool->color, "EFFECT");
+    drawColorTile(0x60, 0x54, 0x30, 0xD, env->x100);
+    pTool->printCursor(3, pTool->x9 + 4);
+}
+static void edit_fog()
+{
+    cLightEnv* env = LightMgr.getEnvPtr();
+
+    eprintf(0x20, 0x2A, 4, pTool->color, "FOG");
+    edit_fog_common(&env->fog);
+}
+
+static void edit_mirror_fog()
+{
+    cLightEnv* env = LightMgr.getEnvPtr();
+
+    eprintf(0x20, 0x2A, 4, pTool->color, "MIRROR FOG");
+    edit_fog_common(&env->mfog);
+}
+
+void edit_fog_common(LightFog* fog)
+{
+    f32 step = (pTool->joy.on & JOY_A) ? 20.0f : 1.0f;
+    cLightEnv* env = LightMgr.getEnvPtr();
+
+    switch (pTool->sub) {
+    case 0:
+        pTool->cursor = 0;
+        pTool->sub = 1;
+    case 1:
+        pTool->printCursor(3, pTool->cursor + 4);
+        if (pTool->joy.rep & JOY_UP) {
+            pTool->cursor = (pTool->cursor + 4) % 5;
+        }
+        if (pTool->joy.rep & JOY_DOWN) {
+            pTool->cursor = (pTool->cursor + 6) % 5;
+        }
+        switch (pTool->cursor) {
+        case 0:
+            if (pTool->joy.rep & JOY_RIGHT) {
+                fog->type = fogTypeNext(fog->type);
+            }
+            if (pTool->joy.rep & JOY_LEFT) {
+                fog->type = fogTypeBack(fog->type);
+            }
+            break;
+        case 1:
+            fog->start += (f32) pTool->joy.sx * step;
+            break;
+        case 2:
+            fog->end += (f32) pTool->joy.sx * step;
+            break;
+        case 3:
+            if (pTool->joy.rep & JOY_A) {
+                pTool->cursor = 0;
+                pTool->sub = 2;
+            }
+        case 4:
+            env->farRate += (f32) pTool->joy.sx * step * 0.0001f;
+            if (pTool->joy.rep & JOY_LEFT) {
+                env->farRate -= 0.1f;
+            }
+            if (pTool->joy.rep & JOY_RIGHT) {
+                env->farRate += 0.1f;
+            }
+            if (env->farRate > 1.0f) {
+                env->farRate = 1.0f;
+            }
+            if (env->farRate < 0.0f) {
+                env->farRate = 0.0f;
+            }
+            break;
+        }
+        if (fog->end < fog->start) {
+            fog->end = fog->start + 1.0f;
+        }
+        if (pTool->joy.rep & JOY_B) {
+            pTool->sub = 0;
+            pTool->editNo = 0;
+        }
+        break;
+    case 2:
+        if (editColor(0x14, 10, &fog->color) == 0) {
+            pTool->cursor = 3;
+            pTool->sub = 0;
+        }
+        break;
+    }
+    eprintf(0x20, 0x38, 0, pTool->color, "TYPE     %s", strFogType(fog->type));
+    eprintf(0x20, 0x46, 0, pTool->color, "START    %6.0f", fog->start);
+    eprintf(0x20, 0x54, 0, pTool->color, "END      %6.0f", fog->end);
+    eprintf(0x20, 0x62, 0, pTool->color, "COLOR");
+    eprintf(0x20, 0x70, 0, pTool->color, "FAR PLAY %1.2f", env->farRate);
+    drawColorTile(0x50, 0x62, 0x30, 0xE, *(u32*) &fog->color);
+    LightMgr.setFog();
+}
+static void edit_focus()
+{
+    static const char* focus_mode_name[] = {"NEAR", "FAR", "FollowPL NEAR", "FollowPL FAR"};
+    cLightEnv* env = LightMgr.getEnvPtr();
+    f32 step = (pTool->joy.on & JOY_A) ? 10.0f : 1.0f;
+
+    switch (pTool->sub) {
+    case 0:
+        pTool->cursor = 0;
+        pTool->sub = 1;
+    case 1:
+        pTool->printCursor(3, pTool->cursor + 4);
+        if (pTool->joy.rep & JOY_UP) {
+            pTool->cursor = (pTool->cursor + 2) % 3;
+        }
+        if (pTool->joy.rep & JOY_DOWN) {
+            pTool->cursor = (pTool->cursor + 4) % 3;
+        }
+        switch (pTool->cursor) {
+        case 0:
+            env->x28 += (int) ((f32) pTool->joy.sx * step);
+            break;
+        case 1:
+            if (pTool->joy.rep & JOY_RIGHT) {
+                env->x2D = (env->x2D + 12) % 11u;
+            }
+            if (pTool->joy.rep & JOY_LEFT) {
+                env->x2D = (env->x2D + 10) % 11u;
+            }
+            break;
+        case 2:
+            if (pTool->joy.rep & JOY_RIGHT) {
+                env->x2E++;
+            }
+            if (pTool->joy.rep & JOY_LEFT) {
+                env->x2E--;
+            }
+            env->x2E &= 3;
+            break;
+        }
+        if (pTool->joy.rep & JOY_B) {
+            pTool->sub = 0;
+            pTool->editNo = 0;
+        }
+        break;
+    }
+    eprintf(0x20, 0x2A, 4, pTool->color, "FOCUS");
+    eprintf(0x20, 0x38, 0, pTool->color, "DIST %7d", env->x28);
+    eprintf(0x20, 0x46, 0, pTool->color, "LEVEL %d", env->x2D);
+    eprintf(0x20, 0x54, 0, pTool->color, "MODE  %s", focus_mode_name[env->x2E]);
+}
+// Contrast tone curve of the blur filter: axes, the (in, out) knee and the end segments.
+void draw_tone_curve()
+{
+    static f32 sz = 0.5f;
+    static f32 gamma2 = 0.5f;
+    static f32 gamma3 = 0.1f;
+    cLightEnv* env = LightMgr.getEnvPtr();
+    Vec a;
+    Vec b;
+    f32 g;
+    f32 in;
+    f32 out;
+
+    a.x = 0.0f; a.y = 0.0f; a.z = 0.0f; b.x = 0.0f; b.y = 0.0f; b.z = 0.0f;
+    if ((u8) env->contrast[0] == 0) {
+        return;
+    }
+    a.x = sz * 255.0f + 64.0f;
+    a.y = 150.0f;
+    b = a;
+    b.x += sz * 255.0f;
+    Draw_line(&a, &b, 0xFFFFFFFF);
+    b = a;
+    b.y -= sz * 255.0f;
+    Draw_line(&a, &b, 0xFFFFFFFF);
+    b = a;
+    b.x += (f32) (int) (u8) env->contrast[2] * sz;
+    b.y -= (f32) (int) (u8) env->contrast[2] * sz;
+    Draw_line(&a, &b, 0xFFFFFFFF);
+    g = 0.5f;
+    if ((u8) env->contrast[0] == 2) {
+        g = gamma2;
+    }
+    if ((u8) env->contrast[0] == 3) {
+        g = gamma3;
+    }
+    a = b;
+    out = (255.0f - (f32) (int) (u8) env->contrast[2]) / 255.0f;
+    in = (f32) (int) (u8) env->contrast[1] / 255.0f;
+    out = out - out * ((1.0f - g) * in);
+    b.x += out * 255.0f * sz;
+    b.y -= (255.0f - (f32) (int) (u8) env->contrast[2]) * sz;
+    Draw_line(&a, &b, 0xFFFFFFFF);
+    a = b;
+    b.x = sz * 255.0f + 64.0f + sz * 255.0f;
+    b.y = 150.0f - sz * 255.0f;
+    Draw_line(&a, &b, 0xFFFFFFFF);
+}
 static void edit_blur() {}
 static void edit_mipmap() {}
 static void edit_tune() {}
@@ -2775,9 +3352,9 @@ void DrawTile(int x, int y, int w, int h, GXColor* color)
 
 void cLightTool::clearWork()
 {
-    col = 0;
     cursor = 0;
     row = 0;
+    col = 0;
 }
 
 void cLightTool::clearSubMenu()
@@ -2792,12 +3369,13 @@ void cLightTool::clearSubMenu()
 cDbLit::cDbLit()
 {
     int i;
+    cLightEnv** p = cut;
 
-    nMaxLight = 0;
     nCut = 0;
     version = 0;
+    nMaxLight = 0;
     for (i = 0; i < 256; i++) {
-        cut[i] = NULL;
+        *p++ = NULL;
     }
 }
 
@@ -2830,13 +3408,13 @@ int LitLoadWork(cDbLit* lit, int no)
     cLightEnv* env = lit->getCut(no);
 
     LightMgr.destroyAll();
-    if (env == NULL) {
-        memclr_asm(pLightEnv, sizeof(cLightEnv));
-        return 0;
+    if (env != NULL) {
+        LightMgr.setEnv(env, -1);
+        LightMgr.loadLit(env->getLightWork(0), env->nLight);
+        return 1;
     }
-    LightMgr.setEnv(env, -1);
-    LightMgr.loadLit(env->getLightWork(0), env->nLight);
-    return 1;
+    memclr_asm(pLightEnv, sizeof(cLightEnv));
+    return 0;
 }
 
 int LitSaveWork(cDbLit* lit, int no)
@@ -2872,6 +3450,7 @@ int cDbLit::fileLoad(const char* path)
 int cDbLit::init(cLit* lit)
 {
     u32 i;
+    u32* tbl;
 
     if (!PTR_OK(lit)) {
         TOOL_ERR("cDbLit::init() MEMORY ERROR");
@@ -2884,8 +3463,9 @@ int cDbLit::init(cLit* lit)
         cut[i] = NULL;
     }
     *(u32*) this = *(u32*) lit;
+    tbl = (u32*) (lit + 1);
     for (i = 0; i < nCut; i++) {
-        u32 ofs = ((u32*) (lit + 1))[i];
+        u32 ofs = tbl[i];
         if (ofs) {
             cLightEnv* src = (cLightEnv*) ((u8*) lit + ofs);
             u32 size = src->nLight * sizeof(cLightWork) + sizeof(cLightEnv);
@@ -2983,7 +3563,7 @@ u32 cDbLit::createLit(cLit* dst)
     return size;
 }
 
-int editColor(GXColor* col, int x, int y) { return 0; }
+int editColor(int x, int y, GXColor* col) { return 0; }
 
 const char* strFogType(int type)
 {
@@ -3083,7 +3663,7 @@ void clear_type_free()
 
 int getCutNo()
 {
-    u8 no;
+    int no;
 
     if (pG->flags_60 & 0x02000000) {
         return 0;
@@ -3091,9 +3671,10 @@ int getCutNo()
     if ((pG->flags_60 & 0x80000000) && DebugMenuSelected == 7) {
         no = tcCurrentCameraNo();
     } else {
-        no = (*LightMgr.getLitPPtr())->getSafeCutNo(CamCtrl.CurrentCameraNo());
+        int cam = CamCtrl.CurrentCameraNo();
+        no = (*LightMgr.getLitPPtr())->getSafeCutNo(cam);
     }
-    return no;
+    return (u8) no;
 }
 
 void drawLightInfo_SpotShadow(cLight* l, u32 color) {}

@@ -205,6 +205,11 @@ Sint32 SFBUF_RingAddWrite(SFD sfd, Sint32 buf, Sint32 a, Sint32 b);
 Sint32 SFBUF_RingGetWrite(SFD sfd, Sint32 buf, void *a);
 Sint32 SFBUF_VfrmAddRead(SFD sfd, Sint32 buf, void *frm);
 Sint32 SFBUF_VfrmGetRead(SFD sfd, Sint32 buf, void **frm);
+Sint32 SFD_GetPlyInf(SFD sfd, SFD_PLYINF *inf);
+Sint32 SFD_SetCond(SFD sfd, Sint32 id, Sint32 val);
+Sint32 SFD_GetHnStat(SFD sfd);
+Sint32 SFD_GetTime(SFD sfd, Sint32 *ncount, Sint32 *tscale);
+Sint32 SFD_SetSpeed(SFD sfd, Sint32 speed);
 Bool SFTIM_IsGetFrmTime(SFD sfd, void *frm);
 Bool SFTIM_IsVideoTerm(SFD sfd);
 

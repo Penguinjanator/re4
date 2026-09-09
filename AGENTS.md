@@ -1856,6 +1856,55 @@ Then `MATCHING["st2_4/r22c.cpp"] = True` in `config/G4BE08/modules.py`, `python3
     switchSymbol / str_check / initChurchBell differ only in callee-saved register choice or one
     load order.
 
+### Sscrn (sub screen DLL, src/Sscrn/ss_*.cpp, include/ss_main.h)
+
+- The screens are `Widget<SUB_SCREEN>` state-machine nodes (include/widget.h: `num`, `link[]`, `cur`, vptr
+  at 0xC; virtuals dtor/init/quit/move; `connect(no, w)`, `transit(no, wk)` with the two `pLog->err`
+  strings). `SUB_SCREEN` is the real tag of sscrn.h's work (`SubScreenWork` is a typedef): the module's
+  mangled names carry it. The link table is `mem_alloc(4 * num, "widget.h", 89, 1, 13)`; derived widgets
+  have NO user constructor (`Widget(int n = 1)` + implicit ctors: an in-class `SsX(int n) : Widget(n) {}`
+  is emitted out of line, 0xA4 per class) and are declared in the order their vtables appear reversed
+  (`_vt.9CapSelect` at the lowest .rodata address = declared last).
+- Each unit's linkonce block is `[cManager<cLight> copies] ~Widget<SUB_SCREEN> [own synthesized dtors +
+  in-class inlines in declaration order] Widget::quit, init, move`: the destructor is instantiated by a
+  `static inline` `delete w` helper in ss_main.h before any derived class is declared, quit/init/move
+  at their first use (transit uses quit then init). Units with named linkonce copies next to nameless
+  duplicate blocks (ss_debug's dispWorkNum after the 0x3B8 cManager<cLight> block, ss_file's 0x408 +
+  0xC around its dtors) are handled by fold_linkonce's `keep_unnamed` (total unnamed size = the
+  unit's nameless fn_ sizes).
+- `.rodata` alignment: a unit with a vtable has an 8-aligned `.rodata` (`.align 3` of the vtable
+  sections), one without (ss_debug) 4; the split objects are all `align:4`, so a compiled ss_debug
+  loses the 4-byte pad before ss_file's `.rodata` until ss_file is compiled too — flip both together.
+- Two identical strings are not merged when one comes from a template instantiation and the other from
+  a parse-time inline (`"D:/Bio4/Prog/widget.h"` twice): route both through one `static inline const
+  char* widgetFileName()` so the inlined copies share the SYMBOL_REF.
+- `if (c) return 0; body; return 1;` puts `li r3,0` out of line at the end (jump1 turns the
+  `set r3; use r3; jump ret` block into a return sequence); the target's `li r3,0` before the `bne`
+  that jumps to the epilogue is `if (c) ret = 0; else { body; ret = 1; } return ret;` (or `goto`).
+- `u64 Key.trg & bit` tests: bit 31 of the low word is `0x80000000` (`clrrwi 31`), not 1.
+- A `switch` whose two arms come out as `cmpwi 1; beq L1; cmpwi 2; bne END; [case 2]; b END; L1: [case 1]`
+  has `case 2:` written before `case 1:` (ss_debug bullet, ss_file SsFileMain::move).
+- A shared `state++` tail entered from a `break`-ing case and from a falling case is a `goto NEXT` label
+  (`case 0: ...; goto NEXT; case 1: if (..) break; NEXT: state++;`), otherwise cse folds the second
+  copy to `li r0, 2` (SsFileInit::move).
+- Debug menus: column positions are `int cx = 10;` assigned *after* the header `eprintf` (so the first
+  call uses the literal 0x50 while the loop keeps `slwi r3, r23, 3`), the value column is `(cx + 13) * 8`
+  (hoisted `addi`, folded to `li 0x17` by cse2), row y is the giv `0x9A + i * 0xE`; the cursor colour
+  `int col = i == cursor ? 4 : 0;` is one loop-body local reused by a later case (ssDbgPzzl::move).
+  A clamp on a global (`pG->x4F98`) that keeps the pG register across the diamond is
+  `GlobalWork* g = pG; int p = g->x; if (p >= 0) { if (p > M) p = M; } else p = 0; g->x = p;`.
+- Font sizes are `s16 x[2] = {0, 17}` / `s8 x[4]` statics passed as `x[1]`/`x[3]` to
+  `setFontSize(int, s8, s8)` without truncation (COMPILER-DIFF 4: `MessageControlS::setFontSizeS`
+  alias in ss_file.cpp); `IdNum.killI(0xFF, 0x40 + i)` likewise (id_sys.h).
+- The DLL's model managers are `cSsPartsMgr`/`cSsModInfoMgr` (ss_main.h): constructed by the DOL's
+  `__9cPartsMgr`/`__12cModInfoMgr` (asm-labelled ctors) but without a virtual destructor, so the static
+  destructor inlines `cManager<T>::~cManager` (stores the cManager vtable) as the target does.
+- OPEN: getTplName's second loop lacks the `mr r10,r9; mr r11,r10` copies of `page+1` that the first
+  (identical) loop has; dispFileList's target has an 8-byte frame slot and a hoisted HI zero (`li r19,0`)
+  that ours lacks (and MessageDisplay::init the reverse: ours has the slot); sscrnCameraInit's store
+  order / pool order (0.0 first); weaponChangeRequest's linear case tree; weaponChangeMoveCheck's
+  `subfe/neg` form of `x == 3 || x == 4`.
+
 ### Open
 
 - t_emlist.cpp (0x6174 of code: a 0x3E0 work block behind a struct-member pointer reloaded after every
