@@ -106,7 +106,7 @@ void PlChangeData()
     pl = pPL;
     pl->setModel();
     pl->setMotion();
-    EspDataLoad(PL_ARC_PTR(pG->pPlArc, 0x1A), 3, 0);
+    EspDataLoad((u32) PL_ARC_PTR(pG->pPlArc, 0x1A), 3, 0);
     pPL->weaponInit();
     pl->be_flag |= 0x20;
     pl->xFC = 0;
