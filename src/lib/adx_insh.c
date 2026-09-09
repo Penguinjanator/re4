@@ -54,8 +54,8 @@ void ADXT_InsertHdrSfa(ADXT_OBJ *adxt, Sint32 a, Sint32 b, Sint32 c)
 		}
 	}
 	memcpy(ck2.data, ck.data, ck.len);
-	SJ_UngetChunk(sjo, 0, &ck);
-	SJ_UngetChunk(sji, 1, &ck2);
+	SJ_PutChunk(sjo, 0, &ck);
+	SJ_PutChunk(sji, 1, &ck2);
 	ADXSJE_Stop(sje);
 	ADXSJE_Destroy(sje);
 	SJ_Destroy(sjo);

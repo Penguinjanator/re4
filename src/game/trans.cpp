@@ -219,6 +219,21 @@ static inline int getTevReg(int no)
     return tbl[no];
 }
 
+static inline int checkTevReg(int no)
+{
+    if (no > 2) {
+        pLog->err(0, 0, "TevReg over!");
+    }
+    return no;
+}
+
+static inline int getTevRegNext(int& no)
+{
+    int tbl[3] = {1, 2, 3};
+    no = checkTevReg(tev_reg + 1);
+    return tbl[no];
+}
+
 static inline int getTevRegC(int no)
 {
     int tbl[3] = {2, 4, 6};
@@ -1565,8 +1580,8 @@ static void TextureBlend3(ModelPart* part, cModelInfo* info, int colIn, int alph
         u8 id = e[ofs];
         if (part->texId == id || id == 0xF7) {
             u8 texId;
-            e = tbl + 5;
-            texId = e[ofs];
+            u8* e2 = tbl + 5;
+            texId = e2[ofs];
             org_LoadTexObj(texId, map);
             if (t->flags & 1) {
                 GXSetTexCoordGen2(coord, 1, 4, mtx, 0, 0x7D);
@@ -1602,8 +1617,7 @@ static void TextureBlend3(ModelPart* part, cModelInfo* info, int colIn, int alph
                 GXSetTevKColorSel(st, getKColorSel());
                 GXSetTevKAlphaSel(st, getKAlphaSel());
                 tev_kcolor++;
-                reg2 = tev_reg + 1;
-                reg = getTevReg(reg2);
+                reg = getTevRegNext(reg2);
                 GXSetTevOrder(st, coord, map, 0xFF);
                 if (t->blendRatio > 0xFF) {
                     GXSetTevColorIn(st, 0xF, 0xC, 9, 0xE);

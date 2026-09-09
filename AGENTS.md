@@ -1662,13 +1662,28 @@ Then `MATCHING["st2_4/r22c.cpp"] = True` in `config/G4BE08/modules.py`, `python3
 - `.bss` of a compiled module unit is invisible to the split object compare (NOBITS); check sizes with
   readelf, and remember unreferenced `.bss` objects survive the -r link (t_prim's 0x20 behind
   ToolBuffer, dropped by the DOL link).
+- t_emlist.cpp idioms (src/t_emlist/t_emlist.cpp, 36/53 functions): the work pointer is a struct member
+  (`EmList.wk`, a one-member struct in .data right before the routine table): every store through it
+  reloads the pointer, consecutive loads share it. `EmListCtrl* ctl = &EmList;` declared at the top of
+  emlist_init puts the `lis EmList@ha` into the prologue (callee-saved) although the only store is
+  behind seven calls. `y = 0x50 + i * 0x10;` as the *first* loop statement gives the giv init last in
+  the preheader while `mr r4, y` survives in a branch where `i` is known (a plain `y += 0x10` counter
+  inits first, an inline expression folds to `li 0xa0`). `int r = p->room; ((step + r) & 0xFF) |
+  (r & 0xF00)` puts `step` first in the `add`; the member read directly puts the load first. Tool-style
+  raw offsets: `(u32*) (no * 0x20 + (u32) pG + 0x501C)` + `BitOff(tbl[i >> 5], m)` = `slwi; add idx,pG;
+  addi 0x501c; lwzx/stwx` with pG reloaded per iteration. `int step = wk->step; switch (step)` keeps the
+  switch register and stores it as the constant in `case 1:` (`stw r10`). OPEN: emlist_file_menu_disp
+  copies the `i - 11` giv into r8 once before the compare tree and shares one eprintf tail between the
+  omake and stage cases; `switch (i - 11)` with `i - 11` in every call reduces the giv (`li r28, -0xb`)
+  but cse folds the argument per case.
 
 ### Open
 
-- t_emlist.cpp (0x6174 of code: a 0x3E0 work block behind a global pointer reloaded after *every*
-  store — raw-offset accessors or a byte-store-heavy struct — 124 `const char*` name tables and a
+- t_emlist.cpp (0x6174 of code: a 0x3E0 work block behind a struct-member pointer reloaded after every
+  store, 122 `const char*` name tables and a
   64-entry `{char name[16]; const char** flag, *type, *set, *x}` id table, TOOL_MENU-like char[]
-  menus), st2_4/r22c.cpp, st1_0/r100.cpp + r120.cpp are split but not matched.
+  menus) has 36 of 53 functions matched (skeleton, data and menus done; the disp/camera/target functions
+  are left); st2_4/r22c.cpp, st1_0/r100.cpp + r120.cpp are split but not matched.
 - The `.drs` archives are not rebuilt by `ninja` (`tools/drs.py rebuild` does one at a time); the
   sound bank's record types 1/2 and the p0/p1 parameters are not interpreted.
 - Unit boundaries inside the big modules (Tools has ~39 source files) are not known; `strip_unused`

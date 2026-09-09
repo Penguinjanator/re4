@@ -42,7 +42,7 @@ u16 MotionMoveF(cModel* m, int flag) asm("MotionMove");   // motion.h declares t
 int SubLadderClimbCk(cModel* m);
 int SubLadderClimbCk2(cModel* m);
 void pl_fall_ok0();
-void pl_fall_ok();
+void pl_fall_ok(cPlayer* pl);
 void catchOn();
 int getFallPos(cSubChar* pl, Vec* pos, Vec* rot);
 void waterProc(cSubChar* pl);
@@ -1124,12 +1124,11 @@ void pl_fall_ok0()
 {
 }
 
-void pl_fall_ok()
+void pl_fall_ok(cPlayer* pl)
 {
-    cPlayer* pl = pPL;
     PlArc* arc;
 
-    arc = ((cEm*) pl->dmgType)->subArc;
+    arc = ((cEm*) pPL->dmgType)->subArc;
     pl->subArc = arc;
     switch (pl->xFD) {
     case 0:
@@ -1185,10 +1184,10 @@ void cSubChar::moveFall()
         AtariOff(&atari, 0xFEFF);
         atari.setPriority(3);
         rot.y = pPL->rot.y - 4.712389f;
-        rot.y = LIMIT_ANGLE(rot.y);
+        FSet(rot.y, LIMIT_ANGLE(rot.y));
         PSMTXMultVec(pPL->mat, &v_ok, &pos);
         setPos(&pos);
-        SetPlDamage((int) this, (void (*)(cPlayer*)) pl_fall_ok);
+        SetPlDamage((int) this, pl_fall_ok);
         pPL->dmg.set(0, 0x80);
         MOT_SET(subSelf, MOTION(subSelf), SUB_MOT(subSelf, 0x3F), SUB_MOT(subSelf, 0x5F), 7, 5, 0);
         AtariOff(&atari, 0xFEFF);
@@ -1238,15 +1237,15 @@ void cSubChar::moveAction()
             break;
         }
         switch (subHideMode) {
+        default:
+            xFE = 1;
+            break;
         case 3:
             xFE = 2;
             break;
         case 4:
             xFE = 4;
             sub52C = getJumpAdjY();
-            break;
-        default:
-            xFE = 1;
             break;
         }
         if (subHideMode == 4) {
@@ -1366,16 +1365,17 @@ f32 cSubChar::getJumpAdjY()
 {
     Vec v;
     f32 h;
+    const f32 lim = 1500.0f;
 
     v.x = -sub448.x;
     v.y = sub448.y;
     v.z = -sub448.z;
     PSVECScale(&v, &v, 3800.0f);
     PSVECAdd(&v, &sub43C, &v);
-    v.y += 1500.0f;
+    v.y += lim;
     h = SatMgr.getFloor(&v, 600.0f, 100000.0f, 0, 0);
     h -= pos.y;
-    if (fabsf(h) > 1500.0f) {
+    if (fabsf(h) > lim) {
         h = 0.0f;
     }
     return h;
@@ -2171,7 +2171,7 @@ void cSubChar::neckCtrl()
     int on = 1;
     f32 ang;
 
-    MOTION_PARTS(p)->flags |= 0x40000000;
+    BitOn(MOTION_PARTS(p)->flags, 0x40000000);
     if (!(pPL->flags_420 & 2)) {
         on = 0;
     }
@@ -2181,7 +2181,8 @@ void cSubChar::neckCtrl()
         if (subNeckOn > 0) {
             subNeckOn--;
         }
-        ang = Muku(&pos, &pPL->pos, rot.y + subNeckAng, 0.10471976f);
+        ang = rot.y + subNeckAng;
+        ang = Muku(&pos, &pPL->pos, ang, 0.10471976f);
         subNeckAng += ang;
         if (subNeckAng > 0.78539819f) {
             subNeckAng = 0.78539819f;
@@ -2387,10 +2388,12 @@ void catchOn()
         p = sub->sub558;
         p.y = sub->pos.y;
         if (fabsf(sub->pos.y - sub->sub558.y) < 300.0f && GetDistance(&p, &sub->pos) < 25000000.0f) {
+            f32 y = sub->sub564;
+
             sub->setPos(&sub->sub558);
-            r.y = sub->sub564;
-            r.z = 0.0f;
+            r.y = y;
             r.x = 0.0f;
+            r.z = 0.0f;
             sub->setAng(&r);
         }
     }
@@ -2636,14 +2639,17 @@ void cSubChar::backCheckSet(void* mot)
 void cSubChar::backCheckMove()
 {
     MotionWorkSub* w = subSelf->blendMot;
+    const f32 d = 0.14f;
 
     if (w == 0) {
         return;
     }
     switch (sub404) {
+    case 0:
+        break;
     case 1:
         if (w->blendRate > 0.0f) {
-            w->blendRate -= 0.14f;
+            w->blendRate -= d;
             if (subSelf->blendMot->blendRate < 0.0f) {
                 subSelf->blendMot->blendRate = 0.0f;
                 sub404 = 0;
@@ -2652,7 +2658,7 @@ void cSubChar::backCheckMove()
         break;
     case 2:
         if (blendMot->blendRate < 1.0f) {
-            blendMot->blendRate += 0.14f;
+            blendMot->blendRate += d;
             if (blendMot->blendRate > 1.0f) {
                 blendMot->blendRate = 1.0f;
                 sub404 = 0;
@@ -2945,10 +2951,11 @@ void cSubChar::anaSatInfo()
     Vec a = { 0.0f, 400.0f, 0.0f };
     Vec b;
     u32 r;
+    const f32 lim = 0.5235988f;
 
     PSVECAdd(&a, &subSelf->pos, &a);
     sub438 = 0;
-    if (fabsf(Muku(&pos, &subTarget, rot.y, 3.1415927f)) > 0.5235988f) {
+    if (fabsf(Muku(&pos, &subTarget, rot.y, 3.1415927f)) > lim) {
         return;
     }
     b.x = subTarget.x;
@@ -3066,13 +3073,14 @@ int getFallPos(cSubChar* pl, Vec* opos, Vec* orot)
     Vec hit;
     Vec nrm;
     Vec d;
+    const f32 len = 1000.0f;
 
     a.x = 0.0f;
     a.y = 300.0f;
     a.z = 0.0f;
     PSVECAdd(&a, &pl->pos, &a);
     b.y = 300.0f;
-    b.z = 1000.0f;
+    b.z = len;
     b.x = 0.0f;
     PSMTXMultVec(pl->mat, &b, &b);
     SatMgr.hitCheck(&a, &b, &hit, &nrm, 0, 0);

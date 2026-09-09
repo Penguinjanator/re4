@@ -42,6 +42,7 @@
 #include "math_sub.h"
 #include "db_log.h"
 #include "joy.h"
+#include "em_cloth.h"
 
 // motion.h declares the one-argument form; the enemies pass a second argument (pl_npc.cpp).
 u16 MotionMoveF(cModel* m, int flag) asm("MotionMove");
@@ -250,6 +251,20 @@ void em1cBloodSet(cEm10* em, int near);
 int em10ArmorCk(cEm10* em, int parts);
 int em10ChgParasiteCk(cEm10* em);
 int em10LostHeadCk(cEm10* em);
+void em10RouteCk(cEm10* em);
+void em10ClawMove(cEm10* em);
+void em10NeckMove(cEm10* em);
+void em10WaistMove(cEm10* em);
+void em10SlopeMove(cEm10* em);
+void em10ScaleCompress(cEm10* em);
+void em10BombNeckMove(cEm10* em);
+void em10ChainSawMove(cEm10* em);
+void Em1fClothMove(cModel* m, PlCloth* c);
+void em10BowgunMove(cEm10* em);
+void em10SetParasite(cEm10* em);
+void em10SetWaterEff(cEm10* em);
+void em10FootSe(cEm10* em);
+void em10GatlingRollMove(cEm10* em);
 
 // Dead flag test (cDmgInfo upper 16 bits): an inline returning 0/1 gives the `li 1; andis.; bne; li 0` chain.
 static inline int em10DeadCk(cEm* em)
@@ -1774,18 +1789,18 @@ void em10BloodSet(cEm10* em, int near)
         case 0x26:
         case 0x2B:
             EmDmBloodSet2(em, 0x10, 0x64, 0, 0, 0);
-            break;
+            return;
         case 0x10:
         case 0x1A:
             EmDmBloodSet2(em, 0x10, 0x64, 0, 0, 0);
-            break;
+            return;
         case 0xB:
         case 0xC:
         case 0x1B:
         case 0x1D:
         case 0x27:
             EmDmBloodSet2(em, 0x10, 0x64, 0, 0, 0);
-            break;
+            return;
         case 7:
         case 8:
         case 0x21:
@@ -1794,11 +1809,23 @@ void em10BloodSet(cEm10* em, int near)
             } else {
                 EmDmBloodSet2(em, 0x10, 0x64, 0, 0, 0);
             }
-            break;
-        default:
-            EmDmBloodSet2(em, 0x10, 0x64, 0, 0, 0);
+            return;
+        case 5:
+        case 6:
+        case 9:
+        case 0xA:
+        case 0xD:
+        case 0xF:
+        case 0x12:
+        case 0x13:
+        case 0x15:
+        case 0x28:
+        case 0x29:
+        case 0x2C:
+        case 0x2D:
             break;
         }
+        EmDmBloodSet2(em, 0x10, 0x64, 0, 0, 0);
     } else {
         if (part->partsNo == 5 && (w->pParasite || w->x58C)) {
             EmDmBloodSet2(em, 0x10, 0x26, 0, 0, 0);
@@ -1807,7 +1834,6 @@ void em10BloodSet(cEm10* em, int near)
         switch (em->dmWep) {
         case 0:
         case 0x14:
-        case 0x17:
         case 0x22:
         case 0x23:
         case 0x24:
@@ -1830,11 +1856,11 @@ void em10BloodSet(cEm10* em, int near)
             } else {
                 EmDmBloodSet2(em, 0x10, 1, 0, 0, 0);
             }
-            break;
+            return;
         case 0x10:
         case 0x1A:
             EmDmBloodSet2(em, 0x10, 0x29, 0, 0, 0);
-            break;
+            return;
         case 0xB:
         case 0xC:
         case 0x1B:
@@ -1850,7 +1876,7 @@ void em10BloodSet(cEm10* em, int near)
                     EstSet(0, -1, &pos, 0, 0x10, 0xD, 0, 0, 0, 0);
                 }
             }
-            break;
+            return;
         case 7:
         case 8:
         case 0x21:
@@ -1892,7 +1918,7 @@ void em10BloodSet(cEm10* em, int near)
                     EmDmBloodSet2(em, 0x10, 1, 0, 0, 0);
                 }
             }
-            break;
+            return;
         case 9:
         case 0xA:
         case 0x28:
@@ -1911,8 +1937,20 @@ void em10BloodSet(cEm10* em, int near)
                     }
                 }
             }
+            return;
+        case 5:
+        case 6:
+        case 0xD:
+        case 0xF:
+        case 0x12:
+        case 0x13:
+        case 0x15:
+        case 0x29:
+        case 0x2C:
+        case 0x2D:
             break;
-        default:
+        }
+        {
             if (Ctrl12Ck(w->pCtrl12, 0xB)) {
                 if (dist < 16000000.0f) {
                     if (ChkWaterEffectEnable(&em->pos)) {
@@ -1943,8 +1981,344 @@ void em10BloodSet(cEm10* em, int near)
                 }
                 Ctrl12Set(w->pCtrl12, 0xB, 0x2D);
             }
-            break;
         }
+    }
+}
+
+void cEm10::move()
+{
+    Em10Work* w = EM10_WK(this);
+    f32 dist;
+    Mtx m;
+    Vec v;
+
+    if (xFC) {
+        em10DmCk(this);
+    }
+    w->flags &= 0xACC081A7;
+    clearStatus(3);
+    hitInfo.flags |= 1;
+    if ((w->flags & 0x80) && w->pParasite == 0 && w->x58C == 0) {
+        hitInfo.flags &= ~1;
+    }
+    em10RouteCk(this);
+    {
+        u32 lost = w->flags & 0x800000;
+        w->flags &= ~0x04000004;
+        if (lost) {
+            w->x656++;
+        } else {
+            w->x656 = 0;
+        }
+    }
+    if (w->x67C) {
+        w->x67C--;
+    }
+    if (pPL->xFC == 1 || (pG->flags_5010 & 0x8000)) {
+        if ((s16) w->x67C <= 4) {
+            w->x67C = 5;
+        }
+    }
+    if (pG->flags_5010 & 0x2000) {
+        w->x67C = 0;
+    }
+    if (w->x674) {
+        w->x674--;
+    }
+    if (pG->x4F88 > 6) {
+        if (w->x674) {
+            w->x674--;
+        }
+    }
+    if (pG->x4F88 > 9) {
+        if (w->x674) {
+            w->x674--;
+        }
+    }
+    if (w->x660) {
+        w->x660--;
+    }
+    if (w->x68C) {
+        w->x68C--;
+    }
+    if (w->flags & 1) {
+        w->x638 = 0;
+    } else {
+        w->x638++;
+    }
+    if (w->x664) {
+        w->x664--;
+    }
+    if (w->x670) {
+        w->x670--;
+    }
+    if (w->x696) {
+        w->x696--;
+    }
+    if (w->x682) {
+        w->x682--;
+    }
+    if (w->x6A3) {
+        w->x6A3--;
+    }
+    if (w->x644) {
+        w->x644--;
+    }
+    if (w->x65E) {
+        w->x65E--;
+    }
+    if (w->x6C3) {
+        w->x6C3--;
+    }
+    if (w->x6BC) {
+        w->x6BC--;
+        if (w->x6BC == 0) {
+            atari.flags &= ~8;
+        }
+    }
+    if (w->x6C1) {
+        w->x6C1--;
+    }
+    if ((w->flags & 1) && w->x646) {
+        w->x646--;
+    }
+    if (w->x648) {
+        w->x648--;
+    }
+    w->x6C2 = 0;
+    Em10_R0_move_tbl[xFC](this);
+    if (xFC == 0xFF) {
+        EmMgr.destroy(this);
+        return;
+    }
+    if (seFlags28B & 0x80) {
+        w->flags |= 0x01000010;
+        setStatus(3);
+    }
+    if (w->flags & 0x800) {
+        scale.x = 1.0f;
+        scale.y = 1.0f;
+        scale.z = 1.0f;
+    } else {
+        scale.x = scale.x * 0.9f + w->scaleBase.x * 0.1f;
+        scale.y = scale.y * 0.9f + w->scaleBase.y * 0.1f;
+        scale.z = scale.z * 0.9f + w->scaleBase.z * 0.1f;
+    }
+    em10ClawMove(this);
+    if (!(w->flags & 0x400000)) {
+        em10NeckMove(this);
+        em10WaistMove(this);
+        em10SlopeMove(this);
+        partsWorldCalc();
+        em10ScaleCompress(this);
+        em10BombNeckMove(this);
+        partsFixAdjust();
+        PartsWorldPosCalc(this);
+        if (!(w->flags & 0x400000)) {
+            u16 atFlags;
+            f32 moved;
+            dist = SQRTF((oldPos.x - pos.x) * (oldPos.x - pos.x) + (oldPos.z - pos.z) * (oldPos.z - pos.z));
+            if ((seFlags28B & 0x40) || (w->flags & 0x10091000)) {
+                atari.flags |= 0x10;
+            } else {
+                atari.flags &= ~0x10;
+            }
+            atFlags = atari.flags;
+            if ((seFlags28B & 0x40) || (w->flags & 0x11000)) {
+                atari.flags &= ~0x100;
+            }
+            EmAtCheck(this);
+            atari.move();
+            if (w->flags & 0x80000) {
+                SatMgr.checkAir(this, 0x1C2810);
+            } else {
+                SatMgr.check(this, 0);
+            }
+            atari.flags = atFlags;
+            moved = SQRTF((pos.x - oldPos.x) * (pos.x - oldPos.x) + (pos.z - oldPos.z) * (pos.z - oldPos.z));
+            if (moved < dist * 0.5f) {
+                w->x634++;
+            } else {
+                if (w->x634 > 60) {
+                    w->x634 = 60;
+                }
+                if (w->x634) {
+                    w->x634--;
+                }
+            }
+        }
+    }
+    {
+        Camera* cam = &pG->Cam;
+        int hide = 0;
+        Vec* nrm = pFloorNrm;
+        if (nrm == 0 || nrm->y < 0.8f) {
+            hide = 1;
+        }
+        if (cam->param.pos.y < pos.y) {
+            hide = 1;
+        }
+        if ((w->flags & 0x101B0000) || hide) {
+            if (shdCol <= 0xF6) {
+                shdCol += 8;
+            } else {
+                shdCol = 0xFF;
+            }
+        } else {
+            if (shdCol > 8) {
+                shdCol -= 8;
+            } else {
+                shdCol = hide;
+            }
+        }
+    }
+    switch (x38D) {
+    case 7:
+    case 8:
+    case 9:
+        if (!EM_RTN(this, 1, 8)) {
+            EffectEspDelete(0, w->x69E, (u32) this, 0);
+            EffectEspgenDelete(0, w->x69E, (int) this);
+            EffectEfmDelete(0, w->x69E, (int) this);
+        }
+        break;
+    case 5:
+    case 6:
+    case 0x1A:
+        if (!EM_RTN(this, 1, 7)) {
+            EffectEspDelete(0, w->x69E, (u32) this, 0);
+            EffectEspgenDelete(0, w->x69E, (int) this);
+            EffectEfmDelete(0, w->x69E, (int) this);
+        }
+        break;
+    case 0xA:
+    case 0xB:
+        break;
+    }
+    em10ChainSawMove(this);
+    if (type == 6) {
+        Em18ClothMove(this, (PlCloth*) &w->cloth);
+    }
+    if (type == 0x16) {
+        Em1fClothMove(this, (PlCloth*) &w->cloth);
+    }
+    if (w->pWep && w->wepType == 4 && (w->flags & 0x80000000) && hp > 0 && (s16) pG->pl_life > 0) {
+        if (w->x684) {
+            w->x684--;
+            if ((s16) w->x684 == 0) {
+                w->x684 = 60;
+                w->sndId = SndCall(6, 0x4D, &pos, 0, 0, this);
+            }
+        }
+    } else if (w->sndId) {
+        SndStop(w->sndId, 0);
+        w->sndId = 0;
+    }
+    if (w->pHead && !EM_RTN(this, 1, 9)) {
+        if (w->mot[51]) {
+            MotionSetCore(w->pHead, MOTION(w->pHead), w->mot[51], 0, 0, 0, 0);
+        }
+        atariInitF(&w->pHead->atari, 0.0f, 150.0f, -300.0f, 300.0f, 300.0f, 300.0f, 150.0f, 1, 0x2000, 10);
+        w->pHead->atari.flags &= ~0x100;
+        w->pHead->atari.flags |= 0x200;
+        w->pHead->atari.flags |= 0x10;
+        EstSetEm(w->pHead, -1, 0, 0, 0x10, 0x16, 0, 0, w->pHead, 0);
+        EstSetEm(w->pHead, -1, 0, 0, 0x10, 0x16, 0, 0, w->pHead, 0);
+        EstSetEm(w->pHead, -1, 0, 0, 0x10, 0x16, 0, 0, w->pHead, 0);
+        w->pHead = 0;
+    }
+    em10BowgunMove(this);
+    if (w->x658) {
+        w->x658--;
+        if (w->x658 == 0) {
+            em10SetParasite(this);
+        }
+    }
+    em10SetWaterEff(this);
+    if (w->x58C && hp > 0) {
+        if (w->x694) {
+            w->x694--;
+        } else {
+            w->x694 = 0x1D;
+            EstSetEm(this, -1, 0, 0, 0x10, 0x33, 0, 0, this, 0);
+        }
+    }
+    em10FootSe(this);
+    if (w->wepType == 9 && w->x640 && w->pWep && hp > 0) {
+        if (w->x640 <= 999) {
+            w->x640--;
+        }
+        w->x6A4++;
+        if (w->x6A4 % 6 == 0) {
+            SndCall(8, 0x95, &pos, id, 0, this);
+        }
+        if (w->x640 == 0) {
+            cModel* parts = w->pWep->getPartsPtr(0);
+            w->pWep->setLost();
+            w->pWep = 0;
+            w->wepType = 0;
+            if (hp > 0) {
+                hp = 0;
+                EmRoutineSet(this, 3, 5, 0, 0);
+            } else {
+                if (w->flags & 0x01400000) {
+                    EstSet(0, -1, &parts->worldPos, 0, 0x10, 0x2A, 0, 0, 0, 0);
+                } else {
+                    EstSetEm(this, -1, 0, 0, 0x10, 0x30, 0, 0, this, 0);
+                }
+                SndCall(8, 0x96, &pos, id, 0, this);
+                SndCall(8, 8, &pos, id, 0, this);
+                be_flag &= ~2;
+            }
+            dmType = 0;
+            PlWepHitCheck2(0, &pos, &pos, 0x13, 2, 6000.0f);
+        }
+    }
+    if (type == 0xA || type == 0xD) {
+        w->hit[9].flags |= 1;
+    } else {
+        w->hit[9].flags &= ~1;
+        if (w->pParasite && w->pParasite->pParts && w->pParasite->isAlive()) {
+            cModel* parts;
+            PSMTXInverse(getPartsPtr(4)->mat, m);
+            if (w->x6C5 == 1) {
+                parts = w->pParasite->getPartsPtr(9);
+            } else {
+                parts = w->pParasite->getPartsPtr(0x15);
+            }
+            PSMTXMultVec(m, &parts->worldPos, &v);
+            w->hit[9].ofs = v;
+            w->hit[9].flags |= 1;
+        }
+        if (w->x58C && w->x58C->pParts && w->x58C->isAlive()) {
+            cModel* parts;
+            PSMTXInverse(getPartsPtr(4)->mat, m);
+            parts = w->x58C->getPartsPtr(2);
+            PSMTXMultVec(m, &parts->worldPos, &v);
+            w->hit[9].ofs = v;
+            w->hit[9].flags |= 1;
+        }
+    }
+    if (w->pShield) {
+        if (flags_3C8 & 0x1000000) {
+            w->hit[3].flags &= ~1;
+            w->hit[7].flags &= ~1;
+        } else {
+            w->hit[4].flags &= ~1;
+            w->hit[8].flags &= ~1;
+        }
+    } else {
+        w->hit[3].flags |= 1;
+        w->hit[7].flags |= 1;
+        w->hit[4].flags |= 1;
+        w->hit[8].flags |= 1;
+    }
+    if (w->pShield && w->pShield->hp <= 0) {
+        w->pShield = 0;
+    }
+    em10GatlingRollMove(this);
+    if ((flags_3C8 & 0x40) && !(w->flags & 0x100) && G_ROOM_ID == 0x206) {
+        setFindPL();
     }
 }
 

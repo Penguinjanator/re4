@@ -59,19 +59,19 @@ void ADXAMP_Start(ADXAMP_OBJ *amp)
 	amp->total = 0;
 	for (i = 0; i < amp->nch; i++) {
 		sj = amp->sji[i];
-		SJ_Reset2(sj);
+		SJ_Reset(sj);
 		n = SJ_GetNumData(sj, 0);
 		SJ_GetChunk(sj, 0, n, &ck);
 		memset(ck.data, 0, ck.len);
-		SJ_PutChunk(sj, 0, &ck);
+		SJ_UngetChunk(sj, 0, &ck);
 	}
 	for (i = 0; i < amp->nch; i++) {
 		sj = amp->sjo[i];
-		SJ_Reset2(sj);
+		SJ_Reset(sj);
 		n = SJ_GetNumData(sj, 0);
 		SJ_GetChunk(sj, 0, n, &ck);
 		memset(ck.data, 0, ck.len);
-		SJ_PutChunk(sj, 0, &ck);
+		SJ_UngetChunk(sj, 0, &ck);
 	}
 	amp->stat = 2;
 }

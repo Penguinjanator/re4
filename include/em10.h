@@ -99,9 +99,9 @@ struct Em10Work {
     cModel* x594;         // 0x594 (0x974)
     Vec x598;             // 0x598 (0x978)
     Vec x5A4;             // 0x5A4 (0x984)
-    u32 x5B0;             // 0x5B0 (0x990)
-    class cCtrl* pCtrl11; // 0x5B4 (0x994)
-    class cCtrl* pCtrl12; // 0x5B8 (0x998)
+    class cCtrl* pCtrl12; // 0x5B0 (0x990)  GetCtrlCtrl12()
+    class cCtrl* pCtrl11; // 0x5B4 (0x994)  GetCtrlCtrl11()
+    u32 x5B8;             // 0x5B8 (0x998)
     u32 x5BC;             // 0x5BC (0x99C)
     u32 x5C0;             // 0x5C0 (0x9A0)
     u32 x5C4;             // 0x5C4 (0x9A4)
@@ -121,7 +121,7 @@ struct Em10Work {
     u32 x634;             // 0x634 (0xA14)
     u32 x638;             // 0x638 (0xA18)
     u32 x63C;             // 0x63C (0xA1C)
-    u32 x640;             // 0x640 (0xA20)  ckBombFire
+    s32 x640;             // 0x640 (0xA20)  ckBombFire / bowgun ammo timer
     s16 x644;             // 0x644 (0xA24)
     u16 x646;             // 0x646 (0xA26)
     u16 x648;             // 0x648 (0xA28)
@@ -190,7 +190,7 @@ struct Em10Work {
     u8 x6B9;              // 0x6B9 (0xA99)
     u8 x6BA;              // 0x6BA (0xA9A)
     u8 x6BB;              // 0x6BB (0xA9B)
-    u8 x6BC;              // 0x6BC (0xA9C)
+    s8 x6BC;              // 0x6BC (0xA9C)  frames the atari flag 8 stays set
     u8 x6BD;              // 0x6BD (0xA9D)
     u8 x6BE;              // 0x6BE (0xA9E)
     u8 x6BF;              // 0x6BF (0xA9F)

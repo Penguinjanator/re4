@@ -2908,10 +2908,10 @@ address	size	section	unit	scope	name	demangled
 0x800BDA94	0x260	.text	lib/adx_dcd5.c	global	ADX_DecodeSte4AsSte	ADX_DecodeSte4AsSte
 0x800BDCF4	0x2F0	.text	lib/adx_dcd5.c	global	ADX_DecodeSte4AsMono	ADX_DecodeSte4AsMono
 0x800BDFE4	0x154	.text	lib/adx_dcd5.c	global	ADX_DecodeMono4	ADX_DecodeMono4
-0x800BE138	0xA4	.text	lib/adx_fini.c	local	ADXF_Finish	ADXF_Finish
+0x800BE138	0xA4	.text	lib/adx_fini.c	global	ADXF_Finish	ADXF_Finish
 0x800BE1DC	0xB4	.text	lib/adx_fini.c	global	ADXF_Init	ADXF_Init
 0x800BE290	0x190	.text	lib/adx_fs.c	global	ADXF_ExecServer	ADXF_ExecServer
-0x800BE420	0x5C	.text	lib/adx_fs.c	local	ADXF_CloseAll	ADXF_CloseAll
+0x800BE420	0x5C	.text	lib/adx_fs.c	global	ADXF_CloseAll	ADXF_CloseAll
 0x800BE47C	0x2DC	.text	lib/adx_fs.c	global	ADXF_Close	ADXF_Close
 0x800BE758	0x34	.text	lib/cri_cvfs.c	global	cvFsEntryErrFunc	cvFsEntryErrFunc
 0x800BE78C	0x4A4	.text	lib/cri_cvfs.c	global	cvFsGetFileSize	cvFsGetFileSize
@@ -10721,7 +10721,7 @@ address	size	section	unit	scope	name	demangled
 0x802CD9C8	0x4	.bss	lib/adx_xpnd.c	global	adxpd_internal_error	adxpd_internal_error
 0x802CD9CC	0x3C0	.bss	lib/adx_xpnd.c	global	adxpd_obj	adxpd_obj
 0x802CDD8C	0x4	.bss	lib/adx_xpnd.c	global	lbl_802CDD8C	.
-0x802CDD90	0x4	.bss	lib/adx_mgc.c	local	adxgc_exec_svr	adxgc_exec_svr
+0x802CDD90	0x4	.bss	lib/adx_mgc.c	global	adxgc_exec_svr	adxgc_exec_svr
 0x802CDD94	0x4	.bss	lib/adx_mgc.c	local	adxm_init_level	adxm_init_level
 0x802CDD98	0x4	.bss	lib/adx_mgc.c	local	adxm_lock_level	adxm_lock_level
 0x802CDD9C	0x4	.bss	lib/adx_mgc.c	local	adxm_goto_border_flag	adxm_goto_border_flag
@@ -10755,11 +10755,11 @@ address	size	section	unit	scope	name	demangled
 0x802D5A4C	0x4	.bss	lib/adx_fini.c	global	adxf_ldptnw_hn	adxf_ldptnw_hn
 0x802D5A50	0x4	.bss	lib/adx_fini.c	global	adxf_flno	adxf_flno
 0x802D5A54	0x4	.bss	lib/adx_fini.c	global	adxf_hstry_no	adxf_hstry_no
-0x802D5A58	0x20	.bss	lib/adx_fini.c	local	adxf_cmd_ncall	adxf_cmd_ncall
-0x802D5A78	0x100	.bss	lib/adx_fini.c	local	adxf_cmd_hstry	adxf_cmd_hstry
-0x802D5B78	0x4	.bss	lib/adx_fini.c	local	adxf_ocbi_fg	adxf_ocbi_fg
+0x802D5A58	0x20	.bss	lib/adx_fini.c	global	adxf_cmd_ncall	adxf_cmd_ncall
+0x802D5A78	0x100	.bss	lib/adx_fini.c	global	adxf_cmd_hstry	adxf_cmd_hstry
+0x802D5B78	0x4	.bss	lib/adx_fini.c	global	adxf_ocbi_fg	adxf_ocbi_fg
 0x802D5B7C	0x400	.bss	lib/adx_fini.c	global	adxf_ptinfo	adxf_ptinfo
-0x802D5F7C	0x440	.bss	lib/adx_fini.c	local	adxf_obj	adxf_obj
+0x802D5F7C	0x440	.bss	lib/adx_fini.c	global	adxf_obj	adxf_obj
 0x802D63BC	0x4	.bss	lib/adx_fini.c	local	lbl_802D63BC	.
 0x802D63C0	0x8	.bss	lib/adx_fs.c	global	lbl_802D63C0	.
 0x802D63C8	0x4	.bss	lib/cri_cvfs.c	global	cvfs_errfn	cvfs_errfn

@@ -1336,4 +1336,9 @@ MATCHING.update({
     "lib/mps_get.c": True,
     "lib/adx_rnaa.c": True,
     "lib/adx_amp.c": True,
+    "lib/adx_mgc.c": True,
+    "lib/sj_mem.c": True,
+    "lib/sj_uni.c": True,
+    "lib/adx_fini.c": True,
+    "lib/sj_utl.c": True,
 })

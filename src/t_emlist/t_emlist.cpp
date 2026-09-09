@@ -451,6 +451,26 @@ static EmListIdInfo EmListIdTbl[64] = {
 extern "C" int sprintf(char* buf, const char* fmt, ...);
 extern "C" void memclr_asm(void* p, u32 size);
 
+// The editor's view of a list entry (em_set.h EmListData with signed hp / x1A: the tool prints them
+// with lha).
+struct EmListEnt {
+    u8 flags;       // 0x00
+    u8 id;          // 0x01
+    u8 type;        // 0x02
+    u8 x3;          // 0x03
+    u32 flags4;     // 0x04
+    s16 hp;         // 0x08
+    u8 pad_A;
+    u8 xB;          // 0x0B
+    u16 pos[3];     // 0x0C  (the editor steps them as unsigned halves)
+    u16 rot[3];     // 0x12
+    u16 room;       // 0x18  stage << 8 | room
+    s16 x1A;        // 0x1A
+    u8 pad_1C[4];
+};
+
+#define EMLIST_ENT(no) ((EmListEnt*) &pG->emlist[(no) * 0x20])
+
 // Editor state (0x3E0 bytes, Debug_alloc'd by emlist_init).
 struct EmListWork {
     int routine;       // 0x00  index into EmList.routine
@@ -458,17 +478,19 @@ struct EmListWork {
     int x8;            // 0x08
     int xC;            // 0x0C
     int listNo;        // 0x10  entry of pG->emlist being edited
-    int x14;           // 0x14
-    u8 pad_18[8];
+    int x14;           // 0x14  main menu cursor
+    int x18;           // 0x18  sub cursor (room byte / axis / bit)
+    int x1C;           // 0x1C
     int fileNo;        // 0x20  file number + 1 of the last save/load
-    u8 pad_24[0x24];
+    int x24;           // 0x24
+    u8 pad_28[0x20];
     f32 cursorX;       // 0x48  screen cursor
     f32 cursorY;       // 0x4C
     int x50;           // 0x50
     u8 id;             // 0x54  enemy id selected in the id menu
     u8 idNum;          // 0x55  number of named ids in EmListIdTbl
     u8 pad_56[6];
-    EmListData cur;    // 0x5C  entry being edited
+    EmListEnt cur;     // 0x5C  entry being edited
     int x7C;           // 0x7C
     u8 pad_80[0x178 - 0x80];
     JOY joy;           // 0x178
@@ -494,35 +516,33 @@ static void emlist_r0_clear();
 static void emlist_r0_sort();
 static void emlist_r0_set_exit();
 
-// The work pointer is a member of the control block: every store through it reloads the pointer.
+// The work pointer is a struct member: every store through it reloads the pointer.
 struct EmListCtrl {
     EmListWork* wk;
-    void (*routine[19])();
 };
 
-static EmListCtrl EmList = {
-    NULL,
-    {
-        emlist_r0_main,
-        emlist_r0_target,
-        emlist_r0_set_id,
-        emlist_r0_set_room,
-        emlist_r0_set_pos,
-        emlist_r0_set_ang,
-        emlist_r0_set_be_flag,
-        emlist_r0_set_type,
-        emlist_r0_set_set,
-        emlist_r0_set_em_flag,
-        emlist_r0_set_char,
-        emlist_r0_set_hp,
-        emlist_r0_set_guard_r,
-        emlist_r0_menu,
-        emlist_r0_save,
-        emlist_r0_load,
-        emlist_r0_clear,
-        emlist_r0_sort,
-        emlist_r0_set_exit,
-    },
+static EmListCtrl EmList = {NULL};
+
+static void (*emlist_routine[19])() = {
+    emlist_r0_main,
+    emlist_r0_target,
+    emlist_r0_set_id,
+    emlist_r0_set_room,
+    emlist_r0_set_pos,
+    emlist_r0_set_ang,
+    emlist_r0_set_be_flag,
+    emlist_r0_set_type,
+    emlist_r0_set_set,
+    emlist_r0_set_em_flag,
+    emlist_r0_set_char,
+    emlist_r0_set_hp,
+    emlist_r0_set_guard_r,
+    emlist_r0_menu,
+    emlist_r0_save,
+    emlist_r0_load,
+    emlist_r0_clear,
+    emlist_r0_sort,
+    emlist_r0_set_exit,
 };
 
 static char main_menu[7][0x80] = {
@@ -550,21 +570,21 @@ void emlist_select_id();
 void emlist_main_disp();
 void emlist_target_help_disp();
 void emlist_target_disp(int flag);
-void emlist_target_menu_disp();
+void emlist_target_menu_disp(int flag);
 void emlist_menu_disp();
 void emlist_file_menu_disp();
-void emlist_yes_no_menu_disp();
+void emlist_yes_no_menu_disp(int y);
 void emlist_select_id_disp();
-void emlist_set_room_disp();
-void emlist_set_pos_disp();
-void emlist_set_ang_disp();
-void emlist_set_be_flag_disp();
-void emlist_set_type_disp();
-void emlist_set_set_disp();
-void emlist_set_em_flag_disp();
-void emlist_set_char_disp();
-void emlist_set_hp_disp();
-void emlist_set_guard_r_disp();
+void emlist_set_room_disp(int x, int y, int flag);
+void emlist_set_pos_disp(int x, int y, int flag);
+void emlist_set_ang_disp(int x, int y, int flag);
+void emlist_set_be_flag_disp(int x, int y, int flag);
+void emlist_set_type_disp(int x, int y, int flag);
+void emlist_set_set_disp(int x, int y, int flag);
+void emlist_set_em_flag_disp(int x, int y, int flag);
+void emlist_set_char_disp(int x, int y, int flag);
+void emlist_set_hp_disp(int x, int y, int flag);
+void emlist_set_guard_r_disp(int x, int y, int flag);
 void emlist_file_save(int no);
 int emlist_file_load(int no);
 void emlist_set_fname(char* buf, int no, int mode);
@@ -581,7 +601,7 @@ void ToolEmList()
     emlist_init();
     for (;;) {
         emlistCameraMove();
-        EmList.routine[EmList.wk->routine]();
+        emlist_routine[EmList.wk->routine]();
         emlist_EmDir_disp();
         LightMgr.move();
         if (pG->flags_60 & 0x40000000) {
@@ -609,8 +629,10 @@ void emlist_init()
     TOOL_FLAG(OFS_DEBUG_FLG) |= 0x20000000;
     TOOL_FLAG(OFS_STOP_FLG) |= 0x800000;
     TOOL_FLAG(OFS_DEBUG_FLG) |= 0x10000000;
-    EmList.wk = (EmListWork*) Debug_alloc(sizeof(EmListWork), 1);
-    if (EmList.wk == NULL) {
+    EmListCtrl* ctl = &EmList;
+
+    ctl->wk = (EmListWork*) Debug_alloc(sizeof(EmListWork), 1);
+    if (ctl->wk == NULL) {
         for (i = 0; i < 90; i++) {
             eprintf(100, 100, 0, 0, "MEMORY ALLOCATE ERROR");
             TaskSleep(1);
@@ -673,7 +695,7 @@ static void emlist_r0_target()
 
 static void emlist_r0_set_id()
 {
-    EmListData* p = EM_LIST(EmList.wk->listNo);
+    EmListEnt* p = EMLIST_ENT(EmList.wk->listNo);
 
     emlist_select_id();
     if (EmList.wk->joy.trg & JOY_A) {
@@ -721,60 +743,652 @@ void emlist_select_id()
     }
 }
 
+// Left/right pick the stage or room byte (x18), up/down step it.
 static void emlist_r0_set_room()
 {
+    EmListEnt* p = EMLIST_ENT(EmList.wk->listNo);
+    int step;
+    int room;
+
+    if (EmList.wk->joy.trg & (JOY_LEFT | JOY_RIGHT | JOY_SRIGHT | JOY_SLEFT)) {
+        EmList.wk->x18 ^= 1;
+    }
+    if (EmList.wk->x18 != 0) {
+        step = 1;
+        if (EmList.wk->joy.on & JOY_R) {
+            step = 0x10;
+        }
+        if (EmList.wk->joy.rep2 & (JOY_UP | JOY_SUP)) {
+            room = p->room;
+            p->room = ((step + room) & 0xFF) | (room & 0xF00);
+        }
+        if (EmList.wk->joy.rep2 & (JOY_DOWN | JOY_SDOWN)) {
+            room = p->room;
+            p->room = ((room - step) & 0xFF) | (room & 0xF00);
+        }
+    } else {
+        if (EmList.wk->joy.rep2 & (JOY_UP | JOY_SUP)) {
+            room = p->room;
+            p->room = ((room + 0x100) & 0xF00) | (room & 0xFF);
+        }
+        if (EmList.wk->joy.rep2 & (JOY_DOWN | JOY_SDOWN)) {
+            room = p->room;
+            p->room = ((room - 0x100) & 0xF00) | (room & 0xFF);
+        }
+    }
+    if (EmList.wk->joy.trg & JOY_B) {
+        EmList.wk->routine = 1;
+        EmList.wk->step = 0;
+        EmList.wk->x8 = 0;
+        EmList.wk->xC = 0;
+    }
+    emlist_target_menu_disp(1);
+    emlist_target_disp(1);
 }
 
+// Left/right pick the axis (x18), up/down step it by 1 / 10 (R) / 100 (L).
 static void emlist_r0_set_pos()
 {
+    EmListEnt* p = EMLIST_ENT(EmList.wk->listNo);
+    int step;
+    int v;
+
+    if (EmList.wk->joy.trg & (JOY_LEFT | JOY_SRIGHT)) {
+        EmList.wk->x18--;
+        if (EmList.wk->x18 < 0) {
+            EmList.wk->x18 = 2;
+        }
+    }
+    if (EmList.wk->joy.trg & (JOY_RIGHT | JOY_SLEFT)) {
+        EmList.wk->x18++;
+        if (EmList.wk->x18 > 2) {
+            EmList.wk->x18 = 0;
+        }
+    }
+    step = 0;
+    if (EmList.wk->joy.rep2 & (JOY_UP | JOY_SUP)) {
+        step = 1;
+        if (EmList.wk->joy.on & JOY_R) {
+            step = 10;
+        }
+        if (EmList.wk->joy.on & JOY_L) {
+            step = 100;
+        }
+    }
+    if (EmList.wk->joy.rep2 & (JOY_DOWN | JOY_SDOWN)) {
+        step = -1;
+        if (EmList.wk->joy.on & JOY_R) {
+            step = -10;
+        }
+        if (EmList.wk->joy.on & JOY_L) {
+            step = -100;
+        }
+    }
+    switch (EmList.wk->x18) {
+    case 0:
+        v = p->pos[0];
+        p->pos[0] = step + v;
+        break;
+    case 1:
+        v = p->pos[1];
+        p->pos[1] = step + v;
+        break;
+    case 2:
+        v = p->pos[2];
+        p->pos[2] = step + v;
+        break;
+    }
+    if (EmList.wk->joy.trg & JOY_B) {
+        EmList.wk->routine = 1;
+        EmList.wk->step = 0;
+        EmList.wk->x8 = 0;
+        EmList.wk->xC = 0;
+    }
+    emlist_target_menu_disp(1);
+    emlist_target_disp(1);
 }
 
+// Same for the rotation.
 static void emlist_r0_set_ang()
 {
+    EmListEnt* p = EMLIST_ENT(EmList.wk->listNo);
+    int step;
+    int v;
+
+    if (EmList.wk->joy.trg & (JOY_LEFT | JOY_SRIGHT)) {
+        EmList.wk->x18--;
+        if (EmList.wk->x18 < 0) {
+            EmList.wk->x18 = 2;
+        }
+    }
+    if (EmList.wk->joy.trg & (JOY_RIGHT | JOY_SLEFT)) {
+        EmList.wk->x18++;
+        if (EmList.wk->x18 > 2) {
+            EmList.wk->x18 = 0;
+        }
+    }
+    step = 0;
+    if (EmList.wk->joy.rep2 & (JOY_UP | JOY_SUP)) {
+        step = 1;
+        if (EmList.wk->joy.on & JOY_R) {
+            step = 10;
+        }
+        if (EmList.wk->joy.on & JOY_L) {
+            step = 100;
+        }
+    }
+    if (EmList.wk->joy.rep2 & (JOY_DOWN | JOY_SDOWN)) {
+        step = -1;
+        if (EmList.wk->joy.on & JOY_R) {
+            step = -10;
+        }
+        if (EmList.wk->joy.on & JOY_L) {
+            step = -100;
+        }
+    }
+    switch (EmList.wk->x18) {
+    case 0:
+        v = p->rot[0];
+        p->rot[0] = step + v;
+        break;
+    case 1:
+        v = p->rot[1];
+        p->rot[1] = step + v;
+        break;
+    case 2:
+        v = p->rot[2];
+        p->rot[2] = step + v;
+        break;
+    }
+    if (EmList.wk->joy.trg & JOY_B) {
+        EmList.wk->routine = 1;
+        EmList.wk->step = 0;
+        EmList.wk->x8 = 0;
+        EmList.wk->xC = 0;
+    }
+    emlist_target_menu_disp(1);
+    emlist_target_disp(1);
 }
 
+// Bit cursor in x18 (0..7, bit 7 - x18 of the entry's flags), left/right toggle it.
 static void emlist_r0_set_be_flag()
 {
+    EmListEnt* p = EMLIST_ENT(EmList.wk->listNo);
+    u8 bit;
+
+    if (EmList.wk->joy.rep2 & (JOY_RIGHT | JOY_SLEFT)) {
+        EmList.wk->x18++;
+        if (EmList.wk->x18 > 7) {
+            EmList.wk->x18 = 0;
+        }
+    }
+    if (EmList.wk->joy.rep2 & (JOY_LEFT | JOY_SRIGHT)) {
+        EmList.wk->x18--;
+        if (EmList.wk->x18 < 0) {
+            EmList.wk->x18 = 7;
+        }
+    }
+    bit = 0x80 >> EmList.wk->x18;
+    if (EmList.wk->joy.rep2 & (JOY_UP | JOY_DOWN | JOY_SUP | JOY_SDOWN)) {
+        p->flags ^= bit;
+    }
+    if (EmList.wk->joy.trg & (JOY_A | JOY_B)) {
+        EmList.wk->routine = 1;
+        EmList.wk->step = 0;
+        EmList.wk->x8 = 0;
+        EmList.wk->xC = 0;
+    }
+    emlist_target_menu_disp(1);
+    emlist_target_disp(1);
 }
 
 static void emlist_r0_set_type()
 {
+    EmListEnt* p = EMLIST_ENT(EmList.wk->listNo);
+
+    if (EmList.wk->joy.rep2 & (JOY_UP | JOY_SUP)) {
+        if (EmList.wk->joy.on & JOY_R) {
+            p->type += 0x10;
+        } else {
+            p->type += 1;
+        }
+    }
+    if (EmList.wk->joy.rep2 & (JOY_DOWN | JOY_SDOWN)) {
+        if (EmList.wk->joy.on & JOY_R) {
+            p->type -= 0x10;
+        } else {
+            p->type -= 1;
+        }
+    }
+    if (EmList.wk->joy.trg & (JOY_A | JOY_B)) {
+        EmList.wk->cur = *p;
+        EmList.wk->routine = 1;
+        EmList.wk->step = 0;
+        EmList.wk->x8 = 0;
+        EmList.wk->xC = 0;
+    }
+    emlist_target_menu_disp(1);
+    emlist_target_disp(1);
 }
 
 static void emlist_r0_set_set()
 {
+    EmListEnt* p = EMLIST_ENT(EmList.wk->listNo);
+
+    if (EmList.wk->joy.rep2 & (JOY_UP | JOY_SUP)) {
+        if (EmList.wk->joy.on & JOY_R) {
+            p->x3 += 0x10;
+        } else {
+            p->x3 += 1;
+        }
+    }
+    if (EmList.wk->joy.rep2 & (JOY_DOWN | JOY_SDOWN)) {
+        if (EmList.wk->joy.on & JOY_R) {
+            p->x3 -= 0x10;
+        } else {
+            p->x3 -= 1;
+        }
+    }
+    if (EmList.wk->joy.trg & (JOY_A | JOY_B)) {
+        EmList.wk->cur = *p;
+        EmList.wk->routine = 1;
+        EmList.wk->step = 0;
+        EmList.wk->x8 = 0;
+        EmList.wk->xC = 0;
+    }
+    emlist_target_menu_disp(1);
+    emlist_target_disp(1);
 }
 
+// Bit cursor in x18 (0..31, bit 31 - x18 of flags4), up/down toggle it.
 static void emlist_r0_set_em_flag()
 {
+    EmListEnt* p = EMLIST_ENT(EmList.wk->listNo);
+    u32 bit;
+
+    if (EmList.wk->joy.rep2 & (JOY_RIGHT | JOY_SLEFT)) {
+        EmList.wk->x18++;
+        if (EmList.wk->x18 > 31) {
+            EmList.wk->x18 = 0;
+        }
+    }
+    if (EmList.wk->joy.rep2 & (JOY_LEFT | JOY_SRIGHT)) {
+        EmList.wk->x18--;
+        if (EmList.wk->x18 < 0) {
+            EmList.wk->x18 = 31;
+        }
+    }
+    bit = 0x80000000 >> EmList.wk->x18;
+    if (EmList.wk->joy.rep2 & (JOY_UP | JOY_DOWN | JOY_SUP | JOY_SDOWN)) {
+        p->flags4 ^= bit;
+    }
+    if (EmList.wk->joy.trg & (JOY_A | JOY_B)) {
+        EmList.wk->cur = *p;
+        EmList.wk->routine = 1;
+        EmList.wk->step = 0;
+        EmList.wk->x8 = 0;
+        EmList.wk->xC = 0;
+    }
+    emlist_target_menu_disp(1);
+    emlist_target_disp(1);
 }
 
 static void emlist_r0_set_char()
 {
+    EmListEnt* p = EMLIST_ENT(EmList.wk->listNo);
+
+    if (EmList.wk->joy.rep2 & (JOY_UP | JOY_SUP)) {
+        if (EmList.wk->joy.on & JOY_R) {
+            p->xB += 0x10;
+        } else {
+            p->xB += 1;
+        }
+    }
+    if (EmList.wk->joy.rep2 & (JOY_DOWN | JOY_SDOWN)) {
+        if (EmList.wk->joy.on & JOY_R) {
+            p->xB -= 0x10;
+        } else {
+            p->xB -= 1;
+        }
+    }
+    if (EmList.wk->joy.trg & (JOY_A | JOY_B)) {
+        EmList.wk->cur = *p;
+        EmList.wk->routine = 1;
+        EmList.wk->step = 0;
+        EmList.wk->x8 = 0;
+        EmList.wk->xC = 0;
+    }
+    emlist_target_menu_disp(1);
+    emlist_target_disp(1);
 }
 
 static void emlist_r0_set_hp()
 {
+    EmListEnt* p = EMLIST_ENT(EmList.wk->listNo);
+
+    if (EmList.wk->joy.rep2 & (JOY_UP | JOY_RIGHT | JOY_SUP | JOY_SLEFT)) {
+        if (EmList.wk->joy.on & JOY_R) {
+            if (EmList.wk->joy.on & JOY_L) {
+                p->hp += 1000;
+            } else {
+                p->hp += 10;
+            }
+        } else if (EmList.wk->joy.on & JOY_L) {
+            p->hp += 100;
+        } else {
+            p->hp += 1;
+        }
+    }
+    if (EmList.wk->joy.rep2 & (JOY_DOWN | JOY_LEFT | JOY_SDOWN | JOY_SRIGHT)) {
+        if (EmList.wk->joy.on & JOY_R) {
+            if (EmList.wk->joy.on & JOY_L) {
+                p->hp -= 1000;
+            } else {
+                p->hp -= 10;
+            }
+        } else if (EmList.wk->joy.on & JOY_L) {
+            p->hp -= 100;
+        } else {
+            p->hp -= 1;
+        }
+    }
+    if (EmList.wk->joy.trg & (JOY_A | JOY_B)) {
+        EmList.wk->cur = *p;
+        EmList.wk->routine = 1;
+        EmList.wk->step = 0;
+        EmList.wk->x8 = 0;
+        EmList.wk->xC = 0;
+    }
+    emlist_target_menu_disp(1);
+    emlist_target_disp(1);
 }
 
 static void emlist_r0_set_guard_r()
 {
+    EmListEnt* p = EMLIST_ENT(EmList.wk->listNo);
+
+    if (EmList.wk->joy.rep2 & (JOY_UP | JOY_RIGHT | JOY_SUP | JOY_SLEFT)) {
+        if (EmList.wk->joy.on & JOY_R) {
+            if (EmList.wk->joy.on & JOY_L) {
+                p->x1A += 20;
+            } else {
+                p->x1A += 5;
+            }
+        } else if (EmList.wk->joy.on & JOY_L) {
+            p->x1A += 10;
+        } else {
+            p->x1A += 1;
+        }
+    }
+    if (EmList.wk->joy.rep2 & (JOY_DOWN | JOY_LEFT | JOY_SDOWN | JOY_SRIGHT)) {
+        if (EmList.wk->joy.on & JOY_R) {
+            if (EmList.wk->joy.on & JOY_L) {
+                p->x1A -= 20;
+            } else {
+                p->x1A -= 5;
+            }
+        } else if (EmList.wk->joy.on & JOY_L) {
+            p->x1A -= 10;
+        } else {
+            p->x1A -= 1;
+        }
+    }
+    if (p->x1A <= 0) {
+        p->x1A = 0;
+    }
+    if (EmList.wk->joy.trg & (JOY_A | JOY_B)) {
+        EmList.wk->cur = *p;
+        EmList.wk->routine = 1;
+        EmList.wk->step = 0;
+        EmList.wk->x8 = 0;
+        EmList.wk->xC = 0;
+    }
+    emlist_target_menu_disp(1);
+    emlist_target_disp(1);
 }
 
 static void emlist_r0_menu()
 {
+    if (EmList.wk->joy.rep2 & (JOY_UP | JOY_SUP)) {
+        EmList.wk->x14--;
+        if (EmList.wk->x14 < 0) {
+            EmList.wk->x14 = 6;
+        }
+    }
+    if (EmList.wk->joy.rep2 & (JOY_DOWN | JOY_SDOWN)) {
+        EmList.wk->x14++;
+        if (EmList.wk->x14 > 6) {
+            EmList.wk->x14 = 0;
+        }
+    }
+    if (EmList.wk->joy.trg & JOY_B) {
+        EmList.wk->x14 = 6;
+    }
+    if (EmList.wk->joy.trg & JOY_A) {
+        switch (EmList.wk->x14) {
+        default:
+        case 0:
+            EmList.wk->routine = 0;
+            EmList.wk->step = 0;
+            EmList.wk->x8 = 0;
+            EmList.wk->xC = 0;
+            break;
+        case 2:
+            EmList.wk->routine = 16;
+            EmList.wk->step = 0;
+            EmList.wk->x8 = 0;
+            EmList.wk->xC = 0;
+            EmList.wk->x24 = 0;
+            break;
+        case 1:
+            EmList.wk->routine = 17;
+            EmList.wk->step = 0;
+            EmList.wk->x8 = 0;
+            EmList.wk->xC = 0;
+            EmList.wk->x24 = 0;
+            break;
+        case 3:
+            EmList.wk->routine = 18;
+            EmList.wk->step = 0;
+            EmList.wk->x8 = 0;
+            EmList.wk->xC = 0;
+            EmList.wk->x24 = 0;
+            break;
+        case 4:
+            EmList.wk->routine = 15;
+            EmList.wk->step = 0;
+            EmList.wk->x8 = 0;
+            EmList.wk->xC = 0;
+            EmList.wk->x1C = 0;
+            break;
+        case 5:
+            if (EmList.wk->fileNo != 0) {
+                EmList.wk->routine = 14;
+                EmList.wk->step = 0;
+                EmList.wk->x8 = 0;
+                EmList.wk->xC = 0;
+            }
+            break;
+        case 6:
+            emlist_exit();
+            break;
+        }
+    }
+    emlist_menu_disp();
 }
 
+// File menu: step 0 picks the file (x1C, 0 = cancel, 1..30), step 1 asks yes/no (x24).
 static void emlist_r0_save()
 {
+    int step = EmList.wk->step;
+
+    switch (step) {
+    case 0:
+        if (EmList.wk->joy.rep2 & (JOY_UP | JOY_SUP)) {
+            EmList.wk->x1C--;
+            if (EmList.wk->x1C < 0) {
+                EmList.wk->x1C = 30;
+            }
+        }
+        if (EmList.wk->joy.rep2 & (JOY_DOWN | JOY_SDOWN)) {
+            EmList.wk->x1C++;
+            if (EmList.wk->x1C > 30) {
+                EmList.wk->x1C = 0;
+            }
+        }
+        if (EmList.wk->joy.rep2 & (JOY_LEFT | JOY_SRIGHT)) {
+            if (EmList.wk->x1C > 10) {
+                EmList.wk->x1C -= 10;
+            }
+        }
+        if (EmList.wk->joy.rep2 & (JOY_RIGHT | JOY_SLEFT)) {
+            if (EmList.wk->x1C >= 1 && EmList.wk->x1C <= 20) {
+                EmList.wk->x1C += 10;
+            }
+        }
+        if (EmList.wk->joy.trg & JOY_B) {
+            EmList.wk->routine = 13;
+            EmList.wk->step = 0;
+            EmList.wk->x8 = 0;
+            EmList.wk->xC = 0;
+        } else if (EmList.wk->joy.trg & JOY_A) {
+            if (EmList.wk->x1C == 0) {
+                EmList.wk->routine = 13;
+                EmList.wk->step = 0;
+                EmList.wk->x8 = 0;
+                EmList.wk->xC = 0;
+            } else {
+                EmList.wk->step = 1;
+                EmList.wk->x24 = 0;
+            }
+        }
+        break;
+    case 1:
+        if (EmList.wk->joy.rep2 & (JOY_LEFT | JOY_RIGHT | JOY_SRIGHT | JOY_SLEFT)) {
+            EmList.wk->x24 ^= 1;
+        }
+        if (EmList.wk->joy.trg & JOY_B) {
+            EmList.wk->step = 0;
+            break;
+        }
+        if (EmList.wk->joy.trg & JOY_A) {
+            if (EmList.wk->x24 == 0) {
+                EmList.wk->step = 0;
+            } else {
+                EmList.wk->step = 1;
+                emlist_file_save(EmList.wk->x1C - 1);
+                EmList.wk->routine = 13;
+                EmList.wk->step = 0;
+                EmList.wk->x8 = 0;
+                EmList.wk->xC = 0;
+            }
+        }
+        emlist_yes_no_menu_disp(0x17C);
+        break;
+    }
+    emlist_menu_disp();
+    eprintf(0x28, 0xB4, 0, 0, "-- SAVE --------");
+    emlist_file_menu_disp();
 }
 
+// File menu: step 0 picks the file (x1C, 0 = cancel, 1..30), step 1 asks yes/no (x24).
 static void emlist_r0_load()
 {
+    int step = EmList.wk->step;
+
+    switch (step) {
+    case 0:
+        if (EmList.wk->joy.rep2 & (JOY_UP | JOY_SUP)) {
+            EmList.wk->x1C--;
+            if (EmList.wk->x1C < 0) {
+                EmList.wk->x1C = 30;
+            }
+        }
+        if (EmList.wk->joy.rep2 & (JOY_DOWN | JOY_SDOWN)) {
+            EmList.wk->x1C++;
+            if (EmList.wk->x1C > 30) {
+                EmList.wk->x1C = 0;
+            }
+        }
+        if (EmList.wk->joy.rep2 & (JOY_LEFT | JOY_SRIGHT)) {
+            if (EmList.wk->x1C > 10) {
+                EmList.wk->x1C -= 10;
+            }
+        }
+        if (EmList.wk->joy.rep2 & (JOY_RIGHT | JOY_SLEFT)) {
+            if (EmList.wk->x1C >= 1 && EmList.wk->x1C <= 20) {
+                EmList.wk->x1C += 10;
+            }
+        }
+        if (EmList.wk->joy.trg & JOY_B) {
+            EmList.wk->routine = 13;
+            EmList.wk->step = 0;
+            EmList.wk->x8 = 0;
+            EmList.wk->xC = 0;
+        } else if (EmList.wk->joy.trg & JOY_A) {
+            if (EmList.wk->x1C == 0) {
+                EmList.wk->routine = 13;
+                EmList.wk->step = 0;
+                EmList.wk->x8 = 0;
+                EmList.wk->xC = 0;
+            } else {
+                EmList.wk->step = 1;
+                EmList.wk->x24 = 0;
+            }
+        }
+        break;
+    case 1:
+        if (EmList.wk->joy.rep2 & (JOY_LEFT | JOY_RIGHT | JOY_SRIGHT | JOY_SLEFT)) {
+            EmList.wk->x24 ^= 1;
+        }
+        if (EmList.wk->joy.trg & JOY_B) {
+            EmList.wk->step = 0;
+            break;
+        }
+        if (EmList.wk->joy.trg & JOY_A) {
+            if (EmList.wk->x24 == 0) {
+                EmList.wk->step = 0;
+            } else {
+                EmList.wk->step = 1;
+                emlist_file_load(EmList.wk->x1C - 1);
+                EmList.wk->routine = 13;
+                EmList.wk->step = 0;
+                EmList.wk->x8 = 0;
+                EmList.wk->xC = 0;
+            }
+        }
+        emlist_yes_no_menu_disp(0x17C);
+        break;
+    }
+    emlist_menu_disp();
+    eprintf(0x28, 0xB4, 0, 0, "-- LOAD --------");
+    emlist_file_menu_disp();
 }
 
+// "Initialize List ?" yes/no (x24), then back to the menu.
 static void emlist_r0_clear()
 {
+    if (EmList.wk->joy.rep2 & (JOY_LEFT | JOY_RIGHT | JOY_SRIGHT | JOY_SLEFT)) {
+        EmList.wk->x24 ^= 1;
+    }
+    if (EmList.wk->joy.trg & JOY_B) {
+        EmList.wk->routine = 13;
+        EmList.wk->step = 0;
+        EmList.wk->x8 = 0;
+        EmList.wk->xC = 0;
+        return;
+    }
+    if (EmList.wk->joy.trg & JOY_A) {
+        if (EmList.wk->x24 != 0) {
+            memclr_asm(pG->emlist, 0x1FE0);
+        }
+        EmList.wk->routine = 13;
+        EmList.wk->step = 0;
+        EmList.wk->x8 = 0;
+        EmList.wk->xC = 0;
+    }
+    eprintf(0x28, 0xB4, 0, 0, "Initialize List ?");
+    emlist_yes_no_menu_disp(0xC8);
 }
 
 static void emlist_r0_sort()
@@ -784,11 +1398,13 @@ static void emlist_r0_sort()
 // Clears the death bits of the current list and re-creates its enemies.
 static void emlist_r0_set_exit()
 {
-    int i;
+    u32 i;
 
     for (i = 0; i < 255; i++) {
-        if (pG->emlist_no >= 0) {
-            pG->em_dead[pG->emlist_no][i >> 5] &= ~(0x80000000 >> (i & 0x1F));
+        int no = pG->emlist_no;
+        if (no >= 0) {
+            u32* tbl = (u32*) (no * 0x20 + (u32) pG + 0x501C);  // pG->em_dead[no], tool style
+            BitOff(tbl[i >> 5], 0x80000000 >> (i & 0x1F));
         }
     }
     EmSetFromList();
@@ -807,28 +1423,187 @@ void emlist_target_disp(int flag)
 {
 }
 
-void emlist_target_menu_disp()
+void emlist_target_menu_disp(int flag)
 {
 }
 
 void emlist_menu_disp()
 {
+    int i;
+    int y;
+    int col;
+
+    eprintf(0x28, 0x3C, 0, 0, "-- MENU --------");
+    for (i = 0; i <= 6; i++) {
+        y = 0x50 + i * 0x10;
+        col = (EmList.wk->x14 == i) ? 4 : 0;
+        if (EmList.wk->fileNo == 0 && i == 5) {
+            col = 7;
+            eprintf(100, y, 2, 0, "Not load file!   Don't save");
+        }
+        eprintf(0x28, y, col, 0, "%s", main_menu[i]);
+        if (EmList.wk->x14 == i) {
+            eprintf(0x20, y, 0, 0, ">");
+        }
+    }
 }
 
+// Three columns of file slots: cancel, emlist00..09, the stage lists (emlen), the omake lists.
+// OPEN: the original copies the `i - 11` giv into r8 once before the compare tree and shares one
+// eprintf tail between the omake and the stage cases; ours folds the argument per case.
 void emlist_file_menu_disp()
 {
+    int i;
+    int x;
+    int y;
+    int col;
+
+    x = 0x28;
+    y = 0xC8;
+    for (i = 0; i <= 30; i++, y += 0x10) {
+        if (i == 11 || i == 21) {
+            x += 0xA0;
+            y = 0xD8;
+        }
+        col = (EmList.wk->x1C == i) ? 4 : 0;
+        if (i == 0) {
+            eprintf(x, y, col, 0, "CANCEL");
+        } else {
+            if (i > 10) {
+                if (i > 20) {
+                    switch (i) {
+                    default:
+                        eprintf(x, y, col, 0, "omake%02d.esl", i - 21);
+                        break;
+                    case 21:
+                        eprintf(x, y, col, 0, "omake ADA");
+                        break;
+                    case 22:
+                        eprintf(x, y, col, 0, "omake ETC");
+                        break;
+                    case 23:
+                        eprintf(x, y, col, 0, "omake ETC2");
+                        break;
+                    }
+                } else {
+                    switch (i - 11) {
+                    default:
+                        eprintf(x, y, col, 0, "emlen%02d.esl", i - 11);
+                        break;
+                    case 0:
+                        eprintf(x, y, col, 0, "Stage 1 Day", i - 11);
+                        break;
+                    case 1:
+                        eprintf(x, y, col, 0, "Stage 1 Night", i - 11);
+                        break;
+                    case 2:
+                        eprintf(x, y, col, 0, "Stage 2 -1st-", i - 11);
+                        break;
+                    case 3:
+                        eprintf(x, y, col, 0, "Stage 2 -2nd-", i - 11);
+                        break;
+                    case 4:
+                        eprintf(x, y, col, 0, "Stage 2 -3rd-", i - 11);
+                        break;
+                    case 5:
+                        eprintf(x, y, col, 0, "Stage 2 -4th-", i - 11);
+                        break;
+                    case 6:
+                        eprintf(x, y, col, 0, "Stage 3 -1st-", i - 11);
+                        break;
+                    case 7:
+                        eprintf(x, y, col, 0, "Stage 3 -2nd-", i - 11);
+                        break;
+                    }
+                }
+            } else {
+                eprintf(x, y, col, 0, "emlist%02d.esl", i - 1);
+            }
+            if (EmList.wk->fileNo == i) {
+                eprintf(x + 0x60 + pG->flags_51E4 % 10, y, 4, 0, "<- old");
+            }
+        }
+        if (EmList.wk->x1C == i) {
+            eprintf(x - 8, y, 0, 0, ">");
+        }
+    }
 }
 
-void emlist_yes_no_menu_disp()
+void emlist_yes_no_menu_disp(int y)
 {
+    eprintf(0x28, y, 4, 0, "Ok?");
+    eprintf(0x82, y, 0, 0, "/");
+    if (EmList.wk->x24) {
+        eprintf(0x5A, y, 4, 0, "YES");
+        eprintf(0x9A, y, 0, 0, "no");
+        eprintf(0x52, y, 0, 0, ">");
+    } else {
+        eprintf(0x5A, y, 0, 0, "yes");
+        eprintf(0x9A, y, 4, 0, "NO");
+        eprintf(0x92, y, 0, 0, ">");
+    }
 }
 
 void emlist_select_id_disp()
 {
+    int i;
+    int x;
+    int y;
+    int col;
+    EmListIdInfo* p;
+
+    eprintf(0x28, 0x1E, 0, 0, "-- EM ID SELECT --------");
+    x = 0x1E;
+    y = 0x3C;
+    for (i = 0; i < EmList.wk->idNum; i++) {
+        p = &EmListIdTbl[i];
+        if (i != 0 && (i & 0xF) == 0) {
+            x += 0x78;
+            y = 0x3C;
+        }
+        col = (i == EmList.wk->id) ? 4 : 7;
+        if (p == NULL) {
+            break;
+        }
+        if (i <= 1) {
+            eprintf(x, y, 7, 0, "-----------");
+        } else {
+            eprintf2(10, 18, x, y, col, 0, "%s", p->name);
+        }
+        y += 0x12;
+    }
 }
 
-void emlist_set_room_disp()
+void emlist_set_room_disp(int x, int y, int flag)
 {
+    EmListEnt* p = EMLIST_ENT(EmList.wk->listNo);
+    int col1;
+    int col2;
+
+    if (flag) {
+        if (EmList.wk->x18) {
+            col1 = 0;
+            col2 = 4;
+        } else {
+            col1 = 4;
+            col2 = 0;
+        }
+    } else if (pG->stage_no == p->room >> 8 && pG->room_no == (p->room & 0xFF)) {
+        col1 = 0;
+        col2 = 0;
+    } else {
+        col1 = 7;
+        col2 = 7;
+    }
+    if (flag) {
+        if (EmList.wk->x18) {
+            eprintf(x + 100, y, 0, 0, ">");
+        } else {
+            eprintf(x, y, 0, 0, ">");
+        }
+    }
+    eprintf(x + 8, y, col1, 0, "Stage = %1x", p->room >> 8);
+    eprintf(x + 0x6C, y, col2, 0, "Room = %02x", p->room & 0xFF);
 }
 
 void emlist_set_pos_disp()
@@ -843,28 +1618,87 @@ void emlist_set_be_flag_disp()
 {
 }
 
-void emlist_set_type_disp()
+void emlist_set_type_disp(int x, int y, int flag)
 {
+    EmListEnt* p = EMLIST_ENT(EmList.wk->listNo);
+    int col;
+
+    if (flag) {
+        eprintf(x, y, 0, 0, ">");
+    }
+    x += 8;
+    col = flag ? 4 : 0;
+    eprintf(x, y, col, 0, "0x%02x, %03d", p->type, p->type);
+    if (p->id != 0) {
+        x += 0x60;
+        if (emlist_get_numof_str(EmListIdTbl[p->id].type) > p->type) {
+            eprintf(x, y, col, 0, ":%s", EmListIdTbl[p->id].type[p->type]);
+        }
+    }
 }
 
-void emlist_set_set_disp()
+void emlist_set_set_disp(int x, int y, int flag)
 {
+    EmListEnt* p = EMLIST_ENT(EmList.wk->listNo);
+    int col;
+
+    if (flag) {
+        eprintf(x, y, 0, 0, ">");
+    }
+    x += 8;
+    col = flag ? 4 : 0;
+    eprintf(x, y, col, 0, "0x%02x, %03d", p->x3, p->x3);
+    if (p->id != 0) {
+        x += 0x60;
+        if (emlist_get_numof_str(EmListIdTbl[p->id].set) > p->x3) {
+            eprintf(x, y, col, 0, ":%s", EmListIdTbl[p->id].set[p->x3]);
+        }
+    }
 }
 
 void emlist_set_em_flag_disp()
 {
 }
 
-void emlist_set_char_disp()
+void emlist_set_char_disp(int x, int y, int flag)
 {
+    EmListEnt* p = EMLIST_ENT(EmList.wk->listNo);
+    int col;
+
+    if (flag) {
+        eprintf(x, y, 0, 0, ">");
+    }
+    x += 8;
+    col = flag ? 4 : 0;
+    eprintf(x, y, col, 0, "0x%02x, %03d", p->xB, p->xB);
+    if (p->id != 0) {
+        x += 0x60;
+        if (emlist_get_numof_str(EmListIdTbl[p->id].chr) > p->xB) {
+            eprintf(x, y, col, 0, ":%s", EmListIdTbl[p->id].chr[p->xB]);
+        }
+    }
 }
 
-void emlist_set_hp_disp()
+void emlist_set_hp_disp(int x, int y, int flag)
 {
+    EmListEnt* p = EMLIST_ENT(EmList.wk->listNo);
+
+    if (flag) {
+        eprintf(x, y, 0, 0, ">");
+    }
+    x += 8;
+    eprintf(x, y, flag ? 4 : 0, 0, "%d", p->hp);
 }
 
-void emlist_set_guard_r_disp()
+void emlist_set_guard_r_disp(int x, int y, int flag)
 {
+    EmListEnt* p = EMLIST_ENT(EmList.wk->listNo);
+
+    if (flag) {
+        eprintf(x, y, 0, 0, ">");
+    }
+    x += 8;
+    eprintf(x, y, flag ? 4 : 0, 0, "%d m", p->x1A);
 }
 
 // Writes the list to both hosts.
@@ -898,14 +1732,16 @@ int emlist_file_load(int no)
 void emlist_set_fname(char* buf, int no, int mode)
 {
     char dir[3][0x20] = {"/data/etc/emlist", "/data/etc/emleon", "/data/etc/omake"};
+    int kind = no / 10;
 
+    no %= 10;
     switch (mode) {
     case 0:
     default:
-        sprintf(buf, "%s%s%02x.esl", "x:\\soft", dir[no / 10], no % 10);
+        sprintf(buf, "%s%s%02x.esl", "x:\\soft", dir[kind], no);
         break;
     case 1:
-        sprintf(buf, "%s%s%02x.esl", "d:\\bio4", dir[no / 10], no % 10);
+        sprintf(buf, "%s%s%02x.esl", "d:\\bio4", dir[kind], no);
         break;
     }
 }
