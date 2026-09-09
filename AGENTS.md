@@ -4144,3 +4144,67 @@ target) stays unresolved and `make_rel` then fails with "undefined symbol".
   both sides, same-section branches resolved by target) plus `perm.py`/`variants.py` (statement
   permutations / listed variants between two marker comments, ~0.35 s per variant) is the loop that
   found the r119/t_util/em3a/t_camera_data fixes; keep them in a private /tmp dir.
+
+### cam_extra "regression" audit, pendulum, db_cam (cam_extra 32/43 + vtable order/.sdata fixed; pendulum 7/12; db_cam 7->9/13; 2026-09)
+
+- cam_extra did NOT regress: compiled against `include/` of every commit since 13:50 (010a850, 84b57ea,
+  b9503f2 cModel refactor, 7ea5eb6 t_camera.h, 4b4f215) with a `-I` override, the object is identical
+  except for the DECL_UID suffixes of its static locals (32/43 byte-identical by masked compare, 31 at
+  objdiff 100%; the `18/43` figure is not reproducible by either measure). The `.rodata -8` (pool
+  order/content of the 11 unmatched functions: 300000/0.5/0 order in AttachedToMotion::move, a
+  `bf9c61ab` vs `bf9c61aa` 70-degree constant, two missing 0.5/100000 words in FocusAnimation::move,
+  a missing 0.05f, an extra 1.0f) and the `.sdata -4` (8-byte alignment pad before cam_qfps, now
+  `asm(".section .sdata; .balign 8")`) date from the unit's first version. What was wrong since 13:50
+  and is fixed: the vtable emission order. cam_extra.h declared the classes as cCamera, IDApplication,
+  IdScope, IdBinocular, LookAt, PushObject, LookDownEm, Scope, Binocular, AttachedToMotion; the DOL's
+  reverse-declaration order (LookDownEm, LookAt, PushObject, Binocular, IdBinocular, Scope, IdScope,
+  AttachedToMotion, IDApplication, cCamera) means the header must declare them in the unit's `.text`
+  order with each Id class right before its camera (done; cam_ctrl/cam_motion/r10b unchanged).
+- Measurement note: a masked compare must strip the `.NNN` DECL_UID suffix of static-local symbols
+  (`ZOOM_LIMIT_0.1301` vs `.401`) and must not compare the *content* of relocated words inside
+  `const char*` tables (db_cam menuHitDisp's menu table: 0 in the split object, the string offset in
+  ours) — both are false diffs.
+- pendulum penClothAtMake (36 -> 16 words): `wk = (PenAtWork*) 0xE0000000` assigned AFTER the early
+  return (a declaration initialiser hoists the `lis` above the test); `wk->num = n; wk->pAt = a;` in
+  that order (both non-dying, RTL order); `pGS->flags_60` (struct view) for the debug-draw test in
+  case 0 — with the plain `pG` the fixed-scalar `lwz pG` is hoisted between the `a->p0 = c` word
+  stores and, since `lwz r9, pG` re-sets the copy's r9 temp, the `stw r9, 4` store gains an
+  anti-dependant and outranks `stw r0, 0` in sched2's depend_count tie-break (copy issued 4, 0, 8).
+  OPEN there: (a) `PSMTXMultVec(p0->mat, &at->p0, &v0)` issues `addi r5, r1, 8` first in ours, last in
+  the target: after reload the frame register r1 is call-used/fixed, so every later CALL_INSN in the
+  block anti-depends on every earlier r1 USE (haifa never clears `reg_last_uses` for call-used regs),
+  and the second frame-address arg set (`addi r5, r1, 0x18`) gives the first one an extra dependant
+  (4 vs 3) — the same mechanism as the r9 case, but here no source form removes it. (b) &v0/&up/&ax
+  callee-saved order (target r25/r23/r24, ours r23/r24/r25): &v0 is the frame-offset-0 local whose
+  address pseudo comes from `(set reg (reg vsv))`, which instantiate_virtual_regs turns into
+  `(plus fp 8)` WITH a REG_EQUAL note; update_equiv_regs then doubles its REG_LIVE_LENGTH (458 vs
+  227 for the other two, whose `(plus fp N)` sets carry no note), so 3*9/458 loses to 2*7/227. The
+  target's order needs the &v0 pseudo to win (>= 5 weighted uses or no doubling); a `Vec* pv0 = &v0`
+  at the loop top gives the 5th use but lets cse (AROUND path over the switch dispatch) rewrite case
+  0's `addi r4, r1, 8` into the pseudo, and inside case 1 it is a user variable used in another block
+  so loop.c refuses to hoist it. Not solved.
+- penClothAtCkParallel / PenClothMove/2/3 (68/456/245/274 words): FPR/GPR allocation of the
+  sphere-case temporaries (`rr = a->r * a->r` scheduled before the v.y/v.z chain in the target),
+  callee-saved assignment (`w` = r31 above `parts` in the target, ours the reverse), a second hoisted
+  copy of the 0x8c pool constant in Move's loop preheader (`lfs f30` + in-loop `lfs f29`), and the
+  `addi r5, r1, 0x38; mr r28, r5` arg-first/copy-after shape. Not attempted beyond inspection.
+- db_cam drawGround (now byte-identical): `const f32 unit = 1000.0f;` must be declared BEFORE `int n
+  = big ? 60 : 30;` — the const's pool `lis` is then expanded in the block before the ternary's
+  diamond while its only `lfs` is after it, so REG_BASIC_BLOCK < 0 and update_equiv_regs moves the
+  single-use `lis` next to the `lfs` (late `lis r9` in the target, `neg r8/lis r7 0x4330` for the
+  other block temporaries); declared after `n` the `lis` is block-local and stays at the block top.
+  The zero chains are `a.z = b.z = a.y = b.y = 0.0f` (issued b.y, a.y, b.z, a.z: RTL order, the zero
+  register lives on) and `a.x = b.x = a.y = b.y = 0.0f; a.z = neg * 1.1f; b.z = pos * 1.1f;` (the
+  chain BEFORE the products: a.x is the zero's last use and is issued first, then the dying product
+  stores, then b.y, a.y, b.x).
+- db_cam moveOnPlaneXZ (now byte-identical): the column reads are cam_sys.cpp's `getColumn(m, c,
+  &v)` inline for all three vectors; only `vx` (frame offset 0) shows the pointer form (`addi r31,
+  r1, 8` kept callee-saved, `stfs 4(r31)/8(r31)`, `.x` via the frame, `mr r3/r4, r31` for the later
+  PSVECScale) because integrate substitutes the constant `(plus fp N)` address for vy/vz.
+- db_cam menu (82 -> 79, .text +4 short): `FSet(pG->Cam.param.roll, 0.0f)` reloads `pG` for the
+  following CameraSetOrientationUp. OPEN: the target masks `cam_mode` once (`lbz r0; clrlwi r11, r0,
+  24`) and uses r11 for both `old_cam_mode != cam_mode` and the `switch`; the COMPILER-DIFF 2 launder
+  (`int cm = cam_mode; asm("" : "+r"(cm)); (u8) cm` twice) reproduces the shared mask but reuses r0
+  (the raw byte dies in the target it does not) and flips the this/joy allocation (r31/r30). The
+  `campos` word-0 temp in r30 (callee-saved, ours r3) is open too. menuFlag (141), move (160, ours 8
+  bytes longer), adjust_qFPS (172) not attempted.

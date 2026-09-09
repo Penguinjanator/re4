@@ -34,6 +34,19 @@ public:
     void operator delete(void*, unsigned int) {}
 };
 
+// Class declaration order below = the DOL's .text order of cam_extra.cpp. Vtables are emitted in
+// reverse declaration order at finish_file (LookDownEm, LookAt, PushObject, Binocular, IdBinocular,
+// Scope, IdScope, AttachedToMotion, IDApplication, cCamera in the DOL's .rodata). Do not reorder.
+
+class CameraAttachedToMotion : public cCamera {
+public:
+    cModel* model;  // 0xFC
+
+    CameraAttachedToMotion(cModel* model);
+    virtual ~CameraAttachedToMotion();
+    virtual void move();
+};
+
 // Scope reticle ids (IdSys unit 0x25).
 class IdScope : public IDApplication {
 public:
@@ -47,23 +60,6 @@ public:
     void load(int);
 };
 
-// Binocular ids (IdSys unit 0x27).
-class IdBinocular : public IDApplication {
-public:
-    Vec scr1;    // 0x04  screen positions of the heading scale ends
-    Vec scr2;    // 0x10
-    Vec scr3;    // 0x1C
-    f32 fovy;    // 0x28  fovy of the previous frame
-    Vec scr35;   // 0x2C  zoom gauge origin
-    f32 sizeY;   // 0x38
-    f32 sizeX;   // 0x3C
-
-    void init(Camera* cam, void* tex, void* data);
-    virtual void move(void* cam);
-    virtual void quit(void* cam);
-    void cutin();
-};
-
 // Filter0a focus blur animation.
 struct FocusAnimation {
     u8 state;    // 0x00
@@ -75,32 +71,6 @@ struct FocusAnimation {
     void move(int dir);
     void quit();
     void clear();
-};
-
-class CameraLookAt : public cCamera {
-public:
-    u8 pad_FC[4];
-    cModel* parts;  // 0x100  hand parts looked at
-
-    CameraLookAt(Camera* cam);
-    virtual ~CameraLookAt();
-    virtual void move();
-};
-
-class CameraPushObject : public cCamera {
-public:
-    CameraPushObject();
-    virtual ~CameraPushObject();
-    virtual void move();
-};
-
-class CameraLookDownEm : public cCamera {
-public:
-    cModel* parts;  // 0xFC
-
-    CameraLookDownEm(void* em, Vec* ofs);
-    virtual ~CameraLookDownEm();
-    virtual void move();
 };
 
 class CameraScope : public cCamera {
@@ -126,6 +96,23 @@ public:
     virtual void move();
     void setParam(f32 a, f32 b);
     void getParam(f32* a, f32* b);
+};
+
+// Binocular ids (IdSys unit 0x27).
+class IdBinocular : public IDApplication {
+public:
+    Vec scr1;    // 0x04  screen positions of the heading scale ends
+    Vec scr2;    // 0x10
+    Vec scr3;    // 0x1C
+    f32 fovy;    // 0x28  fovy of the previous frame
+    Vec scr35;   // 0x2C  zoom gauge origin
+    f32 sizeY;   // 0x38
+    f32 sizeX;   // 0x3C
+
+    void init(Camera* cam, void* tex, void* data);
+    virtual void move(void* cam);
+    virtual void quit(void* cam);
+    void cutin();
 };
 
 class CameraBinocular : public cCamera {
@@ -155,12 +142,29 @@ public:
     void setRange(f32 a, f32 b, f32 c, f32 d);
 };
 
-class CameraAttachedToMotion : public cCamera {
+class CameraPushObject : public cCamera {
 public:
-    cModel* model;  // 0xFC
+    CameraPushObject();
+    virtual ~CameraPushObject();
+    virtual void move();
+};
 
-    CameraAttachedToMotion(cModel* model);
-    virtual ~CameraAttachedToMotion();
+class CameraLookAt : public cCamera {
+public:
+    u8 pad_FC[4];
+    cModel* parts;  // 0x100  hand parts looked at
+
+    CameraLookAt(Camera* cam);
+    virtual ~CameraLookAt();
+    virtual void move();
+};
+
+class CameraLookDownEm : public cCamera {
+public:
+    cModel* parts;  // 0xFC
+
+    CameraLookDownEm(void* em, Vec* ofs);
+    virtual ~CameraLookDownEm();
     virtual void move();
 };
 

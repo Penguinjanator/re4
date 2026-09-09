@@ -63,6 +63,16 @@ static inline void Set(int& v, int x) { v = x; }
 #define QOFS(p) ((QfpsOfs*) (p))
 #define QOFS_CAMPOS2 0xC
 
+// Matrix column -> vector (cam_sys.cpp's helper): through the `Vec*` parameter the stores go via
+// the address register for the frame-offset-0 local (`stfs 4(r31)`, its pseudo reused by the
+// later PSVECScale(&vx, ..)); for the other locals integrate substitutes the frame address.
+static inline void getColumn(Mtx m, int c, Vec* v)
+{
+    v->x = m[0][c];
+    v->y = m[1][c];
+    v->z = m[2][c];
+}
+
 // Column vectors -> matrix.
 #define MTX_SET_COLUMNS(m, c0, c1, c2, c3)                                                    \
     (m)[0][0] = (c0).x; (m)[1][0] = (c0).y; (m)[2][0] = (c0).z;                               \
@@ -503,7 +513,7 @@ void debugCamera::menu(Camera* cam, JOY* joy)
             memcpy(d, &target, sizeof(Vec));
             d = (u8*) &pG->Cam.up;
             memcpy(d, &up, sizeof(Vec));
-            pG->Cam.param.roll = 0.0f;
+            FSet(pG->Cam.param.roll, 0.0f);
             CameraSetOrientationUp(&pG->Cam);
             pG->flags_60 |= 0x10000000;
         }
@@ -1008,15 +1018,9 @@ void moveOnPlaneXZ(Vec* in, Vec* out)
         memclr_asm(out, sizeof(Vec));
         return;
     }
-    vx.x = cam->mat[0][0];
-    vx.y = cam->mat[1][0];
-    vx.z = cam->mat[2][0];
-    vy.x = cam->mat[0][1];
-    vy.y = cam->mat[1][1];
-    vy.z = cam->mat[2][1];
-    vz.x = cam->mat[0][2];
-    vz.y = cam->mat[1][2];
-    vz.z = cam->mat[2][2];
+    getColumn(cam->mat, 0, &vx);
+    getColumn(cam->mat, 1, &vy);
+    getColumn(cam->mat, 2, &vz);
     if (vz.y != 0.0f) {
         Vec dx;
         Vec dz;
@@ -1055,13 +1059,13 @@ void moveOnPlaneXZ(Vec* in, Vec* out)
 
 void drawGround(int big)
 {
+    const f32 unit = 1000.0f;
     int n = big ? 60 : 30;
     Vec a;
     Vec b;
     int i;
     f32 neg;
     f32 pos;
-    const f32 unit = 1000.0f;
 
     b.y = 0.0f;
     a.y = 0.0f;
@@ -1088,7 +1092,7 @@ void drawGround(int big)
     neg = (f32) -n * unit;
     pos = (f32) n * unit;
     a.x = neg * 1.1f;
-    b.y = a.y = b.z = a.z = 0.0f;
+    a.z = b.z = a.y = b.y = 0.0f;
     b.x = pos * 1.1f;
     Draw_line3d(&a, &b, 0xFFFFFFFF, 0);
     a.x = pos;
@@ -1096,9 +1100,9 @@ void drawGround(int big)
     Draw_line3d(&a, &b, 0xFFFFFFFF, 0);
     a.z = neg * 0.05f;
     Draw_line3d(&a, &b, 0xFFFFFFFF, 0);
+    a.x = b.x = a.y = b.y = 0.0f;
     a.z = neg * 1.1f;
     b.z = pos * 1.1f;
-    a.x = b.y = a.y = b.x = 0.0f;
     Draw_line3d(&a, &b, 0xFFFFFFFF, 0);
     a.z = pos;
     a.x = pos * 0.05f;

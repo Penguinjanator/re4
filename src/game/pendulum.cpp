@@ -1112,7 +1112,7 @@ static inline void penPartsWorldPos(cModel* p, const Vec* ofs, Vec* out)
 // Build the world space collision volumes of the frame into the locked cache work.
 PenAtWork* penClothAtMake(cModel* m, PlClothAt* at, int n)
 {
-    PenAtWork* wk = (PenAtWork*) 0xE0000000;
+    PenAtWork* wk;
     Vec v0;
     Vec v1;
     Vec c;
@@ -1126,9 +1126,10 @@ PenAtWork* penClothAtMake(cModel* m, PlClothAt* at, int n)
     if (at == 0 || n == 0 || m == 0) {
         return 0;
     }
+    wk = (PenAtWork*) 0xE0000000;
     a = wk->at;
-    wk->pAt = a;
     wk->num = n;
+    wk->pAt = a;
     for (i = 0; i < n; i++, at++, a++) {
         u8 no1 = at->parts1;
         f32 rate = at->rate;
@@ -1147,7 +1148,9 @@ PenAtWork* penClothAtMake(cModel* m, PlClothAt* at, int n)
             PosToPos(pv1, &v0, &c, rate);
             a->p0 = c;
             a->r = at->r;
-            if (pG->flags_60 & 0x400) {
+            // struct view of pG: the fixed-scalar load would otherwise be hoisted between the
+            // copy's word stores (and the copy issued 4, 0, 8 through the extra r9 anti-dependence).
+            if (pGS->flags_60 & 0x400) {
                 Draw_sphere(&c, at->r, 0x80808080, 1, 1);
             }
             break;
