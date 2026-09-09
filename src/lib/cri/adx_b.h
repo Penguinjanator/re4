@@ -69,13 +69,24 @@ typedef struct {
 	Sint16 x98;                                              /* 0x98 */
 	Sint16 x9a;                                              /* 0x9A */
 	Sint16 x9c;                                              /* 0x9C */
-	Uint8 pad9e[0xB4 - 0x9E];
+	Uint8 pad9e[2];
+	Sint16 key[3];                                           /* 0xA0 encryption keys (k0, km, ka) */
+	Sint16 extprm[3];                                        /* 0xA6 decoder extension parameters */
+	Sint16 dly[2][2];                                        /* 0xAC decoder history (snapshot) */
 	void *ahx;                                               /* 0xB4 */
 	Sint32 nsmpl;                                            /* 0xB8 */
 	Sint32 nsmpl96;                                          /* 0xBC */
-	Uint8 padc0[0xDC - 0xC0];
+	Sint32 ainf_len;                                         /* 0xC0 */
+	Uint8 ainf[16];                                          /* 0xC4 */
+	Sint16 def_outvol;                                       /* 0xD4 */
+	Sint16 def_pan[2];                                       /* 0xD6 */
+	Uint8 padda[2];
 	void *xdc;                                               /* 0xDC (adx_sjd: pl2setsfreqfunc called when set) */
-	Uint8 pade0[0xF8 - 0xE0];
+	Uint8 pade0[8];
+	Sint32 cb_nbyte;                                         /* 0xE8 dec_nbyte at the last callback */
+	Sint32 xec;                                              /* 0xEC */
+	void (*cb_func)(void *obj, Sint32 nbyte, Sint32 nsmpl);  /* 0xF0 decode callback */
+	void *cb_obj;                                            /* 0xF4 */
 } ADXB_OBJ;
 
 #define ADXB_MAX_OBJ 16

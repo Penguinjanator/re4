@@ -124,7 +124,7 @@ static Sint32 adx_GetVer(Uint8 *data, Sint32 len, Uint8 *major, Uint8 *minor)
 	return 0;
 }
 
-static Sint32 ADX_DecodeInfoAinf(Uint8 *data, Sint32 len, Sint32 *ainfsiz, void *ainf, Sint16 *a, Sint16 *b)
+Sint32 ADX_DecodeInfoAinf(Uint8 *data, Sint32 len, Sint32 *ainfsiz, void *ainf, Sint16 *a, Sint16 *b)
 {
 	Uint8 ver;
 	Uint8 minor;
