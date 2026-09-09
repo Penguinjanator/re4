@@ -78,6 +78,12 @@ void R22aMain()
 static void r22a_RopeMove(int side)
 {
     // OPEN: the two word loads of the ang copy come out swapped (same in r10c_TestPosMove).
+    // Mechanism (sched1 dump): the word-8 load is the last use of the `addi` base pseudo, so its
+    // register weight is 0 against +1 for the word-4 load and haifa's pressure tie-break issues it
+    // first (both copies come out 0,8,4 in sched1; sched2 re-sorts the pos copy to 0,4,8 through
+    // the r10/r7 anti-dependence chains but not the ang copy). The original issues 0,4,8 here and
+    // 0,8,4 in r40f BombSet's second copy, so its tie-break is not the weight rule. Keeping the base
+    // live (`asm volatile("" :: "b"(&r22a_ropeAng))`) flips the loads but also the stores.
     static const Vec r22a_ropePos = {5634.0f, 51500.0f, -32822.0f};
     static const Vec r22a_ropeAng = {0.0f, -1.5707964f, 0.0f};
     Vec pos = r22a_ropePos;

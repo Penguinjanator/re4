@@ -14,6 +14,7 @@ public:
     void setCamera(int no);
     void setOff();
     void setOn();
+    void setMotion(void** tbl);   // r400 setLadderMotion: the 20-entry motion table
 };
 
 // game/obj13.cpp: shows / hides the ladders of the running event (r101 Evt_R101S30_Func).

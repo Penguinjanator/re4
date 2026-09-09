@@ -52,6 +52,7 @@ int getRoomEtcTorch(int no, cEm** out, int flag);
 int getRoomEtcSwitch(int no, cEm** out, int flag);
 int getRoomEtcBarred(int no, cEm** out, int flag);
 int getRoomEtcDram(int no, cEm** out, int flag);
+int EtcGetDasAddr(int id, void** out);   // archive of etc model `id` (r400 setLadderMotion)
 }
 
 #endif

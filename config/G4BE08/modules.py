@@ -373,11 +373,21 @@ CFLAGS = {
     "t_event": ["-fno-implement-inlines"],
 }
 
+# Per-unit flag additions (appended after the module's CFLAGS, a later -f flag wins). db_toolbase.cpp
+# (Tools; the same object in t_event/Sscrn) was compiled with the default -fimplement-inlines: its
+# in-class non-virtual cDbgWindow::Init is in the object, emitted between the deferred ~cDbgButton and
+# ~cDbgWindow (the two in-class destructors), and the two base vtables come out WindowBase then
+# ButtonBase, which needs both destructors deferred (see the db_toolbase.h notes).
+UNIT_CFLAGS = {
+    "Tools/db_toolbase.cpp": ["-fimplement-inlines"],
+}
+
 STRIP_UNUSED = {
     f"{_m}/em_wrap.cpp" for _m in ["st1_0", "st1_1", "st1_2", "st1_3", "st2_0", "st2_1", "st2_2", "st2_3", "st2_4", "st4_0"]
 } | {f"{_m}/cSceObj.cpp" for _m in ["st2_0", "st2_3", "st4_0"]} | {
     # rooms whose original object lost a never-called static function (strings and pool kept)
     "st2_3/r229.cpp",
+    "st2_2/r216.cpp",
 
     # the tool library objects are the t_emlist versions minus what the module never calls
     "t_camera/t_prim.cpp", "t_camera/t_util.cpp", "t_light/t_util.cpp", "t_event/t_util.cpp", "t_sce/t_util.cpp",
@@ -391,6 +401,11 @@ STRIP_UNUSED = {
     "t_esp/db_widget.cpp",
     # db_window.cpp: the dead helper that carries the DB_NUMERIC range table
     "t_esp/db_window.cpp",
+} | {
+    # the Ganado library: two never-called helpers whose pools stayed (em10FindFloorCk,
+    # plem10NeckBreakCamMove in src/em10/em10.cpp)
+    f"{_m}/em10.cpp" for _m in ["em10", "em11", "em12", "em13", "em14", "em15", "em16", "em17", "em19", "em1a", "em1b",
+                                 "em1c", "em1d", "em1e", "em1f", "em20"]
 }
 
 # Units whose compiled object replaces the split object in the REL link.
@@ -413,6 +428,7 @@ MATCHING = {
     "st1_3/st1.cpp": True,
     "st2_0/st2.cpp": True,
     "st2_1/st2.cpp": True,
+    "st2_1/r205.cpp": True,
     "st2_1/r20a.cpp": True,
     "st2_2/st2.cpp": True,
     "st2_2/r211.cpp": True,
@@ -432,6 +448,9 @@ MATCHING = {
     "st4_0/r406.cpp": True,
     "st4_0/r405.cpp": True,
     "st4_0/r40d.cpp": True,
+    "st2_0/cSceObj.cpp": True,
+    "st2_3/cSceObj.cpp": True,
+    "st4_0/cSceObj.cpp": True,
     "t_emlist/t_emlist.cpp": True,
     "t_esp/db_window.cpp": True,
     "t_camera/t_prim.cpp": True,
