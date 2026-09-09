@@ -2602,7 +2602,7 @@ ItemWork* cItemMgr::weaponParts(ItemWork* p, int no)
 int cItemMgr::bulletNumTotal(int bulletId)
 {
     static int tbl_num = sizeof(wep_info) / sizeof(wep_info[0]);
-    u16 total = num(bulletId);
+    u16 total = numS(bulletId);
     int i;
 
     for (i = 0; i < tbl_num; i++) {

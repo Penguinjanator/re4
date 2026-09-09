@@ -233,24 +233,23 @@ int file_lock(const char* path)
     if (get_lock_file(lock) == NULL) {
         return 0;
     }
+    // `pUser_name` read directly in each arm: a `path = pUser_name` reassignment gives the
+    // pseudo a second set, which global-allocates it with a phantom r31 (`stmw r30` vs `stw r31`).
     if (file_exist(lock) == 1) {
         if (HDReadDebugAlloc(lock, (void**) &user, 1) == 0) {
-            path = pUser_name;
-            HDWrite_only(lock, (void*) path, (strlen(path) + 32) & ~31);
+            HDWrite_only(lock, (void*) pUser_name, (strlen(pUser_name) + 32) & ~31);
         } else {
             if (strcmp(user, pUser_name) != 0) {
                 if (file_lock_msg(0, path, user) != 0) {
                     Debug_free(user);
                     return 0;
                 }
-                path = pUser_name;
-                HDWrite_only(lock, (void*) path, (strlen(path) + 32) & ~31);
+                HDWrite_only(lock, (void*) pUser_name, (strlen(pUser_name) + 32) & ~31);
             }
             Debug_free(user);
         }
     } else {
-        path = pUser_name;
-        HDWrite_only(lock, (void*) path, (strlen(path) + 32) & ~31);
+        HDWrite_only(lock, (void*) pUser_name, (strlen(pUser_name) + 32) & ~31);
     }
     return 1;
 }

@@ -1431,4 +1431,13 @@ MATCHING.update({
 MATCHING.update({
     "game/obj03.cpp": True,
     "game/obj02.cpp": True,
+    "game/obj12.cpp": True,
+})
+
+# system units: file_lock reads pUser_name directly in each arm (a `path =` reassignment gives a
+# phantom r31 save); pl_sub: `cPlayer* pl = pPL` before a switch, `goto` to a shared `return 0`,
+# `const f32` limit across a call, guarded do/while list walks testing `next`
+MATCHING.update({
+    "game/file_app.cpp": True,
+    "game/pl_sub.cpp": True,
 })

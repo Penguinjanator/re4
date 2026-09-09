@@ -911,7 +911,7 @@ int cPlayer::isKamae()
 {
     if ((Key.on & 0x10) && (Key.on & 0x800)) {
         if (pG->x4FB8 == 0 || pG->x4FB8 == 4) {
-            goto ok;
+            return 1;
         }
     }
     if (xFD == 6) {
@@ -923,23 +923,22 @@ int cPlayer::isKamae()
                 return 0;
             }
         }
-        if (xFE == 6) {
+        if (xFE == 6 || xFE == 3) {
             return 0;
         }
-        if (xFE == 3) {
-            return 0;
-        }
-    ok:
+        // COMPILER-DIFF: 6 (the original keeps this `li r3,1; b end` copy and cross-jumps the
+        // key-check and xFD==0xB copies into it; our jump2 keeps the last copy). The `||` above
+        // blocks the `x = a; goto` hoist so the chain shape (`beq ret0` twice) matches.
         return 1;
     }
     if (xFD == 0xB) {
         if (xFE != 3) {
-            goto ok;
+            return 1;
         }
         if (joyKamae() == 0) {
             return 0;
         }
-        goto ok;
+        return 1;
     }
     return 0;
 }

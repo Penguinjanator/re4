@@ -445,4 +445,12 @@ extern GXTexObj Specular;
         }                                                                                         \
     }
 
+// game/emdata.cpp: swap enemy module `id`'s effect data in / out around a room event.
+void EspEmDataSwapPush(int id);
+void EspEmDataSwapPop(int id);
+// game/eff_sys.cpp: registers a scroll model's texture palette for the room's effect models.
+void RoomEfmRegist(cModel* m, u8 no);
+// game/eff_sys.cpp: releases the effect data of owner `id` (C linkage).
+extern "C" int EspDataRelease(u32 owner, int flag, int warn);
+
 #endif

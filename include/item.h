@@ -130,6 +130,9 @@ public:
     u32 bulletNumCurrent();     // 0x8001FC40
     // bulletNum() returns it without the `clrlwi 16` (original build). Same function, u16 view.
     u16 bulletNumCurrentS() asm("bulletNumCurrent__8cItemMgr");
+    // COMPILER-DIFF: 4 (bulletNumTotal assigns num()'s int result to a u16 total without the
+    // `clrlwi 16` the int -> u16 conversion gives us). Same function, u16 view.
+    u16 numS(int id) asm("num__8cItemMgri");
     int bulletNum(u16 id);
     int bulletNum(ItemWork* p);
     int saveDataSize();

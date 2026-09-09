@@ -706,12 +706,14 @@ void PlRegistRoomEff(PlRoomEff* eff)
 
 void PlReloadBullet()
 {
+    cPlayer* pl = pPL;
+
     switch (pG->wep_no) {
     case 0xD:
     case 0x13:
     case 0x16:
     case 0x17:
-        pPL->pWep->pObj->setMotion(pPL);
+        pl->pWep->pObj->setMotion(pl);
         break;
     }
 }
@@ -767,10 +769,13 @@ int joyKamae()
             pLog->err(0, 0, "joyKamae() PTR ERR");
             return 0;
         }
-        // OPEN: the original has `beq ret0; li 1; b end` here and `li 1; bne end; li 0` in the
-        // other half without cross-jumping the two identical keyKamae calls; `?:` here keeps them
-        // apart but gives a private `li 0` (3 lines off).
-        return wep->pObj->keyKamae() ? 1 : 0;
+        // `goto` to the shared `return 0`: with a plain `return 0` jump.c hoists a set over the
+        // branch (`li 1; bne end; li 0`) because the following `li 1` sets the same register; the
+        // jump to the label gives the target's `beq ret0; li 1; b end`.
+        if (wep->pObj->keyKamae() == 0) {
+            goto ng;
+        }
+        return 1;
     } else {
         switch (pG->x4FB8) {
         case 0:
@@ -794,6 +799,7 @@ int joyKamae()
             return 1;
         }
     }
+ng:
     return 0;
 }
 
@@ -886,8 +892,9 @@ void PlMotionReset()
 int SubCharCheckHealing()
 {
     cSubChar* sub;
-
-    f32 limit = 25000000.0f;
+    // `const f32`: the pool address (`lis r30`) is computed at the declaration and kept across the
+    // call while the `lfs` itself is issued after it; a plain `f32` local loads f31 before the call.
+    const f32 limit = 25000000.0f;
 
     if (GetDistance(pPL->pos, pSUB->pos) > limit) {
         return 0;
@@ -1040,12 +1047,15 @@ void PlDataRelease()
     cEm* emCur;
     cEm* emNext;
 
+    // Guarded do/while loops testing `next` at the bottom: a `while (obj)` with the switch body
+    // is not rotated by expand_end_loop (test at the top, `b top` at the bottom).
     obj = ObjMgr.pAlive;
-    while (obj) {
-        objCur = obj;
-        objNext = (cObj*) objCur->next;
-        obj = objNext;
-        switch (objCur->id) {
+    if (obj) {
+        do {
+            objCur = obj;
+            objNext = (cObj*) objCur->next;
+            obj = objNext;
+            switch (objCur->id) {
             case 0x1A:
             case 0x23:
             case 0x29:
@@ -1054,15 +1064,18 @@ void PlDataRelease()
                 ObjMgr.destroy(objCur);
                 break;
             }
+        } while (objNext);
     }
     em = EmMgr.pAlive;
-    while (em) {
-        emCur = em;
-        emNext = (cEm*) emCur->next;
-        em = emNext;
-        if (emCur->id == 0x4F) {
-            EmMgr.destroy(emCur);
-        }
+    if (em) {
+        do {
+            emCur = em;
+            emNext = (cEm*) emCur->next;
+            em = emNext;
+            if (emCur->id == 0x4F) {
+                EmMgr.destroy(emCur);
+            }
+        } while (emNext);
     }
 }
 

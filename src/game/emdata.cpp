@@ -11,8 +11,8 @@ struct EmModule {
     void* pArc;   // 0x84
 };
 
+EmModule* SearchEmModule(int id);              // game/read.cpp (C++ linkage: SearchEmModule__Fi)
 extern "C" {
-EmModule* SearchEmModule(int id);              // game/read.cpp
 void EspDataRelease(int a, int b, int c);      // game/eff_sys.cpp
 void EspDataLoad(void* data, int a, int b);    // game/eff_sys.cpp
 }

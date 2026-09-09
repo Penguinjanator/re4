@@ -2488,3 +2488,55 @@ Then `MATCHING["st2_4/r22c.cpp"] = True` in `config/G4BE08/modules.py`, `python3
 - Things that did not move the needle (register / `lis @ha` pseudo choice): declaration order of
   locals, `int` vs `u32` counters, `xi = x` before the loop vs in the `for`, `by-value` vs `const&`
   GXColor helpers. The remaining db_light diffs are of that kind.
+
+### System units (file_app, pl_sub Matching; dvd, EtcModel, pl_class, mes, datactrl, read, objWep, lightPath, rnd, at_mod near)
+
+- Masked-byte compare per function (aligned by symbol name) is the only reliable judge: dtk
+  synthesizes `Sym+off` relocs and misses `@ha` pairings (`lis r3,0x802e` with no reloc), NgcAs emits
+  REL14/REL24 for local branches, static locals carry `.NNN` suffixes, so a byte-identical function
+  shows 92-99% in objdiff and a 4-byte trailing `.rodata` pad (dtk align 8) is normal (sn_malloc,
+  hermite, quake, pl_event, snd_seq3 ... are Matching with `.rodata` 4 bytes short).
+- `.rodata` string order proves the *parse* order of the unit: dvd's file table strings precede the
+  map_obj.h/light.h/widget.h/card.h/sofdec.h strings, so `FileTbl[]` is defined before those
+  headers are included (dvd.h first, table, then the rest). Two message strings that objdiff cannot
+  tell apart were swapped (MRAM/ARAM Snddata).
+- Cross-jump survivor mechanism (COMPILER-DIFF 6, jump.c read): `do_cross_jump (insn, ...)` deletes the
+  tail of the jump being *scanned* and redirects it to the candidate's tail, candidates come from
+  `jump_chain[label]` (prepended, i.e. latest first) for `b end` jumps, and from `jump_chain[0]` for
+  RETURN insns, which is populated *during the scan* by the `b end` -> RETURN conversion in leaf
+  functions. `find_cross_jump` needs `minimum` 2 insns unless the scanned tail is preceded by a
+  CODE_LABEL (`--minimum`) or the mismatching insn is a jump around the scanned jump. In a leaf function
+  the first `li r3,N; blr` copy therefore survives and later copies jump back to it - unless a copy is
+  followed by a block that starts with a set of r3 (`lhz r3` after `ble`): the jump.c "x = a; goto l"
+  block is entered, fails, and its `if (changed) continue;` skips the cross-jump section for that
+  copy in the first iteration (GetEtcAmbType: R404 deleted into R10C in iteration 2). In non-leaf
+  functions all copies are `b end` and the latest copy always wins (isKamae). `-DSMALL_REGISTER_CLASSES=1`
+  in a scratch cc1plus reproduces GetEtcAmbType's return-copy survival (jump.c refuses to hoist
+  sets of hard registers) but breaks its store-flag tail and does not fix isKamae, so it is not the
+  original's difference either.
+- `if (a == 6 || a == 3) return 0; return 1;` keeps `beq ret0` twice (the label between the compare and
+  `li r3,0` blocks the "x = a; goto l" hoist); two separate ifs give `li r3,0; beq end` for the last.
+- A shared `return 0` reached by `goto ng` from an earlier arm gives `beq ng; li r3,1; b end` where a
+  plain `return 0` followed by `return 1` is hoisted into `li 1; bne end; li 0` (pl_sub joyKamae).
+- `path = pUser_name;` reassigning a parameter that is later dead: the pseudo gets a second set, is
+  global-allocated and a phantom callee-saved register (`stmw r30` with r31 never referenced) is
+  saved; reading the global directly in each arm gives `stw r31` (file_app file_lock).
+- `cPlayer* pl = pPL;` before a `switch` hoists the `lwz pPL` above the compare tree (pl_sub
+  PlReloadBullet); `const f32 limit = C;` keeps the pool `lis` in a callee-saved GPR across a call and
+  issues the `lfs` after it (a plain `f32` local loads f31 before the call, the literal loads both
+  after it) (SubCharCheckHealing).
+- List walks that test `next` at the bottom (`mr r4,cur; lwz next; ...; cmpwi next; bne`) with an entry
+  test on the head are `if (p) { do { cur = p; next = cur->next; p = next; ... } while (next); }`;
+  `while (p)` with a switch body is not rotated (PlDataRelease).
+- COMPILER-DIFF 4 view idiom for a u16 accumulator: `u16 total = numS(id)` with
+  `u16 numS(int) asm("num__8cItemMgri")` drops the `clrlwi 16` on the int result (item bulletNumTotal).
+- Remaining register-allocation residuals, all ~1 insn: objWep drawPoint (a block-local `esp` reload
+  gets r11 in the target, r9 in ours; priority order of the local-alloc qtys), lightPath movePath
+  (`this` 8 refs/34 insns = 7058 vs `pCur` 5/14 = 7142: pCur wins r9; `this` needs 9 refs or a 33-insn
+  range), dvd ErrCheck (pMes/pStr 390/386 -> 76/77 buckets; the *first-set* pointer has the longer
+  range by 4 whatever the declaration order), rnd Rnd (the `m = n` copy survives in the target because
+  cse did not rewrite `m = n + 0x101` through `m`), item trigger (`clrlwi r4,r9,16` on a u16 member
+  shared between a compare and a u16 call argument: COMPILER-DIFF 2 class, five compare forms tried),
+  item init (`li r3,0x20` before `addi r4,__FILE__`), at_mod ComnHitCheck (first MTX_COPY counter in
+  callee-saved r30 and the second copy's `dp_/sp_` both copied: the five s_/d_/i_ declaration orders
+  do not change it).

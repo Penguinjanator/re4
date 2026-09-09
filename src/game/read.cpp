@@ -86,7 +86,6 @@ int readEmData(ReadModule* m, int id, void* addr, u32 size);
 void setEmModule(ReadModule* m, int id);
 void EmReadInit();
 void* EmReadSearch(int id, void* addr, u32 size);
-ReadModule* SearchEmModule(int id);
 ReadModule* pullEmModule();
 void ReadPlayerData(int type, int costume);
 void ReleasePlData();

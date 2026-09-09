@@ -12,89 +12,10 @@
 //    0,4,8,c); every load/store has equal priority, so the original RTL order of the pieces must
 //    differ (declaration order, `char company[]`, `const char* game[]` tried).
 #include "types.h"
-#include "global.h"
-#include "map_obj.h"
-#include "light.h"
-#include "widget.h"
-#include "card.h"
-#include "sofdec.h"
 #include "dvd.h"
-#include "main.h"
-#include "main_mem.h"
-#include "main_sub.h"
-#include "scheduler.h"
-#include "mes.h"
-#include "pad.h"
-#include "eprintf.h"
-#include "gx.h"
 
-extern "C" {
-void OSReport(const char* fmt, ...);
-int sprintf(char* buf, const char* fmt, ...);
-void* memcpy(void* dst, const void* src, unsigned int n);
-void DCFlushRange(void* addr, u32 nBytes);
-u32 OSGetTick();
-u32 OSGetConsoleSimulatedMemSize();
-void PADControlMotor(int chan, u32 cmd);
-void GXSetCopyClear(GXColor clear_clr, u32 clear_z);
-void GXCopyDisp(void* dest, u8 clear);
-void ADXGC_SetupDvdFs(int mode);
-u16 OSGetFontEncode();
-int OSInitFont(void* fontData);
-char* OSGetFontTexture(const char* string, void** image, s32* x, s32* y, s32* width);
-void trans2aram_cb(u32 req);
-void dvdread_callback(s32 result, DVDFileInfo* fi);
-void aram_cb(u32 req);
-void readcancel_cb(s32 result, DVDCommandBlock* cb);
-void EprintfFlush();
-}
-
-extern int vsync_cnt;
-extern int eprintf_init;
-
-// Read through a reference: a MEM with neither the struct nor the scalar flag, so the load is
-// not hoisted above the preceding `vsync_cnt = 0` scalar store (ErrCheck).
-static inline s32 IRef(s32& v) { return v; }
-
-// Low memory globals (OSPhysicalToCached(0x00F8) = bus clock); a struct member so the
-// address splits into `lis 0x8000` + displacement.
-struct OSLowMem {
-    u8 pad_0[0xF8];
-    u32 busClock;  // 0xF8
-};
-#define OS_BUS_CLOCK (((OSLowMem*) 0x80000000)->busClock)
-#define OS_TIMER_CLOCK (OS_BUS_CLOCK / 4)
-#define OSTicksToMilliseconds(ticks) ((ticks) / (OS_TIMER_CLOCK / 1000))
-
-#include "snd.h"
-
-// Stream work (snd_ram `Snd_str_work[4]`, 0x14C bytes), only the debug display fields.
-struct DvdSndStrWork {
-    u16 status;   // 0x00
-    s16 no;       // 0x02
-    u8 pad_4[5];
-    s8 state;     // 0x09
-    u8 pad_A[0x20 - 0xA];
-    u32 req;      // 0x20
-    u8 err;       // 0x24
-    u8 cancel;    // 0x25
-    u8 pad_26[0x14C - 0x26];
-};
-extern "C" DvdSndStrWork Snd_str_work[4];
-
-#define ALIGN32(x) (((x) + 0x1F) & ~0x1F)
-#define DVD_BUFF ((void*) 0x80350000)
-#define DVD_BUFF2 ((void*) 0x80360000)
-
-// status field of cDvdQueue::flag
-enum {
-    ST_PUSH = 0,
-    ST_READ = 1,
-    ST_COMPLETE = 2,
-    ST_CANCEL = 3,
-    ST_ERROR = 4
-};
-
+// The file table is defined before the other headers are included: its strings precede the
+// map_obj.h/light.h/widget.h/card.h/sofdec.h strings in the original .rodata.
 FileTblEntry FileTbl[] = {
     {"bgm/bio4str.hed", 0},
     {"bgm/bio4bgm.sbb", 0},
@@ -351,6 +272,90 @@ FileTblEntry FileTbl[] = {
     {"em/wep47.das", 0},
     {"rel/wep47.rel", 0},
 };
+
+#include "global.h"
+#include "map_obj.h"
+#include "light.h"
+#include "widget.h"
+#include "card.h"
+#include "sofdec.h"
+#include "dvd.h"
+#include "main.h"
+#include "main_mem.h"
+#include "main_sub.h"
+#include "scheduler.h"
+#include "mes.h"
+#include "pad.h"
+#include "eprintf.h"
+#include "gx.h"
+
+extern "C" {
+void OSReport(const char* fmt, ...);
+int sprintf(char* buf, const char* fmt, ...);
+void* memcpy(void* dst, const void* src, unsigned int n);
+void DCFlushRange(void* addr, u32 nBytes);
+u32 OSGetTick();
+u32 OSGetConsoleSimulatedMemSize();
+void PADControlMotor(int chan, u32 cmd);
+void GXSetCopyClear(GXColor clear_clr, u32 clear_z);
+void GXCopyDisp(void* dest, u8 clear);
+void ADXGC_SetupDvdFs(int mode);
+u16 OSGetFontEncode();
+int OSInitFont(void* fontData);
+char* OSGetFontTexture(const char* string, void** image, s32* x, s32* y, s32* width);
+void trans2aram_cb(u32 req);
+void dvdread_callback(s32 result, DVDFileInfo* fi);
+void aram_cb(u32 req);
+void readcancel_cb(s32 result, DVDCommandBlock* cb);
+void EprintfFlush();
+}
+
+extern int vsync_cnt;
+extern int eprintf_init;
+
+// Read through a reference: a MEM with neither the struct nor the scalar flag, so the load is
+// not hoisted above the preceding `vsync_cnt = 0` scalar store (ErrCheck).
+static inline s32 IRef(s32& v) { return v; }
+
+// Low memory globals (OSPhysicalToCached(0x00F8) = bus clock); a struct member so the
+// address splits into `lis 0x8000` + displacement.
+struct OSLowMem {
+    u8 pad_0[0xF8];
+    u32 busClock;  // 0xF8
+};
+#define OS_BUS_CLOCK (((OSLowMem*) 0x80000000)->busClock)
+#define OS_TIMER_CLOCK (OS_BUS_CLOCK / 4)
+#define OSTicksToMilliseconds(ticks) ((ticks) / (OS_TIMER_CLOCK / 1000))
+
+#include "snd.h"
+
+// Stream work (snd_ram `Snd_str_work[4]`, 0x14C bytes), only the debug display fields.
+struct DvdSndStrWork {
+    u16 status;   // 0x00
+    s16 no;       // 0x02
+    u8 pad_4[5];
+    s8 state;     // 0x09
+    u8 pad_A[0x20 - 0xA];
+    u32 req;      // 0x20
+    u8 err;       // 0x24
+    u8 cancel;    // 0x25
+    u8 pad_26[0x14C - 0x26];
+};
+extern "C" DvdSndStrWork Snd_str_work[4];
+
+#define ALIGN32(x) (((x) + 0x1F) & ~0x1F)
+#define DVD_BUFF ((void*) 0x80350000)
+#define DVD_BUFF2 ((void*) 0x80360000)
+
+// status field of cDvdQueue::flag
+enum {
+    ST_PUSH = 0,
+    ST_READ = 1,
+    ST_COMPLETE = 2,
+    ST_CANCEL = 3,
+    ST_ERROR = 4
+};
+
 
 DvdReq DvdReqWork;
 cDvd Dvd;
@@ -692,7 +697,7 @@ void cDvdQueue::readMain()
             remain = (*ph)->size;
             ofs = hedOfs[depth] + (*ph)->ofs;
             step++;
-            OSReport("DVD: Trans ARAM Snddata  addr: %08x size: %08x %s\n", destAddr, remain, blk_tbl[t]);
+            OSReport("DVD: Trans MRAM Snddata  addr: %08x size: %08x %s\n", destAddr, remain, blk_tbl[t]);
             break;
         case 2:
             t = (*ph)->sndType;
@@ -726,7 +731,7 @@ void cDvdQueue::readMain()
             remain = (*ph)->size;
             ofs = hedOfs[depth] + (*ph)->ofs;
             step++;
-            OSReport("DVD: Trans MRAM Snddata  addr: %08x size: %08x %s\n", destAddr, remain, blk_tbl[t]);
+            OSReport("DVD: Trans ARAM Snddata  addr: %08x size: %08x %s\n", destAddr, remain, blk_tbl[t]);
             UseAramSize[t] = (remain + 0x1F) / 0x20 * 0x20;
             break;
         }
