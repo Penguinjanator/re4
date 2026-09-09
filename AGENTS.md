@@ -1808,6 +1808,22 @@ SDK/CRI MWCC register-allocation levers found on reverb_std, svm and ax_rna (MWC
   not move it. Also OPEN: `&wk->u.ring` kept in a callee-saved reg; ternary/if-else diamond sunk to its
   use; `adr[8]` kept on the stack; `bne body; b end` after `mr.`.
 
+### MWCC compiler-build differences (sweep result, do not brute-force further)
+A full sweep (every GC/1.0..3.0a5.2 and Wii mwcceppc build, every documented and hidden 2.4.7 option
+and pragma singly and in 66 pairs, against 7 near-miss functions with identical instruction streams,
+plus a 55-function regression set) found NO configuration that moves any of them; all 2.4.x builds
+(GC/1.3.2 .. 2.7) emit byte-identical `.text`, and every deviation from `cflags_mw_cri` regresses matched
+units. `cflags_mw_cri`/`MWCC_CRI_VERSION` are the unique optimum. Treat these as compiler-build
+differences (the original used a 2.4.7 build we do not have) and accept 88-99.9% on the affected
+functions instead of more source permutations:
+- M1 register ranking: callee-saved order (parameters reverse-order above locals) and the volatile
+  temporary preference (e.g. `SFBUF_RingGetRead`: target gives the zero constant the freed r5 and the
+  `mulli` result r0; ours zero=r0 and reuses the dying operand in place).
+- M2 float-literal pooling: ours pools whenever a function references >=3 distinct `.rodata` objects;
+  the original applies that rule to strings but not consistently to float literals.
+- M3 auto-inlining decisions for mid-size helpers (mwsfdsvr).
+Write the remaining CRI units for source completeness; flag only what matches.
+
 ## REL modules
 
 The game loads its rooms, enemies, weapons and debug tools as Nintendo REL overlays. `ninja` rebuilds the
