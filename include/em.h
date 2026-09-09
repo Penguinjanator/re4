@@ -87,6 +87,10 @@ struct MotionWorkSub {
     u8 pad_CC[4];
 };
 
+struct PlArc;      // global.h
+class cSubChar;    // pl_npc.h
+class cLight;      // light.h
+
 class cEm : public cModel {
 public:
     void* pMotion;        // 0x1D8  motion work head: current motion data, NULL = stopped (pl_push stopTarget)
@@ -150,8 +154,14 @@ public:
     EmHitInfo hitInfo;    // 0x33C .. 0x370  (obj08: the player's hit part for the damage effect)
     f32 plDist2;          // 0x370  squared distance to the player (db_work prints its sqrt)
     f32 x374;             // 0x374  (em_set: 1e16 at creation)
-    u32 x378;             // 0x378  (pl_sub EndPlDamage/EndSubDamage: x378 = x37C)
-    u32 x37C;             // 0x37C
+    union {
+        u32 x378;         // 0x378  (pl_sub EndPlDamage/EndSubDamage: x378 = x37C)
+        PlArc* subArc;          // 0x378  cSubChar: motion archive the routines index (pl_npc.cpp)
+    };
+    union {
+        u32 x37C;         // 0x37C
+        PlArc* subArc2;         // 0x37C  cSubChar: the archive restored after a damage routine
+    };
     Vec lockOfs;          // 0x380  lock-on point offset in the lockParts' matrix (pl_wep)
     u8 lockParts;         // 0x38C  parts the lock-on point follows (pl_wep; AutoTrack uses the low 3 bits)
     u8 x38D;              // 0x38D  (db_cam "set=")
@@ -187,7 +197,10 @@ public:
     u16 item3DA;          // 0x3DA  setItem c
     u16 item3DC;          // 0x3DC  setItem d
     u8 pad_3DE[2];
-    u32 x3E0;             // 0x3E0  player: event walk flag / damage timer
+    union {
+        u32 x3E0;         // 0x3E0  player: event walk flag / damage timer
+        cSubChar* subSelf;         // 0x3E0  cSubChar: the model the routines animate (itself)
+    };
     int x3E4;             // 0x3E4  player damage: 1 = turning towards x400
     u32 x3E8;             // 0x3E8  player damage (blow): water splash done
     int x3EC;             // 0x3EC  player damage (emrock plemRockEscape): EMI route point run to (-1 = none)
@@ -202,47 +215,87 @@ public:
             u16 subFlags2;  // 0x402  cSubChar (pl_sub SubCharMoveTo clears 0x60)
         };
     };
-    Vec evTarget;         // 0x404  player event: walk-to position
-    Vec evTarget2;        // 0x410  player: position setPos'd while flags_420 bit7 is set (objRobo R0WaitGondola)
-    u32 flags_41C;        // 0x41C  player: bit8 (0x100) event motion done -> reset routine
-    u32 flags_420;        // 0x420  player: bit6 (0x40) knife routine ends into routine 0x11
-    void** pMotTbl;       // 0x424  player: motion data table ([0] walk, [2] turn, [0x5F..0x6C] set by setMotion)
-    void** pRegistMot;    // 0x428  player: registered motion table (pl_sub PlRegistMotion fills [0..11])
-    MotionWorkSub neckMot;   // 0x42C .. 0x4FC  player: neck turn motion (pl_class cPlNeck::motSet), blended via blendMot
-    u8 x4FC;              // 0x4FC  (pl_sub PlChangeData/PlMotionReset clear it)
-    u8 x4FD;              // 0x4FD
-    u8 x4FE;              // 0x4FE
-    u8 xButtonWait;       // 0x4FF  player: frames until the X button (partner command) is accepted again
-    u8 pad_500[4];
-    u32 sndId504;         // 0x504  player: SndCall handle cPlayer::interrupt stops
-    cModel* pLockEm;      // 0x508  player: locked-on enemy (pl_wep lock, knife aim)
-    u8 pad_50C[0x518 - 0x50C];
-    int gachaCnt;         // 0x518  player: button mash counter (pl_sub PlGacha*)
-    u8 pad_51C[2];
-    u8 eyeMode;           // 0x51E  player (pl_sub PlSetEyeMode)
-    u8 binoMode;          // 0x51F  player: binocular step (cPlayer::moveBinocular 1 -> 2 -> 3 -> 0)
+    // 0x404 .. 0x520: player fields, and the same bytes as the partner (cSubChar, pl_npc.cpp) uses them
+    union {
+        struct {
+            Vec evTarget;         // 0x404  player event: walk-to position
+            Vec evTarget2;        // 0x410  player: position setPos'd while flags_420 bit7 is set (objRobo R0WaitGondola)
+            u32 flags_41C;        // 0x41C  player: bit8 (0x100) event motion done -> reset routine
+            u32 flags_420;        // 0x420  player: bit6 (0x40) knife routine ends into routine 0x11
+            void** pMotTbl;       // 0x424  player: motion data table ([0] walk, [2] turn, [0x5F..0x6C] set by setMotion)
+            void** pRegistMot;    // 0x428  player: registered motion table (pl_sub PlRegistMotion fills [0..11])
+            MotionWorkSub neckMot;   // 0x42C .. 0x4FC  player: neck turn motion (pl_class cPlNeck::motSet), blended via blendMot
+            u8 x4FC;              // 0x4FC  (pl_sub PlChangeData/PlMotionReset clear it)
+            u8 x4FD;              // 0x4FD
+            u8 x4FE;              // 0x4FE
+            u8 xButtonWait;       // 0x4FF  player: frames until the X button (partner command) is accepted again
+            u8 pad_500[4];
+            u32 sndId504;         // 0x504  player: SndCall handle cPlayer::interrupt stops
+            cModel* pLockEm;      // 0x508  player: locked-on enemy (pl_wep lock, knife aim)
+            u8 pad_50C[0x518 - 0x50C];
+            int gachaCnt;         // 0x518  player: button mash counter (pl_sub PlGacha*)
+            u8 pad_51C[2];
+            u8 eyeMode;           // 0x51E  player (pl_sub PlSetEyeMode)
+            u8 binoMode;          // 0x51F  player: binocular step (cPlayer::moveBinocular 1 -> 2 -> 3 -> 0)
+        };
+        struct {
+            u8 sub404;            // 0x404  cSubChar
+            u8 sub405;            // 0x405
+            u16 sub406;           // 0x406  frame counter
+            u8 sub408;            // 0x408
+            u8 sub409;            // 0x409
+            u8 sub40A;            // 0x40A  timer
+            u8 pad_40B;
+            u32 pad_40C;
+            f32 subAng;           // 0x410  angle to the player (analyze)
+            f32 subDist;          // 0x414  distance to the player (analyze)
+            Vec subTarget;        // 0x418  position to walk to
+            f32 sub424;           // 0x424
+            Vec subOfs;           // 0x428  offset behind the player (atckPos)
+            u32 subPlStatus;      // 0x434  PlGetStatus() of the frame
+            u32 sub438;           // 0x438
+            Vec sub43C;           // 0x43C  hit point of the action wall check (actionCheck)
+            Vec sub448;           // 0x448  its normal
+            u8 pad_454[0x498 - 0x454];
+            u32 sub498;           // 0x498
+            u8 pad_49C[0x51C - 0x49C];
+            f32 sub51C;           // 0x51C
+        };
+    };
     u8 dmgFlag520;        // 0x520  player: 1 once setDamage ran
     u8 pad_521;
     u16 dmgCnt522;        // 0x522  player: accumulated setDamage counts; a damage reaction starts past 0xFE
-    u8 pad_524[0x530 - 0x524];
-    int subHideMode;      // 0x530  cSubChar (pl_sub SubCharCtrlHide)
+    u8 pad_524[8];
+    f32 sub52C;           // 0x52C  cSubChar: fence / window action direction
+    int subHideMode;      // 0x530  cSubChar (pl_sub SubCharCtrlHide); pl_npc: general step counter
     int subX534;          // 0x534  cSubChar (SubCharCtrlHide mode 0 sets 1)
-    u8 pad_538[0x544 - 0x538];
+    int sub538;           // 0x538  cSubChar: step counter
+    int sub53C;           // 0x53C  cSubChar: the catch action button is set (moveFallWait)
+    int sub540;           // 0x540  cSubChar: frames waiting for the player
     Vec subHidePos;       // 0x544  cSubChar hide position
-    u8 pad_550[0x568 - 0x550];
+    u8 sub550;            // 0x550  cSubChar: frames until the route is re-checked
+    u8 pad_551[3];
+    u32 sub554;           // 0x554  cSubChar
+    u32 sub558;           // 0x558
+    u8 pad_55C[8];
+    f32 sub564;           // 0x564  cSubChar: angle to turn to while waiting to be caught
     int subAux0;          // 0x568  cSubChar (SetSubAux/SetSubBulldozer arguments)
     int subAux1;          // 0x56C
     f32 subMoveTo[4];     // 0x570  cSubChar (SubCharMoveTo x, y, z, w)
-    u8 pad_580[4];
+    u8 sub580;            // 0x580  cSubChar: timer
+    u8 sub581;            // 0x581
+    u8 pad_582[2];
     void* subMot0;        // 0x584  cSubChar registered motions (SubCharRegistMotion, SetSubDamage)
     void* subMot1;        // 0x588
+    // 0x58C .. 0x5C4 is the partner's cMotBase (pl_npc.cpp / obj13: `(cMotBase*) &subFlags58C`)
     u8 subFlags58C;       // 0x58C  cSubChar (SetSubDamage sets 0x40)
     u8 pad_58D[0x5C4 - 0x58D];
     u32 subSndId;         // 0x5C4  cSubChar: SndCall handle of the bulldozer SEs (objBull Sub_bull_*)
     f32 subX5C8;          // 0x5C8  cSubChar (obj13 SubLadderClimbCk: the partner climbs only while >= 1000)
-    u8 pad_5CC[0x738 - 0x5CC];
+    EmHitInfo subHit[3];  // 0x5CC .. 0x668  cSubChar: extra hit boxes (YarareAdd in cSubChar::init)
+    u8 pad_668[0x738 - 0x668];
     int satCheckFlag;     // 0x738  player: SatMgr.check flag (player.cpp startUp / move)
-    u8 pad_73C[4];
+    void (*pAuxFunc)(class cPlayer*);  // 0x73C  player: routine 1/0xA (pl_R1_Aux) handler
     struct PlRoomEff* pRoomEff;  // 0x740  player: room water effect table (pl_sub PlRegistRoomEff/PlWaterProc)
     void* boss0;          // 0x744  player (pl_sub PlRegistBoss)
     void* boss1;          // 0x748
@@ -262,7 +315,12 @@ public:
     class cMotBase* pMotBase;  // 0x7A4  (0x38 bytes)
     u8 pad_7A8[4];
     Vec bustBase[3];      // 0x7AC  Ashley: rest positions of parts 0x1D, 0x1E, 0x1A (pl_ashley moveBust)
-    u8 pad_7D0[0x890 - 0x7D0];
+    u8 pad_7D0[4];
+    cLight* subLight;         // 0x7D4  cSubChar: back light (cLightMgr::createBack)
+    void* subShape;       // 0x7D8  cSubChar: ShapeMove work (NULL = none)
+    void (*subFunc)();        // 0x7DC  cSubChar: routine 4 (damage) handler (cSubChar::move)
+    Vec subBustBase[3];   // 0x7E0  cSubChar: rest positions of parts 0x1D, 0x1E, 0x1A (moveBust)
+    u8 pad_804[0x890 - 0x804];
     int x890;             // 0x890  player (Krauser): cleared by cPlayer::interrupt with pG->flags_5018 bit23
     int x894;             // 0x894  player (Krauser): -1 -> 1 there
     u8 pad_898[0x9BC - 0x898];

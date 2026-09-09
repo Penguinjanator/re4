@@ -11,10 +11,17 @@ struct EtcItem {
     Vec pos;     // 0x70
 };
 
-// One room etc model record handed to the Et*_init functions (et00.cpp).
+// One room etc model record (0x28 bytes, EtcModelListSet steps through them) handed to the
+// Et*_init functions (EtcModel.cpp, et00.cpp).
 struct EtcSetData {
-    u8 pad_0[3];
-    u8 type;         // 0x03  WindowData row
+    u16 id;          // 0x00  etc model id (EtcModelSet switch, 0x00..0x67)
+    union {
+        u16 no;      // 0x02  g_EtcTbl slot (< 0x40)
+        struct {
+            u8 pad_2;
+            u8 type; // 0x03  low byte of `no`: the etc number the Set* functions take (WindowData row)
+        };
+    };
     u8 pad_4[0x10 - 0x4];
     Vec rot;         // 0x10
     Vec pos;         // 0x1C

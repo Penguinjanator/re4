@@ -70,7 +70,6 @@
 extern "C" {
 void OSReport(const char* fmt, ...);
 // game/read.cpp
-void* GetDataExt(void* arc, const char* tag, int no);
 void ReadPlayerData(int type, int costume);
 void ReadAreaData();
 void EmReadInit();
@@ -102,6 +101,8 @@ void SetPrimBuffPtr();
 void Filter09GetEFB_801D19E0();
 void Filter09SetbUse(int use, int spred);
 }
+// game/read.cpp (C++ linkage)
+void* GetDataExt(void* arc, const char* tag, int no);
 // game/cons.cpp (C++ linkage)
 struct ConsRoom;
 int ConsInitRoom(ConsRoom* p);
@@ -122,6 +123,19 @@ union FadeColor {
     GXColor c;
     u32 w;
 };
+
+// FadeSet with two colour words. The volatile locals are real stack objects allocated where the
+// inline is expanded (the first two frame slots, reused by every call) and their addresses are
+// hard-register argument sets (`addi rN, r1, 8` recomputed at each call, never PRE'd).
+static inline void fadeSet(int no, u32 start, u32 end, u32 time)
+{
+    volatile FadeColor c0;
+    volatile FadeColor c1;
+
+    c1.w = end;
+    c0.w = start;
+    FadeSet(no, (GXColor*) &c0.c, (GXColor*) &c1.c, time, 0, 0);
+}
 
 // Option archive (pG->pOptionData): offsets to the died demo id data.
 struct OptionArc {
@@ -248,7 +262,7 @@ void gameInit()
     }
     if ((pG->flags_54 & 0x40000000) || pG->x4FB8 == 4) {
 #line 232 "D:/Bio4/Prog/game.cpp"
-        Game.pBuf = MEM_ALLOC(0xE8, 1, 13);
+        Game.pBuf = MEM_ALLOC(0x70000, 1, 13);
     }
     if (pG->x8354 == 0) {
         pG->x8354 = 5;
@@ -258,7 +272,7 @@ void gameInit()
     Cckpt.gameInit();
     ObjMgr.warnDiv = 100;
     LightMgr.init(LightFuncTbl);
-    LightMgr.initPath((LightPathHeader*) ((u8*) pG->pArc + pG->pArc->ofs_3C));
+    LightMgr.initPath((LightPathHeader*) (pG->pArc->ofs_3C + (u32) pG->pArc));
     ScenarioInit();
     PlayerInit();
     U16Set(pG->sub_life, 600);
@@ -295,14 +309,17 @@ void gameStageInit()
     if ((s32) pSys->x4 < 0) {
         if ((s32) pG->flags_54 >= 0 && !(pG->flags_54 & 0x40000000) && pG->room_id == 0x120 &&
             ((pG->flags_54 & 0x2000) || pG->game_mode == 3)) {
-            Message* m = cMes.getMes(0);
+            Message* m;
             int res;
 
             pG->flags_58 &= ~0x800;
             cMes.setLayout(0, 0);
-            cMes.MesSet(150, 100, 336 - m->fontH - m->lineSpace - 1, 1, 0, 0, 4);
-            while ((res = m->result) == 0) {
-                TaskSleep(1);
+            m = cMes.getMes(0);
+            cMes.MesSet(150, 100, 336 - m->lineSpace - m->fontH - 1, 1, 0, 0, 4);
+            if ((res = m->result) == 0) {
+                do {
+                    TaskSleep(1);
+                } while ((res = cMes.getMes(0)->result) == 0);
             }
             switch (res) {
             case 1:
@@ -400,20 +417,14 @@ void gameRoomInit()
     EspgenArrayAlloc(ConsGetRoomValue(3));
     CtrlMgr.roomInit();
     CtrlMgr.arrayAlloc(ConsGetRoomValue(4));
-    LightMgr.roomInit((cLit*) ((u8*) pG->pArc + pG->pArc->ofs_2C), (cLit*) GetDataExt(pG->pRoomArc, "LIT", 0),
+    LightMgr.roomInit((cLit*) (pG->pArc->ofs_2C + (u32) pG->pArc), (cLit*) GetDataExt(pG->pRoomArc, "LIT", 0),
                       (cLit*) GetDataExt(pG->pRoomArc, "LIT", 1));
     LightMgr.arrayAlloc(ConsGetRoomValue(5));
-    LightMgr.initPath((LightPathHeader*) ((u8*) pG->pArc + pG->pArc->ofs_3C));
+    LightMgr.initPath((LightPathHeader*) (pG->pArc->ofs_3C + (u32) pG->pArc));
     ShadowRoomInit();
     DmgMgr.roomInit();
     DmgMgr.arrayAlloc(20);
-    {
-        FadeColor c0;
-        FadeColor c1;
-        c0.w = 0x00000000;
-        c1.w = 0x000000FF;
-        FadeSet(2, &c0.c, &c1.c, 0, 0, 0);
-    }
+    fadeSet(2, 0x00000000, 0x000000FF, 0);
     FilterRoomInit();
     TexRenderMgrRoomInit();
     ItemModelRoomInit();
@@ -495,7 +506,7 @@ void gameRoomInit()
     } else {
         pG->pRoomCamData = p;
     }
-    CamCtrl.CoreDataRead((CameraDataHeader*) ((u8*) pG->pArc + pG->pArc->ofs_30));
+    CamCtrl.CoreDataRead((CameraDataHeader*) (pG->pArc->ofs_30 + (u32) pG->pArc));
     CamCtrl.roomInit();
     View.roomInit();
     p = GetDataExt(pG->pRoomArc, "BLK", 0);
@@ -530,18 +541,12 @@ void gameRoomInit()
         BitOn(pG->flags_54, 0x800);
     }
     MerchantRoomInit();
-    {
-        FadeColor c0;
-        FadeColor c1;
-        c0.w = 0x000000FF;
-        c1.w = 0x00000000;
-        FadeSet(0x80000001, &c0.c, &c1.c, 0, 0, 0);
-    }
+    fadeSet(0x80000001, 0x000000FF, 0x00000000, 0);
     ScenarioRoomInit();
     SndRoomBgmStartCheck(0);
     SndRoomStrStartCheck();
     RoomData.setPassed(pG->room_id, pG->x4F9E);
-    if (!(pG->flags_54 & 0x2000) && !(pG->flags_54 & 0x100) && !(pG->flags_54 & 0x80000)) {
+    if (!Flag54(0x2000) && !Flag54(0x100) && !Flag54(0x80000)) {
         DoorSeCall(1);
     }
     BitOff(pG->flags_54, 0x2000);
@@ -551,20 +556,8 @@ void gameRoomInit()
     BitOff(pG->flags_68, 0x80000000);
     Block.check(0);
     Filter09SetbUse(0, 1);
-    {
-        FadeColor c0;
-        FadeColor c1;
-        c0.w = 0x000000FF;
-        c1.w = 0x00000000;
-        FadeSet(0x80000002, &c0.c, &c1.c, 0, 0, 0);
-    }
-    {
-        FadeColor c0;
-        FadeColor c1;
-        c0.w = 0x000000FF;
-        c1.w = 0x00000000;
-        FadeSet(0x80000001, &c0.c, &c1.c, 20, 0, 0);
-    }
+    fadeSet(0x80000002, 0x000000FF, 0x00000000, 0);
+    fadeSet(0x80000001, 0x000000FF, 0x00000000, 20);
     SubScreenWait(15);
     BitOff(pG->flags_54, 0x100000);
     DC.xA0C = 0;
@@ -758,8 +751,8 @@ void GameContinue(int mode)
 {
     u32 time = pG->play_time;
     u16 x4F90 = pG->x4F90;
-    u16 x833A = pG->x833A;
     u16 x8338 = pG->x8338;
+    u16 x833A = pG->x833A;
 
     GameSave.load(pSaveData);
     if (pG->game_mode == -1) {
@@ -805,11 +798,11 @@ void clearGlobalSaveData()
     u8 x8354 = pG->x8354;
     s32 game_mode = pG->game_mode;
 
-    keep2 = *(GlobalKeep2*) &pG->x8330;
-    keep = *(GlobalKeep*) &pG->pl_life;
+    memcpy(&keep2, (u8*) pG + 0x8330, sizeof(keep2));
+    memcpy(&keep, (u8*) pG + 0x4FA4, sizeof(keep));
     memclr_asm(pG->pad_4F80, 0x36F8);
-    *(GlobalKeep2*) &pG->x8330 = keep2;
-    *(GlobalKeep*) &pG->pl_life = keep;
+    memcpy((u8*) pG + 0x8330, &keep2, sizeof(keep2));
+    memcpy((u8*) pG + 0x4FA4, &keep, sizeof(keep));
     U16Set(pG->x4F8E, x4F8E);
     U32Set(pG->x4F98, x4F98);
     pG->x4F93 = x4F93;
@@ -828,7 +821,7 @@ int cGameSave::load(void* p)
         return 0;
     }
     checkAddr(data);
-    *(GameSaveBlock*) pG->pad_4F80 = *data->pGlobal;
+    memcpy((u8*) pG + 0x4F80, data->pGlobal, sizeof(GameSaveBlock));
     if (pG->game_mode == 3) {
         clearGlobalSaveData();
         RoomData.clear(data->pRoom);
@@ -959,13 +952,7 @@ void gameEnding()
 #line 1419 "D:/Bio4/Prog/game.cpp"
         req = DvdReadN("Etc/Ending.tpl", 0, 0, 0, 0, 5, __FILE__, __LINE__);
         Dvd.ReadCheck(req, 0, 0, (void**) &pTpl);
-        {
-            FadeColor c0;
-            FadeColor c1;
-            c0.w = 0x000000FF;
-            c1.w = 0x00000000;
-            FadeSet(0x80000000, &c0.c, &c1.c, 30, 0, 0);
-        }
+        fadeSet(0x80000000, 0x000000FF, 0x00000000, 30);
         pG->x21++;
         break;
     }
@@ -1067,7 +1054,7 @@ void gameDiedemo(DiedemoWork* w)
             }
             break;
         case 1:
-            IdTexDataLoad((u8*) pG->pOptionData + ((OptionArc*) pG->pOptionData)->ofs_10, 10);
+            IdTexDataLoad((void*) (((OptionArc*) pG->pOptionData)->ofs_10 + (u32) pG->pOptionData), 10);
             IdSys.kill(0xFF, 0x21);
             kind = w->type;
             if (kind == 0) {
@@ -1078,22 +1065,16 @@ void gameDiedemo(DiedemoWork* w)
             }
             switch (kind) {
             case 1:
-                IdSys.set((u8*) pG->pOptionData + ((OptionArc*) pG->pOptionData)->ofs_14, 0xFF, 0x2D, 0x13, 6, 0);
+                IdSys.set((void*) (((OptionArc*) pG->pOptionData)->ofs_14 + (u32) pG->pOptionData), 0xFF, 0x2D, 0x13, 6, 0);
                 break;
             case 2:
-                IdSys.set((u8*) pG->pOptionData + ((OptionArc*) pG->pOptionData)->ofs_1C, 0xFF, 0x2D, 0x13, 6, 0);
+                IdSys.set((void*) (((OptionArc*) pG->pOptionData)->ofs_1C + (u32) pG->pOptionData), 0xFF, 0x2D, 0x13, 6, 0);
                 break;
             }
             if (pG->flags_5018 & 0x1000000) {
                 u = IdSys.unitPtr(0, 0x2D);
                 u->flags |= 8;
-                {
-                    FadeColor c0;
-                    FadeColor c1;
-                    c0.w = 0x000000FF;
-                    c1.w = 0x00000000;
-                    FadeSet(0x80000002, &c0.c, &c1.c, 1, 0, 0);
-                }
+                fadeSet(0x80000002, 0x000000FF, 0x00000000, 1);
             } else {
                 u = IdSys.unitPtr(0, 0x2D);
                 u->flags &= ~8;
@@ -1104,7 +1085,7 @@ void gameDiedemo(DiedemoWork* w)
             /* fallthrough */
         case 2:
             if (cnt >= w->time + 0x10E || (Key.trg & 1)) {
-                IdSys.set((u8*) pG->pOptionData + ((OptionArc*) pG->pOptionData)->ofs_18, 0xFF, 0x2E, 0x13, 5, 0);
+                IdSys.set((void*) (((OptionArc*) pG->pOptionData)->ofs_18 + (u32) pG->pOptionData), 0xFF, 0x2E, 0x13, 5, 0);
                 cnt2 = 0;
                 step++;
                 IdSys.beMove(IdSys.unitPtr(0x30, 0x2E), 0);
@@ -1196,48 +1177,28 @@ void gameDoordemo()
     BitSet(pG->flags_170, 0xFFFFFFFF);
     KeyStop(0xEFCF0000);
     if (pG->flags_68 & 0x80000000) {
-        FadeColor c0;
-        FadeColor c1;
-        c0.w = 0x00000000;
-        c1.w = 0x000000FF;
-        FadeSet(0, &c0.c, &c1.c, 0, 0, 0);
+        fadeSet(0, 0x00000000, 0x000000FF, 0);
         TaskSleep(1);
     } else if ((pG->flags_54 & 0x80000) || (pG->flags_54 & 0x100)) {
-        FadeColor c0;
-        FadeColor c1;
-        c0.w = 0x00000000;
-        c1.w = 0x000000FF;
-        FadeSet(0, &c0.c, &c1.c, 0, 0, 0);
+        fadeSet(0, 0x00000000, 0x000000FF, 0);
     } else {
         switch (SceSys.x75) {
         case 0:
         default: {
-            FadeColor c0;
-            FadeColor c1;
             Filter09GetEFB_801D19E0();
             Filter09SetbUse(1, 1);
-            c0.w = 0x00000000;
-            c1.w = 0x000000FF;
-            FadeSet(0, &c0.c, &c1.c, 120, 0, 0);
+            fadeSet(0, 0x00000000, 0x000000FF, 120);
             break;
         }
         case 1: {
-            FadeColor c0;
-            FadeColor c1;
-            c0.w = 0x00000000;
-            c1.w = 0x000000FF;
-            FadeSet(0, &c0.c, &c1.c, 15, 0, 0);
+            fadeSet(0, 0x00000000, 0x000000FF, 15);
             while (Fade[0].flags & 1) {
                 TaskSleep(1);
             }
             break;
         }
         case 2: {
-            FadeColor c0;
-            FadeColor c1;
-            c0.w = 0x00000000;
-            c1.w = 0x000000FF;
-            FadeSet(0, &c0.c, &c1.c, 0, 0, 0);
+            fadeSet(0, 0x00000000, 0x000000FF, 0);
             break;
         }
         }
@@ -1527,7 +1488,7 @@ void primInit()
     S32Set(pG->prim_cnt, 0);
     pG->prim_max *= 2;
     do {
-        pG->prim_max /= 2;
+        S32Set(pG->prim_max, pG->prim_max / 2);
 #line 2215 "D:/Bio4/Prog/game.cpp"
         S32Set(pG->prim_cnt, (s32) MEM_ALLOC(pG->prim_max * 2, 1, 13));
         if ((u32) pG->prim_cnt < 0x80000000 || (u32) pG->prim_cnt > 0x82FFFFFF) {
@@ -1549,7 +1510,7 @@ void PrimDispWorkNum(int x, int y, int col)
     eprintf(x, y, 0, col, "%5X/%5X", (int) ((f32) pG->prim_max * pG->prim_rate), pG->prim_max);
 }
 
-int stop_rno = 0;
+u32 stop_rno = 0;
 static int lbl_80314BA4 = 0;
 static u32 stop_bak;
 
@@ -1569,8 +1530,8 @@ void gameStopMove()
     switch (stop_rno) {
     case 0:
         if (Joy[1].trg & 0x1000) {
-            stop_rno = 1;
             stop_bak = pG->flags_170;
+            stop_rno = 1;
         }
         break;
     case 1:
@@ -1751,7 +1712,7 @@ void gameDebugDisp()
         DrawRoomWireframe();
     }
     if (pG->flags_68 & 0x4000) {
-        DrawTpl((TEXPalette*) ((u8*) pG->pArc + pG->pArc->ofs_90), 0x118, 0x186, 0xDC, 0x1E);
+        DrawTpl((TEXPalette*) (pG->pArc->ofs_90 + (u32) pG->pArc), 0x118, 0x186, 0xDC, 0x1E);
     }
 }
 
@@ -1822,12 +1783,13 @@ void gameDebug()
 template <class T>
 int cManager<T>::dispWorkNum(int x, int y, int col, int sub)
 {
-    u32 n = 0;
+    u32 n;
     u32 i;
 
     if ((u32) pArray < 0x80000000 || (u32) pArray > 0x82FFFFFF) {
         return 0;
     }
+    n = 0;
     for (i = 0; i < nArray; i++) {
         T* p = (T*) ((u8*) pArray + size * i);
         if (p->be_flag & 0x601) {

@@ -66,15 +66,6 @@ struct MgrPtr {
 
 #define DVD_READ_N(name, dst, a, b, c, mode) DvdReadN(name, dst, a, b, c, mode, __FILE__, __LINE__)
 
-// Fade colours: word constants (`stw`) passed by address from block-scoped locals that share their
-// stack slot with the other blocks' temporaries (ItemInfo in SubScreenExec). Only a class with a
-// destructor is addressable at its declaration in g++ 2.95 and so gets a reusable temp slot; a
-// plain u32/union/GXColor whose address is taken later is spilled to a fixed slot of its own.
-union FadeColor {
-    GXColor c;
-    u32 w;
-};
-
 #define SS_ARAM 0xD00000
 #define SS_ARAM_SIZE 0x300000
 
@@ -370,13 +361,7 @@ void SubScreenExec()
             step++;
             wk->stage = sscrnStageNo();
             wk->room = sscrnRoomNo(pG->room_id);
-            {
-                FadeColor c0;
-                FadeColor c1;
-                c0.w = 0x00000000;
-                c1.w = 0x000000FF;
-                FadeSet(0, &c0.c, &c1.c, 3, 0, 0);
-            }
+            FadeSetW(0, 3, 0, 0);
         case 1:
             if (Fade[0].flags & 1) {
                 break;
@@ -455,14 +440,9 @@ void SubScreenExec()
             case 0x40:
             case 0x80:
                 break;
-            default: {
-                FadeColor c0;
-                FadeColor c1;
-                c0.w = 0x000000FF;
-                c1.w = 0x00000000;
-                FadeSet(0x80000000, &c0.c, &c1.c, 3, 0, 0);
+            default:
+                FadeSetW(0x80000000, 3, 0, 0);
                 break;
-            }
             }
             TaskSuspend(0);
             RoomData.stopRelData();
@@ -729,13 +709,7 @@ void SubScreenExit()
                 Cockpit* ck = &Cckpt;
                 ck->countDown.loadDisp();
             }
-            {
-                FadeColor c0;
-                FadeColor c1;
-                c0.w = 0x000000FF;
-                c1.w = 0x00000000;
-                FadeSet(0x80000000, &c0.c, &c1.c, 3, 0, 0);
-            }
+            FadeSetW(0x80000000, 3, 0, 0);
             TaskSignal(0);
             SndSubScreenExit();
             BitOn(pG->flags_500C, 0x02000000);
@@ -908,21 +882,9 @@ void OpeSetOpenTermEnd()
         wk->pObj = 0;
     }
     PlSetEyeMode(0);
-    {
-        FadeColor c0;
-        FadeColor c1;
-        c0.w = 0x000000FF;
-        c1.w = 0x00000000;
-        FadeSet(0x80000000, &c0.c, &c1.c, 3, 0, 0);
-    }
+    FadeSetW(0x80000000, 3, 0, 0);
     FadeKill(2);
-    {
-        FadeColor c0;
-        FadeColor c1;
-        c0.w = 0x000000FF;
-        c1.w = 0x00000000;
-        FadeSet(0x80000001, &c0.c, &c1.c, 10, 0, 0);
-    }
+    FadeSetW(0x80000001, 10, 0, 0);
 }
 
 // The next unit (lib/ppcdown.c, an SDK library) starts 32-byte aligned in .text and .bss and the

@@ -29,7 +29,6 @@ struct WepInfo {
     u8 x5;
     u16 bulletId;   // 0x06
     u16 charge[7];  // 0x08
-    u16 x16;        // 0x16
 };
 
 // Max tune level per type (fire, magazine, speed, exclusive) of a weapon.
@@ -106,49 +105,49 @@ u16 g_item_order[] = {
 int g_item_order_num = sizeof(g_item_order) / sizeof(g_item_order[0]);
 
 const WepInfo wep_info[] = {
-    {0x23, 0, 0x02, 0, 1, 0x04, {10, 13, 16, 19, 22, 25, 0}, 0},
-    {0x24, 0, 0x02, 1, 1, 0x04, {10, 13, 16, 19, 22, 25, 0}, 0},
-    {0x25, 0, 0x03, 0, 1, 0x04, {8, 10, 12, 15, 18, 22, 0}, 0},
-    {0x26, 0, 0x03, 2, 1, 0x04, {8, 10, 12, 15, 18, 22, 0}, 0},
-    {0x03, 0, 0x11, 0, 0, 0x04, {15, 18, 21, 24, 27, 30, 0}, 100},
-    {0x21, 0, 0x01, 0, 1, 0x04, {10, 13, 16, 20, 24, 28, 0}, 0},
-    {0x22, 0, 0x01, 1, 1, 0x04, {10, 13, 16, 20, 24, 28, 0}, 0},
-    {0x40, 0, 0x01, 0, 1, 0x04, {10, 13, 16, 20, 24, 28, 0}, 0},
-    {0x27, 0, 0x04, 0, 1, 0x04, {15, 18, 21, 25, 30, 35, 0}, 0},
-    {0x28, 0, 0x04, 1, 1, 0x04, {15, 18, 21, 25, 30, 35, 0}, 0},
-    {0x29, 0, 0x05, 0, 0, 0x00, {6, 8, 10, 12, 0, 0, 0}, 0},
-    {0x2C, 0, 0x07, 0, 0, 0x18, {6, 8, 10, 12, 15, 18, 0}, 0},
-    {0x2D, 0, 0x08, 0, 0, 0x18, {12, 14, 16, 20, 24, 28, 0}, 100},
-    {0x2E, 0, 0x09, 0, 1, 0x07, {5, 7, 9, 12, 15, 18, 0}, 0},
-    {0x6B, 0, 0x09, 1, 1, 0x07, {5, 7, 9, 12, 15, 18, 0}, 0},
-    {0x99, 0, 0x09, 2, 1, 0x07, {5, 7, 9, 12, 15, 18, 0}, 0},
-    {0x2F, 0, 0x0A, 0, 1, 0x07, {10, 12, 14, 17, 20, 24, 0}, 0},
-    {0x6C, 0, 0x0A, 1, 1, 0x07, {10, 12, 14, 17, 20, 24, 0}, 0},
-    {0x51, 0, 0x0A, 2, 1, 0x07, {10, 12, 14, 17, 20, 24, 0}, 0},
-    {0x30, 0, 0x0B, 0, 2, 0x20, {30, 50, 100, 150, 200, 250, 0}, 0},
-    {0x31, 0, 0x0B, 1, 2, 0x20, {30, 50, 100, 150, 200, 250, 0}, 0},
-    {0x32, 0, 0x0B, 2, 2, 0x20, {30, 50, 100, 150, 200, 250, 0}, 0},
-    {0x33, 0, 0x0B, 3, 2, 0x20, {30, 50, 100, 150, 200, 250, 0}, 0},
-    {0x36, 0, 0x0E, 0, 1, 0x46, {5, 7, 10, 0, 0, 0, 0}, 0},
-    {0xAB, 0, 0x0E, 1, 1, 0x46, {5, 7, 10, 0, 0, 0, 0}, 0},
-    {0x2A, 0, 0x06, 0, 1, 0x00, {7, 10, 14, 0, 0, 0, 0}, 0},
-    {0x2B, 0, 0x06, 1, 1, 0x00, {7, 10, 14, 0, 0, 0, 0}, 0},
-    {0x34, 0, 0x0C, 0, 0, 0x6A, {20, 25, 30, 35, 40, 50, 0xFFFF}, 0},
-    {0x35, 0, 0x0D, 0, 0, 0xFF, {1, 1, 1, 0, 0, 0, 0}, 0},
-    {0x17, 0, 0x0D, 1, 0, 0xFF, {1, 1, 1, 0, 0, 0, 0}, 0},
-    {0x6D, 0, 0x0D, 2, 0, 0xFF, {1, 1, 1, 0, 0, 0, 0}, 0},
-    {0x37, 0, 0x0F, 0, 0, 0x1A, {3, 4, 5, 6, 8, 10, 0xFFFF}, 0},
-    {0x38, 0, 0x10, 0, 0, 0xFF, {1, 1, 1, 0, 0, 0, 0}, 0},
-    {0x01, 0, 0x13, 0, 0, 0xFF, {1, 1, 1, 0, 0, 0, 0}, 0},
-    {0x02, 0, 0x16, 0, 0, 0xFF, {1, 1, 1, 0, 0, 0, 0}, 0},
-    {0x0E, 0, 0x17, 0, 0, 0xFF, {1, 1, 1, 0, 0, 0, 0}, 0},
-    {0x800, 0, 0x00, 0, 0, 0xFF, {1, 1, 1, 0, 0, 0, 0}, 0},
-    {0x08, 0, 0x19, 0, 0, 0xFF, {1, 1, 1, 0, 0, 0, 0}, 0},
-    {0x09, 0, 0x1F, 0, 0, 0xFF, {1, 1, 1, 0, 0, 0, 0}, 0},
-    {0x0A, 0, 0x20, 0, 0, 0xFF, {1, 1, 1, 0, 0, 0, 0}, 0},
-    {0x94, 0, 0x21, 0, 0, 0x18, {7, 9, 11, 13, 15, 17, 0}, 0},
-    {0x52, 0, 0x1C, 0, 0, 0x72, {0, 0, 0, 0, 0, 0, 0}, 0},
-    {0x3E, 0, 0x0B, 0, 0, 0x20, {30, 50, 100, 150, 200, 250, 0}, 0},
+    {0x23, 0, 0x02, 0, 1, 0x04, {10, 13, 16, 19, 22, 25, 0}},
+    {0x24, 0, 0x02, 1, 1, 0x04, {10, 13, 16, 19, 22, 25, 0}},
+    {0x25, 0, 0x03, 0, 1, 0x04, {8, 10, 12, 15, 18, 22, 0}},
+    {0x26, 0, 0x03, 2, 1, 0x04, {8, 10, 12, 15, 18, 22, 0}},
+    {0x03, 0, 0x11, 0, 0, 0x04, {15, 18, 21, 24, 27, 30, 100}},
+    {0x21, 0, 0x01, 0, 1, 0x04, {10, 13, 16, 20, 24, 28, 0}},
+    {0x22, 0, 0x01, 1, 1, 0x04, {10, 13, 16, 20, 24, 28, 0}},
+    {0x40, 0, 0x01, 0, 1, 0x04, {10, 13, 16, 20, 24, 28, 0}},
+    {0x27, 0, 0x04, 0, 1, 0x04, {15, 18, 21, 25, 30, 35, 0}},
+    {0x28, 0, 0x04, 1, 1, 0x04, {15, 18, 21, 25, 30, 35, 0}},
+    {0x29, 0, 0x05, 0, 0, 0x00, {6, 8, 10, 12, 0, 0, 0}},
+    {0x2C, 0, 0x07, 0, 0, 0x18, {6, 8, 10, 12, 15, 18, 0}},
+    {0x2D, 0, 0x08, 0, 0, 0x18, {12, 14, 16, 20, 24, 28, 100}},
+    {0x2E, 0, 0x09, 0, 1, 0x07, {5, 7, 9, 12, 15, 18, 0}},
+    {0x6B, 0, 0x09, 1, 1, 0x07, {5, 7, 9, 12, 15, 18, 0}},
+    {0x99, 0, 0x09, 2, 1, 0x07, {5, 7, 9, 12, 15, 18, 0}},
+    {0x2F, 0, 0x0A, 0, 1, 0x07, {10, 12, 14, 17, 20, 24, 0}},
+    {0x6C, 0, 0x0A, 1, 1, 0x07, {10, 12, 14, 17, 20, 24, 0}},
+    {0x51, 0, 0x0A, 2, 1, 0x07, {10, 12, 14, 17, 20, 24, 0}},
+    {0x30, 0, 0x0B, 0, 2, 0x20, {30, 50, 100, 150, 200, 250, 0}},
+    {0x31, 0, 0x0B, 1, 2, 0x20, {30, 50, 100, 150, 200, 250, 0}},
+    {0x32, 0, 0x0B, 2, 2, 0x20, {30, 50, 100, 150, 200, 250, 0}},
+    {0x33, 0, 0x0B, 3, 2, 0x20, {30, 50, 100, 150, 200, 250, 0}},
+    {0x36, 0, 0x0E, 0, 1, 0x46, {5, 7, 10, 0, 0, 0, 0}},
+    {0xAB, 0, 0x0E, 1, 1, 0x46, {5, 7, 10, 0, 0, 0, 0}},
+    {0x2A, 0, 0x06, 0, 1, 0x00, {7, 10, 14, 0, 0, 0, 0}},
+    {0x2B, 0, 0x06, 1, 1, 0x00, {7, 10, 14, 0, 0, 0, 0}},
+    {0x34, 0, 0x0C, 0, 0, 0x6A, {20, 25, 30, 35, 40, 50, 0xFFFF}},
+    {0x35, 0, 0x0D, 0, 0, 0xFF, {1, 1, 1, 0, 0, 0, 0}},
+    {0x17, 0, 0x0D, 1, 0, 0xFF, {1, 1, 1, 0, 0, 0, 0}},
+    {0x6D, 0, 0x0D, 2, 0, 0xFF, {1, 1, 1, 0, 0, 0, 0}},
+    {0x37, 0, 0x0F, 0, 0, 0x1A, {3, 4, 5, 6, 8, 10, 0xFFFF}},
+    {0x38, 0, 0x10, 0, 0, 0xFF, {1, 1, 1, 0, 0, 0, 0}},
+    {0x01, 0, 0x13, 0, 0, 0xFF, {1, 1, 1, 0, 0, 0, 0}},
+    {0x02, 0, 0x16, 0, 0, 0xFF, {1, 1, 1, 0, 0, 0, 0}},
+    {0x0E, 0, 0x17, 0, 0, 0xFF, {1, 1, 1, 0, 0, 0, 0}},
+    {0x800, 0, 0x00, 0, 0, 0xFF, {1, 1, 1, 0, 0, 0, 0}},
+    {0x08, 0, 0x19, 0, 0, 0xFF, {1, 1, 1, 0, 0, 0, 0}},
+    {0x09, 0, 0x1F, 0, 0, 0xFF, {1, 1, 1, 0, 0, 0, 0}},
+    {0x0A, 0, 0x20, 0, 0, 0xFF, {1, 1, 1, 0, 0, 0, 0}},
+    {0x94, 0, 0x21, 0, 0, 0x18, {7, 9, 11, 13, 15, 17, 0}},
+    {0x52, 0, 0x1C, 0, 0, 0x72, {0, 0, 0, 0, 0, 0, 0}},
+    {0x3E, 0, 0x0B, 0, 0, 0x20, {30, 50, 100, 150, 200, 250, 0}},
 };
 
 const WepLevelInfo wep_level_info[] = {
@@ -390,7 +389,7 @@ int cItemMgr::set_ada(int no)
 {
     if (no == 2) {
         ItemWork* p;
-        ItemWork* q;
+        u16 on;
         int i;
 
         dump(0x7C);
@@ -401,6 +400,7 @@ int cItemMgr::set_ada(int no)
         ItemSet tbl[] = {{0x21, 1}, {0x30, 1}, {0x2F, 1}, {0x45, 1}, {0x04, 30}, {0x20, 50}, {0x07, 5}, {0x01, 1}, {0x05, 1}};
         PUT_TABLE(tbl, 0);
         p = search(0x21);
+        on = 1;
         LV_SET(p, 5, 2, 1, 3);
         CHARGE(p);
         p = search(0x30);
@@ -409,9 +409,8 @@ int cItemMgr::set_ada(int no)
         p = search(0x2F);
         LV_SET(p, 5, 0, 1, 1);
         CHARGE(p);
-        q = search(0x45);
-        q->x8 = searchAt(p);
-        search(0x45)->x6 = 1;
+        search(0x45)->x8 = searchAt(p);
+        search(0x45)->x6 = on;
         arm(search(0x21));
     }
     return 0;
@@ -442,7 +441,7 @@ int cItemMgr::set_char(int no)
     }
     case 2: {
         ItemWork* p;
-        ItemWork* q;
+        u16 on;
         int i;
 
         dump(0x7C);
@@ -454,6 +453,7 @@ int cItemMgr::set_char(int no)
                          {0x07, 5}, {0x02, 1}, {0x02, 1}, {0x02, 1}, {0x05, 1}};
         PUT_TABLE(tbl, 0);
         p = search(0x21);
+        on = 1;
         LV_SET(p, 6, 2, 1, 3);
         CHARGE(p);
         p = search(0x30);
@@ -462,9 +462,8 @@ int cItemMgr::set_char(int no)
         p = search(0x2F);
         LV_SET(p, 5, 1, 1, 1);
         CHARGE(p);
-        q = search(0x45);
-        q->x8 = searchAt(p);
-        search(0x45)->x6 = 1;
+        search(0x45)->x8 = searchAt(p);
+        search(0x45)->x6 = on;
         arm(search(0x21));
         break;
     }
@@ -500,7 +499,6 @@ int cItemMgr::set_char(int no)
     }
     case 5: {
         ItemWork* p;
-        ItemWork* q;
         int i;
 
         dump(0x7C);
@@ -514,8 +512,7 @@ int cItemMgr::set_char(int no)
         p = search(0x23);
         LV_SET(p, 6, 2, 2, 5);
         CHARGE(p);
-        q = search(0x3F);
-        q->x8 = searchAt(p);
+        search(0x3F)->x8 = searchAt(p);
         search(0x3F)->x6 = 1;
         p = search(0x2A);
         LV_SET(p, 1, 0, 1, 1);
@@ -556,7 +553,7 @@ int cItemMgr::set_stage1(int no)
     }
     case 1: {
         ItemWork* p;
-        ItemWork* q;
+        u16 on;
         int i;
 
         ret = 1;
@@ -569,15 +566,15 @@ int cItemMgr::set_stage1(int no)
                          {0x20, 100}, {0x01, 1}, {0x02, 1}, {0x0E, 1}, {0x15, 1}, {0x15, 1}, {0x05, 1}};
         PUT_TABLE(tbl, 1);
         p = search(0x2C);
+        on = 1;
         LV_FIRE_SET(p, 2);
         LV_EX_SET(p, 1);
         setBullet(p, WeaponId2ChargeNum(0x2C, 2));
         p = search(0x2E);
         LV_EX_SET(p, 2);
         setBullet(p, WeaponId2ChargeNum(0x2E, 3));
-        q = search(0x44);
-        q->x8 = searchAt(p);
-        search(0x44)->x6 = 1;
+        search(0x44)->x8 = searchAt(p);
+        search(0x44)->x6 = on;
         search(0x30);
         search(0x25);
         search(0x01)->num = 5;
@@ -598,7 +595,7 @@ int cItemMgr::set_stage2(int no)
     switch (no) {
     case 0: {
         ItemWork* p;
-        ItemWork* q;
+        u16 on;
         int i;
 
         ret = 1;
@@ -610,15 +607,14 @@ int cItemMgr::set_stage2(int no)
         ItemSet tbl[] = {{0x25, 1}, {0x30, 1}, {0x2C, 1}, {0x2E, 1}, {0x04, 50}, {0x20, 100}, {0x18, 10}, {0x07, 10},
                          {0x01, 1}, {0x02, 1}, {0x0E, 1}, {0x06, 1}, {0x14, 1}, {0x43, 1}, {0x44, 1}};
         PUT_TABLE(tbl, 1);
-        u16 on = 1;
         p = search(0x25);
+        on = 1;
         LV_SET(p, 1, 1, 1, 1);
         setBullet(p, WeaponId2ChargeNum(0x25, 2));
         p = search(0x30);
         LV_SET(p, 2, 0, 2, 2);
         setBullet(p, WeaponId2ChargeNum(0x30, 3));
-        q = search(0x43);
-        q->x8 = searchAt(p);
+        search(0x43)->x8 = searchAt(p);
         search(0x43)->x6 = on;
         p = search(0x2C);
         LV_SET(p, 2, 0, 1, 2);
@@ -626,8 +622,7 @@ int cItemMgr::set_stage2(int no)
         p = search(0x2E);
         LV_SET(p, 2, 0, 1, 2);
         setBullet(p, WeaponId2ChargeNum(0x2E, 3));
-        q = search(0x44);
-        q->x8 = searchAt(p);
+        search(0x44)->x8 = searchAt(p);
         search(0x44)->x6 = on;
         arm(ItemMgr.search(0x25));
         pG->x4F98 = 40000;
@@ -715,7 +710,7 @@ int cItemMgr::set_stage3(int no)
     switch (no) {
     case 0: {
         ItemWork* p;
-        ItemWork* q;
+        u16 on;
         int i;
 
         ret = 2;
@@ -728,14 +723,14 @@ int cItemMgr::set_stage3(int no)
                          {0x18, 10}, {0x00, 10}, {0x07, 10}, {0x01, 1}, {0x43, 1}, {0x45, 1}, {0x05, 1}};
         PUT_TABLE(tbl, 2);
         p = search(0x27);
+        on = 1;
         LV_SET(p, 3, 1, 2, 3);
         setBullet(p, WeaponId2ChargeNum(0x27, LV_EX(p) + 1));
         p = search(0x30);
         LV_SET(p, 5, 2, 2, 5);
         setBullet(p, WeaponId2ChargeNum(0x30, LV_EX(p) + 1));
-        q = search(0x43);
-        q->x8 = searchAt(p);
-        search(0x43)->x6 = 1;
+        search(0x43)->x8 = searchAt(p);
+        search(0x43)->x6 = on;
         p = search(0x2D);
         LV_SET(p, 2, 0, 1, 2);
         setBullet(p, WeaponId2ChargeNum(0x2D, LV_EX(p) + 1));
@@ -745,16 +740,15 @@ int cItemMgr::set_stage3(int no)
         p = search(0x2F);
         LV_SET(p, 4, 0, 2, 4);
         setBullet(p, WeaponId2ChargeNum(0x2F, LV_EX(p) + 1));
-        q = search(0x45);
-        q->x8 = searchAt(p);
-        search(0x45)->x6 = 1;
+        search(0x45)->x8 = searchAt(p);
+        search(0x45)->x6 = on;
         arm(ItemMgr.search(0x27));
         pG->x4F98 = 40000;
         break;
     }
     case 1: {
         ItemWork* p;
-        ItemWork* q;
+        u16 on;
         int i;
 
         ret = 2;
@@ -767,14 +761,14 @@ int cItemMgr::set_stage3(int no)
                          {0x00, 10}, {0x07, 10}, {0x01, 1}, {0x43, 1}, {0x45, 1}, {0xC5, 1}, {0x05, 1}};
         PUT_TABLE(tbl, 2);
         p = search(0x27);
+        on = 1;
         LV_SET(p, 3, 1, 2, 3);
         setBullet(p, WeaponId2ChargeNum(0x27, LV_EX(p) + 1));
         p = search(0x30);
         LV_SET(p, 5, 2, 2, 5);
         setBullet(p, WeaponId2ChargeNum(0x30, LV_EX(p) + 1));
-        q = search(0x43);
-        q->x8 = searchAt(p);
-        search(0x43)->x6 = 1;
+        search(0x43)->x8 = searchAt(p);
+        search(0x43)->x6 = on;
         p = search(0x2D);
         LV_SET(p, 2, 0, 1, 2);
         setBullet(p, WeaponId2ChargeNum(0x2D, LV_EX(p) + 1));
@@ -784,9 +778,8 @@ int cItemMgr::set_stage3(int no)
         p = search(0x2F);
         LV_SET(p, 4, 0, 2, 4);
         setBullet(p, WeaponId2ChargeNum(0x2F, LV_EX(p) + 1));
-        q = search(0xC5);
-        q->x8 = searchAt(p);
-        search(0xC5)->x6 = 1;
+        search(0xC5)->x8 = searchAt(p);
+        search(0xC5)->x6 = on;
         arm(ItemMgr.search(0x27));
         pG->x4F98 = 40000;
         break;
@@ -933,7 +926,7 @@ int cItemMgr::set_debug(int no)
     }
     case 5: {
         ItemWork* p;
-        ItemWork* q;
+        u16 on;
         int i;
 
         ret = 3;
@@ -948,11 +941,11 @@ int cItemMgr::set_debug(int no)
                          {0x09, 1}, {0x09, 1}, {0x09, 1}, {0x0A, 1}, {0x0A, 1}, {0x0A, 1}};
         PUT_TABLE(tbl, 3);
         p = search(0x36);
+        on = 1;
         LV_SET(p, 2, 0, 1, 2);
         setBullet(p, WeaponId2ChargeNum(0x36, LV_EX(p) + 1));
-        q = search(0xAA);
-        q->x8 = searchAt(p);
-        search(0xAA)->x6 = 1;
+        search(0xAA)->x8 = searchAt(p);
+        search(0xAA)->x6 = on;
         arm(ItemMgr.search(0x36));
         break;
     }
@@ -3064,3 +3057,6 @@ void cItemMgr::debugWeapon(int id)
     }
     armId = id;
 }
+
+// the split object pads .sdata to 8 bytes (lbl_80313F4C)
+asm(".section .sdata; .balign 8");

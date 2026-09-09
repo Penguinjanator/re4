@@ -28,7 +28,7 @@ void EmSubBloodSet(cEm* em, Vec* pos, int type, int a, int b);
 // Hit box of `em` touched by the capsule of the 8-corner `box`; the best one by squared distance.
 EmHitInfo* emBoxAtCk(cEm* em, Vec* box, Vec* pos, int flag);
 EmHitInfo* emLineAtCk(cEm* em, Vec* a, Vec* b, f32 len, int flag);
-EmHitInfo* emLineAtCk2(cEm* em, Vec* a, Vec* b, Vec* out, int flag, f32 len);
+EmHitInfo* emLineAtCk2(cEm* em, Vec* a, Vec* b, f32 len, Vec* out, int flag);
 int emLineCapsuleCrossCk(Vec* a, Vec* b, Vec* top, Vec* bottom, f32 r, Vec* hit);
 int emLineCubeCrossCk(Vec* a, Vec* b, Mtx m, f32 sx, f32 sy, f32 sz, Vec* ofs, Vec* hit);
 int emLinePolyCrossCk(Vec* a, Vec* b, Vec* poly, Vec* hit);
@@ -36,7 +36,7 @@ EmHitInfo* emSphereAtCk(cEm* em, Vec* pos, Vec* pos2, f32 r, int flag, f32 r2);
 u32 GetWepTargetList(Vec* box, Vec* pos, WepTarget* list, u32 max, int flag);
 u32 GetWepTargetList2(Vec* p0, Vec* p1, WepTarget* list, u32 max, Vec* hit, Vec* nrm, u32* attr, int type,
                       int flag);
-int GetWepTargetListBomb(Vec* pos, WepTarget* list, int max, int type, int flag, f32 r);
+int GetWepTargetListBomb(Vec* pos, f32 r, WepTarget* list, int max, int type, int flag);
 int PlBombHitCk(Vec* pos, f32 r);
 int GetWepTargetPos(Vec* p0, Vec* p1, int plCheck, int wepNo, cEm** outEm, int* outAttr);
 EmHitInfo* EmYarareContactCk(cEm* em, Vec* pos, Vec* out, f32 r);

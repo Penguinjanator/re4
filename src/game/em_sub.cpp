@@ -69,6 +69,33 @@ static inline int EmIsDead(cEm* em)
     return (em->flags_324 & 0xFFFF0000) ? 1 : 0;
 }
 
+// Player life at least `lim`: the compare keeps its `>=` form (`cmpwi 0x1f5; cror un,eq,gt`) because
+// the constant only arrives at RTL inlining time, after fold's `>= C` -> `> C-1` rewrite.
+static inline int PlLifeOver(int lim)
+{
+    return (s16) pG->pl_life >= lim;
+}
+
+// Pointer store through a scalar reference (the FSet mechanism, global.h): a following `pPL` load
+// is not hoisted above / shared across it.
+static inline void PSet(EmHitInfo*& d, EmHitInfo* v)
+{
+    d = v;
+}
+
+// `f &= mask` through a reference, same purpose (BitOff16 with its `~b` keeps a 32-bit mask).
+static inline void MaskAnd16(u16& f, u16 mask)
+{
+    f &= mask;
+}
+
+// Struct-member view of pPL (the pGS trick, global.h): loads through it stay after preceding
+// stores through other pointers instead of being shared across them.
+struct PlayerPtr {
+    cPlayer* p;
+};
+#define pPLS (((PlayerPtr*) &pPL)->p)
+
 // The parts a hit box belongs to (partsNo is 1-based, 0 = the model itself).
 static inline cModel* HitParts(cEm* em, EmHitInfo* p)
 {
@@ -611,7 +638,7 @@ EmHitInfo* emLineAtCk(cEm* em, Vec* a, Vec* b, f32 len, int flag)
 }
 
 // emLineAtCk sorted by the XZ distance only, hit point returned in `out`.
-EmHitInfo* emLineAtCk2(cEm* em, Vec* a, Vec* b, Vec* out, int flag, f32 len)
+EmHitInfo* emLineAtCk2(cEm* em, Vec* a, Vec* b, f32 len, Vec* out, int flag)
 {
     Vec top;
     Vec bottom;
@@ -1419,15 +1446,14 @@ u32 GetWepTargetList2(Vec* p0, Vec* p1, WepTarget* list, u32 max, Vec* hit, Vec*
 }
 
 // Enemies inside the blast sphere (pos, r), nearest first.
-int GetWepTargetListBomb(Vec* pos, WepTarget* list, int max, int type, int flag, f32 r)
+int GetWepTargetListBomb(Vec* pos, f32 r, WepTarget* list, int max, int type, int flag)
 {
     Vec center;
     Vec bottom;
     Vec top;
-    int cnt = 0;
+    int cnt;
     int i;
     int j;
-    int k;
     int worst;
     u32 axis;
     u32 mask;
@@ -1448,6 +1474,7 @@ int GetWepTargetListBomb(Vec* pos, WepTarget* list, int max, int type, int flag,
     if (pG->flags_60 & 0x1000) {
         Draw_sphere(pos, r, 0xFFFF00FF, 1, 1);
     }
+    cnt = 0;
     i = 0;
     if (i < (int) EmMgr.nArray) {
         do {
@@ -1475,18 +1502,6 @@ int GetWepTargetListBomb(Vec* pos, WepTarget* list, int max, int type, int flag,
             continue;
         }
         switch (em->id) {
-        case 3:
-            rr = r;
-            if (rr > 2500.0f) {
-                rr = 2500.0f;
-            }
-            break;
-        case 4:
-            rr = r;
-            if (rr > 1500.0f) {
-                rr = 1500.0f;
-            }
-            break;
         case 0x40:
         case 0x41:
         case 0x42:
@@ -1499,6 +1514,18 @@ int GetWepTargetListBomb(Vec* pos, WepTarget* list, int max, int type, int flag,
             break;
         default:
             rr = r;
+            break;
+        case 3:
+            rr = r;
+            if (rr > 2500.0f) {
+                rr = 2500.0f;
+            }
+            break;
+        case 4:
+            rr = r;
+            if (rr > 1500.0f) {
+                rr = 1500.0f;
+            }
             break;
         }
         r2 = rr;
@@ -1573,13 +1600,13 @@ int GetWepTargetListBomb(Vec* pos, WepTarget* list, int max, int type, int flag,
         }
         } while (++i < (int) EmMgr.nArray);
     }
-    for (k = 0; k < cnt - 1; k++) {
-        for (j = k + 1; j < cnt; j++) {
-            if (list[k].part->rad > list[j].part->rad) {
-                em2 = list[k].em;
-                part2 = list[k].part;
-                list[k].part = list[j].part;
-                list[k].em = list[j].em;
+    for (i = 0; i < cnt - 1; i++) {
+        for (j = i + 1; j < cnt; j++) {
+            if (list[i].part->rad > list[j].part->rad) {
+                em2 = list[i].em;
+                part2 = list[i].part;
+                list[i].part = list[j].part;
+                list[i].em = list[j].em;
                 list[j].part = part2;
                 list[j].em = em2;
             }
@@ -1624,7 +1651,7 @@ int PlBombHitCk(Vec* pos, f32 r)
     if (EatMgr.hitCheck(pos, &parts->worldPos, 0, 0, 0, 0x400000) != 0) {
         return 0;
     }
-    LifeDownSet2(pPL, 1200, 0, (s16) pG->pl_life >= 501);
+    LifeDownSet2(pPL, 1200, 0, PlLifeOver(501));
     PlSetDamage(8, 0, 0);
     VibSetData((VibDataTbl*) (pG->pArc->ofs_1C + (u32) pG->pArc), 7, 1);
     return 1;
@@ -1722,7 +1749,7 @@ int GetWepTargetPos(Vec* p0, Vec* p1, int plCheck, int wepNo, cEm** outEm, int* 
             }
             break;
         }
-        part = emLineAtCk2(em, p0, p1, &h2, 0, len);
+        part = emLineAtCk2(em, p0, p1, len, &h2, 0);
         if (part == 0) {
             continue;
         }
@@ -2098,12 +2125,13 @@ int EmAtkHitCk(EmAtkInfo* info, Vec* a, Vec* b, int noSub)
         PlSetDamage(hit - 1, 0, 0);
         ret = 1;
     }
-    if (noSub == 0) {
-        part = EmAtkHitSubCk2(info, a, b);
-        if (part) {
-            pSUB->dmg.set(0, 10, 0x18, b, part->rad, part);
-            ret |= 2;
-        }
+    if (noSub) {
+        return ret;
+    }
+    part = EmAtkHitSubCk2(info, a, b);
+    if (part) {
+        pSUB->dmg.set(0, 10, 0x18, b, part->rad, part);
+        ret |= 2;
     }
     return ret;
 }
@@ -2136,8 +2164,8 @@ int EmAtkHitCk2(EmAtkInfo* info, Vec* a, Vec* b)
     if (part == 0) {
         return 0;
     }
-    part->flags &= ~0x4000;
-    pPL->dmPart = part;
+    MaskAnd16(part->flags, 0xBFFF);
+    PSet(pPL->dmPart, part);
     if ((a->x - b->x) * (a->x - b->x) + (a->z - b->z) * (a->z - b->z) < 10000.0f) {
         PSVECSubtract(&pPL->pos, a, &d);
     } else {
@@ -2408,10 +2436,10 @@ void EmCatchPLSet(cEm* em, u32 type, int a, f32 ang, f32 x, f32 y, f32 z)
         break;
     }
     em->x3A8 = em->pos;
-    pPL->x3A8 = pPL->pos;
-    em->dmgType = (int) pPL;
-    pPL->dmgType = (int) em;
-    pPL->x378 = em->x378;
+    pPLS->x3A8 = pPLS->pos;
+    em->dmgType = (int) pPLS;
+    pPLS->dmgType = (int) em;
+    pPLS->x378 = em->x378;
     SetPlDamage((int) em, (void (*)(cPlayer*)) a);
 }
 
@@ -2427,7 +2455,8 @@ static void EmCatchSubSet(cEm* em, cEm* sub, u32 type, int a, f32 ang, f32 x, f3
     r = LIMIT_ANGLE(r + Muku(&em->pos, &sub->pos, r, PI));
     em->catchTurn = Muku2(em->rot.y, r, PI);
     r = sub->rot.y;
-    r = LIMIT_ANGLE(r + Muku(&sub->pos, &em->pos, r, PI) + ang);
+    r += Muku(&sub->pos, &em->pos, r, PI);
+    r = LIMIT_ANGLE(r + ang);
     sub->catchTurn = Muku2(sub->rot.y, r, PI);
     PSMTXRotRad(m, 'y', LIMIT_ANGLE(em->rot.y + em->catchTurn));
     TransMatrix(m, &em->pos);
@@ -3249,13 +3278,18 @@ int CheckInWater(cModel* m, int parts)
 // Weapon ids the hit boxes flagged 0x10 ignore (handguns, the TMP and the knife-like weapons).
 int HandgunCk(int wep)
 {
+    // Each group has its own `return 1`: the distinct case labels make the switch tree emit the
+    // greater-than side inline (`beq; ble left; ...`), a shared body emits the left side first.
     switch (wep) {
     case 1:
     case 2:
     case 3:
     case 4:
+        return 1;
     case 0x11:
+        return 1;
     case 0x26:
+        return 1;
     case 0x2B:
         return 1;
     }

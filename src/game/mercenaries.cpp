@@ -46,35 +46,6 @@ public:
 #define BEGIN_EVENT(p, mode) ((cUnitEvent*) (p))->beginEvent(mode)
 #define END_EVENT(p, mode) ((cUnitEvent*) (p))->endEvent(mode)
 
-// Full-screen fade between black and clear. The colour pair is a local of this inline (a class
-// with a destructor is in memory at its declaration, so every inlined copy shares one temp slot);
-// integrate.c maps the inline frame to a pseudo whose value is substituted into the hard-register
-// argument sets (`addi r5, r1, off` per call, never PRE'd) but a store of a *constant* through it
-// is rejected by recog (no store-immediate), so that store keeps the pseudo (`stw rZ, 4(rP)`,
-// `mr r4, rP`, PRE'd across blocks) while `black`, a local that is stale for const-equiv after
-// the `if` label, is stored through the substituted frame address. At frame offset 0 the frame
-// pseudo is the virtual frame register itself and everything is direct.
-struct FadeColorPair {
-    GXColor start;
-    GXColor end;
-    ~FadeColorPair() {}
-};
-
-static inline void FadeSetW(int no, u32 time, u32 z, int late)
-{
-    FadeColorPair col;
-    u32 black = 0xFF;
-
-    if (no & 0x80000000) {
-        *(u32*) &col.start = black;
-        *(u32*) &col.end = 0;
-    } else {
-        *(u32*) &col.start = 0;
-        *(u32*) &col.end = black;
-    }
-    FadeSet(no, &col.start, &col.end, time, z, late);
-}
-
 #define ARC_PTR(ofs) ((void*) (pG->pArc->ofs + (u32) pG->pArc))
 #define DATA_PTR(d, ofs) ((void*) (*(u32*) ((u8*) (d) + (ofs)) + (u32) (d)))
 #define DVD_READ_N(name, dst, a, b, c, mode) DvdReadN(name, dst, a, b, c, mode, __FILE__, __LINE__)
@@ -676,7 +647,8 @@ int MercSysResultMove(MercSysWork* wk)
                     mercId.kill();
                     setLangExt3(data_name + 3);
                     Dvd.FileExistCheck(data_name, &size);
-                    size = size + 0x34 + MARGIN;
+                    size += 0x34;
+                    size += MARGIN;
                     swap.SwapOut((u32) pG->pRoomArc, size, 0);
                     pRslt = new MercResult;
                     pRslt->init(wk);
@@ -1075,7 +1047,6 @@ int MercResult::init(MercSysWork* wk)
 int MercResult::move(MercSysWork* wk)
 {
     int mes[4];
-    int i;
 
     if (wk == NULL) {
         pLog->err(0, 0, "St4ResultInitStage : pWk is NULL");
@@ -1094,7 +1065,7 @@ int MercResult::move(MercSysWork* wk)
         IdSetNum(&IdSys, 0x11, ID_RESULT, wk->rslt.kill, 9999, 4, 0);
         IdSetNum(&IdSys, 0x21, ID_RESULT, wk->rslt.score, 999999, 6, 0);
         IdSetNum(&IdSys, 0x31, ID_RESULT, wk->rslt.maxCombo, 999, 3, 0);
-        for (i = 1; i <= 5; i++) {
+        for (int i = 1; i <= 5; i++) {
             IdSetTrans(&IdSys, i, ID_RESULT, i <= wk->rslt.rank);
         }
         IdSetTrans(&IdSys, 0, ID_RESULT, 1);
@@ -1118,7 +1089,7 @@ int MercResult::move(MercSysWork* wk)
         FadeSetW(0x80000002, 10, 0, 0);
         IdSys.kill(0xFF, ID_RESULT);
         IdSys.set(pIdExtra, 0xFF, ID_RESULT, 0x13, 4, 0);
-        for (i = 0; i < 4; i++) {
+        for (int i = 0; i < 4; i++) {
             int on = 0;
 
             if (flagCk(SYS_FLAG_TBL, extFlagTbl[i])) {
@@ -1146,7 +1117,7 @@ int MercResult::move(MercSysWork* wk)
         if (Key.trg & KEY_A) {
             MessageControl* m = &cMes;
 
-            for (i = 0; i < 16; i++) {
+            for (int i = 0; i < 16; i++) {
                 m->Delete(i);
             }
             FadeSetW(2, 10, 0, 0);
@@ -1181,7 +1152,7 @@ int MercResult::move(MercSysWork* wk)
         if (Key.trg & KEY_A) {
             MessageControl* m = &cMes;
 
-            for (i = 0; i < 16; i++) {
+            for (int i = 0; i < 16; i++) {
                 m->Delete(i);
             }
             FadeSetW(2, 10, 0, 0);

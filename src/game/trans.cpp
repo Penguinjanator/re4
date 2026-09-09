@@ -715,7 +715,7 @@ void calcWeightMat(cModel* m)
 {
     Mtx inv;
     Mtx tmp;
-    int i = 0;
+    u32 i = 0;
     cPartsWk* p;
 
     PSMTXInverse(m->pParts->mat, inv);
@@ -1202,10 +1202,10 @@ static void ThermoShaderSetup(cModel* m, cModelInfo* info, ModelPart* part)
 
     ISET0(tev_stage);
     ISET0(tev_reg);
-    ISET0(ind_stage);
     ISET0(tev_kcolor);
     ISET0(tex_map);
     ISET0(tex_coord);
+    ISET0(ind_stage);
     GXSetAlphaCompare(4, 0, 1, 4, 0xFF);
     GXSetBlendMode(1, 4, 5, 0);
     st = TEV_STAGE_ID();
@@ -1241,11 +1241,11 @@ static void shaderSetup(cModel* m, cModelInfo* info, ModelPart* part, Mtx mv)
         return;
     }
     ISET0(tev_stage);
-    ISET0(ind_stage);
     ISET0(tev_reg);
     ISET0(tev_kcolor);
     ISET0(tex_map);
     ISET0(tex_coord);
+    ISET0(ind_stage);
     selfDone = 0;
     if ((pG->flags_500C & 1) && isSelfUse) {
         u32 i;
@@ -2397,7 +2397,7 @@ void CalcTplAddrC8(TEXPalette* tpl)
     if ((s32) tpl->descriptorArray < 0) {
         return;
     }
-    tpl->descriptorArray = (TEXDescriptor*) ((u32) tpl + (u32) tpl->descriptorArray);
+    tpl->descriptorArray = (TEXDescriptor*) ((u32) tpl->descriptorArray + (u32) tpl);
     for (i = 0; i < tpl->numDescriptors; i++) {
         TEXDescriptor* td = &tpl->descriptorArray[i];
         td->textureHeader = (TEXHeader*) ((u32) tpl + (u32) td->textureHeader);
@@ -2412,6 +2412,7 @@ void CalcTplAddrC8(TEXPalette* tpl)
 void SpecularInit(TEXPalette* spec, TEXPalette* ind, TEXPalette* ind2, TEXPalette* thermo)
 {
     u32 i;
+    u32 ns;
     u32 n;
     u32 n2;
     TEXDescriptor* td;
@@ -2419,8 +2420,8 @@ void SpecularInit(TEXPalette* spec, TEXPalette* ind, TEXPalette* ind2, TEXPalett
     CLUTHeader* cl;
 
     calcTplAddr(spec);
-    n = spec->numDescriptors;
-    for (i = 0; i < n; i++) {
+    ns = spec->numDescriptors;
+    for (i = 0; i < ns; i++) {
         td = TEXGet(spec, i);
         h = td->textureHeader;
         GXInitTexObj(&Specular[i], h->data, h->width, h->height, h->format, h->wrapS, h->wrapT, 0);
@@ -2503,11 +2504,11 @@ static void RefractShaderSetup(cModel* m, cModelInfo* info, ModelPart* part, Mtx
     int scale;
 
     ISET0(tev_stage);
-    ISET0(ind_stage);
     ISET0(tev_reg);
     ISET0(tev_kcolor);
     ISET0(tex_map);
     ISET0(tex_coord);
+    ISET0(ind_stage);
     st = TEV_STAGE_ID();
     map = getTexMap();
     coord = getTexCoord();

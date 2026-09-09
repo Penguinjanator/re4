@@ -595,6 +595,14 @@ mark it Matching.
 - Locked-cache palette: `PSMTXReorder(m, (f32(*)[3])(0xE0000000 + i*0x30))` gives `mulli; subis`.
 - `cond ? A : B` as a call argument folds a common `(x+0x1F)&~0x1F` out of both arms; two if/else
   calls keep the arm-specific masks and cross-jump only the `bl`.
+- loop.c `move_movables` needs `threshold * savings * lifetime >= insn_count`: in very large loops
+  (>~300 insns) a lo_sum with savings 2 is not hoisted by ours while the original hoists it — the
+  original's loop was smaller or its invariant had more uses; count the loop insns before guessing.
+- `&local` recomputed per call requires the local to be the first declared frame object (offset 0).
+- `lwz r0,X; mr r3,r0; cmpwi r0` on a struct member = the member read directly in several blocks
+  (gcse reaching copy); a local gives `lwz r3` directly.
+- `ang = w->rotY; ang -= K;` (two statements) loads straight into the variable's register;
+  `ang = w->rotY - K` gives a temp-first order.
 - Static locals show as `name.NNN` in objdiff; the DECL_UID suffix cannot be reproduced and is ignored by the report.
 - Unexplained words in `.rodata` (zero words, stray floats) are usually the constant pool of a function
   the original linker dead-stripped (bodies gone, pools kept, `STRIP_UNUSED` in objects.py): write a

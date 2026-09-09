@@ -4366,8 +4366,8 @@ address	size	section	unit	scope	name	demangled
 0x80134370	0xF0	.text	game/EtcModel.cpp	global	GetEtcAmbType	GetEtcAmbType
 0x80134460	0x8C	.text	game/EtcModel.cpp	global	GetEm10EyeEffectEnable	GetEm10EyeEffectEnable
 0x801344EC	0x138	.text	game/EtcModel.cpp	global	EtcSetAddAmb	EtcSetAddAmb
-0x80134624	0x60	.text	game/EtcModel.cpp	global	__static_initialization_and_destruction_0_80134624	__static_initialization_and_destruction_0
-0x80134684	0x14	.text	game/EtcModel.cpp	global	cEtcTbl_Init	cEtcTbl::Init
+0x80134624	0x60	.text	game/EtcModel.cpp	local	__static_initialization_and_destruction_0_80134624	__static_initialization_and_destruction_0
+0x80134684	0x14	.text	game/EtcModel.cpp	global	Init__7cEtcTbl	cEtcTbl::Init
 0x80134698	0x2C	.text	game/EtcModel.cpp	global	global_constructors_keyed_to_EtcModelDebugDisp	global constructors keyed to EtcModelDebugDisp
 0x801346C4	0x50	.text	game/event.cpp	global	Event_Event	Event::Event
 0x80134714	0x64	.text	game/event.cpp	global	Event_dt_Event	Event::~Event
@@ -4481,7 +4481,7 @@ address	size	section	unit	scope	name	demangled
 0x8013A99C	0x34	.text	game/event.cpp	global	GetEmWindowFcv__8EventMgrPPvN21	EventMgr::GetEmWindowFcv
 0x8013A9D0	0x4	.text	game/event.cpp	global	EventDebug_EventDebug	EventDebug::EventDebug
 0x8013A9D4	0x28	.text	game/event.cpp	global	EventDebug_dt_EventDebug	EventDebug::~EventDebug
-0x8013A9FC	0x10	.text	game/event.cpp	global	myRoomInit__11EventDebug	EventDebug::myRoomInit
+0x8013A9FC	0x10	.text	game/event.cpp	global	myRoomInit__10EventDebug	EventDebug::myRoomInit
 0x8013AA0C	0x50	.text	game/event.cpp	global	EventDebug_ClrModelFiles	EventDebug::ClrModelFiles
 0x8013AA5C	0x98	.text	game/event.cpp	local	EventDebug_AddNameBinTpl	EventDebug::AddNameBinTpl
 0x8013AAF4	0xC	.text	game/event.cpp	global	DatTbl_DatTbl	DatTbl::DatTbl
