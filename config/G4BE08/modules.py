@@ -447,6 +447,7 @@ MATCHING = {
     "em18/em18.cpp": True,
     "em34/em34.cpp": True,
     "em24/em24.cpp": True,
+    "em30/em30.cpp": True,
 }
 # The Ganado modules' per-enemy objects (src/<em>/<em>_set.cpp: entry points + EmXXInit/Set/WeaponSet).
 for _em in ["em10", "em11", "em12", "em13", "em14", "em15", "em16", "em17", "em19", "em1a", "em1b",

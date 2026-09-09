@@ -3187,7 +3187,7 @@ target) stays unresolved and `make_rel` then fails with "undefined symbol".
   of the format string, drawScurve's `i`/`&wp` register swap (r26/r27), sctrlMenu's cross-jump of the
   case-1 cursor call.
 
-### Single-unit enemy modules (em2e, em26, em18, em34 Matching; em30 22/23; src/<em>/<em>.cpp, 2026-09)
+### Single-unit enemy modules (em2e, em26, em18, em34, em24 Matching; em30 22/23, em3a 36/39; src/<em>/<em>.cpp, 2026-09)
 
 - Layout of every one-file enemy REL: `_prolog` (`OSReport("<em> prolog Ok\n")` + `EmInitFunc = EmXXInit`;
   em2e has no OSReport), empty `_epilog`/`_unresolved`, `EmXXInit` = `new (em) cEmXX()`, `emXXDmCk`, the
@@ -3257,6 +3257,44 @@ target) stays unresolved and `make_rel` then fails with "undefined symbol".
   fall-through, cse-skip-blocks on the taken path) in every form tried (if/switch, taken-path else
   arm, dead sibling arm, nested if, duplicated condition), and flow2's tidy_fallthru + life_analysis
   delete a dead compare, so the shape is out of reach: em30 stays 22/23 (+8 bytes), not Matching.
+- em24 (Matching, include/em24.h; 2026-09): `switch (DmgMgr.hitCheck(&em->pos, 0)) { case 1: case 4:
+  case 5: case 7: goto die; }` with the `die:` label inside the following `if (em->dmHit)` body (the
+  shared `hp = 0; dmType = 0x80; EmRoutineSet(3,0,0,0)` tail); the weapon filter is an `||` chain
+  (`cmpwi 0x14/0x16/0x17/0x2a/0xe` in source order, not a tree) on an `int wep = em->dmWep` read
+  before the `dmHit = 0` store. `scale = (f32) (int) Rnd() * 0.15f * (1.0f / 256.0f) + 1.1f` gives the
+  signed double trick (`(f32) Rnd()` alone is a `psq_l` fast cast); `int zero = 0; int two = 2;`
+  after the scale stores feed `lockParts = zero`, `w->flags/stuckCnt = zero`, `splashTimer = two` and
+  the default arm's `EmRoutineSet(em, 1, two, zero, zero)` while `case 0:` (written after `default:`)
+  uses the plain constants (cse takes the `x38D` register). Six independent stores come out in the
+  target order only as `flags; stuckCnt; splashTimer; slopeRot.x; .y; .z`. `switch (xFD)` with a
+  `case 4: break;` after case 3 makes the 5-node tree (`cmpwi 2; beq; bgt; ...; cmpwi 3; beq; b end`).
+  `fa -= fb` reuses the first floor's FPR for the difference; `f32 len = SQRTF(..); atan2f(fa, len)`
+  loads the y operand after the call. R1_BoxWait's step 3 declares `cAtariInfo* at = &em->atari` in the
+  `!(seFlags28B & 0x80)` block (two `|= 0x100` through one pointer) and ends the landing branch with
+  `EmRoutineSet(em, 1, two, 0, 0); break;` followed by one shared `if (MotionMoveF(em, 0)) w->motEnd = 1`.
+  R0_Die's fade: `if (w->timer) { alpha -= 0.05f; if (alpha < 0) {..; break;} } MotionMoveF(em, 0);`.
+- em3a (36/39 identical, not Matching; include/em3a.h, 2026-09): the helicopter. Idioms: the hover
+  clamp `if (pos.y < fl + 1800) { f32 y = w->spd.y + 10; f32 max = 20; w->spd.y = y; if (y > max)
+  w->spd.y = max; }` (the constant must be a pseudo created after the sum: `+=` then `if (spd.y > 20)`
+  schedules the 20 load after the store and reuses f13); `FSet(em->rot.y, LIMIT_ANGLE(em->rot.y))`
+  before `Muku(.., em->rot.y, PI)` keeps the result in f1 (`stfs f1` straight after the call - a plain
+  member store gets `fmr f0, f1` and the pPL load hoisted above it); `pPLS->pos` for the Vec copies
+  that follow a stack copy (em3aLookPLCk/FindPLCk/Chase, otherwise `lwz pPL` moves above the copy's
+  stores); `int ret; if (hitEm == 0) {..; ret = 0;} else {..; ret = 1;} return ret;` for em3aGunHitCk
+  (both `return`s directly lay the `hitEm != 0` arm first; the constant pool needs the `== 0` arm's
+  30.0 before 22.0); `EmSetDieCntE(em) asm("EmSetDieCnt")` (the module passes the enemy); the
+  `cmpwi 6; beq; ble default; cmpwi 7; beq` x38D switch is `case 5: default:` + cases 6/7; the
+  `case 7` arm needs PLAIN byte stores before its MotionSetCore (em30 rule: the int inline's SI zero
+  in r9 deletes the call's `li r9, 0`); `IntSet(w->timer, K)` (int& setter) for the difficulty
+  table `timer = 46; if (pG->x4F88 <= 1) timer = 76; ...` (pG reloaded after every store); the
+  patrol loops index `((u8*) pG->pRoomEmi)[i * 0x40 + 8]` with `u32 i` (cmplw) and re-read
+  `w->pRoute` at every use in em3aPatrolUpdate (the `mr r11, r8` copies); `cEm3a::setAtkWait` is a
+  virtual defined LAST in the .cpp (in-class it lands after `~cEm3a` among the linkonce copies).
+  OPEN: em3a_R1_Fix issues `addi r31, em, 0x3e0` (w) before the getFloor arg moves and `lis SatMgr`
+  before the 600.0 load (ours: w last); em3a_R1_B_HideWait's `ry = rot.y +/- 1.5deg` arms allocate
+  the sum to f0 and the constant to f13 (ours swapped; ternary, if/else temp and operand order all
+  give the same); em3aPatrolInit issues `lis pG@ha` after the `w->pRoute = 0` store (ours before;
+  a reference store folds the address into `0x688(r3)` instead).
 - Tools REL, third pass (t_atari 16/17 functions, t_dr 13/15; src/Tools/t_atari.cpp, t_dr.cpp, 2026-09):
   - `cSat` has a constructor, `cSat() : cUnit(1) { flags = 0; }` (include/atari.h): t_atari's two
     `static cSat tbl[10]` arrays are built by the static-init loop as `stw 1; stw _vt.4cSat; stb 0,0x2a`
