@@ -35,7 +35,8 @@ struct CameraAreaInfo {  // hit area
 };
 
 struct CameraAreaRec {  // area -> cut link
-    u8 pad_0[8];
+    u8 type;              // 0x00  camera type of the linked cut (t_camera tcTypeTbl)
+    u8 pad_1[7];
     CameraAreaInfo* area; // 0x08
     CameraCut* cut;       // 0x0C
 };

@@ -1,0 +1,953 @@
+#include "types.h"
+#include "global.h"
+#include "db_log.h"
+#include "main_mem.h"
+#include "scheduler.h"
+#include "joy.h"
+#include "eprintf.h"
+#include "vec.h"
+#include "camera.h"
+#include "file.h"
+#include "snd.h"
+#include "dbmodule.h"
+#include "light.h"
+#include "t_util.h"
+
+// SE attack (room sound area, "ESE" file) editor of the t_movie REL. No __FILE__ string: the real
+// name is unknown (t_se_at.cpp by its function prefix).
+
+extern "C" {
+int sprintf(char* buf, const char* fmt, ...);
+int strcmp(const char* a, const char* b);
+void* memset(void* dst, int c, unsigned int n);
+}
+void SetToolLight(int on);  // this module's db_light object
+
+// Tool-side view of the SeAt record (block / se number as ints).
+struct TSeAt {
+    u8 flags;        // 0x00  bit 0 enabled, bit 1 created
+    u8 no;           // 0x01
+    u16 flags2;      // 0x02
+    Vec pos;         // 0x04
+    int blk;         // 0x10
+    int se_no;       // 0x14
+    u16 interval;    // 0x18
+    u16 wait;        // 0x1A
+    u16 cnt;         // 0x1C
+    s16 repeat;      // 0x1E
+    u16 rnd_base;    // 0x20
+    u16 rnd_range;   // 0x22
+    u8 pad_24[0x2C - 0x24];
+};
+
+struct SeAtWork {
+    u8 mode;          // 0x00  seAtRoutine index
+    u8 sub;           // 0x01  sub routine / step
+    u8 step;          // 0x02
+    u8 step2;         // 0x03
+    int frame;        // 0x04
+    Vec camPos;       // 0x08  game camera saved on entry
+    Vec camAt;        // 0x14
+    s8 cursor;        // 0x20  main menu
+    s8 editCursor;    // 0x21  area edit menu
+    s8 inputCursor;   // 0x22  data input line
+    s8 areaNo;        // 0x23  edited area
+    s8 rndCursor;     // 0x24  random interval line
+    u8 server;        // 0x25  load from x:/ instead of d:/
+    s8 stage;         // 0x26
+    s8 room;          // 0x27
+    u8 yesNo;         // 0x28
+    s8 loadCursor;    // 0x29
+    u8 pad_2A[2];
+    int input;        // 0x2C  sub input active (random interval)
+    u8 copySrc;       // 0x30
+    u8 copyValid;     // 0x31
+    s16 timer;        // 0x32
+    s16 x;            // 0x34
+    s16 y;            // 0x36
+    s16 x0;           // 0x38
+    s16 y0;           // 0x3A
+    u32 saveStop;     // 0x3C  pG->flags_170
+    u32 saveDisp;     // 0x40  pG->flags_58
+    int flagCursor;   // 0x44
+    char path[0x40];  // 0x48
+    SeAtHead head;    // 0x88
+    TSeAt area[64];   // 0x98
+    SeAtHead fileHead;// 0xB98
+    TSeAt file[64];   // 0xBA8
+    TSeAt copyBuf;    // 0x16A8
+};
+
+static int seAtSaveNum;
+struct SeAtWorkPtr {
+    SeAtWork* p;
+};
+static SeAtWorkPtr seAtWk;
+#define pW (seAtWk.p)
+struct TSeAtPtr {
+    TSeAt* p;
+};
+static TSeAtPtr seAtCur;
+#define pCur (seAtCur.p)
+static SeAtHead* seAtSaveHead;
+static SeAt* seAtSaveList;
+
+static const char* seAtBlockName[7] = {"CORE", "WEAPON", "BGM 0", "BGM 1", "DOOR", "FOOT", "ROOM"};
+
+void seAtInit();
+static void seAtExit();
+static void seAtMainMenu();
+static void seAtAreaEdit();
+static void seAtAreaEdit_EditMenu();
+static void seAtAreaEdit_AreaMove();
+static void seAtAreaEdit_DataInput();
+static void seAtAreaEdit_AreaCopy();
+static void seAtAreaEdit_AreaPaste();
+static void seAtAreaEdit_CopyBuffClear();
+static void seAtAreaEdit_AreaDelete();
+static void seAtAreaEdit_AreaCreate();
+static void seAtDataLoad();
+static void seAtDataSave();
+static void seAtPreview();
+static void preview_init();
+static void preview_main();
+static void preview_exit();
+
+static void (*seAtRoutine[5])() = {seAtMainMenu, seAtAreaEdit, seAtDataLoad, seAtDataSave, seAtPreview};
+
+void ToolSeAt()
+{
+    pW = (SeAtWork*) Debug_alloc(sizeof(SeAtWork), 1);
+    memclr_asm(pW, sizeof(SeAtWork));
+    seAtInit();
+    while (1) {
+        pW->x = pW->x0;
+        pW->y = pW->y0;
+        eprintf(pW->x, pW->y, 5, 0, "SE ATARI EDIT TOOL");
+        pW->y += 0x20;
+        pW->x += 8;
+        seAtRoutine[pW->mode]();
+        pW->frame++;
+        TaskSleep(1);
+    }
+}
+
+void seAtInit()
+{
+    GlobalWork* g = pG;
+    int zero = 0;
+    Camera* cam = &g->Cam;
+
+    TutilInitDefault();
+    BitSet(pW->saveStop, TOOL_FLAG(OFS_STOP_FLG));
+    TOOL_FLAG(OFS_STOP_FLG) |= 0x20000000;
+    TOOL_FLAG(OFS_STOP_FLG) |= 0x10000000;
+    TOOL_FLAG(OFS_STOP_FLG) |= 0x800000;
+    TOOL_FLAG(OFS_STOP_FLG) |= 0x400000;
+    TOOL_FLAG(OFS_STOP_FLG) |= 0x10000;
+    TOOL_FLAG(OFS_STOP_FLG) |= 0x2000;
+    BitSet(pW->saveDisp, TOOL_FLAG(OFS_DISP_FLG));
+    TOOL_FLAG(OFS_DISP_FLG) |= 0x40000000;
+    TOOL_FLAG(OFS_DISP_FLG) |= 0x80000000;
+    TOOL_FLAG(OFS_DISP_FLG) |= 0x2000000;
+    TOOL_FLAG(OFS_DISP_FLG) |= 0x100000;
+    TOOL_FLAG(OFS_DEBUG_FLG) |= 0x10000000;
+    SetToolLight(1);
+    pW->head.magic[0] = 'E';
+    pW->head.magic[1] = 'S';
+    pW->head.magic[2] = 'E';
+    pW->head.magic[3] = zero;
+    pW->head.version = 0x100;
+    pW->head.num = 64;
+    pW->x0 = 0x2D;
+    pW->y0 = 0x2D;
+    CameraSetOrientationRoll(cam);
+    CameraCamposDistance(cam, 2500.0f);
+    {
+        SeAtHead* head = Snd.se_at;
+        SeAt* list = Snd.se_at_list;
+        Snd.se_at_list = NULL;
+        Snd.se_at = NULL;
+        seAtSaveHead = head;
+        seAtSaveList = list;
+    }
+    pW->camPos = g->Cam.param.pos;
+    pW->camAt = g->Cam.param.at;
+    pW->mode = 2;
+    pW->sub = zero;
+    pW->step = zero;
+    pW->step2 = zero;
+}
+
+static void seAtExit()
+{
+    TOOL_FLAG(OFS_DISP_FLG) = pW->saveDisp;
+    TOOL_FLAG(OFS_STOP_FLG) = pW->saveStop;
+    TOOL_FLAG(OFS_DEBUG_FLG) &= ~0x10000000;
+    SetToolLight(-1);
+    Snd.se_at = seAtSaveHead;
+    Snd.se_at_list = seAtSaveList;
+    TutilQuitDefault();
+    TaskExit();
+}
+
+static TOOL_MENU seAtMainMenuTbl[5] = {
+    {1, "AREA EDIT", NULL},
+    {1, "PREVIEW", NULL},
+    {1, "DATA LOAD", NULL},
+    {1, "DATA SAVE", NULL},
+    {1, "EXIT", seAtExit},
+};
+
+static void seAtMainMenu()
+{
+    s8 sel = ToolMenuDisp_cur(pW->x, pW->y, 1, &pW->cursor, seAtMainMenuTbl, sizeof(seAtMainMenuTbl), &Joy[0]);
+
+    if (sel >= 0) {
+        switch (sel) {
+        case 0:
+            pW->mode = 1;
+            break;
+        case 1:
+            pW->mode = 4;
+            break;
+        case 2:
+            pW->mode = sel;
+            break;
+        case 3:
+            pW->mode = sel;
+            break;
+        }
+        pW->sub = 0;
+        pW->step = 0;
+        pW->step2 = 0;
+    }
+}
+
+static void (*seAtEditRoutine[4])() = {seAtAreaEdit_EditMenu, seAtAreaEdit_AreaMove, seAtAreaEdit_DataInput,
+                                        seAtAreaEdit_AreaCreate};
+
+static void seAtAreaEdit()
+{
+    Vec a;
+    Vec b;
+    Camera* cam;
+
+    if (pW->sub == 0) {
+        if (Joy[0].rep2 & JOY_R) pW->areaNo++;
+        if (Joy[0].rep2 & JOY_L) pW->areaNo--;
+        pW->areaNo = pW->areaNo < 0 ? 63 : (pW->areaNo > 63 ? 0 : pW->areaNo);
+    }
+    pCur = &pW->area[pW->areaNo];
+    eprintf(pW->x, pW->y, 4, 0, "AREA[ %d ]", pW->areaNo);
+    if (pCur->flags & 1) {
+        f32 dist;
+        cam = &pG->Cam;
+        dist = cam->dist;
+        cam->param.at = pCur->pos;
+        CameraSetOrientationRoll(cam);
+        CameraCamposDistance(cam, dist);
+        eprintf(pW->x + 0x58, pW->y, 0, 0, "POS( %f, %f, %f )", pCur->pos.x, pCur->pos.y, pCur->pos.z);
+        a = pCur->pos;
+        b = pCur->pos;
+        a.x += 200.0f;
+        b.x -= 200.0f;
+        Draw_line3d(&a, &b, 0xFFFFFF00, 0);
+        a = pCur->pos;
+        b = pCur->pos;
+        a.y += 200.0f;
+        b.y -= 200.0f;
+        Draw_line3d(&a, &b, 0xFFFF00FF, 0);
+        a = pCur->pos;
+        b = pCur->pos;
+        a.z += 200.0f;
+        b.z -= 200.0f;
+        Draw_line3d(&a, &b, 0xFF00FFFF, 0);
+    } else {
+        cam = &pG->Cam;
+        cam->param.pos = pW->camPos;
+        cam->param.at = pW->camAt;
+        CameraSetOrientationRoll(cam);
+        CameraCamposDistance(cam, 2500.0f);
+        eprintf(pW->x + 0x58, pW->y, 2, 0, "NO DATA:");
+    }
+    pW->x += 8;
+    pW->y += 0x20;
+    seAtEditRoutine[pW->sub]();
+}
+
+static TOOL_MENU seAtCreateMenu[3] = {
+    {1, "AREA CREATE", NULL},
+    {0, "AREA PASTE", seAtAreaEdit_AreaPaste},
+    {0, "COPY BUFF CLEAR", seAtAreaEdit_CopyBuffClear},
+};
+
+static TOOL_MENU seAtEditMenu[6] = {
+    {1, "AREA MOVE", NULL},
+    {1, "DATA INPUT", NULL},
+    {1, "AREA COPY", seAtAreaEdit_AreaCopy},
+    {0, "AREA PASTE", seAtAreaEdit_AreaPaste},
+    {0, "COPY BUFF CLEAR", seAtAreaEdit_CopyBuffClear},
+    {1, "AREA DELETE", seAtAreaEdit_AreaDelete},
+};
+
+static void seAtAreaEdit_EditMenu()
+{
+    s8 sel;
+    u8 valid = pW->copyValid;
+
+    seAtEditMenu[4].enable = valid;
+    seAtEditMenu[3].enable = valid;
+    seAtCreateMenu[2].enable = valid;
+    seAtCreateMenu[1].enable = valid;
+    if (pCur->flags & 1) {
+        sel = ToolMenuDisp_cur(pW->x, pW->y, 0, &pW->editCursor, seAtEditMenu, sizeof(seAtEditMenu), &Joy[0]);
+        switch (sel) {
+        case 0:
+            pW->sub = 1;
+            pW->step = 0;
+            pW->step2 = 0;
+            break;
+        case 1:
+            pW->sub = 2;
+            pW->step = 0;
+            pW->step2 = 0;
+            break;
+        }
+    } else {
+        sel = ToolMenuDisp_cur(pW->x, pW->y, 0, &pW->editCursor, seAtCreateMenu, sizeof(seAtCreateMenu), &Joy[0]);
+        if (sel == 0) {
+            pW->sub = 3;
+            pW->step = 0;
+            pW->step2 = 0;
+        }
+    }
+    if (Joy[0].trg & JOY_B) {
+        pW->mode = 0;
+        pW->sub = 0;
+        pW->step = 0;
+        pW->step2 = 0;
+    }
+}
+
+static void seAtAreaEdit_AreaMove()
+{
+    GlobalWork* g = pG;
+    JOY* joy = &Joy[0];
+    Vec right;
+    Vec up;
+    Vec dir;
+    Vec t;
+    Vec d = {0.0f, 0.0f, 0.0f};
+    Camera* cam = &g->Cam;
+
+    right.x = g->Cam.mat[0][0];
+    right.y = g->Cam.mat[1][0];
+    right.z = g->Cam.mat[2][0];
+    up.x = g->Cam.mat[0][1];
+    up.y = g->Cam.mat[1][1];
+    up.z = g->Cam.mat[2][1];
+    dir.x = g->Cam.mat[0][2];
+    dir.y = g->Cam.mat[1][2];
+    dir.z = g->Cam.mat[2][2];
+    if (joy->on & (JOY_R | JOY_L)) {
+        f32 dist = cam->dist;
+        if (joy->on & JOY_R) {
+            dist -= joy->trigR * 3.0f;
+        } else {
+            dist += joy->trigL * 3.0f;
+        }
+        if (dist < 200.0f) dist = 200.0f;
+        CameraCamposDistance(cam, dist);
+    }
+    if (joy->sx) {
+        d.x = (f32) joy->sx * 5.0f;
+    }
+    if (joy->sy) {
+        if (joy->on & JOY_Z) {
+            d.y = (f32) joy->sy * 5.0f;
+        } else {
+            PSVECScale(&dir, &t, (f32) joy->sy * -5.0f);
+            CameraDolly(cam, &t);
+        }
+    }
+    if (d.x != 0.0f || d.y != 0.0f || d.z != 0.0f) {
+        PSMTXMultVecSR(cam->mat, &d, &d);
+        CameraDolly(cam, &d);
+    }
+    if (joy->ssx) {
+        Vec axis = {0.0f, 1.0f, 0.0f};
+        CameraRotAxisPosRad(cam, &axis, &cam->param.at, (f32) joy->ssx * 0.05f * 0.017453292f);
+    }
+    if (joy->ssy) {
+        CameraCamposRot(cam, 'x', (f32) joy->ssy * -0.05f * 0.017453292f);
+    }
+    pCur->pos = cam->param.at;
+    if (Joy[0].trg & JOY_B) {
+        pW->sub = 0;
+        pW->step = 0;
+        pW->step2 = 0;
+    }
+}
+
+static const char* seAtInputName[6] = {"SE BLOCK ", "SE NO    ", "INTERVAL ", "WAIT TIME", "CALL NUM ", "FLAG     "};
+static const char* seAtRndName[2] = {"RANDOM BASE    ", "RANDOM INTERVAL"};
+static const char* seAtFlagName[16] = {"NO SET POS", "", "", "", "", "", "", "", "", "", "", "", "", "", "", ""};
+
+// pad masks of the +/- inputs (the sub stick bits are the header's SLEFT/SRIGHT swapped)
+#define REP_RIGHT (JOY_RIGHT | 0x20000)
+#define REP_LEFT (JOY_LEFT | 0x10000)
+#define REP_UP (JOY_UP | JOY_SUP)
+#define REP_DOWN (JOY_DOWN | JOY_SDOWN)
+
+// +-1 / +-10 (with X) on a value driven by the fast auto-repeat
+#define SEAT_STEP(v)                          \
+    if (Joy[0].rep2 & REP_RIGHT) {            \
+        if (Joy[0].on & JOY_X) v += 10;       \
+        else v += 1;                          \
+    } else if (Joy[0].rep2 & REP_LEFT) {      \
+        if (Joy[0].on & JOY_X) v -= 10;       \
+        else v -= 1;                          \
+    }
+
+static void seAtAreaEdit_DataInput()
+{
+    u8 col;
+    int col2;
+    u32 i;
+    int j;
+    s16 x;
+    s16 y;
+    int v;
+    int n;
+    int num;
+    int oy;
+
+    if (pW->input == 0) {
+        if (Joy[0].trg & JOY_DOWN) {
+            pW->inputCursor++;
+            pW->flagCursor = 0;
+        } else if (Joy[0].trg & JOY_UP) {
+            pW->inputCursor--;
+            pW->flagCursor = 0;
+        }
+        if (pW->inputCursor >= 0) {
+            if (pW->inputCursor > 5) pW->inputCursor = 5;
+        } else {
+            pW->inputCursor = 0;
+        }
+        col = 0;
+        if (pW->frame & 0x18) {
+            eprintf(pW->x - 8, pW->y + pW->inputCursor * 16, 0, 0, ">");
+        }
+    } else {
+        col = 7;
+        eprintf(pW->x - 8, pW->y + pW->inputCursor * 16, 7, 0, ">");
+    }
+    num = 6;
+    oy = 0;
+    for (j = 0; j < num; j++) {
+        eprintf(pW->x, pW->y + oy, col, 0, "%s", seAtInputName[j]);
+        oy += 16;
+    }
+    switch (pW->inputCursor) {
+    case 0:
+        v = pCur->blk;
+        if (Joy[0].rep & REP_RIGHT) v++;
+        else if (Joy[0].rep & REP_LEFT) v--;
+        if (v >= 0) {
+            n = v;
+            if (n > 6) n = 6;
+        } else {
+            n = 0;
+        }
+        pCur->blk = n;
+        break;
+    case 1:
+        if (pW->step == 0) {
+            v = pCur->se_no;
+            SEAT_STEP(v);
+            if (v >= 0) {
+                n = v;
+                if (n > 0x8000) n = 0x8000;
+            } else {
+                n = 0;
+            }
+            pCur->se_no = n;
+            eprintf(0x30, 0x190, 0, 0, "REQUEST NO");
+        }
+        break;
+    case 2:
+        switch (pW->step) {
+        case 0:
+            pW->input = 0;
+            v = pCur->interval;
+            SEAT_STEP(v);
+            if (v >= 0) {
+                n = v;
+                if (n > 0x8000) n = 0x8000;
+            } else {
+                n = 0;
+            }
+            pCur->interval = n;
+            eprintf(0x30, 0x190, 0, 0, "INTERVAL (1-65535 or RANDOM)");
+            if (pCur->interval == 0 && (Joy[0].trg & JOY_A)) {
+                pW->step++;
+                pW->rndCursor = 0;
+                pW->input = 1;
+            }
+            break;
+        case 1:
+            num = 2;
+            oy = 0xF0;
+            for (j = 0; j < num; j++) {
+                eprintf(0x38, oy, 0, 0, "%s", seAtRndName[j]);
+                oy += 16;
+            }
+            if (Joy[0].trg & JOY_DOWN) pW->rndCursor++;
+            else if (Joy[0].trg & JOY_UP) pW->rndCursor--;
+            if (pW->rndCursor >= 0) {
+                if (pW->rndCursor > 1) pW->rndCursor = 1;
+            } else {
+                pW->rndCursor = 0;
+            }
+            if (pW->frame & 0x18) {
+                eprintf(0x30, 0xF0 + pW->rndCursor * 16, 0, 0, ">");
+            }
+            switch (pW->rndCursor) {
+            case 0:
+                v = pCur->rnd_base;
+                SEAT_STEP(v);
+                if (v >= 0) {
+                    n = v;
+                    if (n > 0xFFFF) n = 0xFFFF;
+                } else {
+                    n = 0;
+                }
+                pCur->rnd_base = n;
+                eprintf(0x30, 0x190, 0, 0, "RANDOM BASE VALUE(0-65535)");
+                break;
+            case 1:
+                v = pCur->rnd_range;
+                SEAT_STEP(v);
+                if (v > 0) {
+                    n = v;
+                    if (n > 0xFFFF) n = 0xFFFF;
+                } else {
+                    n = 1;
+                }
+                pCur->rnd_range = n;
+                eprintf(0x30, 0x190, 0, 0, "RANDOM MAX INTERVAL(1-65535,+BASE VALUE)");
+                break;
+            }
+            if (Joy[0].trg & JOY_B) pW->step--;
+            eprintf(0xC8, 0xF0, 0, 0, "%d", pCur->rnd_base);
+            eprintf(0xC8, 0x100, 0, 0, "%d", pCur->rnd_range);
+            break;
+        }
+        break;
+    case 3:
+        v = pCur->wait;
+        SEAT_STEP(v);
+        if (v >= 0) {
+            n = v;
+            if (n > 0x8000) n = 0x8000;
+        } else {
+            n = 0;
+        }
+        pCur->wait = n;
+        eprintf(0x30, 0x190, 0, 0, "DELAY TIME (0 - 65535)");
+        break;
+    case 4:
+        v = pCur->repeat;
+        SEAT_STEP(v);
+        if (v >= -1) {
+            n = v;
+            if (n > 0x7FFF) n = 0x7FFF;
+        } else {
+            n = -1;
+        }
+        pCur->repeat = n;
+        eprintf(0x30, 0x190, 0, 0, "CALL NUM (1 - 32767,0:INFINITY,-1:NO CALL)");
+        break;
+    case 5:
+        x = pW->x + 0x60;
+        y = pW->y + 0x50;
+        if (Joy[0].rep & REP_RIGHT) pW->flagCursor--;
+        if (Joy[0].rep & REP_LEFT) pW->flagCursor++;
+        if (pW->flagCursor >= 0) {
+            if (pW->flagCursor > 15) pW->flagCursor = 15;
+        } else {
+            pW->flagCursor = 0;
+        }
+        for (i = 0; i < 16; i++) {
+            eprintf(x + i * 8, y, (pW->flagCursor == 15 - i) ? 4 : 0, 0, "%d", (pCur->flags2 >> (15 - i)) & 1);
+        }
+        eprintf(x + 0x90, y, 4, 0, "%s", seAtFlagName[pW->flagCursor]);
+        if (Joy[0].trg & JOY_A) {
+            pCur->flags2 ^= 1 << pW->flagCursor;
+        }
+        break;
+    }
+    x = pW->x + 0x60;
+    y = pW->y;
+    if (pW->input == 0) {
+        col2 = 0;
+        if (Joy[0].trg & JOY_B) {
+            pW->sub = 0;
+            pW->step = 0;
+            pW->step2 = 0;
+        }
+    } else {
+        col2 = 7;
+    }
+    eprintf(x, y, (u8) col2, 0, "%s", (u32) pCur->blk <= 6 ? seAtBlockName[pCur->blk] : "...no string");
+    y += 16;
+    eprintf(x, y, (u8) col2, 0, "%d", pCur->se_no);
+    y += 16;
+    if (pCur->interval == 0) {
+        eprintf(x, y, (u8) col2, 0, "RANDOM  >>");
+    } else {
+        eprintf(x, y, (u8) col2, 0, "%d", pCur->interval);
+    }
+    y += 16;
+    eprintf(x, y, (u8) col2, 0, "%d", pCur->wait);
+    y += 16;
+    switch (pCur->repeat) {
+    case -1:
+        eprintf(x, y, (u8) col2, 0, "NO CALL");
+        break;
+    case 0:
+        eprintf(x, y, (u8) col2, 0, "INFINITY");
+        break;
+    default:
+        eprintf(x, y, (u8) col2, 0, "%d", pCur->repeat);
+        break;
+    }
+    if (pW->inputCursor != 5) {
+        y += 16;
+        for (i = 0; i < 16; i++) {
+            eprintf(x + i * 8, y, 0, 0, "%d", (pCur->flags2 >> (15 - i)) & 1);
+        }
+    }
+}
+
+static void seAtAreaEdit_AreaCopy()
+{
+    pW->copyBuf = *pCur;
+    pW->copySrc = pW->areaNo;
+    pW->copyValid = 1;
+}
+
+static void seAtAreaEdit_AreaPaste()
+{
+    *pCur = pW->copyBuf;
+}
+
+static void seAtAreaEdit_CopyBuffClear()
+{
+    memclr_asm(&pW->copyBuf, sizeof(TSeAt));
+    pW->copySrc = 0;
+    pW->copyValid = 0;
+}
+
+static void seAtAreaEdit_AreaDelete()
+{
+    pCur->flags &= ~1;
+    pW->editCursor = 0;
+}
+
+static void seAtAreaEdit_AreaCreate()
+{
+    pCur->pos = pG->Cam.param.at;
+    pCur->flags |= 3;
+    pW->editCursor = 0;
+    pW->sub = 0;
+    pW->step = 0;
+    pW->step2 = 0;
+}
+
+static void seAtDataLoad()
+{
+    u16 roomId = (pW->stage << 8) | pW->room;
+    int ret;
+    u32 i;
+
+    eprintf(pW->x, pW->y, 4, 0, "[DATA LOAD]");
+    switch (pW->sub) {
+    case 0:
+        pW->sub = 1;
+        pW->step = 0;
+        pW->step2 = 0;
+        pW->stage = pG->stage_no;
+        pW->room = pG->room_no;
+        pW->server = 1;
+    case 1:
+        if (Joy[0].rep2 & REP_UP) {
+            switch (pW->loadCursor) {
+            case 1:
+                pW->stage++;
+                break;
+            case 2:
+                pW->room++;
+                break;
+            }
+        } else if (Joy[0].rep2 & REP_DOWN) {
+            switch (pW->loadCursor) {
+            case 0:
+                pW->server ^= 1;
+                break;
+            case 1:
+                pW->stage--;
+                break;
+            case 2:
+                pW->room--;
+                break;
+            }
+        } else if (Joy[0].trg & REP_LEFT) {
+            pW->loadCursor--;
+        } else if (Joy[0].trg & REP_RIGHT) {
+            pW->loadCursor++;
+        } else if (Joy[0].trg & JOY_B) {
+            pW->mode = 0;
+            pW->sub = 0;
+            pW->step = 0;
+            pW->step2 = 0;
+        } else if (Joy[0].trg & JOY_A) {
+            pW->sub = 2;
+            pW->step = 0;
+            pW->step2 = 0;
+            pW->yesNo = 1;
+        }
+        pW->loadCursor = pW->loadCursor < 0 ? 0 : (pW->loadCursor > 2 ? 2 : pW->loadCursor);
+        pW->stage = pW->stage < 0 ? 0 : (pW->stage > 9 ? 9 : pW->stage);
+        pW->room = pW->room < 0 ? 0 : (pW->room > 0x70 ? 0x70 : pW->room);
+        if (pW->server == 0) {
+            sprintf(pW->path, "d:/bio4/room/st%1x/r%03x/r%03x.ese", pW->stage, roomId, roomId);
+        } else {
+            sprintf(pW->path, "x:/soft/room/st%1x/r%03x/r%03x.ese", pW->stage, roomId, roomId);
+        }
+        break;
+    case 2:
+        eprintf(pW->x, pW->y + 0x60, 0, 0, "DATA LOAD OK?");
+        eprintf(pW->x, pW->y + 0x70, pW->yesNo == 0 ? 6 : 7, 0, "YES");
+        eprintf(pW->x + 0x28, pW->y + 0x70, pW->yesNo == 1 ? 6 : 7, 0, "NO");
+        if (Joy[0].trg & JOY_B) {
+            pW->sub = 1;
+            pW->step = 0;
+            pW->step2 = 0;
+        } else if (Joy[0].trg & JOY_A) {
+            if (pW->yesNo == 0) {
+                pW->sub = 3;
+            } else {
+                pW->sub = 1;
+            }
+            pW->step = 0;
+            pW->step2 = 0;
+        } else if (Joy[0].trg & (REP_LEFT | REP_RIGHT)) {
+            pW->yesNo ^= 1;
+        }
+        break;
+    case 3:
+        ret = HDRead(pW->path, &pW->fileHead);
+        if (ret == 0) {
+            pLog->err(0, 0, "%s : LOAD ERROR !!!!", pW->path);
+            pW->sub = 9;
+            pW->step = ret;
+            pW->step2 = ret;
+        } else {
+            if (strcmp(pW->fileHead.magic, "ESE") != 0) {
+                pW->sub = 9;
+                pW->step = 0;
+                pW->step2 = 0;
+                break;
+            }
+            for (i = 0; i < pW->fileHead.num; i++) {
+                pW->area[pW->file[i].no] = pW->file[i];
+            }
+            pW->sub = 8;
+            pW->step = 0;
+            pW->step2 = 0;
+        }
+        pW->timer = 30;
+        break;
+    case 8:
+        eprintf(pW->x, pW->y + 0x60, 6, 0, "DATA LOAD COMPLETE.");
+        if ((Joy[0].trg & (JOY_A | JOY_B)) || pW->timer <= 0) {
+            pW->mode = 0;
+            pW->sub = 0;
+            pW->step = 0;
+            pW->step2 = 0;
+        }
+        pW->timer--;
+        break;
+    case 9:
+        eprintf(pW->x, pW->y + 0x60, 2, 0, "DATA LOAD ERROR.");
+        if ((Joy[0].trg & (JOY_A | JOY_B)) || pW->timer <= 0) {
+            pW->sub = 1;
+            pW->step = 0;
+            pW->step2 = 0;
+        }
+        pW->timer--;
+        break;
+    }
+    eprintf(pW->x, pW->y + 0x20, (u8) (pW->sub == 1 ? (pW->loadCursor == 0 ? 6 : 0) : 0), 0, "%s",
+            pW->server == 0 ? "LOCAL" : "SERVER");
+    eprintf(pW->x + 0x40, pW->y + 0x20, pW->sub == 1 ? (pW->loadCursor == 1 ? 6 : 0) : 0, 0, "STAGE %2d", pW->stage);
+    eprintf(pW->x + 0x90, pW->y + 0x20, pW->sub == 1 ? (pW->loadCursor == 2 ? 6 : 0) : 0, 0, "ROOM %02x", pW->room);
+    eprintf(pW->x, pW->y + 0x40, 0, 0, "%s", pW->path);
+}
+
+static TOOL_MENU seAtSaveMenu[3] = {
+    {1, "SERVER", NULL},
+    {1, "LOCAL", NULL},
+    {1, "DON'T SAVE", NULL},
+};
+
+static void seAtDataSave()
+{
+    char pathX[0x40];
+    char pathD[0x40];
+    int ret = 0;
+    u32 i;
+    s8 sel;
+
+    eprintf(pW->x, pW->y, 4, 0, "[DATA SAVE]");
+    pW->y += 0x10;
+    sprintf(pathX, "x:\\soft\\room\\st%1x\\r%03x\\r%03x.ese", pGS->stage_no, pGS->room_id, pGS->room_id);
+    sprintf(pathD, "d:\\bio4\\room\\st%1x\\r%03x\\r%03x.ese", pGS->stage_no, pGS->room_id, pGS->room_id);
+    switch (pW->sub) {
+    case 0:
+        seAtSaveNum = 0;
+        for (i = 0; i < 64; i++) {
+            if (pW->area[i].flags & 1) {
+                pW->area[i].no = i;
+                pW->file[seAtSaveNum] = pW->area[i];
+                seAtSaveNum++;
+            }
+        }
+        pW->fileHead.magic[0] = 'E';
+        pW->fileHead.magic[1] = 'S';
+        pW->fileHead.magic[2] = 'E';
+        pW->fileHead.magic[3] = 0;
+        pW->fileHead.version = 0x100;
+        pW->fileHead.num = seAtSaveNum;
+        pW->sub = 1;
+        pW->step = 0;
+        pW->step2 = 0;
+    case 1:
+        sel = ToolMenuDisp(pW->x, pW->y, 0, seAtSaveMenu, sizeof(seAtSaveMenu), &Joy[0]);
+        eprintf(pW->x + 0x64, pW->y, 6, 0, "%s", pathX);
+        eprintf(pW->x + 0x64, pW->y + 0x10, 6, 0, "%s", pathD);
+        if (sel >= 0) {
+            switch (sel) {
+            case 0:
+            case 1:
+                ret = HDWrite_only(pathX + sel * 0x40, &pW->fileHead, seAtSaveNum * sizeof(TSeAt) + 0x10);
+                break;
+            case 2:
+                pW->mode = 0;
+                pW->sub = 0;
+                pW->step = 0;
+                pW->step2 = 0;
+                return;
+            }
+            pW->timer = 30;
+            if (ret != 0) {
+                pW->sub = 8;
+                pW->step = 0;
+                pW->step2 = 0;
+            } else {
+                pW->sub = 9;
+                pW->step = ret;
+                pW->step2 = ret;
+            }
+        }
+        if (Joy[0].trg & JOY_B) {
+            pW->mode = 0;
+            pW->sub = 0;
+            pW->step = 0;
+            pW->step2 = 0;
+        }
+        break;
+    case 8:
+        eprintf(pW->x, pW->y, 6, 0, "DATA SAVE COMPLETE.");
+        if ((Joy[0].trg & (JOY_A | JOY_B)) || pW->timer <= 0) {
+            pW->mode = ret;
+            pW->sub = ret;
+            pW->step = ret;
+            pW->step2 = ret;
+        }
+        pW->timer--;
+        break;
+    case 9:
+        eprintf(pW->x, pW->y, 2, 0, "DATA SAVE ERROR.");
+        if ((Joy[0].trg & (JOY_A | JOY_B)) || pW->timer <= 0) {
+            pW->sub = 1;
+            pW->step = ret;
+            pW->step2 = ret;
+        }
+        pW->timer--;
+        break;
+    }
+}
+
+static void (*seAtPreviewRoutine[3])() = {preview_init, preview_main, preview_exit};
+
+static void seAtPreview()
+{
+    seAtPreviewRoutine[pW->sub]();
+}
+
+static void preview_init()
+{
+    u32 i;
+    int n = 0;
+
+    TOOL_FLAG(OFS_STOP_FLG) &= ~0x10000000;
+    TOOL_FLAG(OFS_DISP_FLG) &= ~0x40000000;
+    TOOL_FLAG(OFS_DEBUG_FLG) &= ~0x10000000;
+    for (i = 0; i < 64; i++) {
+        if (pW->area[i].flags & 1) {
+            pW->area[i].no = i;
+            pW->file[n] = pW->area[i];
+            n++;
+        }
+    }
+    pW->fileHead.magic[0] = 'E';
+    pW->fileHead.magic[1] = 'S';
+    pW->fileHead.magic[2] = 'E';
+    pW->fileHead.magic[3] = 0;
+    pW->fileHead.version = 0x100;
+    pW->fileHead.num = n;
+    Snd.se_at = &pW->fileHead;
+    Snd.se_at_list = (SeAt*) pW->file;
+    pW->sub++;
+}
+
+static void preview_main()
+{
+    pW->timer++;
+    if (pW->timer & 8) {
+        eprintf(0xD0, 0x10, 6, 0, "PREVIEW MODE");
+    }
+    if (Joy[0].trg & JOY_START) {
+        pW->sub++;
+    }
+}
+
+static void preview_exit()
+{
+    TOOL_FLAG(OFS_STOP_FLG) |= 0x20000000;
+    TOOL_FLAG(OFS_STOP_FLG) |= 0x10000000;
+    TOOL_FLAG(OFS_STOP_FLG) |= 0x800000;
+    TOOL_FLAG(OFS_STOP_FLG) |= 0x400000;
+    TOOL_FLAG(OFS_STOP_FLG) |= 0x10000;
+    TOOL_FLAG(OFS_STOP_FLG) |= 0x2000;
+    TOOL_FLAG(OFS_DISP_FLG) |= 0x40000000;
+    TOOL_FLAG(OFS_DISP_FLG) |= 0x80000000;
+    TOOL_FLAG(OFS_DEBUG_FLG) |= 0x10000000;
+    Snd.se_at = NULL;
+    Snd.se_at_list = NULL;
+    pW->mode = 0;
+}

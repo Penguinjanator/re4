@@ -51,5 +51,10 @@ public:
 extern VIEW View;
 extern f32 ZNEAR;
 extern f32 ZFAR;
+// orthographic projection bounds (game/view.cpp .sbss, after ZFAR)
+extern f32 ORTHO_T;
+extern f32 ORTHO_B;
+extern f32 ORTHO_L;
+extern f32 ORTHO_R;
 
 #endif

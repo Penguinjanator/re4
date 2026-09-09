@@ -3441,3 +3441,76 @@ target) stays unresolved and `make_rel` then fails with "undefined symbol".
     the '.'), start/end/add/max frames at +0x1DAC..0x1DB8, `dbModSlot[0].pModel` (+0x1F8 max frame, +0x290
     current frame, +0x294 motion count, +0x94 pos, +0xF4 parts list) everywhere; strings and pools in
     .rodata are in the order listed by secdump.
+
+### Small tool RELs, third pass (t_camera_draw Matching; t_camera_data 12/16, t_movie/t_se_at 11/19; 2026-09)
+
+- t_camera (include/t_camera.h): `TcWork* pTc` is a plain global pointer (`.data` 0x55C -> the static
+  `tcWork`, 0x644); `cam` (a `Camera`) sits at +0x10, the pad snapshot `JOY joy` at +0x10C. The tool
+  reads the pad words through raw offsets (`TC_TRG = *(u32*)((u8*)pTc + 0x120)`): only that reloads
+  `pTc->joy.trg` after a store to the blink counter (a non-struct load aliases the scalar store) while
+  the pointer itself is kept, and it keeps the `lwz trg` below `stw blink` at the function end.
+  Data pools are globals `tcTypeTbl[64][16]`, `tcAdat[0x60]`, `tcCdat[0x40]`, `tcLdat[0x40]` (records
+  = cam_ctrl.h's file records with the arrays inline: TcCdat has `u16 frame[26]` at 0x10, a
+  `union { f32 floor; Vec dir; }` at 0x44, `pos/at[26]`, `roll/fovy[26]`), plus `Camera tcGameCamera`
+  in t_camera_data. Data labels were named by hand (`sync_rel_symbols` mis-assigns them when the
+  relocation order differs) — check `symbols.txt`/`sym_map.tsv` after every sync.
+- A single `int num = ngon->num;` local (instead of re-reading the field in the loop test) is what
+  keeps `ngon` out of a callee-saved register and orders the three `addi rX, r3, 4/8/0xc` bases
+  (tcDrawNgon); a struct local `p.x = p.y = p.z = 0.0f; for (j) p.x += b[j]*px[j] ...` IS turned into
+  register accumulators by our compiler (the zero stores stay, `fmr f9,f31` copies in the preheader).
+- A `CameraBSpline* bs = &CamBSpline;` local (like cam_ctrl.cpp) makes `bs->k` a `0(r30)` load; the
+  bare global gives `lis/lwz CamBSpline@l` for the offset-0 member. Declare such externs in the tool
+  header, not cam_ctrl.h (a header extern before cam_ctrl.cpp's own would reorder its .bss).
+- Two passes of loop.c (`-frerun-loop-opt`): pass 1 eliminates a `for (i...) { p = &tbl[i]; }` biv
+  through a giv whose add_val is a *pointer-flagged* register (`maybe_eliminate_biv_1`,
+  `REGNO_POINTER_FLAG`), and pass 2 then fails BCT ("Initial value not constant") -> pointer compare
+  instead of `mtctr`. The flag came from re-using one function-scope `TcCdat* c` (also assigned in a
+  later loop); a block-local `TcCdat* cd = &tcCdat[i]` per loop keeps `bdnz`. Dump with
+  `cc1plus ... -dL` (the `.loop` file lists "insert_bct" / "biv eliminated" per loop).
+- gcse PRE splits a loop counter into `addi rT, rI, 1` in the arms + `mr rI, rT` at the end when the
+  increment sits at the latch of a body with an if-skip; the original has the plain `addi rI,rI,1`
+  early in the body (tcDataExport rec loop: write `i++;` as the first statement after the header
+  stores). The frames loop keeps `mulli r9, r6, 0x394` (no giv reduction) only with the for-header
+  `i++`; `&tcCdat[i++]` reduces the giv.
+- `(u8*)p - buf` written as an expression inside the loop (not an `ofs` variable) is the giv the
+  original strength-reduces (`subf r10, r29, r3` in the preheader, `addi r10, 2` per iteration);
+  a separate `ofs += 2` variable gives the same code but PRE hoists the `subf` above the previous
+  loop. Per-section typed pointers (`Vec* vp` adat, `Vec* pos` cdat, `u16* fp` frames, `size =
+  (u8*)fp - buf` before the rec loop) reproduce the `mr r5,r8 / mr r3,r5` section copies; the cdat
+  loop's `pos[j] = cd->pos[j]` (index form) + `*at++/*roll++/*fovy++` + `pos = (Vec*) fovy` gives
+  the `mr r6, r5` giv copy for pos only (pos is live on the skip path, the others are block-local).
+- Compare constants: the tree folder turns `ver < 2` into `ver <= 1` (`cmpwi 1; bgt`) and
+  `ver >= 2` into `> 1`; the original's `cmpwi 2; bge` shared with a later `ver <= 2` (cr0 saved in
+  `mfcr r25`) needs the constant to reach RTL unfolded — `int lo = 2; if (ver < lo)` (cse then
+  propagates it and gcse merges the two compares). `ver == -1 || ver < -1` are two separate ifs
+  (`cmpwi -1; beq; blt`).
+- `ver <= 2` / `ver > 3` version arms: `if (ver <= 2) {A} else {B}` gives `bgt` on the saved cr0;
+  `ver <= 3` a hoisted `cmpwi cr4, r3, 3`.
+- File-record pointer walks the original hoists into locals: `Vec* pt = s->points; for (j) a->pt[j] =
+  *pt++;` (a plain `s->points[j]` reloads the pointer after every store because the stores may alias).
+- t_se_at (src/t_movie/t_se_at.cpp, SE attack editor; work `SeAtWork` 0x16D4 = Debug_alloc'd, `TSeAt`
+  = snd.h's SeAt with `blk`/`se_no` as ints): the work pointer and the current-area pointer are
+  one-member structs (`seAtWk.p`, `seAtCur.p`); `static int seAtSaveNum` (its low half is read with
+  `lhz seAtSaveNum+2` for the u16 header count); `SetToolLight(int)` is this module's db_light_v2
+  copy (scope global in symbols.txt although the .sym says local). Table definitions sit right before
+  the first function using them (menu strings in .rodata parse order: block names, ToolSeAt,
+  seAtInit, main menu, seAtAreaEdit, create+edit menus, AreaMove pool, input/rnd/flag names,
+  DataInput, DataLoad, save menu, DataSave). Idioms: `BitSet(w->save, TOOL_FLAG(..))` for the two
+  flag backups (pG reloaded after the store); `int zero = 0` at the top of seAtInit (`li r28,0`
+  before the first call, reused for every zero store); `u8 valid = w->copyValid` loaded once for the
+  four menu-enable stores (order edit[4], edit[3], create[2], create[1] -> issued create[1] first);
+  `Vec axis = {0,1,0}` declared inside the `if` (16-byte template copy); the `+-1/+-10 with X` steps
+  are a macro, the clamps `if (v >= 0) { n = v; if (n > M) n = M; } else n = 0;` with a second
+  variable (`mr r10, r11`), the s8 cursor clamps in DataLoad the ternary form (raw byte kept); the pad
+  masks are `RIGHT|0x20000` / `LEFT|0x10000` (joy.h's SLEFT/SRIGHT swapped); `s16 x = w->x + 0x60`
+  (`lhz/addi/extsh`); menu-name loops `for (j = 0; j < num; j++)` with `int num = 6` (a literal
+  bound folds to `ble tbl+0x14`, the original has `blt tbl+0x18`), a `u8 col` for the loop colour
+  and `(u8) col2` casts on an `int col2` in the footer (per-call `clrlwi`); colour ternaries inline
+  in the eprintf argument (`yesNo == 0 ? 6 : 7` -> `li 7; bne; li 6`; nested
+  `sub == 1 ? (cursor == 0 ? 6 : 0) : 0` for two separate `li r5, 0`); `pGS->stage_no` in the save
+  path (keeps `lwz pG` below `sth w->y`). Open: ToolSeAt `lis` placement, seAtInit's Snd save/zero
+  store order and the work-pointer load position, EditMenu's r7/r8 menu pointers (mine `mr r7, r8`
+  on the edit call), AreaMove's `&right` address pseudo (y/z stored via `addi r9, r1, 8`),
+  DataInput `clrlwi r5, r29, 24` per iteration in the first name loop, DataLoad's `(u8)` cast of the
+  first footer colour (folded into the arms by our front end), DataSave's `seAtSaveNum` reload after
+  the record copy.
