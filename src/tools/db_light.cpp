@@ -24,6 +24,7 @@
 #include "etc_model.h"
 #include "main.h"
 #include "db_cam.h"
+#include "player.h"
 
 // Light editor (D:/Bio4/Prog/db_light.cpp): cLightTool (the editor), cDbLit (the .lit cuts being edited,
 // one Debug_alloc'd cLightEnv per cut) and cLitPathTool (the light path table). The same object is in
@@ -160,7 +161,6 @@ f32 LIMIT_ANGLE(f32 a);
 void moveOnPlaneXZ(Vec* pos, Vec* dir);
 int tcCurrentCameraNo();
 extern int DebugMenuSelected;
-extern cModel* pPLm asm("pPL");
 cModel* getRoomEtcOnLight(int no);
 
 // Debug heap pointers are checked for the MEM1 range before use.
@@ -320,6 +320,10 @@ int getCutNo();
 void drawLightInfo_SpotShadow(cLight* l, u32 color);
 void drawLightInfo(cLight* l, u32 color);
 int pathSelect();
+// COMPILER-DIFF: the original's path() sets r3..r7 to (0x20, 0x70, 0, 0, 0) before calling the
+// argument-less pathSelect__Fv (a stale five-argument prototype at the call site); this alias
+// reproduces that call.
+int pathSelect(int x, int y, u8 a, u8 b, int c) asm("pathSelect__Fv");
 int pathEdit(int x, int y, u8 no, u8 flag, int mode);
 void drawPath(int x, int y, cLightPathData* p, u8 flag, u32 color);
 
@@ -2866,10 +2870,10 @@ void draw_light_graph(cLight* l)
         }
         b.x = gx + (f32) (i + 1);
         b.y = gy - v;
-        b.z = 0.0f;
+        b.z = b.y = b.x = 0.0f;
         Draw_line(&a, &b, 0xE0E0E0E0);
     }
-    a = pPLm->pos;
+    a = pPL->pos;
     a.y += 1200.0f;
     d = GetDistance3(&l->pos, &a);
     t = d / scale;
@@ -3660,14 +3664,304 @@ static void edit_scale()
     eprintf(0x20, 0x46, 0, pTool->color, "PLAYER TEV SCALE %s", scale_name[env->tevScale[1]]);
     LightMgr.setEnv(env, -1);
 }
-static void edit_param() {}
-static void edit_wind() {}
-static void path() {}
+// Fog interpolation frames.
+static void edit_param()
+{
+    cLightEnv* env = LightMgr.getEnvPtr();
+
+    switch (pTool->sub) {
+    case 0:
+        pTool->cursor = 0;
+        pTool->sub = 1;
+        break;
+    case 1:
+        switch (pTool->cursor) {
+        case 0:
+            if (pTool->joy.rep & JOY_RIGHT) {
+                env->hokan = (env->hokan + 251) % 250;
+            }
+            if (pTool->joy.rep & JOY_LEFT) {
+                env->hokan = (env->hokan + 249) % 250;
+            }
+            break;
+        }
+        if (pTool->joy.rep & JOY_UP) {
+            pTool->cursor = (pTool->cursor + 0) % 1;
+        } else if (pTool->joy.rep & JOY_DOWN) {
+            pTool->cursor = (pTool->cursor + 2) % 1;
+        }
+        pTool->printCursor(3, pTool->cursor + 4);
+        if (pTool->joy.rep & JOY_B) {
+            pTool->sub = 0;
+            pTool->editNo = 0;
+            pTool->clearWork();
+        }
+        break;
+    }
+    eprintf(0x20, 0x2A, 4, pTool->color, "PARAMETER");
+    eprintf(0x20, 0x38, 0, pTool->color, "HOKAN %d", env->hokan);
+}
+// Cloth wind of the cut: direction (set from the stick through the camera), power, frequency.
+// Draws the wind as an arrow at the camera target.
+static void edit_wind()
+{
+    cLightEnv* env = LightMgr.getEnvPtr();
+    Vec stick;
+    Vec a;
+    Vec b;
+    Vec c;
+    Vec rot;
+
+    switch (pTool->sub) {
+    case 0:
+        pTool->cursor = 0;
+        pTool->sub = 1;
+        break;
+    case 1:
+        switch (pTool->cursor) {
+        case 0:
+            if (pTool->joy.rep & JOY_RIGHT) {
+                env->wind.dir++;
+            }
+            if (pTool->joy.rep & JOY_LEFT) {
+                env->wind.dir--;
+            }
+            CamStick2World(&pG->Cam, &Joy[0], &stick);
+            if (Joy[0].on & 0xF0000) {
+                env->wind.dir = (int) (atan2(stick.x, stick.z) * 127.0 / 3.14159265358979);
+            }
+            break;
+        case 1:
+            if (pTool->joy.rep & JOY_RIGHT) {
+                env->wind.power++;
+            }
+            if (pTool->joy.rep & JOY_LEFT) {
+                env->wind.power--;
+            }
+            env->wind.power += (Joy[0].sx + Joy[0].sy) / 10;
+            if (pTool->joy.trg & JOY_Y) {
+                env->wind.power = 0;
+            }
+            break;
+        case 2:
+            if (pTool->joy.rep & JOY_RIGHT) {
+                env->wind.x2++;
+            }
+            if (pTool->joy.rep & JOY_LEFT) {
+                env->wind.x2--;
+            }
+            env->wind.x2 += (Joy[0].sx + Joy[0].sy) / 10;
+            if (pTool->joy.trg & JOY_Y) {
+                env->wind.x2 = 0;
+            }
+            break;
+        }
+        if (pTool->joy.rep & JOY_UP) {
+            pTool->cursor = (pTool->cursor + 2) % 3u;
+        } else if (pTool->joy.rep & JOY_DOWN) {
+            pTool->cursor = (pTool->cursor + 4) % 3u;
+        }
+        pTool->printCursor(3, pTool->cursor + 4);
+        if (pTool->joy.rep & JOY_B) {
+            pTool->sub = 0;
+            pTool->editNo = 0;
+            pTool->clearWork();
+        }
+        break;
+    }
+    env->wind.set();
+    pPL->moveCloth();
+    a = pG->Cam.param.pos;
+    b = pG->Cam.param.at;
+    PSVECSubtract(&b, &a, &b);
+#line 4082 "D:/Bio4/Prog/db_light.cpp"
+    VECNormalize(&b, &b);
+    PSVECScale(&b, &b, 1000.0f);
+    PSVECAdd(&a, &b, &b);
+    a.x = b.x;
+    a.y = b.y - 100.0f;
+    a.z = b.z;
+    Draw_line3d(&a, &b, 0xFFFFFFFF, 0);
+    c.x = 0.0f;
+    c.z = 300.0f;
+    c.y = 0.0f;
+    rot.x = 0.0f;
+    rot.y = (f32) env->wind.dir * 3.14159265f / 127.0f;
+    rot.z = 0.0f;
+    RotVector(&c, &rot, &c);
+    PSVECAdd(&c, &a, &c);
+    Draw_line3d(&a, &c, 0xFFFFFFFF, 0);
+    Draw_line3d(&b, &c, 0xFFFFFFFF, 0);
+    eprintf(0x20, 0x2A, 4, pTool->color, "WIND (CLOTH)");
+    eprintf(0x20, 0x38, 0, pTool->color, "DIRECTION %2.2f", (f32) env->wind.dir * 3.14159265f / 127.0f);
+    eprintf(0x20, 0x46, 0, pTool->color, "POWER     %3.2f", (f32) env->wind.power * 0.01f * 20.0f);
+    eprintf(0x20, 0x54, 0, pTool->color, "FREQUENCY %3.2f", (f32) env->wind.x2 * 0.01f * 1.0471976f);
+}
+// Light path table editor: select a path, then edit it.
+static void path()
+{
+    eprintf(0x20, 0x2A, 4, pTool->color, "PATH EDIT");
+    switch (pTool->editNo) {
+    case 0:
+        pTool->x10 = pTool->x11 = pTool->x12 = pTool->x13 = 0;
+        pTool->editNo = 1;
+    case 1:
+        pTool->xB = pathSelect(0x20, 0x70, 0, 0, 0);
+        if (pTool->joy.rep & JOY_A) {
+            pTool->x10 = pTool->x11 = pTool->x12 = pTool->x13 = 0;
+            pTool->editNo = 2;
+        } else if (pTool->joy.rep & JOY_B) {
+            pTool->routine = pTool->editNo = 0;
+            pTool->clearWork();
+        }
+        break;
+    case 2:
+        eprintf(0x20, 0x38, 0, pTool->color, "PATH %d", pTool->xB);
+        pTool->xA = pathEdit(0x20, 0x70, pTool->xB, 0, 0);
+        if (pTool->joy.rep & JOY_B) {
+            pTool->x10 = pTool->x12 = pTool->x13 = 0;
+            pTool->x11 = pTool->xB;
+            pTool->editNo = 1;
+        }
+        break;
+    }
+}
 static void load() {}
 static void save() {}
 static void option() {}
-static void quit() {}
-void printEditTable() {}
+// Quit confirmation: YES leaves the tool (restoring the debug page colour), NO goes back to the menu.
+static void quit()
+{
+    eprintf(0x20, 0x2A, 4, pTool->color, "QUIT ?");
+    if (pTool->editNo == 0) {
+        pTool->cursor = 1;
+        pTool->editNo = 1;
+    }
+    eprintf(0x30, 0x46, pTool->cursor == 0 ? 0 : 0x14, pTool->color, "YES");
+    eprintf(0x30, 0x54, pTool->cursor == 1 ? 0 : 0x14, pTool->color, "NO");
+    if (pTool->joy.rep & JOY_UP) {
+        pTool->cursor = 0;
+    } else if (pTool->joy.rep & JOY_DOWN) {
+        pTool->cursor = 1;
+    }
+    if (pTool->joy.rep & JOY_A) {
+        if (pTool->cursor == 0) {
+            pTool->ret = 0;
+            pGS->debug_mode = pTool->colorBak;
+            pLog->modeReset();
+            pTool->updateLit();
+            pTool->clearWork();
+            pTool->routine = pTool->editNo = pTool->sub = pTool->init = pTool->x8 = pTool->x9 = pTool->xA = pTool->xB = 0;
+            pTool->xC = pTool->xD = pTool->xE = pTool->xF = 0;
+        } else {
+            pTool->clearWork();
+            pTool->routine = 0;
+        }
+    }
+    if (pTool->joy.rep & JOY_B) {
+        pTool->clearWork();
+        pTool->routine = 0;
+    }
+}
+// The light table: one row per light of the current cut (first page of columns only).
+// One row of the light table (first page of columns).
+static inline void printEditRow(cLight* l, int y, int c)
+{
+    int x;
+    GXColor col;
+
+    x = 7;
+    eprintf(x * 8, y, c, pTool->color, "%02d", l->type);
+    x = 10;
+    eprintf(x * 8, y, c, pTool->color, "%s", (l->xF & 1) ? "P" : "-");
+    x++;
+    eprintf(x * 8, y, c, pTool->color, "%s", (l->xF & 2) ? "E" : "-");
+    x++;
+    eprintf(x * 8, y, c, pTool->color, "%s", (l->xF & 4) ? "O" : "-");
+    x++;
+    eprintf(x * 8, y, c, pTool->color, "%s", (l->xF & 8) ? "E" : "-");
+    x++;
+    eprintf(x * 8, y, c, pTool->color, "%s", (l->xF & 0x10) ? "S" : "-");
+    x += 2;
+    eprintf(x * 8, y, c, pTool->color, "%s", parent_short[l->parentType]);
+    x += 3;
+    eprintf(x * 8, y, c, pTool->color, "%4.0f %3.0f %4.0f", l->pos.x / 1000.0f, l->pos.y / 1000.0f,
+            l->pos.z / 1000.0f);
+    x += 14;
+    if (l->x1C != 0.0f) {
+        eprintf(x * 8, y, c, pTool->color, "%3d", (int) (l->x1C / 1000.0f));
+    } else {
+        eprintf(x * 8, y, c, pTool->color, "INF");
+    }
+    x += 4;
+    if (l->type == 4) {
+        col.a = col.r = col.b = col.g = l->color.r;
+    } else {
+        col = l->color;
+    }
+    drawColorTile(x * 8 + 1, y + 1, 0x16, 0xC, *(u32*) &col);
+    x += 4;
+    eprintf(x * 8, y, c, pTool->color, "%1.1f", l->power);
+    x += 4;
+    if (l->type != 4) {
+        if (l->xD <= 7) {
+            eprintf(x * 8, y, c, pTool->color, "%s", light_type_short[l->xD]);
+        } else {
+            eprintf(x * 8, y, c, pTool->color, "ERR!");
+        }
+    } else {
+        if (l->xD <= 2) {
+            eprintf(x * 8, y, c, pTool->color, "%s", shadow_type_short[l->xD]);
+        } else {
+            eprintf(x * 8, y, c, pTool->color, "ERR!");
+        }
+    }
+    x += 5;
+    eprintf(x * 8, y, c, pTool->color, "%s %02x", (l->kind & 0x80) ? "E" : " ", l->kind);
+    x += 5;
+    eprintf(x * 8, y, c, pTool->color, "%02X", l->attr);
+    x += 5;
+    eprintf(x * 8, y, c, pTool->color, "%d", l->x2B);
+}
+
+// The light table: one row per light of the current cut.
+void printEditTable()
+{
+    static const char* table_head[] = {
+        "NO ID EMASK PA POSITION=== RAD COL INT TYPE KIND ATTR PR",
+        "NO ==================================================",
+    };
+    int page = pTool->col > 11;
+    int i;
+    int y;
+    int no;
+    int x;
+    int c;
+    cLight* l;
+
+    eprintf(0x20, 0x142, 4, pTool->color, table_head[page]);
+    for (i = 0, y = 0x150, no = pTool->top; i < pTool->rows; i++, y += 0xE, no++) {
+        l = LightMgr.getWorkPtr(no);
+        x = 4;
+        if (pTool->editEnable()) {
+            if ((l->be_flag & 3) == 3) {
+                c = (l->type == 4) ? 5 : 0;
+            } else {
+                c = 0x14;
+            }
+        } else {
+            c = 0x16;
+        }
+        eprintf(x * 8, y, c, pTool->color, "%02d", no);
+        if (l->be_flag & 1) {
+            if (page == 0) {
+                printEditRow(l, y, c);
+            }
+        } else {
+            eprintf(0x38, y, 0x14, pTool->color, "EMPTY WORK");
+        }
+    }
+}
 
 void cLightTool::printCursor(int x, int y)
 {
@@ -4037,9 +4331,69 @@ int getCutNo()
     return (u8) no;
 }
 
-void drawLightInfo_SpotShadow(cLight* l, u32 color) {}
-void drawLightInfo(cLight* l, u32 color) {}
-int pathSelect() { return 0; }
+// Shadow light with a parallel (type 2) direction: draws its position and the shadow cone.
+void drawLightInfo_SpotShadow(cLight* l, u32 color)
+{
+    Light04Work* w = (Light04Work*) l->work;
+    Vec dir;
+    Vec n;
+    Vec rot;
+    Vec pos;
+    Vec axis = {0.0f, 1.0f, 0.0f};
+    Mtx m;
+    Mtx m2;
+    f32 len;
+
+    l->getPos(&pos);
+    Draw_pos(&pos, 300);
+    dir.x = 0.0f;
+    dir.y = -1.0f;
+    dir.z = 0.0f;
+    PSVECNormalize(&dir, &dir);
+    rot.x = (f32) (s16) (u16) w->rotX * 3.1415927f * 2.0f / 360.0f;
+    rot.y = (f32) (s16) (u16) w->rotY * 3.1415927f * 2.0f / 360.0f;
+    rot.z = 0.0f;
+    PSMTXRotRad(m, 'x', rot.x);
+    PSMTXRotAxisRad(m2, &axis, rot.y);
+    PSMTXConcat(m2, m, m);
+    PSMTXMultVecSR(m, &dir, &dir);
+    l->getNormal(&dir, &n);
+    len = l->x1C;
+    if (len == 0.0f) {
+        len = 2000.0f;
+    }
+    Draw_corn2(&pos, &n, len, (f32) w->texNo, 0xFFFFFFFF);
+}
+// Position sphere / hit radius / direction line of a light.
+void drawLightInfo(cLight* l, u32 color)
+{
+    Vec pos;
+    Vec t;
+    Vec n;
+
+    if ((*(u32*) &l->xC & 0x00FFFF00) == 0x00020400) {
+        drawLightInfo_SpotShadow(l, color);
+        return;
+    }
+    pos = l->curPos;
+    if (l->x1C != 0.0f) {
+        Draw_sphere(&pos, l->x1C, color, 1, 1);
+    }
+    if ((f32) (int) l->x30 != 0.0f) {
+        Draw_sphere(&pos, (f32) l->x30, 0xFFFF0044, 1, 1);
+    }
+    Draw_pos(&pos, 300);
+    if (l->xD == 3 || l->xD == 4 || l->xD == 6) {
+        l->getNormal(&l->normal, &n);
+        PSVECScale(&n, &t, 500.0f);
+        PSVECAdd(&t, &pos, &t);
+        Draw_line3d(&pos, &t, (l->color.a << 24) | (l->color.r << 16) | (l->color.g << 8) | l->color.b, 0);
+    }
+}
+int pathSelect()
+{
+    return 0;
+}
 int pathEdit(int x, int y, u8 no, u8 flag, int mode) { return 0; }
 void drawPath(int x, int y, cLightPathData* p, u8 flag, u32 color) {}
 
@@ -4071,7 +4425,7 @@ int cLightTool::lightAnalysis()
             }
         }
     }
-    n = pPLm->lightInfo.getLightNum();
+    n = pPL->lightInfo.getLightNum();
     eprintf(0x1C8, 0x1C, 0, 0, "PL");
     eprintf(0x1E0, 0x1C, n > 3 ? 0x16 : 0, 0, "%2d", n);
     y = 0x2A;

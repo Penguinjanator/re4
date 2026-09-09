@@ -195,6 +195,8 @@ public:
     u8 pad_11C[0x13C - 0x11C];
 
     Event(u8 type);
+    // int-parameter alias of the constructor: EventMgr::construct passes its u32 id without a clrlwi.
+    Event* ctorI(int type) asm("__5EventUc");
     virtual ~Event();
     int init(char* name, EvtHeader* data);
     int Run();

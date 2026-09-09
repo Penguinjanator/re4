@@ -128,12 +128,10 @@ static inline cModel* EspEvModGet(int no)
 static inline int EvtWorkNo(EventMgr* mgr, Event* e)
 {
     u32 i;
-    Event* p = mgr->pArray;
     for (i = 0; i < mgr->nArray; i++) {
-        if (p == e) {
+        if ((Event*) ((u8*) mgr->pArray + i * mgr->size) == e) {
             return i;
         }
-        p = (Event*) ((u8*) p + mgr->size);
     }
     return -1;
 }
@@ -203,9 +201,8 @@ EventDebug EvtDebug;
 #define EVT_STR_FRAME 26.85312f
 #define EVT_FRAME_RATE 29.97f
 
-Event::Event(u8 t)
+Event::Event(u8 t) : cUnit(1)
 {
-    be_flag = 1;
     type = t;
 }
 
@@ -1753,10 +1750,15 @@ static inline void EvtFadeSetW(int no, u32 time, u32 z, int late)
     FadeColorPair col;
     u32 c;
 
-    c = (no & 0x80000000) ? 0xFF : 0;
-    *(u32*) &col.start = c;
-    c = (no & 0x80000000) ? 0 : 0xFF;
-    *(u32*) &col.end = c;
+    if (no & 0x80000000) {
+        c = 0xFF;
+        *(u32*) &col.start = c;
+        c = 0;
+        *(u32*) &col.end = c;
+    } else {
+        *(u32*) &col.start = 0;
+        *(u32*) &col.end = 0xFF;
+    }
     FadeSet(no, &col.start, &col.end, time, z, late);
 }
 
@@ -1983,7 +1985,7 @@ int EventMgr::construct(Event* p, u32 id)
     Event* e;
     int no;
 
-    e = new (p) Event(id);
+    e = p->ctorI(id);
     if (e) {
         no = EvtWorkNo(this, e);
         e->effNo = no;
@@ -2150,12 +2152,14 @@ int EventMgr::NameCheck(char* nm)
         "r331s00", "r331s10", "r332s00", "r332s10", "r332s20", "r333s00", "r333s10",
     };
     int i;
+    int n = 37;
 
-    if (pG->costume2 == 1) {
-        for (i = 0; i < 37; i++) {
-            if (strstr(nm, tbl[i]) != 0) {
-                return 1;
-            }
+    if (pG->costume2 != 1) {
+        return 0;
+    }
+    for (i = 0; i < n; i++) {
+        if (strstr(nm, tbl[i]) != 0) {
+            return 1;
         }
     }
     return 0;
@@ -2500,9 +2504,12 @@ int EventMgr::DelEvt(void* evt_, int flag)
         break;
     }
     pG->flags_54 &= ~0x400;
-    strcpy(nm, evt->name);
-    destroyNow(evt);
-    DelEvd(nm);
+    {
+        char* p = nm;
+        strcpy(p, evt->name);
+        destroyNow(evt);
+        DelEvd(p);
+    }
     strcpy(evtName, "");
     if (fade) {
         FadeKill(2);
@@ -2984,7 +2991,6 @@ int DatTbl::end()
 
 int DatTbl::SetDat(const char* nm, void* dat, u8 type, void* dat2, u8 flag, int* wkNo)
 {
-    DatTblEntry* e;
     int i;
 
     if (wkNo != 0) {
@@ -2999,22 +3005,20 @@ int DatTbl::SetDat(const char* nm, void* dat, u8 type, void* dat2, u8 flag, int*
         return 0;
     }
     for (i = 0; i < num; i++) {
-        e = &pWork[i];
-        if ((e->flag & 1) && strcmp(e->name, nm) == 0) {
-            e->count++;
+        if ((pWork[i].flag & 1) && strcmp(pWork[i].name, nm) == 0) {
+            pWork[i].count++;
             return 1;
         }
     }
     for (i = 0; i < num; i++) {
-        e = &pWork[i];
-        if (!(e->flag & 1)) {
-            memclr_asm(e, sizeof(DatTblEntry));
-            e->flag = flag | 1;
-            strcpy(e->name, nm);
-            e->dat = dat;
-            e->type = type;
-            e->dat2 = dat2;
-            e->count = 1;
+        if (!(pWork[i].flag & 1)) {
+            memclr_asm(&pWork[i], sizeof(DatTblEntry));
+            pWork[i].flag = flag | 1;
+            strcpy(pWork[i].name, nm);
+            pWork[i].dat = dat;
+            pWork[i].type = type;
+            pWork[i].dat2 = dat2;
+            pWork[i].count = 1;
             if (wkNo != 0) {
                 *wkNo = i;
             }
@@ -3027,7 +3031,6 @@ int DatTbl::SetDat(const char* nm, void* dat, u8 type, void* dat2, u8 flag, int*
 
 int DatTbl::GetDat(void** dat, u8* type, const char* nm, int* wkNo)
 {
-    DatTblEntry* e;
     int i;
 
     if (dat == 0 || type == 0) {
@@ -3047,10 +3050,9 @@ int DatTbl::GetDat(void** dat, u8* type, const char* nm, int* wkNo)
         return 0;
     }
     for (i = 0; i < num; i++) {
-        e = &pWork[i];
-        if ((e->flag & 1) && strcmp(e->name, nm) == 0) {
-            *dat = e->dat;
-            *type = e->type;
+        if ((pWork[i].flag & 1) && strcmp(pWork[i].name, nm) == 0) {
+            *dat = pWork[i].dat;
+            *type = pWork[i].type;
             if (wkNo != 0) {
                 *wkNo = i;
             }
@@ -3062,7 +3064,6 @@ int DatTbl::GetDat(void** dat, u8* type, const char* nm, int* wkNo)
 
 int DatTbl::ChkDat(const char* nm)
 {
-    DatTblEntry* e;
     int i;
 
     if (pWork == 0) {
@@ -3074,8 +3075,7 @@ int DatTbl::ChkDat(const char* nm)
         return 0;
     }
     for (i = 0; i < num; i++) {
-        e = &pWork[i];
-        if ((e->flag & 1) && strcmp(e->name, nm) == 0) {
+        if ((pWork[i].flag & 1) && strcmp(pWork[i].name, nm) == 0) {
             return 1;
         }
     }
@@ -3084,7 +3084,6 @@ int DatTbl::ChkDat(const char* nm)
 
 int DatTbl::GetWkNo(int* wkNo, const char* nm)
 {
-    DatTblEntry* e;
     int i;
 
     if (wkNo != 0) {
@@ -3099,8 +3098,7 @@ int DatTbl::GetWkNo(int* wkNo, const char* nm)
         return 0;
     }
     for (i = 0; i < num; i++) {
-        e = &pWork[i];
-        if ((e->flag & 1) && strcmp(e->name, nm) == 0) {
+        if ((pWork[i].flag & 1) && strcmp(pWork[i].name, nm) == 0) {
             *wkNo = i;
             return 1;
         }
@@ -3115,8 +3113,6 @@ int DatTbl::GetNumDat()
 
 int DatTbl::GetDatWkNo(void** dat, u8* type, int wkNo)
 {
-    DatTblEntry* e;
-
     if (dat == 0) {
         return 0;
     }
@@ -3129,13 +3125,12 @@ int DatTbl::GetDatWkNo(void** dat, u8* type, int wkNo)
         pLog->err(0, 0, "cDatTbl::GetDatWkNo : work_no failed[%d]", wkNo);
         return 0;
     }
-    e = &pWork[wkNo];
-    if (!(e->flag & 1)) {
-        return 0;
+    if (pWork[wkNo].flag & 1) {
+        *dat = pWork[wkNo].dat;
+        *type = pWork[wkNo].type;
+        return 1;
     }
-    *dat = e->dat;
-    *type = e->type;
-    return 1;
+    return 0;
 }
 
 int DatTbl::ChkDatWkNoName(int wkNo, const char* nm)
@@ -3150,11 +3145,8 @@ int DatTbl::ChkDatWkNoName(int wkNo, const char* nm)
         pLog->err(0, 0, "cDatTbl::GetDatWkNo : work_no failed[%d]", wkNo);
         return 0;
     }
-    e = &pWork[wkNo];
-    if (!(e->flag & 1)) {
-        return 0;
-    }
-    if (strcmp(e->name, nm) == 0) {
+    e = (DatTblEntry*) (wkNo * sizeof(DatTblEntry) + (u32) pWork);
+    if ((e->flag & 1) && strcmp(e->name, nm) == 0) {
         return 1;
     }
     return 0;
@@ -3162,8 +3154,6 @@ int DatTbl::ChkDatWkNoName(int wkNo, const char* nm)
 
 int DatTbl::DelDatWkNo(int wkNo)
 {
-    DatTblEntry* e;
-
     if (pWork == 0) {
         pLog->err(0, 0, "cDatTbl::DelDatWkNo : memory failed[%d]", wkNo);
         return 0;
@@ -3172,24 +3162,22 @@ int DatTbl::DelDatWkNo(int wkNo)
         pLog->err(0, 0, "cDatTbl::DelDatWkNo : work_no failed[%d]", wkNo);
         return 0;
     }
-    e = &pWork[wkNo];
-    if (!(e->flag & 1)) {
-        pLog->err(0, 0, "cDatTbl::DelDatWkNo : non dat[%d]", wkNo);
-        return 0;
-    }
-    e->count--;
-    if ((s16) e->count <= 0 && (e->flag & 2)) {
-        if (e->dat2 != 0) {
-            Debug_free(e->dat2);
+    if (pWork[wkNo].flag & 1) {
+        pWork[wkNo].count--;
+        if ((s16) pWork[wkNo].count <= 0 && (pWork[wkNo].flag & 2)) {
+            if (pWork[wkNo].dat2 != 0) {
+                Debug_free(pWork[wkNo].dat2);
+            }
+            memclr_asm(&pWork[wkNo], sizeof(DatTblEntry));
         }
-        memclr_asm(e, sizeof(DatTblEntry));
+        return 1;
     }
-    return 1;
+    pLog->err(0, 0, "cDatTbl::DelDatWkNo : non dat[%d]", wkNo);
+    return 0;
 }
 
 int DatTbl::DelDat(const char* nm)
 {
-    DatTblEntry* e;
     int i;
 
     if (pWork == 0) {
@@ -3201,14 +3189,13 @@ int DatTbl::DelDat(const char* nm)
         return 0;
     }
     for (i = 0; i < num; i++) {
-        e = &pWork[i];
-        if ((e->flag & 1) && strcmp(e->name, nm) == 0) {
-            e->count--;
-            if ((s16) e->count <= 0 && (e->flag & 2)) {
-                if (e->dat2 != 0) {
-                    Debug_free(e->dat2);
+        if ((pWork[i].flag & 1) && strcmp(pWork[i].name, nm) == 0) {
+            pWork[i].count--;
+            if ((s16) pWork[i].count <= 0 && (pWork[i].flag & 2)) {
+                if (pWork[i].dat2 != 0) {
+                    Debug_free(pWork[i].dat2);
                 }
-                memclr_asm(e, sizeof(DatTblEntry));
+                memclr_asm(&pWork[i], sizeof(DatTblEntry));
             }
             return 1;
         }
@@ -3219,7 +3206,6 @@ int DatTbl::DelDat(const char* nm)
 
 int DatTbl::DelAll(int all)
 {
-    DatTblEntry* e;
     int i;
 
     if (pWork == 0) {
@@ -3227,15 +3213,11 @@ int DatTbl::DelAll(int all)
         return 0;
     }
     for (i = 0; i < num; i++) {
-        e = &pWork[i];
-        if (!(e->flag & 1)) {
-            continue;
-        }
-        if ((e->flag & 2) || all == 0) {
-            if (e->dat2 != 0) {
-                Debug_free(e->dat2);
+        if ((pWork[i].flag & 1) && ((pWork[i].flag & 2) || all == 0)) {
+            if (pWork[i].dat2 != 0) {
+                Debug_free(pWork[i].dat2);
             }
-            memclr_asm(e, sizeof(DatTblEntry));
+            memclr_asm(&pWork[i], sizeof(DatTblEntry));
         }
     }
     return 1;

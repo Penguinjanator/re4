@@ -1950,3 +1950,13 @@ Then `MATCHING["st2_4/r22c.cpp"] = True` in `config/G4BE08/modules.py`, `python3
 - COMPILER-DIFF candidate #7: the original duplicates the leading insns of a two-predecessor loop-test
   block into both predecessors (pool load / `lfs; fadds; fcmpu; stfs`), leaving the constant in a
   caller-saved f13 reloaded after the call; our gcse only inserts with partial availability.
+
+- Locals whose frame slot sits inside freed inline-table slots must be declared after the getter
+  calls: `assign_stack_temp` best-fits into the merged freed region; only fresh allocations extend the
+  frame (trans `ShadowCastSetup`/`SelfShadowSetup`).
+- A load the original does not hoist above scalar-global stores means the stores were not
+  `MEM_SCALAR_P`: write the increments as `ISet(g, g + 1)` (an `INDIRECT_REF` of a plain pointer sets
+  neither IN_STRUCT nor SCALAR, so `true_dependence` keeps the order).
+- Branch arms ending in a call block cross-jumping of a shared tail (flow.c appends
+  `(use (const_int 0))` after a block-ending CALL_INSN); duplicate the tail through a non-call
+  statement into each arm to get the original's merged `li r7; bl`.

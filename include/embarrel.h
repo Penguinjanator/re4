@@ -14,7 +14,8 @@ struct EmiEntry {
     u8 state;             // 0x02  emrock emRockAtkScrCk: 3 once the trigger fired
     u8 pad_3;
     Vec pos;              // 0x04
-    u8 pad_10[0x40 - 0x10];
+    f32 rotY;             // 0x10  facing (em10 hide / goto points: Muku towards the player, em->rot.y on arrival)
+    u8 pad_14[0x40 - 0x14];
 };
 
 struct EmiData {

@@ -61,24 +61,24 @@ Sint32 SFTRN_CallTrSetup(SFD sfd, Sint32 fn)
 
 void sftrn_BuildSystem(SFD sfd, SFD_TR_FUNC **tbl)
 {
-	sfd->buf[1].out_tr = 1;
+	sfd->buf[0].out_tr = 1;
 	sfd->tr[1].bufin = 0;
 	if (tbl[2] != NULL) {
 		sfd->tr[1].bufout = 1;
-		sfd->buf[2].in_tr = 1;
-		sfd->buf[2].out_tr = 2;
+		sfd->buf[1].in_tr = 1;
+		sfd->buf[1].out_tr = 2;
 		sfd->tr[2].bufin = 1;
 		sfd->tr[2].bufout = 3;
-		sfd->buf[4].in_tr = 2;
+		sfd->buf[3].in_tr = 2;
 		if (tbl[4] != NULL) {
-			sfd->buf[4].out_tr = 4;
+			sfd->buf[3].out_tr = 4;
 			sfd->tr[4].bufin = 3;
 			sfd->tr[4].bufout = 5;
-			sfd->buf[6].in_tr = 4;
-			sfd->buf[6].out_tr = 6;
+			sfd->buf[5].in_tr = 4;
+			sfd->buf[5].out_tr = 6;
 			sfd->tr[6].bufin = 5;
 		} else {
-			sfd->buf[4].out_tr = 6;
+			sfd->buf[3].out_tr = 6;
 			sfd->tr[6].bufin = 3;
 		}
 	} else {
@@ -87,20 +87,20 @@ void sftrn_BuildSystem(SFD sfd, SFD_TR_FUNC **tbl)
 	}
 	if (tbl[3] != NULL) {
 		sfd->tr[1].bufout2 = 2;
-		sfd->buf[3].in_tr = 1;
-		sfd->buf[3].out_tr = 3;
+		sfd->buf[2].in_tr = 1;
+		sfd->buf[2].out_tr = 3;
 		sfd->tr[3].bufin = 2;
 		sfd->tr[3].bufout = 4;
-		sfd->buf[5].in_tr = 3;
+		sfd->buf[4].in_tr = 3;
 		if (tbl[5] != NULL) {
-			sfd->buf[5].out_tr = 5;
+			sfd->buf[4].out_tr = 5;
 			sfd->tr[5].bufin = 4;
 			sfd->tr[5].bufout = 6;
-			sfd->buf[7].in_tr = 5;
-			sfd->buf[7].out_tr = 7;
+			sfd->buf[6].in_tr = 5;
+			sfd->buf[6].out_tr = 7;
 			sfd->tr[7].bufin = 6;
 		} else {
-			sfd->buf[5].out_tr = 7;
+			sfd->buf[4].out_tr = 7;
 			sfd->tr[7].bufin = 4;
 		}
 	} else {
@@ -109,8 +109,8 @@ void sftrn_BuildSystem(SFD sfd, SFD_TR_FUNC **tbl)
 	}
 	if (tbl[8] != NULL) {
 		sfd->tr[1].bufout3 = 7;
-		sfd->buf[8].in_tr = 1;
-		sfd->buf[8].out_tr = 8;
+		sfd->buf[7].in_tr = 1;
+		sfd->buf[7].out_tr = 8;
 		sfd->tr[8].bufin = 7;
 	}
 }
@@ -119,52 +119,52 @@ static Sint32 sftrn_BuildAll(SFD sfd, SFD_TR_FUNC **tbl)
 {
 	if (tbl[1] != NULL) {
 		sfd->tr[0].bufout = 0;
-		sfd->buf[1].in_tr = 0;
+		sfd->buf[0].in_tr = 0;
 		sftrn_BuildSystem(sfd, tbl);
 	} else if (tbl[2] != NULL) {
 		sfd->tr[0].bufout = 1;
-		sfd->buf[2].in_tr = 0;
-		sfd->buf[2].out_tr = 2;
+		sfd->buf[1].in_tr = 0;
+		sfd->buf[1].out_tr = 2;
 		sfd->tr[2].bufin = 1;
 		sfd->tr[2].bufout = 3;
-		sfd->buf[4].in_tr = 2;
+		sfd->buf[3].in_tr = 2;
 		if (tbl[4] != NULL) {
-			sfd->buf[4].out_tr = 4;
+			sfd->buf[3].out_tr = 4;
 			sfd->tr[4].bufin = 3;
 			sfd->tr[4].bufout = 5;
-			sfd->buf[6].in_tr = 4;
-			sfd->buf[6].out_tr = 6;
+			sfd->buf[5].in_tr = 4;
+			sfd->buf[5].out_tr = 6;
 			sfd->tr[6].bufin = 5;
 		} else {
-			sfd->buf[4].out_tr = 6;
+			sfd->buf[3].out_tr = 6;
 			sfd->tr[6].bufin = 3;
 		}
 		SFSET_SetCond(sfd, 6, 0);
 		sfd->cond_def[6] = 0;
 	} else if (tbl[3] != NULL) {
 		sfd->tr[0].bufout = 2;
-		sfd->buf[3].in_tr = 0;
-		sfd->buf[3].out_tr = 3;
+		sfd->buf[2].in_tr = 0;
+		sfd->buf[2].out_tr = 3;
 		sfd->tr[3].bufin = 2;
 		sfd->tr[3].bufout = 4;
-		sfd->buf[5].in_tr = 3;
+		sfd->buf[4].in_tr = 3;
 		if (tbl[5] != NULL) {
-			sfd->buf[5].out_tr = 5;
+			sfd->buf[4].out_tr = 5;
 			sfd->tr[5].bufin = 4;
 			sfd->tr[5].bufout = 6;
-			sfd->buf[7].in_tr = 5;
-			sfd->buf[7].out_tr = 7;
+			sfd->buf[6].in_tr = 5;
+			sfd->buf[6].out_tr = 7;
 			sfd->tr[7].bufin = 6;
 		} else {
-			sfd->buf[5].out_tr = 7;
+			sfd->buf[4].out_tr = 7;
 			sfd->tr[7].bufin = 4;
 		}
 		SFSET_SetCond(sfd, 5, 0);
 		sfd->cond_def[5] = 0;
 	} else if (tbl[8] != NULL) {
 		sfd->tr[0].bufout = 7;
-		sfd->buf[8].in_tr = 0;
-		sfd->buf[8].out_tr = 8;
+		sfd->buf[7].in_tr = 0;
+		sfd->buf[7].out_tr = 8;
 		sfd->tr[8].bufin = 7;
 		SFSET_SetCond(sfd, 6, 0);
 		SFSET_SetCond(sfd, 5, 0);

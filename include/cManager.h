@@ -18,6 +18,9 @@ public:
     // 0x8 vptr
 
     cUnit() {}
+    // Event::Event stores be_flag before its vptr and member constructors: only a base-class
+    // initializer runs there.
+    cUnit(u32 flag) { be_flag = flag; }
     virtual ~cUnit() { be_flag &= ~0x601; }
     virtual void beginEvent() {}
     virtual void endEvent() {}

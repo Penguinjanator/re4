@@ -2044,7 +2044,6 @@ static void SetCastShadowLight(cModel* m, Vec* pos, Vec* dir, ShadowMng* mng)
 
 static void ShadowCastSetup(ModelPart* part, cModel* m)
 {
-    Mtx tm;
     GXTexObj* tex;
     GXTlutObj* tlut;
     GXColor k;
@@ -2060,6 +2059,9 @@ static void ShadowCastSetup(ModelPart* part, cModel* m)
     mtx = getTexMtx();
     map = getTexMap();
     st = TEV_STAGE_ID();
+    // Declared after the table-copying getters: the frame slot for tm is the merged, freed
+    // getTexCoord/getTexMtx table slots at 0x8 (tm shares the base register with them).
+    Mtx tm;
     PSMTXConcat(mng->texMat, m->pParts->mat, tm);
     GXLoadTexMtxImm(tm, mtx, 0);
     GXSetTexCoordGen2(coord, 0, 0, mtx, 0, 0x7D);
@@ -2084,17 +2086,23 @@ static void ShadowCastSetup(ModelPart* part, cModel* m)
         GXSetTevKColorSel(st, getKColorSel());
         GXSetTevKAlphaSel(st, getKAlphaSel());
         tev_kcolor++;
-        if (w->flags & 4) {
+        // Each arm carries the stage's tail through `tev_stage++` so the arm does not end in a
+        // call (flow's post-call nop would stop jump2 cross-jumping the shared `li r7; bl`).
+        if (U16Ref(w->flags) & 4) {
             GXSetTevOrder(st, coord, map, 0xFF);
             GXSetTevColorIn(st, 0xE, 0xF, 8, 0xF);
+            GXSetTevColorOp(st, 0, 0, 0, 1, 0);
+            GXSetTevAlphaIn(st, 7, 7, 7, 7);
+            GXSetTevAlphaOp(st, 0, 0, 0, 1, 0);
+            tev_stage++;
         } else {
             GXSetTevOrder(st, coord, map, 0xFF);
             GXSetTevColorIn(st, 0xF, 8, 0xE, 0xF);
+            GXSetTevColorOp(st, 0, 0, 0, 1, 0);
+            GXSetTevAlphaIn(st, 7, 7, 7, 7);
+            GXSetTevAlphaOp(st, 0, 0, 0, 1, 0);
+            tev_stage++;
         }
-        GXSetTevColorOp(st, 0, 0, 0, 1, 0);
-        GXSetTevAlphaIn(st, 7, 7, 7, 7);
-        GXSetTevAlphaOp(st, 0, 0, 0, 1, 0);
-        tev_stage++;
         st = TEV_STAGE_ID();
         GXSetTevOrder(st, 0xFF, 0xFF, 4);
         GXSetTevColorIn(st, 0xA, 0xF, 0, 0xF);
@@ -2106,16 +2114,19 @@ static void ShadowCastSetup(ModelPart* part, cModel* m)
         GXSetTevKColorSel(st, getKColorSel());
         GXSetTevKAlphaSel(st, getKAlphaSel());
         tev_kcolor++;
-        if (w->flags & 4) {
+        if (U16Ref(w->flags) & 4) {
             GXSetTevOrder(st, coord, map, 4);
             GXSetTevColorIn(st, 0xE, 0xF, 8, 0xA);
+            GXSetTevColorOp(st, 0, 0, 0, 1, 0);
+            GXSetTevAlphaIn(st, 7, 7, 7, 5);
+            GXSetTevAlphaOp(st, 0, 0, 0, 1, 0);
         } else {
             GXSetTevOrder(st, coord, map, 4);
             GXSetTevColorIn(st, 0xF, 8, 0xE, 0xA);
+            GXSetTevColorOp(st, 0, 0, 0, 1, 0);
+            GXSetTevAlphaIn(st, 7, 7, 7, 5);
+            GXSetTevAlphaOp(st, 0, 0, 0, 1, 0);
         }
-        GXSetTevColorOp(st, 0, 0, 0, 1, 0);
-        GXSetTevAlphaIn(st, 7, 7, 7, 5);
-        GXSetTevAlphaOp(st, 0, 0, 0, 1, 0);
         break;
     case 3:
         GXSetTevOrder(st, coord, map, 5);
@@ -2128,17 +2139,21 @@ static void ShadowCastSetup(ModelPart* part, cModel* m)
         GXSetTevKColorSel(st, getKColorSel());
         GXSetTevKAlphaSel(st, getKAlphaSel());
         tev_kcolor++;
-        if (w->flags & 4) {
+        if (U16Ref(w->flags) & 4) {
             GXSetTevOrder(st, 0xFF, 0xFF, 4);
             GXSetTevColorIn(st, 0xE, 0xF, 0, 0xF);
+            GXSetTevColorOp(st, 0, 0, 0, 1, 0);
+            GXSetTevAlphaIn(st, 7, 7, 7, 7);
+            GXSetTevAlphaOp(st, 0, 0, 0, 1, 0);
+            tev_stage++;
         } else {
             GXSetTevOrder(st, 0xFF, 0xFF, 4);
             GXSetTevColorIn(st, 0xF, 0, 0xE, 0xF);
+            GXSetTevColorOp(st, 0, 0, 0, 1, 0);
+            GXSetTevAlphaIn(st, 7, 7, 7, 7);
+            GXSetTevAlphaOp(st, 0, 0, 0, 1, 0);
+            tev_stage++;
         }
-        GXSetTevColorOp(st, 0, 0, 0, 1, 0);
-        GXSetTevAlphaIn(st, 7, 7, 7, 7);
-        GXSetTevAlphaOp(st, 0, 0, 0, 1, 0);
-        tev_stage++;
         st = TEV_STAGE_ID();
         GXSetTevOrder(st, 0xFF, 0xFF, 4);
         GXSetTevColorIn(st, 0xA, 0xF, 0, 0xF);
@@ -2191,10 +2206,6 @@ static void SelfShadowSetup(ModelPart* part, cModel* m, ShadowMng* mng)
 {
     static int shd_tex_no = 0;
     static f32 shd_z = -1.001f;
-    Mtx tm;
-    Vec up = {0.0f, 1.0f, 0.0f};
-    Mtx sm;
-    Mtx trans;
     int coord;
     u32 mtx;
     int map;
@@ -2207,6 +2218,12 @@ static void SelfShadowSetup(ModelPart* part, cModel* m, ShadowMng* mng)
     map = getTexMap();
     st = TEV_STAGE_ID();
     GXLoadTexObj(&IndTex[shd_tex_no], map);
+    // Declared after the table-copying getters: tm and up take the merged, freed table slots at
+    // 0x8/0x38, sm and trans follow at 0x50/0x80, the second round of tables lands at 0xb0/0xd0.
+    Mtx tm;
+    Vec up = {0.0f, 1.0f, 0.0f};
+    Mtx sm;
+    Mtx trans;
     sm[0][0] = 0.0f;
     sm[0][1] = 0.0f;
     sm[0][2] = 0.0f;
@@ -2248,9 +2265,11 @@ static void SelfShadowSetup(ModelPart* part, cModel* m, ShadowMng* mng)
     GXSetTevColorOp(st, 0, 0, 0, 1, 0);
     GXSetTevAlphaIn(st, 7, 7, 7, 0);
     GXSetTevAlphaOp(st, 0, 0, 0, 1, 0);
-    tev_stage++;
-    tex_coord++;
-    tex_map++;
+    // Reference-setter stores are neither MEM_SCALAR_P nor MEM_IN_STRUCT_P, so the in-struct load
+    // of mng->pLight below cannot be scheduled above them (plain `x++` stores are scalar and let it).
+    ISet(tev_stage, tev_stage + 1);
+    ISet(tex_coord, tex_coord + 1);
+    ISet(tex_map, tex_map + 1);
     w = (ShadowLightWork*) mng->pLight->work;
     for (i = 0; i < w->x9; i++) {
         st = TEV_STAGE_ID();

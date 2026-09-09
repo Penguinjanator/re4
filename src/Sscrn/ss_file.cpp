@@ -30,6 +30,12 @@ public:
 };
 #define cMesS (*(MessageControlS*) &cMes)
 
+// Message slot address written out as one expression on a pointer variable (not the getMes inline):
+// a reference argument built from it is computed in place into the parameter register, so cse
+// loses the `slot * sizeof` product and gcse PRE re-copies it for the next store (the `mr` +
+// duplicated `add` chain of dispFileList / mes.cpp setLayout).
+#define SS_MES(pm, no) ((Message*) ((no) * sizeof(Message) + (u32) (pm) + sizeof(u32)))
+
 #define DVD_READ_N(name, dst, a, b, c, mode) DvdReadN(name, dst, a, b, c, mode, __FILE__, __LINE__)
 
 // File screen state (SUB_SCREEN::pFileWk, 0x10 bytes).
@@ -196,7 +202,9 @@ u8 fileTplEng[29][8] = {
     {1, 1, 0, 0, 0, 0, 0, 0},
 };
 
-static int file_wait = 0;
+// One-element array: the in-struct store keeps the following `state++` load below it and stops cse
+// folding case 1's `state++` (alias.c: a fixed scalar never aliases a varying struct member).
+static int file_wait[1] = {0};
 static s16 file_title_w[2] = {0, 17};
 static s16 file_title_h[2] = {0, 19};
 static s8 file_title_space[4] = {0, 0, 0, 0};
@@ -246,10 +254,11 @@ u32 getMsgAttr(u32 type)
 int getTplName(int no, u32 page)
 {
     int ret = 0;
+    int i;
+    int n;
 
     if (pSys->language == 0) {
-        int n = fileTplJpn[no][0];
-        int i;
+        n = fileTplJpn[no][0];
         for (i = 0; i < n; i++) {
             if (page + 1 >= fileTplJpn[no][1 + i]) {
                 ret++;
@@ -258,8 +267,7 @@ int getTplName(int no, u32 page)
             }
         }
     } else {
-        int n = fileTplEng[no][0];
-        int i;
+        n = fileTplEng[no][0];
         for (i = 0; i < n; i++) {
             if (page + 1 >= fileTplEng[no][1 + i]) {
                 ret++;
@@ -329,11 +337,11 @@ void SsFileInit::move(SUB_SCREEN* wk)
         IdNumErase();
         IdFreeBuffer();
         IdSub.set(SS_ARC_PTR(wk->pCmmn, 0xC), 0xFF, 0x14, 0xC, 6, 0);
-        file_wait = 0;
+        file_wait[0] = 0;
         state++;
         break;
     case 1:
-        if (--file_wait >= 0) {
+        if (--file_wait[0] >= 0) {
             break;
         }
         state++;
@@ -624,6 +632,8 @@ void dispFileList(SUB_SCREEN* wk, int n)
         int id = 0;
         int col;
         u8 slot;
+        int x;
+        int y;
         if (fw->mode == 1) {
             IdUnit* c = IdSub.unitPtr(k + 0x11, 0x19);
             if (i == fw->cursor) {
@@ -650,12 +660,16 @@ void dispFileList(SUB_SCREEN* wk, int n)
             y = (int) ((240.0f - p->scr.y) * 0.8f);
         }
         cMesS.setFontSizeS(slot, file_name_w[1], file_name_h[1]);
-        cMes.getMes(slot)->lineH = 0;
-        cMes.getMes(slot)->charSpace = file_name_space[3];
-        if (i == 0) {
-            cMes.MesSet(2, x, y, 0x20081, slot, col, 3);
-        } else {
-            cMes.MesSet(id, x, y, 0x20088, slot, col, 4);
+        {
+            MessageControl* pm = &cMes;
+            u16 zero = 0;
+            U16Set(SS_MES(pm, slot)->charSpace, file_name_space[3]);
+            SS_MES(pm, slot)->lineH = zero;
+            if (i == 0) {
+                pm->MesSet(2, x, y, 0x20081, slot, col, 3);
+            } else {
+                pm->MesSet(id, x, y, 0x20088, slot, col, 4);
+            }
         }
     }
 }
@@ -802,16 +816,14 @@ void MessageDisplay::init(SUB_SCREEN* wk)
 {
     IdUnit* pos = IdSub.unitPtr(0xFE, 0x1E);
     IdUnit* u;
-    IdUnit* src;
     SsFileWork* fw;
 
-    x = (int) ((pos->scr.x + 320.0f) * 0.8f);
-    y = (int) ((240.0f - pos->scr.y) * 0.8f);
+    S16Set(x, (int) ((pos->scr.x + 320.0f) * 0.8f));
+    S16Set(y, (int) ((240.0f - pos->scr.y) * 0.8f));
     if (pSys->language == 0) {
         cMes.setupFont(0x1C, 0x1C, (TEXPalette*) SS_ARC_PTR(wk->pFile, 4), 3);
     }
-    fw = wk->pFileWk;
-    switch (fw->layout) {
+    switch (wk->pFileWk->layout) {
     case 0:
         cMes.setLayout(0, 7);
         break;
@@ -828,11 +840,14 @@ void MessageDisplay::init(SUB_SCREEN* wk)
     IdSub.unitPtr(0, 0x1E)->flags |= 8;
     IdSub.unitPtr(0, 0x1E)->dir &= ~0xF;
     u = IdSub.unitPtr(0xFC, 0x1E);
-    src = IdSub.unitPtr(wk->pFileWk->layout == 1 ? 0xFD : 0xFB, 0x1E);
-    u->scr = src->scr;
-    tplFirst = 1;
-    tplState = 0;
+    if (wk->pFileWk->layout == 1) {
+        u->scr = IdSub.unitPtr(0xFD, 0x1E)->scr;
+    } else {
+        u->scr = IdSub.unitPtr(0xFB, 0x1E)->scr;
+    }
     state = 0;
+    tplState = 0;
+    tplFirst = 1;
 }
 
 void MessageDisplay::move(SUB_SCREEN* wk)

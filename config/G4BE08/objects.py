@@ -1178,6 +1178,7 @@ MATCHING.update({
 
 # transfer units (lighting, ordering table)
 MATCHING.update({
+    "game/trans.cpp": True,
     "game/trans_lit.cpp": True,
     "game/trans_ot.cpp": True,
 })
@@ -1362,6 +1363,8 @@ MATCHING.update({
     "lib/mwsfdsst.c": True,
     "lib/mwsfdset.c": True,
     "lib/adx_fs.c": True,
+    "lib/sfd_mpvf.c": True,
+    "lib/mpv_emp.c": True,
 })
 
 # partner character (pl_npc): const f32 locals for pool order, per-value switch bodies, dead
@@ -1379,4 +1382,10 @@ MATCHING.update({
 # AX FX standard reverb: `max_length << 2` in DLcreate decides `rv`'s callee-saved register
 MATCHING.update({
     "lib/reverb_std.c": True,
+})
+
+# CRI SVM server manager: volatile lock/init counters (reloads), inlined svm_exec_svr helper (zero
+# copies), dead setters/getters for the first-reference .bss order, `*p++ = 0` unrolled clear
+MATCHING.update({
+    "lib/svm.c": True,
 })

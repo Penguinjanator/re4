@@ -1,0 +1,277 @@
+/* Sofdec seek support: total time / byte rate estimation from the stream headers and the values
+ * the user supplies (SFD_SetFileSize / SFD_SetTotTime / SFD_SetByteRate). */
+#include "sfd.h"
+
+/* refresh the byte-rate estimate from whatever is known */
+static void sfsee_CalcByteRate(SFD sfd)
+{
+	SFSEE_WORK *wk;
+	Sint32 fsize;
+	Sint32 tottime;
+	Sint32 tunit;
+
+	wk = sfd->see.wk;
+	if (wk->byterate > 0) {
+		wk->rate = wk->byterate;
+		return;
+	}
+	fsize = wk->fsize;
+	tottime = wk->tottime;
+	tunit = wk->tunit;
+	if (fsize > 0 && tottime > 0) {
+		wk->rate = UTY_MulDiv(fsize, tunit, tottime);
+		return;
+	}
+	if (wk->ncount > 0) {
+		wk->rate = wk->ncount;
+		return;
+	}
+	if (fsize <= 0) {
+		fsize = wk->fsize_est;
+	}
+	if (tottime <= 0) {
+		tottime = wk->tot_est;
+		tunit = wk->tunit_est;
+	}
+	if (fsize > 0 && tottime > 0) {
+		wk->rate = UTY_MulDiv(fsize, tunit, tottime);
+		return;
+	}
+	wk->rate = wk->ncount;
+}
+
+Sint32 SFD_SetSeekPos(SFD sfd, Sint32 pos)
+{
+	SFSEE_WORK *wk;
+
+	if (SFLIB_CheckHn(sfd) != 0) {
+		return SFLIB_SetErr(NULL, 0xFF00015C);
+	}
+	wk = sfd->see.wk;
+	if (wk == NULL) {
+		return 0;
+	}
+	wk->seekpos = pos;
+	return 0;
+}
+
+Sint32 SFD_SetByteRate(SFD sfd, Sint32 rate)
+{
+	SFSEE_WORK *wk;
+
+	if (SFLIB_CheckHn(sfd) != 0) {
+		return SFLIB_SetErr(NULL, 0xFF00015B);
+	}
+	wk = sfd->see.wk;
+	if (wk == NULL) {
+		return 0;
+	}
+	wk->byterate = rate;
+	sfsee_CalcByteRate(sfd);
+	return 0;
+}
+
+Sint32 SFD_SetTotTime(SFD sfd, Sint32 tottime, Sint32 tunit)
+{
+	SFSEE_WORK *wk;
+
+	if (SFLIB_CheckHn(sfd) != 0) {
+		return SFLIB_SetErr(NULL, 0xFF00015A);
+	}
+	wk = sfd->see.wk;
+	if (wk == NULL) {
+		return 0;
+	}
+	wk->tottime = tottime;
+	wk->tunit = tunit;
+	sfsee_CalcByteRate(sfd);
+	return 0;
+}
+
+Sint32 SFD_SetFileSize(SFD sfd, Sint32 fsize)
+{
+	SFSEE_WORK *wk;
+
+	if (SFLIB_CheckHn(sfd) != 0) {
+		return SFLIB_SetErr(NULL, 0xFF000159);
+	}
+	wk = sfd->see.wk;
+	if (wk == NULL) {
+		return 0;
+	}
+	wk->fsize = fsize;
+	sfsee_CalcByteRate(sfd);
+	return 0;
+}
+
+/* total time from the first analysed stream header (video, else audio 1, else audio 2) */
+static void sfsee_ExecHeadAnaly(SFD sfd)
+{
+	SFSEE_WORK *wk;
+	Sint32 a2;
+	Sint32 a1;
+	Sint32 wait;
+	Sint32 v;
+	Sint32 fsize;
+	Sint32 rate;
+	Sint32 ncount;
+	Sint32 tscale;
+
+	wk = sfd->see.wk;
+	if (wk->analyzed != 0) {
+		return;
+	}
+	if (SFTRN_IsSetup(sfd, 3) != 0 && SFSET_GetCond(sfd, 6) == 1) {
+		a2 = 1;
+		if (wk->a2hdr == 0) {
+			wait = 1;
+		} else {
+			wait = 0;
+		}
+	} else {
+		a2 = 0;
+		wait = 0;
+	}
+	if (wait != 0) {
+		return;
+	}
+	if (SFTRN_IsSetup(sfd, 2) != 0 && SFSET_GetCond(sfd, 5) == 1) {
+		a1 = 1;
+		if (wk->a1hdr == 0) {
+			wait = 1;
+		} else {
+			wait = 0;
+		}
+	} else {
+		a1 = 0;
+		wait = 0;
+	}
+	if (wait != 0) {
+		return;
+	}
+	v = (SFTRN_IsSetup(sfd, 1) != 0);
+	if (v) {
+		wk->vhdr = 1;
+		if (wk->mps_hdr != 0 && wk->mps_time > 0) {
+			fsize = wk->fsize;
+			rate = wk->mps_rate;
+			if (fsize > 0 && rate > 0) {
+				ncount = UTY_MulDiv(fsize, 1000, rate);
+			} else {
+				ncount = wk->mps_time;
+			}
+		} else if (wk->mps_hdr != 0 && SFHDS_GetMuxVerNum(sfd) < 108) {
+			ncount = (wk->vncount * 2048) / 2018;
+		} else {
+			ncount = wk->vncount;
+		}
+		tscale = wk->vtscale;
+	} else if (a1 != 0) {
+		ncount = wk->a1ncount;
+		tscale = wk->a1tscale;
+	} else if (a2 != 0) {
+		ncount = wk->a2ncount;
+		tscale = wk->a2tscale;
+	} else {
+		return;
+	}
+	wk->ncount = ncount;
+	wk->tscale = tscale;
+	wk->analyzed = 1;
+	sfsee_CalcByteRate(sfd);
+}
+
+/* end position of the input stream (-1 while unknown) */
+static Sint32 sfsee_GetInputEndPos(SFD sfd)
+{
+	SFD_TR *tr;
+	Sint32 endpos;
+	Sint32 v;
+
+	tr = sfd->tr;
+	endpos = -1;
+	v = tr[sfd->buf[tr[0].bufout].out_tr].x20;
+	if (v >= 0) {
+		endpos = v;
+	}
+	return endpos;
+}
+
+/* estimate the file size and the total time once the input driver knows them */
+static void sfsee_ExecEstimate(SFD sfd, SFSEE_WORK *wk, SFSEE_REQ *req)
+{
+	Sint32 upd;
+	Sint32 pos;
+	Sint32 endpos;
+
+	if (SFCON_IsEndcodeSkip(sfd) != 0) {
+		return;
+	}
+	upd = 0;
+	if (wk->fsize_est <= 0) {
+		if (req->pos == -3) {
+			pos = 0;
+		} else {
+			pos = wk->seekpos;
+		}
+		if (pos >= 0) {
+			endpos = sfsee_GetInputEndPos(sfd);
+			if (endpos != -1) {
+				wk->fsize_est = pos + endpos;
+				upd = 1;
+			}
+		}
+	}
+	if (wk->tot_est <= 0) {
+		if (sfd->con.tottime > 0) {
+			wk->tot_est = sfd->con.tottime;
+			upd = 1;
+			wk->tunit_est = sfd->con.tunit;
+		}
+	}
+	if (upd != 0) {
+		sfsee_CalcByteRate(sfd);
+	}
+}
+
+void SFSEE_ExecServer(SFD sfd)
+{
+	if (sfd->see.wk == NULL) {
+		return;
+	}
+	sfsee_ExecHeadAnaly(sfd);
+	sfsee_ExecEstimate(sfd, sfd->see.wk, &sfd->see.req);
+}
+
+void SFSEE_FixAvPlay(SFD sfd, Sint32 a, Sint32 b)
+{
+	SFSEE_WORK *wk;
+
+	wk = sfd->see.wk;
+	if (wk == NULL) {
+		return;
+	}
+	if (wk->av_a < 0) {
+		wk->av_a = a;
+	}
+	if (wk->av_b < 0) {
+		wk->av_b = b;
+	}
+}
+
+Sint32 SFD_EntrySeek(SFD sfd, SFSEE_WORK *wk)
+{
+	if (SFLIB_CheckHn(sfd) != 0) {
+		return SFLIB_SetErr(NULL, 0xFF000151);
+	}
+	sfd->see.wk = wk;
+	return 0;
+}
+
+void SFSEE_InitHn(SFSEE_HN *see)
+{
+	see->wk = NULL;
+	see->req.x00 = 0;
+	see->req.pos = -3;
+	see->req.x08 = 1;
+}

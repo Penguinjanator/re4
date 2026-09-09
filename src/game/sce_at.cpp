@@ -212,6 +212,12 @@ struct SceAtFileHead {
     SceAtWork work[1];  // 0x10
 };
 
+// AreaViewCheck's cone scratch: the original frame reserves 0x40 bytes for it (frame 0xC8 with the
+// three other locals), not the 0x48 of `GeoCone[2]` (GeoCone was probably 0x20 without `radius` then).
+struct SceAtViewCone {
+    f32 w[16];
+};
+
 struct SceAtFuncTbl {
     int (*func)(SceAtWork* w, cModel* m);
     u32 exclusive;    // 1 = only one such area fires per check
@@ -691,13 +697,13 @@ int sceAtHitCheck(SceAtWork* w, cModel* m, Vec* front, Vec* pos)
     if (area.type == 3) {
         Vec cc;
         Vec c = {0.0f, 0.0f, 0.0f};
-        GeoCone cone[2];
+        SceAtViewCone cone;
 
         c.x = area.u.eye.x;
         c.y = area.u.eye.y;
         c.z = area.u.eye.z;
         cc = c;
-        if (AreaViewCheck(&area, cone) == 1) {
+        if (AreaViewCheck(&area, (GeoCone*) &cone) == 1) {
             ret = InScreenCheck(&cc) == 1;
         }
     } else {
@@ -3103,14 +3109,12 @@ int SceAtCreateItemAt(Vec* pos, u16 id, int num, int effType, int saveNo, cModel
     w->x37 |= 1;
     w->pParent = parent;
     w->parentParts = parts;
-// PERM-BEGIN
-    w->x4A = 0x28;
-    w->x44 = 8;
     w->flag = 7;
-    w->x38 = 8;
-    w->x39 = 1;
     w->x35 = 3;
-    // PERM-END
+    w->x39 = 1;
+    w->x38 = 8;
+    w->x44 = 8;
+    w->x4A = 0x28;
     SceAtItemAutoArea(&w->area, pos, 0.0f);
     w->item.num = num;
     w->item.id = id;

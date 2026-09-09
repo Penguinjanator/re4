@@ -108,6 +108,13 @@ public:
     virtual int ckBombFire();
     virtual int ckShiled();
     virtual int ckBowgunFire();                              // 0xF0
+    virtual void setSwitch(cModel* sw);                      // 0xF8
+    virtual void setLost();                                  // 0x100
+    virtual void setWeapon(void* bin, void* tpl, int type);  // 0x108
+    virtual int ckWeapon();                                  // 0x110
+    virtual int ckTakeAway();                                // 0x118
+    virtual void setUFOCatch(void* m0, void* m1);            // 0x120
+    virtual int ckR305BomberEnable();                        // 0x128
 };
 
 // Enemy 0x2D (the dog): its own ckFindPL/ckResetEnable/setReset slots.

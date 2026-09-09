@@ -103,6 +103,10 @@ typedef struct MPV_OBJ {
 	void *dctbl_c;                  /* 0x132C */
 } MPV_OBJ;
 
+Sint8 *MPV_SearchDelim(Sint8 *p, Sint32 n, Sint32 mask);
+Sint32 MPV_CheckDelim(void *ptr);
+Sint32 MPV_IsEmptyPpic(Sint8 *buf, Sint32 nbyte, Sint32 nmb);
+Sint32 MPV_IsEmptyBpic(Sint8 *buf, Sint32 nbyte, Sint32 nmb);
 Sint32 MPVLIB_CheckHn(MPV_OBJ *mpv);
 Sint32 MPVERR_SetCode(MPV_OBJ *mpv, Sint32 code);
 
