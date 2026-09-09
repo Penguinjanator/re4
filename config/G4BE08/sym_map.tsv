@@ -2706,7 +2706,7 @@ address	size	section	unit	scope	name	demangled
 0x800B5488	0x50	.text	lib/sj_rbf.c	global	SJRBF_Finish	SJRBF_Finish
 0x800B54D8	0x5C	.text	lib/sj_rbf.c	global	SJRBF_Init	SJRBF_Init
 0x800B5534	0x28	.text	lib/sj_rbf.c	global	SJRBF_Error	SJRBF_Error
-0x800B555C	0x214	.text	lib/sj_utl.c	local	SJ_SearchTag	SJ_SearchTag
+0x800B555C	0x214	.text	lib/sj_utl.c	global	SJ_SearchTag	SJ_SearchTag
 0x800B5770	0x64	.text	lib/sj_utl.c	global	SJ_SplitChunk	SJ_SplitChunk
 0x800B57D4	0x20	.text	lib/sj_err.c	global	SJERR_CallErr	SJERR_CallErr
 0x800B57F4	0x114	.text	lib/svm.c	global	SVM_TestAndSet	SVM_TestAndSet
@@ -2718,7 +2718,7 @@ address	size	section	unit	scope	name	demangled
 0x800B5C4C	0x1B4	.text	lib/svm.c	global	SVM_SetCbSvrId	SVM_SetCbSvrId
 0x800B5E00	0x148	.text	lib/svm.c	global	SVM_DelCbSvr	SVM_DelCbSvr
 0x800B5F48	0x17C	.text	lib/svm.c	global	SVM_SetCbSvr	SVM_SetCbSvr
-0x800B60C4	0x58	.text	lib/svm.c	local	SVM_CallErr1	SVM_CallErr1
+0x800B60C4	0x58	.text	lib/svm.c	global	SVM_CallErr1	SVM_CallErr1
 0x800B611C	0xD8	.text	lib/svm.c	global	SVM_CallErr	SVM_CallErr
 0x800B61F4	0x90	.text	lib/svm.c	global	SVM_Unlock	SVM_Unlock
 0x800B6284	0x68	.text	lib/svm.c	global	SVM_Lock	SVM_Lock
@@ -2913,7 +2913,7 @@ address	size	section	unit	scope	name	demangled
 0x800BE290	0x190	.text	lib/adx_fs.c	global	ADXF_ExecServer	ADXF_ExecServer
 0x800BE420	0x5C	.text	lib/adx_fs.c	local	ADXF_CloseAll	ADXF_CloseAll
 0x800BE47C	0x2DC	.text	lib/adx_fs.c	global	ADXF_Close	ADXF_Close
-0x800BE758	0x34	.text	lib/cri_cvfs.c	local	cvFsEntryErrFunc	cvFsEntryErrFunc
+0x800BE758	0x34	.text	lib/cri_cvfs.c	global	cvFsEntryErrFunc	cvFsEntryErrFunc
 0x800BE78C	0x4A4	.text	lib/cri_cvfs.c	global	cvFsGetFileSize	cvFsGetFileSize
 0x800BEC30	0xC0	.text	lib/cri_cvfs.c	global	cvFsGetStat	cvFsGetStat
 0x800BECF0	0x68	.text	lib/cri_cvfs.c	global	cvFsExecServer	cvFsExecServer
@@ -2927,9 +2927,9 @@ address	size	section	unit	scope	name	demangled
 0x800BF894	0x27C	.text	lib/cri_cvfs.c	global	cvFsAddDev	cvFsAddDev
 0x800BFB10	0x40	.text	lib/cri_cvfs.c	global	cvFsCallUsrErrFn	cvFsCallUsrErrFn
 0x800BFB50	0xC0	.text	lib/lsc_err.c	global	LSC_CallErrFunc	LSC_CallErrFunc
-0x800BFC10	0x34	.text	lib/lsc_err.c	local	LSC_EntryErrFunc	LSC_EntryErrFunc
-0x800BFC44	0x20	.text	lib/lsc_crs.c	local	LSC_UnlockCrs	LSC_UnlockCrs
-0x800BFC64	0x20	.text	lib/lsc_crs.c	local	LSC_LockCrs	LSC_LockCrs
+0x800BFC10	0x34	.text	lib/lsc_err.c	global	LSC_EntryErrFunc	LSC_EntryErrFunc
+0x800BFC44	0x20	.text	lib/lsc_crs.c	global	LSC_UnlockCrs	LSC_UnlockCrs
+0x800BFC64	0x20	.text	lib/lsc_crs.c	global	LSC_LockCrs	LSC_LockCrs
 0x800BFC84	0x4C	.text	lib/sj_crs.c	global	SJCRS_Unlock	SJCRS_Unlock
 0x800BFCD0	0x4C	.text	lib/sj_crs.c	global	SJCRS_Lock	SJCRS_Lock
 0x800BFD1C	0x74	.text	lib/sj_mem.c	global	SJMEM_GetBufSize	SJMEM_GetBufSize
@@ -6811,7 +6811,7 @@ address	size	section	unit	scope	name	demangled
 0x801E6B28	0x64	.text	lib/sfd_aoap.c	global	SFAOAP_SetSpeed	SFAOAP_SetSpeed
 0x801E6B8C	0x7C	.text	lib/sfd_aoap.c	global	SFD_GetOutVol	SFD_GetOutVol
 0x801E6C08	0x80	.text	lib/sfd_aoap.c	global	SFD_SetOutVol	SFD_SetOutVol
-0x801E6C88	0x8C	.text	lib/sfd_aoap.c	local	SFD_GetOutPan	SFD_GetOutPan
+0x801E6C88	0x8C	.text	lib/sfd_aoap.c	global	SFD_GetOutPan	SFD_GetOutPan
 0x801E6D14	0x90	.text	lib/sfd_aoap.c	global	SFD_SetOutPan	SFD_SetOutPan
 0x801E6DA4	0x2C	.text	lib/sfd_buf.c	global	SFBUF_UpdateFlowCnt	SFBUF_UpdateFlowCnt
 0x801E6DD0	0x100	.text	lib/sfd_buf.c	global	SFBUF_GetFlowCnt	SFBUF_GetFlowCnt
@@ -7092,7 +7092,7 @@ address	size	section	unit	scope	name	demangled
 0x801F6E48	0xF4	.text	lib/sfd_vom.c	global	SFVOM_ExecServer	SFVOM_ExecServer
 0x801F6F3C	0x8	.text	lib/sfd_vom.c	local	SFVOM_Finish	SFVOM_Finish
 0x801F6F44	0x8	.text	lib/sfd_vom.c	global	SFVOM_Init	SFVOM_Init
-0x801F6F4C	0x94	.text	lib/sfd_tmr.c	local	SFTMR_AddTsum	SFTMR_AddTsum
+0x801F6F4C	0x94	.text	lib/sfd_tmr.c	global	SFTMR_AddTsum	SFTMR_AddTsum
 0x801F6FE0	0x30	.text	lib/sfd_tmr.c	global	SFTMR_InitTsum	SFTMR_InitTsum
 0x801F7010	0xA50	.text	lib/sfd_tst.c	global	SFTST_Calc	SFTST_Calc
 0x801F7A60	0x80	.text	lib/sfd_tst.c	global	SFTST_GoNextFrame	SFTST_GoNextFrame
@@ -7142,7 +7142,7 @@ address	size	section	unit	scope	name	demangled
 0x801FA540	0x6C	.text	lib/sfh_main.c	global	SFH_Create	SFH_Create
 0x801FA5AC	0x134	.text	lib/sfh_main.c	global	SFH_Init	SFH_Init
 0x801FA6E0	0x4C	.text	lib/cmptime.c	global	UTY_CmpTime	UTY_CmpTime
-0x801FA72C	0x78	.text	lib/memsetd.c	local	UTY_MemsetDword	UTY_MemsetDword
+0x801FA72C	0x78	.text	lib/memsetd.c	global	UTY_MemsetDword	UTY_MemsetDword
 0x801FA7A4	0x5C	.text	lib/muldiv.c	global	UTY_MulDiv	UTY_MulDiv
 0x801FA800	0x15C	.text	lib/muldivr.c	global	UTY_MulDivRound64	UTY_MulDivRound64
 0x801FA95C	0x14	.text	lib/uty_tmr.c	global	UTY_GetTmrUnit	UTY_GetTmrUnit

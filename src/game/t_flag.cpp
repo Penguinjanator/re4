@@ -263,8 +263,11 @@ static void move(FE_WORK* t)
         }
         bit = t->cursor;
         cur = bit;
-        eprintf(((cur & 0xF) + ((cur & 0xF) >> 2) + 23) * 8, ((cur >> 4) + (cur >> 6) + 6) * 14, 2, 0, "%01x",
-                CkBit(p->flags, cur));
+        {
+            int y = ((cur >> 4) + (cur >> 6) + 6) * 14;
+            int x = ((cur & 0xF) + ((cur & 0xF) >> 2) + 23) * 8;
+            eprintf(x, y, 2, 0, "%01x", CkBit(p->flags, cur));
+        }
         bit = t->cursor;
         if (joy->trg & JOY_A) {
             sh = bit % 32;

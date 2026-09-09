@@ -1466,13 +1466,16 @@ void cSubChar::moveHide()
 {
     static Vec norm;
     static Vec vdz0 = { 1.0f, 0.0f, 0.0f };
+    Vec a;
+    Vec b;
+    Vec hit;
     f32 ang;
 
     switch (xFE) {
     case 0: {
         void* m;
         void* seq;
-        u16 hokan = 4;
+        int hokan = 4;
 
         BitOff16(subFlags, 2);
         subHidePos.y += 300.0f;
@@ -1505,7 +1508,7 @@ void cSubChar::moveHide()
             }
             xFE = 5;
         }
-        MOT_SET(this, MOTION(this), m, seq, 7, hokan, 0);
+        MOT_SET(this, MOTION(this), m, seq, 7, (u16) hokan, 0);
         motionMove();
         xFE = 1;
         break;
@@ -1532,17 +1535,18 @@ void cSubChar::moveHide()
         xFE = 6;
         break;
     case 6: {
-        Vec a;
-        Vec b;
-        Vec hit;
         u32 r;
+        f32 d;
 
         a.x = pos.x;
         a.y = subHidePos.y;
         a.z = pos.z;
-        b = subHidePos;
+        b.x = subHidePos.x;
+        b.y = subHidePos.y;
+        b.z = subHidePos.z;
         r = SatMgr.hitCheck(&a, &b, &hit, &norm, 0, 0);
-        if ((r & 8) && GetDistance(a, hit) < 250000.0f) {
+        d = GetDistance(a, hit);
+        if ((r & 8) && d < 250000.0f) {
             subX534 = 0;
             subHidePos = hit;
             switch (subHideMode) {
@@ -1555,21 +1559,20 @@ void cSubChar::moveHide()
                 break;
             }
         }
-        RouteCkToPos(this, &b, &a, (subHidePos.y > pos.y + 1000.0f) | 2, &subX5C8);
+        r = subHidePos.y > pos.y + 1000.0f;
+        RouteCkToPos(this, &b, &a, r | 2, &subX5C8);
         subSelf->rot.y += Muku(&pos, &a, rot.y, 0.20943952f);
         motionMove();
         break;
     }
-    case 0xA: {
-        Vec v;
-
+    case 0xA:
         MOT_SET(subSelf, MOTION(subSelf), SUB_MOT(subSelf, 0x2C), SUB_MOT(subSelf, 0x67), 7, 5, 0);
         rot.y = atan2f(-norm.x, -norm.z);
         cCoord::matUpdate();
-        PSVECScale(&norm, &v, 400.0f);
-        PSVECAdd(&v, &subHidePos, &v);
-        pos.z = v.z;
-        pos.x = v.x;
+        PSVECScale(&norm, &a, 400.0f);
+        PSVECAdd(&a, &subHidePos, &a);
+        pos.x = a.x;
+        pos.z = a.z;
         AtariOn(&atari, 0x200);
         subSelf->atari.setPriority(3);
         AtariOff(&atari, 0xFEFF);
@@ -1577,7 +1580,6 @@ void cSubChar::moveHide()
         sub52C = getAdjustX(8) * 0.1f;
         sub538 = 10;
         xFE = 0xB;
-    }
     case 0xB:
         if (sub52C != 0.0f && sub538) {
             Vec v;
@@ -1590,14 +1592,14 @@ void cSubChar::moveHide()
         if (motionMove()) {
             MOT_SET(subSelf, MOTION(subSelf), SUB_MOT(subSelf, 0x43), 0, 7, 1, 0);
             pG->flags_500C |= 0x800;
-            xFE = 0xC;
             sub538 = 6;
+            xFE = 0xC;
         }
         break;
     case 0xC:
         if (motionMove()) {
-            xFE = 0xD;
             xFF = 10;
+            xFE = 0xD;
         }
         break;
     case 0xD:
@@ -1621,8 +1623,8 @@ void cSubChar::moveHide()
         if (subX534 > 0) {
             Vec v;
 
-            v.y = 0.0f;
             v.x = 0.0f;
+            v.y = 0.0f;
             v.z = 200.0f / (f32) (frameMax - 3);
             PSMTXMultVecSR(mat, &v, &v);
             PSVECAdd(&pos, &v, &pos);
@@ -1635,11 +1637,13 @@ void cSubChar::moveHide()
         break;
     case 0x10:
         if (motionMove()) {
+            u8 z = 0;
+
             pG->flags_500C &= ~0x800;
             subSelf->atari.setPriority(0);
             AtariOn(&atari, 0x300);
             dmg.clear();
-            SubRoutineSet(this, 0, 0, 0, 0);
+            SubRoutineSet(this, z, z, z, z);
         }
         break;
     }

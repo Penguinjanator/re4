@@ -128,6 +128,9 @@ void LightAreaUpdateSub(cEm* em, int type)
     hit = 0;
     rate = 0.0f;
     for (i = 0; i < hed->num; i++, d++) {
+        // The in-loop re-assignment is a gcse-time set of `la` that stops cprop from folding
+        // the preheader copy (`mr r30,r6` of the inline's &em->litArea) into its uses; loop.c
+        // then hoists it and cse2 deletes it as a no-op, so the target's copy is all that remains.
         la = &em->litArea;
         if (type == 0 && d->lightNoPl == 0xFF) {
             continue;

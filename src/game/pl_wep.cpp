@@ -710,12 +710,10 @@ cModel* searchLockEm(Vec* pos, cModel* skip, f32 range)
 static int cornerCheckOld()
 {
     static Vec vecz = {0.0f, 0.0f, 500.0f};
-    Vec dir;
+    Vec dir = {0.0f, 0.0f, 0.0f};
     Vec rot;
 
-    dir.x = 0.0f;
     dir.y = pPL->rot.y;
-    dir.z = 0.0f;
     RotVector(&vecz, &dir, &rot);
     PSVECAdd(&rot, &pPL->pos, &rot);
     return SatMgr.hitCheck(&pPL->pos, &rot, 0, 0, 0, 0);
@@ -1104,7 +1102,8 @@ void PlSetLockPitch(cModel* plm)
         }
     }
     pl->pWep->pitch = p;
-    m3r[1] = p * (2.0f / PI);
+    p *= 2.0f / PI;
+    m3r[1] = p;
     m3r[2] = 0.0f;
     m3r[0] = m3r[1] * m3r[2] + m3r[1];
 }

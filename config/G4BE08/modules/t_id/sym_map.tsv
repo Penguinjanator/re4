@@ -1,6 +1,5 @@
 section	offset	size	unit	scope	name	demangled
 .text	0x00000000	0x70	t_id/t_id.cpp	local	DbPath	DbPath
-.text	0x00000000	0x70	t_id/t_id.cpp	local	DbPath	DbPath
 .text	0x00000070	0x20	t_id/t_id.cpp	local	pathQuit	pathQuit
 .text	0x00000090	0x3F4	t_id/t_id.cpp	local	pathMenu	pathMenu
 .text	0x00000484	0x588	t_id/t_id.cpp	local	pathEdit	pathEdit

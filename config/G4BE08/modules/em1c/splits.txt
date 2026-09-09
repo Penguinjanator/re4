@@ -1,0 +1,21 @@
+Sections:
+	.text       type:code align:4
+	.ctors      type:rodata align:4
+	.dtors      type:rodata align:4
+	.rodata     type:rodata align:8
+	.data       type:data align:8
+	.bss        type:bss align:4
+
+em1c/em10.cpp:
+	.text       start:0x00000000 end:0x000438D0
+	.rodata     start:0x00000000 end:0x00001EC4
+	.data       start:0x00000000 end:0x00000990
+	.bss        start:0x00000000 end:0x00000034 align:4 common
+
+em1c/em1c_prolog.cpp:
+	.text       start:0x000438D0 end:0x00043924
+	.rodata     start:0x00001EC4 end:0x00001ED4 align:4
+
+em1c/em1c_set.cpp:
+	.text       start:0x00043924 end:0x00044250
+	.data       start:0x00000990 end:0x00000994 skip

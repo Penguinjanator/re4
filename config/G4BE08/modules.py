@@ -19,7 +19,35 @@ UNITS = {
     "st2_3": [("st2_3/st2_3.cpp", None), ("st2_3/" + _ST2[0], *_ST2[1:])],
     # r22c: room 2-2c (the shooting gallery)
     "st2_4": [("st2_4/r22c.cpp", "cEmWrap::cEmWrap"), ("st2_4/" + _ST2[0], *_ST2[1:])],
+    # Debug tool modules: <tool>.cpp, then the tool library objects t_prim.cpp / t_util.cpp (the full
+    # versions of the DOL's game/t_prim, game/t_util, which the DOL link dead-stripped), then the shared
+    # tools.cpp (D:/Bio4/Prog/tools.cpp: _prolog runs the ctors and ToolsTask, which dispatches
+    # DebugMenuSelected to the Tool* entry of every tool module). Each object that includes light.h
+    # carries its own cManager<cLight> instantiations behind its code (see LINKONCE below).
+    "t_emlist": [
+        ("t_emlist/t_emlist.cpp", None),
+        ("t_emlist/t_prim.cpp", "TprimInitEnv2D3D"),
+        ("t_emlist/t_util.cpp", "TutilInitDefault"),
+        ("t_emlist/tools.cpp", "_prolog", "tools/tools.cpp"),
+    ],
 }
+# The 16 Ganado modules (em10..em20) are the same em10.cpp ("D:/Bio4/Prog/em10.cpp": cEm10 and its
+# em10*/em1c* helpers, .text 0-0x43518 + 0x3B8 bytes of template instantiations, .rodata 0-0x1EC4,
+# all of .data/.bss, byte-identical in every module), then two small per-enemy objects whose names
+# are not in the binary: the entry file (_prolog: OSReport("em10 prolog Ok\n") in every module,
+# EmInitFunc = EmXXInit, EmSetFunc = EmXXSet; _epilog, _unresolved) and EmXXInit/Set/WeaponSet.
+# They must be separate objects: ngcld -r adds an input section's displacement to ADDR16/ADDR32
+# fields that reference a global defined in the same object, and the original fields are 0.
+# em1d/em1e/em1f/em20 include light.h in the tail (cManager<cLight> code the .sym skips after
+# EmXXWeaponSet) and carry an unreferenced "D:/Bio4/Prog/light.h" string right after em10.cpp's
+# .rodata, so the entry unit's .rodata start is pinned (4th element) at em10.cpp's end.
+for _em in ["em10", "em11", "em12", "em13", "em14", "em15", "em16", "em17", "em19", "em1a", "em1b",
+            "em1c", "em1d", "em1e", "em1f", "em20"]:
+    UNITS[_em] = [
+        (f"{_em}/em10.cpp", None, "em10/em10.cpp"),
+        (f"{_em}/{_em}_prolog.cpp", "_prolog", None, {".rodata": 0x1EC4}),
+        (f"{_em}/{_em}_set.cpp", f"Em{_em[2:]}Init"),
+    ]
 
 # Units whose compiled object replaces the split object in the REL link.
 MATCHING = {

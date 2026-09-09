@@ -17,7 +17,9 @@ snmakerel's rules for what ends up in the file:
   * R_PPC_REL24 to a target in the same section is resolved and dropped from the table; a REL24 to
     another module or the DOL is patched to branch to _unresolved and kept,
   * R_PPC_REL14 (NgcAs emits one for every conditional branch) is resolved and kept,
-  * ADDR32/ADDR16_LO/ADDR16_HA fields keep what ngcld -r wrote (S+A for local symbols, A for globals),
+  * ADDR32/ADDR16_LO/ADDR16_HA fields hold S+A for local symbols (what ngcld -r wrote) and A for
+    globals (ngcld 3.9.3 -r also adds the defining input section's displacement there; the original
+    linker did not, so the field is rewritten),
   * the relocation lists are ordered: imported modules ascending, then self, then module 0
     (fix_size marks where the self list starts), each list by section then offset.
 """
@@ -183,6 +185,16 @@ def main():
             elif sym.name == '__sn__bss__tag__':
                 # ngcld defines its tag as a local symbol (field = S+A); the original has 0 there
                 buf[r.offset:r.offset + 4] = b'\0\0\0\0'
+            elif sym.bind != elffile.STB_LOCAL:
+                # the original fields hold only A for global symbols; ngcld 3.9.3 -r also adds the
+                # displacement of the input section defining the symbol (0 for the first object,
+                # so this only shows in multi-object modules: em10's _prolog -> Em10Init)
+                a = r.addend & 0xFFFFFFFF
+                if r.type == relfile.R_PPC_ADDR32:
+                    buf[r.offset:r.offset + 4] = struct.pack('>I', a)
+                else:
+                    v = a & 0xFFFF if r.type == relfile.R_PPC_ADDR16_LO else ((a + 0x8000) >> 16) & 0xFFFF
+                    buf[r.offset:r.offset + 2] = struct.pack('>H', v)
             relocs.append((tmod, src_idx, r.offset, r.type, tsec, addend))
 
     for ov in cfg.get('field_overrides', []):

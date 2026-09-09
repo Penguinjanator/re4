@@ -918,6 +918,7 @@ MATCHING = {
     "game/atoi.c": True,
     "game/atof.c": True,
     # light / effect modules
+    "game/light_area.cpp": True,
     "game/light04.cpp": True,
     "game/light08.cpp": True,
     "game/light10.cpp": True,
@@ -1147,6 +1148,7 @@ MATCHING.update({
     "game/emtorch.cpp": True,
     "game/emitem.cpp": True,
     "game/em.cpp": True,
+    "game/emrack.cpp": True,
 })
 
 # area / message units
@@ -1278,4 +1280,26 @@ MATCHING.update({
 # UI/system closer (stage)
 MATCHING.update({
     "game/stage.cpp": True,
+})
+
+# CRI Middleware libraries (ADX / Sofdec / GCCI, CodeWarrior 2.4.7 -O4,p, see configure.py CRI_LIBS)
+MATCHING.update({
+    "lib/adx_fcch.c": True,
+    "lib/adx_gc.c": True,
+    "lib/sj_err.c": True,
+    "lib/lsc_crs.c": True,
+    "lib/rna_crs.c": True,
+    "lib/adx_crs.c": True,
+    "lib/mcp_not.c": True,
+    "lib/sj_crs.c": True,
+    "lib/mps_del.c": True,
+    "lib/adx_bahx.c": True,
+    "lib/sfx_inf.c": True,
+    "lib/mwsfdrsc.c": True,
+    "lib/mwsfdsee.c": True,
+    "lib/memcpyd.c": True,
+    "lib/memsetd.c": True,
+    "lib/cmptime.c": True,
+    "lib/muldiv.c": True,
+    "lib/uty_ppc.c": True,
 })

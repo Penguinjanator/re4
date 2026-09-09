@@ -72,7 +72,11 @@ def main():
         funcs = []
         if symf:
             names, entries = parse_sym(symf)
+            # an unnamed global "." doubles the first function of some modules (the object start)
+            named = {(a, sz) for a, sz, u8, dn in entries if dn != '.'}
             for a, sz, u8, dn in entries:
+                if dn == '.' and (a, sz) in named:
+                    continue
                 funcs.append((a, sz, 'global' if u8 & 1 else 'local', dn))
         else:
             print(f'note: no Bio4.{name}.sym, functions of {name} will come from dtk analysis only')
@@ -154,7 +158,7 @@ def main():
         assert len(tag) == 1 and tag[0].kind == relfile.R_PPC_ADDR32 \
             and tag[0].target_section == sec_index['.bss'], (name, tag)
         common_size = rel.bss_size - tag[0].addend
-        assert common_size in (0, 0x34), (name, hex(common_size))
+        assert common_size >= 0 and common_size % 4 == 0, (name, hex(common_size))
         sec_size['.data'] -= 4
         sec_size['.bss'] -= common_size
         skips = [('.data', sec_size['.data'], full_size['.data'])]
@@ -215,8 +219,8 @@ def main():
                     # _prolog/_epilog walk the lists from their start: dtk's linker-generated _ctors/_dtors
                     assert off == 0, (name, sname, hex(off))
                     continue
-                if sname == '.bss' and off == sec_size['.bss'] and common_size:
-                    continue  # the COMMON block, added below
+                if sname == '.bss' and off == sec_size['.bss']:
+                    continue  # the BSS_TAG target / the COMMON block (added below)
                 assert off < sec_size[sname], (name, sname, hex(off))
                 syms.append((sname, off, 0, f'lbl_{name}_{sname[1:]}_{off:X}', 'object',
                              reloc_scope(tsec, off, 'global')))
@@ -224,6 +228,9 @@ def main():
             # one COMMON symbol for the whole block until the real variables are known (a `common`
             # split makes dtk emit it as SHN_COMMON; make_rel.py allocates it after .bss like snmakerel)
             syms.append(('.bss', sec_size['.bss'], common_size, f'common_{name}', 'object', 'global'))
+        elif sec_index['.bss'] in rel.sections:
+            # no COMMON block: the BSS_TAG pointer targets the end of .bss, dtk needs a symbol there
+            syms.append(('.bss', sec_size['.bss'], 0, '__sn__bss__tag__', 'label', 'local'))
         if text_gap_labels:
             print(f'note: {name}: {text_gap_labels} .text targets outside every known function (labels)')
         if scope_notes:
@@ -269,45 +276,12 @@ def main():
         if field_overrides:
             print(f'note: {name}: {len(field_overrides)} relocated fields written back verbatim (rel.json field_overrides)')
         syms.sort(key=lambda s: (list(sec_index).index(s[0]), s[1]))
-        # sizes of labels: up to the next symbol in the section (or the section end)
-        for i, s in enumerate(syms):
-            if s[2] == 0 and s[4] == 'object':
-                end = sec_size[s[0]] if s[0] != '.text' else text_size
-                for j in range(i + 1, len(syms)):
-                    if syms[j][0] == s[0]:
-                        end = syms[j][1]
-                        break
-                    if syms[j][0] != s[0]:
-                        break
-                if s[0] == '.text':
-                    for lo, hi in text_cover:
-                        if lo > s[1]:
-                            end = min(end, lo)
-                            break
-                syms[i] = (s[0], s[1], end - s[1], s[3], s[4], s[5])
-        # names/scopes already synced from compiled units (sync_rel_symbols.py) survive a regeneration
-        sym_path = os.path.join(out_dir, 'symbols.txt')
-        existing = {}
-        if os.path.exists(sym_path):
-            for line in open(sym_path):
-                m = re.match(r'^(\S+) = (\.\w+):0x([0-9A-F]+);.*scope:(\w+)', line)
-                if m:
-                    existing[(m.group(2), int(m.group(3), 16))] = (m.group(1), m.group(4))
-        kept = 0
-        for i, (sec, off, sz, n, ty, scope) in enumerate(syms):
-            if (sec, off) in existing and existing[(sec, off)][0] != n:
-                syms[i] = (sec, off, sz, *existing[(sec, off)][:1], ty, existing[(sec, off)][1])
-                kept += 1
-        if kept:
-            print(f'note: {name}: kept {kept} synced symbol names')
-        with open(sym_path, 'w') as f:
-            for sec, off, sz, n, ty, scope in syms:
-                f.write(f'{n} = {sec}:0x{off:08X}; // type:{ty} size:0x{sz:X} scope:{scope}\n')
         demangled = {a: dn for a, sz, scope, dn in funcs}
 
         # --- units ----------------------------------------------------------------------------------
-        # (unit, first function[, shared source]) -> (unit, first function)
+        # (unit, first function[, shared source[, {section: data start}]]) -> (unit, first function)
         units = [tuple(u[:2]) for u in unit_overrides.get(name, [(f'{name}/{name}.cpp', None)])]
+        data_starts = {u[0]: u[3] for u in unit_overrides.get(name, []) if len(u) > 3}
         starts = []
         for uname, first in units:
             if first is None:
@@ -349,16 +323,28 @@ def main():
                     for r in self_relocs:
                         if r.target_section == sidx and r.section == text_idx:
                             refs[unit_of_text(r.offset)].append(r.addend)
-                    bounds = {u: min(v) for u, v in refs.items()}
-                    # the first unit owns the section start (unreferenced leading data)
-                    if units[0][0] in bounds:
-                        bounds[units[0][0]] = 0
+                    # a unit's data starts after everything earlier units address; references below
+                    # that are to global symbols of an earlier unit (the em10 tails use library data)
+                    bounds = {}
                     prev_max = -1
                     for u, _ in units:
-                        if u not in refs:
+                        forced = data_starts.get(u, {}).get(sname)  # modules.py knows better (unreferenced data)
+                        if u not in refs and forced is None:
                             continue
-                        assert bounds[u] > prev_max, f'{name}: {sname} of {u} overlaps the previous unit'
-                        prev_max = max(refs[u])
+                        for a in refs.get(u, []):
+                            if a <= prev_max:
+                                assert sym_scope.get((sidx, a)) == 'global' or (sidx, a) not in sym_scope, \
+                                    f'{name}: {u} addresses {sname}+{a:#x}, a local of an earlier unit'
+                        own = [a for a in refs.get(u, []) if a > prev_max]
+                        if not own and forced is None:
+                            continue
+                        if forced is not None:
+                            assert forced > prev_max and all(a >= forced for a in own), (name, u, sname, hex(forced))
+                            bounds[u] = forced
+                        else:
+                            # the first unit owns the section start (unreferenced leading data)
+                            bounds[u] = 0 if u == units[0][0] else min(own)
+                        prev_max = max(own) if own else forced
                 ordered = [u for u, _ in units if u in bounds]
                 for i, u in enumerate(ordered):
                     lo = bounds[u]
@@ -402,6 +388,47 @@ def main():
                     if '<' in dn:
                         common_owner = unit_of_text(a)
                         break
+
+        # --- symbols.txt ----------------------------------------------------------------------------
+        # sizes of labels: up to the next symbol in the section, the section end, or the unit's end
+        unit_ends = collections.defaultdict(list)
+        for u in ranges:
+            for sname, (lo, hi) in ranges[u].items():
+                unit_ends[sname].append(hi)
+        for i, s in enumerate(syms):
+            if s[2] == 0 and s[4] == 'object':
+                end = sec_size[s[0]] if s[0] != '.text' else text_size
+                for j in range(i + 1, len(syms)):
+                    if syms[j][0] == s[0]:
+                        end = syms[j][1]
+                        break
+                    if syms[j][0] != s[0]:
+                        break
+                if s[0] == '.text':
+                    for lo, hi in text_cover:
+                        if lo > s[1]:
+                            end = min(end, lo)
+                            break
+                end = min([end] + [e for e in unit_ends[s[0]] if e > s[1]])
+                syms[i] = (s[0], s[1], end - s[1], s[3], s[4], s[5])
+        # names/scopes already synced from compiled units (sync_rel_symbols.py) survive a regeneration
+        sym_path = os.path.join(out_dir, 'symbols.txt')
+        existing = {}
+        if os.path.exists(sym_path):
+            for line in open(sym_path):
+                m = re.match(r'^(\S+) = (\.\w+):0x([0-9A-F]+);.*scope:(\w+)', line)
+                if m:
+                    existing[(m.group(2), int(m.group(3), 16))] = (m.group(1), m.group(4))
+        kept = 0
+        for i, (sec, off, sz, n, ty, scope) in enumerate(syms):
+            if (sec, off) in existing and existing[(sec, off)] != (n, scope):
+                syms[i] = (sec, off, sz, *existing[(sec, off)][:1], ty, existing[(sec, off)][1])
+                kept += 1
+        if kept:
+            print(f'note: {name}: kept {kept} synced symbol names/scopes')
+        with open(sym_path, 'w') as f:
+            for sec, off, sz, n, ty, scope in syms:
+                f.write(f'{n} = {sec}:0x{off:08X}; // type:{ty} size:0x{sz:X} scope:{scope}\n')
 
         # --- splits.txt ----------------------------------------------------------------------------
         aligns = {}

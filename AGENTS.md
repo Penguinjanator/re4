@@ -11,7 +11,7 @@ original DOL from split objects; every unit you match replaces one split object 
 - Symbols: `config/G4BE08/sym_map.tsv` — address, size, section, unit, scope, current symbol name,
   original demangled name (from the debug build's `Bio4.sym`). Function boundaries and sizes are exact.
 - Target asm per unit: `build/G4BE08/asm/<unit>.s` (dtk disassembly with symbolic relocations).
-- The 22 REL overlays (rooms, tools) build byte-identical too; their units are `<mod>/<file>.cpp` with
+- The 110 REL overlays (rooms, enemies, players, weapons, tools) build byte-identical too; their units are `<mod>/<file>.cpp` with
   their own symbol files under `config/G4BE08/modules/<mod>/` — see "REL modules" below.
 - Types: `include/types.h` (u8..f64). Shared class/struct definitions go in `include/<name>.h`;
   check existing headers before adding a type, and only extend, never rewrite, structs other units use.
@@ -1383,19 +1383,38 @@ mark it Matching.
 ## REL modules
 
 The game loads its rooms, enemies, weapons and debug tools as Nintendo REL overlays. `ninja` rebuilds the
-22 configured RELs byte-identical next to the DOL (`build/G4BE08/<mod>/<mod>.rel`, all covered by the
-`build/G4BE08/ok` SHA-1 check); a unit you match replaces one split object in one REL, like the DOL.
+110 configured RELs byte-identical next to the DOL (`build/G4BE08/<mod>/<mod>.rel`, all covered by the
+`build/G4BE08/ok` SHA-1 check: `111 files OK`); a unit you match replaces one split object in one REL,
+like the DOL.
 
 ### Facts
 
 - Modules: the 20 loose `files/Rel/*.rel` of the disc (Sscrn, Tools, st1_0..st4_0, t_camera, t_emlist,
-  t_esp, t_event, t_id, t_light, t_movie, t_sce) plus two the loose ones import: em27 (module 16, st1_1)
-  and em3e (module 94, st2_*), extracted from `files/em/em27.drs`/`em3e.drs`. 117 more RELs live inside
-  the `.drs` archives (`tools/extract_drs_rel.py --scan <files dir>` lists them; the container format is
-  not reversed, the RELs are stored uncompressed). `orig/G4BE08/files/{Rel,em}/*.rel` and
-  `orig/G4BE08/files/Bio4.<mod>.sym` are untracked: `dtk disc extract <iso> /tmp/re4disc`, copy
-  `files/Rel/*.rel` and `files/Bio4.*.sym`, and `tools/extract_drs_rel.py /tmp/re4disc/files/em/em27.drs
-  orig/G4BE08/files/em/em27.rel` (same for em3e).
+  t_esp, t_event, t_id, t_light, t_movie, t_sce) and the 90 distinct RELs inside the `files/em/*.drs`
+  archives (43 enemies em10..em3e, 8 players pl02..pl14, 39 weapons wep00..wep47). 117 of the 128
+  archives carry a REL; 27 of those are byte-identical copies of another archive's REL (costume
+  variants em46/56/66 = em16, em4c/5c/6c = em1c, em4d/5d/6d = em1d, em4f/5f/6f = em1f, em50/60/70 = em20,
+  pl0b/pl0c = pl02, pl15 = pl11, wep03/18 = wep02, wep20 = wep11, wep21/24 = wep09, wep25 = wep14,
+  wep31/32 = wep10, wep46 = wep13; the module is configured once, under the first name), 11 (pl00, pl01,
+  pl03..pl05, pl07..pl10, pl12, pl21) have none. Module ids are unique among the distinct RELs.
+  Not on disc 1 although a `Bio4.<mod>.sym` exists: em06, em09, emmark, st0, st3_0..st3_3, pl03/10/12.
+- Originals: `orig/G4BE08/files/{Rel,em}/<mod>.rel` and `orig/G4BE08/files/Bio4.<mod>.sym` are
+  untracked. `python3 tools/extract_orig.py config/G4BE08/config.yml <disc>` writes them (plus
+  `sys/main.dol`, `sys/main_split.dol`, `files/Bio4.sym`) from a disc image (.iso/.gcm, read directly)
+  or from a directory made by `dtk disc extract`; `configure.py` runs it itself when a configured
+  module's REL is missing and an image sits in `orig/G4BE08/`.
+- DRS archives (`tools/drs.py list|rel|extract|pack|rebuild|roundtrip`, byte-identical round trip on
+  all 128): a 0x20-byte free-text signature ("ハカセのアホーーーーーーー！！！" in Shift-JIS; 11 pl
+  archives repeat the half-width "ﾊｶｾ " instead), then 32-byte records `{u32 type, size, 0, offset,
+  p0, p1, 0, 0}` ending with type 0xFFFFFFFF, zero to 0x400. Record type 0 is the body at 0x400 (its
+  size 0x20-rounded), type 4 the sound bank appended after it (or `{0xFFFFFFFE, 0, 0, file size}` when
+  there is none). Body: `u32 count, rel_offset, 0, 0; u32 offsets[count]; char tags[count][4]`, padded
+  to 0x20, then the entries (0x20-aligned, tags BIN/TPL/FCV/SEQ/EFF, zero tag = empty entry) — no sizes,
+  an entry runs to the next offset and was padded with 0xCD (the packer's uninitialised buffer);
+  `rel_offset` (0 = none) is the REL, its own size is the end of its last relocation list, padded with
+  0xCD to 0x20. The sound bank is the same container again (records type 1 and 2, exact sizes, zero
+  padding, p0/p1 bank parameters). `drs.py rebuild <orig.drs> build/G4BE08/<mod>/<mod>.rel <out.drs>`
+  is the archive with a rebuilt REL (identical to the original for every module today).
 - Module names are the disc file stems; a module's units are `<mod>/<file>.cpp` (source `src/<mod>/<file>.cpp`,
   or a shared source given in `config/G4BE08/modules.py`), objdiff calls the unit `<mod>/<mod>/<file>`,
   its target asm is `build/G4BE08/<mod>/asm/<mod>/<file>.s`, the split object `build/G4BE08/<mod>/obj/...`.
@@ -1407,10 +1426,26 @@ The game loads its rooms, enemies, weapons and debug tools as Nintendo REL overl
   target (`lbl_<mod>_<section>_<off>`), unnamed functions are `fn_<mod>_<off>`; em3e has no .sym at all
   (labels only). Addresses in the module files are section offsets.
 - Units: a module is one unit `<mod>/<mod>.cpp` unless `UNITS` in `config/G4BE08/modules.py` names
-  boundaries (`(unit, first function[, shared source])`); the generator attributes .rodata/.data/.bss
-  ranges to units by the relocations coming from each unit's code and fails when they interleave. The
-  `__static_initialization_and_destruction_0`/`global constructors keyed to X` pairs and the
-  `"D:/Bio4/Prog/<file>.cpp"` HALT strings are the best hints for the original file boundaries.
+  boundaries (`(unit, first function[, shared source[, {section: data start}]])`); the generator
+  attributes .rodata/.data/.bss ranges to units by the relocations coming from each unit's code: a
+  unit's data starts at its first reference above everything earlier units address (references
+  below that must hit a global of an earlier unit), unreferenced data goes to the preceding unit
+  unless the 4th element pins the start. The `__static_initialization_and_destruction_0`/`global
+  constructors keyed to X` pairs and the `"D:/Bio4/Prog/<file>.cpp"` HALT strings are the best hints
+  for the original file boundaries.
+- Shared enemy library: the 16 Ganado modules em10..em17, em19..em1f, em20 (.text 0x4402C..0x44444)
+  are `em10.cpp` (`"D:/Bio4/Prog/em10.cpp"`, cEm10 and the em10*/em1c*/plem10* helpers: .text
+  0..0x43518 = 382 functions + the 0x3B8-byte template gap to 0x438D0, .rodata 0..0x1EC4, all 0x994
+  bytes of .data, the 0x34-byte COMMON .bss — byte-identical in all 16, the split object
+  `build/G4BE08/<mod>/obj/<mod>/em10.o` is the same in every module) followed by two per-enemy
+  objects: `<mod>_prolog.cpp` (`_prolog` = `OSReport("em10 prolog Ok\n")` in every module, stores
+  EmXXInit/EmXXSet into EmInitFunc/.data+0; `_epilog`, `_unresolved`; 0x54 bytes) and `<mod>_set.cpp`
+  (EmXXInit/EmXXSet/EmXXWeaponSet, 0x780..0xA08 bytes; em1d/em1e/em1f/em20 also include light.h:
+  cManager<cLight> code the .sym skips and an unreferenced `"D:/Bio4/Prog/light.h"` string). The
+  real names of the two small files are not in the binary. The 28 other enemies (em18, em21..em3d,
+  em3e; .text 0x10C8..0x17034) start with `_prolog`/`_epilog`/`_unresolved` (same code, 4 `_prolog`
+  variants), then their own `"D:/Bio4/Prog/emXX.cpp"`, and share only cUnit's inline
+  `beginEvent`/`endEvent`/`~cUnit`/`operator delete` (byte-identical, at the end).
 - Compiler flags: `cflags_game` + `-G 0` (no small data in RELs: every DOL global goes through
   `lis/addi`). No `fold_linkonce`/`strip_unused` post-build yet for module units.
 - Toolchain: the original RELs came out of `ngcld -r` followed by SN's `snmakerel` (Nintendo's makerel
@@ -1420,15 +1455,17 @@ The game loads its rooms, enemies, weapons and debug tools as Nintendo REL overl
   ELF section count, string-table name offset/size, align/bss_align, REL section indices, imported
   modules). dtk's `rel make` was not usable: it keeps REL14 out of the table, takes REL section indices
   from our ELF and DOL section bytes from our main.elf, and knows nothing about the SN specifics below.
-- What snmakerel did, reproduced in make_rel.py (verified byte-for-byte on all 22):
+- What snmakerel did, reproduced in make_rel.py (verified byte-for-byte on all 110):
   - imports ordered other modules ascending, then self, then the DOL (fix_size = start of the self list);
     each list by section then offset; NOP entries for gaps > 0xFFFF.
   - REL24 to a same-section target is resolved and dropped; REL24 to another module/the DOL is patched
     to `bl _unresolved` and kept; REL14 (NgcAs emits one for every conditional branch, GAS does not)
     is resolved and kept.
-  - ADDR32/ADDR16 fields hold S+A for local symbols and only A for globals (ngcld -r writes them that
-    way), so symbol scopes matter: the generator derives them from the original fields; the few targets
-    referenced both ways get `field_overrides` in rel.json.
+  - ADDR32/ADDR16 fields hold S+A for local symbols and only A for globals, so symbol scopes matter:
+    the generator derives them from the original fields; the few targets referenced both ways get
+    `field_overrides` in rel.json. Our ngcld 3.9.3 -r also adds the displacement of the input section
+    defining a *global* to the field (visible only from the second object on: em10's `_prolog` ->
+    `Em10Init`), the original linker did not; make_rel writes A back into every global field.
   - module-0 relocations carry the *original main.elf's* section index in the section byte (.text 2,
     .rodata 5, .data 6, .bss 7, .sdata 8, .sbss 9, .sdata2 10); make_rel resolves DOL names through
     `config/G4BE08/symbols.txt` (not main.elf, whose names follow the compiled DOL units).
@@ -1439,9 +1476,11 @@ The game loads its rooms, enemies, weapons and debug tools as Nintendo REL overl
     so the split of the last unit skips that .data word.
   - g++ 2.95 emits uninitialised static data members as COMMON (template statics of cManager<T> etc.;
     the DOL's `IDSystem::m_scrn_mat` is one). `ngcld -r` leaves them unallocated and snmakerel appended
-    them to .bss after the tag: 0x34 bytes in every module with .bss. The skeleton carries them as one
-    `.comm common_<mod>` (a `common` split, in the unit that addresses the block or has templates);
-    make_rel allocates COMMON symbols after .bss in symbol-table order.
+    them to .bss after the tag: 0x34 bytes in most modules with .bss (0x30 in em21/pl0f, none in the
+    weapon/player modules). The skeleton carries them as one `.comm common_<mod>` (a `common` split,
+    in the unit that addresses the block or has templates); make_rel allocates COMMON symbols after
+    .bss in symbol-table order. Without a COMMON block the tag pointer targets the end of .bss, where
+    the generator puts a local `__sn__bss__tag__` label for dtk.
   - dtk needs REL14 relocations against the section symbol (it emits them against the containing
     function, and ngcld's A-P patching then overflows on big modules): link_rel.py rewrites the split
     objects' REL14 entries into `objfix/` copies before linking.
@@ -1458,19 +1497,31 @@ sed -n '/^\.fn NAME/,/^\.endfn/p' build/G4BE08/st2_4/asm/st2_4/r22c.s
 # write src/st2_4/r22c.cpp, then:
 ninja build/G4BE08/src/st2_4/r22c.o
 python3 tools/sync_rel_symbols.py build/G4BE08/src/st2_4/r22c.o   # module symbols.txt (+DOL/imported modules for references)
-python3 configure.py && ninja                          # must still print `23 files OK`
+python3 configure.py && ninja                          # must still print `111 files OK`
 python3 tools/fdiff.py st2_4/r22c <mangled_symbol>
 ```
 
 Then `MATCHING["st2_4/r22c.cpp"] = True` in `config/G4BE08/modules.py`, `python3 configure.py && ninja`.
-To add a module: copy its REL to `orig/G4BE08/files/...`, add it to `modules:` in config.yml (name,
-splits, symbols paths), append its SHA-1 line to `config/G4BE08/build.sha1`, re-run gen_rel_config.py;
-every module it imports must be configured too (the tool says which id is missing).
+
+### Adding a module (every REL of disc 1 is configured; this is for another disc/build)
+
+1. Append to `modules:` in `config/G4BE08/config.yml`: `object: files/<Rel|em>/<mod>.rel`, `name`,
+   `splits`/`symbols` paths under `config/G4BE08/modules/<mod>/`. The object path says where the REL
+   comes from: `files/Rel/` is a loose disc file, `files/em/<mod>.rel` is the REL inside
+   `files/em/<mod>.drs`. Name a REL after the first archive that carries it (`tools/drs.py list`).
+2. `python3 tools/extract_orig.py config/G4BE08/config.yml <image or extracted disc>` (also copies the
+   `Bio4.<mod>.sym`; `configure.py` does this itself when an image is in `orig/G4BE08/`).
+3. `python3 tools/gen_rel_config.py config/G4BE08/config.yml orig/G4BE08/files`; every module it
+   imports must be configured too (the tool says which id is missing).
+4. `sha1sum orig/G4BE08/files/<dir>/<mod>.rel` -> a `<hash>  build/G4BE08/<mod>/<mod>.rel` line in
+   `config/G4BE08/build.sha1`; `python3 configure.py && ninja` must report every file OK. A mismatch
+   is a new snmakerel/ngcld case for `tools/make_rel.py` (the `--verify` output names the region);
+   never patch bytes by hand.
 
 ### Open
 
-- 117 RELs inside `.drs` archives (em/pl/wep): extract with `tools/extract_drs_rel.py`, add as above;
-  the DRS container itself (rebuilding the archives) is not reversed.
+- The `.drs` archives are not rebuilt by `ninja` (`tools/drs.py rebuild` does one at a time); the
+  sound bank's record types 1/2 and the p0/p1 parameters are not interpreted.
 - Unit boundaries inside the big modules (Tools has ~39 source files) are not known; `fold_linkonce`/
   `strip_unused` for module units; the `.gnu.linkonce` layout in the tool modules (their original ELFs
   had 12 extra sections between .text and .ctors).

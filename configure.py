@@ -15,6 +15,7 @@
 import argparse
 import importlib.util
 import re
+import subprocess
 import sys
 from pathlib import Path
 from typing import Any, Dict, List
@@ -345,6 +346,83 @@ def DolphinLib(lib_name: str, objects: List[Object]) -> Dict[str, Any]:
         "objects": objects,
     }
 
+# CRI Middleware (ADX audio, Sofdec video, the GCCI/MFCI file interfaces and CRI's UTY_* helpers)
+# was prebuilt by CRI with CodeWarrior >= 1.3.2 (`stwu/mflr/stw` 16-byte-frame prologue, `__div2i`
+# runtime calls, `mr.` tests) at -O4,p with no small data at all (every 4-byte global is addressed
+# `lis/addi`, float constants sit in .rodata): -sdata 0 -sdata2 0; string literals are in .rodata
+# (-str readonly). Headers live in src/lib/cri/.
+MWCC_CRI_VERSION = "GC/2.0"
+cflags_mw_cri = [
+    "-nodefaults",
+    "-proc gekko",
+    "-fp hard",
+    "-Cpp_exceptions off",
+    "-enum int",
+    "-char signed",
+    "-warn pragmas",
+    "-pragma 'cats off'",
+    "-O4,p",
+    "-inline auto",
+    "-sdata 0",
+    "-sdata2 0",
+    "-str readonly",
+    "-I-",
+    f"-i {(project_root / 'include').as_posix()}",
+    f"-i {(project_root / 'include' / 'libc').as_posix()}",
+    f"-i {(project_root / 'src' / 'lib').as_posix()}",
+    f"-i {(project_root / 'src' / 'lib' / 'cri').as_posix()}",
+]
+CRI_LIBS: Dict[str, List[str]] = {
+    # libadxgc.a (ADX streaming/decoding, stream jobs, load scheduler, CVFS, AX renderer)
+    "adx": [
+        "adx_tlk", "adx_tsvr", "adx_rnaa", "lsc", "lsc_ini", "lsc_svr", "sj_rbf", "sj_utl", "sj_err",
+        "svm", "ax_rna", "rna_res", "adx_inis", "adx_sjd", "adx_bahx", "adx_bsc", "adx_bsps",
+        "adx_amp", "adx_crs", "adx_dcd", "adx_errs", "adx_fsvr", "adx_stmc", "adx_xpnd", "adx_mgc",
+        "adx_dcd5", "adx_fini", "adx_fs", "cri_cvfs", "lsc_err", "lsc_crs", "sj_crs", "sj_mem",
+        "sj_uni", "rna_err", "rna_crs", "adx_bwav", "adx_baif", "adx_bau", "adx_fcch", "adx_insh",
+        "adx_sfa", "adx_sje", "adx_sugc", "adx_gc", "adx_dcd3",
+    ],
+    # libsfdgc.a / libmwsfdgc.a (Sofdec MPEG video, MW player front end, UTY helpers)
+    "sfd": [
+        "mwsfdfrm", "mwsfdsvm", "mwsfdsfx", "mwsfdcre", "mwsfdlib", "mwsfdply", "mwsfdset",
+        "mwsfdsvr", "mwsfdsst", "mwsfx_ARGB8888PLN", "mwsfx_Y84C44", "sud_lib", "sfx_set", "sfx_cnv",
+        "sfx_lib", "sfx_alp", "sfx_zmv", "sfx_sud", "sfx_cnv_to_ARGB8888PLN", "sfx_cnv_to_Y84C44",
+        "sfx_YCC420PLN_to_ARGB8888PLN", "sfx_YCC420PLN_to_Y84C44", "sfd_adxt", "sfd_aoap", "sfd_buf",
+        "sfd_con", "sfd_cre", "sfd_hds", "sfd_lib", "sfd_mem", "sfd_mps", "sfd_mpv", "sfd_mpvf",
+        "sfd_pl2", "sfd_ply", "sfd_pts", "sfd_see", "sfd_set", "sfd_tim", "sfd_trn", "sfd_uo",
+        "sfd_vom", "sfd_tmr", "sfd_tst", "sfh_main", "cmptime", "memsetd", "muldiv", "muldivr",
+        "uty_tmr", "mwsfdrna", "mwsfdrsc", "mwsfdsl", "mwstm", "mwsfdsee", "cftyp422_ppc", "cftfx",
+        "cftcoladj", "sfx_inf", "mcp_not", "mps_dec", "mps_del", "mps_get", "mps_lib", "mpv_deli",
+        "mpv_emp", "mpv_err", "mpv_frm", "mpv_get", "mpv_hdec", "mpv_lib", "mpv_vlc", "mpv_umc",
+        "mpv_mcy", "mpv_m2v", "mpvabdec", "memcpyd", "uty_ppc", "dct_fsri", "mpv_bdec", "mpv_cdec",
+        "mpv_cmc", "mpv_dec", "mpv_mc", "dct_ac", "dct_ver", "pl2link", "pl2enc", "cft_common",
+    ],
+    # CRI's GameCube/MemoryFile CVFS interfaces
+    "gcci": ["mfci", "gcci", "gcci_sub"],
+}
+CRI_UNIT_LIB: Dict[str, str] = {
+    f"lib/{name}.c": lib for lib, names in CRI_LIBS.items() for name in names
+}
+CRI_CFLAG_OVERRIDES: Dict[str, Dict[str, str]] = {}
+
+
+def cri_cflags(unit: str) -> List[str]:
+    repl = CRI_CFLAG_OVERRIDES.get(unit)
+    if not repl:
+        return cflags_mw_cri
+    return [repl.get(flag, flag) for flag in cflags_mw_cri]
+
+
+def CriLib(lib_name: str, objects: List[Object]) -> Dict[str, Any]:
+    return {
+        "lib": lib_name,
+        "mw_version": MWCC_CRI_VERSION,
+        "cflags": cflags_mw_cri,
+        "mwcc_depflag": "-MD",
+        "progress_category": "sdk",
+        "objects": objects,
+    }
+
 # newlib 1.8.2 libm (fdlibm) as shipped in SN ProDG's libm.a. The fdlibm sources (src/lib/fdlibm/)
 # were compiled as C++ through an #include wrapper (src/lib/<unit>.cpp): g++ 2.95 drops folded
 # static consts defined in an included file and keeps []-declared tables in small data. Literal
@@ -411,6 +489,7 @@ with open(Path("config") / config.version / "splits.txt") as _f:
 game_objects: List[Object] = []
 lib_objects: List[Object] = []
 sdk_objects: Dict[str, List[Object]] = {lib: [] for lib in SDK_LIBS}
+cri_objects: Dict[str, List[Object]] = {lib: [] for lib in CRI_LIBS}
 for unit in UNITS:
     status = MATCHING.get(unit, NonMatching)
     name = unit
@@ -463,6 +542,18 @@ for unit in UNITS:
                 post_build_implicit=[Path("tools/strip_unused.py"), Path("config") / config.version / "sym_map.tsv"],
             )
         )
+    elif unit in CRI_UNIT_LIB:
+        # Same linker dead-strip as the SDK archives (CRI's libs are MWCC objects as well).
+        cri_objects[CRI_UNIT_LIB[unit]].append(
+            Object(
+                status,
+                name,
+                source=unit,
+                cflags=cri_cflags(unit),
+                post_build=[f"$python tools/strip_unused.py --unit {unit} {{out}}"],
+                post_build_implicit=[Path("tools/strip_unused.py"), Path("config") / config.version / "sym_map.tsv"],
+            )
+        )
     elif unit in LIBGCC_UNITS:
         lib_objects.append(
             Object(
@@ -498,11 +589,26 @@ REL_UNITS: Dict[str, List] = getattr(modules_mod, "UNITS", {})
 REL_MATCHING: Dict[str, bool] = getattr(modules_mod, "MATCHING", {})
 rel_objects: List[Object] = []
 with open(config.config_path) as _f:
-    _module_names = re.findall(r"^\s+name:\s*(\S+)\s*$", _f.read(), re.M)
+    _config_yml = _f.read()
+_module_names = re.findall(r"^\s+name:\s*(\S+)\s*$", _config_yml, re.M)
+# The original RELs (loose files/Rel/*.rel, or inside the files/em/*.drs archives) and the
+# Bio4.<mod>.sym files come from the disc; tools/extract_orig.py pulls the missing ones out of an
+# image placed in orig/<ver>/ (or run it by hand with an extracted disc directory).
+_orig_dir = Path("orig") / config.version
+_missing = [o for o in re.findall(r"^- object:\s*(\S+)\s*$", _config_yml, re.M) if not (_orig_dir / o).exists()]
+if _missing and args.mode == "configure":
+    _images = sorted(_orig_dir.glob("*.iso")) + sorted(_orig_dir.glob("*.gcm"))
+    if not _images:
+        sys.exit(
+            f"{len(_missing)} original REL(s) missing under {_orig_dir} ({_missing[0]}, ...): put the disc "
+            f"image in {_orig_dir}/ or run python3 tools/extract_orig.py {config.config_path} <image or extracted disc>"
+        )
+    subprocess.check_call([sys.executable, "tools/extract_orig.py", str(config.config_path), str(_images[0])])
 for _mod in _module_names:
     for unit, _first, *_src in REL_UNITS.get(_mod, [(f"{_mod}/{_mod}.cpp", None)]):
-        # a third element names a source shared by several modules (st2/st2.cpp ends every st2_* REL)
-        rel_objects.append(Object(REL_MATCHING.get(unit, NonMatching), unit, source=_src[0] if _src else unit, cflags=cflags_rel))
+        # a third element names a source shared by several modules (st2/st2.cpp ends every st2_* REL);
+        # a fourth (data section starts) is gen_rel_config.py's
+        rel_objects.append(Object(REL_MATCHING.get(unit, NonMatching), unit, source=_src[0] if _src and _src[0] else unit, cflags=cflags_rel))
 config.reconfig_deps.append(Path("config") / config.version / "modules.py")
 config.reconfig_deps.extend(config.rel_config_dir / _mod / "rel.json" for _mod in _module_names)
 
@@ -527,6 +633,7 @@ config.libs = [
         "objects": lib_objects,
     },
     *[DolphinLib(lib, objs) for lib, objs in sdk_objects.items() if objs],
+    *[CriLib(lib, objs) for lib, objs in cri_objects.items() if objs],
     {
         "lib": "Rel",
         "mw_version": PRODG_VERSION,

@@ -128,6 +128,7 @@ struct IntView {
 #define ISET0(x) (((IntView*) &(x))->v = 0)
 #define IV(x) (((IntView*) &(x))->v)
 static inline void U32Set(u32& d, u32 v) { d = v; }
+static inline void ISet(int& d, int v) { d = v; }
 
 u8 min_lod;
 u8 max_lod;
@@ -1370,7 +1371,7 @@ static inline void loadBlendTex(ModelPart* part, u8* tbl, int map)
 static void TextureBlend(ModelPart* part, cModelInfo* info, int colIn, int alphaIn)
 {
     int st;
-    ModelTexInfo* t = MODEL_TEX(info);
+    ModelTexInfo* t;
     int map;
     int coord;
     u32 mtx;
@@ -1379,6 +1380,7 @@ static void TextureBlend(ModelPart* part, cModelInfo* info, int colIn, int alpha
 
     st = TEV_STAGE_ID();
     map = getTexMap();
+    t = MODEL_TEX(info);
     coord = getTexCoord();
     mtx = getTexMtx();
     if (t->blendRatio == 0xFF) {
@@ -1643,7 +1645,7 @@ static void TextureBlend3(ModelPart* part, cModelInfo* info, int colIn, int alph
 static void materialSetup(ModelPart* part, cModelInfo* info, int colIn, int alphaIn)
 {
     int st;
-    ModelTexInfo* t = MODEL_TEX(info);
+    ModelTexInfo* t;
     int map;
     int coord;
     u8 texId;
@@ -1651,10 +1653,12 @@ static void materialSetup(ModelPart* part, cModelInfo* info, int colIn, int alph
     st = TEV_STAGE_ID();
     map = getTexMap();
     coord = getTexCoord();
-    g_material_tex_coord = coord;
+    ISet(g_material_tex_coord, coord);
+    t = MODEL_TEX(info);
     texId = part->texId;
     if ((t->flags & 2) && t->anim != 0) {
-        texId = t->anim[4 + t->frame];
+        u8* tbl = t->anim + 4;
+        texId = tbl[t->frame];
     }
     org_LoadTexObj(texId, map);
     if (t->flags & 1) {
@@ -1669,8 +1673,7 @@ static void materialSetup(ModelPart* part, cModelInfo* info, int colIn, int alph
         GXSetTexCoordGen2(coord, 1, 4, 0x3C, 0, 0x7D);
     }
     if (t->flags & 4) {
-        u8 type = t->blendType;
-        switch (type) {
+        switch (t->blendType) {
         case 0:
             TextureBlend(part, info, colIn, alphaIn);
             break;
@@ -1681,7 +1684,7 @@ static void materialSetup(ModelPart* part, cModelInfo* info, int colIn, int alph
             TextureBlend3(part, info, colIn, alphaIn);
             break;
         default:
-            pLog->err(0, 0, "Model BlendType invalid.[%x]", type);
+            pLog->err(0, 0, "Model BlendType invalid.[%x]", t->blendType);
             break;
         }
         return;
@@ -1890,9 +1893,6 @@ static void specularSetup2(ModelPart* part, int flag)
 static void GlobalIlluminationSetup(ModelPart* part, int nrm8)
 {
     Mtx tmp;
-    Mtx s;
-    Mtx t;
-    f32 scale;
     int st;
     int map;
     int coord;
@@ -1901,14 +1901,18 @@ static void GlobalIlluminationSetup(ModelPart* part, int nrm8)
     if (pG->flags_58 & 0x00080000) {
         return;
     }
-    scale = 0.5f;
-    if (nrm8 == 1) {
-        scale = 0.25f;
+    {
+        Mtx s;
+        Mtx t;
+        f32 scale = 0.5f;
+        if (nrm8 == 1) {
+            scale = 0.25f;
+        }
+        PSMTXScale(s, scale, -scale, 0.0f);
+        PSMTXTrans(t, 0.5f, 0.5f, 1.0f);
+        PSMTXConcat(s, specular_mat, tmp);
+        PSMTXConcat(t, tmp, tmp);
     }
-    PSMTXScale(s, scale, -scale, 0.0f);
-    PSMTXTrans(t, 0.5f, 0.5f, 1.0f);
-    PSMTXConcat(s, specular_mat, tmp);
-    PSMTXConcat(t, tmp, tmp);
     st = TEV_STAGE_ID();
     map = getTexMap();
     GXLoadTexObj(&GlobalIlmTex[0], map);

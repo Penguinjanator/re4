@@ -1,6 +1,5 @@
 section	offset	size	unit	scope	name	demangled
 .text	0x00000000	0xB0	t_sce/t_sce.cpp	local	SetToolLight	SetToolLight
-.text	0x00000000	0xB0	t_sce/t_sce.cpp	local	SetToolLight	SetToolLight
 .text	0x000000B0	0xC	t_sce/t_sce.cpp	local	cLightTool_dblCk	cLightTool::dblCk
 .text	0x000000BC	0x78	t_sce/t_sce.cpp	local	cLightTool_editEnable	cLightTool::editEnable
 .text	0x00000134	0x158	t_sce/t_sce.cpp	local	cLightTool_updateLit	cLightTool::updateLit
