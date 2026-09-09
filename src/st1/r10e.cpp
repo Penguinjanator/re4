@@ -1,5 +1,6 @@
 #include "types.h"
 #include "main_mem.h"
+#include "st_room.h"
 #include "global.h"
 #include "flag_rsf.h"
 #include "sce_sys.h"
@@ -15,7 +16,6 @@ struct R10eWork {
 
 static R10eWork* r10e_work;
 
-static inline void U16Set(u16& d, u16 v) { d = v; }
 
 static void R10e_door_set();
 

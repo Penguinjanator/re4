@@ -209,6 +209,10 @@ def main():
         nm = sym_name(s)
         ks = keep.get(elf.names[shndx], ())
         if args.module:
+            if elf.names[shndx].startswith(".gnu.linkonce"):
+                # ngcld -r kept every object's linkonce copies whether the module names them or not
+                # (the nameless cManager<cLight> blocks); fold_linkonce.py --module decides their fate
+                continue
             if not module_kept(nm, s[2], ks):
                 dead_funcs.setdefault(shndx, []).append((s[1], s[1] + s[2]))
             continue
@@ -283,6 +287,8 @@ def main():
         name = sym_name(s)
         if name in keep.get(secname, ()):
             continue
+        if args.module and secname.startswith(".gnu.linkonce"):
+            continue  # see above: linkonce copies are fold_linkonce's business
         if args.module and stype == STT_FUNC:
             if module_kept(name, s[2], keep.get(secname, ())) or (shndx, s[1]) in module_keep:
                 continue
@@ -296,6 +302,10 @@ def main():
             continue
         if stype == STT_FUNC:
             removed.setdefault(shndx, []).append((s[1], s[1] + s[2]))
+        elif args.module:
+            # --module (ngcld -r): only functions were stripped; every data object stays, referenced or
+            # not (t_camera's t_util.cpp has no function left but all of its .data/.bss)
+            continue
         elif bind != STB_LOCAL or (refcount[i] == 0 and shndx not in pooled_sections):
             # unreferenced data: the linker removed it in 8-byte units, leaving the last
             # size % 8 bytes (unnamed, relocations dropped). Exception: an unreferenced *global* in

@@ -332,15 +332,22 @@ def main():
                     # that are to global symbols of an earlier unit (the em10 tails use library data)
                     bounds = {}
                     prev_max = -1
-                    for u, _ in units:
+                    # a global of a *later* unit may be addressed too (Sscrn's ss_cap uses a table of
+                    # ss_file): a reference above some later unit's lowest local is not the unit's own data
+                    min_local = {u: min([a for a in refs.get(u, []) if sym_scope.get((sidx, a)) == 'local'], default=None)
+                                 for u, _ in units}
+                    for ui, (u, _) in enumerate(units):
                         forced = data_starts.get(u, {}).get(sname)  # modules.py knows better (unreferenced data)
                         if u not in refs and forced is None:
                             continue
+                        later_local = [min_local[v] for v, _ in units[ui + 1:] if min_local[v] is not None]
+                        first_later = min(later_local) if later_local else None
                         for a in refs.get(u, []):
                             if a <= prev_max:
                                 assert sym_scope.get((sidx, a)) == 'global' or (sidx, a) not in sym_scope, \
                                     f'{name}: {u} addresses {sname}+{a:#x}, a local of an earlier unit'
-                        own = [a for a in refs.get(u, []) if a > prev_max]
+                        own = [a for a in refs.get(u, []) if a > prev_max and (first_later is None or a < first_later
+                               or sym_scope.get((sidx, a)) != 'global')]
                         if not own and forced is None:
                             continue
                         if forced is not None:

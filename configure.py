@@ -357,6 +357,9 @@ cflags_mw_cri = [
     "-nodefaults",
     "-proc gekko",
     "-fp hard",
+    # fused multiply-add (dct_ac fmadd chains, adx_dcd's fnmsub Newton steps); `-fp fmadd` alone does
+    # not contract in 2.4.7
+    "-fp_contract on",
     "-Cpp_exceptions off",
     "-enum int",
     "-char signed",
@@ -636,12 +639,14 @@ for _mod in _module_names:
         if unit in REL_STRIP_UNUSED:
             _post.insert(0, f"$python tools/strip_unused.py --gcc --module {_mod} --unit {unit} {{out}}")
             _post_implicit.append(Path("tools/strip_unused.py"))
+        # REL_MODULE names the module a (possibly shared) source is compiled for: the stage rooms use it
+        # to define the module's COMMON block placeholder (include/st_room.h, `common_<mod>`).
         rel_objects.append(
             Object(
                 REL_MATCHING.get(unit, NonMatching),
                 unit,
                 source=_src[0] if _src and _src[0] else unit,
-                cflags=cflags_rel,
+                cflags=[*cflags_rel, f"-DREL_MODULE={_mod}"],
                 post_build=_post,
                 post_build_implicit=_post_implicit,
             )

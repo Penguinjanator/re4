@@ -56,6 +56,11 @@ public:
     int IsAliveEvt(u32* key, int a, int b);
     void GetEvt(u32* key, void** out);
     void DelEvt(void* evt, int a);
+    // Copies the event file name into the manager (Ashley costume 1 swaps the 'r' of the room
+    // name for 's'); returns the stored copy (the rooms hand it to DC.setData).
+    char* NameChange(char* name);
+    // Starts the loaded event data ("even" "t" header); `key` (optional) receives its key.
+    void SetEvt(void* data, u32* key);
 };
 
 extern EventMgr EvtMgr;

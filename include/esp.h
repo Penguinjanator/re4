@@ -401,7 +401,11 @@ u8 EffGetToolState();
 void EffClearToolState();
 void EffSetToolStateCallBack(int no, void (*on)(), void (*off)());
 void EffCallToolStateCallBack();
+// Loads the effect data at `addr` under `owner` (the rooms load their EFF sub-files)
+int EspDataLoad(u32 addr, u32 owner, int flag);
 }
+// game/eff_sys.cpp (C++ linkage): the TPL of effect model `id`; 0 when not registered
+int EspGetEfmTplAddr(int id, void** tpl);
 // game/eff_sys.cpp: quad display list shared by the sprite effects (esp_sub)
 extern u8 g_EspCommonDisplayList[0x60];
 // game/trans.cpp: fallback texture used when an effect texture id has no object

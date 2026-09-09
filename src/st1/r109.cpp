@@ -1,5 +1,6 @@
 #include "types.h"
 #include "main_mem.h"
+#include "st_room.h"
 #include "atari.h"
 #include "light.h"
 #include "event.h"

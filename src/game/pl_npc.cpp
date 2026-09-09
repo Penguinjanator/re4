@@ -165,9 +165,9 @@ void cSubChar::init()
         s->lockOfs.z = 0.0f;
     }
     subSelf->setStatus(1);
+    sub580 = 0;
     subAux0 = 0;
     subAux1 = 0;
-    sub580 = 0;
     subFlags |= 0x40;
     subFlags &= 0xFFF4;
     sub550 = 0;
@@ -3371,9 +3371,9 @@ void cSubChar::damageCheck()
     interrupt();
     switch (dmWep) {
     default: {
-        u8 one = 1;
-        dmType = one;
+        dmType = 1;
         LifeDownSet2(this, 9999, 0, 0);
+        int one = 1;
         if (pG->flags_5010 & 8) {
             SubRoutineSet(this, one, 0, 0, 0);
             subHideMode = 11;
@@ -3392,24 +3392,24 @@ void cSubChar::damageCheck()
         dmType = 1;
         if (dmRad > 9000000.0f) {
             xFD = 7;
-            xFF = 0;
             xFC = 0;
             xFE = 0;
+            xFF = 0;
         } else {
             LifeDownSet2(this, 9999, 0, 0);
             SubRoutineSet(this, 1, 0, 0, 0);
             if (Front_check(this, &x328, 1.5707964f)) {
                 subHideMode = 7;
+                rot.y += Muku(&pos, &x328, 3.1415927f, 3.1415927f);
             } else {
                 subHideMode = 9;
+                rot.y += Muku(&pos, &x328, 3.1415927f, 3.1415927f);
             }
-            rot.y += Muku(&pos, &x328, 3.1415927f, 3.1415927f);
         }
         break;
     case 0xE:
     case 0x17:
-        dmHit = 0;
-        return;
+        goto skip;
     case 0x18:
         dmType = 0x3C;
         LifeDownSet2(this, 300, 0, 0);
@@ -3423,6 +3423,7 @@ void cSubChar::damageCheck()
         break;
     }
     pG->flags_5010 &= ~8;
+skip:
     dmHit = 0;
 }
 
@@ -3711,41 +3712,59 @@ void cSubChar::dmgCheck()
     }
     switch (DmgMgr.hitCheck(&getPartsPtr(0)->worldPos, 0)) {
     case 2:
-    case 8:
+    case 8: {
         LifeDownSet2(this, (s16) pG->sub_life_max, 0, 0);
+        int one = 1;
         if (pG->flags_5010 & 8) {
-            SubRoutineSet(this, 1, 0, 0, 0);
+            SubRoutineSet(this, one, 0, 0, 0);
             subHideMode = 11;
         } else if ((s16) pG->sub_life > 0) {
             dmType = 0x5A;
-            SubRoutineSet(this, 1, 0, 0, 0);
+            SubRoutineSet(this, one, 0, 0, 0);
             subHideMode = 2;
         } else {
             dmType = 0x80;
             SubRoutineSet(this, 2, 0, 0, 0);
         }
-        pG->flags_5010 &= ~8;
-    case 1:
-    case 4:
+        BitOff(pG->flags_5010, 8);
+        int two = 1;
         LifeDownSet2(this, (s16) pG->sub_life_max, 0, 0);
         if (pG->flags_5010 & 8) {
+            SubRoutineSet(this, two, 0, 0, 0);
             subHideMode = 11;
-            SubRoutineSet(this, 1, 0, 0, 0);
         } else if ((s16) pG->sub_life > 0) {
-            subHideMode = 2;
             dmType = 0x5A;
-            SubRoutineSet(this, 1, 0, 0, 0);
+            SubRoutineSet(this, two, 0, 0, 0);
+            subHideMode = 2;
         } else {
             dmType = 0x80;
             SubRoutineSet(this, 2, 0, 0, 0);
         }
         break;
+    }
+    case 1:
+    case 4: {
+        LifeDownSet2(this, (s16) pG->sub_life_max, 0, 0);
+        int one = 1;
+        if (pG->flags_5010 & 8) {
+            SubRoutineSet(this, one, 0, 0, 0);
+            subHideMode = 11;
+        } else if ((s16) pG->sub_life > 0) {
+            dmType = 0x5A;
+            SubRoutineSet(this, one, 0, 0, 0);
+            subHideMode = 2;
+        } else {
+            dmType = 0x80;
+            SubRoutineSet(this, 2, 0, 0, 0);
+        }
+        break;
+    }
     case 5:
         LifeDownSet2(this, 300, 0, 0);
         if ((s16) pG->sub_life > 0) {
-            dmType = 0x5A;
             subHideMode = 2;
             SubRoutineSet(this, 1, 0, 0, 0);
+            dmType = 0x5A;
         } else {
             dmType = 0x80;
             SubRoutineSet(this, 2, 0, 0, 0);

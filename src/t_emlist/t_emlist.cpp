@@ -5,6 +5,10 @@
 // enemies with EmSetFromList. The per-enemy name tables come first: their strings open the object's
 // .rodata, before the strings of the game headers included below.
 
+// The original object's .data is 8-aligned (ours would be 4-aligned): the REL's .data starts 4 bytes
+// after .rodata's end because of it.
+asm(".section .data\n\t.balign 8\n\t.section .text");
+
 // Name lists for the editor's bit / type / set fields, "END"-terminated (one per enemy id, shared where
 // the enemies share an id family).
 static const char* em02_sub_leon_flag[] = {"END"};
@@ -1929,7 +1933,7 @@ void emlist_main_disp()
         info = EmListIdTbl[p->id];
         eprintf2(7, 0x10, 0x198, 0xFC, 4, 0, "%s", info.name);
     } else {
-        eprintf2(7, 0x10, 0x198, 0xEC, 0, 0, "");
+        eprintf2(7, 0x10, 0x198, 0xEC, 0, 0, "----");
         base = page * 40;
         eprintf2(7, 0x10, 0x198, 0xFC, 0, 0, "----------------");
     }
@@ -2316,7 +2320,7 @@ void emlist_set_be_flag_disp(int x, int y, int flag)
     int first;
 
     if (flag) {
-        eprintf(x, y, 0, 0, "------------");
+        eprintf(x, y, 0, 0, ">");
     }
     x += 8;
     bit = 0x80;
@@ -2408,7 +2412,7 @@ void emlist_set_em_flag_disp(int x, int y, int flag)
     int col;
 
     if (flag) {
-        eprintf(x, y, 0, 0, "------------");
+        eprintf(x, y, 0, 0, ">");
     }
     x += 8;
     bit = 0x80000000;

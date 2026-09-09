@@ -135,9 +135,11 @@ def main():
                     if len(cands) > 1:
                         print(f"  ambiguous {name} -> {dn} in {unit}: {cands} (rename by hand)")
                     continue
-                if any(n != name and sz == own.size.get(cands[0]) and demangle_v2(n) == dn for n, sz in KNOWN_SIZE.items()):
+                if any(n != name and n != own.name(cands[0]) and sz == own.size.get(cands[0]) and demangle_v2(n) == dn for n, sz in KNOWN_SIZE.items()):
                     # an overload the module does not have (cEmWrap::setReset(int, int) where only
-                    # setReset() survived): the single candidate has the other overload's known size
+                    # setReset() survived): the single candidate has the other overload's known size.
+                    # The candidate's own current name is not such an overload: a signature change of an
+                    # already synced symbol (a shared source re-synced) renames it.
                     continue
                 own.rename(cands[0], name, bind == 1)
                 continue

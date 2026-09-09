@@ -243,12 +243,14 @@ void EstSetEm(cModel* em, int b, Vec* pos, Vec* rot, int c, int d, int e, int f,
 // COMPILER-DIFF: narrow-argument truncation (AGENTS.md item 4). The original passes -1 to the u16
 // count of Ctrl12CntAdd as `li r5, -1`; an int-view declaration reproduces it.
 void Ctrl12CntAddI(cCtrl* c, int idx, int add) asm("Ctrl12CntAdd__FP5cCtrliUs");
+// COMPILER-DIFF: narrow-argument extension (AGENTS.md item 2): the s16 wait time is sign-extended.
+void Ctrl12SetS(cCtrl* c, int idx, s16 val) asm("Ctrl12Set__FP5cCtrliUs");
 // COMPILER-DIFF: narrow-argument truncation (AGENTS.md item 4): int-view of the u16 se number / block.
 u32 Ctrl11SetSe2I(cCtrl* c, cModel* m, s16 time, int no, int idx, int blk) asm("Ctrl11SetSe2__FP5cCtrlP6cModelsUsiUs");
 
 // Helpers of this unit used before their definition.
 int em10CrashCk(cEm10* em);
-void em10LostHead(cEm10* em, int a, int b);
+int em10LostHead(cEm10* em, int a, int b);
 void em10BloodSet(cEm10* em, int a);
 int em10SetDmVal(cEm10* em);
 void em10CoreBreak(cEm10* em, int a);
@@ -338,6 +340,12 @@ extern "C" void em10TorchFrameAtkCk(cEm10* em);
 extern "C" void em10TorchFrameAtkCkSub(cEm10* em);
 extern "C" void em10PlHeadLost();
 extern "C" f32 em10GetPower(cEm10* em);
+extern "C" void em10WepSeEffSet(cEm10* em, cEmWep* wep, u8 type);
+extern "C" int em10ThrowScaCk(cEm10* em);
+extern "C" int em10ThrowNearCk(cEm10* em);
+extern "C" int em10WindowCk2(cEm10* em);
+extern "C" int em10ClimbOverCk2(cEm10* em);
+extern "C" void cModel_swapModelInfo(cModel* m, ModelData* old, cModelInfo* info);
 extern "C" void plem10KickCamMove(cPlayer* pl, int a);
 int em10HideRtnCk2(cEm10* em);
 int em10HideToStepCk(cEm10* em, int a);
@@ -4600,6 +4608,395 @@ static void em10_R1_R212Drill(cEm10* em)
     em10HandSet(em, 0);
 }
 
+int cEm10::ckFindPL()
+{
+    return (hp > 0 && checkStatus(5) && type != 6 && (EM10_WK(this)->flags & 0x100)) ? 1 : 0;
+}
+
+void cEm10::setFindPL()
+{
+    Em10Work* w = EM10_WK(this);
+
+    if (hp > 0 && checkStatus(5) && type != 6) {
+        w->flags |= 0x100;
+        w->flags &= ~0x800000;
+        w->x638 = 0;
+        w->x6B8 = 1;
+    }
+}
+
+void cEm10::clearFindPL()
+{
+    Em10Work* w = EM10_WK(this);
+
+    if (hp > 0 && checkStatus(5) && type != 6) {
+        w->flags &= ~0x100;
+        w->flags &= ~0x800000;
+        w->x638 = 0;
+    }
+}
+
+void em10ChainSawMove(cEm10* em)
+{
+    Em10Work* w = EM10_WK(em);
+
+    if (w->wepType == 4 && w->pWep) {
+        cModel* p = w->pWep->getPartsPtr(1);
+        p->rot.z = (pG->flags_51E4 & 1) ? 0.0f : 1.0f;
+    }
+}
+
+extern "C" EmiEntry* em10GetWanderRouteEmi(cEm10* em);
+
+u32 em10GetWanderRoute(cEm10* em)
+{
+    int n = (int) em10GetWanderRouteEmi(em);
+    if (n < 0) {
+        return n;
+    }
+    n = RouteCkGetPointNumber();
+    if (n <= 0) {
+        return -1;
+    }
+    n = Rnd() % n;
+    if ((Rnd() & 3) == 0) {
+        n = RouteCkGetNearPoint(&pPL->pos);
+    }
+    return n;
+}
+
+int em10LostHeadCk(cEm10* em)
+{
+    if (pSys->region != 0) {
+        return 1;
+    }
+    switch (em->type) {
+    case 0:
+    case 1:
+    case 3:
+    case 4:
+    case 11:
+    case 12:
+        if (GetEm10EyeEffectEnable()) {
+            return 1;
+        }
+        return 0;
+    }
+    return 1;
+}
+
+extern "C" cModel* em10SearchTruck(cEm10* em)
+{
+    Em10Work* w = EM10_WK(em);
+    u32 i;
+
+    for (i = 0; i < EmMgr.nArray; i++) {
+        cEm* e = (cEm*) ((u8*) EmMgr.pArray + EmMgr.size * i);
+        if ((e->be_flag & 0x201) == 1 && e->id == 0x3B) {
+            *(cEm10**) ((u8*) e + 0x64C) = em;  // truck (em3b) work: driver
+            w->pTruck = e;
+            return (cModel*) 1;
+        }
+    }
+    return 0;
+}
+
+void cEm10::setGatling(cObjGatling* g, void* m0, void* m1, void* m2, void* m3)
+{
+    Em10Work* w = EM10_WK(this);
+
+    if (g) {
+        w->evtMot[0] = m0;
+        w->evtMot[1] = m1;
+        w->evtMot[2] = m2;
+        w->evtMot[3] = m3;
+        w->pGatling = g;
+        w->gatlingMode = 1;
+        EmRoutineSet(this, 1, 0x5F, 0, 0);
+        be_flag |= 0x10000;
+        g->setRide(this);
+    }
+}
+
+extern "C" void em10SetAtkWait(cEm10* em, int set)
+{
+    Em10Work* w = EM10_WK(em);
+    s16 t = 30;
+
+    if (pG->x4F88 <= 3) {
+        t = 45;
+    }
+    if (pG->x4F88 <= 1) {
+        t = 75;
+    }
+    w->x67C = t;
+    if (set) {
+        Ctrl12SetS(w->pCtrl12, 6, t);
+        Ctrl12SetS(w->pCtrl12, 8, t);
+    }
+}
+
+extern "C" void em10GetWanderRoutePos(cEm10* em, Vec* pos);
+
+extern "C" u32 em10WanderRouteUpdate(cEm10* em, int no)
+{
+    Em10Work* w = EM10_WK(em);
+    Vec pos;
+
+    if (no > 0) {
+        em10GetWanderRoutePos(em, &pos);
+        f32 d = (em->pos.x - pos.x) * (em->pos.x - pos.x) + (em->pos.z - pos.z) * (em->pos.z - pos.z);
+        if (!(d < 2250000.0f)) {
+            if (w->x634 <= 30) {
+                return no;
+            }
+        }
+    }
+    return em10GetWanderRoute(em);
+}
+
+extern "C" void em10GetWanderRoutePos(cEm10* em, Vec* pos)
+{
+    Em10Work* w = EM10_WK(em);
+    EmiData* emi = (EmiData*) pG->pRoomEmi;
+
+    if (emi && (int) w->x63C >= 0 && (int) w->x63C < emi->n) {
+        EmiEntry* e = &emi->entry[w->x63C];
+        if ((*(u32*) e & 0xFFFF0000) == 0x01030000) {
+            *pos = e->pos;
+            return;
+        }
+    }
+    RouteCkGetPoint(w->x63C, pos);
+}
+
+extern "C" void em10ParasiteGoOut(cEm10* em)
+{
+    Em10Work* w = EM10_WK(em);
+
+    if (w->x58C) {
+        w->x58C->hp = 1000;
+        if (w->flags & 0x20) {
+            w->x58C->v98(1);
+        } else {
+            w->x58C->v98(0);
+        }
+        w->x58C = 0;
+    }
+}
+
+extern "C" void em10ClothPartsSet(cEm10* em, int no)
+{
+    Em10Work* w = EM10_WK(em);
+    cModelInfo* info;
+    void* bin;
+
+    if (em->type != 6) {
+        return;
+    }
+    switch (no) {
+    case 0:
+    default:
+        bin = w->mot[19];
+        break;
+    case 1:
+        bin = w->mot[18];
+        break;
+    }
+    info = ModInfoMgr.create(bin, w->mot[17]);
+    if (info) {
+        if (w->x194) {
+            cModel_swapModelInfo(em, w->x194->pData, info);
+        } else {
+            em->addModel(info);
+        }
+        w->x194 = info;
+    }
+}
+
+extern "C" void em10GoodsPartsSet(cEm10* em, int on)
+{
+    Em10Work* w = EM10_WK(em);
+
+    if (em->type != 6) {
+        return;
+    }
+    if (!w->x198) {
+        cModelInfo* info = ModInfoMgr.create(w->mot[20], w->mot[0]);
+        if (info) {
+            em->addModel(info);
+        }
+        w->x198 = info;
+    }
+    if (!on) {
+        w->x198->be_flag &= ~8;
+    } else {
+        w->x198->be_flag |= 8;
+    }
+}
+
+void cEm10::setWeapon(void* bin, void* tpl, int type)
+{
+    Em10Work* w = EM10_WK(this);
+    Vec pos;
+    Vec rot;
+
+    if (!w->pWep) {
+        pos.x = 0.0f;
+        pos.y = 0.0f;
+        pos.z = 0.0f;
+        rot.x = 0.0f;
+        rot.y = 0.0f;
+        rot.z = 0.0f;
+        w->pWep = SetWeapon(bin, tpl, &pos, &rot, 0);
+        if (w->pWep) {
+            w->wepType = type;
+            em10WepSeEffSet(this, w->pWep, w->wepType);
+            em10WeaponSet(this);
+        }
+    }
+}
+
+int em10FindLostCk(cEm10* em)
+{
+    Em10Work* w = EM10_WK(em);
+
+    if (em->type != 10 && em->type != 13) {
+        return 0;
+    }
+    if (em10FindCk2(em)) {
+        w->x654 = 150;
+    }
+    if (w->x654 != 0) {
+        w->x654--;
+        if ((s16) w->x654 == 0) {
+            EmRoutineSet(em, 1, 0x5D, 0, 0);
+            return 1;
+        }
+    }
+    return 0;
+}
+
+void em10ScaleCompress(cEm10* em)
+{
+    Em10Work* w = EM10_WK(em);
+    Mtx m;
+    Vec s;
+    cModel* p;
+
+    if (em->xFC == 3 && em->xFD == 3) {
+        PSMTXIdentity(m);
+        s.x = 1.0f;
+        s.y = w->x5D8;
+        s.z = 1.0f;
+        ScaleMatrix(m, &s);
+        for (p = em->pParts; p; p = p->pParts) {
+            PSMTXConcat(m, p->worldMat, p->worldMat);
+            p->worldMat[0][3] = p->mat[0][3];
+            p->worldMat[1][3] = p->mat[1][3];
+            p->worldMat[2][3] = p->mat[2][3];
+        }
+    }
+}
+
+int em10ClimbOverCk(cEm10* em)
+{
+    Em10Work* w = EM10_WK(em);
+
+    switch (em10ClimbOverCk2(em)) {
+    case 1:
+        EmRoutineSet(em, 1, 0x3C, 0, 0);
+        return 1;
+    case 2:
+        if ((em->flags_3C8 & 0x400) && w->x5EC == 0) {
+            return 0;
+        }
+        EmRoutineSet(em, 1, 0x43, 0, 1);
+        return 1;
+    }
+    return 0;
+}
+
+extern "C" int em10GetGoSub(cEm10* em)
+{
+    int n = 0;
+    u32 i;
+
+    for (i = 0; i < EmMgr.nArray; i++) {
+        cEm* e = (cEm*) ((u8*) EmMgr.pArray + EmMgr.size * i);
+        if ((e->be_flag & 0x201) != 1) {
+            continue;
+        }
+        if (e->id <= 0xF) {
+            continue;
+        }
+        if (e->id > 0x20) {
+            continue;
+        }
+        if (e->hp <= 0) {
+            continue;
+        }
+        if (e == em) {
+            continue;
+        }
+        if (!e->checkStatus(5)) {
+            continue;
+        }
+        if (!(EM10_WK(e)->flags & 0x08000000)) {
+            continue;
+        }
+        n++;
+    }
+    return n;
+}
+
+int em10ChgParasiteCk(cEm10* em)
+{
+    Em10Work* w = EM10_WK(em);
+
+    if (!(em->flags_3C8 & 0x100000) || em->hp > 0) {
+        return 0;
+    }
+    if (w->flags & 0x80) {
+        return 0;
+    }
+    if (Ctrl12CntCk(w->pCtrl12, 4, 2)) {
+        return 0;
+    }
+    if (em->type != 8) {
+        u8 r = Rnd() % 10;
+        if (r > 4) {
+            return 0;
+        }
+    }
+    if (em10LostHead(em, 2, 0)) {
+        return 1;
+    }
+    return 0;
+}
+
+void em10GatlingRollMove(cEm10* em)
+{
+    Em10Work* w = EM10_WK(em);
+    u8 on;
+
+    if (em->type != 2) {
+        return;
+    }
+    on = w->x6A6;
+    if (on) {
+        if (w->x6A8 == 0) {
+            w->x6A8 = SndCall(6, 0x24, &em->pos, 0, 0, em);
+        }
+        em->getPartsPtr(0x22)->rot.x += 0.34906584f;
+    } else if (w->x6A8) {
+        SndStop(w->x6A8, 0);
+        SndCall(6, 0x25, &em->pos, 0, 0, em);
+        w->x6A8 = on;
+    }
+    w->x6A6 = 0;
+}
+
 // ===== STUBS (development only, removed as functions are written) =====
 static void em10_R1_br_Dummy(cEm10* em)
 {
@@ -8115,9 +8512,6 @@ static void plemDmFrame(cPlayer* pl)
     pl->subArc = pl->subArc2;
 }
 
-static void plem10DmGondolaShake(cPlayer* pl)
-{
-}
 
 static void subem10DmGondolaShake(cSubChar* sub)
 {
@@ -8441,7 +8835,7 @@ void cEm10::setR11DMotion(void* m0)
     EM10_WK(this)->evtMot[0] = m0;
 }
 
-void cEm10::setSwitch(void* sw)
+void cEm10::setSwitch(cModel* sw)
 {
     EM10_WK(this)->pSwitch = sw;
 }
@@ -8568,10 +8962,9 @@ int cEm10::ckR305BomberEnable()
 {
     if (xFC != 1) {
         return 0;
-    } else {
-        if (xFD == 0x6A) {
-            return xFE == 1;
-        }
+    }
+    if (xFD == 0x6A) {
+        return xFE == 1;
     }
     return 0;
 }
@@ -8580,10 +8973,9 @@ int em10GotoCk(cEm10* em)
 {
     if (EM10_WK(em)->x5EC == 0) {
         return 0;
-    } else {
-        EmRoutineSet(em, 1, 0x13, 0, 0);
-        return 1;
     }
+    EmRoutineSet(em, 1, 0x13, 0, 0);
+    return 1;
 }
 
 void em10SetCrash(cEm10* em, f32 r)
@@ -8751,4 +9143,693 @@ void em10BreathSe(cEm10* em)
             w->x5BC = Ctrl11SetSe(w->pCtrl11, em, Rnd() % 20 + 20, w->se6CD, 6);
         }
     }
+}
+
+extern "C" int em10SomebodyFindNowCk(cEm10* em)
+{
+    u32 i;
+
+    for (i = 0; i < EmMgr.nArray; i++) {
+        cEm* e = (cEm*) ((u8*) EmMgr.pArray + EmMgr.size * i);
+        if ((e->be_flag & 0x201) != 1) {
+            continue;
+        }
+        if (e->id <= 0xF) {
+            continue;
+        }
+        if (e->id > 0x20) {
+            continue;
+        }
+        if (e->hp <= 0) {
+            continue;
+        }
+        if (e == em) {
+            continue;
+        }
+        if (!e->checkStatus(5)) {
+            continue;
+        }
+        if (EM_RTN(e, 1, 0xD)) {
+            return 0;
+        }
+    }
+    return 1;
+}
+
+extern "C" int em10PlRunCk(cEm10* em)
+{
+    Mtx m;
+    Vec v;
+
+    if (pPL->xFC != 0) {
+        return 0;
+    }
+    if (pPL->xFD != 3) {
+        return 0;
+    }
+    if (pG->x4F88 > 3) {
+        if (fabsf(Muku(&em->pos, &pPL->pos, em->rot.y, 3.1415927f)) > 0.7853982f) {
+            return 0;
+        }
+        PSMTXInverse(pPL->mat, m);
+        PSMTXMultVec(m, &em->pos, &v);
+        if (v.x > 1500.0f) {
+            return 0;
+        }
+        if (v.x < -1500.0f) {
+            return 0;
+        }
+        return 1;
+    }
+    return 0;
+}
+
+extern "C" int em10SearchParasite(cEm10* em)
+{
+    Em10Work* w = EM10_WK(em);
+    u32 i;
+
+    w->x58C = 0;
+    for (i = 0; i < EmMgr.nArray; i++) {
+        cEmPartner* e = (cEmPartner*) ((u8*) EmMgr.pArray + EmMgr.size * i);
+        if ((e->be_flag & 0x201) != 1) {
+            continue;
+        }
+        if (e->id != 0x25) {
+            continue;
+        }
+        if (!e->v50()) {
+            continue;
+        }
+        e->v58(em, 3, 0, 0);
+        w->x58C = e;
+        return 1;
+    }
+    return 0;
+}
+
+extern "C" void em10SackSet(cEm10* em)
+{
+    Em10Work* w = EM10_WK(em);
+    cModelInfo* info;
+
+    if (w->wepType != 4) {
+        return;
+    }
+    if (!w->mot[21] || !w->mot[22]) {
+        return;
+    }
+    info = ModInfoMgr.create(w->mot[21], w->mot[22]);
+    if (info) {
+        if (w->x19C) {
+            cModel_swapModelInfo(em, w->x19C->pData, info);
+        } else {
+            em->addModel(info);
+        }
+        w->x19C = info;
+    }
+    if ((u8) (em->type - 11) <= 1) {
+        if (w->x18C) {
+            w->x18C->be_flag &= ~8;
+        }
+        EstSetEm(em, -1, 0, 0, 0x10, 0x55, 0, 0, em, 0);
+    }
+}
+
+void cEm10::setGoto(Vec* pos, int range)
+{
+    Em10Work* w = EM10_WK(this);
+    f32 y;
+
+    if (w->flags & 0x4000) {
+        return;
+    }
+    w->x5EC = range;
+    w->x5F0 = *pos;
+    y = SatMgr.getFloor(&w->x5F0, 600.0f, 100000.0f, 0, 0);
+    if (y != -100000.0f) {
+        w->x5F0.y = y + 50.0f;
+    }
+    w->x4EC = *pos;
+    w->flags |= 0x04000004;
+    if (!(flags_3C8 & 0x40)) {
+        w->flags &= ~0x100;
+    }
+    w->flags &= ~0x800000;
+}
+
+void cEm10::setLost()
+{
+    Em10Work* w = EM10_WK(this);
+
+    atari.throughOn();
+    EmSetDie(this);
+    EmReserveDropItem(this);
+    clearStatus(5);
+    em10CoreBreak(this, 1);
+    if (w->x58C) {
+        w->x58C->setReset();
+        w->x58C = 0;
+    }
+    w->x5D8 = 1.0f;
+    if (w->pWep) {
+        w->pWep->setLost();
+        w->pWep = 0;
+        w->wepType = 0;
+    }
+    if (w->pWep2) {
+        w->pWep2->setLost();
+        w->pWep2 = 0;
+        w->wep2Type = 0;
+    }
+    be_flag &= ~2;
+    w->flags |= 0x400000;
+    w->x6B7 = 1;
+}
+
+static u8 em1f_cloth_parts[6] = { 0x22, 0x23, 0x24, 0x25, 0x26, 0x27 };
+static u8 em1f_cloth_up[6] = { 0xFF, 0x22, 0x23, 0x24, 0x25, 0x26 };
+static u8 em1f_cloth_down[6] = { 0x23, 0x24, 0x25, 0x26, 0x27, 0xFF };
+static f32 em1f_cloth_max[6] = { 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f };
+PlClothAt em1f_cloth_at[1] = {
+    { 0, 1, 1, 1.0f, 250.0f, { 0.0f, 0.0f, 100.0f }, { 0.0f, 0.0f, 0.0f } },
+};
+
+void Em1fClothSet(cModel* m, PlCloth* c)
+{
+    c->num = 6;
+    c->pParts = em1f_cloth_parts;
+    c->pLeft = 0;
+    c->pRight = 0;
+    c->pUpLeft = 0;
+    c->x14 = 0;
+    c->pUp = em1f_cloth_up;
+    c->pDown = em1f_cloth_down;
+    c->x20 = 0;
+    c->pRate = 0;
+    c->pMax = em1f_cloth_max;
+    c->pWindS = 0;
+    c->pWindR = 0;
+    c->pAt = em1f_cloth_at;
+    c->nAt = 1;
+    c->x3C = 20.0f;
+    c->x40 = 0.1f;
+    c->x44 = 4;
+    c->x48 = 0.0f;
+    c->x4C = 0.05f;
+    c->x50 = 0.0f;
+    c->x54 = 0;
+    c->pModel = m;
+    c->flags = 0x100;
+    PenClothSet(m, (PenCloth*) c, 100.0f);
+}
+
+extern "C" f32 em10GetPower(cEm10* em)
+{
+    f32 p = 1.0f;
+
+    switch (em->type) {
+    default:
+        p = 1.0f;
+        break;
+    case 2:
+        p = 1.0f;
+        break;
+    case 7:
+        p = 1.1f;
+        break;
+    case 8:
+        p = 1.5f;
+        break;
+    case 9:
+        p = 1.3f;
+        break;
+    case 10:
+        p = 1.0f;
+        break;
+    case 13:
+        p = 1.0f;
+        break;
+    case 14:
+        p = 1.6f;
+        break;
+    case 15:
+        p = 1.6f;
+        break;
+    case 16:
+        p = 1.6f;
+        break;
+    case 17:
+        p = 1.6f;
+        break;
+    case 18:
+        p = 1.6f;
+        break;
+    case 19:
+        p = 1.6f;
+        break;
+    case 20:
+        p = 1.6f;
+        break;
+    case 21:
+        p = 1.6f;
+        break;
+    case 23:
+        p = 1.6f;
+        break;
+    case 24:
+        p = 1.6f;
+        break;
+    case 25:
+        p = 1.6f;
+        break;
+    }
+    return p;
+}
+
+extern "C" int em10BackCk(cEm10* em)
+{
+    Em10Work* w = EM10_WK(em);
+    int back = 0;
+
+    if ((s16) w->x67C != 0) {
+        back = 1;
+    }
+    if (Ctrl12Ck(w->pCtrl12, 9)) {
+        back = 1;
+    }
+    if (!back) {
+        return 0;
+    }
+    if (em->x3D0 == 3) {
+        if (EM_RTN(em, 1, 0x1B)) {
+            return 1;
+        }
+    } else if (em->plDist2 > 4000000.0f) {
+        if (em->x3D0 == 2) {
+            return 0;
+        }
+        if (EM_RTN(em, 1, 0x1B)) {
+            return 0;
+        }
+    } else if (w->wepType != 4) {
+        EmRoutineSet(em, 1, 0x12, 0, 0);
+        return 1;
+    }
+    EmRoutineSet(em, 1, 0x1B, 0, 0);
+    return 1;
+}
+
+static void plem10DmGondolaShake(cPlayer* pl)
+{
+    Em10Work* w = EM10_WK((cEm10*) pPL->dmgType);
+    cEm* em = (cEm*) pl->dmgType;
+
+    pl->subArc = em->subArc;
+    pl->dmg.set(0, 5);
+    switch (pl->xFE) {
+    case 0:
+        if (pl->xFF) {
+            MotionSetCore(pl, MOTION(pl), w->evtMot[3], 0, 3, 5, 0);
+        } else {
+            MotionSetCore(pl, MOTION(pl), w->evtMot[3], 0, 3, 1, 0);
+        }
+        PlSetDamageSe(0);
+        pl->xFE++;
+    case 1:
+        if (MotionMoveF(pl, 0) && !pl->xFF) {
+            EndPlDamage();
+        }
+        break;
+    }
+    pl->subArc = pl->subArc2;
+}
+
+void cEm10::setGotoSwitch(cModel* sw, int near, Vec* pos)
+{
+    Em10Work* w = EM10_WK(this);
+    Vec* dst;
+    f32 y;
+
+    if (w->flags & 0x4000) {
+        return;
+    }
+    w->x5EC = near ? 3 : 4;
+    if (pos) {
+        dst = &w->x5F0;
+        *dst = *pos;
+    } else {
+        dst = &w->x5F0;
+        *dst = sw->pos;
+    }
+    y = SatMgr.getFloor(dst, 600.0f, 100000.0f, 0, 0);
+    if (y != -100000.0f) {
+        w->x5F0.y = y + 50.0f;
+    }
+    w->pSwitch = sw;
+    w->x4EC = *dst;
+    w->flags |= 0x04000004;
+    if (!(flags_3C8 & 0x40)) {
+        w->flags &= ~0x100;
+    }
+    w->flags &= ~0x800000;
+}
+
+extern "C" void em10BlendMotSet(cEm10* em, void* m0, void* m1, void* m2, int a, int b, int c, u16 d)
+{
+    Em10Work* w = EM10_WK(em);
+    MotionWorkSub* bm;
+    f32 rate = fabsf(w->blendRate);
+
+    MotionSetCore(em, MOTION(em), m0, a, (u8) w->x740, d, (u16) w->x744);
+    bm = &w->blendMot;
+    if (w->blendRate < 0.0f) {
+        MotionSetCore(em, bm, m1, b, (u8) w->x740, d, (u16) w->x744);
+    } else {
+        MotionSetCore(em, bm, m2, c, (u8) w->x740, d, (u16) w->x744);
+    }
+    em->blendMot = bm;
+    bm->blendRate = rate * 0.00390625f;
+    if (w->x740) {
+        w->x740--;
+    }
+    w->x744++;
+    if (w->x744 >= em->frameMax) {
+        w->x744 = 0;
+    }
+}
+
+extern "C" void em10FallWaterCk(cEm10* em)
+{
+    Vec hit;
+    u32 attr;
+    AtEffInfo* info;
+
+    attr = EatMgr.hitCheck(&em->oldPos, &em->pos, &hit, 0, 0, 0);
+    if (!attr) {
+        return;
+    }
+    info = EatMgr.getEffInfo(EatGetEffectType(attr));
+    if (!info) {
+        return;
+    }
+    if (info->flags & 1) {
+        if (pG->room_id == 0x311) {
+            EstSet(0, -1, &em->pos, 0, 1, 3, 0, 0, 0, 0);
+            SndCall(6, 0xA, &em->pos, 0, 0, em);
+        } else {
+            EstSetEm10WaterFall((Vec*) em);
+            SndCall(6, 0x16, &em->pos, 0, 0, em);
+        }
+    }
+}
+
+int em10SomebodyNearCk(cEm10* em)
+{
+    u32 i;
+
+    for (i = 0; i < EmMgr.nArray; i++) {
+        cEm* e = (cEm*) ((u8*) EmMgr.pArray + EmMgr.size * i);
+        if ((e->be_flag & 0x201) != 1) {
+            continue;
+        }
+        if (e->id <= 0xF) {
+            continue;
+        }
+        if (e->id > 0x20) {
+            continue;
+        }
+        if (e->hp <= 0) {
+            continue;
+        }
+        if (e == em) {
+            continue;
+        }
+        if (!e->checkStatus(5)) {
+            continue;
+        }
+        {
+            f32 dx = em->pos.x - e->pos.x;
+            f32 dy = em->pos.y - e->pos.y;
+            f32 dz = em->pos.z - e->pos.z;
+            if (dx * dx + dy * dy + dz * dz < 9000000.0f) {
+                return 1;
+            }
+        }
+    }
+    return 0;
+}
+
+extern "C" void em10BehindSeCk(cEm10* em)
+{
+    Em10Work* w = EM10_WK(em);
+
+    if (Ctrl12Ck(w->pCtrl12, 0xC)) {
+        return;
+    }
+    if ((s16) w->x67C != 0) {
+        return;
+    }
+    if (em->plDist2 > 9000000.0f) {
+        return;
+    }
+    if (w->x508 > 1.5707964f) {
+        return;
+    }
+    if (w->wepType == 4) {
+        return;
+    }
+    if (fabsf(Muku(&pPL->pos, &em->pos, pPL->rot.y, 3.1415927f)) < 1.5707964f) {
+        return;
+    }
+    if (!(w->flags & 1)) {
+        return;
+    }
+    em10CallVoiceSe2(em, w->se6D6, 8);
+    Ctrl12Set(w->pCtrl12, 0xC, 300);
+    w->x67E = (u8) (Rnd() % 120) + 120;
+}
+
+int em10WindowCk(cEm10* em)
+{
+    Em10Work* w = EM10_WK(em);
+
+    if ((G_ROOM_ID32 & 0xFFFF0000) == 0x01010000 && (w->flags & 0x00800000)) {
+        return 0;
+    }
+    switch (em10WindowCk2(em)) {
+    case 0:
+    default:
+        return 0;
+    case 1:
+        EmRoutineSet(em, 1, 0x3C, 0, 0);
+        return 1;
+    case 2:
+        EmRoutineSet(em, 1, 0x43, 0, 1);
+        return 1;
+    case 3:
+        EmRoutineSet(em, 1, 0x3F, 0, 0);
+        return 1;
+    case 4:
+        EmRoutineSet(em, 1, 0x3D, 0, 0);
+        return 1;
+    }
+}
+
+int em10ArmorCk(cEm10* em, int parts)
+{
+    Em10Work* w = EM10_WK(em);
+    u8 armor = w->x6C5;
+
+    if ((em->flags_3C8 & 0x200) && armor == 1 && parts == 5 && w->pParasite) {
+        return 1;
+    }
+    if ((em->flags_3C8 & 0x200) && armor == 2 && parts == 5 && w->pParasite) {
+        return 1;
+    }
+    switch (em->type) {
+    case 10:
+        switch (parts) {
+        case 3:
+        case 9:
+        case 15:
+        case 20:
+        case 24:
+            return 1;
+        }
+        return 0;
+    case 13:
+        if (parts == 0x25) {
+            return 0;
+        }
+        return 1;
+    case 24:
+        switch (parts) {
+        case 2:
+        case 8:
+        case 14:
+        case 20:
+        case 24:
+            return 1;
+        }
+        return 0;
+    }
+    return 0;
+}
+
+void em10BowgunMove(cEm10* em)
+{
+    Em10Work* w = EM10_WK(em);
+    cModel* p;
+
+    if (w->pWep && w->wepType == 8) {
+        p = w->pWep->getPartsPtr(4);
+        p->scale.x = 1.0f;
+        p->scale.y = 1.0f;
+        p->scale.z = 1.0f;
+        p = w->pWep->getPartsPtr(1);
+        if (w->x6B5 <= 2) {
+            p->scale.x = 0.0f;
+            p->scale.y = 0.0f;
+            p->scale.z = 0.0f;
+        } else {
+            p->scale.x = 1.0f;
+            p->scale.y = 1.0f;
+            p->scale.z = 1.0f;
+        }
+        p = w->pWep->getPartsPtr(2);
+        if (w->x6B5 <= 1) {
+            p->scale.x = 0.0f;
+            p->scale.y = 0.0f;
+            p->scale.z = 0.0f;
+        } else {
+            p->scale.x = 1.0f;
+            p->scale.y = 1.0f;
+            p->scale.z = 1.0f;
+        }
+        p = w->pWep->getPartsPtr(3);
+        if (w->x6B5 == 0) {
+            p->scale.x = 0.0f;
+            p->scale.y = 0.0f;
+            p->scale.z = 0.0f;
+        } else {
+            p->scale.x = 1.0f;
+            p->scale.y = 1.0f;
+            p->scale.z = 1.0f;
+        }
+    }
+}
+
+int em10IgnitionCk(cEm10* em)
+{
+    Em10Work* w = EM10_WK(em);
+    cEmWep* wep;
+    u8 type;
+
+    if (!(w->flags & 0x100)) {
+        return 0;
+    }
+    wep = w->pWep;
+    if (!wep) {
+        return 0;
+    }
+    type = w->wepType;
+    if (type == 4 && !(w->flags & 0x80000000)) {
+        EmRoutineSet(em, 1, 0xE, 0, 0);
+        return 1;
+    }
+    if (wep && type == 9 && w->x640 == 0) {
+        if (w->x524 < 15000.0f || em->x3D0 == 2) {
+            if (w->flags & 1) {
+                if (em->flags_3C8 & 0x10000) {
+                    EmRoutineSet(em, 1, 0xF, 0, 0);
+                    return 1;
+                }
+                if (em->pos.y > pPL->pos.y - 500.0f) {
+                    EmRoutineSet(em, 1, 0xF, 0, 0);
+                    return 1;
+                }
+            }
+        }
+    }
+    return 0;
+}
+
+void em10HeadSet(cEm10* em, int no)
+{
+    cModelInfo* info;
+    void* bin;
+
+    if (em->type == 10 || em->type == 13 || em->type == 2 || em->type == 22) {
+        return;
+    }
+    Em10Work* w = EM10_WK(em);
+    switch (no) {
+    case 0:
+    default:
+        bin = w->mot[2];
+        break;
+    case 1:
+        if (w->x6C5 == 1 && em->hp > 0 && (Rnd() & 3) && !(em->flags_3C8 & 0x204000)) {
+            em->getPartsPtr(0x24)->rot.x = -0.6981317f;
+            bin = w->mot[4];
+        } else {
+            bin = w->mot[3];
+        }
+        break;
+    }
+    info = ModInfoMgr.create(bin, w->mot[5]);
+    if (info) {
+        if (w->x18C) {
+            cModel_swapModelInfo(em, w->x18C->pData, info);
+        } else {
+            em->addModel(info);
+        }
+        w->x18C = info;
+        w->x18C->be_flag |= 8;
+    }
+}
+
+extern "C" int em10ShotRocketCk(cEm10* em)
+{
+    Em10Work* w = EM10_WK(em);
+    int near;
+
+    if (w->wepType != 0xC) {
+        return 0;
+    }
+    if (!w->pWep) {
+        return 0;
+    }
+    if ((G_ROOM_ID32 & 0xFFFF0000) == 0x01000000) {
+        return 0;
+    }
+    if (w->x58C) {
+        return 0;
+    }
+    if (w->pParasite) {
+        return 0;
+    }
+    if (w->flags & 0x80) {
+        return 0;
+    }
+    if (!em10ThrowScaCk(em)) {
+        return 0;
+    }
+    if (w->x696 == 0 && !(w->flags & 0x100)) {
+        return 0;
+    }
+    near = em10ThrowNearCk(em);
+    if (near) {
+        em->xFE = 0;
+        em->xFC = 1;
+        em->xFD = 0x17;
+        em->xFF = Rnd() & 1;
+        return 1;
+    }
+    if (em->plDist2 > 900000000.0f) {
+        return 0;
+    }
+    EmRoutineSet(em, 1, 0x22, 0, 0);
+    return 1;
 }

@@ -37,11 +37,11 @@ struct Em10Work {
     cEm* pHead;           // 0x180 (0x560)  lost head enemy
     cModel* x184;         // 0x184 (0x564)
     cModel* x188;         // 0x188 (0x568)
-    cModel* x18C;         // 0x18C (0x56C)
+    cModelInfo* x18C;     // 0x18C (0x56C)  head parts info (em10HeadSet)
     cModel* x190;         // 0x190 (0x570)
-    cModel* x194;         // 0x194 (0x574)
-    cModel* x198;         // 0x198 (0x578)
-    cModel* x19C;         // 0x19C (0x57C)
+    cModelInfo* x194;     // 0x194 (0x574)  type 6: cloth parts info (em10ClothPartsSet)
+    cModelInfo* x198;     // 0x198 (0x578)  type 6: goods parts info (em10GoodsPartsSet)
+    cModelInfo* x19C;     // 0x19C (0x57C)  chainsaw Ganado: sack parts info (em10SackSet)
     cModel* x1A0;         // 0x1A0 (0x580)
     cModel* x1A4;         // 0x1A4 (0x584)
     cModel* x1A8;         // 0x1A8 (0x588)
@@ -66,7 +66,7 @@ struct Em10Work {
     f32 startRotY;        // 0x4D4 (0x8B4)  rot.y at init
     Vec x4D8;             // 0x4D8 (0x8B8)
     class cObjLadder* pLadder;  // 0x4E4 (0x8C4)  ladder being climbed / reset
-    void* pSwitch;        // 0x4E8 (0x8C8)  setSwitch
+    cModel* pSwitch;      // 0x4E8 (0x8C8)  setGotoSwitch: the switch object walked to
     Vec x4EC;             // 0x4EC (0x8CC)
     Vec x4F8;             // 0x4F8 (0x8D8)
     f32 x504;             // 0x504 (0x8E4)
@@ -222,12 +222,8 @@ struct Em10Work {
     u8 pad_6D9[3];
     PenCloth cloth;       // 0x6DC (0xABC)  Em18ClothSet / Em1fClothSet / em10ChainSet / em10BeltSet
     f32 blendRate;        // 0x73C (0xB1C)  em10BlendMotSet
-    u8 x740;              // 0x740 (0xB20)
-    u8 x741;              // 0x741
-    u8 x742;              // 0x742
-    u8 x743;              // 0x743
-    u16 x744;             // 0x744 (0xB24)
-    u16 x746;             // 0x746 (0xB26)
+    int x740;             // 0x740 (0xB20)  em10BlendMotSet: hokan frames left (low byte passed)
+    u32 x744;             // 0x744 (0xB24)  em10BlendMotSet: start frame (low half passed)
     MotionWorkSub blendMot;  // 0x748 (0xB28)
 };
 
@@ -239,8 +235,8 @@ class cObjGatling;
 // (AGENTS.md: a class with undefined virtuals emits no vtable). Slot names are the vtable byte offsets.
 class cEmPartner : public cEm {
 public:
-    virtual void v50(int a);
-    virtual void v58();
+    virtual int v50();
+    virtual void v58(cEm* em, int a, int b, int c);
     virtual int v60();
     virtual void v68();
     virtual int v70();
@@ -272,8 +268,8 @@ public:
     virtual void clearFindPL();
     virtual int ckParasite();
     virtual u32 ckGoto();
-    virtual void setGoto(Vec* pos, f32 range);
-    virtual void setGotoSwitch(Vec* pos, f32 range, void* sw);
+    virtual void setGoto(Vec* pos, int range);
+    virtual void setGotoSwitch(cModel* sw, int near, Vec* pos);
     virtual int ckResetEnable();
     virtual void setReset();
     virtual void chgSet(u8 no);
@@ -286,9 +282,9 @@ public:
     virtual int ckBombFire();
     virtual int ckShiled();
     virtual int ckBowgunFire();
-    virtual void setSwitch(void* sw);
+    virtual void setSwitch(cModel* sw);
     virtual void setLost();
-    virtual void setWeapon(int type);
+    virtual void setWeapon(void* bin, void* tpl, int type);
     virtual int ckWeapon();
     virtual int ckTakeAway();
     virtual void setUFOCatch(void* m0, void* m1);

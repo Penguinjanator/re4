@@ -27,6 +27,8 @@ extern ReadModule WepReadModule;
 extern "C" {
 void CoreDataRead();
 void OptionDataRead();
+// Loads enemy module `id` (the rooms preload the enemies of their events); the read address
+void* EmReadSearch(int id, void* addr, u32 size);
 }
 
 #endif

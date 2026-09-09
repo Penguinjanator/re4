@@ -39,4 +39,7 @@ void EmSetRoomInit();                       // clear the "set" bit of every entr
 void EmListWaitDelete();
 }
 
+// Creates an enemy from a list record built by the caller (C++ linkage; sce_at, the stage rooms).
+cEm* EmSetEvent(EmListData* d);
+
 #endif

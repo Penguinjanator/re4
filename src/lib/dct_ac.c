@@ -10,9 +10,9 @@ Float64 dctac_i_const[8][8];
 Float64 dctac_f_const[8][8];
 static const Char8 *dctac_version_dummy;
 
-static void dctac_TransDouble(Float64 *in, Float64 *out, Float64 *c)
+static void dctac_TransDouble(Float64 *in, Float64 *out, Float64 c[8][8])
 {
-	Float64 tmp[8][8];
+	Float64 tmp[64];
 	Float64 s;
 	Sint32 i;
 	Sint32 j;
@@ -22,33 +22,38 @@ static void dctac_TransDouble(Float64 *in, Float64 *out, Float64 *c)
 		for (j = 0; j < 8; j++) {
 			s = 0.0;
 			for (k = 0; k < 8; k++) {
-				s += c[k * 8 + j] * in[i * 8 + k];
+				s += c[k][j] * in[i * 8 + k];
 			}
-			tmp[i][j] = s;
+			tmp[i * 8 + j] = s;
 		}
 	}
-	for (i = 0; i < 8; i++) {
-		for (j = 0; j < 8; j++) {
+	for (j = 0; j < 8; j++) {
+		for (i = 0; i < 8; i++) {
 			s = 0.0;
 			for (k = 0; k < 8; k++) {
-				s += c[k * 8 + j] * tmp[k][i];
+				s += c[k][i] * tmp[k * 8 + j];
 			}
-			out[j * 8 + i] = s;
+			out[i * 8 + j] = s;
 		}
 	}
 }
 
 void DCT_AcIdctDouble(Float64 *in, Float64 *out)
 {
-	dctac_TransDouble(in, out, &dctac_i_const[0][0]);
+	dctac_TransDouble(in, out, dctac_i_const);
 }
 
 /* dead-stripped by the linker */
 void DCT_AcFdctDouble(Float64 *in, Float64 *out)
 {
-	dctac_TransDouble(in, out, &dctac_f_const[0][0]);
+	dctac_TransDouble(in, out, dctac_f_const);
 }
 
+/* OPEN: the original addresses its four double literals individually (`lis/lfd @NNN@l`) while our
+ * 2.4.7 pools >= 3 literals of a function through a `...rodata.0` base register (every build in
+ * build/compilers/GC pools; 1.3.2r pools nothing, -pooldata off also unpools .bss). In the DOL,
+ * literal-only functions are never pooled (adx_dcd ADX_GetCoefficient, adx_sje, mpvabdec) but a
+ * function that also references a string pools literals with it (adx_tlk ADXT_GetTime/Create). */
 void DCT_AcInit(void)
 {
 	Sint32 i;

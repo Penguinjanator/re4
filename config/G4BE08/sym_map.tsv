@@ -4448,16 +4448,16 @@ address	size	section	unit	scope	name	demangled
 0x80138914	0xD0	.text	game/event.cpp	global	myRoomInit__8EventMgr	EventMgr::myRoomInit
 0x801389E4	0x78	.text	game/event.cpp	global	EventMgr_DelAll	EventMgr::DelAll
 0x80138A5C	0x29C	.text	game/event.cpp	global	Run__8EventMgr	EventMgr::Run
-0x80138CF8	0xE0	.text	game/event.cpp	global	EventMgr_IsAliveEvt	EventMgr::IsAliveEvt
+0x80138CF8	0xE0	.text	game/event.cpp	global	IsAliveEvt__8EventMgrPUlii	EventMgr::IsAliveEvt
 0x80138DD8	0x58	.text	game/event.cpp	global	EventMgr_EvtReadAram	EventMgr::EvtReadAram
 0x80138E30	0x3C	.text	game/event.cpp	global	EventMgr_EvtReadMram	EventMgr::EvtReadMram
 0x80138E6C	0xD4	.text	game/event.cpp	global	EventMgr_NameCheck	EventMgr::NameCheck
-0x80138F40	0xB8	.text	game/event.cpp	global	EventMgr_NameChange	EventMgr::NameChange
+0x80138F40	0xB8	.text	game/event.cpp	global	NameChange__8EventMgrPc	EventMgr::NameChange
 0x80138FF8	0x394	.text	game/event.cpp	local	EventMgr_EvtReadSub	EventMgr::EvtReadSub
 0x8013938C	0x2BC	.text	game/event.cpp	global	EventMgr_EvtReadExec	EventMgr::EvtReadExec
 0x80139648	0x154	.text	game/event.cpp	global	EventMgr_EvtFree	EventMgr::EvtFree
 0x8013979C	0x40	.text	game/event.cpp	global	EventMgr_ToolCoreEvdDel	EventMgr::ToolCoreEvdDel
-0x801397DC	0x140	.text	game/event.cpp	global	EventMgr_SetEvt	EventMgr::SetEvt
+0x801397DC	0x140	.text	game/event.cpp	global	SetEvt__8EventMgrPvPUl	EventMgr::SetEvt
 0x8013991C	0x148	.text	game/event.cpp	global	EventMgr_SetEvt_8013991C	EventMgr::SetEvt
 0x80139A64	0x24	.text	game/event.cpp	global	EventMgr_GetEvt	EventMgr::GetEvt
 0x80139A88	0x150	.text	game/event.cpp	global	EventMgr_DelEvt	EventMgr::DelEvt
@@ -6670,7 +6670,7 @@ address	size	section	unit	scope	name	demangled
 0x801DFCC8	0x84	.text	lib/mwsfdcre.c	global	mwPlyCalcWorkCprmSfd	mwPlyCalcWorkCprmSfd
 0x801DFD4C	0x1DC	.text	lib/mwsfdcre.c	global	mwPlyCalcWorkSfd	mwPlyCalcWorkSfd
 0x801DFF28	0x1B8	.text	lib/mwsfdlib.c	global	MWSFLIB_SfdErrFunc	MWSFLIB_SfdErrFunc
-0x801E00E0	0x20	.text	lib/mwsfdlib.c	local	MWSFLIB_SetErrCode	MWSFLIB_SetErrCode
+0x801E00E0	0x20	.text	lib/mwsfdlib.c	global	MWSFLIB_SetErrCode	MWSFLIB_SetErrCode
 0x801E0100	0x10	.text	lib/mwsfdlib.c	global	MWSFD_GetPauseBdr	MWSFD_GetPauseBdr
 0x801E0110	0x10	.text	lib/mwsfdlib.c	global	MWSFD_GetUsePicUsr	MWSFD_GetUsePicUsr
 0x801E0120	0x2EC	.text	lib/mwsfdlib.c	global	mwPlyInitSfdFx	mwPlyInitSfdFx
@@ -6696,7 +6696,7 @@ address	size	section	unit	scope	name	demangled
 0x801E1364	0x48	.text	lib/mwsfdset.c	global	MWSFD_SetFlowLimit	MWSFD_SetFlowLimit
 0x801E13AC	0x34	.text	lib/mwsfdset.c	global	MWSFD_SetCond	MWSFD_SetCond
 0x801E13E0	0x9C	.text	lib/mwsfdset.c	global	mwPlyGetNumSkipDec	mwPlyGetNumSkipDec
-0x801E147C	0x54	.text	lib/mwsfdset.c	local	mwPlyGetSfdHn	mwPlyGetSfdHn
+0x801E147C	0x54	.text	lib/mwsfdset.c	global	mwPlyGetSfdHn	mwPlyGetSfdHn
 0x801E14D0	0xA4	.text	lib/mwsfdsvr.c	global	mwlSfdSleepDecSvr	mwlSfdSleepDecSvr
 0x801E1574	0x8	.text	lib/mwsfdsvr.c	global	MWSFSVR_SetHnSfdSvrFlg	MWSFSVR_SetHnSfdSvrFlg
 0x801E157C	0x8	.text	lib/mwsfdsvr.c	global	MWSFSVR_SetHnMwplySvrFlg	MWSFSVR_SetHnMwplySvrFlg
@@ -6706,7 +6706,7 @@ address	size	section	unit	scope	name	demangled
 0x801E1714	0x114	.text	lib/mwsfdsvr.c	global	MWSFSVR_DecodeServer	MWSFSVR_DecodeServer
 0x801E1828	0x90	.text	lib/mwsfdsvr.c	global	mwSfdVsync	mwSfdVsync
 0x801E18B8	0x60	.text	lib/mwsfdsvr.c	global	MWSFSVR_IdleThrdProc	MWSFSVR_IdleThrdProc
-0x801E1918	0xDC	.text	lib/mwsfdsvr.c	local	MWSFSVR_MainThrdProc	MWSFSVR_MainThrdProc
+0x801E1918	0xDC	.text	lib/mwsfdsvr.c	global	MWSFSVR_MainThrdProc	MWSFSVR_MainThrdProc
 0x801E19F4	0xA8	.text	lib/mwsfdsvr.c	global	MWSFSVR_VsyncThrdProc	MWSFSVR_VsyncThrdProc
 0x801E1A9C	0x2F8	.text	lib/mwsfdsvr.c	global	mwSfdExecDecSvrHndl	mwSfdExecDecSvrHndl
 0x801E1D94	0x19C	.text	lib/mwsfdsst.c	global	MWSST_Destroy	MWSST_Destroy
@@ -6755,7 +6755,7 @@ address	size	section	unit	scope	name	demangled
 0x801E3FEC	0x320	.text	lib/sfx_zmv.c	global	sfxzmv_MakeOrgZ32TblByDirect	sfxzmv_MakeOrgZ32TblByDirect
 0x801E430C	0xD8	.text	lib/sfx_zmv.c	global	SFXZ_SetTagInf	SFXZ_SetTagInf
 0x801E43E4	0x24	.text	lib/sfx_zmv.c	global	SFXZ_Destroy	SFXZ_Destroy
-0x801E4408	0x80	.text	lib/sfx_zmv.c	local	SFXZ_Create	SFXZ_Create
+0x801E4408	0x80	.text	lib/sfx_zmv.c	global	SFXZ_Create	SFXZ_Create
 0x801E4488	0x48	.text	lib/sfx_zmv.c	global	SFXZ_Init	SFXZ_Init
 0x801E44D0	0x2C	.text	lib/sfx_sud.c	global	SFX_GetTypeCcs	SFX_GetTypeCcs
 0x801E44FC	0x2C	.text	lib/sfx_sud.c	global	SFX_GetTypeDivField	SFX_GetTypeDivField
@@ -7208,9 +7208,9 @@ address	size	section	unit	scope	name	demangled
 0x801FF0A0	0x4	.text	lib/mps_get.c	global	MPSGET_Finish	MPSGET_Finish
 0x801FF0A4	0x4	.text	lib/mps_get.c	global	MPSGET_Init	MPSGET_Init
 0x801FF0A8	0x98	.text	lib/mps_lib.c	global	MPS_Destroy	MPS_Destroy
-0x801FF140	0x180	.text	lib/mps_lib.c	local	MPS_Create	MPS_Create
+0x801FF140	0x180	.text	lib/mps_lib.c	global	MPS_Create	MPS_Create
 0x801FF2C0	0x30	.text	lib/mps_lib.c	global	MPSLIB_CheckHn	MPSLIB_CheckHn
-0x801FF2F0	0xB4	.text	lib/mps_lib.c	local	MPS_SetErrFn	MPS_SetErrFn
+0x801FF2F0	0xB4	.text	lib/mps_lib.c	global	MPS_SetErrFn	MPS_SetErrFn
 0x801FF3A4	0x8C	.text	lib/mps_lib.c	global	MPSLIB_SetErr	MPSLIB_SetErr
 0x801FF430	0xE4	.text	lib/mps_lib.c	global	MPS_Finish	MPS_Finish
 0x801FF514	0x144	.text	lib/mps_lib.c	global	MPS_Init	MPS_Init
@@ -11021,8 +11021,8 @@ address	size	section	unit	scope	name	demangled
 0x802F26B8	0x100	.bss	lib/mwsfdlib.c	global	mwg_sfd_errstr	mwg_sfd_errstr
 0x802F27B8	0x4	.bss	lib/mwsfdlib.c	global	mwg_sfd_errcnt	mwg_sfd_errcnt
 0x802F27BC	0x40	.bss	lib/mwsfdlib.c	global	mwg_sfd_errcode	mwg_sfd_errcode
-0x802F27FC	0x162C	.bss	lib/mwsfdlib.c	local	mwsfd_libwork	mwsfd_libwork
-0x802F3E28	0x4	.bss	lib/mwsfdlib.c	global	cri_verstr_ptr_802F3E28	cri_verstr_ptr
+0x802F27FC	0x162C	.bss	lib/mwsfdlib.c	global	mwsfd_libwork	mwsfd_libwork
+0x802F3E28	0x4	.bss	lib/mwsfdlib.c	local	cri_verstr_ptr_802F3E28	cri_verstr_ptr
 0x802F3E2C	0x4	.bss	lib/mwsfdlib.c	global	lbl_802F3E2C	.
 0x802F3E30	0x4	.bss	lib/mwsfdsvr.c	local	mwg_field_no	mwg_field_no
 0x802F3E34	0x4	.bss	lib/mwsfdsvr.c	global	mwg_vcnt	mwg_vcnt
@@ -11112,7 +11112,7 @@ address	size	section	unit	scope	name	demangled
 0x80309B40	0x4	.bss	lib/cft_common.c	global	cftcom_optimize_speed	cftcom_optimize_speed
 0x80309B44	0x4	.bss	lib/cft_common.c	global	lbl_80309B44	.
 0x80309B48	0x4	.bss	lib/mps_lib.c	local	mpslib_hn_last	mpslib_hn_last
-0x80309B4C	0x4	.bss	lib/mps_lib.c	global	cri_verstr_ptr_80309B4C	cri_verstr_ptr
+0x80309B4C	0x4	.bss	lib/mps_lib.c	local	cri_verstr_ptr_80309B4C	cri_verstr_ptr
 0x80309B50	0x4	.bss	lib/mps_lib.c	global	MPSLIB_libwork	MPSLIB_libwork
 0x80309B54	0x4	.bss	lib/mps_lib.c	local	lbl_80309B54	.
 0x80309B58	0x14	.bss	lib/mpv_err.c	global	mpverrinf	mpverrinf

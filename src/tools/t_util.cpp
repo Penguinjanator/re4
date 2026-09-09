@@ -90,16 +90,40 @@ static inline void tutil_2d_env(f32* scale, Vec* size)
     *size = sz;
 }
 
+// t_light's build of this file has none of the menu statics (no .data at all; src/tools/t_util_nomenu.cpp)
+#ifndef T_UTIL_NO_MENU_DATA
+#ifdef T_UTIL_MENU_FUNCS
+// t_event/t_sce: old_menu is local (the REL fields of its relocations hold the address) and the zero
+// word is missing
+static TOOL_MENU* old_menu = NULL;
+#else
 TOOL_MENU* old_menu = NULL;
 static int old_num = 0;  // unreferenced zero word between old_menu and the menu statics (name unknown)
+#endif
+#endif
 
-// The menu drawer of the DOL's t_util (game/t_util.cpp ToolMenuDisp_cur), an inline here that nothing
-// calls: only its "%s" / ">" strings and the two statics are in the object (t_util.h declares the
-// out-of-line DOL function, hence the other name).
-static inline int tutil_menu_disp(int x, int y, int flag, s8* cursor, TOOL_MENU* menu, int size, JOY* joy)
+// The menu drawer of the DOL's t_util (game/t_util.cpp ToolMenuDisp_cur). In t_emlist/t_camera/t_id it is
+// an inline nothing calls: only its "%s" / ">" strings and the two statics are in the object. t_event and
+// t_sce (src/tools/t_util_menu.cpp) have it out of line together with the cursor-less ToolMenuDisp wrapper.
+#ifdef T_UTIL_MENU_FUNCS
+int ToolMenuDisp(int x, int y, int flag, TOOL_MENU* menu, int size, JOY* joy)
 {
+    return ToolMenuDisp_cur(x, y, flag, NULL, menu, size, joy);
+}
+
+int ToolMenuDisp_cur(int x, int y, int flag, s8* cursor, TOOL_MENU* menu, int size, JOY* joy)
+#else
+static inline int tutil_menu_disp(int x, int y, int flag, s8* cursor, TOOL_MENU* menu, int size, JOY* joy)
+#endif
+{
+#ifndef T_UTIL_NO_MENU_DATA
     static s8 cursor_s = 0;
     static u8 flicker = 4;
+#else
+    s8 cursor_s = 0;
+    u8 flicker = 4;
+    TOOL_MENU* old_menu = NULL;
+#endif
     TOOL_MENU* p = menu;
     int num;
     int i;
@@ -131,8 +155,8 @@ static inline int tutil_menu_disp(int x, int y, int flag, s8* cursor, TOOL_MENU*
         flicker = 8;
     }
     if ((joy->trg & JOY_B) && (flag & TOOL_MENU_B_LAST)) {
-        cursor_s = num - 1;
         flicker = 8;
+        cursor_s = num - 1;
     }
     for (i = 0; i < num; i++) {
         color = 0x14;

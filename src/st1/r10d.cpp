@@ -1,5 +1,6 @@
 #include "types.h"
 #include "main_mem.h"
+#include "st_room.h"
 #include "flag_rsf.h"
 
 // Room 1-0d (D:/Bio4/Prog/r10d.cpp): nothing but the room work allocation.

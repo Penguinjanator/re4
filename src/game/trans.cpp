@@ -126,6 +126,7 @@ struct IntView {
     int v;
 };
 #define ISET0(x) (((IntView*) &(x))->v = 0)
+
 #define IV(x) (((IntView*) &(x))->v)
 static inline void U32Set(u32& d, u32 v) { d = v; }
 static inline u16 U16Ref(u16& v) { return v; }
@@ -145,8 +146,14 @@ int tex_coord;
 int ind_stage;
 int g_material_tex_coord;
 int g_specular_tev_stage;
-void* g_prev_tpl_addr;
-void* g_prev_add_tpl_addr;
+// struct-wrapped so the in-loop stores stay ordered against the following m->/d-> loads
+// (a plain void* store is a fixed scalar and floats freely; a one-element array or
+// (View*)&x cast gets its address hoisted out of the loop)
+struct PrevTplAddr {
+    void* v;
+};
+PrevTplAddr g_prev_tpl_addr;
+PrevTplAddr g_prev_add_tpl_addr;
 
 GXTexObj g_Get_tex_obj;
 Mtx specular_mat;
@@ -883,8 +890,8 @@ void Render()
     GXColor fogCol;
     GXColor c;
 
-    g_prev_tpl_addr = (void*) -1;
-    g_prev_add_tpl_addr = (void*) -1;
+    g_prev_tpl_addr.v = (void*) -1;
+    g_prev_add_tpl_addr.v = (void*) -1;
     GXSetCurrentGXThread();
     if (pG->flags_54 & 0x800) {
         pG->flags_5018 |= 0x10000000;
@@ -994,9 +1001,6 @@ void commonModelTrans(cModel* m, cModelInfo* info, Mtx viewMat, int flag)
     };
     Mtx mv;
     GXColor mat;
-    Mtx inv;
-    Mtx nrm;
-    Mtx pm;
     GxWork* gx = GXWORK();
     int efbDone;
     int matSet;
@@ -1023,7 +1027,7 @@ void commonModelTrans(cModel* m, cModelInfo* info, Mtx viewMat, int flag)
     }
     efbDone = 0;
     matSet = 0;
-    for (; info != 0; info = info->pNext) {
+    while (info != 0) {
         ModelData* d;
         void* tex;
         f32 (*mat0)[4];
@@ -1034,10 +1038,12 @@ void commonModelTrans(cModel* m, cModelInfo* info, Mtx viewMat, int flag)
         if (!(pG->flags_5010 & 0x100) && m->x12F == 7) {
             if (m->be_flag & 0x08000000) {
                 if (!(info->be_flag & 0x40)) {
+                    info = info->pNext;
                     continue;
                 }
             } else {
                 if (info->be_flag & 0x40) {
+                    info = info->pNext;
                     continue;
                 }
             }
@@ -1055,6 +1061,7 @@ void commonModelTrans(cModel* m, cModelInfo* info, Mtx viewMat, int flag)
             break;
         }
         if (!(info->be_flag & 8)) {
+            info = info->pNext;
             continue;
         }
         if (efbDone == 0 && (m->x136 == 1 || m->x136 == 2) && !(info->be_flag & 4)) {
@@ -1070,6 +1077,9 @@ void commonModelTrans(cModel* m, cModelInfo* info, Mtx viewMat, int flag)
             pLog->err(0, 0, "commonModelTrans() TEXOBJ OVERFLOW %d", d->nTex);
             return;
         }
+        Mtx inv;
+        Mtx nrm;
+        Mtx pm;
         if (m->be_flag & 0x4000) {
             PSMTXConcat(m->mat, (f32(*)[4]) &info->x5C, pm);
         } else if (d->x18 <= 1 && d->x2A <= 0xFF && !(info->be_flag & 2) && d->x19 == 1) {
@@ -1134,12 +1144,11 @@ void commonModelTrans(cModel* m, cModelInfo* info, Mtx viewMat, int flag)
         if (pG->flags_60 & 0x20000000) {
             GXSetCullMode(1);
         }
-        if (g_prev_tpl_addr != info->pTpl || g_prev_add_tpl_addr != info->pAddTpl) {
+        if (g_prev_tpl_addr.v != info->pTpl || g_prev_add_tpl_addr.v != info->pAddTpl) {
             u32 n;
             for (i = 0; i < ((TEXPalette*) info->pTpl)->numDescriptors + info->nAddTex; i++) {
                 TEXPalette* tpl = (TEXPalette*) info->pTpl;
                 TEXDescriptor* td;
-                TEXHeader* h;
                 u8 mip;
                 int filt;
                 u8 edge;
@@ -1151,11 +1160,11 @@ void commonModelTrans(cModel* m, cModelInfo* info, Mtx viewMat, int flag)
                     td = TEXGet(info->pAddTpl, i - tpl->numDescriptors);
                 }
                 if ((s32) d->flags < 0) {
-                    td->textureHeader->wrapS = 1;
-                    td->textureHeader->wrapT = 1;
+                    TEXHeader* wh = td->textureHeader;
+                    wh->wrapS = 1;
+                    wh->wrapT = 1;
                 }
-                h = td->textureHeader;
-                if (h->minLOD == h->maxLOD) {
+                if (td->textureHeader->minLOD == td->textureHeader->maxLOD) {
                     mip = 0;
                     filt = 1;
                 } else {
@@ -1164,9 +1173,10 @@ void commonModelTrans(cModel* m, cModelInfo* info, Mtx viewMat, int flag)
                 }
                 edge = 1;
                 if (aniso == 0) {
-                    edge = h->edgeLODEnable;
+                    edge = td->textureHeader->edgeLODEnable;
                 }
-                GXInitTexObj(&gx->texObj[i], h->data, h->width, h->height, h->format, h->wrapS, h->wrapT, mip);
+                GXInitTexObj(&gx->texObj[i], td->textureHeader->data, td->textureHeader->width, td->textureHeader->height,
+                             td->textureHeader->format, td->textureHeader->wrapS, td->textureHeader->wrapT, mip);
                 if (mip == 1) {
                     GXInitTexObjLOD(&gx->texObj[i], filt, 1, (f32) min_lod, (f32) max_lod, lod_bias, 0, edge, aniso);
                 }
@@ -1175,8 +1185,8 @@ void commonModelTrans(cModel* m, cModelInfo* info, Mtx viewMat, int flag)
                 MODEL_EXT(m)->pTexChg->move(gx->texObj);
             }
         }
-        g_prev_tpl_addr = info->pTpl;
-        g_prev_add_tpl_addr = info->pAddTpl;
+        g_prev_tpl_addr.v = info->pTpl;
+        g_prev_add_tpl_addr.v = info->pAddTpl;
         nParts = d->nParts;
         part = d->pParts;
         if (m->scale.x == 1.0f && m->scale.y == 1.0f && m->scale.z == 1.0f) {
@@ -1221,6 +1231,7 @@ void commonModelTrans(cModel* m, cModelInfo* info, Mtx viewMat, int flag)
                 GXSetTevDirect(8);
             }
         }
+        info = info->pNext;
     }
     if (!(pG->flags_5010 & 0x100)) {
         if (MODEL_EXT(m)->pFootShadowTbl != 0 && (m->be_flag & 0x10)) {
@@ -2568,13 +2579,11 @@ static void RefractShaderSetup(cModel* m, cModelInfo* info, ModelPart* part, Mtx
 {
     static f32 mul_x = 1.0f;
     static f32 mul_y = 1.0f;
-    GXColor kc;
     GXColor k;
     int st;
     int map;
     int coord;
     u32 mtx;
-    int ind;
     u8 kv;
     s8 kvs;
     int scale;
@@ -2613,8 +2622,7 @@ static void RefractShaderSetup(cModel* m, cModelInfo* info, ModelPart* part, Mtx
     kvs = kv;
     k.a = kv;
     k.r = k.g = k.b = kvs;
-    kc = k;
-    GXSetTevKColor(getKColor(), kc);
+    GXSetTevKColor(getKColor(), k);
     GXSetTevKColorSel(st, getKColorSel());
     GXSetTevKAlphaSel(st, getKAlphaSel());
     tev_kcolor++;
@@ -2651,8 +2659,16 @@ static void RefractShaderSetup(cModel* m, cModelInfo* info, ModelPart* part, Mtx
         coord = getTexCoord();
         GXLoadTexObj(&IndTex[0], map);
         GXSetTexCoordGen2(coord, 1, 1, 0x3C, 0, 0x7D);
-        ind = IND_STAGE_ID();
-        GXSetIndTexOrder(ind, coord, map);
+        {
+            int ind = IND_STAGE_ID();
+            GXSetIndTexOrder(ind, coord, map);
+            GXSetIndTexCoordScale(ind, 0, 0);
+            GXSetTevIndWarp(st, ind, 1, 0, 2);
+        }
+        tex_map++;
+        tex_coord++;
+        tev_stage++;
+        ind_stage++;
     } else {
         f32 indMtx[2][3];
         f32 s;
@@ -2676,15 +2692,17 @@ static void RefractShaderSetup(cModel* m, cModelInfo* info, ModelPart* part, Mtx
             org_LoadTexObj(part->texId, map);
         }
         GXSetTexCoordGen2(coord, 1, 4, 0x3C, 0, 0x7D);
-        ind = IND_STAGE_ID();
-        GXSetIndTexOrder(ind, coord, map);
+        {
+            int ind = IND_STAGE_ID();
+            GXSetIndTexOrder(ind, coord, map);
+            GXSetIndTexCoordScale(ind, 0, 0);
+            GXSetTevIndWarp(st, ind, 1, 0, 2);
+        }
+        tex_map++;
+        tex_coord++;
+        tev_stage++;
+        ind_stage++;
     }
-    GXSetIndTexCoordScale(ind, 0, 0);
-    GXSetTevIndWarp(st, ind, 1, 0, 2);
-    tex_map++;
-    tex_coord++;
-    tev_stage++;
-    ind_stage++;
     if (m->x138 == 0) {
         specularSetup(part, info, 0);
         bumpSetup(part, info);
@@ -2701,9 +2719,8 @@ static void RefractShaderSetup(cModel* m, cModelInfo* info, ModelPart* part, Mtx
         GXColor k;
         int st;
         st = TEV_STAGE_ID();
-        k.r = k.a = k.g = k.b = m->x138;
-        kc = k;
-        GXSetTevKColor(getKColor(), kc);
+        k.a = k.b = k.g = k.r = m->x138;
+        GXSetTevKColor(getKColor(), k);
         GXSetTevKColorSel(st, getKColorSel());
         GXSetTevKAlphaSel(st, getKAlphaSel());
         tev_kcolor++;

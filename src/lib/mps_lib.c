@@ -1,0 +1,178 @@
+/* Sofdec MPEG system stream demultiplexer: handle management */
+#include "cri_xpt.h"
+#include "mps.h"
+
+void UTY_MemsetDword(void *dst, Uint32 val, Sint32 ndword);
+Sint32 MPSDEC_DecHdMpeg1();
+void MPSDEC_Init(void);
+void MPSDEC_Finish(void);
+void MPSGET_Init(void);
+void MPSGET_Finish(void);
+
+const Char8 MPSLIB_version_str[] =
+	"\nCRI MPS/GC Ver.1.924 Build:Sep 22 2004 10:34:52\n\0Append: MW2407 GC20Apr2004Patch1\n";
+
+static MPS mpslib_hn_last;
+static const Char8 *cri_verstr_ptr;
+MPSLIB_WORK *MPSLIB_libwork;
+
+Sint32 MPS_Destroy(MPS mps)
+{
+	if (MPSLIB_CheckHn(mps) != 0) {
+		return MPSLIB_SetErr(NULL, 0xFF020103);
+	}
+	mps->used = MPS_HN_FREE;
+	return 0;
+}
+
+static MPS mpslib_GetFreeHn(void)
+{
+	MPSLIB_WORK *lw;
+	MPS mps;
+	Sint32 i;
+
+	lw = MPSLIB_libwork;
+	mps = lw->hn;
+	for (i = 0; i < lw->num_hn; i++) {
+		if (mps->used == MPS_HN_FREE) {
+			return mps;
+		}
+		mps++;
+	}
+	return NULL;
+}
+
+MPS MPS_Create(void)
+{
+	MPS mps;
+	Sint32 i;
+
+	mps = mpslib_GetFreeHn();
+	if (mps == NULL) {
+		return NULL;
+	}
+	UTY_MemsetDword(mps, 0, sizeof(MPS_OBJ) / 4);
+	mps->used = MPS_HN_USED;
+	mps->errfn = NULL;
+	mps->errobj = NULL;
+	mps->errcode = 0;
+	mps->x10 = 2;
+	mps->packhd.scr = -1;
+	mps->packhd.mux_rate = -1;
+	mps->packhd.rsv = -1;
+	for (i = 0; i < 8; i++) {
+		mps->last_syshd.raw[i] = -1;
+	}
+	for (i = 0; i < 3; i++) {
+		Sint32 j;
+		for (j = 0; j < 8; j++) {
+			mps->syshd[i].raw[j] = -1;
+		}
+	}
+	mps->pkethd.pts = -1;
+	mps->pkethd.dts = -1;
+	for (i = 0; i < 6; i++) {
+		mps->pkethd.raw[i] = -1;
+	}
+	mps->xd0 = 0;
+	mps->dechd_func = MPSDEC_DecHdMpeg1;
+	mps->xd8 = 0;
+	mps->xdc = 0;
+	mps->xe0 = 0;
+	mps->xe4 = 0;
+	mps->xe8 = 0;
+	return mps;
+}
+
+Sint32 MPSLIB_CheckHn(MPS mps)
+{
+	mpslib_hn_last = mps;
+	if (mps == NULL) {
+		return -1;
+	}
+	if (mps->used == MPS_HN_FREE) {
+		return -1;
+	}
+	return 0;
+}
+
+Sint32 MPS_SetErrFn(MPS mps, void (*fn)(void *obj), void *obj)
+{
+	if (mps == NULL) {
+		MPSLIB_libwork->errfn = fn;
+		MPSLIB_libwork->errobj = obj;
+	} else {
+		if (MPSLIB_CheckHn(mps) != 0) {
+			return MPSLIB_SetErr(NULL, 0xFF020101);
+		}
+		mps->errfn = fn;
+		mps->errobj = obj;
+	}
+	return 0;
+}
+
+Sint32 MPSLIB_SetErr(MPS mps, Sint32 code)
+{
+	MPSLIB_WORK *lw;
+
+	if (mps == NULL) {
+		lw = MPSLIB_libwork;
+		lw->errcode = code;
+		if (code != 0 && lw->errfn != NULL) {
+			lw->errfn(lw->errobj);
+		}
+	} else {
+		mps->errcode = code;
+		if (code != 0 && mps->errfn != NULL) {
+			mps->errfn(mps->errobj);
+		}
+	}
+	return code;
+}
+
+void MPS_Finish(void)
+{
+	MPSLIB_WORK *lw;
+	MPS mps;
+	Sint32 num;
+	Sint32 i;
+
+	lw = MPSLIB_libwork;
+	num = lw->num_hn;
+	mps = lw->hn;
+	for (i = 0; i < num; i++) {
+		if (mps->used != MPS_HN_FREE) {
+			MPS_Destroy(mps);
+		}
+		mps++;
+	}
+	MPSDEC_Finish();
+	MPSGET_Finish();
+}
+
+Sint32 MPS_Init(Sint32 num_hn, void *work)
+{
+	static const Uint32 test_wrok = 0x01020304;
+	MPS hn;
+	Sint32 i;
+
+	cri_verstr_ptr = MPSLIB_version_str;
+	if (*(const Uint8 *)&test_wrok != 1) {
+		for (;;) {
+			((void (*)(void))-1)();
+		}
+	}
+	MPSLIB_libwork = (MPSLIB_WORK *)work;
+	UTY_MemsetDword(work, 0, (sizeof(MPSLIB_WORK) + (num_hn - 1) * sizeof(MPS_OBJ)) / 4);
+	MPSLIB_libwork->errfn = NULL;
+	MPSLIB_libwork->errobj = NULL;
+	MPSLIB_libwork->errcode = 0;
+	MPSLIB_libwork->num_hn = num_hn;
+	hn = MPSLIB_libwork->hn;
+	for (i = 0; i < num_hn; i++) {
+		hn[i].used = MPS_HN_FREE;
+	}
+	MPSDEC_Init();
+	MPSGET_Init();
+	return 0;
+}

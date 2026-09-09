@@ -44,5 +44,7 @@ int ToolMenuDisp_cur(int x, int y, int flag, s8* cursor, TOOL_MENU* menu, int si
 // tools/t_util.cpp only (dead-stripped from the DOL): screen position of a world point.
 int TutilGetScreenPos(Vec* pos, f32* scr, int noSetup);
 void TutilMoveCursor(Vec* pos, f32 speed, f32 step);
+// t_event/t_sce: ToolMenuDisp_cur without a cursor variable
+int ToolMenuDisp(int x, int y, int flag, TOOL_MENU* menu, int size, JOY* joy);
 
 #endif
