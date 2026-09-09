@@ -25,4 +25,18 @@ void TprimDrawPolyFn(Vec* v, GXColor* col, u16 n);
 void TprimDrawCursor(Vec* pos, GXColor* col, f32 z);
 void TprimDrawMtxDirection(Mtx m, GXColor* fill, GXColor* line);
 
+// The full build (Tools REL, tools/t_prim.cpp with TPRIM_FULL): 2D-only environment, line strips, tiles,
+// the hit marker (Htr) and its cone, and the s16 vertex variants.
+struct S16Vec {
+    s16 x, y, z;
+};
+
+void TprimInitEnv2D(TprimRect* rect);
+void TprimDrawLineFn(Vec* v, GXColor* col, u16 n);
+void TprimDrawTile2D(TprimRect* rect, GXColor* col, f32 z);
+void TprimDrawHtr(Vec* pos, GXColor* col);
+void TprimDrawHtrCone(Vec* pos, GXColor* col);
+void TprimDrawFrameFn_s16(S16Vec* v, GXColor* col, u16 n);
+void TprimDrawPolyFn_s16(S16Vec* v, GXColor* col, u16 n);
+
 #endif

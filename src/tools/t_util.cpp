@@ -77,6 +77,22 @@ void TutilMoveCursor(Vec* pos, f32 speed, f32 step)
     pos->y += (Joy[0].on & JOY_DOWN) ? step : ((Joy[0].on & JOY_UP) ? -step : 0.0f);
 }
 
+// Screen position of a world point (GXProject with the current camera); `noSetup` skips TprimDraw3D.
+int TutilGetScreenPos(Vec* pos, f32* scr, int noSetup)
+{
+    f32 proj[7];
+    f32 viewport[6];
+
+    if (noSetup == 0) {
+        TprimDraw3D(0);
+    }
+    GXGetProjectionv(proj);
+    GXGetViewportv(viewport);
+    GXProject(pos->x, pos->y, pos->z, pG->Cam.viewMat, proj, viewport, &scr[0], &scr[1], &scr[2]);
+    return 1;
+}
+
+#ifndef T_UTIL_FULL
 // Never called in the tool modules. GCC 2.95 emits the initializer templates of local aggregates in
 // inline functions at parse time; the original object has these 5 words between TutilMoveCursor's
 // constant pool and ToolMenuDisp_cur's strings. Values are the original's, grouping and body a guess.
@@ -90,6 +106,133 @@ static inline void tutil_2d_env(f32* scale, Vec* size)
     *size = sz;
 }
 
+#else
+// The Tools REL has the full file (src/Tools/t_util.cpp): the 0.5/0, 1024 and 2048 words are the pools of
+// these three functions (dead-stripped everywhere else, see tutil_2d_env above).
+
+// Fits the XZ position whose screen projection is closest to `target`: a square of side `step` around
+// `center` is projected corner by corner, the closest corner becomes the new origin and the side is
+// halved until it underflows to 0.
+int TutilGet3DPosXZ(Vec* target, Vec* center, Vec* out, f32 step)
+{
+    Vec p[4];
+    f32 scr[4];
+    f32 dist[4];
+    int ok[4];
+    f32 x = center->x - step * 0.5f;
+    f32 z = center->z - step * 0.5f;
+    int i;
+    int j;
+    int best;
+
+
+    p[0].y = p[1].y = p[2].y = p[3].y = center->y;
+    TprimDraw3D(0);
+    do {
+        p[0].x = x;
+        p[0].z = z;
+        p[1].x = x + step;
+        p[1].z = z;
+        p[2].x = x;
+        p[2].z = z + step;
+        p[3].x = x + step;
+        p[3].z = z + step;
+        for (i = 0; i < 4; i++) {
+            ok[i] = TutilGetScreenPos(&p[i], scr, 1);
+            if (ok[i]) {
+                dist[i] = (scr[0] - target->x) * (scr[0] - target->x) + (scr[1] - target->y) * (scr[1] - target->y);
+            }
+        }
+        if (ok[0] == 0 && ok[1] == 0 && ok[2] == 0 && ok[3] == 0) {
+            return 0;
+        }
+        best = ok[0] ? 0 : -1;
+        for (j = 1; j < 4; j++) {
+            if (ok[j]) {
+                if (best == -1 || dist[j] < dist[best]) {
+                    best = j;
+                }
+            }
+        }
+        switch (best) {
+        case 0:
+            break;
+        case 1:
+            x += step * 0.5f;
+            break;
+        case 2:
+            z += step * 0.5f;
+            break;
+        case 3:
+            x += step * 0.5f;
+            z += step * 0.5f;
+            break;
+        }
+        step *= 0.5f;
+    } while (step != 0.0f);
+    out->x = x;
+    out->y = center->y;
+    out->z = z;
+    return 1;
+}
+
+// Repeats the fit from a 1024 square until the position stops moving (at most 8 rounds).
+int TutilGet3DPosXZ_Mov(Vec* target, Vec* center, Vec* out)
+{
+    Vec prev;
+    Vec cur;
+    int i = 0;
+
+    cur.x = center->x;
+    cur.y = center->y;
+    cur.z = center->z;
+    do {
+        prev.x = cur.x;
+        prev.y = cur.y;
+        prev.z = cur.z;
+        if (TutilGet3DPosXZ(target, &prev, &cur, 1024.0f) == 0) {
+            return 0;
+        }
+        i++;
+        if (i > 7) {
+            break;
+        }
+    } while (prev.x != cur.x || prev.y != cur.y || prev.z != cur.z);
+    out->x = cur.x;
+    out->y = cur.y;
+    out->z = cur.z;
+    return 1;
+}
+
+// The same from a 2048 square, up to 64 rounds.
+int TutilGet3DPosXZ_All(Vec* target, Vec* center, Vec* out)
+{
+    Vec prev;
+    Vec cur;
+    int i = 0;
+
+    cur.x = center->x;
+    cur.y = center->y;
+    cur.z = center->z;
+    do {
+        prev.x = cur.x;
+        prev.y = cur.y;
+        prev.z = cur.z;
+        if (TutilGet3DPosXZ(target, &prev, &cur, 2048.0f) == 0) {
+            return 0;
+        }
+        i++;
+        if (i > 63) {
+            break;
+        }
+    } while (prev.x != cur.x || prev.y != cur.y || prev.z != cur.z);
+    out->x = cur.x;
+    out->y = cur.y;
+    out->z = cur.z;
+    return 1;
+}
+#endif
+
 // t_light's build of this file has none of the menu statics (no .data at all; src/tools/t_util_nomenu.cpp)
 #ifndef T_UTIL_NO_MENU_DATA
 #ifdef T_UTIL_MENU_FUNCS
@@ -102,6 +245,13 @@ TOOL_MENU* old_menu = NULL;
 static int old_num = 0;  // unreferenced zero word between old_menu and the menu statics (name unknown)
 #endif
 #endif
+#endif
+
+#ifdef T_UTIL_FULL
+// The zero word between TutilGet3DPosXZ_All's pool and the menu strings: a public const object (emitted
+// at its definition, referenced by nothing).
+extern const f32 TutilZero;
+const f32 TutilZero = 0.0f;
 #endif
 
 // The menu drawer of the DOL's t_util (game/t_util.cpp ToolMenuDisp_cur). In t_emlist/t_camera/t_id it is
@@ -187,17 +337,3 @@ static inline int tutil_menu_disp(int x, int y, int flag, s8* cursor, TOOL_MENU*
     return -1;
 }
 
-// Screen position of a world point (GXProject with the current camera); `noSetup` skips TprimDraw3D.
-int TutilGetScreenPos(Vec* pos, f32* scr, int noSetup)
-{
-    f32 proj[7];
-    f32 viewport[6];
-
-    if (noSetup == 0) {
-        TprimDraw3D(0);
-    }
-    GXGetProjectionv(proj);
-    GXGetViewportv(viewport);
-    GXProject(pos->x, pos->y, pos->z, pG->Cam.viewMat, proj, viewport, &scr[0], &scr[1], &scr[2]);
-    return 1;
-}

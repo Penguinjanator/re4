@@ -359,6 +359,10 @@ def check_path_case(path: Path):
                 sys.exit(f"Cannot access: {curr}")
             _listdir_cache[curr] = entries
 
+        # exact match first: src/tools (shared tool sources) and src/Tools (the Tools REL) coexist
+        if part in entries:
+            curr = curr / part
+            continue
         for entry in entries:
             if entry.lower() == part.lower():
                 curr = curr / entry

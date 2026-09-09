@@ -2247,7 +2247,9 @@ target) stays unresolved and `make_rel` then fails with "undefined symbol".
 - Status: ss_cap, ss_debug, ss_file, ss_item_draw Matching (the REL is byte-identical with the four
   compiled); ss_main has 57/58 functions byte-identical (open: SubScreenTask register allocation /
   `lis pG@ha` hoisting / `cur->init(wk)` tail merging); ss_item is written (34 functions incl. dtors,
-  25 byte-identical, .rodata/.data/.bss identical), open items below.
+  25 byte-identical, .rodata/.data/.bss identical), open items below; ss_term (29/29 named
+  functions, eof block open) and ss_model (40/47) are written, see their items; ss_map, ss_pzzl,
+  ss_shop are unwritten.
 - **The module was compiled with `-fno-implement-inlines`** (config/G4BE08/modules.py `CFLAGS`,
   wired through configure.py's `REL_CFLAGS`): SubScreenTask creates every screen's Init/Main widget
   with per-class link counts (`SsFileMain` 5, `SsItemMain`/`SsPzzlMain` 6, `SsMapMain` 5,

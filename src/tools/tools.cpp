@@ -153,3 +153,81 @@ extern "C" void _unresolved()
 #include "light.h"
 #include "event.h"
 #include "ctrl.h"
+
+#ifdef TOOLS_ARRAY
+// t_id / t_esp / Tools: the work-array helpers follow _unresolved in .text, before the cManager<cLight>
+// block and the arrayPush/arrayPop instantiations they pull in (the .sym lists them after tools.cpp).
+#include "model.h"
+#include "em.h"
+#include "obj.h"
+#include "esp.h"
+#include "espgen.h"
+#include "cons.h"
+
+void ToolArrayPush(int flags)
+{
+    if (flags & 1) {
+        PartsMgr.arrayPush(500);
+    }
+    if (flags & 2) {
+        EmMgr.arrayPush(64);
+    }
+    if (flags & 4) {
+        ObjMgr.arrayPush(500);
+    }
+    if (flags & 8) {
+        EspArrayPush(ConsGetRoomValue(2));
+    }
+    if (flags & 0x10) {
+        EspgenArrayPush(0x80);
+    }
+    if (flags & 0x20) {
+        CtrlMgr.arrayPush(0x80);
+    }
+    if (flags & 0x80) {
+        EvtMgr.arrayPush(4);
+    }
+    if (flags & 0x100) {
+        LightMgr.arrayPush(100);
+    }
+}
+
+void ToolWorkPop(int flags)
+{
+    if (flags & 1) {
+        PartsMgr.arrayPop();
+    }
+    if (flags & 2) {
+        EmMgr.arrayPop();
+    }
+    if (flags & 4) {
+        ObjMgr.arrayPop();
+    }
+    if (flags & 8) {
+        EspArrayPop();
+    }
+    if (flags & 0x10) {
+        EspgenArrayPop();
+    }
+    if (flags & 0x20) {
+        CtrlMgr.arrayPop();
+    }
+    if (flags & 0x80) {
+        EvtMgr.arrayPop();
+    }
+    if (flags & 0x100) {
+        LightMgr.arrayPop();
+    }
+}
+
+#ifdef TOOLS_EM_ARRAY
+void ToolEmArraySet(int on)
+{
+    if (on) {
+        EmMgr.arrayPush(10);
+    } else {
+        EmMgr.arrayPop();
+    }
+}
+#endif
+#endif

@@ -22,13 +22,13 @@ Tools/db_mod.cpp:
 
 Tools/db_toolbase.cpp:
 	.text       start:0x0001BE30 end:0x0001C890
-	.rodata     start:0x000023D0 end:0x0000259C align:4
+	.rodata     start:0x000023D0 end:0x00002578 align:4
 
 Tools/t_atari.cpp:
 	.text       start:0x0001C890 end:0x0001E0F4
 	.ctors      start:0x00000004 end:0x00000008
 	.dtors      start:0x00000000 end:0x00000004
-	.rodata     start:0x0000259C end:0x000029C8 align:4
+	.rodata     start:0x00002578 end:0x000029C8 align:4
 	.data       start:0x00000728 end:0x000007F8 align:4
 	.bss        start:0x0013AAF0 end:0x0013BF4C align:16
 
@@ -86,13 +86,13 @@ Tools/t_mv.cpp:
 
 Tools/t_prim.cpp:
 	.text       start:0x00035C7C end:0x000367B8
-	.rodata     start:0x00004FA0 end:0x00005024 align:4
+	.rodata     start:0x00004FA0 end:0x00005000 align:4
 	.data       start:0x00002278 end:0x000022C8 align:4
 	.bss        start:0x0013DB00 end:0x0013DC40 align:32
 
 Tools/t_rck.cpp:
 	.text       start:0x000367B8 end:0x00039C68
-	.rodata     start:0x00005024 end:0x000053B8 align:4
+	.rodata     start:0x00005000 end:0x000053B8 align:4
 	.data       start:0x000022C8 end:0x00002350 align:4
 	.bss        start:0x0013DC40 end:0x0013DC48 align:32
 

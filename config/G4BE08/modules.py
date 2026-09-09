@@ -216,16 +216,16 @@ UNITS = {
     ],
     # t_id: db_path.cpp, db_sctrl.cpp, t_id.cpp (toolId*/idEdit*/DbRandom + its templates and the
     # constructors keyed to ToolInterfaceDesign), the function-less t_util.cpp (its header strings at
-    # .rodata 0xE48, .text = the nameless cManager<cLight> block), tools.cpp, then the .gnu.linkonce
-    # orphan sections the original ELF kept behind .text (ToolArrayPush/ToolWorkPop and the
-    # cManager<T>::arrayPush/arrayPop instantiations of six managers).
+    # .rodata 0xE48, .text = the nameless cManager<cLight> block), then tools.cpp built with TOOLS_ARRAY
+    # (CFLAGS below): _prolog..._unresolved, ToolArrayPush/ToolWorkPop, and only then its cManager<cLight>
+    # block and the cManager<T>::arrayPush/arrayPop instantiations of six managers (t_esp's and Tools'
+    # tools.cpp end the same way, t_esp's with ToolEmArraySet too).
     "t_id": [
         ("t_id/db_path.cpp", None),
         ("t_id/db_sctrl.cpp", "SctrlInitAxisRange", "tools/db_sctrl.cpp"),
         ("t_id/t_id.cpp", "toolIdInit", None, {".rodata": 0x328, ".bss": 0xC}),
         ("t_id/t_util.cpp", 0xDBA0, "tools/t_util_id.cpp", {".rodata": 0xE48, ".data": 0x298, ".bss": 0x14DE34}),
         ("t_id/tools.cpp", "_prolog", "tools/tools.cpp"),
-        ("t_id/linkonce.cpp", "ToolArrayPush"),
     ],
     "t_emlist": [
         ("t_emlist/t_emlist.cpp", None),
@@ -283,7 +283,8 @@ UNITS = {
         ("Tools/db_light.cpp", None, "tools/db_light_tools.cpp"),
         ("Tools/db_mod.cpp", "dbModSetViewFlag", None, {".rodata": 0x1640}),
         ("Tools/db_toolbase.cpp", "MakeCol"),
-        ("Tools/t_atari.cpp", "ToolAtari", None, {".rodata": 0x259C}),
+        # t_atari.cpp's header-string group starts with atari.h's cFlag.set() message (0x2578), like the rooms'
+        ("Tools/t_atari.cpp", "ToolAtari", None, {".rodata": 0x2578}),
         ("Tools/t_cons.cpp", "ToolCons", None, {".rodata": 0x29C8}),
         ("Tools/t_dr.cpp", "tDrExit", None, {".rodata": 0x2D6C}),
         ("Tools/t_eminfo.cpp", "ToolEmInfo", None, {".rodata": 0x30AC}),
@@ -294,7 +295,8 @@ UNITS = {
         ("Tools/t_motseq.cpp", "ToolMotSeq", None, {".rodata": 0x4860}),
         ("Tools/t_mv.cpp", "ToolMotionViewer", None, {".rodata": 0x4E10, ".bss": 0x13DAD0}),
         ("Tools/t_prim.cpp", "TprimInitEnv2D3D"),
-        ("Tools/t_rck.cpp", "ToolRctRouteCheck", None, {".rodata": 0x5024}),
+        # t_rck.cpp's header-string group starts with atari.h's cFlag.set() message (0x5000)
+        ("Tools/t_rck.cpp", "ToolRctRouteCheck", None, {".rodata": 0x5000}),
         ("Tools/t_sce_at.cpp", "ToolSceAt", "tools/t_sce_at.cpp", {".rodata": 0x53B8}),
         ("Tools/t_tplview.cpp", "ToolTplView", None, {".rodata": 0x61B8}),
         ("Tools/t_util.cpp", "TutilInitDefault", None, {".rodata": 0x6370}),
@@ -320,20 +322,22 @@ UNITS = {
 }
 # The 16 Ganado modules (em10..em20) are the same em10.cpp ("D:/Bio4/Prog/em10.cpp": cEm10 and its
 # em10*/em1c* helpers, .text 0-0x43518 + 0x3B8 bytes of template instantiations, .rodata 0-0x1EC4,
-# all of .data/.bss, byte-identical in every module), then two small per-enemy objects whose names
-# are not in the binary: the entry file (_prolog: OSReport("em10 prolog Ok\n") in every module,
-# EmInitFunc = EmXXInit, EmSetFunc = EmXXSet; _epilog, _unresolved) and EmXXInit/Set/WeaponSet.
-# They must be separate objects: ngcld -r adds an input section's displacement to ADDR16/ADDR32
-# fields that reference a global defined in the same object, and the original fields are 0.
-# em1d/em1e/em1f/em20 include light.h in the tail (cManager<cLight> code the .sym skips after
-# EmXXWeaponSet) and carry an unreferenced "D:/Bio4/Prog/light.h" string right after em10.cpp's
-# .rodata, so the entry unit's .rodata start is pinned (4th element) at em10.cpp's end.
+# all of .data/.bss, byte-identical in every module), then ONE small per-enemy object whose name is
+# not in the binary (src/<em>/<em>_set.cpp): the SN entry points (_prolog: OSReport("em10 prolog Ok\n")
+# in every module, EmInitFunc = EmXXInit, Em10SetFunc = EmXXSet; _epilog, _unresolved) followed by
+# EmXXInit/Set/WeaponSet. It is one object, like the other enemies' emXX.cpp (_prolog + the enemy
+# code): em1d/em1e/em1f/em20 include light.h, and their .rodata is [light.h string (parse time)]
+# ["em10 prolog Ok" (_prolog)] [cManager<cLight> template strings (end of file)] with the 0x3B8
+# cLight linkonce block after EmXXWeaponSet - only a single TU lays the strings out that way (an
+# entry object of its own would put the template strings and the block before EmXXInit). The
+# .rodata start is pinned (4th element) at em10.cpp's end because the light.h string is unreferenced.
+# (The zero ADDR16 fields of _prolog's EmXXInit/EmXXSet references say nothing about the object
+# boundary: the original linker never added the input-section displacement, see AGENTS.md.)
 for _em in ["em10", "em11", "em12", "em13", "em14", "em15", "em16", "em17", "em19", "em1a", "em1b",
             "em1c", "em1d", "em1e", "em1f", "em20"]:
     UNITS[_em] = [
         (f"{_em}/em10.cpp", None, "em10/em10.cpp"),
-        (f"{_em}/{_em}_prolog.cpp", "_prolog", None, {".rodata": 0x1EC4}),
-        (f"{_em}/{_em}_set.cpp", f"Em{_em[2:]}Init"),
+        (f"{_em}/{_em}_set.cpp", "_prolog", None, {".rodata": 0x1EC4}),
     ]
 
 # Module units the original REL link dead-stripped at function level (bodies gone, strings and constant
@@ -343,8 +347,14 @@ for _em in ["em10", "em11", "em12", "em13", "em14", "em15", "em16", "em17", "em1
 # in-class constructors (`SsFileMain() : Widget<SUB_SCREEN>(5) {}` — the per-class link counts SubScreenTask
 # inlines) that no unit emits out of line, while every DOL unit emits such members (cp/decl2.c
 # import_export_decl: a vtable-owning class's non-virtual inline members are external under the flag).
+# Tools/t_event: cDbgButton's in-class constructor (db_toolbase.h) is inlined into cDbgWindow::AddButton
+# and has no out-of-line body in the module either (same flag, same evidence as Sscrn's widgets).
+# t_id/t_esp/Tools: tools.cpp defines ToolArrayPush/ToolWorkPop (t_esp: ToolEmArraySet) after _unresolved.
 CFLAGS = {
     "Sscrn": ["-fno-implement-inlines"],
+    "t_id": ["-DTOOLS_ARRAY"],
+    "Tools": ["-fno-implement-inlines"],
+    "t_event": ["-fno-implement-inlines"],
 }
 
 STRIP_UNUSED = {
@@ -383,6 +393,7 @@ MATCHING = {
     "t_camera/t_prim.cpp": True,
     "t_camera/t_util.cpp": True,
     "t_light/t_util.cpp": True,
+    "t_light/t_light.cpp": True,
     "t_event/t_util.cpp": True,
     "t_sce/t_util.cpp": True,
     "t_movie/t_util.cpp": True,
@@ -399,4 +410,9 @@ MATCHING = {
     "Sscrn/ss_debug.cpp": True,
     "Sscrn/ss_file.cpp": True,
     "Sscrn/ss_item_draw.cpp": True,
+    "Tools/t_prim.cpp": True,
 }
+# The Ganado modules' per-enemy objects (src/<em>/<em>_set.cpp: entry points + EmXXInit/Set/WeaponSet).
+for _em in ["em10", "em11", "em12", "em13", "em14", "em15", "em16", "em17", "em19", "em1a", "em1b",
+            "em1c", "em1d", "em1e", "em1f", "em20"]:
+    MATCHING[f"{_em}/{_em}_set.cpp"] = True
