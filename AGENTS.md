@@ -1474,6 +1474,57 @@ mark it Matching.
   size change in an earlier function shifts every later displacement without a real diff), and
   accept the split object's raw `lis rX, 0x8023` words whose `lfs` lives in another block (dtk
   could not pair them; the linked bytes are identical).
+- (esp/espgen water) `lwz r3, pLog` issued BEFORE the string `lis r6` in an error block = the block
+  ends in a `return` (jump to the function's return label), not a `goto fail`/fallthrough into an
+  else: `if (buf == NULL) { pLog->warn(...); return; }` with the rest un-nested (Espgen42/45
+  TransSub), and for an `int` function whose fail paths share one `li r3,0`, the body is
+  `if (SetWaterWork(...) != NULL) { ...; return 1; } return 0;` with `pLog->err(...); return 0;`
+  in the early check (both `return 0`s cross-jump into the final out-of-line `li r3,0`;
+  `goto fail; fail: return 0;` keeps the layout but schedules `lis` first). `nx = 0xB8;` written
+  BEFORE `pLog->warn(...)` puts its `li r27, 0xb8` ahead of the call's `li r4/r5` (Espgen4x
+  SetFreeWork, both 100%).
+- Dead literal stores at 8-byte stride (`stfs f13, 0x8; stfs f0, 0x10; ...` never read, in
+  Espgen42/45 Move00): four `Vec` locals whose `.x` and `.z` are assigned literals and never used
+  (`Vec d0; d0.x = 1.0f; d0.z = 0.0f; ...` — Vec locals are 0x10-rounded, so x/z land 8 apart and
+  .y is skipped); `const f32&` reference temporaries of an empty inline emit nothing.
+- `addi r9, r1, N; stb r0, N(r1); psq_l fX, 0(r9), 1, qr2` (own 4-byte slot, not the fpmem one) is
+  the inline-asm `PSQ_L_U8(&tmp)` on a function-scope `u8 tmp = noise[i];` (Espgen42/45 Move00;
+  the compiler's own u8->f32 goes `stb/psq_l` through the shared fpmem slot).
+- `sizeof(T) * (p->nx + 1) * (p->ny + 1)` (constant first, nx before ny) gives the target's
+  `lhz ny; lhz nx; ...; slwi/mulli (ny+1); mullw (nx+1), that`: combine folds the constant into
+  the SECOND factor and the shifted operand is loaded first; `(p->nx + 1) * 2 * p->ny * 12` for
+  the display-list size. `u32 n` sized from `p->nx * p->ny` loads nx first only when written
+  `p->ny * p->nx` (Espgen45 Move00 `idx`).
+- A `k + 1` used twice and then `k++` (`p->nx + (k + 1)` stores, `k++` at the loop end) gives the
+  target's `addi r7, r3, 1 ... mr r3, r7` (cse turns the increment into a copy of the shared
+  pseudo); `k++` before the uses increments in place (SetWaterWork dl loops).
+- Loop counters that must not be hoisted above the preceding calls (`li r28, 0` right before the
+  first store, "Don't let it cross a call after scheduling if it doesn't already cross one") are
+  variables that cross NO call: give each loop nest its own counter (`int i2`, `i3`, `i4`) — a
+  function-level `i` reused in a loop with `fRand1_1()` crosses the call and its `li` floats to the
+  block top. Register order then follows global.c pass 0 (`regs_used_so_far`): the loop-1 `i` gets
+  r28 only because the disjoint loop-2 counter took r28 first.
+- A static read inside a store loop that the target reloads every iteration (`lfs f0, g45_init_y`
+  after `lwz p->pos`) is a reference read `FGet(g45_init_y)` (MEM with neither struct nor scalar
+  flag stays below the in-struct `stfs`); `int base = p->ny * (p->nx + 1);` hoists the row offset
+  into `mulli r11, r8, 0xc` + a stepping giv.
+- OPEN (Espgen42/45 Move00 inner loop): the target keeps `k*4` (r31) and `k*12` (r29) as the only
+  reduced givs and computes `c = cur + k*4` with an `add` per iteration (`c[-1]`, `c[1]`,
+  `subf r9, r21, r7` for `c[-1-nx]`), while ours strength-reduces `&cur[k]` and both neighbours into
+  stepping pointers (loop dump: giv 135 `cur + k*4` combined with the `cur[k]`/`c[±1]` DEST_ADDR
+  givs and reduced). Pointer/byte-offset/`u32`/label-between forms all reduce; the target's
+  `c` is either ignored (`lifetime * threshold * benefit < insn_count`) or not a giv
+  (k4 `cant_derive`). Both Move00s are otherwise structurally aligned (registers p=r28 etc.).
+- OPEN (esp0a Trans/SetFreeWork, esp0e Trans; candidate compiler-build difference): the implicit
+  copy-assignment of a polymorphic object (`*base = *esp`, vptr at 0xF4 saved to a frame temp and
+  restored) loads the saved vptr (`lwz r0, 0x8(r1)`) only AFTER the leftover block-copy stores
+  in the original, so the copy temp is r0; ours hoists the `mem/f` (scalar) frame temp above the
+  in-struct `stw` leftovers, the restore pseudo takes r0 across them and the copy temp gets
+  r9/r10/r11 (t4-style `struct A { int x[61]; virtual void f(); }; *a = *b;` reproduces it in
+  isolation). Only these two units have the pattern.
+- `esp43`'s stray `.rodata` zero word is a dead-stripped static with one `x != 0.0f` compare
+  (`Esp43_SetPos`, STRIP_UNUSED); `esp_app`'s 4-byte `.rodata` tail is the 8-alignment pad before
+  `esp_efm` (our .rodata is 4-aligned, the linker re-creates the gap).
 
 ## CRI middleware (`lib/adx_*`, `lib/sfd_*`, ... — CodeWarrior 2.4.7)
 

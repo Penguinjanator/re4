@@ -25,6 +25,15 @@ cEsp* Esp43_Create()
     return new cEsp43;
 }
 
+// Dead-stripped from the DOL (its 0.0f pool word survives at .rodata+0x54, STRIP_UNUSED): a debug
+// override that moves the effect to g_pos when it is set.
+static void Esp43_SetPos(cEsp* esp)
+{
+    if (g_pos.x != 0.0f || g_pos.y != 0.0f || g_pos.z != 0.0f) {
+        esp->pos = g_pos;
+    }
+}
+
 void cEsp43::move()
 {
     Esp43Work* w = &work;

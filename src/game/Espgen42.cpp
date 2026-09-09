@@ -671,7 +671,7 @@ void Espgen42_TransSub(EspgenWork* w)
 }
 
 // Dead-stripped from the DOL (string kept): pulls a generator and sets the surface up.
-static EspgenWork* SetWater(Vec* pos, Vec* rot, f32 size, u32 nx, u32 ny)
+static EspgenWork* SetWater(Vec* pos, Vec* rot, f32 size, u32 nx, u32 ny, f32 rate)
 {
     EspgenWork* w;
 
@@ -679,7 +679,7 @@ static EspgenWork* SetWater(Vec* pos, Vec* rot, f32 size, u32 nx, u32 ny)
         pLog->err(0, 0, "Espgen42 : work pull failed");
         return NULL;
     }
-    return SetWaterWork(w, pos, rot, size, nx, ny, 1.0f);
+    return SetWaterWork(w, pos, rot, size, nx, ny, rate);
 }
 
 EspgenWork* SetWaterWork(EspgenWork* w, Vec* pos, Vec* rot, f32 size, u32 nx, u32 ny, f32 rate)
@@ -706,10 +706,10 @@ EspgenWork* SetWaterWork(EspgenWork* w, Vec* pos, Vec* rot, f32 size, u32 nx, u3
     PSMTXTransApply(p->mat, p->mat, pos->x, pos->y, pos->z);
     PSMTXInverse(p->mat, p->inv);
     if (rate == 0.0f) {
-        rate = 0.0002f;
+        rate = 0.0001f;
     }
     p->mat[1][1] *= rate;
-    n = sizeof(f32) * (p->ny + 1) * (p->nx + 1);
+    n = sizeof(f32) * (p->nx + 1) * (p->ny + 1);
 #line 1050 "D:/Bio4/Prog/Espgen42.cpp"
     p->hA = (f32*) MEM_ALLOC(n, 1, 13);
     if (p->hA == NULL) {
@@ -726,7 +726,7 @@ EspgenWork* SetWaterWork(EspgenWork* w, Vec* pos, Vec* rot, f32 size, u32 nx, u3
         return NULL;
     }
     memclr_asm(p->hB, n);
-    n = sizeof(Vec) * (p->ny + 1) * (p->nx + 1);
+    n = sizeof(Vec) * (p->nx + 1) * (p->ny + 1);
 #line 1066 "D:/Bio4/Prog/Espgen42.cpp"
     p->pos = (Vec*) MEM_ALLOC(n, 1, 13);
     if (p->pos == NULL) {
@@ -744,13 +744,13 @@ EspgenWork* SetWaterWork(EspgenWork* w, Vec* pos, Vec* rot, f32 size, u32 nx, u3
     }
     memclr_asm(p->nrm, n);
 #line 1082 "D:/Bio4/Prog/Espgen42.cpp"
-    p->bump = (u8*) MEM_ALLOC(sizeof(Vec) * p->ny * p->nx, 1, 13);
+    p->bump = (u8*) MEM_ALLOC(sizeof(Vec) * p->nx * p->ny, 1, 13);
     if (p->bump == NULL) {
         pLog->err(0, 0, "Eg42:not mem");
         PushEspgen(w);
         return NULL;
     }
-    p->dlSize = ((p->nx + 1) * (p->ny * 2) * 12 + 0x61) & ~0x1F;
+    p->dlSize = ((p->nx + 1) * 2 * p->ny * 12 + 0x61) & ~0x1F;
 #line 1095 "D:/Bio4/Prog/Espgen42.cpp"
     p->dl = (u8*) MEM_ALLOC(p->dlSize, 1, 13);
     if (p->dl == NULL) {
@@ -771,7 +771,7 @@ EspgenWork* SetWaterWork(EspgenWork* w, Vec* pos, Vec* rot, f32 size, u32 nx, u3
     d++;
     *d = 0x98;
     d++;
-    *(u16*) d = (p->nx + 1) * (p->ny * 2);
+    *(u16*) d = (p->nx + 1) * 2 * p->ny;
     d += 2;
     for (i = 0; i < p->ny; i++) {
         k = i * (p->nx + 1);
@@ -784,15 +784,15 @@ EspgenWork* SetWaterWork(EspgenWork* w, Vec* pos, Vec* rot, f32 size, u32 nx, u3
             d += 4;
             *(f32*) d = (f32) i / (f32) (p->ny + 1);
             d += 4;
-            k++;
-            *(u16*) d = p->nx + k;
+            *(u16*) d = p->nx + (k + 1);
             d += 2;
-            *(u16*) d = p->nx + k;
+            *(u16*) d = p->nx + (k + 1);
             d += 2;
             *(f32*) d = (f32) j / (f32) (p->nx + 1);
             d += 4;
             *(f32*) d = (f32) (i + 1) / (f32) (p->ny + 1);
             d += 4;
+            k++;
         }
         i++;
         if (i < p->ny) {
@@ -806,10 +806,9 @@ EspgenWork* SetWaterWork(EspgenWork* w, Vec* pos, Vec* rot, f32 size, u32 nx, u3
                 d += 4;
                 *(f32*) d = (f32) i / (f32) (p->ny + 1);
                 d += 4;
-                k++;
-                *(u16*) d = p->nx + k;
+                *(u16*) d = p->nx + (k + 1);
                 d += 2;
-                *(u16*) d = p->nx + k;
+                *(u16*) d = p->nx + (k + 1);
                 d += 2;
                 *(f32*) d = (f32) j / (f32) (p->nx + 1);
                 d += 4;
@@ -819,13 +818,14 @@ EspgenWork* SetWaterWork(EspgenWork* w, Vec* pos, Vec* rot, f32 size, u32 nx, u3
         }
     }
     fy = 0.0f;
-    for (i = 0; i < p->ny + 1; i++) {
-        int idx = i * (p->nx + 1);
+    for (int i2 = 0; i2 < p->ny + 1; i2++) {
+        int idx = i2 * (p->nx + 1);
+        int jj;
         fx = 0.0f;
-        for (j = 0; j < p->nx + 1; j++) {
-            p->pos[idx].x = fx - (f32) (p->nx / 2);
+        for (jj = 0; jj < p->nx + 1; jj++) {
+            p->pos[idx].x = fx - (f32) (int) (p->nx / 2);
             p->pos[idx].y = fRand1_1() * 0.2f;
-            p->pos[idx].z = fy - (f32) (p->ny / 2);
+            p->pos[idx].z = fy - (f32) (int) (p->ny / 2);
             p->nrm[idx].x = 0.0f;
             p->nrm[idx].y = 1.0f;
             p->nrm[idx].z = 0.0f;
@@ -839,24 +839,26 @@ EspgenWork* SetWaterWork(EspgenWork* w, Vec* pos, Vec* rot, f32 size, u32 nx, u3
     {
         static f32 g42_init_y = 0.0f;
         static f32 g42_init_y2 = 0.0f;
+        int base;
         for (j = 0; j < p->nx + 1; j++) {
-            p->pos[j].y = g42_init_y;
+            p->pos[j].y = FGet(g42_init_y);
         }
+        base = p->ny * (p->nx + 1);
         for (j = 0; j < p->nx + 1; j++) {
-            p->pos[p->ny * (p->nx + 1) + j].y = g42_init_y;
+            p->pos[base + j].y = FGet(g42_init_y);
         }
-        for (i = 0; i < p->ny + 1; i++) {
-            p->pos[i * (p->nx + 1)].y = g42_init_y2;
+        for (int i3 = 0; i3 < p->ny + 1; i3++) {
+            p->pos[i3 * (p->nx + 1)].y = FGet(g42_init_y2);
         }
-        for (i = 0; i < p->ny + 1; i++) {
-            p->pos[i * (p->nx + 1) + p->nx].y = g42_init_y2;
+        for (int i4 = 0; i4 < p->ny + 1; i4++) {
+            p->pos[i4 * (p->nx + 1) + p->nx].y = FGet(g42_init_y2);
         }
     }
-    n = sizeof(Vec) * (p->ny + 1) * (p->nx + 1);
+    n = sizeof(Vec) * (p->nx + 1) * (p->ny + 1);
     DCStoreRange(p->pos, n);
     DCStoreRange(p->nrm, n);
-    DCStoreRange(p->bump, sizeof(Vec) * (p->ny + 1) * (p->nx + 1));
-    n = sizeof(f32) * (p->ny + 1) * (p->nx + 1);
+    DCStoreRange(p->bump, sizeof(Vec) * (p->nx + 1) * (p->ny + 1));
+    n = sizeof(f32) * (p->nx + 1) * (p->ny + 1);
     DCStoreRange(p->hA, n);
     DCStoreRange(p->hB, n);
     DCStoreRange(p->dl, p->dlSize);
