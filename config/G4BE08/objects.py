@@ -1444,3 +1444,16 @@ MATCHING.update({
     "game/file_app.cpp": True,
     "game/pl_sub.cpp": True,
 })
+
+# EtcModel: GetEtcAmbType's first `return 1` copy kept with an empty `asm volatile("")` opening the
+# else arm (COMPILER-DIFF 6, see the source comment)
+MATCHING.update({
+    "game/EtcModel.cpp": True,
+})
+
+# eprintf: `dst = mess_keep_ptr` read inside the slot-search loop with a single early return (gcse PRE
+# copy instead of cse), loop test through a cast so the table pointer is reloaded per iteration,
+# `s16 x = lo; x |= hi << 8` byte assembly, s16 coordinate copies declared after GXBegin
+MATCHING.update({
+    "game/eprintf.cpp": True,
+})

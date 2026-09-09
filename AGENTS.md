@@ -3514,3 +3514,15 @@ target) stays unresolved and `make_rel` then fails with "undefined symbol".
   DataInput `clrlwi r5, r29, 24` per iteration in the first name loop, DataLoad's `(u8)` cast of the
   first footer colour (folded into the arms by our front end), DataSave's `seAtSaveNum` reload after
   the record copy.
+- A `u8` counter the target does not constant-fold (`mr r3,rN` at uses, `clrlwi` only at a u8-param
+  call) is an `int` incremented through call arguments (`f(nGen++, ...)` twice).
+- `lwz r0,g; mr r7,r0; cmplw r0` around an early-return test = gcse PRE's copy: keep a single early
+  return and read the global again inside the later block.
+- `lbz rV,0(p) ... or r0,rV,r0; extsh rV,r0` = `s16 v = p[0]; v |= p[1] << 8;`.
+- `addi rX,r1,ofs` for a block-local object hoisted above an earlier call = `T* p = &obj;` declared
+  before the `if`.
+- 8-byte zero-initialised `static char name[8]` sits in `.sdata`; 10 bytes would move it to `.data`.
+- gcse PRE hash: hash = 119+6+(61<<7)+h(name), h = h*129+c, table = n_insns/2|1 buckets; n_insns at
+  gcse time excludes cse-deleted dead initialisers; `asm volatile("")` before a loop disables its
+  invariant motion (exception `ErrorHandler`, t_bugcheck).
+

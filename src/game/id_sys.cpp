@@ -980,9 +980,9 @@ void IDSystem::trans()
 
 void IDSystem::unitTrans(IdUnit* u)
 {
+    IdUnit* c = pUnit; // declared before i: decides the r25/r26 split of the i+1 / c+1 loop temps
     int i;
     int j;
-    IdUnit* c = pUnit;
 
     for (i = 0; i < num; i++, c++) {
         if (c->flags == 0xFF || !(c->flags & 0x1)) {
@@ -1080,13 +1080,14 @@ void IdCommonTrans(IdUnit* u)
         if (wk != 0) {
             GXTexObj obj;
             GXTlutObj tlut;
+            GXTlutObj* pTlut = &tlut; // see IdShimmerTrans
             Mtx tm;
             TEXDescriptor* td = TEXGet(wk->pTpl, u->maskNo);
             TEXHeader* th = td->textureHeader;
             if (th->format == 8 || th->format == 9) {
                 GXInitTexObjCI(&obj, th->data, th->width, th->height, th->format, 0, 0, 0, 1);
-                GXInitTlutObj(&tlut, td->CLUTHeader->data, td->CLUTHeader->format, td->CLUTHeader->numEntries);
-                GXLoadTlut(&tlut, 1);
+                GXInitTlutObj(pTlut, td->CLUTHeader->data, td->CLUTHeader->format, td->CLUTHeader->numEntries);
+                GXLoadTlut(pTlut, 1);
             } else {
                 GXInitTexObj(&obj, th->data, th->width, th->height, th->format, 0, 0, 0);
             }
@@ -1273,13 +1274,12 @@ void IdShimmerTrans(IdUnit* u, int sub, int type)
     Mtx pm;
     Mtx tm;
     C_MTXLightPerspective(pm, pG->Cam.param.fovy, 1.3333334f, 0.5f, -0.5f, 0.5f, 0.5f);
-    nGen = 2;
     PSMTXConcat(IDSystem::m_scrn_mat, u->mat, tm);
     PSMTXConcat(pm, tm, tm2);
     GXLoadTexMtxImm(tm2, 0x1E, 0);
-    GXSetTexCoordGen(0, 0, 0, 0x1E);
+    GXSetTexCoordGen(nGen++, 0, 0, 0x1E);
     GXSetNumIndStages(1);
-    GXSetTexCoordGen(1, 1, 4, 0x3C);
+    GXSetTexCoordGen(nGen++, 1, 4, 0x3C);
     GXSetIndTexOrder(0, 1, 0);
     GXSetIndTexCoordScale(0, 0, 0);
     {
@@ -1337,11 +1337,12 @@ void IdShimmerTrans(IdUnit* u, int sub, int type)
             {
                 GXTexObj mobj;
                 GXTlutObj tlut;
+                GXTlutObj* pTlut = &tlut; // address taken before the format test: `addi r31,r1,..` hoisted above TEXGet
                 TEXHeader* th = td->textureHeader;
                 if (th->format == 8 || th->format == 9) {
                     GXInitTexObjCI(&mobj, th->data, th->width, th->height, th->format, 0, 0, 0, 1);
-                    GXInitTlutObj(&tlut, td->CLUTHeader->data, td->CLUTHeader->format, td->CLUTHeader->numEntries);
-                    GXLoadTlut(&tlut, 1);
+                    GXInitTlutObj(pTlut, td->CLUTHeader->data, td->CLUTHeader->format, td->CLUTHeader->numEntries);
+                    GXLoadTlut(pTlut, 1);
                 } else {
                     GXInitTexObj(&mobj, th->data, th->width, th->height, th->format, 0, 0, 0);
                 }
@@ -1437,7 +1438,7 @@ void IdSetBufferType(int type)
 static inline const char* IdDebugName()
 {
     static char unknown[2] = "?";
-    static char name[10] = "";
+    static char name[8] = "";
     return unknown[0] ? name : unknown;
 }
 

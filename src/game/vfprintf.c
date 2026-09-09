@@ -136,8 +136,13 @@ char *fftoa(double value, int prec, char fmt, int strip, char *sign)
     double x, eps;
 
     /* OPEN (7 words): the original issues `mr r25,r4` before the union's `fmr f0,f30` reload and
-     * allocates lo/sgn to r11/r10 (ours r8/r11: global-alloc order lo vs sgn, live length 13 vs 11);
-     * union shapes, statement/declaration/parameter orders and unsigned long all tried. */
+     * allocates lo/sgn to r11/r10 (ours r8/r11). Mechanism (sched dumps): the union is a DImode
+     * pseudo local-allocated to r9:r10, `lo = u.w[1]` is a birthing insn (adjust_priority boosts it to
+     * max priority at cycle 3, before mant/se/sgn), so lo lives 13 insns vs sgn's 11 and global-alloc
+     * takes sgn first (r11), leaving lo r8. The target allocated lo first (r11) and sgn second (r10),
+     * i.e. its `lo` set was scheduled after `sgn`. Union shapes (struct/array/long long/initializer),
+     * read order, statement order, int fmt, a `double v = value` copy and an asm launder on lo all
+     * leave the 7 words. */
     u.d = value;
     lo = u.w[1];
     hi = u.w[0];

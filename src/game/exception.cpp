@@ -84,6 +84,7 @@ void excepRegConsoleDump(int error, u32 dsisr, u32 dar);
 // A store through a scalar reference is not a struct-member MEM: the static `addr` is reloaded
 // after it, as the original does.
 static inline void U32Set(u32& d, u32 v) { d = v; }
+static inline void ISet(int& d, int v) { d = v; }
 
 #line 40 "D:/Bio4/Prog/exception.cpp"
 
@@ -476,10 +477,14 @@ void excepRegConsoleDump(int error, u32 dsisr, u32 dar)
     OSReport("\n");
 }
 
-// Not matched (99.5%): the loop-invariant `lis` of "DSISR: %08X  DAR: %08X" and of symbol_err_tbl
-// swap r15/r16. Both are gcse PRE pseudos created in hash-bucket order (hash of the symbol *name*,
-// table size max_uid/4|1); with our `.LC` numbering no uid count reproduces the target, so the original
-// TU numbered its string constants differently.
+// Not matched (4 words): the loop-invariant `lis` of "DSISR: %08X  DAR: %08X" and of symbol_err_tbl
+// swap r15/r16. Both are gcse PRE pseudos numbered in hash-bucket order. Exact numbers (gcse.c):
+// hash = 119(HIGH) + 6(SImode) + (61(SYMBOL_REF) << 7) + h(name), h = h*129 + c per char; the table
+// has n_insns/2|1 buckets (n_insns = real insns at gcse time, ours 504..507 -> 253 buckets, where
+// ".LC64" -> 158 and "symbol_err_tbl" -> 150). The target's order needs .LC64's bucket below the
+// table's: 255 or 257 buckets (1..7 more real insns at gcse time; dead `int x = 0` initialisers are
+// deleted by cse before gcse and `asm volatile("")` breaks the loop-invariant motion) or a string
+// label in .LC70..79 / .LC90..128 (our TU has one hidden label, .LC0). Left open.
 void ErrorHandler(OSError error, OSContext* context, ...)
 {
     va_list ap;
@@ -505,7 +510,7 @@ void ErrorHandler(OSError error, OSContext* context, ...)
     w = &test;
     n = 0;
     memclr_asm(w, sizeof(MemDump));
-    call_stack_num = n;
+    ISet(call_stack_num, n); // the reference store keeps `lwz pContext` below it
     sp = (u32*) pContext->gpr[1];
     if (sp != 0 && sp != (u32*) -1) {
         i = 0;

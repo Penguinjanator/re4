@@ -158,37 +158,37 @@ void EprintfBufferClear()
 
 void EprintfBuffering(int w, int h, char* str)
 {
-    char* p;
     char* dst = NULL;
     int i;
 
+    // mess_keep_ptr is re-read inside the loop and the body is guarded by one `if`: the single early
+    // return lets cse follow the taken jump, so gcse PRE (not cse) merges the two loads and leaves the
+    // `lwz r0; mr r7,r0; cmplw r0` copy.
     if (mess_keep_ptr >= mess_keep_buffer + MESS_KEEP_SIZE - 0x40) {
         return;
     }
-    p = mess_keep_ptr;
     for (i = 0; i < MESS_PTR_NUM; i++) {
         if (MESS_PTR(i) == NULL) {
-            dst = p;
+            dst = mess_keep_ptr;
             MESS_PTR(i) = dst;
             break;
         }
     }
-    if (dst == NULL) {
-        return;
+    if (dst != NULL) {
+        dst[0] = Moji.x & 0xFF;
+        dst[1] = Moji.x >> 8;
+        dst[2] = Moji.y & 0xFF;
+        dst[3] = Moji.y >> 8;
+        dst[4] = Moji.color;
+        dst[5] = w;
+        dst[6] = h;
+        dst += 7;
+        while (*str != 0) {
+            *dst++ = *str++;
+        }
+        *dst = 0;
+        mess_keep_ptr = dst + 1;
     }
-    dst[0] = Moji.x & 0xFF;
-    dst[1] = Moji.x >> 8;
-    dst[2] = Moji.y & 0xFF;
-    dst[3] = Moji.y >> 8;
-    dst[4] = Moji.color;
-    dst[5] = w;
-    dst[6] = h;
-    dst += 7;
-    while (*str != 0) {
-        *dst++ = *str++;
-    }
-    *dst = 0;
-    mess_keep_ptr = dst + 1;
 }
 
 void font_draw(char* str, int color, int y, int x, int z, int w, int h)
@@ -218,16 +218,20 @@ void font_draw(char* str, int color, int y, int x, int z, int w, int h)
         r = g = b = 0xFF;
     }
     GXBegin(0x80, 0, 4);
-    GXPosition3s16(x, y, z);
+    // s16 copies declared after GXBegin: `x + w` adds to the extended value (add r0,r5,r22)
+    s16 sx = x;
+    s16 sy = y;
+    s16 sz = z;
+    GXPosition3s16(sx, sy, sz);
     GXColor4u8(r, g, b, a);
     GXTexCoord2s16(u, v);
-    GXPosition3s16(x + w, y, z);
+    GXPosition3s16(sx + w, sy, sz);
     GXColor4u8(r, g, b, a);
     GXTexCoord2s16(u + 8, v);
-    GXPosition3s16(x + w, y + h, z);
+    GXPosition3s16(sx + w, sy + h, sz);
     GXColor4u8(r, g, b, a);
     GXTexCoord2s16(u + 8, v + 16);
-    GXPosition3s16(x, y + h, z);
+    GXPosition3s16(sx, sy + h, sz);
     GXColor4u8(r, g, b, a);
     GXTexCoord2s16(u, v + 16);
 }
@@ -273,10 +277,14 @@ void EprintfDrawing()
     GXSetVtxAttrFmt(0, 9, 1, 3, 0);
     GXSetVtxAttrFmt(0, 11, 1, 5, 0);
     GXSetVtxAttrFmt(0, 13, 1, 3, 8);
-    for (i = 0; i < MESS_PTR_NUM && MESS_PTR(i) != NULL; i++) {
+    // The loop test reads the table through a cast (not MEM_IN_STRUCT_P), the body through MESS_PTR:
+    // gcse then keeps both `lwz mess_ptr_buff` loads per iteration like the original.
+    for (i = 0; i < MESS_PTR_NUM && *(u32*) (mess_ptr_buff + i * 4) != 0; i++) {
         u8* p = (u8*) MESS_PTR(i);
-        s16 x = p[0] | (p[1] << 8);
-        s16 y = p[2] | (p[3] << 8);
+        s16 x = p[0]; // `x |= hi << 8` keeps the low byte in the variable's register
+        x |= p[1] << 8;
+        s16 y = p[2];
+        y |= p[3] << 8;
         int color = p[4];
         int w = p[5];
         s16 h = p[6];

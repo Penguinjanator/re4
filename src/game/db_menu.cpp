@@ -263,6 +263,8 @@ void move(struct test* t)
     joy = GetBugCheckController();
     t->x += joy->ssx / 16;
     t->y -= joy->ssy / 16;
+    // OPEN: the target issues `addi r4,&m; addi r5,&s; addi r3,&h` (h's address last, as if set straight
+    // into r3); declaration orders of h/m/s do not move it.
     GetGameTime(&h, &m, &s);
     eprintf(t->x, t->y, 0, 0, "WELCOME TO TOOL MENU");
     eprintf(t->x + 160, t->y + 405, 0, 0, "MOVE BY SUB-STICK");
@@ -274,6 +276,10 @@ void move(struct test* t)
     if (joy->rep & 0x80008) {
         t->cursor -= 2;
         if (t->cursor < 0) {
+            // OPEN (6 words): the target computes `andi. r11,r9,1` (cursor & 1 from the register, unused),
+            // reloads cursor, then `xori 1; andi.; beq; li r0,1; cmpwi r0,0; li 32; bne; li 33` - a
+            // materialised `!(cursor & 1)` tested again. `==0`/`!`/`^1`/bool/int temps, if/else and a
+            // doubled statement were tried.
             t->cursor = (t->cursor & 1) ? MENU_NUM - 1 : MENU_NUM - 2;
         }
     }

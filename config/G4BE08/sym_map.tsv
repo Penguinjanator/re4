@@ -2793,7 +2793,7 @@ address	size	section	unit	scope	name	demangled
 0x800B9160	0x28	.text	lib/adx_sjd.c	global	ADXSJD_SetMaxDecSmpl	ADXSJD_SetMaxDecSmpl
 0x800B9188	0x28	.text	lib/adx_sjd.c	global	ADXSJD_SetInSj	ADXSJD_SetInSj
 0x800B91B0	0xC	.text	lib/adx_sjd.c	global	ADXSJD_GetStat	ADXSJD_GetStat
-0x800B91BC	0x5C	.text	lib/adx_sjd.c	local	ADXSJD_Destroy	ADXSJD_Destroy
+0x800B91BC	0x5C	.text	lib/adx_sjd.c	global	ADXSJD_Destroy	ADXSJD_Destroy
 0x800B9218	0x298	.text	lib/adx_sjd.c	global	ADXSJD_Create	ADXSJD_Create
 0x800B94B0	0x30	.text	lib/adx_sjd.c	global	ADXSJD_Finish	ADXSJD_Finish
 0x800B94E0	0x34	.text	lib/adx_sjd.c	global	ADXSJD_Init	ADXSJD_Init
@@ -2811,7 +2811,7 @@ address	size	section	unit	scope	name	demangled
 0x800B9CA4	0x18	.text	lib/adx_bsc.c	global	ADXB_Start	ADXB_Start
 0x800B9CBC	0x74	.text	lib/adx_bsc.c	global	ADXB_EntryData	ADXB_EntryData
 0x800B9D30	0x8	.text	lib/adx_bsc.c	global	ADXB_GetStat	ADXB_GetStat
-0x800B9D38	0x4C	.text	lib/adx_bsc.c	local	ADXB_RestoreSnapshot	ADXB_RestoreSnapshot
+0x800B9D38	0x4C	.text	lib/adx_bsc.c	global	ADXB_RestoreSnapshot	ADXB_RestoreSnapshot
 0x800B9D84	0x4C	.text	lib/adx_bsc.c	global	ADXB_TakeSnapshot	ADXB_TakeSnapshot
 0x800B9DD0	0x10	.text	lib/adx_bsc.c	global	ADXB_GetDefPan	ADXB_GetDefPan
 0x800B9DE0	0x8	.text	lib/adx_bsc.c	global	ADXB_GetDefOutVol	ADXB_GetDefOutVol
@@ -6684,7 +6684,7 @@ address	size	section	unit	scope	name	demangled
 0x801E0770	0x294	.text	lib/mwsfdply.c	global	mwSfdStartSj	mwSfdStartSj
 0x801E0A04	0x298	.text	lib/mwsfdply.c	global	mwSfdStartMem	mwSfdStartMem
 0x801E0C9C	0x2C8	.text	lib/mwsfdply.c	global	mwSfdStartFnameSub	mwSfdStartFnameSub
-0x801E0F64	0x84	.text	lib/mwsfdply.c	local	mwSfdStartFname	mwSfdStartFname
+0x801E0F64	0x84	.text	lib/mwsfdply.c	global	mwSfdStartFname	mwSfdStartFname
 0x801E0FE8	0x50	.text	lib/mwsfdply.c	global	mwPlySfdStart	mwPlySfdStart
 0x801E1038	0x54	.text	lib/mwsfdset.c	global	mwSfdGetOutPan	mwSfdGetOutPan
 0x801E108C	0x50	.text	lib/mwsfdset.c	global	mwSfdSetOutPan	mwSfdSetOutPan
@@ -7197,7 +7197,7 @@ address	size	section	unit	scope	name	demangled
 0x801FEC70	0x84	.text	lib/mps_dec.c	global	MPS_DecHd	MPS_DecHd
 0x801FECF4	0x54	.text	lib/mps_dec.c	global	MPS_SetPesFn	MPS_SetPesFn
 0x801FED48	0x54	.text	lib/mps_dec.c	global	MPS_SetPsMapFn	MPS_SetPsMapFn
-0x801FED9C	0x54	.text	lib/mps_dec.c	local	MPS_SetSystemFn	MPS_SetSystemFn
+0x801FED9C	0x54	.text	lib/mps_dec.c	global	MPS_SetSystemFn	MPS_SetSystemFn
 0x801FEDF0	0x4	.text	lib/mps_dec.c	global	MPSDEC_Finish	MPSDEC_Finish
 0x801FEDF4	0x4	.text	lib/mps_dec.c	global	MPSDEC_Init	MPSDEC_Init
 0x801FEDF8	0x7C	.text	lib/mps_del.c	global	MPS_CheckDelim	MPS_CheckDelim

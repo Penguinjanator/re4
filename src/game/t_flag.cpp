@@ -264,6 +264,10 @@ static void move(FE_WORK* t)
         bit = t->cursor;
         cur = bit;
         {
+            // OPEN (11 words, registers only): the target keeps `cur & 0xF` in scratch r11 (not tied
+            // into x's chain) so y is allocated first (r30) and x second (r29); ours ties the mask into
+            // x (r30) and gives y r29. Declaration/statement order, a lo temp of every width, a
+            // function-scope temp, `%`/`/` forms and inlining into the call were tried.
             int y = ((cur >> 4) + (cur >> 6) + 6) * 14;
             int x = ((cur & 0xF) + ((cur & 0xF) >> 2) + 23) * 8;
             eprintf(x, y, 2, 0, "%01x", CkBit(p->flags, cur));
@@ -301,3 +305,6 @@ int CkBit(u32* flags, u32 bit)
     }
     return 0;
 }
+
+// The split object carries the 8-byte .sdata alignment of the following unit.
+asm(".section .sdata; .balign 8");
