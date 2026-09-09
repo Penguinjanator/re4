@@ -117,6 +117,9 @@ u8* searchItemModelData(int id, PieceInfo* tbl)
     }
 }
 
+// OPEN: the original computes the second loop's reversed count before the entry test (`subic.
+// r0,r29,4; ble`) and passes it through CTR (`mtctr r0; mfctr r31`: the count pseudo took the
+// ctrsi pattern's CTR preference); ours keeps `cmpwi; ble; subi` in the preheader.
 void pzlPiece::orientation(int o)
 {
     int i;
@@ -141,10 +144,8 @@ void pzlPiece::orientation(int o)
 
 void pzlPiece::rotate(int dir)
 {
-    f32 t;
-
     switch (dir) {
-    case 0:
+    case 0: {
         if (orient >= 0) {
             if (orient <= 3) {
                 orient++;
@@ -158,11 +159,12 @@ void pzlPiece::rotate(int dir)
                 }
             }
         }
-        t = cx;
+        f32 t = cx;
         cx = -cy;
         cy = t;
         break;
-    case 1:
+    }
+    case 1: {
         if (orient >= 0) {
             if (orient <= 3) {
                 orient--;
@@ -176,10 +178,11 @@ void pzlPiece::rotate(int dir)
                 }
             }
         }
-        t = cx;
+        f32 t = cx;
         cx = cy;
         cy = -t;
         break;
+    }
     }
 }
 
@@ -253,8 +256,8 @@ void pzlPiece::init(PieceData* d)
     flags |= 1;
     cx = d->cx;
     cy = d->cy;
-    orient = 0;
     state = 0;
+    orient = 0;
 }
 
 f32 pzlPiece::ver0_x()
@@ -269,45 +272,67 @@ f32 pzlPiece::ver0_y()
 
 int pzlPiece::size_x()
 {
+    s8 size;
+
     if (data == 0) {
         return 0;
     }
     switch (orient) {
     case 0:
     case 6:
-        return data->w;
+        size = data->w;
+        break;
     case 1:
     case 5:
-        return (s8) -data->h;
+        size = -data->h;
+        break;
     case 2:
     case 4:
-        return (s8) -data->w;
+        size = -data->w;
+        break;
     case 3:
     case 7:
-        return data->h;
+        size = data->h;
+        break;
+    default:
+        goto none;
     }
+    return size;
+none:
     return 0;
 }
 
+// OPEN: the last arm's `neg; extsb; blr` tail is cross-jumped into the previous arm in the
+// original (size_x gets the same merge from ours); jump2 leaves it unmerged here.
 int pzlPiece::size_y()
 {
+    s8 size;
+
     if (data == 0) {
         return 0;
     }
     switch (orient) {
     case 0:
     case 4:
-        return data->h;
+        size = data->h;
+        break;
     case 1:
     case 7:
-        return data->w;
+        size = data->w;
+        break;
     case 2:
     case 6:
-        return (s8) -data->h;
+        size = -data->h;
+        break;
     case 3:
     case 5:
-        return (s8) -data->w;
+        size = -data->w;
+        break;
+    default:
+        goto none;
     }
+    return size;
+none:
     return 0;
 }
 
@@ -341,19 +366,22 @@ int pzlPiece::shape(int px, int py)
     int rx;
     int ry;
 
-    o = orient;
-    if (o > 3) {
-        o -= 4;
+    if (orient > 3) {
+        o = orient - 4;
+    } else {
+        o = orient;
     }
     ang = (f32) o * -3.1415927f * 0.5f;
     rot.m[0] = cosf(ang);
     rot.m[1] = -(s8) sinf(ang);
     rot.m[2] = sinf(ang);
     rot.m[3] = cosf(ang);
-    rx = (s8) (rot.m[0] * px + rot.m[1] * py);
-    ry = (s8) (rot.m[2] * px + rot.m[3] * py);
-    if (orient >= 4 && orient <= 7) {
-        rx = (s8) -rx;
+    rx = (s8) (px * rot.m[0] + py * rot.m[1]);
+    ry = (s8) (px * rot.m[2] + py * rot.m[3]);
+    if (orient <= 7) {
+        if (orient >= 4) {
+            rx = (s8) -rx;
+        }
     }
     if (rx < 0 || rx >= data->w || ry < 0 || ry >= data->h) {
         return 0;
@@ -366,10 +394,11 @@ int pzlBoard::init(int w_, int h_, int pieceMax_)
 {
     int i;
 
+#line 543 "D:/Bio4/Prog/puzzle.cpp"
     cells = (u8*) MEM_ALLOC(w_ * h_, 1, 13);
     if (cells == 0) {
-        h = 0;
         w = 0;
+        h = 0;
         return 0;
     }
     w = w_;
@@ -416,7 +445,7 @@ int pzlBoard::search(pzlPiece* p)
     int i;
 
     for (i = 0; i < pieceMax; i++) {
-        if (pieces[i] && pieces[i] == p) {
+        if (pieces[i] && p == pieces[i]) {
             return 1;
         }
     }
@@ -832,12 +861,13 @@ pzlPiece* pzlPlayer::piecePtr(int no)
     int i;
 
     for (i = 0; i < pieceNum_; i++) {
-        if (pieces[i].flags & 1) {
-            if (n == no) {
-                return &pieces[i];
-            }
-            n++;
+        if (!(pieces[i].flags & 1)) {
+            continue;
         }
+        if (n == no) {
+            return &pieces[i];
+        }
+        n++;
     }
     return 0;
 }
@@ -847,7 +877,10 @@ pzlPiece* pzlPlayer::piecePtr(ItemWork* item)
     int i;
 
     for (i = 0; i < pieceNum_; i++) {
-        if ((pieces[i].flags & 1) && pieces[i].item == item) {
+        if (!(pieces[i].flags & 1)) {
+            continue;
+        }
+        if (item == pieces[i].item) {
             return &pieces[i];
         }
     }
@@ -860,16 +893,18 @@ void pzlPlayer::save()
 
     for (i = 0; i < pieceNum_; i++) {
         pzlPiece* p = &pieces[i];
-        if (p->flags & 1) {
-            ItemWork* item = p->item;
-            item->x = (s8) (p->x + p->x);
-            item->y = (s8) (p->y + p->y);
-            item->orient = p->orient;
-            if (caseBoard->search(p)) {
-                item->board = 1;
-            } else if (spaceBoard->search(p)) {
-                item->board = 0;
-            }
+        ItemWork* item;
+        if (!(p->flags & 1)) {
+            continue;
+        }
+        item = p->item;
+        item->x = (s8) (p->x + p->x);
+        item->y = (s8) (p->y + p->y);
+        item->orient = p->orient;
+        if (caseBoard->search(p)) {
+            item->board = 1;
+        } else if (spaceBoard->search(p)) {
+            item->board = 0;
         }
     }
 }
@@ -888,8 +923,9 @@ int pzlPlayer::appendExtraPiece(ItemWork* item)
         return 0;
     }
     for (i = 0; i < pieceNum_; i++) {
-        if (!(pieces[i].flags & 1)) {
-            p = &pieces[i];
+        pzlPiece* q = &pieces[i];
+        if (!(q->flags & 1)) {
+            p = q;
             break;
         }
     }
@@ -898,8 +934,8 @@ int pzlPlayer::appendExtraPiece(ItemWork* item)
     }
     p->init(d);
     p->item = item;
-    p->y = 0.0f;
     p->x = 0.0f;
+    p->y = 0.0f;
     extra = p;
     return 1;
 }
@@ -924,8 +960,8 @@ int pzlPlayer::removeExtraPiece()
     ItemMgr.erase(extra->item);
     extra->model->push();
     extra->flags = 0;
-    extra = 0;
     hand = 0;
+    extra = 0;
     return 1;
 }
 
@@ -1088,18 +1124,18 @@ int pzlPlayer::chgPiece(pzlBoard* b)
         return 0;
     }
     p = b->lapPiece(hand);
-    if (p == 0) {
-        return 0;
+    if (p != 0) {
+        b->rmPiece(p);
+        b->putPiece(hand);
+        p->state = 2;
+        hand = p;
+        handX = p->x;
+        handY = p->y;
+        handOrient = p->orient;
+        handBoard = cur;
+        return 1;
     }
-    b->rmPiece(p);
-    b->putPiece(hand);
-    p->state = 2;
-    hand = p;
-    handX = p->x;
-    handY = p->y;
-    handOrient = p->orient;
-    handBoard = cur;
-    return 1;
+    return 0;
 }
 
 pzlPiece* pzlPlayer::cmbPiece(pzlBoard* b)
@@ -1370,7 +1406,10 @@ void pzlPlayer::rehash()
 
     for (i = 0; i < pieceNum_; i++) {
         pzlPiece* p = &pieces[i];
-        if ((p->flags & 1) && p->item->flags == 0) {
+        if (!(p->flags & 1)) {
+            continue;
+        }
+        if (p->item->flags == 0) {
             if (p->state & 1) {
                 if (caseBoard->search(p)) {
                     caseBoard->rmPiece(p);

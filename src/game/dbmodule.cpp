@@ -569,9 +569,9 @@ void Draw_corn2(Vec* pos, Vec* dir, f32 len, f32 ang, u32 color)
 void Draw_box(Vec* v, u32 color, int flag)
 {
     static u8 ptbl[36] = {
-        0, 1, 2,  1, 3, 2,  4, 5, 6,  5, 7, 6,
-        0, 1, 4,  1, 5, 4,  2, 3, 6,  3, 7, 6,
-        0, 2, 4,  2, 6, 4,  1, 3, 5,  3, 7, 5,
+        0, 2, 1,  2, 3, 1,  4, 5, 6,  5, 7, 6,
+        2, 6, 3,  6, 7, 3,  0, 1, 4,  1, 5, 4,
+        1, 3, 5,  3, 7, 5,  2, 0, 6,  0, 4, 6,
     };
     Vec p[3];
     int i;
@@ -709,18 +709,16 @@ void init_sphere()
             GXPosition3f32(v1.x, v1.y, v1.z);
         }
     }
-    for (i = 0; i < 16; i++) {
-        f32 ph = (f32) i * (2.0f * PI) / 16.0f;
-        for (j = 0; j < 16; j++) {
-            f32 th0, th1;
-            th0 = (f32) j * PI / 16.0f;
-            v0.x = COSF(ph) * SINF(th0);
-            v0.y = -COSF(th0);
-            v0.z = SINF(ph) * SINF(th0);
-            th1 = (f32) (j + 1) * PI / 16.0f;
-            v1.x = COSF(ph) * SINF(th1);
-            v1.y = -COSF(th1);
-            v1.z = SINF(ph) * SINF(th1);
+    for (j = 0; j < 16; j++) {
+        for (i = 0; i < 16; i++) {
+            f32 th0;
+            th0 = (f32) j * (2.0f * PI) / 16.0f;
+            v0.x = COSF(th0) * SINF((f32) i * PI / 16.0f);
+            v0.y = -COSF((f32) i * PI / 16.0f);
+            v0.z = SINF(th0) * SINF((f32) i * PI / 16.0f);
+            v1.x = COSF(th0) * SINF((f32) (i + 1) * PI / 16.0f);
+            v1.y = -COSF((f32) (i + 1) * PI / 16.0f);
+            v1.z = SINF(th0) * SINF((f32) (i + 1) * PI / 16.0f);
             GXPosition3f32(v0.x, v0.y, v0.z);
             GXPosition3f32(v1.x, v1.y, v1.z);
         }
@@ -802,6 +800,10 @@ void init_corn()
     GXEndDisplayList();
 }
 
+// `psq_l f,0(p),1,qr5` straight from the vertex pointer: inline asm in the original (the compiler
+// always converts an s16 through a stack slot).
+#define PSQ_L_S16(p) ({ f32 f_; asm volatile("psq_l %0,0(%1),1,5" : "=f"(f_) : "b"(p)); f_; })
+
 // Converts `n` indexed s16 vertices into `p` (scaled) and transforms them by `mat`.
 static inline void WireXform(Vec* p, u16* idx, u32 n, s16* vtx, f32 scale, Mtx mat)
 {
@@ -809,9 +811,9 @@ static inline void WireXform(Vec* p, u16* idx, u32 n, s16* vtx, f32 scale, Mtx m
     for (k = 0; k < n; k++) {
         s16* v = (s16*) ((u8*) vtx + *idx * 8);
         idx++;
-        p->x = (f32) v[0];
-        p->y = (f32) v[1];
-        p->z = (f32) v[2];
+        p->x = PSQ_L_S16(v);
+        p->y = PSQ_L_S16(v + 1);
+        p->z = PSQ_L_S16(v + 2);
         p->x *= scale;
         p->y *= scale;
         p->z *= scale;
@@ -832,9 +834,17 @@ static inline void WireVtx(Vec* p, int n, u8 r, u8 g, u8 b, u8 a)
     }
 }
 
+// OPEN (77%): the original drives WireXform/WireVtx and the GXPosition3f32 reads through ONE
+// function-scope `Vec* pv` (`mr r31, r24` = pv = p before each loop, `mr r31, r23` = &p[2]), a
+// `u16* pidx` recomputed `addi r29, r1, 0x38` per command, keeps `part` in r14 and advances it in
+// place (`cmd = (u8*) part + 0x20; part = (ModelPart*) ((u8*) part + part->size + 0x20); while (cmd
+// < (u8*) part)`), spills `obj` (0x40(r1)) and the colour bytes cg/ca (0x50/0x54) around the calls,
+// and the strip case copies p[0] = p[2]; p[2] = p[1] through pointer locals (&p[0]/&p[1]/&p[2]).
+// `vtx_size` is an unused non-static local (8-byte .rodata template between init_corn's pool and
+// this function's pool; a `static const` lands in .sdata2).
 void DrawObjWireframe(cObj* obj, int color)
 {
-    static const u8 vtx_size[7] = {8, 8, 10, 12, 10, 8, 8};
+    const u8 vtx_size[8] = {8, 8, 10, 12, 10, 8, 8, 0};
     ModelData* md;
     ModelPart* part;
     u8* cmd;
@@ -943,9 +953,9 @@ void DrawObjWireframe(cObj* obj, int color)
                     idx[0] = *(u16*) cmd;
                     cmd += 8;
                     v = vtx + idx[0] * 4;
-                    p[1].x = (f32) v[0];
-                    p[1].y = (f32) v[1];
-                    p[1].z = (f32) v[2];
+                    p[1].x = PSQ_L_S16(v);
+                    p[1].y = PSQ_L_S16(v + 1);
+                    p[1].z = PSQ_L_S16(v + 2);
                     p[1].x *= scale;
                     p[1].y *= scale;
                     p[1].z *= scale;

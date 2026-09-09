@@ -1509,9 +1509,8 @@ int Merchant::buyupPrice(u16 id, int num)
 {
     ItemInfo info;
     PriceEntry* p = exerciseItemId(id);
-    f32 half = 0.5f;
+    const f32 half = 0.5f;
     const f32 nine = 0.9f;
-    f32 result;
     int price;
     int n;
     int type;
@@ -1524,17 +1523,19 @@ int Merchant::buyupPrice(u16 id, int num)
     price = p->price * n;
     itemInfo(id, &info);
     type = info.type;
-    // `half` (single-use variable: update_equiv_regs moves its load to the use, the lis stays in
-    // the prologue in r29) and `nine` (const: pool entry only) give the pool order 0.5, 0.9, magic;
-    // the 0.9 arm is written first (inverted test) and the three arms assign one float.
+    // OPEN: the original keeps `lis r29, 0.5f@ha` in the prologue (callee-saved) with the `lfs`
+    // inside the 0.5f arm, i.e. a single-use `f32 half = 0.5f` local whose load update_equiv_regs
+    // moved next to its use; our cc1plus never moves a pool load (cse's REG_EQUAL note is the
+    // const_double, not the MEM, so `rtx_equal_p (note, SET_SRC)` fails in local-alloc.c). With
+    // the load global-allocated to f11 the 0.5f/0.9f tails become identical and cross-jump; ours
+    // allocates f12/f11 in the last arm and keeps three tails. `const` locals give the pool order.
     if (type == 5 || type == 0xC) {
-        result = (f32) price;
-    } else if (!((type == 1 || type == 2) || (type == 3 || type == 6) || id == 0xFE)) {
-        result = (f32) price * nine;
-    } else {
-        result = (f32) price * half;
+        return (int) ((f32) price * 1.0f);
     }
-    return (int) result;
+    if (!((type == 1 || type == 2) || (type == 3 || type == 6) || id == 0xFE)) {
+        return (int) ((f32) price * nine);
+    }
+    return (int) ((f32) price * half);
 }
 
 int Merchant::buyupPrice(ItemWork* item, int num)

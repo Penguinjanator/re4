@@ -221,7 +221,7 @@ void tp_pl_flag()
     eprintf(40, 84, pG->flags_68 & 0x10000 ? 0 : 20, 0, "KAIOUKEN x%d", PlKaiou + 2);
     eprintf(40, 98, PlDbFlag & 4 ? 0 : 20, 0, "KAIOU ATTACK");
     eprintf(40, 112, ItemMgr.num(0xFE) ? 0 : 20, 0, "ASSAULT JACKET");
-    eprintf(40, 126, (PlDbFlag ^ 1) & 1 ? 0 : 20, 0, "LOCK SPHERE");
+    eprintf(40, 126, !(PlDbFlag & 1) ? 20 : 0, 0, "LOCK SPHERE");
     eprintf(40, 140, PlDbFlag & 2 ? 0 : 20, 0, "INFORMATION");
     eprintf(40, 154, pG->flags_68 & 8 ? 0 : 20, 0, "ATARI NO-HIT");
     printCursor(4, pT->cursor + 4);
