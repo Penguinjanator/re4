@@ -31,12 +31,12 @@ section	offset	size	unit	scope	name	demangled
 .text	0x000045A0	0x140	t_emlist/t_emlist.cpp	global	emlist_yes_no_menu_disp__Fi	emlist_yes_no_menu_disp
 .text	0x000046E0	0x118	t_emlist/t_emlist.cpp	global	emlist_select_id_disp__Fv	emlist_select_id_disp
 .text	0x000047F8	0x15C	t_emlist/t_emlist.cpp	global	emlist_set_room_disp__Fiii	emlist_set_room_disp
-.text	0x00004954	0xF0	t_emlist/t_emlist.cpp	global	emlist_set_pos_disp__Fv	emlist_set_pos_disp
-.text	0x00004A44	0x130	t_emlist/t_emlist.cpp	global	emlist_set_ang_disp__Fv	emlist_set_ang_disp
-.text	0x00004B74	0x230	t_emlist/t_emlist.cpp	global	emlist_set_be_flag_disp__Fv	emlist_set_be_flag_disp
+.text	0x00004954	0xF0	t_emlist/t_emlist.cpp	global	emlist_set_pos_disp__Fiii	emlist_set_pos_disp
+.text	0x00004A44	0x130	t_emlist/t_emlist.cpp	global	emlist_set_ang_disp__Fiii	emlist_set_ang_disp
+.text	0x00004B74	0x230	t_emlist/t_emlist.cpp	global	emlist_set_be_flag_disp__Fiii	emlist_set_be_flag_disp
 .text	0x00004DA4	0x11C	t_emlist/t_emlist.cpp	global	emlist_set_type_disp__Fiii	emlist_set_type_disp
 .text	0x00004EC0	0x11C	t_emlist/t_emlist.cpp	global	emlist_set_set_disp__Fiii	emlist_set_set_disp
-.text	0x00004FDC	0x194	t_emlist/t_emlist.cpp	global	emlist_set_em_flag_disp__Fv	emlist_set_em_flag_disp
+.text	0x00004FDC	0x194	t_emlist/t_emlist.cpp	global	emlist_set_em_flag_disp__Fiii	emlist_set_em_flag_disp
 .text	0x00005170	0x11C	t_emlist/t_emlist.cpp	global	emlist_set_char_disp__Fiii	emlist_set_char_disp
 .text	0x0000528C	0xAC	t_emlist/t_emlist.cpp	global	emlist_set_hp_disp__Fiii	emlist_set_hp_disp
 .text	0x00005338	0xAC	t_emlist/t_emlist.cpp	global	emlist_set_guard_r_disp__Fiii	emlist_set_guard_r_disp

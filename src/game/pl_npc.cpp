@@ -586,9 +586,9 @@ void cSubChar::moveMove()
         }
         checkAnotherRoute();
         subBackMot.blendRate = 0.0f;
+        sub404 = 0;
         sub405 = 0;
         sub406 = 30;
-        sub404 = 0;
         subSelf->xFE = 1;
     case 1:
         if (subSelf->xFF <= 1) {
@@ -629,25 +629,27 @@ void cSubChar::moveMove()
         switch (subSelf->xFF) {
         case 0:
             if (!SUBFLAG(this)->check(4) && (ckPlRun() || subDist > 3000.0f)) {
-                xFE = 2;
-                sub409 = 3;
-                xFF = 1;
                 sub408 = (u8) (pPL->frame * 100.0f / (f32) (int) pPL->frameMax);
+                sub409 = 3;
+                xFE = 2;
+                xFF = 1;
             }
             break;
         case 1:
             if (SUBFLAG(this)->check(4) || (!ckPlRun() && subDist < 550.0f)) {
-                xFE = 2;
-                sub409 = 3;
-                xFF = 0;
                 sub408 = (u8) (pPL->frame * 100.0f / (f32) (int) pPL->frameMax);
+                sub409 = 3;
+                xFE = 2;
+                xFF = 0;
             }
             break;
         }
         if (subDist > 400.0f || SUBFLAG(this)->check(3) || sub580) {
             rot.y += Muku(&pos, &subTarget, rot.y, 0.20943952f);
         } else if (subPlStatus & 4) {
-            rot.y += Muku2(rot.y, LIMIT_ANGLE(pPL->rot.y + 3.1415927f), 0.10471976f);
+            f32 a = LIMIT_ANGLE(pPL->rot.y + 3.1415927f);
+
+            rot.y += Muku2(rot.y, a, 0.10471976f);
         } else {
             rot.y += Muku2(rot.y, pPL->rot.y, 0.10471976f);
         }
@@ -659,11 +661,11 @@ void cSubChar::moveMove()
             }
         } else if (subDist <= 400.0f) {
             if (pPL->xFC == 0 && (pPL->xFD == 0 || pPL->xFD == 4)) {
-                xFF = 0;
                 xFC = 0;
                 subDist = 0.0f;
                 xFD = 0;
                 xFE = 0;
+                xFF = 0;
             }
         }
         break;
@@ -673,11 +675,11 @@ void cSubChar::moveMove()
         if (subDist < 50.0f || subHideMode > 6) {
             setPos(&subTarget);
             if (subMoveTo[3] == 193.0f) {
-                xFF = 0;
                 subFlags2 |= 0x40;
                 xFC = 0;
                 xFD = 0;
                 xFE = 0;
+                xFF = 0;
             } else {
                 xFE = 0xA;
             }
@@ -730,7 +732,7 @@ void cSubChar::moveMove()
         if (subSelf->xFF == 0) {
             if (subDist > 600.0f) {
                 spd = 100.0f;
-            } else if (subDist < distMin) {
+            } else if (subDist <= distMin) {
                 spd = 0.0f;
             } else {
                 spd = (subDist - distMin) * 100.0f / (600.0f - distMin);
@@ -738,7 +740,7 @@ void cSubChar::moveMove()
         } else {
             if (subDist > 600.0f) {
                 spd = 160.0f;
-            } else if (subDist < distMin) {
+            } else if (subDist <= distMin) {
                 spd = 0.0f;
             } else {
                 spd = (subDist - distMin) * 160.0f / (600.0f - distMin);
@@ -772,7 +774,7 @@ void cSubChar::moveMove()
     } else if ((subPlStatus & 0x20000) && subDist < 1000.0f && !SUBFLAG(this)->check(3)) {
         SubRoutineSet(this, 0, 0, 0, 0);
     } else {
-        switch (actCheck()) {
+        switch ((u32) actCheck()) {
         case 1:
             SubRoutineSet(this, 0, 8, 0, 0);
             break;
@@ -2313,24 +2315,23 @@ int cSubChar::windowCheck()
     u16 status;
     cEmWindow* w;
     f32 ang;
-    if (!ChkWindow(this, &a, &b, 1, &status, &dir, &p, &w)) {
-        return 0;
-    }
-    if ((w->ChkStatus() & 1) == 0) {
-        return 3;
-    }
-    ang = atan2f(-dir.x, -dir.z);
-    if (EmRackCk(this, &pos, ang) == 0) {
-        return 3;
-    }
-    if (w->ChkBreakDir(&subSelf->pos) == 2) {
+    if (ChkWindow(this, &a, &b, 1, &status, &dir, &p, &w)) {
+        if ((w->ChkStatus() & 1) == 0) {
+            return 3;
+        }
+        ang = atan2f(-dir.x, -dir.z);
+        if (EmRackCk(this, &pos, ang) == 0) {
+            return 3;
+        }
+        if (w->ChkBreakDir(&subSelf->pos) != 2) {
+            sub52C = atan2(-dir.x, -dir.z);
+            return 1;
+        }
         subFlags2 |= 0x80;
         SubRoutineSet(this, 0, 0x12, 0, 0);
         return 2;
-    } else {
-        sub52C = atan2(-dir.x, -dir.z);
-        return 1;
     }
+    return 0;
 }
 
 // A ladder to climb down below the target.
@@ -2785,18 +2786,21 @@ void cSubChar::analyze()
     static u8 npcCheck = 0;
     Vec d;
     int i;
+    int n;
     int up;
     int r;
+    const f32 near = 4000000.0f;
 
     anaSatInfo();
-    if (GetDistance(pos, pPL->pos) < 4000000.0f) {
+    if (GetDistance(pos, pPL->pos) < near) {
         subFlags2 |= 2;
     } else {
         BitOff16(subFlags2, 2);
     }
+    n = EmMgr.nArray;
     BitOff16(subFlags2, 0x201);
     if (!SUBFLAG(this)->check(3)) {
-        for (i = 0; i < EmMgr.nArray; i++) {
+        for (i = 0; i < n; i++) {
             cEm* em = (cEm*) ((u8*) EmMgr.pArray + EmMgr.size * i);
 
             if (!em->isAlive()) {
@@ -2821,7 +2825,7 @@ void cSubChar::analyze()
                 continue;
             }
             if (GetDistance(pos, em->pos) < 16000000.0f) {
-                subFlags2 |= 0x200;
+                BitOn16(subFlags2, 0x200);
                 if (subNear2) {
                     Draw_pos(&em->pos, 1000);
                 }
@@ -2915,11 +2919,8 @@ void cSubChar::analyze()
     cautionCheck();
     frontCheck();
     if (npcCheck) {
-        int y = 0x18;
-
         for (i = 0; i <= 15; i++) {
-            eprintf(y, 0x180, 0, 0, "%d", ((cFlag*) &subFlags)->check(i));
-            y += 8;
+            eprintf(0x18 + i * 8, 0x180, 0, 0, "%d", ((cFlag*) &subFlags)->check(i));
         }
         Draw_pos(&subTarget, 1000);
     }
@@ -3068,18 +3069,21 @@ void cSubChar::control(int mode)
 // Ledge in front of the partner: point 800 out from the wall below it and the facing angle.
 int getFallPos(cSubChar* pl, Vec* opos, Vec* orot)
 {
+    static const Vec chk = { 1000.0f, 400.0f, 0.0f };
+    static const f32 h = 300.0f;
+    static const f32 len = 1000.0f;
+    static const f32 back = 800.0f;
     Vec a;
     Vec b;
     Vec hit;
     Vec nrm;
     Vec d;
-    const f32 len = 1000.0f;
 
     a.x = 0.0f;
-    a.y = 300.0f;
+    a.y = h;
     a.z = 0.0f;
     PSVECAdd(&a, &pl->pos, &a);
-    b.y = 300.0f;
+    b.y = h;
     b.z = len;
     b.x = 0.0f;
     PSMTXMultVec(pl->mat, &b, &b);
@@ -3089,7 +3093,7 @@ int getFallPos(cSubChar* pl, Vec* opos, Vec* orot)
     d.z = -nrm.z;
 #line 4080 "D:/Bio4/Prog/pl_npc.cpp"
     VECNormalize(&d, &d);
-    PSVECScale(&d, &d, 800.0f);
+    PSVECScale(&d, &d, back);
     PSVECAdd(&hit, &d, &b);
     orot->x = 0.0f;
     orot->y = Muku3(&d, 0.0f, 3.1415927f);
@@ -3664,29 +3668,27 @@ void cSubChar::moveFace()
 void cSubChar::shadowCtrl()
 {
     int fade = 0;
-    cSubChar* s;
 
     if (SUBFLAG(this)->check(5)) {
         fade = 1;
     }
-    s = subSelf;
-    if (pG->Cam.param.pos.y < s->pos.y) {
+    if (pG->Cam.param.pos.y < subSelf->pos.y) {
         fade = 1;
     }
-    if (s->pFloorNrm && s->pFloorNrm->y < 0.8f) {
+    if (subSelf->pFloorNrm && subSelf->pFloorNrm->y < 0.8f) {
         fade = 1;
     }
     if (fade) {
-        if (s->shdCol <= 0xEF) {
-            s->shdCol += 0x10;
+        if (subSelf->shdCol <= 0xEF) {
+            subSelf->shdCol += 0x10;
         } else {
-            s->shdCol = 0xFF;
+            subSelf->shdCol = 0xFF;
         }
     } else {
-        if (s->shdCol > 0xF) {
-            s->shdCol -= 0x10;
+        if (subSelf->shdCol > 0xF) {
+            subSelf->shdCol -= 0x10;
         } else {
-            s->shdCol = 0;
+            subSelf->shdCol = 0;
         }
     }
 }

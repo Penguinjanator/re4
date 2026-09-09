@@ -17,6 +17,9 @@ contents, relocations, symbols and the Metrowerks .comment section.
 
 usage: strip_unused.py --unit lib/OS.c build/G4BE08/src/lib/OS.o
        strip_unused.py --gcc --unit lib/_eh.c build/G4BE08/src/lib/_eh.o   (ProDG objects)
+       strip_unused.py --gcc --module st1_1 --unit st1_1/em_wrap.cpp build/G4BE08/src/st1_1/em_wrap.o
+           (REL module unit: keep what config/<ver>/modules/<mod>/sym_map.tsv lists for the unit;
+           modules.py STRIP_UNUSED names the units, see AGENTS.md "REL modules")
 """
 import argparse
 import os
@@ -73,6 +76,31 @@ def target_symbols(unit):
                 if m:
                     s.add(f"_vt.{len(m.group(1))}{m.group(1)}")
     return names if seen else None
+
+
+def module_target_symbols(module, unit):
+    """{section: set(names)} of the symbols the module's REL keeps for this unit, from
+    config/<ver>/modules/<mod>/sym_map.tsv (section, offset, size, unit, scope, name, demangled). The
+    stage modules' em_wrap.cpp/cSceObj.cpp were dead-stripped at function level by the original REL
+    link like the DOL's SDK objects. Module demangled names carry no parameter list, so an overload is
+    told apart by size: `<demangled>#<size>` entries are added and checked first."""
+    names = {}
+    seen = False
+    path = os.path.join(ROOT, "config", VER, "modules", module, "sym_map.tsv")
+    with open(path) as f:
+        next(f)
+        for line in f:
+            sec, off, size, u, scope, name, dn = line.rstrip("\n").split("\t")
+            if u != unit:
+                continue
+            seen = True
+            s = names.setdefault(sec, set())
+            s.add(name)
+            if dn and dn != ".":
+                s.add(dn)
+                s.add(f"{dn}#{int(size, 16):#x}")
+    # a unit with no row at all lost every function (st1_0's em_wrap.cpp: strings only)
+    return names
 
 
 class Elf:
@@ -132,12 +160,27 @@ def main():
         help="ProDG (gcc 2.95) object: .lcomm statics are untyped symbols, data only referenced from "
         "stripped functions is stripped too, and surviving pointers to stripped functions become 0",
     )
+    ap.add_argument("--module", help="REL module: keep the symbols of config/<ver>/modules/<mod>/sym_map.tsv for the unit")
     ap.add_argument("object")
     args = ap.parse_args()
 
-    keep = target_symbols(args.unit)
+    keep = module_target_symbols(args.module, args.unit) if args.module else target_symbols(args.unit)
     if keep is None:
         sys.exit(f"strip_unused: unit {args.unit} not in sym_map.tsv")
+
+    def module_kept(nm, size, ks):
+        """--module: a function is kept when the module names it (mangled, or demangled base name; an
+        overloaded base name only together with the size)."""
+        if not args.module:
+            return False
+        dn = demangle_v2(nm) or nm
+        if nm in ks or f"{dn}#{size:#x}" in ks:
+            return True
+        if dn not in ks:
+            return False
+        # same base name, other size: another overload once the module's row carries a mangled name
+        # (setPtr(cEm*, int) vs setPtr(s16, s8, int)); a placeholder row is still ours (unit in progress)
+        return not any(k != nm and "__" in k and (demangle_v2(k) or k) == dn for k in ks)
 
     elf = Elf(open(args.object, "rb").read())
     symtab = elf.index(".symtab")
@@ -165,6 +208,10 @@ def main():
             continue
         nm = sym_name(s)
         ks = keep.get(elf.names[shndx], ())
+        if args.module:
+            if not module_kept(nm, s[2], ks):
+                dead_funcs.setdefault(shndx, []).append((s[1], s[1] + s[2]))
+            continue
         if args.gcc and (demangle_v2(nm) or nm) in ks:
             continue
         if nm not in ks and not (nm.startswith("_GLOBAL_.I.") and "_GLOBAL_.I.*" in ks) and not (nm.startswith("_GLOBAL_.D.") and "_GLOBAL_.D.*" in ks):
@@ -172,6 +219,36 @@ def main():
 
     def in_dead_func(shndx, off):
         return args.gcc and any(start <= off < end for start, end in dead_funcs.get(shndx, ()))
+
+    if args.module:
+        # --module: a function that surviving code still references (NgcAs spells intra-object calls as
+        # `.text+off`) cannot have been stripped by the linker; while a unit is being matched a size
+        # mismatch of an overload would otherwise strip a called body. Keep them (iterate to a fixpoint).
+        module_keep = set()
+        changed = True
+        while changed:
+            changed = False
+            for i, sh in enumerate(elf.sections):
+                if sh[1] != SHT_RELA or not (elf.sections[sh[7]][2] & 0x4):
+                    continue
+                for o in range(0, len(elf.contents[i]), 12):
+                    r_off, r_info, r_add = struct.unpack(">IIi", elf.contents[i][o : o + 12])
+                    if in_dead_func(sh[7], r_off):
+                        continue
+                    s = syms[r_info >> 8]
+                    if (s[3] & 0xF) == STT_SECTION:
+                        tsec, toff = s[5], r_add
+                    elif (s[3] & 0xF) == STT_FUNC:
+                        tsec, toff = s[5], s[1]
+                    else:
+                        continue
+                    for rng in list(dead_funcs.get(tsec, ())):
+                        if rng[0] <= toff < rng[1]:
+                            dead_funcs[tsec].remove(rng)
+                            module_keep.add((tsec, rng[0]))
+                            changed = True
+    else:
+        module_keep = set()
 
     refcount = [0] * len(syms)
     pooled_sections = set()
@@ -206,7 +283,10 @@ def main():
         name = sym_name(s)
         if name in keep.get(secname, ()):
             continue
-        if args.gcc and (demangle_v2(name) or name) in keep.get(secname, ()):
+        if args.module and stype == STT_FUNC:
+            if module_kept(name, s[2], keep.get(secname, ())) or (shndx, s[1]) in module_keep:
+                continue
+        elif args.gcc and (demangle_v2(name) or name) in keep.get(secname, ()):
             continue
         if args.gcc and re.search(r"\.\d+$", name) and re.sub(r"\.\d+$", ".*", name) in keep.get(secname, ()):
             continue

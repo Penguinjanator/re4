@@ -1,16 +1,5 @@
 #include "cri_xpt.h"
-
-typedef struct ADXSTM_OBJ *ADXSTM;
-
-extern Sint32 ADXSTM_GetStat(ADXSTM stm);
-extern void ADXSTM_StopNw(ADXSTM stm);
-extern void ADXSTM_ReleaseFileNw(ADXSTM stm);
-extern void ADXSTM_Start(ADXSTM stm);
-extern void ADXSTM_BindFileNw(ADXSTM stm, void *fs, const Char8 *fname, Sint32 ofst, Sint32 nsct);
-extern void ADXSTM_SetEos(ADXSTM stm, Sint32 nsct);
-extern void ADXSTM_Destroy(ADXSTM stm);
-extern ADXSTM ADXSTM_Create(void *sj, Sint32 mode);
-extern void ADXSTM_SetBufSize(ADXSTM stm, Sint32 nsct);
+#include "adx_stm.h"
 
 Sint32 MWSTM_GetStat(ADXSTM stm)
 {
@@ -28,10 +17,10 @@ void MWSTM_ReqStart(ADXSTM stm)
 	ADXSTM_Start(stm);
 }
 
-void MWSTM_SetFileRange(ADXSTM stm, void *fs, const Char8 *fname, Sint32 ofst, Sint32 nsct)
+void MWSTM_SetFileRange(ADXSTM stm, const Char8 *fname, void *dir, Sint32 ofst, Sint32 nsct)
 {
 	ADXSTM_ReleaseFileNw(stm);
-	ADXSTM_BindFileNw(stm, fs, fname, ofst, nsct);
+	ADXSTM_BindFileNw(stm, fname, dir, ofst, nsct);
 	ADXSTM_SetEos(stm, nsct);
 }
 
@@ -45,10 +34,10 @@ ADXSTM MWSTM_Create(void *sj)
 	return ADXSTM_Create(sj, 0);
 }
 
-void MWSTM_SetFlowLimit(ADXSTM stm, Sint32 nsct)
+void MWSTM_SetFlowLimit(ADXSTM stm, Sint32 min_nsct, Sint32 max_nsct)
 {
 	if (stm != NULL) {
-		ADXSTM_SetBufSize(stm, nsct);
+		ADXSTM_SetBufSize(stm, min_nsct, max_nsct);
 	}
 }
 

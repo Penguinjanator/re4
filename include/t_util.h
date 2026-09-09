@@ -41,5 +41,8 @@ void TutilQuitDefault();
 // Draws `menu` (size in bytes) at x,y and moves the cursor with `joy`. Returns the selected
 // entry when A is pressed on an enabled line, else -1. `cursor` may be NULL.
 int ToolMenuDisp_cur(int x, int y, int flag, s8* cursor, TOOL_MENU* menu, int size, JOY* joy);
+// tools/t_util.cpp only (dead-stripped from the DOL): screen position of a world point.
+int TutilGetScreenPos(Vec* pos, f32* scr, int noSetup);
+void TutilMoveCursor(Vec* pos, f32 speed, f32 step);
 
 #endif

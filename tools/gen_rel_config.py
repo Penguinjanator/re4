@@ -286,6 +286,11 @@ def main():
         for uname, first in units:
             if first is None:
                 starts.append(0)
+            elif isinstance(first, int):
+                # a .text offset, for a first function whose name is not unique in the module (st2_0's
+                # r208.cpp and r222.cpp both start with setResetNum)
+                assert any(a == first for a, sz, scope, dn in funcs), f'{name}: unit {uname}: no function at {first:#x}'
+                starts.append(first)
             else:
                 cand = [a for a, sz, scope, dn in funcs if dn == first]
                 assert len(cand) == 1, f'{name}: unit {uname}: function {first!r} not unique/found: {cand}'
@@ -342,8 +347,9 @@ def main():
                             assert forced > prev_max and all(a >= forced for a in own), (name, u, sname, hex(forced))
                             bounds[u] = forced
                         else:
-                            # the first unit owns the section start (unreferenced leading data)
-                            bounds[u] = 0 if u == units[0][0] else min(own)
+                            # the first unit *with data* owns the section start (unreferenced leading
+                            # data; the stage modules' em_wrap.cpp has no .data/.bss at all)
+                            bounds[u] = 0 if not bounds else min(own)
                         prev_max = max(own) if own else forced
                 ordered = [u for u, _ in units if u in bounds]
                 for i, u in enumerate(ordered):
@@ -453,6 +459,8 @@ def main():
                 for sname in ['.text'] + DATA_SECTIONS:
                     if sname in ranges[u]:
                         lo, hi = ranges[u][sname]
+                        if hi == lo:
+                            continue  # a unit whose every function was dead-stripped (st1_0's em_wrap.cpp)
                         # input-section alignment: the section's (from the file layout) for the first
                         # unit, otherwise the largest power of two the start offset allows (dtk would
                         # default to 8 and pad the link)

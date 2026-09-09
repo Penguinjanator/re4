@@ -1487,6 +1487,20 @@ the `bad_alloc` type-info name and the four warning strings). The split object's
 (dtk reports 2**3) is what the DOL layout needs: a GCC object with a 4-aligned `.data` shifts every
 following `.data` unit by 4 (dummy: `asm(".section .data\n\t.balign 8\n\t.section .text")`).
 
+- Zero-copy chains `li rA,0; mr rB,rA; mr rC,rA` come from *inlined* code: a zero init inside an
+  inlined static helper (or its locals initialised at declaration) copies a zero the caller already
+  holds; two zero inits in one non-inlined function give separate `li`.
+- A search loop whose index is in r3 and pointer in r4 is an inlined `static Sint32 search(void)`
+  returning the index; the direct `for` gives pointer r3 / index r4.
+- MWCC never hoists a load above an earlier store to memory, whatever the types: a `lwz` between two
+  stores means the source read it into a local at that point.
+- Callee-saved registers go r31 downward in *first definition* order; a value defined in an inlined
+  helper is allocated after the caller's live locals.
+- `-O4` unrolling: `for (i = 0; i < n; i++)` with `i` used in the body -> `subi 8/addi 7/srwi 3` form +
+  remainder compare; `while (n-- > 0)` -> `srwi. n,3; mtctr; ...; andi. n,7`.
+- Float constant pool entries are emitted before the function's strings; a stray 4-byte zero word in
+  `.rodata` between strings is a `0.0f` in a dead function.
+
 ## REL modules
 
 The game loads its rooms, enemies, weapons and debug tools as Nintendo REL overlays. `ninja` rebuilds the

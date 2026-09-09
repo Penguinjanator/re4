@@ -1,15 +1,6 @@
 #include "cri_xpt.h"
+#include "lsc.h"
 #include <string.h>
-
-typedef struct {
-	Sint8 used;
-	Uint8 pad[0x237];
-} LSC_OBJ;
-
-extern void LSC_LockCrs(Sint32 *msk);
-extern void LSC_UnlockCrs(Sint32 *msk);
-extern void LSC_Destroy(LSC_OBJ *lsc);
-extern void LSC_EntryErrFunc(void (*func)(void *obj, Char8 *msg), void *obj);
 
 /* volatile: the build string must stay referenced (dead `lwz` in LSC_Init) */
 const Char8 *const volatile lsc_build = "\nLSC/GC Ver.2.18 Build:Oct  8 2004 13:31:48\n";

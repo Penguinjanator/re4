@@ -7,7 +7,7 @@ Sint32 SFVOM_Seek(void)
 
 Sint32 SFVOM_AddRead(SFD sfd, void *frm)
 {
-	return SFBUF_VfrmAddRead(sfd, sfd->vfrmbuf, frm);
+	return SFBUF_VfrmAddRead(sfd, sfd->tr[6].bufin, frm);
 }
 
 Sint32 SFVOM_GetRead(SFD sfd, void **frm)
@@ -18,7 +18,7 @@ Sint32 SFVOM_GetRead(SFD sfd, void **frm)
 		*frm = NULL;
 		return 0;
 	}
-	ret = SFBUF_VfrmGetRead(sfd, sfd->vfrmbuf, frm);
+	ret = SFBUF_VfrmGetRead(sfd, sfd->tr[6].bufin, frm);
 	if (ret != 0) {
 		return ret;
 	}
@@ -77,7 +77,7 @@ Sint32 SFVOM_ExecServer(SFD sfd)
 		return 0;
 	}
 	if (SFTRN_GetTermFlg(sfd, 6) != 1) {
-		if (SFBUF_GetTermFlg(sfd, sfd->vfrmbuf) == 1) {
+		if (SFBUF_GetTermFlg(sfd, sfd->tr[6].bufin) == 1) {
 			if (SFSET_GetCond(sfd, 15) == 0) {
 				term = 1;
 			} else if (SFTIM_IsVideoTerm(sfd) == 0) {
@@ -91,7 +91,7 @@ Sint32 SFVOM_ExecServer(SFD sfd)
 		}
 	}
 	if (SFTRN_GetPrepFlg(sfd, 6) != 1) {
-		if (SFBUF_GetPrepFlg(sfd, sfd->vfrmbuf) == 1) {
+		if (SFBUF_GetPrepFlg(sfd, sfd->tr[6].bufin) == 1) {
 			SFTRN_SetPrepFlg(sfd, 6, 1);
 		}
 	}

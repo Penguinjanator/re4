@@ -144,7 +144,7 @@ section	offset	size	unit	scope	name	demangled
 .rodata	0x00000FF8	0x28	st1_0/r100.cpp	global	lbl_st1_0_rodata_FF8	lbl_st1_0_rodata_FF8
 .rodata	0x00001020	0x44	st1_0/r100.cpp	local	lbl_st1_0_rodata_1020	lbl_st1_0_rodata_1020
 .rodata	0x00001064	0x44	st1_0/r100.cpp	local	lbl_st1_0_rodata_1064	lbl_st1_0_rodata_1064
-.rodata	0x000010A8	0x128	st1_0/r100.cpp	local	lbl_st1_0_rodata_10A8	lbl_st1_0_rodata_10A8
+.rodata	0x000010A8	0x48	st1_0/r100.cpp	local	lbl_st1_0_rodata_10A8	lbl_st1_0_rodata_10A8
 .rodata	0x000011D0	0x18	st1_0/r120.cpp	local	lbl_st1_0_rodata_11D0	lbl_st1_0_rodata_11D0
 .rodata	0x000011E8	0x14	st1_0/r120.cpp	local	lbl_st1_0_rodata_11E8	lbl_st1_0_rodata_11E8
 .rodata	0x000011FC	0x14	st1_0/r120.cpp	local	lbl_st1_0_rodata_11FC	lbl_st1_0_rodata_11FC

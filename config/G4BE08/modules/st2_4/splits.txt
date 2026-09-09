@@ -6,9 +6,13 @@ Sections:
 	.data       type:data align:8
 	.bss        type:bss align:4
 
+st2_4/em_wrap.cpp:
+	.text       start:0x00000000 end:0x000001BC
+	.rodata     start:0x00000000 end:0x00000AC4 align:4
+
 st2_4/r22c.cpp:
-	.text       start:0x00000000 end:0x00004478
-	.rodata     start:0x00000000 end:0x00000DD8 align:4
+	.text       start:0x000001BC end:0x00004478
+	.rodata     start:0x00000AC4 end:0x00000DD8 align:4
 	.data       start:0x00000000 end:0x00003938
 	.bss        start:0x00000000 end:0x00000004 align:4
 	.bss        start:0x00000004 end:0x00000038 align:4 common

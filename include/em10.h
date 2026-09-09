@@ -19,14 +19,14 @@
 // Field names are the work-relative offsets; the comment gives the cEm offset.
 struct Em10Work {
     u32 flags;            // 0x000 (0x3E0)
-    u32 x4;               // 0x004 (0x3E4)
-    u32 x8;               // 0x008 (0x3E8)
-    u32 xC;               // 0x00C (0x3EC)
-    u32 x10;              // 0x010 (0x3F0)
-    u32 x14;              // 0x014 (0x3F4)
+    int x4;               // 0x004 (0x3E4)  routine timer
+    int x8;               // 0x008 (0x3E8)
+    int xC;               // 0x00C (0x3EC)
+    int x10;              // 0x010 (0x3F0)
+    int x14;              // 0x014 (0x3F4)
     f32 x18;              // 0x018 (0x3F8)
     f32 x1C;              // 0x01C (0x3FC)
-    u32 x20;              // 0x020 (0x400)
+    int x20;              // 0x020 (0x400)
     Vec x24;              // 0x024 (0x404)
     void* mot[79];        // 0x030 (0x410)  motion data table (Em10Set / Em10WeaponSet fill it; [0x29..] weapons)
     cEmWep* pWep;         // 0x16C (0x54C)  weapon in hand
@@ -86,15 +86,15 @@ struct Em10Work {
     Vec x54C;             // 0x54C (0x92C)
     u32 x558;             // 0x558 (0x938)
     u32 x55C;             // 0x55C (0x93C)
-    u32 x560;             // 0x560 (0x940)
+    class cObjGondola* pGondola;  // 0x560 (0x940)  em10GetGondola (room 10F)
     u32 x564;             // 0x564 (0x944)
     class cObjGatling* pGatling;  // 0x568 (0x948)
     u8 gatlingMode;       // 0x56C (0x94C)
     u8 pad_56D[3];
-    u32 x570;             // 0x570 (0x950)
+    class cCtrl* pDragon; // 0x570 (0x950)  GetCtrlDragon (room 222 dragon statues)
     class cObj16* pParasite;  // 0x574 (0x954)  parasite object (em10SetParasite)
     cEm* x578[5];         // 0x578 (0x958)
-    class cEm10* x58C;    // 0x58C (0x96C)  partner Ganado (setReset on destruction)
+    class cEmPartner* x58C;  // 0x58C (0x96C)  partner enemy of another module (virtual slots only)
     cModel* x590;         // 0x590 (0x970)
     cModel* x594;         // 0x594 (0x974)
     Vec x598;             // 0x598 (0x978)
@@ -116,8 +116,7 @@ struct Em10Work {
     Vec x5F0;             // 0x5F0 (0x9D0)
     Vec scaleBase;        // 0x5FC (0x9DC)  scale at init
     Vec x608;             // 0x608 (0x9E8)
-    void* evtMot[6];      // 0x614 (0x9F4)  event motions (setEvtMotion / setGondolaMotion / setDrill / setGatling)
-    u8 pad_62C[8];
+    void* evtMot[8];      // 0x614 (0x9F4)  event motions (setEvtMotion / setGondolaMotion / setDrill / setGatling)
     u32 x634;             // 0x634 (0xA14)
     u32 x638;             // 0x638 (0xA18)
     u32 x63C;             // 0x63C (0xA1C)
@@ -235,6 +234,28 @@ struct Em10Work {
 #define EM10_WK(em) ((Em10Work*) &(em)->x3E0)
 
 class cObjGatling;
+
+// The enemy attached at Em10Work 0x58C lives in another module: only its virtual slots are known
+// (AGENTS.md: a class with undefined virtuals emits no vtable). Slot names are the vtable byte offsets.
+class cEmPartner : public cEm {
+public:
+    virtual void v50(int a);
+    virtual void v58();
+    virtual int v60();
+    virtual void v68();
+    virtual void v70();
+    virtual void v78();
+    virtual int v80();
+    virtual void v88(Vec* pos, f32 range);
+    virtual void v90(Vec* pos, f32 range, void* sw);
+    virtual int v98(int a);
+    virtual void setReset();      // 0xA0
+    virtual void vA8(u8 no);
+    virtual void vB0();
+    virtual int vB8();
+    virtual void vC0();
+    virtual int vC8();
+};
 
 // The Ganado (em10.cpp). Vtable order after the cEm virtuals: the declaration order below.
 class cEm10 : public cEm {

@@ -1,10 +1,10 @@
 section	offset	size	unit	scope	name	demangled
-.text	0x00000000	0x30	st2_4/r22c.cpp	local	cEmWrap_cEmWrap	cEmWrap::cEmWrap
-.text	0x00000030	0x1C	st2_4/r22c.cpp	global	cEmWrap_initWork	cEmWrap::initWork
-.text	0x0000004C	0x5C	st2_4/r22c.cpp	global	cEmWrap_err	cEmWrap::err
-.text	0x000000A8	0x7C	st2_4/r22c.cpp	global	cEmWrap_setPtr	cEmWrap::setPtr
-.text	0x00000124	0x40	st2_4/r22c.cpp	global	cEmWrap_isAlive	cEmWrap::isAlive
-.text	0x00000164	0x58	st2_4/r22c.cpp	global	cEmWrap_getHp	cEmWrap::getHp
+.text	0x00000000	0x30	st2_4/em_wrap.cpp	global	__7cEmWrap	cEmWrap::cEmWrap
+.text	0x00000030	0x1C	st2_4/em_wrap.cpp	global	initWork__7cEmWrap	cEmWrap::initWork
+.text	0x0000004C	0x5C	st2_4/em_wrap.cpp	global	err__7cEmWrapPCci	cEmWrap::err
+.text	0x000000A8	0x7C	st2_4/em_wrap.cpp	global	setPtr__7cEmWrapP3cEmi	cEmWrap::setPtr
+.text	0x00000124	0x40	st2_4/em_wrap.cpp	global	isAlive__7cEmWrap	cEmWrap::isAlive
+.text	0x00000164	0x58	st2_4/em_wrap.cpp	global	getHp__7cEmWrap	cEmWrap::getHp
 .text	0x000001BC	0x320	st2_4/r22c.cpp	global	R22cInit__Fv	R22cInit
 .text	0x000004DC	0x5C	st2_4/r22c.cpp	global	R22cMain__Fv	R22cMain
 .text	0x00000538	0x8C	st2_4/r22c.cpp	local	r22c_BirdsFly	r22c_BirdsFly
@@ -60,8 +60,8 @@ section	offset	size	unit	scope	name	demangled
 .text	0x000048A4	0x64	st2_4/st2.cpp	global	_prolog	_prolog
 .text	0x00004908	0x60	st2_4/st2.cpp	global	_epilog	_epilog
 .text	0x00004968	0x58	st2_4/st2.cpp	global	_unresolved	_unresolved
-.rodata	0x00000058	0x250	st2_4/r22c.cpp	local	lbl_st2_4_rodata_58	lbl_st2_4_rodata_58
-.rodata	0x000002A8	0x8A0	st2_4/r22c.cpp	local	lbl_st2_4_rodata_2A8	lbl_st2_4_rodata_2A8
+.rodata	0x00000058	0x250	st2_4/em_wrap.cpp	local	lbl_st2_4_rodata_58	lbl_st2_4_rodata_58
+.rodata	0x000002A8	0x81C	st2_4/em_wrap.cpp	local	lbl_st2_4_rodata_2A8	lbl_st2_4_rodata_2A8
 .rodata	0x00000B48	0x10	st2_4/r22c.cpp	local	lbl_st2_4_rodata_B48	lbl_st2_4_rodata_B48
 .rodata	0x00000B58	0x18	st2_4/r22c.cpp	local	lbl_st2_4_rodata_B58	lbl_st2_4_rodata_B58
 .rodata	0x00000B70	0x18	st2_4/r22c.cpp	local	lbl_st2_4_rodata_B70	lbl_st2_4_rodata_B70

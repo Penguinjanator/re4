@@ -135,6 +135,10 @@ def main():
                     if len(cands) > 1:
                         print(f"  ambiguous {name} -> {dn} in {unit}: {cands} (rename by hand)")
                     continue
+                if name in KNOWN_SIZE and own.size.get(cands[0]) != KNOWN_SIZE[name]:
+                    # an overload the module does not have (cEmWrap::setReset(int, int) where only
+                    # setReset() survived): the single candidate belongs to the other overload
+                    continue
                 own.rename(cands[0], name, bind == 1)
                 continue
             for sf in order:

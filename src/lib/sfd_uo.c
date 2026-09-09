@@ -57,8 +57,8 @@ Sint32 SFUO_Create(SFD sfd)
 	Sint32 uobuf;
 
 	uo = &sfd->uo_tbl;
-	sfd->uo = uo;
-	uobuf = sfd->uobuf;
+	sfd->tr[8].hn = uo;
+	uobuf = sfd->tr[8].bufin;
 	sfd->uo_tbl.nch = 0;
 	for (i = 0; i < 3; i++) {
 		uo->ch[i].sj = NULL;
@@ -73,12 +73,12 @@ Sint32 SFUO_Create(SFD sfd)
 Sint32 SFUO_ExecServer(SFD sfd)
 {
 	if (SFTRN_GetTermFlg(sfd, 8) != 1) {
-		if (SFBUF_GetTermFlg(sfd, sfd->uobuf) == 1) {
+		if (SFBUF_GetTermFlg(sfd, sfd->tr[8].bufin) == 1) {
 			SFTRN_SetTermFlg(sfd, 8, 1);
 		}
 	}
 	if (SFTRN_GetPrepFlg(sfd, 8) != 1) {
-		if (SFBUF_GetPrepFlg(sfd, sfd->uobuf) == 1) {
+		if (SFBUF_GetPrepFlg(sfd, sfd->tr[8].bufin) == 1) {
 			SFTRN_SetPrepFlg(sfd, 8, 1);
 		}
 	}
@@ -103,8 +103,8 @@ Sint32 SFD_SetUsrSj(SFD sfd, Sint32 chno, void *sj, void *prm)
 	if (SFLIB_CheckHn(sfd) != 0) {
 		return SFLIB_SetErr(NULL, 0xFF000191);
 	}
-	uobuf = sfd->uobuf;
-	uo = sfd->uo;
+	uobuf = sfd->tr[8].bufin;
+	uo = sfd->tr[8].hn;
 	if (uobuf == 8) {
 		return SFLIB_SetErr(sfd, 0xFF000602);
 	}

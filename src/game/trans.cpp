@@ -130,6 +130,8 @@ struct IntView {
 static inline void U32Set(u32& d, u32 v) { d = v; }
 static inline void ISet(int& d, int v) { d = v; }
 static inline u16 U16Ref(u16& v) { return v; }
+static inline int IRef(int& v) { return v; }
+static inline f32 FRef(f32& v) { return v; }
 
 u8 min_lod;
 u8 max_lod;
@@ -154,6 +156,9 @@ GXTexObj IndTex[2];
 GXTlutObj ThermoTlut;
 
 u32 aniso = 0;
+// Declared incomplete first: the symbol is encoded as non-small-data (lis/addi at every use)
+// even though the 4-byte definition below lands in .sdata.
+extern u8 gxCsScale[];
 u8 gxCsScale[4] = {2, 2, 2, 2};
 
 static inline int getTexCoord()
@@ -926,7 +931,7 @@ void Render()
     ExecOt(0x14);
     pG->Cam = save;
     c.r = c.g = c.b = c.a = 0;
-    GXSetFog(0, 0.0f, 0.0f, ZNEAR, ZFAR, c);
+    GXSetFog(0, 0.0f, 0.0f, FRef(ZNEAR), FRef(ZFAR), c);
     ExecOt(0x15);
     if (Filter09GetbUse() == 1) {
         Filter09Render(0);
@@ -1343,8 +1348,8 @@ static void shaderSetup(cModel* m, cModelInfo* info, ModelPart* part, Mtx mv)
             scale = 2;
             break;
         default:
-            pLog->err(0, 0, "ShaderSetup() TEV_SCALE ERROR %d", gxCsScale[m->x12D]);
             scale = 0;
+            pLog->err(0, 0, "ShaderSetup() TEV_SCALE ERROR %d", gxCsScale[m->x12D]);
             break;
         }
         break;
@@ -1358,17 +1363,16 @@ static void shaderSetup(cModel* m, cModelInfo* info, ModelPart* part, Mtx mv)
         scale = 2;
         break;
     default:
-        pLog->err(0, 0, "ShaderSetup() TEV_SCALE ERROR %d", m->x12D);
         scale = 0;
+        pLog->err(0, 0, "ShaderSetup() TEV_SCALE ERROR %d", m->x12D);
         break;
     }
     GXSetTevColorOp(st, 0, 0, scale, 1, 0);
     GXSetTevAlphaIn(st, 7, 7, 7, 0);
     GXSetTevAlphaOp(st, 0, 0, 0, 1, 0);
-    tev_stage++;
-    GXSetNumTevStages(tev_stage);
-    GXSetNumTexGens(tex_coord);
-    GXSetNumIndStages(ind_stage);
+    GXSetNumTevStages(++tev_stage);
+    GXSetNumTexGens(IRef(tex_coord));
+    GXSetNumIndStages(IRef(ind_stage));
 }
 
 // Load the blend table's texture for `part` (tbl: [0] count, [4 + 2i] part texture id or 0xF7, [5 + 2i] texture id).
@@ -2714,8 +2718,8 @@ static void RefractShaderSetup(cModel* m, cModelInfo* info, ModelPart* part, Mtx
             scale = 2;
             break;
         default:
-            pLog->err(0, 0, "ShaderSetup() TEV_SCALE ERROR %d", gxCsScale[m->x12D]);
             scale = 0;
+            pLog->err(0, 0, "ShaderSetup() TEV_SCALE ERROR %d", gxCsScale[m->x12D]);
             break;
         }
         break;
@@ -2729,17 +2733,16 @@ static void RefractShaderSetup(cModel* m, cModelInfo* info, ModelPart* part, Mtx
         scale = 2;
         break;
     default:
-        pLog->err(0, 0, "ShaderSetup() TEV_SCALE ERROR %d", m->x12D);
         scale = 0;
+        pLog->err(0, 0, "ShaderSetup() TEV_SCALE ERROR %d", m->x12D);
         break;
     }
     GXSetTevColorOp(st, 0, 0, scale, 1, 0);
     GXSetTevAlphaIn(st, 7, 7, 7, 0);
     GXSetTevAlphaOp(st, 0, 0, 0, 1, 0);
-    tev_stage++;
-    GXSetNumTevStages(tev_stage);
-    GXSetNumTexGens(tex_coord);
-    GXSetNumIndStages(ind_stage);
+    GXSetNumTevStages(++tev_stage);
+    GXSetNumTexGens(IRef(tex_coord));
+    GXSetNumIndStages(IRef(ind_stage));
 }
 
 // Copy the frame buffer below the top 56 lines at half size into g_Get_tex_obj (refraction source).

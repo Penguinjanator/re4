@@ -288,6 +288,8 @@ static inline void BitOn16(u16& f, u16 b) { f |= b; }
 static inline void BitOff16(u16& f, u16 b) { f &= ~b; }
 // Plain store through the same kind of reference (debug tools restoring saved flag words).
 static inline void BitSet(u32& f, u32 v) { f = v; }
+// int version (t_emlist: the list index stores that keep the following `pG` load in the loop).
+static inline void ISet(int& d, int v) { d = v; }
 
 // Struct-member view of pG (the pLog trick, db_log.h): a load through it is not hoisted above a
 // preceding struct-member store (esp15 SetFreeWork: `w->floorY = ...; if (pGS->flags ...)`), where

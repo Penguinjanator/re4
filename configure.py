@@ -605,6 +605,9 @@ assert spec.loader is not None
 spec.loader.exec_module(modules_mod)
 REL_UNITS: Dict[str, List] = getattr(modules_mod, "UNITS", {})
 REL_MATCHING: Dict[str, bool] = getattr(modules_mod, "MATCHING", {})
+# module units the original REL link dead-stripped at function level (stage em_wrap.cpp/cSceObj.cpp):
+# tools/strip_unused.py --module keeps what the module's sym_map.tsv names for the unit
+REL_STRIP_UNUSED = set(getattr(modules_mod, "STRIP_UNUSED", ()))
 rel_objects: List[Object] = []
 with open(config.config_path) as _f:
     _config_yml = _f.read()
@@ -628,14 +631,19 @@ for _mod in _module_names:
         # a fourth (data section starts) is gen_rel_config.py's.
         # Linkonce sections are folded into .text/.rodata the way the module link kept them (every
         # object's copies stay, see tools/fold_linkonce.py --module).
+        _post = [f"$python tools/fold_linkonce.py --module {_mod} --unit {unit} {{out}}"]
+        _post_implicit = [Path("tools/fold_linkonce.py"), config.rel_config_dir / _mod / "sym_map.tsv"]
+        if unit in REL_STRIP_UNUSED:
+            _post.insert(0, f"$python tools/strip_unused.py --gcc --module {_mod} --unit {unit} {{out}}")
+            _post_implicit.append(Path("tools/strip_unused.py"))
         rel_objects.append(
             Object(
                 REL_MATCHING.get(unit, NonMatching),
                 unit,
                 source=_src[0] if _src and _src[0] else unit,
                 cflags=cflags_rel,
-                post_build=[f"$python tools/fold_linkonce.py --module {_mod} --unit {unit} {{out}}"],
-                post_build_implicit=[Path("tools/fold_linkonce.py"), config.rel_config_dir / _mod / "sym_map.tsv"],
+                post_build=_post,
+                post_build_implicit=_post_implicit,
             )
         )
 config.reconfig_deps.append(Path("config") / config.version / "modules.py")

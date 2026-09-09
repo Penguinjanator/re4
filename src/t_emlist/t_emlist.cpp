@@ -447,9 +447,16 @@ static EmListIdInfo EmListIdTbl[64] = {
 #include "file.h"
 #include "t_prim.h"
 #include "t_util.h"
+#include "math_sub.h"
+#include "dbmodule.h"
+#include "db_cam.h"
+#include "cam_ctrl.h"
 
 extern "C" int sprintf(char* buf, const char* fmt, ...);
+// The player's position is all the tool needs from pPL (player.h would add its header strings).
+extern cEm* pPLem asm("pPL");
 extern "C" void memclr_asm(void* p, u32 size);
+extern "C" unsigned int strlen(const char* s);
 
 // The editor's view of a list entry (em_set.h EmListData with signed hp / x1A: the tool prints them
 // with lha).
@@ -460,8 +467,8 @@ struct EmListEnt {
     u8 x3;          // 0x03
     u32 flags4;     // 0x04
     s16 hp;         // 0x08
-    u8 pad_A;
-    u8 xB;          // 0x0B
+    u8 xA;          // 0x0A  ("EmSet")
+    u8 xB;          // 0x0B  (character)
     u16 pos[3];     // 0x0C  (the editor steps them as unsigned halves)
     u16 rot[3];     // 0x12
     u16 room;       // 0x18  stage << 8 | room
@@ -470,6 +477,10 @@ struct EmListEnt {
 };
 
 #define EMLIST_ENT(no) ((EmListEnt*) &pG->emlist[(no) * 0x20])
+// The insert/paste searches address the entries tool-style (pG first in the add, shift index).
+#define EMLIST_ENT_I(no) ((EmListEnt*) ((u32) pG + ((no) << 5) + 0x52E8))
+// Entry-to-entry copies are byte-pointer memcpys: the stores then alias pG, which is reloaded per iteration.
+#define EMLIST_COPY(dst, src) memcpy((u8*) pG + 0x52E8 + (dst) * 0x20, (u8*) pG + 0x52E8 + (src) * 0x20, 0x20)
 
 // Editor state (0x3E0 bytes, Debug_alloc'd by emlist_init).
 struct EmListWork {
@@ -483,7 +494,7 @@ struct EmListWork {
     int x1C;           // 0x1C
     int fileNo;        // 0x20  file number + 1 of the last save/load
     int x24;           // 0x24
-    u8 pad_28[0x20];
+    EmListEnt copy;    // 0x28  copy buffer (Y copy / L+X overwrite / L+R+X paste)
     f32 cursorX;       // 0x48  screen cursor
     f32 cursorY;       // 0x4C
     int x50;           // 0x50
@@ -491,8 +502,8 @@ struct EmListWork {
     u8 idNum;          // 0x55  number of named ids in EmListIdTbl
     u8 pad_56[6];
     EmListEnt cur;     // 0x5C  entry being edited
-    int x7C;           // 0x7C
-    u8 pad_80[0x178 - 0x80];
+    int x7C;           // 0x7C  free camera mode (START)
+    Camera cam;        // 0x80  free camera (emlistCamToPoin aims it at the entry)
     JOY joy;           // 0x178
 };
 
@@ -589,8 +600,10 @@ void emlist_file_save(int no);
 int emlist_file_load(int no);
 void emlist_set_fname(char* buf, int no, int mode);
 void emlist_EmDir_disp();
-void emlist_catch_em();
-void emlist_em_move_to_cursor();
+int emlist_catch_em();
+// The original prototype has no parameter but the body reads the entry pointer from r3 (the
+// caller leaves it there); the definition takes it explicitly under the original's mangled name.
+extern "C" void emlist_em_move_to_cursor__Fv(EmListEnt* p);
 int emlist_get_numof_str(const char** tbl);
 void emlistCameraMove();
 void emlistCamToPoin();
@@ -659,7 +672,7 @@ void emlist_init()
     EmList.wk->cur.xB = 0;
     EmList.wk->cur.x1A = 10;
     EmList.wk->cur.hp = 1000;
-    EmList.wk->cur.pad_A = 0;
+    EmList.wk->cur.xA = 0;
     EmList.wk->routine = 1;
     EmList.wk->step = 0;
     EmList.wk->x8 = 0;
@@ -685,12 +698,433 @@ void emlist_exit()
     TaskExit();
 }
 
+// List mode: up/down step the entry, left/right by 20; L+R+Z deletes, L+Z clears, Y copies, L+R+Y
+// inserts an empty entry, L+R+X inserts the copy, L+X overwrites with the copy, B menu, A target.
 static void emlist_r0_main()
 {
+    EmListEnt* p;
+    u32 i;
+
+    if (EmList.wk->joy.rep2 & (JOY_UP | JOY_SUP)) {
+        EmList.wk->listNo--;
+        if (EmList.wk->listNo < 0) {
+            EmList.wk->listNo = 0;
+        }
+    }
+    if (EmList.wk->joy.rep2 & (JOY_DOWN | JOY_SDOWN)) {
+        EmList.wk->listNo++;
+        if (EmList.wk->listNo > 0xFE) {
+            EmList.wk->listNo = 0xFE;
+        }
+    }
+    if (EmList.wk->joy.rep2 & (JOY_LEFT | JOY_SRIGHT)) {
+        if (EmList.wk->listNo > 0x13) {
+            EmList.wk->listNo -= 0x14;
+        }
+    }
+    if (EmList.wk->joy.rep2 & (JOY_RIGHT | JOY_SLEFT)) {
+        if (EmList.wk->listNo <= 0xEA) {
+            EmList.wk->listNo += 0x14;
+        }
+    }
+    p = EMLIST_ENT(EmList.wk->listNo);
+    if ((EmList.wk->joy.on & (JOY_L | JOY_R)) == (JOY_L | JOY_R) && (EmList.wk->joy.trg & JOY_Z)) {
+        for (i = EmList.wk->listNo; i <= 0xFD; i++) {
+            EMLIST_COPY(i, i + 1);
+        }
+        memclr_asm(EMLIST_ENT(i), 0x20);
+    } else if ((EmList.wk->joy.on & (JOY_L | JOY_R)) == JOY_L && (EmList.wk->joy.trg & JOY_Z)) {
+        memclr_asm(p, 0x20);
+    } else if ((EmList.wk->joy.on & (JOY_L | JOY_R)) == (JOY_L | JOY_R) && (EmList.wk->joy.trg & JOY_Y)) {
+        for (i = EmList.wk->listNo + 1; i <= 0xFE; i++) {
+            if (EMLIST_ENT_I(i)->id == 0) {
+                break;
+            }
+        }
+        if (i <= 0xFE) {
+            for (; i > EmList.wk->listNo; i--) {
+                EMLIST_COPY(i, i - 1);
+            }
+            memclr_asm(EMLIST_ENT(i), 0x20);
+        }
+    } else if ((EmList.wk->joy.on & (JOY_L | JOY_R)) == 0 && (EmList.wk->joy.trg & JOY_Y)) {
+        EmList.wk->copy = *p;
+    } else if ((EmList.wk->joy.on & (JOY_L | JOY_R)) == (JOY_L | JOY_R) && (EmList.wk->joy.trg & JOY_X)) {
+        for (i = EmList.wk->listNo; i <= 0xFE; i++) {
+            if (EMLIST_ENT_I(i)->id == 0) {
+                break;
+            }
+        }
+        if (i <= 0xFE) {
+            for (; i > EmList.wk->listNo; i--) {
+                EMLIST_COPY(i, i - 1);
+            }
+        }
+        *p = EmList.wk->copy;
+    } else if ((EmList.wk->joy.on & (JOY_L | JOY_R)) == JOY_L && (EmList.wk->joy.trg & JOY_X)) {
+        *p = EmList.wk->copy;
+    } else {
+        if (EmList.wk->joy.trg & JOY_B) {
+            EmList.wk->routine = 13;
+            EmList.wk->step = 0;
+            EmList.wk->x8 = 0;
+            EmList.wk->xC = 0;
+            EmList.wk->x14 = 0;
+        }
+        if (EmList.wk->joy.trg & JOY_A) {
+            EmList.wk->routine = 1;
+            EmList.wk->step = 0;
+            EmList.wk->x8 = 0;
+            EmList.wk->xC = 0;
+            EmList.wk->x14 = 0;
+            EmList.wk->x50 = -1;
+            EmList.wk->step = 1;
+            EmList.wk->cursorX = (Screen.x + Screen.width) * 0.5f;
+            EmList.wk->cursorY = (Screen.y + Screen.height) * 0.5f;
+        }
+    }
+    emlist_main_disp();
+    emlist_target_disp(0);
 }
 
+// Moves listNo to the previous (dir < 0) / next entry of the current room (unchanged when there is
+// none), then aims the camera and the cursor at it.
+#define EMLIST_ROOM_MATCH(p) (pG->stage_no == (p)->room >> 8 && pG->room_no == ((p)->room & 0xFF))
+
+// Target mode. step 0: the field menu (up/down, A selects, B/Y to the cursor). step 1: the 3D cursor
+// (A catches the nearest entry and drags it, A+Z deletes, X makes a new entry at the cursor, A+L/R
+// rotate, C stick up/down moves it vertically, L/R step through the room's entries).
 static void emlist_r0_target()
 {
+    Vec v;
+    EmListEnt* p = EMLIST_ENT(EmList.wk->listNo);
+    int old;
+    int i;
+
+    switch (EmList.wk->step) {
+    default:
+    case 0:
+        if (EmList.wk->joy.rep2 & (JOY_UP | JOY_SUP)) {
+            EmList.wk->x14--;
+            if (EmList.wk->x14 < 0) {
+                EmList.wk->x14 = 12;
+            }
+        }
+        if (EmList.wk->joy.rep2 & (JOY_DOWN | JOY_SDOWN)) {
+            EmList.wk->x14++;
+            if (EmList.wk->x14 > 12) {
+                EmList.wk->x14 = 0;
+            }
+        }
+        if (EmList.wk->joy.trg & (JOY_B | JOY_Y)) {
+            EmList.wk->step = 1;
+            EmList.wk->x50 = -1;
+            break;
+        }
+        if (EmList.wk->joy.rep2 & JOY_L) {
+            old = EmList.wk->listNo;
+            if (EmList.wk->listNo > 0) {
+                do {
+                    EmList.wk->listNo--;
+                    if (EmList.wk->listNo < 0) {
+                        ISet(EmList.wk->listNo, 0);
+                    }
+                    p = EMLIST_ENT(EmList.wk->listNo);
+                    if (EMLIST_ROOM_MATCH(p)) {
+                        break;
+                    }
+                } while (EmList.wk->listNo > 0);
+            }
+            if (!EMLIST_ROOM_MATCH(p)) {
+                EmList.wk->listNo = old;
+            }
+            p = EMLIST_ENT(EmList.wk->listNo);
+            emlistCamToPoin();
+            emlistCursorToTarget();
+        }
+        if (EmList.wk->joy.rep2 & JOY_R) {
+            old = EmList.wk->listNo;
+            if (EmList.wk->listNo <= 0xFD) {
+                do {
+                    EmList.wk->listNo++;
+                    if (EmList.wk->listNo > 0xFE) {
+                        ISet(EmList.wk->listNo, 0xFE);
+                    }
+                    p = EMLIST_ENT(EmList.wk->listNo);
+                    if (EMLIST_ROOM_MATCH(p)) {
+                        break;
+                    }
+                } while (EmList.wk->listNo <= 0xFD);
+            }
+            if (!EMLIST_ROOM_MATCH(p)) {
+                EmList.wk->listNo = old;
+            }
+            p = EMLIST_ENT(EmList.wk->listNo);
+            emlistCamToPoin();
+            emlistCursorToTarget();
+        }
+        if (EmList.wk->joy.trg & JOY_A) {
+            switch (EmList.wk->x14) {
+            case 0:
+                EmList.wk->routine = 2;
+                EmList.wk->step = 0;
+                EmList.wk->x8 = 0;
+                EmList.wk->xC = 0;
+                if (p->id != 0) {
+                    EmList.wk->id = p->id;
+                }
+                break;
+            case 1:
+                EmList.wk->routine = 3;
+                EmList.wk->step = 0;
+                EmList.wk->x8 = 0;
+                EmList.wk->xC = 0;
+                EmList.wk->x18 = 0;
+                break;
+            case 2:
+                EmList.wk->routine = 4;
+                EmList.wk->step = 0;
+                EmList.wk->x8 = 0;
+                EmList.wk->xC = 0;
+                EmList.wk->x18 = 0;
+                break;
+            case 3:
+                EmList.wk->routine = 5;
+                EmList.wk->step = 0;
+                EmList.wk->x8 = 0;
+                EmList.wk->xC = 0;
+                EmList.wk->x18 = 0;
+                break;
+            case 4:
+                EmList.wk->routine = 6;
+                EmList.wk->step = 0;
+                EmList.wk->x8 = 0;
+                EmList.wk->xC = 0;
+                EmList.wk->x18 = 0;
+                break;
+            case 5:
+                EmList.wk->routine = 7;
+                EmList.wk->step = 0;
+                EmList.wk->x8 = 0;
+                EmList.wk->xC = 0;
+                EmList.wk->x18 = 0;
+                break;
+            case 6:
+                EmList.wk->routine = 8;
+                EmList.wk->step = 0;
+                EmList.wk->x8 = 0;
+                EmList.wk->xC = 0;
+                EmList.wk->x18 = 0;
+                break;
+            case 7:
+                EmList.wk->routine = 9;
+                EmList.wk->step = 0;
+                EmList.wk->x8 = 0;
+                EmList.wk->xC = 0;
+                EmList.wk->x18 = 0;
+                break;
+            case 8:
+                EmList.wk->routine = 10;
+                EmList.wk->step = 0;
+                EmList.wk->x8 = 0;
+                EmList.wk->xC = 0;
+                EmList.wk->x18 = 0;
+                break;
+            case 9:
+                EmList.wk->routine = 11;
+                EmList.wk->step = 0;
+                EmList.wk->x8 = 0;
+                EmList.wk->xC = 0;
+                EmList.wk->x18 = 0;
+                break;
+            case 10:
+                EmList.wk->routine = 12;
+                EmList.wk->step = 0;
+                EmList.wk->x8 = 0;
+                EmList.wk->xC = 0;
+                EmList.wk->x18 = 0;
+                break;
+            case 11:
+                EmList.wk->routine = 18;
+                EmList.wk->step = 0;
+                EmList.wk->x8 = 0;
+                EmList.wk->xC = 0;
+                EmList.wk->x24 = 0;
+                break;
+            default:
+                EmList.wk->routine = 0;
+                EmList.wk->step = 0;
+                EmList.wk->x8 = 0;
+                EmList.wk->xC = 0;
+                break;
+            }
+        }
+        emlist_target_menu_disp(0);
+        break;
+    case 1:
+        if (EmList.wk->x7C == 0) {
+            TutilMoveCursor((Vec*) &EmList.wk->cursorX, 20.0f, 1.0f);
+        }
+        if (EmList.wk->joy.trg & JOY_B) {
+            EmList.wk->routine = 0;
+            EmList.wk->step = 0;
+            EmList.wk->x8 = 0;
+            EmList.wk->xC = 0;
+            break;
+        }
+        if (EmList.wk->joy.trg & JOY_Y) {
+            EmList.wk->step = 0;
+            break;
+        }
+        if (EmList.wk->joy.trg & JOY_A) {
+            EmList.wk->x50 = emlist_catch_em();
+            if (EmList.wk->x50 != -1) {
+                EmList.wk->listNo = EmList.wk->x50;
+                p = EMLIST_ENT(EmList.wk->listNo);
+            }
+        }
+        if (EmList.wk->joy.on & JOY_A) {
+            if (EmList.wk->x50 != -1) {
+                emlist_em_move_to_cursor__Fv(p);
+                EmList.wk->id = p->id;
+            }
+            if (EmList.wk->joy.trg & JOY_Z) {
+                p->id = 0;
+            }
+        }
+        if (EmList.wk->joy.trg & JOY_X) {
+            if (p->id != 0) {
+                for (i = EmList.wk->listNo; i <= 0xFE; i++) {
+                    if (EMLIST_ENT_I(i)->id == 0) {
+                        break;
+                    }
+                }
+                if (i <= 0xFE) {
+                    ISet(EmList.wk->listNo, i);
+                    p = EMLIST_ENT(EmList.wk->listNo);
+                }
+                if (p->id != 0) {
+                    for (i = EmList.wk->listNo; i >= 0; i--) {
+                        if (EMLIST_ENT_I(i)->id == 0) {
+                            ISet(EmList.wk->listNo, i);
+                            p = EMLIST_ENT(EmList.wk->listNo);
+                            break;
+                        }
+                    }
+                }
+            }
+            if (p->id == 0) {
+                if (EmList.wk->cur.id == 0) {
+                    EmList.wk->cur.id = 0x15;
+                    EmList.wk->cur.type = 0;
+                    EmList.wk->cur.x3 = 0;
+                    EmList.wk->cur.flags4 = 0;
+                    EmList.wk->cur.xB = 0;
+                    EmList.wk->cur.x1A = 10;
+                    EmList.wk->cur.hp = 1000;
+                    EmList.wk->cur.rot[0] = 0;
+                    EmList.wk->cur.rot[1] = 0;
+                    EmList.wk->cur.rot[2] = 0;
+                    EmList.wk->cur.xA = 0;
+                }
+                p->flags |= 1;
+                p->id = EmList.wk->cur.id;
+                p->type = EmList.wk->cur.type;
+                p->x3 = EmList.wk->cur.x3;
+                p->flags4 = EmList.wk->cur.flags4;
+                p->xB = EmList.wk->cur.xB;
+                p->x1A = EmList.wk->cur.x1A;
+                p->hp = EmList.wk->cur.hp;
+                p->rot[2] = EmList.wk->cur.rot[2];
+                *(u32*) &p->rot[0] = *(u32*) &EmList.wk->cur.rot[0];
+                p->xA = 0;
+                p->room = (pG->stage_no << 8) | pG->room_no;
+                PSVECSubtract(&pG->Cam.param.at, &pG->Cam.param.pos, &v);
+                {
+                    f32 t = (pPLem->pos.y - pG->Cam.param.pos.y) / v.y;
+                    v.y = 0.0f;
+                    PSVECScale(&v, &v, t);
+                }
+                PSVECAdd(&pG->Cam.param.pos, &v, &v);
+                p->pos[0] = (s16) (v.x * 0.1f);
+                p->pos[1] = (s16) (pPLem->pos.y * 0.1f);
+                p->pos[2] = (s16) (v.z * 0.1f);
+                emlist_em_move_to_cursor__Fv(p);
+            }
+        }
+        if (!(EmList.wk->joy.on & JOY_A)) {
+            if (EmList.wk->joy.rep2 & JOY_L) {
+                old = EmList.wk->listNo;
+                if (EmList.wk->listNo > 0) {
+                    do {
+                        EmList.wk->listNo--;
+                        if (EmList.wk->listNo < 0) {
+                            EmList.wk->listNo = 0;
+                        }
+                        p = EMLIST_ENT(EmList.wk->listNo);
+                        if (EMLIST_ROOM_MATCH(p)) {
+                            break;
+                        }
+                    } while (EmList.wk->listNo > 0);
+                }
+                if (!EMLIST_ROOM_MATCH(p)) {
+                    EmList.wk->listNo = old;
+                }
+                p = EMLIST_ENT(EmList.wk->listNo);
+                emlistCamToPoin();
+                emlistCursorToTarget();
+            }
+            if (EmList.wk->joy.rep2 & JOY_R) {
+                old = EmList.wk->listNo;
+                if (EmList.wk->listNo <= 0xFD) {
+                    do {
+                        EmList.wk->listNo++;
+                        if (EmList.wk->listNo > 0xFE) {
+                            EmList.wk->listNo = 0xFE;
+                        }
+                        p = EMLIST_ENT(EmList.wk->listNo);
+                        if (EMLIST_ROOM_MATCH(p)) {
+                            break;
+                        }
+                    } while (EmList.wk->listNo <= 0xFD);
+                }
+                if (!EMLIST_ROOM_MATCH(p)) {
+                    EmList.wk->listNo = old;
+                }
+                p = EMLIST_ENT(EmList.wk->listNo);
+                emlistCamToPoin();
+                emlistCursorToTarget();
+            }
+        } else {
+            if (EmList.wk->joy.on & JOY_L) {
+                p->rot[1] = (s16) (LIMIT_ANGLE((f32) (s16) p->rot[1] * (3.1415927f / 16384.0f) + 3.1415927f / 32.0f) *
+                                   (16384.0f / 3.1415927f));
+            }
+            if (EmList.wk->joy.on & JOY_R) {
+                f32 ang = (f32) (s16) p->rot[1] * (3.1415927f / 16384.0f);
+                if (EmList.wk->joy.on & JOY_A) {
+                    ang -= 3.1415927f / 32.0f;
+                } else {
+                    ang -= 3.1415927f / 64.0f;
+                }
+                p->rot[1] = (s16) (LIMIT_ANGLE(ang) * (16384.0f / 3.1415927f));
+            }
+        }
+        if (EmList.wk->joy.rep2 & JOY_SSUP) {
+            p->pos[1] += 50;
+        }
+        if (EmList.wk->joy.rep2 & JOY_SSDOWN) {
+            p->pos[1] -= 50;
+        }
+        TprimDraw2D(0);
+        TprimDrawCursor((Vec*) &EmList.wk->cursorX, &list_color[(EmList.wk->joy.on >> 8) & 1], 0.0f);
+        break;
+    }
+    emlist_target_disp(1);
+    if (EmList.wk->step == 1) {
+        emlist_target_help_disp();
+    }
+    EmList.wk->cur = *p;
 }
 
 static void emlist_r0_set_id()
@@ -1391,8 +1825,46 @@ static void emlist_r0_clear()
     emlist_yes_no_menu_disp(0xC8);
 }
 
+// "Sort List ?" yes/no (x24): bubble-sorts the list by room, empty entries last.
 static void emlist_r0_sort()
 {
+    u8 tmp[0x20];
+    u32 i;
+    u32 j;
+
+    if (EmList.wk->joy.rep2 & (JOY_LEFT | JOY_RIGHT | JOY_SRIGHT | JOY_SLEFT)) {
+        EmList.wk->x24 ^= 1;
+    }
+    if (EmList.wk->joy.trg & JOY_B) {
+        EmList.wk->routine = 13;
+        EmList.wk->step = 0;
+        EmList.wk->x8 = 0;
+        EmList.wk->xC = 0;
+        return;
+    }
+    if (EmList.wk->joy.trg & JOY_A) {
+        if (EmList.wk->x24 != 0) {
+            for (i = 0; i <= 0xFD; i++) {
+                for (j = i + 1; j <= 0xFE; j++) {
+                    if (EMLIST_ENT_I(i)->room > EMLIST_ENT_I(j)->room && EMLIST_ENT_I(j)->id != 0) {
+                        memcpy(tmp, (u8*) pG + 0x52E8 + i * 0x20, 0x20);
+                        EMLIST_COPY(i, j);
+                        memcpy((u8*) pG + 0x52E8 + j * 0x20, tmp, 0x20);
+                    } else if (EMLIST_ENT_I(i)->id == 0 && EMLIST_ENT_I(j)->id != 0) {
+                        memcpy(tmp, (u8*) pG + 0x52E8 + i * 0x20, 0x20);
+                        EMLIST_COPY(i, j);
+                        memcpy((u8*) pG + 0x52E8 + j * 0x20, tmp, 0x20);
+                    }
+                }
+            }
+        }
+        EmList.wk->routine = 13;
+        EmList.wk->step = 0;
+        EmList.wk->x8 = 0;
+        EmList.wk->xC = 0;
+    }
+    eprintf(0x28, 0xB4, 0, 0, "Sort List ?");
+    emlist_yes_no_menu_disp(0xC8);
 }
 
 // Clears the death bits of the current list and re-creates its enemies.
@@ -1411,20 +1883,197 @@ static void emlist_r0_set_exit()
     emlist_exit();
 }
 
+// List page (40 entries in two columns) with the key help and the copy buffer.
 void emlist_main_disp()
 {
+    EmListIdInfo info;
+    EmListEnt* p;
+    int page = EmList.wk->listNo / 40;
+    int base;
+    int i;
+    int j;
+    u32 no;
+    int x;
+    int y;
+    int col;
+
+    if (EmList.wk->fileNo == 0) {
+        eprintf(0x28, 0x1E, 0, 0, "Select File No.[ -- ]");
+    } else {
+        eprintf(0x28, 0x1E, 0, 0, "Select File No.[ %02d ]", EmList.wk->fileNo - 1);
+    }
+    eprintf2(7, 0x10, 0x198, 0x1E, 0, 0, "START CAMERA");
+    eprintf2(7, 0x10, 0x198, 0x2E, 0, 0, "A     Select");
+    eprintf2(7, 0x10, 0x198, 0x3E, 0, 0, "Y     Copy");
+    eprintf2(7, 0x10, 0x198, 0x4E, 0, 0, "L+X   O.Write");
+    eprintf2(7, 0x10, 0x198, 0x5E, 0, 0, "L+Z   Clear");
+    eprintf2(7, 0x10, 0x198, 0x6E, 0, 0, "L+R+Z Delete");
+    eprintf2(7, 0x10, 0x198, 0x7E, 0, 0, "L+R+Y Insert");
+    eprintf2(7, 0x10, 0x198, 0x8E, 0, 0, "L+R+X Paste");
+    eprintf2(7, 0x10, 0x198, 0x9E, 0, 0, "B     Menu");
+    eprintf2(7, 0x10, 0x198, 0xDC, 0, 0, "copy data");
+    if (EmList.wk->copy.id != 0) {
+        p = &EmList.wk->copy;
+        eprintf2(7, 0x10, 0x198, 0xEC, 4, 0, "R%03x", p->room);
+        base = page * 40;
+        info = EmListIdTbl[p->id];
+        eprintf2(7, 0x10, 0x198, 0xFC, 4, 0, "%s", info.name);
+    } else {
+        eprintf2(7, 0x10, 0x198, 0xEC, 0, 0, "");
+        base = page * 40;
+        eprintf2(7, 0x10, 0x198, 0xFC, 0, 0, "----------------");
+    }
+    for (j = 0; j < 2; j++) {
+        for (i = 0; i < 20; i++) {
+            no = i + (base + j * 20);
+            x = j * 0xBC + 0x16;
+            y = i * 0x10 + 0x32;
+            if (no > 0xFE) {
+                break;
+            }
+            p = EMLIST_ENT(no);
+            col = 7;
+            if (pG->stage_no == p->room >> 8 && pG->room_no == (p->room & 0xFF) && p->id != 0) {
+                col = 0;
+            }
+            if (no == EmList.wk->listNo) {
+                col = 4;
+            }
+            if (p->id == 0) {
+                eprintf(x, y, col, 0, "%02d:----------------", no);
+            } else {
+                if (pG->stage_no == p->room >> 8 && pG->room_no == (p->room & 0xFF)) {
+                    if (p->flags & 1) {
+                        eprintf2(7, 0xE, x, y, 2, 0, "%03d:", no);
+                    } else {
+                        eprintf2(7, 0xE, x, y, 0, 0, "%03d:", no);
+                    }
+                } else {
+                    eprintf2(7, 0xE, x, y, col, 0, "%03d:", no);
+                }
+                if (no == EmList.wk->listNo) {
+                    info = EmListIdTbl[p->id];
+                    eprintf2(8, 0x10, x + 0x1C, y, col, 0, "R%03x EM%02x %s", p->room, p->id, info.name);
+                } else {
+                    info = EmListIdTbl[p->id];
+                    eprintf2(7, 0xE, x + 0x1C, y, col, 0, "r%03x EM%02x %s", p->room, p->id, info.name);
+                }
+            }
+        }
+    }
 }
 
 void emlist_target_help_disp()
 {
+    eprintf(0x180, 0x3C, 0, 0, "START  CAMERA");
+    eprintf(0x180, 0x4C, 0, 0, "Y      Set menu");
+    eprintf(0x180, 0x5C, 0, 0, "A      Catch");
+    eprintf(0x180, 0x6C, 0, 0, "A+Z    Delete");
+    eprintf(0x180, 0x7C, 0, 0, "A+L    Rot L");
+    eprintf(0x180, 0x8C, 0, 0, "A+R    Rot R");
+    eprintf(0x180, 0x9C, 0, 0, "X      New set ");
+    eprintf(0x180, 0xAC, 0, 0, "C up   Pos up");
+    eprintf(0x180, 0xBC, 0, 0, "C down Pos down");
+    eprintf(0x180, 0xCC, 0, 0, "B      To List");
+    eprintf(0x180, 0xDC, 0, 0, "L      Target--");
+    eprintf(0x180, 0xEC, 0, 0, "R      Target++");
 }
 
+// Current entry: id line, position/angle line and the field dump (only the id line in list mode
+// for an empty entry).
 void emlist_target_disp(int flag)
 {
+    EmListEnt* p = EMLIST_ENT(EmList.wk->listNo);
+    Vec ang;
+    EmListIdInfo info;
+
+    if (p->id == 0) {
+        if (flag == 0) {
+            eprintf(0x28, 0x174, 0, 0, "List No.[ %02d / %02d ]", EmList.wk->listNo, 0xFE);
+            return;
+        }
+        eprintf(0x28, 0x174, 0, 0, "List No.[ %02d / %02d ] -->> Id[ ---------------- ]", EmList.wk->listNo, 0xFE);
+    } else {
+        info = EmListIdTbl[p->id];
+        eprintf(0x28, 0x174, 0, 0, "List No.[ %02d / %02d ] -->> Id[ EM%02x:%s ]", EmList.wk->listNo, 0xFE, p->id,
+                info.name);
+    }
+    ang.x = (f32) (s16) p->rot[0] * (3.1415927f / 16384.0f);
+    ang.y = (f32) (s16) p->rot[1] * (3.1415927f / 16384.0f);
+    ang.z = (f32) (s16) p->rot[2] * (3.1415927f / 16384.0f);
+    eprintf(0x28, 0x184, 0, 0, "Pos[ %d, %d, %d]   Ang[ %f, %f, %f ]", (s16) p->pos[0] * 10, (s16) p->pos[1] * 10,
+            (s16) p->pos[2] * 10, ang.x, ang.y, ang.z);
+    eprintf(0x28, 0x194, 4, 0, "EmSet: Be_flag: Type: Set: Flag      HP:   Chara");
+    eprintf(0x28, 0x1A4, 0, 0, "%04x:  %02x:      %02x:   %02x:  %08x: %04d: %02x", p->xA, p->flags, p->type, p->x3,
+            p->flags4, p->hp, p->xB);
 }
 
+// Target menu: the 13 field lines, each drawn by its disp function (the cursor line highlighted).
 void emlist_target_menu_disp(int flag)
 {
+    EmListEnt* p = EMLIST_ENT(EmList.wk->listNo);
+    EmListIdInfo info;
+    u32 i;
+    int y;
+    int sel;
+
+    eprintf(0x28, 0x3C, 0, 0, "-- TARGET MENU --------");
+    if (pG->stage_no == p->room >> 8 && pG->room_no == (p->room & 0xFF)) {
+        eprintf(0x28, 0x50, 4, 0, "[ No. = %03d ]", EmList.wk->listNo);
+    } else {
+        eprintf(0x28, 0x50, 7, 0, "[ No. = %03d ]", EmList.wk->listNo);
+    }
+    for (i = 0; i <= 12; i++) {
+        y = 0x60 + i * 0x10;
+        eprintf(0x28, y, (EmList.wk->x14 == i) ? 4 : 0, 0, "%s", target_menu[i]);
+        if (EmList.wk->x14 == i) {
+            eprintf(0x20, y, 0, 0, ">");
+        }
+        sel = 0;
+        if (flag) {
+            sel = (i == EmList.wk->x14);
+        }
+        switch (i) {
+        case 0:
+            if (p->id == 0) {
+                eprintf(0x68, y, 0, 0, "------------");
+            } else {
+                info = EmListIdTbl[p->id];
+                eprintf(0x68, y, 0, 0, "%s", info.name);
+            }
+            break;
+        case 1:
+            emlist_set_room_disp(0x68, y, sel);
+            break;
+        case 2:
+            emlist_set_pos_disp(0x68, y, sel);
+            break;
+        case 3:
+            emlist_set_ang_disp(0x68, y, sel);
+            break;
+        case 4:
+            emlist_set_be_flag_disp(0x68, y, sel);
+            break;
+        case 5:
+            emlist_set_type_disp(0x68, y, sel);
+            break;
+        case 6:
+            emlist_set_set_disp(0x68, y, sel);
+            break;
+        case 7:
+            emlist_set_em_flag_disp(0x68, y, sel);
+            break;
+        case 8:
+            emlist_set_char_disp(0x68, y, sel);
+            break;
+        case 9:
+            emlist_set_hp_disp(0x68, y, sel);
+            break;
+        case 10:
+            emlist_set_guard_r_disp(0x68, y, sel);
+            break;
+        }
+    }
 }
 
 void emlist_menu_disp()
@@ -1606,16 +2255,100 @@ void emlist_set_room_disp(int x, int y, int flag)
     eprintf(x + 0x6C, y, col2, 0, "Room = %02x", p->room & 0xFF);
 }
 
-void emlist_set_pos_disp()
+// Position in mm (the list stores cm); the edited axis is highlighted.
+void emlist_set_pos_disp(int x, int y, int flag)
 {
+    EmListEnt* p = EMLIST_ENT(EmList.wk->listNo);
+    u8 col[3];
+
+    col[0] = 0;
+    col[1] = 0;
+    col[2] = 0;
+    if (flag) {
+        col[EmList.wk->x18] = 4;
+    }
+    x += 8;
+    eprintf(x, y, col[0], 0, "[ %5d,", (s16) p->pos[0] * 10);
+    eprintf(x + 0x48, y, col[1], 0, "%5d,", (s16) p->pos[1] * 10);
+    eprintf(x + 0x80, y, col[2], 0, "%5d ]", (s16) p->pos[2] * 10);
 }
 
-void emlist_set_ang_disp()
+// Rotation (raw 16-bit angles; the radian conversion is computed but not printed).
+void emlist_set_ang_disp(int x, int y, int flag)
 {
+    EmListEnt* p = EMLIST_ENT(EmList.wk->listNo);
+    u8 col[3];
+    Vec ang;
+
+    col[0] = 0;
+    col[1] = 0;
+    col[2] = 0;
+    if (flag) {
+        col[EmList.wk->x18] = 4;
+    }
+    x += 8;
+    ang.x = (f32) (s16) p->rot[0] * (3.1415927f / 16384.0f);
+    ang.y = (f32) (s16) p->rot[1] * (3.1415927f / 16384.0f);
+    ang.z = (f32) (s16) p->rot[2] * (3.1415927f / 16384.0f);
+    eprintf(x, y, col[0], 0, "[ %5d,", (s16) p->rot[0]);
+    eprintf(x + 0x48, y, col[1], 0, "%5d,", (s16) p->rot[1]);
+    eprintf(x + 0x80, y, col[2], 0, "%5d ]", (s16) p->rot[2]);
 }
 
-void emlist_set_be_flag_disp()
+// The 8 be_flag bits as 0/1 digits (the bit under the cursor highlighted), then the names of the
+// set bits and the name of the bit under the cursor.
+void emlist_set_be_flag_disp(int x, int y, int flag)
 {
+    EmListEnt* p = EMLIST_ENT(EmList.wk->listNo);
+    u32 i;
+    u8 bit;
+    int col;
+    int first;
+
+    if (flag) {
+        eprintf(x, y, 0, 0, "------------");
+    }
+    x += 8;
+    bit = 0x80;
+    for (i = 0; i <= 7; i++) {
+        int c = 0;
+        if (flag) {
+            c = (i == EmList.wk->x18) ? 4 : 0;
+        }
+        if (p->flags & bit) {
+            eprintf(x, y, c, 0, "1");
+        } else {
+            eprintf(x, y, c, 0, "0");
+        }
+        bit >>= 1;
+        x += 8;
+        if ((i & 3) == 3) {
+            x += 8;
+        }
+    }
+    x += 0x10;
+    bit = 0x80;
+    col = flag ? 4 : 0;
+    first = 0;
+    for (i = 0; i <= 7; i++) {
+        if (p->flags & bit) {
+            if (first) {
+                eprintf(x, y, col, 0, ",%s", be_flag_name[i]);
+            } else {
+                first = 1;
+                eprintf(x, y, col, 0, ":%s", be_flag_name[i]);
+            }
+            x += (strlen(be_flag_name[i]) + 1) * 8;
+        }
+        bit >>= 1;
+    }
+    x += 0x10;
+    if (flag) {
+        char* name = be_flag_name[EmList.wk->x18];
+        if (name != NULL) {
+            eprintf(x, y, col, 0, "[%s]", name);
+        }
+    }
 }
 
 void emlist_set_type_disp(int x, int y, int flag)
@@ -1656,8 +2389,40 @@ void emlist_set_set_disp(int x, int y, int flag)
     }
 }
 
-void emlist_set_em_flag_disp()
+// The 32 em flag bits as 0/1 digits and the name of the bit under the cursor.
+void emlist_set_em_flag_disp(int x, int y, int flag)
 {
+    EmListEnt* p = EMLIST_ENT(EmList.wk->listNo);
+    u32 i;
+    u32 bit;
+    int col;
+
+    if (flag) {
+        eprintf(x, y, 0, 0, "------------");
+    }
+    x += 8;
+    bit = 0x80000000;
+    for (i = 0; i <= 31; i++) {
+        col = 0;
+        if (flag) {
+            col = (i == EmList.wk->x18) ? 4 : 0;
+        }
+        if (p->flags4 & bit) {
+            eprintf(x, y, col, 0, "1");
+        } else {
+            eprintf(x, y, col, 0, "0");
+        }
+        bit >>= 1;
+        x += 8;
+        if ((i & 7) == 7) {
+            x += 8;
+        }
+    }
+    if (flag && p->id != 0) {
+        if (emlist_get_numof_str(EmListIdTbl[p->id].flag) > 31 - EmList.wk->x18) {
+            eprintf(x, y, col, 0, ":%s", EmListIdTbl[p->id].flag[31 - EmList.wk->x18]);
+        }
+    }
 }
 
 void emlist_set_char_disp(int x, int y, int flag)
@@ -1746,16 +2511,168 @@ void emlist_set_fname(char* buf, int no, int mode)
     }
 }
 
+// Draws every entry of the current room as a direction arrow (blinking for the selected one, set
+// entries in green) plus its guard radius cylinder.
 void emlist_EmDir_disp()
 {
+    Mtx m;
+    Vec pos;
+    Vec rot;
+    u8 fill[4] = {0x66, 0x00, 0x00, 0xFF};
+    u8 line[4] = {0xC0, 0x40, 0x40, 0xFF};
+    int i;
+    u8 blink;
+
+    blink = pG->flags_51E4 & 0xF;
+    if (pG->flags_51E4 & 0x10) {
+        blink = 15 - blink;
+    }
+    blink *= 3;
+    for (i = 0; i <= 0xFE; i++) {
+        u32 ofs = i * 0x20 + 0x52E8;
+        EmListEnt* p = (EmListEnt*) ((u8*) pG + ofs);
+        if (p->id == 0) {
+            continue;
+        }
+        if (pG->stage_no != p->room >> 8 || pG->room_no != (p->room & 0xFF)) {
+            continue;
+        }
+        if (*((u8*) pG + ofs) & 1) {
+            if (i == EmList.wk->listNo) {
+                ((GXColor*) fill)->r = 0x00;
+                ((GXColor*) fill)->g = 0x40;
+                ((GXColor*) fill)->b = 0x00;
+                ((GXColor*) fill)->a = 0xFF;
+                ((GXColor*) line)->r = 0x81;
+                ((GXColor*) line)->g = 0xC0;
+                ((GXColor*) line)->b = 0x40;
+                ((GXColor*) line)->a = 0xFF;
+                ((GXColor*) fill)->r += blink;
+                ((GXColor*) fill)->g += blink;
+                ((GXColor*) fill)->b += blink;
+            } else {
+                ((GXColor*) fill)->r = 0x00;
+                ((GXColor*) fill)->g = 0x0C;
+                ((GXColor*) fill)->b = 0x00;
+                ((GXColor*) fill)->a = 0xFF;
+                ((GXColor*) line)->r = 0x20;
+                ((GXColor*) line)->g = 0x80;
+                ((GXColor*) line)->b = 0x20;
+                ((GXColor*) line)->a = 0xFF;
+            }
+        } else {
+            if (i == EmList.wk->listNo) {
+                ((GXColor*) fill)->r = 0x40;
+                ((GXColor*) fill)->g = 0x40;
+                ((GXColor*) fill)->b = 0x40;
+                ((GXColor*) fill)->a = 0xFF;
+                ((GXColor*) line)->r = 0x80;
+                ((GXColor*) line)->g = 0x80;
+                ((GXColor*) line)->b = 0x80;
+                ((GXColor*) line)->a = 0xFF;
+                ((GXColor*) fill)->r += blink;
+                ((GXColor*) fill)->g += blink;
+                ((GXColor*) fill)->b += blink;
+            } else {
+                ((GXColor*) fill)->r = 0x0C;
+                ((GXColor*) fill)->g = 0x0C;
+                ((GXColor*) fill)->b = 0x0C;
+                ((GXColor*) fill)->a = 0xFF;
+                ((GXColor*) line)->r = 0x40;
+                ((GXColor*) line)->g = 0x40;
+                ((GXColor*) line)->b = 0x40;
+                ((GXColor*) line)->a = 0xFF;
+            }
+        }
+        rot.x = (f32) (s16) p->rot[0] * (3.1415927f / 16384.0f);
+        rot.y = (f32) (s16) p->rot[1] * (3.1415927f / 16384.0f);
+        rot.z = (f32) (s16) p->rot[2] * (3.1415927f / 16384.0f);
+        pos.x = (f32) (s16) p->pos[0] * 10.0f;
+        pos.y = (f32) (s16) p->pos[1] * 10.0f;
+        pos.z = (f32) (s16) p->pos[2] * 10.0f;
+        RotMatrix(m, &rot);
+        TransMatrix(m, &pos);
+        TprimDraw3D(1);
+        TprimDrawMtxDirection(m, (GXColor*) fill, (GXColor*) line);
+        if (i == EmList.wk->listNo) {
+            blink = pG->flags_51E4 & 0xF;
+            if (pG->flags_51E4 & 0x10) {
+                blink = 15 - blink;
+            }
+            blink <<= 3;
+            Draw_cylinder(&pos, (f32) (s16) p->x1A * 1000.0f, 500.0f,
+                          0x404040FF + (blink << 24) + (blink << 16) + (blink << 8));
+        } else {
+            Draw_cylinder(&pos, (f32) (s16) p->x1A * 1000.0f, 500.0f, 0x404040FF);
+        }
+    }
 }
 
-void emlist_catch_em()
+// Entry of the current room nearest to the screen cursor (within 30 pixels); the cursor snaps to it.
+// Returns the entry index or -1.
+int emlist_catch_em()
 {
+    Vec pos;
+    f32 scr[3];
+    f32 hit[2];
+    f32 min = 900.0f;
+    int found = -1;
+    u32 i;
+
+    for (i = 0; i <= 0xFE; i++) {
+        EmListEnt* p = EMLIST_ENT(i);
+        f32 dist;
+        if (p->id == 0) {
+            continue;
+        }
+        if (pG->stage_no != p->room >> 8 || pG->room_no != (p->room & 0xFF)) {
+            continue;
+        }
+        pos.x = (f32) (s16) p->pos[0] * 10.0f;
+        pos.y = (f32) (s16) p->pos[1] * 10.0f;
+        pos.z = (f32) (s16) p->pos[2] * 10.0f;
+        TutilGetScreenPos(&pos, scr, 0);
+        dist = (scr[0] - EmList.wk->cursorX) * (scr[0] - EmList.wk->cursorX) +
+               (scr[1] - EmList.wk->cursorY) * (scr[1] - EmList.wk->cursorY);
+        if (!(dist > min)) {
+            hit[0] = scr[0];
+            min = dist;
+            hit[1] = scr[1];
+            found = i;
+        }
+    }
+    if (found == -1) {
+        return -1;
+    }
+    EmList.wk->cursorX = hit[0];
+    EmList.wk->cursorY = hit[1];
+    return found;
 }
 
-void emlist_em_move_to_cursor()
+// Moves the entry to the cursor's ground position, clamped to the 16-bit cm range.
+extern "C" void emlist_em_move_to_cursor__Fv(EmListEnt* p)
 {
+    Vec pos;
+    Vec cur;
+
+    cur.x = (f32) (s16) p->pos[0] * 10.0f;
+    cur.y = (f32) (s16) p->pos[1] * 10.0f;
+    cur.z = (f32) (s16) p->pos[2] * 10.0f;
+    Get3DPosFrom2D(&pos, EmList.wk->cursorX, EmList.wk->cursorY, cur.y);
+    if (pos.x > 327670.0f) {
+        pos.x = 327670.0f;
+    }
+    if (pos.x < -327670.0f) {
+        pos.x = -327670.0f;
+    }
+    if (pos.z > 327670.0f) {
+        pos.z = 327670.0f;
+    }
+    if (pos.z < -327670.0f) {
+        pos.z = -327670.0f;
+    }
+    p->pos[0] = (s16) (pos.x * 0.1f);
+    p->pos[2] = (s16) (pos.z * 0.1f);
 }
 
 // Number of entries before the "END" terminator (0 without a table or terminator).
@@ -1774,14 +2691,83 @@ int emlist_get_numof_str(const char** tbl)
     return 0;
 }
 
+// Copies the pad into the work; START toggles the free camera (x7C), which then eats the pad.
 void emlistCameraMove()
 {
+    JOY_COPY(EmList.wk, 0x178, 0);
+    if (Joy[0].trg & JOY_START) {
+        EmList.wk->x7C ^= 1;
+        EmList.wk->joy.trg = 0;
+        EmList.wk->joy.on = 0;
+        EmList.wk->joy.rep = 0;
+        EmList.wk->joy.rep2 = 0;
+    }
+    if (EmList.wk->x7C != 0) {
+        CamDbg.move(&pG->Cam, &Joy[0], 0);
+        BitSet(EmList.wk->joy.trg, 0);
+        BitSet(EmList.wk->joy.on, 0);
+        BitSet(EmList.wk->joy.rep, 0);
+        BitSet(EmList.wk->joy.rep2, 0);
+        BitOn(pG->flags_60, 0x10000000);
+        if (pG->flags_51E4 & 0x10) {
+            eprintf(0x140, 0x18, 4, 0, "1P CAMERA MODE");
+        }
+        EmList.wk->cursorX = (Screen.x + Screen.width) * 0.5f;
+        EmList.wk->cursorY = (Screen.y + Screen.height) * 0.5f;
+    }
 }
 
+// Aims the camera at the current entry (keeping the camera offset) unless it is already on screen.
 void emlistCamToPoin()
 {
+    Vec d;
+    Vec pos;
+    Vec scr;
+    Camera* cam = &pG->Cam;
+    EmListEnt* p = EMLIST_ENT(EmList.wk->listNo);
+
+    if (p->id != 0 && pG->stage_no == p->room >> 8 && pG->room_no == (p->room & 0xFF)) {
+        Vec tmp;
+        pos.x = (f32) (s16) p->pos[0] * 10.0f;
+        pos.y = (f32) (s16) p->pos[1] * 10.0f;
+        pos.z = (f32) (s16) p->pos[2] * 10.0f;
+        tmp = pos;
+        if (GetScreenPos(&tmp, &scr) != 0 && scr.x > 50.0f && scr.x < 462.0f && scr.y > 100.0f && scr.y < 348.0f) {
+            return;
+        }
+        PSVECSubtract(&cam->param.pos, &cam->param.at, &d);
+        EmList.wk->cam.param.at = pos;
+        PSVECAdd(&EmList.wk->cam.param.at, &d, &EmList.wk->cam.param.pos);
+        EmList.wk->cam.up.x = 0.0f;
+        EmList.wk->cam.up.y = 1.0f;
+        EmList.wk->cam.up.z = 0.0f;
+        EmList.wk->cam.dist =
+            SQRTF((EmList.wk->cam.param.pos.x - EmList.wk->cam.param.at.x) * (EmList.wk->cam.param.pos.x - EmList.wk->cam.param.at.x) +
+                  (EmList.wk->cam.param.pos.y - EmList.wk->cam.param.at.y) * (EmList.wk->cam.param.pos.y - EmList.wk->cam.param.at.y) +
+                  (EmList.wk->cam.param.pos.z - EmList.wk->cam.param.at.z) * (EmList.wk->cam.param.pos.z - EmList.wk->cam.param.at.z));
+        EmList.wk->cam.param.fovy = cam->param.fovy;
+        CameraSetOrientationUp(&EmList.wk->cam);
+        CamCtrl.x250 = (s32) &EmList.wk->cam;
+        cam->param.at = EmList.wk->cam.param.at;
+        cam->param.pos = EmList.wk->cam.param.pos;
+        EmList.wk->cursorX = (Screen.x + Screen.width) * 0.5f;
+        EmList.wk->cursorY = (Screen.y + Screen.height) * 0.5f;
+    }
 }
 
+// Puts the screen cursor on the current entry (if it is in this room).
 void emlistCursorToTarget()
 {
+    EmListEnt* p = EMLIST_ENT(EmList.wk->listNo);
+    Vec pos;
+    f32 scr[3];
+
+    if (p->id != 0 && pG->stage_no == p->room >> 8 && pG->room_no == (p->room & 0xFF)) {
+        pos.x = (f32) (s16) p->pos[0] * 10.0f;
+        pos.y = (f32) (s16) p->pos[1] * 10.0f;
+        pos.z = (f32) (s16) p->pos[2] * 10.0f;
+        TutilGetScreenPos(&pos, scr, 0);
+        EmList.wk->cursorX = scr[0];
+        EmList.wk->cursorY = scr[1];
+    }
 }
