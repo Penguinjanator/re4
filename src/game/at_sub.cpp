@@ -128,13 +128,16 @@ u32 AtSphereCapsuleCk(Vec* c, Vec* p0, f32 r, f32 r2, Vec* p1)
     Vec p;
     f32 rr;
     f32 len;
+    f32 d;   // the two end-point distances through one twice-set local: not tied to the dz chain
     u32 n;
 
     rr = (r + r2) * (r + r2);
-    if (SQ_DIST(c, p0) < rr) {
+    d = SQ_DIST(c, p0);
+    if (d < rr) {
         return 1;
     }
-    if (SQ_DIST(c, p1) < rr) {
+    d = SQ_DIST(c, p1);
+    if (d < rr) {
         return 1;
     }
     PSVECSubtract(p0, p1, &dir);
@@ -384,59 +387,68 @@ u32 At_poly_sphere_ck2(Vec* tri, Vec* n, u32 attr, Vec* oldPos, Vec* pos, f32 r,
         return 0;
     }
     d = PSVECDotProduct(n, pos) - PSVECDotProduct(n, tri);
-    hit = 99;
-    if (fabsf(d) > r) {
-        Vec hp2;
+    {
+        // `hit = 99` after the fabsf (a volatile asm, so the `li` cannot move above it); the
+        // rim-hit `hit = 1` of the else arm jumps into the surface-hit arm's copy (`goto hit1`),
+        // the original's cross-jump survivor.
+        f32 ad = fabsf(d);
+        hit = 99;
+        if (ad > r) {
+            Vec hp2;
 
-        hit = 0;
-        if (At_surface_line_ck(&hp, tri, n, oldPos, pos)) {
-            nn = *n;
-            hp2 = hp;
-            if (At_poly_point_rel(tri, &nn, &hp2)) {
-                hit = 1;
-            }
-        }
-    } else {
-        Vec v;
-        Vec hp2;
-
-        PSVECScale(n, &hp, d);
-        PSVECSubtract(pos, &hp, &hp);
-        nn = *n;
-        hp2 = hp;
-        if (At_poly_point_rel(tri, &nn, &hp2) == 0) {
-            if (flag & 0x20) {
+            if (At_surface_line_ck(&hp, tri, n, oldPos, pos)) {
                 hit = 0;
-            } else {
-                for (i = 0; i < 3; i++) {
-                    f32 len;
-                    f32 dot;
-                    if (attr & (1 << (i + 29))) {
-                        continue;
-                    }
-                    PSVECSubtract(&tri[(i + 1) % 3], &tri[i], &v);
-                    PSVECSubtract(pos, &tri[i], &nn);
-                    len = PSVECSquareMag(&v);
-                    dot = PSVECDotProduct(&nn, &v);
-                    if (dot < 0.01f) {
-                        continue;
-                    }
-                    if (len < dot) {
-                        continue;
-                    }
-                    PSVECScale(&v, &hp, dot / len);
-                    PSVECAdd(&hp, &tri[i], &hp);
-                    if (PSVECSquareDistance(pos, &hp) < r * r) {
-                        hit = 2;
-                        break;
-                    }
+                nn = *n;
+                hp2 = hp;
+                if (At_poly_point_rel(tri, &nn, &hp2)) {
+                hit1:
+                    hit = 1;
                 }
+            } else {
+                hit = 0;
             }
         } else {
-            hit = 2;
-        }
-        if (i == 3) {
-            hit = 0;
+            Vec v;
+            Vec hp2;
+
+            PSVECScale(n, &hp, d);
+            PSVECSubtract(pos, &hp, &hp);
+            nn = *n;
+            hp2 = hp;
+            if (At_poly_point_rel(tri, &nn, &hp2) == 0) {
+                if (flag & 0x20) {
+                    hit = 0;
+                } else {
+                    for (i = 0; i < 3; i++) {
+                        f32 len;
+                        f32 dot;
+                        if (attr & (1 << (i + 29))) {
+                            continue;
+                        }
+                        PSVECSubtract(&tri[(i + 1) % 3], &tri[i], &v);
+                        PSVECSubtract(pos, &tri[i], &nn);
+                        len = PSVECSquareMag(&v);
+                        dot = PSVECDotProduct(&nn, &v);
+                        if (dot < 0.01f) {
+                            continue;
+                        }
+                        if (len < dot) {
+                            continue;
+                        }
+                        PSVECScale(&v, &hp, dot / len);
+                        PSVECAdd(&hp, &tri[i], &hp);
+                        if (PSVECSquareDistance(pos, &hp) < r * r) {
+                            hit = 2;
+                            break;
+                        }
+                    }
+                    if (i == 3) {
+                        hit = 0;
+                    }
+                }
+            } else {
+                goto hit1;
+            }
         }
     }
     if (hit != 0) {

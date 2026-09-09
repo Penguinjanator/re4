@@ -436,9 +436,7 @@ void emMine_R1_ShotArrow(cEmMine* em)
             info = EatMgr.getEffInfo(EatGetEffectType(attr));
             if (info) {
                 if (info->flags & 1) {
-                    if (!(info->eff0[0] == 0xD2 && info->eff0[1] == 1)) {
-                        EstSet(0, -1, &em->pos, 0, info->eff0[0], (u8) info->eff0[1], 0, 0, 0, 0);
-                    }
+                    EstSet(0, -1, &em->pos, 0, info->eff0[0], (u8) info->eff0[1], 0, 0, 0, 0);
                 }
                 w->effKind = (u8) info->eff6[0];
                 w->effNo = (u8) info->eff6[1];
@@ -466,9 +464,7 @@ void emMine_R1_ShotArrow(cEmMine* em)
                 em->pos.y = wh;
                 info = EatMgr.getEffInfo(2);
                 if (info) {
-                    if (!(info->eff0[0] == 0xD2 && info->eff0[1] == 1)) {
-                        EstSet(0, -1, &em->pos, 0, info->eff0[0], (u8) info->eff0[1], 0, 0, 0, 0);
-                    }
+                    EstSet(0, -1, &em->pos, 0, info->eff0[0], (u8) info->eff0[1], 0, 0, 0, 0);
                     w->effKind = (u8) info->eff6[0];
                     w->effNo = (u8) info->eff6[1];
                     SndCall(5, 0x24, &em->pos, 0, 0, em);
@@ -509,9 +505,7 @@ void emMine_R1_ShotArrow(cEmMine* em)
             em->pos.y = wh2;
             info = EatMgr.getEffInfo(2);
             if (info) {
-                if (!(info->eff0[0] == 0xD2 && info->eff0[1] == 1)) {
-                    EstSet(0, -1, &em->pos, 0, info->eff0[0], (u8) info->eff0[1], 0, 0, 0, 0);
-                }
+                EstSet(0, -1, &em->pos, 0, info->eff0[0], (u8) info->eff0[1], 0, 0, 0, 0);
                 w->effKind = (u8) info->eff6[0];
                 w->effNo = (u8) info->eff6[1];
                 SndCall(5, 0x24, &em->pos, 0, 0, em);
@@ -1153,10 +1147,10 @@ void cEmMine::setBomb()
     memcpy((u8*) pG + ((u32) &((GlobalWork*) 0)->bell_pos), &p, sizeof(Vec));
     pG->bell_stat = 1;
     setLost();
+    xFF = 0;   // written first: the target issues `stb ff` before the 1/6 stores
     xFC = 1;
     xFD = 6;
     xFE = 0;
-    xFF = 0;
 }
 
 void cEmMine::setFall()

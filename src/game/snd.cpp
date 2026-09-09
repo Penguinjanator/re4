@@ -312,7 +312,6 @@ static int sndFilterCalc(int no, f32 dist)
 {
     int ret = 0;
     SndRoomHdr* h;
-    u32 ofs;
     SndCurveTbl* t;
     SndCurveEnt* e;
     u32 i;
@@ -323,9 +322,9 @@ static int sndFilterCalc(int no, f32 dist)
     } else {
         h = pSnd->hdr;
         if (h != NULL) {
-            ofs = h->filter_ofs[no];
-            if (ofs != 0) {
-                t = (SndCurveTbl*) ((u8*) h + ofs);
+            no = h->filter_ofs[no];   // the offset reuses the parameter (r3 -> `num` lands in r0)
+            if (no != 0) {
+                t = (SndCurveTbl*) ((u8*) h + no);
                 e = t->e;
                 num = t->num;
                 for (i = 0; i < num; i++, e++) {
@@ -2652,3 +2651,6 @@ void SndSeqFadeOutAll_sec(u8 type, int sec)
 {
     Snd_seq_fade_out_type(type, sec * 200);
 }
+
+// The split object's .sdata is 8-aligned (0x18 bytes: the u8 flag_bak is followed by 7 bytes of pad).
+asm(".section .sdata; .balign 8");

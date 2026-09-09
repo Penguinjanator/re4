@@ -1062,6 +1062,7 @@ STRIP_UNUSED = {
     "game/player.cpp",
     "game/obj03.cpp",
     "game/obj02.cpp",
+    "game/scroll.cpp",
 }
 
 # Capcom sound library (game/snd_*.cpp): C++ with extern "C" functions, compiled unoptimised
@@ -1375,6 +1376,7 @@ MATCHING.update({
     "lib/sj_rbf.c": True,
     "lib/mpv_lib.c": True,
     "lib/sfx_YCC420PLN_to_ARGB8888PLN.c": True,
+    "lib/mpv_mc.c": True,
 })
 
 # partner character (pl_npc): const f32 locals for pool order, per-value switch bodies, dead
@@ -1457,4 +1459,19 @@ MATCHING.update({
 # `s16 x = lo; x |= hi << 8` byte assembly, s16 coordinate copies declared after GXBegin
 MATCHING.update({
     "game/eprintf.cpp": True,
+})
+
+# scroll: index-first integer table address in SmdClear (the store aliases the scalar table pointer),
+# format strings in `const char*` locals so jump.c does not hoist the early `return NULL`s, `goto ok`
+# around the shared NULL return, do/while list walk testing `next`, `u32 base` for the bin table,
+# `nTpl = 0` before the getWorkPtr call; SmdGetIdNumPtr is dead-stripped (STRIP_UNUSED)
+MATCHING.update({
+    "game/scroll.cpp": True,
+})
+
+# at_sub: the sphere/capsule end-point distances through one twice-set `d` (no tie to the dz chain),
+# At_poly_sphere_ck2's `hit = 99` after the fabsf asm, `hit = 0` inside the surface-hit arm and the
+# rim-hit arm's `goto hit1` into the surface-hit `hit = 1` (the original cross-jump survivor)
+MATCHING.update({
+    "game/at_sub.cpp": True,
 })

@@ -82,8 +82,11 @@ void SmdClear(int mode)
         break;
     case 1:
         for (i = 0; i < 250; i++) {
-            if (scrObjTbl[i] != NULL && scrObjTbl[i]->blk != -1) {
-                scrObjTbl[i] = NULL;
+            // index-first integer address: the store through the plain pointer may alias the
+            // scalar `scrObjTbl`, which is reloaded every iteration in the target.
+            cObj** p = (cObj**) (i * sizeof(cObj*) + (u32) scrObjTbl);
+            if (*p != NULL && (*p)->blk != -1) {
+                *p = NULL;
             }
         }
         break;
@@ -346,7 +349,13 @@ cObj* SmdGetObjPtr(u32 id)
                 return NULL;
             }
         }
-        pLog->err(0, 0, "SmdGetObjPtr() invalid ID [%d] used", id);
+        {
+            // The format string in a local: the string address is expanded before the pLog load,
+            // so jump.c does not hoist the early `return NULL`s above the flag tests (the three
+            // `li r3, 0` tails are cross-jumped instead) and each error block keeps its schedule.
+            const char* s = "SmdGetObjPtr() invalid ID [%d] used";
+            pLog->err(0, 0, s, id);
+        }
         id = 0;
     }
     obj = scrObjTbl[id];
@@ -356,7 +365,10 @@ cObj* SmdGetObjPtr(u32 id)
                 return NULL;
             }
         }
-        pLog->err(0, 0, "SmdGetObjPtr(%d) invalid work", id);
+        {
+            const char* s = "SmdGetObjPtr(%d) invalid work";
+            pLog->err(0, 0, s, id);
+        }
         return NULL;
     }
     if (obj->x3D0 & 4) {
@@ -397,13 +409,16 @@ void BlockDestroy(int blk)
     cObj* cur;
     cObj* next;
 
-    while (p != NULL) {
-        cur = p;
-        next = (cObj*) cur->next;
-        p = next;
-        if (cur->x12E == 2 && cur->blk == blk) {
-            ObjMgr.destroy(cur);
-        }
+    // Entry test on the head, bottom test on `next` (pl_sub PlDataRelease shape).
+    if (p != NULL) {
+        do {
+            cur = p;
+            next = (cObj*) cur->next;
+            p = next;
+            if (cur->x12E == 2 && cur->blk == blk) {
+                ObjMgr.destroy(cur);
+            }
+        } while (next != NULL);
     }
 }
 
@@ -425,17 +440,21 @@ void cSmd::slide(int ofs)
             nBin = w->binNo + 1;
         }
     }
-    tbl = (u32*) ((u8*) this + ofsBin);
-    for (i = 0; i < nBin; i++) {
-        addr = (u32) tbl + tbl[i];
-        if (addr < 0x80000000 || addr > 0x82FFFFFF) {
-            pLog->err(0, 0, "cSmd::slide() PTR ERR %08X", addr);
-            return;
+    {
+        // An integer base (not a pointer) ranks below the hoisted 0x02FFFFFF constant in the
+        // callee-saved allocation (base r28, constant r29).
+        u32 base = (u32) this + ofsBin;
+        for (i = 0; i < nBin; i++) {
+            addr = base + ((u32*) base)[i];
+            if (addr < 0x80000000 || addr > 0x82FFFFFF) {
+                pLog->err(0, 0, "cSmd::slide() PTR ERR %08X", addr);
+                return;
+            }
+            slideModelAddr(addr, ofs);
         }
-        slideModelAddr(addr, ofs);
     }
+    nTpl = 0;   // set before the call: the pseudo crosses it and takes a callee-saved register
     w = getWorkPtr(0);
-    nTpl = 0;
     for (i = 0; i < nWork; i++, w++) {
         if (w->id != 0xFF && !(w->flags & 0x10) && w->tplNo + 1 > nTpl) {
             nTpl = w->tplNo + 1;
@@ -510,21 +529,33 @@ cObj* SmdGetGroupObjPtr(u32 id)
     if (id > 0xF9) {
         if (pG->flags_60 & 0x80000000) {
             if (!(pG->flags_60 & 0x2000000)) {
-                return NULL;
+                goto ng;
             }
         }
-        pLog->err(0, 0, "SmdGetObjPtr() invalid ID [%d] used", id);
+        {
+            const char* s = "SmdGetObjPtr() invalid ID [%d] used";
+            pLog->err(0, 0, s, id);
+        }
         id = 0;
     }
     obj = scrObjTbl[id];
     if ((u32) obj < 0x80000000 || (u32) obj > 0x82FFFFFF) {
         if (pG->flags_60 & 0x80000000) {
             if (!(pG->flags_60 & 0x2000000)) {
-                return NULL;
+                goto ng;
             }
         }
-        pLog->err(0, 0, "SmdGetObjPtr(%d) invalid work", id);
+        {
+            const char* s = "SmdGetObjPtr(%d) invalid work";
+            pLog->err(0, 0, s, id);
+        }
+        // The shared `return NULL` block sits after the second error call and the call jumps over
+        // it to the normal return (the layout of the original).
+        goto ok;
+    ng:
+        return NULL;
     }
+ok:
     return scrObjTbl[id];
 }
 

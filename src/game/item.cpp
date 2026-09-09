@@ -418,9 +418,10 @@ int cItemMgr::set_ada(int no)
 
 int cItemMgr::set_char(int no)
 {
+    ItemWork* p;   // one function-scope pointer for every case (case 3 gets r31)
+
     switch (no) {
     case 0: {
-        ItemWork* p;
         int i;
 
         dump(0x7C);
@@ -440,7 +441,6 @@ int cItemMgr::set_char(int no)
         break;
     }
     case 2: {
-        ItemWork* p;
         u16 on;
         int i;
 
@@ -468,7 +468,6 @@ int cItemMgr::set_char(int no)
         break;
     }
     case 3: {
-        ItemWork* p;
         int i;
 
         dump(0x7C);
@@ -498,7 +497,6 @@ int cItemMgr::set_char(int no)
         break;
     }
     case 5: {
-        ItemWork* p;
         int i;
 
         dump(0x7C);
@@ -591,10 +589,10 @@ int cItemMgr::set_stage1(int no)
 int cItemMgr::set_stage2(int no)
 {
     int ret = 0;
+    ItemWork* p;   // function-scope (case 3 takes r31)
 
     switch (no) {
     case 0: {
-        ItemWork* p;
         u16 on;
         int i;
 
@@ -629,7 +627,6 @@ int cItemMgr::set_stage2(int no)
         break;
     }
     case 1: {
-        ItemWork* p;
         int i;
 
         ret = 2;
@@ -662,7 +659,6 @@ int cItemMgr::set_stage2(int no)
         break;
     }
     case 2: {
-        ItemWork* p;
         int i;
 
         ret = 1;
@@ -682,7 +678,6 @@ int cItemMgr::set_stage2(int no)
         break;
     }
     case 3: {
-        ItemWork* p;
         int i;
 
         ret = 1;
@@ -1192,6 +1187,8 @@ void cItemMgr::roomInit()
         type = 0;
     }
 }
+
+static inline void S32SetI(s32& d, s32 v) { d = v; }
 
 int cItemMgr::init()
 {

@@ -34,6 +34,10 @@ static int g_Shd_tex_size = 0x80;
 int isSelfUse = 1;
 int g_SelfShdNum = 0;
 f32 shadow_cammove_size = 1.0f;
+// Reference read of a unit static: the load is neither in-struct nor a fixed scalar, so it stays
+// ordered against the `mng->dir` stores (make_comn_parallel_light issues the pool -1.0 first).
+static inline f32 FRef(f32& v) { return v; }
+
 f32 shadow_add_dir_x_default = 0.1f;
 f32 shadow_add_dir_x = shadow_add_dir_x_default;
 static int g_Shd_num;
@@ -350,9 +354,14 @@ void ShadowTrans()
                 continue;
             }
         }
-        if (em->be_flag & 0x10) {
-            if (Fit_ParallelShadowModelSet(em, 0) == 1) {
-                found = 1;
+        {
+            // COMPILER-DIFF: 5 (interblock hoist of the `mr r3, em` argument copy above the flag test)
+            cEm* e = em;
+            asm("" : "+r"(e));
+            if (e->be_flag & 0x10) {
+                if (Fit_ParallelShadowModelSet(e, 0) == 1) {
+                    found = 1;
+                }
             }
         }
         if (em->be_flag & 0x04000000) {
@@ -699,14 +708,17 @@ void make_comn_parallel_light(ShadowMng* mng, cModel* m)
     SHD_LIGHT_POS(m, pos, "LightHitCheck() cCoord NO ERR %d");
     mng->target = pos;
     mng->lightPos = mng->target;
-    mng->dir.x = shadow_add_dir_x;
+    mng->dir.x = FRef(shadow_add_dir_x);
     FSet(mng->dir.y, -1.0f);
-    mng->dir.z = shadow_add_dir_x;
+    mng->dir.z = FRef(shadow_add_dir_x);
     PSVECNormalize(&mng->dir, &mng->dir);
     w = (ShadowLightWork*) l->work;
-    rot.z = 0.0f;
-    rot.x = (f32) w->rotX * 6.2831855f / 360.0f;
-    rot.y = (f32) w->rotY * 6.2831855f / 360.0f;
+    {
+        const f32 zero = 0.0f;
+        rot.x = (f32) w->rotX * 6.2831855f / 360.0f;
+        rot.y = (f32) w->rotY * 6.2831855f / 360.0f;
+        rot.z = zero;
+    }
     RotMatrix(rm, &rot);
     PSMTXMultVecSR(rm, &mng->dir, &v);
     PSVECScale(&v, &v, -5000.0f);
@@ -862,6 +874,9 @@ void SoftShadowGXDraw(ShadowMng* mng, u32 div, f32 x, f32 y, f32 z, f32 u, f32 v
     GXTexCoord2f32(u + 0.0f, v + 1.0f);
 }
 
+// COMPILER-DIFF: 1 (argument-move order): MakeSoftShadow issues the x/y/z moves before `li r4, div`.
+extern "C" void SoftShadowGXDrawF(ShadowMng* mng, f32 x, f32 y, f32 z, u32 div, f32 u, f32 v, f32 alpha, f32 scale) asm("SoftShadowGXDraw");
+
 void MakeSoftShadow(ShadowMng* mng)
 {
     static f32 fa = 1.0f;
@@ -869,30 +884,33 @@ void MakeSoftShadow(ShadowMng* mng)
     static f32 fc = 1.0f;
     static int fd = 2;
     f32 z = 65530.0f;
-    f32 zero = 0.0f;
+    f32 zero;
     f32 alpha;
     ShadowLightWork* w;
     int a;
 
     SetNoScissor();
+    // Assigned after the first call: a declaration initialiser is loaded before it and changes the
+    // callee-saved FPR order of z/alpha (target: z f29, alpha f30).
+    zero = 0.0f;
     SoftShadowGetEFB(mng, 0.5f, 1.0f, 1);
     a = 0xFF;
     alpha = (f32) (u8) a;
-    SoftShadowGXDraw(mng, 1, zero, zero, z, zero, zero, alpha, 1.0f);
+    SoftShadowGXDrawF(mng, zero, zero, z, 1, zero, zero, alpha, 1.0f);
     w = (ShadowLightWork*) mng->pLight->work;
     if (w->soft > 1) {
         SoftShadowGetEFB(mng, 1.0f, 2.0f, 1);
-        SoftShadowGXDraw(mng, 2, zero, zero, z, zero, zero, alpha, 2.0f);
+        SoftShadowGXDrawF(mng, zero, zero, z, 2, zero, zero, alpha, 2.0f);
         if (w->soft > 2) {
             SoftShadowGetEFB(mng, fa, fb, 1);
             a = 0x80;
-            SoftShadowGXDraw(mng, fd, zero, zero, z, zero, zero, (f32) (u8) a, fc);
+            SoftShadowGXDrawF(mng, zero, zero, z, fd, zero, zero, (f32) (u8) a, fc);
         }
         SoftShadowGetEFB(mng, 1.0f, 2.0f, 1);
-        SoftShadowGXDraw(mng, 2, zero, zero, z, zero, zero, alpha, 0.25f);
+        SoftShadowGXDrawF(mng, zero, zero, z, 2, zero, zero, alpha, 0.25f);
     } else {
         SoftShadowGetEFB(mng, 1.0f, 2.0f, 1);
-        SoftShadowGXDraw(mng, 2, zero, zero, z, zero, zero, alpha, 0.5f);
+        SoftShadowGXDrawF(mng, zero, zero, z, 2, zero, zero, alpha, 0.5f);
     }
     SoftShadowGetEFB(mng, 0.5f, 1.0f, 1);
     SetScissorState();
@@ -1225,8 +1243,13 @@ void shadowScrModelRender(ShadowMng* mngs)
         } else {
             cnt++;
         }
-        if (BitChk(obj->be_flag, 1) && BitChk(obj->be_flag, 0x80)) {
-            ProcShadowScrModel(obj, mngs);
+        {
+            // COMPILER-DIFF: 5 (interblock hoist of the `mr r3, obj` argument copy above the flag test)
+            cObj* o = obj;
+            asm("" : "+r"(o));
+            if (BitChk(o->be_flag, 1) && BitChk(o->be_flag, 0x80)) {
+                ProcShadowScrModel(o, mngs);
+            }
         }
     }
     em = EmMgr.pAlive;

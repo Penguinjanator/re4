@@ -3875,3 +3875,83 @@ target) stays unresolved and `make_rel` then fails with "undefined symbol".
 - A local function-pointer table initialised inside the function is a `.rodata` table copied to the
   stack at entry.
 
+
+### Enemy/system DOL units, bytes-first pass (scroll, at_sub Matching; shadow 33/36, em_set 10/12, item 63/78, snd 91/97, emmine 19/23; 2026-09)
+
+- Judge with a masked byte compare that (1) strips the `.NNN` DECL_UID suffix of static locals and the
+  `_8019XXXX` address suffix of `__static_initialization_and_destruction_0`, (2) compares data-section
+  reloc targets by *masked* content (a `const char*` table's relocated words are 0 in the split object and
+  the string offset in ours) or by global name, and (3) treats an undefined symbol as a data target, or a
+  `static const Vec ofs` / weak `_vt.5cUnit` copy / `kind_str.658` table shows up as a false diff.
+- COMPILER-DIFF 5 shape, per site: `mr r3, obj; lwz r0, 0(r3); andi.; beq` at the top of a manager-walk
+  body (the argument copy hoisted above the flag test and the load rebased on r3) is `cObj* o = obj;
+  asm("" : "+r"(o));` before the test with `o` used for both the test and the call (shadow ShadowTrans
+  em loop, shadowScrModelRender obj loop). The *other* loop of each function keeps `lwz 0(r31)` first,
+  so the launder must go only where the target shows the hoist.
+- A unit static read twice around a scalar-reference store (`dir.x = g; FSet(dir.y, -1); dir.z = g`):
+  `FRef(g)` on both reads (reference read, neither in-struct nor scalar) issues the pool `-1.0` load
+  before the `.sdata` loads like the target; the plain reads put `lfs g@sda21` first (shadow
+  make_comn_parallel_light).
+- A pool `0.0` that sits before the block's other constants but whose `lis/lfs/stfs` are issued after
+  them: `const f32 zero = 0.0f;` declared before the other statements (pool entry at the declaration)
+  and `rot.z = zero;` written *last* (make_comn_parallel_light `rot`).
+- `SoftShadowGXDraw(mng, u32 div, f32 x, y, z, u, v, alpha, scale)`: the target issues the x/y/z
+  moves before `li r4, div` — COMPILER-DIFF 1, floats-first alias
+  `SoftShadowGXDrawF(mng, x, y, z, div, u, v, alpha, scale) asm("SoftShadowGXDraw")` (div after z is
+  the only position of five that matches all five call sites).
+- A float local whose `lfs` the target issues after the first call while the other callee-saved FPRs
+  (`z` f29, `alpha` f30) come first: declare it without initialiser and assign `zero = 0.0f;` after the
+  call (MakeSoftShadow). OPEN there: the target loads the constant into f28 and copies `fmr f31, f28`
+  twice (after SetNoScissor and in the else arm); every zero-variable/inline/literal form merges the copies.
+- Local-alloc `fake lifetime` (local-alloc.c: each qty is first tried with birth-2/death+2 so that
+  adjacent qtys get different registers): `lwz r11, pSnd; lwz r9, 0x9c(r11)` is the normal result;
+  the target's `lwz r9, pSnd; lwz r9, 0x9c(r9)` (snd SndSetReverb then-arm) means one of the two qtys
+  was allocated on its real lifetime (a suggested register) — OPEN, no source form found.
+- sndFilterCalc: `no = h->filter_ofs[no]` (the offset reuses the `int no` parameter) makes the loop
+  bound `num` land in r0 and `ret` in r8; a separate `u32 ofs` local gets r0 itself and pushes `num`
+  to r8 / `ret` to r7. Reusing a dead parameter for a derived value is a cheap register-order lever.
+- snd `.sdata` is 8-aligned in the split object (`u8 flag_bak` + 7 pad): `asm(".section .sdata; .balign 8")`.
+- scroll idioms (unit Matching): `cObj** p = (cObj**) (i * sizeof(cObj*) + (u32) scrObjTbl); *p = NULL`
+  (index-first integer address, store through a plain pointer) reloads the scalar `scrObjTbl` every
+  iteration and keeps `li r10, 0` in the preheader (SmdClear); a `pLog->err(0, 0, "fmt", id)` whose
+  format string is a `const char* s` local expands the string address before the pLog load, which
+  stops jump.c from hoisting a preceding `return NULL` into `li r3, 0; beq` (the three `li r3, 0` tails
+  are cross-jumped instead) and gives each error block its own lis/lwz schedule (SmdGetObjPtr,
+  SmdGetGroupObjPtr); the shared NULL return placed after the second error call with the call jumping
+  over it is `pLog->err(..); goto ok; ng: return NULL; } ok: return scrObjTbl[id];` (SmdGetGroupObjPtr);
+  `if (p) { do { cur = p; next = cur->next; p = next; ... } while (next); }` for the list walk that
+  tests `next` at the bottom (BlockDestroy); `nTpl = 0` written *before* the `getWorkPtr(0)` call so
+  the pseudo crosses it and takes r30; `u32 base = (u32) this + ofsBin; ((u32*) base)[i]` (an integer
+  base, not a pointer) ranks below the loop-hoisted `0x02FFFFFF` constant in the callee-saved order
+  (slide); the dead `SmdGetIdNumPtr` needs STRIP_UNUSED.
+- em_set: a plain `for (i = 0; i < EmMgr.nArray; i++) { cEm* em = emSetWork(i); ... }` (the inline
+  reading the bound through a manager copy `cEmMgr* m = &EmMgr`) gives the target's `lwz r0, nArray;
+  cmplw; bge` entry test, the PRE copy `mr r10, r0` for the in-loop range check and the back edge
+  threaded past that check (checkListId, GetEmPtrFromList) — the guarded do-while form kept a separate
+  bound register. `d->id` read directly at `== 0`, in `EM_SET_ID_NG` (range fold `id - 3 <= 1` in
+  QImode) and as the `EmCreate` argument: the QImode load stays and the int uses share one PRE'd
+  `clrlwi r4, r11, 24`; a `u8 id` local is promoted and never masked (EmSetFromList).
+- item: a work pointer assigned in several `switch` arms is ONE function-scope `ItemWork* p` (case 3's
+  `search(0x3E)` result lands in r31); per-arm `ItemWork* p` locals give r30 (set_char, set_stage2).
+- at_sub: `d = SQ_DIST(c, p0); if (d < rr) ...; d = SQ_DIST(c, p1); if (d < rr) ...` — the twice-set
+  `f32 d` is not local-alloc'd, so the final `fmadds` result is not tied to the dying dz operand and
+  global alloc gives it f0 (dy f0, dx f13, dz f12); inline expressions tie the result to dz
+  (AtSphereCapsuleCk). At_poly_sphere_ck2: `f32 ad = fabsf(d); hit = 99; if (ad > r)` keeps the
+  `li r26, 0x63` after the volatile asm; `hit = 0` written inside the surface-hit arm (with an
+  `else hit = 0`), `if (i == 3) hit = 0` inside the `!(flag & 0x20)` arm, and the rim-hit arm's
+  `hit = 1` as `goto hit1;` into the surface arm's `hit1: hit = 1;` — the original's cross-jump
+  survivor is the FIRST copy (COMPILER-DIFF 6 shape avoided by the goto).
+- emmine: the target never compares `eff0[0] == 0xD2 && eff0[1] == 1` in emMine_R1_ShotArrow (a check
+  copied from another unit); setBomb's tail is `xFF = 0; xFC = 1; xFD = 6; xFE = 0` (ff first). OPEN
+  there: `stb r27, 0xfe` stores the `hit` register (known 0, cse canonical for the QI zero while xFF
+  keeps the HI zero r26) and the EstSet stack zeros are stored 8 then 0xc; ShotArrow's allocation
+  (target w r31, attr/info share r30 so the two water blocks cross-jump, em r29, &hit r28) and
+  R1_Fall's spill-slot rotation (0x100/0x104/0x108) are still open.
+- OPEN, register only: make_comn_fit_light / make_comn_parallel_light `lis r11` vs `lis r10` for the
+  1.0 pool high (the fpmem loadaddr pseudo, 4 refs, out-ranks the 2-ref `lis` in local-alloc);
+  sndVolCalcSub `r` in f2 with `vol` copied to f9; item init `li r3, 0x20` before `addi r4, str`;
+  set_stage2 cases 2/3 `mr r3, this` before `li r4, id` at the block start; em_set EmSetFromList2 /
+  EmSetEvent (`&em->pos`/`&em->oldPos` both callee-saved, the EmSetWork constants' lis/lfs
+  interleave); em_sub EmCatchMotionMove (`step` tied to the dying `rate` by local-alloc in ours,
+  separate f13 in the target); motion MotionSequenceCtrl (f11/f12/f13 permutation); snd
+  SndRoomBgmStart (seq r31 / no r29 / w r28 in the target).

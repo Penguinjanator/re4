@@ -85,10 +85,10 @@ static inline void EmSetDist(cEm* em)
     em->plDist2 = dx * dx + dz * dz;
 }
 
-// Work `no` with the range check read through a manager copy (map_obj.h getWork): the guarded do-while
-// callers keep the check at the loop top. OPEN: the original's bottom test compares against the hoisted
-// check load (`cmplw r11, r10`) and the back edge is threaded past the check; ours keeps the loop bound
-// in its own register (`n`) -- with `EmMgr.nArray` at the bottom the load stays in the latch instead.
+// Work `no` with the range check read through a manager copy (map_obj.h getWork). A plain
+// `for (i = 0; i < EmMgr.nArray; i++)` around it gives the original shape: gcse PRE turns the second
+// nArray read into a copy of the first (`mr r10, r0`), the bottom test uses that copy and the back
+// edge is threaded past the check.
 static inline cEm* emSetWork(u32 no)
 {
     cEmMgr* m = &EmMgr;
@@ -105,16 +105,12 @@ int checkListId(int no)
     if (no == 0xFF) {
         return 1;
     }
-    u32 n = EmMgr.nArray;
-    i = 0;
-    if (i < n) {
-        do {
-            cEm* em = emSetWork(i);
+    for (i = 0; i < EmMgr.nArray; i++) {
+        cEm* em = emSetWork(i);
 
-            if ((em->be_flag & 0x201) == 1 && em->emsetNo == (u8) no) {
-                return 0;
-            }
-        } while (++i < n);
+        if ((em->be_flag & 0x201) == 1 && em->emsetNo == (u8) no) {
+            return 0;
+        }
     }
     return 1;
 }
@@ -126,7 +122,6 @@ void EmSetFromList()
     for (i = 0; i < 256; i++) {
         EmListData* d = EM_LIST(i);
         cEm* em;
-        u8 id;
 
         if (!(d->flags & 1)) {
             continue;
@@ -146,14 +141,15 @@ void EmSetFromList()
         if (checkListId(i) == 0) {
             continue;
         }
-        id = d->id;
-        if (id == 0) {
+        // d->id read directly: the range fold of EM_SET_ID_NG keeps the QImode load and the int
+        // uses share one PRE'd `clrlwi`; a `u8 id` local is promoted and never masked.
+        if (d->id == 0) {
             continue;
         }
-        if (EM_SET_ID_NG(id)) {
+        if (EM_SET_ID_NG(d->id)) {
             continue;
         }
-        em = EmCreate(id);
+        em = EmCreate(d->id);
         if (em == 0) {
             pLog->err(0, 0, "EmSetFromList() Em set failed, Id = %x", d->id);
             continue;
@@ -240,21 +236,16 @@ cEm* EmSetEvent(EmListData* d)
 cEm* GetEmPtrFromList(int no)
 {
     u32 i;
-    u32 n;
 
     if (no == 0xFF) {
         return 0;
     }
-    n = EmMgr.nArray;
-    i = 0;
-    if (i < n) {
-        do {
-            cEm* em = emSetWork(i);
+    for (i = 0; i < EmMgr.nArray; i++) {
+        cEm* em = emSetWork(i);
 
-            if ((em->be_flag & 0x201) == 1 && em->emsetNo == (u8) no) {
-                return em;
-            }
-        } while (++i < n);
+        if ((em->be_flag & 0x201) == 1 && em->emsetNo == (u8) no) {
+            return em;
+        }
     }
     return 0;
 }
