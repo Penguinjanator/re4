@@ -3730,3 +3730,59 @@ target) stays unresolved and `make_rel` then fails with "undefined symbol".
   DEFAULT separate (ours merges all three, COMPILER-DIFF #6 shape); AddPrimitive (-8),
   CallActiveChangeCallback (`mr r9,r3` copy of this), DB_WINDOW ctor temp loads (`0xc(r1)` vs
   `0xc(r9)`), DB_NUMERIC ctor (-4).
+
+### DOL structural-gap pass (main_mem 23->29/33, debug 4->5/11, sce_com 22->23/33; 2026-09)
+
+- main_mem `MemCheckUsedHeap` (0x1290, was unwritten, now 95.7%): the heap tile display. Tiles are a
+  local 0x20-byte `MemTile` (libgpu's TILE is 0x18), `static MemTile tile[2]` + `static int ey_base = 30`
+  are the `tile.579`/`ey_base.580` statics, the `lbl_80314BF4` zero word is a `static int = 0` inside the
+  dead-stripped `memSetCheck()` that owns the trailing "memset error: " string (unit now in STRIP_UNUSED),
+  and the 4-byte `.bss` tail is main_sub's 8-alignment (`asm(".section .bss; .balign 8")`). The function
+  is `extern "C"` (main_mem.h). Idioms: ONE `MemTile* mt` for the loop tiles and both static tiles (a
+  reassigned pointer is global-allocated into r31; separate locals fold into r4); `tag` block-local per
+  cell loop; `char* p = NULL; char* buf = p;` (one zero register stored to the spill slot); the clamp
+  through a temp `n` with `ISet(ey_base, n); ey = ey_base;` (reference store, forwarded `mr`);
+  `if (cnt++ == 0x1FF) full = 1;`; the `pSys->flags` progressive test must be a reference read
+  (`SysRef(pSys)->flags`, mercenaries.cpp idiom) or sched1 hoists the fixed-scalar load above the tile's
+  halfword stores and issues the byte stores first (they sit on the load's dependence path). Same in
+  debug processBarDisp/PrimitiveBuffDisp. Open: `li`/`stw code` issue order inside the tile blocks, the
+  fpmem `mr` copies of the end-marker block, y1/tag temporaries r8/r10.
+- Index register class, refined (main_mem MemSignalHeap, now 100%): `add rD, rIdx, rPtr` (index first)
+  with the index in r0 = integer arithmetic on a pointer-typed LOCAL: `OSHeapDescriptor* hh = HeapHead;
+  *(T*)(h * sizeof(T) + (u32) hh)` — expand_decl flags the local's pseudo as a pointer (regclass then
+  makes the other operand an index, GENERAL_REGS), while a global pointer loaded into a temporary is not
+  flagged (`heap_backup[h] = HeapHead[h]` in MemSuspendHeap keeps the offset in BASE_REGS r10).
+  MemReplaceHeap's `add r11, r11, r0` (pointer first, offset r0) is still open (no local/cast form found).
+- SystemMemInit: all twelve SysMem constants are stored BEFORE `OSGetArenaLo()` (usb/debug included,
+  two spill into r29/r30); the store order is field order with `heap_end` first.
+- Two zero registers for `sth` stores of the same value (debug processBarDisp/PrimitiveBuffDisp tile 0
+  vs later tiles): the first `t->z0 = 0` is a HImode constant (own `li r0,0`), the later stores read an
+  `int z = 0` declared AFTER that store and before the block's call (SImode pseudo hoisted into a
+  callee-saved register); a HI constant store cannot reuse a later SI zero, and an earlier SI zero would
+  have been reused by the first store.
+- debug processBarDisp (61% -> 91%): bars are y/1.3333334f + 56 and h/1.3333334f in progressive mode
+  (not /2 + 32), the tick base is `OS_BUS_CLOCK / 240 * vcnt` (`mulhwu 0x88888889; srwi 7`), the time
+  values are `(f32) tick * 60.0f / (f32) (OS_BUS_CLOCK >> 2) * 100.0f`, the `g_proc_cnt = (u32)` of the
+  same, the last two tiles are the 400-line background bars (x 6 / 12, colour 8,8,0x20), the loop is
+  `for (i = 5; i < idx_bak + 5; i++)` printing `proc_tick[i] - proc_tick[i - 1]`, `cnt = (cnt + 1) & 3`
+  before `xchr[cnt]`. A member read back right after its store (`t->h = x1 - x0; PROG_H(t->h)`) is the
+  target's `sth r9; mr r7, r9` copy; a local gives none. PrimitiveBuffDisp (61% -> 88%): the sum is
+  `(f32)(int)(...)` (signed magic only), `if (pb->rate < rate)`, `s16 width = 200` converted with
+  `psq_l qr5` (the target's extra 200.0f pool word is still missing), `t = tile` assigned after `rate`.
+- sce_com SceChapterEnd (87.7% -> 99.3%): FadeSetW for all four fades; `U16Set/U8Set` for every pG store
+  in the door block and `U32Set` for the counters, with `U16Zero(u16&)` (`d = 0` inside the inline) for
+  `x8338` so its HImode zero gets its own `li` and the pG reload; `GameSaveSave(&GameSave, pSaveData, 2)`
+  (r5 = 2); `len = len + 0xC; len = len + MARGIN;` (fold reassociates the one-liner); `sel = 0` after the
+  `SceSleep(1)`, `x4F9E = 0; room = 0;` right before `SwapOut`; `room = pG->room_id` before `x4F9E =`;
+  `memcpy((u8*) pPL + 0x94/0xA0, &plPos/&plRot, 12)` for the restore (pPL reloaded between). Remaining:
+  the `zero`/`&col` pseudo pair r26/r27 swap and x4F9E/room r24/r25.
+- sce_com: `0x150 - cMes.getWork()->lineSpace - cMes.getWork()->fontH - 1` (lineSpace first) in the
+  DOL's own object too (SceMesCamSndSet now identical). OpenBoxMain's per-frame steps are folded
+  divisions (`1.9198622f / 30.0f` = 0x3d831006, `500.0f / 30.0f` = 0x41855555; the decimal literals
+  are one ulp off) and its pool lists the totals before the steps and `-0.0349/-0.01745` last — the
+  source order that produces that pool is still open (the code is 96%).
+- An `extern T alias asm("sym")` view struct must be larger than 8 bytes (pad) or the alias lands in
+  small data (`lwz r10, Dvd@sda21`).
+- Tool: /tmp-style masked byte compare with difflib alignment when function sizes differ (relocs masked
+  on both sides, same-section branches resolved by target) is the metric to brute-force statement orders
+  with; position-based word compares are dominated by the shift after the first length change.

@@ -107,73 +107,80 @@ static inline s16 tickX(u32 tick, f32 total)
     return (s16) ((f32) tick / total * 400.0f);
 }
 
+// Progressive (60Hz) screen: the 400-line bars are squashed to 300 lines below y = 56.
+#define PROG_Y(y) ((s16) ((f32) (s16) (y) / 1.3333334f + 56.0f))
+#define PROG_H(h) ((s16) ((f32) (s16) (h) / 1.3333334f))
+// Reference read of pSys: the load stays below the preceding tile stores.
+static inline SystemWork* SysRef(SystemWork*& p) { return p; }
+// Ticks -> 1/100 frame units (bus clock / 4 = tick rate, 60 frames per second)
+#define TICK_100F(t) ((f32) (t) * 60.0f / (f32) (OS_BUS_CLOCK >> 2) * 100.0f)
+
 void processBarDisp()
 {
     static DbgTile tile[6];
     static u8 cnt;
     static char xchr[5] = "-/l/";
-    const char* unit;
     int vcnt = GetSystemVcnt();
+    u32 frameTick = OS_BUS_CLOCK / 240 * vcnt;
     f32 total;
-    u32 frameTick = OS_BUS_CLOCK / 60 * vcnt;
     DbgTile* t = tile;
     s16 x0;
     s16 x1;
     s16 x2;
     s16 x3;
-    int i;
+    u32 i;
 
     total = (f32) frameTick;
+    x0 = tickX(proc_tick[4], total);
+    t->z0 = 0;
     t->code = 4;
+    t->x0 = 6;
+    t->y0 = 30;
+    t->w = 5;
     t->c0.r = 0x80;
     t->c0.g = 0x80;
     t->c0.b = 0x20;
     t->c0.cd = 0xFF;
-    t->x0 = 6;
-    t->y0 = 30;
-    t->w = 5;
-    t->z0 = 0;
-    x0 = tickX(proc_tick[4], total);
     t->h = x0;
-    if (pSys->flags & 0x40000000) {
-        t->y0 = 78;
-        t->h = (s16) ((f32) x0 / 2.0f);
+    if (SysRef(pSys)->flags & 0x40000000) {
+        t->y0 = PROG_Y(30);
+        t->h = PROG_H(t->h);
     }
     AddPrim(&MainOt[1], (u32*) t);
     t++;
 
+    x1 = tickX(proc_tick[1], total);
     t->code = 4;
+    t->x0 = 6;
+    t->y0 = x0 + 30;
+    t->z0 = 0;
+    t->w = 5;
     t->c0.r = 0x80;
     t->c0.g = 0x20;
     t->c0.b = 0x20;
     t->c0.cd = 0xFF;
-    t->x0 = 6;
-    t->y0 = x0 + 30;
-    t->w = 5;
-    t->z0 = 0;
-    x1 = tickX(proc_tick[1], total);
     t->h = x1 - x0;
-    if (pSys->flags & 0x40000000) {
-        t->y0 = (s16) ((f32) (x0 + 30) / 2.0f + 32.0f);
-        t->h = (s16) ((f32) (x1 - x0) / 2.0f);
+    if (SysRef(pSys)->flags & 0x40000000) {
+        t->y0 = PROG_Y(t->y0);
+        t->h = PROG_H(t->h);
     }
     AddPrim(&MainOt[1], (u32*) t);
     t++;
 
+    x2 = tickX(proc_tick[2], total);
+    t->y0 = x0 + 30;
     t->code = 4;
+    t->x0 = 12;
+    t->z0 = 0;
+    t->w = 5;
     t->c0.r = 0x20;
     t->c0.g = 0x20;
     t->c0.b = 0x80;
     t->c0.cd = 0xFF;
-    t->x0 = 12;
-    t->y0 = x0 + 30;
-    t->w = 5;
-    t->z0 = 0;
-    x2 = tickX(proc_tick[2], total);
     t->h = x2 - x0;
-    if (pSys->flags & 0x40000000) {
-        t->y0 = (s16) ((f32) (x0 + 30) / 2.0f + 32.0f);
-        t->h = (s16) ((f32) (x2 - x0) / 2.0f);
+    if (SysRef(pSys)->flags & 0x40000000) {
+        t->y0 = PROG_Y(t->y0);
+        t->h = PROG_H(t->h);
     }
     AddPrim(&MainOt[1], (u32*) t);
     t++;
@@ -182,72 +189,72 @@ void processBarDisp()
     if (x1 > x2) {
         x0 = x1;
     }
-    t->code = 4;
-    t->c0.r = 0x20;
+    x3 = tickX(proc_tick[3], total);
+    t->y0 = x0 + 30;
     t->c0.g = 0x80;
+    t->code = 4;
+    t->x0 = 6;
+    t->z0 = 0;
+    t->w = 5;
+    t->c0.r = 0x20;
     t->c0.b = 0x20;
     t->c0.cd = 0xFF;
-    t->x0 = 6;
-    t->y0 = x0 + 30;
-    t->w = 5;
-    t->z0 = 0;
-    x3 = tickX(proc_tick[3], total);
     t->h = x3 - x0;
-    if (pSys->flags & 0x40000000) {
-        t->y0 = (s16) ((f32) (x0 + 30) / 2.0f + 32.0f);
-        t->h = (s16) ((f32) (x3 - x0) / 2.0f);
+    if (SysRef(pSys)->flags & 0x40000000) {
+        t->y0 = PROG_Y(t->y0);
+        t->h = PROG_H(t->h);
     }
     AddPrim(&MainOt[1], (u32*) t);
     t++;
 
+    t->x0 = 6;
     t->code = 4;
-    t->c0.r = 0xFF;
-    t->c0.g = 0xFF;
-    t->c0.b = 0xFF;
-    t->c0.cd = 0xFF;
-    t->x0 = 8;
-    t->y0 = 400;
-    t->w = 1;
-    t->h = 1;
+    t->y0 = 30;
     t->z0 = 0;
-    if (pSys->flags & 0x40000000) {
-        t->y0 = 300;
-        t->x0 = 78;
+    t->w = 5;
+    t->h = 400;
+    t->c0.r = 8;
+    t->c0.g = 8;
+    t->c0.b = 0x20;
+    t->c0.cd = 0xFF;
+    if (SysRef(pSys)->flags & 0x40000000) {
+        t->y0 = 78;
+        t->h = 300;
     }
     AddPrim(&MainOt[1], (u32*) t);
     t++;
 
     t->code = 4;
-    t->c0.r = 0xFF;
-    t->c0.g = 0xFF;
-    t->c0.b = 0xFF;
-    t->c0.cd = 0xFF;
     t->x0 = 12;
-    t->y0 = 400;
-    t->w = 1;
-    t->h = 1;
+    t->y0 = 30;
     t->z0 = 0;
-    if (pSys->flags & 0x40000000) {
-        t->y0 = 300;
-        t->x0 = 78;
+    t->w = 5;
+    t->h = 400;
+    t->c0.g = 8;
+    t->c0.b = 0x20;
+    t->c0.cd = 0xFF;
+    t->c0.r = 8;
+    if (SysRef(pSys)->flags & 0x40000000) {
+        t->y0 = 78;
+        t->h = 300;
     }
     AddPrim(&MainOt[1], (u32*) t);
 
     if (proc_tick[2] > proc_tick[1]) {
-        eprintf2(10, 16, 12, 400, 0, 1, "%4.0f", (f32) proc_tick[2] / (f32) (OS_BUS_CLOCK >> 2) * 1000.0f);
-        eprintf2(10, 16, 12, 416, 0, 1, "%4.0f", (f32) proc_tick[1] / (f32) (OS_BUS_CLOCK >> 2) * 1000.0f);
+        eprintf2(10, 16, 12, 400, 0, 1, "%4.0f", TICK_100F(proc_tick[3]));
+        eprintf2(10, 16, 12, 416, 0, 1, "%4.0f", TICK_100F(proc_tick[1]));
     } else {
-        eprintf2(10, 16, 12, 400, 0, 1, "%4.0f", (f32) proc_tick[1] / (f32) (OS_BUS_CLOCK >> 2) * 1000.0f);
-        eprintf2(10, 16, 12, 416, 0, 1, "%4.0f", (f32) proc_tick[3] / (f32) (OS_BUS_CLOCK >> 2) * 1000.0f);
+        eprintf2(10, 16, 12, 400, 0, 1, "%4.0f", TICK_100F(proc_tick[2]));
+        eprintf2(10, 16, 12, 416, 0, 1, "%4.0f", TICK_100F(proc_tick[3]));
     }
-    eprintf2(10, 16, 0, 16, 0, 13, "%4.0f", (f32) proc_tick[3] / (f32) (OS_BUS_CLOCK >> 2) * 1000.0f);
-    unit = "1000/F";
-    eprintf2(10, 16, 0, 32, 0, 13, "%5.0f %s", (f32) proc_tick[3] / (f32) (OS_BUS_CLOCK >> 2) * 1000.0f, unit);
-    for (i = 0; i < proc_tick_idx_bak; i++) {
-        eprintf2(10, 16, 0, 48 + i * 16, 0, 13, "%5.0f %s", (f32) proc_tick[5 + i] / (f32) (OS_BUS_CLOCK >> 2) * 1000.0f, proc_name[5 + i]);
+    eprintf2(10, 16, 0, 16, 0, 13, "%4.0f", TICK_100F(proc_tick[3]));
+    g_proc_cnt = (u32) TICK_100F(proc_tick[3]);
+    eprintf2(10, 16, 42, 28, 0, 2, "1000/F");
+    for (i = 5; i < proc_tick_idx_bak + 5; i++) {
+        eprintf2(10, 16, 32, 50 + (i - 5) * 16, 0, 2, "%5.0f %s", TICK_100F(proc_tick[i] - proc_tick[i - 1]), proc_name[i]);
     }
-    eprintf2(10, 16, 0, 0, 0, 13, "%c", xchr[cnt]);
     cnt = (cnt + 1) & 3;
+    eprintf2(14, 14, 10, 18, 0, 0, "%c", xchr[cnt]);
 }
 
 void ProcessTickGet(int no, const char* name)
@@ -281,7 +288,7 @@ struct PrimBuffView {
 void PrimitiveBuffDisp()
 {
     static DbgTile tile[6];
-    DbgTile* t = tile;
+    DbgTile* t;
     int max = pG->prim_max;
     PrimBuffView* pb = (PrimBuffView*) &pG->gxStage;
     f32 rate;
@@ -289,63 +296,69 @@ void PrimitiveBuffDisp()
     if (max == 0) {
         return;
     }
-    rate = 1.0f - (f32) (pG->prim_cnt + max * (pG->vtx_buf_no + 1) - pb->base) / (f32) max;
-    if (pb->rate > rate) {
+    rate = 1.0f - (f32) (int) (pG->prim_cnt + max * (pG->vtx_buf_no + 1) - pb->base) / (f32) max;
+    t = tile;
+    if (pb->rate < rate) {
         pb->rate = rate;
     }
     if (rate > 0.9f && !(pG->flags_64 & 0x00200000)) {
         pLog->warn(0, 0, "PrimitiveBuff :  work remain under 1/10");
     }
 
-    t->code = 4;
-    t->c0.r = 0x80;
-    t->c0.g = 0x14;
-    t->c0.b = 0x14;
-    t->c0.cd = 0xFF;
-    t->x0 = (s16) (pb->rate * 200.0f + 200.0f);
-    t->y0 = 24;
-    t->w = 4;
-    t->h = 4;
-    t->z0 = 0;
-    if (pSys->flags & 0x40000000) {
-        t->y0 = 74;
-        t->h = 3;
-    }
-    AddPrim(&MainOt[1], (u32*) t);
-    t++;
+    {
+        s16 width = 200;
 
-    t->code = 4;
-    t->c0.r = 0x14;
-    t->c0.g = 0x14;
-    t->c0.b = 0x80;
-    t->c0.cd = 0xFF;
-    t->x0 = 200;
-    t->y0 = 24;
-    t->w = (s16) (rate * 200.0f);
-    t->h = 4;
-    t->z0 = 0;
-    if (pSys->flags & 0x40000000) {
-        t->y0 = 74;
-        t->h = 3;
-    }
-    AddPrim(&MainOt[1], (u32*) t);
-    t++;
+        t->code = 4;
+        t->x0 = (s16) (pb->rate * (f32) width + (f32) width);
+        t->y0 = 24;
+        t->w = 4;
+        t->h = 4;
+        t->c0.r = 0x80;
+        t->c0.g = 0x14;
+        t->c0.b = 0x14;
+        t->c0.cd = 0xFF;
+        t->z0 = 0;
+        int z = 0;
+        if (SysRef(pSys)->flags & 0x40000000) {
+            t->y0 = 74;
+            t->h = 3;
+        }
+        AddPrim(&MainOt[1], (u32*) t);
+        t++;
 
-    t->code = 4;
-    t->c0.r = 0x14;
-    t->c0.g = 0x14;
-    t->c0.b = 0x14;
-    t->c0.cd = 0xFF;
-    t->x0 = 200;
-    t->y0 = 24;
-    t->w = 200;
-    t->h = 4;
-    t->z0 = 0;
-    if (pSys->flags & 0x40000000) {
-        t->y0 = 74;
-        t->h = 3;
+        t->w = (s16) (rate * (f32) width);
+        t->c0.b = 0x80;
+        t->code = 4;
+        t->x0 = width;
+        t->y0 = 24;
+        t->z0 = z;
+        t->h = 4;
+        t->c0.r = 0x14;
+        t->c0.g = 0x14;
+        t->c0.cd = 0xFF;
+        if (SysRef(pSys)->flags & 0x40000000) {
+            t->y0 = 74;
+            t->h = 3;
+        }
+        AddPrim(&MainOt[1], (u32*) t);
+        t++;
+
+        t->y0 = 24;
+        t->z0 = z;
+        t->w = width;
+        t->h = 4;
+        t->c0.b = 0x14;
+        t->c0.cd = 0xFF;
+        t->code = 4;
+        t->x0 = width;
+        t->c0.r = 0x14;
+        t->c0.g = 0x14;
+        if (SysRef(pSys)->flags & 0x40000000) {
+            t->y0 = 74;
+            t->h = 3;
+        }
+        AddPrim(&MainOt[1], (u32*) t);
     }
-    AddPrim(&MainOt[1], (u32*) t);
 }
 
 #define CFG_ON(p) (strncmp(p, "ON", 2) == 0)

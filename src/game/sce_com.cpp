@@ -49,6 +49,7 @@ void* __builtin_new(unsigned int size);
 void __builtin_delete(void* p);
 int sprintf(char* dst, const char* fmt, ...);
 int vsprintf(char* dst, const char* fmt, va_list ap);
+void* memcpy(void* dst, const void* src, unsigned int n);
 void SubScreenWait(int frames);
 }
 
@@ -330,7 +331,7 @@ void SceMesCamSndSet(int no, int cut, int se)
     if (se != -1) {
         SndCall(6, se, 0, 0, 0, 0);
     }
-    SceMesSet(no, cut == -1 ? 0 : 0x20, 1, 0x64, 0x150 - cMes.getWork()->fontH - cMes.getWork()->lineSpace - 1);
+    SceMesSet(no, cut == -1 ? 0 : 0x20, 1, 0x64, 0x150 - cMes.getWork()->lineSpace - cMes.getWork()->fontH - 1);
 }
 
 void SceUpCut(int a, int b, int c, int flags)
@@ -679,6 +680,12 @@ void getChapterSection(int chapter, int* chap, int* sec)
     }
 }
 
+// Reference setters: the original stores these GlobalWork fields through references (pG reloaded after each).
+static inline void U8Set(u8& d, u8 v) { d = v; }
+static inline void U16Set(u16& d, u16 v) { d = v; }
+static inline void U32Set(u32& d, u32 v) { d = v; }
+static inline void U16Zero(u16& d) { d = 0; }  // HImode zero (its own `li`), reference store
+
 void SceChapterEnd()
 {
     cDataSwap swap;
@@ -686,7 +693,6 @@ void SceChapterEnd()
     static u32 disp_bak;
     static char chap_data_name[0x20];
     static u32 MARGIN = 0x20000;
-    u32 col[2];
     Vec plPos;
     Vec plRot;
     void* evt;
@@ -696,9 +702,9 @@ void SceChapterEnd()
     void* data;
     ChapterEnd* ce;
     int req;
-    int sel = 0;
-    u8 x4F9E = 0;
-    u16 room = 0;
+    int sel;
+    u8 x4F9E;
+    u16 room;
     EventMgr* ev = &EvtMgr;
     u32* key = &ev->x34;
 
@@ -710,6 +716,7 @@ void SceChapterEnd()
     if (Fade[1].flags & 1) {
         SceSleep(1);
     }
+    sel = 0;
     disp_bak = pG->flags_58;
     BitSet(pG->flags_58, 0xFFFFFFFF);
     BitOff(pG->flags_58, 0x2000);
@@ -732,7 +739,10 @@ void SceChapterEnd()
     }
     setLangExt3(chap_data_name + 3);
     Dvd.FileExistCheck(chap_data_name, &len);
-    len = len + 0xC + MARGIN;
+    len = len + 0xC;
+    len = len + MARGIN;
+    x4F9E = 0;
+    room = 0;
     swap.SwapOut((u32) pG->pRoomArc, len, 0);
     ce = (ChapterEnd*) __builtin_new(sizeof(ChapterEnd));
 #line 994 "D:/Bio4/Prog/sce_com.cpp"
@@ -741,46 +751,42 @@ void SceChapterEnd()
     ce->init(data, SceSys.x74);
     ce->move();
     FadeKillAll();
-    col[0] = 0xFF;
-    col[1] = 0;
-    FadeSet(0x80000000, (GXColor*) &col[0], (GXColor*) &col[1], 10, 0, 0);
+    FadeSetW(0x80000000, 10, 0, 0);
     SceSleep(0xF);
-    SceMesSet(0x80, 1, 1, 0x64, 0x150 - cMes.getWork()->fontH - cMes.getWork()->lineSpace - 1);
+    SceMesSet(0x80, 1, 1, 0x64, 0x150 - cMes.getWork()->lineSpace - cMes.getWork()->fontH - 1);
     if (SceSys.x78 >= 0) {
         plPos = pPL->pos;
         plRot = pPL->rot;
-        x4F9E = pG->x4F9E;
         room = pG->room_id;
+        x4F9E = pG->x4F9E;
         if (SceAtPtr(SceSys.x78)->x35 == 1) {
             pPL->pos.x = SceAtPtr(SceSys.x78)->dstPos.x;
             pPL->pos.y = SceAtPtr(SceSys.x78)->dstPos.y;
             pPL->pos.z = SceAtPtr(SceSys.x78)->dstPos.z;
             pPL->rot.y = SceAtPtr(SceSys.x78)->dstAngle;
-            pG->room_id_prev = pG->room_id;
-            pG->x4FA2 = pG->x4F9E;
-            pG->stage_no = SceAtPtr(SceSys.x78)->dstStage;
-            pG->room_no = SceAtPtr(SceSys.x78)->dstRoom;
-            pG->x4F9E = SceAtPtr(SceSys.x78)->dstX4F9E;
-            pG->x4F9F = 0;
-            pG->x4F90 = 0;
+            U16Set(pG->room_id_prev, pG->room_id);
+            U8Set(pG->x4FA2, pG->x4F9E);
+            U8Set(pG->stage_no, SceAtPtr(SceSys.x78)->dstStage);
+            U8Set(pG->room_no, SceAtPtr(SceSys.x78)->dstRoom);
+            U8Set(pG->x4F9E, SceAtPtr(SceSys.x78)->dstX4F9E);
+            U8Set(pG->x4F9F, 0);
+            U16Set(pG->x4F90, 0);
         } else {
             pLog->err(0, 0, "SceChapterEnd(): Door at faild");
         }
     }
-    pG->x8338 = 0;
-    pG->em_die_cnt = 0;
-    pG->shotHit = 0;
-    pG->shotTotal = 0;
-    GameSave.save(pSaveData);
+    U16Zero(pG->x8338);
+    U32Set(pG->em_die_cnt, 0);
+    U32Set(pG->shotHit, 0);
+    U32Set(pG->shotTotal, 0);
+    GameSaveSave(&GameSave, pSaveData, 2);
     sel = SceMesGetSelection();
     if (sel == 1) {
         SndCall(0, 4, 0, 0, 0, 0);
     } else {
         SndCall(0, 5, 0, 0, 0, 0);
     }
-    col[0] = 0;
-    col[1] = 0xFF;
-    FadeSet(0, (GXColor*) &col[0], (GXColor*) &col[1], 5, 0, 0);
+    FadeSetW(0, 5, 0, 0);
     SceSleep(5);
     ce->quit();
     __builtin_delete(ce);
@@ -789,17 +795,15 @@ void SceChapterEnd()
         CardSave(0, 10);
         SceSleep(1);
     }
-    pG->flags_58 = disp_bak;
-    pG->flags_170 = stop_bak;
-    col[0] = 0;
-    col[1] = 0xFF;
-    FadeSet(0, (GXColor*) &col[0], (GXColor*) &col[1], 0, 0, 0);
+    BitSet(pG->flags_58, disp_bak);
+    BitSet(pG->flags_170, stop_bak);
+    FadeSetW(0, 0, 0, 0);
     FadeKill(2);
     if (SceSys.x78 >= 0) {
-        pPL->pos = plPos;
-        pPL->rot = plRot;
-        pG->room_id = room;
-        pG->x4F9E = x4F9E;
+        memcpy((u8*) pPL + 0x94, &plPos, sizeof(Vec));
+        memcpy((u8*) pPL + 0xA0, &plRot, sizeof(Vec));
+        U16Set(pG->room_id, room);
+        U8Set(pG->x4F9E, x4F9E);
         if (SceAtPtr(SceSys.x78)) {
             SceAtPtr(SceSys.x78)->x77 = 2;
             SceAtExecute(SceSys.x78);
@@ -807,9 +811,7 @@ void SceChapterEnd()
     } else {
         SndRoomBgmStartCheck(1);
         SndRoomStrStartCheck();
-        col[0] = 0xFF;
-        col[1] = 0;
-        FadeSet(0x80000000, (GXColor*) &col[0], (GXColor*) &col[1], 10, 0, 0);
+        FadeSetW(0x80000000, 10, 0, 0);
         SceSys.pause = 0;
     }
 }

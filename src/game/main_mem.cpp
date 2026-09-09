@@ -2,6 +2,10 @@
 #include "global.h"
 #include "main_mem.h"
 #include "db_log.h"
+#include "joy.h"
+#include "eprintf.h"
+#include "file.h"
+#include "libgpu.h"
 
 extern "C" {
 void OSReport(const char* fmt, ...);
@@ -103,9 +107,9 @@ void SystemMemInit()
     SysMem.option = 0x807EC000;
     SysMem.player = 0x80904000;
     SysMem.weapon = 0x80974000;
-    SysMem.arena_lo = (u32) OSGetArenaLo();
     SysMem.usb = 0x81800000;
     SysMem.debug = 0x8181FB00;
+    SysMem.arena_lo = (u32) OSGetArenaLo();
     if (SysMem.arena_lo > 0x8034FFFF) {
         OSReport("ELF size overflow\n");
 #line 100 "D:/Bio4/Prog/main_mem.cpp"
@@ -166,7 +170,11 @@ void MemSignalHeap(int no)
     int h = Heap[no].handle;
 
     if (memGetHeapSattus(no) == 1 && h >= 0) {
-        HeapHead[h] = heap_backup[h];
+        OSHeapDescriptor* hh = HeapHead;
+        OSHeapDescriptor* bk = heap_backup;
+
+        *(OSHeapDescriptor*) (h * sizeof(OSHeapDescriptor) + (u32) hh) =
+            *(OSHeapDescriptor*) (h * sizeof(OSHeapDescriptor) + (u32) bk);
         Heap[no].status = 0;
     }
 }
@@ -224,18 +232,20 @@ u32 MemGetHeapEndAddr(int no)
 u32 MemCheckHeapEnd(int no)
 {
     int h = Heap[no].handle;
+    OSHeapDescriptor* d;
     OSHeapCell* cell;
     u32 end;
 
     if (!memCheckHeapActive(no) || h < 0) {
         return 0;
     }
-    if (HeapHead[h].allocated == NULL) {
-        end = (u32) HeapHead[h].free;
+    d = &HeapHead[h];
+    if (d->allocated == NULL) {
+        end = (u32) d->free;
     } else {
         end = 0;
     }
-    for (cell = HeapHead[h].allocated; cell != NULL; cell = cell->next) {
+    for (cell = d->allocated; cell != NULL; cell = cell->next) {
         if (end < (u32) cell + cell->size) {
             end = (u32) cell + cell->size;
         }
@@ -285,16 +295,20 @@ int MemReplaceHeap(int from, int to)
     u32 end;
 
     if (CurrentHeap == 0) {
-        cell_main = HeapHead[Heap[CurrentHeap].handle].allocated;
+        OSHeapDescriptor* hh = HeapHead;
+        cell_main = hh[Heap[CurrentHeap].handle].allocated;
     }
     if (CurrentHeap == 1) {
-        cell_game = HeapHead[Heap[CurrentHeap].handle].allocated;
+        OSHeapDescriptor* hh = HeapHead;
+        cell_game = hh[Heap[CurrentHeap].handle].allocated;
     }
     if (CurrentHeap == 2) {
-        cell_stage = HeapHead[Heap[CurrentHeap].handle].allocated;
+        OSHeapDescriptor* hh = HeapHead;
+        cell_stage = hh[Heap[CurrentHeap].handle].allocated;
     }
     if (CurrentHeap == 3) {
-        cell_dll = HeapHead[Heap[CurrentHeap].handle].allocated;
+        OSHeapDescriptor* hh = HeapHead;
+        cell_dll = hh[Heap[CurrentHeap].handle].allocated;
     }
     if (!memCheckHeapActive(from)) {
         return 0;
@@ -483,3 +497,329 @@ void MemFree(void* p)
         Mem_free(p);
     }
 }
+
+// Debug heap display (debug page 4): one TILE per allocated cell (0x20-byte primitives).
+// Status: 95.7%; remaining diffs are the tile store blocks' `li`/`stw code` issue order, the
+// register of the y1/tag temporaries (r8/r10) and the fpmem `mr` copies in the end-marker block.
+struct MemTile {
+    u32 tag;       // 0x00
+    u32 code;      // 0x04
+    u8 r, g, b, cd;  // 0x08
+    s16 x0, y0;    // 0x0C
+    s16 w, h;      // 0x10
+    s16 z0;        // 0x14
+    u8 pad_16[0x20 - 0x16];
+};
+
+struct SysFlagsView {
+    u32 flags;  // 0x00  SystemWork::flags
+};
+extern SysFlagsView* pSysView asm("pSys");
+// Reference read: the load stays below the preceding tile stores (see mercenaries.cpp SysRef).
+static inline SysFlagsView* SysRef(SysFlagsView*& p) { return p; }
+extern u32 MainOt[5];
+
+struct DvdFreeSizeView {
+    u32 freeSize;  // 0x00  cDvd::freeSize
+    u8 pad_4[0x10];  // (keeps the extern out of small data)
+};
+extern DvdFreeSizeView DvdView asm("Dvd");
+
+static inline void ISet(int& d, int v) { d = v; }
+
+#define MEM_TAG_OK(tag) ((tag)[0] == 0 && (tag)[1] == 'M' && (tag)[2] == 'A' && (tag)[3] == 'D')
+
+void MemCheckUsedHeap()
+{
+    char* p = NULL;
+    char* buf = p;
+    int full = 0;
+    int write = 0;
+    int rest;
+    u32 end;
+    u32 start;
+    u32 heapEnd;
+    u32 size;
+    int ey;
+    int cnt;
+    OSHeapCell* cell;
+    OSHeapCell* next;
+    MemTile* mt;
+    int r;
+    int n;
+    static int ey_base = 30;
+    static MemTile tile[2];
+
+    if (pG->debug_mode == 4 && (Joy[0].on & 0x10) && (Joy[0].trg & 0x400)) {
+        write = 1;
+    }
+    if (write == 1) {
+        buf = (char*) Debug_alloc(0x2000, 1);
+        p = buf;
+    }
+    if (!memCheckHeapActive(CurrentHeap)) {
+        return;
+    }
+    rest = OSCheckHeap(Heap[CurrentHeap].handle) - 0x10000;
+    if (rest >= 0) {
+        end = MemCheckHeapEnd(CurrentHeap);
+    } else {
+        end = SysMem.heap_end;
+    }
+    start = Heap[CurrentHeap].start;
+    heapEnd = Heap[CurrentHeap].end;
+    eprintf2(8, 16, 440, 404, 0, 0, "%X", rest);
+    r = OSCheckHeap(Heap[CurrentDbgHeap].handle);
+    if (r >= 0) {
+        eprintf2(8, 16, 440, 420, 0, 0, "%X", r);
+    } else {
+        eprintf2(8, 16, 440, 420, 2, 0, "%X", r);
+    }
+    if (Joy[0].rep2 & 0x400000) {
+        ey_base -= 16;
+    }
+    if (Joy[0].rep2 & 0x800000) {
+        ey_base += 16;
+    }
+    if (ey_base >= -2000) {
+        n = ey_base;
+        if (n > 2000) {
+            n = 2000;
+        }
+    } else {
+        n = -2000;
+    }
+    ISet(ey_base, n);
+    ey = ey_base;
+    size = heapEnd - start;
+    mt = (MemTile*) pMemTile;
+    cnt = 0;
+    for (cell = HeapHead[Heap[CurrentHeap].handle].allocated; cell != NULL; cell = cell->next) {
+        u32 y0 = (u32) ((f32) ((u32) cell - start) * 400.0f / (f32) size);
+        u32 y1 = (u32) ((f32) ((u32) cell + cell->size - start) * 400.0f / (f32) size) + 1;
+
+        u8* tag = (u8*) cell + cell->size - 0x20;
+        if ((s32) tag >= 0 || (u32) tag > 0x82FFFFFF) {
+            break;
+        }
+        if (MEM_TAG_OK(tag)) {
+            eprintf2(8, 14, 230, ey, 0, 4, "%-18s %6x %08x", tag + 4, cell->size - 0x20, cell);
+        } else {
+            eprintf2(8, 14, 230, ey, 0, 4, "unknown           %6x %08x", cell->size - 0x20, cell);
+        }
+        if (write == 1 && cell->size - 0x20 > 0x1000) {
+            p += sprintf(p, "%6x %18s\n", cell->size - 0x20, tag + 4);
+        }
+        ey += 14;
+        next = cell->next;
+        if (next != NULL && next->next != NULL &&
+            ((s32) next->next >= 0 || (u32) next->next > 0x82FFFFFF)) {
+            pLog->err(0, 0, "heap next err:%-18s %6x %08x", tag + 4, cell->size - 0x20, cell);
+            pLog->err(0, 0, "next addr    : %08x", cell->next);
+#line 770
+            HALT();
+        }
+        if (pMemTile != NULL && full == 0) {
+            mt->code = 4;
+            mt->y0 = y0 + 30;
+            mt->z0 = full;
+            mt->w = 5;
+            mt->h = y1 - y0;
+            mt->x0 = 498;
+            if (rest >= 0) {
+                mt->r = 0x60;
+                mt->b = 0x80;
+                mt->g = 0x60;
+            } else {
+                mt->r = 0xFF;
+                mt->b = 0x20;
+                mt->g = 0x20;
+            }
+            mt->cd = 0xFF;
+            if (SysRef(pSysView)->flags & 0x40000000) {
+                mt->y0 = (s16) ((f32) mt->y0 / 1.3333334f + 56.0f);
+                mt->h = (s16) ((f32) mt->h / 1.3333334f);
+            }
+            AddPrim(&MainOt[1], (u32*) mt);
+            mt++;
+            if (cnt++ == 0x1FF) {
+                full = 1;
+            }
+        }
+    }
+    if (pMemTile == NULL || full == 1) {
+        u32 y = (u32) ((f32) (end - start) * 400.0f / (f32) size);
+        mt = &tile[0];
+        mt->code = 4;
+        mt->y0 = 30;
+        mt->z0 = 0;
+        mt->w = 5;
+        mt->h = y;
+        mt->x0 = 498;
+        if (rest >= 0) {
+            mt->g = 0x60;
+            mt->b = 0x80;
+            mt->r = 0x60;
+        } else {
+            mt->r = 0xFF;
+            mt->b = 0x20;
+            mt->g = 0x20;
+        }
+        mt->cd = 0xFF;
+        if (SysRef(pSysView)->flags & 0x40000000) {
+            mt->y0 = (s16) ((f32) mt->y0 / 1.3333334f + 56.0f);
+            mt->h = (s16) ((f32) mt->h / 1.3333334f);
+        }
+        AddPrim(&MainOt[1], (u32*) mt);
+    }
+    if (CurrentHeap == 4) {
+        for (cell = cell_dll; cell != NULL; cell = cell->next) {
+            u8* tag = (u8*) cell + cell->size - 0x20;
+            if ((s32) tag >= 0 || (u32) tag > 0x82FFFFFF) {
+                break;
+            }
+            if (MEM_TAG_OK(tag)) {
+                eprintf2(8, 14, 230, ey, 22, 4, "%-18s %6x %08x", tag + 4, cell->size - 0x20, cell);
+            } else {
+                eprintf2(8, 14, 230, ey, 22, 4, "unknown           %6x %08x", cell->size - 0x20, cell);
+            }
+            ey += 14;
+            if (write == 1 && cell->size - 0x20 > 0x1000) {
+                p += sprintf(p, "%6x %18s\n", cell->size - 0x20, tag + 4);
+            }
+            next = cell->next;
+            if (next != NULL && next->next != NULL &&
+                ((s32) next->next >= 0 || (u32) next->next > 0x82FFFFFF)) {
+                pLog->err(0, 0, "heap next err:%-18s %6x %08x", tag + 4, cell->size - 0x20, cell);
+                pLog->err(0, 0, "next addr    : %08x", cell->next);
+#line 870
+                HALT();
+            }
+        }
+        for (cell = cell_stage; cell != NULL; cell = cell->next) {
+            u8* tag = (u8*) cell + cell->size - 0x20;
+            if ((s32) tag >= 0 || (u32) tag > 0x82FFFFFF) {
+                break;
+            }
+            if (MEM_TAG_OK(tag)) {
+                eprintf2(8, 14, 230, ey, 22, 4, "%-18s %6x %08x", tag + 4, cell->size - 0x20, cell);
+            } else {
+                eprintf2(8, 14, 230, ey, 22, 4, "unknown           %6x %08x", cell->size - 0x20, cell);
+            }
+            ey += 14;
+            if (write == 1 && cell->size - 0x20 > 0x1000) {
+                p += sprintf(p, "%6x %18s\n", cell->size - 0x20, tag + 4);
+            }
+            next = cell->next;
+            if (next != NULL && next->next != NULL &&
+                ((s32) next->next >= 0 || (u32) next->next > 0x82FFFFFF)) {
+                pLog->err(0, 0, "heap next err:%-18s %6x %08x", tag + 4, cell->size - 0x20, cell);
+                pLog->err(0, 0, "next addr    : %08x", cell->next);
+#line 904
+                HALT();
+            }
+        }
+        for (cell = cell_game; cell != NULL; cell = cell->next) {
+            u8* tag = (u8*) cell + cell->size - 0x20;
+            if ((s32) tag >= 0 || (u32) tag > 0x82FFFFFF) {
+                break;
+            }
+            if (MEM_TAG_OK(tag)) {
+                eprintf2(8, 14, 230, ey, 18, 4, "%-18s %6x %08x", tag + 4, cell->size - 0x20, cell);
+            } else {
+                eprintf2(8, 14, 230, ey, 18, 4, "unknown           %6x %08x", cell->size - 0x20, cell);
+            }
+            if (write == 1 && cell->size - 0x20 > 0x1000) {
+                p += sprintf(p, "%6x %18s\n", cell->size - 0x20, tag + 4);
+            }
+            ey += 14;
+            next = cell->next;
+            if (next != NULL && next->next != NULL &&
+                ((s32) next->next >= 0 || (u32) next->next > 0x82FFFFFF)) {
+                pLog->err(0, 0, "heap next err:%-18s %6x %08x", tag + 4, cell->size - 0x20, cell);
+                pLog->err(0, 0, "next addr    : %08x", cell->next);
+#line 938
+                HALT();
+            }
+        }
+        for (cell = cell_main; cell != NULL; cell = cell->next) {
+            u8* tag = (u8*) cell + cell->size - 0x20;
+            if ((s32) tag >= 0 || (u32) tag > 0x82FFFFFF) {
+                break;
+            }
+            if (MEM_TAG_OK(tag)) {
+                eprintf2(8, 14, 230, ey, 20, 4, "%-18s %6x %08x", tag + 4, cell->size - 0x20, cell);
+            } else {
+                eprintf2(8, 14, 230, ey, 20, 4, "unknown           %6x %08x", cell->size - 0x20, cell);
+            }
+            if (write == 1 && cell->size - 0x20 > 0x1000) {
+                p += sprintf(p, "%6x %18s\n", cell->size - 0x20, tag + 4);
+            }
+            ey += 14;
+            next = cell->next;
+            if (next != NULL && next->next != NULL &&
+                ((s32) next->next >= 0 || (u32) next->next > 0x82FFFFFF)) {
+                pLog->err(0, 0, "heap next err:%-18s %6x %08x", tag + 4, cell->size - 0x20, cell);
+                pLog->err(0, 0, "next addr    : %08x", cell->next);
+#line 974
+                HALT();
+            }
+        }
+    }
+    {
+        mt = &tile[1];
+        mt->code = 4;
+        mt->y0 = 30;
+        mt->z0 = 0;
+        mt->w = 5;
+        mt->h = 400;
+        mt->x0 = 498;
+        mt->b = mt->g = mt->r = 0x20;
+        mt->cd = 0xFF;
+        if (SysRef(pSysView)->flags & 0x40000000) {
+            mt->y0 = 78;
+            mt->h = 300;
+        }
+        AddPrim(&MainOt[1], (u32*) mt);
+    }
+    eprintf2(10, 16, 30, 0x38, 0, 4, "elf_end   %8x", SysMem.arena_lo);
+    eprintf2(10, 16, 30, 0x58, 0, 4, "DVD       %8x", SysMem.elf_end);
+    eprintf2(10, 16, 30, 0x68, 0, 4, "SOUND     %8x", SysMem.dvd);
+    eprintf2(10, 16, 30, 0x78, 0, 4, "FIFO      %8x", SysMem.sound);
+    eprintf2(10, 16, 30, 0x88, 0, 4, "XFB       %8x", SysMem.fifo);
+    eprintf2(10, 16, 30, 0x98, 0, 4, "CORE      %8x", SysMem.xfb);
+    eprintf2(10, 16, 30, 0xA8, 0, 4, "OPTION    %8x", SysMem.core);
+    eprintf2(10, 16, 30, 0xB8, 0, 4, "PLAYER    %8x", SysMem.option);
+    eprintf2(10, 16, 30, 0xC8, 0, 4, "WEAPON    %8x", SysMem.player);
+    eprintf2(10, 16, 30, 0xD8, 0, 4, "HEAP_TOP  %8x", SysMem.weapon);
+    eprintf2(10, 16, 30, 0xE8, 0, 4, "HEAP_SIZE %x", SysMem.heap_end - SysMem.weapon);
+    eprintf2(10, 16, 30, 0x108, 0, 4, "NOW_HEAP  %8x", start);
+    eprintf2(10, 16, 30, 0x118, 0, 4, " SIZE     %x", size);
+    eprintf2(10, 16, 30, 0x128, 0, 4, " REST     %x", rest);
+    eprintf2(10, 16, 30, 0x148, 0, 4, "FST_SIZE  %x", DvdView.freeSize);
+    eprintf2(10, 16, 30, 0x168, 0, 4, "USB       %8x", SysMem.usb);
+    eprintf2(10, 16, 30, 0x178, 0, 4, "DEBUG     %8x", SysMem.debug);
+    if (Joy[0].rep2 & 0x400000) {
+        _epy_base -= 16;
+    }
+    if (Joy[0].rep2 & 0x800000) {
+        _epy_base += 16;
+    }
+    _epy = _epy_base;
+    if (write == 1) {
+        HDWrite("d:\\bio4\\prog\\memlog.txt", buf, p - buf);
+        Debug_free(buf);
+    }
+}
+
+// Dead-stripped helper: only its string and statics survive (STRIP_UNUSED).
+static void memSetCheck()
+{
+    static int memSetErrCnt = 0;
+
+    memSetErrCnt++;
+    OSReport("memset error: ");
+}
+
+// main_sub's .bss starts 8-aligned; the split object carries the 4-byte pad.
+asm(".section .bss; .balign 8");
