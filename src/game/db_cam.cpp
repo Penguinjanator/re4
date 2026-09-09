@@ -36,13 +36,13 @@ extern f32 ORTHO_R;
 
 #define DEG 0.017453292f
 
-// Orthographic zoom: the top/left extents move together (the loop notes of the do-while keep the
-// symmetric R/B update in its own scheduling block, as in the original).
+// Orthographic zoom: the top/left extents move together (plain block: a do-while's loop notes
+// flip the f0/f13 allocation of the two chains).
 #define ORTHO_ZOOM(t)                    \
-    do {                                 \
+    {                                    \
         ORTHO_T += (t) * 0.75f;          \
         ORTHO_L -= (t);                  \
-    } while (0)
+    }
 
 debugCamera CamDbg;
 QfpsOfs g_local_ready[2][3];
@@ -1122,8 +1122,6 @@ int adjust_qFPS(JOY* joy, int x, int y, int flag, int* out)
     static int site_UMD = 0;
     static int yes_no = 0;
     static int near_far = 0;
-    static const char* fovy_str[2] = {"READY", "TRANS"};
-    static const char* umd_str[3] = {"Up", "Mid", "Dwn"};
     GlobalWork* g = pG;
     Camera* cam = &g->Cam;
     CameraQuasiFPS* q = &CamCtrl.qfps;
@@ -1459,6 +1457,7 @@ int adjust_qFPS(JOY* joy, int x, int y, int flag, int* out)
             break;
         case 3:
             if (menu_level == 5) {
+                static const char* fovy_str[2] = {"READY", "TRANS"};
                 for (j = 0; j < 2; j++) {
                     eprintf(x + (cx + 12) * 8, y + (cy + 3 + j) * 14, (near_far == j) ? 4 : 0, 0, "%s", fovy_str[j]);
                     eprintf(x + (cx + 17) * 8, y + (cy + 3 + j) * 14, 0, 0, "%3.1f", g_local_fovy[j]);
@@ -1477,6 +1476,7 @@ int adjust_qFPS(JOY* joy, int x, int y, int flag, int* out)
         }
     }
     if (menu_level >= 1 && menu_level <= 3) {
+        static const char* umd_str[3] = {"Up", "Mid", "Dwn"};
         eprintf(x + 168, y - 14, 5, 0, "--- SITE ---");
         eprintf(x + 168, y, 5, 0, "LFT RGT");
         eprintf(x + 232, y + 28, 5, 0, "NEAR");

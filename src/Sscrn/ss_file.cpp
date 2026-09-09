@@ -879,12 +879,11 @@ void MessageDisplay::move(SUB_SCREEN* wk)
                     }
                 }
             } else {
-                if (page < fw->pageNum - 1) {
-                    fw->page = page + 1;
-                } else {
+                if (fw->page >= fw->pageNum - 1) {
                     state = 1;
                     break;
                 }
+                fw->page++;
                 goto CHANGE;
             }
         }
@@ -930,17 +929,22 @@ void MessageDisplay::move(SUB_SCREEN* wk)
         if (tplFirst == 1) {
             tplFirst = 0;
         }
-        sprintf(file_tpl_name, "SS/___/f%02dA.tpl", no);
-        setLangExt3(file_tpl_name + 3);
-        file_tpl_name[10] = nxt + 0x60;
+        {
+            // The request slot's address is taken before the sprintf (`lis` in a callee-saved
+            // register across the three calls): a plain `x = call()` expands the call first.
+            int* pReq = &file_tpl_req;
+            sprintf(file_tpl_name, "SS/___/f%02dA.tpl", no);
+            setLangExt3(file_tpl_name + 3);
+            file_tpl_name[10] = nxt + 0x60;
 #line 1338 "D:/Bio4/Prog/ss_file.cpp"
-        file_tpl_req = DVD_READ_N(file_tpl_name, wk->pTplBuf, 0, 0, 0, 0x10);
+            *pReq = DVD_READ_N(file_tpl_name, wk->pTplBuf, 0, 0, 0, 0x10);
+        }
         tplState = 2;
         break;
     case 2:
         if (Dvd.ReadCheck(file_tpl_req, 0, 0, 0)) {
-            tplState = 0;
             tplFirst = 0;
+            tplState = 0;
         } else if (cur != nxt) {
             Dvd.ReadCancel(file_tpl_req, 0x40);
             tplState = 1;
@@ -984,18 +988,20 @@ void MessageDisplay::move(SUB_SCREEN* wk)
             u = IdSub.unitPtr(0x11, 0x1E);
             u->flags_7F |= 2;
             u->no = d[0];
-            u = IdSub.unitPtr(0x13, 0x1E);
+            u = IdSub.unitPtr(0x12, 0x1E);
             u->flags_7F |= 2;
             u->no = e[1];
-            u = IdSub.unitPtr(0x12, 0x1E);
+            u = IdSub.unitPtr(0x13, 0x1E);
             u->flags_7F |= 2;
             u->no = e[0];
         }
-        u = IdSub.unitPtr(1, 0x1E);
-        if (fw->page == 0) {
-            u->flags &= ~8;
-        } else {
-            u->flags |= 8;
+        {
+            IdUnit* p = IdSub.unitPtr(1, 0x1E);
+            if (fw->page == 0) {
+                p->flags &= ~8;
+            } else {
+                p->flags |= 8;
+            }
         }
         a = IdSub.unitPtr(2, 0x1E);
         b = IdSub.unitPtr(3, 0x1E);
@@ -1022,3 +1028,7 @@ void MessageDisplay::quit(SUB_SCREEN* wk)
     }
     IdSub.unitPtr(0, 0x1D)->flags &= ~8;
 }
+
+// The split object's .data is 4 bytes longer than the variables: the next unit's (ss_item) .data
+// starts 8-aligned in the REL.
+asm(".section .data; .balign 8; .section .text");

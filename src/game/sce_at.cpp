@@ -677,23 +677,23 @@ int sceAtHitCheck(SceAtWork* w, cModel* m, Vec* front, Vec* pos)
 {
     AreaData area;
     f32 ang;
-    int ret = 0;
-    cModel* p;
+    int ret;
     f32 ry;
-    Vec* hp;
 
     sceAtGetArea(&area, w);
     ang = (f32) (w->angle * 2) * (PI / 180.0f);
     if (w->pParent != 0) {
-        p = w->pParent;
+        // `rot.y` read in both arms: the cross-jumped `lfs` lands ahead of the flag test.
         if (w->parentParts >= 0) {
-            p = p->getPartsPtr(w->parentParts);
+            ry = w->pParent->getPartsPtr(w->parentParts)->rot.y;
+        } else {
+            ry = w->pParent->rot.y;
         }
-        ry = p->rot.y;
         if (!(w->flag & 8)) {
             ang = LIMIT_ANGLE(ang + ry);
         }
     }
+    ret = 0;
     if (area.type == 3) {
         Vec cc;
         Vec c = {0.0f, 0.0f, 0.0f};
@@ -707,9 +707,15 @@ int sceAtHitCheck(SceAtWork* w, cModel* m, Vec* front, Vec* pos)
             ret = InScreenCheck(&cc) == 1;
         }
     } else {
-        hp = (w->x37 & 1) ? front : pos;
-        if (hp != 0 && AreaHitCheck(&area, hp) == 1) {
-            ret = 1;
+        // Both arms written out (cross-jumped `AreaHitCheck` tail, the null test stays per arm).
+        if (w->x37 & 1) {
+            if (front != 0 && AreaHitCheck(&area, front) == 1) {
+                ret = 1;
+            }
+        } else {
+            if (pos != 0 && AreaHitCheck(&area, pos) == 1) {
+                ret = 1;
+            }
         }
         if (m != 0 && (w->x37 & 2) && ret == 1) {
             f32 d = LIMIT_ANGLE(ang - m->rot.y);
@@ -1151,7 +1157,7 @@ static void sceAtGetItem(SceAtWork* w)
             SceSleep(1);
         }
         if (cancel == 0) {
-            s8 res = cMes.getWork()->result;
+            int res = cMes.getWork()->result;
 
             sel = res;
             if (sel == 1) {
@@ -1164,7 +1170,7 @@ static void sceAtGetItem(SceAtWork* w)
                     sub_screen_open = sel;
                     SubScreenWk.x2FC = it->num;
                 }
-            } else if (res == 2) {
+            } else if (cMes.getWork()->result == 2) {
                 put = 0;
             } else {
                 u16 n = it->num;
@@ -1378,9 +1384,7 @@ static void sceAtGetItem_NoModel(SceAtWork* w)
             SceSleep(1);
         }
         if (cancel == 0) {
-            s8 res = cMes.getWork()->result;
-
-            sel = res;
+            sel = cMes.getWork()->result;
             if (sel == 1) {
                 put = PutInCase(it->id, it->num, (s8) SubScreenWk.x2AE);
                 if (put != 1) {
@@ -1391,7 +1395,7 @@ static void sceAtGetItem_NoModel(SceAtWork* w)
                     sub_screen_open = sel;
                     SubScreenWk.x2FC = it->num;
                 }
-            } else if (res == 2) {
+            } else if (cMes.getWork()->result == 2) {
                 ITEM_CANCEL_NOMODEL();
             } else {
                 u16 n = it->num;

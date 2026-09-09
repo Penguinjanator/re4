@@ -54,6 +54,11 @@ struct R11dWork {
 static R11dWork* r11d_work;
 static u8 r11d_hideCnt = 0;
 
+// COMPILER-DIFF #4: the original passes the int list entries to the s16 parameters without
+// truncation (`lwz` straight into r4); an int-parameter view of the callees.
+int cEmWrapSetPtrI(cEmWrap* w, int no, int list, int errOn) asm("setPtr__7cEmWrapsSci");
+cEm* setEmI(int no, int list, int errOn, int chkDead, int setAlive) asm("setEm__FsSciii");
+
 // Pointer store through a reference: the work pointer is reloaded after it (see st_room.h).
 static inline void PSet(cModelInfo*& d, cModelInfo* v) { d = v; }
 
@@ -76,14 +81,6 @@ static void r11d_checkEmReset();
 static void r11d_ThunderMove();
 static void r11d_str_check();
 
-// Area centre pairs of the five patrol routes
-static inline void r11d_setPatrol(cEmPatrol* p, s16 no, int at0, int at1, Vec* pos)
-{
-    AreaGetCenterPos(&pos[0], &SceAtPtr(at0)->area);
-    AreaGetCenterPos(&pos[1], &SceAtPtr(at1)->area);
-    p->SetPatrol(no, pos, 2, 0, 0);
-}
-
 void R11dInit()
 {
     void* zero = 0;
@@ -95,44 +92,57 @@ void R11dInit()
 
     EstSet((int) pPL, -1, 0, 0, 3, 1, 0x800, 0, (u32) zero, zero);
     EstSet((int) pPL, -1, 0, 0, 1, 0, 0x800, 0, (u32) zero, zero);
-    pG->flags_5010 |= 0x400;
+    BitOn(pG->flags_5010, 0x400);
     if (RsfCheck(G_ROOM_ID, 0) == 0) {
         SceAtDataSet_exec(2, 0x12, 0, (TaskFunc) r11d_checkEmReset, 0, 1);
+    } else {
+        SceExec(0x12, (TaskFunc) r11d_checkEmReset, 0, 0, 2, 0);
     }
-    SceExec(0x12, (TaskFunc) r11d_checkEmReset, 0, 0, 2, 0);
     if (!(pG->door_unlock[0] & 0x00010000)) {
         SceAtDataSet_exec(1, 0x12, 0, (TaskFunc) r11d_checkDoor, 0, 1);
+    } else {
+        SmdGetObjPtr(0x20)->be_flag &= ~2;
     }
-    SmdGetObjPtr(0x20)->be_flag &= ~2;
     EspDataLoad((u32) ROOM_ARC_PTR(pG->pRoomArc, 0x1F), 0xCA, 0);
     SceAtDataSet_hide(3, r11d_execHide0);
     SceAtDataSet_hide(4, r11d_execHide1);
     SceAtDataSet_hide(5, r11d_execHide2);
     if (RsfCheck(G_ROOM_ID, 2) == 0) {
         SceExec(0x12, (TaskFunc) r11d_execShowView, 0, 0, 2, 0);
+    } else {
+        SceExec(0x12, (TaskFunc) r11d_ThunderMove, 0, 0, 2, 0);
+        SceExec(0x12, (TaskFunc) r11d_str_check, 0, 0, 2, 0);
     }
-    SceExec(0x12, (TaskFunc) r11d_ThunderMove, 0, 0, 2, 0);
-    SceExec(0x12, (TaskFunc) r11d_str_check, 0, 0, 2, 0);
     if (RsfCheck(G_ROOM_ID, 3) == 0) {
         SmdGetObjPtr(0x1A)->be_flag &= ~2;
         SceAtDataSet_exec(6, 0x12, 0, (TaskFunc) r11d_execEmAppear, 0, 1);
+    } else {
+        r11d_setEmSister();
     }
-    r11d_setEmSister();
     if (!(pG->door_unlock[0] & 0x00100000)) {
         if (getRoomEtcDoor(0x26, &r11d_work->door, 1)) {
             ((cEmDoor*) r11d_work->door)->setKey(0xB);
         }
         SceAtDataSet_exec(8, 0x12, 0, (TaskFunc) r11d_checkIronDoor, 0, 1);
         SceExec(0x12, (TaskFunc) r11d_checkIronDoorKeyUse, 0, 0, 2, 0);
-    }
-    if (pG->pRoomEmi != 0 && ((u8*) pG->pRoomEmi)[0xD08] == 5) {
+    } else if (pG->pRoomEmi != 0 && ((u8*) pG->pRoomEmi)[0xD08] == 5) {
         ((u8*) pG->pRoomEmi)[0xD08] = 0;
     }
-    r11d_setPatrol(&r11d_work->patrol[0], 0xE2, 0xA, 0xB, pos);
-    r11d_setPatrol(&r11d_work->patrol[1], 0xDD, 0xC, 0xD, pos);
-    r11d_setPatrol(&r11d_work->patrol[2], 0xE8, 0xE, 0xF, pos);
-    r11d_setPatrol(&r11d_work->patrol[3], 0xF5, 0x10, 0x11, pos);
-    r11d_setPatrol(&r11d_work->patrol[4], 0xE7, 0x12, 0x13, pos);
+    AreaGetCenterPos(&pos[0], &SceAtPtr(0xA)->area);
+    AreaGetCenterPos(&pos[1], &SceAtPtr(0xB)->area);
+    r11d_work->patrol[0].SetPatrol(0xE2, pos, 2, 0, 0);
+    AreaGetCenterPos(&pos[0], &SceAtPtr(0xC)->area);
+    AreaGetCenterPos(&pos[1], &SceAtPtr(0xD)->area);
+    r11d_work->patrol[1].SetPatrol(0xDD, pos, 2, 0, 0);
+    AreaGetCenterPos(&pos[0], &SceAtPtr(0xE)->area);
+    AreaGetCenterPos(&pos[1], &SceAtPtr(0xF)->area);
+    r11d_work->patrol[2].SetPatrol(0xE8, pos, 2, 0, 0);
+    AreaGetCenterPos(&pos[0], &SceAtPtr(0x10)->area);
+    AreaGetCenterPos(&pos[1], &SceAtPtr(0x11)->area);
+    r11d_work->patrol[3].SetPatrol(0xF5, pos, 2, 0, 0);
+    AreaGetCenterPos(&pos[0], &SceAtPtr(0x12)->area);
+    AreaGetCenterPos(&pos[1], &SceAtPtr(0x13)->area);
+    r11d_work->patrol[4].SetPatrol(0xE7, pos, 2, 0, 0);
     FlrAtSetDefVal(0, 0, 3);
     if (getRoomEtcLadder(1, &ladder, 1)) {
         ((cObjLadder*) ladder)->setCamera(0xC);
@@ -218,24 +228,19 @@ extern "C" void r11d_appearLittleSister()
             ((cEmGanado*) em)->setR11DMotion(ROOM_ARC_PTR(pG->pRoomArc, 0x23));
         }
     }
-    void* zero = 0;
     pG->flags_174 |= 0x40000000;
     BitOff(SmdGetObjPtr(0x32)->be_flag, 2);
     BitOn(SmdGetObjPtr(0x1A)->be_flag, 2);
     if (RsfCheck(G_ROOM_ID, 5) == 0) {
         RsfSet(G_ROOM_ID, 5);
-        EstSet(0, -1, 0, 0, 1, 7, 1, 0, (u32) zero, zero);
-        EstSet(0, -1, 0, 0, 1, 8, 1, 0, (u32) zero, zero);
+        EstSet(0, -1, 0, 0, 1, 7, 1, 0, 0, 0);
+        EstSet(0, -1, 0, 0, 1, 8, 1, 0, 0, 0);
     }
 }
 
 static void r11d_execEmAppear_end()
 {
-    int list0[11] = {0xDD, 0xDF, 0xE0, 0xE1, 0xE2, 0xE3, 0xE4, 0xE5, 0xE7, 0xE8, 0xF5};
-    int list1[9] = {0xED, 0xEE, 0xEF, 0xF2, 0xF3, 0xF4, 0xE9, 0xEA, 0xEB};
-    cEmWrap em;
-    cEm* ladder;
-    int i;
+    u32 i;
 
     r11d_setEmSister();
     if (r11d_work->eff1 != 0) {
@@ -247,10 +252,14 @@ static void r11d_execEmAppear_end()
     r11d_work->em1.setNoSuspend(0);
     CamCtrl.Comeback(0);
     SceEventEnd(0);
-    pG->flags_5014 &= ~0x02000000;
-    pG->flags_174 &= ~0x20000000;
-    for (i = 0; i < 10; i++) {
-        em.setPtr(list0[i], -1, 0);
+    BitOff(pG->flags_5014, 0x02000000);
+    BitOff(pG->flags_174, 0x20000000);
+    int list0[11] = {0xDD, 0xDF, 0xE0, 0xE1, 0xE2, 0xE3, 0xE4, 0xE5, 0xE7, 0xE8, 0xF5};
+    int list1[9] = {0xED, 0xEE, 0xEF, 0xF2, 0xF3, 0xF4, 0xE9, 0xEA, 0xEB};
+    cEmWrap em;
+    cEm* ladder;
+    for (i = 0; i < 11; i++) {
+        cEmWrapSetPtrI(&em, list0[i], -1, 0);
         if (em.isAlive() == 1) {
             if (((cEmGanado*) em.getPtr())->ckTakeAway() == 1) {
                 break;
@@ -258,13 +267,13 @@ static void r11d_execEmAppear_end()
             em.destroy();
         }
     }
-    for (i = 0; i < 8; i++) {
-        setEm(list1[i], -1, 0, 1, 1);
+    for (i = 0; i < 9; i++) {
+        setEmI(list1[i], -1, 0, 1, 1);
     }
-    if (getRoomEtcLadder(0, &ladder, 1) && ((cObjLadder*) ladder)->getStatus() != 4) {
+    if (getRoomEtcLadder(0, &ladder, 1) && ((cObjLadder*) ladder)->getStatus() == 4) {
         ((cObjLadder*) ladder)->setStand();
     }
-    if (getRoomEtcLadder(0x27, &ladder, 1) && ((cObjLadder*) ladder)->getStatus() != 4) {
+    if (getRoomEtcLadder(0x27, &ladder, 1) && ((cObjLadder*) ladder)->getStatus() == 4) {
         ((cObjLadder*) ladder)->setStand();
     }
 }
@@ -282,7 +291,7 @@ static void r11d_execEmAppear()
     KeyStop(0xEFCF0000ULL);
     SceSleep(15);
     SceEventStart(0);
-    pG->flags_5014 |= 0x02000000;
+    BitOn(pG->flags_5014, 0x02000000);
     pPL->setNoSuspend(1);
     r11d_work->eff1 = 0;
     SceSetEventCancel(1, (TaskFunc) r11d_execEmAppear_end, 0, -1, 1);
@@ -384,8 +393,10 @@ extern "C" void r11d_execHide_main(int mode, u32 objId)
         f32 spd = 0.0f;
 
         SndCall(6, 0x14, &pSUB->pos, 0, 0, 0);
+        goto open;
     wait_open:
         SceSleep(1);
+    open:
         door->pParts->rot.x -= spd;
         spd += add;
         if (!(door->pParts->rot.x < lim)) {
@@ -393,8 +404,10 @@ extern "C" void r11d_execHide_main(int mode, u32 objId)
         }
     } else {
         SndCall(6, 0x13, &pSUB->pos, 0, 0, 0);
+        goto close;
     wait_close:
         SceSleep(1);
+    close:
         door->pParts->rot.x += 0.2f;
         if (!(door->pParts->rot.x > 0.0f)) {
             goto wait_close;
@@ -456,16 +469,16 @@ static void r11d_checkEmReset()
     u8 tbl[10] = {0xD2, 0xD7, 0xD3, 0xD8, 0xD4, 0xD9, 0xD5, 0xDA, 0xD6, 0xDB};
     SceSleep(1);
     i = 0;
-    for (;;) {
-        while ((u32) SceCountEmAlive(0x10, 0x20) > 10) {
-            SceSleep(1);
-        }
-        setEm(tbl[i], -1, 0, 1, 1);
-        if (i++ == 9) {
-            break;
-        }
+next:
+    while ((u32) SceCountEmAlive(0x10, 0x20) > 10) {
+        SceSleep(1);
+    }
+    setEm(tbl[i], -1, 0, 1, 1);
+    i++;
+    if (i < 10) {
         SceSleep(60);
         SceSleep(1);
+        goto next;
     }
 }
 

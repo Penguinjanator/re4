@@ -22,7 +22,7 @@ typedef struct SFXZ_OBJ SFXZ_OBJ;
 typedef struct SFXA_OBJ SFXA_OBJ;
 
 /* SFX handle (0x78 bytes, sfx_libwork.hn[]) */
-typedef struct {
+typedef struct SFX_OBJ {
 	Sint32 used;               /* 0x00 */
 	Sint32 compo;              /* 0x04 stream component layout (0 = not read yet) */
 	Sint32 fxtype;             /* 0x08 output layout (SFX_COMPO_YCC420PLN) */
@@ -104,13 +104,26 @@ typedef struct {
 	Sint32 pitch;              /* 0x0C line stride (negative for bottom-up) */
 } SFX_PLN;
 
-/* frame description (0x88 bytes) */
+/* frame description (0x88 bytes), filled by MWSFSFX_CnvFrmInfToSfx */
 typedef struct {
 	Sint32 frmfmt;             /* 0x00 */
 	SFX_PLN pln[3];            /* 0x04 Y, Cb, Cr */
-	Uint8 pad34[0x4C - 0x34];
+	Uint8 pad34[0x44 - 0x34];
+	Sint32 width;              /* 0x44 */
+	Sint32 height;             /* 0x48 */
 	void *tblsrc;              /* 0x4C source data of the alpha/z conversion tables */
-	Uint8 pad50[0x88 - 0x50];
+	Sint32 tag_a;              /* 0x50 */
+	Sint32 tag_b;              /* 0x54 */
+	Sint32 x58;
+	Sint32 x5c;
+	Sint32 pic_struct;         /* 0x60 */
+	Sint32 chroma_format;      /* 0x64 */
+	Sint32 x68;
+	Sint32 x6c;
+	Sint32 x70;
+	Sint32 chromapos_h;        /* 0x74 */
+	Sint32 chromapos_v;        /* 0x78 */
+	Uint8 pad7c[0x88 - 0x7C];
 } SFX_FRM;
 
 /* CFT (colour format transform) planar source description */

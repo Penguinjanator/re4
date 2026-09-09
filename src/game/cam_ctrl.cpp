@@ -821,7 +821,7 @@ void CameraControl::Check()
     if (pPL->p2A4 && pPL->p2A4->x5) {
         return;
     }
-    PSVECSubtract(&pPL->getPartsPtr(1)->pos, &pPL->pos, &d);
+    PSVECSubtract(&pPL->getPartsPtr(1)->worldPos, &pPL->pos, &d);
     if (state != 0xB) {
         if (d.y <= 500.0f) {
             interp.set(3, &camera.param);
@@ -1156,6 +1156,188 @@ f32 CameraControl::getCameraDirection()
     f32 dir = CamCtrl.qfps.angle_x;
     CamCtrl.qfps.angle_x = 0.0f;
     return dir;
+}
+
+void Parametrize(CameraCut* cut, CameraBSpline* bs)
+{
+    int n;
+    int i;
+    f32* B;
+    f32* Binv;
+    f32* px;
+    f32* py;
+    f32* pz;
+    f32* ax;
+    f32* ay;
+    f32* az;
+    f32* roll;
+    f32* fovy;
+
+    bs->num = n = cut->num;
+    if (n > 1) {
+#line 3058 "D:/Bio4/Prog/cam_ctrl.cpp"
+        B = (f32*) MEM_ALLOC(sizeof(f32) * n * n, 1, 0xd);
+        Binv = (f32*) MEM_ALLOC(sizeof(f32) * n * n, 1, 0xd);
+        px = (f32*) MEM_ALLOC(sizeof(f32) * n, 1, 0xd);
+        py = (f32*) MEM_ALLOC(sizeof(f32) * n, 1, 0xd);
+        pz = (f32*) MEM_ALLOC(sizeof(f32) * n, 1, 0xd);
+        ax = (f32*) MEM_ALLOC(sizeof(f32) * n, 1, 0xd);
+        ay = (f32*) MEM_ALLOC(sizeof(f32) * n, 1, 0xd);
+        az = (f32*) MEM_ALLOC(sizeof(f32) * n, 1, 0xd);
+        roll = (f32*) MEM_ALLOC(sizeof(f32) * n, 1, 0xd);
+        fovy = (f32*) MEM_ALLOC(sizeof(f32) * n, 1, 0xd);
+        bs->k = 2;
+        if (bs->k > n - 1) {
+            bs->k = n - 1;
+        }
+        for (i = 0; i < bs->num; i++) {
+            px[i] = cut->pos[i].x;
+            py[i] = cut->pos[i].y;
+            pz[i] = cut->pos[i].z;
+            ax[i] = cut->at[i].x;
+            ay[i] = cut->at[i].y;
+            az[i] = cut->at[i].z;
+            roll[i] = cut->roll[i];
+            fovy[i] = cut->fovy[i];
+        }
+        for (i = 0; i < bs->num; i++) {
+            de_Boor_Cox(bs->num, NULL, bs->k, (f32) i, &B[bs->num * i]);
+        }
+        MtxNNInverse(bs->num, B, Binv);
+        MtxNNMultVecSR(bs->num, bs->num, Binv, px, bs->px);
+        MtxNNMultVecSR(bs->num, bs->num, Binv, py, bs->py);
+        MtxNNMultVecSR(bs->num, bs->num, Binv, pz, bs->pz);
+        MtxNNMultVecSR(bs->num, bs->num, Binv, ax, bs->ax);
+        MtxNNMultVecSR(bs->num, bs->num, Binv, ay, bs->ay);
+        MtxNNMultVecSR(bs->num, bs->num, Binv, az, bs->az);
+        MtxNNMultVecSR(bs->num, bs->num, Binv, roll, bs->roll);
+        MtxNNMultVecSR(bs->num, bs->num, Binv, fovy, bs->fovy);
+        Mem_free(B);
+        Mem_free(Binv);
+        Mem_free(px);
+        Mem_free(py);
+        Mem_free(pz);
+        Mem_free(ax);
+        Mem_free(ay);
+        Mem_free(az);
+        Mem_free(roll);
+        Mem_free(fovy);
+    }
+}
+
+void BSpline(CameraBSpline* bs, Camera* cam, int)
+{
+    int i;
+
+    memclr_asm(cam, sizeof(Camera));
+    de_Boor_Cox(bs->num, NULL, bs->k, bs->t, bs->basis);
+    for (i = 0; i < bs->num; i++) {
+        cam->param.at.x += bs->basis[i] * bs->ax[i];
+        cam->param.at.y += bs->basis[i] * bs->ay[i];
+        cam->param.at.z += bs->basis[i] * bs->az[i];
+        cam->param.pos.x += bs->basis[i] * bs->px[i];
+        cam->param.pos.y += bs->basis[i] * bs->py[i];
+        cam->param.pos.z += bs->basis[i] * bs->pz[i];
+        cam->param.roll += bs->basis[i] * bs->roll[i];
+        cam->param.fovy += bs->basis[i] * bs->fovy[i];
+    }
+}
+
+void searchRail(CameraBSpline* bs, CameraCut* cut, Vec* aim, int)
+{
+    Vec d;
+    Vec v;
+    f32 min = 10000000000.0f;
+    int found = 0;
+    int i;
+    f32 s;
+    f32 u;
+    f32 dist;
+
+    for (i = 0; i < cut->num - 1; i++) {
+        PSVECSubtract(&cut->at[i + 1], &cut->at[i], &d);
+        d.y = 0.0f;
+        PSVECSubtract(aim, &cut->at[i], &v);
+        v.y = 0.0f;
+        s = PSVECDotProduct(&d, &v);
+        s = s / PSVECMag(&d);
+        PSVECSubtract(aim, &cut->at[i + 1], &v);
+        v.y = 0.0f;
+        u = PSVECDotProduct(&d, &v);
+        u = u / PSVECMag(&d);
+        if (s * u < 0.0f) {
+            d.y = cut->at[i + 1].y - cut->at[i].y;
+            PSVECScale(&d, &v, s / PSVECMag(&d));
+            PSVECAdd(&v, &cut->at[i], &v);
+            dist = PSVECDistance(aim, &v);
+            if (dist < min) {
+                min = dist;
+                found = 1;
+                bs->seg = i;
+                bs->t = (f32) i + s / PSVECMag(&d);
+            }
+        }
+    }
+    if (found) {
+        f32 min2 = 10000000000.0f;
+        int seg = 0;
+
+        for (i = 0; i < cut->num; i++) {
+            PSVECSubtract(aim, &cut->at[i], &d);
+            dist = PSVECMag(&d);
+            if (dist < min2) {
+                min2 = dist;
+                seg = i;
+            }
+        }
+        if (min > min2) {
+            bs->seg = seg;
+            bs->t = (f32) seg;
+        }
+    } else {
+        f32 min2 = 10000000000.0f;
+
+        for (i = 0; i < cut->num; i++) {
+            PSVECSubtract(aim, &cut->at[i], &d);
+            dist = PSVECMag(&d);
+            if (dist < min2) {
+                min2 = dist;
+                bs->seg = i;
+                bs->t = (f32) i;
+            }
+        }
+    }
+}
+
+void CameraControl::debugDrawRail(CameraCut* cut)
+{
+    static Vec Fc_old;
+    static Vec Ft_old;
+    CameraBSpline* bs = &CamBSpline;
+    Vec fc;
+    Vec ft;
+    int i;
+    int j;
+
+    for (i = 0; i < 100; i++) {
+        de_Boor_Cox(cut->num, NULL, bs->k, (f32) ((cut->num - 1) * i) / 100.0f + 0.0f, bs->basis);
+        fc.x = fc.y = fc.z = 0.0f;
+        ft.x = ft.y = ft.z = 0.0f;
+        for (j = 0; j < cut->num; j++) {
+            fc.x += bs->basis[j] * bs->px[j];
+            fc.y += bs->basis[j] * bs->py[j];
+            fc.z += bs->basis[j] * bs->pz[j];
+            ft.x += bs->basis[j] * bs->ax[j];
+            ft.y += bs->basis[j] * bs->ay[j];
+            ft.z += bs->basis[j] * bs->az[j];
+        }
+        if (i > 0) {
+            Draw_line3d(&Fc_old, &fc, 0xFF2020FF, 0);
+            Draw_line3d(&Ft_old, &ft, 0xFF20FF20, 0);
+        }
+        Fc_old = fc;
+        Ft_old = ft;
+    }
 }
 
 void CameraControl::UpCutCall(int no, Vec* pos, Vec* at, Vec* up, int sel)

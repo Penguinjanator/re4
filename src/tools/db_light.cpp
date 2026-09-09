@@ -215,9 +215,14 @@ static const char* path_litpath = "x:\\soft/room/etc/core/litpath.bin";
 Vec spotRot;
 static const Vec xAxis = {1.0f, 0.0f, 0.0f};
 
+// The path header pointer is a struct member too: its load stays after the path table stores.
+struct cLitPathPtr {
+    cLightPathHeader* p;
+};
+static cLitPathPtr LitPathPtr;
+#define pLitPath (LitPathPtr.p)
 static cLightToolPtr LightToolPtr;
 #define pTool (LightToolPtr.p)
-static cLightPathHeader* pLitPath;
 // The light count is a struct member: its load is not hoisted above the stores through pTool.
 struct LightWorkNum {
     u32 n;
@@ -319,13 +324,9 @@ void clear_type_free();
 int getCutNo();
 void drawLightInfo_SpotShadow(cLight* l, u32 color);
 void drawLightInfo(cLight* l, u32 color);
-int pathSelect();
-// COMPILER-DIFF: the original's path() sets r3..r7 to (0x20, 0x70, 0, 0, 0) before calling the
-// argument-less pathSelect__Fv (a stale five-argument prototype at the call site); this alias
-// reproduces that call.
-int pathSelect(int x, int y, u8 a, u8 b, int c) asm("pathSelect__Fv");
+int pathSelect(int x, int y, u8 no, u8 flag, int mode);
 int pathEdit(int x, int y, u8 no, u8 flag, int mode);
-void drawPath(int x, int y, cLightPathData* p, u8 flag, u32 color);
+void drawPath(int x, int y, cLightPathData* p, u8 flag, u32 cur);
 
 
 // Colour swatch: the colour word goes through a local of this inline, so its address is a fresh
@@ -334,6 +335,19 @@ static inline void drawColorTile(int x, int y, int w, int h, u32 c)
 {
     GXColorW col;
     col.w = c;
+    DrawTile(x, y, w, h, (GXColor*) &col);
+}
+
+// A colour taken by value (editColor): the BLKmode copy is the DrawTile argument, one slot for all.
+struct GXColorV {
+    GXColor c;
+    GXColorV() {}
+    GXColorV(const GXColorV& o) { c = o.c; }
+} __attribute__((aligned(4)));
+static inline void drawTile(int x, int y, int w, int h, GXColor c)
+{
+    GXColorW col;
+    col.w = *(u32*) &c;
     DrawTile(x, y, w, h, (GXColor*) &col);
 }
 
@@ -4217,7 +4231,185 @@ u32 cDbLit::createLit(cLit* dst)
     return size;
 }
 
-int editColor(int x, int y, GXColor* col) { return 0; }
+// RGBA editor at text cell (x, y): the colour is edited as floats (kept across calls) and written back
+// every frame; Y held links R / G / B. Returns 0 when B leaves the editor.
+int editColor(int x, int y, GXColor* col)
+{
+    static int state = 0;
+    static f32 r;
+    static f32 g;
+    static f32 b;
+    static f32 a;
+    static const GXColor black = {0, 0, 0, 0};
+    int ret = 1;
+    f32 step;
+    int link;
+    GXColor c;
+
+    switch (state) {
+    case 0:
+        r = col->r;
+        g = col->g;
+        b = col->b;
+        a = col->a;
+        state = 1;
+    case 1:
+        col->r = r;
+        col->g = g;
+        col->b = b;
+        col->a = a;
+        break;
+    }
+    step = (pTool->joy.on & JOY_A) ? 1.5f : 0.1f;
+    link = pTool->joy.on & JOY_Y;
+    pTool->printCursor(x - 1, y + pTool->cursor);
+    eprintf(x * 8, y * 14, 0, pTool->color, "R %3d", col->r);
+    drawTile((x + 6) * 8, y * 14 + 4, 0x80, 6, black);
+    c.r = 0xFF;
+    c.g = 0;
+    c.b = 0;
+    drawTile((x + 6) * 8, y * 14 + 4, col->r >> 1, 6, c);
+    y++;
+    eprintf(x * 8, y * 14, 0, pTool->color, "G %3d", col->g);
+    drawTile((x + 6) * 8, y * 14 + 4, 0x80, 6, black);
+    c.r = 0;
+    c.g = 0xFF;
+    c.b = 0;
+    drawTile((x + 6) * 8, y * 14 + 4, col->g >> 1, 6, c);
+    y++;
+    eprintf(x * 8, y * 14, 0, pTool->color, "B %3d", col->b);
+    drawTile((x + 6) * 8, y * 14 + 4, 0x80, 6, black);
+    c.r = 0;
+    c.g = 0;
+    c.b = 0xFF;
+    drawTile((x + 6) * 8, y * 14 + 4, col->b >> 1, 6, c);
+    y++;
+    eprintf(x * 8, y * 14, 0, pTool->color, "A %1.1f", (f32) col->a * 0.0078125f);
+    drawTile((x + 6) * 8, y * 14 + 4, 0x80, 6, black);
+    c.r = 200;
+    c.g = 200;
+    c.b = 200;
+    drawTile((x + 6) * 8, y * 14 + 4, col->a >> 1, 6, c);
+    y += 2;
+    drawTile((x + 8) * 8, y * 14, 0x2A, 0x2A, *col);
+    if (link) {
+        eprintf(x * 8, y * 14, 0, pTool->color, "LINK");
+    }
+    y++;
+    if (pTool->joy.on & JOY_A) {
+        eprintf(x * 8, y * 14, 0, pTool->color, "TURBO");
+    }
+    if (link) {
+        if (pTool->joy.rep & JOY_RIGHT) {
+            r += step * 10.0f;
+            g += step * 10.0f;
+            b += step * 10.0f;
+        }
+        if (pTool->joy.rep & JOY_LEFT) {
+            r -= step * 10.0f;
+            g -= step * 10.0f;
+            b -= step * 10.0f;
+        }
+        r += (f32) pTool->joy.sx * step / 20.0f;
+        if (r < 0.0f) {
+            r = 0.0f;
+        } else if (r > 255.0f) {
+            r = 255.0f;
+        }
+        g += (f32) pTool->joy.sx * step / 20.0f;
+        if (g < 0.0f) {
+            g = 0.0f;
+        } else if (g > 255.0f) {
+            g = 255.0f;
+        }
+        b += (f32) pTool->joy.sx * step / 20.0f;
+        if (b < 0.0f) {
+            b = 0.0f;
+        } else if (b > 255.0f) {
+            b = 255.0f;
+        }
+    } else {
+        switch (pTool->cursor) {
+        case 0:
+            if (pTool->joy.rep & JOY_RIGHT) {
+                r += step * 10.0f;
+            }
+            if (pTool->joy.rep & JOY_LEFT) {
+                r -= step * 10.0f;
+            }
+            r += (f32) pTool->joy.sx * step / 20.0f;
+            if (r < 0.0f) {
+                r = 0.0f;
+            } else if (r > 255.0f) {
+                r = 255.0f;
+            }
+            break;
+        case 1:
+            if (pTool->joy.rep & JOY_RIGHT) {
+                g += step * 10.0f;
+            }
+            if (pTool->joy.rep & JOY_LEFT) {
+                g -= step * 10.0f;
+            }
+            g += (f32) pTool->joy.sx * step / 20.0f;
+            if (g < 0.0f) {
+                g = 0.0f;
+            } else if (g > 255.0f) {
+                g = 255.0f;
+            }
+            break;
+        case 2:
+            if (pTool->joy.rep & JOY_RIGHT) {
+                b += step * 10.0f;
+            }
+            if (pTool->joy.rep & JOY_LEFT) {
+                b -= step * 10.0f;
+            }
+            b += (f32) pTool->joy.sx * step / 20.0f;
+            if (b < 0.0f) {
+                b = 0.0f;
+            } else if (b > 255.0f) {
+                b = 255.0f;
+            }
+            break;
+        case 3:
+            if (pTool->joy.rep & JOY_RIGHT) {
+                a += step * 10.0f;
+            }
+            if (pTool->joy.rep & JOY_LEFT) {
+                a -= step * 10.0f;
+            }
+            a += (f32) pTool->joy.sx * step / 20.0f;
+            if (a < 0.0f) {
+                a = 0.0f;
+            } else if (a > 255.0f) {
+                a = 255.0f;
+            }
+            break;
+        }
+    }
+    if (pTool->cursor == 3 && (pTool->joy.trg & JOY_Y)) {
+        a = 128.0f;
+    }
+    if (pTool->joy.rep & JOY_UP) {
+        pTool->cursor = (pTool->cursor + 3) % 4;
+    } else if (pTool->joy.rep & JOY_DOWN) {
+        pTool->cursor = (pTool->cursor + 5) % 4;
+    }
+    if (!(pTool->joy.on & 0x30000)) {
+        if (pTool->joy.trg & 0x80000) {
+            pTool->cursor = (pTool->cursor + 3) % 4;
+        }
+        if (pTool->joy.trg & 0x40000) {
+            pTool->cursor = (pTool->cursor + 5) % 4;
+        }
+    }
+    if (pTool->joy.rep & JOY_B) {
+        state = 0;
+        ret = 0;
+    }
+    return ret;
+}
 
 const char* strFogType(int type)
 {
@@ -4390,12 +4582,198 @@ void drawLightInfo(cLight* l, u32 color)
         Draw_line3d(&pos, &t, (l->color.a << 24) | (l->color.r << 16) | (l->color.g << 8) | l->color.b, 0);
     }
 }
-int pathSelect()
+// Path table: pick a path (LEFT / RIGHT), create / delete with A through a YES / NO prompt.
+int pathSelect(int x, int y, u8 no, u8 flag, int mode)
 {
-    return 0;
+    cLightPathData* p;
+    cLightPathData* np;
+
+    eprintf(x + 0x88, y - 0xE, 0, pTool->color, "SELECT A PATH NO: %d", pTool->x11);
+    switch (pTool->x10) {
+    case 0:
+        if (pTool->joy.rep & JOY_RIGHT) {
+            pTool->x11++;
+            memset_asm(pTool->litPath.edit, 0xFF, sizeof(pTool->litPath.edit));
+            p = pTool->litPath.path[pTool->x11];
+            if (p != NULL) {
+                memcpy(pTool->litPath.edit, p, p->getSize());
+            }
+            pTool->col = 0;
+        }
+        if (pTool->joy.rep & JOY_LEFT) {
+            pTool->x11--;
+            memset_asm(pTool->litPath.edit, 0xFF, sizeof(pTool->litPath.edit));
+            p = pTool->litPath.path[pTool->x11];
+            if (p != NULL) {
+                memcpy(pTool->litPath.edit, p, p->getSize());
+            }
+            pTool->col = 0;
+        }
+        if ((pTool->joy.rep & JOY_A) && pTool->litPath.path[pTool->x11] == NULL) {
+            pTool->joy.rep &= ~JOY_A;
+            pTool->x12 = 0;
+            pTool->x10 = 1;
+        }
+        if (pTool->joy.trg & JOY_Y) {
+            pTool->x12 = 0;
+            pTool->x10 = 1;
+        }
+        break;
+    case 1:
+        if (pTool->litPath.path[pTool->x11] != NULL) {
+            eprintf(0xA0, 0x54, 0, pTool->color, "DELETE?");
+            eprintf(0xB0, 0x62, pTool->x12 == 0 ? 0x14 : 0, pTool->color, "YES");
+            eprintf(0xB0, 0x70, pTool->x12 != 0 ? 0x14 : 0, pTool->color, "NO");
+            if (pTool->joy.rep & JOY_UP) {
+                pTool->x12 = 1;
+            } else if (pTool->joy.rep & JOY_DOWN) {
+                pTool->x12 = 0;
+            }
+            if (pTool->joy.rep & JOY_A) {
+                if (pTool->x12 == 1) {
+                    Debug_free(pTool->litPath.path[pTool->x11]);
+                    pTool->litPath.path[pTool->x11] = NULL;
+                    pTool->litPath.createPath(pLitPath);
+                }
+                pTool->x10 = 0;
+            }
+        } else {
+            eprintf(0xA0, 0x54, 0, pTool->color, "CREATE?");
+            eprintf(0xB0, 0x62, pTool->x12 == 0 ? 0x14 : 0, pTool->color, "YES");
+            eprintf(0xB0, 0x70, pTool->x12 != 0 ? 0x14 : 0, pTool->color, "NO");
+            if (pTool->joy.rep & JOY_UP) {
+                pTool->x12 = 1;
+            } else if (pTool->joy.rep & JOY_DOWN) {
+                pTool->x12 = 0;
+            }
+            if (pTool->joy.rep & JOY_A) {
+                if (pTool->x12 == 1) {
+                    np = (cLightPathData*) Debug_alloc(2, 1);
+                    pTool->litPath.path[pTool->x11] = np;
+                    np->data[0] = 200;
+                    np->data[1] = 0xFF;
+                    pTool->litPath.edit[0] = 200;
+                    pTool->litPath.edit[1] = 0xFF;
+                }
+                pTool->x10 = 0;
+            }
+        }
+        if (pTool->joy.rep & JOY_B) {
+            pTool->x10 = 0;
+        }
+        break;
+    }
+    if (PTR_OK(pTool->litPath.path[pTool->x11])) {
+        drawPath(x, y, (cLightPathData*) pTool->litPath.edit, 0, 0xFFFFFFFF);
+        eprintf(x + 0x140, y + 0x68, 0, pTool->color, "%2.2fsec",
+                (f32) (((cLightPathData*) pTool->litPath.edit)->getSize() - 1) / 30.0f);
+    } else {
+        eprintf(x + 0x20, y + 0x2A, 0, pTool->color, "NO DATA");
+    }
+    return pTool->x11;
 }
-int pathEdit(int x, int y, u8 no, u8 flag, int mode) { return 0; }
-void drawPath(int x, int y, cLightPathData* p, u8 flag, u32 color) {}
+// Path editor: LEFT / RIGHT move along the steps (RIGHT past the end appends one), UP / DOWN and the
+// stick set the brightness of the step, Y ends the path there.
+int pathEdit(int x, int y, u8 no, u8 flag, int mode)
+{
+    static f32 val;
+    cLightPathData* p;
+    u32 size;
+
+    if (pTool->x10 == 0) {
+        val = (f32) pTool->litPath.edit[0];
+        pTool->x10 = 1;
+    }
+    if (pTool->joy.rep & 0x20002) {
+        pTool->x11++;
+        if (pTool->litPath.edit[pTool->x11] == 0xFF) {
+            pTool->litPath.edit[pTool->x11] = (pTool->x11 != 0) ? pTool->litPath.edit[pTool->x11 - 1] : 0;
+            pTool->litPath.edit[pTool->x11 + 1] = 0xFF;
+        }
+        val = (f32) pTool->litPath.edit[pTool->x11];
+    }
+    if (pTool->joy.rep & 0x10001) {
+        if (pTool->x11 != 0) {
+            pTool->x11--;
+            val = (f32) pTool->litPath.edit[pTool->x11];
+        }
+    }
+    if (pTool->joy.rep & JOY_UP) {
+        val += (pTool->joy.on & JOY_A) ? 6.0f : 2.0f;
+    }
+    if (pTool->joy.rep & JOY_DOWN) {
+        val -= (pTool->joy.on & JOY_A) ? 6.0f : 2.0f;
+    }
+    val += (f32) pTool->joy.sy * ((pTool->joy.on & JOY_A) ? 0.15f : 0.04f);
+    if (val < 0.0f) {
+        val = 0.0f;
+    } else if (val >= 200.0f) {
+        val = 200.0f;
+    }
+    pTool->litPath.edit[pTool->x11] = (u8) val;
+    if (pTool->litPath.path[no] != NULL) {
+        Debug_free(pTool->litPath.path[no]);
+        size = ((cLightPathData*) pTool->litPath.edit)->getSize();
+        pTool->litPath.path[no] = (cLightPathData*) Debug_alloc(size, 1);
+        memcpy(pTool->litPath.path[no], pTool->litPath.edit, size);
+    }
+    pTool->litPath.createPath(pLitPath);
+    if (pTool->joy.trg & JOY_Y) {
+        pTool->litPath.edit[pTool->x11 + 1] = 0xFF;
+    }
+    if (PTR_OK(pTool->litPath.path[no])) {
+        drawPath(x, y, (cLightPathData*) pTool->litPath.edit, 0, pTool->x11);
+        eprintf(x + 0x120, y + 0x68, 0, pTool->color, "%3d%% %2.2f/%2.2f", (pTool->litPath.edit[pTool->x11] + 1) >> 1,
+                (f32) pTool->x11 / 30.0f, (f32) (((cLightPathData*) pTool->litPath.edit)->getSize() - 1) / 30.0f);
+    } else {
+        eprintf(x + 0x20, y + 0x2A, 0, pTool->color, "NO DATA");
+    }
+    return pTool->x11;
+}
+// Brightness graph of a light path: axes, one bar per step (flag bit1 inverts), step `cur` highlighted.
+void drawPath(int x, int y, cLightPathData* p, u8 flag, u32 cur)
+{
+    Vec a;
+    Vec b;
+    u32 i;
+    u32 xi;
+    f32 f;
+
+    a.x = (f32) x;
+    a.y = (f32) (y - 10);
+    a.z = 0.0f;
+    b.x = (f32) x;
+    b.y = (f32) (y + 110);
+    b.z = 0.0f;
+    Draw_line(&a, &b, 0xFFFFFFFF);
+    a.x = (f32) (x - 10);
+    a.y = (f32) (y + 100);
+    a.z = 0.0f;
+    b.x = (f32) (x + 410);
+    b.y = (f32) (y + 100);
+    b.z = 0.0f;
+    Draw_line(&a, &b, 0xFFFFFFFF);
+    for (i = 0, xi = x; p->data[i] <= 200; i++, xi += 4) {
+        a.x = (f32) xi;
+        a.y = (f32) y;
+        a.z = 0.0f;
+        b.x = (f32) xi;
+        b.y = (f32) (y + 100);
+        b.z = 0.0f;
+        Draw_line(&a, &b, (i == cur) ? 0x40A0A0A0 : 0x40404040);
+        f = (f32) p->data[i] * 0.5f;
+        if (flag & 2) {
+            f = 100.0f - f;
+        }
+        a.x = (f32) xi;
+        a.y = (f32) (y + 100);
+        a.z = 0.0f;
+        b.x = (f32) xi;
+        b.y = (f32) (y + 100) - f;
+        b.z = 0.0f;
+        Draw_line(&a, &b, (i == cur) ? 0xFFFF0000 : 0xFFA0A0A0);
+    }
+}
 
 int cLightTool::lightAnalysis()
 {

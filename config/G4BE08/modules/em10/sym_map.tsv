@@ -262,7 +262,7 @@ section	offset	size	unit	scope	name	demangled
 .text	0x00035AA0	0x3E4	em10/em10.cpp	global	em10SlopeMove__FP5cEm10	em10SlopeMove
 .text	0x00035E84	0x39C	em10/em10.cpp	global	em10CamMove	em10CamMove
 .text	0x00036220	0x2A8	em10/em10.cpp	global	em10SetCampos2	em10SetCampos2
-.text	0x000364C8	0x348	em10/em10.cpp	global	em10CamMove2	em10CamMove2
+.text	0x000364C8	0x348	em10/em10.cpp	global	em10CamMove2__FP5cEm10	em10CamMove2
 .text	0x00036810	0x508	em10/em10.cpp	global	em10CamMoveCri	em10CamMoveCri
 .text	0x00036D18	0x36C	em10/em10.cpp	global	em10CamMoveAshley	em10CamMoveAshley
 .text	0x00037084	0x490	em10/em10.cpp	global	em10SetParasite__FP5cEm10	em10SetParasite

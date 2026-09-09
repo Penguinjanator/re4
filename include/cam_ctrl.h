@@ -88,8 +88,22 @@ struct AttachCamera {
 };
 
 // B-spline rail work used by the Track/RailPan/RailBehind cameras (static CamBSpline, 0x3B8).
+// Parametrize() fits the cut's key positions with de_Boor_Cox basis functions (up to 26 keys),
+// searchRail() picks the segment/parameter nearest the aim point, BSpline() evaluates the curve.
 struct CameraBSpline {
-    u8 pad_0[0x3B8];
+    s32 k;          // 0x000  spline degree (min(2, num - 1))
+    f32 t;          // 0x004  curve parameter
+    s32 seg;        // 0x008  key index the parameter was searched from
+    s32 num;        // 0x00C  key count
+    f32 px[26];     // 0x010  control points
+    f32 py[26];     // 0x078
+    f32 pz[26];     // 0x0E0
+    f32 ax[26];     // 0x148
+    f32 ay[26];     // 0x1B0
+    f32 az[26];     // 0x218
+    f32 roll[26];   // 0x280
+    f32 fovy[26];   // 0x2E8
+    f32 basis[26];  // 0x350  de_Boor_Cox output
 };
 
 // ---------------------------------------------------------------------------

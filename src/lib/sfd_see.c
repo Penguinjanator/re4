@@ -185,12 +185,14 @@ static void sfsee_ExecHeadAnaly(SFD sfd)
 static Sint32 sfsee_GetInputEndPos(SFD sfd)
 {
 	SFD_TR *tr;
+	SFD_TR *out;
 	Sint32 endpos;
 	Sint32 v;
 
 	tr = sfd->tr;
 	endpos = -1;
-	v = tr[sfd->buf[tr[0].bufout].out_tr].x20;
+	out = &tr[sfd->buf[tr[0].bufout].out_tr];
+	v = out->x20;
 	if (v >= 0) {
 		endpos = v;
 	}

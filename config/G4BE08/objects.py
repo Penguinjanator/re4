@@ -1389,3 +1389,19 @@ MATCHING.update({
 MATCHING.update({
     "lib/svm.c": True,
 })
+
+# CRI AX renderer: inlined public setters/getters, `sw` flag byte with |=/&= masks, separate
+# loop/cur locals for the AXPBADDR fill, inlined axrna_exec_trans/axrna_exec_flash helpers
+MATCHING.update({
+    "lib/ax_rna.c": True,
+})
+
+# hand-written libsn/crt assembly (src/lib/*.s, see configure.py ASM_UNITS): local branch targets
+# are resolved by the assembler, so objdiff shows ARG_MISMATCH on them; the linked bytes are identical
+MATCHING.update({
+    "lib/proview.c": True,
+    "lib/ppcdown.c": True,
+    "lib/fileserver.c": True,
+    "lib/eabi.c": True,
+    "lib/__start.c": True,
+})

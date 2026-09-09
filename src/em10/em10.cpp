@@ -50,6 +50,7 @@
 #include "joy.h"
 #include "em_cloth.h"
 #include "item.h"
+#include "sce_at.h"
 
 // motion.h declares the one-argument form; the enemies pass a second argument (pl_npc.cpp).
 u16 MotionMoveF(cModel* m, int flag) asm("MotionMove");
@@ -396,6 +397,8 @@ static inline int em10DeadCk(cEm* em)
     return (em->flags_324 & 0xFFFF0000) ? 1 : 0;
 }
 
+// Reference store (same mechanism as FSet): keeps the following global load after the store.
+static inline void U16Set(u16& d, u16 v) { d = v; }
 
 static inline int em10DmgDeadCk(cDmgInfo* d)
 {
@@ -13316,6 +13319,7 @@ extern "C" void em10SetCampos2(cEm10* em)
     if (EatMgr.hitCheck(&pos, &w->x608, &out, 0, 0, 0)) {
         PSVECSubtract(&out, &pos, &d);
         len = SQRTF(d.x * d.x + d.y * d.y + d.z * d.z) - 250.0f;
+#line 32773 "D:/Bio4/Prog/em10.cpp"
         VECNormalize(&d, &d);
         PSVECScale(&d, &d, len);
         PSVECAdd(&pos, &d, &w->x608);
@@ -14162,5 +14166,497 @@ extern "C" int em10ThrowAxeCk(cEm10* em)
         Ctrl12Set(w->pCtrl12, 6, 30);
         Ctrl12Set(w->pCtrl12, 8, 120);
     }
+    return 1;
+}
+
+void em10CamMove2(cEm10* em)
+{
+    Em10Work* w = EM10_WK(em);
+    Vec pl;
+    Vec d;
+    Vec hit;
+    Vec d2;
+    Camera* c = &pG->Cam;
+
+    pl = pPL->getPartsPtr(4)->worldPos;
+    PSVECSubtract(&w->x608, &pl, &d);
+    if (d.x * d.x + d.z * d.z > 2890000.0f) {
+        d.y = 0.0f;
+#line 32818 "D:/Bio4/Prog/em10.cpp"
+        VECNormalize(&d, &d);
+        PSVECScale(&d, &d, 1700.0f);
+        PSVECAdd(&pl, &d, &d);
+        d.y = w->x608.y;
+        PosToPos(&w->x608, &d, &w->x608, 0.2f);
+    }
+    PosToPos(&c->param.at, &pl, &w->cam.param.at, 1.0f);
+    PosToPos(&c->param.pos, &w->x608, &w->cam.param.pos, 1.0f);
+    {
+        f32 dx = w->cam.param.pos.x - w->cam.param.at.x;
+        f32 dy = w->cam.param.pos.y - w->cam.param.at.y;
+        f32 dz = w->cam.param.pos.z - w->cam.param.at.z;
+        if (dx * dx + dy * dy + dz * dz > 100.0f) {
+            PSVECSubtract(&w->cam.param.pos, &w->cam.param.at, &d2);
+#line 32836 "D:/Bio4/Prog/em10.cpp"
+            VECNormalize(&d2, &d2);
+            PSVECScale(&d2, &d2, 250.0f);
+            PSVECAdd(&w->cam.param.pos, &d2, &w->cam.param.pos);
+            if (EatMgr.hitCheck(&w->cam.param.at, &w->cam.param.pos, &hit, 0, 0x8000, 0)) {
+                w->cam.param.pos = hit;
+            }
+            PSVECSubtract(&w->cam.param.pos, &d2, &w->cam.param.pos);
+        }
+    }
+    w->cam.up.x = 0.0f;
+    w->cam.up.y = 1.0f;
+    w->cam.up.z = 0.0f;
+    {
+        f32 dx = w->cam.param.pos.x - w->cam.param.at.x;
+        f32 dy = w->cam.param.pos.y - w->cam.param.at.y;
+        f32 dz = w->cam.param.pos.z - w->cam.param.at.z;
+        w->cam.dist = SQRTF(dx * dx + dy * dy + dz * dz);
+    }
+    w->cam.param.fovy = 55.0f;
+    CameraSetOrientationUp(&w->cam);
+    CamCtrl.x250 = (s32) &w->cam;
+}
+
+int em10CatchCk(cEm10* em)
+{
+    Em10Work* w = EM10_WK(em);
+    Mtx inv;
+    Vec v;
+    Vec a;
+    Vec b;
+    Mtx m;
+
+    if (em10DeadCk(pPL)) {
+        return 0;
+    }
+    if ((s16) pG->pl_life <= 0) {
+        return 0;
+    }
+    if (em->hp <= 0) {
+        return 0;
+    }
+    if (!(em->seFlags28B & 2)) {
+        return 0;
+    }
+    if (!(w->flags & 1)) {
+        return 0;
+    }
+    if (w->x6C1 > 0x2D) {
+        return 0;
+    }
+    if (pG->flags_5010 & 0x8000) {
+        return 0;
+    }
+    if ((w->flags & 0x80) && (em->flags_3C8 & 0x100000)) {
+        return 0;
+    }
+    PSMTXInverse(em->mat, inv);
+    PSMTXMultVec(inv, &pPL->pos, &v);
+    if (v.y < -500.0f || v.y > 500.0f) {
+        return 0;
+    }
+    if (v.z < 0.0f || v.z > 900.0f) {
+        return 0;
+    }
+    if (!(v.x > -400.0f)) {
+        return 0;
+    }
+    if (!(v.x < 400.0f)) {
+        return 0;
+    }
+    a = em->pos;
+    b = pPL->pos;
+    a.y += 500.0f;
+    b.y += 500.0f;
+    if (EatMgr.hitCheck(&a, &b, 0, 0, 0, 0)) {
+        return 0;
+    }
+    PSMTXRotRad(m, 'y', GetXZAngle(&em->pos, &pPL->pos));
+    TransMatrix(m, &em->pos);
+    a.x = 300.0f;
+    a.y = 500.0f;
+    a.z = 0.0f;
+    b.x = 300.0f;
+    b.y = 500.0f;
+    b.z = 500.0f;
+    PSMTXMultVec(m, &a, &a);
+    PSMTXMultVec(m, &b, &b);
+    if (EatMgr.hitCheck(&a, &b, 0, 0, 0, 0)) {
+        return 0;
+    }
+    a.x = 300.0f;
+    a.y = 500.0f;
+    a.z = 0.0f;
+    b.x = 300.0f;
+    b.y = 500.0f;
+    b.z = 500.0f;
+    PSMTXMultVec(m, &a, &a);
+    PSMTXMultVec(m, &b, &b);
+    if (EatMgr.hitCheck(&a, &b, 0, 0, 0, 0)) {
+        return 0;
+    }
+    pPL->dmg.set(0, 2);
+    em->dmg.set(0, 2);
+    VibSetData((VibDataTbl*) (pG->pArc->ofs_1C + (u32) pG->pArc), 7, 1);
+    Ctrl12Set(w->pCtrl12, 6, 30);
+    Ctrl12Set(w->pCtrl12, 8, 120);
+    return 1;
+}
+
+// .data 0x610: chainsaw attack parameters (only [0] is used).
+static EmAtkInfo em10_csaw_atk[3] = {
+    { 500.0f, 8, 9999, 8, 10, 0 },
+    { 400.0f, 8, 640, 0, 10, 0 },
+    { 400.0f, 8, 1400, 0, 10, 0 },
+};
+
+int em10CsawHitCk(cEm10* em)
+{
+    Em10Work* w = EM10_WK(em);
+    EmAtkInfo info;
+    Vec a;
+    Vec b;
+    int hit;
+
+    if (!(em->seFlags28B & 1)) {
+        return 0;
+    }
+    if (w->pWep == 0) {
+        return 0;
+    }
+    info = em10_csaw_atk[0];
+    a.x = 0.0f;
+    a.y = 0.0f;
+    a.z = 500.0f;
+    b.x = 0.0f;
+    b.y = 0.0f;
+    b.z = -1000.0f;
+    PSMTXMultVec(w->pWep->mat, &a, &a);
+    PSMTXMultVec(w->pWep->mat, &b, &b);
+    hit = EmAtkHitCk(&info, &a, &b, 0);
+    if (hit & 1) {
+        U16Set(pG->pl_life, 1);
+        pPL->dmg.set(0, 0x80);
+        em->dmg.set(0, 0x80);
+        VibSetData((VibDataTbl*) (pG->pArc->ofs_1C + (u32) pG->pArc), 7, 1);
+        return 1;
+    } else if (hit & 2) {
+        LifeDownSet(pSUB, 9999, 0);
+        VibSetData((VibDataTbl*) (pG->pArc->ofs_1C + (u32) pG->pArc), 7, 1);
+    } else {
+        a.x = 0.0f;
+        a.y = 0.0f;
+        a.z = 0.0f;
+        b.x = 0.0f;
+        b.y = 0.0f;
+        b.z = -1000.0f;
+        PSMTXMultVec(w->pWep->mat, &a, &a);
+        PSMTXMultVec(w->pWep->mat, &b, &b);
+        hit = EmAtkHitCk(&info, &a, &b, 0);
+        if (hit & 1) {
+            U16Set(pG->pl_life, 1);
+            pPL->dmg.set(0, 0x80);
+            em->dmg.set(0, 0x80);
+            VibSetData((VibDataTbl*) (pG->pArc->ofs_1C + (u32) pG->pArc), 7, 1);
+            return 1;
+        } else if (hit & 2) {
+            LifeDownSet(pSUB, 9999, 0);
+            VibSetData((VibDataTbl*) (pG->pArc->ofs_1C + (u32) pG->pArc), 7, 1);
+        } else {
+            a.x = 0.0f;
+            a.y = 0.0f;
+            a.z = -200.0f;
+            b.x = 0.0f;
+            b.y = 0.0f;
+            b.z = -1000.0f;
+            PSMTXMultVec(w->pWep->mat, &a, &a);
+            PSMTXMultVec(w->pWep->mat, &b, &b);
+            a.y = em->pos.y + 500.0f;
+            hit = EmAtkHitCk(&info, &a, &b, 0);
+            if (hit & 1) {
+                U16Set(pG->pl_life, 1);
+                pPL->dmg.set(0, 0x80);
+                em->dmg.set(0, 0x80);
+                VibSetData((VibDataTbl*) (pG->pArc->ofs_1C + (u32) pG->pArc), 0xD, 1);
+                return 1;
+            } else if (hit & 2) {
+                LifeDownSet(pSUB, 9999, 0);
+                VibSetData((VibDataTbl*) (pG->pArc->ofs_1C + (u32) pG->pArc), 0xD, 1);
+                return 0;
+            }
+        }
+    }
+    return 0;
+}
+
+int em10DoorOpenCk(cEm10* em, int kick)
+{
+    Em10Work* w = EM10_WK(em);
+    Vec v;
+    u32 i;
+    f32 ang;
+
+    if (w->x634 % 15 != 9) {
+        return 0;
+    }
+    if (w->x644 != 0) {
+        kick = 1;
+    }
+    for (i = 0; i < EmMgr.nArray; i++) {
+        cEmDoor* e = (cEmDoor*) ((u8*) EmMgr.pArray + EmMgr.size * i);
+        EmDoorWork* dw;
+        if ((e->be_flag & 0x201) != 1) {
+            continue;
+        }
+        if (e->id != 0x41) {
+            continue;
+        }
+        if (e->hp <= 0) {
+            continue;
+        }
+        if ((em->pos.x - e->pos.x) * (em->pos.x - e->pos.x) + (em->pos.y - e->pos.y) * (em->pos.y - e->pos.y) + (em->pos.z - e->pos.z) * (em->pos.z - e->pos.z) > 6250000.0f) {
+            continue;
+        }
+        dw = EMDOOR_WK(e);
+        ang = fabsf(Muku2(dw->rotY, em->rot.y, 3.1415927f));
+        if (ang > 0.7853982f && ang < 2.3561945f) {
+            continue;
+        }
+        PSMTXMultVec(dw->inv, &em->pos, &v);
+        if (ang < 1.5707964f) {
+            if (v.z > 0.0f || v.z < -800.0f) {
+                continue;
+            }
+        } else {
+            if (v.z < 0.0f || v.z > 800.0f) {
+                continue;
+            }
+        }
+        if (v.x > dw->width || v.x < -dw->width) {
+            continue;
+        }
+        if (v.y > 500.0f || v.y < -500.0f) {
+            continue;
+        }
+        switch (e->ckOpen()) {
+        case 0:
+        default:
+            if (w->flags & 0x4000) {
+                e->setOpen(&em->pos, 0, 0, 0);
+                return 1;
+            }
+            if (em->plDist2 < 25000000.0f && kick == 0) {
+                if (!em10DootAtkCk(em)) {
+                    return 0;
+                }
+                em->xFC = 1;
+                em->xFD = 0x3D;
+                em->xFE = 0;
+                em->xFF = 0;
+                return 1;
+            }
+            e->setOpen(&em->pos, 0, 0, 0);
+            return 0;
+        case 2:
+            if (w->flags & 0x4000) {
+                e->setOpen(&em->pos, 0, 0, 0);
+                return 1;
+            }
+            if (em10DootAtkCk(em)) {
+                EmRoutineSet(em, 1, 0x3D, 0, 0);
+                return 1;
+            }
+            return 0;
+        case 1:
+        case 3:
+            return 0;
+        }
+    }
+    return 0;
+}
+
+extern "C" int em10ParasiteAtkCk(cEm10* em)
+{
+    Em10Work* w = EM10_WK(em);
+    Vec a;
+    Vec b;
+    Vec c;
+    f32 dist;
+    int hit;
+
+    if (em->type == 0xA || em->type == 0xD) {
+        return 0;
+    }
+    if (w->x58C == 0 && w->pParasite == 0) {
+        return 0;
+    }
+    if (w->x67C != 0) {
+        return 0;
+    }
+    if (Ctrl12Ck(w->pCtrl12, 6)) {
+        return 0;
+    }
+    if (w->pParasite && !w->pParasite->ckAtkEnable()) {
+        return 0;
+    }
+    if (w->x58C && !w->x58C->vB8()) {
+        return 0;
+    }
+    if (w->x6C5 == 1) {
+        dist = 4000000.0f;
+    } else {
+        dist = 9000000.0f;
+    }
+    if (w->x58C) {
+        if (w->x648) {
+            dist = 1690000.0f;
+        } else {
+            dist = 12250000.0f;
+        }
+    }
+    if (!(w->flags & 0x08000000)) {
+        if (!(w->flags & 1)) {
+            return 0;
+        }
+        if (em->plDist2 > dist) {
+            return 0;
+        }
+        if (fabsf(em->pos.y - pPL->pos.y) > 1500.0f) {
+            return 0;
+        }
+        if (w->x508 > 0.7853982f) {
+            return 0;
+        }
+        a = em->pos;
+        b = pPL->pos;
+        a.y += 1500.0f;
+        b.y += 1500.0f;
+        hit = EatMgr.hitCheck(&a, &b, 0, 0, 0, 0);
+    } else {
+        if (!(w->flags & 2)) {
+            return 0;
+        }
+        if (w->x514 > 2250000.0f) {
+            return 0;
+        }
+        if (fabsf(em->pos.y - pSUB->pos.y) > 1500.0f) {
+            return 0;
+        }
+        if (w->x510 > 0.7853982f) {
+            return 0;
+        }
+        a = em->pos;
+        c = pSUB->pos;
+        a.y += 1500.0f;
+        c.y += 1500.0f;
+        hit = EatMgr.hitCheck(&a, &c, 0, 0, 0, 0x4000);
+    }
+    if (hit) {
+        return 0;
+    }
+    EmRoutineSet(em, 1, 0x20, 0, 0);
+    if (pG->x4F88 <= 3) {
+        Ctrl12Set(w->pCtrl12, 6, 60);
+        Ctrl12Set(w->pCtrl12, 8, 120);
+    } else if (pG->stage_no <= 2 && pG->x4F88 <= 9) {
+        Ctrl12Set(w->pCtrl12, 6, 30);
+        Ctrl12Set(w->pCtrl12, 8, 120);
+    }
+    return 1;
+}
+
+int em10VLadderClimbCk(cEm10* em)
+{
+    Em10Work* w = EM10_WK(em);
+    Vec pos;
+    u8 level;
+    f32 ang;
+    u32 i;
+
+    if ((G_ROOM_ID32 & 0xFFFF0000) == 0x01010000 || (G_ROOM_ID32 & 0xFFFF0000) == 0x01110000 || (G_ROOM_ID32 & 0xFFFF0000) == 0x04000000) {
+        return 0;
+    }
+    switch (em->id) {
+    case 0x10:
+    case 0x11:
+    case 0x12:
+    case 0x13:
+    case 0x14:
+    case 0x16:
+    case 0x17:
+    case 0x19:
+    case 0x1A:
+    case 0x1B:
+    case 0x1C:
+    case 0x1D:
+    case 0x1E:
+    case 0x1F:
+    case 0x20:
+        break;
+    default:
+        return 0;
+    }
+    if (w->x634 % 15 != 5) {
+        return 0;
+    }
+    if (w->x5EC == 0 && em->x3D0 == 5) {
+        return 0;
+    }
+    if (w->x54C.y - em->pos.y < 1000.0f) {
+        return 0;
+    }
+    if (!SceAtSearchLadder(em, &pos, &ang, &level)) {
+        return 0;
+    }
+    if ((em->pos.x - pos.x) * (em->pos.x - pos.x) + (em->pos.y - pos.y) * (em->pos.y - pos.y) + (em->pos.z - pos.z) * (em->pos.z - pos.z) > 1000000.0f) {
+        return 0;
+    }
+    if (fabsf(Muku2(em->rot.y, ang, 3.1415927f)) > 1.5707964f) {
+        return 0;
+    }
+    if ((em->pos.x - pPL->pos.x) * (em->pos.x - pPL->pos.x) + (em->pos.y - pPL->pos.y) * (em->pos.y - pPL->pos.y) + (em->pos.z - pPL->pos.z) * (em->pos.z - pPL->pos.z) < 4000000.0f) {
+        return 0;
+    }
+    for (i = 0; i < EmMgr.nArray; i++) {
+        cEm* o = (cEm*) ((u8*) EmMgr.pArray + EmMgr.size * i);
+        if ((o->be_flag & 0x201) != 1) {
+            continue;
+        }
+        if (o->id <= 0xF) {
+            continue;
+        }
+        if (o->id > 0x20) {
+            continue;
+        }
+        if (o->hp <= 0) {
+            continue;
+        }
+        if (o == em) {
+            continue;
+        }
+        if (!o->checkStatus(5)) {
+            continue;
+        }
+        if (!EM_RTN(o, 1, 0x41)) {
+            continue;
+        }
+        if ((em->pos.x - o->pos.x) * (em->pos.x - o->pos.x) + (em->pos.y - o->pos.y) * (em->pos.y - o->pos.y) + (em->pos.z - o->pos.z) * (em->pos.z - o->pos.z) <= 4000000.0f) {
+            return 0;
+        }
+    }
+    w->x5DC = ang;
+    w->x5E0 = pos;
+    if (em->type == 2 || em->type == 0x16) {
+        w->x5DC = ang;
+        w->x5E0 = pos;
+        w->x5E0.y += (f32) level * 1000.0f;
+        EmRoutineSet(em, 1, 0x45, 0, 0);
+        return 1;
+    }
+    EmRoutineSet(em, 1, 0x41, level, 0);
     return 1;
 }

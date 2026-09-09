@@ -65,11 +65,11 @@ typedef struct AXRNA_OBJ {
 	SJCK trans_ck[AXRNA_MAX_NCH];        /* 0x40 data chunk being transferred */
 	SJCK free_ck[AXRNA_MAX_NCH];         /* 0x50 ring buffer chunk being written */
 	volatile Sint32 trans_busy[AXRNA_MAX_NCH]; /* 0x60 */
-	Uint32 trans_smpl;                   /* 0x68 */
-	Uint32 trans_total;                  /* 0x6C */
+	Sint32 trans_smpl;                   /* 0x68 */
+	Sint32 trans_total;                  /* 0x6C */
 	volatile Sint32 flash_busy[AXRNA_MAX_NCH]; /* 0x70 */
-	Uint32 flash_smpl;                   /* 0x78 */
-	Uint32 flash_total;                  /* 0x7C */
+	Sint32 flash_smpl;                   /* 0x78 */
+	Sint32 flash_total;                  /* 0x7C */
 	Sint32 bps;                          /* 0x80 */
 	Sint32 outvol;                       /* 0x84 */
 	Sint32 outpan[AXRNA_MAX_NCH];        /* 0x88 */
@@ -224,29 +224,28 @@ void AXRNA_SetSfreq(AXRNA rna, Sint32 sfreq)
 {
 	AXPBSRC src;
 	Sint32 adj;
-	Uint16 hi;
-	Uint16 lo;
 	Sint32 i;
 
 	if (rna == NULL) {
 		return;
 	}
 	rna->sfreq = sfreq;
+	/* the AX DSP runs at 32028.5 Hz: sfreq * 1124 / 1125, rounded up */
 	adj = (sfreq * 1124 + 1124) / 1125;
-	hi = sfreq / 32000;
-	lo = (sfreq << 8) / 125;
 	for (i = 0; i < rna->maxnch; i++) {
 		GCRNA_LockCs();
 		if (rna->voice[i] != NULL) {
 			if (rna->adjsfreq_fg == 1) {
+				Uint32 f = adj;
+
 				if (sfreq == 32000 && rna->adjsfreq_state == 0) {
 					AXRNA_SetSrcType(rna, AX_SRC_TYPE_NONE);
 				}
-				src.ratioLo = (Uint16)(((Uint32)adj << 8) / 125);
-				src.ratioHi = (Uint16)((Uint32)adj / 32000);
+				src.ratioHi = f / 32000;
+				src.ratioLo = (f << 8) / 125;
 			} else {
-				src.ratioHi = hi;
-				src.ratioLo = lo;
+				src.ratioHi = sfreq / 32000;
+				src.ratioLo = ((sfreq << 8) / 125) & 0xFFFF;
 			}
 			src.currentAddressFrac = 0;
 			src.last_samples[0] = 0;
@@ -281,17 +280,82 @@ void AXRNA_ExecServer(void)
 	}
 }
 
+static void axrna_exec_trans(AXRNA rna)
+{
+	SJCK data;
+	SJCK data_rest;
+	SJCK free;
+	SJCK free_rest;
+	Sint32 i;
+	Sint32 n;
+
+	for (i = 0; i < rna->nch; i++) {
+		if (rna->voice[i] == NULL) {
+			continue;
+		}
+		if (rna->trans_busy[i] != 0) {
+			continue;
+		}
+		SJ_GetChunk(rna->sjrbf[i], SJ_CK_FREE, 0x2000, &free);
+		SJ_GetChunk(rna->sj[i], SJ_CK_DATA, free.len, &data);
+		n = AXRNA_MIN(data.len, free.len);
+		n = (n / AXRNA_DMA_ALIGN) * AXRNA_DMA_ALIGN;
+		SJ_SplitChunk(&free, n, &free, &free_rest);
+		SJ_UngetChunk(rna->sjrbf[i], SJ_CK_FREE, &free_rest);
+		SJ_SplitChunk(&data, n, &data, &data_rest);
+		SJ_UngetChunk(rna->sj[i], SJ_CK_DATA, &data_rest);
+		if (n == 0) {
+			return;
+		}
+		if (data.len != free.len) {
+			for (;;) {
+			}
+		}
+		rna->trans_ck[i] = data;
+		rna->free_ck[i] = free;
+		rna->trans_smpl = n / sizeof(Sint16);
+		DCFlushRange(rna->trans_ck[i].data, rna->trans_ck[i].len);
+		rna->trans_busy[i] = 1;
+		ARQPostRequest(&rna->arq[i], rna->arq_owner[i], ARQ_TYPE_MRAM_TO_ARAM, ARQ_PRIORITY_HIGH,
+		               (u32)data.data, (u32)free.data, n, axrna_end_trans);
+		while (rna->trans_busy[i] != 0) {
+		}
+	}
+}
+
+static void axrna_exec_flash(AXRNA rna)
+{
+	SJCK zero;
+	SJCK zero_rest;
+	Sint32 i;
+	Sint32 n;
+
+	if (rna->flash_total < rna->bufsize) {
+		for (i = 0; i < rna->nch; i++) {
+			if (rna->flash_busy[i] != 0) {
+				continue;
+			}
+			SJ_GetChunk(rna->sjrbf[i], SJ_CK_FREE, 0x2000, &zero);
+			n = (zero.len / AXRNA_DMA_ALIGN) * AXRNA_DMA_ALIGN;
+			SJ_SplitChunk(&zero, n, &zero, &zero_rest);
+			SJ_UngetChunk(rna->sjrbf[i], SJ_CK_FREE, &zero_rest);
+			if (n == 0) {
+				return;
+			}
+			rna->free_ck[i] = zero;
+			rna->flash_smpl = n / sizeof(Sint16);
+			DCFlushRange(axrna_zero_dat, AXRNA_BUF_NSMPL);
+			rna->flash_busy[i] = 1;
+			ARQPostRequest(&rna->arq[i], rna->arq_owner[i], ARQ_TYPE_MRAM_TO_ARAM, ARQ_PRIORITY_HIGH,
+			               (u32)axrna_zero_dat, (u32)zero.data, n, axrna_end_flash);
+			while (rna->flash_busy[i] != 0) {
+			}
+		}
+	}
+}
+
 static void AXRNA_ExecHndl(AXRNA rna)
 {
-	SJCK free_rest;
-	SJCK free;
-	SJCK data_rest;
-	SJCK data;
-	SJCK zero_rest;
-	SJCK zero;
-	Sint32 n;
-	Sint32 i;
-
 	if (rna == NULL) {
 		return;
 	}
@@ -299,61 +363,9 @@ static void AXRNA_ExecHndl(AXRNA rna)
 		axrna_update_play(rna);
 	}
 	if (AXRNA_GetTransSw(rna) == 1) {
-		for (i = 0; i < rna->nch; i++) {
-			if (rna->voice[i] == NULL) {
-				continue;
-			}
-			if (rna->trans_busy[i] != 0) {
-				continue;
-			}
-			SJ_GetChunk(rna->sjrbf[i], SJ_CK_FREE, 0x2000, &free);
-			SJ_GetChunk(rna->sj[i], SJ_CK_DATA, free.len, &data);
-			n = AXRNA_MIN(data.len, free.len);
-			n = (n / AXRNA_DMA_ALIGN) * AXRNA_DMA_ALIGN;
-			SJ_SplitChunk(&free, n, &free, &free_rest);
-			SJ_UngetChunk(rna->sjrbf[i], SJ_CK_FREE, &free_rest);
-			SJ_SplitChunk(&data, n, &data, &data_rest);
-			SJ_UngetChunk(rna->sj[i], SJ_CK_DATA, &data_rest);
-			if (n == 0) {
-				return;
-			}
-			if (data.len != free.len) {
-				for (;;) {
-				}
-			}
-			rna->trans_ck[i] = data;
-			rna->free_ck[i] = free;
-			rna->trans_smpl = n / sizeof(Sint16);
-			DCFlushRange(rna->trans_ck[i].data, rna->trans_ck[i].len);
-			rna->trans_busy[i] = 1;
-			ARQPostRequest(&rna->arq[i], rna->arq_owner[i], ARQ_TYPE_MRAM_TO_ARAM, ARQ_PRIORITY_HIGH,
-			               (u32)data.data, (u32)free.data, n, axrna_end_trans);
-			while (rna->trans_busy[i] != 0) {
-			}
-		}
+		axrna_exec_trans(rna);
 	} else if (AXRNA_GetPlaySw(rna) == 1) {
-		if (rna->flash_total < rna->bufsize) {
-			for (i = 0; i < rna->nch; i++) {
-				if (rna->flash_busy[i] != 0) {
-					continue;
-				}
-				SJ_GetChunk(rna->sjrbf[i], SJ_CK_FREE, 0x2000, &zero);
-				n = (zero.len / AXRNA_DMA_ALIGN) * AXRNA_DMA_ALIGN;
-				SJ_SplitChunk(&zero, n, &zero, &zero_rest);
-				SJ_UngetChunk(rna->sjrbf[i], SJ_CK_FREE, &zero_rest);
-				if (n == 0) {
-					return;
-				}
-				rna->free_ck[i] = zero;
-				rna->flash_smpl = n / sizeof(Sint16);
-				DCFlushRange(axrna_zero_dat, AXRNA_BUF_NSMPL);
-				rna->flash_busy[i] = 1;
-				ARQPostRequest(&rna->arq[i], rna->arq_owner[i], ARQ_TYPE_MRAM_TO_ARAM, ARQ_PRIORITY_HIGH,
-				               (u32)axrna_zero_dat, (u32)zero.data, n, axrna_end_flash);
-				while (rna->flash_busy[i] != 0) {
-				}
-			}
-		}
+		axrna_exec_flash(rna);
 	}
 }
 
@@ -398,18 +410,18 @@ static void axrna_update_play(AXRNA rna)
 {
 	SJCK ck;
 	Sint32 nch = rna->nch;
-	Sint32 prev = rna->play_pos;
 	AXVPB *vpb = rna->voice[nch - 1];
+	Sint32 prev = rna->play_pos;
 	Sint32 cur;
 	Sint32 diff;
 	Sint32 i;
+	Sint32 nbyte;
 
 	if (vpb == NULL) {
 		return;
 	}
 	cur = *(Sint32 *)&vpb->pb.addr.currentAddressHi - rna->buf[nch - 1];
-	axrna_update_hist[axrna_update_pos] = cur;
-	axrna_update_pos++;
+	axrna_update_hist[axrna_update_pos++] = cur;
 	if (axrna_update_pos == 32) {
 		axrna_update_pos = 0;
 	}
@@ -436,8 +448,9 @@ static void axrna_update_play(AXRNA rna)
 	if (diff <= 0) {
 		return;
 	}
+	nbyte = diff * sizeof(Sint16);
 	for (i = 0; i < rna->nch; i++) {
-		SJ_GetChunk(rna->sjrbf[i], SJ_CK_DATA, diff * sizeof(Sint16), &ck);
+		SJ_GetChunk(rna->sjrbf[i], SJ_CK_DATA, nbyte, &ck);
 		SJ_PutChunk(rna->sjrbf[i], SJ_CK_FREE, &ck);
 	}
 	rna->play_pos += diff;

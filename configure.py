@@ -457,6 +457,10 @@ cflags_libm = [*cflags_game, "-msafe-sda", "-G 1024", "-fno-builtin", "-mstrict-
 # globals sit in the unit's own .bss in declaration order).
 LIBSN_UNITS = {f"lib/{name}.c" for name in ["dummy", "tealeaf", "FSasync", "sndvd", "fileserver", "crt0"]}
 cflags_libsn = [*cflags_game, "-G 0", "-fno-common"]
+# libsn/crt units that were hand-written assembly in the original (no C form exists): the split
+# name stays lib/<name>.c, the source is src/lib/<name>.s, assembled by the template's `as` rule
+# (binutils powerpc-eabi-as with config.asflags, then `dtk elf fixup`).
+ASM_UNITS = {f"lib/{name}.c": f"lib/{name}.s" for name in ["proview", "ppcdown", "fileserver", "eabi", "__start"]}
 
 # gcc 2.95.3 libgcc2.c, one L_* section per unit (src/lib/libgcc2/ holds the verbatim sources plus
 # a tconfig.h shim). __clz_tab (256 bytes) sits in .sdata2, so -G is large here as well; functions
@@ -514,7 +518,9 @@ for unit in UNITS:
         alt = str(Path(unit).with_suffix(".cpp"))
         if alt in split_units:
             name = alt
-    if unit.startswith("game/"):
+    if unit in ASM_UNITS:
+        lib_objects.append(Object(status, name, source=ASM_UNITS[unit]))
+    elif unit.startswith("game/"):
         # GCC 2.95 linkonce sections (vtables, template instantiations, out-of-line inlines) are
         # folded into .rodata / dropped the way the original link laid them out (see the tool).
         # The newlib C units (game/*.c) came out of SN's libc.a: the linker dropped the functions

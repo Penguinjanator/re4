@@ -1,0 +1,575 @@
+/* MW Sofdec player: SFX (frame conversion) front end and the additional-info (tag) stream. The
+ * mwPly* Z-buffer / colour conversion entry points were dead-stripped by the linker; their bodies
+ * only reproduce the error strings left in .rodata (STRIP_UNUSED). */
+#include "mwsfd.h"
+#include "sfd.h"
+#include <string.h>
+
+#define MWSFD_FXTYPE_NONE 0
+#define MWSFD_FXTYPE_ZAUTO 0x101
+
+/* MWS_FRM.fmt */
+#define MWSFD_BUFFMT_1 1
+#define MWSFD_BUFFMT_2 2
+#define MWSFD_BUFFMT_YCC420PLN 3
+
+Sint32 mwPlyGetFxType(MWPLY mwply);
+void mwPlyCalcYccPlane(void *buf, Sint32 width, Sint32 height, CFT_YCC420PLN *pln);
+void mwSfdDestroy(MWPLY mwply);
+Sint32 SFD_SetUsrSj(SFD sfd, Sint32 chno, void *sj, void *prm);
+void SFX_SetCompoMode(SFX_OBJ *sfx, Sint32 mode);
+Sint32 SFX_GetTypeDivField(SFX_OBJ *sfx);
+Sint32 SFX_GetTypeCcs(SFX_OBJ *sfx);
+void SFX_SetPicUsrDat(SFX_OBJ *sfx, void *dat, Sint32 size);
+void SFX_SetTagInf(SFX_OBJ *sfx, void *tag, Sint32 size);
+void SFX_GetTagInf(SFX_OBJ *sfx, Sint32 *a, Sint32 *b);
+void SFX_SetOutBufSize(SFX_OBJ *sfx, Sint32 width, Sint32 height);
+void SFX_SetUnitWidth(SFX_OBJ *sfx, Sint32 width);
+void SFX_SetColAdj(SFX_OBJ *sfx, void *coladj);
+void SFX_SetFxType(SFX_OBJ *sfx, Sint32 fxtype);
+void SFX_Destroy(SFX_OBJ *sfx);
+SFX_OBJ *SFX_Create(void *work, Sint32 wsize);
+void SFX_Init(void);
+void SFX_SetErrFn(void (*fn)(void *obj, const Char8 *msg), void *obj);
+Sint32 SFX_GetOutZoffset(SFX_OBJ *sfx);
+void SFX_SetOutZoffset(SFX_OBJ *sfx, Sint32 ofst);
+Sint32 SFX_GetOutZscale(SFX_OBJ *sfx);
+void SFX_SetOutZscale(SFX_OBJ *sfx, Sint32 scale);
+Sint32 SFX_GetCompoMode(SFX_OBJ *sfx);
+Sint32 SFX_GetCnvBottomUp(SFX_OBJ *sfx);
+void SFX_SetCnvBottomUp(SFX_OBJ *sfx, Sint32 sw);
+void SFX_MakeTblZ32(SFX_OBJ *sfx, SFX_FRM *frm, void *tbl);
+void SFX_MakeTblZ16(SFX_OBJ *sfx, SFX_FRM *frm, void *tbl);
+void SFX_CnvFrmZ32(SFX_OBJ *sfx, SFX_FRM *frm, void *dst);
+void SFX_CnvFrmZ16(SFX_OBJ *sfx, SFX_FRM *frm, void *dst);
+Sint32 mwPlyGetCurFrm(MWPLY mwply, MWS_FRM *frm);
+
+/* the creation parameters asked for the additional-info stream */
+static Bool mwsftag_IsUseAinfSj(MWSFD_CRPRM *prm)
+{
+	if (prm->compo == MWSFD_FXTYPE_NONE || prm->compo == MWSFD_FXTYPE_ZAUTO) {
+		return TRUE;
+	}
+	return FALSE;
+}
+
+static Bool mwsftag_IsNoAinf(MWPLY mwply)
+{
+	return mwply->prm.mode == 2;
+}
+
+void MWSFSFX_DecideCompoMode(MWPLY mwply)
+{
+	Sint32 fxtype;
+
+	if (mwply->compo_fix == 0) {
+		fxtype = mwPlyGetFxType(mwply);
+		if (fxtype != -1) {
+			mwply->compo = fxtype;
+		} else {
+			mwply->compo = SFX_COMPO_YCC420PLN;
+		}
+	}
+	SFX_SetCompoMode(mwply->sfx, mwply->compo);
+}
+
+Sint32 MWSFD_IsFrmDivField(MWPLY mwply)
+{
+	return SFX_GetTypeDivField(mwply->sfx);
+}
+
+Sint32 MWSFSFX_IsFrmCcs(MWPLY mwply)
+{
+	return SFX_GetTypeCcs(mwply->sfx);
+}
+
+void MWSFSFX_SetPicUsrDat(MWPLY mwply, void *dat, Sint32 size)
+{
+	SFX_SetPicUsrDat(mwply->sfx, dat, size);
+}
+
+Sint32 mwPlyGetCnvBottomUp(MWPLY mwply)
+{
+	if (!MWSFD_IsEnableHndl(mwply)) {
+		MWSFSVM_Error("E404011: mwPlyGetCnvBottomUp: handle is invalid.");
+		return 0;
+	}
+	return SFX_GetCnvBottomUp(mwply->sfx);
+}
+
+void mwPlySetCnvBottomUp(MWPLY mwply, Sint32 sw)
+{
+	if (!MWSFD_IsEnableHndl(mwply)) {
+		MWSFSVM_Error("E404010: mwPlySetCnvBottomUp: handle is invalid.");
+		return;
+	}
+	SFX_SetCnvBottomUp(mwply->sfx, sw);
+}
+
+void MWSFD_MakeTblZ32(MWPLY mwply, void *tbl)
+{
+	MWS_FRM frm;
+	SFX_FRM sfxfrm;
+
+	if (!MWSFD_IsEnableHndl(mwply)) {
+		MWSFSVM_Error("E202285: MWSFD_MakeTblZ32: handle is invalid.");
+		return;
+	}
+	if (mwPlyGetCurFrm(mwply, &frm) == 0) {
+		MWSFSVM_Error("E202286: MWSFD_MakeTblZ32: getfrm is failed.");
+		return;
+	}
+	MWSFSFX_CnvFrmInfToSfx(mwply, &frm, &sfxfrm);
+	SFX_MakeTblZ32(mwply->sfx, &sfxfrm, tbl);
+}
+
+void MWSFD_MakeTblZ16(MWPLY mwply, void *tbl)
+{
+	MWS_FRM frm;
+	SFX_FRM sfxfrm;
+
+	if (!MWSFD_IsEnableHndl(mwply)) {
+		MWSFSVM_Error("E202283: MWSFD_MakeTblZ16: handle is invalid.");
+		return;
+	}
+	if (mwPlyGetCurFrm(mwply, &frm) == 0) {
+		MWSFSVM_Error("E202284: MWSFD_MakeTblZ16: getfrm is failed.");
+		return;
+	}
+	MWSFSFX_CnvFrmInfToSfx(mwply, &frm, &sfxfrm);
+	SFX_MakeTblZ16(mwply->sfx, &sfxfrm, tbl);
+}
+
+/* pick the tag block out of the additional-info stream */
+static void mwsftag_GetAinfFromSj(MWPLY mwply)
+{
+	SJCK ck;
+	SJCK out;
+	SJCK rd;
+	SJ sj;
+	Sint32 ndata;
+
+	sj = mwply->ainf_sj;
+	ndata = SJ_GetNumData(sj, SJ_CK_DATA);
+	if (ndata == 0) {
+		mwply->tag_ptr = NULL;
+		mwply->tag_size = 0;
+		mwply->tag_flg = 1;
+		return;
+	}
+	ck.data = mwply->ainf_buf;
+	ck.len = ndata;
+	if (SJ_SearchTag(&ck, "CRITAGS", "CRITAGE", &out) == NULL) {
+		mwply->tag_ptr = NULL;
+		mwply->tag_size = 0;
+		mwply->tag_flg = 1;
+		return;
+	}
+	if (mwply->addinf_buf != NULL) {
+		memcpy(mwply->addinf_buf, out.data, out.len);
+		mwply->tag_ptr = mwply->addinf_buf;
+		mwply->tag_size = out.len;
+		mwply->tag_flg = 1;
+		SJ_GetChunk(sj, SJ_CK_DATA, 0x7FFFFFFF, &rd);
+		SJ_PutChunk(sj, SJ_CK_FREE, &rd);
+		SJ_Reset(sj);
+	} else {
+		mwply->tag_ptr = out.data;
+		mwply->tag_size = out.len;
+		mwply->tag_flg = 1;
+		if (mwsftag_IsNoAinf(mwply) != TRUE) {
+			if (mwply->ainf_sj != NULL) {
+				SFD_SetUsrSj(mwply->sfd, 2, NULL, NULL);
+			}
+		}
+	}
+}
+
+/* the original did not inline mwsftag_GetAinfFromSj here */
+#pragma dont_inline on
+void MWSFTAG_UpdateTagInf(MWPLY mwply)
+{
+	SJCK out;
+	SJCK ck;
+	SFX_OBJ *sfx;
+
+	if (mwply->ainf_sj == NULL) {
+		return;
+	}
+	mwsftag_GetAinfFromSj(mwply);
+	sfx = mwply->sfx;
+	if (mwply->tag_ptr == NULL) {
+		SFX_SetTagInf(sfx, NULL, 0);
+		return;
+	}
+	ck.data = mwply->tag_ptr;
+	ck.len = mwply->tag_size;
+	if (SJ_SearchTag(&ck, "SFXINFS", "SFXINFE", &out) == NULL) {
+		SFX_SetTagInf(sfx, NULL, 0);
+		return;
+	}
+	SFX_SetTagInf(sfx, out.data, out.len);
+}
+#pragma dont_inline off
+
+Sint32 mwPlyAttachAddInfBuf(MWPLY mwply, void *buf, Sint32 bsize)
+{
+	if (bsize < mwply->ainf_bsize) {
+		MWSFSVM_Error("W2121001 : mwPlyAttachAddInfBuf(): bufsize is short.");
+		return 0;
+	}
+	mwply->addinf_buf = buf;
+	return 1;
+}
+
+void MWSFTAG_ResetAinfSj(MWPLY mwply)
+{
+	if (mwply->ainf_sj != NULL) {
+		SJ_Reset(mwply->ainf_sj);
+	}
+}
+
+void MWSFTAG_InitTagInf(MWPLY mwply)
+{
+	mwply->tag_flg = 0;
+	mwply->tag_ptr = NULL;
+	mwply->tag_size = 0;
+	mwply->tag_x1a4 = -1;
+}
+
+Sint32 MWSFTAG_SetAinfSj(MWPLY mwply)
+{
+	if (mwsftag_IsNoAinf(mwply) == TRUE) {
+		return 0;
+	}
+	if (mwply->ainf_sj == NULL) {
+		return 0;
+	}
+	return (SFD_SetUsrSj(mwply->sfd, 2, mwply->ainf_sj, NULL) != 0) ? -1 : 0;
+}
+
+void MWSFTAG_DestroyAinfSj(MWPLY mwply)
+{
+	if (mwply->ainf_sj != NULL) {
+		SJ_Destroy(mwply->ainf_sj);
+	}
+}
+
+SJ MWSFTAG_CreateAinfSj(MWPLY mwply)
+{
+	SJ sj;
+
+	if (!mwsftag_IsUseAinfSj(&mwply->prm)) {
+		return NULL;
+	}
+	sj = SJRBF_Create(mwply->ainf_buf, mwply->ainf_bsize, 0);
+	if (sj == NULL) {
+		MWSFSVM_Error("E201211 mwPlyCreate: can't create AddInfSJ");
+		mwSfdDestroy(mwply);
+		return NULL;
+	}
+	return sj;
+}
+
+Bool MWSFTAG_IsUseAinfSj(MWSFD_CRPRM *prm)
+{
+	return mwsftag_IsUseAinfSj(prm);
+}
+
+Sint32 mwPlyFxGetOutZoffset(MWPLY mwply)
+{
+	if (!MWSFD_IsEnableHndl(mwply)) {
+		MWSFSVM_Error("E2011921: mwPlyFxGetOutZoffset: handle is invalid.");
+		return 0;
+	}
+	return SFX_GetOutZoffset(mwply->sfx);
+}
+
+void mwPlyFxSetOutZoffset(MWPLY mwply, Sint32 ofst)
+{
+	if (!MWSFD_IsEnableHndl(mwply)) {
+		MWSFSVM_Error("E2011920: mwPlyFxSetOutZoffset: handle is invalid.");
+		return;
+	}
+	SFX_SetOutZoffset(mwply->sfx, ofst);
+}
+
+Sint32 mwPlyFxGetOutZscale(MWPLY mwply)
+{
+	if (!MWSFD_IsEnableHndl(mwply)) {
+		MWSFSVM_Error("E2011919: mwPlyFxGetOutZscale: handle is invalid.");
+		return 0;
+	}
+	return SFX_GetOutZscale(mwply->sfx);
+}
+
+void mwPlyFxSetOutZscale(MWPLY mwply, Sint32 scale)
+{
+	if (!MWSFD_IsEnableHndl(mwply)) {
+		MWSFSVM_Error("E2011918: mwPlyFxSetOutZscale: handle is invalid.");
+		return;
+	}
+	SFX_SetOutZscale(mwply->sfx, scale);
+}
+
+void mwPlyFxSetOutBufSize(MWPLY mwply, Sint32 width, Sint32 height)
+{
+	SFX_OBJ *sfx;
+
+	if (!MWSFD_IsEnableHndl(mwply)) {
+		MWSFSVM_Error("E306091: MWSFSFX_SetOutBufSize: handle is invalid.");
+		return;
+	}
+	sfx = mwply->sfx;
+	SFX_SetOutBufSize(sfx, width, height);
+	SFX_SetUnitWidth(sfx, 1);
+}
+
+void mwPlyFxSetOutBufPitchHeight(MWPLY mwply, Sint32 pitch, Sint32 height)
+{
+	SFX_OBJ *sfx;
+
+	if (!MWSFD_IsEnableHndl(mwply)) {
+		MWSFSVM_Error("E306091: MWSFSFX_SetOutBufSize: handle is invalid.");
+		return;
+	}
+	sfx = mwply->sfx;
+	SFX_SetOutBufSize(sfx, pitch, height);
+	SFX_SetUnitWidth(sfx, 0);
+}
+
+void mwPlyFxGetOutBufPitchHeight(MWPLY mwply, Sint32 *pitch, Sint32 *height)
+{
+	if (!MWSFD_IsEnableHndl(mwply)) {
+		MWSFSVM_Error("E307092: mwPlyFxGetOutBufPitchHeight: handle is invalid.");
+		return;
+	}
+	*pitch = mwply->sfx->outbuf_width;
+	*height = mwply->sfx->outbuf_height;
+}
+
+void MWSFD_SetColAdj(MWPLY mwply, void *coladj)
+{
+	SFX_SetColAdj(mwply->sfx, coladj);
+}
+
+void MWSFSFX_SetColAdj(MWPLY mwply, void *coladj)
+{
+	SFX_SetColAdj(mwply->sfx, coladj);
+}
+
+void MWSFSFX_SetFxType(MWPLY mwply, Sint32 fxtype)
+{
+	SFX_SetFxType(mwply->sfx, fxtype);
+}
+
+void MWSFSFX_SetCompoMode(MWPLY mwply, Sint32 mode)
+{
+	SFX_SetCompoMode(mwply->sfx, mode);
+}
+
+Sint32 mwPlyFxGetCompoMode(MWPLY mwply)
+{
+	if (!MWSFD_IsEnableHndl(mwply)) {
+		MWSFSVM_Error("E2011915: mwPlyFxGetCompoMode: handle is invalid.");
+		return 0;
+	}
+	return SFX_GetCompoMode(mwply->sfx);
+}
+
+void mwPlyFxSetCompoMode(MWPLY mwply, Sint32 mode)
+{
+	if (!MWSFD_IsEnableHndl(mwply)) {
+		MWSFSVM_Error("E201214: mwPlyFxSetCompoMode: handle is invalid.");
+		return;
+	}
+	if (mode == SFX_COMPO_0x101 && mwply->prm.compo != SFX_COMPO_0x101) {
+		MWSFSVM_Error("E204011: mwPlyFxSetCompoMode: COMPO_Z needs setting in MWPLY Creation.");
+		return;
+	}
+	if (mode == 0 && mwply->prm.compo != 0) {
+		MWSFSVM_Error("E204012: mwPlyFxSetCompoMode: COMPO_AUTO needs setting in MWPLY Creation.");
+		return;
+	}
+	mwply->compo = mode;
+	mwply->compo_fix = 1;
+	SFX_SetCompoMode(mwply->sfx, mode);
+}
+
+void mwPlyFxCnvFrmZ32(MWPLY mwply, void *dst)
+{
+	MWS_FRM frm;
+	SFX_FRM sfxfrm;
+
+	if (!MWSFD_IsEnableHndl(mwply)) {
+		MWSFSVM_Error("E2011913: mwPlyFxCnvFrmZ32: handle is invalid.");
+		return;
+	}
+	if (mwPlyGetCurFrm(mwply, &frm) == 0) {
+		MWSFSVM_Error("E2011914: mwPlyFxCnvFrmZ32: getfrm is failed.");
+		return;
+	}
+	MWSFSFX_CnvFrmInfToSfx(mwply, &frm, &sfxfrm);
+	SFX_CnvFrmZ32(mwply->sfx, &sfxfrm, dst);
+}
+
+void mwPlyFxCnvFrmZ16(MWPLY mwply, void *dst)
+{
+	MWS_FRM frm;
+	SFX_FRM sfxfrm;
+
+	if (!MWSFD_IsEnableHndl(mwply)) {
+		MWSFSVM_Error("E2011911: mwPlyFxCnvFrmZ16: handle is invalid.");
+		return;
+	}
+	if (mwPlyGetCurFrm(mwply, &frm) == 0) {
+		MWSFSVM_Error("E2011912: mwPlyFxCnvFrmZ16: getfrm is failed.");
+		return;
+	}
+	MWSFSFX_CnvFrmInfToSfx(mwply, &frm, &sfxfrm);
+	SFX_CnvFrmZ16(mwply->sfx, &sfxfrm, dst);
+}
+
+/* translate a player frame into the SFX frame description. OPEN: the original keeps a dead `b end`
+ * for every empty `case N: break;` arm and emits the four pooled strings in reverse use order. */
+void MWSFSFX_CnvFrmInfToSfx(MWPLY mwply, MWS_FRM *frm, SFX_FRM *sfxfrm)
+{
+	CFT_YCC420PLN pln;
+	Sint32 tag_b;
+	Sint32 tag_a;
+	Sint32 width;
+	Sint32 height;
+	Sint32 fmt;
+	Sint32 v;
+
+	switch (frm->fmt) {
+	case MWSFD_BUFFMT_1:
+		fmt = 1;
+		break;
+	case MWSFD_BUFFMT_2:
+		fmt = 2;
+		break;
+	case MWSFD_BUFFMT_YCC420PLN:
+		fmt = 3;
+		break;
+	default:
+		MWSFSVM_Error("E201184 : MwsfdBufFmt value is invalid.");
+		fmt = 3;
+		break;
+	}
+	sfxfrm->frmfmt = fmt;
+	width = frm->width;
+	height = frm->height;
+	sfxfrm->width = width;
+	sfxfrm->height = height;
+	if (frm->fmt != MWSFD_BUFFMT_YCC420PLN) {
+		sfxfrm->pln[0].buf = frm->bufadr;
+		sfxfrm->pln[0].width = width;
+		sfxfrm->pln[0].height = height;
+	} else {
+		mwPlyCalcYccPlane(frm->bufadr, width, height, &pln);
+		sfxfrm->pln[0].buf = pln.y;
+		sfxfrm->pln[0].width = pln.ywidth;
+		sfxfrm->pln[0].height = height;
+		sfxfrm->pln[1].buf = pln.cb;
+		sfxfrm->pln[1].width = pln.cbwidth;
+		sfxfrm->pln[1].height = height;
+		sfxfrm->pln[2].buf = pln.cr;
+		sfxfrm->pln[2].width = pln.crwidth;
+		sfxfrm->pln[2].height = height;
+	}
+	sfxfrm->tblsrc = frm->tblsrc;
+	SFX_GetTagInf(mwply->sfx, &tag_a, &tag_b);
+	sfxfrm->tag_a = tag_a;
+	sfxfrm->tag_b = tag_b;
+	sfxfrm->x58 = 0;
+	sfxfrm->x5c = 0;
+	v = 3;
+	switch (mwply->pic_struct) {
+	case 1:
+		v = 1;
+		break;
+	case 2:
+		v = 2;
+		break;
+	case 3:
+		break;
+	default:
+		MWSFSVM_Error("E301272 : picture_structure is invalid.");
+		break;
+	}
+	sfxfrm->pic_struct = v;
+	v = 1;
+	switch (mwply->chroma_format) {
+	case 1:
+		break;
+	case 2:
+		v = 2;
+		break;
+	case 3:
+		v = 3;
+		break;
+	default:
+		MWSFSVM_Error("E301273 : chroma_format is invalid.");
+		break;
+	}
+	sfxfrm->chroma_format = v;
+	v = 1;
+	sfxfrm->x68 = mwply->x94;
+	sfxfrm->x6c = mwply->x98;
+	sfxfrm->x70 = mwply->x9c;
+	switch (mwply->chromapos_h) {
+	case 0:
+		v = 0;
+		break;
+	case 1:
+		break;
+	default:
+		MWSFSVM_Error("E301274 : chromapos is invalid.");
+		break;
+	}
+	sfxfrm->chromapos_h = v;
+	v = 1;
+	switch (mwply->chromapos_v) {
+	case 0:
+		v = 0;
+		break;
+	case 1:
+		break;
+	default:
+		MWSFSVM_Error("E301274 : chromapos is invalid.");
+		break;
+	}
+	sfxfrm->chromapos_v = v;
+}
+
+SFX_OBJ *MWSFSFX_GetSfxHn(MWPLY mwply)
+{
+	return mwply->sfx;
+}
+
+void MWSFSFX_Destroy(SFX_OBJ *sfx)
+{
+	SFX_Destroy(sfx);
+}
+
+SFX_OBJ *MWSFSFX_Create(void *work, Sint32 wsize)
+{
+	return SFX_Create(work, wsize);
+}
+
+Sint32 MWSFSFX_CalcHnWorkSiz(void)
+{
+	return SFX_WORK_SIZE;
+}
+
+void mwsfsfx_SfxErrCbFn(void *obj, const Char8 *msg)
+{
+	MWSFSVM_Error(msg);
+}
+
+void MWSFSFX_Init(void)
+{
+	SFX_Init();
+	SFX_SetErrFn(mwsfsfx_SfxErrCbFn, NULL);
+}

@@ -43,7 +43,7 @@
 
 extern "C" {
 void OSReport(const char* fmt, ...);
-void* memset(...);   // unprototyped in the original (crclr cr1eq before every call)
+void* memset(void* dst, int c, unsigned int n);
 char* strcpy(char* dst, const char* src);
 char* strcat(char* dst, const char* src);
 int strcmp(const char* a, const char* b);
@@ -269,6 +269,7 @@ int Event::Run()
     int i;
     f32 frm;
     u32 n;
+    int wait;
 
     MesClear();
     if ((pG->flags_54 & 0x400) && (cut != 0 || frame != 0)) {
@@ -306,8 +307,10 @@ int Event::Run()
     if (!EvtChk(EvtDebug.flags, 0x08000000)) {
         FocusMove(this, pFocus);
     }
-    if (EvtDebug.strWait > 0) {
-        if (--EvtDebug.strWait > 0) {
+    wait = EvtDebug.strWait;
+    if (wait > 0) {
+        wait = --EvtDebug.strWait;
+        if (wait > 0) {
             goto func;
         }
     }
@@ -315,8 +318,9 @@ int Event::Run()
         frm = (f32) totalFrame;
         n = (u32) (frm / EVT_STR_FRAME);
         if (frm - (f32) n * EVT_STR_FRAME < 1.0f) {
+            EventMgr* m = &EvtMgr;
             status &= ~0x10000;
-            EvtMgr.EvtSndStrPlay(&EvtMgr.x34, 1, EvtDebug.strNo[1], 1, frm / EVT_FRAME_RATE);
+            m->EvtSndStrPlay(&m->x34, 1, EvtDebug.strNo[1], 1, frm / EVT_FRAME_RATE);
         }
     }
 func:
@@ -330,9 +334,10 @@ func:
 void Event::EspSetModelPtr(cModel* m)
 {
     cModel** tbl = EspEvModList;
+    int n = nEspModel;
 
-    if (nEspModel >= 0 && nEspModel < 0x80) {
-        tbl[nEspModel] = m;
+    if (n >= 0 && n < 0x80) {
+        tbl[n] = m;
     }
     nEspModel++;
 }
@@ -390,25 +395,27 @@ void Event::EspToolSetMod(int no, char* nm)
     u32 i;
     int size;
     u8 c;
+    char* p;
 
     buf = (char*) Debug_alloc(1000000, 1);
     EvtDebug.pModel[no].pScr = 0;
     strcpy(mname, nm);
-    for (i = 2; i < strlen(mname); i++) {
-        c = mname[i];
+    p = mname;
+    for (i = 2; i < strlen(p); i++) {
+        c = p[i];
         if ((c >= '0' && c <= '9') || (c >= 'a' && c <= 'f')) {
-            mname[i + 2] = '0';
-            mname[i + 3] = '0';
+            p[i + 2] = '0';
+            p[i + 3] = '0';
             break;
         }
     }
-    if (pG->costume == 1 && strcmp(mname, "pl0000") == 0) {
+    if (pG->costume == 1 && strcmp(p, "pl0000") == 0) {
         strcpy(mname, "pl0800");
     }
-    if (pG->costume == 2 && strcmp(mname, "pl0000") == 0) {
+    if (pG->costume == 2 && strcmp(p, "pl0000") == 0) {
         strcpy(mname, "pl0a00");
     }
-    sprintf(path, "%s/evt_bin_%s.xml", "x:/soft/room/event/evd", mname);
+    sprintf(path, "%s/evt_bin_%s.xml", "x:/soft/room/event/evd", p);
     size = HDRead(path, buf);
     if (size != 0) {
         buf[size] = 0;
@@ -852,16 +859,14 @@ int Event::ExePacket_SetEm(Event* evt)
 int Event::ExePacket_SetOm(Event* evt)
 {
     EvtPacket* pac = evt->pPacket;
-    Vec pos;
-    Vec rot;
+    Vec pos = {0.0f, 0.0f, 0.0f};
+    Vec rot = {0.0f, 0.0f, 0.0f};
     void* bin;
     void* tpl;
     int type;
     cObj* obj;
     int i;
 
-    memset(&pos, 0, sizeof(Vec));
-    memset(&rot, 0, sizeof(Vec));
     if (EvtMgr.GetBin(&bin, pac->mod.bin, 0) == 0) {
         pLog->err(0, 0, "Event::ExePacket_SetOm : dat failed");
         return 1;
@@ -1819,21 +1824,22 @@ void Event::MesSet(int no, int time, int x, int y)
             }
         }
     }
-    mesTimer = time;
     mesNo = no;
+    mesTimer = time;
 }
 
 void Event::MesClear()
 {
-    int no = 0;
+    int no;
 
     if (mesTimer > 0) {
         mesTimer--;
         if (mesTimer <= 0) {
-            mesTimer = 0;
+            IntSet(mesTimer, 0);
             pG->flags_58 |= 0x800;
         }
     }
+    no = 0;
     EvtDebug.mesCnt[no]++;
 }
 
@@ -1843,11 +1849,12 @@ void Event::FogMove(Event* evt, void* fog)
     f32 end;
     f32 t;
     EvtFogData* d = (EvtFogData*) fog;
+    int frame = evt->frame;
 
     if (d == 0) {
         return;
     }
-    t = (f32) evt->frame;
+    t = (f32) frame;
     if (Hermite_1CurveCalc((Hermite1*) &d->start, t, &start)) {
         LightMgr.setFogStart(start);
     }
@@ -1863,6 +1870,7 @@ void Event::FocusMove(Event* evt, void* focus)
     f32 far_;
     f32 t;
     EvtFocusData* d = (EvtFocusData*) focus;
+    int frame = evt->frame;
 
     if (EvtChk(evt->status, 0x40000000)) {
         return;
@@ -1870,7 +1878,7 @@ void Event::FocusMove(Event* evt, void* focus)
     if (d == 0) {
         return;
     }
-    t = (f32) evt->frame;
+    t = (f32) frame;
     if (Hermite_1CurveCalc((Hermite1*) &d->near_, t, &near_)) {
         Filter01SetParam_CamZ(0, 1, d->nearLevel, near_);
     }
@@ -2107,6 +2115,7 @@ int EventMgr::IsAliveEvt(u32* key, int out, int chk)
     Event* e;
 
     for (i = 0; i < nArray; i++) {
+        char* p = nm;
         e = (Event*) ((u8*) pArray + size * i);
         if (!e->isAlive()) {
             continue;
@@ -2116,8 +2125,8 @@ int EventMgr::IsAliveEvt(u32* key, int out, int chk)
                 continue;
             }
         }
-        strcpy(nm, e->name);
-        if (strcmp(nm, (char*) key) != 0) {
+        strcpy(p, e->name);
+        if (strcmp(p, (char*) key) != 0) {
             continue;
         }
         if (out != 0) {
@@ -2314,10 +2323,7 @@ int EventMgr::EvtReadExec(char* nm, int em, u32 flags)
     if (em != 0) {
         SceSleep(2);
     }
-    if (EvtReadMram(nm, em, &addr, 0, 0) == 0) {
-        pLog->err(0, 0, "EventMgr::EvtReadExec : mem over");
-        ret = 0;
-    } else {
+    if (EvtReadMram(nm, em, &addr, 0, 0)) {
         if (EvtMgr.SetEvt((void*) addr, (u32*) &evt)) {
             if (flags & 2) {
                 BitOn(evt->status, 0x00100000);
@@ -2343,8 +2349,11 @@ int EventMgr::EvtReadExec(char* nm, int em, u32 flags)
             SceSleep(1);
             FadeSetW(0x80000002, 0x1E, 0, 0);
         }
-        while (IsAliveEvt(&EvtMgr.x34, 0, 0) != 0) {
-            SceSleep(1);
+        {
+            EventMgr* m = &EvtMgr;
+            while (IsAliveEvt(&m->x34, 0, 0) != 0) {
+                SceSleep(1);
+            }
         }
         if (flags & 2) {
             return 1;
@@ -2353,6 +2362,9 @@ int EventMgr::EvtReadExec(char* nm, int em, u32 flags)
             return 1;
         }
         EvtFree(nm);
+    } else {
+        pLog->err(0, 0, "EventMgr::EvtReadExec : mem over");
+        ret = 0;
     }
     BitOff(pG->flags_54, 0x400);
     BitOff(pG->flags_5014, 0x00080000);
@@ -2645,7 +2657,7 @@ int EventMgr::DelEvd(char* nm)
         return 0;
     }
     for (i = 0; i < hdr->nBin; i++) {
-        DelBin(((EvtBinEntry*) ((u8*) hdr + hdr->binOfs))[i].name);
+        DelBin(((EvtBinEntry*) (hdr->binOfs + (u32) hdr))[i].name);
     }
     if (evdTbl.DelDat(nm) == 0) {
         pLog->err(0, 0, "EventMgr::DelEvd : failed");
@@ -2878,8 +2890,8 @@ int EventMgr::GetZeroPartsWorldPos(cModel* m, Vec* pos, Vec* rot)
     mtx.m[2][3] = 0.0f;
     PSMTXMultVec(mtx.m, &v, &v);
     rot->y = LIMIT_ANGLE(atan2f(v.x, v.z));
-    rot->z = 0.0f;
     rot->x = 0.0f;
+    rot->z = 0.0f;
     return 1;
 }
 

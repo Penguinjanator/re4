@@ -4,21 +4,20 @@
 
 #include "cri_xpt.h"
 #include "sj.h"
+#include "sfx.h"
 
 typedef struct MWPLY_OBJ MWPLY_OBJ;
-typedef struct SFX_OBJ SFX_OBJ;
 
 /* mwPlyGetCurFrm output (0x88 bytes) */
 typedef struct {
-	void *bufadr;
-	Uint8 pad[0x84];
+	void *bufadr;              /* 0x00 */
+	Sint32 fmt;                /* 0x04 MwsfdBufFmt: 1 YCC420 planar (uphalf), 2 ..., 3 planar Y/Cb/Cr */
+	Sint32 width;              /* 0x08 */
+	Sint32 height;             /* 0x0C */
+	Uint8 pad10[0x30 - 0x10];
+	void *tblsrc;              /* 0x30 */
+	Uint8 pad34[0x88 - 0x34];
 } MWS_FRM;
-
-/* SFX-side frame description filled by MWSFSFX_CnvFrmInfToSfx (0x88 bytes) */
-typedef struct {
-	Sint32 frmfmt;
-	Uint8 pad[0x84];
-} SFX_FRM;
 
 typedef MWPLY_OBJ *MWPLY;
 
@@ -58,17 +57,27 @@ typedef struct {
 #define MWSFD_STAT_PLAYEND 3
 #define MWSFD_STAT_ERROR 4
 
+/* creation parameters kept in the player object (MWPLY_OBJ + 0x0C, 0x34 bytes) */
+typedef struct {
+	Sint32 mode;               /* 0x00 (2: no additional-info stream) */
+	Uint8 pad04[0x20 - 0x04];
+	Sint32 compo;              /* 0x20 requested component layout (0 / 0x101: additional-info sj used) */
+	Uint8 pad24[0x34 - 0x24];
+} MWSFD_CRPRM;
+
 /* player object (0x2B8 bytes; only the fields the matched units use are named) */
 struct MWPLY_OBJ {
 	Sint32 x00;
 	Sint32 used;               /* 0x04 */
 	Sint32 stat;               /* 0x08 */
-	Uint8 pad0c[0x40 - 0x0C];
+	MWSFD_CRPRM prm;           /* 0x0C */
 	void *sfd;                 /* 0x40 */
 	void *stm;                 /* 0x44 ADXSTM */
 	Sint32 x48;
 	void *lsc;                 /* 0x4C */
-	Uint8 pad50[0x60 - 0x50];
+	Sint32 compo_fix;          /* 0x50 component layout fixed at creation */
+	Sint32 compo;              /* 0x54 */
+	Uint8 pad58[0x60 - 0x58];
 	Sint32 sleep_bdr;          /* 0x60 sleeping at the idle border */
 	Sint32 mwply_svr_flg;      /* 0x64 handle server running */
 	Sint32 sfd_svr_flg;        /* 0x68 SFD_ExecOne running */
@@ -77,7 +86,27 @@ struct MWPLY_OBJ {
 	Sint8 linkstm;             /* 0x74 */
 	Sint8 linkstm_req;         /* 0x75 */
 	Sint8 pause_flg;           /* 0x76 */
-	Uint8 pad77[0x1B8 - 0x77];
+	Uint8 pad77[0x8C - 0x77];
+	Sint32 pic_struct;         /* 0x8C */
+	Sint32 chroma_format;      /* 0x90 */
+	Sint32 x94;
+	Sint32 x98;
+	Sint32 x9c;
+	Sint32 chromapos_h;        /* 0xA0 */
+	Sint32 chromapos_v;        /* 0xA4 */
+	Sint32 xa8;
+	SFX_OBJ *sfx;              /* 0xAC */
+	Uint8 padb0[0x190 - 0xB0];
+	SJ ainf_sj;                /* 0x190 additional-info (tag) stream joint */
+	void *ainf_buf;            /* 0x194 */
+	Sint32 ainf_bsize;         /* 0x198 */
+	void *addinf_buf;          /* 0x19C user buffer receiving the tag block */
+	Sint32 x1a0;
+	Sint32 tag_x1a4;           /* 0x1A4 (-1) */
+	Sint32 tag_flg;            /* 0x1A8 tag block analysed */
+	void *tag_ptr;             /* 0x1AC */
+	Sint32 tag_size;           /* 0x1B0 */
+	Sint32 x1b4;
 	const Char8 *fname;        /* 0x1B8 */
 	Sint32 x1bc;
 	Sint32 stm_start_req;      /* 0x1C0 */

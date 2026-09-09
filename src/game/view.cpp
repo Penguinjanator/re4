@@ -5,7 +5,7 @@
 #include "db_log.h"
 #include "view.h"
 
-#define VIEW_ASPECT 1.3333333f
+#define VIEW_ASPECT 1.33333333f
 
 VIEW View;
 u8 ViewHit[0xD00];

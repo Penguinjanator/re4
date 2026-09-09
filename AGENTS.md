@@ -1508,15 +1508,79 @@ MWCC idioms seen so far (2.4.7, -O4,p):
 
 `dummy` (stdio syscall stubs), `tealeaf` (`__cvt_fp2unsigned`, `__va_arg`, `__div2i`-style aliases
 that `b` to libgcc) and `FSasync` are GCC 2.95 -O2 like the game (`stwu -8; mflr; stw r0,0xc`, `stmw`,
-`first.183` statics, r9/r11 temporaries) but with **no small data** (`LIBSN_UNITS` in configure.py:
-`cflags_game + -G 0`, `strip_unused.py --gcc`). `proview`, `ppcdown`, `fileserver` (`addi r31,r4,0`
-copies, `lis rX,sym@h; nop`), `eabi` (`_savefpr_14/_restfpr_14`) and `__start` (`.init`) are hand-written
-assembly; `crt0` is only the data half of that assembly (two 32-byte message buffers, the libsn
-version words, `LinkFiddle = {__mod2i, 0}`); `crtbegin` is `.ctor/.dtor` `-1` sentinels;
-`builtin-delete` is SN's libstdc++ `operator new/delete` warning unit (C++, everything stripped but
-the `bad_alloc` type-info name and the four warning strings). The split object's `.data` alignment
-(dtk reports 2**3) is what the DOL layout needs: a GCC object with a 4-aligned `.data` shifts every
-following `.data` unit by 4 (dummy: `asm(".section .data\n\t.balign 8\n\t.section .text")`).
+`first.183` statics, r9/r11 temporaries) but with **no small data** and **no common symbols**
+(`LIBSN_UNITS` in configure.py: `cflags_game + -G 0 -fno-common`, `strip_unused.py --gcc`; without
+`-fno-common` FSasync's uninitialised globals become COMMON and leave the unit's `.bss`). `proview`,
+`ppcdown`, `fileserver` (`addi r31,r4,0` copies, `lis rX,sym@h; ori rX,rX,sym@l`), `eabi`
+(`_savefpr_14/_restfpr_14`) and `__start` (`.init`) are hand-written assembly and are built from
+**`src/lib/<name>.s`** (configure.py `ASM_UNITS`: the split name stays `lib/<name>.c`, the Object's
+`source` is the `.s`, so tools/project.py's `asm_build` uses the template's `as` rule =
+`build/binutils/powerpc-eabi-as -mgekko --strip-local-absolute -I include -I build/G4BE08/include
+--defsym BUILD_VERSION=0` + `dtk elf fixup`; `macros.inc` provides `.fn/.endfn/.obj`). The sources
+are the dtk disassembly with the address comments stripped, `bl`/`b` to global function starts made
+symbolic (relocations resolve to the same displacement), `_stack_addr/_SDA_BASE_/_SDA2_BASE_` for the
+`.init` register setup, and one fix: dtk prints `ori r0,r0,imm` as `nop`, so proview's
+`lis r0,sym@h; nop` was really `ori r0,r0,sym@l` (the DOL check catches it: 2 bytes). `__start` is an
+absolute symbol of ldscript.ld, the `.init` code carries the local label `__start_entry`. Branches
+into data (`proviewtty`) or into the middle of other units' functions stay raw displacements with a
+`# -> 0x8... (sym+off)` comment; objdiff shows ARG_MISMATCH on assembler-resolved local branches, the
+linked bytes are identical. `crt0` is only the data half of that assembly (two 32-byte message
+buffers, the libsn version words, `LinkFiddle = {__mod2i, 0}`); `crtbegin` is `.ctor/.dtor` `-1`
+sentinels; `builtin-delete` is SN's libstdc++ `operator new/delete` warning unit (C++, everything
+stripped but the `bad_alloc` type-info name and the four warning strings). The split object's `.data`
+alignment (dtk reports 2**3) is what the DOL layout needs: a GCC object with a 4-aligned `.data`
+shifts every following `.data` unit by 4 (dummy: `asm(".section .data\n\t.balign 8\n\t.section .text")`).
+
+FSasync (matched) idioms, GCC 2.95 -O2 -G 0:
+- Every reload of a global after a store to it (`stw; lwz; cmpwi`) and re-reads inside one expression
+  = `volatile` globals (the EXI2 transfer state). A volatile store never moves above a volatile load
+  (`cb = g_FSCBFunc; g_nRWasyncPhase = 0; if (cb)` keeps `lwz` before `stw`); a plain load can.
+- `g_nBlockCnt--; while (g_nBlockCnt != -1) {...}` gives separate `lis sym@ha` pseudos per block;
+  `for (;;) { g_nBlockCnt--; if (g_nBlockCnt == -1) break; ... }` (exit test duplicated by jump.c)
+  shares one `lis` between the pre-loop copy and the body and stops loop.c hoisting it out of the
+  outer loop — the target's `lis r30,g_nBlockCnt@ha` at the top of each outer iteration.
+- `li r0,0x10; slwi r0,r0,8` (an unfolded constant) is a single-use local (`u16 hlen = 0x10;`) set
+  before a loop and used after it: cse cannot fold across the loop and update_equiv_regs moves the
+  `li` next to the use.
+- A struct whose address is taken before a loop (`struct FSResult *res = &g_FsResult;`) keeps
+  `lis/addi` in a callee-saved register across the calls; `&g_FsResult` at each use rematerialises
+  the `addi`. A DMA target declared `__attribute__((aligned(32)))` gives the 4-byte `.bss` gap before
+  it and the 0x20 rounding after it.
+- Raw hardware addresses (`*(volatile u32 *)0xCC003000`) are `lis/ori`; a clear-byte loop
+  `for (i...) *p++ = 0` is `mtctr; stb; addi; bdnz` (memset would be a libcall).
+
+SDK/CRI MWCC register-allocation levers found on reverb_std, svm and ax_rna (MWCC 1.2.5n / 2.4.7):
+- reverb_std `ReverbSTDCreate`: `max_length << 2` (not `* 4`) in the inlined `DLcreate` decides whether
+  `rv` gets r31 or r23 (same code otherwise); the identical `* 4` form matched in reverb_hi.
+- Callee-saved registers of a function's own locals: the *last* declared gets the highest register
+  (svm_exec_svr: `p; i; ret` -> ret r28, i r27, p r26); strength-reduced loop pointers normally take
+  the registers above the locals (SetOutVol `ptr r31, v r30, i r29`), but a loop living in an
+  *inlined static helper* puts the helper's locals above the pointers (AXRNA_ExecHndl: n r30, i r29,
+  pointers r28..r26) and the helper's aggregate locals get frame slots in declaration order upward.
+- A loop-invariant expression written from a *block-local* copy (`Uint32 f = adj;` inside the `if`)
+  is not hoisted out of the loop; written from the function-level variable it is hoisted.
+- Two independent `srawi ..,16` of the same value = two locals initialised from the same field
+  (`loop = rna->buf[i]; cur = rna->buf[i];`), the loads are CSE'd, the shifts are not.
+- `hist[pos++] = v` (post-increment in the index) vs `hist[pos] = v; pos++` swaps the temporaries of
+  `pos+1` and `pos*4`; a separate `nbyte = diff * 2` local before a loop moves the loop counter above
+  the hoisted product.
+- `if ((p->x = f()) == NULL)` tests r3 straight after the call (`cmplwi r3,0; stw r3`); a separate
+  `if (p->x == NULL)` reloads. `p->y = f(); if (p->y == NULL)` was used for the SJRBF_Create case.
+- Volatile file-scope counters (`svm_lock_level--; if (svm_lock_level == 0)`) reload after the
+  store; the error-callback pair `{func, obj}` is a plain struct: `lwz r12,off(rBase)` for `.func`
+  but `addi r3,rBase,off; lwz r3,4(r3)` for `.obj` (member at offset 4 of a pooled static).
+- An unrolled `stw 0(r6) .. 0x14(r6)` clear through the array's address = `p = arr; for (...) *p++ = 0;`;
+  with `arr[i] = 0` the first store folds into the pool base.
+- `.bss` first-reference order and `@N` string order need the dead functions written (svm:
+  `svm_itoa` with `static Char8 buf[32]`, `SVM_SetCbWaitVsync`, `SVM_SetCbTestAndSet`, `SVM_SetCbLock`,
+  `SVM_SetCbGotoSvrBorder`, `SVM_GetNumCbSvr`, `SVM_ExecSvrFuncId`, `SVM_ItoA2`; ax_rna: `AXRNA_DbgDump`
+  with a local `const Char8 *sw_str[2] = {"OFF", "ON "}` -> the anonymous `@N` pointer table in
+  `.rodata`, and the public getters/setters that are only ever inlined: `AXRNA_GetPlaySw/GetTransSw/
+  SetSrcType`). `= 0`-initialised scalars keep declaration order.
+- MWCC inlines *public* (non-static) functions defined earlier in the file at -O4 (`AXRNA_SetOutPan`,
+  `AXRNA_SetSfreq`, `AXRNA_Destroy` appear inline in `AXRNA_Create`/`AXRNA_Finish` with their
+  `rna == NULL` checks kept); `SVM_CallErr1` inlined everywhere but emitted after its users =
+  static helper `svm_call_err1` + public wrapper.
 
 - Zero-copy chains `li rA,0; mr rB,rA; mr rC,rA` come from *inlined* code: a zero init inside an
   inlined static helper (or its locals initialised at declaration) copies a zero the caller already
