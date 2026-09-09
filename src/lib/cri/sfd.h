@@ -107,6 +107,54 @@ typedef struct {
 
 #define SFD_TR_NUM 9
 #define SFD_COND_NUM 100
+#define SFD_VFRM_NUM 16
+
+/* per-frame picture information handed to the user (0x80 bytes) */
+typedef struct {
+	Sint32 raw[0x20];
+} SFD_VFRM_INF;
+
+/* video frame slot (0x88 bytes), SFD_OBJ + 0x16A8 + n * 0x88; slot n pairs with SFMPV frame n */
+typedef struct {
+	void *frm;                 /* 0x00 */
+	Sint32 x04;
+	SFD_VFRM_INF inf;          /* 0x08 */
+} SFD_VFRM;
+
+/* SFMPV_FRM.stat */
+#define SFMPV_FRM_FREE 0
+#define SFMPV_FRM_ALLOC 1
+#define SFMPV_FRM_STBY 2
+#define SFMPV_FRM_DRAWN 3
+#define SFMPV_FRM_REF 4
+
+/* decoded frame object of the video driver (0xE0 bytes) */
+typedef struct {
+	Sint32 stat;               /* 0x00 */
+	Sint32 lock;               /* 0x04 */
+	Uint8 pad08[0x38 - 0x08];
+	Sint32 ftime;              /* 0x38 */
+	Sint32 tunit;              /* 0x3C */
+	Uint8 pad40[0x48 - 0x40];
+	Sint32 gopno;              /* 0x48 */
+	Uint8 pad4c[0x6C - 0x4C];
+	Sint32 tmpref;             /* 0x6C temporal reference (10-bit) */
+	Uint8 pad70[0x88 - 0x70];
+	Sint32 x88;
+	Sint32 x8c;
+	Uint8 pad90[0xE0 - 0x90];
+} SFMPV_FRM;
+
+/* video driver work (tr[2].hn) */
+typedef struct {
+	Uint8 pad0[0x7C];
+	Sint32 termflg;            /* 0x7C decoder terminated */
+	Sint32 gopstat;            /* 0x80 */
+	Uint8 pad84[0x178 - 0x84];
+	Sint32 nfrm;               /* 0x178 */
+	Sint32 x17c;
+	SFMPV_FRM frm[1];          /* 0x180 (nfrm entries) */
+} SFMPV_WORK;
 
 /* 0xA0-byte player information block returned by SFD_GetPlyInf */
 typedef struct {
@@ -150,8 +198,9 @@ typedef struct SFD_OBJ {
 	SFCON con;                 /* 0xD28 */
 	Uint8 padFA4[0x12E0 - 0xD28 - sizeof(SFCON)];
 	SFBUF_WORK buf[SFD_BUF_NUM]; /* 0x12E0 */
-	Uint8 pad1694[0x1F28 - 0x12E0 - SFD_BUF_NUM * sizeof(SFBUF_WORK)];
-	SFD_TR tr[SFD_TR_NUM];     /* 0x1F28 (tr[8].hn = SFUO *, tr[8].bufin = user-output SFBUF id) */
+	Uint8 pad1694[0x16A8 - 0x12E0 - SFD_BUF_NUM * sizeof(SFBUF_WORK)];
+	SFD_VFRM vfrm[SFD_VFRM_NUM]; /* 0x16A8 */
+	SFD_TR tr[SFD_TR_NUM];     /* 0x1F28 (tr[2].hn = SFMPV_WORK *, tr[8].hn = SFUO *, tr[8].bufin = user-output SFBUF id) */
 	Uint8 pad218C[0x3474 - 0x1F28 - SFD_TR_NUM * sizeof(SFD_TR)];
 	SFAOAP aoap;               /* 0x3474 (tr[7].hn) */
 	SFUO uo_tbl;               /* 0x3490 */
@@ -211,6 +260,7 @@ Sint32 SFD_GetHnStat(SFD sfd);
 Sint32 SFD_GetTime(SFD sfd, Sint32 *ncount, Sint32 *tscale);
 Sint32 SFD_SetSpeed(SFD sfd, Sint32 speed);
 Bool SFTIM_IsGetFrmTime(SFD sfd, void *frm);
+Bool SFTIM_IsGetFrmTimeTunit(SFD sfd, Sint32 ftime, Sint32 tunit);
 Bool SFTIM_IsVideoTerm(SFD sfd);
 
 #endif

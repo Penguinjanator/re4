@@ -330,12 +330,12 @@ void SsFileInit::move(SUB_SCREEN* wk)
         IdFreeBuffer();
         IdSub.set(SS_ARC_PTR(wk->pCmmn, 0xC), 0xFF, 0x14, 0xC, 6, 0);
         file_wait = 0;
-        goto NEXT;
+        state++;
+        break;
     case 1:
         if (--file_wait >= 0) {
             break;
         }
-    NEXT:
         state++;
         break;
     case 2:

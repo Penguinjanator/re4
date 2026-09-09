@@ -185,6 +185,7 @@ struct OmTbl {
 };
 
 typedef int (*PacFunc)(Event*);
+typedef void (*EvtFunc)(Event*, int);
 
 template <class T>
 void cManager<T>::destroyNow(T* p)
@@ -1288,7 +1289,7 @@ int Event::ExePacket_Lit(Event* evt)
         return 1;
     }
     if (EvtChk(evt->status, 0x40000000)) {
-        if (evt->toolCut == evt->cut && evt->pLit == dat) {
+        if (evt->toolCut != evt->cut || evt->pLit == dat) {
             return 1;
         }
     }
@@ -1340,10 +1341,11 @@ int Event::ExePacket_Str(Event* evt)
 {
     char nm[0x40];
     EvtPacket* pac = evt->pPacket;
+    char* key = nm;
     int no;
     int blk;
 
-    strcpy(nm, evt->name);
+    strcpy(key, evt->name);
     blk = pac->val.no;
     no = pac->val.arg;
     if (evt->strTime != 0) {
@@ -1351,11 +1353,11 @@ int Event::ExePacket_Str(Event* evt)
         evt->strTime = 0;
     }
     if (blk == 0) {
-        EvtMgr.EvtSndStrPlay((u32*) nm, 0, no, 0, 0.0f);
+        EvtMgr.EvtSndStrPlay((u32*) key, 0, no, 0, 0.0f);
     } else if (!(pac->flag & 0x20000000)) {
-        EvtMgr.EvtSndStrPlay((u32*) nm, blk, no, 1, 0.0f);
+        EvtMgr.EvtSndStrPlay((u32*) key, blk, no, 1, 0.0f);
     } else {
-        EvtMgr.EvtSndStrPlay((u32*) nm, blk, no, 0, 0.0f);
+        EvtMgr.EvtSndStrPlay((u32*) key, blk, no, 0, 0.0f);
     }
     return 1;
 }
@@ -1397,14 +1399,16 @@ int Event::ExePacket_Mes(Event* evt)
 
 int Event::ExePacket_Func(Event* evt)
 {
-    void (**tbl)(Event*, int) = evt->funcTbl;
+    u32 tbl = evt->funcTbl;
     EvtPacket* pac = evt->pPacket;
+    EvtFunc fn;
 
-    if (tbl != 0) {
-        tbl[pac->val.no](evt, pac->val.arg);
-    } else {
+    if (tbl == 0) {
         pLog->err(0, 0, "Event::ExePacket_Func: func failed");
+        return 1;
     }
+    fn = *(EvtFunc*) (pac->val.no * 4 + tbl);
+    fn(evt, pac->val.arg);
     return 1;
 }
 
@@ -1475,8 +1479,8 @@ void Event::ExeBeginEvt(Event* evt, int mode)
         EvtMgr.SetBin("em/pl00/pl000b.tpl", PL_ARC_PTR(pG->pPlArc, 7), 0, 2);
         EvtMgr.SetBin("em/pl00/pl000e.bin", PL_ARC_PTR(pG->pPlArc, 0xA), 0, 2);
         EvtMgr.SetBin("em/pl00/pl000l.bin", PL_ARC_PTR(pG->pPlArc, 0x10), 0, 2);
-        EvtMgr.SetBin("etc/core/dummy.bin", (u8*) pG->pArc + pG->pArc->ofs_20, 0, 2);
-        EvtMgr.SetBin("etc/core/dummy.tpl", (u8*) pG->pArc + pG->pArc->ofs_24, 0, 2);
+        EvtMgr.SetBin("etc/core/dummy.bin", (void*) (pG->pArc->ofs_20 + (u32) pG->pArc), 0, 2);
+        EvtMgr.SetBin("etc/core/dummy.tpl", (void*) (pG->pArc->ofs_24 + (u32) pG->pArc), 0, 2);
     }
     EvtMesDeleteAll();
     pG->flags_54 |= 0x400;
@@ -1493,6 +1497,7 @@ void Event::ExeEndEvt(Event* evt, u32 mode)
     cModel* m;
     int n;
     int i;
+    cPlayer* pl;
 
     if (!EvtChk(evt->status, 0x800)) {
         pos = pPL->pos;
@@ -1513,10 +1518,11 @@ void Event::ExeEndEvt(Event* evt, u32 mode)
         }
         switch (type) {
         case 0:
+            pl = pPL;
             if (mode & 0x10000000) {
-                pPL->endEvent0(1);
+                pl->endEvent0(1);
             } else {
-                pPL->endEvent0(0);
+                pl->endEvent0(0);
             }
             break;
         case 2:
@@ -1591,11 +1597,11 @@ int Event::ExeFunc(int mode, int arg)
     if (EvtMgr.GetFunc(&fn, nm) == 0) {
         return 0;
     }
-    if (fn != 0) {
-        ((void (*)(Event*, int)) fn)(this, arg);
-    } else {
+    if (fn == 0) {
         pLog->err(0, 0, "Event::ExeFunc: func failed");
+        return 1;
     }
+    ((EvtFunc) fn)(this, arg);
     return 1;
 }
 
@@ -1610,6 +1616,9 @@ void Event::CalNextPacket()
 
 void Event::CalNextFrame()
 {
+    char buf[0x20];
+    int zero = 0;
+
     if (EvtChk(status, 0x20000000)) {
         if (cut >= maxCut) {
             return;
@@ -1618,14 +1627,14 @@ void Event::CalNextFrame()
     if (nextCut != 0) {
         cut = nextCut - 1;
         frame = maxFrame;
-        nextCut = 0;
+        nextCut = zero;
     }
     frame++;
     totalFrame++;
     if (frame < maxFrame) {
         return;
     }
-    frame = 0;
+    frame = zero;
     cut++;
     if (CalMaxFrame(&maxFrame, cut) == 0) {
         pLog->err(0, 0, "Event::init : data failed");
@@ -1642,13 +1651,14 @@ void Event::ChkCutZero()
 int Event::CalMaxCut(int* out)
 {
     EvtPacket* p;
-    int n = 0;
+    int n;
 
     if (out == 0) {
         return 0;
     }
     *out = 0;
-    p = (EvtPacket*) ((u8*) pData + pData->pacOfs);
+    n = 0;
+    p = (EvtPacket*) (pData->pacOfs + (u32) pData);
     while (p->id != 0x1B) {
         if (p->id > 0x20) {
             pLog->err(0, 0, "Event::CalMaxFrame : id over");
@@ -1670,13 +1680,14 @@ int Event::CalMaxFrame(int* out, int c)
 {
     void* dat;
     EvtPacket* p;
-    int n = 0;
+    int n;
 
     if (out == 0) {
         return 0;
     }
     *out = 0;
-    p = (EvtPacket*) ((u8*) pData + pData->pacOfs);
+    n = 0;
+    p = (EvtPacket*) (pData->pacOfs + (u32) pData);
     while (p->id != 0x1B) {
         if (p->id > 0x20) {
             pLog->err(0, 0, "Event::CalMaxFrame : id over");
@@ -1736,12 +1747,25 @@ int Event::CalMaxTotalFrame(int* outCut, int* outTotal)
     return 1;
 }
 
+
+static inline void EvtFadeSetW(int no, u32 time, u32 z, int late)
+{
+    FadeColorPair col;
+    u32 c;
+
+    c = (no & 0x80000000) ? 0xFF : 0;
+    *(u32*) &col.start = c;
+    c = (no & 0x80000000) ? 0 : 0xFF;
+    *(u32*) &col.end = c;
+    FadeSet(no, &col.start, &col.end, time, z, late);
+}
+
 void Event::SetDiedemoExec()
 {
     status |= 0x100;
     if (EvtChk(status, 0x04000000)) {
         FadeKill(2);
-        FadeSetW(0x80000001, 0xA, 0, 0);
+        EvtFadeSetW(0x80000001, 0xA, 0, 0);
     }
     DiedemoExec(0, 1);
 }
@@ -2482,7 +2506,7 @@ int EventMgr::DelEvt(void* evt_, int flag)
     strcpy(evtName, "");
     if (fade) {
         FadeKill(2);
-        FadeSetW(0x80000001, 0xA, 0, 0);
+        EvtFadeSetW(0x80000001, 0xA, 0, 0);
     }
     return 1;
 }

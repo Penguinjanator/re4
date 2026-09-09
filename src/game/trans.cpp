@@ -717,6 +717,11 @@ int commonScreenMatSub(cModel* m, cModelInfo* info)
         size = d->nVtx * 6;
         asize = size + 31;
         asize = asize >> 5 << 5;
+        // The original keeps `size` live past the `+ 31` at one of the three alloc sites, so
+        // `size` and `asize` conflict and `size` does not inherit asize's r3 preference
+        // (mulli r9 / addi r3 instead of a chained r3). The source form that did this is
+        // unknown; the empty asm reproduces the liveness without emitting code.
+        asm("" : : "r"(size));
         buf = GetPrimBuff(asize);
         if (PTR_INVALID2(buf)) {
             pLog->warn(0, 0, "commonScreenMatSub() : VTX prim alloc failed.");

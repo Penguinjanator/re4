@@ -13169,10 +13169,11 @@ void em10NeckMove(cEm10* em)
 {
     Em10Work* w = EM10_WK(em);
     cModel* p;
+    Mtx m;
     Vec v;
     Vec d;
-    Mtx m;
     f32 a;
+    f32 l;
 
     if (w->flags & 0x00400000) {
         return;
@@ -13182,20 +13183,23 @@ void em10NeckMove(cEm10* em)
     }
     p = em->getPartsPtr(4);
     if (!(w->flags & 0x08000000)) {
+        cModel* h = pPL->getPartsPtr(4);
         v.x = 0.0f;
         v.y = 0.0f;
         v.z = 0.0f;
-        PSMTXMultVec(pPL->getPartsPtr(4)->mat, &v, &v);
+        PSMTXMultVec(h->mat, &v, &v);
     } else {
+        cModel* h = pSUB->getPartsPtr(4);
         v.x = 0.0f;
         v.y = 0.0f;
         v.z = 0.0f;
-        PSMTXMultVec(pSUB->getPartsPtr(4)->mat, &v, &v);
+        PSMTXMultVec(h->mat, &v, &v);
     }
     if (w->flags & 0x00040000) {
         w->x5CC = w->x5CC * 0.9f + Muku(&em->pos, &v, em->rot.y, 1.0471976f) * 0.1f;
         PSVECSubtract(&v, &p->worldPos, &d);
-        a = -atan2f(d.y, SQRTF(d.x * d.x + d.z * d.z));
+        l = SQRTF(d.x * d.x + d.z * d.z);
+        a = -atan2f(d.y, l);
         if (a > 0.7853982f) {
             a = 0.7853982f;
         }
@@ -13241,7 +13245,7 @@ extern "C" int em10ClawCriAtkCk(cEm10* em)
     if (w->x67C != 0) {
         return 0;
     }
-    if (w->x646 != 0) {
+    if ((s16) w->x646 != 0) {
         return 0;
     }
     if (Ctrl12Ck(w->pCtrl12, 6)) {
@@ -13329,4 +13333,165 @@ extern "C" void em10SetCampos2(cEm10* em)
     }
     w->cam.param.fovy = 55.0f;
     CameraSetOrientationUp(&w->cam);
+}
+
+int em10ThrowBombCk(cEm10* em)
+{
+    Em10Work* w = EM10_WK(em);
+    Vec a;
+    Vec b;
+    int hit;
+
+    if (w->x58C != 0) {
+        return 0;
+    }
+    if (w->pParasite != 0) {
+        return 0;
+    }
+    if (w->flags & 0x80) {
+        return 0;
+    }
+    if (w->wepType != 9) {
+        return 0;
+    }
+    if (w->pWep == 0) {
+        return 0;
+    }
+    if (w->x640 == 0) {
+        return 0;
+    }
+    if (!(em->flags_3C8 & 0x00010000)) {
+        return 0;
+    }
+    if (w->x696 == 0) {
+        if ((pG->flags_51E4 & 0xF) != (em->emsetNo & 0xF)) {
+            return 0;
+        }
+    }
+    if (Ctrl12Ck(w->pCtrl12, 6)) {
+        return 0;
+    }
+    if (Ctrl12Ck(w->pCtrl12, 8)) {
+        return 0;
+    }
+    if (pG->x4F88 <= 3) {
+        if (!em10ThrowNearCk(em)) {
+            return 0;
+        }
+        if (!em10ScreenInCk(em)) {
+            return 0;
+        }
+    }
+    if (fabsf(Muku(&em->pos, &pPL->pos, em->rot.y, 3.1415927f)) > 0.7853982f) {
+        return 0;
+    }
+    if (em->plDist2 < 12250000.0f || em->plDist2 > 225000000.0f) {
+        return 0;
+    }
+    if (fabsf(Muku(&pPL->pos, &em->pos, pPL->rot.y, 3.1415927f)) > 1.0471976f) {
+        return 0;
+    }
+    a = em->pos;
+    b = pPL->pos;
+    a.y += 1500.0f;
+    b.y += 1500.0f;
+    hit = EatMgr.hitCheck(&a, &b, 0, 0, 0, 0x4000);
+    if (hit) {
+        return 0;
+    }
+    EmRoutineSet(em, 1, 0x25, hit, hit);
+    if (pG->x4F88 <= 3) {
+        Ctrl12Set(w->pCtrl12, 6, 60);
+        Ctrl12Set(w->pCtrl12, 8, 120);
+    } else if (pG->stage_no <= 2 && pG->x4F88 <= 9) {
+        Ctrl12Set(w->pCtrl12, 6, 30);
+        Ctrl12Set(w->pCtrl12, 8, 120);
+    }
+    return 1;
+}
+
+// em10ScytheAtkCk / em10SukiAtkCk share one body apart from the weapon kind and the attack routine.
+#define EM10_WEP_ATK_CK(em, w, kind, rtn)                                                          \
+    {                                                                                              \
+        Vec a;                                                                                     \
+        Vec b;                                                                                     \
+        int hit;                                                                                   \
+        u8 r;                                                                                      \
+        if (w->wepType != kind) {                                                                  \
+            return 0;                                                                              \
+        }                                                                                          \
+        if (w->pWep == 0) {                                                                        \
+            return 0;                                                                              \
+        }                                                                                          \
+        if (w->x67C != 0) {                                                                        \
+            return 0;                                                                              \
+        }                                                                                          \
+        if (w->x58C != 0) {                                                                        \
+            return 0;                                                                              \
+        }                                                                                          \
+        if (w->pParasite != 0) {                                                                   \
+            return 0;                                                                              \
+        }                                                                                          \
+        if (w->flags & 0x80) {                                                                     \
+            return 0;                                                                              \
+        }                                                                                          \
+        if (Ctrl12Ck(w->pCtrl12, 6)) {                                                             \
+            return 0;                                                                              \
+        }                                                                                          \
+        if (!(w->flags & 1)) {                                                                     \
+            return 0;                                                                              \
+        }                                                                                          \
+        if (w->x508 > 0.7853982f) {                                                                \
+            return 0;                                                                              \
+        }                                                                                          \
+        if (fabsf(em->pos.y - pPL->pos.y) > 1500.0f) {                                             \
+            return 0;                                                                              \
+        }                                                                                          \
+        if (em->plDist2 > 4000000.0f) {                                                            \
+            if (!em10PlRunCk(em)) {                                                                \
+                return 0;                                                                          \
+            }                                                                                      \
+            if (em->plDist2 > 20250000.0f) {                                                       \
+                return 0;                                                                          \
+            }                                                                                      \
+        }                                                                                          \
+        if (pG->x4F88 <= 3) {                                                                      \
+            if (!em10ScreenInCk(em)) {                                                             \
+                return 0;                                                                          \
+            }                                                                                      \
+        }                                                                                          \
+        a = em->pos;                                                                               \
+        b = pPL->pos;                                                                              \
+        a.y += 1500.0f;                                                                            \
+        b.y += 1500.0f;                                                                            \
+        hit = EatMgr.hitCheck(&a, &b, 0, 0, 0, 0x4000);                                            \
+        if (hit) {                                                                                 \
+            return 0;                                                                              \
+        }                                                                                          \
+        if (pG->x4F88 <= 1 && !EM_RTN(em, 1, 0x1B) && (r = Rnd() % 10, r > 4)) {                   \
+            w->x67C = 30;                                                                          \
+            EmRoutineSet(em, 1, 0x1B, hit, hit);                                                   \
+            return 1;                                                                              \
+        }                                                                                          \
+        EmRoutineSet(em, 1, rtn, 0, 0);                                                            \
+        if (pG->x4F88 <= 3) {                                                                      \
+            Ctrl12Set(w->pCtrl12, 6, 60);                                                          \
+            Ctrl12Set(w->pCtrl12, 8, 120);                                                         \
+        } else if (pG->stage_no <= 2 && pG->x4F88 <= 9) {                                          \
+            Ctrl12Set(w->pCtrl12, 6, 30);                                                          \
+            Ctrl12Set(w->pCtrl12, 8, 120);                                                         \
+        }                                                                                          \
+        return 1;                                                                                  \
+    }
+
+extern "C" int em10ScytheAtkCk(cEm10* em)
+{
+    Em10Work* w = EM10_WK(em);
+    EM10_WEP_ATK_CK(em, w, 6, 0x2A);
+}
+
+extern "C" int em10SukiAtkCk(cEm10* em)
+{
+    Em10Work* w = EM10_WK(em);
+    EM10_WEP_ATK_CK(em, w, 1, 0x29);
 }

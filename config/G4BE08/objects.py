@@ -1361,10 +1361,22 @@ MATCHING.update({
     "lib/adx_bsps.c": True,
     "lib/mwsfdsst.c": True,
     "lib/mwsfdset.c": True,
+    "lib/adx_fs.c": True,
 })
 
 # partner character (pl_npc): const f32 locals for pool order, per-value switch bodies, dead
 # `farCheck` inline whose pool word survives the strip (STRIP_UNUSED)
 MATCHING.update({
     "game/pl_npc.cpp": True,
+})
+
+# SN libsn FSasync: volatile transfer state (reloads), `for (;;) { cnt--; if (cnt == -1) break; }`
+# loops (shared @ha register), 32-byte aligned DMA result struct, -fno-common .bss order
+MATCHING.update({
+    "lib/FSasync.c": True,
+})
+
+# AX FX standard reverb: `max_length << 2` in DLcreate decides `rv`'s callee-saved register
+MATCHING.update({
+    "lib/reverb_std.c": True,
 })

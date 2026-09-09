@@ -1936,3 +1936,17 @@ Then `MATCHING["st2_4/r22c.cpp"] = True` in `config/G4BE08/modules.py`, `python3
   re-run `tools/gen_rel_config.py`.
 - Do not run interactive `objdiff-cli diff`; use `tools/fdiff.py` (one-shot).
 - Do not commit; the orchestrator commits.
+
+- Loop rotation is decided by stmt.c `expand_end_loop`'s scan for a jump to the loop end within the
+  first ~30 insns: `while (1)` + a deep `break` stays un-rotated (test at top, `b top` at bottom);
+  `if (!c) {...} else break;` stays un-rotated; `do { if (call()==1) break; SceSleep(1); } while (1);`
+  gives the un-rotated poll; `for (;;) { if (c) break; }` and `while (c)` get rotated + duplicated test.
+- Named struct arrays with non-constant initializers get a `memset` per row (C++ TYPE_FIELDS includes
+  the class-name TYPE_DECL); the original used plain `void* tbl[N][M]`.
+- A cEm local (0x3E0) against em.h's 0xDE0 cEm: `struct { u8 buf[0x3E0]; }` + `cEmConstruct asm("__3cEm")`
+  + qualified `((cUnit*)&em)->cUnit::~cUnit()` reproduces frame, inlined dtor and the linkonce copies.
+- After `sync_rel_symbols.py` the module split objects are not re-split by ninja; delete
+  `build/G4BE08/config.json` to force it, otherwise unit_info/fdiff report stale names.
+- COMPILER-DIFF candidate #7: the original duplicates the leading insns of a two-predecessor loop-test
+  block into both predecessors (pool load / `lfs; fadds; fcmpu; stfs`), leaving the constant in a
+  caller-saved f13 reloaded after the call; our gcse only inserts with partial availability.

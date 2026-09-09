@@ -31,4 +31,7 @@ void OptionDataRead();
 void* EmReadSearch(int id, void* addr, u32 size);
 }
 
+// Clears the enemy module list (r106 before the chapter-end event reloads them).
+extern "C" void EmReadInit();
+
 #endif

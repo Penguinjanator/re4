@@ -3296,10 +3296,370 @@ void draw_tone_curve()
     b.y = 150.0f - sz * 255.0f;
     Draw_line(&a, &b, 0xFFFFFFFF);
 }
-static void edit_blur() {}
-static void edit_mipmap() {}
-static void edit_tune() {}
-static void edit_scale() {}
+// Blur filter of the cut: type / rate / power and the contrast level / power / bias.
+static void edit_blur()
+{
+    int step = (pTool->joy.on & JOY_A) ? 10 : 1;
+    cLightEnv* env = LightMgr.getEnvPtr();
+    f32 fstep = (pTool->joy.on & JOY_A) ? 1.0f : 0.1f;
+    const char* type_name[] = {"NORMAL", "SPREAD", "ADD", "SUBTRACT"};
+    f32 f;
+
+    eprintf(0x20, 0x2A, 4, pTool->color, "BLUR");
+    if (pTool->cursor <= 2) {
+        pTool->printCursor(3, pTool->cursor + 4);
+    } else {
+        pTool->printCursor(3, pTool->cursor + 6);
+    }
+    if (pTool->joy.rep & JOY_UP) {
+        pTool->cursor = (pTool->cursor + 5) % 6;
+    }
+    if (pTool->joy.rep & JOY_DOWN) {
+        pTool->cursor = (pTool->cursor + 7) % 6;
+    }
+    switch (pTool->cursor) {
+    case 0:
+        env->blurType += (u8) ((f32) pTool->joy.sx * fstep);
+        if (pTool->joy.rep & JOY_RIGHT) {
+            env->blurType += step;
+        }
+        if (env->blurType > 2) {
+            env->blurType = 0;
+        }
+        if (pTool->joy.rep & JOY_LEFT) {
+            env->blurType -= step;
+        }
+        if (env->blurType > 2) {
+            env->blurType = 2;
+        }
+        break;
+    case 1:
+        f = (f32) env->blurAlpha + (f32) pTool->joy.sx * fstep;
+        if (f < 0.0f) {
+            f = 0.0f;
+        }
+        if (f > 255.0f) {
+            f = 255.0f;
+        }
+        env->blurAlpha = f;
+        if (pTool->joy.rep & JOY_RIGHT) {
+            env->blurAlpha += step;
+        }
+        if (pTool->joy.rep & JOY_LEFT) {
+            env->blurAlpha -= step;
+        }
+        break;
+    case 2:
+        env->blurPower += (s8) ((f32) pTool->joy.sx * fstep * 0.2f);
+        if (pTool->joy.rep & JOY_RIGHT) {
+            env->blurPower += step;
+        }
+        if (pTool->joy.rep & JOY_LEFT) {
+            env->blurPower -= step;
+        }
+        break;
+    case 3:
+        f = (f32) (u8) env->contrast[0] + (f32) pTool->joy.sx * fstep;
+        if (f < 0.0f) {
+            f = 0.0f;
+        }
+        if (f > 3.0f) {
+            f = 3.0f;
+        }
+        env->contrast[0] = (u8) f;
+        if ((u8) env->contrast[0] != 3 && (pTool->joy.rep & JOY_RIGHT)) {
+            env->contrast[0] += step;
+        }
+        if ((u8) env->contrast[0] != 0 && (pTool->joy.rep & JOY_LEFT)) {
+            env->contrast[0] -= step;
+        }
+        if ((u8) env->contrast[0] > 3) {
+            env->contrast[0] = 3;
+        }
+        break;
+    case 4:
+        f = (f32) (u8) env->contrast[1] + (f32) pTool->joy.sx * fstep;
+        if (f < 0.0f) {
+            f = 0.0f;
+        }
+        if (f > 255.0f) {
+            f = 255.0f;
+        }
+        env->contrast[1] = (u8) f;
+        if (pTool->joy.rep & JOY_RIGHT) {
+            env->contrast[1] += step;
+        }
+        if (pTool->joy.rep & JOY_LEFT) {
+            env->contrast[1] -= step;
+        }
+        break;
+    case 5:
+        f = (f32) (u8) env->contrast[2] + (f32) pTool->joy.sx * fstep;
+        if (f < 0.0f) {
+            f = 0.0f;
+        }
+        if (f > 255.0f) {
+            f = 255.0f;
+        }
+        env->contrast[2] = (u8) f;
+        if (pTool->joy.rep & JOY_RIGHT) {
+            env->contrast[2] += step;
+        }
+        if (pTool->joy.rep & JOY_LEFT) {
+            env->contrast[2] -= step;
+        }
+        break;
+    }
+    if (env->blurType > 2) {
+        env->blurType = 0;
+    }
+    eprintf(0x20, 0x38, 0, pTool->color, "TYPE   %s", type_name[env->blurType]);
+    if (env->blurAlpha == 0) {
+        eprintf(0x20, 0x46, 0, pTool->color, "RATE   OFF");
+    } else {
+        eprintf(0x20, 0x46, 0, pTool->color, "RATE   %d", env->blurAlpha);
+    }
+    eprintf(0x20, 0x54, 0, pTool->color, "POW    %d", env->blurPower);
+    eprintf(0x20, 0x70, 4, pTool->color, "CONTRAST");
+    if ((u8) env->contrast[0] == 0) {
+        eprintf(0x20, 0x7E, 0, pTool->color, "LEVEL  OFF");
+    } else {
+        eprintf(0x20, 0x7E, 0, pTool->color, "LEVEL  %d", (u8) env->contrast[0]);
+    }
+    eprintf(0x20, 0x8C, 0, pTool->color, "POW    %d", (u8) env->contrast[1]);
+    eprintf(0x20, 0x9A, 0, pTool->color, "BIAS   %d", (u8) env->contrast[2]);
+    if (pTool->joy.rep & JOY_B) {
+        pTool->editNo = 0;
+    }
+    draw_tone_curve();
+    LightMgr.setEnv(env, -1);
+}
+// Mipmap settings of the cut: min / max LOD, LOD bias and anisotropy.
+static void edit_mipmap()
+{
+    cLightEnv* env = LightMgr.getEnvPtr();
+    f32 step = (pTool->joy.on & JOY_A) ? 0.01f : 0.001f;
+
+    eprintf(0x20, 0x2A, 4, pTool->color, "MIPMAP");
+    switch (pTool->sub) {
+    case 0:
+        pTool->cursor = 0;
+        pTool->sub = 1;
+        env->minLod %= 10;
+        env->maxLod %= 10;
+    case 1:
+        pTool->printCursor(3, pTool->cursor + 4);
+        if (pTool->joy.rep & JOY_UP) {
+            pTool->cursor = (pTool->cursor + 3) % 4;
+        }
+        if (pTool->joy.rep & JOY_DOWN) {
+            pTool->cursor = (pTool->cursor + 5) % 4;
+        }
+        switch (pTool->cursor) {
+        case 0:
+            if ((pTool->joy.rep & JOY_RIGHT) && env->minLod <= 4) {
+                env->minLod++;
+            }
+            if ((pTool->joy.rep & JOY_LEFT) && env->minLod != 0) {
+                env->minLod--;
+            }
+            break;
+        case 1:
+            if ((pTool->joy.rep & JOY_RIGHT) && env->maxLod <= 4) {
+                env->maxLod++;
+            }
+            if ((pTool->joy.rep & JOY_LEFT) && env->maxLod != 0) {
+                env->maxLod--;
+            }
+            break;
+        case 2:
+            if (pTool->joy.rep & JOY_RIGHT) {
+                env->lodBias += 1.0f;
+            }
+            if (pTool->joy.rep & JOY_LEFT) {
+                env->lodBias -= 1.0f;
+            }
+            if (pTool->joy.trg & JOY_Y) {
+                env->lodBias = 0.0f;
+            }
+            env->lodBias += (f32) pTool->joy.sx * step;
+            if (env->lodBias < -4.0f) {
+                env->lodBias = -4.0f;
+            }
+            if (env->lodBias > 3.99f) {
+                env->lodBias = 3.99f;
+            }
+            break;
+        case 3:
+            if ((pTool->joy.rep & JOY_RIGHT) && env->aniso <= 1) {
+                env->aniso++;
+            }
+            if ((pTool->joy.rep & JOY_LEFT) && env->aniso != 0) {
+                env->aniso--;
+            }
+            break;
+        }
+        if (pTool->joy.rep & JOY_B) {
+            pTool->sub = 0;
+            pTool->editNo = 0;
+        }
+        break;
+    }
+    eprintf(0x20, 0x38, 0, pTool->color, "MIN LOD %d", env->minLod);
+    eprintf(0x20, 0x46, 0, pTool->color, "MAX LOD %d", env->maxLod);
+    eprintf(0x20, 0x54, 0, pTool->color, "LODBIAS %3.2f", env->lodBias);
+    eprintf(0x20, 0x62, 0, pTool->color, "ANISO   %s", aniso_name[env->aniso]);
+    LightMgr.setMipmap(env);
+}
+// Lit tune: the room / core switch, the three tune colours and the manager's colour blend rate.
+static void edit_tune()
+{
+    static const char* tune_name[] = {"", "LIGHT", "AMBIENT", "EFFECT"};
+    cLightEnv* env = LightMgr.getEnvPtr();
+    u32 i;
+    const char** name;
+    f32 d;
+
+    switch (pTool->sub) {
+    case 0:
+        pTool->cursor = 0;
+        pTool->sub = 1;
+    case 1:
+        switch (pTool->cursor) {
+        case 0:
+            if (pTool->joy.rep & JOY_RIGHT) {
+                env->tuneOn &= ~1;
+            }
+            if (pTool->joy.rep & JOY_LEFT) {
+                env->tuneOn |= 1;
+            }
+            break;
+        case 1:
+            if (pTool->joy.rep & JOY_A) {
+                pTool->cursor = 0;
+                pTool->sub = 2;
+            }
+            break;
+        case 2:
+            if (pTool->joy.rep & JOY_A) {
+                pTool->cursor = 0;
+                pTool->sub = 3;
+            }
+            break;
+        case 3:
+            if (pTool->joy.rep & JOY_A) {
+                pTool->cursor = 0;
+                pTool->sub = 4;
+            }
+            break;
+        }
+        d = (f32) pTool->joy.sx * 0.0005f;
+        LightMgr.colBrendRate += (pTool->joy.on & JOY_A) ? d * 10.0f : d;
+        if (LightMgr.colBrendRate < 0.0f) {
+            LightMgr.colBrendRate = 0.0f;
+        }
+        if (LightMgr.colBrendRate > 1.0f) {
+            LightMgr.colBrendRate = 1.0f;
+        }
+        if (pTool->joy.rep & JOY_UP) {
+            pTool->cursor = (pTool->cursor + 3) & 3;
+        } else if (pTool->joy.rep & JOY_DOWN) {
+            pTool->cursor = (pTool->cursor + 5) & 3;
+        }
+        if (!(env->tuneOn & 1)) {
+            pTool->cursor = 0;
+        }
+        pTool->printCursor(3, pTool->cursor + 4);
+        if (pTool->joy.rep & JOY_B) {
+            pTool->sub = 0;
+            pTool->editNo = 0;
+            pTool->clearWork();
+        }
+        break;
+    case 2:
+        if (editColor(4, 0x14, &env->tune[0]) == 0) {
+            pTool->sub = 1;
+        }
+        break;
+    case 3:
+        if (editColor(4, 0x14, &env->tune[1]) == 0) {
+            pTool->sub = 1;
+        }
+        break;
+    case 4:
+        if (editColor(4, 0x14, &env->tune[2]) == 0) {
+            pTool->sub = 1;
+        }
+        break;
+    }
+    eprintf(0x20, 0x2A, 4, pTool->color, "LIT TUNE");
+    eprintf(0x20, 0x38, !(env->tuneOn & 1) ? 0x14 : 0, pTool->color, "ROOM");
+    eprintf(0x40, 0x38, 0, pTool->color, "/");
+    eprintf(0x48, 0x38, (env->tuneOn & 1) ? 0x14 : 0, pTool->color, "CORE");
+    eprintf(0x78, 0x38, 0, pTool->color, "%3.0f%%", LightMgr.colBrendRate * 100.0f);
+    name = tune_name;
+    for (i = 0; i < 4; i++) {
+        eprintf(0x20, 0x38 + i * 0xE, 0, pTool->color, *name++);
+    }
+    if (env->tuneOn & 1) {
+        drawColorTile(0x60, 0x49, 0x38, 8, *(u32*) &env->tune[0]);
+        drawColorTile(0x60, 0x57, 0x38, 8, *(u32*) &env->tune[1]);
+        drawColorTile(0x60, 0x65, 0x38, 8, *(u32*) &env->tune[2]);
+    } else {
+        drawColorTile(0x60, 0x49, 0x38, 8, 0xC8C0F080);
+        drawColorTile(0x60, 0x57, 0x38, 8, 0);
+        drawColorTile(0x60, 0x65, 0x38, 8, 0);
+    }
+    LightMgr.setTune(env);
+}
+// TEV colour scale of the models and of the player.
+static void edit_scale()
+{
+    static const char* scale_name[] = {"x1", "x2", "x4", "err"};
+    cLightEnv* env = LightMgr.getEnvPtr();
+
+    switch (pTool->sub) {
+    case 0:
+        pTool->cursor = 0;
+        pTool->sub = 1;
+        break;
+    case 1:
+        switch (pTool->cursor) {
+        case 0:
+            if (pTool->joy.rep & JOY_RIGHT) {
+                env->tevScale[0] = (env->tevScale[0] + 4) % 3;
+            }
+            if (pTool->joy.rep & JOY_LEFT) {
+                env->tevScale[0] = (env->tevScale[0] + 2) % 3;
+            }
+            break;
+        case 1:
+            if (pTool->joy.rep & JOY_RIGHT) {
+                env->tevScale[1] = (env->tevScale[1] + 4) % 3;
+            }
+            if (pTool->joy.rep & JOY_LEFT) {
+                env->tevScale[1] = (env->tevScale[1] + 2) % 3;
+            }
+            break;
+        }
+        if (pTool->joy.rep & JOY_UP) {
+            pTool->cursor = (pTool->cursor + 1) & 1;
+        } else if (pTool->joy.rep & JOY_DOWN) {
+            pTool->cursor = (pTool->cursor + 3) & 1;
+        }
+        pTool->printCursor(3, pTool->cursor + 4);
+        if (pTool->joy.rep & JOY_B) {
+            pTool->sub = 0;
+            pTool->editNo = 0;
+            pTool->clearWork();
+        }
+        break;
+    }
+    eprintf(0x20, 0x2A, 4, pTool->color, "LIT SCALE");
+    eprintf(0x20, 0x38, 0, pTool->color, "MODEL  TEV SCALE %s", scale_name[env->tevScale[0]]);
+    eprintf(0x20, 0x46, 0, pTool->color, "PLAYER TEV SCALE %s", scale_name[env->tevScale[1]]);
+    LightMgr.setEnv(env, -1);
+}
 static void edit_param() {}
 static void edit_wind() {}
 static void path() {}

@@ -179,10 +179,12 @@ void CompletePCreadAsync(void)
 	}
 	while (EXI2_CR & 1) {
 	}
-	g_nBlockCnt--;
-	while (g_nBlockCnt != -1) {
-		SNDVDReadSync_next(g_pBuffer, FS_BLOCK_SIZE);
+	for (;;) {
 		g_nBlockCnt--;
+		if (g_nBlockCnt == -1) {
+			break;
+		}
+		SNDVDReadSync_next(g_pBuffer, FS_BLOCK_SIZE);
 		g_pBuffer += FS_BLOCK_SIZE;
 	}
 	if (g_nRemainderCnt) {
@@ -192,10 +194,12 @@ void CompletePCreadAsync(void)
 	EXI2_CSR = 0;
 	while (g_nTotalBytesRemaining) {
 		ReadSyncNext();
-		g_nBlockCnt--;
-		while (g_nBlockCnt != -1) {
-			SNDVDReadSync_next(g_pBuffer, FS_BLOCK_SIZE);
+		for (;;) {
 			g_nBlockCnt--;
+			if (g_nBlockCnt == -1) {
+				break;
+			}
+			SNDVDReadSync_next(g_pBuffer, FS_BLOCK_SIZE);
 			g_pBuffer += FS_BLOCK_SIZE;
 		}
 		if (g_nRemainderCnt) {

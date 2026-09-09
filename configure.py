@@ -413,6 +413,7 @@ CRI_CFLAG_OVERRIDES: Dict[str, Dict[str, str]] = {
     # and the functions are emitted in reverse source order (mwcc 2.4.7 always reverses under
     # `deferred`; the DOL's .text/.rodata order is the reverse of the natural file order)
     "lib/mwsfdset.c": {"-inline auto": "-inline auto,deferred"},
+    "lib/adx_fs.c": {"-inline auto": "-inline auto,deferred"},
 }
 
 
@@ -452,9 +453,10 @@ LIBM_UNITS = {
 cflags_libm = [*cflags_game, "-msafe-sda", "-G 1024", "-fno-builtin", "-mstrict-align"]
 
 # SN Systems libsn (ProDG runtime: stdio stubs, debugger stub, fp/64-bit helpers): GCC 2.95 -O2 with
-# no small data (`first.183` of dummy.c sits in .data).
+# no small data (`first.183` of dummy.c sits in .data) and no common symbols (FSasync's uninitialised
+# globals sit in the unit's own .bss in declaration order).
 LIBSN_UNITS = {f"lib/{name}.c" for name in ["dummy", "tealeaf", "FSasync", "sndvd", "fileserver", "crt0"]}
-cflags_libsn = [*cflags_game, "-G 0"]
+cflags_libsn = [*cflags_game, "-G 0", "-fno-common"]
 
 # gcc 2.95.3 libgcc2.c, one L_* section per unit (src/lib/libgcc2/ holds the verbatim sources plus
 # a tconfig.h shim). __clz_tab (256 bytes) sits in .sdata2, so -G is large here as well; functions

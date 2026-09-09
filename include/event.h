@@ -158,7 +158,7 @@ public:
     cModel* pOya;          // 0x80  the "pl0000" object model (player stand-in)
     cModel* pPosOya;       // 0x84  "oya0000" position base
     void* x88;             // 0x88
-    void (**funcTbl)(Event*, int);  // 0x8C  ExePacket_Func table
+    u32 funcTbl;           // 0x8C  ExePacket_Func table (void (*[])(Event*, int)), kept as an address
     int totalFrame;        // 0x90
     int maxTotalFrame;     // 0x94
     int frame;             // 0x98  frame in the cut

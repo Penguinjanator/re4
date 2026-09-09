@@ -2,8 +2,8 @@
 #include "main_mem.h"
 #include "st_room.h"
 #include "atari.h"
-#include "event.h"
 #include "light.h"
+#include "event.h"
 #include "flag_rsf.h"
 #include "global.h"
 #include "db_log.h"
@@ -43,12 +43,16 @@ static R106Work* r106_work;
 
 static inline void PSet(cDataUnit*& d, cDataUnit* v) { d = v; }
 
-// Hit effects of attribute type 4
+// Hit effects of attribute type 4 (the hall floor)
 static const AtEffInfo r106_eff_info = {
-    1, {1, 0x2C}, {1, 0x2F}, {1, 0x2E}, {1, 0x2D}, {1, 0x20}, {1, 0x20}, {1, 0x2B}, {1, 0x2F},
+    0, {1, 0xFF}, {1, 0xF}, {0, 0xB}, {0, 0xC}, {1, 0xE}, {1, 0xE}, {0, 0x36}, {0xD2, 0},
 };
 
 void Obj18CmfOn(cObj* o, u32 n);   // game/obj18.cpp
+
+// setAng through an inline taking the angle by pointer: the frame address is substituted straight
+// into the argument register (a fresh `addi r4, r1, ofs`) instead of a PRE'd pseudo.
+static inline void r106_emSetAng(cEmWrap* em, Vec* ang) { em->setAng(ang); }
 
 static void r106_checkRollingStone();
 extern "C" void r106_setRollingStone();
@@ -243,9 +247,9 @@ static void r106_ctrlEm0()
 static void r106_ctrlEm1()
 {
     Vec pos = {120200.0f, -7720.0f, -23730.0f};
+    f32 ry = 1.305f;
     cEmWrap em;
     Vec ang;
-    f32 ry = 1.305f;
 
     em.setPtr(0x8C, -1, 0);
     em.setGoto(&pos, 1);
@@ -253,9 +257,9 @@ static void r106_ctrlEm1()
         SceSleep(1);
     }
     ang.y = ry;
-    ang.z = 0.0f;
     ang.x = 0.0f;
-    em.setAng(&ang);
+    ang.z = 0.0f;
+    r106_emSetAng(&em, &ang);
 }
 
 // Open shelf `type` (opened != 0: already open): the two doors turn 110 degrees over 30 frames.
@@ -338,10 +342,13 @@ static void r106_Event()
     EmReadInit();
     r106_work->evd->setCommand(1, 0, 1);
     if (r106_work->evd->waitLoadOk()) {
+        EventMgr* evt;
+
         if (EvtMgr.SetEvt(r106_work->evd->addr, (u32*) &ev)) {
             ev->status |= 0x400;
         }
-        while (EvtMgr.IsAliveEvt(&EvtMgr.x34, 0, 0) != 0) {
+        evt = &EvtMgr;
+        while (evt->IsAliveEvt(&evt->x34, 0, 0) != 0) {
             SceSleep(1);
         }
     }
@@ -351,26 +358,30 @@ static void r106_Event()
     SceSetChapterEnd(0, 3);
 }
 
-// The closet rocks: body tilt and back.
+// The closet rocks: body tilt and back. OPEN (r103 execOpenCover has the same shape): the
+// original's loop-test blocks have their leading load / compare duplicated into both predecessors
+// (no loop notes, constants reloaded after the call); no source form gives that with our cc1plus.
 static void r106_shakeClosetBody(cModel* m)
 {
     f32 lim = fRand0_1() * 0.015707962f + 0.006981317f;
     f32 spd = fRand0_1() * 0.008726646f + 0.004363323f;
 
-    for (;;) {
-        m->rot.x += spd;
-        if (m->rot.x > lim) {
-            break;
-        }
-        SceSleep(1);
+    goto up;
+up_wait:
+    SceSleep(1);
+up:
+    m->rot.x += spd;
+    if (!(m->rot.x > lim)) {
+        goto up_wait;
     }
     m->rot.x = lim;
-    for (;;) {
-        m->rot.x -= spd;
-        if (m->rot.x < 0.0f) {
-            break;
-        }
-        SceSleep(1);
+    goto down;
+down_wait:
+    SceSleep(1);
+down:
+    m->rot.x -= spd;
+    if (!(m->rot.x < 0.0f)) {
+        goto down_wait;
     }
     m->rot.x = 0.0f;
 }
@@ -381,15 +392,22 @@ static void r106_shakeClosetDoorR(cModel* m)
     f32 lim = fRand0_1() * 0.034906585f + 0.034906585f;
 
     m->rot.y += 0.02617994f;
-    while (!(m->rot.y > lim)) {
-        SceSleep(1);
-        m->rot.y += 0.02617994f;
+    goto open;
+open_wait:
+    SceSleep(1);
+    m->rot.y += 0.02617994f;
+open:
+    if (!(m->rot.y > lim)) {
+        goto open_wait;
     }
     m->rot.y = lim;
+    goto close;
+close_wait:
+    SceSleep(1);
+close:
     m->rot.y -= 0.02617994f;
-    while (!(m->rot.y < 0.0f)) {
-        SceSleep(1);
-        m->rot.y -= 0.02617994f;
+    if (!(m->rot.y < 0.0f)) {
+        goto close_wait;
     }
     m->rot.y = 0.0f;
 }
@@ -400,15 +418,22 @@ static void r106_shakeClosetDoorL(cModel* m)
     f32 lim = fRand0_1() * 0.06981317f - 0.06981317f;
 
     m->rot.y -= 0.05235988f;
-    while (!(m->rot.y < lim)) {
-        SceSleep(1);
-        m->rot.y -= 0.05235988f;
+    goto open;
+open_wait:
+    SceSleep(1);
+    m->rot.y -= 0.05235988f;
+open:
+    if (!(m->rot.y < lim)) {
+        goto open_wait;
     }
     m->rot.y = lim;
+    goto close;
+close_wait:
+    SceSleep(1);
+close:
     m->rot.y += 0.05235988f;
-    while (!(m->rot.y > 0.0f)) {
-        SceSleep(1);
-        m->rot.y += 0.05235988f;
+    if (!(m->rot.y > 0.0f)) {
+        goto close_wait;
     }
     m->rot.y = 0.0f;
 }
@@ -520,93 +545,83 @@ extern "C" void r106_setEm()
 {
     EmListData d;
 
+    d.rot[0] = 0;
+    d.rot[2] = 0;
     d.id = 0x29;
-    d.type = 0;
-    d.x3 = 1;
-    d.flags4 = 0;
     d.pos[0] = 0x1E5C;
     d.pos[1] = -0x23E;
     d.pos[2] = -0xA30;
-    d.rot[0] = 0;
     d.rot[1] = -0x1EEE;
-    d.rot[2] = 0;
-    d.hp = 0xA;
-    d.x1A = 0xB;
-    d.xB = 0;
-    EmSetEvent(&d);
-
-    d.id = 0x29;
     d.type = 0;
     d.x3 = 1;
     d.flags4 = 0;
+    d.xB = 0;
+    d.hp = 0xA;
+    d.x1A = 0xB;
+    EmSetEvent(&d);
+
+    d.id = 0x29;
     d.pos[0] = 0x1E2B;
     d.pos[1] = -0x23E;
     d.pos[2] = -0xA30;
-    d.rot[0] = 0;
     d.rot[1] = -0x1EEE;
-    d.rot[2] = 0;
+    d.type = 0;
+    d.x3 = 1;
+    d.flags4 = 0;
+    d.xB = 0;
     d.hp = 0xA;
     d.x1A = 0xA;
-    d.xB = 0;
     EmSetEvent(&d);
 
     d.id = 0x29;
-    d.type = 0;
-    d.x3 = 1;
-    d.flags4 = 0;
     d.pos[0] = 0x1EDE;
     d.pos[1] = -0x23E;
     d.pos[2] = -0xA33;
-    d.rot[0] = 0;
     d.rot[1] = -0x1EEE;
-    d.rot[2] = 0;
-    d.hp = 0xA;
-    d.x1A = 0xB;
-    d.xB = 0;
-    EmSetEvent(&d);
-
-    d.id = 0x2E;
-    d.type = 1;
-    d.x3 = 0;
-    d.flags4 = 0;
-    d.pos[0] = 0x2C94;
-    d.pos[1] = -0x339;
-    d.pos[2] = -0xD20;
-    d.rot[0] = 0;
-    d.rot[1] = -0xDDD;
-    d.rot[2] = 0;
-    d.hp = 0x3E8;
-    d.x1A = 0;
-    d.xB = 0;
-    EmSetEvent(&d);
-
-    d.id = 0x2E;
     d.type = 0;
     d.x3 = 1;
     d.flags4 = 0;
-    d.pos[0] = 0x2B67;
-    d.pos[1] = -0x292;
-    d.pos[2] = -0xDC6;
-    d.rot[0] = 0;
-    d.rot[1] = 0x3BBB;
-    d.rot[2] = 0;
-    d.hp = 0x3E8;
-    d.x1A = 0;
     d.xB = 0;
+    d.hp = 0xA;
+    d.x1A = 0xB;
     EmSetEvent(&d);
 
     d.id = 0x2E;
+    d.pos[0] = 0x2C94;
+    d.pos[1] = -0x339;
+    d.pos[2] = -0xD20;
+    d.rot[1] = -0xDDD;
     d.type = 1;
+    d.x3 = 0;
+    d.flags4 = 0;
+    d.xB = 0;
+    d.hp = 0x3E8;
+    d.x1A = 0;
+    EmSetEvent(&d);
+
+    d.id = 0x2E;
+    d.pos[0] = 0x2B67;
+    d.pos[1] = -0x292;
+    d.pos[2] = -0xDC6;
+    d.rot[1] = 0x3BBB;
+    d.type = 0;
     d.x3 = 1;
     d.flags4 = 0;
+    d.xB = 0;
+    d.hp = 0x3E8;
+    d.x1A = 0;
+    EmSetEvent(&d);
+
+    d.id = 0x2E;
     d.pos[0] = 0x2AA7;
     d.pos[1] = -0x290;
     d.pos[2] = -0xCD6;
-    d.rot[0] = 0;
     d.rot[1] = -0x25B0;
-    d.rot[2] = 0;
+    d.type = 1;
+    d.x3 = 1;
+    d.flags4 = 0;
+    d.xB = 0;
     d.hp = 0x3E8;
     d.x1A = 0;
-    d.xB = 0;
     EmSetEvent(&d);
 }

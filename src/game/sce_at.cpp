@@ -3103,12 +3103,14 @@ int SceAtCreateItemAt(Vec* pos, u16 id, int num, int effType, int saveNo, cModel
     w->x37 |= 1;
     w->pParent = parent;
     w->parentParts = parts;
-    w->flag = 7;
-    w->x35 = 3;
-    w->x39 = 1;
-    w->x38 = 8;
-    w->x44 = 8;
+// PERM-BEGIN
     w->x4A = 0x28;
+    w->x44 = 8;
+    w->flag = 7;
+    w->x38 = 8;
+    w->x39 = 1;
+    w->x35 = 3;
+    // PERM-END
     SceAtItemAutoArea(&w->area, pos, 0.0f);
     w->item.num = num;
     w->item.id = id;
