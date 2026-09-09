@@ -37,9 +37,9 @@ typedef struct {
 	Sint32 bitrate;      /* 0x48 */
 	Sint32 vbv_size;     /* 0x4C */
 	Sint16 x50, x52;
-	Uint8 x54;
+	Sint8 x54;
 	Sint8 x55, x56, x57;
-	Uint8 x58;
+	Sint8 x58;
 	Uint8 aspect;        /* 0x59 pel_aspect_ratio */
 	Uint8 constrained;   /* 0x5A constrained_parameters_flag */
 	Uint8 x5b, x5c;

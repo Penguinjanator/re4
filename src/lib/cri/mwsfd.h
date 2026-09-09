@@ -71,17 +71,67 @@ typedef struct {
 #define MWSFD_STAT_PLAYEND 3
 #define MWSFD_STAT_ERROR 4
 
-/* creation parameters kept in the player object (MWPLY_OBJ + 0x0C, 0x34 bytes) */
+/* creation parameters (mwPlyCreateSofdec argument, copied into the player object at MWPLY_OBJ + 0x0C,
+ * 0x30 bytes) */
 typedef struct {
-	Sint32 mode;               /* 0x00 (2: no additional-info stream) */
-	Sint32 x04;
-	Sint32 x08;
-	Sint32 x0c;
-	Sint32 max_skip;           /* 0x10 frames mwPlyGetCurFrm may skip to catch up */
-	Uint8 pad14[0x20 - 0x14];
+	Sint32 mode;               /* 0x00 file type (1: Sofdec, 2: MPEG video only, 3: video-only Sofdec; 2: no additional-info stream) */
+	Sint32 max_bps;            /* 0x04 maximum bit rate */
+	Sint32 max_width;          /* 0x08 */
+	Sint32 max_height;         /* 0x0C */
+	Sint32 max_skip;           /* 0x10 frames mwPlyGetCurFrm may skip to catch up (= decoded frame pool size) */
+	Sint32 nsec;               /* 0x14 seconds of input buffering */
+	void *work;                /* 0x18 user work for the component buffers (NULL: malloc/free callbacks) */
+	Sint32 wksize;             /* 0x1C */
 	Sint32 compo;              /* 0x20 requested component layout (0 / 0x101: additional-info sj used) */
-	Uint8 pad24[0x34 - 0x24];
+	Sint32 buffmt;             /* 0x24 MwsfdBufFmt */
+	Sint32 x28;
+	Sint32 x2c;
 } MWSFD_CRPRM;
+
+/* picture user data buffer description (MWPLY_OBJ + 0x164, MWPLY_OBJ.picusr_ptr) */
+typedef struct {
+	void *buf;                 /* 0x00 */
+	Sint32 bsize;              /* 0x04 */
+	Sint32 usize;              /* 0x08 bytes per picture */
+} MWSFD_PICUSR;
+
+#define MWSFD_CWK_NUM 32
+
+/* mwPlyGetHdrInf output (0x2C bytes; mwsfdfrm.c's MWSFFRM_TOTINF is the tail view) */
+typedef struct {
+	Sint32 valid;              /* 0x00 */
+	Sint32 mode;               /* 0x04 file type as MWSFD_CRPRM.mode */
+	Sint32 width;              /* 0x08 */
+	Sint32 height;             /* 0x0C */
+	Sint32 picrate;            /* 0x10 */
+	Sint32 maxfrm;             /* 0x14 */
+	Sint32 fxtype;             /* 0x18 */
+	Sint32 numelem_vid;        /* 0x1C */
+	Sint32 numelem_aud;        /* 0x20 */
+	Sint32 afreq;              /* 0x24 */
+	Sint32 ach;                /* 0x28 */
+} MWSFD_HDRINF;
+
+/* player interface table (mwsfd_if, 0x44 bytes) */
+typedef struct {
+	void *x00;
+	void *x04;
+	void *x08;
+	void (*Vsync)(void);                                   /* 0x0C */
+	Sint32 (*ExecSvrHndl)(MWPLY mwply);                    /* 0x10 */
+	void (*Destroy)(MWPLY mwply);                          /* 0x14 */
+	void (*StartFname)(MWPLY mwply, const Char8 *fname);   /* 0x18 */
+	void (*Stop)(MWPLY mwply);                             /* 0x1C */
+	Sint32 (*GetStat)(MWPLY mwply);                        /* 0x20 */
+	void (*GetTime)(MWPLY mwply, Sint32 *ncount, Sint32 *tscale); /* 0x24 */
+	void (*Pause)(MWPLY mwply, Sint32 sw);                 /* 0x28 */
+	void (*SetOutVol)(MWPLY mwply, Sint32 vol);            /* 0x2C */
+	Sint32 (*GetOutVol)(MWPLY mwply);                      /* 0x30 */
+	void (*SetOutPan)(MWPLY mwply, Sint32 ch, Sint32 pan); /* 0x34 */
+	Sint32 (*GetOutPan)(MWPLY mwply, Sint32 ch);           /* 0x38 */
+	void (*StartSj)(MWPLY mwply, SJ sj);                   /* 0x3C */
+	void (*StartMem)(MWPLY mwply, void *buf, Sint32 size); /* 0x40 */
+} MWPLY_IF;
 
 /* Sofdec header information collected by the header callback (mwsfdfrm.c, 0x14 bytes) */
 typedef struct {
@@ -96,10 +146,11 @@ typedef struct {
 
 /* player object (0x2B8 bytes; only the fields the matched units use are named) */
 struct MWPLY_OBJ {
-	Sint32 x00;
+	MWPLY_IF *ifc;             /* 0x00 (&mwsfd_if) */
 	Sint32 used;               /* 0x04 */
 	Sint32 stat;               /* 0x08 */
 	MWSFD_CRPRM prm;           /* 0x0C */
+	Sint32 x3c;                /* 0x3C (1) */
 	void *sfd;                 /* 0x40 */
 	void *stm;                 /* 0x44 ADXSTM */
 	Sint32 x48;
@@ -131,15 +182,15 @@ struct MWPLY_OBJ {
 	Sint32 chromapos_v;        /* 0xA4 */
 	Sint32 xa8;
 	SFX_OBJ *sfx;              /* 0xAC */
-	Sint32 xb0;
-	Sint32 xb4;
+	void *sfx_wk;              /* 0xB0 SFX handle work */
+	Sint32 sfx_wksiz;          /* 0xB4 */
 	Sint32 sfh_cnt;            /* 0xB8 Sofdec headers seen */
 	Sint32 sfh_cur;            /* 0xBC header of the current frame */
 	Sint32 sfh_wr;             /* 0xC0 next sfhinf slot */
 	MWSFFRM_SFHINF sfhinf[MWSFFRM_SFHINF_NUM]; /* 0xC4 */
-	Sint32 x164;               /* 0x164 (picusr_ptr == &x164: no picture user data) */
-	Uint8 pad168[0x17C - 0x168];
-	void *picusr_ptr;          /* 0x17C */
+	MWSFD_PICUSR picusr;       /* 0x164 built-in picture user data buffer (x164: picusr_ptr == &x164: no picture user data) */
+	Uint8 pad170[0x17C - 0x170];
+	MWSFD_PICUSR *picusr_ptr;  /* 0x17C */
 	void *picusr_buf;          /* 0x180 picture user data copy */
 	Sint32 picusr_bsize;       /* 0x184 */
 	void *picusr_dat;          /* 0x188 */
@@ -172,7 +223,13 @@ struct MWPLY_OBJ {
 	SJ mem_sj;                 /* 0x1F4 memory stream joint (mwSfdStartMem) */
 	void *mem_buf;             /* 0x1F8 */
 	Sint32 mem_size;           /* 0x1FC */
-	Uint8 pad200[0x294 - 0x200];
+	/* component work allocator (mwsfdcre.c): carve from the user work or call the library callbacks */
+	void *cwk_buf;             /* 0x200 user work (MWSFD_CRPRM.work) */
+	Uint32 cwk_size;           /* 0x204 */
+	Uint8 *cwk_ptr;            /* 0x208 next free byte of the user work */
+	Uint32 cwk_used;           /* 0x20C */
+	Sint32 cwk_cnt;            /* 0x210 blocks allocated */
+	void *cwk_tbl[MWSFD_CWK_NUM]; /* 0x214 */
 	MWSST_OBJ sst;             /* 0x294 */
 	Sint32 x2ac;
 	Sint32 x2b0;
@@ -195,7 +252,10 @@ typedef struct {
 	Sint32 x10;                /* 0x10 decode in the main thread (1) instead of the idle thread */
 	Uint8 pad14[0x24 - 0x14];
 	Sint32 svr_bdr;            /* 0x24 a handle is sleeping at the idle border */
-	Uint8 pad28[0x38 - 0x28];
+	void *(*malloc_fn)(void *obj, Uint32 size); /* 0x28 component work allocator */
+	void (*free_fn)(void *obj, void *ptr);      /* 0x2C */
+	void *mem_obj;             /* 0x30 */
+	Sint32 x34;
 	Sint32 use_picusr;         /* 0x38 */
 	Sint32 pause_bdr;          /* 0x3C */
 	Sint32 (*pre_func)(void *obj);  /* 0x40 called before the decode server */

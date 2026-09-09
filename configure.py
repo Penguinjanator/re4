@@ -421,6 +421,9 @@ CRI_CFLAG_OVERRIDES: Dict[str, Dict[str, str]] = {
     # the public accessors are inlined into ADXT_SetOutputMono/ADXT_GetTime/ADXT_DiscardSmpl defined
     # before them; .text is the reverse of the source order
     "lib/adx_tlk.c": {"-inline auto": "-inline auto,deferred"},
+    # the Sofdec video driver inlines SFD_CalcYccPlane / SFD_SetMpvCond defined after their users;
+    # .text is the reverse of the source order and .bss the reverse of the declaration order
+    "lib/sfd_mpv.c": {"-inline auto": "-inline auto,deferred"},
 }
 
 

@@ -517,7 +517,7 @@ void mwl_convFrmInfFromSFD(MWPLY mwply, MWSFFRM_VFRM *vfrm, MWS_FRM *frm)
 	time = UTY_MulDiv(x34, fps, scale);
 	time2 = UTY_MulDiv(x30, fps, scale);
 	frm->bufadr = bufadr;
-	noptr = &mwply->x164;
+	noptr = &mwply->picusr;
 	frm->fmt = ftype;
 	frm->width = x00;
 	frm->height = x04;
