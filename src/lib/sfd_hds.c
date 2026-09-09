@@ -16,7 +16,6 @@ extern void MEM_Copy(void *dst, const void *src, Uint32 nbytes);
 typedef void (*SFHDS_HDRCB)(void *obj, Uint8 *data, Sint32 size);
 
 static Uint8 sfhds_sfhlib_work[SFHDS_SFH_WORK_SIZE];
-static Sint32 sfhds_version_dummy; /* 4-byte .bss word after the work (referenced by a dead function) */
 
 /* the seek work's copy of the file header, when the seek work is attached and no concatenation
  * is going on (a macro: `#pragma dont_inline` around sfhds_SetHdrRaw would keep a static helper
@@ -332,10 +331,4 @@ void SFHDS_InitFhd(SFHDS_FHD *fhd)
 void SFHDS_Init(void)
 {
 	SFH_Init(SFHDS_SFH_NUM, sfhds_sfhlib_work);
-}
-
-/* dead-stripped in the DOL; keeps the trailing .bss word */
-void SFHDS_Finish(void)
-{
-	sfhds_version_dummy = 0;
 }

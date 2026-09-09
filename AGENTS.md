@@ -1548,8 +1548,12 @@ MWCC idioms seen so far (2.4.7, -O4,p):
 
 ### SN libsn / ProDG runtime units (`lib/dummy`, `tealeaf`, `FSasync`, `sndvd`, `fileserver`, `crt0`, ...)
 
-`dummy` (stdio syscall stubs), `tealeaf` (`__cvt_fp2unsigned`, `__va_arg`, `__div2i`-style aliases
-that `b` to libgcc) and `FSasync` are GCC 2.95 -O2 like the game (`stwu -8; mflr; stw r0,0xc`, `stmw`,
+`dummy` (stdio syscall stubs), `sndvd` and `FSasync` are GCC 2.95 -O2 like the game; `tealeaf`
+(`__cvt_fp2unsigned`, the MWCC-ABI `__va_arg`, `__div2i`-style aliases that `b` to libgcc) is
+hand-written assembly (its libsn.a member carries a `tea151.tmp` FILE symbol like proview/ppcdown,
+the C members carry `<name>.c`; `addi r7,r3,0`, `subi/nor` for `~(n-1)`, two zero registers) and is
+an `ASM_UNITS` entry. The v393 `libsn.a` in re4-orig/prodg has every libsn member with full symbol
+names (sndvd's `NotDvdDsi` label, its `g_hDVD` etc.) (`stwu -8; mflr; stw r0,0xc`, `stmw`,
 `first.183` statics, r9/r11 temporaries) but with **no small data** and **no common symbols**
 (`LIBSN_UNITS` in configure.py: `cflags_game + -G 0 -fno-common`, `strip_unused.py --gcc`; without
 `-fno-common` FSasync's uninitialised globals become COMMON and leave the unit's `.bss`). `proview`,
@@ -1590,6 +1594,18 @@ FSasync (matched) idioms, GCC 2.95 -O2 -G 0:
   it and the 0x20 rounding after it.
 - Raw hardware addresses (`*(volatile u32 *)0xCC003000`) are `lis/ori`; a clear-byte loop
   `for (i...) *p++ = 0` is `mtctr; stb; addi; bdnz` (memset would be a libcall).
+
+sndvd (matched) idioms: the DABR write goes through an `"m"` asm operand (`asm volatile("lwz 3,%0; mtspr
+1013,3; isync" :: "m"(dabr))`: stack slot + hard r3); the DSI exception entry is one top-level `asm`
+block with `.type/.size` (its trailing `li r3..r6,0; bl DSIHandler` is part of the asm); the DI
+register copy loop reads `*(volatile u32 *)((0x0C006000 + i * 4) | 0xC0000000)` (physical address
+OR'd with the uncached base inside the loop -> `oris` per iteration); `asm(".long 1")` after
+`OSReport` is the debugger trap word; `switch (cmd)` with `int cmd` for `cmpw`; store order of six
+globals found by brute force (`perm.py` over the statement order); `asm volatile("")` after the
+default case's `ForceDvdDeIrq()` blocks the single-insn tail cross-jump (COMPILER-DIFF #6). OPEN:
+`ctx` (7 refs / 153 insns) ranks below `pos` (3 refs / 29 insns) in global.c's allocno priority and
+gets r28 where the original has r29; a dead `asm volatile("" :: "r"(ctx))` supplies the 8th
+reference.
 
 SDK/CRI MWCC register-allocation levers found on reverb_std, svm and ax_rna (MWCC 1.2.5n / 2.4.7):
 - reverb_std `ReverbSTDCreate`: `max_length << 2` (not `* 4`) in the inlined `DLcreate` decides whether
@@ -1679,6 +1695,51 @@ SDK/CRI MWCC register-allocation levers found on reverb_std, svm and ax_rna (MWC
 - OPEN (MWCC): member-address kept in a callee-saved reg across a call with one use; pooled strings in
   reverse use order; dead `b end` after an empty `case N: break;`; static-function literal placement;
   callee-saved order of parameters not by declaration/lifetime/use count.
+
+- Search loops with an early exit written as `beq next; b found` (a redundant unconditional after the
+  last `&&` test) plus `li rX,0` on the fall-through are an inlined `static` helper with
+  `for (...) { if (A && B) return id; } return 0;` (sfd_hds `sfhds_SearchStmId`); the direct loop gives
+  `bne found`.
+- `x = (p[0] << 8) | p[1]; x <<= 8; x |= p[2]; x <<= 8; x |= p[3];` gives `rlwimi` for the first pair
+  and `slwi/or` for the rest; one expression or `x = (x << 8) | p[n]` chains give all-`rlwimi`;
+  `<<=`/`|=` from the start give all-`slwi/or`.
+- A pointer derived in two steps (`SFHDS_FHD *fhd = &sfd->fhd; SFHDS_VID *vid = &fhd->vid;`) keeps
+  `addi rX,rBase,ofs` as a live base register; `&sfd->fhd.vid` in one step is folded into the loads.
+- Ternary arm order: `f(&tmp) == 0 ? -1 : tmp` gives `bne ok; li -1; b; ok: lwz`; `f(&tmp) ? tmp : -1`
+  gives `beq`. `(A && B) ? C : 0` becomes branchless `neg/or/srawi/and`; an if/else into a local keeps
+  the branches.
+- `if (a <= 0 || p == NULL) return;` gives `bne body; b end`; `else if (a > 0 && p != NULL) {body}`
+  gives a plain `beq end`.
+- Integer `add` operand order follows the source (`add rD, rLeft, rRight`); pointer arithmetic is
+  canonicalised (pointer first) and reassociated (`(buf + ofs) + n` -> `buf + (ofs + n)`). A target
+  `add r3,rOfs,rBuf; add r3,rN,r3` is `(Uint32)ofs + (Uint32)buf` then `n + that` as two statements.
+- A struct field read once into a local and used across blocks vs. re-read `sj->bsize` at each use
+  changes volatile-register numbering (CSE keeps the reload in the same register anyway); when the
+  target's temporaries look "reversed", drop the local.
+- A `Sint32` function result reused as the return value (`nbyte = 0; ...; return nbyte;`) keeps the
+  parameter's register for the result (sj_rbf `SJRBF_IsGetChunk`).
+- `#pragma dont_inline on/off` around a public function stops it being inlined into later functions
+  (sfd_hds `SFHDS_ProcessHdr`/`sfhds_SetHdrRaw` are called, `SFHDS_IsSfdHeader` is inlined) but
+  also stops static helpers being inlined *into* it: use a macro for those.
+- MWCC 2.4.7 has no `__dcbi/__dcbz_l/__mfspr` intrinsics (they become calls); `asm { dcbi p, i }`
+  with `register` operands in a `for (i = 0; i < N; i += 0x20)` loop is unrolled 6x (156 = 6*26
+  iterations for 0x1380 bytes) exactly like the original; `asm { mfspr r0, 920 ; stw r0, hid2 }` gives
+  the target's `mfspr/stw/lwz` through a stack slot (mpv_lib).
+- A parameter needed in an `asm` block as `register` in the *prologue-copied* form: `register MPV p =
+  mpv;` as the first local (all uses through `p`) keeps `lis` of an inlined store above the `mr.`
+  copy; `register` on the parameter itself does not (mpv_lib `MPV_Destroy`).
+- Counted handle loops (`mtctr nhn ... bdnz`) need the count and base copied to locals before the loop
+  (`n = wk->nhn; p = wk->hn;`); indexing the struct members directly reloads them per iteration. A
+  second such loop in the same function used fresh block-scoped locals (volatile registers) rather
+  than the callee-saved ones (mpv_lib `MPV_Init`).
+- A callee that ignores its arguments still receives them: `MPVM2V_SetCond(mpv, id, val)` keeps r3
+  live so the `cond` pointer takes r6, not r3.
+- Split objects' `.bss` (and `.rodata`) are padded to their alignment by dtk (sj_mem 0x484 vs 0x488,
+  mpv_lib 0xAE vs 0xB0): a 4-byte/2-byte trailing `lbl_` gap needs no dummy variable.
+- OPEN (sfd_hds `sfhds_DoProcessHdr`/`SFHDS_SetHdr`): the original allocates callee-saved registers as
+  params (reverse order, r31 down) then locals (`fhd r31, sfh r30, ver r29`; `result r30, len r29,
+  p r28, sfd r27`); ours gives locals first (`ver r31, fhd r30, sfh r29`) or params last. Inlined
+  helper values, block scoping, `register`, statement order and a dozen structural variants tried.
 
 ## REL modules
 

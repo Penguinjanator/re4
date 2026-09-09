@@ -958,7 +958,6 @@ MATCHING = {
     "game/filter.cpp": True,
     "game/obj06.cpp": True,
     "game/obj04.cpp": True,
-    "game/obj02.cpp": False,  # .rodata 0x10 short (see note in source)
     "game/light07.cpp": True,
     "game/light01.cpp": True,
     "game/at_sub2.cpp": True,
@@ -1005,6 +1004,7 @@ MATCHING = {
     "game/esp15.cpp": True,
     "game/esp03.cpp": True,
     "game/esp1b.cpp": True,
+    "game/esp43.cpp": True,
 }
 
 # C++ units with functions the original linker dead-stripped (bodies gone, constant pools and
@@ -1050,6 +1050,7 @@ STRIP_UNUSED = {
     "game/esp_app.cpp",
     "game/map_obj.cpp",
     "game/Espgen43.cpp",
+    "game/Espgen42.cpp",
     "game/esp43.cpp",
     "game/emtree.cpp",
     "game/objRobo.cpp",
@@ -1057,6 +1058,8 @@ STRIP_UNUSED = {
     "game/pendulum.cpp",
     "game/em_sub.cpp",
     "game/player.cpp",
+    "game/obj03.cpp",
+    "game/obj02.cpp",
 }
 
 # Capcom sound library (game/snd_*.cpp): C++ with extern "C" functions, compiled unoptimised
@@ -1367,6 +1370,8 @@ MATCHING.update({
     "lib/adx_fs.c": True,
     "lib/sfd_mpvf.c": True,
     "lib/mpv_emp.c": True,
+    "lib/sj_rbf.c": True,
+    "lib/mpv_lib.c": True,
 })
 
 # partner character (pl_npc): const f32 locals for pool order, per-value switch bodies, dead
@@ -1420,4 +1425,10 @@ MATCHING.update({
 # local-alloc orders the FPRs by refs/length), `-y` stores with target.y first
 MATCHING.update({
     "game/examine.cpp": True,
+})
+
+# misc object units: dead-stripped out-of-line inits whose pools survive (obj03 init), .sdata pads
+MATCHING.update({
+    "game/obj03.cpp": True,
+    "game/obj02.cpp": True,
 })

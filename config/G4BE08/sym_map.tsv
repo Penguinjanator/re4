@@ -5496,7 +5496,7 @@ address	size	section	unit	scope	name	demangled
 0x8017F214	0x44	.text	game/read.cpp	global	EmReadInit	EmReadInit
 0x8017F258	0x2C	.text	game/read.cpp	local	checkAshleyId	checkAshleyId
 0x8017F284	0x60	.text	game/read.cpp	global	EmReadSearch	EmReadSearch
-0x8017F2E4	0x4C	.text	game/read.cpp	global	SearchEmModule	SearchEmModule
+0x8017F2E4	0x4C	.text	game/read.cpp	global	SearchEmModule__Fi	SearchEmModule
 0x8017F330	0x34	.text	game/read.cpp	global	pullEmModule	pullEmModule
 0x8017F364	0x38C	.text	game/read.cpp	global	ReadPlayerData	ReadPlayerData
 0x8017F6F0	0x48	.text	game/read.cpp	global	ReleasePlData	ReleasePlData
@@ -11129,7 +11129,7 @@ address	size	section	unit	scope	name	demangled
 0x8030A06C	0x4	.bss	lib/mpv_lib.c	local	mpvlib_oix	mpvlib_oix
 0x8030A070	0x4	.bss	lib/mpv_lib.c	global	mpvlib_iix	mpvlib_iix
 0x8030A074	0x5C	.bss	lib/mpv_lib.c	local	mpvlib_libwork	mpvlib_libwork
-0x8030A0D0	0x4	.bss	lib/mpv_lib.c	global	cri_verstr_ptr_8030A0D0	cri_verstr_ptr
+0x8030A0D0	0x4	.bss	lib/mpv_lib.c	local	cri_verstr_ptr_8030A0D0	cri_verstr_ptr
 0x8030A0D4	0x4	.bss	lib/mpv_lib.c	global	lbl_8030A0D4	.
 0x8030A0D8	0x200	.bss	lib/mpv_vlc.c	global	mpvvlt_run_level_8	mpvvlt_run_level_8
 0x8030A2D8	0x400	.bss	lib/mpv_vlc.c	global	mpvvlt2_c_dcsiz	mpvvlt2_c_dcsiz
@@ -11147,7 +11147,7 @@ address	size	section	unit	scope	name	demangled
 0x8030B358	0x100	.bss	lib/mpv_vlc.c	local	mpvvlt_mbai_p_0	mpvvlt_mbai_p_0
 0x8030B458	0x80	.bss	lib/mpv_vlc.c	global	mpvvlt_mbai_i_1	mpvvlt_mbai_i_1
 0x8030B4D8	0x200	.bss	lib/mpv_vlc.c	local	mpvvlt_mbai_i_0	mpvvlt_mbai_i_0
-0x8030B6D8	0x4	.bss	lib/mpv_vlc.c	local	mpvvlc_run_level_8	mpvvlc_run_level_8
+0x8030B6D8	0x4	.bss	lib/mpv_vlc.c	global	mpvvlc_run_level_8	mpvvlc_run_level_8
 0x8030B6DC	0x4	.bss	lib/mpv_vlc.c	global	mpvvlc_run_level_4	mpvvlc_run_level_4
 0x8030B6E0	0x4	.bss	lib/mpv_vlc.c	global	mpvvlc_run_level_2	mpvvlc_run_level_2
 0x8030B6E4	0x4	.bss	lib/mpv_vlc.c	global	mpvvlc_run_level_1	mpvvlc_run_level_1
