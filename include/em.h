@@ -95,7 +95,8 @@ class cLight;      // light.h
 class cEm : public cModel {
 public:
     void* pMotion;        // 0x1D8  motion work head: current motion data, NULL = stopped (pl_push stopTarget)
-    u8 pad_1DC[0x21A - 0x1DC];
+    u8 pad_1DC[0x218 - 0x1DC];
+    u16 motFlags;         // 0x218  MotionWork::flags (bit0: move the model by the root speed; pl_npc clears it)
     u16 motState;         // 0x21A  MotionWork::state (emobj EmObjMove clears it when no motion plays)
     u32 motFlags2;        // 0x21C  MotionWork::flags2 (emhit: bit30 = no matrix update before MotionMove)
     u8 pad_220[0x244 - 0x220];

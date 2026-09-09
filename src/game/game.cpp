@@ -1336,7 +1336,6 @@ void GameAddPoint(int type)
 
     switch (type) {
     default:
-    case 0:
         add = 0;
         break;
     case 1:
@@ -1376,6 +1375,9 @@ void GameAddPoint(int type)
         break;
     case 14:
         add = 1;
+        break;
+    case 0:
+        add = 0;
         break;
     }
     {

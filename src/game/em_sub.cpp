@@ -3024,32 +3024,32 @@ void EmSetDropItem(cEm* em)
         return;
     }
     em->be_flag |= 0x10000;
-    if (em->itemNo == 0) {
+    if (em->itemNo != 0) {
+        if (SceAtItemFlgCk(em->item3DA, em->item3DC)) {
+            return;
+        }
+        SceAtItemFlgOn(em->item3DA, em->item3DC);
+        rot.x = 0.0f;
+        rot.y = em->rot.y;
+        rot.z = 1.0f;
+        if (SceAtCheckSystemItemSet(em->itemNo, &id, &num, &em->pos, &rot) != 1) {
+            return;
+        }
+        if (em->itemNo != id) {
+            em->itemNo = id;
+            em->itemNum = num;
+        }
+        if (TrolleyItemSetCk(&em->pos, em->itemNo, em->itemNum)) {
+            return;
+        }
+        if (BullItemSetCk(&em->pos, em->itemNo, em->itemNum)) {
+            return;
+        }
+        SceAtCancelItemAt((int) em);
+        SceAtCreateItemAt(&em->pos, em->itemNo, em->itemNum, (s8) em->itemFlag, -1, 0, -1);
+    } else {
         RandomItemSet(em);
-        return;
     }
-    if (SceAtItemFlgCk(em->item3DA, em->item3DC)) {
-        return;
-    }
-    SceAtItemFlgOn(em->item3DA, em->item3DC);
-    rot.x = 0.0f;
-    rot.y = em->rot.y;
-    rot.z = 1.0f;
-    if (SceAtCheckSystemItemSet(em->itemNo, &id, &num, &em->pos, &rot) != 1) {
-        return;
-    }
-    if (em->itemNo != id) {
-        em->itemNo = id;
-        em->itemNum = num;
-    }
-    if (TrolleyItemSetCk(&em->pos, em->itemNo, em->itemNum)) {
-        return;
-    }
-    if (BullItemSetCk(&em->pos, em->itemNo, em->itemNum)) {
-        return;
-    }
-    SceAtCancelItemAt((int) em);
-    SceAtCreateItemAt(&em->pos, em->itemNo, em->itemNum, (s8) em->itemFlag, -1, 0, -1);
 }
 
 // Reserve the enemy's item drop at its position (the enemy leaves before dying).

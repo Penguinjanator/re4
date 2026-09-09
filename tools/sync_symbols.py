@@ -138,6 +138,15 @@ def other_source_references(name, unit):
                 pass
     return False
 
+def atomic_write(path, text):
+    # Concurrent agents run ninja while another agent syncs; strip_unused.py reads sym_map.tsv as its
+    # keep-list, so a half-written file must never be observable (it over-strips lib units).
+    tmp = path + ".tmp." + str(os.getpid())
+    with open(tmp, "w") as f:
+        f.write(text)
+    os.replace(tmp, path)
+
+
 def main():
     symmap = {}  # (unit, demangled) -> list of (address, current name)
     unit_of = {}  # address -> owning split unit
@@ -305,7 +314,7 @@ def main():
             if bind == 1:  # STB_GLOBAL
                 make_global(i)
     if renamed:
-        open(symtxt_path, "w").write("\n".join(lines) + "\n")
+        atomic_write(symtxt_path, "\n".join(lines) + "\n")
         # keep sym_map.tsv's name column in sync
         cur = {}
         for l in lines:
@@ -317,7 +326,7 @@ def main():
             f = l.split("\t"); a = int(f[0], 16)
             if a in cur: f[5], f[4] = cur[a]
             out.append("\t".join(f))
-        open(mp, "w").write("\n".join(out) + "\n")
+        atomic_write(mp, "\n".join(out) + "\n")
     print(f"{renamed} symbols renamed; re-run `python3 configure.py && ninja`")
 
 if __name__ == "__main__":

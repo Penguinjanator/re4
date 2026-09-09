@@ -82,16 +82,6 @@ static inline void PlRoutineSet(cPlayer* pl, int r0, int r1, int r2, int r3)
     pl->xFF = r3;
 }
 
-// 0 while the player stands still in the idle routine.
-static inline int plStopCheck(cPlayer* pl)
-{
-    if ((int) pl->pos.x == (int) pl->oldPos.x && (int) pl->pos.y == (int) pl->oldPos.y && (int) pl->pos.z == (int) pl->oldPos.z
-        && (pl->stat & 0xFFFFFF00) == 0x100 && !(pG->flags_500C & 0x20) && (int) pG->flags_60 >= 0) {
-        return 0;
-    }
-    return 1;
-}
-
 // 1 when the push target is gone or dead.
 static inline int pushTargetDead(cPlPush* p)
 {
@@ -337,6 +327,7 @@ void cPlayer::move()
     f32 water;
     int moved;
     int i;
+    int one = 1;
 
     BitOff(pG->flags_5010, 4);
     BitOff(pG->flags_500C, 0x00800000);
@@ -362,7 +353,12 @@ void cPlayer::move()
     if (pBody->pShape) {
         ShapeMove(pBody->pShape);
     }
-    moved = plStopCheck(this);
+    if ((int) pos.x == (int) oldPos.x && (int) pos.y == (int) oldPos.y && (int) pos.z == (int) oldPos.z
+        && (stat & 0xFFFFFF00) == 0x100 && !(pG->flags_500C & 0x20) && (int) pG->flags_60 >= 0) {
+        moved = 0;
+    } else {
+        moved = one;
+    }
     if (Key.trg & 0x10) {
         flags_420 &= ~0x1000;
     }

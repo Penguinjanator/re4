@@ -101,7 +101,7 @@ struct Weight {
 #define PTR_INVALID(p) ((s32) (p) >= 0 || (u32) (p) > 0x82FFFFFF)
 // Written as shifts, not `& ~0x1F`: combine folds (x >> 5) << 5 into an AND whose mask is narrowed by
 // nonzero_bits (u16 * 6 -> rlwinm 0,12,26), which a literal `& ~0x1F` never gets.
-static inline u32 ALIGN32(u32 x) { return ((x + 0x1F) >> 5) << 5; }
+#define ALIGN32(x) ((((x) + 0x1F) >> 5) << 5)
 #define PTR_INVALID2(p) ((u32) (p) - 0x80000000 > 0x02FFFFFF)
 #define HALT()                                                    \
     {                                                             \
@@ -631,6 +631,7 @@ int commonScreenMatSub(cModel* m, cModelInfo* info)
         void* src;
         void* nsrc;
         void* buf;
+        u32 size;
         u32 nVtx;
         u32 n;
 
@@ -665,13 +666,20 @@ int commonScreenMatSub(cModel* m, cModelInfo* info)
         if (m->be_flag & 0x4000) {
             continue;
         }
-        buf = GetPrimBuff(ALIGN32(d->nVtx * 6));
+        size = d->nVtx * 6;
+        buf = GetPrimBuff(ALIGN32(size));
         if (PTR_INVALID2(buf)) {
             pLog->warn(0, 0, "commonScreenMatSub() : VTX prim alloc failed.");
             return 0;
         }
         info->pPosBuf[pG->vtx_buf_no] = buf;
-        buf = GetPrimBuff((d->flags & 0x20000000) ? ALIGN32(d->nNrm * 3) : ALIGN32(d->nNrm * 6));
+        if (d->flags & 0x20000000) {
+            size = d->nNrm * 3;
+            buf = GetPrimBuff(ALIGN32(size));
+        } else {
+            size = d->nNrm * 6;
+            buf = GetPrimBuff(ALIGN32(size));
+        }
         if (PTR_INVALID2(buf)) {
             pLog->warn(0, 0, "commonScreenMatSub() : Nor prim alloc failed.");
             return 0;

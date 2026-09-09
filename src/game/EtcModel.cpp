@@ -245,9 +245,11 @@ u32 g_Etc_das_addr[0x68];
 
 void EtcModelDebugDisp()
 {
-    cEtcTbl* t;
+    cEtcTbl* tbl = g_EtcTbl;
+    u32 i;
 
-    for (t = g_EtcTbl; t <= &g_EtcTbl[0x3F]; t++) {
+    for (i = 0; i < 0x40; i++) {
+        cEtcTbl* t = &tbl[i];
         if (t->stat == 1) {
             Vec scr;
             Vec pos;
