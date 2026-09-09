@@ -1487,3 +1487,10 @@ MATCHING.update({
 MATCHING.update({
     "lib/mpv_vlc.c": True,
 })
+
+# adx_tlk (CRI ADXT handle API): `-inline auto,deferred` (CRI_CFLAG_OVERRIDES) — .text is the reverse
+# of the source, the public accessors are inlined into SetOutputMono/GetTime/DiscardSmpl/StartSj,
+# the dead-stripped API functions are kept for their strings (codegen order), .bss reverse declaration
+MATCHING.update({
+    "lib/adx_tlk.c": True,
+})

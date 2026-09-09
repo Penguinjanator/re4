@@ -418,6 +418,9 @@ CRI_CFLAG_OVERRIDES: Dict[str, Dict[str, str]] = {
     # .text is the reverse of the call order and .bss follows the reversed codegen order
     "lib/mpv_vlc.c": {"-inline auto": "-inline auto,deferred"},
     "lib/cftfx.c": {"-inline auto": "-inline auto,deferred"},
+    # the public accessors are inlined into ADXT_SetOutputMono/ADXT_GetTime/ADXT_DiscardSmpl defined
+    # before them; .text is the reverse of the source order
+    "lib/adx_tlk.c": {"-inline auto": "-inline auto,deferred"},
 }
 
 

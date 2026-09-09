@@ -28,36 +28,53 @@ typedef struct {
 	void *rna;            /* 0x0C ADXRNA renderer (SFADXT_Create copies it into SFAOAP.x00) */
 	SJ sjf;               /* 0x10 file stream joint */
 	SJ sji;               /* 0x14 decoder input stream joint */
-	SJ sjo[ADXT_MAX_NCH]; /* 0x18 decoder output stream joints (one per channel) */
+	SJ sjo[2];            /* 0x18 decoder output stream joints (one per channel) */
+	Uint8 *ibuf;          /* 0x20 file stream ring buffer (ADXT_Create work layout) */
+	Sint32 ibufsize;      /* 0x24 */
+	Sint32 ibufxsize;     /* 0x28 */
+	Uint8 *obuf;          /* 0x2C decoder output ring buffers */
+	Sint32 obufsize;      /* 0x30 (samples) */
+	Sint32 obufstride;    /* 0x34 (samples, including the extra area) */
 	Sint32 svrfreq;       /* 0x38 server calls per second */
-	Sint32 x3c;
+	Sint16 ibuf_nsct;     /* 0x3C input (file stream) buffer size in sectors */
+	Sint16 reload_nsct;   /* 0x3E reload threshold in sectors (85% of the buffer) */
 	Sint16 outvol;        /* 0x40 */
 	Sint16 outpan[2];     /* 0x42 */
-	Sint16 x46;
+	Sint16 outbal;        /* 0x46 output balance (-15..15) */
 	Sint32 maxdecsmpl;    /* 0x48 samples decoded per server call */
 	Sint32 lpcnt;         /* 0x4C loops done */
 	Sint32 lpendmod;      /* 0x50 loop end offset within its sector */
-	Uint8 pad54[0x60 - 0x54];
+	Sint32 x54;
+	Sint32 x58;
+	Sint32 x5c;
 	Sint16 errcode;       /* 0x60 */
-	Uint8 pad62[0x6C - 0x62];
+	Sint16 x62;
+	Sint32 x64;
+	Sint16 x68;
+	Sint16 x6a;
 	Sint8 lpsw;           /* 0x6C loop switch */
-	Uint8 pad6d[0x70 - 0x6D];
+	Sint8 autorcvr;       /* 0x6D automatic recovery switch */
+	Sint8 x6e;
+	Sint8 x6f;
 	Sint8 pausesw;        /* 0x70 */
 	Sint8 x71;
-	Sint8 x72;
+	Sint8 x72;            /* pause state (ADXT_Pause) */
 	Sint8 x73;
 	void *amp;            /* 0x74 ADXAMP */
-	Uint8 pad78[0x8C - 0x78];
+	SJ sjx[2];            /* 0x78 extra stream joints destroyed with the handle */
+	SJ sjy[2];            /* 0x80 */
+	Sint32 timeofst;      /* 0x88 ADXT_SetTimeOfst */
 	Sint32 lpendsct;      /* 0x8C loop end in sectors */
 	Sint32 trapnsmpl;     /* 0x90 */
 	void *lsc;            /* 0x94 load scheduler handle */
 	Sint8 lnksw;          /* 0x98 link (concatenated file) switch */
 	Uint8 pad99[0x9C - 0x99];
-	Sint32 x9c;
+	Uint32 x9c;           /* 0x9C time position at the last (re)start in adxt_time_unit units */
 	Sint32 startvsync;    /* 0xA0 adxt_vsync_cnt at start */
 	Sint32 decsmpl;       /* 0xA4 samples decoded before the current (linked) file */
 	Sint8 stmstart;       /* 0xA8 start the stream when the decoder is ready */
-	Uint8 pada9[0xB0 - 0xA9];
+	Uint8 pada9[0xAC - 0xA9];
+	Uint8 *wkend;         /* 0xAC end of the file stream ring buffer (ADXT_Create) */
 	void *stm_fname;      /* 0xB0 pending adxt_start_stm arguments */
 	void *stm_dir;        /* 0xB4 */
 	Sint32 stm_ofst;      /* 0xB8 */
