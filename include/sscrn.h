@@ -68,7 +68,7 @@ struct SUB_SCREEN {
     SsArc* pMapArea;          // 0x1F8  SS/cmn/map_objNN.dat archive of the current area (Sscrn ss_map)
     SsArc* pFile;             // 0x1FC  ss_file.dat archive (Sscrn ss_file)
     SsArc* pExam;             // 0x200  item examine id data archive (examine ItemExamine::idSet)
-    u8 pad_204[4];
+    SsArc* pShop;             // 0x204  ss_shop.dat archive (Sscrn ss_shop: read to pBuf + aramSize)
     void* pPartner;           // 0x208  SS/cmn/ss_ocNNN.dat (Sscrn ss_term: the partner model data)
     void* pTplBuf;            // 0x20C  0x20000-byte file picture TPL buffer (Sscrn ss_file)
     void* x210;               // 0x210  weapon model data (pBuf + 0x2E5E00, Sscrn SubScreenTask / weaponChangeTask)
@@ -106,7 +106,8 @@ struct SUB_SCREEN {
     u8 x2AE;                  // 0x2AE  item 0x7C..0x7F owned -> 0..3
     u8 x2AF;                  // 0x2AF
     class pzlPlayer* x2B0;    // 0x2B0  puzzle (case) player of the Sscrn puzzle screen
-    u8 pad_2B4[0x2FA - 0x2B4];
+    u8 x2B4;                  // 0x2B4  Sscrn ss_shop: the bought piece is in hand (case placement)
+    u8 pad_2B5[0x2FA - 0x2B5];
     u16 x2FA;                 // 0x2FA  item id handed to the opened sub screen (sce_at sceAtGetItem)
     u16 x2FC;                 // 0x2FC  its count
     u8 pad_2FE[2];
@@ -115,7 +116,8 @@ struct SUB_SCREEN {
     struct SsMapWork* pMapWk; // 0x308  Sscrn ss_map work (mark models, camera, viewport; 0x104C bytes)
     SsFileWork* pFileWk;      // 0x30C  Sscrn ss_file cursor/page state
     s8* x310;                 // 0x310  Sscrn ss_cap cursor {row, column, row * 6 + column}
-    u8 pad_314[0x31C - 0x314];
+    struct ShopWork* pShopWk; // 0x314  Sscrn ss_shop list/cursor state (0x48 bytes)
+    class Merchant* pMerchant;// 0x318  Sscrn ss_shop: the shop session (game/merchant.cpp Merchant)
     s32 mdtNo;                // 0x31C  OpeSetOpenTerm number
     s32 strBlk;               // 0x320  SndStrPlayBlock handle
     cObjWep* pObj;            // 0x324  OpeSetOpenTerm weapon object

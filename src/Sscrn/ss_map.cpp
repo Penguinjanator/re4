@@ -335,19 +335,19 @@ cModel* ssWepModel;
 cModel* ssPlMotion = 0;
 cModel* ssWepModel2 = 0;
 
-// Mark models per area: goal, merchant, treasure, coin, typewriter.
-static const int mark_model_tbl[18][5] = {
-    {0, 0, 0, 0, 0}, {1, 1, 1, 1, 1}, {1, 1, 1, 1, 1}, {1, 1, 1, 1, 1}, {1, 0, 1, 0, 0}, {1, 0, 0, 0, 0},
-    {1, 1, 1, 1, 1}, {1, 1, 0, 0, 1}, {1, 1, 0, 0, 1}, {1, 1, 1, 1, 1}, {1, 1, 0, 0, 1}, {0, 0, 1, 0, 0},
-    {0, 0, 1, 0, 0}, {0, 0, 1, 0, 0}, {0, 0, 1, 0, 0}, {1, 0, 0, 0, 0}, {1, 0, 0, 0, 0}, {1, 0, 0, 0, 0},
-};
-
 // Whole-map camera per stage.
 static const CameraParam map_cam_entire[4] = {
     {{0.0f, 10000.0f, 0.0f}, {0.0f, 0.0f, 0.0f}, 0.0f, 55.0f},
     {{21000.0f, 82850.0f, 12650.0f}, {21000.0f, 0.0f, 12650.0f}, 0.0f, 55.0f},
     {{-425.0f, 104000.0f, -3210.0f}, {-425.0f, 0.0f, -3210.0f}, 0.0f, 55.0f},
     {{-425.0f, 104000.0f, -3210.0f}, {-425.0f, 0.0f, -3210.0f}, 0.0f, 55.0f},
+};
+
+// Mark models per area: goal, merchant, treasure, coin, typewriter.
+static const int mark_model_tbl[18][5] = {
+    {0, 0, 0, 0, 0}, {1, 1, 1, 1, 1}, {1, 1, 1, 1, 1}, {1, 1, 1, 1, 1}, {1, 0, 1, 0, 0}, {1, 0, 0, 0, 0},
+    {1, 1, 1, 1, 1}, {1, 1, 0, 0, 1}, {1, 1, 0, 0, 1}, {1, 1, 1, 1, 1}, {1, 1, 0, 0, 1}, {0, 0, 1, 0, 0},
+    {0, 0, 1, 0, 0}, {0, 0, 1, 0, 0}, {0, 0, 1, 0, 0}, {1, 0, 0, 0, 0}, {1, 0, 0, 0, 0}, {1, 0, 0, 0, 0},
 };
 
 // Stage flag / door unlock flag / item flag bit tests (one bit per number, word tables in pG).
@@ -1998,7 +1998,7 @@ void doorModelInit(SUB_SCREEN* wk)
             Mtx rot;
 
             mdl->partsMatCalc();
-            PSMTXRotRad(rot, 'y', (f32) e->ang * 3.1415927f / 180.0f);
+            PSMTXRotRad(rot, 'y', (f32) (int) e->ang * 3.1415927f / 180.0f);
             PSMTXConcat(MapMgr.getWork(base)->getPartsPtr(e->parts)->mat, rot, mdl->mat);
             mdl->partsWorldCalc();
         }

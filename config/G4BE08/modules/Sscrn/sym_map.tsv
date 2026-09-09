@@ -430,7 +430,7 @@ section	offset	size	unit	scope	name	demangled
 .text	0x0002ACBC	0x47C	Sscrn/ss_shop.cpp	global	weaponLevelDisp	weaponLevelDisp
 .text	0x0002B138	0x1A0	Sscrn/ss_shop.cpp	global	stockNumDisp	stockNumDisp
 .text	0x0002B2D8	0x35C	Sscrn/ss_shop.cpp	global	dispPrice	dispPrice
-.text	0x0002B634	0xB0	Sscrn/ss_shop.cpp	global	itemTexNo_2B634	itemTexNo
+.text	0x0002B634	0xB0	Sscrn/ss_shop.cpp	global	itemTexNo__Fi	itemTexNo
 .text	0x0002B6E4	0xCC	Sscrn/ss_shop.cpp	global	setOrientation	setOrientation
 .text	0x0002B7B0	0x1CC	Sscrn/ss_shop.cpp	global	dispItem	dispItem
 .text	0x0002B97C	0xB0	Sscrn/ss_shop.cpp	global	screenPos2worldPos	screenPos2worldPos

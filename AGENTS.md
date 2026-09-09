@@ -2309,9 +2309,85 @@ target) stays unresolved and `make_rel` then fails with "undefined symbol".
   `lis pG@ha` hoisting / `cur->init(wk)` tail merging); ss_item is written (34 functions incl. dtors,
   25 byte-identical, .rodata/.data/.bss identical), open items below; ss_term (29/29 named
   functions, eof block open) and ss_model (40/47) are written, see their items; ss_map (src/Sscrn/
-  ss_map.cpp, 88/105 named functions byte-identical, .data/.bss identical, .rodata 8 bytes short:
-  see its item) and ss_pzzl (src/Sscrn/ss_pzzl.cpp, 33/64, .data identical, first pass) are
-  written; ss_shop is unwritten.
+  ss_map.cpp, 88/105 named functions byte-identical, .rodata/.data/.bss identical since 2026-09:
+  the former 8-byte gap was doorModelInit's missing 2^52 pool entry (`(f32) (int) e->ang` of the u8
+  angle, the classic double trick, not a fast-cast psq_l) plus the two file-scope `static const`
+  tables in the wrong order (map_cam_entire is defined before mark_model_tbl); see its item) and ss_pzzl (src/Sscrn/ss_pzzl.cpp, 33/64, .data identical, first pass) are
+  written; ss_shop (src/Sscrn/ss_shop.cpp, the merchant screen: 60/74 functions byte-identical incl.
+  the 0x980 eof block, .rodata/.data/.bss identical, .text 8 bytes short) is written, see its item.
+- ss_shop idioms (2026-09): include order light.h, map_obj.h, widget.h (the three header strings), then
+  "ss_shop.dat" (SsShopInit::move) and the HALT string (mem_alloc lines 0x1BA/0x242). The 13 widgets are
+  declared in the order SsShopInit, SsShopMain (ss_main.h), ShopTopMenu(3 links, ctor sets cursor = 1),
+  SellMenuSelect(2), SellItemNum(2), SellConfirm(1), BuyMenuSelect(2), BuyItemNum(3, 0x20 bytes),
+  BuyConfirm(3), BuyPuzzleEnd(2), LvUpMenuSelect(2), LvUpItemSelect(2), LvUpConfirm(1, 0x20); the link
+  count / size of each `new` in SsShopMain::init belongs to the vtable stored AFTER it (the vptr store
+  follows the `stw` of the member). SsShopMain::init also creates ss_pzzl's PzzlThinking / PieceSelect /
+  CaseChange: their classes moved to include/ss_pzzl.h in the target's declaration order (PiecePopUp,
+  PiecePopDown, PzzlThinking, PieceSelect, PieceCommand, PieceCombine, CaseChange = reverse of the
+  .rodata vtable order 29E0..2B00; the old ss_pzzl.cpp order was wrong) and the nine pzzl / thirteen
+  shop vtable labels were renamed `_vt.<Class>` by hand (the sync tool cannot resolve them).
+  SUB_SCREEN gained pShop (0x204), x2B4, pShopWk (0x314, `ShopWork` 0x48) and pMerchant (0x318).
+  Idioms: `tbl[(*num)++] = X` (getGreetMsg) keeps the `*num` value in a register across the `tbl[]`
+  store (a re-read after the store reloads it); `if (a || b) tbl[(*num)++] = 1; else tbl[(*num)++] = 0`
+  gives the `stwx r3` (the zero is levelNew's result) + shared `addi/stw` tail; two early `return 0`
+  paths share one `li r3,0` only through `goto NG` to a `NG: return 0` at the end. `cMes.mes[result].flags2`
+  (index = the member just zeroed) is what gives `lwzx r0, r9, rZERO` with the zero pseudo; `getMes(0)`
+  folds. A function-level `IdUnit* u` reassigned by every `unitPtr()` call gives the `mr r9,r3` copies
+  (closeCoat, SsShopMain::init); direct `IdSub.unitPtr(..)->flags` expressions use r3. Separate
+  block-local loop counters per loop (SsShopMain::init: r29/r30/r27) keep `this` in r31. `state =
+  greetIdx = greetStep = 0` (chain) reproduces `stb 0x10; stw 0x28; stw 0x24` after a call without
+  reusing the pre-call QI zero. `if (x) transit(..); else ok = 0;` (then-arm = the call) lets jump2
+  merge both `ok = 0; b join` copies out of line; `case 1: default:` shares the default body in the
+  `str` switch. dispSellItemList / dispBuyItemList are hand-rolled goto loops (`i = top; goto TEST;
+  BODY: ...; i++; TEST: if (i < end) { item = ..; pe = ..; row = i - top; if (pe) goto BODY; }`): no
+  loop notes, so the 320/0.8/240 pool constants stay inside the loop and `row + 0x40` etc. are
+  recomputed, while dispLvUpItemList is a real `for` (constants hoisted to f29-f31, four givs). In all
+  three, the first `for (k = 0; k < 5; k++)` uses its own variable, `i = top` is assigned before the
+  dispScrollBar call and `end = top + n` after it, the cursor mark is one `mark = unitPtr(0x3F)` with
+  `if (cursor) |= 8 else &= ~8`, the `ItemInfo info` / `Vec pos` temporaries are block-scoped (the
+  Sell frame: info 0x8, pos 0x10, second info 0x8, dispPrice's pos 0x8 via combine_temp_slots), the
+  message slot is `u8 slot = row + 8`, and `ot`/`otNo` are stored through `U16Set` (ot first).
+  The digit displays (dispPrice, stockNumDisp, weaponLevelDisp, levelItemDisp, SellItemNum::move)
+  copy the number into a fresh `int n` AFTER the preceding `unitPtr()->flags |= 8` statement (the copy
+  lands in r4 after the call: `mr r4, rNUM`); the leading-zero loop is `on = 0; for (i = N-1; i >= 0;
+  i--) { if (on == 0) { if (digit[i] == 0 && i != 0) continue; on = 1; } u = unitPtr(base + i); u->flags
+  |= 8; u->flags_7F |= 2; u->no = digit[i]; }`. weaponLevelDisp/levelItemDisp digit loop: `if (type ==
+  3) { leading-zero skip } else if (type == 0 && i == 2 && digit[2] == 0) hide; else show;` (the
+  type == 0 test survives because it is in the other arm); the bar colour is `src = unitPtr(3); if (i <
+  lv) { int max = WeaponId2MaxLevel(..); src = colOn; if (lv > max) src = colOff; }` (max in a local
+  before the assignments keeps src out of the call's live range, so it stays in r3); `switch (id) {
+  case 0x40: .. case 0x34: ..}` (0x40 first) with `case 1:`/`case 2:`/`case 3:` written as separate
+  `lv = 1` bodies. The ratio getters take the int level through `getPowerRatioI`-style asm aliases
+  (COMPILER-DIFF 4, no `extsb`); `WeaponId2ChargeNumI` keeps the `& 0x1FFF` mask. LvUpConfirm::move
+  writes the ItemWork::x6 nibbles through a `TuneLevel` bitfield view (`u16 fire:4, mag:4, speed:4,
+  ex:4`) with `(u8) ((s8) sw->lv[0] - 1)` for the top nibble (`lbz +3; extsb; subi; clrlwi 24; slwi 12`)
+  and `(s8) sw->lv[i] - 1` for the others; its message branch is `if (msg == 0x17 && (result =
+  cMes.getMes(1)->result) != 0) {..} else if (msg == 0x18)` (the result == 0 path joins the second test,
+  which therefore reloads msg and Key.trg). Message positions: `int x = (int)(..) + ofs_x;` before the
+  MesSet with the y expression inline (loads ofs_x first; both inline loads ofs_y first and cost a
+  callee-saved register); `shop_msg[msg]` read twice through the member (not a local copy). Clamps
+  against 1 keep `cmpwi 1; blt` only through a variable (`int min = 1`), a literal folds to `<= 0`;
+  the 0x54..0x55 test in the shop's itemTexNo is `id <= hi && id >= lo` with `int hi/lo` locals (a
+  literal range folds to `subi/cmplwi`). `if (p->num >= left) { for (i = 0; i < left; i++) dump(p);
+  break; } left -= p->num; dumpAll(p);` gives the reversed count-down dump loop with the subtract block
+  out of line (SellConfirm). setOrientation: `m->rot.x = m->rot.y = m->rot.z = 0.0f; m->scale.x = .. =
+  1.0f;` chains give the a0/ac/a8/a4/b4/b0 store order; the place table is indexed (`tbl[i].rot`) for
+  the two givs. dispItem clears `be_flag & ~2` (rlwinm 0,31,29). screenPos2worldPos loads `pos.z` into
+  a local before the `tan` call (f31). `sw->pShop = (SsArc*) (wk->aramSize + (u32) wk->pBuf)` (offset
+  first). `MesData.setPtr(0, ..)` / `setPtr(2, ..)` give the `stwx r0, r9, rZERO` / `stw 8(r9)` pair.
+  Open (register allocation / scheduling only unless noted): dispSellItemList & dispBuyItemList
+  (`add end` scheduled after the dispScrollBar call and the call passing `top` not `i`; the
+  frame/text `unitPtr(row+0x40)`/`unitPtr(row)` calls use a fresh `lis IdSub@ha` (Sell: one
+  callee-saved r30 for both; LvUp: rematerialised `lis r9` per call) that gcse never unifies with the
+  hoisted copy - a second `extern IDSystem IdSub2 asm("IdSub")` decl splits the expression but ours
+  then hoists it), dispLvUpItemList (same `lis` + register names), levelItemDisp (-0x18: the same
+  `lis`, `val[cur]` index form, digit/pos slot sharing), weaponLevelDisp (+4: `digit[2]` read via the
+  array pseudo `lwz 8(rBASE)` where ours folds to `16(r1)`, register names), SellItemNum::move
+  (`this` r24 vs val r25 swap; the fpmem address pseudos are callee-saved r29/r30 in the target),
+  BuyItemNum::move (+8: the `SndCall(0,5)` tail of the cancel branch is cross-jumped into case 1's
+  `li r8,0; bl` in the target), BuyConfirm::move (+4), LvUpItemSelect::move (item r28/r30),
+  LvUpConfirm::move (-4: one `extsb` ours folds away), stockNumDisp / dispPrice (loop counter vs
+  digit pointer registers r30/r31 swapped), screenPos2worldPos (x/z store order, scr/out registers).
 - ss_map idioms (2026-09): include order light.h, map_obj.h, widget.h, atari.h (the cSat/Widget/
   cUnit vtables come out in that reverse order after the widget vtables). The unit defines its own
   `extern "C" inline LightSetModel2` before ss_main.h (the module's second copy, nameless 0x2C at

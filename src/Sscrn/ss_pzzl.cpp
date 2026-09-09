@@ -27,6 +27,7 @@
 #include "pl_sub.h"
 #include "sscrn.h"
 #include "ss_main.h"
+#include "ss_pzzl.h"
 
 class cSubChar;
 extern cSubChar* pSUB;
@@ -67,77 +68,8 @@ struct PzzlCursor {
     Vec v[4];
 };
 
-// The puzzle screen widgets (SsPzzlMain::init creates them).
-class PzzlThinking : public Widget<SUB_SCREEN> {
-public:
-    virtual void init(SUB_SCREEN* wk);
-    virtual void quit(SUB_SCREEN* wk);
-    virtual void move(SUB_SCREEN* wk);
-};
-
-class PiecePopUp : public Widget<SUB_SCREEN> {
-public:
-    int count;  // 0x10
-
-    virtual void init(SUB_SCREEN* wk);
-    virtual void move(SUB_SCREEN* wk);
-};
-
-class PiecePopDown : public Widget<SUB_SCREEN> {
-public:
-    int count;  // 0x10
-
-    virtual void init(SUB_SCREEN* wk);
-    virtual void move(SUB_SCREEN* wk);
-};
-
-class PieceSelect : public Widget<SUB_SCREEN> {
-public:
-    int state;  // 0x10  0 select, 1 message, 2 message closed
-    int mode;   // 0x14  bit3: message open; 1 exit, 2 main menu, 4 case change
-
-    PieceSelect() : Widget<SUB_SCREEN>(4) {}
-    virtual void init(SUB_SCREEN* wk);
-    virtual void move(SUB_SCREEN* wk);
-};
-
-class PieceCombine : public Widget<SUB_SCREEN> {
-public:
-    int state;  // 0x10
-
-    PieceCombine() : Widget<SUB_SCREEN>(2) {}
-    virtual void init(SUB_SCREEN* wk);
-    virtual void quit(SUB_SCREEN* wk);
-    virtual void move(SUB_SCREEN* wk);
-};
-
-class PieceCommand : public Widget<SUB_SCREEN> {
-public:
-    IdUnit* id[16];   // 0x10
-    IdUnit* sub[11];  // 0x50
-    u8 pad_7C[0x90 - 0x7C];
-    int mode;         // 0x90  0 command, 1 open sub menu, 2 sub menu, 3 message
-    s8 num;           // 0x94
-    u8 cursorOld;     // 0x95
-    s8 subSel;        // 0x96
-    s8 onCase;        // 0x97  the piece is on the case board
-    u8 lower;         // 0x98  the piece is in the lower half (menu above it)
-
-    PieceCommand() : Widget<SUB_SCREEN>(6) {}
-    virtual void init(SUB_SCREEN* wk);
-    virtual void quit(SUB_SCREEN* wk);
-    virtual void move(SUB_SCREEN* wk);
-};
-
-class CaseChange : public Widget<SUB_SCREEN> {
-public:
-    IdUnit* a;  // 0x10
-    IdUnit* b;  // 0x14
-
-    virtual void init(SUB_SCREEN* wk);
-    virtual void quit(SUB_SCREEN* wk);
-    virtual void move(SUB_SCREEN* wk);
-};
+// The puzzle screen widgets (include/ss_pzzl.h; SsPzzlMain::init creates them, ss_shop.cpp shares
+// PzzlThinking / PieceSelect / CaseChange).
 
 extern "C" {
 void pzzlClearZ(SUB_SCREEN* wk);
