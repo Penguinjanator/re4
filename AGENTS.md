@@ -3339,7 +3339,7 @@ target) stays unresolved and `make_rel` then fails with "undefined symbol".
   of the format string, drawScurve's `i`/`&wp` register swap (r26/r27), sctrlMenu's cross-jump of the
   case-1 cursor call.
 
-### Single-unit enemy modules (em2e, em26, em18, em34, em24 Matching; em30 22/23, em3a 36/39, em3c 43/47; src/<em>/<em>.cpp, 2026-09)
+### Single-unit enemy modules (em2e, em26, em18, em34, em24 Matching; em30 22/23, em3a 36/39, em3c 43/47, em38 71/76, em22 64/72; src/<em>/<em>.cpp, 2026-09)
 
 - Layout of every one-file enemy REL: `_prolog` (`OSReport("<em> prolog Ok\n")` + `EmInitFunc = EmXXInit`;
   em2e has no OSReport), empty `_epilog`/`_unresolved`, `EmXXInit` = `new (em) cEmXX()`, `emXXDmCk`, the
@@ -3502,6 +3502,81 @@ target) stays unresolved and `make_rel` then fails with "undefined symbol".
     pointer local gives the first, a u16 parameter the second but with a `clrlwi` at entry).
     em3cPartsBombControl (0x7C8 bytes, -12): structure identical, callee-saved assignment (em r18
     vs r17, no r21 vs r20, ...) and three spill-slot numbers differ.
+- em38 (71/76 byte-identical, not Matching; include/em38.h, src/em38/em38.cpp, 2026-09): the lake boss,
+  one class for five enemies (`type` 0 body, 1/2 tentacles, 3 upper, 4 lower body) that find each other
+  through `EmMgr.pArray + EmMgr.size * i` (em38SearchParts); virtuals ckHeadUp / setAtkWait / setIn /
+  ckIn / setCritical / ckCritical / ckDown; R1 table of 17 `{br_*, main}` pairs (`xFD * 2`,
+  `xFD * 2 + 1`); work +0x5AC..+0x664 (pBody, pTent[2], pUpper, pLower, pInfo, two `Em38Para` roots,
+  eye angles, obj00 weak point, blend motion `MotionWorkSub` copies at +0x668/+0x738 and a `Camera` at
+  +0x808). `MotionWorkSub::speedRate` (+0xC0, em.h) was padding; a `cEm25` placeholder class supplies
+  the parasite's virtual slot (`setBirth`); `GetWepDmVal` is declared locally (em10.h clashes).
+  Residuals: em38BirthParasite (loop-invariant `li 0xf0` kept in the loop by the original), em38BloodSet
+  (switch arm register allocation), em38AtkCk2 (r30/r31 em/no swap), plemEscape (0.0f/500.0f pool
+  order), em38EscapeCamMove (pG caching / pool order).
+- em22 (64/72 byte-identical incl. the linkonce copies, .data/.rodata identical, not Matching;
+  include/em22.h, src/em22/em22.cpp, 2026-09): the dog. `setGoto(Vec*, int)` is virtual (cEm22 vtable
+  0x60, so the module's `_vt.5cUnit` copy lands at 0x5D0). R1 table of 20 `{br_*, main}` pairs, R2 2,
+  R3 1. Work: +0x14/+0x18 route angle/abs, +0x24..+0x30 target angle/abs/dist2/RouteCkPosToPosDis,
+  +0x34 plRoutePos, +0x4C routePos, +0x5C blow speed, +0x68/+0x6C goto flag/pos, +0x78 `Camera`,
+  +0x170 `EmHitInfo hit[5]`, +0x274 `cObj16* pPara[5]`, +0x288 `cObj16* pParaAtk[3]`, then the
+  ctrl pointers / timers up to +0x2E0 (espKind). Idioms found:
+  - Constant reuse across calls: after `em->dmHit = 0; em->dmType = 1;` the original's
+    `EmRoutineSet(em, 2, 1, 0, 0)` in the `hp <= 0` / `flags & 8` arms reuses those 0/1 pseudos
+    (`stb r30, 0xff; stb r28, 0xfd`, callee-saved across LifeDownSet2/SndCall). Only four direct
+    `em->xFC = 2; em->xFD = 1; em->xFE = 0; em->xFF = 0;` stores reproduce it; the int-parameter
+    `EmRoutineSet` inline keeps fresh `li`s. em22_R0_Init: `int zero;` assigned right after the
+    modelInit check (`zero = 0; mot = MOTION(em);`) feeds `lockParts = zero` and the int zero stores.
+  - Damage switch (em22DmCk): break arm `0..4, B, C, 10, 11, 1B, 1D, 26, 27, 2B`, then the default
+    arm `5, 6, 9, A, D, E, F, 12, 13, 28, 29, 2A, 2C, 2D + default` written BEFORE `7, 8, 21`
+    (jump.c deletes the earlier of two identical `RS; b end` tails, so the default body ends up after
+    the near test). Blood switch (em22BloodSet): `7, 8, 21` first, then `1..4, B, C, 10, 11, 1B, 1D,
+    26, 2B`, a separate `case 0x27:` arm with the same body (two `beq` nodes), `0, 14, 22..25, 2A +
+    default: break;` (they shape the tree: node 0x14 makes 0x15's `blt END`), then the type-1 arm last.
+    R0_Init's routine switch: `case 2:`, `case 4:`, `case 5:` as three arms each
+    `EmRoutineSet(em, 1, em->x38D, 0, 0)` (one cross-jumped body, the `beq`s share it) and
+    `case 1: EmRoutineSet(em, 1, 1, 0, 0)` (cse turns both 1s into the index register).
+  - Motion-choice switches store `mot` / `blend` / `flip` locals and call MotionSetCore once after
+    the switch (em22_R1_Dm_Small, the three Dm_Blow switches): the arms are just the ARC loads.
+  - A helper written as an inline taking `w` (the run turn: `rot.y += Muku(..); rot.y = LIMIT_ANGLE
+    (rot.y); em22DirMatrix(em, Muku(.., rot.y, PI))`) copies the LIMIT_ANGLE result (`fmr f0, f1`) before
+    the store; a macro / open code keeps `stfs f1`. Struct-member views: `b = pPLS->pos` for the Vec
+    copy after `a = em->pos` (Run, Threat's PlRunCk2 block, RouteCk), `RouteCkToPos(em, &pPLS->pos, ..)`,
+    `w->pTarget = pPLS; RouteCkPosToPosDis(&em->pos, &pPLS->pos)` (pPL loaded twice), `SndCall(8, 0x21,
+    &pPLS->pos, ..)`, `LifeDownSet2(pPLS, 10, 0, 0)`, `Muku(&em->pos, &pPLS->pos, ..)` after a `w->`
+    store; `pGS->flags_60 & 0x4000` for the Draw_line3d check after `w->` stores.
+  - Player callbacks: `pl->subArc = ((cEm22*) pPL->dmgType)->subArc` and `pl->xFE = ((cEm22*)
+    pPL->dmgType)->xFE` read the enemy through pPL (mat / rot through `pl->dmgType`); `y =
+    PL_EM(pl)->rot.y; pl->rot.z = 0.0f; pl->rot.y = y + PI; LIMIT_ANGLE(pl->rot.y);` (result dropped
+    by the original); `(u32) PlGachaGet() < 15` for `cmplwi`.
+  - One f32 local reused for every temporary of a function (em22NeckMove: Muku result, pitch,
+    neckY/3, `fabsf(neckX)`, neckX/3) puts it in a callee-saved f30; em22_R1_Turn's `d = fabsf(ang)`
+    reuses the case-1 `d`, em22_R1_Escape's `lim = fabsf(Muku(..))` the run-turn `lim` (f31 / f2).
+    `len = SQRTF(..); f = -atan2f(d.y, len);` (the inner call into a local). `p->worldMat` (cCoord
+    +0x3C) is the parts matrix the neck rotation is concatenated into.
+  - `u16 step = (*(u16*) ARC(n) & 0x3FFF) / 5; ... MotSetObj16(obj, ARC(n), 4, step * i);` - the
+    product is strength-reduced into the `add rF, rF, rStep` biv with its `li 0` in the preheader.
+  - `no = em->seNo; if (no == 0) return; no--; switch (no)` puts the byte in r6 (the SE argument);
+    `em->seNo = 0` sits inside each arm (the default arm skips it). `if (em->xFC != 3) return; if
+    (em->xFD == 0)` - an `&&` of two adjacent u8 compares is merged into one `lwz; clrrwi; cmpw`.
+    `if (st) { if (st <= 3) continue; }` - the `&&` form folds into `(st - 1) <= 2`. `if (pos.y > fl)
+    break;` then fall through into the next case (R11B_B case 3 -> 4).
+  - `if (w->gotoOn == 0) return 0; RS; return 1;` and `if (w->paraWait) { paraWait--; return 0; }
+    return 1;` (the arm that falls through is the one written second).
+  - Residuals (8): em22_R1_Wait (`li r10, 0` for the last RS hoisted above the `pG` load into the
+    predecessor block; nested ifs, pGS, direct stores, a `hit` local all keep it in the RS block),
+    em22_R1_Threat (first hitCheck block: pPL load / temp registers, identical to Run's matched
+    blocks), em22_R1_Jump (`fmr f12, f1` copy of the getFloor result), em22DirMatrix (f0/f13 naming of
+    the tilt blend), em22ParaSetMotWait/Atk (em/i r30/r29 swap), em22ParaSetMotAtkHit (arm order of
+    the i == 1 / i == 2 bodies), em22FootSeControl (em/w r30/r31 swap).
+- em35 (not started; 0xC9C0, 113 functions): R0 table 4, R1 35 `{br_*, main}` pairs (Wait, Walk,
+  BigStep, Turn, Atk, LongAtk, AtkDouble, BearHug, Hook, Critical, CriticalHit, Atk2F, Catch, CatchHit,
+  Divide, then the upper-body `U_*` set: Wait, Jump, JumpUp, JumpDown, DoubleJump, BackJump, Turn180,
+  Step, BigStep, OverStep, StepUp, StepDown, HandAtk, Atk, Upper, AtkSpear, Divide, Crawl, CrawlTurn,
+  JumpToBeam), R2 6 (Dm_Small, Spinal, Big, Frame, U_Fall, U_Crawl), R3 2 (Die_Normal, Die_Pose);
+  virtuals setDiePose / setUpperStart; .data 0x868 (beam graph tables from +0x148, 36-byte entries of
+  u8 links + two Vec, more tables at +0x3AC..+0x7B4), .rodata 0x8A0, .bss 0x34 (common); player
+  callbacks plem35_BearHug / Sit / DmFall2F / DmHook / CriticalHit / DashEscape / DmStamp / CatchHit
+  and two event cameras (em35EscapeCamMove, em35StampCamMove).
 - Tools REL, third pass (t_atari 16/17 functions, t_dr 13/15; src/Tools/t_atari.cpp, t_dr.cpp, 2026-09):
   - `cSat` has a constructor, `cSat() : cUnit(1) { flags = 0; }` (include/atari.h): t_atari's two
     `static cSat tbl[10]` arrays are built by the static-init loop as `stw 1; stw _vt.4cSat; stb 0,0x2a`

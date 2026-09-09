@@ -66,7 +66,9 @@ struct MotionWorkSub {
     void* data;           // 0x00  MotionData*, NULL = no motion
     u8 pad_4[0x44 - 0x4];
     u32 flags2;           // 0x44  MotionWork::flags2 (bit28: no IK, bit31)
-    u8 pad_48[0xC8 - 0x48];
+    u8 pad_48[0xC0 - 0x48];
+    f32 speedRate;        // 0xC0  MotionWork::speedRate (em38 shell motion: 1.0 before every MotionSetCore)
+    u8 pad_C4[4];
     f32 blendRate;        // 0xC8  weight of this work in the owner's MotionMove blend
     u8 pad_CC[4];
 };

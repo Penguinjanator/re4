@@ -306,6 +306,7 @@ public:
     void setDieEff();
     void setCritical();
     int ckAtkHit();
+    void setScale(Vec* s);
 };
 
 class cObjGatling : public cObj {
@@ -365,6 +366,11 @@ public:
 
 cObj* SetObj12(void* bin, void* tpl, Vec* pos, Vec* rot);
 cObj* SetObj01(void* bin, void* tpl, Vec* pos, Vec* rot, Vec* v, f32 a, f32 b, int c, int d);
+// game/obj08.cpp: the thrown projectile object (em2d poison; em10 declares them locally).
+cObj* SetObj08(cModel* parent, void* bin, void* tpl, Vec* pos, Vec* rot, int flags, void* atk);
+void SetObj08Spd(cObj* obj, Vec* spd, int life, f32 grav, f32 rad);
+void SetObj08Est(cObj* obj, int no0, int prm0, int no1, int prm1, int no2, int prm2, int no3, int prm3, u8 flag);
+void SetObj08Se(cObj* obj, u16 blk, u16 no);
 void Obj01SetEst(cObj* obj, int a, int b, u32 c, int d, int e, int f, int g, int h, int i);
 int GetWepDmVal(cEm* em, u32 a, int b);
 void EmCatchSubSet(cEm* em, cEm* sub, u32 type, int a, f32 x, f32 y, f32 z, f32 w);
