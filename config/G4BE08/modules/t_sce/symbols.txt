@@ -1,4 +1,4 @@
-SetToolLight = .text:0x00000000; // type:function size:0xB0 scope:local
+SetToolLight__Fi = .text:0x00000000; // type:function size:0xB0 scope:global
 cLightTool_dblCk = .text:0x000000B0; // type:function size:0xC scope:local
 cLightTool_editEnable = .text:0x000000BC; // type:function size:0x78 scope:local
 cLightTool_updateLit = .text:0x00000134; // type:function size:0x158 scope:local

@@ -3680,6 +3680,51 @@ target) stays unresolved and `make_rel` then fails with "undefined symbol".
     current frame, +0x294 motion count, +0x94 pos, +0xF4 parts list) everywhere; strings and pools in
     .rodata are in the order listed by secdump.
 
+### Ganado shared library (em10/em10.cpp, 346/382 byte-identical, .data/.rodata/.bss identical, not Matching; 2026-09)
+
+- The unit is shared by 16 modules (`common_<mod>` .comm block from `REL_MODULE`, everything else
+  identical); flag MATCHING for all 16 at once, only when every function matches. em10.cpp is in
+  STRIP_UNUSED: dead `static` placeholders (plem10NeckBreakCamMove, em10FindFloorCk) exist only to
+  emit their orphaned constant pools. Idioms beyond the em24/em3a/em3c lists:
+  - `Em10_R1_move_tbl` is a flat `Em10Func[220]` indexed `[xFD * 2]` / `[xFD * 2 + 1]` (`(idx << 3) | 4`
+    in R0_Move); a `{br, main}` struct array gives `rlwinm; addi 4`.
+  - `EmRoutineSet(em, 1, N, zero, zero)` with `int zero = 0;` when both zero args come from one
+    register (em10DashCk, em10LadderResetCk); `int one = 1;` inside the `hp > 0` block for a
+    hoisted `li 1` (br_Dash); PLAIN `xFF/xFC/xFD/xFE` byte stores when the target has them in that
+    order (setGatling, em10DashCk's first set).
+  - `pPLS->pos` for the Vec argument of `Muku`/`EM10_WEP_ATK_CK` (moves `lwz pPL` below the pos
+    loads: R1_Threat, C_SawCriAtk, ThrowBomb, Scythe/Suki/ClawCri AtkCk); `pGS->` for a pG field
+    read after a work store or in a loop (R1_Trade `flags_170 &= ~0x80000000`, SetTakeawayPosUpdate,
+    SetWanderRoute `flags_60`, plem10_C_SawCriHit `pl_life`, plem10Kick `x4FB8`); `IntSet(w->x20, 1)`
+    before the water-effect pG read (Dm_Roof).
+  - `em->rot.y += Muku(..); em->rot.y = LIMIT_ANGLE(em->rot.y);` written in BOTH arms of an if/else
+    (ShieldAtk, TorchFrame, Dm_Blow; cross-jumping merges the tail, a shared statement after the
+    if/else gives a different label placement). Same for `em10SetDamageRack` in R1_WindowAtk.
+  - `f32 a = fabsf(x); if (a < K)` (fabsf result in f1 with the compare's operand order:
+    em10NeckMove, ActEvtSetTrade, ThrowBombCk/ThrowAxeCk's `ang`); `plDist2 < A || plDist2 > B`
+    as two nested ifs (ThrowBomb/ThrowAxe Ck); `f32 len = SQRTF(..); -atan2f(d.y, len)` (ShotGatlingCk).
+  - An early `return` form instead of a final if/else keeps a redundant `mr r3, r31` before a tail
+    call (em10WanderRouteUpdate; the label invalidates reload_cse). `if (!em10FindCk2(em) ||
+    (w->flags & 0x08000000)) return 0;` keeps `li r3, 0` below the `bne` (ClawStickCK; ChgParasiteCk
+    additionally needs the final `if/else` returns flipped).
+  - Narrow args: `em10CallVoiceSeI(cEm10*, int) asm("em10CallVoiceSe")` (COMPILER-DIFF, SetDamageVoice
+    passes an int without `clrlwi`); `int t; Ctrl12SetS(.., (s16) t)` for an `extsh` (SetAtkWait);
+    `int flag` + `(u16) flag` casts (Dm_Head/Dm_Flash).
+  - Constant-pool order: a dead `const f32 k = 1.01f;` in the switch `default:` (R0_Init, setReset),
+    `const f32 k = 30.0f;` (GatlingHitCk), `f32 r;` assigned in the first switch (FindCk); the
+    `if/else if` chain on `pG->x4FB8` is a `switch` (ActEvtSetKick); `switch (e->x38D) { case 2: case
+    3: case 4: }` for the `cmplwi` range (R100Cliff).
+  - `EmiData` loops: `for (i = 0; i < emi->n; i++) { EmiEntry* e = &emi->entry[i]; ..continue; }`.
+  - status: objdiff REPLACE/ARG_MISMATCH rows whose text is identical or whose reloc differs only by
+    `R_PPC_NONE` are matches (`/tmp/em10w/status2.py` resolved reloc targets by name).
+  - OPEN (36): FindCk's bell_stat pair (em3c note); global-alloc register order between a parameter
+    and a loop-local flag (SetDamageDoor `kind`/`in` r24<->r25: declaration order/scope/cast tried);
+    `int one` hoists in R1_Wait/R320Gatling; `mr r10, r11` arc copy in R100TurnWalk; Em1fClothSet's
+    `x48 = 0.0f` stored after pModel; R1_Crash's 0x74/0x78 load order; GetWanderRouteEmi's
+    strength-reduced entry pointer; R10FGondola's `fmadds` writing a fresh f13; the emi loops
+    (GotoPosCk keeps `em` in r12 with w in r31, one more callee-saved reg); InitRtnSet/RouteCk/
+    RackBreakCk/LostHead (long straight-line store orders).
+
 ### Small tool RELs, third pass (t_camera_draw Matching; t_camera_data 12/16, t_movie/t_se_at 11/19; 2026-09)
 
 - t_camera (include/t_camera.h): `TcWork* pTc` is a plain global pointer (`.data` 0x55C -> the static
@@ -4463,3 +4508,64 @@ target) stays unresolved and `make_rel` then fails with "undefined symbol".
 - `p->total = p->cnt = call();` stores cnt then total from one work-pointer load.
 - Second cEmWrap alias `cEmWrapSetPtrI(...) asm("setPtr__7cEmWrapsSci")` for an untruncated u32 (#4).
 
+
+### Tools/t_sce t_sce_at.cpp (shared object, 58/59 named functions byte-identical, sections identical; 2026-09)
+
+- src/tools/t_sce_at.cpp (D:/Bio4/Prog/t_sce_at.cpp, mem_alloc line 0xBE3): the scenario-area ("AEV") editor,
+  the same object in Tools and t_sce (`bcmp` 58/60 in both; the 60th is the nameless cManager<cLight> block).
+  Include order from the header strings: light.h, atari.h, dmg.h, map_obj.h, widget.h (explicit includes). Every
+  function but `ToolSceAt()` is `extern "C"` (statics inside the block). Work = `Debug_alloc(0x19DB8)` behind the
+  one-member struct `sceAtWk.p`, the edited area behind `sceAtCur.p` (.bss 8 = the two pointers): header 0xFC,
+  `SceAtWork area[128]` 0x10C, load/save image 0x4F0C, copy buffer 0x9D1C, then two 512 x 64 message-name tables
+  (loadMesName parses `#define MES_` of the room / common mes headers). `SceAtSys` (static in game/sce_at.cpp) is
+  imported by name through a local `TSceAtSys` view; the DOL needs no edit (make_rel resolves DOL names by name).
+  Not flipped: `tSceAtDataInput_basic_menu` is -0x24 (below). NOTE for the flip: t_sce has three `set_filename`
+  (t_block, t_sce_at, t_sce_item, all `global` in the .sym); the compiled copy defines a global `set_filename`
+  next to t_block's split one — check the -r link (or make ours static and re-sync) when flipping.
+- Idioms that mattered here:
+  - u8 wrap-around `field = n < 0 ? hi : (n > hi ? 0 : n)` must go through a second variable (`m = ...; field = m;`)
+    or the store is duplicated into both arms (`stb` per arm); the 0..hi clamp is the if-form
+    `if (n >= 0) { m = n; if (m > hi) m = hi; } else m = 0;` with `m` a SEPARATE variable (`CLAMP(n, n, ..)` ties
+    the copy away: no `mr r0, n`). With a variable upper bound put `int max = num - 1;` first in the then-arm
+    (`subi` scheduled before the `mr`).
+  - `y = pW->y; y += 0x10;` (two statements) keeps `lha` (a second set stops combine from narrowing the load to
+    `lhz` through the `extsh`); `y = pW->y + 0x10` gives `lhz`.
+  - Three editors (ladder_main, pos_jump_main, cam_ctrl_main) address the payload as `pCur->ladder.pos.x` etc.
+    (pCur reloaded per access); the others (mes, flg, shd, damage, scr_at, use, save, field) use a payload pointer
+    `T* d = (T*) pCur->data` (r31 = pCur + 0x5C, loads `lwz 0x5c(pCur)` folded, stores `stw 0(r27)`).
+  - `if (d->flags & 2) eprintf(...); fl = d->flags; if (fl & 2) { draw }`: the second test through a `u8` variable
+    stops jump.c's thread_jumps (a REG_USERVAR on the Y side fails rtx_equal_for_thread_p) — the target keeps both
+    tests; the plain second `if (d->flags & 2)` is threaded into the first `beq` (-4 bytes, branch to the end).
+  - `u8 em = pCur->x39 & 9; if (em != 0)` gives the target's `andi. r0,r0,9; cmpwi r0,0` pair.
+  - Case-local pointer copies where the target keeps pCur in one register across skipped blocks: case 2
+    `SceAtWork* a = pCur;` (the store after six `if` blocks uses the case-top register; the cse path budget
+    PATHLENGTH 10 is exhausted from the function entry), case 4 `u8 f = a->x38` reused for the RIGHT switch's
+    `a->x38 = f | 0x80` while the LEFT switch and the final store re-read `pCur->x38`.
+  - door_PosSet: the `dstPos == 0` test reads the constant through `static const f32 zero = 0.0f` + `FCRef`
+    (the pool word sits before the function's pool, its `lfs` stays below the pPL struct copies), the pPL copies
+    are `memcpy((u8*) pW + 0x14, &pPL->pos, 12)` (pPL reloaded between), the pG next-room stores are
+    FSet/U16Set/U8Set (pG reloaded after each), the return copy `FSet(pCur->dstPos.x, pPL->pos.x)` (pPL reloaded),
+    `Vec d = {0,0,0}` declared inside the loop body (memset per iteration), and `pCur->dstPos.x == (z =
+    FCRef(zero))` inside the condition for the r3/r4 order of the two `lis`.
+  - Menu enable chain `create[1] = create[2] = edit[3] = edit[4] = valid` (store order create[1], edit[4], edit[3],
+    create[2]; createMenu's address pseudo first) — the t_se_at EditMenu r7/r8 open item is the same thing.
+  - DataLoad: `int ret = 0` block-local inside `if (sel >= 0)` (li r3 after the blt), a separate `int cmp` for the
+    strcmp result, error arms written first (`if (version != 0x104) {err} else { cmp = strcmp(); if (cmp != 0)
+    {err} else {ok} }`), literal zeros in cases 8/9. DataSave: a typed `TSceAtFile* p` for the memcpy (crclr libcall).
+    tSceAtExit: `if (sel >= 0) switch (sel)`. loadMesName: `u32 n` assigned after the early return (`cmplwi 0x1ff`,
+    `li r27,0` after the call), `dst = (char*) (n * 64 + (u32) names)` (index first in the add).
+- OPEN (tSceAtDataInput_basic_menu, -0x24): gcse PRE hoists `high(sceAtCur)` into r27 for every case body
+  (`lwz r11, @l(r27)`), the original keeps a fresh `lis r9` per case start and per post-clamp store and uses r27
+  only in the display tail. In our .gcse dump expression 0 (high(sceAtCur)) is redundant in 13 blocks with the copy
+  inserted at the end of bb 0; the target's case-start occurrences were not replaced (rematerialised single-use
+  pseudos). Case-local `SceAtWork* a` copies fix individual cases but not the pattern; not understood.
+- db_mod.cpp (Tools 0x9978 / t_esp 0xA0EC): NOT written. Facts gathered: t_esp's build has `DB_MODEL_FILES::append
+  (char*)`/`append(void*)`, `dbModMotionSet` (0x1AC) instead of `dbModMotionSetSeq`+`dbModGetMotFilename`, no
+  `dbModGetViewFlag`/`dbModUnsetViewFlag`, and the extra dbModBinName..dbModelSetAng0 loader functions before
+  dbModelSetCamera (a define like db_light's). State `pDbModState` = Debug_alloc(0x3460) (view flag at 0x345C,
+  0x3449 = load failed, routine index s8 at 0x10, 0xD8 set no, 0x1C..0x22 per-type numbers, 0x141 set name),
+  `dbModSlot[64]` (0x2754 each: cEm* at 4, sixteen file pointers at 0x48/0x88, 0xD0-byte name slots from 0x108,
+  0x148 seqFlag, mem_alloc(0x98, line 0xEB) at 0x1D4), a second 64-slot table at .bss 0x9D5E8, the mot_tbl.txt
+  image (`Room/Em/mot_tbl.txt`, .data 0x500) parsed by mottbl* into a 0x4C.. table at .bss 0x13AAEC; .data = the
+  15-entry routine table + `TOOL_MENU`-like `{name, id, flag}` 16-entry table + the string tables and the option
+  values (0x46, 0x12C, 8, 0xB, 0x32, 8).
