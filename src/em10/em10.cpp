@@ -325,7 +325,7 @@ void em10SetCrash(cEm10* em, f32 r);
 void em10MouthPartsReset(cEm10* em);
 void em10SetDmWaterEff(cEm10* em, int a);
 void em10BombThrow(cEm10* em);
-void em10ThrowBombCk(cEm10* em);
+int em10ThrowBombCk(cEm10* em);
 int em10SetDamageDoor(cEm10* em, int a);
 void em10SetDamageRack(cEm10* em, int a);
 void em10AtkCk(cEm10* em, Vec* a, Vec* b, int c, int d);
@@ -378,6 +378,17 @@ extern "C" int em10ThreatCk(cEm10* em);
 extern "C" int em10ClawCriAtkCk(cEm10* em);
 extern "C" void em10SetTakeawayPosUpdate(cEm10* em);
 int em10HideToStepCk(cEm10* em, int a);
+extern "C" int em10ParasiteAtkCk(cEm10* em);
+extern "C" int em10ShieldAtkCk(cEm10* em);
+extern "C" int em10AxeAtkCk(cEm10* em);
+extern "C" int em10SukiAtkCk(cEm10* em);
+extern "C" int em10ScytheAtkCk(cEm10* em);
+extern "C" int em10ClawAtkCk(cEm10* em);
+extern "C" int em10ShotRocketCk(cEm10* em);
+extern "C" int em10ThrowAxeCk(cEm10* em);
+extern "C" int em10CsawAtkCk(cEm10* em);
+extern "C" int em10CatchPLRtnCk(cEm10* em);
+extern "C" int em10BackCk(cEm10* em);
 
 // Dead flag test (cDmgInfo upper 16 bits): an inline returning 0/1 gives the `li 1; andis.; bne; li 0` chain.
 static inline int em10DeadCk(cEm* em)
@@ -3542,6 +3553,8 @@ public:
     virtual void setFireAngle(f32 a);           // 0x68
     virtual void setHome();                     // 0x70
     virtual void setFire();                     // 0x78
+    virtual int ckHitFire(Vec* p);              // 0x80
+    virtual int ckHitFireBlocked();             // 0x88
 };
 
 #define EM10_DRAGON(w) ((cCtrlDragon*) (w)->pDragon)
@@ -12302,10 +12315,10 @@ extern "C" int em10HeadLockCk(cEm10* em)
         return 0;
     }
     r = 0;
-    if (!(v.y < -300.0f)) {
-        r = 1;
+    if (v.y < -300.0f) {
+        return r;
     }
-    return r;
+    return 1;
 }
 
 void em10CoreBreak(cEm10* em, int a)
@@ -12523,6 +12536,217 @@ int em10LadderClimbCk(cEm10* em)
             EmRoutineSet(em, 1, 0x40, 0, 0);
             return 1;
         }
+    }
+    return 0;
+}
+extern "C" void em10WepSeEffSet(cEm10* em, cEmWep* wep, u8 type)
+{
+    if (!wep) {
+        return;
+    }
+    switch (type) {
+    case 0:
+    case 9:
+        return;
+    case 2:
+    case 3:
+    case 5:
+    case 10:
+    case 11:
+    case 13:
+    default:
+        wep->setSeDamage(8, 0x3F, em->id);
+        wep->setSeHit(8, 0xB, em->id);
+        wep->setSeFall(8, 0x40, em->id);
+        wep->setSeThrow(8, 0x45, em->id, 4);
+        wep->setEffDamage(0, 0x18);
+        wep->setEffHit(0x10, 0xB);
+        wep->setEffWater(1, 0x37);
+        break;
+    case 7:
+        wep->setSeDamage(8, 0x3F, em->id);
+        wep->setSeHit(8, 0x46, em->id);
+        wep->setSeFall(8, 0x43, em->id);
+        wep->setSeThrow(8, 0x42, em->id, 4);
+        wep->setEffDamage(0, 0x18);
+        wep->setEffHit(0x10, 0xB);
+        wep->setEffWater(1, 0x37);
+        break;
+    case 1:
+    case 6:
+    case 8:
+        wep->setSeDamage(8, 0x3F, em->id);
+        wep->setSeHit(8, 0xB, em->id);
+        wep->setSeFall(8, 0x41, em->id);
+        wep->setSeThrow(8, 0x45, em->id, 4);
+        wep->setEffDamage(0, 0x18);
+        wep->setEffHit(0x10, 0xB);
+        wep->setEffWater(1, 0x37);
+        break;
+    case 12:
+        wep->setSeDamage(8, 0x3F, em->id);
+        wep->setSeHit(8, 0xB, em->id);
+        wep->setSeFall(8, 0x41, em->id);
+        wep->setSeThrow(8, 0x45, em->id, 4);
+        wep->setEffDamage(0, 0x18);
+        wep->setEffHit(0x10, 0xB);
+        wep->setEffWater(1, 0x37);
+        break;
+    }
+}
+
+void em10DragonFireCk(cEm10* em)
+{
+    Em10Work* w = EM10_WK(em);
+    u32 i;
+
+    if (!w->pDragon) {
+        return;
+    }
+    if (!EM10_DRAGON(w)->ckHitFireBlocked()) {
+        return;
+    }
+    if ((s16) pG->pl_life > 0) {
+        int dead = em10DeadCk(pPL);
+        if (!dead) {
+            if (EM10_DRAGON(w)->ckHitFire(&pPL->pos)) {
+                SndCall(8, 0x8F, &pPL->pos, em->id, 0, pPL);
+                Ctrl12Set(w->pCtrl12, 9, 0x1E);
+                pPL->rot.y += Muku(&pPL->pos, &em->pos, pPL->rot.y, 3.1415927f);
+                SetPlDamage((int) em, plemDmFrame);
+                pPL->dmg.set(0, 0x1E);
+            }
+        }
+    }
+    for (i = 0; i < EmMgr.nArray; i++) {
+        cEm10* e = (cEm10*) ((u8*) EmMgr.pArray + EmMgr.size * i);
+        int dead;
+        cDmgInfo* d;
+        if ((e->be_flag & 0x201) != 1) {
+            continue;
+        }
+        if (e->hp <= 0) {
+            continue;
+        }
+        if (e->id <= 0xF) {
+            continue;
+        }
+        if (e->id > 0x20) {
+            continue;
+        }
+        if (!e->checkStatus(5)) {
+            continue;
+        }
+        d = &e->dmg;
+        dead = em10DmgDeadCk(d);
+        if (dead) {
+            continue;
+        }
+        if (e == em) {
+            continue;
+        }
+        {
+            Em10Work* ew = EM10_WK(e);
+            if (!EM10_DRAGON(w)->ckHitFire(&e->pos)) {
+                continue;
+            }
+            d->set(0, 0x1E);
+            ew->x68C = 0x78;
+            e->xFC = 2;
+            e->xFD = 0xB;
+            e->xFE = dead;
+            e->xFF = dead;
+        }
+    }
+}
+
+int em10AtkRtnCk(cEm10* em, int a)
+{
+    Em10Work* w = EM10_WK(em);
+
+    if (pG->flags_64 & 0x02000000) {
+        em->xFD = 0;
+        em->xFE = 0;
+        em->xFF = 0;
+        em->xFC = 1;
+        return 1;
+    }
+    if (a == 0) {
+        if (em10BackCk(em)) {
+            return 1;
+        }
+    }
+    if (w->x644 != 0) {
+        return 0;
+    }
+    if (w->x696 == 0) {
+        if (Ctrl12Ck(w->pCtrl12, 6)) {
+            return 0;
+        }
+    }
+    if (pG->flags_5010 & 0x00200000) {
+        return 0;
+    }
+    if (em10ParasiteAtkCk(em)) {
+        return 1;
+    }
+    if (w->x58C) {
+        return 0;
+    }
+    if (em->type != 10 && em->type != 13) {
+        if (w->pParasite) {
+            return 0;
+        }
+    }
+    if (em->type == 0x16) {
+        return 0;
+    }
+    if (em10ShieldAtkCk(em)) {
+        return 1;
+    }
+    if (em10AxeAtkCk(em)) {
+        return 1;
+    }
+    if (em10SukiAtkCk(em)) {
+        return 1;
+    }
+    if (em10ScytheAtkCk(em)) {
+        return 1;
+    }
+    if (em10ClawAtkCk(em)) {
+        return 1;
+    }
+    if (em10ClawCriAtkCk(em)) {
+        return 1;
+    }
+    if (em10ShotBowgunCk(em)) {
+        return 1;
+    }
+    if (em10ShotRocketCk(em)) {
+        return 1;
+    }
+    if (em10ShotGatlingCk(em)) {
+        return 1;
+    }
+    if (em10ThrowAxeCk(em)) {
+        return 1;
+    }
+    if (em10ThrowBombCk(em)) {
+        return 1;
+    }
+    if (pG->room_id == 0x21B) {
+        if (pG->flags_5014 & 0x08000000) {
+            return 0;
+        }
+    }
+    if (em10CsawAtkCk(em)) {
+        return 1;
+    }
+    if (em10CatchPLRtnCk(em)) {
+        return 1;
+    }
+    if (em10CatchSubRtnCk(em)) {
+        return 1;
     }
     return 0;
 }

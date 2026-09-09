@@ -51,17 +51,43 @@ typedef struct {
 	Sint32 (*GetOutVol)(MWSST hn);                 /* 0x2C */
 } MWSST_IF;
 
-/* player object (partial: only the fields the matched units use) */
+/* MWPLY_OBJ.stat */
+#define MWSFD_STAT_STOP 0
+#define MWSFD_STAT_PREP 1
+#define MWSFD_STAT_PLAYING 2
+#define MWSFD_STAT_PLAYEND 3
+#define MWSFD_STAT_ERROR 4
+
+/* player object (0x2B8 bytes; only the fields the matched units use are named) */
 struct MWPLY_OBJ {
-	Uint8 pad0[0x40];
+	Sint32 x00;
+	Sint32 used;               /* 0x04 */
+	Sint32 stat;               /* 0x08 */
+	Uint8 pad0c[0x40 - 0x0C];
 	void *sfd;                 /* 0x40 */
-	Uint8 pad44[8];
+	void *stm;                 /* 0x44 ADXSTM */
+	Sint32 x48;
 	void *lsc;                 /* 0x4C */
-	Uint8 pad50[0x74 - 0x50];
+	Uint8 pad50[0x60 - 0x50];
+	Sint32 sleep_bdr;          /* 0x60 sleeping at the idle border */
+	Sint32 mwply_svr_flg;      /* 0x64 handle server running */
+	Sint32 sfd_svr_flg;        /* 0x68 SFD_ExecOne running */
+	Sint32 dec_svr_flg;        /* 0x6C */
+	Sint32 x70;
 	Sint8 linkstm;             /* 0x74 */
 	Sint8 linkstm_req;         /* 0x75 */
-	Uint8 pad76[0x294 - 0x76];
+	Sint8 pause_flg;           /* 0x76 */
+	Uint8 pad77[0x1B8 - 0x77];
+	const Char8 *fname;        /* 0x1B8 */
+	Sint32 x1bc;
+	Sint32 stm_start_req;      /* 0x1C0 */
+	void *dir;                 /* 0x1C4 */
+	Sint32 ofst;               /* 0x1C8 */
+	Sint32 nsct;               /* 0x1CC */
+	SJ sji;                    /* 0x1D0 */
+	Uint8 pad1d4[0x294 - 0x1D4];
 	MWSST_OBJ sst;             /* 0x294 */
+	Uint8 pad2ac[0x2B8 - 0x2AC];
 };
 
 typedef struct {
@@ -69,7 +95,40 @@ typedef struct {
 	Sint32 cnt;                /* 0x04 number of created handles */
 } MWSST_MNG;
 
+#define MWSFD_MAX_HN 8
+
+/* library work (mwsfdlib.c, 0x162C bytes) */
+typedef struct {
+	Sint32 x00;                /* 0x00 */
+	Float32 vfreq;             /* 0x04 */
+	Sint32 x08;                /* 0x08 */
+	Sint32 nfrm_pool;          /* 0x0C */
+	Sint32 x10;                /* 0x10 decode in the main thread (1) instead of the idle thread */
+	Uint8 pad14[0x24 - 0x14];
+	Sint32 svr_bdr;            /* 0x24 a handle is sleeping at the idle border */
+	Uint8 pad28[0x38 - 0x28];
+	Sint32 use_picusr;         /* 0x38 */
+	Sint32 pause_bdr;          /* 0x3C */
+	Sint32 (*pre_func)(void *obj);  /* 0x40 called before the decode server */
+	void *pre_obj;             /* 0x44 */
+	Sint32 (*post_func)(void *obj); /* 0x48 */
+	void *post_obj;            /* 0x4C */
+	Sint32 (*idle_func)(void *obj); /* 0x50 called when no handle waits */
+	void *idle_obj;            /* 0x54 */
+	Sint32 svr_flg;            /* 0x58 decode server running */
+	Sint32 x5c;                /* 0x5C vsync server running */
+	Uint8 pad60[0x68 - 0x60];
+	Sint32 errcode;            /* 0x68 */
+	MWPLY_OBJ hn[MWSFD_MAX_HN]; /* 0x6C (0x2B8 each) */
+} MWSFD_LIBWORK;
+
 extern MWSST_MNG mwsstmng;
+extern MWSFD_LIBWORK mwsfd_libwork;
+extern Sint32 mwsfd_init_flag;
+extern Sint32 mwg_vcnt;
+extern MWPLY mwsfd_hn_last;
+MWSFD_LIBWORK *MWSFLIB_GetLibWorkPtr(void);
+Sint32 MWSFSVM_TestAndSet(Sint32 *flag);
 
 void MWSST_Destroy(MWSST sst);
 void MWSST_Reset(MWPLY mwply);
@@ -93,25 +152,7 @@ typedef struct {
 	Sint32 x1c;                /* 0x1C */
 } MWSFD_INIT_PRM;
 
-/* library work (mwsfdlib.c, 0x162C bytes) */
-typedef struct {
-	Sint32 x00;                /* 0x00 */
-	Float32 vfreq;             /* 0x04 */
-	Sint32 x08;                /* 0x08 */
-	Sint32 nfrm_pool;          /* 0x0C */
-	Sint32 x10;                /* 0x10 */
-	Uint8 pad14[0x38 - 0x14];
-	Sint32 use_picusr;         /* 0x38 */
-	Sint32 pause_bdr;          /* 0x3C */
-	Uint8 pad40[0x5C - 0x40];
-	Sint32 x5c;                /* 0x5C */
-	Uint8 pad60[0x68 - 0x60];
-	Sint32 errcode;            /* 0x68 */
-	Uint8 pad6c[0x162C - 0x6C];
-} MWSFD_LIBWORK;
 
-extern MWSFD_LIBWORK mwsfd_libwork;
-extern Sint32 mwg_vcnt;
 
 Bool MWSFD_IsEnableHndl(MWPLY_OBJ *mwply);
 void MWSFSVM_Error(const Char8 *fmt, ...);

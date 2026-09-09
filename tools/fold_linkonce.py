@@ -151,14 +151,16 @@ def module_text_functions(module, unit):
 
 def module_nameless_sizes(module, unit):
     """Sizes of the nameless .text functions (fn_<mod>_<off>, no .sym name) the module sym_map assigns
-    to this unit: the original link's duplicate linkonce blocks."""
-    sizes = set()
+    to this unit: the original link's duplicate linkonce blocks (one block, or several when named
+    copies sit between them: ss_file's 0x408 cManager<cLight> + ~Widget block and the 0xC
+    Widget::quit/init/move block around its own synthesized destructors)."""
+    sizes = []
     with open(os.path.join(ROOT, "config", VER, "modules", module, "sym_map.tsv")) as f:
         next(f)
         for line in f:
             sec, off, size, u, scope, name, dn = line.rstrip("\n").split("\t")
             if sec == ".text" and u == unit and (dn == "." or dn == "") and name.startswith("fn_"):
-                sizes.add(int(size, 16))
+                sizes.append(int(size, 16))
     return sizes
 
 
@@ -225,7 +227,8 @@ def main():
             for i in unnamed:
                 align = max(elf.sections[i][8], 4)
                 total = (total + align - 1) // align * align + elf.sections[i][5]
-            keep_unnamed = total > 0 and total in module_nameless_sizes(args.module, args.unit)
+            nameless_sizes = module_nameless_sizes(args.module, args.unit)
+            keep_unnamed = total > 0 and (total in nameless_sizes or total == sum(nameless_sizes))
 
     for i, name in enumerate(elf.names):
         if not name.startswith(".gnu.linkonce."):

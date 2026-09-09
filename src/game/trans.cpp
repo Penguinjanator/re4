@@ -681,6 +681,7 @@ int commonScreenMatSub(cModel* m, cModelInfo* info)
         u32 nVtx;
         u32 n;
         u32 size;
+        u32 asize;
 
         if (info->flagsDC & 2) {
             t->frame++;
@@ -714,7 +715,9 @@ int commonScreenMatSub(cModel* m, cModelInfo* info)
             continue;
         }
         size = d->nVtx * 6;
-        buf = GetPrimBuff((size + 31) - ((size + 31) % 32));
+        asize = size + 31;
+        asize = asize >> 5 << 5;
+        buf = GetPrimBuff(asize);
         if (PTR_INVALID2(buf)) {
             pLog->warn(0, 0, "commonScreenMatSub() : VTX prim alloc failed.");
             return 0;
@@ -722,11 +725,14 @@ int commonScreenMatSub(cModel* m, cModelInfo* info)
         info->pPosBuf[pG->vtx_buf_no] = buf;
         if (d->flags & 0x20000000) {
             size = d->nNrm * 3;
-            buf = GetPrimBuff(ALIGN32(size));
+            asize = size + 31;
+            asize = asize >> 5 << 5;
         } else {
             size = d->nNrm * 6;
-            buf = GetPrimBuff(ALIGN32(size));
+            asize = size + 31;
+            asize = asize >> 5 << 5;
         }
+        buf = GetPrimBuff(asize);
         if (PTR_INVALID2(buf)) {
             pLog->warn(0, 0, "commonScreenMatSub() : Nor prim alloc failed.");
             return 0;

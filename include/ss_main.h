@@ -12,6 +12,14 @@
 
 class cLit;
 
+// Scalar reference setters: a store through a reference keeps the following loads of other globals
+// below it (global.h FSet/BitSet).
+static inline void U8Set(u8& d, u8 v) { d = v; }
+static inline void U16Set(u16& d, u16 v) { d = v; }
+static inline void U32Set(u32& d, u32 v) { d = v; }
+static inline void S32Set(s32& d, s32 v) { d = v; }
+static inline void PSet(void*& d, void* v) { d = v; }
+
 // game/sscrn.cpp id systems of the sub screen (sub screen ids / number digits).
 extern IDSystem IdSub;
 extern IDSystem IdNum;

@@ -20,6 +20,10 @@
 #include "vec.h"
 #include "gx.h"
 #include "scroll.h"
+#include "em.h"
+#include "etc_model.h"
+#include "main.h"
+#include "db_cam.h"
 
 // Light editor (D:/Bio4/Prog/db_light.cpp): cLightTool (the editor), cDbLit (the .lit cuts being edited,
 // one Debug_alloc'd cLightEnv per cut) and cLitPathTool (the light path table). The same object is in
@@ -187,11 +191,14 @@ static const char* shadow_type_short[] = {
     "NORM", "PARA", "FIX ", "----", "----", "----", "----", "----", "----", "----", "----", "----", "----",
     "----", "----", "----",
 };
-static const char* light_id_short[] = {
-    "NORM", "FLIC", "WAVE", "ROT ", "SHDW", "PATH", "FADE", "SHIN", "LOCK", "----", "----", "----", "----",
-    "----", "----", "----",
+static const char* self_shd_name[] = {
+    "OFF", "1", "2", "3", "4", "5", "----", "----", "----", "----", "----", "----", "----", "----", "----",
+    "----",
 };
-static const char* onoff_name[] = {"OFF", "1", "2", "3", "4", "5"};
+static const char* soft_shd_name[] = {
+    "OFF", "1", "2", "3", "----", "----", "----", "----", "----", "----", "----", "----", "----", "----",
+    "----", "----",
+};
 static const char* aniso_name[] = {"GX_ANISO_1", "GX_ANISO_2", "GX_ANISO_4"};
 static const char* parent_name[] = {"WORLD", "ENEMY", "SCROLL", "EtcModel", "OBJ"};
 static const char* parent_short[] = {"WL", "EM", "SC", "ET", "OM"};
@@ -203,6 +210,10 @@ static const char* path_tool = "x:\\soft/room/tool%02x.lit";
 static const char* path_item = "x:\\soft/room/SubScreen/light/item%03d.lit";
 static const char* path_core = "x:\\soft/room/etc/core/core%02x.lit";
 static const char* path_litpath = "x:\\soft/room/etc/core/litpath.bin";
+
+// direction editor scratch (a global in the original: the first .bss object)
+Vec spotRot;
+static const Vec xAxis = {1.0f, 0.0f, 0.0f};
 
 static cLightToolPtr LightToolPtr;
 #define pTool (LightToolPtr.p)
@@ -1235,11 +1246,17 @@ struct Light03Work {
     f32 rot[3];  // 0x00
 };
 struct Light04Work {
-    u16 flags;   // 0x00  bit0: inverse texture, bit2: use texture
-    u8 kind;     // 0x02  0 normal, 1..4 cast, 5 foot
-    s8 gndDist;  // 0x03
-    u8 pad_4[4];
-    u8 texNo;    // 0x08
+    u16 flags;      // 0x00  bit0: inverse texture, bit1: light position set, bit2: use texture
+    u8 kind;        // 0x02  0 normal, 1..4 cast, 5 foot
+    s8 gndDist;     // 0x03
+    s16 rotX;       // 0x04  (parallel / fix)
+    s16 rotY;       // 0x06
+    u8 texNo;       // 0x08  (fix: range)
+    u8 selfShd;     // 0x09
+    u8 softShd;     // 0x0A
+    u8 multiShd;    // 0x0B
+    Vec lightPos;   // 0x0C  (fit)
+    u8 range;       // 0x18
 };
 struct Light05Work {
     cLightPathData* pStart;  // 0x00
@@ -1255,7 +1272,9 @@ struct Light06Work {
     f32 rate;   // 0x08
 };
 struct Light07Work {
-    f32 speed[3];  // 0x00
+    u8 pad_0[8];
+    f32 x8;        // 0x08  (the third editor line writes here: a bug in the original)
+    f32 speed[3];  // 0x0C
 };
 
 // Stick step of the numeric editors: A held multiplies it by 10.
@@ -1672,16 +1691,434 @@ static void edit_light_id_fade()
     drawLightInfo(cur, 0xFFFFFFFF);
 }
 
-static void edit_light_id_shine() {}
+static void edit_light_id_shine()
+{
+    cLight* cur = curLight();
+    Light07Work* w = (Light07Work*) cur->work;
+
+    switch (pTool->init) {
+    case 0:
+        edit_light_id_normal();
+        break;
+    case 1:
+        if (pTool->joy.trg & JOY_Y) {
+            w->speed[0] = 0.0f;
+        }
+        {
+            STICK_MUL();
+            w->speed[0] += STICK_STEP(10000.0f);
+        }
+        break;
+    case 2:
+        if (pTool->joy.trg & JOY_Y) {
+            w->speed[1] = 0.0f;
+        }
+        {
+            STICK_MUL();
+            w->speed[1] += STICK_STEP(10000.0f);
+        }
+        break;
+    case 3:
+        if (pTool->joy.trg & JOY_Y) {
+            w->speed[2] = 0.0f;
+        }
+        {
+            STICK_MUL();
+            w->x8 += STICK_STEP(10000.0f);
+        }
+        break;
+    }
+    w->speed[0] = LIMIT_ANGLE(w->speed[0]);
+    w->speed[1] = LIMIT_ANGLE(w->speed[1]);
+    w->speed[2] = LIMIT_ANGLE(w->speed[2]);
+    if (pTool->joy.rep & JOY_UP) {
+        pTool->init = (pTool->init + 3) % 4;
+    }
+    if (pTool->joy.rep & JOY_DOWN) {
+        pTool->init = (pTool->init + 5) % 4;
+    }
+    eprintf(0x40, 0xA8, 0, pTool->color, "SPEED X %3.3f", w->speed[0]);
+    eprintf(0x40, 0xB6, 0, pTool->color, "SPEED Y %3.3f", w->speed[1]);
+    eprintf(0x40, 0xC4, 0, pTool->color, "SPEED Z %3.3f", w->speed[2]);
+    eprintf(0x40, 0xEE, 0, pTool->color, "PUSH [Y] TO SET 0.0");
+    pTool->printCursor(7, pTool->init + 11);
+    drawLightInfo(cur, 0xFFFFFFFF);
+}
+
 static void edit_light_id_spotlock() {}
-static void edit_light_eid() {}
-static void edit_light_parent() {}
-void posTranslate(cLight* l, u8 type, u32 id) {}
-static void edit_light_pos() {}
-static void edit_light_radius() {}
-static void edit_light_color() {}
-static void edit_light_intensity() {}
-static void edit_light_type() {}
+static void edit_light_eid()
+{
+    cLight* cur = curLight();
+
+    pTool->printCursor(0x14, pTool->init + 11);
+    eprintf(0x40, 0x8C, 4, pTool->color, "LIGHT PROPATY");
+    eprintf(0x40, 0x9A, 0, pTool->color, "ENABLE MASK");
+    eprintf(0xA8, 0x9A, !(cur->xF & 1) ? 0x14 : 0, pTool->color, "PLAYER");
+    eprintf(0xA8, 0xA8, (cur->xF & 2) ? 0 : 0x14, pTool->color, "ENEMY");
+    eprintf(0xA8, 0xB6, (cur->xF & 4) ? 0 : 0x14, pTool->color, "OBJ");
+    eprintf(0xA8, 0xC4, (cur->xF & 8) ? 0 : 0x14, pTool->color, "EFFECT");
+    eprintf(0xA8, 0xD2, (cur->xF & 0x10) ? 0 : 0x14, pTool->color, "SCROLL");
+    eprintf(0xA8, 0xE0, (cur->xF & 0x20) ? 0 : 0x14, pTool->color, "ITEM");
+    eprintf(0xA8, 0xEE, (cur->xF & 0x40) ? 0 : 0x14, pTool->color, "SUBCHAR");
+    eprintf(0xA8, 0xFC, (cur->xF & 0x80) ? 0 : 0x14, pTool->color, "THERMO");
+    if (pTool->joy.rep & JOY_UP) {
+        pTool->init = (pTool->init + 7) % 8;
+    } else if (pTool->joy.rep & JOY_DOWN) {
+        pTool->init = (pTool->init + 9) % 8;
+    }
+    if (pTool->joy.rep & JOY_A) {
+        switch (pTool->init) {
+        case 0:
+            cur->xF ^= 1;
+            break;
+        case 1:
+            cur->xF ^= 2;
+            break;
+        case 2:
+            cur->xF ^= 4;
+            break;
+        case 3:
+            cur->xF ^= 8;
+            break;
+        case 4:
+            cur->xF ^= 0x10;
+            break;
+        case 5:
+            cur->xF ^= 0x20;
+            break;
+        case 6:
+            cur->xF ^= 0x40;
+            break;
+        case 7:
+            cur->xF ^= 0x80;
+            break;
+        }
+    }
+    if (pTool->joy.rep & JOY_B) {
+        pTool->sub = 0;
+    }
+    if (cur->xD == 7) {
+        eprintf(0xE0, 0xC4, 0x16, pTool->color, "<- NOT SUPPORT");
+        cur->xF &= ~8;
+    }
+}
+
+static void edit_light_parent()
+{
+    static int parent_num = 5;
+    cLight* cur = curLight();
+    u32 num = 0;
+    cModel* etc;
+    cObj* obj;
+    u32 n;
+    cModel* m;
+
+    if (pTool->init == 0) {
+        pTool->cursor = 0;
+        pTool->x8 = cur->parentType;
+        pTool->init = 1;
+    }
+    switch (pTool->cursor) {
+    case 0:
+        if (pTool->joy.rep & JOY_RIGHT) {
+            pTool->x8 = (parent_num + pTool->x8 + 1) % parent_num;
+        }
+        if (pTool->joy.rep & JOY_LEFT) {
+            pTool->x8 = (parent_num + pTool->x8 - 1) % parent_num;
+        }
+        if (pTool->joy.rep & JOY_A) {
+            posTranslate(cur, pTool->x8, 0);
+        }
+        if (pTool->joy.rep & JOY_DOWN) {
+            pTool->x8 = cur->parentType;
+        }
+        break;
+    case 1:
+        switch (cur->parentType) {
+        default:
+            TOOL_ERR("INVALED LIGHT PARENT %d", cur->parentType);
+        case 0:
+            n = 0;
+            break;
+        case 1:
+            n = 250;
+            break;
+        case 2:
+            n = 250;
+            break;
+        case 3:
+            n = 0x40;
+            break;
+        case 4:
+            n = ObjMgr.nArray;
+            break;
+        }
+        if (pTool->joy.rep & JOY_RIGHT) {
+            cur->parentId = (cur->parentId & 0xFFFF0000) | ((n + (cur->parentId & 0xFFFF) + 1) % n);
+        }
+        if (pTool->joy.rep & JOY_LEFT) {
+            cur->parentId = (cur->parentId & 0xFFFF0000) | ((n + (cur->parentId & 0xFFFF) - 1) % n);
+        }
+        break;
+    case 2:
+        n = 100;
+        if (pTool->joy.rep & JOY_RIGHT) {
+            cur->parentId = (cur->parentId & 0xFFFF) | ((((cur->parentId >> 16) + 101) % n) << 16);
+        }
+        if (pTool->joy.rep & JOY_LEFT) {
+            cur->parentId = (cur->parentId & 0xFFFF) | ((((cur->parentId >> 16) + 99) % n) << 16);
+        }
+        break;
+    }
+    cur->calcParent();
+    eprintf(0x40, 0x8C, 4, pTool->color, "PARENT");
+    eprintf(0x40, 0x9A, 0, pTool->color, "TYPE  %s", parent_name[cur->parentType]);
+    if (cur->parentType != pTool->x8) {
+        eprintf(0xB8, 0x9A, 0, pTool->color, "-> %s", parent_name[pTool->x8]);
+    }
+    switch (cur->parentType) {
+    case 0:
+        num = 1;
+        break;
+    case 1:
+        eprintf(0x40, 0xA8, 0, pTool->color, "ID    %02X - %s", cur->parent.no, cEmMgr::idName[cur->parent.no]);
+        num = 3;
+        eprintf(0x40, 0xB6, 0, pTool->color, "PARTS %d", cur->parent.partsNo);
+        break;
+    case 2:
+        eprintf(0x40, 0xA8, 0, pTool->color, "ID    %d", cur->parent.no);
+        num = 3;
+        eprintf(0x40, 0xB6, 0, pTool->color, "PARTS %d", cur->parent.partsNo);
+        break;
+    case 3:
+        if (getRoomEtcOnLight(cur->parentId, &etc, 0)) {
+            eprintf(0x40, 0xA8, 0, pTool->color, "No    %d", cur->parent.no);
+        } else {
+            eprintf(0x40, 0xA8, 0x14, pTool->color, "No    %d", cur->parent.no);
+        }
+        num = 2;
+        break;
+    case 4:
+        eprintf(0x40, 0xA8, 0, pTool->color, "ID    %d", cur->parent.no);
+        eprintf(0x40, 0xB6, 0, pTool->color, "PARTS %d", cur->parent.partsNo);
+        obj = (cObj*) ((u8*) ObjMgr.pArray + ObjMgr.size * cur->parent.no);
+        if (obj) {
+            switch (obj->id) {
+            case 2:
+                eprintf(0x40, 0xD2, 0, pTool->color, "OBJID %02x : SCR MODEL", 2);
+                break;
+            case 0x18: {
+                Obj18Work* w;
+                eprintf(0x40, 0xD2, 0, pTool->color, "OBJID %02x : EVENT MODEL", 0x18);
+                w = (Obj18Work*) obj->work;
+                eprintf(0x40, 0xE0, 0, pTool->color, "NAME %s", ((Obj18Work*) obj->work)->evName);
+                eprintf(0x40, 0xEE, 0, pTool->color, "TYPE %2d", w->type);
+                break;
+            }
+            default:
+                eprintf(0x40, 0xD2, 0, pTool->color, "OBJID %02x", obj->id);
+                break;
+            }
+        }
+        num = 3;
+        break;
+    }
+    if (pTool->joy.rep & JOY_UP) {
+        pTool->cursor = (num + pTool->cursor - 1) % num;
+    }
+    if (pTool->joy.rep & JOY_DOWN) {
+        pTool->cursor = (num + pTool->cursor + 1) % num;
+    }
+    pTool->printCursor(7, pTool->cursor + 11);
+    drawLightInfo(cur, 0xFFFFFFFF);
+    m = cur->getCoord();
+    if (m) {
+        f32 r = cur->x1C * (f32) (pG->flags_51E4 % 30) / 0.1f;
+        Draw_sphere(&m->worldPos, r, 0xA0A0A0FF, 1, 1);
+        Draw_pos(&m->worldPos, (int) r);
+    }
+    if (pTool->joy.rep & JOY_B) {
+        pTool->sub = pTool->init = 0;
+        pTool->cursor = 0;
+    }
+}
+
+// Re-parents the light, keeping its world position: the applied position is converted into the new
+// parent's coordinates.
+void posTranslate(cLight* l, u8 type, u32 id)
+{
+    Vec pos = l->curPos;
+    cModel* m;
+    Mtx inv;
+
+    l->setParent(type, id);
+    if (type == 0) {
+        l->pos = pos;
+    } else {
+        m = l->getCoord();
+        if (m) {
+            PSMTXInverse(m->mat, inv);
+            PSMTXMultVec(inv, &pos, &l->pos);
+        } else {
+            l->pos.x = 0.0f;
+            l->pos.y = 0.0f;
+            l->pos.z = 0.0f;
+        }
+    }
+}
+
+static void edit_light_pos()
+{
+    cLight* cur = curLight();
+    f32 step = (pTool->joy.on & JOY_A) ? 7.0f : 1.0f;
+    Vec* pos = &cur->pos;
+
+    eprintf(0x40, 0x8C, 4, pTool->color, "LIGHT PROPATY");
+    eprintf(0x40, 0x9A, 0, pTool->color, "%6.0f %6.0f %6.0f", cur->pos.x, cur->pos.y, cur->pos.z);
+    Vec v = {0.0f, 0.0f, 0.0f};
+    v.x += (f32) pTool->joy.sx * step;
+    v.y += (f32) pTool->joy.sy * step;
+    moveOnPlaneXZ(&v, &v);
+    v.y += (f32) pTool->joy.trigR * step * 0.5f;
+    v.y -= (f32) pTool->joy.trigL * step * 0.5f;
+    PSVECAdd(pos, &v, pos);
+    if (pTool->joy.rep & JOY_UP) {
+        cur->pos.z += 1.0f;
+    } else if (pTool->joy.rep & JOY_DOWN) {
+        cur->pos.z -= 1.0f;
+    }
+    if (pTool->joy.rep & JOY_RIGHT) {
+        cur->pos.x += 1.0f;
+    } else if (pTool->joy.rep & JOY_LEFT) {
+        cur->pos.x -= 1.0f;
+    }
+    if (pTool->joy.rep & JOY_X) {
+        cur->pos = vecZero;
+    }
+    if (pTool->joy.trg & JOY_Y) {
+        cur->pos = pG->Cam.param.at;
+    }
+    drawLightInfo(cur, 0x80808080);
+    if (pTool->joy.rep & JOY_B) {
+        pTool->sub = 0;
+    }
+}
+
+static void edit_light_radius()
+{
+    cLight* cur = curLight();
+    f32 step = (pTool->joy.on & JOY_A) ? 7.0f : 1.0f;
+    int r;
+
+    switch (pTool->init) {
+    case 0:
+        pTool->cursor = 0;
+        pTool->init = 1;
+    case 1:
+        cur->x1C += (f32) pTool->joy.sx * step * 0.5f;
+        cur->x1C += (f32) pTool->joy.sy * step * 0.5f;
+        if (pTool->joy.rep & JOY_RIGHT) {
+            cur->x1C += 100.0f;
+        }
+        if (pTool->joy.rep & JOY_LEFT) {
+            cur->x1C -= 100.0f;
+        }
+        if (cur->x1C < 0.0f) {
+            cur->x1C = 0.0f;
+        }
+        drawLightInfo(cur, 0xFFFFFFFF);
+        break;
+    case 2:
+        r = (int) ((f32) pTool->joy.sx * step * 0.5f + (f32) (int) cur->x30);
+        if (r < 0) {
+            r = 0;
+        }
+        cur->x30 = r;
+        drawLightInfo(cur, 0xFFFFFFFF);
+        break;
+    }
+    pTool->printCursor(7, pTool->init + 10);
+    if (pTool->joy.rep & JOY_UP) {
+        pTool->init = 1;
+    }
+    if (pTool->joy.rep & JOY_DOWN) {
+        pTool->init = 2;
+    }
+    eprintf(0x40, 0x8C, 4, pTool->color, "LIGHT PROPATY");
+    if (cur->x1C != 0.0f) {
+        eprintf(0x40, 0x9A, 0, pTool->color, "RADIUS     %6.0f", cur->x1C);
+    } else {
+        eprintf(0x40, 0x9A, 0, pTool->color, "RADIUS INFINITY");
+    }
+    if ((f32) (int) cur->x30 != 0.0f) {
+        eprintf(0x40, 0xA8, 0, pTool->color, "HIT RADIUS %6d", cur->x30);
+    } else {
+        eprintf(0x40, 0xA8, 0, pTool->color, "HIT RADIUS");
+        eprintf(0x98, 0xA8, 0x14, pTool->color, "NO HIT ADJUST");
+    }
+    if (pTool->joy.rep & JOY_B) {
+        pTool->sub = 0;
+    }
+}
+
+static void edit_light_color()
+{
+    cLight* cur = curLight();
+
+    eprintf(0x40, 0x8C, 4, pTool->color, "LIGHT PROPATY");
+    if (editColor(&cur->color, 8, 11) == 0) {
+        pTool->sub = 0;
+    }
+}
+
+static void edit_light_intensity()
+{
+    cLight* cur = curLight();
+    f32 step = (Joy[0].on & JOY_A) ? 10.0f : 1.0f;
+
+    eprintf(0x40, 0x8C, 4, pTool->color, "LIGHT PROPATY");
+    if (cur->xD == 7) {
+        eprintf(0x40, 0x9A, 0, pTool->color, "NOT USED");
+        cur->power = 1.0f;
+    } else {
+        eprintf(0x40, 0x9A, 0, pTool->color, "INTENSITY %3.3f", cur->power);
+    }
+    cur->power += (f32) pTool->joy.sx * step / 1000.0f;
+    cur->power += (f32) pTool->joy.sy * step / 1000.0f;
+    if (pTool->joy.rep & (JOY_UP | JOY_RIGHT)) {
+        cur->power += 0.1f;
+    }
+    if (pTool->joy.rep & (JOY_DOWN | JOY_LEFT)) {
+        cur->power -= 0.1f;
+    }
+    if (cur->power < 0.1f) {
+        cur->power = 0.1f;
+    }
+    if (pTool->joy.rep & JOY_B) {
+        pTool->sub = 0;
+    }
+}
+
+static void edit_light_type()
+{
+    static void (*light_type_tbl[16])() = {
+        edit_light_type_constant, edit_light_type_constant, edit_light_type_quad, edit_light_type_spotlight,
+        edit_light_type_direct, edit_light_type_parallel, edit_light_type_spotlight, edit_light_type_localamb,
+        edit_light_type_constant, edit_light_type_constant, edit_light_type_constant, edit_light_type_constant,
+        edit_light_type_constant, edit_light_type_constant, edit_light_type_constant, edit_light_type_constant,
+    };
+    cLight* cur = curLight();
+
+    if (cur->type == 4) {
+        edit_light_type_shadow();
+        return;
+    }
+    eprintf(0x40, 0x8C, 4, pTool->color, "LIGHT PROPATY");
+    light_type_tbl[cur->xD]();
+    if (pTool->joy.rep & JOY_B) {
+        pTool->sub = 0;
+    }
+}
 
 void edit_light_type_shadow()
 {
@@ -1719,13 +2156,342 @@ int shadow_select_type()
     return 1;
 }
 
-static void edit_light_type_shadow_fit() {}
-static void edit_light_type_shadow_parallel() {}
-static void edit_light_type_shadow_fix() {}
+// Shadow sub-editor lines shared by the three shadow types: self / soft / multi shadow levels.
+#define SHADOW_LEVEL_EDIT(field, max)                       \
+    if (pTool->joy.rep & JOY_RIGHT) {                       \
+        w->field++;                                         \
+    }                                                       \
+    if (pTool->joy.rep & 0x20000) {                         \
+        w->field++;                                         \
+    }                                                       \
+    if (w->field > max) {                                   \
+        w->field = max;                                     \
+    }                                                       \
+    if (w->field != 0) {                                    \
+        if (pTool->joy.rep & JOY_LEFT) {                    \
+            w->field--;                                     \
+        }                                                   \
+        if (pTool->joy.rep & 0x10000) {                     \
+            w->field--;                                     \
+        }                                                   \
+    }
+#define SHADOW_MULTI_EDIT()                                 \
+    if (pTool->joy.rep & JOY_RIGHT) {                       \
+        w->multiShd = 1;                                    \
+    }                                                       \
+    if (pTool->joy.rep & 0x20000) {                         \
+        w->multiShd = 1;                                    \
+    }                                                       \
+    if (w->multiShd != 0) {                                 \
+        if (pTool->joy.rep & JOY_LEFT) {                    \
+            w->multiShd = 0;                                \
+        }                                                   \
+        if (pTool->joy.rep & 0x10000) {                     \
+            w->multiShd = 0;                                \
+        }                                                   \
+    }
+#define SHADOW_ROT_EDIT(field)                                          \
+    if (pTool->joy.trg & JOY_Y) {                                       \
+        w->field = 0;                                                   \
+    }                                                                   \
+    w->field += (int) ((f32) pTool->joy.sy * step / 100.0f);            \
+    w->field += (int) ((f32) pTool->joy.sx * step / 100.0f);            \
+    while (w->field & 0x8000) {                                         \
+        w->field += 360;                                                \
+    }                                                                   \
+    while (w->field > 359) {                                            \
+        w->field -= 360;                                                \
+    }
 
-static void edit_light_kind() {}
-static void edit_light_attr() {}
-static void edit_light_priority() {}
+static void edit_light_type_shadow_fit()
+{
+    cLight* cur = curLight();
+    Light04Work* w = (Light04Work*) cur->work;
+    f32 step = 5.0f;
+    int ret = 1;
+    u8 col;
+
+    switch (pTool->init) {
+    case 0:
+        ret = shadow_select_type();
+        break;
+    case 1:
+        if (pTool->joy.rep & JOY_A) {
+            if (((Light04Work*) cur->work)->flags & 2) {
+                ((Light04Work*) cur->work)->flags &= ~2;
+            } else {
+                ((Light04Work*) cur->work)->flags |= 2;
+            }
+        }
+        break;
+    case 2:
+        w->lightPos.x += (f32) pTool->joy.sx * step;
+        w->lightPos.z -= (f32) pTool->joy.sy * step;
+        w->lightPos.y += (f32) pTool->joy.trigR * step * 0.5f;
+        w->lightPos.y -= (f32) pTool->joy.trigL * step * 0.5f;
+        Draw_pos(&w->lightPos, 500);
+        if (pTool->joy.trg & JOY_Y) {
+            w->lightPos = cur->pos;
+        }
+        break;
+    case 3:
+        SHADOW_LEVEL_EDIT(selfShd, 4);
+        break;
+    case 4:
+        SHADOW_LEVEL_EDIT(softShd, 3);
+        break;
+    case 5:
+        SHADOW_MULTI_EDIT();
+        break;
+    case 6:
+        w->range += (int) ((f32) pTool->joy.sy * step / 100.0f);
+        w->range += (int) ((f32) pTool->joy.sx * step / 100.0f);
+        if (Joy[0].on & JOY_LEFT) {
+            if (w->range != 0) {
+                w->range--;
+            }
+        }
+        if (Joy[0].on & JOY_RIGHT) {
+            if (w->range <= 0x59) {
+                w->range++;
+            }
+        }
+        if (w->range > 0x80) {
+            w->range = 0;
+        }
+        if (w->range > 0x5A) {
+            w->range = 0x5A;
+        }
+        break;
+    }
+    pG->flags_64 |= 0x04000000;
+    if (ret) {
+        if (pTool->joy.rep & JOY_UP) {
+            pTool->init = (pTool->init + 6) % 7;
+        }
+        if (pTool->joy.rep & JOY_DOWN) {
+            pTool->init = (pTool->init + 8) % 7;
+        }
+    }
+    if (pTool->init != 0) {
+        eprintf(0x40, 0x9A, 0, pTool->color, "%2d %s", cur->xD, shadow_type_name[cur->xD]);
+    }
+    eprintf(0x40, 0xA8, 0, pTool->color, "LIT_POS SET ");
+    if (w->flags & 2) {
+        eprintf(0x40, 0xA8, 0, pTool->color, "                ON");
+        col = 0;
+    } else {
+        eprintf(0x40, 0xA8, 0, pTool->color, "                OFF");
+        col = 0x14;
+    }
+    eprintf(0x40, 0xB6, col, pTool->color, "LIGHT_POS %6f %6f %6f", w->lightPos.x, w->lightPos.y, w->lightPos.z);
+    eprintf(0x40, 0xC4, 0, pTool->color, "SELF_SHD %s", self_shd_name[w->selfShd]);
+    eprintf(0x40, 0xD2, 0, pTool->color, "SOFT_SHD %s", soft_shd_name[w->softShd]);
+    if (w->multiShd == 0) {
+        eprintf(0x40, 0xE0, 0, pTool->color, "MULTI_SHD OFF");
+    } else {
+        eprintf(0x40, 0xE0, 0, pTool->color, "MULTI_SHD ON");
+    }
+    eprintf(0x40, 0xEE, 0, pTool->color, "RANGE     %d", w->range);
+    eprintf(0x40, 0xFC, col, pTool->color, " [Y_BUTTON] Position Reset");
+    pTool->printCursor(7, pTool->init + 11);
+    drawLightInfo(cur, 0xFFFFFFFF);
+}
+
+static void edit_light_type_shadow_parallel()
+{
+    cLight* cur = curLight();
+    Light04Work* w = (Light04Work*) cur->work;
+    f32 step = 5.0f;
+    int ret = 1;
+
+    switch (pTool->init) {
+    case 0:
+        ret = shadow_select_type();
+        break;
+    case 1:
+        SHADOW_ROT_EDIT(rotX);
+        break;
+    case 2:
+        SHADOW_ROT_EDIT(rotY);
+        break;
+    case 3:
+        SHADOW_LEVEL_EDIT(selfShd, 4);
+        break;
+    case 4:
+        SHADOW_LEVEL_EDIT(softShd, 3);
+        break;
+    case 5:
+        SHADOW_MULTI_EDIT();
+        break;
+    case 6:
+        w->range += (int) ((f32) pTool->joy.sy * step / 100.0f);
+        w->range += (int) ((f32) pTool->joy.sx * step / 100.0f);
+        if (Joy[0].on & JOY_LEFT) {
+            if (w->range != 0) {
+                w->range--;
+            }
+        }
+        if (Joy[0].on & JOY_RIGHT) {
+            if (w->range <= 0x59) {
+                w->range++;
+            }
+        }
+        if (w->range > 0x80) {
+            w->range = 0;
+        }
+        if (w->range > 0x5A) {
+            w->range = 0x5A;
+        }
+        break;
+    }
+    pG->flags_64 |= 0x04000000;
+    if (ret) {
+        if (pTool->joy.rep & JOY_UP) {
+            pTool->init = (pTool->init + 6) % 7;
+        }
+        if (pTool->joy.rep & JOY_DOWN) {
+            pTool->init = (pTool->init + 8) % 7;
+        }
+    }
+    if (pTool->init != 0) {
+        eprintf(0x40, 0x9A, 0, pTool->color, "%2d %s", cur->xD, shadow_type_name[cur->xD]);
+    }
+    eprintf(0x40, 0xA8, 0, pTool->color, "ROT_X : %d", w->rotX);
+    eprintf(0x40, 0xB6, 0, pTool->color, "ROT_Y : %d", w->rotY);
+    eprintf(0x40, 0xC4, 0, pTool->color, "SELF_SHD  %s", self_shd_name[w->selfShd]);
+    eprintf(0x40, 0xD2, 0, pTool->color, "SOFT_SHD  %s", soft_shd_name[w->softShd]);
+    if (w->multiShd == 0) {
+        eprintf(0x40, 0xE0, 0, pTool->color, "MULTI_SHD OFF");
+    } else {
+        eprintf(0x40, 0xE0, 0, pTool->color, "MULTI_SHD ON");
+    }
+    eprintf(0x40, 0xEE, 0, pTool->color, "RANGE     %d", w->range);
+    pTool->printCursor(7, pTool->init + 11);
+    drawLightInfo(cur, 0xFFFFFFFF);
+}
+
+static void edit_light_type_shadow_fix()
+{
+    cLight* cur = curLight();
+    Light04Work* w = (Light04Work*) cur->work;
+    f32 step = 5.0f;
+    int ret = 1;
+
+    switch (pTool->init) {
+    case 0:
+        ret = shadow_select_type();
+        break;
+    case 1:
+        SHADOW_ROT_EDIT(rotX);
+        break;
+    case 2:
+        SHADOW_ROT_EDIT(rotY);
+        break;
+    case 3:
+        w->texNo += (int) ((f32) pTool->joy.sy * step / 100.0f);
+        w->texNo += (int) ((f32) pTool->joy.sx * step / 100.0f);
+        if (w->texNo > 0x80) {
+            w->texNo = 0;
+        }
+        if (w->texNo > 0x5A) {
+            w->texNo = 0x5A;
+        }
+        break;
+    }
+    if (ret) {
+        if (pTool->joy.rep & JOY_UP) {
+            pTool->init = (pTool->init + 3) % 4;
+        }
+        if (pTool->joy.rep & JOY_DOWN) {
+            pTool->init = (pTool->init + 5) % 4;
+        }
+    }
+    if (pTool->init != 0) {
+        eprintf(0x40, 0x9A, 0, pTool->color, "%2d %s", cur->xD, shadow_type_name[cur->xD]);
+    }
+    eprintf(0x40, 0xA8, 0, pTool->color, "ROT_X : %d", w->rotX);
+    eprintf(0x40, 0xB6, 0, pTool->color, "ROT_Y : %d", w->rotY);
+    eprintf(0x40, 0xC4, 0, pTool->color, "RANGE : %d", w->texNo);
+    pTool->printCursor(7, pTool->init + 11);
+    drawLightInfo(cur, 0xFFFFFFFF);
+}
+
+static void edit_light_kind()
+{
+    cLight* cur = curLight();
+
+    eprintf(0x40, 0x8C, 4, pTool->color, "LIGHT PROPATY");
+    eprintf(0x40, 0x9A, 0, pTool->color, "KIND  %02x", cur->kind);
+    if (pTool->joy.rep & JOY_RIGHT) {
+        cur->kind++;
+    }
+    if (pTool->joy.rep & JOY_LEFT) {
+        cur->kind--;
+    }
+    if (pTool->joy.rep & JOY_UP) {
+        cur->kind += 0x10;
+    }
+    if (pTool->joy.rep & JOY_DOWN) {
+        cur->kind -= 0x10;
+    }
+    if (pTool->joy.rep & JOY_B) {
+        pTool->sub = 0;
+    }
+}
+
+static void edit_light_attr()
+{
+    cLight* cur = curLight();
+
+    pTool->printCursor(0x14, pTool->init + 11);
+    eprintf(0x40, 0x8C, 4, pTool->color, "LIGHT PROPATY");
+    eprintf(0x40, 0x9A, 0, pTool->color, "ATTRIBUTE");
+    eprintf(0xA8, 0x9A, !(cur->attr & 1) ? 0x14 : 0, pTool->color, "NO TUNE");
+    eprintf(0xA8, 0xA8, (cur->attr & 2) ? 0 : 0x14, pTool->color, "ELEC LIGHT");
+    eprintf(0xA8, 0xB6, (cur->attr & 4) ? 0 : 0x14, pTool->color, "TAIMATU");
+    eprintf(0xA8, 0xC4, (cur->attr & 8) ? 0 : 0x14, pTool->color, "--------");
+    if (pTool->joy.rep & JOY_UP) {
+        pTool->init = (pTool->init + 3) % 4;
+    } else if (pTool->joy.rep & JOY_DOWN) {
+        pTool->init = (pTool->init + 5) % 4;
+    }
+    if (pTool->joy.rep & JOY_A) {
+        switch (pTool->init) {
+        case 0:
+            cur->attr ^= 1;
+            break;
+        case 1:
+            cur->attr ^= 2;
+            break;
+        case 2:
+            cur->attr ^= 4;
+            break;
+        case 3:
+            cur->attr ^= 8;
+            break;
+        }
+    }
+    if (pTool->joy.rep & JOY_B) {
+        pTool->sub = 0;
+    }
+}
+
+static void edit_light_priority()
+{
+    cLight* cur = curLight();
+
+    eprintf(0x40, 0x8C, 4, pTool->color, "LIGHT PROPATY");
+    eprintf(0x40, 0x9A, 0, pTool->color, "PRIORITY %d", cur->x2B);
+    if (pTool->joy.rep & (JOY_UP | JOY_RIGHT)) {
+        cur->x2B = (cur->x2B + 8) % 7;
+    } else if (pTool->joy.rep & (JOY_DOWN | JOY_LEFT)) {
+        cur->x2B = (cur->x2B + 6) % 7;
+    }
+    if (pTool->joy.rep & JOY_B) {
+        pTool->sub = 0;
+    }
+}
 
 int select_type()
 {
@@ -1760,11 +2526,181 @@ int select_type()
     return ret;
 }
 
-static void edit_light_type_constant() {}
-static void edit_light_type_quad() {}
-static void edit_light_type_spotlight() {}
+static void edit_light_type_constant()
+{
+    cLight* cur = curLight();
+    int ret = 1;
+
+    switch (pTool->init) {
+    case 0:
+        ret = select_type();
+        break;
+    case 1: {
+        f32 step = (Joy[0].on & JOY_A) ? 10.0f : 1.0f;
+        cur->power += (f32) pTool->joy.sx * step / 10000.0f;
+        cur->power += (f32) pTool->joy.sy * step / 10000.0f;
+        if (pTool->joy.rep & JOY_RIGHT) {
+            cur->power += 0.1f;
+        }
+        if (pTool->joy.rep & JOY_LEFT) {
+            cur->power -= 0.1f;
+        }
+        if (cur->power < 0.001f) {
+            cur->power = 0.001f;
+        }
+        break;
+    }
+    }
+    if (ret) {
+        if (pTool->joy.rep & JOY_UP) {
+            pTool->init = (pTool->init + 1) % 2;
+        }
+        if (pTool->joy.rep & JOY_DOWN) {
+            pTool->init = (pTool->init + 3) % 2;
+        }
+    }
+    if (pTool->init != 0) {
+        eprintf(0x40, 0x9A, 0, pTool->color, "%2d %s", cur->xD, light_type_name[cur->xD]);
+    }
+    eprintf(0x40, 0xA8, 0, pTool->color, "INTENSITY %3.3f", cur->power);
+    pTool->printCursor(7, pTool->init + 11);
+}
+
+// Quadratic / local ambient: the smooth-edge width in the spot block.
+#define EDIT_SMOOTH_EDGE()                                                              \
+    cLight* cur = curLight();                                                                   \
+    LightSpot* sp = &cur->spot;                                                                 \
+    int ret = 1;                                                                                \
+                                                                                                \
+    switch (pTool->init) {                                                                      \
+    case 0:                                                                                     \
+        ret = select_type();                                                                    \
+        break;                                                                                  \
+    case 1: {                                                                                   \
+        f32 step = (pTool->joy.on & JOY_A) ? 5.0f : 1.0f;                                       \
+        sp->normal.x += (f32) pTool->joy.sx * step;                                             \
+        sp->normal.x += (f32) pTool->joy.sy * step;                                             \
+        if (pTool->joy.trg & JOY_Y) {                                                           \
+            sp->normal.x = 0.0f;                                                                \
+        }                                                                                       \
+        break;                                                                                  \
+    }                                                                                           \
+    }                                                                                           \
+    if (ret) {                                                                                  \
+        if (pTool->joy.rep & JOY_UP) {                                                          \
+            pTool->init = (pTool->init + 1) % 2;                                                \
+        }                                                                                       \
+        if (pTool->joy.rep & JOY_DOWN) {                                                        \
+            pTool->init = (pTool->init + 3) % 2;                                                \
+        }                                                                                       \
+    }                                                                                           \
+    if (pTool->init != 0) {                                                                     \
+        eprintf(0x40, 0x9A, 0, pTool->color, "%2d %s", cur->xD, light_type_name[cur->xD]);      \
+    }                                                                                           \
+    eprintf(0x40, 0xA8, 0, pTool->color, "SMOOTH EDGE %6f", sp->normal.x);                      \
+    pTool->printCursor(7, pTool->init + 11);                                                    \
+    drawLightInfo(cur, 0xFFFFFFFF);
+
+static void edit_light_type_quad()
+{
+    EDIT_SMOOTH_EDGE();
+}
+
+static void edit_light_type_spotlight()
+{
+    cLight* cur = curLight();
+    LightSpot* sp = &cur->spot;
+    int ret = 1;
+    Mtx m;
+    Vec pos;
+    Vec dir;
+
+    switch (pTool->init) {
+    case 0:
+        ret = select_type();
+        break;
+    case 1:
+        if (PSVECMag(&sp->normal) < 0.9f) {
+            sp->normal.x = 0.0f;
+            sp->normal.y = 0.0f;
+            sp->normal.z = 1.0f;
+        }
+        spotRot.x = 0.0f;
+        spotRot.z = 0.0f;
+        spotRot.y = -(f32) pTool->joy.sx / 1000.0f;
+        RotMatrix(m, &spotRot);
+        PSMTXMultVec(m, &sp->normal, &sp->normal);
+        PSVECCrossProduct(&sp->normal, &xAxis, &spotRot);
+        PSMTXRotAxisRad(m, &spotRot, (f32) pTool->joy.sy / 1000.0f);
+        PSMTXMultVec(m, &sp->normal, &sp->normal);
+        if (sp->normal.x == 0.0f && sp->normal.y == 0.0f && sp->normal.z == 0.0f) {
+#line 2977 "D:/Bio4/Prog/db_light.cpp"
+            pLog->err(0, 0, "VECNormalize:[%s/%d]", __FILE__, __LINE__);
+            sp->normal.x = sp->normal.y = sp->normal.z = 0.0f;
+        } else {
+            PSVECNormalize(&sp->normal, &sp->normal);
+        }
+        break;
+    case 2: {
+        f32 step = (pTool->joy.on & JOY_A) ? 3.0f : 1.0f;
+        sp->cutoff += (f32) pTool->joy.sy * step / 100.0f;
+        sp->cutoff += (f32) pTool->joy.sx * step / 100.0f;
+        if (sp->cutoff < 1.0f) {
+            sp->cutoff = 1.0f;
+        }
+        if (sp->cutoff > 90.0f) {
+            sp->cutoff = 90.0f;
+        }
+        spotRot.x = 0.0f;
+        spotRot.y = 0.0f;
+        spotRot.z = 0.0f;
+        spotRot.x = atan2f(-sp->normal.y, sp->normal.z);
+        break;
+    }
+    case 3: {
+        f32 step = (pTool->joy.on & JOY_A) ? 5.0f : 1.0f;
+        sp->fade += (f32) pTool->joy.sx * step;
+        sp->fade += (f32) pTool->joy.sy * step;
+        if (pTool->joy.trg & JOY_Y) {
+            sp->fade = 0.0f;
+        }
+        break;
+    }
+    }
+    if (ret) {
+        if (pTool->joy.rep & JOY_UP) {
+            pTool->init = (pTool->init + 3) & 3;
+        }
+        if (pTool->joy.rep & JOY_DOWN) {
+            pTool->init = (pTool->init + 5) & 3;
+        }
+    }
+    if (Joy[0].on & JOY_A) {
+        f32 r;
+        pos = cur->curPos;
+        cur->getNormal(&sp->normal, &dir);
+        r = cur->x1C;
+        if (r == 0.0f) {
+            r = 3000.0f;
+        }
+        PSVECScale(&dir, &dir, r);
+        Draw_corn3(&pos, &dir, sp->cutoff, 0xFFFFFFFF);
+    }
+    if (pTool->init != 0) {
+        eprintf(0x40, 0x9A, 0, pTool->color, "%2d %s", cur->xD, light_type_name[cur->xD]);
+    }
+    eprintf(0x40, 0xA8, 0, pTool->color, "DIRECTION");
+    eprintf(0x40, 0xB6, 0, pTool->color, "SPOT LIGHT RANGE %3.2f", sp->cutoff);
+    eprintf(0x40, 0xC4, 0, pTool->color, "SMOOTH EDGE %6f", sp->fade);
+    pTool->printCursor(7, pTool->init + 11);
+    drawLightInfo(cur, 0xFFFFFFFF);
+}
+
 static void edit_light_type_direct() {}
-static void edit_light_type_localamb() {}
+static void edit_light_type_localamb()
+{
+    EDIT_SMOOTH_EDGE();
+}
 
 // Attenuation of a custom light at distance d (the angular term is evaluated at 0).
 f32 func_attn(cLight* l, f32 d)

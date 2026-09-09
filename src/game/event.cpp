@@ -82,6 +82,23 @@ public:
 };
 #define BEGIN_EVENT(p, mode) ((cUnitEvent*) (p))->beginEvent(mode)
 
+// Deletes every message slot (the &cMes pointer is hoisted into a callee-saved register).
+static inline void EvtMesDeleteAll()
+{
+    MessageControl* mes = &cMes;
+    int i;
+
+    for (i = 0; i < 16; i++) {
+        mes->Delete(i);
+    }
+}
+
+// Reference store: keeps a following `pG` load below it (global.h FSet for ints).
+static inline void IntSet(int& d, int v)
+{
+    d = v;
+}
+
 // Status / tool flag test: the `li 1; andis.; bne; li 0; cmpwi` chains.
 static inline int EvtChk(u32 f, u32 mask)
 {
@@ -270,22 +287,18 @@ int Event::Run()
     if (EvtChk(status, 0x400)) {
         if (totalFrame == maxTotalFrame - 0x1E) {
             FadeSetW(2, 0x2D, 0, 0);
-            mesWait = 0xF;
-            pG->flags_58 &= ~0x400;
-            for (i = 0; i < 16; i++) {
-                cMes.Delete(i);
-            }
+            IntSet(mesWait, 0xF);
+            pG->flags_58 &= ~0x800;
+            EvtMesDeleteAll();
         }
     }
     if (EvtChk(status, 0x200)) {
         if (!EvtChk(status, 0x100)) {
             if (totalFrame == maxTotalFrame - 0x1E || totalFrame == maxTotalFrame) {
                 SetDiedemoExec();
-                mesWait = 0xF;
-                pG->flags_58 &= ~0x400;
-                for (i = 0; i < 16; i++) {
-                    cMes.Delete(i);
-                }
+                IntSet(mesWait, 0xF);
+                pG->flags_58 &= ~0x800;
+                EvtMesDeleteAll();
             }
         }
     }
@@ -296,8 +309,7 @@ int Event::Run()
         FocusMove(this, pFocus);
     }
     if (EvtDebug.strWait > 0) {
-        EvtDebug.strWait--;
-        if (EvtDebug.strWait > 0) {
+        if (--EvtDebug.strWait > 0) {
             goto func;
         }
     }
@@ -331,6 +343,8 @@ int Event::EspToolSetDat()
 {
     char nm[0x20];
     EvtPacket* pac;
+    int no;
+    char* p;
 
     EvtDebug.toolCut = cut;
     RunTool(3, 0);
@@ -344,21 +358,23 @@ int Event::EspToolSetDat()
         }
         switch (pac->id) {
         case 6:
-            strcpy(EvtDebug.evName, pac->mod.name);
+            strcpy(EvtDebug.getEvName(), pac->mod.name);
             break;
         case 0xE:
-            strcpy(EvtDebug.camName, pac->mod.name);
+            strcpy(EvtDebug.getCamName(), pac->mod.name);
             break;
         case 0xB:
-            strcpy(EvtDebug.pModel[EvtDebug.nModel].name, pac->mod.bin);
-            EspToolSetMod(EvtDebug.nModel, pac->mod.name);
+            no = EvtDebug.nModel;
+            strcpy(EvtDebug.pModel[no].name, pac->mod.bin);
+            EspToolSetMod(no, pac->mod.name);
             EvtDebug.nModel++;
             break;
         }
         CalNextPacket();
     }
-    strcpy(nm, (char*) pData);
-    strcmp(nm, "event/evd/r120s00.evd");
+    p = nm;
+    strcpy(p, (char*) pData);
+    strcmp(p, "event/evd/r120s00.evd");
     return 1;
 }
 
@@ -493,7 +509,6 @@ int Event::RunTool(int mode, int arg)
         if (frm <= 1) {
             c--;
         }
-    case 3:
         frm = 0;
         if (c < 0) {
             c = 0;
@@ -506,14 +521,20 @@ int Event::RunTool(int mode, int arg)
             c = maxCut - 1;
         }
         break;
+    case 3:
+        frm = 0;
+        if (c < 0) {
+            c = 0;
+        }
+        break;
     }
-    toolCut = c;
-    pPacket = (EvtPacket*) ((u8*) pData + pData->pacOfs);
     cut = 0;
-    toolFrame2 = frm;
     totalFrame = 0;
-    frame = 0;
+    pPacket = (EvtPacket*) (pData->pacOfs + (u32) pData);
     toolFrame = frm;
+    toolCut = c;
+    frame = 0;
+    toolFrame2 = frm;
     FadeKillAll();
     if (CalMaxFrame(&maxFrame, 0) == 0) {
         pLog->err(0, 0, "Event::init : data failed");
@@ -537,25 +558,23 @@ int Event::RunTool(int mode, int arg)
 
 int Event::RunEvtCancel()
 {
-    int i;
+    u32* key;
 
     if (EvtChk(status, 0x10000000)) {
         if (cancelCut <= cut) {
             return 1;
         }
     }
-    status |= 0x04000000;
+    BitOn(status, 0x04000000);
     pG->flags_5018 |= 0x01000000;
-    for (i = 0; i < 16; i++) {
-        cMes.Delete(i);
-    }
+    EvtMesDeleteAll();
     FadeSetW(1, 1, 0, 0);
     TaskSleep(2);
     status |= 0x08000000;
     while (!EvtChk(status, 0x00800000)) {
         if (EvtChk(status, 0x10000000)) {
             if (cancelCut <= cut) {
-                break;
+                goto cancel_end;
             }
         }
         if (Run() == 0) {
@@ -572,13 +591,13 @@ int Event::RunEvtCancel()
             }
         }
     }
+cancel_end:
     status &= ~0x08000000;
-    for (i = 0; i < 16; i++) {
-        cMes.Delete(i);
-    }
-    mesTimer = 0;
-    pG->flags_58 &= ~0x400;
-    EvtMgr.EvtSndStrStop((u32*) name, 1, 1);
+    EvtMesDeleteAll();
+    key = (u32*) name;
+    IntSet(mesTimer, 0);
+    pG->flags_58 &= ~0x800;
+    EvtMgr.EvtSndStrStop(key, 1, 1);
     ExeFunc(3, 0);
     if (EvtChk(status, 0x10000000)) {
         FadeKill(2);
@@ -1459,9 +1478,7 @@ void Event::ExeBeginEvt(Event* evt, int mode)
         EvtMgr.SetBin("etc/core/dummy.bin", (u8*) pG->pArc + pG->pArc->ofs_20, 0, 2);
         EvtMgr.SetBin("etc/core/dummy.tpl", (u8*) pG->pArc + pG->pArc->ofs_24, 0, 2);
     }
-    for (i = 0; i < 16; i++) {
-        cMes.Delete(i);
-    }
+    EvtMesDeleteAll();
     pG->flags_54 |= 0x400;
     if (!EvtChk(evt->pData->sndFlag, 0x80000000)) {
         SndEventInit();
@@ -1533,11 +1550,9 @@ void Event::ExeEndEvt(Event* evt, u32 mode)
         CamCtrl.setMotionBaseMatPtr(0);
         CamCtrl.Comeback(0);
     }
-    pG->flags_58 &= ~0x400;
+    pG->flags_58 &= ~0x800;
     cMes.roomInit();
-    for (i = 0; i < 16; i++) {
-        cMes.Delete(i);
-    }
+    EvtMesDeleteAll();
     ShadowMemClear();
     ExeFunc(2, 0);
     pPL->move();
@@ -1753,7 +1768,7 @@ void Event::ExecActBtn()
     if (actBtnOn != 1) {
         return;
     }
-    pG->flags_58 &= ~0x400;
+    pG->flags_58 &= ~0x800;
     ActBtn.set(actBtnNo, 5, 0, 0, 2, 2, 0, 0);
     pG->flags_170 &= ~0x100;
     if (Key.trg & 0x80000) {
@@ -1766,13 +1781,11 @@ void Event::MesSet(int no, int time, int x, int y)
     int i;
 
     if (pSys->language != 1) {
-        pG->flags_58 &= ~0x400;
+        pG->flags_58 &= ~0x800;
         if (no == -1) {
             cMes.WaitEnd(0);
         } else {
-            for (i = 0; i < 16; i++) {
-                cMes.Delete(i);
-            }
+            EvtMesDeleteAll();
             if (EvtChk(status, 0x2000)) {
                 SceMesSet(no, 0xF2, 1, x, y);
             } else {

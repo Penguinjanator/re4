@@ -1546,6 +1546,20 @@ following `.data` unit by 4 (dummy: `asm(".section .data\n\t.balign 8\n\t.sectio
   `...rodata.0` base; the original never pools literal-only functions but does pool literals together
   with strings. No flag reproduces it (all GC builds and -O levels tested).
 
+- Right operand of a commutative `|`/`+` is evaluated first (`a | b` -> `b` computed, `a` inserted
+  with `rlwimi`; `f(0) + f(1)` calls `f(1)` first).
+- `x = LE32(p); x = SWAP32(x);` as two statements gives the `mr` copy before the last `rlwimi`;
+  one expression gives no copy. A masked byte-swap stored through a `Uint16*` becomes `sthbrx`,
+  the unmasked form stays `srawi/rlwimi`.
+- `(Uint8)inbuf[i] << 8` with `Sint8 *inbuf` gives `clrlslwi 24,8`; `Uint8 *` gives plain `slwi`.
+- `return f() != 1;` -> `subfic/subi/or/srwi 31`; `return f() == 1` -> `cntlzw/srwi 5`.
+- Strings of a local static defined inside an inlined accessor at the top of the file come first in
+  `.rodata` and reload the pointer per iteration.
+- `#pragma dont_inline on/off` around a static definition stops auto-inlining of it (OPEN: original
+  did not inline `mwsfd_ExecSvrHndl`/`MWSFSVR_DecodeServer` while inlining smaller helpers; no
+  `-inline` level reproduces it).
+- Stack slot order: first-declared aggregate local gets the highest frame offset.
+
 ## REL modules
 
 The game loads its rooms, enemies, weapons and debug tools as Nintendo REL overlays. `ninja` rebuilds the

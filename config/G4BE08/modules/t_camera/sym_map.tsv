@@ -110,8 +110,8 @@ section	offset	size	unit	scope	name	demangled
 .text	0x00010A2C	0x184	t_camera/db_light.cpp	global	drawLightInfo_SpotShadow__FP6cLightUl	drawLightInfo_SpotShadow
 .text	0x00010BB0	0x17C	t_camera/db_light.cpp	global	drawLightInfo__FP6cLightUl	drawLightInfo
 .text	0x00010D2C	0x518	t_camera/db_light.cpp	global	pathSelect__Fv	pathSelect
-.text	0x00011244	0x428	t_camera/db_light.cpp	global	pathEdit__Fv	pathEdit
-.text	0x0001166C	0x2A0	t_camera/db_light.cpp	global	drawPath__FP14cLightPathDataii	drawPath
+.text	0x00011244	0x428	t_camera/db_light.cpp	global	pathEdit__FiiUcUci	pathEdit
+.text	0x0001166C	0x2A0	t_camera/db_light.cpp	global	drawPath__FiiP14cLightPathDataUcUl	drawPath
 .text	0x0001190C	0x21C	t_camera/db_light.cpp	global	lightAnalysis__10cLightTool	cLightTool::lightAnalysis
 .text	0x00011B28	0x168	t_camera/db_light.cpp	global	__12cLitPathTool	cLitPathTool::cLitPathTool
 .text	0x00011C90	0x28	t_camera/db_light.cpp	global	_._12cLitPathTool	cLitPathTool::~cLitPathTool

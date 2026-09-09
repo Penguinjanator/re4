@@ -1935,9 +1935,9 @@ static int sceAtFunc_pos_jump(SceAtWork* w, cModel* m)
     Vec rot;
 
     pPL->setPos(&w->jumpPos);
+    rot.y = w->dstAngle;
     rot.x = 0.0f;
     rot.z = 0.0f;
-    rot.y = w->dstAngle;
     pPL->setAng(&rot);
     CamCtrl.qfps.setPlayerLocation(pPL->mat, pPL->pFloorNrm);
     return 0;

@@ -173,28 +173,30 @@ extern "C" void r103_openShelf(R103Shelf* s)
 extern "C" void r103_setCorpse(void* m0, void* m1, void* m2, void* m3, void* m4, void* m5, void* m6, void* m7, void* m8, void* m9)
 {
     R103EmLocal em;
-    cEm* pe = (cEm*) &em;
-    cEmConstruct(pe);
-    Vec pos = {0.0f, 0.0f, 0.0f};
-    Vec rot = {0.0f, 0.0f, 0.0f};
     int i;
 
-    pe->subArc = (PlArc*) EmReadSearch(0x12, 0, 0);
+    cEmConstruct((cEm*) &em);
+    // OPEN: the original keeps `&em` in a callee-saved register (`addi r3,r1,8; mr r29,r3` before the
+    // ctor call) and addresses subArc as 0x378(r29), reloading it once per table row; ours folds the
+    // frame address (0x380(r1)); a `cEm* pe = (cEm*) &em` pointer reloads it per element instead.
+    ((cEm*) &em)->subArc = (PlArc*) EmReadSearch(0x12, 0, 0);
+    Vec pos = {0.0f, 0.0f, 0.0f};
+    Vec rot = {0.0f, 0.0f, 0.0f};
     {
         // model / two parts models / third parts model / textures / motion. A struct row would
         // get a memset per row (C++ TYPE_FIELDS holds the class name too, so expr.c's field count
         // never matches the initializer); the original used a plain 2-D pointer array.
         void* tbl[10][6] = {
-            {PL_ARC_PTR(pe->subArc, 0x1BC), PL_ARC_PTR(pe->subArc, 0x1BE), PL_ARC_PTR(pe->subArc, 0x1C0), PL_ARC_PTR(pe->subArc, 0x1C5), PL_ARC_PTR(pe->subArc, 0x1BD), m0},
-            {PL_ARC_PTR(pe->subArc, 0x1D8), PL_ARC_PTR(pe->subArc, 0x1DA), PL_ARC_PTR(pe->subArc, 0x1C0), PL_ARC_PTR(pe->subArc, 0x1C5), PL_ARC_PTR(pe->subArc, 0x1D9), m1},
-            {PL_ARC_PTR(pe->subArc, 0x1E0), PL_ARC_PTR(pe->subArc, 0x1E3), PL_ARC_PTR(pe->subArc, 0x1C0), PL_ARC_PTR(pe->subArc, 0x1C5), PL_ARC_PTR(pe->subArc, 0x1E1), m2},
-            {PL_ARC_PTR(pe->subArc, 0x1BC), PL_ARC_PTR(pe->subArc, 0x1BE), PL_ARC_PTR(pe->subArc, 0x1C0), PL_ARC_PTR(pe->subArc, 0x1C5), PL_ARC_PTR(pe->subArc, 0x1DD), m3},
-            {PL_ARC_PTR(pe->subArc, 0x1D8), PL_ARC_PTR(pe->subArc, 0x1DA), PL_ARC_PTR(pe->subArc, 0x1C0), PL_ARC_PTR(pe->subArc, 0x1C5), PL_ARC_PTR(pe->subArc, 0x1BD), m4},
-            {PL_ARC_PTR(pe->subArc, 0x1E0), PL_ARC_PTR(pe->subArc, 0x1E3), PL_ARC_PTR(pe->subArc, 0x1C0), PL_ARC_PTR(pe->subArc, 0x1C5), PL_ARC_PTR(pe->subArc, 0x1D9), m5},
-            {PL_ARC_PTR(pe->subArc, 0x1BC), PL_ARC_PTR(pe->subArc, 0x1BE), PL_ARC_PTR(pe->subArc, 0x1C0), PL_ARC_PTR(pe->subArc, 0x1C5), PL_ARC_PTR(pe->subArc, 0x1E1), m6},
-            {PL_ARC_PTR(pe->subArc, 0x1D8), PL_ARC_PTR(pe->subArc, 0x1DA), PL_ARC_PTR(pe->subArc, 0x1C0), PL_ARC_PTR(pe->subArc, 0x1C5), PL_ARC_PTR(pe->subArc, 0x1DD), m7},
-            {PL_ARC_PTR(pe->subArc, 0x1E0), PL_ARC_PTR(pe->subArc, 0x1E3), PL_ARC_PTR(pe->subArc, 0x1C0), PL_ARC_PTR(pe->subArc, 0x1C5), PL_ARC_PTR(pe->subArc, 0x1BD), m8},
-            {PL_ARC_PTR(pe->subArc, 0x1BC), PL_ARC_PTR(pe->subArc, 0x1BE), PL_ARC_PTR(pe->subArc, 0x1C0), PL_ARC_PTR(pe->subArc, 0x1C5), PL_ARC_PTR(pe->subArc, 0x1D9), m9},
+            {PL_ARC_PTR(((cEm*) &em)->subArc, 0x1BC), PL_ARC_PTR(((cEm*) &em)->subArc, 0x1BE), PL_ARC_PTR(((cEm*) &em)->subArc, 0x1C0), PL_ARC_PTR(((cEm*) &em)->subArc, 0x1C5), PL_ARC_PTR(((cEm*) &em)->subArc, 0x1BD), m0},
+            {PL_ARC_PTR(((cEm*) &em)->subArc, 0x1D8), PL_ARC_PTR(((cEm*) &em)->subArc, 0x1DA), PL_ARC_PTR(((cEm*) &em)->subArc, 0x1C0), PL_ARC_PTR(((cEm*) &em)->subArc, 0x1C5), PL_ARC_PTR(((cEm*) &em)->subArc, 0x1D9), m1},
+            {PL_ARC_PTR(((cEm*) &em)->subArc, 0x1E0), PL_ARC_PTR(((cEm*) &em)->subArc, 0x1E3), PL_ARC_PTR(((cEm*) &em)->subArc, 0x1C0), PL_ARC_PTR(((cEm*) &em)->subArc, 0x1C5), PL_ARC_PTR(((cEm*) &em)->subArc, 0x1E1), m2},
+            {PL_ARC_PTR(((cEm*) &em)->subArc, 0x1BC), PL_ARC_PTR(((cEm*) &em)->subArc, 0x1BE), PL_ARC_PTR(((cEm*) &em)->subArc, 0x1C0), PL_ARC_PTR(((cEm*) &em)->subArc, 0x1C5), PL_ARC_PTR(((cEm*) &em)->subArc, 0x1DD), m3},
+            {PL_ARC_PTR(((cEm*) &em)->subArc, 0x1D8), PL_ARC_PTR(((cEm*) &em)->subArc, 0x1DA), PL_ARC_PTR(((cEm*) &em)->subArc, 0x1C0), PL_ARC_PTR(((cEm*) &em)->subArc, 0x1C5), PL_ARC_PTR(((cEm*) &em)->subArc, 0x1BD), m4},
+            {PL_ARC_PTR(((cEm*) &em)->subArc, 0x1E0), PL_ARC_PTR(((cEm*) &em)->subArc, 0x1E3), PL_ARC_PTR(((cEm*) &em)->subArc, 0x1C0), PL_ARC_PTR(((cEm*) &em)->subArc, 0x1C5), PL_ARC_PTR(((cEm*) &em)->subArc, 0x1D9), m5},
+            {PL_ARC_PTR(((cEm*) &em)->subArc, 0x1BC), PL_ARC_PTR(((cEm*) &em)->subArc, 0x1BE), PL_ARC_PTR(((cEm*) &em)->subArc, 0x1C0), PL_ARC_PTR(((cEm*) &em)->subArc, 0x1C5), PL_ARC_PTR(((cEm*) &em)->subArc, 0x1E1), m6},
+            {PL_ARC_PTR(((cEm*) &em)->subArc, 0x1D8), PL_ARC_PTR(((cEm*) &em)->subArc, 0x1DA), PL_ARC_PTR(((cEm*) &em)->subArc, 0x1C0), PL_ARC_PTR(((cEm*) &em)->subArc, 0x1C5), PL_ARC_PTR(((cEm*) &em)->subArc, 0x1DD), m7},
+            {PL_ARC_PTR(((cEm*) &em)->subArc, 0x1E0), PL_ARC_PTR(((cEm*) &em)->subArc, 0x1E3), PL_ARC_PTR(((cEm*) &em)->subArc, 0x1C0), PL_ARC_PTR(((cEm*) &em)->subArc, 0x1C5), PL_ARC_PTR(((cEm*) &em)->subArc, 0x1BD), m8},
+            {PL_ARC_PTR(((cEm*) &em)->subArc, 0x1BC), PL_ARC_PTR(((cEm*) &em)->subArc, 0x1BE), PL_ARC_PTR(((cEm*) &em)->subArc, 0x1C0), PL_ARC_PTR(((cEm*) &em)->subArc, 0x1C5), PL_ARC_PTR(((cEm*) &em)->subArc, 0x1D9), m9},
         };
 
         for (i = 0; i < 10; i++) {
@@ -219,7 +221,7 @@ extern "C" void r103_setCorpse(void* m0, void* m1, void* m2, void* m3, void* m4,
             }
         }
     }
-    ((cUnit*) &em)->~cUnit();
+    ((cUnit*) &em)->cUnit::~cUnit();
 }
 
 // The sub-mission target (etc item 0x13) hangs on scroll object `objNo` until it is taken.

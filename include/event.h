@@ -368,6 +368,8 @@ public:
     EventDebug();
     ~EventDebug();
     int myRoomInit();          // room start (game gameRoomInit)
+    char* getEvName() { return evName; }
+    char* getCamName() { return camName; }
     void ClrModelFiles();
     int AddNameBinTpl(int no, char* bin, char* tpl);
 };

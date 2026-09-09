@@ -6676,7 +6676,7 @@ address	size	section	unit	scope	name	demangled
 0x801E0120	0x2EC	.text	lib/mwsfdlib.c	global	mwPlyInitSfdFx	mwPlyInitSfdFx
 0x801E040C	0x28	.text	lib/mwsfdlib.c	global	mwsflib_LscErrFunc	mwsflib_LscErrFunc
 0x801E0434	0xC	.text	lib/mwsfdlib.c	global	MWSFLIB_GetLibWorkPtr	MWSFLIB_GetLibWorkPtr
-0x801E0440	0x4C	.text	lib/mwsfdply.c	local	mwPlyChkSupply	mwPlyChkSupply
+0x801E0440	0x4C	.text	lib/mwsfdply.c	global	mwPlyChkSupply	mwPlyChkSupply
 0x801E048C	0x5C	.text	lib/mwsfdply.c	global	MWSFPLY_SetFlowLimit	MWSFPLY_SetFlowLimit
 0x801E04E8	0x118	.text	lib/mwsfdply.c	global	mwSfdPause	mwSfdPause
 0x801E0600	0xD8	.text	lib/mwsfdply.c	global	mwSfdStop	mwSfdStop
@@ -6973,7 +6973,7 @@ address	size	section	unit	scope	name	demangled
 0x801F1C70	0x60	.text	lib/sfd_ply.c	global	SFD_SetSupplySj	SFD_SetSupplySj
 0x801F1CD0	0x74	.text	lib/sfd_ply.c	global	SFD_RelFrm	SFD_RelFrm
 0x801F1D44	0xB8	.text	lib/sfd_ply.c	global	SFD_GetFrm	SFD_GetFrm
-0x801F1DFC	0x8C	.text	lib/sfd_ply.c	local	SFD_TermSupply	SFD_TermSupply
+0x801F1DFC	0x8C	.text	lib/sfd_ply.c	global	SFD_TermSupply	SFD_TermSupply
 0x801F1E88	0x3D8	.text	lib/sfd_ply.c	global	sfply_ResetHn	sfply_ResetHn
 0x801F2260	0x10	.text	lib/sfd_ply.c	global	SFPLY_GetResetFlg	SFPLY_GetResetFlg
 0x801F2270	0xF0	.text	lib/sfd_ply.c	global	SFD_Stop	SFD_Stop
@@ -6987,9 +6987,9 @@ address	size	section	unit	scope	name	demangled
 0x801F2D48	0x548	.text	lib/sfd_ply.c	global	sfply_StatPlay	sfply_StatPlay
 0x801F3290	0x3B0	.text	lib/sfd_ply.c	local	sfply_StatPrep	sfply_StatPrep
 0x801F3640	0x260	.text	lib/sfd_ply.c	global	sfply_ExecOne	sfply_ExecOne
-0x801F38A0	0x54	.text	lib/sfd_ply.c	local	SFD_ExecOne	SFD_ExecOne
+0x801F38A0	0x54	.text	lib/sfd_ply.c	global	SFD_ExecOne	SFD_ExecOne
 0x801F38F4	0xAC	.text	lib/sfd_ply.c	global	SFD_IsSvrWait	SFD_IsSvrWait
-0x801F39A0	0x28	.text	lib/sfd_ply.c	local	SFD_IsHnSvrWait	SFD_IsHnSvrWait
+0x801F39A0	0x28	.text	lib/sfd_ply.c	global	SFD_IsHnSvrWait	SFD_IsHnSvrWait
 0x801F39C8	0x20	.text	lib/sfd_ply.c	global	SFD_VbIn	SFD_VbIn
 0x801F39E8	0x50	.text	lib/sfd_ply.c	global	SFPLY_Init	SFPLY_Init
 0x801F3A38	0x38	.text	lib/sfd_pts.c	global	SFPTS_IsPtsQueFull	SFPTS_IsPtsQueFull

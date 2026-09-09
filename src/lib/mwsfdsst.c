@@ -27,6 +27,39 @@ static Bool mwsst_IsValid(MWSST sst)
 	return TRUE;
 }
 
+static void mwsst_Stop(MWSST sst)
+{
+	MWSST hn;
+
+	if (mwsst_IsValid(sst) == TRUE) {
+		hn = sst->hn;
+		MWSST_CALL(Stop, (hn));
+	}
+}
+
+static void mwsst_DestroyHn(MWSST hn)
+{
+	MWSST_IF *ifc;
+
+	ifc = mwsstmng.ifc;
+	if (hn != NULL && ifc != NULL && ifc->Destroy != NULL) {
+		ifc->Destroy(hn);
+	}
+}
+
+static void mwsst_ReleaseLib(void)
+{
+	MWSST_IF *ifc;
+
+	ifc = mwsstmng.ifc;
+	if (ifc != NULL && mwsstmng.cnt != 0) {
+		mwsstmng.cnt--;
+		if (mwsstmng.cnt == 0 && ifc->Finish != NULL) {
+			ifc->Finish();
+		}
+	}
+}
+
 MWSST MWSST_Create(void *work, Sint32 wksize, MWSST_IF *ifc)
 {
 	MWSST sst;
@@ -60,19 +93,12 @@ void MWSST_Destroy(MWSST sst)
 		sj = sst->sj;
 		if (hn != NULL) {
 			MWSFSVM_GotoIdleBorder();
-			MWSST_Stop(hn);
+			mwsst_Stop(hn);
 			sst->used = 0;
-			if (hn != NULL) {
-				MWSST_CALL(Destroy, (hn));
-			}
+			mwsst_DestroyHn(hn);
 			SJ_Destroy(sj);
 			sst->hn = NULL;
-			if (mwsstmng.ifc != NULL && mwsstmng.cnt != 0) {
-				mwsstmng.cnt--;
-				if (mwsstmng.cnt == 0) {
-					MWSST_CALL(Finish, ());
-				}
-			}
+			mwsst_ReleaseLib();
 		}
 	}
 }
@@ -92,7 +118,7 @@ void MWSST_Reset(MWPLY mwply)
 	buf = sst->buf;
 	if (mwsst_IsValid(sst) == TRUE) {
 		if (hn != NULL) {
-			MWSST_Stop(hn);
+			mwsst_Stop(hn);
 		}
 		SJ_Reset(sj);
 		SFD_SetElementOutSj(sfd, (Uint8 *)buf + 0xC0, sj, 0, 0);
@@ -102,53 +128,66 @@ void MWSST_Reset(MWPLY mwply)
 Sint32 MWSST_GetOutVol(MWSST sst)
 {
 	Sint32 vol = 0;
+	MWSST hn;
 
 	if (mwsst_IsValid(sst) != TRUE) {
 		return 0;
 	}
+	hn = sst->hn;
 	if (mwsstmng.ifc != NULL && mwsstmng.ifc->GetOutVol != NULL) {
-		vol = mwsstmng.ifc->GetOutVol(sst->hn);
+		vol = mwsstmng.ifc->GetOutVol(hn);
 	}
 	return vol;
 }
 
 void MWSST_SetOutVol(MWSST sst, Sint32 vol)
 {
+	MWSST hn;
+
 	if (mwsst_IsValid(sst) == TRUE) {
-		MWSST_CALL(SetOutVol, (sst->hn, vol));
+		hn = sst->hn;
+		MWSST_CALL(SetOutVol, (hn, vol));
 	}
 }
 
 void MWSST_Pause(MWSST sst, Sint32 sw)
 {
+	MWSST hn;
+
 	if (mwsst_IsValid(sst) == TRUE) {
-		MWSST_CALL(Pause, (sst->hn, sw));
+		hn = sst->hn;
+		MWSST_CALL(Pause, (hn, sw));
 	}
 }
 
 Sint32 MWSST_GetStat(MWSST sst)
 {
 	Sint32 stat = 0;
+	MWSST hn;
 
 	if (mwsst_IsValid(sst) != TRUE) {
 		return 0;
 	}
+	hn = sst->hn;
 	if (mwsstmng.ifc != NULL && mwsstmng.ifc->GetStat != NULL) {
-		stat = mwsstmng.ifc->GetStat(sst->hn);
+		stat = mwsstmng.ifc->GetStat(hn);
 	}
 	return stat;
 }
 
 void MWSST_Stop(MWSST sst)
 {
-	if (mwsst_IsValid(sst) == TRUE) {
-		MWSST_CALL(Stop, (sst->hn));
-	}
+	mwsst_Stop(sst);
 }
 
 void MWSST_StartSj(MWSST sst)
 {
+	MWSST hn;
+	SJ sj;
+
 	if (mwsst_IsValid(sst) == TRUE) {
-		MWSST_CALL(StartSj, (sst->hn, sst->sj));
+		hn = sst->hn;
+		sj = sst->sj;
+		MWSST_CALL(StartSj, (hn, sj));
 	}
 }
