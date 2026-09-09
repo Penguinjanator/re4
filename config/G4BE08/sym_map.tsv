@@ -3693,7 +3693,7 @@ address	size	section	unit	scope	name	demangled
 0x800F7084	0x62C	.text	game/em_sub.cpp	global	RandomItemCk	RandomItemCk
 0x800F76B0	0x90	.text	game/em_sub.cpp	global	CheckInWater	CheckInWater
 0x800F7740	0x40	.text	game/em_sub.cpp	global	HandgunCk	HandgunCk
-0x800F7780	0x7C	.text	game/em_sub.cpp	local	GetPlPos__FP3VecP3cEmf	GetPlPos
+0x800F7780	0x7C	.text	game/em_sub.cpp	global	GetPlPos__FP3VecP3cEmf	GetPlPos
 0x800F77FC	0xE8	.text	game/em_sub.cpp	global	TrolleyItemSetCk	TrolleyItemSetCk
 0x800F78E4	0xE8	.text	game/em_sub.cpp	global	BullItemSetCk	BullItemSetCk
 0x800F79CC	0x24	.text	game/em_sub.cpp	global	adjust_add_set	adjust_add_set
@@ -4906,12 +4906,12 @@ address	size	section	unit	scope	name	demangled
 0x80154600	0x1A0	.text	game/main_mem.cpp	global	mem_alloc__FUlPCciii	mem_alloc
 0x801547A0	0x44	.text	game/main_mem.cpp	global	mem_calloc__FUlPCciii	mem_calloc
 0x801547E4	0x24	.text	game/main_mem.cpp	global	Mem_free__FPv	Mem_free
-0x80154808	0x50	.text	game/main_mem.cpp	local	Mem_free_h__FPvi	Mem_free_h
+0x80154808	0x50	.text	game/main_mem.cpp	global	Mem_free_h__FPvi	Mem_free_h
 0x80154858	0xC	.text	game/main_mem.cpp	global	SetDebugAlloc__Fv	SetDebugAlloc
 0x80154864	0xA8	.text	game/main_mem.cpp	global	ResetDebugAlloc__Fv	ResetDebugAlloc
 0x8015490C	0xD0	.text	game/main_mem.cpp	global	Debug_alloc__FUli	Debug_alloc
 0x801549DC	0x24	.text	game/main_mem.cpp	global	Debug_free__FPv	Debug_free
-0x80154A00	0x70	.text	game/main_mem.cpp	local	Debug_free_h__FPvi	Debug_free_h
+0x80154A00	0x70	.text	game/main_mem.cpp	global	Debug_free_h__FPvi	Debug_free_h
 0x80154A70	0x4C	.text	game/main_mem.cpp	global	MemAlloc__FUli	MemAlloc
 0x80154ABC	0x38	.text	game/main_mem.cpp	global	MemFree__FPv	MemFree
 0x80154AF4	0x1290	.text	game/main_mem.cpp	global	MemCheckUsedHeap	MemCheckUsedHeap

@@ -3317,7 +3317,7 @@ int HandgunCk(int wep)
 }
 
 // Position of `em` (the player when NULL) plus `t` of its parts 0 movement this frame.
-static void GetPlPos(Vec* out, cEm* em, f32 t)
+void GetPlPos(Vec* out, cEm* em, f32 t)
 {
     Vec d;
     cModel* parts;

@@ -66,4 +66,8 @@ int BullItemSetCk(Vec* pos, u16 id, int num);
 void adjust_add_set(Vec* v);
 }
 
+// Position of `em` (the player when NULL) plus `t` of its parts 0 movement this frame (C++ linkage;
+// Bio4.sym marks it local but the em3c module calls it).
+void GetPlPos(Vec* out, cEm* em, f32 t);
+
 #endif
