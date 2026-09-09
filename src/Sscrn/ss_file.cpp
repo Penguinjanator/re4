@@ -75,8 +75,6 @@ void sscrnModelFree(SUB_SCREEN* wk);
 int sscrnMainMenu(SUB_SCREEN* wk);
 // ss_model.cpp
 void playerModelInit();
-// ss_item.cpp
-void ss_Draw_tpl(void* tpl, int no, int x, int y, int w, int h, int a, int b);
 }
 
 // files per category

@@ -140,6 +140,14 @@ def main(argv: List[str]) -> int:
         cc1_cmd = [str(cc1_exe), *cc1_flags, "-quiet", pre, "-o", asm]
         as_cmd = [wrapper, str(as_exe), *inc_flags, asm, "-o", out_path]
 
+        rel_module = next((f[len("-DREL_MODULE="):] for f in cpp_flags if f.startswith("-DREL_MODULE=")), None)
+
+        def assemble(asm_path: str, obj_path: str) -> int:
+            cmd = [wrapper, str(as_exe), *inc_flags, asm_path, "-o", obj_path]
+            if verbose:
+                print(" ".join(cmd), file=sys.stderr)
+            return subprocess.run(cmd, env=env).returncode
+
         for cmd in (cpp_cmd, cc1_cmd, as_cmd):
             if verbose:
                 print(" ".join(cmd), file=sys.stderr)
@@ -149,7 +157,137 @@ def main(argv: List[str]) -> int:
                     os.remove(out_path)
                 return rc
             if cmd is cc1_cmd and lang == "c++":
-                place_linkonce(src, asm)
+                if rel_module:
+                    # module unit: `build/<ver>/src/<mod>/<stem>.o` -> `<mod>/<stem>.cpp`
+                    unit = f"{rel_module}/{Path(out_path).stem}.cpp"
+                    rc = place_linkonce_module(rel_module, unit, asm, os.path.join(tmp, stem + ".pre.o"), assemble)
+                    if rc != 0:
+                        return rc
+                else:
+                    place_linkonce(src, asm)
+    return 0
+
+
+def place_linkonce_module(module: str, unit: str, asm: str, pre_obj: str, assemble) -> int:
+    """REL module unit: reproduce what the original `ngcld -r` link did with the linkonce functions.
+
+    Evidence (every module with several objects including light.h, e.g. Sscrn ss_cap vs ss_main,
+    t_emlist vs t_util/tools, st1_1 r101 vs r102.., em10's own partial link): the FIRST object of a
+    module that instantiates a template function keeps that copy only if some relocation in the
+    module references its symbol (cManager<cLight>::countActiveWork/create(int) are `bl`'d from the
+    later objects' blocks, Widget<SUB_SCREEN>::quit/init/move from the vtables; `log`, `create()`,
+    `create(int, u32)` are only ever called through vtables the DOL owns and vanish), while EVERY
+    LATER object keeps all of its copies as nameless code (the 0x3B8 cLight blocks) whose calls
+    resolve to the first object's copy. The `.sym` therefore names exactly the surviving first
+    copies. So, per `.gnu.linkonce.t.<sym>` section of this unit (sizes tell the overloads apart,
+    the .sym has no parameter lists):
+      * named for this unit in the module sym_map          -> `.text` in place (keeps its symbol);
+      * unnamed, and an earlier unit of the module names a function of the same class instance
+        (the unit is a later instantiator of that class)   -> `.text` in place, definition made
+        local (nameless duplicate; references to the symbol resolve to the first copy at link time);
+      * unnamed, and this unit is the first one naming a function of the class instance (this unit
+        is the class's first instantiator)                 -> deleted (unreferenced first copy);
+      * unnamed, class instance named nowhere in the module -> kept nameless (a later duplicate is
+        the common case; a first instantiator whose every member is unreferenced would be wrong,
+        list it in modules.py LINKONCE_DROP).
+    `.text` in place matters: the original interleaves the template bodies with
+    __static_initialization_and_destruction_0 and the deferred inlines in emission order.
+    The sections are decided from a first assembly of the unit (symbol sizes), then the asm is
+    rewritten and assembled again by the caller.
+    """
+    root = Path(__file__).resolve().parent.parent
+    ver = os.environ.get("RE4_VERSION", "G4BE08")
+    sym_map = root / "config" / ver / "modules" / module / "sym_map.tsv"
+    if not sym_map.exists():
+        return 0
+    sys.path.insert(0, str(root / "tools"))
+    from sync_symbols import demangle_v2  # noqa: E402
+    from elffile import Elf  # noqa: E402
+
+    rows = set()                    # (name, size) of this unit's .text functions
+    class_units = {}                # class instance -> {unit: first .text offset of that unit}
+    unit_start = {}
+    with open(sym_map) as f:
+        next(f)
+        for line in f:
+            sec, off, size, u, scope, name, dn = line.rstrip("\n").split("\t")
+            if sec != ".text":
+                continue
+            off = int(off, 16)
+            unit_start[u] = min(unit_start.get(u, off), off)
+            dn = dn if dn and dn != "." else name
+            if u == unit:
+                rows.add((dn, int(size, 16)))
+                rows.add((name, int(size, 16)))
+            if "::" in dn:
+                class_units.setdefault(dn.rsplit("::", 1)[0], set()).add(u)
+    if unit not in unit_start:
+        return 0
+    drop_list = set()
+    try:
+        sys.path.insert(0, str(root / "config" / ver))
+        import modules as modules_mod  # noqa: E402
+        drop_list = set(getattr(modules_mod, "LINKONCE_DROP", {}).get(unit, ()))
+    except ImportError:
+        pass
+
+    rc = assemble(asm, pre_obj)
+    if rc != 0:
+        return rc
+    elf = Elf(pre_obj)
+    decision = {}  # section name -> ("named" | "dup" | "drop", symbol)
+    for s in elf.sections:
+        if not s.name.startswith(".gnu.linkonce.t."):
+            continue
+        funcs = [y for y in elf.symbols if y.shndx == s.index and y.type == 2 and y.name]
+        if not funcs:
+            continue
+        sym = funcs[0]
+        dn = demangle_v2(sym.name) or sym.name
+        if sym.name in drop_list:
+            decision[s.name] = ("drop", sym.name)
+        elif (dn, sym.size) in rows or (sym.name, sym.size) in rows:
+            decision[s.name] = ("named", sym.name)
+        else:
+            cls = dn.rsplit("::", 1)[0] if "::" in dn else None
+            users = class_units.get(cls, set()) if cls else set()
+            earlier = [u for u in users if unit_start.get(u, 1 << 30) < unit_start[unit]]
+            if earlier or unit not in users:
+                decision[s.name] = ("dup", sym.name)
+            else:
+                decision[s.name] = ("drop", sym.name)
+
+    out = []
+    mode = None  # current linkonce decision while inside such a section
+    with open(asm, encoding="latin-1") as f:
+        for line in f:
+            s = line.strip()
+            if s.startswith(".section"):
+                mode = None
+                if s.startswith('.section\t".gnu.linkonce.t.'):
+                    name = ".gnu.linkonce.t." + s[len('.section\t".gnu.linkonce.t.'):].split('"', 1)[0]
+                    kind, sym = decision.get(name, ("dup", None))
+                    mode = (kind, sym)
+                    if kind == "drop":
+                        continue
+                    line = '\t.section\t".text"\n'
+            elif mode is not None:
+                # inside the function: `.align/.weak/.type/label/.L_f*_s/body/.Lfe/.size`; the `.size`
+                # line ends it (section-independent directives such as `.comm` may follow)
+                kind, sym = mode
+                ends = sym is not None and s.startswith(f".size\t {sym},")
+                if ends:
+                    mode = None
+                if kind == "drop":
+                    continue
+                if kind == "dup" and sym is not None:
+                    if s == f".weak\t{sym}" or s.startswith(f".type\t {sym},") or ends:
+                        continue
+                    if s == f"{sym}:":
+                        line = f".Ldup.{sym}:\n"
+            out.append(line)
+    with open(asm, "w", encoding="latin-1") as f:
+        f.writelines(out)
     return 0
 
 

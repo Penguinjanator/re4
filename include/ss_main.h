@@ -162,9 +162,19 @@ public:
     virtual void move(SUB_SCREEN* wk);
 };
 
+class ItemSelect;
+class ItemCommand;
+class ItemCombine;
+
 class SsItemMain : public Widget<SUB_SCREEN> {
 public:
-    u8 pad_10[0x2C - 0x10];  // members: ss_item.cpp
+    int state;                 // 0x10  0 item screen, 1 main menu
+    ItemSelect* sel;           // 0x14
+    ItemCommand* cmd;          // 0x18
+    ItemCombine* comb;         // 0x1C
+    SsItemExamine* exam;       // 0x20
+    Widget<SUB_SCREEN>* cur;   // 0x24
+    Widget<SUB_SCREEN>* next;  // 0x28
 
     SsItemMain() : Widget<SUB_SCREEN>(6) {}
     virtual void init(SUB_SCREEN* wk);
@@ -288,8 +298,20 @@ void sscrnLightClear(SUB_SCREEN* wk);
 void sscrnLightCreate(SUB_SCREEN* wk, cLit* lit);
 void sscrnMainMenuInit(SUB_SCREEN* wk, int no);
 void numDisp(u8 id, int num, Vec* pos, u32 flags);
+void sscrnCameraInit(SUB_SCREEN* wk, Camera* cam);
+void sscrnModelFree(SUB_SCREEN* wk);
+void generalModelAlloc(SUB_SCREEN* wk);
+int sscrnMainMenu(SUB_SCREEN* wk);
+int sscrnKey2Game(SUB_SCREEN* wk);
 // ss_debug.cpp
 void SscrnDebugMenu(SUB_SCREEN* wk);
+// ss_item_draw.cpp (OT primitives: texture, 3D line, 3D tile)
+void ss_Draw_tpl(void* tpl, u32 id, int x, int y, int w, int h, int ot, int prio);
+void ss_Draw_tpl_local(struct TEXPalette* tpl, u32 id, int x, int y, int w, int h);
+void ss_Draw_line3d(Vec* a, Vec* b, u32 color, int width, int blend, int zupd, int ot, int prio);
+void ss_Draw_line3d_local(Vec* a, Vec* b, Mtx mtx, u32 color, u32 blend, int zupd);
+void ss_Draw_tile3d(Vec* a, Vec* b, Vec* c, Vec* d, u32 color, int x34, int blend, int ot, u16 prio);
+void ss_Draw_tile3d_local(Vec* a, Vec* b, Vec* c, Vec* d, Mtx mtx, u32 color, u32 blend, int zupd);
 // ss_pzzl.cpp
 void pieceModelInit(SUB_SCREEN* wk);
 // ss_model.cpp

@@ -251,8 +251,10 @@ UNITS = {
     ],
     # Sscrn (sub screen): ss_cap/ss_debug/ss_file/ss_item/ss_main/ss_map/ss_pzzl/ss_shop/ss_term.cpp by
     # their __FILE__ strings, alphabetical like every other module; the weapon/character model tables
-    # (weaponFilename..wep19Init) between ss_map and ss_pzzl have no file string (ss_model.cpp). ss_item
-    # ends with the ss_Draw_* helpers (their float constants sit before ss_main's header strings); ss_main
+    # (weaponFilename..wep19Init) between ss_map and ss_pzzl have no file string (ss_model.cpp). The
+    # ss_Draw_* helpers after ss_item are a separate object (they follow ss_item's end-of-file blocks:
+    # synthesized destructors and Widget::quit/init/move; real name unknown, sorted between ss_item and
+    # ss_main: ss_item_draw.cpp, .rodata = its three 0.0f pools); ss_main
     # starts at _prolog (its constructors are keyed to _prolog); ss_term carries MakeCol/cDbgWindow/
     # cFileList (constructors keyed to MakeCol). Every unit's .rodata start is pinned at its header-string
     # group (map_obj.h/light.h/widget.h...).
@@ -261,6 +263,7 @@ UNITS = {
         ("Sscrn/ss_debug.cpp", "SscrnDebugMenu", None, {".rodata": 0x240}),
         ("Sscrn/ss_file.cpp", "getMsgNum", None, {".rodata": 0x688}),
         ("Sscrn/ss_item.cpp", "itemNameDisp", None, {".rodata": 0x928, ".data": 0x550}),
+        ("Sscrn/ss_item_draw.cpp", "ss_Draw_tpl", None, {".rodata": 0xCC0}),
         ("Sscrn/ss_main.cpp", "_prolog", None, {".rodata": 0xCD0}),
         ("Sscrn/ss_map.cpp", "getStageNo", None, {".rodata": 0x1248, ".data": 0x590}),
         ("Sscrn/ss_model.cpp", "weaponFilename", None, {".rodata": 0x22E0}),
@@ -395,4 +398,5 @@ MATCHING = {
     "Sscrn/ss_cap.cpp": True,
     "Sscrn/ss_debug.cpp": True,
     "Sscrn/ss_file.cpp": True,
+    "Sscrn/ss_item_draw.cpp": True,
 }

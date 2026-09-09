@@ -1860,7 +1860,10 @@ like the DOL.
   `beginEvent`/`endEvent`/`~cUnit`/`operator delete` (byte-identical, at the end).
 - Compiler flags: `cflags_game` + `-G 0` (no small data in RELs: every DOL global goes through
   `lis/addi`), plus the module's `CFLAGS` entry of config/G4BE08/modules.py (Sscrn:
-  `-fno-implement-inlines`, see the Sscrn subsection). Post-build: `fold_linkonce.py --module <mod>` (see "Multi-object modules" below); no strip_unused (nothing is dead-stripped in a -r link).
+  `-fno-implement-inlines`, see the Sscrn subsection). Linkonce functions are placed at assembly time by
+  `tools/ngccc.py place_linkonce_module` (the REL linkonce rule, Sscrn subsection); post-build
+  `fold_linkonce.py --module <mod>` appends the vtables (see "Multi-object modules" below); no
+  strip_unused (nothing is dead-stripped in a -r link).
 - Toolchain: the original RELs came out of `ngcld -r` followed by SN's `snmakerel` (Nintendo's makerel
   port). We do the same: `tools/link_rel.py` links the units with `ngcld -r -T config/G4BE08/rel_ldscript.ld`
   (SN's preplf.ld layout: every section at 0, `_ctors`/`_dtors` labels and the `LONG(0)` terminators come
@@ -2103,8 +2106,41 @@ Then `MATCHING["st2_4/r22c.cpp"] = True` in `config/G4BE08/modules.py`, `python3
   `static inline` `delete w` helper in ss_main.h before any derived class is declared, quit/init/move
   at their first use (transit uses quit then init). Units with named linkonce copies next to nameless
   duplicate blocks (ss_debug's dispWorkNum after the 0x3B8 cManager<cLight> block, ss_file's 0x408 +
-  0xC around its dtors) are handled by fold_linkonce's `keep_unnamed` (total unnamed size = the
-  unit's nameless fn_ sizes).
+  0xC around its dtors) were handled by fold_linkonce's `keep_unnamed` size sum; the module rule is
+  now implemented in `tools/ngccc.py place_linkonce_module` (see next item), fold's module heuristics
+  only remain for the legacy `--prodg-driver ngccc` path.
+- **REL linkonce rule (SOLVED, tools/ngccc.py `place_linkonce_module`, applies to every module unit):**
+  the original `ngcld -r` link kept the FIRST object's copy of a linkonce function only if some
+  relocation in the module references its symbol, and every LATER object's copies whole as nameless
+  code. Evidence in every module: the first unit including light.h names `cManager<cLight>::
+  countActiveWork` + `create(int)` only (`bl`'d from the later blocks' `create()`/`create(int,u32)`)
+  while `log`, `create()`, `create(int,u32)` (called only through DOL vtables) vanish, and every later
+  unit carries the full 0x3B8 block (Sscrn ss_cap vs ss_main.., st1_1 r101 vs r102.., t_emlist vs
+  t_util/tools, em10's own partial link: named pair + 0x3B8 block in one object). ss_main's
+  `cManager<cMap>::log` is exactly such an unreferenced first copy (dropped), its cLight/Widget copies
+  later duplicates (kept). ngccc.py assembles once for the sizes, then rewrites the asm: named copy
+  -> `.text` in place; unnamed with an earlier unit naming the class instance -> `.text` in place
+  with a local label (nameless duplicate, references resolve to the first copy); unnamed with this
+  unit being the class's first instantiator -> deleted (its `.rodata` strings/pool stay, like the
+  original); class instance named nowhere -> kept nameless (override: modules.py `LINKONCE_DROP =
+  {unit: [mangled names]}`). `.text` in place matters because the original interleaves the template
+  bodies with `__static_initialization_and_destruction_0` and the deferred inlines (ss_main: cLight
+  block, cModelInfo/cParts/cMap templates, static init, LightSetModel2, ~Widget, dtors, quit/init/move,
+  log/~cManager/destroy<cParts,cModelInfo>, keyed ctor/dtor).
+- End-of-file output order (ss_main): a global function output AFTER the static-init function
+  (LightSetModel2 at 0xD5B4) is a deferred `inline` whose address the code takes; it is output by
+  `wrapup_global_declarations` in `saved_inlines` order. COMPILER-DIFF candidate #8: the original
+  queues synthesized destructors when they are synthesized (end of file), our cc1plus queues them at
+  the class definition (`cons_up_default_function` -> `mark_inline_for_output`), so to come out before
+  the widget destructors the inline must be DEFINED before the widget classes are declared:
+  ss_main.cpp defines `extern "C" inline void LightSetModel2()` between `#include "sscrn.h"` and
+  `#include "ss_main.h"`.
+- A group of functions that follows a unit's end-of-file blocks (synthesized dtors, Widget
+  quit/init/move) is a separate object: the ss_Draw_tpl/line3d/tile3d helpers after ss_item are
+  `Sscrn/ss_item_draw.cpp` (real name unknown; .rodata = three 0.0f pools + 4 pad, no header strings,
+  so it includes only gx/tpl/trans/camera headers; `static` `_trans` callbacks inside `extern "C"`;
+  `u32 blend` parameters give the `cmpwi 1/beq; cmplwi 1/blt; cmpwi 2; cmpwi 3` tree; the tpl range
+  test is `(u32) tpl - 0x80000000 > 0x02FFFFFF`, the later pointer checks two separate `if`s).
 - `.rodata` alignment: a unit with a vtable has an 8-aligned `.rodata` (`.align 3` of the vtable
   sections), one without (ss_debug) 4; the split objects are all `align:4`, so a compiled ss_debug
   loses the 4-byte pad before ss_file's `.rodata` until ss_file is compiled too — flip both together.
@@ -2132,9 +2168,10 @@ Then `MATCHING["st2_4/r22c.cpp"] = True` in `config/G4BE08/modules.py`, `python3
 - The DLL's model managers are `cSsPartsMgr`/`cSsModInfoMgr` (ss_main.h): constructed by the DOL's
   `__9cPartsMgr`/`__12cModInfoMgr` (asm-labelled ctors) but without a virtual destructor, so the static
   destructor inlines `cManager<T>::~cManager` (stores the cManager vtable) as the target does.
-- Status: ss_cap, ss_debug, ss_file Matching (the REL is byte-identical with the three compiled);
-  ss_main has 55/58 functions byte-identical (open: sscrnCameraInit store order, SubScreenTask
-  register allocation / `lis pG@ha` hoisting, and the cManager<cMap>::log linkonce copy below).
+- Status: ss_cap, ss_debug, ss_file, ss_item_draw Matching (the REL is byte-identical with the four
+  compiled); ss_main has 57/58 functions byte-identical (open: SubScreenTask register allocation /
+  `lis pG@ha` hoisting / `cur->init(wk)` tail merging); ss_item is written (34 functions incl. dtors,
+  25 byte-identical, .rodata/.data/.bss identical), open items below.
 - **The module was compiled with `-fno-implement-inlines`** (config/G4BE08/modules.py `CFLAGS`,
   wired through configure.py's `REL_CFLAGS`): SubScreenTask creates every screen's Init/Main widget
   with per-class link counts (`SsFileMain` 5, `SsItemMain`/`SsPzzlMain` 6, `SsMapMain` 5,
@@ -2201,16 +2238,39 @@ Then `MATCHING["st2_4/r22c.cpp"] = True` in `config/G4BE08/modules.py`, `python3
   the final else copy stays because of the `use` after the call). The model loops call through a
   function-pointer local (`void (*func)(cModel*) = sscrnModelTrans; for (m = MapMgr.pAlive; ...)
   func(m)` -> `mtlr r31; blrl`). `MotionMoveF(m, 0)` (pl_npc.cpp alias) for the `li r4,0`.
-- OPEN (ss_main): sscrnCameraInit's nine stores come out `up.y, fov, up.x, up.z, ...` where the
-  target has `up.y, up.z, fov, at.x .. pos.y, up.x` (no permutation of the statements nor FSet
-  reproduces it; the pool order is right). SubScreenTask (96%): global-alloc swaps `wk`/`exitInit`
-  (r21/r20) and `cur` (r28/r27), ours hoists one `lis pG@ha` (r24) out of the while loop where the
-  target keeps three separate `lis` (two PRE'd before the weapon switch, one in the digit block), and
-  `&MapMgr` is a hoisted pointer (`addi r23, r11, MapMgr@l`) in the target. Ours instantiates
-  `cManager<cMap>::log` (0x48 linkonce, marked used by the virtual calls in countActiveWork/create)
-  which the original ss_main object lacks although cLight's `log` copy is in every unit; the extra
-  copy breaks fold_linkonce's keep_unnamed size sum, so the 0x414 nameless block (cLight, ~Widget,
-  quit/init/move) is currently dropped from ours.
+- SOLVED (ss_main sscrnCameraInit): the source order is `pos.z, up.y, at.x, at.y, at.z, pos.x,
+  pos.y, up.x, up.z, fovy` — the LAST zero store in the source (`up.z`) carries the zero register's
+  death and is issued first among the zero stores (weight rule), the others follow in source order,
+  and `fovy` written last has its pool load issued last so `up.z` slips in front of it.
+- OPEN (ss_main SubScreenTask, 96%): global-alloc swaps `wk`/`exitInit` (r21/r20) and `cur`
+  (r28/r27), ours hoists one `lis pG@ha` (r24) out of the while loop where the target keeps three
+  separate `lis` (two PRE'd before the weapon switch, one in the digit block), `&MapMgr` is a hoisted
+  pointer (`addi r23, r11, MapMgr@l`) in the target, and the `cur->init(wk)` arms: the target
+  cross-jumps `mr r4,r21; lwz r9,0xc(r28)` of every arm into one tail (each arm keeps only
+  `mr r28,X; b`), ours keeps the two insns per arm because the fall-through arm schedules them
+  `lwz; mr` (24 bytes). The cManager<cMap>::log copy is handled by the linkonce rule above.
+- ss_item (src/Sscrn/ss_item.cpp) idioms: cursor state is a 9-byte `ItemScreenWork` (sscrn.h) at
+  SUB_SCREEN+0x304 (`col`, `idx[2]`, `sel[2]`, `comb[2]`); the debug item-make state is the tail of
+  the 0x34C debug block, addressed as one struct (`SsItemMakeWork`, `addi rX, wk, 0x34c` +
+  displacements 0x1C/0x20); `int item_wait[1]` one-element array (the `lis` in r11, SsFileInit
+  idiom); font statics `s16 w[2] = {0, 0x12}; s16 h[2] = {0, 0x18}; s8 space[4] = {-1,..}` used as
+  `[1]`/`[1]`/`[3]` through the `setFontSizeS` alias; `itemTexNo`'s local `u8 tbl[105]` template
+  (the label's 0x6B is padding to the pool); the `.data` `const char*` table and the two `int`s of the
+  item-make menu are defined right before it (strings after itemFrameSet's pool); `IdNumN.unitPtrN
+  (int, int)` / `IdNum.setI` / `numDispI` int views where the target has no `clrlwi`; a hidden `case
+  0: break;` in itemFrameMove's state switch; `off = 0; if (!(flags & 1)) off = 1; if (off) HIDE
+  else SHOW` with `goto HIDE` from the other condition (the `li 0; xori; andi.; beq; li 1; cmpwi`
+  chain, HIDE laid out first); `d = old - iw->idx[col]` read back right after the store (forwarded
+  register + `extsb`, the -1 store after it); `int no = i + 1` inside the unitPtr loop (`mr r31,r30`
+  increment); `JOY* joy = &Joy[0]` local in itemMakeMove; `PSet((void*&) wk->x248, item_sel)`
+  reloads `item_sel` for the following compare; ItemCommand::move: block-local loop counters per
+  `dir |= 0xF` loop (r8, not a callee-saved register), the mode switch written `case 2, 0, 1, 3`
+  (layout order), `!(mode > 2)` / `!(mode < 1)` nested (no range fold). OPEN: ITEM_PTR's out-of-range
+  `return &item_dummy` is a fresh `lis/addi` in the target while the 0xFF return reuses the flags
+  store's address register (ours cross-jumps both); SsItemMain::init `cur = sel; itemCameraInit(wk,
+  &pG->Cam)` load order and IdNum `lis` register; itemFrameSet/itemSelect/itemMakeMove/itemMakeDisp
+  register allocation; itemMakeInit's `(u16) types` ternary (`clrlwi 16` of the int) and the match
+  loop's inline `>> 8`/`& 0xFF` compare order; ItemCommand::move's `cmpwi 1; blt`.
 - The map model globals are named `ssPlModel`/`ssWepModel` (.bss 0x494/0x498, MapMgr works 0/1),
   `ssPlMotion`/`ssWepModel2` (.data 0x978/0x97C), renamed by hand in symbols.txt/sym_map.tsv
   (data labels have no .sym name for the sync tool); the generator attributes them to ss_map.cpp.

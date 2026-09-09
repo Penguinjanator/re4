@@ -27,6 +27,17 @@
 #include "motion.h"
 #include "esp.h"
 #include "sscrn.h"
+
+// `inline`, defined BEFORE ss_main.h: a deferred inline whose address SubScreenTask takes is output
+// at the end of the file (after __static_initialization_and_destruction_0), in the order the deferred
+// functions were queued. The original queued the synthesized widget destructors when they were
+// synthesized (end of file); ours queues them at the class definition, so the definition must
+// precede the widget classes to come out first (0xD5B4 before ~Widget and the three destructors).
+extern "C" inline void LightSetModel2(cModel* m)
+{
+    LightMgr.setModel2(m);
+}
+
 #include "ss_main.h"
 
 extern "C" void OSReport(const char* fmt, ...);
@@ -64,7 +75,6 @@ void sscrnModelFree(SUB_SCREEN* wk);
 void weaponChangeRequest(u16 no, u16 type);
 int weaponChangeReadCheck();
 int weaponChangeMoveCheck();
-void LightSetModel2(cModel* m);
 }
 
 static void weaponChangeTask();
@@ -102,16 +112,19 @@ void sscrnCameraInit(SUB_SCREEN* wk, Camera* cam)
 {
     const f32 zero = 0.0f;  // pool order: 0.0 first
 
+    // Store order (sched1 weight rule): up.z is the last zero store in the source, so it carries the
+    // zero register's death and is issued before the other zero stores; fovy is written last and
+    // its late pool load lets up.z slip in front of it.
     cam->param.pos.z = 5000.0f;
     cam->up.y = 1.0f;
-    cam->up.z = 0.0f;
-    cam->param.fovy = 20.0f;
     cam->param.at.x = 0.0f;
     cam->param.at.y = 0.0f;
     cam->param.at.z = 0.0f;
     cam->param.pos.x = 0.0f;
     cam->param.pos.y = 0.0f;
     cam->up.x = 0.0f;
+    cam->up.z = 0.0f;
+    cam->param.fovy = 20.0f;
     CameraSetOrientationUp(cam);
     C_MTXPerspective(cam->projMat, cam->param.fovy, 1.3333334f, ZNEAR, ZFAR);
     cam->dist = PSVECDistance(&cam->param.pos, &cam->param.at);
@@ -173,6 +186,7 @@ void generalModelAlloc(SUB_SCREEN* wk)
 // Widget chain of the sub screen: every screen's Init/Main pair with its links (link 0 = the next
 // widget of the screen's own chain; the main widgets link to the other screens' Init widgets and to
 // the exit widget). Runs the current widget every frame until the screen closes.
+
 void SubScreenTask()
 {
     SUB_SCREEN* wk = &SubScreenWk;
@@ -1009,10 +1023,6 @@ static void weaponChangeTask()
 cSsPartsMgr ssPartsMgr;
 cSsModInfoMgr ssModInfoMgr;
 
-void LightSetModel2(cModel* m)
-{
-    LightMgr.setModel2(m);
-}
 
 // The split object's .data is 4 bytes longer than the variables (the next unit's .data starts
 // 8-aligned in the REL), like ss_file.

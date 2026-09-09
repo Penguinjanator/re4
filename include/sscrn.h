@@ -13,6 +13,7 @@ class cMap;
 struct ItemWork;
 struct SUB_SCREEN;
 struct SsFileWork;
+struct ItemScreenWork;
 
 // Sub screen data archive (ss_cmmn.dat / ss_pzzl.dat): a table of byte offsets to its sub-files.
 struct SsArc {
@@ -60,7 +61,8 @@ struct SUB_SCREEN {
     SsArc* pCmmn;             // 0x1DC
     SsArc* pPzzl;             // 0x1E0
     SsArc* x1E4;              // 0x1E4  puzzle screen data (SubScreenTask: pPzzl)
-    u8 pad_1E8[0x1FC - 0x1E8];
+    SsArc* pItem;             // 0x1E8  ss_item.dat archive (Sscrn ss_item)
+    u8 pad_1EC[0x1FC - 0x1EC];
     SsArc* pFile;             // 0x1FC  ss_file.dat archive (Sscrn ss_file)
     SsArc* pExam;             // 0x200  item examine id data archive (examine ItemExamine::idSet)
     u8 pad_204[0x20C - 0x204];
@@ -85,17 +87,21 @@ struct SUB_SCREEN {
     u8 x264;                  // 0x264  2 for type 2, else 1
     u8 x265;                  // 0x265
     u8 x266;                  // 0x266  2: the player model is shown (Sscrn ss_file)
-    u8 pad_267[2];
+    u8 x267;                  // 0x267  Sscrn ss_item: 0 select, 1 command, 2 combine (cleared every frame)
+    u8 x268;                  // 0x268  Sscrn ss_item: the cursor moved this frame
     u8 x269;                  // 0x269
     u16 x26A;                 // 0x26A
-    u8 pad_26C[0x2AE - 0x26C];
+    s8 x26C;                  // 0x26C  Sscrn ss_item: command cursor
+    u8 pad_26D[0x2AE - 0x26D];
     u8 x2AE;                  // 0x2AE  item 0x7C..0x7F owned -> 0..3
     u8 x2AF;                  // 0x2AF
     class pzlPlayer* x2B0;    // 0x2B0  puzzle (case) player of the Sscrn puzzle screen
     u8 pad_2B4[0x2FA - 0x2B4];
     u16 x2FA;                 // 0x2FA  item id handed to the opened sub screen (sce_at sceAtGetItem)
     u16 x2FC;                 // 0x2FC  its count
-    u8 pad_2FE[0x30C - 0x2FE];
+    u8 pad_2FE[0x304 - 0x2FE];
+    ItemScreenWork* pItemWk;  // 0x304  Sscrn ss_item cursor state (9 bytes)
+    u8 pad_308[4];
     SsFileWork* pFileWk;      // 0x30C  Sscrn ss_file cursor/page state
     s8* x310;                 // 0x310  Sscrn ss_cap cursor {row, column, row * 6 + column}
     u8 pad_314[0x31C - 0x314];
@@ -120,9 +126,22 @@ struct SUB_SCREEN {
     s32 x354;                 // 0x354  pG->flags_68 bit 30 while open
     u8 pad_358[0x366 - 0x358];
     u8 x366;                  // 0x366
-    u8 pad_367[0x374 - 0x367];
+    u8 x367;                  // 0x367  Sscrn ss_item: debug item-make menu open
+    s8 x368;                  // 0x368  item-make menu cursor (0/1 = the two id slots, 2 = remove)
+    u8 pad_369[3];
+    int x36C[2];              // 0x36C  item-make menu item ids
 };
 typedef SUB_SCREEN SubScreenWork;
+
+// Sscrn ss_item cursor state (SUB_SCREEN::pItemWk, MEM_ALLOC(9)): two item columns.
+struct ItemScreenWork {
+    s8 x0;
+    s8 col;      // 0x1  current column (-1 = main menu)
+    s8 idx[2];   // 0x2  cursor index per column
+    s8 sel[2];   // 0x4  selected index per column
+    s8 comb[2];  // 0x6  combine partner index per column (-1 = none)
+    s8 x8;
+};
 
 extern SubScreenWork SubScreenWk;
 
