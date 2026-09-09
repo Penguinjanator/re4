@@ -2875,10 +2875,13 @@ int getRoomEtcItem(int no, EtcItem** out, int flag)
     return 0;
 }
 
-// OPEN: the original lays the 0x404..0x411 `return 1` block out in place (the 0x108 and
-// 0x10C..0x11E tests jump back to it); ours cross-jumps the first two into the last one
-// (same size, 2 branch conditions + block order differ). Ternary tails (`return in ? 3 :
-// room >= 0x300`) keep the first block but then hoist the last `li r3,1` into a `blelr`.
+// COMPILER-DIFF: 6 (cross-jump survivor). The original lays the 0x404..0x411 `return 1` block out
+// in place and the 0x108 / 0x10C..0x11E tests jump back to it. In a leaf function our jump2 keeps
+// the first `li r3,1; blr` copy too, except that the last copy is followed by a block starting with
+// a set of r3 (`lhz r3` of the else arm), which makes jump.c's "x = a; goto l" path skip that
+// copy's cross-jump in iteration 1 and delete the first copy into it in iteration 2. The empty
+// `asm volatile("")` at the top of the else arm (no code) keeps the else block from starting with
+// a set of r3, so the first copy survives as in the original.
 int GetEtcAmbType()
 {
     if (pG->room_id == 0x400 || pG->room_id == 0x403) {
@@ -2901,6 +2904,7 @@ int GetEtcAmbType()
     } else if (pG->room_id >= 0x10C && pG->room_id <= 0x11E) {
         return 1;
     } else {
+        asm volatile("");
         u32 room = pG->room_id;
         if (room >= 0x200 && room <= 0x22A) {
             return 3;

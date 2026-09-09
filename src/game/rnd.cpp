@@ -8,6 +8,11 @@ void RndInit(u16 seed)
     Random = seed;
 }
 
+// Residual (`mr r0,r9` copy of n before the compare, `addi r0,r9,0x101` from n): at cse time the
+// original had m and n in different equivalence classes with n mentioned later than m (no
+// "(set REG0 REG1)" swap, no canon_reg rewrite of `n + 0x101`). `u32 m = n; asm("" : "+r"(m));`
+// plus a dead `asm("" : : "r"(n))` after the store reproduces the function byte for byte, but no
+// plain source form found yet (u16/u32 mixes, if/else, ternary, `(void) n`, operand order tried).
 u8 Rnd()
 {
     u16 r = Random;

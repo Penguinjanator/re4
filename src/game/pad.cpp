@@ -82,8 +82,8 @@ void PadRead()
     }
 
     for (i = 0; i < 4; i++) {
-        pad = &Pad_data[i];
         joy = &Joy[i];
+        pad = &Pad_data[i];
         joy->x8 = pad->err;
         if (joy->x8 != 0) {
             memclr_asm(joy, sizeof(JOY));

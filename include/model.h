@@ -29,8 +29,9 @@ public:
 
     // In-class (eff_sys inlines the constructor into g_EffParentWorld's static initialiser and
     // owns the first `_vt.6cCoord` copy together with the out-of-line ~cCoord/matUpdate bodies).
-    cCoord() {
-        be_flag = 1;
+    // `: cUnit(1)` (not `be_flag = 1` in the body): the be_flag store precedes the vptr store in
+    // the inlined copy (cParts::cParts), the body form issues the vptr store first.
+    cCoord() : cUnit(1) {
         PSMTXIdentity(mat);
         PSMTXIdentity(worldMat);
         pParent = NULL;

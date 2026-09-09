@@ -70,31 +70,44 @@ void getTplname(char* name, int no)
     sprintf(name, "d:\\bio4/Room/SubScreen/Viewer/file%02ld.tpl", no);
 }
 
-// menu tables (public const objects: emitted here, between getTplname's string and the list printer's "%s")
+// menu tables: emitted here, between getTplname's string and the list printer's "%s" (a namespace
+// `static const` is deferred to the end of the file; a public const object is emitted at its
+// definition), but the original's relocation fields hold S+A, i.e. the tables were LOCAL symbols. The
+// `.L` assembler names keep them out of the symbol table (section-relative relocations) while the
+// declarations stay public for the emission order.
 struct TplMenu3 {
     const char* s[3];
 };
 struct TplMenu2 {
     const char* s[2];
 };
-extern const TplMenu3 tplMainMenu;
-extern const TplMenu2 tplSizeMenu;
-extern const TplMenu2 tplWhMenu;
+extern const TplMenu3 tplMainMenu asm(".L_tplMainMenu");
+extern const TplMenu2 tplSizeMenu asm(".L_tplSizeMenu");
+extern const TplMenu2 tplWhMenu asm(".L_tplWhMenu");
 const TplMenu3 tplMainMenu = {{"FiLE", "SiZE", "QUiT"}};
 const TplMenu2 tplSizeMenu = {{"WxH", "ORG"}};
 const TplMenu2 tplWhMenu = {{"FullScrn", "Texture"}};
 
-// menu list printer; inlined. OPEN: the sizeMenu call wants the `tbl[i]` giv form (its init then comes
-// from loop.c, after the PRE'd "%s" high part) while the main-menu call is only reversed with the `*tbl++`
-// biv form (with `tbl[i]` gcse copy-propagates the pointer-flagged `&menu` pseudo into the giv and
-// maybe_eliminate_biv replaces the counter). One helper cannot give both; this form leaves the sizeMenu
-// preheader's `addi`/`lis` pair swapped (2 words).
+// menu list printers; inlined. The sizeMenu call wants the `tbl[i]` giv form (its init then comes
+// from loop.c, after the PRE'd "%s" high part) while the main-menu call is only reversed with the
+// `*tbl++` biv form (with `tbl[i]` gcse copy-propagates the pointer-flagged `&menu` pseudo into the
+// giv and maybe_eliminate_biv replaces the counter): two helpers, one per form (the "%s" literal is
+// shared).
 static inline void dispList(int x, int y, const char** tbl, int n)
 {
     int i;
 
     for (i = 0; i < n; i++) {
         eprintf(x, y + i * 14, 0, 0, "%s", *tbl++);
+    }
+}
+
+static inline void dispListI(int x, int y, const char** tbl, int n)
+{
+    int i;
+
+    for (i = 0; i < n; i++) {
+        eprintf(x, y + i * 14, 0, 0, "%s", tbl[i]);
     }
 }
 
@@ -241,7 +254,7 @@ void TplViewer()
             if (joy->trg & 0x200) {
                 wk->step = 1;
             } else {
-                dispList(0x60, 0x46, sizeMenu.s, 2);
+                dispListI(0x60, 0x46, sizeMenu.s, 2);
                 eprintf(0x58, (wk->sizeCur + 5) * 14, 0, 0, ">");
                 switch (wk->sizeCur) {
                 case 0:

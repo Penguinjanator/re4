@@ -150,11 +150,11 @@ int em30DmCk(cEm30* em)
             EmSetDie(em);
             EmRoutineSet(em, 3, 0, 0, 0);
         } else {
-            // OPEN: the original keeps `lbz r3, dmWep; cmpwi r3, 0x21` with no branch (r3 = the
-            // return value): a return of the compared value whose branch was removed only after
-            // reload. Our cse folds the returned value to the constant (`li r3, 0x21`) in every
-            // form tried (if / switch, taken-path else arm, dead sibling arm, nested if).
-            if (em->dmWep == 0x21) {
+            // `lbz r3, dmWep; cmpwi r3, 0x21` with no branch (r3 = the return value): the branch
+            // around an empty taken arm is deleted by jump2 after reload. Written as `== 0x21`, cse
+            // folds the returned value to `li r3, 0x21` on the taken path (record_jump_equiv); the
+            // xor form hides the equivalence from cse and combine folds the compare back.
+            if ((em->dmWep ^ 0x21) == 0) {
                 return em->dmWep;
             }
         }
