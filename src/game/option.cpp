@@ -1063,6 +1063,7 @@ int ChapterEnd::move()
 {
     static u8 char_per = 0xA;
     static u8 char_bar = 0xB;
+    Vec unused;
     int chap;
     int sec;
     int chap2;

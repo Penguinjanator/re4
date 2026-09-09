@@ -183,6 +183,12 @@ class ProjectConfig:
         # ProDG units are compiled by tools/ngccc.py (SN cpp + native cc1plus + SN ngcas)
         # instead of ngccc.exe.
         self.prodg_native_dir: Optional[Path] = None
+        # ProDG REL modules: ngcld -r link script (tools/link_rel.py), directory holding the
+        # per-module rel.json/splits/symbols (tools/gen_rel_config.py) and the DOL symbols.txt used
+        # by tools/make_rel.py to resolve module-0 relocations.
+        self.rel_ldscript: Optional[Path] = None
+        self.rel_config_dir: Optional[Path] = None
+        self.rel_dol_symbols: Optional[Path] = None
         self.version: Optional[str] = None  # Version name
         self.warn_missing_config: bool = False  # Warn on missing unit configuration
         self.warn_missing_source: bool = False  # Warn on missing source file

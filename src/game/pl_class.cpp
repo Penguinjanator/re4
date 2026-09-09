@@ -32,7 +32,8 @@ int fanceCheck(cPlayer* pl);
 int windowCheck(cPlayer* pl, u8* dir, cEmWindow** out);
 void fanceOn();
 void windowOn(cEmWindow* w);
-static int fallCheck(cPlayer* pl);
+// Local `fallCheck` (player.cpp owns the global one): the split symbol keeps the address suffix.
+static int fallCheck_80172E38(cPlayer* pl);
 void fallOn();
 void levelUpOn();
 void levelDownOn();
@@ -48,6 +49,8 @@ u32 upDownCk(cPlayer* pl);
 int ExeWindowEventTask(cEmWindow* w) asm("ExeWindowEvent__9cEmWindow");
 
 #define VALID_PTR(p) ((u32) (p) >= 0x80000000 && (u32) (p) <= 0x82FFFFFF)
+// cPlNeck's checks compile to the folded `addis 0x8000; cmplwi 0x02FFFFFF` range form.
+#define VALID_PTR2(p) ((u32) (p) - 0x80000000 <= 0x02FFFFFF)
 
 // The original cUnit::beginEvent/endEvent take an int (KNOWN DEBT, cManager.h); view class for
 // the r4 argument (emwindow.cpp BEGIN_EVENT).
@@ -61,20 +64,9 @@ public:
 };
 #define END_EVENT(p, mode) ((cUnitEvent*) (p))->endEvent(mode)
 
-// Partner (id 3) dead while the player is in routine 0: routine 6 (die), damage info 0x80. An
-// inline member of the class whose vtable this unit owns: emitted here after the destructor.
-inline void cPlayer::subCharLiveCheck()
-{
-    cEm* sub = pSubEm;
-    if (sub && sub->id == 3 && sub->hp <= 0 && xFC == 0) {
-        xFF = 0;
-        xFC = 6;
-        xFD = 0;
-        xFE = 0;
-        dmg.set(0, 0x80);
-        pWep->pObj->interrupt();
-    }
-}
+// `flags &= 0xFFFE` through a u16 reference: the 16-bit mask survives (`rlwinm 16,30`, BitOff16
+// gives `clrrwi`) and the following `pPL` load stays below the store (cPlNeck::move).
+static inline void And16(u16& f, u16 m) { f &= m; }
 
 // Routine bytes (state, routine, sub routine, step) written through an inline taking ints: the
 // stores come out in the original's order (ff, fd, fc, fe for a plain routine change).
@@ -84,6 +76,18 @@ static inline void PlRoutineSet(cPlayer* pl, int r0, int r1, int r2, int r3)
     pl->xFD = r1;
     pl->xFE = r2;
     pl->xFF = r3;
+}
+
+// Partner (id 3) dead while the player is in routine 0: routine 6 (die), damage info 0x80. An
+// inline member of the class whose vtable this unit owns: emitted here after the destructor.
+inline void cPlayer::subCharLiveCheck()
+{
+    cEm* sub = pSubEm;
+    if (sub && sub->id == 3 && sub->hp <= 0 && xFC == 0) {
+        PlRoutineSet(this, 6, 0, 0, 0);
+        dmg.set(0, 0x80);
+        pWep->pObj->interrupt();
+    }
 }
 
 const f32 PlReloadSpeedTbl[45][3] = {
@@ -398,15 +402,15 @@ void windowOn(cEmWindow* w)
 }
 
 // Ledge to drop from (wall attribute bits 4 / 20): fallDir = -wall normal.
-static int fallCheck(cPlayer* pl)
+static int fallCheck_80172E38(cPlayer* pl)
 {
-    if ((pl->actWallAttr & 0x100010) == 0) {
-        return 0;
+    if (pl->actWallAttr & 0x100010) {
+        pl->fallDir.x = -pl->actWallNrm.x;
+        pl->fallDir.y = pl->actWallNrm.y;
+        pl->fallDir.z = -pl->actWallNrm.z;
+        return 1;
     }
-    pl->fallDir.x = -pl->actWallNrm.x;
-    pl->fallDir.y = pl->actWallNrm.y;
-    pl->fallDir.z = -pl->actWallNrm.z;
-    return 1;
+    return 0;
 }
 
 void fallOn()
@@ -495,27 +499,27 @@ int jumpCheck(cPlayer* pl)
     p1.z = 600.0f;
     PSMTXMultVec(pl->mat, &p1, &p1);
     attr &= SatMgr.hitCheck(&p0, &p1, &hit, &nrm, 0, 0);
-    if ((attr & 0x80000) == 0) {
-        return 0;
-    }
-    pl->jumpDir.x = -nrm.x;
-    pl->jumpDir.y = nrm.y;
-    pl->jumpDir.z = -nrm.z;
-    PSVECScale(&pl->jumpDir, &p2, dist);
-    PSVECAdd(&p2, &hit, &p2);
-    p2.y += up;
-    h = SatMgr.getFloor(&p2, 600.0f, 100000.0f, 0, 0) - pl->pos.y;
-    pl->jumpHeight = h;
-    if ((pG->room_id32 & 0xFFFF0000) == 0x02260000) {
-        if (fabsf(h) > up) {
-            pl->jumpHeight = 0.0f;
+    if (attr & 0x80000) {
+        pl->jumpDir.x = -nrm.x;
+        pl->jumpDir.y = nrm.y;
+        pl->jumpDir.z = -nrm.z;
+        PSVECScale(&pl->jumpDir, &p2, dist);
+        PSVECAdd(&p2, &hit, &p2);
+        p2.y += up;
+        h = SatMgr.getFloor(&p2, 600.0f, 100000.0f, 0, 0) - pl->pos.y;
+        FSet(pl->jumpHeight, h);
+        if ((pG->room_id32 & 0xFFFF0000) == 0x02260000) {
+            if (fabsf(h) > up) {
+                pl->jumpHeight = 0.0f;
+            }
+        } else {
+            if (fabsf(h) > up) {
+                return 0;
+            }
         }
-    } else {
-        if (fabsf(h) > up) {
-            return 0;
-        }
+        return 1;
     }
-    return 1;
+    return 0;
 }
 
 // Action button: jump over the wall (routine 1/0x13), facing jumpDir.
@@ -612,7 +616,7 @@ int cPlayer::actionSelect()
     if (pPush->catchCheck()) {
         ActBtn.set(6, 2, (int) holdOn, 0, 0x10, 1, 0, 0);
     }
-    if (fallCheck(this)) {
+    if (fallCheck_80172E38(this)) {
         ActBtn.set(4, 2, (int) fallOn, 0, 0, 1, 0, 0);
     }
     if (fanceCheck(this)) {
@@ -776,24 +780,15 @@ int cPlayer::subScrCheck()
         return 0;
     }
     if (xFD == 6) {
-        if (xFE == 2) {
+        if (xFE == 2 || xFE == 4 || xFE == 5) {
             return 0;
         }
-        if (xFE == 4) {
-            return 0;
-        }
-        if (xFE == 5) {
-            return 0;
-        }
-        return 1;
-    }
-    if (xFD == 0xF) {
+    } else if (xFD == 0xF) {
         if (xFE == 2) {
             return 1;
         }
         return xFE == 0xA;
-    }
-    if (xFD > 4 && xFD != 0x11) {
+    } else if (xFD > 4 && xFD != 0x11) {
         return 0;
     }
     return 1;
@@ -1121,7 +1116,7 @@ void cPlayer::interrupt()
     x4FE = 0;
     pNeck->mode = 1;
     MOTION(this)->speedRate = 1.0f;
-    flags_420 &= ~0x60;
+    flags_420 &= ~0x40;
     rot.y += pParts->rot.y;
     pParts->rot.y = 0.0f;
     if (pWep->pObj) {
@@ -1143,9 +1138,9 @@ void cPlayer::interrupt()
     }
     face = pBody->pFace;
     if (VALID_PTR(face)) {
-        face->x5C = 0.0f;
         face->x84 = 0.0f;
         face->x70 = 0.0f;
+        face->x5C = 0.0f;
     }
     if (pG->x4FB8 == 4 && (pG->flags_5018 & 0x00800000)) {
         pG->flags_5018 &= ~0x00800000;
@@ -1225,13 +1220,11 @@ void cPlayer::endEvent0(u32 mode)
     pNeck->mode = one;
     if ((s16) pG->pl_life > 0) {
         switch (mode) {
-        case 0: {
-            x4FC = 0;
-            int zero = 0;
-            PlRoutineSet(this, zero, zero, zero, one);
+        case 0:
             x4FD = 0;
+            x4FC = 0;
+            PlRoutineSet(this, 0, 0, 0, one);
             break;
-        }
         case 1:
             flags_41C |= 0x100;
             break;
@@ -1265,16 +1258,19 @@ void cPlayer::beginAction()
 }
 
 // Action end: back to routine 0 with sub routine `routine` pending (x4FD).
+// `one` at function scope with a single use in another block: update_equiv_regs moves its `li`
+// next to the `stb`, so the short-lived constant outranks the flags chain for r0.
 void cPlayer::endAction(int routine)
 {
+    int one = 1;
+
     if (flags_420 & 2) {
         be_flag |= 2;
         setNoSuspend(0);
+        x4FD = routine;
         flags_420 &= ~2;
         x4FC = 0;
-        int zero = 0;
-        PlRoutineSet(this, zero, zero, zero, 1);
-        x4FD = routine;
+        PlRoutineSet(this, 0, 0, 0, one);
     }
 }
 
@@ -1521,11 +1517,11 @@ cPlNeck::cPlNeck(cPlayer* p)
 {
     pl = p;
     ang = 0.0f;
-    flags = 0;
-    mode = 1;
     timer = 0;
     motL = 0;
     motR = 0;
+    flags = 0;
+    mode = 1;
 }
 
 // Neck motions: the left turn (frame `frame`) is set at once; the look timer restarts.
@@ -1533,7 +1529,7 @@ void cPlNeck::init(void* l, void* r, int frame)
 {
     motL = l;
     motR = r;
-    if (VALID_PTR(l) && VALID_PTR(r)) {
+    if (VALID_PTR2(l) && VALID_PTR2(r)) {
         motSet(l, frame);
         move();
         flags = 0;
@@ -1560,10 +1556,10 @@ void cPlNeck::move()
         mode = 1;
         return;
     }
-    if (!VALID_PTR(motL)) {
+    if (!VALID_PTR2(motL)) {
         return;
     }
-    if (!VALID_PTR(motR)) {
+    if (!VALID_PTR2(motR)) {
         return;
     }
     if (pPL->xFC > 1) {
@@ -1574,16 +1570,12 @@ void cPlNeck::move()
     if (em) {
         if (em != target) {
             target = em;
-            if (em->checkStatus(9)) {
-                timer = 0x7FFFFFFF;
-            } else {
-                timer = 20;
-            }
+            timer = em->checkStatus(9) ? 0x7FFFFFFF : 20;
         }
     } else {
         if (target && target->hp <= 0) {
-            timer = 0;
             target = 0;
+            timer = 0;
         }
     }
     if (pPL->xFC != 0 || pPL->xFD > 3) {
@@ -1610,16 +1602,12 @@ void cPlNeck::move()
         if (ang < -0.7853981852531433f) {
             ang = -0.7853981852531433f;
         }
-        if (ang < 0.0f) {
-            if (flags & 1) {
-                flags &= ~1;
-                motSet(motL, (u16) pPL->frame);
-            }
-        } else if (ang > 0.0f) {
-            if (!(flags & 1)) {
-                flags |= 1;
-                motSet(motR, (u16) pPL->frame);
-            }
+        if (ang < 0.0f && flags) {
+            And16(flags, 0xFFFE);
+            motSet(motL, (u16) pPL->frame);
+        } else if (ang > 0.0f && !flags) {
+            BitOn16(flags, 1);
+            motSet(motR, (u16) pPL->frame);
         }
         timer--;
     } else {
@@ -1647,7 +1635,7 @@ void cPlNeck::motSet(void* data, int frame)
 {
     cPlayer* p = pPL;
 
-    if (!VALID_PTR(data)) {
+    if (!VALID_PTR2(data)) {
         pLog->err(0, 0, "cPlNeck::motSet() ILEGAL PTR WAS SET %08X", data);
         return;
     }
@@ -1655,7 +1643,7 @@ void cPlNeck::motSet(void* data, int frame)
     MotionSetCore(p, &p->neckMot, data, 0, 8, 5, frame);
     p->neckMot.flags2 &= ~0x10000000;
     p->blendMot = &p->neckMot;
-    p->neckMot.blendRate = 1.0f;
+    p->blendMot->blendRate = 1.0f;
     p->blendMot->flags2 |= 0x80000000;
 }
 

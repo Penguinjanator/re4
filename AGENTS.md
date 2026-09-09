@@ -57,7 +57,10 @@ cc1plus and are therefore compiler-build differences (the original is a later SN
 4. Narrow-argument truncation: the original build does not truncate `int` -> `u16` arguments at call
    sites nor a wider value on a narrow `return`, but masks a u8-returning call assigned to a u16.
    Workaround: asm-labelled int-view / narrow-view declarations (item.h `constructI`, `searchI`).
-Do not spend unit time on any of these; use the workarounds and move on.
+Do not spend unit time on any of these; use the workarounds and move on. POLICY: every workaround
+for a compiler-build difference (asm-labelled aliases, `asm("" : "+r"(x))` launders, `register ...
+asm("rN")`, dead `p = 0` initialisers used only to shift gcse/loop.c counts) must carry a comment
+`// COMPILER-DIFF: <which item>` so they can be removed mechanically if the original build turns up.
 
 ## Per-unit compiler flags
 

@@ -11,6 +11,11 @@ void YarareInit(cEm* em, s16 no, u16 flag, f32 x, f32 y, f32 z, f32 w, f32 h);  
 void YarareInitCube(cEm* em, s16 no, u16 flag, f32 x, f32 y, f32 z, f32 w, f32 h, f32 rad);
 }
 
+// cSatMgr::create(pos, rot, poly, attr, flag, h) with the `lfs h` argument move issued before the
+// `lwz attr/flag` moves (atari_init.h: GCC emits the moves in declaration order, the original
+// build issued the FP argument first).
+cSat* SatMgrCreateF(cSatMgr* m, Vec* pos, Vec* rot, Vec* poly, f32 h, int attr, int flag) asm("create__7cSatMgrP3VecN21iif");
+
 void cEmObj::EmObjInit()
 {
     EmObjWork* w = EMOBJ_WK(this);
@@ -81,9 +86,7 @@ void cEmObj::setSatMain()
     poly[3].y = w->satPos.y;
     poly[3].z = w->satPos.z + w->satSize.z;
     if (w->pSat == 0) {
-        f32 h = w->satSize.y;
-
-        w->pSat = SatMgr.create(&pos, &rot, poly, w->satN, w->satFlag, h);
+        w->pSat = SatMgrCreateF(&SatMgr, &pos, &rot, poly, w->satSize.y, w->satN, w->satFlag);
     } else {
         w->pSat->flags |= 4;
         w->pSat->setCoord(&pos, &rot);
@@ -137,9 +140,7 @@ void cEmObj::setEatMain()
     poly[3].y = w->eatPos.y;
     poly[3].z = w->eatPos.z + w->eatSize.z;
     if (w->pEat == 0) {
-        f32 h = w->eatSize.y;
-
-        w->pEat = EatMgr.create(&pos, &rot, poly, w->eatN, w->eatFlag, h);
+        w->pEat = SatMgrCreateF(&EatMgr, &pos, &rot, poly, w->eatSize.y, w->eatN, w->eatFlag);
     } else {
         w->pEat->flags |= 4;
         w->pEat->setCoord(&pos, &rot);
@@ -169,16 +170,30 @@ void cEmObj::setYarare(s16 no, Vec* pos, u16 flag, int cube, f32 w, f32 h, f32 r
         p.y = pos->y;
         p.z = pos->z;
     }
-    // OPEN: the target re-extends both parameters at the calls (`extsh r4, r4`, `clrlwi r5, r6, 16`
-    // after this HImode `ori r6, r6, 1`), i.e. combine did not know the incoming s16/u16 arguments
-    // were promoted (same as the id_sys OPEN case); int locals, narrow locals, casts, `flag | 1`
-    // in each arm and int callee prototypes all fold the extensions away.
-    flag |= 1;
+    // The original re-extends both narrow parameters at the calls (`extsh r4, r4`, `clrlwi r5, r6, 16`
+    // after `ori r6, r6, 1`): its compiler does not assume promoted incoming arguments (the
+    // narrow-argument compiler difference). Ours does (combine's setup_incoming_promotions), so every
+    // int/narrow/cast form folds the extensions away; the empty asms hide the promotion from combine
+    // and `f` is pinned to flag's incoming r6 so the `ori` stays in place.
+    register int f asm("r6") = flag;
+    int n = no;
+    asm("" : "+r"(n));
+    asm("" : "+r"(f));
+    f |= 1;
     if (cube == 0) {
-        YarareInitCube(this, no, flag, p.x, p.y, p.z, w, h, rad);
+        YarareInitCube(this, n, f, p.x, p.y, p.z, w, h, rad);
     } else {
-        YarareInit(this, no, flag, p.x, p.y, p.z, w, h);
+        YarareInit(this, n, f, p.x, p.y, p.z, w, h);
     }
+}
+
+// Dead-stripped in the original (STRIP_UNUSED): only its constant pool (one 0.0f) survives after
+// setYarare's pool at the end of .rodata.
+static void emObjPosClear(Vec* p)
+{
+    p->x = 0.0f;
+    p->y = 0.0f;
+    p->z = 0.0f;
 }
 
 void cEmObj::setEff(u8 v)

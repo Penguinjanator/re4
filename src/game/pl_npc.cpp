@@ -90,10 +90,13 @@ struct SubEyeDir {
     // the accesses go through `this` (the original's pointer-form clamp block).
     void limit()
     {
-        if (y < -0.3141592741012573f) {
-            y = -0.3141592741012573f;
-        } else if (y > 0.3141592741012573f) {
-            y = 0.3141592741012573f;
+        f32 lo = -0.3141592741012573f;   // plain locals: both bounds are loaded before the first test
+        f32 hi = 0.3141592741012573f;
+
+        if (y < lo) {
+            y = lo;
+        } else if (y > hi) {
+            y = hi;
         }
         if (z == 0.0f) {
             x = y;
@@ -3164,12 +3167,16 @@ int cSubChar::checkAnotherRoute()
 {
     EmiData* emi;
     EmiEntry* e;
-    int found = -1;
-    u8 id = 0;
+    int found;
     int i;
+    u8 id;
     int j;
 
-    sub554 = 0;
+    // Stored through a plain pointer (not a member reference) so the scheduler keeps the pG
+    // load below it: a member store never conflicts with a fixed scalar load in GCC 2.95.
+    e = 0;
+    id = 0;
+    *(u32*) &sub554 = 0;
     emi = (EmiData*) pG->pRoomEmi;
     if (emi == 0) {
         return 0;
@@ -3177,9 +3184,12 @@ int cSubChar::checkAnotherRoute()
     if (emi->n == 0) {
         return 0;
     }
-    for (i = 0; i < emi->n; i++) {
-        e = &emi->entry[i];
-        if (e->type != 0xB) {
+    found = -1;
+    for (i = 0; i < *(int*) pG->pRoomEmi; i++) {
+        u32 o = i * 0x40 + 8;
+
+        e = (EmiEntry*) ((u8*) pG->pRoomEmi + o);
+        if (((u8*) pG->pRoomEmi)[o] != 0xB) {
             continue;
         }
         if (e->state != 0) {
@@ -3196,10 +3206,11 @@ int cSubChar::checkAnotherRoute()
         if (e->pad_3 == 1) {
             int ok = 0;
 
-            for (j = 0; j < emi->n; j++) {
-                EmiEntry* f = &((EmiData*) pG->pRoomEmi)->entry[j];
+            for (j = 0; j < *(int*) pG->pRoomEmi; j++) {
+                u32 o = j * 0x40 + 8;
+                EmiEntry* f = (EmiEntry*) ((u8*) pG->pRoomEmi + o);
 
-                if (f->type != 0xB) {
+                if (((u8*) pG->pRoomEmi)[o] != 0xB) {
                     continue;
                 }
                 if (f->state != 0) {
@@ -3234,9 +3245,11 @@ int cSubChar::checkAnotherRoute()
         return 0;
     }
     found = -1;
-    for (i = 0; i < ((EmiData*) pG->pRoomEmi)->n; i++) {
-        e = &((EmiData*) pG->pRoomEmi)->entry[i];
-        if (e->type != 0xB) {
+    for (i = 0; i < *(int*) pG->pRoomEmi; i++) {
+        u32 o = i * 0x40 + 8;
+
+        e = (EmiEntry*) ((u8*) pG->pRoomEmi + o);
+        if (((u8*) pG->pRoomEmi)[o] != 0xB) {
             continue;
         }
         if (e->state != 1) {
@@ -3260,8 +3273,8 @@ int cSubChar::checkAnotherRoute()
 int cSubChar::moveAnotherRoute()
 {
     EmiData* emi = (EmiData*) pG->pRoomEmi;
+    EmiEntry* f = 0;
     EmiEntry* e;
-    EmiEntry* f;
     int bad;
     int next;
     int i;
@@ -3275,7 +3288,7 @@ int cSubChar::moveAnotherRoute()
         bad = 1;
     }
     if (bad) {
-        sub554 = 0;
+        sub554 = f;
         return 1;
     }
     if (e->state > 1) {
@@ -3291,15 +3304,17 @@ int cSubChar::moveAnotherRoute()
         return 0;
     }
     next = -1;
-    for (i = 0; i < emi->n; i++) {
-        f = &((EmiData*) pG->pRoomEmi)->entry[i];
-        if (f->type != 0xB) {
+    for (i = 0; i < *(int*) pG->pRoomEmi; i++) {
+        u32 o = i * 0x40 + 8;
+
+        f = (EmiEntry*) ((u8*) pG->pRoomEmi + o);
+        if (((u8*) pG->pRoomEmi)[o] != 0xB) {
             continue;
         }
-        if (f->sub != e->sub) {
+        if (f->sub != sub554->sub) {
             continue;
         }
-        if (f->state == e->state + 1) {
+        if (f->state == sub554->state + 1) {
             next = i;
             break;
         }
@@ -3521,7 +3536,10 @@ void cSubChar::moveBust()
 }
 
 // Eyelid (parts 0x1C) blink sequence on `timer` and the eye direction (parts 0x20/0x21) wander:
-// eyeDir = { current, target, mix } (pl_class moveEyeNormal).
+// eyeDir = { current, target, mix } (pl_class moveEyeNormal). The switch is written sorted with
+// `default` first and every case spelled out (no shared labels): cross-jumping merges the identical
+// bodies into the LAST copy, which is why the original's block order is 0,3,4,1E,58,5A,5D,5E,5F,60,
+// 61,62 while its pool is in ascending case order.
 void cSubChar::moveFace()
 {
     static int timer;
@@ -3539,11 +3557,23 @@ void cSubChar::moveFace()
         }
         p->rot.x = 0.0872664600610733f;
         break;
+    case 1:
+        p->rot.x = 0.1745329201221466f;
+        break;
+    case 2:
+        p->rot.x = 0.3490658402442932f;
+        break;
     case 3:
         p->rot.x = 0.3141592741012573f;
         break;
     case 4:
         p->rot.x = 0.24434609711170197f;
+        break;
+    case 5:
+        p->rot.x = 0.1745329201221466f;
+        break;
+    case 6:
+        p->rot.x = 0.0872664600610733f;
         break;
     case 0x1E:
         eyeDir.y = 0.0f;
@@ -3554,9 +3584,14 @@ void cSubChar::moveFace()
     case 0x58:
         timer = (Rnd() & 3) ? 0 : 0x5A;
         break;
-    case 6:
     case 0x5A:
         p->rot.x = 0.0872664600610733f;
+        break;
+    case 0x5B:
+        p->rot.x = 0.1745329201221466f;
+        break;
+    case 0x5C:
+        p->rot.x = 0.3490658402442932f;
         break;
     case 0x5D:
         p->rot.x = 0.296705961227417f;
@@ -3564,17 +3599,12 @@ void cSubChar::moveFace()
     case 0x5E:
         p->rot.x = 0.33161255717277527f;
         break;
-    case 2:
-    case 0x5C:
     case 0x5F:
         p->rot.x = 0.3490658402442932f;
         break;
     case 0x60:
         p->rot.x = 0.2617993950843811f;
         break;
-    case 1:
-    case 5:
-    case 0x5B:
     case 0x61:
         p->rot.x = 0.1745329201221466f;
         break;

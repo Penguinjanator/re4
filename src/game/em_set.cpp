@@ -85,6 +85,19 @@ static inline void EmSetDist(cEm* em)
     em->plDist2 = dx * dx + dz * dz;
 }
 
+// Work `no` with the range check read through a manager copy (map_obj.h getWork): the guarded do-while
+// callers keep the check at the loop top. OPEN: the original's bottom test compares against the hoisted
+// check load (`cmplw r11, r10`) and the back edge is threaded past the check; ours keeps the loop bound
+// in its own register (`n`) -- with `EmMgr.nArray` at the bottom the load stays in the latch instead.
+static inline cEm* emSetWork(u32 no)
+{
+    cEmMgr* m = &EmMgr;
+    if (no >= m->nArray) {
+        return 0;
+    }
+    return (cEm*) ((u8*) m->pArray + m->size * no);
+}
+
 int checkListId(int no)
 {
     u32 i;
@@ -92,12 +105,16 @@ int checkListId(int no)
     if (no == 0xFF) {
         return 1;
     }
-    for (i = 0; i < EmMgr.nArray; i++) {
-        cEm* em = EmMgrWork(i);
+    u32 n = EmMgr.nArray;
+    i = 0;
+    if (i < n) {
+        do {
+            cEm* em = emSetWork(i);
 
-        if ((em->be_flag & 0x201) == 1 && em->emsetNo == (u8) no) {
-            return 0;
-        }
+            if ((em->be_flag & 0x201) == 1 && em->emsetNo == (u8) no) {
+                return 0;
+            }
+        } while (++i < n);
     }
     return 1;
 }
@@ -223,16 +240,21 @@ cEm* EmSetEvent(EmListData* d)
 cEm* GetEmPtrFromList(int no)
 {
     u32 i;
+    u32 n;
 
     if (no == 0xFF) {
         return 0;
     }
-    for (i = 0; i < EmMgr.nArray; i++) {
-        cEm* em = EmMgrWork(i);
+    n = EmMgr.nArray;
+    i = 0;
+    if (i < n) {
+        do {
+            cEm* em = emSetWork(i);
 
-        if ((em->be_flag & 0x201) == 1 && em->emsetNo == (u8) no) {
-            return em;
-        }
+            if ((em->be_flag & 0x201) == 1 && em->emsetNo == (u8) no) {
+                return em;
+            }
+        } while (++i < n);
     }
     return 0;
 }

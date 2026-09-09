@@ -41,14 +41,18 @@ struct IdTexData {
 int IdTexDataLoad(void* data, int id)
 {
     u32 addr = (u32) data;
-    IdTexData* d = (IdTexData*) addr;
+    IdTexData* d;
     TexIdTbl* idTbl;
     TexOfsTbl* tplTbl;
     TexOfsTbl* anmTbl;
     u32 i;
 
+    // The table offsets live in r9/r11 (BASE_REGS): the base is an integer, not the pointer parameter.
+    // The empty asm keeps cse from folding `addr` back into `data`'s pointer-flagged pseudo.
+    asm("" : "+r"(addr));
+    d = (IdTexData*) addr;
     if (d->version != 0xB) {
-        pLog->err(0, 0, "IdDataLoad():EffData [0x%x] Invalid.", data);
+        pLog->err(0, 0, "IdDataLoad():EffData [0x%x] Invalid.", addr);
         return 0;
     }
     idTbl = (TexIdTbl*) (addr + d->ofsId);
@@ -78,8 +82,12 @@ void IdTexSet(u8 id, u8 no)
     Mtx m;
     GXTexObj* tex;
     GXTlutObj* tlut;
+    // The original re-extends `no` for the u8 parameter (`clrlwi r5, r4, 24`, narrow-argument compiler
+    // difference); the empty asm hides the incoming promotion from combine (emobj setYarare).
+    int n = no;
 
-    if (g_pIdTexSys->GetTexObj(id, (u8) (no + 0), &tex) == 0) {
+    asm("" : "+r"(n));
+    if (g_pIdTexSys->GetTexObj(id, (u8) n, &tex) == 0) {
         pLog->err(0, 0, "IdTexSet: TexId[%x] no data", id);
         return;
     }

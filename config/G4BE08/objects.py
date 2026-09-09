@@ -107,7 +107,7 @@ UNITS = [
     "game/strrchr.c",
     "game/strspn.c",
     "game/strstr.c",
-    "game/vfprintf.cpp",
+    "game/vfprintf.c",
     "game/vfiprintf.cpp",
     "game/strtol.c",
     "game/isdigit.c",
@@ -1008,6 +1008,7 @@ MATCHING = {
 # statics kept): tools/strip_unused.py removes the bodies of functions not in sym_map.tsv.
 STRIP_UNUSED = {
     "game/trans.cpp",
+    "game/emobj.cpp",
     "game/emrock.cpp",
     "game/shadow.cpp",
     "game/route_ck.cpp",
@@ -1255,4 +1256,20 @@ MATCHING.update({
 # enemy closer: ckObj's `&EmMgr` hoist (block-scoped manager pointer + two-statement work address)
 MATCHING.update({
     "game/emdoor.cpp": True,
+})
+
+# enemy closer: setYarare narrow re-extension (int copies laundered through empty asms, flag pinned to
+# r6), SatMgrCreateF floats-first alias, dead pool-only static (STRIP_UNUSED)
+MATCHING.update({
+    "game/emobj.cpp": True,
+})
+
+# enemy closer: emBoxDmCk's second switch lays its SetBreak(0) arms out before the 7/8/0x21 if/else
+MATCHING.update({
+    "game/embox.cpp": True,
+})
+
+# enemy closer: id_tex (IdTexSet's laundered u8 argument, IdTexDataLoad's integer table base)
+MATCHING.update({
+    "game/id_tex.cpp": True,
 })

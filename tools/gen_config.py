@@ -6,6 +6,7 @@ usage: gen_config.py <Bio4.sym> <main.dol> <config dir>
 import collections, re, struct, sys, os
 sys.path.insert(0, os.path.dirname(__file__))
 from re4sym import parse
+from symnames import REPL, sanitize  # noqa: F401 (shared with gen_rel_config.py)
 
 symf, dolf, cfgdir = sys.argv[1:4]
 names, funcs = parse(symf)
@@ -39,16 +40,7 @@ def sec(a):
 SEC_END = {s: hi for s, lo, hi, _ in SECS}
 SEC_START = {s: lo for s, lo, hi, _ in SECS}
 
-# --- symbol names --------------------------------------------------------------
-REPL = {'::': '__', 'operator=': 'op_assign', 'operator==': 'op_eq', 'operator!=': 'op_ne', 'operator<': 'op_lt', 'operator>': 'op_gt', 'operator<=': 'op_le', 'operator>=': 'op_ge', 'operator+': 'op_add', 'operator-': 'op_sub', 'operator*': 'op_mul', 'operator/': 'op_div', 'operator[]': 'op_idx', 'operator()': 'op_call', 'operator new': 'op_new', 'operator delete': 'op_delete', 'operator+=': 'op_addeq', 'operator-=': 'op_subeq', 'operator*=': 'op_muleq', 'operator/=': 'op_diveq', 'operator!': 'op_not', 'operator&': 'op_and', 'operator|': 'op_or', 'operator^': 'op_xor', 'operator<<': 'op_shl', 'operator>>': 'op_shr', 'operator->': 'op_arrow', 'operator++': 'op_inc', 'operator--': 'op_dec', 'operator%': 'op_mod'}
-def sanitize(n):
-    for k, v in sorted(REPL.items(), key=lambda kv: -len(kv[0])): n = n.replace(k, v)
-    n = n.replace('~', 'dt_')
-    n = re.sub(r'[<>,\s\*&\(\)\[\]]+', '_', n).rstrip('_')
-    n = re.sub(r'(?<=.)_{2,}', '_', n)  # collapse runs, but keep leading underscores
-    if not re.match(r'^[A-Za-z_@$.]', n): n = '_' + n
-    return n
-
+# --- symbol names: sanitize() lives in tools/symnames.py -----------------------
 size_at = collections.defaultdict(int)
 for a, sz, u8, dn in funcs: size_at[a] = max(size_at[a], sz)
 

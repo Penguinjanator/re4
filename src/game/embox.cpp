@@ -337,15 +337,6 @@ void emBoxDmCk(cEmBox* em)
         default:
             emBoxSetBreak(em, 0);
             break;
-        case 7:
-        case 8:
-        case 0x21:
-            if (em->dmRad > 36000000.0f) {
-                emBoxSetBreak(em, 0);
-            } else {
-                emBoxSetBreak(em, 1);
-            }
-            break;
         case 0:
         case 1:
         case 2:
@@ -364,6 +355,15 @@ void emBoxDmCk(cEmBox* em)
         case 0x28:
         case 0x2B:
             emBoxSetBreak(em, 0);
+            break;
+        case 7:
+        case 8:
+        case 0x21:
+            if (em->dmRad > 36000000.0f) {
+                emBoxSetBreak(em, 0);
+            } else {
+                emBoxSetBreak(em, 1);
+            }
             break;
         case 5:
         case 6:
