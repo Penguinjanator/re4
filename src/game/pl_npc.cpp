@@ -86,6 +86,19 @@ struct SubEyeDir {
         z = 0.0f;
         x = 0.0f;
     }
+    // Clamp the target and latch it into the current value while the mix is 0. A member function so
+    // the accesses go through `this` (the original's pointer-form clamp block).
+    void limit()
+    {
+        if (y < -0.3141592741012573f) {
+            y = -0.3141592741012573f;
+        } else if (y > 0.3141592741012573f) {
+            y = 0.3141592741012573f;
+        }
+        if (z == 0.0f) {
+            x = y;
+        }
+    }
 };
 static SubEyeDir eyeDir;
 
@@ -3516,28 +3529,15 @@ void cSubChar::moveFace()
 
     p = getPartsPtr(0x1C);
     switch (timer++) {
-    case 0: {
-        u8 r = Rnd() % 200;
-
-        eyeDir.y = ((f32) r * 0.01f - 1.0f) * 3.1415927f * 0.1f;
+    default:
+        p->rot.x = 0.0f;
+        break;
+    case 0:
+        eyeDir.y = ((f32) (int) (u8) (Rnd() % 200) * 0.01f - 1.0f) * 3.1415927f * 0.1f;
         if (eyeDir.z == 0.0f) {
             eyeDir.x = eyeDir.y;
         }
-    }
-    case 6:
-    case 0x5A:
         p->rot.x = 0.0872664600610733f;
-        break;
-    case 1:
-    case 5:
-    case 0x5B:
-    case 0x61:
-        p->rot.x = 0.1745329201221466f;
-        break;
-    case 2:
-    case 0x5C:
-    case 0x5F:
-        p->rot.x = 0.3490658402442932f;
         break;
     case 3:
         p->rot.x = 0.3141592741012573f;
@@ -3552,11 +3552,11 @@ void cSubChar::moveFace()
         }
         break;
     case 0x58:
-        if (Rnd() & 3) {
-            timer = 0;
-        } else {
-            timer = 0x5A;
-        }
+        timer = (Rnd() & 3) ? 0 : 0x5A;
+        break;
+    case 6:
+    case 0x5A:
+        p->rot.x = 0.0872664600610733f;
         break;
     case 0x5D:
         p->rot.x = 0.296705961227417f;
@@ -3564,15 +3564,23 @@ void cSubChar::moveFace()
     case 0x5E:
         p->rot.x = 0.33161255717277527f;
         break;
+    case 2:
+    case 0x5C:
+    case 0x5F:
+        p->rot.x = 0.3490658402442932f;
+        break;
     case 0x60:
         p->rot.x = 0.2617993950843811f;
+        break;
+    case 1:
+    case 5:
+    case 0x5B:
+    case 0x61:
+        p->rot.x = 0.1745329201221466f;
         break;
     case 0x62:
         p->rot.x = 0.0872664600610733f;
         timer = 10;
-        break;
-    default:
-        p->rot.x = 0.0f;
         break;
     }
     p->matUpdate();
@@ -3580,23 +3588,14 @@ void cSubChar::moveFace()
         static int eyetime = 0;
 
         if (--eyetime < 0) {
-            u8 r = Rnd() % 200;
-
-            eyeDir.y = eyeDir.y + ((f32) r * 0.01f - 1.0f) * 0.03141592815518379f;
+            eyeDir.y = eyeDir.y + ((f32) (int) (u8) (Rnd() % 200) * 0.01f - 1.0f) * 0.03141592815518379f;
             if (eyeDir.z == 0.0f) {
                 eyeDir.x = eyeDir.y;
             }
             eyetime = (u8) (Rnd() % 3) + 2;
         }
     }
-    if (eyeDir.y < -0.3141592741012573f) {
-        eyeDir.y = -0.3141592741012573f;
-    } else if (eyeDir.y > 0.3141592741012573f) {
-        eyeDir.y = 0.3141592741012573f;
-    }
-    if (eyeDir.z == 0.0f) {
-        eyeDir.x = eyeDir.y;
-    }
+    eyeDir.limit();
     p = getPartsPtr(0x20);
     p->rot.y = eyeDir.x;
     p = getPartsPtr(0x21);

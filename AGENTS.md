@@ -622,6 +622,11 @@ mark it Matching.
   initializer `T* t = g_Arr;` at function scope with `t = &g_Arr[i]` in the body (the extra mention
   keeps the base pseudo live past the giv init).
 - A zeroing loop over a word array steps up with `mtctr` only with a `u32` counter; `int` reverses it.
+- `>= C` / `< C` compares survive only when the constant is not visible to fold: a plain local
+  (`lim = 30; if (x < lim)`) keeps `cmplwi 0x1e; bge`; a literal is canonicalised by combine.
+- `if (c) x = a; else { x = b; ... }` hoists `x = a` above the test only when the else arm *starts*
+  with `x = b`; an else arm starting with a call keeps it in place.
+- A function ending with `return 0;` makes every early `return 0` jump to that final `li r3,0`.
 - Static locals show as `name.NNN` in objdiff; the DECL_UID suffix cannot be reproduced and is ignored by the report.
 - Unexplained words in `.rodata` (zero words, stray floats) are usually the constant pool of a function
   the original linker dead-stripped (bodies gone, pools kept, `STRIP_UNUSED` in objects.py): write a

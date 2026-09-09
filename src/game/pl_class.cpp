@@ -1094,10 +1094,7 @@ void cPlayer::beginEvent()
     pNeck->motL = 0;
     switch (mode) {
     case 0:
-        xFF = 0;
-        xFC = 5;
-        xFD = 0;
-        xFE = 0;
+        PlRoutineSet(this, 5, 0, 0, 0);
         MotionBlendOff(this);
         atari.throughOn();
         be_flag |= 0x04000000;
@@ -1108,10 +1105,7 @@ void cPlayer::beginEvent()
         flags_41C &= ~0x100;
         break;
     case 1:
-        xFC = 5;
-        xFD = 2;
-        xFF = 0;
-        xFE = 0;
+        PlRoutineSet(this, 5, 2, 0, 0);
         break;
     }
     flags_420 |= 2;
@@ -1261,10 +1255,7 @@ int cPlayer::checkEvent()
 void cPlayer::beginAction()
 {
     endCamera();
-    xFC = 5;
-    xFF = 0;
-    xFD = 0;
-    xFE = 0;
+    PlRoutineSet(this, 5, 0, 0, 0);
     MotionBlendOff(this);
     if (pWep->pObj) {
         pWep->pObj->resetMotion();

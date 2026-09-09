@@ -235,6 +235,26 @@ static inline int getTevRegA(int no)
     return tbl[no];
 }
 
+// Variants reading the global directly: the original reloads `tev_reg` after the error call
+// instead of keeping a copy in a callee-saved register.
+static inline int getTevReg()
+{
+    int tbl[3] = {1, 2, 3};
+    if (tev_reg > 2) {
+        pLog->err(0, 0, "TevReg over!");
+    }
+    return tbl[tev_reg];
+}
+
+static inline int getTevRegC()
+{
+    int tbl[3] = {2, 4, 6};
+    if (tev_reg > 2) {
+        pLog->err(0, 0, "TevReg over!");
+    }
+    return tbl[tev_reg];
+}
+
 class cTevStage {
 public:
     int no;
@@ -1390,7 +1410,7 @@ static void TextureBlend(ModelPart* part, cModelInfo* info, int colIn, int alpha
             } else {
                 GXSetTexCoordGen2(coord, 1, 4, 0x3C, 0, 0x7D);
             }
-            reg = getTevReg(tev_reg);
+            reg = getTevReg();
             GXSetTevOrder(st, coord, map, 4);
             GXSetTevColorIn(st, 0xF, 8, colIn, 0xF);
             GXSetTevColorOp(st, 0, 0, 0, 1, reg);
@@ -1409,9 +1429,9 @@ static void TextureBlend(ModelPart* part, cModelInfo* info, int colIn, int alpha
             GXSetTevKAlphaSel(st, getKAlphaSel());
             tev_kcolor++;
             GXSetTevOrder(st, 0xFF, 0xFF, 4);
-            GXSetTevColorIn(st, 0, getTevRegC(tev_reg), 0xE, 0xF);
+            GXSetTevColorIn(st, 0, getTevRegC(), 0xE, 0xF);
             GXSetTevColorOp(st, 0, 0, 0, 1, 0);
-            GXSetTevAlphaIn(st, 0, getTevReg(tev_reg), 6, 7);
+            GXSetTevAlphaIn(st, 0, getTevReg(), 6, 7);
             GXSetTevAlphaOp(st, 0, 0, 0, 1, 0);
             tev_stage++;
             tev_reg++;
@@ -1463,7 +1483,7 @@ static void TextureBlend2(ModelPart* part, cModelInfo* info, int colIn, int alph
             } else {
                 GXSetTexCoordGen2(coord, 1, 4, 0x3C, 0, 0x7D);
             }
-            reg = getTevReg(tev_reg);
+            reg = getTevReg();
             GXSetTevOrder(st, coord, map, 4);
             GXSetTevColorIn(st, 0xF, 8, colIn, 0xF);
             GXSetTevColorOp(st, 0, 0, 0, 1, reg);
@@ -1482,9 +1502,9 @@ static void TextureBlend2(ModelPart* part, cModelInfo* info, int colIn, int alph
             GXSetTevKAlphaSel(st, getKAlphaSel());
             tev_kcolor++;
             GXSetTevOrder(st, 0xFF, 0xFF, 4);
-            GXSetTevColorIn(st, 0, getTevRegC(tev_reg), 0xE, 0xF);
+            GXSetTevColorIn(st, 0, getTevRegC(), 0xE, 0xF);
             GXSetTevColorOp(st, 0, 0, 0, 1, 0);
-            GXSetTevAlphaIn(st, 0, getTevReg(tev_reg), 6, 7);
+            GXSetTevAlphaIn(st, 0, getTevReg(), 6, 7);
             GXSetTevAlphaOp(st, 0, 0, 0, 1, 0);
             tev_stage++;
             tev_reg++;
@@ -1537,7 +1557,7 @@ static void TextureBlend3(ModelPart* part, cModelInfo* info, int colIn, int alph
                 int reg2;
                 GXColor k;
                 GXColor kc;
-                reg = getTevReg(tev_reg);
+                reg = getTevReg();
                 GXSetTevOrder(st, coord, map, 4);
                 GXSetTevColorIn(st, 0xF, 8, colIn, 0xF);
                 GXSetTevColorOp(st, 0, 0, 0, 1, reg);
@@ -1580,14 +1600,14 @@ static void TextureBlend3(ModelPart* part, cModelInfo* info, int colIn, int alph
                 tex_coord++;
                 st = TEV_STAGE_ID();
                 GXSetTevOrder(st, 0xFF, 0xFF, 4);
-                GXSetTevColorIn(st, 0, getTevRegC(tev_reg), getTevRegA(reg2), 0xF);
+                GXSetTevColorIn(st, 0, getTevRegC(), getTevRegA(reg2), 0xF);
                 GXSetTevColorOp(st, 0, 0, 0, 1, 0);
                 GXSetTevAlphaIn(st, 0, alphaIn, getTevReg(reg2), 7);
                 GXSetTevAlphaOp(st, 0, 0, 0, 1, 0);
                 tev_stage++;
                 tev_reg += 2;
             } else {
-                int reg = getTevReg(tev_reg);
+                int reg = getTevReg();
                 GXSetTevOrder(st, coord, map, 4);
                 GXSetTevColorIn(st, 0xF, 8, colIn, 0xF);
                 GXSetTevColorOp(st, 0, 0, 0, 1, reg);
@@ -1606,9 +1626,9 @@ static void TextureBlend3(ModelPart* part, cModelInfo* info, int colIn, int alph
                     GXSetTexCoordGen2(coord, 1, 4, 0x3C, 0, 0x7D);
                 }
                 GXSetTevOrder(st, coord, map, 0xFF);
-                GXSetTevColorIn(st, 0, getTevRegC(tev_reg), 9, 0xF);
+                GXSetTevColorIn(st, 0, getTevRegC(), 9, 0xF);
                 GXSetTevColorOp(st, 0, 0, 0, 1, 0);
-                GXSetTevAlphaIn(st, 0, getTevReg(tev_reg), 4, 7);
+                GXSetTevAlphaIn(st, 0, getTevReg(), 4, 7);
                 GXSetTevAlphaOp(st, 0, 0, 0, 1, 0);
                 tev_stage++;
                 tex_map++;
@@ -1680,8 +1700,6 @@ static void specularSetup(ModelPart* part, cModelInfo* info, int flag)
     GXColor col;
     GXColor kc;
     Mtx tmp;
-    Mtx s;
-    Mtx t;
     f32 scale;
     int st;
     int map;
@@ -1694,14 +1712,14 @@ static void specularSetup(ModelPart* part, cModelInfo* info, int flag)
     }
     if (info->color2[3] == 0) {
         col.r = part->specR;
-        col.a = 0xFF;
         col.g = part->specG;
         col.b = part->specB;
+        col.a = 0xFF;
     } else {
         col.r = info->color2[0];
-        col.a = 0xFF;
         col.g = info->color2[1];
         col.b = info->color2[2];
+        col.a = 0xFF;
     }
     scale = (f32) (int) part->specPow * 0.01f;
     if (scale == 0.0f) {
@@ -1710,10 +1728,14 @@ static void specularSetup(ModelPart* part, cModelInfo* info, int flag)
     if (isBit(info->pData->flags, 0x20000000) == 1) {
         scale *= 0.5f;
     }
-    PSMTXScale(s, scale, -scale, 0.0f);
-    PSMTXTrans(t, 0.5f, 0.5f, 1.0f);
-    PSMTXConcat(s, specular_mat, tmp);
-    PSMTXConcat(t, tmp, tmp);
+    {
+        Mtx s;
+        Mtx t;
+        PSMTXScale(s, scale, -scale, 0.0f);
+        PSMTXTrans(t, 0.5f, 0.5f, 1.0f);
+        PSMTXConcat(s, specular_mat, tmp);
+        PSMTXConcat(t, tmp, tmp);
+    }
     type = part->specType;
     st = TEV_STAGE_ID();
     map = getTexMap();
@@ -1732,8 +1754,9 @@ static void specularSetup(ModelPart* part, cModelInfo* info, int flag)
     GXLoadTexMtxImm(tmp, mtx, 0);
     GXSetTexCoordGen2(coord, 0, 1, mtx, 0, 0x7D);
     GXSetTevOrder(st, coord, map, 4);
-    if (type == 0) {
-        int reg = getTevReg(tev_reg);
+    switch (type) {
+    case 0: {
+        int reg = getTevReg();
         GXSetTevColorIn(st, 0xF, 8, 0xA, 0xF);
         if (flag) {
             GXSetTevColorOp(st, 0, 0, 2, 1, reg);
@@ -1750,19 +1773,22 @@ static void specularSetup(ModelPart* part, cModelInfo* info, int flag)
         GXSetTevKColor(getKColor(), kc);
         tev_kcolor++;
         GXSetTevOrder(st, 0xFF, 0xFF, 4);
-        GXSetTevColorIn(st, 0xF, 0xE, getTevRegC(tev_reg), 0);
+        GXSetTevColorIn(st, 0xF, 0xE, getTevRegC(), 0);
         GXSetTevColorOp(st, 0, 0, 0, 1, 0);
         GXSetTevAlphaIn(st, 7, 7, 7, 0);
         GXSetTevAlphaOp(st, 0, 0, 0, 1, 0);
         tev_stage++;
         tev_reg++;
-    } else if (type == 1) {
+        break;
+    }
+    case 1:
         GXSetTevColorIn(st, 0xF, 9, 0, 0);
         GXSetTevColorOp(st, 0, 0, 0, 1, 0);
         GXSetTevAlphaIn(st, 7, 7, 7, 0);
         GXSetTevAlphaOp(st, 0, 0, 0, 1, 0);
         tev_stage++;
         tex_map++;
+        break;
     }
     tex_coord++;
 }
@@ -1797,7 +1823,7 @@ static void specularSetup2(ModelPart* part, int flag)
     GXSetTexCoordGen2(coord, 1, 4, 0x3C, 0, 0x7D);
     GXSetTevOrder(st, coord, map, 4);
     GXSetTevColorIn(st, 0xF, 8, 0xC, 0xF);
-    GXSetTevColorOp(st, 0, 0, 0, 1, getTevReg(tev_reg));
+    GXSetTevColorOp(st, 0, 0, 0, 1, getTevReg());
     GXSetTevAlphaIn(st, 7, 7, 7, 0);
     GXSetTevAlphaOp(st, 0, 0, 0, 1, 0);
     tev_stage++;
@@ -1844,14 +1870,14 @@ static void specularSetup2(ModelPart* part, int flag)
     ind_stage++;
     tex_map++;
     tex_coord++;
-    GXSetTevColorIn(st, 0xF, getTevRegC(tev_reg), 0xC, 8);
-    GXSetTevColorOp(st, 1, 1, 0, 1, getTevReg(tev_reg));
+    GXSetTevColorIn(st, 0xF, getTevRegC(), 0xC, 8);
+    GXSetTevColorOp(st, 1, 1, 0, 1, getTevReg());
     GXSetTevAlphaIn(st, 7, 7, 7, 0);
     GXSetTevAlphaOp(st, 0, 0, 0, 1, 0);
     tev_stage++;
     st = TEV_STAGE_ID();
     GXSetTevOrder(st, 0xFF, 0xFF, 4);
-    GXSetTevColorIn(st, 0xF, 0, getTevRegC(tev_reg), 0xF);
+    GXSetTevColorIn(st, 0xF, 0, getTevRegC(), 0xF);
     GXSetTevColorOp(st, 0, 0, 1, 1, 0);
     GXSetTevAlphaIn(st, 7, 7, 7, 0);
     GXSetTevAlphaOp(st, 0, 0, 0, 1, 0);
@@ -1921,10 +1947,9 @@ static void SetCastShadowLight(cModel* m, Vec* pos, Vec* dir, ShadowMng* mng)
     if (m != 0) {
         EmLightArea* la = &MODEL_EXT(m)->litArea;
         if (la->chk(1) == 1 && la->chk(2) == 1 && la->lightNo == mng->pLight->x140) {
-            u8 s = (u8) la->scale;
-            k.r = k.r * s;
-            k.g = k.g * s;
-            k.b = k.b * s;
+            k.r = k.r * (u8) la->scale;
+            k.g = k.g * (u8) la->scale;
+            k.b = k.b * (u8) la->scale;
         }
     }
     c = k;
@@ -2176,6 +2201,7 @@ static void SelfShadowSetup(ModelPart* part, cModel* m, ShadowMng* mng)
 static void bumpSetup(ModelPart* part, cModelInfo* info)
 {
     int off = !(part->flags & 1);
+    ModelTexInfo* t;
     int map;
     int coord;
     int ind;
@@ -2184,19 +2210,18 @@ static void bumpSetup(ModelPart* part, cModelInfo* info)
     if (off) {
         return;
     }
+    t = MODEL_TEX(info);
     __GXSetIndirectMask(0);
     texId = part->bumpTex;
     map = getTexMap();
-    if ((info->flagsDC & 4) && info->texBlendTbl != 0) {
-        u8* tbl = (u8*) info->texBlendTbl;
-        int n = tbl[0];
-        u8* e = &tbl[5];
+    if (info->flagsDC & 4) {
+        u8* tbl = t->blendTbl;
         int i;
-        for (i = 0; i < n; i++) {
+        for (i = 0; i < tbl[0]; i++) {
+            u8* e = &tbl[5] + i * 2;
             if (part->bumpTex == e[-1] || e[-1] == 0xF7) {
                 texId = e[0];
             }
-            e += 2;
         }
     }
     org_LoadTexObj(texId, map);
@@ -2264,7 +2289,7 @@ void* GetPrimBuff(int size)
     u8* next;
 
     if (PTR_INVALID(base)) {
-        pLog->err(0, 0, "GetPrimBuff() PTR ERR %08X");
+        pLog->err(0, 0, "GetPrimBuff() PTR ERR %08X", base);
         return 0;
     }
     limit = base + pG->prim_max * (pG->vtx_buf_no + 1);
@@ -2548,7 +2573,7 @@ static void RefractShaderSetup(cModel* m, cModelInfo* info, ModelPart* part, Mtx
         GXSetTevAlphaIn(st, 7, 7, 7, 5);
         GXSetTevAlphaOp(st, 0, 0, 0, 1, 0);
     } else {
-        int reg = getTevReg(tev_reg);
+        int reg = getTevReg();
         GXSetTevColorIn(st, 0xF, 8, 0xE, 0xF);
         GXSetTevColorOp(st, 0, 0, 0, 1, reg);
         GXSetTevAlphaIn(st, 7, 7, 7, 5);
@@ -2683,13 +2708,14 @@ static void RefractShaderSetup(cModel* m, cModelInfo* info, ModelPart* part, Mtx
 void GetEfbTex(cModel* m)
 {
     void* buf = GetDrawTmpBufAddr(5);
-    f32 ofs = 56.0f;
+    f32 ofs;
 
     if (buf == 0) {
         pLog->warn(0, 0, "RefractShaderSetup() : not enough memory");
         return;
     }
-    GXSetTexCopySrc(0, 0x38, (u32) Screen.width, (u32) (Screen.height - ofs));
+    ofs = 56.0f;
+    GXSetTexCopySrc(0, (u32) ofs, (u32) Screen.width, (u32) (Screen.height - ofs));
     GXSetTexCopyDst((u32) Screen.width >> 1, (u16) ((f32) ((u32) Screen.height >> 1) - ofs), 6, 1);
     GXCopyTex(buf, 0);
     GXPixModeSync();
@@ -2704,7 +2730,6 @@ void ClearZbuf()
     static f32 TEST_Z2 = 0.0f;
     Mtx44 proj;
     Mtx pos;
-    GXColor c;
     GXColor mat;
 
     GXSetColorUpdate(0);
@@ -2726,11 +2751,10 @@ void ClearZbuf()
     GXSetTevColorOp(0, 0, 0, 0, 1, 0);
     GXSetTevAlphaIn(0, 7, 7, 7, 7);
     GXSetTevAlphaOp(0, 0, 0, 0, 1, 0);
-    c.r = 8;
-    c.g = 8;
-    c.b = 0x80;
-    c.a = 0x1C;
-    mat = c;
+    {
+        GXColor c = { 8, 8, 0x80, 0x1C };
+        mat = c;
+    }
     GXSetChanMatColor(4, mat);
     GXSetBlendMode(1, 4, 1, 0);
     GXClearVtxDesc();

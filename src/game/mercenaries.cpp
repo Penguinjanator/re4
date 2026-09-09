@@ -176,12 +176,12 @@ int MercSysInitRoom(MercInit* pMInit)
     memset(&wk->score, 0, sizeof(MercSysWork) - 0x24);
     GamePointInit(2);
     wk->stage = 0;
-    if (G_ROOM_ID != 0x400) {
-        if (G_ROOM_ID == 0x402) {
+    if (pG->room_id != 0x400) {
+        if (pG->room_id == 0x402) {
             wk->stage = 1;
-        } else if (G_ROOM_ID == 0x403) {
+        } else if (pG->room_id == 0x403) {
             wk->stage = 2;
-        } else if (G_ROOM_ID == 0x404) {
+        } else if (pG->room_id == 0x404) {
             wk->stage = 3;
         } else {
             pLog->err(0, 0, "St4ResultInitRoom : RoomNo failed");
