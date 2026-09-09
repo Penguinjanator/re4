@@ -452,5 +452,9 @@ void EspEmDataSwapPop(int id);
 void RoomEfmRegist(cModel* m, u8 no);
 // game/eff_sys.cpp: releases the effect data of owner `id` (C linkage).
 extern "C" int EspDataRelease(u32 owner, int flag, int warn);
+// Debug tools (tools.cpp ToolArrayPush/ToolWorkPop): swap the esp work pool for a Debug_alloc'd one of
+// `num` works and back; 1 when done, 0 when a pool is already pushed / none is.
+extern "C" int EspArrayPush(u32 num);
+extern "C" int EspArrayPop();
 
 #endif

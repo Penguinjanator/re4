@@ -29,9 +29,14 @@ void CoreDataRead();
 void OptionDataRead();
 // Loads enemy module `id` (the rooms preload the enemies of their events); the read address
 void* EmReadSearch(int id, void* addr, u32 size);
+// Runs the module's prolog (the rooms re-link an enemy module after swapping event data into it).
+void InitModule(ReadModule* m);
 }
 
 // Clears the enemy module list (r106 before the chapter-end event reloads them).
 extern "C" void EmReadInit();
+
+// The enemy module entry of enemy `id` (the rooms swap event data into the boss module's block).
+ReadModule* SearchEmModule(int id);
 
 #endif

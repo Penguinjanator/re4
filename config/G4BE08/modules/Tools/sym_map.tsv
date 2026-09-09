@@ -568,8 +568,8 @@ section	offset	size	unit	scope	name	demangled
 .text	0x00042044	0x114	Tools/t_sce_at.cpp	global	loadMesName	loadMesName
 .text	0x00042158	0x3B8	Tools/t_sce_at.cpp	global	fn_Tools_42158	.
 .text	0x00042510	0x44	Tools/t_tplview.cpp	global	ToolTplView__Fv	ToolTplView
-.text	0x00042554	0x30	Tools/t_tplview.cpp	global	getTplname	getTplname
-.text	0x00042584	0x8DC	Tools/t_tplview.cpp	global	TplViewer	TplViewer
+.text	0x00042554	0x30	Tools/t_tplview.cpp	global	getTplname__FPci	getTplname
+.text	0x00042584	0x8DC	Tools/t_tplview.cpp	global	TplViewer__Fv	TplViewer
 .text	0x00042E60	0x3B8	Tools/t_tplview.cpp	global	fn_Tools_42E60	.
 .text	0x00043218	0x1B4	Tools/t_util.cpp	global	TutilInitDefault__Fv	TutilInitDefault
 .text	0x000433CC	0x144	Tools/t_util.cpp	global	TutilQuitDefault__Fv	TutilQuitDefault

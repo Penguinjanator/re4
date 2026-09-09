@@ -4,6 +4,7 @@
 #include "types.h"
 #include "vec.h"
 #include "cManager.h"
+#include "atariInfo.h"
 
 // game/math_sub.cpp (C++ linkage; math_sub.h declares them too)
 void RotMatrix(Mtx m, Vec* rot);
@@ -75,9 +76,14 @@ struct ModelPart {
 struct ModelDataHead {
     union {
         u32 x0;      // 0x00
-        u8 partsNo;  // 0x00  parts the model hangs on when it is not skinned (trans commonModelTrans)
+        struct {
+            u8 partsNo;   // 0x00  parts the model hangs on when it is not skinned (trans commonModelTrans)
+            u8 parentNo;  // 0x01  parts record (model.cpp setPartsParent): parent parts index, 0xFF = the model
+            u8 x2;
+            u8 x3;
+        };
     };
-    Vec center;      // 0x04  (examine copies it into parts 0's position)
+    Vec center;      // 0x04  (examine copies it into parts 0's position); parts record: parts position
 };
 
 // Model data referenced by a bin (game/model.cpp `ModelData`); only the flag word is known.
@@ -101,6 +107,9 @@ struct ModelData {
     void* nrmOrig;   // 0x34  original vertex normals
     u16 nVtx;        // 0x38  vertex count (8 bytes each)
     u16 nNrm;        // 0x3A  normal count
+    u32 version;     // 0x3C  0x20010801 / 0x20030817 / 0x20030818 (model.cpp: the two tables below exist from 0x20030818)
+    u32 blendTbl;    // 0x40  MotionWork::blendTbl (cModel::setJointInfo); a file offset until calcModelAddr relocates it
+    u32 flipTbl;     // 0x44  MotionWork::flip points 4 bytes into it (setJointInfo)
 };
 
 // Shape (morph) animation data referenced by cModelInfo::pShape (game/shape.cpp).
@@ -135,13 +144,21 @@ public:
     cModelInfo* pNext;   // 0x14  next parts info
     u8 pad_18[0x38 - 0x18];
     ModelBound bound;    // 0x38
-    f32 x5C;             // 0x5C  (pl_leon setModel: face info zeroes 0x5C/0x70/0x84)
-    u8 pad_60[0x70 - 0x60];
-    f32 x70;             // 0x70
-    u8 pad_74[0x84 - 0x74];
-    f32 x84;             // 0x84
-    u8 pad_88[4];
-    u8 color[4];         // 0x8C  RGBA (word store; 0xFF fill when the RGB part is 0)
+    union {
+        Mtx mat;         // 0x5C .. 0x8C  (cModelInfo::cModelInfo: identity)
+        struct {
+            f32 x5C;             // 0x5C  (pl_leon setModel: face info zeroes 0x5C/0x70/0x84)
+            u8 pad_60[0x70 - 0x60];
+            f32 x70;             // 0x70
+            u8 pad_74[0x84 - 0x74];
+            f32 x84;             // 0x84
+            u8 pad_88[4];
+        };
+    };
+    union {
+        u8 color[4];     // 0x8C  RGBA (word store; 0xFF fill when the RGB part is 0)
+        u32 colorWord;   // 0x8C  (cModelInfo::cModelInfo: 0xFFFFFFFF)
+    };
     u8 color2[4];        // 0x90  second RGBA (0x93 = 0 or 0xFF)
     void* pPosBuf[2];    // 0x94  double-buffered vertex position arrays (pG->vtx_buf_no selects)
     void* pNrmBuf[2];    // 0x9C  double-buffered vertex normal arrays
@@ -167,7 +184,10 @@ public:
     u32 nAddTex;         // 0x11C  textures of pAddTpl appended after pTpl's (commonModelTrans)
     struct TEXPalette* pAddTpl;  // 0x120  additional texture palette (addTplAddr)
 
+    cModelInfo();
+    void setTplAddr(void* tpl);   // pTpl = tpl, relocated
     void addTplAddr(void* tpl);
+    void setSpecular(u8 r, u8 g, u8 b);   // specular colour of every part
     void setTexBlendTbl(void* tbl);
     void resetTexBlendTbl();
     void setBlendRatio(u16 ratio);
@@ -195,10 +215,182 @@ public:
     cModel* getPos(cModel* m, Vec* out);  // light origin of `m` (the parts x52 - 1 selects); returns the coord it belongs to
 };
 
-// Model / model parts (game/model.cpp). Parts are cModel too, stride 0x1D8.
+// One sequence key (MotionData sequence table entry / MotionWork::key*).
+struct MotionSeqKey {
+    u16 frame;  // 0x00  motion frame in 10.6 fixed point
+    u8 x2;      // 0x02
+    u8 x3;      // 0x03
+};
+
+// Key-frame data header (the `data` given to MotionSetCore). Packed:
+//   u16 maxFrame (low 14 bits), u8 nParts, u16 parts[nParts], u8 partsNo[nParts],
+//   4-aligned u32 keyOfs[nParts] (relocated in place to absolute key pointers).
+struct MotionData {
+    u16 maxFrame;  // 0x00
+    u8 nParts;     // 0x02
+};
+
+struct AttachCamera;   // cam_ctrl.h
+
+// Per-model motion work (game/motion.cpp), cModel::mot at cModel+0x1D8, 0xDC bytes. The first
+// 0xD0 bytes are what cModel::cModel clears (MotionWorkSub in em.h is that prefix).
+struct MotionWork {
+    MotionData* data;     // 0x00  NULL = no motion
+    u32* keyTbl;          // 0x04  per parts key data
+    u16 hist[2][2][3];    // 0x08  root key history [flip][rot/pos][axis]
+    f32 maxFrame;         // 0x20
+    f32 frame;            // 0x24
+    f32 prevFrame;        // 0x28
+    f32 prevFrame2;       // 0x2C
+    u8 nParts;            // 0x30
+    u8 pad_31[3];
+    u8* partsNo;          // 0x34  model parts index per motion parts
+    u16* partsInfo;       // 0x38  low byte: kind (1 root pos, 0x40 root rot, 2/4/8/0x30 rot/pos/scale), bits 8-11: attach camera channel, bits 12-15: Fcc type
+    u16 rootPosIdx;       // 0x3C  motion parts index of the root position (0xFFFF = none)
+    u16 rootRotIdx;       // 0x3E  motion parts index of the root rotation
+    u16 flags;            // 0x40  bit0: move the model by the root speed, bit1: reverse, bit2: loop, bit3: pause, bit6: flip, bit8, bit10: hokan speed blend, bit12: sequence reverse, bit13: blend parts, bit15: frame from seqFrame
+    u16 state;            // 0x42  MotionSequenceCtrl result: 1 looped, 2 looped (reverse), 4 end, 8 end (reverse)
+    u32 flags2;           // 0x44  bit26: cross frame disabled, bit27: flip hist, bit28: no IK, bit29: keep blend, bit30: no matrix, bit31
+    Vec pos;              // 0x48  root position (current)
+    Vec posPrev;          // 0x54
+    Vec posDelta;         // 0x60  root position change over the whole motion
+    Vec basePos;          // 0x6C  PartsWorldPosCalc: position the parts were computed at
+    Vec speed;            // 0x78  last root speed
+    Vec rot;              // 0x84  root rotation (current)
+    Vec rotPrev;          // 0x90
+    Vec rotDelta;         // 0x9C
+    MotionSeqKey* seq;    // 0xA8  sequence table (NULL = linear)
+    MotionSeqKey key0;    // 0xAC  current
+    MotionSeqKey key1;    // 0xB0  previous
+    MotionSeqKey key2;    // 0xB4  before previous
+    f32 seqFrame;         // 0xB8  frame in sequence time
+    u16 seqMax;           // 0xBC  sequence length
+    u8 pad_BE[2];
+    f32 speedRate;        // 0xC0  frames per game frame
+    u8 hokanMax;          // 0xC4  interpolation frames from the previous pose
+    u8 hokanCnt;          // 0xC5  frames left
+    u8 pad_C6[2];
+    f32 blendRate;        // 0xC8  weight of this work when it is another model's blend motion
+    AttachCamera* cam;    // 0xCC
+    MotionWork* blend;    // 0xD0  second motion blended in by MotionMove
+    u16* flip;            // 0xD4  parts index remap for flipped motions
+    u16* blendTbl;        // 0xD8  {count, (dst, a, b, percent)...} quaternion blended parts
+};
+
+// Parts-side motion state (cParts::motParts at 0x174): a parts has no light set, the cLightInfo
+// area of a cModel holds this instead.
+struct MotionParts {
+    Vec pos;         // 0x174  pose before the blend motion was applied
+    Vec rot;         // 0x180
+    Vec scale;       // 0x18C
+    union {
+        u32 x198;    // 0x198
+        f32 ikAng;   // 0x198  ik: previous twist angle of the effector (InverseKinematics)
+    };
+    u16 hist[6][3];  // 0x19C  key history: rot, pos, scale; then the same for the flipped histories
+    u32 flags;       // 0x1C0  bit0 / bit16: animated this frame, bit1: skip partsWorldCalc, bit17: scale cancelled, bit24-25: skip blend, bit26: no cross frame, bit28: hokan pending, bit29: skip, bit30: apply cParts::addRot, bit31: hokan pending (blend)
+                     //        ik (game/ik.cpp): bit2: IK chain root, bit4: 4-joint chain, bit6/bit11: floor search range, bit7: no IK,
+                     //        bit8: heel-to-toe, bit9: no floor, bit10: reach limit, bit12: twist, bit13-15: IK plane axis
+};
+
+// Light area block (game/light_area.cpp), cModel::litArea at cModel+0x30C: scales one light's
+// colour on the model.
+struct EmLightArea {
+    u32 x0;          // 0x00
+    u32 flags;       // 0x04  bit0 active, bit1 scale valid
+    s32 lightNo;     // 0x08  cLight::x140 of the light to scale
+    f32 scale;       // 0x0C
+
+    int chk(u32 bit)
+    {
+        if (flags & bit) {
+            return 1;
+        }
+        return 0;
+    }
+    void on(u32 bit) { flags |= bit; }   // player.cpp init1: `addi rX,this,0x30C; lwz/stw 4(rX)`
+};
+
+// The object units' view of cModel+0x2B4 .. 0x320 (`obj->sub2B4.atari`, `sub2B4.pFootShadowTbl`);
+// aliases the cAtariInfo / pFootShadowTbl members of cModel below. cAtariInfo is wrapped so that
+// the struct has no constructor of its own and can sit in cModel's union.
+struct ObjSub2B4 {
+    union {
+        struct {
+            cAtariInfo atari;     // 0x00 .. 0x4C  (flags at 0x1A)
+        };
+    };
+    u8 pad_4C[0x54 - 0x4C];
+    void* pFootShadowTbl; // 0x54 (cModel+0x308)  foot shadow table (event ExePacket_SetOm)
+    u8 pad_58[0x6C - 0x58];
+
+    void clrFlags(u16 mask) { atari.flags &= mask; }
+};
+
+// Model info pool (game/model.cpp `ModInfoMgr`, 0x34 bytes): a cManager<cModelInfo>; the
+// player units call the inline cManager::destroy on it (pl_ashley setRightHand/setLeftHand).
+class cModInfoMgr : public cManager<cModelInfo> {
+public:
+    cModInfoMgr();
+    virtual ~cModInfoMgr();
+    virtual void* memAlloc(u32 size);
+    virtual void memFree(void* p);
+    virtual void memClear(cModelInfo* p, u32 size);
+    virtual void log(const char* fmt, ...);
+    virtual int construct(cModelInfo* p, u32 id);
+
+    cModelInfo* create(void* bin, void* tpl);
+};
+
+extern cModInfoMgr ModInfoMgr;
+
+// Model parts (game/model.cpp), 0x1D8 bytes, allocated from PartsMgr (cManager<cParts>(0x1D8)):
+// a cCoord with the parts chain and the bind matrix; the rest holds the motion / IK state
+// (motion.h IkParts at 0xF8 / MotionParts at 0x174, pendulum.h PenParts). cModel::pParts and
+// cModel::getPartsPtr() are typed cModel* throughout the sources; index a parts array through
+// this type (`((cParts*) m->pParts)[2]`, objBull), a cModel* has the wrong stride.
+class cParts : public cCoord {
+public:
+    cParts* pNext;   // 0xF4  next parts of the model (the cModel::pParts chain; createSequential links them). Not `next`: cManager<cParts> must keep using cUnit::next
+    Mtx bindMat;     // 0xF8  bind pose matrix (motion.h PARTS_BIND_MAT); setPartsOffset: identity with -mat translation
+    Vec addRot;      // 0x128  rotation partsWorldCalc applies (x, then z, then y) while motParts.flags bit30 is set (ik.cpp overlays IkParts len / mat here)
+    u8 pad_134[0x174 - 0x134];
+    MotionParts motParts;  // 0x174 .. 0x1C4
+    u8 pad_1C4[0x1D8 - 0x1C4];
+
+    cParts();
+    virtual ~cParts() {}
+};
+
+// Parts pool (game/model.cpp `PartsMgr`, 0x34 bytes): a cManager<cParts> (game.cpp instantiates
+// roomInit / arrayAlloc / arrayFree / dispWorkNum on it); no other member is known.
+class cPartsMgr : public cManager<cParts> {
+public:
+    cPartsMgr();
+    virtual ~cPartsMgr();
+    virtual void* memAlloc(u32 size);
+    virtual void memFree(void* p);
+    virtual void memClear(cParts* p, u32 size);
+    virtual void log(const char* fmt, ...);
+    virtual int construct(cParts* p, u32 id);
+
+    // `n` consecutive free works linked through pNext (the sequential parts list cModel::be_flag
+    // bit13 marks), NULL when no run is free.
+    cParts* createSequential(u32 n);
+};
+extern cPartsMgr PartsMgr;
+
+struct MotionWorkSub;   // em.h
+class cTexChg;          // trans.h
+
+// Model (game/model.cpp), sizeof 0x320: cEm / cObj / cMap fields start at 0x320. The parts hanging
+// off pParts are cParts (0x1D8, above); the sources address them as cModel* (cCoord members only).
 class cModel : public cCoord {
 public:
-    cModel* pParts;  // 0xF4 child parts list
+    union {
+        cModel* pParts;      // 0xF4 child parts list (a cParts chain; every source addresses it as cModel*)
+        cParts* pPartsHead;  // 0xF4 the same pointer typed as the parts (model.cpp)
+    };
     u32 serial;      // 0xF8  identity check for parent links (obj04: parent->serial == work.parentSerial)
     union {
         u32 stat;    // 0xFC  the four status bytes as one word (obj14 ckBreak: word compares)
@@ -232,7 +424,12 @@ public:
             u8 x139;         // 0x139  mirror: 0xFF; trans_lit adds it to the ambient colour
             u8 x13A;         // 0x13A  mirror: 0xFF; trans_lit adds it to the ambient colour
             u8 x13B;         // 0x13B  mirror: 0xFF; trans_lit adds it to the ambient colour
-            u8 pad_13C[0x150 - 0x13C];
+            int fixParts;    // 0x13C  parts index + 1 whose world position partsFixAdjust holds (partsFixMemory), 0 = none
+            Vec fixPos;      // 0x140  that parts' world position when it was fixed
+            u8 x14C;         // 0x14C  (cModel::cModel: 0)
+            u8 x14D;         // 0x14D
+            u8 x14E;         // 0x14E
+            u8 x14F;         // 0x14F
         };
         // Effect model parts physics (obj05 cObj05::move runs its parts as loose particles).
         struct {
@@ -243,12 +440,76 @@ public:
     };
     // 0x150..0x15C: pendulum parts treat these three words as a Vec (obj14 adds the hit impulse
     // to parts 1/2 here); the object itself keeps its alpha at 0x154.
-    f32 x150;              // 0x150
+    union {
+        f32 x150;          // 0x150
+        u32 x150w;         // 0x150  (cModel::cModel clears it as a word)
+    };
     f32 alpha;             // 0x154  0..1 (obj04: work color a / 255)
     f32 x158;              // 0x158
     cModelInfo* pInfo;     // 0x15C
     cModelInfo* pShMdInfo; // 0x160  (db_work "pShMdIfo")
     cLightInfo lightInfo;  // 0x164 .. 0x1D8
+
+    // 0x1D8 .. 0x2B4  motion work (motion.h MOTION(m), cMotBase `m->mot`). The names the
+    // character (cEm) and object (cObj) units use for its fields alias it.
+    union {
+        MotionWork mot;                // 0x1D8
+        struct {
+            void* pMotion;             // 0x1D8  mot.data: current motion data, NULL = stopped (pl_push stopTarget)
+            u8 pad_1DC[0x218 - 0x1DC];
+            u16 motFlags;              // 0x218  mot.flags (bit0: move the model by the root speed; pl_npc clears it)
+            u16 motState;              // 0x21A  mot.state (emobj EmObjMove clears it when no motion plays)
+            union {
+                u32 motFlags2;         // 0x21C  mot.flags2 (emhit: bit30 = no matrix update before MotionMove)
+                u32 x21C;              // 0x21C  bit30 (0x40000000): set by obj26MatCalc when following a parent
+            };
+            u8 pad_220[0x244 - 0x220];
+            Vec satPos;                // 0x244  mot.basePos: pos after the scenario collision moved the model (atari at_pos_calc)
+            u8 pad_250[0x28A - 0x250];
+            u8 seNo;                   // 0x28A  mot.key1.x2: sound number + 1 to play at parts 0 this frame (emMove SndCall(8, ...)), 0 = none
+            union {
+                u8 seFlags28B;         // 0x28B  mot.key1.x3: player: sound kind of the motion key (low 3 bits, pl_class seqSeCtrl)
+                u8 motEvent;           // 0x28B  event bits of the current sequence key (objRobo SE / effects)
+            };
+            u8 pad_28C[4];
+            union {
+                f32 frame;             // 0x290  mot.seqFrame: motion frame (db_cam prints it as an int)
+                f32 motFrame;          // 0x290  (objGondola R0_Up waits for frame 4105)
+            };
+            union {
+                u16 frameMax;          // 0x294  mot.seqMax
+                u16 motSeqMax;         // 0x294  (objRocket: the rocket burns out at seqFrame >= seqMax - 1)
+            };
+            u8 pad_296[2];
+            f32 motSpeedRate;          // 0x298  mot.speedRate (objWep resetMotion: 1.0)
+            u8 pad_29C;
+            u8 x29D;                   // 0x29D  mot.hokanCnt (emrock plemRockEscape: MotionSetCore hokan of the escape run motion)
+            u8 pad_29E[6];
+            void* p2A4;                // 0x2A4  mot.cam: AttachCamera / 0x98-byte EmWork2A4 (player.cpp mem_alloc; cam_ctrl reads its byte 5; objRobo SetObjRobo)
+            union {
+                MotionWorkSub* blendMot;   // 0x2A8  mot.blend: second motion blended in (pl_class: &neckMot / cMot3::work)
+                MotionWork* motBlend;      // 0x2A8  (objGondola setVib: the sub motion work)
+            };
+            u16* motFlip;              // 0x2AC  mot.flip: parts index remap of flipped motions (emdoor: emDoor_xflip_tbl)
+            u32 x2B0;                  // 0x2B0  mot.blendTbl (obj18: parts matrices are only recomputed while 0)
+        };
+    };
+    // 0x2B4 .. 0x320  collision info, foot shadow table, light area, texture change. cAtariInfo
+    // has a constructor, so it is wrapped in an anonymous struct (no member constructor call);
+    // cModel::cModel constructs it explicitly where the original does (after cLightInfo's).
+    union {
+        struct {
+            cAtariInfo atari;          // 0x2B4 .. 0x300  (rect size at 0x2C0/0x2C4)
+            u32 x300;                  // 0x300  (cModel::cModel clears it)
+            u32 x304;                  // 0x304  (cModel::cModel clears it)
+            void* pFootShadowTbl;      // 0x308  foot shadow table (pl_leon: pl_fs_tbl; trans FootShadow)
+            EmLightArea litArea;       // 0x30C .. 0x31C  light_area: per-light colour scale (trans_lit lightSetColor)
+            cTexChg* pTexChg;          // 0x31C  texture change work (trans commonModelTrans: pTexChg->move)
+        };
+        struct {
+            ObjSub2B4 sub2B4;          // 0x2B4  the object units' names for the same bytes
+        };
+    };
 
     cModel();
     virtual ~cModel() {}
@@ -256,10 +517,22 @@ public:
     virtual void move();
     virtual void setNoSuspend(int on);
 
-    cModel* getPartsPtr(int no);
+    cModel* getPartsPtr(int no);  // -1: the model itself; NULL (and a log) when out of range
     int modelInit(void* bin, void* tpl);  // returns the cModelInfo* (pl_leon range-checks it)
+    int initJoint(void* bin);     // parts list from the bin's parts records (makePartsList / setPartsParent / setPartsOffset / setJointInfo)
+    void releaseJoint();          // releasePartsList(0) when there are parts
+    void setPartsParent();        // pParent of every parts from the bin records
+    void matBlend(f32 rate);      // parts pose = rate * own pose + (1 - rate) * worldMat pose (motion.cpp MotionMove blends)
+    void setSca(Vec* scale);      // scale = *scale; matUpdate()
+    int deleteModelData(ModelData* data);   // destroy the info using `data` (1 when found)
+    int swapModelInfo(ModelData* data, cModelInfo* info);   // replace the info using `data` by `info` (1 when found)
+    void releaseModelInfo();      // destroy every info
+    int makePartsList(int n);     // n parts (0: nParts) from PartsMgr, sequential when possible (be_flag bit13)
+    void setJointInfo(void* bin); // mot.blendTbl / mot.flip from the bin (version 0x20030818)
+    void releasePartsList(int no);  // destroy the parts from `no` on (0: all)
+    void motionPause();
     void addModel(cModelInfo* info);
-    void deleteModelInfo(cModelInfo* info);
+    int deleteModelInfo(cModelInfo* info);   // 1 when the info was in the list
     void partsMatCalc();
     void partsWorldCalc();
     void setPos(Vec* pos);
@@ -291,46 +564,13 @@ public:
     static class cPartsMgr* pm;
 };
 
-// Model info pool (game/model.cpp `ModInfoMgr`, 0x34 bytes): a cManager<cModelInfo>; the
-// player units call the inline cManager::destroy on it (pl_ashley setRightHand/setLeftHand).
-class cModInfoMgr : public cManager<cModelInfo> {
-public:
-    cModInfoMgr();
-    virtual ~cModInfoMgr();
-    virtual void* memAlloc(u32 size);
-    virtual void memFree(void* p);
-    virtual void memClear(cModelInfo* p, u32 size);
-    virtual void log(const char* fmt, ...);
-    virtual int construct(cModelInfo* p, u32 id);
-
-    cModelInfo* create(void* bin, void* tpl);
-};
-
-extern cModInfoMgr ModInfoMgr;
-
-// Parts work (game/model.cpp): a cUnit managed by PartsMgr; layout unknown (model.cpp passes the
-// real size to the cManager constructor).
-class cParts : public cUnit {
-public:
-};
-
-// Parts pool (game/model.cpp `PartsMgr`, 0x34 bytes): a cManager<cParts> (game.cpp instantiates
-// roomInit / arrayAlloc / arrayFree / dispWorkNum on it); no other member is known.
-class cPartsMgr : public cManager<cParts> {
-public:
-    cPartsMgr();
-    virtual ~cPartsMgr();
-    virtual void* memAlloc(u32 size);
-    virtual void memFree(void* p);
-    virtual void memClear(cParts* p, u32 size);
-    virtual void log(const char* fmt, ...);
-    virtual int construct(cParts* p, u32 id);
-};
-extern cPartsMgr PartsMgr;
 
 // game/model.cpp (C linkage): parts `no` of a parts list (NULL when out of range).
 extern "C" cModel* GetPartsAddr(cModel* parts, int no);
 // game/model.cpp (C linkage): relocate a TPL's file offsets to pointers (trans SpecularInit).
 extern "C" void calcTplAddr(struct TEXPalette* tpl);
+
+// game/model.cpp: shows / hides model info `no` of `m` (the rooms hide the player's weapon models).
+extern "C" void ModelInfoSetTrans(cModel* m, int no, int on);
 
 #endif

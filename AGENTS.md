@@ -2846,3 +2846,18 @@ target) stays unresolved and `make_rel` then fails with "undefined symbol".
   six managers) that the original ELF appended after .text; no compiled unit emits them yet, so the
   unit stays unmatched and callers only declare `void ToolArrayPush(int)` / `ToolWorkPop(int)`.
   t_mv also needs `SetToolLight(int)` global (db_light_tools.cpp has it `static`; the .sym scope is wrong).
+
+- An uninitialised int argument (no r4 setup) is reproduced only by an asm-labelled free declaration
+  `void f(cEm*) asm("setCloseLock__7cEmDoori")`; `int lock;` in any scope gives `mr r4, rX`.
+- Pool order for a float-heavy call: `const f32 w, h, x, z` in a block right before the call (pool
+  order = declaration order, no `lis` kept in a GPR); a function-top `const f32` keeps the `lis`.
+- Locals <= 8 bytes get frame slots after every larger aggregate, in first-`&` order; aggregates
+  >= 12 bytes at declaration in expansion order.
+- `int cut = K;` set before a call and stored after it puts K in a callee-saved register.
+- `case 0: break;` keeps the `cmpwi/beq end` node; `case 0: break; case 2: break;` gives the root-1
+  tree with `ble end`; `case 0x13: case 0x14:` gives the range test, `a <= hi && a >= lo` folds.
+- `.rodata` 8-alignment with no double constant: `asm(".section .rodata\n\t.balign 8\n\t.text")` as
+  the first line of the unit (before header strings).
+- COMPILER-DIFF candidate #9: loop exit-test duplication -- original `sub; b test; L: sleep; sub;
+  test: bge L` (no duplicated entry test); our jump1 always duplicates it on rotated loops
+  (r103/r105 `execOpenCover`).

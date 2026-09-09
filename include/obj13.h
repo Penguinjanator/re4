@@ -12,6 +12,11 @@ public:
     int getStatus();
     void setStand();
     void setCamera(int no);
+    void setOff();
+    void setOn();
 };
+
+// game/obj13.cpp: shows / hides the ladders of the running event (r101 Evt_R101S30_Func).
+extern "C" void LadderEventTrans(int on);
 
 #endif

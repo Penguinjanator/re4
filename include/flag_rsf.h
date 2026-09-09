@@ -18,9 +18,11 @@ static inline u32* RsfFlags(u16 room)
 // The stores are cast-then-deref MEMs (not MEM_IN_STRUCT_P): the rooms reload pG / their static
 // work pointer after an RsfSet/RsfClear (r11d appearLittleSister, execEmAppear, checkEmDead), which
 // only a store that may alias a fixed scalar produces.
+// With a variable `no` (r104 EmReset) the +4 stays a separate `addi` before the indexed access:
+// the word is formed from RsfFlags()' pointer, not from the record pointer.
 static inline u32* RsfFlagWord(u16 room, int no)
 {
-    return (u32*) ((u8*) RoomData.getRoomSavePtr(room) + 4 + (((u32) no >> 5) << 2));
+    return (u32*) ((((u32) no >> 5) << 2) + (u32) RsfFlags(room));
 }
 
 static inline void RsfSet(u16 room, int no)
