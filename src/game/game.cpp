@@ -128,25 +128,24 @@ union FadeColor {
     u32 w;
 };
 
-// FadeSet with two colour words. The volatile locals are real stack objects allocated where the
-// inline is expanded (the first two frame slots, reused by every call) and their addresses are
-// hard-register argument sets (`addi rN, r1, 8` recomputed at each call, never PRE'd).
-class FadeCol {
-public:
-    union {
-        GXColor c;
-        u32 w;
-    };
-    ~FadeCol() {}
-};
-static inline void fadeSet(int no, u32 start, u32 end, u32 time)
+// game.cpp variant of FadeSetW: `black` is set before the start choice, so its `li` leads.
+static inline void fadeSetG(int no, u32 time, u32 z, int late)
 {
-    FadeCol c0;
-    FadeCol c1;
+    FadeColorPair col;
+    u32 black;
 
-    c0.w = start;
-    c1.w = end;
-    FadeSet(no, &c0.c, &c1.c, time, 0, 0);
+    black = 0xFF;
+    if (no & 0x80000000) {
+        *(u32*) &col.start = black;
+    } else {
+        *(u32*) &col.start = 0;
+    }
+    if (no & 0x80000000) {
+        *(u32*) &col.end = 0;
+    } else {
+        *(u32*) &col.end = black;
+    }
+    FadeSet(no, &col.start, &col.end, time, z, late);
 }
 
 // Option archive (pG->pOptionData): offsets to the died demo id data.
@@ -436,7 +435,7 @@ void gameRoomInit()
     ShadowRoomInit();
     DmgMgr.roomInit();
     DmgMgr.arrayAlloc(20);
-    fadeSet(2, 0x00000000, 0x000000FF, 0);
+    fadeSetG(2, 0, 0, 0);
     FilterRoomInit();
     TexRenderMgrRoomInit();
     ItemModelRoomInit();
@@ -553,7 +552,7 @@ void gameRoomInit()
         BitOn(pG->flags_54, 0x800);
     }
     MerchantRoomInit();
-    fadeSet(0x80000001, 0x000000FF, 0x00000000, 0);
+    fadeSetG(0x80000001, 0, 0, 0);
     ScenarioRoomInit();
     SndRoomBgmStartCheck(0);
     SndRoomStrStartCheck();
@@ -568,8 +567,8 @@ void gameRoomInit()
     BitOff(pG->flags_68, 0x80000000);
     Block.check(0);
     Filter09SetbUse(0, 1);
-    fadeSet(0x80000002, 0x000000FF, 0x00000000, 0);
-    fadeSet(0x80000000, 0x000000FF, 0x00000000, 20);
+    fadeSetG(0x80000002, 0, 0, 0);
+    fadeSetG(0x80000000, 20, 0, 0);
     SubScreenWait(15);
     BitOff(pG->flags_54, 0x100000);
     DC.xA0C = 0;
@@ -886,31 +885,46 @@ void cGameSave::checkAddr(GameSaveData* data)
 
 void cGameSave::calcOffset(GameSaveData* data, void* base)
 {
+    u32 p;
+
     if (data->base == 0) {
         return;
     }
     if (base == 0) {
         base = data;
     }
+    // One shared temporary: its anti-dependences keep each load below the previous add/sub.
     data->base = 0;
-    data->pGlobal = (GameSaveBlock*) ((u8*) data->pGlobal - (u32) base);
-    data->pRoom = (u8*) data->pRoom - (u32) base;
-    data->pSscrn = (u32*) ((u8*) data->pSscrn - (u32) base);
-    data->pMerchant = (u8*) data->pMerchant - (u32) base;
-    data->pItem = (u8*) data->pItem - (u32) base;
+    p = (u32) data->pGlobal;
+    data->pGlobal = (GameSaveBlock*) (p - (u32) base);
+    p = (u32) data->pRoom;
+    data->pRoom = (void*) (p - (u32) base);
+    p = (u32) data->pSscrn;
+    data->pSscrn = (u32*) (p - (u32) base);
+    p = (u32) data->pMerchant;
+    data->pMerchant = (void*) (p - (u32) base);
+    p = (u32) data->pItem;
+    data->pItem = (void*) (p - (u32) base);
 }
 
 void cGameSave::calcAddr(GameSaveData* data)
 {
+    u32 p;
+
     if (data->base != 0) {
         return;
     }
     data->base = data;
-    data->pGlobal = (GameSaveBlock*) ((u8*) data + (u32) data->pGlobal);
-    data->pRoom = (u8*) data + (u32) data->pRoom;
-    data->pSscrn = (u32*) ((u8*) data + (u32) data->pSscrn);
-    data->pMerchant = (u8*) data + (u32) data->pMerchant;
-    data->pItem = (u8*) data + (u32) data->pItem;
+    p = (u32) data->pGlobal;
+    data->pGlobal = (GameSaveBlock*) ((u32) data + p);
+    p = (u32) data->pRoom;
+    data->pRoom = (void*) ((u32) data + p);
+    p = (u32) data->pSscrn;
+    data->pSscrn = (u32*) ((u32) data + p);
+    p = (u32) data->pMerchant;
+    data->pMerchant = (void*) ((u32) data + p);
+    p = (u32) data->pItem;
+    data->pItem = (void*) ((u32) data + p);
 }
 
 #define ALIGN32(n) (((n) + 0x1F) & ~0x1F)
@@ -963,13 +977,7 @@ void gameEnding()
 #line 1419 "D:/Bio4/Prog/game.cpp"
         req = DvdReadN("Etc/Ending.tpl", 0, 0, 0, 0, 5, __FILE__, __LINE__);
         Dvd.ReadCheck(req, 0, 0, (void**) &pTpl);
-        {
-            FadeColor c0;
-            FadeColor c1;
-            c0.w = 0x000000FF;
-            c1.w = 0x00000000;
-            FadeSet(0x80000000, &c0.c, &c1.c, 30, 0, 0);
-        }
+        fadeSetG(0x80000000, 30, 0, 0);
         pG->x21++;
         break;
     }
@@ -1055,13 +1063,13 @@ void gameDiedemo(DiedemoWork* w)
     int cnt = 0;
     u32 step = 0;
     int sel = 1;
-    int timer = 0;
-    int cnt2 = 0;
     int kind;
     int id;
     u64 trg;
 
     OSReport("--DIEDEMO START!!\n");
+    int timer = 0;
+    int cnt2 = 0;
     for (;;) {
         switch (step) {
         case 0:
@@ -1089,7 +1097,7 @@ void gameDiedemo(DiedemoWork* w)
             }
             if (pG->flags_5018 & 0x1000000) {
                 IdSys.unitPtr(0, 0x2D)->flags |= 8;
-                fadeSet(0x80000002, 0x000000FF, 0x00000000, 1);
+                fadeSetG(0x80000002, 1, 0, 0);
             } else {
                 IdSys.unitPtr(0, 0x2D)->flags &= ~8;
             }
@@ -1185,28 +1193,28 @@ void gameDoordemo()
     BitSet(pG->flags_170, 0xFFFFFFFF);
     KeyStop(0xEFCF0000);
     if (pG->flags_68 & 0x80000000) {
-        fadeSet(0, 0x00000000, 0x000000FF, 0);
+        fadeSetG(0, 0, 0, 0);
         TaskSleep(1);
     } else if (Flag54(0x80000) || Flag54(0x100)) {
-        fadeSet(0, 0x00000000, 0x000000FF, 0);
+        fadeSetG(0, 0, 0, 0);
     } else {
         switch (SceSys.x75) {
         case 0:
         default: {
             Filter09GetEFB_801D19E0();
             Filter09SetbUse(1, 1);
-            fadeSet(0, 0x00000000, 0x000000FF, 120);
+            fadeSetG(0, 120, 0, 0);
             break;
         }
         case 1: {
-            fadeSet(0, 0x00000000, 0x000000FF, 15);
+            fadeSetG(0, 15, 0, 0);
             while (Fade[0].flags & 1) {
                 TaskSleep(1);
             }
             break;
         }
         case 2: {
-            fadeSet(0, 0x00000000, 0x000000FF, 0);
+            fadeSetG(0, 0, 0, 0);
             break;
         }
         }
@@ -1338,6 +1346,9 @@ void GameAddPoint(int type)
     default:
         add = 0;
         break;
+    case 0:
+        add = 0;
+        break;
     case 1:
         add = -800;
         break;
@@ -1350,20 +1361,24 @@ void GameAddPoint(int type)
     case 4:
         add = -5;
         break;
+    case 5:
+        add = -1;
+        break;
     case 6:
         add = -25;
         break;
     case 7:
         add = -50;
         break;
-    case 5:
     case 8:
         add = -1;
+        break;
+    case 9:
+        add = 50;
         break;
     case 10:
         add = 1;
         break;
-    case 9:
     case 11:
         add = 50;
         break;
@@ -1375,9 +1390,6 @@ void GameAddPoint(int type)
         break;
     case 14:
         add = 1;
-        break;
-    case 0:
-        add = 0;
         break;
     }
     {
@@ -1427,26 +1439,18 @@ void GameAddPoint(int type)
         }
     }
     if (pG->flags_54 & 0x40000000) {
-        // One store after the switch (the arms share it); the room 0x401 label and the goto form
-        // reproduce the compare tree and the shared tail.
-        GlobalWork* g = pG;
-        int v;
-
-        switch (g->room_id) {
+        switch (pG->room_id) {
         case 0x401:
-            goto skip;
+            break;
         case 0x402:
-            v = 0x1388;
+            pG->point = 0x1388;
             break;
         case 0x403:
         case 0x404:
-            v = 0xFA0;
+            pG->point = 0xFA0;
             break;
-        default:
-            goto skip;
         }
-        g->point = v;
-    skip:;
+        pG->x4F88 = pG->point / 1000;
     } else {
         switch (pG->x8354) {
         case 0:

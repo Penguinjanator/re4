@@ -3138,6 +3138,10 @@ int cEmDoor::ckObj()
     u32 i;
 
     for (i = 0; i < EmMgr.nArray; i++) {
+        // loop.c hoists `&EmMgr` only if threshold*savings*lifetime >= the 387-insn loop: the
+        // pointer local and the two statements put luids between the high/lo_sum and their uses
+        // (high life 6, lo_sum life 2 + the matched bottom-test lo_sum); the dead `rw = 0` is the
+        // 396th insn that gives gcse the 199-bucket table in which mat's PRE pseudo precedes inv's.
         cEmMgr* m = &EmMgr;
         u32 ofs = m->size * i;
         cEm* e = (cEm*) ((u8*) m->pArray + ofs);

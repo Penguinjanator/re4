@@ -31,7 +31,6 @@
 #include "eprintf.h"
 #include "dbmodule.h"
 #include "main_mem.h"
-#include "new"
 
 extern "C" {
 double atan2(double y, double x);
@@ -58,6 +57,9 @@ void waterProc(cSubChar* pl);
 // `mr` / `clrlwi` copies when gcse PRE shares them.
 #define SUBFLAG(pl) ((cFlag*) &(pl)->subFlags)
 #define SUBFLAG2(pl) ((cFlag*) &(pl)->subFlags2)
+// Collision flag bits set / cleared through the info's address (`cAtariInfo* at = &atari` locals).
+static inline void AtariOn(cAtariInfo* at, u16 b) { at->flags |= b; }
+static inline void AtariOff(cAtariInfo* at, u16 mask) { at->flags &= mask; }
 // MotionSetCore with the sequence table as the 4th argument (declared int in motion.h).
 #define MOT_SET(m, w, data, seq, a, b, c) MotionSetCore(m, w, data, (int) (seq), a, b, c)
 
@@ -72,9 +74,11 @@ struct SubEyeDir {
     f32 z;
     SubEyeDir()
     {
-        x = 0.0f;
+        f32 lim = 1000.0f;   // dead initialiser: the original's pool has 1000 here
+
         y = 0.0f;
         z = 0.0f;
+        x = 0.0f;
     }
 };
 static SubEyeDir eyeDir;
@@ -142,7 +146,7 @@ void cSubChar::init()
     sub580 = 0;
     sub550 = 0;
     be_flag |= 0x02200000;
-    atari.flags |= 0x300;
+    AtariOn(&atari, 0x300);
     YarareInit(this, 0.0f, -30.0f, 0.0f, 140.0f, 100.0f, 2, 1);
     YarareAdd(this, &subHit[0], 0.0f, 0.0f, 0.0f, 150.0f, 130.0f, 3, 1);
     YarareAdd(this, &subHit[1], -20.0f, -300.0f, 0.0f, 120.0f, 300.0f, 0x13, 1);
@@ -171,16 +175,14 @@ void cSubChar::move()
         &cSubChar::moveEvent,
         &cSubChar::moveDijection,
     };
-    cMotBase* mb;
     f32 water;
 
     if (SUBFLAG(this)->check(0)) {
         return;
     }
     hp = pG->sub_life;
-    mb = SUB_MOTBASE(this);
-    mb->adjust();
-    BitOff(pG->flags_5010, 0x8000);
+    SUB_MOTBASE(this)->adjust();
+    BitOff(pG->flags_5010, 0x10000);
     BitOff(pG->flags_5014, 0x20000000);
     BitOff(pG->flags_5010, 0x8);
     subPlStatus = PlGetStatus();
@@ -208,7 +210,7 @@ void cSubChar::move()
     backCheckMove();
     neckCtrl();
     moveFace();
-    mb->move();
+    SUB_MOTBASE(this)->move();
     shadowCtrl();
     partsWorldCalc();
     EmAtCheck(this);
@@ -821,7 +823,7 @@ void cSubChar::moveBehind()
     switch (xFE) {
     case 0:
         MOT_SET(subSelf, MOTION(subSelf), SUB_MOT(subSelf, 0x1D), 0, 3, 5, 0);
-        atari.flags &= 0xFCFF;
+        AtariOff(&atari, 0xFCFF);
         subHideMode = 0;
         xFE = 1;
     case 1:
@@ -860,7 +862,7 @@ void cSubChar::moveBehind()
     case 0x14:
         MOT_SET(subSelf, MOTION(subSelf), SUB_MOT(subSelf, 0x1F), 0, 3, 5, 0);
         pG->flags_5010 &= ~0x20000;
-        atari.flags |= 0x300;
+        AtariOn(&atari, 0x300);
         inSat();
         atari.set(-10, 300.0f, 200.0f);
         SubRoutineSet(this, 0, 0, 0x28, 0);
@@ -891,7 +893,7 @@ void cSubChar::moveKagamu()
         MOT_SET(subSelf, MOTION(subSelf), SUB_MOT(subSelf, 0x43), 0, 1, 5, 0);
         subSelf->xFE = 3;
         sub424 = subSelf->pos.y;
-        subSelf->atari.flags &= 0xFDFF;
+        AtariOff(&subSelf->atari, 0xFDFF);
     case 3:
         if (subSelf->frame > 7.7f && subSelf->frame < 8.3f) {
             subFlags2 |= 0x20;
@@ -909,7 +911,7 @@ void cSubChar::moveKagamu()
             subSelf->subHideMode++;
             if (subSelf->subHideMode > 30) {
                 MOT_SET(subSelf, MOTION(subSelf), SUB_MOT(subSelf, 0x45), 0, 3, 5, 0);
-                subSelf->atari.flags |= 0x200;
+                AtariOn(&subSelf->atari, 0x200);
                 subSelf->xFE = 5;
             }
         }
@@ -1055,12 +1057,12 @@ void cSubChar::moveFance()
         } else {
             p = pos;
             r.y = sub52C;
-            r.z = 0.0f;
             r.x = 0.0f;
+            r.z = 0.0f;
         }
         SUB_MOTBASE(this)->set((cMotModel*) this, &p, &r, 10);
         MOT_SET(subSelf, MOTION(subSelf), SUB_MOT(subSelf, 0x2C), SUB_MOT(subSelf, 0x67), 7, 5, 0);
-        subSelf->atari.flags &= 0xFEFF;
+        AtariOff(&subSelf->atari, 0xFEFF);
         atari.setPriority(2);
         subSelf->dmg.set(0, 0x80);
         subSelf->cCoord::matUpdate();
@@ -1069,7 +1071,7 @@ void cSubChar::moveFance()
     case 1:
         pG->flags_5010 |= 8;
         if (subSelf->motionMove()) {
-            subSelf->atari.flags |= 0x100;
+            AtariOn(&subSelf->atari, 0x100);
             atari.setPriority(0);
             subSelf->dmg.clear();
             SubRoutineSet(this, 0, 0, 0, 0);
@@ -1124,6 +1126,9 @@ void pl_fall_ok()
 // Routine 0 / 9: the player lets her down a ledge.
 void cSubChar::moveFall()
 {
+    static const Vec v_ok = { -501.4f, 3200.0f, 106.0f };
+    void* m;
+
     switch (xFE) {
     case 0:
         getFallPos(this, &pPL->pos, &pPL->rot);
@@ -1133,12 +1138,13 @@ void cSubChar::moveFall()
         SetPlDamage((int) this, (void (*)(cPlayer*)) pl_fall_ok0);
         pPL->dmg.set(0, 0x80);
         if (SUBFLAG2(this)->check(7)) {
-            motionSet(SUB_MOT(subSelf, 0x46), 3, 0, 0x201, 0);
+            m = SUB_MOT(subSelf, 0x46);
         } else {
-            motionSet(SUB_MOT(subSelf, 0x47), 3, 0, 0x201, 0);
+            m = SUB_MOT(subSelf, 0x47);
         }
+        motionSet(m, 3, 0, 0x201, 0);
         BitOff16(subFlags2, 0x80);
-        atari.flags &= 0xFCFF;
+        AtariOff(&atari, 0xFCFF);
         dmg.set(0, 0x80);
         sub580 = 0;
         subFlags |= 0x20;
@@ -1150,25 +1156,22 @@ void cSubChar::moveFall()
         }
         break;
     case 4:
-        pPL->atari.flags &= 0xFCFF;
-        atari.flags |= 0x200;
-        atari.flags &= 0xFEFF;
+        AtariOff(&pPL->atari, 0xFCFF);
+        AtariOn(&atari, 0x200);
+        AtariOff(&atari, 0xFEFF);
         atari.setPriority(3);
         rot.y = pPL->rot.y - 4.712389f;
         rot.y = LIMIT_ANGLE(rot.y);
-        {
-            static const Vec v_ok = { -501.4f, 3200.0f, 106.0f };
-            PSMTXMultVec(pPL->mat, &v_ok, &pos);
-        }
+        PSMTXMultVec(pPL->mat, &v_ok, &pos);
         setPos(&pos);
         SetPlDamage((int) this, (void (*)(cPlayer*)) pl_fall_ok);
         pPL->dmg.set(0, 0x80);
         MOT_SET(subSelf, MOTION(subSelf), SUB_MOT(subSelf, 0x3F), SUB_MOT(subSelf, 0x5F), 7, 5, 0);
-        atari.flags &= 0xFEFF;
+        AtariOff(&atari, 0xFEFF);
         xFE = 5;
     case 5:
         if (motionMove()) {
-            atari.flags |= 0x300;
+            AtariOn(&atari, 0x300);
             atari.setPriority(0);
             dmg.clear();
             BitOff16(subFlags, 0x20);
@@ -1226,12 +1229,12 @@ void cSubChar::moveAction()
             subSndId = SndCall(8, 0x12, &subSelf->pParts->worldPos, id, 0, 0);
         }
         MOT_SET(subSelf, MOTION(subSelf), m, seq, 3, 0x101, 0);
-        atari.flags &= 0xFCFF;
+        AtariOff(&atari, 0xFCFF);
         dmg.set(0, 0x80);
     case 1:
         pG->flags_5010 |= 8;
         if (motionMove()) {
-            atari.flags |= 0x300;
+            AtariOn(&atari, 0x300);
             dmg.clear();
             SubRoutineSet(this, 0, 0, 0, 0);
         }
@@ -1240,7 +1243,7 @@ void cSubChar::moveAction()
         pG->flags_5010 |= 8;
         motionMove();
         if (subSelf->frame >= 40.0f && landCheck()) {
-            atari.flags |= 0x300;
+            AtariOn(&atari, 0x300);
             MOT_SET(subSelf, MOTION(subSelf), SUB_MOT(subSelf, 0x2D), SUB_MOT(subSelf, 0x5A), 0, 0x101, 0);
             motionMove();
             xFE = 3;
@@ -1249,7 +1252,7 @@ void cSubChar::moveAction()
     case 3:
         pG->flags_5010 |= 8;
         if (motionMove()) {
-            atari.flags |= 0x300;
+            AtariOn(&atari, 0x300);
             dmg.clear();
             SubRoutineSet(this, 0, 0, 0, 0);
         }
@@ -1263,7 +1266,7 @@ void cSubChar::moveAction()
             pos.y += sub52C * 0.1f;
         }
         if (motionMove()) {
-            atari.flags |= 0x300;
+            AtariOn(&atari, 0x300);
             dmg.clear();
             SubRoutineSet(this, 0, 0, 0, 0);
         }
@@ -1325,7 +1328,7 @@ void cSubChar::moveLadder()
         xFE = 5;
     case 5:
         if (motionMove()) {
-            atari.flags |= 0x300;
+            AtariOn(&atari, 0x300);
             dmg.clear();
             BitOff16(subFlags, 0x20);
             SubRoutineSet(this, 0, 0, 0, 0);
@@ -1544,9 +1547,9 @@ void cSubChar::moveHide()
         PSVECAdd(&v, &subHidePos, &v);
         pos.z = v.z;
         pos.x = v.x;
-        atari.flags |= 0x200;
+        AtariOn(&atari, 0x200);
         subSelf->atari.setPriority(3);
-        atari.flags &= 0xFEFF;
+        AtariOff(&atari, 0xFEFF);
         dmg.set(0, 0x80);
         sub52C = getAdjustX(8) * 0.1f;
         sub538 = 10;
@@ -1611,7 +1614,7 @@ void cSubChar::moveHide()
         if (motionMove()) {
             pG->flags_500C &= ~0x800;
             subSelf->atari.setPriority(0);
-            atari.flags |= 0x300;
+            AtariOn(&atari, 0x300);
             dmg.clear();
             SubRoutineSet(this, 0, 0, 0, 0);
         }
@@ -1664,8 +1667,8 @@ void cSubChar::moveFallWait()
 
     switch (xFE) {
     case 0:
-        sub540 = 0;
         sub53C = 0;
+        sub540 = 0;
         if (mot_ck()) {
             MOT_SET(subSelf, MOTION(subSelf), SUB_MOT(subSelf, 0x13), SUB_MOT(subSelf, 0x50), 7, 5, 0);
             backCheckSet(SUB_MOT(subSelf, 0x15));
@@ -1674,12 +1677,15 @@ void cSubChar::moveFallWait()
             backCheckSet(0);
         }
         subX534 = 0;
-        if (sub580 == 0) {
+        if (sub580) {
+            subHideMode = 5;
+            xFE = 1;
+        } else {
             sub564 = atan2(sub448.x, sub448.z) + 3.1415927f;
             sub564 = LIMIT_ANGLE(sub564);
+            subHideMode = 5;
+            xFE = 1;
         }
-        subHideMode = 5;
-        xFE = 1;
     case 1:
         motionMove();
         ang = Muku2(subSelf->rot.y, sub564, 0.31415927f);
@@ -1878,7 +1884,7 @@ void cSubChar::moveDamage()
     switch (xFD) {
     case 0:
         beginDamage();
-        atari.flags |= 0x300;
+        AtariOn(&atari, 0x300);
         if (pG->flags_68 & 0x800000) {
             switch (subHideMode) {
             case 7:
@@ -1914,7 +1920,7 @@ void cSubChar::moveDamage()
             EstSet((int) subSelf, -1, 0, 0, 4, ChkWaterEffectEnable(&pos) ? 8 : 7, 0, 0, (u32) subSelf, 0);
             break;
         case 11:
-            atari.flags &= 0xFCFF;
+            AtariOff(&atari, 0xFCFF);
             m = SUB_MOT(subSelf, 0x6A);
             break;
         }
@@ -1924,7 +1930,7 @@ void cSubChar::moveDamage()
         subSelf->xFD = 1;
     case 1:
         if (subSelf->frame >= 10.0f && subHideMode == 11 && landCheck()) {
-            atari.flags |= 0x300;
+            AtariOn(&atari, 0x300);
             MOT_SET(subSelf, MOTION(subSelf), SUB_MOT(subSelf, 0x6B), 0, 3, 1, 0);
             EstSet((int) subSelf, -1, 0, 0, 4, ChkWaterEffectEnable(&pos) ? 10 : 9, 0, 0, (u32) subSelf, 0);
             xFD = 10;
@@ -2002,7 +2008,7 @@ void cSubChar::moveDie()
         xFD = 1;
     case 1:
         if (motionMove()) {
-            atari.flags &= 0xFCFF;
+            AtariOff(&atari, 0xFCFF);
             xFD = 2;
         }
         break;
@@ -2267,30 +2273,33 @@ int cSubChar::fanceCheck()
 int cSubChar::windowCheck()
 {
     Vec a = { 0.0f, 400.0f, 0.0f };
+
+    PSVECAdd(&a, &subSelf->pos, &a);
     Vec b = { 0.0f, 400.0f, 600.0f };
+    PSMTXMultVec(subSelf->mat, &b, &b);
     Vec dir;
     Vec p;
     u16 status;
     cEmWindow* w;
-
-    PSVECAdd(&a, &subSelf->pos, &a);
-    PSMTXMultVec(subSelf->mat, &b, &b);
+    f32 ang;
     if (!ChkWindow(this, &a, &b, 1, &status, &dir, &p, &w)) {
         return 0;
     }
-    if (!(w->ChkStatus() & 1)) {
+    if ((w->ChkStatus() & 1) == 0) {
         return 3;
     }
-    if (!EmRackCk(this, &pos, atan2f(-dir.x, -dir.z))) {
+    ang = atan2f(-dir.x, -dir.z);
+    if (EmRackCk(this, &pos, ang) == 0) {
         return 3;
     }
     if (w->ChkBreakDir(&subSelf->pos) == 2) {
         subFlags2 |= 0x80;
         SubRoutineSet(this, 0, 0x12, 0, 0);
         return 2;
+    } else {
+        sub52C = atan2(-dir.x, -dir.z);
+        return 1;
     }
-    sub52C = atan2(-dir.x, -dir.z);
-    return 1;
 }
 
 // A ladder to climb down below the target.
@@ -2452,7 +2461,7 @@ int cSubChar::ladder2Check()
     }
     subHideMode = up;
     subX534 = ((s8) level < 0 ? -(s8) level : (s8) level) - 2;
-    atari.flags &= 0xFCFF;
+    AtariOff(&atari, 0xFCFF);
     dmg.set(0, 0x80);
     return 1;
 }
@@ -2729,8 +2738,8 @@ void cSubChar::setEmFunc()
 // distance / angle to it, and the action checks.
 void cSubChar::analyze()
 {
-    static const Vec chasePosFwd = { 200.0f, 300.0f, 200.0f };
-    static const Vec chasePosBck = { 200.0f, 300.0f, -200.0f };
+    static const Vec chasePosFwd = { 400.0f, 300.0f, 200.0f };
+    static const Vec chasePosBck = { 400.0f, 300.0f, -400.0f };
     static int subNear2 = 0;
     static u8 delayMove = 0;
     static u8 npcCheck = 0;
@@ -2840,7 +2849,7 @@ void cSubChar::analyze()
                 PSVECSubtract(&subTarget, &pPL->pParts->worldPos, &d);
 #line 3781 "D:/Bio4/Prog/pl_npc.cpp"
                 VECNormalize(&d, &d);
-                PSVECScale(&d, &d, -200.0f);
+                PSVECScale(&d, &d, -400.0f);
                 PSVECAdd(&subTarget, &d, &subTarget);
             }
             if (fabsf(subTarget.y - pos.y) > 1000.0f) {
@@ -2925,19 +2934,22 @@ void cSubChar::anaSatInfo()
 void cSubChar::beginEvent()
 {
     interrupt();
-    atari.flags &= 0xFCFF;
+    AtariOff(&atari, 0xFCFF);
 }
 
 void cSubChar::endEvent()
 {
     be_flag |= 0x200000;
-    atari.flags |= 0x300;
+    AtariOn(&atari, 0x300);
 }
 
 // pl_sub SubCharCtrl modes: 0 stop, 1 wait here, 2 follow, 3 warp to the player and follow,
 // 4 move to subMoveTo, 5 re-init, 6 wait (only from routine 0).
 void cSubChar::control(int mode)
 {
+    f32 far = 1000.0f;   // dead initialisers: the original's pool has 1000 and 400 here
+    f32 near = 400.0f;
+
     if (hp <= 0) {
         return;
     }
@@ -2954,7 +2966,7 @@ void cSubChar::control(int mode)
         if ((stat & 0xFFFF0000) != 0x00100000) {
             BitOff16(subFlags, 1);
             subFlags |= 2;
-            atari.flags |= 0x300;
+            AtariOn(&atari, 0x300);
         }
         break;
     case 3:
@@ -2968,14 +2980,14 @@ void cSubChar::control(int mode)
         xFF = 1;
         xFC = 0;
         xFD = 0;
-        atari.flags |= 0x300;
+        AtariOn(&atari, 0x300);
     case 2:
         if (xFC == 5) {
             SubRoutineSet(this, 0, 0, 0, 0);
         }
         if ((stat & 0xFFFF0000) != 0x00100000) {
             BitOff16(subFlags, 3);
-            atari.flags |= 0x300;
+            AtariOn(&atari, 0x300);
         }
         break;
     case 4:
@@ -2986,14 +2998,14 @@ void cSubChar::control(int mode)
             xFF = 0;
             xFC = 0;
             xFE = 0;
-            atari.flags |= 0x300;
+            AtariOn(&atari, 0x300);
         } else if (subMoveTo[3] != 193.0f) {
             *(Vec*) subMoveTo = pos;
             xFD = 1;
             xFF = 0;
             xFC = 0;
             xFE = 0;
-            atari.flags |= 0x300;
+            AtariOn(&atari, 0x300);
         } else {
             SubRoutineSet(this, 0, 0, 0, 0);
         }
@@ -3286,21 +3298,35 @@ void cSubChar::damageCheck()
         return;
     }
     if (subAux1) {
+        SubRoutineSet(this, 1, 0, 0, 0);
         dmHit = 0;
-        xFC = 1;
-        xFD = 0;
-        xFE = 0;
-        xFF = 0;
         return;
     }
     interrupt();
     switch (dmWep) {
+    default:
+        dmType = 1;
+        LifeDownSet2(this, 9999, 0, 0);
+        if (pG->flags_5010 & 8) {
+            SubRoutineSet(this, 1, 0, 0, 0);
+            subHideMode = 11;
+        } else if ((s16) pG->sub_life > 0) {
+            SubRoutineSet(this, 1, 0, 0, 0);
+            subHideMode = 2;
+        } else {
+            dmType = 0x80;
+            SubRoutineSet(this, 2, 0, 0, 0);
+        }
+        break;
     case 0xD:
     case 0x12:
     case 0x13:
         dmType = 1;
         if (dmRad > 9000000.0f) {
-            SubRoutineSet(this, 0, 7, 0, 0);
+            xFD = 7;
+            xFF = 0;
+            xFC = 0;
+            xFE = 0;
         } else {
             LifeDownSet2(this, 9999, 0, 0);
             SubRoutineSet(this, 1, 0, 0, 0);
@@ -3320,40 +3346,11 @@ void cSubChar::damageCheck()
         dmType = 0x3C;
         LifeDownSet2(this, 300, 0, 0);
         if ((s16) pG->sub_life > 0) {
-            xFC = 1;
-            xFF = 0;
+            SubRoutineSet(this, 1, 0, 0, 0);
             subHideMode = 2;
-            xFD = 0;
-            xFE = 0;
         } else {
             dmType = 0x80;
-            xFC = 2;
-            xFF = 0;
-            xFD = 0;
-            xFE = 0;
-        }
-        break;
-    default:
-        dmType = 1;
-        LifeDownSet2(this, 9999, 0, 0);
-        if (pG->flags_5010 & 8) {
-            xFC = 1;
-            xFF = 0;
-            subHideMode = 11;
-            xFD = 0;
-            xFE = 0;
-        } else if ((s16) pG->sub_life > 0) {
-            xFC = 1;
-            xFF = 0;
-            subHideMode = 2;
-            xFD = 0;
-            xFE = 0;
-        } else {
-            dmType = 0x80;
-            xFC = 2;
-            xFF = 0;
-            xFD = 0;
-            xFE = 0;
+            SubRoutineSet(this, 2, 0, 0, 0);
         }
         break;
     }
@@ -3404,22 +3401,22 @@ void cSubChar::setDamage(u8 kind, int arg, f32 power, int a, int b)
             }
         }
     } else {
-        sub52C = power;
+        sub52C = 123.0f;
     }
-    subHideMode = kind;
     xFC = 1;
     xFF = 0;
     xFD = 0;
     xFE = 0;
+    subHideMode = kind;
 }
 
 // The player registers a ledge for her to wait at (pos / facing angle), for 240 frames.
 void cSubChar::registPlAction(Vec* pos, f32 ang)
 {
     sub558 = *pos;
-    sub581 = 0;
     sub564 = ang;
     sub580 = 0xF0;
+    sub581 = 0;
 }
 
 // Water ripples / splashes while she wades (rooms 10A / 11A).
@@ -3650,24 +3647,15 @@ void cSubChar::dmgCheck()
     case 8:
         LifeDownSet2(this, (s16) pG->sub_life_max, 0, 0);
         if (pG->flags_5010 & 8) {
-            xFC = 1;
-            xFF = 0;
+            SubRoutineSet(this, 1, 0, 0, 0);
             subHideMode = 11;
-            xFD = 0;
-            xFE = 0;
         } else if ((s16) pG->sub_life > 0) {
             dmType = 0x5A;
-            xFC = 1;
-            xFF = 0;
+            SubRoutineSet(this, 1, 0, 0, 0);
             subHideMode = 2;
-            xFD = 0;
-            xFE = 0;
         } else {
             dmType = 0x80;
-            xFC = 2;
-            xFF = 0;
-            xFD = 0;
-            xFE = 0;
+            SubRoutineSet(this, 2, 0, 0, 0);
         }
         pG->flags_5010 &= ~8;
     case 1:
@@ -3675,23 +3663,14 @@ void cSubChar::dmgCheck()
         LifeDownSet2(this, (s16) pG->sub_life_max, 0, 0);
         if (pG->flags_5010 & 8) {
             subHideMode = 11;
-            xFC = 1;
-            xFF = 0;
-            xFD = 0;
-            xFE = 0;
+            SubRoutineSet(this, 1, 0, 0, 0);
         } else if ((s16) pG->sub_life > 0) {
             subHideMode = 2;
             dmType = 0x5A;
-            xFC = 1;
-            xFF = 0;
-            xFD = 0;
-            xFE = 0;
+            SubRoutineSet(this, 1, 0, 0, 0);
         } else {
-            xFF = 0;
             dmType = 0x80;
-            xFC = 2;
-            xFD = 0;
-            xFE = 0;
+            SubRoutineSet(this, 2, 0, 0, 0);
         }
         break;
     case 5:
@@ -3699,16 +3678,10 @@ void cSubChar::dmgCheck()
         if ((s16) pG->sub_life > 0) {
             dmType = 0x5A;
             subHideMode = 2;
-            xFC = 1;
-            xFF = 0;
-            xFD = 0;
-            xFE = 0;
+            SubRoutineSet(this, 1, 0, 0, 0);
         } else {
-            xFF = 0;
             dmType = 0x80;
-            xFC = 2;
-            xFD = 0;
-            xFE = 0;
+            SubRoutineSet(this, 2, 0, 0, 0);
         }
         break;
     }
@@ -3727,11 +3700,13 @@ void cSubChar::endDamage()
 // Reset face / hands / collision / sound when a routine is cut short.
 void cSubChar::interrupt()
 {
+    cAtariInfo* at = &atari;
+
     setFace(0);
     setHand(0);
-    atari.setPriority(0);
-    atari.flags |= 0x300;
-    pG->flags_5010 &= ~0x20000;
+    at->setPriority(0);
+    AtariOn(at, 0x300);
+    BitOff(pG->flags_5010, 0x20000);
     BitOff16(subFlags, 0x20);
     if (subSndId) {
         SndStop(subSndId, 0);
@@ -3743,10 +3718,7 @@ int SubCharHideCheck()
 {
     cSubChar* sub = pSUB;
 
-    if (sub == 0) {
-        return 0;
-    }
-    if (sub->id != 3) {
+    if (sub == 0 || sub->id != 3) {
         return 0;
     }
     if (sub->xFC != 0) {
@@ -3759,8 +3731,9 @@ int SubCharHideCheck()
     case 5:
     case 6:
         return 1;
+    default:
+        return 0;
     }
-    return 0;
 }
 
 // Pull her back next to the player (195 away) when a wall separates them.
@@ -3768,8 +3741,6 @@ void cSubChar::inSat()
 {
     Vec hit;
     Vec nrm;
-    Vec p;
-    Vec d;
 
     if (SatMgr.hitCheck(&pPL->pParts->worldPos, &pSUB->pParts->worldPos, &hit, &nrm, 0, 0)) {
         PSVECScale(&nrm, &nrm, 400.0f);
@@ -3777,8 +3748,9 @@ void cSubChar::inSat()
         nrm.y = pPL->pos.y;
         pSUB->setPos(&nrm);
     }
-    p = pos;
-    PSVECSubtract(&p, &pPL->pos, &d);
+    Vec p = pos;
+    Vec d;
+    PSVECSubtract(&pos, &pPL->pos, &d);
 #line 4943 "D:/Bio4/Prog/pl_npc.cpp"
     VECNormalize(&d, &d);
     PSVECScale(&d, &d, 195.0f);

@@ -746,6 +746,7 @@ int emLineCapsuleCrossCk(Vec* a, Vec* b, Vec* top, Vec* bottom, f32 r, Vec* hit)
     f32 dxz;
     f32 t;
     f32 h;
+    f32 dd;
 
     PSMTXIdentity(m);
     PSVECSubtract(top, bottom, &d);
@@ -820,13 +821,8 @@ int emLineCapsuleCrossCk(Vec* a, Vec* b, Vec* top, Vec* bottom, f32 r, Vec* hit)
     PSVECScale(&d, &d, h / PSVECMag(&d));
     PSVECAdd(&d, &g, &d);
     h = (la.x - lb.x) * (la.x - lb.x) + (la.y - lb.y) * (la.y - lb.y) + (la.z - lb.z) * (la.z - lb.z);
-    if ((la.x - d.x) * (la.x - d.x) + (la.y - d.y) * (la.y - d.y) + (la.z - d.z) * (la.z - d.z) > h) {
-        return 0;
-    }
-    if (d.y < 0.0f) {
-        return 0;
-    }
-    if (d.y > len) {
+    dd = (la.x - d.x) * (la.x - d.x) + (la.y - d.y) * (la.y - d.y) + (la.z - d.z) * (la.z - d.z);
+    if (dd > h || d.y < 0.0f || d.y > len) {
         return 0;
     }
     PSMTXMultVec(m, &d, &la);
@@ -3097,13 +3093,36 @@ void RandomItemSet(cEm* em)
 
 // Random drop table by enemy id: money (0x78), ammunition (GetDropBullet), healing items (5/6/0x19),
 // or the treasure of the special enemies; 1 with the item in outId / outNum.
+// Handgun ammo drop: four dice (the second offset by `base`) times 5, rounded down to tens; a 1/64
+// chance of `big` (or 330). Inline with the offsets as parameters: the `+ base` reaches RTL as a
+// separate add (fold would otherwise fold the literal into the sum) and the four Rnd() calls of one
+// expression are pre-expanded before any of the `% 6`.
+// `a < lim` with the limit arriving at RTL inlining time: keeps the `cmplwi lim; bge` form (fold turns a
+// literal `< C` into `<= C-1`).
+static inline int LessU(u32 a, u32 lim)
+{
+    return a < lim;
+}
+
+static inline u32 RandomHandgunAmmo(int base, int big)
+{
+    u32 num;
+
+    num = ((u8) (Rnd() % 6) + ((u8) (Rnd() % 6) + base) + (u8) (Rnd() % 6) + (u8) (Rnd() % 6)) * 5;
+    num = num / 10 * 10;
+    if ((Rnd() & 0x3F) == 0x1E) {
+        num = big;
+        if (Rnd() & 0xF) {
+            num = 330;
+        }
+    }
+    return num;
+}
+
 int RandomItemCk(int id, int* outId, int* outNum, int flag)
 {
     u8 r;
     u8 r0;
-    u8 r1;
-    u8 r2;
-    u8 r3;
     int bullet;
     int recov;
     int itemId;
@@ -3132,36 +3151,14 @@ int RandomItemCk(int id, int* outId, int* outNum, int flag)
             case 0x19: case 0x1A: case 0x1B: case 0x1C: case 0x1D: case 0x1E: case 0x1F: case 0x20:
             case 0x22:
             case 0x36:
-                r0 = Rnd() % 6;
-                r1 = Rnd() % 6;
-                r2 = Rnd() % 6;
-                r3 = Rnd() % 6;
                 itemId = 0x78;
-                num = (r0 + (r1 + 20) + r2 + r3) * 5;
-                num = num / 10 * 10;
-                if ((Rnd() & 0x3F) == 0x1E) {
-                    num = 1980;
-                    if (Rnd() & 0xF) {
-                        num = 330;
-                    }
-                }
+                num = RandomHandgunAmmo(20, 1980);
                 *outId = itemId;
                 *outNum = num;
                 return 1;
             default:
-                r0 = Rnd() % 6;
-                r1 = Rnd() % 6;
-                r2 = Rnd() % 6;
-                r3 = Rnd() % 6;
                 itemId = 0x78;
-                num = (r0 + (r1 + 10) + r2 + r3) * 5;
-                num = num / 10 * 10;
-                if ((Rnd() & 0x3F) == 0x1E) {
-                    num = 990;
-                    if (Rnd() & 0xF) {
-                        num = 330;
-                    }
-                }
+                num = RandomHandgunAmmo(10, 990);
                 *outId = itemId;
                 *outNum = num;
                 return 1;
@@ -3169,20 +3166,16 @@ int RandomItemCk(int id, int* outId, int* outNum, int flag)
         }
         /* fallthrough */
     case 0x25:
-        if (r > 0x3B) {
-            if (No_drop_cnt <= 2 || Rnd() % 10 <= 4) {
-                if (No_drop_cnt <= 5 && !(flag & 1)) {
-                    No_drop_cnt++;
-                    return 0;
-                }
-            }
+        if (r <= 0x3B || (No_drop_cnt > 2 && Rnd() % 10 > 4) || No_drop_cnt > 5 || (flag & 1)) {
+            No_drop_cnt = 0;
+        } else {
+            No_drop_cnt++;
+            return 0;
         }
-        No_drop_cnt = 0;
         break;
     case 0x23:
-        r0 = Rnd() % 3;
         itemId = 0x78;
-        num = r0 * 10 + 20;
+        num = (u8) (Rnd() % 3) * 10 + 20;
         if ((Rnd() & 3) == 0) {
             if (Rnd() & 1) {
                 num = (Rnd() & 1) * 10 + 10;
@@ -3208,8 +3201,9 @@ int RandomItemCk(int id, int* outId, int* outNum, int flag)
             if (r0 <= 0xC) {
                 itemId = 0xBB;
             }
+            num = 1;
             *outId = itemId;
-            *outNum = 1;
+            *outNum = num;
             return 1;
         }
         break;
@@ -3218,7 +3212,7 @@ int RandomItemCk(int id, int* outId, int* outNum, int flag)
     default:
         return 0;
     }
-    if (pG->x4FB8 != 1 && (u32) bullet < 30 && Rnd() % 10 > 4) {
+    if (pG->x4FB8 != 1 && LessU(bullet, 30) && Rnd() % 10 > 4) {
         GetDropBullet(outId, outNum);
         return 1;
     }
@@ -3245,16 +3239,17 @@ int RandomItemCk(int id, int* outId, int* outNum, int flag)
                     itemId = 0x19;
                 }
             }
+            num = 0;
             No_drop_cnt2 = 0;
             *outId = itemId;
-            *outNum = 0;
+            *outNum = num;
             return 1;
         }
     }
     if (pG->x4FB8 == 1) {
         return 0;
     }
-    if ((u32) bullet < 0x96) {
+    if (LessU(bullet, 0x96)) {
         GetDropBullet(outId, outNum);
         return 1;
     }
@@ -3267,29 +3262,19 @@ int RandomItemCk(int id, int* outId, int* outNum, int flag)
                 itemId = 0xBA;
             }
         }
+        num = 1;
         *outId = itemId;
-        *outNum = 1;
+        *outNum = num;
         return 1;
     }
-    if (!(flag & 1)) {
-        return 0;
+    if (flag & 1) {
+        itemId = 0x78;
+        num = RandomHandgunAmmo(20, 990);
+        *outId = itemId;
+        *outNum = num;
+        return 1;
     }
-    r0 = Rnd() % 6;
-    r1 = Rnd() % 6;
-    r2 = Rnd() % 6;
-    r3 = Rnd() % 6;
-    itemId = 0x78;
-    num = (r0 + (r1 + 20) + r2 + r3) * 5;
-    num = num / 10 * 10;
-    if ((Rnd() & 0x3F) == 0x1E) {
-        num = 990;
-        if (Rnd() & 0xF) {
-            num = 330;
-        }
-    }
-    *outId = itemId;
-    *outNum = num;
-    return 1;
+    return 0;
 }
 
 // Model under the water surface (parts `parts` no more than 300 above it when given).

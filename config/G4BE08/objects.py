@@ -1050,6 +1050,7 @@ STRIP_UNUSED = {
     "game/atari.cpp",
     "game/pendulum.cpp",
     "game/em_sub.cpp",
+    "game/player.cpp",
 }
 
 # Capcom sound library (game/snd_*.cpp): C++ with extern "C" functions, compiled unoptimised
@@ -1227,6 +1228,12 @@ MATCHING.update({
     "game/cMotBase.cpp": True,
 })
 
+# game task: cGameSave shared-temp fixups, GamePointInit/GameAddPoint switch shapes, fadeSetG
+MATCHING.update({
+    "game/game.cpp": True,
+})
+
+
 MATCHING.update({
     "game/lightInfo.cpp": True,
 })
@@ -1242,4 +1249,9 @@ MATCHING.update({
     "game/esp_sub.cpp": True,
     "game/esp0f.cpp": True,
     "game/espgen44.cpp": True,  # Filter05SetParam per-call-site argument-order aliases
+})
+
+# enemy closer: ckObj's `&EmMgr` hoist (block-scoped manager pointer + two-statement work address)
+MATCHING.update({
+    "game/emdoor.cpp": True,
 })

@@ -76,6 +76,14 @@ public:
 
 extern cMot3 mot3;      // game/player.cpp
 extern f32 m3r[3];      // game/player.cpp  mot3 blend rates ([0] current, [1] target, [2] mix)
+// m3r is an object with a constructor in the original (player.o's static initializer stores 0.0
+// into the three rates); player.cpp defines it under this type, everyone else reads the f32[3].
+class cMot3Rate {
+public:
+    f32 r[3];
+    cMot3Rate() { r[0] = r[1] = r[2] = 0.0f; }
+};
+extern cMot3Rate m3rObj asm("m3r");
 
 // Player (game/player.cpp, pl_*.cpp): a cEm with the player virtuals. Its fields are the cEm ones
 // (all below 0xDE0, see em.h). Vtable order (pl_class.cpp): cUnit/cCoord/cModel/cEm virtuals, then

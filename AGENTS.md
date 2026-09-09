@@ -611,6 +611,13 @@ mark it Matching.
   (gcse reaching copy); a local gives `lwz r3` directly.
 - `ang = w->rotY; ang -= K;` (two statements) loads straight into the variable's register;
   `ang = w->rotY - K` gives a temp-first order.
+- A switch whose arms each store to `pG->field` gets the `pG` reload PRE'd into a copy (`mr r11,r9`)
+  and the arms never cross-jump; a local temp with one store after the switch gives the merged form.
+- A shared scalar temporary across a run of `p = load; store(f(p))` statements reproduces the
+  one-scratch-register interleaved schedule; distinct expressions get all loads hoisted.
+- Locals declared after a call (`int x = 0;` following `OSReport(..)`) keep their `li` after the `bl`.
+- Extern declaration order decides `.sbss`/`.bss` placement of *referenced* externs (first-declaration
+  rule): `extern GameSaveData* pSaveData;` must precede `extern cGameSave GameSave;` in game.h.
 - Static locals show as `name.NNN` in objdiff; the DECL_UID suffix cannot be reproduced and is ignored by the report.
 - Unexplained words in `.rodata` (zero words, stray floats) are usually the constant pool of a function
   the original linker dead-stripped (bodies gone, pools kept, `STRIP_UNUSED` in objects.py): write a

@@ -41,8 +41,8 @@ public:
 
 int GameSaveSave(cGameSave* g, void* data, int mode) asm("save__9cGameSavePv");
 
+extern GameSaveData* pSaveData;  // .sbss order: pSaveData before GameSave
 extern cGameSave GameSave;
-extern GameSaveData* pSaveData;
 
 // Died demo task parameter (DiedemoExec -> gameDiedemo).
 struct DiedemoWork {

@@ -2,6 +2,7 @@
 // startUp), the per-frame cPlayer::move and the routine 0 / routine 1 (movement) functions.
 
 #include "atari.h"
+#include "atari_init.h"
 #include "light.h"
 #include "player.h"
 #include "pl_push.h"
@@ -56,8 +57,8 @@ void pl_R1_BoatDrive(cPlayer* pl);
 }
 void Pl_R0_Damage(cPlayer* pl);   // game/pl_dmg.cpp
 void Pl_R0_Die(cPlayer* pl);
-// game/pl_npc.cpp cSubChar::registPlAction (placeholder name in sym_map: the unit is not matched)
-void SubCharRegistPlAction(cSubChar* sub, Vec* pos, int a, f32 ang) asm("cSubChar_registPlAction");
+// cSubChar::registPlAction(Vec*, f32) (pl_npc.h) called with an extra `li r5, 0` the original passes.
+void SubCharRegistPlAction(cSubChar* sub, Vec* pos, int a, f32 ang) asm("registPlAction__8cSubCharP3Vecf");
 
 #line 41 "D:/Bio4/Prog/player.cpp"
 #define PL_MEM_ALLOC(size, line) mem_alloc(size, __FILE__, line, 1, 13)
@@ -115,8 +116,6 @@ void (*Pl_func_move_tbl[21])(cPlayer*) = {
     pl_R1_Crouch, 0, pl_R1_JumpFall, pl_R1_Whistle,
 };
 
-cMot3 mot3;
-f32 m3r[3];
 void* PlWepMot[3];
 Vec PlFancePos;
 
@@ -266,23 +265,23 @@ void cPlayer::init1()
     be_flag |= 0x07000000;
     x12F = 7;
     {
-        static const Vec lightOfs = { 0.0f, 1000.0f, 0.0f };
-        static const Vec lightSize = { 1000.0f, 0.0f, 0.0f };
+        static const Vec lightOfs = { 0.0f, 0.0f, 0.0f };
+        static const Vec lightSize = { 1000.0f, 1000.0f, 0.0f };
         lightInfo.init2(0, 1, &lightOfs, &lightSize, 1);
     }
-    litArea.flags |= 1;
-    atari.init(1, 0x1000, 10, 0.0f, 0.0f, 0.0f, -200.0f, 400.0f, 200.0f, 800.0f);
+    litArea.on(1);
+    atariInitF(&atari, 0.0f, -200.0f, 0.0f, 400.0f, 200.0f, 400.0f, 800.0f, 1, 0x1000, 10);
     lockOfs.x = 0.0f;
     lockOfs.y = 0.0f;
     lockOfs.z = 0.0f;
     lockParts = 2;
-    YarareInit(this, 0.0f, -30.0f, 0.0f, 100.0f, 210.0f, 2, 1);
+    YarareInit(this, 0.0f, -30.0f, 0.0f, 200.0f, 100.0f, 2, 1);
     // TODO: the four extra hit boxes live at cEm+0x530/0x564/0x598/0x5CC (the cSubChar fields of em.h
     // overlay them); give them names in em.h.
-    YarareAdd(this, (EmHitInfo*) ((u8*) this + 0x530), 0.0f, 0.0f, 0.0f, 130.0f, 120.0f, 3, 1);
-    YarareAdd(this, (EmHitInfo*) ((u8*) this + 0x564), 0.0f, 0.0f, 0.0f, 80.0f, -20.0f, 5, 1);
-    YarareAdd(this, (EmHitInfo*) ((u8*) this + 0x598), -300.0f, 170.0f, 0.0f, 300.0f, 10.0f, 0x13, 1);
-    YarareAdd(this, (EmHitInfo*) ((u8*) this + 0x5CC), 300.0f, 170.0f, 0.0f, 300.0f, 10.0f, 0x17, 1);
+    YarareAdd(this, (EmHitInfo*) ((u8*) this + 0x530), 0.0f, 0.0f, 0.0f, 210.0f, 130.0f, 3, 1);
+    YarareAdd(this, (EmHitInfo*) ((u8*) this + 0x564), 0.0f, 0.0f, 0.0f, 120.0f, 80.0f, 5, 1);
+    YarareAdd(this, (EmHitInfo*) ((u8*) this + 0x598), -20.0f, -300.0f, 0.0f, 170.0f, 300.0f, 0x13, 1);
+    YarareAdd(this, (EmHitInfo*) ((u8*) this + 0x5CC), 20.0f, -300.0f, 0.0f, 170.0f, 300.0f, 0x17, 1);
     MOTION(this)->flip = pl00_mirror;
     x4FE = 0;
     alpha = 1.0f;
@@ -295,12 +294,13 @@ void cPlayer::init1()
     sndId504 = 0;
     eyeMode = 0;
     boss0 = 0;
+    flags_41C = 0;
     partsWorldCalc();
     initCloth();
     if (pG->x4FB8 == 0) {
         pBody->makeSpaeData();
     }
-    p2A4 = (EmWork2A4*) PL_MEM_ALLOC(0x1FE, 424);
+    p2A4 = (EmWork2A4*) PL_MEM_ALLOC(0x98, 510);
 }
 
 // Place the player at the room start position and run the first frames of its motion.
@@ -327,7 +327,6 @@ void cPlayer::move()
     f32 water;
     int moved;
     int i;
-    int one = 1;
 
     BitOff(pG->flags_5010, 4);
     BitOff(pG->flags_500C, 0x00800000);
@@ -353,12 +352,8 @@ void cPlayer::move()
     if (pBody->pShape) {
         ShapeMove(pBody->pShape);
     }
-    if ((int) pos.x == (int) oldPos.x && (int) pos.y == (int) oldPos.y && (int) pos.z == (int) oldPos.z
-        && (stat & 0xFFFFFF00) == 0x100 && !(pG->flags_500C & 0x20) && (int) pG->flags_60 >= 0) {
-        moved = 0;
-    } else {
-        moved = one;
-    }
+    moved = !((int) pos.x == (int) oldPos.x && (int) pos.y == (int) oldPos.y && (int) pos.z == (int) oldPos.z
+              && (stat & 0xFFFFFF00) == 0x100 && !(pG->flags_500C & 0x20) && (int) pG->flags_60 >= 0);
     if (Key.trg & 0x10) {
         flags_420 &= ~0x1000;
     }
@@ -373,7 +368,7 @@ void cPlayer::move()
     subCharLiveCheck();
     Pl_func_tbl[xFC](this);
     if (pG->flags_68 & 0x00010000) {
-        if (PlKaiou != 0xFF) {
+        if (PlKaiou != -1) {
             for (i = 0; i < PlKaiou + 1; i++) {
                 Pl_func_tbl[xFC](this);
             }
@@ -754,6 +749,11 @@ void pl_R1_Turn180(cPlayer* pl)
     pl->checkXbutton();
 }
 
+// Defined after pl_R1_Turn180: both have constructors and are emitted at their definition, behind
+// Turn180's static `dd0` in .bss.
+cMot3 mot3;
+cMot3Rate m3rObj;
+
 // Weapon routine: WeaponMoveFunc (pl_wep.cpp registers it); Ashley has none.
 void pl_R1_Weapon(cPlayer* pl)
 {
@@ -779,6 +779,14 @@ void pl_R1_Boat(cPlayer* pl)
     } else {
         BoatMoveFunc(pl);
     }
+}
+
+// Dead-stripped in the original (STRIP_UNUSED): only its constant pool (2000.0, 300.0) survives
+// between pl_R1_Boat's message and pl_R1_Ladder's pool.
+static void plLadderPosSet(cPlayer* pl)
+{
+    pl->x400 = pl->pos.y + 2000.0f;
+    pl->pos.y += 300.0f;
 }
 
 // Ladder: steps 0..3 climb up (x3E0 = middle sections left), 0xA..0xD climb down; x400 tracks the
@@ -1400,6 +1408,7 @@ void pl_R1_Fall(cPlayer* pl)
     Vec v;
     f32 water;
     int lim;
+    const f32 adjustFrame = 10.0f;
 
     switch (pG->x4FB8) {
     default:
@@ -1432,7 +1441,7 @@ void pl_R1_Fall(cPlayer* pl)
         pl->pMotBase->set((cMotModel*) (cModel*) pl, &pos, &rot, 10);
         pl->xFE = 3;
     case 3:
-        if (pl->frame <= 10.0f) {
+        if (pl->frame <= adjustFrame) {
             v.x = 0.0f;
             v.y = 1.5707964f;
             v.z = 0.0f;

@@ -74,6 +74,7 @@ struct EmLightArea {
         }
         return 0;
     }
+    void on(u32 bit) { flags |= bit; }   // player.cpp init1: `addi rX,this,0x30C; lwz/stw 4(rX)`
 };
 
 // Blend motion work (0xD0 bytes): a MotionWork (motion.h) without the trailing blend/flip/blendTbl
