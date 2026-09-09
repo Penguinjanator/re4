@@ -313,6 +313,7 @@ int RouteCkPosToPos(Vec* from, Vec* to, Vec* out)
     RtpPoint* pts;
     RtpPoint* pt;
     f32 d2;
+    s8* tbl;
 
     a = *from;
     b = *to;
@@ -339,18 +340,22 @@ int RouteCkPosToPos(Vec* from, Vec* to, Vec* out)
         *out = *to;
         return 1;
     }
-    next = rtpNext(rtpNextTbl(), p, t);
+    tbl = rtpNextTbl();  // pointer local: the index lands in r0 (base pointer-flagged)
+    next = rtpNext(tbl, p, t);
     if (next == -1) {
         *out = *to;
         return 1;
     }
     rtp = rtpData();
-    pts = rtpPoint(rtp);
-    pt = (RtpPoint*)(p * sizeof(RtpPoint) + (u32)pts);
-    d2 = (a.x - pt->pos.x) * (a.x - pt->pos.x) + (a.z - pt->pos.z) * (a.z - pt->pos.z);
-    if (d2 < 62500.0f) {
-        *out = ((RtpPoint*)(next * sizeof(RtpPoint) + (u32)pts))->pos;
-        return 0;
+    {
+        u32 base = (u32) rtpPoint(rtp);
+        pts = (RtpPoint*) base;
+        pt = (RtpPoint*)(p * sizeof(RtpPoint) + base);
+        d2 = (a.x - pt->pos.x) * (a.x - pt->pos.x) + (a.z - pt->pos.z) * (a.z - pt->pos.z);
+        if (d2 < 62500.0f) {
+            *out = ((RtpPoint*)(next * sizeof(RtpPoint) + base))->pos;
+            return 0;
+        }
     }
     if (rckLineHitCheck(&a, &pts[next].pos, 0, 0) == 0) {
         *out = rtpPoint(rtpData())[next].pos;
@@ -412,6 +417,12 @@ direct:
     return SQRTF((from->x - to->x) * (from->x - to->x) + (from->z - to->z) * (from->z - to->z));
 }
 
+// The original zeroes the Vec in place with a memset libcall (`crclr cr1eq` = unprototyped
+// call) whose `&p` argument is a pseudo PRE'd with the other arm's copy: a reference inline
+// around a `(...)`-prototyped memset reproduces both (`p = Vec()` gives a zeroed temporary
+// plus a block copy with our cc1plus).
+extern "C" void* memset_v(...) asm("memset");
+static inline void vecClear(Vec& v) { memset_v(&v, 0, sizeof(Vec)); }
 void RouteCkGetPoint(int no, Vec* out)
 {
     RtpData* rtp = rtpData();
@@ -420,7 +431,7 @@ void RouteCkGetPoint(int no, Vec* out)
     if (rtp != NULL) {
         p = rtpPoint(rtp)[no].pos;
     } else {
-        p = Vec();
+        vecClear(p);
     }
     *out = p;
 }

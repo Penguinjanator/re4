@@ -3955,3 +3955,93 @@ target) stays unresolved and `make_rel` then fails with "undefined symbol".
   interleave); em_sub EmCatchMotionMove (`step` tied to the dying `rate` by local-alloc in ours,
   separate f13 in the target); motion MotionSequenceCtrl (f11/f12/f13 permutation); snd
   SndRoomBgmStart (seq r31 / no r29 / w r28 in the target).
+
+### DOL UI/camera/scenario pass (cam_ctrl 66->74/84, cam_qfps 19->21/24, route_ck 9->10/16, sce_com
+23->24/33 (.rodata now equal), debug 3->5/11 (.rodata now equal), t_option 19->21/22, pl_wep 24/29; 2026-09)
+
+- Two independent stores through ONE base register (`stw flags; stfs ratio` on `CamSmth`): sched1's
+  tie-break prefers the insn with the smaller register weight, and the base register's REG_DEAD
+  sits on its LAST user in RTL order, so the store written last in the source carries weight -2 and
+  is issued FIRST. cam_ctrl `smoothStart`: `u32 f = CamSmth.flags; FSet(CamSmth.ratio, r);
+  CamSmth.flags = f | 1;` gives `lwz flags; lfs ratio; ori; stw flags; stfs ratio` (the FSet keeps the
+  ratio load below the flags load, the split RMW makes the flags store the last user of the base).
+  Same lever in pl_wep PlSetLockPitch (`m3r[2] = 0; m3r[1] = p; m3r[0] = ...` in a `do {} while (0)`:
+  the loop notes keep the `lis` pair below the preceding `fmuls`).
+- `fmuls fD, fA, fD` (variable operand second): `x = a * x` is expanded with the destination
+  swapped to operand 0 (optabs `expand_binop` puts a target that equals op1 first), so the target's
+  order means a THIRD variable (`prod = s * dot`) that local-alloc tied to `dot`'s register — which
+  needs `dot` block-local with ONE death: the earlier `dot = PSVECDotProduct(); s = dot / mag` reuse
+  of the same name must become its own local (`dot0`) (cam_ctrl searchRail).
+- `ver2 = 0` assigned after an early `return` (instead of `int ver2 = 0` at the top) leaves the `li`
+  after the following `strncmp` call (cam_ctrl calcAddr); `int cur = 2` / `int zero = 0` declared at
+  the top of the `if` block whose calls precede the store (t_option tp_pl_posmove / tp_pl_weapon:
+  the constant lives in a callee-saved register across TaskSuspend/TaskSignal, `setRno(.., zero)`).
+- COMPILER-DIFF 1 alias: `de_Boor_CoxF(int n, f32* knot, f32 t, int k, f32* out) asm("de_Boor_Cox")`
+  (math_sub.h) for cam_ctrl BSpline's `lfs f1` before the `lwz r5`/`addi r6` argument moves; the GPR
+  arguments keep their order in the alias (ABI-identical), only the float moves earlier.
+- COMPILER-DIFF 2 launder for a `u8` switch value: `int st = x36; asm("" : "+r"(st)); switch ((u8) st)
+  ... x36 = st + 1` reproduces `lbz r11; clrlwi r0,r11,24; cmpwi r0` with the raw byte kept for the
+  increment (cam_ctrl r0_Free; `char st` gives `extsb`, `u8 st` no mask).
+- `pGS->debug_mode` (struct view of pG) after Vec/struct copies keeps the `lwz pG` below the copy's
+  loads/stores (cam_ctrl r0_Track/r0_RailPan, cam_qfps hitCheck); `FSet(angle_y, clamp)` (scalar
+  reference store) keeps the following `lfs C_RANGE` (fixed scalar) below it — the target loads the
+  static after the Key byte load, ours hoisted it (cam_qfps calcDepressionRatio).
+- `qfps.a(); if (...) qfps.b(); qfps.c()` chains: the member reads and the calls inside the `if`
+  arms through a local `CameraQuasiFPS* q = &qfps;`, the join-block calls on `qfps.` directly, give
+  the target's `addi r30,this,0x278; lwz 0x148(r30); mr r29,r30` PRE copy pair (cam_ctrl
+  switchCamera case 8).
+- `param.roll *= ratio; param.roll = p->roll * (1 - ratio) + param.roll; param.fovy *= ...` (one
+  member fully updated before the next) is the target's interleave; two `*=` then two sums is not
+  (cam_ctrl CameraSmooth::move).
+- Zeroing a POD `Vec` local in one arm (`memset` libcall with `crclr cr1eq`, `&p` PRE'd with the other
+  arm's copy and kept in a callee-saved register across the call): `static inline void vecClear(Vec& v)
+  { memset_v(&v, 0, sizeof(Vec)); }` with `extern "C" void* memset_v(...) asm("memset")` — the `(...)`
+  prototype gives the varargs `crclr`, the inline's reference gives the pseudo. `p = Vec()` gives a
+  zeroed temporary plus a block copy, a prototyped `memset(&p, ...)` no `crclr`, two block-local
+  `Vec p` per arm no shared tail (route_ck RouteCkGetPoint).
+- `(RtpPoint*)(next * 16 + (u32) pts)` copies where the target's `stw` tail is cross-jumped into the
+  function's last copy (1-insn match against the return label's predecessor) need the same
+  registers in both copies: `u32 base = (u32) rtpPoint(rtp); pts = (RtpPoint*) base;` (an integer
+  base for the index arithmetic) gives the `slwi r9; lwzx r10,r9,r4; add r11,r9,r4` register set
+  (route_ck RouteCkPosToPos).
+- `va_list ap; va_start(ap, fmt); char buf[N];` — the buffer declared AFTER `va_start` (C++
+  mid-block) puts the register save area and `ap` below it (target frame: saves 0x8, ap 0x80, buf
+  0x90); declared before, `buf` takes 0x80 and `ap` lands above it (sce_com SceDebugDisp).
+- Constant-pool order across a function with `if (mode == 0) {loop} else {totals}`: the target lists
+  the else-branch totals BEFORE the loop's per-frame steps and the steps are `total / 30.0f`
+  folded (one ulp off the decimal literals) — `const f32` locals at the top in the target's pool
+  order (totals with the target's signs, then `ryA / 30.0f` steps, then `10.0f`), every body use
+  written as the folded literal/expression (sce_com OpenBoxMain; SceElevator's 100/10/2 pool order
+  = the assignment order `maxSpd; minSpd; accel`).
+- `if (len != strcspn(..)) return 0; if (strncmp(..) == 0) {...; return 1;} return 0;` gives the
+  target's `li r3,0` before the first `bne end` with the second test jumping to the out-of-line
+  `li r3,0` (debug symbol_check; the nested-if form shares one `li` at the end).
+- debug processBarDisp: the per-task rows print `TICK_1000F` (x1000, pool 1000.0 after 28.0), the
+  spinner table is `static u8 xchr[5]` (no `extsb` on the `%c` argument).
+- t_option: `Draw_pos` is C (`extern "C"`; a C++ declaration references `Draw_pos__FP3Veci`), the unit
+  ends with `asm(".section .sdata,\"aw\"\n\t.balign 8\n\t.text")` (4-byte .sdata pad).
+- Masked-compare tool of record for this pass: /tmp-style script over `tools/elffile.py` — relocated
+  fields masked on both sides, relocation targets compared as (section, offset) for defined symbols
+  and by name for undefined ones, same-section branches resolved to (containing symbol, offset),
+  `_GLOBAL_.I/.D.<key>` canonicalised to `global_constructors/destructors_keyed_to_<key>`, functions
+  of unequal size aligned with difflib. objdiff's percentages hid 4 byte-identical functions per unit
+  on average (dtk `Sym+off` relocs).
+- OPEN after this pass (register allocation / tie-breaks, ~1-15 words each, all forms in the
+  per-function notes tried): card makeCardStatus (local-alloc order of the 0x40/0 constants and the
+  fmt2/spd2 loop temps), card saveMain (three `stb step; b` tails cross-jumped into case 1's copy:
+  needs a CODE_LABEL before the scanned `stb`, jump.c minimum 2 for jump-chain candidates), option
+  retry_load_menu/controller_menu/brightness_menu (global-alloc priority `o` vs `old`; the clamp's
+  then-arm stores `stb r9` in both arms in the target and cross-jumps the store), t_option tp_pl_flag
+  (`li r4,0xfe` before `addi r3,r30,ItemMgr@l` in both arms: the high pseudo dies at the `addi` in
+  ours, weight -1 wins; the target orders it last — dying-register tie-break not applied, same family
+  as emrock SetRock), merchant sellPrice (the two pool `lis` r11/r10 vs r9/r11 around a psq_l), sce_at
+  sceAtFunc_pos_jump (f0/f13 of `dstAngle` vs `0.0f`: qty priority by post-sched1 range),
+  SceAtCheckSystemItemSet (COMPILER-DIFF 6: the target keeps case 0x1001's `bl RandomItemCk` tail
+  and jumps case 0x1002 back into it), cam_qfps init (11 reference stores issued in pure source order
+  by the target — the dying-store rule not applied), title stageSelect (`li r30,0` right before
+  MercSysGetSaveWork without a store-flag), titleSub (2-iteration `mtctr` loop), puzzle orientation
+  (`o - 4` in CTR: `subic. r0,r29,4; mtctr r0; mfctr r31`), puzzle size_y (RETURN cross-jump of the
+  last arm skipped when it is followed by `li r3,0`), cam_ctrl switchCamera (loop counter/pointer
+  r10/r11), route_ck RouteCkPosToPos (`lbzx` index in r0: the tbl base is pointer-flagged in the
+  target), debug ProcessTickGet (proc_name store before proc_tick in the else arm), main_mem
+  MemCheckHeapEnd (the `d->allocated` reload after the if/else; `li r3,0` between compare and branch).

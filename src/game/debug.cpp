@@ -114,12 +114,13 @@ static inline s16 tickX(u32 tick, f32 total)
 static inline SystemWork* SysRef(SystemWork*& p) { return p; }
 // Ticks -> 1/100 frame units (bus clock / 4 = tick rate, 60 frames per second)
 #define TICK_100F(t) ((f32) (t) * 60.0f / (f32) (OS_BUS_CLOCK >> 2) * 100.0f)
+#define TICK_1000F(t) ((f32) (t) * 60.0f / (f32) (OS_BUS_CLOCK >> 2) * 1000.0f)
 
 void processBarDisp()
 {
     static DbgTile tile[6];
     static u8 cnt;
-    static char xchr[5] = "-/l/";
+    static u8 xchr[5] = "-/l/";  // u8: passed to %c without extsb
     int vcnt = GetSystemVcnt();
     u32 frameTick = OS_BUS_CLOCK / 240 * vcnt;
     f32 total;
@@ -251,12 +252,14 @@ void processBarDisp()
     g_proc_cnt = (u32) TICK_100F(proc_tick[3]);
     eprintf2(10, 16, 42, 28, 0, 2, "1000/F");
     for (i = 5; i < proc_tick_idx_bak + 5; i++) {
-        eprintf2(10, 16, 32, 50 + (i - 5) * 16, 0, 2, "%5.0f %s", TICK_100F(proc_tick[i] - proc_tick[i - 1]), proc_name[i]);
+        eprintf2(10, 16, 32, 50 + (i - 5) * 16, 0, 2, "%5.0f %s", TICK_1000F(proc_tick[i] - proc_tick[i - 1]), proc_name[i]);
     }
     cnt = (cnt + 1) & 3;
     eprintf2(14, 14, 10, 18, 0, 0, "%c", xchr[cnt]);
 }
 
+// OPEN (else arm, 8 words): the original stores proc_name before proc_tick (its `lis proc_name`
+// first); statement orders, a folded t and an idx local tried.
 void ProcessTickGet(int no, const char* name)
 {
     if ((u32) no <= 4) {
@@ -638,15 +641,16 @@ int symbol_check(char** p, const char* sym)
 {
     int len = strlen(sym);
 
-    if (len == strcspn(*p, "] \t\n\r")) {
-        if (strncmp(*p, sym, len) == 0) {
-            *p += len;
-            if (**p == ']') {
-                (*p)++;
-            }
-            *p = space_skip(*p);
-            return 1;
+    if (len != strcspn(*p, "] \t\n\r")) {
+        return 0;  // its own `li r3,0` before the branch
+    }
+    if (strncmp(*p, sym, len) == 0) {
+        *p += len;
+        if (**p == ']') {
+            (*p)++;
         }
+        *p = space_skip(*p);
+        return 1;
     }
     return 0;
 }

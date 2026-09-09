@@ -863,6 +863,14 @@ void OpenBoxMain(int type, int mode, int se, u32 id1, u32 id2, int itemNo)
     cObj* o2 = 0;
     cModel* item = 0;
     f32 dy = 0.0f;
+    // Constant-pool order: the 30-frame totals, their per-frame steps (folded divisions: the
+    // decimal step literals are one ulp off) and the drop step enter the pool here; every use
+    // below is folded to the literal.
+    const f32 ryA = -1.9198622f, ryB = 1.9198622f, ryC = -2.7925267f, ryD = 2.7925267f;
+    const f32 rxA = 1.7f, rxB = -1.7f, rzA = 1.5707964f, rzB = -1.5707964f, pxA = 500.0f, pxB = -500.0f;
+    const f32 syA = ryA / 30.0f, syB = ryB / 30.0f, syC = ryC / 30.0f, syD = ryD / 30.0f;
+    const f32 sxA = rxA / 30.0f, sxB = rxB / 30.0f, szA = rzA / 30.0f, szB = rzB / 30.0f, spA = pxA / 30.0f, spB = pxB / 30.0f;
+    const f32 dropStep = 10.0f;
     int i;
 
     if (id1 != -1) {
@@ -909,132 +917,132 @@ void OpenBoxMain(int type, int mode, int se, u32 id1, u32 id2, int itemNo)
             switch (type) {
             case 0:
                 if (o1) {
-                    o1->rot.y += -0.06399541f;
+                    o1->rot.y += (-1.9198622f / 30.0f);
                 }
                 if (o2) {
-                    o2->rot.y += 0.06399541f;
+                    o2->rot.y += (1.9198622f / 30.0f);
                 }
                 break;
             case 1:
             case 0x13:
                 if (o1) {
-                    o1->rot.y += -0.06399541f;
+                    o1->rot.y += (-1.9198622f / 30.0f);
                 }
                 break;
             case 2:
             case 0x14:
                 if (o1) {
-                    o1->rot.y += 0.06399541f;
+                    o1->rot.y += (1.9198622f / 30.0f);
                 }
                 break;
             case 0x17:
                 if (o1) {
-                    o1->rot.y += -0.09308423f;
+                    o1->rot.y += (-2.7925267f / 30.0f);
                 }
                 if (o2) {
-                    o2->rot.y += 0.09308423f;
+                    o2->rot.y += (2.7925267f / 30.0f);
                 }
                 break;
             case 0x18:
                 if (o1) {
-                    o1->rot.y += -0.09308423f;
+                    o1->rot.y += (-2.7925267f / 30.0f);
                 }
                 break;
             case 0x19:
                 if (o1) {
-                    o1->rot.y += 0.09308423f;
+                    o1->rot.y += (2.7925267f / 30.0f);
                 }
                 break;
             case 3:
                 if (o1) {
-                    o1->rot.x += 0.056666668f;
+                    o1->rot.x += (1.7f / 30.0f);
                 }
                 break;
             case 4:
                 if (o1) {
-                    o1->rot.x += -0.056666668f;
+                    o1->rot.x += (-1.7f / 30.0f);
                 }
                 break;
             case 5:
                 if (o1) {
-                    o1->rot.z += 0.056666668f;
+                    o1->rot.z += (1.7f / 30.0f);
                 }
                 break;
             case 6:
                 if (o1) {
-                    o1->rot.z += -0.056666668f;
+                    o1->rot.z += (-1.7f / 30.0f);
                 }
                 break;
             case 7:
                 if (o1) {
-                    o1->pParts->rot.x += 0.056666668f;
+                    o1->pParts->rot.x += (1.7f / 30.0f);
                 }
                 break;
             case 8:
                 if (o1) {
-                    o1->pParts->rot.x += -0.056666668f;
+                    o1->pParts->rot.x += (-1.7f / 30.0f);
                 }
                 break;
             case 9:
                 if (o1) {
-                    o1->pParts->rot.z += 0.056666668f;
+                    o1->pParts->rot.z += (1.7f / 30.0f);
                 }
                 break;
             case 0xA:
                 if (o1) {
-                    o1->pParts->rot.z += -0.056666668f;
+                    o1->pParts->rot.z += (-1.7f / 30.0f);
                 }
                 break;
             case 0xB:
                 if (o1) {
-                    o1->rot.x += 0.05235988f;
+                    o1->rot.x += (1.5707964f / 30.0f);
                 }
                 break;
             case 0xC:
                 if (o1) {
-                    o1->rot.x += -0.05235988f;
+                    o1->rot.x += (-1.5707964f / 30.0f);
                 }
                 break;
             case 0xD:
                 if (o1) {
-                    o1->rot.z += 0.05235988f;
+                    o1->rot.z += (1.5707964f / 30.0f);
                 }
                 break;
             case 0xE:
                 if (o1) {
-                    o1->rot.z += -0.05235988f;
+                    o1->rot.z += (-1.5707964f / 30.0f);
                 }
                 break;
             case 0xF:
                 if (o1) {
-                    o1->pos.x += 16.666668f;
+                    o1->pos.x += (500.0f / 30.0f);
                 }
                 if (item) {
-                    item->pos.x += 16.666668f;
+                    item->pos.x += (500.0f / 30.0f);
                 }
                 break;
             case 0x10:
                 if (o1) {
-                    o1->pos.x += -16.666668f;
+                    o1->pos.x += (-500.0f / 30.0f);
                 }
                 if (item) {
-                    item->pos.x += -16.666668f;
+                    item->pos.x += (-500.0f / 30.0f);
                 }
                 break;
             case 0x11:
                 if (o1) {
-                    o1->pos.z += 16.666668f;
+                    o1->pos.z += (500.0f / 30.0f);
                 }
                 if (item) {
-                    item->pos.z += 16.666668f;
+                    item->pos.z += (500.0f / 30.0f);
                 }
                 break;
             case 0x12:
                 if (o1) {
-                    o1->pos.z += -16.666668f;
+                    o1->pos.z += (-500.0f / 30.0f);
                 }
                 if (item) {
-                    item->pos.z += -16.666668f;
+                    item->pos.z += (-500.0f / 30.0f);
                 }
                 break;
             case 0x15:
@@ -1215,9 +1223,9 @@ void SceElevator(SceElevatorData* d)
     if (obj == 0) {
         return;
     }
-    accel = 2.0f;
     maxSpd = 100.0f;
     minSpd = 10.0f;
+    accel = 2.0f;
     stopDist = CalcStopDist(maxSpd, accel);
     stopDist2 = stopDist + 4000.0f;
     SceEventStart(0);
@@ -1385,9 +1393,9 @@ void SceElevator(SceElevatorData* d)
 void SceDebugDisp(const char* fmt, ...)
 {
     va_list ap;
-    char buf[0x100];
 
     va_start(ap, fmt);
+    char buf[0x100];  // declared after va_start: the register save area and ap get their slots first
     vsprintf(buf, fmt, ap);
     eprintf(0x14, (s16) SceSys.x7A, 0, 1, "%s", buf);
     SceSys.x7A += 0xF;

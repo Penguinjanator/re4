@@ -1942,6 +1942,8 @@ FOUND:
     }
 }
 
+// OPEN (register only): the original loads dstAngle into f0 and the 0.0 constant into f13 (ours
+// swapped: local-alloc qty priority); store orders, chains and a zero local tried.
 static int sceAtFunc_pos_jump(SceAtWork* w, cModel* m)
 {
     Vec rot;

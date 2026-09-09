@@ -1102,9 +1102,11 @@ void PlSetLockPitch(cModel* plm)
     }
     pl->pWep->pitch = p;
     p *= 2.0f / PI;
-    m3r[1] = p;
-    m3r[2] = 0.0f;
-    m3r[0] = m3r[1] * m3r[2] + m3r[1];
+    do {
+        m3r[2] = 0.0f;
+        m3r[1] = p;
+        m3r[0] = m3r[1] * m3r[2] + m3r[1];
+    } while (0);
 }
 
 int GetWepSizeGroup(int no)

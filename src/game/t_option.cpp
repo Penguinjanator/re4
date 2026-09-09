@@ -18,7 +18,7 @@ extern "C" void* memset(void* dst, int c, unsigned int n);
 
 void DrawGage(int x, int y, int h, int w, int val, int max, int color);
 void CamStick2World(Camera* cam, JOY* joy, Vec* out);
-void Draw_pos(Vec* pos, int size);
+extern "C" void Draw_pos(Vec* pos, int size);
 void PlSetDamage(int type, int dmg, int flag);
 void PlSetCostume();
 void PlChangeData();
@@ -207,6 +207,9 @@ void tp_pl_menu()
     }
 }
 
+// OPEN (5 words): case 4 issues `li r4,0xfe` before `addi r3,r30,ItemMgr@l` in both arms in the
+// original (ours addi first: the PRE'd high pseudo dies at the addi, weight -1). Local id, mgr
+// pointer, void-returning views of dump/get, ternary and inverted test tried.
 void tp_pl_flag()
 {
     eprintf(32, 42, 4, 0, "FLAG EDIT");
@@ -379,11 +382,12 @@ void tp_pl_posmove()
         pSUB->setPos(&pPL->pos);
     }
     if (pT->joy[0].rep & JOY_B) {
+        int cur = 2;  // kept in a callee-saved register across the calls
         TOOL_FLAG(OFS_DEBUG_FLG + 8) &= ~8;
         TaskSuspend(0);
         TOOL_FLAG(OFS_STOP_FLG) = sfb;
         pT->setRno(1, 0, 0, 0, 0, 0, 0, 0);
-        pT->cursor = 2;
+        pT->cursor = cur;
     }
 }
 
@@ -626,10 +630,11 @@ void tp_pl_weapon()
     eprintf(280, 98, 0, 0, "BULET  Lv.%d", WEP_LV_BULLET + 1);
     eprintf(280, 112, 0, 0, "RELOAD Lv.%d", WEP_LV_RELOAD + 1);
     if (pT->joy[0].rep & JOY_B) {
+        int zero = 0;  // callee-saved zero reused as setRno's stack argument
         TOOL_FLAG(OFS_DISP_FLG) &= ~0x40000000;
         TOOL_FLAG(OFS_DISP_FLG) &= ~0x10000000;
         TaskSignal(0);
-        pT->setRno(1, 0, 0, 0, 0, 0, 0, 0);
+        pT->setRno(1, 0, 0, 0, 0, 0, 0, zero);
         pT->cursor = 1;
     }
 }
@@ -873,3 +878,6 @@ void printCursor(int x, int y)
         eprintf(x * 8, y * 14, 0, 0, ">");
     }
 }
+
+// .sdata is 8-aligned in the split object (4-byte pad after the last static).
+asm(".section .sdata,\"aw\"\n\t.balign 8\n\t.text");

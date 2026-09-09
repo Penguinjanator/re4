@@ -229,6 +229,9 @@ u32 MemGetHeapEndAddr(int no)
     return Heap[no].end;
 }
 
+// OPEN (-4): the original places `li r3,0` between the compare and the branch and reloads
+// d->allocated for the loop init after the if/else join (ours forwards it); if/else, ternary,
+// `end = 0` first and HeapHead[h] index forms tried.
 u32 MemCheckHeapEnd(int no)
 {
     int h = Heap[no].handle;

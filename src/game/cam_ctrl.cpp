@@ -272,7 +272,7 @@ CameraLerp* CameraControl::LerpDataSearch(int area_from, int cam_from, int area_
 
 CameraDataHeader* CameraControl::calcAddr(CameraDataHeader* d)
 {
-    int ver2 = 0;
+    int ver2;
     int i;
     CameraAreaRec* rec;
     CameraAreaInfo* area;
@@ -281,6 +281,7 @@ CameraDataHeader* CameraControl::calcAddr(CameraDataHeader* d)
     if (cameraDataVersion((char*) d) <= 1) {
         return d;
     }
+    ver2 = 0;  // assigned after the early return: its `li` lands after the strncmp call
     if (strncmp((char*) d, "B402", 4) == 0) {
         ver2 = 1;
         OSReport("CameraControl::calcAddr(): R%1d%02x Ver02", pG->stage_no, pG->room_no);
@@ -623,20 +624,22 @@ void CameraControl::switchCamera(CameraAreaRec* rec)
         extra = new (extra_buf) CameraMotion(CameraMotionBuffer, 0, 0, 100.0f);
         state = 9;
         break;
-    case 8:
-        if (qfps.blend_src && qfps.blend_dst) {
-            qfps.setBlendData(qfps.blend_src, qfps.blend_dst);
+    case 8: {
+        CameraQuasiFPS* q = &qfps;
+        if (q->blend_src && q->blend_dst) {
+            q->setBlendData(q->blend_src, q->blend_dst);
         }
         qfps.setAreaData(area_rec->cut);
         qfps.bindAreaCamera(area_rec);
         if (prev_state == 10 && !(flags_2C & 0x10)) {
-            qfps.setBlendCount(10);
+            q->setBlendCount(10);
         } else {
-            qfps.init();
+            q->init();
             sub_state = 0;
         }
         state = 10;
         break;
+    }
     }
     flags_2C &= ~0x10;
 }
@@ -1279,8 +1282,8 @@ void CameraSmooth::move(CameraParam* p)
     PSVECScale(&p->at, &tmp, 1.0f - ratio);
     PSVECAdd(&param.at, &tmp, &param.at);
     param.roll *= ratio;
-    param.fovy *= ratio;
     param.roll = p->roll * (1.0f - ratio) + param.roll;
+    param.fovy *= ratio;
     param.fovy = p->fovy * (1.0f - ratio) + param.fovy;
 }
 
@@ -1367,6 +1370,17 @@ void CameraControl::r0_Fix()
     state = 0;
 }
 
+// Start smoothing with `ratio`: `stw flags` is issued before `stfs ratio` only when the flags store
+// is the LAST user of the CamSmth address in RTL order (it then carries the base register's
+// REG_DEAD, weight -2 in sched1's tie-break), while the ratio store is a scalar reference so the
+// ratio load stays below the flags load.
+static inline void smoothStart(f32 ratio)
+{
+    u32 f = CamSmth.flags;
+    FSet(CamSmth.ratio, ratio);
+    CamSmth.flags = f | 1;
+}
+
 void CameraControl::r0_Pan()
 {
     CameraParam p;
@@ -1379,8 +1393,7 @@ void CameraControl::r0_Pan()
         p.fovy = *cut->fovy;
         p.at = aim;
         cur = p;
-        CamSmth.ratio = smooth_ratio[1];
-        CamSmth.flags |= 1;
+        smoothStart(smooth_ratio[1]);
         sub_state++;
     case 1:
         p.pos = camera.param.pos;
@@ -1404,15 +1417,14 @@ void CameraControl::r0_Track()
         searchRail(bs, cut, &aim, 0);
         BSpline(bs, &cam, 0);
         cur = cam.param;
-        CamSmth.ratio = smooth_ratio[2];
-        CamSmth.flags |= 1;
+        smoothStart(smooth_ratio[2]);
         sub_state++;
         break;
     case 1:
         searchRail(bs, cut, &aim, 0);
         BSpline(bs, &cam, 0);
         cur = cam.param;
-        if (pG->debug_mode == 0xF) {
+        if (pGS->debug_mode == 0xF) {  // struct view: the pG load stays below the copy's stores
             debugDrawRail(cut);
         }
         break;
@@ -1432,8 +1444,7 @@ void CameraControl::r0_RailPan()
         BSpline(bs, &cam, 0);
         cam.param.at = aim;
         cur = cam.param;
-        CamSmth.ratio = smooth_ratio[2];
-        CamSmth.flags |= 1;
+        smoothStart(smooth_ratio[2]);
         sub_state++;
         break;
     case 1:
@@ -1441,7 +1452,7 @@ void CameraControl::r0_RailPan()
         BSpline(bs, &cam, 0);
         cam.param.at = aim;
         cur = cam.param;
-        if (pG->debug_mode == 0xF) {
+        if (pGS->debug_mode == 0xF) {  // struct view: the pG load stays below the copy's stores
             debugDrawRail(cut);
         }
         break;
@@ -1832,9 +1843,10 @@ void CameraControl::r0_Free()
             PSMTXMultVec(m, &dbg_at, &dbg_at);
         }
         {
-            char st = x36;
+            int st = x36;
 
-            switch (st) {
+            asm("" : "+r"(st));  // COMPILER-DIFF 2: the original zero-extends the loaded byte again
+            switch ((u8) st) {
             case 0:
                 if (JoyTrg(joy, 0x200) || JoyOn(joy, 0x200) || JoyOn(joy, 0x20)) {
                     x36 = st + 1;
@@ -1982,7 +1994,7 @@ void BSpline(CameraBSpline* bs, Camera* cam, int)
     int i;
 
     memclr_asm(cam, sizeof(Camera));
-    de_Boor_Cox(bs->num, NULL, bs->k, bs->t, bs->basis);
+    de_Boor_CoxF(bs->num, NULL, bs->t, bs->k, bs->basis);  // COMPILER-DIFF 1 (floats-first alias)
     for (i = 0; i < bs->num; i++) {
         cam->param.at.x += bs->basis[i] * bs->ax[i];
         cam->param.at.y += bs->basis[i] * bs->ay[i];
@@ -2007,18 +2019,23 @@ void searchRail(CameraBSpline* bs, CameraCut* cut, Vec* aim, int)
     f32 dist;
 
     for (i = 0; i < cut->num - 1; i++) {
+        // One variable per value (each block-local with a single death): `dot0` for the first
+        // product, `dot` for the second, `prod` tied to `dot` (`fmuls f31, f30, f31`).
+        f32 dot0;
+        f32 prod;
+
         PSVECSubtract(&cut->at[i + 1], &cut->at[i], &d);
         d.y = 0.0f;
         PSVECSubtract(aim, &cut->at[i], &v);
         v.y = 0.0f;
-        dot = PSVECDotProduct(&d, &v);
-        s = dot / PSVECMag(&d);
+        dot0 = PSVECDotProduct(&d, &v);
+        s = dot0 / PSVECMag(&d);
         PSVECSubtract(aim, &cut->at[i + 1], &v);
         v.y = 0.0f;
         dot = PSVECDotProduct(&d, &v);
         dot = dot / PSVECMag(&d);
-        dot = s * dot;
-        if (dot < 0.0f) {
+        prod = s * dot;
+        if (prod < 0.0f) {
             d.y = cut->at[i + 1].y - cut->at[i].y;
             PSVECScale(&d, &v, s / PSVECMag(&d));
             PSVECAdd(&v, &cut->at[i], &v);

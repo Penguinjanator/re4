@@ -1895,6 +1895,9 @@ int cCard::fileCreate(u8* sub, int blocks, CardSlot* s)
     return ret;
 }
 
+// OPEN (register allocation only, 13 words): the original gives the 0x40/0 constants r11/r0 and the
+// loop temps fmt2/spd2 r8/r9 (ours r0/r11, r9/r11); declaration/statement orders, u16/int types, a
+// stat pointer and mask locals all tried.
 void cCard::makeCardStatus(CardSlot* s)
 {
     u32 fmt;

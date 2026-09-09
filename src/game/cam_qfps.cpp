@@ -343,7 +343,8 @@ void CameraQuasiFPS::calcDepressionRatio()
         } else {
             angle_y = (f32) Key.ssy / C_RANGE;
         }
-        angle_y = angle_y < -1.0f ? -1.0f : (angle_y > 1.0f ? 1.0f : angle_y);
+        // reference store: keeps the C_RANGE load below it (issued after the Key byte load)
+        FSet(angle_y, angle_y < -1.0f ? -1.0f : (angle_y > 1.0f ? 1.0f : angle_y));
         t = -(f32) Key.ssx / C_RANGE;
         if (t < 0.0f) {
             angle_x = ANGLE_LEFT_LIMIT * t;
@@ -723,7 +724,7 @@ void CameraQuasiFPS::hitCheck(Mtx m, QfpsOfs* ofs, CameraParam* out)
     PSMTXMultVec(m, &ofs->campos, &wb);
     l0 = wa;
     l1 = wb;
-    if (pG->debug_mode == 0xF) {
+    if (pGS->debug_mode == 0xF) {  // struct view: the pG load stays below the copies' stores
         Draw_line3d(&l0, &l1, 0xFFFF0000, 0);
     }
     t = sinf(ofs->fovy * PI / 360.0f) / cosf(ofs->fovy * PI / 360.0f);
@@ -1127,6 +1128,8 @@ void CameraQuasiFPS::bindAreaCamera(CameraAreaRec* rec)
     }
 }
 
+// OPEN (12 words): the original issues the eleven init stores in pure source order (ours: the
+// dying-source stores first) — the dying-store family of emrock SetRock / obj1b SetSpear.
 void CameraQuasiFPS::init()
 {
     FSet(smooth_ratio, 0.8f);
