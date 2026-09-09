@@ -72,6 +72,17 @@ for a compiler-build difference (asm-labelled aliases, `asm("" : "+r"(x))` laund
 asm("rN")`, dead `p = 0` initialisers used only to shift gcse/loop.c counts) must carry a comment
 `// COMPILER-DIFF: <which item>` so they can be removed mechanically if the original build turns up.
 
+### Host-dependence of our cc1plus (negative result, do not re-investigate)
+The configured cc1plus is a 32-bit static i386 build (HOST_WIDE_INT = int, like Win32). cse.c hashes
+SYMBOL_REF/LABEL_REF by host pointer and varasm's const hashes include pointers, but they only select
+a bucket; every lookup is exact-match and every ordering decision comes from insertion/call order.
+All 610 ProDG units produce byte-identical `.s` under: heap base shifts, heap padding, ASLR on/off,
+MALLOC_PERTURB_, pattern/zero stack fills, x87 53-bit precision (Win32 CW), an unstable heapsort as
+qsort, cse/varasm/type hashes collapsed to one bucket, an -O0 host build and a clang host build (the
+clang build differs only by an extra `.size` from an uninitialised local in SN's toplev.c patch, which
+cannot change DOL/REL bytes). The residues described as "which equivalent register", "`lis sym@ha`
+pseudo choice", "qty tie", "LUID tie" are v1.79-source-vs-original differences, not host effects.
+
 ## Per-unit compiler flags
 
 Not every game unit is `-O2`. The sound driver (`snd_iss*/seq*/str*/sub*/main/efx/ram`) is C++ with
