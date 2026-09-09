@@ -354,12 +354,12 @@ void cPlayer::move()
     if ((int) pos.x == (int) oldPos.x && (int) pos.y == (int) oldPos.y && (int) pos.z == (int) oldPos.z
         && (stat & 0xFFFFFF00) == 0x100 && !(pG->flags_500C & 0x20)) {
         moved = 0;
-        if ((int) pG->flags_60 < 0) {
-            moved |= 1;
+        if ((int) pG->flags_60 >= 0) {
+            goto moveChecked;
         }
-    } else {
-        moved = 1;
     }
+    moved = 1;
+moveChecked:
     if (Key.trg & 0x10) {
         flags_420 &= ~0x1000;
     }

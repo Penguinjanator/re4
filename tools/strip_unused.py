@@ -56,6 +56,10 @@ def target_symbols(unit):
             s = names.setdefault(sec, set())
             s.add(name)
             s.add(re.sub(r"_[0-9A-F]{8}$", "", name))
+            # gcc 2.95 function-local statics carry a DECL_UID suffix (`pl_move_func_tbl.1272`) that a
+            # recompile cannot reproduce: match them by the base name (player.cpp's unreferenced table)
+            if re.search(r"\.\d+$", name):
+                s.add(re.sub(r"\.\d+$", ".*", name))
             if dn and dn != ".":
                 s.add(dn)
                 # gcc 2.95 names them after the first global of the unit (`_GLOBAL_.I.<key>`); the
@@ -203,6 +207,8 @@ def main():
         if name in keep.get(secname, ()):
             continue
         if args.gcc and (demangle_v2(name) or name) in keep.get(secname, ()):
+            continue
+        if args.gcc and re.search(r"\.\d+$", name) and re.sub(r"\.\d+$", ".*", name) in keep.get(secname, ()):
             continue
         if name.startswith("_GLOBAL_.I.") and "_GLOBAL_.I.*" in keep.get(secname, ()):
             continue

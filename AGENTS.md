@@ -618,6 +618,10 @@ mark it Matching.
 - Locals declared after a call (`int x = 0;` following `OSReport(..)`) keep their `li` after the `bl`.
 - Extern declaration order decides `.sbss`/`.bss` placement of *referenced* externs (first-declaration
   rule): `extern GameSaveData* pSaveData;` must precede `extern cGameSave GameSave;` in game.h.
+- A loop pointer initialised by an `mr` copy of the hoisted `&Array` pseudo comes from a dead
+  initializer `T* t = g_Arr;` at function scope with `t = &g_Arr[i]` in the body (the extra mention
+  keeps the base pseudo live past the giv init).
+- A zeroing loop over a word array steps up with `mtctr` only with a `u32` counter; `int` reverses it.
 - Static locals show as `name.NNN` in objdiff; the DECL_UID suffix cannot be reproduced and is ignored by the report.
 - Unexplained words in `.rodata` (zero words, stray floats) are usually the constant pool of a function
   the original linker dead-stripped (bodies gone, pools kept, `STRIP_UNUSED` in objects.py): write a

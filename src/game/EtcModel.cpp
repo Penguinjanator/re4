@@ -2875,6 +2875,10 @@ int getRoomEtcItem(int no, EtcItem** out, int flag)
     return 0;
 }
 
+// OPEN: the original lays the 0x404..0x411 `return 1` block out in place (the 0x108 and
+// 0x10C..0x11E tests jump back to it); ours cross-jumps the first two into the last one
+// (same size, 2 branch conditions + block order differ). Ternary tails (`return in ? 3 :
+// room >= 0x300`) keep the first block but then hoist the last `li r3,1` into a `blelr`.
 int GetEtcAmbType()
 {
     if (pG->room_id == 0x400 || pG->room_id == 0x403) {

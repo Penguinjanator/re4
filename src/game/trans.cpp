@@ -737,13 +737,15 @@ void calcWeightMat(cModel* m)
     }
 }
 
-static int MakeWeightPaletteExt(WeightExt* w, int n)
+static int MakeWeightPaletteExt(WeightExt* w0, int n)
 {
     GxWork* gx = GXWORK();
     int cnt = 0;
     int i;
+    u32 wa = (u32) w0;
+#define w ((WeightExt*) wa)
 
-    for (i = 0; i < n; i++, w++) {
+    for (i = 0; i < n; i++, wa += sizeof(WeightExt)) {
         Mtx m;
         f32 total;
         int j;
@@ -780,6 +782,7 @@ static int MakeWeightPaletteExt(WeightExt* w, int n)
         }
         PSMTXReorder(m, (f32(*)[3]) (0xE0000000 + i * 0x30));
     }
+#undef w
     return cnt;
 }
 

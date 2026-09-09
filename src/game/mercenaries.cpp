@@ -175,7 +175,7 @@ int MercSysInitRoom(MercInit* pMInit)
     }
     memset(&wk->score, 0, sizeof(MercSysWork) - 0x24);
     GamePointInit(2);
-    wk->stage = 0;
+    BitSet((u32&) wk->stage, 0);
     if (pG->room_id != 0x400) {
         if (pG->room_id == 0x402) {
             wk->stage = 1;

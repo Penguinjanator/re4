@@ -3257,10 +3257,10 @@ int RandomItemCk(int id, int* outId, int* outNum, int flag)
             num = 1;
         } else {
             itemId = 0xBB;
-            num = 1;
             if (Rnd() & 3) {
                 itemId = 0xBA;
             }
+            num = 1;
         }
         *outId = itemId;
         *outNum = num;

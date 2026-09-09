@@ -2536,7 +2536,7 @@ int emWepShotHitWindowCk(Vec* a, Vec* b)
     PSMTXInverse(m, m);
     for (i = 0; i < EmMgr.nArray; i++) {
         cEm* e = (cEm*) ((u8*) EmMgr.pArray + EmMgr.size * i);
-        EmHitInfo* part;
+        EmHitInfo* part = 0;
 
         if ((e->be_flag & 0x201) != 1) {
             continue;
