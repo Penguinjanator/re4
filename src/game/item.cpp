@@ -2153,7 +2153,6 @@ int cItemMgr::combine(ItemWork* a, ItemWork* b, int flag)
     int ret = 0;
     u16 ida;
     u16 idb;
-    int lv;
 
     if (a == 0 || b == 0) {
         return 0;
@@ -2169,14 +2168,15 @@ int cItemMgr::combine(ItemWork* a, ItemWork* b, int flag)
         idb = b->id;
     }
     if (ITEM_TYPE(a->id) == 1) {
-        lv = LV_EX(a) + 1;
+        int lv = LV_EX(a) + 1;
+
         if (ITEM_TYPE(b->id) == 2) {
             int attr;
             u8 attr8;
 
             if (flag == 0) {
                 ret = 0;
-                return ret;
+                goto end;
             }
             attr = ATTR(a);
             attr8 = attr;
@@ -2185,7 +2185,7 @@ int cItemMgr::combine(ItemWork* a, ItemWork* b, int flag)
             } else {
                 attr = attr == 0;
                 if (idb == WeaponId2BulletId(ida, attr)) {
-                    u16 n = b->num;
+                    int n = b->num;
 
                     b->id = WeaponId2BulletId(ida, attr8);
                     b->num = BULLET(a);
@@ -2203,14 +2203,15 @@ int cItemMgr::combine(ItemWork* a, ItemWork* b, int flag)
             ret = partsCombine(a, b);
         }
     } else if (ITEM_TYPE(b->id) == 1) {
-        lv = LV_EX(b) + 1;
+        int lv = LV_EX(b) + 1;
+
         if (ITEM_TYPE(a->id) == 2) {
             int attr;
             u8 attr8;
 
             if (flag == 0) {
                 ret = 0;
-                return ret;
+                goto end;
             }
             attr = ATTR(b);
             attr8 = attr;
@@ -2219,7 +2220,7 @@ int cItemMgr::combine(ItemWork* a, ItemWork* b, int flag)
             } else {
                 attr = attr == 0;
                 if (ida == WeaponId2BulletId(idb, attr)) {
-                    u16 n = a->num;
+                    int n = a->num;
 
                     a->id = WeaponId2BulletId(idb, attr8);
                     a->num = BULLET(b);
@@ -2275,6 +2276,7 @@ int cItemMgr::combine(ItemWork* a, ItemWork* b, int flag)
     if (b->num == 0) {
         erase(b);
     }
+end:
     return ret;
 }
 
@@ -2413,7 +2415,7 @@ int cItemMgr::reloadable(ItemWork* p, int flag)
     }
     WeaponId2ChargeNum(id, LV_EX(p) + 1);
     have = BULLET(p);
-    max = WeaponId2ChargeNum(id, LV_EX(p) + 1);
+    max = WeaponId2ChargeNumI(id, LV_EX(p) + 1);
     if (have < max) {
         if (search(WeaponId2BulletId(id, ATTR(p))) != 0) {
             ret = 1;
@@ -2856,8 +2858,11 @@ void cItemMgr::takeOver()
                 ItemWork* q = ItemMgr.search(p->id);
 
                 if (q != 0) {
+                    u16 max;
+
                     q->num += p->num;
-                    if (q->num > ITEM_MAX(q->id)) {
+                    max = ITEM_MAX(q->id);
+                    if (q->num > max) {
                         q->num = ITEM_MAX(q->id);
                     }
                     p->flags = 0;

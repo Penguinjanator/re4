@@ -118,6 +118,10 @@ static inline void U32Set(u32& d, u32 v) { d = v; }
 static inline void S32Set(s32& d, s32 v) { d = v; }
 // One flag test per call: fold would merge `(f & A) || (f & B)` on one lvalue into a single mask.
 static inline u32 Flag54(u32 b) { return pG->flags_54 & b; }
+// 64-bit key tests kept as u64 values: `(hi & 0) | (lo & b)` is tested with `or.` of both words
+// (a plain `if (Key.trg & b)` is narrowed to the low word).
+static inline u64 KeyTrg(u64 b) { return Key.trg & b; }
+static inline u64 KeyOn(u64 b) { return Key.on & b; }
 
 union FadeColor {
     GXColor c;
@@ -127,14 +131,22 @@ union FadeColor {
 // FadeSet with two colour words. The volatile locals are real stack objects allocated where the
 // inline is expanded (the first two frame slots, reused by every call) and their addresses are
 // hard-register argument sets (`addi rN, r1, 8` recomputed at each call, never PRE'd).
+class FadeCol {
+public:
+    union {
+        GXColor c;
+        u32 w;
+    };
+    ~FadeCol() {}
+};
 static inline void fadeSet(int no, u32 start, u32 end, u32 time)
 {
-    volatile FadeColor c0;
-    volatile FadeColor c1;
+    FadeCol c0;
+    FadeCol c1;
 
     c1.w = end;
     c0.w = start;
-    FadeSet(no, (GXColor*) &c0.c, (GXColor*) &c1.c, time, 0, 0);
+    FadeSet(no, &c0.c, &c1.c, time, 0, 0);
 }
 
 // Option archive (pG->pOptionData): offsets to the died demo id data.
@@ -571,7 +583,6 @@ void gameMainLoop()
     static int preb_slow_flg = 1;
     static f32 player_Seq_speed = 0.6f;
     int slow;
-    int i;
     int nObj;
 
     BitOff(pG->flags_5014, 0x10000000);
@@ -680,34 +691,34 @@ void gameMainLoop()
             eprintf(0x180, 0xB6, 0, 12, "SCR         %4d", nObj);
             eprintf(0x180, 0xC4, 0, 12, "LIT");
             LightMgr.dispWorkNum(0x1A0, 0xC4, 12, 0);
-            for (i = 0; i <= 19; i++) {
+            for (int i = 0; i <= 19; i++) {
                 if (i == 19) {
-                    eprintf(40, 0x150, 0, 14, "[%2d -inf] : %3d  %6d %4.2f", 19, g_at_cnt[19], g_at_cyc[19],
-                            (f32) g_at_cyc[19] / (f32) g_at_total_cyc * 100.0f);
+                    eprintf(40, 0x150, 0, 14, "[%2d -inf] : %3d  %6d %4.2f", i, g_at_cnt[i], g_at_cyc[i],
+                            (f32) g_at_cyc[i] / (f32) g_at_total_cyc * 100.0f);
                 } else {
                     eprintf(40, (i + 2) * 16, 0, 14, "[%2d - %2d] : %3d  %6d %4.2f", i, i + 1, g_at_cnt[i],
                             g_at_cyc[i], (f32) g_at_cyc[i] / (f32) g_at_total_cyc * 100.0f);
                 }
-                g_at_cyc[i] = 0;
                 g_at_cnt[i] = 0;
+                g_at_cyc[i] = 0;
             }
             eprintf(40, 0x160, 0, 14, "[TOTAL]:%6d CYC:%d", g_at_total, g_at_total_cyc);
-            g_at_total_cyc = 0;
             g_at_total = 0;
-            for (i = 0; i <= 19; i++) {
+            g_at_total_cyc = 0;
+            for (int i = 0; i <= 19; i++) {
                 if (i == 19) {
-                    eprintf(40, 0x150, 0, 20, "[%2d -inf] : %3d  %6d %4.2f", 19, g_at2_cnt[19], g_at2_cyc[19],
-                            (f32) g_at2_cyc[19] / (f32) g_at2_total_cyc * 100.0f);
+                    eprintf(40, 0x150, 0, 20, "[%2d -inf] : %3d  %6d %4.2f", i, g_at2_cnt[i], g_at2_cyc[i],
+                            (f32) g_at2_cyc[i] / (f32) g_at2_total_cyc * 100.0f);
                 } else {
                     eprintf(40, (i + 2) * 16, 0, 20, "[%2d - %2d] : %3d  %6d %4.2f", i, i + 1, g_at2_cnt[i],
                             g_at2_cyc[i], (f32) g_at2_cyc[i] / (f32) g_at2_total_cyc * 100.0f);
                 }
-                g_at2_cyc[i] = 0;
                 g_at2_cnt[i] = 0;
+                g_at2_cyc[i] = 0;
             }
             eprintf(40, 0x160, 0, 20, "[TOTAL]:%6d CYC:%d", g_at2_total, g_at2_total_cyc);
-            g_at2_total_cyc = 0;
             g_at2_total = 0;
+            g_at2_total_cyc = 0;
         }
     }
     LightAreaUpdate();
@@ -721,7 +732,7 @@ void gameMainLoop()
     if (!(pG->flags_54 & 0x200000)) {
         gameDebugDisp();
     }
-    if ((Key.trg & 0x2000) && !(Key.on & 0x400000) && !(pG->flags_60 & 0x80000000) && OptionOpenCheck() == 1) {
+    if (KeyTrg(0x2000) && !KeyOn(0x400000) && !(pG->flags_60 & 0x80000000) && OptionOpenCheck() == 1) {
         Game.mode_bak = pG->mode32;
         pG->x20 = 6;
         pG->x21 = 0;
@@ -952,7 +963,13 @@ void gameEnding()
 #line 1419 "D:/Bio4/Prog/game.cpp"
         req = DvdReadN("Etc/Ending.tpl", 0, 0, 0, 0, 5, __FILE__, __LINE__);
         Dvd.ReadCheck(req, 0, 0, (void**) &pTpl);
-        fadeSet(0x80000000, 0x000000FF, 0x00000000, 30);
+        {
+            FadeColor c0;
+            FadeColor c1;
+            c0.w = 0x000000FF;
+            c1.w = 0x00000000;
+            FadeSet(0x80000000, &c0.c, &c1.c, 30, 0, 0);
+        }
         pG->x21++;
         break;
     }
@@ -1036,16 +1053,17 @@ void gameDiedemoCheck()
 void gameDiedemo(DiedemoWork* w)
 {
     int cnt = 0;
-    int step = 0;
+    u32 step = 0;
     int sel = 1;
     int timer = 0;
     int cnt2 = 0;
     int kind;
     int id;
-    u32 trg;
-    IdUnit* u;
+    u64 trg;
 
     OSReport("--DIEDEMO START!!\n");
+    timer = 0;
+    cnt2 = 0;
     for (;;) {
         switch (step) {
         case 0:
@@ -1072,28 +1090,24 @@ void gameDiedemo(DiedemoWork* w)
                 break;
             }
             if (pG->flags_5018 & 0x1000000) {
-                u = IdSys.unitPtr(0, 0x2D);
-                u->flags |= 8;
+                IdSys.unitPtr(0, 0x2D)->flags |= 8;
                 fadeSet(0x80000002, 0x000000FF, 0x00000000, 1);
             } else {
-                u = IdSys.unitPtr(0, 0x2D);
-                u->flags &= ~8;
+                IdSys.unitPtr(0, 0x2D)->flags &= ~8;
             }
             SndAllFadeOut();
             step++;
             SndStrReq(0, 0, (int) 0x80000003, 0, 0, 0.0f);
             /* fallthrough */
         case 2:
-            if (cnt >= w->time + 0x10E || (Key.trg & 1)) {
+            if (cnt >= w->time + 0x10E || KeyTrg(0x80000000)) {
                 IdSys.set((void*) (((OptionArc*) pG->pOptionData)->ofs_18 + (u32) pG->pOptionData), 0xFF, 0x2E, 0x13, 5, 0);
                 cnt2 = 0;
                 step++;
                 IdSys.beMove(IdSys.unitPtr(0x30, 0x2E), 0);
                 IdSys.beMove(IdSys.unitPtr(0x40, 0x2E), 0);
-                u = IdSys.unitPtr(0, 0x2E);
-                u->flags |= 8;
-                u = IdSys.unitPtr(1, 0x2E);
-                u->flags &= ~8;
+                IdSys.unitPtr(0, 0x2E)->flags |= 8;
+                IdSys.unitPtr(1, 0x2E)->flags &= ~8;
                 BitSet(pG->flags_170, 0xFFFFFFFF);
                 BitOff(pG->flags_170, 0x40);
             }
@@ -1105,7 +1119,7 @@ void gameDiedemo(DiedemoWork* w)
             }
             break;
         case 4:
-            trg = (Key.trg & 1) != 0;
+            trg = KeyTrg(0x80000000);
             if (trg) {
                 if (sel) {
                     timer = 0xB1;
@@ -1123,27 +1137,23 @@ void gameDiedemo(DiedemoWork* w)
             } else {
                 int old = sel;
 
-                if (Key.trg & 0x08000000) {
+                if (KeyTrg(0x08000000)) {
                     sel = 1;
                 }
-                if (Key.trg & 0x04000000) {
+                if (KeyTrg(0x04000000)) {
                     sel = 0;
                 }
                 if (old != sel) {
-                    IdSys.unitPtr(0, 0x2E)->timer[2] = trg;
-                    IdSys.unitPtr(1, 0x2E)->timer[2] = trg;
+                    IdSys.unitPtr(0, 0x2E)->timer[2] = 0;
+                    IdSys.unitPtr(1, 0x2E)->timer[2] = 0;
                     SndCall(0, 6, 0, 0, 0, 0);
                 }
                 if (sel) {
-                    u = IdSys.unitPtr(0, 0x2E);
-                    u->flags |= 8;
-                    u = IdSys.unitPtr(1, 0x2E);
-                    u->flags &= ~8;
+                    IdSys.unitPtr(0, 0x2E)->flags |= 8;
+                    IdSys.unitPtr(1, 0x2E)->flags &= ~8;
                 } else {
-                    u = IdSys.unitPtr(0, 0x2E);
-                    u->flags &= ~8;
-                    u = IdSys.unitPtr(1, 0x2E);
-                    u->flags |= 8;
+                    IdSys.unitPtr(0, 0x2E)->flags &= ~8;
+                    IdSys.unitPtr(1, 0x2E)->flags |= 8;
                 }
             }
             break;
@@ -1179,7 +1189,7 @@ void gameDoordemo()
     if (pG->flags_68 & 0x80000000) {
         fadeSet(0, 0x00000000, 0x000000FF, 0);
         TaskSleep(1);
-    } else if ((pG->flags_54 & 0x80000) || (pG->flags_54 & 0x100)) {
+    } else if (Flag54(0x80000) || Flag54(0x100)) {
         fadeSet(0, 0x00000000, 0x000000FF, 0);
     } else {
         switch (SceSys.x75) {
@@ -1203,7 +1213,7 @@ void gameDoordemo()
         }
         }
     }
-    if (!(pG->flags_54 & 0x80000) && !(pG->flags_54 & 0x100)) {
+    if (!Flag54(0x80000) && !Flag54(0x100)) {
         cSceSys* s = &SceSys;
         if (s->x10 != 0) {
             ((void (*)(int)) s->x10)(s->x14);
@@ -1231,7 +1241,7 @@ void gameDoordemo()
             TaskSleep(1);
         }
     }
-    if (!(pG->flags_54 & 0x80000) && !(pG->flags_54 & 0x100)) {
+    if (!Flag54(0x80000) && !Flag54(0x100)) {
         DoorSeCall(0);
     }
     memcpy((u8*) pG + 0x4FC0, &pG->next_pos, sizeof(Vec));
@@ -1614,10 +1624,10 @@ void gameDebugDisp()
         if (pG->flags_68 & 0x1000) {
             for (i = 0; i < EmMgr.nArray; i++) {
                 cEm* em = (cEm*) ((u8*) EmMgr.pArray + EmMgr.size * i);
-                Vec pos;
                 Vec pos2;
-                Vec scr;
+                Vec pos;
                 Vec scr2;
+                Vec scr;
                 int hit;
 
                 if (!em->isAlive()) {

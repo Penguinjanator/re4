@@ -159,6 +159,8 @@ void itemInfoI(int id, ItemInfo* info) asm("itemInfo");
 // weapon item id -> its bullet item id (attr: ItemWork::x8 >> 13), charge count, max tune level per type
 u16 WeaponId2BulletId(u16 id, int attr);
 u8 WeaponId2ChargeNum(u16 id, int level);
+// int view: reloadable() masks the result to u16 (`clrlwi 16`) in the original build
+int WeaponId2ChargeNumI(u16 id, int level) asm("WeaponId2ChargeNum");
 int WeaponId2MaxLevel(u16 id, int type);
 // weapon tune ratios at tune level `level` (examine: power x10 / speed, reload x100 percent)
 f32 getPowerRatio(u16 id, s8 level);

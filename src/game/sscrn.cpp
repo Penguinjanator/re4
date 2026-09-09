@@ -731,8 +731,7 @@ void SubScreenExit()
             } else {
                 pG->flags_170 = wk->save170;
             }
-            wk->type = 0;
-            wk->flags = 0;
+            wk->type = wk->flags = 0;
             pG->debug_mode = wk->debugMode;
             if (wk->x354) {
                 pG->flags_68 |= 0x40000000;
@@ -773,13 +772,25 @@ void OpeOwTypeSet(u8 type)
     pG->ope_x82FC = 0;
 }
 
+// Player position through an inline helper: the caller's `&pos` (a `(plus vsv N)`) is substituted
+// for the read-only pointer parameter in the hard-register argument set and in the stores (fresh
+// `addi r4, r1, 0x68`, `stfs 0x68..0x70(r1)`), so no pseudo holds the address and the following
+// `Vec* r = &pos` for setAng is a fresh pseudo that cse cannot merge with it (`addi r9, r1, 0x68`,
+// `stfs f31, 8(r9)`). See AGENTS.md "FadeSet colour pair".
+static inline void PlSetPosW(cPlayer* pl, Vec* v, f32 x, f32 y, f32 z)
+{
+    v->x = x;
+    v->y = y;
+    v->z = z;
+    pl->setPos(v);
+}
+
 void OpeSetOpenTerm(int no, f32 x, f32 y, f32 z, f32 ang)
 {
     SubScreenWork* wk = &SubScreenWk;
     wk->cancel = 0;
     cPlayer* pl = pPL;
     int strTbl[24] = {3, 3, 0x33, 3, 0x33, 3, 3, 0x33, 3, 0x33, 0x33, 3, 3, 3, 0x33, 3, 3, 3, 3, 0x33, 3, 3, 3, 3};
-    void* pMot = &pl->pMotion;
     Vec pos;
     Vec rot;
     int i;
@@ -790,14 +801,8 @@ void OpeSetOpenTerm(int no, f32 x, f32 y, f32 z, f32 ang)
     if (x != 0.0f) {
         wk->savePos = pPL->pos;
         wk->saveRot = pPL->rot;
-        pos.x = x;
-        pos.y = y;
-        pos.z = z;
-        pPL->setPos(&pos);
+        PlSetPosW(pPL, &pos, x, y, z);
         {
-            // OPEN: the target computes a fresh &pos here (`addi r9, r1, 0x68`, stores z through it)
-            // instead of reusing the one passed to setPos; no form found that keeps the slot shared
-            // without cse merging the two addresses.
             Vec* r = &pos;
             pos.x = 0.0f;
             pos.y = ang;
@@ -814,7 +819,7 @@ void OpeSetOpenTerm(int no, f32 x, f32 y, f32 z, f32 ang)
     pl->setNoSuspend(1);
     PlSetEyeMode(1);
     wk->strBlk = SndStrPlayBlock(1, strTbl[no], 0.0f);
-    MotionSetCore(pl, pMot, PL_ARC_PTR(pG->pPlArc, 0x79), 0, 0, 0x201, 0);
+    MotionSetCore(pl, &pl->pMotion, PL_ARC_PTR(pG->pPlArc, 0x79), 0, 0, 0x201, 0);
     SceSleep(1);
     pG->flags_54 &= ~0x400;
     for (i = 0; i <= 20; i++) {

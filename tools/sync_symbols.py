@@ -78,6 +78,12 @@ def demangle_v2(sym):
             return f"operator{OPS[m.group(1)]}"
         cls, _ = read_class(rest)
         return f"{cls}::operator{OPS[m.group(1)]}" if cls else None
+    # static data member: _7cPlayer.SPEED_WALK_TURN  (Bio4.sym: "cPlayer::SPEED_WALK_TURN")
+    m = re.match(r"^_(\d+\w*?)\.([A-Za-z_]\w*)$", sym)
+    if m:
+        cls, rest = read_class(m.group(1))
+        if cls and not rest:
+            return f"{cls}::{m.group(2)}"
     # method: Name__13Class<args>  /  function: Name__F<args>  /  static member: Name__13Class (no args)
     m = re.match(r"^(.+?)__(.*)$", sym)
     if m and not sym.startswith("__"):

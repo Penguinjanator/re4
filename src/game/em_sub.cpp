@@ -83,6 +83,16 @@ static inline void PSet(EmHitInfo*& d, EmHitInfo* v)
     d = v;
 }
 
+static inline void ISet(int& d, int v)
+{
+    d = v;
+}
+
+static inline void HSet(u16& d, int v)
+{
+    d = v;
+}
+
 // `f &= mask` through a reference, same purpose (BitOff16 with its `~b` keeps a 32-bit mask).
 static inline void MaskAnd16(u16& f, u16 mask)
 {
@@ -2061,7 +2071,7 @@ int LifeDownSet2(cEm* em, int dmg, int rnd, int flag)
 void PlSetDamage(int type, int dmg, int flag)
 {
     pPL->dmg.set(0, 0x1E);
-    pPL->x378 = pPL->x37C;
+    BitSet(pPL->x378, pPL->x37C);
     if (dmg != 0) {
         LifeDownSet2(pPL, dmg, 0, flag);
     }
@@ -2070,7 +2080,7 @@ void PlSetDamage(int type, int dmg, int flag)
             type = 7;
         }
         if (pG->flags_68 & 0x800000) {
-            pG->pl_life = pG->pl_life_max;
+            HSet(pG->pl_life, pG->pl_life_max);
             if (type == 6) {
                 type = 2;
             }
@@ -2080,7 +2090,7 @@ void PlSetDamage(int type, int dmg, int flag)
         }
     }
     if ((s16) pG->pl_life <= 1 && (pG->flags_6C & 0x400)) {
-        pG->pl_life = 2;
+        HSet(pG->pl_life, 2);
         if (type == 6) {
             type = 2;
         }
@@ -2092,12 +2102,12 @@ void PlSetDamage(int type, int dmg, int flag)
         cPlayer* p;
 
         pG->pl_life = 0;
-        pPL->st.x325 = 0x80;
+        pPLS->st.x325 = 0x80;
         p = pPL;
+        p->xFF = 0;
         p->xFC = 2;
         p->xFD = 0;
         p->xFE = 0;
-        p->xFF = 0;
     } else {
         pPL->setDamage((u8) type, 0, 123.0f, 0, 0xFF);
     }
@@ -2393,7 +2403,7 @@ EmHitInfo* EmAtkHitSubCk2(EmAtkInfo* info, Vec* a, Vec* b)
 
 // Start the catch: turn the enemy and the player to face each other (ang offset for the player),
 // place the player at (x, y, z) in front of the enemy and run SetPlDamage(a).
-void EmCatchPLSet(cEm* em, u32 type, int a, f32 ang, f32 x, f32 y, f32 z)
+void EmCatchPLSet(cEm* em, f32 ang, u32 type, int a, f32 x, f32 y, f32 z)
 {
     Mtx m;
     Vec p;
@@ -2402,10 +2412,11 @@ void EmCatchPLSet(cEm* em, u32 type, int a, f32 ang, f32 x, f32 y, f32 z)
 
     r = em->rot.y;
     r = LIMIT_ANGLE(r + Muku(&em->pos, &pPL->pos, r, PI));
-    em->catchTurn = Muku2(em->rot.y, r, PI);
+    FSet(em->catchTurn, Muku2(em->rot.y, r, PI));
     r = pPL->rot.y;
-    r = LIMIT_ANGLE(r + Muku(&pPL->pos, &em->pos, r, PI) + ang);
-    pPL->catchTurn = Muku2(pPL->rot.y, r, PI);
+    r += Muku(&pPL->pos, &em->pos, r, PI);
+    r = LIMIT_ANGLE(r + ang);
+    FSet(pPL->catchTurn, Muku2(pPL->rot.y, r, PI));
     PSMTXRotRad(m, 'y', LIMIT_ANGLE(pPL->rot.y + pPL->catchTurn));
     TransMatrix(m, &pPL->pos);
     p.x = x;
@@ -2436,10 +2447,10 @@ void EmCatchPLSet(cEm* em, u32 type, int a, f32 ang, f32 x, f32 y, f32 z)
         break;
     }
     em->x3A8 = em->pos;
-    pPLS->x3A8 = pPLS->pos;
-    em->dmgType = (int) pPLS;
-    pPLS->dmgType = (int) em;
-    pPLS->x378 = em->x378;
+    pPL->x3A8 = pPL->pos;
+    ISet(em->dmgType, (int) pPLS);
+    ISet(pPL->dmgType, (int) em);
+    pPL->x378 = em->x378;
     SetPlDamage((int) em, (void (*)(cPlayer*)) a);
 }
 

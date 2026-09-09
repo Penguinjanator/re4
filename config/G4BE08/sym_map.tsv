@@ -12804,9 +12804,9 @@ address	size	section	unit	scope	name	demangled
 0x80316AE0	0x8	.sdata2	lib/GXFrameBuf.c	local	@234_80316AE0	@234
 0x80316AE8	0x8	.sdata2	lib/texPalette.c	local	@55_80316AE8	@55
 0x80316AF0	0x4	.sdata2	game/dvd.cpp	local	BkBlack	BkBlack
-0x80316AF4	0x4	.sdata2	game/pl_class.cpp	local	cPlayer_SPEED_WALK_TURN	cPlayer::SPEED_WALK_TURN
-0x80316AF8	0x4	.sdata2	game/pl_class.cpp	local	cPlayer_SPEED_RUN_TURN	cPlayer::SPEED_RUN_TURN
-0x80316AFC	0x4	.sdata2	game/pl_class.cpp	global	cPlWaist_ROT_LIMIT	cPlWaist::ROT_LIMIT
+0x80316AF4	0x4	.sdata2	game/pl_class.cpp	global	_7cPlayer.SPEED_WALK_TURN	cPlayer::SPEED_WALK_TURN
+0x80316AF8	0x4	.sdata2	game/pl_class.cpp	global	_7cPlayer.SPEED_RUN_TURN	cPlayer::SPEED_RUN_TURN
+0x80316AFC	0x4	.sdata2	game/pl_class.cpp	global	_8cPlWaist.ROT_LIMIT	cPlWaist::ROT_LIMIT
 0x80316B00	0x1	.sdata2	game/scroll.cpp	local	ScrObjIdNum	ScrObjIdNum
 0x80316B01	0x3	.sdata2	game/scroll.cpp	global	lbl_80316B01	.
 0x80316B04	0x4	.sdata2	game/shadow.cpp	local	col0.943	col0.943

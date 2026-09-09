@@ -75,11 +75,6 @@ static inline void PlRoutineSet(cPlayer* pl, int r0, int r1, int r2, int r3)
     pl->xFF = r3;
 }
 
-static inline void SetFC(cPlayer* pl, int v) { pl->xFC = v; }
-static inline void SetFD(cPlayer* pl, int v) { pl->xFD = v; }
-static inline void SetFE(cPlayer* pl, int v) { pl->xFE = v; }
-static inline void SetFF(cPlayer* pl, int v) { pl->xFF = v; }
-static inline void SetHokan(cPlayer* pl, int v) { pl->x4FD = v; }
 // 1 when the push target is gone or dead.
 static inline int pushTargetDead(cPlPush* p)
 {
@@ -517,7 +512,10 @@ void pl_R1_Walk(cPlayer* pl)
     pl->motionMove();
     if (pl->actionSelect() == 0) {
         if ((Key.on & 0x40000000) && joyKamae() == 0) {
-            PlRoutineSet(pl, 0, 3, 2, 4);
+            pl->xFC = 0;
+            pl->xFD = 3;
+            pl->xFE = 2;
+            pl->xFF = 4;
             pl->x4FD = 5;
             pl->x4FC = (u8) (pl->frame * 255.0f / (f32) pl->frameMax);
         } else if (!(Key.on & 1)) {
@@ -633,15 +631,17 @@ void pl_R1_Run(cPlayer* pl)
     }
     if (pl->actionSelect() == 0) {
         if ((Key.on & 1) && !(Key.on & 0x40000000)) {
-            PlRoutineSet(pl, 0, 1, 0, 4);
+            pl->xFC = 0;
+            pl->xFD = 1;
+            pl->xFE = 0;
+            pl->xFF = 4;
             pl->x4FD = 5;
             pl->x4FC = (u8) (pl->frame * 255.0f / (f32) pl->frameMax);
         } else {
             u64 key = Key.on;
             if (key & 4) {
                 pl->rot.y -= cPlayer::SPEED_RUN_TURN * pl_speed2_xxx;
-            }
-            if (key & 8) {
+            } else if (key & 8) {
                 pl->rot.y += cPlayer::SPEED_RUN_TURN * pl_speed2_xxx;
             }
             pl->rot.y = LIMIT_ANGLE(pl->rot.y);
@@ -649,11 +649,11 @@ void pl_R1_Run(cPlayer* pl)
                 PlRoutineSet(pl, 0, 0, 0, 0);
             } else if (!(Key.on & 0x40000000) || !(Key.on & 1)) {
                 if (Key.on & 1) {
-                    SetFE(pl, 0);
-                    SetFD(pl, 1);
-                    SetFC(pl, 0);
-                    SetHokan(pl, 5);
-                    SetFF(pl, 4);
+                    pl->x4FD = 5;
+                    pl->xFC = 0;
+                    pl->xFD = 1;
+                    pl->xFF = 4;
+                    pl->xFE = 0;
                     pl->x4FC = (u8) (pl->frame * 255.0f / (f32) pl->frameMax);
                 } else {
                     PlRoutineSet(pl, 0, 0, 0, 0);

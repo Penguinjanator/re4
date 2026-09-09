@@ -208,6 +208,11 @@ void EtcSetAddAmb(cModel* m, int no);
 
 int EspGetEfmTplAddr(int id, void** tpl);   // game/eff_sys.cpp
 
+// cRoomData::getRoomSavePtr(u16) called with GetEtcFlgPtr's int room: the original passes the
+// register through unmasked (narrow-argument compiler difference, see AGENTS.md), so it is called
+// through an int-parameter alias.
+u8* RoomDataGetRoomSavePtr(cRoomData* r, int room) asm("getRoomSavePtr__9cRoomDataUs");
+
 // One slot of the room etc table.
 class cEtcTbl {
 public:
@@ -216,7 +221,11 @@ public:
     cModel* pModel;      // 0x08  the model
 
     cEtcTbl() { Init(); }
-    void Init();
+    void Init() {
+        stat = 0;
+        pData = 0;
+        pModel = 0;
+    }
     void RegistData(EtcSetData* d, cModel* model) {
         if (stat == 1) {
             pLog->err(0, 0, "cEtcTbk::RegistData() : No[%2x] is already used.(id=%2x)", d->no, d->id);
@@ -233,43 +242,14 @@ static u32 g_LastNo;         // highest etc slot the room's list used
 static cEtcTbl g_EtcTbl[0x40];
 u32 g_Etc_das_addr[0x68];
 
-static EtcAmbRgb etc_day_rgb[17] = {
-    {0x00, 0x00, 0x00}, {0x5A, 0x5A, 0x5A}, {0x00, 0x00, 0x00}, {0x5A, 0x5A, 0x5A}, {0x00, 0x00, 0x00},
-    {0x00, 0x00, 0x00}, {0x00, 0x00, 0x00}, {0x5A, 0x5A, 0x5A}, {0x00, 0x00, 0x00}, {0x32, 0x32, 0x32},
-    {0x20, 0x20, 0x20}, {0x20, 0x20, 0x20}, {0x20, 0x20, 0x20}, {0x20, 0x20, 0x20}, {0x1E, 0x1E, 0x1E},
-    {0x28, 0x28, 0x28}, {0x32, 0x32, 0x32},
-};
-EtcAmbRgb etc_night_rgb[17] = {
-    {0x00, 0x00, 0x00}, {0x32, 0x32, 0x32}, {0x00, 0x00, 0x00}, {0x10, 0x10, 0x10}, {0x00, 0x00, 0x00},
-    {0x00, 0x00, 0x00}, {0x00, 0x00, 0x00}, {0x5A, 0x5A, 0x5A}, {0x00, 0x00, 0x00}, {0x10, 0x10, 0x10},
-    {0x20, 0x20, 0x20}, {0x20, 0x20, 0x20}, {0x20, 0x20, 0x20}, {0x20, 0x20, 0x20}, {0x1E, 0x1E, 0x1E},
-    {0x28, 0x28, 0x28}, {0x32, 0x32, 0x32},
-};
-EtcAmbRgb etc_day2_rgb[17] = {
-    {0x00, 0x00, 0x00}, {0x2D, 0x2D, 0x2D}, {0x00, 0x00, 0x00}, {0x28, 0x28, 0x28}, {0x00, 0x00, 0x00},
-    {0x00, 0x00, 0x00}, {0x00, 0x00, 0x00}, {0x5A, 0x5A, 0x5A}, {0x00, 0x00, 0x00}, {0x1E, 0x1E, 0x1E},
-    {0x20, 0x20, 0x20}, {0x20, 0x20, 0x20}, {0x20, 0x20, 0x20}, {0x20, 0x20, 0x20}, {0x1E, 0x1E, 0x1E},
-    {0x28, 0x28, 0x28}, {0x32, 0x32, 0x32},
-};
-EtcAmbRgb etc_day3_rgb[17] = {
-    {0x00, 0x00, 0x00}, {0x40, 0x40, 0x40}, {0x00, 0x00, 0x00}, {0x40, 0x40, 0x40}, {0x00, 0x00, 0x00},
-    {0x00, 0x00, 0x00}, {0x00, 0x00, 0x00}, {0x5A, 0x5A, 0x5A}, {0x00, 0x00, 0x00}, {0x28, 0x28, 0x28},
-    {0x20, 0x20, 0x20}, {0x20, 0x20, 0x20}, {0x20, 0x20, 0x20}, {0x20, 0x20, 0x20}, {0x1E, 0x1E, 0x1E},
-    {0x28, 0x28, 0x28}, {0x32, 0x32, 0x32},
-};
-EtcAmbRgb etc_day4_rgb[17] = {
-    {0x00, 0x00, 0x00}, {0x50, 0x50, 0x50}, {0x00, 0x00, 0x00}, {0x50, 0x50, 0x50}, {0x00, 0x00, 0x00},
-    {0x00, 0x00, 0x00}, {0x00, 0x00, 0x00}, {0x5A, 0x5A, 0x5A}, {0x00, 0x00, 0x00}, {0x46, 0x46, 0x46},
-    {0x20, 0x20, 0x20}, {0x28, 0x28, 0x28}, {0x14, 0x14, 0x14}, {0x20, 0x20, 0x20}, {0x1E, 0x1E, 0x1E},
-    {0x28, 0x28, 0x28}, {0x32, 0x32, 0x32},
-};
 
 void EtcModelDebugDisp()
 {
+    cEtcTbl* t;
     u32 i;
 
     for (i = 0; i < 0x40; i++) {
-        cEtcTbl* t = &g_EtcTbl[i];
+        t = &g_EtcTbl[i];
         if (t->stat == 1) {
             Vec scr;
             Vec pos;
@@ -293,7 +273,7 @@ int getRoomEtc(int no, int id, cEm** out, int flag)
         }
         return 0;
     }
-    if (t->pData->id != id) {
+    if (id != t->pData->id) {
         if (flag == 1) {
             pLog->err(6, 0, "getRoomEtc() : no[%d] is ID diff[%02x/%02x].", no, id, t->pData->id);
         }
@@ -322,11 +302,11 @@ int getRoomEtcID(int no)
 {
     cEtcTbl* t = &g_EtcTbl[no];
 
-    if (t->stat == 1) {
-        return t->pData->id;
+    if (t->stat != 1) {
+        pLog->err(6, 0, "getRoomEtcID() : No[%d] not Initialized.", no);
+        return 0x68;
     }
-    pLog->err(6, 0, "getRoomEtcID() : No[%d] not Initialized.", no);
-    return 0x68;
+    return t->pData->id;
 }
 
 void* GetEtcAddr(void* arc, const char* name)
@@ -357,8 +337,8 @@ void EtcModelInit()
     for (i = 0; i < 0x68; i++) {
         g_Etc_das_addr[i] = 0;
     }
-    g_addr = 0;
     g_LastNo = 0;
+    g_addr = 0;
 }
 
 void EtcModelRoomInit()
@@ -373,8 +353,8 @@ void EtcModelRoomInit()
     for (i = 0; i < 0x68; i++) {
         g_Etc_das_addr[i] = 0;
     }
-    g_addr = 0;
     g_LastNo = 0;
+    g_addr = 0;
 }
 
 int EtcModelDataLoad(void* addr)
@@ -640,8 +620,7 @@ int Et09_init(void* arc, EtcSetData* d, cModel** out)
     EspDataLoad(GetEtcAddr(arc, "et09.eff"), 0x5D, 0);
     EspDataLoad(GetEtcAddr(arc, "obm4c.eff"), 0xCB, 0);
     bin = GetEtcAddr(arc, "et0900.bin");
-    tpl = GetEtcAddr(arc, "et0900.tpl");
-    em = SetDoor(bin, tpl, &d->pos, &d->rot, 3, d->type);
+    em = SetDoor(bin, GetEtcAddr(arc, "et0900.tpl"), &d->pos, &d->rot, 3, d->type);
     if (em == 0) {
         pLog->err(0, 0, "ET09:Mod err");
         return 0;
@@ -1354,7 +1333,8 @@ static int Et2e_init(void* arc, EtcSetData* d, cModel** out)
         pLog->err(0, 0, "ET2e:Mod err");
         return 0;
     }
-    em->setBreakModel(GetEtcAddr(arc, "et2e01.bin"), tpl);
+    bin = GetEtcAddr(arc, "et2e01.bin");
+    em->setBreakModel(bin, tpl);
     em->setEff(0x82);
     em->setNoSuspend(1);
     *out = em;
@@ -1378,7 +1358,8 @@ int Et2f_init(void* arc, EtcSetData* d, cModel** out)
         pLog->err(0, 0, "ET2f:Mod err");
         return 0;
     }
-    em->setBreakModel(GetEtcAddr(arc, "et2f01.bin"), tpl);
+    bin = GetEtcAddr(arc, "et2f01.bin");
+    em->setBreakModel(bin, tpl);
     em->setEff(0x83);
     em->setNoSuspend(1);
     *out = em;
@@ -2060,8 +2041,8 @@ int Et67_init(void* arc, EtcSetData* d, cModel** out)
 int EtcModelSet(EtcSetData* d)
 {
     void* arc;
-    cModel* model = 0;
     int ret = 0;
+    cModel* model = 0;
 
     if (d->no > 0x3F) {
         pLog->err(0, 0, "EtcModelSet() : Invalid EtcModel No[%d](MAX:%d)", d->no, 0x40);
@@ -2397,12 +2378,12 @@ int EtcModelSet(EtcSetData* d)
 
 int EtcGetDasAddr(int id, void** out)
 {
-    if (g_addr) {
-        *out = g_addr;
-        return 1;
+    if (g_addr == 0) {
+        *out = 0;
+        return 0;
     }
-    *out = 0;
-    return 0;
+    *out = g_addr;
+    return 1;
 }
 
 u16* GetEtcFlgPtr(int no, int room)
@@ -2413,11 +2394,21 @@ u16* GetEtcFlgPtr(int no, int room)
         pLog->err(6, 0, "GetEtcFlgPtr() : Invalid EtcModel No[%d](MAX:%d)", no, 0x40);
         return 0;
     }
-    p = RoomData.getRoomSavePtr(room);
+    p = RoomDataGetRoomSavePtr(&RoomData, room);
     if (p == 0) {
         return 0;
     }
     return &((EtcRoomSave*) p)->etcFlag[no];
+}
+
+// display flag (be_flag bit1) of an etc model
+static inline void etcDispSet(cUnit* u, int on)
+{
+    if (on == 1) {
+        u->be_flag |= 2;
+    } else {
+        u->be_flag &= ~2;
+    }
 }
 
 int getRoomEtcBreak(int no, cEm** out, int flag)
@@ -2454,11 +2445,7 @@ int setRoomEtcDisp(int no, int on, int flag)
         return 1;
     }
     if (getRoomEtc2(no, &em, 0)) {
-        if (on == 1) {
-            em->be_flag |= 2;
-        } else {
-            em->be_flag &= ~2;
-        }
+        etcDispSet(em, on);
         return 1;
     }
     if (flag) {
@@ -2473,11 +2460,7 @@ static int setRoomEtcBreakDisp(int no, int on, int flag)
 
     if (getRoomEtcBreak(no, &em, 0)) {
         if (em->hp > 0) {
-            if (on == 1) {
-                em->be_flag |= 2;
-            } else {
-                em->be_flag &= ~2;
-            }
+            etcDispSet(em, on);
         }
         return 1;
     }
@@ -2928,8 +2911,25 @@ int GetEtcAmbType()
 
 int GetEm10EyeEffectEnable()
 {
-    if (pG->room_id == 0x108 || pG->room_id == 0x106 || pG->room_id == 0x102 || pG->room_id == 0x109 ||
-        pG->room_id == 0x119 || pG->room_id == 0x10A || pG->room_id == 0x10B) {
+    if (pG->room_id == 0x108) {
+        return 0;
+    }
+    if (pG->room_id == 0x106) {
+        return 0;
+    }
+    if (pG->room_id == 0x102) {
+        return 0;
+    }
+    if (pG->room_id == 0x109) {
+        return 0;
+    }
+    if (pG->room_id == 0x119) {
+        return 0;
+    }
+    if (pG->room_id == 0x10A) {
+        return 0;
+    }
+    if (pG->room_id == 0x10B) {
         return 0;
     }
     if (pG->room_id >= 0x100 && pG->room_id <= 0x10B) {
@@ -2943,6 +2943,37 @@ int GetEm10EyeEffectEnable()
     }
     return pG->room_id >= 0x300;
 }
+
+static EtcAmbRgb etc_day_rgb[17] = {
+    {0x00, 0x00, 0x00}, {0x5A, 0x5A, 0x5A}, {0x00, 0x00, 0x00}, {0x5A, 0x5A, 0x5A}, {0x00, 0x00, 0x00},
+    {0x00, 0x00, 0x00}, {0x00, 0x00, 0x00}, {0x5A, 0x5A, 0x5A}, {0x00, 0x00, 0x00}, {0x32, 0x32, 0x32},
+    {0x20, 0x20, 0x20}, {0x20, 0x20, 0x20}, {0x20, 0x20, 0x20}, {0x20, 0x20, 0x20}, {0x1E, 0x1E, 0x1E},
+    {0x28, 0x28, 0x28}, {0x32, 0x32, 0x32},
+};
+EtcAmbRgb etc_night_rgb[17] = {
+    {0x00, 0x00, 0x00}, {0x32, 0x32, 0x32}, {0x00, 0x00, 0x00}, {0x10, 0x10, 0x10}, {0x00, 0x00, 0x00},
+    {0x00, 0x00, 0x00}, {0x00, 0x00, 0x00}, {0x5A, 0x5A, 0x5A}, {0x00, 0x00, 0x00}, {0x10, 0x10, 0x10},
+    {0x20, 0x20, 0x20}, {0x20, 0x20, 0x20}, {0x20, 0x20, 0x20}, {0x20, 0x20, 0x20}, {0x1E, 0x1E, 0x1E},
+    {0x28, 0x28, 0x28}, {0x32, 0x32, 0x32},
+};
+EtcAmbRgb etc_day2_rgb[17] = {
+    {0x00, 0x00, 0x00}, {0x2D, 0x2D, 0x2D}, {0x00, 0x00, 0x00}, {0x28, 0x28, 0x28}, {0x00, 0x00, 0x00},
+    {0x00, 0x00, 0x00}, {0x00, 0x00, 0x00}, {0x5A, 0x5A, 0x5A}, {0x00, 0x00, 0x00}, {0x1E, 0x1E, 0x1E},
+    {0x20, 0x20, 0x20}, {0x20, 0x20, 0x20}, {0x20, 0x20, 0x20}, {0x20, 0x20, 0x20}, {0x1E, 0x1E, 0x1E},
+    {0x28, 0x28, 0x28}, {0x32, 0x32, 0x32},
+};
+EtcAmbRgb etc_day3_rgb[17] = {
+    {0x00, 0x00, 0x00}, {0x40, 0x40, 0x40}, {0x00, 0x00, 0x00}, {0x40, 0x40, 0x40}, {0x00, 0x00, 0x00},
+    {0x00, 0x00, 0x00}, {0x00, 0x00, 0x00}, {0x5A, 0x5A, 0x5A}, {0x00, 0x00, 0x00}, {0x28, 0x28, 0x28},
+    {0x20, 0x20, 0x20}, {0x20, 0x20, 0x20}, {0x20, 0x20, 0x20}, {0x20, 0x20, 0x20}, {0x1E, 0x1E, 0x1E},
+    {0x28, 0x28, 0x28}, {0x32, 0x32, 0x32},
+};
+EtcAmbRgb etc_day4_rgb[17] = {
+    {0x00, 0x00, 0x00}, {0x50, 0x50, 0x50}, {0x00, 0x00, 0x00}, {0x50, 0x50, 0x50}, {0x00, 0x00, 0x00},
+    {0x00, 0x00, 0x00}, {0x00, 0x00, 0x00}, {0x5A, 0x5A, 0x5A}, {0x00, 0x00, 0x00}, {0x46, 0x46, 0x46},
+    {0x20, 0x20, 0x20}, {0x28, 0x28, 0x28}, {0x14, 0x14, 0x14}, {0x20, 0x20, 0x20}, {0x1E, 0x1E, 0x1E},
+    {0x28, 0x28, 0x28}, {0x32, 0x32, 0x32},
+};
 
 void EtcSetAddAmb(cModel* m, int no)
 {
@@ -2980,7 +3011,7 @@ void EtcSetAddAmb(cModel* m, int no)
         pLog->err(6, 0, "EtcSetAddAmb() : invalid type.");
         break;
     }
-    if (r == 0 && g == 0 && b == 0) {
+    if (r == 0 && g == 0 & b == 0) {   // `&`: the original tests g and b with a bitwise and
         m->be_flag &= ~8;
     } else {
         m->be_flag |= 8;
@@ -2988,11 +3019,4 @@ void EtcSetAddAmb(cModel* m, int no)
     m->x139 = r;
     m->x13A = g;
     m->x13B = b;
-}
-
-void cEtcTbl::Init()
-{
-    stat = 0;
-    pData = 0;
-    pModel = 0;
 }

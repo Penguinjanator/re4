@@ -73,8 +73,8 @@ public:
     int readyCheck();
     int actionCheck();
     int ladder2Check();
-    f32 getCliffHeight();
-    int pantsCheck();
+    f32 getCliffHeight(f32 ang);
+    void pantsCheck();
     int ckPlRun();
     void seqSeCtrl();
     void backCheckSet(void* mot);
@@ -83,11 +83,11 @@ public:
     void backCheckCtrlMove();
     int checkBackEm();
     void analyze();
-    int frontCheck();
+    void frontCheck();
     void anaSatInfo();
     void control(int mode);
     int checkAnotherRoute();
-    void moveAnotherRoute();
+    int moveAnotherRoute();
     void damageCheck();
     // scenario damage area hit (sce_at sceAtFunc_damage)
     void setDamage(u8 kind, int arg, f32 power, int a, int b);

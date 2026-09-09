@@ -50,7 +50,14 @@ cc1plus and are therefore compiler-build differences (the original is a later SN
 2. Narrow-argument extension: the original sign/zero-extends narrow values at some call sites and
    entries (`extsh`, `clrlwi 24/16`) where ours treats them as promoted. Workaround: asm-labelled
    alias with the signed/narrow type (id_sys.h `setTimeS`).
-Do not spend unit time on either; use the workarounds and move on.
+3. (candidate) Frame-address PRE: no `addi rX,r1,N; mr rY,rX` pattern exists anywhere in the original
+   asm, while our gcse routinely creates a pseudo for `&local` used in several blocks; the original
+   also never cross-jumps a single-insn tail (`find_cross_jump` minimum). Under investigation with the
+   harness; until then use the `&local` levers (frame-offset-0 local, inline helper taking `Vec*`).
+4. Narrow-argument truncation: the original build does not truncate `int` -> `u16` arguments at call
+   sites nor a wider value on a narrow `return`, but masks a u8-returning call assigned to a u16.
+   Workaround: asm-labelled int-view / narrow-view declarations (item.h `constructI`, `searchI`).
+Do not spend unit time on any of these; use the workarounds and move on.
 
 ## Per-unit compiler flags
 

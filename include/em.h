@@ -88,6 +88,7 @@ struct MotionWorkSub {
 };
 
 struct PlArc;      // global.h
+struct EmiEntry;   // embarrel.h
 class cSubChar;    // pl_npc.h
 class cLight;      // light.h
 
@@ -201,13 +202,25 @@ public:
         u32 x3E0;         // 0x3E0  player: event walk flag / damage timer
         cSubChar* subSelf;         // 0x3E0  cSubChar: the model the routines animate (itself)
     };
-    int x3E4;             // 0x3E4  player damage: 1 = turning towards x400
-    u32 x3E8;             // 0x3E8  player damage (blow): water splash done
-    int x3EC;             // 0x3EC  player damage (emrock plemRockEscape): EMI route point run to (-1 = none)
-    int x3F0;             // 0x3F0  emrock escape: frames since the last button press
-    int x3F4;             // 0x3F4  emrock escape: EMI goal sub type (plemRockEscapeCk)
-    int x3F8;             // 0x3F8  emrock escape: goal reached
-    int x3FC;             // 0x3FC  emrock escape: Rnd() & 1 (action button variant)
+    // 0x3E4 .. 0x400: player fields, and the partner's neck control (cSubChar::neckCtrl) on the same bytes
+    union {
+        struct {
+            int x3E4;             // 0x3E4  player damage: 1 = turning towards x400
+            u32 x3E8;             // 0x3E8  player damage (blow): water splash done
+            int x3EC;             // 0x3EC  player damage (emrock plemRockEscape): EMI route point run to (-1 = none)
+            int x3F0;             // 0x3F0  emrock escape: frames since the last button press
+            int x3F4;             // 0x3F4  emrock escape: EMI goal sub type (plemRockEscapeCk)
+            int x3F8;             // 0x3F8  emrock escape: goal reached
+            int x3FC;             // 0x3FC  emrock escape: Rnd() & 1 (action button variant)
+        };
+        struct {
+            int subNeckOn;        // 0x3E4  cSubChar: neckSet() called this frame
+            f32 subNeckX;         // 0x3E8
+            f32 subNeckAng;       // 0x3EC  cSubChar: current neck angle (parts 3)
+            f32 subNeckZ;         // 0x3F0
+            Vec subNeckPos;       // 0x3F4  cSubChar: position looked at
+        };
+    };
     union {
         f32 x400;         // 0x400  player: event turn limit / damage direction angle (123.0 = none)
         struct {
@@ -237,6 +250,9 @@ public:
             u8 pad_51C[2];
             u8 eyeMode;           // 0x51E  player (pl_sub PlSetEyeMode)
             u8 binoMode;          // 0x51F  player: binocular step (cPlayer::moveBinocular 1 -> 2 -> 3 -> 0)
+            u8 dmgFlag520;        // 0x520  player: 1 once setDamage ran
+            u8 pad_521;
+            u16 dmgCnt522;        // 0x522  player: accumulated setDamage counts; a damage reaction starts past 0xFE
         };
         struct {
             u8 sub404;            // 0x404  cSubChar
@@ -253,18 +269,12 @@ public:
             f32 sub424;           // 0x424
             Vec subOfs;           // 0x428  offset behind the player (atckPos)
             u32 subPlStatus;      // 0x434  PlGetStatus() of the frame
-            u32 sub438;           // 0x438
+            u32 sub438;           // 0x438  scenario attribute of the wall in front (anaSatInfo)
             Vec sub43C;           // 0x43C  hit point of the action wall check (actionCheck)
             Vec sub448;           // 0x448  its normal
-            u8 pad_454[0x498 - 0x454];
-            u32 sub498;           // 0x498
-            u8 pad_49C[0x51C - 0x49C];
-            f32 sub51C;           // 0x51C
+            MotionWorkSub subBackMot;   // 0x454 .. 0x524  look-back motion blended in (backCheckSet -> blendMot)
         };
     };
-    u8 dmgFlag520;        // 0x520  player: 1 once setDamage ran
-    u8 pad_521;
-    u16 dmgCnt522;        // 0x522  player: accumulated setDamage counts; a damage reaction starts past 0xFE
     u8 pad_524[8];
     f32 sub52C;           // 0x52C  cSubChar: fence / window action direction
     int subHideMode;      // 0x530  cSubChar (pl_sub SubCharCtrlHide); pl_npc: general step counter
@@ -275,9 +285,8 @@ public:
     Vec subHidePos;       // 0x544  cSubChar hide position
     u8 sub550;            // 0x550  cSubChar: frames until the route is re-checked
     u8 pad_551[3];
-    u32 sub554;           // 0x554  cSubChar
-    u32 sub558;           // 0x558
-    u8 pad_55C[8];
+    struct EmiEntry* sub554;   // 0x554  cSubChar: EMI route entry (type 0xB) walked to (embarrel.h)
+    Vec sub558;           // 0x558  cSubChar: ledge position to wait at (catchOn / actionCheck)
     f32 sub564;           // 0x564  cSubChar: angle to turn to while waiting to be caught
     int subAux0;          // 0x568  cSubChar (SetSubAux/SetSubBulldozer arguments)
     int subAux1;          // 0x56C

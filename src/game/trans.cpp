@@ -832,8 +832,8 @@ void Render()
     GXColor fogCol;
     GXColor c;
 
-    g_prev_add_tpl_addr = (void*) -1;
     g_prev_tpl_addr = (void*) -1;
+    g_prev_add_tpl_addr = (void*) -1;
     GXSetCurrentGXThread();
     if (pG->flags_54 & 0x800) {
         pG->flags_5018 |= 0x10000000;
@@ -880,8 +880,7 @@ void Render()
     ExecOt(0x14);
     pG->Cam = save;
     c.r = c.g = c.b = c.a = 0;
-    fogCol = c;
-    GXSetFog(0, 0.0f, 0.0f, ZNEAR, ZFAR, fogCol);
+    GXSetFog(0, 0.0f, 0.0f, ZNEAR, ZFAR, c);
     ExecOt(0x15);
     if (Filter09GetbUse() == 1) {
         Filter09Render(0);

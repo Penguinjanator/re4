@@ -24,6 +24,7 @@
 #include "rnd.h"
 #include "em_sub.h"
 #include "emhit.h"
+#include "embarrel.h"
 #include "at_mod.h"
 #include "route_ck.h"
 #include "cMotBase.h"
@@ -37,6 +38,7 @@ double atan2(double y, double x);
 f32 sinf(f32 x);
 void* memset(void* dst, int c, unsigned int n);
 void ShapeMove(void* p);
+u16 MotionMoveF(cModel* m, int flag) asm("MotionMove");   // motion.h declares the one-argument form
 int SubLadderClimbCk(cModel* m);
 int SubLadderClimbCk2(cModel* m);
 void pl_fall_ok0();
@@ -542,7 +544,7 @@ void cSubChar::moveMove()
             }
         }
         checkAnotherRoute();
-        sub51C = 0.0f;
+        subBackMot.blendRate = 0.0f;
         sub405 = 0;
         sub406 = 30;
         sub404 = 0;
@@ -2000,4 +2002,1263 @@ void cSubChar::moveDie()
 void cSubChar::moveBull()
 {
     ((void (*)()) subAux0)();
+}
+
+// Routine 5: scenario event: walk to subHidePos along the route.
+void cSubChar::moveEvent()
+{
+    f32 ang;
+
+    switch (xFD) {
+    case 0:
+        MotionMoveF(this, 0);
+        break;
+    case 1:
+        switch (xFE) {
+        case 0:
+            if (mot_ck()) {
+                MOT_SET(subSelf, MOTION(subSelf), SUB_MOT(subSelf, 0x16), SUB_MOT(subSelf, 0x52), 10, 5, 0);
+            } else {
+                MOT_SET(subSelf, MOTION(subSelf), SUB_MOT(subSelf, 0x71), SUB_MOT(subSelf, 0x78), 10, 5, 0);
+            }
+            xFE = 1;
+            motState &= ~1;
+        case 1: {
+            Vec out;
+
+            RouteCkToPos(this, &subHidePos, &out, subHidePos.y > pos.y + 1000.0f, &subX5C8);
+            ang = Muku(&pos, &out, rot.y, 0.44879895f);
+            rot.y += ang;
+            if (fabsf(ang) < 0.20943952f) {
+                if (mot_ck()) {
+                    MOT_SET(subSelf, MOTION(subSelf), SUB_MOT(subSelf, 0x16), SUB_MOT(subSelf, 0x52), 10, 5, 0);
+                } else {
+                    MOT_SET(subSelf, MOTION(subSelf), SUB_MOT(subSelf, 0x71), SUB_MOT(subSelf, 0x78), 10, 5, 0);
+                }
+                xFE = 2;
+            }
+            break;
+        }
+        case 2: {
+            Vec out;
+
+            RouteCkToPos(this, &subHidePos, &out, subHidePos.y > pos.y + 1000.0f, &subX5C8);
+            rot.y += Muku(&pos, &out, rot.y, 0.31415927f);
+            if (GetDistance(pos, subHidePos) < 250000.0f) {
+                if (mot_ck()) {
+                    MOT_SET(subSelf, MOTION(subSelf), SUB_MOT(subSelf, 0x12), SUB_MOT(subSelf, 0x4F), 7, 5, 0);
+                } else {
+                    MOT_SET(subSelf, MOTION(subSelf), SUB_MOT(subSelf, 0x6E), 0, 7, 5, 0);
+                }
+                SubRoutineSet(this, 5, 0, 0, 0);
+            }
+            break;
+        }
+        }
+        motionMove();
+        break;
+    }
+    partsWorldCalc();
+    EmAtCheck(this);
+    SatMgr.check(this, 0);
+    atari.move();
+    PartsWorldPosCalc(this);
+    seqSeCtrl();
+    moveCloth();
+}
+
+// Routine 6: crouch and stay down (the player is dead).
+void cSubChar::moveDijection()
+{
+    switch (xFD) {
+    case 0:
+        MOT_SET(this, MOTION(this), SUB_MOT(subSelf, 0x43), 0, 7, 5, 0);
+        xFD = 1;
+        break;
+    case 1:
+        if (motionMove()) {
+            xFD = 2;
+        }
+        break;
+    case 2:
+        MOT_SET(this, MOTION(this), SUB_MOT(subSelf, 0x44), 0, 7, 5, 0);
+        xFE = 3;
+        break;
+    case 3:
+        motionMove();
+        break;
+    }
+}
+
+// Step `spd` towards `target` in the XZ plane.
+void cSubChar::movePos(Vec* target, f32 spd)
+{
+    f32 ang;
+
+    ang = Muku(&pos, target, 0.0f, 3.1415927f);
+    Vec v = { 0.0f, 0.0f, 0.0f };
+    v.z = spd;
+    Vec r = { 0.0f, 0.0f, 0.0f };
+    r.y = ang;
+    RotVector(&v, &r, &v);
+    PSVECAdd(&pos, &v, &pos);
+}
+
+void cSubChar::neckInit()
+{
+    subNeckOn = 0;
+    subNeckZ = 0.0f;
+    subNeckX = 0.0f;
+    subNeckAng = 0.0f;
+}
+
+// Turn the neck (parts 3) towards the player while neckSet() keeps asking for it.
+void cSubChar::neckCtrl()
+{
+    cModel* p = getPartsPtr(3);
+    int on = 1;
+    f32 ang;
+
+    MOTION_PARTS(p)->flags |= 0x40000000;
+    if (!(pPL->flags_420 & 2)) {
+        on = 0;
+    }
+    if (subNeckOn == 0 || (blendMot != 0 && blendMot->blendRate != 0.0f) || on) {
+        subNeckAng += Muku2(subNeckAng, 0.0f, 0.15707964f);
+    } else {
+        if (subNeckOn > 0) {
+            subNeckOn--;
+        }
+        ang = Muku(&pos, &pPL->pos, rot.y + subNeckAng, 0.10471976f);
+        subNeckAng += ang;
+        if (subNeckAng > 0.78539819f) {
+            subNeckAng = 0.78539819f;
+        } else if (subNeckAng < -0.78539819f) {
+            subNeckAng = -0.78539819f;
+        }
+    }
+    p->efmSpd.x = subNeckAng;
+    subNeckOn = 0;
+}
+
+void cSubChar::neckSet(Vec* pos)
+{
+    subNeckPos = *pos;
+    subNeckOn = 1;
+}
+
+// Which action the partner should take this frame (0 none; the routine 0 sub routine selector).
+int cSubChar::actCheck()
+{
+    if (readyOkCheck()) {
+        return 7;
+    }
+    if (fanceCheck()) {
+        return 1;
+    }
+    switch (windowCheck()) {
+    case 1:
+        return 2;
+    case 2:
+        return 3;
+    case 3:
+        return 4;
+    }
+    if (SubLadderClimbCk(this)) {
+        return 5;
+    }
+    if (doorCheck()) {
+        return 6;
+    }
+    if (actionCheck()) {
+        return 8;
+    }
+    if (ladder2Check()) {
+        return 9;
+    }
+    if (fallLadderCheck()) {
+        return 0xB;
+    }
+    return 0;
+}
+
+// subFlags2 bit4: the aiming player has her in front of him within 10000.
+int cSubChar::cautionCheck()
+{
+    int ret;
+
+    if (subFlags & 8) {
+        ret = 0;
+    } else if (!(subPlStatus & 0x10)) {
+        ret = 0;
+    } else if (fabsf(GetXZAngleLocal(&pPL->pos, &pos, pPL->rot.y)) > 0.78539819f) {
+        ret = 0;
+    } else if (GetDistance(pPL->pParts->worldPos, pParts->worldPos) > 100000000.0f) {
+        ret = 0;
+    } else {
+        ret = 1;
+    }
+    if (ret == 1) {
+        subFlags2 |= 0x10;
+    } else {
+        subFlags2 &= ~0x10;
+    }
+    return ret;
+}
+
+int cSubChar::plDownCheck()
+{
+    return (subPlStatus & 0x8000) != 0;
+}
+
+// A fence (attribute 0x20) 600 ahead with a floor within 300 of the partner's height 1500 behind it.
+int cSubChar::fanceCheck()
+{
+    Vec a = { 0.0f, 400.0f, -300.0f };
+    Vec b = { 0.0f, 400.0f, 600.0f };
+    Vec hit;
+    Vec nrm;
+
+    PSMTXMultVec(subSelf->mat, &a, &a);
+    PSMTXMultVec(subSelf->mat, &b, &b);
+    if (!(SatMgr.hitCheck(&a, &b, &hit, &nrm, 0, 0) & 0x20)) {
+        return 0;
+    }
+    a.x = 400.0f;
+    a.y = 300.0f;
+    a.z = 1000.0f;
+    b.x = -400.0f;
+    b.y = 300.0f;
+    b.z = 1000.0f;
+    PSMTXMultVec(subSelf->mat, &a, &a);
+    PSMTXMultVec(subSelf->mat, &b, &b);
+    if (SatMgr.hitCheck(&a, &b, 0, 0, 0, 0)) {
+        return 0;
+    }
+    PSVECScale(&nrm, &a, -1500.0f);
+    PSVECAdd(&a, &hit, &a);
+    b.x = a.x;
+    b.y = a.y - 10000.0f;
+    b.z = a.z;
+    SatMgr.hitCheck(&a, &b, &hit, 0, 0, 0);
+    if (fabsf(hit.y - pos.y) > 300.0f) {
+        return 0;
+    }
+    return 1;
+}
+
+// Window 600 ahead: 1 climb through (sub52C = facing angle), 2 break it first, 3 blocked, 0 none.
+int cSubChar::windowCheck()
+{
+    Vec a = { 0.0f, 400.0f, 0.0f };
+    Vec b = { 0.0f, 400.0f, 600.0f };
+    Vec dir;
+    Vec p;
+    u16 status;
+    cEmWindow* w;
+
+    PSVECAdd(&a, &subSelf->pos, &a);
+    PSMTXMultVec(subSelf->mat, &b, &b);
+    if (!ChkWindow(this, &a, &b, 1, &status, &dir, &p, &w)) {
+        return 0;
+    }
+    if (!(w->ChkStatus() & 1)) {
+        return 3;
+    }
+    if (!EmRackCk(this, &pos, atan2f(-dir.x, -dir.z))) {
+        return 3;
+    }
+    if (w->ChkBreakDir(&subSelf->pos) == 2) {
+        subFlags2 |= 0x80;
+        SubRoutineSet(this, 0, 0x12, 0, 0);
+        return 2;
+    }
+    sub52C = atan2(-dir.x, -dir.z);
+    return 1;
+}
+
+// A ladder to climb down below the target.
+int cSubChar::fallLadderCheck()
+{
+    Vec d;
+
+    if (!SubLadderClimbCk2(this)) {
+        return 0;
+    }
+    PSVECSubtract(&subTarget, &pos, &d);
+    if (VecElevation(&d) < 0.78539819f) {
+        return 0;
+    }
+    return 1;
+}
+
+// A door in front to open (not while she is being told to wait).
+int cSubChar::doorCheck()
+{
+    cEmDoor* d = DoorOpenCk(this);
+
+    if (d == 0) {
+        return 0;
+    }
+    if (subFlags2 & 2) {
+        return 0;
+    }
+    SubOpenDoorSet(d);
+    return 1;
+}
+
+int cSubChar::readyCheck()
+{
+    if (subFlags & 8) {
+        return 0;
+    }
+    if (!(subPlStatus & 0x10)) {
+        return 0;
+    }
+    return 1;
+}
+
+// Action button: the player catches the partner waiting on the ledge.
+void catchOn()
+{
+    cSubChar* sub = pSUB;
+    Vec p;
+    Vec r;
+
+    pPL->dmg.set(0, 0x80);
+    sub->dmg.set(0, 0x80);
+    SubRoutineSet(sub, 0, 9, 0, 0);
+    if (sub->sub580) {
+        p = sub->sub558;
+        p.y = sub->pos.y;
+        if (fabsf(sub->pos.y - sub->sub558.y) < 300.0f && GetDistance(&p, &sub->pos) < 25000000.0f) {
+            sub->setPos(&sub->sub558);
+            r.y = sub->sub564;
+            r.z = 0.0f;
+            r.x = 0.0f;
+            sub->setAng(&r);
+        }
+    }
+    sub->sub580 = 0;
+}
+
+// Wall in front (analyze's sub438 attribute): pick the action (jump down / climb / wait) for it.
+int cSubChar::actionCheck()
+{
+    Vec a;
+    Vec b;
+    int ret = 0;
+
+    a.x = 0.0f;
+    a.y = 300.0f;
+    a.z = -300.0f;
+    PSMTXMultVec(mat, &a, &a);
+    b = pPL->pos;
+    b.y += 300.0f;
+    if (!SatMgr.hitCheck(&a, &b, 0, 0, 0, 0)) {
+        return 0;
+    }
+    if (sub438 & 0x200000) {
+        subSelf->subHideMode = 0;
+        ret = 1;
+    } else if (sub438 & 0x2000) {
+        subSelf->subHideMode = 1;
+        ret = 1;
+    } else if (sub438 & 0x1000) {
+        subSelf->subHideMode = 2;
+        ret = 1;
+    } else if (sub438 & 0x80000) {
+        subSelf->subHideMode = 4;
+        ret = 1;
+    } else if (sub438 & 0x100010) {
+        int up = pPL->pos.y > pos.y - 1000.0f;
+
+        if (up) {
+            if (getCliffHeight(atan2(-sub448.x, -sub448.z)) < 2900.0f) {
+                subSelf->subHideMode = 3;
+                ret = 1;
+            } else if (sub580 == 0) {
+                xFC = 0;
+                xFD = 0x12;
+                xFE = 0;
+                xFF = 0;
+            }
+        }
+    }
+    if (ret == 1) {
+        Vec d;
+
+        d.x = -sub448.x;
+        d.y = 0.0f;
+        d.z = -sub448.z;
+        rot.y += Muku3(&d, rot.y, 3.1415927f);
+    }
+    if (sub580 && subDist <= 300.0f && (pPL->stat & 0xFFFF0000) != 0x000E0000) {
+        if (getCliffHeight(sub564) < 2900.0f) {
+            sub580 = 0;
+            pos = sub558;
+            rot.y = sub564;
+            subSelf->subHideMode = 3;
+            ret = 1;
+        } else {
+            SubRoutineSet(this, 0, 0x12, 0, 0);
+        }
+    }
+    return ret;
+}
+
+// A ladder at the partner's position while the player climbs one (routine 0x10): set her on it.
+int cSubChar::ladder2Check()
+{
+    Vec p;
+    u8 level;
+    Vec r;
+    f32 ang;
+    int up;
+
+    if (!SceAtCheckLadder(this, &p, &ang, &level)) {
+        return 0;
+    }
+    if (fabsf(subTarget.y - pos.y) < 1000.0f) {
+        return 0;
+    }
+    if ((pPL->stat & 0xFFFF0000) != 0x00100000) {
+        return 0;
+    }
+    setPos(&p);
+    r.y = ang;
+    r.z = 0.0f;
+    r.x = 0.0f;
+    setAng(&r);
+    up = 1;
+    if ((s8) level <= 0) {
+        up = 0;
+    }
+    subHideMode = up;
+    subX534 = ((s8) level < 0 ? -(s8) level : (s8) level) - 2;
+    atari.flags &= 0xFCFF;
+    dmg.set(0, 0x80);
+    return 1;
+}
+
+// Drop from the partner's height to the floor 1000 ahead in direction `ang` (100000 when < 800).
+f32 cSubChar::getCliffHeight(f32 ang)
+{
+    Vec v;
+    Vec r;
+    f32 h;
+
+    r.y = ang;
+    v.y = 300.0f;
+    r.z = 0.0f;
+    v.x = 0.0f;
+    r.x = 0.0f;
+    v.z = 1000.0f;
+    RotVector(&v, &r, &v);
+    PSVECAdd(&pos, &v, &v);
+    h = pos.y - SatMgr.getFloor(&v, 600.0f, 100000.0f, 0, 0);
+    if (h < 800.0f) {
+        h = 100000.0f;
+    }
+    return h;
+}
+
+// subFlags2 bit2: the player's head is close below her and looking up.
+void cSubChar::pantsCheck()
+{
+    Vec d;
+    Vec* hp;
+    Vec* sp;
+
+    subFlags2 &= ~4;
+    if (pG->costume2 == 1) {
+        return;
+    }
+    hp = &pPL->getPartsPtr(4)->worldPos;
+    sp = &pParts->worldPos;
+    if (GetDistance(hp, sp) > 25000000.0f) {
+        return;
+    }
+    PSVECSubtract(sp, hp, &d);
+    if (VecElevation(&d) < 0.78539819f) {
+        return;
+    }
+    if (fabsf(Muku(hp, sp, pPL->rot.y, 6.2831855f)) > 0.78539819f) {
+        return;
+    }
+    if (EatMgr.hitCheck(hp, sp, 0, 0, 0, 0)) {
+        return;
+    }
+    subFlags2 |= 4;
+}
+
+int cSubChar::ckPlRun()
+{
+    return (subPlStatus & 8) != 0;
+}
+
+// Motion sequence sound (seNo) -> SndCall: footsteps by surface kind (seFlags28B), voices as is.
+void cSubChar::seqSeCtrl()
+{
+    int no;
+    int parts;
+    int blk;
+
+    if (seNo == 0) {
+        return;
+    }
+    no = seNo - 1;
+    parts = 0;
+    blk = 5;
+    switch (seFlags28B & 3) {
+    case 0:
+        switch (no) {
+        case 0:
+        case 2:
+            parts = 0x14;
+            blk = 5;
+            no += 7;
+            break;
+        case 1:
+        case 3:
+            parts = 0x18;
+            blk = 5;
+            no += 7;
+            break;
+        case 4:
+        case 5:
+            no += 7;
+            break;
+        case 6:
+            break;
+        case 0x16:
+            parts = 0x14;
+            break;
+        case 0x17:
+            parts = 0x18;
+            break;
+        default:
+            parts = 0;
+            blk = 8;
+            break;
+        }
+        break;
+    case 1:
+        blk = 8;
+        break;
+    case 2:
+        blk = 6;
+        break;
+    case 3:
+        blk = 1;
+        break;
+    }
+    SndCall(blk, no, &getPartsPtr(parts)->worldPos, id, 0, 0);
+    seNo = 0;
+}
+
+// Blend the look-back motion `mot` in (NULL: off).
+void cSubChar::backCheckSet(void* mot)
+{
+    if (mot) {
+        f32 rate = subBackMot.blendRate;
+
+        MOT_SET(this, &subBackMot, mot, 0, 3, 4, 0);
+        subBackMot.blendRate = rate;
+        subBackMot.flags2 |= 0x80000000;
+        blendMot = &subBackMot;
+    } else {
+        blendMot = 0;
+        subBackMot.blendRate = 0.0f;
+    }
+}
+
+// Fade the look-back blend in (sub404 == 2) or out (1).
+void cSubChar::backCheckMove()
+{
+    MotionWorkSub* w = subSelf->blendMot;
+
+    if (w == 0) {
+        return;
+    }
+    switch (sub404) {
+    case 1:
+        if (w->blendRate > 0.0f) {
+            w->blendRate -= 0.14f;
+            if (subSelf->blendMot->blendRate < 0.0f) {
+                subSelf->blendMot->blendRate = 0.0f;
+                sub404 = 0;
+            }
+        }
+        break;
+    case 2:
+        if (blendMot->blendRate < 1.0f) {
+            blendMot->blendRate += 0.14f;
+            if (blendMot->blendRate > 1.0f) {
+                blendMot->blendRate = 1.0f;
+                sub404 = 0;
+            }
+        }
+        break;
+    }
+}
+
+// Look back at an enemy behind her now and then (standing).
+void cSubChar::backCheckCtrlFootwork()
+{
+    switch (sub405) {
+    case 0:
+        if (checkBackEm()) {
+            sub404 = 2;
+            sub406 = (u8) (Rnd() >> 2) + 30;
+            sub405 = 1;
+        }
+        break;
+    case 1:
+        sub406--;
+        if (sub406 & 0x8000) {
+            if (!checkBackEm()) {
+                sub404 = 1;
+                sub405 = 0;
+            }
+            sub406 = (u8) (Rnd() >> 2) + 30;
+        }
+        break;
+    }
+}
+
+// Look back at an enemy behind her now and then (walking).
+void cSubChar::backCheckCtrlMove()
+{
+    switch (sub405) {
+    case 0:
+        sub406--;
+        if (sub406 & 0x8000) {
+            if (checkBackEm()) {
+                sub404 = 2;
+                sub406 = (u8) (Rnd() >> 2) + 30;
+                sub405 = 1;
+            }
+        }
+        break;
+    case 1:
+        sub406--;
+        if (sub406 & 0x8000) {
+            if (!checkBackEm()) {
+                sub404 = 1;
+                sub405 = 0;
+            }
+            sub406 = (u8) (Rnd() >> 2) + 30;
+        }
+        break;
+    }
+}
+
+// An alive, non-battle enemy behind her (within 20000, in the back cone) with a clear line of sight.
+int cSubChar::checkBackEm()
+{
+    int i;
+
+    for (i = 0; i < EmMgr.nArray; i++) {
+        cEm* em = (cEm*) ((u8*) EmMgr.pArray + EmMgr.size * i);
+        f32 d;
+        f32 ang;
+
+        if (!em->isAlive()) {
+            continue;
+        }
+        if (em->hp <= 0) {
+            continue;
+        }
+        if (em == pPL) {
+            continue;
+        }
+        if (em == pSUB) {
+            continue;
+        }
+        if (em->checkStatus(1)) {
+            continue;
+        }
+        d = GetDistance(&pos, &em->pos);
+        if (d > 400000000.0f) {
+            continue;
+        }
+        ang = GetXZAngleLocal(&pos, &em->pos, rot.y);
+        if (d < 25000000.0f) {
+            if (!(ang >= 2.3561945f) && ang > -2.3561945f) {
+                continue;
+            }
+        } else {
+            if (!(ang >= 2.617994f) && ang > -2.617994f) {
+                continue;
+            }
+        }
+        if (SatMgr.hitCheck(&pParts->worldPos, &em->pParts->worldPos, 0, 0, 0, 0)) {
+            continue;
+        }
+        return 1;
+    }
+    return 0;
+}
+
+// The damage routine handler (routine 4): pl_sub's SetSubDamage passes it in r4.
+void cSubChar::setEmFunc()
+{
+    register void (*func)() asm("r4");
+
+    subFunc = func;
+}
+
+// Per-frame situation: player distance flags, nearby enemies, the route target (subTarget),
+// distance / angle to it, and the action checks.
+void cSubChar::analyze()
+{
+    static const Vec chasePosFwd = { 200.0f, 300.0f, 200.0f };
+    static const Vec chasePosBck = { 200.0f, 300.0f, -200.0f };
+    static int subNear2 = 0;
+    static u8 delayMove = 0;
+    static u8 npcCheck = 0;
+    Vec d;
+    int i;
+    int up;
+    int r;
+
+    anaSatInfo();
+    if (GetDistance(pos, pPL->pos) < 4000000.0f) {
+        subFlags2 |= 2;
+    } else {
+        subFlags2 &= ~2;
+    }
+    subFlags2 &= ~0x201;
+    if (!(subFlags & 8)) {
+        for (i = 0; i < EmMgr.nArray; i++) {
+            cEm* em = (cEm*) ((u8*) EmMgr.pArray + EmMgr.size * i);
+
+            if (!em->isAlive()) {
+                continue;
+            }
+            if (em->hp <= 0) {
+                continue;
+            }
+            if (em->checkStatus(5)) {
+                continue;
+            }
+            if (em == this) {
+                continue;
+            }
+            if (em == pPL) {
+                continue;
+            }
+            if (em->id > 0x3F) {
+                continue;
+            }
+            if (em->checkStatus(0xB)) {
+                continue;
+            }
+            if (GetDistance(pos, em->pos) < 16000000.0f) {
+                subFlags2 |= 0x200;
+                if (subNear2) {
+                    Draw_pos(&em->pos, 1000);
+                }
+            }
+            if (GetDistance(pos, em->pos) < 1000000.0f) {
+                subFlags2 |= 1;
+            }
+        }
+    }
+    if (sub554 && moveAnotherRoute()) {
+        sub554 = 0;
+    }
+    if (sub580 && !SatMgr.hitCheck(&pParts->worldPos, &pPL->pParts->worldPos, 0, 0, 0, 0)) {
+        sub580 = 0;
+    }
+    up = 0;
+    if (fabsf(subTarget.y - pos.y) > 1000.0f) {
+        up = 1;
+    }
+    if (sub554) {
+        if (fabsf(sub554->pos.y - pos.y) > 1000.0f) {
+            up = 1;
+        }
+        r = RouteCkToPos(this, &sub554->pos, &subTarget, up, &subX5C8);
+    } else if (subFlags & 8) {
+        if (fabsf(subMoveTo[1] - pos.y) > 1000.0f) {
+            up = 1;
+        }
+        r = RouteCkToPos(this, (Vec*) subMoveTo, &subTarget, up, &subX5C8);
+    } else if (sub580) {
+        if (fabsf(sub558.y - pos.y) > 1000.0f) {
+            up = 1;
+        }
+        r = RouteCkToPos(this, &sub558, &subTarget, up, &subX5C8);
+    } else {
+        if (delayMove) {
+            delayMove--;
+        }
+        if (subPlStatus & 0xE) {
+            delayMove = 5;
+        }
+        if (delayMove == 0 && (GetDistance(&pos, &pPL->pos) > 16000000.0f || !(subPlStatus & 0xE))) {
+            if (fabsf(pPL->pos.y - pos.y) > 1000.0f) {
+                up = 1;
+            }
+            r = RouteCkToPos(this, &pPL->pos, &subTarget, up, &subX5C8);
+        } else {
+            f32 fl;
+
+            if (xFD != 0 && xFD != 2) {
+                if (subPlStatus & 4) {
+                    subTarget = chasePosFwd;
+                } else {
+                    subTarget = chasePosBck;
+                }
+                PSMTXMultVec(pPL->mat, &subTarget, &subTarget);
+            } else {
+                subTarget = pPL->pos;
+            }
+            fl = SatMgr.getFloor(&subTarget, 1000.0f, 1000.0f, 0, 0);
+            if (fl != -100000.0f) {
+                subTarget.y = fl + 100.0f;
+            }
+            if (SatMgr.hitCheck(&pPL->pParts->worldPos, &subTarget, 0, 0, 0, 0)) {
+                PSVECSubtract(&subTarget, &pPL->pParts->worldPos, &d);
+#line 3781 "D:/Bio4/Prog/pl_npc.cpp"
+                VECNormalize(&d, &d);
+                PSVECScale(&d, &d, -200.0f);
+                PSVECAdd(&subTarget, &d, &subTarget);
+            }
+            if (fabsf(subTarget.y - pos.y) > 1000.0f) {
+                up = 1;
+            }
+            r = RouteCkToPos(this, &subTarget, &subTarget, up, &subX5C8);
+        }
+    }
+    if (SatMgr.hitCheck(&pos, &subTarget, 0, 0, 0, 0)) {
+        subDist = GetDistance3(&pos, &subTarget);
+    } else {
+        d.x = subTarget.x;
+        d.y = pos.y;
+        d.z = subTarget.z;
+        subDist = GetDistance3(&pos, &d);
+    }
+    if (r == 0) {
+        subDist += 10000.0f;
+    }
+    subAng = GetXZAngleLocal(&pos, &subTarget, rot.y);
+    subAng = LIMIT_ANGLE(subAng);
+    pantsCheck();
+    cautionCheck();
+    frontCheck();
+    if (npcCheck) {
+        int y = 0x18;
+
+        for (i = 0; i <= 15; i++) {
+            eprintf(y, 0x180, 0, 0, "%d", ((cFlag*) &subFlags)->check(i));
+            y += 8;
+        }
+        Draw_pos(&subTarget, 1000);
+    }
+}
+
+// subFlags2 bit8: a damage area 1500 ahead on the way to subTarget.
+void cSubChar::frontCheck()
+{
+    Vec d;
+
+    subFlags2 &= ~0x100;
+    PSVECSubtract(&subTarget, &pos, &d);
+    if (d.x == 0.0f && d.z == 0.0f) {
+        return;
+    }
+    d.y = 0.0f;
+#line 3850 "D:/Bio4/Prog/pl_npc.cpp"
+    VECNormalize(&d, &d);
+    PSVECScale(&d, &d, 1500.0f);
+    PSVECAdd(&d, &pos, &d);
+    if (DmgMgr.hitCheck(&d, 0)) {
+        subFlags2 |= 0x100;
+    }
+}
+
+// Scenario wall between her and subTarget (400 up): attribute -> sub438, hit / normal, flag bit3.
+void cSubChar::anaSatInfo()
+{
+    Vec a = { 0.0f, 400.0f, 0.0f };
+    Vec b;
+    u32 r;
+
+    PSVECAdd(&a, &subSelf->pos, &a);
+    sub438 = 0;
+    if (fabsf(Muku(&pos, &subTarget, rot.y, 3.1415927f)) > 0.5235988f) {
+        return;
+    }
+    b.x = subTarget.x;
+    b.y = a.y;
+    b.z = subTarget.z;
+    r = SatMgr.hitCheck(&a, &b, &sub43C, &sub448, 0, 0);
+    if (!(r & 0x01000000)) {
+        return;
+    }
+    if (GetDistance(a, sub43C) > 360000.0f) {
+        return;
+    }
+    sub438 = r;
+    subFlags2 |= 8;
+}
+
+void cSubChar::beginEvent()
+{
+    interrupt();
+    atari.flags &= 0xFCFF;
+}
+
+void cSubChar::endEvent()
+{
+    be_flag |= 0x200000;
+    atari.flags |= 0x300;
+}
+
+// pl_sub SubCharCtrl modes: 0 stop, 1 wait here, 2 follow, 3 warp to the player and follow,
+// 4 move to subMoveTo, 5 re-init, 6 wait (only from routine 0).
+void cSubChar::control(int mode)
+{
+    if (hp <= 0) {
+        return;
+    }
+    subFlags &= ~0x1C;
+    subFlags |= 0x40;
+    switch (mode) {
+    case 0:
+        subFlags |= 1;
+        break;
+    case 1:
+        if (xFC == 5) {
+            SubRoutineSet(this, 0, 0, 0, 0);
+        }
+        if ((stat & 0xFFFF0000) != 0x00100000) {
+            subFlags &= ~1;
+            subFlags |= 2;
+            atari.flags |= 0x300;
+        }
+        break;
+    case 3:
+        if (xFC == 5) {
+            SubRoutineSet(this, 0, 0, 0, 0);
+        }
+        if ((stat & 0xFFFF0000) != 0x00100000) {
+            setPos(&pPL->pos);
+        }
+        xFE = 0;
+        xFF = 1;
+        xFC = 0;
+        xFD = 0;
+        atari.flags |= 0x300;
+    case 2:
+        if (xFC == 5) {
+            SubRoutineSet(this, 0, 0, 0, 0);
+        }
+        if ((stat & 0xFFFF0000) != 0x00100000) {
+            subFlags &= ~3;
+            atari.flags |= 0x300;
+        }
+        break;
+    case 4:
+        subFlags &= ~2;
+        subFlags |= 8;
+        if (subMoveTo[0] != 193.0f) {
+            xFD = 1;
+            xFF = 0;
+            xFC = 0;
+            xFE = 0;
+            atari.flags |= 0x300;
+        } else if (subMoveTo[3] != 193.0f) {
+            *(Vec*) subMoveTo = pos;
+            xFD = 1;
+            xFF = 0;
+            xFC = 0;
+            xFE = 0;
+            atari.flags |= 0x300;
+        } else {
+            SubRoutineSet(this, 0, 0, 0, 0);
+        }
+        break;
+    case 5:
+        init();
+        SubRoutineSet(this, 0, 0, 0, 0);
+        break;
+    case 6:
+        if (xFC == 0 && (subFlags & 0x40)) {
+            subFlags |= 2;
+            subFlags &= ~0x60;
+            SubRoutineSet(this, 0, 0, 0, 0);
+        }
+        break;
+    }
+}
+
+// Ledge in front of the partner: point 800 out from the wall below it and the facing angle.
+int getFallPos(cSubChar* pl, Vec* opos, Vec* orot)
+{
+    Vec a;
+    Vec b;
+    Vec hit;
+    Vec nrm;
+    Vec d;
+
+    a.x = 0.0f;
+    a.y = 300.0f;
+    a.z = 0.0f;
+    PSVECAdd(&a, &pl->pos, &a);
+    b.y = 300.0f;
+    b.z = 1000.0f;
+    b.x = 0.0f;
+    PSMTXMultVec(pl->mat, &b, &b);
+    SatMgr.hitCheck(&a, &b, &hit, &nrm, 0, 0);
+    d.x = -nrm.x;
+    d.y = 0.0f;
+    d.z = -nrm.z;
+#line 4080 "D:/Bio4/Prog/pl_npc.cpp"
+    VECNormalize(&d, &d);
+    PSVECScale(&d, &d, 800.0f);
+    PSVECAdd(&hit, &d, &b);
+    orot->x = 0.0f;
+    orot->y = Muku3(&d, 0.0f, 3.1415927f);
+    orot->z = 0.0f;
+    opos->x = b.x;
+    opos->y = SatMgr.getFloor(&b, 600.0f, 100000.0f, 0, 0);
+    opos->z = b.z;
+    return 1;
+}
+
+// Routine bits of the partner for the camera / scenario.
+u32 SubCharGetStatus()
+{
+    cSubChar* sub = pSUB;
+    u32 ret;
+
+    if (sub == 0) {
+        return 0;
+    }
+    if (sub->id != 3) {
+        return 0;
+    }
+    ret = 0;
+    switch (sub->xFC) {
+    case 0:
+        switch (sub->xFD) {
+        case 0:
+            ret = 1;
+            break;
+        case 1:
+            ret = 2;
+            break;
+        case 0xA:
+            switch (sub->subHideMode) {
+            case 0:
+            case 3:
+                ret |= 0x100;
+                break;
+            case 1:
+                ret = 0x200;
+                break;
+            case 4:
+                ret = 0x10000;
+                break;
+            }
+            break;
+        case 0xF:
+            ret = 0x01000000;
+            break;
+        case 0x10:
+            if (sub->xFE <= 0xC) {
+                ret = 0x04000000;
+            } else if (sub->xFE <= 0xD) {
+                ret = 0x08000000;
+            } else {
+                ret = 0x10000000;
+            }
+            break;
+        }
+        break;
+    case 1:
+    case 2:
+    case 3:
+        ret = 0x80;
+        break;
+    case 4:
+        ret = 0x02000000;
+        break;
+    case 5:
+        switch (sub->xFD) {
+        case 0:
+            ret = 1;
+            break;
+        case 1:
+            ret = 8;
+            break;
+        }
+        break;
+    }
+    if ((sub->subFlags & 2) || (sub->subFlags & 1) || (sub->stat & 0xFFFF0000) == 0x00100000) {
+        ret |= 0x40000000;
+    } else {
+        ret |= 0x20000000;
+    }
+    if ((sub->subFlags & 8) && (sub->subFlags2 & 0x40)) {
+        ret |= 0x00800000;
+    }
+    return ret;
+}
+
+// Find an EMI "another route" (type 0xB) start near the partner (kind 0: she is above the player;
+// kind 1: a kind 2 entry is near the player) and its first step; 1 when sub554 was set.
+int cSubChar::checkAnotherRoute()
+{
+    EmiData* emi;
+    EmiEntry* e;
+    int found = -1;
+    u8 id = 0;
+    int i;
+    int j;
+
+    sub554 = 0;
+    emi = (EmiData*) pG->pRoomEmi;
+    if (emi == 0) {
+        return 0;
+    }
+    if (emi->n == 0) {
+        return 0;
+    }
+    for (i = 0; i < emi->n; i++) {
+        e = &emi->entry[i];
+        if (e->type != 0xB) {
+            continue;
+        }
+        if (e->state != 0) {
+            continue;
+        }
+        if (e->pad_3 > 1) {
+            continue;
+        }
+        if ((pos.x - e->pos.x) * (pos.x - e->pos.x) + (pos.y - e->pos.y) * (pos.y - e->pos.y) +
+                (pos.z - e->pos.z) * (pos.z - e->pos.z) >
+            4000000.0f) {
+            continue;
+        }
+        if (e->pad_3 == 1) {
+            int ok = 0;
+
+            for (j = 0; j < emi->n; j++) {
+                EmiEntry* f = &((EmiData*) pG->pRoomEmi)->entry[j];
+
+                if (f->type != 0xB) {
+                    continue;
+                }
+                if (f->state != 0) {
+                    continue;
+                }
+                if (f->pad_3 != 2) {
+                    continue;
+                }
+                if ((pPL->pos.x - f->pos.x) * (pPL->pos.x - f->pos.x) + (pPL->pos.z - f->pos.z) * (pPL->pos.z - f->pos.z) >
+                    16000000.0f) {
+                    continue;
+                }
+                if (fabsf(pPL->pos.y - f->pos.y) > 500.0f) {
+                    continue;
+                }
+                ok = 1;
+                break;
+            }
+            if (!ok) {
+                continue;
+            }
+        } else {
+            if (pos.y < pPL->pos.y + 500.0f) {
+                continue;
+            }
+        }
+        found = i;
+        id = e->sub;
+        break;
+    }
+    if (found == -1) {
+        return 0;
+    }
+    found = -1;
+    for (i = 0; i < ((EmiData*) pG->pRoomEmi)->n; i++) {
+        e = &((EmiData*) pG->pRoomEmi)->entry[i];
+        if (e->type != 0xB) {
+            continue;
+        }
+        if (e->state != 1) {
+            continue;
+        }
+        if (e->sub != id) {
+            continue;
+        }
+        found = i;
+        break;
+    }
+    if (found == -1) {
+        return 0;
+    }
+    sub554 = e;
+    return 1;
+}
+
+// Step along the "another route": 1 when it ends (near the player past the last step), 0 while
+// walking (sub554 advances to the next step once the current one is reached).
+int cSubChar::moveAnotherRoute()
+{
+    EmiData* emi = (EmiData*) pG->pRoomEmi;
+    EmiEntry* e;
+    EmiEntry* f;
+    int bad;
+    int next;
+    int i;
+
+    bad = emi == 0;
+    if (emi->n == 0) {
+        bad = 1;
+    }
+    e = sub554;
+    if (e == 0) {
+        bad = 1;
+    }
+    if (bad) {
+        sub554 = 0;
+        return 1;
+    }
+    if (e->state > 1) {
+        if ((pos.x - pPL->pos.x) * (pos.x - pPL->pos.x) + (pos.y - pPL->pos.y) * (pos.y - pPL->pos.y) +
+                (pos.z - pPL->pos.z) * (pos.z - pPL->pos.z) <
+            4000000.0f) {
+            return 1;
+        }
+    }
+    if ((pos.x - e->pos.x) * (pos.x - e->pos.x) + (pos.y - e->pos.y) * (pos.y - e->pos.y) +
+            (pos.z - e->pos.z) * (pos.z - e->pos.z) >
+        1000000.0f) {
+        return 0;
+    }
+    next = -1;
+    for (i = 0; i < emi->n; i++) {
+        f = &((EmiData*) pG->pRoomEmi)->entry[i];
+        if (f->type != 0xB) {
+            continue;
+        }
+        if (f->sub != e->sub) {
+            continue;
+        }
+        if (f->state == e->state + 1) {
+            next = i;
+            break;
+        }
+    }
+    if (next == -1) {
+        return 1;
+    }
+    sub554 = f;
+    return 0;
 }
