@@ -99,6 +99,11 @@ def module_target_symbols(module, unit):
             if dn and dn != ".":
                 s.add(dn)
                 s.add(f"{dn}#{int(size, 16):#x}")
+                # the `_GLOBAL_.I.<key>` thunk: the key need not be reproduced (see target_symbols)
+                if dn.startswith("global constructors keyed to"):
+                    s.add("_GLOBAL_.I.*")
+                if dn.startswith("global destructors keyed to"):
+                    s.add("_GLOBAL_.D.*")
     # a unit with no row at all lost every function (st1_0's em_wrap.cpp: strings only)
     return names
 
@@ -175,6 +180,8 @@ def main():
             return False
         dn = demangle_v2(nm) or nm
         if nm in ks or f"{dn}#{size:#x}" in ks:
+            return True
+        if (nm.startswith("_GLOBAL_.I.") and "_GLOBAL_.I.*" in ks) or (nm.startswith("_GLOBAL_.D.") and "_GLOBAL_.D.*" in ks):
             return True
         if dn not in ks:
             return False

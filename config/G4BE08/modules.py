@@ -285,7 +285,7 @@ UNITS = {
     # object as t_sce's), t_tplview, the full t_util.cpp (TutilGet3DPosXZ* etc.), t_vib, tools.cpp.
     "Tools": [
         ("Tools/db_light.cpp", None, "tools/db_light_tools.cpp"),
-        ("Tools/db_mod.cpp", "dbModSetViewFlag", None, {".rodata": 0x1640}),
+        ("Tools/db_mod.cpp", "dbModSetViewFlag", "tools/db_mod.cpp", {".rodata": 0x1640}),
         ("Tools/db_toolbase.cpp", "MakeCol"),
         # t_atari.cpp's header-string group starts with atari.h's cFlag.set() message (0x2578), like the rooms'
         ("Tools/t_atari.cpp", "ToolAtari", None, {".rodata": 0x2578}),
@@ -317,7 +317,7 @@ UNITS = {
     # with the module's linkonce tail.
     "t_esp": [
         ("t_esp/db_light.cpp", None, "tools/db_light_esp.cpp"),
-        ("t_esp/db_mod.cpp", "dbModSetViewFlag", None, {".rodata": 0x1640}),
+        ("t_esp/db_mod.cpp", "dbModSetViewFlag", "tools/db_mod.cpp", {".rodata": 0x1640}),
         # every header-string group of this module starts with atari.h's cFlag.set() message
         ("t_esp/db_port.cpp", "GetActiveModel", None, {".rodata": 0x23D0}),
         # db_widget.o ends with its linkonce tail: the cManager<cLight> block, then the seven implicit
@@ -401,6 +401,10 @@ STRIP_UNUSED = {
     "t_esp/db_widget.cpp",
     # db_window.cpp: the dead helper that carries the DB_NUMERIC range table
     "t_esp/db_window.cpp",
+    # db_mod.cpp: one object (src/tools/db_mod.cpp) in both modules; Tools lost the t_esp loader entry
+    # points / DB_MODEL_FILES::append / dbModMotionSet, t_esp the view-flag getters / dbModMotionSetSeq /
+    # dbModGetMotFilename (strings and pools of both stay, .rodata/.data are identical)
+    "Tools/db_mod.cpp", "t_esp/db_mod.cpp",
 } | {
     # the Ganado library: two never-called helpers whose pools stayed (em10FindFloorCk,
     # plem10NeckBreakCamMove in src/em10/em10.cpp)
