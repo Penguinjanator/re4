@@ -1738,16 +1738,17 @@ void BuyConfirm::init(SUB_SCREEN* wk)
 void BuyConfirm::move(SUB_SCREEN* wk)
 {
     ShopWork* sw = wk->pShopWk;
-    int act = 0;
+    int act;
 
     if (sw->noRoom == 0) {
         dispBuyItemList(wk, 5, 1);
     }
+    act = 0;
     if (Key.trg & 0x40000000) {
-        if (sw->noRoom) {
-            act = 3;
-        } else {
+        if (sw->noRoom == 0) {
             act = 1;
+        } else {
+            act = 3;
         }
         SndCall(0, 5, 0, 0, 0, 0);
     } else if (msg == 0x13) {
@@ -1781,7 +1782,8 @@ void BuyConfirm::move(SUB_SCREEN* wk)
         }
     }
     if (!(act > 3)) {
-        if (!(act < 1)) {
+        int min = 1;  // a literal folds to `<= 0`; the target keeps `cmpwi 1; blt`
+        if (!(act < min)) {
             cMes.Delete(1);
         }
     }
@@ -2498,10 +2500,9 @@ void weaponLevelDisp(ItemWork* item, u16 id, int sw, int level)
     u->flags |= 8;
     for (type = 0; type < 4; type++) {
         int digit[3];
-        int numBase = 0;
         int barBase = 0;
+        int numBase = 0;
         int val = 0;
-        int i;
         int on;
 
         if (item) {
@@ -2581,7 +2582,7 @@ void weaponLevelDisp(ItemWork* item, u16 id, int sw, int level)
             barBase = 0x95;
             break;
         }
-        for (i = 0; i < 6; i++) {
+        for (int i = 0; i < 6; i++) {
             IdUnit* b = IdSub.unitPtr(barBase + i, 0x1C);
             IdUnit* colOff;
             IdUnit* colOn;
@@ -2596,10 +2597,11 @@ void weaponLevelDisp(ItemWork* item, u16 id, int sw, int level)
             colOn = IdSub.unitPtr(2, 0x1C);
             src = IdSub.unitPtr(3, 0x1C);
             if (i < lv) {
-                int max = WeaponId2MaxLevel(id, type);
-                src = colOn;
-                if (lv > max) {
+                // if/else (jump1 hoists the else-set between the compare and the branch)
+                if (lv > WeaponId2MaxLevel(id, type)) {
                     src = colOff;
+                } else {
+                    src = colOn;
                 }
             }
             b->col0[0] = src->col0[0];
@@ -2607,12 +2609,12 @@ void weaponLevelDisp(ItemWork* item, u16 id, int sw, int level)
             b->col0[2] = src->col0[2];
             b->col0[3] = src->col0[3];
         }
-        for (i = 0; i < 3; i++) {
+        for (int i = 0; i < 3; i++) {
             digit[i] = val % 10;
             val /= 10;
         }
         on = 0;
-        for (i = 2; i >= 0; i--) {
+        for (int i = 2; i >= 0; i--) {
             IdUnit* d = IdSub.unitPtr(numBase + i, 0x1C);
 
             d->flags_7F |= 2;
@@ -2624,7 +2626,7 @@ void weaponLevelDisp(ItemWork* item, u16 id, int sw, int level)
                     on = 1;
                     d->flags |= 8;
                 }
-            } else if (type == 0 && i == 2 && digit[2] == 0) {
+            } else if (type == 0 && i == 2 && digit[i] == 0) {
                 d->flags &= ~8;
             } else {
                 d->flags |= 8;
@@ -2647,18 +2649,17 @@ void stockNumDisp(int num, int sw)
     if (num) {
         int digit[3];
         int n = num;
-        int i;
         int on;
 
         u->flags |= 8;
         sold->flags &= ~8;
-        for (i = 0; i < 3; i++) {
+        for (int i = 0; i < 3; i++) {
             digit[i] = n % 10;
             n /= 10;
             IdSub.unitPtr(0xA1 + i, 0x1C)->flags &= ~8;
         }
         on = 0;
-        for (i = 2; i >= 0; i--) {
+        for (int i = 2; i >= 0; i--) {
             IdUnit* d;
 
             if (on == 0) {
@@ -2693,20 +2694,19 @@ void dispPrice(int type, int num, int price, Vec* pos, u32 flags)
     if (price_disp_num & flags) {
         int digit[4];
         int n;
-        int i;
         int on;
 
         IdSub.unitPtrI(0x10, type)->flags |= 8;
         n = num;
-        for (i = 0; i < 4; i++) {
+        for (int i = 0; i < 4; i++) {
             digit[i] = n % 10;
             n /= 10;
         }
-        for (i = 0; i < 4; i++) {
+        for (int i = 0; i < 4; i++) {
             IdSub.unitPtrI(0x11 + i, type)->flags &= ~8;
         }
         on = 0;
-        for (i = 3; i >= 0; i--) {
+        for (int i = 3; i >= 0; i--) {
             IdUnit* d;
 
             if (on == 0) {
@@ -2849,8 +2849,8 @@ void screenPos2worldPos(Vec* scr, Vec* out)
     f32 h = fabsf((f32) (z * tan(cam->param.fovy * 0.5f * 3.1415927f / 180.0f)));
 
     out->x = scr->x * h / 240.0f;
-    out->z = 0.0f;
     out->y = scr->y * h / 240.0f;
+    out->z = 0.0f;
 }
 
 void moveItem()

@@ -234,20 +234,27 @@ void playerModelInit()
     }
 }
 
-// Place the character model (its static position / rotation / scale follow each function).
+// Place the character model (its static position / rotation / scale follow each function). The
+// scale static is a one-element array read once into a local after the pos/rot word copies: the
+// in-struct load stays below the `m->rot` stores (a fixed scalar would float above them) and its
+// `lis` goes early into a callee-saved register, as in the target.
 #define SS_MODEL_PLACE(m, p, r, s) \
     (m)->pos = p;                  \
     (m)->rot = r;                  \
-    (m)->scale.z = s;              \
-    (m)->scale.y = s;              \
-    (m)->scale.x = s
+    {                              \
+        f32 sc_ = (s)[0];          \
+        (m)->scale.z = sc_;        \
+        (m)->scale.y = sc_;        \
+        (m)->scale.x = sc_;        \
+    }
 
 // Bullets left in the equipped weapon decide whether the magazine model (ssWepModel) is shown.
 static inline void ssWepMagazine(cModel* wep, int no, int type)
 {
     if (ItemMgr.bulletNum(WeaponNo2WeaponId(no, type)) != 0) {
+        cModel* one = (cModel*) 1;
         wep->be_flag |= 2;
-        ssWepModel2 = (cModel*) 1;
+        ssWepModel2 = one;
     } else {
         wep->be_flag &= ~2;
         ssWepModel2 = 0;
@@ -260,7 +267,7 @@ void ashleyModelInit()
     cModel* m = ssPlModel;
     static Vec ashley_pos = {850.0f, -1300.0f, 0.0f};
     static Vec ashley_rot = {0.0f, -0.5f, 0.0f};
-    static f32 ashley_scale = 1.0f;
+    static f32 ashley_scale[1] = {1.0f};
 
     m->modelInit(PL_ARC(4), PL_ARC(5));
     ssModelAdd(m, PL_ARC(7), PL_ARC(9));
@@ -281,7 +288,7 @@ void adaModelInit(u16 no, u16 type)
     cModel* wep = ssWepModel;
     static Vec ada_pos = {850.0f, -1300.0f, 0.0f};
     static Vec ada_rot = {0.0f, -0.5f, 0.0f};
-    static f32 ada_scale = 1.0f;
+    static f32 ada_scale[1] = {1.0f};
 
     m->modelInit(PL_ARC(4), PL_ARC(5));
     ssModelAdd(m, PL_ARC(6), PL_ARC(7));
@@ -495,7 +502,7 @@ void klauserModelInit(u16 no, u16 type)
     cModel* wep = ssWepModel;
     static Vec klauser_pos = {850.0f, -1300.0f, 0.0f};
     static Vec klauser_rot = {0.0f, -0.5f, 0.0f};
-    static f32 klauser_scale = 1.0f;
+    static f32 klauser_scale[1] = {1.0f};
 
     m->modelInit(PL_ARC(4), PL_ARC(5));
     ssModelAdd(m, PL_ARC(6), PL_ARC(7));
@@ -662,7 +669,7 @@ void hunkModelInit(u16 no, u16 type)
     cModel* wep = ssWepModel;
     static Vec hunk_pos = {850.0f, -1300.0f, 0.0f};
     static Vec hunk_rot = {0.0f, -0.5f, 0.0f};
-    static f32 hunk_scale = 1.0f;
+    static f32 hunk_scale[1] = {1.0f};
 
     m->modelInit(PL_ARC(4), PL_ARC(5));
     ssModelAdd(m, PL_ARC(6), PL_ARC(7));
@@ -824,7 +831,7 @@ void weskerModelInit(u16 no, u16 type)
     cModel* wep = ssWepModel;
     static Vec wesker_pos = {850.0f, -1300.0f, 0.0f};
     static Vec wesker_rot = {0.0f, -0.5f, 0.0f};
-    static f32 wesker_scale = 1.0f;
+    static f32 wesker_scale[1] = {1.0f};
 
     m->modelInit(PL_ARC(4), PL_ARC(5));
     ssModelAdd(m, PL_ARC(10), PL_ARC(5));
@@ -1035,7 +1042,7 @@ void leonModelInit(u16 no, u16 type)
     cModel* wep = ssWepModel;
     static Vec leon_pos = {850.0f, -1370.0f, 0.0f};
     static Vec leon_rot = {0.0f, -0.3f, 0.0f};
-    static f32 leon_scale = 1.0f;
+    static f32 leon_scale[1] = {1.0f};
 
     m->modelInit(PL_ARC(4), PL_ARC(5));
     ssModelAdd(m, PL_ARC(10), PL_ARC(5));

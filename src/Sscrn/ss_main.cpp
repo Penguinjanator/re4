@@ -294,8 +294,12 @@ void SubScreenTask()
     wk->x251 = 0;
     TaskExec(2, (TaskFunc) weaponChangeTask, 0);
     while (wk->x28) {
-        if (cur != exitInit && cur != exitMain && cur != shopInit && cur != shopMain && cur != termInit &&
-            cur != termMain && weaponChangeMoveCheck()) {
+        // `&MapMgr` for the two model loops at the top of the body: loop.c hoists it (lis + addi
+        // into r23) as one two-use invariant; declared inside the `if (wk->x44 == 0)` block below,
+        // the set is `maybe_never` and used in two blocks, so it is not movable.
+        cMapMgr* mgr = &MapMgr;
+        if (exitInit != cur && exitMain != cur && shopInit != cur && shopMain != cur && termInit != cur &&
+            termMain != cur && weaponChangeMoveCheck()) {
             f32 rate = (f32) (s16) wk->x26A / 10.0f;
             if (wk->x269 == 0) {
                 wk->x26A--;
@@ -353,13 +357,12 @@ void SubScreenTask()
                 d[i] = v % 10;
                 v /= 10;
             }
-            for (i = 0; i < 8;) {
+            for (i = 0; i < 8; i++) {
                 IdUnit* u;
-                i++;
-                u = IdSub.unitPtr(i, 2);
+                u = IdSub.unitPtr(i + 1, 2);
                 u->flags |= 8;
                 u->flags_7F |= 2;
-                u->no = d[i - 1];
+                u->no = d[i];
             }
             for (i = 7; i > 0 && d[i] == 0; i--) {
                 IdSub.unitPtr(i + 1, 2)->flags &= ~8;
@@ -378,13 +381,20 @@ void SubScreenTask()
         if (wk->x44 == 0) {
             cModel* m;
             void (*func)(cModel*);
+            // `m->next` read before the call (`lwz r30, 4(r30)` above the `blrl`).
             func = sscrnModelTrans;
-            for (m = MapMgr.pAlive; m; m = (cModel*) m->next) {
-                func(m);
+            m = mgr->pAlive;
+            while (m) {
+                cModel* p = m;
+                m = (cModel*) m->next;
+                func(p);
             }
             func = LightSetModel2;
-            for (m = MapMgr.pAlive; m; m = (cModel*) m->next) {
-                func(m);
+            m = mgr->pAlive;
+            while (m) {
+                cModel* p = m;
+                m = (cModel*) m->next;
+                func(p);
             }
         }
         TaskSleep(1);

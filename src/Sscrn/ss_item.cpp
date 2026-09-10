@@ -178,13 +178,15 @@ void SsItemInit::move(SUB_SCREEN* wk)
         IdFreeBuffer();
         IdSub.set(SS_ARC_PTR(wk->pCmmn, 0xC), 0xFF, 0x14, 0xC, 2, 0);
         item_wait[0] = st;
-        goto NEXT;
+        // `state++` written out here too (jump2 cross-jumps it into case 1's tail): at allocation
+        // time this block has two pseudos, so the `lis item_wait@ha` gets r11.
+        state++;
+        break;
     case 1:
         item_wait[0]--;
         if (item_wait[0] >= 0) {
             break;
         }
-    NEXT:
         state++;
         break;
     case 2:
@@ -231,9 +233,6 @@ void SsItemInit::move(SUB_SCREEN* wk)
 
 void SsItemMain::init(SUB_SCREEN* wk)
 {
-    int i;
-    int k;
-
     sel = new ItemSelect;
     cmd = new ItemCommand;
     comb = new ItemCombine;
@@ -246,28 +245,27 @@ void SsItemMain::init(SUB_SCREEN* wk)
     comb->connect(1, cmd);
     exam->connect(0, sel);
     cur = sel;
-    itemCameraInit(wk, &pG->Cam);
+    itemCameraInit(wk, &pGS->Cam);
     IdTexDataLoad(SS_ARC_PTR(wk->pItem, 5), 9);
     if (IdSub.setCk(0x14) == 0) {
         IdSub.set(SS_ARC_PTR(wk->pCmmn, 0xC), 0xFF, 0x14, 0xC, 2, 0);
     }
     IdNum.set(SS_ARC_PTR(wk->pItem, 7), 0xFF, 0x15, 0xC, 6, 0);
-    for (i = 0; i < 32; i++) {
+    for (int i = 0; i < 32; i++) {
         int no = i + 0x40;
         IdNum.setI(SS_ARC_PTR(wk->pCmmn, 8), 0xFF, no, 0xC, 5, 0);
         numDispI(no, 0, 0, 0);
     }
-    for (k = 0; k < 2; k++) {
+    for (int k = 0; k < 2; k++) {
         int type = k * 8 + 0x40;
-        int n;
-        for (n = -3; n <= 4; n++) {
+        for (int n = -3; n <= 4; n++) {
             IdUnit* parent = IdNum.unitPtr(frameMarkNo(n, k) - 0x30, 0x15);
             IdNum.unitParent(parent, IdNumN.unitPtrN(0, type));
             type++;
         }
     }
     IdSub.set(SS_ARC_PTR(wk->pItem, 6), 0xFF, 0x16, 0xC, 4, 0);
-    for (i = 0; i < 2; i++) {
+    for (int i = 0; i < 2; i++) {
         IdUnit* tbl[16];
         s8 num;
         int j;
@@ -491,13 +489,18 @@ ItemWork* ITEM_PTR(int idx, int col)
     u8 no;
 
     item_dummy.flags = 0;
+    // The out-of-range return is a `goto` to a label with two uses: cse does not follow it, so that
+    // block recomputes `&item_dummy` (fresh `lis/addi` at the end) while the 0xFF return is the
+    // fall-through of the flags store's extended block and reuses its address register (`mr r3, r8`).
     if (idx < 0 || idx > item_num[col] - 1) {
-        return &item_dummy;
+        goto DUMMY;
     }
     no = item_list[idx + col * item_num[0]];
-    if (no != 0xFF) {
-        return ItemMgr.at(no);
+    if (no == 0xFF) {
+        return &item_dummy;
     }
+    return ItemMgr.at(no);
+DUMMY:
     return &item_dummy;
 }
 
@@ -617,8 +620,12 @@ void itemFrameSet(SUB_SCREEN* wk, int col)
             ItemInfo info;
             m->flags |= 8;
             m->flags_7F |= 2;
-            m->no = itemTexNo(item->id);
-            itemInfo(item->id, &info);
+            // do {} while (0): the loop notes weight `item`'s refs one depth deeper, so global-alloc
+            // ranks it above `col` (item r30, col r29).
+            do {
+                m->no = itemTexNo(item->id);
+                itemInfo(item->id, &info);
+            } while (0);
             if (info.x4 != 1) {
                 Vec pos;
                 pos.x = (f32) item_num_x;
@@ -776,7 +783,10 @@ int itemSelect(SUB_SCREEN* wk, int mode)
         }
     }
 END:
-    for (i = 0; i < 2; i++) {
+    // `i = no` as the increment (the `mr r31, r30` after the arms; `i++` is a separate `addi`).
+    // OPEN: the second loop's counter is r30 in the target (ours r31: a fresh loop counter has the
+    // highest allocation priority and nothing holds r31 there).
+    for (i = 0; i < 2;) {
         int no = i + 1;
         IdUnit* u = IdSub.unitPtr(no, 0x16);
         if (i == iw->col) {
@@ -784,9 +794,10 @@ END:
         } else {
             u->flags &= ~8;
         }
+        i = no;
     }
-    for (i = 0; i < 2; i++) {
-        itemFrameMove(wk, i);
+    for (int k = 0; k < 2; k++) {
+        itemFrameMove(wk, k);
     }
     return ret;
 }
@@ -908,7 +919,8 @@ void ItemCommand::move(SUB_SCREEN* wk)
                 break;
             }
             if (!(item_cmd_mode > 2)) {
-                if (!(item_cmd_mode < 1)) {
+                int min = 1;  // a literal 1 folds to `<= 0`; the target keeps `cmpwi 1; blt`
+                if (!(item_cmd_mode < min)) {
                 {
                     int j;
                     for (j = 0; j < num * 2 + 4; j++) {
@@ -926,7 +938,9 @@ void ItemCommand::move(SUB_SCREEN* wk)
                 used = ItemMgr.use(item_sel);
                 break;
             case 1:
-                wk->x24C = MapMgr.getWork(2);
+                // Both stores through PSet: the x24C store may then alias `item_sel`, so its `lis`
+                // and load stay below it (the store is on the critical path).
+                PSet((void*&) wk->x24C, MapMgr.getWork(2));
                 PSet((void*&) wk->x248, item_sel);
                 if (item_sel->id == 0xA2) {
                     state = 2;
@@ -936,8 +950,8 @@ void ItemCommand::move(SUB_SCREEN* wk)
                 SndCall(0, 0x1A, 0, 0, 0, 0);
                 return;
             case 3:
-                subSel = 1;
                 mode = 1;
+                subSel = 1;
                 SndCall(0, 0xB, 0, 0, 0, 0);
                 return;
             }
@@ -993,8 +1007,8 @@ void ItemCommand::move(SUB_SCREEN* wk)
         }
         PSVECAdd(&id[wk->x26C * 2 + 4]->scr, &id[wk->x26C * 2 + 4]->parent->scr, &sub[0]->scr);
         mode = 2;
-        break;
     }
+        // fall through: the sub menu is processed in the frame that opens it
     case 2:
         if (Key.trg & 0x40000000) {
             {
@@ -1033,9 +1047,9 @@ void ItemCommand::move(SUB_SCREEN* wk)
         }
         {
             s8 old = subSel;
-            if (Key.rep & 0x01000000) {
+            if (Key.trg & 0x01000000) {
                 subSel--;
-            } else if (Key.rep & 0x02000000) {
+            } else if (Key.trg & 0x02000000) {
                 subSel++;
             }
             subSel = subSel < 0 ? 0 : (subSel > 1 ? 1 : subSel);
@@ -1045,9 +1059,10 @@ void ItemCommand::move(SUB_SCREEN* wk)
         }
         sub[5]->flags &= ~8;
         sub[7]->flags &= ~8;
-        {
-            IdUnit* u = subSel == 0 ? sub[5] : sub[7];
-            u->flags |= 8;
+        if (subSel == 0) {
+            sub[5]->flags |= 8;
+        } else {
+            sub[7]->flags |= 8;
         }
         break;
     }
@@ -1208,13 +1223,21 @@ static inline int itemMakeMatch2(u16 id, u16 types)
 void itemMakeInit(SUB_SCREEN* wk)
 {
     SsItemMakeWork* mk = ITEM_MAKE_WORK(wk);
+    ItemInfo info;
     int i;
 
     for (i = 0; i < 2; i++) {
-        u16 types;
+        int types;
         mk->id[i] = 0;
-        types = i == 0 ? 0x0707 : 0x050C;
-        while (!itemMakeMatch2(mk->id[i], types)) {
+        if (i == 0) {
+            types = 0x0707;
+        } else {
+            types = 0x050C;
+        }
+        // The match test is written in the loop condition (a comma expression): an inline
+        // returning `a || b` materialises the 0/1 (`li r11` + `cmpwi`) where the target branches.
+        // `(u16) types` keeps the `clrlwi 16` (2 uses: combine cannot fold it into the shift).
+        while (itemInfo(mk->id[i], &info), !((u16) types >> 8 == info.type || ((u16) types & 0xFF) == info.type)) {
             mk->id[i]++;
             mk->id[i] = ITEM_MAKE_CLAMP(mk->id[i]);
         }
@@ -1229,6 +1252,7 @@ void itemMakeMove(SUB_SCREEN* wk)
     SsItemMakeWork* mk = ITEM_MAKE_WORK(wk);
     ItemWork* got = 0;
     ItemWork* cur = ITEM_PTR(iw->idx[iw->col], iw->col);
+    ItemInfo info;
     int i;
 
     if (joy->rep & 0x00080008) {
@@ -1277,7 +1301,7 @@ void itemMakeMove(SUB_SCREEN* wk)
                 d = 1;
             }
             if (d != 0) {
-                while (!itemMakeMatch(mk->id[n], hi, lo)) {
+                while (itemInfo(mk->id[n], &info), !(hi == info.type || lo == info.type)) {
                     mk->id[n] += d;
                     mk->id[n] = ITEM_MAKE_CLAMP(mk->id[n]);
                 }

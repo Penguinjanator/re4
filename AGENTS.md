@@ -2397,16 +2397,16 @@ target) stays unresolved and `make_rel` then fails with "undefined symbol".
   `__9cPartsMgr`/`__12cModInfoMgr` (asm-labelled ctors) but without a virtual destructor, so the static
   destructor inlines `cManager<T>::~cManager` (stores the cManager vtable) as the target does.
 - Status: ss_cap, ss_debug, ss_file, ss_item_draw Matching (the REL is byte-identical with the four
-  compiled); ss_main has 57/58 functions byte-identical (open: SubScreenTask register allocation /
-  `lis pG@ha` hoisting / `cur->init(wk)` tail merging); ss_item is written (34 functions incl. dtors,
-  25 byte-identical, .rodata/.data/.bss identical), open items below; ss_term (29/29 named
-  functions, eof block open) and ss_model (40/47) are written, see their items; ss_map (src/Sscrn/
+  compiled); ss_main has 57/58 functions byte-identical (open: SubScreenTask, only the three `lis
+  pG@ha`, see its item); ss_item is written (34 functions incl. dtors, 30 byte-identical,
+  .rodata/.data/.bss identical), open items below; ss_term (29/29 named functions, eof block open)
+  and ss_model (46/47, wep09Init = compiler-build difference 6) are written, see their items; ss_map (src/Sscrn/
   ss_map.cpp, 88/105 named functions byte-identical, .rodata/.data/.bss identical since 2026-09:
   the former 8-byte gap was doorModelInit's missing 2^52 pool entry (`(f32) (int) e->ang` of the u8
   angle, the classic double trick, not a fast-cast psq_l) plus the two file-scope `static const`
   tables in the wrong order (map_cam_entire is defined before mark_model_tbl); see its item) and ss_pzzl (src/Sscrn/ss_pzzl.cpp, 45/64, .rodata/.data/.bss identical, second pass) are
-  written; ss_shop (src/Sscrn/ss_shop.cpp, the merchant screen: 60/74 functions byte-identical incl.
-  the 0x980 eof block, .rodata/.data/.bss identical, .text 8 bytes short) is written, see its item.
+  written; ss_shop (src/Sscrn/ss_shop.cpp, the merchant screen: 64/74 functions byte-identical incl.
+  the 0x980 eof block, .rodata/.data/.bss identical, .text 16 bytes short) is written, see its item.
 - ss_shop idioms (2026-09): include order light.h, map_obj.h, widget.h (the three header strings), then
   "ss_shop.dat" (SsShopInit::move) and the HALT string (mem_alloc lines 0x1BA/0x242). The 13 widgets are
   declared in the order SsShopInit, SsShopMain (ss_main.h), ShopTopMenu(3 links, ctor sets cursor = 1),
@@ -2473,13 +2473,27 @@ target) stays unresolved and `make_rel` then fails with "undefined symbol".
   callee-saved r30 for both; LvUp: rematerialised `lis r9` per call) that gcse never unifies with the
   hoisted copy - a second `extern IDSystem IdSub2 asm("IdSub")` decl splits the expression but ours
   then hoists it), dispLvUpItemList (same `lis` + register names), levelItemDisp (-0x18: the same
-  `lis`, `val[cur]` index form, digit/pos slot sharing), weaponLevelDisp (+4: `digit[2]` read via the
-  array pseudo `lwz 8(rBASE)` where ours folds to `16(r1)`, register names), SellItemNum::move
-  (`this` r24 vs val r25 swap; the fpmem address pseudos are callee-saved r29/r30 in the target),
-  BuyItemNum::move (+8: the `SndCall(0,5)` tail of the cancel branch is cross-jumped into case 1's
-  `li r8,0; bl` in the target), BuyConfirm::move (+4), LvUpItemSelect::move (item r28/r30),
-  LvUpConfirm::move (-4: one `extsb` ours folds away), stockNumDisp / dispPrice (loop counter vs
-  digit pointer registers r30/r31 swapped), screenPos2worldPos (x/z store order, scr/out registers).
+  `lis`, `val[cur]` index form, digit/pos slot sharing, frame 0xB8 vs 0xC0), SellItemNum::move
+  (`this` r24 vs val r25 swap = val has the higher global-alloc priority in the target; the inner
+  `i`/magic-constant pair r28/r29 swapped too), BuyItemNum::move (+8: the `SndCall(0,5)` tail of the
+  cancel branch is cross-jumped into case 1's `li r8,0; bl` in the target, compiler-build difference
+  6), LvUpItemSelect::move (item r28 / x r30: x outranks item in the target; a do-while around the
+  x/y conversions inverts the order but its loop notes stop the `lis cMes` interleave), LvUpConfirm::move
+  (-4: the top nibble's `extsb` before `addi -1; clrlwi 24; slwi 12`: combine folds the sign
+  extension into the u8 truncation in ours), dispPrice (the num block's `&digit` pseudo is r28 in
+  the target (allocated after the loop counter and the digit pointer) and r31 in ours; the price
+  block matches).
+  Solved in the third pass (2026-09-10): screenPos2worldPos = `out->x; out->y; out->z = 0.0f` (z
+  last), stockNumDisp = block-scoped `for (int i ...)` counters (one `int i` shared by the two loops
+  gave the digit pointer r29 and the counter r31), BuyConfirm::move = `int act;` initialised AFTER
+  the `if (noRoom == 0) dispBuyItemList(..)` diamond, `if (noRoom == 0) act = 1; else act = 3;`
+  (jump1 hoists the else-set: the target's `li r29,3` before the compare) and `int min = 1; if
+  (!(act < min))`, weaponLevelDisp = `digit[i]` (not `digit[2]`) in the `i == 2` test (one more use
+  of the `&digit` pseudo lifts it above numBase in global-alloc priority: floor_log2(8) = 3),
+  block-scoped loop counters, `int barBase = 0; int numBase = 0;` declaration order (hoisted zero
+  `li`s come out in declaration order) and `if (lv > WeaponId2MaxLevel(id, type)) src = colOff;
+  else src = colOn;` (the hoisted else-set lands between the compare and the branch, so `src` can
+  share r3 with the call result; an explicit `src = colOn` before the compare schedules above it).
 - ss_map idioms (2026-09): include order light.h, map_obj.h, widget.h, atari.h (the cSat/Widget/
   cUnit vtables come out in that reverse order after the widget vtables). The unit defines its own
   `extern "C" inline LightSetModel2` before ss_main.h (the module's second copy, nameless 0x2C at
@@ -2627,13 +2641,25 @@ target) stays unresolved and `make_rel` then fails with "undefined symbol".
   pos.y, up.x, up.z, fovy` — the LAST zero store in the source (`up.z`) carries the zero register's
   death and is issued first among the zero stores (weight rule), the others follow in source order,
   and `fovy` written last has its pool load issued last so `up.z` slips in front of it.
-- OPEN (ss_main SubScreenTask, 96%): global-alloc swaps `wk`/`exitInit` (r21/r20) and `cur`
-  (r28/r27), ours hoists one `lis pG@ha` (r24) out of the while loop where the target keeps three
-  separate `lis` (two PRE'd before the weapon switch, one in the digit block), `&MapMgr` is a hoisted
-  pointer (`addi r23, r11, MapMgr@l`) in the target, and the `cur->init(wk)` arms: the target
-  cross-jumps `mr r4,r21; lwz r9,0xc(r28)` of every arm into one tail (each arm keeps only
-  `mr r28,X; b`), ours keeps the two insns per arm because the fall-through arm schedules them
-  `lwz; mr` (24 bytes). The cManager<cMap>::log copy is handled by the linkonce rule above.
+- ss_main SubScreenTask (third pass, 2026-09-10; -8 bytes, only the `lis pG@ha` placement left):
+  SOLVED the `cur` r28 / `&MapMgr` r23 allocation, the `cur->init(wk)` tail cross-jumps and the
+  digit loop with: `cMapMgr* mgr = &MapMgr;` as the FIRST statement of the `while (wk->x28)` body
+  (loop.c hoists `lis`+`addi` as one 2-use movable; declared inside the `if (wk->x44 == 0)` block
+  the set is `maybe_never` and used in two blocks, so it is not movable at all; the two direct
+  `MapMgr.pAlive` reads give two pseudo pairs whose first one combine folds into `MapMgr+16@ha`),
+  the model loops as `m = mgr->pAlive; while (m) { cModel* p = m; m = (cModel*) m->next; func(p); }`
+  (the `next` load precedes the `blrl`), `exitInit != cur && exitMain != cur ...` (compare operand
+  order `cmpw r20, r28`), the digit loop `for (i = 0; i < 8; i++) { u = IdSub.unitPtr(i + 1, 2); ..;
+  u->no = d[i]; }` (giv incremented after the load: `lbz 0,0(r31); addi r31,r31,4`, no `lbzu`),
+  and `SsTermMain::TermSub` padded to 0x40 (sizeof 0x8C: `li r3, 0x8c`). With `cur` in r28 the
+  fall-through arm's `mr r4,r21; lwz r9,0xc(r28)` order matches and jump2 merges every arm's tail.
+  OPEN: the target has three separate `lis pG@ha` for the three `pG` reads in the loop body (two
+  in the block before the `ssWepModel2` test = speculative interblock motion of the weapon-switch
+  arms' highs, compiler-build difference 5; one fresh in the digit block), ours combines them in
+  loop.c (`combine_movables`: `rtx_equal_for_loop_p` compares SYMBOL_REFs by XSTR pointer) into one
+  movable (savings 3, life 3 >= 307 insns / threshold 65) hoisted to r24; asm-labelled `pG` aliases
+  would defeat the combine but not reproduce the speculative placement. The cManager<cMap>::log copy
+  is handled by the linkonce rule above.
 - ss_item (src/Sscrn/ss_item.cpp) idioms: cursor state is a 9-byte `ItemScreenWork` (sscrn.h) at
   SUB_SCREEN+0x304 (`col`, `idx[2]`, `sel[2]`, `comb[2]`); the debug item-make state is the tail of
   the 0x34C debug block, addressed as one struct (`SsItemMakeWork`, `addi rX, wk, 0x34c` +
@@ -2650,12 +2676,75 @@ target) stays unresolved and `make_rel` then fails with "undefined symbol".
   increment); `JOY* joy = &Joy[0]` local in itemMakeMove; `PSet((void*&) wk->x248, item_sel)`
   reloads `item_sel` for the following compare; ItemCommand::move: block-local loop counters per
   `dir |= 0xF` loop (r8, not a callee-saved register), the mode switch written `case 2, 0, 1, 3`
-  (layout order), `!(mode > 2)` / `!(mode < 1)` nested (no range fold). OPEN: ITEM_PTR's out-of-range
-  `return &item_dummy` is a fresh `lis/addi` in the target while the 0xFF return reuses the flags
-  store's address register (ours cross-jumps both); SsItemMain::init `cur = sel; itemCameraInit(wk,
-  &pG->Cam)` load order and IdNum `lis` register; itemFrameSet/itemSelect/itemMakeMove/itemMakeDisp
-  register allocation; itemMakeInit's `(u16) types` ternary (`clrlwi 16` of the int) and the match
-  loop's inline `>> 8`/`& 0xFF` compare order; ItemCommand::move's `cmpwi 1; blt`.
+  (layout order), `!(mode > 2)` / `int min = 1; !(mode < min)` nested (a literal 1 folds to `<= 0`).
+  Third pass (2026-09-10, 25 -> 30 byte-identical): SsItemInit::move case 0 writes its own
+  `state++; break;` (jump2 cross-jumps it into case 1's tail; at allocation time the block has two
+  pseudos, so the `lis item_wait@ha` gets r11 - a `goto NEXT` to the shared tail leaves one pseudo
+  and r9); SsItemMain::init = `itemCameraInit(wk, &pGS->Cam)` (pG load below the `cur = sel` store)
+  and block-scoped `for (int i ...)` counters (a function-scope `i` shared by the 32-loop and the
+  2-loop is one pseudo with 4 sets that outranks the IdNum high for r31); ITEM_PTR = `if (idx < 0 ||
+  idx > n - 1) goto DUMMY;` with `DUMMY: return &item_dummy;` after the final `return
+  ItemMgr.at(no)` and `if (no == 0xFF) return &item_dummy;` as the fall-through (cse follows only
+  conditional jumps to single-use labels preceded by a barrier: the two-use DUMMY label starts a
+  fresh extended block that recomputes `&item_dummy` (`lis/addi`), while the fall-through reuses
+  the flags store's address register); itemFrameSet = `do { m->no = itemTexNo(item->id);
+  itemInfo(item->id, &info); } while (0)` (REG_N_REFS loop-depth weight: `item` outranks `col`,
+  item r30 / col r29; the do-while around the whole else body moved the block to the end);
+  ItemCommand::move = the sub-menu `--`/`++` tests read `Key.trg` (not `Key.rep`: the target
+  reuses the trg word register), `mode = 1; subSel = 1;` (SI then QI pseudo), `PSet((void*&)
+  wk->x24C, MapMgr.getWork(2))` (the store may alias `item_sel`, so its `lis`/load stay below it),
+  case 1 falls through into case 2 (no `break`), `if (subSel == 0) sub[5]->flags |= 8; else
+  sub[7]->flags |= 8;` (two block-local pointers in r9, tails cross-jumped; a ternary pointer is a
+  global pseudo in r3). itemSelect = `for (i = 0; i < 2;) { int no = i + 1; ..; i = no; }` (`mr
+  r31,r30` increment: cse cannot fold `i++` into `no` across the if/else join). itemMakeInit /
+  itemMakeMove = the match test written in the `while` condition as a comma expression
+  (`itemInfo(id, &info), !(hi == info.type || lo == info.type)`): an inline returning `a || b`
+  materialises 0/1 (`li r11,0/1; cmpwi`) where the target branches.
+  OPEN: itemSelect (the second loop's counter is r30 in the target: a fresh counter has the top
+  priority and takes r31 in ours; `no` shared as the counter inverts i/no instead); itemMakeInit
+  (`types`: the target keeps both arms `li r29,1799 / li r29,1292` (no jump1 else-set hoist) and a
+  `clrlwi r28,r29,16` u16 view whose `& 0xFF` combine did not narrow to `& 0xF` (nonzero_bits of
+  the two constants): the ternary temp's constants were not visible there); itemMakeMove (hi/lo
+  r28/r29 in the target vs r23/r24: they rank above mk/joy/d/wk/iw there although their refs and
+  live lengths look identical; possibly a live-length halving of the others via REG_EQUIV
+  constants); itemMakeDisp (`col` = u8 truncation `clrlwi r30, r5, 24` of an int temp set in both
+  arms (`li r5,4 / li r5,0`), `x * 8` recomputed per arm).
+- Generic levers confirmed in the Sscrn third pass (2026-09-10; harness /tmp/ssw5: fdiff3.py =
+  side-by-side objdump diff with relocs masked and context, LEFT column = split object, RIGHT =
+  ours; dump.sh writes the cc1plus `-da` dumps with the module flags, fnd.sh cuts one function out):
+  - global-alloc priority halving: local-alloc's `update_equiv_regs` doubles REG_LIVE_LENGTH of a
+    pseudo whose set carries a REG_EQUAL/REG_EQUIV note with a function-invariant value, once per
+    such set (a variable assigned the same constant in several places is halved several times:
+    weaponLevelDisp `lv` 540/270, `numBase` 504/252). loop.c adds that note to every invariant it
+    hoists (`move_movables`), gcse PRE insertions carry none: a `&local` pseudo hoisted by PRE
+    (anticipatable at the loop entry) keeps its priority, one hoisted by loop.c ranks below the loop
+    counters. `.lreg` "used N times across M insns" shows the doubled M.
+  - block-scoped `for (int i ...)` counters vs one function-scope `i`: the shared `i` is one pseudo
+    with several sets and a long life that outranks or underranks everything else (SsItemMain::init,
+    stockNumDisp, weaponLevelDisp, itemSelect); the target's loops mostly have their own counters.
+  - cse extended blocks: only CONDITIONAL jumps to a single-use label preceded by a barrier are
+    followed (`cse_end_of_basic_block`), a plain `b` ends the block, any code label ends it; a
+    `goto ERR` label with two uses is a fresh block that recomputes `&global` (`lis/addi`) while the
+    fall-through reuses the register (ITEM_PTR); a shared-tail label after an if/else join is a fresh
+    block too, so `i++` there cannot reuse a `no = i + 1` pseudo - write `i = no` (itemSelect).
+  - loop.c: `combine_movables` merges equal invariants only if each has n_times_set == 1 and their
+    SYMBOL_REFs are the same rtx string pointer (`rtx_equal_for_loop_p`); the moved set's threshold
+    is `(1 + n_non_fixed_regs)` with calls in the loop and drops by 3 per moved movable; a set used
+    in another basic block is not movable once `maybe_never` is set (after the first conditional
+    jump of the loop body): put a pointer that both later loops use (`cMapMgr* mgr = &MapMgr`) at
+    the TOP of the loop body to have it hoisted as one 2-use movable (SubScreenTask).
+  - jump1's else-set hoist puts `x = b` between the compare and the branch (`if (c) x = a; else x =
+    b;`); an explicit `x = b;` before the `if` is a free insn that sched1 moves above the compare
+    (weaponLevelDisp `src`); the hoisted form also lets `x` share r3 with a preceding call result.
+  - a store through `PSet((void*&) ..)` may alias every scalar, so the following `lis`/`lwz` of a
+    global stay below it (sched1 critical path), where a struct-member store lets the `lis` float
+    up (ItemCommand::move x24C/item_sel); a do-while barrier gives the same order but different
+    pseudo numbering (r9/r11 swapped).
+  - a value-context `a || b` inside an inline is 0/1 (`li 0; ..; li 1; cmpwi`); the same test as a
+    comma expression in the `while` condition branches directly (itemMakeInit/Move).
+  - two identical statements in if/else arms (`sub[5]->flags |= 8` / `sub[7]->..`) give two
+    block-local pointer pseudos (both r9) whose tails jump2 merges; a ternary pointer + one store
+    is a global pseudo (r3).
 - The map model globals are named `ssPlModel`/`ssWepModel` (.bss 0x494/0x498, MapMgr works 0/1),
   `ssPlMotion`/`ssWepModel2` (.data 0x978/0x97C), renamed by hand in symbols.txt/sym_map.tsv
   (data labels have no .sym name for the sync tool); the generator attributes them to ss_map.cpp.
@@ -2743,7 +2832,15 @@ target) stays unresolved and `make_rel` then fails with "undefined symbol".
   `if (type == 0) .. else if (type == 1)`, wep10 `if (0) .. ; if (1) .. else ..`, wep13's colour
   bytes are stored in index order and its `pParent` store is a `PSet` (the pG load must stay
   below it); the unit ends with an unreferenced `static int = 0` (.data 0xA40). playerModelInit
-  passes the u8 weapon number/type through int-parameter aliases (COMPILER-DIFF 4). Residual: the
+  passes the u8 weapon number/type through int-parameter aliases (COMPILER-DIFF 4). SOLVED
+  (third pass, 2026-09-10, 46/47): the scale statics are one-element arrays `static f32 x_scale[1]
+  = {1.0f}` read once into a block-local `f32 sc_ = (s)[0];` AFTER the pos/rot word copies
+  (SS_MODEL_PLACE): the array element is an in-struct MEM, so sched1 keeps its `lfs` below the
+  `m->rot` stores (fixed scalar vs varying struct would not alias) and the `lis` floats up into the
+  callee-saved r28/r29, while the local holds the value for the three `m->scale` stores (a direct
+  `x[0]` re-reads it after each store); the magazine flag is `cModel* one = (cModel*) 1;` declared
+  before `wep->be_flag |= 2` (the constant's pseudo before the `ssWepModel2` high: `li r11,1; lis
+  r9`). Only wep09Init is left (compiler-build difference 6). Old residual text: the
   six character inits load the scale static's `lis` early into a callee-saved register (ours
   right before the `lfs`; chain / local / order variants tried) and wep09Init's two modelInit arms
   are cross-jumped in the original (compiler-build difference 6). Second pass (2026-09): the

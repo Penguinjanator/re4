@@ -356,7 +356,7 @@ public:
         int x14;      // 0x60  TermSeq::x2 of the last entry
         int x18;      // 0x64  TermSeq::mesNo of the last entry
         int count;    // 0x68  messages set / cleared
-        u8 pad_1C[0x40 - 0x1C];
+        u8 pad_20[0x40 - 0x20];  // sizeof == 0x40 (SsTermMain is 0x8C: SubScreenTask's `li r3, 0x8c`)
     };
 
     int x10;          // 0x10
