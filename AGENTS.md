@@ -9579,3 +9579,59 @@ output to the installed compiler; NOTE mk.sh must rm the insn-*.o objects or a p
   `score` (14 refs) in priority: not by refs). r204 EventChandelier: the extra callee-saved register is the
   crot0 high H kept apart from its lo_sum X (`lis r30; addi r25,r30`) = H had a second, deleted use in a
   branch-free prologue (not a test).
+
+### Tool RELs, bytes-first pass 5 (cDbgFileSelectWindow::Init closed in t_event/t_esp_area/t_lightarea: t_event 62->63/69, t_esp_area + t_lightarea 36->37/38; db_widget DB_NUMERIC ctor 7->2; 2026-09-10)
+
+- Harness /tmp/tools_p5 (tools_p4 copies with the paths rewritten; `minivar.py BASE.cpp VARIANTS.py [START END]` compiles
+  variants of a stand-alone mini source with the module flags and prints an objdump slice, `minidump.sh FILE.cpp -dX` = cc1plus
+  dumps of a mini source; `tryvh.py` needs `EXTRA=-fno-implement-inlines` for t_event/Tools units).
+- **cDbgFileSelectWindow::Init (dbg_tool.h, 18 -> 0 in all three users) = the cDbgWindow::Init region-split recipe with THREE
+  dead `do { } while (0);` (before `pCur = 0`, before `pPath1 = path1`, before `fileNo = 0`)**, no register pins: the first region
+  must leave the zero <= 3 dependents (`li r9,1` then ranks above `li r0,0`), the second keeps the dying pPath1/pPath2/pExt
+  stores from passing `pCur`/`fileName[0]` (a byte store is NOT a barrier for same-base word stores: alias.c separates
+  `this+0x248` from `this+0x23c`), the third keeps the last zero store last. Brute force over all 2- and 3-barrier placements
+  (v_fs2.py, 55+165 variants, ~50 s): no 2-barrier placement reaches 0 (best 2 words); hard-register pins (`register int one
+  asm("r9")`) were unnecessary once the regions were right. Shared header: verify every unit that constructs the window
+  (t_event/t_event, Tools/t_esp_area, Tools/t_lightarea; db_toolbase unchanged).
+- **#13 init-block launder without a later block (db_widget DB_NUMERIC ctor, 7 -> 2)**: when nothing separates the block from the
+  next call and return, `asm("" : "=m"(field) : "r"(zero), "f"(one))` with a MEMORY output on a field the block does NOT store
+  (`def`, stored in the first block) keeps the dying constants alive with no scheduling barrier and is never deleted by flow (a
+  store); an output on a field stored in the block boosts that store's priority (`"=m"(edit)` hoisted the `edit = 0` store).
+  The tied form `asm("" : "=r"(t) : "0"(this), ...)` + `t->SetDefault()` gets the same store order but delays `mr r3,r30`
+  behind the asm (its `lfs` input) in sched2. `register f32 one asm("fr13"); one = 1.0f;` assigned AFTER `max = 255.0f` gives
+  the target's pool order (255 before 1.0) and the reload spill register (1.0 -> f13, 255 -> f0). Residue 2 words: the target
+  issues `fmr f1,f31` (the SetDefault argument) in the cycle of the FIRST store, ours one store later — in our sched2 the
+  `fmr` ranks below every store of the block (ready list `... 181 205 169 165 161 154 150`), the target's ranks it second;
+  not understood (`SetDefault(min)`/`(zf)` argument forms unchanged).
+- **Save*FileNoUpdateCallback x5 (t_esp, 5 words each), mechanism corrected**: the second dead compare is NOT deleted by
+  jump2's delete_computation (with `reload_completed && flag_schedule_insns_after_reload` it deletes only the jump — jump2
+  runs after sched2 in this toplev.c) but by flow2: `find_basic_blocks` after flow1 deleted the dead `type = 0` store finds
+  the `cmpwi 0xff; ble L2` block falling through into L2, `tidy_fallthru_edge` deletes the `ble`, and life_analysis deletes
+  the dead cr0 set. The first compare survives because `b L2` (the then arm's jump) sits between `bge L1` and L1 (two
+  successors), and jump2 later deletes both jumps as jumps-to-following. A third dead arm (`else step = 0;`) keeps the
+  second block two-successor, but jump2's jump-around-jump inversion turns `bge L1; b L2; L1:` into `blt L2`, which is no
+  longer to-following once `cmpwi 0xff` survives (`cmpwi; blt; cmpwi`, 3 words). So the original's flow2 kept the `ble` block
+  (or its jump2 processed the inner `ble` before inverting the outer branch): compiler-side, one more form tried
+  (`if (type < 0) type = 0xFF; if (type > 0xFF) type = 0;`, `||`, nested, int/s16, dead-variable arms: all keep 0 or 1 compare).
+- **gcse PRE deletes a fully redundant occurrence only if its block is not "isolated"** (lcm.c: `isoin = latein | (isoout &
+  ~antloc)`, `isoout = AND of successors' isoin`, `isoout[last] = 0`; `redundant = antloc & ~(latein | isoout)`): an occurrence
+  with no LATER occurrence on any path to the exit is never deleted, whatever the availability (mini_pre.cpp: `a = U8(raw); ..;
+  return U8(raw) & 0x80` -> "0 substs"). IKreport's target (`clrlwi r0; mr r11,r0` in the first block, `andi. r0,r11,0x80` in
+  the join) is a PRE insertion+copy for the third test's recomputation, which our gcse never performs here; the third test also
+  needs (a) the first computation as a single SET — `int info = (u8) raw` / an inline `IkU8(u16)` gives `zero_extendqisi2`,
+  while `raw & 0xFF` is the `andsi3` PARALLEL with a CC clobber that gcse's hash_scan_set ignores — (b) SImode arithmetic
+  (`(u8) raw & 0x80` is shortened to QImode by the front end; `(int) (u8) raw` / `IkU8(raw)` keep it) and (c) a dead
+  `do { } while (0);` at the join-block top so cse1's AROUND path (block 2's `beq` over `li r8,1` into the join, label with one
+  use) does not fold the recomputation into `info`. With all three the occurrence survives cse1 and PRE still reports 0 substs
+  (isolated). Left at 10 words; the #12 taken-branch/AROUND family.
+- **haifa tie at a call return (t_camera tcNextAdatPtr, 2 words)**: `mr r4,r3` (the result copy, no dependent inside its block:
+  the compare that uses it is in the next block) and `cmpwi cr7,r29,0` (-> the block's `ble`) are both ready after the `bl`;
+  ours ranks the compare first by priority (compare->branch cost), the target the copy — its original had equal priorities
+  (compare->branch latency 1) or the copy's use in the same block. `int suffix;` assigned after the call, do-while, nested/two
+  ifs: 2/2/9/12 words. Same family as the t_camera_data/t_id `lis`-before-`mr` ties (idEditMark 2, toolIdEditDisp 4).
+- Negative results (one try each): t_se_at seAtInit volatile pW view (`SeAtWork* volatile* vp = &seAtWk.p`, 3 forms) does not
+  keep the camPos `lwz pW` below the Snd zero stores (21); db_widget DB_STRING ctor: all 120 statement orders of
+  max/colour-chain/type/str/len with and without a keep-alive asm stay >= 9 words — the target's `max, ca, type, cb, cg, cr,
+  vptr, str, len` is neither source order nor the dying-first model (the vptr store, first in RTL, is issued 7th; the two
+  other ctors issue it first); db_mod IKreport see above; t_atari plmove10, t_sce_at basic_menu, t_snd_vol editScreenDisp,
+  t_rck, t_id idEdit*, db_light, db_port, t_camera_data not iterated this pass.

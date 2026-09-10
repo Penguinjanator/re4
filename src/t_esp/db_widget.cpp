@@ -844,16 +844,27 @@ DB_NUMERIC::DB_NUMERIC() : DB_STRING(255, "")
     type = DB_PRIM_NUMERIC;
     flag |= DB_PRIM_FLAG_SELECTABLE | DB_PRIM_FLAG_MOUSE_ON;
     SetNumFlg(0);
-    minus = 0;
-    pNum = 0;
-    min = 0.0f;
-    ketaFloat = 0;
-    edit = 0;
-    max = 255.0f;
-    keta = 3;
-    unit = 1.0f;
-    step = 1.0f;
-    SetDefault(0.0f);
+    {
+        // COMPILER-DIFF: #13 -- the original stores its REG_EQUIV constants as constants: the block
+        // is issued in pure source order (no death at the last zero / 1.0 store) and reload puts 1.0
+        // in the spill register f13 (255.0 gets f0). The non-volatile asm with a memory output keeps
+        // our zero/1.0 pseudos live past the block without a scheduling barrier and is not deleted
+        // by flow (a store), `fr13` pins the 1.0. 7 -> 2 words (`fmr f1,f31` one slot later).
+        int zero = 0;
+        register f32 one asm("fr13");
+        minus = zero;
+        pNum = (void*) zero;
+        min = 0.0f;
+        ketaFloat = zero;
+        edit = zero;
+        max = 255.0f;
+        keta = 3;
+        one = 1.0f;
+        unit = one;
+        step = one;
+        asm("" : "=m"(def) : "r"(zero), "f"(one));
+        SetDefault(0.0f);
+    }
 }
 
 void DB_NUMERIC::SetNumFlg(u32 flg)

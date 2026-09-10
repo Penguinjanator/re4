@@ -98,13 +98,25 @@ inline void cDbgFileSelectWindow::Init(int wx, int wy, const char* name, const c
     x1C = 0;
     x20 = 0;
     num = 0;
+    // COMPILER-DIFF: #13 -- the cDbgWindow::Init region-split recipe (db_toolbase.h): the original's
+    // zero is a reload-materialised constant (no `li` in sched1, no death at its last store), so the
+    // block is issued in source order with `li 1` before `li 0`. The three dead loop notes split our
+    // sched1 regions so that the zero has <= 3 dependents in the first region (`li 1` ranks first),
+    // the dying pPath1/pPath2/pExt stores cannot pass pCur/fileName, and the last zero store stays
+    // last (18 -> 0 words in t_event, t_esp_area, t_lightarea).
+    do {
+    } while (0);
     pCur = 0;
     fileName[0] = 0;
+    do {
+    } while (0);
     pPath1 = path1;
     pPath2 = path2;
     pExt = ext;
     pTop = 0;
     pBottom = 0;
+    do {
+    } while (0);
     fileNo = 0;
 }
 
