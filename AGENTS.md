@@ -13883,3 +13883,63 @@ shows the same reloc name on both sides, not code).
   hako_down (37) is the operateCrank loop-count family (-100.0 hoisted at 260 insns).
 - Harness gotcha (rooms_c8): `mdump.sh MOD/UNIT` compiles `src/MOD/UNIT.cpp`, which does not exist for rooms (sources
   live in src/st1, src/st2); without `SRC_OVERRIDE=src/st1/rNNN.cpp` it exits after cpp and the previous dump is read.
+
+### DOL structural pass (dbmodule flipped: DrawObjWireframe 59 -> 0, 29/29; item 68 -> 75/78: use 132 -> 0, get 41 -> 0, bulletNum 11 -> 0, load 19 -> 0, partsCombine 63 -> 0, combine 8 -> 0 (#17), debugNumDisp 9 -> 0; view initPerspective 551 -> 347; 2026-09-10)
+
+- **dbmodule DrawObjWireframe (59 -> 0, zero code).** The command loop is `do { if (cmd >= (u8*) part) break; op = *cmd++;
+  switch (op) {...} } while (1);` -- the do/while(1) with a leading break keeps the trailing `b top` (no
+  expand_end_loop rotation, no `part` spill); `for (;;) { if (...) goto done; }` spilled `part` (155). `DB_poly_num +=
+  n` was stored with the *loaded* value's register order: `static inline void ISet(int& d, int v) { d = v; }
+  ISet(DB_poly_num, DB_poly_num + part->nPoly);`. The `u16 idx[4]` ADDRESSOF pseudo: index stores as `pidx = idx;
+  *pidx++ = *(u16*) cmd; cmd += 8;` (x4 quad / x3 tri / x2 strip) then `pidx = idx;` again before the conversion loop
+  (`pidx = idx` *after* the stores is 158). The strip tail is `idx[2] = idx[1]; pidx = &idx[1]; p[2] = p[1];`
+  (`idx[2] = *++(pidx = idx)` folds away, 61). One function-scope `s16* v` for every conversion loop; the strip's GX
+  emit loop needs its own `u32 m2` (an `int m2` gives `cmpwi`, 51).
+- **item `use` (132 -> 0).** The 0-return label lives inside the first test: `if (ITEM_TYPE(p->id) == 1) { ng: return 0; }
+  if (p->num == 0) goto ng;` (the `||` form is 132, a plain `goto ng` after the switch gives the `beq NG; b EXIT`
+  polarity, 54). Each healing arm is `if (healing(K) == 0) { asm volatile(""); // COMPILER-DIFF: 6 \n goto ng; } break;`
+  -- the empty asm blocks the jump-over-jump inversion AND jump2's cross-jump between the ten identical return paths
+  (44 -> 31 with the helper split below). Sub-conditions that the target keeps as separate blocks: `static inline int
+  useSubChar(cItemMgr* m) { if (m->x12 == 0) return pG->x4FB8 == 1; return 1; }`, and a value `switch (p->id) { case
+  0x16: heal = 600; break; case 0x15: heal = 2400; break; }`. The flag test with a block-local `int no = p->id;`
+  (`pFlags[no >> 5] & (0x80000000 >> (no & 0x1F))`) gets the target's rlwinm/srw pair.
+- **item `get` (41 -> 0).** `p->num = num + p->num` emits `add rNum, rLoad` only through an int temporary
+  (`{ int t = num + p->num; p->num = t; }`); u16 arithmetic in place swaps the operands. Final `if (pLast == 0) {
+  err(); return 0; } return 1;` (the `goto ng` forms are 74, the un-inverted if is 1).
+- **item `bulletNum` (11 -> 0).** Value-select `int n;` with the *returning* arm placed before the nested-switch arm:
+  `case 1: if (...) return num(0x72); n = BULLET(p); break; case 3: return p->num; case 6: switch (p->id) {... return
+  p->num; default: return 0;} default: n = 0; break; } return n;`. `int n = 0` at the declaration constant-folds the
+  default arm away (11).
+- **item `load` (19 -> 0).** Separate `case 1:` and `case 9:` arms each with the three stores in the target's order
+  (`x6, x8, num = 1`); a shared arm hoists `li r24,1` (37).
+- **item `partsCombine` (63 -> 0).** `ItemInfo info` declared inside `if (ret != 0)`; the pair `list[0] = 0; list[1] =
+  0; n = 0;` with `n = 0` *after* the stores (before `searchAt` the zero stores borrow n's register, g3/g5); the scan as
+  `i = 0; if (i < nItems) { lp = list; do {...} while (++i < nItems); }`; the second loop with its own `int j` counter
+  (bct via a separate biv).
+- **item `combine` (8 -> 0, COMPILER-DIFF #17 applied).** `{ register ItemWork* arm asm("r0"); arm = pArm; if (a == arm)
+  {...} }` right after the `a->x8 = (inv << 13) | (n & 0x1FFF);` store, in both symmetric arms: local-alloc's fake
+  lifetime (birth-2/death+2) reuses r0 for the pArm load only when the x8 value has just died; a plain local gives r9 (8),
+  `ret = 1` before the block 44.
+- **item `debugNumDisp` (9 -> 0).** Column/row bookkeeping as `eprintf((sX - col) * 8, (sY + row++) * 14, ...)`; the
+  `n` value-select `if (ITEM_TYPE(id) == 2) n = bulletNumTotal(id); else n = num(id);` inside the loop body block.
+- **item residues (not flipped, 75/78):** set_stage2 4 (cases 2/3 `li r4,48` vs `mr r3,r28` tie -- the loop-note barrier
+  after the template copy loop exists only in cases 0/1), init 2 (`li r3,32`/`addi r4` INSN_REG_WEIGHT tie), trigger 1
+  (`clrlwi`, #2 family).
+- **view initPerspective (551 -> 347, structure now matches; not flipped).** Target frame 0xe8, r14-r31, f27-f31; locals
+  t1@8, t2@0x18, t3@0x28, `Vec q[4]`@0x38; spill slots 0x68..0x74 = PRE'd `&q[0]`, `&q[2]`, `&q[3]`, `&localFull`
+  (reloaded after `orientation()`), `&q[1]` in r14 and `&t3` in r29 hoisted to the earliest block (after block 1).
+  Source shapes that reproduce it: (1) block 1 with `b = &localFull` and `b->point[k]` / `&b->normal[k]` inline (only
+  `&point[4]` is PRE'd there); (2) `c = &local; *c = localFull;` -- c is set *before* the 0xc0-byte copy loop, so in the
+  new cse block after the loop `c + K` cannot be folded to `this + K` (with `local = localFull; c = &local;` every block-2
+  address becomes this-based, 463); (3) block 2 written through 14 pointer locals `p0..p7 = &c->point[k]`, `n0..n5 =
+  &c->normal[k]` assigned in the halving loop's preheader -- these are the 14 `addi rX,r31,K` before `mtctr`; (4) the
+  halving loop `f32* px = &p0->x; f32* py = &p0->y; for (i = 0; i < 8; i++) { px[i * 3] *= 0.5f; py[i * 3] *= 0.5f; }`:
+  two different base regs share one `i*12` giv -> `lfsx/stfsx f,r9,rBase` index-first (a single `c->point[i].x/.y` pair
+  is combined by loop.c into one stepping pointer with `lfs -4(r9)/0(r9)`, 441); (5) `b = &localFull;` re-assigned
+  before the sphere block (PRE'd with block 1's, spilled at 0x74); (6) the q copies field-wise `q[0].x = b->point[0].x;
+  ...` -- a struct copy `q[0] = b->point[0]` forces `&b->point[k]` into a pseudo, cse folds it to `this + K` and gcse
+  hoists the four of them into spill slots (455 vs 347). Remaining: point-store order and the `-zn` neg placed before
+  `w = h * aspect_` in the target (source order of the 24 stores / negations unknown), det/centre FP expression
+  association (ours needs f26), and the dead-function pool 0x48..0x80 after the function's four constants (1.0f,
+  0x4330000080000000, 2*pi, 12.0f, 0x4330000000000000, 1/1024, pi/2 -- a never-called static after `orientation` +
+  STRIP_UNUSED).

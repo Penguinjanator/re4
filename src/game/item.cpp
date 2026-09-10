@@ -1824,7 +1824,11 @@ int cItemMgr::get(int id, int num)
                 total = p->num + num;
                 itemInfoW(p->id, &inf);
                 if (total <= inf.x4) {
-                    p->num = num + p->num;
+                    {
+                        int t = num + p->num;
+
+                        p->num = t;
+                    }
                     return 1;
                 }
                 return 0;
@@ -1843,9 +1847,8 @@ int cItemMgr::get(int id, int num)
         max = pInfo->x4;
     }
     if (num > max) {
-        u16 m = max;
+        num = (u16) max;
         pLog->err(0, 0, "cItemMgr::get(): Volume of ITEM(0x%02x) is OOL.", id);
-        num = m;
     }
     pLast = 0;
     p = pItems;
@@ -1857,19 +1860,19 @@ int cItemMgr::get(int id, int num)
             break;
         }
     }
-    if (pLast != 0) {
-        return 1;
+    if (pLast == 0) {
+        pLog->err(0, 0, "cItemMgr::get() Can't create item.");
+        return 0;
     }
-    pLog->err(0, 0, "cItemMgr::get() Can't create item.");
-    return 0;
+    return 1;
 }
 
 static inline int useSubChar(cItemMgr* m)
 {
-    if (m->x12 != 0) {
-        return 1;
+    if (m->x12 == 0) {
+        return pG->x4FB8 == 1;
     }
-    return pG->x4FB8 == 1;
+    return 1;
 }
 
 int cItemMgr::use(ItemWork* p)
@@ -1880,10 +1883,11 @@ int cItemMgr::use(ItemWork* p)
         return 0;
     }
     if (ITEM_TYPE(p->id) == 1) {
+    ng:
         return 0;
     }
     if (p->num == 0) {
-        return 0;
+        goto ng;
     }
     switch (p->id) {
     case 0x01:
@@ -1898,10 +1902,7 @@ int cItemMgr::use(ItemWork* p)
             }
             p->num = 5;
         }
-        if (p->num == 0) {
-            p->flags = 0;
-        }
-        return 1;
+        goto chk;
     case 0x15:
     case 0x16: {
         int hp = 0;
@@ -1936,10 +1937,13 @@ int cItemMgr::use(ItemWork* p)
                 ok = 1;
             }
         }
-        if (p->id == 0x15) {
-            heal = 2400;
-        } else if (p->id == 0x16) {
+        switch (p->id) {
+        case 0x16:
             heal = 600;
+            break;
+        case 0x15:
+            heal = 2400;
+            break;
         }
         if (heal != 0) {
             if (healing(heal) != 0) {
@@ -1947,75 +1951,88 @@ int cItemMgr::use(ItemWork* p)
             }
         }
         if (ok == 0 && hp == 0) {
-            return 0;
+            asm volatile(""); // COMPILER-DIFF: 6 (layout: keeps the healing arms apart at jump2)
+            goto ng;
         }
         break;
     }
     case 0x08:
         if (healing(400) == 0) {
-            return 0;
+            asm volatile(""); // COMPILER-DIFF: 6 (layout: keeps the healing arms apart at jump2)
+            goto ng;
         }
         break;
     case 0x09:
         if (healing(800) == 0) {
-            return 0;
+            asm volatile(""); // COMPILER-DIFF: 6 (layout: keeps the healing arms apart at jump2)
+            goto ng;
         }
         break;
     case 0x0A:
         if (healing(2400) == 0) {
-            return 0;
+            asm volatile(""); // COMPILER-DIFF: 6 (layout: keeps the healing arms apart at jump2)
+            goto ng;
         }
         break;
     case 0x05:
         if (healing(2400) == 0) {
-            return 0;
+            asm volatile(""); // COMPILER-DIFF: 6 (layout: keeps the healing arms apart at jump2)
+            goto ng;
         }
         break;
     case 0x95:
         if (healing(900) == 0) {
-            return 0;
+            asm volatile(""); // COMPILER-DIFF: 6 (layout: keeps the healing arms apart at jump2)
+            goto ng;
         }
         break;
     case 0x97:
         if (healing(2400) == 0) {
-            return 0;
+            asm volatile(""); // COMPILER-DIFF: 6 (layout: keeps the healing arms apart at jump2)
+            goto ng;
         }
         break;
     case 0x06:
         if (healing(600) == 0) {
-            return 0;
+            asm volatile(""); // COMPILER-DIFF: 6 (layout: keeps the healing arms apart at jump2)
+            goto ng;
         }
         break;
     case 0x12:
         if (healing(1300) == 0) {
-            return 0;
+            asm volatile(""); // COMPILER-DIFF: 6 (layout: keeps the healing arms apart at jump2)
+            goto ng;
         }
         break;
     case 0x13:
         if (healing(2400) == 0) {
-            return 0;
+            asm volatile(""); // COMPILER-DIFF: 6 (layout: keeps the healing arms apart at jump2)
+            goto ng;
         }
         break;
     case 0x14:
         if (healing(2400) == 0) {
-            return 0;
+            asm volatile(""); // COMPILER-DIFF: 6 (layout: keeps the healing arms apart at jump2)
+            goto ng;
         }
         break;
     default:
-        if (!(pFlags[p->id >> 5] & (0x80000000 >> (p->id & 0x1F)))) {
-            return 0;
+        {
+            int no = p->id;
+
+            if (!(pFlags[no >> 5] & (0x80000000 >> (no & 0x1F)))) {
+                return 0;
+            }
         }
         flagclear();
         checkId = p->id;
         if (p->id == 0x84 || p->id == 0x92) {
-            if (p->num == 0) {
-                p->flags = 0;
-            }
-            return 1;
+            goto chk;
         }
         break;
     }
     p->num--;
+chk:
     if (p->num == 0) {
         p->flags = 0;
     }
@@ -2211,8 +2228,13 @@ int cItemMgr::combine(ItemWork* a, ItemWork* b, int flag)
                         erase(b);
                     }
                     a->x8 = (inv << 13) | (n & 0x1FFF);
-                    if (a == pArm) {
-                        pG->wep_x4FB2 = ATTR(a);
+                    {
+                        register ItemWork* arm asm("r0"); // COMPILER-DIFF: 17 (local-alloc fake-lifetime parity: the pArm load reuses r0 right after the x8 store's value dies)
+
+                        arm = pArm;
+                        if (a == arm) {
+                            pG->wep_x4FB2 = ATTR(a);
+                        }
                     }
                     ret = 1;
                 }
@@ -2246,8 +2268,13 @@ int cItemMgr::combine(ItemWork* a, ItemWork* b, int flag)
                         erase(a);
                     }
                     b->x8 = (inv << 13) | (n & 0x1FFF);
-                    if (b == pArm) {
-                        pG->wep_x4FB2 = ATTR(b);
+                    {
+                        register ItemWork* arm asm("r0"); // COMPILER-DIFF: 17 (local-alloc fake-lifetime parity: the pArm load reuses r0 right after the x8 store's value dies)
+
+                        arm = pArm;
+                        if (b == arm) {
+                            pG->wep_x4FB2 = ATTR(b);
+                        }
                     }
                     ret = 1;
                 }
@@ -2301,7 +2328,6 @@ end:
 int cItemMgr::partsCombine(ItemWork* wep, ItemWork* part)
 {
     u16 newId;
-    ItemInfo info;
     ItemWork* list[2];
     ItemWork* p;
     ItemWork** lp;
@@ -2311,35 +2337,39 @@ int cItemMgr::partsCombine(ItemWork* wep, ItemWork* part)
     int i;
 
     ret = itemCombine(wep->id, part->id, &newId);
-    if (ret == 0) {
-        return ret;
-    }
-    if (part->x6 != 0) {
+    if (ret != 0) {
+        ItemInfo info;
+
+        if (part->x6 != 0) {
         part->x6 = 0;
         if (pArm != 0 && pArm == at(part->x8)) {
             armId = weaponId(pArm);
         }
         part->x8 = 0xFFFF;
     }
+    p = pItems;
     idx = searchAt(wep);
-    n = 0;
     list[0] = 0;
     list[1] = 0;
-    lp = list;
-    p = pItems;
-    for (i = 0; i < nItems; i++, p++) {
-        if (itemUse(p, type)) {
-            if (ITEM_TYPE(p->id) == 9 && p->x6 == 1 && idx == p->x8) {
-                *lp++ = p;
-                n++;
+    n = 0;
+    i = 0;
+    if (i < nItems) {
+        lp = list;
+        do {
+            if (itemUse(p, type)) {
+                if (ITEM_TYPE(p->id) == 9 && p->x6 == 1 && idx == p->x8) {
+                    *lp++ = p;
+                    n++;
+                }
             }
-        }
+            p++;
+        } while (++i < nItems);
     }
-    for (i = 0; i < n; i++) {
-        if (list[i]->id == part->id) {
-            list[i]->x6 = 0;
-            list[i]->x8 = 0xFFFF;
-            list[i] = 0;
+    for (int j = 0; j < n; j++) {
+        if (list[j]->id == part->id) {
+            list[j]->x6 = 0;
+            list[j]->x8 = 0xFFFF;
+            list[j] = 0;
         }
     }
     if (n == 1) {
@@ -2349,10 +2379,11 @@ int cItemMgr::partsCombine(ItemWork* wep, ItemWork* part)
             list[0] = 0;
         }
     }
-    part->x8 = searchAt(wep);
-    part->x6 = 1;
-    if (pArm != 0 && pArm == wep) {
-        armId = weaponId(wep);
+        part->x8 = searchAt(wep);
+        part->x6 = 1;
+        if (pArm != 0 && pArm == wep) {
+            armId = weaponId(wep);
+        }
     }
     return ret;
 }
@@ -2681,6 +2712,7 @@ int cItemMgr::bulletNum(u16 id)
 int cItemMgr::bulletNum(ItemWork* p)
 {
     ItemInfo info;
+    int n;
 
     if ((s32) pG->flags_6C >= 0 && (pG->flags_68 & 0x00400000)) {
         return 100;
@@ -2693,22 +2725,24 @@ int cItemMgr::bulletNum(ItemWork* p)
         if (p->id == 0x52) {
             return num(0x72);
         }
-        return BULLET(p);
+        n = BULLET(p);
+        break;
+    case 3:
+        return p->num;
     case 6:
-        // the 8..10 hit falls into case 3 (the target's case-3 body follows the range test); the
-        // inner default's single `li r3,0` tail is cross-jumped by ours (COMPILER-DIFF #6)
         switch (p->id) {
         case 8:
         case 9:
         case 10:
-            break;
+            return p->num;
         default:
             return 0;
         }
-    case 3:
-        return p->num;
+    default:
+        n = 0;
+        break;
     }
-    return 0;
+    return n;
 }
 
 int cItemMgr::saveDataSize()
@@ -2790,10 +2824,14 @@ void cItemMgr::load(void* src)
             }
             switch (ITEM_TYPE(p->id)) {
             case 1:
+                p->x6 = s[i].x2;
+                p->x8 = s[i].x4;
+                p->num = 1;
+                break;
             case 9:
                 p->x6 = s[i].x2;
-                p->num = 1;
                 p->x8 = s[i].x4;
+                p->num = 1;
                 break;
             case 10:
                 p->num = s[i].x2;
@@ -3014,21 +3052,20 @@ void cItemMgr::debugNumDisp(int a)
     static int sY = 5;
     ItemInfo info;
     int row = 0;
-    int col = 0;
     int color = 0;
-    int id;
+    int id = 0;
+    int col = 0;
 
-    for (id = 0; id <= 0xFE; id++) {
-        u16 uid = id;
+    for (; id <= 0xFE; id++) {
         int n;
 
-        if (ITEM_TYPE(uid) == 2) {
-            n = bulletNumTotal(uid);
+        if (ITEM_TYPE(id) == 2) {
+            n = bulletNumTotal((u16) id);
         } else {
-            n = num(uid);
+            n = num((u16) id);
         }
         if (n != 0) {
-            switch (ITEM_TYPE(uid)) {
+            switch (ITEM_TYPE(id)) {
             case 0:
                 color = 1;
                 break;
@@ -3073,8 +3110,7 @@ void cItemMgr::debugNumDisp(int a)
                 color = 5;
                 break;
             }
-            eprintf((sX - col) * 8, (sY + row) * 14, color, a, "Item%02x : %03d", id, n);
-            row++;
+            eprintf((sX - col) * 8, (sY + row++) * 14, color, a, "Item%02x : %03d", id, n);
         }
         if (row > 21) {
             row = 0;

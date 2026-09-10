@@ -44,23 +44,47 @@ void VIEW::setFarPlane(f32 z)
     zfar = z;
 }
 
-// initPerspective (551 words, was 611): the two normal blocks are written out (VECNormalize's
-// __LINE__ is 193/198/.../218 and 239/.../264 in the original, 5 lines per normal). OPEN: the
-// original computes -znear/-h/-w once each and stores them through chains (4/2/2 stores from one
-// register), keeps &normal[k]/&point[k] in callee-saved r14-r27 across the second normal block,
-// halves the points with an indexed `lfsx/stfsx` loop, and its sphere block builds a `Vec* p[4]`
-// table on the stack (frame+56/80/92 and &localFull) -- a different algorithm from the det/d0..d2
-// form below (its pool has 1.0, 2pi, 12.0, 1/1024, pi/2 and both double-conversion magics that
-// ours lacks: .rodata 0x80 vs 0x48).
+// initPerspective: the original's algorithm -- three Vec temporaries (the second normal block uses
+// t1/t3), `Vec q[4]` for the sphere points, the frustum points halved with an indexed loop, and
+// the circumsphere numerators written with the point differences inline (recomputed from the q
+// copies after the PSVECSquareMag calls).
+// Shape (from the target's asm): block 1 addresses `b->point[k]` inline; `c = &local; *c = localFull;`
+// (c set before the copy loop so cse cannot fold `c + K` to `this + K` after it); block 2 through 14
+// pointer locals p0..p7/n0..n5 assigned in the halving loop's preheader; the halving loop as
+// `px[i * 3] *= 0.5f; py[i * 3] *= 0.5f;` (two bases, one index giv -> lfsx/stfsx); `b = &localFull`
+// re-assigned for the sphere block; q copies field-wise (a struct copy forces `&b->point[k]` into a
+// pseudo that cse folds to `this + K` and gcse then hoists).
 void VIEW::initPerspective(f32 fovy_, f32 aspect_, f32 znear_, f32 zfar_)
 {
     Vec t1;
     Vec t2;
+    Vec t3;
     Vec q[4];
     ViewFrustum* b;
+    ViewFrustum* c;
+    Vec* p0;
+    Vec* p1;
+    Vec* p2;
+    Vec* p3;
+    Vec* p4;
+    Vec* p5;
+    Vec* p6;
+    Vec* p7;
+    Vec* n0;
+    Vec* n1;
+    Vec* n2;
+    Vec* n3;
+    Vec* n4;
+    Vec* n5;
     f32 t;
     f32 h;
     f32 w;
+    f32 zn;
+    f32 zf;
+    f32 det;
+    f32 d0;
+    f32 d1;
+    f32 d2;
     int i;
 
     fovy = fovy_;
@@ -69,34 +93,36 @@ void VIEW::initPerspective(f32 fovy_, f32 aspect_, f32 znear_, f32 zfar_)
     zfar = zfar_;
     t = sinf(fovy * 0.5f * 3.1415927f / 180.0f) / cosf(fovy * 0.5f * 3.1415927f / 180.0f);
     b = &localFull;
-    h = znear * t;
-    w = h * aspect;
+    zn = znear;
+    h = zn * t;
+    w = h * aspect_;
     b->point[0].x = w;
     b->point[0].y = h;
-    b->point[0].z = -znear;
+    b->point[0].z = -zn;
     b->point[1].x = -w;
     b->point[1].y = h;
-    b->point[1].z = -znear;
+    b->point[1].z = -zn;
     b->point[2].x = -w;
     b->point[2].y = -h;
-    b->point[2].z = -znear;
+    b->point[2].z = -zn;
     b->point[3].x = w;
     b->point[3].y = -h;
-    b->point[3].z = -znear;
-    h = zfar * t;
-    w = h * aspect;
+    b->point[3].z = -zn;
+    zf = zfar;
+    h = zf * t;
+    w = h * aspect_;
     b->point[4].x = w;
     b->point[4].y = h;
-    b->point[4].z = -zfar;
+    b->point[4].z = -zf;
     b->point[5].x = -w;
     b->point[5].y = h;
-    b->point[5].z = -zfar;
+    b->point[5].z = -zf;
     b->point[6].x = -w;
     b->point[6].y = -h;
-    b->point[6].z = -zfar;
+    b->point[6].z = -zf;
     b->point[7].x = w;
     b->point[7].y = -h;
-    b->point[7].z = -zfar;
+    b->point[7].z = -zf;
 
 #line 190 "D:/Bio4/Prog/view.cpp"
     PSVECSubtract(&b->point[1], &b->point[0], &t1);
@@ -129,63 +155,96 @@ void VIEW::initPerspective(f32 fovy_, f32 aspect_, f32 znear_, f32 zfar_)
     PSVECCrossProduct(&t1, &t2, &b->normal[5]);
     VECNormalize(&b->normal[5], &b->normal[5]);
 
-    local = localFull;
-    b = &local;
-    for (i = 0; i < 8; i++) {
-        b->point[i].x *= 0.5f;
-        b->point[i].y *= 0.5f;
+    c = &local;
+    *c = localFull;
+    p0 = &c->point[0];
+    p1 = &c->point[1];
+    p2 = &c->point[2];
+    p3 = &c->point[3];
+    p4 = &c->point[4];
+    p5 = &c->point[5];
+    p6 = &c->point[6];
+    p7 = &c->point[7];
+    n0 = &c->normal[0];
+    n1 = &c->normal[1];
+    n2 = &c->normal[2];
+    n3 = &c->normal[3];
+    n4 = &c->normal[4];
+    n5 = &c->normal[5];
+    {
+        f32* px = &p0->x;
+        f32* py = &p0->y;
+
+        for (i = 0; i < 8; i++) {
+            px[i * 3] *= 0.5f;
+            py[i * 3] *= 0.5f;
+        }
     }
 #line 236 "D:/Bio4/Prog/view.cpp"
-    PSVECSubtract(&b->point[1], &b->point[0], &t1);
-    PSVECSubtract(&b->point[3], &b->point[0], &t2);
-    PSVECCrossProduct(&t1, &t2, &b->normal[0]);
-    VECNormalize(&b->normal[0], &b->normal[0]);
+    PSVECSubtract(p1, p0, &t1);
+    PSVECSubtract(p3, p0, &t3);
+    PSVECCrossProduct(&t1, &t3, n0);
+    VECNormalize(n0, n0);
 
-    PSVECSubtract(&b->point[3], &b->point[0], &t1);
-    PSVECSubtract(&b->point[4], &b->point[0], &t2);
-    PSVECCrossProduct(&t1, &t2, &b->normal[1]);
-    VECNormalize(&b->normal[1], &b->normal[1]);
+    PSVECSubtract(p3, p0, &t1);
+    PSVECSubtract(p4, p0, &t3);
+    PSVECCrossProduct(&t1, &t3, n1);
+    VECNormalize(n1, n1);
 
-    PSVECSubtract(&b->point[4], &b->point[0], &t1);
-    PSVECSubtract(&b->point[1], &b->point[0], &t2);
-    PSVECCrossProduct(&t1, &t2, &b->normal[2]);
-    VECNormalize(&b->normal[2], &b->normal[2]);
+    PSVECSubtract(p4, p0, &t1);
+    PSVECSubtract(p1, p0, &t3);
+    PSVECCrossProduct(&t1, &t3, n2);
+    VECNormalize(n2, n2);
 
-    PSVECSubtract(&b->point[5], &b->point[1], &t1);
-    PSVECSubtract(&b->point[2], &b->point[1], &t2);
-    PSVECCrossProduct(&t1, &t2, &b->normal[3]);
-    VECNormalize(&b->normal[3], &b->normal[3]);
+    PSVECSubtract(p5, p1, &t1);
+    PSVECSubtract(p2, p1, &t3);
+    PSVECCrossProduct(&t1, &t3, n3);
+    VECNormalize(n3, n3);
 
-    PSVECSubtract(&b->point[6], &b->point[2], &t1);
-    PSVECSubtract(&b->point[3], &b->point[2], &t2);
-    PSVECCrossProduct(&t1, &t2, &b->normal[4]);
-    VECNormalize(&b->normal[4], &b->normal[4]);
+    PSVECSubtract(p6, p2, &t1);
+    PSVECSubtract(p3, p2, &t3);
+    PSVECCrossProduct(&t1, &t3, n4);
+    VECNormalize(n4, n4);
 
-    PSVECSubtract(&b->point[7], &b->point[4], &t1);
-    PSVECSubtract(&b->point[5], &b->point[4], &t2);
-    PSVECCrossProduct(&t1, &t2, &b->normal[5]);
-    VECNormalize(&b->normal[5], &b->normal[5]);
+    PSVECSubtract(p7, p4, &t1);
+    PSVECSubtract(p5, p4, &t3);
+    PSVECCrossProduct(&t1, &t3, n5);
+    VECNormalize(n5, n5);
 
     orientation();
 
     b = &localFull;
-    q[0] = b->point[0];
-    q[1] = b->point[4];
-    q[2] = b->point[5];
-    q[3] = b->point[6];
-    {
-        f32 ax = q[1].x - q[0].x, ay = q[1].y - q[0].y, az = q[1].z - q[0].z;
-        f32 bx = q[2].x - q[1].x, by = q[2].y - q[1].y, bz = q[2].z - q[1].z;
-        f32 cx = q[3].x - q[2].x, cy = q[3].y - q[2].y, cz = q[3].z - q[2].z;
-        f32 det = ax * by * cz + bx * cy * az + cx * ay * bz - ax * cy * bz - bx * ay * cz - cx * by * az;
-        f32 d0 = PSVECSquareMag(&q[0]) - PSVECSquareMag(&q[1]);
-        f32 d1 = PSVECSquareMag(&q[1]) - PSVECSquareMag(&q[2]);
-        f32 d2 = PSVECSquareMag(&q[2]) - PSVECSquareMag(&q[3]);
-        det = det + det;
-        sphere.center.x = (d0 * (by * cz - cy * bz) + d1 * (cy * az - ay * cz) + d2 * (ay * bz - by * az)) / det;
-        sphere.center.y = (d0 * (cx * bz - bx * cz) + d1 * (ax * cz - cx * az) + d2 * (bx * az - ax * bz)) / det;
-        sphere.center.z = (d0 * (bx * cy - cx * by) + d1 * (cx * ay - ax * cy) + d2 * (ax * by - bx * ay)) / det;
-    }
+    q[0].x = b->point[0].x;
+    q[0].y = b->point[0].y;
+    q[0].z = b->point[0].z;
+    q[1].x = b->point[4].x;
+    q[1].y = b->point[4].y;
+    q[1].z = b->point[4].z;
+    q[2].x = b->point[5].x;
+    q[2].y = b->point[5].y;
+    q[2].z = b->point[5].z;
+    q[3].x = b->point[6].x;
+    q[3].y = b->point[6].y;
+    q[3].z = b->point[6].z;
+    det = (q[1].x - q[0].x) * (q[2].y - q[1].y) * (q[3].z - q[2].z) + (q[2].x - q[1].x) * (q[3].y - q[2].y) * (q[1].z - q[0].z) +
+          (q[3].x - q[2].x) * (q[1].y - q[0].y) * (q[2].z - q[1].z) - (q[1].x - q[0].x) * (q[3].y - q[2].y) * (q[2].z - q[1].z) -
+          (q[2].x - q[1].x) * (q[1].y - q[0].y) * (q[3].z - q[2].z) - (q[3].x - q[2].x) * (q[2].y - q[1].y) * (q[1].z - q[0].z);
+    d0 = PSVECSquareMag(&q[0]) - PSVECSquareMag(&q[1]);
+    d1 = PSVECSquareMag(&q[1]) - PSVECSquareMag(&q[2]);
+    d2 = PSVECSquareMag(&q[2]) - PSVECSquareMag(&q[3]);
+    det = det + det;
+    sphere.center.x = (d0 * ((q[3].y - q[2].y) * (q[2].z - q[1].z) - (q[2].y - q[1].y) * (q[3].z - q[2].z)) +
+                       d1 * ((q[1].y - q[0].y) * (q[3].z - q[2].z) - (q[3].y - q[2].y) * (q[1].z - q[0].z)) +
+                       d2 * ((q[2].y - q[1].y) * (q[1].z - q[0].z) - (q[1].y - q[0].y) * (q[2].z - q[1].z))) /
+                      det;
+    sphere.center.y = (d0 * ((q[3].z - q[2].z) * (q[2].x - q[1].x) - (q[2].z - q[1].z) * (q[3].x - q[2].x)) +
+                       d1 * ((q[1].z - q[0].z) * (q[3].x - q[2].x) - (q[3].z - q[2].z) * (q[1].x - q[0].x)) +
+                       d2 * ((q[2].z - q[1].z) * (q[1].x - q[0].x) - (q[1].z - q[0].z) * (q[2].x - q[1].x))) /
+                      det;
+    sphere.center.z = (d0 * ((q[3].x - q[2].x) * (q[2].y - q[1].y) - (q[2].x - q[1].x) * (q[3].y - q[2].y)) +
+                       d1 * ((q[1].x - q[0].x) * (q[3].y - q[2].y) - (q[3].x - q[2].x) * (q[1].y - q[0].y)) +
+                       d2 * ((q[2].x - q[1].x) * (q[1].y - q[0].y) - (q[1].x - q[0].x) * (q[2].y - q[1].y))) /
+                      det;
     sphere.radius = PSVECDistance(&sphere.center, &q[0]);
 }
 
