@@ -36,14 +36,11 @@ static Sint32 mwsfd_svr_bdr_cnt = 0;
 Sint32 mwSfdExecDecSvrHndl(MWPLY mwply);
 
 /* dead-stripped; its string heads the unit's literal pool */
-/* the first .rodata string is named so that the asm mwSfdExecDecSvrHndl below can address the string
- * pool through it (it is the compiler's `...rodata.0` base) COMPILER-DIFF: M1 */
-static const Char8 mwsfsvr_msg_bdrhndl[] = "E2011101: MWSFSVR_IsSvrBdrHndl: handle is invalid.";
 
 Bool MWSFSVR_IsSvrBdrHndl(MWPLY mwply)
 {
 	if (mwply == NULL || mwply->used != 1) {
-		MWSFSVM_Error(mwsfsvr_msg_bdrhndl);
+		MWSFSVM_Error("E2011101: MWSFSVR_IsSvrBdrHndl: handle is invalid.");
 		return FALSE;
 	}
 	mwsfd_svr_bdr_cnt++;
@@ -68,56 +65,7 @@ static void mwsfd_ClrSleepBdr(MWPLY mwply)
 	lw->svr_bdr = 0;
 }
 
-/* COMPILER-DIFF: M1 - two zero copies `mr r30, r28; mr r31, r28` for the inlined ClrSleepBdr's stores (every C form gives one `li`). Asm function (the original's instructions verbatim). */
-#if 1 // COMPILER-DIFF: M1
-asm void mwlSfdSleepDecSvr(MWPLY mwply)
-{
-	nofralloc
-	stwu r1, -32(r1)
-	mflr r0
-	stw r0, 36(r1)
-	stmw r27, 12(r1)
-	mr r27, r3
-	bl mwPlySaveRsc
-	bl MWSFLIB_GetLibWorkPtr
-	li r0, 1
-	stw r0, 96(r27)
-	stw r0, 36(r3)
-	bl MWSFSVM_GotoIdleBorder
-	bl MWSFLIB_GetLibWorkPtr
-	li r0, 0
-	stw r0, 96(r27)
-	stw r0, 36(r3)
-	bl mwPlyRestoreRsc
-	lwz r0, 100(r27)
-	cmpwi r0, 1
-	bne L90
-	li r28, 0
-	li r29, 1
-	mr r30, r28
-	mr r31, r28
-L5c:
-	bl MWSFLIB_GetLibWorkPtr
-	stw r29, 96(r27)
-	stw r29, 36(r3)
-	bl ADXM_WaitVsync
-	bl MWSFLIB_GetLibWorkPtr
-	stw r30, 96(r27)
-	stw r31, 36(r3)
-	lwz r0, 100(r27)
-	cmpwi r0, 0
-	beq L90
-	addi r28, r28, 1
-	cmpwi r28, 10
-	blt L5c
-L90:
-	lmw r27, 12(r1)
-	lwz r0, 36(r1)
-	mtlr r0
-	addi r1, r1, 32
-	blr
-}
-#else
+/* COMPILER-DIFF: M1 - two zero copies `mr r30, r28; mr r31, r28` for the inlined ClrSleepBdr's stores (every C form gives one `li`). Pure C by project decision (CRI pass 8). */
 void mwlSfdSleepDecSvr(MWPLY mwply)
 {
 	Sint32 i;
@@ -138,7 +86,6 @@ void mwlSfdSleepDecSvr(MWPLY mwply)
 		}
 	}
 }
-#endif
 
 void MWSFSVR_SetHnSfdSvrFlg(MWPLY mwply, Sint32 flg)
 {
@@ -160,63 +107,7 @@ void MWSFSVR_SetMwsfdSvrFlg(Sint32 flg)
 
 /* OPEN: our 2.4.7 auto-inlines this 0xB8-byte helper and MWSFSVR_DecodeServer, the original did not */
 #pragma dont_inline on
-/* COMPILER-DIFF: M3 - the original did not inline this helper while inlining smaller ones (auto-inlining decision). Asm function (the original's instructions verbatim). */
-#if 1 // COMPILER-DIFF: M3
-asm static Sint32 mwsfd_ExecSvrHndl(MWPLY mwply)
-{
-	nofralloc
-	stwu r1, -16(r1)
-	mflr r0
-	li r5, 1
-	stw r0, 20(r1)
-	stw r31, 12(r1)
-	mr r31, r3
-	stw r30, 8(r1)
-	lwz r30, 64(r3)
-	stw r5, 100(r3)
-	lwz r0, 4(r3)
-	cmpwi r0, 1
-	beq L124
-	li r0, 0
-	li r3, 0
-	stw r0, 100(r31)
-	b L184
-L124:
-	lis r4, mwsfd_hn_last@ha
-	mr r3, r30
-	stw r31, mwsfd_hn_last@l(r4)
-	stw r5, 104(r31)
-	bl SFD_ExecOne
-	li r3, 0
-	stw r3, 104(r31)
-	lwz r0, 8(r31)
-	cmpwi r0, 0
-	bne L154
-	stw r3, 108(r31)
-	b L164
-L154:
-	li r0, 1
-	mr r3, r31
-	stw r0, 108(r31)
-	bl mwSfdExecDecSvrHndl
-L164:
-	li r0, 0
-	mr r3, r30
-	stw r0, 100(r31)
-	bl SFD_IsHnSvrWait
-	subfic r4, r3, 1
-	addi r0, r3, -1
-	or r0, r4, r0
-	srwi r3, r0, 31
-L184:
-	lwz r0, 20(r1)
-	lwz r31, 12(r1)
-	lwz r30, 8(r1)
-	mtlr r0
-	addi r1, r1, 16
-	blr
-}
-#else
+/* COMPILER-DIFF: M3 - the original did not inline this helper while inlining smaller ones (auto-inlining decision). Pure C by project decision (CRI pass 8). */
 static Sint32 mwsfd_ExecSvrHndl(MWPLY mwply)
 {
 	void *sfd;
@@ -240,7 +131,6 @@ static Sint32 mwsfd_ExecSvrHndl(MWPLY mwply)
 	mwply->mwply_svr_flg = 0;
 	return SFD_IsHnSvrWait(sfd) != 1;
 }
-#endif
 #pragma dont_inline off
 
 Sint32 mwSfdExecSvrHndl(MWPLY mwply)
@@ -413,223 +303,8 @@ static void mwsfd_StartPlay(MWPLY mwply)
 	}
 }
 
-/* COMPILER-DIFF: M1 - the pool base `lis r4` above the prologue stores (M1); the string pool is addressed through mwsfsvr_msg_bdrhndl. Asm function (the original's instructions verbatim). */
-asm Sint32 mwSfdExecDecSvrHndl(MWPLY mwply) // COMPILER-DIFF: M1
-{
-	nofralloc
-	stwu r1, -32(r1)
-	mflr r0
-	lis r4, mwsfsvr_msg_bdrhndl@ha
-	stw r0, 36(r1)
-	stmw r27, 12(r1)
-	mr r29, r3
-	addi r31, r4, mwsfsvr_msg_bdrhndl@l
-	lwz r0, 8(r3)
-	cmpwi r0, 2
-	beq L800
-	bge L864
-	cmpwi r0, 0
-	beq L864
-	bge L60c
-	b L864
-	b L864
-L60c:
-	lwz r0, 448(r29)
-	lwz r30, 64(r29)
-	cmpwi r0, 1
-	bne L6c4
-	lwz r3, 68(r29)
-	bl MWSTM_GetStat
-	cmpwi r3, 2
-	bne L634
-	li r3, -1
-	b L6b4
-L634:
-	lwz r3, 464(r29)
-	cmplwi r3, 0
-	beq L650
-	lwz r4, 0(r3)
-	lwz r12, 20(r4)
-	mtctr r12
-	bctrl
-L650:
-	lwz r3, 68(r29)
-	lwz r4, 440(r29)
-	lwz r5, 452(r29)
-	lwz r6, 456(r29)
-	lwz r7, 460(r29)
-	bl MWSTM_SetFileRange
-	lwz r3, 68(r29)
-	bl MWSTM_ReqStart
-	cmpwi r3, -1
-	bne L6a8
-	li r0, 4
-	li r3, -102
-	stw r0, 8(r29)
-	bl MWSFLIB_SetErrCode
-	lwz r4, 440(r29)
-	addi r3, r31, 92
-	crclr 4*cr1+eq
-	bl MWSFSVM_Error
-	li r0, 0
-	li r3, -1
-	stw r0, 448(r29)
-	b L6b4
-L6a8:
-	mr r3, r29
-	bl MWSFCRE_SetSupplySj
-	li r3, 1
-L6b4:
-	cmpwi r3, 1
-	bne L6c4
-	li r0, 0
-	stw r0, 448(r29)
-L6c4:
-	lwz r0, 660(r29)
-	cmpwi r0, 1
-	bne L77c
-	lwz r3, 64(r29)
-	addi r27, r29, 660
-	bl SFD_GetHnStat
-	mr r28, r3
-	mr r3, r27
-	bl MWSST_GetStat
-	cmpwi r28, 3
-	bne L7d4
-	cmpwi r3, 2
-	beq L718
-	lwz r3, 12(r27)
-	li r4, 1
-	lwz r5, 0(r3)
-	lwz r12, 36(r5)
-	mtctr r12
-	bctrl
-	cmpwi r3, 0
-	bne L7d4
-L718:
-	mr r3, r29
-	bl mwPlySfdStart
-	lbz r0, 118(r29)
-	extsb. r0, r0
-	bne L738
-	mr r3, r29
-	li r4, 0
-	bl mwSfdPause
-L738:
-	lbz r0, 116(r29)
-	cmpwi r0, 1
-	bne L760
-	lwz r3, 64(r29)
-	bl SFD_SetConcatPlay
-	cmpwi r3, 0
-	beq L760
-	addi r3, r31, 136
-	crclr 4*cr1+eq
-	bl MWSFSVM_Error
-L760:
-	lbz r0, 118(r29)
-	extsb. r0, r0
-	bne L7d4
-	mr r3, r27
-	li r4, 0
-	bl MWSST_Pause
-	b L7d4
-L77c:
-	lwz r3, 64(r29)
-	bl SFD_GetHnStat
-	cmpwi r3, 3
-	bne L7d4
-	mr r3, r29
-	bl mwPlySfdStart
-	lbz r0, 118(r29)
-	extsb. r0, r0
-	bne L7ac
-	mr r3, r29
-	li r4, 0
-	bl mwSfdPause
-L7ac:
-	lbz r0, 116(r29)
-	cmpwi r0, 1
-	bne L7d4
-	lwz r3, 64(r29)
-	bl SFD_SetConcatPlay
-	cmpwi r3, 0
-	beq L7d4
-	addi r3, r31, 136
-	crclr 4*cr1+eq
-	bl MWSFSVM_Error
-L7d4:
-	mr r3, r30
-	bl SFD_GetHnStat
-	cmpwi r3, 4
-	beq L7ec
-	cmpwi r3, 6
-	bne L864
-L7ec:
-	li r0, 2
-	mr r3, r29
-	stw r0, 8(r29)
-	bl MWSFSFX_DecideCompoMode
-	b L864
-L800:
-	lbz r0, 117(r29)
-	lwz r28, 64(r29)
-	cmpwi r0, 1
-	bne L848
-	lwz r3, 76(r29)
-	bl LSC_GetNumStm
-	cmpwi r3, 0
-	bne L84c
-	mr r3, r28
-	bl SFD_TermSupply
-	cmpwi r3, 0
-	beq L83c
-	addi r3, r31, 180
-	crclr 4*cr1+eq
-	bl MWSFSVM_Error
-L83c:
-	li r0, 0
-	stb r0, 117(r29)
-	b L84c
-L848:
-	bl mwPlyChkSupply
-L84c:
-	mr r3, r28
-	bl SFD_GetHnStat
-	cmpwi r3, 6
-	bne L864
-	li r0, 3
-	stw r0, 8(r29)
-L864:
-	lwz r3, 68(r29)
-	cmplwi r3, 0
-	beq L884
-	bl MWSTM_IsFsStatErr
-	cmpwi r3, 0
-	beq L884
-	li r0, 4
-	stw r0, 8(r29)
-L884:
-	lwz r3, 76(r29)
-	cmplwi r3, 0
-	beq L8a4
-	bl MWSFLSC_IsFsStatErr
-	cmpwi r3, 1
-	bne L8a4
-	li r0, 4
-	stw r0, 8(r29)
-L8a4:
-	mr r3, r29
-	bl MWSFSEE_ChkSupply
-	lmw r27, 12(r1)
-	li r3, 0
-	lwz r0, 36(r1)
-	mtlr r0
-	addi r1, r1, 32
-	blr
-}
-/* the C body, kept compiled (dead, stripped by strip_unused) so that its literals stay in .rodata */
-Sint32 mwSfdExecDecSvrHndl_c(MWPLY mwply)
+/* COMPILER-DIFF: M1 - the pool base `lis r4` above the prologue stores. Pure C by project decision (CRI pass 8). */
+Sint32 mwSfdExecDecSvrHndl(MWPLY mwply)
 {
 	switch (mwply->stat) {
 	case MWSFD_STAT_STOP:
