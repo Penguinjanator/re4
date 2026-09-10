@@ -2187,6 +2187,76 @@ the three 0x400 `.data` tables are 256-entry `switch` jump tables, one per funct
   tables `(level << 8) | run` halfwords (mpv_vlc.c's `RL(len, a, b)` arguments are really
   `(len, level, run)`); D pictures (`picatr.pic_type == 4`) skip the AC loop in IntraBlock only.
 
+#### CRI compiler identification (2026-09-11)
+Research pass (pre-pass-6 pure-C sources from commit d996e7c, per-function `.text` byte compare with
+relocation fields masked; harness deleted). Findings that supersede parts of the sweep note above:
+- Both CRI libraries carry the same compiler tag: `Append: MW2407 GC20Apr2004Patch1` in adx_inis
+  (ADX group, `Build:Oct  8 2004 13:3x`), dct_ver/mps_lib/mpv_lib/sfd_lib/mwsfdlib (Sofdec group,
+  `Build:Sep 22 2004 10:34-10:35`), i.e. mwcceppc 2.4.7 on the 20Apr2004 patch 1 SDK for both. The
+  per-library-compiler hypothesis is refuted: every GC (1.0..3.0a5.2) and Wii (1.0RC1..1.7) build was
+  run over 20 ADX units (285 target functions) and 20 Sofdec units (261): GC/1.3.2..2.7 give
+  267/285 and 212/261, every other build only loses (GC/1.3: 230/199; GC/3.0a*: 65/61; Wii: 64/56;
+  1.0-1.2.5: 56/40); no build gains a single function in either library. 50 flag variants
+  (`-O4`/`-O3,p`/`-O4,s`/`-O2,p`, `-opt` keywords, every `-inline` mode, `-proc 750/generic`,
+  `-fp fmadd`, `-fp_contract off`, `-rostr`, `-str pool/noreuse`, `-use_lmw_stmw off`, `-common`,
+  `-char unsigned`, `-enum min`, `-align powerpc`, `-func_align 16`, `-pool off`, `-schedule`,
+  `-sdata 8`, `-lang c++`, ...) likewise gain nothing (`-pool off`: +1 −35, see M2 below). X360 is
+  MSVC (cl for PowerPC), not applicable.
+- The 2.4.7 builds are NOT all identical: over the 138 CRI units GC/2.5, 2.6 and 2.7 (2.4.7 build
+  105/107/108, exe dates Feb 2003/Jul 2003/Jul 2004) differ from GC/2.0 (build 92, Sep 2002) in two
+  units, mwsfdcre `mwsfcre_CreateSfd` and sfd_tst `SFTST_Create`: the trailing word of an 8-byte
+  struct copy after a `lwz/lwzu/stw/stwu` loop is `lwz r0,4(r4); stw r0,4(r5)` in build >= 105 and
+  `lwz r3,4(r4); ...; stw r3,4(r5)` in build 92. The target has the build >= 105 form in both
+  (SFTST_Create becomes byte-identical under GC/2.5+, the sweep's "M1: `lwz sftst_debout_buf`
+  scheduled above the hdr copy tail" is this build difference), everything else is unchanged
+  (ADX 379/410 functions identical either way, Sofdec 587 -> 588/723). The original compiler is a
+  2.4.7 build >= 105; recommended `MWCC_CRI_VERSION = "GC/2.7"` (mk-deception uses GC/2.7 for the
+  same libraries), strictly non-regressing.
+- External evidence: github.com/ShulkMaster/mk-deception (Mortal Kombat: Deception, GQNE5D) ships
+  the same libraries one release earlier (`CRI DCT/GC Ver.1.932 Build:Sep  3 2004`, `MPV 1.933`,
+  `SFD 1.940`, `MWSFD 3.31`, `ADXT 9.28`, `ADXF 7.17`, same `Append: MW2407 GC20Apr2004Patch1`),
+  compiled with `mw_version GC/2.7`, `-O4,p -inline auto -fp hardware -fp_contract on -str reuse
+  -align powerpc -enum int -sdata 0 -sdata2 0` plus per-unit `-use_lmw_stmw on` / `-inline noauto` /
+  `-str reuse,readonly`; 51 of 135 CRI units Matching. Their symbol map also has no `...rodata.0`
+  for dct_ac (same M2 behaviour in a different build of the library). Compiling their sources
+  against OUR split objects with `cflags_mw_cri` (GC/2.0) gives byte-identical functions where ours
+  had "compiler" residues: mpvabdec 3/3 (ours 0/3: M5 is a source shape — their bit reader is a
+  two-word `bit_buffer`/`next_buffer`/`bit_count` model, `peek = bit_buffer | next_buffer >> (32 -
+  bit_count)`, `MPV_FINISH_FROM`, not `code <<= 1; n = (code >> 24) & 0xFF`), mwsfdply 10/10
+  (`MWSFPLY_SetFlowLimit`: `MWSFD_SetFlowLimit(mwply, (Sint32)(0.8 * n), n)` takes a THIRD argument —
+  the "r5..r7 vs r4..r6 M1" was a missed parameter), mpv_cdec `MPVCDEC_IntraBlocks` (the OPEN 192-store
+  clear: six calls of a `static inline` helper clearing 32 `Float64` through a `f64 **cursor`
+  starting at `&coefficients[3]`), dct_fsri `initSparseTbl`/`DCT_FsriInitScaleTbl`, mwsfdcre
+  `MWSFCRE_ResetSfdHn`, sfd_mpv `sfmpv_ChkFatal`/`SFD_SetMpvCond`. Their other units are worse than
+  ours (different struct layouts / naming), so take functions, not files. F-Zero GX (rayanht/fzgx)
+  has the 2003 Sofdec in a REL built with GC/1.2.5n/1.3 (older library generation, not comparable).
+- M2 mechanism (pool-base materialisation, not "pooling"): MWCC merges a unit's local `.rodata`
+  objects (and global `const` tables: sfd_mpv `sfmpv_conv_*`, dct_ac's `dctac_i_const` in `.bss`)
+  into one pool with a size-0 `...rodata.0`/`...bss.0` label, and a function that references >= 3
+  pool members (counted excluding the backend's int->float conversion double, both compilers) loads
+  `lis/addi` of the label into a register and addresses members by displacement; with < 3 it emits
+  `lis sym@ha; lfd sym@l` per member. Bio4.sym confirms: 32 `...rodata.0` labels, none in adx_dcd,
+  dct_ac, sfd_adxt, sfd_mpv, sfx_cnv. In the target the base is used by every function with >= 3
+  string/table references (27 functions, e.g. cftyp422_ppc `CFT_MakeArgb8888Alp3211Tbl` with 13 FP
+  literals + the version string, cftfx `CFT_MakeYcc422ColAdjTbl` with 7 FP literals of which 3 were
+  created by the previous function) but NOT by the five functions whose >= 3 references are all FP
+  literals/tables first created by that function (adx_dcd `ADX_GetCoefficient` 10, dct_ac
+  `DCT_AcInit` 4, sfd_adxt `SFADXT_SetSpeed` 4, sfd_mpv `sfmpv_Pts2Tc` 3 global tables, cftfx
+  `CFT_MakeArgb8888ColAdjTbl` 3 incl. the conversion double = 2, ours agrees on that one). Ours
+  counts them. `#pragma pool_data off` before a function switches BOTH pools off for it: adx_dcd
+  becomes 10/10 byte-identical (pure C fix, no `.bss` pool there); dct_ac/sfd_adxt/sfd_mpv functions
+  also need their `.bss`/global-table pool so the pragma over-shoots (DCT_AcInit 264 vs 256 bytes);
+  `-pool off` unit-wide is the same trade (adx_dcd +1, 35 other functions lose their `.bss` pool).
+  No build/flag reproduces the FP-literal exclusion.
+- M4 (stwbrx): the fold `store(bswap32(x))` -> `stwbrx` happens in every build (GC/1.3..Wii/1.7)
+  already at `-O1`, for `volatile` stores, `Sint32` operands, struct-member operands and temp
+  spellings (only a chained `v = ..; v |= ..;` form avoids it, with a different instruction mix). The
+  ADX group's originals fold (adx_bwav/adx_bau/adx_baif `stwbrx rS, 0, rB`, rA=0 form), the Sofdec
+  group's do not (sfh_main x7) although both name the same compiler; mk-deception's sfh_main is also
+  NonMatching. Still unexplained by any available build or flag.
+- Regression fact for the sweep note: `-O4` (no `,p`) loses 75/261 Sofdec and 84/285 ADX functions,
+  `-inline auto` vs `all` are identical on Sofdec and `all` loses 8 on ADX, `-proc 750` == `gekko`.
+
 ### CRI one-function-away pass (cftcoladj, lsc Matching; sfd.h SFSEE_WORK pad fixed; 2026-09-10)
 - HAZARD (struct headers): `SFSEE_SHDR` had grown to 0x198 bytes (wave 9) while `SFSEE_WORK`'s
   following pad still assumed 0x30 (`pad8d0[0xAD0 - 0x8D0]`), so every member from `a1hdr` on was
