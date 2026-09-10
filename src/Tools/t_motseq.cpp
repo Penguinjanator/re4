@@ -1239,7 +1239,8 @@ void msqFrameSizeCk()
         msqSetMode(3);
         return;
     }
-    max = (int) m->mot.maxFrame << 6;
+    max = (int) m->mot.maxFrame;
+    max <<= 6;
     i = 0;
     if (i < w->seq[0].num) {
         do {

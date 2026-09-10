@@ -707,17 +707,14 @@ void tvibMainFrameDisp()
     eprintf2(8, 14, list_x, list_y - 20, 0, 0, "List [ %02d / 64 ]", V->listNo);
     page = V->listNo % 16;
     top = (u16) V->listNo - page;
-    for (i = 0; top + i < 64 && i < 16; i++) {
-        int n = top + i;
-
-        if (V->list[n].num != 0) {
+    for (i = 0; i < 16 && top + i < 64; i++) {
+        if (V->list[top + i].num != 0) {
             col = 0;
         } else {
             col = 7;
         }
-        eprintf2(8, 14, LIST_X(i), LIST_Y(i), ((GXColor*) &col)->a, 0, "0x%02x:", n);
+        eprintf2(8, 14, LIST_X(i), LIST_Y(i), ((GXColor*) &col)->a, 0, "0x%02x:", top + i);
     }
-    col = 0;
     v[0].x = 0;
     v[0].y = 0;
     v[0].z = 0;
@@ -727,8 +724,8 @@ void tvibMainFrameDisp()
     v[2].x = 512;
     v[2].y = 448;
     v[2].z = 0;
-    TprimDrawPolyFn_s16(v, (GXColor*) &col, 3);
     col = 0;
+    TprimDrawPolyFn_s16(v, (GXColor*) &col, 3);
     v[0].x = 0;
     v[0].y = 0;
     v[0].z = 0;
@@ -738,11 +735,12 @@ void tvibMainFrameDisp()
     v[2].x = 0;
     v[2].y = 448;
     v[2].z = 0;
+    col = 0;
     TprimDrawPolyFn_s16(v, (GXColor*) &col, 3);
     col = 0x60606060;
     y = list_y - 2;
     for (i = 0; i < 3; i++) {
-        x = list_x + i * 230 - 2;
+        x = (list_x - 2) + i * 230;
         v[0].x = x;
         v[0].y = y;
         v[0].z = 0;
@@ -753,7 +751,7 @@ void tvibMainFrameDisp()
     }
     x = list_x - 2;
     for (i = 0; i < 9; i++) {
-        y = list_y + i * 20 - 2;
+        y = (list_y - 2) + i * 20;
         v[0].x = x;
         v[0].y = y;
         v[0].z = 0;
@@ -764,7 +762,6 @@ void tvibMainFrameDisp()
     }
     x = list_x + (s16) (page / 8) * 230 - 1;
     y = list_y + (s16) (page % 8) * 20 - 1;
-    col = 0xFF404080;
     v[0].x = x;
     v[0].y = y;
     v[0].z = 0;
@@ -777,6 +774,7 @@ void tvibMainFrameDisp()
     v[3].x = x;
     v[3].y = y + 18;
     v[3].z = 0;
+    col = 0xFF404080;
     TprimDrawFrameFn_s16(v, (GXColor*) &col, 4);
     tvibListVibDraw();
 }
@@ -1223,12 +1221,12 @@ void tvibFrameLineDraw(VibDataEntry* e, u32 col)
 void tvibFrameMarkDraw(int lv, int frame, u32 col, u32 size)
 {
     S16Vec v[4];
-    u32 c;
+    GXColor c;
     int fx;
     s16 x;
     s16 y;
 
-    c = col;
+    *(u32*) &c = col;
     fx = frame - V->scroll;
     if (fx < 0) {
         return;
@@ -1345,13 +1343,11 @@ void tvibListVibDraw()
 void tvibListLineDraw(VibDataEntry* e, u32 col, int x, int y)
 {
     S16Vec v[2];
-    u32 c;
     f32 h0 = (8 - e->lvl0) * 2;
     f32 h1 = (8 - e->lvl1) * 2;
     int start = e->wait;
     int end = e->wait + e->time;
 
-    c = col;
     if (start > 178) {
         start = 178;
     }
@@ -1364,21 +1360,22 @@ void tvibListLineDraw(VibDataEntry* e, u32 col, int x, int y)
     v[1].x = x + end;
     v[1].y = y + (int) h1;
     v[1].z = 0;
-    TprimDrawFrameFn_s16(v, (GXColor*) &c, 2);
+    TprimDrawFrameFn_s16(v, (GXColor*) &col, 2);
 }
 
 void tvibFileSave(const char* path)
 {
     TvibFile* f = (TvibFile*) V->file;
     u32 size;
+    u32 hsize;
     u8* p = (u8*) f;
     u32 ofs = sizeof(TvibFile);
     u32 i;
+    TvibData* d;
 
     f->num = 64;
     for (i = 0; i < 64; i++) {
-        TvibData* d = &V->list[i];
-
+        d = &V->list[i];
         if (d->num != 0) {
             f->ofs[i] = ofs;
         } else {
@@ -1386,18 +1383,21 @@ void tvibFileSave(const char* path)
         }
         ofs += 4 + d->num * 8;
     }
-    size = sizeof(TvibFile);
-    memcpy(p, (u8*) f, size);
-    p += size;
+    hsize = sizeof(TvibFile);
+    memcpy(p, (u8*) f, hsize);
+    p += hsize;
+    size = hsize;
     for (i = 0; i < 64; i++) {
-        TvibData* d = &V->list[i];
-        u32 n = d->num;
+        u32 n;
+
+        d = &V->list[i];
+        n = d->num;
 
         if (n != 0) {
-            n = n * 8 + 4;
-            size += n;
-            memcpy(p, (u8*) d, n);
-            p += n;
+            u32 len = n * 8 + 4;
+            memcpy(p, (u8*) d, len);
+            p += len;
+            size += len;
         }
     }
     if (HDWrite(path, V->file, size) != size) {

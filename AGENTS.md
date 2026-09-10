@@ -4647,3 +4647,55 @@ target) stays unresolved and `make_rel` then fails with "undefined symbol".
 - Check identity with a label-normalised instruction diff: objdiff marks `bc` REL14 relocs as REPLACE
   with identical bytes.
 
+
+### Tools REL flags-first sweep (t_flr_at Matching; t_motseq 17/21, t_vib 24/29; 2026-09)
+
+- t_flr_at (26 -> 29/29, flipped): the tool loop's `Debug_alloc` store uses the loop-hoisted
+  `lis flrAtWk@ha` only through the reference form (`FlrAtWork*& wp = flrAtWk.p; wp = Debug_alloc(..)`,
+  t_motseq idiom); the title lookup is index-first (`*(const char**) (editType * 4 + (u32) tbl)` ->
+  `lwzx r8, rIdx, rTbl`). flrAtDataSave: the save counter is read and stored through references
+  around the 0x84-byte record copy (`ISet(n, IGet(n) + 1)`, `IGet` = `int&` getter) so both the load and
+  the store stay below the copy's `stw`s, and the u16 header count is `*(u16*) ((u8*) &n + 2)` — the
+  target's `lis/lhz` carry `sym+2@ha/@l` (a plain `(u16) n` narrows to `sym@ha` + `sym+2@l`, a different
+  REL relocation addend although the linked bytes agree). flrAtDataLoad: COMPILER-DIFF 2 launder as an
+  inline `static inline u8 ColU8(int c) { asm volatile("" : "+r"(c)); return c; }` used *in the argument
+  list* (a statement-level launder before the call moves the x/y argument loads after it); the `volatile`
+  matters: the plain `asm("")` form let sched1 issue the following ternary's `lis/lwz` before the `clrlwi`.
+- t_motseq msqFrameSizeCk: `max = (int) x << 6` as ONE expression gives the shift result a global.c
+  hard-reg *preference* for the fpmem-load temp (set_preference looks through unary/binary ops), so `max`
+  inherits the temp's local-alloc register (r9) and pushes the loop giv to r11; two statements
+  (`max = (int) x; max <<= 6;`) make `max` a two-set pseudo allocated by priority after the giv.
+- t_vib: (a) a `u32 c = col;` copy whose address is passed to a Tprim call is not a separate local when
+  the target stores the incoming argument register into the frame (`stw r5, slot`): use `&col` directly
+  (tvibListLineDraw); when the copy's store must stay ahead of the following pointer load
+  (tvibFrameMarkDraw: `stw r5` before `lwz tvib`, and `size`'s copy `mr r5,r6` allocated after r5 is dead)
+  the local is a `GXColor c` filled with `*(u32*) &c = col` (a cast-then-deref store, no struct/scalar
+  flag, so the in-struct `V->scroll` load depends on it). (b) A record pointer used in two loops
+  (`TvibData* d` at function scope, tvibFileSave) picks up the hard-reg preference of the second loop's
+  memcpy argument copy and is `add r4, ..` in BOTH loops; block-scoped `d`s give r9 in the first loop.
+  A header `memcpy(p, f, size)` must pass a *variable* size (a `sizeof` literal is inlined as a block
+  move); `hsize = sizeof; memcpy(p, f, hsize); p += hsize; size = hsize;` puts `li size` after the call
+  and `addi p` before it. `memcpy(p, d, len); p += len; size += len;` (size last, carrying len's death)
+  issues `add size` before the call and `add p` after. (c) Colour-word stores: `col = C;` written AFTER
+  the S16Vec corner stores is the dying store issued 5th/last (tvibMainFrameDisp), written first it is
+  hoisted to the block top; the second poly block has its own `col = 0` after its stores. (d) `x = list_x
+  + i * 230 - 2` allocates the product to r0; `(list_x - 2) + i * 230` gives the target's `lhz r0 / mulli
+  r9` pair. (e) `top + i` written twice (index and eprintf argument) instead of an `int n` local gives
+  the `add r0; mr r10, r0` PRE copy; the loop test is `i < 16 && top + i < 64`.
+- OPEN, t_sce_at tSceAtDataInput_basic_menu (-0x24), mechanism narrowed: ours merges the case-body and
+  x38-block `high(sceAtCur)` computations into bb0's pseudo in **cse1** (the path from bb0 skips both
+  `on = 1` diamonds and follows the dispatch `beq`s), then gcse PRE inserts the reaching reg at the end
+  of bb0 (also in the target: `lis r27` in the prologue) and the tail joins use it; the target kept fresh
+  `lis` in bb2 and every case, i.e. its cse1 did not carry bb0's pseudo into them. Not a global flag: a
+  scratch cc1plus with cse1 or cse2 running without follow-jumps/skip-blocks (and the -fno-cse-* flags)
+  regresses 13-35 other functions of the unit and leaves basic_menu unchanged. t_vib tvib_R0_VibLoopSet
+  is the mirror image: PRE inserts `high(tvib)` at the end of bb0 AND of arm 1, the skipped arm 1 re-sets
+  the reaching reg, and ours rematerialises arm 2's copy (`lis`) where the target keeps the hoisted r10.
+- OPEN, unchanged (register/schedule ties, all forms in the sources tried): db_toolbase cDbgWindow::Init
+  and the FileSelect/OkCancel Inits (dying zero store not hoisted by the original, `li 1` before `li 0`),
+  t_atari plmove10 (copy `stw`s after the RMW `stfs`s), t_mv mvInit, t_dr ListDisp/Menu_main,
+  t_esp_area/t_lightarea mains, t_motseq QuitCk/Sequence/SeqResize/msqDisp, t_vib tvibModeFrameDisp (the
+  target does not cross-jump the two 12-store arms: different temp registers per arm, `mode` in r7),
+  tvibFrameLineDraw (frame +0x10, one more callee-saved), tvibListVibDraw, tvibEditFrameDisp; t_rck and
+  db_mod not iterated (db_mod dbmodGetFilenames: the target strength-reduces `type * 0x800 + 0x3a1`
+  as an outer-loop giv `li r22,0x3a1 .. addi r22,0x800`, ours recomputes `slwi; addi` per iteration).

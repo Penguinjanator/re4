@@ -494,6 +494,7 @@ MATCHING = {
     "Tools/t_tplview.cpp": True,
     "Tools/t_util.cpp": True,
     "Tools/t_eminfo.cpp": True,
+    "Tools/t_flr_at.cpp": True,
     # single-unit enemy modules (src/<em>/<em>.cpp, the whole REL)
     "em2e/em2e.cpp": True,
     "em26/em26.cpp": True,

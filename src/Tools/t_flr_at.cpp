@@ -29,6 +29,8 @@ int SetToolLight(int no);  // db_light_tools.cpp
 static inline void ISet(int& d, int v) { d = v; }
 static inline void PSet(void*& d, void* v) { d = v; }
 static inline void ASet(FlrAt*& d, FlrAt* v) { d = v; }
+// Reference read: a MEM with neither flag stays below the preceding struct stores (the save counter).
+static inline int IGet(int& v) { return v; }
 
 // Tool-side view of the FlrAt record (flr_at.h), 0x84 bytes.
 struct TFlrAt {
@@ -906,6 +908,13 @@ void flrAtPreview_pl_pos()
     }
 }
 
+// COMPILER-DIFF: 2 (the original masks the first footer colour once after its arms, `clrlwi r5,r5,24`)
+static inline u8 flrAtColU8(int c)
+{
+    asm volatile("" : "+r"(c));
+    return c;
+}
+
 static void flrAtDataLoad()
 {
     const char* title[3] = {"[ALL DATA LOAD]", "[SE DATA LOAD]", "[BGM DATA LOAD]"};
@@ -1115,7 +1124,7 @@ static void flrAtDataLoad()
         pW->timer--;
         break;
     }
-    eprintf(pW->x, pW->y + 0x20, (u8) (pW->sub == 1 ? (pW->loadCursor == 0 ? 6 : 0) : 0), 0, "%s", pW->server == 0 ? "LOCAL" : "SERVER");
+    eprintf(pW->x, pW->y + 0x20, flrAtColU8(pW->sub == 1 ? (pW->loadCursor == 0 ? 6 : 0) : 0), 0, "%s", pW->server == 0 ? "LOCAL" : "SERVER");
     eprintf(pW->x + 0x40, pW->y + 0x20, pW->sub == 1 ? (pW->loadCursor == 1 ? 6 : 0) : 0, 0, "STAGE %2d", pW->stage);
     eprintf(pW->x + 0x90, pW->y + 0x20, pW->sub == 1 ? (pW->loadCursor == 2 ? 6 : 0) : 0, 0, "ROOM %02x", pW->room);
     eprintf(pW->x, pW->y + 0x40, 0, 0, "%s", pW->path);
@@ -1149,7 +1158,7 @@ static void flrAtDataSave()
                     if (pW->area[i].priority == 15 - j) {
                         pW->area[i].no = i;
                         pW->file[flrAtSaveNum] = pW->area[i];
-                        flrAtSaveNum++;
+                        ISet(flrAtSaveNum, IGet(flrAtSaveNum) + 1);
                     }
                 }
             }
@@ -1159,7 +1168,7 @@ static void flrAtDataSave()
         pW->fileHead.magic[2] = 'E';
         pW->fileHead.magic[3] = 0;
         pW->fileHead.version = 0x103;
-        pW->fileHead.num = flrAtSaveNum;
+        pW->fileHead.num = *(u16*) ((u8*) &flrAtSaveNum + 2);
         pW->fileHead.pad_8[0] = pW->defCartridge;
         pW->sub = 1;
         pW->step = 0;
@@ -1290,7 +1299,9 @@ static const char* flrAtTitleName[3] = {"SE DATA EDIT", "BGM DATA EDIT", NULL};
 
 void ToolFlrAt()
 {
-    pW = (FlrAtWork*) Debug_alloc(sizeof(FlrAtWork), 1);
+    FlrAtWork*& wp = flrAtWk.p;
+
+    wp = (FlrAtWork*) Debug_alloc(sizeof(FlrAtWork), 1);
     flrAtInit();
     while (1) {
         pW->x = pW->x0;
@@ -1298,7 +1309,7 @@ void ToolFlrAt()
         eprintf(pW->x, pW->y, 5, 0, "FLOOR ATARI EDIT TOOL");
         pW->y += 0x10;
         if (pW->editType >= 0) {
-            eprintf(pW->x, pW->y, 6, 0, "%s", flrAtTitleName[pW->editType]);
+            eprintf(pW->x, pW->y, 6, 0, "%s", *(const char**) (pW->editType * 4 + (u32) flrAtTitleName));
         }
         flrAtAreaEdit_disp();
         pW->y += 0x20;

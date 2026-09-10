@@ -162,7 +162,7 @@ void dbSctrlScreenOrientation(DbSctrlWork* w, Camera* cam, f32 fovy)
     w->mtx[2][3] = pos.z;
 }
 
-void DbSctrl(DbSctrlWork* w, int x, int y)
+int DbSctrl(DbSctrlWork* w, int x, int y)
 {
     w->x = x;
     w->blink++;
@@ -173,7 +173,7 @@ void DbSctrl(DbSctrlWork* w, int x, int y)
     if (w->routine == 0) {
         drawCursor(w);
     }
-    sctrl_routine_tbl[w->routine](w);
+    return sctrl_routine_tbl[w->routine](w);
 }
 
 // defined here: the menu strings follow SctrlAdjustAxisRange's constant pool in .rodata
