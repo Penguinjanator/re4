@@ -143,9 +143,9 @@ static CVFS_DEVIF *cvFsGetDevIf(CVFS_DEV *tbl, const Char8 *name)
 
 static CVFS_DEVIF *cvfs_SearchDev(CVFS_DEV *tbl, const Char8 *name)
 {
+	CVFS_DEV *dev;
 	Uint32 i;
 	Sint32 len;
-	CVFS_DEV *dev;
 
 	len = strlen(name);
 	dev = tbl;

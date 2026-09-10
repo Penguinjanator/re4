@@ -76,23 +76,15 @@ static inline float adx_sqrtf(float x)
 	return x;
 }
 
-/* header block length rounded to the block alignment (with / without the loop extension) */
+/* header block length rounded to the block alignment (with / without the loop extension).
+ * The leading constant keeps the add chain in source order (the constant becomes the trailing
+ * `addi`); without it MWCC defers the leaf next to the strlen() call to the end of the chain. */
 Sint32 ADX_CalcHdrInfoLen(Sint32 loop, Sint32 infolen, Sint32 ofst, Sint32 align)
 {
-	Sint32 n;
-
 	if (loop == 0) {
-		n = infolen + strlen("(c)CRI");
-		n += ofst;
-		n += align;
-		n += 0x1B;
-		return (Uint32)n / align * align - ofst;
+		return (Uint32)(0x1B + infolen + strlen("(c)CRI") + ofst + align) / align * align - ofst;
 	}
-	n = infolen + strlen("(c)CRI");
-	n += ofst;
-	n += align;
-	n += 0x33;
-	return (Uint32)n / align * align - ofst;
+	return (Uint32)(0x33 + infolen + strlen("(c)CRI") + ofst + align) / align * align - ofst;
 }
 
 Sint32 ADX_DecodeFooter(Uint8 *data, Sint32 len, Sint16 *ofst)
@@ -149,7 +141,12 @@ Sint32 ADX_DecodeInfoAinf(Uint8 *data, Sint32 len, Sint32 *ainfsiz, void *ainf, 
 	if (*(Sint16 *)(data + 2) < need - 4) {
 		return -1;
 	}
-	ofs = (ver == 4) ? 0x20 : 0x14;
+	/* default + conditional store defines ofs in its callee-saved register (`li r28`); the ternary
+	 * computes a temporary and lets `ofs += 4` define the variable. M1: q takes r8, not r4. */
+	ofs = 0x14;
+	if (ver == 4) {
+		ofs = 0x20;
+	}
 	p = (Uint8 *)((Uint32)ofs + (Uint32)data);
 	ofs += 4;
 	if (*(Sint16 *)(p + 2) != 0) {

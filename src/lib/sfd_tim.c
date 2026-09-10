@@ -88,9 +88,9 @@ static inline Bool sftim_IsGetFrmTime(SFD sfd, Sint32 ftime, Sint32 tunit)
 	Sint32 vrate;
 	Sint32 cnt;
 	Sint32 fast;
-	Float32 ft;
-	Float32 ct;
 	Float32 tol;
+	Float32 ct;
+	Float32 ft;
 	Bool ret;
 
 	tim = SFD_TIM(sfd);
@@ -124,9 +124,9 @@ static inline Bool sftim_IsGetFrmTime(SFD sfd, Sint32 ftime, Sint32 tunit)
 				ret = FALSE;
 			} else if (ct - tol >= ft) {
 				ret = TRUE;
-				if (tim->x2c8 != ct) {
-					if (tim->x2c0 != ct) {
-						tim->x2c0 = ct;
+				if (tim->x2c8 != ft) {
+					if (tim->x2c0 != ft) {
+						tim->x2c0 = ft;
 						tim->x2bc++;
 					}
 				}
@@ -145,7 +145,7 @@ static inline Bool sftim_IsGetFrmTime(SFD sfd, Sint32 ftime, Sint32 tunit)
 				}
 				tim->x2bc = 0;
 				tim->x2c4 = ret;
-				tim->x2c8 = ct;
+				tim->x2c8 = ft;
 			}
 		} else {
 			if (ft <= ct) {

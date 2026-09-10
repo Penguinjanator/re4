@@ -485,6 +485,8 @@ void MPVUMC_PpicSkipped(MPVUMC_OBJ *mpv, Sint32 n)
 	MPVUMC_RFB *out;
 	MPVUMC_RFB *ref;
 	Sint32 ofs[2];
+	Sint32 y8;
+	Sint32 y16;
 
 	out = &mpv->out;
 	mb_end = mpv->mb_addr;
@@ -496,8 +498,12 @@ void MPVUMC_PpicSkipped(MPVUMC_OBJ *mpv, Sint32 n)
 		mpv->mb_y--;
 	}
 	while (mpv->mb_addr < mb_end) {
-		ofs[0] = mpv->mb_x * 8 + mpv->mb_y * 8 * out->cpitch;
-		ofs[1] = mpv->mb_x * 16 + mpv->mb_y * 16 * out->ypitch;
+		/* the row offsets as named locals (y16 derived from y8): `mb_y * 8 * cpitch` inline puts cpitch
+		 * first in the mullw and recomputes the shifts */
+		y8 = mpv->mb_y * 8;
+		y16 = y8 * 2;
+		ofs[0] = mpv->mb_x * 8 + y8 * out->cpitch;
+		ofs[1] = mpv->mb_x * 16 + y16 * out->ypitch;
 		mpvumc_PpicSkipMb(ofs, out, ref);
 		mpv->mb_x++;
 		if (mpv->mb_x >= mpv->mb_width) {
@@ -1054,12 +1060,13 @@ void MPVUMC_Forward(MPVUMC_OBJ *mpv)
 	mpvumc_OneMakeMb(wk, (MPVCMC_REF *)&mpv->ccnt_rt, mpv->cbp_code);
 }
 
-/* clip the six IDCT blocks of an intra macroblock into the output blocks oi_rt[] */
+/* clip the six IDCT blocks of an intra macroblock into the output blocks oi_rt[] (`addi r5, 0, 6`
+ * instead of `li`: the inline assembler hoists an `li` above the preceding independent `addi`) */
 void mpvumc_OutputIntra6blk(Uint8 *blk, MPVCMC_REF *oi_rt, Uint8 *clip)
 {
 	asm {
 		addi r4, r4, 0x4
-		li r5, 0x6
+		addi r5, 0, 0x6
 L_80207050:
 		lwz r7, 0x0(r4)
 		lwz r6, 0x4(r4)
@@ -1165,10 +1172,14 @@ void MPVUMC_Intra(MPVUMC_OBJ *mpv)
 	Sint32 cofs;
 	Sint32 yofs;
 	Sint32 ypitch;
+	Sint32 y8;
+	Sint32 y16;
 
-	cofs = mpv->mb_x * 8 + mpv->mb_y * 8 * mpv->out_cpitch;
+	y8 = mpv->mb_y * 8;
+	y16 = mpv->mb_y * 16;
+	cofs = mpv->mb_x * 8 + y8 * mpv->out_cpitch;
 	ypitch = mpv->out_ypitch;
-	yofs = mpv->mb_x * 16 + mpv->mb_y * 16 * ypitch;
+	yofs = mpv->mb_x * 16 + y16 * ypitch;
 	MPVUMC_SET_OUT_BLOCKS(mpv, cofs, yofs, ypitch);
 	mpvumc_OutputIntra6blk(mpv->mcbuf, (MPVCMC_REF *)&mpv->ccnt_rt, mpv->clip_base);
 }
@@ -1203,9 +1214,9 @@ void MPVUMC_InitOutRfb(MPVUMC_OBJ *mpv)
 	Sint32 mbw;
 	Sint32 mbh;
 	Sint32 yw;
-	Sint32 yh;
 	Sint32 ypitch;
 	Sint32 cpitch;
+	Sint32 yh;
 	Uint8 *buf = mpv->frmbuf;
 
 	mbw = (w + 15) / 16;

@@ -5,6 +5,14 @@
 
 #define PQ(sfd, strm) ((sfd)->buf[strm].u.ring.ptsque)
 
+typedef struct {
+	Uint8 pad[0x1308];
+	SFBUF_WORK w;
+} SFBUF_HN;
+
+#define SFBUF_GET_HN(sfd, n) ((SFBUF_HN *)((Uint8 *)(sfd) + (n) * sizeof(SFBUF_WORK)))
+
+
 static Sint32 sfpts_Wrap(Sint32 n, Sint32 num)
 {
 	Sint32 r;
@@ -48,12 +56,16 @@ static Sint32 sfpts_SearchPts(SFPTS_ENT *ent, Sint32 idx, Sint32 cnt, Sint32 num
 	return -1;
 }
 
+/* the buffer is addressed through one base (sfd + strm * sizeof(SFBUF_WORK)) kept across the inlined
+ * search: the shifted view (sfd_buf.c SFBUF_HN). M1: the target keeps the base in r7 and ofst/size in
+ * r30/r29; ours ranks them the other way round. */
 Sint32 SFPTS_ReadPtsQue(SFD sfd, Sint32 strm, Uint32 pos, SFPTS_ENT *out)
 {
-	SFPTS_ENT *ent;
 	Uint32 ofst;
-	Uint32 size;
 	Uint32 end;
+	SFPTS_ENT *ent;
+	Uint32 size;
+	SFBUF_HN *hn;
 	Sint32 cnt;
 	Sint32 num;
 	Sint32 idx;
@@ -61,9 +73,10 @@ Sint32 SFPTS_ReadPtsQue(SFD sfd, Sint32 strm, Uint32 pos, SFPTS_ENT *out)
 	Sint32 i;
 
 	out->pts = -1;
-	ent = PQ(sfd, strm).ent;
-	ofst = sfd->buf[strm].u.ring.sup.ofst;
-	size = sfd->buf[strm].u.ring.sup.size;
+	hn = SFBUF_GET_HN(sfd, strm);
+	ent = hn->w.u.ring.ptsque.ent;
+	ofst = hn->w.u.ring.sup.ofst;
+	size = hn->w.u.ring.sup.size;
 	if (ent == NULL) {
 		return 0;
 	}
@@ -71,16 +84,16 @@ Sint32 SFPTS_ReadPtsQue(SFD sfd, Sint32 strm, Uint32 pos, SFPTS_ENT *out)
 	if (pos >= end) {
 		pos -= size;
 	}
-	cnt = PQ(sfd, strm).cnt;
+	cnt = hn->w.u.ring.ptsque.cnt;
 	if (cnt != 0) {
-		num = PQ(sfd, strm).num;
-		rd = PQ(sfd, strm).rd;
+		num = hn->w.u.ring.ptsque.num;
+		rd = hn->w.u.ring.ptsque.rd;
 		i = sfpts_SearchPts(ent, rd, cnt, num, pos, ofst, size, end);
 		if (i != -1) {
 			idx = sfpts_Wrap(rd + i, num);
-			PQ(sfd, strm).cnt -= i;
-			PQ(sfd, strm).rd = idx;
-			*out = PQ(sfd, strm).ent[idx];
+			hn->w.u.ring.ptsque.cnt -= i;
+			hn->w.u.ring.ptsque.rd = idx;
+			*out = hn->w.u.ring.ptsque.ent[idx];
 		}
 	}
 	return 0;
@@ -88,8 +101,8 @@ Sint32 SFPTS_ReadPtsQue(SFD sfd, Sint32 strm, Uint32 pos, SFPTS_ENT *out)
 
 Sint32 SFPTS_WritePtsQue(SFD sfd, Sint32 strm, SFPTS_ENT *in, Sint32 *full)
 {
-	SFPTS_ENT *ent;
 	Sint32 wr;
+	SFPTS_ENT *ent;
 	Sint32 ret;
 
 	*full = 0;

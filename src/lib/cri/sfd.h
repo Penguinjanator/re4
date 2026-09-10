@@ -115,13 +115,14 @@ typedef struct {
 	Sint32 x2b4;
 	Sint32 x2b8;               /* 0x2B8 (1) */
 	Sint32 x2bc;               /* 0x2BC (100) frame decision count */
-	Float32 x2c0;              /* 0x2C0 (-1.0) */
+	Float32 x2c0;              /* 0x2C0 (-1.0) frame time (ft) of the last decision count */
 	Sint32 x2c4;               /* 0x2C4 last frame decision */
-	Float32 x2c8;              /* 0x2C8 (-1.0) last clock time seen */
+	Float32 x2c8;              /* 0x2C8 (-1.0) frame time (ft) of the last decided frame */
 	Sint32 vcnt;               /* 0x2CC (-1) vsync count while requested */
 	Sint32 chg_base;           /* 0x2D0 clock at the last time change */
 	SFTIM_FN extfn;            /* 0x2D4 external clock (SFD_SetExtClockFn) */
-	Sint32 ext_last;           /* 0x2D8 (-5) */
+	volatile Sint32 ext_last;  /* 0x2D8 (-5) last external clock count (volatile: sftim_GetTimeExtClock
+	                              re-reads it after the SFTIM_NONE test) */
 	Sint32 ext_cnt;            /* 0x2DC */
 	Sint32 ext_unit;           /* 0x2E0 (1) */
 	Sint32 ext_wrap;           /* 0x2E4 (-1) */
