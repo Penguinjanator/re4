@@ -415,14 +415,21 @@ static void wep13_r3_down00(cPlayer* pl)
     pl->flags_420 &= ~0x10;
     pl->pWep->pObj->setDisp(1, 1);
     if (joyLKamae()) {
+        // `li r9,3` before the stack-argument `stw r0,8(r1)`: the two tie in sched2 (equal
+        // priority and dependents), so sched1's issue order decides. A constant in a local
+        // makes the r9 argument a copy of a dying pseudo (weight 0) that sched1 issues before
+        // the `mr r4,pl` copy (+1) and before the stack store, which waits for its
+        // anti-dependence on the pMotTbl loads; reload ties the pseudo to r9.
+        u8 hokan = 3;
         void* mot0 = pl->pMotTbl[0x55];
         void* mot1 = pl->pMotTbl[0x56];
 
-        // OPEN (2 words): the original issues `li r9,3` before the stack-argument `stw r0,8(r1)`;
-        // both feed the call with equal priority and the store frees a register, so our sched1
-        // issues the store first (an `int` local for the 3 is cse'd into the later `xFF = 3`).
-        mot3.set(pl, mot0, mot0, mot0, (int) mot1, 3, 0, 4, 0);
+        mot3.set(pl, mot0, mot0, mot0, (int) mot1, hokan, 0, 4, 0);
         mot3.move(m3r[0]);
+        // The dead loop's NOTE_INSN_LOOP_END ends cse's extended block, so the QImode store
+        // below gets its own `li r0,3` instead of a subreg of `hokan` (which would keep the
+        // constant in a callee-saved register across the calls).
+        do { } while (0);
         pl->xFF = 3;
     } else {
 

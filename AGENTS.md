@@ -5445,7 +5445,8 @@ target) stays unresolved and `make_rel` then fails with "undefined symbol".
   where the original recomputes `addi r5,r1,0x18` and reads `to` from the frame (16 words; direct call,
   inline-with-locals, pointer-parameter inline, memberwise copy, struct/array locals all tried); r2_next's
   last arm `li r9,1; li r0,6` order (24 permutations + inline tried); down00 `li r9,3` before the stack-arg
-  `stw` of mot3.set (locals forms tried).
+  `stw` of mot3.set (locals forms tried). All three SOLVED since (wave 3 and the 2026-09-10 pass below;
+  wep13 is Matching).
 - `tools/casetree.py` models stmt.c `group/balance/emit_case_nodes` (validated against our compiler):
   give it the case values / default grouping and it predicts the compare tree -- use it to pin down
   damage-switch case lists instead of brute force.
@@ -5710,10 +5711,10 @@ target) stays unresolved and `make_rel` then fails with "undefined symbol".
   the fourth-pass notes); db_sctrl and t_camera_data residues are the ones listed in their sections
   (tcDataImport: `extsb r7,r11` untied index + `lis pLog` not hoisted out of the record loop).
 
-### Weapon modules, wave 3 (wep14 written + Matching; module objects of wep01/04/06/13/17/19/30/38/41/42/43/45 flipped; pl_shotgun 17/18, pl_rocket 23/24; 2026-09)
+### Weapon modules, wave 3 (wep14 written + Matching; module objects of wep01/04/06/13/17/19/30/38/41/42/43/45 flipped; pl_shotgun 17/18, pl_rocket 24/24 Matching since 2026-09-10; 2026-09)
 
-- Every weapon module is Matching except the three pl_shotgun copies (wep07/08/33, `wep07_r3_fire00` 2 words)
-  and pl_rocket (wep13, `wep13_r3_down00` 2 words); both residues are scheduler tie-breaks, see below.
+- Every weapon module is Matching except the three pl_shotgun copies (wep07/08/33, `wep07_r3_fire00` 2 words);
+  pl_rocket (wep13) flipped 2026-09-10 (`wep13_r3_down00` solved, see below; wep13.rel byte-identical).
 - wep14 (mine thrower) = `wep14/objMine.cpp` (cObjMine: init/moveReady/moveFire/setBullet/moveDown/moveReload/
   setCartridge/interrupt/setMotion + the free `partsSet(cObjMine*)`) and `wep14/wep14.cpp` (its own copy of the
   handgun routine with a scope aim type, `wep14changeRightHand`, `equipWeapon`). Idioms found there:
@@ -6145,8 +6146,9 @@ target) stays unresolved and `make_rel` then fails with "undefined symbol".
   `p` untied from the `&p->mat` addi, in its own callee-saved register (68 -> 15 words).
 - em28 EscapeCk source bug fixed: target is `Rnd() % 15 + 15`, not `% 30`.
 - OPEN residues: em3a R1_Fix (sched2 sinks `addi r31,em,0x3e0`, needs a dependence on the `bl` nothing
-  creates); em27DmCk/em3c R1_Die_Normal EstSet stack-store interleave (same family as pl_rocket
-  wep13_r3_down00); em3d ChainGunMove FPR order (angY before shared limX pool); em38 plemEscape/
+  creates); em27DmCk/em3c R1_Die_Normal EstSet stack-store interleave (NOT the pl_rocket wep13_r3_down00
+  mechanism, which is solved -- see the weapon wave-3 section: the em stores are not ready at the arm's
+  block start in the original, a readiness difference no source lever reaches); em3d ChainGunMove FPR order (angY before shared limX pool); em38 plemEscape/
   EscapeCamMove birthing boost (#5); em28 EscapeCk bell-radius arm merge before sched1 (FindCk OPEN);
   em23 SetWing PRE copy at join; em2a Trap1BiteSubCk local-alloc tie, R0_Init hp*0.001*0.5 chain tie.
 

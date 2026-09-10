@@ -760,6 +760,7 @@ MATCHING = {
     "wep04/wep04.cpp": True,
     "wep06/wep06.cpp": True,
     "wep13/wep13.cpp": True,
+    "wep13/pl_rocket.cpp": True,
     "wep17/objVp70.cpp": True,
     "wep17/wep17.cpp": True,
     "wep19/wep19.cpp": True,
