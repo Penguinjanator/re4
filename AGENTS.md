@@ -10581,3 +10581,80 @@ stmt.c/jump.c and confirmed with cc1plus probes:
   `j+1` case; a launder on a counter kills the biv). A macro NodeLimit (frame-direct `d`, `pLog.p`) reproduces the target's
   `&node[0].pos` spill at 0x48(r1) but shuffles every callee-saved register (174-228) -- not applied. BossCamMove 420 not
   attempted.
+
+### em2b / em39 fifth pass (em2b 106 -> 111/121, em39 125 -> 130/153 masked-identical; sections equal; neither flipped; 2026-09-10)
+- Harness /tmp/em2b39_p5 (p4 copies with the paths rewritten; `tryv.py MOD FUNC variants.py [--sbs I] [--keep I]`,
+  `mdump.sh MOD/UNIT -dX` with `SRC_OVERRIDE=out/vN/MOD.cpp`, `sbs.py`, `mcmp.py`). DOL symbols untouched; the
+  modules.py/ss_map/merchant/r108/r11d/r201/r203/r207/r216/db_widget diffs in the tree are other agents' work.
+- **Permutation rule confirmed on a shared zero (plem2b_AtkParasite 4 -> 0):** the case-4 block `x3E0 *= 100; x3FC/x3E4/
+  x3E8/x3F8 = 0` has ONE dying register (the shared zero), so the target order 1020, 996, 1000, 992, 1016 is [the last
+  zero store in RTL] + the rest in RTL order: write `x3E4 = 0; x3E8 = 0; x3F8 = 0; x3FC = 0` (the dying store LAST in the
+  source). Try this before any keep-alive: the keep-alive forms here cost 9-13 (a hard-register `dmy` in a call-clobbered
+  register set before `bl SndCall` is deleted as dead and the asm vanishes; r29/r30 dummies give the order but move the
+  stores above the argument moves, because the asm then sits between the stores and the call).
+- **sched2 priority through a REGISTER anti-dependence (em2b_R1_Strangle 4 -> 0):** `timer = 70; timer8 = 0; pG->flags_5010
+  |= ..`: the zero's register r9 is reused by the following `lwz r9,pG`, so the `stw r9,8` store got an extra dependent
+  (anti, prio +1) and was issued before `stw r0,4`. With the struct view `pGS->flags_5010` the pG load is `mem/s` and BOTH w
+  stores feed it (true deps through `base_alias_check`: argument-derived vs symbol base), equal priority, LUID order.
+  Rule: a target `stw A; stw B; lwz pG` where ours swaps A/B and B's register is the pG load's register = the pG read
+  needs the struct view. (A dead test between the stores and the RMW also gives the order but loses the hoisted `lis pG`.)
+- **Squared-distance compare, tie of the fmadds result (em2b_R1_Catch 16 -> 0, em2b_R1_HoleAtk 19 -> 0):** the target's
+  `fmadds f0,f13,f13,f0` (result in the addend's freed register, dx in f13) vs ours `fmadds f13,f13,f13,f12` (result tied
+  to the first operand) = the sum is a multi-block pseudo: local-alloc's `combine_regs` refuses `reg_qty[sreg] == -1`, so
+  no operand is tied and global-alloc hands the result the first free FPR (f0). ONE function-scope `f32 d` assigned in
+  both compare blocks (`d = dx*dx + dy*dy + dz*dz; if (d < K ..)`) gives it; block-local `d`/dx/dz/term orders 10-30.
+  In HoleAtk the same `d` is shared by case 1 and case 3, and the case-3 parts pointer is a block-local `cModel* hp`
+  (the function-scope `p` re-set there made the pPL high share p's r30; with `hp` the pPL high is r28, pG r27 like the
+  target -- 5 callee-saved registers).
+- **A pointer local kept only by a second non-zero-offset use (em2bDashScrCk 10 -> 0):** `EmRockWork* rw = EMROCK_WK(e);
+  r = rw->radius + rad` alone is folded by COMBINE into `lfs 1008(e)` (single use). A second use at offset 0 (`rw->flags`)
+  does not help: cse's `find_best_addr` rewrites a bare `(mem (reg rw))` into `(mem (plus e 992))` (the class member with
+  the higher rtx cost wins ties) while `(plus rw K)` stays (the REG+const path needs a strictly better cost). A dead test on
+  a NON-zero-offset field (`if (rw->timer == 0) d = 0.0f;` -- `d` has other refs, is redefined before every read) keeps
+  two rw uses to combine -> `addi r9,e,992; lfs f0,16(r9)`; placed INSIDE the `if (d < r*r)` arm before `setBreakR11E()`
+  so rw dies before the call (after the call: rw callee-saved, 32; before the distance block: block split, 36).
+- **em2bShortRopeSet 6 -> 3:** `num = 5` written right after `x38 = 5` (5 -> r6, 100 -> r7 as in the target); the last
+  word is the #13 dying-store hoist of the second `5` store (target: pure source order). ClothSet (11) keep-alive
+  attempts: an `asm("" : "=f"(k100) : "0"(100.0f), "r"(zero), "r"(flags), "f"(zf), "m"(w->cloth.x54))` whose output is
+  the PenClothSet argument gives the store order (30) but raises the priority of the store its `"m"` operand names
+  (+3: store latency 2 into the asm, asm 1 into the call) and re-ranks the constants (`li r28,256`); an unrelated `"m"`
+  operand (`em->type`) or a volatile asm is worse (53/31). Left.
+- **em2bAtkEndSet arm 2 (Stamp/Punch/Kick 2, Hook/UpperCut/DashAtk): mechanism read, not fixable.** sched2's tie between
+  `stw r0,0(r29)` (flags RMW result) and `mr r3,r31` is decided by LUID (both prio 3, both class 3, one dependent each);
+  the target's `mr` first therefore comes from the original's sched1 order (mr before stw), i.e. INSN_REG_WEIGHT: every
+  SET counts +1 and every REG_DEAD -1, so `stw` (source dies) is 0 like `mr r3,em` (em dies) and LUID puts the stw first
+  in ours; the original's ori result did not die at its store (weight +1) -- the #13 "not dying" shape on an RMW result.
+  Keep-alive forms (`asm("" :: "r"(f))` before/after the call, hard-register dummies, statement swap) cost 8-43.
+- **em39PLNearTowerCk 11 -> 0:** `pPLS->pos.x` (struct view) for the first pPL read of the first compare: the pPL load
+  then depends on the frame stores of the `Vec a = {..}` / `b` initialisers (through their `addi rX,r1,N` address pseudos)
+  and the 4e6 pool `lfs` fills the freed lsu slot before it, as in the target.
+- **em39JumpDownCk 21 -> 0 (callee-saved order):** THREE probe results `res0/res1/res2` (one per probe, the fourth probe
+  uses the hitCheck result directly): 2-3 refs each, so they rank below `&hit` (r26) and `w` (r25); res0 dies before res2 is
+  born, both get r23, res1 r24 (`and. r23; and. r24; and. r23`). The EmRoutineSet zeros are LITERAL 0s (cse substitutes
+  the probe result known to be 0 after its `beq`: `stb r23`), no `= 0` init anywhere.
+- **em39AreaMoveCk 27 -> 0:** ONE `u32 i` for both loops (the inner loop is only entered when the function returns after
+  it, so reusing the counter is safe): its refs across both loops rank it first and it takes r4; w r5, pG r6, pGotoPoint r7,
+  &gotoPos r8 follow in allocation order. Keep the shared `t`/`ofs` from pass 4.
+- **em39CatchCk / em39KickHitCk 18 -> 0:** `noFlag = !((w)->flags & 1); if (noFlag) return 0;` (the em39AtkRtnCk form) for
+  `lwz; xori 1; andi.; bne`; `((flags & 1) ^ 1)` in the `if` folds to `andi.; beq`, a `u32` xor local too.
+- **em39_R1_ThrowGR 18 -> 2:** the three `Vec p1/p2/p3 = {..}` template initialisers written BEFORE the `w->flags` RMW pair
+  (`li r4,4` then issues early and the `lis pPL` late, as in the target). Left (2): `spd.x = 0; spd.y = 120; spd.z = d`
+  issued in source order in the target although 120 and d die there (#13 dying-store shape; every permutation puts a
+  dying store first).
+- **em39RouteCk 33 -> 14:** `w->pTarget = pPLS;` BEFORE `w->flags &= ~4;` (em2d RouteCk rule, 33 -> 28) and the dead
+  `dy` clamp moved INSIDE both arms as `if (dy < 0.0f) up = 0;` with a block-local `f32 dy` (28 -> 14): the fabs result then
+  ties to em->pos.y's register (`fabs f13,f13`); a function-scope dy is multi-block and cannot tie. Left (14): the four
+  callee-saved pseudos permuted pairwise (target &em->pos r27 > &a r26 > pPL high r25 > PI high r24; ours &a > &em->pos >
+  PI > pPL) -- the pPL high is a 3-arm PRE pseudo whose REG_LIVE_LENGTH (1096) sinks its priority in ours.
+- **set2ndBattle 16 -> 4 (tagged #13):** `u32 zero` set AFTER `setPos` (set before, its `li` crosses the call and takes
+  r28), the four word/half stores read it, `asm volatile("" : : "r"(zero))` after EmRoutineSet keeps it alive; the
+  registers then match (30 r0, 3 r9, zero r11, byte zero r10). Left (4): `stw x698` still issued first because `w` dies
+  there (REG_DEAD w -> weight 0 vs +1); `"r"(w)` in the asm fixes the order but w then outranks em (r29/r30 swap), and
+  balancing with extra `"r"(this)` operands (three) gives 3 with the RS byte order changed -- not applied.
+- **em39JumpUpCk3 24 -> 20:** inner loop condition `j < EM39_EMI->n` (the body already uses EM39_EMI); the target's inner
+  ENTRY test still reads `emi->n` through the top load's copy (gcse: pG->pRoomEmi is available along the call-free loop
+  paths) while the latch's `EM39_EMI->n` is loop-hoisted via a reloaded pG -- ours reloads pG for the entry test too.
+- em39_R1_KnifeCatch (3, left): `fabs f31,f31` reads the `pang` variable in the target, ours the gcse copy f13 of the 0.0
+  (`pang` declared in the case / after Muku / `f32 zero` local / an explicit `asm("fabs")`: 20-38). em39_R0_Init (17) and
+  ArmControl (56, #6 + the `oris` r9/r10 local-alloc tie), JumpUp3 20, ArrowFire 13, T_LongAtk/Atk_MG 12, GetCliffPos 12,
+  SlantCk 11, T_JumpAtk 10 not iterated this pass.

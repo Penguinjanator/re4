@@ -4052,11 +4052,11 @@ static void em39_R1_ThrowGR(cEm39* em)
     Em39Work* w = EM39_WK(em);
     Vec hand;
 
-    w->flags |= 0x80;
-    w->flags &= ~0x20;
     Vec p1 = { 28961.0f, 5250.0f, -2620.0f };
     Vec p2 = { 31552.0f, 5250.0f, -6063.0f };
     Vec p3 = { 31546.0f, 5250.0f, -11491.0f };
+    w->flags |= 0x80;
+    w->flags &= ~0x20;
     hand = pPLS->getPartsPtr(4)->worldPos;
     switch (em->xFE) {
     case 0:
@@ -6119,20 +6119,22 @@ void em39RouteCk(cEm39* em)
     if (em->type == 2) {
         plPos = pPL->pos;
     } else {
-        f32 dy;
-
         if (SQRTF(em->plDist2) < 5000.0f) {
-            dy = fabsf(em->pos.y - pPL->pos.y);
+            f32 dy = fabsf(em->pos.y - pPL->pos.y);
+
+            if (dy < 0.0f) {
+                up = 0;
+            }
             a = pPL->pos;
             plPos = a;
         } else {
-            dy = fabsf(em->pos.y - pPL->pos.y);
+            f32 dy = fabsf(em->pos.y - pPL->pos.y);
+
+            if (dy < 0.0f) {
+                up = 0;
+            }
             a = pPL->pos;
             plPos = a;
-        }
-        // dead clamp of the unused dy: puts the 0.0 pool word before the 1000 / PI of the tests below
-        if (dy < 0.0f) {
-            dy = 0.0f;
         }
     }
     up = 0;
@@ -6160,8 +6162,8 @@ void em39RouteCk(cEm39* em)
     w->targetAng = w->routeAng;
     w->targetAngAbs = w->routeAngAbs;
     w->targetDist = em->plDist2;
-    w->flags &= ~4;
     w->pTarget = pPLS;
+    w->flags &= ~4;
     if (w->gotoOn) {
         up = 0;
         if (w->gotoPos.y > em->pos.y + 1000.0f) {
@@ -6579,7 +6581,7 @@ void em39PLNearTowerCk(cEm39* em)
 
     {
         f32 d;
-        d = (pPL->pos.x - a.x) * (pPL->pos.x - a.x) + (pPL->pos.y - a.y) * (pPL->pos.y - a.y) + (pPL->pos.z - a.z) * (pPL->pos.z - a.z);
+        d = (pPLS->pos.x - a.x) * (pPL->pos.x - a.x) + (pPL->pos.y - a.y) * (pPL->pos.y - a.y) + (pPL->pos.z - a.z) * (pPL->pos.z - a.z);
         if (d < 4000000.0f) {
             w->flags |= 0x20000;
         }
@@ -6617,6 +6619,7 @@ int em39JumpDownCk(cEm39* em, int force)
     Vec hit;
     u32 res0;
     u32 res1;
+    u32 res2;
 
     // Every `return 0` is written before the last probe's: jump2 keeps the LAST copy as the cross-jump survivor.
     if (em->type == 2) {
@@ -6649,8 +6652,8 @@ int em39JumpDownCk(cEm39* em, int force)
         }
     }
     EM39_JUMPDOWN_PROBE(em, w, a, b, hit, 0.0f, 0.0f, 0.0f, 1000.0f, res0, -, 0, 0);
-    EM39_JUMPDOWN_PROBE(em, w, a, b, hit, 0.0f, 0.0f, 0.0f, -1000.0f, res1, +, res0, 1);
-    EM39_JUMPDOWN_PROBE(em, w, a, b, hit, 0.0f, 0.0f, 1000.0f, 0.0f, res0, -, res1, res1);
+    EM39_JUMPDOWN_PROBE(em, w, a, b, hit, 0.0f, 0.0f, 0.0f, -1000.0f, res1, +, 0, 1);
+    EM39_JUMPDOWN_PROBE(em, w, a, b, hit, 0.0f, 0.0f, 1000.0f, 0.0f, res2, -, 0, 0);
     a.x = 0.0f;
     a.y = 500.0f;
     a.z = 0.0f;
@@ -6661,7 +6664,7 @@ int em39JumpDownCk(cEm39* em, int force)
     PSMTXMultVec(em->mat, &b, &b);
     if (SatMgr.hitCheck(&a, &b, 0, &hit, 0, 0) & 0x142810) {
         w->jumpAng = atan2f(-hit.x, -hit.z);
-        EmRoutineSet(em, 1, 0x13, res0, res0);
+        EmRoutineSet(em, 1, 0x13, 0, 0);
         return 1;
     }
     return 0;
@@ -6825,7 +6828,7 @@ int em39JumpUpCk3(cEm39* em)
         if (EM39_EMI_DIST2(em, e) > 1000000.0f) {
             continue;
         }
-        for (j = 0; j < emi->n; j++) {
+        for (j = 0; j < EM39_EMI->n; j++) {
             EmiEntry* f = &EM39_EMI->entry[j];
             int state;
 
@@ -7122,7 +7125,6 @@ int em39AreaMoveCk(cEm39* em)
 {
     Em39Work* w = EM39_WK(em);
     u32 i;
-    u32 j;
     // `t`/`ofs` shared by both loops: with two sets each they are non-replaceable user-variable givs whose benefit
     // (3/5 - copy_cost 4 - add_cost 2) is negative, so loop.c leaves the outer `i*64+8` unreduced (`slwi; addi 8` per
     // iteration like the target); the inner loop's copies get a final value and are reduced as before.
@@ -7160,10 +7162,10 @@ int em39AreaMoveCk(cEm39* em)
         em->xFD = 0xA;
         em->xFE = 0;
         em->xFF = 0;
-        for (j = 0; j < EM39_EMI->n; j++) {
+        for (i = 0; i < EM39_EMI->n; i++) {
             EmiEntry* f;
 
-            t = j * 0x40;
+            t = i * 0x40;
             ofs = t + 8;
             f = (EmiEntry*) ((u32) EM39_EMI + ofs);
 
@@ -7305,6 +7307,7 @@ void em39WepSet(cEm39* em, int no)
     Vec b;                                                                                         \
     Mtx m;                                                                                         \
     int dead = 1;                                                                                  \
+    int noFlag;                                                                                    \
                                                                                                    \
     if ((pPL->flags_324 & 0xFFFF0000) == 0) {                                                      \
         dead = 0;                                                                                  \
@@ -7321,7 +7324,8 @@ void em39WepSet(cEm39* em, int no)
     if (!((em)->seFlags28B & 2)) {                                                                 \
         return 0;                                                                                  \
     }                                                                                              \
-    if (((w)->flags & 1) ^ 1) {                                                                    \
+    noFlag = !((w)->flags & 1);                                                                    \
+    if (noFlag) {                                                                                  \
         return 0;                                                                                  \
     }                                                                                              \
     if (pG->flags_5010 & 0x8000) {                                                                 \
@@ -7989,17 +7993,20 @@ void cEm39::set2ndBattle()
 {
     Em39Work* w = EM39_WK(this);
     Vec p = { 31259.0f, 5250.0f, -14068.0f };
+    u32 zero;
 
     AtariOff(&atari, 0xFCFF);
     rot.y = 1.4660766f;
     setPos(&p);
+    zero = 0;
     w->x680 = 30;
     w->x8C4 = 3;
-    w->x69C = 0;
-    w->pGotoPoint = 0;
-    w->dmgTotal = 0;
-    w->x698 = 0;
+    w->x69C = zero;
+    w->pGotoPoint = (EmiEntry*) zero;
+    w->dmgTotal = zero;
+    w->x698 = zero;
     EmRoutineSet(this, 1, 4, 0, 0);
+    asm volatile("" : : "r"(zero)); // COMPILER-DIFF: #13 -- the zero does not die at its last store in the original (pure source order)
 }
 
 void cEm39::set1stDoorClear()

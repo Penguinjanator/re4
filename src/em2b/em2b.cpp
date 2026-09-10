@@ -2314,6 +2314,7 @@ static void em2b_R1_ThrowRock(cEm2b* em)
 static void em2b_R1_Catch(cEm2b* em)
 {
     Em2bWork* w = EM2B_WK(em);
+    f32 d;
 
     w->flags |= 0x10;
     switch (em->xFE) {
@@ -2352,9 +2353,9 @@ static void em2b_R1_Catch(cEm2b* em)
             if (w->atkHit == 0) {
                 v = pPLS->pos;
                 v.y += 1000.0f;
-                if ((p->worldPos.x - v.x) * (p->worldPos.x - v.x) + (p->worldPos.y - v.y) * (p->worldPos.y - v.y)
-                            + (p->worldPos.z - v.z) * (p->worldPos.z - v.z) < 4000000.0f
-                    && !em2bDeadCk(pPLS)) {
+                d = (p->worldPos.x - v.x) * (p->worldPos.x - v.x) + (p->worldPos.y - v.y) * (p->worldPos.y - v.y)
+                    + (p->worldPos.z - v.z) * (p->worldPos.z - v.z);
+                if (d < 4000000.0f && !em2bDeadCk(pPLS)) {
                     pPLS->dmType = 2;
                     SetPlDamage((int) em, plem2b_CatchHand);
                     SndCall(8, 0x24, &p->worldPos, em->id, 0, em);
@@ -2365,8 +2366,9 @@ static void em2b_R1_Catch(cEm2b* em)
             if (w->atkHit == 0 && pSUB) {
                 v = pSUBS->pos;
                 v.y += 1000.0f;
-                if ((p->worldPos.x - v.x) * (p->worldPos.x - v.x) + (p->worldPos.y - v.y) * (p->worldPos.y - v.y)
-                        + (p->worldPos.z - v.z) * (p->worldPos.z - v.z) < 4000000.0f) {
+                d = (p->worldPos.x - v.x) * (p->worldPos.x - v.x) + (p->worldPos.y - v.y) * (p->worldPos.y - v.y)
+                    + (p->worldPos.z - v.z) * (p->worldPos.z - v.z);
+                if (d < 4000000.0f) {
                     SetSubDamage((int) em, (void*) subem2b_CatchHand);
                     LifeDownSet2(pSUBS, 300, 0, 1);
                     SndCall(8, 0x24, &p->worldPos, em->id, 0, em);
@@ -2406,7 +2408,7 @@ static void em2b_R1_Strangle(cEm2b* em)
         PlGachaInit();
         w->timer = 70;
         w->timer8 = 0;
-        pG->flags_5010 |= 0x10000000;
+        pGS->flags_5010 |= 0x10000000;
         pPLS->setNoSuspend(1);
         em->setNoSuspend(1);
         pG->flags_5014 |= 0x02000000;
@@ -2878,6 +2880,7 @@ static void em2b_R1_HoleAtk(cEm2b* em)
 {
     Em2bWork* w = EM2B_WK(em);
     cModel* p = em->getPartsPtr(0);
+    f32 d;
 
     switch (em->xFE) {
     case 0:
@@ -2909,7 +2912,8 @@ static void em2b_R1_HoleAtk(cEm2b* em)
         if ((s16) pG->pl_life > 0 && !em2bDeadCk(pPLS)) {
             f32 dx = pPLS->pos.x - em2b_r11e_pos.x;
             f32 dz = pPLS->pos.z - em2b_r11e_pos.z;
-            if (dx * dx + dz * dz < 64000000.0f) {
+            d = dx * dx + dz * dz;
+            if (d < 64000000.0f) {
                 em->xFE++;
             }
         }
@@ -2935,15 +2939,16 @@ static void em2b_R1_HoleAtk(cEm2b* em)
             f32 dx;
             f32 dz;
 
-            p = em->getPartsPtr(0xA);
+            cModel* hp = em->getPartsPtr(0xA);
             v = pPLS->pos;
-            dz = p->worldPos.z - v.z;
-            dx = p->worldPos.x - v.x;
-            if (dx * dx + dz * dz < 2250000.0f && !em2bDeadCk(pPLS)) {
+            dz = hp->worldPos.z - v.z;
+            dx = hp->worldPos.x - v.x;
+            d = dx * dx + dz * dz;
+            if (d < 2250000.0f && !em2bDeadCk(pPLS)) {
                 pPLS->dmType = 0x80;
                 pG->pl_life = 0;
                 SetPlDamage((int) em, plem2b_CatchHand);
-                SndCall(8, 0x24, &p->worldPos, em->id, 0, em);
+                SndCall(8, 0x24, &hp->worldPos, em->id, 0, em);
                 VibSetData((VibDataTbl*) (pG->pArc->ofs_1C + (u32) pG->pArc), 0xB, 1);
                 w->atkHit = 1;
             }
@@ -3481,10 +3486,10 @@ static void plem2b_AtkParasite(cPlayer* pl)
         break;
     case 4:
         pl->x3E0 *= 100;
-        pl->x3FC = 0;
         pl->x3E4 = 0;
         pl->x3E8 = 0;
         pl->x3F8 = 0;
+        pl->x3FC = 0;
         SndCall(1, 0x10, &pl->pos, 0, 0, pl);
         MotionSetCore(pl, &pl->mot, PL_ARC(0xC8), (int) PL_ARC(0xC9), 3, 5, 0);
         pl->xFE++;
@@ -4471,7 +4476,6 @@ void em2bShortRopeSet(cEm2b* em)
     rot.y = 0.0f;
     rot.z = 0.0f;
     chain = SetChain(ARC(0x11), ARC(0x12), &pos, &rot);
-    w->rope[1].num = 5;
     w->rope[1].pParts = em2b_rope_parts;
     w->rope[1].x08 = 0;
     w->rope[1].x0C = 0;
@@ -4486,6 +4490,7 @@ void em2bShortRopeSet(cEm2b* em)
     w->rope[1].x20 = 0;
     w->rope[1].x24 = 0;
     w->rope[1].x38 = 5;
+    w->rope[1].num = 5;
     w->rope[1].x58 = em;
     w->rope[1].x3C = 20.0f;
     w->rope[1].x40 = 0.800000012f;
@@ -4983,11 +4988,18 @@ void em2bDashScrCk(cEm2b* em, Vec* pos, f32 rad)
         }
         p = e->getPartsPtr(0);
         {
-            f32 r = EMROCK_WK(e)->radius + rad;
+            EmRockWork* rw = EMROCK_WK(e);
+            f32 r = rw->radius + rad;
 
             d = (p->worldPos.x - pos->x) * (p->worldPos.x - pos->x) + (p->worldPos.y - pos->y) * (p->worldPos.y - pos->y) +
                 (p->worldPos.z - pos->z) * (p->worldPos.z - pos->z);
             if (d < r * r) {
+                // Dead test (flow deletes the store, jump2 the compare): a second non-zero-offset use of
+                // `rw` keeps combine from folding the pointer into the radius load (`addi r9,e,992;
+                // lfs 16(r9)` like the target); placed before the call so rw is not callee-saved.
+                if (rw->timer == 0) {
+                    d = 0.0f;
+                }
                 e->setBreakR11E();
             }
         }
