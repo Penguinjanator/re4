@@ -4213,6 +4213,12 @@ target) stays unresolved and `make_rel` then fails with "undefined symbol".
 - COMPILER-DIFF candidate #7: the original duplicates the leading insns of a two-predecessor loop-test
   block into both predecessors (pool load / `lfs; fadds; fcmpu; stfs`), leaving the constant in a
   caller-saved f13 reloaded after the call; our gcse only inserts with partial availability.
+  RESEARCH 2026-09-10 (~/.cache/ccfp7, see "#7 compiler-side research" under the st1_1/st1_3/st2_0 pass 6
+  section): not gcse at all (CCFP copyability has zero whole-tree effect); it is jump1 leaving
+  `duplicate_loop_exit_test`'s copied FP exit jump unfolded over the following `b END`, then jump2's fall-through
+  cross-jump pairing the two exit jumps. A `-D` hook reproduces r106 shakeClosetDoorR/L and r11c closeGate
+  byte-for-byte from the natural `while` source but regresses 30 other FP-loop functions; the rule that separates
+  the two sets is still open. Nothing installed.
 - Room idioms found on r11d / r10f / r11e / r119 (src/st1/, 2026-09):
   - `RsfSet`/`RsfClear` store through a cast-then-deref word (flag_rsf.h `RsfFlagWord`, not
     `MEM_IN_STRUCT_P`): the rooms reload `pG` and their static work pointer *after* an RsfSet
@@ -12933,6 +12939,78 @@ paths rewritten: `mcmp.py UNIT [SYM]`, `tryv.py UNIT SYM variants.py`, `vapply.p
   MODE_CC mode). Integer compares ARE PRE'd by both (the r225 `faded == 0` note). No source form: C cannot branch on
   a CC computed in another block, and an asm branch would hide control flow from flow/regalloc. r103's loop is not
   #7 because its compared value is a MEM load made in the test block (the compare is not anticipatable there).
+  - **#7 compiler-side research (2026-09-10, ~/.cache/ccfp7: h.py whole-tree harness on a fresh src/ snapshot, base
+    18841/19929 identical; `mkmd.sh NAME md/FILE "-Ddefs"` builds a cc1plus from an alternative rs6000.md + `-D`
+    hooks in gcse.c/jump.c/toplev.c; `one.py CFG UNIT`, `tryform.py FORM CFG` for r106; `reg_*.txt` = regression
+    lists; `patches_ccfp7_*.diff` = the hooks). The "CCFP PRE" reading above is WRONG; the real mechanism is in
+    jump.c and is reproduced by a `-D` variant (not installable as is). Nothing installed.**
+    - SN-vs-stock facts: SN's gcse.c and lcm.c are stock 2.95.3 (SN header only); rs6000.md's `movcc`
+      expander/insn is byte-identical to stock and CCmode-only; rs6000.h's `HARD_REGNO_MODE_OK` (CR regs take any
+      MODE_CC mode) and `EXTRA_CC_MODES CCUNSmode, CCFPmode, CCEQmode` are stock; `AVOID_CCMODE_COPIES` is defined by
+      neither (only mips.h). `compute_can_copy` recog-tests `(set (reg:M) (reg:M))` per MODE_CC mode; a `-DCCFP7_DEBUG`
+      print confirms `can_copy_p[CC]=1, [CCUNS]=[CCFP]=[CCEQ]=0` in our build. No `-m` option, no `#define`, and no
+      init-order change can make CCFP copyable: only an md move pattern can (`movccfp` expander + insn; `gen_move_insn`
+      in `pre_delete`/`pre_insert_copies` needs the optab, so forcing the array alone would abort).
+    - Variants and whole-tree results (regressions / newly identical vs base):
+        md `movccfp` (+ insn with the movcc alternatives)      0 / 0  -- byte-identical tree; can_copy_p[CCFP] = 1
+        md `movccfp`/`movccuns`/`movcceq`                      3 / 0  (t_scroll loadBinName, em32 setNext, r40e
+                                                                       moveElevator: CCUNS/CCEQ compares PRE'd)
+        md `movccfp` y-only (mcrf, no r/m alternatives)        ICE in r223 reva_common_move (caller-save needs the
+                                                                       `mfcr` alternative: a hoisted CCFP compare
+                                                                       lives across the loop's call in r30 in BOTH
+                                                                       builds -- loop.c hoists CC compares without
+                                                                       can_copy_p; caller-save.c saves the CR field
+                                                                       in CCmode via movcc, so `mfcr r30 ... mtcrf`
+                                                                       in reva_common_move (Matching) is stock)
+      With CCFP copyable gcse does record `(compare:CCFP ..)` and does PRE it (r223 reva_common_move: the
+      loop-invariant `f29 > f28` compare moves to the preheader in gcse instead of loop.c -- same final code).
+      The r106/r11c shape is NOT produced: in the goto form (`y = m->rot.y + K; m->rot.y = y; goto test; wait: ..;
+      test: if (!(y > lim)) goto wait;`) the compare `(compare:CCFP y lim)` has one occurrence at the join and no
+      redundancy; 2.95.3's block LCM (`pre_lcm`: antin, earliest = ~transp | (earlyin & ~antin), delayin lfp,
+      latein = delayin except in the last block, isolated; INSERT = optimal & ~redundant needs a `reaching_reg`
+      that only `pre_delete` creates) gives optimal[test]=1, redundant[test]=0 -> nothing deleted, nothing inserted.
+      Only a Morel-Renvoise placement (INSERT = PPOUT & ~AVOUT & (~PPIN | ~TRANSP), egcs-1.1 gcse) would put a
+      single join compare into both predecessors, and the tree shows the original does not (0 whole-tree effect
+      of CCFP copyability means no CCFP compare is ever partially redundant in our sources as written).
+    - **What the original does: `duplicate_loop_exit_test`'s copied conditional jump is left UNFOLDED over the
+      `b END` that follows it, and jump2's fall-through cross-jump (`find_cross_jump (b END, END, CJ_FALL_MIN=1)`)
+      then matches only the two identical exit jumps (`stfs f0` vs `stfs f13` differ) -> `b END` is redirected to a
+      new label before the loop's exit jump and the copy's jump deleted: `A0; cmp0; b TEST; TOP: sleep; A; cmp;
+      TEST: bge TOP; END`.** In ours jump1 folds `bge TOP; b END; TOP:` into `blt END` at once ("conditional jump
+      jumping over an unconditional jump", jump.c 1788ff) and jump2's condjump cross-jump (`jump_back_p`, minimum 2)
+      finds no two matching insns (the pre's y0 and the loop's y1 are different pseudos, f0/f13), so the pre keeps
+      `blt END`. Proof: `-DCCFP7_NOFOLD_DUP` (jump.c marks the JUMP_INSN copies made by duplicate_loop_exit_test by
+      UID, the fold rule skips them; toplev.c's rest_of_compilation resets the marks per function) makes
+      **r106 shakeClosetDoorR AND shakeClosetDoorL 0 words from the natural `m->rot.y += K; while (!(m->rot.y >
+      lim)) { SceSleep(1); m->rot.y += K; }`** (also from `for (;;) { if (m->rot.y > lim) break; ... }`) and
+      **r11c closeGate 0 words from the natural `while (1) { g->pos.y -= spd; spd += acc; if (g->pos.y < dst)
+      break; SceSleep(1); }`** (the `#9` comment in r11c.cpp is confirmed: it is the rotated while(1)). The
+      register difference f0/f13 is a consequence, not a cause: with no folded copy the pre's temp and the loop's
+      temp are never cross-jumped, so regalloc names them independently.
+    - But the blanket rule is not the original's either: whole tree `NOFOLD_DUP` = 1995 / 0 (every `for (i..)`
+      copy stays unfolded), `NOFOLD_DUP + FP_ONLY` (only copies whose condition is on a CCFP reg) = 30 / 0
+      (reg_nofoldfp.txt: cam_ctrl areaHit, snd sndVol/PitchCalcSub, e_rem_pio2/ef_rem_pio2, espgen02_Update,
+      main_sub Bg_brightness_set, math_sub VecRadLimit, route_ck getNearPoint, esp08 move, esp47 Trans, t_camera
+      tcEdit_area, r201 setBattleArea_sub, r207 WallMove, r209 LeaderEscapeToD/GatlingAppear, r20c KaigaMove, r211
+      GrateOpen, r212 RoofMove, r214 BridgeRotate, r21b x5, r223 dai_down_end, r227 checkBox0/1Fall, r22a EleDown/Up).
+      VecRadLimit's target (`lfsx; fcmpu; cror; bns END; lfs; lfs; TOP: ...; bso TOP`) and r207 WallMove's
+      (`while (obj->pos.z < -9500.0f) { pos.z += 30; matUpdate(); SceSleep(1); }`) show the original DOES fold FP
+      copies whose exit test is `load; compare` with the loop body ending in calls; r106/r11c (not folded) have the
+      compared value STORED as the last statement before the test (`m->rot.y += K` / `g->pos.y -= spd; spd += acc`),
+      so after cse the copy compares the pre's fresh temp and the loop's test compares the body's temp. The
+      discriminating condition (a stock rule we have not identified, or a later-SN jump.c change) is the open
+      question; candidates to test next in ~/.cache/ccfp7 with `tryform.py`: whether the copied exit code contains
+      a store / sets a pseudo renamed through `reg_map` (`REG_LOOP_TEST_P`), whether LOOP_CONT sits inside the
+      copied region, and the relative order of the fold and `duplicate_loop_exit_test` inside jump1's `while
+      (changed)` loop (the copy is processed from `next = NEXT_INSN (temp)` in the same round). Both the `#7` shape
+      and the r227/VecRadLimit shape must come out of one rule before anything is installed.
+    - Workarounds this would retire (all tagged `#7`/`#9` loop spellings with gotos): r11c closeGate, r106
+      shakeClosetDoorR/L (currently peeled `if (!(..)) { wait: ..; goto wait; }` = 9+9 words), r103/r105
+      execOpenCover's goto form (Matching either way -- `nofoldfp` does not change them, so the goto form is
+      also what a non-folding original produces). r202 throwRock's `fmr` copy is the loop.c "multiple entry"
+      difference noted below, same family (the unfolded copy's `bge TOP` is a jump into the loop from outside;
+      the original's loop.c evidently still treated the loop as valid -- with the copy inside the notes, or with
+      the fold done later, that jump would not exist at loop time).
 - **r202 throwRock 19 -> 9: the exit store's constant is a COPY of `lim` hoisted into the pre-block (`fmr f28,f30`).**
   Mechanism in the original: `for (;;) { sub; if (rot < lim) { rot = K; break; } SceSleep(1); }` is rotated by
   expand_end_loop (the `b END` exit jump is the "qualified conditional exit"), jump1 peels the exit region `sub; cmp;
