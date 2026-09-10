@@ -381,26 +381,31 @@ static void r204_openedTana()
     r204_TanaMove(1);
 }
 
+// COMPILER-DIFF: the `const f32` locals are declared after the flag write / inside the loop body and the
+// final store sits inside the break block; this is what keeps the constants out of callee-saved FPRs.
 void r204_BoxMove(cObj* obj, int opened)
 {
     if (opened == 0) {
         SndCall(6, 0x5B, &obj->pos, 0, 0, 0);
     }
     obj->be_flag |= 0x20;
+    const f32 lim = -1.73f;
     if (opened == 1) {
-        obj->rot.z = -1.73f;
+        obj->rot.z = lim;
     } else {
         if (opened == 0) {
             SndCall(6, 1, 0, 0, 0, 0);
         }
         while (1) {
-            obj->rot.z += -0.05f;
-            if (obj->rot.z < -1.73f) {
+            const f32 spd = -0.05f;
+
+            obj->rot.z += spd;
+            if (obj->rot.z < lim) {
+                obj->rot.z = lim;
                 break;
             }
             SceSleep(1);
         }
-        obj->rot.z = -1.73f;
     }
 }
 
@@ -410,20 +415,23 @@ void r204_BoxMove2(cObj* obj, int opened)
         SndCall(6, 0x5B, &obj->pos, 0, 0, 0);
     }
     obj->be_flag |= 0x20;
+    const f32 lim = -1.73f;
     if (opened == 1) {
-        obj->rot.x = -1.73f;
+        obj->rot.x = lim;
     } else {
         if (opened == 0) {
             SndCall(6, 1, 0, 0, 0, 0);
         }
         while (1) {
-            obj->rot.x += -0.05f;
-            if (obj->rot.x < -1.73f) {
+            const f32 spd = -0.05f;
+
+            obj->rot.x += spd;
+            if (obj->rot.x < lim) {
+                obj->rot.x = lim;
                 break;
             }
             SceSleep(1);
         }
-        obj->rot.x = -1.73f;
     }
 }
 
@@ -439,20 +447,23 @@ void r204_TanaMove(int opened)
     if (opened == 0) {
         SndCall(6, 1, 0, 0, 0, 0);
     }
+    const f32 lim = -2.83f;
     if (opened == 1) {
-        a->rot.z = -2.83f;
-        b->rot.z = 2.83f;
+        a->rot.z = lim;
+        b->rot.z = -lim;
     } else {
         while (1) {
-            a->rot.y += -0.09f;
-            b->rot.y -= -0.09f;
-            if (a->rot.y < -2.83f) {
+            const f32 spd = -0.09f;
+
+            a->rot.y += spd;
+            b->rot.y -= spd;
+            if (a->rot.y < lim) {
+                a->rot.y = lim;
+                b->rot.y = -lim;
                 break;
             }
             SceSleep(1);
         }
-        a->rot.y = -2.83f;
-        b->rot.y = 2.83f;
     }
 }
 
@@ -672,6 +683,7 @@ static void r204_nige_check()
 static void door5_close()
 {
     u32 i;
+    u32 k;
     int cnt;
 
     BitOn(pG->flags_174, 0x20000000);
@@ -724,8 +736,8 @@ static void door5_close()
     r204_work.p->chand[1]->setNoSuspend(1);
     RsfSet(G_ROOM_ID, 8);
     SceSleep(1);
-    for (i = 0; i <= 10; i++) {
-        r204_work.p->em[i].setGoto(&pPL->pos, 0xC);
+    for (k = 0; k <= 10; k++) {
+        r204_work.p->em[k].setGoto(&pPL->pos, 0xC);
     }
 }
 
@@ -883,6 +895,8 @@ void Evt_R204S00_Func(Event* e)
     cObj* obj;
 
     switch (e->funcMode) {
+    case 0:
+        break;
     case 1:
         if (e->cut == 0 && e->frame == 0) {
             SmdSetTrans(0xC, 0);
