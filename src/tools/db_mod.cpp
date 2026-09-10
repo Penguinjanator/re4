@@ -3632,9 +3632,9 @@ void DB_EM::IKreport()
             if (info & 0x20) {
                 type = 1;
             }
-        }
-        if (info & 0x80) {
-            type = 2;
+            if (info & 0x80) {
+                type = 2;
+            }
         }
         if (type != -1) {
             eprintf(x * 8, y * 14, 2, 0, "%s[%02d]", dbmodIkLabel[type], no);

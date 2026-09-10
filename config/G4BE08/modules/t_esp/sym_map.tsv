@@ -2977,7 +2977,7 @@ section	offset	size	unit	scope	name	demangled
 .bss	0x000000B4	0x4	t_esp/db_mod.cpp	local	lbl_t_esp_bss_B4	lbl_t_esp_bss_B4
 .bss	0x000000B8	0x20	t_esp/db_mod.cpp	local	lbl_t_esp_bss_B8	lbl_t_esp_bss_B8
 .bss	0x000000D8	0x10	t_esp/db_mod.cpp	local	lbl_t_esp_bss_D8	lbl_t_esp_bss_D8
-.bss	0x000000E8	0x9D500	t_esp/db_mod.cpp	global	lbl_t_esp_bss_E8	lbl_t_esp_bss_E8
+.bss	0x000000E8	0x9D500	t_esp/db_mod.cpp	global	dbModSlot	lbl_t_esp_bss_E8
 .bss	0x0009D5E8	0x9D500	t_esp/db_mod.cpp	global	lbl_t_esp_bss_9D5E8	lbl_t_esp_bss_9D5E8
 .bss	0x0013AAE8	0x4	t_esp/db_mod.cpp	global	lbl_t_esp_bss_13AAE8	lbl_t_esp_bss_13AAE8
 .bss	0x0013AAEC	0x4	t_esp/db_mod.cpp	global	lbl_t_esp_bss_13AAEC	lbl_t_esp_bss_13AAEC

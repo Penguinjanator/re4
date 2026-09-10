@@ -566,6 +566,8 @@ STRIP_UNUSED = {
     # db_widget.cpp: the never-called DB_SLIDEBAR constructor (pool kept) and the dead delete-all
     # helper that makes our cc1plus synthesize the implicit destructors
     "t_esp/db_widget.cpp",
+    # db_port.cpp: two never-called helpers (DB_DrawPoint, DB_VecClear) whose pools stayed
+    "t_esp/db_port.cpp",
     # db_window.cpp: the dead helper that carries the DB_NUMERIC range table
     "t_esp/db_window.cpp",
     # db_mod.cpp: one object (src/tools/db_mod.cpp) in both modules; Tools lost the t_esp loader entry

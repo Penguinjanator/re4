@@ -71,16 +71,20 @@ void SetXFlipFlag(int on, int slot);
 }
 
 // esp06 (path) work behind the cEsp
+struct DbPathWork {
+    u8 owner;         // 0x00
+    u8 flags;         // 0x01  bit7: own matrix
+    u16 id;           // 0x02
+    u16 seg;          // 0x04
+    u8 pad_06[2];
+    void* path;       // 0x08
+    u8 pad_0C[0x1C - 0x0C];
+    Mtx mtx;          // 0x1C
+};
+
 struct DbPathEsp {
     cEsp esp;         // 0x00
-    u8 owner;         // 0xF8
-    u8 flags;         // 0xF9  bit7: own matrix
-    u16 id;           // 0xFA
-    u16 seg;          // 0xFC
-    u8 pad_FE[2];
-    void* path;       // 0x100
-    u8 pad_104[0x114 - 0x104];
-    Mtx mtx;          // 0x114
+    DbPathWork w;     // 0xF8
 };
 
 // Espgen02 (path generator) work fields behind EspgenWork::work
@@ -169,6 +173,8 @@ extern "C" char* space_skip(char* p);
 extern "C" int num_get(char** pp);
 extern "C" int symbol_check(char** pp, const char* sym);
 extern "C" void sp_PosRand_trans_1a(EspSeqData* head, EspGenWork* gen);
+// COMPILER-DIFF: #1 (the original moves the cModel* argument before the f32 one: `mr r4; fmr f1`)
+int PathGetPosEmM(void* path, cModel* model, f32 dist, u16* seg, Vec* out) asm("PathGetPosEm");
 
 static inline int evtToolOn()
 {
@@ -213,6 +219,22 @@ extern "C" u32 MakeCol(f32 r, f32 g, f32 b, f32 a)
     col += (u8) (g * 255.0f) << 8;
     col += (u8) (b * 255.0f);
     return col;
+}
+
+// never called (dead-stripped body): a one-pixel point whose pool [0.0001, 1.0] survives between
+// MakeCol's 255.0 and DB_DrawBox's 0.0001
+static void DB_DrawPoint(f32 x, f32 y, f32 r, f32 g, f32 b, f32 a)
+{
+    Vec p0;
+    Vec p1;
+
+    p0.x = x;
+    p0.y = y;
+    p0.z = 0.0001f;
+    p1.x = x + 1.0f;
+    p1.y = y + 1.0f;
+    p1.z = 0.0001f;
+    Draw_quad(&p0, &p1, MakeCol(r, g, b, a));
 }
 
 void DB_DrawBox(f32 x, f32 y, f32 w, f32 h, f32 r, f32 g, f32 b, f32 a)
@@ -1016,7 +1038,8 @@ extern "C" void EspToolExitEstSet(EspSeqData* head, int on, int mode)
 
 extern "C" void EspToolExit()
 {
-    debugCamera* dbg = &CamDbg;
+    // through a volatile pointer: the store keeps `&CamDbg` in a register (`stb 0xf(rX)`, t_lightarea idiom)
+    volatile debugCamera* dbg = &CamDbg;
     GXColor col;
 
     BitOff(pG->flags_60, 0x40000);
@@ -1026,8 +1049,8 @@ extern "C" void EspToolExit()
     BitOff(pG->flags_170, 0x800000);
     BitOff(pG->flags_170, 0x1000000);
     BitOff(pG->flags_60, 0x10000000);
-    dbg->target_type = 0;
     *(u32*) &col = 0;
+    dbg->target_type = 0;
     bio4_GXSetCopyClear(col, 0xFFFFFF);
     LightMgr.setFog();
     LightToolEnd();
@@ -1178,11 +1201,10 @@ extern "C" void DB_DrawCursor2D(Vec* pos)
 
 extern "C" void DB_GetCursorPos(EspSeqData* head, EspGenWork* gen, int flag, Vec* out, Mtx* m)
 {
-    EspSeqData* h = head;
     int parts = gen->x7;
 
     if (parts == 0xFF || flag != 0) {
-        DB_VecNullPartsPos(h, &gen->pos, out, m);
+        DB_VecNullPartsPos(head, &gen->pos, out, m);
     } else if (parts == 0xFE) {
         *out = gen->pos;
         PSMTXIdentity(*m);
@@ -1190,7 +1212,7 @@ extern "C" void DB_GetCursorPos(EspSeqData* head, EspGenWork* gen, int flag, Vec
         (*m)[1][3] = out->y;
         (*m)[2][3] = out->z;
     } else {
-        DB_VecMulEmPartsMat((u32) h, &gen->pos, out, m, gen);
+        DB_VecMulEmPartsMat(parts, &gen->pos, out, m, gen);
     }
 }
 
@@ -1243,13 +1265,28 @@ extern "C" void DB_DrawCross3D(Vec* pos, Mtx* m, f32 size)
     Draw_line3d(&p0, &p1, 0xFFFFFF, 0);
 }
 
+// never called (dead-stripped body): its 0.0f pool word follows DB_DrawCross3D's pool
+static void DB_VecClear(Vec* v)
+{
+    v->x = 0.0f;
+    v->y = 0.0f;
+    v->z = 0.0f;
+}
+
+// the translation part of *m from the computed position; written out in each arm (jump2 merges the tails)
+#define SET_MTX_POS   \
+    PSMTXIdentity(*m);     \
+    (*m)[0][3] = out->x;   \
+    (*m)[1][3] = out->y;   \
+    (*m)[2][3] = out->z
+
 extern "C" void DB_VecNullPartsPos(EspSeqData* head, Vec* in, Vec* out, Mtx* m)
 {
     cModel* em = dbModGetEmPtr(db_modelNo);
     Vec zero;
-    Vec rot;
     Vec v;
     Mtx rm;
+    Vec rot;
 
     out->x = 0.0f;
     out->y = 0.0f;
@@ -1260,14 +1297,9 @@ extern "C" void DB_VecNullPartsPos(EspSeqData* head, Vec* in, Vec* out, Mtx* m)
             out->x = in->x + head->pos.x;
             out->y = in->y + head->pos.y;
             out->z = in->z + head->pos.z;
-        } else {
-            cModel* p;
-            if (parts >= em->nParts) {
-                PSMTXIdentity(*m);
-                out->z = out->y = out->x = 0.0f;
-                return;
-            }
-            p = em->getPartsPtr(parts);
+            SET_MTX_POS;
+        } else if (parts < em->nParts) {
+            cModel* p = em->getPartsPtr(parts);
             zero.x = 0.0f;
             zero.y = 0.0f;
             zero.z = 0.0f;
@@ -1275,11 +1307,11 @@ extern "C" void DB_VecNullPartsPos(EspSeqData* head, Vec* in, Vec* out, Mtx* m)
             out->x += in->x + head->pos.x;
             out->y += in->y + head->pos.y;
             out->z += in->z + head->pos.z;
+            SET_MTX_POS;
+        } else {
+            PSMTXIdentity(*m);
+            out->z = out->y = out->x = 0.0f;
         }
-        PSMTXIdentity(*m);
-        (*m)[0][3] = out->x;
-        (*m)[1][3] = out->y;
-        (*m)[2][3] = out->z;
         return;
     }
     if (head->parts <= 0xF7) {
@@ -1298,25 +1330,34 @@ extern "C" void DB_VecNullPartsPos(EspSeqData* head, Vec* in, Vec* out, Mtx* m)
     (*m)[2][3] = out->z;
 }
 
+// the "no parts" exit, written out in each arm (jump2 cross-jumps the copies into the last one)
+#define NONE_BODY   \
+    PSMTXIdentity(*m); \
+    out->y = 0.0f;     \
+    out->x = 0.0f
+
 extern "C" void DB_VecMulEmPartsMat(u32 parts, Vec* in, Vec* out, Mtx* m, EspGenWork* gen)
 {
     cModel* em = GetActiveModel(gen);
     Vec v;
 
     if (DB_isGetComeEventTool() == 1) {
-        cModel* p = 0;
+        cModel** tbl = EspEvModList;
         u32 no = gen->x6;
+        cModel* p = 0;
         if (no <= 0x7F) {
-            p = EspEvModList[no];
+            p = tbl[no];
         }
         em = p;
         if (em == 0) {
-            goto none;
+            NONE_BODY;
+            return;
         }
     } else if (gen->x6 != 0) {
         em = SmdGetObjPtr(gen->x6 - 1);
         if (em == 0) {
-            goto none;
+            NONE_BODY;
+            return;
         }
     } else if (em == 0) {
         return;
@@ -1351,9 +1392,7 @@ extern "C" void DB_VecMulEmPartsMat(u32 parts, Vec* in, Vec* out, Mtx* m, EspGen
     }
     return;
 none:
-    PSMTXIdentity(*m);
-    out->y = 0.0f;
-    out->x = 0.0f;
+    NONE_BODY;
 }
 
 extern "C" void SaveData(const char* path, void* buf, int size)
@@ -1421,7 +1460,7 @@ extern "C" u8 DB_GetRoomNo()
     return pG->room_no;
 }
 
-extern "C" void DB_GetCamFrontPos(f32* x, f32* y, f32* z, f32 dist)
+extern "C" void DB_GetCamFrontPos(f32 dist, f32* x, f32* y, f32* z)
 {
     Vec dir;
     Vec pos;
@@ -1450,15 +1489,11 @@ extern "C" void DB_Sleep(int n)
 extern "C" void sp_ctrl01_trans(EspGenWork* gen)
 {
     cModel* em = GetActiveModel(gen);
-    Mtx base;
-    Mtx rx;
     Mtx ry;
-    Vec pos;
+    Mtx rx;
+    Mtx base;
     Vec dir;
     Vec p;
-    Vec* pp;
-    Vec* pd;
-    Vec* pgen;
     int onModel;
     f32 ax;
     f32 ay;
@@ -1482,30 +1517,28 @@ extern "C" void sp_ctrl01_trans(EspGenWork* gen)
         base[2][3] = gen->x14;
     }
     dir.x = 0.0f;
-    dir.z = 1500.0f;
     dir.y = 0.0f;
-    ay = LIMIT_ANGLE(gen->xF0 * 6.2831855f / 360.0f);
-    ax = LIMIT_ANGLE(gen->xF4 * 6.2831855f / 360.0f);
-    half = LIMIT_ANGLE(gen->xF8 * 6.2831855f / 360.0f * 0.5f);
+    dir.z = 1500.0f;
+    half = gen->xF8 * 6.2831855f / 360.0f * 0.5f;
+    ay = gen->xF0 * 6.2831855f / 360.0f;
+    ax = gen->xF4 * 6.2831855f / 360.0f;
+    ay = LIMIT_ANGLE(ay);
+    ax = LIMIT_ANGLE(ax);
+    half = LIMIT_ANGLE(half);
     PSMTXRotRad(ry, 'Y', ax);
     PSMTXRotRad(rx, 'X', ay);
     PSMTXConcat(ry, rx, ry);
     PSMTXConcat(base, ry, ry);
     if (onModel) {
-        pgen = &gen->pos;
-        PSMTXMultVec(ry, pgen, &p);
-        pp = &p;
-        PSVECAdd(pgen, &dir, &dir);
+        PSMTXMultVec(ry, &gen->pos, &p);
+        PSVECAdd(&gen->pos, &dir, &dir);
     } else {
         p = gen->pos;
-        pgen = &gen->pos;
-        pp = &p;
     }
-    pd = &dir;
-    PSMTXMultVec(ry, pd, pd);
-    Draw_line3d(pp, pd, 0xFFFFFFFF, 0);
+    PSMTXMultVec(ry, &dir, &dir);
+    Draw_line3d(&p, &dir, 0xFFFFFFFF, 0);
     for (i = 0; i < 32; i++) {
-        f32 ang = (f32) (int) i * 0.03125f * 2.0f * 3.1415927f;
+        f32 ang = (f32) i * 0.03125f * 2.0f * 3.1415927f;
         dir.x = sinf(ang) * 1500.0f;
         dir.y = cosf(ang) * 1500.0f;
         dir.z = 1500.0f;
@@ -1519,10 +1552,10 @@ extern "C" void sp_ctrl01_trans(EspGenWork* gen)
         PSMTXConcat(ry, rx, ry);
         PSMTXConcat(base, ry, ry);
         if (onModel) {
-            PSVECAdd(pgen, pd, pd);
+            PSVECAdd(&gen->pos, &dir, &dir);
         }
-        PSMTXMultVec(ry, pd, pd);
-        Draw_line3d(pp, pd, 0xFFFFFFFF, 0);
+        PSMTXMultVec(ry, &dir, &dir);
+        Draw_line3d(&p, &dir, 0xFFFFFFFF, 0);
     }
 }
 
@@ -1600,14 +1633,13 @@ extern "C" void sp_path_trans(EspSeqData* head, EspGenWork* gen)
     cModel* em = GetActiveModel(gen);
     cEsp* esp;
     DbPathEsp* pe;
+    DbPathWork* pw;
     Vec pos;
     Vec old;
-    u32 seed;
+    struct { u32 v; } seed;  // in-struct store: the vptr load of the virtual call stays below it
     f32 len;
     f32 t;
     u32 i;
-    Vec* pgen;
-    u16* pseg;
 
     if (gen->x6 != 0) {
         em = SmdGetObjPtr(gen->x6 - 1);
@@ -1618,56 +1650,54 @@ extern "C" void sp_path_trans(EspSeqData* head, EspGenWork* gen)
     if (PullEsp(&esp, 6) == 0) {
         return;
     }
-    seed = 0x12345678;
+    seed.v = 0x12345678;
     pe = (DbPathEsp*) esp;
-    if (esp->SetFreeWork(gen, &seed) == 0) {
-        PushEsp(esp);
+    pw = &pe->w;
+    if (esp->SetFreeWork(gen, &seed.v) == 0) {
+        PushEsp(&pe->esp);
         return;
     }
-    len = PathGetLength(pe->path);
-    EspGetPathAddr(pe->id, pe->owner);
+    len = PathGetLength(pw->path);
+    EspGetPathAddr(pw->id, pw->owner);
     t = 0.0f;
-    pseg = &pe->seg;
-    pgen = &gen->pos;
     for (i = 0; i < 256; i++) {
         if (em && (em->be_flag & 1) && gen->x7 <= 0xF7) {
-            PathGetPosEm(pe->path, t, em, pseg, &pos);
+            PathGetPosEmM(pw->path, em, t, &pw->seg, &pos);
         } else {
-            PathGetPos(pe->path, t, pseg, &pos);
+            PathGetPos(pw->path, t, &pw->seg, &pos);
         }
-        if (pe->flags & 0x80) {
-            PSMTXMultVec(pe->mtx, &pos, &pos);
+        if (pw->flags & 0x80) {
+            PSMTXMultVec(pw->mtx, &pos, &pos);
         }
-        PSVECAdd(&pos, pgen, &pos);
+        PSVECAdd(&pos, &gen->pos, &pos);
         if (i != 0) {
             Draw_line3d(&pos, &old, 0xFFFFFFFF, 0);
         }
         old = pos;
         t += len * 0.00390625f;
     }
-    PushEsp(esp);
+    PushEsp(&pe->esp);
 }
 
 extern "C" void sp_path_trans2(EspSeqData* head, EspGenWork* gen)
 {
     cModel* em = GetActiveModel(gen);
-    EspgenWork wk;
-    DbEspgen02* w = (DbEspgen02*) wk.work;
-    void* path;
     Vec pos;
     Vec old;
-    Vec rot;
-    Vec p168;
-    Vec p158;
+    EspgenWork wk;
     Mtx mtx;
     Mtx sm;
-    Mtx rm;
+    Vec p158;
+    Vec p168;
     u16 seg;
+    EspgenWork* pw = &wk;
+    DbEspgen02* w = (DbEspgen02*) wk.work;
+    void* path;
     f32 len;
     f32 t;
     u32 i;
 
-    memclr_asm(&wk, sizeof(EspgenWork));
+    memclr_asm(pw, sizeof(EspgenWork));
     seg = 0;
     if (gen->x6 != 0) {
         em = SmdGetObjPtr(gen->x6 - 1);
@@ -1675,7 +1705,7 @@ extern "C" void sp_path_trans2(EspSeqData* head, EspGenWork* gen)
             return;
         }
     }
-    if (Espgen02_SetFreeWork(&wk, gen, head, em, 0xFE, &mtx, &p168, &p158, 0, 0) == 0) {
+    if (Espgen02_SetFreeWork(pw, gen, head, em, 0xFE, &mtx, &p168, &p158, 0, 0) == 0) {
         return;
     }
     path = EspGetPathAddr(w->pathOwner, w->pathId);
@@ -1686,7 +1716,7 @@ extern "C" void sp_path_trans2(EspSeqData* head, EspGenWork* gen)
     t = 0.0f;
     for (i = 0; i < 256; i++) {
         if (em && PathHasWeight(path)) {
-            PathGetPosEm(path, t, em, &seg, &pos);
+            PathGetPosEmM(path, em, t, &seg, &pos);
         } else {
             PathGetPos(path, t, &seg, &pos);
         }
@@ -1695,9 +1725,11 @@ extern "C" void sp_path_trans2(EspSeqData* head, EspGenWork* gen)
             PSMTXScale(sm, w->scaleX, w->scaleY, w->scaleZ);
             PSMTXMultVec(sm, &pos, &pos);
         }
+        Vec rot;
+        Mtx rm;
         rot.x = (f32) w->rotX * 6.2831855f * 0.00390625f;
-        rot.z = 0.0f;
         rot.y = (f32) w->rotY * 6.2831855f * 0.00390625f;
+        rot.z = 0.0f;
         RotMatrix(rm, &rot);
         PSMTXMultVec(rm, &pos, &pos);
         if (em && (em->be_flag & 1) && gen->x7 <= 0xF7) {
@@ -1749,9 +1781,7 @@ extern "C" void sp_PosRand_trans_1a(EspSeqData* head, EspGenWork* gen)
     cModel* p1;
     Vec a;
     Vec b;
-    Vec v;
     Vec ofs;
-    Mtx inv;
     f32 r;
 
     if (em == 0 || !(em->be_flag & 1)) {
@@ -1767,9 +1797,8 @@ extern "C" void sp_PosRand_trans_1a(EspSeqData* head, EspGenWork* gen)
     p1 = em->getPartsPtr((s8) gen->xC8);
     ofs = gen->pos;
     PSMTXMultVec(p0->mat, &ofs, &a);
-    v.x = 0.0f;
-    v.y = 0.01f;
-    v.z = 0.0f;
+    Vec v = {0.0f, 0.01f, 0.0f};
+    Mtx inv;
     PSMTXMultVec(p1->mat, &v, &v);
     PSMTXInverse(p0->mat, inv);
     PSMTXMultVec(inv, &v, &v);
@@ -1789,8 +1818,8 @@ extern "C" void sp_PosRand_trans(EspSeqData* head, EspGenWork* gen)
     f32 rx = gen->x18;
     f32 ry = gen->x1C;
     f32 rz = gen->x20;
+    Mtx m;  // the first local: its address is the frame pointer itself, so every `m` use is a fresh `addi r3,r1,8`
     Vec pos;
-    Mtx m;
     Vec v[8];
 
     if (gen->x1 == 0x1A) {
@@ -1855,28 +1884,38 @@ extern "C" void sp_tex_trans(u8 no)
     Vec p1;
     GXTexObj obj;
     GXTlutObj tlut;
-    f32 r = 0.2f;
-    f32 g = 0.6f;
-    f32 b = 0.8f;
+    f32 r;
+    f32 g;
+    f32 b;
+    u32 n;
 
+    // COMPILER-DIFF: #2 (the original zero-extends the u8 argument once at entry)
+    int tno = no;
+    asm("" : "+r"(tno));
+    n = (u8) tno;
     p0.z = 1.0f;
     p1.z = 1.0f;
-    if (EspGetTplAddr(no, &tpl)) {
+    r = 0.2f;
+    g = 0.6f;
+    b = 0.8f;
+    if (EspGetTplAddr(n, &tpl)) {
+        GXTexObj* o = &obj;
+        GXTlutObj* t = &tlut;
         TEXDescriptor* tex = TEXGet((TEXPalette*) tpl, 0);
-        TEXHeader* hdr = tex->textureHeader;
-        GXInitTexObjCI(&obj, hdr->data, hdr->width, hdr->height, hdr->format, 0, 0, 0, 0);
-        if (hdr->format - 8 <= 1) {
-            CLUTHeader* clut = tex->CLUTHeader;
-            GXInitTlutObj(&tlut, clut->data, clut->format, clut->numEntries);
-            GXLoadTlut(&tlut, 1);
+        GXInitTexObjCI(o, tex->textureHeader->data, tex->textureHeader->width, tex->textureHeader->height,
+                       tex->textureHeader->format, 0, 0, 0, 1);
+        if (tex->textureHeader->format - 8 <= 1) {
+            GXInitTlutObj(t, tex->CLUTHeader->data, tex->CLUTHeader->format, tex->CLUTHeader->numEntries);
+            GXLoadTlut(t, 1);
         }
-        DrawTexture(&obj, db_texX, db_texY, db_texZ, db_texW, db_texH);
-        if (EspGetTexOwner(no, &owner)) {
+        DrawTexture(o, db_texX, db_texY, db_texZ, db_texW, db_texH);
+        if (EspGetTexOwner(n, &owner)) {
             if (owner == 0) {
                 g = b;
                 b = r;
             }
             if (owner == 1) {
+                asm("" : "+r"(r)); // COMPILER-DIFF: candidate #12 (cse skip-block knowledge: the original reloads 0.2 from the pool)
                 b = 0.2f;
                 r = 0.8f;
                 g = b;
@@ -2002,12 +2041,12 @@ static inline int symbolOnOff(char** pp)
 
 extern "C" int DB_ConfigLoad(const char* file)
 {
-    DbConfigModel tbl[16];
+    DbConfigModel tbl[10];
     DbConfigModel* cur = tbl;
     char* p;
     char* buf;
     char* end;
-    int num = 0;
+    int num;
     int len;
     u32 i;
 
@@ -2021,6 +2060,7 @@ extern "C" int DB_ConfigLoad(const char* file)
         return 0;
     }
     end = buf + len;
+    num = 0;
     p = buf;
     while (p < end) {
         p = space_skip(p);
@@ -2131,9 +2171,9 @@ extern "C" void drawTexture2(GXTexObj* obj, s16 x, s16 y, s16 z, s16 w, s16 h)
     GXSetAlphaCompare(7, 0, 1, 7, 0);
     GXSetNumChans(1);
     GXSetChanCtrl(4, 0, 0, 0, 0, 0, 2);
-    col.g = 0xFF;
     col.a = 0xFF;
     col.b = 0xFF;
+    col.g = 0xFF;
     col.r = 0xFF;
     GXSetChanAmbColor(0, col);
     GXSetChanMatColor(0, col);

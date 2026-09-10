@@ -588,11 +588,13 @@ DB_WINDOW::DB_WINDOW()
 
 int DB_WINDOW::CallActiveChangeCallback(DB_PRIMITIVE* p, DB_KEYBORD* k)
 {
-    if (activeChangeCb == 0) {
-        return 0;
+    int ret = 0;
+
+    if (activeChangeCb != 0) {
+        activeChangeCb(this);
+        ret = 1;
     }
-    activeChangeCb(this);
-    return 1;
+    return ret;
 }
 
 void DB_WINDOW::SetActiveChangeCallback(DB_WINDOW_CALLBACK cb)
@@ -991,7 +993,7 @@ void DB_NUMERIC::SetDefault(f32 v)
 
 void DB_NUMERIC::SetKeta(u32 n)
 {
-    if (n > 1) {
+    if (n < 2) {
         n = 1;
     }
     keta = n;

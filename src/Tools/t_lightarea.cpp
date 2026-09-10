@@ -58,10 +58,12 @@ struct LIGHT_AREA {
 
 #define LIGHT_AREA_MAX 32
 
+namespace t_lightarea_namespace {
+
 static LIGHT_AREA* light_area_work;      // LIGHT_AREA_MAX works
 static DbgToolFileHeader* light_area_buf;  // the file image fed to the game
 
-static int IsWorkAlive(LIGHT_AREA* w)
+int IsWorkAlive(LIGHT_AREA* w)
 {
     if (w->flags & 1) {
         return 1;
@@ -69,7 +71,7 @@ static int IsWorkAlive(LIGHT_AREA* w)
     return 0;
 }
 
-static void SetWorkAlive(LIGHT_AREA* w, int alive)
+void SetWorkAlive(LIGHT_AREA* w, int alive)
 {
     if (alive == 1) {
         w->flags |= 1;
@@ -78,24 +80,24 @@ static void SetWorkAlive(LIGHT_AREA* w, int alive)
     }
 }
 
-static int GetWorkNo(LIGHT_AREA* w)
+int GetWorkNo(LIGHT_AREA* w)
 {
     return w->no;
 }
 
-static void SetWorkNo(LIGHT_AREA* w, int no)
+void SetWorkNo(LIGHT_AREA* w, int no)
 {
     w->no = no;
 }
 
-static void InitWork(LIGHT_AREA* w, int no)
+void InitWork(LIGHT_AREA* w, int no)
 {
     memclr_asm(w, sizeof(LIGHT_AREA));
     w->no = no;
     AreaDataInit(&w->area, &PlModel()->pos, 1, 7000.0f, 5000.0f);
 }
 
-static int PosExec_callback(int no, LIGHT_AREA* w, cDbgButtonTemplate<LIGHT_AREA>* b)
+int PosExec_callback(int no, LIGHT_AREA* w, cDbgButtonTemplate<LIGHT_AREA>* b)
 {
     AreaData* a = &w->area;
 
@@ -108,7 +110,7 @@ static int PosExec_callback(int no, LIGHT_AREA* w, cDbgButtonTemplate<LIGHT_AREA
     }
 }
 
-static void PosUpdate_callback(int no, LIGHT_AREA* w, cDbgButtonTemplate<LIGHT_AREA>* b)
+void PosUpdate_callback(int no, LIGHT_AREA* w, cDbgButtonTemplate<LIGHT_AREA>* b)
 {
     char buf[64];
     Vec pos = {0.0f, 0.0f, 0.0f};
@@ -123,7 +125,7 @@ static void PosUpdate_callback(int no, LIGHT_AREA* w, cDbgButtonTemplate<LIGHT_A
     DbgButtonSetName(b, buf);
 }
 
-static int AreaNoExec_callback(int no, LIGHT_AREA* w, cDbgButtonTemplate<LIGHT_AREA>* b)
+int AreaNoExec_callback(int no, LIGHT_AREA* w, cDbgButtonTemplate<LIGHT_AREA>* b)
 {
     static int cursor = 0;
     int step = 0;
@@ -246,7 +248,7 @@ static int AreaNoExec_callback(int no, LIGHT_AREA* w, cDbgButtonTemplate<LIGHT_A
 
 // "hPP/EE/SS/WW": the four numbers of the work in two digits each (the hundreds digit of the first
 // goes in front, the others' land on the separators, as in the original)
-static void AreaNoUpdate_callback(int no, LIGHT_AREA* w, cDbgButtonTemplate<LIGHT_AREA>* b)
+void AreaNoUpdate_callback(int no, LIGHT_AREA* w, cDbgButtonTemplate<LIGHT_AREA>* b)
 {
     static char digits[] = "0123456789";
     u32 n;
@@ -308,7 +310,7 @@ static void AreaNoUpdate_callback(int no, LIGHT_AREA* w, cDbgButtonTemplate<LIGH
     DbgButtonSetName(b, buf);
 }
 
-static void OptionExec()
+void OptionExec()
 {
     static int cursor = 0;
     u32 rep;
@@ -348,10 +350,10 @@ static void OptionExec()
     }
 }
 
-static void tLightAreaInit();
-static void tLightAreaExit();
+void tLightAreaInit();
+void tLightAreaExit();
 
-static void ToolLightAreaMain()
+void ToolLightAreaMain()
 {
     // declaration order matters: the first zero-initialised local is the zero register of the tool's
     // constructor stores (preview here, `wait` in t_esp_area), the later ones spill in this order
@@ -498,7 +500,7 @@ static void ToolLightAreaMain()
     TaskExit();
 }
 
-static void tLightAreaInit()
+void tLightAreaInit()
 {
     BitOn(pG->flags_170, 0x20000000);
     BitOn(pG->flags_170, 0x10000000);
@@ -512,7 +514,7 @@ static void tLightAreaInit()
     Block.dispAllBlock(1);
 }
 
-static void tLightAreaExit()
+void tLightAreaExit()
 {
     BitOff(pG->flags_170, 0x20000000);
     BitOff(pG->flags_170, 0x10000000);
@@ -530,7 +532,9 @@ static void tLightAreaExit()
     Block.dispAllBlock(0);
 }
 
+} // namespace t_lightarea_namespace
+
 void ToolLightArea()
 {
-    ToolLightAreaMain();
+    t_lightarea_namespace::ToolLightAreaMain();
 }

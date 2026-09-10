@@ -28,7 +28,7 @@ void DB_DrawGrid(int on);
 void DB_DrawMod_sk(int on);
 void DB_WorkPush(int a, int b);
 void DB_WorkPop(int a, int b);
-void DB_GetCamFrontPos(f32* x, f32* y, f32* z, f32 dist);
+void DB_GetCamFrontPos(f32 dist, f32* x, f32* y, f32* z);
 void DB_DrawCursor2D(Vec* pos);
 void DB_DrawCursor3D(EspSeqData* head, void* seq, f32 size, int col);
 void DB_DrawCross3D(Vec* pos, int col, f32 size);
@@ -3164,7 +3164,7 @@ static void PosActiveChange_callback(DB_WINDOW* w, DB_PRIMITIVE* p, DB_KEYBORD* 
             g_pEditSeq->pos.y = 224.0f;
             g_pEditSeq->pos.z = 0.0f;
         } else {
-            DB_GetCamFrontPos(&seq->pos.x, &seq->pos.y, &seq->pos.z, 1500.0f);
+            DB_GetCamFrontPos(1500.0f, &seq->pos.x, &seq->pos.y, &seq->pos.z);
         }
     }
     if (sel->selY == 0) {
@@ -4571,7 +4571,7 @@ static void BasePosPosUpdate_callback(DB_PRIMITIVE* p)
 {
     if (p->select && g_pKey->on[KEY_X] && g_pKey->trg[KEY_Y]) {
         EspSeqData* head = g_pSeqHead;
-        DB_GetCamFrontPos(&head->pos.x, &head->pos.y, &head->pos.z, 1500.0f);
+        DB_GetCamFrontPos(1500.0f, &head->pos.x, &head->pos.y, &head->pos.z);
     }
 }
 
@@ -4743,8 +4743,9 @@ void InitSeqTbl()
 {
     u32 i, j;
     for (i = 0; i < 4; i++) {
+        TOOL_SEQ* p = g_seqTbl[i];
         for (j = 0; j < 64; j++) {
-            ClearSeqData(&g_seqTbl[i][j]);
+            ClearSeqData(p++);
         }
     }
     g_pSeqFlg = g_seqFlgWk;
