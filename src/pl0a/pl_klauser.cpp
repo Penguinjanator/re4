@@ -161,7 +161,6 @@ static inline void alphaFlag(cModelInfo* m)
 void cPlKlauser::transMove()
 {
     int step = 0x40;
-    cModelInfo* m;
 
     if (pG->flags_5018 & 0x00800000) {
         alphaUp(krModel[1]);
@@ -179,7 +178,6 @@ void cPlKlauser::transMove()
             krModel[2]->color[3] = 0;
         }
     } else {
-        int t;
         int a;
         f32 p;
         f32 v;
@@ -191,15 +189,10 @@ void cPlKlauser::transMove()
             krModel[2]->color[3] = 0xFF;
         }
         if (x898 <= 0xF) {
-            m = krModel[2];
-            t = x898 + 1;
+            p = (f32) krModel[2]->color[3] * (f32) (x898 + 1) * 0.0625f;
         } else {
-            m = krModel[2];
-            t = 0x20 - x898;
+            p = (f32) krModel[2]->color[3] * (f32) (0x20 - x898) * 0.0625f;
         }
-        do {
-            p = (f32) m->color[3] * (f32) t * 0.0625f;
-        } while (0);
         v = p * (256.0f - pl0aAlphaBase) * 0.00390625f + pl0aAlphaBase;
         if (v > 255.0f) {
             v = 255.0f;

@@ -10510,3 +10510,74 @@ stmt.c/jump.c and confirmed with cc1plus probes:
   120-208); t_snd_vol editScreenDisp: `base + rows*0x14 + 4` and `base - 4` recomputed after the two loops from a
   `mr r10,r23` copy of base (#3 PRE family; `asm("" : "+r"(base))` 87, dead do-while 83); t_scroll loadBinName `addi p`
   before `cmplwi num` at the loop end (sched tie; if-break / for(;;) forms 52, `++p` / `< 0xF9` 2).
+
+### Player modules, fourth pass (pl0a Matching: pl_klauser transMove 30 -> 0, module flipped; pl0f 95 -> 97/104: ScrAdjust 85 -> 0, LongRopeSet 4 -> 0; 2026-09-10)
+
+- Harness /tmp/pl_p4 (pl_p3 + deadtest copies with the paths rewritten; `tryv.py MOD/UNIT FUNC variants.py [--asm NAME]`,
+  `vapply.py`, `ndiff.sh MOD/UNIT FUNC variants.py NAME`, `mdump.sh MOD/UNIT -dX` with `SRC_OVERRIDE`, `fn.sh DUMP FUNC`,
+  `sbs.sh`, `tailcmp.py T.o O.o START END` = mcmp-masked compare of a `.text` range without a symbol (the pl0a nameless
+  cManager<cLight> block 0x12EC..0x16A4: 0 differing words, only reloc names). pl0a: `MATCHING["pl0a/wep07.cpp"]` and
+  `"pl0a/pl_klauser.cpp"` both True, `pl0a.rel` byte-identical, DOL symbols untouched.
+- **Cross-jumped per-arm duplication = a join block whose first insn is a constant of the LATER expression** (pl0a
+  cPlKlauser::transMove 30 -> 0): the target's `.L: lis r6,0x4330; lbz; xoris; lis LC; stb; ...` with both arms ending
+  `lwz r11,krModel[2]; addi/subfic r0,x898,..; [b .L]` is NOT a schedule of the join block (with the fpmem serialisation
+  `lis 0x4330` (prio 18) can never beat the psq `lbz` (24) / `loadaddr` (23) / `xoris` (20) in either sched pass, and the
+  two-issue model has no cycle assignment for it). It is jump2's cross-jump of two identical arm tails: `if (x898 <= 0xF)
+  p = (f32) krModel[2]->color[3] * (f32) (x898 + 1) * 0.0625f; else p = ... (f32) (0x20 - x898) ...;` -- each arm's block
+  is scheduled with `lwz m; addi t` at its head (the `add` feeds `xoris`, the `lwz` feeds `lbz`, so the free `lis 0x4330`
+  fills the cycle-2 iu2 slot next to them), the identical tails merge from `lis r6` on, the old join label disappears
+  (`fmuls` runs straight into `lis pl0aAlphaBase` -- the label was the barrier the previous do-while(0) imitated), and
+  the store's `krModel[2]` is re-read because the clamp's join label starts a new cse ebb. Rule: when the target's arms
+  end in an `lwz`+`addi` pair that a join block consumes and the join's first insn is an input of a later operation,
+  duplicate the whole expression per arm instead of assigning its operands per arm (`m = ..; t = ..` gave the arms but
+  scheduled the join as one block: 25-41 words). `m`/`t` locals and the do-while are gone.
+- **Constant-pair register naming (`li r7,0x64; li r6,0x108`) = qty-length tie in local-alloc** (pl0f LongRopeSet 4 -> 0):
+  two constants whose `li`s issue one cycle apart (sched1 pairs each with an lsu store) have qty lengths differing by one;
+  the shorter one is allocated first (r7). A store whose source is already live (`x4C = 0.1f`, the pool register) written
+  BETWEEN the two constant stores adds one insn to the second constant's range in sched1's order only (sched2 reorders the
+  stores back), the lengths tie and `qty_compare_1` falls back to the qty number = birth order, so the first constant gets
+  r7. Check the tie with `-dS -fsched-verbose-6`: count the sched1 positions from each `li` to its store.
+- **`n = &w->node[i]` kept as a per-iteration `add n,w,ofs` with member displacements (no stepping pointers)** (pl0f
+  ScrAdjust 85 -> 0, target `li r28,0x168` before the loop, `add r30,r25,r28`, `lwz 16(r30); addi r9,r30,16; addi r5,r30,28`,
+  latch `addi r27,1; addi r28,76`): a dead second set of the pointer at the body end, `if (d.x == d.y) n = 0;` (deleted by
+  flow, the fcmpu by jump2). With two sets `n` is not a giv, so none of `n + 16`/`n + 28` is a giv either (nothing to
+  reduce), while `i * 76 + 0x168` (the expression that fed `n`) is still a replaceable giv of `i`: loop.c reduces it to the
+  register the `add` reads and emits its init AFTER the hoisted highs (which is where the target's `li r28,0x168` sits --
+  a user `ofs = 0x168` init precedes the LOOP_BEG and is issued early). An explicit `u32 ofs` biv (`(u8*) w + ofs`,
+  `ofs += 76`) alone changes nothing (85): `n = w + ofs` is then a mult-1 giv with benefit 2 = add_cost ("not worth while")
+  but the derived `n + 16` givs inherit its benefit (4 - 2 > 0) and are reduced. Dead-test operand choice matters for the
+  callee-saved ORDER: the compare's registers gain a ref -- `i == 5` ranked `i` first (r29 instead of r27), `w->x6D == 5`
+  ranked `w` first (r27 instead of r25), a compare of two frame Vec members adds no register ref (0 words); `n == 1` /
+  `(u32) n & 1` 2 words, an uninitialised `int k` 12, a pool constant in the compare 31 (the .rodata shifts).
+- **loop.c's movable `lifetime` counts NOTES: `pLog->err(..)` through the header's inline `operator->` hoists `high(pLog)`,
+  `pLog.p->err(..)` does not** (ScrAdjust): the `this` argument `&pLog` (the `high`) is expanded before the inline's two
+  BLOCK_BEG notes (one plain, one `/i`) and the load `(mem/s (lo_sum H pLog))` comes after them, so `uid_luid` (assigned
+  to every insn incl. notes) gives lifetime 3: 66 * savings 1 * 3 = 198 >= the loop's 133 real insns -> hoisted into a
+  callee-saved register (`lis r21` + frame +8). The struct-member read puts the load right after the `high` (lifetime 1,
+  66 < 133, stays in the arm like the target's `lis r9; lwz r3,pLog@l(r9)`). pl0f.cpp has a local `PL0F_VECNORMALIZE`
+  macro for ScrAdjust; R1_Drop's target DOES hoist it (69 insns: 66 * 2 or 3 >= 69 either way) -- keep the header macro
+  there. When a target keeps a `lis` of a global inside a call-containing loop of 67..197 insns while ours hoists it,
+  check the notes between the `high` and its use in the -dL dump before reaching for insn-count levers.
+- **combine_givs tie: the later-recorded DEST_REG giv is g1** (ScrAdjust inner loop, target `addi r30,w,0x178`/`addi r31,
+  w,0x190` two stepping pointers, ours one with `0x18(r31)` displacements): `PSVECAdd(&node[j].wpos, ..)` + `node[j].spd =
+  d` gives a DEST_REG giv (the wpos argument pseudo, 2 uses) and three DEST_ADDR store givs which any g1 may absorb; with
+  `Vec* wp = &w->node[j].wpos; Vec* sp = &w->node[j].spd; PSVECAdd(wp, &d, wp); *sp = d;` `sp` is a DEST_REG giv with
+  the same total benefit and `cmp_combine_givs_stats` breaks the tie by giv_number = list position = REVERSE record order,
+  so `sp` (recorded second) absorbs the stores and `wp` is reduced alone (a DEST_REG g2 is only ever combined when
+  identical, `combine_givs_p`). Target signature: a store block at offset 0 of its own stepping register whose increment
+  follows the stores, the other pointer's increment right after the call.
+- Analysed, left (one try each): plboat_R2_Swim 7 (`stw 1(x3E4); stw r30(0) x2; stw 4` vs ours zeros first: the zero
+  source is the xFF switch register r30 which the target ALSO stores after Rnd (`stw r30,0x3ec`), so it crosses the call in
+  both builds and gets the TRUE store->call link (prio 5) that the `li 1`/`li 4` stores (ANTI, 4) lack; the target also
+  gives `1` r9 before the pG pointer r11 = a shorter local-alloc range for `1` in the original's sched1 order; 11 forms
+  (IntSet/U32Set, chain, `int zero`/`one` locals, do-while, orders, arm-side forms) 6-15). CrashAdjustSet 3 (target
+  `stfs d.x` (f13 dies, weight -1, prio 3) issued at c3 between `mr r4` and `mr r5`: it must be unready until then, i.e.
+  depend on the `mr r4,&d` arg copy -- no natural RTL gives that; zx order, `Vec* pd`, Vec* inlines, `Mtx* pm`, FSet,
+  do-while 3-9). R10xOut 5 x 3 (case 2's 0.0/ang f10/f11: by QTY_CMP_PRI ang (3 refs / 25) should precede 0.0 (2 refs /
+  19) and take f11 as in the target, ours gives it f10 -- unexplained; `f32 a`/`const f32` locals, FSet, `Vec* pp`,
+  statement orders 5-28). pl0fBoatControl 203: our gcse PREs `j + 1` across the k loop (`r = j + 1` right after `k = 0`,
+  `j = r` at the latch), so `j` is no biv and `&w->node[j]` is a `mulli` per iteration, while the target keeps `j` a biv
+  (`addi r25,r25,76; mr r31,r25`) although it PREs `pass + 1` across the j loop exactly like ours (#3 family, the R209Main
+  `j+1` case; a launder on a counter kills the biv). A macro NodeLimit (frame-direct `d`, `pLog.p`) reproduces the target's
+  `&node[0].pos` spill at 0x48(r1) but shuffles every callee-saved register (174-228) -- not applied. BossCamMove 420 not
+  attempted.

@@ -1658,6 +1658,16 @@ void pl0fCrashAdjustSet(cPl0f* em, Vec* p, int away)
 }
 
 // Pushes both nodes out of the scenario walls; the movement of the first hit node is applied to both.
+// pLog read as a plain struct member (no inline operator-> block notes): the high(pLog) then sits right
+// next to its load and loop.c's lifetime for the movable is 1, below the hoisting threshold of a
+// 130-insn loop with a call (ScrAdjust); the header macro's operator-> gives lifetime 3 (hoisted).
+#define PL0F_VECNORMALIZE(src, dst)                                                     \
+    if (0.0f == (src)->x && 0.0f == (src)->y && 0.0f == (src)->z) {                    \
+        pLog.p->err(0, 0, "VECNormalize:[%s/%d]", __FILE__, __LINE__);                  \
+        (dst)->x = (dst)->y = (dst)->z = 0.0f;                                          \
+    } else                                                                              \
+        PSVECNormalize(src, dst)
+
 void pl0fScrAdjust(cPl0f* em)
 {
     Pl0fWork* w = PL0F_WK(em);
@@ -1698,14 +1708,25 @@ void pl0fScrAdjust(cPl0f* em)
             if (!(d.x == 0.0f && d.z == 0.0f)) {
                 len = SQRTF(d.x * d.x + d.z * d.z) * 1.2f;
 #line 2499
-                VECNormalize(&d, &d);
+                PL0F_VECNORMALIZE(&d, &d);
                 PSVECScale(&d, &d, len);
                 for (j = 0; j < 2; j++) {
-                    PSVECAdd(&w->node[j].wpos, &d, &w->node[j].wpos);
-                    w->node[j].spd = d;
+                    Vec* wp = &w->node[j].wpos;
+                    Vec* sp = &w->node[j].spd;
+
+                    PSVECAdd(wp, &d, wp);
+                    *sp = d;
                 }
                 return;
             }
+        }
+        // Dead second set of `n` (deleted by flow, the compare by jump2): with two sets `n` is not a
+        // giv, so loop.c keeps the target's per-iteration `add n, w, ofs` (ofs = the reduced giv
+        // i * sizeof(Pl0fNode) + 0x168, initialised after the hoisted highs) and the member addresses
+        // stay displacements from `n` instead of becoming stepping pointers. The frame operands add
+        // no register refs, so the callee-saved order (&nrm, ofs, i, &p, w) is unchanged.
+        if (d.x == d.y) {
+            n = 0;
         }
     }
 }
@@ -3255,8 +3276,8 @@ void pl0fLongRopeSet(cPl0f* em)
         w->cloth.x3C = 5.0f;
         w->cloth.x40 = 0.9f;
         w->cloth.x44 = 100;
-        w->cloth.flags = 0x108;
         w->cloth.x4C = 0.1f;
+        w->cloth.flags = 0x108;
         w->cloth.x08 = 0;
         w->cloth.x0C = 0;
         w->cloth.x10 = 0;
