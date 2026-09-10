@@ -204,7 +204,8 @@ public:
             u32 sndId504;         // 0x504  player: SndCall handle cPlayer::interrupt stops
             cModel* pLockEm;      // 0x508  player: locked-on enemy (pl_wep lock, knife aim)
             cEm* pBoat;           // 0x50C  player: the jet ski the player rides (pl0e cPl0e::setRide / PlBoatMove)
-            u8 pad_510[0x518 - 0x510];
+            class cObjSpear* pSpear;  // 0x510  player: the harpoon in hand (pl0f plboatSetSpear / plboatSpearThrow)
+            f32 sightRate;        // 0x514  player: pl0f harpoon aim: vertical sight rate (-0.3927 .. 0.3927)
             int gachaCnt;         // 0x518  player: button mash counter (pl_sub PlGacha*)
             u8 pad_51C[2];
             u8 eyeMode;           // 0x51E  player (pl_sub PlSetEyeMode)

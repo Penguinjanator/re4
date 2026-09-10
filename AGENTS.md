@@ -5488,3 +5488,110 @@ target) stays unresolved and `make_rel` then fails with "undefined symbol".
   (parameter order from r117/r11c call sites); `include/obj.h` `class cObjWep* allow;` at 0x200 (line 512).
 - mcmp noise reminder: `MISSING cUnit_dt_cUnit/beginEvent/endEvent/op_delete` + `extra _._5cUnit ...` and a
   `.rodata reloc cUnit_dt_cUnit vs _._5cUnit` are naming-only; the REL shasum is the judge.
+
+### Player module pl0f (the lake boat; src/pl0f/pl0f.cpp + include/pl0f.h fully written, 48/104 word-identical, .data/.bss identical, not flipped; 2026-09-10)
+
+- pl0f is NOT a superset of pl0e: only PlBoatMove, plboatBlendMotSet / subBlendMotSet, plOnBoat / subOnBoat
+  and the routine skeleton are shared. cPl0f is a cEm with three new virtuals (`setPos(Vec*, f32)`,
+  `setBossStart(Vec*, f32)`, `stopEngine()`; the vtable has 12 slots, no NULL entry) and a 0x54C-byte work
+  at 0x3E0: two `Pl0fNode` point masses (0x168, 0x4C each: fixed / pos / wpos / wposOld / spd / fixPos /
+  maxLen / dist[2]) that pl0fBoatControl moves and constrains (4 passes), a PenCloth at 0x100 for the anchor
+  rope (cObjChain at 0x160, SetChain), the anchor cObj at 0x164, the boss (em2f) at 0x10 with a 10-entry
+  position history at 0x70. em.h gained `pSpear` (0x510, cObjSpear*) and `sightRate` (0x514).
+- The `.sym` names two functions `pl0fSetAnchorEm2f`: they are the overloads `(cPl0f*)` and `(cPlayer*)`;
+  sync_rel_symbols reports them ambiguous, rename both by hand in symbols.txt / sym_map.tsv.
+- pl0f includes atari.h and light.h but NOT map_obj.h / widget.h (their header strings are absent from
+  `.rodata`); the cManager<cLight> template strings are there without a linkonce block (as in pl0e).
+- Motion indices: `PL_ARC_PTR(arc, no)` indexes `ofs[no]`, so an asm displacement `0x74(arc)` is ARC(0x1D).
+- Idioms that matched here: (1) `pPL->pBoat = em` followed by `PlRoutineSet(pPL, ..)` reloads pPL in the
+  original: store the boat through `EmSet(cEm*&, cEm*)` (pl0fActRide*, pl0f_R1_RideStart); (2) `if (pSUB)`
+  right after a work store (`w->seNo = SndCall(..)`) keeps the pSUB load below the store only through the
+  struct view `pSUBS`; (3) the camera functions read parts 0's `worldPos` (0x70), not `pos`, and the
+  `dist = SQRTF(..)` block must be written in the function (CAM_SET macro with `Vec* cp/ca` locals), not in an
+  inline taking `Camera*`; (4) `(int) pSys->flags < 0` (u32 field) for the stick-reverse test, otherwise the
+  arm folds away; (5) the `x400 -= dy; pos.y += dy` blocks are written `pos.y += dy; x400 -= dy`;
+  (6) `cEm* boss; if (boat) boss = ..; else boss = 0;` (jump.c hoists the `li 0` after the compare) gives
+  boat r28 / boss r29 where `boss = 0; if (boat) ..` swaps them; (7) `setTiller` maps Key.on bit 8 -> tiller 4
+  and bit 4 -> tiller 8; pl0f_R0_Move turns parts 2's `rot.z`.
+- OPEN (largest first): pl0fBossCamMove (431 words: the three camera arms, frame/pointer allocation),
+  pl0fBoatControl (203: the node loops -- the target keeps `&node[0].pos` spilled at 0x48(r1) and uses
+  byte-offset givs; ours has one callee-saved register less), plboat_R2_R10dOut x3 (123 each, shared inline
+  `plboatRoomOut`), pl00SwimCamMove (92), plboat_R2_SpearSet (85, the stick / button aim block),
+  pl0fScrAdjust (85), pl0f_R1_BossMove (83), pl0fBoatSpdControl (66), the R10xIn trio, subBoatRide,
+  pl0fLongRopeSet (PenCloth field store order), pl0f_R0_Init (node init loop + routine switch), the small
+  camera set functions (pool sizes of pl00SetDieCam/SetDropCam shift the `.rodata` tail by 4 words).
+  `.rodata` pool-order residues: BoatControl 0.5/1.0, SpdControl 50/20, BossCamMove 1500/500/1.0, SpearSet
+  aim constants (the original evaluates the signed `(f32) -Key.sy` DF conversion first).
+
+### Stage rooms, r226 pass (st2_3/r226 26/33 byte-identical, .rodata/.data/.bss identical, not flipped; r221 33/38; 2026-09-10)
+- src/st2/r226.cpp (the statue chase) is complete. Work: `R226WorkPtr r226_work` (one-member struct), 0x170
+  layout `x0, robo 4, cSat* sat[4] 8, eat[4] 0x18, x28, cEmWrap em[22] 0x2C, hitPoint/spdOld/spdNew/sub
+  0x134.., moveTimer 0x144, Vec camPos 0x148, camAt 0x154, dieY 0x160, str 0x164, btnCnt 0x168, timer 0x16C`;
+  `static Camera r226_cam` (0xF8) follows it in .bss. `.data`: two static `SceElevatorData` records (the struct
+  is copied from r225.cpp; sce_com's `SceElevator` declared `extern "C"` locally), the GLOBAL `int R226EmNo[13]`
+  / `R226EmIdx[14]` tables, then file-scope statics in definition order (`-2` ButtonCount adjust, two debug
+  camera Vecs + 50.0f, 40, the camera init/speed/offset Vecs, 85/85/27/160).
+- Header additions: `include/objRobo.h` (room view `class cObjRobo : public cObj { WalkSequence(cObjRobo*, int); }`,
+  `SetObjRobo`, and the asm-labelled `cObjRoboSetBeginEvent/SetEndEvent(cObjRobo*, int)` — the room passes
+  `li r4, 0` to the parameterless members); `include/obj.h` RoboWork `int pillar` at 0x08 (was pad_2).
+  sync renamed the DOL `SetObjRobo` to `SetObjRobo__FPvT0P3VecT2` (objRobo.cpp declares it C++; no other
+  module imports it).
+- Inline helpers with their own `Vec` (`setPosXYZ/setAngXYZ(cModel*, f32, f32, f32)`) are what the target's
+  mixed store forms come from (integrate + cse): the inline's frame pseudo P has REG_EQUIV `fp+N`, so stores of
+  LOADED values get `try_constants`-substituted to direct frame stores, stores of a CONSTANT argument keep P
+  (recog rejects the constant store, the whole substitution group is undone) and then `find_best_addr`
+  rewrites `(mem P)`/`(mem (plus P k))` through the cheapest *related* register: `stfs f12, 4(r11)` with `mr r4,
+  r11` for the y constant, direct `0x30(r1)` for x/z; an inline temp at frame offset 0 is direct everywhere.
+  The inline temps are `assign_stack_temp(keep=1)` slots popped at the end of each statement, so
+  consecutive calls share one slot (0x30 in Init) UNLESS a function-level local keeps it busy: WalkDoorDie's
+  target needs a caller `Vec pos` (0x10) + the inline for the angles (0x20); StartMain needs `Vec v = {..}`
+  for setGoto declared at FUNCTION level mid-way (it reuses the freed inline slot 0x10 and stays live, pushing
+  the loop's inline temps to 0x20); Init needs `zeroPos/zeroRot` at function level (0x10/0x20) and
+  `pos/rot` block-scoped in the `if` (0x30/0x40, freed, reused by the later helper temps).
+- `find_best_addr` (cse) prefers a `(plus reg const)` form over a bare register of equal address cost, and
+  `use_related_value` binds a lo_sum CONST to the most recent register holding a related address: the camera
+  distance `SQRTF(dx*dx + dy*dy + dz*dz)` written as an inline over `Vec* a, Vec* b` called with the GLOBALS
+  `&r226_cam.param.pos, &r226_cam.param.at` gives the target's `addi r9, r30, 0xa4; addi r11, r9, 0xc; lfs
+  0xa4(r30); lfs 4(r9); lfs 0xc(r9); lfs 4(r11)`; `&cam->param.at` through the `Camera* cam` local is
+  precomputed into a pseudo shared with the PosToPos argument and hoisted a call earlier. The PosToPos
+  arguments themselves must also be written on the global (`&r226_cam.param.at`, the emrock idiom) while
+  `cam->param.fovy`/`cam->up`/`cam->dist`/`CameraSetOrientationUp(cam)` use the pointer; `GlobalWork* g =
+  pG;` at the top keeps pG in a callee-saved register across the PSMTXMultVec calls (target `lwz r27, pG`
+  first); `cModel* parts = pl->getPartsPtr(0);` before the PosToPos call (a nested call in the argument list
+  precomputes `&g->Cam.param.at` into `r0; mr r3, r0`).
+- `switch ((u32) x) { case 0: default: ..; case 1: ..; case 2: .. }` gives the `cmpwi 1; beq; cmplwi 1; blt
+  default; cmpwi 2; beq` tree (playerRunMovePassage): the `case 0:` node is what adds the unsigned range test.
+- Two Key tests ORed (`((trg & A) && (on & B)) || ((on & A) && (trg & B))`) keep `&Key` and the first `trg`
+  words across the second test; the same as `if / else if` with two `hit = 1` bodies reloads `Key`.
+- `cEmWrap::setEm(s16, ..)` fed from an `int` table: COMPILER-DIFF 4 alias `cEmWrapSetEmI(cEmWrap*, int, ...)
+  asm("setEm__7cEmWrapsSciii")` (ours narrows the load to `lha +2`); `MotionMoveF(m, 0) asm("MotionMove")`
+  for the two-argument player-routine calls; `GameSaveSave(&GameSave, pSaveData, -1)` (game.h).
+- Loop-hoisted `lis pG@ha; lwz` per iteration with a `flags_178 |=` store inside = `BitOn(pG->flags_178, ..)`
+  (a plain member store lets loop.c hoist the pG load); `IntSet(work->x, 0)` where the target loads
+  `pG`/`pPL` after the zero stores; `AtariFlagsAndV(&pl->atari, mask)` (volatile) where the `sth` is followed
+  by a pG/pPL reload, `pl->atari.throughOn()` / `setFlag100()` (member calls, `addi 0x2b4; lhz 0x1a`) where
+  it is not; `U16Set(pG->pl_life, 0)` before a `MotionSetCore(.., ROOM_ARC_PTR(pG->pRoomArc..))` (pG reload).
+- `(f32)(-i * 2000 / 60 + 1000)` = the falling switch (`subi giv, 0x7d0; mulhw 0x88888889; addi 0x3e8`),
+  `(f32)(i * 2000 / 60 - 1000)` the rising one; `-4225.0f + (f32) i * 2290.0f / 60.0f` (`fmuls; fdivs; fadds`
+  with the negative constant). `k = smdNo == 9;` (setcc `xori/subfic/adde`) followed by `if (smdNo == N) k =
+  ..` chains; `(u8) hits[k]` of a local `int` table passed to EstSet = `lbz 3(rX); clrlwi 24`; `if (smdNo >=
+  8 && smdNo <= 11)` = `subi 8; cmplwi 3`; a loop exit `if (i >= frames[k]) { ...; return; }` inside
+  `while (1)` is moved by loop.c to after the nearest barrier (between the two MotionSetCore arms).
+- `int n = 6; for (i = 0; i < n; i++) SmdSetTrans(smd[i], 0)` keeps `blt` against `&smd[6]` (a literal bound
+  folds to `<= 5`/`ble`); the address of that block-scoped `smd[6]` is the earlier inline's frame-top pseudo
+  (P = fp+0x20 for a Vec temp at 0x10), so the `addi r29, r1, 0x20` sits before the preceding loop.
+- `ButtonCount`: `cPlayer* pl = pPL;` at the top (r29 across the calls) + `u32 max = *(u16*) m` (unsigned
+  double trick) + `frame = (u32) ((f32) max * rate)` (2^31 fixup).
+- Residuals: R226EventRoboWalkPassageStart/BridgeStart (`i++` hoisted into the compare block, #5, 2 words
+  each); playerPillarDownCk (`fmr f31,f1` before `mr r28,r6` in the prologue, #1); R226EventPassageSwitchMain
+  (COMPILER-DIFF 2 `extsb`/`clrlwi` of the s8/u8 locals reproduced with `int cutX = (s8) laundered` — the
+  remaining 49 words are the callee-saved permutation the two extra pseudos cause plus the `cmpwi side,1;
+  mfcr` one call later; assignment/declaration orders and launder placements do not move it); Init (4 words:
+  the entry block's own `lis pG@ha`/`lwz` pair r9/r11 swapped against the PRE'd r19 copy — a local-alloc tie);
+  R226EventRoboStartMain (8 words: the r108/r218 OPEN shape — after `do { setAng(rot.z + step); if (rot.z >=
+  0.0f) break; SceSleep(1); } while (1)` the target reloads the 0.0 pool constant for the final `setAng(0.0f)`
+  while our gcse PRE merges it with the loop compare's hoisted f31; the exit edge `bso` is preceded by the
+  LOOP_END note so cse never follows it — the merge is gcse's, and no source form found that stops it).
+- r221 setTexRender: `x136 = 2; x137 = 0x10; x138 = 0x30;` in that order (dying last store first). r221's
+  throwBonbe `clrlwi r8, r16, 24` for `(u8) eff0` is COMPILER-DIFF 2 (an `asm` launder there costs a word and
+  shuffles r16..r22); the remaining r221 diffs are the OPEN items of the last-four pass.
