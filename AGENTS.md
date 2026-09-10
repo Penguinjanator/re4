@@ -5135,3 +5135,44 @@ target) stays unresolved and `make_rel` then fails with "undefined symbol".
 - HAZARD: two agents editing config/G4BE08/modules.py concurrently -- one read-modify-write dropped 14
   MATCHING entries (a446c30). Re-read the file immediately before editing and re-verify RELs after.
 
+
+### Stage rooms, r22c shooting-game pass (st2_4/r22c 48/50 byte-identical, sections identical, not flipped; 2026-09-10)
+- src/st2/r22c.cpp is complete (all 48 functions + the cManager<cObj>/<cEm> copies). The work pointer is
+  the one-member struct `R22cWorkPtr r22c_work` (every `r22c_work.p->x = v` reloads the pointer, as the
+  target does after each store); the previous plain `static R22cWork*` was why 9 "matched" functions
+  and checkBottleCap/getBottleCap did not match. Work layout: step/resultStep u8 at 0/1, timer 4, time 8,
+  hits C, score 10, total 14, ageSum 18, level 1C, state 20, combo 24, pause 28, ufoWait 2C, shotTotal/
+  shotHit 30/34, eat 38, wepSel 3C, effFlags 40, wepNo/wepType/cnt46/cnt47 44..47, tbl 4C, itemSaveBuf 50,
+  itemSel 54, cap[24] 58, capId B8, door[2] BC, strId C4, wepMan C8, effTimer CC, itemNum[24] D0,
+  ResultScreen {state, data} 130, IDSystem 138, scoreTimer[8] 188 (0x1A8 total).
+- Linkage: getBonus, r22c_checkGameLevel, r22c_checkGame, countMark, funcUfo (static), deleteAllMark,
+  scoreRegist, setWepmanKilled, ScoreClear, ScoreMove are `extern "C"` (the .sym shows them without
+  `()`); ResultScreen::{read,reloadtime,highscore(int),init,move(int),quit} are C++ members, renamed by
+  the sync (`move__12ResultScreeni` etc.).
+- `.rodata`/`.data` order: `static const char* r22c_levelName[5]` must be DEFINED AFTER R22cInit (its
+  "-","A".. strings follow the r22c.cpp file-name string emitted by R22cInit's MEM_CALLOC); the routine
+  table + `static const char* r22c_startMsg = "START"` sit between shootInit and shootReady (the START
+  string follows shootInit's 0.0 pool); `static const int r22c_scoreTbl[7][5]` (file scope) lands after
+  the cManager strings.
+- Idioms found: `int id = tbl[k]` local before `ItemMgr.num((u16)(id + 0xDB))` keeps `lwzx` (the inline
+  expression narrows the load to `lhz +2`); a `for (i = 0, n = 0; ...)` comma init gives `li i; li n`
+  in that order (separate `n = 0;` before the loop puts it first); `pG->x8330` high scores are read
+  through a `struct { u8 pad[0x8330]; s16 score[4]; }` view of pG (`lhax base,idx` with the record
+  base first; the `(s16*)&pG->x8330` cast gives idx-first `add`); `return RsfCheck(..) == 0` is the
+  `and.; mfcr; extrwi` store flag; an if/else on `(int) flags_174 < 0` whose else arm is one call that
+  also ends a switch case is `goto` into that case body (COMPILER-DIFF 6 shape, r22c_talkWepMan);
+  `switch (d->flag) { default: ... case 0xFE: ... case 0xFD: }` (default first) for the linear
+  `cmpwi FD; beq; cmpwi FE; beq` chain with the default body laid out first (shootMain); the cap-total
+  digit display accumulates into a separate `sum` and copies it (`mr r31, r30`) before the digit
+  code (ResultScreen::move); ScoreSet's leading-zero count is a goto loop over `int* p = &d[3]` with
+  `*--p` (`lwzu -4`) and `n = 1;` written before the pointer init; the digit array is walked through
+  `int* d = digit` (`lwz 0xc(r7)` instead of the frame-relative form); loop-local `IdUnit* du` per
+  display loop keeps the call result in r3 (a reused function-scope `u` gets a callee-saved copy);
+  `(w->level == 2 || w->level == 3) && w->state == 2 || (w->level == 4 && w->state == 1) ||
+  (w->level == 4 && w->state == 2)` as a MACRO (an inline returning it materialises `li/cmpwi`) gives
+  the range fold on level and the two separate state compares (cse deletes the repeated level test);
+  `flagBit(f, 1) && !(f & 2)` keeps two `andi.` where `(f & 1) && !(f & 2)` folds to `clrlwi 30; cmpwi 1`.
+- Residuals: r22cGateCtrl (18 words: the target schedules `li open,0` before the first `init` call and
+  the loop-invariant `lis` fillers one call earlier each, so `pG@ha` gets its own r24; every placement
+  of `open = 0`, lim/spd/type forms tried); ResultScreen::highscore (10 words: `score` param r28 <->
+  loop `IdSys@ha` r31 global-alloc order; `on` reusing `score` gives the target's r28 for the flag).

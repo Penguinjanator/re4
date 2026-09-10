@@ -20,6 +20,7 @@ class cObjWep;
 #include "emdoor.h"
 #include "em_set.h"
 #include "em_wrap.h"
+#include "em3e.h"
 #include "etc_model.h"
 #include "player.h"
 #include "pl_sub.h"
@@ -33,57 +34,112 @@ class cObjWep;
 #include "esp.h"
 #include "est.h"
 #include "joy.h"
+#include "pad.h"
 #include "sscrn.h"
 #include "eprintf.h"
 #include "db_log.h"
+#include "id_sys.h"
+#include "cockpit.h"
+#include "cam_ctrl.h"
+#include "dvd.h"
+#include "option.h"
+#include "dbmodule.h"
+#include "math_sub.h"
+#include "room_data.h"
+#include "fade.h"
 
 // Room 2-2C (D:/Bio4/Prog/r22c.cpp): the shooting range. The target tables below are the
 // shooting game's level scripts: every record is `{time, flag, x, y, z, spd, moves...}` where a
 // move is `{2, 0xF0}` (straight) or `{3, x, y, z, 0x32}` (way points) and `1` ends the record,
 // `{time, 0xFE}` is a pause; a level is `{count, time, records...}`.
-//
-// STATUS: .data complete; the functions from itemSave on are not written yet (see the report).
+
+// The result screen file (SS/<lang>/id22c.dat): offsets of its id-system data blocks.
+struct R22cResultData {
+    u8 pad_0[0x10];
+    u32 ofsTexResult;   // 0x10  IdTexDataLoad(.., 7)
+    u32 ofsIdResult;    // 0x14  IdSys.set(.., 0xFF, 0x28, ..)
+    u32 ofsIdHigh;      // 0x18  the high-score variant of the result table
+    u32 ofsIdReload;    // 0x1C  IdSys.set(.., 0xFF, 0x2C, ..)
+    u32 ofsTexReload;   // 0x20  IdTexDataLoad(.., 6)
+};
+
+// One target record of the level scripts (EmMarkData for cEmMark::init).
+struct R22cMarkRec {
+    int time;   // 0x0  frame the target appears
+    int flag;   // 0x4  target type (0xFD: UFO wait, 0xFE: pause)
+};
+
+#define RES_PTR(d, ofs) ((void*) ((d)->ofs + (u32) (d)))
 
 class ResultScreen {
 public:
-    u8 work[0x78];
+    int state;              // 0x0
+    R22cResultData* data;   // 0x4
+
     void read();
     void reloadtime();
-    void highscore();
+    void highscore(int score);
     void init();
-    void move();
+    int move(int flag);
     void quit();
 };
 
 struct R22cWork {
-    u8 pad_00[0xC];
+    u8 step;             // 0x00  r22c_shootFunc index
+    u8 resultStep;       // 0x01
+    u8 pad_02[2];
+    int timer;           // 0x04
+    int time;            // 0x08  frames played (DispTime)
     int hits;            // 0x0C
     int score;           // 0x10
-    u8 pad_14[8];
+    int total;           // 0x14  targets created
+    int ageSum;          // 0x18
     int level;           // 0x1C  1..4
     int state;           // 0x20
-    u8 pad_24[0x18];
+    int combo;           // 0x24
+    int pause;           // 0x28  frames left of a `{time, 0xFE}` pause
+    int ufoWait;         // 0x2C
+    u32 shotTotal;       // 0x30  pG->shotTotal2 at the start
+    u32 shotHit;         // 0x34  pG->shotHit2 at the start
+    cSat* eat;           // 0x38
     int wepSel;          // 0x3C
-    u8 pad_40[4];
+    u32 effFlags;        // 0x40  R22cHitEffect bits
     u8 wepNo;            // 0x44
     u8 wepType;          // 0x45
-    u8 pad_46[0xA];
+    u8 cnt46;            // 0x46  type 3 hits
+    u8 cnt47;            // 0x47  kind 0 hits
+    u8 pad_48[4];
+    s32** tbl;           // 0x4C  level script
     void* itemSaveBuf;   // 0x50
     int itemSel;         // 0x54
     int cap[24];         // 0x58
     u16 capId;           // 0xB8
     u8 pad_BA[2];
     cEm* door[2];        // 0xBC
-    u8 pad_C4[4];
+    u32 strId;           // 0xC4  SndStrReq handle
     cEm* wepMan;         // 0xC8
-    u8 pad_CC[4];
+    int effTimer;        // 0xCC
     int itemNum[24];     // 0xD0
     ResultScreen result; // 0x130
+    IDSystem score2;     // 0x138  the floating score numbers
+    int scoreTimer[8];   // 0x188
 };
 
-static R22cWork* r22c_work;
+struct R22cHiScore {
+    u8 pad[0x8330];
+    s16 score[4];
+};
+
+struct R22cWorkPtr {
+    R22cWork* p;
+};
+
+static R22cWorkPtr r22c_work;
 
 extern u8 PlCapNum[25];   // game/pl_debug.cpp
+
+// The original passes an uninitialised int to cEmDoor::setCloseLock(int) (no r4 setup, r105 idiom).
+void cEmDoorSetCloseLock(cEm* door) asm("setCloseLock__7cEmDoori");
 
 static s32 r22c_d0[] = {0, 0, 0, 200, -22000, 0, 2, 240, 1};
 static s32 r22c_d24[] = {300, 0, -2500, 200, -22000, 0, 2, 240, 1};
@@ -342,7 +398,16 @@ static s32 r22c_d3778[] = {4830, 2, 0, 200, -31000, 0, 2, 240, 1};
 static s32 r22c_d379C[] = {4830, 2, 2500, 200, -31000, 0, 2, 240, 1};
 static s32* r22c_d37C0[] = {(s32*) 63, (s32*) 6000, r22c_d2C90, r22c_d2CB4, r22c_d2CD8, r22c_d2CFC, r22c_d2D20, r22c_d2D44, r22c_d2D68, r22c_d2D8C, r22c_d2DB0, r22c_d2DD4, r22c_d2E04, r22c_d2E34, r22c_d2E58, r22c_d2E7C, r22c_d2EA0, r22c_d2EC4, r22c_d2EE8, r22c_d2F0C, r22c_d2F30, r22c_d2F54, r22c_d2FC0, r22c_d302C, r22c_d3034, r22c_d30F0, r22c_d31AC, r22c_d3268, r22c_d328C, r22c_d32B0, r22c_d32D4, r22c_d32F8, r22c_d331C, r22c_d3340, r22c_d3364, r22c_d3388, r22c_d33AC, r22c_d33D0, r22c_d33F4, r22c_d3418, r22c_d343C, r22c_d3460, r22c_d3484, r22c_d34A8, r22c_d34CC, r22c_d34F0, r22c_d3514, r22c_d3538, r22c_d355C, r22c_d3580, r22c_d35A4, r22c_d35C8, r22c_d35EC, r22c_d3610, r22c_d3634, r22c_d3658, r22c_d367C, r22c_d36A0, r22c_d36C4, r22c_d36E8, r22c_d370C, r22c_d3730, r22c_d3754, r22c_d3778, r22c_d379C};
 
-static const char* r22c_levelName[5] = {"-", "A", "B", "C", "D"};
+// Hit points per target type (rows) and hit kind (columns); kind 4 always scores 200.
+static const int r22c_scoreTbl[7][5] = {
+    {50, 100, 10, 25, 0},
+    {50, 200, 20, 50, 0},
+    {-1000, -1000, -1000, -1000, 0},
+    {500, 500, 100, 100, 0},
+    {100, 250, 20, 30, 0},
+    {100, 250, 20, 30, 0},
+    {50, 100, 10, 25, 0},
+};
 
 void r22c_exitDoor();
 cObj* getCap(int a, int b, int c, int d, int e);
@@ -350,7 +415,6 @@ void checkBottleCap();
 void getBottleCap();
 int weaponSelect(int sel);
 void itemSave();
-void getBonus();
 void gameEnd();
 static void r22c_startShootingGame();
 static void shootInit();
@@ -367,39 +431,59 @@ static void r22c_AshleyCtrl();
 void ScoreInit();
 void ScoreSet(int pt, Vec* pos);
 
+extern "C" {
+void getBonus();
+int r22c_checkGameLevel();
+int r22c_checkGame();
+int countMark();
+static void funcUfo();
+void deleteAllMark();
+void scoreRegist();
+void setWepmanKilled();
+void ScoreClear();
+void ScoreMove();
+}
+
+static inline u32 flagBit(u32 f, u32 bit)
+{
+    return f & bit;
+}
+
+#define MES_Y (0x150 - cMes.getWork()->lineSpace - cMes.getWork()->fontH - 1)
+
 void R22cInit()
 {
 #line 1978 "D:/Bio4/Prog/r22c.cpp"
-    r22c_work = (R22cWork*) MEM_CALLOC(sizeof(R22cWork), 1, 0xd);
-    r22c_work->result.read();
+    r22c_work.p = (R22cWork*) MEM_CALLOC(sizeof(R22cWork), 1, 0xd);
+    r22c_work.p->result.read();
     ScoreInit();
     EmReadSearch(0x3E, 0, 0);
     switch (pG->room_id_prev) {
     case 0x204:
     default:
-        r22c_work->level = 1;
+        r22c_work.p->level = 1;
         break;
     case 0x211:
-        r22c_work->level = 2;
+        r22c_work.p->level = 2;
         break;
     case 0x220:
-        r22c_work->level = 3;
+        r22c_work.p->level = 3;
         break;
     case 0x305:
     case 0x31D:
-        r22c_work->level = 4;
+        r22c_work.p->level = 4;
         break;
     }
     switch (pG->x4F9F) {
     case 1:
-        r22c_work->level = 2;
+        r22c_work.p->level = 2;
         break;
     case 2:
-        r22c_work->level = 3;
+        r22c_work.p->level = 3;
         break;
     }
     if (Joy[0].on & 0x40) {
-        r22c_work->level = 4;
+        r22c_work.p->level = 4;
     }
     SceExec(0x12, (TaskFunc) r22cSetWepMan, 0, 0, 2, 0);
     SceExec(0x12, (TaskFunc) r22cGateCtrl, 0, 0, 2, 0);
@@ -407,10 +491,10 @@ void R22cInit()
     SceAtDataSet_exec(7, 0x12, 0, (TaskFunc) r22c_checkShootingScore, 0, 1);
     SceAtDataSet_exec(2, 0x12, 0, (TaskFunc) r22c_checkExitDoor, 0, 1);
     SceAtSetActColor(2, 1);
-    if (getRoomEtcDoor(0, &r22c_work->door[0], 1) && getRoomEtcDoor(1, &r22c_work->door[1], 1)) {
-        ((cEmDoor*) r22c_work->door[0])->setDoor((cEmDoor*) r22c_work->door[1]);
-        ((cEmDoor*) r22c_work->door[0])->setCloseLock(0);
-        ((cEmDoor*) r22c_work->door[1])->setCloseLock(0);
+    if (getRoomEtcDoor(0, &r22c_work.p->door[0], 1) && getRoomEtcDoor(1, &r22c_work.p->door[1], 1)) {
+        ((cEmDoor*) r22c_work.p->door[0])->setDoor((cEmDoor*) r22c_work.p->door[1]);
+        cEmDoorSetCloseLock(r22c_work.p->door[0]);
+        cEmDoorSetCloseLock(r22c_work.p->door[1]);
     }
     SmdGetObjPtr(0)->be_flag &= ~2;
     SmdGetObjPtr(1)->be_flag &= ~2;
@@ -423,14 +507,16 @@ void R22cInit()
         int i;
 
         for (i = 0; i < 24; i++) {
-            r22c_work->itemNum[i] = ItemMgr.num((u16) (i + 0xDC));
+            r22c_work.p->itemNum[i] = ItemMgr.num((u16) (i + 0xDC));
         }
     }
 }
 
+static const char* r22c_levelName[5] = {"-", "A", "B", "C", "D"};
+
 void R22cMain()
 {
-    eprintf(0x130, 0x1A4, 0, 0, "LEVEL:%s-%d", r22c_levelName[r22c_work->level], r22c_work->state);
+    eprintf(0x130, 0x1A4, 0, 0, "LEVEL:%s-%d", r22c_levelName[r22c_work.p->level], r22c_work.p->state);
 }
 
 static void r22c_BirdsFly()
@@ -517,10 +603,11 @@ static void r22c_AshleyCtrl()
         v.x = -1600.0f;
         v.y = 0.0f;
         v.z = -270.0f;
+        f32 ry = 3.0f;
         sub->setPos(&v);
-        v.y = 3.0f;
-        v.z = 0.0f;
+        v.y = ry;
         v.x = 0.0f;
+        v.z = 0.0f;
         sub->setAng(&v);
         pSUB->atari.setPriority(1);
     }
@@ -537,24 +624,27 @@ static void r22c_checkExitDoor()
         }
         SceAtSetEnable(2, 1);
     } else {
+        int no;
+
         switch (pG->room_id_prev) {
         case 0x204:
         default:
-            SceAtExecute(3);
+            no = 3;
             break;
         case 0x211:
-            SceAtExecute(4);
+            no = 4;
             break;
         case 0x220:
-            SceAtExecute(5);
+            no = 5;
             break;
         case 0x305:
-            SceAtExecute(6);
+            no = 6;
             break;
         case 0x31D:
-            SceAtExecute(8);
+            no = 8;
             break;
         }
+        SceAtExecute(no);
     }
 }
 
@@ -562,11 +652,9 @@ static void r22c_checkExitDoor()
 static void r22c_talkWepMan()
 {
     SceAtSetEnable(1, 0);
-    SndCall(8, 9, &r22c_work->wepMan->pos, r22c_work->wepMan->id, 0, 0);
+    SndCall(8, 9, &r22c_work.p->wepMan->pos, r22c_work.p->wepMan->id, 0, 0);
     if ((int) pG->flags_174 < 0) {
-        weaponSelect(0);
-    } else {
-        SceMesSet(6, 0, 1, 0x64, 0x150 - cMes.getWork()->lineSpace - cMes.getWork()->fontH - 1);
+        SceMesSet(6, 0, 1, 0x64, MES_Y);
         switch (SceMesGetSelection()) {
         case 1:
             SndCall(0, 4, 0, 0, 0, 0);
@@ -574,19 +662,24 @@ static void r22c_talkWepMan()
             break;
         case 2:
             SndCall(0, 4, 0, 0, 0, 0);
+        WEP:
             weaponSelect(0);
             break;
         case 3:
             SndCall(0, 5, 0, 0, 0, 0);
             break;
         }
+    } else {
+        // The else arm's weaponSelect(0) call was cross-jumped into case 2's copy by the original
+        // (its fallthrough copy survives in ours, COMPILER-DIFF 6 shape): the jump reproduces it.
+        goto WEP;
     }
     SceAtSetEnable(1, 1);
 }
 
 void r22c_exitDoor()
 {
-    SceMesSet(0xD, 0, 1, 0x64, 0x150 - cMes.getWork()->lineSpace - cMes.getWork()->fontH - 1);
+    SceMesSet(0xD, 0, 1, 0x64, MES_Y);
     switch (SceMesGetSelection()) {
     case 1:
         SndCall(0, 4, 0, 0, 0, 0);
@@ -612,7 +705,9 @@ cObj* getCap(int a, int b, int c, int d, int e)
     tbl[4] = e;
     r = Rnd() % 5;
     for (i = 0; i < 5; i++) {
-        if (ItemMgr.num((u16) (tbl[(r + i) % 5] + 0xDB)) == 0) {
+        int id = tbl[(r + i) % 5];
+
+        if (ItemMgr.num((u16) (id + 0xDB)) == 0) {
             return (cObj*) tbl[(r + i) % 5];
         }
     }
@@ -623,41 +718,41 @@ void checkBottleCap()
 {
     int cap = 0;
 
-    switch (r22c_work->level) {
+    switch (r22c_work.p->level) {
     case 1:
     default:
-        if (r22c_work->state == 2 && r22c_work->score > 3999) {
+        if (r22c_work.p->state == 2 && r22c_work.p->score > 3999) {
             cap = 0xF0;
-        } else if (r22c_work->score > 2999) {
+        } else if (r22c_work.p->score > 2999) {
             cap = (int) getCap(1, 2, 3, 4, 5);
         }
         break;
     case 2:
-        if (r22c_work->state == 2 && r22c_work->score > 3999) {
+        if (r22c_work.p->state == 2 && r22c_work.p->score > 3999) {
             cap = 0xF1;
-        } else if (r22c_work->score > 2999) {
+        } else if (r22c_work.p->score > 2999) {
             cap = (int) getCap(6, 7, 8, 9, 0xA);
         }
         break;
     case 3:
-        if (r22c_work->state == 2 && r22c_work->hits > 0x18) {
+        if (r22c_work.p->state == 2 && r22c_work.p->hits > 0x18) {
             cap = 0xF2;
-        } else if (r22c_work->score > 2999) {
+        } else if (r22c_work.p->score > 2999) {
             cap = (int) getCap(0xB, 0xC, 0xD, 0xE, 0xF);
         }
         break;
     case 4:
-        if (r22c_work->state == 2 && r22c_work->hits > 0x18) {
+        if (r22c_work.p->state == 2 && r22c_work.p->hits > 0x18) {
             cap = 0xF3;
-        } else if (r22c_work->score > 2999) {
+        } else if (r22c_work.p->score > 2999) {
             cap = (int) getCap(0x10, 0x11, 0x12, 0x13, 0x14);
         }
         break;
     }
-    r22c_work->capId = -1;
+    r22c_work.p->capId = -1;
     if (cap) {
-        r22c_work->cap[cap - 1]++;
-        r22c_work->capId = cap + 0xDB;
+        r22c_work.p->cap[cap - 1]++;
+        r22c_work.p->capId = cap + 0xDB;
         PlCapNum[cap - 1]++;
     }
 }
@@ -665,30 +760,30 @@ void checkBottleCap()
 void getBottleCap()
 {
     int i;
-    int total = 0;
+    int total;
 
     if ((Joy[0].on & 0x640) == 0x640) {
         for (i = 0; i < 24; i++) {
-            r22c_work->cap[i] = 1;
+            r22c_work.p->cap[i] = 1;
         }
     }
-    for (i = 0; i < 24; i++) {
-        if (r22c_work->cap[i]) {
-            ItemMgr.get((u16) (i + 0xDC), *(u16*) ((u8*) &r22c_work->cap[i] + 2));
-            r22c_work->itemNum[i] += r22c_work->cap[i];
-            total += r22c_work->cap[i];
-            r22c_work->cap[i] = 0;
+    for (i = 0, total = 0; i < 24; i++) {
+        if (r22c_work.p->cap[i]) {
+            ItemMgr.get((u16) (i + 0xDC), (u16) r22c_work.p->cap[i]);
+            r22c_work.p->itemNum[i] += r22c_work.p->cap[i];
+            total += r22c_work.p->cap[i];
+            r22c_work.p->cap[i] = 0;
         }
     }
     if (total > 0) {
         cMes.getWork()->setNumber(total, 0);
-        SceMesSet(5, 0, 1, 0x64, 0x150 - cMes.getWork()->lineSpace - cMes.getWork()->fontH - 1);
-        SndCall(0, 0x13, &r22c_work->wepMan->pos, 0, 0, 0);
+        SceMesSet(5, 0, 1, 0x64, MES_Y);
+        SndCall(0, 0x13, &r22c_work.p->wepMan->pos, 0, 0, 0);
         if (ItemMgr.num(0xA2) == 0) {
             ItemMgr.get(0xA2, 0);
         }
     }
-    r22c_work->score = 0;
+    r22c_work.p->score = 0;
 }
 
 int weaponSelect(int sel)
@@ -698,7 +793,7 @@ int weaponSelect(int sel)
     u8 wep;
 
     if (ask) {
-        SceMesSet(4, 0, 1, 0x64, 0x150 - cMes.getWork()->lineSpace - cMes.getWork()->fontH - 1);
+        SceMesSet(4, 0, 1, 0x64, MES_Y);
         sel = SceMesGetSelection();
         if (sel != 3) {
             SndCall(0, 4, 0, 0, 0, 0);
@@ -743,48 +838,1134 @@ int weaponSelect(int sel)
         }
         break;
     }
-    r22c_work->wepSel = sel;
+    r22c_work.p->wepSel = sel;
     return sel;
 }
 
 void itemSave()
 {
-    r22c_work->wepNo = pG->wep_no;
-    r22c_work->wepType = pG->wep_type;
+    r22c_work.p->wepNo = pG->wep_no;
+    r22c_work.p->wepType = pG->wep_type;
     pG->flags_174 |= 0x80000000;
     SceAtSetEnable(9, 0);
-    ((cEmDoor*) r22c_work->door[0])->setNormal();
-    ((cEmDoor*) r22c_work->door[1])->setNormal();
+    ((cEmDoor*) r22c_work.p->door[0])->setNormal();
+    ((cEmDoor*) r22c_work.p->door[1])->setNormal();
 #line 2565 "D:/Bio4/Prog/r22c.cpp"
-    r22c_work->itemSaveBuf = MEM_ALLOC(ItemMgr.saveDataSize(), 1, 0xd);
-    if (r22c_work->itemSaveBuf == 0) {
+    r22c_work.p->itemSaveBuf = MEM_ALLOC(ItemMgr.saveDataSize(), 1, 0xd);
+    if (r22c_work.p->itemSaveBuf == 0) {
         pLog->err(0, 0, "ITEM BACKUP FAILED.");
     } else {
-        ItemMgr.save(r22c_work->itemSaveBuf);
-        r22c_work->itemSel = (s8) SubScreenWk.x2AE;
+        ItemMgr.save(r22c_work.p->itemSaveBuf);
+        r22c_work.p->itemSel = (s8) SubScreenWk.x2AE;
     }
 }
 
-// --- not written yet: getBonus, gameEnd, r22c_checkGameLevel, r22c_checkGame, r22c_startShootingGame,
-// shootInit, shootReady, shootMain, shootResult, shootEnd, countMark, R22cHitMark, funcUfo,
-// deleteAllMark, r22cSetWepMan, scoreRegist, r22cGateCtrl, isWepmanAlive, setWepmanKilled,
-// R22cHitEffect, ResultScreen::*, Score*, r22c_checkShootingScore. The stubs below only keep the
-// data tables' relocation targets defined; they must be replaced by the real bodies.
-static void r22c_startShootingGame() {}
-static void r22cSetWepMan() {}
-static void r22cGateCtrl() {}
-static void r22c_checkShootingScore() {}
-static void shootInit() {}
-static void shootReady() {}
-static void shootMain() {}
-static void shootResult() {}
-static void shootEnd() {}
+// One set of six bottle caps complete: award the bonus item (`no`: message / scenario item flag).
+#define R22C_BONUS(bit, base, mes, flg)                                     \
+    if ((pG->flags_51C0 & (bit)) == 0) {                                    \
+        for (i = 0, n = 0; i < 6; i++) {                                    \
+            if (ItemMgr.num((u16) (i + (base))) != 0) {                     \
+                n++;                                                        \
+            }                                                               \
+        }                                                                   \
+        if (n == 6) {                                                       \
+            pG->flags_51C0 |= (bit);                                        \
+            SceMesSet((mes), 0, 1, 0x64, MES_Y);                            \
+            SceAtExecute(flg);                                              \
+            while (SceAtItemFlgCk(flg) == 0) {                              \
+                SceSleep(1);                                                \
+            }                                                               \
+        }                                                                   \
+    }
+
+void getBonus()
+{
+    int n;
+    int i;
+
+    R22C_BONUS(8, 0xDC, 0xE, 0x80)
+    R22C_BONUS(4, 0xE2, 0xF, 0x81)
+    R22C_BONUS(2, 0xE8, 0x10, 0x82)
+    R22C_BONUS(1, 0xEE, 0x11, 0x83)
+}
+
+void gameEnd()
+{
+    cPlayer* pl = pPL;
+
+    pl->setNoSuspend(1);
+    r22c_work.p->wepMan->setNoSuspend(1);
+    SceEventStart(0);
+    FadeSetW(2, 5, 0, 0);
+    SceSleep(5);
+    ItemMgr.clear();
+    SubScreenWk.x2AE = SubScreenWk.x2AF = (u8) r22c_work.p->itemSel;
+    ItemMgr.load(r22c_work.p->itemSaveBuf);
+    Mem_free(r22c_work.p->itemSaveBuf);
+    r22c_work.p->itemSaveBuf = 0;
+    pl->weaponRelease();
+    pl->weaponLoad(r22c_work.p->wepNo, r22c_work.p->wepType);
+    pl->weaponInit();
+    pG->flags_174 &= ~0x80000000;
+    SceAtSetEnable(9, 1);
+    cEmDoorSetCloseLock(r22c_work.p->door[0]);
+    cEmDoorSetCloseLock(r22c_work.p->door[1]);
+    FadeSetW(0x80000002, 10, 0, 0);
+    SceSleep(1);
+    getBottleCap();
+    getBonus();
+    SceEventEnd(0);
+    r22c_work.p->wepMan->setNoSuspend(0);
+    pl->setNoSuspend(0);
+}
+
+// Debug level select (Z held while starting): returns 0 when the game was cancelled.
+int r22c_checkGameLevel()
+{
+    int sel;
+
+    while (1) {
+        SceMesSet(0xA, 0, 1, 0x64, MES_Y);
+        sel = SceMesGetSelection();
+        if (sel == 7) {
+            SceMesSet(0xB, 0, 1, 0x64, MES_Y);
+            sel = SceMesGetSelection();
+            if (sel == 4) {
+                sel = 0;
+                break;
+            }
+            if (sel > 2) {
+                continue;
+            }
+            sel += 6;
+        }
+        break;
+    }
+    if (sel != 0) {
+        SndCall(0, 4, 0, 0, 0, 0);
+    } else {
+        SndCall(0, 5, 0, 0, 0, 0);
+    }
+    switch (sel) {
+    case 1:
+        r22c_work.p->level = 1;
+        r22c_work.p->state = 1;
+        break;
+    case 2:
+        r22c_work.p->level = 1;
+        r22c_work.p->state = 2;
+        break;
+    case 3:
+        r22c_work.p->level = 2;
+        r22c_work.p->state = 1;
+        break;
+    case 4:
+        r22c_work.p->level = 2;
+        r22c_work.p->state = 2;
+        break;
+    case 5:
+        r22c_work.p->level = 3;
+        r22c_work.p->state = 1;
+        break;
+    case 6:
+        r22c_work.p->level = 3;
+        r22c_work.p->state = 2;
+        break;
+    case 7:
+        r22c_work.p->level = 4;
+        r22c_work.p->state = 1;
+        break;
+    case 8:
+        r22c_work.p->level = 4;
+        r22c_work.p->state = 2;
+        break;
+    default:
+        sel = 0;
+        break;
+    }
+    return sel != 0 ? 1 : 0;
+}
+
+// Game select of the current level: returns the level (0 = cancelled).
+int r22c_checkGame()
+{
+    int sel;
+
+    switch (pG->room_id_prev) {
+    case 0x204:
+    default:
+        sel = 1;
+        break;
+    case 0x211:
+        SceMesSet(1, 0, 1, 0x64, MES_Y);
+        sel = SceMesGetSelection();
+        if (sel == 3) {
+            sel = 0;
+        }
+        break;
+    case 0x220:
+        SceMesSet(2, 0, 1, 0x64, MES_Y);
+        sel = SceMesGetSelection();
+        if (sel == 4) {
+            sel = 0;
+        }
+        break;
+    case 0x305:
+        SceMesSet(3, 0, 1, 0x64, MES_Y);
+        sel = SceMesGetSelection();
+        if (sel == 5) {
+            sel = 0;
+        }
+        break;
+    }
+    if (sel == 0) {
+        r22c_work.p->state = 0;
+        return 0;
+    }
+    r22c_work.p->level = sel;
+    switch (sel) {
+    case 1:
+        if (r22c_work.p->itemNum[8] != 0 && r22c_work.p->itemNum[9] != 0) {
+            r22c_work.p->state = 2;
+        } else {
+            r22c_work.p->state = 1;
+        }
+        break;
+    case 2:
+        if (r22c_work.p->itemNum[13] != 0 && r22c_work.p->itemNum[16] != 0) {
+            r22c_work.p->state = 2;
+        } else {
+            r22c_work.p->state = 1;
+        }
+        break;
+    case 3:
+        r22c_work.p->state = 1;
+        break;
+    case 4:
+        r22c_work.p->state = 1;
+        break;
+    }
+    return sel;
+}
 
 static void (*r22c_shootFunc[5])() = {shootInit, shootReady, shootMain, shootResult, shootEnd};
+
+// Task: the shooting game.
+static void r22c_startShootingGame()
+{
+    SndCall(6, 5, &pPL->pPartsHead->worldPos, 0, 0, 0);
+    pG->flags_174 |= 0x20000000;
+    if (Joy[0].on & 0x400) {
+        r22c_checkGameLevel();
+    } else {
+        r22c_checkGame();
+    }
+    if (r22c_work.p->state == 0) {
+        SceExit();
+    }
+    r22c_work.p->step = 0;
+    ScoreClear();
+    for (;;) {
+        r22c_shootFunc[r22c_work.p->step]();
+        DispTime(0x28, 0x2A, 0, r22c_work.p->time, 7);
+        ScoreMove();
+        SceSleep(1);
+    }
+}
+
+static void shootInit()
+{
+    SceAtSetEnable(0, 0);
+    int zero = 0;
+    pG->flags_174 &= ~0x40000000;
+    weaponSelect(r22c_work.p->wepSel);
+    ItemMgr.reload();
+    r22c_work.p->timer = zero;
+    r22c_work.p->hits = zero;
+    r22c_work.p->score = zero;
+    r22c_work.p->time = zero;
+    r22c_work.p->combo = zero;
+    r22c_work.p->pause = zero;
+    r22c_work.p->ufoWait = zero;
+    r22c_work.p->total = zero;
+    r22c_work.p->ageSum = zero;
+    r22c_work.p->cnt46 = zero;
+    r22c_work.p->cnt47 = zero;
+    U32Set(r22c_work.p->shotHit, pG->shotHit2);
+    U32Set(r22c_work.p->shotTotal, pG->shotTotal2);
+    r22c_work.p->effTimer = zero;
+    r22c_work.p->effFlags = zero;
+    LightMgr.onKind(1);
+    LightMgr.offKind(2);
+    {
+        R22cWork* w = r22c_work.p;
+
+        switch (w->level) {
+        case 1:
+        default:
+            switch (w->state) {
+            case 1:
+            default:
+                w->tbl = r22c_d4AC;
+                break;
+            case 2:
+                w->tbl = r22c_dA50;
+                break;
+            }
+            break;
+        case 2:
+            switch (w->state) {
+            case 1:
+            default:
+                w->tbl = r22c_dFB0;
+                break;
+            case 2:
+                w->tbl = r22c_d1498;
+                break;
+            }
+            break;
+        case 3:
+            switch (w->state) {
+            case 1:
+            default:
+                w->tbl = r22c_d1B14;
+                break;
+            case 2:
+                w->tbl = r22c_d2024;
+                break;
+            }
+            break;
+        case 4:
+            switch (w->state) {
+            case 1:
+            default:
+                w->tbl = r22c_d2BCC;
+                break;
+            case 2:
+                w->tbl = r22c_d37C0;
+                break;
+            }
+            break;
+        }
+    }
+    r22c_work.p->strId = SndStrReq(0, 0x32, 0x80000003, 0, 0, 0.0f);
+    r22c_work.p->step = 1;
+}
+
 static const char* r22c_startMsg = "START";
+
+// Level B/C game 2 and level D: the targets move faster (flags_174 bit 28).
+#define R22C_HARD_MODE(w)                                                                             \
+    ((((w)->level == 2 || (w)->level == 3) && (w)->state == 2) || ((w)->level == 4 && (w)->state == 1) || \
+     ((w)->level == 4 && (w)->state == 2))
+
+static void shootReady()
+{
+    r22c_work.p->timer++;
+    if (r22c_work.p->timer > 30) {
+        eprintf(0xDC, 0x8C, 0, 0, r22c_startMsg);
+    }
+    if (r22c_work.p->timer > 60) {
+        r22c_work.p->timer = 0;
+        r22c_work.p->step = 2;
+    }
+    if (R22C_HARD_MODE(r22c_work.p)) {
+        pG->flags_174 |= 0x10000000;
+    } else {
+        pG->flags_174 &= ~0x10000000;
+    }
+}
+
+static void shootMain()
+{
+    if (r22c_work.p->ufoWait == 0 && r22c_work.p->pause != 0) {
+        if (!(pG->flags_174 & 0x40000000)) {
+            if (r22c_work.p->pause == 0x78) {
+                r22c_work.p->result.reloadtime();
+            }
+            r22c_work.p->pause--;
+        }
+    } else {
+        JOY* joy = &Joy[0];
+
+        for (;;) {
+            int n = (int) r22c_work.p->tbl[0];
+            int i;
+
+            for (i = 0; i < n; i++) {
+                R22cMarkRec* d = (R22cMarkRec*) r22c_work.p->tbl[i + 2];
+
+                if (d->time == r22c_work.p->timer) {
+                    switch (d->flag) {
+                    default:
+                        if (d->flag != 2) {
+                            r22c_work.p->total++;
+                        }
+                        ((cEmMark*) EmMgr.create(0x3E))->init((EmMarkData*) d);
+                        break;
+                    case 0xFE:
+                        r22c_work.p->pause = 0x78;
+                        SndStrReq(r22c_work.p->strId, 4, 0x320, 0);
+                        r22c_work.p->strId = SndStrReq(0, 0x3E, 0x80000003, 0, 0, 0.0f);
+                        break;
+                    case 0xFD:
+                        r22c_work.p->ufoWait = 30;
+                        break;
+                    }
+                }
+            }
+            if (r22c_work.p->timer > (int) r22c_work.p->tbl[1]) {
+                r22c_work.p->timer = 0;
+                r22c_work.p->resultStep = 0;
+                r22c_work.p->step = 3;
+                break;
+            }
+            eprintf(0xA0, 0x1A4, 5, 0, "GIVE UP: (X) button");
+            if (joy->trg & 0x400) {
+                deleteAllMark();
+                r22c_work.p->timer = 0;
+                r22c_work.p->resultStep = 0;
+                r22c_work.p->step = 3;
+                break;
+            }
+            if (pG->flags_5014 & 0x01000000) {
+                r22c_work.p->combo = 0;
+            }
+            if (r22c_work.p->combo == 5) {
+                r22c_work.p->combo = 0;
+                if (!(pG->flags_174 & 0x40000000)) {
+                    SceExec(0x12, (TaskFunc) funcUfo, 0, 0, 2, 0);
+                    r22c_work.p->ufoWait = 3;
+                }
+            }
+            r22c_work.p->timer++;
+            if (countMark() != 0) {
+                break;
+            }
+            if (r22c_work.p->pause != 0) {
+                break;
+            }
+            if (r22c_work.p->ufoWait != 0) {
+                break;
+            }
+        }
+    }
+    if (R22C_HARD_MODE(r22c_work.p)) {
+        pG->flags_174 |= 0x10000000;
+    }
+    if (r22c_work.p->ufoWait) {
+        r22c_work.p->ufoWait--;
+    }
+    if (r22c_work.p->effTimer) {
+        r22c_work.p->effTimer--;
+    }
+    r22c_work.p->time++;
+    eprintf(0x20, 0x54, 0, 0, "%3d:%d", r22c_work.p->timer / 30, r22c_work.p->timer);
+    eprintf(0x20, 0x62, 0, 0, "%3d:%d", r22c_work.p->time / 30, r22c_work.p->time);
+    eprintf(0x20, 0x70, 0, 0, "%d", r22c_work.p->effTimer / 30);
+    eprintf(0x20, 0x7E, 0, 0, "%d", r22c_work.p->ufoWait / 30);
+}
+
+static void shootResult()
+{
+    switch (r22c_work.p->resultStep) {
+    case 0: {
+        int n = countMark();
+
+        if (n == 0) {
+            if (r22c_work.p->eat) {
+                SmdGetObjPtr(3)->be_flag &= ~2;
+                EatMgr.destroy(r22c_work.p->eat);
+                r22c_work.p->eat = 0;
+            }
+            scoreRegist();
+            checkBottleCap();
+            EffectEspDelete(0, 0x3F, 0, 0);
+            EffectEspgenDelete(0, 0x3F, 0);
+            EffectEfmDelete(0, 0x3F, 0);
+            KeyStop(0xEFCF0000);
+            r22c_work.p->timer = 0;
+            r22c_work.p->resultStep = 1;
+        }
+        break;
+    }
+    case 1:
+        if (r22c_work.p->timer > 60) {
+            r22c_work.p->resultStep = 2;
+            r22c_work.p->result.init();
+        }
+        break;
+    case 2: {
+        int key = 0;
+
+        if (r22c_work.p->timer > 90) {
+            if (Key.trg & 0xC0000000) {
+                r22c_work.p->resultStep = 3;
+                key = 1;
+            }
+        }
+        r22c_work.p->result.move(key);
+        break;
+    }
+    case 3:
+        if (r22c_work.p->result.move(0)) {
+            r22c_work.p->resultStep = 0;
+            r22c_work.p->step = 4;
+            r22c_work.p->result.quit();
+        }
+        break;
+    }
+    r22c_work.p->timer++;
+}
+
+static void shootEnd()
+{
+    SndStrReq(r22c_work.p->strId, 4, 0xC8, 0);
+    LightMgr.onKind(1);
+    LightMgr.offKind(2);
+    BitOff(pG->flags_170, 0x80000000);
+    BitOff(pG->flags_174, 0x20000000);
+    SceAtSetEnable(0, 1);
+    SceExit();
+}
+
+// Number of live targets (routines 0/1/3/4/5).
+int countMark()
+{
+    int n = 0;
+    cEm* em;
+
+    for (em = EmMgr.pAlive; em; em = (cEm*) em->next) {
+        if (em->isAlive() && em->id == 0x3E && em->hp > 0) {
+            switch (em->type) {
+            case 0:
+            case 1:
+            case 3:
+            case 4:
+            case 5:
+                n++;
+                break;
+            case 2:
+            default:
+                break;
+            }
+        }
+    }
+    return n;
+}
+
+void R22cHitMark(int type, int kind, Vec* pos, int hit, int age)
+{
+    int pt;
+
+    if (type == 3) {
+        r22c_work.p->cnt46++;
+    }
+    if (kind == 4) {
+        pt = 200;
+    } else {
+        pt = r22c_scoreTbl[type][kind];
+    }
+    r22c_work.p->score += pt;
+    if (kind == 0) {
+        r22c_work.p->cnt47++;
+    }
+    ScoreSet(pt, pos);
+    if (hit == 1) {
+        if (pt > 0) {
+            r22c_work.p->hits++;
+        }
+        r22c_work.p->ageSum += age;
+    }
+    if (pt > 0) {
+        r22c_work.p->combo++;
+    }
+}
+
 static s32 r22c_d38F0[] = {0, 3, 2200, 3500, -37500, 0, 3, -2200, 3500, -37500, 30, 1};
+
+// Task: the bonus UFO target.
+static void funcUfo()
+{
+    int i;
+    cEmMark* m;
+    u32 se;
+
+    pG->flags_174 |= 0x40000000;
+    for (i = 0; i < 30; i++) {
+        pG->flags_174 |= 0x10000000;
+        SceSleep(1);
+    }
+    m = (cEmMark*) EmMgr.create(0x3E);
+    m->init((EmMarkData*) r22c_d38F0);
+    se = SndCall(6, 6, &m->pos, 0, 0, 0);
+    r22c_work.p->total++;
+    while (m->isAlive() && m->type == 3 && m->hp > 0) {
+        if (se) {
+            SndStop(se, 0);
+        }
+        pG->flags_174 |= 0x10000000;
+        SceSleep(1);
+    }
+    for (i = 0; i < 15; i++) {
+        pG->flags_174 |= 0x10000000;
+        SceSleep(1);
+    }
+    pG->flags_174 &= ~0x40000000;
+}
+
+void deleteAllMark()
+{
+    cEm* em;
+
+    for (em = EmMgr.pAlive; em; em = (cEm*) em->next) {
+        if (em->id == 0x3E && em->type <= 9 && em->hp > 0) {
+            ((cEmMark*) em)->setDown();
+        }
+    }
+}
+
+// Task: the range keeper.
+static void r22cSetWepMan()
+{
+    if (isWepmanAlive() != 0) {
+        EmListData d;
+        cEm* em;
+
+        memclr_asm(&d, sizeof(d));
+        d.id = 0x18;
+        d.type = 0;
+        d.x3 = 0;
+        d.flags4 = 0;
+        d.pos[0] = 0x122;
+        d.pos[1] = 0;
+        d.pos[2] = -0x234;
+        d.rot[0] = 0;
+        d.rot[1] = -0x205B;
+        d.rot[2] = 0;
+        d.hp = 0x3E8;
+        d.x1A = 0;
+        d.xB = 0;
+        em = EmSetEvent(&d);
+        r22c_work.p->wepMan = em;
+        em->dmg.set(0, 0x80);
+        SceAtDataSet_exec(1, 0x12, 0, (TaskFunc) r22c_talkWepMan, 0, 1);
+        SceSleep(10);
+        cEmWrap w;
+        w.setPtr(em, 1);
+        for (;;) {
+            if (w.getHp() == 0) {
+                setWepmanKilled();
+                SceExit();
+            }
+            SceSleep(1);
+        }
+    }
+}
+
+// High score per level (pG+0x8330, four s16).
+void scoreRegist()
+{
+    R22cWork* w = r22c_work.p;
+    int lv = w->level - 1;
+    R22cHiScore* hs = (R22cHiScore*) pG;
+
+    if (w->score > hs->score[lv]) {
+        hs->score[lv] = w->score;
+    }
+}
+
 static int r22c_d3920 = 4;
+
+// Task: the two gates in front of the range (raised while flags_174 bit 28 is set).
+static void r22cGateCtrl()
+{
+    u8 type;
+    cEmMark* up;
+    cEmMark* down;
+    int open;
+    f32 lim;
+    const f32 spd = 100.0f;
+
+    SmdGetObjPtr(5)->be_flag &= ~2;
+    SmdGetObjPtr(6)->be_flag &= ~2;
+    SmdGetObjPtr(0x33)->be_flag &= ~2;
+    SmdGetObjPtr(0x34)->be_flag &= ~2;
+    SmdGetObjPtr(0x35)->be_flag &= ~2;
+    SmdGetObjPtr(0x36)->be_flag &= ~2;
+    switch (r22c_work.p->level) {
+    case 1:
+    default:
+        type = 0xC;
+        break;
+    case 2:
+        type = 0xC;
+        break;
+    case 3:
+        type = 0xE;
+        break;
+    case 4:
+        type = 0xE;
+        break;
+    }
+    up = (cEmMark*) EmMgr.create(0x3E);
+    open = 0;
+    up->init(type | 1, (EmMarkInst*) &r22c_d3920, 0.0f, 0.0f, 0.0f);
+    down = (cEmMark*) EmMgr.create(0x3E);
+    down->init(type, (EmMarkInst*) &r22c_d3920, 0.0f, 0.0f, 0.0f);
+    for (;;) {
+        if (pG->flags_174 & 0x10000000) {
+            pG->flags_174 &= ~0x10000000;
+            lim = 5000.0f;
+            if (up->pos.x < lim) {
+                up->pos.x += spd;
+                if (open == 0) {
+                    SndCall(6, 3, &pPL->pPartsHead->worldPos, 0, 0, 0);
+                    open = 1;
+                }
+            } else if (open != 0) {
+                SndCall(6, 4, &pPL->pPartsHead->worldPos, 0, 0, 0);
+                open = 0;
+                up->pos.x = lim;
+            }
+            if (down->pos.x > -5000.0f) {
+                down->pos.x -= spd;
+            }
+        } else {
+            lim = 0.0f;
+            if (up->pos.x > lim) {
+                up->pos.x -= spd;
+                if (open == 0) {
+                    SndCall(6, 3, &pPL->pPartsHead->worldPos, 0, 0, 0);
+                    open = 1;
+                }
+            } else if (open != 0) {
+                SndCall(6, 4, &pPL->pPartsHead->worldPos, 0, 0, 0);
+                open = 0;
+                up->pos.x = lim;
+            }
+            if (down->pos.x < 0.0f) {
+                down->pos.x += spd;
+            } else {
+                down->pos.x = 0.0f;
+            }
+        }
+        up->matUpdate();
+        down->matUpdate();
+        SceSleep(1);
+    }
+}
+
+// Room save flag `level - 1`: the range keeper was killed.
+int isWepmanAlive()
+{
+    int no;
+
+    switch (r22c_work.p->level) {
+    case 1:
+    default:
+        no = 0;
+        break;
+    case 2:
+        no = 1;
+        break;
+    case 3:
+        no = 2;
+        break;
+    case 4:
+        no = 3;
+        break;
+    }
+    return RsfCheck(G_ROOM_ID, no) == 0;
+}
+
+void setWepmanKilled()
+{
+    int no;
+
+    switch (r22c_work.p->level) {
+    case 1:
+    default:
+        no = 0;
+        break;
+    case 2:
+        no = 1;
+        break;
+    case 3:
+        no = 2;
+        break;
+    case 4:
+        no = 3;
+        break;
+    }
+    RsfSet(G_ROOM_ID, no);
+    SceAtSetEnable(1, 0);
+    SceAtSetEnable(0, 0);
+}
+
+// Background effect `no` fired by a target hit (emmark.cpp).
+void R22cHitEffect(int no)
+{
+    if (r22c_work.p->effTimer != 0) {
+        return;
+    }
+    switch (no) {
+    case 0:
+        if (r22c_work.p->effFlags & 0x10) {
+            return;
+        }
+        r22c_work.p->effFlags |= 0x10;
+        SceExec(0x12, (TaskFunc) r22c_BirdsFly, 0, 0, 2, 0);
+        r22c_work.p->effTimer = 0x1E0;
+        break;
+    case 1:
+        if (r22c_work.p->effFlags & 0x20) {
+            return;
+        }
+        EstSet(0, -1, 0, 0, 1, 2, 0, 0x3F, 0, 0);
+        r22c_work.p->effFlags |= 0x20;
+        r22c_work.p->effTimer = 0x4B0;
+        break;
+    case 2:
+        if (r22c_work.p->effFlags & 0x40) {
+            return;
+        }
+        SceExec(0x12, (TaskFunc) r22c_BeeFly, 0, 0, 2, 0);
+        r22c_work.p->effFlags |= 0x40;
+        r22c_work.p->effTimer = 0x4B0;
+        break;
+    case 4:
+        if (r22c_work.p->effFlags & 0x80) {
+            return;
+        }
+        r22c_work.p->effFlags |= 0x80;
+        SceExec(0x12, (TaskFunc) r22c_ShootingStar, 0, 0, 2, 0);
+        r22c_work.p->effTimer = 0x4B0;
+        break;
+    case 3:
+        if (r22c_work.p->effFlags & 4) {
+            return;
+        }
+        SndCall(6, 0xC, 0, 0, 0, 0);
+        r22c_work.p->effFlags |= 4;
+        break;
+    case 5:
+        if (flagBit(r22c_work.p->effFlags, 1) && !(r22c_work.p->effFlags & 2)) {
+            r22c_work.p->effFlags |= 2;
+            SceExec(0x12, (TaskFunc) r22c_FireWorks, 0, 0, 2, 0);
+            r22c_work.p->effTimer = 0x4B0;
+        } else {
+            if (r22c_work.p->effFlags & 8) {
+                return;
+            }
+            SndCall(6, 0xD, 0, 0, 0, 0);
+            r22c_work.p->effFlags |= 8;
+        }
+        break;
+    case 6:
+        if (r22c_work.p->effFlags & 1) {
+            return;
+        }
+        r22c_work.p->effFlags |= 1;
+        LightMgr.offKind(1);
+        LightMgr.onKind(2);
+        break;
+    default:
+        pLog->err(0, 0, "R22cHitEffect() INVALIED ID");
+        break;
+    }
+}
+
 // The language directory is patched into the path at run time.
 static char r22c_fname[] = "SS/___/id22c.dat";
+
+void ResultScreen::read()
+{
+    void* p;
+
+    setLangExt3(r22c_fname + 3);
+#line 3687 "D:/Bio4/Prog/r22c.cpp"
+    Dvd.ReadCheck(DvdReadN(r22c_fname, 0, 0, 0, 0, 5, __FILE__, __LINE__), 0, 0, &p);
+    data = (R22cResultData*) p;
+}
+
+void ResultScreen::reloadtime()
+{
+    IdTexRelease(6);
+    IdTexDataLoad(RES_PTR(data, ofsTexReload), 6);
+    IdSys.kill(0xFF, 0x2C);
+    IdSys.set(RES_PTR(data, ofsIdReload), 0xFF, 0x2C, 0x13, 6, 0);
+}
+
+void ResultScreen::highscore(int score)
+{
+    int digit[7];
+    int i;
+
+    IdTexRelease(4);
+    IdSys.roomInit();
+    IdTexDataLoad(RES_PTR(data, ofsTexResult), 7);
+    IdSys.set(RES_PTR(data, ofsIdHigh), 0xFF, 0x28, 0x13, 6, 0);
+    for (i = 0; i < 7; i++) {
+        digit[i] = score % 10;
+        score /= 10;
+    }
+    score = 0;
+    for (i = 6; i >= 0; i--) {
+        IdUnit* u = IdSys.unitPtr(i + 1, 0x28);
+
+        if (score == 0 && digit[i] == 0 && i != 0) {
+            u->flags &= ~8;
+        } else {
+            score = 1;
+            u->flags |= 8;
+            u->flags_7F |= 2;
+            u->no = digit[i];
+        }
+    }
+}
+
+void ResultScreen::init()
+{
+    IdTexRelease(4);
+    IdSys.roomInit();
+    IdTexDataLoad(RES_PTR(data, ofsTexResult), 7);
+    IdSys.set(RES_PTR(data, ofsIdResult), 0xFF, 0x28, 0x13, 6, 0);
+    if (r22c_work.p->capId == 0xFFFF) {
+        SndCall(6, 0xA, 0, 0, 0, 0);
+    } else {
+        SndCall(6, 8, 0, 0, 0, 0);
+    }
+}
+
+int ResultScreen::move(int flag)
+{
+    int ret = 0;
+    IdUnit* u0;
+    IdUnit* u3;
+    IdUnit* u;
+    int n;
+    int digit[6];
+    int i;
+    int on;
+    int sum;
+
+    u0 = IdSys.unitPtr(0, 0x28);
+    u3 = IdSys.unitPtr(3, 0x28);
+    if (flag != 0) {
+        u0->dir |= 0xF;
+        u3->dir |= 0xF;
+        state = 1;
+    }
+    if (state != 0) {
+        if (state == 1) {
+            if ((s16) u0->timer[3] <= 0) {
+                ret = 1;
+            }
+        }
+    }
+    n = r22c_work.p->hits;
+    u = IdSys.unitPtr(1, 0x28);
+    u->flags_7F |= 2;
+    u->no = n % 10;
+    n /= 10;
+    u = IdSys.unitPtr(2, 0x28);
+    u->flags_7F |= 2;
+    u->no = n % 10;
+    n = r22c_work.p->total;
+    u = IdSys.unitPtr(0x11, 0x28);
+    u->flags_7F |= 2;
+    u->no = n % 10;
+    n /= 10;
+    u = IdSys.unitPtr(0x12, 0x28);
+    u->flags_7F |= 2;
+    u->no = n % 10;
+    n = r22c_work.p->score;
+    for (i = 0; i < 6; i++) {
+        digit[i] = n % 10;
+        n /= 10;
+    }
+    on = 0;
+    for (i = 5; i >= 0; i--) {
+        u = IdSys.unitPtr(i + 0x21, 0x28);
+        if (on == 0 && digit[i] == 0 && i != 0) {
+            u->flags &= ~8;
+        } else {
+            on = 1;
+            u->flags |= 8;
+            u->flags_7F |= 2;
+            u->no = digit[i];
+        }
+    }
+    sum = 0;
+    for (i = 0; i < 24; i++) {
+        sum += r22c_work.p->cap[i];
+    }
+    n = sum;
+    u = IdSys.unitPtr(0x31, 0x28);
+    u->flags_7F |= 2;
+    u->no = n % 10;
+    n /= 10;
+    u = IdSys.unitPtr(0x32, 0x28);
+    u->flags_7F |= 2;
+    u->no = n % 10;
+    switch (r22c_work.p->capId) {
+    case 0xFFFF:
+        IdSys.unitPtr(0xFD, 0x28)->flags &= ~8;
+        IdSys.unitPtr(0xFE, 0x28)->flags &= ~8;
+        break;
+    case 0xE3:
+        IdSys.unitPtr(0xFD, 0x28)->flags &= ~8;
+        IdSys.unitPtr(0xFE, 0x28)->flags |= 8;
+        break;
+    default:
+        IdSys.unitPtr(0xFD, 0x28)->flags |= 8;
+        IdSys.unitPtr(0xFE, 0x28)->flags &= ~8;
+        break;
+    }
+    return ret;
+}
+
+void ResultScreen::quit()
+{
+    Cckpt.roomInit();
+    Cckpt.move();
+}
+
+void ScoreInit()
+{
+    r22c_work.p->score2.gameInit(0x80);
+    ScoreClear();
+}
+
+void ScoreClear()
+{
+    u32 i;
+
+    for (i = 0; i < 8; i++) {
+        r22c_work.p->scoreTimer[i] = 0;
+    }
+    r22c_work.p->score2.roomInit();
+}
+
+void ScoreMove()
+{
+    int i;
+
+    for (i = 0; i < 8; i++) {
+        if (r22c_work.p->scoreTimer[i]) {
+            r22c_work.p->scoreTimer[i]--;
+        } else {
+            r22c_work.p->scoreTimer[i] = 0;
+        }
+        if (r22c_work.p->scoreTimer[i] == 0) {
+            r22c_work.p->score2.killI(0xFF, 0x40 + i);
+        }
+    }
+    r22c_work.p->score2.move();
+    r22c_work.p->score2.trans();
+}
+
+// Floating score number `pt` at world position `pos` (id table 0x40 + slot).
+void ScoreSet(int pt, Vec* pos)
+{
+    int slot;
+    int type;
+    IdUnit* u;
+    Vec scr;
+    int digit[4];
+    Vec v;
+    int n;
+    int i;
+    int j;
+    int* d;
+
+    slot = -1;
+    {
+        int k;
+
+        for (k = 0; k < 8; k++) {
+            if (r22c_work.p->scoreTimer[k] == 0) {
+                slot = k;
+                break;
+            }
+        }
+    }
+    if (slot < 0) {
+        return;
+    }
+    r22c_work.p->scoreTimer[slot] = 30;
+    type = slot + 0x40;
+    r22c_work.p->score2.setI(ROOM_ARC_PTR(pGS->pRoomArc, 0x21), 0xFF, type, 0x13, 6, 0);
+    u = r22c_work.p->score2.unitPtrI(0, type);
+    v = *pos;
+    GetScreenPos(&v, &scr);
+    scr.x = (scr.x - 256.0f) * 1.25f;
+    scr.y = (scr.y - 224.0f) * -1.0714285f;
+    u->scr = scr;
+    if (pt < 0) {
+        IdUnit* m;
+
+        pt = -pt;
+        r22c_work.p->score2.unitPtrI(0xFE, type)->flags &= ~8;
+        m = r22c_work.p->score2.unitPtrI(0xFD, type);
+        u->col0[0] = m->col0[0];
+        u->col0[1] = m->col0[1];
+        u->col0[2] = m->col0[2];
+        u->col0[3] = m->col0[3];
+    } else {
+        r22c_work.p->score2.unitPtrI(0xFE, type)->flags |= 8;
+    }
+    d = digit;
+    {
+        int val = pt;
+        int k;
+
+        for (k = 0; k < 4; k++) {
+            d[k] = val % 10;
+            val /= 10;
+        }
+    }
+    n = 0;
+    j = 3;
+    if (d[3] == 0) {
+        n = 1;
+        int* p = &d[3];
+    NEXT:
+        j--;
+        if (j >= 0 && *--p == 0) {
+            n++;
+            goto NEXT;
+        }
+    }
+    for (i = 3; i >= 0; i--) {
+        IdUnit* du = r22c_work.p->score2.unitPtrI(i + 1, type);
+
+        if (i - n >= 0) {
+            du->flags_7F = 2;
+            du->no = d[i - n];
+        } else {
+            du->flags &= ~8;
+        }
+    }
+}
+
+// Task: the high-score board.
+static void r22c_checkShootingScore()
+{
+    SceEventStart(0);
+    SceAtSetEnable(7, 0);
+    CamCtrl.CutCall(4);
+    SceSleep(0x23);
+    r22c_work.p->result.highscore(1000);
+    while ((Joy[0].on & 0x300) == 0) {
+        SceSleep(1);
+    }
+    r22c_work.p->result.quit();
+    SceSleep(1);
+    CamCtrl.Comeback(0);
+    SceAtSetEnable(7, 1);
+    SceEventEnd(0);
+}
 
 asm(".section .data\n\t.balign 8\n\t.text");

@@ -41,11 +41,11 @@ section	offset	size	unit	scope	name	demangled
 .text	0x000030A8	0xEC	st2_4/r22c.cpp	global	setWepmanKilled	setWepmanKilled
 .text	0x00003194	0x294	st2_4/r22c.cpp	global	R22cHitEffect__Fi	R22cHitEffect
 .text	0x00003428	0x84	st2_4/r22c.cpp	global	read__12ResultScreen	ResultScreen::read
-.text	0x000034AC	0x80	st2_4/r22c.cpp	global	ResultScreen_reloadtime	ResultScreen::reloadtime
-.text	0x0000352C	0x13C	st2_4/r22c.cpp	global	ResultScreen_highscore	ResultScreen::highscore
-.text	0x00003668	0xD0	st2_4/r22c.cpp	global	ResultScreen_init	ResultScreen::init
-.text	0x00003738	0x408	st2_4/r22c.cpp	global	ResultScreen_move	ResultScreen::move
-.text	0x00003B40	0x38	st2_4/r22c.cpp	global	ResultScreen_quit	ResultScreen::quit
+.text	0x000034AC	0x80	st2_4/r22c.cpp	global	reloadtime__12ResultScreen	ResultScreen::reloadtime
+.text	0x0000352C	0x13C	st2_4/r22c.cpp	global	highscore__12ResultScreeni	ResultScreen::highscore
+.text	0x00003668	0xD0	st2_4/r22c.cpp	global	init__12ResultScreen	ResultScreen::init
+.text	0x00003738	0x408	st2_4/r22c.cpp	global	move__12ResultScreeni	ResultScreen::move
+.text	0x00003B40	0x38	st2_4/r22c.cpp	global	quit__12ResultScreen	ResultScreen::quit
 .text	0x00003B78	0x34	st2_4/r22c.cpp	global	ScoreInit__Fv	ScoreInit
 .text	0x00003BAC	0x54	st2_4/r22c.cpp	global	ScoreClear	ScoreClear
 .text	0x00003C00	0xA4	st2_4/r22c.cpp	global	ScoreMove	ScoreMove
@@ -53,8 +53,8 @@ section	offset	size	unit	scope	name	demangled
 .text	0x00003F84	0xCC	st2_4/r22c.cpp	local	r22c_checkShootingScore__Fv	r22c_checkShootingScore
 .text	0x00004050	0xBC	st2_4/r22c.cpp	global	countActiveWork__t8cManager1Z4cObj	cManager<cObj>::countActiveWork
 .text	0x0000410C	0x158	st2_4/r22c.cpp	global	create__t8cManager1Z4cObji	cManager<cObj>::create
-.text	0x00004264	0xBC	st2_4/r22c.cpp	global	cManager_cEm_countActiveWork	cManager<cEm>::countActiveWork
-.text	0x00004320	0x158	st2_4/r22c.cpp	global	cManager_cEm_create	cManager<cEm>::create
+.text	0x00004264	0xBC	st2_4/r22c.cpp	global	countActiveWork__t8cManager1Z3cEm	cManager<cEm>::countActiveWork
+.text	0x00004320	0x158	st2_4/r22c.cpp	global	create__t8cManager1Z3cEmi	cManager<cEm>::create
 .text	0x00004478	0x20	st2_4/st2.cpp	global	set__FiPFv_vT1	set
 .text	0x00004498	0x40C	st2_4/st2.cpp	global	setTbl__Fv	setTbl
 .text	0x000048A4	0x64	st2_4/st2.cpp	global	_prolog	_prolog
