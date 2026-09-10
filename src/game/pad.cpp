@@ -1,3 +1,7 @@
+// game/pad: 11/12 functions byte-identical. PadRead (15 words open): `dead` (5 refs / 269 insns) beats
+// `&Pad_data` (4 / 227) in global-alloc priority (target r16/r17, ours swapped; no statement of its own
+// to weight), and the Key loop preheader issues the `li r0,64; mtctr` reload pair before the `Key.on = 0`
+// stores (the original after them) -- a sched2 ranking no source form changed.
 #include "types.h"
 #include "global.h"
 #include "main.h"
@@ -152,8 +156,10 @@ void PadRead()
         u32 bit;
         joy->rep = 0;
         joy->rep2 = 0;
-        joy->rel = (joy->on ^ joy->old) & joy->old;
-        joy->trg = (joy->on ^ joy->old) & joy->on;
+        // trg first and `old ^ on`: the target loads old before on (`xor r0,r9,r10`), computes
+        // rel (`and r9,r0,r9`, tied to the dying old) first and stores rel then trg.
+        joy->trg = (joy->old ^ joy->on) & joy->on;
+        joy->rel = (joy->old ^ joy->on) & joy->old;
         for (bit = 1, j = 0; j < 32; j++, bit <<= 1) {
             if (joy->on & bit) {
                 if (joy->trg & bit) {

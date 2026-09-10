@@ -1,13 +1,14 @@
 // game/dvd: DVD read queue, ARAM DMA queue, disc error screen (D:/Bio4/Prog/dvd.cpp).
-// 55/57 functions match (LinkQueue/MesSysMessage are byte-identical, objdiff shows reloc-only rows);
+// 54/55 functions byte-identical (LinkQueue/MesSysMessage/ErrCheck: objdiff shows reloc-only rows);
 // every section has the original size and the data sections match. Initialize: no `n = name`
 // local; `name` is used directly after the if/else, so the `&name` copy (`mr r28,r29`) is a gcse
 // PRE copy inserted at the end of the else block, i.e. right after the DVDConvertPathToEntrynum
-// call (C++ EH ends the block at the call); a source-level copy is hoisted above the call. Still off:
-//  - ErrCheck (99.9%): `pMes`/`pStr` swap r20/r21. Both have 3 refs, live lengths 390/386
-//    (priority 76 vs 77 after the *10000 truncation); the original must land both in one bucket
-//    (pMes declared first wins the tie). Block-scoped locals and do-while notes do not change the
-//    count at global-alloc time; no statement found that adds the 4 insns / removes 1.
+// call (C++ EH ends the block at the call); a source-level copy is hoisted above the call.
+//  - ErrCheck: `pMes`/`pStr` (3 refs each, live around the loop, REG_EQUIV-doubled lengths
+//    390/386 -> priority buckets 76/77, the later-declared pStr won r21) share one bucket once the
+//    `flags_54` tests share one `msg = -1; cont = 0` body through a goto: the two duplicated arms
+//    were cross-jumped only in jump2, after global alloc, so they counted 2 extra insns in both
+//    ranges. Still off:
 //  - DiscChange (92%): the `game[4]` template copy loads words 0,8,c,4 in the original (ours
 //    0,4,8,c); every load/store has equal priority, so the original RTL order of the pieces must
 //    differ (declaration order, `char company[]`, `const char* game[]` tried).
@@ -1547,10 +1548,13 @@ int cDvd::ErrCheck(int disc, int flag)
         case DVD_STATE_PAUSING:
             break;
         }
+        // One shared body (goto) instead of two identical arms: the duplicated `li r30,-1;
+        // li r27,0` that jump2 would cross-jump later still counts at global-alloc time and
+        // puts pMes/pStr (3 refs each, live around the loop) into different priority buckets.
         if (pG->flags_54 & 0x8000) {
-            msg = -1;
-            cont = 0;
+            goto stop;
         } else if (pG->flags_54 & 0x200) {
+        stop:
             msg = -1;
             cont = 0;
         }

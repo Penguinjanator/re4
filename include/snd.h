@@ -236,7 +236,8 @@ extern SndMemWork SndMem;
 extern u32 UseAramSize[14];
 extern SndHistory History;
 extern SndRoomHdr DefEffTbl;
-extern u32 aram_buf[3];
+// no `extern u32 aram_buf[3]` here: uninitialised objects (static or not) are emitted in
+// first-declaration order, and snd.cpp's `static callErr` precedes aram_buf in the original .bss
 extern u16 StrFileTbl[2];
 extern int str_flag;
 extern u32 ARAM_FREE_BASE;

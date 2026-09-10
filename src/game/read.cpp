@@ -1,9 +1,9 @@
 // game/read: room / core / option / enemy / player / weapon data loading (D:/Bio4/Prog/read.cpp).
-// 20/21 match (OptionDataRead is byte-identical; objdiff rows are reloc-only). Open: readEmData
-// allocates `m` r28 / `SceSys` r29 (target r29 / r28): `newSize` (6 refs / 54 insns, 2222) beats
-// `m` (14 refs / 198, 2121) in global.c priority; the original needs `m` >= 15 refs or 4 more insns
-// in newSize's range. A `ModuleFlagOff(m, b)` helper (load/store through `m` instead of BitOff16's
-// reference) still counts 14 refs; dead initialisers are deleted before the count.
+// All 21 functions byte-identical (OptionDataRead's objdiff rows are reloc-only). readEmData: `m`
+// (14 refs / 198 insns, 2121) lost r29 to `newSize` (6 / 54, 2222) in global.c priority; the
+// `else do { newSize = dataSize; BitOff16(m->flag, 1); } while (0);` loop notes give that `m` ref
+// weight 2 (15 refs -> 2272 > 2222) without adding an instruction, and that block has nothing the
+// sched1 barrier could reorder (the `m->flag |= 1` / `m->flag |= 4` / tail-store placements do).
 #include "types.h"
 #include "atari.h"
 #include "light.h"
@@ -457,10 +457,10 @@ int readEmData(ReadModule* m, int id, void* addr, u32 size)
             pModule = MEM_ALLOC(bssSize, 1, 0xD);
             memcpy(pModule, old, bssSize);
             m->flag |= 1;
-        } else {
+        } else do {  // loop notes: `m` weighted ref 15 > newSize in global-alloc (m r29, newSize r28)
             newSize = dataSize;
             BitOff16(m->flag, 1);
-        }
+        } while (0);
     }
     m->id = id;
     m->pArc = pArc;

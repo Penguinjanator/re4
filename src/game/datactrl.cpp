@@ -1,10 +1,11 @@
 // game/datactrl: streamed room data units in MRAM/ARAM (D:/Bio4/Prog/datactrl.cpp).
-// 37/38 functions match (the static-initializer trio is byte-identical, only named differently);
-// .rodata and all section sizes match. Still off:
-//  - dispDebug (99.9%): only `x1` (the loop's second conversion result) lands in r7 instead of r5:
-//    x1 prefers r7 (the `subf` temp it dies into) and nothing blocks r7 here, while the original had
-//    r7 occupied across x1's range (an fpmem address pseudo of the conversions). Callee-saved order
-//    (p=r31 via reusing `p` for the tiles), block-scoped x0/x1 and the tile store order are fixed.
+// All functions byte-identical (the static-initializer trio is only named differently); .rodata and
+// all section sizes match.
+//  - dispDebug: `x1` is ONE function-scope variable shared by the loop's second conversion and the
+//    `over` block's bar width, so the allocno's conflicts are the union of both ranges (r0/r9/r11/r10/r8
+//    temps of the over block, r6 = x0, r7 = the `x1 - x0` temp) and it lands in r5; a block-scoped x1
+//    in the loop conflicts with nothing and takes the r7 preference set_preference inherits from the
+//    local-alloc'd `subf` temp. The loop's `x0` stays block-scoped (p=r31 via reusing `p` for the tiles).
 #include "types.h"
 #include "global.h"
 #include "datactrl.h"
@@ -815,6 +816,7 @@ void cDataCtrl::dispDebug()
     cDataUnit* u;
     u32 i;
     int x;
+    u32 x1;
 
     dispBase = ARAM_FREE_BASE;
     dispEnd = ARAM_END;
@@ -833,7 +835,7 @@ void cDataCtrl::dispDebug()
         if (u->chk(1) != 0) {
             u32 addr = 0;
             u32 size = 0;
-            u32 x0, x1;
+            u32 x0;
             switch (u->getCondition()) {
             case 0:
             case 1:
@@ -873,15 +875,14 @@ void cDataCtrl::dispDebug()
         }
     }
     if (over == 1) {
-        u32 x0;
         p = &tile[0];
-        x0 = (u32) ((f32) (aramEnd - dispBase) * 400.0f / (f32) (dispEnd - dispBase));
+        x1 = (u32) ((f32) (aramEnd - dispBase) * 400.0f / (f32) (dispEnd - dispBase));
         p->code = GPU_TILE;
         p->x0 = x;
         p->y0 = 0x1E;
         p->z0 = 0;
         p->w = 5;
-        p->h = x0;
+        p->h = x1;
         p->c0.r = 0x90;
         p->c0.g = 0x50;
         p->c0.b = 0x50;

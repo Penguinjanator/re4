@@ -1505,3 +1505,9 @@ MATCHING.update({
     "game/emBar.cpp": True,  # do-while around emBarSetBreak: 7th weighted em ref (em r31, p r30)
     "game/vfprintf.c": True,  # fftoa: do-while notes around `u.d = value` and the lo/hi word reads
 })
+
+# DOL register-tie pass, second sweep (2026-09-10)
+MATCHING.update({
+    "game/datactrl.cpp": True,  # dispDebug: one function-scope x1 shared with the over block (conflict union -> r5)
+    "game/read.cpp": True,  # readEmData: do-while around the dll else arm (m 15 weighted refs > newSize)
+})

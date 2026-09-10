@@ -2,6 +2,19 @@
 // packet stream of an "even""t" file (models, camera, motions, effects, messages, streams) cut by
 // cut; EventMgr owns the loaded data tables and the running event; EventDebug is the t_event
 // tool state; DatTbl is the name -> data slot table both use.
+// 142/147 byte-identical, all sections equal (2026-09-10). Register/layout idioms used here:
+//  - EspSetModelPtr: `u32 tbl = (u32) EspEvModList; *(cModel**) (tbl + (n << 2)) = m` -- an integer
+//    base and a shift index keep both address operands unflagged, so regclass gives the index a BASE
+//    register (`stwx r4,r11,r9`); `tbl[n]` on a pointer flags the base (index r0) and `n * 4` makes
+//    expand put the MULT first (`add idx,tbl`).
+//  - EvtSndStrStop/Play: evtStrNo/evtStrId helpers (u32 base of the member array) for the same reason.
+//  - IsExePacket: the middle `return 0` is a `goto ng` to the final `return 0` (jump2 otherwise
+//    cross-jumps it into the FIRST copy, COMPILER-DIFF 6 shape).
+//  - NameChange: no `dst` local; `nameBuf` used directly, so the return-block use is a gcse PRE copy of
+//    the strcpy argument register (`addi r3,r30,132; mr r29,r3`).
+// Open: DelEvt (the FadeSet colour pseudo P is not tied to r4: sched1 issues `mr r4,P` before the
+// `stw c,4(P)` end store, so P's death is the store; SetDiedemoExec's copy of EvtFadeSetW matches, so
+// the helper cannot change), Run, construct, GetMod, EspToolSetMod (register/copy shapes).
 #include "types.h"
 #include "atari.h"
 #include "event.h"
@@ -330,11 +343,11 @@ func:
 
 void Event::EspSetModelPtr(cModel* m)
 {
-    cModel** tbl = EspEvModList;
+    u32 tbl = (u32) EspEvModList;
     int n = nEspModel;
 
     if (n >= 0 && n < 0x80) {
-        tbl[n] = m;
+        *(cModel**) (tbl + (n << 2)) = m;
     }
     nEspModel++;
 }
@@ -747,12 +760,13 @@ int Event::IsExePacket()
         }
     }
     if (EvtChk(status, 0x00800000)) {
-        return 0;
+        goto ng;
     }
     pac = pPacket;
     if ((pac->cut == cut && pac->frame <= frame) || pac->cut < cut) {
         return 1;
     }
+ng:
     return 0;
 }
 
@@ -2170,7 +2184,6 @@ int EventMgr::NameCheck(char* nm)
 
 char* EventMgr::NameChange(char* nm)
 {
-    char* dst;
     char* p;
 
     if (strlen(nm) > 0x1F) {
@@ -2178,14 +2191,13 @@ char* EventMgr::NameChange(char* nm)
         return nm;
     }
     strcpy(nameBuf, nm);
-    dst = nameBuf;
     if (pG->costume2 == 1) {
-        p = strchr(dst, 'r');
+        p = strchr(nameBuf, 'r');
         if (p != 0 && NameCheck(p) == 1) {
             *p = 's';
         }
     }
-    return dst;
+    return nameBuf;
 }
 
 int EventMgr::EvtReadSub(char* nm, int aram, int em, int* out, int wait, u32 sz)
@@ -2771,6 +2783,12 @@ int EventMgr::SetEvs(void* evs)
     return 1;
 }
 
+// Event stream slot accessors through an integer base: `evt->strNo[blk]` forces `evt + 0xC0` into a
+// pointer-flagged temp (regclass then wants the index in GENERAL_REGS, r0); a `u32` base variable
+// keeps both unflagged so the shifted index takes a BASE register (`lwzx r29,r10,r11`).
+static inline int& evtStrNo(Event* evt, int blk) { u32 p = (u32) evt->strNo; return *(int*) (p + (blk << 2)); }
+static inline u32& evtStrId(Event* evt, int blk) { u32 p = (u32) evt->strId; return *(u32*) (p + (blk << 2)); }
+
 int EventMgr::EvtSndStrStop(u32* key, int blk, int mode)
 {
     Event* evt;
@@ -2780,8 +2798,8 @@ int EventMgr::EvtSndStrStop(u32* key, int blk, int mode)
     if (GetEvt(key, (void**) &evt) != 1) {
         return 0;
     }
-    no = evt->strNo[blk];
-    id = evt->strId[blk];
+    no = evtStrNo(evt, blk);
+    id = evtStrId(evt, blk);
     if (no != -1) {
         if (id != 0) {
             if (SndStrReq(id, 8, 0, 0) == 1) {
@@ -2812,8 +2830,8 @@ int EventMgr::EvtSndStrStop(u32* key, int blk, int mode)
                 } while (SndStrStatusCk(blk, no, 0x10) != 0);
             }
         }
-        evt->strId[blk] = 0;
-        evt->strNo[blk] = -1;
+        evtStrId(evt, blk) = 0;
+        evtStrNo(evt, blk) = -1;
         OSReport("EventMgr::EvtSndStrStop : stop (%d)\n", blk);
         return 1;
     }
@@ -2860,8 +2878,8 @@ void EventMgr::EvtSndStrPlay(u32* key, int blk, int no, int mode, f32 vol)
                 SndStrReq(id, 2, 0, 0);
             }
         }
-        evt->strId[blk] = id;
-        evt->strNo[blk] = no;
+        evtStrId(evt, blk) = id;
+        evtStrNo(evt, blk) = no;
         EvtDebug.strNo[blk] = no;
         OSReport("EventMgr::EvtSndStrPlay : start (%d)-(%d)\n", blk, no);
     }
