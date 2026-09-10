@@ -1043,8 +1043,8 @@ static void r209_2ndBattle()
 
 static void r209_2ndBattleEmSet()
 {
-    u32 step = 0;
     int arg = 0;
+    u32 step = 0;
     R209EmSet tbl[3] = {{4, 0xA3, -1}, {5, 0xA4, -1}, {6, 0xA5, -1}};
     u32 done = 0;
     u32 i;
@@ -1158,7 +1158,7 @@ static void r209_2ndBattleBowgunAppearEndProc()
         for (i = 0; i < 4; i++) {
             r209_work.p->door[i].setClosed();
             if (r209_work.p->task[i] != NULL) {
-                SceKill((int) r209_work.p->task[i]);
+                SceKill(r209_work.p->task[i]);
             }
             cEmWrapSetEmI(&r209_work.p->em[tbl[i].em].w, tbl[i].no, 3, 1, 0, 0);
             r209_work.p->em[tbl[i].em].active = 1;
@@ -1343,15 +1343,20 @@ static void r209_BridgeAppearCheckEnd()
     SatMgr.destroy(r209_work.p->sat2);
     r209_work.p->em[21].w.setEm(0xA1, 3, 1, 0, 0);
     r209_work.p->em[22].w.setEm(0xA2, 3, 1, 0, 0);
-    while (SceAtHitCheck(0x25) == 0) {
+    // the rest of the function inside the hit arm: the sleep body is laid out after it (`beq SLEEP; ..; b END`)
+    // and `lis work@ha` / `&door` are hoisted before the loop
+    while (1) {
+        if (SceAtHitCheck(0x25) != 0) {
+            getRoomEtcDoor(0x21, &door, 1);
+            if (door != NULL && door->hp > 0 && (door->flags_3C8 & 0x10000000) == 0) {
+                SceSleep(1);
+            }
+            r209_work.p->em[21].w.setFlag(1);
+            r209_work.p->em[22].w.setFlag(1);
+            break;
+        }
         SceSleep(1);
     }
-    getRoomEtcDoor(0x21, &door, 1);
-    if (door != NULL && door->hp > 0 && (door->flags_3C8 & 0x10000000) == 0) {
-        SceSleep(1);
-    }
-    r209_work.p->em[21].w.setFlag(1);
-    r209_work.p->em[22].w.setFlag(1);
 }
 
 static void r209_OpenPicture(int no)
@@ -1360,7 +1365,8 @@ static void r209_OpenPicture(int no)
     while (r209_work.p->door[6].getStatus() != 0) {
         SceSleep(1);
     }
-    switch (no) {
+    // unsigned index: `cmplwi 1; blt case0` without a `cmpwi 0` test
+    switch ((u32) no) {
     case 0:
         r209_work.p->picEm[0].setEm(0x9D, 3, 1, 0, 0);
         r209_work.p->picEm[1].setEm(0x9E, 3, 1, 0, 0);

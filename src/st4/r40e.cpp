@@ -325,14 +325,18 @@ static void R40EExecEventS00()
     if (RsfCheck(G_ROOM_ID, 0) == 0) {
         SceEventStart(0);
         pPL->setNoSuspend(1);
-        SceMesSet(0, 0, 1, 0x64, 0x150 - cMes.getWork()->lineSpace - cMes.getWork()->fontH - 1);
+        // Two sets of one pointer variable: `addi r31,r9,cMes@l; addi r31,r31,4` in place (a fresh
+        // `cMes.getWork()` pseudo gives `addi r9,..; addi r31,r9,4`).
+        MesWork* w = (MesWork*) &cMes;
+        w = (MesWork*) ((u8*) w + 4);
+        SceMesSet(0, 0, 1, 0x64, 0x150 - w->lineSpace - w->fontH - 1);
         if (SceMesGetSelection() != 1) {
             CamCtrl.Comeback(0);
             SceEventEnd(0);
         } else {
             SndCall(6, 2, 0, 0, 0, 0);
             if ((u32) ItemMgr.num(0xC) <= 4) {
-                SceMesSet(2, 0, 1, 0x64, 0x150 - cMes.getWork()->lineSpace - cMes.getWork()->fontH - 1);
+                SceMesSet(2, 0, 1, 0x64, 0x150 - w->lineSpace - w->fontH - 1);
                 CamCtrl.Comeback(0);
                 SceEventEnd(0);
             } else {
@@ -386,9 +390,13 @@ static void gameResult()
     while (Sofdec.isPlay()) {
         SceSleep(1);
     }
-    systemVISetBlack(1);
-    ScreenReSize(0x280, 0x1C0);
-    systemVISetBlack(0);
+    // Loop-note barrier: FadeSetW's `li r28,0xff` (a pseudo live across later calls) is issued after
+    // systemVISetBlack(0) in the original; as three plain calls sched1 hoists it to the block top.
+    do {
+        systemVISetBlack(1);
+        ScreenReSize(0x280, 0x1C0);
+        systemVISetBlack(0);
+    } while (0);
     FadeSetW(2, 0, 0, 0);
     SceSleep(1);
     if (!(pSys->x4 & 0x20000000)) {

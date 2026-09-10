@@ -131,6 +131,9 @@ static const R20dThroughData r20d_throughData[10] = {
     {{-10242.0f, 0.0f, 12142.0f}, 3.1415927f, 1500.0f, -1},
 };
 
+static inline void ObjPSet(cObj*& d, cObj* v) { d = v; }
+struct PlPtr { cPlayer* p; };
+#define pPLS (((PlPtr*) &pPL)->p)
 static inline void AtariFlagsAnd(cAtariInfo* a, u16 mask) { a->flags &= mask; }
 static inline void AtariFlagsOr(cAtariInfo* a, u16 bit) { a->flags |= bit; }
 
@@ -431,9 +434,9 @@ void r20d_initCrank()
     Vec p1 = {-1630.0f, 1000.0f, 18360.0f};
     Vec p2 = {-1630.0f, 1000.0f, 24914.0f};
 
-    r20d_work.p->crank[0] = SetObjSmd(ROOM_ARC_PTR(pG->pRoomArc, 0x29), ROOM_ARC_PTR(pG->pRoomArc, 0x2A), &p0, &rot, 0x10, 1);
-    r20d_work.p->crank[1] = SetObjSmd(ROOM_ARC_PTR(pG->pRoomArc, 0x29), ROOM_ARC_PTR(pG->pRoomArc, 0x2A), &p1, &rot, 0x10, 1);
-    r20d_work.p->crank[2] = SetObjSmd(ROOM_ARC_PTR(pG->pRoomArc, 0x29), ROOM_ARC_PTR(pG->pRoomArc, 0x2A), &p2, &rot, 0x10, 1);
+    ObjPSet(r20d_work.p->crank[0], SetObjSmd(ROOM_ARC_PTR(pG->pRoomArc, 0x29), ROOM_ARC_PTR(pG->pRoomArc, 0x2A), &p0, &rot, 0x10, 1));
+    ObjPSet(r20d_work.p->crank[1], SetObjSmd(ROOM_ARC_PTR(pG->pRoomArc, 0x29), ROOM_ARC_PTR(pG->pRoomArc, 0x2A), &p1, &rot, 0x10, 1));
+    ObjPSet(r20d_work.p->crank[2], SetObjSmd(ROOM_ARC_PTR(pG->pRoomArc, 0x29), ROOM_ARC_PTR(pG->pRoomArc, 0x2A), &p2, &rot, 0x10, 1));
     if (RsfCheck(G_ROOM_ID, 0) == 0) {
         SceAtDataSet_exec(0, 0x12, 0, (TaskFunc) r20d_operateCrank, (void*) 0, 1);
     } else {
@@ -648,8 +651,8 @@ void cFence::init(R20dFenceData* d)
     dir.y = d->dir.y;
     dir.z = d->dir.z;
     t = 0.0f;
-    hz = d->d * 0.5f + 100.0f;
     hx = d->w * 0.5f + 100.0f;
+    hz = d->d * 0.5f + 100.0f;
     Vec rot = {0.0f, 0.0f, 0.0f};
     Vec v[4] = {{-hx, -1100.0f, -hz}, {hx, -1100.0f, -hz}, {hx, -1100.0f, hz}, {-hx, -1100.0f, hz}};
     sat = SatMgr.create(&obj->pos, &rot, v, 0x40, 0, 4100.0f);
@@ -784,12 +787,12 @@ static void r20d_execRoundSwitch()
     return;
 yes:
     {
-        Vec d = {287.49002f, 0.0f, -544.75f};
         f32 ang;
         cPlayer* pl;
 
         SceEventStart(0);
         pPL->setNoSuspend(1);
+        Vec d = {287.49002f, 0.0f, -544.75f};
         SndCall(6, 5, 0, 0, 0, 0);
         if (r20d_work.p->rsFlip == 0) {
             ang = -1.5707964f;
@@ -805,7 +808,7 @@ yes:
         FSet(pPL->pos.x, r20d_work.p->roundSwitch->pos.x + d.x);
         FSet(pPL->pos.z, r20d_work.p->roundSwitch->pos.z + d.z);
         FSet(pPL->rot.y, ang);
-        r20d_work.p->roundSwitch->rot.y = ang;
+        FSet(r20d_work.p->roundSwitch->rot.y, ang);
         pl = pPL;
         pl->setPos(&pl->pos);
         pl->setAng(&pl->rot);
@@ -870,6 +873,7 @@ static void r20d_execThrough(int no)
     f32 da;
     u32 i;
     f32 dist;
+    const f32 frame = 10.0f;   // pool order: 10 before 0.1/PI/0.0
 
     pl->beginAction();
     AtariFlagsAnd(&pPL->atari, 0xFEFF);
@@ -914,7 +918,7 @@ static void r20d_execThrough(int no)
         if (MotionCheckCrossFrame(&pPL->mot, 0.0f) == 1) {
             SndCall(6, 0xE, 0, 0, 0, 0);
         }
-        if (MotionCheckCrossFrame(&pPL->mot, 10.0f) == 1) {
+        if (MotionCheckCrossFrame(&pPL->mot, frame) == 1) {
             SndCall(6, 0xD, 0, 0, 0, 0);
         }
         if (PSVECSquareDistance(&d->pos, &pPL->pos) > dist) {
@@ -972,7 +976,7 @@ void cLantern::checkLantern(cLantern* p)
         u32 i;
 
         for (i = 0; i < p->num; i++) {
-            cLanternUnit* u = &p->units[i];
+            cLanternUnit* u = (cLanternUnit*) (i * sizeof(cLanternUnit) + (u32) p->units);
 
             if (u->active != 0) {
                 switch (u->state) {
@@ -996,8 +1000,8 @@ void cLanternUnit::destroy()
     if (em) {
         EmMgr.destroy(em);
     }
-    active = 0;
     em = 0;
+    active = 0;
 }
 
 // Prompt the throw when the player stands next to the lantern.
@@ -1014,9 +1018,10 @@ void cLanternUnit::check()
     if (b.y < a.y - 2000.0f) {
         return;
     }
+    const f32 lim = 1000000.0f;   // declared before the call: its `lis` is hoisted above it (callee-saved r30)
     b.y = a.y;
     d = PSVECSquareDistance(&b, &a);
-    if (!(d < 1000000.0f)) {
+    if (!(d < lim)) {
         return;
     }
     if (EatMgr.hitCheck(&a, &b, 0, 0, 0, 0) != 0) {
@@ -1033,7 +1038,11 @@ cEm* cLanternUnit::getTargetPos(Vec* out)
 
     p.y += 1800.0f;
     t = SearchTargetEm(&p, 0, 400000000.0f);
-    if (t == 0) {
+    if (t != 0) {
+        *out = t->pos;
+        return (cEm*) t;
+    }
+    {
         Vec rot = {0.0f, 0.0f, 0.0f};
         Vec fwd = {0.0f, 0.0f, 10000.0f};
         Mtx m;
@@ -1042,15 +1051,16 @@ cEm* cLanternUnit::getTargetPos(Vec* out)
         low_RotMatrix(m, &rot);
         TransMatrix(m, &pPL->pos);
         PSMTXMultVec(m, &fwd, out);
-        return 0;
     }
-    *out = t->pos;
-    return (cEm*) t;
+    return 0;
 }
 
 // The throw action: turn to the lantern, pick it up, turn to the target, throw.
 void cLanternUnit::throwLantern(cLanternUnit* u)
 {
+    // Unreferenced: the five pool words {PI, PI/4, PI/2, 7PI/8, PI/8} between getTargetPos's and this
+    // function's constants (an unused function-local static const array is emitted before the pool).
+    static const f32 angTbl[5] = {3.1415927f, 0.7853982f, 1.5707964f, 2.7488935f, 0.3926991f};
     Vec pos;
     int st = 0;
     int cnt = 0;
@@ -1072,7 +1082,7 @@ void cLanternUnit::throwLantern(cLanternUnit* u)
         if (u->target) {
             pos = u->target->pos;
         }
-        switch (u->step) {
+        switch ((u32) u->step) {   // unsigned: `cmplwi 2; bgt`; `case 4` balances the tree at root 2
         case 0:
             turn = Muku(&pPL->pos, &u->em->pos, pPL->rot.y, 3.1415927f);
             pPL->rot.y = LIMIT_ANGLE(pPL->rot.y + turn);
@@ -1084,9 +1094,11 @@ void cLanternUnit::throwLantern(cLanternUnit* u)
 
                 u->em->pos = ofs;
                 u->em->rot = rot;
-                ((cEmTorch*) u->em)->setParent(pPL, 0xA, 0);
+                ((cEmTorch*) u->em)->setParent(pPLS, 0xA, 0);
                 u->step++;
-                turn = Muku(&pPL->pos, &pos, LIMIT_ANGLE(pPL->rot.y + zero), 3.1415927f) / 15.0f;
+                cnt = 0;
+                f32 a = LIMIT_ANGLE(pPL->rot.y + zero);
+                turn = Muku(&pPL->pos, &pos, a, 3.1415927f) / 15.0f;
                 pos2 = pos;
             }
             break;
@@ -1105,6 +1117,8 @@ void cLanternUnit::throwLantern(cLanternUnit* u)
                 u->state = 2;
                 u->step++;
             }
+            break;
+        case 4:
             break;
         }
         if (u->em) {
@@ -1126,6 +1140,7 @@ void cLanternUnit::setThrowLantern(Vec* target)
     void* bin;
     cObj* obj;
     void* zero = NULL;
+    const f32 spd0 = 20.0f;   // pool order (20 first) and `lis r25` at the top
 
     from.x = em->pParts->mat[0][3];
     from.y = em->pParts->mat[1][3];
@@ -1134,7 +1149,7 @@ void cLanternUnit::setThrowLantern(Vec* target)
     bin = GetEtcAddr(mot[0], "et1000.bin");
     EspGetEfmTplAddr(0xF, &tpl);
     CalcParabolaVector(&spd, &from, target, PSVECDistance(&from, target) / 10.0f + 1.0f);
-    obj = SetObj01(bin, tpl, &from, &rot, &spd, 20.0f, 50.0f, 0xD2, 5);
+    obj = SetObj01(bin, tpl, &from, &rot, &spd, spd0, 50.0f, 0xD2, 5);
     Obj01SetEst(obj, 0, 0x10, 3, 1, 1, 0, 0x14, (int) zero, (int) zero);
     EstSet((int) obj, -1, 0, 0, 1, 0, 0, 0, (u32) obj, zero);
 }

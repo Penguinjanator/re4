@@ -7109,3 +7109,74 @@ confirmed on the units named):
   fixed-address in-struct MEMs; typed reference setters did not order them); t_id idEditRot/Size/Color
   (230-340 words each, structure aligned, not iterated); t_camera tcNextAdatPtr (2: `mr r4, r3` before the
   hoisted `cmpwi cr7`).
+
+### Stage rooms, st4_0/st2_1 leftovers pass (r40e Matching; r209 57/61, r20d 26/32 with .rodata equal; r404 61, r402 15, r40f 5 unchanged; r204/r20e not iterated; 2026-09-10)
+
+- Harness: /tmp/rooms_a2 (copies of /tmp/rooms_a's mm.py/tryv.py/sbs.sh/mdump.sh with the paths changed).
+- **Loop-note barrier for a pinned constant** (r40e gameResult, 8 -> 0): `do { systemVISetBlack(1); ScreenReSize(0x280,
+  0x1C0); systemVISetBlack(0); } while (0);` before `FadeSetW(2,0,0,0)`. The inline's `black = 0xFF` pseudo is live
+  across later calls (cse feeds the second FadeSetW's `col.start = 0xFF` from it), so haifa's "REG_N_CALLS_CROSSED ==
+  0 -> anti-dependence on the last call" rule does not pin it and sched1 hoists the `li r28,0xff` above the three
+  calls; the target issues it after `systemVISetBlack(0)`. The do-while's loop notes end the scheduling region.
+- **Two sets of one pointer variable** = the `addi r31,r9,cMes@l; addi r31,r31,4` two-step (r40e ExecEventS00, the
+  r108/r117/r11c/r11d residue): `MesWork* w = (MesWork*) &cMes; w = (MesWork*) ((u8*) w + 4);` — the lo_sum and the
+  `+4` set the SAME pseudo; `cMes.getWork()` / a `MessageControl* m` local / `(u32)&cMes + 4` give two pseudos
+  (`addi r9,..; addi r31,r9,4`).
+- **Unsigned switch index** (r209 OpenPicture 13 -> 0, r20d throwLantern): `switch ((u32) no)` with cases 0..2 gives
+  `cmpwi 1; beq c1; cmplwi 1; blt c0; cmpwi 2; beq c2` (the left leaf 0 is bounded below by 0 for an unsigned index, so
+  no `cmpwi 0` test; a signed int gives `bgt; cmpwi 0; beq`). The range test of a 4-case tree is `cmplwi 2; bgt` only
+  for an unsigned index; a default-equal `case 4: break;` moves the root to 2.
+- **Poll loop with the whole tail inside the hit arm** (r209 BridgeAppearCheckEnd 28 -> 0): `while (1) { if (SceAtHitCheck
+  (0x25) != 0) { ...rest of the function...; break; } SceSleep(1); }` gives `L: bl; cmpwi; beq SLEEP; rest; b END; SLEEP:
+  bl SceSleep; b L` with the invariants of the rest (`lis work@ha`, `&door`) hoisted before the loop into callee-saved
+  registers; `while (cond == 0) SceSleep(1); rest;` is rotated (`b TEST`) and re-materialises them after the loop.
+  `for (;;)` with the same body does NOT match (28) — `while (1)` does.
+- **`const f32 lim = C;` declared before a call whose result is compared with C** (r20d check 13 -> 0, setThrowLantern
+  46 -> 0 code, execThrough pool): the dead initialiser's `high` pseudo is cse-merged with the literal's, so the `lis`
+  is issued before the call in a callee-saved register and the `lfs` after it (`lis r30,RO@ha; bl; lfs f0,RO@l(r30)`);
+  declared at the function top it also puts C first in the pool. Place the declaration right before the call: at the
+  very top it changes the surrounding register allocation (check: 17 words).
+- Overload check: `SceKill((int) task)` selected `SceKill__Fi`; the target `bl`s `SceKill__FP7ScePrim` (r209).
+- `if (t != 0) { *out = t->pos; return t; } { not-found body } return 0;` lays the found copy out LAST (r20d
+  getTargetPos 51 -> 0); the `if (t == 0) {..; return 0;} copy; return t;` form lays it out first.
+- A block-scoped `Vec d = {..}` declared AFTER `SceEventStart(0); pPL->setNoSuspend(1);` puts the template copy
+  after the two calls (r20d execRoundSwitch 45 -> 20); `FSet(work->roundSwitch->rot.y, ang)` keeps the following
+  `lwz pPL` (for `pl = pPL; pl->setPos(&pl->pos)`) below the store (-> 1).
+- Index-first pointer form for a giv-plus-loaded-pointer `add rD, giv, ptr`: `(cLanternUnit*) (i * sizeof(cLanternUnit)
+  + (u32) p->units)` (r20d checkLantern); store order `em = 0; active = 0;` (destroy: last RTL store issued first).
+- `ObjPSet(work->crank[i], SetObjSmd(..))` (a `cObj*&` reference setter) keeps the next call's `lwz pG` below the
+  store (r20d initCrank 12 -> 0); `pGS->pRoomArc` alone does not (4).
+- throwLantern (84 -> 44): `setParent(pPLS, 0xA, 0)` (struct view, r20d defines `PlPtr`/`pPLS` locally) keeps the pPL
+  load after the `em->pos/rot` template stores; `f32 a = LIMIT_ANGLE(..); Muku(&pPL->pos, &pos, a, PI)` (the nested
+  call evaluated into a local, otherwise `&pPL->pos` is kept across it); `cnt = 0;` inside case 1; an unused
+  `static const f32 angTbl[5] = {PI, PI/4, PI/2, 7PI/8, PI/8}` at the top of throwLantern is the five unreferenced
+  pool words after getTargetPos's PI (emitted before the function's own pool; r20d `.rodata` now equal).
+- OPEN, gcse PRE placement family (COMPILER-DIFF #3): R402MoveDoor02 (15) — `&id` = `(plus fp 0x28)` is computed in
+  the inner loop body; our gcse (`pre_lcm`, block-based lcm.c) inserts it at the end of the block before `top` and the
+  target has it in the outer body at the inner preheader (loop.c's position, `addi r24,r1,0x28` after `li r31,0`);
+  R209Main (124) — the same PRE hoists the outer latch's `j+1` (`PRE: redundant insn .. reaching reg`, single
+  occurrence!) to the end of the pre-inner-loop block, so loop.c loses `j` as a biv and the `j*4`/`j*8` givs (`li
+  r22/r23,0; addi 4/8`) never form; a `u32 bit` counter, pointer loops and `u32* f = flags` do not change it. A
+  proper edge-based LCM would leave both in place; the original's gcse evidently did. id inside the loop, while(1)/
+  do-while, pointer local, one-member struct, inline accessor, cast-then-deref tried on MoveDoor02.
+- OPEN r404 initEmSet (61): the target computes `&rot[n]` as `(n*12 + &pos) + 0x28` (the frame-slot distance) with a
+  SECOND `mulli` and forms `&pos[n]` after the rot copy loop; our cse never relates `(plus fp 0x30)` to the `(plus fp
+  8)` pseudo (fold_rtx skips PLUS qty_consts, get_related_value handles only CONST) and merges the two mults.
+  `(Vec*)((u8*)&pos[n] + 0x28)` reproduces the +0x28 shape (15 words) but still one mult; both-after / inline /
+  u8*-arithmetic / int index / u32 base forms: 84-98. Compiler-build candidate (cse frame-address relation).
+- OPEN r209 Switch/BridgeAppearCheck (7 each): after `seId = RoomSeCall(..)` the target issues `lis RO(lim)` before
+  `lis work` (so its `stw seId` carries no dependence to the following `obj->be_flag` loads); ours ranks the work
+  chain higher. BitOn/U32Set/volatile/local copy/lim-before/`R209Work* wp` tried; the EstSet `li r8/li r10` order is
+  a consequence (INSN_DEPEND count from the later `lwz r10`). 2ndBattleEmSet (28): `step = 4` is `li r25,4` before the
+  `if (x4F88 > 7)` and `mr r29,r25` after the for loop in the target (a second pseudo for the constant, step's r29
+  reused as the loop's `lis work` base); step-after / `next` local / declaration orders tried (`int arg = 0; u32 step
+  = 0;` order applied, 29 -> 28).
+- OPEN r20d: throwLantern (44) head — `int st = 0` stays a pseudo the original's cse does not fold: `stw r29,0xc(u)`
+  then `add r29,u,r29; lwz r4,0x18(r29)` (unscaled, i.e. a byte offset) and the `step/state` stores before `lis pPL`
+  (#12 family); operateCrank 68, execThrough 62 (loop/register structure), moveWall 3 (`li i,0` before `lwz pPL`),
+  checkSwitch 1 (0.0 reloaded from the pool after the loop, r108 openCover family), execRoundSwitch 1 (`addi r4,r30`
+  vs reload_cse's `addi r4,r3` after `mr r3,r30`).
+- r204 EventChandelier1/2 (156/155, `stmw r16` vs `r20`: the target hoists every `lis` of the while(1) loops —
+  pPL x2, work x2, pG x2, ActBtn, Key, two strings — into callee-saved registers at the top; FSet on the two pos
+  stores made it worse) and nige_check (228), r20e (checkFinalPieceUse 2, move 10, moveCrestDoor 33, initPuzzle 119,
+  checkPuzzle 366) not iterated this pass.
