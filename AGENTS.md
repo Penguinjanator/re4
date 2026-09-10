@@ -3138,11 +3138,14 @@ target) stays unresolved and `make_rel` then fails with "undefined symbol".
   orphan sections of Sscrn/t_esp/t_event/t_id/t_movie/Tools/t_sce (their original ELFs had 12 extra
   sections between .text and .ctors, concatenated behind .text in the REL).
 
-- em10 OPEN (3 left, pass-order class): `em10LostHead` (59: `a == 3` kept in cr4 across calls with compares at
-  the dispatch and after `EmSetDie`; `if (X == K) { asm volatile("" :: "r"(X)); }` forces a cr4 compare at
-  that site but pays a `bne cr4` per site and re-emits on every path -- not clean), `em10FindCk` (20: bell
-  arms merged before sched1 in the original, in jump2 for us), `setHand` (5: `lwz tpl` before the compare).
-  Five passes; do not re-attempt without a new mechanism.
+- em10 OPEN (2 left after the sixth pass, 2026-09-10; see "Ganado shared library" sixth pass): `em10LostHead`
+  (59: `a == 3` PRE'd into cr4 at the END of the last multi-predecessor block before the join on each path
+  -- the switch dispatch block for cases 0/1/2-then and the case-2 else arm's first call block -- a
+  placement no LCM/PRE gives for a single occurrence: our gcse leaves the compare at the join; `case 3:
+  break;` gives 164 words, `if (a == 3) asm("")` in the else arm 72) and `setHand` (2: `no` r10 vs r11 with
+  no r11 user anywhere -- global-alloc pass 0 has r11 free in ours; needs an r11 conflict that exists only
+  in the original). `em10FindCk` is closed (COMPILER-DIFF #13 hard-register launder). Do not re-attempt
+  LostHead without a mechanism that hoists a non-redundant compare (interblock motion, #5 family).
 
 - Room helpers that exist under the same name in several rooms of one module (`em_reset`, `em_destroy`,
   `setTexRender`, `setLadderMotion`, `slide_move` in st4_0) MUST be `static`: r400/r405 (and flipped r406's
@@ -4170,7 +4173,7 @@ target) stays unresolved and `make_rel` then fails with "undefined symbol".
     current frame, +0x294 motion count, +0x94 pos, +0xF4 parts list) everywhere; strings and pools in
     .rodata are in the order listed by secdump.
 
-### Ganado shared library (em10/em10.cpp, 379/382 byte-identical, .data/.rodata/.bss identical, not Matching; 2026-09)
+### Ganado shared library (em10/em10.cpp, 380/382 byte-identical, .data/.rodata/.bss identical, not Matching; 2026-09)
 
 - The unit is shared by 16 modules (`common_<mod>` .comm block from `REL_MODULE`, everything else
   identical); flag MATCHING for all 16 at once, only when every function matches. em10.cpp is in
@@ -4345,6 +4348,46 @@ target) stays unresolved and `make_rel` then fails with "undefined symbol".
     nothing else in r11, and the case-3 block order `lbz; lwz tpl; lwz bin; cmpwi` needs the
     compared byte NOT to die at the compare (an `asm volatile("" : : "r"(wt))` reproduces the order
     but moves the registers); switch/if-else/u8/u32 forms tried).
+  - Sixth pass (379 -> 380, 2026-09-10; harness /tmp/em10f = em10e copies with the paths rewritten,
+    `variants.py SYM v_*.py` + `apply.py`, `dump.sh -dSl -fsched-verbose-6` + `fn.sh`):
+    - **FindCk closed = COMPILER-DIFF #13 confirmed (mechanism).** The original does not keep a REG_EQUIV
+      constant pseudo in a register: `r` (three arm sets of the same pool constant -> update_equiv_regs
+      "set once or always to the same value" gives every set a REG_EQUIV, reload1.c records
+      `reg_equiv_memory_loc` = the pool MEM) gets no hard register there, reload deletes the arms'
+      equivalencing `lis/lfs` (the compare skeleton `cmpwi 0; beq L; cmpwi 1; L:` stays because the
+      branches survive to jump2) and re-materialises `lis rH; lfs fR` right before the first use;
+      the second use `w->x524 < r` (no label in between) inherits fR. The spill registers are
+      `order_regs_for_reload`'s least-used hard regs (f9 = the first FPR nobody else uses, f0 shared
+      with the fmuls output when `r` dies there as in em21 WakeCk, r10 for the BASE reg because r9/r11
+      hold pG); sched2 then floats the reload insns up into the free slots (`lis r10` at cycle 1, `lfs
+      f9` after `fmuls dy`), and the register naming of the distance chain follows from `lfs f9` not
+      having an anti-dependence on `fsubs dx` (f11) in sched2. Ours allocates `r` (global.c has no
+      equivalence rule; the em10e/em2f notes' reading was right). Reproduction, zero code cost:
+      `register f32 r asm("fr9");` (the assembler name is `fr9`, not `f9`) with the three arm sets kept
+      (dead hard-reg sets: flow deletes them, the compares stay) and ONE `r = 25000.0f;` in the
+      distance block after `dz` (the hard-reg set is scheduled like the reload insn; cse cannot fold
+      `r * r` through a hard reg). 20 -> 0 words, .rodata unchanged (the pool word is still created by
+      the arms in source order). The same launder applies to em21 WakeCk / em3c R1_Die (`fr0` there:
+      the reload shares the fmuls output register when `r` dies at the multiply). Pseudo-only forms
+      (`kind` + one set: 42, `asm("" : "+f"(r))` in the block: 13 -- structure right, f0/f13 and f9/f11
+      naming wrong) cannot reach it because the load then IS allocated.
+    - setHand 5 -> 2: tpl loaded before bin in case 3 (LUID order of the two loads = the target's
+      `lwz tpl; lwz bin`), `u8 wt = w->wepType` + `asm volatile("")` after the two loads (the byte
+      compare must be issued after `lwz bin`: rank_for_schedule gives the compare weight 0 (the byte
+      dies) vs the load's +1 and, with equal weights, more dependents (the branch) -- no plain form
+      ranks the load first; tagged `COMPILER-DIFF: candidate #14`), and `do { info = create(tpl, ..);
+      } while (0)` so tpl keeps r4 (global-alloc priority 2*5/15 = 0.667 vs bin 2*6/20 = 0.6 with bin
+      first; tpl first flips it to 0.625 vs 0.632; the do-while gives tpl a 6th weighted ref). Left:
+      `no` r10 vs r11 (see the OPEN note; pass-0 `regs_used_so_far` already holds every call-used reg,
+      `no` is the last allocno with no lower-priority preferrer, so only a conflict with r11 -- an
+      r11 pseudo deleted after global alloc -- explains the target; nothing in the target uses r11).
+    - LostHead unchanged (59): placement analysis in the OPEN note above; lcm.c (Muchnick block LCM:
+      earliest/delay/latest/isolated) never inserts for a single non-redundant occurrence, so the
+      target's two insertions (end of the dispatch block D1 = `cmpwi r28,1 [cmpwi cr4] beq`, and
+      before the `EmReserveDropItem` call block of the case-2 else arm) plus the deleted join
+      compare are not PRE; the shape ("last multi-predecessor block on each path to the join") is
+      what haifa interblock motion with bookkeeping copies produces, i.e. #5 (the original forms
+      scheduling regions here, ours does not).
 
 ### Small tool RELs, third pass (t_camera_draw Matching; t_camera_data 12/16, t_movie/t_se_at 11/19; 2026-09)
 
@@ -6746,6 +6789,11 @@ target) stays unresolved and `make_rel` then fails with "undefined symbol".
   pseudo re-materialised `lis r10; lfs f0; fmuls f0,f0,f0` inside the distance block instead of being
   allocated; its high then takes r10 and em/w land in r8/r10). No source form changes it; the `int one`
   update_equiv move reproduces the bytes only when the reload register would have been r0.
+  CONFIRMED and closed for em10 FindCk (sixth em10 pass, 2026-09-10): the workaround is a hard-register
+  variable `register f32 r asm("frN");` (N = the least-used FPR the original's reload picked, f9 there;
+  `fr0` when the value dies at the multiply) set ONCE at the use site, keeping the dead multi-arm sets for
+  the compare skeleton; tag every line `// COMPILER-DIFF: #13`. For the em21DmCk/MercSysInitRoom integer
+  shape the analogous form is `register int c asm("rN")` set right before the store.
 - em2f left: SetPosHideMode 3 words (`fmr f0,f1; fadds f0,f0,f13` after GetXZAngle — combine fuses the
   hard-reg copy into the add; 8 forms incl. two-set variables, FSet, `PI + ry`; only a volatile insn or a
   block boundary between the copy and the add would block can_combine_p, mes `mr. r4,r3` family).

@@ -18446,13 +18446,20 @@ void cEm10::setHand(int no, int type)
         tpl = w->mot[13];
         break;
     case 3:
-        // bin before tpl: tpl's shorter range gives it r4 (bin r9) like the target. OPEN (5 words):
-        // the target issues `lwz tpl` before `lwz bin` and the wepType compare (the compared byte
-        // does not die at the compare there), and keeps `no` in r10 (ours r11).
-        bin = w->mot[9];
-        tpl = w->mot[14];
-        if (w->wepType == 6) {
-            bin = w->mot[10];
+        // Target block: `lbz wepType; lwz tpl; lwz bin; cmpwi; bne`. tpl first = LUID order of the two
+        // loads; the barrier keeps the byte compare after `lwz bin` (rank_for_schedule prefers the
+        // compare: equal priority, weight 0 vs +1, then more dependents -- no plain form ranks the
+        // load first). tpl loaded first would cost it r4 (global-alloc priority 2*5/16 vs bin's
+        // 2*6/19), so the tpl create below is weighted with a do{}while(0). OPEN (2 words): `no` is
+        // r10 in the target, r11 here (alloc order r0, r9, r11, r10; nothing holds r11).
+        {
+            u8 wt = w->wepType;
+            tpl = w->mot[14];
+            bin = w->mot[9];
+            asm volatile(""); // COMPILER-DIFF: candidate #14 (sched1 rank of `lwz bin` vs the byte compare)
+            if (wt == 6) {
+                bin = w->mot[10];
+            }
         }
         break;
     }
@@ -18468,7 +18475,7 @@ void cEm10::setHand(int no, int type)
         }
         w->x184 = info;
     } else {
-        info = ModInfoMgr.create(tpl, w->mot[0]);
+        do { info = ModInfoMgr.create(tpl, w->mot[0]); } while (0); // tpl's 6th weighted ref: r4
         if (!info) {
             return;
         }
@@ -20866,10 +20873,14 @@ int em10FindCk(cEm10* em, int a)
         case 12:
         case 13:
             if (pG->flags_5010 & 0x20000000) {
-                // em3c bell idiom: three arms assigning `r` keep the dispatch compares (cross-jumped
-                // after flow) and `r * r` unfolded. OPEN (as in em3c): the target issues the `lfs r`
-                // and its `fmuls` after the pos/bell loads, ours first.
-                f32 r;
+                // em3c bell idiom: three arms assigning `r` keep the dispatch compares. COMPILER-DIFF
+                // #13: the original never allocates the REG_EQUIV constant pseudo `r`; reload deletes
+                // the arms' equivalencing loads and re-materialises `lis/lfs` at the first use (spill
+                // register = least-used FPR/BASE reg: f9/r10), the second use inherits f9. The
+                // hard-register variable set once in the distance block reproduces that: the arm sets
+                // are dead (flow deletes them, the compares stay) and the block-local `lfs f9` is
+                // scheduled like the reload insn.
+                register f32 r asm("fr9"); // COMPILER-DIFF: #13
                 switch (pG->bell_stat) {
                 case 0:
                     r = 25000.0f;
@@ -20885,6 +20896,7 @@ int em10FindCk(cEm10* em, int a)
                     f32 dx = em->pos.x - pGS->bell_pos.x;
                     f32 dy = em->pos.y - pGS->bell_pos.y;
                     f32 dz = em->pos.z - pGS->bell_pos.z;
+                    r = 25000.0f; // COMPILER-DIFF: #13
                     if (dx * dx + dy * dy + dz * dz < r * r) {
                         if ((w->flags & 1) && w->x524 < r) {
                             find = 1;
