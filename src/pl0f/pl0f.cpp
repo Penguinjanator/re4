@@ -38,6 +38,10 @@ extern void (*BoatMoveFunc)(cPlayer* pl);        // game/player.cpp (pl_R1_Boat 
 extern "C" void Em_R0_Scenario(cEm* em);         // game/em_sub.cpp
 u16 MotionMoveF(cModel* m, int flag) asm("MotionMove");   // MotionMove called with a second argument (pl_npc.cpp)
 
+// The module's 0x30-byte COMMON block: uninitialised template statics of the original object,
+// appended to .bss by snmakerel.
+asm(".comm common_pl0f,48,4");
+
 #line 1 "D:/Bio4/Prog/pl0f.cpp"
 
 typedef void (*Pl0fFunc)(cPl0f*);
@@ -788,84 +792,92 @@ static void pl0f_R1_R10eOut2(cPl0f* em)
     em->partsWorldCalc();
 }
 
-// Pulls a node back inside maxLen of its fixPos (x / z only).
-static inline void pl0fNodeLimit(Pl0fNode* n, Vec* d, int line)
-{
-    PSVECSubtract(&n->wpos, &n->fixPos, d);
-    if (d->x * d->x + d->z * d->z > n->maxLen * n->maxLen) {
-        if (0.0f == d->x && 0.0f == d->y && 0.0f == d->z) {
-            pLog->err(0, 0, "VECNormalize:[%s/%d]", "D:/Bio4/Prog/pl0f.cpp", line);
-            d->x = d->y = d->z = 0.0f;
-        } else {
-            PSVECNormalize(d, d);
-        }
-        d->y = 0.0f;
-        PSVECScale(d, d, n->maxLen);
-        PSVECAdd(&n->fixPos, d, &n->wpos);
+// Pulls a node back inside maxLen of its fixPos (x / z only). A macro on the routine's `d`, `n` and
+// `len`: the PSVEC* `&d` arguments are one gcse-PRE'd pseudo per block (`mr rX,r23` copies hoisted
+// out of the loops) while the member reads stay frame-direct (an inline taking `Vec*` substitutes
+// `&d` into every use; called with a pointer local it keeps `4(rP)`/`8(rP)` reads); the squared
+// length goes through the routine's `len` (a global pseudo: f12 by global-alloc, not tied to the
+// dying `fmuls` result).
+#define PL0F_NODE_LIMIT(n, line)                                                                   \
+    PSVECSubtract(&(n)->wpos, &(n)->fixPos, &d);                                                   \
+    len = d.x * d.x + d.z * d.z;                                                                   \
+    if (len > (n)->maxLen * (n)->maxLen) {                                                         \
+        if (0.0f == d.x && 0.0f == d.y && 0.0f == d.z) {                                           \
+            pLog.p->err(0, 0, "VECNormalize:[%s/%d]", "D:/Bio4/Prog/pl0f.cpp", line);              \
+            d.x = d.y = d.z = 0.0f;                                                                \
+        } else {                                                                                   \
+            PSVECNormalize(&d, &d);                                                                \
+        }                                                                                          \
+        d.y = 0.0f;                                                                                \
+        PSVECScale(&d, &d, (n)->maxLen);                                                           \
+        PSVECAdd(&(n)->fixPos, &d, &(n)->wpos);                                                    \
     }
-}
 
 void pl0fBoatControl(cPl0f* em)
 {
     Pl0fWork* w = PL0F_WK(em);
     Mtx m;
     Vec d;
-    Vec* pd = &d;
-    Vec* pn0 = &w->node[0].pos;
     u32 i;
-    u32 j;
     u32 k;
     u32 pass;
+    f32 len;
+    Pl0fNode* n;
 
+    // `i` and `n` are the SAME variables in all three node loops: with `i` set in the first loop,
+    // gcse does not PRE the second loop's `i + 1` across the k loop (a fresh `u32 j` gets `r = j + 1`
+    // hoisted into the k preheader, so `j` is no biv and `&node[j]` a `mulli`); with `n` first
+    // mentioned in the first loop it is not `replaceable` in the second, so at the `if (n->fixed)`
+    // jump loop.c marks it `cant_derive` (the biv is `maybe_multiple` behind the k loop's back
+    // edge) and `&n->wpos` / `&n->fixPos` / `n->dist` stay displacements off the `mr r31,r25` copy
+    // instead of becoming their own stepping pointers.
     PSMTXRotRad(m, 'y', em->rot.y);
     TransMatrix(m, &em->pos);
     for (i = 0; i < 2; i++) {
-        Pl0fNode* n = &w->node[i];
-
+        n = &w->node[i];
         PSMTXMultVec(m, &n->pos, &n->wpos);
         n->wposOld = n->wpos;
         PSVECAdd(&n->wpos, &n->spd, &n->wpos);
         if (n->fixed) {
-            pl0fNodeLimit(n, pd, 1205);
+            PL0F_NODE_LIMIT(n, 1205);
         }
     }
     for (pass = 0; pass < 4; pass++) {
-        for (j = 0; j < 2; j++) {
-            Pl0fNode* n = &w->node[j];
-
+        for (i = 0; i < 2; i++) {
+            n = &w->node[i];
             if (n->fixed) {
-                pl0fNodeLimit(n, pd, 1226);
+                PL0F_NODE_LIMIT(n, 1226);
             }
             for (k = 0; k < 2; k++) {
-                if (j != k) {
+                if (i != k) {
                     Pl0fNode* o = &w->node[k];
-                    f32 len;
+                    f32 rate;
 
-                    PSVECSubtract(&o->wpos, &n->wpos, pd);
-                    len = PSVECMag(pd);
-                    PSVECScale(pd, pd, ((n->dist[k] - len) * 0.5f) * (1.0f / len));   // 0.5 before 1.0 in the pool
-                    PSVECAdd(&o->wpos, pd, &o->wpos);
-                    PSVECSubtract(&n->wpos, pd, &n->wpos);
+                    PSVECSubtract(&o->wpos, &n->wpos, &d);
+                    len = PSVECMag(&d);   // the routine's `len`: f12 (`fmr f12,f1`), not tied to f1
+                    rate = (n->dist[k] - len) * 0.5f;   // 0.5 enters the pool before 1.0
+                    PSVECScale(&d, &d, (1.0f / len) * rate);   // 1/len is the left operand of the fmuls
+                    PSVECAdd(&o->wpos, &d, &o->wpos);
+                    PSVECSubtract(&n->wpos, &d, &n->wpos);
                 }
             }
         }
     }
     for (i = 0; i < 2; i++) {
-        Pl0fNode* n = &w->node[i];
-
+        n = &w->node[i];
         n->fixed = 0;
         PSVECSubtract(&n->wpos, &n->wposOld, &n->spd);
         PSVECScale(&n->spd, &n->spd, pl0f_spd_damp);
     }
     pl0fScrAdjust(em);
-    PSVECSubtract(&w->node[0].wpos, &w->node[1].wpos, pd);
+    PSVECSubtract(&w->node[0].wpos, &w->node[1].wpos, &d);
     em->rot.x = 0.0f;
     em->rot.y = atan2f(d.x, d.z);
     RotMatrix(em->mat, &em->rot);
-    PSVECScale(pn0, pd, -1.0f);
+    PSVECScale(&w->node[0].pos, &d, -1.0f);
     TransMatrix(em->mat, &w->node[0].wpos);
-    PSMTXMultVec(em->mat, pd, pd);
-    TransMatrix(em->mat, pd);
+    PSMTXMultVec(em->mat, &d, &d);
+    TransMatrix(em->mat, &d);
     em->pos = d;
     pl0fGetBoatDir(em);
     pl0fWaterEff(em);
@@ -1216,6 +1228,10 @@ static f32 pl0f_boss_cam_dist = 5000.0f;
 static f32 pl0f_boss_cam_y2 = -1000.0f;
 static f32 pl0f_boss_cam_up2 = 1600.0f;
 static f32 pl0f_boss_cam_dist2 = 1800.0f;
+// Struct view of a static f32: the load is MEM_IN_STRUCT_P and stays below the preceding `cat = bpos`
+// struct-copy stores (a plain scalar load never aliases a varying struct store and floats above them).
+struct Pl0fF32V { f32 f; };
+#define PL0F_F32S(x) (((Pl0fF32V*) &(x))->f)
 static Vec pl0f_boss_cam_at_ofs = { -400.0f, 0.0f, 0.0f };
 static Vec pl0f_boss_cam_pos0 = { -1000.0f, 1500.0f, -5000.0f };
 static Vec pl0f_boss_cam_at0 = { 0.0f, 1000.0f, 5000.0f };
@@ -1233,6 +1249,7 @@ void pl0fBossCamMove(cPl0f* em, int hide)
     Vec d;
     Vec ang;
     Vec d2;
+    f32 len;
 
     cEm* boss = w->pBoss;   // read before the flags test (the original loads pBoss above the `andi.`)
 
@@ -1246,10 +1263,11 @@ void pl0fBossCamMove(cPl0f* em, int hide)
             cpos = pl0f_boss_cam_at_ofs;
             PSMTXMultVec(em->mat, &cpos, &cpos);
             PSVECSubtract(&bpos, &cpos, &d);
-            ang.x = -atan2f(d.y, SQRTF(d.x * d.x + d.z * d.z));
+            len = SQRTF(d.x * d.x + d.z * d.z);
+            ang.x = -atan2f(d.y, len);
             ang.y = atan2f(d.x, d.z);
             ang.z = 0.0f;
-            ang.y = em->rot.y + Muku2(em->rot.y, ang.y, PI / 4);
+            ang.y = Muku2(em->rot.y, ang.y, PI / 4) + em->rot.y;
             RotMatrix(m, &ang);
             TransMatrix(m, &cpos);
             d.z = SQRTF(d.x * d.x + d.y * d.y + d.z * d.z);
@@ -1267,11 +1285,12 @@ void pl0fBossCamMove(cPl0f* em, int hide)
             }
             cpos = d;
             cat = bpos;
-            if (cat.y < em->pos.y + pl0f_boss_cam_y2) {
-                cat.y = em->pos.y + pl0f_boss_cam_y2;
+            if (cat.y < em->pos.y + PL0F_F32S(pl0f_boss_cam_y2)) {
+                cat.y = em->pos.y + PL0F_F32S(pl0f_boss_cam_y2);
             }
             PSVECSubtract(&cat, &cpos, &d);
-            ang.x = -atan2f(d.y, SQRTF(d.x * d.x + d.z * d.z));
+            len = SQRTF(d.x * d.x + d.z * d.z);
+            ang.x = -atan2f(d.y, len);
             ang.y = atan2f(d.x, d.z);
             ang.z = 0.0f;
             if (ang.x > 0.2617994f) {
@@ -1282,9 +1301,10 @@ void pl0fBossCamMove(cPl0f* em, int hide)
             }
             RotMatrix(m, &ang);
             TransMatrix(m, &cpos);
-            d.z = SQRTF(d.x * d.x + d.y * d.y + d.z * d.z);
+            len = SQRTF(d.x * d.x + d.y * d.y + d.z * d.z);
             d.x = 0.0f;
             d.y = 0.0f;
+            d.z = len;
             PSMTXMultVec(m, &d, &cat);
             pl0f_camera.param.fovy = pl0f_camera.param.fovy * 0.9f + 3.0f;
         } else {
@@ -1304,10 +1324,11 @@ void pl0fBossCamMove(cPl0f* em, int hide)
             cpos = d;
             PSVECAdd(&em->pos, &bpos, &d);
             PSVECScale(&d, &d, 0.5f);
-            pl0f_camera.param.fovy = pl0f_camera.param.fovy * 0.9f + 4.0f;
             cat = d;
+            pl0f_camera.param.fovy = pl0f_camera.param.fovy * 0.9f + 4.0f;
             PSVECSubtract(&cat, &cpos, &d);
-            ang.x = -atan2f(d.y, SQRTF(d.x * d.x + d.z * d.z));
+            len = SQRTF(d.x * d.x + d.z * d.z);
+            ang.x = -atan2f(d.y, len);
             ang.y = atan2f(d.x, d.z);
             ang.z = 0.0f;
             if (ang.x > 0.2617994f) {
@@ -1318,33 +1339,27 @@ void pl0fBossCamMove(cPl0f* em, int hide)
             }
             RotMatrix(m, &ang);
             TransMatrix(m, &cpos);
-            d.z = SQRTF(d.x * d.x + d.y * d.y + d.z * d.z);
+            len = SQRTF(d.x * d.x + d.y * d.y + d.z * d.z);
             d.x = 0.0f;
             d.y = 0.0f;
+            d.z = len;
             PSMTXMultVec(m, &d, &cat);
         }
         PosToPos(&gcam->param.at, &cat, &pl0f_camera.param.at, 0.1f);
-        PosToPos(&gcam->param.pos, &cpos, &pl0f_camera.param.pos, 0.3f);
+        PosToPos(&gcam->param.pos, &cpos, &pl0f_camera.param.pos, 0.5f);
     } else {
-        Vec* pp;
-        Vec* pa;
-
         PSMTXRotRad(m, 'y', em->rot.y);
         TransMatrix(m, &em->pos);
         if (hide) {
             PSMTXMultVec(m, &pl0f_boss_cam_pos1, &cpos);
-            pp = &cpos;
             PSMTXMultVec(m, &pl0f_boss_cam_at1, &cat);
-            pa = &cat;
         } else {
             PSMTXMultVec(m, &pl0f_boss_cam_pos0, &cpos);
-            pp = &cpos;
             PSMTXMultVec(m, &pl0f_boss_cam_at0, &cat);
-            pa = &cat;
         }
         pl0f_camera.param.fovy = pl0f_camera.param.fovy * 0.9f + 4.0f;
-        PosToPos(&gcam->param.at, pa, &pl0f_camera.param.at, 0.3f);
-        PosToPos(&gcam->param.pos, pp, &pl0f_camera.param.pos, 0.5f);
+        PosToPos(&gcam->param.at, &cat, &pl0f_camera.param.at, 0.3f);
+        PosToPos(&gcam->param.pos, &cpos, &pl0f_camera.param.pos, 0.5f);
         PSVECSubtract(&pl0f_camera.param.at, &pl0f_camera.param.pos, &d2);
 #line 1929
         VECNormalize(&d2, &d2);
@@ -1645,6 +1660,7 @@ void pl0fCrashAdjustSet(cPl0f* em, Vec* p, int away)
         d.y = 0.0f;
         if (d.x == 0.0f && d.z == 0.0f) {
             d.x = 0.0f;
+            d.y = 0.0f;
             d.z = -1.0f;
             PSMTXMultVecSR(em->mat, &d, &d);
         }
@@ -2395,6 +2411,7 @@ static void plboat_R2_Swim(cPlayer* pl)
 {
     cPl0f* boat = PL_BOAT(pl);
     int first = 0;
+    int one;
     Vec v;
     f32 h;
 
@@ -2406,6 +2423,10 @@ static void plboat_R2_Swim(cPlayer* pl)
             first = 1;
         }
     }
+    // COMPILER-DIFF: #13 -- single-use constant set in another block: update_equiv_regs moves the
+    // `li` next to the x3E4 store (shortest qty -> r9 before the pG pointer) and the store's source
+    // crosses the calls, so it gets the TRUE store->call link and is issued first (source order).
+    one = 1;
     pG->flags_5010 |= 0x00400000;
     switch (pl->xFF) {
     case 0:
@@ -2416,7 +2437,7 @@ static void plboat_R2_Swim(cPlayer* pl)
         EffectEspgenDelete(0, 0x34, (int) pl);
         EffectEfmDelete(0, 0x34, (int) pl);
         pG->flags_5010 &= ~0x00100000;
-        pl->x3E4 = 1;
+        pl->x3E4 = one;
         pl->x3E0 = 0;
         pl->x3F0 = 0;
         pl->x3E8 = 4;
@@ -2775,13 +2796,13 @@ static void plboat_R2_R10dIn(cPlayer* pl)
         } \
         break; \
     case 2: \
+        pl->x4FD = 0; \
+        pl->x4FC = 0; \
         pl->blendRate500 = 0.0f; \
         pl->pos.x = px; \
         pl->pos.y = py; \
         pl->pos.z = pz; \
         pl->rot.y = ang; \
-        pl->x4FD = 0; \
-        pl->x4FC = 0; \
         boat->setPos(&pl->pos, ang); \
         EffectEspDelete(0, 0x35, (u32) boat, 0); \
         EffectEspgenDelete(0, 0x35, (int) boat); \

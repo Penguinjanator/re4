@@ -11512,3 +11512,66 @@ stmt.c/jump.c and confirmed with cc1plus probes:
   and the args issue li-first: 18-19; the original had no barrier -- its QI stores aliased the subArc load), JumpUpCk3 20,
   JumpUp3 20, ArmControl 56 (#6), em2b ShortRopeSet 3 (num-late + keep-alive re-ranks 5/100 to r7/r6: 17-34), ClothSet 11,
   AtkRtnCk 195 (#6) not iterated.
+
+### Player modules, fifth pass (pl0f Matching 104/104, `pl0f.rel` byte-identical, module flipped; 2026-09-10)
+
+- Harness /tmp/pl_p5 (pl_p4 copies with the paths rewritten; `tryv.py pl0f/pl0f FUNC variants.py [--asm NAME]`, `vapply.py`,
+  `sdiff.sh MOD/UNIT FUNC variants.py NAME` = structural diff with registers/labels/symbols masked -- read it before the word
+  count, which is dominated by register-name cascades). A flipped single-unit module needs its COMMON block:
+  `asm(".comm common_pl0f,48,4");` (make_rel: "COMMON symbols take 0x0 bytes, the original had 0x30").
+- **Redundant store as a store-order lever, deleted by reload_cse** (CrashAdjustSet 3 -> 0): `d.x = 0.0f; d.y = 0.0f; d.z =
+  -1.0f;` inside `if (d.x == 0.0f && d.z == 0.0f)` -- `d.y = 0.0f` repeats the store made just before the test (the same
+  three-line init as the `away` arm). cse keeps it, sched1 issues it first (the last use of the 0.0 pseudo, weight -1), which
+  pushes `stfs d.x` from cycle 1 to cycle 3 between `mr r4` and `mr r5` (the target's slot), and `reload_cse_regs` deletes it
+  as a no-op store after reload. Zero code; check with `-dS` that the ready list at t=1 has the redundant store on top.
+- **QI byte stores FIRST in a block to shift local-alloc's FPR order** (R10xOut trio 5 x 3 -> 0): case 2's `x4FD = 0; x4FC = 0;`
+  moved to the head of the case (before `blendRate500 = 0.0f; pos = ...; rot.y = ang`). The QI zero's dying store then leads the
+  store group in sched1 (LUID among the -1 weights), the 0.0 store moves one slot later and the `ang` store one earlier, so
+  QTY_CMP_PRI(ang) = 12/11 beats QTY_CMP_PRI(0.0) = 8/9 (was a 1.0/1.0 tie broken by birth order) and `ang` takes f11 / 0.0 f10.
+  sched2 puts the SF stores back in the same order (7 dependents vs 4 for the byte stores), so only the names move. Note REG_ALLOC_ORDER
+  is r0, r9, r11, r10, r8..r3, r31.. (rs6000.h) and f0, f13, f12, f11, f10, ..: the first-allocated block-local GPR takes r9.
+- **#13 single-use constant set in another block** (Swim 7 -> 0, tagged `// COMPILER-DIFF: #13`): `int one; ... one = 1;` in the
+  join block before `switch (pl->xFF)`, `pl->x3E4 = one;` in case 0. update_equiv_regs (REG_N_REFS 2, REG_BASIC_BLOCK < 0,
+  validate_replace of `(set (mem) (const_int 1))` fails, `depth == 0`) moves the `li` next to the store: qty length 1 -> allocated
+  first -> r9 (r0 is skipped by the fake-lifetime rule: the RMW temp dies in the adjacent insn), the pG pointer falls to r11; and
+  because the pseudo crosses the Effect*Delete calls at sched1 time, the store is not on `sched_before_next_call`, gets the TRUE
+  store->call link (prio 5 like the xFF-zero stores) and issues first = the target's source order `x3E4, x3E0, x3F0, x3E8`.
+  `one = 1` at the function top / before the `if (boat)` gives 71 (a different block structure), inside the case 56.
+- **BossCamMove 420 -> 0, all zero-code:** (1) `len = SQRTF(d.x*d.x + d.z*d.z); ang.x = -atan2f(d.y, len);` with a routine-scope
+  `f32 len` at all three sites (the inner-call-in-argument form loads `d.y` into a callee-saved f31 before the sqrtf call); (2) the
+  same `len` for `len = SQRTF(...); d.x = 0; d.y = 0; d.z = len;` in the SECOND and THIRD `d` blocks (store order y, z, x: the
+  sqrt result no longer dies at the d.z store) while the first block stays `d.z = SQRTF(..); d.x = 0; d.y = 0;` (z, x, y);
+  (3) `ang.y = Muku2(em->rot.y, ang.y, PI / 4) + em->rot.y;` (`fadds f1,f1,f0`: the call result is the left operand);
+  (4) the boss-branch pos rate is 0.5f (LC234 shared with `PSVECScale(&d, &d, 0.5f)`), not 0.3f; (5) `cat = d;` BEFORE the
+  `fovy = fovy * 0.9f + 4.0f` update in the else arm; (6) **struct view of a static f32 for load order**: `((Pl0fF32V*)
+  &pl0f_boss_cam_y2)->f` in `cat.y < em->pos.y + y2` -- true_dependence lets a plain scalar load float above the preceding
+  `cat = bpos` struct-copy stores (struct ref with a varying address vs a fixed non-struct scalar never conflict), the in-struct
+  load waits for them like the target's `lfs pos.y; lfs y2; lfs cat.y`; (7) **no `Vec* pp/pa` in the third arm**: write `&cat` /
+  `&cpos` in the PosToPos calls -- the PRE'd `(plus fp 72)`/`(plus fp 88)` pseudos are then the SAME allocnos as the boss arms'
+  copies (`mr r23,r30` in all four arms, r23/r29 everywhere), which also un-cross-jumps the third arm's second PSMTXMultVec
+  (its `&cat` locals get r29/r30 swapped between the arms) and fixes gcam r25 / bpos r24.
+- **BoatControl 203 -> 0, zero-code (the "#3 j+1" case is a SOURCE shape, not a compiler difference):**
+  - `PL0F_NODE_LIMIT` is a macro on the routine's `d` (see the source comment): `&d` call arguments are forced into pseudos, gcse
+    PREs `(plus fp 56)` once at bb 0 (`addi r23,r1,56`) and the per-block copies (`mr r29/r26/r31,r23`) are loop.c hoists of the
+    PRE copies; an inline taking `Vec*` called with `&d` gets integrate's `SET_CONST_EQUIV_DATA` (FIXED_BASE_PLUS_P, age -1 =
+    valid everywhere) and re-materialises `addi rX,r1,56` at every use; called with a pointer local it keeps `4(rP)`/`8(rP)`
+    member reads (only the offset-0 `(mem (reg P))` is rewritten by find_best_addr). `pLog.p->err` as in ScrAdjust.
+  - **`j + 1` is not PRE'd across the k loop when the counter is the SAME variable as the first loop's `i`** (u32 `i` set in
+    loop 1, reused for the j loop and the third loop, as the target's r24 already showed: `li r24,0` three times). A fresh `u32 j`
+    gets `r = j + 1` inserted at the k preheader (lcm: delayin stops at the k header, latein = the pre-loop block) and `j = r` at
+    the latch -> no biv, `&node[j]` a `mulli`. With `i` reused the increment stays at the latch (biv) and `&node[i]` is the
+    stepping giv `addi r25,r25,76` + `mr r31,r25`. R209Main / em3c PartsBombControl (`j+1`, still open) deserve the same test.
+  - **A routine-scope `Pl0fNode* n` reused by all three loops keeps the members as displacements off the giv copy** (target
+    `mr r31,r25; lwz 0(r31); addi r3,r31,16; addi r30,r31,52; lfs 64(r31); addi r28,r31,68`): `REGNO_FIRST_UID (n)` is in the
+    first loop, so in the j loop `n` is not `replaceable` (record_giv), and at the first jump after its set update_giv_derive
+    marks it `cant_derive` because the biv is `maybe_multiple` (the k loop's back edge follows the k-latch label), so `n + 16`
+    etc. are not givs. A block-local `n` is replaceable -> derives -> `&n->wpos`/`&n->fixPos`/`n->dist` become their own
+    stepping pointers (4 x `addi rX,rX,76`, three spills, frame 0xb0). `asm("" : "+r"(n))` before the k loop breaks the
+    sharing but is a second set of `n` (offset-giv `li r,0x168; lwzx; add` shape); a tied launder into a copy is propagated.
+  - **Routine-scope `f32 len` for both the squared length in the macro (`len = d.x*d.x + d.z*d.z; if (len > maxLen*maxLen)`)
+    and the k loop's `len = PSVECMag(&d)`**: as a global pseudo it is not tied by local-alloc -- the fmadds result is f12 (not
+    the dying fmuls f0) and the Mag result is copied `fmr f12,f1` instead of living in f1; the k loop's scale is written
+    `rate = (n->dist[k] - len) * 0.5f; PSVECScale(&d, &d, (1.0f / len) * rate);` (0.5 enters the pool first, 1/len is the left
+    fmuls operand; the single-expression `(1.0f / len) * (...)` puts 1.0 first in the pool).
+- Every pl0f fix this pass is zero-code except the Swim `#13` constant; no pins were needed (the "callee-saved assignment of
+  the camera Vec address pseudos" was the pp/pa variables, and BoatControl's callee-saved order followed from the `i`/`n` reuse).
