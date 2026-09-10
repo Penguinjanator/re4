@@ -223,6 +223,12 @@ Sint32 ADXSJD_GetDecNumSmpl(ADXSJD sjd)
 	return sjd->dec_nsmpl;
 }
 
+/* dead-stripped: the first reference to pl2setsfreqfunc places it before adxsjd_obj in .bss */
+void ADXSJD_EntryPl2SetSfreqFunc(void (*func)(ADXB adxb, Sint32 sfreq))
+{
+	pl2setsfreqfunc = func;
+}
+
 void ADXSJD_ExecServer(void)
 {
 	Sint32 i;
@@ -406,9 +412,13 @@ void adxsjd_decexec_start(ADXSJD sjd)
 	Sint16 ftrlen;
 	ADXB adxb;
 	SJ sji;
-	Sint32 len;
-	Sint32 i;
 	Sint32 blksmpl;
+	/* COMPILER-DIFF: M1 -- the hoisted 0x7FFFFFFF (`lis 0x8000` + subi) of the padding-skip loop takes
+	 * the dead adxb register r31 in the target and len r28; as a compiler temporary it gets r28 and len
+	 * r31. An asm-defined `register` constant declared between len and i gives the target's order. */
+	Sint32 len;
+	register Sint32 big;
+	Sint32 i;
 
 	adxb = sjd->adxb;
 	sji = sjd->sji;
@@ -436,8 +446,9 @@ void adxsjd_decexec_start(ADXSJD sjd)
 		}
 		if (sjd->lnksw != 0) {
 			/* skip the zero padding up to the next linked file */
+			asm { lis big, 0x8000 }
 			for (;;) {
-				SJ_GetChunk(sji, SJ_CK_DATA, 0x7FFFFFFF, &sjd->inck);
+				SJ_GetChunk(sji, SJ_CK_DATA, big - 1, &sjd->inck);
 				len = sjd->inck.len;
 				if (len == 0) {
 					return;
@@ -474,30 +485,33 @@ void adxsjd_decexec_start(ADXSJD sjd)
 	ADXB_Start(adxb);
 }
 
-/* ADXB write callback: where and how much PCM may be written.
- * M1: parameter registers (original sjd r31, pos r24, nsmpl r29, trap r30). */
-void *adxsjd_get_wr(ADXSJD sjd, Sint32 *pos, Sint32 *nsmpl, Sint32 *trap)
+/* ADXB write callback: where and how much PCM may be written. */
+void *adxsjd_get_wr(register ADXSJD sjd, Sint32 *pos, Sint32 *nsmpl, Sint32 *trap)
 {
 	SJ sjo0;
 	Sint32 i;
 	Sint32 n;
+	/* COMPILER-DIFF: M1 -- asm-defined `register` copy of sjd (coalesced into the prologue mr) ranks it r31
+	 * above trap r30 / nsmpl r29; the plain parameter gets r29 below them. */
+	register ADXSJD s;
 
-	sjo0 = sjd->sjo[0];
-	for (i = 0; i < ADXB_GetNumChan(sjd->adxb); i++) {
-		SJ_GetChunk(sjd->sjo[i], SJ_CK_FREE, 0x4000, &sjd->outck[i]);
+	asm { mr s, sjd }
+	sjo0 = s->sjo[0];
+	for (i = 0; i < ADXB_GetNumChan(s->adxb); i++) {
+		SJ_GetChunk(s->sjo[i], SJ_CK_FREE, 0x4000, &s->outck[i]);
 	}
-	*pos = (sjd->outck[0].data - (Uint8 *)SJRBF_GetBufPtr(sjo0)) / 2;
-	n = sjd->maxdecsmpl;
-	if (sjd->outck[0].len / 2 < n) {
-		n = sjd->outck[0].len / 2;
+	*pos = (s->outck[0].data - (Uint8 *)SJRBF_GetBufPtr(sjo0)) / 2;
+	n = s->maxdecsmpl;
+	if (s->outck[0].len / 2 < n) {
+		n = s->outck[0].len / 2;
 	}
 	*nsmpl = n;
-	if (sjd->trap_nsmpl >= 0) {
-		*trap = sjd->trap_nsmpl - sjd->trap_cnt;
+	if (s->trap_nsmpl >= 0) {
+		*trap = s->trap_nsmpl - s->trap_cnt;
 	} else {
 		*trap = 0x1FFFFFFF;
 	}
-	return ADXB_GetPcmBuf(sjd->adxb);
+	return ADXB_GetPcmBuf(s->adxb);
 }
 
 /* analyse the header at the start of the input.

@@ -205,7 +205,7 @@ void mfCiStopTr(MFCI mfci)
 	SVM_Unlock();
 }
 
-Sint32 mfCiReqRd(MFCI mfci, Sint32 nsct, Uint8 *buf)
+Sint32 mfCiReqRd(register MFCI mfci, Sint32 nsct, Uint8 *buf)
 {
 	Uint32 adr;
 	Uint32 size;
@@ -213,57 +213,63 @@ Sint32 mfCiReqRd(MFCI mfci, Sint32 nsct, Uint8 *buf)
 	Sint32 rem;
 	Sint32 rd_ofst;
 	Sint32 rd_nbyte;
+	/* COMPILER-DIFF: M1 -- the target ranks the parameters mfci r29 / buf r28 / nsct r27 (ours buf r29,
+	 * mfci r28); an asm-defined `register` copy of mfci (coalesced into the prologue `mr.`, no extra
+	 * instruction) is what gives mfci the top register. */
+	register MFCI p;
 
-	if (mfci == NULL) {
+	asm { mr p, mfci }
+
+	if (p == NULL) {
 		mfci_CallErr("E01100307:handl is null.", NULL);
 		return 0;
 	}
 	if (nsct < 0) {
-		mfci_CallErr("E01100308:nsct < 0.(mfCiReqRd)", mfci);
+		mfci_CallErr("E01100308:nsct < 0.(mfCiReqRd)", p);
 		return 0;
 	}
 	if (buf == NULL) {
-		mfci_CallErr("E01100309:buf is null.(mfCiReqRd)", mfci);
+		mfci_CallErr("E01100309:buf is null.(mfCiReqRd)", p);
 		return 0;
 	}
 	if (nsct == 0) {
-		mfci->stat = MFCI_STAT_COMPLETE;
+		p->stat = MFCI_STAT_COMPLETE;
 		return 0;
 	}
-	if (mfci->stat == MFCI_STAT_READING) {
+	if (p->stat == MFCI_STAT_READING) {
 		return 0;
 	}
 	SVM_Lock();
-	mfci->numtr = 0;
-	rem = mfci->fsize_sct - mfci->pos_sct;
+	p->numtr = 0;
+	rem = p->fsize_sct - p->pos_sct;
 	if (nsct < rem) {
 		rem = nsct;
 	}
-	mfci->rqsct = rem;
-	rd_ofst = mfci->pos_sct * mfci->sctlen;
-	rd_nbyte = mfci->rqsct * mfci->sctlen;
+	p->rqsct = rem;
+	rd_ofst = p->pos_sct * p->sctlen;
+	rd_nbyte = p->rqsct * p->sctlen;
 	if (rd_nbyte == 0) {
-		mfci->stat = MFCI_STAT_COMPLETE;
+		p->stat = MFCI_STAT_COMPLETE;
 		SVM_Unlock();
 		return 0;
 	}
-	mfci->rd_ofst = rd_ofst;
-	mfci->rd_nbyte = rd_nbyte;
-	mfci->stat = MFCI_STAT_READING;
-	adr = mfci_get_adr_size(mfci->fname, &size);
-	cpy = mfci->rd_nbyte;
-	if (cpy > (Sint32)(size - mfci->rd_ofst)) {
-		cpy = size - mfci->rd_ofst;
+	p->rd_ofst = rd_ofst;
+	p->rd_nbyte = rd_nbyte;
+	p->stat = MFCI_STAT_READING;
+	adr = mfci_get_adr_size(p->fname, &size);
+	cpy = p->rd_nbyte;
+	if (cpy > (Sint32)(size - p->rd_ofst)) {
+		cpy = size - p->rd_ofst;
 	}
 	SVM_Unlock();
-	memcpy(buf, (void *)(adr + mfci->rd_ofst), mfci->rd_nbyte);
-	memset(buf + cpy, 0, mfci->rd_nbyte - cpy);
+	memcpy(buf, (void *)(adr + p->rd_ofst), p->rd_nbyte);
+	memset(buf + cpy, 0, p->rd_nbyte - cpy);
 	SVM_Lock();
-	mfci->numtr = mfci->rqsct * mfci->sctlen;
-	mfci->pos_sct += mfci->rqsct;
-	mfci->stat = MFCI_STAT_COMPLETE;
+	p->numtr = p->rqsct * p->sctlen;
+	p->pos_sct += p->rqsct;
+	p->stat = MFCI_STAT_COMPLETE;
 	SVM_Unlock();
-	return mfci->rqsct;
+	return p->rqsct;
 }
 
 Sint32 mfCiTell(MFCI mfci)

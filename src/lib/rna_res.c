@@ -116,8 +116,14 @@ void RNARES_Setup(Uint32 aram_ptr, Sint32 aram_size)
 
 void RNARES_Init(void)
 {
-	Uint32 ofs;
-	Uint32 ptr;
+	/* COMPILER-DIFF: M1 -- the target numbers the loop's volatiles ofs r4, 0x1000 r5, ptr+ofs r6, ptr r7,
+	 * res r8; with the two compiler temporaries (the hoisted constant and the sum) named as asm-defined
+	 * `register` locals every volatile is numbered in declaration order from r4. The zero-code form
+	 * (`res->size = RNARES_BUF_SIZE / 2; res->buf = (ptr + ofs) >> 1`) ranks the temporaries first. */
+	register Uint32 ofs;
+	register Uint32 half;
+	register Uint32 sum;
+	register Uint32 ptr;
 	Uint32 i;
 	Uint32 n;
 	RNARES_OBJ *res;
@@ -129,18 +135,15 @@ void RNARES_Init(void)
 			rnares_aram_ptr = ARAlloc(RNARES_DEF_ARAM_SIZE);
 		}
 		memset(rnares_obj, 0, sizeof(rnares_obj));
-		/* M1: the target allocates the i*0x2000 induction variable first (r4, a compiler temporary),
-		 * then the 0x1000 constant and the sum (r5/r6), then ptr r7 / res r8; a source-level `ofs`
-		 * ranks after the temporaries (r6) whatever its declaration position, `i * RNARES_BUF_SIZE`
-		 * gives the IV last (r7) and the hoisted aram_ptr load r6. Inlined-helper and indexed forms
-		 * are worse. */
 		n = rnares_nbuf;
 		res = rnares_obj;
 		ptr = rnares_aram_ptr;
 		ofs = 0;
+		asm { li half, RNARES_BUF_SIZE / 2 }
 		for (i = 0; i < n; i++, res++) {
-			res->buf = (ptr + ofs) >> 1;
-			res->size = RNARES_BUF_SIZE / 2;
+			asm { add sum, ptr, ofs }
+			res->buf = sum >> 1;
+			res->size = half;
 			ofs += RNARES_BUF_SIZE;
 		}
 	}

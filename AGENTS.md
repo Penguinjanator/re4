@@ -1874,6 +1874,7 @@ MWCC idioms seen so far (2.4.7, -O4,p):
   `MPV_SkipFrmSj`: original mpv=r31, code=r30, sj=r29, ours r29/r31/r30; sfd_uo `SFUO_Create`
   reuses the `uo` register as the stepping induction pointer; sfx_alp `SFXA_Create` constant
   registers) — OPEN, all statement permutations of SFXA_Create's init block were brute-forced.
+  (mpv_frm resolved in CRI pass 5: asm-defined `register` copy of the first parameter.)
 - OPEN (mpv_cmc `MPVCMC_InitMcOiRt/InitObj`): the original keeps `addi r5,r3,0x124` as a separate
   base for six `stw off(r5)` stores into a member array while every source form tried (pointer local,
   loops, casts, volatile, inline helper) folds the offsets into `r3`.
@@ -2458,6 +2459,79 @@ for each `(label, text)` of `VARIANTS` and print the match%, `apply.py` / `apply
   `register` combos, local copies, asm uses), mwsfdply `MWSFPLY_SetFlowLimit` (lwz r5 / xoris r4:
   asm lwz, locals, getter, 2nd parameter), adx_dcd `ADX_DecodeInfoAinf` (q r4: 120 declaration
   permutations, asm add, CSE forms). M2 unchanged: adx_dcd `ADX_GetCoefficient`, dct_ac.
+
+### CRI pass 5 (rna_res, mfci, mpv_frm Matching; adx_sjd 35 -> 37/38 + .bss order; adx_dcd DecodeInfoAinf 100%; 2026-09-10)
+Harness: /home/adityas/.cache/cri5/ (cri4 copied; `tryregs.py unit START END variants.py off1,off2,..
+[--target]` prints OUR instruction at the given .text offsets per variant next to the target's — the
+fastest way to read which value got which register across a batch). Two M1 levers found this pass,
+both tagged `// COMPILER-DIFF: M1`:
+- **Naming the compiler temporaries makes the volatile numbering declaration order.** Ours ranks the
+  compiler's own temporaries (hoisted constants, `a + b` sums, hoisted pool/global addresses, macro
+  byte loads) BEFORE the source locals; the original ranks the source locals first. When every
+  temporary of the block is an asm-defined `register` local (`asm { li half, 0x1000 }`,
+  `asm { add sum, ptr, ofs }`, `asm { lbz b1, 1(q) }`), all volatiles are numbered by DECLARATION
+  ORDER from the lowest free register, so the target's numbering can be written down directly:
+  rna_res `RNARES_Init` (`ofs, half, sum, ptr, res` -> r4..r8, 100%), adx_dcd `ADX_DecodeInfoAinf`
+  (the four `ADX_LD32` byte loads in one asm block; q then takes the freed `len` r4 and the bytes
+  r3/r7/r8, 100%; a source `Uint32 b0..b3` combined with the same shifts keeps the rlwimi/or shape).
+  Limits: a single-use asm `li` is constant-propagated back into an `li r0` temp (sfx_alp's 0x1f/0x7f
+  cannot be named — still M1); an asm `lis hi / addi base, hi, sym@l` address changes how the OTHER
+  globals of the function are loaded (adx_stmc: -4 bytes) — do not name pool/global addresses; an
+  asm-defined value defined right after a call still gets r0 (adx_sjd `decode_prep` `lwz r5` stays
+  M1).
+- **An asm-defined `register` copy of the FIRST parameter ranks it above the other callee-saved
+  values.** Target pattern: first parameter r31 (or the top free callee-saved), the remaining
+  parameters BELOW the locals, i.e. mfci `mfCiReqRd` mfci r29 / buf r28 / nsct r27, adx_sjd
+  `adxsjd_get_wr` sjd r31 / trap r30 / nsmpl r29, mpv_frm `MPV_SkipFrmSj` mpv r31 / code r30 / sj r29,
+  `MPV_DecodeFrmSj` mpv r31 / nfrm r30 / nbyte r29 / frm r28 / sj r27; ours puts the first parameter
+  at the bottom (reverse parameter order). `register T p; asm { mr p, param }` (with `register` on the
+  parameter, all uses through `p`, placed at the top of the body) is coalesced into the prologue
+  `mr`/`mr.` and gives the target order in all four functions (100% each). Declaring `p` after the
+  other locals or putting the asm after the first call breaks it (mpv_frm -2%/-6%). It does NOT fix
+  the 2-parameter callee-saved swap of sfd_see `SFSEE_ExecServer` (wk/req are inlined-helper values,
+  not parameters: every asm/`register` form there re-ranks `sfd` itself, 26 forms) nor mwsfdsfx
+  `CnvFrmInfToSfx` (the pool base is the value out of place, see above).
+- Callee-saved numbering of an asm-defined constant follows its declaration position among the C
+  locals: adx_sjd `adxsjd_decexec_start` (`lis 0x8000` of the hoisted 0x7FFFFFFF takes the dead adxb
+  r31 in the target, len r28, i r27): `Sint32 len; register Sint32 big; Sint32 i;` with
+  `asm { lis big, 0x8000 }` before the loop and `big - 1` as the argument gives 100%; the five other
+  orders give r27/r28/r31 permutations (a `Sint32 lim = 0x7FFFFFFF` local is folded back).
+- adx_sjd `.bss` order (pl2setsfreqfunc before adxsjd_obj) needs a dead
+  `ADXSJD_EntryPl2SetSfreqFunc` setter before `ADXSJD_ExecServer` (first-reference rule; the unit
+  had passed objdiff for months with the order wrong — bytecmp's NOBITS check caught it).
+- sfd_pts `SFPTS_ReadPtsQue` register survey (target: st r3, idx r4, hn r7, i r8, e r9, end r10,
+  ent r11, rd r12): parameters of the inlined helper rank BEFORE its locals (making `i` a helper
+  parameter moves it r4 -> r7 and pushes `e` down to r4); the inlined helper's values always rank
+  before the caller's `hn` (r9 in every form: helper with hn parameter, `ent` computed inside, the
+  loop in the caller with `goto found` gives hn r7 / i r8 but loses the `beq next; b found` shape and
+  the callee-saved num/ofst/size); `st` as an asm `lbz` takes the freed r3 like the target. 25 forms,
+  still M1 (37 words).
+- sfd_see `SFSEE_ExecServer`: `static inline` on `sfsee_ExecEstimate` with the CalcByteRate body
+  inlined by hand (so the second `wk` is the SAME variable) changes nothing; `register`/asm on `see`
+  or the parameter re-ranks `sfd` to r30 and wk to r31. 24 words, M1.
+- mwsfdply `MWSFPLY_SetFlowLimit`: the target's `lwz r5; xoris r4, r5` (value and xoris result in
+  different registers) is the "dying operand not reused in place" M1 flavour; an asm `xoris x, v`
+  is coalesced into `v` (`xoris r6, r6`), the hand-written conversion (union + `d = u.f - 2^52`)
+  keeps the shape but swaps f0/f1 and the lis registers. 6 words, M1.
+- sfx_cnv `SFX_MakeTable`: the target shares ONE `li r0, 0` between `i = 0` (the unroller's guard
+  compare) and the 16 `stb` zero stores; ours re-materialises the zero after the guard whatever the
+  spelling (`i & 0`, `i - i`, a `z` local, asm-defined `z` — placed before the branch but not merged,
+  do-while, while, plain for). Compiler-build difference in constant CSE across the guard; plus the
+  fp-conversion stack slots. Not flippable.
+- adx_dcd `ADX_GetCoefficient` (M2): the target loads its 9 constants unpooled AND three of them
+  (`2.0`, `3.0`, `1.0f`) through a materialised address (`lis; addi r5; lfd f9, 0(r5)`) while the
+  others are direct `lfd f, @l(r)`; the only route is asm `lis/lfd` from named `static const`
+  objects for 8 of them (leaving 2 compiler-visible objects, below the pooling threshold) — a
+  whole-function rewrite, not done. dct_ac `DCT_AcInit` same class.
+- adx_stmc `adxstmf_create`: the `asm { addi o, o, 0x60 }` form still puts the hoisted `adxstmf_obj`
+  base (a compiler address temporary) in r3 above the IV `o` r4; naming the base via asm `lis/addi`
+  gives the first inlined copy the target's loop exactly but the second copy and the
+  `adxstmf_rtim_ofst` loads change (624 vs 628 bytes). 1 instruction, kept zero-code.
+- sfd_cre `sfcre_AnalyMpv`: `size -= ofs + 1` is computed in place (`addi r4, r4, 1` into ofs's
+  register) where the target uses a fresh r0 and keeps ofs r6 / b4 r4; asm byte loads and eight
+  declaration/source orders leave ofs r4 / b4 r6. cri_cvfs `cvFsAddDev`: the parameter copy lever
+  gives devname r29 / vtbl r28 but the `mr r0, r3; ...; mr r28, r0` bounce of the two-definition
+  `vtbl` and the `beq add; b check` shape remain (-1.3% net, not applied).
 
 ## REL modules
 

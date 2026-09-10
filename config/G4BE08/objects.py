@@ -1599,7 +1599,17 @@ MATCHING.update({
     "lib/mps_dec.c": True,  # mpsdec_DecPackHd: reader init written out (`cur = p[0]; ... cur <<= pos;`), locals declared p, pos, cur, nxt
 })
 
+# CRI pass 5 (2026-09-10)
+MATCHING.update({
+    "lib/rna_res.c": True,  # RNARES_Init: the hoisted 0x1000 and ptr+ofs named as asm-defined `register` locals -> volatiles in declaration order ofs, half, sum, ptr, res (COMPILER-DIFF: M1)
+    "lib/mfci.c": True,  # mfCiReqRd: asm-defined `register` copy of the mfci parameter (coalesced into the prologue mr.) ranks it r29 above buf r28 (COMPILER-DIFF: M1)
+    "lib/mpv_frm.c": True,  # MPV_SkipFrmSj/MPV_DecodeFrmSj: asm-defined `register` copy of hn ranks mpv r31 above the other parameters and locals (COMPILER-DIFF: M1)
+})
+
 # DOL structural pass (2026-09-10)
 MATCHING.update({
     "game/dbmodule.cpp": True,  # DrawObjWireframe: do{..}while(1) command loop (no rotation), ISet(DB_poly_num), `*pidx++ =` idx stores, `idx[2] = idx[1]; pidx = &idx[1];`, one `s16* v`, own `u32 m2` for the strip emit loop
+})
+
+MATCHING.update({
 })

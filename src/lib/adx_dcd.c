@@ -124,7 +124,14 @@ Sint32 ADX_DecodeInfoAinf(Uint8 *data, Sint32 len, Sint32 *ainfsiz, void *ainf, 
 	Sint32 need;
 	Sint32 ofs;
 	Uint8 *p;
-	Uint8 *q;
+	/* COMPILER-DIFF: M1 -- the target gives q the freed len register r4 and the ADX_LD32 byte temporaries
+	 * r3/r7/r8; ours ranks the macro's temporaries first (q r8). With the four byte loads named as
+	 * asm-defined `register` locals the volatiles are numbered in declaration order. */
+	register Uint8 *q;
+	register Uint32 b0;
+	register Uint32 b1;
+	register Uint32 b2;
+	register Uint32 b3;
 
 	*ainfsiz = 0;
 	err = adx_GetVer(data, len, &ver, &minor);
@@ -142,7 +149,7 @@ Sint32 ADX_DecodeInfoAinf(Uint8 *data, Sint32 len, Sint32 *ainfsiz, void *ainf, 
 		return -1;
 	}
 	/* default + conditional store defines ofs in its callee-saved register (`li r28`); the ternary
-	 * computes a temporary and lets `ofs += 4` define the variable. M1: q takes r8, not r4. */
+	 * computes a temporary and lets `ofs += 4` define the variable. */
 	ofs = 0x14;
 	if (ver == 4) {
 		ofs = 0x20;
@@ -153,7 +160,13 @@ Sint32 ADX_DecodeInfoAinf(Uint8 *data, Sint32 len, Sint32 *ainfsiz, void *ainf, 
 		ofs += 0x14;
 	}
 	q = data + ofs;
-	if (ADX_LD32(q) != ADX_AINF) {
+	asm {
+		lbz b1, 1(q)
+		lbz b0, 0(q)
+		lbz b2, 2(q)
+		lbz b3, 3(q)
+	}
+	if (((b0 << 24) | (b1 << 16) | (b2 << 8) | b3) != ADX_AINF) {
 		return -2;
 	}
 	*ainfsiz = *(Sint32 *)(q + 4);
