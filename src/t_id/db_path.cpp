@@ -38,14 +38,14 @@ static s8 path_edit_mode = 0;  // step 2: 0 = moving a grabbed point, 1 = insert
 
 static Vec path_draw_prev;
 
-void DbPath(DbPathWork* w, int x, int y)
+int DbPath(DbPathWork* w, int x, int y)
 {
     w->blink++;
     w->x = x;
     w->y = y;
     pathDraw(w, &w->ofs);
     pathCursor(w);
-    path_routine_tbl[w->routine](w);
+    return path_routine_tbl[w->routine](w);
 }
 
 static int pathQuit(DbPathWork* w)

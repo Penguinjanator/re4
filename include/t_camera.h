@@ -52,7 +52,7 @@ struct TcCdat {                  // camera cut, 0x394
     s8 cam_no;                   // 0x02
     u8 flags;                    // 0x03
     Vec aim_ofs;                 // 0x04
-    u16 frame[26];               // 0x10  rail key frames (type 6/7)
+    s16 frame[26];               // 0x10  rail key frames (type 6/7)
     union {
         f32 floor;               // 0x44  shoulder camera floor ratio (type 8: CameraCut::floor_ratio)
         Vec dir;                 // 0x44  type 4
@@ -80,14 +80,14 @@ struct TcLdat {                  // camera lerp, 0x10 (CameraLerp)
 struct TcWork {
     s8 routine;                  // 0x000  tcRoutineTbl index (tcInit, tcMenu, tcEdit, tcLoad, tcSave, tcQuit)
     s8 editMode;                 // 0x001  tcEdit: 0 select, 1 edit
-    s8 x2;                       // 0x002
-    u8 pad_3;
+    s8 x2;                       // 0x002  tcEdit_select mode: 0 list, 1 flag/copy/delete, 2 links, 3 attributes
+    s8 x3;                       // 0x003  tcEdit_select step
     s8 cursor;                   // 0x004  main menu cursor
     s8 subCursor;                // 0x005  sub menu cursor
-    s8 x6;                       // 0x006
-    u8 pad_7;
+    s8 x6;                       // 0x006  editor menu cursor
+    s8 x7;                       // 0x007  area vertex insert/delete menu cursor
     TcAdat* pAdat;               // 0x008  current area
-    u8 pad_C[0x10 - 0xC];
+    TcLdat* pLdat;               // 0x00C  link being edited (tcEdit_select)
     Camera cam;                  // 0x010  tool copy of pG->Cam
     u8 pad_108[0x10C - 0x108];
     JOY joy;                     // 0x10C  pad snapshot (Joy[0]; trg at 0x120, rep at 0x128)
@@ -102,12 +102,19 @@ struct TcWork {
     s8 adatNum;                  // 0x5E3
     s8 ldatNum;                  // 0x5E4
     u8 adatTypeNum[0x40];        // 0x5E5  per camera type
-    u8 pad_625[0x627 - 0x625];
-    s8 x627;                     // 0x627
-    u8 pad_628[0x62E - 0x628];
+    s8 x625;                     // 0x625  area editor: current vertex (-1 all)
+    s8 x626;                     // 0x626  area editor: current side
+    s8 x627;                     // 0x627  camera editor: current key point
+    s8 x628;                     // 0x628  camera editor: current segment (insert)
+    s8 x629;                     // 0x629  camera editor: copy side (1 = right)
+    u8 pad_62A;
+    u8 x62B;                     // 0x62B  camera type changed (fix_camera_dat)
+    u8 x62C;                     // 0x62C  camera type edit active
+    s8 x62D;                     // 0x62D  camera type before the edit
     u8 viewMode;                 // 0x62E  1 = working view
     u8 x62F;                     // 0x62F
-    u8 pad_630[0x632 - 0x630];
+    s8 x630;                     // 0x630  attribute bit cursor
+    u8 x631;                     // 0x631  rail editor: offset edits the target (1) or the campos (0)
     u8 previewReq;               // 0x632
     u8 preview;                  // 0x633  preview on
     s8 x634;                     // 0x634  CamCtrl+0x692
@@ -119,7 +126,8 @@ struct TcWork {
     u8 blink;                    // 0x63A  frame counter
     u8 pad_63B;
     cLightTool* pLightTool;      // 0x63C
-    u8 pad_640[0x644 - 0x640];
+    u8 x640;                     // 0x640  core camera data (CoreDataRead) instead of room data
+    u8 pad_641[0x644 - 0x641];
 };
 
 extern TcWork* pTc;

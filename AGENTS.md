@@ -4815,3 +4815,71 @@ target) stays unresolved and `make_rel` then fails with "undefined symbol".
 - A `#include`d shared source (em_wrap_v2.cpp -> em_wrap.cpp) is not rebuilt by ninja when the included
   file changes: touch it.
 
+
+### Stage rooms, st2_2/st2_3 last-nine pass (r21d 31/33, r213 27/30, r223 28/29, r227 26/30, r214 15/25 written; sections identical; 2026-09)
+- Units: src/st2/r21d.cpp, r213.cpp, r223.cpp, r227.cpp, r214.cpp (all with the `RxxxWorkPtr { p; }`
+  struct-member work pointer). The `fn_<mod>_XXXX` 0x3B8 block mcmp reports MISSING is the cLight
+  linkonce copy `place_linkonce_module` inserts (bytes present in the .o, nameless); ignore it. r212,
+  r221, r226, r22c not started.
+- `while (1)` vs `for (;;)` differ in GCC 2.95: a `for (;;) { ..; if (c) break; SceSleep(1); }` whose
+  body starts with a conditional block gets rotated (`b body; L: SceSleep; body: ..; ble L`), `while
+  (1)` keeps `..; bgt exit; SceSleep; b top` (r227 checkBox0Fall, setEmOnElv2 -- the latter also gained
+  the target's `&local` copies `mr r23,r28` once written as `while (1)` with `continue`s).
+- A flag variable cleared after a call (`SndStrReq(..); on = 0;` instead of before it) swaps which of
+  two hoisted compares (`cmpwi cr7/cr6, on, 1/0`) gets cr7 (r223 StrCheck): the compare pseudo's
+  post-sched live length decides.
+- `if (RsfCheck(..) == 0) return 0; return 1;` gives `li r3,0; andis.; beq; li r3,1` (r223 isZouenGo2);
+  `int v = 0; if (..) v = 1; return v;` keeps the value live across the call in r31.
+- Store-order of `SetPos`/`SetAng` with literal coordinates where the object comes from a call: the
+  target calls `SmdGetObjPtr` BEFORE the stores -- a block macro `{ cModel* m_ = (o); v.x = X; v.y = Y;
+  v.z = Z; m_->setPos(&v); }` on the caller's Vec (r223 SET_POS_XYZ); an inline taking `Vec*` keeps
+  the Vec address in a register instead (`addi r31,r1,N; mr r4,r31`).
+- A loop test written `for (i = 0; (u32) i < 4; i++) { if (i == 3 || em[i].ckFindPL() == 1) break; ..}`
+  keeps `cmplwi 3; cmpwi cr7 3; bgt; beq cr7` (r223 EmCheck); `(u32) i < 4 && i != 3` in the condition
+  is range-folded to `cmplwi 2`.
+- `u32 timer;` declared at the top but `timer = 0;` written right before the `for (;;)` puts the `li
+  r30,0` after the init loop (r223 EmCheck); the r27 = timer+1 copy across the inner loop is automatic.
+- Two `case` arms with identical bodies (`case 0: A; break; case 1: A; break; default: B;`) reproduce
+  `cmpwi 0; beq A; cmpwi 1; bne B` when the bodies share one function-scope `void* mod` (identical
+  stack slot -> cross-jumped); `case 0: case 1:` gives the range test `cmpwi 1; bgt; cmpwi 0; blt` (r227
+  Evt_R227S02_Func). An extra `case 0: break;` in a funcMode switch adds the target's `ble end`.
+- `R227Work*& wp = r227_work.p; wp = MEM_CALLOC(..)` keeps the following `lwz pG` below the work store
+  (r223/r227 Init, the r21d idiom); `BitOn(obj->be_flag, 0x20)` before a `pG->room_id_prev` test keeps
+  that pG load below the store (r227 initGondola).
+- `cEmWrap e0; e1; ..` declared AFTER the leading `SceSleep`/`RsfSet`/`setEm` statements: the ctor calls
+  follow them (C++ mid-block declarations, r227 setEm2/setEm3/setEm3_after/setEmOnElv1).
+- Const-folded locals: `const f32 step = 10.0f; const f32 power = 20.0f;` declared where the pool wants
+  them fold into their uses (fresh `lfs` per QuakeExec call, the step hoisted by loop.c) while fixing the
+  pool order (r227 operateElv). A `static const Vec` INSIDE a function is output before that function's
+  pool and copied at the use site (`v = gotoPos;`, r214 execCatapult); a file-scope `static const` table
+  is output after the strings at the end (r214 r214_catTbl / r214_rockOfs).
+- `int i` (signed) loop counters used only as array indices are reversed by loop.c into `subic.; bne`
+  (r214 checkCatapult, throwRock `for (i = 10; i > 0; i--)`); `u32 i` is not (`cmplwi; ble`). A
+  `do { .. d++; i++; } while (d <= &tbl[2]);` pointer walk keeps the pool `lfs` inside the loop and the
+  `mr r29, r26` table copy (r214 initCatapult).
+- Room-side `class cEmWrapD : public cEmWrap { ~cEmWrapD() {} };` for local `cEmWrap x[4]` arrays: the
+  target has the ctor loop AND an empty dtor loop (`cmpw; beq; L: subi 0xc; cmpw; bne`, r214
+  checkEmReset).
+- Store order inside switch arms follows the "dying-first" rule the other way round from source order:
+  `rockReady = 0; step = 2;` gives `stw step; stb rockReady` (r214 cCatapult214::move, three arms).
+- COMPILER-DIFF 1 also shows in a *definition's* prologue (r223 reva_common_move: `fmr f28,f1; fmr f29,f2`
+  before `mr r29,r5`); an asm-labelled definition cannot be assembled, so it stays a residual.
+- Old prototypes the rooms were built against: `cEmRack::setBreak(Vec*)` (r227: `void
+  cEmRackSetBreakV(cEmRack*, Vec*) asm("setBreak__7cEmRack")`), `SceAtDataSet_exec` 5th arg `(void*) 1`.
+- Residual shapes left: fp-register order of 4 hoisted loop constants when pool order and priority order
+  conflict (r227 checkBox0/1Fall, 14 words each); `&cMes.getWork()` pointer tied to r31 across the call
+  (r227 operateElv, 2 words); `rot.x/y/z` literal store order z,y,x with the y literal first in the pool
+  (r227 execGondola, 2 words); Init's inline `Vec*` param vs local Vec address (r213); FadeSetW register
+  pair (r21d moveFence); PRE'd `&local` used through `mr r4,r31`/`4(r31)` stores in r214 execCatapult.
+- `.bss` emission order: function-local statics (text order) -> objects needing construction (at
+  finish_file) -> deferred plain file-scope statics/publics in definition order; `= 0` scalars go to `.data`.
+- `global constructors keyed to X`: X is the first PUBLIC function emitted; a header prototype makes a
+  `static`-defined function public -- remove it to move the key.
+- Zero-aggregate initializer -> builtin memset libcall with `crclr cr1eq`; a prototyped `memset()` call
+  never gets the builtin.
+- `int off = !(flag & 1); if (off)` -> `xori; andi.; bne` (TRUTH_NOT as value).
+- `(f32)(int)u8val` gives the lfd/0x4330 path instead of the `psq_l` fast-cast; `(u32)t` from float
+  gives the `fcmpu 2^31 / bso / xoris` unsigned fixup.
+- Post-increment in a loop condition (`i++ < n - 1`) yields `mr r0,rI; cmpw; addi rI` with `n-1`
+  hoisted; `++i < n` yields the in-place biv compare.
+
