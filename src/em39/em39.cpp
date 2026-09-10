@@ -1705,8 +1705,11 @@ static void em39_R1_Goto(cEm39* em)
         } else if (w->targetAngAbs > 2.3561945f) {
             EmRoutineSet(em, 1, 0xB, 0, 0);
         } else if ((em->pos.x - w->gotoPos.x) * (em->pos.x - w->gotoPos.x) + (em->pos.y - w->gotoPos.y) * (em->pos.y - w->gotoPos.y) + (em->pos.z - w->gotoPos.z) * (em->pos.z - w->gotoPos.z) < 1000000.0f) {
-            w->gotoOn = 0;
-            EmRoutineSet(em, 1, 4, 0, 0);
+            {
+                u8 zero = 0;
+                w->gotoOn = zero;
+                EmRoutineSet(em, 1, 4, zero, zero);
+            }
         }
         break;
     }
@@ -4054,16 +4057,16 @@ static void em39_R1_ThrowGR(cEm39* em)
     Vec p1 = { 28961.0f, 5250.0f, -2620.0f };
     Vec p2 = { 31552.0f, 5250.0f, -6063.0f };
     Vec p3 = { 31546.0f, 5250.0f, -11491.0f };
-    hand = pPL->getPartsPtr(4)->worldPos;
+    hand = pPLS->getPartsPtr(4)->worldPos;
     switch (em->xFE) {
     case 0:
         MotionSetCore(em, MOTION(em), ARC(0x9B), (int) ARC(0x9C), 3, 1, 0);
-        w->x4 = 15;
         w->x684 = 600;
-        w->x10 = 0;
+        w->x4 = 15;
         w->x8B7 = 0;
         w->x8B6 = 0;
-        if (pPL->pos.x < 30580.0f && em->xFF) {
+        w->x10 = 0;
+        if (pPLS->pos.x < 30580.0f && em->xFF) { // struct view: the load then depends on the word stores too and the block issues in source order
             w->x10 = 2;
             if (em->pos.z > -5360.0f) {
                 w->x10 = 1;
@@ -6475,11 +6478,12 @@ int em39AtkCk(cEm39* em, int no, int parts)
 #define EM39_ATK_SIDE(em, ang)                                                                      \
     SetPlDamage((int) (em), plemDmSide);                                                           \
     ang = Muku(&pPL->pos, &(em)->pos, pPL->rot.y, PI);                                             \
-    if (fabsf(ang) < 1.5707964f) {                                                                 \
-        pPL->rot.y += Muku(&pPL->pos, &(em)->pos, pPL->rot.y, PI);                                 \
+    ang = fabsf(ang);                                                                              \
+    if (ang < 1.5707964f) {                                                                        \
+        FSet(pPL->rot.y, pPL->rot.y + Muku(&pPL->pos, &(em)->pos, pPL->rot.y, PI));                \
         pPL->xFF = 0;                                                                              \
     } else {                                                                                       \
-        pPL->rot.y += Muku(&(em)->pos, &pPL->pos, pPL->rot.y, PI);                                 \
+        FSet(pPL->rot.y, pPL->rot.y + Muku(&(em)->pos, &pPL->pos, pPL->rot.y, PI));                \
         pPL->xFF = 1;                                                                              \
     }
 
@@ -6497,7 +6501,7 @@ int em39AtkCk2(cEm39* em, int no, Vec* a, Vec* b)
     if (hit) {
         return 0;
     }
-    res = EmAtkHitCk(&em39_atk_tbl[no], a, b, 0);
+    res = EmAtkHitCk(&em39_atk_tbl[no - 1], a, b, 0); // the target addresses .data+0x298 = the entry before the table
     if (res) {
         if (res & 1) {
             switch ((u32) no) {
@@ -6551,7 +6555,8 @@ int em39AtkCk2(cEm39* em, int no, Vec* a, Vec* b)
         QuakeExec(0, 0, 5, 22.0f, 2);
         if (em->type != 2) {
             ang = Muku(&pPL->pos, &em->pos, pPL->rot.y, PI);
-            if (!(fabsf(ang) < 2.3561945f)) {
+            ang = fabsf(ang);
+            if (!(ang < 2.3561945f)) {
                 if ((u8) (Rnd() % 10) > 4) {
                     em39SetSpeech(em, 0x3C, 0x21);
                 } else {
@@ -6572,11 +6577,16 @@ void em39PLNearTowerCk(cEm39* em)
     Vec a = { -8462.0f, -3150.0f, -7937.0f };
     Vec b = { 7111.0f, -3150.0f, -8987.0f };
 
-    if ((pPL->pos.x - a.x) * (pPL->pos.x - a.x) + (pPL->pos.y - a.y) * (pPL->pos.y - a.y) + (pPL->pos.z - a.z) * (pPL->pos.z - a.z) < 4000000.0f) {
-        w->flags |= 0x20000;
-    }
-    if ((pPL->pos.x - b.x) * (pPL->pos.x - b.x) + (pPL->pos.y - b.y) * (pPL->pos.y - b.y) + (pPL->pos.z - b.z) * (pPL->pos.z - b.z) < 4000000.0f) {
-        w->flags |= 0x20000;
+    {
+        f32 d;
+        d = (pPL->pos.x - a.x) * (pPL->pos.x - a.x) + (pPL->pos.y - a.y) * (pPL->pos.y - a.y) + (pPL->pos.z - a.z) * (pPL->pos.z - a.z);
+        if (d < 4000000.0f) {
+            w->flags |= 0x20000;
+        }
+        d = (pPL->pos.x - b.x) * (pPL->pos.x - b.x) + (pPL->pos.y - b.y) * (pPL->pos.y - b.y) + (pPL->pos.z - b.z) * (pPL->pos.z - b.z);
+        if (d < 4000000.0f) {
+            w->flags |= 0x20000;
+        }
     }
 }
 
@@ -6608,49 +6618,51 @@ int em39JumpDownCk(cEm39* em, int force)
     u32 res0;
     u32 res1;
 
-    if (em->type != 2) {
-        if ((pG->flags_51E4 & 3) == (em->emsetNo & 3)) {
-            if (SatMgr.getFloor(&em->pos, 600.0f, 100000.0f, 0, 0) < em->pos.y - 350.0f) {
-                a = em->pos;
-                a.z += 100.0f;
-                a.x += 100.0f;
-                if (SatMgr.getFloor(&a, 600.0f, 100000.0f, 0, 0) < em->pos.y - 350.0f) {
-                    w->jumpAng = em->rot.y;
-                    EmRoutineSet(em, 1, 0x13, 0, 0);
-                    return 1;
-                }
+    // Every `return 0` is written before the last probe's: jump2 keeps the LAST copy as the cross-jump survivor.
+    if (em->type == 2) {
+        return 0;
+    }
+    if ((pG->flags_51E4 & 3) == (em->emsetNo & 3)) {
+        if (SatMgr.getFloor(&em->pos, 600.0f, 100000.0f, 0, 0) < em->pos.y - 350.0f) {
+            a = em->pos;
+            a.z += 100.0f;
+            a.x += 100.0f;
+            if (SatMgr.getFloor(&a, 600.0f, 100000.0f, 0, 0) < em->pos.y - 350.0f) {
+                w->jumpAng = em->rot.y;
+                EmRoutineSet(em, 1, 0x13, 0, 0);
+                return 1;
             }
         }
-        if (!((em->pos.x - drop.x) * (em->pos.x - drop.x) + (em->pos.z - drop.z) * (em->pos.z - drop.z) < 4000000.0f)) {
-            if (force == 0) {
-                f32 ang;
+    }
+    if ((em->pos.x - drop.x) * (em->pos.x - drop.x) + (em->pos.z - drop.z) * (em->pos.z - drop.z) < 4000000.0f) {
+        return 0;
+    }
+    if (force == 0) {
+        f32 ang;
 
-                if ((u32) w->stuckCnt % 10 != 5) {
-                    return 0;
-                }
-                ang = GetXZAngle(&em->pos, &w->targetPos);
-                if (fabsf(Muku2(em->rot.y, ang, PI)) > 0.2617994f) {
-                    return 0;
-                }
-            }
-            EM39_JUMPDOWN_PROBE(em, w, a, b, hit, 0.0f, 0.0f, 0.0f, 1000.0f, res0, -, 0, 0);
-            EM39_JUMPDOWN_PROBE(em, w, a, b, hit, 0.0f, 0.0f, 0.0f, -1000.0f, res1, +, res0, 1);
-            EM39_JUMPDOWN_PROBE(em, w, a, b, hit, 0.0f, 0.0f, 1000.0f, 0.0f, res0, -, res1, res1);
-            a.x = 0.0f;
-            a.y = 500.0f;
-            a.z = 0.0f;
-            b.x = -1000.0f;
-            b.y = 500.0f;
-            b.z = 0.0f;
-            PSMTXMultVec(em->mat, &a, &a);
-            PSMTXMultVec(em->mat, &b, &b);
-            if ((SatMgr.hitCheck(&a, &b, 0, &hit, 0, 0) & 0x142810) == 0) {
-                return 0;
-            }
-            w->jumpAng = atan2f(-hit.x, -hit.z);
-            EmRoutineSet(em, 1, 0x13, res0, res0);
-            return 1;
+        if ((u32) w->stuckCnt % 10 != 5) {
+            return 0;
         }
+        ang = GetXZAngle(&em->pos, &w->targetPos);
+        if (fabsf(Muku2(em->rot.y, ang, PI)) > 0.2617994f) {
+            return 0;
+        }
+    }
+    EM39_JUMPDOWN_PROBE(em, w, a, b, hit, 0.0f, 0.0f, 0.0f, 1000.0f, res0, -, 0, 0);
+    EM39_JUMPDOWN_PROBE(em, w, a, b, hit, 0.0f, 0.0f, 0.0f, -1000.0f, res1, +, res0, 1);
+    EM39_JUMPDOWN_PROBE(em, w, a, b, hit, 0.0f, 0.0f, 1000.0f, 0.0f, res0, -, res1, res1);
+    a.x = 0.0f;
+    a.y = 500.0f;
+    a.z = 0.0f;
+    b.x = -1000.0f;
+    b.y = 500.0f;
+    b.z = 0.0f;
+    PSMTXMultVec(em->mat, &a, &a);
+    PSMTXMultVec(em->mat, &b, &b);
+    if (SatMgr.hitCheck(&a, &b, 0, &hit, 0, 0) & 0x142810) {
+        w->jumpAng = atan2f(-hit.x, -hit.z);
+        EmRoutineSet(em, 1, 0x13, res0, res0);
+        return 1;
     }
     return 0;
 }
@@ -6890,6 +6902,10 @@ void em39BloodSet(cEm39* em)
     case 0x2D:
         EmDmBloodSet2(em, 0x2F, 2, 0, 0, 0);
         break;
+    case 0:
+    case 0x14:
+    default:
+        break; // explicit: the two nodes shape the tree (tools/casetree.py search)
     }
 }
 
@@ -7070,7 +7086,6 @@ int em39ExitCk(cEm39* em)
 {
     Em39Work* w = EM39_WK(em);
     EmiData* emi = EM39_EMI;
-    EmiEntry* g;
     u32 i;
 
     if (emi == 0) {
@@ -7079,20 +7094,19 @@ int em39ExitCk(cEm39* em)
     if (w->pGotoPoint == 0) {
         return 0;
     }
-    g = w->pGotoPoint;
     for (i = 0; i < emi->n; i++) {
         EmiEntry* e = &emi->entry[i];
 
         if (e->type != 0xE) {
             continue;
         }
-        if (e->sub != g->sub) {
+        if (e->sub != w->pGotoPoint->sub) {
             continue;
         }
         if (e->state != 2) {
             continue;
         }
-        if (e->pad_3 != g->pad_3) {
+        if (e->pad_3 != w->pGotoPoint->pad_3) {
             continue;
         }
         if (!((pPL->pos.x - e->pos.x) * (pPL->pos.x - e->pos.x) + (pPL->pos.z - e->pos.z) * (pPL->pos.z - e->pos.z) > 4000000.0f)) {
@@ -7109,6 +7123,11 @@ int em39AreaMoveCk(cEm39* em)
     Em39Work* w = EM39_WK(em);
     u32 i;
     u32 j;
+    // `t`/`ofs` shared by both loops: with two sets each they are non-replaceable user-variable givs whose benefit
+    // (3/5 - copy_cost 4 - add_cost 2) is negative, so loop.c leaves the outer `i*64+8` unreduced (`slwi; addi 8` per
+    // iteration like the target); the inner loop's copies get a final value and are reduced as before.
+    u32 ofs;
+    u32 t;
 
     if (pG->pRoomEmi == 0) {
         return 0;
@@ -7117,7 +7136,11 @@ int em39AreaMoveCk(cEm39* em)
         return 0;
     }
     for (i = 0; i < EM39_EMI->n; i++) {
-        EmiEntry* e = (EmiEntry*) ((u32) EM39_EMI + (i * 0x40 + 8));
+        EmiEntry* e;
+
+        t = i * 0x40;
+        ofs = t + 8;
+        e = (EmiEntry*) ((u32) EM39_EMI + ofs);
 
         if (e->type != 0xE) {
             continue;
@@ -7138,7 +7161,11 @@ int em39AreaMoveCk(cEm39* em)
         em->xFE = 0;
         em->xFF = 0;
         for (j = 0; j < EM39_EMI->n; j++) {
-            EmiEntry* f = &EM39_EMI->entry[j];
+            EmiEntry* f;
+
+            t = j * 0x40;
+            ofs = t + 8;
+            f = (EmiEntry*) ((u32) EM39_EMI + ofs);
 
             if (f->type != 0xE) {
                 continue;
@@ -8173,10 +8200,10 @@ int em39GuardCk(cEm39* em)
     if (h->partsNo == 0x7D) {
         return 1;
     }
-    if (em->dmPart->partsNo == 0x7E) {
+    if (h->partsNo == 0x7E) {
         return 1;
     }
-    return em->dmPart->partsNo == 0x7F;
+    return h->partsNo == 0x7F;
 }
 
 // Motion-key foot sounds (seNo - 1) with the footstep dust in the tower room.

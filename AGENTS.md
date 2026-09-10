@@ -9964,7 +9964,7 @@ output to the installed compiler; NOTE mk.sh must rm the insn-*.o objects or a p
   r108 switchSymbol 12, r108/r203 str_check/StreamCheck (#3), r103/r105 execOpenCover + r11c closeGate (#9), r202 throwRock
   (#9), r11e/r10f/r222/r106/r10b not iterated this pass.
 
-### em2b / em39 fourth pass (em2b 101 -> 106/121, em39 120 -> 126/153 masked-identical; sections equal; neither flipped; 2026-09-10)
+### em2b / em39 fourth pass (em2b 101 -> 106/121, em39 120 -> 125/153 masked-identical; sections equal; neither flipped; 2026-09-10)
 - Harness /tmp/em2b39_p4 (copies of /tmp/em2b39_p3 with the paths rewritten; `perm.py MOD FUNC spec.json` brute-forces
   statement orders, `mdump.sh MOD/UNIT -dX` with `SRC_OVERRIDE=out/vN/MOD.cpp` dumps a tryv variant). Never use
   `'D'` as a case label with tools/casetree.py: `_norm_label` maps it to `default`.
