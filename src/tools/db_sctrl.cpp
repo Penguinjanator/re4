@@ -196,6 +196,28 @@ static int sctrlMenu(DbSctrlWork* w)
     int x;
     int y;
     int i;
+    // 18 dead pool labels: the "%s" string must hash below `sctrl_menu_name` in gcse's expression
+    // table (.LC40+, not .LC22) so its PRE pseudo is numbered first and wins the equal-priority
+    // global-alloc tie for r20 (the original's TU numbered its labels differently)
+    // COMPILER-DIFF: candidate (gcse PRE pseudo numbering)
+    f32 lc0 = 3.5f;
+    f32 lc1 = 10.5f;
+    f32 lc2 = 17.5f;
+    f32 lc3 = 24.5f;
+    f32 lc4 = 31.5f;
+    f32 lc5 = 38.5f;
+    f32 lc6 = 45.5f;
+    f32 lc7 = 52.5f;
+    f32 lc8 = 59.5f;
+    f32 lc9 = 66.5f;
+    f32 lc10 = 73.5f;
+    f32 lc11 = 80.5f;
+    f32 lc12 = 87.5f;
+    f32 lc13 = 94.5f;
+    f32 lc14 = 101.5f;
+    f32 lc15 = 108.5f;
+    f32 lc16 = 115.5f;
+    f32 lc17 = 122.5f;
 
     switch (w->step) {
     case 0:
@@ -368,6 +390,9 @@ static int sctrlMenu(DbSctrlWork* w)
                         m = fabsf(b);
                     }
                     e = log10(m) - 2.0;
+                    // the original issues the `lwz joy->rep` only after `frsp e`: a sched region
+                    // split (LOOP_END anti-dependences) delays the load behind the FP chain
+                    do { } while (0); // COMPILER-DIFF: #13 (region split)
                     if ((joy->rep & 1) || (joy->on & 0x10000)) {
                         w->yMax -= IPOW(10.0f, (int) e);
                         w->yMin += IPOW(10.0f, (int) e);
@@ -488,6 +513,10 @@ static int sctrlMenu(DbSctrlWork* w)
             }
         }
     }
+    // keeps `col` live to the loop exit: its 4-ref/98-insn allocno otherwise outranks the ">"
+    // string high, whose REG_EQUIV (high) doubled live length halves its priority in ours but
+    // not in the original (">" r22, col r21)
+    asm("" : : "r"(col)); // COMPILER-DIFF: #13 (REG_EQUIV live-length doubling of a hoisted high)
     }
     return 1;
 }

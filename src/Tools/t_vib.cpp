@@ -498,8 +498,13 @@ static void tvib_R0_EditVib()
 
 static void tvib_R0_VibLoopSet()
 {
+    // the work pointer is read BEFORE the first test (`lwz r11,tvib@l` above the `beq`, and the PRE'd
+    // high stays the reaching register at every later site: with `V->` in the arm ours had a fresh
+    // `lis` per arm); the other statements re-read V through the macro
+    TvibWork* v = V;
+
     if (Joy[0].rep & (JOY_RIGHT | 0x20000)) {
-        V->loopFrame++;
+        v->loopFrame++;
     }
     if (Joy[0].rep & (JOY_LEFT | 0x10000)) {
         V->loopFrame--;

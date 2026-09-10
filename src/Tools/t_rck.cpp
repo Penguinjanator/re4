@@ -915,16 +915,21 @@ void rckDrawPointLineNow()
     v[1].z = out.z;
     TprimDrawLineFn(v, &colNow, 2);
     RckWork* w2 = RCK;
-    if (w2->near != -1 && w2->near != w2->lineStart && w2->line[w2->near][w2->lineStart].to != -1) {
-        p = &w2->pt[w2->near];
-        v[0].x = p->pos.x;
-        v[0].y = p->pos.y;
-        v[0].z = p->pos.z;
-        p = &w2->pt[w2->lineStart];
-        v[1].x = p->pos.x;
-        v[1].y = p->pos.y;
-        v[1].z = p->pos.z;
-        TprimDrawLineFn(v, &colBack, 2);
+    if (w2->near != -1 && w2->near != w2->lineStart) {
+        // row pointer `w + (near << 9) + 0xAD4` then `lhax row, ls << 2` (a plain 2-D index folds 0xAD4
+        // into the base and sums the two index terms; the u32 sum keeps the row as the first operand)
+        RckLine* row = w2->line[w2->near];
+        if (((RckLine*) ((u32) row + (w2->lineStart << 2)))->to != -1) {
+            p = &w2->pt[w2->near];
+            v[0].x = p->pos.x;
+            v[0].y = p->pos.y;
+            v[0].z = p->pos.z;
+            p = &w2->pt[w2->lineStart];
+            v[1].x = p->pos.x;
+            v[1].y = p->pos.y;
+            v[1].z = p->pos.z;
+            TprimDrawLineFn(v, &colBack, 2);
+        }
     }
 }
 

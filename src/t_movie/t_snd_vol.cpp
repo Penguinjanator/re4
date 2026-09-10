@@ -1043,9 +1043,9 @@ void editScreenDisp()
         asm("mr %0,%1" : "=r"(b) : "r"(base), "r"(i));
         pt[0].x = x;
         pt[0].z = 0;
+        t = b - 4; // before the pt[1] stores: the hard-reg `subi r0` then follows `li r30,0; lfd f0` in LUID order
         pt[1].x = x;
         pt[1].y = b + rows * 0x14 + 4;
-        t = b - 4;
         pt[0].y = t;
         pt[1].z = 0;
     }

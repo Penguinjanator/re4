@@ -14440,3 +14440,148 @@ em29_3c and pointed at `~/.cache/dol14/<PRE>_lreg.txt` / `<PRE>_greg.txt`). Buil
   pre-existing pool-order diff at .rodata 0x1d8: -0.0349/-0.0698 swapped since the throwRock rewrite), r210 funcAshley2
   9 (the 1.0 `lfs`/`stfs` sit early in the target, after all `stb`s in ours; `"=m"` keep-alives, a hard-reg r0 zero,
   statement orders: 8-10), dai_go 10, toroko_ret 323, r222 (6 functions) not iterated.
+
+### Tool RELs, bytes-first pass 12 (t_id 53->57/69: idEditSize, idEditRot, idEditMark, toolIdSpace 0; db_sctrl sctrlMenu 45->32 x2; t_snd_vol editScreenDisp 2->0 (20->21/27); t_rck rckDrawPointLineNow 7->0 (28->29/33); t_vib tvib_R0_VibLoopSet 32->0 (24->25/29); nothing flipped; 2026-09-11)
+
+- Harness /home/adityas/.cache/tools_p12 (tools_p11 copies with the paths rewritten). NB `-fsched-verbose=N` is an INVALID
+  option for this cc1plus (it aborts silently after the cpp step and the previous dump is read): the spelling is
+  `-fsched-verbose-N`; level 5 prints the `Region Dependences` tables (per-insn prio/dependents per region).
+- **tools/xjump.py fixed: the jump_chain is searched only for labels that existed at jump2 entry** (jump.c: `if (INSN_UID
+  (JUMP_LABEL (insn)) < max_uid)`); a label do_cross_jump creates (X<n>) is never a chain candidate. tcCameraCopyPoint's
+  target layout = the i+1 arm with the `v.x >= 0` arm FIRST at jump2 entry (A2 -> B1 whole, then B2 -> A1 whole via the
+  fall-through of the OLD label) -- but every source polarity (`if (v.x >= 0.0f) X else Y`) gives the same 13 words: the
+  RTL has `!(>=)` first in all four (jump1's `bcc L1; b L2; L1:` inversion + arm order); the layout lever is unknown.
+- **Zero-code levers (verified byte-identical):**
+  - idEditSize / idEditRot (t_id, 12 -> 0 each): ONE table pointer per switch arm (`tbl`, `tbl3`, `tbl4`, each set in
+    its own arm; a shared multi-set `tbl` had 15 refs/180 insns = 0.250 and beat the PRE'd `i * 0xE` copy 11/133 =
+    0.248 for r24; three single-set pointers (5 refs) come after it and share r23). A single-set pointer set inside a
+    case arm is NOT hoisted out of the i loop (pass-6 fear unfounded); the LAST arm's set belongs in the for-init
+    (`for (j = 0, tbl4 = texFixName; ..)`) so `li j,0` precedes the `lis` in LUID order (the other arms want the set
+    before the loop). Dead `= 0` initialisers of the split pointers cost 500 words (a second set = hoist/cse changes).
+  - toolIdSpace (t_id, 5 -> 0): a SEPARATE counter for the second loop. Reusing `i` from the while loop makes loop.c's
+    check_dbra_loop emit the reversed biv's final value (`i = 0xC0`, REGNO_FIRST_UID(i) != the for-init) after
+    LOOP_END; flow deletes it but find_basic_blocks already made its block, whose only successor is EXIT -> the leaf
+    rule kills every haifa region of the function (no `cmpw cr7` speculation in the while loop). With `int j` the
+    regions form; `if (.. && p->no >= no) p->no += n;` (compare before the add in LUID) then lets the region
+    scheduler speculate the `add` above `cmplw` into a fresh r11 (`int v = p->no + n` before the if: the cmp wins the
+    sched1 weight tie and local-alloc ties v to the dying temp, `add r0,r0,r30` after the compare).
+  - rckDrawPointLineNow (t_rck, 7 -> 0): `RckLine* row = w2->line[w2->near]; ((RckLine*) ((u32) row + (w2->lineStart
+    << 2)))->to` = `w + (near << 9) + 0xad4` then `lhax r0,row,ls<<2` (the plain 2-D index folds 0xad4 into the base and
+    sums the two index terms; `row[ls]`, `(u32) row + ls * 4`, `ls*4 + (u32) row` give the lhax operands swapped).
+  - tvib_R0_VibLoopSet (t_vib, 32 -> 0): `TvibWork* v = V;` at the function top, used by the FIRST arm only (the other
+    statements re-read the `V` macro): the target's `lwz r11,tvib@l(r10)` above the first `beq` is an unconditional
+    read, not a speculated load (-fsched-spec-load is off), and with it the PRE'd high r10 stays the reaching register
+    at every later site (the arm's own `lis` was the cse2 fresh-`lis` of pass 10).
+  - editScreenDisp (t_snd_vol, 2 -> 0): the pinned `t = b - 4` moved BEFORE the `pt[1]` stores (after `pt[0].z = 0`):
+    the hard-reg `subi r0` then follows `li r30,0; lfd f0` in sched1's LUID order.
+- **Tagged forms applied:**
+  - sctrlMenu (db_sctrl, 45 -> 32): (1) `.LC` label-hash lever (`candidate (gcse PRE pseudo numbering)`): 18 dead
+    `f32 lcN = K;` locals move the "%s" string from .LC22 to .LC40 (bucket 45 < sctrl_menu_name's 201 in the 519-bucket
+    table; .LC1x/.LC0x/.LC4x/.LC5x all qualify, 17 locals do not) so its PRE pseudo is numbered before menu_name's and
+    wins the equal-priority global-alloc tie (3 refs / 618 vs 620 both truncate to 48) -> "%s" r20, menu r19. (2)
+    `asm("" : : "r"(col))` after the loop (`#13`, REG_EQUIV live-length doubling): col 4 refs/98 insns (0.0816)
+    outranked the ">" high 11/616 (0.0536, doubled from 308 by update_equiv_regs); the keep-alive stretches col to
+    the loop exit (6 refs / ~300) and ">" takes r22, col r21. A hard-register `col` (r21) is wrong: the `(u8) col`
+    temp then reuses r21 and everything cascades (190). (3) `do { } while (0);` after `e = log10(m) - 2.0;` (`#13
+    region split`): the `lwz joy->rep; andi.` pair waits behind `frsp e` as in the original. Left (32): the case-4
+    blink block `lbz; addi r3; li r5; extsb; li r6; add; addi r7` -- at t2 only `li r5` issues although `li r6`/`addi
+    r7` are ready (the case-0 copy of the same call has `li r5, li r6` at t2 and `addi r7` only at t4 with the add):
+    `(u8) col` / `col` / `int zero` / operand-order / `int s = w->sub` forms 32-40; with `w->sub + i` (add operands
+    swapped) the cross-jump becomes the target's but the add is `add r4,r4,r26` (29). No X insn explains the empty
+    slot; not modelled.
+  - idEditRot case-0 loop (t_id): the dead test is replaced by `asm("" : : "r"(d));` before the eprintf + four dead
+    `col = 7/6` sets after it (`#3 (loop.c pass-2 insn_count)`): dead SETS of a variable that is re-set before its
+    next use survive delete_trivially_dead_insns (the variable has uses), are counted by loop.c and deleted by flow --
+    the +5 real insns without a block boundary that the original loop had (its `i++` is scheduled before the eprintf
+    call); the codeless use of `d` keeps its extra ref (d r26 ahead of `x + 0x18` r25). idEditMark (2 -> 0): the same
+    five dead `col` sets at the loop-body end (pass-1 threshold 65 < 66 keeps the "%02X" high for pass 2, after the
+    yy giv init). Both loops of the original had exactly 5 more insns than ours -- a common source shape not found.
+- **Read, not closed (do not retry the listed forms):**
+  - tcSetBesideOffset (t_camera_data, 27): the two loop-1 givs tie only by REG_LIVE_LENGTH 84/82 (27/84 = 3214 vs
+    3292 after the 10000 scaling; equal lengths would give 207 first by allocno number). The preheader inits are
+    adjacent (+1) and the other +1 is not in the RTL order; `i <= 3`, `j <= 2`, if/else `o`, `++i`, u32 n, s16 n
+    (81), fovy-before-roll (31), `n++` in the for header (32), a dead `i == 7` test (95): 27 in all natural forms.
+  - seAtInit (t_se_at, 21): a volatile `pW` load does not wait for the four Snd stores -- haifa's true_dependence
+    orders a volatile read only after volatile STORES (`MEM_VOLATILE_P (x) && MEM_VOLATILE_P (mem)`), and the symbol
+    bases differ otherwise; `asm("lwz %0,%1" : "=r"(w) : "m"(seAtWk.p))` 19, with `"m"(Snd.se_at)` 23; a reference
+    view 21.
+  - toolIdEditDisp (t_id, 4): the second `row = 0xC` must issue after `cmpwi r0,0` (t3, a dependence on the `lbz
+    dispTop`), while the first `row = 2` at the function top issues with its lbz at t1 as ours; ternary / if-else
+    row (jump1 hoists the set the same way), `r2`/`cx2`/`yy` locals for the CLIPBOARD eprintf 4-15.
+  - idEditId (t_id, 12): the h * 480 / 448 + 0.5 chain: the target ties the fmuls result to h (f0) and the fadds
+    result to the 0.5 register (f13); ours ties fmuls to the dying 480 (f13) -- the constant pseudos' creation order
+    (`f32 k480 = 480.0f` before h) does not change the tie (15-22); `h + 0.5f` inside the cast 14.
+  - t_block tBlockAreaInfo_Menu case 0 (11): rep2 r9 / n r11 local-alloc order unchanged (pass 3/4 forms).
+  - tcDataExport (142) not iterated: buf r29 vs r31 -- two higher-priority allocnos took r31/r30 in the original.
+
+### DOL structural pass 2 (item flipped 78/78: set_stage2 4 -> 0, init 2 -> 0, trigger 1 -> 0; view initPerspective 347 -> 311, not flipped; 2026-09-11)
+
+- Harness /home/adityas/.cache/dol_struct2 (dol_struct copies with the paths rewritten: `tryv.py UNIT SYM v.py`, `vapply.py`,
+  `mcmp.py`, `sbs.sh UNIT SYM [OBJ]`, `dump.sh UNIT -dX` with `SRC_OVERRIDE`, `fsec.py DUMP 'FUNC'` (match the demangled
+  `;; Function` line, e.g. `'int cItemMgr::init()'`), `order.py`; new `vblk2.py` = rebuild initPerspective's two frustum store
+  blocks from parameters (`--o1 "0z 0x 0y .."`, `--pre1 "zn = znear;z = -zn;.."`) and print the block side by side, `vnorm.py
+  FORM` = rewrite the five normal groups from a template). SN source of record for the pass internals:
+  /home/adityas/Projects/re4-orig/sn-gcc/src/gcc (the .cache/*/sngcc copies come and go).
+- **item set_stage2 cases 2/3 (4 -> 0, zero code): the loop-note barrier of cases 0/1 is combine's dead-load USE insns.**
+  `LV_SET(p, 1, 1, 1, 1)` is four RMWs on `p->x6` whose masks and ORs fold to one constant store; when the folding happens in
+  COMBINE (a nonzero `|` sits between the `&` masks, so cse cannot fold the chain), the dead `lhz` loads' REG_DEAD notes have no
+  home and `distribute_notes` emits `(use (reg))` insns right after the preceding jump (the PUT_TABLE loop's `bdnz`), before the
+  NOTE_INSN_LOOP_END: the USEs become the head of the post-loop block, the loop note is now INSIDE the block, and `mr r3,this`
+  (the first insn after it) is the barrier with every later insn as a dependent -> issued first. `LV_SET(p, 0, 0, 0, 4)` (cases
+  2/3) is a pure AND chain that cse folds to `4` before combine, so no dead loads, no USEs, the LOOP_END stays between the
+  blocks and `li r4,48` (+1 SET, 3 dependents through the r4 output chain) outranks `mr r3,this` (2 dependents). Fix: the
+  LV_SET macro now sets the EX nibble FIRST (`x6 = (x6 & 0xFFF0) | e` before the zero masks) -- the `| 4` blocks cse's fold,
+  combine folds it, the USEs appear, cases 0/1/3 of every LV_SET user unchanged (item 78/78). Rule: when a post-loop block's
+  first two arg moves are swapped only in some cases, check which cases leave dead loads to combine (`-dc` dump: `(use (reg:HI
+  N))` before the LOOP_END); the same all-constant RMW chain folds in cse or in combine depending on where the first nonzero
+  OR sits. Forms that do NOT work: `do {} while (0)` around the first search (its LOOP_END makes the next insn a barrier and
+  delays the following `li r4`; around the whole case tail it works only for a case that ends in a `b`, 2 words for the
+  last case), `asm volatile("")` at the case end (ties sched1 but sched2's r4 output chain `lbz r4; clrlwi r4; addi r4` from
+  the `CHARGE` arg still gives `li r4` 3 dependents vs 2), a `"+r"` launder on the CHARGE operand (the asm keeps the r4 link).
+- **item init (2 -> 0, `li r3,32` before `addi r4,r4,__FILE__@l`; COMPILER-DIFF #13 form with a dying input).** The string
+  `addi` has weight 0 (its high dies), `li r3,0x20` +1, so ours issues the addi first at t=2 with the `stw`; the target's
+  order needs the size move at weight 0 = a copy of a dying constant pseudo (the #13 world). `u32 sz; asm("li %0,32" :
+  "=r"(sz) : "r"(p)); MEM_ALLOC(sz, ..)` right after `nFlags = 8;`: the asm's input `p` (the dead loop pointer) dies there,
+  so the asm is weight 0 (1 SET - 1 death), ready at t=1 (p is in a register), LUID between the `stw` and the addi, and
+  issues at t=2 with the stw; the output is tied to r3 by local-alloc. Without the dying input (`asm("li %0,32" : "=r"(sz))`)
+  the asm is hoisted above the loop (loop.c treats a non-volatile asm with no inputs as invariant) and `li r3,32` lands in
+  the preheader (13); a `register .. asm("r3")` pin of a plain constant is `(set r3 32)` = +1 (unchanged); a dead test
+  `if (__FILE__[i & 1] == 0) i = 0` makes the string high cross the call (r30, 15-16); `__FILE__[0]` folds at tree level.
+- **item trigger (1 -> 0, `clrlwi r4,r9,16` for the u16 `armId` argument; COMPILER-DIFF #2).** `register int id asm("r9");
+  id = armId; asm("" : "+r"(id));` at the top of the case block, `id != p->id` in the test and `minimumSearch((u16) id)`:
+  the launder in block 0 hides the zero-extension from cse in the arg block (cse's ebb covers the `beq`-skipped block, so
+  without it `(zero_extend (subreg:HI r9))` folds to `mr r4,r9`), and the pin keeps the mask reading r9 (an unpinned `int
+  id` copy gets the mask tied to r4: `mr r4,r9; clrlwi r4,r4,16`, 7). The launder must be in block 0: inside the arg block
+  it is an extra insn at t=1 and the clrlwi slips behind `mr r3,r31` (2).
+- **view initPerspective 347 -> 311: the frustum store blocks are byte-identical now.** (1) The far block's `h` is a
+  SEPARATE variable (`h2 = zf * t`): `t` (block-local from the `fdivs` to its last use, no call between) dies there and
+  local-alloc ties `h2` to f31; with one `h` for both blocks the two-set pseudo cannot be tied (f10). (2) `-zn`/`-zf` are ONE
+  variable `z` assigned in both blocks (a two-set pseudo, f11 in both), `w` shared as before (f10): both are allocated after
+  the block-local qtys; `z = -zn` written BEFORE `h = zn * t` gives z the f11/w the f10 (the other order swaps them). (3) The
+  target's FP order `fmuls h; fneg nzn; fmuls w` is a sched2 effect of that allocation: `fneg f13,f10` (-w reuses zn's f13)
+  is anti-dependent on `fneg f11,f13`, which lifts nzn's priority to w's (20) and its 5 dependents win; sched1 issues
+  h, w, nzn, nh, nw in both builds. (4) Store order per point `z, x, y` (`0z 0x 0y 1z 1x 1y ..` for both blocks): the
+  `lfs zf` load depends on all twelve near stores (r87 = this+468 vs this+16: alias.c cannot relate the bases, so every store
+  has a true dependence into it and priority 18), the stores issue one per cycle as their values become ready, dying store
+  first, then source (LUID) order. (5) The remaining 311 words: the six normal groups' address forms (see below), the
+  `c = &local` copy/halving block, the det/centre FP association (f26 saved), the dead-function pool (see below).
+- **view normal groups, facts read for the next pass (unsolved).** Target G0 (before the first VECNormalize) is this-based
+  (`addi r3,r28,552`; cse folds `b->point[k]` to `this + K` in block 0's ebb) and matches. G1-G5 are r31-based (`b` = r87,
+  defined in the prologue ebb). Per group: the shared second operand `&point[B]` is a pseudo (`addi r30,r31,K; mr r4,r30`
+  twice, callee-saved across the first Subtract) recomputed FRESH in every group; the first operands `&point[A]`/`&point[C]`
+  are fresh `addi r3,r31,K` (tied single-use pseudos or hard-reg sets); the Cross target `&normal[k]` is a pseudo computed
+  before the second Subtract (`addi r29,r31,12k`), the err arm stores `.y/.z` through it and `.x` via `12k(r31)`, the else
+  arm recomputes `addi r3,r31,12k; mr r4,r3` (a pseudo Q with copy suggestions r3 and r4 takes r3 = `qty_phys_copy_sugg`'s
+  lowest register; NOT gcse's reaching reg). The ONLY PRE'd address in the whole function is `&point[4]`: G1's `addi r29,
+  r31,0x78` (after the first Subtract call, not hoisted above it), `mr r23,r29` after the second Subtract, `mr r3,r23` in G2;
+  G5's `&point[4]` is fresh again. Ours PREs every `(plus r87 K)` that recurs (P0/P3/P4/N1 of G1, P1/N2 of G2, ...: `PRE:
+  redundant insn` lines in -dG) and hoists the addis to the group top. gcse.c/lcm.c say a kill of `(plus r87 K)` between
+  G2 and G5 (a set of r87) would explain G5 but not G2's non-PRE of `&point[0]` in the same block as the PRE'd `&point[4]`
+  (both antloc, same operand). Forms tried (vnorm.py): block-local `Vec* pb/n` (same RTL, 316), per-group `ViewFrustum* f =
+  &localFull` (cse folds to this-based, 351), `-fno-expensive-optimizations` 356, `-fno-gcse` 346, `-fno-rerun-cse-after-loop`
+  ICEs (flow.c make_edges). Next: an inline helper whose pointer parameters integrate substitutes (the FadeSet hard-reg-set
+  mechanism) for A/C and a `Vec*` local for B; check `-dG` for exactly one `PRE: redundant` of expression `(plus r87 120)`.
+- **view dead pool (0x48..0x7c of the target `.rodata`, ours ends at 0x48):** DF 0.0 (or two SF zeros), 1.0f, 0.0f?, DF 0.0?,
+  0x4330000080000000 (signed int->f32 magic at 0x60), 2*pi, 12.0f, 0x4330000000000000 (unsigned magic at 0x70), 1/1024,
+  pi/2 -- the pool of a never-called static emitted after initPerspective's pool (0.5, pi, 180, 0.0f at 0x38); needs a
+  STRIP_UNUSED entry and constant-order experiments (`const f32` locals at the top control the order); not written.

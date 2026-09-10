@@ -257,7 +257,9 @@ class Fn:
                 # cross jumping of unconditional jumps
                 r = self.find_cross_jump(insn, self.label(insn.label), 1)
                 why = 'fall-through'
-                if r is None:
+                # jump.c: `if (INSN_UID (JUMP_LABEL (insn)) < max_uid)` -- the chain is searched only for
+                # labels that existed at jump2 entry; a label do_cross_jump created (X<n>) is never chained
+                if r is None and not insn.label.startswith('X'):
                     for target in list(self.chain.get(insn.label, [])):
                         if target is insn or target.deleted or target.label != insn.label: continue
                         r = self.find_cross_jump(insn, target, 2)

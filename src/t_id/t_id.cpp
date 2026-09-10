@@ -1261,6 +1261,8 @@ int idEditSize(IdTool* w, int x, int y)
     int i, j;
     int yy;
     const char** tbl;
+    const char** tbl3;
+    const char** tbl4;
     u32 ofs;
 
     switch (w->editStep) {
@@ -1354,6 +1356,11 @@ int idEditSize(IdTool* w, int x, int y)
             }
             switch (i) {
             case 2:
+                // one table pointer PER ARM (tbl/tbl3/tbl4, each set in its own arm): a shared multi-set
+                // `tbl` has 15 refs / 180 insns (0.250) and is allocated ahead of the PRE'd `i * 0xE` copy
+                // (11 / 133, 0.248); three single-set pointers (5 refs each) come after it and share r23.
+                // A single-set pointer is not hoisted out of the i loop because the set is in a case arm,
+                // and the last arm's set in the for-init puts `li j,0` before the `lis` (LUID order)
                 tbl = axisName;
                 // `ofs = j * 4` as a giv with TWO uses (the name address and the `ofs * 8` column): loop.c
                 // then combines the address giv into it (`lwzx r8,rOfs,rTbl`, `addi rOfs,4`) and emits the
@@ -1383,7 +1390,7 @@ int idEditSize(IdTool* w, int x, int y)
                 }
                 break;
             case 3:
-                tbl = onOffName2;
+                tbl3 = onOffName2;
                 for (j = 0; j <= 1; j++) {
                     ofs = j * 4;
                     if ((j != 0) != ((d->x109 >> 1) & 1)) {
@@ -1391,19 +1398,18 @@ int idEditSize(IdTool* w, int x, int y)
                     } else {
                         col = 7;
                     }
-                    eprintf(x + 0x40 + ofs * 8, y + i * 0xE, col, 0, "%s", *(const char**)(ofs + (u32)tbl));
+                    eprintf(x + 0x40 + ofs * 8, y + i * 0xE, col, 0, "%s", *(const char**)(ofs + (u32)tbl3));
                 }
                 break;
             case 4:
-                tbl = texFixName;
-                for (j = 0; j <= 1; j++) {
+                for (j = 0, tbl4 = texFixName; j <= 1; j++) {
                     ofs = j * 4;
                     if ((j != 1) != (d->flags10A >> 7)) {
                         col = 0;
                     } else {
                         col = 7;
                     }
-                    eprintf(x + 0x40 + ofs * 8, y + i * 0xE, col, 0, "%s", *(const char**)(ofs + (u32)tbl));
+                    eprintf(x + 0x40 + ofs * 8, y + i * 0xE, col, 0, "%s", *(const char**)(ofs + (u32)tbl4));
                 }
                 break;
             }
@@ -1772,6 +1778,7 @@ int idEditRot(IdTool* w, int x, int y)
     f32 step = 1.0f;
     f32 v = 0.0f;
     const char** tbl;
+    const char** tbl3;
     u32 ofs;
     int n;
 
@@ -1827,12 +1834,17 @@ int idEditRot(IdTool* w, int x, int y)
             case 1: pr = &d->rot.y; break;
             case 2: pr = &d->rot.z; break;
             }
+            // the original loop has 5 more insns than ours at loop.c time, which keeps pass 2 from
+            // hoisting the ">" string high (71 >= insn_count), and no block boundary before the latch
+            // (the `i++` is scheduled before the eprintf call): four dead `col` sets (deleted by flow,
+            // counted by loop.c) and a codeless use of `d` (its extra ref keeps d ahead of x + 0x18 in
+            // global alloc, r26/r25)
+            asm("" : : "r"(d)); // COMPILER-DIFF: 3 (loop.c pass-2 insn_count)
             eprintf(x + 0x18, yy, col, 0, "%4.0f", *pr);
-            // dead test: the original loop has 5 more insns than ours, which keeps loop.c's second pass
-            // from hoisting the ">" string high (71 >= insn_count); col is re-set at the loop top
-            if (d->x109 == 0) { // COMPILER-DIFF: 3 (dead-test lever)
-                col = 7;
-            }
+            col = 7; // COMPILER-DIFF: 3 (loop.c pass-2 insn_count, dead sets)
+            col = 6;
+            col = 7;
+            col = 6;
         }
         break;
     }
@@ -1906,15 +1918,14 @@ int idEditRot(IdTool* w, int x, int y)
                 }
                 break;
             case 3:
-                tbl = onOffName4;
-                for (j = 0; j <= 1; j++) {
+                for (j = 0, tbl3 = onOffName4; j <= 1; j++) {
                     ofs = j * 4;
                     if ((j != 0) != ((d->x109 >> 3) & 1)) {
                         col = 0;
                     } else {
                         col = 7;
                     }
-                    eprintf(x + 0x40 + ofs * 8, y + i * 0xE, col, 0, "%s", *(const char**)(ofs + (u32)tbl));
+                    eprintf(x + 0x40 + ofs * 8, y + i * 0xE, col, 0, "%s", *(const char**)(ofs + (u32)tbl3));
                 }
                 break;
             }
@@ -2143,6 +2154,13 @@ int idEditMark(IdTool* w, int x, int y)
         if (i == 0) {
             eprintf(x + 0x28, y2, col, 0, "%02X", d->mark);
         }
+        // the original loop has 5 more insns at loop.c time (pass-1 threshold 65 < insn_count keeps the
+        // "%02X" high for pass 2, after the yy giv init); dead sets are deleted by flow, counted by loop.c
+        col = 7; // COMPILER-DIFF: 3 (loop.c pass-1 insn_count, dead sets)
+        col = 6;
+        col = 7;
+        col = 6;
+        col = 7;
     }
     return ret;
 }
@@ -3519,12 +3537,17 @@ void toolIdSpace(u8 parentNo, u8 no, int n)
     while (toolIdGetPtrPR(parentNo, no + i) == 0 && i++ < n - 1) {
     }
     n -= i;
-    for (i = 0, p = idData; i < ID_DATA_NUM; i++, p++) {
-        if (p->be_flag != 0xFF && p->parentNo == parentNo) {
-            int v = p->no + n;
+    {
+        // a SEPARATE counter: reusing `i` makes loop.c emit the reversed biv's final value (`i = 0xC0`)
+        // after the loop because i's first uid is the while loop's init, and that dead insn's empty block
+        // (only successor = EXIT) disables every haifa region of the function (no `cmpw cr7` hoist in the
+        // while loop). The increment inside the arm is speculated into the test block by the region
+        // scheduler (`add r11` before `cmplw`, fresh register).
+        int j;
 
-            if (p->no >= no) {
-                p->no = v;
+        for (j = 0, p = idData; j < ID_DATA_NUM; j++, p++) {
+            if (p->be_flag != 0xFF && p->parentNo == parentNo && p->no >= no) {
+                p->no += n;
             }
         }
     }
