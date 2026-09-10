@@ -18446,11 +18446,14 @@ void cEm10::setHand(int no, int type)
         tpl = w->mot[13];
         break;
     case 3:
+        // bin before tpl: tpl's shorter range gives it r4 (bin r9) like the target. OPEN (5 words):
+        // the target issues `lwz tpl` before `lwz bin` and the wepType compare (the compared byte
+        // does not die at the compare there), and keeps `no` in r10 (ours r11).
         bin = w->mot[9];
+        tpl = w->mot[14];
         if (w->wepType == 6) {
             bin = w->mot[10];
         }
-        tpl = w->mot[14]; // after the if: tpl's shorter range gives it r4 (bin r9) like the target
         break;
     }
     if (no) {
@@ -18950,10 +18953,15 @@ extern "C" int em10AtkDoorCk(cEm10* em)
     return 0;
 }
 
+// The do { } while (0) around the store adds a loop-note level, so flow counts the three `in = 1`
+// sets at loop depth 3 (REG_N_REFS 13 instead of 10): `in` then outranks `kind` in global alloc
+// (in r25, kind r24) with the loop's real insn count unchanged.
 #define EM10_DOOR_IN_CK(v, in)                                                                     \
     if (v.x < 500.0f && v.x > -500.0f && v.y < 500.0f && v.y > -500.0f && v.z < 1500.0f &&        \
         v.z > 0.0f) {                                                                              \
-        in = 1;                                                                                    \
+        do {                                                                                       \
+            in = 1;                                                                                \
+        } while (0);                                                                               \
     }
 
 int em10SetDamageDoor(cEm10* em, int kind)
@@ -19127,9 +19135,20 @@ int em10RackBreakCk(cEm10* em)
         if (SatMgr.hitCheck(&a, &b, 0, 0, 0, 0)) {
             continue;
         }
-        do { // loop notes keep `li r3, 1` below the routine stores, so the hitCheck result (known 0) stays in r3
-            EmRoutineSet(em, 1, e->type == 0 ? 0x3E : 0x3D, 0, 0);
-        } while (0);
+        {
+            // `type` loaded before the loop notes: the LOOP_BEG barrier keeps the ternary's hoisted
+            // `li 0x3D` behind the compare, so the temp shares r0 with the loaded byte (and does not
+            // inherit e's r3/r11 preferences). Two do { } while (0) levels put the four routine
+            // stores at loop depth 4: em then has 34 weighted refs and outranks e (em r31, e r30);
+            // the loop notes also keep `li r3, 1` below the stores so the hitCheck result (known 0)
+            // stays in r3 for the xFE/xFF zeros.
+            int type = e->type;
+            do {
+                do {
+                    EmRoutineSet(em, 1, type == 0 ? 0x3E : 0x3D, 0, 0);
+                } while (0);
+            } while (0);
+        }
         return 1;
     }
     return 0;
@@ -19254,11 +19273,17 @@ int em10LadderClimbCk(cEm10* em)
     if (w->x54C.y - em->pos.y < 1000.0f) {
         return 0;
     }
-    for (o = (cObjLadder*) ObjMgr.pAlive; o; o = (cObjLadder*) o->next) {
+    // A while loop with the `o = o->next` step repeated before every `continue` (jump2 cross-jumps
+    // the copies into one): the copies keep the loop at 82 real insns in loop pass 2, above the
+    // 71-insn invariant threshold, so the Muku PI `lis` stays inside the loop like the target.
+    o = (cObjLadder*) ObjMgr.pAlive;
+    while (o) {
         if (o->id != 0x13) {
+            o = (cObjLadder*) o->next;
             continue;
         }
         if (!o->ckClimb()) {
+            o = (cObjLadder*) o->next;
             continue;
         }
         {
@@ -19266,10 +19291,12 @@ int em10LadderClimbCk(cEm10* em)
             f32 dy = em->oldPos.y - o->pos.y;
             f32 dz = em->oldPos.z - o->pos.z;
             if (dx * dx + dy * dy + dz * dz > 4000000.0f) {
+                o = (cObjLadder*) o->next;
                 continue;
             }
         }
         if (fabsf(Muku(&em->oldPos, &o->pos, em->rot.y, 3.1415927f)) > 1.5707964f) {
+            o = (cObjLadder*) o->next;
             continue;
         }
         PSMTXRotRad(m, 'y', o->rot.y);
@@ -19277,9 +19304,11 @@ int em10LadderClimbCk(cEm10* em)
         PSMTXInverse(m, m);
         PSMTXMultVec(m, &em->pos, &v);
         if (v.z > 1000.0f || v.z < -500.0f) {
+            o = (cObjLadder*) o->next;
             continue;
         }
         if (v.x > 800.0f || v.x < -800.0f) {
+            o = (cObjLadder*) o->next;
             continue;
         }
         if (!(fabsf(v.y) > 500.0f)) {
@@ -19288,6 +19317,7 @@ int em10LadderClimbCk(cEm10* em)
             EmRoutineSet(em, 1, 0x40, 0, 0);
             return 1;
         }
+        o = (cObjLadder*) o->next;
     }
     return 0;
 }
@@ -20198,7 +20228,14 @@ extern "C" int em10ShieldAtkCk(cEm10* em)
         if (w->x510 > 0.7853982f) {
             return 0;
         }
-        d = fabsf(em->pos.y - pSUB->pos.y);
+        {
+            // Multi-set `d` is not local-allocated, so the fsubs result cannot tie to the dying `t`
+            // (em->pos.y stays f0) and lands in d's register f13: `fsubs f13, f0, f13; fabs f13`.
+            f32 t = em->pos.y;
+            d = pSUB->pos.y;
+            d = t - d;
+            d = fabsf(d);
+        }
         if (d > 1500.0f) {
             return 0;
         }
@@ -25468,6 +25505,10 @@ extern "C" void em10SetTakeawayPos(cEm10* em)
     u32 i;
     SceAtWork* p;
 
+    // Both loops write the `bestAng < PI/2` and `d < bestD` cases as separate arms with their own
+    // copy of the update (jump2 cross-jumps them into the `||` shape): at global-alloc time the extra
+    // copy gives `&best` 17 weighted refs (> em's 29/241) and the loop-2 `&c` PRE copy 10, which
+    // puts &best above em (r28/r27) and the copy above p (r29/r28).
     if (pG->pRoomEmi) {
         for (i = 0; i < ((EmiData*) pG->pRoomEmi)->n; i++) {
             EmiEntry* e = &((EmiData*) pG->pRoomEmi)->entry[i];
@@ -25501,7 +25542,11 @@ extern "C" void em10SetTakeawayPos(cEm10* em)
                     best = e->pos;
                     bestD = d;
                     bestAng = ang;
-                } else if (bestAng < 1.5707964f || d < bestD) {
+                } else if (bestAng < 1.5707964f) {
+                    best = e->pos;
+                    bestD = d;
+                    bestAng = ang;
+                } else if (d < bestD) {
                     best = e->pos;
                     bestD = d;
                     bestAng = ang;
@@ -25539,7 +25584,11 @@ extern "C" void em10SetTakeawayPos(cEm10* em)
                 best = c;
                 bestD = d;
                 bestAng = ang;
-            } else if (bestAng < 1.5707964f || d < bestD) {
+            } else if (bestAng < 1.5707964f) {
+                best = c;
+                bestD = d;
+                bestAng = ang;
+            } else if (d < bestD) {
                 best = c;
                 bestD = d;
                 bestAng = ang;
