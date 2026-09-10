@@ -352,7 +352,7 @@ def DolphinLib(lib_name: str, objects: List[Object]) -> Dict[str, Any]:
 # `lis/addi`, float constants sit in .rodata): -sdata 0 -sdata2 0; string literals are in .rodata
 # (-str readonly) and callee-saved registers are saved with stmw/lmw (-use_lmw_stmw on). Headers live
 # in src/lib/cri/.
-MWCC_CRI_VERSION = "GC/2.0"
+MWCC_CRI_VERSION = "GC/2.7"  # 2.4.7 build 108: the originals carry "MW2407 GC20Apr2004Patch1"; build >= 105 matches the struct-copy tail (sfd_tst, mwsfdcre)
 cflags_mw_cri = [
     "-nodefaults",
     "-proc gekko",
