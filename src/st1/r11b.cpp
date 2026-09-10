@@ -84,12 +84,12 @@ void R11bInit()
     Vec rot2;
     EmListData* l;
     cObj* obj = 0;   // the zero of the EstSet data arguments and the list entry's x3 (r27)
-    R11bWork*& wp = r11b_work.p;   // the store's `lis` sits before the SceExec call (r30)
 
     BitOn(pG->flags_54, 0x800);
     if (pG->x4F9F == 1) {
         RsfSet(G_ROOM_ID, 0);
     }
+    R11bWork*& wp = r11b_work.p;   // the store's `lis` sits before the SceExec call (r30)
     SceExec(0x12, (TaskFunc) r11b_bort_pos_chk, 0, 0, 2, 0);
     BitOn(pG->flags_51BC, 8);
     BitOn(pG->flags_51BC, 2);
@@ -315,11 +315,12 @@ static void r11b_EmEvent_exit()
 }
 
 // Area 3: the Ganado ambush on the shore (camera cuts 3..6).
+static inline void r11b_setPosXYZ(cModel* m, f32 x, f32 y, f32 z) { Vec v; v.x = x; v.y = y; v.z = z; m->setPos(&v); }
+static inline void r11b_setAngXYZ(cModel* m, f32 x, f32 y, f32 z) { Vec v; v.x = x; v.y = y; v.z = z; m->setAng(&v); }
+
 static void r11b_EmEvent()
 {
     if (RsfCheck(G_ROOM_ID, 1) == 0) {
-        Vec v;
-
         RsfSet(G_ROOM_ID, 1);
         r11b_work.p->em[0] = EmSetFromList2(0x40, 1);
         r11b_work.p->em[1] = EmSetFromList2(0x41, 1);
@@ -338,14 +339,8 @@ static void r11b_EmEvent()
         SceEventStart(0);
         SndStrReq(1, 0x24, 0x80000003, 0, 0, 0.0f);
         pPL->setNoSuspend(1);
-        v.x = -60735.0f;
-        v.y = 2008.0f;
-        v.z = -8455.0f;
-        pPL->setPos(&v);
-        v.x = 0.0f;
-        v.y = 2.64f;
-        v.z = 0.0f;
-        pPL->setAng(&v);
+        r11b_setPosXYZ(pPL, -60735.0f, 2008.0f, -8455.0f);
+        r11b_setAngXYZ(pPL, 0.0f, 2.64f, 0.0f);
         EstSet((int) r11b_work.p->em[0], -1, 0, 0, 1, 0xA, 1, 2, 0, 0);
         EstSet((int) r11b_work.p->em[1], -1, 0, 0, 1, 0xA, 1, 2, 0, 0);
         EstSet((int) r11b_work.p->em[2], -1, 0, 0, 1, 0xA, 1, 2, 0, 0);

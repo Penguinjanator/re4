@@ -348,6 +348,9 @@ static void r10c_TestPosMove(int side)
     }
 }
 
+static inline void r10c_setPosXYZ(cModel* m, f32 x, f32 y, f32 z) { Vec v; v.x = x; v.y = y; v.z = z; m->setPos(&v); }
+static inline void r10c_setAngXYZ(cModel* m, f32 x, f32 y, f32 z) { Vec v; v.x = x; v.y = y; v.z = z; m->setAng(&v); }
+
 static void r10c_EmEvent_exit()
 {
     EmMgr.destroy(r10c_work.p->em);
@@ -367,24 +370,8 @@ static void r10c_EmEvent_exit()
     EmSetFromList2(3, 1);
     EM_LIST(4)->flags |= 1;
     EmSetFromList2(4, 1);
-    {
-        Vec pos;
-
-        // OPEN: the target issues the x store before the z store (f0 = x); every order and a
-        // `f32 zero` variable give z first.
-        pos.x = 6609.0f;
-        pos.y = 0.0f;
-        pos.z = 17172.0f;
-        pPL->setPos(&pos);
-    }
-    {
-        Vec ang;
-
-        ang.x = 0.0f;
-        ang.y = 0.56f;
-        ang.z = 0.0f;
-        pPL->setAng(&ang);
-    }
+    r10c_setPosXYZ(pPL, 6609.0f, 0.0f, 17172.0f);
+    r10c_setAngXYZ(pPL, 0.0f, 0.56f, 0.0f);
     pG->flags_174 &= ~0x08000000;
 }
 
@@ -395,7 +382,6 @@ static void r10c_EmEvent()
 
     if (RsfCheck(G_ROOM_ID, 1) == 0) {
         cEm* em;
-        Vec v;
 
         RsfSet(G_ROOM_ID, 1);
         BitOff(pG->flags_174, 0x04000000);
@@ -428,14 +414,8 @@ static void r10c_EmEvent()
             SceSleep(1);
         }
         pPL->setNoSuspend(1);
-        v.x = 3145.0f;
-        v.z = 10394.0f;
-        v.y = 0.0f;
-        pPL->setPos(&v);
-        v.x = 0.0f;
-        v.y = 0.4f;
-        v.z = 0.0f;
-        pPL->setAng(&v);
+        r10c_setPosXYZ(pPL, 3145.0f, 0.0f, 10394.0f);
+        r10c_setAngXYZ(pPL, 0.0f, 0.4f, 0.0f);
         CamCtrl.CutCall(0x13);
         while (CamCtrl.IsMotionEnd() == 0) {
             SceSleep(1);
@@ -714,13 +694,19 @@ static void r10c_EmSet_exit()
 }
 
 // Area 8: the ambush on the drained pool floor (camera cut 0x1B).
+static inline f32 FCRef(const f32& v) { return v; }
+
 static void r10c_EmSet()
 {
+    // The 0.0 is loaded after the flags_174 store: a pool constant would move above it (pool loads
+    // never depend on stores), a `static const` read through a reference stays below (r104 idiom).
+    static const f32 vol = 0.0f;
+
     if (RsfCheck(G_ROOM_ID, 9) == 0) {
         RsfSet(G_ROOM_ID, 9);
         SceSleep(30);
         pG->flags_174 &= ~0x04000000;
-        SndStrReq(1, 7, 3, 0, 0, 0.0f);
+        SndStrReq(1, 7, 3, 0, 0, FCRef(vol));
         SceEventStart(1);
         CamCtrl.CutCall(0x1B);
         r10c_work.p->ems[0] = setEm(6, -1, 1, 1, 1);
@@ -757,8 +743,9 @@ static void moveWheel()
     f32 poolSpd = 30.0f;
     R10cRotWork* wheelA = (R10cRotWork*) SmdGetObjPtr(6)->work;
     R10cRotWork* wheelA2 = (R10cRotWork*) SmdGetObjPtr(0xA)->work;
+    R10cRotWork* wheelB;
     R10cRotWork* wheelA3 = (R10cRotWork*) SmdGetObjPtr(0x33)->work;
-    R10cRotWork* wheelB = (R10cRotWork*) SmdGetObjPtr(8)->work;
+    wheelB = (R10cRotWork*) SmdGetObjPtr(8)->work;
     cObj* cogA;
     cObj* cogB;
     cObj* gate;

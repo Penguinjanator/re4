@@ -275,7 +275,8 @@ static void r225_operateCrank()
                     break;
                 }
                 max = *(u16*) mot;
-                frame = (u32) ((f32) max * (pPL->frame / (f32) pPL->frameMax));
+                f32 ratio = pPL->frame / (f32) pPL->frameMax;
+                frame = (u32) ((f32) max * ratio);
                 frame++;
                 if (frame >= max) {
                     frame = 0;

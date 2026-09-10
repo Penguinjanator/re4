@@ -8364,3 +8364,110 @@ confirmed on the units named):
   (322: `esp` is r27 in the original below `&esp->work` (3-set pointer, r30), the per-arm `Vec*` frame pointers
   (r29) and two short-lived groups (r31/r28); ours gives esp r31 -- a priority order of five allocnos, no
   single lever), esp04 move10 (loop register renames, not the zero-copy shape).
+
+### Stage rooms, never-iterated units pass (r119 Matching; r221 33->37/38, r226 26->28/33, r21a 11->15/17, r10c 15->19/23, r11b 11->12/14, r225 operateCrank 303->77 words; 2026-09-10)
+
+- Harness: /tmp/rooms_c3 (copies of /tmp/rooms_c2 with the paths rewritten). Never edit a source with a Python
+  `str.replace(a, b)` whose `a` came from a slice that may be empty: `s.replace("", block)` interleaves `block` between
+  every character (r21a.cpp went to 500k lines; restored from the tryv variant copy in `out/v_<unit>_<name>.cpp`,
+  which is always the full pre-edit source plus the variant).
+- **Dead `do { } while (0);` right after a `do { ..; if (c) break; SceSleep(1); } while (1)` poll loop reloads the
+  following pool constant** (r226 RoboStartMain 19 -> 0, tagged `// COMPILER-DIFF: #12`): cse1's AROUND path from the
+  exit `bso` carries the loop compare's 0.0 register into the exit block and folds the `setAng(.., 0.0f)` pool load
+  to it; the dead loop's LOOP_END note ends cse1's extended block before the fold (`cse_end_of_basic_block` stops at
+  LOOP_END when `after_loop == 0`). `for (;;) { break; }` works too; placed AFTER the statement it does nothing. This is
+  the r218 2500.0 / r108 openCover / r20d checkSwitch "pool constant reloaded after the poll loop" family.
+- **`k * 7200 / 7` on a conditionally incremented counter is a strength-reduced giv** (r221 checkElevatorArrive 58 -> 0):
+  loop.c verifies `k++` inside an `if` as a biv (`not_every_iteration`), reduces `k * 7200` to a giv incremented with
+  `k++` and emits its init (`li r31,7200`) after the `7200 - i` giv's init in biv-list order (i first), i.e. LAST
+  before LOOP_BEG; a hand-written running `sum += 7200` is a user pseudo whose `li` is issued at its source LUID
+  (before the gcse `lis`es). Same function: `cEmWrap em;` declared INSIDE the loop body (ctor `bl` per iteration),
+  a separate `u32 m` for the `for (m = n; m <= 7; m++)` tail loop (`mr r30,r28` copy hoisted above the calls),
+  `PSetPrim/U32Set` reference stores for the three work fields whose following `pG` RMW reloads `pG`.
+- **A template-less `Vec` built in a second slot and copied** (r221 initShutter 34 -> 0): `Vec d; f32 dy = 4386.0f -
+  o->pos.y; Vec t = {0.0f, dy, 0.0f}; d = t;` -- `dy` computed first into a callee-saved FPR (`fsubs f31` before the
+  memset), `t` at frame 0x18 (memset + `stfs f31,28(r1)`), the 3-word copy into `d` (frame 8), and the later
+  `Vec v = {0,0,0}` at 0x28 because `t` is a named local, not a freed temp. `{0.0f, 4386.0f - o->pos.y, 0.0f}` directly
+  builds in place; a `Vec* d` inline gives 46 words.
+- **Unsigned 2-case switch tree** (r221 moveElevator): `switch ((u32) dir) { case 0: ..; case 1: ..; case 2: break; }`
+  gives `cmpwi 1; beq c1; cmplwi 1; bge default` (the default-equal `case 2` makes 3 nodes -> balanced tree, root 1,
+  left leaf 0 bounded by 0 -> no `cmpwi 0`; the `beq default` of node 2 is threaded away); two cases give the linear
+  `cmpwi 0; beq; cmpwi 1; beq`. Read `mr r5,r31` after a `cmpwi cr4,r31,1` twice: r31 was reassigned
+  (`addi r31,r3,148` = `&o->pos`), the SndCall argument is `&o->pos`, not the compared flag.
+- **`R226Work*& wp = ..; wp = MEM_CALLOC(..); PSetRobo(wp->robo, NULL);`** (R226Init 9 -> 0): the reference store makes
+  the following `lwz pG` (x4F9F test) depend on it, so sched1 issues the store's `lis`/`stw` and the three PRE'd
+  `lis`es before the load; keep the `#line` directive immediately before the MEM_CALLOC line (the `wp` declaration
+  above it), or `__LINE__` shifts. Same lever: R21aInit (function-address `lis` pair order, 10 -> 0), R11bInit
+  (42 -> 18) with the `wp` declaration placed right BEFORE the `SceExec` call so the store-high's `lis` issues just
+  before that `bl` (its LUID) and the read-high's `lis` after it.
+- **Inline `setPosXYZ/setAngXYZ(cModel*, f32, f32, f32)` (Vec owned by the inline) for every `v.x = ..; v.y = ..;
+  v.z = ..; m->setPos(&v)` block of a function** (r21a FallRoofStartEnd 12 -> 0, FallRoofStartMain 62 -> 0 together with
+  per-loop counters, FallRoofDie 91 -> 66; r10c EmEvent_exit 4 -> 0, EmEvent 7 -> 0; r11b EmEvent 6 -> 0): all argument
+  loads (`obj->pos.x/z`) precede the stores, consecutive calls share one frame slot (0x10 when the EstSet stack
+  arguments own 8/0xC), the constant `y` goes through the inline frame pseudo (`stfs f13,4(r30)`, r226 idiom), and the
+  x/z temporaries take the target's f0/f13. A `cModel* m = pPL;` at the top of the block does the same for a single
+  block (r206 lever), a caller `Vec` with a mix of blocks does not (the inline temps then need a second slot).
+- **Per-loop `int i` when a counted loop's counter is reused by a later loop** (r21a FallRoofEndMain 18 -> 0,
+  StartMain): the reversed `for (i = 0; i < 4; i++)` loop gets a final-value insn `i = 4` after LOOP_END when `i` is
+  live afterwards, which destroys cse2's "counter == 0 on the exit fall-through" knowledge; the target stores the
+  dead counter register as the zero of the next EstSet's stack arguments (`stw r28,8(r1)`), so its counter was
+  block-scoped. Also fixes the r30/r31 obj/counter swap.
+- **`f32 ratio = pPL->frame / (f32) pPL->frameMax; frame = (u32) ((f32) max * ratio);`** (r225 operateCrank 303 -> 77):
+  the division (with the `psq_l qr3` u16 fast-cast) is evaluated before the `(f32) max` double trick; the inline
+  product converts `max` first. Residue (77): the 2^52 magic of `(f32) max` is hoisted into f31 by loop pass 2 in ours
+  and reloaded in the arm (`lis r10; lfd f13`) by the target, and `gnd_open(); break;` is laid out between the arms of
+  the final if/else in the target (a `goto open;` + `if (0) { open: gnd_open(); goto exit; }` in the else arm
+  reproduces the layout but shrinks the loop so 800.0 gets hoisted too: 85). See the next item.
+- **loop.c hoisting rule of record** (loop.c move_movables): a movable is hoisted when `threshold * savings * lifetime
+  >= insn_count` (`* 2` if already moved once) with `threshold = (loop_has_call ? 1 : 2) * (1 + n_non_fixed_regs)`
+  (~66 with a call) and **`threshold -= 3` after every moved movable**; `lifetime` is the LUID distance from the set
+  to the last use (1-2 for a `lis`/`lfd` pair, whose `savings` is 2 because the load "forces" the high), `insn_count`
+  the loop's real insns at THAT pass (pass 2 is smaller by everything pass 1 moved). A single-use pool constant in a
+  conditional arm therefore flips between hoisted and not on a few insns of loop size and on how many movables
+  precede it in RTL order: r225 operateCrank (262 insns, 66*2*2 = 264 >= 262 hoists the 2^52 magic; 1076 later in
+  the list fails at 264 - 24), r10c hako_down (-100.0 hoisted at 260 insns, the target reloads it), r21a
+  FallRoofMove. The target's loops had a few more pre-combine insns or a different movable order; adding dead
+  `asm("" : : "r"(x))` statements (+6 insns) did not flip r225. No source lever found yet; treat with the
+  COMPILER-DIFF #13 "REG_EQUIV constant re-materialised by reload" family when the target's constant load sits at
+  its use with a spill-register high (r10 with pG in r9).
+- **`pGS->pRoomArc` for the third of three identical `SetTree(.., &pos, &rot)` blocks** (R119Init 7 -> 0, unit
+  Matching): the struct-view load depends on the six preceding `pos/rot` frame stores (a plain `pG` load is a fixed
+  scalar that sched2 hoists above them by the anti-dependence priority, see the previous pass's analysis). The first
+  two blocks match with plain `pG`.
+- **FCRef `static const f32 vol = 0.0f` for a `SndStrReq(.., 0.0f)` after a `pG->flags_174 &= ~x` RMW** (r10c EmSet
+  10 -> 0): the r104 execShowView idiom applies to any plain member store the target's 0.0 load follows; the pool
+  word's place is unchanged when 0.0 is the function's only constant.
+- **Declaration order of two pointer locals** decides a callee-saved pair (r10c moveWheel 4 -> 0: `R10cRotWork* wheelB;
+  R10cRotWork* wheelA3 = ..; wheelB = ..;` -- the lower pseudo number wins the global-alloc tie).
+- **`if (t2 != 0 && t2 == i)`** operand order (`cmpw t2,i`) and a per-loop `u32 j` for the 300-frame loop (r221
+  throwBonbe 24 -> 20). Residue: `clrlwi r8,r16,24` for `(u8) eff0` at two EstSet calls -- eff0 is `int eff0 = 0` set
+  to 0/2/4/0xB in the cases, so combine's nonzero_bits proves the mask redundant in ours (COMPILER-DIFF 2, the original
+  masks); an uninitialised `eff0` removes the `li r16,0` the target has. Plus the eff2/pG-high r21/r22 tie
+  (eff2 7 refs/920 insns vs the REG_EQUIV high 13 refs/870*2: ours ranks the high first; declaration orders,
+  `k0/k1` as declarations, a `GlobalWork* g` local do not change it).
+- Analysed, still OPEN:
+  - r120 R120Event (114): after cse1 the tail already uses the x4F8E test's `high(pG)` pseudo (r84, AROUND path
+    taken), but gcse then PREs `high(pG)` (the inner event bodies compute it again) to the END OF BB 0 = before the
+    first `SceSleep` call (calls end basic blocks here), and the test's own occurrence becomes the fresh `lis r9`;
+    the target has no PRE (one pseudo r31 from the first `lis` to the tail). A branch-free room-local FadeSetW
+    changes nothing (the body has no labels either way). COMPILER-DIFF #3 family.
+  - r225 SceElevator_r225 (301): sce_com's SceElevator without the flags_5014 bits plus the chapter-end arm; sce_com's
+    own copy is 82%. Target keeps `cmpwi cr4,r26,0` (faded == 0) in cr4 across the whole up-loop (`mfcr r12` saved),
+    PRE copies `mr r24,r30; mr r25,r28; mr r19,r29` of `&d->pos/&d->plPos/&d->plRot` before SceEventStart, and `Vec v`
+    stores as `stfs f13,0x10(r1)` after `fmadds`. Not iterated (301 words, needs its own pass).
+  - r21a FallRoofMove (13): PI/180 hoisted pair f27/f28 swapped (equal refs 5, lengths 734/730: ours allocates PI first
+    although 180 is shorter -- global.c `find_reg` prefers registers already in `regs_used_so_far`/with fewer local
+    refs, so the choice depends on local-alloc's use of f27/f28 elsewhere); `const f32`/inline/`f32 pi` forms: 13-56.
+    FallRoofDie (66, frame +8): the loop's `0.0` for `SetAngXYZ(obj, ax, 0.0f, az)` lives in a GPR (`lwz r28; stw
+    r28,4(r30)`) in the target and an FPR (f28, one more callee-saved FPR) in ours; the `&camAt`/`&pos` PRE copies
+    (`mr r27,r29; mr r26,r30`) are issued after the first SndCall in the target, before the first setPos in ours.
+  - r10c SetEmHitAtari (149, .rodata): the 0.01/0.05/0.06 `spd` constants enter the pool after the first arm's
+    YarareInitCube constants but are loaded before the first RsfCheck; assignments in both arms of the first
+    if/else (PRE into the pred block) give 116-119 words and the pool still differs. chkSwitchA (71), hako_down
+    (37: the -100.0 hoist, previous item), TestPosMove (4: template word pair 4/8 order, the r40f/r22a family).
+  - r11b R11bInit (18): `l->x3 = 1` in both arms shares one QI pseudo hoisted to the arm top (`li r5,1`); the target
+    has `li r0,1` right before each `stb` (#13 shape). `do{}while(0)` before the store, `U8Set`, a `u8 one` local, the
+    store first: 18-81. Plus the `lwz pG` r9/r11 naming after the first call.
+  - r226 PassageStart/BridgeStart `i++` in the compare block (#5 interblock), playerPillarDownCk prologue (#1),
+    PassageSwitchMain (49, #2). r22c highscore: `found` flag / `IDSystem* sys` per iteration / `int* d = digit`: 10-14
+    (tie confirmed). r216 close, r22a RopeMove, r213 x3 not retried (documented ties).

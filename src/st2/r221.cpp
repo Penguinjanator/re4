@@ -297,9 +297,11 @@ void r221_initShutter()
     cObj* o = SmdGetObjPtr(0x46);
 
     if (o) {
-        Vec d = {0.0f, 4386.0f - o->pos.y, 0.0f};
+        Vec d;
+        f32 dy = 4386.0f - o->pos.y;
         const f32 grav = -10.0f;
-        f32 dy = d.y;
+        Vec t = {0.0f, dy, 0.0f};
+        d = t;
 
         r221_work.p->shutter0.initMove1_pos(o, 90, &d, 0.0f, 0.0f);
         r221_work.p->shutter0.setEndPos();
@@ -473,6 +475,8 @@ static void r221_moveElevator(int dir)
         case 1:
             evt = 1;
             break;
+        case 2:
+            break;
         }
         Vec d = {0.0f, -3000.0f, 0.0f};
         cSceObj elv;
@@ -510,9 +514,9 @@ static void r221_moveElevator(int dir)
             SceExec(0x12, (TaskFunc) r221_moveWire, 0, 2, 2, 0);
         }
         if (down == 0 && evt == 1) {
-            r221_work.p->elvSe1 = SndCall(6, 0xF, (Vec*) down, 0, 0, 0);
+            r221_work.p->elvSe1 = SndCall(6, 0xF, &o->pos, 0, 0, 0);
         } else {
-            r221_work.p->elvSe1 = SndCall(6, 0, (Vec*) down, 0, 0, 0);
+            r221_work.p->elvSe1 = SndCall(6, 0, &o->pos, 0, 0, 0);
         }
         for (i = 0; i < 90; i++) {
             if (down == 1 && i == 60) {
@@ -627,24 +631,23 @@ static void r221_checkElevatorArrive_end()
 // Task: the elevator arrives; the boss may attack it on the way.
 static void r221_checkElevatorArrive()
 {
-    cEmWrap em;
     u32 i;
     u32 k = 1;
-    u32 thr = 7200 / 7;
-    u32 sum = 7200;
+    u32 thr = 7200 * k / 7;
 
     for (i = 0; i < 7200; i++) {
         SceDebugDisp("ELV[%d]", 7200 - i);
         if (i >= thr) {
-            sum += 7200;
             k++;
-            thr = sum / 7;
+            thr = 7200 * k / 7;
             r221_setElevatorEff(k);
         }
+        cEmWrap em;
         em.setPtr(0x8C, -1, 1);
         if ((pG->flags_174 & 0x00800000) && em.checkStatus(5) == 0) {
             u32 n = k + 1;
             u32 j;
+            u32 m;
 
             for (j = 0; j < 180; j++) {
                 SceDebugDisp("ELV[%d]", 180 - j);
@@ -662,8 +665,8 @@ static void r221_checkElevatorArrive()
             SceSleep(15);
             FadeSetW(1, 15, 0, 0);
             SceSleep(30);
-            for (; n <= 7; n++) {
-                r221_setElevatorEff(n);
+            for (m = n; m <= 7; m++) {
+                r221_setElevatorEff(m);
             }
             FadeSetW(0x80000001, 15, 0, 0);
             pPL->setNoSuspend(0);
@@ -681,9 +684,9 @@ static void r221_checkElevatorArrive()
     }
     RsfSet(G_ROOM_ID, 6);
     pG->door_flags_51CC |= 0x00800000;
-    r221_work.p->wireTask = 0;
-    r221_work.p->doorSe = 0;
-    r221_work.p->elvSe1 = 0;
+    PSetPrim(r221_work.p->wireTask, 0);
+    U32Set(r221_work.p->doorSe, 0);
+    U32Set(r221_work.p->elvSe1, 0);
     pG->flags_174 &= ~0x02000000;
     SceSetEventCancel(1, (TaskFunc) r221_checkElevatorArrive_end, 0, 2, 1);
     SceEventStart(1);
@@ -1335,7 +1338,7 @@ static void r201_throwBonbe(int no)
             if (i == t1) {
                 EstSet((int) bonbe, -1, 0, 0, 1, eff3, 1, 0, 0, 0);
             }
-            if (t2 != 0 && i == t2) {
+            if (t2 != 0 && t2 == i) {
                 EstSet(0, -1, 0, 0, 1, (u8) eff0, 1, (u8) k0, 0, 0);
                 EstSet(0, -1, 0, 0, 1, eff1, 1, (u8) k1, 0, 0);
             }
@@ -1352,7 +1355,7 @@ static void r201_throwBonbe(int no)
     bonbe->setNoSuspend(0);
     SceEventEnd(0);
     pG->flags_174 &= ~0x80000000;
-    for (i = 0; i < 300; i++) {
+    for (u32 j = 0; j < 300; j++) {
         if ((int) pG->flags_174 < 0) {
             SceAtSetEnable(atNo, 0);
         }

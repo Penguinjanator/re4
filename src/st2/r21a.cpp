@@ -87,14 +87,37 @@ static void R21aFallRoofEndMain();
 static void R21aFallRoofEndEnd();
 static void SceBgmCheck();
 
+// The position set through an inline owning the Vec: the arguments are evaluated before the stores
+// (and the inline temps of consecutive calls share one frame slot: R21aFallRoofStartEnd).
+static inline void SetPosXYZ(cModel* m, f32 x, f32 y, f32 z)
+{
+    Vec v;
+
+    v.x = x;
+    v.y = y;
+    v.z = z;
+    m->setPos(&v);
+}
+
+static inline void SetAngXYZ(cModel* m, f32 x, f32 y, f32 z)
+{
+    Vec v;
+
+    v.x = x;
+    v.y = y;
+    v.z = z;
+    m->setAng(&v);
+}
+
 void R21aInit()
 {
     cEm* win;
     cEm* door;
     u32 i;
 
+    R21aWork*& wp = r21a_work.p;
 #line 50 "D:/Bio4/Prog/r21a.cpp"
-    r21a_work.p = (R21aWork*) MEM_CALLOC(sizeof(R21aWork), 1, 0xd);
+    wp = (R21aWork*) MEM_CALLOC(sizeof(R21aWork), 1, 0xd);
     SceSetItemEvent(0xA, 0x84, 5, 1, r21a_moveShelf, (void (*)()) r21a_movedShelf, 0x84, 0);
     SceSetItemEvent(9, 0x85, 4, 2, r21a_moveShelf, (void (*)()) r21a_movedShelf, 0x85, 0);
     SceSetItemEvent(9, 0x88, 4, 2, r21a_moveShelf, (void (*)()) r21a_movedShelf, 0x88, 0);
@@ -351,8 +374,6 @@ static void R21aDoorEnd()
 static void R21aFallRoofStartMain()
 {
     cObj* obj = SmdGetObjPtr(0x41);
-    Vec pos;
-    int i;
 
     if (pG->flags_174 & 0x80000000) {
         return;
@@ -361,7 +382,7 @@ static void R21aFallRoofStartMain()
     SceAtSetEnable(7, 0);
     r21a_work.p->se = 0;
     r21a_work.p->str = 0;
-    for (i = 0; i < 4; i++) {
+    for (int i = 0; i < 4; i++) {
         if (obj) {
             EstSet((int) obj, -1, 0, 0, 1, (u8) r21a_roofTbl[i].est, 1, (u8) r21a_roofTbl[i].eff, 0, 0);
         }
@@ -378,32 +399,17 @@ static void R21aFallRoofStartMain()
     SmdSetTrans(0x41, 1);
     if (obj) {
         SndCall(6, 5, &obj->pos, 0, 0, 0);
-        for (i = 0; i < 10; i++) {
-            f32 x = obj->pos.x;
-            f32 z = obj->pos.z;
-
-            pos.x = x;
-            pos.y = (f32) i * -2361.0f / 10.0f + 1503.0f;
-            pos.z = z;
-            obj->setPos(&pos);
+        for (int i = 0; i < 10; i++) {
+            SetPosXYZ(obj, obj->pos.x, (f32) i * -2361.0f / 10.0f + 1503.0f, obj->pos.z);
             SceSleep(1);
         }
-        pos.x = obj->pos.x;
-        pos.y = -858.0f;
-        pos.z = obj->pos.z;
-        obj->setPos(&pos);
+        SetPosXYZ(obj, obj->pos.x, -858.0f, obj->pos.z);
         SndCall(6, 6, &obj->pos, 0, 0, 0);
-        for (i = 0; i < 10; i++) {
-            pos.y = fRand1_1() * 3.1415927f / 180.0f;
-            pos.x = 0.0f;
-            pos.z = 0.0f;
-            obj->setAng(&pos);
+        for (int i = 0; i < 10; i++) {
+            SetAngXYZ(obj, 0.0f, fRand1_1() * 3.1415927f / 180.0f, 0.0f);
             SceSleep(1);
         }
-        pos.x = 0.0f;
-        pos.y = 0.0f;
-        pos.z = 0.0f;
-        obj->setAng(&pos);
+        SetAngXYZ(obj, 0.0f, 0.0f, 0.0f);
     }
     SceSleep(10);
     CamCtrl.CutCall(5);
@@ -419,23 +425,14 @@ static void R21aFallRoofStartMain()
     if (obj) {
         EstSet(0, -1, 0, 0, 1, 0xD, 1, 0, 0, 0);
         r21a_work.p->se = SndCall(6, 0, &obj->pos, 0, 0, 0);
-        for (i = 0; i < 10; i++) {
-            pos.y = fRand1_1() * 3.1415927f / 180.0f;
-            pos.x = 0.0f;
-            pos.z = 0.0f;
-            obj->setAng(&pos);
+        for (int i = 0; i < 10; i++) {
+            SetAngXYZ(obj, 0.0f, fRand1_1() * 3.1415927f / 180.0f, 0.0f);
             SceSleep(1);
         }
-        pos.x = 0.0f;
-        pos.y = 0.0f;
-        pos.z = 0.0f;
-        obj->setAng(&pos);
+        SetAngXYZ(obj, 0.0f, 0.0f, 0.0f);
         SceSleep(20);
-        for (i = 0; i < 40; i++) {
-            pos.x = obj->pos.x;
-            pos.y = obj->pos.y - 10.0f;
-            pos.z = obj->pos.z;
-            obj->setPos(&pos);
+        for (int i = 0; i < 40; i++) {
+            SetPosXYZ(obj, obj->pos.x, obj->pos.y - 10.0f, obj->pos.z);
             SceSleep(1);
         }
     }
@@ -446,41 +443,22 @@ static void R21aFallRoofStartMain()
 static void R21aFallRoofStartEnd()
 {
     cObj* obj;
-    Vec v;
     cEm* door;
-    f32 x;
-    f32 z;
 
     SceAtSetEnable(8, 1);
     SmdSetTrans(0x41, 1);
     obj = SmdGetObjPtr(0x41);
     if (obj) {
-        v.x = 0.0f;
-        v.y = 0.0f;
-        v.z = 0.0f;
-        obj->setAng(&v);
-        x = obj->pos.x;
-        z = obj->pos.z;
-        v.x = x;
-        v.y = -858.0f;
-        v.z = z;
-        obj->setPos(&v);
+        SetAngXYZ(obj, 0.0f, 0.0f, 0.0f);
+        SetPosXYZ(obj, obj->pos.x, -858.0f, obj->pos.z);
     }
     obj = SmdGetObjPtr(0x3F);
     if (obj) {
         if (r21a_work.p->se == 0) {
             r21a_work.p->se = SndCall(6, 0, &obj->pos, 0, 0, 0);
         }
-        v.x = 0.0f;
-        v.y = 0.0f;
-        v.z = 0.0f;
-        obj->setAng(&v);
-        x = obj->pos.x;
-        z = obj->pos.z;
-        v.x = x;
-        v.y = 3095.0f;
-        v.z = z;
-        obj->setPos(&v);
+        SetAngXYZ(obj, 0.0f, 0.0f, 0.0f);
+        SetPosXYZ(obj, obj->pos.x, 3095.0f, obj->pos.z);
     }
     getRoomEtcDoor(5, &door, 1);
     if (door) {
@@ -509,20 +487,8 @@ static void R21aFallRoofDie(int no)
         Vec camAt = {-31480.0f, 429.0f, -32174.0f};
         f32 spd = (f32) no + 20.0f;
         f32 fovy = 50.0f;
-        Vec pos;
-        Vec* pp = &pos;
-        f32 x;
-        f32 y;
-        f32 z;
-        int i;
-
         SceEventStart(0);
-        x = obj->pos.x;
-        z = obj->pos.z;
-        pos.x = x;
-        pp->y = 1500.0f;
-        pos.z = z;
-        obj->setPos(&pos);
+        SetPosXYZ(obj, obj->pos.x, 1500.0f, obj->pos.z);
         SndCall(6, 0xC, &obj->pos, 0, 0, 0);
         goto move;
     wait:
@@ -530,36 +496,24 @@ static void R21aFallRoofDie(int no)
     move:
         SceCamMove(&camPos, &camAt, fovy);
         spd += 10.0f;
-        y = obj->pos.y - spd;
-        x = obj->pos.x;
-        z = obj->pos.z;
-        pos.x = x;
-        pos.y = y;
-        pos.z = z;
-        obj->setPos(&pos);
+        SetPosXYZ(obj, obj->pos.x, obj->pos.y - spd, obj->pos.z);
         if (!(obj->pos.y <= -1500.0f)) {
             goto wait;
         }
         EstSet((int) obj, -1, 0, 0, 1, 8, 1, 0, 0, 0);
         SndCall(6, 1, &obj->pos, 0, 0, 0);
-        for (i = 0; i < 10; i++) {
+        for (int i = 0; i < 10; i++) {
             f32 ax;
             f32 az;
 
             SceCamMove(&camPos, &camAt, fovy);
             ax = fRand1_1() * 3.1415927f / 180.0f * 2.0f;
             az = fRand1_1() * 3.1415927f / 180.0f * 2.0f;
-            pos.x = ax;
-            pos.y = 0.0f;
-            pos.z = az;
-            obj->setAng(&pos);
+            SetAngXYZ(obj, ax, 0.0f, az);
             SceSleep(1);
         }
-        pos.x = 0.0f;
-        pos.y = 0.0f;
-        pos.z = 0.0f;
-        obj->setAng(&pos);
-        for (i = 0; i < 60; i++) {
+        SetAngXYZ(obj, 0.0f, 0.0f, 0.0f);
+        for (int i = 0; i < 60; i++) {
             SceCamMove(&camPos, &camAt, fovy);
             SceSleep(1);
         }
@@ -574,27 +528,6 @@ static inline u32 flagBit(u32 f, u32 bit)
 
 // Scalar reference store (st_room.h idiom): the pG load that follows stays below it.
 static inline void S16Set(s16& d, s16 v) { d = v; }
-
-// The position set through an inline owning the Vec: the arguments are evaluated before the stores.
-static inline void SetPosXYZ(cModel* m, f32 x, f32 y, f32 z)
-{
-    Vec v;
-
-    v.x = x;
-    v.y = y;
-    v.z = z;
-    m->setPos(&v);
-}
-
-static inline void SetAngXYZ(cModel* m, f32 x, f32 y, f32 z)
-{
-    Vec v;
-
-    v.x = x;
-    v.y = y;
-    v.z = z;
-    m->setAng(&v);
-}
 
 // Event flag words at pG+0x174, addressed as an integer base plus the word offset (a cast-then-deref
 // store: it is not a struct access, so pG is reloaded after every store).
@@ -748,7 +681,6 @@ static void R21aFallRoofEndMain()
 {
     cObj* obj;
     Vec v;
-    int i;
 
     if (RsfCheck(G_ROOM_ID, 1)) {
         return;
@@ -761,7 +693,7 @@ static void R21aFallRoofEndMain()
     obj = SmdGetObjPtr(0x3F);
     if (obj) {
         SndCall(6, 1, &obj->pos, 0, 0, 0);
-        for (i = 0; i < 10; i++) {
+        for (int i = 0; i < 10; i++) {
             v.y = fRand1_1() * 3.1415927f / 180.0f;
             v.x = 0.0f;
             v.z = 0.0f;
@@ -785,7 +717,7 @@ static void R21aFallRoofEndMain()
 
         EstSet(0, -1, 0, 0, 1, 0xE, 1, 0, 0, 0);
         SndCall(6, 0xA, &obj->pos, 0, 0, 0);
-        for (i = 0; i < 60; i++) {
+        for (int i = 0; i < 60; i++) {
             f32 y = obj->pos.y;
             f32 z = obj->pos.z;
 

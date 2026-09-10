@@ -100,10 +100,8 @@ extern "C" void Evt_R119S00_Func(Event* e);
 extern "C" void Evt_R119S10_Func(Event* e);
 extern "C" void Evt_R119S20_Func(Event* e);
 
-// OPEN (6 words, third SetTree block): the x/z constant temps swap f0/f13 and `lwz pG` is issued
-// before the pos/rot stores (target: after `stfs rot.z`). The block differs from the first two only
-// in that the shared 2350/0.0 registers (f30/f31) die there; `pos.y` written last fixes the FPRs
-// but not the pG position (all 720 statement orders tried).
+// Third SetTree block: the pRoomArc read goes through the struct view `pGS` so the `lwz pG` depends
+// on the preceding pos/rot stores (a plain `pG` load is a fixed scalar that sched2 hoists above them).
 void R119Init()
 {
     Vec pos;
@@ -182,7 +180,7 @@ void R119Init()
     rot.x = 0.0f;
     rot.y = 0.0f;
     rot.z = 0.0f;
-    tree = SetTree(ROOM_ARC_PTR(pG->pRoomArc, 0x22), ROOM_ARC_PTR(pG->pRoomArc, 0x23), &pos, &rot);
+    tree = SetTree(ROOM_ARC_PTR(pGS->pRoomArc, 0x22), ROOM_ARC_PTR(pGS->pRoomArc, 0x23), &pos, &rot);
     tree->lightInfo.x54 &= ~0x10000;
     if ((obj = SmdGetObjPtr(0x21)) != 0) {
         Vec ang = {-0.21598449f, -1.4628042f, -2.1205752f};

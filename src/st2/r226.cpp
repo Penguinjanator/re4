@@ -120,6 +120,7 @@ static f32 r226_pillarSpd = 160.0f;
 
 static inline void FSetP(f32& d, f32 v) { d = v; }
 static inline void PSetSat(cSat*& d, cSat* v) { d = v; }
+static inline void PSetRobo(cObjRobo*& d, cObjRobo* v) { d = v; }
 // Collision flag bits cleared through the info's address with the following pG / pPL load kept
 // below the store (wep_mod.h AtariFlagsAndV).
 static inline void AtariFlagsAndV(cAtariInfo* at, u16 mask) { *(volatile u16*) &at->flags &= mask; }
@@ -222,9 +223,10 @@ void R226Init()
     u32 i;
     cObj* o;
 
+    R226Work*& wp = r226_work.p;
 #line 99 "D:/Bio4/Prog/r226.cpp"
-    r226_work.p = (R226Work*) MEM_CALLOC(sizeof(R226Work), 1, 0xd);
-    r226_work.p->robo = NULL;
+    wp = (R226Work*) MEM_CALLOC(sizeof(R226Work), 1, 0xd);
+    PSetRobo(wp->robo, NULL);
     if (pG->x4F9F == 1) {
         int n;
 
@@ -523,6 +525,9 @@ static void R226EventRoboStartMain()
             }
             SceSleep(1);
         } while (1);
+        // COMPILER-DIFF: #12 -- the LOOP_END note ends cse1's AROUND path so the 0.0 below is
+        // reloaded from the pool instead of reusing the loop compare's register.
+        do { } while (0);
         setAngXYZ(o, o->rot.x, o->rot.y, 0.0f);
     }
     while (CamCtrl.IsMotionEnd() == 0) {
