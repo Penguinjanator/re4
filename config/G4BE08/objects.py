@@ -1533,3 +1533,8 @@ MATCHING.update({
 MATCHING.update({
     "game/emBarred.cpp": True,  # SetEmBarred: `em->hpMax = em->hp = 1000` repeated in every YarareInitCube arm so case 4 does not end in the call (flow `use 0` nop) and all arms cross-jump into its tail
 })
+
+# DOL sweep 8 (2026-09-10)
+MATCHING.update({
+    "game/espgen10.cpp": True,  # EspgenDataSet: EspEvModList high/low as pinned r9/r11 asm insns + pinned r9 index (#13: REG_EQUIV high and mem never allocated in the original)
+})

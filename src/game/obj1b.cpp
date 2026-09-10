@@ -1,3 +1,6 @@
+// Left: obj1bHitCk (36 words) keeps `Vec* p = &obj->pos` as a separate callee-saved copy
+// (`mr r26,r28` after getPartsPtr) in the original -- the gcse PRE copy shape (COMPILER-DIFF #3
+// family); ours folds every p use into the argument pseudo.
 #include "atari.h"
 #include "light.h"
 #include "obj.h"
@@ -90,8 +93,6 @@ cObj* SetSpear(void* bin, void* tpl, Vec* pos, Vec* rot)
     obj->sub2B4.atari.throughOn();
     obj->lightInfo.init2(0, 1, &p0, &p1, 4);
     w->flags = 0;
-    w->espId = 0x32;
-    w->x6D = 0xFF;
     w->parentTimer = 0;
     w->estTimer = 0;
     w->x50 = 0;
@@ -111,13 +112,19 @@ cObj* SetSpear(void* bin, void* tpl, Vec* pos, Vec* rot)
     w->throwSeId = 0;
     w->estNo = 0xFF;
     w->estPrm = 0xFF;
+    // Store order read off the scheduler: the last RTL use of the 0xFF register (x6D) is the
+    // dying store and is issued first among the 0xFF stores, the rest follow in RTL order with
+    // x6C last; espId's `li 50` is issued late so its store leads the block. xFD/xFE/xFF ascending
+    // gives the target's 255, 253, 254 issue order.
     w->x6E = 0xFF;
     w->x6F = 0xFF;
     w->x6C = 0xFF;
+    w->x6D = 0xFF;
+    w->espId = 0x32;
     obj->xFC = 1;
-    obj->xFF = 0;
     obj->xFD = 0;
     obj->xFE = 0;
+    obj->xFF = 0;
     RotMatrix(obj->mat, &obj->rot);
     TransMatrix(obj->mat, &obj->pos);
     ScaleMatrix(obj->mat, &obj->scale);

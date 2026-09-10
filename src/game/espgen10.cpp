@@ -18,19 +18,21 @@ int EspgenDataSet(EspSeqData* head, int no, EspInfo* info, u32* seed, cModel* mo
     int ret = 1;
 
     if (info->x0 & 0x1000) {
-        // The table address is an integer here: the index register of the `lwzx` is r9
-        // (BASE_REGS), not r0 as a pointer base would give. `list` block-local in the else arm
-        // (9 words, was 22): the target keeps the address in r11 and `flag` in r30 -- a
-        // function-scope `list` (2-block pseudo) is allocated after `model` and inherits model's
-        // r6 preference through `(set model (mem (plus list idx)))`, and `flag` then fits r11.
-        // OPEN: the target hoists `lis/addi list` above the `cmplwi no,127` (list computed before
-        // the test) with `no` in r0.
+        // COMPILER-DIFF #13 block: in the original `list` (REG_EQUIV symbol_ref) and `no`
+        // (REG_EQUIV mem) are never allocated -- reload materialises `lis r9; addi r11` before
+        // the compare (so r9 is busy and `flag` falls to r30) and reloads `no` into r0, so the
+        // `no << 2` temp is not tied to it (r9). Written out as pinned registers + asm insns.
+        register u32 hi asm("r9");    // COMPILER-DIFF: #13 (reload-materialised high)
+        register u32 list asm("r11");  // COMPILER-DIFF: #13
         u32 no = rec->x6;
+        asm("lis %0,EspEvModList@ha" : "=r"(hi));
+        asm("addi %0,%1,EspEvModList@l" : "=r"(list) : "r"(hi));
         if (no > 0x7F) {
             model = NULL;
         } else {
-            u32 list = (u32) EspEvModList;
-            model = *(cModel**) (list + (no << 2));
+            register u32 idx asm("r9");  // COMPILER-DIFF: #13
+            idx = no << 2;
+            model = *(cModel**) (list + idx);
         }
     }
 

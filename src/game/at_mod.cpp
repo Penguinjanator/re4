@@ -19,16 +19,22 @@ static int sphereRectCk(cAtariInfo* info, Vec* p, f32 rad);
 int emLineCubeCrossCk(Vec* a, Vec* b, Mtx m, f32 sx, f32 sy, f32 sz, cAtariInfo* info, Vec* hit);
 }
 
-// Matrix copy written out as loops (motion.cpp).
+// Matrix copy written out as loops. The row counter is a do-while starting at 2 (`i_-- != 0`): the
+// original's counter of ComnHitCheck's first copy is live across the getPartsPtr call (callee-saved
+// r30), which a `while (i_--)` from 3 cannot give (cse folds the peeled test and re-materialises
+// `li 2` after the call). Left in ComnHitCheck (22 words): the second copy's `sp_ = *s_` is a
+// separate copy in the target (s_ in r0, sp_ r9) and two sched positions in the first copy.
+// ObaLineHitChk (73 words): t/s/den are f31/f30/f0 in the target (ours f0/f13/f31), so its s clamp
+// loads both 0.0 and 1.0 into f0 and cross-jumps the `sc = 0` arm into the `sc = 1` fmr (`blt`).
 #define MTX_COPY(src, dst)               \
     {                                    \
         MtxPtr d_ = (dst);               \
-        int i_ = 3;                      \
+        int i_ = 2;                      \
         MtxPtr s_ = (src);               \
         int j_;                          \
         f32* sp_;                        \
         f32* dp_;                        \
-        while (i_--) {                   \
+        do {                             \
             dp_ = *d_;                   \
             sp_ = *s_;                   \
             for (j_ = 0; j_ < 4; j_++) { \
@@ -36,7 +42,7 @@ int emLineCubeCrossCk(Vec* a, Vec* b, Mtx m, f32 sx, f32 sy, f32 sz, cAtariInfo*
             }                            \
             s_++;                        \
             d_++;                        \
-        }                                \
+        } while (i_-- != 0);             \
     }
 
 void yarareInit0(EmHitInfo* y, f32 x, f32 yy, f32 z, f32 w, f32 h, s16 no, u16 flags)

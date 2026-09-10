@@ -153,6 +153,9 @@ void SceEventStart(int mode)
     SndBlkStop(2);
 }
 
+// The value is evaluated before the `->task` load (`lbz x70` between the call and `lwz 8(r3)`).
+static inline void SceTaskFlagSet(ScePrim* p, u8 v) { p->task->flag = v; }
+
 void SceEventEnd(int mode)
 {
     cSceSys* s = &SceSys;
@@ -191,7 +194,7 @@ void SceEventEnd(int mode)
     if (SceSys.checkCTaskRange() == 1) {
         s = &SceSys;
         if (s->x70 != 0) {
-            SceCTask()->task->flag = s->x70;
+            SceTaskFlagSet(SceCTask(), s->x70);
         }
     }
     SceSys.x70 = 0;

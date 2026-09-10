@@ -7509,6 +7509,88 @@ confirmed on the units named):
   identical `switch (pG->bell_stat)` arms and write `r = K;` once after the switch; no tag needed. em3c
   FindCk, em10 FindCk, em21 WakeCk, em28 EscapeCk, em2d FindCk (recipe recorded for its owner) all match.
 
+#### #13 compiler-side research (2026-09-10, /tmp/equiv13; NEGATIVE: no configuration or one-line change reproduces it; nothing installed)
+Harness: /tmp/equiv13 = the /tmp/sched5 h.py harness (tree snapshot refreshed from src/ at 15:10; base =
+installed cc1plus, 18591/19929 identical) + `tree_plain/` (hardlinked copy with the 15 launder-dependent
+functions reverted to their plain source: em10/em21/em28/em3c/em2d bell blocks without the override,
+em21DmCk `em->dmType = 0x1E`, MercSysInitRoom `wk->stage = 0`, em27DmCk/em3c R1_Die_Normal/db_port SeqSet
+EstSet literal 0, em22 R1_Wait literals, em2a `EmRoutineSet(em,1,2,0,dead)`, SetRock/em2b R0_Init/em39 ctor/
+cam_extra cutin without the asm launders, wep07 fire00 `m3r[2] == 0.0f`, em32 R0_Init literals, r11b `l->x3 = 1`,
+item `s[i].id = 0xFFFF`, esp16 `t = 0.0f`, r201 without the `on` launder; `bp.sh CFG` builds them, `t13.py CFG..`
+prints the test-set table + full-tree regressions split into launder functions / others; `dump.py CFG UNIT
+[--plain] -dl -dg` keeps the lreg/greg dumps in d/; `mk.sh NAME "-Ddefs"` builds a cc1plus variant from the
+hooked copy of tools/sn-gcc in gcc/ -- the hooks are `-D` only, base rebuilt with no defs is byte-identical in
+output to the installed compiler; NOTE mk.sh must rm the insn-*.o objects or a previous variant's defs leak).
+- **Source diff (SN v1.79 vs stock, stock 2.95.2 + 2.95.3 fetched to /tmp/equiv13/stock):** global.c,
+  local-alloc.c, regclass.c are stock apart from a `reg_alloc_count` debug counter, xmalloc instead of alloca
+  and PROTO removal. `update_equiv_regs`/`no_equiv`/`validate_equiv_mem` are byte-for-byte stock 2.95.3
+  (multi-set "always the same value" rule present; the REG_N_REFS==2 substitution/move only for
+  REG_BASIC_BLOCK<0). global.c's only exclusions are REG_LIVE_LENGTH == -1 (setjmp) and the `>= 0` test in the
+  allocation loop (-2 is never set anywhere in 2.95; the "parameters marked -2" comment is a GCC 1.x leftover).
+  reload1.c is based on **2.95.2** (2.95.3's reload_reg_unavailable / free_for_value_p / regno_clobbered_p mode
+  changes are absent) + SN: TARGET_PS_CALLSAVE caller-save, PS subreg in gen_reload, reload_cse skips PSmode
+  insns, `reload_cse_regno_equal_p` returns 0 for a pseudo sreg, move2add only for equal mode sizes ("Jeppe
+  $4 bug"). reg_equiv_constant/memory_loc/init (INSN_LIST), alter_reg, order_regs_for_reload (uses==0 regs
+  in REG_ALLOC_ORDER first), allocate_reload_reg (round-robin from last_spill_reg over the function's
+  spill_regs), choose_reload_regs inheritance: stock 2.95.2. reload.c: header only. rs6000.md movqi/movhi/
+  movsi/movsf insn conditions (`gpc_reg_operand (op0) || gpc_reg_operand (op1)`) and the expanders (force_reg
+  of a constant when the dest is a MEM) are stock; expr.c/stmt.c SN changes are PS subregs, `__sync`,
+  "SNAPS migrated back from GCC3.0.4" builtins and the switch-table threshold -- constant-store expansion
+  is stock. So (a)/(b)/(c) of the assignment: no SN change touches the equivalence path; whatever the
+  original does is not in the v1.79 drop.
+- **Full-tree results** (regressions = identical with base that stop being identical; launder = the 15
+  functions whose match depends on a `#13` launder (32 per-unit entries, em10FindCk is in 16 REL units),
+  i.e. expected casualties of a real fix):
+
+  | configuration (what is not allocated / changed) | regressions all / launder / other | newly identical | plain test set (15 confirmed) |
+  |---|---|---|---|
+  | every REG_EQUIV pseudo (const, MEM, frame) never gets a hard reg | 15205 / 32 / 15173 | 9 (cam_extra dtor rodata noise) | all worse (em21DmCk 4->123) |
+  | REG_EQUIV constants, single-block | 13279 / 32 / 13247 | 0 | all worse |
+  | REG_EQUIV constants, multi-block | 8409 / 30 / 8379 | 0 | all worse |
+  | REG_EQUIV constants with 2 refs, single-block | 12717 / 32 / 12685 | 0 | all worse |
+  | multi-set REG_EQUIV pseudos (the bell `r`) | 5488 / 25 / 5463 | 0 | bell cases WORSE (em10 20->105): reload rematerialises a pool MEM as `lis; addi; lfs 0(r)`, never the target's `lis; lfs @l` |
+  | 2-ref constant whose only use is a plain store | 5882 / 8 / 5874 | 1 (r224 R224Main 9->0) | em21DmCk block 8 right, block 11 wrong (42) |
+  | constants skipped by local-alloc only (global allocates) | 10170 / 32 / 10138 | 2 (event DelEvt, sce_at pos_jump) | worse |
+  | 2-ref constants skipped by local-alloc only | 9353 / 32 / 9321 | 1 (DelEvt) | worse |
+  | GCC 3.0 update_equiv_regs: substitute the equivalence within one block too | 13 / 0 / 13 | 0 | unchanged |
+  | + GCC 3.0 move-init-before-use within one block | 9462 / 31 / 9431 | 1 | worse |
+  | movqi/movhi/movsi insns accept `(set (mem) (const))` (cse/combine/update_equiv fold the constant into the store, reload rematerialises it) | 7987 / 12 / 7975 | 3 (Espgen42 AddWaterPower 26->0, r222 R222Main 7->0, r224 R224Main 9->0) | em21DmCk block 8 / em27DmCk right, every other block with several constants wrong |
+  | + the 3.0 substitution | 7989 / 12 / 7977 | 3 | same |
+  | local-alloc 3-qty hand sort replaced by a real sort | 3105 / 3 / 3102 | 0 | unchanged (the buggy `qty_compare (0, 1)` on qty numbers is in the original too; GCC 3.0.4 still has it) |
+
+  Nothing comes near zero non-launder regressions; **the original allocates REG_EQUIV constant pseudos
+  exactly like stock 2.95 in >12000 identical functions**, so "#13 = REG_EQUIV constants are never
+  allocated" is false as a compiler rule. Recommended action: none on the compiler; keep the per-site
+  recipes (bell override, `int zero` single-use, hard-register/asm launders) and the tags.
+- **What the residues really are** (sharpened #13, read off the lreg dumps of em21DmCk / MercSysInitRoom /
+  em27DmCk in d/base@plain and the target asm):
+  1. Bell family (em10/em21/em28/em3c/em2d FindCk...): NOT an allocation difference. In the original the
+     pool load sits once in the join block as an ordinary block-local pseudo (that is what the override
+     form reproduces byte for byte, registers included); a pseudo really left to reload would come out as
+     `lis rX,LC@ha; addi rX,rX,LC@l; lfs fY,0(rX)` (find_reloads_address on the raw pool MEM), a shape the
+     target never has. Why the original's RTL had one load in the join block (source form vs. an arm merge
+     before sched1 -- 2.95 cross-jumps only in jump2) is still open; the recipe is exact.
+  2. Constant-store shape in a block of two local qtys (em21DmCk block 8: `lbz mode; li 30; stb; cmpwi
+     mode` -> target `lbz r0; li r9,30; stb r9`, ours `lbz r9; li r0,30`; MercSysInitRoom `lwz r9,pG;
+     li r11,0; stw r11; lhz r0` with r0 free): under stock local-alloc the 2-ref constant (life 2) outranks
+     the load (life 6) and takes r0; the target's assignment is what "constant not a local qty" gives
+     (global pass 0 / reload round-robin pick r9, r11). But in the SAME function em21DmCk block 11 has
+     three identical-shape 2-ref QI constants (`4`, `60` -> the same `em->dmType`, `7`) that ARE allocated
+     and hoisted exactly like ours (r8/r7/r6 by the fake-lifetime walk); em27DmCk's `lbz wep; li r0,0;
+     stb r0` gives the constant r0 in the target because `wep` is a global pseudo there. So the property
+     that excludes the constant in block 8 is not its shape, refs, mode, block-locality, equivalence
+     kind, base register or adjacency (all identical to the allocated ones) -- it is a tie decided
+     differently in the original, cause unknown; every candidate rule breaks thousands of functions.
+  3. Dying-store / issue-order shapes (SetRock, em2b R0_Init, em39 ctor, cam_qfps init, em32 R0_Init):
+     sched1 store order with constants that do not die at their last store; consistent with (2) but not
+     separable from source form (the asm launders stay).
+  4. The four sweep-7 classifications (drawPoint, EspDrawLaserLine, em_set, espgen10) rest on the same
+     "would be a reload register" reading; drawPoint's diff is only which of two `esp` stack reloads gets
+     r11 (reload's round-robin state before the block), not the zero.
+  Recipes that still work and why: `int zero = 0` used once in another block = update_equiv_regs's stock
+  multi-block move (the pseudo becomes a 2-insn qty, r0); the hard-register `register T x asm("rN")`
+  forms remove the qty; the bell override changes the RTL shape, not the allocation.
+
 ### Tool RELs, bytes-first pass 2 (t_rck 13->28/33 + .rodata/.data equal; db_light 122->128/134 in every module; db_widget 95->102/113; t_snd_vol 13->19/27; t_event 56->61/69; t_id 48->52/69; 2026-09-10)
 
 - Harness: /tmp/tools_p2 (copies of /tmp/tools_p's mcmp.py/tryv.py/vapply.py/rodiff.py/mdump.sh with the paths
@@ -9335,3 +9417,89 @@ confirmed on the units named):
   in-place `+= len; -= 0x40000`) 28-29 -- the sys arm's `add r30,r30,r29; subis` is a reassigned variable but the
   `li r0,0` lands after the `subis` in ours. t_block tBlockAreaInfo_Menu case 0 (rep2/n r9-r11): rep-local first/
   after, clamp variable, if/else-if, u8 n -- 11-52. t_mv was flipped and t_event RunStop fixed by other agents.
+
+### DOL sweep 8, remaining unmatched units (espgen10 Matching; Espgen43 SetSandWork 126 -> 44, at_mod 55/73 -> 22/73, obj1b SetSpear 31 -> 0, esp0e HideCheck 15 -> 2, sce_com SceEventEnd 2 -> 0, title titleWait 2 -> 0; 2026-09-10)
+
+- Harness /tmp/dol8 (dol_one3/dol_big copies with the paths rewritten; `mcmp.py`, `tryv.py UNIT SYM variants.py`,
+  `vapply.py`, `sbs.sh UNIT SYM [OBJ]`, `dump.sh UNIT -dX`, plus `rtl.py DUMP FUNC` = compact insn list of one function
+  of a cc1plus dump (insn number, kind, flattened pattern; the function is matched as `;; Function .*\bFUNC(`)).
+  Remember: `for x in "unit sym"; do set -- $x` needs bash, zsh does not word-split.
+- **#13 with reload-materialised HIGH and MEM pseudos, written out as pinned registers + asm insns** (espgen10
+  EspgenDataSet 9 -> 0, unit Matching): the target's `lis r9,EspEvModList@ha; addi r11,r9,@l` before the
+  `cmplwi no,127` and `slwi r9,r0,2` (the index NOT tied to `no`) are reload materialisations of two REG_EQUIV
+  pseudos (`list` = symbol_ref, `no` = mem) our compiler allocates. Recipe: `register u32 hi asm("r9"); register
+  u32 list asm("r11"); asm("lis %0,SYM@ha" : "=r"(hi)); asm("addi %0,%1,SYM@l" : "=r"(list) : "r"(hi));` before the
+  compare (the asms are ordinary insns for sched; non-volatile), and for the untied temp a pinned
+  `register u32 idx asm("r9"); idx = no << 2;` in the else arm (a hard-register `no` does not help: local-alloc
+  hands the shift result r0 as soon as the hard `no` dies; keep-alive asms cost 35). With the highs pinned, `flag`
+  conflicts with r9 and falls to r30 like the target. All lines tagged `// COMPILER-DIFF: #13`.
+  - The same asm-high recipe for a POOL constant needs a `.rodata` object emitted by a top-level asm right before
+    the function (`esp_app_k08: .long 0x3f4ccccd`, same word at the pool's position) and an `asm("lfs %0,SYM@l(%1)"
+    : "=f"(k) : "r"(hi))` load: esp_app EspDrawLaserLine 13 -> 2 with `hi` pinned to r11 (the five `esp` reloads then
+    come out r9,r9,r11,r9,r11 like the target), but the asm load is not an LSU insn for the scheduler, so it pairs
+    with the `stb` in the same cycle and `li r8,5` slips behind it (target: `stb; li r8; lfs`). NOT applied
+    (2 words, no flip). em_set EmSetEvent/EmSetFromList2 (three pool highs, 73/74) would need the same and shares
+    EmSetWork with the matched EmSetFromList -- left.
+- **Pinned QI zero, u8 type** (title titleWait 2 -> 0): `register u8 z asm("r11"); z = 0; w->step = z;` set right
+  after the preceding call gives the target's `li r11,0` for a REG_EQUIV zero reloaded into r11; the `int` version
+  of the same variable costs 45 (the SI hard reg is copied into the QI store). Same shape in titleMain's other
+  `w->mode = 6; w->step = 0` block does NOT work: there the zero is `li r0,0` re-materialised right after
+  `stb r0,88` (r0 reused), and any `li` present at sched1 time gives the `stb 88` a longer chain (stb -> li -> stb)
+  so it overtakes the x3/cnt loads (6 words best) -- the drawPoint limitation ("anything that puts a `li` in the
+  block keeps the shape wrong").
+- **Return the work pointer** (Espgen43 SetSandWork 126 -> 44): `mr r3,r25` at the tail = `return w;` (the function
+  returns `EspgenWork*` like SetWaterWork, callers test `== NULL`); with it the frame (8-byte slot) and one
+  callee-saved GPR fell into place. Also `(p->ny + p->ny)` for the target's `add r0,r0,r0` on ny (`p->ny * 2` folds
+  the doubling onto `nx + 1`), and the DCStoreRange size as a block-local `u32 n2 = sizeof(Vec) * (p->nx + 1) *
+  (p->ny + 1)` (single-set -> `nx + 1` tied into it: `lhz r30; addi r30,r30,1; mullw r30`). Left (44): global-alloc
+  order of the first strip loop's j+1 / 0x4330 high / three pool addresses (r29/r5/r4/r3/r12/r24/r27 rotations;
+  the second, descending loop matches).
+- **MTX_COPY row counter live across the source call** (at_mod ComnHitCheck 55 -> 22): the target's first copy keeps
+  its counter in callee-saved r30 (`li r30,2` BEFORE `bl getPartsPtr`); `while (i_--)` from 3 cannot (cse folds the
+  peeled test and re-materialises `li 2` after the call). Macro of record for at_mod: `int i_ = 2; do {...} while
+  (i_-- != 0);` (`addi r0,r30,-1; mr r30,r0; cmpwi r30,-1; bne`). Left: the second copy's `sp_ = *s_` is a separate
+  copy in the target (s_ r0, sp_ r9; ours ties them) and two sched positions. ObaLineHitChk (73): t/s/den are
+  f31/f30/f0 in the target (ours f0/f13/f31); its s clamp then loads 0.0 AND 1.0 into f0 and cross-jumps the `sc = 0`
+  arm into the `sc = 1.0` fmr (`blt` straight to it). `s >= 0.0f` gives `cror/bns` (54 words but wrong shape); den /
+  numerator variable forms 73-77.
+- **Store-block order read off the scheduler** (obj1b SetSpear 31 -> 0): for a block of independent stores of one
+  constant register, the LAST RTL store is the one with the REG_DEAD note (dying-first bonus) and is issued as soon
+  as its inputs are ready; the others follow in ascending LUID; a store whose `li` is scheduled late (a single-use
+  constant) leads. So the target's `stb 112(50); stb 109(255); 84; 88; 80; 96; 92 .. 107; 110; 111; 108(255)` is the
+  source order `.., x6E, x6F, x6C, x6D, espId` (x6D last of the 0xFF stores, espId last of all), and `xFD; xFE;
+  xFF` ascending for `stb 255; 253; 254`. General rule: to place a store LAST in a target block, make it the
+  second-to-last RTL store of its register group (the last one is hoisted by the death).
+- **Multi-set FPR variable as the result of a constant chain** (esp0e Esp0e_HideCheck 15 -> 2): `inv2 = 1.0f / -nz;
+  inv2 = inv2 * zv + Zoffset; zi = (u32)(inv2 * K)` makes the 1.0 pool load, inv2 and the final value one qty
+  (f12, most refs -> allocated first), after which -ZNEAR/inv take f11/f10 like the target; with a separate result
+  variable the fmadds ties to `zv` and 1.0 lands in f10. Left (2): the giv-init `li r31,0` before `lis Screen@ha`
+  (the esp45 HideCheck loop-pass order).
+- **Value evaluated before the `->task` deref** (sce_com SceEventEnd 2 -> 0): `SceCTask()->task->flag = s->x70`
+  loads `lwz 8(r3)` before `lbz x70` (LHS address first); the target's `lbz; lwz 8(r3); stb` is an inline setter
+  `SceTaskFlagSet(SceCTask(), s->x70)` (arguments left to right, the deref inside the body). A `TASK* t` local
+  or a `u8 f` local do not reorder it (2/7).
+- Analysed, left (one try each):
+  - em_cloth Em34ClothSet1 (9): the three table highs (pUp/pDown/pMax) are r10/r8/r7 in the target = allocation in
+    pseudo order (equal qty lengths); ours pairs the symbol highs with the four pool `lfs` chains one per cycle
+    (`lis LCn; .. lfs; lis SYMn`) so Up2's qty is one insn longer and is allocated last (r7). Statement orders
+    (at_first/w_local/x4C/zeros/floats) 12-37. Em18ClothSet (47): the target issues all four pool `lfs` before the
+    symbol highs and stores x40/x44/x48/x54 after the zero stores (their registers do not die at the store there);
+    late4/else-arm/ternary forms 47-60.
+  - esp09 PolyTrans (64): `p = &w->pts[idx]` lands in r3 in the target (copy preference from `mr r3,p0`), pn/p0 then
+    r29/r25 -- not attempted further. esp08 (305/440) FPR naming, not attempted.
+  - esp0e/esp0a Trans: the polymorphic `*base = *esp` copy (documented candidate compiler-build difference).
+  - texture TexRegist (91): the CC pseudo takes cr4 in the target = pass-1 walk (`HARD_REGNO_MODE_OK` allows CC in
+    GPRs here, `REG_ALLOC_ORDER` lists cr4 (72) before the GPRs), so in the target no already-used callee-saved GPR
+    was free for it (pass 0 fails) while ours finds r26 free -- the dead zero copy `mr r30,r10` of the LOD block
+    occupies the 10th callee-saved GPR in the target only. No lever found (unchanged from the earlier analysis).
+  - obj1b obj1bHitCk (36): `Vec* p = &obj->pos` is a separate callee-saved copy after getPartsPtr in the target
+    (`mr r26,r28`, PRE copy of the argument pseudo, #3 shape); p-after-call / `&obj->pos` argument forms fold it.
+  - objWep drawPoint (2), esp16 Esp16_Trans (15), espgen02, esp45: as documented (#13 li-in-block, f29/f30 tie).
+  - sce_com SceUpCut (8): `a` (r3) is copied to r10 because sched1 fills the IU slot next to `stb r0,13` with the
+    `addi r3,r1,8` argument (t=2) while `sth a,10(r1)` waits for the LSU (t=3) -> `a` conflicts with r3; the target
+    issued the sth first. em_sub EmYarareDisp (1): the `fl = flags` int -> u16 copy is `mr` in the target (#4
+    family); `asm("" : "=r"(fl) : "0"(flags))` gives the `mr` but then the `xori` is scheduled before it (3).
+  - title titleMain (9, above), titleDebugMenu (12: r30/r31 for two pointers), titleSub (26), stageSelect (87) not
+    iterated; the mid-gap units (item, cam_ctrl, puzzle, sce_at, em_sub, emwep, emrock, cam_extra, motion, shadow,
+    card, cam_qfps, emmine, main_mem, db_cam, route_ck, pendulum, option, mercenaries, merchant, model, event, snd)
+    were surveyed (per-function word counts in the sweep table) but not iterated beyond the two fixes above.

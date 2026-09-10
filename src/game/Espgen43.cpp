@@ -10,8 +10,8 @@
 #include "db_log.h"
 
 // Remaining diffs: AddSandPower keeps the Chk_pos address in r10/r11 swapped (99%); SetSandWork
-// (95%) allocates i/j/i+1/j+1 and the pool addresses to other registers and has an 8-byte
-// frame slot we do not have (a local we cannot identify); everything else matches.
+// (returns w like SetWaterWork, frame now equal) allocates j+1 / the 0x4330 high / the three pool
+// addresses of the first strip loop to other registers (44 words); everything else matches.
 // Effect controller 43: sand surface. A (nx+1) x (ny+1) height grid drawn as triangle strips
 // through a prebuilt display list; AddSandPower pushes the grid down around a world position
 // and GetSandHeight samples it (obj09).
@@ -42,7 +42,7 @@ void AddSandPowerSub(EspgenWork* w);
 void GetSandHeightSub(EspgenWork* w);
 void Espgen43_Move00(EspgenWork* w);
 void Espgen43_TransSub(EspgenWork* w);
-int SetSandWork(EspgenWork* w, Vec* pos, Vec* rot, f32 size, f32 sizeRate, u32 nx, u32 ny);
+EspgenWork* SetSandWork(EspgenWork* w, Vec* pos, Vec* rot, f32 size, f32 sizeRate, u32 nx, u32 ny);
 }
 
 static Vec Chk_pos;
@@ -313,7 +313,7 @@ static int SetSand(Vec* pos, Vec* rot, f32 size, u32 nx, u32 ny)
         pLog->err(0, 0, "Espgen43 : work pull failed");
         return 0;
     }
-    return SetSandWork(w, pos, rot, size, 1.0f, nx, ny);
+    return (int) SetSandWork(w, pos, rot, size, 1.0f, nx, ny);
 }
 
 // Texture coordinate wrap: keeps the repeat in 0..1 by mirroring at 1.
@@ -325,7 +325,7 @@ static int SetSand(Vec* pos, Vec* rot, f32 size, u32 nx, u32 ny)
         (v) = 2.0f - (v);                                                                           \
     }
 
-int SetSandWork(EspgenWork* w, Vec* pos, Vec* rot, f32 size, f32 sizeRate, u32 nx, u32 ny)
+EspgenWork* SetSandWork(EspgenWork* w, Vec* pos, Vec* rot, f32 size, f32 sizeRate, u32 nx, u32 ny)
 {
     Espgen43Work* p = (Espgen43Work*) w->work;
     Mtx m;
@@ -364,7 +364,7 @@ int SetSandWork(EspgenWork* w, Vec* pos, Vec* rot, f32 size, f32 sizeRate, u32 n
         return 0;
     }
     memclr_asm(p->nrm, n);
-    p->dlSize = ((p->nx + 1) * (p->ny * 2) * 12 + 0x61) & ~0x1F;
+    p->dlSize = ((p->nx + 1) * (p->ny + p->ny) * 12 + 0x61) & ~0x1F;
 #line 466 "D:/Bio4/Prog/Espgen43.cpp"
     p->dl = (u8*) MEM_ALLOC(p->dlSize, 1, 13);
     if (p->dl == NULL) {
@@ -385,7 +385,7 @@ int SetSandWork(EspgenWork* w, Vec* pos, Vec* rot, f32 size, f32 sizeRate, u32 n
     d++;
     *d = 0x98;
     d++;
-    *(u16*) d = (p->nx + 1) * (p->ny * 2);
+    *(u16*) d = (p->nx + 1) * (p->ny + p->ny);
     d++;
     d++;
     rep = p->texRep;
@@ -495,11 +495,13 @@ int SetSandWork(EspgenWork* w, Vec* pos, Vec* rot, f32 size, f32 sizeRate, u32 n
             fy += 1.0f;
         }
     }
-    n = sizeof(Vec) * (p->nx + 1) * (p->ny + 1);
-    DCStoreRange(p->pos, n);
-    DCStoreRange(p->nrm, n);
+    {
+        u32 n2 = sizeof(Vec) * (p->nx + 1) * (p->ny + 1);
+        DCStoreRange(p->pos, n2);
+        DCStoreRange(p->nrm, n2);
+    }
     DCStoreRange(p->dl, p->dlSize);
-    return 1;
+    return w;
 }
 
 void Espgen43_Destruct(EspgenWork* w)
@@ -551,7 +553,7 @@ int Espgen43_SetFreeWork(EspgenWork* w, EspGenWork* rec, EspSeqData* head, cMode
     p->texId = rec->x2;
     p->texRep = 1 << (s8) rec->xC8;
     PSVECScale(&rec->x58, &r, 6.28f / 360.0f);
-    if (SetSandWork(w, (Vec*) &rec->x0C, &r, rec->x88, rec->x94 + 1.0f, nx, ny) == 0) {
+    if (SetSandWork(w, (Vec*) &rec->x0C, &r, rec->x88, rec->x94 + 1.0f, nx, ny) == NULL) {
         return 0;
     }
     Espgen43_Move(w);

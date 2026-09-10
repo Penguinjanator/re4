@@ -261,8 +261,11 @@ void Esp0e_HideCheck(cEsp* esp0)
     m22 = -(ZNEAR) * inv;
     m23 = -(ZFAR * ZNEAR) * inv;
     zv = (m23 + m22 * nz) * Zscale;
-    zv = inv2 * zv + Zoffset;
-    zi = (u32)(zv * 16777215.0f);
+    // The result is written back into inv2: the 1.0 constant, inv2 and the final value are one
+    // register chain (f12) with the most refs, so it is allocated first and -ZNEAR/inv take
+    // f11/f10 (a separate result variable ties the fmadds to zv instead).
+    inv2 = inv2 * zv + Zoffset;
+    zi = (u32)(inv2 * 16777215.0f);
     if (pG->flags_54 & 0x800) {
         margin = 56.0f;
     } else {

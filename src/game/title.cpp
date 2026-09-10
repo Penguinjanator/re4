@@ -204,11 +204,15 @@ void titleWait(TitleWork* w)
             IdTexRoomInit();
             IdSys.roomInit();
             IdTexDataLoad(TITLE_ARC_PTR(w->pDat, 4), 7);
-            CSet(w->mode, 2);
-            ISet(w->sndFlag, 1);
-            w->step = 0;
-            ISet(w->cnt, 0);
-            ISet(w->x48, 0);
+            {
+                register u8 z asm("r11");  // COMPILER-DIFF: #13 (REG_EQUIV zero reloaded into r11)
+                z = 0;
+                CSet(w->mode, 2);
+                ISet(w->sndFlag, 1);
+                w->step = z;
+                ISet(w->cnt, 0);
+                ISet(w->x48, 0);
+            }
             if (pRK->x17 != 0) {
                 w->mode = 5;
                 w->cnt = 585;
