@@ -413,10 +413,39 @@ static void r214_exec3rdEmSet_end()
 }
 
 // The third wave: the gates open, the enemies come through with two camera cuts.
-static void r214_exec3rdEmSet()
+// Position + angle of a wrapped enemy through ONE inline whose float arguments are all expanded at
+// the call head (integrate.c evaluates the actual arguments before the body): the angle constant is
+// loaded before the setPos call and shared by the later blocks (`lfs f30,-0.05` before `bl setPos`).
+// The Vec is the inline's own local: its frame temp is freed after each statement and reused by the
+// next expansion (one 16-byte slot), and its address is recomputed `addi r4,r1,8` per call.
+static inline void r214_emPosAng(cEmWrap* w, f32 x, f32 y, f32 z, f32 rx, f32 ry, f32 rz)
 {
     Vec v;
 
+    v.x = x;
+    v.y = y;
+    v.z = z;
+    w->setPos(&v);
+    v.x = rx;
+    v.y = ry;
+    v.z = rz;
+    w->setAng(&v);
+}
+
+// Back to the saved position and yaw (same slot as above).
+static inline void r214_emRestore(cEmWrap* w, Vec* pos, f32 y)
+{
+    Vec v;
+
+    w->setPos(pos);
+    v.x = 0.0f;
+    v.y = y;
+    v.z = 0.0f;
+    w->setAng(&v);
+}
+
+static void r214_exec3rdEmSet()
+{
     RsfSet(G_ROOM_ID, 1);
     if (r214_work.p->barred[0]) {
         r214_work.p->barred[0]->setNoSuspend(1);
@@ -464,66 +493,11 @@ static void r214_exec3rdEmSet()
     r214_work.p->em5[2].setNoSuspend(1);
     r214_work.p->em5[3].setNoSuspend(1);
     r214_work.p->em5[4].setNoSuspend(1);
-    {
-        cEmWrap* w = &r214_work.p->em5[0];
-
-        v.x = 28427.0f;
-        v.y = 0.0f;
-        v.z = -30253.0f;
-        w->setPos(&v);
-        v.x = 0.0f;
-        v.y = -0.05f;
-        v.z = 0.0f;
-        w->setAng(&v);
-    }
-    {
-        cEmWrap* w = &r214_work.p->em5[1];
-
-        v.x = 28320.0f;
-        v.y = 0.0f;
-        v.z = -31210.0f;
-        w->setPos(&v);
-        v.x = 0.0f;
-        v.y = -0.05f;
-        v.z = 0.0f;
-        w->setAng(&v);
-    }
-    {
-        cEmWrap* w = &r214_work.p->em5[2];
-
-        v.x = 29250.0f;
-        v.y = 0.0f;
-        v.z = -15550.0f;
-        w->setPos(&v);
-        v.x = 0.0f;
-        v.y = -3.14f;
-        v.z = 0.0f;
-        w->setAng(&v);
-    }
-    {
-        cEmWrap* w = &r214_work.p->em5[3];
-
-        v.x = 28427.0f;
-        v.y = 0.0f;
-        v.z = -30253.0f;
-        w->setPos(&v);
-        v.x = 0.0f;
-        v.y = -0.05f;
-        v.z = 0.0f;
-        w->setAng(&v);
-    }
-    {
-        cEmWrap* w = &r214_work.p->em5[4];
-
-        v.x = 28590.0f;
-        v.y = 0.0f;
-        v.z = -13870.0f;
-        w->setPos(&v);
-        v.x = 0.0f;
-        v.y = -3.14f;
-        v.z = 0.0f;
-        w->setAng(&v);
-    }
+    r214_emPosAng(&r214_work.p->em5[0], 28427.0f, 0.0f, -30253.0f, 0.0f, -0.05f, 0.0f);
+    r214_emPosAng(&r214_work.p->em5[1], 28320.0f, 0.0f, -31210.0f, 0.0f, -0.05f, 0.0f);
+    r214_emPosAng(&r214_work.p->em5[2], 29250.0f, 0.0f, -15550.0f, 0.0f, -3.14f, 0.0f);
+    r214_emPosAng(&r214_work.p->em5[3], 28427.0f, 0.0f, -30253.0f, 0.0f, -0.05f, 0.0f);
+    r214_emPosAng(&r214_work.p->em5[4], 28590.0f, 0.0f, -13870.0f, 0.0f, -3.14f, 0.0f);
     r214_work.p->em5[0].setGoto(&r214_work.p->pos5[0], 1);
     r214_work.p->em5[1].setGoto(&r214_work.p->pos5[1], 1);
     r214_work.p->em5[2].setGoto(&r214_work.p->pos5[2], 1);
@@ -537,56 +511,11 @@ static void r214_exec3rdEmSet()
     r214_work.p->em5[2].setNoSuspend(0);
     r214_work.p->em5[3].setNoSuspend(0);
     r214_work.p->em5[4].setNoSuspend(0);
-    {
-        cEmWrap* w = &r214_work.p->em5[0];
-        f32 y = r214_work.p->angY5[0];
-
-        w->setPos(&r214_work.p->pos5[0]);
-        v.x = 0.0f;
-        v.y = y;
-        v.z = 0.0f;
-        w->setAng(&v);
-    }
-    {
-        cEmWrap* w = &r214_work.p->em5[1];
-        f32 y = r214_work.p->angY5[1];
-
-        w->setPos(&r214_work.p->pos5[1]);
-        v.x = 0.0f;
-        v.y = y;
-        v.z = 0.0f;
-        w->setAng(&v);
-    }
-    {
-        cEmWrap* w = &r214_work.p->em5[2];
-        f32 y = r214_work.p->angY5[2];
-
-        w->setPos(&r214_work.p->pos5[2]);
-        v.x = 0.0f;
-        v.y = y;
-        v.z = 0.0f;
-        w->setAng(&v);
-    }
-    {
-        cEmWrap* w = &r214_work.p->em5[3];
-        f32 y = r214_work.p->angY5[3];
-
-        w->setPos(&r214_work.p->pos5[3]);
-        v.x = 0.0f;
-        v.y = y;
-        v.z = 0.0f;
-        w->setAng(&v);
-    }
-    {
-        cEmWrap* w = &r214_work.p->em5[4];
-        f32 y = r214_work.p->angY5[4];
-
-        w->setPos(&r214_work.p->pos5[4]);
-        v.x = 0.0f;
-        v.y = y;
-        v.z = 0.0f;
-        w->setAng(&v);
-    }
+    r214_emRestore(&r214_work.p->em5[0], &r214_work.p->pos5[0], r214_work.p->angY5[0]);
+    r214_emRestore(&r214_work.p->em5[1], &r214_work.p->pos5[1], r214_work.p->angY5[1]);
+    r214_emRestore(&r214_work.p->em5[2], &r214_work.p->pos5[2], r214_work.p->angY5[2]);
+    r214_emRestore(&r214_work.p->em5[3], &r214_work.p->pos5[3], r214_work.p->angY5[3]);
+    r214_emRestore(&r214_work.p->em5[4], &r214_work.p->pos5[4], r214_work.p->angY5[4]);
     CamCtrl.CutCall(9);
     r214_work.p->em3b[0].setNoSuspend(1);
     r214_work.p->em3b[1].setNoSuspend(1);
@@ -621,6 +550,29 @@ static void r214_execCatapult_end()
 }
 
 // The catapult event: the crews arrive and the catapults start.
+// Same on a caller Vec that is not at frame offset 0: the pointer parameter keeps its pseudo
+// (`mr r4,r31`, `stfs 4(r31)`; the .x store folds to the frame offset). The yaw-only angle has its
+// zeros as body literals: those pool loads lose RTX_UNCHANGING_P and stay below the setPos call.
+static inline void r214_emPosAngY(cEmWrap* w, Vec* v, f32 x, f32 y, f32 z, f32 ry)
+{
+    v->x = x;
+    v->y = y;
+    v->z = z;
+    w->setPos(v);
+    v->x = 0.0f;
+    v->y = ry;
+    v->z = 0.0f;
+    w->setAng(v);
+}
+
+static inline void r214_emPosV(cEmWrap* w, Vec* v, f32 x, f32 y, f32 z)
+{
+    v->x = x;
+    v->y = y;
+    v->z = z;
+    w->setPos(v);
+}
+
 static void r214_execCatapult()
 {
     static const Vec gotoPos = {-15330.0f, 8021.0f, -12526.0f};   // local static: output before the pool
@@ -662,18 +614,7 @@ static void r214_execCatapult()
     SceEventStart(0);
     CamCtrl.CutCall(6);
     r214_work.p->emCat.setNoSuspend(1);
-    {
-        cEmWrap* w = &r214_work.p->emCat;
-
-        v.x = -18813.0f;
-        v.y = 8021.0f;
-        v.z = -17090.0f;
-        w->setPos(&v);
-        v.y = 0.44f;
-        v.x = 0.0f;
-        v.z = 0.0f;
-        w->setAng(&v);
-    }
+    r214_emPosAngY(&r214_work.p->emCat, &v, -18813.0f, 8021.0f, -17090.0f, 0.44f);
     r214_work.p->emCat.setFindPL();
     SceSleep(1);
     v = gotoPos;
@@ -691,18 +632,9 @@ static void r214_execCatapult()
     r214_work.p->em3[0].setNoSuspend(1);
     r214_work.p->em3[1].setNoSuspend(1);
     r214_work.p->em3[2].setNoSuspend(1);
-    v2.x = 51170.0f;
-    v2.y = 10500.0f;
-    v2.z = 6130.0f;
-    r214_work.p->em3[1].setPos(&v2);
-    v2.x = 51720.0f;
-    v2.y = 10500.0f;
-    v2.z = 2360.0f;
-    r214_work.p->em3[2].setPos(&v2);
-    v2.x = 52000.0f;
-    v2.y = 10500.0f;
-    v2.z = -1300.0f;
-    r214_work.p->em3[0].setPos(&v2);
+    r214_emPosV(&r214_work.p->em3[1], &v2, 51170.0f, 10500.0f, 6130.0f);
+    r214_emPosV(&r214_work.p->em3[2], &v2, 51720.0f, 10500.0f, 2360.0f);
+    r214_emPosV(&r214_work.p->em3[0], &v2, 52000.0f, 10500.0f, -1300.0f);
     r214_work.p->em3[0].setGoto(&r214_work.p->pos5[0], 1);
     r214_work.p->em3[1].setGoto(&r214_work.p->pos5[1], 1);
     r214_work.p->em3[2].setGoto(&r214_work.p->pos5[2], 1);

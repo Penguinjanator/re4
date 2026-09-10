@@ -309,6 +309,19 @@ void CameraScope::getParam(f32* a, f32* b)
     *b = angle_x;
 }
 
+// Scope zoom clamp as an inline returning the value: one store after the join, the 0.0 register
+// doubling as the result (`fmr f13,f0` / `fmr f13,f12` copies).
+static inline f32 scopeClamp01(f32 v)
+{
+    if (v < 0.0f) {
+        return 0.0f;
+    }
+    if (v > 1.0f) {
+        return 1.0f;
+    }
+    return v;
+}
+
 void CameraScope::move()
 {
     static f32 ZOOM_LIMIT_0 = 9.0f;
@@ -345,11 +358,7 @@ void CameraScope::move()
             zoom = old_zoom + sy * 0.001f;
         }
     }
-    if (zoom < 0.0f) {
-        zoom = 0.0f;
-    } else if (zoom > 1.0f) {
-        zoom = 1.0f;
-    }
+    zoom = scopeClamp01(zoom);
     if (zoom != 0.0f) {
         limit = ZOOM_LIMIT_0;
         switch (type) {
@@ -453,6 +462,10 @@ void IdScope::init(void* type)
     }
 }
 
+// Reading a static through a reference (`FRef`) gives a MEM with neither the struct nor the scalar
+// flag: the range loads stay below the reticle stores through the call-result pointers.
+static inline f32 FRef(f32& v) { return v; }
+
 void IdScope::move(void* p)
 {
     f32* zoom = (f32*) p;
@@ -480,10 +493,10 @@ void IdScope::move(void* p)
     b->curve[3] = 0;
     a->rot.y = 0.0f;
     a->rot.x = 0.0f;
-    a->rot.z = (maxA - minA) * ra + minA;
-    b->rot.x = 0.0f;
+    a->rot.z = (FRef(maxA) - FRef(minA)) * ra + FRef(minA);
     b->rot.y = 0.0f;
-    b->rot.z = (maxB - minB) * rb + minB;
+    b->rot.x = 0.0f;
+    b->rot.z = (FRef(maxB) - FRef(minB)) * rb + FRef(minB);
 }
 
 void IdScope::save(int)

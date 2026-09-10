@@ -160,6 +160,13 @@ int MercSysInitStage()
     return 1;
 }
 
+// The SndStrReq 0.0 pool load is issued below the table stores: the call was an inlined wrapper
+// (integrate.c drops RTX_UNCHANGING_P from the pool MEM, so the load depends on the stores).
+static inline u32 MercStrReq(int no)
+{
+    return SndStrReq(0, no, 0x80000003, 0, 0, 0.0f);
+}
+
 int MercSysInitRoom(MercInit* pMInit)
 {
     MercSysWork* wk = &MercSysWk;
@@ -240,7 +247,7 @@ int MercSysInitRoom(MercInit* pMInit)
     {
         int strTbl[5] = {0x3F, 0x40, 0x41, 0x42, 0x3D};
 
-        wk->strId = SndStrReq(0, strTbl[wk->mode], 0x80000003, 0, 0, 0.0f);
+        wk->strId = MercStrReq(strTbl[wk->mode]);
     }
     wk->flags &= 0x7FFFFFFF;
     mercId.init(0x60);

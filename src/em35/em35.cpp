@@ -2026,15 +2026,17 @@ static void em35_R1_br_Critical(cEm35* em)
     }
 }
 
-// Turn towards the player with a slight lead (em35_R1_Critical).
-static inline void em35CriticalTurn(cEm35* em)
-{
-    f32 ang;
-
-    ang = LIMIT_ANGLE(em->rot.y + Muku(&em->pos, &pPLS->pos, em->rot.y, PI) + 0.05235988f);
-    em->rot.y += Muku2(em->rot.y, ang, 0.09817477f);
-    em->rot.y = LIMIT_ANGLE(em->rot.y);
-}
+// Turn towards the player with a slight lead (em35_R1_Critical). A macro, not an inline: the PI
+// pool load is issued above the preceding `timer--` store (an inlined body's pool loads lose
+// RTX_UNCHANGING_P and sink below it).
+#define EM35_CRITICAL_TURN(em)                                                                      \
+    {                                                                                               \
+        f32 ang;                                                                                    \
+                                                                                                    \
+        ang = LIMIT_ANGLE((em)->rot.y + Muku(&(em)->pos, &pPLS->pos, (em)->rot.y, PI) + 0.05235988f); \
+        (em)->rot.y += Muku2((em)->rot.y, ang, 0.09817477f);                                        \
+        (em)->rot.y = LIMIT_ANGLE((em)->rot.y);                                                     \
+    }
 
 static void em35_R1_Critical(cEm35* em)
 {
@@ -2051,7 +2053,7 @@ static void em35_R1_Critical(cEm35* em)
         w->flags |= 0x80;
         if (w->timer) {
             w->timer--;
-            em35CriticalTurn(em);
+            EM35_CRITICAL_TURN(em);
         }
         if (MotionMoveF(em, 0)) {
             em->xFE++;
@@ -2071,7 +2073,7 @@ static void em35_R1_Critical(cEm35* em)
         }
         if (w->timer) {
             w->timer--;
-            em35CriticalTurn(em);
+            EM35_CRITICAL_TURN(em);
         }
         if (em->motEvent & 4) {
             ActBtn.set(0x25, 0xB, (int) em35DashEscapeAction, (int) em, 1, 3, 0, 0);

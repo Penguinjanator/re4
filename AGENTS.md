@@ -6825,3 +6825,66 @@ target) stays unresolved and `make_rel` then fails with "undefined symbol".
   `li r6,2` issued LAST of the em2bAtkCk arg moves (ours first: it is the only insn ready right after
   the getPartsPtr call). em39 OPEN: JumpUp3 arm-2 FPR permutation and the `lis`/`fmr f2,f1` order before
   Muku2; Die_Flash `li r4,8`/`mr r3,r31` swap after clearStatus (Die_Normal's identical pair matches).
+
+### Inline-vs-macro sweep (integrate.c levers; model 93->94, cam_extra 32->33, r214 15->17, mercenaries 16->3 words, em35 10->4, Espgen42 122->72; 2026-09-10)
+
+Generic mechanisms (all read off tools/sn-gcc/src/gcc/integrate.c / cse.c / gcse.c / haifa-sched.c and
+confirmed on the units named):
+- Inlined pool loads lose RTX_UNCHANGING_P (`copy_rtx_and_substitute`, MEM case, `!map->integrating`), so
+  a float literal inside an inlined BODY sinks below every preceding pointer store of the block, while
+  the same literal as a MACRO or written out floats above. Both directions are levers:
+  - target pool `lfs` ABOVE a store that precedes it in source = macro / written out (em35CriticalTurn:
+    `lfs f2, PI` above `stw timer`; the pl0f family);
+  - target pool `lfs` BELOW stores that precede it in source = a real inline in the original: model
+    `cModel::cModel` (`stfs 0.0 litArea.scale` after the three word stores -> `LightAreaInit(&litArea)`
+    inline, 9 -> 0 words), mercenaries MercSysInitRoom (`lfs f1,0.0` right before `bl SndStrReq`, below
+    the table stores -> `MercStrReq(no)` wrapper inline that owns the 0.0f literal, 16 -> 3).
+- Inline f32 ARGUMENTS are expanded at the call head, before the body and before any call inside the
+  body: a pool constant loaded before a `bl` and first used AFTER it (e.g. `lfs f30,-0.05` before
+  `bl setPos`, used by the following `setAng`) is an argument of an inline that contains both calls.
+  With cse merging the arg pseudos of later calls (a `mem/u` is not `in_memory`, so `invalidate_memory`
+  on the call does not kill it), the constant is loaded once and kept callee-saved (r214
+  `r214_emPosAng(w, x, y, z, rx, ry, rz)`: exec3rdEmSet 27 -> 0). A literal that is RELOADED in the
+  target (`lfs f0, 0.0` after a loop whose compare already holds 0.0 in f31) was a body literal (no
+  /u -> gcse cannot merge it across the loop's stores), e.g. a `setAngXYZero` variant of the helper.
+  Scanner: /tmp/inl_sweep/scan_argload.py lists such loads in the target `.s` files.
+- Inline-owned `Vec` temp: `assign_stack_temp(BLKmode, frame, keep=1)` is freed at the end of the
+  statement, so consecutive inline calls REUSE one 16-byte slot (r214 exec3rdEmSet: eleven position /
+  angle blocks share frame 8; a caller-level `Vec v` would take that slot and push the temps to a second
+  one, cf. pl0f). The inline frame is a pseudo with `REG_EQUIV (plus fp N)`: the argument sets get the
+  constant address (`addi r4,r1,8` recomputed per call), the stores are frame-direct.
+- `Vec*` parameter on a caller local that is NOT at frame offset 0: the parameter pseudo stays
+  (`addi r31,r1,0x28; mr r4,r31`), field stores go through it (`stfs f13,4(r31)`) and cse folds only the
+  zero-offset `.x` store to the frame (`stfs f0,0x28(r1)`); the pseudo is callee-saved when the Vec is
+  reused after the call (r214 execCatapult 40 -> 0 with `r214_emPosAngY(w, &v, x, y, z, ry)` whose rx/rz
+  zeros are body literals: the 0.0 is loaded after the setPos call, only the 0.44 argument before it).
+- BY-VALUE `Vec` parameter of an inline (`AddWaterPowerCore(EspgenWork* w, Vec v)` called with a global
+  `Chk_pos`): integrate copies the argument into a stack temp through an address pseudo
+  (`addi r11,r1,8; lwz ..; stw r10,8(r1); stw r0,4(r11); stw r8,8(r11)`, the .x word direct) and passes
+  that pseudo to the body's calls (`mr r4,r11; mr r5,r4`), and the pseudo dies at the first call; an
+  inline-local `Vec v = Chk_pos` gives frame-direct stores and `addi r4,r1,8` (Espgen42 AddWaterPowerSub
+  122 -> 72; the rest is k/idx register naming and `lfs 0(rSum)` vs `lfsx`).
+- Value-returning clamp inline (`f32 scopeClamp01(f32 v) { if (v < 0) return 0; if (v > 1) return 1;
+  return v; }`) for the target shape `lfs f13,0.0; fcmpu; ..; fmr f13,f0; lfs f12,1.0; fcmpu; ble;
+  fmr f13,f12; stfs f13` (one store after the join, the 0.0 register doubling as the result):
+  cam_extra CameraScope::move 259 -> 91. Its remaining diff is a 0x10 bigger target frame plus one more
+  callee-saved GPR (an inline with a Vec temp somewhere; `scopeYure(this, &yure2)` with a `Vec*` out
+  parameter reproduces the `addi r11,r1,0x58; stw 8(r11); stw 4(r11)` copy but costs words in
+  combination — not applied).
+- `FRef(f32&)` on `static f32` range constants (IdScope::move, now 0 words): the loads stay below the
+  stores through the `IdSys.unitPtr()` results (a plain static read is hoisted above stores through a
+  call-result pointer); `b->rot.y = 0; b->rot.x = 0` in that order.
+- haifa: EVERY memory read after a CALL_INSN gets an anti-dependence on the call (`last_pending_memory_flush`,
+  no RTX_UNCHANGING_P exemption), so a pool load can never be scheduled above a call: a constant in the
+  target before a `bl` was there in RTL order (argument evaluation, a declaration initialiser, or gcse PRE
+  into the block that ends with the call — `insert_insn_end_bb` puts the copy before the call).
+- Negative results of this sweep (do not retry the same forms): motion `nearOne` as a macro (+56 words),
+  cam_ctrl r0_RailBehind `VecSet/VecZero(&ang)` (no change), emwep emWepEscapeCamMove (the six camera
+  literals as an inline helper: a `Vec*` parameter gets a callee-saved pseudo, inline-local Vecs get a
+  freed temp slot instead of the four permanent ones; the target's `lfs` below `stfs fovy` is still
+  unexplained), shadow MakeSoftShadow as a `SoftShadowPass` inline (+100), em_set EmSetWork (the target's
+  kx/kp/kr load interleave is not a plain macro/inline switch; EmSetFromList is Matching with the inline),
+  r226 R226EventRoboStartMain (`setAngXYZero` / caller-Vec pointer forms 19 -> 23), mercenaries
+  `wk->stage = 0` (`li r11,0` after `lwz pG`: inline/int-local forms unchanged, 3 words left).
+- Detector caveat: the mcmp per-function keys use absolute `.rodata` offsets, so a pool change in one
+  function makes every later function "differ" until the section matches again; judge by the unit total.

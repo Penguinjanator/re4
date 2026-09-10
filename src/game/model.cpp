@@ -52,6 +52,16 @@ static inline u32 U32Get(u32& v)
     return v;
 }
 
+// The 0.0 pool load of the light area sinks below the three word stores: an inlined helper
+// (integrate.c drops RTX_UNCHANGING_P from the pool MEM).
+static inline void LightAreaInit(EmLightArea* la)
+{
+    la->x0 = 0;
+    la->flags = 0;
+    la->lightNo = 0;
+    la->scale = 0.0f;
+}
+
 // Byte stores through this setter come from a word-sized zero pseudo, which the word stores
 // after the following `if` share (modelInit).
 static inline void U8Set(u8& d, u8 v)
@@ -62,13 +72,7 @@ static inline void U8Set(u8& d, u8 v)
 cModel::cModel()
 {
     AtariInfoConstruct(&atari);
-    {
-        EmLightArea* la = &litArea;
-        la->x0 = 0;
-        la->flags = 0;
-        la->lightNo = 0;
-        la->scale = 0.0f;
-    }
+    LightAreaInit(&litArea);
     x103 = 0xFF;
     speed.x = 0.0f;
     speed.y = 0.0f;

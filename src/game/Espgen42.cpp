@@ -68,17 +68,18 @@ void EspWaterInit()
     Estgen45SetParamOverWrite(0);
 }
 
-// Pushes the height field down around Chk_pos (the cell and its four neighbours).
-static inline void AddWaterPowerCore(EspgenWork* w)
+// Pushes the height field down around Chk_pos (the cell and its four neighbours). The position is a
+// BY-VALUE Vec parameter: integrate.c copies the argument into a stack temp through an address
+// pseudo (`addi r11,r1,8; stw 4(r11); stw 8(r11)`) that also feeds the PSMTXMultVec arguments
+// (`mr r4,r11`) and dies there; an inline-local `Vec v` gives frame-direct stores and `addi r4,r1,8`.
+static inline void AddWaterPowerCore(EspgenWork* w, Vec v)
 {
     Espgen42Work* p = (Espgen42Work*) w->work;
-    Vec v;
     u32 x;
     u32 z;
     u32 idx;
     int i;
 
-    v = Chk_pos;
     PSMTXMultVec(p->inv, &v, &v);
     if (v.x < (f32) (-p->nx / 2)) {
         return;
@@ -139,8 +140,8 @@ static inline void AddWaterPowerCore(EspgenWork* w)
             } else {
                 h = p->hA;
             }
-            f32* hp = &h[k];
-            *hp += FGet(Add_power) * pw;
+            h += k;
+            *h += FGet(Add_power) * pw;
         }
     }
 }
@@ -148,9 +149,9 @@ static inline void AddWaterPowerCore(EspgenWork* w)
 void AddWaterPowerSub(EspgenWork* w)
 {
     if (w->id == 0x42) {
-        AddWaterPowerCore(w);
+        AddWaterPowerCore(w, Chk_pos);
     } else if (w->id == 0x45) {
-        AddWaterPowerCore(w);
+        AddWaterPowerCore(w, Chk_pos);
     }
 }
 
