@@ -114,6 +114,26 @@ static inline void em29DmRoutineSet(cEm29* em, u32 kind)
     }
 }
 
+// The same routine set with the arms laid out 1, 2, default: the copy em29DmCk's dead `dmWep == 0x21`
+// then-arm uses. Only the layout differs (the tree is the same, followed by `b default`); jump2 deletes
+// this copy whole, but with the default body first it merges the arms in an order that leaves the
+// then-copy's tree behind (see em29DmCk).
+static inline void em29DmRoutineSetLate(cEm29* em, u32 kind)
+{
+    switch (kind) {
+    case 1:
+        EmRoutineSet(em, 2, 1, 0, 0);
+        break;
+    case 2:
+        EmRoutineSet(em, 2, 2, 0, 0);
+        break;
+    case 0:
+    default:
+        EmRoutineSet(em, 2, 0, 0, 0);
+        break;
+    }
+}
+
 // The tail's routine set: `z` is the `zero` pseudo (target `li r29,0` at the dmg join) so the arms are
 // register-distinct from the early set's (whose zero is the `em->hp = 0` register) and jump2 does not
 // cross-jump the two sets into one.
@@ -188,9 +208,11 @@ void em29DmCk(cEm29* em)
         return;
     }
     wep = em->dmWep;
-    em->dmHit = 0;
-    b1 = (hit >> 1) & 1;
+    // b3, b1, store: `hit` dies at b1 (weight 0), so sched1 ranks b1 above b3 and, by source order, above
+    // the dmHit store: `rlwinm b1; stb dmHit; rlwinm b3` like the target (the other five orders differ).
     b3 = (hit >> 3) & 1;
+    b1 = (hit >> 1) & 1;
+    em->dmHit = 0;
     switch (wep) {
     case 0:
     case 1:
@@ -264,21 +286,29 @@ void em29DmCk(cEm29* em)
         em29LastCk(em);
         em29DmRoutineSetZ(em, kind, zero);
     } while (0);
-    return;
+    goto tail;
     // Dead loop in front of the `alive` label: its LOOP_END note stops cse from carrying `zero == 0`
     // into the hp > 0 arm, whose routine sets keep fresh `li r0,0`/`li r9,0` like the target.
     do {
     } while (0);
 alive:
-    // Dead test with identical arms: jump2 cross-jumps the copies and the surviving `lbz dmWep;
-    // cmpwi 0x21` is the target's dead compare. Our jump2 leaves the then-copy's kind-0 body (12
-    // words): it merges that body's last `stb` into the kind-2 tail before trying the whole-body
-    // match (COMPILER-DIFF 6, cross-jump policy).
+    // Dead test with identical arms: jump2 cross-jumps the then-copy into the else copy and the
+    // surviving `lbz dmWep; cmpwi 0x21` is the target's dead compare. Two layout conditions make the
+    // then-copy vanish whole: (1) the else copy's last arm must end in `b END` at jump2 entry -- the
+    // `return` jumps over the `tail:` block whose store is dead (deleted in flow1, so `b END; tail: END:`
+    // reaches jump2 with the jump intact) -- otherwise the then kind-0 body's last `stb` is matched
+    // first against the code falling into END (1-insn fall-through candidate) and the whole-body
+    // match is never tried; (2) the then-copy's arms are laid out 1, 2, default (em29DmRoutineSetLate),
+    // so its kind-0 remnant `b` is not inverted around the kind-2 arm's remnant and the then-tree is
+    // cross-jumped into the else tree. The tail's `dmg = 0` is also the dead store keeping the jump.
     if (em->dmWep == 0x21) {
-        em29DmRoutineSet(em, kind);
+        em29DmRoutineSetLate(em, kind);
     } else {
         em29DmRoutineSet(em, kind);
     }
+    return;
+tail:
+    dmg = 0;
 }
 
 Em29Func Em29_R0_move_tbl[4] = {

@@ -12156,3 +12156,70 @@ ninja -k 0 && dtk shasum -c` = 111 OK after each accepted change.
   compiler-side (REG_EQUIV constants never allocated; equiv13 research negative); all 24 tested sites needed. #14
   candidate: em10 setHand asm needed, em2d fr31 pin unnecessary. #15, #16 candidates: em2c asms needed. #17
   candidate (global.c pass 0 regs_used_so_far): all 9 tested pins needed.
+
+### em29 flipped (em29DmCk 27 -> 0, zero code) + em3cPartsBombControl 295 -> 106 (phantom edge closed; 2026-09-10)
+
+- Harness /home/adityas/.cache/em29_3c (em_close copies with the paths rewritten; `tv.py MOD FUNC variants.py [names]` =
+  variants dict `{name: [(old, new), ...]}` compiled with the module flags, prints the mcmp row; `rtlc.py DUMP FUNC [UID]`
+  = one-line-per-insn listing of any RTL dump (labels, jumps as `bcc r68,0 -> Lnnn`, mems as `MQI[r31+806]`); `regmap.py
+  sbs_t.s sbs_o.s` = register correspondence target -> ours over the aligned sbs listing + the non-rename hunks; `prio.py
+  PRE` / `pmap.py PRE` = the callee-saved global allocnos of a `-dl -dg` dump pair in `regs to allocate` order with refs,
+  live length, priority (floor(log2 refs)*refs/len) and defining insns; `slots.py` = gcse bucket-order model of the spill
+  slot order (below); `lcm.py` = the block-LCM model copied from /tmp/rooms_a4).
+- **em29DmCk 27 -> 0, module Matching (36/36).** Two layout levers on the dead `if (dmWep == 0x21) RS else RS`, both
+  read off jump.c with `-dR`/`-dJ` dumps (tools/xjump.py does NOT reproduce this case: it misses the label-deletion ->
+  unreachable-code deletion and the invert-before-thread ordering, see below):
+  (1) The else copy's last arm must end in `b END` at jump2 entry, with END right behind it. find_cross_jump's
+  fall-through candidate walks i2 back from the label over NOTEs and CODE_LABELs only; a JUMP_INSN there fails
+  `GET_CODE (i1) != GET_CODE (i2)` at once, so the then kind-0 body's `b END` skips the 1-insn `stb r0,254` match and
+  takes the chain candidate = the whole else kind-0 body. Source: the hp <= 0 path ends `goto tail;`, the alive if/else
+  is followed by `return;`, and `tail: dmg = 0;` (a dead store to a pseudo with other refs) sits before the function
+  end. flow1 deletes the store; flow2's find_basic_blocks puts the now label-only `tail:` in its own block, so
+  tidy_fallthru_edge (adjacent blocks only) keeps the `b END`; jump2 deletes it as a jump-to-following only when its
+  scan reaches it, after the then-copy's jumps merged. In round 2 the else kind-0 body then takes the 1-insn tail
+  merge into kind-2 (`b K2TAIL`), the then-tree threads to the else labels and cross-jumps into the else tree from its
+  trailing `b`, `bne ELSE; b ELSE` loses the branch and keeps `lbz; cmpwi 0x21`. Rule: a `bcc/b L` whose target
+  label is preceded by a jump is never a fall-through candidate; a dead store between two labels is how such a jump
+  survives to jump2 (jump1 would delete `b L; X: L:`).
+  (2) With identical arm orders (default, 1, 2) the then-tree survives as `bne L803; b L843` (22 words): after the
+  kind-0 merge its remnant is `L709: b L803`; in round 2 `beq L729` threads (L729 deleted -> the `b L823` remnant after
+  the barrier deleted with it), `bltu L709` threads (L709 deleted), and then `beq L749` sees `b L803` as the
+  reallabelprev simplejump with no label between and INVERTS (jump.c "conditional jump jumping over an unconditional
+  jump" runs before the threading in the same iteration). The then-copy is `em29DmRoutineSetLate` = the same switch
+  with the arms written 1, 2, default (the tree is identical; the default remnant is the tree's trailing `b`), so the
+  remnant order is K1a, K2a, K0a and the inversion has no simplejump to take; all three arm orders with default last
+  (120, 201, 210) work, the three with default first fail. Zero code -- the then copy is deleted whole.
+  (3) The 3-word sched1 tie (`rlwinm b1; stb dmHit; rlwinm b3`) is source order after all: `b3 = ..; b1 = ..;
+  em->dmHit = 0;` -- `hit` dies at b1 (INSN_REG_WEIGHT 0 like the dying-zero store), and among equal weights the
+  smaller LUID wins, so b1 (written before the store) issues first; the other five orders give 2-3 words.
+- **em3cPartsBombControl 295 -> 106 (module 46/47, not flipped).** (a) The phantom CFG edge is a dead loop exit that only
+  cse2 can fold, tagged `COMPILER-DIFF: 3`: `if (k <= 4) goto next_n;` right after the k loop (`next_n:;` at the end of
+  the n body). cse1's cse_end_of_basic_block stops at NOTE_INSN_LOOP_END (`! after_loop`), cse2 walks through it, so
+  only cse2 has the k latch's `record_jump_equiv` (`k > 4` on the fall-through) when it reaches the test and deletes
+  the jump (flow drops the compare); gcse saw the edge from the post-k block to the n latch and left `j+1` at the j
+  latch: j is a biv with the j*20/j*12/&pt[j] givs, byte-identical loop nest. Forms that fold only in combine
+  (`((u8) k) & 0x100`, `(u16) k & 0x10000`) leave `li r0,0; cmpwi r0,0; bne`: combine turns the AND into 0 but
+  `(compare 0 0)` is not a cmpsi and jump2 never folds compares; `(u8) k >= 0x100` folds at tree level (no edge).
+  The test must follow the k loop (an edge from a block before `k = 0` leaves the insertion at the k preheader).
+  (b) `len` is the routine-scope `sum` (`sum = PSVECMag(&cen); s = (dist - sum) * 0.5f; r = 1.0f / sum;`): a
+  multi-block pseudo that crosses calls in the speed loop takes the callee-saved f31 first (`fmr f31,f1`) and pushes
+  0.5/1.0 to f29/f30 -- a block-local `len` ties to f1 and never gets a callee-saved register.
+  (c) Callee-saved GPRs (p r26, bomb r25, j r24, k r29 ...) follow from one pseudo per variable name: `p` is reused
+  for the tail `while (p) { p = p->pNext; .. }` walk (83 refs: priority 1.25 > bomb's 1.04 -> allocated first), the
+  speed loop and the debug nest use `j`/`k` (the previous `dj`/`dk` and a per-loop `k` rank as separate short
+  allocnos and permute r23..r31). Read the priorities with prio.py: allocno_compare = floor(log2 refs)*refs*size/
+  live_length; a pass-0 register reuse (regs_used_so_far, conflict-free) is why the same register serves several
+  loop pseudos, so the "register number = allocation order" reading only holds for conflicting allocnos.
+  Residue 106 words = (i) the spill slots of the PRE'd `p+C`/`fp+D` address pseudos (176/180/184 and 160/164 swapped)
+  and (ii) reload/local temps r9/r10/r11 (target) vs r8/r9/r11 (ours) plus two sched2 orders that follow from them.
+  (i) is modelled exactly (slots.py): the PRE reaching regs are created in `pre_delete`'s bucket order, hash =
+  K + REGNO + C for `(plus reg C)`, bucket = hash % expr_hash_table_size with size = (real insns at gcse / 2) | 1;
+  ours has size 281 (562 insns) and P = 84 (only 281 reproduces our slot order), the target's order needs size 291,
+  293 or 295 with p's pseudo in 82..86 -- the original had 20-28 more real insns at gcse time (insns that survive
+  cse1 and die in combine/flow/reload; the same surplus explains (ii): more block-local pseudos push local-alloc to
+  r8, so r8 is no longer reload's least-used spill register). Dummy declarations shifting p (dmy1..12, p after k)
+  give 106-114: the shift moves i/n/j/k with it. Next lever: find the missing RTL, not another register pin.
+- Rule of record for `int em30DmCk`-style dead compares: the branch of a dead test disappears only through (1) a
+  jump-to-following at jump2 (cross-jump or a reload no-op/USE between), keeping the compare, or (2) a fold that
+  happens after gcse but before flow1 (cse2 with LOOP_END knowledge, the post-loop jump pass), dropping the compare
+  too; combine cannot fold a PPC compare, jump2 cannot fold anything.

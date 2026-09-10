@@ -1899,6 +1899,7 @@ void em3cPartsBombControl(cEm3c* em)
     Vec a;
     Vec b;
     Vec c;
+    cParts* p;
     u32 i;
     u32 n;
     u32 j;
@@ -1909,7 +1910,7 @@ void em3cPartsBombControl(cEm3c* em)
     }
     for (i = 0; i < 25; i++) {
         int no = em3c_bomb_parts[i];
-        cParts* p = (cParts*) em->getPartsPtr(no);
+        p = (cParts*) em->getPartsPtr(no);
         Em3cPartsBomb* bomb;
         int kind;
         f32 sum;
@@ -1954,14 +1955,16 @@ void em3cPartsBombControl(cEm3c* em)
             for (j = 0; j < 5; j++) {
                 for (k = 0; k < 5; k++) {
                     if (j != k) {
-                        f32 len;
                         f32 s;
                         f32 r;
 
+                        // the length is the routine-scope `sum` (the same pseudo accumulates the speeds
+                        // below): a multi-block pseudo that crosses calls, so it takes the callee-saved
+                        // f31 (`fmr f31,f1`) and the 0.5/1.0 constants fall to f29/f30 like the target
                         PSVECSubtract(&bomb->pt[k], &bomb->pt[j], &cen);
-                        len = PSVECMag(&cen);
-                        s = (em3c_bomb_dist[kind][j][k] - len) * 0.5f;
-                        r = 1.0f / len;
+                        sum = PSVECMag(&cen);
+                        s = (em3c_bomb_dist[kind][j][k] - sum) * 0.5f;
+                        r = 1.0f / sum;
                         PSVECScale(&cen, &cen, r * s);
                         PSVECAdd(&bomb->pt[k], &cen, &bomb->pt[k]);
                         PSVECSubtract(&bomb->pt[j], &cen, &bomb->pt[j]);
@@ -1975,23 +1978,33 @@ void em3cPartsBombControl(cEm3c* em)
                         }
                     }
                 }
+                // Dead exit (k == 5 here) that only cse2 can fold: cse1 stops its extended block at the
+                // k loop's LOOP_END note, cse2 (after loop.c) walks through it and knows `k > 4` from the
+                // latch's exit test, deletes the jump, and flow drops the compare. So at gcse time the j
+                // body still has an edge to the n latch that skips `j++`, and the block LCM leaves `j+1`
+                // at its latch (j stays a biv with the j*20/j*12/&pt[j] givs) instead of hoisting it in
+                // front of the k loop. No trace in the code. COMPILER-DIFF: 3
+                if (k <= 4) {
+                    goto next_n;
+                }
             }
+        next_n:;
         }
         sum = 0.0f;
-        for (k = 0; k < 5; k++) {
-            if ((bomb->hitBits >> k) & 1) {
-                bomb->spd[k].x *= 0.8f;
-                bomb->spd[k].y *= fRand0_1() * 0.2f + -0.6f;
-                bomb->spd[k].z *= 0.8f;
+        for (j = 0; j < 5; j++) {
+            if ((bomb->hitBits >> j) & 1) {
+                bomb->spd[j].x *= 0.8f;
+                bomb->spd[j].y *= fRand0_1() * 0.2f + -0.6f;
+                bomb->spd[j].z *= 0.8f;
                 if (no == 3 && (w->flags & 0x50) == 0x10) {
                     SndCall(8, 8, &em->pos, em->id, 0, em);
                     w->flags |= 0x40;
                 }
             } else {
-                PSVECSubtract(&bomb->pt[k], &old[k], &bomb->spd[k]);
-                PSVECScale(&bomb->spd[k], &bomb->spd[k], 0.999f);
+                PSVECSubtract(&bomb->pt[j], &old[j], &bomb->spd[j]);
+                PSVECScale(&bomb->spd[j], &bomb->spd[j], 0.999f);
             }
-            sum += bomb->spd[k].y * bomb->spd[k].y + bomb->spd[k].x * bomb->spd[k].x + bomb->spd[k].z * bomb->spd[k].z;
+            sum += bomb->spd[j].y * bomb->spd[j].y + bomb->spd[j].x * bomb->spd[j].x + bomb->spd[j].z * bomb->spd[j].z;
         }
         if (sum < 1.0f) {
             p->motParts.flags &= ~0x01000000;
@@ -2019,34 +2032,30 @@ void em3cPartsBombControl(cEm3c* em)
         ScaleMatrix(p->mat, &p->scale);
         p->worldPos = cen;
         if (pG->debug_mode == 8) {
-            // own counters: a shared `j` gives gcse a second `j + 1` and the PRE'd increment
-            // (`addi t,j,1` at the body top + `mr j,t`) stops loop.c from reducing the j givs
-            u32 dj;
-            u32 dk;
-
-            for (dj = 0; dj < 5; dj++) {
-                for (dk = 0; dk < 5; dk++) {
-                    if (dj != dk) {
-                        Draw_line3d(&bomb->pt[dj], &bomb->pt[dk], 0xFFFFFFFF, 0);
+            // the routine's j/k again (and j for the speed loop above, p for the parts walk below):
+            // one pseudo per name is what puts j in r24, k in r29 and p in r26 like the target --
+            // separate counters rank differently in global alloc and permute the callee-saved set
+            for (j = 0; j < 5; j++) {
+                for (k = 0; k < 5; k++) {
+                    if (j != k) {
+                        Draw_line3d(&bomb->pt[j], &bomb->pt[k], 0xFFFFFFFF, 0);
                     }
                 }
             }
         }
     }
-    {
-        cModel* q = em->pParts;
-
-        while (q) {
-            q = q->pParts;
-            if (q == 0) {
-                break;
-            }
-            if (!(((cParts*) q)->motParts.flags & 0x01000000) && (((cParts*) q->pParent)->motParts.flags & 0x01000000)) {
-                PSMTXConcat(q->pParent->mat, q->worldMat, q->mat);
-                q->worldPos.x = q->mat[0][3];
-                q->worldPos.y = q->mat[1][3];
-                q->worldPos.z = q->mat[2][3];
-            }
+    // the walk reuses `p`: the extra refs rank p above bomb in global alloc (r26/r25)
+    p = (cParts*) em->pParts;
+    while (p) {
+        p = p->pNext;
+        if (p == 0) {
+            break;
+        }
+        if (!(p->motParts.flags & 0x01000000) && (((cParts*) p->pParent)->motParts.flags & 0x01000000)) {
+            PSMTXConcat(p->pParent->mat, p->worldMat, p->mat);
+            p->worldPos.x = p->mat[0][3];
+            p->worldPos.y = p->mat[1][3];
+            p->worldPos.z = p->mat[2][3];
         }
     }
 }
