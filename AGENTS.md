@@ -12566,3 +12566,69 @@ ninja -k 0 && dtk shasum -c` = 111 OK after each accepted change.
   `last_spill_reg` -- so one insn that needs r8 (all of r0/r9/r10/r11 holding live block pseudos) shifts the temp
   registers of every later reload in the function. Find that insn with `Spilling for insn N. Spilling reg 8.` in the
   -dg dump and remove the live pseudos there (here: the hoisted pG value).
+
+### Stage rooms, st4_0/st2_1 pass 5 (r404 Matching 38/38 + st4_0 module flag; r209 R209Main 124 -> 9 (58/61); r40f BombSet 5, r209 Switch/BridgeAppearCheck 7+7, r20d checkSwitch 1 / moveWall 3 mechanisms read, unchanged; 2026-09-10)
+
+- Harness /home/adityas/.cache/rooms_a5 (rooms_a4 copies with the paths rewritten, `lcm.py`; new `vsbs.sh MOD/UNIT FUNC
+  VARIANTS.py NAME` = side-by-side target | variant asm with labels/pool offsets masked -- dtk's labels on an unlinked
+  variant object are unreliable, judge layout by `OBJ=out/v_UNIT_NAME.o python3 mm.py MOD/UNIT FUNC`).
+- **Two real `mulli`s from one index, zero code (r404 initEmSet 15 -> 0, unit flipped): re-set the holder of the first
+  product before the second multiplication.** `u32 t = n * 12; t += (u32) &pos; Vec* b = (Vec*) t; t = n * 12; t += (u32)
+  &pos; t += 0x28; Vec* r = (Vec*) t;` -- cse1 keeps the second `(mult n 12)` because its class has no valid register any
+  more (`t` was re-set by the `+=`), gcse's PRE deletes only the block's antic occurrence (the first one) and inserts
+  `R = n*12` between the two template-copy loops (the target's `mulli r4`), the second stays a real mult in bb 4. Every
+  copy/launder form costs an `mr` (both values live), a hard-register destination is expanded through a pseudo copy, a
+  `"cc"`-clobber asm has cost 1 (the real mult has 4) and issues in the wrong slot. Using ONE variable `t` for both
+  chains adds the output/anti dependences that put `mr r3,pl` before `addi r30,r30,0x28` (two separate variables: 2 words);
+  `cPlayer* pl = pPLS` (struct view) keeps the pPL load below the first template store (7 -> 2 words).
+- **R209Main 124 -> 9, all zero-code:**
+  (1) a `for` over a VARIABLE bound (`u32 atNum = 8` set in bb 0) keeps jump1's duplicated entry test `cmplw i,atNum`
+  through cse1 (atNum is unknown in that ebb; gcse's cprop then substitutes 8 but does local propagation only from
+  other blocks, so `i = 0` two insns earlier is not used and the jump survives until cse2) -> gcse sees a path around
+  the loop, `high(pPL)` (used in the loop and once more after it) is not anticipatable at the earliest block and is
+  only loop.c-hoisted into the loop's preheader; the target has it PRE'd before the FIRST loop. `i = 0; do {...; i++;}
+  while (i < atNum);` (no entry test) gives the target's placement -- so where a matched function has a `lis` hoisted
+  above an earlier loop, that loop had no foldable entry test. (`const u32 atNum` folds the test too but turns the
+  bottom compare into `cmplwi 7; ble` and hoists the inner loop's invariants a level further: the inner loop's test
+  must stay.)
+  (2) The inner loop's bit index as its own counter (`u32 bit = 8 + i*8;` in the outer body, `for (j = 0; j < atNum;
+  j++, bit++) ... R209_BIT_ON(flags, bit)`) leaves `j` with only the `atNo[j]` giv -> all givs reduced, `j` eliminated
+  into the target's pointer compare `cmplw r31,r25`. Written as `8 + j*8 + i` inside the loop, fold reassociates to
+  `(i + 8) + j*8`: the intermediate `i + 8` is a DEST_REG giv with benefit 2 (`benefit -= add_cost * biv_count` = 0,
+  "not worth while") that blocks `all_reduced`, so `i` is never eliminated (loop.c reduces only givs with >= 2
+  operations on the biv path). (3) The OUTER counter is `i`, the same variable as the other loops (pl0f rule
+  confirmed: `i + 1` stays a latch biv and is not PRE'd across the inner loop, so the `j*4`/`j*8` givs form without
+  any phantom exit edge), and `j` (dead in the other loops) shares the counter's register r27 like the target.
+  (4) `u32* f = flags; f[2] |= X;` (the pointer variable becomes a fresh `(plus fp 8)` occurrence -> gcse copy of the
+  reaching reg -> `lwz r0,8(r20)`; `flags[2]` expands to `(plus fp 16)` directly). (5) `(pG->flags_174 & A) &&
+  (pGS->flags_174 & B)`: fold_truthop merges two bit tests of the SAME operand into one `rlwinm; cmpw`; the struct
+  view keeps the target's two `andis.; beq` (cse merges the loads).
+  Residue 9: `addi r29,r23,8` (bit init) is issued before the loop.c movables in ours (a source insn precedes
+  LOOP_BEG) and after `lwzx` in the target, and the bit-set block's idx/shift-amount take r0/r9 the other way round
+  (local-alloc: REG_N_REFS x3 at loop depth 3 makes floor_log2(9)*9/6 > floor_log2(6)*6/3; at depth 2 or 4 the shift
+  amount wins as in the target and in loop 2). Both fit a target whose `bit` was a loop.c-REDUCED giv (init emitted
+  after the movables, body at depth 3 with the same lens) with benefit >= 3 and no not-worth intermediate -- which our
+  fold/loop.c cannot produce from any expression tried (`i + (8 + j*8)`, bit variable, `(j << 3)`, do-while: 42-128).
+  `-freduce-all-givs` would reduce the intermediate too (then dead); not tested whole-tree.
+- **r40f BombSet (5, unchanged; mechanism read).** The p0 word-1/word-2 order is decided in sched2, not sched1: anti and
+  output dependences cost 1 in this haifa (`insn_cost`: `if (ncost <= 1) LINK_COST_FREE = ncost = 1` after
+  rs6000_adjust_cost returns 0), so `stw r3,8(r11)` (word 2, temp r3) gets +1 from the anti-dependence on the following
+  `lwz r3,work` and its load outranks word 1 (12 vs 11); sched1 does put word 2 first by weight (base dies there) and
+  the target's register choice (w1 r7, w2 r3) shows its sched1 order was the same. The target's order needs the w1 chain
+  >= the w2 chain in sched2 with these registers, which no LUID permutation of the same insns gives. Tried: static const
+  templates, a two-set template pointer, `tbl[2]`, pointer/asm anchors on the template base, declaration and call
+  placements (5-62).
+- **r209 Switch/BridgeAppearCheck (7 each, unchanged; mechanism read).** The target's `lis RO; lis work; lfs f0; lwz
+  r9,work; stw seId` order is register reuse: the RO high and the work POINTER are both r9, so sched2 chains `lis r9,RO
+  -> lfs (anti) -> lwz r9,work (output) -> stw` and the RO chain inherits the work chain's priority. That needs
+  local-alloc to allocate the RO high before the work high (equal QTY_CMP_PRI, 2 refs each, both born at the same
+  sched1 cycle -> qty number = sched1 issue order), i.e. sched1 must issue `lis RO` first, but the `stw seId -> lwz
+  be_flag`/`lfs pos` alias chain (work pointer base 0 from `find_base_value (MEM)`, objs base `(reg 3)`;
+  `base_alias_check` returns 1 for a zero base) gives the work high priority 19 vs 5. No source form breaks that chain
+  while keeping the store through the loaded pointer (a fixed-scalar store would need a global, `noalias` never reaches
+  locals).
+- r20d checkSwitch (1): cse1's skip_blocks path into the down-loop tail also requires `LABEL_NUSES == 1` on the tail
+  label; a dead second `break` (`if (open != 0) break;`) is NOT folded before sched (gcse cprop keeps it as a cr4 compare:
+  20-43 words), loop forms (`for/while/do` + break, goto loop, tail inside the arm, dead do-while around/before the
+  tail) 1-109. moveWall (3): `li r31,0` (i = 0) first in the target's post-call block needs a dependent with the
+  pPL-load chain's priority; an asm `li r4,1` anchored on `i` only reaches prio 3 (not tried in bytes).

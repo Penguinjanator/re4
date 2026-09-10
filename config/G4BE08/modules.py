@@ -700,6 +700,7 @@ MATCHING = {
     "st4_0/r40a.cpp": True,
     "st4_0/r40e.cpp": True,
     "st4_0/r402.cpp": True,
+    "st4_0/r404.cpp": True,
     "st2_0/cSceObj.cpp": True,
     "st2_3/cSceObj.cpp": True,
     "st4_0/cSceObj.cpp": True,

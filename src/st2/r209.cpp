@@ -412,23 +412,33 @@ void R209Main()
                 r209_work.p->snipeCnt++;
             }
         }
-        for (i = 0; i < atNum; i++) {
+        // do-while: a `for` keeps a duplicated entry test `i < atNum` that cse1 cannot fold (atNum is a
+        // variable set in another block), and gcse then sees a path around the loop and leaves the pPL
+        // high inside it; without the test it is PRE'd to the block before the first loop (`lis r28`).
+        i = 0;
+        do {
             if (SceAtCheckHitModel(atNo[i], pPL)) {
                 R209_BIT_ON(flags, i);
                 R209_BIT_ON(flags, (i >> 1) + 0x80);
             }
-        }
-        for (j = 0; j < (u32) r209_work.p->snipeCnt; j++) {
-            int idx = r209_work.p->snipeIdx[j];
+            i++;
+        } while (i < atNum);
+        // The outer counter is `i` (the same variable as the other loops keeps `i + 1` at the latch as a
+        // biv instead of a PRE-hoisted copy); the bit index is its own counter, so the inner `j` has only
+        // the `atNo[j]` giv left and is eliminated into the pointer compare.
+        for (i = 0; i < (u32) r209_work.p->snipeCnt; i++) {
+            u32 bit = 8 + i * 8;
+            int idx = r209_work.p->snipeIdx[i];
 
-            for (i = 0; i < atNum; i++) {
-                if (SceAtCheckHitModel(atNo[i], r209_work.p->em[idx].w.getPtr())) {
-                    R209_BIT_ON(flags, 8 + j * 8 + i);
+            for (j = 0; j < atNum; j++, bit++) {
+                if (SceAtCheckHitModel(atNo[j], r209_work.p->em[idx].w.getPtr())) {
+                    R209_BIT_ON(flags, bit);
                 }
             }
         }
         if (pG->sceat_x17C & 0x00200000) {
-            flags[2] |= 0x80000000;
+            u32* f = flags;  // through the flags pointer pseudo (`8(r20)`), not the frame slot
+            f[2] |= 0x80000000;
         }
     }
     for (i = 0; i < 8; i++) {
@@ -463,7 +473,7 @@ void R209Main()
             } else {
                 r209_work.p->plInPlaceCnt = 0;
             }
-            if ((pG->flags_174 & 0x40000000) && (pG->flags_174 & 0x20000000)) {
+            if ((pG->flags_174 & 0x40000000) && (pGS->flags_174 & 0x20000000)) {  // two `andis.`: the struct view stops fold from merging the bit tests
                 if (r209_work.p->leaderInPlace == 1 && r209_work.p->plInPlace == 1) {
                     SceAtSetEnable(0x19, 0);
                     SceAtSetEnable(0x1A, 0);
