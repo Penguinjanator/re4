@@ -264,12 +264,17 @@ static void move(FE_WORK* t)
         bit = t->cursor;
         cur = bit;
         {
-            // OPEN (11 words, registers only): the target keeps `cur & 0xF` in scratch r11 (not tied
-            // into x's chain) so y is allocated first (r30) and x second (r29); ours ties the mask into
-            // x (r30) and gives y r29. Declaration/statement order, a lo temp of every width, a
-            // function-scope temp, `%`/`/` forms and inlining into the call were tried.
-            int y = ((cur >> 4) + (cur >> 6) + 6) * 14;
-            int x = ((cur & 0xF) + ((cur & 0xF) >> 2) + 23) * 8;
+            // COMPILER-DIFF: #17. The original keeps `cur & 0xF` in scratch r11, untied from x's
+            // chain (`add r29,r11,r9`), so y is allocated first (r30) and x second (r29); ours ties
+            // the mask into x (r30) and gives y r29. With the mask pinned, `cur >> 6` still loses r0
+            // to the mask's dependents in sched1 (m has two consumers, u one) unless it is pinned
+            // too. Both pins are codeless.
+            register u32 m asm("r11");
+            register u32 u asm("r0");
+            u = cur >> 6;
+            int y = ((cur >> 4) + u + 6) * 14;
+            m = cur & 0xF;
+            int x = (m + (m >> 2) + 23) * 8;
             eprintf(x, y, 2, 0, "%01x", CkBit(p->flags, cur));
         }
         bit = t->cursor;

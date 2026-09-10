@@ -14,10 +14,10 @@
 // Dust / snow particle filter: `num` line particles drift with a speed around the camera and
 // are wrapped back into a box (LR half width x34, up half height x38, depth x3C) around it.
 //
-// OPEN (cParticle06::move, 1 insn): the alphaBase load/product live in r11 in the original (the
-// fast-cast address pseudo of `(u8) a` took r9 first, i.e. the loadaddr sat below the `lbz` in the
-// scheduled RTL); ours hoists the loadaddr to the block top and alphaBase gets r9. The re-read mask
-// (`clrlwi rX, rStore, 24`) is reproduced with a volatile asm on `v` (see the function).
+// cParticle06::move: the alphaBase load/product live in r11 in the original (the fast-cast address
+// pseudo of `(u8) a` took r9 first, i.e. the loadaddr sat below the `lbz` in the scheduled RTL);
+// ours hoists the loadaddr to the block top, so alphaBase is pinned (see the function). The re-read
+// mask (`clrlwi rX, rStore, 24`) is reproduced with a volatile asm on `v`.
 
 class cParticle06 {
 public:
@@ -125,7 +125,13 @@ void cParticle06::move()
     if (a > 255.0f) {
         a = 255.0f;
     }
-    v = (alphaBase * (u8) a) >> 8;
+    {
+        // COMPILER-DIFF: #17. The alphaBase load/product live in r11 in the original (the fast-cast
+        // address pseudo of `(u8) a` took r9 first); ours gives them r9. Pinned, no code emitted.
+        register int ab asm("r11");
+        ab = alphaBase;
+        v = (ab * (u8) a) >> 8;
+    }
     // the original re-reads `alpha` masked (`clrlwi rX, rStore, 24`) with the `&flt06` pair issued
     // after the store; ours knows the product fits in 8 bits and folds the mask -- the volatile asm
     // hides the range from combine and keeps the address pair below the product (emobj setYarare)

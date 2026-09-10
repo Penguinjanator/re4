@@ -1961,11 +1961,19 @@ FOUND:
 static int sceAtFunc_pos_jump(SceAtWork* w, cModel* m)
 {
     Vec rot;
+    // COMPILER-DIFF: #13. The original's 0.0 is a reload-materialised constant (f13, the FPR after
+    // the local-alloc'd dstAngle load in f0); ours allocates the 3-ref 0.0 first (f0). Both values
+    // pinned: the angle too, so the y store gets the same call anti-dependent as the z/x stores
+    // and the three stores keep the source order.
+    register f32 a asm("fr0");
+    register f32 z asm("fr13");
 
     pPL->setPos(&w->jumpPos);
-    rot.y = w->dstAngle;
-    rot.x = 0.0f;
-    rot.z = 0.0f;
+    a = w->dstAngle;
+    z = 0.0f;
+    rot.y = a;
+    rot.x = z;
+    rot.z = z;
     pPL->setAng(&rot);
     CamCtrl.qfps.setPlayerLocation(pPL->mat, pPL->pFloorNrm);
     return 0;
@@ -3128,10 +3136,10 @@ int SceAtCreateItemAt(Vec* pos, u16 id, int num, int effType, int saveNo, cModel
     } else {
         w->item.flag2 |= 8;
     }
-    w->x37 |= 1;
     w->pParent = parent;
     w->parentParts = parts;
     w->flag = 7;
+    w->x37 |= 1;
     w->x35 = 3;
     w->x39 = 1;
     w->x38 = 8;

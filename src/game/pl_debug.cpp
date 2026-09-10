@@ -279,10 +279,9 @@ void cPlMaho::regist(const char* code, void (*func)())
     num++;
 }
 
-// DrawGage (1 word left): `len` is the one variable for both widths and the right edge (a multi-set
-// pseudo is never tied to the dying product, so `fw*fnow` stays in f12 like the original); the
-// original's `fadds f25,f13,f25` (fx first, result tied to len) needs fx to outlive the add, which
-// no statement order gives here (ours `fadds f25,f25,f13`).
+// DrawGage: `len` is the one variable for both widths and the right edge (a multi-set pseudo is
+// never tied to the dying product, so `fw*fnow` stays in f12 like the original); the original's
+// `fadds f25,f13,f25` (fx first, result tied to len) is an opaque asm (see the tag there).
 void DrawGage(int x, int y, int h, int w, int now, int max, int color)
 {
     Vec pos;
@@ -306,7 +305,10 @@ void DrawGage(int x, int y, int h, int w, int now, int max, int color)
     size.x = len;
     size.y = fh;
     size.z = 1.0f;
-    len = fx + len;
+    // COMPILER-DIFF: candidate (operand order). `len = fx + len` is expanded with the destination
+    // operand first (`fadds len,len,fx`, optabs' target == op1 swap); the original has `fadds
+    // len,fx,len`. Opaque add with the original's operand order.
+    asm("fadds %0,%1,%2" : "=f"(len) : "f"(fx), "f"(len));
     Draw_quad(&pos, &size, color);
 
     pos.x = len;

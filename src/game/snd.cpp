@@ -6,8 +6,12 @@
 // parameters `blk`/`no` through `RefU16` where the target reloads them after word stores (their
 // stack slots are MEM_SCALAR_P in ours, not in the original's alias.c), tests a single-use
 // `int ok = 1` (the `li r0,1; cmpwi r0,0; bne`), and nests the curve test so `cs` is computed
-// before `curve_ok == 1`. Open: SndCall's prologue (param stores before `lwz pG`, the same alias
-// difference), SndRoomBgmStart / sndVolCalcSub / SndSetReverb (allocation). debugDisp: the history
+// before `curve_ok == 1`. 97/97 (DOL sweep 11): SndCall's `flags_68` test reads the field through
+// `RefU32` (an unflagged MEM conflicts with the u16 parameter stores, whose ready-delay 2 then ranks
+// them above `lwz pG`); SndSetReverb's `p` is one variable assigned in both arms (global pseudo in
+// r9, the then-arm pSnd load falls to r9 too); SndRoomBgmStart's SndCall sits in two nested
+// do-while(0)s (seq/vol/no gain two weighted refs each: allocation order seq, vol, no, w);
+// sndVolCalcSub has a dead `dist > vol` test after the `r` chain. debugDisp: the history
 // row's y is the giv `i * 0x10 + 0x20` (its init lands after the hoisted table addresses and its extra
 // loop insns keep `&History.svol` unhoisted like the target), `y2 = 0x72` before `total = 0`.
 #include "types.h"
@@ -44,6 +48,11 @@ static inline GlobalWork* GRefS(GlobalWork*& p)
 }
 
 static inline u16 RefU16(u16& x)
+{
+    return x;
+}
+
+static inline u32 RefU32(u32& x)
 {
     return x;
 }
@@ -244,6 +253,29 @@ static s8 sndSpanCalc(f32 angle)
     return (s8) (127.0f - fabsf(angle) * 40.743664f);
 }
 
+static s8 sndVolCalcSub(SndCurveTbl* t, f32 dist, f32 vol);
+static s16 sndPitchCalcSub(SndCurveTbl* t, f32 dist);
+
+// .text order of the original: the callers precede their curve helpers.
+static int sndVolCalc(int vol, int no, f32 dist)
+{
+    SndRoomHdr* h;
+    u32 ofs;
+
+    if (no == -1) {
+        return vol;
+    }
+    h = pSnd->hdr;
+    if (h == NULL) {
+        return vol;
+    }
+    ofs = h->vol_ofs[no];
+    if (ofs == 0) {
+        return vol;
+    }
+    return sndVolCalcSub((SndCurveTbl*) ((u8*) h + ofs), dist, (s8) vol);
+}
+
 static s8 sndVolCalcSub(SndCurveTbl* t, f32 dist, f32 vol)
 {
     u32 i;
@@ -264,26 +296,31 @@ static s8 sndVolCalcSub(SndCurveTbl* t, f32 dist, f32 vol)
         f32 d = (f32) ((s16) v - (s16) e->val) / (e->dist - e[-1].dist) * (dist - e[-1].dist);
         r = (f32) (s16) v - d;
     }
+    // Dead test (the store is deleted by flow, the compare by jump2): it keeps `dist` live past
+    // the three `r` sets so r cannot take f1 and lands in f2 (vol moved to f9) like the original.
+    if (dist > vol) {
+        i = 0;
+    }
     return (s8) (vol * 0.0078125f * r);
 }
 
-static int sndVolCalc(int vol, int no, f32 dist)
+static s16 sndPitchCalc(int no, f32 dist)
 {
     SndRoomHdr* h;
     u32 ofs;
 
     if (no == -1) {
-        return vol;
+        return 0;
     }
     h = pSnd->hdr;
     if (h == NULL) {
-        return vol;
+        return 0;
     }
-    ofs = h->vol_ofs[no];
+    ofs = h->pitch_ofs[no];
     if (ofs == 0) {
-        return vol;
+        return 0;
     }
-    return sndVolCalcSub((SndCurveTbl*) ((u8*) h + ofs), dist, (s8) vol);
+    return sndPitchCalcSub((SndCurveTbl*) ((u8*) h + ofs), dist);
 }
 
 static s16 sndPitchCalcSub(SndCurveTbl* t, f32 dist)
@@ -307,25 +344,6 @@ static s16 sndPitchCalcSub(SndCurveTbl* t, f32 dist)
         r = (f32) (s16) v - d;
     }
     return (s16) r;
-}
-
-static s16 sndPitchCalc(int no, f32 dist)
-{
-    SndRoomHdr* h;
-    u32 ofs;
-
-    if (no == -1) {
-        return 0;
-    }
-    h = pSnd->hdr;
-    if (h == NULL) {
-        return 0;
-    }
-    ofs = h->pitch_ofs[no];
-    if (ofs == 0) {
-        return 0;
-    }
-    return sndPitchCalcSub((SndCurveTbl*) ((u8*) h + ofs), dist);
 }
 
 static int sndFilterCalc(int no, f32 dist)
@@ -708,7 +726,7 @@ u32 SndCall(u16 blk, u16 no, Vec* pos, int id, int vol, cUnit* obj)
     int ok = 1;
     int i;
 
-    if (pG->flags_68 & 0x80000) {
+    if (RefU32(pG->flags_68) & 0x80000) {
         return 0;
     }
     pan_calc = 1;
@@ -1705,7 +1723,7 @@ int SndRoomBgmStart(u8 no, int vol)
         if (seq != w->no) {
             Snd_seq_req(w->id, 2, 0, 0);
         call:
-            SndCall(no + 3, seq, 0, 0, vol, 0);
+            do { do { SndCall(no + 3, seq, 0, 0, vol, 0); } while (0); } while (0);
         } else {
             if (vol == 0) {
                 vol = w->vol_def;
@@ -2440,9 +2458,10 @@ int SndBgmDataReadCheck(int id)
 void SndSetReverb()
 {
     SND_EFX_WORK* w = &Snd_efx_work[0];
+    SndEfxParam* p;
 
     if (pSys->sound_mode == 2) {
-        SndEfxParam* p = &pSnd->hdr->efx[0];
+        p = &pSnd->hdr->efx[0];
         w->fx.dpl2.tempDisableFX = 0;
         w->fx.dpl2.preDelay = p->preDelay;
         w->fx.dpl2.time = p->time;
@@ -2451,7 +2470,7 @@ void SndSetReverb()
         w->fx.dpl2.mix = p->mix;
         Snd_efx_req(0, 5);
     } else {
-        SndEfxParam* p = &pSnd->hdr->efx[1];
+        p = &pSnd->hdr->efx[1];
         w->fx.hi.tempDisableFX = 0;
         w->fx.hi.preDelay = p->preDelay;
         w->fx.hi.time = p->time;

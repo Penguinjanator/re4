@@ -1630,11 +1630,11 @@ int Merchant::sellPrice(u16 id, int num)
         if (info.type == 1 && num == 1) {
             u16 bid = WeaponId2BulletId(id, 0);
             int m = WeaponId2ChargeNum(id, 1);
-            PriceEntry* e = exerciseItemId(bid);
+            p = exerciseItemId(bid);
 
-            if (e) {
+            if (p) {
                 int n2 = m * 10;
-                price += e->price * n2;
+                price += p->price * n2;
             } else {
                 pLog->err(0, 0, "sellPrice() : 0x%02x not found", id);
             }

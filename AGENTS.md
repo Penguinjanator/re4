@@ -12000,3 +12000,81 @@ stmt.c/jump.c and confirmed with cc1plus probes:
   in-block dependents) is issued first in the target's post-call block and third in ours.
 - r204 EventChandelier1/2 (94/96), nige_check (228), r20e initPuzzle (103), checkPuzzle (224), cFence20e::move (10),
   r20d throwLantern (31), operateCrank (68), execThrough (62) not iterated this pass.
+
+### DOL sweep 11, remaining game units closest-first (merchant, snd, pl_debug, t_flag, objWep, filter06, espgen02 Matching; event 146/147, sce_at 111/114; 2026-09-10)
+
+Flipped: merchant (59/59), snd (97/97), pl_debug (22/22), t_flag (5/5), objWep (32/32), filter06 (7/7), espgen02 (7/7).
+Verify function ORDER before every flip (`/tmp/dol11/order.py`: split .text order vs ours): snd was 97/97 identical
+functions and still failed `main.dol` because sndVolCalcSub/sndPitchCalcSub were defined before their callers.
+Judge private harness builds against the ninja object when `.rodata` differs: ninja runs fold_linkonce + strip_unused
+(objWep's private build showed a pool reorder that the ninja build did not have).
+
+Zero-code levers found this sweep:
+- **2-set pseudo kills the birthing boost** (merchant sellPrice): `p = f(); if (p) {...}` reusing an existing pointer
+  variable (now set twice) instead of a fresh `PriceEntry* e = f()` removes the once-set/live-at-block-end priority
+  boost on `mr. r3,r3`, so the multiplier's highs come out r11/r10 like the original.
+- **RefU32 parameter-store ordering** (snd SndCall): reading a flag word through `static inline u32 RefU32(u32& x)`
+  gives an unflagged MEM that conflicts with the fixed-scalar parameter stores, which then rank above the `lwz pG`.
+- **Nested `do {} while (0)` around one call** (SndRoomBgmStart): +2 REG_N_REFS per operand ref per nesting level
+  reorders global-alloc without code; one level was one bucket short, two levels hit.
+- **Dead test keeping an FPR operand live** (sndVolCalcSub): `if (dist > vol) { i = 0; }` after the `r` chain (store
+  deleted by flow, compare by jump2) keeps `dist` live past the three `r` sets, so `r` cannot take f1 and lands in f2.
+- **One pointer for both arms** (SndSetReverb): `SndEfxParam* p;` set in each arm instead of two arm-local pointers
+  keeps one qty and the original's allocation.
+- **RMW placement changes qty lengths** (SceAtCreateItemAt): moving `w->x37 |= 1` after `w->x35 = 3` shortens the
+  address pseudo's range by one insn and flips the r0/r9 choice.
+- **Separate loop counters** (EspToolSetMod): the second `strlen` loop with its own `u32 j` instead of reusing `i`
+  gives the original's frame-address PRE copy.
+- **Expression-order asm opaque add** (pl_debug DrawGage, tagged candidate): `len = fx + len` is expanded with the
+  destination operand first (`fadds len,len,fx`: optabs swaps when target == op1); `asm("fadds %0,%1,%2" :
+  "=f"(len) : "f"(fx), "f"(len))` gives the original's `fadds f25,f13,f25`.
+
+Pin rules (#17) refined:
+- **A pin register is grabbed by the first allocno (priority order) that does not conflict with it.** A pin placed
+  after a loop where many loop pseudos have died is taken by the highest-priority dead one (pad PadRead: `bit` took
+  r16, everything shifted, 64 words). Pins only work where every allocno ahead of the target conflicts with the pin.
+- **Register variables (`register T x asm("rN")`) untie**: local-alloc never ties a pseudo to a hard reg
+  (combine_regs records a suggestion and returns 0), so pinning a dying operand keeps the consumer's dest separate
+  (t_flag move: `register u32 m asm("r11")` for `cur & 0xF` gives the original's untied `add r29,r11,r9`).
+- **A pinned hard reg still competes in sched1 by dependents**: with only `m` pinned, `cur >> 6` (one consumer) lost
+  the first slot to `m` (two consumers); pinning `u` to r0 as well settled the order (both codeless).
+- **Address-taken reload chains** (objWep drawPoint, esp_app EspDrawLaserLine): each store through an address-taken
+  pointer reloads it into a fresh pseudo; the r9/r11 alternation depends on the pre-sched2 insn order. Pinning the
+  first reload (`register cEsp* e asm("r11"); e = esp; e->x = ...`) fixes drawPoint (0 words); pinning all five in
+  EspDrawLaserLine (r9,r9,r11,r9,r11) leaves the `lfs 0.8f` / reload-2 LSU slot (target lfs first; ours has no
+  memory dependence store 164(r9) -> load 8(r1) because the store is a varying struct ref and the load a fixed scalar;
+  a `U8Set` reference store clears /s on the store but the dependence still does not appear).
+- **FPR knife edge, pin the loser** (espgen02 espgen02_Update): with the two 0.0f copies between the `bScale` and
+  `bSpd` zero stores (the original's sched order) colR loses f24 to spdR; `register f32 colR asm("fr24")` gives the
+  original with no code. Pinning all three or spdR alone regresses (2-4 words).
+- **Pinned QI-vs-SI type matters** (filter06 cParticle06::move): `register int ab asm("r11")` for the u8 alphaBase
+  product gives `srawi`; `register u32` gives `srwi` (1 word).
+
+Analyses left open (all zero-code and tagged forms tried, listed for the next pass):
+- pad PadRead (7): `dead` (5 refs) vs the loop-2 `&Pad_data` hoist (4 refs) order; pins are unusable (see above);
+  the hoist needs a 5th ref or `dead` a 4th.
+- t_option tp_pl_flag (5): in the dump/get arms the original issues `li r4,0xfe` before `addi r3,r30,ItemMgr@l`;
+  both prio 3, the addi's weight is 0 (the PRE'd high dies) vs li +1, so the addi is first in ours. `"m"(ItemMgr)`
+  keep-alives (weight tie -> LUID still addi first), local id, opaque `li` asms, pointer views: 5-181 words. The
+  gcse dump shows the arms' `r257 = r320` PRE copy propagated by cprop pass 2 (in-block copies are not propagated:
+  the num call keeps `lis r3`); a surviving in-block copy would be scheduled at t=1 with the li and the addi at t=2.
+- obj00 FallMove (2): the second `one` (sePlayed = 1) takes r24 in ours (pass 0: r24 used-so-far, free after the
+  k loop) and r23 in the original; nested do-while on the store also raises `w`'s refs (8-57 words); an asm use of
+  `one` is volatile (no outputs) and reorders the stack slots; r24 pins around the hit loop shift everything.
+- esp45/esp09/esp0e HideCheck (2 each, same shape): the giv init `li r30,0` must precede the hoisted `lis Screen@ha`
+  in the preheader; loop.c emits movables before giv inits, so the original's Screen high was hoisted later (a second
+  loop pass or a non-movable form). i/hidden init forms, ScreenInfo pointer (30): unchanged. esp45 also has an
+  unrelocated `lis r25,0x8025` in the split (dtk did not pair it; masked compare counts it, the DOL would not).
+- exception ErrorHandler (4): the gcse bucket count (n_insns/2|1) permutes the hoisted highs r14-r16; dead stores
+  to distinct dead locals (`i = 0x1234; col = 0x2345; ...`, each +1 real insn until flow) scan the count without
+  side effects: +0/+1/+7/+8 give the r15/r16 swap, +2..+6 and +9..+13 give an r14/r15 swap; the original's
+  permutation is neither, so its `.LC` numbering differed (labels hashed by name).
+- dvd DiscChange (7): the `game[4]` template copy order; `const char* const`, static template + element copies,
+  reference copies, declaration order: 7-44. The unit's `.rodata` is also 4 bytes short (end padding to the next
+  unit's 8-byte alignment; `asm(".section .rodata; .balign 8")` at the end of the file would add it).
+- esp_app EffAreaUpdate (2): `or flag,sstAddAreaFlag` before the hoisted `lis "%d"` in the preheader (both prio 1,
+  ours issues the lis at t+1 while the or waits for the load).
+- `Esp*_Create` "2 words" in esp16/esp04/esp12/esp09/esp0e are `.rodata+N` vs `_vt.6cEspNN` reloc names (the split
+  has no vtable symbol); not code differences.
+- event DelEvt (4), sce_at sceAtGetItem_NoModel (12) / sceAtGetItem (98) / SceAtCheckSystemItemSet (10, #6 cross-jump
+  survivor), em_set (needs the asm-emitted pool constant recipe shared with matched EmSetFromList): unchanged.

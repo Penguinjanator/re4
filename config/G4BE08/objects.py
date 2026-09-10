@@ -1549,7 +1549,37 @@ MATCHING.update({
     "game/texture.cpp": True,  # DataLoad: ofsId/ofsTpl temporaries pinned to r9/r11 (local-alloc fake-lifetime tie; same schedule)
 })
 
+# DOL sweep 11 (2026-09-10)
+MATCHING.update({
+    "game/merchant.cpp": True,  # sellPrice: the bullet PriceEntry reuses `p` (2-set pseudo: no birthing boost on the `mr.`, so sched1 puts it after the two pool `lis` and local-alloc gives the highs r11/r10)
+})
+MATCHING.update({
+    "game/snd.cpp": True,  # SndCall RefU32 flags read (param stores rank above lwz pG), SndSetReverb one `p` for both arms, SndRoomBgmStart nested do-while weights, sndVolCalcSub dead `dist > vol` test (r -> f2)
+})
+MATCHING.update({
+    "game/pl_debug.cpp": True,  # DrawGage: opaque `fadds len,fx,len` (expand_binop puts the destination operand first; tagged candidate)
+})
+
 # COMPILER-DIFF #8 pass (2026-09-10)
 MATCHING.update({
     "game/emshield.cpp": True,  # setFall: DFmode `register f64 asm("fr1")` read in a "=m" asm keeps f1 live past the parameter copy (#8: the copy ranks as weight +1)
+})
+MATCHING.update({
+    "game/t_flag.cpp": True,  # move: `cur & 0xF` pinned to r11 (untied add) and `cur >> 6` pinned to r0 (#17)
+})
+MATCHING.update({
+    "game/objWep.cpp": True,  # drawPoint: first `esp` reload pinned to r11 (#17)
+})
+MATCHING.update({
+    "game/filter06.cpp": True,  # cParticle06::move: alphaBase pinned to r11 (#17)
+})
+
+# CRI pass 3 (2026-09-10)
+MATCHING.update({
+    "lib/adx_bwav.c": True,  # ADX_DecodeInfoWav: dsize swap before *hdrlen/*x0c (the -1 is stored mid-chain, so the chain lands in r3 and is copied), `4 + i + (Sint32)buf` keeps add/lwz 4()
+    "lib/sfd_lib.c": True,  # SFD_Init: the two SFD_INIT_PRM word loads as `asm { lwz p1, 4(prm) }` / `asm { lwz tbl, 0(prm) }` on register locals (COMPILER-DIFF: M1, word 4 loaded first)
+    "lib/sfd_uo.c": True,  # SFUO_Create: channel clear in an inlined static helper called with `&sfd->uo_tbl` (zero-copy `i = 0`, the argument itself is the stepping pointer)
+})
+MATCHING.update({
+    "game/espgen02.cpp": True,  # espgen02_Update: colR pinned to f24, copies between the bScale/bSpd zero stores (#17)
 })

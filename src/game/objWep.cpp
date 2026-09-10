@@ -321,7 +321,12 @@ void drawPoint(Vec* p0, Vec* p1)
     FSet(esp->sizeX, esp->sizeX * size);
     FSet(esp->sizeY, esp->sizeY * size);
     if (pG->flags_5010 & 1) {
-        esp->xA4 = 1;
+        // COMPILER-DIFF: #17. `esp` is address-taken, so each store reloads it; the original's first
+        // reload sits in r11 (r9 was still held by the previous reload at its sched1 position), ours
+        // in r9. Pinned, no code emitted.
+        register cEsp* e asm("r11");
+        e = esp;
+        e->xA4 = 1;
         esp->xA5 = 4;
         esp->xA6 = 5;
         esp->xA7 = 0;

@@ -331,9 +331,18 @@ int Event::Run()
     wait = EvtDebug.strWait;
     if (wait > 0) {
         wait = --EvtDebug.strWait;
+        // COMPILER-DIFF: candidate (the mes `mr.` family). The original keeps `mr r9,r0; cmpwi r9,0`
+        // (the decrement temp and `wait` in different registers, the copy not fused into the
+        // compare); a volatile ASM_OPERANDS between the copy and the compare is what stops our
+        // combine (an operand-less `asm volatile("")` is an ASM_INPUT and does not), and the dead
+        // `wait == 1` test below gives `wait` a mention beyond the block so cse keeps it canonical.
+        asm volatile("" : : "r"(wait));
         if (wait > 0) {
             goto func;
         }
+    }
+    if (wait == 1) {
+        n = 0;
     }
     if (EvtChk(status, 0x10000)) {
         frm = (f32) totalFrame;
@@ -421,10 +430,8 @@ void Event::EspToolSetMod(int no, char* nm)
     buf = (char*) Debug_alloc(1000000, 1);
     EvtDebug.pModel[no].pScr = 0;
     strcpy(mname, nm);
-    p = mname; // the loop reads through p: cse copy of the strcpy argument pseudo (the original's
-               // gcse PRE copy `mr r29,r30` after the call, COMPILER-DIFF candidate #3 shape)
     for (i = 2; i < strlen(mname); i++) {
-        c = p[i];
+        c = mname[i];
         if ((c >= '0' && c <= '9') || (c >= 'a' && c <= 'f')) {
             mname[i + 2] = '0';
             mname[i + 3] = '0';
@@ -452,10 +459,10 @@ void Event::EspToolSetMod(int no, char* nm)
         } while (xml.GetXmlNext(&pos, pos, "NameBin") != 0);
     }
     strcpy(mname, nm);
-    for (i = 2; i < strlen(mname); i++) {
-        c = mname[i];
+    for (u32 j = 2; j < strlen(mname); j++) {
+        c = mname[j];
         if ((c >= '0' && c <= '9') || (c >= 'a' && c <= 'f')) {
-            mname[i + 3] = '0';
+            mname[j + 3] = '0';
             break;
         }
     }
@@ -1979,12 +1986,29 @@ int Event::GetMod(void** mod, char* nm, u8* type, int* wkNo)
         }
     } else if (datTbl.GetDat(&m, &t, nm, &no) == 0) {
     err:
+        {
+            register int pin asm("r27"); // COMPILER-DIFF: #17
+            asm volatile("" : "=r"(pin));
+            asm volatile("" : : "r"(pin));
+        }
         pLog->err(0, 0, "Event::GetMod : mod failed[%s]", nm);
         return 0;
+    }
+    {
+        // COMPILER-DIFF: #17. r27 was used-so-far in the original's global-alloc pass 0 and
+        // conflicted with nm (err block) and type/wkNo/mod (tail) but not with `this`, which
+        // therefore took r27 while mod fell to r28. No code is emitted.
+        register int pin asm("r27");
+        asm volatile("" : "=r"(pin));
+        asm volatile("" : : "r"(pin));
     }
     if (type != 0) {
         *type = t;
     }
+    // COMPILER-DIFF: #17 (companion). A codeless memory-operand asm = one more real insn inside the
+    // wkNo compare's live range only, so the type compare (equal length, lower pseudo) is allocated
+    // first and takes cr4 as in the original; a register-tied asm here is deleted as dead.
+    asm("" : "+m"(no));
     if (wkNo != 0) {
         *wkNo = no;
     }

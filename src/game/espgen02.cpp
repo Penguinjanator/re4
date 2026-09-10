@@ -115,25 +115,24 @@ static f32 Calc_D256(Espgen02Work* p, u8 d, f32 rate)
     return ret;
 }
 
-// OPEN (4 words): the shared 0.0f is loaded into spdR and copied to scaleR and colR. The FPR
-// order scaleR f25 / colR f24 / spdR f23 is a global-alloc live-length knife edge (all three have
-// 6 weighted refs): with the copies written as initialisers in declaration order colR loses to
-// spdR (f23/f24 swapped); with the two copies as statements after `add = 0` colR's range is a
-// few insns shorter and wins, but then sched1 issues `li add,0` before the two `fmr`s where the
-// target has the copies between the `bScale` and `bSpd` zero stores (copies placed there give
-// the swapped registers again; hoisting spdR's load above `p` puts spdR on top).
+// The shared 0.0f is loaded into spdR and copied to scaleR and colR. The FPR order scaleR f25 /
+// colR f24 / spdR f23 is a global-alloc live-length knife edge (all three have 6 weighted refs):
+// with the copies between the `bScale` and `bSpd` zero stores (the original's sched order) colR
+// loses to spdR (f23/f24 swapped); colR is therefore pinned (see the tag below).
 void espgen02_Update(EspgenWork* w)
 {
     Espgen02Work* p = (Espgen02Work*) w->work;
     f32 scaleR;
     f32 spdR = 0.0f;
-    f32 colR;
+    // COMPILER-DIFF: #17. colR pinned to f24 (global-alloc order of the three 0.0f copies); no
+    // code is emitted.
+    register f32 colR asm("fr24");
     int bScale = 0;
+    scaleR = spdR;
+    colR = spdR;
     int bSpd = 0;
     int bCol = 0;
     int add = 0;
-    scaleR = spdR;
-    colR = spdR;
     cModel* model = p->model;
     Mtx sm;
     Mtx rm;
