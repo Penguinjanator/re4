@@ -77,7 +77,9 @@ public:
     s8 bullet;
 
     void init(SUB_SCREEN* wk);
-    void quit();
+    // SsPzzlMain::quit passes wk (`mr r4, r31`) to the parameterless ss_debug.cpp quit: the
+    // caller's view of the class had a SUB_SCREEN* parameter (asm-labelled to the real symbol).
+    void quit(SUB_SCREEN* wk) asm("quit__9ssDbgPzzl");
     void move(SUB_SCREEN* wk);
 };
 
@@ -164,7 +166,7 @@ static u32 frame_tile_col4 = 0x30503080;
 static int frame_tile_blend4 = 0;
 static f32 piece_hand_scale = 30.0f;
 static Vec case_rot = {-0.57f, 0.0f, 0.0f};
-static int pzzl_wait = 0;
+static int pzzl_wait[1] = {0};  // one-element array (SsFileInit idiom)
 static s16 pzzl_font_w[2] = {0, 0x12};
 static s16 pzzl_font_h[2] = {0, 0x18};
 static s8 pzzl_font_space[4] = {-1, -1, -1, -1};
@@ -640,13 +642,14 @@ void screenPos2puzzlePos(Vec* pos, Vec* out)
 // Relocates the piece_info model / texture offsets of ss_pzzl.dat into pointers.
 void pieceTblInit(SUB_SCREEN* wk)
 {
-    PieceInfo* p;
+    PieceInfo* tbl = piece_info;
+    int i;
 
-    for (p = piece_info; p->id != 0xFFFF; p++) {
+    for (i = 0; tbl[i].id != 0xFFFF; i++) {
         int mdl;
         int tex;
 
-        switch (p->id) {
+        switch (tbl[i].id) {
         case 0x40:
             mdl = 0x21;
             break;
@@ -660,7 +663,7 @@ void pieceTblInit(SUB_SCREEN* wk)
             mdl = 0x12;
             break;
         case 1 ... 2:
-        case 0xB ... 0xE:
+        case 0xE:
             mdl = 1;
             break;
         case 8 ... 0xA:
@@ -682,10 +685,11 @@ void pieceTblInit(SUB_SCREEN* wk)
             mdl = 0;
             break;
         default:
-            mdl = p->id;
+            mdl = tbl[i].id;
             break;
         }
-        switch (p->id) {
+        mdl = mdl * 2 + 4;
+        switch (tbl[i].id) {
         case 0x40:
             tex = 0x21;
             break;
@@ -697,11 +701,11 @@ void pieceTblInit(SUB_SCREEN* wk)
             tex = 0x35;
             break;
         default:
-            tex = p->id;
+            tex = tbl[i].id;
             break;
         }
-        *(void**) &p->model[0] = SS_ARC_PTR(wk->x1E4, mdl * 2 + 4);
-        *(void**) &p->model[4] = SS_ARC_PTR(wk->x1E4, tex * 2 + 5);
+        *(void**) &tbl[i].model[0] = SS_ARC_PTR(wk->x1E4, mdl);
+        *(void**) &tbl[i].model[4] = SS_ARC_PTR(wk->x1E4, tex * 2 + 5);
     }
 }
 
@@ -721,24 +725,24 @@ void pieceModelOrientation(SUB_SCREEN* wk, pzlPiece* p)
         m->rot.z = 0.0f;
         break;
     case 1:
+        m->rot.x = 0.0f;
         m->rot.y = 0.0f;
         m->rot.z = -1.5707964f;
-        m->rot.x = 0.0f;
         break;
     case 2:
+        m->rot.x = 0.0f;
         m->rot.y = 0.0f;
         m->rot.z = -3.1415927f;
-        m->rot.x = 0.0f;
         break;
     case 3:
+        m->rot.x = 0.0f;
         m->rot.y = 0.0f;
         m->rot.z = -4.712389f;
-        m->rot.x = 0.0f;
         break;
     case 4:
+        m->rot.x = 3.1415927f;
         m->rot.z = 3.1415927f;
         m->rot.y = 0.0f;
-        m->rot.x = 3.1415927f;
         break;
     case 5:
         m->rot.x = 3.1415927f;
@@ -746,9 +750,9 @@ void pieceModelOrientation(SUB_SCREEN* wk, pzlPiece* p)
         m->rot.z = 1.5707964f;
         break;
     case 6:
-        m->rot.z = 0.0f;
         m->rot.x = 3.1415927f;
         m->rot.y = 0.0f;
+        m->rot.z = 0.0f;
         break;
     case 7:
         m->rot.x = 3.1415927f;
@@ -768,7 +772,7 @@ void pieceModelOrientation(SUB_SCREEN* wk, pzlPiece* p)
     } else {
         b = wk->x2B0->cur;
     }
-    m->pos.x = pzlGrid::size * (p->x + 0.5f);
+    FSet(m->pos.x, pzlGrid::size * (p->x + 0.5f));
     m->pos.y = -pzlGrid::size * (p->y + 0.5f);
     m->matUpdate();
     PSMTXConcat(b->mat, m->mat, m->mat);
@@ -782,35 +786,42 @@ void pieceFrameDisp(cModel* m, u32 color, int type)
     Vec ofs;
     Vec v[4];
     Vec c;
-    Vec d;
-    Vec* p;
     int i;
 
     if (m == 0 || m->pInfo == 0) {
         return;
     }
-    size.x = m->pInfo->bound.size.x;
-    size.y = m->pInfo->bound.size.y;
+    {
+        ModelBound* bd = &m->pInfo->bound;
+
+        size.x = bd->size.x;
+        size.y = bd->size.y;
+    }
     size.z = 0.0f;
-    for (p = v; p <= &v[3]; p++) {
-        if (p == &v[0]) {
+    for (i = 0; i < 4; i++) {
+        switch (i) {
+        case 0:
             size.x = fabsf(size.x);
             size.y = fabsf(size.y);
-        } else if (p == &v[1]) {
+            break;
+        case 1:
             size.x = -fabsf(size.x);
             size.y = fabsf(size.y);
-        } else if (p == &v[2]) {
+            break;
+        case 2:
             size.x = -fabsf(size.x);
             size.y = -fabsf(size.y);
-        } else if (p == &v[3]) {
+            break;
+        case 3:
             size.x = fabsf(size.x);
             size.y = -fabsf(size.y);
+            break;
         }
         PSMTXMultVecSR(m->mat, &size, &ofs);
         c.x = m->mat[0][3];
         c.y = m->mat[1][3];
         c.z = m->mat[2][3];
-        PSVECAdd(&c, &ofs, p);
+        PSVECAdd(&c, &ofs, &v[i]);
     }
     switch (type) {
     case 0:
@@ -857,9 +868,9 @@ void pieceFrameDisp(cModel* m, u32 color, int type)
         c.x = m->mat[0][2];
         c.y = m->mat[1][2];
         c.z = m->mat[2][2];
-        PSVECScale(&c, &c, m->scale.z);
-        for (p = v; p <= &v[3]; p++) {
-            PSVECSubtract(p, &c, p);
+        PSVECScale(&c, &c, m->pos.z);
+        for (i = 0; i < 4; i++) {
+            PSVECSubtract(&v[i], &c, &v[i]);
         }
         ss_Draw_tile3d(&v[0], &v[1], &v[3], &v[2], frame_tile_col4, frame_tile_blend4, 1, frame_tile_w4_ot, frame_tile_w4_prio);
         break;
@@ -870,10 +881,11 @@ void pieceFrameDisp(cModel* m, u32 color, int type)
 void getPieceVertex(pzlPiece* p, Vec* out, int corner)
 {
     cModel* m = p->model;
+    ModelBound* bd = &m->pInfo->bound;
     Vec c;
 
-    out->x = m->pInfo->bound.size.x;
-    out->y = m->pInfo->bound.size.y;
+    out->x = bd->size.x;
+    out->y = bd->size.y;
     out->z = 0.0f;
     PSMTXMultVecSR(m->mat, out, out);
     switch (corner) {
@@ -889,9 +901,21 @@ void getPieceVertex(pzlPiece* p, Vec* out, int corner)
         break;
     }
     c.x = m->mat[0][3];
-    c.y = m->mat[1][3];
-    c.z = m->mat[2][3];
-    PSVECAdd(&c, out, out);
+    {
+        Vec* pc = &c;
+
+        pc->y = m->mat[1][3];
+        pc->z = m->mat[2][3];
+        PSVECAdd(pc, out, out);
+    }
+}
+
+// The &info argument as an inlined helper parameter: integrate substitutes the frame address into the
+// argument register set, so each call recomputes `addi r4, r1, ofs` instead of gcse PRE hoisting one
+// pseudo (COMPILER-DIFF: 3).
+static inline void pzzlItemInfo(int id, ItemInfo* info)
+{
+    itemInfo(id, info);
 }
 
 void pieceModelDisp(SUB_SCREEN* wk)
@@ -899,14 +923,13 @@ void pieceModelDisp(SUB_SCREEN* wk)
     pzlPlayer* pl;
     pzlPiece* hand;
     int no = 0;
-    int i;
 
-    for (i = 0; i < 0x3E; i++) {
+    for (int i = 0; i < 0x3E; i++) {
         numDispI(0x40 + i, 0, 0, 0);
     }
     pl = wk->x2B0;
     hand = pl->hand;
-    for (i = 0; i < wk->x2B0->pieceNum(); i++) {
+    for (int i = 0; i < wk->x2B0->pieceNum(); i++) {
         pzlPiece* p = wk->x2B0->piecePtr(i);
         cModel* m = p->model;
         Vec pos;
@@ -916,36 +939,40 @@ void pieceModelDisp(SUB_SCREEN* wk)
         int id;
 
         if (wk->x2B0->spaceBoard->search(p)) {
-            m->x12F = 3;
-        } else {
             m->x12F = 1;
+        } else {
+            m->x12F = 3;
         }
         if ((p->state & 1) || (hand && hand == p)) {
             m->be_flag |= 2;
             id = 0x41 + no;
             if (hand && p == hand) {
+                m->pos.z = piece_hand_scale;
                 m->x12F = 1;
                 id = 0x40;
-                m->scale.z = piece_hand_scale;
             } else {
-                m->scale.z = 0.0f;
+                m->pos.z = 0.0f;
             }
             pieceModelOrientation(wk, p);
             getPieceVertex(p, &pos, 0);
             puzzlePos2screenPos(&pos, &scr);
             item = p->item;
-            itemInfo(item->id, &info);
+            pzzlItemInfo(item->id, &info);
             if (info.type == 1) {
-                if ((item->x8 >> 13) == 1) {
-                    numDispI(id, item->x8 & 0x1FFF, &scr, 3);
+                u32 num = item->x8;
+
+                if ((num >> 13) == 1) {
+                    num &= 0x1FFF;
+                    numDispI(id, num, &scr, 3);
                 } else {
-                    numDispI(id, item->x8 & 0x1FFF, &scr, 1);
+                    num &= 0x1FFF;
+                    numDispI(id, num, &scr, 1);
                 }
                 no++;
             } else {
-                itemInfo(item->id, &info);
+                pzzlItemInfo(item->id, &info);
                 if (info.type != 9) {
-                    itemInfo(item->id, &info);
+                    pzzlItemInfo(item->id, &info);
                     if (info.x4 != 1 || item->num != 1) {
                         numDispI(id, item->num, &scr, 1);
                         no++;
@@ -981,8 +1008,12 @@ void pieceModelInit(SUB_SCREEN* wk)
 
     pieceTblInit(wk);
     for (i = 0; i < pl->pieceNum_; i++) {
-        pl->pieces[i].model = MapMgr.getWork(i + 4);
-        pl->pieces[i].model->be_flag &= ~2;
+        pzlPiece* p = &pl->pieces[i];
+        pzlPiece* q;
+
+        p->model = MapMgr.getWork(i + 4);
+        q = &pl->pieces[i];
+        q->model->be_flag &= ~2;
     }
     for (i = 0; i < pl->pieceNum(); i++) {
         pieceModelSet(pl->piecePtr(i));
@@ -1149,16 +1180,15 @@ void SsPzzlInit::move(SUB_SCREEN* wk)
             IdSubErase();
             IdNumErase();
             IdFreeBuffer();
-            IdSub.set(SS_ARC_PTR(wk->pCmmn, 0xB), 0xFF, 0x14, 0xC, 6, 0);
-            pzzl_wait = state;
-            goto NEXT;
+            IdSub.set(SS_ARC_PTR(wk->pCmmn, 0xC), 0xFF, 0x14, 0xC, 6, 0);
+            pzzl_wait[0] = 0;
+            state++;
         }
         break;
     case 1:
-        if (--pzzl_wait >= 0) {
+        if (--pzzl_wait[0] >= 0) {
             break;
         }
-    NEXT:
         state++;
         break;
     case 2:
@@ -1170,15 +1200,19 @@ void SsPzzlInit::move(SUB_SCREEN* wk)
         if (pzzl_read_req <= 0) {
             break;
         }
-        if (wk->x266 != 2 || wk->type == 4) {
-            sscrnModelClear(wk);
-        } else {
+        if (wk->x266 == 2 && wk->type != 4) {
             sscrnModelFree(wk);
             generalModelAlloc(wk);
             playerModelInit();
             sscrnLightClear(wk);
-            Cckpt.life.fix(1);
-            Cckpt.life.frameIn();
+            {
+                LifeMeter* life = &Cckpt.life;
+
+                life->fix(1);
+                life->frameIn();
+            }
+        } else {
+            sscrnModelClear(wk);
         }
         wk->x44 = 0;
         state++;
@@ -1194,10 +1228,7 @@ void SsPzzlInit::move(SUB_SCREEN* wk)
     }
     case 4:
         if (wk->type == 4) {
-            GXColor start = {0, 0, 0, 0xFF};
-            GXColor end = {0, 0, 0, 0};
-
-            FadeSet(0x80000000, &start, &end, 5, 0, 0);
+            FadeSetW(0x80000000, 5, 0, 0);
         }
         transit(0, wk);
         break;
@@ -1371,8 +1402,8 @@ void SsPzzlMain::init(SUB_SCREEN* wk)
 void SsPzzlMain::move(SUB_SCREEN* wk)
 {
     int old;
-    u16 armId;
     int bullets;
+    u16 armId;
 
     caseModelMove(caseMove);
     pzzlClearZ(wk);
@@ -1385,13 +1416,16 @@ void SsPzzlMain::move(SUB_SCREEN* wk)
         int x;
         int y;
         pzlPlayer* pl = wk->x2B0;
+        ItemWork* item;
 
         if (pl->hand) {
-            id = pl->hand->item->id;
+            item = pl->hand->item;
             on = 1;
+            id = item->id;
         } else if (pl->ptrPiece(pl->cur)) {
             on = 1;
-            id = wk->x2B0->ptrPiece(wk->x2B0->cur)->item->id;
+            item = wk->x2B0->ptrPiece(wk->x2B0->cur)->item;
+            id = item->id;
         }
         x = (int) ((u->pos.x + 320.0f) * 0.8f);
         y = (int) ((240.0f - u->pos.y) * 0.8f);
@@ -1413,8 +1447,10 @@ void SsPzzlMain::move(SUB_SCREEN* wk)
     switch (state) {
     case 0:
         if (wk->x366 == 0) {
-            cur->move(wk);
-            next = cur->cur;
+            Widget<SUB_SCREEN>* w = cur;
+
+            w->move(wk);
+            next = w->cur;
             wk->x2B0->save();
             if (cur == select) {
                 switch (select->mode) {
@@ -1470,7 +1506,9 @@ void SsPzzlMain::move(SUB_SCREEN* wk)
                 state = 0;
                 wk->x2B0->cur = wk->x2B0->caseBoard;
                 if (Key.trg & 0x01000000) {
-                    wk->x2B0->caseBoard->curY = wk->x2B0->caseBoard->h - 1;
+                    int h = wk->x2B0->caseBoard->h;
+
+                    wk->x2B0->caseBoard->curY = h - 1;
                 } else {
                     wk->x2B0->caseBoard->curY = 0;
                 }
@@ -1480,7 +1518,11 @@ void SsPzzlMain::move(SUB_SCREEN* wk)
         break;
     }
     if (checkWeaponChange(armId, bullets)) {
-        weaponChangeRequest(WeaponId2WeaponNo(ItemMgr.armId), WeaponId2WeaponType(ItemMgr.armId));
+        // COMPILER-DIFF: 4 (the u8 results assigned to u16 locals are masked with `clrlwi 16`)
+        u16 no = WeaponId2WeaponNo(ItemMgr.armId);
+        u16 type = WeaponId2WeaponType(ItemMgr.armId);
+
+        weaponChangeRequest(no, type);
     }
     if (old != state) {
         wk->x268 |= 2;
@@ -1524,14 +1566,16 @@ void SsPzzlMain::quit(SUB_SCREEN* wk)
             if (wk->x300 == ItemMgr.pArm) {
                 ItemMgr.arm(0);
             }
-            wk->x40 = 0;
+            // x300 first: with x40 first the arm's tail is the else arm's `stw x40` insn, which our
+            // jump2 cross-jumps as a single-insn tail (COMPILER-DIFF: 6)
             wk->x300 = 0;
+            wk->x40 = 0;
         } else {
             wk->x2B0->save();
             wk->x40 = 1;
         }
     }
-    pzzl_dbg.quit();
+    pzzl_dbg.quit(wk);
     ssWidgetDelete(thinking);
     ssWidgetDelete(popUp);
     ssWidgetDelete(popDown);
@@ -2046,14 +2090,22 @@ void PieceCommand::init(SUB_SCREEN* wk)
     half.y = (f32) pl->cur->h * 0.5f;
     pc.x = pzzl_sel->x;
     pc.y = pzzl_sel->y;
-    onCase = pl->caseBoard->search(pzzl_sel) != 0;
-    lower = pc.y > half.y - 0.5f;
-    setCommandId(type, id, &num, onCase);
+    if (pl->caseBoard->search(pzzl_sel)) {
+        inSpace = 0;
+    } else {
+        inSpace = 1;
+    }
+    if (pc.y > half.y - 0.5f) {
+        lower = 1;
+    } else {
+        lower = 0;
+    }
+    setCommandId(type, id, &num, inSpace);
     for (i = 0; i < num * 2 + 6; i++) {
         id[i]->dir &= 0xF0;
         id[i]->flags |= 8;
     }
-    if (onCase) {
+    if (inSpace) {
         corner = lower ? 3 : 0;
     } else {
         corner = lower ? 2 : 1;
@@ -2076,7 +2128,7 @@ void PieceCommand::move(SUB_SCREEN* wk)
     int i;
 
     wk->x267 = 1;
-    if (onCase) {
+    if (inSpace) {
         corner = lower ? 3 : 0;
     } else {
         corner = lower ? 2 : 1;
@@ -2364,9 +2416,9 @@ void PieceCommand::move(SUB_SCREEN* wk)
         } else if (command_id == 6) {
             base = 0x80;
         }
-        if (onCase == 0) {
+        if (inSpace == 0) {
             type = 0x1C;
-        } else if (onCase == 1) {
+        } else if (inSpace == 1) {
             type = 0x1D;
         }
         for (i = 0; i < 11; i++) {
@@ -2544,36 +2596,36 @@ int itemCommandType(ItemWork* item)
     case 5:
     case 0xC:
         return 3;
-    case 6: {
-        int id = item->id;  // COMPILER-DIFF: 4 (u16 local; the u16 view is only kept for the switch)
-
-        switch ((u16) id) {
+    case 6:
+        switch (item->id) {
+        case 8 ... 0xA:
+            return 8;
         case 0x19:
         case 0x1C:
         case 0xA8:
             return 3;
-        case 8 ... 0xA:
-            return 8;
         }
-        if (itemCombineCheckI(id)) {
-            return 5;
+        if (itemCombineCheckI(item->id) == 0) {
+            return 4;
         }
-        return 4;
-    }
+        return 5;
     case 0xE:
         return 9;
     }
-    if (itemCombineCheckI(item->id)) {
-        return 5;
+    if (itemCombineCheckI(item->id) == 0) {
+        return 4;
     }
-    return 4;
+    return 5;
 }
 
 // The command menu id units of a command type (`lang`: 0 the case board set, 1 the space set).
 static void setCommandId(u8 type, IdUnit** tbl, s8* num, int lang)
 {
-    u8 t = lang ? 0x1D : 0x1C;
+    u8 t = 0x1D;
 
+    if (lang == 0) {
+        t = 0x1C;
+    }
     switch (type) {
     case 0:
         tbl[0] = IdSub.unitPtr(0, t);

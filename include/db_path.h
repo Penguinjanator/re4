@@ -30,7 +30,7 @@ struct DbPathWork {
     Vec ofs;        // 0x44  drawing offset
 };
 
-void DbPath(DbPathWork* w, int x, int y);
+int DbPath(DbPathWork* w, int x, int y);
 void pathInsertPoint(DbPathWork* w);
 void pathCursor(DbPathWork* w);
 void pathDraw(DbPathWork* w, Vec* ofs);

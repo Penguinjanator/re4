@@ -52,7 +52,7 @@ public:
     s8 num;           // 0x94
     u8 cursorOld;     // 0x95
     s8 subSel;        // 0x96
-    s8 onCase;        // 0x97  the piece is on the case board
+    s8 inSpace;       // 0x97  1: the piece is not on the case board (setCommandId's space set)
     u8 lower;         // 0x98  the piece is in the lower half (menu above it)
 
     PieceCommand() : Widget<SUB_SCREEN>(6) {}
