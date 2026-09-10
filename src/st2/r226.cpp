@@ -242,10 +242,8 @@ void R226Init()
         RsfSet(G_ROOM_ID, 8);
     }
     {
-        // COMPILER-DIFF: 2 -- the original masks the u8 result before the int parameter.
         int id = GetEmIdFromList(0xB9);
 
-        asm("" : "+r"(id));
         EmReadSearch((u8) id, 0, 0);
     }
     SceAtDataSet_exec(0, 0x12, 0, (TaskFunc) SceElevator, &r226_elvLeave, 1);
@@ -644,15 +642,14 @@ static void R226EventPassageSwitchMain(int side)
         objPos = 0x3E;
         cut = 6;
         cut2 = 8;
-        asm("li %0,29" : "=r"(estNo));   // COMPILER-DIFF: 2
+        estNo = 29;
     }
     if (RsfCheck(G_ROOM_ID, flagNo)) {
         return;
     }
     RsfSet(G_ROOM_ID, flagNo);
     // COMPILER-DIFF: 2 -- the original sign-/zero-extends the narrow locals here (`extsb`, `clrlwi 24`)
-    // although both arms set them to constants; the int copies make the conversions real, and the asm set
-    // in the else arm keeps estNo's bits unknown to combine (an `asm("" : "+r")` launder costs a pseudo).
+    // although both arms set them to constants; the int copies make the conversions real.
     {
         int c2 = cut2;
         int e = estNo;

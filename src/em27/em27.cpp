@@ -341,7 +341,7 @@ static void em27_R0_Init(cEm27* em)
     em->scale.x = scale;
     em->scale.y = scale;
     em->scale.z = scale;
-    atariInitF(at, 0.0f, 0.0f, 0.0f, 250.0f, 100.0f, 100.0f, 100.0f, 1, 0x2800, 10);   // COMPILER-DIFF: #1
+    at->init(1, 0x2800, 10, 0.0f, 0.0f, 0.0f, 250.0f, 100.0f, 100.0f, 100.0f);
     em->atari.flags &= 0xFDFF;
     em->setStatus(0xB);
     YarareInit(em, 0.0f, 0.0f, -100.0f, 100.0f, 250.0f, 5, 5);

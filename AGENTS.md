@@ -12078,3 +12078,81 @@ Analyses left open (all zero-code and tagged forms tried, listed for the next pa
   has no vtable symbol); not code differences.
 - event DelEvt (4), sce_at sceAtGetItem_NoModel (12) / sceAtGetItem (98) / SceAtCheckSystemItemSet (10, #6 cross-jump
   survivor), em_set (needs the asm-emitted pool constant recipe shared with matched EmSetFromList): unchanged.
+
+### COMPILER-DIFF tag audit (2026-09-10)
+
+Harness /home/adityas/.cache/tagaudit (`inventory.py` -> `tags.tsv` = file, line, item, kind, enclosing function,
+unit(s), Matching, age; `h.py base|check|accept|revert SRC` = rebuild the source's units and compare each .o with the
+saved baseline, and when an .o differs, relink the module .rel / main.dol and compare its sha1 with build.sha1 (an
+alias declaration removal changes the symbol table but not the sections, so the object compare alone gives false
+DIFFs); `t.py SRC LABEL OLD NEW..` = apply exact replacements, check, accept or revert; `atari1.py`, `alias4.py` =
+the #1 atari-init and #4 int-view alias families; `results.tsv` = every trial). Scope: units flagged Matching in
+config/G4BE08/objects.py / modules.py whose source was untouched for 30 minutes (77 of the 116 tagged files; the 39
+non-Matching files and the 6 headers were not touched). Every unit stayed byte-identical: `python3 configure.py &&
+ninja -k 0 && dtk shasum -c` = 111 OK after each accepted change.
+
+- **Inventory (301 tag lines, 161 of them comment-only; code lines in brackets):** #13 61 [38], #4 45 [4], #12 31
+  [24], #1 30 [18], candidate #12 24 [13], #2 22 [14], #3 12 [7], #6 11 [1], #8 11 [4], candidate #17 9 [7], #5 8
+  [1], #17 7 [1], candidate #9 4 [2], #9 2, candidate #10 2, candidate #8 2 [1], #11 1, candidate #3 1, candidate
+  #14/#15/#16 1 [1] each, M1 1 (CRI, sfd_lib), unnumbered 14 ("tie" 4, "candidate (..)" 5, none 5). Per kind (code
+  lines): register-asm 30, launder 29, opaque-asm 19, alias-use 18 (the atariInitF/AtariInit calls), alias 16,
+  dead-test 13, keep-alive 9, dead-init 3, other 3.
+- **Necessity check: 167 workarounds tested in Matching units (one trial per workaround; an alias is tested with
+  all its call sites in plain form at once, each register pin / launder / dead test separately), 15 unnecessary
+  (removed, plain form kept), 152 needed (restored exactly).** Removed:
+  - #1 floats-first `atariInitF`/`AtariInit` -> `x.init(parts, flags, cnt, ...)`: em21 R0_Init, em22 R0_Init, em23
+    R0_Init, em27 R0_Init, em2a R0_Init, em36 R0_Init, em3d R0_Init, wep14/objMine cObjMine::init (8 of 26 atari-init
+    sites; the other 18 -- em24/26/28/29/2e/2f/31/34 x3/35/38/3a/3b x2, pl14 -- still need the alias, as do the
+    setThrow/PathGetPosEm/SatMgrCreateF/playerPillarDownCk order aliases).
+  - #2: r226 R226Init `asm("" : "+r"(id))` on the GetEmIdFromList result (plain `(u8) id` argument identical), r226
+    R226EventPassageSwitchMain `asm("li %0,29" : "=r"(estNo))` -> `estNo = 29`, r20f R20fInit `asm("" : "+r"(id))`,
+    em2c em2cBlendMotSet2 `asm("" : "=r"(dd) : "0"((int) d))` -> `dd = (int) d` (the em2cBlendMotSet copy and the
+    two "order only" launders of BlendMotSet2 are still needed).
+  - #4: r411 `GetEmIdFromListI` int view (plain `GetEmIdFromList` identical in both callers).
+  - #5: r100 R100Init `zero = 0` local for the else arm's two byte stores (literal 0 identical).
+  - candidate #14: em2d em2dInitRtnSet `register f32 fz asm("fr31")` (a plain `f32 fz` gets f31 anyway).
+  Everything else tested stays: all #13 hard-register/asm-emitted constants (em32 R0_Init x6, em21DmCk, em27DmCk,
+  em2a two, r207 zero, r224 x3, r201 `on` launder, pl_shotgun fr0, espgen10 x3, pl0f `one`, t_sce_item dead test),
+  all #12 / candidate #12 forms (t_sce_at 9 aliases + do-while, t_sce_item 4 aliases, r218 4 do-whiles, r108, r226,
+  em32 W_FRESH/W_SET x4, ss_item asm li x2, em21/em2a cam aliases, em2d fmr, t_mv, r11d, em25), the #4 int-view
+  aliases in em10 (16 units), em32, em2c, ss_item x3, ss_file, ss_model x5, r104 x2, r108, r11d x2, r203, r205, r214
+  x4, r216, r217, r21b, r223, r226, r20b, r20c, r40e, r400, r403, the #2 launders (em32 x2, em2c x4, em36 r30,
+  em10 Ctrl12SetS, pl_class clrlwi, t_flr_at, r226 int copies), #3 (r108 tbl, merchant 0.5 high), #5 (em18 fabsfE,
+  r20c hp, ss_map zero), #6 (r207 x2, EtcModel, sndvd), #8 (emshield, r223), #11 (r200), candidate #8/#9/#15/#16/#17
+  (em2d, r113, r11d, em2c x2, t_sce_item, ss_item x3, r22c, r203 x2, t_flag x2, objWep), the unnumbered ties
+  (vfprintf, lightPath, room_jmp, emBar, pl14, em21 neck do-while, texture pins, pl_debug fadds, merchant dead
+  tests).
+- **Tag hygiene:** added the missing tag to em2c em2cBlendMotSet2's third launder (`bb`, #2 order-only) and to r223's
+  `cEmWrapSetEmI` alias (#4); retagged em25 em25DmCk's "cse AROUND path" launder as `candidate #12 (AROUND form)`
+  (the #12 sweep's form (a)); reworded the r226 #2 comment that described the removed asm set; removed r411's
+  orphaned comment. Left as is and listed: the unnumbered tags "tie" (vfprintf fftoa, lightPath movePath, room_jmp
+  getRoomInfo, emBar emBarHitCk; all loop-note register-weight levers), "register tie" (pl14 cSubLuis scan),
+  "candidate (local-alloc qty order)" (texture DataLoad), "candidate (operand order)" (pl_debug DrawGage),
+  "candidate (loop.c pass-2 insn_count)" (merchant buyupPrice), "gcse PRE pseudo numbering" (sce_at, not Matching),
+  "candidate (gcse cprop)" (em2b, not Matching), r204/r118 "dead test" (not Matching / owned), and em21's
+  "COMPILER-DIFF-tagged tie lever" comment (a mention, not a tag). The #5 and #6 tags on needed workarounds (em18,
+  r20c, ss_map; r207, EtcModel, sndvd, r22c, item, ss_pzzl, event, em35) were not retagged: both items are resolved
+  as stock-compiler, source-form differences, so those workarounds will not be removable when the original build
+  turns up; a mechanical sweep should treat #5/#6 tags as permanent source levers.
+- **Skipped (not tested):** the 39 non-Matching tagged files (em2b, em39, em3c, cam_ctrl, cam_extra, emrock, em_sub,
+  emwep, esp16, event, item, mercenaries, pl_wep, puzzle, sce_at, shadow, title, adx_bau, ss_pzzl, ss_shop, r103,
+  r11b, r11c, r202, r204, r209, r20d, r213, r221, r404, t_camera, t_camera_data, db_port, db_widget, t_event, t_id,
+  t_scroll, snd_test, t_snd_vol, db_light); Matching files edited by another agent within the 30-minute window
+  (st4/r402 R402MoveDoor02 `asm("" : "=r"(obj) : "0"(obj) : "r31")` #3 -- its #1 SatMgrCreateF alias was tested
+  before the edit; espgen02 #17, filter06 #17, sfd_lib M1, r118 dead test / candidate #12); the 6 headers
+  (dbg_tool.h #13 x6, db_toolbase.h #13, math_sub.h #1 de_Boor_CoxF, id_sys.h #4, item.h #4 x2, db_mod.h #4:
+  their users include non-Matching units, so a plain form cannot be verified without changing those). No tagged
+  site was skipped for an unclear plain form.
+- **Per-item status after the audit:** #1 (arg-move order) compiler-side tie (rank18 research negative); 8 of 26
+  atari-init aliases were unnecessary, so check the plain member call before adding one. #2 (narrow extension)
+  compiler-side (combine's promoted-parameter knowledge); 4 of 18 launders unnecessary. #3 (frame-address / high
+  PRE) compiler-side, unknown mechanism (gcse3/highcost negative). #4 (narrow truncation) compiler-side; 1 of 33
+  int-view aliases unnecessary. #5 RESOLVED stock haifa: the remaining tags are source-form levers (shared local /
+  early-clobber fabs / asm-anchored copy). #6 RESOLVED stock jump2: the remaining tags are RTL-at-jump2-entry levers
+  (empty asm, tied launder). #7 candidate (no tagged site). #8 CLOSED with the different-mode hard-register read
+  (emshield, r223; em2d's candidate #8 launder is a sched1 tie, still needed). #9 candidate (rotated loop entry: r113,
+  r11d launders needed). #10 candidate (rodata copies; no code). #11 candidate (temp-slot merge: r200 needed). #12
+  compiler-side (cse hash table carried into a block the original entered empty); every tested form is needed. #13
+  compiler-side (REG_EQUIV constants never allocated; equiv13 research negative); all 24 tested sites needed. #14
+  candidate: em10 setHand asm needed, em2d fr31 pin unnecessary. #15, #16 candidates: em2c asms needed. #17
+  candidate (global.c pass 0 regs_used_so_far): all 9 tested pins needed.

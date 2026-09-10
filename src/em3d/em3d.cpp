@@ -282,7 +282,7 @@ static void em3d_R0_Init(cEm3d* em)
         em->lightInfo.init2(0, 1, &ofs, &size, 2);
     }
     at = &em->atari;
-    atariInitF(at, 0.0f, 0.0f, 0.0f, 800.0f, 700.0f, 700.0f, 3000.0f, 1, 0x2000, 10);   // COMPILER-DIFF: #1
+    at->init(1, 0x2000, 10, 0.0f, 0.0f, 0.0f, 800.0f, 700.0f, 700.0f, 3000.0f);
     zero = 0;
     AtariOff(at, 0xFCFF);
     em->setStatus(1);

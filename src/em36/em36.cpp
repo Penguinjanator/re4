@@ -675,7 +675,7 @@ static void em36_R0_Init(cEm36* em)
 
         em->lightInfo.init2(0, 1, &ofs, &size, 2);
     }
-    atariInitF(&em->atari, 0.0f, 0.0f, 0.0f, 400.0f, 300.0f, 300.0f, 1000.0f, 1, 0x2000, 10);   // COMPILER-DIFF: #1
+    em->atari.init(1, 0x2000, 10, 0.0f, 0.0f, 0.0f, 400.0f, 300.0f, 300.0f, 1000.0f);
     em->litArea.on(1);
     YarareInit(em, 0.0f, 30.0f, 40.0f, 190.0f, 50.0f, 2, 1);
     YarareAdd(em, &w->hit[0], 0.0f, 0.0f, 0.0f, 100.0f, 0.0f, 1, 0);

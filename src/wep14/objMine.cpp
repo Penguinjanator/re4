@@ -49,8 +49,7 @@ void cObjMine::init(cModel* parent)
         return;
     }
     at = &sub2B4.atari;
-    // COMPILER-DIFF: #1 (FPR argument moves before the int immediates)
-    atariInitF(at, 0.0f, 100.0f, 0.0f, 0.0f, 100.0f, 100.0f, 100.0f, 1, 0, 0);
+    at->init(1, 0, 0, 0.0f, 100.0f, 0.0f, 0.0f, 100.0f, 100.0f, 100.0f);
     AtariFlagsAnd(at, 0xFCFF);
     pParts->pParent = parent->getPartsPtr(9);
     {

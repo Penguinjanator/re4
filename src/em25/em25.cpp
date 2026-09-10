@@ -211,7 +211,7 @@ void em25DmCk(cEm25* em)
     if (wep == 0x10) {
         em->dmType = 0x11;
     }
-    // COMPILER-DIFF: cse AROUND path (r104 execEvent00 family) -- the original's cse forgets
+    // COMPILER-DIFF: candidate #12 (AROUND form; r104 execEvent00 family) -- the original's cse forgets
     // `zero == 0` past the skipped `if` block, so the `hitCnt = 0` below gets its own `li`; ours
     // carries the equivalence through and would store `zero`.
     asm("" : "+r"(zero));

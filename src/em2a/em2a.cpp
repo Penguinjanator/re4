@@ -323,7 +323,7 @@ static void em2a_R0_Init(cEm2a* em)
     }
     }
     at = &em->atari;
-    atariInitF(at, 0.0f, 0.0f, 0.0f, 500.0f, 400.0f, 400.0f, 1500.0f, 3, 0x2000, 10);   // COMPILER-DIFF: #1
+    at->init(3, 0x2000, 10, 0.0f, 0.0f, 0.0f, 500.0f, 400.0f, 400.0f, 1500.0f);
     zero = 0;
     AtariOff(at, 0xFCFF);
     em->setStatus(0xB);

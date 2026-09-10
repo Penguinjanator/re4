@@ -6073,8 +6073,8 @@ void em2cBlendMotSet2(cEm2c* em, void* m0, void* m1, int a, int b, u16 d)
     int bb;
     void* mm1;
     asm("" : "=r"(mm1) : "0"(m1));         // COMPILER-DIFF: #2 (order only: m1/b get the same chain length as d, keeping the prologue copy order)
-    asm("" : "=r"(bb) : "0"(b));
-    asm("" : "=r"(dd) : "0"((int) d));     // COMPILER-DIFF: #2: the original masks the u16 `d` once (`clrlwi r29,r29,16`) and passes the copy to both calls
+    asm("" : "=r"(bb) : "0"(b));           // COMPILER-DIFF: #2 (order only, see mm1)
+    dd = (int) d;
     f32 val = fabsf(w->blendVal);
 
     MotionSetCore(em, &em->mot, m0, a, (u8) w->blendCnt, (u16) dd, (u16) w->blendSeq);

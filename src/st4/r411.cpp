@@ -25,8 +25,6 @@ static R411Work* r411_work;
 
 // The original passes an uninitialised int to cEmDoor::setCloseLock(int) (no r4 setup, r105 idiom).
 void cEmDoorSetCloseLock(cEm* door) asm("setCloseLock__7cEmDoori");
-// The u8 list id is passed on to SceCountEmAlive without a mask (COMPILER-DIFF 4).
-int GetEmIdFromListI(u32 no) asm("GetEmIdFromList");
 
 static void r411_checkDoorUnlock();
 extern "C" void r411_lockDoor();
@@ -155,7 +153,7 @@ static void r411_checkEmSet1()
 static void r411_checkEmSet2()
 {
     RsfSet(G_ROOM_ID, 1);
-    if ((u32) SceCountEmAlive(GetEmIdFromListI(0xE1), -1) <= 10) {
+    if ((u32) SceCountEmAlive(GetEmIdFromList(0xE1), -1) <= 10) {
         cEmWrap em0;
         cEmWrap em1;
 
@@ -179,7 +177,7 @@ static void r411_checkEmSet3()
         }
     }
     SceSleep(15);
-    id = GetEmIdFromListI(0xE1);
+    id = GetEmIdFromList(0xE1);
     while ((u32) SceCountEmAlive(id, -1) > 9) {
         SceSleep(1);
     }

@@ -408,7 +408,7 @@ static void em22_R0_Init(cEm22* em)
     em->lockOfs.x = 0.0f;
     em->lockOfs.y = 0.0f;
     em->lockOfs.z = 0.0f;
-    atariInitF(&em->atari, 0.0f, 0.0f, 0.0f, 450.0f, 400.0f, 400.0f, 500.0f, 3, 0x2000, 10);   // COMPILER-DIFF: #1
+    em->atari.init(3, 0x2000, 10, 0.0f, 0.0f, 0.0f, 450.0f, 400.0f, 400.0f, 500.0f);
     em22YarareInit(em);
     w->pCtrl11 = GetCtrlCtrl11();
     w->pCtrl12 = GetCtrlCtrl12();

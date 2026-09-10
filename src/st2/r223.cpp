@@ -57,7 +57,7 @@ static f32 reva3_hi = 5385.0f;
 static f32 dai_lo = 5675.0f;      // lift height range (cart stop)
 static f32 dai_hi = 5385.0f;
 
-int cEmWrapSetEmI(cEmWrap* w, int no, int list, int errOn, int chkDead, int setAlive) asm("setEm__7cEmWrapsSciii");
+int cEmWrapSetEmI(cEmWrap* w, int no, int list, int errOn, int chkDead, int setAlive) asm("setEm__7cEmWrapsSciii");   // COMPILER-DIFF: #4 (int table entries reach the s16 parameter untruncated)
 
 // COMPILER-DIFF: #8 -- the original's prologue copies `fmr f28,f1; fmr f29,f2` before `mr r29,r5` (mode);
 // ours orders the copies by parameter order, so the definition declares lo/hi before mode (same

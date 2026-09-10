@@ -155,7 +155,6 @@ void R20fInit()
     if (checkEmListNo(G_ROOM_ID) == 3 && (pG->flags_5018 & 0x04000000) == 0) {
         int id = GetEmIdFromList(0xED);
 
-        asm("" : "+r"(id));  // COMPILER-DIFF: #2 (the original masks the u8 result at the call)
         EmReadSearch((u8) id, 0, 0);
         SceExec(0x12, (TaskFunc) R20fEmSetMain, 0, 0, 2, 0);
     }

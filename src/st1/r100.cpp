@@ -134,7 +134,6 @@ void R100Init()
     // argument `li`s (the original has it last).
     cObj* o2;
     cModelInfo* info;
-    int zero;
     u32 flag;
 
     BitOff(pG->flags_54, 0x400);
@@ -318,10 +317,7 @@ void R100Init()
     } else {
         r100_em_set();
     }
-    // COMPILER-DIFF #5: the original hoists the else arm's `li 0` above the branch (interblock
-    // scheduling); the local written between the flag read and the test lands it there.
     flag = RsfCheck(G_ROOM_ID, 3);
-    zero = 0;
     if (flag == 0) {
         SceAtSetEnable(0xA, 1);
         SceAtDataSet_exec(0xA, 0x12, 0, (TaskFunc) r100_Sce_look, 0, 2);
@@ -331,8 +327,8 @@ void R100Init()
         if (em != 0 && em != errEm) {
             em->xFC = 1;
             em->xFD = 0x10;
-            em->xFE = zero;
-            em->xFF = zero;
+            em->xFE = 0;
+            em->xFF = 0;
             em->flags_3C8 |= 1;
         }
     }

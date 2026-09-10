@@ -963,9 +963,7 @@ void em2dInitRtnSet(cEm2d* em)
         Vec nrm;
         int one = 1;      // routine 1 of both arms in a callee-saved register
         Vec* pos = &em->pos;
-        // COMPILER-DIFF: #14 candidate -- a store-only SF constant (class GENERAL_OR_FLOAT) lands in
-        // a GPR with our cc1plus; the original allocated it to f31.
-        register f32 fz asm("fr31");
+        f32 fz;
 
         em->x38D = one;
         PSMTXRotRad(m, 'y', em->rot.y);

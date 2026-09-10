@@ -258,7 +258,7 @@ static void em23_R0_Init(cEm23* em)
     em->lockOfs.x = 0.0f;
     em->lockOfs.y = 0.0f;
     em->lockOfs.z = 0.0f;
-    atariInitF(&em->atari, 0.0f, -100.0f, 0.0f, 350.0f, 150.0f, 150.0f, 200.0f, 1, 0x2000, 10);   // COMPILER-DIFF: #1
+    em->atari.init(1, 0x2000, 10, 0.0f, -100.0f, 0.0f, 350.0f, 150.0f, 150.0f, 200.0f);
     em->setStatus(1);
     em->setStatus(0xB);
     EspDataLoad((u32) ARC(4), 0x1B, 0);
