@@ -1646,3 +1646,8 @@ MATCHING.update({
 MATCHING.update({
     "lib/mpv_dec.c": True,  # MPVDEC_END: ck.data as an asm-defined `register` local so q stays in r4 and the load takes r8 (COMPILER-DIFF: M1); `(Uint8)val` skip lengths (zero-code)
 })
+
+# DOL structural pass 2 (2026-09-11)
+MATCHING.update({
+    "game/item.cpp": True,  # set_stage2: LV_SET macro sets the EX nibble first (the all-zero mask chain then folds in combine, whose dead loads leave the USE insns that make `mr r3,this` the loop-note barrier); init: `li r3,32` as an asm-li with a dying input (#13); trigger: r9 pin + launder for the u16 mask (#2)
+})

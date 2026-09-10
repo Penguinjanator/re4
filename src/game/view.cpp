@@ -54,6 +54,10 @@ void VIEW::setFarPlane(f32 z)
 // `px[i * 3] *= 0.5f; py[i * 3] *= 0.5f;` (two bases, one index giv -> lfsx/stfsx); `b = &localFull`
 // re-assigned for the sphere block; q copies field-wise (a struct copy forces `&b->point[k]` into a
 // pseudo that cse folds to `this + K` and gcse then hoists).
+// Frustum point stores: one `z` variable holds -zn and then -zf (a two-set pseudo, allocated f11 in both
+// blocks), `w` is likewise shared, the far block has its own `h2` (block-local, tied to the dying `t` in
+// f31); each point is stored z, x, y (the far block's `lfs zf` depends on all twelve near stores, so the
+// store order inside a block is the sched1 order: the dying store first, then source order).
 void VIEW::initPerspective(f32 fovy_, f32 aspect_, f32 znear_, f32 zfar_)
 {
     Vec t1;
@@ -82,6 +86,8 @@ void VIEW::initPerspective(f32 fovy_, f32 aspect_, f32 znear_, f32 zfar_)
     f32 zn;
     f32 zf;
     f32 det;
+    f32 z;
+    f32 h2;
     f32 d0;
     f32 d1;
     f32 d2;
@@ -94,35 +100,37 @@ void VIEW::initPerspective(f32 fovy_, f32 aspect_, f32 znear_, f32 zfar_)
     t = sinf(fovy * 0.5f * 3.1415927f / 180.0f) / cosf(fovy * 0.5f * 3.1415927f / 180.0f);
     b = &localFull;
     zn = znear;
+    z = -zn;
     h = zn * t;
     w = h * aspect_;
+    b->point[0].z = z;
     b->point[0].x = w;
     b->point[0].y = h;
-    b->point[0].z = -zn;
+    b->point[1].z = z;
     b->point[1].x = -w;
     b->point[1].y = h;
-    b->point[1].z = -zn;
+    b->point[2].z = z;
     b->point[2].x = -w;
     b->point[2].y = -h;
-    b->point[2].z = -zn;
+    b->point[3].z = z;
     b->point[3].x = w;
     b->point[3].y = -h;
-    b->point[3].z = -zn;
     zf = zfar;
-    h = zf * t;
-    w = h * aspect_;
+    h2 = zf * t;
+    z = -zf;
+    w = h2 * aspect_;
+    b->point[4].z = z;
     b->point[4].x = w;
-    b->point[4].y = h;
-    b->point[4].z = -zf;
+    b->point[4].y = h2;
+    b->point[5].z = z;
     b->point[5].x = -w;
-    b->point[5].y = h;
-    b->point[5].z = -zf;
+    b->point[5].y = h2;
+    b->point[6].z = z;
     b->point[6].x = -w;
-    b->point[6].y = -h;
-    b->point[6].z = -zf;
+    b->point[6].y = -h2;
+    b->point[7].z = z;
     b->point[7].x = w;
-    b->point[7].y = -h;
-    b->point[7].z = -zf;
+    b->point[7].y = -h2;
 
 #line 190 "D:/Bio4/Prog/view.cpp"
     PSVECSubtract(&b->point[1], &b->point[0], &t1);

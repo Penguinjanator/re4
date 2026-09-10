@@ -387,10 +387,10 @@ int cItemMgr::set_game(int no)
     }
 
 #define LV_SET(p, f, m, sp, e)                                                                             \
+    LV_EX_SET(p, e);                                                                                      \
     LV_FIRE_SET(p, f);                                                                                    \
     LV_MAG_SET(p, m);                                                                                     \
-    LV_SPEED_SET(p, sp);                                                                                  \
-    LV_EX_SET(p, e)
+    LV_SPEED_SET(p, sp)
 #define CHARGE(p) setBullet(p, WeaponId2ChargeNum((p)->id, LV_EX(p) + 1))
 
 int cItemMgr::set_ada(int no)
@@ -1215,8 +1215,12 @@ int cItemMgr::init()
         p->flags = 0;
     }
     nFlags = 8;
+    {
+        u32 sz; // COMPILER-DIFF: #13 (the size as a reload-materialised constant: weight 0 like the string addi)
+        asm("li %0,32" : "=r"(sz) : "r"(p));
 #line 2522 "D:/Bio4/Prog/item.cpp"
-    pFlags = (u32*) MEM_ALLOC(0x20, 1, 13);
+        pFlags = (u32*) MEM_ALLOC(sz, 1, 13);
+    }
     if (pFlags == 0) {
         Mem_free(pItems);
         Mem_free(pOrder);
@@ -2563,9 +2567,12 @@ int cItemMgr::trigger()
     case 3:
     case 6: {
         ItemWork* p = pArm;
+        register int id asm("r9"); // COMPILER-DIFF: #2 (the original masks the u16 member before the call)
+        id = armId;
+        asm("" : "+r"(id));
 
-        if (p->flags == 0 || armId != p->id) {
-            p = minimumSearch(armId);
+        if (p->flags == 0 || id != p->id) {
+            p = minimumSearch((u16) id);
         }
         return trigger(p);
     }
