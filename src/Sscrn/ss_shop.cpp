@@ -2116,7 +2116,7 @@ void levelItemDisp(SUB_SCREEN* wk, int sw)
                         on = 1;
                         u->flags |= 8;
                     }
-                } else if (type == 0 && j == 2 && digit[2] == 0) {
+                } else if (type == 0 && j == 2 && digit[j] == 0) {  // digit[j]: `lwz 8(rDigit)` through the array pseudo (weaponLevelDisp idiom)
                     u->flags &= ~8;
                 } else {
                     u->flags |= 8;

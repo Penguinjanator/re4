@@ -62,14 +62,6 @@ extern void (*_dtors[])(void);
 // The widget classes (SsExitInit / SsExitMain / SsItemExamine) are declared in ss_main.h.
 
 extern "C" {
-// COMPILER-DIFF: 5 (partial). SubScreenTask reads pG->x4FB8 in two switch arms and in the digit block;
-// loop.c's combine_movables merges equal `high pG` movables (same SYMBOL_REF string pointer) into one
-// hoisted pseudo (savings 3 >= the 307-insn loop), the original keeps three highs (the two arm highs
-// speculatively scheduled into the join block before the ssWepModel2 test, callee-saved r30/r29). The
-// aliases give the arms distinct SYMBOL_REFs so nothing is combined or hoisted (.text size equal; the
-// two `lis` stay in their arms).
-extern GlobalWork* pG_a asm("pG");
-extern GlobalWork* pG_b asm("pG");
 void SubScreenTask();
 void clearZbuffer();
 void sscrnCameraInit(SUB_SCREEN* wk, Camera* cam);
@@ -329,19 +321,33 @@ void SubScreenTask()
             if (ssPlMotion) {
                 MotionMoveF(ssPlModel, 0);
             }
+            // Dead test (never-read store): its `high pG` is set in this block and survives as the
+            // register of the 0x19/0x1F/0x20 arm (cse1 canon_reg: the arm's own high dies inside the
+            // extended block, so the earlier one stays canonical); the 0x1C arm is reached in a fresh
+            // cse block, keeps its high, and gcse PRE makes it redundant with the reaching register
+            // inserted at this block's end -> the target's two `lis pG@ha` (r29/r30) before the
+            // ssWepModel2 test, and no combine_movables hoist (both highs are used in other blocks
+            // inside the maybe_never region). The store is trivially dead, so jump folds the branch
+            // before gcse and sched2 sees one block.
+            {
+                int dmy;
+                if (pG->x4FB8 == 7) {
+                    dmy = 0;
+                }
+            }
             if (ssWepModel2 && ssWepModel) {
                 switch (WeaponId2WeaponNo(ItemMgr.armId)) {
                 case 0x19:
                 case 0x1F:
                 case 0x20:
-                    if (pG_a->x4FB8 == 0) {
+                    if (pG->x4FB8 == 0) {
                         MotionMoveF(ssWepModel, 0);
                     } else {
                         ssWepModel->matUpdate();
                     }
                     break;
                 case 0x1C:
-                    if (pG_b->x4FB8 == 4) {
+                    if (pG->x4FB8 == 4) {
                         MotionMoveF(ssWepModel, 0);
                     } else {
                         ssWepModel->matUpdate();

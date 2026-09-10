@@ -119,7 +119,12 @@ public:
 
     // Tools t_atari's static cSat arrays (stw 1; stw vptr; stb 0 per element in the static init loop) and
     // ss_map's cSat locals show the real constructor: alive flag through the base, active flags cleared.
-    cSat() : cUnit(1) { flags = 0; }
+    // The flags store goes through a reference: its address is then a register `f = this + 0x2A` whose
+    // cse class holds the frame-direct `(plus fp N)` for an inlined local (find_best_addr's REG path
+    // prefers the more expensive equivalent), so the `stb` is frame-relative while the vptr stores keep
+    // `this` (ss_map mapPositionCheck); a plain member store stays `(plus this 0x2A)` (PLUS path cost
+    // tie). No new header-level declaration: esp's static `max.<DECL_UID>` name is gcse-hash sensitive.
+    cSat() : cUnit(1) { s8& f = flags; f = 0; }
     void init(cSatFile* f, Vec* pos, Vec* rot);
     void setCoord(Vec* pos, Vec* rot);
     void setMatrix(Mtx m);

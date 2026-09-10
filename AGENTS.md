@@ -2707,8 +2707,8 @@ target) stays unresolved and `make_rel` then fails with "undefined symbol".
   `__9cPartsMgr`/`__12cModInfoMgr` (asm-labelled ctors) but without a virtual destructor, so the static
   destructor inlines `cManager<T>::~cManager` (stores the cManager vtable) as the target does.
 - Status: ss_cap, ss_debug, ss_file, ss_item_draw Matching (the REL is byte-identical with the four
-  compiled; ss_model Matching since the sixth pass); ss_main has 57/58 functions byte-identical (open: SubScreenTask, two `lis
-  pG@ha` placements, .text size equal since the sixth pass, see its item); ss_item is written (34 functions incl. dtors, 32 byte-identical after the
+  compiled; ss_model Matching since the sixth pass; ss_main Matching since the eighth pass: SubScreenTask's two `lis
+  pG@ha` are a dead test, see the eighth-pass item); ss_item is written (34 functions incl. dtors, 32 byte-identical after the
   sixth pass, .rodata/.data/.bss identical, .text size equal), open items below; ss_term (29/29 named functions, eof block open)
   and ss_model (47/47 since the sixth pass: wep09Init is a plain `else if` chain, NOT compiler-build difference 6) are written, see their items; ss_map (src/Sscrn/
   ss_map.cpp, 104/105 named functions byte-identical after the sixth pass (2026-09-10; open:
@@ -3434,6 +3434,75 @@ target) stays unresolved and `make_rel` then fails with "undefined symbol".
     the `&pos` a PRE'd pseudo (`mr r5,r17`) and no `mr r4,r3` — worse; the target's `mr r4,r3; lwz r3,
     0x68(r4); addi r4,r4,0x88` (u not folded into r3) appears only at the two sites whose `pos` is read
     afterwards, not at the two dispPrice sites.
+- Eighth pass (2026-09-10, ss_main Matching (58/58, the two `lis pG@ha` closed, the pG_a/pG_b aliases and
+  their COMPILER-DIFF 5 tag removed; symbols.txt got `_vt.10SsTermInit/Main`, `_vt.10SsItemInit/Main`,
+  `_vt.9SsMapInit/Main` from sync_rel_symbols for the inlined `new` ctors); ss_map mapPositionCheck 93 ->
+  69 words (prologue closed through include/atari.h); ss_shop levelItemDisp `digit[j]`; ss_item/ss_pzzl
+  analysed, unchanged; harness /tmp/ssw10 = ssw9 copies + `tryf.sh <unit> <src.cpp> <fn>` (compile any
+  source as the unit and fdiff3 it) + `atv.sh 'CTOR' 'EXTRA'` (atari.h variant, checks esp + ss_map)):
+  - **Two `lis pG@ha` in one block = cse1 canon_reg + gcse PRE around a trivially-dead test** (SubScreenTask
+    0 words). `{ int dmy; if (pG->x4FB8 == 7) dmy = 0; }` right before `if (ssWepModel2 && ssWepModel)`:
+    (1) cse1 sees the test's `H0 = high pG` in the join block J; the 0x19/0x1F/0x20 arm A is on J's
+    extended block (the switch's fall-through path), its own `hA = high pG` joins H0's class and `hA` does
+    NOT become the leader (`make_regs_eqv`: NEW leads only if its last use is beyond the block), so
+    `canon_reg` rewrites A's load to `pG@l(H0)` and `hA` dies -- cse DOES merge equal `high`s, by register
+    canonicalisation, not by cost (that is what "cse leaves two equal high sets" misses); (2) the 0x1C arm
+    B is reached by a followed `beq` in a LATER cse path (fresh table), keeps `hB`, and gcse PRE finds it
+    redundant with J's occurrence (delayin(J) via the loop body's earlyin chain, S/T blocks delayed,
+    `redundant = antloc & ~latein & ~isoout`): insertion `R = high pG` at J's END (before the ssWepModel2
+    `beq`), `hB = R`, and cse2 cannot re-materialise the copy because B is not in R's ebb; (3) the store is
+    trivially dead (never-read variable) so `delete_trivially_dead_insns` after cse1 removes it and the jump
+    pass before gcse folds the `bne` -> J is ONE block at sched time and the highs interleave with the
+    ssWepModel2 chain (`lis r9; lis r30; lwz r0; lis r29; cmpwi; beq`); the test's `lwz/lbz/cmpwi` die by
+    loop pass 1; (4) loop.c cannot combine/hoist the highs any more: both are used in another basic block
+    inside the `maybe_never` region (`!reg_in_basic_block_p && maybe_never` = not movable), so the digit
+    block keeps its fresh `lis r9`; (5) a liveness-dead store (`v = 0` with v read later) keeps the `bne`
+    to sched2: the two highs land before `lis ssWepModel2` and the 10.0 pool load gets hoisted (f30).
+    Rule: two different registers holding the same `high sym` set in one dominating block = one arm
+    canonicalised onto a dead test's high, the other PRE'd to that block's end; the dead test must read the
+    SAME symbol/field and sit at the block where the target has the pair.
+  - **cSat ctor `flags = 0` through a reference** (include/atari.h `cSat() : cUnit(1) { s8& f = flags; f = 0; }`,
+    mapPositionCheck prologue = target: `stb r10,242(1)` / `stb r10,50(1)` frame-direct for both sats, satB's
+    vptr stores still through r27, params r23/r24/r22, template words r26/r5/r25). The reference makes the
+    address a register `f = this + 42`; cse1's `find_best_addr` REG path (`(mem f)`) accepts an equivalent
+    with `(p->cost + 1) >> 1 > best_rtx_cost`, and `notreg_cost` doubles rtx_cost, so `(plus fp N)` (cost 4)
+    beats the pseudo (cost 1) and the store goes frame-direct; a plain member store is `(mem (plus this 42))`
+    and the PLUS path compares `(plus fp N+42)` against `(plus this 42)` (4 vs 4: never). Works for the
+    frame-offset-0 satB too (integrate never substituted it, cse does the rewrite). NOT a free function: a
+    header-level `static inline SatFlagSet(s8&, s8)` adds DECLs and shifts every DECL_UID in units that
+    include atari.h -- game/esp's `EspDispInfo` regressed (`max.238` static-local name -> gcse hashes
+    `high(symbol_ref)` by NAME, bucket order changed); the block-local reference variable is the zero-decl
+    form (esp still 100%, all 111 files OK, t_atari/rooms unchanged). Left in mapPositionCheck (69 words):
+    the second `init` call's `mr r5,r28` before `mr r4,r3` (sched2 tie: the getSat result copy 136 gets r4
+    in both, deps 2/2, LUID -> ours first; the target ranks the &zero move first), `i`/`&hit` r29/r28, and
+    the debug-draw loop's p/v/col/a/b registers.
+  - ss_shop levelItemDisp: `digit[j] == 0` (not `digit[2]`) in the `type == 0 && j == 2` test = the target's
+    `lwz r0,8(r19)` through the `&digit` pseudo (cse folds j*4 with j known 2 but keeps the base register;
+    `digit[2]` is `(plus fp 16)`), same idiom as weaponLevelDisp. Still -12 bytes: the two `mr r4,r3` sites
+    (the unitPtr result U dies at `addi r4,U,136` and is tied to r4 by local-alloc in the target because the
+    parent pointer P (`lwz r3,104(U)`) took r3 first; ours allocates U (3 refs/3 insns) before P (2/3) and U
+    takes the r3 copy suggestion -- a qty-priority tie), the tail's `addi r30,r30,cMes@l; addi r30,r30,2832;
+    sth 34/32(r30)` (an integer `m = (u32)&cMes + 0xC*sizeof(Message)` variable gives the 32/34 offsets but
+    folds the base into `lis/addi cMes+0xb10`; `pm` pointer forms fold everything), and type/bar register
+    names.
+  - ss_item itemSelect (unchanged): a dead test on `i` after the k loop is canonicalised by cse onto `no`
+    (`i = no` makes `no` the leader when `i`'s later mention is the dead test... the compares become `cmpwi
+    no`), so `i` is not live across the k loop and k still takes r31; a dead test INSIDE the k loop keeps
+    `i` live but `no` then outranks `i` for r31 (i r30/no r31/k r31). Two dead tests after the loop give
+    i r31/no r30 with the loop test on `no` (5 words). The target needs i r31 live across loop 2 with the
+    loop test on i -- not reachable with dead tests.
+  - ss_shop LvUpConfirm::move (unchanged, 6 words): the #12 launder's register naming; non-volatile
+    `asm("" : "+r"(v))`, tied `"0"` forms, and an `asm volatile("" :: "r"(t))` keep-alive are 6-13 words.
+  - ss_pzzl PieceSelect::move (unchanged, 113): read off the target: the r==1 arm stores the getPieceNum
+    result register (`mr. r9,r3` -> `stb r9`) as the zero of `x264 = 0; x265 = 0`, the r==2 arm stores `state`
+    (r27, loaded once at the top, no reload after the calls) and case 4 stores the Key-test OR result -- all
+    three are cse's zero class picking the OLDEST known-zero register on its path: the r==2 arm is reached
+    through the followed `beq CASE2` from the top (knows state == 0 from the state switch), the r==1 arm is
+    the fall-through ebb restarted after `beq CASE2` (knows only the `mr.` result). Ours knows the Key OR
+    result (r27) in both arms -> our path did not follow `beq CASE2` (PATHLENGTH or label shape), and the
+    source's `x264 = state` in the r==2 arm reloads the byte (`lbz 0,19`); write both arms as literal zeros
+    and shorten/lengthen the cse path so `beq CASE2` is followed -- `int st = state` (161) and an `int n`
+    result variable (113, cse substitutes the older zero) do not do it.
 - The map model globals are named `ssPlModel`/`ssWepModel` (.bss 0x494/0x498, MapMgr works 0/1),
   `ssPlMotion`/`ssWepModel2` (.data 0x978/0x97C), renamed by hand in symbols.txt/sym_map.tsv
   (data labels have no .sym name for the sync tool); the generator attributes them to ss_map.cpp.

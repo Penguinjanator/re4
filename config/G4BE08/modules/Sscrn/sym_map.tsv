@@ -634,8 +634,8 @@ section	offset	size	unit	scope	name	demangled
 .rodata	0x00000BA0	0x30	Sscrn/ss_item.cpp	global	lbl_Sscrn_rodata_BA0	lbl_Sscrn_rodata_BA0
 .rodata	0x00000BD0	0x30	Sscrn/ss_item.cpp	global	lbl_Sscrn_rodata_BD0	lbl_Sscrn_rodata_BD0
 .rodata	0x00000C00	0x30	Sscrn/ss_item.cpp	global	lbl_Sscrn_rodata_C00	lbl_Sscrn_rodata_C00
-.rodata	0x00000C30	0x30	Sscrn/ss_item.cpp	global	lbl_Sscrn_rodata_C30	lbl_Sscrn_rodata_C30
-.rodata	0x00000C60	0x60	Sscrn/ss_item.cpp	global	lbl_Sscrn_rodata_C60	lbl_Sscrn_rodata_C60
+.rodata	0x00000C30	0x30	Sscrn/ss_item.cpp	global	_vt.10SsItemMain	lbl_Sscrn_rodata_C30
+.rodata	0x00000C60	0x60	Sscrn/ss_item.cpp	global	_vt.10SsItemInit	lbl_Sscrn_rodata_C60
 .rodata	0x00000CC0	0x4	Sscrn/ss_item_draw.cpp	local	lbl_Sscrn_rodata_CC0	lbl_Sscrn_rodata_CC0
 .rodata	0x00000CC4	0x4	Sscrn/ss_item_draw.cpp	local	lbl_Sscrn_rodata_CC4	lbl_Sscrn_rodata_CC4
 .rodata	0x00000CC8	0x8	Sscrn/ss_item_draw.cpp	local	lbl_Sscrn_rodata_CC8	lbl_Sscrn_rodata_CC8
@@ -804,8 +804,8 @@ section	offset	size	unit	scope	name	demangled
 .rodata	0x00001F88	0x30	Sscrn/ss_map.cpp	global	lbl_Sscrn_rodata_1F88	lbl_Sscrn_rodata_1F88
 .rodata	0x00001FB8	0x30	Sscrn/ss_map.cpp	global	lbl_Sscrn_rodata_1FB8	lbl_Sscrn_rodata_1FB8
 .rodata	0x00001FE8	0x30	Sscrn/ss_map.cpp	global	lbl_Sscrn_rodata_1FE8	lbl_Sscrn_rodata_1FE8
-.rodata	0x00002018	0x30	Sscrn/ss_map.cpp	global	lbl_Sscrn_rodata_2018	lbl_Sscrn_rodata_2018
-.rodata	0x00002048	0x30	Sscrn/ss_map.cpp	global	lbl_Sscrn_rodata_2048	lbl_Sscrn_rodata_2048
+.rodata	0x00002018	0x30	Sscrn/ss_map.cpp	global	_vt.9SsMapMain	lbl_Sscrn_rodata_2018
+.rodata	0x00002048	0x30	Sscrn/ss_map.cpp	global	_vt.9SsMapInit	lbl_Sscrn_rodata_2048
 .rodata	0x00002078	0x58	Sscrn/ss_map.cpp	global	lbl_Sscrn_rodata_2078	lbl_Sscrn_rodata_2078
 .rodata	0x000020D0	0x28	Sscrn/ss_map.cpp	global	lbl_Sscrn_rodata_20D0	lbl_Sscrn_rodata_20D0
 .rodata	0x000020F8	0x80	Sscrn/ss_map.cpp	local	map_cam_entire	map_cam_entire
@@ -1104,8 +1104,8 @@ section	offset	size	unit	scope	name	demangled
 .rodata	0x00003500	0x38	Sscrn/ss_term.cpp	local	lbl_Sscrn_rodata_3500	lbl_Sscrn_rodata_3500
 .rodata	0x00003538	0x28	Sscrn/ss_term.cpp	local	lbl_Sscrn_rodata_3538	lbl_Sscrn_rodata_3538
 .rodata	0x00003560	0x20	Sscrn/ss_term.cpp	local	lbl_Sscrn_rodata_3560	lbl_Sscrn_rodata_3560
-.rodata	0x00003580	0x30	Sscrn/ss_term.cpp	global	lbl_Sscrn_rodata_3580	lbl_Sscrn_rodata_3580
-.rodata	0x000035B0	0x30	Sscrn/ss_term.cpp	global	lbl_Sscrn_rodata_35B0	lbl_Sscrn_rodata_35B0
+.rodata	0x00003580	0x30	Sscrn/ss_term.cpp	global	_vt.10SsTermMain	lbl_Sscrn_rodata_3580
+.rodata	0x000035B0	0x30	Sscrn/ss_term.cpp	global	_vt.10SsTermInit	lbl_Sscrn_rodata_35B0
 .rodata	0x000035E0	0x68	Sscrn/ss_term.cpp	global	lbl_Sscrn_rodata_35E0	lbl_Sscrn_rodata_35E0
 .rodata	0x00003648	0x48	Sscrn/ss_term.cpp	global	lbl_Sscrn_rodata_3648	lbl_Sscrn_rodata_3648
 .rodata	0x00003690	0x48	Sscrn/ss_term.cpp	global	lbl_Sscrn_rodata_3690	lbl_Sscrn_rodata_3690
