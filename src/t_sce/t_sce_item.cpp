@@ -782,6 +782,9 @@ void tSceItemDataInput_basic_menu(int sel, TOOL_MENU* menu)
     if (on) on = 1;
     menu[1].enable = on;
     menu[2].enable = on;
+    // dead test (n is re-set before every read): its branch splits the sched1 region so the
+    // pW `lis` is not issued with the first menu store; deleted at flow2, emits nothing
+    if (menu == 0) n = 0; // COMPILER-DIFF: #13 (region split, dead test)
     x = pW->x + 0x80;
     y = pW->y;
     switch (sel) {

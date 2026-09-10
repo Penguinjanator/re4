@@ -64,8 +64,12 @@ cc1plus and are therefore compiler-build differences (the original is a later SN
    pseudos rematerialised by reload (the #13 constant handling), in ours cse folds the second use to a
    hard-reg copy `fmr f2,f1` (weight +1). Nothing installed; the alias stays. The #8 prologue family
    (`fmr fN,f1` ranked as if f1 did not die: emshield setFall, emwep setThrow, r223 mode, r226 idx, pl_wep
-   PlWepAutoTrack mode, em_sub EmYarareContactCk out -- the only 6 such prologues in the whole tree) has no
-   source lever either (a parameter's incoming hard register always dies at its copy in ours).
+   PlWepAutoTrack mode, em_sub EmYarareContactCk out -- the only 6 such prologues in the whole tree) HAS a
+   source lever (2026-09-10, see "COMPILER-DIFF #8 closed" at the end of this file): a `register T x
+   asm("<incoming reg>")` read in a DIFFERENT machine mode (f64 for an f32 parameter, s16 for an int one)
+   inside a codeless `asm("" : "=m"(field) : "f"/"r"(x))` in block 0 keeps the incoming register live past
+   the copy, because regmove's optimize_reg_copy_1 only moves the death when the modes match. All six are
+   closed (emshield, r223 Matching; emwep setThrow 0 words; pl_wep/em_sub prologues fixed, other residues left).
 2. Narrow-argument extension: the original sign/zero-extends narrow values at some call sites and
    entries (`extsh`, `clrlwi 24/16`) where ours treats them as promoted. Workaround: asm-labelled
    alias with the signed/narrow type (id_sys.h `setTimeS`).
@@ -11575,3 +11579,138 @@ stmt.c/jump.c and confirmed with cc1plus probes:
     fmuls operand; the single-expression `(1.0f / len) * (...)` puts 1.0 first in the pool).
 - Every pl0f fix this pass is zero-code except the Swim `#13` constant; no pins were needed (the "callee-saved assignment of
   the camera Vec address pseudos" was the pp/pa variables, and BoatControl's callee-saved order followed from the `i`/`n` reuse).
+
+### Tool RELs, bytes-first pass 8 (t_sce/t_sce_item Matching 43/43; t_camera_data 14->15/17; t_scroll 39->40/42; t_esp_area 571->432 + t_lightarea 507->389 words via dbg_tool.h; 2026-09-10)
+
+- Harness /home/adityas/.cache/tools_p8 (tools_p7 copies with the paths rewritten; new: `vsbs.sh MOD/UNIT FUNC VARIANT|CUR
+  [ctx]` = side-by-side diff of the target function against a tryv/tryvh variant object (or the current build) with a
+  `DIFFLINES:` count -- the word count of a function whose SIZE differs is dominated by displacement, the line count is not;
+  `sbs2.py` now masks `.rodata+0x..`/`_vt.`/`.text+0x..` too; `mdump.sh` takes `INC="-I<variant dir>"` for header variants;
+  `galloc.py` copied from rooms_b5). /tmp was 42% full; everything went under ~/.cache/tools_p8.
+- **basic_menu (t_sce_item, 2 -> 0, unit flipped): the do-while barrier of the t_sce_at copy is a dead test here.** The J1
+  block's `stb; stb; lis pW; cmpwi r3,1; lwz` order = the two menu stores in one sched region and the pW `lis` + compare in
+  the next: `if (menu == 0) n = 0;` between `menu[2].enable = on` and `x = pW->x + 0x80` (n is re-set before every read, menu
+  is a live param -> no new pseudo/high) splits sched1's block; unlike the LOOP_END note it leaves the lis->lwz true dependence
+  alone, so the compare stays between them (the do-while gave `lis; lwz; cmpwi`, 3 words). `if (sel == 0)` folds into the
+  switch compare tree (12 words); `sel == 9` and `menu == 0` are equivalent. Tagged `#13 (region split, dead test)`.
+- **cDbgOkCancelWindow::Init x3 (dbg_tool.h; ToolEspArea 571 -> 432, ToolLightAreaMain 507 -> 389, t_event SubToolMessInit
+  313 -> 204; all three Init blocks byte-identical now)**: (1) `do {} while (0)` after `num = 0` = the region split whose
+  second region is [pointer zeros + AddButton arg moves + bl]; (2) in the first two inlined copies the pointer zero is a fresh
+  `li r0,0` issued after the six constant stores with the arg `li`s between pCur and pBottom/pTop: `cDbgButton* z;
+  asm("li %0,0" : "=r"(z) : "m"(w)); pBottom = pTop = pCur = z;` -- the `"m"(w)` input orders the asm after the `stw w`
+  without a register copy (`"r"(w)` copies the strlen result `mr r0,r3`, `"r"(name)`/`"r"(this)` tie the output to a dying
+  callee-saved input and hoist it, an input-less asm is PRE'd to the function top); (3) the THIRD copy stores the pointers from
+  the shared zero r31 (pBottom, the dying store, before the arg moves, pCur/pTop after): a second inline `InitLast` = plain
+  `pBottom = pTop = pCur = 0` + the barrier, called for exitOk. With the third copy on the shared zero the zero pseudo has 13
+  refs and outranks `one` (10) in global alloc -> `li r28,1; bl new; li r31,0` as the target (before that both had 10/218 and
+  the tie went to the lower regno = `one`). Mechanism reading: #13(b) -- the original's chain zero is a REG_EQUIV constant
+  reload re-creates per block (r0 + inheritance) except where the shared pseudo dies.
+- **cDbgEditWindow<T> ctor (same header)**: `rows = nRows; pWork = work; numWork = n;` (the dying stores come out rows, pWork,
+  numWork; the hoisted constant before strlen is the lower-LUID one -- NB the inline's PARAMETER pseudos (`n`, `nRows`) are set
+  in parameter order before the body, so the statement order alone does not decide which `li` is hoisted); a `do {} while (0)`
+  between `pCur = 0` and `pTop = 0` (the last six zero stores are their own region, pSetWorkNo -- the dying one -- first) and
+  `const char* label = "00"; cb = NoButtonUpdate_callback;` locals BEFORE the loop for the target's `mr r6,r27; mr r10,r28`
+  (literal arguments keep the `addi` in the body; block-locals inside the loop are folded back by cse1). Left in this
+  function: the target's `cmpwi r31,0` + `mfcr r29` before the button loop / `mtcrf` after = the `pEdit == 0` compare PRE'd
+  into the pre-loop block; ours keeps it after the loop because the pre-loop block SETS r31 (`mr r31,r3`), so ANTIN is 0 there
+  and the block LCM's earliest block is the loop body -- the original had a block boundary between the `new` result copy and
+  the ctor stores (a `new` null check `p ? ctor : 0`, cp/init.c `check_new = flag_check_new || nothrow` -- `operator new`
+  declared `throw()` -- would give exactly that and be folded later?). Not tried this pass. Also left: the entry zero r14/r15,
+  the tool pointer r23/r22 vs string high r22/r23, and the main-loop residues (diff lines 414 -> 286 in t_esp_area).
+- **tcSetBesideCamera (t_camera_data, 9 -> 0)**: `if (c == 0) o = 0;` at the end of the second inner loop body (c = the TcCdat
+  pointer r31, o the body-local pointer): `o` then beats the `&c->pos[n]` giv in global alloc (r8/r7) WITHOUT displacing the
+  `i + 1` PRE copy from r5 -- the earlier `c->flags == 7` / `i == 5` tests added a pseudo or a ref to a live pseudo. Rule: pick
+  the dead test's operand among registers that are live across the whole loop anyway (the object pointer), never a loaded field
+  or the loop counter. Tagged `#13 (global-alloc order, dead test)`.
+- **edit_select_sub (t_scroll, 5 -> 0)**: the last two `pWork->joy[0].rep` tests keep ONE high(scrollWorkPtr) register (r10)
+  across the join; ours re-materialises `lis` after the label (cse2, REG_EQUAL (high) cost 0). Applied the DOL-sweep-10 asm-high
+  recipe: `asm volatile("lis %0,scrollWorkPtr@ha" : "=r"(hi))` + `asm("lwz %0,scrollWorkPtr@l(%1)" : "=r"(w) : "r"(hi))` for
+  each of the two loads (`// COMPILER-DIFF: 3`). The lis asm must be VOLATILE or have a register input that exists at that
+  point: input-less non-volatile (`"i"(4)`, none, after a do-while) is a gcse expression and gets PRE'd to the top (46 words);
+  a `"m"(pWork)` input materialises its own `lis r9` (4 words); `"r"(pWork->subCursor)` reloads (5).
+- Negative results (one to six tries each, do not retry the same forms):
+  - t_atari plmove10 (19): asm copy loads/stores (`lwz %0,4(%2)` pairs, `"m"` operands, one 6-insn asm, `"f"` inputs to delay
+    the loads behind the RMW terms, volatile loads) 44-82 -- asm insns have no function unit and float to the block top or
+    barrier everything; SN's `__attribute__((noalias))` on the `Vec old` local does NOT reach its MEMs (alias set stays 0 in
+    the -dR dump; `c_get_alias_set`'s DECL_NOALIAS branch is hit only for a DECL node and the block move's MEMs are built
+    from the ADDRESSOF/frame rtx). The sched2 alias story (find_base_term returns 0 for `(plus r31 N)`, `base_alias_check`
+    returns 1 on a zero base, so every copy store conflicts with every RMW ref) is confirmed from the source; nothing
+    source-side changes it.
+  - tcSetBesideOffset (27): loop-1 givs `n*0xc+0x18c` (9 refs/84 insns) vs `n*4` (9/82) -- the shorter one is allocated
+    first and takes r3, the target gives r3 to the 0xc giv; dead tests in the ctr loop body (`&c->pos[n]`, `&c->at[n]`,
+    `c == 0`, `&c->roll[n]`: 55-76 -- they break the bdnz shape), in the outer body (`j = 0` targets: 31-60), roll/fovy
+    before pos/at (47). tcDataExport (142): whole-function allocation from `buf` (r29 vs r31), not iterated.
+  - t_scroll edit_litmask (2): `asm("li %0,1" : "=r"(one) : "r"(x54))` gives the target's `lbz; lwz; li; slw` order but the
+    asm input keeps the loaded word in a user pseudo and rotates r9/r11/r0 (5 words); `"m"` inputs do not delay the li (2);
+    `(1 << id) ^ x54` 3.
+  - db_light editColor (120): `tmp = black; DrawTile(&tmp);` BEFORE the `c.r/c.g/c.b` stores gives the target's frame
+    (tmp 0x8, c 0xC: purge_addressof puts a variable into the stack at its first unresolvable ADDRESSOF -- `c.g = 0` at offset 1
+    is one, `tmp = black` (whole SImode store) is not, so c is forced first unless a `&tmp` precedes it) but the c stores can
+    no longer move above the first call (153). The target's `addi r7,r1,8` per DrawTile (no `&tmp` pseudo) next to a hoisted
+    `&c` pseudo (r28) is not explained; `mr r7,P` in ours = one purged `(plus fp N)` pseudo shared by cse.
+  - t_snd_vol editScreenDisp (83): `s16 b = base` / `int b` / `base -= 4` / `(base + 4) + rows*0x14` around the two post-loop
+    `pt` writes: 82-83 (the target computes `base - 4` and `base + rows*0x14 + 4` from a `mr r10,r23` copy after the loops;
+    ours PREs `base - 4` above them).
+  - t_id idEditRot (18): `ofs = j * 4` at the loop top (tbl set inside or outside the loop) 35, `asm("li %0,0" : "=r"(ofs) :
+    "r"(tbl))` before the loop 31, a dead test at the body end 137. The target's `li rOfs,0` after the loop.c giv inits means
+    the original's `ofs` init was emitted by loop.c (a giv), but every giv form folds tbl into the address (`lwz 0(rG)`).
+  - t_sce_item still defines the globals `set_filename` / `angle_arrow_disp` that t_block / t_sce_at also define (ngcld keeps
+    one symbol-table entry, the REL bytes are unaffected, 111 OK) -- make them static before another t_sce unit flips.
+
+### COMPILER-DIFF #8 closed: a different-mode read of the incoming hard register removes the parameter copy's REG_DEAD (emshield + st2_3/r223 Matching; emwep setThrow 2 -> 0; pl_wep PlWepAutoTrack 50 -> 48; em_sub EmYarareContactCk 109 -> 103; 2026-09-10)
+
+- Harness /home/adityas/.cache/cd8/ (`cc.sh SRC OUTDIR [cc1plus flags]` = SN cpp.exe + native cc1plus with the unit's
+  flags, dumps kept in OUTDIR; `try.sh SRC.cpp UNIT SYM OUTDIR` = compile a source copy, NgcAs it, word-masked compare of
+  SYM (or `ALL`) against `build/G4BE08/asm/UNIT.s` via `cmp.py`; the `src/es_*.cpp` etc. copies are the variants below).
+- **Mechanism (regmove.c optimize_reg_copy_1, stock).** A parameter copy `(set (reg/v:SF 83) (reg:SF 33 f1))` comes out
+  of assign_parms WITHOUT a death note; flow puts `REG_DEAD f1` on the last user of f1 in the block. If that user is a
+  later insn P of block 0, regmove (`-fexpensive-optimizations`, pass 0) runs optimize_reg_copy_1 on the copy: it scans
+  forward to P, substitutes the pseudo for f1 in every insn up to P (`validate_replace_rtx`), and MOVES the death note
+  to the copy. That is why every same-mode keep-alive fails: `asm("" : "=m"(x) : "f"(hf))` with `register f32 hf
+  asm("fr1")` shows `(reg/v:SF 83)` as the asm input in the `-dN` dump (the `-dc` combine dump still has f1 and the death
+  on the asm), the death sits on the copy again and the asm has become a dependent of the copy (priority +1, worse).
+  cse is NOT the culprit: `canon_reg` never replaces a hard register. The scan has three exits that leave f1 live:
+  (1) a `(use (reg f1))` insn ("Don't change a USE of a register") -- only expand_value_return emits one, for the
+  return register; (2) a basic-block boundary (jump/label/loop note) -- a use in another block works but keeps f1 live
+  through every call-free path there (setFall: f1 live around the loop, the third `fmuls f1` of the fRand arm moved to
+  f0 and cross-jumped, 85 words); (3) **the death test `find_regno_note (p, REG_DEAD, sregno) && GET_MODE (note) ==
+  GET_MODE (src)`: a death in another mode is not accepted, the `else if (sregno < FIRST_PSEUDO_REGISTER &&
+  dead_or_set_p (p, src)) break;` clause stops the scan, and the copy keeps f1 alive** -- INSN_REG_WEIGHT of the copy
+  becomes +1 (one SET, no death) and it sorts with the `li`/`lis`/`addi` group instead of the dying copies.
+- **Recipe (tag every line `// COMPILER-DIFF: #8`).** In the function body, block 0 (before the first branch/call):
+  ```
+  register f64 hd asm("fr1");              // f32 parameter in f1: read it in DFmode
+  asm("" : "=m"(hp) : "f"(hd));            // codeless; hp = a `this`/first-parameter field block 0 neither loads nor stores
+  register s16 hm asm("r5");               // int parameter in r5: read it in HImode (one register; DF in a GPR covers two)
+  asm("" : "=m"(obj->be_flag) : "r"(hm));
+  ```
+  Evidence: `-dN` insn 7 `(set (reg/v:SF 83) (reg:SF 33 f1)) ... (nil)` (no note; the asm carries `REG_DEAD (reg/v:DF 33
+  f1)`), `-dS -fsched-verbose-9` setFall block 0 t=4 ready `513 495 33 7 9 26 507` -> picks 507, 9 (`mr r31,r4`), t=5 26
+  (`stw`), 7 (`fmr f29,f1`) = the target's `mr r31,r4; stw r0,0x1d8(r29); fmr f29,f1`. Output-operand rules, all
+  measured on setFall: (a) the "=m" location must NOT be stored later in the same block by an identical MEM -- flow's
+  `mem_set_list` deletes the asm as a dead store (asm before `pMotion = 0` with `"=m"(pMotion)`: asm gone, 2 words
+  back); (b) it must not be the location of a block-0 store either (`"=m"(pMotion)` after `pMotion = 0`: output
+  dependence, the `stw` gains a dependent and sched2 issues it three slots early, 3 words); (c) not a field through a
+  derived pointer (`"=m"(w->gravity)`, w = this+0x3e0: the asm's address depends on the `addi`, whose priority rises,
+  4 words) and not a frame slot (`"=m"(v.x)`: no dependence in sched1, but after reload `(mem (r1+56))` vs
+  `(mem (r29+472))` is an output dependence -- sched2's alias.c has no base for r1 -- 3 words); (d) a field of the
+  same base register as the block's stores with a different offset (`hp`, `xFC`) gives NO dependence in either pass
+  (`memrefs_conflict_p` separates them by offset), the asm is ready at t=2 with priority 1 and weight 0 (one SET, the
+  DF death) and is issued last in every dump; one output suffices (three "=m" outputs, weight +2, identical bytes).
+  (e) Inside the block the asm may sit anywhere; put it right after the parameter-copy-independent first statement.
+- **Where the death alone is not enough: r223 reva_common_move** (`mr r31,r3; fmr f28,f1; fmr f29,f2; mr r29,r5; lfs
+  f30`). With only `mode`'s copy at +1 the ranking gives `fmr; fmr; lfs f30; mr r29,r5` (the `lfs` of `spd = 0.0f` is
+  weight 0 because its `high` pseudo dies there; the target's `lfs` ranked as +1 = the #13 family, its high pseudo
+  lived on to the loop preheader where reload rematerialised `lis r9`). The r226 reorder alias reproduces it with
+  every copy at weight 0: `extern "C" void reva_common_move__FP4cObjiiff(cObj*, int axis, f32 lo, f32 hi, int mode)`
+  + `#define reva_common_move(obj, axis, mode, lo, hi) ...(obj, axis, lo, hi, mode)` (same argument registers; the
+  callers' arg-move order is unchanged in bytes). So: try the reorder alias first when the target order is simply
+  "FP copies before a trailing int copy" among weight-0 copies (r223, r226); use the different-mode read when an FP
+  copy must sink below GPR copies/stores that follow it in LUID order (setFall, setThrow) or an int copy must sink
+  below an FP copy that follows it (PlWepAutoTrack `mode` r4, EmYarareContactCk `out` r5).
+- Results (words before -> after): emshield setFall 2 -> 0 (unit 14/14, flipped), emwep setThrow 2 -> 0 (unit still
+  41/62), st2_3 r223 reva_common_move 4 -> 0 (unit 29/29, module flag set, st2_3.rel OK), pl_wep PlWepAutoTrack 50 ->
+  48 (prologue fixed; the 48 left are the m3r tail: ours keeps a second `lis r8,m3r@ha` for the `stfs f1` where the
+  target stores through the first high `stfs f1,m3r@l(r11)` -- #3/#12 high family), em_sub EmYarareContactCk 109 ->
+  103 (prologue fixed; frame 0xd0 vs 0xc0 with one more GPR saved, allocation residue). The top-of-file #1 note and
+  the "#1 / #8 research" section's "no source lever" sentence are superseded by this section.

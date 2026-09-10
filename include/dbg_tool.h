@@ -224,9 +224,15 @@ inline cDbgFileSelectWindow::~cDbgFileSelectWindow() {}
 class cDbgOkCancelWindow : public cDbgWindow {
 public:
     void Init(int wx, int wy, const char* name);
+    void InitLast(int wx, int wy, const char* name);
     virtual int LocalUpdate();
 };
 
+// The three inlined copies (CreateFileWindows) share the `1`/`0` pseudos (r28/r31). In the first
+// two copies the original stores pBottom/pTop/pCur from a fresh `li r0,0` issued after the six
+// constant stores, with the AddButton argument moves between pCur and pBottom (the #13
+// constant-store shape); the last copy stores them from the shared zero (pBottom, the dying store,
+// first). Region split + asm-emitted zero reproduce the first form, InitLast the last one.
 inline void cDbgOkCancelWindow::Init(int wx, int wy, const char* name)
 {
     x = wx;
@@ -239,6 +245,29 @@ inline void cDbgOkCancelWindow::Init(int wx, int wy, const char* name)
     x1C = 0;
     x20 = 0;
     num = 0;
+    do { } while (0); // COMPILER-DIFF: #13 (sched region split)
+    {
+        cDbgButton* z;
+        asm("li %0,0" : "=r"(z) : "m"(w)); // COMPILER-DIFF: #13 (asm-emitted zero, reload-placed li)
+        pBottom = pTop = pCur = z;
+    }
+    AddButton(1, 2, " [OK] ", 0, 0, 0, 0);
+    AddButton(9, 2, "[CANCEL]", 1, 0, 0, 0);
+}
+
+inline void cDbgOkCancelWindow::InitLast(int wx, int wy, const char* name)
+{
+    x = wx;
+    y = wy;
+    w = strlen(name);
+    h = 1;
+    cxMax = 1;
+    cyMax = 1;
+    pName = name;
+    x1C = 0;
+    x20 = 0;
+    num = 0;
+    do { } while (0); // COMPILER-DIFF: #13 (sched region split)
     pBottom = pTop = pCur = 0;
     AddButton(1, 2, " [OK] ", 0, 0, 0, 0);
     AddButton(9, 2, "[CANCEL]", 1, 0, 0, 0);
@@ -351,9 +380,11 @@ public:
         pName = name;
         x1C = 0;
         x20 = 0;
+        // rows before pWork/numWork: the dying stores come out rows, pWork, numWork and the
+        // rows constant (lower LUID) is the one hoisted above the strlen call
+        rows = nRows;
         pWork = work;
         numWork = n;
-        rows = nRows;
         top = 0;
         execMode = 0;
         copyCursor = 0;
@@ -361,14 +392,22 @@ public:
         bufValid = 0;
         num = 0;
         pCur = 0;
+        // the last six zero stores form their own sched region (pSetWorkNo, the dying one, first)
+        do { } while (0); // COMPILER-DIFF: #13 (sched region split)
         pTop = 0;
         pBottom = 0;
         pIsWorkAlive = 0;
         pSetWorkAlive = 0;
         pGetWorkNo = 0;
         pSetWorkNo = 0;
-        for (i = 0; i < rows; i++) {
-            AddButton(0, i, "00", 0, i, 0, NoButtonUpdate_callback);
+        {
+            // pointer locals: the full addresses live in callee-saved registers (`mr r6/r10`
+            // inside the loop); literal arguments keep the `addi` in the loop body
+            const char* label = "00";
+            void (*cb)(int, T*, cDbgButtonTemplate<T>*) = NoButtonUpdate_callback;
+            for (i = 0; i < rows; i++) {
+                AddButton(0, i, label, 0, i, 0, cb);
+            }
         }
     }
     virtual ~cDbgEditWindow()
@@ -882,7 +921,7 @@ public:
             return;
         }
         exitOk = new cDbgOkCancelWindow;
-        exitOk->Init(wx, wy, "    EXIT OK? ");
+        exitOk->InitLast(wx, wy, "    EXIT OK? "); // COMPILER-DIFF: #13 (the last copy's shape)
         pExitOk = exitOk;
         if (exitOk == 0) {
             pLog->err(0, 0, "CreateMenuWindow(): new failed.");

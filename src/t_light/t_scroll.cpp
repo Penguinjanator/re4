@@ -511,11 +511,21 @@ static void edit_select_sub()
     if (pWork->joy[0].rep & 4) {
         pWork->subCursor = (pWork->subCursor + 4 + 1) % 4;
     }
-    if (pWork->joy[0].rep & 0x900) {
-        pWork->sub -= 0x14;
-    }
-    if (pWork->joy[0].rep & 0x200) {
-        pWork->editMode -= 0xF;
+    // the original keeps ONE high(scrollWorkPtr) register (r10) for the last two work loads; our
+    // cse2 re-materialises the PRE'd copy after the join (REG_EQUAL (high) cost 0): opaque asm
+    // high + lo-loads (the volatile keeps gcse from hoisting the input-less asm to the top)
+    {
+        u32 hi;
+        ScrollWork* w;
+        asm volatile("lis %0,scrollWorkPtr@ha" : "=r"(hi));           // COMPILER-DIFF: 3 (cse2 high re-materialisation)
+        asm("lwz %0,scrollWorkPtr@l(%1)" : "=r"(w) : "r"(hi));      // COMPILER-DIFF: 3
+        if (w->joy[0].rep & 0x900) {
+            w->sub -= 0x14;
+        }
+        asm("lwz %0,scrollWorkPtr@l(%1)" : "=r"(w) : "r"(hi));      // COMPILER-DIFF: 3
+        if (w->joy[0].rep & 0x200) {
+            w->editMode -= 0xF;
+        }
     }
 }
 

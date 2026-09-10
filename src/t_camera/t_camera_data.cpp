@@ -474,6 +474,9 @@ void tcSetBesideCamera()
                     if (i <= 1) continue;
                 }
                 o->campos2 = c->pos[n];
+                // dead test (o is re-set at the body top): the extra ref/live range lets `o` beat
+                // the `&c->pos[n]` giv in global alloc (r8/r7 as the original); deleted at flow2
+                if (c == 0) o = 0; // COMPILER-DIFF: #13 (global-alloc order, dead test)
             }
         }
     } else {
