@@ -451,8 +451,19 @@ extern "C" void SeqSet(EspSeqData* head, int mode)
     } else {
         f = (u16) (8 << (mode - 1));
     }
-    if (evtToolOn()) {
-        f |= 0x1000;
+    {
+        // COMPILER-DIFF: #13 (asm-emitted constant): the evtToolOn() `on = 1` is issued after the flags load
+        // in the target (its `li` was a reload-materialised constant); an asm `li` reading the loaded word
+        // gives the same slot and lets `on` reuse the high's r9.
+        int on;
+        u32 fl = EvtDebug.flags;
+        asm("li %0,1" : "=r"(on) : "r"(fl));
+        if ((fl & 0x40000000) == 0) {
+            on = 0;
+        }
+        if (on) {
+            f |= 0x1000;
+        }
     }
     EstSet(m, -1, 0, 0, head, f | 1, 0, (u32) m, 0xCF, (void*) zero);
 }
@@ -1345,11 +1356,22 @@ extern "C" void DB_VecMulEmPartsMat(u32 parts, Vec* in, Vec* out, Mtx* m, EspGen
     Vec v;
 
     if (DB_isGetComeEventTool() == 1) {
-        cModel** tbl = EspEvModList;
+        // COMPILER-DIFF: #13 (the original never allocates the REG_EQUIV `high` pseudo, so `tbl` carries no
+        // r9 copy preference and `p` takes r9 in global-alloc pass 0; the `p = 0` is the jump.c
+        // "if (c) { x = a; goto l; } x = b" hoist of a single-insn then-arm, issued after the compare because
+        // it depends on `tbl`). asm lis/addi = the address without the preference, asm li = the hoisted set
+        // (its four dummy `no` inputs give `no` the refs to be allocated before `p`: 7 refs / 7 insns
+        // = 2.0 ties p's 4 / 4 and the lower regno wins), asm volatile load = the single-insn else arm.
         u32 no = gen->x6;
-        cModel* p = 0;
-        if (no <= 0x7F) {
-            p = tbl[no];
+        cModel** hi;
+        cModel** tbl;
+        cModel* p;
+        asm("lis %0,EspEvModList@ha" : "=b"(hi));
+        asm("addi %0,%1,EspEvModList@l" : "=r"(tbl) : "b"(hi));
+        if (no > 0x7F) {
+            asm("li %0,0" : "=r"(p) : "r"(tbl), "r"(no), "r"(no), "r"(no), "r"(no));
+        } else {
+            asm volatile("slwi %0,%1,2\n\tlwzx %0,%2,%0" : "=&r"(p) : "r"(no), "b"(tbl));
         }
         em = p;
         if (em == 0) {
@@ -1879,7 +1901,8 @@ extern "C" void sp_PosRand_trans(EspSeqData* head, EspGenWork* gen)
     Draw_line3d(&v[3], &v[7], 0xFFF0FF00, 0);
 }
 
-extern "C" void sp_tex_trans(u8 no)
+// the definition takes `int` (t_esp.cpp declares it `u8`): the entry `clrlwi r28,r3,24` is the (u8) cast
+extern "C" void sp_tex_trans(int no)
 {
     void* tpl;
     u32 owner;
@@ -1892,10 +1915,7 @@ extern "C" void sp_tex_trans(u8 no)
     f32 b;
     u32 n;
 
-    // COMPILER-DIFF: #2 (the original zero-extends the u8 argument once at entry)
-    int tno = no;
-    asm("" : "+r"(tno));
-    n = (u8) tno;
+    n = (u8) no;
     p0.z = 1.0f;
     p1.z = 1.0f;
     r = 0.2f;
@@ -2065,14 +2085,16 @@ extern "C" int DB_ConfigLoad(const char* file)
         p = space_skip(p);
         if (*p++ == '[') {
             if (symbol_check(&p, "MODEL_NAME")) {
-                int k;
-                if (num != 0) {
+                // `if (num++ != 0)` puts the increment between the compare and the branch; the name index
+                // is the function's `i` (reused by the load loop below: one pseudo, r30 in both) and `*p` is
+                // read before the byte store so `p++` re-reads p after it (the store may alias the slot)
+                if (num++ != 0) {
                     cur++;
                 }
-                num++;
-                k = 0;
+                i = 0;
                 while (*p != '\r') {
-                    cur->name[k++] = *p++;
+                    cur->name[i++] = *p;
+                    p++;
                 }
             } else if (symbol_check(&p, "MOTION_NO")) {
                 cur->motNo = num_get(&p);

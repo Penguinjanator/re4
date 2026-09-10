@@ -594,7 +594,10 @@ DB_WINDOW::DB_WINDOW()
 
 int DB_WINDOW::CallActiveChangeCallback(DB_PRIMITIVE* p, DB_KEYBORD* k)
 {
-    int ret = 0;
+    // COMPILER-DIFF: candidate #17 (the original allocates `ret` to the return register first and copies
+    // `this` to r9; ours gives `this` r3 and `ret` r9 -- no plain form flips the order)
+    register int ret asm("r3");
+    ret = 0;
 
     if (activeChangeCb != 0) {
         activeChangeCb(this);
@@ -682,16 +685,32 @@ int DB_WINDOW_TITLE::SetString(const char* s)
     return ret;
 }
 
+// the .y reads of base/size go through a DB_POINT* accessor: gcse PREs `&base`/`&size` into
+// callee-saved registers (`lfs 4(r30)`) while the .x reads stay `this`-relative
+static inline f32 DB_PointY(DB_POINT* p)
+{
+    return p->y;
+}
+
+static inline f32 DB_AddY(f32 a, DB_POINT* p)
+{
+    return a + p->y;
+}
+
 void DB_WINDOW_TITLE::Draw()
 {
     f32 r, g, b;
 
-    r = g = b = 0.7f;
+    g = 0.7f;
+    r = g;
+    b = g;
     if (mouseOn) {
-        r = g = b = 0.8f;
+        b = 0.8f;
+        g = b;
+        r = b;
     }
-    DB_DrawBox(drawPos.x + base.x + 1.0f, drawPos.y + base.y, size.x - 2.0f, size.y - 1.0f, r, g, b, 0.2f);
-    DB_DrawString(drawPos.x + base.x + 2.0f, drawPos.y + base.y, str, cr, cg, cb, ca);
+    DB_DrawBox(drawPos.x + base.x + 1.0f, DB_AddY(drawPos.y, &base), size.x - 2.0f, size.y - 1.0f, r, g, b, 0.2f);
+    DB_DrawString(drawPos.x + base.x + 2.0f, drawPos.y + DB_PointY(&base), str, cr, cg, cb, ca);
 }
 
 void DB_WINDOW_TITLE::OnMouseDrag(DB_POINT* p, int btn)
@@ -793,12 +812,12 @@ int DB_STRING::SetString(const char* s)
 
 void DB_STRING::Draw()
 {
-    DB_DrawString(drawPos.x + base.x, drawPos.y + base.y, str, cr, cg, cb, ca);
+    DB_DrawString(drawPos.x + base.x, DB_AddY(drawPos.y, &base), str, cr, cg, cb, ca);
     if (select) {
-        DB_DrawBox(drawPos.x + base.x - 1.0f, drawPos.y + base.y + 1.0f, size.x + 5.0f, size.y + 1.0f, 0.0f, 0.0f, 0.0f, 1.0f);
-        DB_DrawBox(drawPos.x + base.x - 2.0f, drawPos.y + base.y - 0.0f, size.x + 4.0f, size.y + 0.0f, 1.0f, 1.0f, 1.0f, 1.0f);
+        DB_DrawBox(drawPos.x + base.x - 1.0f, drawPos.y + DB_PointY(&base) + 1.0f, size.x + 5.0f, DB_PointY(&size) + 1.0f, 0.0f, 0.0f, 0.0f, 1.0f);
+        DB_DrawBox(drawPos.x + base.x - 2.0f, drawPos.y + DB_PointY(&base) - 0.0f, size.x + 4.0f, DB_PointY(&size) + 0.0f, 1.0f, 1.0f, 1.0f, 1.0f);
     } else if (mouseOn) {
-        DB_DrawBox(drawPos.x + base.x - 2.0f, drawPos.y + base.y - 0.0f, size.x + 4.0f, size.y + 0.0f, 1.0f, 1.0f, 0.0f, 1.0f);
+        DB_DrawBox(drawPos.x + base.x - 2.0f, drawPos.y + DB_PointY(&base) - 0.0f, size.x + 4.0f, DB_PointY(&size) + 0.0f, 1.0f, 1.0f, 0.0f, 1.0f);
     }
 }
 

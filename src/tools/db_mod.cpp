@@ -357,7 +357,7 @@ void init_dbEm(DB_EM* em, int start, int end)
 {
     int n, i;
 
-    for (n = start; n <= end; n++, em++) {
+    for (n = start; n <= end; em++, n++) {
         em->alive = 0;
         EmMgr.destroyAll();
         em->pEm = 0;
@@ -377,19 +377,19 @@ void init_dbEm(DB_EM* em, int start, int end)
             }
             em->motData[i] = 0;
             memclr_asm(&em->mot[i], sizeof(DbMotWork));
-            em->motStat[i] = 0;
-            em->motFlag[i] = 0;
+            em->motStat[i] = em->motFlag[i] = 0; // chain: motStat's address first, motFlag's store first
         }
         em->xE28 = 0;
         em->xE29 = 0;
         em->mot[0].flags = 0x15;
         em->mot[0].cam = (AttachCamera*) mem_alloc(sizeof(AttachCamera), __FILE__, 0xEB, 1, 13);
-        dbModelSetCamera(n, &pG->Cam);
+        dbModelSetCamera(n, &pGS->Cam);
         em->mot[0].speedRate = 1.0f;
         em->no = n;
-        em->name[0] = 0;
+        // parent (the SI zero) before the name byte: the QI store then takes the wider zero's lowpart
         em->parent = 0;
         em->parentParts = 0;
+        em->name[0] = 0;
     }
 }
 

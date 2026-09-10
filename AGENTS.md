@@ -12885,3 +12885,84 @@ paths rewritten: `mcmp.py UNIT [SYM]`, `tryv.py UNIT SYM variants.py`, `vapply.p
   Vec` puts the store first but changes the copy to `addi; lwz 0/8/4(rX)`); r202 initCatapult 106 (two `high(r202_work)`
   chains, #3 family); r10f R10fInit 6, r11e 8+11, r210 dai_go 10 / funcAshley2 9 / toroko_ret 323, r10b chkEmDie 162 /
   chkWater 16 / GakeEvent 8 / S10 10, r222 BoxMove 36 / dragon_down* 51+159+156 / Init 88 not iterated this pass.
+
+### Tool RELs, t_esp pass (db_port 63->67/68, db_widget 104->107/113, db_mod 59->60/75 (Tools 47->48/63), t_esp 188->193/212; db_light 132/136 untouched; nothing flipped; 2026-09-10)
+
+- Harness ~/.cache/tesp (tools_p9 copies with the paths rewritten; `vsbs.sh MOD/UNIT FUNC CUR|VARIANT [ctx]`, `tryv.py`
+  with `SRC=src/tools/db_mod.cpp` for the shared unit, `fsect.py DUMP FUNC [pattern before after]`). A wibo (CPP.exe)
+  process hung for 9 minutes inside `ninja build/.../t_esp.o` while another agent's build ran; `kill` of the wibo pid let
+  ninja finish with a good object (re-verified by deleting the .o and rebuilding).
+- **Zero-code levers found (apply first, all verified byte-identical):**
+  - `sp_tex_trans(int no)` (db_port): the `extern "C"` definition takes `int` while t_esp.cpp's declaration says `u8`;
+    `n = (u8) no` is the entry `clrlwi r28,r3,24` with no launder (replaces the old #2 `asm("" : "+r")` form, 8 -> 0).
+  - DB_ConfigLoad (db_port, 161 -> 0): `if (num++ != 0) cur++;` puts the increment between `cmpwi` and `beq`; the
+    MODEL_NAME copy is `cur->name[i++] = *p; p++;` (byte read, then the byte store, then the `p++` re-reads p from its
+    slot because the store may alias it) with the index being the function's `u32 i` (reused by the later load loop:
+    one pseudo -> r30 in both loops -> the 10th callee-saved register the target saves and the odd-count fpmem slot at
+    0x420). A block-local `int k` is a fresh pseudo allocated in pass 1 (r8) and shifts the whole frame by 8.
+  - DB_WINDOW_TITLE::Draw / DB_STRING::Draw (db_widget, 27+36 -> 0): the `.y` reads of `base`/`size` go through a
+    `DB_POINT*` accessor (`static inline f32 DB_PointY(DB_POINT* p) { return p->y; }`): gcse PREs `&base`/`&size` into
+    callee-saved registers (`addi r30,r31,0x3c; lfs 4(r30)`) while the `.x` reads stay `this`-relative; the sum
+    `drawPos.y + base.y` whose fadds result must be the `base.y` register is an inline `DB_AddY(f32 a, DB_POINT* p)
+    { return a + p->y; }` (the parameter copy `a` is op0, local-alloc ties op1 = the load). The three colour variables
+    survive as three pseudos only if the two chains have DIFFERENT copy sources at the join (`g = 0.7f; r = g; b = g;`
+    / `b = 0.8f; g = b; r = b;`): with `r = g = b = K` in both arms gcse cprop merges them into one register.
+  - init_dbEm (db_mod, 19 -> 0): `em->parent = 0` BEFORE `em->name[0] = 0` (the QI store then takes the SI zero's
+    lowpart as `src_related`, cost 0 < the QI zero pseudo's 1; written first, the byte store reuses the loop-top QI zero);
+    `em->motStat[i] = em->motFlag[i] = 0` (a chain: the outer destination's address is computed first, the inner store is
+    issued first -- the two byte stores conflict in alias.c so RTL order is issue order); `&pGS->Cam` after the
+    mem_alloc store (struct view keeps `lwz pG` below `stw cam`).
+  - DeleteSeqData / InsertSeqData (t_esp, 33+45 -> 0): `TOOL_SEQ* s = &tbl[no + 1]; TOOL_SEQ* d = (TOOL_SEQ*) ((u8*) tbl
+    + no * sizeof(TOOL_SEQ)); *d = *s;` -- the source address computed FIRST is `tbl + (ofs + 0x12c)` (`addi; add`),
+    while `tbl[no] = tbl[no + 1]` derives it from the destination (`add; mr; addi`); the flag table pointer is read
+    through a struct view (`((SeqFlgPtr*) &g_pSeqFlg)->p`, `struct SeqFlgPtr { u8* p; }`) so its load stays below the
+    block copy, and the trailing `g_pSeqFlg[i] |= 1` must use the view too.
+  - PasteSelectData (31 -> 0): `TOOL_SEQ* src = &g_pCopyBuf[g_copyNum - 1];` before the loop, `src--` in the `for`
+    header (the target keeps `g_copyNum` re-read for the loop test and the pointer decremented). PartPasteSelectData
+    (31 -> 0): `e = g_pEditTbl; src = &g_pCopyBuf[0]; bit = 1 << col;` locals before the loop, `&e[i]` in the call
+    (declaration order e, src, bit: the other order swaps two callee-saved registers). CopySelectData (55 -> 0):
+    stepping `TOOL_SEQ* e; TOOL_SEQ* c;` DECLARED AT THE TOP with `u32 i` (assigned after SelectCurrentIfNone: the
+    PRE'd `i + 1`/`e + 0x12c` copies then take r7/r6 in the target's order; block-scoped pointers swap them),
+    `*c++ = *e`, the count RMW through a reference (`{ int& n = g_copyNum; n = n + 1; }`: the load stays below the
+    copy stores), the flag table through the struct view. MakeLoadSeqData (25 -> 11): `rec = head->rec` assigned
+    AFTER `InitSeqTbl()` (caller-saved r5) and `&tbl[nSeq * i]` (`mullw nSeq, i`); left: `lhzx head, i2` operand
+    order (ours `lhzx i2, head`: `((u16*) head)[i]`, byte/u32 sums and `(&head->num)[i]` all give idx first) and the
+    prologue copy order.
+- **Tagged forms applied (bytes identical):**
+  - SeqSet (db_port, `#13`): `u32 fl = EvtDebug.flags; asm("li %0,1" : "=r"(on) : "r"(fl)); if ((fl & bit) == 0) on = 0;`
+    -- the asm `li` is a consumer of the load so it is issued with `andis.` instead of at t=1 with the `lis`, and `on`
+    can reuse the high's r9. An `"m"(EvtDebug.flags)` input does not delay it (no store to depend on).
+  - DB_VecMulEmPartsMat (db_port, `#13`): the original never allocates the REG_EQUIV `high(EspEvModList)` pseudo, so
+    `tbl = lo_sum(hi)` carries no r9 copy preference (global.c `set_preference` gives the dest of `(set X (op REG ..))` the
+    REG's hard register when that REG was local-alloc'd) and `p` takes r9 in pass 0; ours excludes r9 for `p` through
+    `regs_someone_prefers` and gives it r11. Reproduced with `asm("lis %0,EspEvModList@ha" : "=b"(hi));
+    asm("addi %0,%1,EspEvModList@l" : "=r"(tbl) : "b"(hi));` (no preference), the `p = 0` as
+    `asm("li %0,0" : "=r"(p) : "r"(tbl), "r"(no) x4)` in the THEN arm of `if (no > 0x7F) .. else asm volatile("slwi
+    %0,%1,2\n\tlwzx %0,%2,%0" : "=&r"(p) : "r"(no), "b"(tbl));` -- jump.c's second transform (`if (c) { x = a; goto l; }
+    x = b` -> `x = a; if (c) goto l; x = b`) hoists the single-insn then-arm to right AFTER the compare (LUID after
+    `cmplwi`, the `bgt` inverted), the `"r"(tbl)` input makes it ready at t=3 with the compare (asm consumers wait 1
+    cycle whatever the producer's latency), and the four dummy `no` inputs give `no` 7 refs / 7 insns = 2.0 = `p`'s
+    4 / 4 so the lower regno (`no`) is allocated first and takes r0. The else arm must be volatile or jump.c's FIRST
+    transform hoists the load instead (a non-volatile asm has no side effects for `side_effects_p`).
+  - DB_WINDOW::CallActiveChangeCallback (db_widget, `candidate #17`): `register int ret asm("r3"); ret = 0;` -- the
+    original allocates `ret` to the return register first and copies `this` to r9 (`mr r9,r3`); plain if/else, ternary,
+    `ret += 1`, u8, local pointer forms all give `this` r3.
+- **Mechanisms read, not closed:**
+  - SetBase/SetSize (db_widget, 9/16): cse1 forwards the just-stored `base.y` into the DB_RECT temp (`stfs f2,4(r9)`);
+    the target keeps the load through sched1 (`stfs f2,0x40(r3)` first, then `fmr f0,f2` from reload_cse). Nothing that
+    stops cse1 keeps reload_cse's knowledge: `asm volatile("")` is an `asm_input` (does not flush cse), a `"memory"`
+    clobber or a volatile ASM_OPERANDS also makes reload1.c forget every register value ("Forget all the register
+    values at a volatile asm"), a volatile read is never simplified (`side_effects_p`), `-ffloat-store` regresses the
+    unit (70/113). Named temp, reference, `FRef`, `do {} while (0)`: 9-14.
+  - DB_WINDOW ctor (14): the DB_COLOR temp copy reads `0x8/0xc/0x10/0x14(r1)` in the target (all frame-relative) while
+    cse rewrites ours to the ctor's `this` pseudo (`0xc(r9)`: find_best_addr replaces the base REG of `(plus REG N)` by
+    an equivalent REG, and the ctor's `this` and the copy's address pseudo are both `fp+8`); a named `DB_COLOR c` is
+    the same. The vptr store before/after `lfs 0.0` is the same block's schedule.
+  - Save*FileNoUpdateCallback x5 (t_esp): unchanged (pass-5 mechanism); the target's `lha r11` reuses `step`'s register.
+  - position_usage (db_mod, 34): `asm("li %0,43" : "=r"(x))` gives the target's unfolded `li r30,0x2b; slwi` but the join
+    block's second `x * 8` stays a recomputation (`slwi r30,r28,3` after the mode diamond, x kept live in r28) where the
+    target has the PRE copy `mr r29,r30` right after the first eprintf: gcse "0 substs" -- the join's occurrence is the
+    last one on every path (the isolated-occurrence rule again; cse1 merged the "B" eprintf's `x * 8` into it); a
+    `do {} while (0)` between the two last eprintfs does not un-merge them. 34 -> 44 with the asm, left plain.
+  - EspToolInit (db_port, 1224 words, frame 0x1e0 vs 0x1c0: two spilled `&local` pseudos, `li r27,1` hoisted into a
+    callee-saved register, BitOn/BitOff order, the evtToolOn fold) not iterated; db_light's four residues not iterated.

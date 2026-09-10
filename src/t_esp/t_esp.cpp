@@ -290,6 +290,7 @@ static TOOL_SEQ* g_pCopyBuf;
 static int g_copyNum;
 static u8 g_seqFlgWk[256];
 static u8* g_pSeqFlg;
+struct SeqFlgPtr { u8* p; }; // struct view of g_pSeqFlg (a load that stays below preceding stores)
 static int g_seqFlgNum[4];
 static int g_page;
 static int g_editTop;
@@ -4873,8 +4874,16 @@ void ReCountSeqFlgNum()
 void DeleteSeqData(TOOL_SEQ* tbl, u32 no)
 {
     for (; no <= SEQ_TBL_LAST; no++) {
-        tbl[no] = tbl[no + 1];
-        g_pSeqFlg[no] = g_pSeqFlg[no + 1];
+        // source address first (`tbl + (ofs + 0x12c)`, not derived from the destination), destination as
+        // byte arithmetic (`add tbl, ofs`); the flag table pointer is read through a struct view so its
+        // load stays below the block copy
+        TOOL_SEQ* s = &tbl[no + 1];
+        TOOL_SEQ* d = (TOOL_SEQ*) ((u8*) tbl + no * sizeof(TOOL_SEQ));
+        *d = *s;
+        {
+            u8* f = ((SeqFlgPtr*) &g_pSeqFlg)->p;
+            f[no] = f[no + 1];
+        }
     }
     ClearSeqData(&tbl[SEQ_TBL_LAST]);
     ReCountSeqFlgNum();
@@ -4885,11 +4894,19 @@ void InsertSeqData(TOOL_SEQ* tbl, u32 no, TOOL_SEQ* src)
 {
     u32 i;
     for (i = SEQ_TBL_LAST; i > no; i--) {
-        tbl[i] = tbl[i - 1];
-        g_pSeqFlg[i] = g_pSeqFlg[i - 1];
+        TOOL_SEQ* s = &tbl[i - 1];
+        TOOL_SEQ* d = (TOOL_SEQ*) ((u8*) tbl + i * sizeof(TOOL_SEQ));
+        *d = *s;
+        {
+            u8* f = ((SeqFlgPtr*) &g_pSeqFlg)->p;
+            f[i] = f[i - 1];
+        }
     }
     tbl[no] = *src;
-    g_pSeqFlg[i] |= 1;
+    {
+        u8* f = ((SeqFlgPtr*) &g_pSeqFlg)->p;
+        f[i] |= 1;
+    }
     ReCountSeqFlgNum();
     g_dataChanged = 1;
 }
@@ -4994,13 +5011,21 @@ static inline void SelectCurrentIfNone()
 
 void CopySelectData(int clear)
 {
+    TOOL_SEQ* e;
+    TOOL_SEQ* c;
     u32 i;
     SelectCurrentIfNone();
     g_copyNum = 0;
-    for (i = 0; i <= SEQ_TBL_LAST; i++) {
-        if (g_pSeqFlg[i] & 1) {
-            g_pCopyBuf[g_copyNum] = g_pEditTbl[i];
-            g_copyNum++;
+    e = g_pEditTbl;
+    c = g_pCopyBuf;
+    // stepping edit/copy pointers declared at the top (their PRE'd increments then take r6/r7 in the
+    // target's order), the flag table through the struct view, the count RMW through a reference
+    // (both loads stay below the block copy)
+    for (i = 0; i <= SEQ_TBL_LAST; i++, e++) {
+        u8* f = ((SeqFlgPtr*) &g_pSeqFlg)->p;
+        if (f[i] & 1) {
+            *c++ = *e;
+            { int& n = g_copyNum; n = n + 1; }
         }
     }
     if (clear) ClearSeqFlgNum();
@@ -5031,8 +5056,11 @@ void PasteSelectData()
     u32 i;
     if (g_copyNum == 1 && !(g_pCopyBuf[0].stat & 1)) return;
     ClearSeqFlgNum();
-    for (i = 0; i < g_copyNum; i++) {
-        InsertSeqData(g_pEditTbl, g_curSeq, &g_pCopyBuf[g_copyNum - 1 - i]);
+    {
+        TOOL_SEQ* src = &g_pCopyBuf[g_copyNum - 1];
+        for (i = 0; i < g_copyNum; i++, src--) {
+            InsertSeqData(g_pEditTbl, g_curSeq, src);
+        }
     }
     ReCountSeqFlgNum();
     g_dataChanged = 1;
@@ -5060,8 +5088,13 @@ void PartPasteSelectData()
     } else if (g_pEditActive == g_pEditWin4) {
         col = sel->selX + 16;
     }
-    for (i = 0; i <= SEQ_TBL_LAST; i++) {
-        if (g_pSeqFlg[i] & 1) PartPasteSeqData(&g_pEditTbl[i], 1 << col, &g_pCopyBuf[0]);
+    {
+        TOOL_SEQ* e = g_pEditTbl;
+        TOOL_SEQ* src = &g_pCopyBuf[0];
+        u32 bit = 1 << col;
+        for (i = 0; i <= SEQ_TBL_LAST; i++) {
+            if (g_pSeqFlg[i] & 1) PartPasteSeqData(&e[i], bit, src);
+        }
     }
     ClearSeqFlgNum();
     g_dataChanged = 1;
@@ -5107,12 +5140,12 @@ int MakeSaveSeqData(EspSeqData* head, TOOL_SEQ* tbl, u32 nGroup, u32 nSeq)
 void MakeLoadSeqData(EspSeqData* head, TOOL_SEQ* tbl, u32 nGroup, u32 nSeq)
 {
     u32 i, j;
-    u16* num = (u16*) head;
-    TOOL_SEQ* rec = (TOOL_SEQ*) head->rec;
+    TOOL_SEQ* rec;
     InitSeqTbl();
+    rec = (TOOL_SEQ*) head->rec; // after the call: rec lives in a caller-saved register
     for (i = 0; i < nGroup; i++) {
-        TOOL_SEQ* t = &tbl[i * nSeq];
-        for (j = 0; j < num[i]; j++) {
+        TOOL_SEQ* t = &tbl[nSeq * i]; // nSeq first: `mullw r0, nSeq, i`
+        for (j = 0; j < ((u16*) head)[i]; j++) {
             *t++ = *rec++;
         }
     }
