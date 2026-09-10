@@ -1611,5 +1611,8 @@ MATCHING.update({
     "game/dbmodule.cpp": True,  # DrawObjWireframe: do{..}while(1) command loop (no rotation), ISet(DB_poly_num), `*pidx++ =` idx stores, `idx[2] = idx[1]; pidx = &idx[1];`, one `s16* v`, own `u32 m2` for the strip emit loop
 })
 
+# DOL sweep 13 (2026-09-10)
 MATCHING.update({
+    "game/esp0e.cpp": True,  # Esp0e_Trans: polymorphic `*p = *esp` written as memcpy through u8* locals + a volatile frame temp for the vptr (the temp reload then waits for the block-move stores); stores `id, pModel, partsNo, life`
+    "game/pad.cpp": True,  # PadRead: `register int dead asm("r16")` set by a volatile asm `li` (#17/#13): the hoist keeps r17, the li is the block's first insn
 })

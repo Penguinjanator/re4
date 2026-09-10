@@ -13277,3 +13277,85 @@ paths rewritten: `mcmp.py UNIT [SYM]`, `tryv.py UNIT SYM variants.py`, `vapply.p
   len): &a (pseudo 288, 3 sets = the PRE reaching reg) 4/74 = 0.108 > &em->pos (286) 4/106 = 0.075 > PI high (172)
   3/178 = 0.017 > pPL high (287, 3 sets) 5/1096 = 0.009; the target needs &em->pos > &a and pPL > PI. pPL's REG_LIVE_LENGTH
   (doubled: REG_EQUIV high) would need 3 more refs or PI's high a length above 330. em39JumpUpCk3 (20) not iterated.
+
+### DOL sweep 13, remaining game units closest-first (esp0e, pad Matching; esp16 Esp16_Trans 15 -> 8, esp09 Esp09_HideCheck 2 -> 0; 2026-09-10)
+
+Flipped: esp0e (8/8), pad (12/12); build 111 OK after each flip. Harness ~/.cache/dol13 (dol12 copies with the
+paths rewritten: `mcmp.py`, `tryv.py UNIT SYM v/x.py`, `vapply.py`, `sbs.sh UNIT SYM [OBJ]`, `dump.sh UNIT -dX` with
+`SRC_OVERRIDE`, `fsec.py DUMP FUNC`, `order.py UNIT`; variant files under `v/`). `sync_symbols.py` renamed the
+`cEspNN_virtual_table` placeholders of esp0e/04/09/12/16 to `_vt.6cEspNN` (the `Esp*_Create` "2 words" of esp09/esp12
+are gone; esp16/esp04 still print `.rodata+N` in mcmp because the split's `_vt.` symbol is local there -- `objdump -dr`
+shows the same reloc name on both sides, not code).
+
+- **Polymorphic `*p = *esp` copy, closed as a source form (esp0e Esp0e_Trans 30 -> 0, unit Matching; tagged
+  `COMPILER-DIFF: candidate (polymorphic copy vptr temp)`).** For a class with a vtable, `expand_assignment` saves the
+  vptr in an `assign_temp` frame slot (`mem/f`, `lwz r0,244(r31); stw r0,304(r1)`), block-moves the 248 bytes with the
+  SN 24-byte loop (ONE temp pseudo for all words, `expand_block_move` in rs6000.c) and restores it. In ours the temp
+  reload (`lwz r0,304(r1)`) floats above the tail copy stores (`fixed_scalar_and_varying_struct_p`: the temp is a
+  fixed scalar, the copy stores are `mem/s` through the stepping pointer) and its r0 then conflicts with the copy
+  temp, which falls to r10; in the original the reload waited for the copy (temp r0, the same shape esp0e's target
+  shows). Recipe: `volatile u32 vt; u8* d = (u8*) p; u8* s = (u8*) esp; vt = *(u32*)((u8*) p + 0xF4); memcpy(d, s,
+  sizeof(cEsp)); *(u32*)((u8*) p + 0xF4) = vt;`. The `u8*` LOCALS matter: `memcpy((u8*) p, ...)` keeps `mem/s`
+  because `get_memory_rtx` walks the NOP_EXPR casts down to `p` and takes the pointee type (an aggregate); a `u8*`
+  variable gives scalar MEMs (`MEM_SET_IN_STRUCT_P (mem, 0)` sets MEM_SCALAR_P), and scalar-vs-scalar with an unknown
+  register base conflicts, so the volatile temp reload depends on the copy stores. The tail store order then follows
+  the weight rule: the count register (cse's 0 after the loop) is the source of both `p->id = 0` and `p->pModel =
+  NULL`, so the SECOND of them in RTL carries the death (weight 0) and is issued first; the target's `stw pModel;
+  lwz vt; sth life; stb partsNo; stw vptr; stb id` is the source order `id, pModel, partsNo, life` (pModel dying,
+  id +1 last, partsNo before life by LUID). Alias facts read on the way: cse attaches `REG_EQUAL (plus fp N)` to
+  `p = &tmp` (FIXED_BASE_PLUS_P counts as a constant), so `reg_known_value` lets `memrefs_conflict_p` separate every
+  `p->x` store from a frame temp by offset (a launder on `p` gives the dependence but costs 50 words); SN's
+  `alias_invariant` exists only under -funroll-loops; SN's toplev.c never sets -fstrict-aliasing (all alias sets 0, so
+  types cannot separate MEMs); INDIRECT_REF MEMs carry neither flag unless the address is a PLUS, the type an
+  aggregate or an ADDR_EXPR of one.
+- **Volatile asm `li` as the first insn of a block + a value-carrying pin (pad PadRead 7 -> 0, unit Matching; tagged
+  `#17` + `#13`).** `register int dead asm("r16"); asm volatile("li %0,10" : "=r"(dead));` at the function top: the
+  pin gives `dead` the target's r16 (the loop-2 `&Pad_data` hoist then keeps r17: it is the last callee-saved
+  allocno, so it takes whatever r16..r31 register the others leave), and the volatile asm is a full barrier that every
+  later insn of the block depends on, so it is issued FIRST -- the target's `li r16,10` before `lis r30,Pad_data@ha`,
+  which no priority rule gives a plain `li` (prio 1 vs the lis's 9). A plain `dead = 10` with the pin leaves the li
+  second (2 words), an unpinned volatile asm gives 9. Rule: a callee-saved pin is safe only for a register that no
+  EARLIER allocno uses (r16 is the lowest register the function touches); pinning r23 in obj00 FallMove (used by the
+  k-loop pseudos before the pin's live range) shifts every allocno by one (110 words) -- global.c treats the hard
+  register as unavailable for the whole function.
+- **Hard-register zero kept alive into the next block by a codeless asm (esp16 Esp16_Trans 15 -> 8, replaces the
+  `asm("" : "+f"(z))` launder; tagged #13).** `register f32 z asm("fr12"); z = 0.0f; t = z;` plus `asm("" :
+  "=m"(esp->rotSpd) : "f"(z), "r"(esp->mat));` right before `PSMTXIdentity(esp->mat)` in the following block:
+  combine cannot merge the load into the copy (f12 has a later use), the copy `fmr f29,f12` survives, and t/tw/2^52
+  now allocate f29/f28/f30 like the target (the launder version gave f30/f28/f29). The keep-alive asm takes an ISSUE
+  SLOT in its block (its "=m" output makes every later call a dependent, priority 40): without the `"r"(esp->mat)`
+  input it displaced `li r17,0` from the block's first cycle (10 words); chained on the `addi r30,r29,188` it is
+  ready one cycle later and fills the slot next to `mr r3,r30`. Left (8): the target issues `lis r10; lfs f12 (0.0)`
+  BEFORE `lbz partsNo` (sched2 prio 5/4 vs the lbz chain's 6) -- an `asm volatile` load (pool constant as a named
+  `.rodata` word behind a dead `if (0) pLog->err("ESP_16 : Parent is screen.")`) gives exactly that order but kills
+  the top-of-function `lis r31,0x4330`/`lis r15` hoists (gcse treats the volatile asm as a kill), and the named 0.0
+  duplicates the pool's 0.0 (the s0/s1 arms and the zero Vec still use the pool entry: `.rodata` +4). A `"=m"(esp->
+  partsNo)` output on a non-volatile asm load does not delay the lbz enough (47). A plain pseudo zero with the
+  keep-alive takes f0 (25). esp12 Esp12_Trans has the same block but the recipe costs 106 there (its residue is
+  elsewhere: `lis 0x4330` vs the 1.0 high at the top, the game-template copy, an FPR chain).
+- **Weight tie broken by keeping an operand alive (esp09 Esp09_HideCheck 2 -> 0, zero code).** `fneg f0,f0`
+  (= -(ZFAR*ZNEAR)) vs `fmuls f7,f7,f10` (m22 * nz): equal priority; ours issued the fmuls first because BOTH its
+  operands died there (weight -1) while the fneg's weight is 0. Moving `v.z = nz;` after the `zv = ...` statement
+  keeps `nz` alive past the multiply (weight 0 = the fneg's), and the LUID tie then puts the fneg (m23's statement)
+  first; sched2 keeps sched1's order because sched2 LUIDs are sched1's issue order. `v.z = nz` after `zi` (the
+  conversion) costs 44, before `zv` 2.
+- Facts confirmed this pass: `rank_for_schedule`'s "relation to the last scheduled insn" prefers class 3 (independent,
+  or dependent with cost 1) over class 1 (true dependent) -- so a cost-1 dependent counts as independent; global.c pass
+  0 walks REG_ALLOC_ORDER (r31 down), so a used-so-far register nearer r31 (r24) is taken before r23 when both are
+  free; `regs_used_so_far` = call-used regs + `regs_ever_live` + local-alloc'd; `birthing_insn_p` needs `REG_N_SETS ==
+  1`, which flow keeps only for pseudos, so a pinned hard register never gets the adjust_priority boost; SN's
+  `expand_block_move` small copy emits all loads then all stores (MAX_MOVE_REG groups) and the >= 32-byte copy as the
+  24-byte loop with one temp pseudo.
+- Open after this pass (forms tried, do not retry): dvd DiscChange 7 -- mechanism read exactly: the target's sched1
+  put the word-4 load AFTER the word-0 store and the word-4 load is a non-/u MEM (in sched2 the hard r10 template base
+  has no base value, so the load depends on the store; `/u` loads never do), i.e. in the original S4 had NO dependence
+  on the `pSys->region` lbz (prio 3 vs S0's 7) while S8/S12 had; `static const char* game_tbl[4]
+  __attribute__((section(".rodata"))) = {...}` + `memcpy(game, game_tbl, 16)` gives non-/u loads with `.rodata`
+  equal (8 words: L4 still first, its store now second) but no form removes S4's lbz dependence. esp09 PolyTrans 64
+  (p/pn/p0 copy sources: the target keeps `add r3,r20,r11; mr r29,r3; mr r25,r3` with p canonical, ours S canonical).
+  esp04 move10 27 (the y-loop's bound/step copies: target `fmr f0,f11; fmr f11,f13; fmr f13,f12`, ours ties the bound
+  to its fsubs; `v` in the test, do-while, bound/step locals, a trailing `v = y`: 26-27). shadow make_comn_fit/parallel
+  2+2 (the 1.0 high loses r11 to the loadaddr qty; hypothesis: the original's loadaddr crossed the atan2f call and was
+  global-allocated, so local-alloc gave the high r11 -- no source form found to make the fpmem pseudo cross the call).
+  obj00 FallMove 2 (pass-0 r24 before r23; a pin shifts all allocnos). t_option, em_set, sce_at, model, db_menu and
+  the larger units were not iterated this pass.

@@ -145,13 +145,22 @@ extern "C" void Esp0e_Trans(cEsp0e* esp)
         cEsp tmp;
         cEsp* p = &tmp;
         Mtx m;
+        // COMPILER-DIFF: candidate (polymorphic copy vptr temp). The original is `*p = *esp` (the
+        // compiler saves/restores the vptr through a frame temp); its temp reload waited for the
+        // block-move stores, ours floats above them (fixed scalar vs varying struct). The manual
+        // copy through u8* pointers (scalar MEMs) + a volatile frame temp gives the dependence.
+        volatile u32 vt;                                 // COMPILER-DIFF: candidate (polymorphic copy vptr temp)
+        u8* d = (u8*) p;                                 // COMPILER-DIFF: candidate (polymorphic copy vptr temp)
+        u8* s = (u8*) esp;                               // COMPILER-DIFF: candidate (polymorphic copy vptr temp)
 
         PSMTXIdentity(m);
-        *p = *esp;
-        p->life = 1;
-        p->partsNo = 0xF8;
+        vt = *(u32*) ((u8*) p + 0xF4);                   // COMPILER-DIFF: candidate (polymorphic copy vptr temp)
+        memcpy(d, s, sizeof(cEsp));                      // COMPILER-DIFF: candidate (polymorphic copy vptr temp)
+        *(u32*) ((u8*) p + 0xF4) = vt;                   // COMPILER-DIFF: candidate (polymorphic copy vptr temp)
         p->id = 0;
         p->pModel = NULL;
+        p->partsNo = 0xF8;
+        p->life = 1;
         p->pos.x = w->scr.x + w->gen->x18 * fRandSeed1_1(&w->seed);
         p->pos.y = w->scr.y + w->gen->x1C * fRandSeed1_1(&w->seed);
         p->pos.z = 1.0f;

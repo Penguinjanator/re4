@@ -147,6 +147,7 @@ extern "C" void Esp16_Trans(cEsp16* esp)
     f32 s1;
     f32 rate;
     f32 half;
+    register f32 z asm("fr12"); // COMPILER-DIFF: #13
 
     if (esp->cnt < w->nPt) {
         n = esp->cnt + 1;
@@ -163,15 +164,13 @@ extern "C" void Esp16_Trans(cEsp16* esp)
     GXSetBlendMode(esp->xA4, esp->xA5, esp->xA6, esp->xA7);
     esp->CommonStateSet();
     // The original sets t through an intermediate the copy never absorbed (`lfs f12, 0.0; fmr
-    // f29, f12`); every pseudo form is folded into a direct load by cse/combine, so the copy is
-    // kept with a hard-register zero plus a non-volatile launder (23 -> 15 words; left: the load is
-    // issued before `lbz partsNo` in the original and t/tw take f29/f30, ours f30/f29).
-    {
-        register f32 z asm("fr12"); // COMPILER-DIFF: #13
-        z = 0.0f;
-        asm("" : "+f"(z));          // COMPILER-DIFF: #13
-        t = z;
-    }
+    // f29, f12`); every pseudo form is folded into a direct load by cse/combine. The zero is a
+    // pinned f12 kept alive into the next block by a codeless asm (before PSMTXIdentity, chained
+    // on `esp->mat` so it does not take `li r17,0`'s issue slot): combine cannot merge the load
+    // into the copy, and t/tw/2^52 then allocate f29/f28/f30 like the target (15 -> 8 words;
+    // left: the target issues `lis; lfs 0.0` before `lbz partsNo`).
+    z = 0.0f;                   // COMPILER-DIFF: #13
+    t = z;
     tw = 1.0f;
     // Dead in the original too: only its 0x43300000 constant survives, shared through the cse
     // path by both `(f32) w->nPt` conversions below (`lis r31, 0x4330` right after
@@ -183,6 +182,7 @@ extern "C" void Esp16_Trans(cEsp16* esp)
         pLog->err(0, 0, "ESP_16 : Parent is screen.");
         return;
     }
+    asm("" : "=m"(esp->rotSpd) : "f"(z), "r"(esp->mat)); // COMPILER-DIFF: #13 (keep-alive)
     PSMTXIdentity(esp->mat);
     RotMatrix(esp->mat, &esp->rot);
     PSMTXConcat(pG->Cam.viewMat, esp->mat, esp->mat);

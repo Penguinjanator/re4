@@ -1,7 +1,6 @@
-// game/pad: 11/12 functions byte-identical. PadRead (7 words open): `dead` (5 refs / 526 doubled insns,
-// priority 190) beats the loop-2 `&Pad_data` hoist (4 / 448, 178) in global-alloc (target r16/r17, ours
-// swapped; both pseudos are REG_EQUIV-doubled and no statement of their own exists to weight; two-set
-// `pd` pointer forms change the loop-1 code). The Key loop preheader order (`Key.on = 0` stores before
+// game/pad: 12/12 functions byte-identical. PadRead: `dead` (5 refs / 526 doubled insns, priority 190)
+// beats the loop-2 `&Pad_data` hoist (4 / 448, 178) in global-alloc (target r16/r17); pinned to r16 with
+// a volatile asm `li` (see PadRead). The Key loop preheader order (`Key.on = 0` stores before
 // the `li r0,64; mtctr` pair) is a reference store: the pSys load then depends on it (a struct-member
 // store never conflicts with a fixed scalar), which lifts the stores above the count reload.
 #include "types.h"
@@ -65,8 +64,13 @@ void PadRead()
     u32 bit;
     PADStatus* pad;
     JOY* joy;
-    int dead = STICK_DEAD;
+    // `dead` (5 refs / doubled length) outranks the loop-2 `&Pad_data` hoist in global alloc and
+    // takes r17 (target: r16, allocated after the hoist); pinning it keeps the hoist's r17, and the
+    // volatile asm `li` is the block's first insn (every later insn depends on it), where the
+    // target issues `li r16,10` before `lis Pad_data@ha`.
+    register int dead asm("r16");                // COMPILER-DIFF: #17
 
+    asm volatile("li %0,10" : "=r"(dead));       // COMPILER-DIFF: #13
     PADRead(Pad_data);
     PADClamp(Pad_data);
     for (i = 0; i < 4; i++) {
