@@ -70,6 +70,60 @@ cc1plus and are therefore compiler-build differences (the original is a later SN
    interblock motion; the original formed regions there (shadow `ShadowTrans` `mr r3,r31` hoist over
    a small loop). A leaf-fixed build (/tmp/sngcc-leaf) forms the regions but then moves far more than
    the original, so the original's motion policy differs too. Compiler-build difference, not source.
+   RESEARCH 2026-09-10 (/tmp/sched5: harness h.py = full 755-unit ProDG build in 10 s with any
+   cc1plus + flags, per-function masked compare vs the split objects; 18543/19929 functions identical
+   with the installed compiler). Result: the ORIGINAL's find_rgns is stock 2.95.3 — it does NOT mark
+   leaf blocks either. The two sentences above are wrong; nothing is installed.
+   - Source facts: SN's haifa-sched.c is byte-for-byte stock 2.95.3 apart from the SN header. The
+     leaf-marking (`if (current_edge == 0) dfs_nr[child] = ++count`) is mainline commit "Tue Aug 24
+     22:56:35 1999 Jeffrey A Law: (find_rgns): Mark a block found during the DFS search as reachable"
+     (gcc/ChangeLog.2), never backported to the 2.95 branch; GCC 3.0 sched-rgn.c has it with the
+     comment "temporary until haifa is converted to use rth's new cfg routines". Not a host miscompile:
+     an -O0 host build of haifa-sched.c gives identical objects (shadow, em10, cam_ctrl, Espgen42, r226).
+   - Stock rule (what ours and the original do): `build_control_flow` creates no edge to EXIT, the DFS
+     sets dfs_nr only for blocks with an out edge, so a block whose ONLY successor is EXIT (a return
+     block with at least one insn: `mr r3,x`, `li r3,0`, a call before the fall-off) is "unreachable"
+     and the WHOLE function gets single-block regions — loops included. A function with no such block
+     (void, ends in a loop/if whose exit edge comes from a block that also has a real successor, e.g.
+     em10 `setNoSuspend`, r203 `r203_GanadoWandering`, the `for(;;)` task functions) forms regions
+     normally: inner loops <= 10 blocks / 100 LUIDs, or the whole function if it is loop-free and within
+     the limits. Levers, both directions: a `return` anywhere (even inside the loop) kills every region
+     of the function (r203_GanadoWandering with `if (..) return;` instead of `on = 0`: all hoists gone,
+     body identical to the target); removing the only leaf enables them.
+   - Full-build table (regressions = functions identical with the installed compiler that stop being
+     identical; lists in /tmp/sched5/reg_<cfg>.txt):
+       leaf fix only                                   5129 regressions, 0 newly identical
+       leaf fix, loop regions only (no whole-function) 1721 / 0
+       leaf fix + -fno-sched-spec                      2869 / 3 (Espgen42 AddWaterPower 26->0,
+                                                        Espgen43 AddSandPower 5->0, r226
+                                                        R226EventRoboWalkPassageStart 9->0)
+       leaf fix + -fsched-spec-load[-dangerous]        5129 / 0 (= leaf; -fno-sched-spec-load is default)
+       leaf fix + MAX_RGN_BLOCKS 1000 / INSNS 100000   12746 / 0;  + -fno-sched-spec 9911 / 4
+       -fno-sched-interblock (installed compiler)      100 / 1 (r203_GanadoWandering 27->0)
+     So the original does interblock motion exactly where stock does (100 leaf-free functions need it,
+     530 of 755 units regress when leaf functions get regions) and never where stock does not. The
+     three -fno-sched-spec "fixes" have 0 interblock motions in the dump — region priorities changed
+     the intrablock order/regalloc; r226 is really the source form `if (i++ == 0x2C)` /
+     `if (i++ == 9)` (PassageStart and BridgeStart 0 words with the installed compiler; not applied).
+   - None of the #5-tagged test cases moves under ANY configuration (em10LostHead 59, em3a R1_Fix 7,
+     em38 plemEscape 27, em35 R1_Critical 4, shadow make_comn_fit_light 3, cam_extra CameraBinocular
+     ctor 71, texture TexRegist 91, r105 execOpenCover 25: identical numbers for base/leaf/nospec;
+     bigger regions only make them worse). They are intrablock tie-breaks / register allocation, not
+     region formation. em10LostHead's two `cmpwi cr4,a,3` copies cannot be haifa at all: haifa never
+     duplicates an insn (update_bbs only feed check_live/update_live), and with a whole-function
+     region (bigrgn) the compare still sits once at the join.
+   - The "hoist" workarounds tagged `COMPILER-DIFF: 5` are not haifa either: with the launders removed
+     and regions forced, shadow ShadowTrans stays 4 words (`mr r3,r31; lwz r0,N(r3)` — the load is
+     REBASED on the copy, which only cse can do, so the copy preceded the test in the original RTL
+     before sched1), shadowScrModelRender 6 -> 35, r20c R20cKaigaMoved 9 (one `li r8,0` pseudo shared
+     by two conditional stores = one RTL set, not a motion), db_light draw_light_graph 14 -> 76.
+     Their origin is an expansion/source-form difference (inline wrapper, a shared local), to be found
+     per site; the r203 note "adding ~24 LUIDs makes ours match" is the region-size limit, i.e. the
+     original's loop had more RTL, again pre-sched.
+   - Do not install anything from /tmp/sched5. Sharpened #5: "stock 2.95.3 haifa in both builds;
+     differences appear only through (a) the leaf rule (a return block anywhere disables all
+     interblock motion) and (b) the region limits (10 blocks / 100 LUIDs) applied to RTL whose size
+     differs from the original's" — both are source-form levers, not compiler-build differences.
 6. Cross-jump survivor choice: our jump2 always keeps the *last* identical `li r3,1; b end` copy;
    the original sometimes keeps an earlier arm's copy and cross-jumps later ones into it (pl_class
    `isKamae`), and never merges single-insn tails (item `use`). Compiler-build difference.
@@ -2453,19 +2507,19 @@ target) stays unresolved and `make_rel` then fails with "undefined symbol".
   `__9cPartsMgr`/`__12cModInfoMgr` (asm-labelled ctors) but without a virtual destructor, so the static
   destructor inlines `cManager<T>::~cManager` (stores the cManager vtable) as the target does.
 - Status: ss_cap, ss_debug, ss_file, ss_item_draw Matching (the REL is byte-identical with the four
-  compiled); ss_main has 57/58 functions byte-identical (open: SubScreenTask, only the three `lis
-  pG@ha`, see its item); ss_item is written (34 functions incl. dtors, 31 byte-identical after the
-  fifth pass, .rodata/.data/.bss identical, .text 4 bytes short), open items below; ss_term (29/29 named functions, eof block open)
-  and ss_model (46/47, wep09Init = compiler-build difference 6) are written, see their items; ss_map (src/Sscrn/
-  ss_map.cpp, 102/105 named functions byte-identical after the fourth pass (2026-09-10; open:
-  mapColor, mapPositionCheck, mapModelInit, see the pass item), .rodata/.data/.bss identical since 2026-09:
+  compiled; ss_model Matching since the sixth pass); ss_main has 57/58 functions byte-identical (open: SubScreenTask, two `lis
+  pG@ha` placements, .text size equal since the sixth pass, see its item); ss_item is written (34 functions incl. dtors, 32 byte-identical after the
+  sixth pass, .rodata/.data/.bss identical, .text size equal), open items below; ss_term (29/29 named functions, eof block open)
+  and ss_model (47/47 since the sixth pass: wep09Init is a plain `else if` chain, NOT compiler-build difference 6) are written, see their items; ss_map (src/Sscrn/
+  ss_map.cpp, 104/105 named functions byte-identical after the sixth pass (2026-09-10; open:
+  mapPositionCheck only, see the pass items), .rodata/.data/.bss identical since 2026-09:
   the former 8-byte gap was doorModelInit's missing 2^52 pool entry (`(f32) (int) e->ang` of the u8
   angle, the classic double trick, not a fast-cast psq_l) plus the two file-scope `static const`
-  tables in the wrong order (map_cam_entire is defined before mark_model_tbl); see its item) and ss_pzzl (src/Sscrn/ss_pzzl.cpp, 54/64 after the fifth pass with .text only 4 bytes short
-  (PieceCommand::move is size-identical), .rodata/.data/.bss identical) are
+  tables in the wrong order (map_cam_entire is defined before mark_model_tbl); see its item) and ss_pzzl (src/Sscrn/ss_pzzl.cpp, 56/64 after the sixth pass
+  (PieceCommand::move and PieceCombine::move byte-identical), .rodata/.data/.bss identical) are
   written; ss_shop (src/Sscrn/ss_shop.cpp, the merchant screen: 69/74 functions byte-identical after
-  the fifth pass incl. the 0x980 eof block, .rodata/.data/.bss identical, .text 8 bytes short) is
-  written, see its item and the fifth-pass list.
+  the fifth pass incl. the 0x980 eof block, .rodata/.data/.bss identical, .text 4 bytes short after the sixth pass) is
+  written, see its item and the fifth/sixth-pass lists.
 - ss_shop idioms (2026-09): include order light.h, map_obj.h, widget.h (the three header strings), then
   "ss_shop.dat" (SsShopInit::move) and the HALT string (mem_alloc lines 0x1BA/0x242). The 13 widgets are
   declared in the order SsShopInit, SsShopMain (ss_main.h), ShopTopMenu(3 links, ctor sets cursor = 1),
@@ -3142,7 +3196,10 @@ target) stays unresolved and `make_rel` then fails with "undefined symbol".
   callee-saved r28/r29, while the local holds the value for the three `m->scale` stores (a direct
   `x[0]` re-reads it after each store); the magazine flag is `cModel* one = (cModel*) 1;` declared
   before `wep->be_flag |= 2` (the constant's pseudo before the `ssWepModel2` high: `li r11,1; lis
-  r9`). Only wep09Init is left (compiler-build difference 6). Old residual text: the
+  r9`). wep09Init SOLVED in the sixth pass (Matching): the three modelInit arms are a plain `if / else
+  if / else if` chain (arms 0 and 1 both end in `b JOIN`, so jump2 cross-jumps arm 0 four insns deep
+  into arm 1; the old `if/else if` + separate `if (type == 2)` let arm 1 fall through into the test,
+  whose block-ending call got the flow.c `use` nop) - it was never compiler-build difference 6. Old residual text: the
   six character inits load the scale static's `lis` early into a callee-saved register (ours
   right before the `lfs`; chain / local / order variants tried) and wep09Init's two modelInit arms
   are cross-jumped in the original (compiler-build difference 6). Second pass (2026-09): the
