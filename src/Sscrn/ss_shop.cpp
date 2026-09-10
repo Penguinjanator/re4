@@ -311,6 +311,9 @@ struct MgrPtr {
     void* p;
 };
 #define MGR_PTR(g) (((MgrPtr*) &(g))->p)
+// Scalar-reference store: the MEM has neither the struct nor the scalar flag, so sched1 makes every
+// following load (the `sw->` call arguments AND the fixed-scalar `pG`) wait for it.
+static inline void IntSet(int& d, int v) { d = v; }
 
 // The bought item's model: MapMgr work 1 (work 0 is the merchant).
 static inline cMap* shopItemModel()
@@ -1521,8 +1524,8 @@ void BuyItemNum::move(SUB_SCREEN* wk)
     switch (state) {
     case 0:
         if (searchItemPieceData(sw->buyId, piece_info)) {
-                state = 1;
-                if ((int) pG->x4F98 >= m->sellPrice(sw->buyId, sw->count)) {
+            IntSet(state, 1);
+            if ((int) pG->x4F98 >= m->sellPrice(sw->buyId, sw->count)) {
                 switch (sw->buyId) {
                 case 0x3:
                     msg = 0xB;
@@ -1577,10 +1580,13 @@ void BuyItemNum::move(SUB_SCREEN* wk)
             break;
         }
     case 1:
+        // The cancel arm stops the stream too: its `bl shopStrStop; b END` tail is cross-jumped
+        // into the switch's shared tail and then its `li r8,0; bl SndCall` into case 1's.
         if (Key.trg & 0x40000000) {
             cMes.Delete(1);
             transit(1, wk);
             SndCall(0, 5, 0, 0, 0, 0);
+            shopStrStop(wk);
             break;
         }
         if (msg != 0x13) {

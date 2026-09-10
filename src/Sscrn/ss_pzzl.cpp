@@ -840,15 +840,8 @@ void pieceFrameDisp(cModel* m, u32 color, int type)
                 int k = j == 0 ? next : prev;
 
                 PSVECSubtract(&v[k], &v[i], &c);
-                if (c.x == 0.0f && c.y == 0.0f && c.z == 0.0f) {
 #line 1158 "D:/Bio4/Prog/ss_pzzl.cpp"
-                    pLog->err(0, 0, "VECNormalize:[%s/%d]", __FILE__, __LINE__);
-                    c.x = 0.0f;
-                    c.z = 0.0f;
-                    c.y = 0.0f;
-                } else {
-                    PSVECNormalize(&c, &c);
-                }
+                VECNormalize(&c, &c);
                 PSVECScale(&c, &c, frame_line_len);
                 PSVECAdd(&v[i], &c, &c);
                 ss_Draw_line3d(&v[i], &c, frame_line_col, frame_line_blend, 0, 1, frame_line_w_ot, frame_line_w_prio);
