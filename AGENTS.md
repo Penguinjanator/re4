@@ -5121,3 +5121,17 @@ target) stays unresolved and `make_rel` then fails with "undefined symbol".
   the `char fname[] = "SS/___/id22c.dat"` the code patches. 9 of 48 functions identical; the shooting
   game (getBonus .. r22c_checkShootingScore, ResultScreen, Score*) is NOT written (static stubs
   keep the table relocations; replace them).
+- GCC 2.95 memory disambiguation (confirmed): a struct-member store never blocks a scalar global load
+  (`pG`); a store through a reference parameter (`PSet`/`BitOn16`/`U16Set`) or a scalar pointer deref
+  blocks everything -- choose per site from whether the target reloads `pG` after the store.
+- `*(volatile u16*) &at->flags |= m` keeps `addi rX,obj,0x2b4; lhz/sth 0x1a(rX)` AND keeps the following
+  `pG` load below it (`AtariFlagsOr`).
+- Among independent stores sharing one value register, the later use is issued early and the earlier
+  use sinks before the call: to make a store land last, write it first.
+- `int md = 1; obj->wep.mode = md;` gives an SImode pseudo cse reuses for a later `x = 1` store in the
+  same ebb; a QImode constant is not reused for a later SImode store.
+- Identical if/else arms calling the same function with constant args are not cross-jumped -- write
+  them duplicated.
+- HAZARD: two agents editing config/G4BE08/modules.py concurrently -- one read-modify-write dropped 14
+  MATCHING entries (a446c30). Re-read the file immediately before editing and re-verify RELs after.
+

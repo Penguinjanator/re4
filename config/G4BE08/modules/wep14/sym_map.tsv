@@ -1,20 +1,20 @@
 section	offset	size	unit	scope	name	demangled
-.text	0x00000000	0x38	wep14/objMine.cpp	local	ObjMine_init	ObjMine_init
-.text	0x00000038	0x15C	wep14/objMine.cpp	global	cObjMine_init	cObjMine::init
-.text	0x00000194	0x74	wep14/objMine.cpp	global	partsSet	partsSet
-.text	0x00000208	0xF4	wep14/objMine.cpp	global	cObjMine_moveReady	cObjMine::moveReady
-.text	0x000002FC	0x14C	wep14/objMine.cpp	global	cObjMine_moveFire	cObjMine::moveFire
-.text	0x00000448	0x288	wep14/objMine.cpp	global	cObjMine_setBullet	cObjMine::setBullet
-.text	0x000006D0	0xAC	wep14/objMine.cpp	global	cObjMine_moveDown	cObjMine::moveDown
-.text	0x0000077C	0x160	wep14/objMine.cpp	global	cObjMine_moveReload	cObjMine::moveReload
-.text	0x000008DC	0x17C	wep14/objMine.cpp	global	cObjMine_setCartridge	cObjMine::setCartridge
-.text	0x00000A58	0x94	wep14/objMine.cpp	global	cObjMine_interrupt	cObjMine::interrupt
-.text	0x00000AEC	0x260	wep14/objMine.cpp	global	cObjMine_setMotion	cObjMine::setMotion
-.text	0x00000D4C	0x4	wep14/objMine.cpp	global	cUnit_beginEvent	cUnit::beginEvent
-.text	0x00000D50	0x4	wep14/objMine.cpp	global	cUnit_endEvent	cUnit::endEvent
-.text	0x00000D54	0x20	wep14/objMine.cpp	global	cObjMine_dt_cObjMine	cObjMine::~cObjMine
-.text	0x00000D74	0x48	wep14/objMine.cpp	global	cUnit_dt_cUnit	cUnit::~cUnit
-.text	0x00000DBC	0x4	wep14/objMine.cpp	global	cUnit_op_delete	cUnit::operator delete
+.text	0x00000000	0x38	wep14/objMine.cpp	global	ObjMine_init__FP4cObj	ObjMine_init
+.text	0x00000038	0x15C	wep14/objMine.cpp	global	init__8cObjMineP6cModel	cObjMine::init
+.text	0x00000194	0x74	wep14/objMine.cpp	global	partsSet__FP8cObjMine	partsSet
+.text	0x00000208	0xF4	wep14/objMine.cpp	global	moveReady__8cObjMine	cObjMine::moveReady
+.text	0x000002FC	0x14C	wep14/objMine.cpp	global	moveFire__8cObjMine	cObjMine::moveFire
+.text	0x00000448	0x288	wep14/objMine.cpp	global	setBullet__8cObjMine	cObjMine::setBullet
+.text	0x000006D0	0xAC	wep14/objMine.cpp	global	moveDown__8cObjMine	cObjMine::moveDown
+.text	0x0000077C	0x160	wep14/objMine.cpp	global	moveReload__8cObjMine	cObjMine::moveReload
+.text	0x000008DC	0x17C	wep14/objMine.cpp	global	setCartridge__8cObjMine	cObjMine::setCartridge
+.text	0x00000A58	0x94	wep14/objMine.cpp	global	interrupt__8cObjMine	cObjMine::interrupt
+.text	0x00000AEC	0x260	wep14/objMine.cpp	global	setMotion__8cObjMineP7cPlayer	cObjMine::setMotion
+.text	0x00000D4C	0x4	wep14/objMine.cpp	global	beginEvent__5cUnit	cUnit::beginEvent
+.text	0x00000D50	0x4	wep14/objMine.cpp	global	endEvent__5cUnit	cUnit::endEvent
+.text	0x00000D54	0x20	wep14/objMine.cpp	global	_._8cObjMine	cObjMine::~cObjMine
+.text	0x00000D74	0x48	wep14/objMine.cpp	global	_._5cUnit	cUnit::~cUnit
+.text	0x00000DBC	0x4	wep14/objMine.cpp	global	__dl__5cUnitPvUi	cUnit::operator delete
 .text	0x00000DC0	0x11C	wep14/wep14.cpp	global	Wep14_init	Wep14_init
 .text	0x00000EDC	0x4C	wep14/wep14.cpp	global	Wep14_move	Wep14_move
 .text	0x00000F28	0x1B0	wep14/wep14.cpp	local	wep14_r2_ready	wep14_r2_ready
@@ -35,7 +35,7 @@ section	offset	size	unit	scope	name	demangled
 .text	0x00001DA8	0x144	wep14/wep14.cpp	local	wep14_r2_reload	wep14_r2_reload
 .text	0x00001EEC	0x1F0	wep14/wep14.cpp	local	wep14_r2_next	wep14_r2_next
 .text	0x000020DC	0x88	wep14/wep14.cpp	global	equipWeapon	equipWeapon
-.text	0x00002164	0x70	wep14/wep14.cpp	global	wep14changeRightHand	wep14changeRightHand
+.text	0x00002164	0x70	wep14/wep14.cpp	global	wep14changeRightHand__FP7cPlayerPv	wep14changeRightHand
 .text	0x000021D4	0x5C	wep14/wep14.cpp	global	_prolog	_prolog
 .text	0x00002230	0x4	wep14/wep14.cpp	global	_epilog	_epilog
 .text	0x00002234	0x4	wep14/wep14.cpp	global	_unresolved	_unresolved
