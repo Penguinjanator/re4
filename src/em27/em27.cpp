@@ -177,13 +177,22 @@ void em27DmCk(cEm27* em)
             EmRoutineSet(em, 2, 1, 0, 0);
         }
     } else {
-        // The original tests em->dmWep == 0x21 here with two identical arms: only the dead
-        // `lbz dmWep; cmpwi 0x21` survives (the em30DmCk shape, not reproducible: our flow2
-        // deletes the dead compare).
-        if (em->pos.y > w->waterHeight) {
-            EmRoutineSet(em, 2, 2, 0, 0);
+        // Two identical arms behind a dmWep == 0x21 test: jump2 cross-jumps the whole first arm
+        // into the second and only the dead `lbz dmWep; cmpwi 0x21` survives (jump2 runs after
+        // flow2). The first arm must be written else-first (`!(a > b)`) so that after its
+        // sub-arms are merged it reads `ble E2; b T2`, identical to the second arm's head.
+        if (em->dmWep == 0x21) {
+            if (!(em->pos.y > w->waterHeight)) {
+                EmRoutineSet(em, 2, 0, 0, 0);
+            } else {
+                EmRoutineSet(em, 2, 2, 0, 0);
+            }
         } else {
-            EmRoutineSet(em, 2, 0, 0, 0);
+            if (em->pos.y > w->waterHeight) {
+                EmRoutineSet(em, 2, 2, 0, 0);
+            } else {
+                EmRoutineSet(em, 2, 0, 0, 0);
+            }
         }
     }
 }

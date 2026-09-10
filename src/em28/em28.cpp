@@ -168,7 +168,9 @@ void em28DmCk(cEm28* em)
             EmDmBloodSet2(em, 0x20, 2, 0, 0, 0);
             em->hp = 1;
             if (!(w->flags & 0x10)) {
-                EmRoutineSet(em, 1, (Rnd() & 1) ? 3 : 2, 0, 0);
+                // Allocation lever (loop notes, no code): the doubled routine refs rank the HI `1`
+                // (hp = 1 / xFC) above the HI zero in global-alloc (one r30, zero r29).
+                do { EmRoutineSet(em, 1, (Rnd() & 1) ? 3 : 2, 0, 0); } while (0);
             }
             return;
         }
@@ -388,22 +390,25 @@ static void em28_R1_Wait(cEm28* em)
             if (w->timer == 0) {
                 Vec pos;
                 cEmWep* wep;
+                // One `no` for the three arms: a 3-set pseudo with 9 refs over ~15 insns outranks
+                // em in global-alloc and takes r31 (a block-local `no` is local-alloc'd and can
+                // never get r31, the frame-pointer register), which pushes em to r30 and lets
+                // &pos reuse r31.
+                int no;
 
                 pos = em->pos;
                 if (Rnd() & 7) {
                     if ((u8) (Rnd() % 3)) {
                         wep = SetWeapon(ARC(7), ARC(8), &pos, &em->rot, 1);
                         if (wep) {
-                            int no = SceAtCreateItemAt(&pos, 8, 0, -1, -1, 0, -1);
-
+                            no = SceAtCreateItemAt(&pos, 8, 0, -1, -1, 0, -1);
                             SceAtSetItemModel(no, wep);
                             wep->setAtNo(no);
                         }
                     } else {
                         wep = SetWeapon(ARC(7), ARC(9), &pos, &em->rot, 1);
                         if (wep) {
-                            int no = SceAtCreateItemAt(&pos, 9, 0, -1, -1, 0, -1);
-
+                            no = SceAtCreateItemAt(&pos, 9, 0, -1, -1, 0, -1);
                             SceAtSetItemModel(no, wep);
                             wep->setAtNo(no);
                         }
@@ -411,8 +416,7 @@ static void em28_R1_Wait(cEm28* em)
                 } else {
                     wep = SetWeapon(ARC(7), ARC(0xA), &pos, &em->rot, 1);
                     if (wep) {
-                        int no = SceAtCreateItemAt(&pos, 0xA, 0, -1, -1, 0, -1);
-
+                        no = SceAtCreateItemAt(&pos, 0xA, 0, -1, -1, 0, -1);
                         SceAtSetItemModel(no, wep);
                         wep->setAtNo(no);
                     }
@@ -779,6 +783,6 @@ int em28EscapeCk(cEm28* em)
     } else {
         EmRoutineSet(em, 1, 3, 0, 0);
     }
-    w->escapeWait = (u8) (Rnd() % 30) + 15;
+    w->escapeWait = (u8) (Rnd() % 15) + 15;
     return 1;
 }

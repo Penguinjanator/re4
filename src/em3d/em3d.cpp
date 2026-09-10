@@ -641,10 +641,11 @@ void em3dRoterMove(cEm3d* em)
     }
 
 // One chain gun shot from parts `mount`: a random line ahead, the weapon hit check, then the wall
-// hit effect (and its sound for the first gun).
+// hit effect (and its sound for the first gun). Uses the function's `p` (a multi-set pseudo):
+// local-alloc then cannot tie it to the `&p->mat` addi, and it keeps its own callee-saved r31.
 #define EM3D_GUN_SHOT(em, mount, spread, len, se, zero)                                 \
     {                                                                                   \
-        cModel* p = (em)->getPartsPtr(mount);                                           \
+        p = (em)->getPartsPtr(mount);                                                   \
                                                                                         \
         a.x = 0.0f;                                                                     \
         a.y = 0.0f;                                                                     \

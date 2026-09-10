@@ -660,7 +660,10 @@ static void em2a_R1_Trap1Reset(cEm2a* em)
     case 1:
         if (MotionMoveF(em, 0)) {
             em->hp = 1;
-            EmRoutineSet(em, 1, 0, 1, 0);
+            em->xFC = 1;
+            em->xFD = 0;
+            em->xFF = 0;
+            em->xFE = 1;
         }
         break;
     }

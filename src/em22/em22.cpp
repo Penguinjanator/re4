@@ -2049,7 +2049,10 @@ void em22DirMatrix(cEm22* em, f32 dir)
         t = 0.0f;
     }
     w->tilt = w->tilt * 0.8f + t * 0.2f;
-    if (fabsf(w->tilt) > 0.001f) {
+    // The magnitude reuses `t` (a multi-set global pseudo): the fabs result is not tied to the
+    // dying blend result and lands in t's f11.
+    t = fabsf(w->tilt);
+    if (t > 0.001f) {
         Mtx m;
         Vec ax;
 
@@ -2381,7 +2384,9 @@ void em22ParaSetMotWait(cEm22* em)
             if (i != 1) {
                 MotSetObj16(pp[i], ARC(0x49), 5, 0);
             } else {
-                MotSetObj16(pp[1], ARC(0x49), 0x45, 0);
+                // Allocation lever (loop notes, no code): the 7th weighted em ref ranks em
+                // above i in global-alloc (em r30, i r29).
+                do { MotSetObj16(pp[1], ARC(0x49), 0x45, 0); } while (0);
             }
         }
     }
@@ -2397,7 +2402,9 @@ void em22ParaSetMotAtk(cEm22* em)
             if (i != 1) {
                 MotSetObj16(pp[i], ARC(0x4C), 1, 0);
             } else {
-                MotSetObj16(pp[1], ARC(0x4C), 0x41, 0);
+                // Allocation lever (loop notes, no code): the 7th weighted em ref ranks em
+                // above i in global-alloc (em r30, i r29).
+                do { MotSetObj16(pp[1], ARC(0x4C), 0x41, 0); } while (0);
             }
         }
     }
@@ -2410,14 +2417,18 @@ void em22ParaSetMotAtkHit(cEm22* em)
 
     for (i = 0; i < 3; i++) {
         if (pp[i]) {
-            if (i != 1) {
-                if (i != 2) {
-                    MotSetObj16(pp[i], ARC(0x4A), 1, 0);
-                } else {
-                    MotSetObj16(pp[2], ARC(0x4B), 1, 5);
-                }
-            } else {
+            // default first: the arms are laid out default, 1, 2 (the nested if/else form put
+            // the i == 2 body before the i == 1 body).
+            switch (i) {
+            default:
+                MotSetObj16(pp[i], ARC(0x4A), 1, 0);
+                break;
+            case 1:
                 MotSetObj16(pp[1], ARC(0x4B), 0x41, 0);
+                break;
+            case 2:
+                MotSetObj16(pp[2], ARC(0x4B), 1, 5);
+                break;
             }
         }
     }
@@ -2551,7 +2562,9 @@ void em22FootSeControl(cEm22* em)
     case 5:
     case 8:
     case 9:
-        w->x2C8 = Ctrl11SetSe(w->pCtrl11, em, 10, no, 0xE);
+        // Allocation lever (loop notes, no code): at depth 2 the two `w` refs count 3x (w 9 refs /
+        // 30 insns beats em 11 / 47), so w takes r31 and em r30.
+        do { do { w->x2C8 = Ctrl11SetSe(w->pCtrl11, em, 10, no, 0xE); } while (0); } while (0);
         em->seNo = 0;
         break;
     }

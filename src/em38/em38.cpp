@@ -2169,7 +2169,9 @@ int em38AtkCk2(cEm38* em, u32 no, Vec* a, Vec* b)
                 }
                 break;
             case 4:
-                SetPlDamage((int) em, plemDmStamp);
+                // Allocation lever (loop notes, no code): the 8th weighted `em` ref ranks em above
+                // `no` in global-alloc (em r31, no r30).
+                do { SetPlDamage((int) em, plemDmStamp); } while (0);
                 break;
             }
         }

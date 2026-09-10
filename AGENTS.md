@@ -5771,3 +5771,31 @@ target) stays unresolved and `make_rel` then fails with "undefined symbol".
     qty vs the 2-ref high), model `cModel::cModel` (the litArea `lfs 0.0` issued after the third store in the
     original, after the first in ours; direct/FSet/x103-order/do-while forms tried), snd SndSetReverb (fake
     lifetime), objWep drawPoint and emwep setThrow/ShotArrow (sched1 issue order / COMPILER-DIFF 8, unchanged).
+
+### Enemy tie-breaker sweep (em22/em27/em28/em2a/em38/em3c/em3d) — zero-code levers
+- Dead loop before a `case` label blocks cse's jump-following: `switch (x) { do { } while (0); case 0: ... }`.
+  The unreachable loop's `NOTE_INSN_LOOP_END` survives in front of the label and `cse_end_of_basic_block`
+  stops its backward scan at LOOP_END notes, so the arm no longer knows `x == 0` and a constant 0 gets a
+  fresh `li r0,0` instead of the switch register (em3c R1_Die_Normal; `for(;;){break;}` works too).
+- Dead compare from two identical arms survives only when the first arm is written else-first:
+  `if (a == K) { if (!(c)) E else T } else { if (c) T else E }` — after jump2 cross-jumps the sub-arms
+  the first arm reads `ble E2; b T2`, identical to the second arm's head, so the whole arm merges and
+  only `lbz; cmpwi K` remains (em27DmCk; natural order keeps the branch, +0x18 bytes).
+- A block-local variable can never get r31 from local-alloc (`find_free_reg` excludes the frame-pointer
+  register). A `mr r31,r3` call result means a multi-set global pseudo: one `int no;` shared by three arms
+  (9 refs / 15 insns) outranks `em` and takes r31, pushing em to r30 (em28 R1_Wait).
+- Weight lever inside a loop: `do{}while(0)` at loop depth 1 counts the wrapped refs 3x (depth 2 -> 4x):
+  em22 ParaSetMotWait/Atk, FootSeControl (nested twice), em38 AtkCk2, em28 DmCk. Pick a statement whose
+  block has no pool `lis` to hoist — in em3d the notes moved loop.c's hoists and cost 200 words.
+- `t = fabsf(x)` assigned to an existing multi-set variable is not tied to the dying input and lands in
+  that variable's register (em22 DirMatrix `fabs f11,f0`).
+- Arm layout of `if (i != 1) { if (i != 2) A else C } else B` is A, C, B; the target's A, B, C is
+  `switch (i) { default: A; case 1: B; case 2: C; }` (em22 ParaSetMotAtkHit).
+- em3dChainGunMove: using the function-scope `cModel* p` inside the shot macro (multi-set pseudo) keeps
+  `p` untied from the `&p->mat` addi, in its own callee-saved register (68 -> 15 words).
+- em28 EscapeCk source bug fixed: target is `Rnd() % 15 + 15`, not `% 30`.
+- OPEN residues: em3a R1_Fix (sched2 sinks `addi r31,em,0x3e0`, needs a dependence on the `bl` nothing
+  creates); em27DmCk/em3c R1_Die_Normal EstSet stack-store interleave (same family as pl_rocket
+  wep13_r3_down00); em3d ChainGunMove FPR order (angY before shared limX pool); em38 plemEscape/
+  EscapeCamMove birthing boost (#5); em28 EscapeCk bell-radius arm merge before sched1 (FindCk OPEN);
+  em23 SetWing PRE copy at join; em2a Trap1BiteSubCk local-alloc tie, R0_Init hp*0.001*0.5 chain tie.

@@ -1497,6 +1497,10 @@ static void em3c_R1_Die_Normal(cEm3c* em)
     Em3cWork* w = EM3C_WK(em);
 
     switch (em->xFE) {
+        // Unreachable loop: its NOTE_INSN_LOOP_END survives in front of the `case 0:` label, so
+        // cse does not follow `beq case0` (the label must be preceded by a BARRIER) and the arm
+        // does not learn xFE == 0 — the EstSet stack zero is a fresh `li r0, 0`, not the switch register.
+        do { } while (0);
     case 0:
         w->timer = 60;
         if (em->xFF) {
