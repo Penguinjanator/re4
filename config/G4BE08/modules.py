@@ -683,6 +683,8 @@ MATCHING = {
     "st2_3/r228.cpp": True,
     "st2_3/r227.cpp": True,
     "st2_3/r226.cpp": True,
+    "st2_3/r224.cpp": True,
+    "st2_2/r214.cpp": True,
     "st2_3/r223.cpp": True,  # reva_common_move: FP-before-mode definition under the mangled name (COMPILER-DIFF #8)
     "st2_4/st2.cpp": True,
     "st4_0/st4.cpp": True,

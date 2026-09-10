@@ -868,22 +868,23 @@ static void r214_throwRock(cCatapult214* c)
         }
         SceSleep(1);
     }
-    i = 0;
-    do {
+    // Loop 3: a plain `for (;;)` inner loop (rotated by expand_end_loop into the target's sleep-first
+    // layout, its 0.0 compare constant hoisted only to the outer body's head) inside a counted outer
+    // loop whose `(int) i < 4` on the u32 counter gives the target's signed `cmpwi r31,3` without
+    // loop.c reversing it (a plain `int` counter is reversed: `li 3; addi -1; cmpwi 0`).
+    for (i = 0; (int) i < 4; i++) {
         lim *= 0.5f;
         spd *= -0.5f;
-        i++;
-        goto body;
-    sleep:
-        SceSleep(1);
-    body:
-        c->obj->pParts->rot.x += spd;
-        spd += -0.034906585f;
-        if (!(c->obj->pParts->rot.x < lim && spd < 0.0f)) {
-            goto sleep;
+        for (;;) {
+            c->obj->pParts->rot.x += spd;
+            spd += -0.034906585f;
+            if (c->obj->pParts->rot.x < lim && spd < 0.0f) {
+                break;
+            }
+            SceSleep(1);
         }
         c->obj->pParts->rot.x = lim;
-    } while (i < 4);
+    }
 }
 
 // Launches the rock at the target area (or the player).

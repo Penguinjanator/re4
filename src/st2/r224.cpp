@@ -355,13 +355,17 @@ static void r224_toroko()
 }
 
 // The lever handle swings to its other end and back.
-// COMPILER-DIFF: 12 (12 words left, was 32): the target loads `spd = 0.0f` before SndCall and
-// RE-LOADS the same pool 0.0 for the hoisted loop compare (`lfs f26`); our cse2 folds every
-// constant-pool load to its CONST_DOUBLE and rewrites the hoisted one as `fmr f26,f31` from spd.
-// The 0.0 word is therefore a named `static const k0` (same .rodata slot as the pool entry) read
-// through opaque `lis/lfs` asms for spd's init and the compare constant, so cse2 cannot relate them;
-// the in-loop reload reads it through FCRef (a plain MEM: loop.c hoists its high like the target's
-// r28). Residue: preheader schedule (acc `lfs` last in the target), f26/f27 and r28/r29 pairs.
+// COMPILER-DIFF: 12: the target loads `spd = 0.0f` before SndCall and RE-LOADS the same pool 0.0
+// for the hoisted loop compare (`lfs f26`); our cse folds every constant-pool load to its
+// CONST_DOUBLE and rewrites the hoisted one as `fmr f26,f31` from spd. The 0.0 word is therefore
+// a named `static const` one-member struct k0 (same .rodata slot as the pool entry; a struct so the
+// front end does not fold the read, a `const` static so the MEM is /u like a pool load and sched1
+// does not order it after the be_flag store) read through opaque `lis/lfs` asms for spd's init;
+// `zero = k0.v` is the compare constant, the in-loop reload reads it through FCRef (a plain MEM:
+// loop.c hoists its high like the target's r28). `BitOn` for be_flag makes the `lfs acc` depend on
+// the store (target: `lfs f30,acc` last). The dead `if (spd == 1.85f) up = 0;` is a 4th ref for
+// the hoisted 1.85 constant so it ranks above zero in global-alloc (f27 vs f26; zero has no
+// REG_EQUIV doubling, the pool constant has).
 static inline f32 FCRef(const f32& v) { return v; }
 
 static void reva_common_move()
@@ -374,17 +378,15 @@ static void reva_common_move()
     f32 acc;
     f32 zero;
     u32 zh;
-    u32 zh2;
-    static const f32 k0 = 0.0f;
+    static const struct { f32 v; } k0 = {0.0f};
 
-    asm("lis %0,%1@ha" : "=b"(zh) : "i"(&k0));
-    asm("lfs %0,%1@l(%2)" : "=f"(spd) : "i"(&k0), "b"(zh));
+    asm("lis %0,%1@ha" : "=b"(zh) : "i"(&k0.v));
+    asm("lfs %0,%1@l(%2)" : "=f"(spd) : "i"(&k0.v), "b"(zh));
     hi = reva_high;
     SndCall(6, 4, &obj->pos, 0, 0, 0);
-    obj->be_flag |= 0x20;
+    BitOn(obj->be_flag, 0x20);
     acc = reva_acc;
-    asm("lis %0,%1@ha" : "=b"(zh2) : "i"(&k0));
-    asm("lfs %0,%1@l(%2)" : "=f"(zero) : "i"(&k0), "b"(zh2));
+    zero = k0.v;
     for (;;) {
         int up;
 
@@ -399,7 +401,7 @@ static void reva_common_move()
             if (up ? (*py < hi) : (*py > hi)) {
                 spd += acc * 1.85f;
             } else if (pG->flags_174 & 0x40000000) {
-                spd = FCRef(k0);
+                spd = FCRef(k0.v);
                 *py = reva_high;
             } else {
                 spd = -acc;
@@ -412,6 +414,9 @@ static void reva_common_move()
                 SceAtSetEnable(4, 1);
                 return;
             }
+        }
+        if (spd == 1.85f) { // COMPILER-DIFF: 12 (dead test, see above)
+            up = 0;
         }
         SceSleep(1);
     }

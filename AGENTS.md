@@ -11861,3 +11861,64 @@ stmt.c/jump.c and confirmed with cc1plus probes:
 - r103 openShelf_main (4, left): the two pool highs `ra`/`rb` r9/r11 swapped = local-alloc qty order under the same
   sched1 order (span A 3 vs B 2, QTY_CMP_PRI refs/span); statement swap, cModel* locals, FSet, const, literal,
   declaration order: 4-16 words.
+
+### Stage rooms, never-iterated units pass 5 (r224 Matching 18/19 with reva_common_move 12 -> 0; r214 Matching 24/25 with throwRock 7 -> 0; r221 throwBonbe r21/r22 tie flipped in variants (18 -> 2) but not applied; 2026-09-10)
+
+- Harness /home/adityas/.cache/rooms_c7 (rooms_c6 copies with the paths rewritten; `tryv.py`, new `tryv2.py MOD/UNIT FUNC
+  variants.py BASE.cpp` = tryv applied on a variant file, `prio.sh VARIANT.cpp FUNC_RE [MINLEN]` = the global-alloc
+  priorities `floor_log2(refs)*refs/len` of a variant's long-lived pseudos from its -dl dump, `liverange.py DUMP FUNC REGNO`
+  = the post-sched1 positions (real-insn index) of a pseudo's sets/uses; `mdump.sh` dumps: sched2 is `-dR` (not a second
+  -dS), the dependence/priority tables need `-fsched-verbose-N` with a DASH (`=N` is silently ignored: only ready lists)).
+- **A `static const` one-member struct is a pool word cse cannot fold and a `/u` MEM sched1 does not order after stores**
+  (r224 reva_common_move 12 -> 0, unit flipped; `static const struct { f32 v; } k0 = {0.0f};` at the function's top for the
+  pool slot, read as `zero = k0.v`). The front end folds only `TREE_READONLY_DECL_P` scalars (`decl_constant_value` refuses
+  CONSTRUCTOR initialisers), so the read stays a MEM of the named `.rodata` word; varasm gives a `const` decl's DECL_RTL
+  `RTX_UNCHANGING_P` and `change_address` keeps it for the COMPONENT_REF, so alias.c treats the load like a pool load (no
+  true dependence on a preceding store through an unknown pointer, unlike the r10c `FCRef(const f32&)` reference deref,
+  which waited for `stw be_flag` and was issued after it), and cse does not fold it to its CONST_DOUBLE (only
+  CONSTANT_POOL_ADDRESS_P MEMs are). What it does NOT give: a `REG_EQUAL (const_double)` note, so the pseudo has no
+  REG_EQUIV and its live length is not doubled (a real pool constant's is) -- see the next item. The asm `lis/lfs` pair
+  stays for spd's init (a plain `k0.v` there would let cse copy `zero` from `spd`: the `/u` entry survives the call).
+- **`BitOn(obj->be_flag, 0x20)` where a following fixed-scalar load must wait for the store** (same function): the target's
+  `lfs f30,acc` (a global scalar) is issued last in the preheader because it depends on the be_flag store; a struct-member
+  store (`MEM_IN_STRUCT_P`, varying address) never aliases a fixed scalar (`fixed_scalar_and_varying_struct_p`), a
+  reference store does. Same rule as the pG reloads of global.h.
+- **Pool-constant vs named-word global-alloc tie: a dead FP test as the 4th ref** (same function, `if (spd == 1.85f) up = 0;`
+  at the loop body's end, tagged COMPILER-DIFF: 12): the hoisted 1.85 pool pseudo (REG_EQUIV, length doubled) had 3 refs
+  / 94 vs zero's 3 / 50, so zero took f27 first; the dead compare (loop-variant `spd`, so loop.c does not hoist it -- a
+  dead `acc == 1.85f` compare IS invariant, is hoisted into the preheader and reorders the `lfs`es) gives 1.85 four refs
+  (`2*4/len`) and the target's f27; `up` is re-set at the loop top before every read. Both loads keep their target order
+  because zero's `/u` MEM has no store dependence and the pool load is a loop.c movable emitted after the preheader
+  statements (LUID order zero, 1.85).
+- **`for (i = 0; (int) i < 4; i++)` on a u32 counter = the target's unreversed signed `cmpwi r31,3; ble`** (r214 throwRock
+  7 -> 0, unit flipped): a plain `int` counter is reversed by loop.c (`check_dbra_loop`: LT compare, constant bounds,
+  `no_use_except_counting`), a u32 gives `cmplwi`; the cast keeps the biv unsigned for loop.c while the compare is signed.
+  Same function: the inner wait loop as a plain `for (;;) { body; if (c) break; SceSleep(1); }` -- expand_end_loop rotates
+  it into the target's sleep-first layout (`b body; sleep: bl; body: ..; bge sleep; bge cr7 sleep`) and, being a real
+  loop.c loop inside the counted outer loop, its 0.0 compare constant is hoisted only to the outer body's head block
+  (target `li r31,0; lfs f29; fmuls; fmuls; addi` = the head block starts at the `lfs`), which the hand-written goto form
+  of the earlier pass could not give (the goto inner loop has no notes: both constants went to the outer preheader and the
+  head schedule was `fmuls; addi; fmuls`). The body loads' r9/r11 naming followed from the same change.
+- **r221 throwBonbe (18, NOT applied -- 2-word variants only).** The eff2 (6 refs / 282) vs pG-high (13 / 870 doubled) tie
+  flips with `eff3 = 9; eff2 = 1;` in case 0 ONLY (eff2 len 254, prio 0.0472 in the (0.0448, 0.0479] window; the same swap
+  in cases 1-3 shortens by 2 each and the four-arm swap by 28 + 2 + 2 + 2 overshoots to 248): arm 0's `li eff2` moves
+  from sched1 position 61 (the slot sharing the RsfSet call's cycle) to 72 and the length drops 28. Residue 2 words: sched2
+  then also emits `li r17,9` (eff3) in that slot and `li r22,1` later -- the free `li`s fill the slots before/after the
+  `bl` in LUID order = sched1 order, and sched1 orders them by LUID too, so "eff2 late in sched1, early in sched2" needs a
+  sched1-only tie-break: register weight. `asm("li %0,9" : "=r"(eff3) : "r"(no))` (no dies there: weight 0) makes sched1
+  issue eff3 FIRST of all free `li`s (before atNo/eff1, 4 words), a dying input available only after the call does not
+  exist in arm 0 (the RsfSet word pointer is inline-internal). Other negative results: a `"=m"` keep-alive
+  `asm("" : "=m"(pos.x) : "r"(eff2))` after `SceAtSetEnable(atNo, 1)` gives eff2 the window (10 words: only the mask
+  pseudo changes) but the PRE'd `clrlwi` mask is born at the join-block end while eff2 now dies at the asm, so the mask
+  takes r14 (+frame); dead tests inside the 300-loop (`if (eff2 == 0) t1 = 0;` etc.) are PRE'd to the join as a compare
+  kept in a callee-saved CR copy (30-63 words, frame +8); a dead pG test at the tail (`if ((int) pG->flags_174 < 0) i = 0;`)
+  does not add a ref to the high (cse2 re-materialises a fresh `lis r9`, 18-33 words); `default: eff2 = 0;` and moving
+  `eff2 = K` after `t2`/`t1`/`mot0`/`pos.x` in arm 0: 3-35.
+- **Hard-register FPR pins for pool constants reorder sched1** (r213 StatusSetChain: `register f32 c50 asm("fr13")` etc.
+  for the four constants, or fr11 for 0.0 alone: 12-25 words). The local-alloc order there is 0.0 (3 refs / 60) > 0.8 =
+  0.1 (2 / 42) > 50.0 (2 / 44); the target's is 0.8 > 50.0 > 0.1 > 0.0, i.e. 0.0's span must exceed 1.5x the others'.
+  Not resolved. r11b Init (14), r22a RopeMove (4), r21a FallRoofDie (66), r120 (114), r10c, r225 not moved this pass;
+  for r21a the target's shape is now read exactly: `Vec* op = &obj->pos` (one pseudo r28 for both SndCalls), the camAt
+  template copy's base IS the &camAt pseudo (r29) with the PRE copies `mr r27,r29; mr r26,r30` staying after SndCall,
+  the 10-loop's 0.0 is `lwz r28,pool` (an SF pseudo in a GPR: pass 0 finds r28 = the dead &obj->pos register used so
+  far) and `li r28,60` reuses it for the 60-loop.
