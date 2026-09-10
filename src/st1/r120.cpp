@@ -75,16 +75,19 @@ extern "C" void R120Event()
         pG->flags_51C0 |= 0x10;
     }
     SceEventStart(0);
-    // OPEN (12 words): the original's cse1 extended block skips both event-read blocks (their
-    // EvtMgr/string `lis` are fresh) and carries `high(pG)` into the tail (r31, also used by the
-    // x4F8E test); ours falls through into them (string/EvtMgr highs PRE'd into r29/r30) and the
-    // tail's pG high is a rematerialised PRE copy. Nested and two-`if` forms compile identically.
-    if (!(pG->flags_51C0 & 0x10)) {
+    // Two sequential `if`s whose first test masks with a variable: the mask register keeps
+    // jump1's thread_jumps from folding the first branch into the second (REG_USERVAR_P regs are
+    // never equivalent there), so gcse sees the s01 block undominated and its EvtMgr/string highs
+    // stay fresh; cse1 then propagates the constant and the post-loop thread_jumps redirects the
+    // first `bne` past the s01 block, which merges the second test into the call block (its
+    // tail jump gives the `li r7/r8` an extra dependent, so sched puts `addi r3,r30` last).
+    u32 mask = 0x10;
+    if (!(pG->flags_51C0 & mask)) {
         EvtMgr.EvtReadAram("event/evd/r120s01.evd", 0, 0, 0, 0);
         EvtMgr.EvtReadExec("event/evd/r120s00.evd", 0, 0);
-        if (!(pG->flags_51C0 & 0x10)) {
-            EvtMgr.EvtReadExec("event/evd/r120s01.evd", 0, 0);
-        }
+    }
+    if (!(pG->flags_51C0 & 0x10)) {
+        EvtMgr.EvtReadExec("event/evd/r120s01.evd", 0, 0);
     }
     SceEventEnd(0);
     pG->flags_54 |= 0x400;

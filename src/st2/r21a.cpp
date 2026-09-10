@@ -483,22 +483,27 @@ static void R21aFallRoofDie(int no)
     cObj* obj = SmdGetObjPtr(0x3F);
 
     if (obj) {
+        // `spd` before the two templates: its conversion insns sit between the copies' address
+        // pseudos in sched1, which decides local-alloc's r29/r28 order for &camAt and &obj->pos
+        // (the gcse copy of &obj->pos then coalesces into r28 and the loop's 0.0 takes r28 as a GPR).
+        f32 spd = (f32) no + 20.0f;
         Vec camPos = {-29467.0f, 3027.0f, -24785.0f};
         Vec camAt = {-31480.0f, 429.0f, -32174.0f};
-        f32 spd = (f32) no + 20.0f;
         f32 fovy = 50.0f;
         SceEventStart(0);
         SetPosXYZ(obj, obj->pos.x, 1500.0f, obj->pos.z);
         SndCall(6, 0xC, &obj->pos, 0, 0, 0);
-        goto move;
-    wait:
-        SceSleep(1);
-    move:
-        SceCamMove(&camPos, &camAt, fovy);
-        spd += 10.0f;
-        SetPosXYZ(obj, obj->pos.x, obj->pos.y - spd, obj->pos.z);
-        if (!(obj->pos.y <= -1500.0f)) {
-            goto wait;
+        // A real loop (rotated by expand_end_loop into `b body; sleep: ..; body: ..; bns sleep`):
+        // its preheader is where loop.c/gcse put the `mr r27,r29; mr r26,r30` copies of &camAt and
+        // the inline Vec, i.e. after the SndCall; the goto form hoisted them into the prologue.
+        for (;;) {
+            SceCamMove(&camPos, &camAt, fovy);
+            spd += 10.0f;
+            SetPosXYZ(obj, obj->pos.x, obj->pos.y - spd, obj->pos.z);
+            if (obj->pos.y <= -1500.0f) {
+                break;
+            }
+            SceSleep(1);
         }
         EstSet((int) obj, -1, 0, 0, 1, 8, 1, 0, 0, 0);
         SndCall(6, 1, &obj->pos, 0, 0, 0);

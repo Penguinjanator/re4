@@ -233,7 +233,10 @@ static void r10c_TestPosMove(int side)
     Vec ang = {0.0f, -1.5707964f, 0.0f};
     Vec out;
     cPlayer* pl = pPL;
-    u32 flags = pG->flags_170;
+    // `pGS`: the struct-view pG load is not a fixed scalar, so sched1 keeps it behind the two
+    // template copies and their word 4/8 loads and stores come out in source order (the plain
+    // `pG` load is hoisted above them and the 8/4 pair flips).
+    u32 flags = pGS->flags_170;
     cObj* obj;
 
     KeyStop(0xEFCF0000ULL);
@@ -649,6 +652,11 @@ static void chkSwitchA()
         }
         SmdSetTrans(0x56, 0);
         SmdSetTrans(0x57, 0);
+        // COMPILER-DIFF: candidate #17 -- the last EstSet's two stack-argument zeros come from one
+        // pseudo set here (`li r29,0` before SmdSetTrans(0x48), callee-saved across the calls) instead of
+        // a reload-materialised `li r0,0` at the stores; its live range also orders the two CamCtrl
+        // highs (r29/r31) like the target.
+        u32 z = 0;
         SmdSetTrans(0x48, 0);
         SceAtSetEnable(0xE, 0);
         SceAtSetEnable(0xF, 1);
@@ -664,7 +672,7 @@ static void chkSwitchA()
         EffectEspDelete(0, 0xD, 0, 0);
         EffectEspgenDelete(0, 0xD, 0);
         EffectEfmDelete(0, 0xD, 0);
-        EstSet(0, -1, 0, 0, 1, 8, 0x2001, 6, 0, 0);
+        EstSet(0, -1, 0, 0, 1, 8, 0x2001, 6, z, (void*) z); // COMPILER-DIFF: candidate #17 (both 0, see `z`)
         CamCtrl.CutCall(0x19);
         while (CamCtrl.IsMotionEnd() == 0) {
             SceSleep(1);

@@ -1235,6 +1235,12 @@ static void r201_throwBonbe(int no)
     int k0;
     int k1;
     u32 i;
+    // COMPILER-DIFF: candidate #17 (global-alloc priority tie eff2 vs the pG high). `evNo` is set
+    // exactly once (case 0) and read once (SceEventStart), so update_equiv_regs folds the constant
+    // into the argument move after sched1 and deletes the set; its only effect is to take the
+    // post-RsfSet issue slot in sched1 so that eff2's `li` is issued later there (its live length
+    // drops below the high's priority), while sched2 still puts `li eff2` right after the `bl`.
+    int evNo;
 
     switch ((u32) no) {
     case 0:
@@ -1242,6 +1248,7 @@ static void r201_throwBonbe(int no)
         atNo = 4;
         eff1 = 6;
         RsfSet(G_ROOM_ID, 0);
+        evNo = 0; // COMPILER-DIFF: candidate #17 (see the declaration)
         eff2 = 1;
         eff3 = 9;
         t2 = 0;
@@ -1313,7 +1320,7 @@ static void r201_throwBonbe(int no)
     }
     k0 = EspPullCoreKind();
     k1 = EspPullCoreKind();
-    SceEventStart(0);
+    SceEventStart(evNo); // COMPILER-DIFF: candidate #17 (always 0, see the declaration)
     SceAtSetEnable(atNo, 1);
     pPL->setNoSuspend(1);
     bonbe->setNoSuspend(1);

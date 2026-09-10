@@ -13803,3 +13803,72 @@ shows the same reloc name on both sides, not code).
   the `mr r29,r30` PRE copy needs the tail's `x*8` deleted by gcse, which the isolated-occurrence rule forbids.
   MakeLoadSeqData `lhzx head,i2`: `u16* cnt = (u16*) head` locals (top / after the call / in the loop), `*((u16*) head +
   i)`, `*(u16*) ((u32) head + i*2)`: 11 (the operand order stays idx-first; `d` in-loop local 16).
+
+### Stage rooms, tagged-forms pass (st1_0 fully linked: r120 R120Event 114 -> 0; st2_3 r221/r22a/r21a Matching; r213 28/30 with EventSwitchMain 8 -> 0; r10c 19 -> 21/23 with TestPosMove 4 -> 0, chkSwitchA 71 -> 0; r225/r11b analysed; 2026-09-10)
+
+- Flipped: `st2_3/r221.cpp`, `st2_3/r22a.cpp`, `st2_3/r21a.cpp`, `st1_0/r120.cpp` (111 OK after each; st1_0 has no open
+  unit left, st2_3 only r225). r221/r120 carry a nameless `cManager<cLight>` block (`fn_*` in the split, 37/38 and 7/8 in
+  mcmp) -- compare the tail bytes with the REL24 fields masked (all nine differing words were `b`/`bl` relocs) before flipping.
+- **r120 R120Event 114 -> 0 (zero code): two sequential `if`s, the first masking with a variable (`u32 mask = 0x10; if
+  (!(pG->flags_51C0 & mask))`).** thread_jumps runs twice (toplev: before cse1 with flag_before_loop=1, and after loop before
+  cse2). With a literal mask the two flag tests are pattern-equal in pass 1 -> the first `bne` is redirected past the second
+  block before gcse, which then sees that block dominated and PREs its EvtMgr/string highs into r29/r30 (114). With `mask`
+  the `and` operand is a REG_USERVAR_P pseudo, which rtx_equal_for_thread_p never pairs -> pass 1 fails; cse1 folds the
+  constant in; pass 2 threads (`bne` -> past the s01 block, both `bne`s to one label as in the target) after gcse ran on the
+  unthreaded CFG (s01 block undominated: fresh `lis r3/r4`). The threading also merges the second test into the call block,
+  whose tail jump makes `add_branch_dependences` give `li r7/li r8` three dependents (call 1, the clobbering call 2, tail)
+  against two for `addi r3,r30,EvtMgr@l`, so sched issues the `this` add last exactly like the target. A `u32 f =
+  pG->flags` copy used in the first test blocks BOTH passes (4 words, wrong tail); `EventMgr* em = &EvtMgr` forms 6.
+- **r10c TestPosMove 4 -> 0 and r22a RopeMove 4 -> 0 (zero code): `pGS->field` for a pG read declared next to two `Vec`
+  template initializers.** The struct-view load is not a fixed scalar, so sched1 keeps it behind the template copies and
+  their word 4/8 `lwz`/`stw` pairs come out 4-then-8 (the plain `pG` load is hoisted above them and the pair flips).
+  Same lever as R119Init's third SetTree block; try it first on any "word 4/8 order" residue near a pG read.
+- **r10c chkSwitchA 71 -> 0 (tagged `candidate #17`): `u32 z = 0;` between `SmdSetTrans(0x57, 0)` and `SmdSetTrans(0x48,
+  0)`, passed as the last EstSet's two stack arguments (`z, (void*) z`).** The target's two `stw r29,8/0xc(r1)` zeros come
+  from one callee-saved pseudo set ~15 calls earlier; ours materialised `li r0,0` at the stores (the arg pseudo was born at
+  the stores, local-alloc gave it r0). The early single-set pseudo (REG_EQUIV 0, two uses, crosses calls) goes to global
+  alloc and takes r29 once the first CamCtrl high dies; its presence also swaps the two CamCtrl highs (r29/r31) into the
+  target's order. Declared at the block top (`z_top`) it is 175: the position of the set is the lever, not the variable.
+- **r221 throwBonbe 18 -> 0 (tagged `candidate #17`): `int evNo;` set once in `case 0` (`evNo = 0` right after RsfSet)
+  and read once by `SceEventStart(evNo)`.** update_equiv_regs folds the constant into the argument move after sched1 and
+  deletes the set; its only effect is to occupy the post-RsfSet issue slot in sched1 so eff2's `li` is issued later there
+  (live length below the pG high's priority -> r21/r22 order), while sched2 still puts `li eff2` right after the `bl`.
+  `int evNo = 0` at the declaration or the set after `eff2 = 1` do not reach it.
+- **r21a FallRoofDie 66 -> 0 (zero code): `for (;;)` with the exit `if (obj->pos.y <= -1500.0f) break;` before SceSleep,
+  and `f32 spd = (f32) no + 20.0f` declared BEFORE the two Vec templates.** A real loop (rotated by expand_end_loop) puts
+  the `mr r27,r29; mr r26,r30` PRE copies in the preheader after SndCall; the goto form hoisted them into the prologue.
+  `spd` first decides local-alloc's r29/r28 order for `&camAt`/`&obj->pos`.
+- **r213 EventSwitchMain 8 -> 0: literal constants in the rotation loop (`+ 0.06981317f`, `>= 1.5707964f`), `do { }
+  while (0);` after it (tagged `#12`: the 1.5707964 store below reloads the pool, not the hoisted register) and a dead
+  `if ((int) pG->flags_174 < 0) o41 = 0;` inside the `while (CamCtrl.IsMotionEnd() == 0)` poll (tagged `candidate #17`).**
+  loop.c hoists the step pair and the limit's `lfs`; the limit's `lis` is gcse's PRE copy (its high also occurs after the
+  loop), so the preheader is `lis lim; lis step; lfs step; lfs lim`. The dead test's in-loop pG read is a fourth,
+  loop-weighted ref of the PRE'd pG high and breaks its priority tie with the RoomData high (r28/r27). gcse hash buckets:
+  table size `(n_insns/2)|1`, symbols hashed by name (`h = h + (h<<7) + c`), bucket order = PRE pseudo numbering = the
+  allocation tie-break (T=117, C=7933 for this function). StatusSetChain (7: local-alloc needs 0.8 > 50 > 0.1 > 0.0 with
+  the 0.0 span > 1.5x the others; 120 store permutations >= 7) and Init (14: the `&rot` PRE copy must precede the memset
+  call; regmove's optimize_reg_copy_1 stops at CALL_INSNs under flag_exceptions; no `__builtin_memset` in this g++) open.
+- **r11b Init (14) open: `pos = static_const_vec;` (assignment) gives template loads WITHOUT /u; only `Vec pos =
+  static_const;` (initialization) or a `(Vec)` cast (which adds a temp copy) gives `mem/s/u`.** Without /u the loads carry
+  WAR dependences on the twice-set r29/r30 frame pointers (alias.c drops a hard reg's base on its second set).
+- **r225 operateCrank 77 (open, two independent residues).** (a) Layout: `while (1) { ... if (!(SmdGetObjPtr(0x27)->pos.x
+  < 800.0f)) { gnd_open(); break; } pos.x += ...; ...; SceSleep(1); }` reproduces the target's `bl gnd_open; b after`
+  block between the arms of the final RsfCheck if/else (jump.c's "if (foo) bar; else break;" range swap needs the break
+  block to end in a jump that is not to the next insn, which the do/while `else { gnd_open(); break; }` form loses in
+  round 1). (b) The 2^52 unsigned-conversion magic: loop.c pass 2 hoists `lis/lfd` when `T*2*2 >= insn_count` with
+  T = 1 + n_non_fixed_regs = 68..70 here (bounded from the dump: 260 insns move two pairs and not the third) and -3 per
+  `move_insn` movable moved earlier in the same pass; ours is 262 (do/while) / 260 (the layout form) real insns in pass
+  2, the target needs >= 281 or two movables ahead of it. Pass 1 shrinks the loop by 18: 3 movables + 15 gcse PRE copies
+  `X = PREreg` (REG_EQUAL high) substituted away. Per-case `max = *(u16*) mot` duplication gets 274 but changes the
+  tail (`lhzx`); duplicating the whole conversion per case (309) blocks the hoist but scrambles allocation. The
+  `-dL` dump lists both passes ("Loop from A to B: N real insns", one listing per pass); use it before guessing.
+  SceElevator_r225 (285) not iterated.
+- **r10c SetEmHitAtari 95 (open): the target loads 0.01/0.05/0.06 (f26/f28/f27) in the block ending with the RsfCheck(14)
+  call, yet their pool entries follow all six YarareInitCube constants of the then-arm** (pool order is creation order:
+  spd sets before the `if` give `.rodata DIFFER`; after the if/else, too). 2.95 PRE is PAV-gated -- occurrences in sibling
+  arms are never partially redundant, so neither the `lfs` nor the `high` is hoisted from two arm starts (ours keeps a
+  copy per arm), and calls kill every MEM's transparency (`mem_set_in_block`, no RTX_UNCHANGING_P exception). Wrapping
+  the ifs in an outer `for (;;)` (loop.c preheader) moves the highs to P but not the loads (120). Mechanism unknown;
+  hako_down (37) is the operateCrank loop-count family (-100.0 hoisted at 260 insns).
+- Harness gotcha (rooms_c8): `mdump.sh MOD/UNIT` compiles `src/MOD/UNIT.cpp`, which does not exist for rooms (sources
+  live in src/st1, src/st2); without `SRC_OVERRIDE=src/st1/rNNN.cpp` it exits after cpp and the previous dump is read.

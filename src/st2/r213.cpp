@@ -838,12 +838,13 @@ static void R213EventSwitchMain()
         obj = SmdGetObjPtr(0x1E);
         if (obj) {
             SndCall(6, 0, &obj->pos, 0, 0, 0);
-            f32 step = 0.06981317f;
-            f32 lim = 1.5707964f;
 
+            // Literal constants: loop.c hoists the step pair and the limit's `lfs`, while the
+            // limit's `lis` is gcse's PRE copy (its high is also computed after the loop), so the
+            // preheader is `lis lim; lis step; lfs step; lfs lim` like the target.
             for (;;) {
                 Vec a;
-                f32 rx = obj->rot.x + step;
+                f32 rx = obj->rot.x + 0.06981317f;
                 f32 ry = obj->rot.y;
                 f32 rz = obj->rot.z;
 
@@ -851,12 +852,13 @@ static void R213EventSwitchMain()
                 a.y = ry;
                 a.z = rz;
                 obj->setAng(&a);
-                if (!(obj->rot.x >= lim)) {
+                if (!(obj->rot.x >= 1.5707964f)) {
                     SceSleep(1);
                 } else {
                     break;
                 }
             }
+            do { } while (0); // COMPILER-DIFF: #12 (the 1.5707964 store below is reloaded, not the loop's hoisted register)
             {
                 Vec a;
                 f32 ry = obj->rot.y;
@@ -896,6 +898,12 @@ static void R213EventSwitchMain()
             R213BridgeAngMove(0, r213_work.p->ang + 0.0017453294f);
             while (CamCtrl.IsMotionEnd() == 0) {
                 SceSleep(1);
+                // COMPILER-DIFF: candidate #17 -- dead test (o41 is not read again; jump2 deletes the
+                // compare/load). Its in-loop pG read is a 4th, loop-weighted ref of the PRE'd pG high,
+                // which breaks the equal-priority tie with the RoomData high in the target's favour (r28/r27).
+                if ((int) pG->flags_174 < 0) {
+                    o41 = 0;
+                }
             }
             SceSleep(20);
         }

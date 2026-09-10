@@ -77,20 +77,17 @@ void R22aMain()
 // Areas 2 / 3: Leon climbs down (side 0) or up (side 1) the rope.
 static void r22a_RopeMove(int side)
 {
-    // OPEN: the two word loads of the ang copy come out swapped (same in r10c_TestPosMove).
-    // Mechanism (sched1 dump): the word-8 load is the last use of the `addi` base pseudo, so its
-    // register weight is 0 against +1 for the word-4 load and haifa's pressure tie-break issues it
-    // first (both copies come out 0,8,4 in sched1; sched2 re-sorts the pos copy to 0,4,8 through
-    // the r10/r7 anti-dependence chains but not the ang copy). The original issues 0,4,8 here and
-    // 0,8,4 in r40f BombSet's second copy, so its tie-break is not the weight rule. Keeping the base
-    // live (`asm volatile("" :: "b"(&r22a_ropeAng))`) flips the loads but also the stores.
+    // The ang copy's word order (4 before 8) is decided in sched2 by the `flags` load below: read
+    // through the struct view, the pG load is not a fixed scalar, so the frame stores of the copy
+    // conflict with it and the word-4 store chain gets the same priority as the word-8 one (whose
+    // r9 is reused by that load); the tie then falls to the dependents count / source order.
     static const Vec r22a_ropePos = {5634.0f, 51500.0f, -32822.0f};
     static const Vec r22a_ropeAng = {0.0f, -1.5707964f, 0.0f};
     Vec pos = r22a_ropePos;
     Vec ang = r22a_ropeAng;
     Vec out;
     cPlayer* pl = pPL;
-    u32 flags = pG->flags_170;
+    u32 flags = pGS->flags_170;
     cObj* obj;
 
     KeyStop(0xEFCF0000ULL);

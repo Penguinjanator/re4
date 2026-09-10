@@ -659,6 +659,7 @@ MATCHING = {
     "st2_0/r207.cpp": True,
     "st1_0/st1.cpp": True,
     "st1_0/r100.cpp": True,
+    "st1_0/r120.cpp": True,
     "st1_1/st1.cpp": True,
     "st1_2/st1.cpp": True,
     "st1_3/st1.cpp": True,
@@ -690,6 +691,9 @@ MATCHING = {
     "st2_3/r224.cpp": True,
     "st2_2/r214.cpp": True,
     "st2_3/r223.cpp": True,  # reva_common_move: FP-before-mode definition under the mangled name (COMPILER-DIFF #8)
+    "st2_3/r221.cpp": True,  # throwBonbe: single-set `evNo` slot filler for the eff2/pG-high r21/r22 tie (COMPILER-DIFF candidate #17)
+    "st2_3/r22a.cpp": True,
+    "st2_3/r21a.cpp": True,
     "st2_4/st2.cpp": True,
     "st4_0/st4.cpp": True,
     "st4_0/r410.cpp": True,
