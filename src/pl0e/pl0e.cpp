@@ -31,6 +31,10 @@
 #include "math_sub.h"
 #include "db_log.h"
 
+// The module's 0x34-byte COMMON block (st_room.h): uninitialised template statics of the original
+// object, appended to .bss by snmakerel.
+asm(".comm common_pl0e,52,4");
+
 extern "C" void OSReport(const char* fmt, ...);
 extern void (*EmInitFunc)(cEm* em);              // game/em.cpp
 extern void (*BoatMoveFunc)(cPlayer* pl);        // game/player.cpp (pl_R1_Boat calls it)
@@ -218,8 +222,8 @@ static void pl0e_R0_Init(cPl0e* em)
     w->flags = zero;
     w->cnt68 = 0x1D;
     w->sink = 96000.0f;
-    w->pRailObj = 0;
-    w->spdX = 0.0f;
+    // pRailObj / spdX are written LAST: they are the last uses of the shared zero (r28) and 0.0 (f31),
+    // so sched1 issues them first (dying source) and the target's block order comes out (weight model).
     w->roll = 0.0f;
     w->pitch = 0.0f;
     w->rollPhase = 0.0f;
@@ -243,6 +247,8 @@ static void pl0e_R0_Init(cPl0e* em)
     w->ofs.x = 0.0f;
     w->ofs.y = 0.0f;
     w->ofs.z = 0.0f;
+    w->pRailObj = 0;
+    w->spdX = 0.0f;
     w->floorY0 = em->pos.y;
     w->floorY1 = em->pos.y;
     w->pWave = SetObj00((void*) (pGS->pArc->ofs_20 + (u32) pGS->pArc), (void*) (pGS->pArc->ofs_24 + (u32) pGS->pArc), 0, 0);
@@ -707,7 +713,10 @@ void cPl0e::setRide()
         xFD = 1;
         xFE = 0;
         xFF = 0;
-        pl->pBoat = this;
+        // Reference store: the pPL reload of PlRoutineSet then depends on it (cost 2) and is not
+        // ready when the BoatMoveFunc store is, so sched1 issues that store first and the
+        // PlBoatMove address dies before the reload is born (both r9; the zero takes r10).
+        PSet((void*&) pl->pBoat, this);
         BoatMoveFunc = PlBoatMove;
         PlRoutineSet(pPL, 0, 0xF, 0, 0);
         if (pSUB) {

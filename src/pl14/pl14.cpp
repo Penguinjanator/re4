@@ -4,6 +4,7 @@
 // empty `case 2:`; cAnalysis::move's scan is a while loop with the scan in its condition.
 
 #include "atari.h"
+#include "atari_init.h"
 #include "light.h"
 #include "pl14.h"
 #include "pl_npc.h"
@@ -42,6 +43,8 @@ u16 MotionMoveF(cModel* m, int flag) asm("MotionMove");
 #define OEM ((cEm*) owner)
 #define LITEM ((LuisItemWork*) work)
 static inline void U32And(u32& d, u32 m) { d &= m; }
+// Reference store: a MEM with neither the struct nor the scalar flag keeps a following member load below it.
+static inline void PSet(void*& d, void* v) { d = v; }
 
 static inline void RoutineSet(cSubLuis* o, int r0)
 {
@@ -85,7 +88,6 @@ void (cRoutine::*cRoutine_move_tbl[18])() = {
 static int luisBlink = 0;        // frames to the next eye shift
 static int luisUnused = 0;       // never read (the second .data word)
 
-static int luisEyeTimer;         // eyelid animation frame
 static cMot3Rate luisEye;        // [0] current eye yaw, [1] target, [2] mix
 
 static void LuisInit(cEm* em)
@@ -106,23 +108,24 @@ cSubLuis::cSubLuis()
     flags = 0;
     pFootShadowTbl = pl_fs_tbl;
     subSelf = this;
-    luisEye.r[0] = 0.0f;
-    luisEye.r[1] = 0.0f;
-    luisEye.r[2] = 0.4f;
     pSUB = (cSubChar*) this;
+    luisEye.r[0] = luisEye.r[1] = 0.0f;   // chain: r[1] first in RTL, the 0.0 dies at r[0] (issued first)
+    luisEye.r[2] = 0.4f;
 }
 
 cSubLuis::~cSubLuis()
 {
     ObjMgr.destroy(pItem);
-    pSUB = 0;
+    PSet((void*&) pSUB, 0);   // the inlined ~cUnit's be_flag load stays below the store
 }
 
 // The light info origin both models use (one static: the inline is expanded where it is defined).
-static inline void LuisLightInit(cModel* m, int a, int b, const Vec* size, int c)
+// A helper that RETURNS the address keeps the init2 argument order (`&zero` evaluated before `&size`);
+// a helper taking `size` by pointer evaluates the parameter copy first (embarrel idiom).
+static inline const Vec* LuisLightZero()
 {
     static const Vec zero = { 0.0f, 0.0f, 0.0f };
-    m->lightInfo.init2(a, b, &zero, size, c);
+    return &zero;
 }
 
 void cSubLuis::init()
@@ -130,8 +133,9 @@ void cSubLuis::init()
     static const Vec p1 = { 1000.0f, 1000.0f, 0.0f };
 
     x12D = 1;
-    LuisLightInit(this, 0, 1, &p1, 0x40);
-    atari.init(1, 0x1000, 10, 0.0f, -200.0f, 0.0f, 300.0f, 200.0f, 400.0f, 900.0f);
+    lightInfo.init2(0, 1, LuisLightZero(), &p1, 0x40);
+    // COMPILER-DIFF: #1 (FPR argument moves before the int `li`s)
+    atariInitF(&atari, 0.0f, -200.0f, 0.0f, 300.0f, 200.0f, 400.0f, 900.0f, 1, 0x1000, 10);
     {
         cSubLuis* s = subSelf;
         s->lockParts = 4;
@@ -143,7 +147,7 @@ void cSubLuis::init()
     hp = hpMax = 0x4B0;
     dmgCnt = 5;
     be_flag |= 0x2000000;
-    lifeOld = pG->pl_life;
+    lifeOld = pGS->pl_life;   // struct view: the pG load does not wait for the dmgCnt byte store
     voiceWait = 0;
     cnt = 0;
     x38D = 0;
@@ -221,7 +225,7 @@ void cSubLuis::think()
         if (xFC == 4) action.set(6);
         else action.set(5);
         flags &= ~1;
-        analysis.flags &= ~2;
+        analysis.flags &= ~4;
     } else {
         af = analysis.flags;
         if (af & 0x10) {
@@ -272,9 +276,14 @@ int cSubLuis::rackCheck()
 {
     static const Vec rackPos = { 107455.0f, 4.0f, -47540.0f };
 
+    // Pool order (dist before zlim) and, with zlim a const local, the pos.z load is issued before the
+    // pool `lis` (the rack pointer's r9 is then reused for the high half, pos.z lands in f0).
+    const f32 dist = 9000000.0f;
+    const f32 zlim = -49000.0f;
+
     if (rack[0]->hp <= 0) return 0;
-    if (rack[0]->pos.z < -49000.0f) return 0;
-    if (GetDistance(&pos, (Vec*) &rackPos) > 9000000.0f) return 0;
+    if (rack[0]->pos.z < zlim) return 0;
+    if (GetDistance(&pos, (Vec*) &rackPos) > dist) return 0;
     analysis.flags |= (u8) 0x80;
     return 1;
 }
@@ -469,6 +478,7 @@ void cRoutine::moveWepFire()
 {
     Vec d;
     f32 a;
+    const f32 lim = 0.19634955f;   // pool order: the fabsf limit precedes Muku's PI/8
 
     switch (owner->xFD) {
     case 0:
@@ -489,7 +499,7 @@ void cRoutine::moveWepFire()
         a = Muku(&owner->pos, &pTarget->pos, owner->rot.y, 0.3926991f);
         owner->rot.y += a;
         owner->motionMove();
-        if (fabsf(a) < 0.19634955f) owner->xFD = 2;
+        if (fabsf(a) < lim) owner->xFD = 2;
         break;
     case 2:
         if (!isTarget(owner, pTarget)) {
@@ -552,7 +562,7 @@ void cRoutine::moveThrowItem()
         owner->xFD = 1;
     case 1:
         if (MotionCheckCrossFrame(&owner->mot, 18.0f)) setItem();
-        if (!(owner->frame > 30.0f)) {
+        if (owner->frame <= 30.0f) {
             owner->rot.y += Muku(&owner->pos, &pPL->pos, owner->rot.y, 0.31415927f);
         }
         if (owner->motionMove()) end();
@@ -583,7 +593,7 @@ void cRoutine::moveDown()
         }
         break;
     case 2:
-        rate *= PI / 2;
+        FSet(rate, rate * (PI / 2));   // reference store: the pPL load stays below it
         a = Muku(&owner->pos, &pPL->pos, owner->rot.y - rate, 0.31415927f);
         rate = (rate - a) / (PI / 2);
         if (rate > 1.0f) rate = 1.0f;
@@ -822,6 +832,7 @@ void cAction::moveGo2F(cAnalysis* an, cRoutine* rt)
 {
     static const Vec stairPos = { 112500.0f, 1247.0f, -46690.0f };
     static const Vec upPos = { 112160.0f, 3182.64f, -51016.84f };
+    const f32 lowY = 2500.0f;   // pool order: the player-height limit precedes the 1000.0 distance
 
     switch (step) {
     case 0:
@@ -830,7 +841,7 @@ void cAction::moveGo2F(cAnalysis* an, cRoutine* rt)
             rt->dist = 1000.0f;
             if (!(an->flags & 0x20)) {
                 an->flags |= 0x20;
-                if (pPL->pos.y < 2500.0f) rt->voice.set(0x58, 2, 60);
+                if (pPL->pos.y < lowY) rt->voice.set(0x58, 2, 60);
             }
             step = 1;
         }
@@ -1065,13 +1076,15 @@ int cAction::chasePlAreaCheck()
 
 void cAnalysis::init(cSubLuis* o)
 {
+    // Store order from the weight model: cnt is the zero's last use (issued first of the zero stores),
+    // the byte RMW of flags comes last in source.
     owner = o;
-    idx = 0;
-    plDist = 1000000.0f;
-    cnt = 0;
-    pTarget = 0;
     targetDist = 0.0f;
-    flags &= ~4;
+    pTarget = 0;
+    idx = 0;
+    cnt = 0;
+    plDist = 1000000.0f;
+    flags &= ~8;
 }
 
 // A door enemy between the two points.
@@ -1106,7 +1119,9 @@ void cAnalysis::move()
         }
     }
     idx = i;
-    found = em;
+    // COMPILER-DIFF: register tie (global-alloc priority): the loop notes count em's refs double, so em
+    // (r30) is allocated before `this` (r29) like the original.
+    do { found = em; } while (0);
 scanned:
 
     if (pTarget && !isTarget(owner, pTarget)) pTarget = 0;
@@ -1127,7 +1142,7 @@ scanned:
     aimCheck();
     if (cnt % 1800 == 0) flags |= 8;
 
-    switch (greThrowCheck()) {
+    switch ((u32) greThrowCheck()) {   // unsigned range tests (cmplwi), the EQ tests stay cmpwi
     case 0x13:
         if (greCnt & 0x80) {
             greCnt = 0;
@@ -1205,7 +1220,7 @@ void cRoutine::shot()
     p.y = 1600.0f;
     p.z = 500.0f;
     PSMTXMultVecSR(owner->mat, &p, &p);
-    PSVECAdd(&owner->pos, &p, &p);
+    PSVECAdd(&p, &owner->pos, &p);
     t = pTarget->getPartsPtr(pTarget->lockParts)->worldPos;
     hp = owner->hp;
     owner->hp = 0;
@@ -1317,7 +1332,7 @@ void cSubLuis::equipWeapon()
         pItem->modelInit(SUBARC(0x38 / 4), SUBARC(0x3C / 4));
         pItem->atari.flags &= 0xFCFF;
         pItem->pParts->pParent = getPartsPtr(10);
-        LuisLightInit(pItem, 1, 1, &p1, 1);
+        pItem->lightInfo.init2(1, 1, LuisLightZero(), &p1, 1);
         pItem->wep.parent = this;
     }
 }
@@ -1332,6 +1347,7 @@ void cSubLuis::endDamage()
 
 void cSubLuis::moveEye()
 {
+    static int luisEyeTimer;   // eyelid animation frame; a function-local static so it precedes the ctor'd luisEye in .bss
     cModel* p = getPartsPtr(0x1C);
     u8 r;
 
@@ -1398,11 +1414,12 @@ void cSubLuis::neckSet(f32 ang, f32 limit)
 void cSubLuis::neckMove()
 {
     cModel* p;
+    const f32 spd = 0.62831855f;   // pool order: the turn speed precedes the 0.0
 
     if (flags & 8) {
         flags &= ~8;
     } else {
-        neckAng += Muku2(neckAng, 0.0f, 0.62831855f);
+        neckAng += Muku2(neckAng, 0.0f, spd);
     }
     p = subSelf->getPartsPtr(3);
     ((cParts*) p)->motParts.flags |= 0x40000000;
@@ -1429,7 +1446,7 @@ void cVoice::set(int mesNo, u16 seNo, int time)
     }
     if ((s16) pG->pl_life > 0) {
         sndId = SndCall(8, seNo, &pSUB->pParts->worldPos, pSUB->id, 0, 0);
-        cMes.MesSet(mesNo, 100, 336 - cMes.getWork()->fontH - cMes.getWork()->lineSpace - 1, 0x1000051, 0, 0, 4);
+        cMes.MesSet(mesNo, 100, 336 - cMes.getWork()->lineSpace - cMes.getWork()->fontH - 1, 0x1000051, 0, 0, 4);   // fold swaps the two subtrahends
     }
     timer = time;
     on = 1;
@@ -1458,7 +1475,9 @@ int stairCheck(cModel* m)
 
 int sameFloorCheck(cModel* a, cModel* b)
 {
-    return fabsf(a->pos.y - b->pos.y) < 1000.0f;
+    const f32 lim = 1000.0f;   // the pool `lis` is expanded here, above the fabsf barrier
+
+    return fabsf(a->pos.y - b->pos.y) < lim;
 }
 
 void luisItemInit(cObj* obj)

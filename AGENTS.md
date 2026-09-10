@@ -2401,10 +2401,11 @@ target) stays unresolved and `make_rel` then fails with "undefined symbol".
   pG@ha`, see its item); ss_item is written (34 functions incl. dtors, 30 byte-identical,
   .rodata/.data/.bss identical), open items below; ss_term (29/29 named functions, eof block open)
   and ss_model (46/47, wep09Init = compiler-build difference 6) are written, see their items; ss_map (src/Sscrn/
-  ss_map.cpp, 88/105 named functions byte-identical, .rodata/.data/.bss identical since 2026-09:
+  ss_map.cpp, 102/105 named functions byte-identical after the fourth pass (2026-09-10; open:
+  mapColor, mapPositionCheck, mapModelInit, see the pass item), .rodata/.data/.bss identical since 2026-09:
   the former 8-byte gap was doorModelInit's missing 2^52 pool entry (`(f32) (int) e->ang` of the u8
   angle, the classic double trick, not a fast-cast psq_l) plus the two file-scope `static const`
-  tables in the wrong order (map_cam_entire is defined before mark_model_tbl); see its item) and ss_pzzl (src/Sscrn/ss_pzzl.cpp, 45/64, .rodata/.data/.bss identical, second pass) are
+  tables in the wrong order (map_cam_entire is defined before mark_model_tbl); see its item) and ss_pzzl (src/Sscrn/ss_pzzl.cpp, 54/64 after the third pass, .rodata/.data/.bss identical) are
   written; ss_shop (src/Sscrn/ss_shop.cpp, the merchant screen: 64/74 functions byte-identical incl.
   the 0x980 eof block, .rodata/.data/.bss identical, .text 16 bytes short) is written, see its item.
 - ss_shop idioms (2026-09): include order light.h, map_obj.h, widget.h (the three header strings), then
@@ -2512,12 +2513,83 @@ target) stays unresolved and `make_rel` then fails with "undefined symbol".
   top and no trailing return (the surviving `return 0` copy is stage 3's inner default). `(x &
   (1 << n))` folds to `sraw/andi.`; `u32 bit = 1 << no;` keeps `slw/and.` (mapModeCheck). The
   8-float `f32 tbl[8]` .data statics are debug camera presets of which only [0] is read.
-  Open: mapPositionCheck (-0x1C: the two cSat locals' ctor stores / debug-draw block layout),
-  mapColor (+0x14 frame spills), doorModelInit (-0x30), mapModelInit/markGoalPosition/
-  markMerchantPosition/markTreasureExist/markCoinDisp/markTreasureDisp (register allocation of
-  the table copies), zoomMove (target has 8 more bytes of frame + one more callee-saved reg),
-  mapChangeViewport (`map_vp_init = 1` store slot), MapModeSelect::init/move (timer store order,
-  `lwz pG` placement), SsMapInit/SsMapMain::move (+8/+4).
+  Fourth pass (2026-09-10, 88 -> 102/105; harness /tmp/ssw6: try.sh = cc.sh + fdiff3 per function,
+  var.py = source-variant loop with bcmp's per-function verdict, dump.sh + fnd.sh for the cc1plus
+  dumps; NOTE fdiff3's LEFT column is the split object = target, RIGHT = ours):
+  - zoomMove: `CameraParam* from = &m->from; CameraParam* to = &m->to;` pointer locals (a user
+    variable pseudo is not combined into the `addi r3` of the call and sched1 hoists it above the
+    first call into r30 with `mr r3, r30` uses; the inline `&m->from.pos` is combined into `addi r3,
+    m, 4024` after the call) and `memcpy((u8*) pG + 0x138, &up, sizeof(Vec))` for `pG->Cam.up = up`
+    (byte-pointer destination: the store may alias pG, which is reloaded for the next call).
+  - mapChangeViewport: `static int map_vp_init[1]` (the one-element array of the SsFileInit idiom):
+    the in-struct `map_vp_init[0] = 1` store is ordered against the `vp` frame copy's loads and is
+    issued between `vp.x` and `vp.y`; a plain scalar store has no dependence and sinks to the end.
+  - mapPos2screenPos: `f32 ang = fovy * 0.5f * 0.017453292f;` BEFORE `az = fabsf(out->z)` (the
+    puzzlePos2screenPos idiom) and BOTH scale factors into locals (`kx = pMapWk->sw * 0.5f / w; ky =
+    pMapWk->sh * 0.5f / h;`) before the `out->x *=` store (the store through `out` forces a `pMapWk`
+    reload otherwise); `out->x += cx; out->y += cy` stay member reads (reloaded per statement).
+  - The flag-table helpers are written index first: `*(u32*) ((no >> 5) * 4 + tbl) & (0x80000000 >>
+    (no & 0x1F))` with `tbl = (u32) &pG->flags_51BC` / `(u32) pG->door_unlock` / `(u32) pG->item_flags`
+    (`addi rT, pG, 0x51bc; lwzx r0, rIdx, rT`: index register first, the same shape for all three
+    tables so jump2 cross-jumps the flagType 1/2 arms of doorModelDisp; the `pG->door_unlock[i]`
+    array form gives `lwzx rT, rIdx` and the cast `((u32*) &pG->flags_51BC)[i]` folds the offset into
+    the load displacement).
+  - markMerchantPosition: `n = ..; tbl = ..;` (n before tbl in every case -> n r6, tbl r7), `if (idx
+    != -1) {..} else return 0;` (the `li r3,0; b END` block out of line after the arm), and BOTH arms
+    end with `*pos = p->pos; return 1;` (jump2 cross-jumps arm 1's `bl getPartsPtr` + tail into arm
+    2's; with a shared tail after the if/else the else-arm's call ends its block, flow appends `use
+    (const_int 0)` and only the tail after the call merges); the else arm is `cModel* mdl =
+    m->pMerchant; if (no < mdl->nParts) { p = mdl->getPartsPtr(no); *pos = p->pos; return 1; } return
+    0;` (jump2's `x = a; goto l; x = b` rule hoists the `li r3,0` above the compare because the
+    fall-through block starts with `mr r3, mdl`).
+  - markGoalPosition: the four `int[1]` singletons for areas 8/15/16/17 are `{0}` (the target stores
+    the loop counter register, known 0 after the st1 copy loop, into them) and `int none[1] = {0}` is
+    declared FIRST (its `li r0,0; stw` precedes the copy loop; the others come after it and reuse
+    the counter); `SsMapWork* m = wk->pMapWk` local (one load kept in r3 across the stageFlag loop).
+  - markTreasureExist: `u8 st4d[12]` (the 13th 0 byte was .rodata padding; the copy is 3 words).
+  - markTreasureDisp / markCoinDisp: block-scoped `for (int i ...)` counters per loop and the
+    `u->flags &= ~8; u2->flags &= ~8;` hide statements duplicated into BOTH else arms instead of a
+    `continue` to a shared tail (the extra refs at flow time give `u` the top priority (r31) over
+    `&scr`, and the longer loop keeps IdNum's `lis` below IdSub's in priority; jump2 cross-jumps the
+    copies away).
+  - MapModeSelect::init: `pGS->flags_51C0` (struct view) keeps the `lwz pG` below the four timer
+    stores. MapModeSelect::move: the Key.trg tests are `if (trg & A) { switch (modeSel) { case 0: ..;
+    return; case 1: ..; return; } } if (trg & B) {..} else {..}` (the switch's fall-out reaches the
+    second test, so its label has two uses and cse reloads Key.trg there); `mapModeCheck/Change(SUB_
+    SCREEN*, s8 no)` (the int `i` is `extsb`'d at the call); the cursor clamp is `m->modeCursor =
+    m->modeCursor < 0 ? 3 : (m->modeCursor > 3 ? 0 : m->modeCursor); if (old != m->modeCursor)`
+    (the ternary is expanded straight into the QI member store: `mr r9, r11` of the raw byte, `li
+    r9, 0/3`, one `stb`, and the compare re-extends the stored register `extsb r0, r9`).
+  - SsMapInit::move: `SS_ARC_PTR(wk->pCmmn, 0xC)`, `static int map_wait[1]` with `map_wait[0] = 0`
+    (the switch register, known 0 in case 0, is the stored value: `stw r30`) and its own `state++;
+    break;` in case 0 (the `lis` gets r11), `FadeSetW(0x80000000, 5, 0, 0)` (fade.h) for the colour
+    pair (frame 8/12; `result`/`size` at 16/20).
+  - SsMapMain::move: `Widget<SUB_SCREEN>* w = cur; w->move(wk); cur = w->cur;` (cur kept in r30
+    across the virtual call), `mapModelDisp(SUB_SCREEN* wk)` (unused parameter, the caller passes
+    wk) and the exit body `wk->x34 |= 4; transit(4, wk);` written in BOTH Key.trg arms (type == 2 /
+    else) instead of a `goto EXIT` (jump2 merges the copies; the surviving copy is the else arm's).
+  - doorModelInit: `e[i].parts` / `e[i].ang` indexed off the table base (no `e++`): the target has
+    the `i*5` giv (`lbzx rParts, rGiv, rTbl`) plus a separately reduced pointer for `.ang` (`lbz
+    1(rP)`), which the stepping-pointer form folds into one; mapModelLight stores `x135 = 2; x12F = 3`
+    in that order (`li r9,2; li r0,3; stb 303; stb 309`).
+  - mapModelInit: block-scoped `int n = mapRoomNum(..); int j;` per outer loop (j r28, n r22/r31),
+    the floor index `mdl->getPartsPtr(0)->mat[1][3] / 100.0f + 0.5f` (not `pos.y`), `wk->mapFloor =
+    (s8) (y + 0.5f)` / `(s8) (y - 0.5f)` per arm (no `y +=`), and `pLog.p->warn(..)` (the member read:
+    `lis; lwz` adjacent, so loop.c leaves the `lis` inside the 72+-insn colour loop where the
+    `operator->` form's `lis; addi; lwz` has lifetime 3 and is hoisted).
+  Open (ss_map): mapModelInit (one register: the hoisted `j + 1` increment is r4 in the target, r11
+  in ours - alloc order r0, r9, r11, .. with only 0/1/9 conflicting), mapColor (+0x14: the spill
+  slots of the 17 table addresses rotate (gcse hash order) and the target keeps ONE `lis pG@ha`
+  pseudo (r29) across the `checkPassed` call for the three stageFlag tests while ours reloads it),
+  mapPositionCheck (register allocation only: the target constructs satA (frame 200) fully
+  r1-relative (`stw 0,200(1); stw 11,208(1); stb 10,242(1)`) but satB (frame offset 0) with the
+  vptr stores through the `this` pseudo r27 and the member stores r1-relative, and keeps that pseudo
+  to the destructor (`mr r14, r27`); ours has `this` pseudos for both ctors' `flags = 0` byte stores;
+  the `idx = -1` is set before the `if (multi)`, `poly = satB.poly; ... i++, poly++` pointer giv in
+  the hit loop, `poly = satB.poly; poly += idx;` for both `&satB.poly[idx]` (a reassigned pointer
+  keeps `lhz 0(rP)` where `&tbl[idx]` gives the `lhzx rBase, rOfs` index form), and no explicit
+  `be_flag = 1` after the ctors (the ctor already stores it; with the extra stores the value lives
+  in a callee-saved r27 and is stored twice)).
 - ss_pzzl notes (first pass, 2026-09): pzlBoard+0xC is a Mtx (puzzle.h `mat`, the board -> world
   matrix caseModelMove sets); the grid cell size is a static member of a local class
   (`pzlGrid::size`, the first word of the module's COMMON block, set to 100.0 by caseModelMove);
@@ -2564,13 +2636,74 @@ target) stays unresolved and `make_rel` then fails with "undefined symbol".
   `IdUnit* u`; itemCommandType's case 6 keeps an `int id = item->id` with `switch ((u16) id)` and
   calls `itemCombineCheckI` (item.h int view, COMPILER-DIFF 4) on both paths (an asm-labelled
   alias never cross-jumps with the plain declaration: the symbol_ref string differs). numDisp calls
-  use the `numDispI` int view (no `clrlwi` of `0x40 + i`). Open: PieceCommand::move (-0x98: the
-  nested `command_id` switch tables), PieceCombine::move (-0x10), PieceSelect/PzzlThinking::move,
-  SsPzzlMain::init/move/quit, SsPzzlInit::move, pieceTblInit (the `piece_info` id switch tree),
-  pieceModelOrientation, pieceFrameDisp, getPieceVertex, pieceModelDisp (`&scr` PRE'd, COMPILER-
-  DIFF 3), pieceModelInit, pzzlCursorDisp (+4: `lwz r0,0x2b0; mr r3,r0` where the target loads
-  `this` into r3 after the `mr r30,r3` col copy), setCommandId, itemCommandType (`lhz r0; mr r3,r0;
-  clrlwi` of the raw u16 pass).
+  use the `numDispI` int view (no `clrlwi` of `0x40 + i`).
+  Third pass (2026-09-10, 45 -> 54/64):
+  - setCommandId: `u8 t = 0x1D; if (lang == 0) t = 0x1C;` (`li 28,29; beq; li 28,28`; the ternary
+    hoists the other constant).
+  - itemCommandType: case 6 reads `item->id` directly in the inner `switch` and in
+    `itemCombineCheckI(item->id)` (no `int id` local), the inner cases in the order `case 8 ... 0xA:
+    return 8; case 0x19: case 0x1C: case 0xA8: return 3;` (with the `return 3` group first the last
+    compare is inverted into `bne DEFAULT; b RET3`; the target keeps `beq RET3; b DEFAULT`), and both
+    combine checks as `if (itemCombineCheckI(..) == 0) return 4; return 5;` (`li r3,4` hoisted, `beq
+    END; li r3,5`).
+  - pieceTblInit: the loop is `PieceInfo* tbl = piece_info; for (i = 0; tbl[i].id != 0xFFFF; i++)`
+    with `tbl[i].id` read at every use (the target has the `i*120` giv `lhzx r0, rGiv, rTbl`, a
+    separate store pointer and re-reads the id in the default arms; the `p++` pointer form gets one
+    `lhzu` biv plus a gcse PRE copy of the id), the mdl group for 1 is `case 1 ... 2: case 0xE:`
+    (not 0xB..0xE: tools/casetree.py reproduces the target's compare sequence), and `mdl = mdl * 2 +
+    4;` is a statement between the two switches (`add r9,r9,r9; addi r9,r9,4` before the tex
+    compares, `slwi 2` at the SS_ARC_PTR use). Left: `lwzx` operand order of both SS_ARC_PTR loads
+    (target index first) and the store pointer based at `model[4]` (`stw -4(r6); stw 0(r6)`).
+  - pieceModelOrientation: the rotation arms store in the orders case 1/2/3 `z, x, y`, case 4 `x, y,
+    z`, case 6 `x, y, z` (brute-forced), and `FSet(m->pos.x, pzlGrid::size * (p->x + 0.5f))` (the
+    scalar-reference store forces the reload of the static `size` for `pos.y`).
+  - getPieceVertex: `ModelBound* bd = &m->pInfo->bound;` (`addi r9, pInfo, 56; lfs 24(r9)`, one
+    pInfo load) and the centre `c.x = m->mat[0][3]; { Vec* pc = &c; pc->y = ..; pc->z = ..;
+    PSVECAdd(pc, out, out); }` (first member via the frame, the rest and the argument through the
+    pointer pseudo: the r102 `ang` idiom).
+  - pieceFrameDisp: the corner loop is `for (i = 0; i < 4; i++) { switch (i) { case 0..3: fabsf
+    signs } ...; PSVECAdd(&c, &ofs, &v[i]); }` (biv elimination rewrites the `switch (i)` compares
+    into pointer compares against `&v[1]`.. pseudos: the target's `cmpw rP, r21; beq; blt` tree),
+    `ModelBound* bd` block as in getPieceVertex, no unused `Vec d` (frame 192), case 4 scales by
+    `m->pos.z` and its loop is `for (i = 0; i < 4; i++) PSVECSubtract(&v[i], &c, &v[i]);` (no entry
+    test, `cmplw` against `v + 36`). Left: the case-0 loop's `lis` hoists (the target hoists the 0.0f
+    pool high (`lis r14`) and the format string, not the `__FILE__` string; ours the two strings).
+  - pieceModelInit: `pzlPiece* p = &pl->pieces[i]; p->model = getWork(i + 4); pzlPiece* q =
+    &pl->pieces[i]; q->model->be_flag &= ~2;` (two block-local pointers: the destination address is
+    computed before the inline call and both `add` are pointer-first).
+  - pieceModelDisp: `if (spaceBoard->search(p)) m->x12F = 1; else m->x12F = 3;` (the target's
+    polarity: `li r0,3` hoisted, `beq` skips `li r0,1`), the hand piece sets `m->pos.z` (156, not
+    scale.z), `pzzlItemInfo(id, &info)` = a `static inline` wrapper around itemInfo (the `&info`
+    frame address is recomputed per call instead of PRE'd: COMPILER-DIFF 3 lever), block-scoped loop
+    counters. Left (+4): the `item->x8 & 0x1FFF` mask is `clrlwi r4, r4, 19` in BOTH numDisp arms in
+    the target (in place on the loaded pseudo) while ours PREs one `clrlwi` above the `>> 13` test
+    (in-place `num &= 0x1FFF` per arm, `u32`/`u16` locals and re-reads all get PRE'd).
+  - SsPzzlInit::move: `SS_ARC_PTR(wk->pCmmn, 0xC)`, `static int pzzl_wait[1]`, `pzzl_wait[0] = 0;
+    state++; break;` in case 0, `if (wk->x266 == 2 && wk->type != 4) { free.. } else { clear }`
+    (the && form lays the free arm out as the fall-through with `beq CLEAR`), `LifeMeter* life =
+    &Cckpt.life;` declared after `sscrnLightClear` (`lis/addi` below the call, `mr r3` per call),
+    `FadeSetW(0x80000000, 5, 0, 0)`.
+  - SsPzzlMain::move: `ItemWork* item` set in both arms with `id = item->id` in both (the shared
+    pseudo gets r4, the tails cross-jump), `Widget<SUB_SCREEN>* w = cur; w->move(wk); next = w->cur;`,
+    `int h = wk->x2B0->caseBoard->h; curY = h - 1;` (the int local keeps the `extsb`; a direct
+    `h - 1` is narrowed into the byte store), `int bullets` declared before `u16 armId` (bullets
+    r27, armId r26), and `u16 no = WeaponId2WeaponNo(..); u16 type = WeaponId2WeaponType(..);`
+    (COMPILER-DIFF 4: the u8 results assigned to u16 locals are `clrlwi 16`'d).
+  - SsPzzlMain::quit: `wk->x300 = 0; wk->x40 = 0;` in that order (with x40 first the arm's last insn
+    is the else arm's `stw x40` and our jump2 merges the single-insn tail: COMPILER-DIFF 6) and
+    `pzzl_dbg.quit(wk)` through a `void quit(SUB_SCREEN*) asm("quit__9ssDbgPzzl")` declaration in
+    ss_pzzl's view of ssDbgPzzl (the caller passes wk to the parameterless ss_debug.cpp quit).
+  - PieceCommand::init: the member is `inSpace` (1 when the piece is NOT on the case board; the old
+    `onCase = search() != 0` had the polarity inverted), written `if (caseBoard->search(pzzl_sel))
+    inSpace = 0; else inSpace = 1;` and `if (pc.y > half.y - 0.5f) lower = 1; else lower = 0;` (if/else
+    constant stores: `li; beq/ble; li; stb` and the member re-read `lbz r6; extsb` for the
+    setCommandId argument; the `= cond` forms give `mfcr` store flags and a callee-saved 0.5f).
+  Open (ss_pzzl): PieceCommand::move (-0x98: the nested `command_id` switch tables), PieceCombine::move
+  (-0x10), PieceSelect::move (-4: pl/board pointer allocation in the prologue), PzzlThinking::move
+  (+8), SsPzzlMain::init (-8), caseModelMove (one callee-saved register), pzzlCursorDisp (+4: case
+  2's `lwz r0,0x2b0; mr r3,r0` = the load scheduled above the `mr r30,r3` col copy, so it cannot tie
+  to r3 - case 1 of the same code ties; interblock priorities, compiler-build difference 5),
+  pieceTblInit / pieceFrameDisp / pieceModelDisp residues above.
 - **The module was compiled with `-fno-implement-inlines`** (config/G4BE08/modules.py `CFLAGS`,
   wired through configure.py's `REL_CFLAGS`): SubScreenTask creates every screen's Init/Main widget
   with per-class link counts (`SsFileMain` 5, `SsItemMain`/`SsPzzlMain` 6, `SsMapMain` 5,
@@ -2745,6 +2878,29 @@ target) stays unresolved and `make_rel` then fails with "undefined symbol".
   - two identical statements in if/else arms (`sub[5]->flags |= 8` / `sub[7]->..`) give two
     block-local pointer pseudos (both r9) whose tails jump2 merges; a ternary pointer + one store
     is a global pseudo (r3).
+- Generic levers confirmed in the Sscrn fourth pass (2026-09-10, ss_map/ss_pzzl; harness /tmp/ssw6):
+  - combine folds `p = m + K; r3 = p` into `addi r3, m, K` only for a compiler temporary: a user
+    pointer local (`CameraParam* from = &m->from;`) keeps its pseudo, which sched1 then hoists above
+    an earlier call into a callee-saved register (`addi r30, m, K` in the prologue, `mr r3, r30` at
+    the call). Use it wherever the target has an `mr r3, rX` argument copy of a `this + K` address.
+  - jump.c's `if (...) { x = a; goto l; } x = b;` hoist (jump.c:622, also in jump2 after reload) needs
+    the insn after the `goto` to be a single set of the same register: an early `return 0` in an
+    arm whose fall-through starts with the `mr r3, obj` of the next call gets `li r3,0` hoisted
+    above the compare; an arm ending in a call (block-ending CALL_INSN + label) does not.
+  - stmt.c narrows `s8 = s8 - 1` to byte arithmetic (no `extsb`); an `int` local holding the member
+    keeps the promotion. A ternary assigned straight into a QI member (`m->x = c ? 3 : (d ? 0 : m->x)`)
+    is expanded in QImode (`mr r9, r11` raw-byte copy, one `stb`, `extsb` of the stored register at
+    the next compare) where an `s8` local is a promoted SImode pseudo.
+  - `for (i ...) { switch (i) {..} ...&v[i] }` over a small array: loop.c's biv elimination rewrites
+    the `cmpwi i, k` tree into `cmpw rP, &v[k]` pointer compares (pseudos holding `&v[1]`.. in
+    callee-saved registers) - a compare tree on addresses in the target is a `switch` on the index.
+  - PRE hoists `x & MASK` computed at the top of both if/else arms above the compare; the target
+    keeping `clrlwi` in each arm (pieceModelDisp) has no source lever found (in-place `&=`, locals,
+    re-reads all PRE'd).
+  - Diff tool orientation: /tmp/ssw6/fdiff3.py prints `split | ours` (LEFT = target: `lbl_Sscrn_*`
+    reloc names; RIGHT = ours: `.rodata+0x..` names); the "ours N insns, split M insns" header is
+    the only thing named the other way round. Check the reloc names before deciding which side
+    hoisted what - three of this pass's hypotheses were inverted by misreading the columns.
 - The map model globals are named `ssPlModel`/`ssWepModel` (.bss 0x494/0x498, MapMgr works 0/1),
   `ssPlMotion`/`ssWepModel2` (.data 0x978/0x97C), renamed by hand in symbols.txt/sym_map.tsv
   (data labels have no .sym name for the sync tool); the generator attributes them to ss_map.cpp.
@@ -5799,3 +5955,76 @@ target) stays unresolved and `make_rel` then fails with "undefined symbol".
   wep13_r3_down00); em3d ChainGunMove FPR order (angY before shared limX pool); em38 plemEscape/
   EscapeCamMove birthing boost (#5); em28 EscapeCk bell-radius arm merge before sched1 (FindCk OPEN);
   em23 SetWing PRE copy at join; em2a Trap1BiteSubCk local-alloc tie, R0_Init hp*0.001*0.5 chain tie.
+
+### Player modules, flags-first pass (pl0e Matching; pl14 77/80, pl0f 66/104, pl0a pl_klauser 25/26; 2026-09-10)
+
+- pl0e/pl0e.cpp is Matching (58/58, sections equal, `pl0e.rel` byte-identical). A single-unit module that is
+  flipped must define the COMMON block itself: `asm(".comm common_pl0e,52,4");` (make_rel: "COMMON symbols
+  take 0x0 bytes, the original had 0x34" otherwise). Harness for this pass: /tmp/plx (`tryv.py MOD/UNIT FUNC
+  variants.py [--asm NAME]` = private module build + mcmp word count per variant; `mdump.sh MOD/UNIT -dS
+  -fsched-verbose-6` = cpp + cc1plus dumps with the module flags `-G0 -DREL_MODULE`; the verbose spelling is
+  `-fsched-verbose-N` with a dash, level >= 5 prints the per-insn `prio`/`cost`/forward-dependence table).
+- Two-issue model: sched1/sched2 issue at most TWO insns per cycle (lsu + iu2, or two iu2); `loadaddr`
+  pseudo-insns of the fpmem conversions take an iu2 slot although they emit no code. Notes at the start of a
+  block (a `do { } while (0)` opening there) are skipped by `get_block_head_tail`, so a LOOP_BEG at the block
+  start is NOT a barrier; a LOOP_END in the middle is (the first insn after it depends on everything before and
+  everything after depends on it).
+- Store-order derivations that worked (sched1 weight model, dying source first, then RTL order): pl0e_R0_Init
+  = source order with the two dying stores (`pRailObj = 0`, `spdX = 0.0f`, the last uses of the shared zero and
+  0.0) written LAST; cAnalysis::init `owner, targetDist, pTarget, idx, cnt, plDist, flags &= ~8` (the byte RMW
+  last, `cnt` the zero's last use); cSubLuis ctor `pSUB = this; luisEye.r[0] = luisEye.r[1] = 0.0f; r[2] = 0.4f`
+  (chain: r[1] first in RTL, the 0.0 dies at r[0] which is issued first); SpearThrow case 0 `x4FD = 0xA;
+  x4FC = 0; U32Set(x3E0, 0); xFF++`; SetSpear `rot.x = 0; rot.y = PI; rot.z = 0` (pool 0.0 before PI, stores
+  y, z, x); CrashAdjustSet `d.x = 0; d.y = 0; d.z = -1` (stores y, z, x).
+- Reference-store levers this pass: `PSet((void*&) pl->pBoat, this)` in cPl0e::setRide — the `lwz pPL` reload of
+  the following `PlRoutineSet` then truly depends on it (cost 2) and is not ready when the `stw BoatMoveFunc`
+  is, so sched1 issues the store first and the `PlBoatMove` address pseudo dies before the reload is born
+  (both r9, the QI zero moves to r10 and the pSUB high to r10); `PSet((void*&) pSUB, 0)` in a destructor keeps
+  the inlined `~cUnit` be_flag load below the store; `FSet(rate, rate * (PI / 2))` / `FSet(pl->blendRate500,
+  0.0f)` keep a following `lwz pPL`/`lwz pSUB` below; `BitOn(pG->flags_5010, ..)` before a `pPL->getPartsPtr`
+  call; `lifeOld = pGS->pl_life` (struct view) lets the pG load ignore a preceding `dmgCnt = 5` byte store
+  (cSubLuis::init: the target issues the hp/hpMax `sth`s before the `stb`).
+- `const f32 name = literal;` as a scheduling lever, not only a pool-order one: the initialiser is expanded at
+  the declaration, so the pool `lis` sits BEFORE a later `fabsf` volatile-asm barrier (sameFloorCheck: `lis`
+  above `fabs`, `lfs` below) and before the member load of a compare (rackCheck: `lfs pos.z` issued before
+  the `lis`, the rack pointer's r9 reused for the high half). Pool-order fixes with it: moveWepFire (PI/16
+  before PI/8), neckMove (0.628 before 0.0, also fixes the `lis`/`lfs` argument order), moveGo2F (2500 before
+  1000), rackCheck (9e6, -49000). Putting such a const at the TOP of a function whose pool starts with other
+  constants moves it too early (pl0f BoatControl/SpdControl/BossCamMove got worse): declare it right before
+  the statement whose constant it must precede.
+- A `li rX,0` sitting BETWEEN `cmpwi` and the branch (not hoisted by the schedulers) is jump.c's `x = b; if
+  (...) x = a` hoist done by the LAST jump pass, which runs AFTER sched2 (toplev: `jump_optimize
+  (JUMP_CROSS_JUMP)` follows `schedule_insns`). jump1 needs both arms to be single sets; a then-arm `boss =
+  PL0F_WK(boat)->pBoss` written through a work-pointer local (`Pl0fWork* w = PL0F_WK(boat); boss = w->pBoss;`)
+  is two insns until cse/combine, so only jump2 hoists it and the `li` stays put (pl0f R2_Die/R2_Move/
+  SpearSet/SpearSet2 preambles; the boat register then follows: caller-saved r3 when unused later).
+- An inline with f32 parameters called with literals (plboatRoomOut) puts the constants at the HEAD of the
+  function's pool (arguments are expanded before the body); the original had them at the use point: write the
+  shared body as a macro (`PLBOAT_ROOM_OUT(px, py, pz, ang)`), 123 -> 52 words per copy.
+- `do { found = em; } while (0);` (global-alloc ref weighting) gives cAnalysis::move the original em r30 /
+  this r29 order (COMPILER-DIFF-tagged tie lever). `switch ((u32) greThrowCheck())` for the `cmplwi` range
+  tests with `cmpwi` equality tests in one tree.
+- `336 - lineSpace - fontH` (cVoice::set): fold swaps the two subtrahends, so the source order is the reverse
+  of the emitted one. `if (frame <= 30.0f)` (real `<=`, `cror un,eq,lt; bns`) vs `!(frame > 30.0f)` (plain
+  `ble`). A ctor'd file-scope object (`cMot3Rate luisEye`) is emitted at finish_file, so a plain static that
+  precedes it in `.bss` must be a function-local static (`static int luisEyeTimer` inside moveEye).
+- Inline helper returning `&zero` (LuisLightZero) vs one taking `size` by pointer: argument order of
+  `init2(a, b, &zero, &p1, c)` (embarrel idiom confirmed in pl14 init/equipWeapon). The pl14 init also needs
+  the atari_init.h `atariInitF` alias (COMPILER-DIFF #1).
+- pl0f value fixes found by reading the target stores: pl00SetDieCam/DieCamMove copy `param.pos` before
+  `param.at`, pos.y = 23000 / 14000, up vector v = {0, 0, 1}; plboatSpearThrow's SndCall position is
+  `p->worldPos`; cAnalysis::init clears bit 8, think clears `analysis.flags` bit 4.
+- OPEN pl0a cPlKlauser::transMove (30 words): the `lis r6,0x4330` of the (f32)t double trick is the FIRST insn
+  of the join block in the target and `t`/`x898` are r0/r9 (ours r6/r6 through a `hard_reg_preferences`
+  chain: local-alloc gives the `xoris` result r6, set_preference propagates it to t and x898). In ours the
+  u8 psq conversion (prio 24) precedes it through the fpmem serialisation (both families set `(reg:DF 76
+  fpmem)`, in sched2 too); no operand order, `const f32`, do-while placement or temp form changes the
+  priorities (16 variants). Needs a mechanism, not more permutations.
+- OPEN pl14 think (37 words: `fl`/`af` are QImode pseudos in the target — `lbz r0; mr r11,r0` PRE copies with
+  `clrlwi` at the int uses — while u8/s8/int locals are all SImode-promoted in ours; direct member reads with
+  `(u8)` casts give 64+ words) and moveEye (132 words: eye-rate stores, `Rnd() % 200` conversion register
+  names, matUpdate blocks). pl0f OPEN (largest): BossCamMove 431, BoatControl 203 (frame/callee-saved),
+  SpearSet 85, BossMove 83, ScrAdjust 66..., R10xOut trio 52 (the boarding Vec / EngineStart temp / case-3
+  Vec share one slot 0x10 in the target with a second unused 16-byte slot; block-scoping and an inline for
+  the boarding block did not reproduce it), R10xIn trio 9 (`stb x4FC` before `stfs blendRate500`), the
+  0.5/1.0, 50/20, 1500/500/1.0 pool orders.
