@@ -64,6 +64,8 @@ void EmSetDieCntE(cEm* em) asm("EmSetDieCnt");
 // model.h's member; the enemies call it with the old ModelData (em10.cpp).
 extern "C" void cModel_swapModelInfo(cModel* m, ModelData* old, cModelInfo* info) asm("swapModelInfo__6cModelP9ModelDataP10cModelInfo");
 
+static inline void U8Set(u8& d, u8 v) { d = v; }
+
 static void em39_R0_Init(cEm39* em);
 static void em39_R0_Move(cEm39* em);
 static void em39_R0_Damage(cEm39* em);
@@ -148,6 +150,8 @@ static void plemDmSide(cPlayer* pl);
 // Collision flag bits set / cleared through the info's address (`addi rX, em, 0x2b4; lhz 0x1a(rX)`).
 static inline void AtariOn(cAtariInfo* at, u16 b) { at->flags |= b; }
 static inline void AtariOff(cAtariInfo* at, u16 mask) { at->flags &= mask; }
+// u16 reference RMW: keeps the following `lwz pPL` below the `sth` (plem39_CliffAtk).
+static inline void AtariOffR(u16& f, u16 mask) { f &= mask; }
 
 // Routine bytes written through an int inline (player.cpp PlRoutineSet).
 static inline void EmRoutineSet(cEm* em, int r0, int r1, int r2, int r3)
@@ -673,7 +677,18 @@ static void em39_R0_Init(cEm39* em)
     Vec pos;
     Vec rot;
     int one;
-    int zero;
+    u8 zero;   // only byte fields take it: a promoted QI variable stores directly (`stb r30`)
+    // COMPILER-DIFF: #13 -- the original never allocates its REG_EQUIV constants: the shared literal
+    // zero is reload's callee-saved r20, the 0x1D/300/10/-1/450 init constants its spill registers
+    // r0/r8/r11/r9/r10 and the subArc load of the routine MotionSetCore its r11, and the post-call
+    // init block is issued in pure source order (no store carries a register death). Pinned here.
+    register int z0 asm("r20");
+    register int r0c asm("r0");
+    register int r8c asm("r8");
+    register int r9c asm("r9");
+    register int r10c asm("r10");
+    register int r11c asm("r11");
+    register PlArc* arc11 asm("r11");
 
     switch (em->type) {
     case 1:
@@ -790,7 +805,8 @@ static void em39_R0_Init(cEm39* em)
             w->pWep3->setTransMode(0);
         }
     }
-    w->x58C = 0;
+    z0 = 0;
+    w->x58C = (cEmWep*) z0;
     em->pFootShadowTbl = &Em39_fs_tbl;
     em->motFlip = em39_flip_tbl;
 #line 1268 "D:/Bio4/Prog/em39.cpp"
@@ -828,26 +844,32 @@ static void em39_R0_Init(cEm39* em)
     em->lockOfs.y = 0.0f;
     em->lockOfs.z = 0.0f;
     EspDataLoad((u32) ARC(4), 0x2F, 0);
+    r0c = 0x1D;
+    r8c = 300;
+    r11c = 10;
+    r9c = -1;
+    r10c = 450;
     w->x59C = 0.0f;
     w->pDoor = 0;
-    w->flags = 0;
+    w->flags = z0;
     w->x598 = 0.0f;
-    w->x680 = 0;
-    w->x8B5 = 0;
+    w->x680 = z0;
+    w->x8B5 = z0;
     w->pGotoPoint = 0;
-    w->x8BB = 0;
-    w->x898 = 0;
-    w->dmgTotal = 0;
-    w->x8A0 = 0;
-    w->x69C = 0;
+    w->x8BB = z0;
+    w->x898 = z0;
+    w->dmgTotal = z0;
+    w->x8A0 = z0;
+    w->x69C = z0;
     zero = 0;
+    asm("" : "+r"(zero) : "r"(z0), "f"(0.0f)); // COMPILER-DIFF: #13
     w->x8C4 = zero;
-    w->x8A8 = 0x1D;
-    w->x684 = 300;
-    w->x678 = 10;
-    w->x8C0 = -1;
-    w->x688 = 450;
-    w->x89C = 450;
+    w->x8A8 = r0c;
+    w->x684 = r8c;
+    w->x678 = r11c;
+    w->x8C0 = r9c;
+    w->x89C = r10c;
+    w->x688 = r10c;
     w->espKind = EspPullCoreKind();
     w->espKind2 = EspPullCoreKind();
     if (em->type != 2) {
@@ -868,11 +890,14 @@ static void em39_R0_Init(cEm39* em)
             rtn = no;
             break;
         }
-        em->xFC = one;
-        em->xFD = rtn;
-        em->xFF = zero;
-        em->xFE = zero;
-        MotionSetCore(em, MOTION(em), ARC(0x73), (int) ARC(0x74), 0, 1, 0);
+        do {   // LOOP_END barrier: the routine bytes are issued before the MotionSetCore argument block
+            em->xFC = one;
+            em->xFD = rtn;
+            em->xFE = zero;
+            em->xFF = zero;
+        } while (0);
+        arc11 = em->subArc;
+        MotionSetCore(em, MOTION(em), PL_ARC_PTR(arc11, 0x73), (int) PL_ARC_PTR(arc11, 0x74), 0, 1, 0);
     } else {
         int no;
 
@@ -4511,7 +4536,7 @@ static void em39_R1_br_T_Atk(cEm39* em)
         w->x8 = 9;                                                                                 \
     }                                                                                              \
     w->x10 = Rnd() & 1;                                                                            \
-    if (pG->x4F88 <= 3) {                                                                          \
+    if (pGS->x4F88 <= 3) {                                                                         \
         w->x10 = 0;                                                                                \
     }                                                                                              \
     w->x8B7 = 0;                                                                                   \
@@ -5022,7 +5047,10 @@ static void em39_R1_T_Kick(cEm39* em)
             if (em->xFF == 0 && em->plDist2 < 9000000.0f && (u8) (Rnd() % 10) > 4 && w->routeAngAbs < 1.0471976f) {
                 int hit = w->x8B6;
 
-                if (hit == 0 && em->plDist2 > 4000000.0f) {
+                if (hit != 0) {
+                    goto rtn_e;
+                }
+                if (em->plDist2 > 4000000.0f) {
                     if ((u8) (Rnd() % 10) > 4) {
                         EmRoutineSet(em, 1, 0x2B, hit, 1);
                     } else {
@@ -5042,6 +5070,7 @@ static void em39_R1_T_Kick(cEm39* em)
                     break;
                 }
             }
+        rtn_e:
             EmRoutineSet(em, 1, 0xE, 0, 1);
         }
         break;
@@ -5158,7 +5187,7 @@ static void em39_R1_T_LowKickHit(cEm39* em)
         }
         w->x14 = 0;
         w->x10 = Rnd() & 1;
-        if (pG->x4F88 <= 9) {
+        if (pGS->x4F88 <= 9) {
             w->x10 = 0;
         }
         EM39_K4_EFF_DELETE(em, w);
@@ -5347,7 +5376,7 @@ static void em39_R1_T_CliffAtk(cEm39* em)
         SetPlDamage((int) em, plem39_CliffAtk);
         w->x8BB = st;
         w->x10 = 10;
-        if (pG->x4F88 <= 1) {
+        if (pGS->x4F88 <= 1) {
             w->x10 = 5;
         }
         if (pG->x4F88 <= 3) {
@@ -5461,7 +5490,7 @@ static void plem39_CliffAtk(cPlayer* pl)
         em39CliffObj.p = ObjMgr.create(0xB);
         if (em39CliffObj.p) {
             em39CliffObj.p->modelInit(PL_ARC_PTR(pl->subArc, 0x129), PL_ARC_PTR(pl->subArc, 0x128));
-            em39CliffObj.p->atari.flags &= 0xFCFF;
+            AtariOffR(em39CliffObj.p->atari.flags, 0xFCFF);
             em39CliffObj.p->pParts->pParent = pPL->getPartsPtr(0xA);
             em39CliffObj.p->lightInfo.init2(1, 1, &((Vec) { 0.0f, 0.0f, 0.0f }), &((Vec) { 500.0f, 0.0f, 0.0f }), 1);
             em39CliffObj.p->wep.parent = pPL;
@@ -8098,7 +8127,7 @@ int em39SlantCk2(cEm39* em)
     if (pG->x4F88 <= 3 && (u8) (Rnd() % 10) > 4) {
         return 0;
     }
-    if (pG->x4F88 <= 9 && em->hp > em->hpMax / 2 && (u8) (Rnd() % 10) <= 6) {
+    if (pG->x4F88 <= 9 && em->hp > em->hpMax / 2 && (u8) (Rnd() % 10) > 6) {
         return 0;
     }
     EmRoutineSet(em, 1, 0x11, 0, 0);

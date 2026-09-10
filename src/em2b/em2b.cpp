@@ -52,6 +52,10 @@ extern FootShadowTbl Em2b_fs_tbl;     // game/foot_shadow_tbl.cpp
 extern "C" cObj* SetObaModel(cObj* parent, int partsNo, Vec* ofs, f32 rad, u8 type, f32 h);
 // COMPILER-DIFF #1: floats-first view for the call site whose `fmr f2` precedes `li r6` (Die_Event).
 extern "C" cObj* SetObaModelF(cObj* parent, int partsNo, Vec* ofs, f32 rad, f32 h, u8 type) asm("SetObaModel");
+// wep_mod.h idiom: the volatile scalar access keeps the following `lwz pSUB` below the `sth` and the
+// info address in a register (`addi rX, pl, 0x2b4; lhz/sth 0x1a(rX)`), plem2bDashEscape.
+static inline void AtariFlagsOrV(cAtariInfo* at, u16 mask) { *(volatile u16*) &at->flags |= mask; }
+static inline void AtariFlagsAndV(cAtariInfo* at, u16 mask) { *(volatile u16*) &at->flags &= mask; }
 // game/obj16.cpp (obj16.h includes em10.h, which this module cannot).
 extern "C" cObj* SetObj16(void* bin, void* tpl, cModel* target, cModel* body, int partsNo, u8 type, Vec* pos, Vec* rot);
 extern "C" void MotSetObj16(cObj* obj, void* mot, int a, int b);
@@ -213,12 +217,17 @@ static inline void em2bVariantEst(cEm2b* em, Em2bWork* w, int a0, int a1, int b0
 // End of an attack routine: the friend (dog) fight sets the guard, a hit goes into the threat.
 static inline void em2bAtkEndSet(cEm2b* em, Em2bWork* w)
 {
+    // COMPILER-DIFF: #13 -- the original never allocates the single-use `w->x63C` load (a REG_EQUIV
+    // mem pseudo): reload materialises it in r11, so the global `flags`/`atkHit` pseudos take r0/r9;
+    // ours local-allocates the load to r0 first.
+    register int x63c asm("r11");
+
     if (w->pFriend && w->atkHit) {
         w->flags |= 0x80;
         w->dmGuard = 900;
         w->x63C = 0;
         em2bNextRtnSet(em);
-    } else if (w->pFriend && !(w->flags & 0x80) && w->x63C == 0) {
+    } else if (w->pFriend && !(w->flags & 0x80) && (x63c = w->x63C, x63c == 0)) {
         w->dmGuard = 900;
         w->flags |= 0x80;
         em2bNextRtnSet(em);
@@ -398,14 +407,14 @@ void Em2bInit(cEm* em)
 cEm2b::~cEm2b()
 {
     Em2bWork* w = EM2B_WK(this);
-    cObj16** p;
+    u32 i;
 
     if (w->pParasite && w->pParasite->isAlive()) {
         ObjMgr.destroy(w->pParasite);
     }
-    for (p = w->pTentacle; p <= &w->pTentacle[9]; p++) {
-        if (*p) {
-            ObjMgr.destroy(*p);
+    for (i = 0; i < 10; i++) {
+        if (w->pTentacle[i]) {
+            ObjMgr.destroy(w->pTentacle[i]);
         }
     }
     if (w->pObj4C4 && w->pObj4C4->isAlive()) {
@@ -423,7 +432,7 @@ cEm2b::~cEm2b()
 void cEm2b::setNoSuspend(int on)
 {
     Em2bWork* w = EM2B_WK(this);
-    int i;
+    u32 i;
 
     if (on) {
         be_flag |= 0x800;
@@ -838,6 +847,14 @@ static void em2b_R0_Init(cEm2b* em)
     cAtariInfo* at;
     MotionWork* mot;
     int zero;
+    int t35;
+    f32 one;
+    // COMPILER-DIFF: #13 -- the 900/0x23/1.0 init constants are reload-materialised in the original
+    // (never allocated), so the 25-store block is issued in pure source order; here the three
+    // pseudos are kept alive past the block by a dead asm whose output lives in r7 (any pseudo
+    // output lands in r8 and perturbs the init2 argument order; r11 is the original's spill reg).
+    register int r11c asm("r11");
+    register int dmy7 asm("r7");
     Vec v;
 
     switch (em->type) {
@@ -916,10 +933,13 @@ static void em2b_R0_Init(cEm2b* em)
     em->lockOfs.z = 0.0f;
     EspDataLoad((u32) ARC(4), 0x23, 0);
     w->espKind = EspPullCoreKind();
+    r11c = 900;
+    t35 = 0x23;
+    one = 1.0f;
     w->neckAng = 0.0f;
-    w->timer624 = 900;
-    w->scaleRate = 1.0f;
-    w->espKind2 = 0x23;
+    w->timer624 = r11c;
+    w->scaleRate = one;
+    w->espKind2 = t35;
     w->flags = zero;
     w->variant = zero;
     w->pHouse = 0;
@@ -934,19 +954,21 @@ static void em2b_R0_Init(cEm2b* em)
     w->timer618 = zero;
     w->pFriend = 0;
     w->timer61C = zero;
-    w->timer620 = 900;
+    w->timer620 = r11c;
     w->dmGuard = zero;
     w->x63C = zero;
     w->x640 = zero;
     w->pYagura = 0;
     w->timer62C = zero;
+    asm("" : "=r"(dmy7) : "r"(t35), "f"(one), "r"(r11c)); // COMPILER-DIFF: #13
     if (pGS->room_id == 0x224) {
         w->espKind2 = 1;
     }
-    w->pParasite = 0;
+    asm volatile("" : : "r"(dmy7)); // COMPILER-DIFF: #13
+    w->pParasite = (cObj16*) zero;
     mot = &em->mot;
     {
-        int i;
+        u32 i;
         for (i = 0; i < 10; i++) {
             w->pTentacle[i] = 0;
         }
@@ -971,24 +993,27 @@ static void em2b_R0_Init(cEm2b* em)
     SetObaModel((cObj*) em, 0x19, &v, 500.0f, 0, 1000.0f);
     em->setStatus(9);
     em->setStatus(5);
-    switch (em->x38D) {
-    case 0:
-    default:
-        MotionSetCore(em, mot, ARC(0x19), 0, 0, 1, 0);
-        EmRoutineSet(em, 1, 0, 0, 0);
-        break;
-    case 1:
-        MotionSetCore(em, mot, ARC(0x53), 0, 0, 1, 0);
-        EmRoutineSet(em, em->x38D, em->x38D, 0, 0);
-        break;
-    case 2:
-        MotionSetCore(em, mot, ARC(0x59), 0, 0, 1, 0);
-        EmRoutineSet(em, 1, 0x14, 0, 0);
-        break;
-    case 3:
-        MotionSetCore(em, mot, ARC(0x59), 0, 0, 1, 0);
-        EmRoutineSet(em, 1, 0x17, 0, 0);
-        break;
+    {
+        int st = em->x38D;
+        switch (st) {
+        case 0:
+        default:
+            MotionSetCore(em, mot, ARC(0x19), 0, 0, 1, 0);
+            EmRoutineSet(em, 1, 0, 0, 0);
+            break;
+        case 1:
+            MotionSetCore(em, mot, ARC(0x53), 0, 0, 1, 0);
+            EmRoutineSet(em, st, st, 0, 0);
+            break;
+        case 2:
+            MotionSetCore(em, mot, ARC(0x59), 0, 0, 1, 0);
+            EmRoutineSet(em, 1, 0x14, 0, 0);
+            break;
+        case 3:
+            MotionSetCore(em, mot, ARC(0x59), 0, 0, 1, 0);
+            EmRoutineSet(em, 1, 0x17, 0, 0);
+            break;
+        }
     }
     MotionMoveF(em, 0);
     EstSet((int) em, -1, 0, 0, w->espKind2, 3, 0, 0, (u32) em, 0);
@@ -1009,11 +1034,7 @@ static void em2b_R1_Wait(cEm2b* em)
     switch (em->xFE) {
     case 0:
         if (w->pTree) {
-            if (w->variant == 1) {
-                MotionSetCore(em, &em->mot, ARC(0x27), (int) ARC(0x6E), 30, 5, 0);
-            } else {
-                MotionSetCore(em, &em->mot, ARC(0x31), (int) ARC(0x78), 30, 5, 0);
-            }
+            em2bVariantMot(em, w, 0x31, 0x78, 0x27, 0x6E, 30, 5);
         } else {
             int flip = em2bFlip(w, 5, 0x45);
 
@@ -1026,7 +1047,7 @@ static void em2b_R1_Wait(cEm2b* em)
             EmRoutineSet(em, 1, 2, 0, 0xA);
             return;
         }
-        if ((pG->flags_5010 & 0x8000) || em2bDeadCk(pPL) || pG->pl_life <= 0) {
+        if ((pG->flags_5010 & 0x8000) || em2bDeadCk(pPL) || (s16) pG->pl_life <= 0) {
             w->timer61C = 30;
         }
         if (em->plDist2 > 25000000.0f) {
@@ -2216,28 +2237,29 @@ static void em2b_R1_ThrowRock(cEm2b* em)
             em->flags_3C8 |= 4;
             if (w->pRock) {
                 cModel* p = em->getPartsPtr(0xA);
-                Vec* target;
                 Mtx m;
                 Vec spd;
                 f32 ang;
+                EmAtkInfo* atk;
 
                 if ((w->flags & 4) && w->pFriend) {
-                    target = &w->pFriend->pos;
+                    ang = GetXZAngle(&p->worldPos, &w->pFriend->pos);
                 } else {
-                    target = &pPLS->pos;
+                    ang = GetXZAngle(&p->worldPos, &pPLS->pos);
                 }
-                ang = Muku2(em->rot.y, GetXZAngle(&p->worldPos, target), 0.785398185f);
-                PSMTXRotRad(m, 'y', LIMIT_ANGLE(em->rot.y + ang));
+                ang = Muku2(em->rot.y, ang, 0.785398185f);
+                PSMTXRotRad(m, 'y', LIMIT_ANGLE(ang + em->rot.y));
                 spd.x = 0.0f;
                 spd.y = 100.0f;
                 spd.z = 400.0f;
                 PSMTXMultVecSR(m, &spd, &spd);
+                atk = &em2b_atk_info[6];
                 if ((s16) pG->pl_life > 1) {
-                    em2b_atk_info[6].x0A |= 4;
+                    atk->x0A |= 4;
                 } else {
-                    em2b_atk_info[6].x0A &= ~4;
+                    atk->x0A &= ~4;
                 }
-                w->pRock->setThrow(&spd, &em2b_atk_info[6]);
+                w->pRock->setThrow(&spd, atk);
                 w->pRock->setSeFall(8, 0xA, em->id);
                 w->pRock->setEffFall(1, 7);
                 w->pRock = 0;
@@ -2713,7 +2735,7 @@ static void subem2b_Catch(cSubChar* sub)
     case 1:
         MotionMoveF(s, 0);
         s->xFE = PL_EM(s)->xFE;
-        if (PL_EM(s)->xFC != 1 || PL_EM(s)->xFD != 0x13) {
+        if (PL_EM(s)->xFC != 1 && PL_EM(s)->xFD != 0x13) {
             SetSubDamage((int) PL_EM(s), (void*) subem2b_CatchEnd);
         }
         break;
@@ -2729,7 +2751,7 @@ static void subem2b_Catch(cSubChar* sub)
                 pG->sub_life = 0;
             }
         }
-        if ((s16) pG->sub_life > 0 && (PL_EM(s)->xFC != 1 || PL_EM(s)->xFD != 0x13)) {
+        if ((s16) pG->sub_life > 0 && (PL_EM(s)->xFC != 1 && PL_EM(s)->xFD != 0x13)) {
             SetSubDamage((int) PL_EM(s), (void*) subem2b_CatchEnd);
         }
         break;
@@ -2817,14 +2839,18 @@ static void em2b_R1_HoleAtk(cEm2b* em)
     switch (em->xFE) {
     case 0:
         em->pos = em2b_r11e_pos;
-        if (pG->room_id == 0x224 && w->pTex) {
-            em->pInfo->setTexBlendTbl(w->texBlend);
-            em->pInfo->setBlendRatio(0xFF);
-            em->pInfo->setBlendType(2);
-            if (w->pInfo) {
-                w->pInfo->setTexBlendTbl(w->texBlend);
-                w->pInfo->setBlendRatio(0xFF);
-                w->pInfo->setBlendType(2);
+        if (pG->room_id == 0x224) {
+            void* tbl = w->texBlend;
+
+            if (w->pTex) {
+                em->pInfo->setTexBlendTbl(tbl);
+                em->pInfo->setBlendRatio(0xFF);
+                em->pInfo->setBlendType(2);
+                if (w->pInfo) {
+                    w->pInfo->setTexBlendTbl(tbl);
+                    w->pInfo->setBlendRatio(0xFF);
+                    w->pInfo->setBlendType(2);
+                }
             }
         }
         em->xFE++;
@@ -2868,8 +2894,8 @@ static void em2b_R1_HoleAtk(cEm2b* em)
 
             p = em->getPartsPtr(0xA);
             v = pPLS->pos;
-            dx = p->worldPos.x - v.x;
             dz = p->worldPos.z - v.z;
+            dx = p->worldPos.x - v.x;
             if (dx * dx + dz * dz < 2250000.0f && !em2bDeadCk(pPLS)) {
                 pPLS->dmType = 0x80;
                 pG->pl_life = 0;
@@ -4024,30 +4050,34 @@ void em2bClothSet(cEm2b* em)
     Em2bWork* w = EM2B_WK(em);
 
     if (em->type == 1) {
+        f32 zf;
+        // Store order = the original's LUID order (its constants are reload-materialised, no
+        // dying stores); the 0.0 must be expanded after 0.8 for the pool and be a variable for f0.
+        w->cloth.x54 = 0;
         w->cloth.num = 10;
         w->cloth.pParts = em2b_cloth_parts;
         w->cloth.x08 = em2b_cloth_side;
-        w->cloth.x0C = 0;
-        w->cloth.x10 = 0;
-        w->cloth.x14 = 0;
         w->cloth.pUp = em2b_cloth_up;
         w->cloth.pDown = em2b_cloth_down;
         w->cloth.pMax = em2b_cloth_max;
-        w->cloth.x2C = 0;
-        w->cloth.x30 = 0;
-        w->cloth.x20 = 0;
-        w->cloth.x24 = em2b_cloth_rate;
         w->cloth.x34 = em2b_cloth_at;
+        w->cloth.x24 = em2b_cloth_rate;
         w->cloth.x38 = 2;
         w->cloth.x3C = 20.0f;
         w->cloth.x40 = 0.800000012f;
+        zf = 0.0f;
         w->cloth.x44 = 4;
-        w->cloth.x48 = 0.0f;
         w->cloth.x4C = 0.0500000007f;
-        w->cloth.x50 = 0.0f;
-        w->cloth.x54 = 0;
-        w->cloth.x58 = em;
+        w->cloth.x50 = zf;
         w->cloth.flags = 0x100;
+        w->cloth.x0C = 0;
+        w->cloth.x10 = 0;
+        w->cloth.x14 = 0;
+        w->cloth.x2C = 0;
+        w->cloth.x30 = 0;
+        w->cloth.x20 = 0;
+        w->cloth.x58 = em;
+        w->cloth.x48 = zf;
         PenClothSet(em, &w->cloth, 100.0f);
     }
 }
@@ -4084,34 +4114,37 @@ int em2bAtkCk(cEm2b* em, Vec* a, Vec* b, int no)
                 switch ((u32) no) {
                 case 0:
                 case 1:
-                    pPL->pos.x = a->x;
-                    pPL->pos.z = a->z;
+                    FSet(pPL->pos.x, a->x);
+                    FSet(pPL->pos.z, a->z);
                     SetPlDamage((int) em, plem2b_dm_Stamp);
                     break;
                 case 2:
                 case 3:
-                    pPL->rot.y = GetXZAngle(a, b);
+                    FSet(pPL->rot.y, GetXZAngle(a, b));
                     SetPlDamage((int) em, plem2bDmBlow);
                     break;
                 case 5:
-                    pPL->rot.y = GetXZAngle(&pPL->pos, b);
+                    FSet(pPL->rot.y, GetXZAngle(&pPL->pos, b));
                     SetPlDamage((int) em, plem2bDmBlow);
                     break;
                 case 4:
-                    pPL->rot.y = em->rot.y + 3.14159274f;
-                    pPL->rot.y = LIMIT_ANGLE(pPL->rot.y);
+                    pPLS->rot.y = em->rot.y + 3.14159274f;
+                    FSet(pPL->rot.y, LIMIT_ANGLE(pPLS->rot.y));
                     SetPlDamage((int) em, plem2b_dm_BlowKick);
                     break;
                 }
-            } else if (hit & 2) {
-                w->atkHit = 1;
-            } else {
-                return 0;
+                QuakeExec(0, 0, 5, 22.0f, 2);
+                SndCall(8, 0x32, &em->pos, em->id, 0, em);
+                VibSetData((VibDataTbl*) (pG->pArc->ofs_1C + (u32) pG->pArc), 0xB, 1);
+                return 1;
             }
-            QuakeExec(0, 0, 5, 22.0f, 2);
-            SndCall(8, 0x32, &em->pos, em->id, 0, em);
-            VibSetData((VibDataTbl*) (pG->pArc->ofs_1C + (u32) pG->pArc), 0xB, 1);
-            return 1;
+            if (hit & 2) {
+                w->atkHit = 1;
+                QuakeExec(0, 0, 5, 22.0f, 2);
+                SndCall(8, 0x32, &em->pos, em->id, 0, em);
+                VibSetData((VibDataTbl*) (pG->pArc->ofs_1C + (u32) pG->pArc), 0xB, 1);
+                return 1;
+            }
         }
     }
     return 0;
@@ -4170,11 +4203,7 @@ static void plem2b_dm_BlowKick(cPlayer* pl)
         PlSetFace(1);
         PlSetDamageSe(0);
         pl->dmType = 0xA;
-        if (ChkWaterEffectEnable(&pl->pos)) {
-            EstSet((int) pl, -1, 0, 0, 3, 6, 0, 0, (u32) pl, 0);
-        } else {
-            EstSet((int) pl, -1, 0, 0, 3, 5, 0, 0, (u32) pl, 0);
-        }
+        EstSet((int) pl, -1, 0, 0, 3, ChkWaterEffectEnable(&pl->pos) ? 6 : 5, 0, 0, (u32) pl, 0);
         pl->xFE++;
     case 1:
         if (pl->frame > 16.7000008f && pl->frame < 17.2999992f) {
@@ -4199,8 +4228,8 @@ static void em2bDashEscapeAction(cEm2b* em)
 // Dash out from under the falling giant.
 static void plem2bDashEscape(cPlayer* pl)
 {
-    pl->dmType = 2;
     pl->subArc = PL_EM(pl)->subArc;
+    pl->dmType = 2;
     if (pSUB) {
         pSUB->dmType = 2;
     }
@@ -4211,9 +4240,9 @@ static void plem2bDashEscape(cPlayer* pl)
         } else {
             MotionSetCore(pl, &pl->mot, PL_ARC(0xC1), (int) PL_ARC(0xC2), 3, 0x41, 0);
         }
-        pl->atari.flags &= ~0x200;
+        AtariFlagsAndV(&pl->atari, 0xFDFF);
         if (pSUB) {
-            pSUB->atari.flags &= ~0x200;
+            AtariFlagsAndV(&pSUB->atari, 0xFDFF);
         }
         GameAddPoint(0xB);
         if (pSUB) {
@@ -4238,9 +4267,9 @@ static void plem2bDashEscape(cPlayer* pl)
         if (pl->x3E0) {
             pl->x3E0--;
         } else {
-            pl->atari.flags |= 0x200;
+            AtariFlagsOrV(&pl->atari, 0x200);
             if (pSUB) {
-                pSUB->atari.flags |= 0x200;
+                AtariFlagsOrV(&pSUB->atari, 0x200);
             }
             EndPlDamage();
             if (pSUB) {
@@ -4728,6 +4757,7 @@ int em2bTreeAtkCk(cEm2b* em)
     Vec a;
     Vec b;
     f32 ang;
+    f32 aang;
 
     if (tree == 0) {
         return 0;
@@ -4750,7 +4780,9 @@ int em2bTreeAtkCk(cEm2b* em)
     b.z = 0.0f;
     PSMTXMultVec(p->mat, &a, &a);
     PSMTXMultVec(p->mat, &b, &b);
-    ang = Muku(&a, &pPL->pos, GetXZAngle(&a, &b), 3.14159274f);
+    ang = GetXZAngle(&a, &b);
+    ang = Muku(&a, &pPL->pos, ang, 3.14159274f);
+    aang = fabsf(ang);
     if ((a.x - pPL->pos.x) * (a.x - pPL->pos.x) + (a.y - pPL->pos.y) * (a.y - pPL->pos.y) + (a.z - pPL->pos.z) * (a.z - pPL->pos.z) >
         225000000.0f) {
         return 0;
@@ -4758,7 +4790,7 @@ int em2bTreeAtkCk(cEm2b* em)
     if (ang > 0.261799395f) {
         return 0;
     }
-    if (fabsf(ang) > 0.523598790f) {
+    if (aang > 0.523598790f) {
         return 0;
     }
     w->atkHit = 1;
@@ -4768,7 +4800,7 @@ int em2bTreeAtkCk(cEm2b* em)
         LifeDownSet(pPL, 800, 0);
     }
     em->rot.y = ang + 1.57079637f;
-    em->rot.y = LIMIT_ANGLE(em->rot.y);
+    FSet(em->rot.y, LIMIT_ANGLE(em->rot.y));
     SndCall(8, 0xF, &pPL->pos, em->id, 0, pPL);
     SndCall(8, 0x32, &pPL->pos, em->id, 0, pPL);
     VibSetData((VibDataTbl*) (pG->pArc->ofs_1C + (u32) pG->pArc), 0xB, 1);
@@ -5216,15 +5248,7 @@ void cEm2b::setPos(Vec* p, f32 ang)
         oldPos = pos;
         rot.y = ang;
         if (w->pTree) {
-            switch (w->variant) {
-            case 0:
-            default:
-                MotionSetCore(this, &mot, ARC(0x31), (int) ARC(0x78), 0, 5, 0);
-                break;
-            case 1:
-                MotionSetCore(this, &mot, ARC(0x27), (int) ARC(0x6E), 0, 5, 0);
-                break;
-            }
+            em2bVariantMot(this, w, 0x31, 0x78, 0x27, 0x6E, 0, 5);
         } else {
             int flip = em2bFlip(w, 5, 0x45);
 
@@ -6071,8 +6095,16 @@ void em2bObaHitCk(cEm2b* em)
         if (d.x * d.x + d.z * d.z > 9000000.0f) {
             continue;
         }
+        // VECNormalize written out with `pLog.p->err`: the inline `operator->` adds two block notes
+        // between the `lis pLog@ha` and its use, which lets loop.c hoist the high (life 3 * 71 >= 89
+        // insns); the original keeps it in the error arm (life 1).
+        if (0.0f == d.x && 0.0f == d.y && 0.0f == d.z) {
 #line 9308 "D:/Bio4/Prog/em2b.cpp"
-        VECNormalize(&d, &d);
+            pLog.p->err(0, 0, "VECNormalize:[%s/%d]", __FILE__, __LINE__);
+            d.x = d.y = d.z = 0.0f;
+        } else {
+            PSVECNormalize(&d, &d);
+        }
         PSVECScale(&d, &d, 3000.0f);
         PSVECAdd(&e->pos, &d, &em->pos);
         PartsWorldPosCalc(em);

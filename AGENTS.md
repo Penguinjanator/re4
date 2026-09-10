@@ -2517,9 +2517,9 @@ target) stays unresolved and `make_rel` then fails with "undefined symbol".
   angle, the classic double trick, not a fast-cast psq_l) plus the two file-scope `static const`
   tables in the wrong order (map_cam_entire is defined before mark_model_tbl); see its item) and ss_pzzl (src/Sscrn/ss_pzzl.cpp, 56/64 after the sixth pass
   (PieceCommand::move and PieceCombine::move byte-identical), .rodata/.data/.bss identical) are
-  written; ss_shop (src/Sscrn/ss_shop.cpp, the merchant screen: 69/74 functions byte-identical after
-  the fifth pass incl. the 0x980 eof block, .rodata/.data/.bss identical, .text 4 bytes short after the sixth pass) is
-  written, see its item and the fifth/sixth-pass lists.
+  written; ss_shop (src/Sscrn/ss_shop.cpp, the merchant screen: 70/74 functions byte-identical after
+  the seventh pass (BuyItemNum::move) incl. the 0x980 eof block, .rodata/.data/.bss identical, .text 12 bytes
+  short = levelItemDisp) is written, see its item and the fifth/sixth/seventh-pass lists.
 - ss_shop idioms (2026-09): include order light.h, map_obj.h, widget.h (the three header strings), then
   "ss_shop.dat" (SsShopInit::move) and the HALT string (mem_alloc lines 0x1BA/0x242). The 13 widgets are
   declared in the order SsShopInit, SsShopMain (ss_main.h), ShopTopMenu(3 links, ctor sets cursor = 1),
@@ -3169,6 +3169,71 @@ target) stays unresolved and `make_rel` then fails with "undefined symbol".
     `int st = state` / shared `int n` for the getPieceNum results reorders the cases), PzzlThinking,
     SsPzzlMain::init, caseModelMove, pzzlCursorDisp, pieceTblInit, pieceFrameDisp, pieceModelDisp not
     re-attempted.
+- Seventh pass (2026-09-10, ss_shop 69 -> 70/74 (BuyItemNum::move), ss_pzzl pieceFrameDisp 143 -> 140 bytes;
+  ss_map/ss_main/ss_item unchanged; harness /tmp/ssw9 = ssw8 copies + `tryx.sh`/`ccx.sh` (a patched cc1plus
+  built from a copy of tools/sn-gcc in /tmp/ssw9/sngcc, see below) + `tryl.sh` (the /tmp/sngcc-leaf build)):
+  - **Read where a cross-jumped arm LANDS before trusting the source's control flow** (ss_shop
+    BuyItemNum::move, +8 -> 0): the target's cancel arm (`Key.trg & 0x40000000`) ends `li r7,0; b .L_28418`
+    INTO case 1's `li r8,0; bl SndCall; b .L_284C0`, and `.L_284C0` is `mr r3,r24; bl shopStrStop; b END` —
+    so the cancel arm calls `shopStrStop(wk)` after its `SndCall(0, 5)` (the source had `break` there; the
+    msg == 0x13 / `Key.trg & 0x80000000` arm and the `result == 0` path really do skip it). With
+    `shopStrStop(wk); break;` in the cancel arm, jump2 first merges its `bl shopStrStop; b END` with the
+    then-arm's copy (stopping at the two-predecessor join label -> `.L_284C0`), then its `li r8,0; bl
+    SndCall` with case 1's `b .L_284C0` tail (2 insns, then `li r7,0` vs `stb` differ). Case 2's own copy
+    falls into the join with the flow `use` nop and is never a cross-jump candidate — that is why "swapping
+    the if/else" merged 494 insns and why the +8 could not be fixed by arm order alone.
+  - **A scalar-reference store delays BOTH the struct-pointer argument loads and the fixed-scalar `pG` load**
+    (same function, the last 2 words): `IntSet(state, 1)` (file-local `int&` setter) before `if ((int)
+    pG->x4F98 >= m->sellPrice(sw->buyId, sw->count))`. The plain `stw 0,16(this)` only conflicts with the
+    `sw->buyId/count` loads (same offset 16, different base pseudos -> true dependence, cost 2) while the
+    `lwz pG` (fixed scalar vs struct store) is free and goes first; the reference store has neither MEM
+    flag, so all three loads become ready at t=4 and issue by priority: `lhz r4; lwz r5; lwz r30,pG`
+    (-fsched-verbose-9 in the `.sched` dump shows the ready lists; the tie is visible as `61` alone at t=3).
+  - **`VECNormalize(src, dst)` (math_sub.h) is the real form of the frame-corner normalize** (ss_pzzl
+    pieceFrameDisp): its chain `(dst)->x = (dst)->y = (dst)->z = 0.0f` stores x, z, y (RTL z, y, x; the
+    dying-source store first); the hand-written `c.x = c.z = c.y` gave y, x, z. Keep the `#line 1158` before
+    the macro line. Left (140 bytes): the loop's two REG_EQUIV highs — ours gives the format-string high
+    (loop.c pass-2 movable, 5 refs/112 insns) r21 and the 0.0 pool high (gcse-PRE'd from the `size.z = 0.0f`
+    store at the top, 4 refs/310) no register (`lis r9` rematerialised in the loop); the target has the pool
+    high in r14 and rematerialises the format string (`lis r7; addi r7`) — an allocation-priority order no
+    refs/length change reached (k-selection forms, prev/next as statements, `Vec* pc` all 25+ words).
+  - **`do { } while (0)` is a "phony" loop for loop.c** (`Loop from N to M is phony` in the `.loop` dump:
+    scan_start is not a CODE_LABEL because the unused loop-top label was deleted), so it never hoists
+    invariants into its "preheader"; only its notes (flow depth, cse block end, sched barrier) act. A real
+    inner loop is needed for a loop.c preheader placement (ss_main SubScreenTask, see next item).
+  - ss_main SubScreenTask (unchanged, COMPILER-DIFF 5 stays): the two `lis pG@ha` (r29/r30) sit in ONE
+    basic block (`.L_AE80` after `bl MotionMove`, before the `ssWepModel2` test). cse leaves two equal
+    `high` sets in a block (a HIGH costs 0 < a pseudo's 1, so the second is not replaced), but nothing in
+    ours can place them there: loop.c needs a real inner loop (a do-while(0) around the switch is phony and
+    moves the block instead), gcse PRE needs anticipation on the `ssWepModel2 == 0` path (the digit block's
+    pG read is conditional and the loop exit computes no `high pG`), and haifa needs a region — the function
+    ends in a leaf block (`bl TaskChain` + epilogue) and the enclosing `while (wk->x28)` body is far above
+    10 blocks; the /tmp/sngcc-leaf cc1plus does not hoist them either. The two-alias launder stays.
+  - ss_map mapPositionCheck (unchanged; mechanism now known, compiler-build family #13): integrate's
+    `try_constants` substitutes the ctor's `this` pseudo P (`REG_EQUIV (plus vsv 192)` for satA) into every
+    copied insn as ONE validate group, and the `flags = 0` store's group also substitutes the known QI
+    constant, giving `(set (mem:QI (plus vsv 234)) (const_int 0))`, which our movqi rejects (no
+    store-immediate) — the whole group is cancelled and the store keeps P (`stb r10,42(r26)`); the vptr
+    stores (source = a lo_sum pseudo, not a tracked constant) are substituted and come out frame-direct.
+    Experiment (/tmp/ssw9/sngcc, rs6000.md movqi/movsi conditions extended with `MEM dest && CONST_INT src`,
+    reload then materialises the constant): satA's `stb 9,242(1)` becomes frame-direct with a reload `li`,
+    but satB (frame offset 0: integrate's own FIXED_BASE_PLUS_P wants `(plus vreg const)`, a bare vsv gets no
+    equivalence) stays `stb 10,42(27)`; adding the bare-vsv equivalence makes satB fully frame-direct
+    including its vptr stores (`stw 11,16(1)`), which the target keeps through r27. The store-immediate
+    patch alone regresses the module broadly (ss_map 1 -> 12 BAD functions, ss_item 2 -> 13, ss_shop 4 ->
+    19), so the original is not simply "accept store-immediates"; nothing installed, no source form exists
+    (the flags store cannot be moved out of the shared atari.h ctor: t_atari's static-init loop matches
+    with it). Cost check for the cse route: `find_best_addr`'s tie-break `(COST(new)+1)>>1 > best_rtx_cost`
+    can never fire for `(plus P c)` vs `(plus fp c')` on rs6000 (PLUS costs COSTS_N_INSNS(1) either way).
+  - ss_item itemMakeMove (unchanged): global-alloc priorities from `.lreg` — mk 16 refs/183, joy 9/194,
+    d 6/100, wk 6/196, iw 4/185, lo 4/200, hi 4/208 (ours: mk r29 .. iw r25, hi/lo r23/r24); the target
+    gives hi/lo r28/r29 ABOVE mk, which needs a live length <= ~25 for 4-ref pseudos or a local-alloc
+    allocation (they are set in two arms, so neither is reachable by source). itemSelect not re-tried.
+  - ss_pzzl PieceSelect::move: `int st = state` (three placements) 113 -> 161 words, confirmed worse.
+    ss_shop levelItemDisp: a `static inline unitScrPos(IdUnit*, Vec*)` wrapper for the two x/y sites gives
+    the `&pos` a PRE'd pseudo (`mr r5,r17`) and no `mr r4,r3` — worse; the target's `mr r4,r3; lwz r3,
+    0x68(r4); addi r4,r4,0x88` (u not folded into r3) appears only at the two sites whose `pos` is read
+    afterwards, not at the two dispPrice sites.
 - The map model globals are named `ssPlModel`/`ssWepModel` (.bss 0x494/0x498, MapMgr works 0/1),
   `ssPlMotion`/`ssWepModel2` (.data 0x978/0x97C), renamed by hand in symbols.txt/sym_map.tsv
   (data labels have no .sym name for the sync tool); the generator attributes them to ss_map.cpp.
@@ -8847,3 +8912,109 @@ confirmed on the units named):
   giv init; in ours the high is a pass-1 movable (LUID before the giv init). filter06 move (3): loadaddr qty ordering,
   compiler-side (fpmem address pseudo). espgen02 Update (4): `int add` after the copies fixes the `li r29` position but
   swaps scaleR/colR (6 refs each, lengths 1412/1410: the later-born copy wins f25); every order tried gives 9-14.
+
+### em2b / em39 third pass (em2b 87 -> 101/121, em39 110 -> 120/153 masked-identical; sections equal; neither flipped; 2026-09-10)
+- Harness /tmp/em2b39_p3 (`tryv.py MOD FUNC variants.py [--sbs I] [--keep I]` compiles a variant of src/MOD/MOD.cpp
+  with the module flags and prints the masked word count; `sbs.py MOD SYM [OBJ]`, `mcmp.py MOD [SYM]`, `mdump.sh
+  MOD/UNIT -dX` with `SRC_OVERRIDE`, `fn.sh DUMP FUNC`). NOTE: variants whose NEW dicts are appended to one file
+  replace each other (`NEW = {}` again) -- `--keep IDX` then applies the LAST dict's entry; check the source after.
+  wibo's NgcAs hangs occasionally: tryv retries with a 60 s timeout.
+- **#13 post-call init blocks, recipe of record (em2b_R0_Init 43 -> 0, em39_R0_Init 69 -> 17).** Confirmed in the
+  `-dl` dump: every init constant (900, 0x23, 1.0, 0x1D/300/10/-1/450) is a single-set pseudo with a `REG_EQUIV
+  (const_int ..)` note. The original issues the whole block in pure source order: NO store carries a register death
+  (its constants are reload-materialised `(set (mem) (const))` substitutions, the shared zero stays live) -- so with
+  our compiler every dying store has to be kept alive past the block:
+  - `asm("" : "=r"(dmy) : "r"(k1), "f"(k2), ...)` (non-volatile, an OUTPUT operand, placed right after the last store)
+    keeps the constants' pseudos alive without a scheduling barrier; the output must be consumed later or flow deletes
+    the asm -- `asm volatile("" : : "r"(dmy))` in a LATER block (after the pG test, before the tentacle loop in
+    em2b_R0_Init) does it and doubles as the cse flush the original has there anyway (its zeros are fresh `li`s after
+    the join). Where nothing separates the block from the next call, output into a variable that IS used later
+    (em39_R0_Init: `zero = 0; asm("" : "+r"(zero) : "r"(z0), "f"(0.0f));` before the `w->x8C4 = zero` store --
+    `"+r"` on a variable the block's stores READ (w) gives every store an anti-dependence on the asm and hoists them
+    above the `li`s; `"+r"(em)` breaks the gcse PRE of the earlier `em->subArc` loads; `"+r"(one)` shifts `one`'s
+    callee-saved rank).
+  - The dummy output register matters: a pseudo `dmy` lands in r8 and adds a sched2 dependent to the earlier
+    `init2(...)` argument block (`li r8,2` moved before `addi r7`); `register int dmy asm("r7")` (any register the
+    following code never touches) is transparent. A hard register that is also written in the then-block of the
+    following `if` (r0 = `li r0,1`) pushes that constant to r9 -- keep the launder register out of every live range
+    it would cross.
+  - Registers: a constant the original's reload spilled into rN and ours local-allocates elsewhere is pinned with
+    `register int kN asm("rN")` set right after the preceding call (never before it: a call-clobbered hard register
+    set before a `bl` is deleted as dead and the uses read garbage -- the compiler does not warn). em2b: 900 -> r11
+    (ours gave the pG high r11 and 900 r10); em39: 0x1D/300/10/-1/450 -> r0/r8/r11/r9/r10 and the shared literal
+    zero -> `register int z0 asm("r20")` set at the first zero store (`w->x58C = (cEmWep*) z0`), which also keeps the
+    other callee-saved ranks (a pseudo zero with an asm use moved to r21).
+  - A dying-store pair of one hard-register constant (`x688 = 450; x89C = 450` issued 1672 then 2204) is fixed by
+    swapping the two statements (the later RTL store dies and is hoisted).
+  - The QI store of the `zero` variable: em39's `int zero` was folded to the HI zero pseudo of `dmgTotal = 0`
+    (src_related widening); with `u8 zero` (all its uses are byte fields) the promoted QI variable stores directly and
+    `S16`/word zeros stay on the shared SI pseudo. (Its `stb r30` still comes from a fresh `li` in one arm, 3 words.)
+  - Same shape, REG_EQUIV *mem*: em2bAtkEndSet's `w->x63C == 0` load is reload's r11 in the original (never
+    allocated), which leaves r0/r9 to the global `flags`/`atkHit` pseudos; `register int x63c asm("r11"); ... (x63c
+    = w->x63C) == 0` gives all six users (Stamp/Punch/Kick 2 words left: arm 2's `mr r3,r31` before `stw flags`,
+    a weight tie the original resolves the other way). em39_R0_Init's routine-set `MotionSetCore(em, MOTION(em),
+    ARC(0x73), (int) ARC(0x74), ..)` likewise: `register PlArc* arc11 asm("r11"); arc11 = em->subArc;` (the base
+    otherwise ties to the r6 add; em39_R1_Success's identical call matches because its base has other uses), and a
+    `do { xFC..xFF stores } while (0)` barrier keeps the argument block after the routine bytes (the original's
+    QI stores aliased the `lwz em->subArc`, ours proves them disjoint).
+  - ShortRopeSet (6) and ClothSet (49 -> 11) are the same family with pool constants and table addresses dying too:
+    keeping them alive shifts the `lis` hoists and the FPR names; ClothSet's order is now the original's LUID order
+    (`x54 = 0` FIRST, then num, pParts, x08, pUp, pDown, pMax, x34, x24, x38, x3C, x40, x44, x4C, x50, flags, the six
+    pointer zeros, x58, x48) with `f32 zf` assigned after `x40 = 0.8` for the 0.0's f0/pool slot; left: the 3 dying
+    stores (1004/1024/964) hoisted.
+- em2bObaHitCk (55 -> 0): the `VECNormalize` macro's `pLog->err` goes through `cLogPtr::operator->` (inline), whose
+  two BLOCK notes sit between `lis pLog@ha` and its use: loop.c counts them in the invariant's life (3), and
+  `71 * 1 * 3 >= 89 insns` hoists the high out of the loop; `pLog.p->err(...)` (life 1) keeps it in the error arm
+  like the original. Use the direct member read wherever a target reloads `lis pLog` inside a loop's error arm.
+- `~cEm2b` / `setNoSuspend` (23/25 -> 0): `for (u32 i = 0; i < 10; i++) w->pTentacle[i]` -- the pointer-compare
+  form `p <= &tbl[9]` gives an entry test, `int i` reverses the count (`li 10; addic.`); `u32 i` keeps `i` plus the
+  `i*4` giv (`lwzx`; `cmplwi i,9`).
+- setPos / R1_Wait (28/45 -> 0): the variant motion switch is `em2bVariantMot(this, w, 0x31, 0x78, 0x27, 0x6E, 0, 5)`
+  (one MotionSetCore after the arms), `(s16) pG->pl_life <= 0` for `lha; cmpwi; bgt`.
+- subem2b_Catch (22 -> 0): the routine test was `xFC != 1 && xFD != 0x13` (the `||` version folds the two adjacent
+  byte compares into one `lwz; clrrwi; cmpw` -- fold_truthop merges `a == c1 && b == c2` complements, not `!= &&
+  !=`); read the target's branch polarity (`beq` past the second test) before writing the operator.
+- plem2b_dm_BlowKick (30 -> 0): one EstSet with `ChkWaterEffectEnable(&pl->pos) ? 6 : 5` as the argument (`cmpwi;
+  li r8,5; beq; li r8,6` -- an `int kind = 5; if (..) kind = 6;` form reloads differently, 19).
+- plem2bDashEscape (35 -> 0): `pl->subArc = PL_EM(pl)->subArc; pl->dmType = 2;` (the byte store after the load) and
+  the atari flag RMWs through the wep_mod.h volatile view (`AtariFlagsAndV(&pl->atari, 0xFDFF)` /
+  `AtariFlagsOrV(&pl->atari, 0x200)`, copied into em2b.cpp): `addi rX,pl,0x2b4; lhz/andi./sth 0x1a(rX)` with the
+  following `lwz pSUB` below the store. The plain `flags &= ~0x200` folds the address and hoists the load;
+  `clrFlag200()` keeps the address but not the load order. em39 plem39_CliffAtk (4 -> 0) needs the u16&
+  reference form instead (`AtariOffR(em39CliffObj.p->atari.flags, 0xFCFF)`: the volatile view there gives the
+  `addi 692` base the target does not have).
+- ThrowRock / TreeAtkCk (48/45 -> 0): the nested call computed into the variable first (`ang = GetXZAngle(..); ang =
+  Muku2(em->rot.y, ang, ..)` -- the inline form keeps `em->rot.y`/`&pPL->pos` live across the inner call in f31/r30),
+  `LIMIT_ANGLE(ang + em->rot.y)` (operand order = `fadds f1,f1,f0`), a `EmAtkInfo* atk = &em2b_atk_info[6]` local
+  for the `lhz/ori/sth 10(r5)` pair, the target selection as two calls `if (..) ang = GetXZAngle(&p->worldPos,
+  &w->pFriend->pos); else ang = GetXZAngle(&p->worldPos, &pPLS->pos);` (each arm computes `&p->worldPos`, jump2
+  merges only the `bl`), `aang = fabsf(ang)` right after the Muku call (the target's `fabs f9` precedes the distance
+  test), `FSet(em->rot.y, LIMIT_ANGLE(em->rot.y))` before a `SndCall(.., &pPL->pos, ..)`.
+- em2bAtkCk (49 -> 0): every `pPL->x = v` in the case arms is a reference store (`FSet(pPL->pos.x, a->x)`: pPL
+  reloaded per store), case 4 is `pPLS->rot.y = em->rot.y + PI; FSet(pPL->rot.y, LIMIT_ANGLE(pPLS->rot.y));` (struct
+  views so the second read reloads pPL instead of `mr r9,r11`, and the PI `lfs` before the rot.y one), and the
+  `QuakeExec; SndCall; VibSetData; return 1;` tail is written in BOTH the `hit & 1` and the `hit & 2` arms (each keeps
+  its own `lis/lfs f1/li r3,0` QuakeExec preamble; jump2 merges from `li r4,0` on).
+- em2b_R1_HoleAtk (23 -> 19): `void* tbl = w->texBlend;` declared inside `if (pG->room_id == 0x224)` before the
+  `if (w->pTex)` (the `addi 1640` sits in the test block), `dz` assigned before `dx` for the `lfs z` first
+  distance. Left: the case-3 pPL high shares p's r30 in ours (no conflict), the target gives it r28 (5 callee-saved).
+- em39 (all matched now): T_Kick `if (hit != 0) goto rtn_e;` to the final `EmRoutineSet(em, 1, 0xE, 0, 1)` (the
+  original threads `hit != 0` straight to the last routine set instead of re-testing `w->x8B6`); SlantCk2's last
+  test is `(u8) (Rnd() % 10) > 6` (branch polarity read off the target); T_ATK_INIT macro / LowKickHit / CliffAtk:
+  `pGS->x4F88` for the FIRST pG read after a `w->` store (`w->x10 = Rnd() & 1` / `w->x10 = 10`) keeps `lwz pG` below
+  the store (also the `lis pG` in CliffAtk); em39_R0_Init's `zero`/one see above.
+- OPEN em2b (one try each unless noted): Hook 15 / UpperCut 21 / DashAtk 6 = the documented `li r4,10` after
+  `andi.` and `li r6,2` last (ternary, if/else, inline selector all give the same RTL); Stamp/Punch/Kick 2 (arm 2
+  `mr r3,r31` vs `stw flags`); ShortRopeSet 6 (5/100 r6/r7 + 1124/1220 order, see above); ClothSet 11; Catch 58
+  (`li r30,1; mr r8,r30` for the flip argument in arms 2/3: gcse cprop folds `int one = 1` into every arm --
+  a second dead set does not help because both sets must reach the use on different paths; plus `addi r4,p,112; mr
+  r27,r4` for `hp` (the target sets the arg register directly and copies it: an inlined caller) and the fmadds
+  register tie); DashScrCk 36, Strangle 38, Dm_Face 72, HouseBreak 114, GetTree 120, RouteCk 140, Walk 150,
+  AtkParasite 174 not iterated; AtkRtnCk 195 is #6. OPEN em39: AreaMoveCk 50 (the outer `i*64+8` giv: loop.c's
+  `lifetime * threshold * benefit < insn_count` cannot fail with threshold 146 unless the recorded benefit is <= 2;
+  index-first / shift / `int` index / `u32 ofs` / `u8*` base forms all reduce it), ArmControl 56 (#6 tails), KnifeCatch
+  3 (`fabs f31,f31` reads the variable, ours the gcse copy `f13` of the 0.0 -- cse2 canonical choice), WallWait 4 /
+  JumpUp2/3 / SuperDash (FPR ties), MarkerMove 2, Die_Flash 2, BlendMotSet 3 (#2), SitChg 7, ExitCk 16 (`mr r6,r0`
+  copy), set2ndBattle 16 (store order/regs), GetCliffPos 12, SlantCk 11, CatchCk/KickHitCk 18, RouteCk 33, JumpDownCk
+  37, GuardCk 43, BloodSet 46, ThrowGR 48, AtkCk2 55, AppearMG2/Bow 6/7, T_JumpAtk 10, T_LongAtk 12, Atk_MG 12,
+  ArrowFire 13, PLNearTowerCk 21, Goto 21, JumpUpCk3 24 not iterated.
