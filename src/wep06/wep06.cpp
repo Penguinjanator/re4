@@ -42,6 +42,11 @@ void Wep06_init(cModel* m)
     }
 }
 
+void ObjGovernment_init(cObj* obj)
+{
+    new (obj) cObjGovernment();
+}
+
 void cObjGovernment::init(cModel* parent)
 {
     void* bin;
@@ -211,11 +216,6 @@ void cObjGovernment::setMotion(cPlayer* pl)
     pl->pBody->initWepHand((u32) WEP_ARC_PTR(0x8));
     pl->setRightHand(1);
     pl->setLeftHand((u32) WEP_ARC_PTR(0x9));
-}
-
-void ObjGovernment_init(cObj* obj)
-{
-    new (obj) cObjGovernment();
 }
 
 extern "C" void _prolog()

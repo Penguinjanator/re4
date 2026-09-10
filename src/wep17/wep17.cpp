@@ -698,8 +698,8 @@ static void wep17_r2_next(cPlayer* pl)
     switch (step) {
     case 0:
         MotionMoveI(pl, 0);
-        pl->x3E4 = 0;
         pl->x3E0 = 0;
+        pl->x3E4 = 0;
         if (em) {
             ang = Muku(&pl->pos, &em->pos, pl->rot.y, PI);
         } else {

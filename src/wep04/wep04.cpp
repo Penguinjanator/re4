@@ -59,6 +59,11 @@ cObjWep* equipWeapon(cPlayer* pl)
     return obj;
 }
 
+void ObjXd9_init(cObj* obj)
+{
+    new (obj) cObjXd9();
+}
+
 void cObjXd9::init(cModel* parent)
 {
     void* bin;
@@ -253,11 +258,6 @@ void cObjXd9::setMotion(cPlayer* pl)
     pl->pBody->initWepHand((u32) WEP_ARC_PTR(0xA));
     pl->setRightHand(1);
     pl->setLeftHand(4);
-}
-
-void ObjXd9_init(cObj* obj)
-{
-    new (obj) cObjXd9();
 }
 
 extern "C" void _prolog()

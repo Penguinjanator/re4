@@ -406,6 +406,8 @@ static void wep07_r3_fire00(cPlayer* pl)
     pitch = m3r[0];
     PlWepLockRand(pl, 2, &pitch, &pl->x400);
     m3r[1] = pitch;
+    // OPEN (2 words): the original loads the 0.0 before m3r[2] here (both weight 0 in sched1, equal
+    // priority; ours keeps the RTL order) while still giving the 0.0 f0 -- see AGENTS.md.
     if (m3r[2] == 0.0f) {
         m3r[0] = pitch;
     }
@@ -416,8 +418,9 @@ static void wep07_r3_fire10(cPlayer* pl)
 {
     int endFrame;
 
-    // The original keeps a dead `cmpwi 0x21` after the tree: its jump2 dropped the `beq` into the
-    // cross-jumped 0x28 body without deleting the compare (ours does; see AGENTS.md residuals).
+    // The dead `cmpwi 0x21` after the tree needs a third node below 8 grouped with the default
+    // (`case 7:`): the 3-node tree emits `bgt test` around it, jump.c inverts that into `ble default`
+    // and jump2 cross-jumps the separate 0x21 body, leaving its compare.
     switch (pG->wep_no) {
     case 8:
         endFrame = 0x20;
@@ -425,6 +428,7 @@ static void wep07_r3_fire10(cPlayer* pl)
     case 0x21:
         endFrame = 0x28;
         break;
+    case 7:
     default:
         endFrame = 0x28;
         break;

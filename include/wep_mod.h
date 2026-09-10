@@ -48,6 +48,8 @@ static inline void AtariFlagsAnd(cAtariInfo* at, u16 mask) { at->flags &= mask; 
 // wep17 ready00: the following pG load stays below the store and the info address is kept in a
 // register (`addi rX, obj, 0x2b4; lhz/sth 0x1a(rX)`): only the volatile scalar access gives both.
 static inline void AtariFlagsOr(cAtariInfo* at, u16 mask) { *(volatile u16*) &at->flags |= mask; }
+// wep14 r2_down: the same for a cleared bit followed by a pG load (`addi 0x2b4; lhz/andi./sth; lwz pG`).
+static inline void AtariFlagsAndV(cAtariInfo* at, u16 mask) { *(volatile u16*) &at->flags &= mask; }
 
 // Machine gun (wep11 = TMP, wep29; wep/objMachinegun.cpp shared object; wep12 Thompson, wep27
 // Klauser MG and wep39 carry their own copies of the class in the module object).

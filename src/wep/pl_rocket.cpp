@@ -210,6 +210,16 @@ static void wep13_r3_ready30(cPlayer* pl)
     pl->motionMove();
 }
 
+// r2_set: the launcher line copy of `to` reads the frame directly (`lwz 0x18(r1)..0x20(r1)`) while
+// `from` (frame offset 0) goes through an address register; a plain `obj->launcher.to = to` after
+// `getTrajectory(&from, &to)` makes cse reuse the call's `&to` pseudo for the copy and gcse PRE
+// hoists it into a callee-saved register. The copy through an inline taking the address by pointer
+// keeps the frame-relative loads.
+static inline void VecCopy(Vec* d, const Vec* s)
+{
+    *d = *s;
+}
+
 static void wep13_r2_set(cPlayer* pl)
 {
     static void (*func_tbl[])(cPlayer*) = {
@@ -229,23 +239,20 @@ static void wep13_r2_set(cPlayer* pl)
             pl->xFD = 0x11;
             pl->xFF = 0;
         } else {
-            pl->xFC = 0;
-            pl->xFD = 6;
-            pl->xFE = 3;
-            pl->xFF = 0;
+            int md = 3;
+
+            PlRoutineSet(pl, 0, 6, md, 0);
         }
     } else if (joyFireOn() && pl->pWep->pObj->bulletNum()) {
         Vec from;
         Vec to;
         cObjLauncher* obj;
 
-        // OPEN: the target recomputes `&to` at the call and reads it straight from the frame in the
-        // copy; ours PRE-hoists the `&to` pseudo into a callee-saved register (16 words).
         CameraMove();
         CamCtrl.getTrajectory(&from, &to);
         obj = LAUNCHER(pl);
         obj->launcher.from = from;
-        obj->launcher.to = to;
+        VecCopy(&obj->launcher.to, &to);
         pl->endCamera();
         pl->xFC = 0;
         pl->xFD = 6;
@@ -411,6 +418,9 @@ static void wep13_r3_down00(cPlayer* pl)
         void* mot0 = pl->pMotTbl[0x55];
         void* mot1 = pl->pMotTbl[0x56];
 
+        // OPEN (2 words): the original issues `li r9,3` before the stack-argument `stw r0,8(r1)`;
+        // both feed the call with equal priority and the store frees a register, so our sched1
+        // issues the store first (an `int` local for the 3 is cse'd into the later `xFF = 3`).
         mot3.set(pl, mot0, mot0, mot0, (int) mot1, 3, 0, 4, 0);
         mot3.move(m3r[0]);
         pl->xFF = 3;
@@ -570,10 +580,9 @@ static void wep13_r2_next(cPlayer* pl)
             pl->xFD = 0x11;
             pl->xFF = 0;
         } else {
-            pl->xFC = 0;
-            pl->xFD = 6;
-            pl->xFE = 1;
-            pl->xFF = 0;
+            int md = 1;
+
+            PlRoutineSet(pl, 0, 6, md, 0);
         }
     }
 }
