@@ -1749,12 +1749,23 @@ static void printEditTable()
     int x;
     int col;
     int x2;  // the tail column base: a second variable (x for 4/8 lives in r3 and never crosses a call; the
-             // 0x11 base is callee-saved), and `obj->be_flag` is re-read at every use (the target's `mr r11,r0`
-             // is gcse's PRE copy of the isAlive load, not a `flag` local)
+             // 0x11 base is callee-saved), set ONCE at the tail top (its two `li r27,0x11` are gcse PRE
+             // insertions in the arms; a set in each arm keeps a `mr` copy). `obj->be_flag` is re-read at
+             // every use (the target's `mr r11,r0` is gcse's PRE copy of the isAlive load, not a `flag` local).
     char name[8];
 
+    {
+        // COMPILER-DIFF: candidate #17 -- global.c pass 0 `regs_used_so_far`: the tail base (22 refs) is the
+        // first call-crossing allocno and would take r31 in pass 1; the original gives it r27 (shared with
+        // the dead `no`), y r31, i r26. The pins emit nothing.
+        register int pin asm("r27");
+        asm("" : "=r"(pin));
+        asm("" : : "r"(pin));
+    }
     eprintf(0x20, 0x15E, 4, 0, "NO= NAME==== ID LIT_MASK OT FLAG COL  TEX POS ANG SCL ========");
-    for (i = 0, y = 0x1A, no = pWork->top; i < pWork->rows; i++, y++, no++) {
+    // increment order y, no, i: gcse's PRE insertions of the three `+1` follow the first-occurrence order,
+    // and i+1 last / y+1 first gives the target's live lengths (i in place r26, y+1 r23, no+1 r25)
+    for (i = 0, y = 0x1A, no = pWork->top; i < pWork->rows; y++, no++, i++) {
         obj = SmdGetGroupObjPtr(no);
         x = 4;
         if (obj == NULL || !obj->isAlive()) {
@@ -1762,11 +1773,10 @@ static void printEditTable()
         } else {
             if (obj->x12E != 2 && obj->x12E != 4) {
                 col = 5;
+            } else if (!(obj->be_flag & 4)) {
+                col = 0x14;
             } else {
                 col = 0;
-                if (!(obj->be_flag & 4)) {
-                    col = 0x14;
-                }
             }
         }
         eprintf(x * 8, y * 14, col, 0, "%03d", no);
@@ -1775,11 +1785,10 @@ static void printEditTable()
             eprintf(x * 8, y * 14, 0x14, 0, "NO REGIST");
             continue;
         }
-        switch (obj->x12E) {
-        case 2:
-        case 4:
-            break;
-        default:
+        // two `!=` tests with re-reads (not a `switch`): each re-read is its own load/zero_extend pair, so
+        // thread_jumps can walk the `== 4` test back to its load and thread the `beq` past the `== 4`
+        // re-test below (a switch index is one promoted pseudo and the walk stops at the `== 2` jump)
+        if (obj->x12E != 2 && obj->x12E != 4) {
             if (pWork->flags & 1) {
                 eprintf(x * 8, y * 14, 0x14, 0, "UNKNOWN MODEL");
                 continue;
@@ -1797,7 +1806,6 @@ static void printEditTable()
         }
         if (obj->x12E != 2 && obj->x12E != 4) {
             eprintf(x * 8, y * 14, col, 0, "UNKNOWN");
-            x2 = 0x11;
         } else {
             char* n;
             int j;
@@ -1809,8 +1817,10 @@ static void printEditTable()
                 // COMPILER-DIFF: 3 -- the original keeps a fresh `lis scrollWorkPtr@ha` at each of the three
                 // pWork sites of the loop; our block LCM PREs this single occurrence above the name loop and
                 // then merges all three into one hoisted high (r14), which displaces the "SCL" string high.
-                ScrollWork* wb;
-                u32 hib;
+                // COMPILER-DIFF: #13 -- the high is r11 / the pointer r9 (the original's REG_EQUIV high is
+                // reload-materialised after local-alloc gave the pointer r9); as pseudos both take r9.
+                register ScrollWork* wb asm("r9");
+                register u32 hib asm("r11");
                 asm volatile("lis %0,scrollWorkPtr@ha" : "=r"(hib));
                 asm("lwz %0,scrollWorkPtr@l(%1)" : "=r"(wb) : "r"(hib));
                 n = wb->nameTbl[no];
@@ -1820,12 +1830,21 @@ static void printEditTable()
             }
             name[7] = 0;
             eprintf(x * 8, y * 14, col, 0, "%8s", name);
-            // COMPILER-DIFF: candidate #12 (cprop): the original keeps `(x2 + k) * 8` unfolded although both arms
-            // set 0x11; our gcse cprop merges the two identical constant sets and folds the tail
-            asm("li %0,0x11" : "=r"(x2));
         }
+        // COMPILER-DIFF: candidate #12 (cprop): the original keeps `(x2 + k) * 8` unfolded although both arms
+        // reach the tail with 0x11; a plain `x2 = 0x11` (or `x + 9`) is folded by cprop pass 1 and never PRE'd.
+        // The input-less asm is a gcse expression: PRE inserts it at the end of both arms (`li r27,0x11` at the
+        // target's LUID) and cse2 + flow remove the `x2 = R` copy because x2 has no other set.
+        asm("li %0,0x11" : "=r"(x2));
         eprintf(x2 * 8, y * 14, col, 0, "%02d", obj->x12E == 2 ? obj->type : obj->id);
-        eprintf((x2 + 3) * 8, y * 14, col, 0, "%08x", obj->lightInfo.x54);
+        {
+            // COMPILER-DIFF: candidate #1 (arg copy): the target issues `addi r3,x2,3` before `lwz r8,x54`;
+            // in ours the load (2 dependents: the call and the next call's r8 set) outranks the addi chain.
+            // The launder keeps the argument copy `r3 = cx` (priority +1 for the chain); it emits nothing.
+            int cx = (x2 + 3) * 8;
+            asm("" : "+r"(cx));
+            eprintf(cx, y * 14, col, 0, "%08x", obj->lightInfo.x54);
+        }
         eprintf((x2 + 0xC) * 8, y * 14, col, 0, "%02d", obj->x12F);
         eprintf((x2 + 0xF) * 8, y * 14, col, 0, "FLAG");
         eprintf((x2 + 0x14) * 8, y * 14, col, 0, "%s", cullShort[obj->x135]);

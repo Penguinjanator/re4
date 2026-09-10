@@ -13118,3 +13118,90 @@ paths rewritten: `mcmp.py UNIT [SYM]`, `tryv.py UNIT SYM variants.py`, `vapply.p
     `do {} while (0)` between the two last eprintfs does not un-merge them. 34 -> 44 with the asm, left plain.
   - EspToolInit (db_port, 1224 words, frame 0x1e0 vs 0x1c0: two spilled `&local` pseudos, `li r27,1` hoisted into a
     callee-saved register, BitOn/BitOff order, the evtToolOn fold) not iterated; db_light's four residues not iterated.
+
+### Tool RELs, bytes-first pass 10 (t_light/t_scroll Matching 42/42; Tools/t_atari Matching 23/23; t_camera 51->52/57; db_sctrl 17->18/22 x2; t_snd_vol 19->20/27; 2026-09-10)
+
+- Harness /home/adityas/.cache/tools_p10 (tools_p9 copies with the paths rewritten; new `lens.sh MOD/UNIT FUNC VARIANTS.py
+  REGNO..` = tryv word counts plus the `-dl` refs/length line of the named pseudos for every variant -- the global-alloc
+  order questions below are all "which of two allocnos with priority 0.59x is first").
+- **printEditTable (t_scroll, 71 -> 0, unit flipped).** Five independent mechanisms, read off the dumps:
+  (1) `switch (obj->x12E) { case 2: case 4: break; default: .. }` must be `if (obj->x12E != 2 && obj->x12E != 4) { .. }`
+  with the member RE-READ in each test: the target's `beq` for `== 4` jumps PAST the col2 select's `clrlwi; cmpwi r0,4;
+  bne` re-test straight to `li r30,6` (jump.c `thread_jumps`). thread_jumps walks the two compare chains backwards
+  pairwise and needs `t2 == label` with no pending register pairs: with a switch the index is ONE promoted pseudo and the
+  walk from the `== 4` compare hits the `== 2` JUMP_INSN at once (fail); with two `!=` re-reads every test is its own
+  `load; zero_extend; cmp` triple, the pairs (P1~P2, T1~T2) are consumed by matching setters and the walk reaches the
+  label (the `mem` operands compare equal by address). A `u8 type` local is wrong (cse merges the zero_extends, `cmpwi
+  cr7` shape). Zero code.
+  (2) The tail column base is set ONCE, at the tail top after the if/else, as the input-less `asm("li %0,0x11" :
+  "=r"(x2))` (tagged `candidate #12 (cprop)`): gcse hashes the asm as an expression and PREs it into BOTH arms at the
+  target's LUID (expr index = its first-occurrence position, between the "%8s" high and the tail's first string high;
+  the arm insertion lands after the three `+1` insertions because those have weight 0), and because x2 has no other
+  set, cse2's make_regs_eqv keeps the reaching reg as the class head, canon_reg rewrites the tail's uses to it and flow
+  deletes the `x2 = R` copy -- no `mr`. A set in each arm (pass 9) keeps the copy (x2's FIRST_UID is outside the ebb);
+  a plain `x2 = 0x11` or `x2 = x + 9` at the tail top is folded by cprop pass 1 (x = 8 is available) and never PRE'd.
+  (3) Increment order `y++, no++, i++`: gcse inserts the PRE'd `+1`s in expression-index (= first-occurrence) order,
+  sched1 keeps that LUID order (equal priority, weight 0), so i+1 is computed last in every block and is the shortest
+  temp -> allocated first -> r26 shared with `i` (in place), no+1 r25, x*8 r24, y+1 r23; y (shorter than i) is allocated
+  before i and takes r31 (shared with `&name`). The UNKNOWN-col block's `addi no+1` before the call is sched2: the tail
+  base shares no's r27, so `li r27,0x11` gives no+1 an anti-dependent (+1 priority) there and in the else block.
+  (4) The tail base (22 refs/120 insns, priority 0.73) is the first call-crossing allocno and takes r31 in pass 1; the
+  target has it in r27 (r31 = y + &name). No natural form lowers it (its refs are the 9 tail uses + 2 insertions);
+  applied `register int pin asm("r27"); asm("" : "=r"(pin)); asm("" : : "r"(pin));` at the function top (tagged
+  `candidate #17`): r27 becomes used-so-far, the base takes it in pass 0, &name r31, col r30, y14 r29, obj r28, no r27
+  (pass 0, dead in the tail) and the rest cascades. Also `register ScrollWork* wb asm("r9"); register u32 hib
+  asm("r11")` on the pass-8 asm-high pair (tagged `#13`: as pseudos local-alloc ties the pointer to the dying high's
+  r9; the original's REG_EQUIV high is reload-materialised into r11 after the pointer got r9).
+  (5) `int cx = (x2 + 3) * 8; asm("" : "+r"(cx)); eprintf(cx, ..)` for the x54 eprintf only (tagged `candidate #1
+  (arg copy)`): ours issues `lwz r8,x54` before `addi r3,x2,3` because the load has TWO dependents in the block (the
+  call and the next eprintf's `lbz r8` = REG_DEP_OUTPUT: under 2.95.3 a call records call-used regs as CLOBBERS, so
+  reg_last_sets[r8] still points at the load) while the addi has one (its shift); the launder keeps the argument copy
+  `r3 = cx`, +1 priority for the addi chain. The x12F/x135 sites are `lbz` first in the target too (2 dependents).
+  Zero-code alternatives (a `u32 v` local, the copy-free form) leave the tie.
+- **plmove10 (t_atari, 19 -> 0, unit flipped, zero code): `GlobalWork*& gp = pG; Draw_local_pos(&w->pos, 1000,
+  gp->Cam.viewMat)`.** The target's copy stores (`stw`) come after the three RMW `stfs` because its `lwz r5,pG` DEPENDS
+  on the stfs stores (true dep, latency 2): the stores then have two dependents (call + load) and outrank the equal-
+  priority copy stores in sched1. Ours exempted the pG load through alias.c's `fixed_scalar_and_varying_struct_p` (a
+  plain `pG->` read is MEM_SCALAR_P at a fixed address, the stores MEM_IN_STRUCT_P at a varying one); a REFERENCE read
+  is a MEM with neither flag (the pass-3 IRef finding) and gets the dependence. The "sched2-alias, not source-fixable"
+  verdict of passes 7/9 was wrong: the sched1 order already differed. Rule: when a load of a global must follow
+  struct-member stores through a pointer in the target, read the global through a reference.
+- **SctrlAdjustAxisRange (db_sctrl, 20 -> 0)**: (a) the `.v` reads as `w->curve->key[i].v` while `.t` stays
+  `c->key[i].t`: loop.c hoists the invariant `w->curve` load into its own pseudo, the two address givs then have
+  different add_val registers and `combine_givs_p` cannot express one as the other + constant -> two stepped
+  pointers (+0x14 and +0x18) as in the target (one giv with `-4(r9)` otherwise). cse2 later merges the hoisted load
+  with the entry load, so no extra `lwz`. (b) `d = (fabsf(ymax) > fabsf(ymin) ? fabsf(ymax) : fabsf(ymin)) * 0.1f`
+  instead of a named `m`: with the ternary temp the 0.1 pool load takes f13 and the select f0 (a named `m` is a
+  multi-block pseudo global-alloc sees only after local-alloc gave the pool load f0).
+- **drawScurve (db_sctrl, 55 -> 2)**: `k = &c->key[i]` inside the body instead of `k = c->key; .. k++`: the pointer is
+  then a giv whose `addi rK,c,4` init is emitted in the loop PREHEADER (after the exit test) -- `k = c->key` before the
+  loop puts it in the entry block, one insn earlier in every allocno's life, and i/k/&wp permute (r26/r27/r29/r30).
+  Residue 2: `lis r19,pLog@ha` (VECNormalize's error arm) is hoisted in loop pass 1 in ours and in pass 2 in the target
+  (the target's `addi r30,r28,4` giv init precedes it); its `savings 2 * life 6 * threshold 32 >= 204` in ours.
+- **tcAdatInit (t_camera, 5 -> 0)**: `for (i = 0; i < 4;) { do { PSMTXMultVec(m, &a->pt[i], &a->pt[i]); i++; }
+  while (0); }` (tagged `tie`): the phony do-while doubles the body's REG_N_REFS (the pt giv then takes r31 ahead of
+  `a`/`poly`; a plain loop permutes r27/r28/r31) and with the increment INSIDE it the giv's `addi r31,r31,0xc` is no
+  longer behind the LOOP_END anti-links and moves above the `bl` like the target's.
+- **editDataDraw (t_snd_vol, 2 -> 0)**: the #1 floats-first alias `void markDrawF(f32 dist, s16 val, u32 col, int
+  kind) asm("markDraw__FsUlif")`: the target loads `lha val` before `lfs dist`; the argument evaluation order follows
+  the parameter order, same registers.
+- Left, mechanisms read (do not retry the listed forms):
+  - tcSetBesideOffset (t_camera_data, 27): loop-1 givs 207 (`n*12+0x18c`, 9 refs/84) vs 209 (`n*4`, 9/82): the target
+    allocates 207 first (r3) although it is born one insn earlier (the giv-init order is loop.c's and identical);
+    body permutations (at-first, interleaved, fovy-first, `k = n++`, pointer/temp forms, declaration orders, u32 n)
+    27-89. A pin cannot separate them (both live through the whole loop). Loop 2's permutation cascades from it.
+  - DbSctrl (2): sched2 issues `stw r4,8(x)` before `stw r5,0xc(y)` because the x store has an anti-dependent (`lwz
+    r4,pG`) -> higher priority; the target has y first with the same insns; the statement orders change nothing.
+  - drawAxis (22, two identical blocks): the two `fix_truncdfsi2` loadaddr pseudos (`unspec[0]`, "=b") get r3/r4 in
+    ours and r9/r11 in the target (the second is `mr r11,r9` = `mr r4,r3` in ours, reload_cse's copy of the first); r9
+    is free in the block, yet local-alloc skips it. `int sy` first, no locals, f32 temps: 22-47.
+  - sctrlMenu (104): the log10 argument select: the target has both `fabs` arms directly in f1 (the DF call argument)
+    and a/b in f11/f12; ours f0 + `fmr f1,f0` (set_preference strips SIGN/ZERO_EXTEND but not FLOAT_EXTEND, so the
+    SF->DF extend gives no f1 preference). Double `fabs` asm forms put the arms in f1 but add `fmr` extends for the
+    compare (`fabsd` 107, cmp-float/arms-double 99, `register f32 m asm("fr1")` 104). The string highs r20/r21/r22
+    and the case-arm `li r6; extsb; addi r7` order are a second, untouched group.
+  - tcCameraCopyPoint (13): the four `x629` test blocks are cross-jumped down to 2 in the target and 3 in ours (A1e
+    into A2t fails); arm polarity swaps in the source are normalised by the front end (13 in all four).
+  - tcNextAdatPtr (2), editScreenDisp (11: the `extsh`/`subi` operands are `(subreg:HI (reg:SI))` so combine_regs
+    would refuse the tie -- ours still shares r0/r11, the target r10; `int` temps are folded back), tvib_R0_VibLoopSet
+    (32: the cse2 fresh-`lis V@ha` family, 8 loads share one high in the target -- the asm-high pair x8 would do it).

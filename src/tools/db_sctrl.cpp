@@ -70,7 +70,6 @@ void SctrlAdjustAxisRange(DbSctrlWork* w)
     f32 xmin;
     f32 ymax;
     f32 ymin;
-    f32 m;
     f32 d;
     int i;
 
@@ -85,8 +84,9 @@ void SctrlAdjustAxisRange(DbSctrlWork* w)
     ymin = c->key[0].v;
     xmin = xmax;
     ymax = ymin;
-    // OPEN: the target steps two pointers (&key[i].t at +0x14 and &key[i].v at +0x18) through the
-    // loop; ours strength-reduces one with a -4 displacement (2 insns short)
+    // the .v reads go through `w->curve` (hoisted by loop.c into its own pseudo): the .t and .v address
+    // givs then have different base registers and loop.c cannot combine them into one pointer with a
+    // -4 displacement -- the target steps two pointers (&key[i].t at +0x14 and &key[i].v at +0x18)
     for (i = 1; i < c->num; i++) {
         if (c->key[i].t <= xmin) {
             xmin = c->key[i].t;
@@ -94,21 +94,18 @@ void SctrlAdjustAxisRange(DbSctrlWork* w)
         if (c->key[i].t >= xmax) {
             xmax = c->key[i].t;
         }
-        if (c->key[i].v <= ymin) {
-            ymin = c->key[i].v;
+        if (w->curve->key[i].v <= ymin) {
+            ymin = w->curve->key[i].v;
         }
-        if (c->key[i].v >= ymax) {
-            ymax = c->key[i].v;
+        if (w->curve->key[i].v >= ymax) {
+            ymax = w->curve->key[i].v;
         }
     }
     w->xMax = xmax * 1.2f;
     w->xMin = xmax * -0.2f;
-    if (fabsf(ymax) > fabsf(ymin)) {
-        m = fabsf(ymax);
-    } else {
-        m = fabsf(ymin);
-    }
-    d = m * 0.1f;
+    // the select as a ternary temp (a named `m` is a global pseudo that local-alloc cannot see, so the 0.1
+    // pool load takes f0 and m falls to f13; the target has m in f0, the constant in f13)
+    d = (fabsf(ymax) > fabsf(ymin) ? fabsf(ymax) : fabsf(ymin)) * 0.1f;
     w->yMax = ymax + d;
     w->yMin = ymin - d;
 }
@@ -928,10 +925,13 @@ void drawScurve(DbSctrlWork* w)
     HermiteKey* k;
     int i;
 
-    k = c->key;
-    for (i = 0; i < c->num; i++, k++) {
+    // k as `&c->key[i]` inside the body: loop.c reduces it to a pointer giv whose `addi rK,c,4` init is
+    // emitted in the loop preheader (a `k = c->key; ... k++` form puts the init in the entry block
+    // before the exit test, which shifts the callee-saved allocation of i/k/&wp)
+    for (i = 0; i < c->num; i++) {
         f32 ang;
 
+        k = &c->key[i];
         gph.x = k->t;
         gph.y = k->v;
         posGraph2World(w, &gph, &wp);

@@ -713,6 +713,7 @@ MATCHING = {
     "t_camera/t_util.cpp": True,
     "t_light/t_util.cpp": True,
     "t_light/t_light.cpp": True,
+    "t_light/t_scroll.cpp": True,
     "t_event/t_util.cpp": True,
     "t_sce/t_util.cpp": True,
     "t_movie/t_util.cpp": True,
@@ -754,6 +755,7 @@ MATCHING = {
     "t_event/db_toolbase.cpp": True,
     "Tools/t_dr.cpp": True,
     "Tools/t_sce_at.cpp": True,
+    "Tools/t_atari.cpp": True,
     "t_sce/t_sce_at.cpp": True,
     "t_sce/t_sce_item.cpp": True,
     # single-unit enemy modules (src/<em>/<em>.cpp, the whole REL)

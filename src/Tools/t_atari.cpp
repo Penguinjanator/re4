@@ -347,7 +347,15 @@ static void plmove10(AtariToolWork* w)
     w->pos.x += (f32) w->joy.sx * spd;
     w->pos.y += (f32) w->joy.sy * spd;
     w->pos.z = w->pos.z + (f32) w->joy.trigR * spd * 0.5f - (f32) w->joy.trigL * spd * 0.5f;
-    Draw_local_pos(&w->pos, 1000, pG->Cam.viewMat);
+    {
+        // pG read through a reference: a reference read is a MEM with neither the struct nor the scalar
+        // flag, so alias.c's fixed_scalar_and_varying_struct_p does not exempt it from the three `w->pos`
+        // stores above; the load then depends on the `stfs`s, which gives them a second dependent and
+        // ranks them above the `old` copy's `stw`s in sched1 (the target's stfs-before-stw order). A plain
+        // `pG->` read is a fixed scalar and floats above the stores.
+        GlobalWork*& gp = pG;
+        Draw_local_pos(&w->pos, 1000, gp->Cam.viewMat);
+    }
     if (w->joy.on & 0x400) {
         int hit = At_poly_sphere_ck((AtPolyData*) satTbl0, &satTbl0[0].poly[w->polyNo], &oldPos, &w->pos, 100.0f, 0, 0);
 

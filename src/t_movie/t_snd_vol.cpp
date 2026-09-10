@@ -98,6 +98,8 @@ static void data_delete();
 static void data_select();
 static void data_edit();
 void markDraw(s16 val, u32 col, int kind, f32 dist);
+// COMPILER-DIFF: 1 -- floats-first view of markDraw: the original loads `lha val` before `lfs dist`
+void markDrawF(f32 dist, s16 val, u32 col, int kind) asm("markDraw__FsUlif");
 void mainFrameDisp();
 void editDataLineDraw(TblEnt* e, u32 col);
 void editDataDraw(EditTbl* tbl);
@@ -942,7 +944,7 @@ void editDataDraw(EditTbl* tbl)
                 kind = 2;
             }
         }
-        markDraw(e->val, col, kind, e->dist);
+        markDrawF(e->dist, e->val, col, kind);
     }
     for (i = 0; i < (int) tbl->num - 1; i++) {
         editDataLineDraw(&tbl->e[i], 0xFFFFFFFF);

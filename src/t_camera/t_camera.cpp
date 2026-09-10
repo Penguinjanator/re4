@@ -1042,9 +1042,13 @@ void tcAdatInit(TcAdat* a, int area_no, int cam_no)
     PSMTXIdentity(m);
     PSMTXRotAxisRad(m, &axis, pPL->rot.y);
     PSMTXTransApply(m, m, pos.x, pos.y, pos.z);
-    for (i = 0; i < 4; i++) {
+    // COMPILER-DIFF: tie -- the phony do-while doubles the body's REG_N_REFS (the pt pointer giv then takes
+    // r31 ahead of `a`/`poly`); the increment must sit INSIDE it so that its `addi` is not pinned behind
+    // the call by the LOOP_END note (the target has `addi r31,r31,0xc` before the `bl`).
+    for (i = 0; i < 4;) {
         do {
             PSMTXMultVec(m, &a->pt[i], &a->pt[i]);
+            i++;
         } while (0);
     }
     poly->pt[0].y = poly->pt[1].y = poly->pt[2].y = poly->pt[3].y = a->base_y;
