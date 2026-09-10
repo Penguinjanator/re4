@@ -880,13 +880,15 @@ void em2dInitRtnSet(cEm2d* em)
     w->atkWait = zero;
     w->jumpWait = zero;
     w->poisonWait = zero;
-    w->wallNrm.y = 1.0f;
-    w->wallNrm.z = 0.0f;
+    // x4F8, spd, wallNrm x/y/z: the dying-store rule (1.0 dies at wallNrm.y, 0.0 at wallNrm.z) issues them y, z, x4F8,
+    // spd, x like the target -- no keep-alive needed.
     w->x4F8 = 1.0f;
     w->spd.x = 0.0f;
     w->spd.y = 0.0f;
     w->spd.z = 0.0f;
     w->wallNrm.x = 0.0f;
+    w->wallNrm.y = 1.0f;
+    w->wallNrm.z = 0.0f;
     w->humTimer = Rnd() % 90 + 90;
     w->effTimer = 5;
     w->x4D0 = zero;
@@ -991,9 +993,9 @@ void em2dInitRtnSet(cEm2d* em)
         break;
     }
     case 5:
-        w->wallNrm.z = 0.0f;
-        w->wallNrm.y = 1.0f;
         w->wallNrm.x = 0.0f;
+        w->wallNrm.y = 1.0f;
+        w->wallNrm.z = 0.0f;
         EmRoutineSet(em, 1, 0x29, 0, 0);
         MotionSetCore(em, &em->mot, ARC(0x48), 0, 0, 5, 0);
         break;
@@ -1414,7 +1416,6 @@ static void em2d_R1_SideStep(cEm2d* em)
     Vec a;
     Vec b;
     int side;
-    f32 bx;
 
     w->flags |= 0x100;
     switch (em->xFE) {
@@ -1461,24 +1462,36 @@ static void em2d_R1_SideStep(cEm2d* em)
             cModel* p = em->getPartsPtr(0);
             RotMatrix(m, &em->rot);
             TransMatrix(m, &p->worldPos);
+            // The whole probe is written in both arms (jump2 cross-jumps everything from `addi &b` on; the arms
+            // keep their own `lfs 0.0` / `addi &a` / `lfs +-900` and the join block has no label).
             if (em->motFlags & 0x40) {
+                a.x = 0.0f;
+                a.y = 0.0f;
                 a.z = 0.0f;
-                bx = -900.0f;
+                b.x = -900.0f;
+                b.y = 0.0f;
+                b.z = 0.0f;
+                PSMTXMultVec(m, &a, &a);
+                PSMTXMultVec(m, &b, &b);
+                if (SatMgr.hitCheck(&a, &b, &hit, &nrm, 0, 0x383830) && em2dNoWallCk(em) == 0) {
+                    w->wallNrm = nrm;
+                    em->pos = hit;
+                    em->xFE++;
+                }
             } else {
+                a.x = 0.0f;
+                a.y = 0.0f;
                 a.z = 0.0f;
-                bx = 900.0f;
-            }
-            a.x = 0.0f;
-            a.y = 0.0f;
-            b.x = bx;
-            b.y = 0.0f;
-            b.z = 0.0f;
-            PSMTXMultVec(m, &a, &a);
-            PSMTXMultVec(m, &b, &b);
-            if (SatMgr.hitCheck(&a, &b, &hit, &nrm, 0, 0x383830) && em2dNoWallCk(em) == 0) {
-                w->wallNrm = nrm;
-                em->pos = hit;
-                em->xFE++;
+                b.x = 900.0f;
+                b.y = 0.0f;
+                b.z = 0.0f;
+                PSMTXMultVec(m, &a, &a);
+                PSMTXMultVec(m, &b, &b);
+                if (SatMgr.hitCheck(&a, &b, &hit, &nrm, 0, 0x383830) && em2dNoWallCk(em) == 0) {
+                    w->wallNrm = nrm;
+                    em->pos = hit;
+                    em->xFE++;
+                }
             }
         }
         break;
@@ -2684,8 +2697,12 @@ static void em2d_R1_W_Walk(cEm2d* em)
             if (t) {
                 w->timer8 = t - 1;
             } else {
-                alpha = w->wallNrm.y;
-                if (alpha > 0.899999976f || alpha < -0.899999976f) {
+                f32 ny = w->wallNrm.y;
+                // COMPILER-DIFF: candidate #12 (fallthrough-arm form): the target compares the load temp (f0) and then
+                // `alpha` (f12, a copy of it); our cse1 folds either compare onto the canonical register of the
+                // pair, so the copy is made opaque.
+                asm("fmr %0,%1" : "=f"(alpha) : "f"(ny));
+                if (ny > 0.899999976f || alpha < -0.899999976f) {
                     w->atkWait = Rnd() % 30 + 30;
                     EmRoutineSet(em, 1, 0x14, t, t);
                     break;
@@ -3620,12 +3637,14 @@ static void em2d_R1_A_CatchHit(cEm2d* em)
         MotionSetCore(em, &em->mot, ARC(0x4F), 0, 5, 1, 0);
         em->xFE++;
     case 5:
-        if (MotionMoveF(em, 0)) {
-            em->atari.setPriority(0);
-            w->jumpWait = Rnd() % 150 + 150;
-            w->atkWait = 75;
-            EmRoutineSet(em, 1, 1, 0, 0);
-        }
+        do {  // loop notes: the then-block's w refs count double (w outranks the &em->pos PRE register: r27/r26)
+            if (MotionMoveF(em, 0)) {
+                em->atari.setPriority(0);
+                w->jumpWait = Rnd() % 150 + 150;
+                w->atkWait = 75;
+                EmRoutineSet(em, 1, 1, 0, 0);
+            }
+        } while (0);
         break;
     case 6:
         MotionSetCore(em, &em->mot, ARC(0x3D), (int) ARC(0x3E), 5, 0, 0);
@@ -4535,20 +4554,27 @@ void em2dRouteCk(cEm2d* em)
             return;
         }
     }
-    // Both arms end in the same Muku call (jump2 cross-jumps it; the argument addresses stay per arm).
+    // Both arms carry the Muku/fabs/xFC-reset tail (jump2 cross-jumps it from `lis` on; the argument addresses
+    // stay per arm). The xFC reset must be inside the arms too: sched2 runs before jump2, so the surviving arm's
+    // block has to end in the xFC `bne`, not at a join label, for `stfs routeAngAbs` to be issued before the PRE copies.
     if (w->flags & 0x800) {
         GetPlPos(&w->routePos, 0, 10.0f);
         w->routeAng = Muku(&em->pos, &w->routePos, em->rot.y, 3.14159274f);
         w->routeAngAbs = fabsf(w->routeAng);
+        if (em->xFC == 0) {
+            w->routeAng = 0.0f;
+            w->routeAngAbs = 0.0f;
+            em->plDist2 = 100000000.0f;
+        }
     } else {
         RouteCkToPos(em, &pPL->pos, &w->routePos, 0, 0);
         w->routeAng = Muku(&em->pos, &w->routePos, em->rot.y, 3.14159274f);
         w->routeAngAbs = fabsf(w->routeAng);
-    }
-    if (em->xFC == 0) {
-        w->routeAng = 0.0f;
-        w->routeAngAbs = 0.0f;
-        em->plDist2 = 100000000.0f;
+        if (em->xFC == 0) {
+            w->routeAng = 0.0f;
+            w->routeAngAbs = 0.0f;
+            em->plDist2 = 100000000.0f;
+        }
     }
     plPos = pPL->pos;
     plPos.y += 1800.0f;
@@ -4579,8 +4605,8 @@ void em2dRouteCk(cEm2d* em)
     w->targetAng = w->routeAng;
     w->targetAngAbs = w->routeAngAbs;
     w->targetDist = em->plDist2;
+    w->pTarget = pPLS;  // before the flags RMW: the pPL load (may alias a w store) precedes `stw flags`
     w->flags &= ~4;
-    w->pTarget = pPLS;
     if (w->flags & 0x8000) {
         if (w->homeDist < em->x3CC) {
             w->flags &= ~0x8000;

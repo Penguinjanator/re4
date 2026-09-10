@@ -2165,6 +2165,80 @@ the three 0x400 `.data` tables are 256-entry `switch` jump tables, one per funct
   `MPVCDEC_IntraBlocks` (the 192-store clear switches to an `mpv+0x720` base at store 84; every
   loop/helper shape keeps r3 then the r31 copy), dct_ac `DCT_AcInit` (M2).
 
+### CRI pass 2 (header-drift probe clean; adx_dcd 7 -> 8/10, mpv_umc 8 -> 11/16, sfd_pts 3 -> 4/5, sfd_tim 29 -> 30/39; 2026-09-10)
+- Header-drift probe: a generated `sizeof`/`offsetof` probe over every typedef'd struct of
+  src/lib/cri/*.h (89 structs, symbol sizes read with objdump -t) agrees with every `/* 0xNN */`
+  comment (the flagged ones are parent-relative comments: SFHDS_AUD/VID, SFSEE_HN), and a
+  register-agnostic scan of the target displacements of every unmatched CRI function (multiset of
+  `(mnemonic, disp)` per function, target minus ours) finds no consistent delta: the remaining
+  displacement differences are pointer-vs-folded shapes (sfd_mpv `addi 0x180/0xd64/0xf80` + `stw 0..`
+  = a member pointer kept in a register; sfd_buf `+0x1318` = the SFBUF_HN view; mpv_cdec `-0x38` =
+  the documented base switch; cftyp422_ppc = `.bss` object order) or misaligned diffs. No struct pad
+  was wrong after the SFSEE_WORK fix. Probe scripts: /tmp/cri2/probe_gen.py, dispscan.py, dispset.py.
+- symbols.txt scope: `ADX_DecodeInfoAinf` was `scope:local` while adx_bsc calls it, so dtk emitted
+  it as `ADX_DecodeInfoAinf_800BB6F8` and objdiff never paired it (0% in report.json although the
+  code was 99% there). A `local` function referenced from another unit must be `scope:global` in
+  config/G4BE08/symbols.txt (check `.fn NAME_8xxxxxxx, global` in build/G4BE08/asm/lib/*.s).
+- Semantic error found by register tracing (sfd_tim `sftim_IsGetFrmTime`): the target stores and
+  compares `ft` (frame time) in `tim->x2c0/x2c8`, our source had `ct`; only the FPR numbers showed
+  it (`stfs f2` where f2 = ft). Check which value a `stfs`/`fcmpu` uses before assuming M1.
+- Leading integer constant in an add chain with a call operand keeps the chain in source order:
+  `(0x1B + infolen + strlen(s) + ofst + align) / align * align` gives `add infolen,r3; add ofst;
+  add align; addi 0x1b` (adx_dcd `ADX_CalcHdrInfoLen`, Matching); without the constant MWCC defers
+  the leaf adjacent to the call to the end (`infolen + strlen(s) + ofst + align` -> strlen+ofst,
+  +align, +infolen) and any statement split puts the sum in the variable's register in place.
+- `ofs = 0x14; if (ver == 4) ofs = 0x20;` defines the variable in its callee-saved register
+  (`li r28, 0x14; bne; li r28, 0x20`) where `ofs = (ver == 4) ? 0x20 : 0x14;` computes a temporary
+  and lets the following `ofs += 4` define it (adx_dcd `ADX_DecodeInfoAinf` 99.1 -> 99.4).
+- Inline-asm `li rD, imm` is hoisted by the inline assembler above the preceding independent
+  instruction whatever the source order (`addi r4,r4,4; li r5,6` and the reverse both give `li;
+  addi`; `#pragma scheduling off` does not change it); `addi r5, 0, 6` keeps its place
+  (mpv_umc `mpvumc_OutputIntra6blk`, Matching).
+- `mullw` operand order: `mpv->mb_y * 8 * out->cpitch` inline puts the loaded halfword first
+  (`mullw cpitch, y8`); a named local on the left (`y8 = mpv->mb_y * 8; ... y8 * out->cpitch`)
+  gives `mullw y8, cpitch`; the second offset must derive from it (`y16 = y8 * 2`) so the shift is
+  not recomputed from mb_y (mpv_umc `MPVUMC_PpicSkipped`, Matching; `MPVUMC_Intra` 75 -> 84%, its
+  `y16` is `mb_y * 16` and the rest is the `mr r5,r3` mpv copy + the late `addi r3,0x380`).
+- Volatile temporaries by declaration order fixed sfd_pts `SFPTS_WritePtsQue` (`wr` before `ent`)
+  and mpv_umc `MPVUMC_InitOutRfb` (`yh` declared last); brute-forcing all permutations of the
+  locals is cheap (`itertools.permutations` + fm.sh, ~0.15 s per build) and worth doing before
+  calling a register-only residue M1.
+- `volatile Sint32 ext_last` in SFTIM_WORK reproduces the reload after the `!= SFTIM_NONE` test
+  (sfd_tim `sftim_GetTimeExtClock`, Matching; no other unit reads it). NOT `vcnt`: the target
+  reloads `tim->vcnt` in `SFTIM_IsGetFrmTime` but keeps it in r0 in `SFTIM_IsGetFrmTimeTunit`
+  (same inlined helper), so that reload is register pressure, not volatile.
+- Shifted-view base for a buffer indexed by a parameter: sfd_pts `SFPTS_ReadPtsQue` through
+  `SFBUF_HN *hn = (SFBUF_HN *)((Uint8 *)sfd + strm * sizeof(SFBUF_WORK))` gives the single
+  `add r7 = sfd + strm*0x74` base of the target (88 -> 95%); `sfd->buf[strm].u.ring...` recomputes
+  the base after the inlined search.
+- sfd_tim float pool order (`SFTIM_InitHn` 99.96%): the target's per-function pool is
+  [double 0x43300000_80000000][10000.0f][-1.0f] (a 4-byte zero pad before the double), ours
+  [10000.0f][double][-1.0f]; one-expression conversions and declaration order do not move it (M2).
+- Still M1 after this pass (register-only residue, forms tried): adx_sjd `adxsjd_decode_prep`
+  (`ck.len` compare in r5), `adxsjd_get_wr`, `adxsjd_decexec_start`; sfd_cre `sfcre_AnalyMpv`
+  (ofs r6 / b4 r4: 180 statement orders), `sfcre_AnalyAudio/Mps`; cri_cvfs `cvFsAddDev`
+  (devname r29 / vtbl r28, `mr r0,r3` bounce and the `beq add; b check` after the inlined search;
+  helper decl order `dev, i, len` fixed its r26/r27), `cvFsOpen`, `cvFsGetFileSize`; mpv_frm
+  `MPV_SkipFrmSj` (mpv r31 / code r30 / sj r29: local copies, `register`, code init tried);
+  sfd_tst `SFTST_Calc` (the 64-bit abs diamond: `adiff = diff; if (diff < 0) adiff = -diff;` keeps
+  it in place with two `mr`, if/else and ternary forms get sunk to the compare), `SFTST_Create`
+  (the `lwz sftst_debout_buf` scheduled above the hdr copy tail); sfd_pts `SFPTS_ReadPtsQue`
+  (ofst/size in r30/r29 of the target, volatile in ours); sfx_zmv (inlined helper src/dst r3/r4);
+  mwsfdsvr `mwlSfdSleepDecSvr` (two zero copies `mr r30,r28; mr r31,r28` for the inlined
+  ClrSleepBdr's two stores; FALSE/0U/local/SetSleepBdr(0) forms all give one `li`),
+  `mwSfdExecDecSvrHndl` (rodata base `lis r4` above the prologue stores); sfd_tim
+  `sftim_Tc2Time*` (the running sum in the freed r4), `SFTIM_IsStagnant` (else-arm load order),
+  `SFTIM_IsGetFrmTime*`; mpv_umc `MPVUMC_Forward/Backward` (`&mpv->mcwk` kept in r30 across the
+  call, documented OPEN), `MPVUMC_BiDirect`; sfd_buf `SFBUF_RingGetDataSiz` (`mr r5,r4` zero copy;
+  `len1 = len2 = 0`, `len2 = len1` give `li`); mwsfdcre `mwsfcre_MallocRfb` (`blt fail; bge ok`
+  after the `||`: helper/goto/`&&`/else-if forms tried). M4 (stwbrx): all 7 sfh_main `SFH_Anly*`.
+  M2: adx_dcd `ADX_GetCoefficient`, sfd_adxt `SFADXT_SetSpeed`. M5/M1: mpvabdec (untouched).
+- sfd_buf `SFBUF_InitHn`: the inlined `sfbuf_InitAout` clears `u.aout.rsv[0..6]` and then
+  `u.ring.dlm_pos/dlm_len/wtot`, which alias the first three words through the union, so ours
+  stores `0x1f8/0x1fc/0x200` twice (buffer 4) and `0x2e0..0x2e8` twice (buffer 6) where the target
+  has six distinct stores `0x1f8..0x20c` / `0x2e0..0x2f4`: a source-side field set error, not
+  header drift (not fixed this pass).
+
 ## REL modules
 
 The game loads its rooms, enemies, weapons and debug tools as Nintendo REL overlays. `ninja` rebuilds the
@@ -9635,3 +9709,210 @@ output to the installed compiler; NOTE mk.sh must rm the insn-*.o objects or a p
   vptr, str, len` is neither source order nor the dying-first model (the vptr store, first in RTL, is issued 7th; the two
   other ctors issue it first); db_mod IKreport see above; t_atari plmove10, t_sce_at basic_menu, t_snd_vol editScreenDisp,
   t_rck, t_id idEdit*, db_light, db_port, t_camera_data not iterated this pass.
+
+### em2c / em2d pass 5 (em2d 119 -> 124/129; A_CatchHit, SideStep, RouteCk, InitRtnSet, W_Walk 0 words; JumpAtk 2 and CamouflageMove 26 left; not flipped; 2026-09-10)
+- Harness /tmp/em2d_p5 (em2c_p4/em2cd_p3 copies with the paths rewritten; `variants.py em2d SUBSTR v_x.py` prints one line per
+  variant in ~0.5 s, `SRC=<file>` for a variant base; `dumpm.sh em2d -dS -fsched-verbose-6` = sched1 dump with the ready lists,
+  `-dR` = sched2 (`.i.sched2`), `-dl`/`-dg` = local/global alloc). DOL symbols untouched (the `ADX_DecodeInfoAinf` scope change in
+  `git diff config/G4BE08/symbols.txt` is another agent's CRI work).
+- **sched2 runs BEFORE jump2's cross-jump** (toplev.c: `schedule_insns` at 4543, `jump_optimize (.., JUMP_CROSS_JUMP, ..)` at
+  4567), so a cross-jumped tail is scheduled as the arm it came from, with the arm's block ending at the JOIN LABEL. em2dRouteCk
+  4 -> 2: the else arm's `stfs routeAngAbs` (prio 2, 0 dependents) lost to the PRE copy `mr r26,r30` (prio 2, 1 dependent: the
+  `lis r30,pPL@ha` anti-dep) because its block ended at the `if (em->xFC == 0)` join label; in the target the block continues
+  into `lbz xFC; cmpwi; bne` (every leaf gets the branch anti-dep -> 1 dependent each -> LUID -> stfs first). So the original's
+  duplicated tail INCLUDED the `if (em->xFC == 0) { routeAng = 0; routeAngAbs = 0; plDist2 = 1e8 }` statement: write the Muku /
+  fabsf / xFC-reset in both arms (jump2 merges from `lis r9` on, the code is identical, only the sched2 order changes). Rule: when
+  a cross-jumped tail's sched2 order differs by "leaf with 0 dependents vs insn with 1", extend the source duplication past the
+  next conditional so the arm's block ends in a jump instead of a label. Remaining 2 -> 0: `w->pTarget = pPLS;` written BEFORE
+  `w->flags &= ~4;` (an argument-derived struct store may alias a global load: `base_alias_check` returns 1 for ADDRESS vs
+  SYMBOL_REF bases with `flag_argument_noalias` 0, so the `lwz pPL` must follow a preceding w store and precede a following one;
+  the target loads pPL before the flags store and stores pTarget after it).
+- **"PRE insertion into both arms" that our lcm cannot produce = whole-tail duplication in the source** (em2d SideStep 22 -> 0):
+  lcm.c's block formulation (`compute_earlyinout` has no availability term: `earlyout = ~transp | (earlyin & ~antin)`;
+  `delayin = (antin & earlyin) | AND-preds delayout`; insert where `latein & ~isoout`) only inserts at the ends of both arms
+  of an if/else when the join has a THIRD predecessor that computes the expression (`delayout = 0`) -- a plain diamond keeps
+  the computation at the join (verified by hand and by the `single` variant: `addi &em->pos` at the join, 58 words). SideStep's
+  target arms (`lis; lis; lfs 0.0; addi &a; lfs +-900; b`) are the heads of two full copies of `a.x = a.y = a.z = 0; b.x =
+  +-900; b.y = b.z = 0; PSMTXMultVec x2; if (hitCheck(..) && em2dNoWallCk(em) == 0) {..}` written in both `motFlags & 0x40`
+  arms (as case 0 of the same function already does); jump2 merges from `addi &b` on. `a.z` alone in the arms (the former form)
+  gave the single-insn `stfs a.z` cross-jump and a reloaded 0.0 at the join. Same family as the em2c blend-init finding.
+- **Global-alloc weight through the block HEAD's loop depth** (em2d A_CatchHit 22 -> 0, w r27 vs the `&em->pos` PRE register r26:
+  3*12/180 vs 3*12/174): flow's `calculate_loop_depth` records the depth at each basic block's HEAD, so a `do { } while (0)`
+  wrapped around a whole case body that starts with the case label does not raise that block's depth (dw_case2/dw_case6: refs
+  unchanged). It raises the depth of blocks whose head lies INSIDE the notes: `do { if (MotionMoveF(em, 0)) { ..; w->jumpWait =
+  ..; w->atkWait = 75; RS } } while (0);` in case 5 (LOOP_BEG right after the `case 5:` label, so no barrier: the block has no
+  earlier insn) doubles the then-block's refs (w 12 -> 14, the PRE register 12 -> 13) and w outranks it. Zero code.
+- **em2dInitRtnSet 9 -> 0 without any launder: the #13 "dying-store shape" was a source-order question.** The target's seven FP
+  stores (1280, 1284, 1272, 1192, 1196, 1200, 1276) are our own dying-store rule applied to the source order `x4F8 = 1.0;
+  spd.x = spd.y = spd.z = 0; wallNrm.x = 0; wallNrm.y = 1.0; wallNrm.z = 0` ([last dying = wallNrm.y(1.0)] + [wallNrm.z(0.0)]
+  + non-dying in RTL order), and case 5's `z, y, x` issue is the source order `x = 0; y = 1; z = 0`. Before reaching for the
+  keep-alive asm, permute the block's statements: with N dying registers the target order is [the last dying store in RTL]
+  [the other dying stores in RTL order] [the rest in RTL order], which pins the source order uniquely. The keep-alive recipe
+  itself was also verified here: `asm("" : "=r"(dmy) : "f"(1.0f), "f"(0.0f))` after the block with `register int dmy asm("r27")`
+  (a callee-saved register free across block 0/1; r24-r26 and pseudo dummies shift the allocation) and `asm volatile("" : :
+  "r"(dmy))` in the `if (em->type == 4)` block gave the order too -- but a volatile consumer placed BEFORE the EstSet calls
+  flushes cse's table, the EstSet zeros become fresh `li`s, `zero` then dies at `x536 = zero` and that store is hoisted (12
+  words): put the consumer after the last use of every cse-known register.
+- **em2d W_Walk 47 -> 0 (`lfs f0; fmr f12,f0; fcmpu f0,0.9; ..; fcmpu f12,-0.9`)**: an opaque copy `asm("fmr %0,%1" : "=f"(alpha)
+  : "f"(ny))` with `f32 ny = w->wallNrm.y` and `if (ny > 0.9f || alpha < -0.9f)`, tagged `COMPILER-DIFF: candidate #12
+  (fallthrough-arm form)`. Every plain form is folded: `make_regs_eqv` makes `alpha` canonical (last use beyond the ebb) and
+  rewrites cmp1's `ny`; a dead later `ny` mention makes `ny` canonical and rewrites cmp2's `alpha`; cse1's path only ends at a
+  CODE_LABEL or a NOTE_INSN_LOOP_END (a `do{}while(0)` between the compares: 47, the copy is then cprop'd by gcse). The tied
+  `"0"` form gives `fmr` only when the input is dead (2 words); the explicit `fmr` template is exact.
+- em2d JumpAtk (2, left): `cmpwi fe,0` before `stw flags` at t=5 of block 0. Both prio 2; ours issues the stw first because its
+  source dies (weight 0 vs +1). No source form changes it (`switch (em->xFE)`, `int fe` after the RMW, `u32 f = flags`,
+  do-while before/after, `asm volatile("")` after the RMW); with equal weights the LUID (RMW before the switch) still favours
+  the stw, so the original either ranked the compare higher or did not apply the death bonus (#8 family). Left.
+- em2d CamouflageMove (26, left; mechanisms read): (1) the `on` arm's target is a value-select `v` whose single `stb` is
+  cross-jumped into the else arm's `stb` (pass-2 rule), then each arm's redirected `b STORE` is compared with the fall-through
+  only: 2b's `addi r0,r9,-24` merges one insn deeper into the else arm's `addi; stb` (target `bgt` into the else arm), arm 1's
+  `addi r0,r9,24; b` and 2a's stay separate -- ours merges arm 1 into 2a (jump-vs-jump, 1 insn + jump) = COMPILER-DIFF #6;
+  `asm volatile("")` in arm 1 costs 5 words. (2) the target has ONE `li r0,128` block (2a `bgt` into it, 2b falls into it) =
+  a single `return 0x80` at the end of the inline (`if (!(c & 0x80)) { if (c <= 0x67) return c + 0x18; } else if (c > 0x98)
+  return c - 0x18; return 0x80;`), which also stops jump.c's "x = b; if (..) x = a" hoist (the shared block has two entries);
+  with `u8` return the arms match but a `clrlwi` follows the `li 128` and 2b's compare is on r9 instead of the target's
+  `clrlwi r0,r9,24; cmplwi r0,152` (same word count, 26, not applied). (3) FPR naming of the two fade conversions (target 12.8
+  f0, 0.9 f13, conv f12; ours conv f0): inline forms with f32 add/rate arguments, `f32 f = (f32) c` locals, `u8* c` inline:
+  26-41.
+
+### Enemy one-function-away sweep 2 (em22, em38, em3a, em23 Matching; em35 111/112, em3c 46/47, em29 35/36; 2026-09-10)
+
+- Harness /tmp/em_one2 (copies of /tmp/em_one + /tmp/cd13 with the paths rewritten; `tryv.py MOD/UNIT FUNC variants.py
+  [--asm NAME]`, `vapply.py MOD/UNIT variants.py NAME` applies a tryv variant in place, `mdump.sh MOD/UNIT -dX`,
+  `sbs.sh MOD SYM [OBJ]`). Scheduler dumps need `-fsched-verbose-N` (dash), N>=5 prints the per-block dependence
+  table (`insn code bb dep prio cost blockage units: forward deps`) and the ready list per cycle; the ready list is
+  printed ascending, the LAST entries are issued.
+- **sched2 inherits sched1's dependences.** LOG_LINKS are never cleared: flow adds def-use links, sched1's
+  `add_dependence` adds its own (anti/output/`sched_before_next_call`/barrier links on pseudos) and `schedule_insns`
+  after reload only removes the INTER-block ones ("after reload, remove inter-blocks dependences computed before
+  reload"), then `compute_block_forward_dependences` reads them again. So a sched2 priority can come from a
+  pre-reload, pseudo-level rule that has no hard-register counterpart: em3a R1_Fix's `addi r31,em,0x3e0` sits among
+  the arg moves (priority 6 = 1 + the call's 5) because the ORIGINAL's sched1 made the getFloor call depend on it.
+  Proof: `asm("" : "+r"(e)); w = EM3A_WK(e)` (a 0-calls-crossed pseudo feeding the addi -> `sched_before_next_call`
+  -> call depends on the addi) gives exactly the target slot with `mr r9,r28; addi r31,r9`. Corollary for the
+  "birthing boost"/"hoist" residues: read the sched1 table (`-dS -fsched-verbose-6`), not sched2's.
+- **`sched_before_next_call` decides TRUE vs ANTI store->call links (em35 R1_U_AtkSpear, still 5 words).** At a
+  CALL_INSN haifa first adds ANTI links for every insn that USES a pseudo with `REG_N_CALLS_CROSSED == 0`
+  (`sched_before_next_call`), then analyses the call's `(mem (symbol_ref))` read: `sched_analyze_2` skips stores that
+  already have a link ("If a dependency already exists") and runs `true_dependence` only on the rest; a `w->x` store
+  through an argument-derived base always conflicts (`base_alias_check` returns 1 for a VOIDmode ADDRESS base,
+  `-fno-strict-aliasing`/`-fargument-noalias` change nothing) -> TRUE link -> priority +1 (store latency 2 instead of
+  the anti cost 1). So the store whose SOURCE pseudo crosses a call (`w->blendRate = 0.0f` with the 0.0 shared by
+  `v.y`/the later compare, f31) is issued FIRST among the equal-priority stores, the stores of dying pseudos follow in
+  LUID order grouped by INSN_REG_WEIGHT (the death carries -1: `stb atkHit` of the switch register ranks after `stw
+  blendB` because the register dies at the later store), frame stores are always anti (Pmode base). The target's
+  order (blendA, atkHit, blendRate, v.x, v.z, blendB, v.y) has NO priority-11 store and the stb in the -1 group: the
+  original's blendRate source was a call-free pseudo and its atkHit zero the last use of its register — a second
+  0.0/zero pseudo that still shares f31/r8; not found (FSet, `f32 zero`, u8-first, `const f32` forms: 5-12).
+- **Dead `if` whose arms die at flow1 = block boundary through gcse + sched1, gone at jump2** (em38 plemEscape 27 -> 0,
+  em3a R1_Fix 7 -> 0). `if (Muku(...) > 0.0f) side = 1; else side = 0;` followed by `side = Rnd() & 1;` — the arm
+  stores are dead but `side` is used later, so `delete_trivially_dead_insns` (after cse1) keeps them and only flow1
+  deletes them; the compare+jump stay until jump2 (`delete_jump` -> `delete_computation` removes the fcmpu through the
+  cr0 REG_DEAD), so the final code shows NOTHING, but gcse saw bb3 end before Rnd (the `&pl->pos` PRE copy `mr r25,r4`
+  lands before Muku instead of after Rnd) and sched1 could not hoist `&pl->mat`/`&b`/`lis SatMgr`/`hit = 0` above
+  `bl Rnd`. The int store-flag shape (`if (x) t = 1; else t = 0;` on an integer compare) is folded by jump1 and does
+  not work (`w->timer > 5`: unchanged); `if (w->flags & 2) t = 1; else t = 0;` and an FP compare do. em3a R1_Fix:
+  the dead `if (w->flags & 2)` right after getFloor (t reassigned before `w->timer = t`) — the `lwz flags(w)` behind
+  the call is the dependent that gives the addi its priority (0 words; `if (getFloor(..) > w->spd.y)` also 0).
+  A loop-note barrier (`do {} while (0)` before Rnd) gives the same sched but is NOT a block boundary: the PRE copy
+  stays after Rnd, its pseudo crosses the call (`addi r30,r31,148; mr r4,r30; ... mr r25,r30`, 51 words).
+- **Global vs block-local pseudo and the copy preference (em22 R1_Jump 9 -> 0, em35 R1_Critical 4 -> 0).** A
+  block-local pseudo with copy suggestions {f1, f2} takes the first FREE one in REG_ALLOC_ORDER (f0, f13, f12, ...,
+  f2, f1: f2 wins) while a global allocno scans `hard_reg_copy_preferences` ASCENDING (f1 wins). em35: `ang` of the
+  EM35_CRITICAL_TURN macro as the ROUTINE's variable (`f32 ang;` used by both expansions) -> f1 -> the copy
+  `(set ang f1)` is the deleted one and the surviving `fmr f2,f1` sits at the argument-move position (after the
+  `lis` of Muku2's limit); a macro-local `ang` -> f2 -> the fmr survives at the result-copy position (before the
+  lis). em22: `fl` (getFloor result, `fmr f12,f1`) reused as case 1's `d = w->delta * 0.1f` temporary: the pseudo
+  is then live where `lfs f13,pos.y` (f13) and `lfs f1,0.0` (f1, the DirMatrix argument as sched1 placed it) are
+  live, the copy preference f1 is in its conflicts and the first free FPR after f0/f13 is f12 (`fmr f12,f1; fcmpu
+  f12`); the difference `fsubs f0,f12,f0` stays in f0 because the local pseudo cannot tie to a global one.
+- **em23 R1_R20ALanding (3 -> 0, module Matching):** both motion switches written out in the routine with ONE pair of
+  routine-scope `void* m0; void* m1;` (not the em23WaitMotion/em23TakeoffMotion inlines, which stay for the other
+  callers). `set_preference` converts a source pseudo already assigned by local-alloc through `reg_renumber`, so the
+  global `m1` (set from `(plus OFF A)` with OFF the local r11/r0 offset load) gets `hard_reg_preferences` r11; it is
+  merged into `regs_someone_prefers` of the takeoff join's subArc PRE copy, which then skips r11 in pass 0 and takes
+  r10 (`mr r10,r9; lwz r5,0x38(r10); add r5,r5,r10`). Open-coding only one of the switches keeps r11.
+- em22 needed `asm(".comm common_em22,52,4")`, em38 `asm(".comm common_em38,52,4")` (the 0x34 COMMON block of a
+  flipped single-unit module; em3a/em23 have `common_size` 0).
+- em3c PartsBombControl (295): #3 unchanged (the k loop's PSVEC* calls cannot be removed; `j+1` PRE hoist).
+- em29 em29DmCk (91): the target's tail zero is a routine-scope `int zero; zero = 0;` right after the wep switch,
+  passed as the 9th/10th EstSet argument (`(void*) zero`) and as a third parameter of em29DmRoutineSet(em, kind, z)
+  (`EmRoutineSet(em, 2, z/1/2, z, z)`), with the hp>0 arm calling it with the literal 0 inside a dead
+  `if (em->dmWep == 0x21) RS else RS` (the `lbz dmWep; cmpwi 0x21` left after jump2 merged the identical arms):
+  that form reproduces `li r29,0` at the dmg join, the EstSet stack stores and the hp<=0 arms, but the early
+  (hitCheck) routine set then has three separate arms ending `stb r30,0xfe; b END` that our jump2 cross-jumps
+  (2-insn tails; the original never merges them — #6) and the hp>0 `bne` is not removed by our jump2 either, so
+  the word count rises (91 -> 134) and the module cannot flip; not applied.
+- config/G4BE08/symbols.txt shows an `ADX_DecodeInfoAinf` scope change that predates this pass (CRI unit, not ours).
+
+### Stage rooms, st1_1/st1_3/st2_0 pass 3 (r200, r208, r11f Matching; r201 35/36, r207 19/21, r103 17/19, r108 13/16, r11d 16/21 with checkEmReset 22->7, r210 9/12; 2026-09-10)
+
+- Harness: /tmp/rooms_b3 (copies of /tmp/rooms_b2 + /tmp/rooms_c4 with the paths rewritten: `mcmp.py MOD/UNIT [SYM]`,
+  `tryv.py MOD/UNIT FUNC variants.py [--asm NAME]`, `vapply.py`, `sbs.sh MOD/UNIT SYM [OBJ]`, `mdump.sh MOD/UNIT -dX` with
+  `SRC_OVERRIDE`). tryv's "N/M identical" count is not mcmp's (it lacks the placeholder pairing); judge with ninja + mcmp.
+- **COMPILER-DIFF #11 lever (r200 execTruckEvent_end 73 -> 0, unit Matching)**: the merge of two freed 12-byte Vec slots
+  (24 bytes, no split: `24 - 16 < 16`) is avoided by making ONE of the first block's Vecs a 16-byte object (`struct R200Vec4
+  { Vec v; f32 pad; } ang;` with `Vec* pa = &ang.v` for the member stores): the merged slot is then 28 bytes and
+  `assign_stack_temp` splits it, so the second block's `Vec pos/rot = {0,0,0}` reuse both slots (frame 0x50). A 16-byte
+  `pos` with a template initialiser copies 16 bytes (wrong); keep the template Vec 12 bytes and widen the memberwise one.
+  Tagged `// COMPILER-DIFF: 11`. Candidate for r20e/r221/r225/r402's frame diffs.
+- **Arg-`li` family, three closed by source shape (mechanism still open for the `lfs` case)**:
+  - r201 setSwitchEnv (4 -> 0): `SceAtPtr(3)->dstAngle = K; SceAtPtr(0x28)->dstAngle = K;` in each arm instead of `at =
+    SceAtPtr(3); ang = K;` + one store after the join. Mechanism read off the sched dump: with three calls in the block,
+    `li r4,1` (r4 never re-set) gets an anti-dependent at EVERY later call (the CALL's `reg_pending_clobbers` path adds
+    `add_dependence (call, reg_last_sets[i], ANTI)` for call-used regs whose last set is still the `li`), while `li r3,0`'s
+    chain is cut by the next `li r3,3`; more dependents -> issued first, so the `li` of a re-set register sinks. The
+    target shows the same shape with ONE following call (r207 EnemySetEndProc second setEm, r11d appearLittleSister stack
+    zeros before `li r8/r9`), i.e. the original ranks that case differently. Harness test (/tmp/sched5 h.py, whole tree):
+    flipping the dependents tie-break sign = 11088 regressions / 0 fixes; counting only non-OUTPUT dependents = 7526 / 0.
+    Neither is the original's rule. The r113/r11d execHide `li r3,6`-after-`lfs spd` case has equal dependents in every
+    reading (the mode-1 arm without the `lfs` matches with `li r3` first); an `asm("li %0,6" : "=r"(grp) : "f"(spd))`
+    dependence lands it one cycle early (3 words: asm consumers have cost 1) -- not applied.
+  - r11f Evt_R11FS00_Func (2 -> 0, unit Matching): `EventMgr* em = &EvtMgr; em->EvtSndStrPlay(&em->x34, 1, 0x50, 1, 0.0f);`
+    (the `addi r4,r3,52` key address before `li r5,1`).
+  - r207 EnemySet (10 -> 0): `pSUB = NULL` after the volatile atari RMW is the #13 shape (`li r9,0` after the `sth`, reload's
+    spill register): a single-use FUNCTION-scope `cSubChar* zero = NULL;` (update_equiv_regs moves the `li` next to the store,
+    local-alloc gives it the freed r9). Tagged `// COMPILER-DIFF: #13`.
+- **Struct views for load order (r208 Matching)**: `v.y = pPLS->pos.y` before `FSet(pPL->rot.y, W->crank->rot.y - PI/2)`
+  issues `lwz W` before `lwz pPL` (operateCrank 4 -> 0); `pGS->flags_174 |= bit` right after a `Vec pos = {..}` template copy
+  makes the three template loads precede the first frame store (SubUnderCrankExec 8 -> 0) -- the struct-view RMW conflicts
+  with the frame stores, a plain `pG->` RMW does not (fixed scalar vs varying struct), and the store chain's priorities flip.
+- **`const f32` declarations for single-use YarareInitCube constants (r103 checkCloseCover 5 -> 0, r108 initChurchBell
+  5 -> 0)**: `const f32 w = 100.0f; const f32 h = 1200.0f; const f32 x = 0.0f; const f32 z = 50.0f;` loads w, x, h, z in the
+  target's order with the pool unchanged; plain `f32` locals load h/z in argument order. (The "24 declaration orders" note
+  of the earlier passes was about non-const locals.)
+- **Goto into a do-while body + `i++` in the exit test + an array pointer local (r11d checkEmReset 22 -> 7)**:
+  `SceSleep(1); i = 0; goto check; sleep: SceSleep(60); do { SceSleep(1); check:; } while (count > 10); setEm(t[i], ..);
+  if (i++ != 9) goto sleep;` -- the 60-frame sleep falls into the wait loop's single `SceSleep(1)` body, the exit is the
+  fall-through of `bne sleep` (no labelled empty exit block -> haifa forms one region for the whole loop and hoists setEm's
+  `li r4..r7` above the count compare like the target; a `break`/`return` exit creates the empty leaf block and kills every
+  region), the post-increment puts the `addi` between `cmpwi r31,9` and `bne`, `u8* t = tbl` keeps the base in the template
+  copy's pseudo (no gcse PRE copy). Residue: `i`/`t` r30/r31 swapped (global order: t 4 refs/39 insns 0.205 vs i 5/76 0.13 --
+  the -dl length of `t` is not doubled although set once).
+- r108 checkEmReset (6 -> 0): int-view alias `cEm* setEmI(int, int, int, int, int) asm("setEm__FsSciii")` (COMPILER-DIFF 4: the
+  original passes `int list[]` entries without the `lha` truncation) + `asm("" : "+r"(tbl))` on the array pointer INSIDE the
+  `if (n <= 7)` block (COMPILER-DIFF 3: the end pointer `addi r29,r31,40` is formed from the array pseudo, ours folds it to
+  the frame; the launder at function scope costs 12 words, inside the block 0).
+- r11d appearLittleSister (8 -> 5): the `#12 (b)` asm zero also has to be live from the function entry to conflict with the
+  work high (target zero r31 / work r30): `int zero; asm volatile("" : "=r"(zero));` at the top + `asm("li %0,0" :
+  "+r"(zero));` at the original position (no code for the first). Residue 5 = the two EstSet stack stores issued after the
+  `li`s (dependents: each `li rN` of the first EstSet has the second EstSet's `li rN` as an output dependent, the stores
+  only the two calls -> `li`s first in ours, stores first in the target: the same ranking difference as above).
+- r210 toroko_go (7 -> 0): the r104 `FCRef(static const f32 vol)` idiom for `SndStrReq(.., 0.0f)` after `obj->be_flag |= 0x20`.
+  r101 Event20 (4 -> 2): `Vec* pp = &r->pos; Vec* pa = &r->rot;` before `r->setPos(pp); r->setAng(pa);` (the second call's
+  `addi r4,r30,160` from the object register, not from the `this` copy). Residue: `addi r26,r1,24` (a PRE'd `&ang`) before
+  `li r3,21` in the target, after in ours.
+- Analysed, still OPEN (one try each with the new levers): r201 moveAltarObj (36: global order i/a+8/i*4/work = r9/r11/r10/r11
+  in the target; ours ranks `work` (5 refs/10 insns) first and `i` (5/22) last -- asm-li init, `a->` for every access,
+  `i` before `if (g)`, `sub` pointer, do-while: 36-65); r118 ThunderMove (2: `li r28,0` vs `ori 0x8889` LUID tie -- asm-li at
+  the top / before the loop / after the first SceSleep all 2, `zero = 0` inside the loop 14-88); r207 EnemySetEndProc (10:
+  duplicating `SceSleep(1); continue;` into both case arms gives the target's `li r4/r5`-last order but the sleep copies are
+  not cross-jumped (10), `for(;;)` + `if (loop == 0) break;` rotates the loop (24)); r202 setRock (4) / R202Init (2): local-alloc
+  fake-lifetime naming (the target's pParts r11 / -0.024 high r8 = exactly the birth/death adjacency rule applied to the
+  same schedule, ours gives r9/r11 -- the qty order differs, not the schedule); r11d execEmAppear_end (11: `&list0` copied
+  through r4 then r31 in the target = two frame-address pseudos, #3 family; `int* p0`/`cEmWrap* pe` locals 11-28);
+  r210 funcAshley2 (9: #13 dying-store block -- the em2b `asm("" : "=r"(dmy) : "f"(one), "r"(zero))` launder gives the store
+  order but its output consumer costs the `lis/li` positions, 9-11); r203 GanadoWandering (27: do-while/break, `return;`,
+  `goto end` forms all 27 -- the region is formed either way, so the target's missing hoists are the 100-LUID limit);
+  r108 switchSymbol 12, r108/r203 str_check/StreamCheck (#3), r103/r105 execOpenCover + r11c closeGate (#9), r202 throwRock
+  (#9), r11e/r10f/r222/r106/r10b not iterated this pass.
