@@ -59,7 +59,7 @@ UNITS = {
     ],
     "wep02": [
         ("wep02/objMauser.cpp", None),
-        ("wep02/objRuger.cpp", "ObjRuger_init", None, {".rodata": 0x1d0}),
+        ("wep02/objRuger.cpp", "ObjRuger_init", "wep/objRuger.cpp", {".rodata": 0x1d0}),
         ("wep02/pl_handgun.cpp", "PlHandgunMove", "wep/pl_handgun.cpp", {".rodata": 0x360}),
         ("wep02/wep02.cpp", "Wep02_init", None, {".rodata": 0x528}),
     ],
@@ -170,7 +170,7 @@ UNITS = {
         ("wep42/wep42.cpp", "Wep42_init", None, {".rodata": 0x298}),
     ],
     "wep43": [
-        ("wep43/objRuger.cpp", None),
+        ("wep43/objRuger.cpp", None, "wep/objRuger.cpp"),
         ("wep43/pl_handgun.cpp", "PlHandgunMove", "wep/pl_handgun.cpp", {".rodata": 0x190}),
         ("wep43/wep43.cpp", "Wep43_init", None, {".rodata": 0x358}),
     ],
@@ -554,6 +554,9 @@ STRIP_UNUSED = {
     "t_movie/t_util.cpp", "t_esp/t_util.cpp", "t_id/t_util.cpp",
     # t_movie's t_prim.cpp is the full (Tools) build minus the functions the module never calls
     "t_movie/t_prim.cpp",
+    # t_sce / t_movie's db_light.cpp is Tools' build minus the cLightTool / cLitPathTool ctors, dtors,
+    # move, lightAnalysis, expand, getCutNo and the cVarRange<u8> members only they used
+    "t_sce/db_light.cpp", "t_movie/db_light.cpp",
     # db_sctrl.cpp starts with the pool of a dead-stripped function
     "t_id/db_sctrl.cpp", "t_event/db_sctrl.cpp",
     # db_widget.cpp: the never-called DB_SLIDEBAR constructor (pool kept) and the dead delete-all
@@ -565,6 +568,10 @@ STRIP_UNUSED = {
     # points / DB_MODEL_FILES::append / dbModMotionSet, t_esp the view-flag getters / dbModMotionSetSeq /
     # dbModGetMotFilename (strings and pools of both stay, .rodata/.data are identical)
     "Tools/db_mod.cpp", "t_esp/db_mod.cpp",
+} | {
+    # the grenade player routines: two never-called routines between set10 and set20 whose pools and
+    # static Vec stayed (src/wep/pl_grenade.cpp wep19_r3_set50/set60)
+    f"{_m}/pl_grenade.cpp" for _m in ["wep19", "wep30", "wep41", "wep42", "wep45"]
 } | {
     # the Ganado library: two never-called helpers whose pools stayed (em10FindFloorCk,
     # plem10NeckBreakCamMove in src/em10/em10.cpp)
@@ -610,6 +617,7 @@ MATCHING = {
     "st2_2/r215.cpp": True,
     "st2_3/st2.cpp": True,
     "st2_3/r22b.cpp": True,
+    "st2_2/r212.cpp": True,
     "st2_3/r229.cpp": True,
     "st2_3/r220.cpp": True,
     "st2_3/r21b.cpp": True,
@@ -693,6 +701,11 @@ MATCHING = {
     "wep02/objRuger.cpp": True,
     "wep02/pl_handgun.cpp": True,
     "wep02/wep02.cpp": True,
+    "wep19/pl_grenade.cpp": True,
+    "wep30/pl_grenade.cpp": True,
+    "wep41/pl_grenade.cpp": True,
+    "wep42/pl_grenade.cpp": True,
+    "wep45/pl_grenade.cpp": True,
     "wep38/pl_handgun.cpp": True,
     "wep04/pl_handgun.cpp": True,
     "wep43/pl_handgun.cpp": True,
@@ -701,10 +714,35 @@ MATCHING = {
     "wep12/objTompson.cpp": True,
     "wep12/pl_machine.cpp": True,
     "wep12/wep12.cpp": True,
+    "wep28/pl_bow.cpp": True,
+    "wep28/wep28.cpp": True,
+    "wep26/pl_knife.cpp": True,
+    "wep26/wep26.cpp": True,
+    "wep16/pl_knife.cpp": True,
+    "wep16/wep16.cpp": True,
+    "wep15/pl_handgun.cpp": True,
+    "wep15/wep15.cpp": True,
+    "wep44/pl_handgun.cpp": True,
+    "wep44/wep44.cpp": True,
+    "wep05/objCivilian.cpp": True,
+    "wep05/pl_handgun.cpp": True,
+    "wep05/wep05.cpp": True,
+    "wep47/pl_rifle.cpp": True,
+    "wep47/wep47.cpp": True,
+    "wep40/pl_rifle.cpp": True,
+    "wep40/wep40.cpp": True,
+    "wep10/objHkSniper.cpp": True,
+    "wep10/pl_rifle.cpp": True,
+    "wep10/wep10.cpp": True,
+    "wep09/objSniper.cpp": True,
+    "wep09/pl_rifle.cpp": True,
+    "wep09/wep09.cpp": True,
     # single-unit player modules (src/plXX/plXX.cpp, the whole REL; include/pl_mod.h)
     "pl11/pl11.cpp": True,
     "pl06/pl06.cpp": True,
     "pl02/pl02.cpp": True,
+    "pl0d/objRuger.cpp": True,
+    "pl0d/wep02.cpp": True,
     "pl0d/pl_wesker.cpp": True,
 }
 # The Ganado modules' per-enemy objects (src/<em>/<em>_set.cpp: entry points + EmXXInit/Set/WeaponSet).

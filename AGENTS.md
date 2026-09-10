@@ -5035,3 +5035,59 @@ target) stays unresolved and `make_rel` then fails with "undefined symbol".
   window not verified), ID_WINDOW ctor (254 words), Load/SaveEmTypeUpdate (group-skip loop shape), the
   0x12C struct-copy loops (DeleteSeq/InsertSeq/Copy/Paste/Make*SeqData: giv/base register choice), EspToolMain/
   ToolEspMain/DrawPosCursor (+-4..20), EditActiveChange (+4), the `bring`/`active` callbacks' zero register.
+
+### Stage rooms, last-four pass (r212 Matching; r221 31/38 written, sections identical; r22c .data identical, 9/48 written; r226 not started; 2026-09)
+- r212 (src/st2/r212.cpp, st2_2, MATCHING): a room-local class driven by a member-function table
+  (`static void (cR212Door::*tbl[3])() = {&wait, &open, &close}` in `.data`: `{0, 0xFFFF, ptr}` PMF
+  entries, called `(this->*tbl[mode])()` — a class without virtuals gets no index test); its
+  `cEmGanado::setDrill` pointer copied into a call-clobbered `mr r8,r3` = ONE function-scope
+  `cEmGanado* g` assigned in both `if` blocks (a per-block local uses r3 directly).
+- `PSetSat(work->p, EatMgr.create(...))` with the call INSIDE the reference setter's argument hoists
+  the `lis work@ha` into a callee-saved register across the call; `cSat* e = create(); PSetSat(work->p, e)`
+  keeps the target's fresh `lis r11` after the call (TrapInit eat0). The later stores of the same
+  function want the call-inside form (sat[0..3], sat2, eat, eat2).
+- A template-copied `Vec pos` at frame offset 0 passed to two `setPos` calls in later blocks: the
+  target's `mr r28,r11` (copy of the block-move address pseudo) + `mr r4,r28` per call comes from a
+  block-local `Vec* pp = &pos;` declared in EACH block (gcse PRE hoists the redundant `(plus fp 8)`
+  into a copy after the template copy); one function-scope `Vec* pp` is merged by cse/cprop into the
+  block-move pseudo and a bare `&pos` recomputes `addi r4,r1,8` per call (r212 EventTrap).
+- A `u32 cnt` whose `li` the target issues after the template copy's `addi r9` but before its loads:
+  declare `u32 cnt;` at the top and assign `cnt = 0;` right before the loop (RoofMove); an
+  initialised declaration is scheduled among the copy's loads.
+- `(f32)` GPR constant: `f32 ry = -2.68f;` declared mid-block (after the module swap) lands as
+  `lwz r29, LC` before the first setPos and is stored with `stw` (SF constant in a GPR); declared at
+  the top it becomes an FPR (`lfs f30`) at the prologue (EventTrap); an FPR the target keeps across a
+  call (`lfs f30` before `setPos`, stored after) is `f32 ry = 3.09f;` declared right BEFORE the call
+  and after the Vec stores that precede it (DrillAppearCheckEndProc; the pool order follows).
+- `(u8) prm[i][k]` of an `int prm[4][3]` template array passed to an int parameter gives the target's
+  `lbz +3; clrlwi 24` pair by itself in the first loop (giv pointer `&prm[i][k]+3`), plain `lbz 3(rP)`
+  in the second; `u8` locals and asm launders both lose the mask (RoofTrapWatcher).
+- `(no >> 5) << 2` with an `int no` parameter of an inline is `srawi; slwi`; the target's
+  `rlwinm 29,3,29` needs `u32 no` (event flag / door flag helpers).
+- Byte pair `mode`/`step` stores after a word store: the target issues `stb step; stb mode` from the
+  source order `mode = ..; step = ..;` (last dying store first: setOpen/setClose/setOpened/setClosed).
+- `EmSeCall` in the rooms passes the position in the SECOND slot: `EmSeCallP(int no, Vec* pos, int id,
+  ...) asm("EmSeCall__FiiP3VeciiP5cUnit")` (the DOL definition forwards it there).
+- r221 (src/st2/r221.cpp, st2_3, not flipped): stack `cSceObj` elevator like r220; `switch ((u32) dir)`
+  with cases 0/1 for the `cmpwi 1; beq; cmplwi 1; bge` dir tree (OPEN: ours emits a linear
+  `cmpwi 0/1` tree and folds the `(Vec*) down` argument to `li r5,0` where the target keeps `mr r5,r31`
+  — its `cmpwi down,0` is hoisted to the top and spilled `mfcr`, so cse never sees the compare).
+  `Vec a = {3277.0f, o->pos.y, 4196.0f}` (a MEM element) builds the constructor in a freed temp slot
+  (memset + 3 `stfs`) and copies it into the variable; `{0.0f, dy, 0.0f}` with a REG `dy` builds in
+  place — the target of initShutter has both the temp copy AND the difference computed once before
+  the memset (OPEN, 6 forms tried). Float constants: `-407.00006f` (c3cb8002), `0.15280247f`,
+  `5.471593f`, `3.1518683f`, `-1793.51f`, `-1410.2101f`, `-1350.1799f` (read pool words, do not
+  round). `ScePrim* t = SceExec(...); PSetPrim(work->x, t);` = the eat0 idiom for task handles.
+  `emDeadWords(list)[4]` (inline returning `(u32*)((list << 5) + (u32) pG + 0x501C)`) keeps the
+  target's `addi 0x501c; lwz 0x10(r9)`; the folded `lwz 0x502c` comes from the flat expression.
+  OPEN: checkElevatorArrive (-8: the `k+1`/`7200*k/7` giv shapes), checkBossAppear_end / throwBonbe
+  (r21/r22 global-alloc of `eff2` vs `pG@ha`), initShutter, moveElevator.
+- r22c (src/st2/r22c.cpp, st2_4, partial): `.data` is 263 objects generated from the split object —
+  every target record is its own `static s32 name[]` array of varying length and the level tables
+  are `static s32* lvl[] = {(s32*) count, (s32*) time, rec, ...}`; `.data` needs `.balign 8` at the
+  end. The level names are a `static const char* [5]` in `.data` right after the master table (its
+  strings follow the r22c.cpp filename in `.rodata`), the routine table `void (*[5])()` and a
+  `const char* = "START"` variable come after itemSave (string order), then a record, `int = 4`, and
+  the `char fname[] = "SS/___/id22c.dat"` the code patches. 9 of 48 functions identical; the shooting
+  game (getBonus .. r22c_checkShootingScore, ResultScreen, Score*) is NOT written (static stubs
+  keep the table relocations; replace them).
