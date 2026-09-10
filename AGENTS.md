@@ -5694,3 +5694,66 @@ target) stays unresolved and `make_rel` then fails with "undefined symbol".
 - r221 setTexRender: `x136 = 2; x137 = 0x10; x138 = 0x30;` in that order (dying last store first). r221's
   throwBonbe `clrlwi r8, r16, 24` for `(u8) eff0` is COMPILER-DIFF 2 (an `asm` launder there costs a word and
   shuffles r16..r22); the remaining r221 diffs are the OPEN items of the last-four pass.
+
+### DOL register-tie pass, second sweep (datactrl, read Matching; dvd 54/55, event 142/147, snd 91/97, pad 15 words; 2026-09-10)
+
+- Harness: /tmp/dolties2 (copy of /tmp/dolties with `sbs.sh UNIT SYM [OBJ]` = side-by-side normalised objdump of
+  the split object vs ours for any DOL unit, `tryv.py UNIT SYM variants.py`, `dump.sh UNIT -dX` with `SRC_OVERRIDE`).
+- global.c conflict union (datactrl dispDebug, now Matching): an allocno is one pseudo, so a variable shared by
+  two disjoint code regions gets the UNION of both regions' hard-reg conflicts. The loop's `x1` (2 sets from the
+  unsigned fix paths, one `subf` use) conflicted with nothing and took the r7 preference set_preference inherits
+  from the local-alloc'd `x1 - x0` temp (pass-0 best reg was r0, the preference step then picks any free preferred
+  reg); making `x1` the SAME function-scope variable as the `over` block's bar width adds that block's r0/r9/r11/
+  r10/r8 temps and r6/r7 to its conflicts and it lands in r5 like the original. General form of the older
+  "over-block x0 r5" note: share one variable across regions to inherit conflicts, split it to drop them.
+- do-while weight placement (read readEmData, now Matching): when the statement that references the losing
+  pseudo cannot be wrapped without a sched1 reorder, wrap a *block* whose insns already have a fixed order
+  (`} else do { newSize = dataSize; BitOff16(m->flag, 1); } while (0);`): `m` gets its 15th weighted ref
+  (2272 > newSize 2222) and the lhz/rlwinm/sth + `mr` inside have no free ordering to lose. Wrapping the
+  `memcpy(...); m->flag |= 1;` arm's store moved the MEM_ALLOC `li r5,__LINE__` to the end of its arg block.
+- Duplicated arms count at global-alloc time (dvd ErrCheck, now byte-identical): two identical if/else-if bodies
+  (`msg = -1; cont = 0;`) are cross-jumped only by jump2 (after global alloc), so they add 2 real insns to every
+  live range that spans them. pMes/pStr (3 refs each, REG_EQUIV-doubled lengths 390/386 -> buckets 76/77) share
+  bucket 77 once the second arm is `goto stop;` into the first (`if (a) goto stop; else if (b) { stop: ...}`),
+  and the earlier-declared pMes wins the tie (allocno order). Same shape as the `goto ng` return trick.
+- Index register class, exact mechanism (event EspSetModelPtr/EvtSndStrStop/Play, all byte-identical now): in
+  `(plus A B)` regclass gives B INDEX (= GENERAL_REGS, r0 first) when A is REGNO_POINTER_FLAG'd; with neither
+  flagged both operands get the half-and-half costs and the .lreg dump shows `pref BASE_REGS` for both (r9,
+  then r11). Flag sources: pointer-typed variables (expand_decl), `expand_expr` of
+  ADDR_EXPR outside EXPAND_SUM, `memory_address` on a REG / REG+CONST address, and the inner-ref path's
+  `force_reg` of `&p->member` when an ARRAY_REF offset follows (expr.c 6560: `tbl + bitpos` is forced into a
+  fresh pseudo and marked, so `evt->strNo[blk]` always gives `lwzx rD,rBase,r0`). Unflagged base + BASE index
+  (`stwx r4,r11,r9`, `lwzx r29,r10,r11`): `u32 tbl = (u32) Table; *(T*) (tbl + (n << 2))` -- the base must be a
+  `u32` *user variable* (a `(u32) EspEvModList` expression is an ADDR_EXPR temp and gets marked; a `u8*` is a
+  pointer var), and the index must NOT be `n * 4`: expand_expr's PLUS_EXPR puts a MULT operand FIRST
+  (`(plus (mult) tbl)` -> `add idx,tbl`, expr.c both_summands), `n << 2` or a separate `int ofs` keeps
+  `(plus tbl idx)`. For member arrays use `u32 p = (u32) evt->strNo;` (the array decays to an ADDR_EXPR whose
+  `force_operand` target is the user var, so no mark) in a `static inline T& acc(Event*, int)` helper.
+- gcse PRE copy of a call argument (event NameChange): `strcpy(nameBuf, nm); ... return nameBuf;` with no local
+  gives `addi r3,r30,132; mr r29,r3` (the precomputed arg pseudo dies at the r3 move, local-alloc ties it, PRE
+  copies it for the join-block uses); a `char* dst = nameBuf` local after the call is a cse copy of the pseudo,
+  which then lives across the call in a callee-saved register (`addi r30; mr r3,r30`).
+- Cross-jump survivor, three-copy case (event IsExePacket): with return-0 copies A (fallthrough), B (jump) and C
+  (final), jump2 sends B to the FIRST copy A; the original's B jumped to C: write B as `goto ng;` with `ng:
+  return 0;` at the end (A stays a plain `return 0`).
+- .bss order is first-declaration order for ALL uninitialised file-scope objects, static or extern (snd:
+  `static u32 callErr[14][32]` must precede `aram_buf`, so aram_buf's `extern` was removed from snd.h; a
+  forward static declaration above the includes puts the static first). This fixed 5 snd functions at once.
+- pad PadRead: `joy->trg = (joy->old ^ joy->on) & joy->on; joy->rel = (joy->old ^ joy->on) & joy->old;` (trg
+  first, `old ^ on`) gives the target's load/xor/and/store order (19 -> 15 words). Still open there: `dead`
+  (5 refs/269) vs `&Pad_data` (4/227) global-alloc order (no statement to weight), and the Key loop preheader
+  where the target issues the `Key.on = 0` DImode stores before the reload pair `li r0,64; mtctr r0` (ours at
+  t=2 in sched2 with priority 2; the sched2 ready-list order is not reproduced by any source form tried).
+- Where the levers did NOT reach (all forms in the per-function notes tried):
+  - obj00 FallMove: B (the hit loop's QI 1) needs 8 weighted refs to outrank A (`k+1` giv, 1739); nested
+    do-whiles around `w->sePlayed = 1` add w refs and, being a sched1 barrier, move `mr r5,r16` below the arg
+    `lbz`s (1 level: 8 words, 2+: 21). No B-only statement exists.
+  - dvd DiscChange (`game[]` template copy word order 0,8,c,4 -- sched2 anti-dependence chain through r9).
+  - event DelEvt: the FadeSet colour pseudo P is tied to r4 in the original (`stw r0,4(r4)`), ours issues
+    `mr r4,P` one cycle before the `stw c,4(P)` end store (the store waits for `c = 0`, which waits for the
+    start store's read of `c`); every EvtFadeSetW change that ties P breaks SetDiedemoExec (same helper,
+    colour pair at frame offset 0 there).
+  - shadow make_comn_fit/parallel_light (1.0 pool high r11 vs r10: local-alloc order of the fpmem loadaddr
+    qty vs the 2-ref high), model `cModel::cModel` (the litArea `lfs 0.0` issued after the third store in the
+    original, after the first in ours; direct/FSet/x103-order/do-while forms tried), snd SndSetReverb (fake
+    lifetime), objWep drawPoint and emwep setThrow/ShotArrow (sched1 issue order / COMPILER-DIFF 8, unchanged).

@@ -550,6 +550,8 @@ STRIP_UNUSED = {
     "st2_3/r229.cpp",
     "st2_3/r226.cpp",
     "st2_2/r216.cpp",
+    # em2f: a never-called static (six pool constants between em2fRouteCk and em2fWaterEffSet)
+    "em2f/em2f.cpp",
 
     # the tool library objects are the t_emlist versions minus what the module never calls
     "t_camera/t_prim.cpp", "t_camera/t_util.cpp", "t_light/t_util.cpp", "t_event/t_util.cpp", "t_sce/t_util.cpp",
@@ -790,6 +792,7 @@ MATCHING = {
     "pl0d/objRuger.cpp": True,
     "pl0d/wep02.cpp": True,
     "pl0d/pl_wesker.cpp": True,
+    "pl0e/pl0e.cpp": True,
 }
 # The Ganado modules' per-enemy objects (src/<em>/<em>_set.cpp: entry points + EmXXInit/Set/WeaponSet).
 for _em in ["em10", "em11", "em12", "em13", "em14", "em15", "em16", "em17", "em19", "em1a", "em1b",
