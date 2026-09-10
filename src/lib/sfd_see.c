@@ -234,9 +234,8 @@ static void sfsee_ExecEstimate(SFD sfd, SFSEE_WORK *wk, SFSEE_REQ *req)
 	}
 }
 
-/* M1: the original materialises the inlined sfsee_ExecEstimate arguments after the call
- * (wk r29, &see.req r30); ours folds &sfd->see.req into its load unless a local holds it, and the
- * local is then hoisted above the wk test with the registers swapped. */
+/* M1: the original gives the inlined sfsee_ExecEstimate arguments wk r29 and &see.req r30 (ours the
+ * reverse); `req = &see->req` after the ExecHeadAnaly call keeps the addi below the wk load. */
 void SFSEE_ExecServer(SFD sfd)
 {
 	SFSEE_HN *see;
@@ -246,8 +245,8 @@ void SFSEE_ExecServer(SFD sfd)
 	if (see->wk == NULL) {
 		return;
 	}
-	req = &see->req;
 	sfsee_ExecHeadAnaly(sfd);
+	req = &see->req;
 	sfsee_ExecEstimate(sfd, see->wk, req);
 }
 

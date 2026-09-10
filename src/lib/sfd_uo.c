@@ -50,18 +50,13 @@ Sint32 SFUO_Destroy(void)
 	return 0;
 }
 
-Sint32 SFUO_Create(SFD sfd)
+/* the channel clear is an inlined static helper: its `i = 0` is copied from the caller's NULL
+ * register (`mr r30, r31`) and `&sfd->uo_tbl` passed directly becomes the stepping induction
+ * pointer itself (no `mr` copy of uo) */
+static void sfuo_InitCh(SFD sfd, SFUO *uo, Sint32 uobuf)
 {
 	Sint32 i;
-	SFUO *uo;
-	Sint32 uobuf;
 
-	uo = &sfd->uo_tbl;
-	sfd->tr[8].hn = uo;
-	uobuf = sfd->tr[8].bufin;
-	sfd->uo_tbl.nch = 0;
-	/* M1: the original steps uo itself as the induction pointer and copies i = 0 from the NULL
-	 * register (`mr r30, r31`); ours copies uo (`mr r30, r0`) and materialises a second zero. */
 	for (i = 0; i < 3; i++) {
 		SFUO_CH *ch = &uo->ch[i];
 
@@ -71,6 +66,16 @@ Sint32 SFUO_Create(SFD sfd)
 		ch->rsv2 = 0;
 		SFBUF_SetUoch(sfd, uobuf, i, ch);
 	}
+}
+
+Sint32 SFUO_Create(SFD sfd)
+{
+	Sint32 uobuf;
+
+	sfd->tr[8].hn = &sfd->uo_tbl;
+	uobuf = sfd->tr[8].bufin;
+	sfd->uo_tbl.nch = 0;
+	sfuo_InitCh(sfd, &sfd->uo_tbl, uobuf);
 	return 0;
 }
 

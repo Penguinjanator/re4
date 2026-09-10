@@ -112,10 +112,10 @@ static Sint32 sflib_ChkRet(Sint32 r)
 	return ret;
 }
 
-Sint32 SFD_Init(SFD_INIT_PRM *prm)
+Sint32 SFD_Init(register SFD_INIT_PRM *prm)
 {
-	SFTRN_TRIF_TBL *tbl;
-	Sint32 p1;
+	register Sint32 p1;
+	register SFTRN_TRIF_TBL *tbl;
 	Sint32 ret;
 	Sint32 i;
 
@@ -124,12 +124,11 @@ Sint32 SFD_Init(SFD_INIT_PRM *prm)
 	SJRBF_Init();
 	UTY_MemsetDword((Uint32 *)&SFLIB_libwork, 0, sizeof(SFLIB_libwork) / 4 - 1);
 	MEM_Copy(&SFLIB_libwork, SFPLY_cond_dfl, sizeof(SFLIB_libwork.cond));
-	/* OPEN: target loads prm1 into r4 and trif_tbl into r5 (stores trif_tbl first); every
-	 * local/direct/inline-helper form gives the first-stored value r4; a two-word struct copy
-	 * (`*(SFD_INIT_PRM *)&SFLIB_libwork.trif_tbl = *prm`, also as Sint64) gives the target's
-	 * registers but loads word 0 before word 4 (the target loads 4 first). */
-	tbl = prm->trif_tbl;
-	p1 = prm->prm1;
+	/* COMPILER-DIFF: M1 -- the original loads prm1 (word 4) before trif_tbl (word 0) and stores
+	 * trif_tbl first; every C form (locals, direct stores, two-word struct copy) either loads word 0
+	 * first or gives the first-stored value r4, so the two loads are spelled as asm */
+	asm { lwz p1, 4(prm) }
+	asm { lwz tbl, 0(prm) }
 	SFLIB_libwork.trif_tbl = tbl;
 	SFLIB_libwork.prm1 = p1;
 	SFLIB_libwork.x198 = 0;

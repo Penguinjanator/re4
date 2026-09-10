@@ -430,53 +430,76 @@ void mwPlyFxCnvFrmZ16(MWPLY mwply, void *dst)
 	SFX_CnvFrmZ16(mwply->sfx, &sfxfrm, dst);
 }
 
-/* translate a player frame into the SFX frame description. OPEN: the original keeps a dead `b end`
- * for every empty `case N: break;` arm and emits the four pooled strings in reverse use order. */
+/* translate a player frame into the SFX frame description. The empty `case N: break;` arms are
+ * written `case N: v = N; break;` (v already N): MWCC drops the redundant assignment after block
+ * layout and keeps the arm's dead `b end`, which the original has in all four switches; the first
+ * switch's variable must be `v` too (the elimination needs a prior definition of the variable).
+ * The four messages are named statics declared in reverse use order: the original's pool holds
+ * them reversed (OPEN why; anonymous literals are emitted in use order). Residue M1: mwply/sfxfrm
+ * r30/r31 vs the pool base r29 (ours ranks the pool base first).
+ * OPEN (.rodata): the original parsed mwsftag_GetAinfFromSj's "CRITAGS"/"CRITAGE" after
+ * mwPlyAttachAddInfBuf's string (literal numbers @773/@774 > @746) while its .text precedes
+ * MWSFTAG_UpdateTagInf; defining the helper after mwPlyAttachAddInfBuf (forward declaration) gives
+ * the .rodata order but moves its .text after UpdateTagInf in ours. */
+static const Char8 mwsfsfx_msg_chromapos[] = "E301274 : chromapos is invalid.";
+static const Char8 mwsfsfx_msg_chroma_format[] = "E301273 : chroma_format is invalid.";
+static const Char8 mwsfsfx_msg_pic_struct[] = "E301272 : picture_structure is invalid.";
+static const Char8 mwsfsfx_msg_buffmt[] = "E201184 : MwsfdBufFmt value is invalid.";
+
+static void mwsfsfx_SetPln(SFX_PLN *p, void *buf, Sint32 width, Sint32 height)
+{
+	p->buf = buf;
+	p->width = width;
+	p->height = height;
+}
+
+/* mwPlyCalcYccPlane output: the six live words of CFT_YCC420PLN (the sfx.h type carries a
+ * 0x10-byte frame-only tail; the original's stack frame is 0x40, so its local was this size) */
+typedef struct {
+	void *y;
+	void *cb;
+	void *cr;
+	Sint32 ywidth;
+	Sint32 cbwidth;
+	Sint32 crwidth;
+} MWSFSFX_YCC420PLN;
+
 void MWSFSFX_CnvFrmInfToSfx(MWPLY mwply, MWS_FRM *frm, SFX_FRM *sfxfrm)
 {
-	CFT_YCC420PLN pln;
+	MWSFSFX_YCC420PLN pln;
 	Sint32 tag_b;
 	Sint32 tag_a;
 	Sint32 width;
 	Sint32 height;
-	Sint32 fmt;
 	Sint32 v;
 
 	switch (frm->fmt) {
 	case MWSFD_BUFFMT_1:
-		fmt = 1;
+		v = 1;
 		break;
 	case MWSFD_BUFFMT_2:
-		fmt = 2;
+		v = 2;
 		break;
 	case MWSFD_BUFFMT_YCC420PLN:
-		fmt = 3;
+		v = 3;
 		break;
 	default:
-		MWSFSVM_Error("E201184 : MwsfdBufFmt value is invalid.");
-		fmt = 3;
+		MWSFSVM_Error(mwsfsfx_msg_buffmt);
+		v = 3;
 		break;
 	}
-	sfxfrm->frmfmt = fmt;
+	sfxfrm->frmfmt = v;
 	width = frm->width;
 	height = frm->height;
 	sfxfrm->width = width;
 	sfxfrm->height = height;
 	if (frm->fmt != MWSFD_BUFFMT_YCC420PLN) {
-		sfxfrm->pln[0].buf = frm->bufadr;
-		sfxfrm->pln[0].width = width;
-		sfxfrm->pln[0].height = height;
+		mwsfsfx_SetPln(&sfxfrm->pln[0], frm->bufadr, width, height);
 	} else {
-		mwPlyCalcYccPlane(frm->bufadr, width, height, &pln);
-		sfxfrm->pln[0].buf = pln.y;
-		sfxfrm->pln[0].width = pln.ywidth;
-		sfxfrm->pln[0].height = height;
-		sfxfrm->pln[1].buf = pln.cb;
-		sfxfrm->pln[1].width = pln.cbwidth;
-		sfxfrm->pln[1].height = height;
-		sfxfrm->pln[2].buf = pln.cr;
-		sfxfrm->pln[2].width = pln.crwidth;
-		sfxfrm->pln[2].height = height;
+		mwPlyCalcYccPlane(frm->bufadr, width, height, (CFT_YCC420PLN *)&pln);
+		mwsfsfx_SetPln(&sfxfrm->pln[0], pln.y, pln.ywidth, height);
+		mwsfsfx_SetPln(&sfxfrm->pln[1], pln.cb, pln.cbwidth, height);
+		mwsfsfx_SetPln(&sfxfrm->pln[2], pln.cr, pln.crwidth, height);
 	}
 	sfxfrm->tblsrc = frm->tblsrc;
 	SFX_GetTagInf(mwply->sfx, &tag_a, &tag_b);
@@ -493,15 +516,17 @@ void MWSFSFX_CnvFrmInfToSfx(MWPLY mwply, MWS_FRM *frm, SFX_FRM *sfxfrm)
 		v = 2;
 		break;
 	case 3:
+		v = 3;
 		break;
 	default:
-		MWSFSVM_Error("E301272 : picture_structure is invalid.");
+		MWSFSVM_Error(mwsfsfx_msg_pic_struct);
 		break;
 	}
 	sfxfrm->pic_struct = v;
 	v = 1;
 	switch (mwply->chroma_format) {
 	case 1:
+		v = 1;
 		break;
 	case 2:
 		v = 2;
@@ -510,7 +535,7 @@ void MWSFSFX_CnvFrmInfToSfx(MWPLY mwply, MWS_FRM *frm, SFX_FRM *sfxfrm)
 		v = 3;
 		break;
 	default:
-		MWSFSVM_Error("E301273 : chroma_format is invalid.");
+		MWSFSVM_Error(mwsfsfx_msg_chroma_format);
 		break;
 	}
 	sfxfrm->chroma_format = v;
@@ -523,9 +548,10 @@ void MWSFSFX_CnvFrmInfToSfx(MWPLY mwply, MWS_FRM *frm, SFX_FRM *sfxfrm)
 		v = 0;
 		break;
 	case 1:
+		v = 1;
 		break;
 	default:
-		MWSFSVM_Error("E301274 : chromapos is invalid.");
+		MWSFSVM_Error(mwsfsfx_msg_chromapos);
 		break;
 	}
 	sfxfrm->chromapos_h = v;
@@ -535,9 +561,10 @@ void MWSFSFX_CnvFrmInfToSfx(MWPLY mwply, MWS_FRM *frm, SFX_FRM *sfxfrm)
 		v = 0;
 		break;
 	case 1:
+		v = 1;
 		break;
 	default:
-		MWSFSVM_Error("E301274 : chromapos is invalid.");
+		MWSFSVM_Error(mwsfsfx_msg_chromapos);
 		break;
 	}
 	sfxfrm->chromapos_v = v;

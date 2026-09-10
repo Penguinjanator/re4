@@ -2311,6 +2311,89 @@ the three 0x400 `.data` tables are 256-entry `switch` jump tables, one per funct
   has six distinct stores `0x1f8..0x20c` / `0x2e0..0x2f4`: a source-side field set error, not
   header drift (not fixed this pass).
 
+### CRI pass 3 (adx_bwav, sfd_lib, sfd_uo Matching; mwsfdsfx 24 -> 27/28 functions, sfd_see 26 -> 24 words; 2026-09-10)
+Harness: /home/adityas/.cache/cri3/ (`bytecmp.py lib/<unit>` = per-section byte identity of the split
+object vs ours with relocation fields masked and dtk's alignment pad tolerated — the only judge to
+use before flipping, objdiff hides .text *order* changes because it pairs by symbol; `mwcc.sh src.c
+out.o` = standalone CRI-flag compile of a probe file; `triage.py`, `fm.sh`, `perm_bau.py`).
+- MWCC inline asm on `register` locals is the workable "asm for one residual" form: operands are
+  variable names (`asm { lwz p1, 4(prm) }`, `asm { addi o, o, 0x60 }`), every variable named in an
+  asm block (parameters too) must be `register`, the registers are still the allocator's, and the
+  inline assembler is NOT opaque: a following C use folds an asm `addi base, hi, sym@l` into `lwzu
+  sym@l(hi)`, and an asm statement inside a loop is scheduled with the rest. It fixes ORDER
+  residues (sfd_lib `SFD_Init`: `asm { lwz p1, 4(prm) } asm { lwz tbl, 0(prm) }` on register
+  locals declared p1 first gives the target's word-4-first loads + r4/r5, Matching) but not
+  register-ranking ones (adx_stmc `adxstmf_create`: `for (i...) { stm = (ADXSTM)((Uint8 *)obj + o);
+  if (!stm->used) break; asm { addi o, o, 0x60 } }` puts the derived-IV step in the latch like the
+  target, but the hoisted `obj` base always outranks the register local `o` (r3/r4 swapped, same
+  byte count as the zero-code form: kept zero-code)).
+- `#pragma optimize_for_size on` is the only switch that stops BOTH unrollers (the global
+  optimizer's 8x `cmpwi n,8; subi; addi 7; srwi 3; ... remainder` form and the backend's
+  `srwi. n,3; mtctr; andi. 7` form for small counted loops; `#pragma opt_unroll_loops off` stops
+  only the first and the second then unrolls 2-4x by body size). Under it a 2-register save becomes
+  `stmw`, restored by `#pragma use_lmw_stmw off` (both pragmas exist and take `reset`). The
+  unroller's guard shape is reproduced by hand with `m = n - 8; if (n > 8) { p = ...; for (; i < m;
+  i += 8) { 8 copies; p += 16; } }` then `for (; i < n; i++)` with explicit stepping pointers
+  (`mtctr; cmpwi m,0; ble` / `subf cnt; mtctr; cmpw i,n; bge`; `for (k = m; k > 0; k -= 8)` fuses
+  into `addic.`); `(x << 8) | ((x >> 8) & 0xFF)` is the one 16-bit swap spelling that gives the
+  target's `extrwi 8,16 / rlwimi 8,8,23` pair (`(x >> 8) | (x << 8)` gives `srawi`, masked/cast
+  spellings give `slwi/rlwimi` or `srawi/slwi/rlwimi`). adx_bau `ADXB_ExecOneAu16` written this way
+  reproduces the 2ch loop byte for byte (with `p, q0, q1` declared at function scope BEFORE
+  `out1`/`i`: block-local pointers rank below them) but the 1ch loop's preheader temporaries rank
+  the other way (target `cnt r5, m r6, p r7, q0 r8`; ours pointers first whatever the declaration
+  order, 5! orders + 6 structural variants) — 97.9% vs the compiler-unrolled 99.75%, so the
+  zero-code form stays (M6 + M1).
+- Leading-constant add chain, second use: `*(Uint32 *)(4 + i + (Sint32)buf)` keeps `add r4,rI,rBuf;
+  lwz r5,4(r4)` (every other spelling folds to `addi; lwzx`); with it the statement order `dsize =
+  SWAP32(...); *hdrlen = i + 8; *x0c = -1;` puts the `-1` store mid-chain so the swap lands in r3
+  and is copied (`mr r0,r3` before the last `rlwimi`) — adx_bwav `ADX_DecodeInfoWav` Matching.
+- Zero-copy + IV-is-the-argument: sfd_uo `SFUO_Create` Matching with the channel clear in an inlined
+  static helper `sfuo_InitCh(sfd, uo, uobuf)` called as `sfuo_InitCh(sfd, &sfd->uo_tbl, uobuf)`
+  after `sfd->tr[8].hn = &sfd->uo_tbl;` — the helper's `i = 0` is copied from the caller's NULL
+  register (`mr r30,r31`) and the argument expression itself becomes the stepping pointer (no `mr`
+  of a `uo` local; a `uo` local passed in keeps the copy).
+- Dead `b end` of an empty `case N: break;` arm (mwsfdsfx `MWSFSFX_CnvFrmInfToSfx`, 4 switches):
+  write `case N: v = N; break;` where `v` already holds N — MWCC drops the redundant assignment after
+  block layout and leaves the arm's `b`. It only fires when the variable has an earlier definition
+  in the function (the first switch's variable had to become `v` as well, not a separate `fmt`);
+  `asm {}`, `v = v`, `(void)v`, labels, empty blocks and `if (0)` all lose the block.
+- Inlined 3-argument setter (`mwsfsfx_SetPln(&sfxfrm->pln[k], buf, width, height)`) evaluates the
+  argument loads before the body's stores (`lwz r3; lwz r0; stw; stw`); direct field stores
+  interleave load/store per field.
+- A local of a struct type that carries a "frame only" tail pad (sfx.h `CFT_YCC420PLN.pad18[4]`,
+  needed by sfx_YCC420PLN_to_Y84C44's frame) must be declared with a 6-word local typedef in
+  mwsfdsfx (frame 0x40 vs 0x50); the pad is per-unit, check `stwu` sizes before trusting a shared
+  typedef.
+- Pooled-string order: named `static const Char8 x[] = "..."` objects are emitted at their FIRST
+  REFERENCE in codegen order (not at the declaration), pooled through `...rodata.0` like anonymous
+  literals, so a function whose pool the original holds in reverse use order can be given the
+  target's .rodata by naming the strings and referencing them in the wanted order (mwsfdsfx's four
+  MWSFSVM_Error messages). A tentative `static const Char8 x[8];` + later initialised definition
+  moves the object to .data/.bss — do not.
+- OPEN (mwsfdsfx .rodata 0x128..0x180): `mwsftag_GetAinfFromSj`'s "CRITAGS"/"CRITAGE" literals are
+  numbered after `mwPlyAttachAddInfBuf`'s (@773/@774 > @746) — parsed later — while its .text
+  precedes `MWSFTAG_UpdateTagInf`. Ours: .text order = definition order always (a forward-declared
+  static defined after AttachAddInfBuf lands after UpdateTagInf; `inline_max_size(64..200)`
+  prevents the inlining but neither defers the caller nor moves the strings; `static inline` emits
+  the body after the first caller). Whatever placed that body first in the original is not
+  reproducible here; the unit keeps the definition-order layout (16 rodata bytes shifted).
+- Still M1 after this pass (forms tried, no byte gain): sfd_set `SFD_SetCond` (id*4 in the dead
+  `sfd` register: reuse of `sfd` as the loop handle, `sfd = (SFD)(id*4)`, asm into `sfd`, 6
+  declaration orders all worse), sfd_ply `SFD_Destroy` (`register` copies, `register` param, a
+  `lw` pointer local in sfply_StopHn), sfd_see `SFSEE_ExecServer` (inlined `wk`/`req` r29/r30:
+  parameter order swap, ExecEstimate on `sfd` only, locals before/after the IsEndcodeSkip test;
+  `req = &see->req` after the ExecHeadAnaly call removes the moved `addi` — 26 -> 24 words),
+  sfd_pts `SFPTS_ReadPtsQue` (target: the inlined search's `num/ofst/size` in r31/r30/r29 and
+  `hn` in volatile r7; body-in-helper, `register`, declaration and helper parameter orders),
+  sfx_alp `SFXA_Create` (five constants: the target materialises the `sfxa_work` address after the
+  `stw 0x1f` so `0x1f` and the address share r5; ours hoists the `lis` and needs one more register;
+  helper/pointer/volatile/`cnt = cnt + 1`/asm-materialised address forms), mwsfdsfx
+  `CnvFrmInfToSfx` (params r30/r31 above the pool base r29; ours pool base r31). M2: dct_ac
+  `DCT_AcInit` (four float literals, the original does not pool them; no source form). OPEN
+  (structural, unchanged): mpv_cdec `MPVCDEC_IntraBlocks` (the second base `addi r8,r31,0x720` =
+  `&blk[0][20]` from store 84 on; a `static` ClearBlk function instead of the macro switches to a
+  plain `r31` base at store 64, `memset` is a call, one flat 192 loop is a `mtctr` loop).
+
 ## REL modules
 
 The game loads its rooms, enemies, weapons and debug tools as Nintendo REL overlays. `ninja` rebuilds the

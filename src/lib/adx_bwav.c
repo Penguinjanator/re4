@@ -225,8 +225,9 @@ Sint32 ADX_DecodeInfoWav(Uint8 *buf, Sint32 bsize, Sint16 *hdrlen, Sint8 *x0c, S
 	if (i == bsize) {
 		return -1;
 	}
+	/* leading constant keeps `add i,buf; lwz 4()` (the +4 is not folded into an addi/lwzx) */
+	dsize = SWAP32(*(Uint32 *)(4 + i + (Sint32)buf));
 	*hdrlen = i + 8;
-	dsize = SWAP32(*(Uint32 *)(buf + i + 4));
 	*x0c = -1;
 	*sfreq = SWAP32(*(Uint32 *)(p + 0xC));
 	*nch = SWAP16(*(Uint16 *)(p + 0xA));
