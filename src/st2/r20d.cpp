@@ -811,7 +811,11 @@ yes:
         FSet(r20d_work.p->roundSwitch->rot.y, ang);
         pl = pPL;
         pl->setPos(&pl->pos);
-        pl->setAng(&pl->rot);
+        {
+            Vec* rot;
+            asm("addi %0,%1,0xa0" : "=r"(rot) : "r"(pl) : "cc"); // COMPILER-DIFF: 12 (regmove operand pick)
+            pl->setAng(rot);
+        }
         SceSleep(30);
         while (MotionGetState(pPL) != 4) {
             SceSleep(1);

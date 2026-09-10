@@ -11922,3 +11922,81 @@ stmt.c/jump.c and confirmed with cc1plus probes:
   template copy's base IS the &camAt pseudo (r29) with the PRE copies `mr r27,r29; mr r26,r30` staying after SndCall,
   the 10-loop's 0.0 is `lwz r28,pool` (an SF pseudo in a GPR: pass 0 finds r28 = the dead &obj->pos register used so
   far) and `li r28,60` reuses it for the 60-loop.
+
+### Stage rooms, st4_0/st2_1 pass 4 (r402 Matching 19/19; r20d execRoundSwitch 1 -> 0 (27/32); r404/r40f/r209/r204/r20e unchanged; 2026-09-10)
+
+- Harness /tmp/rooms_a4 (rooms_a3 copies + /tmp/em3c29/lcm.py, rooms_b4 galloc.py; `tryv.py MOD/UNIT FUNC variants.py
+  [--asm N] [--apply N]`, `mm.py`, `sbs.sh`, `mdump.sh MOD/UNIT -dX` with `SRC_OVERRIDE`).
+- **Zero-code transparency kill for the #3 latch/preheader PRE (R402MoveDoor02 15 -> 0, unit flipped).** gcse's
+  `compute_transp` uses `reg_set_in_block` for HARD registers too (`record_last_set_info` runs `note_stores` over every
+  insn incl. CLOBBERs), and before reload the frame is `(reg 31)`. `asm("" : "=r"(obj) : "0"(obj) : "r31")` in a block
+  B kills every `(plus fp N)` expression in B: with the kill in a block between the inner-loop head and the outer latch
+  (here the eat arm, bb 9: `earlyout[9] = ~transp[9] = 1 -> earlyin[10] -> earlyin[2] = 1 -> delayin[2] = latein[2]`,
+  redundant[2] = 0 in lcm.py's model) the `&id` occurrence stays in the inner body and loop.c pass 2 hoists it to the
+  inner preheader with the LUID the target has (`addi r24,r1,0x28` between `li r31,0` and `cmpwi cr4`: pass-2 movables
+  are emitted after pass 1's giv inits). Rules learned on the way: (a) the asm must be non-volatile and its output must
+  be a pseudo with other refs (`obj` is dead there; jump1 deletes a set whose reg is referenced only by that insn,
+  cse1's delete_trivially_dead_insns deletes it when `count_reg_usage` (which does not count a use of the SET_DEST
+  inside SET_SRC) reaches 0, cse1 folds a constant/copy input into the asm operand first); flow1 deletes the dead asm
+  before sched1/regalloc, so it leaves no trace; (b) placed at the TOP of the outer body it works for gcse but the
+  clobber gives every fp-reading insn of the block a true dependence on the asm (priority 2, an issue slot at t=1 ->
+  `&id` issued third: 10-13 words); (c) a volatile asm in the inner latch (+1 real insn) pushes loop.c pass 2 over the
+  `threshold -= 3` step so the `cmpwi cr4,dir,1` movable stays in the loop (37 words) -- put the asm right after a call
+  that precedes a label, where it REPLACES the flow nop `(use (const_int 0))` and the loop's real-insn count is unchanged
+  (68 in both passes here); (d) the kill in bb 11 (after the inner loop) gives `earlyin[1]` and a PRE insertion at the
+  END of bb 1 = the LUID before loop.c's inits (`&id` issued second). Tagged `// COMPILER-DIFF: 3`.
+- **Loop notes as a register-weight lever (the same function's r22/r23/r24 permutation, 7 -> 0).** flow's
+  `REG_N_REFS += loop_depth` counts LOOP_BEG/END notes only, so a goto loop's body weighs its refs at depth 1 and the
+  target's allocation (`&id` 5 refs, `t+1` 4, `frames` 7 -> r24/r23/r22 by `floor_log2(refs)*refs/len`) needed depth 2:
+  `top: do { body; if (t <= 40) goto top; } while (0);` -- the `do {} while (0)` around the whole goto-loop body is phony
+  for loop.c (its label is unused, scan_start is not a CODE_LABEL) and still no loop.c hoist of the body's highs, but
+  the notes double the body's ref weights. The goto must stay INSIDE the do-while (a `goto` from after `while (0)`
+  jumps into the loop: 12 words; the label inside the do-while with the goto after it: 41). A `#17` r22 pin at the
+  function end does not work here: pass 0 hands the used-so-far r22 to the first allocno without a conflict (`i*4`).
+- **`asm("addi %0,%1,0xa0" : "=r"(rot) : "r"(pl) : "cc")` for the regmove operand pick** (r20d execRoundSwitch 1 -> 0,
+  tagged `COMPILER-DIFF: 12 (regmove operand pick)`): the `addi r4,r3,0xa0` after `mr r3,r30` is NOT reload_cse but
+  combine + regmove: combine merges `P = pl + 0xa0` into the arg move `r4 = P` (placed after `r3 = pl`), pl's death moves
+  to it and regmove's `optimize_reg_copy_1` replaces pl by r3 there. A plain asm is combined into the move the same way
+  (1 word) and a volatile one is a barrier (2); the "cc" clobber makes it a PARALLEL that combine leaves alone and gcse
+  does not hash (`hash_scan_insn` records only SETs of single-set insns; PARALLEL members are scanned for calls only).
+  The same PARALLEL trick keeps an asm out of gcse's PRE elsewhere (r404 below).
+- **r404 initEmSet 15 (not applied, 9 with a tagged form).** Two `mulli n,12` exist in the target because the first is
+  PRE-hoisted from bb 4 (after the rot template loop) to bb 2 (between the two block-copy loops -- both `Vec[3]`
+  initialisers are real CFG loops, `subic. r8,r8,0x18; bne`) exactly like ours, and the second is a mult gcse did not
+  see. `asm("mulli %0,%1,12" : "=r"(m2) : "r"(n), "m"(pPL))` for the rot chain reproduces both mults and the target's
+  `lis r9,pPL@ha; mulli r30` order (the MEM operand gives the asm a dependence on the pPL high; an asm without it is
+  PRE-hoisted like the real mult, a volatile one is a barrier, `"m"(pos[0])` waits for the frame stores); the add
+  operand order `add r4,r4,r6` / `add r30,r30,r6` needs the integer sum written mult-first: `n * 12 + (u32) &pos` and
+  `m2 + (u32) &pos + 0x28` (expand_binop swaps a non-REG op0 behind a REG op1; a pointer sum `(u8*) &pos + n*12`
+  force_operands the address first and gives `add rD,r6,rM`). Residue 9 = bb 4's issue order (`lwz r29,pPL` before the
+  asm mulli: the asm has cost 1 and weight +1, the real mulli would have cost 2). Zero-code forms tried: `u8` re-extension
+  of `n` (an inline `u8` parameter, `u8 m = n`) is folded by cse1; `int`/`u32` casts, `Vec* p = &pos[n]` between the
+  arrays (the mult then lives across the rot copy: 58-80); a launder of `n` (kills the PRE of the switch compare `cmpwi
+  cr4,n,1` too: 21).
+- **r209 R209Main 124 (not applied).** The em3c model's "extra edge" is confirmed as source-writable: `if (i != atNum)
+  break;` after the inner loop (never true) gives the j loop an exit edge from the j body, `j+1` stays at the latch and
+  loop.c forms the target's outer givs (`addi r25,4`, `addi r23,8`) -- 124 -> 69 -- but the test survives (loop.c
+  computes `Final biv value for 82` yet does not insert `i = 8` after the loop because the biv is not eliminable: pass 2
+  says `Cannot eliminate biv 82: biv used in insn 435` = the duplicated entry test `cmplwi i,8` that jump1's
+  `duplicate_loop_exit_test` copies INSIDE the loop range for every `for`; `do {} while (i < atNum)` removes it but the
+  giv `8 + j*8 + i` splits into `i + 8` (not worth reducing) and blocks `all_reduced`, so `i` is never eliminated and the
+  inner compare stays `cmplwi r28,8` instead of the target's pointer compare `cmplw r31,r25`). The target therefore had
+  (1) no entry-test copy or a foldable one, (2) one giv for the bit index, (3) the phantom exit edge. `u32 bit = 8 +
+  j*8` / `i + (8 + j*8)` / do-while forms: 99-128.
+- r209 Switch/BridgeAppearCheck (7 each, unchanged): the `stw seId` -> `lwz obj->be_flag` dependences are real
+  (alias sets are 0 on every MEM: SN's `c_get_alias_set` returns `DECL_POINTER_ALIAS_SET(t)` for every decl -- the
+  `//QAZ` block's `return` is outside its `if (DECL_NOALIAS(t))` -- so only `__attribute__((noalias))` decls get a set,
+  and the C++ front end does not apply it to locals: `cObj* obj1 __attribute__((noalias))` leaves the sets 0); with
+  them the work chain has sched1 priority 19 vs 5 for the `lis RO(lim)` chain, so `lis work` first is forced. `int
+  seId` (alias-set idea) changes nothing. The target's order needs a shorter work chain or a longer RO chain.
+- r40f BombSet 5 (unchanged): sched1 weight tie of the p0 template's word-1/word-2 loads (word 2 kills the lo_sum base
+  -> weight 0 -> first in ours; the target has word 1 first for p0 and word 2 first for p1 with identical RTL shapes);
+  in sched2 word 2 also outranks word 1 (its store has an anti-dependence on the following `lwz r3,work`). Pointer
+  locals, `cEmWrap&` views, declaration orders, dead do-while, launders: 5-62.
+- r20d checkSwitch 1 (unchanged): cse1 reaches the down-loop's tail through the AROUND path of `blt tail` (`skip_blocks`:
+  `q` = the LOOP_END note is not a CODE_LABEL and there is no label between the jump and the target), so the tail's
+  `move(0.0f)` becomes `fmr f1,f28` from the loop body's 0.0 pseudo; the target reloads the pool word, i.e. its tail
+  label had a second use or a label in the skipped block. moveWall 3 (unchanged): `li r31,0` (i = 0, priority 1, no
+  in-block dependents) is issued first in the target's post-call block and third in ours.
+- r204 EventChandelier1/2 (94/96), nige_check (228), r20e initPuzzle (103), checkPuzzle (224), cFence20e::move (10),
+  r20d throwLantern (31), operateCrank (68), execThrough (62) not iterated this pass.

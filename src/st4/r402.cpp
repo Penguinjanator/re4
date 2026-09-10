@@ -360,8 +360,14 @@ static void R402MoveDoor02(int dir)
 
     SndCall(6, 0, &snd, 0, 0, 0);
     t = 0;
+    // The goto loop keeps `lfd 2^52`/`cmpwi cr4,dir` in the outer body (no loop notes, no loop.c
+    // hoist); the dead `do {} while (0)` around it only supplies LOOP_BEG/END notes so flow weights
+    // the body's register refs at depth 2 (the target's r22/r23/r24 assignment of 40 / t+1 / &id).
+    // The r31 (frame pointer) clobber in the eat arm makes `&id` non-transparent for gcse's block LCM,
+    // so the occurrence stays in the inner body and loop.c pass 2 hoists it (`addi r24,r1,0x28` after
+    // `li r31,0`) instead of PRE inserting it before `top:`; it replaces the flow nop after the call.
 top:
-    {
+    do {
         for (i = 0; i < 2; i++) {
             cObj* obj = SmdGetObjPtr(id[i]);
 
@@ -386,6 +392,7 @@ top:
                 }
                 if (r402_work.p->eat[i]) {
                     r402_work.p->eat[i]->setCoord(&obj->pos, &obj->rot);
+                    asm("" : "=r"(obj) : "0"(obj) : "r31"); // COMPILER-DIFF: 3
                 }
             }
         }
@@ -394,7 +401,7 @@ top:
         if (t <= 40) {
             goto top;
         }
-    }
+    } while (0);
 }
 
 // Area 18 / 19: a boat (objects 0x42+0x43 / 0x44+0x45) drifts in over 30 frames with the camera on it.
