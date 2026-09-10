@@ -16,6 +16,12 @@ original DOL from split objects; every unit you match replaces one split object 
 - Types: `include/types.h` (u8..f64). Shared class/struct definitions go in `include/<name>.h`;
   check existing headers before adding a type, and only extend, never rewrite, structs other units use.
 - Globals seen via `r13`/`r2` (`@sda21`) are small-data; declare them `extern` with the exact symbol name.
+- HAZARD: a module source that declares a DOL C-linkage function WITHOUT `extern "C"` (or a DOL
+  static it imports) makes `sync_rel_symbols.py` rename the DOL symbol to the mangled/imported name
+  in config/G4BE08/symbols.txt, breaking every other module's import (pl0e `Em_R0_Scenario` today).
+  Declare DOL imports with the linkage the DOL header uses; after any module sync check
+  `git diff config/G4BE08/symbols.txt` for unexpected DOL renames.
+
 ## Compiler
 
 The compiler proper is a **native Linux `cc1plus`/`cc1` built from SN's GPL source drop, "2.95.3 SN BUILD
