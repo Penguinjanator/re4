@@ -2007,11 +2007,16 @@ void levelItemDisp(SUB_SCREEN* wk, int sw)
         int val[2];
         char tag[2];
         int max;
+        // COMPILER-DIFF: 13. `cur` is the digit block's `val[]` index: a single constant set whose
+        // only register use is the asm below, so it stays a REG_EQUIV pseudo that loses the
+        // callee-saved race (it is live across the whole type loop) and reload rematerialises it
+        // as `li r0,1` right before the `slwi` -- the extra reload is what puts the doloop count
+        // reload on r9 (round-robin over the spill registers). `tag[cur]` folds to `lbz 1(r16)`.
+        int cur = 1;
 
         for (type = 0; type < 4; type++) {
             int slot = type + 8;
             int j;
-            int cur;
 
             {
                 Vec pos;
@@ -2103,20 +2108,19 @@ void levelItemDisp(SUB_SCREEN* wk, int sw)
                     break;
                 }
             }
-            // COMPILER-DIFF: 13. The target loads `cur = 1` right before its only use (`li r0,1;
-            // slwi r7,r0,2`, a reload rematerialisation of the REG_EQUIV constant); a plain `cur = 1`
-            // is hoisted out of the type loop. The asm's memory input (the tag store) keeps it here;
-            // `tag[1]` is written literally because cse folds `tag[cur]` in the target (`lbz 4,1(r16)`).
-            asm("li %0,1" : "=r"(cur) : "m"(tag[0]));
             {
             int digit[3];
+            int c4;
             for (j = 0; j < 3; j++) {
-                digit[j] = val[cur] % 10;
-                val[cur] /= 10;
+                // COMPILER-DIFF: 13 (see `cur`): the index shift as an asm so gcse's cprop cannot
+                // fold `cur * 4` to 4; loop.c hoists it to the preheader like the target's `slwi r7,r0,2`.
+                asm("slwi %0,%1,2" : "=r"(c4) : "r"(cur));
+                digit[j] = *(int*) ((u8*) val + c4) % 10;
+                *(int*) ((u8*) val + c4) /= 10;
             }
             i = 0;  // the leading-zero flag reuses the function's `i` (r31: it outranks `j` in global-alloc)
             for (j = 2; j >= 0; j--) {
-                IdUnit* u = IdSub.unitPtr(tag[1] + j, 0x1D);
+                IdUnit* u = IdSub.unitPtr(tag[cur] + j, 0x1D);
 
                 u->flags_7F |= 2;
                 u->no = digit[j];

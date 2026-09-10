@@ -14,7 +14,7 @@ class PiecePopUp : public Widget<SUB_SCREEN> {
 public:
     int count;  // 0x10
 
-    virtual void init(SUB_SCREEN* wk);
+    virtual void init(SUB_SCREEN* wk) { count = 0; }  // in-class: eof order dtor, init
     virtual void move(SUB_SCREEN* wk);
 };
 
@@ -22,7 +22,7 @@ class PiecePopDown : public Widget<SUB_SCREEN> {
 public:
     int count;  // 0x10
 
-    virtual void init(SUB_SCREEN* wk);
+    virtual void init(SUB_SCREEN* wk) { count = 0; }  // in-class: eof order dtor, init
     virtual void move(SUB_SCREEN* wk);
 };
 
@@ -39,7 +39,7 @@ public:
     int mode;   // 0x14  bit3: message open; 1 exit, 2 main menu, 4 case change
 
     PieceSelect() : Widget<SUB_SCREEN>(4) {}
-    virtual void init(SUB_SCREEN* wk);
+    virtual void init(SUB_SCREEN* wk) { state = 0; }  // in-class: eof order dtor, init
     virtual void move(SUB_SCREEN* wk);
 };
 

@@ -222,7 +222,8 @@ class SsPzzlInit : public Widget<SUB_SCREEN> {
 public:
     int state;  // 0x10
 
-    virtual void init(SUB_SCREEN* wk);
+    // in-class: the body is queued right after the synthesized dtor (eof order dtor, init)
+    virtual void init(SUB_SCREEN* wk) { state = 0; }
     virtual void move(SUB_SCREEN* wk);
 };
 

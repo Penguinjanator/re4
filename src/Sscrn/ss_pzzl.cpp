@@ -651,14 +651,37 @@ void screenPos2puzzlePos(Vec* pos, Vec* out)
 // Relocates the piece_info model / texture offsets of ss_pzzl.dat into pointers.
 void pieceTblInit(SUB_SCREEN* wk)
 {
-    PieceInfo* tbl = piece_info;
-    int i;
+    // The target's `tbl` is a REG_EQUIV pseudo that reload rematerialises (`lis r9; addi r11,r9`) and
+    // whose loop copy is an inherited reload (`mr r7,r11`); ours allocates it, folds the entry load into
+    // the lo_sum and cse2 turns the copy into `addi r7,r9,piece_info@l`. The two asms below emit the
+    // target's own instructions and keep `tbl` opaque; the `mr` copy is an early-clobber asm so that
+    // local-alloc cannot tie it to the dying `tbl`. COMPILER-DIFF: 13.
+    PieceInfo* tbl;
+    // COMPILER-DIFF: candidate #17 -- base/mp have no REG_EQUAL notes (asm output / opaque sum), so
+    // their live lengths are not halved and they would outrank the byte-offset biv in global-alloc.
+    register PieceInfo* base asm("r7");
+    register void** mp asm("r6");
+    u32 hi;
+    u32 ofs;
 
-    for (i = 0; tbl[i].id != 0xFFFF; i++) {
+    asm("lis %0,piece_info@ha" : "=r"(hi));                 // COMPILER-DIFF: 13
+    asm("addi %0,%1,piece_info@l" : "=&r"(tbl) : "b"(hi));  // COMPILER-DIFF: 13
+    if (tbl->id == 0xFFFF) {
+        return;
+    }
+    asm("mr %0,%1" : "=&r"(base) : "r"(tbl));  // COMPILER-DIFF: 13
+    // Explicit byte-offset biv (user init: `li r8,0` precedes the hoisted 0xFFFF constant) with a
+    // separate store pointer biv based at model[4] (`stw -4(r6)`/`stw 0(r6)`); the id re-reads are
+    // volatile so that gcse's PRE does not merge the identical `(mem (plus ofs base))` loads (the
+    // `tbl[i].id` index form keeps them apart through the PRE'd `i*120` copies, but its giv init
+    // comes after the constant).
+    mp = (void**) ((u32) base + 84);
+    ofs = 0;
+    do {
         int mdl;
         int tex;
 
-        switch (tbl[i].id) {
+        switch (((PieceInfo*) (ofs + (u32) base))->id) {
         case 0x40:
             mdl = 0x21;
             break;
@@ -694,11 +717,11 @@ void pieceTblInit(SUB_SCREEN* wk)
             mdl = 0;
             break;
         default:
-            mdl = tbl[i].id;
+            mdl = *(volatile u16*) (ofs + (u32) base);
             break;
         }
         mdl = mdl * 2 + 4;
-        switch (tbl[i].id) {
+        switch (*(volatile u16*) (ofs + (u32) base)) {
         case 0x40:
             tex = 0x21;
             break;
@@ -710,12 +733,20 @@ void pieceTblInit(SUB_SCREEN* wk)
             tex = 0x35;
             break;
         default:
-            tex = tbl[i].id;
+            tex = *(volatile u16*) (ofs + (u32) base);
             break;
         }
-        *(void**) &tbl[i].model[0] = SS_ARC_PTR(wk->x1E4, mdl);
-        *(void**) &tbl[i].model[4] = SS_ARC_PTR(wk->x1E4, tex * 2 + 5);
-    }
+        // Index-first `lwzx` (offset + arc, not arc->ofs[no]); the tex index is laundered because the
+        // index-first form lets combine fold its +20 into the load displacement. COMPILER-DIFF: 12 (address form).
+        mp[-1] = (void*) (*(u32*) (mdl * 4 + (u32) wk->x1E4) + (u32) wk->x1E4);
+        {
+            u32 tix = (tex * 2 + 5) * 4;
+            asm("" : "+r"(tix));  // COMPILER-DIFF: 12 (address form)
+            mp[0] = (void*) (*(u32*) (tix + (u32) wk->x1E4) + (u32) wk->x1E4);
+        }
+        mp += 30;
+        ofs += 120;
+    } while (((PieceInfo*) (ofs + (u32) base))->id != 0xFFFF);
 }
 
 void pieceModelOrientation(SUB_SCREEN* wk, pzlPiece* p)
@@ -1165,11 +1196,6 @@ void caseModelMove(int sw)
     }
 }
 
-void SsPzzlInit::init(SUB_SCREEN* wk)
-{
-    state = 0;
-}
-
 void SsPzzlInit::move(SUB_SCREEN* wk)
 {
     switch (state) {
@@ -1301,33 +1327,40 @@ void SsPzzlMain::init(SUB_SCREEN* wk)
     idMainMenuFade(wk, 1);
     for (i = 0; i < 0x3E; i++) {
         if (i == 0) {
-            IdNum.set(SS_ARC_PTR(wk->pCmmn, 7), 0xFF, 0x40, 0x13, 8, 0);
+            IdNum.set(SS_ARC_PTR(wk->pCmmn, 8), 0xFF, 0x40, 0x13, 8, 0);
         } else {
-            IdNum.setI(SS_ARC_PTR(wk->pCmmn, 7), 0xFF, 0x40 + i, 0x13, 9, 0);
+            IdNum.setI(SS_ARC_PTR(wk->pCmmn, 8), 0xFF, 0x40 + i, 0x13, 9, 0);
         }
     }
-    IdSub.set(SS_ARC_PTR(wk->pCmmn, 0xC), 0xFF, 0x1C, 0x13, 2, 0);
-    IdSub.set(SS_ARC_PTR(wk->pCmmn, 0xD), 0xFF, 0x1D, 0x13, 2, 0);
+    IdSub.set(SS_ARC_PTR(wk->pCmmn, 0xD), 0xFF, 0x1C, 0x13, 2, 0);
+    IdSub.set(SS_ARC_PTR(wk->pCmmn, 0xE), 0xFF, 0x1D, 0x13, 2, 0);
     for (lang = 0; lang < 2; lang++) {
         u8 type;
 
-        for (i = 0; i < 10; i++) {
-            setCommandId(i, tbl, &num, lang);
+        // block-scoped counters per loop (the 0x3E counter r31, this one r30, the two 11-loops r29 with
+        // the `tbl[k]` giv in r31); `no = k + 1` after the call is the itemSelect `i = no` idiom
+        // (`addi r3,r30,1` after `bl setCommandId`, `mr r30,r3` at the latch).
+        for (int k = 0; k < 10;) {
+            setCommandId(k, tbl, &num, lang);
+            int no = k + 1;
             for (j = 0; j < num * 2 + 6; j++) {
                 tbl[j]->dir |= 0xF;
                 tbl[j]->flags &= ~8;
             }
+            k = no;
         }
         type = lang == 0 ? 0x1C : 0x1D;
-        for (i = 0; i < 11; i++) {
-            tbl[i] = IdSub.unitPtr(0x70 + i, type);
-            tbl[i]->flags &= ~8;
-            tbl[i]->dir |= 0xF;
+        // `(u8) k`: with a plain int `0x80 + k` combine narrows the plus under the u8 truncation and
+        // emits `addi -128`; the target keeps `addi 4,29,128; clrlwi`.
+        for (int k = 0; k < 11; k++) {
+            tbl[k] = IdSub.unitPtr(0x70 + (u8) k, type);
+            tbl[k]->flags &= ~8;
+            tbl[k]->dir |= 0xF;
         }
-        for (i = 0; i < 11; i++) {
-            tbl[i] = IdSub.unitPtr(0x80 + i, type);
-            tbl[i]->flags &= ~8;
-            tbl[i]->dir |= 0xF;
+        for (int k = 0; k < 11; k++) {
+            tbl[k] = IdSub.unitPtr(0x80 + (u8) k, type);
+            tbl[k]->flags &= ~8;
+            tbl[k]->dir |= 0xF;
         }
     }
     IdSub.set(SS_ARC_PTR(wk->pCmmn, 0x10), 0xFF, 0x1E, 0x13, 1, 0);
@@ -1350,8 +1383,10 @@ void SsPzzlMain::init(SUB_SCREEN* wk)
         int y;
 
         ItemMgr.get(wk->x2FA, wk->x2FC);
-        wk->x300 = ItemMgr.pLast;
-        wk->x2B0->appendExtraPiece(ItemMgr.pLast);
+        ItemWork* last = ItemMgr.pLast;  // local: `mr r4,r0` for the argument instead of a re-read after the store
+
+        wk->x300 = last;
+        wk->x2B0->appendExtraPiece(last);
         wk->x2B0->inHandExtraPiece();
         wk->x2FC = wk->x300->num;
         pl = wk->x2B0;
@@ -1394,8 +1429,10 @@ void SsPzzlMain::init(SUB_SCREEN* wk)
     state = 0;
     caseMove = 1;
     sscrn_pzzl_in_init(wk);
-    MesData.ptr[0] = (u8*) SS_ARC_PTR(wk->pCmmn, 4);
-    MesData.ptr[1] = (u8*) SS_ARC_PTR(wk->x1E4, 0x1A4);
+    // setPtr(0) / setPtr(2): `stwx r0,r11,rZERO` with the `state = 0` zero pseudo (r30, live across the
+    // sscrn_pzzl_in_init call) as the index, then `stw 8(r11)`.
+    MesData.setPtr(0, (u8*) SS_ARC_PTR(wk->pCmmn, 5));
+    MesData.setPtr(2, (u8*) SS_ARC_PTR(wk->x1E4, 0x1A4));
     pzzl_dbg.init(wk);
     SndCall(0, 0x1E, 0, 0, 0, 0);
 }
@@ -1634,21 +1671,11 @@ void sscrn_pzzl_in_init(SUB_SCREEN* wk)
     u->dir &= 0xF0;
 }
 
-void PiecePopUp::init(SUB_SCREEN* wk)
-{
-    count = 0;
-}
-
 void PiecePopUp::move(SUB_SCREEN* wk)
 {
     if (count++ > 0) {
         transit(0, wk);
     }
-}
-
-void PiecePopDown::init(SUB_SCREEN* wk)
-{
-    count = 0;
 }
 
 void PiecePopDown::move(SUB_SCREEN* wk)
@@ -1687,12 +1714,23 @@ void PzzlThinking::move(SUB_SCREEN* wk)
                     transit(0, wk);
                 }
                 itemInfo(p->item->id, &info);
-                if (info.type == 2) {
-                    SndCall(0, 0x29, 0, 0, 0, 0);
-                } else if (info.type == 6) {
-                    SndCall(0, 0x27, 0, 0, 0, 0);
-                } else {
-                    SndCall(0, 0x28, 0, 0, 0, 0);
+                {
+                    // one SndCall after a `switch (type)` value select, bodies laid out 6, 2, default
+                    // (the PieceCombine::move recipe): the shared tail starts at `li r3,0`.
+                    int se;
+
+                    switch (info.type) {
+                    case 6:
+                        se = 0x27;
+                        break;
+                    case 2:
+                        se = 0x29;
+                        break;
+                    default:
+                        se = 0x28;
+                        break;
+                    }
+                    SndCall(0, se, 0, 0, 0, 0);
                 }
             } else if (wk->x2B0->chgPiece(wk->x2B0->cur)) {
                 SndCall(0, 0xD, 0, 0, 0, 0);
@@ -1761,11 +1799,6 @@ void openMsgWindow(SUB_SCREEN* wk, int no)
     cMes.setLayout(1, 2);
     cMes.MesSet(no, msg_x, msg_y, 0x11, 1, 0, 3);
     IdSub.set(SS_ARC_PTR(wk->pCmmn, 0xA), 0xFF, 3, 0x13, 0, 0);
-}
-
-void PieceSelect::init(SUB_SCREEN* wk)
-{
-    state = 0;
 }
 
 void PieceSelect::move(SUB_SCREEN* wk)

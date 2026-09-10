@@ -2891,11 +2891,12 @@ target) stays unresolved and `make_rel` then fails with "undefined symbol".
   non-static since the ninth pass for the REL fields), .rodata/.data/.bss identical since 2026-09:
   the former 8-byte gap was doorModelInit's missing 2^52 pool entry (`(f32) (int) e->ang` of the u8
   angle, the classic double trick, not a fast-cast psq_l) plus the two file-scope `static const`
-  tables in the wrong order (map_cam_entire is defined before mark_model_tbl); see its item) and ss_pzzl (src/Sscrn/ss_pzzl.cpp, 58/64 after the tenth pass
-  (pzzlCursorDisp; pieceModelDisp in the ninth; PieceCommand::move and PieceCombine::move since the sixth), .rodata/.data/.bss identical) are
-  written; ss_shop (src/Sscrn/ss_shop.cpp, the merchant screen: 72/74 functions byte-identical after
-  the tenth pass (LvUpItemSelect::move; LvUpConfirm::move in the ninth, BuyItemNum::move in the seventh) incl. the 0x980 eof block, .rodata/.data/.bss
-  identical, .text size equal since the ninth pass; open: levelItemDisp 14 lines, SellItemNum::move 4 insns) is written, see its item and the fifth..tenth-pass lists.
+  tables in the wrong order (map_cam_entire is defined before mark_model_tbl); see its item) and ss_pzzl (src/Sscrn/ss_pzzl.cpp, 61/64 after the eleventh pass
+  (pieceTblInit, PzzlThinking::move, SsPzzlMain::init; pzzlCursorDisp in the tenth; pieceModelDisp in the ninth; PieceCommand::move and PieceCombine::move since the sixth), .rodata/.data/.bss identical,
+  eof block order fixed (in-class `init` bodies, see the eleventh-pass item); open: pieceFrameDisp, caseModelMove, PieceSelect::move) are
+  written; ss_shop (src/Sscrn/ss_shop.cpp, the merchant screen: 73/74 functions byte-identical after
+  the eleventh pass (levelItemDisp; LvUpItemSelect::move in the tenth, LvUpConfirm::move in the ninth, BuyItemNum::move in the seventh) incl. the 0x980 eof block, .rodata/.data/.bss
+  identical, .text size equal since the ninth pass; open: SellItemNum::move 4 insns) is written, see its item and the fifth..eleventh-pass lists.
 - ss_shop idioms (2026-09): include order light.h, map_obj.h, widget.h (the three header strings), then
   "ss_shop.dat" (SsShopInit::move) and the HALT string (mem_alloc lines 0x1BA/0x242). The 13 widgets are
   declared in the order SsShopInit, SsShopMain (ss_main.h), ShopTopMenu(3 links, ctor sets cursor = 1),
@@ -3848,6 +3849,86 @@ target) stays unresolved and `make_rel` then fails with "undefined symbol".
     costs 47 lines. pieceFrameDisp: a dead `if (c.x == 1.0f) k = 0;` at the end of the j body stops loop.c's pass-2
     hoist of the FILE-string high (pLog/27E8 then match the target's r20/r21) but the freed register goes to the line
     highs, not to the 0.0 pool high (`lis r14` at the top in the target), and `m` moves to r31: 46 lines. Not applied.
+- Eleventh pass (2026-09-10, ss_shop 72 -> 73/74 (levelItemDisp), ss_pzzl 58 -> 61/64 (pieceTblInit, PzzlThinking::move,
+  SsPzzlMain::init) + the eof order fixed; neither flipped: SellItemNum::move 4 insns, pieceFrameDisp, caseModelMove,
+  PieceSelect::move left; harness ~/.cache/ssw13 = ssw12 copies with the paths rewritten + `fvar.py <unit> <base.cpp> <fn>
+  <start-marker> <end-marker> name=variant.py..` (REPL applied to ONE function's text only; `sellv.sh`/`tblv.sh`/`thv.sh`/
+  `miv.sh`/`psv.sh` wrap it per function), `fn.sh DUMP 'name('` cuts a function out of a dump; NOTE ninja does not track
+  header dependencies of the NGCCC rule -- after a header edit `/bin/rm build/G4BE08/src/Sscrn/*.o` before `ninja`):
+  - **eof order: an in-class virtual body is queued right after its class's synthesized dtor** (ss_pzzl `pos!` on the
+    last 0x300 bytes: the target has `init__10SsPzzlInit` after `_._10SsPzzlInit`, `init__10PiecePopUp` after its dtor, etc.
+    -- `state = 0;`/`count = 0;` bodies). Our cc1plus queues the dtor at `finish_struct` (lex.c cons_up_default_function
+    -> mark_inline_for_output) and the in-class inline bodies when `do_pending_inlines` compiles them right after the
+    class (decl.c finish_function -> mark_inline_for_output), so `virtual void init(SUB_SCREEN* wk) { state = 0; }` in
+    the class gives exactly the target's dtor, init, dtor, init interleave; an out-of-line definition is output in
+    place. All Sscrn units re-verified (111 files OK) with the ss_main.h change.
+  - **levelItemDisp 14 -> 0 (tagged `COMPILER-DIFF: 13`): the digit-loop count reload lands on r9 because of reload's
+    round-robin.** `allocate_reload_reg` walks `spill_regs` from `last_spill_reg + 1` across insns (reload1.c); the
+    function's spill regs are {r0, r9} (per-insn `used_spill_regs` = all spill regs not used by live pseudos), the two pool
+    highs before the loop take r9, r9, and the target's `cur` is a rematerialised REG_EQUIV constant (`li r0,1` before
+    `slwi r7,r0,2`) that takes the next slot r0, so the ctr init reload after it gets r9 and sched2 issues `li r9,3; lis
+    r6; mtctr r9` first (mtjmpr latency 3 = prio 4/3). Ours had no reload for `cur` (the tenth-pass `li` asm is an
+    allocated output) so the ctr reload took r0 and inherited the `slwi` anti chain. Form: `int cur = 1;` declared in the
+    block BEFORE the type loop (a single constant set, live across the whole type loop where every callee-saved register
+    is taken -> spilled -> rematerialised), its only register use an `asm("slwi %0,%1,2" : "=r"(c4) : "r"(cur))` inside the
+    digit loop (loop.c hoists it to the preheader like the target's slwi; with a plain `val[cur]` gcse's cprop folds `cur*4`
+    to 4), `*(int*) ((u8*) val + c4)` for the two accesses, and `tag[cur]` written literally (cprop folds it to `lbz 1(r16)`
+    like the target). `cur = 1` placed inside the type loop instead is hoisted with the same result but `cur` (pseudo
+    127, low number) then wins r14 from the cMes address (equal priorities, allocno order): declare it outside.
+  - **pieceTblInit 4 words -> 0 (tagged): the target's `tbl` is #13 again** -- a REG_EQUIV `piece_info` pseudo
+    rematerialised as `lis r9; addi r11,r9,@l` at the entry test (`lhz r9,0(r11)`, not folded into the lo_sum) and INHERITED
+    (`mr r7,r11`) for the loop base copy; ours allocates it, combine folds the entry load and cse2 rematerialises the loop
+    copy as `addi r7,r9,@l`. Applied: `asm("lis %0,piece_info@ha" : "=r"(hi)); asm("addi %0,%1,piece_info@l" : "=&r"(tbl)
+    : "b"(hi));` (symbol relocs in asm text assemble fine), `asm("mr %0,%1" : "=&r"(base) : "r"(tbl))` for the copy (the
+    early clobber stops local-alloc from tying it to the dying tbl), and the loop rewritten as the target's two bivs: a
+    user byte-offset `u32 ofs` (its `ofs = 0` init precedes the hoisted 0xFFFF constant in RTL, which is what puts `li
+    r8,0` before `ori r5,r5,65535`; loop.c's own `i*120` giv init comes after the pass-1 movable) with
+    `((PieceInfo*) (ofs + (u32) base))->id` loads, and `void** mp = (void**) ((u32) base + 84)` stepping by 30 for the
+    `stw -4(r6)/0(r6)` pair (a `&tbl[i]` register giv shared by both stores makes the +0 giv the combine representative).
+    The four id re-reads are `*(volatile u16*)`: identical `(mem (plus ofs base))` loads are PRE'd by gcse into one
+    register (`mr r11,r0; clrlwi`) -- 2.95 C++ has no alias sets here (struct/u16/s16 views merge), volatile MEMs are
+    not gcse candidates and do not perturb the schedule. `base`/`mp` are `register .. asm("r7")`/`asm("r6")` pins (candidate
+    #17): as an asm output / opaque sum they carry no REG_EQUAL note, so update_equiv_regs does not double their live
+    length and they outrank the biv (the target's copies are REG_EQUIV-doubled). The lwzx operand order is the
+    index-first `*(u32*) (idx*4 + (u32) arc)` form; the tex index is laundered (`asm("" : "+r"(tix))`, tagged 12) because
+    combine reassociates `(plus (plus tex8 20) arc)` into a displacement in the index-first form only.
+  - **PzzlThinking::move 8 -> 0 (zero code): the PieceCombine recipe again** -- `int se; switch (info.type) { case 6:
+    se = 0x27; break; case 2: se = 0x29; break; default: se = 0x28; } SndCall(0, se, ..)`: bodies laid out 6, 2, default
+    (`beq A; cmpwi 6; bne B; li r4,39; b Lz; A: li r4,41; b Lz; B: li r4,40; Lz: li r3,0`), the shared tail starts at
+    `li r3,0`. Three `SndCall` statements give per-arm `li r3,0` + a cross-jumped tail from `li r5`; an if/else-if `se`
+    hoists the else-set.
+  - **SsPzzlMain::init 8 -> 0 (zero code): four SOURCE bugs read off the diff** (`lwz r4,52/56(r9)` = SS_ARC_PTR indices
+    0xD/0xE, not 0xC/0xD; the IdNum.set archive offset 8, not 7; `MesData.setPtr(0, SS_ARC_PTR(pCmmn, 5))` (not 4) and
+    `setPtr(2, ..)` (not `ptr[1]`) -- the setPtr form gives `stwx r0,r11,rZERO` with the `state = 0` zero pseudo (r30, live
+    across `sscrn_pzzl_in_init`) as the index and `stw 8(r11)`), plus: `ItemWork* last = ItemMgr.pLast; wk->x300 = last;
+    append(last)` (`mr r4,r0` instead of a re-read after the store), block-scoped `for (int k ..)` counters per loop (r31,
+    r30, r29 with the `tbl[k]` giv in r31 -- the shared function `i` was one high-ref pseudo), `int no = k + 1;` AFTER the
+    setCommandId call with `k = no` at the body end (`addi r3,r30,1` after `bl`, `mr r30,r3` at the latch: the itemSelect
+    idiom; a pseudo that does not cross the call is anchored to it), and `IdSub.unitPtr(0x80 + (u8) k, type)` -- with a
+    plain int `k`, combine narrows the plus under the u8 truncation (`force_to_mode`) and prints `addi -128`; the target's
+    `addi r4,r29,128; clrlwi` needs the zero-extended operand (`(u8) k`, `(u32) k` or an `int base = 0x80` variable all work).
+  - **SellItemNum::move (4 insns, still open) is the #3(c) shape**: the target defines the PRE'd `&digit` register BETWEEN
+    the argument moves and the call (`addi r3,r27,IdSub@l; li r4,0; li r5,31; addi r17,r1,8; bl unitPtr`). Ours: `R = fp+8`
+    is loop pass 2's hoist of the k-body's `&digit[n-1]` base, RTL-last in the k preheader, free (REG_N_CALLS_CROSSED 4), so
+    sched1 issues it in the MesSet call's own cycle (t=30 ready list `1555 131`: the call takes the bpu, the addi the free
+    iu slot). Read from haifa-sched.c: an insn placed after unitPtr in RTL can only depend on MesSet through memory, a
+    call-used register or `REG_N_CALLS_CROSSED == 0` -- and every one of those also links it to the LAST call (unitPtr) or
+    makes it a predecessor of unitPtr with the arguments' priority (`insn_cost` clamps anti/output links to 1, so the
+    asm->call link gives prio 1 + prio(call) = the arg moves'), where the tie falls to LUID and the asm (RTL before the
+    arg moves) wins. Tried and rejected (all in ~/.cache/ssw13/v_*.py): `asm volatile("")` after MesSet (36 lines: the
+    prologue's hoisted `lis IdSub`/`li` constants stop at the barrier), memory-anchored `la` asms with `digit` at function
+    scope or in an enclosing block (the frame layout is [digit 8..47][info 48..55][fctiwz temp 56]: digit must stay
+    block-local in the k body, an enclosing block that starts after the temp keeps it -- `{ int digit[10]; MesSet..; for
+    (k..) {} }` is 2 lines, but every asm-produced pointer is alias-opaque and reallocates the loop (57-74 lines)),
+    `register` hard-reg argument variables (`register IDSystem* a3 asm("r3") = &IdSub; a4 = 0; a5 = 0x1F; a3->unitPtr(a4,
+    a5)` -- the nop `r5 = r5` arg move is folded by cse into a fresh `li r5,31` at the call, so the asm's LUID is still
+    smaller). Candidate left: make the asm read r3/r4/r5 (all three hard-reg args) so it is ready one cycle after `li
+    r5,31` -- untested because the pointer then has to feed the second digit loop.
+  - **PieceSelect::move (113 words, still open)**: literal zeros in the r==2 arm (`x264 = 0; x265 = 0` instead of
+    `= state`) make the r==1 and r==2 arms identical RTL and jump2 merges them (161 lines), with or without an `int n`
+    getPieceNum result; the target keeps them apart only because cse's zero class differs per arm (r9 = the `mr.` result
+    in arm 1, r27 = the `switch (state)` register in arm 2, r25 = the Key OR in case 4). pieceFrameDisp / caseModelMove
+    not iterated this pass.
 - The map model globals are named `ssPlModel`/`ssWepModel` (.bss 0x494/0x498, MapMgr works 0/1),
   `ssPlMotion`/`ssWepModel2` (.data 0x978/0x97C), renamed by hand in symbols.txt/sym_map.tsv
   (data labels have no .sym name for the sync tool); the generator attributes them to ss_map.cpp.
