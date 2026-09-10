@@ -6888,3 +6888,71 @@ confirmed on the units named):
   `wk->stage = 0` (`li r11,0` after `lwz pG`: inline/int-local forms unchanged, 3 words left).
 - Detector caveat: the mcmp per-function keys use absolute `.rodata` offsets, so a pool change in one
   function makes every later function "differ" until the section matches again; judge by the unit total.
+
+### em2c / em2d bytes-first pass (em2c 93 -> 108/120, em2d 79 -> 106/129; sections identical; neither flipped; 2026-09-10)
+- Harness /tmp/em2cd_p (copy of /tmp/em_polish2: `variants.py MOD SUBSTR file.py`, `perm.py`, `sbs.sh`, `mcmp.py`,
+  `dumpm.sh`). The three 2-word `_._5cEm2c` / `Em2cInit` / `_._5cUnit` rows are reloc *names* (`.rodata+N` in the
+  split object vs `_vt.5cUnit` in ours), not bytes.
+- Source bugs found by reading the target's stores (the previous agent's sources): em2c Walk/Dash forward vector
+  `pos = {0, 0, 1}` (was `{0, 1, 0}`); em2d `fabsf(em->mat[1][3] - pPL->pos.y)` (was `em->scale.x`); the em2d
+  InitRtnSet `MotionSetCore(.., 0, 0, 5, 0)` argument order (was `0, 5, 0, 0`), plem2dKick / JumpAtkCounter's
+  MotionSetCore last argument 5, JumpAtkCounter `flags &= ~0x4000`; em2c C_Fall's inline lacked the
+  `(w->flags & 1)` test of the walk pick; em2c Dm_Normal / Dm_Guard / C_Wait `break`s that belonged inside the
+  inner `if` (the target's `beq` lands on the next test, not the function end).
+- Same-base offsets never conflict (alias.c `memrefs_conflict_p` proves `(plus w 4)` vs `(plus w 8)` disjoint), so
+  NEITHER a reference store (`IntSet`) nor a volatile store keeps a following `w->x8` load below a `w->x4` store;
+  a `do { w->timer = t - 1; } while (0);` (LOOP_END barrier, zero code) does (em2c HideWait, 4 -> 2 words: the
+  load's register r0/r9 is the local-alloc fake-lifetime tie).
+- `cDmgInfo* d = &pSUB->dmg;` declared before the dead test and `d->set(0, 30)` in the arm: `&pSUB->dmg` is
+  computed before the `andis.` (cse's zero-offset rewrite makes the flags load `lwz 0x324(r3)`; em2c/em2d
+  KickAction). `atk = &em2c_atk_info[no]; p = em->getPartsPtr(parts);` with `if (w->atkHit) return 0;` first
+  (em26 idiom, both AtkCks); case bodies that copy `pPL->x328 = em->pos` do it INSIDE each `motFlags & 0x40` arm;
+  a copy followed by an `EstSet((int) pPL, ..)` that reloads pPL is `memcpy((u8*) pPL + 0x328, &em->pos, 12)`.
+- A value tested once and stored as the RS zeros: a block-local `int r = em2cToCeilingCk(em); if (r == 0)
+  EmRoutineSet(em, 1, 5, r, r);` gives `mr. r3,r3` + `stb r3` and, being identical in two places, lets jump2
+  cross-jump the copies (Dm_Normal, Dm_Guard); the function-scope `end`/`lock` variable gives `mr. r30,r3`
+  and merges the RS tails of every arm into one block instead. Likewise the second `if (w->timer) w->timer--;`
+  of a function must not reuse the first test's `t` (Die_Freeze: r11 caller-saved), and case 7's timer test in
+  C_Wait needs its own `int t7` or all three `addi; stw; b` copies cross-jump into it.
+- A function-scope `r` reused for a later test (`r = w->guardCnt; if (r == 0) RS(.., r, r)`) makes it cse's
+  canonical zero (REGNO_LAST_UID later than `wait`'s) and rewrites an EARLIER `RS(1, 0x19, wait, wait)` to store
+  `r`'s register; a block-local `int g` for the later test keeps `wait`'s register (em2c F_Walk).
+- `case 1: if (c) { RS(0xC); return; } /* fallthrough */ case 2: RS(0xA); return;` — the fallthrough gives the
+  case-2 label two uses, so its arm gets fresh `li r9,1` instead of the switch register and case 1's else branch
+  jumps straight into it (em2c Walk/Dash; the if/else form cross-jumps the then-arm's stores instead).
+- Dead `do { } while (0);` before `case 0:` (the em3c lever) for the blend-init zero stores of em2c Walk/Dash/
+  F_Walk and em2d JumpAtk (fresh `li 0`, not the xFE register). OPEN in those three em2c blocks (8/14/14 words):
+  the target issues `lwz r11, 888(r31)` (`em->subArc`) right after `stw r0, 1472(r30)` (`w->blendSeq`) while
+  ours has a cost-2 true dependence (w-based store vs em-based load: different base pseudos, `w` has no
+  REG_EQUAL, so memrefs_conflict_p cannot prove them disjoint); `EM2C_WK(em)->blendSeq` reproduces the order but
+  with an em-based `stw 2464(r31)`. No source form gives both; the target's alias analysis knew w = em + 0x3E0.
+- em2d inlines that had to become macros: `em2dGravityMove` (integrate.c drops RTX_UNCHANGING_P of the inlined
+  pool loads, so the 600/100000 `lfs` sink below the getFloor argument moves; Wait/Turn180 matched, Walk/Atk/
+  AtkPoison/BackJump/JumpAtkCounter improved) and `em2dSetAtkWait(w, 100, 75, 60, 30, 0)` (integrate copies
+  every constant argument into a pseudo because the parms are not TREE_READONLY; the `e = 0` pseudo then becomes
+  cse's zero for the following EmRoutineSet — the target has `li r0,0` at the store and a fresh `li r9,0`;
+  BackJump). em2dSetAtkWaitR (never passed 0) stays an inline.
+- `em2dTurnTo(em, &pPLS->pos, ..)` after `w->timer--` (struct view keeps `lwz pPL` below the store: CriticalAtk,
+  Atk, AtkPoison, JumpAtk); `IntSet(w->jumpWait, Rnd() % 150 + 150); w->atkWait = 100;` (the reference store keeps
+  the pG load of the difficulty chain below it; the 100 store is written AFTER the Rnd call: JumpAtkCounter,
+  JumpKickHit, JumpAtk); `SndCall(1, 0x35, &pPLS->pos, 0, 0, pPLS)` after `pl->x3E0/x3E4/x3E8` stores (plem2dKick).
+- `switch (em->dmWep) { case 9: case 0xA: dmg = 9999; }` for `cmpwi 0xa; bgt; cmpwi 9; blt` (if-forms fold the
+  9 to `cmplwi 8`; em2dSetDmVal). `if ((Rnd() & 1) || (s16) pG->pl_life <= 299) stat = A; else stat = B;` lays
+  the A store first (C_Fall). `switch (no) { case 0: SndCall(A); break; case 1: SndCall(B); break; }` for the
+  `beq cr4; cmpwi 1; beq; b` shape where `if/else if` threads the second test (FootSeMove, both blocks).
+- `Vec* pos = &em->pos; Vec* dmPos = &em->x328;` locals hoist their `addi`s into the prologue (before the switch);
+  the target computes them in the arm: write `&em->pos` / `&em->x328` at every use (Dm_Blow, Dm_Air). A block copy
+  through `cModel* p = em->getPartsPtr(0x12); pos = p->worldPos;` keeps the call result (`addi r9,r3,112`, r3
+  live) where `pos = *(&em->getPartsPtr(n)->worldPos)` gives `addi r3,r3,112` (SetdLandingEff).
+- em2d PlHeadLost / SetWallMatrix2 matched by copying em2c's shapes (`p3 = pPL->getPartsPtr(3)` before the Vec
+  stores with `Vec ofs; Vec spd; Vec rot;` order; `if (hitCheck(..)) { body; return 1; } return 0;`).
+  FallCatchCk: `if (!(dy > 2000.0f) && !(dy < -200.0f)) { body; return 1; } return 0;` shares the final `li r3,0`.
+- OPEN em2d: InitRtnSet (141 words after the fixes: case 4's shared 0.0 is f31 in the target and a GPR in ours
+  (SF constant, GENERAL_OR_FLOAT class; `asm("" : "+f")` forces it but is not a documented diff) plus w r28/r27),
+  RouteCk (88: the `if (flags & 0x800) GetPlPos else RouteCkToPos` arms — the target PREs `&em->pos` and
+  `&w->routePos` into BOTH arms, ours only `&w->routePos`), SideStep (28: `Vec nrm` before `Vec hit` in the frame
+  and the arm stores), DmCk 442, W_Walk 98, WallWalkCk 96, A_CatchHit 86, R0_Init 82, A_Wait 78, CamouflageMove 74,
+  JumpAtkHit 64, AirNextRtnSet 42, A_Atk 41, Dm_Normal 39, DownJump 34, FindCk 34, ToCeiling 32, setReset 30,
+  CamMove 28, JumpAtk 2 (`cmpwi fe` vs `stw flags` issue order). OPEN em2c: DmCk 501, T_Wait 143, TailDmCk 98,
+  BlendMotSet/BlendMotSet2 (COMPILER-DIFF #2: the u16 `d` argument masked at each MotionSetCore call; the
+  launder changes the parameter register order).

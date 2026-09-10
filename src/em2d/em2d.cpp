@@ -253,22 +253,25 @@ static inline void AtariOn(cAtariInfo* at, u16 b) { at->flags |= b; }
 static inline void AtariOff(cAtariInfo* at, u16 mask) { at->flags &= mask; }
 
 // Attack wait by difficulty: pG is reloaded after every store (reference stores).
-static inline void em2dSetAtkWait(Em2dWork* w, int a, int b, int c, int d, int e)
-{
-    IntSet(w->atkWait, a);
-    if (pG->x4F88 > 1) {
-        IntSet(w->atkWait, b);
+// A macro: an inline copies its constant arguments into pseudos at the call point (the parms
+// are not TREE_READONLY), and a 0 argument then becomes cse's zero for the following
+// EmRoutineSet stores; the target materialises `li 0` at the store and a fresh one for the routine.
+#define em2dSetAtkWait(w, a, b, c, d, e)   \
+    {                                      \
+        IntSet((w)->atkWait, a);           \
+        if (pG->x4F88 > 1) {               \
+            IntSet((w)->atkWait, b);       \
+        }                                  \
+        if (pG->x4F88 > 3) {               \
+            IntSet((w)->atkWait, c);       \
+        }                                  \
+        if (pG->x4F88 > 6) {               \
+            IntSet((w)->atkWait, d);       \
+        }                                  \
+        if (pG->x4F88 == 10) {             \
+            IntSet((w)->atkWait, e);       \
+        }                                  \
     }
-    if (pG->x4F88 > 3) {
-        IntSet(w->atkWait, c);
-    }
-    if (pG->x4F88 > 6) {
-        IntSet(w->atkWait, d);
-    }
-    if (pG->x4F88 == 10) {
-        IntSet(w->atkWait, e);
-    }
-}
 
 // The same with the damage counter reset between the first store and the difficulty chain.
 static inline void em2dSetAtkWaitR(Em2dWork* w, int a, int b, int c, int d, int e)
@@ -291,18 +294,21 @@ static inline void em2dSetAtkWaitR(Em2dWork* w, int a, int b, int c, int d, int 
 
 // Per-frame movement with gravity: the position follows `spd`, which falls 20 per frame, and the
 // enemy lands on the floor under its old position.
-static inline void em2dGravityMove(cEm2d* em, Em2dWork* w)
-{
-    f32 fl;
-
-    PSVECAdd(&em->pos, &w->spd, &em->pos);
-    w->spd.y -= 20.0f;
-    fl = SatMgr.getFloor(&em->oldPos, 600.0f, 100000.0f, 0, 0);
-    if (em->pos.y < fl) {
-        em->pos.y = fl;
-        w->spd.y = 0.0f;
+// A macro, not an inline: integrate.c drops the RTX_UNCHANGING_P flag of an inlined body's
+// constant-pool loads, which then depend on the `spd.y` store and sink below the getFloor
+// argument moves (the em2c EM2C_DM_FALL note).
+#define em2dGravityMove(em, w)                                                    \
+    {                                                                             \
+        f32 fl_;                                                                  \
+                                                                                  \
+        PSVECAdd(&(em)->pos, &(w)->spd, &(em)->pos);                              \
+        (w)->spd.y -= 20.0f;                                                      \
+        fl_ = SatMgr.getFloor(&(em)->oldPos, 600.0f, 100000.0f, 0, 0);            \
+        if ((em)->pos.y < fl_) {                                                  \
+            (em)->pos.y = fl_;                                                    \
+            (w)->spd.y = 0.0f;                                                    \
+        }                                                                         \
     }
-}
 
 // Turn towards `target` by at most `step` per frame.
 static inline void em2dTurnTo(cEm2d* em, Vec* target, f32 step)
@@ -864,12 +870,12 @@ void em2dInitRtnSet(cEm2d* em)
     case 0:
     default:
         EmRoutineSet(em, 1, 1, 0, 1);
-        MotionSetCore(em, &em->mot, ARC(0x46), 0, 5, 0, 0);
+        MotionSetCore(em, &em->mot, ARC(0x46), 0, 0, 5, 0);
         break;
     case 3:
         w->flags |= 0x200;
         EmRoutineSet(em, 1, 2, 0, 0);
-        MotionSetCore(em, &em->mot, ARC(0x46), 0, 5, 0, 0);
+        MotionSetCore(em, &em->mot, ARC(0x46), 0, 0, 5, 0);
         break;
     case 1:
         w->flags |= 0x840;
@@ -877,7 +883,7 @@ void em2dInitRtnSet(cEm2d* em)
         w->spd.y = 0.0f;
         w->spd.z = 0.0f;
         EmRoutineSet(em, 1, 0x1C, 0, 0);
-        MotionSetCore(em, &em->mot, ARC(0x5D), 0, 5, 0, 0);
+        MotionSetCore(em, &em->mot, ARC(0x5D), 0, 0, 5, 0);
         break;
     case 2: {
         Vec top;
@@ -895,7 +901,7 @@ void em2dInitRtnSet(cEm2d* em)
         w->homePos.y = SatMgr.getFloor(&em->pos, 600.0f, 100000.0f, 0, 0);
         w->homePos = em->pos;
         EmRoutineSet(em, 1, 0x27, 0, 0);
-        MotionSetCore(em, &em->mot, ARC(0x47), 0, 5, 0, 0);
+        MotionSetCore(em, &em->mot, ARC(0x47), 0, 0, 5, 0);
         break;
     }
     case 4: {
@@ -904,32 +910,36 @@ void em2dInitRtnSet(cEm2d* em)
         Vec b;
         Vec hit;
         Vec nrm;
+        int one = 1;      // routine 1 of both arms in a callee-saved register
+        Vec* pos = &em->pos;
+        f32 fz;
 
-        em->x38D = 1;
+        em->x38D = one;
         PSMTXRotRad(m, 'y', em->rot.y);
-        TransMatrix(m, &em->pos);
-        a.x = 0.0f;
-        a.y = 0.0f;
-        a.z = 0.0f;
-        b.x = 0.0f;
-        b.y = 0.0f;
+        TransMatrix(m, pos);
+        fz = 0.0f;        // one 0.0 pseudo for the line ends and the else arm's spd (f31)
+        a.x = fz;
+        a.y = fz;
+        a.z = fz;
+        b.x = fz;
+        b.y = fz;
         b.z = 10000.0f;
         PSMTXMultVec(m, &a, &a);
         PSMTXMultVec(m, &b, &b);
         if (SatMgr.hitCheck(&a, &b, &hit, &nrm, 0, 0x383830)) {
             w->wallNrm = nrm;
-            em->pos = hit;
-            EmRoutineSet(em, 1, 0, 0, 0);
-            MotionSetCore(em, &em->mot, ARC(0x46), 0, 5, 0, 0);
+            *pos = hit;
+            EmRoutineSet(em, one, 0, 0, 0);
+            MotionSetCore(em, &em->mot, ARC(0x46), 0, 0, 5, 0);
             em2dSetWallMatrix(em);
             MotionMoveF(em, 0);
         } else {
             w->flags |= 0x840;
-            w->spd.x = 0.0f;
-            w->spd.y = 0.0f;
-            w->spd.z = 0.0f;
-            EmRoutineSet(em, 1, 0x1C, 0, 0);
-            MotionSetCore(em, &em->mot, ARC(0x5D), 0, 5, 0, 0);
+            w->spd.x = fz;
+            w->spd.y = fz;
+            w->spd.z = fz;
+            EmRoutineSet(em, one, 0x1C, 0, 0);
+            MotionSetCore(em, &em->mot, ARC(0x5D), 0, 0, 5, 0);
         }
         break;
     }
@@ -938,7 +948,7 @@ void em2dInitRtnSet(cEm2d* em)
         w->wallNrm.y = 1.0f;
         w->wallNrm.x = 0.0f;
         EmRoutineSet(em, 1, 0x29, 0, 0);
-        MotionSetCore(em, &em->mot, ARC(0x48), 0, 5, 0, 0);
+        MotionSetCore(em, &em->mot, ARC(0x48), 0, 0, 5, 0);
         break;
     }
 }
@@ -1159,9 +1169,9 @@ static void em2d_R1_Walk(cEm2d* em)
         if ((s16) pG->pl_life <= 699 && Rnd() % 3 == 0) {
             w->walkMode = 2;
         }
-        w->spd.z = 0.0f;
         w->spd.x = 0.0f;
         w->spd.y = 0.0f;
+        w->spd.z = 0.0f;
         em->xFE++;
     case 1:
         em2dGravityMove(em, w);
@@ -1278,14 +1288,14 @@ next:
         PSMTXMultVec(em->mat, &a, &a);
         PSMTXMultVec(em->mat, &b, &b);
         if (SatMgr.hitCheck(&a, &b, 0, 0, 0, 0x383830) && (hit = em2dNoWallCk(em)) == 0) {
-            w->wallNrm.z = 0.0f;
             w->wallNrm.x = 0.0f;
             w->wallNrm.y = 1.0f;
+            w->wallNrm.z = 0.0f;
             EmRoutineSet(em, 1, 0x15, hit, hit);
             return;
         }
     }
-    if (em->plDist2 < 1440000.0f && fabsf(em->scale.x - pPL->pos.y) < 500.0f && w->routeAngAbs > 1.04719758f &&
+    if (em->plDist2 < 1440000.0f && fabsf(em->mat[1][3] - pPL->pos.y) < 500.0f && w->routeAngAbs > 1.04719758f &&
         w->routeAngAbs < 1.91986215f) {
         Vec d;
 
@@ -1480,17 +1490,17 @@ static void em2d_R1_Atk(cEm2d* em)
         }
         zero = 0;
         w->timer = 15;
-        w->spd.z = 0.0f;
-        w->atkHit = zero;
         w->atkCnt = zero;
         w->spd.x = 0.0f;
         w->spd.y = 0.0f;
+        w->spd.z = 0.0f;
+        w->atkHit = zero;
         em->xFE++;
     case 1:
         em2dGravityMove(em, w);
         if (w->timer) {
             w->timer--;
-            em2dTurnTo(em, &pPL->pos, 0.157079637f);
+            em2dTurnTo(em, &pPLS->pos, 0.157079637f);
         }
         if (MotionMoveF(em, 0)) {
             if (w->atkHit == 0) {
@@ -1546,7 +1556,7 @@ static void em2d_R1_AtkPoison(cEm2d* em)
         em2dGravityMove(em, w);
         if (w->timer) {
             w->timer--;
-            em2dTurnTo(em, &pPL->pos, 0.0981747732f);
+            em2dTurnTo(em, &pPLS->pos, 0.0981747732f);
         }
         if (MotionMoveF(em, 0)) {
             em2dSetAtkWaitR(w, 100, 75, 60, 45, 30);
@@ -1581,13 +1591,13 @@ static void em2d_R1_CriticalAtk(cEm2d* em)
         }
         zero = 0;
         w->timer = 5;
-        w->atkHit = zero;
         w->atkCnt = zero;
+        w->atkHit = zero;
         em->xFE++;
     case 1:
         if (w->timer) {
             w->timer--;
-            em2dTurnTo(em, &pPL->pos, 0.196349546f);
+            em2dTurnTo(em, &pPLS->pos, 0.196349546f);  // struct view: the pPL load stays below the timer store
             em2dActEvtSetKick(em, w->kickSide);
         }
         if (MotionMoveF(em, 0)) {
@@ -1668,10 +1678,11 @@ static void em2d_R1_JumpAtk(cEm2d* em)
 
     w->flags |= 0x10000;
     switch (fe) {
+        do { } while (0);  // dead loop before the label: the arm does not know fe == 0
     case 0:
         MotionSetCore(em, &em->mot, ARC(0x36), (int) ARC(0x37), 5, 1, 0);
-        w->atkCnt = fe;
         w->atkHit = fe;
+        w->atkCnt = fe;
         w->timer = 30;
         if (Rnd() & 1) {
             w->dmgTotal = 200;
@@ -1683,7 +1694,7 @@ static void em2d_R1_JumpAtk(cEm2d* em)
     case 1:
         if (w->timer) {
             w->timer--;
-            em2dTurnTo(em, &pPL->pos, 0.261799395f);
+            em2dTurnTo(em, &pPLS->pos, 0.261799395f);
             em2dActEvtSetKick(em, w->kickSide);
         }
         if (em->seFlags28B & 8) {
@@ -1695,8 +1706,8 @@ static void em2d_R1_JumpAtk(cEm2d* em)
             }
             fe = 0;
             w->dmgTotal = fe;
+            IntSet(w->jumpWait, Rnd() % 150 + 150);  // reference store: the pG load stays below it
             w->atkWait = 100;
-            w->jumpWait = Rnd() % 150 + 150;
             if (pG->x4F88 > 1) {
                 IntSet(w->atkWait, 75);
             }
@@ -2051,9 +2062,9 @@ static void em2d_R1_JumpKickHit(cEm2d* em)
         }
         break;
     case 2:
-        w->spd.z = 0.0f;
-        w->spd.y = -500.0f;
         w->spd.x = 0.0f;
+        w->spd.y = -500.0f;
+        w->spd.z = 0.0f;
         em->xFE++;
     case 3:
         w->flags |= 0x40;
@@ -2075,8 +2086,8 @@ static void em2d_R1_JumpKickHit(cEm2d* em)
         em2dCatchCamMove(em, em);
         if (MotionMoveF(em, 0)) {
             em->atari.setPriority(0);
+            IntSet(w->jumpWait, Rnd() % 150 + 150);  // reference store: the pG load stays below it
             w->atkWait = 100;
-            w->jumpWait = Rnd() % 150 + 150;
             if (pG->x4F88 > 1) {
                 IntSet(w->atkWait, 75);
             }
@@ -2141,10 +2152,10 @@ static void em2d_R1_JumpAtkCounter(cEm2d* em)
         em->pos.z = -5000.0f;
         PSMTXMultVec(m, &em->pos, &em->pos);
         pPL->rot.y = GetXZAngle(&pPL->pos, &em->pos);
-        MotionSetCore(em, &em->mot, ARC(0x40), (int) ARC(0x41), 5, 1, 0);
+        MotionSetCore(em, &em->mot, ARC(0x40), (int) ARC(0x41), 5, 1, 5);
         GameAddPoint(9);
         w->timer = fe;
-        w->flags &= ~0x8000;
+        w->flags &= ~0x4000;
         w->spd.x = 0.0f;
         w->spd.y = 0.0f;
         w->spd.z = 0.0f;
@@ -2157,8 +2168,8 @@ static void em2d_R1_JumpAtkCounter(cEm2d* em)
             if (em->hp <= 0) {
                 EmRoutineSet(em, 3, 2, 0, 0);
             } else {
+                IntSet(w->jumpWait, Rnd() % 150 + 150);  // reference store: the pG load stays below it
                 w->atkWait = 100;
-                w->jumpWait = Rnd() % 150 + 150;
                 if (pG->x4F88 > 1) {
                     IntSet(w->atkWait, 75);
                 }
@@ -2201,8 +2212,12 @@ static void em2dKickAction(cEm2d* em)
 {
     SetPlDamage((int) em, plem2dKick);
     pPL->dmg.set(0, 30);
-    if (pSUB && pSUB->plDist2 < 9000000.0f && !em2dDeadCk(pSUB)) {
-        pSUB->dmg.set(0, 30);
+    if (pSUB && pSUB->plDist2 < 9000000.0f) {
+        cDmgInfo* d = &pSUB->dmg;  // &pSUB->dmg is computed before the dead test
+
+        if (!em2dDeadCk(pSUB)) {
+            d->set(0, 30);
+        }
     }
     EmRoutineSet(em, 1, 0xD, 0, 0);
     GameAddPoint(9);
@@ -2217,12 +2232,12 @@ static void plem2dKick(cPlayer* pl)
     pG->flags_5014 |= 0x40000000;
     switch (pl->xFE) {
     case 0:
-        MotionSetCore(pl, &pl->mot, PL_ARC(0x60), 0, 6, 1, 0);
+        MotionSetCore(pl, &pl->mot, PL_ARC(0x60), 0, 6, 1, 5);
         GameAddPoint(9);
-        pl->x3E4 = 7;
         pl->x3E0 = 27;
+        pl->x3E4 = 7;
         pl->x3E8 = 10;
-        SndCall(1, 0x35, &pPL->pos, 0, 0, pPL);
+        SndCall(1, 0x35, &pPLS->pos, 0, 0, pPLS);  // struct view: the pPL load stays below the stores
         pl->xFE++;
     case 1:
         if (MotionMoveF(pl, 0)) {
@@ -2672,7 +2687,7 @@ static void em2d_R1_W_Walk(cEm2d* em)
             } else if (em2dWallFallCk(em)) {
                 EmRoutineSet(em, 1, 0x19, 0, 0);
             } else if (w->wallNrm.y > 0.899999976f && em->plDist2 < 1440000.0f &&
-                       fabsf(em->scale.x - pPL->pos.y) < 500.0f && w->routeAngAbs > 1.04719758f &&
+                       fabsf(em->mat[1][3] - pPL->pos.y) < 500.0f && w->routeAngAbs > 1.04719758f &&
                        w->routeAngAbs < 1.91986215f) {
                 d.x = 0.0f;
                 d.y = 0.0f;
@@ -2722,8 +2737,8 @@ static void em2d_R1_W_Atk(cEm2d* em)
             MotionSetCore(em, &em->mot, ARC(0x78), (int) ARC(0x79), 10, 1, 0);
         }
         w->timer = 10;
-        w->atkHit = 0;
         w->atkCnt = 0;
+        w->atkHit = 0;
         em->xFE++;
     case 1:
         em2dSetWallMatrix2(em, 0.4f);
@@ -3329,9 +3344,10 @@ static void em2d_R1_A_Turn180(cEm2d* em)
     em->setStatus(3);
     switch (em->xFE) {
     case 0:
-        flip = 0x41;
         if (Rnd() & 1) {
             flip = 1;
+        } else {
+            flip = 0x41;
         }
         MotionSetCore(em, &em->mot, ARC(0x6C), 0, 5, flip, 0);
         w->spd.x = 0.0f;
@@ -3378,7 +3394,7 @@ static void em2d_R1_A_Atk(cEm2d* em)
     case 1:
         if (w->timer) {
             w->timer--;
-            em2dTurnTo(em, &pPL->pos, 0.0981747732f);
+            em2dTurnTo(em, &pPLS->pos, 0.0981747732f);
         }
         fl = SatMgr.getFloor(&em->pos, 600.0f, 100000.0f, 0, 0);
         if (em->pos.y < fl) {
@@ -3747,9 +3763,9 @@ static void em2d_R1_C_Fall(cEm2d* em)
         break;
     case 2:
         MotionSetCore(em, &em->mot, ARC(0x4E), 0, 5, 5, 0);
-        w->spd.z = 0.0f;
-        w->spd.y = -200.0f;
         w->spd.x = 0.0f;
+        w->spd.y = -200.0f;
+        w->spd.z = 0.0f;
         em->xFE++;
     case 3:
         w->flags |= 0x1000;
@@ -3779,10 +3795,10 @@ static void em2d_R1_C_Fall(cEm2d* em)
         MotionMoveF(em, 0);
         if (em2dFallCatchCk(em)) {
             em->pos.y = pPL->pos.y;
-            if ((Rnd() & 1) == 0 && (s16) pG->pl_life > 299) {
-                em->stat = 0x010C0000;
-            } else {
+            if ((Rnd() & 1) || (s16) pG->pl_life <= 299) {
                 em->stat = 0x010B0000;
+            } else {
+                em->stat = 0x010C0000;
             }
         }
         break;
@@ -3876,24 +3892,22 @@ static void em2d_R1_Dm_Normal(cEm2d* em)
 static void em2d_R1_Dm_Blow(cEm2d* em)
 {
     Em2dWork* w = EM2D_WK(em);
-    Vec* pos = &em->pos;
-    Vec* dmPos = &em->x328;
 
     switch (em->xFE) {
     case 0:
-        if (fabsf(Muku(pos, dmPos, em->rot.y, 3.14159274f)) < 1.57079637f) {
-            em->rot.y += Muku(pos, dmPos, em->rot.y, 3.14159274f);
+        if (fabsf(Muku(&em->pos, &em->x328, em->rot.y, 3.14159274f)) < 1.57079637f) {
+            em->rot.y += Muku(&em->pos, &em->x328, em->rot.y, 3.14159274f);
             em->rot.y = LIMIT_ANGLE(em->rot.y);
             MotionSetCore(em, &em->mot, ARC(0x24), (int) ARC(0x25), 5, 1, 0);
         } else {
-            em->rot.y += Muku(dmPos, pos, em->rot.y, 3.14159274f);
+            em->rot.y += Muku(&em->x328, &em->pos, em->rot.y, 3.14159274f);
             em->rot.y = LIMIT_ANGLE(em->rot.y);
             MotionSetCore(em, &em->mot, ARC(0x26), (int) ARC(0x27), 5, 1, 0);
         }
         if (em->hp <= 0) {
-            SndCall(8, 9, pos, em->id, 0, em);
+            SndCall(8, 9, &em->pos, em->id, 0, em);
         } else {
-            SndCall(8, 0xF, pos, em->id, 0, em);
+            SndCall(8, 0xF, &em->pos, em->id, 0, em);
         }
         if ((w->flags & 0x80000) && (pG->room_id == 0x205 || pG->room_id == 0x21D)) {
             EstSet((int) em, -1, 0, 0, 1, 0x16, 0, 0, (u32) em, 0);
@@ -4071,8 +4085,6 @@ static void em2d_R1_Dm_Wall(cEm2d* em)
 static void em2d_R1_Dm_Air(cEm2d* em)
 {
     Em2dWork* w = EM2D_WK(em);
-    Vec* pos = &em->pos;
-    Vec* dmPos = &em->x328;
     f32 fl;
     int flip;
 
@@ -4085,12 +4097,12 @@ static void em2d_R1_Dm_Air(cEm2d* em)
         if (Rnd() & 1) {
             flip = 1;
         }
-        if (fabsf(Muku(pos, dmPos, em->rot.y, 3.14159274f)) < 1.57079637f) {
-            em->rot.y += Muku(pos, dmPos, em->rot.y, 3.14159274f);
+        if (fabsf(Muku(&em->pos, &em->x328, em->rot.y, 3.14159274f)) < 1.57079637f) {
+            em->rot.y += Muku(&em->pos, &em->x328, em->rot.y, 3.14159274f);
             em->rot.y = LIMIT_ANGLE(em->rot.y);
             MotionSetCore(em, &em->mot, ARC(0x72), 0, 5, flip, 0);
         } else {
-            em->rot.y += Muku(dmPos, pos, em->rot.y, 3.14159274f);
+            em->rot.y += Muku(&em->x328, &em->pos, em->rot.y, 3.14159274f);
             em->rot.y = LIMIT_ANGLE(em->rot.y);
             MotionSetCore(em, &em->mot, ARC(0x73), 0, 5, flip, 0);
         }
@@ -4540,10 +4552,11 @@ int em2dSetDmVal(cEm2d* em)
     }
     if (part->partsNo == 6) {
         dmg = (int) ((f32) dmg * 1.25f);
-        if (em->dmWep <= 0xA) {
-            if (em->dmWep >= 9) {
-                dmg = 9999;
-            }
+        switch (em->dmWep) {  // range node: `cmpwi 0xa; bgt; cmpwi 9; blt`
+        case 9:
+        case 0xA:
+            dmg = 9999;
+            break;
         }
     }
     if (em->type == 4 && (w->flags & 0x800)) {
@@ -4559,24 +4572,25 @@ int em2dSetDmVal(cEm2d* em)
 int em2dAtkCk(cEm2d* em, int no, int parts)
 {
     Em2dWork* w = EM2D_WK(em);
+    EmAtkInfo* atk;
     cModel* p;
     int hit;
 
     if (w->atkHit) {
         return 0;
     }
+    atk = &em2d_atk_info[no];
     p = em->getPartsPtr(parts);
-    hit = EmAtkHitCk(&em2d_atk_info[no], &p->worldPos, &p->oldWorldPos, 0);
-    if (hit == 0) {
-        return 0;
-    }
+    hit = EmAtkHitCk(atk, &p->worldPos, &p->oldWorldPos, 0);
+    if (hit) {
     if (hit & 1) {
         switch ((u32) no) {
         case 0:
-            pPL->x328 = em->pos;
             if (em->motFlags & 0x40) {
+                pPL->x328 = em->pos;
                 EmPlBloodSet2(em, &p->worldPos, 1, 0x25, 0xE);
             } else {
+                pPL->x328 = em->pos;
                 EmPlBloodSet2(em, &p->worldPos, 1, 0x25, 0x1B);
             }
             if ((s16) pG->pl_life <= 0) {
@@ -4584,10 +4598,11 @@ int em2dAtkCk(cEm2d* em, int no, int parts)
             }
             break;
         case 1:
-            pPL->x328 = em->pos;
             if (em->motFlags & 0x40) {
+                pPL->x328 = em->pos;
                 EmPlBloodSet2(em, &p->worldPos, 1, 0x25, 0xD);
             } else {
+                pPL->x328 = em->pos;
                 EmPlBloodSet2(em, &p->worldPos, 1, 0x25, 0x1C);
             }
             if ((s16) pG->pl_life <= 0) {
@@ -4595,7 +4610,7 @@ int em2dAtkCk(cEm2d* em, int no, int parts)
             }
             break;
         case 2:
-            pPL->x328 = em->pos;
+            memcpy((u8*) pPL + 0x328, &em->pos, sizeof(Vec));  // byte-pointer destination: pPL is reloaded for EstSet
             EstSet((int) pPL, -1, 0, 0, 0x25, 0x26, 0, 0, (u32) pPL, 0);
             pG->pl_life = 0;
             SetPlDamage((int) em, plem2d_CriticalHit);
@@ -4611,6 +4626,8 @@ int em2dAtkCk(cEm2d* em, int no, int parts)
     SndCall(8, 0xD, &em->pos, em->id, 0, em);
     VibSetData((VibDataTbl*) (pG->pArc->ofs_1C + (u32) pG->pArc), 7, 1);
     return 1;
+    }
+    return 0;
 }
 
 void em2dScaleCompress(cEm2d* em)
@@ -4620,7 +4637,10 @@ void em2dScaleCompress(cEm2d* em)
     Vec scale;
     cModel* p;
 
-    if (!EM_RTN(em, 3, 0)) {
+    if (em->xFC != 3) {
+        return;
+    }
+    if (em->xFD != 0) {
         return;
     }
     PSMTXIdentity(m);
@@ -4819,17 +4839,17 @@ int em2dSetWallMatrix2(cEm2d* em, f32 rate)
     b.z = 0.0f;
     PSMTXMultVec(em->mat, &a, &a);
     PSMTXMultVec(em->mat, &b, &b);
-    if (SatMgr.hitCheck(&a, &b, &hit, &nrm, 0, 0x383830) == 0) {
-        return 0;
+    if (SatMgr.hitCheck(&a, &b, &hit, &nrm, 0, 0x383830)) {
+        em->pos = hit;
+        sum.y = sinf(acosf(PSVECDotProduct(&nrm, &w->wallNrm))) * 700.0f;
+        sum.x = 0.0f;
+        sum.z = 0.0f;
+        PSMTXMultVecSR(em->mat, &sum, &sum);
+        PSVECAdd(&em->pos, &sum, &em->pos);
+        TransMatrix(em->mat, &em->pos);
+        return 1;
     }
-    em->pos = hit;
-    sum.x = 0.0f;
-    sum.y = sinf(acosf(PSVECDotProduct(&nrm, &w->wallNrm))) * 700.0f;
-    sum.z = 0.0f;
-    PSMTXMultVecSR(em->mat, &sum, &sum);
-    PSVECAdd(&em->pos, &sum, &em->pos);
-    TransMatrix(em->mat, &em->pos);
-    return 1;
+    return 0;
 }
 
 void em2dSetFallMatrix(cEm2d* em)
@@ -5090,13 +5110,13 @@ int em2dFallCatchCk(cEm2d* em)
         return 0;
     }
     dy = em->pos.y - pl->pos.y;
-    if (dy > 2000.0f || dy < -200.0f) {
-        return 0;
+    if (!(dy > 2000.0f) && !(dy < -200.0f)) {  // every `return 0` shares the final `li r3,0`
+        dm->set(0, 2);
+        em->dmg.set(0, 2);
+        VibSetData((VibDataTbl*) (pG->pArc->ofs_1C + (u32) pG->pArc), 7, 1);
+        return 1;
     }
-    dm->set(0, 2);
-    em->dmg.set(0, 2);
-    VibSetData((VibDataTbl*) (pG->pArc->ofs_1C + (u32) pG->pArc), 7, 1);
-    return 1;
+    return 0;
 }
 
 int em2dCamMove(cEm2d* em, int mode, f32 rate)
@@ -5283,8 +5303,9 @@ int em2dCrashCk(cEm2d* em)
 void em2dPlHeadLost()
 {
     Vec ofs;
-    Vec rot;
     Vec spd;
+    Vec rot;
+    cModel* p3;
     cObj* obj;
     int zero;
 
@@ -5297,6 +5318,7 @@ void em2dPlHeadLost()
     SndCall(1, 0x3E, &pPL->pos, 0, 0, pPL);
     EstSet((int) pPL, -1, 0, 0, 0x25, 0x2D, 0, 0, (u32) pPL, (void*) zero);
     pPL->setHead(0);
+    p3 = pPL->getPartsPtr(3);
     ofs.x = 0.0f;
     ofs.y = 68.0f;
     ofs.z = 28.0f;
@@ -5306,7 +5328,7 @@ void em2dPlHeadLost()
     rot = pPL->rot;
     rot.y += 3.14159274f;
     rot.y = LIMIT_ANGLE(rot.y);
-    PSMTXMultVec(pPL->getPartsPtr(3)->mat, &ofs, &ofs);
+    PSMTXMultVec(p3->mat, &ofs, &ofs);
     PSMTXMultVecSR(pPL->mat, &spd, &spd);
     obj = SetObj01(PL_ARC_PTR(pG->pPlArc, 0xC), PL_ARC_PTR(pG->pPlArc, 7), &ofs, &rot, &spd, 15.0f, 150.0f, 1000, 0x11);
     if (obj) {
@@ -5326,21 +5348,25 @@ void em2dPlHeadMelt(cPlayer* pl)
 void em2dSetPoison(cEm2d* em, int type)
 {
     cObj* obj;
+    EmAtkInfo* atk;
+    cModel* p;
     Vec spd;
 
     SndStop(EM2D_WK(em)->sndId, 0);
     SndCall(8, 0x17, &em->getPartsPtr(0)->worldPos, em->id, 0, em);
-    obj = SetObj08(em, 0, 0, &em->getPartsPtr(5)->worldPos, &em->rot, 0x40000000, em2d_poison_atk);
+    atk = em2d_poison_atk;  // table address in a callee-saved register across the getPartsPtr call (em25 idiom)
+    p = em->getPartsPtr(5);
+    obj = SetObj08(em, 0, 0, &p->worldPos, &em->rot, 0x40000000, atk);
     if (type) {
-        spd.z = 0.0f;
         spd.x = 0.0f;
         spd.y = 0.0f;
+        spd.z = 0.0f;
         SetObj08Spd(obj, &spd, 30, 10.0f, 100.0f);
         SetObj08Est(obj, 0, 0, 0, 0, 0x25, 0xA, 0x25, 0x20, 1);
     } else {
-        spd.z = 220.0f;
         spd.x = 0.0f;
         spd.y = 100.0f;
+        spd.z = 220.0f;
         PSMTXMultVecSR(em->mat, &spd, &spd);
         SetObj08Spd(obj, &spd, 30, 10.0f, 100.0f);
         SetObj08Est(obj, 0, 0, 0x25, 0xB, 0x25, 0xA, 0x25, 0x1D, 1);
@@ -5422,12 +5448,12 @@ int em2dWallFallCk(cEm2d* em)
     if (SatMgr.hitCheck(&a, &b, 0, 0, 0, 0x383830)) {
         return 0;
     }
+    a.x = 0.0f;
+    a.y = -500.0f;
     a.z = 500.0f;
     b.x = 0.0f;
     b.y = -500.0f;
     b.z = -1000.0f;
-    a.x = 0.0f;
-    a.y = -500.0f;
     PSMTXMultVec(em->mat, &a, &a);
     PSMTXMultVec(em->mat, &b, &b);
     return SatMgr.hitCheck(&a, &b, 0, 0, 0, 0x383830) == 0;
@@ -5549,17 +5575,23 @@ void em2dFootSeMove(cEm2d* em)
             pos = p->worldPos;
             pos.y = w->waterH;
             EstSet(0, -1, &pos, 0, 1, 0x14, 0, 0, 0, 0);
-            if (no == 0) {
+            switch (no) {
+            case 0:
                 SndCall(8, 0x2B, &p0->worldPos, em->id, 0, em);
-            } else if (no == 1) {
+                break;
+            case 1:
                 SndCall(8, 0x2C, &p0->worldPos, em->id, 0, em);
+                break;
             }
         } else {
             EstSet(0, -1, &p->worldPos, 0, 0x25, 0, 0, 0, 0, 0);
-            if (no == 0) {
+            switch (no) {
+            case 0:
                 SndCall(8, 2, &p0->worldPos, em->id, 0, em);
-            } else if (no == 1) {
+                break;
+            case 1:
                 SndCall(8, 3, &p0->worldPos, em->id, 0, em);
+                break;
             }
         }
     }
@@ -5570,16 +5602,16 @@ void em2dSetdLandingEff(cEm2d* em)
     Em2dWork* w = EM2D_WK(em);
     cModel* p0 = em->getPartsPtr(0);
     Vec pos;
-    Vec* wp;
+    cModel* p;
 
     if ((w->flags & 0x80000) && (pG->room_id == 0x205 || pG->room_id == 0x21D)) {
         SndCall(8, 0x2E, &em->pos, em->id, 0, em);
-        wp = &em->getPartsPtr(0x12)->worldPos;
-        pos = *wp;
+        p = em->getPartsPtr(0x12);
+        pos = p->worldPos;
         pos.y = w->waterH;
         EstSet(0, -1, &pos, 0, 1, 0x15, 0, 0, 0, 0);
-        wp = &em->getPartsPtr(0x16)->worldPos;
-        pos = *wp;
+        p = em->getPartsPtr(0x16);
+        pos = p->worldPos;
         pos.y = w->waterH;
         EstSet(0, -1, &pos, 0, 1, 0x15, 0, 0, 0, 0);
     } else if (ChkWaterEffectEnable(&em->pos)) {
@@ -5635,9 +5667,9 @@ int em2dFallCk(cEm2d* em)
     if (SatMgr.getFloor(&em->pos, 600.0f, 100000.0f, 0, 0) > em->pos.y - 250.0f) {
         return 0;
     }
-    w->wallNrm.z = 0.0f;
-    w->wallNrm.y = 1.0f;
     w->wallNrm.x = 0.0f;
+    w->wallNrm.y = 1.0f;
+    w->wallNrm.z = 0.0f;
     EmRoutineSet(em, 1, 0x19, 0, 0);
     return 1;
 }

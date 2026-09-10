@@ -948,12 +948,12 @@ void cEm2c::move()
     if (seFlags28B & 0x80) {
         w->flags |= 0x400;
     }
-    at = &atari;
-    if (w->wallNrm.y < 0.699999988f) {
-        at->set(10, 600.0f, 250.0f);
+    if (w->wallNrm.y < 0.699999988f) {  // member calls in the arms: `&atari` is PRE'd into both (`mr r30,r0` copy)
+        atari.set(10, 600.0f, 250.0f);
     } else {
-        at->set(10, 600.0f, 500.0f);
+        atari.set(10, 600.0f, 500.0f);
     }
+    at = &atari;
     em2cNeckMove(this);
     partsWorldCalc();
     em2cScaleCompress(this);
@@ -1237,6 +1237,7 @@ static void em2c_R1_Walk(cEm2c* em)
     w->flags |= 0x100;
     w->flags |= 0x40000;
     switch (em->xFE) {
+        do { } while (0);  // dead loop before the label: fresh `li 0` for the zero stores
     case 0:
         w->blendSeq = (em->motFlags & 0x40) ? 0xB : 0x20;
         w->blendM0 = ARC(8);
@@ -1353,10 +1354,9 @@ static void em2c_R1_Walk(cEm2c* em)
             case 1:
                 if (plAng < 1.57079637f) {
                     EmRoutineSet(em, 1, 0xC, 0, 0);
-                } else {
-                    EmRoutineSet(em, 1, 0xA, 0, 0);
+                    return;
                 }
-                return;
+                // fallthrough into case 2: its label has two uses, so the arm gets fresh `li 1`s
             case 2:
                 EmRoutineSet(em, 1, 0xA, 0, 0);
                 return;
@@ -1366,8 +1366,8 @@ static void em2c_R1_Walk(cEm2c* em)
     if (em->plDist2 < 1440000.0f && fabsf(em->mat[1][3] - pPL->pos.y) < 500.0f && w->routeAngAbs > 1.04719758f &&
         w->routeAngAbs < 1.91986215f) {
         pos.x = 0.0f;
-        pos.y = 1.0f;
-        pos.z = 0.0f;
+        pos.y = 0.0f;
+        pos.z = 1.0f;
         PSMTXMultVecSR(em->mat, &pos, &pos);
         em->rot.y = atan2f(pos.x, pos.z);
         EmRoutineSet(em, 1, 6, 0, 0);
@@ -1418,6 +1418,7 @@ static void em2c_R1_Dash(cEm2c* em)
 
     w->flags |= 0x180;
     switch (em->xFE) {
+        do { } while (0);  // dead loop before the label: fresh `li 0` for the zero stores
     case 0:
         seq = em->motFlags & 0x40;
         if (seq) {
@@ -1522,10 +1523,9 @@ static void em2c_R1_Dash(cEm2c* em)
             case 1:
                 if (plAng < 1.57079637f) {
                     EmRoutineSet(em, 1, 0xC, 0, 0);
-                } else {
-                    EmRoutineSet(em, 1, 0xA, 0, 0);
+                    return;
                 }
-                return;
+                // fallthrough into case 2: its label has two uses, so the arm gets fresh `li 1`s
             case 2:
                 EmRoutineSet(em, 1, 0xA, 0, 0);
                 return;
@@ -1535,8 +1535,8 @@ static void em2c_R1_Dash(cEm2c* em)
     if (em->plDist2 < 1440000.0f && fabsf(em->mat[1][3] - pPL->pos.y) < 500.0f && w->routeAngAbs > 1.04719758f &&
         w->routeAngAbs < 1.91986215f) {
         pos.x = 0.0f;
-        pos.y = 1.0f;
-        pos.z = 0.0f;
+        pos.y = 0.0f;
+        pos.z = 1.0f;
         PSMTXMultVecSR(em->mat, &pos, &pos);
         em->rot.y = atan2f(pos.x, pos.z);
         EmRoutineSet(em, 1, 6, 0, 0);
@@ -2604,7 +2604,7 @@ static void em2c_R1_HideWait(cEm2c* em)
                 break;
             }
         } else {
-            IntSet(w->timer, t - 1);
+            do { w->timer = t - 1; } while (0);  // loop notes = sched1 barrier: the timer8 load stays below the store
             if (w->timer8 <= 90) {
                 break;
             }
@@ -2991,6 +2991,7 @@ static void em2c_R1_F_Walk(cEm2c* em)
 
     w->flags |= 0x100;
     switch (em->xFE) {
+        do { } while (0);  // dead loop before the label: the arm does not know xFE == 0 (fresh `li 0` for the zero stores)
     case 0:
         w->blendSeq = (em->motFlags & 0x40) ? 0xB : 0x22;
         w->blendM0 = ARC(0x2C);
@@ -3041,10 +3042,13 @@ static void em2c_R1_F_Walk(cEm2c* em)
     if (em2cFallCk(em)) {
         return;
     }
-    r = w->guardCnt;
-    if (r == 0) {
-        EmRoutineSet(em, 1, 0x1A, r, r);
-        return;
+    {
+        int g = w->guardCnt;  // its own variable: reusing `r` would make it cse's canonical zero for the 0x19 stores
+
+        if (g == 0) {
+            EmRoutineSet(em, 1, 0x1A, g, g);
+            return;
+        }
     }
     em2cBreathSe(em);
 }
@@ -3503,9 +3507,9 @@ static void em2c_R1_C_Wait(cEm2c* em)
         em->xFE++;
         w->x6B8 = fe;
         if (em->xFF) {
-            w->timer = Rnd() % 150 + 100;
+            *(volatile int*) &w->timer = Rnd() % 150 + 100;  // volatile store: the pG load stays below it (a reference store folds the address to em+0x3E4)
             if (pG->x4F88 <= 3) {
-                w->timer = Rnd() % 150 + 200;
+                *(volatile int*) &w->timer = Rnd() % 150 + 200;
             }
             if (pG->x4F88 <= 1) {
                 w->timer = Rnd() % 150 + 300;
@@ -3568,8 +3572,8 @@ static void em2c_R1_C_Wait(cEm2c* em)
         }
         if (w->timer > 17) {
             if (em2cDoorCk(em)) {
-                em->xFE = 0;
                 em->xFF = 0;
+                em->xFE = 0;
                 break;
             }
         } else if (w->x6B8 == 0) {
@@ -3592,7 +3596,7 @@ static void em2c_R1_C_Wait(cEm2c* em)
         w->timer = 10;
         w->atkHit = 0;
         em->flags_3C8 &= ~4;
-        pG->flags_174 |= 0x40000000;
+        pGS->flags_174 |= 0x40000000;  // struct view: the pG load stays below the flags_3C8 store
         em->xFE++;
     case 5:
         if (MotionMoveF(em, 0)) {
@@ -3622,11 +3626,14 @@ static void em2c_R1_C_Wait(cEm2c* em)
         em->rot.y = LIMIT_ANGLE(em->rot.y);
         MotionSetCore(em, &em->mot, ARC(0x8A), 0, 0, 5, 0);
         MotionMoveF(em, 0);
-        t = w->timer;
-        if (t) {
-            w->timer = t - 1;
-        } else {
-            em->xFE = t;
+        {
+            int t7 = w->timer;  // its own variable: with case 1's `t` the three `timer = t - 1` copies are cross-jumped into this one
+
+            if (t7) {
+                w->timer = t7 - 1;
+            } else {
+                em->xFE = t7;
+            }
         }
         break;
     }
@@ -3659,7 +3666,13 @@ static void em2c_R1_C_Fall(cEm2c* em)
         end = MotionMoveF(em, 0);
         if (end) {
             em->flags_3C8 |= 8;
-            em2cNextWalkSet2(em, w);
+            if (w->targetAngAbs > 2.09439516f) {
+                EmRoutineSet(em, 1, 3, 0, 0);
+            } else if ((w->flags & 1) && (Rnd() & 1) && w->targetAngAbs < 0.52359879f) {
+                EmRoutineSet(em, 1, 2, 0, 0);
+            } else {
+                EmRoutineSet(em, 1, 1, 0, 0);
+            }
             break;
         }
         if (em->frame > 69.6999969f && em->frame < 70.3000031f) {
@@ -3912,7 +3925,7 @@ static void em2c_R1_T_Hide(cEm2c* em)
     Em2cWork* w = EM2C_WK(em);
     u8 fe;
     int zero;
-    int i;
+    u32 i;
 
     fe = em->xFE;
     switch (fe) {
@@ -4037,17 +4050,18 @@ static void em2c_R1_Dm_Normal(cEm2c* em)
         if (em->seFlags28B & 4) {
             if (Rnd() & 1) {
                 em2cDmEndSet(em, w, end);
+                break;
             }
-            break;
         }
         if (w->timer) {
             w->timer--;
             break;
         }
         if (em2cLockCk(em)) {
-            end = em2cToCeilingCk(em);
-            if (end == 0) {
-                EmRoutineSet(em, 1, 5, end, end);
+            int r = em2cToCeilingCk(em);  // block-local: `mr. r3,r3` (keeps this RS out of the cross-jumped RS tails)
+
+            if (r == 0) {
+                EmRoutineSet(em, 1, 5, r, r);
             }
         }
         break;
@@ -4298,17 +4312,18 @@ static void em2c_R1_Dm_Guard(cEm2c* em)
             }
             if ((Rnd() & 1) && w->targetAngAbs < 0.52359879f) {
                 EmRoutineSet(em, 1, 2, 0, 0);
+                break;
             }
-            break;
         }
         if (w->timer) {
             w->timer--;
             break;
         }
         if (em2cLockCk(em)) {
-            lock = em2cToCeilingCk(em);
-            if (lock == 0) {
-                EmRoutineSet(em, 1, 5, lock, lock);
+            int r = em2cToCeilingCk(em);  // block-local (`mr. r3,r3`): identical to the case-1 copy, cross-jumped
+
+            if (r == 0) {
+                EmRoutineSet(em, 1, 5, r, r);
             }
         }
         break;
@@ -4404,8 +4419,12 @@ static void em2cKickAction(cEm2c* em)
 
     SetPlDamage((int) em, plemKick);
     pPL->dmg.set(0, 30);
-    if (pSUB && !em2cDeadCk(pSUB)) {
-        pSUB->dmg.set(0, 30);
+    if (pSUB) {
+        cDmgInfo* d = &pSUB->dmg;  // &pSUB->dmg is computed before the dead test
+
+        if (!em2cDeadCk(pSUB)) {
+            d->set(0, 30);
+        }
     }
     w->x6B8 = 1;
     GameAddPoint(9);
@@ -4601,9 +4620,9 @@ static void em2c_R1_Die_Lost(cEm2c* em)
         if (em->be_flag & 2) {
             EstSet((int) em, -1, 0, 0, 0x24, 0x31, 0, 0, fe, (void*) fe);
         }
+        w->timer = 30;
         w->timer8 = 150;
         w->x558 = 1.0f;
-        w->timer = 30;
         em->xFE++;
     }
 }
@@ -4656,12 +4675,11 @@ static void em2c_R1_Die_Freeze(cEm2c* em)
                 SndCall(8, 0x41, &em->pos, em->id, 0, em);
             }
         }
-        t = w->timer;
-        if (t) {
-            w->timer = t - 1;
+        if (w->timer) {
+            w->timer--;
         } else {
             em->be_flag &= ~2;
-            EmRoutineSet(em, 3, t, t, t);
+            EmRoutineSet(em, 3, 0, 0, 0);
         }
         break;
     }
@@ -4759,9 +4777,9 @@ void em2cRouteCk(cEm2c* em)
     w->flags &= ~1;
     if (em->xFC != 0) {
         a = em->getPartsPtr(0)->worldPos;
-        b.x = pPL->pos.x;
-        b.y = pPL->pos.y + 1500.0f;
-        b.z = pPL->pos.z;
+        b.x = pPLS->pos.x;  // struct view: the pPL load stays below the `a` copy's stores
+        b.y = pPLS->pos.y + 1500.0f;
+        b.z = pPLS->pos.z;
         if (EatMgr.hitCheck(&a, &b, 0, 0, 0, 0) == 0) {
             w->flags |= 1;
         }
@@ -4802,11 +4820,13 @@ int em2cAtkCk(cEm2c* em, int no, int parts)
     cModel* p;
     int hit;
 
-    if (w->atkHit == 0) {
-        atk = &em2c_atk_info[no];
-        p = em->getPartsPtr(parts);
-        hit = EmAtkHitCk(atk, &p->worldPos, &p->oldWorldPos, 0);
-        if (hit) {
+    if (w->atkHit) {  // the early return's label keeps `mr r3, em` before getPartsPtr (em26 idiom)
+        return 0;
+    }
+    atk = &em2c_atk_info[no];
+    p = em->getPartsPtr(parts);
+    hit = EmAtkHitCk(atk, &p->worldPos, &p->oldWorldPos, 0);
+    if (hit) {
         if (hit & 1) {
             switch ((u32) no) {
             case 0:
@@ -4899,11 +4919,10 @@ int em2cAtkCk(cEm2c* em, int no, int parts)
             EmSubBloodSet(em, &p->worldPos, 1, 0xFF, 0xFF);
             w->atkHit = 1;
         }
-            QuakeExec(0, 0, 5, 22.0f, 2);
-            SndCall(8, 0xD, &em->pos, em->id, 0, em);
-            VibSetData((VibDataTbl*) (pG->pArc->ofs_1C + (u32) pG->pArc), 7, 1);
-            return 1;
-        }
+        QuakeExec(0, 0, 5, 22.0f, 2);
+        SndCall(8, 0xD, &em->pos, em->id, 0, em);
+        VibSetData((VibDataTbl*) (pG->pArc->ofs_1C + (u32) pG->pArc), 7, 1);
+        return 1;
     }
     return 0;
 }
@@ -5398,10 +5417,14 @@ void em2cClothSet(cEm2c* em)
     w->cloth.x3C = 40.0f;
     w->cloth.x40 = 0.6f;
     w->cloth.x44 = 3;
-    w->cloth.x4C = 0.05f;
-    w->cloth.pModel = (cModel*) zero;
-    w->cloth.x48 = 0.0f;
-    w->cloth.x50 = 0.0f;
+    {
+        const f32 z = 0.0f;  // pool order: 0.0 before 0.05
+
+        w->cloth.x4C = 0.05f;
+        w->cloth.pModel = (cModel*) zero;
+        w->cloth.x48 = z;
+        w->cloth.x50 = z;
+    }
     w->cloth.flags = zero;
     w->cloth.x54 = zero;
     PenClothSet(em, (PenCloth*) &w->cloth, 100.0f);
@@ -5411,7 +5434,7 @@ void em2cClothMove(cEm2c* em)
 {
     Em2cWork* w = EM2C_WK(em);
     cModel* p;
-    int i;
+    u32 i;
 
     if (em->type != 0) {
         return;
@@ -5972,7 +5995,7 @@ void em2cBlendMotSet(cEm2c* em, void* m0, void* m1, void* m2, int a, int b, int 
         w->blendCnt--;
     }
     w->blendSeq++;
-    if (w->blendSeq >= em->frameMax) {
+    if ((u32) w->blendSeq >= em->frameMax) {
         w->blendSeq = 0;
     }
 }
@@ -5992,7 +6015,7 @@ void em2cBlendMotSet2(cEm2c* em, void* m0, void* m1, int a, int b, u16 d)
         w->blendCnt--;
     }
     w->blendSeq++;
-    if (w->blendSeq >= em->frameMax) {
+    if ((u32) w->blendSeq >= em->frameMax) {
         w->blendSeq = 0;
     }
 }
@@ -6127,7 +6150,7 @@ int em2cFloorTypeCk(cEm2c* em)
 {
     Mtx m;
     Vec v;
-    int i;
+    u32 i;
 
     for (i = 0; i < 3; i++) {
         PSMTXRotRad(m, 'y', em2c_floor_rot[i]);
@@ -6152,7 +6175,7 @@ int em2cAmbushCk(cEm2c* em)
 {
     Mtx m;
     Vec v;
-    int i;
+    u32 i;
 
     if (em->plDist2 < 25000000.0f) {
         return 0;
