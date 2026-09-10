@@ -62,6 +62,14 @@ extern void (*_dtors[])(void);
 // The widget classes (SsExitInit / SsExitMain / SsItemExamine) are declared in ss_main.h.
 
 extern "C" {
+// COMPILER-DIFF: 5 (partial). SubScreenTask reads pG->x4FB8 in two switch arms and in the digit block;
+// loop.c's combine_movables merges equal `high pG` movables (same SYMBOL_REF string pointer) into one
+// hoisted pseudo (savings 3 >= the 307-insn loop), the original keeps three highs (the two arm highs
+// speculatively scheduled into the join block before the ssWepModel2 test, callee-saved r30/r29). The
+// aliases give the arms distinct SYMBOL_REFs so nothing is combined or hoisted (.text size equal; the
+// two `lis` stay in their arms).
+extern GlobalWork* pG_a asm("pG");
+extern GlobalWork* pG_b asm("pG");
 void SubScreenTask();
 void clearZbuffer();
 void sscrnCameraInit(SUB_SCREEN* wk, Camera* cam);
@@ -326,14 +334,14 @@ void SubScreenTask()
                 case 0x19:
                 case 0x1F:
                 case 0x20:
-                    if (pG->x4FB8 == 0) {
+                    if (pG_a->x4FB8 == 0) {
                         MotionMoveF(ssWepModel, 0);
                     } else {
                         ssWepModel->matUpdate();
                     }
                     break;
                 case 0x1C:
-                    if (pG->x4FB8 == 4) {
+                    if (pG_b->x4FB8 == 4) {
                         MotionMoveF(ssWepModel, 0);
                     } else {
                         ssWepModel->matUpdate();

@@ -705,6 +705,7 @@ MATCHING = {
     "Sscrn/ss_debug.cpp": True,
     "Sscrn/ss_file.cpp": True,
     "Sscrn/ss_item_draw.cpp": True,
+    "Sscrn/ss_model.cpp": True,
     "Tools/t_prim.cpp": True,
     "Tools/t_mes.cpp": True,
     "Tools/t_cons.cpp": True,

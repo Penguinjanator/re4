@@ -3101,6 +3101,74 @@ target) stays unresolved and `make_rel` then fails with "undefined symbol".
     `j + 1` (r4 = the target picks from the caller-saved order 0,9,11,10,8,7,6,5,4 with r11..r5 all
     busy - `no++` placement, block-scoped j, `int j = 0` forms identical); levelItemDisp's type loop as a
     goto loop (loses every hoist: it IS a real loop in the target).
+- Sixth pass (2026-09-10, ss_model Matching (47/47), ss_map 102 -> 104/105, ss_item 31 -> 32/34, ss_pzzl
+  54 -> 56/64, ss_main .text size equal, ss_shop -8 -> -4 bytes; harness /tmp/ssw8 = ssw7 copies with
+  `varf.py <unit> <func> <variants> [<mangled sym>]` (KEEP=<name> now really keeps that variant)):
+  - **Read the target's control flow before believing an "#6" note** (ss_model wep09Init): the "cross-jumped
+    call tails" were a plain `else if (type == 2)` chain — with a third arm every earlier arm ends in
+    `b JOIN` and jump2 cross-jumps arm 0 into arm 1 through the jump_chain; only the LAST arm falls into
+    the join and gets the flow.c `use` nop. The empty-asm tricks are useless here: `asm volatile("")` is an
+    ASM_INPUT (find_cross_jump refuses ASM_INPUT and volatile ASM_OPERANDS outright), a non-volatile
+    `asm("" : "+r"(x))` after the call is scheduled above the call by sched1 and flow2 re-adds the nop, and
+    one with the call result as input merges the whole arm.
+  - **Source bug found by the cross-jump depth** (ss_pzzl PieceCommand::move, 41 words -> 0): the target's
+    type-2 `case 1:` jumped straight to the case-9 arm's `lis; stw` (skipping its `li 0,5`), i.e. it stores
+    the switch register: `command_id = 1` (reload), not 5. Also there: `int one = 1; mode = one; subSel =
+    one;` for the shared `li r0,1` of case 6's `stb`/`stw`; the mode-1 `base`/`type` selections are two-case
+    `switch`es (`cmpwi 4; beq; cmpwi 6; beq; b` — an `if/else if` puts each arm after its compare); the two
+    cursor clamps are ternaries straight into the s8 member (`wk->x26C = wk->x26C < 0 ? num - 1 : (wk->x26C
+    > num - 1 ? 0 : wk->x26C)`, `subSel = subSel < 0 ? 0 : (subSel > 1 ? 1 : subSel); if (old != subSel)`:
+    the MapModeSelect idiom, raw-byte `mr`, hoisted `li 0`, `extsb` of the stored register); `int extraNum
+    = 0; pzlPiece* extra = 0;` declaration order for the `li r31,0; li r30,0` pair.
+  - **`expand_preferences` hands a hoisted increment the copy preference of its source** (ss_map
+    mapModelInit `j + 1` r4): global.c merges hard-reg preferences between two non-conflicting allocnos when
+    one dies in the insn that sets the other. A function-scope `int j` shared by both room loops carries the
+    r4 preference of the first loop's `mapBinAddr(&map_room[i], j)` argument into the second loop's `j + 1`
+    pseudo (block-scoped `j`s give it the plain order r11). Same mechanism as the `no + 1` -> r5 (create's
+    third argument) that already matched.
+  - **The function's last statement decides the `return 4` layout** (ss_map mapColor 20 words -> 0): `if
+    (p == 0) return 4; ...; if (stageFlag(open) || passed) { if (clear) return 3; if (passed) return 1;
+    return 2; } return 4;` — every early `return 4` jumps to the final `li r3,4` block at the end, the clear
+    arm's `li r3,3` stays inline, the `!open && !passed` fall-through has no out-of-line block, and with
+    that layout the `high pG` / 0x80000000 pseudos of the three stageFlag tests are PRE'd once (callee-saved
+    r29/r30 across checkPassed) and the clear test reuses the open test's `pG` load (`addi r10,r9,0x51bc`
+    shared). With `if (!open && !passed) return 4;` inline, gcse inserts a fresh `high pG` at the end of the
+    hide block, update_equiv_regs moves that single-use pseudo next to the open test's load (fresh `lis`
+    after the call) and cse2 re-materialises the clear block's PRE copy. The 17-table spill-slot rotation
+    followed from the same change (one fewer pseudo).
+  - **do-while(0) around one call argument** (ss_pzzl PieceCombine::move, 4 words -> 0): `do { r =
+    wk->x2B0->selPiece(b); } while (0);` counts `b`'s argument ref at loop depth 1 and lifts `b` above `wk`
+    in global-alloc priority (b r31, wk r29); wrapping the whole `switch (r)` or the `b`/`other` block
+    instead moves too many refs. Plus the dead `do { } while (0);` before `case 4:` for the fresh `li 0,0`
+    of `curX = 0` (cse's skip-blocks path from the Key.trg test ended by the LOOP_END note).
+  - **COMPILER-DIFF 12 launders applied** (tagged): ss_item itemMakeInit `types` — both arm constants as
+    `asm volatile("li %0,%1" : "=r"(types) : "i"(K))` (jump1's else-set hoist needs a plain single set
+    after the label; combine's `& 0xFF -> & 0xF` needs reg_nonzero_bits of the constant sets; an asm with a
+    "0"-tied constant input gets its `li` hoisted by loop.c and the then-arm hoisted by the second jump.c
+    transform); ss_shop LvUpConfirm::move — `int v = (s8) sw->lv[0]; asm volatile("" : "+r"(v)); t->fire =
+    (u8) (v - 1);` keeps the `extsb` that our combine strips under the u8 truncation (the u8-parameter inline
+    and a `u8 v0` local both still fold). ss_main SubScreenTask — `extern GlobalWork* pG_a/pG_b asm("pG")`
+    for the two weapon-switch arms (COMPILER-DIFF 5, partial): defeats loop.c's `combine_movables` so no
+    `high pG` is hoisted (.text size equal); the two `lis` stay in their arms where the target scheduled
+    them into the join block before the ssWepModel2 test.
+  - Analysed, still open: ss_map mapPositionCheck (41 words): the target's `flags = 0` byte stores of both
+    cSat locals are frame-direct while ours go through the inlined ctor's `this` pseudo — cse's
+    find_best_addr ties `(plus P 42)` against `(plus fp 242)` (both COST 2, rs6000 PLUS returns
+    COSTS_N_INSNS(1) without operand costs) and only the offset-0 `(mem P)` is rewritten; `cSat() :
+    cUnit(1), flags(0)` changes nothing; the rest is the template-copy register allocation that follows.
+    ss_item itemMakeMove (hi/lo r28/r29): the target ranks the two case-arm constants above mk (16 refs)
+    / joy / d / wk / iw, which no refs-over-length priority reproduces (refs 4, length ~200 each) — not a
+    do-while weight case. ss_item itemSelect (second loop counter r30): the counter shares `no`'s register
+    in the target, but `no` as the counter has more refs than `i` and takes r31. ss_shop BuyItemNum::move
+    (+8): the target merges only `li r8,0; bl SndCall` of the Key.trg-0x40000000 arm into the else-if
+    arm's tail (the else-if arm's block ends in the call -> flow `use` nop in ours); swapping the
+    if/else so the else-if arm ends in `b END` merges the whole arm (494 insns). ss_shop levelItemDisp,
+    SellItemNum/LvUpItemSelect priorities, ss_pzzl PieceSelect::move (113 words, was 187: block-local `pl`
+    for the three board loads after the `x267 = 1` store, re-read `wk->x2B0` per call, if/else `other`;
+    left this/mode r31/r30, `state` in callee-saved r27 for case 2's stores, case 1's `mr. r9,r3`; an
+    `int st = state` / shared `int n` for the getPieceNum results reorders the cases), PzzlThinking,
+    SsPzzlMain::init, caseModelMove, pzzlCursorDisp, pieceTblInit, pieceFrameDisp, pieceModelDisp not
+    re-attempted.
 - The map model globals are named `ssPlModel`/`ssWepModel` (.bss 0x494/0x498, MapMgr works 0/1),
   `ssPlMotion`/`ssWepModel2` (.data 0x978/0x97C), renamed by hand in symbols.txt/sym_map.tsv
   (data labels have no .sym name for the sync tool); the generator attributes them to ss_map.cpp.

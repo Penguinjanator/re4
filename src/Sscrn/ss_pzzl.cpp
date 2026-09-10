@@ -1769,14 +1769,24 @@ void PieceSelect::init(SUB_SCREEN* wk)
 
 void PieceSelect::move(SUB_SCREEN* wk)
 {
-    pzlPlayer* pl = wk->x2B0;
-    pzlBoard* b = pl->cur;
-    pzlBoard* other = pl->caseBoard;
-    pzlBoard* space = pl->spaceBoard;
+    pzlBoard* b;
+    pzlBoard* other;
+    pzlBoard* space;
 
+    // x267 store first, then a block-local `pl` for the three board loads only (r11, dies at
+    // `space`); every later statement re-reads wk->x2B0 (the target reloads it per call). The
+    // if/else for `other` gives the hoisted else-set `mr r26,r0` copy. Left: this/mode r31/r30 swap,
+    // `state` kept in r27 for case 2's x264/x265 stores, case 1's `mr. r9,r3` result register.
     wk->x267 = 1;
-    if (b == other) {
-        other = pl->spaceBoard;
+    {
+        pzlPlayer* pl = wk->x2B0;
+        b = pl->cur;
+        if (b == pl->caseBoard) {
+            other = pl->spaceBoard;
+        } else {
+            other = pl->caseBoard;
+        }
+        space = pl->spaceBoard;
     }
     if (wk->x2AE != wk->x2AF) {
         transit(2, wk);
@@ -1813,8 +1823,8 @@ void PieceSelect::move(SUB_SCREEN* wk)
                     state = 1;
                     SndCall(0, 0x2A, 0, 0, 0, 0);
                 } else {
-                    wk->x264 = 4;
                     wk->x265 = 4;
+                    wk->x264 = 4;
                     SndCall(0, 0xA, 0, 0, 0, 0);
                 }
             } else {
@@ -1829,18 +1839,18 @@ void PieceSelect::move(SUB_SCREEN* wk)
                 }
             }
         } else if (Key.trg & 0x80000000) {
-            if (pl->ptrPiece(pl->cur) && link[0]) {
+            if (wk->x2B0->ptrPiece(wk->x2B0->cur) && link[0]) {
                 pzzl_sel = wk->x2B0->ptrPiece(wk->x2B0->cur);
                 transit(0, wk);
             }
         } else if (Key.trg & 0x00020000) {
-            if (pl->ptrPiece(pl->cur)) {
-                pl->getPiece(pl->cur);
+            if (wk->x2B0->ptrPiece(wk->x2B0->cur)) {
+                wk->x2B0->getPiece(wk->x2B0->cur);
                 transit(1, wk);
                 SndCall(0, 0xD, 0, 0, 0, 0);
             }
         } else {
-            int r = pl->selPiece(pl->cur);
+            int r = wk->x2B0->selPiece(wk->x2B0->cur);
 
             if (r == 5) {
                 wk->x268 |= 1;
@@ -1871,7 +1881,7 @@ void PieceSelect::move(SUB_SCREEN* wk)
                 break;
             case 3:
                 if (other->getPieceNum() != 0) {
-                    pl->cur = other;
+                    wk->x2B0->cur = other;
                     b = wk->x2B0->cur;
                 }
                 b->curX = b->w - 1;
@@ -1879,7 +1889,7 @@ void PieceSelect::move(SUB_SCREEN* wk)
                 break;
             case 4:
                 if (other->getPieceNum() != 0) {
-                    pl->cur = other;
+                    wk->x2B0->cur = other;
                     b = wk->x2B0->cur;
                 }
                 b->curX = 0;
@@ -2044,7 +2054,12 @@ void PieceCombine::move(SUB_SCREEN* wk)
                 SndCall(0, 7, 0, 0, 0, 0);
             }
         } else {
-            int r = wk->x2B0->selPiece(b);
+            int r;
+            // The do-while(0) counts the `b` argument ref at loop depth 1: `b` outranks `wk` in
+            // global-alloc priority (b r31, wk r29); without it wk takes r31.
+            do {
+                r = wk->x2B0->selPiece(b);
+            } while (0);
 
             if (r == 5) {
                 wk->x268 |= 1;
@@ -2069,6 +2084,10 @@ void PieceCombine::move(SUB_SCREEN* wk)
                 b->curX = w - 1;
                 break;
             }
+            // Dead loop before the case label: the LOOP_END note ends cse's path, so case 4's
+            // `curX = 0` gets a fresh `li 0,0` instead of the Key.trg `or` result known to be 0.
+            do {
+            } while (0);
             case 4:
                 if (other->getPieceNum() != 0) {
                     wk->x2B0->cur = other;
@@ -2204,7 +2223,7 @@ void PieceCommand::move(SUB_SCREEN* wk)
                     command_id = used;
                     break;
                 case 1:
-                    command_id = 5;
+                    command_id = 1;  // reload (the target stores the switch register: `beq` straight to the shared `lis; stw`)
                     break;
                 case 2:
                     command_id = type;
@@ -2333,8 +2352,8 @@ void PieceCommand::move(SUB_SCREEN* wk)
                 }
                 break;
             case 1: {
-                pzlPiece* extra = 0;
                 int extraNum = 0;
+                pzlPiece* extra = 0;
 
                 if (wk->x2B0->extra) {
                     extra = wk->x2B0->extra;
@@ -2380,11 +2399,13 @@ void PieceCommand::move(SUB_SCREEN* wk)
                 transit(2, wk);
                 SndCall(0, 0x1A, 0, 0, 0, 0);
                 return;
-            case 6:
-                subSel = 1;
-                mode = 1;
+            case 6: {
+                int one = 1;  // one SImode pseudo for the byte and word stores (`stb r0; stw r0`), mode first so subSel's store dies first
+                mode = one;
+                subSel = one;
                 SndCall(0, 0x2A, 0, 0, 0, 0);
                 return;
+            }
             }
             if (used == 1) {
                 wk->x2B0->rehash();
@@ -2405,13 +2426,8 @@ void PieceCommand::move(SUB_SCREEN* wk)
             } else if (Key.rep & 0x02000000) {
                 wk->x26C++;
             }
-            cur = wk->x26C;
-            if (cur < 0) {
-                cur = num - 1;
-            } else if (cur > num - 1) {
-                cur = 0;
-            }
-            wk->x26C = cur;
+            // ternary straight into the s8 member (MapModeSelect idiom: raw-byte `mr`, hoisted `li 0`, one stb)
+            wk->x26C = wk->x26C < 0 ? num - 1 : (wk->x26C > num - 1 ? 0 : wk->x26C);
             if (Key.rep & 0x03000000) {
                 SndCall(0, 0xA, 0, 0, 0, 0);
             }
@@ -2431,15 +2447,22 @@ void PieceCommand::move(SUB_SCREEN* wk)
         u8 type = 0x1C;
         int base = 0;
 
-        if (command_id == 4) {
+        // two-case switches: both compares before the arms (`cmpwi 4; beq; cmpwi 6; beq; b`)
+        switch (command_id) {
+        case 4:
             base = 0x70;
-        } else if (command_id == 6) {
+            break;
+        case 6:
             base = 0x80;
+            break;
         }
-        if (inSpace == 0) {
+        switch (inSpace) {
+        case 0:
             type = 0x1C;
-        } else if (inSpace == 1) {
+            break;
+        case 1:
             type = 0x1D;
+            break;
         }
         for (int i = 0; i < 11; i++) {
             sub[i] = IdSub.unitPtr(base + i, type);
@@ -2532,14 +2555,8 @@ void PieceCommand::move(SUB_SCREEN* wk)
             } else if (Key.trg & 0x04000000) {
                 subSel++;
             }
-            cur = subSel;
-            if (cur < 0) {
-                cur = 0;
-            } else if (cur > 1) {
-                cur = 1;
-            }
-            subSel = cur;
-            if (old != (s8) cur) {
+            subSel = subSel < 0 ? 0 : (subSel > 1 ? 1 : subSel);
+            if (old != subSel) {
                 SndCall(0, 0xA, 0, 0, 0, 0);
             }
             sub[5]->flags &= ~8;

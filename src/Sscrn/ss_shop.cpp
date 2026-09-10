@@ -2450,6 +2450,9 @@ struct TuneLevel {
     u16 ex : 4;
 };
 
+static inline void tuneSetFire(TuneLevel* t, u8 v) { t->fire = v; }
+static inline u8 tuneU8(u8 v) { return v; }
+
 void LvUpConfirm::move(SUB_SCREEN* wk)
 {
     ShopWork* sw = wk->pShopWk;
@@ -2467,7 +2470,14 @@ void LvUpConfirm::move(SUB_SCREEN* wk)
             TuneLevel* t;
 
             t = (TuneLevel*) &sw->item->x6;
-            t->fire = (u8) ((s8) sw->lv[0] - 1);
+            // COMPILER-DIFF: 12 (combine). The target keeps `extsb` before `addi -1; clrlwi 24; slwi 12`;
+            // our combine strips the sign extension under the u8 truncation. The volatile launder hides
+            // the extended value from combine.
+            {
+                int v = (s8) sw->lv[0];
+                asm volatile("" : "+r"(v));
+                t->fire = (u8) (v - 1);
+            }
             t = (TuneLevel*) &sw->item->x6;
             t->mag = (s8) sw->lv[1] - 1;
             t = (TuneLevel*) &sw->item->x6;

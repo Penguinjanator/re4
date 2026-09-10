@@ -1314,14 +1314,11 @@ void wep09Init(int type)
 
     ssModelAdd(m, WEP_ARC(wk, 8), PL_ARC(17));
     ssModelAdd(m, PL_ARC(22), PL_ARC(17));
-    // OPEN: the original cross-jumps the two call tails (flow.c `use` after a block-ending call
-    // keeps ours apart, compiler-build difference 6).
     if (type == 0) {
         wep->modelInit(WEP_ARC(wk, 5), WEP_ARC(wk, 4));
     } else if (type == 1) {
         wep->modelInit(WEP_ARC(wk, 6), WEP_ARC(wk, 4));
-    }
-    if (type == 2) {
+    } else if (type == 2) {
         wep->modelInit(WEP_ARC(wk, 7), WEP_ARC(wk, 4));
     }
     SS_WEP_HAND(m, wep);

@@ -1500,16 +1500,20 @@ int mapColor(u16 room)
         return 4;
     }
     passed = RoomData.checkPassed(room, 0);
-    if (!stageFlag(p->open) && !passed) {
-        return 4;
+    // `if (open || passed) { .. } return 4;` (the function ends with the return 4 the `p == 0` test
+    // shares): the clear arm's `li r3,3` stays inline and the `high pG` / 0x80000000 pseudos of the
+    // three stageFlag tests are PRE'd into r29/r30 across the call (with `if (!open && !passed)
+    // return 4;` the return-4 block is inline and the highs are re-materialised per test).
+    if (stageFlag(p->open) || passed) {
+        if (stageFlag(p->clear)) {
+            return 3;
+        }
+        if (passed) {
+            return 1;
+        }
+        return 2;
     }
-    if (stageFlag(p->clear)) {
-        return 3;
-    }
-    if (passed) {
-        return 1;
-    }
-    return 2;
+    return 4;
 }
 
 // The room sub-file: word 0 = model count + 2, then the sub-file offsets from word 4.
@@ -1870,6 +1874,8 @@ void mapModelInit(SUB_SCREEN* wk)
     IdUnit* id[11];
     int i;
     int no;
+    int j;  // one `j` for both room loops: expand_preferences hands the second loop's hoisted `j + 1`
+            // the r4 preference of mapBinAddr(.., j) (block-scoped j gives it r11)
     cModel* mdl;
     cSatHeader* hitA;
     cSatHeader* hitB;
@@ -1892,7 +1898,6 @@ void mapModelInit(SUB_SCREEN* wk)
     no = 0;
     for (i = 0; i < map_room_num; i++) {
         int n = mapRoomNum(&map_room[i]);
-        int j;
 
         for (j = 0; j < n; j++) {
             MapMgr.create(i, no);
@@ -1936,7 +1941,6 @@ void mapModelInit(SUB_SCREEN* wk)
     no = 0;
     for (i = 0; i < map_room_num; i++) {
         int n = mapRoomNum(&map_room[i]);
-        int j;
 
         for (j = 0; j < n; j++) {
             cModelInfo* info;
