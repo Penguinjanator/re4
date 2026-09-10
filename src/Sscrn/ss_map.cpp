@@ -6,6 +6,24 @@
 #include "light.h"
 #include "map_obj.h"
 #include "widget.h"
+
+// End-of-file order of the target: [cManager<cLight> copies] LightSetModel2, ~Widget<SUB_SCREEN>,
+// ~cSat, ~SsMapInit, ... (the original queues the synthesized cSat destructor when it is
+// synthesized, COMPILER-DIFF candidate #8; ours queues it when atari.h's class is finished). Both
+// inlines are therefore instantiated BEFORE atari.h: LightSetModel2 (the module's second copy,
+// its address is taken in mapModelDisp) and the ~Widget instantiation through `delete`. The
+// .rodata vtable order is unaffected (Widget's vtable still follows SsMapInit's).
+extern "C" inline void LightSetModel2(cModel* m)
+{
+    LightMgr.setModel2(m);
+}
+
+struct SUB_SCREEN;
+static inline void ssMapWidgetDelete(Widget<SUB_SCREEN>* w)
+{
+    delete w;
+}
+
 #include "atari.h"
 #include "at_sub.h"
 #include "item.h"
@@ -88,13 +106,6 @@ static int map_read_req;
 // Non-static: the REL's ADDR16 fields for these hold A only (global symbols in the original).
 MapRoomData map_room[48];
 int map_room_num;
-
-// Deferred inline whose address mapModelDisp takes (ss_main.cpp has the module's first copy):
-// output at the end of the file before the widget destructors, so defined before ss_main.h.
-extern "C" inline void LightSetModel2(cModel* m)
-{
-    LightMgr.setModel2(m);
-}
 
 #include "ss_main.h"
 
@@ -1236,7 +1247,15 @@ void mapPositionCheck(cSatHeader* hdrB, cSatHeader* hdrA, Mtx plMat, Mtx partsMa
     pl.z = plMat[2][3];
     PSMTXMultVecSR(plMat, &fwd, &fwd);
     satA.init(hdrA->getSat(0), &zero, &zero);
-    satB.init(hdrB->getSat(0), &zero, &zero);
+    {
+        // COMPILER-DIFF: 5 (sched1 LUID tie): the original issues the `&zero` argument copy
+        // before the getSat result copy; the asm's memory input anchors it after the call and its
+        // 3-insn chain to `init` outranks the result copy's priority.
+        cSatFile* sb = hdrB->getSat(0);
+        Vec* z;
+        asm("mr %0,%1" : "=&r"(z) : "r"(&zero), "m"(zero));
+        satB.init(sb, z, z);
+    }
     a = pl;
     b = pl;
     best = 100000000.0f;

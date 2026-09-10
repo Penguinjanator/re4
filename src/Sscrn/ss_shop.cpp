@@ -1093,6 +1093,11 @@ void SellItemNum::init(SUB_SCREEN* wk)
 
 void SellItemNum::move(SUB_SCREEN* wk)
 {
+    // COMPILER-DIFF: candidate #17. The target allocates `val` (17 refs / 270 insns) above `this`
+    // (27 / 386): this r24, val r25. Pinning `this` to r24 (every member access below goes through
+    // `self`) keeps r24 away from val, which then takes r25; a pin on val itself ties the `val % 10`
+    // remainder to r25 (`sub 25,25,0`).
+    register SellItemNum* self asm("r24") = this;
     ShopWork* sw = wk->pShopWk;
     Merchant* m = wk->pMerchant;
     IdUnit* u;
@@ -1159,12 +1164,12 @@ void SellItemNum::move(SUB_SCREEN* wk)
     }
     if (Key.trg & 0x40000000) {
         IdSub.unitPtr(0, 0x1F)->flags &= ~8;
-        transit(1, wk);
+        self->transit(1, wk);
         SndCall(0, 5, 0, 0, 0, 0);
     } else if (Key.trg & 0x80000000) {
         if (sw->count == 0) {
             IdSub.unitPtr(0, 0x1F)->flags &= ~8;
-            transit(1, wk);
+            self->transit(1, wk);
             SndCall(0, 5, 0, 0, 0, 0);
         } else {
             int msg = 6;
@@ -1183,7 +1188,7 @@ void SellItemNum::move(SUB_SCREEN* wk)
                 cMes.MesSet(shop_msg[msg].msg, px, (int) ((240.0f - u->scr.y) * 0.8f) + sell_msg_y, 0x20801, 1, 0, 3);
             }
             cMes.getMes(1)->cursor = 1;
-            transit(0, wk);
+            self->transit(0, wk);
             SndCall(0, 9, 0, 0, 0, 0);
             shopStrPlay(wk, shop_msg[msg].str);
         }
@@ -1199,18 +1204,18 @@ void SellItemNum::move(SUB_SCREEN* wk)
                 sw->count = 1;
             } else {
                 if (Key.on & 0x03000000) {
-                    repeat++;
-                    if (repeat > 30) {
-                        repeat = 30;
-                        fast = 1;
+                    self->repeat++;
+                    if (self->repeat > 30) {
+                        self->repeat = 30;
+                        self->fast = 1;
                     } else {
-                        fast = 0;
+                        self->fast = 0;
                     }
                 } else {
-                    repeat = 0;
-                    fast = 0;
+                    self->repeat = 0;
+                    self->fast = 0;
                 }
-                step = fast ? 8 : 1;
+                step = self->fast ? 8 : 1;
                 if (Key.rep & 0x02000000) {
                     sw->count -= step;
                 } else if (Key.rep & 0x01000000) {
@@ -1959,8 +1964,10 @@ static inline int itemTuneLevel(ItemWork* item, int type)
 
 void levelItemDisp(SUB_SCREEN* wk, int sw)
 {
-    Merchant* m = wk->pMerchant;
+    // swk before m: `wk` then dies at the m load, which sched1 issues first (weight rule), and the
+    // swk load's later slot shortens its live length below sw's (swk r30, sw r29 in global-alloc).
     ShopWork* swk = wk->pShopWk;
+    Merchant* m = wk->pMerchant;
     IdUnit* bar = 0;
     IdUnit* lvNum = 0;
     IdUnit* arrow = 0;
@@ -2004,7 +2011,6 @@ void levelItemDisp(SUB_SCREEN* wk, int sw)
         for (type = 0; type < 4; type++) {
             int slot = type + 8;
             int j;
-            int on;
             int cur;
 
             {
@@ -2067,7 +2073,6 @@ void levelItemDisp(SUB_SCREEN* wk, int sw)
                 lvNum->no = lv;
                 lvNum->flags_7F |= 2;
             }
-            cur = 1;
             {
                 u16 id = item->id;
 
@@ -2098,23 +2103,28 @@ void levelItemDisp(SUB_SCREEN* wk, int sw)
                     break;
                 }
             }
+            // COMPILER-DIFF: 13. The target loads `cur = 1` right before its only use (`li r0,1;
+            // slwi r7,r0,2`, a reload rematerialisation of the REG_EQUIV constant); a plain `cur = 1`
+            // is hoisted out of the type loop. The asm's memory input (the tag store) keeps it here;
+            // `tag[1]` is written literally because cse folds `tag[cur]` in the target (`lbz 4,1(r16)`).
+            asm("li %0,1" : "=r"(cur) : "m"(tag[0]));
             {
             int digit[3];
             for (j = 0; j < 3; j++) {
                 digit[j] = val[cur] % 10;
                 val[cur] /= 10;
             }
-            on = 0;
+            i = 0;  // the leading-zero flag reuses the function's `i` (r31: it outranks `j` in global-alloc)
             for (j = 2; j >= 0; j--) {
-                IdUnit* u = IdSub.unitPtr(tag[cur] + j, 0x1D);
+                IdUnit* u = IdSub.unitPtr(tag[1] + j, 0x1D);
 
                 u->flags_7F |= 2;
                 u->no = digit[j];
                 if (type == 3) {
-                    if (on == 0 && digit[j] == 0) {
+                    if (i == 0 && digit[j] == 0) {
                         u->flags &= ~8;
                     } else {
-                        on = 1;
+                        i = 1;
                         u->flags |= 8;
                     }
                 } else if (type == 0 && j == 2 && digit[j] == 0) {  // digit[j]: `lwz 8(rDigit)` through the array pseudo (weaponLevelDisp idiom)
@@ -2141,10 +2151,10 @@ void levelItemDisp(SUB_SCREEN* wk, int sw)
                 IdUnit* u = IdSub.unitPtr(0x44, 0x1D);
                 PSVECAdd(&u->parent->pos, &u->scr, &pos);
             }
-            for (type = 0; type < 4; type++) {
-                int mx = m->levelMax(item->id, type);
-                if (mx > WeaponId2MaxLevel(item->id, type)) {
-                    total += m->levelupPrice(item, type, mx);
+            for (i = 0; i < 4; i++) {
+                int mx = m->levelMax(item->id, i);
+                if (mx > WeaponId2MaxLevel(item->id, i)) {
+                    total += m->levelupPrice(item, i, mx);
                 }
             }
             dispPrice(0x84, 0, total, &pos, price_disp_price);
@@ -2401,9 +2411,11 @@ void LvUpItemSelect::move(SUB_SCREEN* wk)
             SndCall(0, 6, 0, 0, 0, 0);
         }
     }
-    for (i = 0; i < 5; i++) {
-        IdUnit* frame = IdSub.unitPtr(0x40 + i, 0x1D);
-        if (i == sw->lvType) {
+    // The frame loop counts with `x` (the message x of the MesSet above): the shared pseudo has the
+    // refs that put it above `item` in global-alloc (x r30 / item r28, then `i` r31 below).
+    for (x = 0; x < 5; x++) {
+        IdUnit* frame = IdSub.unitPtr(0x40 + x, 0x1D);
+        if (x == sw->lvType) {
             IdSub.unitPtr(0x3F, 0x1D)->scr = frame->scr;
         }
     }

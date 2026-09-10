@@ -331,7 +331,16 @@ void pzzlCursorDisp(SUB_SCREEN* wk, int sw)
         drawCursorInit(wk, &pzzl_cursor);
         drawCursor(wk, wk->x2B0->cur, x, y, &pzzl_cursor, 1);
         col = colorRRGGBBAA((u8) u0->col[0], (u8) u0->col[1], (u8) u0->col[2], (u8) u0->col[3]);
-        p = wk->x2B0->ptrPiece(wk->x2B0->cur);
+        {
+            // COMPILER-DIFF: 5 (sched1 tie). Case 1 of the target issues the `col` copy before the
+            // `wk->x2B0` reload, so local-alloc ties the load to r3 (`mr r30,r3; lwz r3,0x2b0(r31)`);
+            // ours issues the load first in both arms (load latency 2 outranks the copy) and case 2 is
+            // the unfolded `lwz r0; mr r30,r3; mr r3,r0` in both. The asm-emitted load takes `col` as an
+            // input so it follows the copy.
+            pzlPlayer* pl;
+            asm("lwz %0,%1" : "=r"(pl) : "m"(wk->x2B0), "r"(col));
+            p = pl->ptrPiece(pl->cur);
+        }
         if (p) {
             pieceFrameDisp(p->model, col, 1);
         }

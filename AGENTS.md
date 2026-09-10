@@ -2737,16 +2737,17 @@ target) stays unresolved and `make_rel` then fails with "undefined symbol".
   itemMakeMove closed with #17 pins, and its eleven .bss objects from item_list on made non-static -- the REL's
   ADDR16 fields hold A only for them, see the ninth-pass item); ss_term (29/29 named functions, eof block open)
   and ss_model (47/47 since the sixth pass: wep09Init is a plain `else if` chain, NOT compiler-build difference 6) are written, see their items; ss_map (src/Sscrn/
-  ss_map.cpp, 104/105 named functions byte-identical after the sixth pass (2026-09-10; open:
-  mapPositionCheck only, 2 words since the ninth pass, see the pass items; map_room/map_room_num are
+  ss_map.cpp, Matching since the tenth pass (105/105: mapPositionCheck closed with a tagged asm copy,
+  the eof block reordered by instantiating LightSetModel2 and ~Widget before atari.h; see the
+  tenth-pass item); map_room/map_room_num are
   non-static since the ninth pass for the REL fields), .rodata/.data/.bss identical since 2026-09:
   the former 8-byte gap was doorModelInit's missing 2^52 pool entry (`(f32) (int) e->ang` of the u8
   angle, the classic double trick, not a fast-cast psq_l) plus the two file-scope `static const`
-  tables in the wrong order (map_cam_entire is defined before mark_model_tbl); see its item) and ss_pzzl (src/Sscrn/ss_pzzl.cpp, 57/64 after the ninth pass
-  (pieceModelDisp; PieceCommand::move and PieceCombine::move since the sixth), .rodata/.data/.bss identical) are
-  written; ss_shop (src/Sscrn/ss_shop.cpp, the merchant screen: 71/74 functions byte-identical after
-  the ninth pass (LvUpConfirm::move; BuyItemNum::move in the seventh) incl. the 0x980 eof block, .rodata/.data/.bss
-  identical, .text size equal since the ninth pass) is written, see its item and the fifth..ninth-pass lists.
+  tables in the wrong order (map_cam_entire is defined before mark_model_tbl); see its item) and ss_pzzl (src/Sscrn/ss_pzzl.cpp, 58/64 after the tenth pass
+  (pzzlCursorDisp; pieceModelDisp in the ninth; PieceCommand::move and PieceCombine::move since the sixth), .rodata/.data/.bss identical) are
+  written; ss_shop (src/Sscrn/ss_shop.cpp, the merchant screen: 72/74 functions byte-identical after
+  the tenth pass (LvUpItemSelect::move; LvUpConfirm::move in the ninth, BuyItemNum::move in the seventh) incl. the 0x980 eof block, .rodata/.data/.bss
+  identical, .text size equal since the ninth pass; open: levelItemDisp 14 lines, SellItemNum::move 4 insns) is written, see its item and the fifth..tenth-pass lists.
 - ss_shop idioms (2026-09): include order light.h, map_obj.h, widget.h (the three header strings), then
   "ss_shop.dat" (SsShopInit::move) and the HALT string (mem_alloc lines 0x1BA/0x242). The 13 widgets are
   declared in the order SsShopInit, SsShopMain (ss_main.h), ShopTopMenu(3 links, ctor sets cursor = 1),
@@ -3627,6 +3628,78 @@ target) stays unresolved and `make_rel` then fails with "undefined symbol".
     sw; do-while around the if/else, one arm, `x = ..` or setLayout: 30-97 lines; an r30 pin sends y to r30 and
     item to r31); pieceTblInit, pieceFrameDisp, caseModelMove, SsPzzlMain::init, PzzlThinking::move,
     PieceSelect::move not iterated.
+- Tenth pass (2026-09-10, ss_map Matching (105/105, module REL byte-identical, 111 files OK); ss_shop 71 -> 72/74
+  (LvUpItemSelect::move; levelItemDisp 33 -> 14 lines, SellItemNum::move 31 -> 4 insns); ss_pzzl 57 -> 58/64
+  (pzzlCursorDisp); harness ~/.cache/ssw12 = ssw10 copies with the paths rewritten (`tryf.sh <unit> <abs src> <fn>`,
+  `varf.py <unit> <base.cpp> <fn> name=variant.py...` = REPL-list variants with a diff-line count, `scopes.py <mod>
+  <unit>` = the ADDR16 scope check: module symbols.txt scope per data offset vs our object's bindings; `dump.sh` takes
+  explicit `-dX` flags, no `-da`); tools/sn-gcc/src/gcc is the SN cc1plus source for reading passes):
+  - **An asm's memory input anchors it after a call without making it a consumer of the call result** (mapPositionCheck
+    2 -> 0, unit flipped; tagged `COMPILER-DIFF: 5 (sched1 LUID tie)`): `cSatFile* sb = hdrB->getSat(0); Vec* z;
+    asm("mr %0,%1" : "=&r"(z) : "r"(&zero), "m"(zero)); satB.init(sb, z, z);` -- the asm depends on the getSat call
+    (memory flush), its chain `asm -> r5 = z -> mr r6,r5 -> call` is one longer than the result copy's `P = r3 -> r4
+    = P -> call`, so sched1 ranks it first and sched2 keeps the LUID order (`mr r5,r28; mr r4,r3`). What does not work:
+    an asm on the getSat result (`"r"(hdrB->getSat(0))`, the copy stays RTL-first), an asm on `&zero` with the call
+    result as an `"r"` input (it becomes a consumer of the result copy and cannot precede it), and a plain `"=r"` output:
+    local-alloc ties an asm output to a dying `"r"` input (block_alloc's operand loop, `combine_regs` with
+    `may_save_copy` 0) -- `mr r28,r28` -- so a copy asm whose input dies there needs the early-clobber `"=&r"`
+    (block_alloc skips `&` outputs). Rule of record for these ties: rank = priority, then INSN_REG_WEIGHT (sched1
+    only), then class against the last scheduled insn (anti/output links cost 1 in this haifa: `insn_cost` clamps
+    `ADJUST_COST`'s 0 to 1, so every link is class 3), then dependents, then LUID; a sched2 tie between a call-result
+    copy and an argument move therefore needs a longer chain or a smaller LUID, never a class difference.
+  - **End-of-file order with a synthesized destructor of a class declared before ss_main.h** (ss_map: `_._4cSat` was
+    output before LightSetModel2/~Widget, the target has it after them, REL 183 bytes off although every function was
+    byte-identical -- bcmp's `pos!` flag). Our cc1plus queues a synthesized dtor at the class definition (atari.h),
+    the original at synthesis (candidate #8), so the two inlines that must precede it are instantiated BEFORE
+    `#include "atari.h"`: the `extern "C" inline LightSetModel2` definition and `struct SUB_SCREEN; static inline
+    void ssMapWidgetDelete(Widget<SUB_SCREEN>* w) { delete w; }`. The .rodata vtable order did not move (Widget's
+    vtable still follows SsMapInit's), so the vtable VAR_DECL is not pushed at that instantiation. Check `bcmp.py`'s
+    `pos!` column before a flip: fdiff/unit_info do not see function order.
+  - **Pre-flip scope check** (`scopes.py`): every `scope:global` data symbol of the unit's split ranges must be a
+    non-static (or weak vtable) object in our .o and every `local` a static/anonymous one; ss_map was clean.
+  - ss_shop levelItemDisp (33 -> 14 lines): (1) `ShopWork* swk` declared BEFORE `Merchant* m`: `wk` dies at the m
+    load, sched1's weight rule issues that load first (`lwz r20,792; mr r29,r4; lwz r30,788`) and the swk load's
+    later slot shortens its live length below sw's, so swk takes r30 and sw r29 (global-alloc priority 2 refs/21 vs
+    2/22; declaration order after the zero inits changes nothing because sched1 hoists the load anyway); (2) the
+    leading-zero flag `on` is the function's `i` (`i = 0; ... i = 1;`): the shared pseudo's refs put it above `j`
+    (on r31, j r29); (3) the specialTunable tail loop counts with `i`, not `type` (i r31, &pos r28); (4) tagged
+    `COMPILER-DIFF: 13`: `asm("li %0,1" : "=r"(cur) : "m"(tag[0]))` right before the digit block with `tag[1]`
+    written literally (the target folds `tag[cur]`; a `"m"(tag[1])` input reorders the hoisted `&tag`/`&digit`
+    addis, register/value inputs let loop.c hoist the asm out of the type loop). Left (14): the digit-loop preheader
+    -- read off the -dR/-fsched-verbose-6 dump: our asm output r0 dies at `slwi`, so the bct count reload also takes r0
+    and inherits an r0 anti chain (`li r0,1` prio 6, `slwi` 5, `li r0,3` 4, `mtctr` 3); the target's count reload is
+    r9 (its `cur` was a reload register live across the count init) and its `li r0,1`/`lis` are prio-2 insns issued
+    after `li r9,3; lis r6; mtctr r9`. No source form found that keeps r0 busy at the count init without lengthening
+    `cur` into a callee-saved register.
+  - ss_shop SellItemNum::move (31 -> 4 insns, tagged `COMPILER-DIFF: candidate #17`): `register SellItemNum* self
+    asm("r24") = this;` with every member access through `self` (this r24, val r25). The value pin on `val` itself
+    (`register int val asm("r25")`) fixes the same allocation but local-alloc then gives the `val % 10` remainder
+    the dying hard register (`sub r25,r25,r0; stw r25`) -- pin the OTHER register of a swapped pair when the pinned
+    variable is an arithmetic input. Left: `addi r17,r1,8` (the PRE'd `&digit`) issued right after `bl MesSet` in
+    ours (a free insn in sched1: the frame pointer is not call-used, so it takes the first free slot), after `li
+    r5,31` in the target (ready one cycle after the call, i.e. dependent on it, and LUID-after the argument moves);
+    `int digit[]` at function/loop/enclosing-block scope: 2-5 lines. A memory-input asm (`la %0,%1`) depends on the
+    call but also becomes a predecessor of the next call with the arguments' priority and a smaller LUID, so it is
+    issued before them; not applied.
+  - ss_shop LvUpItemSelect::move (30 -> 0, zero code): the frame loop `for (x = 0; x < 5; x++)` counts with the
+    MesSet `x` (item r28, x/lv/counter r30, the last loop's `i` r31); block-scoped counters or `x` in the lv loop as
+    well: 7-26 lines. Same family as levelItemDisp's `on = i`: when the target gives a short-lived variable a
+    register that a longer one should own by refs/length, look for a reused function-scope variable.
+  - ss_pzzl pzzlCursorDisp (+4 -> 0, tagged `COMPILER-DIFF: 5 (sched1 tie)`): the ninth-pass note had the columns
+    inverted -- the TARGET folds case 1 (`mr r30,r3; lwz r3,0x2b0(r31)`) and keeps case 2 unfolded (`lwz r0; mr
+    r30,r3; mr r3,r0`); ours unfolded both. Both arms have identical RTL through regmove (`col = r3; P = mem; r3 =
+    P`) and sched1 issues the load (latency 2, prio 8) before the copy (prio 7) in both, so P is born while r3 is
+    live and local-alloc gives it r0. Case 1 is closed with `pzlPlayer* pl; asm("lwz %0,%1" : "=r"(pl) :
+    "m"(wk->x2B0), "r"(col)); p = pl->ptrPiece(pl->cur);` -- the asm-emitted load consumes `col`, so it follows the
+    copy and its output is tied to r3 through the argument move. Why the original's case 1 scheduled the copy first is
+    not known (no source difference between the arms).
+  - ss_pzzl pieceTblInit (analysed, unchanged): the target materialises `tbl` (`addi r11,r9,piece_info@l; lhz
+    r9,0(r11)`, `mr r7,r11` for the loop) and bases the store giv at `model[4]` (`addi r6,r7,84`, `stw -4(r6)/0(r6)`);
+    a `void** mp = &tbl[i].model[4]` pointer is re-folded by loop.c into the offset-0 giv (`mr r6,r7`, 80/84), the
+    `u32` index-first SS_ARC form folds the second load's +20 into the displacement (worse), a `"+r"(tbl)` launder
+    costs 47 lines. pieceFrameDisp: a dead `if (c.x == 1.0f) k = 0;` at the end of the j body stops loop.c's pass-2
+    hoist of the FILE-string high (pLog/27E8 then match the target's r20/r21) but the freed register goes to the line
+    highs, not to the 0.0 pool high (`lis r14` at the top in the target), and `m` moves to r31: 46 lines. Not applied.
 - The map model globals are named `ssPlModel`/`ssWepModel` (.bss 0x494/0x498, MapMgr works 0/1),
   `ssPlMotion`/`ssWepModel2` (.data 0x978/0x97C), renamed by hand in symbols.txt/sym_map.tsv
   (data labels have no .sym name for the sync tool); the generator attributes them to ss_map.cpp.
