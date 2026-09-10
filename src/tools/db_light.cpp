@@ -216,8 +216,6 @@ static const char* path_item = "x:\\soft/room/SubScreen/light/item%03d.lit";
 static const char* path_core = "x:\\soft/room/etc/core/core%02x.lit";
 static const char* path_litpath = "x:\\soft/room/etc/core/litpath.bin";
 
-// direction editor scratch (a global in the original: the first .bss object)
-Vec spotRot;
 static const GXColor blackTemplate = {0, 0, 0, 0};
 static const f32 yAxis[3] = {0.0f, 1.0f, 0.0f};  // 4-aligned (an f32[3], not a Vec) after the vtables
 
@@ -2692,6 +2690,9 @@ static void edit_light_type_quad()
 
 static void edit_light_type_spotlight()
 {
+    // direction editor scratch: the unit's first .bss object (a function static of the first function
+    // with one; the .sym's "global" scope at .bss+0 cannot be told from a local S+A field of 0)
+    static Vec spotRot;
     cLight* cur = curLight();
     LightSpot* sp = &cur->spot;
     int ret = 1;

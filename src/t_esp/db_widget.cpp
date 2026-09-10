@@ -1006,80 +1006,66 @@ void DB_NUMERIC::SetKetaFloat(int n)
 
 void DB_NUMERIC::SetNumPointer(s8* p)
 {
-    const f32 mx = 127.0f;
-
-    pNum = p;
     numType = DB_NUM_S8;
     keta = 4;
+    max = 127.0f;
     min = -128.0f;
-    max = mx;
+    pNum = p;
 }
 
 void DB_NUMERIC::SetNumPointer(u8* p)
 {
-    const f32 mx = 255.0f;
-
-    pNum = p;
     numType = DB_NUM_U8;
     keta = 3;
+    max = 255.0f;
     min = 0.0f;
-    max = mx;
+    pNum = p;
 }
 
 void DB_NUMERIC::SetNumPointer(s16* p)
 {
-    const f32 mx = 32767.0f;
-
-    pNum = p;
     numType = DB_NUM_S16;
     keta = 7;
+    max = 32767.0f;
     min = -32768.0f;
-    max = mx;
+    pNum = p;
 }
 
 void DB_NUMERIC::SetNumPointer(u16* p)
 {
-    const f32 mx = 65535.0f;
-
-    pNum = p;
     numType = DB_NUM_U16;
     keta = 6;
+    max = 65535.0f;
     min = 0.0f;
-    max = mx;
+    pNum = p;
 }
 
 void DB_NUMERIC::SetNumPointer(s32* p)
 {
-    const f32 mx = 10000000.0f;
-
-    pNum = p;
     numType = DB_NUM_S32;
     keta = 11;
+    max = 10000000.0f;
     min = -10000000.0f;
-    max = mx;
+    pNum = p;
 }
 
 void DB_NUMERIC::SetNumPointer(u32* p)
 {
-    const f32 mx = 10000000.0f;
-
-    pNum = p;
     numType = DB_NUM_U32;
     keta = 10;
+    max = 10000000.0f;
     min = 0.0f;
-    max = mx;
+    pNum = p;
 }
 
 void DB_NUMERIC::SetNumPointer(f32* p)
 {
-    const f32 mx = 32767.0f;
-
-    pNum = p;
     numType = DB_NUM_F32;
     keta = 7;
     ketaFloat = 1;
+    max = 32767.0f;
     min = -32768.0f;
-    max = mx;
+    pNum = p;
 }
 
 void DB_NUMERIC::ClearToDefault()

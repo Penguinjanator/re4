@@ -898,78 +898,79 @@ static const char* posMenuName[6] = { "Base  :", "Path  :", "Speed :", "Loop  :"
 static const char* anchorName[5] = { "CT", "LU", "RU", "RD", "LD" };
 static const char* onOffName[2] = { "ON", "OFF" };
 
-// Screen-space grid / guide lines of the position editor
-static inline void idDrawGuide(IdTool* w, ID_DATA* d)
-{
-    Vec p;
-    Vec a;
-    Vec b;
-    int i;
-    int sx, sy;
-
-    p = d->pos;
-    if (w->gridLv > 3) {
-        Vec g0;
-        Vec g1;
-
-        memclr_asm(&g0, sizeof(Vec));
-        memclr_asm(&g1, sizeof(Vec));
-        g0.y = 240.0f;
-        g1.y = -240.0f;
-        Draw_line3d(&g0, &g1, 0x40404040, 0);
-        for (i = 1; (f32) i * w->grid.x < 320.0f; i++) {
-            g1.x = g0.x = (f32) i * w->grid.x;
-            Draw_line3d(&g0, &g1, 0x40404040, 0);
-        }
-        for (i = -1; (f32) i * w->grid.x > -320.0f; i--) {
-            g1.x = g0.x = (f32) i * w->grid.x;
-            Draw_line3d(&g0, &g1, 0x40404040, 0);
-        }
-        memclr_asm(&g0, sizeof(Vec));
-        memclr_asm(&g1, sizeof(Vec));
-        g0.x = 320.0f;
-        g1.x = -320.0f;
-        Draw_line3d(&g0, &g1, 0x40404040, 0);
-        for (i = 1; (f32) i * w->grid.y < 240.0f; i++) {
-            g1.y = g0.y = (f32) i * w->grid.y;
-            Draw_line3d(&g0, &g1, 0x40404040, 0);
-        }
-        for (i = -1; (f32) i * w->grid.y > -240.0f; i--) {
-            g1.y = g0.y = (f32) i * w->grid.y;
-            Draw_line3d(&g0, &g1, 0x40404040, 0);
-        }
-    }
-    if (w->parentNo != 0xFF) {
-        Vec t;
-
-        t.x = w->mat[0][3];
-        t.y = w->mat[1][3];
-        t.z = w->mat[2][3];
-        PSVECAdd(&p, &t, &p);
-        a = t;
-        b = t;
-        a.x = -320.0f;
-        b.x = 320.0f;
-        Draw_line3d(&a, &b, 0xFF808040, 0);
-        a = t;
-        b = t;
-        a.y = -240.0f;
-        b.y = 240.0f;
-        Draw_line3d(&a, &b, 0xFF808040, 0);
-    }
-    a = p;
-    b = p;
-    a.x = -320.0f;
-    b.x = 320.0f;
-    Draw_line3d(&a, &b, 0xFFFFFFFF, 0);
-    a = p;
-    b = p;
-    a.y = -240.0f;
-    b.y = 240.0f;
-    Draw_line3d(&a, &b, 0xFFFFFFFF, 0);
-    sx = (int) (p.x * 256.0f / 320.0f + 256.0f);
-    sy = (int) (224.0f - p.y * 224.0f / 240.0f);
-    eprintf(sx + ((sx > 0x198) ? -0x68 : 8), sy + ((sy > 0x1A4) ? -0x1C : 0xE), 0, 0, "(%3.0f, %3.0f)", d->pos.x, d->pos.y);
+// Screen-space grid / guide lines of the position editor (written out in the original: its pool loads
+// float above the preceding stores, which an inlined body never does)
+#define ID_DRAW_GUIDE(w, d) \
+{ \
+    Vec p; \
+    Vec a; \
+    Vec b; \
+    int i; \
+    int sx, sy; \
+ \
+    p = d->pos; \
+    if (w->gridLv > 3) { \
+        Vec g0; \
+        Vec g1; \
+ \
+        memclr_asm(&g0, sizeof(Vec)); \
+        memclr_asm(&g1, sizeof(Vec)); \
+        g0.y = 240.0f; \
+        g1.y = -240.0f; \
+        Draw_line3d(&g0, &g1, 0x40404040, 0); \
+        for (i = 1; (f32) i * w->grid.x < 320.0f; i++) { \
+            g1.x = g0.x = (f32) i * w->grid.x; \
+            Draw_line3d(&g0, &g1, 0x40404040, 0); \
+        } \
+        for (i = -1; (f32) i * w->grid.x > -320.0f; i--) { \
+            g1.x = g0.x = (f32) i * w->grid.x; \
+            Draw_line3d(&g0, &g1, 0x40404040, 0); \
+        } \
+        memclr_asm(&g0, sizeof(Vec)); \
+        memclr_asm(&g1, sizeof(Vec)); \
+        g0.x = 320.0f; \
+        g1.x = -320.0f; \
+        Draw_line3d(&g0, &g1, 0x40404040, 0); \
+        for (i = 1; (f32) i * w->grid.y < 240.0f; i++) { \
+            g1.y = g0.y = (f32) i * w->grid.y; \
+            Draw_line3d(&g0, &g1, 0x40404040, 0); \
+        } \
+        for (i = -1; (f32) i * w->grid.y > -240.0f; i--) { \
+            g1.y = g0.y = (f32) i * w->grid.y; \
+            Draw_line3d(&g0, &g1, 0x40404040, 0); \
+        } \
+    } \
+    if (w->parentNo != 0xFF) { \
+        Vec t; \
+ \
+        t.x = w->mat[0][3]; \
+        t.y = w->mat[1][3]; \
+        t.z = w->mat[2][3]; \
+        PSVECAdd(&p, &t, &p); \
+        a = t; \
+        b = t; \
+        a.x = -320.0f; \
+        b.x = 320.0f; \
+        Draw_line3d(&a, &b, 0xFF808040, 0); \
+        a = t; \
+        b = t; \
+        a.y = -240.0f; \
+        b.y = 240.0f; \
+        Draw_line3d(&a, &b, 0xFF808040, 0); \
+    } \
+    a = p; \
+    b = p; \
+    a.x = -320.0f; \
+    b.x = 320.0f; \
+    Draw_line3d(&a, &b, 0xFFFFFFFF, 0); \
+    a = p; \
+    b = p; \
+    a.y = -240.0f; \
+    b.y = 240.0f; \
+    Draw_line3d(&a, &b, 0xFFFFFFFF, 0); \
+    sx = (int) (p.x * 256.0f / 320.0f + 256.0f); \
+    sy = (int) (224.0f - p.y * 224.0f / 240.0f); \
+    eprintf(sx + ((sx > 0x198) ? -0x68 : 8), sy + ((sy > 0x1A4) ? -0x1C : 0xE), 0, 0, "(%3.0f, %3.0f)", d->pos.x, d->pos.y); \
 }
 
 int idEditPos(IdTool* w, int x, int y)
@@ -1206,9 +1207,10 @@ int idEditPos(IdTool* w, int x, int y)
                 w->pSctrl->grid.y = 0.01f;
                 w->pSctrl->flags = 3;
                 if (w->pSctrl->curve->num <= 1) {
+                    f32 xr = 90.0f;
                     f32 n = (f32) (w->pPath->path->n - 1);
 
-                    SctrlInitAxisRange(w->pSctrl, 90.0f * 1.2f, 90.0f * -0.2f, n * 1.2f, n * -0.2f);
+                    SctrlInitAxisRange(w->pSctrl, xr * 1.2f, xr * -0.2f, n * 1.2f, n * -0.2f);
                     SctrlInitCursor(w->pSctrl, 0.0f, 0.0f);
                 } else {
                     SctrlAdjustAxisRange(w->pSctrl);
@@ -1240,7 +1242,7 @@ int idEditPos(IdTool* w, int x, int y)
         break;
     }
     if (w->editStep != 2) {
-        idDrawGuide(w, d);
+        ID_DRAW_GUIDE(w, d);
     }
     return ret;
 }
@@ -1449,7 +1451,10 @@ int idEditSize(IdTool* w, int x, int y)
                 w->pSctrl->grid.y = 0.01f;
                 w->pSctrl->flags = 3;
                 if (w->pSctrl->curve->num <= 1) {
-                    SctrlInitAxisRange(w->pSctrl, 90.0f * 1.2f, 90.0f * -0.2f, 2.0f * 1.2f, 2.0f * -1.2f);
+                    f32 xr = 90.0f;
+                f32 yr = 2.0f;
+
+                SctrlInitAxisRange(w->pSctrl, xr * 1.2f, xr * -0.2f, yr * 1.2f, yr * -1.2f);
                     SctrlInitCursor(w->pSctrl, 0.0f, 0.0f);
                 } else {
                     SctrlAdjustAxisRange(w->pSctrl);
@@ -1692,7 +1697,10 @@ int idEditColor(IdTool* w, int x, int y)
             w->pSctrl->grid.y = 1.0f;
             w->pSctrl->flags = 3;
             if (w->pSctrl->curve->num <= 1) {
-                SctrlInitAxisRange(w->pSctrl, 90.0f * 1.2f, 90.0f * -0.2f, 256.0f * 1.2f, 256.0f * -1.2f);
+                f32 xr = 90.0f;
+                f32 yr = 256.0f;
+
+                SctrlInitAxisRange(w->pSctrl, xr * 1.2f, xr * -0.2f, yr * 1.2f, yr * -1.2f);
                 SctrlInitCursor(w->pSctrl, 0.0f, 0.0f);
             } else {
                 SctrlAdjustAxisRange(w->pSctrl);
@@ -1862,7 +1870,10 @@ int idEditRot(IdTool* w, int x, int y)
             w->pSctrl->grid.y = 1.0f;
             w->pSctrl->flags = 3;
             if (w->pSctrl->curve->num <= 1) {
-                SctrlInitAxisRange(w->pSctrl, 90.0f * 1.2f, 90.0f * -0.2f, 360.0f * 1.2f, 360.0f * -1.2f);
+                f32 xr = 90.0f;
+                f32 yr = 360.0f;
+
+                SctrlInitAxisRange(w->pSctrl, xr * 1.2f, xr * -0.2f, yr * 1.2f, yr * -1.2f);
                 SctrlInitCursor(w->pSctrl, 0.0f, 0.0f);
             } else {
                 SctrlAdjustAxisRange(w->pSctrl);
@@ -2549,7 +2560,7 @@ static void toolIdFile(IdTool* w)
             w->x17C = 0;
         }
         if (joy->trg & 0x100) {
-            if (w->x17B != w->type) {
+            if ((s8) w->x17B != w->type) {
                 w->x17B = w->type;
                 w->x17D |= 1;
             }

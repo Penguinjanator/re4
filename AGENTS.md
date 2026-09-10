@@ -7004,3 +7004,108 @@ confirmed on the units named):
   CamMove 28, JumpAtk 2 (`cmpwi fe` vs `stw flags` issue order). OPEN em2c: DmCk 501, T_Wait 143, TailDmCk 98,
   BlendMotSet/BlendMotSet2 (COMPILER-DIFF #2: the u16 `d` argument masked at each MotionSetCore call; the
   launder changes the parameter register order).
+
+### Tool RELs, bytes-first pass 2 (t_rck 13->28/33 + .rodata/.data equal; db_light 122->128/134 in every module; db_widget 95->102/113; t_snd_vol 13->19/27; t_event 56->61/69; t_id 48->52/69; 2026-09-10)
+
+- Harness: /tmp/tools_p2 (copies of /tmp/tools_p's mcmp.py/tryv.py/vapply.py/rodiff.py/mdump.sh with the paths
+  rewritten). Nothing flipped: no unit reached byte-identity.
+- t_rck .rodata/.data (src/Tools/t_rck.cpp): the menu string arrays (`menu_str`, `save_str`, `clear_str`,
+  `load_str`) are file-scope statics DEFINED right before the mode function that uses them (their strings are
+  emitted at the definition, so they land between the previous function's pool and the next function's own
+  strings), the six `GXColor` statics after `load_str`, and the `asm(".section .data; .balign 8")` pad after
+  the LAST .data object (at the top it padded `.data` between `menu_mode` and `menu_str`). A `.data`
+  "masked words equal" verdict says nothing about pointer-array positions (their words are all relocs).
+- `(f32) (s8) x` is `psq_st qr4` + `stb/psq_l qr4`; the target's `psq_st qr4; lbz; extsb; xoris 0x8000;
+  stw; lfd; fsub` (s8 quantisation, then the CLASSIC signed conversion) needs an `int` operand the front end
+  cannot see through: `int t = (s8) (...); (f32) t * 500.0f` (`(f32)(int)(s8) x` is folded back). The
+  `xoris r9, r0` (untied from the `extsb r0`) came from a multi-set function-scope `int t` shared by the two
+  expansions (macro `RCK_GRID_Y`), not from the inline's own local (t_rck rckPointAdd).
+- Two `RckLine*` pointer locals in one loop body (`a = &RCK->line[n][i]; b = &RCK->line[i][n]`, each pair
+  reloading the struct-member work pointer) alternate r9/r11 per pair; ONE reused pointer local `l` gives the
+  target's (r9, r11) for both (rckPointAdd). A `switch` over a u32 mode whose cases 1 and 2 share a body:
+  `cmpwi 1; beq; cmplwi 1; blt; cmpwi 2; beq; cmpwi 3; beq` = two identical case bodies (separate tree
+  nodes, cross-jumped), not `case 1: case 2:` (mode_main).
+- Read the copy kind off the target: `lfsx/lfs; stfs` = memberwise `c.x = p->pos.x; c.y = ..; c.z = ..`,
+  `lwz/stw` = a struct copy (`q = p->pos`). `lwzx rD, rW, rOfs` + `add rP, rW, rOfs; lwz 4(rP)` for
+  `pt[RCK->cur].pos` is a pointer local `RckPoint* pt = &RCK->pt[RCK->cur]` (the plain array copy folds
+  `0x2d4` into the displacements). Frame order follows declaration order (`Vec out; Vec c;`).
+- `psq_st .., qr5` = an `(s16)` conversion (qr3 = u16). A u16 member stored from it must be stored
+  directly (`ab->len = rckLineLen(pa, pb); ba->len = ab->len;`): a `u16 len` local is promoted and gets a
+  `clrlwi 16` after the `lhz` (the fpmem load pattern is opaque to combine). The then-arm `ab->len = 0;
+  ba->len = ab->len;` gives `li r0, 0` + the cross-jumped `sth; sth` tail (rckPointLineEnd).
+- Reference-store idioms that mattered again: `RckWork*& wp = rckWork.p; wp = Debug_alloc(..)` (both
+  `lis` hoisted before the first call: ToolRctRouteCheck, t_snd_vol init), `int zero = 0` at the function
+  top + `pGS->pRoomRtp` for both pG reads after work stores (rckInit), `if (...) { .. } else { flags &= ~1; }`
+  in BOTH arms so the two copies cross-jump and the entry arm reuses the already-loaded pointer
+  (rckPointCatch), `int no = RCK->hdr.nPoint - 1; RCK->near = no;` for the compare on the stored value.
+- rckMakeEditData: `RckLine l; *(u32*) &l = *(u32*) p;` (address-taken 8-byte local: `stw r0, 8(r1)`, `to`
+  read back as `srwi 16` of the register, `len` as `lhz 2(r7)` from the frame) plus a `RckLine* d =
+  &RCK->line[i][l.to]` pointer for the two stores. `dx*dx + dz*dz` = the target's standalone `fmuls dz`.
+- t_snd_vol getInfoData (the 5 giv increments at the loop latch in the target, hoisted into the arms in
+  ours): interblock scheduling did the hoisting (`-fno-schedule-insns` gives the target order), and it stops
+  once the loop has ~6 more LUIDs. No natural form added them; six dead `int padN = i` initialisers tagged
+  `// COMPILER-DIFF: 5` do. The sel copy is `memcpy(&work->sel[i], (u8*) hdr + ofs, 8)` (`lwzx` word 0,
+  `lwz 4(add)` word 1), the curve copies compute `u32 size = t->num * 8 + 8` BEFORE the memcpy (size loaded
+  before the work pointer).
+- t_snd_vol: `s8 c = work->menuCur; switch (c) { .. case 5: case 6: work->mode = c; }` = one `extsb` and
+  cross-jumped case bodies (a re-read `work->mode = work->menuCur` re-extends per arm); `*(u32*) &gray =
+  0x80800080` (r, g, a = 0x80, b = 0 — read the constant off the bytes, the "gray" name lied);
+  `(s16) (curDist * 2.0f)` (qr5) added to an s16 x; markDraw: `if (x < 0) return; if (x > 13) return;` (the
+  `||` range-folds to `cmplwi 0xd`), `switch ((u32) kind)` for the `cmplwi 1; blt` node, `blink_r`/`blink_dir`
+  statics read DIRECTLY (QI pseudos: `clrlwi 24` at the int uses, one `lbz` each, `extsb` only at the
+  compare); editDataLineDraw: `(s16)` casts everywhere, `dv = ((f32) e[1].val - (f32) e[0].val) / (d1 - d0)`
+  before `v = (f32) e[0].val` (e[1] converted first), declaration order `base, y0, y1`, `pt` stores in the
+  order x0, x1, y0, y1, z0, z1 (brute-forced).
+- Address-taken u32 parameter spilled at the function top (`stw r4, slot` right after the first `lis`,
+  ours late): the target's `work->left` read is a REFERENCE read (`IRef(work->left)`, MEM with neither struct
+  nor scalar flag) that may alias the frame store, so the store outranks it in sched1 (markDraw,
+  editDataLineDraw — 11 and 26 words each).
+- editScreenDisp: `S16Vec pt[3]` (the extra 8-byte frame slot: a copy-pasted over-sized array from
+  mainFrameDisp; unused `GXColor`/`f32[2]` locals take no slot) and `(s16)` casts; OPEN: ours gcse-PREs
+  `base - 4` above the two loops (reg 364 in the .gcse dump, "redundant insn 671 in bb 28") where the target
+  computes it after them from a `mr r10, r23` copy of `base` (83 words, register naming follows).
+- t_id (src/t_id/t_id.cpp): `SctrlInitAxisRange(w, xr * 1.2f, xr * -0.2f, yr * 1.2f, yr * -1.2f)` with
+  `f32 xr = 90.0f; f32 yr = 2.0f;` LOCALS — the original computes the products at run time (`fmuls` from
+  pool words 90, 2.0, 1.2, -0.2, -1.2); literal products fold (108.000008/-18/2.4/-2.4 in ours). The
+  cursor-guide helper `idDrawGuide` is a MACRO (`ID_DRAW_GUIDE`): its `"(%3.0f, %3.0f)"` string sits after
+  idEditPos's "Frame"/"Param" (macro text is expanded in place, an inline body is compiled at its definition
+  and emits its strings there) and the pool loads keep RTX_UNCHANGING_P (pl0f lever): idEditPos 609 -> 364
+  words, .rodata order fixed. `(s8) w->x17B != w->type` loads x17B first (toolIdFile). OPEN: idEditSize's
+  `for (j = 0; j <= 2; j++) { if (j == 0) .. axisName[j] }` — our loop.c eliminates the biv `j` through the
+  `&axisName[j]` giv (compares become `cmpw rP, &axisName + 4k` and `&axisName` is spilled to an anonymous
+  .rodata word at 0x444, the only remaining .rodata diff); the target keeps `j` (`cmpwi r29, k`, `lwzx
+  r8, r28, r23`). Pointer/u32-base forms of the access do not change it.
+- t_event: the four `_._` destructors were naming only — db_toolbase's vtable copies at .rodata
+  0x1958/0x19A8/0x19C0/0x1A08 are now `_vt.10cDbgWindow`/`_vt.10cDbgButton`/`_vt.14cDbgWindowBase`/
+  `_vt.14cDbgButtonBase` in config/G4BE08/modules/t_event/{symbols.txt,sym_map.tsv} (like Tools). mcmp's
+  `fn_t_event_1B528: 238 words` is a pairing artefact: the nameless cManager<cLight> block is paired at the
+  distance from CallbackLoad, whose size differs by 0xC. RunStop: the `li r0, 0; sth` fresh zero (ours
+  stores the `andi.` result cse knows to be 0) resisted the launder, `S16Set`, `do {} while (0)` and a
+  local-copy form (21 words, OPEN).
+- db_light (src/tools/db_light.cpp): `spotRot` is a FUNCTION STATIC of `edit_light_type_spotlight` (the
+  unit's first function with a static), which is why it is the first .bss object; the .sym's "global" scope
+  for a label at .bss+0 is meaningless (S+A = A when S = 0). A file-scope `Vec spotRot;` is deferred behind
+  every function static (ours had it at 0x90); `Vec spotRot = {0,0,0}` goes to .data. Fixed six functions
+  in all five copies at once (editColor 398 -> 120 words); touch db_light_tools.cpp/db_light_esp.cpp after
+  editing the shared source (no dependency tracking for the wrapper units).
+- db_widget `DB_NUMERIC::SetNumPointer` x7: `numType = ..; keta = ..; max = C; min = C; pNum = p;` — pNum
+  LAST. Every store is a dying store, so the last one in RTL (`pNum`) is issued first and the rest follow
+  RTL order (`stw pNum; stw numType; stw keta; stfs max; stfs min`); the `const f32 mx` pool trick is not
+  needed once `max` is assigned before `min`.
+- t_atari: naming artefact confirmed — `fn_Tools_1E028` (8) = the unit's `beginEvent__5cUnit` +
+  `endEvent__5cUnit` linkonce copies, `fn_Tools_1E050` (0x4C) = `_._5cUnit` + `__dl__5cUnitPvUi`, and
+  `__static_initialization_and_destruction_0_1DEF0` is the module-level duplicate of db_mod's name (a
+  symbols.txt cannot hold two `__static_initialization_and_destruction_0`); the only real diff is plmove10
+  (19 words, the OPEN copy-store order). t_camera_data / t_dr `.rodata` "differ" only by the trailing
+  8-alignment pad word before the next unit.
+- OPEN this pass (one try each unless noted): t_rck rckMakeSaveData (75: `p` and `buf` split into two pseudos
+  because sched1 hoists `p += 0x18` above the header stores — `memclr_asm(p, size)`, memcpy/typed-pointer
+  header copies and a chained `o` offset variable did not merge them), rckDrawPointLineNow (7: the
+  `line[near][lineStart]` address is `w + (near<<9 + 0xad4)` then `lhax .., ls<<2` in the target, ours
+  folds `0xad4` into the base; row-pointer, u32 and local-index forms tried), rckPointDelete/rckSetNextPoint/
+  rckDrawPointLine untouched; t_snd_vol editDataDraw (2: `lha val` before `lfs dist` for markDraw's args,
+  COMPILER-DIFF 1 family), edit_reverb_param/file_save/data_edit/combine_* untouched; t_se_at seAtInit (21:
+  the `lwz pW` for the camera copies stays below the `Snd.se_at*` stores in the target although both are
+  fixed-address in-struct MEMs; typed reference setters did not order them); t_id idEditRot/Size/Color
+  (230-340 words each, structure aligned, not iterated); t_camera tcNextAdatPtr (2: `mr r4, r3` before the
+  hoisted `cmpwi cr7`).

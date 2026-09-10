@@ -131,24 +131,16 @@ void rckCameraMove();
 static int menu_pos[2] = {0x18, 0x134};
 static int info_pos[2] = {0x18, 0x1C};
 static int menu_mode[5] = {2, 4, 5, 1, 0};
-static const char* menu_str[5] = {"MAIN", "SAVE", "LOAD", "CLEAR", "QUIT"};
-static const char* save_str[5] = {"DEFAULT", "BACKUP 1", "BACKUP 2", "BACKUP 3", "BACKUP 4"};
-static const char* clear_str[2] = {"Clear Yes", "Clear No"};
-static const char* load_str[5] = {"DEFAULT", "BACKUP 1", "BACKUP 2", "BACKUP 3", "BACKUP 4"};
-static GXColor cursor_col[2] = {{0x80, 0, 0, 0xFF}, {0xFF, 0x40, 0x40, 0xFF}};
-static GXColor col_catch = {0x60, 0, 0, 0xFF};
-static GXColor col_cur = {0x80, 0x10, 0x10, 0xFF};
-static GXColor col_near = {0, 0, 0x80, 0xFF};
-static GXColor col_point = {0x40, 0x40, 0x40, 0xFF};
-static GXColor col_htr = {0x80, 0x80, 0x80, 0xFF};
-asm(".section .data; .balign 8; .text");
 
 void ToolRctRouteCheck()
 {
     void (*tbl[6])() = {tool_quit, mode_clear, mode_main, mode_menu, mode_save, mode_load};
 
-    RCK = (RckWork*) Debug_alloc(sizeof(RckWork), 1);
-    RCK_SAVE = (u8*) Debug_alloc(RCK_SAVE_SIZE, 1);
+    RckWork*& wp = rckWork.p;
+    u8*& sp = rckSave.p;
+
+    wp = (RckWork*) Debug_alloc(sizeof(RckWork), 1);
+    sp = (u8*) Debug_alloc(RCK_SAVE_SIZE, 1);
     rckInit();
     for (;;) {
         rckCameraMove();
@@ -166,6 +158,8 @@ void ToolRctRouteCheck()
 
 void rckInit()
 {
+    int zero = 0;
+
     TaskSuspend(0);
     TaskSleep(1);
     TutilInitDefault();
@@ -180,15 +174,15 @@ void rckInit()
     TOOL_FLAG(OFS_DISP_FLG) |= 0x02000000;
     memclr_asm(RCK, sizeof(RckWork));
     RCK->mode = 2;
-    RCK->savedRtp = pG->pRoomRtp;
+    RCK->savedRtp = pGS->pRoomRtp;
     RCK->cur = -1;
     RCK->near = -1;
-    RCK->catchTimer = 0;
-    RCK->editMode = 0;
+    RCK->catchTimer = zero;
+    RCK->editMode = zero;
     RCK->x290 = RCK->x298 = RCK->curX = (Screen.x + Screen.width) * 0.5f;
     RCK->x294 = RCK->x29C = RCK->curY = (Screen.y + Screen.height) * 0.5f;
-    RCK->camMode = 0;
-    if (pG->pRoomRtp != NULL) {
+    RCK->camMode = zero;
+    if (pGS->pRoomRtp != NULL) {
         rckMakeEditData(pG->pRoomRtp);
     } else {
         rckFileLoad(0);
@@ -246,6 +240,13 @@ static void mode_main()
         rckPointMove();
         break;
     case 1:
+        if (Joy[0].trg & 0x100) {
+            rckPointLineStart();
+        }
+        if ((Joy[0].rel & 0x100) && (RCK->flags & 2)) {
+            rckPointLineEnd();
+        }
+        break;
     case 2:
         if (Joy[0].trg & 0x100) {
             rckPointLineStart();
@@ -262,6 +263,8 @@ static void mode_main()
     }
     rckSetRoute();
 }
+
+static const char* menu_str[5] = {"MAIN", "SAVE", "LOAD", "CLEAR", "QUIT"};
 
 static void mode_menu()
 {
@@ -280,6 +283,8 @@ static void mode_menu()
         RCK->subCursor = 0;
     }
 }
+
+static const char* save_str[5] = {"DEFAULT", "BACKUP 1", "BACKUP 2", "BACKUP 3", "BACKUP 4"};
 
 static void mode_save()
 {
@@ -311,6 +316,8 @@ static void mode_save()
     }
 }
 
+static const char* clear_str[2] = {"Clear Yes", "Clear No"};
+
 static void mode_clear()
 {
     JOY* joy = &Joy[0];
@@ -337,6 +344,15 @@ static void mode_clear()
         RCK->mode = 3;
     }
 }
+
+static const char* load_str[5] = {"DEFAULT", "BACKUP 1", "BACKUP 2", "BACKUP 3", "BACKUP 4"};
+static GXColor cursor_col[2] = {{0x80, 0, 0, 0xFF}, {0xFF, 0x40, 0x40, 0xFF}};
+static GXColor col_catch = {0x60, 0, 0, 0xFF};
+static GXColor col_cur = {0x80, 0x10, 0x10, 0xFF};
+static GXColor col_near = {0, 0, 0x80, 0xFF};
+static GXColor col_point = {0x40, 0x40, 0x40, 0xFF};
+static GXColor col_htr = {0x80, 0x80, 0x80, 0xFF};
+asm(".section .data; .balign 8; .text");
 
 static void mode_load()
 {
@@ -388,21 +404,21 @@ void menu_print(int* pos, const char** str, int n, int cur)
     int y = pos[1];
     int i;
 
-    for (i = 0; i < n; i++) {
+    for (i = 0; i < n; i++, y += 14) {
         if (i == cur) {
-            eprintf(x, y, 0, 0, "%s", *str);
+            eprintf(x, y, 0, 0, "%s", str[i]);
         } else {
-            eprintf(x, y, 7, 0, "%s", *str);
+            eprintf(x, y, 7, 0, "%s", str[i]);
         }
-        str++;
-        y += 14;
     }
 }
 
 // Rounds a height to the 500 grid.
+#define RCK_GRID_Y(y) (t = (s8) (((y) + 62.5f) / 500.0f), (f32) t * 500.0f)
 static inline f32 rckGridY(f32 y)
 {
-    return (f32) (s8) ((y + 62.5f) / 500.0f) * 500.0f;
+    int t = (s8) ((y + 62.5f) / 500.0f);
+    return (f32) t * 500.0f;
 }
 
 void rckPointAdd()
@@ -413,29 +429,37 @@ void rckPointAdd()
     Vec c;
     Vec out;
     int i;
+    int no;
+    f32 gy;
+    int t;
+    RckLine* l;
 
     if (n > 0x7F) {
         return;
     }
     p = &w->pt[n];
+    gy = RCK_GRID_Y(pPL->pos.y);
     c.x = pG->Cam.param.pos.x;
-    c.y = rckGridY(pPL->pos.y);
+    c.y = gy;
     c.z = pG->Cam.param.pos.z;
     TutilGet3DPosXZ_All((Vec*) &w->curX, &c, &out);
     memclr_asm(p, sizeof(RckPoint));
+    gy = RCK_GRID_Y(out.y);
     p->pos.x = out.x;
-    p->pos.y = rckGridY(out.y);
+    p->pos.y = gy;
     p->pos.z = out.z;
     RCK->hdr.nPoint++;
     RCK->hdr.nSq = RCK->hdr.nPoint * RCK->hdr.nPoint;
-    RCK->near = RCK->hdr.nPoint - 1;
-    n = RCK->near;
+    no = RCK->hdr.nPoint - 1;
+    RCK->near = no;
     rckPointCatch();
     for (i = 0; i < RCK_POINT_MAX; i++) {
-        RCK->line[n][i].len = 0;
-        RCK->line[n][i].to = -1;
-        RCK->line[i][n].len = 0;
-        RCK->line[i][n].to = -1;
+        l = &RCK->line[no][i];
+        l->len = 0;
+        l->to = -1;
+        l = &RCK->line[i][no];
+        l->len = 0;
+        l->to = -1;
     }
 }
 
@@ -495,9 +519,14 @@ void rckPointCatch()
     f32 scr[4];
 
     if (RCK->catchTimer == 0) {
-        RCK->cur = RCK->near;
-        if (RCK->cur != -1) {
-            p = RCK->pt[RCK->cur].pos;
+        int n = RCK->near;
+
+        RCK->cur = n;
+        if (n != -1) {
+            RckPoint* pt = &RCK->pt[RCK->cur];
+            p.x = pt->pos.x;
+            p.y = pt->pos.y;
+            p.z = pt->pos.z;
             if (TutilGetScreenPos(&p, scr, 0)) {
                 RCK->curX = scr[0];
                 RCK->curY = scr[1];
@@ -505,19 +534,21 @@ void rckPointCatch()
                 RCK->flags &= ~2;
                 RCK->catchTimer = 10;
             }
-            return;
+        } else {
+            RCK->flags &= ~1;
         }
+    } else {
+        RCK->flags &= ~1;
     }
-    RCK->flags &= ~1;
 }
 
 void rckPointChange()
 {
-    Vec p;
     Vec scr;
+    Vec p;
 
     if (Joy[0].trg & 0x60) {
-        u16 n = RCK->hdr.nPoint;
+        int n = RCK->hdr.nPoint;
 
         if (Joy[0].trg & 0x40) {
             RCK->cur--;
@@ -535,7 +566,8 @@ void rckPointChange()
             }
         }
         if (RCK->cur != -1) {
-            p = RCK->pt[RCK->cur].pos;
+            RckPoint* pt = &RCK->pt[RCK->cur];
+            p = pt->pos;
             GetScreenPos(&p, &scr);
             if (scr.x < 50.0f || scr.x > 450.0f || scr.y < 50.0f || scr.y > 400.0f) {
                 rckPointCameraMove();
@@ -565,15 +597,17 @@ void rckPointMove()
 {
     RckWork* w = RCK;
     RckPoint* p;
-    Vec c;
     Vec out;
+    Vec c;
 
     if (w->cur == -1) {
         return;
     }
     p = &w->pt[w->cur];
     if ((Joy[0].on & 0x100) && (w->flags & 1)) {
-        c = p->pos;
+        c.x = p->pos.x;
+        c.y = p->pos.y;
+        c.z = p->pos.z;
         TutilGet3DPosXZ_Mov((Vec*) &w->curX, &c, &out);
         p->pos.x = out.x;
         p->pos.y = out.y;
@@ -599,9 +633,11 @@ int rckGetNearPoint(Vec* cur)
     int i;
 
     for (i = 0; i < RCK->hdr.nPoint; i++, p++) {
-        pos = p->pos;
+        pos.x = p->pos.x;
+        pos.y = p->pos.y;
+        pos.z = p->pos.z;
         if (TutilGetScreenPos(&pos, scr, 0)) {
-            f32 d = (cur->y - scr[1]) * (cur->y - scr[1]) + (cur->x - scr[0]) * (cur->x - scr[0]);
+            f32 d = (cur->x - scr[0]) * (cur->x - scr[0]) + (cur->y - scr[1]) * (cur->y - scr[1]);
 
             if (d < best) {
                 best = d;
@@ -624,7 +660,7 @@ void rckPointLineStart()
 // Line length of the a -> b connection in 10 units.
 static inline u16 rckLineLen(RckPoint* pa, RckPoint* pb)
 {
-    return (u16) (SQRTF((pa->pos.z - pb->pos.z) * (pa->pos.z - pb->pos.z) + (pa->pos.x - pb->pos.x) * (pa->pos.x - pb->pos.x)) * 0.1f);
+    return (s16) (SQRTF((pa->pos.x - pb->pos.x) * (pa->pos.x - pb->pos.x) + (pa->pos.z - pb->pos.z) * (pa->pos.z - pb->pos.z)) * 0.1f);
 }
 
 void rckPointLineEnd()
@@ -636,7 +672,6 @@ void rckPointLineEnd()
     RckLine* ba;
     RckPoint* pa;
     RckPoint* pb;
-    u16 len;
 
     RCK->flags &= ~2;
     w = RCK;
@@ -657,50 +692,48 @@ void rckPointLineEnd()
     default:
         if (ab->to == b) {
             ab->to = -1;
-            len = 0;
             ba->to = -1;
             pa->nLine--;
             pb->nLine--;
             RCK->hdr.nLine -= 2;
+            ab->len = 0;
+            ba->len = ab->len;
         } else {
             ab->to = w->near;
             ba->to = RCK->lineStart;
             pa->nLine++;
             pb->nLine++;
             RCK->hdr.nLine += 2;
-            len = rckLineLen(pa, pb);
+            ab->len = rckLineLen(pa, pb);
+            ba->len = ab->len;
         }
-        ab->len = len;
-        ba->len = len;
         break;
     case 2:
         if (ab->to == b) {
             ab->to = -1;
-            len = 0;
             pa->nLine--;
             RCK->hdr.nLine--;
+            ab->len = 0;
         } else {
             ab->to = w->near;
             pa->nLine++;
             RCK->hdr.nLine++;
-            len = rckLineLen(pa, pb);
+            ab->len = rckLineLen(pa, pb);
         }
-        ab->len = len;
         break;
     }
 }
 
 // Mode label beside the cursor and its help line.
-static inline void rckModeDisp(const char* big, const char* small, int on, int dx, const char* help)
-{
-    if (on) {
-        eprintf2(10, 16, (u32) RCK->curX - dx, (u32) RCK->curY + 16, 4, 0, big);
-        eprintf(368, 126, 4, 0, help);
-    } else {
-        eprintf2(10, 16, (u32) RCK->curX - dx, (u32) RCK->curY + 16, 7, 0, small);
-        eprintf(368, 126, 7, 0, help);
+// written out per mode in the original: the help string is emitted between the big and the small one
+#define rckModeDisp(big, small, on, dx, help)                                          \
+    if (on) {                                                                          \
+        eprintf2(10, 16, (u32) RCK->curX - (dx), (u32) RCK->curY + 16, 4, 0, big);     \
+        eprintf(368, 126, 4, 0, help);                                                 \
+    } else {                                                                           \
+        eprintf2(10, 16, (u32) RCK->curX - (dx), (u32) RCK->curY + 16, 7, 0, small);   \
+        eprintf(368, 126, 7, 0, help);                                                 \
     }
-}
 
 void rckMainDisp()
 {
@@ -754,12 +787,14 @@ void rckDrawPoint()
 {
     RckPoint* p = RCK->pt;
     Vec pos;
-    Vec q;
     Vec scr;
+    Vec q;
     int i;
 
     for (i = 0; i < RCK->hdr.nPoint; i++, p++) {
-        pos = p->pos;
+        pos.x = p->pos.x;
+        pos.y = p->pos.y;
+        pos.z = p->pos.z;
         TprimSetBlend(2);
         TprimDrawHtr(&pos, &col_htr);
         TprimSetBlend(1);
@@ -859,7 +894,8 @@ void rckDrawPointLine()
 
 void rckDrawPointLineNow()
 {
-    GXColor colNow = {0xFF, 0, 0, 0xFF};
+    u8 red = 0xFF;
+    GXColor colNow = {red, 0, 0, 0xFF};
     GXColor colBack = {0, 0, 0xFF, 0xFF};
     RckWork* w = RCK;
     RckPoint* p = &w->pt[w->lineStart];
@@ -867,20 +903,24 @@ void rckDrawPointLineNow()
     Vec c;
     Vec out;
 
-    c = p->pos;
+    c.x = p->pos.x;
+    c.y = p->pos.y;
+    c.z = p->pos.z;
     TutilGet3DPosXZ_All((Vec*) &w->curX, &c, &out);
     v[0].x = p->pos.x;
     v[0].y = p->pos.y;
     v[0].z = p->pos.z;
-    v[1] = out;
+    v[1].x = out.x;
+    v[1].y = out.y;
+    v[1].z = out.z;
     TprimDrawLineFn(v, &colNow, 2);
-    w = RCK;
-    if (w->near != -1 && w->near != w->lineStart && w->line[w->near][w->lineStart].to != -1) {
-        p = &w->pt[w->near];
+    RckWork* w2 = RCK;
+    if (w2->near != -1 && w2->near != w2->lineStart && w2->line[w2->near][w2->lineStart].to != -1) {
+        p = &w2->pt[w2->near];
         v[0].x = p->pos.x;
         v[0].y = p->pos.y;
         v[0].z = p->pos.z;
-        p = &w->pt[w->lineStart];
+        p = &w2->pt[w2->lineStart];
         v[1].x = p->pos.x;
         v[1].y = p->pos.y;
         v[1].z = p->pos.z;
@@ -934,8 +974,10 @@ void rckSetRoute()
             RckLine* l = &RCK->line[i][j];
 
             if (l->to != -1) {
+                RckPoint* pb;
                 l->to = j;
-                l->len = rckLineLen(pa, &RCK->pt[j]);
+                pb = &RCK->pt[j];
+                l->len = rckLineLen(pa, pb);
             }
         }
     }
@@ -1049,11 +1091,11 @@ int rckFileLoad(int no)
 
     rckSetFilename(path, no);
     ret = HDRead(path, RCK_SAVE);
-    if (ret) {
-        rckMakeEditData(RCK_SAVE);
-        return ret;
+    if (ret == 0) {
+        return 0;
     }
-    return 0;
+    rckMakeEditData(RCK_SAVE);
+    return ret;
 }
 
 void rckMakeEditData(void* data)
@@ -1077,11 +1119,14 @@ void rckMakeEditData(void* data)
         RckPoint* pt = &RCK->pt[i];
 
         for (j = 0; j < pt->nLine; j++) {
-            RckLine l = *(RckLine*) p;
+            RckLine l;
+            RckLine* d;
 
+            *(u32*) &l = *(u32*) p;
             p += 4;
-            RCK->line[i][l.to].to = l.to;
-            RCK->line[i][l.to].len = l.len;
+            d = &RCK->line[i][l.to];
+            d->to = l.to;
+            d->len = l.len;
         }
     }
     for (i = 0; i < RCK->hdr.nPoint; i++) {

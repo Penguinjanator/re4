@@ -884,10 +884,10 @@ section	offset	size	unit	scope	name	demangled
 .rodata	0x00001948	0x4	t_event/db_toolbase.cpp	local	lbl_t_event_rodata_1948	lbl_t_event_rodata_1948
 .rodata	0x0000194C	0x4	t_event/db_toolbase.cpp	local	lbl_t_event_rodata_194C	lbl_t_event_rodata_194C
 .rodata	0x00001950	0x8	t_event/db_toolbase.cpp	local	lbl_t_event_rodata_1950	lbl_t_event_rodata_1950
-.rodata	0x00001958	0x50	t_event/db_toolbase.cpp	global	lbl_t_event_rodata_1958	lbl_t_event_rodata_1958
-.rodata	0x000019A8	0x18	t_event/db_toolbase.cpp	global	lbl_t_event_rodata_19A8	lbl_t_event_rodata_19A8
-.rodata	0x000019C0	0x48	t_event/db_toolbase.cpp	global	lbl_t_event_rodata_19C0	lbl_t_event_rodata_19C0
-.rodata	0x00001A08	0x18	t_event/db_toolbase.cpp	global	lbl_t_event_rodata_1A08	lbl_t_event_rodata_1A08
+.rodata	0x00001958	0x50	t_event/db_toolbase.cpp	global	_vt.10cDbgWindow	lbl_t_event_rodata_1958
+.rodata	0x000019A8	0x18	t_event/db_toolbase.cpp	global	_vt.10cDbgButton	lbl_t_event_rodata_19A8
+.rodata	0x000019C0	0x48	t_event/db_toolbase.cpp	global	_vt.14cDbgWindowBase	lbl_t_event_rodata_19C0
+.rodata	0x00001A08	0x18	t_event/db_toolbase.cpp	global	_vt.14cDbgButtonBase	lbl_t_event_rodata_1A08
 .rodata	0x00001A20	0x4	t_event/db_filelist.cpp	local	lbl_t_event_rodata_1A20	lbl_t_event_rodata_1A20
 .rodata	0x00001A24	0x1C	t_event/db_filelist.cpp	local	lbl_t_event_rodata_1A24	lbl_t_event_rodata_1A24
 .rodata	0x00001A40	0x24	t_event/db_filelist.cpp	local	lbl_t_event_rodata_1A40	lbl_t_event_rodata_1A40

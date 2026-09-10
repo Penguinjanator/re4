@@ -11,6 +11,7 @@
 #include "db_log.h"
 
 extern "C" int sprintf(char* s, const char* fmt, ...);
+static inline int IRef(int& v) { return v; }
 
 
 // Distance curve entry as edited (SndCurveEnt with a signed value).
@@ -115,24 +116,35 @@ void ToolSndVolEdit();
 void getInfoData(SndRoomHdr* hdr)
 {
     int i;
+    u32 ofs;
+    u32 size;
+    SndCurveTbl* t;
 
     work->efx[0] = hdr->efx[0];
     work->efx[1] = hdr->efx[1];
     for (i = 0; i < 32; i++) {
-        if (hdr->curve_sel[i] != 0) {
-            work->sel[i] = *(CombSel*) ((u8*) hdr + hdr->curve_sel[i]);
+        int pad0 = i, pad1 = i, pad2 = i, pad3 = i, pad4 = i, pad5 = i; // COMPILER-DIFF: 5 (interblock region size: the original does not hoist the giv increments of this loop)
+        ofs = hdr->curve_sel[i];
+        if (ofs != 0) {
+            memcpy(&work->sel[i], (u8*) hdr + ofs, sizeof(CombSel));
         }
-        if (hdr->vol_ofs[i] != 0) {
-            SndCurveTbl* t = (SndCurveTbl*) ((u8*) hdr + hdr->vol_ofs[i]);
-            memcpy(&work->vol[i], t, t->num * 8 + 8);
+        ofs = hdr->vol_ofs[i];
+        if (ofs != 0) {
+            t = (SndCurveTbl*) ((u8*) hdr + ofs);
+            size = t->num * 8 + 8;
+            memcpy(&work->vol[i], t, size);
         }
-        if (hdr->pitch_ofs[i] != 0) {
-            SndCurveTbl* t = (SndCurveTbl*) ((u8*) hdr + hdr->pitch_ofs[i]);
-            memcpy(&work->pitch[i], t, t->num * 8 + 8);
+        ofs = hdr->pitch_ofs[i];
+        if (ofs != 0) {
+            t = (SndCurveTbl*) ((u8*) hdr + ofs);
+            size = t->num * 8 + 8;
+            memcpy(&work->pitch[i], t, size);
         }
-        if (hdr->filter_ofs[i] != 0) {
-            SndCurveTbl* t = (SndCurveTbl*) ((u8*) hdr + hdr->filter_ofs[i]);
-            memcpy(&work->filter[i], t, t->num * 8 + 8);
+        ofs = hdr->filter_ofs[i];
+        if (ofs != 0) {
+            t = (SndCurveTbl*) ((u8*) hdr + ofs);
+            size = t->num * 8 + 8;
+            memcpy(&work->filter[i], t, size);
         }
     }
 }
@@ -140,10 +152,11 @@ void getInfoData(SndRoomHdr* hdr)
 void init()
 {
     u8 i;
+    SndVolWork*& wp = sndVolWork.p;
 
     TaskSuspend(0);
     TutilInitDefault();
-    work = (SndVolWork*) Debug_alloc(sizeof(SndVolWork), 1);
+    wp = (SndVolWork*) Debug_alloc(sizeof(SndVolWork), 1);
     memclr_asm(work, sizeof(SndVolWork));
     for (i = 0; i < 32; i++) {
         work->vol[i].scale = 1000.0f;
@@ -165,6 +178,8 @@ void exit()
 
 static void edit_menu()
 {
+    s8 c;
+
     eprintf(0x30, 0x40, work->menuCur == 0 ? 6 : 0, 0, "REVERB PARAMETER EDIT");
     eprintf(0x30, 0x50, work->menuCur == 1 ? 6 : 0, 0, "VOLUME TABLE EDIT");
     eprintf(0x30, 0x60, work->menuCur == 2 ? 6 : 0, 0, "PITCH TABLE EDIT");
@@ -181,7 +196,8 @@ static void edit_menu()
         work->menuCur = 7;
     } else if (Joy[0].trg & 0x100) {
         work->cur = 0;
-        switch (work->menuCur) {
+        c = work->menuCur;
+        switch (c) {
         case 0:
             work->mode = 3;
             work->step = 0;
@@ -211,11 +227,11 @@ static void edit_menu()
             work->cur = 0;
             break;
         case 5:
-            work->mode = work->menuCur;
+            work->mode = c;
             work->step = 0;
             break;
         case 6:
-            work->mode = work->menuCur;
+            work->mode = c;
             work->step = 0;
             break;
         case 7:
@@ -301,12 +317,11 @@ void ListDraw(s16 x, s16 y, u32 col, s8 no, u8 type)
     u16 i;
 
     if (type & 0x80) {
-        gray.r = gray.g = gray.b = 0x80;
-        gray.a = 0x80;
-        pt[0].x = x + (u16) (work->curDist * 2.0f);
+        *(u32*) &gray = 0x80800080; // r, g, a = 0x80, b = 0 (as in the original)
+        pt[0].x = x + (s16) (work->curDist * 2.0f);
         pt[0].y = y - 1;
         pt[0].z = 0;
-        pt[1].x = x + (u16) (work->curDist * 2.0f);
+        pt[1].x = x + (s16) (work->curDist * 2.0f);
         pt[1].y = y + 0x41;
         pt[1].z = 0;
         TprimDrawFrameFn_s16(pt, &gray, 2);
@@ -741,11 +756,14 @@ static s8 blink_dir = 1;
 void markDraw(s16 val, u32 col, int kind, f32 dist)
 {
     S16Vec pt[4];
-    int x = (int) dist - work->left;
+    int x = (int) dist - IRef(work->left);
     s16 px;
     s16 py = 0;
 
-    if (x < 0 || x > 13) {
+    if (x < 0) {
+        return;
+    }
+    if (x > 13) {
         return;
     }
     px = x * 32 + 0x40;
@@ -760,7 +778,7 @@ void markDraw(s16 val, u32 col, int kind, f32 dist)
         py = val * 8 + 0xC4;
         break;
     }
-    switch (kind) {
+    switch ((u32) kind) {
     case 0:
         pt[0].x = px - 9;
         pt[0].y = py - 9;
@@ -789,30 +807,27 @@ void markDraw(s16 val, u32 col, int kind, f32 dist)
         pt[3].y = py;
         pt[3].z = 0;
         break;
-    case 2: {
-        u8 r = blink_r;
-        s8 d = blink_dir;
+    case 2:
         pt[0].x = px;
-        pt[0].y = py - r;
+        pt[0].y = py - blink_r;
         pt[0].z = 0;
-        pt[1].x = px + r;
+        pt[1].x = px + blink_r;
         pt[1].y = py;
         pt[1].z = 0;
         pt[2].x = px;
-        pt[2].y = py + r;
+        pt[2].y = py + blink_r;
         pt[2].z = 0;
-        pt[3].x = px - r;
+        pt[3].x = px - blink_r;
         pt[3].y = py;
         pt[3].z = 0;
-        blink_r = r + d;
-        if (d == 1 && blink_r == 6) {
+        blink_r += blink_dir;
+        if (blink_dir == 1 && blink_r == 6) {
             blink_dir = -1;
         }
         if (blink_dir == -1 && blink_r == 0) {
             blink_dir = 1;
         }
         break;
-    }
     }
     TprimDrawFrameFn_s16(pt, (GXColor*) &col, 4);
 }
@@ -850,24 +865,27 @@ void editDataLineDraw(TblEnt* e, u32 col)
     S16Vec pt[2];
     s16 x0;
     s16 x1;
+    s16 base = 0;
     s16 y0 = 0;
     s16 y1 = 0;
-    s16 base = 0;
     f32 v;
     f32 dv;
     f32 prev;
     int x;
+    f32 d0 = e[0].dist;
+    f32 d1 = e[1].dist;
+    int left = IRef(work->left);
 
-    if (e[0].dist >= (f32) (work->left + 13)) {
+    if (d0 >= (f32) (left + 13)) {
         return;
     }
-    if (e[1].dist <= (f32) work->left) {
+    if (d1 <= (f32) left) {
         return;
     }
-    x0 = (u16) (e[0].dist - (f32) work->left);
-    x1 = (u16) (e[1].dist - (f32) work->left);
-    v = (f32) (u16) e[0].val;
-    dv = ((f32) (u16) e[1].val - v) / (e[1].dist - e[0].dist);
+    x0 = (s16) (d0 - (f32) left);
+    x1 = (s16) (d1 - (f32) left);
+    dv = ((f32) e[1].val - (f32) e[0].val) / (d1 - d0);
+    v = (f32) e[0].val;
     for (x = x0; x < x1; x++) {
         prev = v;
         v += dv;
@@ -880,24 +898,24 @@ void editDataLineDraw(TblEnt* e, u32 col)
         switch (work->tblType) {
         case 0:
             base = 0x8C;
-            y0 = (u16) ((130.0f - prev) * 2.0f);
-            y1 = (u16) ((130.0f - v) * 2.0f);
+            y0 = (s16) ((130.0f - prev) * 2.0f);
+            y1 = (s16) ((130.0f - v) * 2.0f);
             break;
         case 1:
             base = 0x96;
-            y0 = (u16) ((30.0f - prev) * 4.0f);
-            y1 = (u16) ((30.0f - v) * 4.0f);
+            y0 = (s16) ((30.0f - prev) * 4.0f);
+            y1 = (s16) ((30.0f - v) * 4.0f);
             break;
         case 2:
             base = 0xB4;
-            y0 = (u16) ((prev + 2.0f) * 8.0f);
-            y1 = (u16) ((v + 2.0f) * 8.0f);
+            y0 = (s16) ((prev + 2.0f) * 8.0f);
+            y1 = (s16) ((v + 2.0f) * 8.0f);
             break;
         }
         pt[0].x = x * 32 + 0x40;
+        pt[1].x = x * 32 + 0x60;
         pt[0].y = base + y0;
         pt[0].z = 0;
-        pt[1].x = x * 32 + 0x60;
         pt[1].y = base + y1;
         pt[1].z = 0;
         TprimDrawFrameFn_s16(pt, (GXColor*) &col, 2);
@@ -914,6 +932,8 @@ void editDataDraw(EditTbl* tbl)
         return;
     }
     for (i = 0; i < (int) tbl->num; i++) {
+        TblEnt* e = &tbl->e[i];
+
         col = 0xFFFFFFFF;
         kind = 1;
         if (i == work->pt) {
@@ -922,7 +942,7 @@ void editDataDraw(EditTbl* tbl)
                 kind = 2;
             }
         }
-        markDraw(tbl->e[i].val, col, kind, tbl->e[i].dist);
+        markDraw(e->val, col, kind, e->dist);
     }
     for (i = 0; i < (int) tbl->num - 1; i++) {
         editDataLineDraw(&tbl->e[i], 0xFFFFFFFF);
@@ -936,20 +956,20 @@ static char* filter_name[24] = {"16000Hz", "12800Hz", "10240Hz", " 8000Hz", " 64
 void editScreenDisp()
 {
     EditTbl* tbl = &work->curTbl[work->cur];
-    S16Vec pt[2];
+    S16Vec pt[3];
     GXColor col;
     s16 i;
-    s16 rows = 0;
     s16 base = 0;
+    s16 rows = 0;
     s16 curY = 0;
     s16 x;
     s16 v;
 
-    v = (s16) (u16) (work->curDist - 10.0f);
+    v = (s16) (work->curDist - 10.0f);
     if (work->left > v) {
         work->left = v;
     }
-    v = (s16) (u16) (work->curDist - 4.0f);
+    v = (s16) (work->curDist - 4.0f);
     if (work->left < v) {
         work->left = v;
     }
