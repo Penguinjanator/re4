@@ -7549,3 +7549,60 @@ confirmed on the units named):
   the three RockOrKick inline copies stay un-merged; our jump2's chain order merges into the LAST copy (jump.c
   `find_cross_jump` over `jump_chain`, head = latest jump) and merges the identical copies -- COMPILER-DIFF #6. A `goto`
   to a label inside the Debug `if` reproduces the survivor but not the un-merged copies (124 words); not applied.
+
+### em32 (U-3, the container-area boss; src/em32/em32.cpp + include/em32.h written from scratch, 105/108 masked-identical, .rodata/.data equal, not flipped; 2026-09-10)
+- Layout as em25/em36 (R0 table global, R1 flat {br, main} pairs, R2/R3 one entry, EmAtkInfo x6, cloth tables,
+  `.data` balign pad, `.comm common_em32`, cUnit/cManager<cObj> linkonce copies at the .text end). Work 0x994 bytes
+  (include/em32.h: 28 EmHitInfo, blend-motion sub work, PlCloth, two pDivide units, TexRender blend model, breakNo
+  bytes read by `cEm32::getBreakNo/getBreakNo2`, `setNext(int)` room-script hook). Harness /tmp/em32w (mcmp/sbs/
+  variants/perm + tools/casetree.py for the DmCk tree, dump.sh for `.lreg`).
+- Two block-local loads of the same field give the `lfs f0; lfs f13,K; fmr f12,f0; fcmpu f0,f13` shape: `f32 a =
+  w->plAngAbs; if (a < K1 ..) {..} else { f32 ang = w->plAngAbs; if (ang < K2 ..) }` (Dash, Ambush: cse turns the
+  second load into the copy). One local shared by both compares gives no `fmr`.
+- Known-zero register for routine bytes: `if (em32StepUpCk(em)) break; .. EmRoutineSet(em, 1, 0xC, 0, 0)` (block-local
+  `mr. r3,r3`, zeros stored from r3); `ret = em32AmbushAtkCk(em); if (ret) break; .. EmRoutineSet(em,1,0xF,ret,ret)`
+  when the tail is shared with a `stb r29` arm; `{ int wait = w->longAtkWait; if (wait == 0 && ..) EmRoutineSet(em, 1,
+  0x12, wait, wait); }` for a block-local `lwz r11; stb r11`. In a `case 1:` arm `EmRoutineSet(em, 1, 1, 0, 0)` stores
+  the case register (`stb r11, fd/fc`) for the 1s.
+- Store order: `EmRoutineSet(em, 1, N, v, v)` = `ff, fc, fd, fe` when v dies there (StepUpCk3, StepDown's four arms
+  cross-jumped into one tail); plain `xFD; xFE; xFC; xFF` for `fd fe fc ff` (StepUpCk2); `w->blendC = 5; w->blendCnt =
+  10` for `stw 7cc; stw 8bc`; a `w->x10/timer/timer2 = step` triple comes out rotated (source [a,b,c] -> emitted
+  [c,a,b]): CatchHit `timer, timer2, x10`, P_CatchHit `x10, timer, timer2`; C_AtkHit `x10, timer2`.
+- `em->rot.y = LIMIT_ANGLE(em->rot.y += Muku(..))` (assignment inside the call) gives `fadds; fmr f1,f0; stfs f0; bl
+  LIMIT_ANGLE; stfs f1` and loads the Muku2 `w->stepAng` before `rot.y`; the two-statement form reloads `rot.y`
+  (StepUp/StepDown). `pos = &em->pos` assigned AFTER the Muku call in the else arm (`addi r0; mr r3,r0; mr r28,r0`).
+- The three catch routines (`CatchHit`, `P_CatchHit`, `C_AtkHit`) end with `em->x3A8 = em->pos` and every arm reaches
+  it with `break` (a `return` in the case-3 arms drops the PRE'd `addi r27,r31,0x94` copies the target inserts in
+  each arm); their attack-end checks have no `w->x991 ||` term (unlike the EM32_ATK_END_CK macro of the other
+  attacks) and `U16Set(pG->pl_life, 0)` reloads `pG` for the following `VibSetData`.
+- Loops over `pG->pRoomEmi` that must reload `pG` each iteration (no call inside): the store in the loop must not be
+  MEM_IN_STRUCT_P: `PSet((void*&) w->pPoint, e)` for a pointer (GetJumpDownNo), `memcpy((u8*) w + 0x79C, &e->pos,
+  sizeof(Vec))` for a Vec copy (GetStepDownPos second loop; the first loop reloads because of the hitCheck call
+  anyway). One function-scope `EmiEntry* e` for two loops keeps r31 in both. Squared distance recomputed in two
+  blocks with the result in f0 = one function-scope `f32 d` (CeilingAtkCk, em25 rule).
+- Difficulty timer blocks: `IntSet(w->longAtkWait, 600); IntSet(w->timer2, 25); IntSet(w->timer3, 15); IntSet(w->
+  timer, 10)` (all four reference stores; LongAtk) vs `IntSet(w->timer2, ..); IntSet(w->timer3, 20)` after an
+  `EM32_W_FRESH(w)` (Ground: `w->flags |= 0x810; w->flags |= 0x10000;` two statements for `ori; oris`).
+- `F32Set(em->pos.y, pPL->pos.y + 6000.0f)` (reference store) reloads `pPL` for the next `pPLS->rot.y`; the C_Wait
+  timer tail is `{ int t = w->timer; if (t > 44 && (pPL->xFC || (u32)(pPL->xFD - 1) > 2)) {} else if (t) w->timer = t
+  - 1; else goto ceiling; } if (w->timer) break; ceiling:` (the shared reload test block is reached only by the hold
+  and decrement paths; every goto-free form either forwards the store or PREs the hold-path load).
+- DmCk: (a) the weapon tree needs `case 7: case 8: case 0x21:` as a second arm with the SAME body as the damage-total
+  arm (cross-jumped; separate case nodes `[7,8]`, `0x21`) and `case 5: case 6: case 0xD: case 0x12: case 0x29: case
+  0x2C: default:` explicit defaults (tools/casetree.py reproduces the target order exactly; explicit-default EQ
+  compares followed by the default jump vanish); (b) em/zero register order (`em` r30, zero r31): the DmgMgr arm uses a
+  block-local `int f = w->flags & 0x800` with its own copy of the die tail (EmSetDie/EmSetDieCnt/RS(3,f,f,f)) instead
+  of `goto die` -- two short pseudos (5 refs/12 insns beats em's 42/349 in global-alloc, then the second zero takes the
+  freed r31), cross-jumping merges the tails.
+- setNext: `U8Set(w->mode, 1)` in every arm shares the SImode 1 with the routine byte across `resetTexBlendTbl`
+  (`li r30,1` reusing `no`'s register); case 6 order `flags_3C8 &= ~1; xFD = 0xD; xFE = 0; xFC = 1; xFF = 1`.
+- plemEscape: the dead `if (Muku(..) > 0.0f) side = 1; else side = 0;` before `side = Rnd() & 1` is what puts the
+  0.0 pool load between the two calls in f31 (its RTL position survives the dead-store deletion; the 500/0.0 FPR
+  pair follows).
+- AmbushAtkCk: `Vec b; Vec a;` (player copy declared first -> 0x8/0x18 slots) and the probe vectors are
+  `(0, 500, 3217.65)` / `(±4000, 500, 3217.65)` (z = 3217.65, not x).
+- `#line 3669` before the StepUp VECNormalize (0xE55 assert line), `#line 3617` in EscapeCamMove.
+- Residual (3 functions): em32BlendMotSet 2 words (COMPILER-DIFF #2 u16 param `clrlwi`); C_Atk 3 words (sched1 tie:
+  `stw r11,0xc(r1)` stack arg vs `addi r5/stb breakNo` order in a block identical to JumpUp's matching one);
+  R0_Init 15 words (600/0xFF `li` register pair r9/r10 and the hp=500 `li r0` vs the routine `1` -- local-alloc order,
+  U8Set/IntSet/statement permutations tried).
