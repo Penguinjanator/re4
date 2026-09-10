@@ -11696,6 +11696,13 @@ stmt.c/jump.c and confirmed with cc1plus probes:
   Use `/bin/rm -rf` (the plain `rm` alias refuses tmpfs). Orchestrator removed the finished passes'
   directories; agents should delete their /tmp harness when done or write large outputs under
   ~/.cache/<pass>/.
+- 2026-09-11 01:00 cleanup: every finished pass's harness directory named in this file (/tmp/sched5, /tmp/cd6,
+  /tmp/rank18 + /var/tmp/rank18, /tmp/gcse3, /tmp/equiv13, ~/.cache/ccfp7, ~/.cache/fold7, all /tmp/rooms_*,
+  /tmp/ssw*, /tmp/dol*, /tmp/em*, ~/.cache/<pass> up to tools_p11/cri6/tesp2/rooms_c8, the
+  re4-orig/sn-gcc-argorder/harness build outputs) was deleted. The paths in the research sections are
+  historical; the findings are self-contained. To rebuild a whole-tree harness: copy tools/sn-gcc/src to
+  ~/.cache/<name>/gcc, build cc1plus with tools/sn-gcc/Makefile, and drive it with a copy of a live pass's
+  h.py/order.py (any current ~/.cache/<pass>/). Finished agents delete their own ~/.cache/<pass>/ at the end.
 
 ### Stage rooms, never-iterated units pass 4 (r216 Matching 30/30; r21a FallRoofMove 13 -> 0 (16/17); r224 15 -> 18/19 with reva_common_move 32 -> 12; r214 throwRock 68 -> 7; 2026-09-10)
 
