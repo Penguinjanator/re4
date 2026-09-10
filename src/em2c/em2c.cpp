@@ -38,6 +38,10 @@
 #include "math_sub.h"
 #include "dbmodule.h"
 #include "db_log.h"
+
+// The module's 0x34-byte COMMON block (st_room.h): uninitialised template statics of the original
+// object, merged into .bss by the REL link.
+asm(".comm common_em2c,52,4");
 #include "camera.h"
 #include "cam_ctrl.h"
 #include "quake.h"
@@ -242,11 +246,11 @@ static Em2cFunc Em2c_R1_move_tbl[76] = {
     em2c_R1_br_Dummy, em2c_R1_HideAtk,      // 0x14
     em2c_R1_br_Dummy, em2c_R1_HideFall,     // 0x15
     em2c_R1_br_Dummy, em2c_R1_JumpDown,     // 0x16
-    em2c_R1_br_Dummy, em2c_R1_WallOver,     // 0x17
-    em2c_R1_br_Dummy, em2c_R1_F_Wait,       // 0x18
-    em2c_R1_br_Dummy, em2c_R1_F_Walk,       // 0x19
-    em2c_R1_br_Dummy, em2c_R1_F_Atk,        // 0x1A
-    em2c_R1_br_Dummy, em2c_R1_F_Clear,      // 0x1B
+    em2c_R1_br_Dummy, em2c_R1_F_Wait,       // 0x17
+    em2c_R1_br_Dummy, em2c_R1_F_Walk,       // 0x18
+    em2c_R1_br_Dummy, em2c_R1_F_Atk,        // 0x19
+    em2c_R1_br_Dummy, em2c_R1_F_Clear,      // 0x1A
+    em2c_R1_br_Dummy, em2c_R1_WallOver,     // 0x1B
     em2c_R1_br_Dummy, em2c_R1_W_Wait,       // 0x1C
     em2c_R1_br_Dummy, em2c_R1_W_Walk,       // 0x1D
     em2c_R1_br_Dummy, em2c_R1_W_Atk,        // 0x1E
@@ -590,6 +594,7 @@ void em2cDmCk(cEm2c* em)
             EmRoutineSet(em, 2, 2, 0, 0);
             return;
         }
+        asm volatile("");  // COMPILER-DIFF: #16 candidate: jump2's "if (c) { x = a; goto l; } x = b" hoist of the arm's `li r0,2` above the `beq` (x = r0 = the switch load below) fires in ours, not in the original; the codeless asm makes the next block's first insn a non-SET
         switch (em->dmWep) {
         case 0:
         case 1:
@@ -759,10 +764,10 @@ void em2cDmCk(cEm2c* em)
         }
         w->dmgTotal = 0;
         if (w->flags & 0x800) {
-            if ((Rnd() & 3) == 0) {
-                EmRoutineSet(em, 2, 8, 0, 0);
-            } else {
+            if (Rnd() & 3) {
                 EmRoutineSet(em, 2, 7, 0, 0);
+            } else {
+                EmRoutineSet(em, 2, 8, 0, 0);
             }
         } else if (dmAng < 1.57079637f) {
             EmRoutineSet(em, 2, 4, 0, 0);
@@ -1287,7 +1292,11 @@ static void em2c_R1_Walk(cEm2c* em)
     switch (em->xFE) {
         do { } while (0);  // dead loop before the label: fresh `li 0` for the zero stores
     case 0:
-        w->blendSeq = (em->motFlags & 0x40) ? 0xB : 0x20;
+        if (em->motFlags & 0x40) {
+            w->blendSeq = 0xB;
+        } else {
+            w->blendSeq = 0x20;
+        }
         w->blendM0 = ARC(8);
         w->blendM1 = ARC(0xE);
         w->blendM2 = ARC(0xD);
@@ -1461,18 +1470,17 @@ static void em2c_R1_Dash(cEm2c* em)
 {
     Em2cWork* w = EM2C_WK(em);
     Vec pos;
-    int seq;
     int over;
 
     w->flags |= 0x180;
     switch (em->xFE) {
         do { } while (0);  // dead loop before the label: fresh `li 0` for the zero stores
     case 0:
-        seq = em->motFlags & 0x40;
-        if (seq) {
-            seq = 8;
+        if (em->motFlags & 0x40) {
+            w->blendSeq = 8;
+        } else {
+            w->blendSeq = 0;
         }
-        w->blendSeq = seq;
         w->blendM0 = ARC(0xA);
         w->blendM1 = ARC(0xC);
         w->blendA = (int) ARC(0xB);
@@ -2652,7 +2660,8 @@ static void em2c_R1_HideWait(cEm2c* em)
                 break;
             }
         } else {
-            do { w->timer = t - 1; } while (0);  // loop notes = sched1 barrier: the timer8 load stays below the store
+            w->timer = t - 1;
+            asm volatile("");  // COMPILER-DIFF: #15 candidate: the original keeps the same-base `lwz timer8` below the `stw timer` (r0 for both); ours hoists it (a dead do-while keeps the order but gives the load r9)
             if (w->timer8 <= 90) {
                 break;
             }
@@ -3041,7 +3050,11 @@ static void em2c_R1_F_Walk(cEm2c* em)
     switch (em->xFE) {
         do { } while (0);  // dead loop before the label: the arm does not know xFE == 0 (fresh `li 0` for the zero stores)
     case 0:
-        w->blendSeq = (em->motFlags & 0x40) ? 0xB : 0x22;
+        if (em->motFlags & 0x40) {
+            w->blendSeq = 0xB;
+        } else {
+            w->blendSeq = 0x22;
+        }
         w->blendM0 = ARC(0x2C);
         w->blendM1 = ARC(0x33);
         w->blendM2 = ARC(0x32);
@@ -3836,7 +3849,7 @@ static void em2c_R1_T_Wait(cEm2c* em)
     Em2cWork* w = EM2C_WK(em);
     u8 fe;
     int zero;
-    int i;
+    u32 i;
 
     fe = em->xFE;
     switch (fe) {
@@ -3866,11 +3879,11 @@ static void em2c_R1_T_Wait(cEm2c* em)
         em->rot.y = em->rot.y + (pPLS->rot.y + 3.14159274f);
         em->rot.y = LIMIT_ANGLE(em->rot.y);
         MotionSetCore(em, &em->mot, ARC(0x87), 0, 0, 5, 0);
-        if (Rnd() % 10 <= 4 && em2cFloorTypeCk(em)) {
+        if (Rnd() % 10 > 4 || em2cFloorTypeCk(em) == 0) {
+            em->xFF = 0;
+        } else {
             em->xFF = 1;
             SndCall(8, 0x49, &em->pos, em->id, 0, em);
-        } else {
-            em->xFF = 0;
         }
         w->timer = 70;
         w->x6B8 = 0;
@@ -3907,9 +3920,9 @@ static void em2c_R1_T_Wait(cEm2c* em)
             ActBtn.set(0x25, 0xB, (int) em2cBackjumpAction, (int) em, 1, 3, 0, w->x6B8);
         }
         if (em->xFF) {
-            zero = em2cFloorTypeCk(em);
-            if (zero == 0) {
-                em->xFE = zero;
+            int r = em2cFloorTypeCk(em);
+            if (r == 0) {
+                em->xFE = r;
                 break;
             }
         }
@@ -3946,7 +3959,7 @@ static void em2c_R1_T_Wait(cEm2c* em)
         w->atkHit = 0;
         em->flags_3C8 &= ~4;
         em->flags_3C8 |= 0x40000000;
-        pG->flags_174 |= 0x40000000;
+        pGS->flags_174 |= 0x40000000;
         em->xFE++;
     case 5:
         if (MotionMoveF(em, 0)) {
@@ -6023,11 +6036,15 @@ void em2cBlendMotSet(cEm2c* em, void* m0, void* m1, void* m2, int a, int b, int 
 {
     Em2cWork* w = EM2C_WK(em);
     MotionWork* bm;
+    int dd;
+    int aa;
+    asm("" : "=r"(aa) : "0"(a));            // COMPILER-DIFF: #2 (order only: gives a's copy the same chain length as d's so `mr r0,r7` keeps its place)
+    asm("" : "=r"(dd) : "0"((int) d));     // COMPILER-DIFF: #2: the original masks the u16 `d` at each MotionSetCore call (`clrlwi r8,r25,16`)
     f32 val = fabsf(w->blendVal);
     void* m;
     int arg;
 
-    MotionSetCore(em, &em->mot, m0, a, (u8) w->blendCnt, d & 0xFFFF, (u16) w->blendSeq);
+    MotionSetCore(em, &em->mot, m0, aa, (u8) w->blendCnt, (u16) dd, (u16) w->blendSeq);
     if (w->blendVal > 0.0f) {
         m = m1;
         arg = b;
@@ -6036,7 +6053,7 @@ void em2cBlendMotSet(cEm2c* em, void* m0, void* m1, void* m2, int a, int b, int 
         arg = c;
     }
     bm = EM2C_BLEND_MOT(w);
-    MotionSetCore(em, bm, m, arg, (u8) w->blendCnt, d & 0xFFFF, (u16) w->blendSeq);
+    MotionSetCore(em, bm, m, arg, (u8) w->blendCnt, (u16) dd, (u16) w->blendSeq);
     em->motBlend = bm;
     bm->blendRate = val * 0.00390625f;
     if (w->blendCnt) {
@@ -6052,11 +6069,17 @@ void em2cBlendMotSet2(cEm2c* em, void* m0, void* m1, int a, int b, u16 d)
 {
     Em2cWork* w = EM2C_WK(em);
     MotionWork* bm;
+    int dd;
+    int bb;
+    void* mm1;
+    asm("" : "=r"(mm1) : "0"(m1));         // COMPILER-DIFF: #2 (order only: m1/b get the same chain length as d, keeping the prologue copy order)
+    asm("" : "=r"(bb) : "0"(b));
+    asm("" : "=r"(dd) : "0"((int) d));     // COMPILER-DIFF: #2: the original masks the u16 `d` once (`clrlwi r29,r29,16`) and passes the copy to both calls
     f32 val = fabsf(w->blendVal);
 
-    MotionSetCore(em, &em->mot, m0, a, (u8) w->blendCnt, d & 0xFFFF, (u16) w->blendSeq);
+    MotionSetCore(em, &em->mot, m0, a, (u8) w->blendCnt, (u16) dd, (u16) w->blendSeq);
     bm = EM2C_BLEND_MOT(w);
-    MotionSetCore(em, bm, m1, b, (u8) w->blendCnt, d & 0xFFFF, (u16) w->blendSeq);
+    MotionSetCore(em, bm, mm1, bb, (u8) w->blendCnt, (u16) dd, (u16) w->blendSeq);
     em->motBlend = bm;
     bm->blendRate = val * 0.00390625f;
     if (w->blendCnt) {

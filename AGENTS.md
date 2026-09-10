@@ -4448,7 +4448,7 @@ target) stays unresolved and `make_rel` then fails with "undefined symbol".
     current frame, +0x294 motion count, +0x94 pos, +0xF4 parts list) everywhere; strings and pools in
     .rodata are in the order listed by secdump.
 
-### Ganado shared library (em10/em10.cpp, 380/382 byte-identical, .data/.rodata/.bss identical, not Matching; 2026-09)
+### Ganado shared library (em10/em10.cpp, 382/382 byte-identical, Matching in all 16 modules since the seventh pass 2026-09-10; 2026-09)
 
 - The unit is shared by 16 modules (`common_<mod>` .comm block from `REL_MODULE`, everything else
   identical); flag MATCHING for all 16 at once, only when every function matches. em10.cpp is in
@@ -4610,7 +4610,9 @@ target) stays unresolved and `make_rel` then fails with "undefined symbol".
     - jump.c's `if (c) x = a; else x = b;` hoist (jump.c:479) skips the else-set only when the
       then-arm is not a single set or the else arm has REG_NOTES; a plain ternary is hoisted in
       jump1, so the `li` is free to schedule above the compare unless something depends on it.
-  - OPEN (3): LostHead (59 words: `cmpwi cr4, r28, 3` in the switch dispatch block AND after `bl
+  - OPEN (3) -- ALL CLOSED in the seventh pass below (LostHead: a dead `if (a == 3)` in `case 0: default:`
+    falling through into case 1; setHand: a dead `if (w->x184 == 0) type = 0;` before `if (no)`); the
+    analysis text is kept for the mechanism notes: LostHead (59 words: `cmpwi cr4, r28, 3` in the switch dispatch block AND after `bl
     EmSetDie` in the shared case-0/1/2-else tail, the join's compare gone, cr4 saved with `mfcr r12`;
     our gcse never PREs it (single occurrence); `case 3: break;` makes it PRE'd but into block 2 + the
     case-1 body with the CC spilled through `mfcr r30`, 164 words; `case 3:` grouped with default or
@@ -4662,7 +4664,58 @@ target) stays unresolved and `make_rel` then fails with "undefined symbol".
       before the `EmReserveDropItem` call block of the case-2 else arm) plus the deleted join
       compare are not PRE; the shape ("last multi-predecessor block on each path to the join") is
       what haifa interblock motion with bookkeeping copies produces, i.e. #5 (the original forms
-      scheduling regions here, ours does not).
+      scheduling regions here, ours does not). [WRONG -- see the seventh pass: it IS gcse PRE, on a
+      CFG with one more edge.]
+  - Seventh pass (380 -> 382, unit Matching, 16 modules flipped, 2026-09-10; harness /tmp/em10g = em10f
+    copies with the paths rewritten; `mini_run.sh` for CFG models; the SN gcse.c/lcm.c source in
+    /tmp/em10g/sngcc/src/gcc):
+    - **em10LostHead 59 -> 0 = gcse PRE with a dead test that falls through** (mechanism, verified in
+      the dumps and with a CFG model). Our lcm.c is the block-based Muchnick LCM (2.95's `pre_lcm`)
+      with LATEIN == DELAYIN for every block but the last (`compute_latein` special-cases only
+      `n_blocks - 1`), insertions at BLOCK ENDS (`insert_insn_end_bb`: before the final jump, else
+      `emit_insn_after` the last insn), deletions where `antloc & ~latein & ~isoout`, insertions where
+      `latein & ~isoout` and the block reaches a deleted occurrence through blocks that do not compute
+      it (`pre_expr_reaches_here_p`). `pre_insert_copies` is dead code (optimal & redundant is empty).
+      Consequences: (a) a single occurrence is never moved (its block is isolated at the exit); (b) with
+      LATEIN = DELAYIN a dominator D can be an insertion point only if one of its successors S is NOT
+      delayed, i.e. S has ANOTHER predecessor q with `dout(q) = 0` (q computes the expression or lies
+      downstream of a computation); (c) insertions land in EVERY delayed predecessor of the deleted
+      join, and cse2 then turns the copies that sit on one of its jump-following / block-skipping paths
+      (labels with ONE use, `-fcse-follow-jumps`/`-fcse-skip-blocks`) after another insertion of the same
+      reaching reg into `P = P` no-ops (deleted with reload/jump2), while a copy in a block whose label
+      has 2+ uses (a fresh ebb) survives. The `case 3: break;` experiment (insertions at bb 31, 33, 35,
+      39, 40) matches this model exactly.
+      Target: `cmpwi cr4, a, 3` at the end of the dispatch block D1 (`cmpwi a,1 [P] beq`) and in the
+      case-2 else arm E2 (after the first `bl`, where sched2 puts a free insn: verified in the CFG
+      model), join compare gone, T (then arm) / C01 / C1 clean. By (b) D1 needs its `beq` target (the
+      case-1 body C1) to have a second predecessor q downstream of an `a == 3` compare; by (c) the T and
+      C01 copies die in D1's ebb (follow `beq C2`, skip-around `blt C01`), E2's (3 uses) survives, C1's
+      is never inserted (its delayin is 0). The source with exactly that CFG:
+      `case 0: default: if (a == 3) paras = 0; /* no break */ case 1: BODY; break;` -- the dead store
+      is deleted by flow, the `bne` (now to the next insn) by jump2, whose `delete_computation` keeps
+      the compare because the PRE pseudo P (= the source compare after cse2 folds the D1 insertion
+      into it) is live to the join's `bne cr4`. Any dead local store works (`no`/`hit`/`b`/`paras` all
+      0); a label-less empty `if` is folded in jump1 and `delete_trivially_dead_insns` (before gcse).
+      P has only compare/branch uses -> CR_REGS -> cr4 (`mfcr r12` prologue). The dead test's block is
+      what gives the switch tree separate 0 and 1 nodes too (no copy of the body needed any more).
+    - **setHand 2 -> 0 = a dead test whose load is PRE-redundant** (`if (w->x184 == 0) type = 0;`
+      between the switch and `if (no)`; `type` is dead there). gcse makes its `w->x184` load redundant
+      with the early `if (w->x184 && ..)` load and inserts the reaching-reg copy `mr P, r0` right after
+      that load; P is live across the whole switch (2 refs / 33 insns, priority above `no`'s 2 / 47),
+      conflicts with `no`, takes r11 (alloc order r0, r9, r11, r10), and `no` gets r10. The test's
+      store goes with flow, its `beq`/`cmpwi`/copy are gone by sched2 (reload_cse/jump2). Only the
+      x184 load reproduces the r11 ghost (x188: 4 words; mot[0]/x6AD/wepType/bin: worse); the case-3
+      launders (`asm volatile("")`, `do { create(tpl) } while (0)`) are still needed for the load order
+      and tpl's r4. So the "dead PRE copy" the earlier notes predicted is real, and it comes from source.
+    - **Dead `if (X) local = K;` is a real source-form lever**, not a compiler difference: the compare
+      (and its load) survive to gcse and regalloc and disappear only in jump2, so they shape PRE
+      (extra CFG edges / redundancy), global-alloc conflicts and cross-jumping. Check this before
+      tagging a placement as #5/#13: the two em10 OPENs of six passes were both this.
+    - `.data` alignment: the em10.cpp split object has `sh_addralign 8` on `.data` (size 0x990 is a
+      multiple of 8); ours had 4 and the REL's `.data` moved from +0x460D0 to +0x460CC (all 16 modules
+      FAILED with the unit flipped). `asm(".section .data\n\t.balign 8\n\t.text")` at the end of the
+      unit fixes it (same as em3c). Check `readelf -S` of the split object vs ours before flipping a
+      module unit whose `.data`/`.rodata` end is 4 mod 8.
 
 ### Small tool RELs, third pass (t_camera_draw Matching; t_camera_data 12/16, t_movie/t_se_at 11/19; 2026-09)
 
@@ -9083,3 +9136,63 @@ confirmed on the units named):
   r26-r28) and takes f27 in pass 1 (+1 FPR save, frame +8). The address-pseudo permutation must be fixed first.
 - r225 operateCrank (77) / SceElevator_r225 (301), r22c highscore (10), r120 R120Event (114), r216, r22a, r213 not
   iterated this pass.
+
+### em2c / em2d pass 4 (em2c Matching 117/120 + .rodata/.data/REL byte-identical; em2d 119/129 unchanged; 2026-09-10)
+- Harness /tmp/em2c_p4 (em2cd_p3 copies with the paths rewritten; `apply.py MOD variants.py NAME` applies one variant
+  in place). DOL symbols untouched (`git diff config/G4BE08/symbols.txt` empty); em2c needed the `asm(".comm
+  common_em2c,52,4")` block like em2a/em2f/em22 before make_rel accepted it.
+- **mcmp's `.data ... equal` only compares masked bytes, not the reloc TARGETS**: em2c's R1 routine table had
+  `WallOver` at 0x17 and `F_Wait..F_Clear` at 0x18..0x1B while the original has F_Wait..F_Clear at 0x17..0x1A and
+  WallOver at 0x1B (a real routine-number bug, invisible in every function compare; found only by the REL shasum
+  after the flip: `.data+0xcf..0xef` rotated). Before flipping a module compare the `.data` relocs by target
+  function (Obj.key() of both objects over the `.data` relas); em2d's 101 entries agree.
+- em2c T_Wait (143 -> 0): (1) the function-scope `int zero` used both as the case-3 FloorTypeCk result and the
+  case-4 EstSet zero was a multi-set global pseudo whose priority beat `em`'s and took r31 (`mr. r31,r3`); the
+  target's `mr. r3,r3; stb r3,254` is a block-local `int r = em2cFloorTypeCk(em)` and `zero = 0` stays in case 4 —
+  with it em is r31 and every other pseudo of the function agrees (the pl0f "who takes r31" rule: a block-local
+  result can never be r31, a multi-set one can). (2) `if (Rnd() % 10 > 4 || em2cFloorTypeCk(em) == 0) xFF = 0;
+  else { xFF = 1; SndCall }` (the `||` form lays the `li r0,0; stb; b` arm first and jumps `bne` into the
+  else). (3) `pGS->flags_174 |= ..` (struct view) after the `flags_3C8 &= ~4; |= 0x40000000` RMW (C_Wait's form:
+  the pG load stays below the em store, `stw timer` before `stb atkHit`). (4) `u32 i` for the AtkCk loop (`cmplwi`).
+- **Blend-init `stw w->blendSeq` followed by `lwz em->subArc` right after (Dash 8, Walk 14, F_Walk 14 -> 0):** not
+  an alias-analysis difference — the store is in ITS OWN basic block in the original: `if (em->motFlags & 0x40)
+  w->blendSeq = A; else w->blendSeq = B;` (two stores in the arms, cross-jumped by jump2 into one `stw` whose label
+  precedes it), so the init block after it is scheduled without the store (`lwz; lis; lfs; li; lwz 40(r11); ...`
+  from t=1). Every one-store form (`seq` variable, ternary, `int t` value-select, em-based store, IntSet, volatile
+  store, do-while around/after, `asm volatile("")`) keeps the store in the block and the load 2 cycles behind it
+  (store->load true dependence, cost 2, `lis`/`lfs` fill the slots). Dash: `if (..) w->blendSeq = 8; else
+  w->blendSeq = 0;` (the else store reuses the `andi.` result, `beq` lands on the merged `stw`); Walk/F_Walk with
+  0xB/0x20 resp. 0xB/0x22 give the jump.c-hoisted `li r0,32; beq; li r0,11; L: stw` shape by themselves. Rule: a
+  target store followed immediately by a load it should have delayed = the store was the tail of an if/else.
+- em2c HideWait (2 -> 0, tagged `COMPILER-DIFF: #15 candidate`): `w->timer = t - 1; asm volatile(""); if
+  (w->timer8 <= 90)` — the do-while barrier kept the load below the store but local-alloc gave the load r9 (the
+  do-while doubles the `t - 1` pseudo's refs, 4 across 2 insns, and r0 is then not reused for the following
+  2-insn qty although the ranges do not overlap — mechanism not found); the empty volatile asm gives both r0 like
+  the target. Not a natural form; recorded as candidate #15 "same-base `stw x; lwz y` kept in order with one
+  register for both" (the em2c pass-1 note: reference/volatile stores do not order same-base offsets in ours).
+- em2c DmCk (151 -> 0): (1) the last routine chain's case 5/6/F/2C arm is `if (Rnd() & 3) RS(2,7) else RS(2,8)` like
+  the other two Rnd arms (was `if ((Rnd() & 3) == 0) RS(2,8) else RS(2,7)`): with the `== 0` arm as the fall-through
+  cse stores the OLDER known zero (`li r30,0` of `dmgTotal = 0`) and the arm gets its own `li r0,2; li r9,8; b`;
+  with RS(2,8) as the taken `beq` target it stores the `andi. r3,r3,3` result and the three RS(2,8) copies
+  cross-jump into the default arm's `L8: li r0,2; li r9,8; stb r3,255; ..` (`andi. r3,r3,3; beq L8`). A block-local
+  `int r = Rnd() & 3; if (r == 0) RS(2,8,r,r)` does NOT do it (cse still substitutes the older zero). (2) the
+  hp<=0 guard arm's `beq; li r0,2; b .L_9FC` (tagged `COMPILER-DIFF: #16 candidate`): jump2's "if (c) { x = a;
+  goto l; } x = b" transform (jump.c: INSN = the goto created by cross-jumping, temp3 = `li r0,2` with its single
+  REG_EQUIV note, temp2 = the switch load `lbz r0,806` = a set of the same hard register) fires in ours after
+  do_cross_jump re-processes the redirected `b` (`next = insn`), and hoists the `li` above the `beq` (inverted).
+  All conditions are met in the target's final code too, so the original's RTL differed by something invisible
+  (a note / codeless insn); `asm volatile("")` right before `switch (em->dmWep)` (its ASM_INPUT insn is the block's
+  first insn and not a SET) keeps the arm as in the target; cse is not flushed by ASM_INPUT. Left as a candidate.
+- em2c BlendMotSet (2 -> 0) / BlendMotSet2 (7 -> 0), COMPILER-DIFF #2 (u16 parameter masked at the calls):
+  **tied-operand launder** `int dd; asm("" : "=r"(dd) : "0"((int) d));` declared BEFORE `f32 val = fabsf(..)` (before
+  the fabsf barrier) with `(u16) dd` at both MotionSetCore calls: the new pseudo has 3 refs like the original's
+  (the `"+r"` form adds two and puts dd above em in global-alloc order, 18 words; hard-register forms move the copy
+  below the barrier). It masks per call in BlendMotSet (`clrlwi r8,r25,16` twice, calls in different blocks) and
+  once in place in BlendMotSet2 (`clrlwi r29,r29,16`, cse shares the extension inside the ebb). Side effect: the
+  copy->asm link costs 1 (LINK_COST_FREE sets cost 1, not 0), so d's prologue copy gains a level of priority and
+  jumps ahead of the other parameter copies; the same tied launder on the parameters whose copies the target issues
+  before d's (`a` in BlendMotSet; `m1` and `b` in BlendMotSet2, asm order m1, b, d) restores the tie and the LUID
+  order. `bm = EM2C_BLEND_MOT(w)` before or after the first call makes no difference (sched sinks/hoists it).
+- em2d (119/129 unchanged): JumpAtk's `cmpwi fe` before the `stw flags` (u8/int fe, flags-first, BitOn: all 2 words),
+  RouteCk 4, InitRtnSet 9, CamouflageMove 26, A_CatchHit/SideStep 22, W_Walk 47 — documented ties, not retried
+  beyond one JumpAtk try.
