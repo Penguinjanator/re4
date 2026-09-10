@@ -547,6 +547,7 @@ STRIP_UNUSED = {
 } | {f"{_m}/cSceObj.cpp" for _m in ["st2_0", "st2_3", "st4_0"]} | {
     # rooms whose original object lost a never-called static function (strings and pool kept)
     "st2_3/r229.cpp",
+    "st2_3/r226.cpp",
     "st2_2/r216.cpp",
 
     # the tool library objects are the t_emlist versions minus what the module never calls

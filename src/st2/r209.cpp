@@ -141,6 +141,10 @@ struct R209WorkPtr {
 
 static R209WorkPtr r209_work;
 
+// COMPILER-DIFF #4: the original passes the int table entry to the s16 parameter without
+// truncation (`lwzx` straight into r4); an int-parameter view of the callee (r104/r203).
+int cEmWrapSetEmI(cEmWrap* w, int no, int list, int errOn, int chkDead, int setAlive) asm("setEm__7cEmWrapsSciii");
+
 // Door flag words at pG+0x51BC, addressed as an integer base plus the word offset (cast-then-deref).
 static inline u32 doorFlagBase()
 {
@@ -218,6 +222,10 @@ static void (cR209Door::*r209_doorTbl[3])() = {
     &cR209Door::open,
     &cR209Door::close,
 };
+
+// Explicitly zero-initialised unreferenced static: GCC 2.95 keeps it in .data (the word after the
+// door method table; nothing in the unit reads it).
+static int r209_unused = 0;
 
 static void r209_LeaderAction();
 static void r209_LeaderPointAtPlayer();
@@ -804,11 +812,12 @@ static void r209_LeaderEscapeToDEndProc()
     Vec pos;
 
     if (pG->flags_174 & 0x00100000) {
-        f32 angY = 1.11f;
+        f32 angY;
 
         pos.x = -20980.0f;
         pos.y = 6000.0f;
         pos.z = 7828.0f;
+        angY = 1.11f;   // pool order: after the position constants
         w->setPos(&pos);
         pos.x = 0.0f;
         pos.y = angY;
@@ -970,7 +979,7 @@ static void r209_2ndBattle()
     while ((r209_work.p->door4->flags_3C8 & 0x10000000) == 0) {
         SceSleep(1);
     }
-    RsfSet(G_ROOM_ID, 4);
+    RsfSet(G_ROOM_ID, 3);
     SceDestroyEm(0x10, 0x20);
     memclr_asm(r209_work.p->em, sizeof(R209Em) * 23);
     SceSleep(2);
@@ -988,17 +997,19 @@ static void r209_2ndBattle()
     }
     SceAtSetEnable(0, 0);
     {
+        cModel* pl = pPL;
         Vec pos;
-        f32 angY = -1.74f;
+        f32 angY;
 
         pos.x = -57725.0f;
         pos.y = 4000.0f;
         pos.z = 7285.0f;
-        pPL->setPos(&pos);
+        angY = -1.74f;   // pool order: after the position constants
+        pl->setPos(&pos);
         pos.x = 0.0f;
         pos.y = angY;
         pos.z = 0.0f;
-        pPL->setAng(&pos);
+        pl->setAng(&pos);
     }
     if (r209_work.p->em[0].w.setEm(0x93, 3, 1, 0, 0) == 1) {
         r209_work.p->em[0].active = 1;
@@ -1032,16 +1043,19 @@ static void r209_2ndBattle()
 
 static void r209_2ndBattleEmSet()
 {
-    R209EmSet tbl[3] = {{4, 0xA3, -1}, {5, 0xA4, -1}, {6, 0xA5, -1}};
-    int step = 0;
+    u32 step = 0;
     int arg = 0;
+    R209EmSet tbl[3] = {{4, 0xA3, -1}, {5, 0xA4, -1}, {6, 0xA5, -1}};
     u32 done = 0;
     u32 i;
     int n;
     u32 cnt;
     int open;
 
-    while (RsfCheck(G_ROOM_ID, 4) == 0) {
+    while (1) {
+        if (RsfCheck(G_ROOM_ID, 4)) {
+            break;
+        }
         n = SceCountEmAlive(0x10, 0x20);
         switch (step) {
         case 0:
@@ -1062,21 +1076,21 @@ static void r209_2ndBattleEmSet()
             break;
         case 3:
             if (RsfCheck(G_ROOM_ID, 8) && (u32) r209_work.p->snipeCnt <= 1) {
+                step = 4;   // OPEN: the original loads the 4 into a second register here and copies it into step after the loop
                 if (pG->x4F88 > 7) {
                     for (i = 0; i < 3; i++) {
-                        r209_work.p->em[tbl[i].em].w.setEm(tbl[i].no, 3, 1, 0, 0);
+                        cEmWrapSetEmI(&r209_work.p->em[tbl[i].em].w, tbl[i].no, 3, 1, 0, 0);
                         r209_work.p->em[tbl[i].em].active = 1;
                         r209_work.p->em[tbl[i].em].snipe = 1;
                         r209_work.p->em[tbl[i].em].w.setFindPL();
                     }
                 }
-                step = 4;
             }
             break;
         }
         open = 0;
         if (R209_BIT_CK(r209_work.p->atOn, 64) && (pG->flags_174 & 0x04000000) == 0) {
-            if ((done & 1) == 0) {
+            if ((done ^ 1) & 1) {
                 cnt = r209_work.p->em[0].w.isActive() == 0;
                 if (r209_work.p->em[1].w.isActive() == 0) {
                     cnt++;
@@ -1110,15 +1124,17 @@ static void r209_2ndBattleEmSet()
 
 static void r209_2ndBattleBowgunAppear()
 {
-    r209_work.p->task[0] = 0;
-    r209_work.p->task[3] = 0;
-    r209_work.p->task[2] = 0;
-    r209_work.p->task[1] = 0;
+    R209Work* wp = r209_work.p;   // one load for the four task stores (pointer stores alias the work pointer)
+
+    wp->task[3] = 0;
+    wp->task[2] = 0;
+    wp->task[1] = 0;
+    wp->task[0] = 0;
     SceEventStart(1);
     r209_work.p->task[0] = SceExec(0x12, (TaskFunc) r209_RotateDoor, 0, 0, 2, 0);
     r209_work.p->task[1] = SceExec(0x12, (TaskFunc) r209_RotateDoor, 1, 0, 2, 0);
     r209_work.p->task[2] = SceExec(0x12, (TaskFunc) r209_RotateDoor, 2, 0, 2, 0);
-    pG->flags_174 &= ~0x00100000;
+    pGS->flags_174 &= ~0x00100000;
     SceSetEventCancel(1, (TaskFunc) r209_2ndBattleBowgunAppearEndProc, 0, 0xB, 1);
     CamCtrl.CutCall(0x12);
     while (CamCtrl.IsMotionEnd() == 0) {
@@ -1144,7 +1160,7 @@ static void r209_2ndBattleBowgunAppearEndProc()
             if (r209_work.p->task[i] != NULL) {
                 SceKill((int) r209_work.p->task[i]);
             }
-            r209_work.p->em[tbl[i].em].w.setEm(tbl[i].no, 3, 1, 0, 0);
+            cEmWrapSetEmI(&r209_work.p->em[tbl[i].em].w, tbl[i].no, 3, 1, 0, 0);
             r209_work.p->em[tbl[i].em].active = 1;
             r209_work.p->em[tbl[i].em].snipe = 1;
             r209_work.p->em[tbl[i].em].w.setPos(&r209_bowgunStartPos[i]);
@@ -1840,7 +1856,7 @@ extern "C" void r209_PanelRotate(cObj** tbl)
     u32 i;
 
     RoomSeCall(0x13, 0, 0, 0, 0);
-    do {
+    while (t < PI) {
         for (i = 0; i < 4; i++) {
             if (tbl[i]) {
                 tbl[i]->rot.y += 0.1f;
@@ -1849,7 +1865,7 @@ extern "C" void r209_PanelRotate(cObj** tbl)
         }
         t += 0.1f;
         SceSleep(1);
-    } while (t < PI);
+    }
     for (i = 0; i < 4; i++) {
         if (tbl[i]) {
             r209_work.p->panel[i] ^= 1;
@@ -1939,15 +1955,15 @@ static void r209_RotateDoor(int no)
         {0xE, 0x8A, 3},
     };
     int d = tbl[no].point;
-    int em = tbl[no].em;
     int id = tbl[no].no;
+    int em = tbl[no].em;
     R209Em* e;
 
     while (r209_work.p->door[d].getStatus() != 0) {
         SceSleep(1);
     }
     e = &r209_work.p->em[em];
-    if (e->w.setEm((s16) id, 3, 1, 0, 0) == 0) {
+    if (cEmWrapSetEmI(&e->w, id, 3, 1, 0, 0) == 0) {
         SceExit();
     }
     r209_work.p->em[em].active = 1;
@@ -1962,7 +1978,9 @@ static void r209_RotateDoor(int no)
         SceSleep(1);
     }
     r209_work.p->em[em].snipe = 1;
-    r209_work.p->door[d].sat->flags |= 4;
+    // Pointer-arithmetic element access: the address is formed as (W + d*64) + 0x674 (`add; lwz`);
+    // door[d].sat folds the work offset first ((W + 0x674) + d*64: `addi; lwzx`).
+    (*(r209_work.p->door + d)).sat->flags |= 4;
     SceSleep(0x1E);
     r209_work.p->door[d].setClose();
     while (r209_work.p->door[d].getStatus() != 0) {

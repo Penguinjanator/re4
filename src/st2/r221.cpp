@@ -1387,7 +1387,7 @@ static void setTexRender()
     obj->pInfo->setTexBlendTbl(tbl);
     obj->pInfo->setBlendRatio(0xFF);
     obj->pInfo->color[3] = 0xF0;
-    obj->x138 = 0x30;
     obj->x136 = 2;
     obj->x137 = 0x10;
+    obj->x138 = 0x30;
 }

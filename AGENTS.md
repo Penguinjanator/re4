@@ -5530,7 +5530,9 @@ target) stays unresolved and `make_rel` then fails with "undefined symbol".
   `static Camera r226_cam` (0xF8) follows it in .bss. `.data`: two static `SceElevatorData` records (the struct
   is copied from r225.cpp; sce_com's `SceElevator` declared `extern "C"` locally), the GLOBAL `int R226EmNo[13]`
   / `R226EmIdx[14]` tables, then file-scope statics in definition order (`-2` ButtonCount adjust, two debug
-  camera Vecs + 50.0f, 40, the camera init/speed/offset Vecs, 85/85/27/160).
+  camera Vecs + 50.0f, 40, the camera init/speed/offset Vecs, 85/85/27/160). The 5 unreferenced pool words
+  after R226EventRoboWalkBridgeStart's pool (`{10000, 0, -500}, 10, 0`) are a dead-stripped static debug
+  camera helper (`r226_dbgCam`, uses the debug statics); the unit is in modules.py `STRIP_UNUSED`.
 - Header additions: `include/objRobo.h` (room view `class cObjRobo : public cObj { WalkSequence(cObjRobo*, int); }`,
   `SetObjRobo`, and the asm-labelled `cObjRoboSetBeginEvent/SetEndEvent(cObjRobo*, int)` — the room passes
   `li r4, 0` to the parameterless members); `include/obj.h` RoboWork `int pillar` at 0x08 (was pad_2).
