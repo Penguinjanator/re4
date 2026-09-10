@@ -336,14 +336,17 @@ void em2cDmCk(cEm2c* em)
     f32 dist;
 
     if (em->hp > 0) {
-        if (!(w->flags & 0x100840) && !em2cDeadCk(em) && (int) pG->sceat_x17C < 0) {
+        if (!(w->flags & 0x100840) && !em2cDeadCk(em)) {
+            int two = 2;      // the routine 2 of the first two arms in a callee-saved register
+
+            if ((int) pG->sceat_x17C < 0) {
             em2cSetFreeze(em);
             if (w->flags & 0x200000) {
-                EmRoutineSet(em, 2, 6, 0, 0);
+                EmRoutineSet(em, two, 6, 0, 0);
                 return;
             }
             if ((w->flags & 0x20) && w->wallNrm.y < 0.5f) {
-                EmRoutineSet(em, 2, 3, 0, 0);
+                EmRoutineSet(em, two, 3, 0, 0);
                 return;
             }
             if (w->flags & 0x1010) {
@@ -356,6 +359,7 @@ void em2cDmCk(cEm2c* em)
             }
             EmRoutineSet(em, 2, 5, 0, 0);
             return;
+            }
         }
         if (em->hp > 0 && !em2cDeadCk(em)) {
             switch (DmgMgr.hitCheck(&em->pos, 0)) {
@@ -418,7 +422,7 @@ void em2cDmCk(cEm2c* em)
     }
     em->dmHit = 0;
     BitOn(pG->flags_5010, 0x20000000);
-    pG->bell_pos = em->pos;
+    pGS->bell_pos = em->pos;
     pGS->bell_stat = 0;
     em->dmType = 1;
     if (em->dmWep == 0x10) {
@@ -542,6 +546,19 @@ void em2cDmCk(cEm2c* em)
     case 0x17:
     case 0x2A:
         break;
+    case 5:
+    case 6:
+    case 9:
+    case 0xA:
+    case 0xD:
+    case 0xF:
+    case 0x12:
+    case 0x13:
+    case 0x14:
+    case 0x28:
+    case 0x29:
+    case 0x2C:
+    case 0x2D:
     default:
         if (dist < 16000000.0f) {
             if (w->flags & 0x800) {
@@ -578,21 +595,25 @@ void em2cDmCk(cEm2c* em)
             return;
         }
         switch (em->dmWep) {
-        case 5:
-        case 6:
-        case 9:
-        case 0xA:
-        case 0xD:
-        case 0xF:
-        case 0x12:
-        case 0x13:
-        case 0x14:
-        case 0x15:
-        case 0x18:
-        case 0x28:
-        case 0x29:
-        case 0x2C:
-        case 0x2D:
+        case 0:
+        case 1:
+        case 2:
+        case 3:
+        case 4:
+        case 0xB:
+        case 0xC:
+        case 0xE:
+        case 0x10:
+        case 0x11:
+        case 0x16:
+        case 0x17:
+        case 0x1B:
+        case 0x1D:
+        case 0x26:
+        case 0x27:
+        case 0x2A:
+        case 0x2B:
+        default:
             if (w->flags & 0x800) {
                 EmRoutineSet(em, 3, 2, 0, 0);
             } else if (w->flags & 0x400) {
@@ -612,7 +633,21 @@ void em2cDmCk(cEm2c* em)
                 EmRoutineSet(em, 3, 1, 0, 0);
             }
             return;
-        default:
+        case 5:
+        case 6:
+        case 9:
+        case 0xA:
+        case 0xD:
+        case 0xF:
+        case 0x12:
+        case 0x13:
+        case 0x14:
+        case 0x15:
+        case 0x18:
+        case 0x28:
+        case 0x29:
+        case 0x2C:
+        case 0x2D:
             if (w->flags & 0x800) {
                 EmRoutineSet(em, 3, 2, 0, 0);
             } else if (w->flags & 0x400) {
@@ -643,6 +678,12 @@ void em2cDmCk(cEm2c* em)
             return;
         }
         switch (em->dmWep) {
+        default:
+            if (Rnd() & 3) {
+                return;
+            }
+            EmRoutineSet(em, 2, 1, 0, 0);
+            return;
         case 7:
         case 8:
         case 0x21:
@@ -657,12 +698,6 @@ void em2cDmCk(cEm2c* em)
         case 0x12:
         case 0x13:
         case 0x2D:
-            EmRoutineSet(em, 2, 1, 0, 0);
-            return;
-        default:
-            if (Rnd() & 3) {
-                return;
-            }
             EmRoutineSet(em, 2, 1, 0, 0);
             return;
         }
@@ -739,6 +774,24 @@ void em2cDmCk(cEm2c* em)
             EmRoutineSet(em, 2, 0, 0, 0);
         }
         return;
+    case 0xD:
+    case 0x12:
+    case 0x13:
+    case 0x29:
+    case 0x2D:
+    default:
+        if (w->flags & 0x800) {
+            if (Rnd() & 3) {
+                EmRoutineSet(em, 2, 7, 0, 0);
+            } else {
+                EmRoutineSet(em, 2, 8, 0, 0);
+            }
+        } else if (dmAng < 1.57079637f) {
+            EmRoutineSet(em, 2, 4, 0, 0);
+        } else {
+            EmRoutineSet(em, 2, 0, 0, 0);
+        }
+        return;
     case 0x17:
     case 0x2A:
         if (w->flags & 0x800) {
@@ -757,23 +810,9 @@ void em2cDmCk(cEm2c* em)
         return;
     case 0xE:
         return;
-    default:
-        if (w->flags & 0x800) {
-            if (Rnd() & 3) {
-                EmRoutineSet(em, 2, 7, 0, 0);
-            } else {
-                EmRoutineSet(em, 2, 8, 0, 0);
-            }
-        } else if (dmAng < 1.57079637f) {
-            EmRoutineSet(em, 2, 4, 0, 0);
-        } else {
-            EmRoutineSet(em, 2, 0, 0, 0);
-        }
-        return;
     }
 }
 
-// Damage of the tail (type 1): blood and sound only.
 void em2cTailDmCk(cEm2c* em)
 {
     Em2cWork* w = EM2C_WK(em);
@@ -788,7 +827,7 @@ void em2cTailDmCk(cEm2c* em)
     }
     em->dmHit = 0;
     BitOn(pG->flags_5010, 0x20000000);
-    pG->bell_pos = em->pos;
+    pGS->bell_pos = em->pos;
     pGS->bell_stat = 0;
     em->dmType = 1;
     if (em->dmWep == 0x10) {
@@ -870,6 +909,19 @@ void em2cTailDmCk(cEm2c* em)
     case 0x17:
     case 0x2A:
         break;
+    case 5:
+    case 6:
+    case 9:
+    case 0xA:
+    case 0xD:
+    case 0xF:
+    case 0x12:
+    case 0x13:
+    case 0x14:
+    case 0x28:
+    case 0x29:
+    case 0x2C:
+    case 0x2D:
     default:
         if (dist < 16000000.0f) {
             if (w->flags & 0x800) {

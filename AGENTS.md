@@ -7936,3 +7936,77 @@ confirmed on the units named):
   `n + x` forms unchanged, a `t` shared by both arms 79), draw_light_graph (`col` in r5 = a hard-reg preference the
   original got from passing `col` unmasked in r5 somewhere; `col = 0; eprintf(.., col, ..)` before the second block and
   the ColU8 inline launder give 22-44 words, `asm("" : "+r"(col))` on the u8 drops the mask).
+
+### em2c / em2d bytes-first pass 2 (em2d 106 -> 118/129, em2c 108 -> 109/120; sections identical; neither flipped; 2026-09-10)
+- Harness /tmp/em2cd_p2 (copy of /tmp/em2cd_p with the paths rewritten; `swsearch.py spec.py` wraps tools/casetree.py:
+  give it the fixed labels, the candidate default-labelled blocks and the target compare list, it prints every
+  default-grouped case set whose emitted tree contains the target sequence).
+- em2dDmCk (442 -> 0) is three case-set / one source-bug fixes: blood switch default group `5,6,9,A,D,F,12,13,28,29,
+  2C,2D` (the em35 set); the hp<=0 switch has the "break" family as EXPLICIT default cases `0..4,B,C,E,10,11,16,17,1B,1D,
+  26,27,2A,2B` (they shape the tree: root [0x12..0x15], 0x18 with a bounded [0x16,0x17] left child, `cmpwi 0x1D; beq
+  default; ble default` = an all-default left subtree folded by jump threading) written as `default:` FIRST, then
+  `7,8,0x21`, then the D group; the `flags & 0x400` switch is written default-arm first (Rnd), C, D2; the last switch's
+  `0x17/0x2A` arm is `EmRoutineSet(em, 2, 0, 0, 0)` (was 2,2,0,0) — with r0 = zero / r9 = 2 in that last arm, the guard
+  block's RS(2,6) shares only the `stb r0,fe` before `end` (cross jump minimum 1 against the code before the label) and
+  the two full RS(2,6) copies survive as in the target (jump_chain never lists jumps to the new label, so two copies
+  redirected there are never merged with each other). `pGS->bell_pos = em->pos` (struct view on the Vec copy) reloads pG
+  for the following `pGS->bell_stat = 0` (em2cDmCk / em2cTailDmCk too). em2cDmCk (501 -> 283): blood switch default
+  group adds 0x14 (`5,6,9,A,D,F,12,13,14,28,29,2C,2D`), hp<=0 switch = the em2d set and order, `flags & 0x400` switch
+  default-first, last switch explicit default `D,12,13,29,2D` written BEFORE `case 0x17`, and `int two = 2` declared
+  between `!em2cDeadCk(em)` and the `(int) pG->sceat_x17C < 0` test (nested if) for the r28 `2` of the first two arms.
+- jump2 cross-jump minimum: `find_cross_jump` decrements `minimum` when the backward scan hits a CODE_LABEL, so a
+  single `stb` that STARTS a block (a value-select `if (c) v = a; else v = b; p->x = v;` join) is merged into a later
+  arm's identical `stb; b end` (em2dCamouflageMove: the on-arm's five color2 sub-arms become `L: stb r0,144(r3); b`
+  copies jumped into the else arm's store); an arm whose store is preceded by its own `addi`/`li` needs the 2-insn match.
+- Fall-through / control-flow bugs read off the target: em2d A_CatchHit and JumpAtkHit `case 8: em->xFE++; goto step3;`
+  where `step3:`/`case 9:` sit on CASE 3's body (not case 11's — the target jumps into the case-3 block, cases 10/11 keep
+  their own copy which case 3's tail cross-jumps into), `em->xFE++` as the QI add on the switch load (`addi r0,r9,1` from
+  the `lbz r9`; `fe + 1` on the int copy gives `clrlwi`-free r28 arithmetic); A_Wait's case-1 routine sets `break` (not
+  `return`) into the LockCk tail (em stays live, so the RS stores come out fc,fd,ff,fe — a `return` kills em at the ff
+  store, weight -2, ff first) and `if (MotionMoveF(em, 0) && (Rnd() & 3) == 0) {..} else { em2dFindCk.. }`; DownJump /
+  ToCeiling case 1 falls into case 2 (w stays live -> 5 callee-saved regs); FindCk `if (em2dDeadCk(em) == 0 &&
+  em2dSomebodyFindCk(em) == 0) return 0;` (both true -> return 1) with `!(w->plDist < 25000.0f)` for the plain `blt`.
+- Block-local call results / test values: a second `hit = Rnd() & 3` in the same function must be its own `int h2`
+  (else both arms store the shared r30 and cross-jump into one tail; the target's second arm stores `r3`); the LockCk
+  result is `int lock` (`mr. r3,r3`, `w->lockCnt = lock` stores r3); JumpAtkHit's `r = EmCatchMotionMove/MotionMoveF`
+  result variable is separate from the switch value `fe` (`cmpwi r3,0`, no `mr r29,r3`); AirNextRtnSet's final
+  `Rnd() & 3` is a block-local `r2` and the second `w->atkWait` load a separate `wait2` (w then wins r30 over `wait`);
+  W_Walk `r = em2dNoWallCk(em); if (r) RS(0x19,t,t) else { int f = em2dWallFallCk(em); if (f) RS(0x19,r,r) else ..
+  RS(5,f,f) }` (`mr. r29,r3` / `mr. r30,r3`, each arm's zero is the previous result), `w->flags` re-read at every use
+  (the target PREs the load: `lwz r0; mr r10,r0`), `alpha = w->wallNrm.y` assigned in the `timer8 == 0` else block and
+  again after the MotionMove block.
+- Argument-list calls: `(Rnd() & 1) ? 0x41 : 1` inside `MotionSetCore(..)` precomputes every argument (the ARC loads in
+  callee-saved regs before the Rnd call); `int blend = ..; MotionSetCore(.., blend, 0)` evaluates the ARCs after it
+  (em2d A_Atk). `IntSet(w->jumpWait, Rnd() % 150 + 150); w->atkWait = 100;` then the pG difficulty chain (JumpAtkHit
+  case 5); `w->humTimer = Rnd() % 150 + 150; w->x4D0 = 20;` (CamouflageMove: the 20 store after the call).
+- em2dWallWalkSet as a MACRO with `(w)->wallTarget = hit` (the Vec by value): the copy's .y/.z go through the
+  hitCheck `&hit` pseudo (r29 callee-saved) and .x frame-direct; the inline with `Vec* hit` gives frame-direct loads.
+  Inside it `EmRoutineSet` BEFORE the wallTarget copy, wallNrm stores written x, y, z (issue z, y, x); the third
+  block is `if (hitCheck(..)) { set; return 1; } return 0;` (`bne SET; li r3,0; b end` with the `.y` store as the
+  shared single-insn tail). em2dHoverMove is a macro (0.95/0.05 literals above the pos.z store, inline-vs-macro rule).
+- if/else with a store in both arms for `em->x136 = (x138 == 0xFF) ? 0 : 1` shapes (`li r0,1; bne; li r0,0; stb`:
+  jump.c's "x = a; else x = b"): write both stores, not `x = 1; if (..) x = 0;` (CamouflageMove x136 / x12F).
+- Dm_Normal: `if (fabsf(Muku(..)) < PI/2) side = 0; else side = 1;` (the `li 1` after the call), `pos = &em->pos` right
+  after it for the SndCall (target `mr r28,r30`; ours still merges the two pseudos: 24 words), `int air =
+  em2dToAirCk(em)` block-local. CamMove `switch ((u32) mode)` (cmplwi tree). setReset: `alpha = 1.0f; atari.flags ..;
+  be_flag ..` order (issue reversed), `x38D; flags_3C8; hp; homePos` order, `Vec r213Pos = {..}` as a NON-static local
+  (the rodata template is copied to the frame first: +16 frame, `lwz/stw` pairs), `pGS->room_id`. R0_Init: `u32 i` loop,
+  `int one = 1` assigned after the hit[6] YarareAdd for `w->x535 = one`, lockOfs x, y, z order. SideStep: `Vec nrm; Vec
+  hit;` declaration order (nrm at 56, hit at 72) and `a.z = 0.0f; bx = +-900` in the arms with `b.x = bx` at the join.
+  RouteCk: the `w->routeAng = Muku(&em->pos, &w->routePos, ..); w->routeAngAbs = fabsf(..)` pair is written in BOTH
+  arms of `if (flags & 0x800) GetPlPos else RouteCkToPos` (jump2 cross-jumps the calls, the `addi` argument addresses
+  stay per arm — the "PRE into both arms" look), `pPLS->pos` in the homeDist SQRTF / `RouteCkPosToPosDis(&w->homePos,
+  &pPLS->pos)` / `b.x = pPLS->pos.x ..` / `w->pTarget = pPLS`, `routeAng; routeAngAbs` and `targetAng; targetAngAbs`
+  zero stores in that source order (issue reversed).
+- OPEN em2d (11 functions, 3 reloc-name rows): InitRtnSet 141 (case 4's 0.0 in f31: a GENERAL_OR_FLOAT SF pseudo
+  whose uses are all stores lands in a GPR here; chained assignments do not change the class), W_Walk 47 (`fmr f12,f0`
+  copy of the `wallNrm.y` load in the `timer8 == 0` block: cse would need the load temp canonical over `alpha`, i.e. a
+  later mention of the temp — no form found), CamouflageMove 32 (fmadds f12/f0 naming of the two u8->f32 conversions,
+  the first sub-arm layout `bgt; addi` vs `ble; li`, the `clrlwi r0,r9,24; cmplwi 0x98` promoted-u8 compare comes with
+  `c = p->color2[0]` in the third arm but then the value-select single store is lost), Dm_Normal 24 (the `pos`
+  copy pseudo), A_CatchHit 22 and SideStep 22 (global-alloc order pos/w; the arms' `lfs 0.0`/`addi &a` PRE
+  insertions), RouteCk 4 (`stfs 816` vs `mr r26,r30` issue tie, pTarget load placement), JumpAtk 2. em2c: DmCk 283
+  (dmType=0xA arm: the target loads `part->pos.y` once and its RS zeros are fresh `li r0,0` while ours reuses the
+  `andi. r30,r0,0x800` result — `int z`/`f32 py` locals cost 30 words; the guard block's `flags & 0x1010` arm keeps
+  `beq; li r0,2; b` where ours hoists the li (jump.c's "x=a; goto" needs the `li` insn note-free — the target's had a
+  note); hp<=0 arms' RS(3,3) cross-jump), T_Wait 143, the three blend-init blocks, BlendMotSet/2 (#2), HideWait 2.
