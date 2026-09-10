@@ -7604,7 +7604,7 @@ confirmed on the units named):
   `find_cross_jump` over `jump_chain`, head = latest jump) and merges the identical copies -- COMPILER-DIFF #6. A `goto`
   to a label inside the Debug `if` reproduces the survivor but not the un-merged copies (124 words); not applied.
 
-### em32 (U-3, the container-area boss; src/em32/em32.cpp + include/em32.h written from scratch, 105/108 masked-identical, .rodata/.data equal, not flipped; 2026-09-10)
+### em32 (U-3, the container-area boss; src/em32/em32.cpp + include/em32.h written from scratch, 105 -> 106/108 masked-identical, .rodata/.data equal, not flipped; 2026-09-10)
 - Layout as em25/em36 (R0 table global, R1 flat {br, main} pairs, R2/R3 one entry, EmAtkInfo x6, cloth tables,
   `.data` balign pad, `.comm common_em32`, cUnit/cManager<cObj> linkonce copies at the .text end). Work 0x994 bytes
   (include/em32.h: 28 EmHitInfo, blend-motion sub work, PlCloth, two pDivide units, TexRender blend model, breakNo
@@ -7660,6 +7660,45 @@ confirmed on the units named):
   `stw r11,0xc(r1)` stack arg vs `addi r5/stb breakNo` order in a block identical to JumpUp's matching one);
   R0_Init 15 words (600/0xFF `li` register pair r9/r10 and the hp=500 `li r0` vs the routine `1` -- local-alloc order,
   U8Set/IntSet/statement permutations tried).
+- Second pass (2026-09-10, harness /tmp/em32f: `tryv2.py FUNC variants.py [--asm NAME]` builds with the three explicit
+  cpp/cc1plus/NgcAs steps in `bld.sh`; `mcmp.py em32`, `sbs.py em32 SYM [-d]`; dumps via `dump.sh em32/em32 -dX`,
+  sched verbose goes into the `-dR/-dS` dump file itself). 105 -> 106/108, C_Atk 3 -> 0, R0_Init 15 -> 2, not flipped.
+  - R0_Init = the #13 init-block shape: 600/59/0xFF and 500/6/1 all carry REG_EQUIV in `-dl`. The 600/0xFF pair
+    (order already right, only the registers swapped) closed with `register int lw asm("r10"); register int bn
+    asm("r9");` set right before their stores (tagged #13); `hp = 500` / `xFD = 6` / `xFC = 1` with `register int hp
+    asm("r0"); six asm("r11"); one asm("r0")` (the original re-materialises 500 and 1 both in r0) gives the target's
+    `sth hp` before the routine stores. The asm-launder form (`int hp/six/one` + `asm volatile("" :: "r"(..))` after
+    the block) is worse here (22 words: the launder is a full sched barrier and the call arguments `lwz r11,378 / li
+    r8 / li r9 / mr r3` are interleaved with the stores in the target). OPEN 2 words: `li r0,1` vs `stb r11,0xfd`
+    in sched2 -- both priority 15, neither depends on the last scheduled insn, ours ranks the stb higher by dependents
+    (6: `lwz r11,378` anti, `lwz r5,0x24(r11)` mem, three calls, block end; the `li` has 5). Every statement order
+    (18 permutations) gives the same 2; an `asm("" : "+r"(one))` between the `li` and the store adds the dependent but
+    costs an issue slot (`li r8,1`/`stb fc` swap, 6 words).
+  - C_Atk (3 -> 0): the `stw r11,0xc(r1)` stack argument could not pass `stb breakNo` because `EM32_W_FRESH(w)`
+    (the #12 launder, `asm("" : "+r"(w))` in case 0) re-sets the `w` pseudo, so alias.c's record_set drops w's base
+    value (an argument address) and every w-based store then conflicts with the frame stores (base 0 -> output
+    dependence in sched1; with the base known, a stack store and an argument-based struct store never alias). Rule:
+    a `"+r"` launder on a pointer variable kills its alias base for the WHOLE function -- never launder the work
+    pointer itself when a later block needs a frame store to pass a store through it. Replacement (no re-set):
+    `EM32_W_SET(w, T, field, v)` = `*(T*) ((u8*) w + offsetof) = v` -- a non-struct MEM with the PLUS inside the MEM
+    (no address pseudo, so cse's `(plus w K)` -> `(plus em K')` association of #12 never happens) that stays w-based
+    and, being scalar, keeps the following `lwz pG` below it (the U8Set/IntSet reference stores had the same effect
+    but their address pseudos were folded to em-based). The whole case-0 block (`timer2 = 25; spd.y = 0; x991 = step;
+    timer = step;` + the four difficulty stores, `em32Timer2SetW`) must use it: with only the reference stores
+    converted, the plain `w->timer2/spd.y/timer` stores are struct mems, do not feed `lwz pG`, and the x991 store is
+    hoisted to the block top (4 words) -- in the target all four stores rank equal (each feeds the pG load) and come
+    out in source order. The other three EM32_W_FRESH sites (Dash/A_Atk/Jump arms) still match; they can be converted
+    the same way if a frame store ever needs to pass a w store there.
+  - BlendMotSet (2, OPEN, COMPILER-DIFF #2): the mask is dropped by combine's `setup_incoming_promotions` knowledge of
+    r10 (the u16 argument register), inherited by any copy. `int c = d` + `asm("" : "+r"(c))` masks both calls but
+    c's refs (copy + asm 2 + 2 masks) put it above `em` in global-alloc order (c r29, em r28; 18 words); `register
+    int c asm("r25") = d` keeps the whole allocation (Q1: identical except `mr r8,r25` for the two masks) but the
+    launder after the `fabsf` volatile asm barrier loses the copy's use dependent (the hard-reg last-set is
+    replaced by the barrier's; a pseudo's is not) so `mr r25,r10` drops to the last parameter copy, and a launder
+    before the barrier gives the copy priority 11 (asm cost 1 + barrier 10) so it is issued first; laundering `d`
+    itself re-promotes the HImode asm output (no mask). An asm-labelled DEFINITION with an `int d` parameter
+    (`void em32BlendMotSetI(...) asm("em32BlendMotSet__FP5cEm32PvN31iiUs")`) is rejected by NgcAs: SN's cc1plus
+    emits `.L_f*name_s` with the `*` of the asm label. Left at 2 words.
 
 ### Stage rooms, st1_1/st1_3/st2_0 pass 2 (r104, r117 Matching; r105 28/30, r201 34/36, r222 22/29; 2026-09-10)
 

@@ -192,6 +192,29 @@ static inline void em32AtkHitSet(Em32Work* w, int v)
 // `em`-based addresses; the original keeps them `w`-based there. The launder hides the equivalence.
 #define EM32_W_FRESH(w) asm("" : "+r"(w))
 
+// Non-struct store through the work pointer with the offset inside the MEM (`*(T*) ((u8*) w + ofs)`):
+// cse gets no address pseudo to associate with `em + K` (the #12 fold above), so the store stays
+// w-based, and as a scalar mem it keeps the following pG load below it. Unlike the launder it does not
+// re-set `w`, so alias analysis keeps w's base value (an argument): the frame stores of a later call in
+// the function can still pass a w-based store (C_Atk).
+#define EM32_W_SET(w, T, field, v) (*(T*) ((u8*) (w) + (u32) &((Em32Work*) 0)->field) = (v))
+
+static inline void em32Timer2SetW(Em32Work* w, int a, int b, int c, int e)
+{
+    if (pG->x4F88 <= 3) {
+        EM32_W_SET(w, int, timer2, a);
+    }
+    if (pG->x4F88 <= 1) {
+        EM32_W_SET(w, int, timer2, b);
+    }
+    if (pG->x4F88 > 6) {
+        EM32_W_SET(w, int, timer2, c);
+    }
+    if (pG->x4F88 > 9) {
+        EM32_W_SET(w, int, timer2, e);
+    }
+}
+
 // The three effect systems attached to an esp kind are deleted together.
 #define EM32_EFFECT_DELETE(kind, em)          \
     EffectEspDelete(0, kind, (u32) (em), 0);  \
@@ -728,9 +751,17 @@ static void em32_R0_Init(cEm32* em)
     w->x7C4 = zero;
     w->dmgTotal = zero;
     w->sndId = zero;
-    w->longAtkWait = 600;
-    w->voiceTimer = 59;
-    w->breakNo = 0xFF;
+    // The 600/0xFF constants are REG_EQUIV pseudos the original never allocates: reload re-materialises
+    // them in the spill registers r10/r9 (59 takes r11); ours local-allocs them the other way round.
+    {
+        register int lw asm("r10"); // COMPILER-DIFF: #13
+        register int bn asm("r9"); // COMPILER-DIFF: #13
+        lw = 600;
+        w->longAtkWait = lw;
+        w->voiceTimer = 59;
+        bn = 0xFF;
+        w->breakNo = bn;
+    }
     w->espKind[0] = EspPullCoreKind();
     w->espKind[1] = EspPullCoreKind();
     w->espKind[2] = EspPullCoreKind();
@@ -745,8 +776,23 @@ static void em32_R0_Init(cEm32* em)
     p->scale.x = fzero;
     p->scale.y = fzero;
     p->scale.z = fzero;
-    em->hp = 500;
-    EmRoutineSet(em, 1, 6, zero, zero);
+    // hp = 500 and the routine bytes 6/1 are REG_EQUIV pseudos re-materialised by the original's reload
+    // (r0, r11, r0 again): with no dying register the `sth hp` stays in source order ahead of the
+    // routine stores. OPEN (2 words): sched2 issues `li r0,1` after `stb r11,0xfd` (both priority 15;
+    // ours has one more dependent on the stb), the original the other way round.
+    {
+        register int hp asm("r0"); // COMPILER-DIFF: #13
+        register int six asm("r11"); // COMPILER-DIFF: #13
+        register int one asm("r0"); // COMPILER-DIFF: #13
+        hp = 500;
+        em->hp = hp;
+        six = 6;
+        one = 1;
+        em->xFC = one;
+        em->xFD = six;
+        em->xFE = zero;
+        em->xFF = zero;
+    }
     MotionSetCore(em, &em->mot, ARC(9), 0, 0, 1, 0);
     MotionMoveF(em, 0);
     em32_R0_Move(em);
@@ -2791,12 +2837,11 @@ static void em32_R1_C_Atk(cEm32* em)
     case 0:
         MotionSetCore(em, &em->mot, ARC(0x15), (int) ARC(0x16), 3, 1, 0);
         PSVECSubtract(&w->pPoint->pos, &em->pos, &w->spd);
-        w->timer2 = 25;
-        w->spd.y = 0.0f;
-        EM32_W_FRESH(w);   // COMPILER-DIFF #12
-        em32AtkHitSet(w, step);
-        w->timer = step;
-        em32Timer2Set(w, 37, 30, 23, 20);
+        EM32_W_SET(w, int, timer2, 25);   // COMPILER-DIFF #12 (scalar w-based stores, see EM32_W_SET)
+        EM32_W_SET(w, f32, spd.y, 0.0f);
+        EM32_W_SET(w, u8, x991, step);
+        EM32_W_SET(w, int, timer, step);
+        em32Timer2SetW(w, 37, 30, 23, 20);
         em->alpha = 0.0f;
         em->be_flag |= 2;
         EstSet((int) em, -1, 0, 0, 0x2A, 0x12, 0, 0, (u32) em, (void*) step);
@@ -3719,9 +3764,14 @@ void em32BlendMotSet(cEm32* em, void* m0, void* m1, void* m2, void* m3, int a, i
     void* m;
     int arg;
 
-    // COMPILER-DIFF #2 (open): the original zero-extends the u16 parameter at both MotionSetCore
-    // calls (`clrlwi r8, r25, 16`); ours treats it as promoted, and an `int` copy laundered with
-    // asm("" : "+r") shifts the callee-saved allocation instead.
+    // COMPILER-DIFF #2 (open, 2 words): the original zero-extends the u16 parameter at both
+    // MotionSetCore calls (`clrlwi r8, r25, 16`); ours drops the mask (combine's
+    // setup_incoming_promotions knows r10's upper bits). An `int` copy laundered with asm("" : "+r")
+    // masks but its extra refs move it up the global-alloc order (c r29, em r28); a `register int c
+    // asm("r25") = d` copy keeps the allocation and masks with a launder after the fabsf barrier, but
+    // then the copy loses its use dependent and sched1 issues it last of the parameter copies (a
+    // launder before the barrier raises its priority instead); an asm-labelled int-parameter
+    // DEFINITION is rejected by NgcAs (`.L_f*name_s` label).
     MotionSetCore(em, &em->mot, m0, (int) m3, (u8) w->blendCnt, d & 0xFFFF, (u16) w->blendSeq);
     if (w->blendVal > 0.0f) {
         m = m1;
