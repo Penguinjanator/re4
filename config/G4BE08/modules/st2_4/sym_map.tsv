@@ -31,7 +31,7 @@ section	offset	size	unit	scope	name	demangled
 .text	0x000025E4	0x1D0	st2_4/r22c.cpp	local	shootResult	shootResult
 .text	0x000027B4	0x90	st2_4/r22c.cpp	local	shootEnd	shootEnd
 .text	0x00002844	0x74	st2_4/r22c.cpp	global	countMark	countMark
-.text	0x000028B8	0xF0	st2_4/r22c.cpp	global	R22cHitMark	R22cHitMark
+.text	0x000028B8	0xF0	st2_4/r22c.cpp	global	R22cHitMark__FiiP3Vecii	R22cHitMark
 .text	0x000029A8	0x178	st2_4/r22c.cpp	local	funcUfo	funcUfo
 .text	0x00002B20	0x6C	st2_4/r22c.cpp	global	deleteAllMark	deleteAllMark
 .text	0x00002B8C	0x124	st2_4/r22c.cpp	local	r22cSetWepMan	r22cSetWepMan
@@ -39,7 +39,7 @@ section	offset	size	unit	scope	name	demangled
 .text	0x00002CF0	0x2E8	st2_4/r22c.cpp	local	r22cGateCtrl	r22cGateCtrl
 .text	0x00002FD8	0xD0	st2_4/r22c.cpp	global	isWepmanAlive	isWepmanAlive
 .text	0x000030A8	0xEC	st2_4/r22c.cpp	global	setWepmanKilled	setWepmanKilled
-.text	0x00003194	0x294	st2_4/r22c.cpp	global	R22cHitEffect	R22cHitEffect
+.text	0x00003194	0x294	st2_4/r22c.cpp	global	R22cHitEffect__Fi	R22cHitEffect
 .text	0x00003428	0x84	st2_4/r22c.cpp	global	ResultScreen_read	ResultScreen::read
 .text	0x000034AC	0x80	st2_4/r22c.cpp	global	ResultScreen_reloadtime	ResultScreen::reloadtime
 .text	0x0000352C	0x13C	st2_4/r22c.cpp	global	ResultScreen_highscore	ResultScreen::highscore

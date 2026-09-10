@@ -52,16 +52,6 @@ UNITS = {
         ("wep13/pl_rocket.cpp", None, "wep/pl_rocket.cpp"),
         ("wep13/wep13.cpp", "Wep13_init", None, {".rodata": 0x1BC}),
     ],
-    # Handgun family (wep01/02/04/05/06/15/38/43/44): one shared src/wep/pl_handgun.cpp object
-    # (byte-identical in all nine modules) plus the module's weapon class objects. wep02 (Red9 /
-    # Punisher): objMauser.cpp, objRuger.cpp, pl_handgun.cpp, wep02.cpp; each object opens its
-    # .rodata with its own [cFlag.set()][atari.h[light.h]] header strings (pins).
-    "wep02": [
-        ("wep02/objMauser.cpp", None, None),
-        ("wep02/objRuger.cpp", "ObjRuger_init", None, {".rodata": 0x1D0}),
-        ("wep02/pl_handgun.cpp", "PlHandgunMove", "wep/pl_handgun.cpp", {".rodata": 0x360}),
-        ("wep02/wep02.cpp", "Wep02_init", None, {".rodata": 0x528}),
-    ],
     "wep01": [
         ("wep01/objFn57.cpp", None),
         ("wep01/pl_handgun.cpp", "PlHandgunMove", "wep/pl_handgun.cpp", {".rodata": 0x198}),
@@ -698,6 +688,16 @@ MATCHING = {
     "wep39/wep39.cpp": True,
     "wep27/pl_machine.cpp": True,
     "wep27/wep27.cpp": True,
+    # handgun family (wep/pl_handgun.cpp shared by wep01/02/04/05/06/15/38/43/44)
+    "wep02/objMauser.cpp": True,
+    "wep02/objRuger.cpp": True,
+    "wep02/pl_handgun.cpp": True,
+    "wep02/wep02.cpp": True,
+    "wep38/pl_handgun.cpp": True,
+    "wep04/pl_handgun.cpp": True,
+    "wep43/pl_handgun.cpp": True,
+    "wep01/pl_handgun.cpp": True,
+    "wep06/pl_handgun.cpp": True,
     "wep12/objTompson.cpp": True,
     "wep12/pl_machine.cpp": True,
     "wep12/wep12.cpp": True,

@@ -4983,3 +4983,10 @@ target) stays unresolved and `make_rel` then fails with "undefined symbol".
   inline-with-locals, pointer-parameter inline, memberwise copy, struct/array locals all tried); r2_next's
   last arm `li r9,1; li r0,6` order (24 permutations + inline tried); down00 `li r9,3` before the stack-arg
   `stw` of mot3.set (locals forms tried).
+- `tools/casetree.py` models stmt.c `group/balance/emit_case_nodes` (validated against our compiler):
+  give it the case values / default grouping and it predicts the compare tree -- use it to pin down
+  damage-switch case lists instead of brute force.
+- em3e is `emmark.cpp` (the disc's Bio4.emmark.sym describes it); a full `gen_rel_config.py` regen
+  rewrites all 110 modules' files -- run it in a temporary copy of config/G4BE08 and install only the
+  target module's files.
+
