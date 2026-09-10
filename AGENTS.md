@@ -9201,3 +9201,60 @@ confirmed on the units named):
 - em2d (119/129 unchanged): JumpAtk's `cmpwi fe` before the `stw flags` (u8/int fe, flags-first, BitOn: all 2 words),
   RouteCk 4, InitRtnSet 9, CamouflageMove 26, A_CatchHit/SideStep 22, W_Walk 47 — documented ties, not retried
   beyond one JumpAtk try.
+
+### Tool RELs, bytes-first pass 4 (db_toolbase Matching in Tools + t_event; t_dr Matching; t_block 27->28/31; 2026-09-10)
+
+- Harness /tmp/tools_p4 (tools_p3 copies with the paths rewritten; `tryv.py` accepts an absolute `SRC=`, `mcmp.py`
+  honours `OBJ=` for a variant object, `tryvh.py` puts the variant dir first on the include path -- shadow EVERY
+  header on the include chain (`HDRS="include/dbg_tool.h include/db_toolbase.h"`) or the edited header is not seen,
+  and pass the unit's UNIT_CFLAGS through `EXTRA=-fimplement-inlines`). `duplis.py` scans the target asm for two
+  `lis` of one symbol in one block: 2299 sites, a normal PRE reaching-reg / loop.c shape ours reproduces (db_light
+  `menu`), so a second `lis` in bb0 is not a difference by itself.
+- **#13 mechanism, sharpened (read off the dumps of cDbgWindow::Init, DB_NUMERIC ctor, Menu_main, basic_menu)**:
+  the original's movsi/movsf/movqi predicates accept `(set (mem) (const))`, so cse substitutes a known constant
+  straight into every store (ours keeps the pseudo: `gpc_reg_operand` rejects it). Consequences seen in the tool
+  targets: (a) a constant store carries NO register death, so an init block of constant stores is issued in pure
+  RTL order while ours hoists the last store of each shared constant (cDbgWindow/FileSelect/OkCancel Init, the
+  DB_NUMERIC ctor's 9 stores, emrock SetRock); (b) the pseudo's `li`/`lfs` is gone from sched1 and reload
+  re-creates it before the first use, so the target's constant loads are in sched2/LUID order (`li r0,1` before
+  `li r9,0` in cDbgWindow::Init; the ctor's `lis/lfs f13/li r0,3/lfs f0` hoisted to the block top), and reload's
+  `find_equiv_reg` reuses a register already holding the value (the ctor's zero stores keep the allocated r29,
+  its `min = 0.0f` keeps f31); (c) `(high sym)` IS CONSTANT_P in 2.95 (rtl.h), so a set-once `lis` pseudo gets
+  `REG_EQUIV (high sym)` in `-dl` and update_equiv_regs DOUBLES its REG_LIVE_LENGTH (local-alloc.c 2.95.3: "*= 2",
+  the global.c comment about negative lengths is from the older negating version), halving its global-alloc
+  priority in ours; the targets allocate the high pseudo ahead of a 6-ref local (Menu_main r30 vs r28), i.e. the
+  original's high pseudo did not carry the penalty (its cse turns the PRE copy sites into separate expressions).
+- **Region-split recipe for the #13 dying-store shape** (`// COMPILER-DIFF: #13`, cDbgWindow::Init 13 -> 0, unit
+  flipped in Tools and t_event): dead `do { } while (0);` statements split the sched1 region so that (1) the last
+  store of the shared zero sits alone at the end (no hoist) and (2) the `li 1` outranks the `li 0` in the first
+  region by dependents (3 vs 2: put the barrier after the second zero store). FileSelect Init (dbg_tool.h, 18 words
+  in t_esp_area/t_lightarea/t_event) with barriers after `pCur = 0` and before `fileNo = 0` gets the exact store
+  order but swaps the constant registers (target one=r9, zero=r0) -- not applied. DB_NUMERIC ctor: the barrier
+  form would keep the `lfs/li` in the second region while the target has them at the block top -- not applicable.
+- **Global-alloc order through REG_N_REFS** (t_dr Menu_main 12 -> 0, unit flipped): `a` (`&DR->area[no]`) had 6
+  refs because the clamp stored `a->type` in BOTH arms (two `stb` insns until jump2 cross-jumps them); writing the
+  clamp into an `int n` and storing once gives 5 refs (floor_log2(5)*5 = 10 vs 12) and the high(DR) pseudo is
+  allocated first (r30, then `a` r28). Count RTL-level refs of the pre-jump2 code when a callee-saved pair is swapped.
+- **jump1 single-insn hoist blocked by an intervening jump** (t_block dispAreaInfoList1 3 -> 0): `if (c) col = 7;
+  else { col = 0; if (d) col = 6; }` lets jump1 move `li 7` above the branch (scan from the else label finds `col`
+  set before any use); `if (c) col = 7; else if (d) col = 6; else col = 0;` (or a ternary) keeps `li r30,7` inside
+  its arm: the scan hits the inner condjump first, and the inner if/else is the jump1 `x = 0; if (d) x = 6` form.
+- basic_menu (t_sce_at, 215, OPEN): per-site asm aliases (`extern SceAtWorkPtr sceAtCur_N asm("sceAtCur")`, one per
+  fresh-`lis` site, plain symbol at the bb0 load and the four `r27` sites) give 29 words -- proof that the
+  target's fresh `lis r9` sites are occurrences neither cse1 nor PRE merged; the residue is the PRE-copy sites
+  `P = r27` whose same-block use the target keeps on r27 while our cse2 rematerialises `lis P` (cse.c COST:
+  pseudo 1 > HIGH 0 with the REG_EQUAL note pre_delete leaves on the copy). 22 tagged aliases for a non-flip: not
+  applied; the r108/r203 alias lever and this one are the same family (#12/#13 PRE-copy handling).
+- plmove10 (t_atari, 19, OPEN, mechanism): the `old = w->pos` copy loads tie with the RMW `lfs` at priority 9 and
+  win by LUID; their priority comes from `old.x`'s frame-direct store (`stw r0,8(r1)`, cse's find_best_addr
+  rewrite of the offset-0 word) having output dependences on the `4(r30)`/`8(r30)` stores because the block
+  move's `addi r30,r1,8` has no REG_EQUAL note (cse adds it only when `(plus fp 8)` is already in its table), so
+  alias.c cannot relate the two address forms. `asm("" :: "r"(&old))` / `Vec* po = &old` before the copy: 58-61.
+- seAtInit (t_se_at, 21, OPEN): an unknown-base pointer (`SndWork* s = &Snd; asm("" : "+r"(s));`) with the
+  seAtSaveHead/List stores written BEFORE the two NULL stores reproduces the target's `lwz pW` below the Snd
+  stores (21 -> 9); the asm insn delays the two Snd loads by one slot and swaps the head/list registers. Volatile
+  Snd views (5 forms) 21-22. The original's Snd base is unknown to alias.c by some other route.
+- loadItemIdName (t_sce_item, 28): `p` r31 / `no` r30 allocation order; one-variable `e`/`no` forms (u32, pointer,
+  in-place `+= len; -= 0x40000`) 28-29 -- the sys arm's `add r30,r30,r29; subis` is a reassigned variable but the
+  `li r0,0` lands after the `subis` in ours. t_block tBlockAreaInfo_Menu case 0 (rep2/n r9-r11): rep-local first/
+  after, clamp variable, if/else-if, u8 n -- 11-52. t_mv was flipped and t_event RunStop fixed by other agents.

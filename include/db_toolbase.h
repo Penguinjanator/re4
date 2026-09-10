@@ -114,9 +114,17 @@ public:
         pName = name;
         x1C = 0;
         x20 = 0;
+        // COMPILER-DIFF: #13 -- the original stores the REG_EQUIV zero as a constant: the zero's
+        // `li` is not in its sched1 (reload re-creates it after `li 1`) and the last zero store
+        // carries no death. The two dead loop notes split our sched1 region so that `li 1` outranks
+        // `li 0` (3 vs 2 dependents) and the last store stays last (13 -> 0 words).
+        do {
+        } while (0);
         num = 0;
         pCur = 0;
         pBottom = 0;
+        do {
+        } while (0);
         pTop = 0;
     }
 #endif

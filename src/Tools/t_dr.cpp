@@ -345,16 +345,17 @@ static void tDrArea_Menu_main()
             if (Joy[0].rep2 & 0x10001) {
                 type--;
             }
-            if (type >= 0) {
-                int n = type;
+            int n;
 
+            if (type >= 0) {
+                n = type;
                 if (n > 1) {
                     n = 1;
                 }
-                a->type = n;
             } else {
-                a->type = 0;
+                n = 0;
             }
+            a->type = n;
         }
         x += 128;
         y += 16;

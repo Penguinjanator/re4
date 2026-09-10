@@ -833,9 +833,10 @@ void dispAreaInfoList1(int x, int y, int no)
 
     if (BIT_CHK(pW->areaBits, no) == 0) {
         col = 7;
+    } else if (no == pW->connectNo) {
+        col = 6;
     } else {
         col = 0;
-        if (no == pW->connectNo) col = 6;
     }
     eprintf(x, y, (u8) col, 0, "[%d]", no);
     eprintf(x + 0x30, y, (u8) col, 0, "%d", c->blockNo);
