@@ -7606,3 +7606,138 @@ confirmed on the units named):
   `stw r11,0xc(r1)` stack arg vs `addi r5/stb breakNo` order in a block identical to JumpUp's matching one);
   R0_Init 15 words (600/0xFF `li` register pair r9/r10 and the hp=500 `li r0` vs the routine `1` -- local-alloc order,
   U8Set/IntSet/statement permutations tried).
+
+### Stage rooms, st1_1/st1_3/st2_0 pass 2 (r104, r117 Matching; r105 28/30, r201 34/36, r222 22/29; 2026-09-10)
+
+- Harness: /tmp/rooms_b2 (copies of /tmp/rooms_b's `mcmp.py MOD/UNIT [SYM]`, `tryv.py MOD/UNIT FUNC variants.py`,
+  `vapply.py`, `sbs.sh MOD/UNIT SYM [OBJ]`, `mdump.sh MOD/UNIT -dX` with the source resolved from `src/<stage>/`).
+- **thread_jumps before cse1 is blocked by a user variable** (r104 execEvent00, the COMPILER-DIFF #12 "cse AROUND
+  path" 1-word item, now 0): `if (f & 0x40) skip = 1; if (!(f & 0x40)) {..}` -- the target keeps `beq EV; li r26,1;
+  bne SKIP` (second compare deleted, jump kept), ours folded the jump to `b`. Mechanism: toplev runs
+  `thread_jumps (insns, max_reg, 1)` BEFORE cse1; it threads `beq L1` past `L1: cmp2; bne L2` when the two compare
+  chains are equal, which deletes L1, so cse1 sees one block and folds `bne` from the fallthrough equivalence.
+  `rtx_equal_for_thread_p` returns 0 for two different pseudos when either is `REG_USERVAR_P`: `u32 f = pG->flags_54;
+  if (f & 0x40) skip = 1; if (!(pG->flags_54 & 0x40))` (the user variable on ONE side only) keeps L1 through cse1
+  (which then deletes cmp2 as redundant but has no jump knowledge on the AROUND path), and the post-cse2
+  `thread_jumps` threads the `beq` with nothing left to fold the `bne`. `if (f & 0x40) ... if (!(f & 0x40))` with
+  the same variable on both sides threads again (same REGNO).
+- **Global tables in a room** (r104 `.data` 0x28/0x98): the two `R104ResetData/R104PatrolData` tables are global in
+  the REL (ADDR16 fields hold A only, `make_rel --verify` shows "ours 98 orig 00" at the `addi sym@l`); a `static`
+  table gives S+A. Check `scope:` of the room's `.data` labels in `modules/<mod>/symbols.txt` before flipping.
+- **`static const f32` + `FCRef` for BOTH uses of 0.0 in one function** (r105 StreanChk 5 -> 0): the two
+  `SndStrReq(.., 0.0f)` calls sit in different arms; the else arm's 0.0 must load AFTER the `BitOff` store while the
+  then arm's loads first anyway. Using `FCRef(vol)` for only the second call moves the pool word (13 words).
+- **Work pointer declared before the template copies** (r105 markOpenCk 8 -> 0): `R105Mark* mk = &r105_work->mk;`
+  BEFORE `Vec vx/vy/vz = {..}` puts the `lwz work` at an earlier LUID; in sched1 it ties with the last two
+  template stores (prio 6, weight 0 each: every SET counts +1, the dying source -1) and LUID decides, so the target
+  issues the load between `stw vz.x` and `stw vz.y` (register naming r9/r10/r11 follows). A `cObj* o` local (the
+  `lwz 20(r9)` early too) is wrong (29 words).
+- **Dead `do { } while (0);` at the top of the block after a `do {..} while (1)` poll loop** (r117 EventChandelier
+  37 -> 13): with `-fcse-skip-blocks` cse1 follows the loop body's `bne SKIP` AROUND path into the exit block, merges
+  the block's `high pPL` into the loop body's pseudo, gcse deletes that pseudo's occurrence (PRE copy of the bb-0
+  reg) and the block ends up on the PRE reg (r26). The LOOP_END note ends cse1's path; the block keeps its own
+  occurrence, PRE turns it into a copy `r = reaching_reg` (REG_EQUAL high pPL), and cse2 re-materialises a copy
+  whose source is unknown at block entry as a fresh `lis` (the target's `lis r29,pPL@ha` between the loops).
+  Verified with `-fno-cse-skip-blocks` on the old source (same fresh `lis`). Family: COMPILER-DIFF #12.
+- **Non-const view of a `static const Vec` member read** (r117 `ry = ((Vec*) &r117_smdRot)->y;`, 13 -> 10): the
+  target issues the `lfs` below the preceding `FSet(pPL->pos.z, ..)` store; a `const` read is RTX_UNCHANGING and
+  floats above it.
+- **Two more flow-nop sites** (`(use (const_int 0))` after a call immediately followed by a loop, r208 idiom): r117
+  EventChandelier first loop (`cnt = 0;` moved from the declaration to just before `do {`, 10 -> 2) and second loop
+  (`cnt = 0;` after the `RoomSeCall` that precedes it, 2 -> 0); r222 box_appear1/box_appear2 (`t = 0.0f;` moved
+  between `SceSetEventCancel` and the `for`, 12 -> 0 each). Detect: sched1 `-fsched-verbose-6` ready list with an
+  insn "on unit none" taking an issue slot at t=1..5 and a prio-1 `li` shifted by one slot in the target.
+- **`asm("" : "+r"(on))` at the bottom of `while (on != 1) {.. SceSleep(1); }`** (r201 checkSwitch 13 -> 0,
+  tagged `// COMPILER-DIFF: #13`): loop.c hoists the invariant compare into a CC pseudo (`mfcr r30`/`mtcrf`
+  across the calls); the target re-compares `cmpwi r31,1` at the loop bottom (the REG_EQUIV compare is
+  re-materialised at its use, the #13 shape for CC). `int o = on; while (o != 1) {..; o = on;}` gives the same.
+- Analysed, still OPEN:
+  - r108 str_check / r203 StreamCheck (18 each, one shape): the target has TWO `high EmMgr` chains -- chain A
+    (`lis r11; addi r23,EmMgr@l`) hoisted out of the outer `for (;;)` for the inner loop's duplicated entry test
+    `lwz r0,4(r23)`, chain B (`lis r24; addi r27`) in the outer loop body for the inner loop (`lwz r29,0(r24)`
+    pArray, `lwz r0,8(r27)` size, the bottom test). Ours: gcse PRE (`PRE: redundant insn .. bb 1/2/9, reaching
+    reg .. end of bb 0`) makes one pseudo. The target shape is what loop.c alone gives (inner loop hoists to its
+    preheader, the outer loop skips a pseudo "made by loop-optimization for an inner loop"). An `extern cEmMgr
+    EmMgr_2 asm("EmMgr")` alias for the body reproduces chain B (gcse's `expr_equiv_p` compares SYMBOL_REF XSTR
+    pointers) but the plain-symbol bottom test then gets a third chain; alias everywhere merges again. Dead
+    do-while at the outer/inner body top, `while` form, `cEmMgr* mgr` local: unchanged. COMPILER-DIFF #3 family.
+  - r108 initChurchBell (5, the r103 checkCloseCover shape): `YarareInitCube(hit, x, x, z, w, h, w, 0, 1)` --
+    target load order w, x, h, z with two `lis` pairs; all 24 declaration orders tried again (`wzxh` 2 words but
+    the -3000/500 pool order flips). The single-use constants load in declaration order in the target (as if the
+    loads stayed at the declarations), in argument order in ours (combine merges the load into the arg move).
+  - r11f Evt_R11FS00_Func (2, `li r5,1` before `addi r4,r3,52`), r11d execHide_main (6), r201 setSwitchEnv (4),
+    r207 EnemySetEndProc (10): the arg-`li` family. Checked in `-fsched-verbose-6`: the li's tie on priority,
+    weight (+1 each), class and dependents (1: the call), LUID decides in ours. do-while wrap, `u32 se =` result
+    variable, `(void)` cast, `int one = 1`/`u8 one` dying-copy locals (all folded to `li` by cse, weight unchanged),
+    `pSUB` local: no change. In r201 the same constant `1` is issued FIRST for the three calls not followed by a
+    `SceAtPtr(3)` and LAST for the two that are.
+  - r118 ThunderMove (2): `li r28,0` (`void* zero`) vs the hoisted `ori r30,0x8889` -- both prio 1, weight +1
+    (the ori's source is its own dest pseudo), class 3, LUID; `zero = 0` placed before the loop or after `cnt`
+    unchanged (2).
+  - r202 R202Init (2): `lwz pG` r10 vs r9 after `stw r3, r202_work@l(r9)` -- local-alloc adjacency of the two
+    qtys in sched1 order. r208 operateCrank (4): `lwz W`/`lwz pPL` order before `FSet(pPL->rot.y, W->crank->rot.y -
+    PI/2)` (statement swap / `ry` local / `crank` local: 12/8/6).
+  - r105 execOpenCover, r103 execOpenCover, r11c closeGate: #7/#9 (peeled `fsubs; b TEST` loop with the caller-saved
+    `lfs f13` limit reloaded per iteration). r200 execTruckEvent_end: #11. r222 R222Main 7 (template load after
+    `seTimer = 30`, known).
+
+### em31 (El Gigante; src/em31/em31.cpp + include/em31.h written from scratch, 134/138 masked-identical, .rodata/.data equal, not flipped; 2026-09-10)
+- Layout as em25/em36 (R0 table global, R1 flat {br, main} pairs x35, R2 x4, R3 x1, EmAtkInfo x8, two u16 flip
+  tables, `em31CatchObj` one-member struct, three PlCloth table sets, `.comm common_em31,52,4`, cUnit/cManager<cObj>
+  linkonce copies at the .text end). Work 0x994 bytes (include/em31.h: 29 EmHitInfo, route/target angles, body/
+  tentacle/tail/pillar/weak pointers, two PlCloth, a Camera, bridgePos, difficulty timers, four Em31Eyelid).
+  The body ("pBody", type 0) and the tentacle unit ("pTen", type 1) are both cEm31; `Em31ClothSet` is the
+  never-called static whose pool the link kept (STRIP_UNUSED). Harness /tmp/em31w (mcmp/sbs/variants/perm,
+  trange.sh for a target offset range, sw_*.py casetree searches).
+- Inline-with-pointer-parameter alias pin (the biggest lever here, 8 functions): an inline taking `cEm31* em` /
+  `Em31Work* w` / `cPlayer* pl` / `Vec* v` binds the argument to a parameter pseudo, and stores through that copy
+  may-alias every other access of the caller (different base registers), which pins the store/load order and forces
+  loads below stores. Write the body as a macro over the caller's own variables: EM31_CATCH_ROT_SET (the -1.57
+  pool load and `rot.y` load hoisted above the pos stores), EM31_BRIDGE_JUMP_SET (`stfs x; stfs y; li r0,0` with
+  the natural direct stores), PLEM31_CATCH_HIT_SUB (pos store order y,z,x), EM31_KICK_ATK_CK / EM31_JUMP_ATK_CK
+  (`addi r4,r1,8` recomputed per call, `stfs` direct to the frame), EM31_FOOT_SE_SUB, EM31_TAIL_CLEAR, EM31_DIE_FADE.
+- Struct copy into a function-scope Vec whose address is a call argument comes out as `stw x, off(r1); stw y, 4(rA);
+  stw z, 8(rA)` with rA the argument register (`ep = em->pos; v = p->worldPos; v.y += 500.0f; em31AtkCk(em, &v,
+  &ep, 0)` in Walk/Dash, FootSe's `v = p->worldPos`); the same copy inside an inline with `Vec*` parameters gives
+  three direct frame stores.
+- Shared function-scope variables = one pseudo: `f32 m; f32 a;` used by the top test and case 0 of BridgeVs keep
+  `fabs f13, f1` (f1 live); `ang = atan2f(..); ang = -ang; ang = Muku2(0.0f, ang, K)` reusing the earlier atan2f
+  variable gives `fneg f1, f1; fmr f2, f1` (a fresh `-atan2f()` combines into `fneg f2, f1`); one `cParts* p` for
+  every getPartsPtr result and the parts pointer of the tail block keeps r31 across the calls (EyelidMove); one
+  `u32 i` / `cModelInfo* info` shared by both macro expansions gives the same registers in both loops (Die_Normal).
+- `s16 hitTimer` field: `if ((w->flags & 0xC8) || w->hitTimer)` loads `lha` (cast of a u16 in the test is folded
+  away, `lhz`), while `if (w->hitTimer) w->hitTimer--` stays `lhz`.
+- Condition kept in cr4 across the function: `if (em->pos.x > K) side = 0; else side = 1;` -> `li r0,1; fcmpu;
+  ble; li r0,0; cmpwi cr4, r0, 0` and every later `if (side)` is `beq cr4`. `side = 1; if (!(..)) side = 0;`
+  store-flags into `mfcr; extrwi.` and recompares at each use.
+- Dm_Down: `int flag = 0x201 / 0x100` passed as `(u16) flag` to MotionSetCore (`clrlwi r8` in every arm; a `u16 flag`
+  loses them); the `case 0: case 2: default:` arm is written first in the case-2/4 switches.
+- Weapon trees: BloodSet/TBloodSet default group `0..4, 0xE, 0x11, 0x26, 0x2B` (tools/casetree.py search, 0x1E and
+  0x22..0x25 are NOT explicit); DmCk `0..0xC, 0xE..0x11, 0x18..0x28, 0x2B, 0x2C` explicit (0x14..0x16 not) gives
+  the 0x17 root and the left half.
+- AtkRtnCk: `return 1` inside BOTH arms of `if ((u8)(Rnd() % 10) > 4) RS(9) else RS(0xA)` (the arms' stores are
+  cross-jumped, no join label before `li r3,1`, so it is not merged with the PillarCk `return 1`); the Rnd()&3
+  switch is `case 0: case 1: default:` with `return 1` per arm; the tail is `if (!(d2 < K)) return 0; RS; return 1`.
+- Turn: the two `else RS(1,2)` paths must be ONE statement so the block has two predecessors (fresh `li r0,0`
+  zeros, cross-jumped `stb fe` with the BridgeVsSet arm) while RS(1,5) keeps the weakTimer register as its zero:
+  `else if (em->plDist2 > K && (dy = fabsf(em->pos.y - pPL->pos.y), w->weakTimer == 0 && ..)) RS(1,5); else
+  RS(1,2);` (dy computed before the weakTimer test, function-scope `f32 dy`).
+- BridgeJumpCk: no `emi` local -- `((EmiData*) pG->pRoomEmi)->n / ->entry[i]` at every use (pG reloaded, the
+  entry address is `pRoomEmi + 8 + 0x40 i` with `lbzx`). PLCraneCk: `u32 i`, `Vec* p = &tbl[i]` for x/z and
+  `tbl[i].y` for the second giv (`cmplw` end test). TailAtkCk: `t = w->pTail;` before the first loop written over
+  the index (`for (i < 4) if (w->pTail[i])`: giv init `mr r9, r31`, end `em + 0xa70`), second loop `end = &t[3];
+  do { o = *t++; .. } while (t <= end)` in the new EBB (gcse would merge a `&w->pTail[3]` end with the first).
+- EyelidInit stores through `w->eye[n].field` (no per-eye pointer); `p = em->getPartsPtr(0x1B)` for eye 0 (the
+  target's quirk; eyes 1-3 use parts2) is called before `parts2` is stored. Eyelid scale stores `x, z, y`; DieFade
+  `color[1]` before `color[2]`; pGS->x4F88 / pPLS->pos.y for loads that stay below the timer stores.
+- Also: compound-literal Vec args `&((Vec) {0,0,0})` are merged rodata shared by R0_Init and plem31_Climb (static
+  const Vecs are not); `atariInitF` floats-first (COMPILER-DIFF #1); `#line 941` before `MEM_ALLOC(0x98,1,0xD)`,
+  `#line 2400` for the EscapeCamMove VECNormalize; `switch (no - 1) { default: return; .. }` (BreathSeStopCk);
+  `0.3f * 0.8f` for 0x3E75C290; R0_Init zero block issues the last source store first.
+- Residual (4 functions): em31DmCk 11 words -- the `> 0x17` subtree is `[18-28] -> [2b-2c] {[29-2a], [2d]}`
+  (`cmpwi 0x28 ble; cmpwi 0x2c ble Z; cmpwi 0x2d beq; Z: cmpwi 0x2b bge`), a root-first 4-list that stmt.c's
+  balance_case_nodes cannot produce in plain mode (cost mode is off: 0xD/1..7 are control chars) and no if/switch
+  nesting tried reproduces (enum index, guarded inner switch, default-arm switch, separate arms); AtkRtnCk 8 words
+  (`li r3,1` last in the store blocks of the target, second in ours; sched tie, `return 1` placements exhausted);
+  PillarCk 5 words (ObjMgr@ha / hoisted `4` in r22/r23 swapped, global-alloc order); TailAtkCk 17 words (`em` r30
+  and `t` r31 swapped, same cause).

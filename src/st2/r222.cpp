@@ -492,12 +492,12 @@ static void box_appear1()
     pG->flags_174 |= 0x20000000;
     CamCtrl.CutCall(0xC);
     SmdGetObjPtr(0x26)->pParts->rot.z = 0.0f;
-    t = 0.0f;
     SmdGetObjPtr(0x27)->pParts->rot.z = 0.0f;
     y[0] = SmdGetObjPtr(0x25)->pos.y;
     y[1] = SmdGetObjPtr(8)->pos.y;
     y[2] = SmdGetObjPtr(9)->pos.y;
     SceSetEventCancel(1, (TaskFunc) box_appear1_exit, 0, -1, 1);
+    t = 0.0f;   // between the call and the loop: keeps flow's `(use 0)` nop out of the sched1 slots (r208 footingB_up)
     for (i = 0; i < 60; i++) {
         f32 r;
 
@@ -582,12 +582,12 @@ static void box_appear2()
     pG->flags_174 |= 0x10000000;
     CamCtrl.CutCall(0xE);
     SmdGetObjPtr(0x2A)->pParts->rot.z = 0.0f;
-    t = 0.0f;
     SmdGetObjPtr(0x2B)->pParts->rot.z = 0.0f;
     y[0] = SmdGetObjPtr(0x29)->pos.y;
     y[1] = SmdGetObjPtr(6)->pos.y;
     y[2] = SmdGetObjPtr(7)->pos.y;
     SceSetEventCancel(1, (TaskFunc) box_appear2_exit, 0, -1, 1);
+    t = 0.0f;   // between the call and the loop: keeps flow's `(use 0)` nop out of the sched1 slots (r208 footingB_up)
     for (i = 0; i < 60; i++) {
         f32 r;
 

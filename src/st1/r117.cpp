@@ -683,7 +683,7 @@ static void r117_EventChandelier()
     void* motPl = 0;
     void* motSmd = 0;
     int dir = 0;
-    u32 cnt = 0;
+    u32 cnt;
     int ok;
     int loop;
 
@@ -696,7 +696,7 @@ static void r117_EventChandelier()
         cPlayer* pl;
 
         pl = pPLS;
-        ry = r117_smdRot.y;
+        ry = ((Vec*) &r117_smdRot)->y; // non-const view: the load stays below the pos.z store
         pl->setPos(&pl->pos);
         ang.x = 0.0f;
         ang.z = 0.0f;
@@ -706,6 +706,7 @@ static void r117_EventChandelier()
     pPL->motionSet(ROOM_ARC_PTR(pG->pRoomArc, 0x25), 3, 0, 1, 0);
     W->smd->motionSet(ROOM_ARC_PTR(pG->pRoomArc, 0x21), 3, 0, 1, 0);
     PlSeCall(0x29, &pPL->pos, 0, 0, 0);
+    cnt = 0;
     do {
         if (cnt++ == 0x1D) {
             RoomSeCall(8, &pPL->pos, 0, 0, 0);
@@ -715,12 +716,16 @@ static void r117_EventChandelier()
         }
         SceSleep(1);
     } while (1);
+    // The dead loop's notes keep this block's pPL `lis` out of the first loop's cse path (the original
+    // re-materialises pPL@ha here); `cnt = 0` after the call keeps flow's `(use 0)` nop out of the
+    // sched1 slot before the second loop (the same lever as r208 footingB_up).
+    do { } while (0);
     ok = 1;
     loop = 1;
-    cnt = 0;
     pPL->motionSet(ROOM_ARC_PTR(pG->pRoomArc, 0x26), 3, 0, 5, 0);
     W->smd->motionSet(ROOM_ARC_PTR(pG->pRoomArc, 0x22), 3, 0, 5, 0);
     RoomSeCall(0x13, &pPL->pos, 0, 0, 0);
+    cnt = 0;
     do {
         if (MotionGetState(pPL) & 1) {
             RoomSeCall(0x13, &pPL->pos, 0, 0, 0);

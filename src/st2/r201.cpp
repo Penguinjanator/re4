@@ -1049,6 +1049,10 @@ static void r201_checkSwitch(int on)
             break;
         }
         SceSleep(1);
+        // COMPILER-DIFF: #13 -- loop.c hoists the invariant `on != 1` compare into a CC pseudo (mfcr/mtcrf
+        // across the calls); the original re-compares `cmpwi r31,1` at the loop bottom (the REG_EQUIV compare
+        // is re-materialised at its use). The launder makes `on` loop-variant so the compare stays.
+        asm("" : "+r"(on));
     }
 }
 

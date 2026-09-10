@@ -73,15 +73,16 @@ struct R104Work {
 static R104Work* r104_work;
 
 // The original's .rodata and .data are 8-aligned (the .rodata end is padded to 0x2a8; r105 has the same).
+// Both tables are global in the REL (ADDR16 fields hold A only).
 asm(".section .rodata; .balign 8; .section .data; .balign 8");
-static R104ResetData r104_resetData[4] = {
+R104ResetData r104_resetData[4] = {
     {{0xD9, 0xDA, 0xDB}, 2, 3, 4, 1},
     {{0xDC, 0xDD, 0xDE}, 5, 6, 7, 2},
     {{0xDF, 0xE0, 0xE1}, 8, 9, 0xA, 3},
     {{0xE2, 0xE3, 0xE4}, 0xB, 0xC, 0xD, 4},
 };
 
-static R104PatrolData r104_patrolData[7] = {
+R104PatrolData r104_patrolData[7] = {
     {0xF0, {16350.0f, 70.0f, -4050.0f}},
     {0xF1, {31430.0f, 6740.0f, -16170.0f}},
     {0xF3, {28880.0f, 7900.0f, -29940.0f}},
@@ -706,7 +707,11 @@ static void r104_execEvent00()
     }
     int skip = 0;
     DC.setAramSort(0);
-    if (pG->flags_54 & 0x40) {
+    // The user variable on one side of the two tests keeps the pre-cse1 thread_jumps from threading the
+    // first `beq` past the second test (rtx_equal_for_thread_p rejects REG_USERVAR_P pseudos): the second
+    // compare is cse-deleted but its `bne` survives, as in the original (AGENTS.md, st1_1 pass 2).
+    u32 f = pG->flags_54;
+    if (f & 0x40) {
         skip = 1;
     }
     if (!(pG->flags_54 & 0x40)) {

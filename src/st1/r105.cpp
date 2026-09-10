@@ -378,13 +378,16 @@ static void r105_markMain()
 // 1 when the dial's rotation matrix is the identity or the half turn about Y.
 extern "C" int r105_markOpenCk()
 {
+    // The work pointer is loaded before the three template copies (its `lwz` is issued between
+    // the vz.x and vz.y stores in the original: the RTL order decides the sched1 tie).
+    R105Mark* mk = &r105_work->mk;
     Vec vx = {1.0f, 0.0f, 0.0f};
     Vec vy = {0.0f, 1.0f, 0.0f};
     Vec vz = {0.0f, 0.0f, 1.0f};
     Mtx m;
 
-    if (r105_work->mk.obj[0].obj) {
-        r105_markMtxCopy(m, r105_work->mk.obj[0].obj->mat);
+    if (mk->obj[0].obj) {
+        r105_markMtxCopy(m, mk->obj[0].obj->mat);
     }
     PSMTXMultVec(m, &vx, &vx);
     PSMTXMultVec(m, &vy, &vy);
@@ -586,8 +589,12 @@ extern "C" void r105_EmSet()
 }
 
 // Battle stream: starts while an enemy sees the player, fades out otherwise.
+static inline f32 FCRef(const f32& v) { return v; }
+
 static void r105_StreanChk()
 {
+    static const f32 vol = 0.0f;
+
     pG->flags_174 &= ~0x08000000;
     for (;;) {
         if (SceCkFindPL(0) == 1) {
@@ -603,12 +610,12 @@ static void r105_StreanChk()
                     SndRoomStrStop(0);
                     SceSleep(1);
                 }
-                SndStrReq(0, 2, 0x80000003, 0, 0, 0.0f);
+                SndStrReq(0, 2, 0x80000003, 0, 0, FCRef(vol));
                 SceSleep(30);
             }
         } else if (pG->flags_174 & 0x08000000) {
             BitOff(pG->flags_174, 0x08000000);
-            SndStrReq(0, 2, 4, 600, 0, 0.0f);
+            SndStrReq(0, 2, 4, 600, 0, FCRef(vol));
             SceSleep(30);
         }
         SceSleep(1);
