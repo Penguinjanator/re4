@@ -789,6 +789,7 @@ MATCHING = {
     "em29/em29.cpp": True,
     "em3c/em3c.cpp": True,
     "em2b/em2b.cpp": True,
+    "em39/em39.cpp": True,
     # weapon modules (src/wepXX/wepXX.cpp, the whole REL)
     "wep00/wep00.cpp": True,
     "wep34/wep34.cpp": True,

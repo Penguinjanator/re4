@@ -2631,7 +2631,15 @@ static void em39_R1_JumpUp3(cEm39* em)
             f32 a;
 
             a = GetXZAngle(&w->jumpPos, &em->pos);
-            em->rot.y += Muku2(em->rot.y, a, 0.39269908f);
+            {
+                // COMPILER-DIFF: #1 -- the limit constant reaches the call as a dying pseudo (the original's
+                // REG_EQUIV constant): its `lis` then outranks the GetXZAngle result copy in sched1 (path
+                // lis; lfs; fmr f3 = 12 vs 11) and precedes the `fmr f2,f1`. The codeless asm is the second
+                // reference that keeps combine from folding the pseudo into the argument load.
+                f32 k = 0.39269908f;
+                asm("" : "=m"(w->x4) : "f"(k));
+                em->rot.y += Muku2(em->rot.y, a, k);
+            }
             em->rot.y = LIMIT_ANGLE(em->rot.y);
         } else {
             em->rot.y += Muku(&em->pos, &w->jumpPos, em->rot.y, 0.39269908f);
@@ -3496,7 +3504,9 @@ static void em39_R1_Atk_MG(cEm39* em)
 
     w->flags |= 0xC0;
     w->flags &= ~0x20;
-    PSMTXRotRad(m, 'y', LIMIT_ANGLE(GetXZAngle(&em->pos, &pPL->pos) + 0.08726646f));
+    // pPLS: the pPL load waits for the flags store (struct view), which frees the sched1 slots
+    // that put `&b` and its PRE copy before the first call.
+    PSMTXRotRad(m, 'y', LIMIT_ANGLE(GetXZAngle(&em->pos, &pPLS->pos) + 0.08726646f));
     TransMatrix(m, &pPL->pos);
     b.x = 0.0f;
     b.y = 1500.0f;
@@ -6133,41 +6143,6 @@ static void em39_R1_Die_Flash(cEm39* em)
     em39HandSet(em, 0);
 }
 
-static void em39ActOn(cEm39* em)
-{
-    EM39_WK(em)->x8B7 = 1;
-    GameAddPoint(9);
-}
-
-static void plemDmSide(cPlayer* pl)
-{
-    pl->subArc = ((cEm*) pl->dmgType)->subArc;
-    switch (pl->xFE) {
-    case 0: {
-        int flag = 1;
-
-        if (pl->xFF) {
-            flag = 0x41;
-        }
-        if (pG->x4FB8 == 2) {
-            MotionSetCore(pl, MOTION(pl), PL_ARC_PTR(pl->subArc, 0x12D), (int) PL_ARC_PTR(pl->subArc, 0x12E), 3, flag, 0);
-        } else {
-            MotionSetCore(pl, MOTION(pl), PL_ARC_PTR(pl->subArc, 0x10E), (int) PL_ARC_PTR(pl->subArc, 0x10F), 3, flag, 0);
-        }
-        PlSetFace(1);
-        pl->st.x325 = 0xA;
-        PlSetDamageSe(0);
-        pl->xFE++;
-    }
-    case 1:
-        if (MotionMoveF(pl, 0)) {
-            EndPlDamage();
-        }
-        break;
-    }
-    pl->subArc = pl->subArc2;
-}
-
 // ---- HELPERS ----
 void em39RouteCk(cEm39* em)
 {
@@ -6201,9 +6176,16 @@ void em39RouteCk(cEm39* em)
             plPos = a;
         }
     }
+    // COMPILER-DIFF: candidate #17 (global-alloc priority order) -- the target allocates the four
+    // callee-saved pseudos as &em->pos r27 > &a r26 > pPL high r25 > PI high r24; ours ranks &a (4 refs/74)
+    // above &em->pos (4/106) and the PI high (3/178) above the pPL high (5/1096). Codeless asms whose
+    // "m" operands go through the PRE'd pseudos add refs without code: three `pPL` mentions in three
+    // blocks (8 refs: 3*8/1192 > 3/182) and two `&em->pos` member reads after the second Muku (6 refs:
+    // 2*6/108 > 2*4/76). A second mention in the same block would be a fresh `lis` (cse keeps a `high`).
     up = 0;
     if (pPL->pos.y > em->pos.y + 1000.0f) {
         up = 1;
+        asm("" : "=m"(w->x8B6) : "m"(pPL)); // COMPILER-DIFF: candidate #17
     }
     RouteCkToPos(em, &plPos, &w->routePos, up, 0);
     w->routeAng = Muku(&em->pos, &w->routePos, em->rot.y, PI);
@@ -6212,6 +6194,7 @@ void em39RouteCk(cEm39* em)
         w->routeAng = 0.0f;
         w->routeAngAbs = 0.0f;
         em->plDist2 = 100000000.0f;
+        asm("" : "=m"(w->x8B6) : "m"(pPL)); // COMPILER-DIFF: candidate #17
     }
     a.x = em->pos.x;
     a.y = em->pos.y + 1300.0f;
@@ -6232,11 +6215,16 @@ void em39RouteCk(cEm39* em)
         up = 0;
         if (w->gotoPos.y > em->pos.y + 1000.0f) {
             up = 1;
+            asm("" : "=m"(w->x8B6) : "m"(pPL)); // COMPILER-DIFF: candidate #17
         }
         RouteCkToPos(em, &w->gotoPos, &w->targetPos, up, 0);
         w->targetAng = Muku(&em->pos, &w->targetPos, em->rot.y, PI);
         w->targetAngAbs = fabsf(w->targetAng);
         w->targetDist = (em->pos.x - w->gotoPos.x) * (em->pos.x - w->gotoPos.x) + (em->pos.z - w->gotoPos.z) * (em->pos.z - w->gotoPos.z);
+        {
+            Vec* pep = &em->pos; // COMPILER-DIFF: candidate #17 -- two refs for the PRE'd &em->pos
+            asm("" : "=m"(w->x8B7) : "m"(pep->y), "m"(pep->z));
+        }
     }
     if (pG->flags_60 & 0x4000) {
         Vec c = em->pos;
@@ -6411,6 +6399,43 @@ int em39GunHitCk(cEm39* em)
     EspSetGatling(from, b);
     SndCall(6, 0xA, &hit, 0, 0, 0);
     return 0;
+}
+
+// The action-button callback and the player damage routine are static: they are emitted here, where
+// the original had them (after em39GunHitCk).
+static void em39ActOn(cEm39* em)
+{
+    EM39_WK(em)->x8B7 = 1;
+    GameAddPoint(9);
+}
+
+static void plemDmSide(cPlayer* pl)
+{
+    pl->subArc = ((cEm*) pl->dmgType)->subArc;
+    switch (pl->xFE) {
+    case 0: {
+        int flag = 1;
+
+        if (pl->xFF) {
+            flag = 0x41;
+        }
+        if (pG->x4FB8 == 2) {
+            MotionSetCore(pl, MOTION(pl), PL_ARC_PTR(pl->subArc, 0x12D), (int) PL_ARC_PTR(pl->subArc, 0x12E), 3, flag, 0);
+        } else {
+            MotionSetCore(pl, MOTION(pl), PL_ARC_PTR(pl->subArc, 0x10E), (int) PL_ARC_PTR(pl->subArc, 0x10F), 3, flag, 0);
+        }
+        PlSetFace(1);
+        pl->st.x325 = 0xA;
+        PlSetDamageSe(0);
+        pl->xFE++;
+    }
+    case 1:
+        if (MotionMoveF(pl, 0)) {
+            EndPlDamage();
+        }
+        break;
+    }
+    pl->subArc = pl->subArc2;
 }
 
 // Ejected cartridge (obj10) from the machine gun.
@@ -6878,7 +6903,11 @@ int em39JumpUpCk3(cEm39* em)
         return 0;
     }
     for (i = 0; i < emi->n; i++) {
-        EmiEntry* e = &emi->entry[i];
+        // EM39_EMI (not emi) at the body top: the pG->pRoomEmi reload is hoisted out of the outer loop
+        // (no conditional jump passed yet, so the trapping load is movable) and cse2 folds it to a copy
+        // of emi; the inner loop's duplicated entry test then reads ->n through that copy while its
+        // latch reloads pG->pRoomEmi (after LOOP_VTOP, hoisted into the inner preheader).
+        EmiEntry* e = &EM39_EMI->entry[i];
 
         if (e->type != 0x11) {
             continue;
