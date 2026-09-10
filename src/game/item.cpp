@@ -1,4 +1,12 @@
 // game/item: the inventory (attache case) manager cItemMgr and the item/weapon tables (D:/Bio4/Prog/item.cpp).
+// 68/78 byte-identical (DOL sweep 6, 2026-09-10). Shapes fixed there: save/load loop over `s[i]`
+// with the array base in a pointer local declared first (the target's `addi r28,sd,4` base + i*12
+// giv + a `mr` copy for the second loop), arm's `goto ok/ng` return layout, reload_main's two clamp
+// variables (n, m), weaponParts' `if (p == 0) return 0` + `if (cnt++ == no)` (loop.c moves the
+// found block behind the early-return barrier), reload's `goto done` + `int z = ATTR(p) == 0`
+// store-flag, combine's single-set `inv`. Open: use (COMPILER-DIFF #6, 11 call tails), get /
+// bulletNum (#6 single-insn tails), partsCombine, load (case 1/9 duplicated bodies need the switch
+// value in r11), trigger/init/set_stage2/debugNumDisp/combine (register ties).
 #include "types.h"
 #include "atari.h"
 #include "map_obj.h"
@@ -1749,13 +1757,25 @@ int addMoney(int n)
     return 1;
 }
 
+// Inline wrappers: the caller's `&inf` is substituted into the hard-register argument set (recomputed
+// `addi r4,r1,16` per call, not PRE'd into a callee-saved register).
+static inline void itemInfoIW(int id, ItemInfo* inf)
+{
+    itemInfoI(id, inf);
+}
+
+static inline void itemInfoW(u16 id, ItemInfo* inf)
+{
+    itemInfo(id, inf);
+}
+
 int cItemMgr::get(int id, int num)
 {
     ItemInfo info;
     ItemInfo inf;
     ItemInfo* pInfo = &info;
     ItemWork* p;
-    u16 max;
+    int max;
     int i;
 
     switch (id) {
@@ -1787,7 +1807,7 @@ int cItemMgr::get(int id, int num)
         MercSysSetBonusTime(num * 30);
         return 1;
     }
-    itemInfoI(id, &inf);
+    itemInfoIW(id, &inf);
     switch (inf.type) {
     case 5:
     case 12:
@@ -1798,11 +1818,11 @@ int cItemMgr::get(int id, int num)
                 int total;
 
                 if (num == 0) {
-                    itemInfoI(id, &inf);
+                    itemInfoIW(id, &inf);
                     num = inf.x3;
                 }
                 total = p->num + num;
-                itemInfo(p->id, &inf);
+                itemInfoW(p->id, &inf);
                 if (total <= inf.x4) {
                     p->num = num + p->num;
                     return 1;
@@ -1823,8 +1843,9 @@ int cItemMgr::get(int id, int num)
         max = pInfo->x4;
     }
     if (num > max) {
+        u16 m = max;
         pLog->err(0, 0, "cItemMgr::get(): Volume of ITEM(0x%02x) is OOL.", id);
-        num = max;
+        num = m;
     }
     pLast = 0;
     p = pItems;
@@ -2180,8 +2201,8 @@ int cItemMgr::combine(ItemWork* a, ItemWork* b, int flag)
             if (idb == WeaponId2BulletId(ida, attr8)) {
                 ret = reload_main(a, b, WeaponId2ChargeNum(ida, lv));
             } else {
-                attr = attr == 0;
-                if (idb == WeaponId2BulletId(ida, attr)) {
+                int inv = attr == 0;
+                if (idb == WeaponId2BulletId(ida, inv)) {
                     int n = b->num;
 
                     b->id = WeaponId2BulletId(ida, attr8);
@@ -2189,7 +2210,7 @@ int cItemMgr::combine(ItemWork* a, ItemWork* b, int flag)
                     if (b->num == 0) {
                         erase(b);
                     }
-                    a->x8 = (attr << 13) | (n & 0x1FFF);
+                    a->x8 = (inv << 13) | (n & 0x1FFF);
                     if (a == pArm) {
                         pG->wep_x4FB2 = ATTR(a);
                     }
@@ -2215,8 +2236,8 @@ int cItemMgr::combine(ItemWork* a, ItemWork* b, int flag)
             if (ida == WeaponId2BulletId(idb, attr8)) {
                 ret = reload_main(b, a, WeaponId2ChargeNum(idb, lv));
             } else {
-                attr = attr == 0;
-                if (ida == WeaponId2BulletId(idb, attr)) {
+                int inv = attr == 0;
+                if (ida == WeaponId2BulletId(idb, inv)) {
                     int n = a->num;
 
                     a->id = WeaponId2BulletId(idb, attr8);
@@ -2224,7 +2245,7 @@ int cItemMgr::combine(ItemWork* a, ItemWork* b, int flag)
                     if (a->num == 0) {
                         erase(a);
                     }
-                    b->x8 = (attr << 13) | (n & 0x1FFF);
+                    b->x8 = (inv << 13) | (n & 0x1FFF);
                     if (b == pArm) {
                         pG->wep_x4FB2 = ATTR(b);
                     }
@@ -2371,10 +2392,10 @@ int cItemMgr::arm(ItemWork* p)
     if (p == 0) {
         pArm = p;
         armId = bareHand();
-        return 1;
+        goto ok;
     }
     if (p->num == 0) {
-        return 0;
+        goto ng;
     }
     if (ITEM_TYPE(p->id) == 1 || ITEM_TYPE(p->id) == 3 || ITEM_TYPE(p->id) == 6) {
         pArm = p;
@@ -2386,9 +2407,12 @@ int cItemMgr::arm(ItemWork* p)
             pG->x4FBA = (p->x6 >> 4) & 0xF;
             pG->wep_lv_ex = LV_EX(p);
         }
-        return 1;
+        goto ok;
     }
+ng:
     return 0;
+ok:
+    return 1;
 }
 
 int cItemMgr::reloadable()
@@ -2445,7 +2469,7 @@ int cItemMgr::reload(ItemWork* p, int flag)
     }
     id = weaponId(p);
     if (ITEM_TYPE(id) != 1) {
-        return ret;
+        goto done;
     }
     if ((s32) pG->flags_6C < 0) {
         setBullet(p, WeaponId2ChargeNum(id, LV_EX(p) + 1));
@@ -2454,7 +2478,10 @@ int cItemMgr::reload(ItemWork* p, int flag)
     bid = WeaponId2BulletId(id, ATTR(p));
     if (flag != 0 && (p->id == 0x36 || p->id == 0xAB)) {
         if (ItemMgr.bulletNum() == 0 && ItemMgr.num(bid) == 0) {
-            p->x8 = BULLET(p) | ((ATTR(p) == 0) << 13);
+            {
+                int z = ATTR(p) == 0;
+                p->x8 = BULLET(p) | (z << 13);
+            }
             bid = WeaponId2BulletId(p->id, ATTR(p));
             if (p == pArm) {
                 pG->wep_x4FB2 = ATTR(p);
@@ -2466,6 +2493,7 @@ int cItemMgr::reload(ItemWork* p, int flag)
         combine(p, minimumSearch(bid), 1);
         ret = 1;
     }
+done:
     return ret;
 }
 
@@ -2474,19 +2502,23 @@ int reload_main(ItemWork* wep, ItemWork* ammo, int max)
     int have = BULLET(wep);
     int room = max - have;
     int n;
+    int m;
 
     if (room == 0) {
         return 0;
     }
-    n = ammo->num;
-    if (n >= max) {
+    if (ammo->num >= max) {
         n = max;
+    } else {
+        n = ammo->num;
     }
     if (n > room) {
-        n = room;
+        m = room;
+    } else {
+        m = n;
     }
-    wep->x8 = (wep->x8 & 0xE000) | ((have + n) & 0x1FFF);
-    ammo->num -= n;
+    wep->x8 = (wep->x8 & 0xE000) | ((have + m) & 0x1FFF);
+    ammo->num -= m;
     return 1;
 }
 
@@ -2581,14 +2613,14 @@ ItemWork* cItemMgr::weaponParts(ItemWork* p, int no)
     int cnt = 0;
     int i;
 
-    if (p != 0) {
-        for (i = 0; i < nItems; i++, q++) {
-            if (itemUse(q, type)) {
-                if (ITEM_TYPE(q->id) == 9 && q->x6 == 1 && idx == q->x8) {
-                    if (cnt == no) {
-                        return q;
-                    }
-                    cnt++;
+    if (p == 0) {
+        return 0;
+    }
+    for (i = 0; i < nItems; i++, q++) {
+        if (itemUse(q, type)) {
+            if (ITEM_TYPE(q->id) == 9 && q->x6 == 1 && idx == q->x8) {
+                if (cnt++ == no) {
+                    return q;
                 }
             }
         }
@@ -2663,13 +2695,16 @@ int cItemMgr::bulletNum(ItemWork* p)
         }
         return BULLET(p);
     case 6:
+        // the 8..10 hit falls into case 3 (the target's case-3 body follows the range test); the
+        // inner default's single `li r3,0` tail is cross-jumped by ours (COMPILER-DIFF #6)
         switch (p->id) {
         case 8:
         case 9:
         case 10:
-            return p->num;
+            break;
+        default:
+            return 0;
         }
-        return 0;
     case 3:
         return p->num;
     }
@@ -2685,43 +2720,44 @@ void cItemMgr::save(void* dst)
 {
     ItemInfo info;
     ItemSaveData* sd = (ItemSaveData*) dst;
-    ItemSaveWork* s;
+    ItemSaveWork* s = sd->item;
     ItemWork* p = pItems;
     int i;
 
     sd->armIdx = 0xFFFF;
     for (i = 0; i < 0x180; i++) {
-        memclr_asm(&sd->item[i], sizeof(ItemSaveWork));
-        sd->item[i].id = 0xFFFF;
+        memclr_asm(&s[i], sizeof(ItemSaveWork));
+        s[i].id = 0xFFFF;
     }
-    s = sd->item;
-    for (i = 0; i < nItems; i++, p++, s++) {
-        memclr_asm(s, sizeof(ItemSaveWork));
+    for (i = 0; i < nItems; i++, p++) {
+        memclr_asm(&s[i], sizeof(ItemSaveWork));
         if (itemEmpty(p)) {
-            s->id = 0xFFFF;
+            register int m1 asm("r0"); // COMPILER-DIFF: #13 (the 0xFFFF re-materialised at the store)
+            m1 = -1;
+            s[i].id = m1;
         } else {
-            s->id = p->id;
+            s[i].id = p->id;
             if (p->type == 1) {
-                s->id |= 0x8000;
+                s[i].id |= 0x8000;
             }
             switch (ITEM_TYPE(p->id)) {
             case 1:
             case 9:
-                s->x2 = p->x6;
-                s->x4 = p->x8;
+                s[i].x2 = p->x6;
+                s[i].x4 = p->x8;
                 break;
             case 10:
-                s->x2 = p->num;
-                s->x4 = p->x6b[0];
+                s[i].x2 = p->num;
+                s[i].x4 = p->x6b[0];
                 break;
             default:
-                s->x2 = p->num;
+                s[i].x2 = p->num;
                 break;
             }
-            s->x = p->x;
-            s->y = p->y;
-            s->orient = p->orient;
-            s->board = p->board;
+            s[i].x = p->x;
+            s[i].y = p->y;
+            s[i].orient = p->orient;
+            s[i].board = p->board;
         }
         if (p == pArm) {
             sd->armIdx = i;
@@ -2739,14 +2775,14 @@ void cItemMgr::load(void* src)
     int i;
 
     pArm = 0;
-    for (i = 0; i < nItems; i++, p++, s++) {
-        if (s->id != 0xFFFF) {
+    for (i = 0; i < nItems; i++, p++) {
+        if (s[i].id != 0xFFFF) {
             int wep = 0;
 
-            if (s->id & 0x8000) {
+            if (s[i].id & 0x8000) {
                 wep = 1;
             }
-            construct(p, s->id & 0x7FFF);
+            construct(p, s[i].id & 0x7FFF);
             if (wep) {
                 p->type = 1;
             } else {
@@ -2755,22 +2791,22 @@ void cItemMgr::load(void* src)
             switch (ITEM_TYPE(p->id)) {
             case 1:
             case 9:
-                p->x6 = s->x2;
+                p->x6 = s[i].x2;
                 p->num = 1;
-                p->x8 = s->x4;
+                p->x8 = s[i].x4;
                 break;
             case 10:
-                p->num = s->x2;
-                p->x6b[0] = s->x4;
+                p->num = s[i].x2;
+                p->x6b[0] = s[i].x4;
                 break;
             default:
-                p->num = s->x2;
+                p->num = s[i].x2;
                 break;
             }
-            p->x = s->x;
-            p->y = s->y;
-            p->orient = s->orient;
-            p->board = s->board;
+            p->x = s[i].x;
+            p->y = s[i].y;
+            p->orient = s[i].orient;
+            p->board = s[i].board;
         } else {
             p->flags = 0;
         }

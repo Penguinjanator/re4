@@ -729,6 +729,8 @@ void IdBinocular::cutin()
         u->timer[0] = 0x96;
         u->timer[1] = 0x96;
         u->timer[2] = 0x96;
+        asm volatile("" : : "r"(u)); // COMPILER-DIFF: #13 (stores in source order: the original's u does not die
+                                     // at the last store; the clrlwi/addi arg order left is the asm's side effect)
     }
 }
 

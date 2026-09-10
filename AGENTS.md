@@ -8539,3 +8539,96 @@ confirmed on the units named):
   worse. Plus `li r9,7`/`li r9,8` and store-order ties in the last routine chain.
 - Not attempted this pass (time): em2c T_Wait 143, the three blend-init blocks, HideWait 2, BlendMotSet/2, em2d RouteCk
   4, JumpAtk 2.
+
+### DOL sweep 6, bytes-first (event 142->143/147, snd 91->92/97, item 63->68/78, cam_ctrl/cam_extra word cuts; 2026-09-10)
+
+- Harness /tmp/dol_big (copy of /tmp/dol_one with the paths rewritten: `mcmp.py UNIT [SYM]`, `tryv.py UNIT SYM
+  variants.py`, `vapply.py`, `sbs.sh UNIT SYM [OBJ]`, `dump.sh UNIT -dX`). tryv names its objects
+  `out/v_<basename(unit)>_<name>.o` (`v_cam_ctrl_x.o`, not `v_cam_x.o`).
+- **loop.c block move needs a BARRIER outside the loop before the jump target** (event EventMgr::construct
+  12 -> 0): the inlined search loop's `return i` block (`mr r0,r9; b`) is moved behind the err call only when
+  something after the loop ends in a jump -- `pLog->err(..); return 1;` inside the failure arm (its `li r3,1; b
+  end` is cross-jumped into the final `li r3,1`, leaving the `bl err; b end` + moved block the target shows).
+  Same lever in item weaponParts (17 -> 0): `if (p == 0) return 0;` BEFORE the loop (instead of `if (p) {loop}`)
+  creates the barrier the found block (`mr r3,q; b end`) lands after, and the compare is `if (cnt++ == no)`
+  (`mr r0,cnt; cmpw r0,no; addi cnt,1; beq`).
+- **`goto err` into the else-arm's error body** (event GetMod 20 -> 12): the then arm (`nm = "pl0300"`) tests its
+  own GetDat result and jumps into the else arm's `pLog->err; return 0` (`bl; cmpwi; beq err; b ok` -- no
+  cross-jump of the call; a shared `if (ret == 0)` after the join merges the compares, two full err copies
+  cross-jump the `bl`s). Rest: this/mod r27/r28 and cr3/cr4 (global-alloc order), open.
+- **`goto ok` / `goto ng` return layout** (item arm 58 -> 0): `if (p == 0) {..; goto ok;} if (num == 0) goto
+  ng; if (type..) {..; goto ok;} ng: return 0; ok: return 1;` gives the target's single `li r3,0; b end;
+  li r3,1` tail with both `return 1`s jumping to it and `beq ng` for the num test (a plain `return 0` there is
+  hoisted to `li r3,0; beq end`). item reload 24 -> 0: `if (ITEM_TYPE(id) != 1) goto done;` with `done: return
+  ret;` at the end (a `return ret` is constant-propagated to `li r3,0`), plus the store-flag `int z = ATTR(p) ==
+  0; p->x8 = BULLET(p) | (z << 13)` (`mfcr; rlwinm 16,18,18`; the inline `((ATTR(p) == 0) << 13)` branches).
+- **Reference read of an address-taken parameter** (snd SndCall 96 -> 7): the target reloads `blk`/`no`
+  (`lhz 8(r1)`) after EVERY store through `pSnd->bgm_work[]` including the word `stwx` and the `sth`, and in the
+  sur loop issues `lhz no; sth no; lhz blk; stb; sth blk` (the blk load cannot pass the `sth 22(w)`). Ours treats
+  the parameter stack slots as fixed scalars (`mem/f`, `fixed_scalar_and_varying_struct_p` -> no conflict with
+  in-struct stores), the original did not (candidate compiler-build difference: address-taken parm slots without
+  MEM_SCALAR_P). Lever: `static inline u16 RefU16(u16& x) { return x; }` at every read the target reloads
+  (unflagged MEM -> true_dependence conflicts). The prologue (`sth r3,8(r1); sth r4,10(r1)` before `lwz pG` in
+  the target) is the same difference from the store side and has no lever (5 words left).
+- **`GRefS(pG)->room_id` inside a store loop** (snd SndBgmTblSet 33 -> 0): a plain `pG` read is hoisted out of a
+  loop whose stores go through `rs->bgm[k]`/`pSnd->..` (fixed scalar vs in-struct); the reference read
+  (mercenaries.cpp `SysRef` idiom, `GlobalWork*&`) is reloaded per iteration like the target. `pGS->room_id` is
+  wrong here (`li r29,pG@sda21` hoisted + `lwz 0(r29)`). Then `SndBgmRoom* r = NULL; int ret = 0;` in that
+  order for `li r6,0; li r4,0`.
+- **Single-use `int ok = 1` tested with `||`** (snd SndCall): `if (v == 0 || sv == 0 || ok == 0)` with
+  `int ok = 1;` at the function top reproduces the target's `li r0,1; cmpwi r0,0; bne` (update_equiv_regs moves
+  the `li` next to the compare; neither cse (other ebb) nor cprop folds it). The comment "nothing reproduces it"
+  in the old source was wrong.
+- **Nested `if` for a value computed before the last `&&` term** (snd SndCall): `if (A && B && C) { cs = ..; if
+  (curve_ok == 1) {..} else vol_calc = 0; } else vol_calc = 0;` puts the `add r30,hdr,ofs` between `cmpwi
+  curve_ok,1` and its `bne` (the flat `A && B && C && curve_ok == 1` computes cs after the branch).
+- **Array-base pointer declared first + `s[i]` in every loop** (item save 63 -> 0, load 30 -> 19): `ItemSaveWork*
+  s = sd->item;` declared BEFORE the loops with `memclr_asm(&s[i], ..); s[i].id = ..` gives the target's
+  `addi r28,sd,4` base pseudo, `sthx r24,r29,r28` (i*12 giv, not a second pointer), the `cmpw ptr,end; ble`
+  first loop, and `mr r31,r28` + a giv stepping `addi r31,r31,12` after the `p++` increment in the second loop
+  (a separate `s++` pointer initialises before the entry test and increments before `p`). The loop-2 `0xFFFF`
+  store is `li r0,-1` at the store in the target = #13: `register int m1 asm("r0"); m1 = -1; s[i].id = m1;`
+  (tagged); loop 1's hoisted `li r24,-1` (2 uses) is allocated in both.
+- **Duplicated `case 1:`/`case 9:` bodies** (item load): the target's case 1 stores the switch register as
+  `p->num = 1` (cse: type == 1) and cross-jumps into case 9's `li r11,1` tail -- two separate identical arms in
+  the source, and the type byte must be in r11 (ours r0) for the tails to match. Not reproduced (19 words).
+- **Fall-through into `case 3:`** (item bulletNum 15 -> 11): `case 6: switch (id) { case 8..10: break; default:
+  return 0; } case 3: return p->num;` -- the range hit falls into case 3's body; the inner default's `li r3,0;
+  b end` is then cross-jumped by ours into the outer default's `li r3,0` (COMPILER-DIFF #6 single-insn tail;
+  `asm volatile("")` blocks it but flips the branch polarity).
+- **Two clamp variables** (item reload_main 15 -> 0): `if (ammo->num >= max) n = max; else n = ammo->num; if (n >
+  room) m = room; else m = n;` gives `lhz; mr n,r0; cmpw r0,max; blt; mr n,max; mr m,n; cmpw n,room; ble; mr
+  m,room` (jump.c hoists each else set above its test); a single variable clamped twice folds the copies.
+- **Single-set variable for a store-flag used in a shift** (item combine 9 -> 8): `int inv = attr == 0; ... a->x8
+  = (inv << 13) | (n & 0x1FFF); pG->x = ATTR(a)` gives `srwi r0,r11,13` on the forwarded store value (combine
+  knows the OR fits 16 bits); reassigning `attr = attr == 0` (2 sets) loses nonzero_bits and masks
+  (`rlwinm 19,29,31`).
+- **BitOn on a table element** (event EspToolSetMod): `BitOn(EvtDebug.pModel[no].flags, bit)` gives the target's
+  `lwzu r0,1596(r9); ori; stw r0,0(r9)` (address in a register); `|=` folds the offset into both accesses.
+- **gcse copy of a call argument for a loop (#3 shape)** (event EspToolSetMod 63 -> 9): the target's `addi
+  r30,r1,776; mr r3,r30; bl strcpy; mr r29,r30` with the loop using r29 is the original's `pre_insert_copy_insn`
+  of the strcpy argument pseudo; ours inserts a fresh `addi` at the block end and coalesces. `char* p = mname;`
+  after the strcpy with `c = p[i]` in the loop keeps a copy but the loop still uses P (cprop) -- 9 words of
+  register naming left. The dump showed the C++ CALL_INSN does NOT end gcse's basic block here (bb 0 spans the
+  call), so "copies land after the bl" is sched1 placement, not block structure.
+- **DelEvt with fade.h `FadeSetW`** (event 7 -> 4): the colour pseudo is tied to r4 (`stw r0,4(r4)`); the zero's
+  `li r0,0` after `lis r3` is #13 (REG_EQUIV zero re-materialised at the store, ours allocates r9 and hoists the
+  `li`; a hard-register `c` makes cse substitute the frame address instead).
+- **Original-only shape, two sites (cam_ctrl StartLookDownEm, cam_extra CameraScope ctor)**: `p1 =
+  pPL->getPartsPtr(0x21)` is kept in a callee-saved register (`mr r28,r3; addi r4,r28,0x70`) while ours combines
+  the return-register copy into `addi r4,r3,0x70`. combine.c refuses to substitute a FUNCTION_VALUE_REGNO source
+  only under SMALL_REGISTER_CLASSES (0 for rs6000); locals/two-set/Vec-pointer/inline forms do not reproduce
+  it. StartLookDownEm's source also used `pos` (+0x94) where the target reads `worldPos` (+0x70) -- fixed.
+- cam_ctrl roomInit (28 -> 15): the two `flags_28 = 0` arms are ONE block (`if (ver >= -1) {..} else { clear:
+  flags_28 = 0; }` with `if (ver > 4) goto clear;` inside), laid out after the else arm; the `|= 1` arm's `stb`
+  is cross-jumped into it (label before -> minimum 1). Rest: `state = 0xA` / `flags_28 &= ~4` store order and
+  the x6D8..x6E8 pool FPR permutation.
+- cam_extra IdBinocular::cutin (3 -> 2): the #13 `asm volatile("" :: "r"(u))` after the three `sth` gives the
+  source order but swaps the `clrlwi r4`/`addi r3` argument moves of the unitPtr call (asm side effect).
+- Analysed, left: event Run (`mr r9,r0; cmpwi r9,0` after `stw strWait`: needs the decrement temp and `wait`
+  in different registers -- global-alloc preference; `-=`, chain, dead-use forms tried), snd SndRoomBgmStart
+  (w/seq/no priorities: target needs w below no, i.e. w's live length > 100 or fewer refs), snd sndVolCalcSub
+  (`r` prefers f1 via the `.greg` preference list {33,34,42,44,45}; the target's r=f2/vol=f9 needs f1 not
+  preferred or dist allocated first), puzzle pzlBoard::init (`cmpwi n,0; beq` + `mtctr`: guarded do-while
+  gives the test but no ctr, `u32` forms give `cmplw`), item get (COMPILER-DIFF #6: separate `li r3,1; b end`
+  copies), item use (#6, 11 call tails), sce_at SceAtCreateItemAt (`li r9,7`/`li r11,3` local-alloc tie).

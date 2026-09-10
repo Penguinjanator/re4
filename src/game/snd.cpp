@@ -1,6 +1,13 @@
 // game/snd: game-side sound interface (D:/Bio4/Prog/snd.cpp, -O2). Owns the game sound work
 // (`Snd`, pSnd), the sound data memory map (`SndMem`) and the room BGM / stream tables, and calls
 // into the C sound driver (src/game/snd_*.cpp, include/snd_drv.h).
+// 92/97 byte-identical (DOL sweep 6, 2026-09-10): SndBgmTblSet reads pG through `GRefS` (the load
+// stays inside the store loop) with `r` declared before `ret`; SndCall reads the address-taken
+// parameters `blk`/`no` through `RefU16` where the target reloads them after word stores (their
+// stack slots are MEM_SCALAR_P in ours, not in the original's alias.c), tests a single-use
+// `int ok = 1` (the `li r0,1; cmpwi r0,0; bne`), and nests the curve test so `cs` is computed
+// before `curve_ok == 1`. Open: SndCall's prologue (param stores before `lwz pG`, the same alias
+// difference), SndRoomBgmStart / sndVolCalcSub / SndSetReverb (allocation), debugDisp.
 #include "types.h"
 #include "global.h"
 #include "map_obj.h"
@@ -27,6 +34,17 @@ void* GetDataExt(void* arc, const char* tag, int no);
 int AreaHitCheck(void* area, Vec* pos);
 int EspPlWaterCall(int no, Vec* pos);
 void EspFootCall(int no, int type, Vec* pos);
+
+// Reference read of pG: the load stays inside the store loop (SndBgmTblSet; mercenaries.cpp SysRef).
+static inline GlobalWork* GRefS(GlobalWork*& p)
+{
+    return p;
+}
+
+static inline u16 RefU16(u16& x)
+{
+    return x;
+}
 
 #define SND_FILE "D:/Bio4/Prog/snd.cpp"
 #define ALIGN32(x) (((x) + 0x1F) & ~0x1F)
@@ -685,6 +703,7 @@ u32 SndCall(u16 blk, u16 no, Vec* pos, int id, int vol, cUnit* obj)
     s8 filter_ofs = 0;
     int seq = 0;
     int inner = 0;
+    int ok = 1;
     int i;
 
     if (pG->flags_68 & 0x80000) {
@@ -773,26 +792,29 @@ u32 SndCall(u16 blk, u16 no, Vec* pos, int id, int vol, cUnit* obj)
         pan_calc = 0;
     }
 
-    if (sit->curve_no >= 0 && pSnd->hdr != NULL && pSnd->hdr->curve_sel[sit->curve_no] != 0
-        && curve_ok == 1) {
+    if (sit->curve_no >= 0 && pSnd->hdr != NULL && pSnd->hdr->curve_sel[sit->curve_no] != 0) {
         s8* cs = (s8*) pSnd->hdr + pSnd->hdr->curve_sel[sit->curve_no];
-        int m = 1;
-        int f;
-        if (pSys->sound_mode == 2) {
-            m = 0;
-        }
-        vol_ofs = cs[1];
-        svol_ofs = cs[0];
-        v = sndVolCalc(v, vol_ofs, dist);
-        sv = sndVolCalc(sv, svol_ofs, dist);
-        c->flag_58 |= 0x400;
-        pitch_ofs = (cs + m)[2];
-        c->x54 = sndPitchCalc(pitch_ofs, dist);
-        filter_ofs = (cs + m)[4];
-        f = sndFilterCalc(filter_ofs, dist);
-        if (f != -1) {
-            c->x4F = f;
-            c->flag_58 |= 0x80;
+        if (curve_ok == 1) {
+            int m = 1;
+            int f;
+            if (pSys->sound_mode == 2) {
+                m = 0;
+            }
+            vol_ofs = cs[1];
+            svol_ofs = cs[0];
+            v = sndVolCalc(v, vol_ofs, dist);
+            sv = sndVolCalc(sv, svol_ofs, dist);
+            c->flag_58 |= 0x400;
+            pitch_ofs = (cs + m)[2];
+            c->x54 = sndPitchCalc(pitch_ofs, dist);
+            filter_ofs = (cs + m)[4];
+            f = sndFilterCalc(filter_ofs, dist);
+            if (f != -1) {
+                c->x4F = f;
+                c->flag_58 |= 0x80;
+            }
+        } else {
+            vol_calc = 0;
         }
     } else {
         vol_calc = 0;
@@ -877,9 +899,9 @@ u32 SndCall(u16 blk, u16 no, Vec* pos, int id, int vol, cUnit* obj)
         sndInnerVolCheck(sit, (u8*) &v, (u8*) &sv);
     }
 
-    // The original has an extra `li r0,1; cmpwi r0,0; bne` after these two tests (some constant
-    // check that GCC did not fold); nothing tried reproduces it.
-    if (v == 0 || sv == 0) {
+    // `ok` (set once at the top, tested here): the target's `li r0,1; cmpwi r0,0; bne` -- a
+    // single-use constant local whose `li` update_equiv_regs moves next to the compare.
+    if (v == 0 || sv == 0 || ok == 0) {
         return 0;
     }
 
@@ -892,12 +914,12 @@ u32 SndCall(u16 blk, u16 no, Vec* pos, int id, int vol, cUnit* obj)
     snd_id = Snd_iss_req_para(blk, no, 0);
 
     if (blk == 3 || blk == 4) {
-        pSnd->bgm_work[blk - 3].used = 1;
-        pSnd->bgm_work[blk - 3].id = snd_id;
-        pSnd->bgm_work[blk - 3].vol = v;
-        pSnd->bgm_work[blk - 3].vol_def = sit->vol;
-        pSnd->bgm_work[blk - 3].no = no;
-        OSReport("BGM%d seq %d play\n", blk - 3, no);
+        pSnd->bgm_work[RefU16(blk) - 3].used = 1;
+        pSnd->bgm_work[RefU16(blk) - 3].id = snd_id;
+        pSnd->bgm_work[RefU16(blk) - 3].vol = v;
+        pSnd->bgm_work[RefU16(blk) - 3].vol_def = sit->vol;
+        pSnd->bgm_work[RefU16(blk) - 3].no = RefU16(no);
+        OSReport("BGM%d seq %d play\n", RefU16(blk) - 3, RefU16(no));
     }
     if (sit->srd_type == 3) {
         vol_calc = 0;
@@ -911,8 +933,8 @@ u32 SndCall(u16 blk, u16 no, Vec* pos, int id, int vol, cUnit* obj)
                     u32 t = seq | 0x80;
                     w->type = t;
                     w->id = snd_id;
-                    w->no = no;
-                    w->blk = blk;
+                    w->no = RefU16(no);
+                    w->blk = RefU16(blk);
                     w->svol_ofs = svol_ofs;
                     w->vol_ofs = vol_ofs;
                     w->pitch_ofs = pitch_ofs;
@@ -2167,8 +2189,8 @@ void SndSoftReset()
 int SndBgmTblSet(u16 room, int no)
 {
     SndRoomSave* rs = (SndRoomSave*) RoomData.getRoomSavePtr(room);
-    int ret = 0;
     SndBgmRoom* r = NULL;
+    int ret = 0;
     u16* rl;
     u8 i;
     u8 j;
@@ -2193,7 +2215,7 @@ int SndBgmTblSet(u16 room, int no)
                     for (k = 0; k < 6; k++) {
                         rs->bgm[k] = r->e[j].bgm[k];
                         rs->str[k] = r->e[j].str[k];
-                        if (room == G_ROOM_ID) {
+                        if (room == GRefS(pG)->room_id) {
                             pSnd->room_bgm[k] = r->e[j].bgm[k];
                             pSnd->room_str[k] = r->e[j].str[k];
                         }

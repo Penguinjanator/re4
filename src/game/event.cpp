@@ -2,7 +2,18 @@
 // packet stream of an "even""t" file (models, camera, motions, effects, messages, streams) cut by
 // cut; EventMgr owns the loaded data tables and the running event; EventDebug is the t_event
 // tool state; DatTbl is the name -> data slot table both use.
-// 142/147 byte-identical, all sections equal (2026-09-10). Register/layout idioms used here:
+// 143/147 byte-identical, all sections equal (2026-09-10). Register/layout idioms used here:
+//  - EventMgr::construct: `return 1` inside the err arm creates the BARRIER after the err call that
+//    loop.c's find_and_verify_loops needs to move the `return i` block of the inlined EvtWorkNo loop
+//    behind it (the target's `mr r0,r9; b` after the `bl err; b`).
+//  - GetMod: the "pl0300" arm tests its own GetDat result and `goto err`s into the else arm's err
+//    body (then arm `bl; cmpwi; beq err; b ok`, no cross-jump of the call).
+//  - DelEvt uses fade.h's FadeSetW (P tied to r4); the zero's `li r0,0` after `lis r3` is #13 (the
+//    original re-materialises the REG_EQUIV zero at the store; ours allocates r9 and hoists it).
+//  - EspToolSetMod: `p = mname` after the strcpy + `c = p[i]` keeps the target's `mr r29,r30` copy
+//    (COMPILER-DIFF candidate #3: the original's gcse copies the strcpy argument pseudo right after
+//    the call for the loop's `&mname`; ours recomputes it at the block end and coalesces).
+//    `BitOn(EvtDebug.pModel[no].flags, ..)` for the `lwzu/stw 0(r9)` RMW pairs.
 //  - EspSetModelPtr: `u32 tbl = (u32) EspEvModList; *(cModel**) (tbl + (n << 2)) = m` -- an integer
 //    base and a shift index keep both address operands unflagged, so regclass gives the index a BASE
 //    register (`stwx r4,r11,r9`); `tbl[n]` on a pointer flags the base (index r0) and `n * 4` makes
@@ -405,12 +416,15 @@ void Event::EspToolSetMod(int no, char* nm)
     u32 i;
     int size;
     u8 c;
+    char* p;
 
     buf = (char*) Debug_alloc(1000000, 1);
     EvtDebug.pModel[no].pScr = 0;
     strcpy(mname, nm);
+    p = mname; // the loop reads through p: cse copy of the strcpy argument pseudo (the original's
+               // gcse PRE copy `mr r29,r30` after the call, COMPILER-DIFF candidate #3 shape)
     for (i = 2; i < strlen(mname); i++) {
-        c = mname[i];
+        c = p[i];
         if ((c >= '0' && c <= '9') || (c >= 'a' && c <= 'f')) {
             mname[i + 2] = '0';
             mname[i + 3] = '0';
@@ -450,10 +464,10 @@ void Event::EspToolSetMod(int no, char* nm)
         EvtDebug.pModel[no].x638 = mod->x12F;
         EvtDebug.pModel[no].x639 = mod->lightInfo.x50;
         if (mod->x12C == 1) {
-            EvtDebug.pModel[no].flags |= 0x80000000;
+            BitOn(EvtDebug.pModel[no].flags, 0x80000000);
         }
         if (BeFlgChk(mod, 0x1000) == 1) {
-            EvtDebug.pModel[no].flags |= 0x40000000;
+            BitOn(EvtDebug.pModel[no].flags, 0x40000000);
         }
         if (strncmp(mname, "scr", 3) == 0) {
             EvtDebug.pModel[no].pScr = mod;
@@ -1960,11 +1974,11 @@ int Event::GetMod(void** mod, char* nm, u8* type, int* wkNo)
     }
     if ((pG->flags_6C & 8) && strcmp(nm, "pl0200") == 0) {
         nm = "pl0300";
-        ret = datTbl.GetDat(&m, &t, nm, &no);
-    } else {
-        ret = datTbl.GetDat(&m, &t, nm, &no);
-    }
-    if (ret == 0) {
+        if (datTbl.GetDat(&m, &t, nm, &no) == 0) {
+            goto err;
+        }
+    } else if (datTbl.GetDat(&m, &t, nm, &no) == 0) {
+    err:
         pLog->err(0, 0, "Event::GetMod : mod failed[%s]", nm);
         return 0;
     }
@@ -2007,6 +2021,7 @@ int EventMgr::construct(Event* p, u32 id)
         e->effNo = no;
         if (no == -1 || no > 1) {
             pLog->err(0, 0, "EventMgr::construct : getWorkNo failed");
+            return 1;
         }
     }
     return 1;
@@ -2538,7 +2553,7 @@ int EventMgr::DelEvt(void* evt_, int flag)
     strcpy(evtName, "");
     if (fade) {
         FadeKill(2);
-        EvtFadeSetW(0x80000001, 0xA, 0, 0);
+        FadeSetW(0x80000001, 0xA, 0, 0);
     }
     return 1;
 }

@@ -992,17 +992,19 @@ void CameraControl::roomInit()
             pLog->warn(0, 0, "CameraControl::roomInit(): Empty!");
             break;
         }
-        if (ver < -1) {
-            flags_28 = 0;
-        } else if (ver > 1) {
-            if (ver <= 4) {
+        if (ver >= -1) {
+            if (ver > 1) {
+                if (ver > 4) {
+                    goto clear;
+                }
                 flags_28 |= 1;
             } else {
-                flags_28 = 0;
+                flags_28 |= 1;
+                flags_2C |= 1;
             }
         } else {
-            flags_28 |= 1;
-            flags_2C |= 1;
+        clear:
+            flags_28 = 0;
         }
     }
     flags_28 &= ~4;
@@ -2158,8 +2160,14 @@ void CameraControl::endPushObject()
 void CameraControl::StartLookDownEm(void* em)
 {
     Vec c;
+    cModel* p0;
+    cModel* p1;
 
-    PSVECAdd(&pPL->getPartsPtr(0x20)->pos, &pPL->getPartsPtr(0x21)->pos, &c);
+    // worldPos (+0x70), not pos; the target keeps p1 in a callee-saved register (`mr r28,r3;
+    // addi r4,r28,112`) where ours folds the +0x70 into the call result (open).
+    p0 = pPL->getPartsPtr(0x20);
+    p1 = pPL->getPartsPtr(0x21);
+    PSVECAdd(&p0->worldPos, &p1->worldPos, &c);
     PSVECScale(&c, &c, 0.5f);
     extra = new (extra_buf) CameraLookDownEm(em, &c);
     state = 0xD;
