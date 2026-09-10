@@ -85,8 +85,9 @@ static MapViewport map_vp_save;
 static int map_vp_init[1];  // one-element array: the in-struct store is ordered against the vp frame copy
 static f32 map_cam_speed;
 static int map_read_req;
-static MapRoomData map_room[48];
-static int map_room_num;
+// Non-static: the REL's ADDR16 fields for these hold A only (global symbols in the original).
+MapRoomData map_room[48];
+int map_room_num;
 
 // Deferred inline whose address mapModelDisp takes (ss_main.cpp has the module's first copy):
 // output at the end of the file before the widget destructors, so defined before ss_main.h.
@@ -1277,23 +1278,24 @@ void mapPositionCheck(cSatHeader* hdrB, cSatHeader* hdrA, Mtx plMat, Mtx partsMa
         s1 = s;
         t1 = t;
         if (SubScreenWk.x34C & 0x10) {
-            AtPoly* p = satA.poly;
-            Vec* v = satA.vtx;
-
-            for (i = 0; i < satA.nA + satA.nB; i++, p++) {
-                u32 col = 0xFFFF0000;
+            poly = satA.poly;
+            vtx = satA.vtx;
+            for (i = 0; i < satA.nA + satA.nB; i++, poly++) {
+                u32 col;
 
                 if (i != idx) {
-                    col = p->attr;
+                    col = poly->attr;
+                } else {
+                    col = 0xFFFF0000;
                 }
-                PSMTXMultVec(partsMat, &v[p->v[0]], &a);
-                PSMTXMultVec(partsMat, &v[p->v[1]], &b);
+                PSMTXMultVec(partsMat, &vtx[poly->v[0]], &a);
+                PSMTXMultVec(partsMat, &vtx[poly->v[1]], &b);
                 Draw_line3d(&a, &b, col, 0);
-                PSMTXMultVec(partsMat, &v[p->v[1]], &a);
-                PSMTXMultVec(partsMat, &v[p->v[2]], &b);
+                PSMTXMultVec(partsMat, &vtx[poly->v[1]], &a);
+                PSMTXMultVec(partsMat, &vtx[poly->v[2]], &b);
                 Draw_line3d(&a, &b, col, 0);
-                PSMTXMultVec(partsMat, &v[p->v[2]], &a);
-                PSMTXMultVec(partsMat, &v[p->v[0]], &b);
+                PSMTXMultVec(partsMat, &vtx[poly->v[2]], &a);
+                PSMTXMultVec(partsMat, &vtx[poly->v[0]], &b);
                 Draw_line3d(&a, &b, col, 0);
             }
         }
@@ -1309,7 +1311,7 @@ void mapPositionCheck(cSatHeader* hdrB, cSatHeader* hdrA, Mtx plMat, Mtx partsMa
         if (SubScreenWk.x34C & 0x10) {
             PSMTXMultVec(partsMat, &vtx[poly->v[0]], &hit2);
             PSMTXMultVec(partsMat, &pos, &d);
-            Draw_line3d(&hit2, &d, 0xFF00FF, 0);
+            Draw_line3d(&hit2, &d, 0xFF0000FF, 0);
             Draw_sphere(&d, 10.0f, 0xFFFF0000, 1, 1);
             PSMTXMultVec(partsMat, &pos, &hit2);
             PSMTXMultVec(partsMat, &pos2, &d);

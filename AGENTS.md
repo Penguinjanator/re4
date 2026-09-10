@@ -2718,18 +2718,20 @@ target) stays unresolved and `make_rel` then fails with "undefined symbol".
   destructor inlines `cManager<T>::~cManager` (stores the cManager vtable) as the target does.
 - Status: ss_cap, ss_debug, ss_file, ss_item_draw Matching (the REL is byte-identical with the four
   compiled; ss_model Matching since the sixth pass; ss_main Matching since the eighth pass: SubScreenTask's two `lis
-  pG@ha` are a dead test, see the eighth-pass item); ss_item is written (34 functions incl. dtors, 32 byte-identical after the
-  sixth pass, .rodata/.data/.bss identical, .text size equal), open items below; ss_term (29/29 named functions, eof block open)
+  pG@ha` are a dead test, see the eighth-pass item); ss_item Matching since the ninth pass (34/34: itemSelect and
+  itemMakeMove closed with #17 pins, and its eleven .bss objects from item_list on made non-static -- the REL's
+  ADDR16 fields hold A only for them, see the ninth-pass item); ss_term (29/29 named functions, eof block open)
   and ss_model (47/47 since the sixth pass: wep09Init is a plain `else if` chain, NOT compiler-build difference 6) are written, see their items; ss_map (src/Sscrn/
   ss_map.cpp, 104/105 named functions byte-identical after the sixth pass (2026-09-10; open:
-  mapPositionCheck only, see the pass items), .rodata/.data/.bss identical since 2026-09:
+  mapPositionCheck only, 2 words since the ninth pass, see the pass items; map_room/map_room_num are
+  non-static since the ninth pass for the REL fields), .rodata/.data/.bss identical since 2026-09:
   the former 8-byte gap was doorModelInit's missing 2^52 pool entry (`(f32) (int) e->ang` of the u8
   angle, the classic double trick, not a fast-cast psq_l) plus the two file-scope `static const`
-  tables in the wrong order (map_cam_entire is defined before mark_model_tbl); see its item) and ss_pzzl (src/Sscrn/ss_pzzl.cpp, 56/64 after the sixth pass
-  (PieceCommand::move and PieceCombine::move byte-identical), .rodata/.data/.bss identical) are
-  written; ss_shop (src/Sscrn/ss_shop.cpp, the merchant screen: 70/74 functions byte-identical after
-  the seventh pass (BuyItemNum::move) incl. the 0x980 eof block, .rodata/.data/.bss identical, .text 12 bytes
-  short = levelItemDisp) is written, see its item and the fifth/sixth/seventh-pass lists.
+  tables in the wrong order (map_cam_entire is defined before mark_model_tbl); see its item) and ss_pzzl (src/Sscrn/ss_pzzl.cpp, 57/64 after the ninth pass
+  (pieceModelDisp; PieceCommand::move and PieceCombine::move since the sixth), .rodata/.data/.bss identical) are
+  written; ss_shop (src/Sscrn/ss_shop.cpp, the merchant screen: 71/74 functions byte-identical after
+  the ninth pass (LvUpConfirm::move; BuyItemNum::move in the seventh) incl. the 0x980 eof block, .rodata/.data/.bss
+  identical, .text size equal since the ninth pass) is written, see its item and the fifth..ninth-pass lists.
 - ss_shop idioms (2026-09): include order light.h, map_obj.h, widget.h (the three header strings), then
   "ss_shop.dat" (SsShopInit::move) and the HALT string (mem_alloc lines 0x1BA/0x242). The 13 widgets are
   declared in the order SsShopInit, SsShopMain (ss_main.h), ShopTopMenu(3 links, ctor sets cursor = 1),
@@ -3513,6 +3515,103 @@ target) stays unresolved and `make_rel` then fails with "undefined symbol".
     source's `x264 = state` in the r==2 arm reloads the byte (`lbz 0,19`); write both arms as literal zeros
     and shorten/lengthen the cse path so `beq CASE2` is followed -- `int st = state` (161) and an `int n`
     result variable (113, cse substitutes the older zero) do not do it.
+- Ninth pass (2026-09-10, ss_item Matching (34/34, module REL still byte-identical); ss_map mapPositionCheck 69 -> 2
+  words; ss_shop 70 -> 71/74 (LvUpConfirm::move) with .text size equal (levelItemDisp 98 -> 33 lines, SellItemNum::move
+  38 -> 31); ss_pzzl 56 -> 57/64 (pieceModelDisp); harness /tmp/ssw11 = ssw10 copies with the paths rewritten, `v_*.py`
+  = per-function variant scripts that rewrite the source from `<unit>.base.cpp`; NOTE `dump.sh` without `-da`: a full
+  `-da` dump of ss_shop is ~300 MB and /tmp is a 32 GB tmpfs that was 91% full):
+  - **Flip check before the flip: `python3 tools/sync_rel_symbols.py` says "0 symbols changed" and the REL still fails
+    on ADDR16 fields** (ss_item): the module's `symbols.txt` had `scope:global` for the unit's .bss objects
+    (`lbl_Sscrn_bss_220..274` = item_num, item_total, item_sel, item_frame_on, item_path0/1, item_curve, item_scr,
+    item_pos, item_frame_state, and item_list at 0xA0) while the source had them `static` -- 82 differing REL bytes,
+    all `@l` fields holding S+A. The em35 rule again; the check is the python snippet of this pass (symbols.txt scope
+    per .bss/.data/.rodata offset within the unit's split ranges vs the source's `static`s). ss_map's map_room /
+    map_room_num were the same case and are non-static now (ss_map cannot flip yet, see below).
+  - **A source bug found by a constant diff** (mapPositionCheck): `Draw_line3d(&hit2, &d, 0xFF00FF, 0)` was
+    0xFF0000FF (`lis r5,-256; ori 255`). Read every `*` line of fdiff3 that is not a register name before
+    theorising about allocation.
+  - **Reusing the function's own pointer variables for the debug loop** (mapPositionCheck 69 -> 4 words): the target's
+    p/v registers (r25/r24) are `poly`/`vtx`'s -- the loop was `poly = satA.poly; vtx = satA.vtx; for (..; poly++)`
+    over the SAME variables that the following code re-assigns (`poly = satB.poly; poly += idx; vtx = satA.vtx`),
+    not block-local `AtPoly* p; Vec* v`. With one pseudo per pointer the whole allocation of the function followed
+    (i r29, &hit r28, a r28, b r30, col r27). Then `if (i != idx) col = poly->attr; else col = 0xFFFF0000;` for the
+    `cmpw; lis r27,-1; beq` order (jump1's else-set hoist puts the `lis` RTL-after the compare; `u32 col = K; if
+    (..) col = ..` has it before and sched2 keeps that LUID order). Left (2 words): the second `init` call's
+    `mr r5,r28` before `mr r4,r3` -- read off the sched dumps: in sched1 the result copy `P136 = r3` (204) and
+    `r5 = P113` (214) have equal priority (13), equal weight (0: `mr r6,r5` is regmove's optimize_reg_copy of the
+    dying `&zero` pseudo in both builds, so P113 dies at 214), both class 3 against the call (call cost 1), 3
+    dependents each, and the LUID decides (the call's `copy_to_reg` copy is RTL-first). Only the first call's
+    priorities differ (19 vs 18) and match. Statement forms (getSat into a local, `Vec* z = &zero` locals, z for one
+    or both args) leave the LUIDs. The original broke the tie the other way; not source-reachable.
+  - **#17 pins, what works and what does not** (ss_item itemSelect 5 -> 0, itemMakeMove 27 -> 0):
+    (a) `register int pin asm("rN"); asm("" : "=r"(pin) : "r"(x)); asm("" : : "r"(pin));` -- give the producer an
+    input that varies in the loop (`"r"(i)`) or loop.c hoists the input-less set out of the loop; the consumer
+    has no outputs, so it is volatile: a cse flush + sched barrier at that point (itemSelect's loop top and
+    the k-loop's pin are harmless, itemMakeMove's `d = 0` position was not: `mk->cursor` got reloaded). (b) The
+    pinned register becomes `regs_ever_live` = used-so-far, so EVERY pass-0 candidate allocated before the
+    intended one that does not conflict with the pin grabs it (itemMakeMove: the PRE'd index took r29, the
+    second ItemMgr high took r29): the pin range must conflict with all of them or they must have a better
+    used-so-far register first. (c) `register int x asm("r31")` is useless: flow never marks the frame pointer
+    ever-live before reload and global.c strips r31 (`eliminable_regset`) from every hard_reg_conflicts, so the
+    pin neither counts as used-so-far nor conflicts (mk took r31 and the codeless asm "clobbered" it). (d) The
+    value-carrying form `register int hi asm("r28"); register int lo asm("r29");` for the two case-arm constants
+    is what closed itemMakeMove: the hard registers are live from the arms to the while loop, so mk/joy/d/wk/iw
+    (live there) cannot take r28/r29 and fall to r27..r23 in pass 1, while idx/highs (inside hi/lo's range) skip
+    them in pass 0 through `regs_someone_prefers`. Tagged `COMPILER-DIFF: candidate #17`.
+  - **local-alloc's fake lifetime** (LvUpConfirm::move 6 -> 0; local-alloc.c `fake_birth = birth - 2 + birth % 2`,
+    `fake_death = death + 2 - death % 2`, tried first when `-fschedule-insns2`): a qty conflicts with the qtys
+    born in the insn right after its death and dying in the insn right before its birth. The four item-pointer
+    loads (`lwz r11,36(r29)`) of the four nibble stores alternated r11/r10 in ours because each `lwz` was the
+    insn after the previous `sth` in the sched1 order; the target loads the lv byte first in every nibble
+    (`int v = (s8) sw->lv[k]; t = &sw->item->x6; t->x = v - 1`), so one insn separates `sth` and the next
+    `lwz` and all four take r11. The byte-first LUID also decides nibble 4's `lbz`-before-`lwz` (sched2 tie:
+    both loads wait 2 cycles on the previous `sth`, equal priority and dependents). A single reassigned
+    `ItemWork* it` pointer is one qty (r11 everywhere) but its reload has an ANTI dependence on the previous
+    `sth` (cost 1: `add_dependence` skips the memory link when a register link exists) and goes first (wrong
+    for nibble 4). The nibble-1 launder stays the volatile `asm("" : "+r"(v))` AFTER `t = ...`: an
+    `asm("extsb %0,%1")` or a non-volatile launder costs the chain a cycle (LINK_COST_FREE applies to the link
+    INTO an unrecognizable insn, the asm's own cost is 1), and sched2 then issues `lwz` first (7 dependents vs
+    6 with the r11 output dependence) or `clrlwi 0` before `slwi`.
+  - **`Vec* scr = &u->scr; asm("" : "+r"(scr)); PSVECAdd(&u->parent->pos, scr, &pos)`** (levelItemDisp, both
+    `mr r4,r3` sites, -8 bytes; tagged `COMPILER-DIFF: 3`): local-alloc ties `Q = U + 136` (U dies) and the asm
+    output with U into one qty carrying TWO copy suggestions {r3 (call result), r4 (`r4 = Q`)}; `find_free_reg`
+    walks REG_ALLOC_ORDER (.. r5, r4, r3), so the qty takes r4 (`mr r4,r3; addi r4,r4,136`) and the parent
+    pointer P gets its own suggestion r3 (`lwz r3,104(r4); addi r3,r3,148`). Without the asm, combine folds
+    the single-use `Q` into `addi r4,U,136` and U keeps its r3 copy suggestion (ours). A plain `Vec* scr` local
+    is folded too (the zoomMove rule needs several uses).
+  - **`asm("addi %0,%1,%2" : "=r"(mm) : "b"(a), "i"(0xC * sizeof(Message)))` + direct member stores**
+    (levelItemDisp tail `addi r30,r30,cMes@l; addi r30,r30,2832; sth 34/32(r30)`, -4 bytes; tagged
+    `COMPILER-DIFF: candidate #12 (address form)`): every C form folds -- `(u32)&cMes + 2832` into the
+    relocation (`cMes+2832@l`), an opaque `a` plus `mm = a + 2832` into the displacements (`sth 2866(a)`: cse's
+    PLUS associativity `lookup_as_function` folds `(plus mm 28)` to `(plus a 2864)` and the `U16Set` reference
+    parameter makes that a SET that `src_folded` wins), a second launder on the sum costs a cycle (`addi 2832`
+    after `li 0,6`). The asm-emitted addi is one real insn, and `mm->ot = ..` direct stores keep `(mem (plus mm 32))`
+    (find_best_addr needs a strict cost win to rewrite an address).
+  - **Function-scope `int x, y` shared by the type loop and the specialTunable tail** (levelItemDisp 87 -> 33
+    lines): block-local x/y in the loop body are local-alloc'd pseudos crossing the setLayout call and take
+    r28..r30, which makes those registers used-so-far for global pass 0 (i took r30 instead of r31, m r29...);
+    the target's y is r31 (never a local-alloc register), i.e. x/y were global pseudos = one declaration for both
+    blocks. Left (33): sw/m r29/r30 swap in the prologue and the `cur = 1` -> `li 0,1; slwi 7,0,2` (reload
+    rematerialisation of a REG_EQUIV constant next to its use, #13; `asm("li %0,1")` before the digit loop is
+    hoisted out of the type loop by loop.c/gcse, `cur = 1` there too).
+  - **Per-loop `int i` in SellItemNum::move** (38 -> 31 lines): the two digit loops' counters are separate
+    pseudos in the target (r28 loop 1 with the magic constant r29, r29 loop 2); a shared `int i` gave both
+    loops one register. Left: this/val r24/r25 (this 27 refs/386 = 0.280 vs val 17/270 = 0.252 in global-alloc's
+    order; do-while(0) weights around val's sets or the digit statements swap them but move the schedule or the
+    IdSub high; a #17 pin on r25 after the k loop or inside loop 2 costs a register or attracts the k-loop
+    pseudos) and the `addi r17,r1,8` slot.
+  - **pieceModelDisp 4 -> 0: the AGENTS note had the fdiff3 columns inverted.** The TARGET computes
+    `item->x8 & 0x1FFF` once before the `>> 13` test (`lhz r0; clrlwi r4,r0,19; srwi r0,r0,13`) and ours had it
+    per arm: `u32 x8 = item->x8; u32 num = x8 & 0x1FFF; if ((x8 >> 13) == 1) numDispI(id, num, &scr, 3); else
+    numDispI(id, num, &scr, 1);`. Re-check the column orientation (`lbl_Sscrn_*` = target) before trusting
+    an old residue description.
+  - Read and left: pzzlCursorDisp (+4: in ours regmove's optimize_reg_copy_1 folds the `wk->x2B0` load of
+    case 2 into `lwz r3` because `col = r3` (the call-result copy) is RTL-first and r3 is dead over the load;
+    the target's `lwz r0; mr r3,r0` means r3 was live there, i.e. the load preceded the copy in the original's
+    RTL -- no statement order gives that); LvUpItemSelect::move (item/x r28/r30: x must outrank item and
+    sw; do-while around the if/else, one arm, `x = ..` or setLayout: 30-97 lines; an r30 pin sends y to r30 and
+    item to r31); pieceTblInit, pieceFrameDisp, caseModelMove, SsPzzlMain::init, PzzlThinking::move,
+    PieceSelect::move not iterated.
 - The map model globals are named `ssPlModel`/`ssWepModel` (.bss 0x494/0x498, MapMgr works 0/1),
   `ssPlMotion`/`ssWepModel2` (.data 0x978/0x97C), renamed by hand in symbols.txt/sym_map.tsv
   (data labels have no .sym name for the sync tool); the generator attributes them to ss_map.cpp.

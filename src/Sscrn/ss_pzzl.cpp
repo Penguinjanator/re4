@@ -952,13 +952,12 @@ void pieceModelDisp(SUB_SCREEN* wk)
             item = p->item;
             pzzlItemInfo(item->id, &info);
             if (info.type == 1) {
-                u32 num = item->x8;
+                u32 x8 = item->x8;
+                u32 num = x8 & 0x1FFF;
 
-                if ((num >> 13) == 1) {
-                    num &= 0x1FFF;
+                if ((x8 >> 13) == 1) {
                     numDispI(id, num, &scr, 3);
                 } else {
-                    num &= 0x1FFF;
                     numDispI(id, num, &scr, 1);
                 }
                 no++;

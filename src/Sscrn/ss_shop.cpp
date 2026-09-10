@@ -1115,7 +1115,6 @@ void SellItemNum::move(SUB_SCREEN* wk)
     u->scr = sell_num_pos;
     for (k = 0; k <= 1; k++) {
         int digit[10];
-        int i;
         int on;
 
         switch (k) {
@@ -1130,13 +1129,13 @@ void SellItemNum::move(SUB_SCREEN* wk)
             val = m->buyupPrice(sw->item, sw->count);
             break;
         }
-        for (i = 0; i < n; i++) {
+        for (int i = 0; i < n; i++) {
             digit[i] = val % 10;
             val /= 10;
             IdSub.unitPtr(base + i, 0x1F)->flags &= ~8;
         }
         on = 0;
-        for (i = n - 1; i >= 0; i--) {
+        for (int i = n - 1; i >= 0; i--) {
             if (on == 0) {
                 if (digit[i] == 0 && i != 0) {
                     continue;
@@ -1967,6 +1966,8 @@ void levelItemDisp(SUB_SCREEN* wk, int sw)
     IdUnit* arrow = 0;
     int lv = 0;
     int i;
+    int x;
+    int y;
 
     for (i = 0; i < 5; i++) {
         IdSub.unitPtr(0x80 + i, 0x1D)->flags &= ~8;
@@ -2002,8 +2003,6 @@ void levelItemDisp(SUB_SCREEN* wk, int sw)
 
         for (type = 0; type < 4; type++) {
             int slot = type + 8;
-            int x;
-            int y;
             int j;
             int on;
             int cur;
@@ -2012,7 +2011,9 @@ void levelItemDisp(SUB_SCREEN* wk, int sw)
                 Vec pos;
                 {
                     IdUnit* u = IdSub.unitPtr(type, 0x1D);
-                    PSVECAdd(&u->parent->pos, &u->scr, &pos);
+                    Vec* scr = &u->scr;
+                    asm("" : "+r"(scr)); // COMPILER-DIFF: 3
+                    PSVECAdd(&u->parent->pos, scr, &pos);
                 }
                 x = (int) ((pos.x + 320.0f) * 0.8f);
                 y = (int) ((240.0f - pos.y) * 0.8f);
@@ -2134,8 +2135,6 @@ void levelItemDisp(SUB_SCREEN* wk, int sw)
         }
         if (m->specialTunable(item)) {
             int total = 0;
-            int x;
-            int y;
             Vec pos;
 
             {
@@ -2152,14 +2151,24 @@ void levelItemDisp(SUB_SCREEN* wk, int sw)
             {
                 IdUnit* u = IdSub.unitPtr(4, 0x1D);
                 Vec pos2;
-                PSVECAdd(&u->parent->pos, &u->scr, &pos2);
+                Vec* scr = &u->scr;
+                asm("" : "+r"(scr)); // COMPILER-DIFF: 3
+                PSVECAdd(&u->parent->pos, scr, &pos2);
                 x = (int) ((pos2.x + 320.0f) * 0.8f);
                 y = (int) ((240.0f - pos2.y) * 0.8f);
             }
             cMes.setLayout(0xC, 6);
             cMes.MesSet(0x28, x, y, 0x200A1, 0xC, 0, 3);
-            U16Set(cMes.getMes(0xC)->ot, 0x13);
-            U16Set(cMes.getMes(0xC)->otNo, 6);
+            {
+                // COMPILER-DIFF: candidate #12 (address form). The target adds 0xB10 to &cMes in a
+                // register (`addi r30,r30,cMes@l; addi r30,r30,2832`) instead of folding it into the
+                // relocation; the asm-emitted addi keeps our cse from folding it.
+                u32 a = (u32) &cMes;
+                Message* mm;
+                asm("addi %0,%1,%2" : "=r"(mm) : "b"(a), "i"(0xC * sizeof(Message)));
+                ((Message*) ((u32) mm + sizeof(u32)))->ot = 0x13;
+                ((Message*) ((u32) mm + sizeof(u32)))->otNo = 6;
+            }
         }
     }
 }
@@ -2484,12 +2493,25 @@ void LvUpConfirm::move(SUB_SCREEN* wk)
                 asm volatile("" : "+r"(v));
                 t->fire = (u8) (v - 1);
             }
-            t = (TuneLevel*) &sw->item->x6;
-            t->mag = (s8) sw->lv[1] - 1;
-            t = (TuneLevel*) &sw->item->x6;
-            t->speed = (s8) sw->lv[2] - 1;
-            t = (TuneLevel*) &sw->item->x6;
-            t->ex = (s8) sw->lv[3] - 1;
+            // Byte first, item pointer second in every nibble: the `lbz` between the previous `sth`
+            // and the next `lwz item` keeps local-alloc's fake lifetimes of the four item-pointer
+            // qtys apart (all r11; adjacent `sth; lwz` alternates r11/r10), and the LUID puts the
+            // `lbz` first where sched2 ties (nibble 4).
+            {
+                int v = (s8) sw->lv[1];
+                t = (TuneLevel*) &sw->item->x6;
+                t->mag = v - 1;
+            }
+            {
+                int v = (s8) sw->lv[2];
+                t = (TuneLevel*) &sw->item->x6;
+                t->speed = v - 1;
+            }
+            {
+                int v = (s8) sw->lv[3];
+                t = (TuneLevel*) &sw->item->x6;
+                t->ex = v - 1;
+            }
             if (sw->lvType == 3 || sw->lvType == 4) {
                 ItemWork* item = sw->item;
                 item->x8 = (item->x8 & 0xE000) | (WeaponId2ChargeNumI(item->id, (item->x6b[1] & 0xF) + 1) & 0x1FFF);

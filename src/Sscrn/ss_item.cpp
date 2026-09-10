@@ -108,17 +108,18 @@ static int item_cmd_mode = 0;
 
 static int item_read_req;
 static ItemWork item_dummy;
-static u8 item_list[0x180];
-static s8 item_num[2];
-static s8 item_total;
-static ItemWork* item_sel;
-static int item_frame_on;
-static void* item_path0[2];
-static Hermite1* item_curve[2];
-static void* item_path1[2];
-static Vec item_scr[2];
-static Vec item_pos[2];
-static int item_frame_state[2];
+// Non-static: the REL's ADDR16 fields for these hold A only (global symbols), see the em35 rule.
+u8 item_list[0x180];
+s8 item_num[2];
+s8 item_total;
+ItemWork* item_sel;
+int item_frame_on;
+void* item_path0[2];
+Hermite1* item_curve[2];
+void* item_path1[2];
+Vec item_scr[2];
+Vec item_pos[2];
+int item_frame_state[2];
 
 void itemNameDisp(SUB_SCREEN* wk)
 {
@@ -784,10 +785,16 @@ int itemSelect(SUB_SCREEN* wk, int mode)
     }
 END:
     // `i = no` as the increment (the `mr r31, r30` after the arms; `i++` is a separate `addi`).
-    // OPEN: the second loop's counter is r30 in the target (ours r31: a fresh loop counter has the
-    // highest allocation priority and nothing holds r31 there).
+    // The r30 pin (live where `i` is and `no` is not) makes r30 used-so-far and conflicting with
+    // `i`: the k loop's counter takes r30 in global-alloc pass 0 and `i` falls to r31 in pass 1.
     for (i = 0; i < 2;) {
-        int no = i + 1;
+        int no;
+        {
+            register int pin asm("r30"); // COMPILER-DIFF: candidate #17
+            asm("" : "=r"(pin) : "r"(i));
+            asm("" : : "r"(pin));
+        }
+        no = i + 1;
         IdUnit* u = IdSub.unitPtr(no, 0x16);
         if (i == iw->col) {
             u->flags |= 8;
@@ -1270,8 +1277,8 @@ void itemMakeMove(SUB_SCREEN* wk)
     case 0:
     case 1: {
         int d = 0;
-        int hi;
-        int lo;
+        register int hi asm("r28"); // COMPILER-DIFF: candidate #17
+        register int lo asm("r29"); // COMPILER-DIFF: candidate #17
         int n;
         if (mk->cursor == 0) {
             hi = 7;

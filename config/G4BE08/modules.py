@@ -724,6 +724,7 @@ MATCHING = {
     "Sscrn/ss_cap.cpp": True,
     "Sscrn/ss_debug.cpp": True,
     "Sscrn/ss_file.cpp": True,
+    "Sscrn/ss_item.cpp": True,
     "Sscrn/ss_item_draw.cpp": True,
     "Sscrn/ss_main.cpp": True,
     "Sscrn/ss_model.cpp": True,
