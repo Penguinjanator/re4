@@ -1,12 +1,16 @@
 // game/emBarred.cpp: barred gate enemy (cEmBarred): iron gates that rise for the player when he
 // stands near, drop back shut, and can be shot open (type 6).
 //
-// Not yet byte-identical: SetEmBarred (the atari init argument interleave that no calls.c rule
-// reproduces, AGENTS.md compiler-build difference 1; switch tree and the YarareInitCube tails).
+// Not yet byte-identical: SetEmBarred (69 words): the YarareInitCube tails. The original merges the
+// 140.0 arms (default/8/9) into the DEFAULT arm's `lfs f6` and the 250.0 arms (3/4) into case 4's
+// `lfs f6` + call tail; ours merges the 5-insn call tails only, into case 3's copy, because case 4
+// (the fall-through arm) ends in a call followed by the join label (flow's `use 0` nop blocks the
+// fall-through cross-jump). The atari init interleave is COMPILER-DIFF #1 (atari_init.h AtariInit).
 // emBarredEatSet only differs in two `lis 0x8023` words the split object carries without a
 // relocation (their `lfs` sits in another block); the linked bytes are identical.
 
 #include "atari.h"
+#include "atari_init.h"
 #include "light.h"
 #include "dmg.h"
 #include "emBarred.h"
@@ -49,7 +53,7 @@ cEmBarred* SetEmBarred(void* bin, void* tpl, Vec* pos, Vec* rot, int flagNo, int
     EmBarredWork* w;
     u16* flg;
     cModel* parts;
-    int i;
+    u32 i;
 
     flg = GetEtcFlgPtr(flagNo, pG->room_id);
     if (flg != 0 && (*flg & 1)) {
@@ -81,25 +85,25 @@ cEmBarred* SetEmBarred(void* bin, void* tpl, Vec* pos, Vec* rot, int flagNo, int
     case 5:
     case 6:
     default:
-        em->atari.init(0, 2, 0, 0.0f, 1200.0f, 0.0f, 800.0f, 120.0f, 120.0f, 1200.0f);
+        AtariInit(&em->atari, 0.0f, 1200.0f, 0.0f, 800.0f, 120.0f, 120.0f, 1200.0f, 0, 2, 0);
         break;
     case 8:
-        em->atari.init(0, 2, 0, 0.0f, 1300.0f, 0.0f, 850.0f, 120.0f, 120.0f, 1300.0f);
+        AtariInit(&em->atari, 0.0f, 1300.0f, 0.0f, 850.0f, 120.0f, 120.0f, 1300.0f, 0, 2, 0);
         break;
     case 9:
-        em->atari.init(0, 2, 0, 0.0f, 1550.0f, 0.0f, 750.0f, 120.0f, 120.0f, 1550.0f);
+        AtariInit(&em->atari, 0.0f, 1550.0f, 0.0f, 750.0f, 120.0f, 120.0f, 1550.0f, 0, 2, 0);
         break;
     case 2:
-        em->atari.init(0, 2, 0, 0.0f, 1300.0f, 0.0f, 800.0f, 120.0f, 120.0f, 1300.0f);
+        AtariInit(&em->atari, 0.0f, 1300.0f, 0.0f, 800.0f, 120.0f, 120.0f, 1300.0f, 0, 2, 0);
         break;
     case 3:
-        em->atari.init(0, 2, 0, 0.0f, 2400.0f, 0.0f, 4150.0f, 230.0f, 230.0f, 2400.0f);
+        AtariInit(&em->atari, 0.0f, 2400.0f, 0.0f, 4150.0f, 230.0f, 230.0f, 2400.0f, 0, 2, 0);
         break;
     case 4:
-        em->atari.init(0, 2, 0, 0.0f, 1500.0f, 0.0f, 1500.0f, 230.0f, 230.0f, 1500.0f);
+        AtariInit(&em->atari, 0.0f, 1500.0f, 0.0f, 1500.0f, 230.0f, 230.0f, 1500.0f, 0, 2, 0);
         break;
     case 7:
-        em->atari.init(0, 2, 0, 0.0f, 1750.0f, 0.0f, 1950.0f, 230.0f, 230.0f, 1750.0f);
+        AtariInit(&em->atari, 0.0f, 1750.0f, 0.0f, 1950.0f, 230.0f, 230.0f, 1750.0f, 0, 2, 0);
         break;
     }
     em->atari.clrFlag100();
@@ -139,7 +143,9 @@ cEmBarred* SetEmBarred(void* bin, void* tpl, Vec* pos, Vec* rot, int flagNo, int
     case 7:
         break;
     }
-    em->hpMax = em->hp = 1000;
+    do {
+        em->hpMax = em->hp = 1000;
+    } while (0);
     if (pos) {
         em->pos = *pos;
     } else {
@@ -153,6 +159,8 @@ cEmBarred* SetEmBarred(void* bin, void* tpl, Vec* pos, Vec* rot, int flagNo, int
     }
     w->pos0 = em->pos;
     switch (em->type) {
+    case 0:
+    case 1:
     case 5:
     case 6:
     default:
@@ -229,8 +237,8 @@ cEmBarred* SetEmBarred(void* bin, void* tpl, Vec* pos, Vec* rot, int flagNo, int
     w->open = 1;
     w->pDouble = 0;
     if (em->type == 5 || em->type == 6 || em->type == 8 || em->type == 9) {
-        w->open = 0;
         w->status = 2;
+        w->open = 0;
     }
     em->xFC = 1;
     em->xFD = 0;

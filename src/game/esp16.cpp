@@ -162,7 +162,16 @@ extern "C" void Esp16_Trans(cEsp16* esp)
     esp->ChannelSet();
     GXSetBlendMode(esp->xA4, esp->xA5, esp->xA6, esp->xA7);
     esp->CommonStateSet();
-    t = 0.0f;
+    // The original sets t through an intermediate the copy never absorbed (`lfs f12, 0.0; fmr
+    // f29, f12`); every pseudo form is folded into a direct load by cse/combine, so the copy is
+    // kept with a hard-register zero plus a non-volatile launder (23 -> 15 words; left: the load is
+    // issued before `lbz partsNo` in the original and t/tw take f29/f30, ours f30/f29).
+    {
+        register f32 z asm("fr12"); // COMPILER-DIFF: #13
+        z = 0.0f;
+        asm("" : "+f"(z));          // COMPILER-DIFF: #13
+        t = z;
+    }
     tw = 1.0f;
     // Dead in the original too: only its 0x43300000 constant survives, shared through the cse
     // path by both `(f32) w->nPt` conversions below (`lis r31, 0x4330` right after

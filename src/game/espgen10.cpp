@@ -19,14 +19,18 @@ int EspgenDataSet(EspSeqData* head, int no, EspInfo* info, u32* seed, cModel* mo
 
     if (info->x0 & 0x1000) {
         // The table address is an integer here: the index register of the `lwzx` is r9
-        // (BASE_REGS), not r0 as a pointer base would give. Still open: the target keeps the
-        // address in r11 (ours shares model's r6) and `flag` in r30 (5 callee-saved registers).
-        u32 list = (u32) EspEvModList;
+        // (BASE_REGS), not r0 as a pointer base would give. `list` block-local in the else arm
+        // (9 words, was 22): the target keeps the address in r11 and `flag` in r30 -- a
+        // function-scope `list` (2-block pseudo) is allocated after `model` and inherits model's
+        // r6 preference through `(set model (mem (plus list idx)))`, and `flag` then fits r11.
+        // OPEN: the target hoists `lis/addi list` above the `cmplwi no,127` (list computed before
+        // the test) with `no` in r0.
         u32 no = rec->x6;
         if (no > 0x7F) {
             model = NULL;
         } else {
-            model = *(cModel**) (list + no * 4);
+            u32 list = (u32) EspEvModList;
+            model = *(cModel**) (list + (no << 2));
         }
     }
 

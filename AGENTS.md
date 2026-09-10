@@ -8106,3 +8106,79 @@ confirmed on the units named):
     dependent of the call (class 1) over the anti-dependent `lis` (class 2); the target the reverse. haifa
     tie-break family (#5), no lever.
   - em36 (91/101) not attempted (ten functions, no flip possible this pass).
+
+### DOL sweep 5, one-function units (room_jmp Matching; dbmodule 332 -> 59, emBarred 172 -> 69, view 611 -> 551, espgen10 22 -> 9, esp16 23 -> 15 words; 2026-09-10)
+
+- Harness /tmp/dol_one2 (copy of /tmp/dol_one with the paths rewritten; same `mcmp.py`, `tryv.py`, `vapply.py`,
+  `sbs.sh`, `dump.sh`).
+- **jump1 `x = b; if (c) x = a` needs a single-insn `x = a`** (room_jmp roomJumpMove, 56 -> 0, unit Matching): the
+  jump.c "if (...) x = a; else x = b" transform (`x = b` moved before the condjump, i.e. between the compare and
+  the branch) runs in jump1 only when the `x = a` arm is ONE insn (`temp = prev_active_insn (temp3)` must be the
+  condjump). A byte load into a promoted `int`/`s8` local is two insns (rs6000 `zero_extendqisi2`'s operand 1 is
+  `gpc_reg_operand`), so ours did the transform only in jump2, after global alloc: the value stayed set from
+  `(plus r3 -1)` in the other arm, took its r3 preference, and the `li` landed after the compare. A **QImode
+  compiler temp** makes it one insn: the ternary must have a narrow type AND must not use the member store as its
+  target -- `S8Set(w->point, (pt < 0) ? getPointNum() - 1 : ((pt > n - 1) ? (s8) 0 : w->point))` (an `s8&`
+  setter: the inline's promoted parameter is the ternary's target of the wrong mode, so `assign_temp` gives a QI
+  pseudo; a plain `w->point = ...` uses the MEM as target and stores in each arm; `*(volatile s8*)` works too).
+  Then sched1 hoists `li v,0` above the `cmpw`, v conflicts with the local-alloc'd r3 of `n - 1`, takes r9, and
+  jump2 cross-jumps case 1's `stb r9,15(r31); b end` into the final store (1 insn, preceded by the join label).
+  The joy/`&w->room` r28/r29 tie fixed itself (pt's live length).
+- **`for` loop bound as a literal** (dbmodule DrawObjWireframe): `m < 4` on a `u32` is folded at tree level to
+  `m <= 3` (`cmplwi r28,3; ble`); an inline parameter `n` = 4 is only cse-propagated (`cmplwi 4; blt`). So the
+  original's per-vertex loops were written out (or macros), not a `WireXform(p, idx, n, ...)` inline.
+- **Register-sized local arrays are ADDRESSOF pseudos** (dbmodule `u16 idx[4]`, 8 bytes = DImode): every `&idx`
+  /`idx[i]` use creates `(set T (addressof))` -> after purge_addressof a real `addi T,r1,56` insn that cse merges,
+  gcse PREs (`addi r29,r1,56; mr r27,r29`: the copy right after the first computation = pre_insert_copies) and
+  loop.c hoists (`addi r25,r1,56` in the preheader + `mr r27,r25` per iteration). A 6-byte `u16 idx[3]` is BLKmode
+  (frame-direct everywhere). The target mixes both shapes (frame-direct `sth 56..62(r1)` with a per-iteration
+  `addi r29,r1,56` in the quads/tri loops, the PRE copy in the strip case) -- OPEN.
+- dbmodule DrawObjWireframe (332 -> 59): ONE function-scope `Vec* pv` (`mr r31,r24` = pv = p before every
+  loop, `pv = &p[2]` for the second extra vertex), `u16* pidx` re-assigned per command, `part` advanced in place
+  (`cmd = (u8*) part + 0x20; part = (ModelPart*) ((u8*) part + part->size + 0x20); while (cmd < (u8*) part)`),
+  literal loop bounds, the strip loop stores the NEW index into idx[1] through pidx (`pidx = idx; pidx++; idx[2] =
+  *pidx` = `lhzu`), `cnt = n - 2` as the strip bound (a second variable, `addi r17,r25,-2`), extra-vertex colours
+  `(cr, cg, cb, ca)` (the old source had them rotated). With 18 callee-saved values the original spills `obj`
+  (0x40(r1)), `md`, `np` and caller-saves cg/ca around PSMTXMultVec (`stw r8,80(r1); stw r10,84(r1)`); the same
+  allocation falls out once the variables above exist. OPEN (59): the `while (cmd < part)` is not rotated in
+  the original (test at the top, every case ends `b top`; ours duplicates the exit test at the bottom --
+  `while (1)`/`break`, `for (;;)`/`goto next`, goto loops tried, the goto forms spill `part`), the `DB_poly_num`
+  store precedes the `part->size` load, the idx shapes above, `lhz r0`/`slwi r0` vs r11 for the index temp, and
+  the strip k-loop's `v + 2` in a fresh r9 (`v` not dying).
+- emBarred SetEmBarred (172 -> 69): `AtariInit(&em->atari, floats..., 0, 2, 0)` (atari_init.h, COMPILER-DIFF #1)
+  gives the `mr r3; fmr f3; li r4; fmr f6; li r5; fmr f7; li r6` interleave in all seven arms; the openH switch
+  tree needs `case 0: case 1: case 5: case 6: default:` (tools/casetree.py search -- default-labelled ranges
+  [0,1] and [5,6] make the right list [7,8,9] linear: root 4, `cmpwi 7; beq; blt default; cmpwi 8; cmpwi 9`), the
+  `type == 5||6||8||9` arm stores `status = 2; open = 0` (dying-first), `u32 i` for the ascending `sub[]` clear,
+  `do { em->hpMax = em->hp = 1000; } while (0)` so the `cmpwi pos,0` is issued after the two `sth`. OPEN (69):
+  the YarareInitCube tails -- the original merges the 140.0 arms (default/8/9) INTO THE DEFAULT ARM's `lfs f6`
+  (`.L_7E74` inside the first arm) and case 3 into case 4's `lfs f6` + call tail (6 insns); ours merges the
+  5-insn call tails only, into case 3's copy, because case 4 (the last arm) falls into the join label and flow's
+  `(use (const_int 0))` nop after its call stops the fall-through `find_cross_jump` (i2 walk hits the `use`).
+  Whatever the original did, its fall-through arm had no such nop.
+- view initPerspective (611 -> 551): the two normal blocks are written out (VECNormalize's `__LINE__` = 193, 198,
+  ..., 218 and 239, ..., 264 in the `li r8` arguments -- 5 lines per normal; a macro gives one line). OPEN: the
+  original computes `-znear`, `-h`, `-w` once (chain stores from one register), keeps `&normal[k]`/`&point[k]`
+  in r14-r27 across the second block, halves the points with an indexed `lfsx/stfsx` loop, and its sphere block
+  builds a `Vec* p[4]` table on the stack (pointers to frame+56/80/92 and &localFull) -- a different algorithm
+  (its pool has 1.0, 2pi, 12.0, 1/1024, pi/2 and both conversion magics: .rodata 0x80 vs 0x48).
+- **Global-alloc preference through a MEM address** (espgen10 EspgenDataSet, 22 -> 9): `set_preference` follows
+  the first operand of any 'e' rtx, so `(set model (mem (plus list idx)))` gives `list` a preference for model's
+  hard register once model is allocated first (`101 preferences: 6 7` in the .greg dump) -- `list` then shares
+  r6 with the dying `model` (`lwzx r6,r6,r9`). Making `list` block-local in the else arm (local-alloc, no
+  preference) frees r11 for it; `flag` (3 refs, no call crossing) then conflicts with r11 and takes r30 like the
+  original, and the four stack-parm copies fall into r27-r30. OPEN (9): the original hoists `lis/addi list`
+  above the `cmplwi no,127` with `no` in r0 (a 2-block `list` again, but allocated before `model`).
+- esp16 Esp16_Trans (23 -> 15): the `t = 0.0f` intermediate copy (`lfs f12, 0.0; fmr f29, f12`) survives only
+  with a hard-register zero plus a NON-volatile launder (`register f32 z asm("fr12"); z = 0.0f; asm("" :
+  "+f"(z)); t = z;`, tagged #13); the bare hard-register form and every pseudo form are folded into a direct
+  `lfs t`. Left: the load is issued before `lbz partsNo` in the original and t/tw take f29/f30 (ours f30/f29).
+  The same launder in esp12 Esp12_Trans costs 78 words (47 -> 125): reload_cse/scheduling side effects, not
+  applied there.
+- Negative results (do not retry the same forms): dvd DiscChange (7; sched2 tie already modelled, unchanged),
+  pad PadRead `dead`/`&Pad_data` (a `PADStatus* pd` local, `do{}while(0)` around `pd = Pad_data`, around `pad =
+  &Pad_data[i]` or `joy = &Joy[i]`: 95-594 words -- the giv formation of loop 2 changes), esp02 esp02Trans_sub
+  (84: frame-address pseudo spill choice, `stw r0,376(r1)` of a different Vec* -- #3 family), esp18 Esp18_Trans
+  (322: `esp` is r27 in the original below `&esp->work` (3-set pointer, r30), the per-arm `Vec*` frame pointers
+  (r29) and two short-lived groups (r31/r28); ours gives esp r31 -- a priority order of five allocnos, no
+  single lever), esp04 move10 (loop register renames, not the zero-copy shape).

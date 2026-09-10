@@ -44,37 +44,14 @@ void VIEW::setFarPlane(f32 z)
     zfar = z;
 }
 
-#define FRUSTUM_NORMALS(b, t1, t2)                                        \
-    PSVECSubtract(&(b)->point[1], &(b)->point[0], &t1);                 \
-    PSVECSubtract(&(b)->point[3], &(b)->point[0], &t2);                 \
-    PSVECCrossProduct(&t1, &t2, &(b)->normal[0]);                       \
-    VECNormalize(&(b)->normal[0], &(b)->normal[0]);                     \
-                                                                          \
-    PSVECSubtract(&(b)->point[3], &(b)->point[0], &t1);                 \
-    PSVECSubtract(&(b)->point[4], &(b)->point[0], &t2);                 \
-    PSVECCrossProduct(&t1, &t2, &(b)->normal[1]);                       \
-    VECNormalize(&(b)->normal[1], &(b)->normal[1]);                     \
-                                                                          \
-    PSVECSubtract(&(b)->point[4], &(b)->point[0], &t1);                 \
-    PSVECSubtract(&(b)->point[1], &(b)->point[0], &t2);                 \
-    PSVECCrossProduct(&t1, &t2, &(b)->normal[2]);                       \
-    VECNormalize(&(b)->normal[2], &(b)->normal[2]);                     \
-                                                                          \
-    PSVECSubtract(&(b)->point[5], &(b)->point[1], &t1);                 \
-    PSVECSubtract(&(b)->point[2], &(b)->point[1], &t2);                 \
-    PSVECCrossProduct(&t1, &t2, &(b)->normal[3]);                       \
-    VECNormalize(&(b)->normal[3], &(b)->normal[3]);                     \
-                                                                          \
-    PSVECSubtract(&(b)->point[6], &(b)->point[2], &t1);                 \
-    PSVECSubtract(&(b)->point[3], &(b)->point[2], &t2);                 \
-    PSVECCrossProduct(&t1, &t2, &(b)->normal[4]);                       \
-    VECNormalize(&(b)->normal[4], &(b)->normal[4]);                     \
-                                                                          \
-    PSVECSubtract(&(b)->point[7], &(b)->point[4], &t1);                 \
-    PSVECSubtract(&(b)->point[5], &(b)->point[4], &t2);                 \
-    PSVECCrossProduct(&t1, &t2, &(b)->normal[5]);                       \
-    VECNormalize(&(b)->normal[5], &(b)->normal[5]);
-
+// initPerspective (551 words, was 611): the two normal blocks are written out (VECNormalize's
+// __LINE__ is 193/198/.../218 and 239/.../264 in the original, 5 lines per normal). OPEN: the
+// original computes -znear/-h/-w once each and stores them through chains (4/2/2 stores from one
+// register), keeps &normal[k]/&point[k] in callee-saved r14-r27 across the second normal block,
+// halves the points with an indexed `lfsx/stfsx` loop, and its sphere block builds a `Vec* p[4]`
+// table on the stack (frame+56/80/92 and &localFull) -- a different algorithm from the det/d0..d2
+// form below (its pool has 1.0, 2pi, 12.0, 1/1024, pi/2 and both double-conversion magics that
+// ours lacks: .rodata 0x80 vs 0x48).
 void VIEW::initPerspective(f32 fovy_, f32 aspect_, f32 znear_, f32 zfar_)
 {
     Vec t1;
@@ -122,7 +99,35 @@ void VIEW::initPerspective(f32 fovy_, f32 aspect_, f32 znear_, f32 zfar_)
     b->point[7].z = -zfar;
 
 #line 190 "D:/Bio4/Prog/view.cpp"
-    FRUSTUM_NORMALS(b, t1, t2)
+    PSVECSubtract(&b->point[1], &b->point[0], &t1);
+    PSVECSubtract(&b->point[3], &b->point[0], &t2);
+    PSVECCrossProduct(&t1, &t2, &b->normal[0]);
+    VECNormalize(&b->normal[0], &b->normal[0]);
+
+    PSVECSubtract(&b->point[3], &b->point[0], &t1);
+    PSVECSubtract(&b->point[4], &b->point[0], &t2);
+    PSVECCrossProduct(&t1, &t2, &b->normal[1]);
+    VECNormalize(&b->normal[1], &b->normal[1]);
+
+    PSVECSubtract(&b->point[4], &b->point[0], &t1);
+    PSVECSubtract(&b->point[1], &b->point[0], &t2);
+    PSVECCrossProduct(&t1, &t2, &b->normal[2]);
+    VECNormalize(&b->normal[2], &b->normal[2]);
+
+    PSVECSubtract(&b->point[5], &b->point[1], &t1);
+    PSVECSubtract(&b->point[2], &b->point[1], &t2);
+    PSVECCrossProduct(&t1, &t2, &b->normal[3]);
+    VECNormalize(&b->normal[3], &b->normal[3]);
+
+    PSVECSubtract(&b->point[6], &b->point[2], &t1);
+    PSVECSubtract(&b->point[3], &b->point[2], &t2);
+    PSVECCrossProduct(&t1, &t2, &b->normal[4]);
+    VECNormalize(&b->normal[4], &b->normal[4]);
+
+    PSVECSubtract(&b->point[7], &b->point[4], &t1);
+    PSVECSubtract(&b->point[5], &b->point[4], &t2);
+    PSVECCrossProduct(&t1, &t2, &b->normal[5]);
+    VECNormalize(&b->normal[5], &b->normal[5]);
 
     local = localFull;
     b = &local;
@@ -131,7 +136,35 @@ void VIEW::initPerspective(f32 fovy_, f32 aspect_, f32 znear_, f32 zfar_)
         b->point[i].y *= 0.5f;
     }
 #line 236 "D:/Bio4/Prog/view.cpp"
-    FRUSTUM_NORMALS(b, t1, t2)
+    PSVECSubtract(&b->point[1], &b->point[0], &t1);
+    PSVECSubtract(&b->point[3], &b->point[0], &t2);
+    PSVECCrossProduct(&t1, &t2, &b->normal[0]);
+    VECNormalize(&b->normal[0], &b->normal[0]);
+
+    PSVECSubtract(&b->point[3], &b->point[0], &t1);
+    PSVECSubtract(&b->point[4], &b->point[0], &t2);
+    PSVECCrossProduct(&t1, &t2, &b->normal[1]);
+    VECNormalize(&b->normal[1], &b->normal[1]);
+
+    PSVECSubtract(&b->point[4], &b->point[0], &t1);
+    PSVECSubtract(&b->point[1], &b->point[0], &t2);
+    PSVECCrossProduct(&t1, &t2, &b->normal[2]);
+    VECNormalize(&b->normal[2], &b->normal[2]);
+
+    PSVECSubtract(&b->point[5], &b->point[1], &t1);
+    PSVECSubtract(&b->point[2], &b->point[1], &t2);
+    PSVECCrossProduct(&t1, &t2, &b->normal[3]);
+    VECNormalize(&b->normal[3], &b->normal[3]);
+
+    PSVECSubtract(&b->point[6], &b->point[2], &t1);
+    PSVECSubtract(&b->point[3], &b->point[2], &t2);
+    PSVECCrossProduct(&t1, &t2, &b->normal[4]);
+    VECNormalize(&b->normal[4], &b->normal[4]);
+
+    PSVECSubtract(&b->point[7], &b->point[4], &t1);
+    PSVECSubtract(&b->point[5], &b->point[4], &t2);
+    PSVECCrossProduct(&t1, &t2, &b->normal[5]);
+    VECNormalize(&b->normal[5], &b->normal[5]);
 
     orientation();
 

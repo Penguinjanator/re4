@@ -834,12 +834,18 @@ static inline void WireVtx(Vec* p, int n, u8 r, u8 g, u8 b, u8 a)
     }
 }
 
-// OPEN (77%): the original drives WireXform/WireVtx and the GXPosition3f32 reads through ONE
-// function-scope `Vec* pv` (`mr r31, r24` = pv = p before each loop, `mr r31, r23` = &p[2]), a
-// `u16* pidx` recomputed `addi r29, r1, 0x38` per command, keeps `part` in r14 and advances it in
-// place (`cmd = (u8*) part + 0x20; part = (ModelPart*) ((u8*) part + part->size + 0x20); while (cmd
-// < (u8*) part)`), spills `obj` (0x40(r1)) and the colour bytes cg/ca (0x50/0x54) around the calls,
-// and the strip case copies p[0] = p[2]; p[2] = p[1] through pointer locals (&p[0]/&p[1]/&p[2]).
+// 59 words left (was 332): the original drives the conversions and the FIFO writes through ONE
+// function-scope `Vec* pv` (`mr r31, r24` = pv = p before each loop, `mr r31, r23` = pv = &p[2]), a
+// `u16* pidx` re-assigned per command, keeps `part` in r14 and advances it in place, spills `obj`
+// (0x40(r1)), `md`, `np` and caller-saves cg/ca (0x50/0x54) around PSMTXMultVec, writes the loop
+// bounds as literals (`m < 4` folds to `cmplwi 3; ble`), and the strip loop stores the new index into
+// idx[1] through pidx (`pidx = idx; pidx++` = `lhzu`) and uses `cnt = n - 2` as the bound.
+// OPEN: the `while (cmd < part)` is NOT rotated in the original (test at the top, `b top` from every
+// case; ours duplicates the exit test at the bottom -- while(1)/break, goto forms tried), the
+// `DB_poly_num` store precedes the `part->size` load, the quads/tri `idx[]` stores are frame-direct
+// with a per-iteration `addi r29,r1,56` (idx is an 8-byte ADDRESSOF aggregate: a 6-byte array makes
+// the strip case frame-direct instead), and the strip `idx[2] = *pidx` store goes through the `&idx`
+// PRE copy (`sth r0,4(r27)`).
 // `vtx_size` is an unused non-static local (8-byte .rodata template between init_corn's pool and
 // this function's pool; a `static const` lands in .sdata2).
 void DrawObjWireframe(cObj* obj, int color)
@@ -848,13 +854,14 @@ void DrawObjWireframe(cObj* obj, int color)
     ModelData* md;
     ModelPart* part;
     u8* cmd;
-    u8* end;
     s16* vtx;
     f32 scale;
     Vec p[4];
     u16 idx[4];
+    Vec* pv;
+    u16* pidx;
     u32 np;
-    u32 n, k, m;
+    u32 n, k, m, cnt;
     u8 op;
     u8 cr, cg, cb, ca;
 
@@ -872,9 +879,8 @@ void DrawObjWireframe(cObj* obj, int color)
     for (np = 0; np < md->nParts; np++) {
         DB_poly_num += part->nPoly;
         cmd = (u8*) part + 0x20;
-        end = (u8*) part + part->size + 0x20;
-        part = (ModelPart*) end;
-        while (cmd < end) {
+        part = (ModelPart*) ((u8*) part + part->size + 0x20);
+        while (cmd < (u8*) part) {
             op = *cmd++;
             switch (op) {
             case 0:
@@ -888,6 +894,8 @@ void DrawObjWireframe(cObj* obj, int color)
                 cb = 0x8F;
                 ca = 0xFF;
                 for (k = 0; k < n; k += 4) {
+                    pv = p;
+                    pidx = idx;
                     idx[0] = *(u16*) cmd;
                     cmd += 8;
                     idx[1] = *(u16*) cmd;
@@ -896,15 +904,34 @@ void DrawObjWireframe(cObj* obj, int color)
                     cmd += 8;
                     idx[3] = *(u16*) cmd;
                     cmd += 8;
-                    WireXform(p, idx, 4, vtx, scale, obj->mat);
+                    for (m = 0; m < 4; m++) {
+                        s16* v = (s16*) ((u8*) vtx + *pidx * 8);
+                        pidx++;
+                        pv->x = PSQ_L_S16(v);
+                        pv->y = PSQ_L_S16(v + 1);
+                        pv->z = PSQ_L_S16(v + 2);
+                        pv->x *= scale;
+                        pv->y *= scale;
+                        pv->z *= scale;
+                        PSMTXMultVec(obj->mat, pv, pv);
+                        pv++;
+                    }
                     GXBegin(0xB0, 0, 6);
-                    WireVtx(p, 4, cr, cg, cb, ca);
+                    pv = p;
+                    for (m = 0; m < 4; m++) {
+                        GXMatrixIndex1u8(0);
+                        GXPosition3f32(pv->x, pv->y, pv->z);
+                        GXColor4u8(cr, cg, cb, ca);
+                        pv++;
+                    }
                     GXMatrixIndex1u8(0);
-                    GXPosition3f32(p[0].x, p[0].y, p[0].z);
-                    GXColor4u8(cg, cb, ca, cr);
+                    pv = p;
+                    GXPosition3f32(pv->x, pv->y, pv->z);
+                    GXColor4u8(cr, cg, cb, ca);
                     GXMatrixIndex1u8(0);
-                    GXPosition3f32(p[2].x, p[2].y, p[2].z);
-                    GXColor4u8(cg, cb, ca, cr);
+                    pv = &p[2];
+                    GXPosition3f32(pv->x, pv->y, pv->z);
+                    GXColor4u8(cr, cg, cb, ca);
                 }
                 break;
             case 0x90:
@@ -916,22 +943,44 @@ void DrawObjWireframe(cObj* obj, int color)
                 cb = 0x20;
                 ca = 0xFF;
                 for (k = 0; k < n; k += 3) {
+                    pv = p;
+                    pidx = idx;
                     idx[0] = *(u16*) cmd;
                     cmd += 8;
                     idx[1] = *(u16*) cmd;
                     cmd += 8;
                     idx[2] = *(u16*) cmd;
                     cmd += 8;
-                    WireXform(p, idx, 3, vtx, scale, obj->mat);
+                    for (m = 0; m < 3; m++) {
+                        s16* v = (s16*) ((u8*) vtx + *pidx * 8);
+                        pidx++;
+                        pv->x = PSQ_L_S16(v);
+                        pv->y = PSQ_L_S16(v + 1);
+                        pv->z = PSQ_L_S16(v + 2);
+                        pv->x *= scale;
+                        pv->y *= scale;
+                        pv->z *= scale;
+                        PSMTXMultVec(obj->mat, pv, pv);
+                        pv++;
+                    }
                     GXBegin(0xB0, 0, 4);
-                    WireVtx(p, 3, cr, cg, cb, ca);
+                    pv = p;
+                    for (m = 0; m < 3; m++) {
+                        GXMatrixIndex1u8(0);
+                        GXPosition3f32(pv->x, pv->y, pv->z);
+                        GXColor4u8(cr, cg, cb, ca);
+                        pv++;
+                    }
                     GXMatrixIndex1u8(0);
-                    GXPosition3f32(p[0].x, p[0].y, p[0].z);
-                    GXColor4u8(cg, cb, ca, cr);
+                    pv = p;
+                    GXPosition3f32(pv->x, pv->y, pv->z);
+                    GXColor4u8(cr, cg, cb, ca);
                 }
                 break;
             case 0x98:
+                pv = p;
                 n = *(u16*) cmd;
+                pidx = idx;
                 DB_strip_num += n;
                 cr = 0x80;
                 cg = 0x80;
@@ -942,26 +991,52 @@ void DrawObjWireframe(cObj* obj, int color)
                 cmd += 8;
                 idx[1] = *(u16*) cmd;
                 cmd += 8;
-                WireXform(p, idx, 2, vtx, scale, obj->mat);
+                for (m = 0; m < 2; m++) {
+                    s16* v = (s16*) ((u8*) vtx + *pidx * 8);
+                    pidx++;
+                    pv->x = PSQ_L_S16(v);
+                    pv->y = PSQ_L_S16(v + 1);
+                    pv->z = PSQ_L_S16(v + 2);
+                    pv->x *= scale;
+                    pv->y *= scale;
+                    pv->z *= scale;
+                    PSMTXMultVec(obj->mat, pv, pv);
+                    pv++;
+                }
+                cnt = n - 2;
                 GXBegin(0xB0, 0, 2);
-                WireVtx(p, 2, cr, cg, cb, ca);
-                n -= 2;
-                idx[2] = idx[1];
+                pv = p;
+                for (m = 0; m < 2; m++) {
+                    GXMatrixIndex1u8(0);
+                    GXPosition3f32(pv->x, pv->y, pv->z);
+                    GXColor4u8(cr, cg, cb, ca);
+                    pv++;
+                }
+                pidx = idx;
+                pidx++;
+                idx[2] = *pidx;
                 p[2] = p[1];
-                for (k = 0; k < n; k++) {
+                for (k = 0; k < cnt; k++) {
                     s16* v;
-                    idx[0] = *(u16*) cmd;
+                    pv = &p[1];
+                    *pidx = *(u16*) cmd;
                     cmd += 8;
-                    v = vtx + idx[0] * 4;
-                    p[1].x = PSQ_L_S16(v);
-                    p[1].y = PSQ_L_S16(v + 1);
-                    p[1].z = PSQ_L_S16(v + 2);
-                    p[1].x *= scale;
-                    p[1].y *= scale;
-                    p[1].z *= scale;
-                    PSMTXMultVec(obj->mat, &p[1], &p[1]);
+                    v = (s16*) ((u8*) vtx + *pidx * 8);
+                    pv->x = PSQ_L_S16(v);
+                    pv->y = PSQ_L_S16(v + 1);
+                    pv->z = PSQ_L_S16(v + 2);
+                    pv->x *= scale;
+                    pv->y *= scale;
+                    pv->z *= scale;
+                    PSMTXMultVec(obj->mat, pv, pv);
+                    pv = p;
                     GXBegin(0xB0, 0, 3);
-                    WireVtx(p, 3, cr, cg, cb, ca);
+                    for (m = 0; m < 3; m++) {
+                        GXMatrixIndex1u8(0);
+                        GXPosition3f32(pv->x, pv->y, pv->z);
+                        GXColor4u8(cr, cg, cb, ca);
+                        pv++;
+                    }
                     idx[0] = idx[2];
                     idx[2] = idx[1];
                     p[0] = p[2];

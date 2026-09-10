@@ -1518,6 +1518,11 @@ MATCHING.update({
     "game/esp_efm.cpp": True,  # EfmSetObj04: parent/parentSerial stored through a u32* (register-address store invalidates x79 in cse1)
 })
 
+# DOL sweep 5, one-function units (2026-09-10)
+MATCHING.update({
+    "game/room_jmp.cpp": True,  # roomJumpMove: nested s8 ternary through an s8& setter (QI temp -> jump1 hoists the 0 -> conflicts with r3)
+})
+
 # CRI one-function-away pass (2026-09-10)
 MATCHING.update({
     "lib/cftcoladj.c": True,  # `cbtbl[i] = i * v / j` (the i*v product is MWCC's strength-reduced IV, not a source local); last ramp loops on v with the start copied

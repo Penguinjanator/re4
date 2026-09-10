@@ -33,6 +33,7 @@ void roomJumpExit(test* w);
 
 // The original stores GlobalWork fields through references: GCC then reloads pG after every store.
 static inline void U8Set(u8& d, u8 v) { d = v; }
+static inline void S8Set(s8& d, s8 v) { d = v; }
 static inline void U16Set(u16& d, u16 v) { d = v; }
 static inline void U32Set(u32& d, u32 v) { d = v; }
 
@@ -263,7 +264,6 @@ void roomJumpMove(test* w)
     int no;
     s8 room;
     int pt;
-    int v;
 
     if (joy->rep & 0x40004) {
         w->mode++;
@@ -324,13 +324,12 @@ void roomJumpMove(test* w)
         if (joy->rep2 & 0x10001) {
             w->point = pRj->getNextPointNo(w->stage, room, w->point, -1);
         }
+        // Nested s8 ternary through an s8& setter: the value is a QImode temp (a promoted int local
+        // needs two insns for the byte load), so jump1 hoists the `li 0` above the compare, the temp
+        // conflicts with r3 and takes r9, and case 1's `stb r9` is cross-jumped into the final store.
         pt = w->point;
-        if (pt < 0) {
-            v = pRj->getPointNum(w->stage, room) - 1;
-        } else {
-            v = (pt > pRj->getPointNum(w->stage, room) - 1) ? 0 : (u8) w->point;
-        }
-        w->point = v;
+        S8Set(w->point, (pt < 0) ? pRj->getPointNum(w->stage, room) - 1
+                                 : ((pt > pRj->getPointNum(w->stage, room) - 1) ? (s8) 0 : w->point));
         break;
     }
 }
