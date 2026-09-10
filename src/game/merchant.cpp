@@ -1508,13 +1508,26 @@ PriceEntry* Merchant::exerciseItemId(u16 id)
 int Merchant::buyupPrice(u16 id, int num)
 {
     ItemInfo info;
-    PriceEntry* p = exerciseItemId(id);
-    const f32 half = 0.5f;
-    const f32 nine = 0.9f;
+    u32 hi;
+    PriceEntry* p;
+    f32 half;
     int price;
     int n;
     int type;
 
+    // COMPILER-DIFF: 3. The original keeps `lis r29,0.5f@ha` in the prologue (callee-saved) and
+    // only the `lfs f11` inside the 0.5f arm: a gcse PRE copy of a top-of-function `high` whose
+    // REG_EQUAL (high) note our cse2 folds back into a fresh `lis` in the arm (the arm is not on
+    // any cse path from bb 0, so only the note can do it). Reproduced with the high in an asm and
+    // the 0.5 as a named .rodata object; the dead `if (0)` call emits the format string before
+    // the object so .rodata keeps the target order [string][0.5][0.9][0x4330].
+    if (0) {
+        pLog->err(0, 0, "buyupPriece() : 0x%02x not found", id);
+    }
+    static const f32 k05 __attribute__((nosda)) = 0.5f;
+    const f32 nine = 0.9f;
+    asm("lis %0,%1@ha" : "=r"(hi) : "i"(&k05));
+    p = exerciseItemId(id);
     if (p == 0) {
         pLog->err(0, 0, "buyupPriece() : 0x%02x not found", id);
         return 0;
@@ -1523,18 +1536,13 @@ int Merchant::buyupPrice(u16 id, int num)
     price = p->price * n;
     itemInfo(id, &info);
     type = info.type;
-    // OPEN: the original keeps `lis r29, 0.5f@ha` in the prologue (callee-saved) with the `lfs`
-    // inside the 0.5f arm, i.e. a single-use `f32 half = 0.5f` local whose load update_equiv_regs
-    // moved next to its use; our cc1plus never moves a pool load (cse's REG_EQUAL note is the
-    // const_double, not the MEM, so `rtx_equal_p (note, SET_SRC)` fails in local-alloc.c). With
-    // the load global-allocated to f11 the 0.5f/0.9f tails become identical and cross-jump; ours
-    // allocates f12/f11 in the last arm and keeps three tails. `const` locals give the pool order.
     if (type == 5 || type == 0xC) {
         return (int) ((f32) price * 1.0f);
     }
     if (!((type == 1 || type == 2) || (type == 3 || type == 6) || id == 0xFE)) {
         return (int) ((f32) price * nine);
     }
+    asm("lfs %0,%1@l(%2)" : "=f"(half) : "i"(&k05), "r"(hi));
     return (int) ((f32) price * half);
 }
 
@@ -1542,6 +1550,7 @@ int Merchant::buyupPrice(ItemWork* item, int num)
 {
     ItemInfo info;
     int price = buyupPrice(item->id, num);
+    const f32 rate = 0.5f; // pool entry before the 0x4330 magic; the literal is folded at every use
     int type;
     int lv;
 
@@ -1566,9 +1575,18 @@ int Merchant::buyupPrice(ItemWork* item, int num)
                 break;
             }
             for (lv = 2; lv <= lvMax; lv++) {
-                f32 rate = 0.5f;
-
                 price += (int) ((f32) levelupPrice(item, type, lv) * rate);
+            }
+            // COMPILER-DIFF: candidate (loop.c pass-2 insn_count). The original's outer loop had
+            // >= 72 real insns at the second loop pass, so the two pool `lis` hoisted into the
+            // lv-loop preheader by pass 1 stay there (threshold 71 * 1 * 1 < insn_count); ours has
+            // 65 and hoists them to the function top. The two dead tests (num is dead after the
+            // `num == 1` test) add the missing insns and vanish in flow/jump2.
+            if (price == 0) {
+                num = 0;
+            }
+            if (item->x8 == 0) {
+                num = 1;
             }
         }
     }

@@ -10862,3 +10862,72 @@ stmt.c/jump.c and confirmed with cc1plus probes:
   SearchEmModule call); r203 EventMeetAgain (26: `addi r11,r1,8; mr r27,r11` + `mr r30,r29; mr r3,r30` = two pseudos
   per frame address, #3 (c); pointer/copy forms 26-39); r11d execEmAppear_end (11, same family: `mr r4,r8; mr r31,r4`
   around the template-copy loop); r11e, r10f, r11c, r222, r105, r106, r10b not iterated this pass.
+
+### DOL sweep 10, mid-gap units (texture Matching; merchant 56 -> 58/59, sce_at 109/114 with sceAtGetItem_NoModel 70 -> 12 and sceAtGetItem 131 -> 98, snd 92 -> 93/97 with debugDisp 49 -> 0; 2026-09-10)
+
+- Harness /tmp/dol10 (dol9 copies with the paths rewritten: `mcmp.py`, `tryv.py`, `vapply.py`, `sbs.sh`, `dump.sh`;
+  new `fsec.py DUMP FUNC [ORD]` = the ORD-th `;; Function` section whose name CONTAINS FUNC (overloads: `'buyupPrice(short'`),
+  `rtl2.py DUMP FUNC [ORD]` = rtl.py with the same selector). Dumps name functions by their C++ signature, so `rtl.py`'s
+  first-match rule picks the wrong overload silently.
+- **Pool-load REG_EQUAL notes are the mechanism behind two merchant residues (both closed, one with a tagged
+  workaround).** cse1 attaches `REG_EQUAL (const_double)` to every pool load (fold_rtx folds a CONSTANT_POOL_ADDRESS_P MEM
+  into its constant, cse.c 5379) and `REG_EQUAL (high sym)` to every `lis` (src_const == src still gets a note, cse.c 7351):
+  - loop.c uses such a note as the movable's source (`move_insn`, loop.c 863): the moved `lfs` is re-expanded from the
+    CONST_DOUBLE through `emit_move_insn` -> `force_const_mem` -> a FRESH `high` pseudo, so `moved_once[]` (which halves the
+    pass-2 threshold: `threshold * savings * life >= insn_count * 2`, loop.c 1863) does not apply to it and pass 2 hoists the
+    `lis` out of the outer loop with the plain `71 >= insn_count` test. buyupPrice(ItemWork*) 51 -> 0: the target keeps both
+    pool `lis` in the inner-loop preheader because its outer loop had >= 72 real insns at pass 2 (ours 65); two dead tests
+    after the inner loop (`if (price == 0) num = 0; if (item->x8 == 0) num = 1;`, `num` dead after the `num == 1` test,
+    tagged candidate) add 8 and reproduce it. The lis/lfd vs lis/lfs pair order inside the preheader is the RTL order of the
+    inner body: `f32 rate = 0.5f` declared in the body puts the 0.5 load before the conversion's constants (ours), the
+    literal in the expression puts it after (target) -- with `const f32 rate = 0.5f` at the function top so the pool still
+    lists 0.5 before the 0x4330 magic.
+  - gcse's PRE copy `(set P (reg R))` keeps the `lis` insn's REG_EQUAL (high) note, and cse2 uses that note as `src_eqv`
+    (HIGH cost 0 < REG cost 1) even in a block that is on no cse path from R's block: the fresh `lis` in the 0.5 arm of
+    buyupPrice(u16) vs the target's `lis r29` in the prologue + `lfs f11,0.5@l(r29)` in the arm. Confirmed in the dumps:
+    `PRE: redundant insn 179 ... reaching reg is 153` + insertion at the end of bb 0, then cse2 re-materialises. Path
+    structure explains the sibling 0.9 arm (fall-through path from bb 0 via the around/taken walk: cse2 also knows R there
+    and re-materialises in BOTH builds), so the original's difference is only the note-driven fold: the original's PRE copy
+    carried no usable REG_EQUAL (or its cse2 ignores it). No source form: closed with `asm("lis %0,%1@ha" : "=r"(hi) :
+    "i"(&k05))` before the first call and `asm("lfs %0,%1@l(%2)" : "=f"(half) : "i"(&k05), "r"(hi))` in the arm, tagged
+    `COMPILER-DIFF: 3`. The named constant is `static const f32 k05 __attribute__((nosda)) = 0.5f;` (the `-G1024` small
+    data threshold puts any static const in .sdata2 otherwise; `section(".rodata")` together with an asm label aborts in
+    rs6000_encode_section_info; an asm label alone still gets the `.NNN` suffix, so it must be referenced through `"i"(&k05)`,
+    which also forces its output -- an unreferenced static const is never emitted). Static locals are output at their
+    declaration (before the function's pool, which `assemble_start_function` emits), and string literals when their statement
+    is expanded, so the declaration must FOLLOW a use of the err string for the target's .rodata order [string][0.5][pool]:
+    a dead `if (0) { pLog->err(.., "...", id); }` above the declaration emits the string first and no code (jump1 deletes the
+    unreachable body). A `static const char msg[]` for the string costs a second copy of the literal (the array's STRING_CST
+    initialiser is output as its own .LC as well).
+- **`asm("mr %0,%1" : "=r"(sel) : "r"(res))` for the target's `extsb r0,r0; mr r30,r0; cmpwi r30,1; ..; cmpwi r0,2`**
+  (sce_at sceAtGetItem_NoModel/sceAtGetItem, tagged `candidate #12 (taken-arm form)`): `sel = res` is folded by our cse1 in
+  both directions (make_regs_eqv makes the longer-lived `sel` canonical for the fall-through compare AND rewrites the else
+  arm's `res == 2`, which it reaches through the single-use `bne` label); the original kept `res` in the taken arm. A `u8
+  res` + `sel = (s8) res` gives the else arm's `cmpwi r0,2` but merges the extsb into `sel`. Same function: `ItemMgr.x12 =
+  0` in the final else arm is a fresh `li r0,0` in the target (`#12 (b)`, asm-li recipe), `w->item.flag2/saveNo` in the
+  tail instead of `it->` (the target reads them from `w`), `SubScreenWk.x2FA = it->id; SubScreenWk.x2FC = it->num;
+  sub_screen_open = sel;` (store order), `int fh = ..fontH; int ls = ..lineSpace; y = 0x129 - fh - ls;` (both loads and
+  extends before the `subfic`), and in sceAtGetItem `int sel = 0` at the top (the target has `li r29,0` there; 127 -> 98).
+  Left: NoModel 12 (the `li cancel,0` slot in the prologue and the `lhz/sth 18(r1)` naming of the tmp.num block), sceAtGetItem
+  98 (a register rotation: the target's local-alloc gives r30 to the case-8 ItemMgr high and r29 to `money`, ours r31/r30;
+  `it` then lands in r31 vs r29 -- `money` at function scope, declaration orders: unchanged).
+- **A loop-body `y` argument written as `i * 0x10 + 0x20` is a giv** (snd debugDisp 49 -> 0): the target's `li r24,32` is
+  emitted at the loop start AFTER the hoisted invariants (a giv init goes to loop_start after move_movables' insns; a
+  `y = 0x20` before the loop has a smaller LUID and is issued first), `addi r24,r24,16` is the giv increment, and the extra
+  real insns of the giv form leave the 7th invariant (`&History.svol`) unhoisted in pass 2 (`threshold -= 3` per moved
+  movable: 71, 68, 65, 62, 59 vs 59/60 insns), which is what shifts the body's load order. Also `y2 = 0x72` written before
+  `total = 0` (the two `li`s of the post-loop block are issued in LUID order).
+- **Pinned temporaries for a local-alloc fake-lifetime tie** (texture DataLoad 6 -> 0, unit Matching): `register u32 oI
+  asm("r9"); register u32 oT asm("r11");` for `data->ofsId/ofsTpl` with the same schedule (30 statement/base/order forms
+  tried first; tagged candidate). Use only when the schedule already matches and every form is exhausted.
+- Negative results this pass (do not retry the same forms): merchant sellPrice (4: the 100.0/1.0 highs r11/r10 vs r9/r11 =
+  local-alloc order of the two highs vs the psq_l loadaddr qty, priorities 1.33/1.33/1.2 in ours; div/conv locals, inline
+  wrappers, s8/int locals, `-x + 1.0f`: 4-18); texture DataLoad statement/base forms (all 6 orders x 4 bases: 6-16); snd
+  SndRoomBgmStart (w at the top / no w / block-local w / seq first / return forms: 12-33); emwep setCloth (all 120 orders
+  of the five float stores 32-34; a `clothInit(.., f32 x5)` inline 65: the pool loads before the symbol highs and the 0.0
+  stores last are the em_cloth Em18ClothSet family, still open); event DelEvt (a pinned r0 zero inside a DelEvt-only
+  FadeSetW copy folds the colour pointer P into frame-direct stores: 6); shadow MakeSoftShadow (read only: `lfs f28,0.0` at
+  the top, `fmr f31,f28` after SetNoScissor and again in the else arm = two copies of a top-of-function zero that our cse
+  folds; the pool order z, 0.0, 0.5, 1.0, 2.0, 0.25 says both `z` and the zero are declaration initialisers); Espgen43
+  SetSandWork, em_cloth, at_mod, model, cam_qfps, emrock, emmine, option, main_mem, sce_com, pendulum, cam_extra, cam_ctrl,
+  motion, puzzle, item not iterated this pass.

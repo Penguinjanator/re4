@@ -1543,3 +1543,8 @@ MATCHING.update({
 MATCHING.update({
     "game/obj1b.cpp": True,  # obj1bHitCk: `no = partsNo ? partsNo - 1 : 0` ends cse's ebb at the select's join, so the later `&obj->pos` occurrences are PRE'd into the post-getPartsPtr copy
 })
+
+# DOL sweep 10 (2026-09-10)
+MATCHING.update({
+    "game/texture.cpp": True,  # DataLoad: ofsId/ofsTpl temporaries pinned to r9/r11 (local-alloc fake-lifetime tie; same schedule)
+})

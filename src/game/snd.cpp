@@ -7,7 +7,9 @@
 // stack slots are MEM_SCALAR_P in ours, not in the original's alias.c), tests a single-use
 // `int ok = 1` (the `li r0,1; cmpwi r0,0; bne`), and nests the curve test so `cs` is computed
 // before `curve_ok == 1`. Open: SndCall's prologue (param stores before `lwz pG`, the same alias
-// difference), SndRoomBgmStart / sndVolCalcSub / SndSetReverb (allocation), debugDisp.
+// difference), SndRoomBgmStart / sndVolCalcSub / SndSetReverb (allocation). debugDisp: the history
+// row's y is the giv `i * 0x10 + 0x20` (its init lands after the hoisted table addresses and its extra
+// loop insns keep `&History.svol` unhoisted like the target), `y2 = 0x72` before `total = 0`.
 #include "types.h"
 #include "global.h"
 #include "map_obj.h"
@@ -2537,7 +2539,6 @@ static void debugDisp()
                                           "EM1 ", "EM2 ", "EM3 ", "EM4 ", 0, 0 };
     int i;
     s8 idx = History.top;
-    int y;
     u16 y2;
     u32 total;
     int d;
@@ -2545,19 +2546,18 @@ static void debugDisp()
     if (History.num != 0) {
         eprintf2(7, 0xD, 0x20, 8, 4, 9, "BLK   NO VOL PAN SVOL SPAN");
     }
-    y = 0x20;
     for (i = 0; i < History.num; i++) {
         int col = 0;
         if (i == History.num - 1) {
             col = 6;
         }
-        eprintf2(7, 0xD, 0x20, y, col, 9, "%s %3d %3d %3d %4d %4d", se_blk_tbl[History.blk[idx]],
+        eprintf2(7, 0xD, 0x20, i * 0x10 + 0x20, col, 9, "%s %3d %3d %3d %4d %4d", se_blk_tbl[History.blk[idx]],
                  History.no[idx], History.vol[idx], History.pan[idx], History.svol[idx], History.span[idx]);
-        y += 0x10;
         idx++;
         idx = LOOP_IDX(idx, 24);
     }
 
+    y2 = 0x72;
     total = 0;
     eprintf2(7, 0xE, 0x20, 0x10, 6, 0xA, "BLK     NAME      ADDR   SIZE   USED   FREE");
     eprintf2(7, 0xE, 0x20, 0x1E, 0, 0xA, "     OS RESERVE  %06x %06x", 0, 0x4000);
@@ -2576,7 +2576,6 @@ static void debugDisp()
     eprintf2(7, 0xE, 0x12A, 0x56, d < 0 ? 2 : 0, 0xA, "%06x", __builtin_abs(d));
     eprintf2(7, 0xE, 0x20, 0x64, 0, 0xA, " %02d  DOOR        %06x %06x %06x %06x", 7, SndMem.blk_aram[7], 0x40000,
              UseAramSize[7], 0x40000 - UseAramSize[7]);
-    y2 = 0x72;
     if (SND_BIT_CK(pSnd->blk_flag, 6)) {
         y2 += 0xE;
         eprintf2(7, 0xE, 0x20, y2, 0, 0xA, " %02d    ROOM", 6);

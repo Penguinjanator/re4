@@ -1002,11 +1002,13 @@ static void sceAtGetItem(SceAtWork* w)
     static int swep_flag;
     SceAtItem* it = &w->item;
     cModel* model = w->item.pModel;
-    int y = 0x129 - cMes.getWork()->fontH - cMes.getWork()->lineSpace;
+    int fh = cMes.getWork()->fontH;
+    int ls = cMes.getWork()->lineSpace;
+    int y = 0x129 - fh - ls;
     int cancel = 0;
     int mes = 0;
     int put = 1;
-    int sel;
+    int sel = 0;
     int i;
     ItemInfo info;
     ItemWork tmp;
@@ -1159,7 +1161,7 @@ static void sceAtGetItem(SceAtWork* w)
         if (cancel == 0) {
             s8 res = cMes.getWork()->result;
 
-            sel = res;
+            asm("mr %0,%1" : "=r"(sel) : "r"(res)); // COMPILER-DIFF: candidate #12 (taken-arm form): the original's cse never rewrote `res == 2` to sel
             if (sel == 1) {
                 put = PutInCase(it->id, it->num, (s8) SubScreenWk.x2AE);
                 if (put != 1) {
@@ -1167,8 +1169,8 @@ static void sceAtGetItem(SceAtWork* w)
                         SceSleep(1);
                     }
                     SubScreenWk.x2FA = it->id;
-                    sub_screen_open = sel;
                     SubScreenWk.x2FC = it->num;
+                    sub_screen_open = sel;
                 }
             } else if (res == 2) {
                 put = 0;
@@ -1181,7 +1183,12 @@ static void sceAtGetItem(SceAtWork* w)
                     n = info.x3;
                 }
                 tmp.num = n;
-                ItemMgr.x12 = 0;
+                {
+                    int z;
+
+                    asm("li %0,0" : "=r"(z)); // COMPILER-DIFF: candidate #12 (fallthrough-arm form)
+                    ItemMgr.x12 = z;
+                }
                 put = 1;
                 ItemMgr.use(&tmp);
             }
@@ -1221,8 +1228,8 @@ static void sceAtGetItem(SceAtWork* w)
     }
     SceAtSetEnable(w->no, 0);
     releaseModel(w, 0);
-    if ((it->flag2 & 8) && it->saveNo >= 0) {
-        memclr_asm(&pG->save_item[it->saveNo], sizeof(SceAtSaveItem));
+    if ((w->item.flag2 & 8) && w->item.saveNo >= 0) {
+        memclr_asm(&pG->save_item[w->item.saveNo], sizeof(SceAtSaveItem));
     }
     if (w->flag & 4) {
         Mem_free(w);
@@ -1247,7 +1254,9 @@ static void sceAtGetItem_NoModel(SceAtWork* w)
     static int sub_screen_open;
     static int swep_flag;
     SceAtItem* it = &w->item;
-    int y = 0x129 - cMes.getWork()->fontH - cMes.getWork()->lineSpace;
+    int fh = cMes.getWork()->fontH;
+    int ls = cMes.getWork()->lineSpace;
+    int y = 0x129 - fh - ls;
     int cancel = 0;
     int mes = 0;
     int put = 1;
@@ -1386,7 +1395,7 @@ static void sceAtGetItem_NoModel(SceAtWork* w)
         if (cancel == 0) {
             s8 res = cMes.getWork()->result;
 
-            sel = res;
+            asm("mr %0,%1" : "=r"(sel) : "r"(res)); // COMPILER-DIFF: candidate #12 (taken-arm form): the original's cse never rewrote `res == 2` to sel
             if (sel == 1) {
                 put = PutInCase(it->id, it->num, (s8) SubScreenWk.x2AE);
                 if (put != 1) {
@@ -1394,8 +1403,8 @@ static void sceAtGetItem_NoModel(SceAtWork* w)
                         SceSleep(1);
                     }
                     SubScreenWk.x2FA = it->id;
-                    sub_screen_open = sel;
                     SubScreenWk.x2FC = it->num;
+                    sub_screen_open = sel;
                 }
             } else if (res == 2) {
                 ITEM_CANCEL_NOMODEL();
@@ -1408,7 +1417,12 @@ static void sceAtGetItem_NoModel(SceAtWork* w)
                     n = info.x3;
                 }
                 tmp.num = n;
-                ItemMgr.x12 = 0;
+                {
+                    int z;
+
+                    asm("li %0,0" : "=r"(z)); // COMPILER-DIFF: candidate #12 (fallthrough-arm form)
+                    ItemMgr.x12 = z;
+                }
                 put = 1;
                 ItemMgr.use(&tmp);
             }
@@ -1435,8 +1449,8 @@ static void sceAtGetItem_NoModel(SceAtWork* w)
         PlReloadBullet();
     }
     SceAtSetEnable(w->no, 0);
-    if ((it->flag2 & 8) && it->saveNo >= 0) {
-        memclr_asm(&pG->save_item[it->saveNo], sizeof(SceAtSaveItem));
+    if ((w->item.flag2 & 8) && w->item.saveNo >= 0) {
+        memclr_asm(&pG->save_item[w->item.saveNo], sizeof(SceAtSaveItem));
     }
     if (w->flag & 4) {
         Mem_free(w);

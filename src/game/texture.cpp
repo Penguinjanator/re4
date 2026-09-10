@@ -87,13 +87,21 @@ int cTexSys::DataLoad(TexData* data, u32 owner, int clamp)
     TexOfsTbl* tpls;
     TexOfsTbl* anms;
     u32 i;
+    // COMPILER-DIFF: candidate (local-alloc qty order). The target names the three offset
+    // temporaries r9/r11/r0 (ofsId/ofsTpl/ofsAnm), ours r0/r9/r0: a fake-lifetime tie decided by
+    // the sched1 position of the third `lwz` (30 statement/base/order forms tried); the two pins
+    // give the target's names with the same schedule.
+    register u32 oI asm("r9");
+    register u32 oT asm("r11");
 
     if (data->version != 3) {
         pLog->err(0, 0, "%s::DataLoad() : Data Invalid. [0x%x]", name, data);
         return 0;
     }
-    ids = (TexIdTbl*) ((u8*) data + data->ofsId);
-    tpls = (TexOfsTbl*) ((u8*) data + data->ofsTpl);
+    oI = data->ofsId;
+    ids = (TexIdTbl*) ((u8*) data + oI);
+    oT = data->ofsTpl;
+    tpls = (TexOfsTbl*) ((u8*) data + oT);
     anms = (TexOfsTbl*) ((u8*) data + data->ofsAnm);
     for (i = 0; i < ids->num; i++) {
         TEXPalette* tpl = (TEXPalette*) ((u8*) tpls + tpls->ofs[i]);
