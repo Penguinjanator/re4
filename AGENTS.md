@@ -6337,3 +6337,151 @@ target) stays unresolved and `make_rel` then fails with "undefined symbol".
   entry (uncommitted deletion, no agent owned it) and sfd_mpv.o failed in strip_unused. Never rewrite
   configure.py / modules.py / objects.py from memory: re-read immediately before editing and use a
   surgical edit. Restored from HEAD.
+
+### Player module pl0f, bytes-first polish (pl0f 66 -> 94/104, .rodata/.data/.bss identical, not flipped; 2026-09-10)
+
+- **Inlined pool loads lose RTX_UNCHANGING_P** (integrate.c `copy_rtx_and_substitute`, MEM case: the flag is
+  copied only when `!map->integrating`; our expander legitimises a pool address into a pseudo at expand time, so
+  the load is `(mem:SF (reg))`, not the `(mem/u (symbol_ref LC))` form integrate exempts). Inside a `static
+  inline` body every `lfs` of a float literal therefore gets a TRUE dependence on each preceding store through a
+  pointer (`true_dependence` only exempts unchanging loads) and sinks below the stores; the same code as a MACRO
+  keeps `/u` and the load floats above them. Target signature: a pool `lfs` (or its `lis`) issued BEFORE a `stw`/
+  `stb` through the object pointer that precedes it in source order (R10xIn `lis; subi; lfs; mr; stw`, `stw x3FC;
+  stb x4FC; stfs 0.0`; AimControl's clamp `lfs 255.0; fadds; fcmpu; stfs`). Fixed with macros: PLBOAT_ROOM_IN
+  (9 x 3 -> 0), SUB_BOAT_SIT/SUB_BOAT_ROOM_IN (35 x 3 -> 0), PL0F_ROOM_IN/_END, PLBOAT_AIM_CONTROL (SpearSet/
+  SpearSet2). An inline's f32 ARGUMENTS are also expanded at the call head (both clamp constants' `lis` above the
+  first test: subBoatSit's `lo`/`hi`).
+- Inline temp Vec vs the routine's own Vec (R10xOut trio, Ride): the original's engine-start SE block writes the
+  routine's function-level `Vec v` (slot 0x10 shared with the boarding vector), while case 3's SE vector is a
+  block-scoped `Vec p` (0x20). An inline with its own `Vec` gets the second slot instead (PLBOAT_ENGINE_START macro
+  on `v`).
+- Loaded-vs-pool register naming comes from the local-alloc qty order; a store order that changes it is cheap to
+  brute-force (Ride/R10xOut case 0: `pos.x = v.x; pos.z = v.z; x3FC = 1; x400 = v.y - pos.y; x3E0 = 20; rot.y`).
+- `PlRoutineSet(pPLS, ...)` (struct view) after a store through the work pointer keeps `lwz pPL` below the store
+  (Ride's engine-start tail); `FSet(pPL->rot.y, ang)` before `pPL->pos = pos` reloads pPL for the copy
+  (setBossStart); `pPLS->endCamera()` after four work stores keeps the load below all of them (FallWater, with the
+  store order `x3E0, x3E4, x400, x3EC` found by brute force).
+- `boat->setPos(&v, pl->rot.y)` right after `pl->rot.y = LIMIT_ANGLE(pl->rot.y)`: the just-stored member is
+  forwarded, f1 passes straight through (no `fmr f1` and no second pool load of the angle; BossDiePosSet).
+- A virtual call whose argument contains a call (`boat->setPos(&v, fRand1_1() * k + ang)`) evaluates the vtable
+  lookup BEFORE the inner call in ours (`lwz vptr; lha; add` kept in callee-saved registers across fRand1_1); the
+  original computed the argument into the local first (`ang = fRand1_1() * k + ang; boat->setPos(&v, ang);`),
+  HidePosSet/SwimPosSet.
+- `if (w->cnt64) w->cnt64--; else { reset; EstSet }` vs the `== 0` form decides which arm is laid out first
+  (cPl0f::move); `Vec v; Mtx m;` declaration order gives `v` frame offset 0 (recomputed `addi r4,r1,8` per
+  call) and `m` the callee-saved address pseudo (`mr r3,r30`; pl00SetDropCam).
+- Two bit tests whose bodies are identical (`!(f & 0x20)` / `!(f & 4)` -> the same three deletes + `x = 0`):
+  written as an `||` the body starts at a label and stores `li r0,0`; written as two separate `if`s each body is
+  the fall-through of its own test, cse stores the known-zero `andi.` result (`stb r28`, r28 callee-saved
+  across the calls) and jump2 merges the two bodies into `beq DEL; andi.; bne SKIP; DEL:` (SetAnchorEm2f).
+- `switch (em->type) { default: A; case 1: case 2: case 3: case 4: case 5: B; }` for `cmpwi 5; bgt; cmpwi 1;
+  bge` (an if-range folds to `subi/cmplwi`), default written first for the layout; the arms' stores in the order
+  `x, y, z` so that `y` (where the shared 0.0 dies) is issued in the arm and `x`/`z` cross-jump into the join
+  (BoatSpdControl). Same x, y, z order for every `spd` block there.
+- `pl0fSetSelf`-style second work pointer: `{ Pl0fWork* w2 = PL0F_WK(em); w2->pSelf = em; }` inside the loop
+  body is cse'd into a copy of `w` that loop.c hoists (`mr r12, r6` before the loop) and the store goes through
+  the copy (testSearchEm2f); `Pl0fNode* n = &w->node[0]` declared but assigned AFTER the early return puts its
+  `addi` among the first block's stores (BoatChaseBoss; `n->fixed = 1` before the `n->fixPos = v` copy).
+- `int away; setCrash(); away = 0;` keeps the flag in the argument register (assigned before the call it lives
+  in a callee-saved register and is copied `mr r5,r30`; CrashCk).
+- A QImode constant shared across calls: `w->bossMode = 1` (u8) at the top plus PLAIN byte stores `em->xFC = 1;
+  em->xFD = 1;` later reuse one QImode `1` pseudo (`li r30,1`, callee-saved); the int inline `PlRoutineSet`
+  makes SImode constants that cannot share it. `{ int zero = 0; w->pBoss = (cEm*) zero; w->bossMode = zero; }`
+  gives ONE SImode zero for the pointer and the byte store, separate from the routine's QImode zeros (BossMove).
+  `U8Set(em->lockParts, 0)` (SImode zero) stops it from sharing the `x12F = 0` QImode zero across the init2 call
+  (R0_Init: fresh `li r0,0` after the call).
+- `em->xFC = 1; ...; { cPlayer* pl = pPL; if (pl->pSpear) {...; pl->pSpear = 0;} }` after `PlRoutineSet(pPL,..)`:
+  the byte stores alias pPL, so the second load is real and the local keeps it in a callee-saved register across
+  setLost (BossMove); `pPL->pSpear = 0` re-reads pPL instead.
+- Source bugs found by reading the target: SpearSet2's exit test is `boss && !(boss->flags_3C8 & 0x20)`;
+  BoatSpdControl's engine-start SndCall passes `&p` (the raised copy), not `&em->pos`; BossCamMove's PosToPos
+  rates are 0.3 (at) and 0.5 (pos), which is also what fixed the 1500/500/1.0 pool order; Swim's
+  `x3E0 += x3F0 - x3F0 / 2`; 488.92398f / 2.8464928f (one-ulp literals).
+- `pl->x3F0` block and Swim's `x3E4 = 1; x3E0 = 0; x3F0 = 0; x3E8 = 4` (7 words, OPEN): in ours the two stores of
+  the xFF-known-zero pseudo (reg 342, live across the following `Rnd` call for the then-arm's `x3EC = 0`) carry a
+  TRUE dependence to the call (prio 5) while the constant stores carry ANTI (prio 4), so they are issued first;
+  the target issues source order. Not understood (the true dep is not from flush_pending_lists).
+- OPEN (one try each, sched1/local-alloc ties): CrashAdjustSet 3 (`stfs d.x` issued at cycle 0 in ours, cycle 2 in
+  the target: needs weight >= +1 AND no dependent, no source form), R10xOut 5 x 3 (case 2's 0.0/ang f10/f11), 
+  LongRopeSet 4 (0x64/0x108 r6/r7), R1_Drop 42 (our loop pass 2 hoists the VECNormalize string `lis` — 69 real
+  insns <= threshold 71 — the original's loop had >= 72: no natural source form adds three RTL insns; duplicating
+  PSVECScale+store into both VECNormalize arms with an `asm volatile("" ::: "memory")` gets 10 but is a hack),
+  ScrAdjust 85 / BoatControl 203 (one node-pointer giv `add r30, w, ofs` with displacements vs our per-member
+  stepping pointers, `&node[0].pos` spilled in the target), BossCamMove 420 (callee-saved assignment of the
+  camera Vec address pseudos across the three arms).
+- pl14 think (37): `if (flags & 1)` etc. as direct member reads (no `fl`/`af` locals) gives 79 words, so the
+  target's QImode `fl` copies are not plain direct reads either; `cAction* a = &action` for the `addi r3, this,
+  0x540` first arg makes it worse. Unchanged. pl0a transMove not attempted this pass.
+
+### Tool RELs, bytes-first pass (db_port 46->61/68, .rodata equal; t_esp_area/t_lightarea/t_id/t_camera/t_scroll synced; 2026-09-10)
+
+- Counting: `unit_info.py` percentages of the tool units are dominated by placeholder names; use a masked
+  compare (/tmp/tools_p/mcmp.py, copy of /tmp/plmod's with: weak `_vt.*` copies keyed by name so a
+  by-name reference to the module's first vtable copy equals a local reference to the unit's own copy;
+  `global_constructors_keyed_to_X`/`__static_initialization_and_destruction_0_XXXX` normalised;
+  `set_filename_1E2FC`-style duplicate placeholders paired with the bare/`__Fv` name; nameless
+  `fn_<mod>_XXXX` linkonce blocks paired with our bytes at the same distance from the previous named
+  function with external `bl`s treated as equal; `GXWGFifo` relocs folded to the absolute word;
+  `MCMP_CONTENT=1` keys `.rodata` references by the 12 bytes at the target (only for units whose `.rodata`
+  still differs — for equal sections it produces false diffs where a reloc word falls inside the window).
+- Sync hazard seen: `sync_rel_symbols.py build/G4BE08/src/t_id/t_id.o` renamed the DOL's `ScreenReSize`
+  to `ScreenReSize__FUsUs` (main_sub.h declares it C++) and every other module's split object still
+  imports the placeholder -> `make_rel: undefined symbol ScreenReSize`. Reverted by hand in symbols.txt
+  + sym_map.tsv; t_id.cpp keeps the mangled reference (it is not linked). Namespace functions are not
+  synced at all (the .sym demangles them as `ns::f`, sync matches by bare name): t_lightarea.cpp now
+  lives in `namespace t_lightarea_namespace` like the original (`IsWorkAlive__21t_lightarea_namespaceP10LIGHT_AREA`
+  etc., renamed by hand); the t_esp_area copies are plain `IsWorkAlive__FP8ESP_AREA`. Two units of one
+  module with the same function name (`OptionExec__Fv` in t_esp_area vs the namespaced t_lightarea one)
+  must not both get the same symbols.txt name. Hand-renamed data labels: Tools `_vt.10cDbgWindow`/
+  `_vt.10cDbgButton`/`_vt.14cDbgWindowBase`/`_vt.14cDbgButtonBase` (db_toolbase's copies, 0x24B0..0x2560),
+  `_vt.5cUnit`/`_vt.t8cVarLoop1ZUc` (db_light's, 0x1608/0x15E8), t_esp `dbModSlot` (.bss 0xE8), t_light's
+  t_scroll `menu__Fv`..`printEditTable__Fv` (all `scope:local`, duplicates of t_light.cpp's).
+- db_port.cpp (t_esp; 61/68, .rodata/.data/.bss equal, STRIP_UNUSED added for two never-called helpers
+  whose pools survive: `DB_DrawPoint` [0.0001, 1.0] between MakeCol and DB_DrawBox, `DB_VecClear` [0.0f]
+  after DB_DrawCross3D — the target's 8-aligned double magic needs exactly those words):
+  - sp_PosRand_trans_1a: `Vec v = {0.0f, 0.01f, 0.0f}; Mtx inv;` declared MID-function (after the first
+    PSMTXMultVec) = the 12-byte template copy at that point and frame order a, b, ofs, v, inv.
+  - sp_ctrl01_trans: frame ry, rx, base, dir, p; NO pointer locals — `&gen->pos`, `&p`, `&dir` written at
+    every use (gcse PRE copies them at the arm ends: `mr r27,r30` / `mr r27,r9`); `half`/`ay`/`ax` assigned
+    as plain products first, then the three LIMIT_ANGLE calls; `(f32) i` on the `u32` counter (2^52 magic
+    without 0x80000000); `dir.x = 0; dir.y = 0; dir.z = 1500` in natural order (the last-dying-store rule
+    then gives y, z, x).
+  - sp_path_trans / sp_path_trans2: the DbPathEsp payload is a sub-struct `DbPathWork w` at 0xF8 addressed
+    through `pw = &pe->w` (`addi r31,r30,0xf8`, computed before the SetFreeWork virtual call); `esp` is
+    read once into `pe` and every later use (incl. `PushEsp(&pe->esp)`) goes through it, so the pointer is
+    never reloaded from its stack slot; the seed is an in-struct store (`struct { u32 v; } seed`) so the
+    virtual call's vptr load waits for it (a plain scalar store is exempt from aliasing a varying in-struct
+    load); `PathGetPosEmM(path, em, t, ..)` = the pl0e COMPILER-DIFF #1 alias (`mr r4` before `fmr f1`);
+    trans2: `Vec rot; Mtx rm;` declared mid-body after the PathGetPos calls (seg's `&` slot precedes them),
+    `EspgenWork* pw = &wk` used for memclr and SetFreeWork (the cse'd address survives in r28), `rot.x, rot.y,
+    rot.z` in natural order.
+  - sp_PosRand_trans: `Mtx m` declared FIRST — its address is the frame pointer itself, so each of the eight
+    `PSMTXMultVec(m, ..)` gets a fresh `addi r3,r1,8` instead of one cse'd callee-saved pseudo.
+  - DB_VecNullPartsPos / DB_VecMulEmPartsMat: the shared tails are source-level duplicates (`SET_MTX_POS`,
+    `NONE_BODY` macros) that jump2 cross-jumps; `if (parts < em->nParts) {..} else {none}` lays the none body
+    after the tail; in VecMul the two arm copies are inline bodies and the parts check is `goto none` with
+    the label at the end (that is what gives `bne ok; b none` in the arms). The `cModel** tbl = EspEvModList`
+    local puts the `lis/addi` before the compare.
+  - DB_GetCursorPos passes `parts` (not `(u32) head`) to DB_VecMulEmPartsMat: `lbz r3,7(r4)` is the argument
+    register, `mr r0,r3` the displaced head. DB_GetCamFrontPos takes `(f32 dist, f32* x, y, z)` (the fmr
+    copy is first); t_esp.cpp's declaration/calls follow.
+  - sp_tex_trans: `int tno = no; asm("" : "+r"(tno)); u32 n = (u8) tno;` (COMPILER-DIFF #2: one `clrlwi r28`
+    at entry, reused for both calls), `GXTexObj* o = &obj; GXTlutObj* t = &tlut;` right after the tpl check
+    (both addresses before TEXGet), `tex->textureHeader->..` re-read per field (no hdr/clut locals), the
+    9th GXInitTexObjCI argument is 1, and `asm("" : "+r"(r)) // COMPILER-DIFF candidate #12` in the
+    `owner == 1` arm so `b = 0.2f` reloads the pool instead of copying r. Residue 8 words: the entry-block
+    `lis` order (the target issues high(0.8) first; ours has a gcse PRE insertion of high(0.8) for the
+    tail's MakeCol alpha at the end of bb0).
+  - drawTexture2 colour bytes `a, b, g, r` (source order = issue order for the 4-byte ADDRESSOF local);
+    EspToolExit `volatile debugCamera* dbg = &CamDbg` + `*(u32*)&col = 0` written BEFORE `dbg->target_type = 0`
+    (one shared zero, stb issued first); DB_ConfigLoad's table is `DbConfigModel tbl[10]` (memclr 0x410) and
+    `num = 0` is assigned after the read check.
+- Reload-cse copy shape (db_widget SetBase/SetSize, OPEN): `stfs f2,0x40(r3)` first, then `fmr f0,f2` for the
+  re-read of the just-stored member = cse did NOT forward the store to the load (the load stayed a MEM
+  through sched1, so the store outranks the size.x/size.y loads) and reload_cse_regs turned it into a copy.
+  Ours forwards at cse1 (`stfs f2,4(r9)` directly); no member/pointer form found that keeps the load.
+- IKreport (db_mod): `if (info & 0x30) { type = 0; if (info & 0x20) type = 1; if (info & 0x80) type = 2; }`
+  (the 0x80 test is inside the 0x30 block); the target's `mr r11,r0` copy of `info` for the third test is a
+  gcse PRE copy that no local/cast/macro form reproduces (combine removes the redundant extension).
+- Do not flip a unit whose module symbols.txt got a `scope:` change: a global's ADDR32 field is A, a
+  local's S+A, so changing a target symbol's scope changes the split object and the REL check.
