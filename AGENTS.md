@@ -4802,3 +4802,16 @@ target) stays unresolved and `make_rel` then fails with "undefined symbol".
   .rodata/.data words + reloc targets), `perm.py MOD/UNIT SYM` (statement permutations between `// PERM_BEGIN`
   / `// PERM_END`), `variants.py` (`// VAR_ALT`-separated alternatives). Store-order blocks of 5-6
   statements are solved in < 1 minute this way.
+- `pG->emlist` as an EmListData array view (`struct EmListView { u8 pad[0x52E8]; EmListData emlist[0x100]; }`)
+  gives `slwi; lwz pG; add; lbz 0x52e8(r9)` with pG/sum tied to r9 (ARRAY_REF via get_inner_reference);
+  the `EM_LIST(no)` pointer-sum forms rewrite MULT-first. em_wrap::setEm matched with it in all modules.
+- `pGS->` for a pG read between a frame store of a call result and the next call's frame reload.
+- sched2 anti-dependence priority: a `lwz rX,sym@l(r31)` placed by sched1 before frame stores gains +1
+  priority (anti-dep cost clamped to 1) and moves above every store -- expect it whenever the
+  `high(pG)` pseudo lands in r31 (r119); compiler-side.
+- PRE copy before a call's parameter loads (`addi r3,r1,N; li r4,0; mr r31,r3`) = gcse insertion at a
+  block that ends with the CALL_INSN itself (EH edge, no `(use 0)` nop) -- a scope object with a
+  destructor reproduces it at the cost of a frame slot (r20f/r213 Init).
+- A `#include`d shared source (em_wrap_v2.cpp -> em_wrap.cpp) is not rebuilt by ninja when the included
+  file changes: touch it.
+

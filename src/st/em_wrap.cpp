@@ -12,6 +12,14 @@ extern "C" void* memset(void* dst, int c, unsigned int n);
 // int store through a reference (keeps the following loads below it, like global.h BitOn)
 static inline void IntSet(int& d, int v) { d = v; }
 
+// Typed view of pG->emlist (the r400 idiom): the original indexes an EmListData array, so the
+// element address is `pG + no * 32` (pG first in the add, the table offset in the displacement);
+// EM_LIST's `&pG->emlist[no * 0x20]` is a pointer sum whose MULT term expand puts first.
+struct EmListView {
+    u8 pad[0x52E8];
+    EmListData emlist[0x100];
+};
+
 // Room-script enemy handle (include/em_wrap.h): the first object of every stage REL (st1_0..st4_0). No
 // __FILE__ string: the file name is not in the binary. The original REL link dead-stripped the members no
 // room of the module calls (config/G4BE08/modules.py STRIP_UNUSED), leaving their strings and constant
@@ -202,7 +210,7 @@ int cEmWrap::setEm(s16 no, s8 list, int errOn, int chkDead, int setAlive)
         err("EM_SET_NO(%d) cEmWrap::setEm list No. difference", this->no);
         return 0;
     }
-    if (((EmListData*) pG->emlist)[no].flags & 2) {
+    if (((EmListView*) pG)->emlist[no].flags & 2) {
         pEm = GetEmPtrFromList(no);
     } else {
         pEm = EmSetFromList2(no, chkDead == 1);

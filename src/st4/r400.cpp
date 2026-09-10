@@ -401,7 +401,9 @@ void setLadderMotion(int no)
                 mot[6] = GetEtcAddr(das, "et06000.fcv");
                 mot[7] = GetEtcAddr(das, "et06001.fcv");
                 mot[8] = GetEtcAddr(das, "et06002.fcv");
-                mot[9] = ROOM_ARC_PTR(pG->pRoomArc, 0x2D);
+                // struct view: the pG load stays below the mot[8] frame store (the target issues
+                // the das reload for mot[10] first); a plain pG read is hoisted above it
+                mot[9] = ROOM_ARC_PTR(pGS->pRoomArc, 0x2D);
                 mot[10] = GetEtcAddr(das, "et06003.fcv");
                 mot[11] = GetEtcAddr(das, "et060000.seq");
                 mot[12] = GetEtcAddr(das, "et060010.seq");
