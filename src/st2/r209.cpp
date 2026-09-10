@@ -1076,12 +1076,7 @@ static void r209_2ndBattleEmSet()
             break;
         case 3:
             if (RsfCheck(G_ROOM_ID, 8) && (u32) r209_work.p->snipeCnt <= 1) {
-                // The original keeps the 4 in its own register across the loop and copies it into
-                // step after it (`li r25,4 .. mr r29,r25`): its gcse did not propagate the constant
-                // through a loop containing calls, ours does (cprop). The launder hides the constant.
-                u32 next = 4;
-
-                asm volatile("" : "+r"(next)); // COMPILER-DIFF: #3 (gcse across a loop with calls)
+                // `li r25,4 .. mr r29,r25` is gcse's PRE of step+1 across the loop.
                 if (pG->x4F88 > 7) {
                     for (i = 0; i < 3; i++) {
                         cEmWrapSetEmI(&r209_work.p->em[tbl[i].em].w, tbl[i].no, 3, 1, 0, 0);
@@ -1090,7 +1085,7 @@ static void r209_2ndBattleEmSet()
                         r209_work.p->em[tbl[i].em].w.setFindPL();
                     }
                 }
-                step = next;
+                step++;
             }
             break;
         }
