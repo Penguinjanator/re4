@@ -13592,7 +13592,7 @@ shows the same reloc name on both sides, not code).
   61.9% -> 99.5%. r214 not touched (another agent).
 
 
-### Tool RELs, bytes-first pass 11 (db_sctrl 18->21/22 x2: DbSctrl, drawScurve, drawAxis 0 words; t_snd_vol editScreenDisp 11->2; t_se_at ToolSeAt 2->0 (12->13/20); t_id idEditSize 22->12, idEditRot 18->12; nothing flipped; 2026-09-10)
+### Tool RELs, bytes-first pass 11 (db_sctrl 18->21/22 x2: DbSctrl, drawScurve, drawAxis 0 words; t_camera tcNextAdatPtr 2->0 (52->53/57); t_snd_vol editScreenDisp 11->2; t_se_at ToolSeAt 2->0 (12->13/20); t_id idEditSize 22->12, idEditRot 18->12; nothing flipped; 2026-09-10)
 
 - Harness /home/adityas/.cache/tools_p11 (tools_p10 copies with the paths rewritten; `tryv.py MOD/UNIT FUNC V.py` with
   `SRC=src/tools/db_sctrl.cpp` for the shared unit and `EXTRA=-DTOOLS_ARRAY` for t_id; `vsbs.sh MOD/UNIT FUNC CUR|VARIANT [ctx]`
@@ -13667,8 +13667,19 @@ shows the same reloc name on both sides, not code).
     `SeAtHead*& hd`), a `SndWork* s = &Snd` pointer, `GlobalWork*&`/`SeAtWork*&` views of the copy and the store order
     all 21-28: alias.c separates the two symbol bases whatever the flags, so the target's dependence is not an alias
     verdict (the pass-4 laundered-pointer form is the only one that reproduces it).
-  - tcDataExport (142): whole-function allocation from `buf` r29 vs r31, not iterated. t_camera/t_camera.cpp was
-    edited by another agent during the pass (skipped).
+  - tcCameraCopyPoint (t_camera, 13): the four `x629` test blocks (A1 `!=0`/A2 `==0` for the i-1 arm, B1 `==0`/B2
+    `!=0` for the i+1 arm, each with its own `x627++` copy and `b END` at jump2 entry, fall-throughs A1 and B1 in both
+    builds) -- tools/xjump.py on this layout reproduces OURS exactly (A1's `b END` is the first simplejump, its
+    fall-through candidate B2's tail matches 7 insns, so A1 merges into B2 and A2/B1 stay apart); the target merged
+    the OTHER pairs (A2 into B1, B2 into A1). Under the stock policy that needs a different jump2-entry layout (an
+    A1 tail that does not fall/chain into B2 first); `goto inc`/`goto skip` shared-increment forms (26-27) and the
+    `else if` form (13) do not give it. Not closed.
+  - tcDataExport (142): whole-function allocation from `buf` r29 vs r31, not iterated.
+- **tcNextAdatPtr (t_camera, 2 -> 0, tagged `COMPILER-DIFF: 5 (sched2 tie: call-result copy vs compare)`)**:
+  `asm("" : "+r"(suffix));` right after the `next_suffixI` call. The result copy `mr r4,r3` and the next block's
+  `cmpwi cr7,dir,0` are both ready after the call; ours ranks the compare first (its branch adds priority), the
+  original the copy. The launder is a same-block consumer of the copy (priority +1) and the LUID order does the rest;
+  a plain `asm("" :: "r"(suffix))` use (2) and the volatile use (2) do not.
 
 ### em39 final pass (em39 flipped: JumpUp3 2 -> 0, Atk_MG 12 -> 0, RouteCk 14 -> 0, JumpUpCk3 20 -> 0; 153/153, `em39.rel` byte-identical; 2026-09-10)
 

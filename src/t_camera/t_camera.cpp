@@ -1974,6 +1974,10 @@ TcAdat* tcNextAdatPtr(s8 area, int cam, int dir)
 {
     int suffix = next_suffixI(cam, dir);
 
+    // the result copy `mr r4,r3` and the `dir > 0` compare are both ready after the call; the original
+    // issues the copy first, ours the compare (its branch gives it the higher priority). The launder is a
+    // same-block consumer of the copy, which restores the tie and the LUID order.
+    asm("" : "+r"(suffix)); // COMPILER-DIFF: 5 (sched2 tie: call-result copy vs compare)
     if ((dir > 0 && suffix > cam) || (dir < 0 && suffix < cam)) {
         return tcAdatPtr(area, suffix);
     }

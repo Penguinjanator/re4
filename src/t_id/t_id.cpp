@@ -1355,7 +1355,12 @@ int idEditSize(IdTool* w, int x, int y)
             switch (i) {
             case 2:
                 tbl = axisName;
-                for (j = 0, ofs = 0; j <= 2; j++, ofs += 4) {
+                // `ofs = j * 4` as a giv with TWO uses (the name address and the `ofs * 8` column): loop.c
+                // then combines the address giv into it (`lwzx r8,rOfs,rTbl`, `addi rOfs,4`) and emits the
+                // `li rOfs,0` init after the hoisted invariants, as the original; a single-use DEST_REG giv
+                // is never combined (the address giv gets its own stepped pointer, `lwz 0(rG)`)
+                for (j = 0; j <= 2; j++) {
+                    ofs = j * 4;
                     if (j == 0) {
                         col = 0;
                         if (d->flags10A & 0x30) {
@@ -1374,29 +1379,31 @@ int idEditSize(IdTool* w, int x, int y)
                             col = 0;
                         }
                     }
-                    eprintf(x + 0x40 + j * 0x20, y + i * 0xE, col, 0, "%s", *(const char**)(ofs + (u32)tbl));
+                    eprintf(x + 0x40 + ofs * 8, y + i * 0xE, col, 0, "%s", *(const char**)(ofs + (u32)tbl));
                 }
                 break;
             case 3:
                 tbl = onOffName2;
-                for (j = 0, ofs = 0; j <= 1; j++, ofs += 4) {
+                for (j = 0; j <= 1; j++) {
+                    ofs = j * 4;
                     if ((j != 0) != ((d->x109 >> 1) & 1)) {
                         col = 0;
                     } else {
                         col = 7;
                     }
-                    eprintf(x + 0x40 + j * 0x20, y + i * 0xE, col, 0, "%s", *(const char**)(ofs + (u32)tbl));
+                    eprintf(x + 0x40 + ofs * 8, y + i * 0xE, col, 0, "%s", *(const char**)(ofs + (u32)tbl));
                 }
                 break;
             case 4:
                 tbl = texFixName;
-                for (j = 0, ofs = 0; j <= 1; j++, ofs += 4) {
+                for (j = 0; j <= 1; j++) {
+                    ofs = j * 4;
                     if ((j != 1) != (d->flags10A >> 7)) {
                         col = 0;
                     } else {
                         col = 7;
                     }
-                    eprintf(x + 0x40 + j * 0x20, y + i * 0xE, col, 0, "%s", *(const char**)(ofs + (u32)tbl));
+                    eprintf(x + 0x40 + ofs * 8, y + i * 0xE, col, 0, "%s", *(const char**)(ofs + (u32)tbl));
                 }
                 break;
             }
@@ -1888,24 +1895,26 @@ int idEditRot(IdTool* w, int x, int y)
             switch (i) {
             case 2:
                 tbl = rotAxisName;
-                for (j = 0, ofs = 0; j <= 2; j++, ofs += 4) {
+                for (j = 0; j <= 2; j++) {
+                    ofs = j * 4;
                     if (j == d->rotAxis) {
                         col = 0;
                     } else {
                         col = 7;
                     }
-                    eprintf(x + 0x40 + j * 0x20, y + i * 0xE, col, 0, "%s", *(const char**)(ofs + (u32)tbl));
+                    eprintf(x + 0x40 + ofs * 8, y + i * 0xE, col, 0, "%s", *(const char**)(ofs + (u32)tbl));
                 }
                 break;
             case 3:
                 tbl = onOffName4;
-                for (j = 0, ofs = 0; j <= 1; j++, ofs += 4) {
+                for (j = 0; j <= 1; j++) {
+                    ofs = j * 4;
                     if ((j != 0) != ((d->x109 >> 3) & 1)) {
                         col = 0;
                     } else {
                         col = 7;
                     }
-                    eprintf(x + 0x40 + j * 0x20, y + i * 0xE, col, 0, "%s", *(const char**)(ofs + (u32)tbl));
+                    eprintf(x + 0x40 + ofs * 8, y + i * 0xE, col, 0, "%s", *(const char**)(ofs + (u32)tbl));
                 }
                 break;
             }

@@ -117,8 +117,14 @@ static void (*seAtRoutine[5])() = {seAtMainMenu, seAtAreaEdit, seAtDataLoad, seA
 
 void ToolSeAt()
 {
-    pW = (SeAtWork*) Debug_alloc(sizeof(SeAtWork), 1);
-    memclr_asm(pW, sizeof(SeAtWork));
+    {
+        // reference view of the work pointer: the memclr argument is then a re-read of the just-stored
+        // member (not the forwarded result copy), so the result copy carries the r3 death and sched2 issues
+        // `lis seAtWk@ha` before it (the plain member form kept a `mr r3,r0` arg copy through sched2)
+        SeAtWork*& wp = seAtWk.p;
+        wp = (SeAtWork*) Debug_alloc(sizeof(SeAtWork), 1);
+        memclr_asm(wp, sizeof(SeAtWork));
+    }
     seAtInit();
     while (1) {
         pW->x = pW->x0;

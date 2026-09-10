@@ -1017,12 +1017,17 @@ void editScreenDisp()
     *(u32*) &col = 0x80808080;
     x = 0x40;
     for (i = 0; i <= rows; i++) {
-        v = base + i * 0x14;
+        // value pins (local-alloc fake-lifetime parity): the original keeps the SI sum in r0 and the
+        // sign-extended row in a fresh r10; ours lets the extsh reuse the dying r0
+        register int v2 asm("r10"); // COMPILER-DIFF: candidate (local-alloc qty order)
+        register int t asm("r0");   // COMPILER-DIFF: candidate (local-alloc qty order)
+        t = base + i * 0x14;
+        v2 = (s16) t;
         pt[0].x = x;
-        pt[0].y = v;
+        pt[0].y = v2;
         pt[0].z = 0;
         pt[1].x = 0x1E0;
-        pt[1].y = v;
+        pt[1].y = v2;
         pt[1].z = 0;
         TprimDrawFrameFn_s16(pt, &col, 2);
     }
@@ -1032,13 +1037,16 @@ void editScreenDisp()
         // COMPILER-DIFF: 3 -- the original computes `base - 4` and `base + rows * 0x14 + 4` here from a copy of
         // base (`mr r10,r23`); our block LCM PREs the single `base - 4` occurrence above the two loops. The
         // opaque copy (with the loop counter as a dummy input so it is not hoisted itself) is that copy.
-        s16 b;
+        // the copy shares the dead work-pointer register r10 and `b - 4` is a fresh r0 (not in place)
+        register int b asm("r10"); // COMPILER-DIFF: candidate (local-alloc qty order)
+        register int t asm("r0");  // COMPILER-DIFF: candidate (local-alloc qty order)
         asm("mr %0,%1" : "=r"(b) : "r"(base), "r"(i));
         pt[0].x = x;
         pt[0].z = 0;
         pt[1].x = x;
         pt[1].y = b + rows * 0x14 + 4;
-        pt[0].y = b - 4;
+        t = b - 4;
+        pt[0].y = t;
         pt[1].z = 0;
     }
     TprimDrawFrameFn_s16(pt, &col, 2);

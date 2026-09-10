@@ -164,7 +164,10 @@ int DbSctrl(DbSctrlWork* w, int x, int y)
     w->x = x;
     w->blink++;
     w->y = y;
-    dbSctrlScreenOrientation(w, &pG->Cam, pG->Cam.param.fovy);
+    // struct-view read: the pG load then depends on the three member stores above (sched1 true
+    // dependence), so `stw r4,x` loses the anti-dependence bonus of the later `lwz r4,pG` and the
+    // stores come out in RTL order (y, x)
+    dbSctrlScreenOrientation(w, &pGS->Cam, pGS->Cam.param.fovy);
     drawAxis(w);
     drawScurve(w);
     if (w->routine == 0) {
@@ -356,7 +359,15 @@ static int sctrlMenu(DbSctrlWork* w)
                 if (!(a - b < 1.0f)) {
                     f32 e;
 
-                    e = log10(fabsf(a) > fabsf(b) ? fabsf(a) : fabsf(b)) - 2.0;
+                    // the original computes both fabs arms straight into f1 (the log10 argument): the
+                    // SF->DF extend of the select gives its pseudo no f1 preference in ours (f0 + fmr f1)
+                    register f32 m asm("fr1"); // COMPILER-DIFF: candidate #17 (FLOAT_EXTEND argument preference)
+                    if (fabsf(a) > fabsf(b)) {
+                        m = fabsf(a);
+                    } else {
+                        m = fabsf(b);
+                    }
+                    e = log10(m) - 2.0;
                     if ((joy->rep & 1) || (joy->on & 0x10000)) {
                         w->yMax -= IPOW(10.0f, (int) e);
                         w->yMin += IPOW(10.0f, (int) e);
@@ -849,6 +860,11 @@ void drawAxis(DbSctrlWork* w)
     Vec w1;
     f32 zero = 0.0f;
     int i;
+    // function-scope sx/sy (set in both label blocks): a block-local sx is a local-alloc qty and the
+    // fix_trunc load `(set sx (unspec [fpmem P]))` ties the dying stack-slot address pseudo P to it
+    // (r3, the argument register); a multi-block sx has no qty, P is allocated alone (r9, r11)
+    int sx;
+    int sy;
 
     g0.x = w->xMin;
     g1.x = w->xMax;
@@ -858,8 +874,8 @@ void drawAxis(DbSctrlWork* w)
     posGraph2World(w, &g1, &w1);
     Draw_line3d(&w0, &w1, SCTRL_LINE_COL, 0);
     if (strlen(w->labelX) != 0) {
-        int sx = (int) (w1.x * 256.0f / 320.0f + 256.0f);
-        int sy = (int) (224.0f - w1.y);
+        sx = (int) (w1.x * 256.0f / 320.0f + 256.0f);
+        sy = (int) (224.0f - w1.y);
         eprintf(sx - 0x48, sy, 0, 0, "%s", w->labelX);
     }
     g0.y = w->yMin;
@@ -870,8 +886,8 @@ void drawAxis(DbSctrlWork* w)
     posGraph2World(w, &g1, &w1);
     Draw_line3d(&w0, &w1, SCTRL_LINE_COL, 0);
     if (strlen(w->labelY) != 0) {
-        int sx = (int) (w1.x * 256.0f / 320.0f + 256.0f);
-        int sy = (int) (224.0f - w1.y);
+        sx = (int) (w1.x * 256.0f / 320.0f + 256.0f);
+        sy = (int) (224.0f - w1.y);
         eprintf(sx - 0x40, sy + 0x2A, 0, 0, "%s", w->labelY);
     }
     if (w->gridX > zero) {
@@ -941,9 +957,15 @@ void drawScurve(DbSctrlWork* w)
         hnd.x = cosf(ang) * SCTRL_HANDLE_LEN + k->t;
         hnd.y = sinf(ang) * SCTRL_HANDLE_LEN + k->v;
         posGraph2World(w, &hnd, &wh);
+        // VECNormalize written out with `pLog.p->err` (no operator-> inline): the `lis pLog@ha` then has
+        // no BLOCK notes between it and its `lwz`, its loop.c lifetime drops from 6 to 2 and pass 1 no
+        // longer hoists it (32 * 2 * 2 < 204 insns); pass 2 does, after the `k` giv init, as the original
         PSVECSubtract(&wh, &wp, &dir);
-#line 1116 "D:/Bio4/Prog/db_sctrl.cpp"
-        VECNormalize(&dir, &dir);
+        if (0.0f == dir.x && 0.0f == dir.y && 0.0f == dir.z) {
+            pLog.p->err(0, 0, "VECNormalize:[%s/%d]", "D:/Bio4/Prog/db_sctrl.cpp", 1116);
+            dir.x = dir.y = dir.z = 0.0f;
+        } else
+            PSVECNormalize(&dir, &dir);
         PSVECScale(&dir, &dir, SCTRL_HANDLE_DRAW);
         PSVECAdd(&wp, &dir, &wh);
         Draw_sphere(&wh, 2.0f, 0xFFFFFFFF, 0, 0);
@@ -954,8 +976,11 @@ void drawScurve(DbSctrlWork* w)
         hnd.y = sinf(ang) * SCTRL_HANDLE_LEN + k->v;
         posGraph2World(w, &hnd, &wh);
         PSVECSubtract(&wh, &wp, &dir);
-#line 1133 "D:/Bio4/Prog/db_sctrl.cpp"
-        VECNormalize(&dir, &dir);
+        if (0.0f == dir.x && 0.0f == dir.y && 0.0f == dir.z) {
+            pLog.p->err(0, 0, "VECNormalize:[%s/%d]", "D:/Bio4/Prog/db_sctrl.cpp", 1133);
+            dir.x = dir.y = dir.z = 0.0f;
+        } else
+            PSVECNormalize(&dir, &dir);
         PSVECScale(&dir, &dir, SCTRL_HANDLE_DRAW);
         PSVECAdd(&wp, &dir, &wh);
         Draw_sphere(&wh, 2.0f, 0xFFFFFFFF, 0, 0);
