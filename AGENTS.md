@@ -3931,15 +3931,79 @@ target) stays unresolved and `make_rel` then fails with "undefined symbol".
     blocks), em22_R1_Jump (`fmr f12, f1` copy of the getFloor result), em22DirMatrix (f0/f13 naming of
     the tilt blend), em22ParaSetMotWait/Atk (em/i r30/r29 swap), em22ParaSetMotAtkHit (arm order of
     the i == 1 / i == 2 bodies), em22FootSeControl (em/w r30/r31 swap).
-- em35 (not started; 0xC9C0, 113 functions): R0 table 4, R1 35 `{br_*, main}` pairs (Wait, Walk,
-  BigStep, Turn, Atk, LongAtk, AtkDouble, BearHug, Hook, Critical, CriticalHit, Atk2F, Catch, CatchHit,
-  Divide, then the upper-body `U_*` set: Wait, Jump, JumpUp, JumpDown, DoubleJump, BackJump, Turn180,
-  Step, BigStep, OverStep, StepUp, StepDown, HandAtk, Atk, Upper, AtkSpear, Divide, Crawl, CrawlTurn,
-  JumpToBeam), R2 6 (Dm_Small, Spinal, Big, Frame, U_Fall, U_Crawl), R3 2 (Die_Normal, Die_Pose);
-  virtuals setDiePose / setUpperStart; .data 0x868 (beam graph tables from +0x148, 36-byte entries of
-  u8 links + two Vec, more tables at +0x3AC..+0x7B4), .rodata 0x8A0, .bss 0x34 (common); player
-  callbacks plem35_BearHug / Sit / DmFall2F / DmHook / CriticalHit / DashEscape / DmStamp / CatchHit
-  and two event cameras (em35EscapeCamMove, em35StampCamMove).
+- em35 (110/112 byte-identical, not Matching; include/em35.h, src/em35/em35.cpp, 2026-09): the
+  two-form Regenerator-like enemy (0xC9C0, 113 functions, .data 0x868 / .rodata 0x8A0 equal). Left:
+  em35_R1_AtkSpear (5 words: the blendA/atkHit/blendRate/blendB/Vec store order, all 5040 permutations
+  tried) and em35_R1_Critical (10 words: the `lfs f2` Muku argument and the `lis`/`fmr f2, f1` order
+  before Muku2). Idioms:
+  - Every `case` arm of an x38D-type dispatch carries its own `MotionSetCore(..); MotionMoveF(em, 0);
+    break;` (jump2 cross-jumps the 6-insn tail); a case that ends in one call shared with another arm
+    is a `goto` to a label at that call (em35_R1_Walk `goto big_step`).
+  - `pPLS->mat` as the first PSMTXMultVec argument keeps the camera fovy store above the pPL load
+    (em35StampCamMove / EscapeCamMove); `f32 y;` declared inside each `case` block so the `fadds` ties
+    to the dying operand (plem35_BearHug / CatchHit).
+  - `AtariFlagsOr(&em->atari, 0x100)` (a `volatile u16` view of cAtariInfo::flags, see the wep_mod.h
+    note) before `LifeDownSet2(pPL, ..)` keeps the pPL load below the `sth`.
+  - Case sets of the DmCk switches come from tools/casetree.py searched over label assignments
+    (`/tmp/..../swsearch.py`): a default-labelled value written as an explicit `case` is a real node and
+    moves the balance point (em35DmCkUpper: switch1 default `{5,6,9,0xA,0xD,0xF,0x12,0x13,0x28,0x29,0x2C,
+    0x2D}`, switch3 default `{5,6,0xD,0xF,0x12,0x13,0x29,0x2C,0x2D}`).
+  - `if ((u32) PlGachaGet() <= 49 || (s16) pG->pl_life <= 1)` for the `cmplwi 0x31; ble` + `lha; cmpwi 1;
+    ble` pair (em35_R1_CatchHit).
+- em36 (91/101 byte-identical, not Matching; include/em36.h, src/em36/em36.cpp, 2026-09): the
+  Regenerator / Iron Maiden (0xD284; four types, five limb weak points `Em36Limb limb[5]`, seven limb
+  models `cModelInfo* pParts[7]` swapped by em36PartsSet, three cObj16 tentacles per lost limb
+  `Em36Ten ten[7]`, 14 spine scale parts). .data 0x6C0 / .rodata 0x720 equal. Left: em36DmCk (the
+  second and third dmWep switches' case sets), em36PartsSet / em36SlopeMove / em36AtkRtnCk /
+  em36RegeneTenMove (register-allocation swaps only: em r30/r31, h in f2, d/dy f30/f31, i+1 in r28),
+  em36_R0_Init (espKind store order, ascending spine loop, per-arm EmRoutineSet store order),
+  em36SetHitMark (`clrlwi` of the u8 kind before both calls), em36WeakInit (`li r27, 3` scheduled
+  after the modulo), em36FanceOverCk / em36BloodSet (allocation / the last node's `ble C; b B2`).
+  Idioms:
+  - The float spellings: 2.3561945f (4016cbe4), 0.19634955f, 0.13659098f, 0.12566371f, 57.295776f,
+    0.17453292f, -0.47123888f, 1.8358682f; 2.356194f / 0.1963495f / 0.1256637f are one ulp off.
+  - `x += d; x = LIMIT_ANGLE(x);` (two statements) whenever the target shows `fadds; fmr f1, f0; stfs f0;
+    bl LIMIT_ANGLE; stfs f1` — `x = LIMIT_ANGLE(x + d)` drops the first store. Same for
+    `w->turnAng = em->rot.y + PI; w->turnAng = LIMIT_ANGLE(w->turnAng);`.
+  - An inline that reads the enemy work must take the caller's `Em36Work* w` (em36SetFindWait(w),
+    em36DmTwitch(w), em36RegeneArmParts(em, w), em36AppearEsp(em, w)); an inline that recomputes
+    `EM36_WK(em)` gets its own `addi rX, r31, 0x3e0`. An inline parameter that is a constant
+    (em36DNearAtkCk's angle, em36CatchAreaCk's reach) becomes a pseudo loaded at the call point and
+    moves the pool order: write the body out (or as a macro) with the literal at its compare.
+    Loads that must reload after each call (`w->espKind[no]` between EffectEspDelete / EspgenDelete /
+    EfmDelete) also need a macro: through an inline the array base becomes a pseudo (`em + 0xbbf`).
+  - `switch (p->partsNo)` in em36GetDmPosType: every value has its own `return N;` (adjacent equal
+    returns are still separate nodes: `cmpwi 4; beq; cmpwi 5; beq`), and the last case `break`s into
+    a `return 5;` after the switch (its `li r3, 5` is not cross-jumped with case 0x17's).
+  - `return 0` after the switch with `break` in the last arm (em36LostParts, em36AtkRtnCk) places the
+    shared `li r3, 0` where the target has it; a `default: return 0;` or an early `return 0` in the last
+    arm lays it elsewhere. Each arm of em36LostParts ends `w->lostTimer = 0x5B; w->atkTimer[i] = 450;
+    return 1;` (the `li r9, 0x5b` before the timer store and the `li r9, 0` of the second EstSet).
+  - `f32 a = em->alpha - 0.1f; f32 zero = 0.0f; em->alpha = a; if (a <= zero) { em->alpha = zero; ..}`
+    (compare before the store, the constant register reused for the clamp) — the em3a hover clamp
+    shape; also `f32 sc = w->scale - 0.003f; f32 min = 0.1f; ...`, and `{ f32 one = 1.0f; w->flags |=
+    0x100000; w->scale = one; }` to load the constant before the flag RMW.
+  - `switch ((u8) (Rnd() % 6)) { default: flags &= ~0x2000; break; case 0: .. case 4: .. }` with the
+    default arm FIRST: the arms' `stw` cross-jump into one store (em36DmTwitch); the same twitch in the
+    die routines does not count the timer down (em36DieTwitch).
+  - `v = pPLS->pos; if (w->timer2) { w->timer2--; if (flags2 & 0x10) v = pPL->pos; else GetPlPos(..) }`:
+    the first copy through the struct view, the second a plain `pPL` reload (em36_R1_Catch/LongCatch/
+    LostCatch); `pGS->x4F88` for the difficulty tests after a `w->` store (em36SetFindWait, LostCatch).
+  - `if (r) { if (r <= 3) continue; } e->setOpen(..)` for `mr. r3, r3; beq; cmplwi 3; ble` —
+    `r == 0 || r > 3` folds to `subi; cmplwi 2` (em36DoorOpenCk); `if (!(lp.x > -400.0f && lp.x <
+    400.0f))` for `ble`/`bge` without `cror` (the catch area); `if (!(fabsf(..) > 0.5235988f))` for a
+    plain `bgt` (em36JumpDownCk); `switch (no) { case 6..0xE: case 0x38: }` on a `u32` for
+    `cmplwi 6; blt; cmplwi 0xe; ble; cmpwi 0x38` (em36BreathSeStopCk).
+  - `u32 f = em->flags_3C8; if ((f & 0x04000000) && !(em->flags_3C8 & 0xF8000000))` keeps the two bit
+    tests (the same operand twice folds to `clrrwi; cmpw`) (em36WeakInit); `u32 i` loop indices
+    wherever the target compares the counter with `cmplwi` (WeakMove, WeakInit, RegeneTenClear).
+  - The modelInit type dispatch is `case k: if (em->modelInit(ARC(a), ARC(b)) == 0) { err; return; }
+    break;` in every arm (the loads stay in the arms, the adds / call / check cross-jump).
+  - `a.x = em->pos.x; a.y = em->pos.y + 1300.0f; a.z = em->pos.z;` field-wise for the hitCheck line
+    ends (em36RouteCk), `PSMTXMultVec(em->mat, ..)` everywhere instead of a `MtxPtr mat` local (the
+    PRE copy `mr r24, r30` / `addi r24, r25, 0xc` in both arms), `w->pTarget = pPLS; w->flags &= ~4;`
+    order, and store triples written B, C, A to come out A, B, C (`targetAng/AngAbs/Dist`).
+  - MEM_ALLOC line number: `#line 966 "D:/Bio4/Prog/em36.cpp"` before the alloc in em36_R0_Init.
 - Tools REL, third pass (t_atari 16/17 functions, t_dr 13/15; src/Tools/t_atari.cpp, t_dr.cpp, 2026-09):
   - `cSat` has a constructor, `cSat() : cUnit(1) { flags = 0; }` (include/atari.h): t_atari's two
     `static cSat tbl[10]` arrays are built by the static-init loop as `stw 1; stw _vt.4cSat; stb 0,0x2a`

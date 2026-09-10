@@ -139,6 +139,11 @@ static inline void EmRoutineSet(cEm* em, int r0, int r1, int r2, int r3)
     em->xFF = r3;
 }
 
+static inline void U32Set(u32& d, u32 v) { d = v; }
+
+// Flag update through a volatile view: keeps the following global load (pPL) below the sth (wep_mod.h).
+static inline void AtariFlagsOr(cAtariInfo* at, u16 mask) { *(volatile u16*) &at->flags |= mask; }
+
 // Dead flag test (cDmgInfo upper 16 bits): an inline returning 0/1 gives the `li 1; andis.; bne; li 0` chain.
 static inline int em35DeadCk(cEm* em)
 {
@@ -383,14 +388,19 @@ void em35DmCk(cEm35* em)
         } else {
             EmRoutineSet(em, 2, 2, 0, 0);
         }
-        break;
+        w->weakDmg = 0;
+        w->dmgCnt = 0;
+        return;
     case 0xD:
     case 0x12:
     case 0x13:
     case 0x29:
     case 0x2D:
     default:
-        EmRoutineSet(em, 2, 1, 0, 0);
+        em->xFC = 2;
+        em->xFD = 1;
+        em->xFE = 0;
+        em->xFF = 0;
         break;
     }
     w->weakDmg = 0;
@@ -455,10 +465,11 @@ void em35DmCkUpper(cEm35* em)
             } else {
                 EmDmBloodSet2(em, 0x2C, 1, 0, 0, 0);
             }
+            SndCall(8, 4, &em->pos, em->id, 0, em);
         } else {
             EmDmBloodSet2(em, 0x2C, 0, 0, 0, 0);
+            SndCall(8, 4, &em->pos, em->id, 0, em);
         }
-        SndCall(8, 4, &em->pos, em->id, 0, em);
         break;
     case 5:
     case 6:
@@ -468,20 +479,10 @@ void em35DmCkUpper(cEm35* em)
     case 0xF:
     case 0x12:
     case 0x13:
-    case 0x16:
-    case 0x18:
-    case 0x19:
-    case 0x1A:
-    case 0x1C:
-    case 0x1E:
-    case 0x1F:
-    case 0x20:
-    case 0x22:
-    case 0x23:
-    case 0x24:
-    case 0x25:
     case 0x28:
     case 0x29:
+    case 0x2C:
+    case 0x2D:
     default:
         if (d < 16000000.0f) {
             EmDmBloodSet2(em, 0x2C, 2, 0, 0, 0);
@@ -509,10 +510,14 @@ void em35DmCkUpper(cEm35* em)
         case 4:
         case 5:
         case 6:
+        case 0xB:
+        case 0xC:
         case 0xE:
         case 0xF:
         case 0x10:
         case 0x11:
+        case 0x14:
+        case 0x15:
         case 0x1B:
         case 0x1D:
         case 0x26:
@@ -539,26 +544,11 @@ void em35DmCkUpper(cEm35* em)
             }
             EmRoutineSet(em, 2, 5, 0, 0);
             return;
-        case 0xB:
-        case 0xC:
         case 0xD:
         case 0x12:
         case 0x13:
-        case 0x16:
-        case 0x17:
-        case 0x18:
-        case 0x19:
-        case 0x1A:
-        case 0x1C:
-        case 0x1E:
-        case 0x1F:
-        case 0x20:
-        case 0x22:
-        case 0x23:
-        case 0x24:
-        case 0x25:
         case 0x29:
-        case 0x2A:
+        case 0x2D:
         default:
             EmRoutineSet(em, 2, 5, 0, 0);
             return;
@@ -620,21 +610,9 @@ void em35DmCkUpper(cEm35* em)
     case 0xF:
     case 0x12:
     case 0x13:
-    case 0x16:
-    case 0x17:
-    case 0x18:
-    case 0x19:
-    case 0x1A:
-    case 0x1C:
-    case 0x1E:
-    case 0x1F:
-    case 0x20:
-    case 0x22:
-    case 0x23:
-    case 0x24:
-    case 0x25:
     case 0x29:
-    case 0x2A:
+    case 0x2C:
+    case 0x2D:
     default:
         EmRoutineSet(em, 2, 4, 0, 0);
         return;
@@ -878,7 +856,6 @@ void cEm35::move()
 static void em35_R0_Init(cEm35* em)
 {
     Em35Work* w = EM35_WK(em);
-    cAtariInfo* at;
     int zero;
 
     switch (em->type) {
@@ -923,8 +900,7 @@ static void em35_R0_Init(cEm35* em)
 
         em->lightInfo.init2(0, 1, &ofs, &size, 2);
     }
-    at = &em->atari;
-    atariInitF(at, 0.0f, 0.0f, 0.0f, 800.0f, 700.0f, 700.0f, 3000.0f, 1, 0x2000, 10);   // COMPILER-DIFF: #1
+    atariInitF(&em->atari, 0.0f, 0.0f, 0.0f, 800.0f, 700.0f, 700.0f, 3000.0f, 1, 0x2000, 10);   // COMPILER-DIFF: #1
     em->litArea.on(1);
     switch (em->type) {
     case 0:
@@ -990,9 +966,9 @@ static void em35_R0_Init(cEm35* em)
     em->lockOfs.z = 0.0f;
     EspDataLoad((u32) ARC(9), 0x2C, 0);
     w->espKind = EspPullCoreKind();
-    w->scaleAng = 0.0f;
     w->flags = zero;
     w->neckAng = 0.0f;
+    w->scaleAng = 0.0f;
     w->atkWait = zero;
     w->weakDmg = zero;
     w->dmgCnt = zero;
@@ -1012,16 +988,17 @@ static void em35_R0_Init(cEm35* em)
             EstSet((int) em, -1, 0, 0, 0x2C, 8, 1, w->espKind, (u32) em, (void*) zero);
             EmRoutineSet(em, 1, 1, zero, zero);
             MotionSetCore(em, MOTION(em), ARC(0xA), 0, 0, 1, 0);
+            MotionMoveF(em, 0);
             break;
         case 1:
             EstSet((int) em, -1, 0, 0, 0x2C, 4, 1, w->espKind, (u32) em, (void*) zero);
             EstSet((int) em, -1, 0, 0, 0x2C, 9, 1, w->espKind, (u32) em, (void*) zero);
-            at->throughOn();
+            em->atari.throughOn();
             EmRoutineSet(em, 1, 0xF, zero, zero);
             MotionSetCore(em, MOTION(em), ARC(0x48), 0, 0, 1, 0);
+            MotionMoveF(em, 0);
             break;
         }
-        MotionMoveF(em, 0);
         break;
     case 1:
         switch (em->type) {
@@ -1030,16 +1007,17 @@ static void em35_R0_Init(cEm35* em)
             EmRoutineSet(em, 1, 0xE, zero, zero);
             em->clearStatus(9);
             MotionSetCore(em, MOTION(em), ARC(0x46), 0, 0, 1, 0);
+            MotionMoveF(em, 0);
             break;
         case 1:
             EstSet((int) em, -1, 0, 0, 0x2C, 4, 1, w->espKind, (u32) em, (void*) zero);
             EstSet((int) em, -1, 0, 0, 0x2C, 9, 1, w->espKind, (u32) em, (void*) zero);
-            at->throughOn();
+            em->atari.throughOn();
             EmRoutineSet(em, 1, 0x1F, zero, zero);
             MotionSetCore(em, MOTION(em), ARC(0x88), 0, 0, 1, 0);
+            MotionMoveF(em, 0);
             break;
         }
-        MotionMoveF(em, 0);
         break;
     }
     em35_R0_Move(em);
@@ -1255,7 +1233,7 @@ static void em35_R1_Walk(cEm35* em)
             if (em->plDist2 < 16000000.0f) {
                 EmRoutineSet(em, 1, 0xB, 0, 0);
             } else {
-                em35BigStepCk(em);
+                goto big_step;
             }
         } else if (w->routeAngAbs < 0.5235988f && em->plDist2 > 4000000.0f && em->plDist2 < 12250000.0f &&
                    w->lockWait == 0) {
@@ -1291,6 +1269,7 @@ static void em35_R1_Walk(cEm35* em)
                 if (w->routeAngAbs > 2.0943952f && em->plDist2 < 6250000.0f) {
                     EmRoutineSet(em, 1, 4, 0, 0);
                 } else {
+                big_step:
                     em35BigStepCk(em);
                 }
             }
@@ -1654,16 +1633,15 @@ static void em35_R1_BearHug(cEm35* em)
 
 static void plem35_BearHug(cPlayer* pl)
 {
-    f32 y;
-
-    pG->flags_5010 |= 0x8000;
-    pl->dmType = 10;
+    BitOn(pG->flags_5010, 0x8000);
     pl->subArc = PL_EM_G->subArc;
+    pl->dmType = 10;
     switch (pl->xFE) {
     case 0: {
         Vec v;
+        f32 y;
 
-        pl->atari.throughOn();
+        pl->atari.flags &= ~0x300;
         v.x = -101.81f;
         v.y = 0.0f;
         v.z = 3473.71f;
@@ -1687,17 +1665,18 @@ static void plem35_BearHug(cPlayer* pl)
             pl->dmg.set(0, 30);
         } else {
             if (pl->frame > 72.7f && pl->frame < 73.3f) {
-                pl->x3E0 = SndCall(8, 0x4B, &pl->pos, PL_EM(pl)->id, 0, pl);
+                U32Set(pl->x3E0, SndCall(8, 0x4B, &pl->pos, PL_EM(pl)->id, 0, pl));
                 VibSetData(VIB_TBL, 0xB, 1);
             }
             if (pl->frame > 157.7f && pl->frame < 158.3f) {
-                pl->x3E0 = SndCall(8, 0x4D, &pl->pos, PL_EM(pl)->id, 0, pl);
+                U32Set(pl->x3E0, SndCall(8, 0x4D, &pl->pos, PL_EM(pl)->id, 0, pl));
                 VibSetData(VIB_TBL, 0xB, 1);
             }
         }
         break;
     case 2: {
         Vec v;
+        f32 y;
 
         v.x = 30.01f;
         v.y = 0.0f;
@@ -2227,7 +2206,7 @@ void em35EscapeCamMove(cEm35* em)
     b.x = -244.0f;
     b.y = 809.0f;
     b.z = 52.6f;
-    PSMTXMultVec(pPL->mat, &a, &a);
+    PSMTXMultVec(pPLS->mat, &a, &a);
     PSMTXMultVec(pPL->mat, &b, &b);
     PosToPos(&g->Cam.param.at, &b, &w->cam.param.at, 1.0f);
     PosToPos(&g->Cam.param.pos, &a, &w->cam.param.pos, 1.0f);
@@ -2292,7 +2271,7 @@ void em35StampCamMove(cEm35* em)
     a.x = 0.0f;
     a.y = 3000.0f;
     a.z = -3000.0f;
-    PSMTXMultVec(pPL->mat, &a, &a);
+    PSMTXMultVec(pPLS->mat, &a, &a);
     PosToPos(&g->Cam.param.pos, &a, &w->cam.param.pos, 0.1f);
     p = pPL->getPartsPtr(0);
     PosToPos(&g->Cam.param.at, &p->worldPos, &w->cam.param.at, 0.3f);
@@ -2376,16 +2355,16 @@ static void em35_R1_CatchHit(cEm35* em)
             VibSetData(VIB_TBL, 0xB, 1);
         }
         if (MotionMoveF(em, 0)) {
-            if ((u32) PlGachaGet() > 49 && (s16) pG->pl_life > 1) {
-                em->xFE = 2;
-            } else {
+            if ((u32) PlGachaGet() <= 49 || (s16) pG->pl_life <= 1) {
                 em->xFE = 4;
+            } else {
+                em->xFE = 2;
             }
         } else if (em->frame > 99.7f && em->frame < 100.3f) {
-            if ((u32) PlGachaGet() > 49 && (s16) pG->pl_life > 1) {
-                em->xFE = 2;
-            } else {
+            if ((u32) PlGachaGet() <= 49 || (s16) pG->pl_life <= 1) {
                 em->xFE = 4;
+            } else {
+                em->xFE = 2;
             }
         }
         break;
@@ -2406,7 +2385,7 @@ static void em35_R1_CatchHit(cEm35* em)
         break;
     case 4:
         MotionSetCore(em, MOTION(em), ARC(0x3C), (int) ARC(0x3D), 0, 1, 0);
-        em->atari.setFlag100();
+        AtariFlagsOr(&em->atari, 0x100);
         LifeDownSet2(pPL, 500, 0, 0);
         em->xFE++;
     case 5:
@@ -2421,17 +2400,16 @@ static void em35_R1_CatchHit(cEm35* em)
 
 static void plem35_CatchHit(cPlayer* pl)
 {
-    f32 y;
-
-    pG->flags_5010 |= 0x8000;
-    pl->dmType = 2;
+    BitOn(pG->flags_5010, 0x8000);
     pl->subArc = PL_EM_G->subArc;
+    pl->dmType = 2;
     switch (pl->xFE) {
     case 0: {
         cAtariInfo* at;
         Vec v;
+        f32 y;
 
-        pl->atari.throughOn();
+        pl->atari.flags &= ~0x300;
         at = &pl->atari;
         at->clrFlag100();
         v.x = -61.37f;
@@ -2459,6 +2437,7 @@ static void plem35_CatchHit(cPlayer* pl)
         break;
     case 2: {
         Vec v;
+        f32 y;
 
         v.x = -406.3f;
         v.y = 0.0f;
@@ -2484,6 +2463,7 @@ static void plem35_CatchHit(cPlayer* pl)
         break;
     case 4: {
         Vec v;
+        f32 y;
 
         v.x = -406.3f;
         v.y = 0.0f;
@@ -2521,7 +2501,7 @@ static void plem35_CatchHit(cPlayer* pl)
         }
         break;
     case 6:
-        pl->atari.throughOff();
+        pl->atari.flags |= 0x300;
         MotionSetCore(pl, MOTION(pl), PL_ARC(0x8A), 0, 0, 1, 0);
         SndCall(1, 0x29, &pl->getPartsPtr(0)->worldPos, 0, 0, pPL);
         SndCall(1, 4, &pl->pos, 0, 0, pl);
