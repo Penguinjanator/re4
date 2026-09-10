@@ -39,6 +39,10 @@
 extern "C" void OSReport(const char* fmt, ...);
 extern void (*EmInitFunc)(cEm* em);   // game/em.cpp
 
+// The module's 0x34-byte COMMON block: uninitialised template statics of the original object,
+// merged into .bss by the REL link.
+asm(".comm common_em3c,52,4");
+
 // motion.h declares the one-argument form; the enemies pass a second argument.
 u16 MotionMoveF(cModel* m, int flag) asm("MotionMove");
 // em_set.h declares EmSetDieCnt without arguments; this module passes the enemy.
@@ -1901,6 +1905,10 @@ void em3cPartsBombControl(cEm3c* em)
     Vec c;
     cParts* p;
     u32 i;
+    // declared right after `i`: gcse creates the PRE'd `bomb+C` / `p+C` / `fp+D` address pseudos in
+    // hash-bucket order (hash = K + REGNO + C), and their spill slots follow that order -- `bomb`
+    // must be pseudo p+2 (or p+3) for the target's 0xb0/0xb4/0xbc slots
+    Em3cPartsBomb* bomb;
     u32 n;
     u32 j;
     u32 k;
@@ -1911,7 +1919,6 @@ void em3cPartsBombControl(cEm3c* em)
     for (i = 0; i < 25; i++) {
         int no = em3c_bomb_parts[i];
         p = (cParts*) em->getPartsPtr(no);
-        Em3cPartsBomb* bomb;
         int kind;
         f32 sum;
 
@@ -2004,7 +2011,7 @@ void em3cPartsBombControl(cEm3c* em)
                 PSVECSubtract(&bomb->pt[j], &old[j], &bomb->spd[j]);
                 PSVECScale(&bomb->spd[j], &bomb->spd[j], 0.999f);
             }
-            sum += bomb->spd[j].y * bomb->spd[j].y + bomb->spd[j].x * bomb->spd[j].x + bomb->spd[j].z * bomb->spd[j].z;
+            sum += bomb->spd[j].x * bomb->spd[j].x + bomb->spd[j].y * bomb->spd[j].y + bomb->spd[j].z * bomb->spd[j].z;
         }
         if (sum < 1.0f) {
             p->motParts.flags &= ~0x01000000;
@@ -2031,7 +2038,8 @@ void em3cPartsBombControl(cEm3c* em)
         TransMatrix(p->mat, &cen);
         ScaleMatrix(p->mat, &p->scale);
         p->worldPos = cen;
-        if (pG->debug_mode == 8) {
+        // pGS: the pG load stays behind the `p->worldPos = cen` word stores (global.h)
+        if (pGS->debug_mode == 8) {
             // the routine's j/k again (and j for the speed loop above, p for the parts walk below):
             // one pseudo per name is what puts j in r24, k in r29 and p in r26 like the target --
             // separate counters rank differently in global alloc and permute the callee-saved set
