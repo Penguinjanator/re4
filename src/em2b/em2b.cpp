@@ -246,8 +246,8 @@ static inline void em2bAtkEndSet(cEm2b* em, Em2bWork* w)
 }
 
 // The same for a caller that reads `em` after it (DashAtk): `em` does not die at the `mr r3,em`, so
-// with the keep-alive above the stores are issued first and jump2 cross-jumps the arms' tails (35
-// words); the plain form gives the target order except the `mr`/`stw` pair (2 words).
+// arm 2 needs the tied copy below (with only the keep-alive the stores are issued first and jump2
+// cross-jumps the arms' tails: 35 words; the plain form swaps the `mr`/`stw` pair: 2 words).
 static inline void em2bAtkEndSetL(cEm2b* em, Em2bWork* w)
 {
     register int x63c asm("r11"); // COMPILER-DIFF: #13 (see em2bAtkEndSet)
@@ -258,9 +258,19 @@ static inline void em2bAtkEndSetL(cEm2b* em, Em2bWork* w)
         w->x63C = 0;
         em2bNextRtnSet(em);
     } else if (w->pFriend && !(w->flags & 0x80) && (x63c = w->x63C, x63c == 0)) {
-        w->dmGuard = 900;
-        w->flags |= 0x80;
-        em2bNextRtnSet(em);
+        int k = 900;
+        u32 f = w->flags | 0x80;
+        cEm2b* e;
+
+        // COMPILER-DIFF: #13 -- the target issues `mr r3,em` before the two stores although `em` is
+        // live after the switch: a codeless tied copy of `em` declared before the stores gives the
+        // argument move the earlier LUID, and the keep-alive below makes the stores non-dying like
+        // the original's (weights equal, LUID order decides; without it the dying stores go first).
+        asm("" : "=r"(e) : "0"(em));
+        w->flags = f;
+        w->dmGuard = k;
+        asm("" : "=m"(w->x63C) : "r"(f), "r"(k));
+        em2bNextRtnSet(e);
     } else if (w->atkHit) {
         w->timer61C = 150;
         EmRoutineSet(em, 1, 4, 0, 0);
@@ -4135,34 +4145,68 @@ void em2bClothSet(cEm2b* em)
     Em2bWork* w = EM2B_WK(em);
 
     if (em->type == 1) {
+        int zero;
+        int num;
+        const u8* parts;
+        const u8* side;
+        const u8* up;
+        const u8* down;
+        const f32* max;
+        PlClothAt* at;
+        const f32* rate;
+        int two;
+        f32 g20;
+        f32 g08;
+        int four;
+        f32 g005;
         f32 zf;
-        // Store order = the original's LUID order (its constants are reload-materialised, no
-        // dying stores); the 0.0 must be expanded after 0.8 for the pool and be a variable for f0.
-        w->cloth.x54 = 0;
-        w->cloth.num = 10;
-        w->cloth.pParts = em2b_cloth_parts;
-        w->cloth.x08 = em2b_cloth_side;
-        w->cloth.pUp = em2b_cloth_up;
-        w->cloth.pDown = em2b_cloth_down;
-        w->cloth.pMax = em2b_cloth_max;
-        w->cloth.x34 = em2b_cloth_at;
-        w->cloth.x24 = em2b_cloth_rate;
-        w->cloth.x38 = 2;
-        w->cloth.x3C = 20.0f;
-        w->cloth.x40 = 0.800000012f;
+        int flags;
+        // Store order = the original's LUID order: its constants are reload-materialised and no store
+        // carries a death (COMPILER-DIFF: #13); ours must keep every constant alive past the
+        // block (the two "=m" keep-alives name fields the block does not store), else the dying stores
+        // are issued first. The 0.0 is expanded after 0.8 for the pool order.
+        zero = 0;
+        w->cloth.x54 = (cModel**) zero;
+        num = 10;
+        w->cloth.num = num;
+        parts = em2b_cloth_parts;
+        w->cloth.pParts = parts;
+        side = em2b_cloth_side;
+        w->cloth.x08 = side;
+        up = em2b_cloth_up;
+        w->cloth.pUp = up;
+        down = em2b_cloth_down;
+        w->cloth.pDown = down;
+        max = em2b_cloth_max;
+        w->cloth.pMax = max;
+        at = em2b_cloth_at;
+        w->cloth.x34 = at;
+        rate = em2b_cloth_rate;
+        w->cloth.x24 = rate;
+        two = 2;
+        w->cloth.x38 = two;
+        g20 = 20.0f;
+        w->cloth.x3C = g20;
+        g08 = 0.800000012f;
+        w->cloth.x40 = g08;
         zf = 0.0f;
-        w->cloth.x44 = 4;
-        w->cloth.x4C = 0.0500000007f;
+        four = 4;
+        w->cloth.x44 = four;
+        g005 = 0.0500000007f;
+        w->cloth.x4C = g005;
         w->cloth.x50 = zf;
-        w->cloth.flags = 0x100;
-        w->cloth.x0C = 0;
-        w->cloth.x10 = 0;
-        w->cloth.x14 = 0;
-        w->cloth.x2C = 0;
-        w->cloth.x30 = 0;
-        w->cloth.x20 = 0;
+        flags = 0x100;
+        w->cloth.flags = flags;
+        w->cloth.x0C = (const u8*) zero;
+        w->cloth.x10 = (const u8*) zero;
+        w->cloth.x14 = (const u8*) zero;
+        w->cloth.x2C = (const f32*) zero;
+        w->cloth.x30 = (const f32*) zero;
+        w->cloth.x20 = (const f32*) zero;
         w->cloth.x58 = em;
         w->cloth.x48 = zf;
+        asm("" : "=m"(w->x63C) : "r"(zero), "r"(num), "r"(parts), "r"(side), "r"(up), "r"(down), "r"(max), "r"(at)); // COMPILER-DIFF: #13
+        asm("" : "=m"(w->x640) : "r"(rate), "r"(two), "f"(g20), "f"(g08), "r"(four), "f"(g005), "f"(zf), "r"(flags)); // COMPILER-DIFF: #13
         PenClothSet(em, &w->cloth, 100.0f);
     }
 }
@@ -5438,6 +5482,10 @@ static inline void em2bRockOrKickSet(cEm2b* em, Em2bWork* w)
 }
 
 // Attack routine selection at the end of the wait / walk. 1 = a routine was set.
+// The `return 1` after each if/else region is shared (one labelled `li r3,1; b END` per region):
+// jump2 merges those copies into the Debug test's copy through a NEW label, and jumps to a new
+// label never cross-jump again -- that is what keeps the identical EmRoutineSet(1, 0x11/7/9) arms
+// apart in the target (COMPILER-DIFF #6 mechanism, no tag needed).
 int em2bAtkRtnCk(cEm2b* em)
 {
     Em2bWork* w = EM2B_WK(em);
@@ -5530,9 +5578,9 @@ int em2bAtkRtnCk(cEm2b* em)
                 } else {
                     EmRoutineSet(em, 1, 9, 0, 0);
                 }
-                return 1;
+            } else {
+                EmRoutineSet(em, 1, 6, 0, 0);
             }
-            EmRoutineSet(em, 1, 6, 0, 0);
             return 1;
         }
         if (pSUB == 0 && w->targetAngAbs > 1.22173047f && w->targetDist < 16000000.0f && pG->x4F88 > 1) {
@@ -5551,12 +5599,9 @@ int em2bAtkRtnCk(cEm2b* em)
         }
         if ((Rnd() & 1) && pSUB == 0) {
             EmRoutineSet(em, 1, 5, 0, 0);
-            return 1;
+        } else if (!em2bFriendCk(em)) {
+            em2bRockOrKickSet(em, w);
         }
-        if (em2bFriendCk(em)) {
-            return 1;
-        }
-        em2bRockOrKickSet(em, w);
         return 1;
     }
     if (w->targetAngAbs < 0.698131680f && w->targetDist < 9000000.0f) {
@@ -5566,12 +5611,9 @@ int em2bAtkRtnCk(cEm2b* em)
         }
         if ((Rnd() & 3) && pSUB == 0) {
             EmRoutineSet(em, 1, 9, 0, 0);
-            return 1;
+        } else if (!em2bFriendCk(em)) {
+            em2bRockOrKickSet(em, w);
         }
-        if (em2bFriendCk(em)) {
-            return 1;
-        }
-        em2bRockOrKickSet(em, w);
         return 1;
     }
     if (w->targetAngAbs > 2.09439516f && w->targetDist < 9000000.0f && pG->x4F88 > 1 && !em2bFriendCk(em)) {

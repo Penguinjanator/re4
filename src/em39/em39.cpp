@@ -873,12 +873,11 @@ static void em39_R0_Init(cEm39* em)
     w->espKind = EspPullCoreKind();
     w->espKind2 = EspPullCoreKind();
     if (em->type != 2) {
-        int no;
         int rtn;
 
         em->setStatus(5);
-        no = em->x38D;
-        switch (no) {
+        rtn = em->x38D;
+        switch (rtn) {
         case 0:
         default:
             rtn = 0x26;
@@ -887,7 +886,6 @@ static void em39_R0_Init(cEm39* em)
             rtn = 4;
             break;
         case 4:
-            rtn = no;
             break;
         }
         do {   // LOOP_END barrier: the routine bytes are issued before the MotionSetCore argument block
@@ -2477,13 +2475,26 @@ static void em39_R1_JumpUp2(cEm39* em)
     em->setStatus(3);
     switch (em->xFE) {
     case 0: {
-        f32 t;
+        // COMPILER-DIFF: #2 -- the target's `fmuls f12,f0,f12` ties the product to the constant's
+        // register (its sum was not a tieable operand); value-carrying pins reproduce the tie and
+        // the FPR names around it.
+        register f32 posy asm("fr11");
+        register f32 dy asm("fr0");
+        register f32 k asm("fr12");
+        register f32 t asm("fr12");
+        register f32 k19 asm("fr13");
+        register f32 py asm("fr13");
 
         MotionSetCore(em, MOTION(em), ARC(0x6A), (int) ARC(0x6B), 0xA, 1, 0);
-        t = (w->jumpPos.y - em->pos.y + 1000.0f) * 0.0052631581f;
+        posy = em->pos.y;
+        dy = w->jumpPos.y - posy + 1000.0f;
+        k = 0.0052631581f;
+        t = dy * k;
         w->x28.x = 0.0f;
         w->x28.z = 0.0f;
-        w->x28.y = t * 19.0f;
+        k19 = 19.0f;
+        py = t * k19;
+        w->x28.y = py;
         w->x18 = t;
         PSMTXRotRad(m, 'y', GetXZAngle(&em->pos, &w->jumpPos));
         TransMatrix(m, &em->pos);
@@ -2531,7 +2542,6 @@ static void em39_R1_JumpUp3(cEm39* em)
     Em39Work* w = EM39_WK(em);
     Mtx m;
     Vec v;
-    f32 dy;
 
     w->flags |= 0x100;
     em->setStatus(3);
@@ -2539,24 +2549,50 @@ static void em39_R1_JumpUp3(cEm39* em)
     case 0: {
         if (fabsf(Muku(&em->pos, &w->jumpPos, em->rot.y, PI)) < 1.5707964f) {
             MotionSetCore(em, MOTION(em), ARC(0x6A), (int) ARC(0x6B), 0xA, 1, 0);
-            f32 t;
+            // COMPILER-DIFF: #2 -- both arms: the product is tied to the constant's register
+            // (`fmuls f12,f13,f12` / `fmuls f12,f0,f12`) and the 0.0 reuses the 1000.0 register;
+            // value-carrying pins per arm (the JumpUp2 recipe). Store order x, y, z, x18: the zero's
+            // first use sinks last, the dying stores keep source order.
+            register f32 posy asm("fr0");
+            register f32 dy asm("fr13");
+            register f32 k asm("fr12");
+            register f32 t asm("fr12");
+            register f32 k19 asm("fr0");
+            register f32 py asm("fr0");
+            register f32 zf asm("fr11");
 
-            dy = w->jumpPos.y - em->pos.y + 1000.0f;
-            t = dy * 0.0052631581f;
-            w->x28.z = 0.0f;
-            w->x28.y = t * 19.0f;
-            w->x28.x = 0.0f;
+            posy = em->pos.y;
+            dy = w->jumpPos.y - posy + 1000.0f;
+            k = 0.0052631581f;
+            t = dy * k;
+            zf = 0.0f;
+            k19 = 19.0f;
+            py = t * k19;
+            w->x28.x = zf;
+            w->x28.y = py;
+            w->x28.z = zf;
             w->x18 = t;
             em->xFF = 0;
         } else {
             MotionSetCore(em, MOTION(em), ARC(0x68), (int) ARC(0x69), 0xA, 1, 0);
-            f32 t;
+            register f32 posy asm("fr13"); // COMPILER-DIFF: #2 (see the other arm)
+            register f32 dy asm("fr0");
+            register f32 k asm("fr12");
+            register f32 t asm("fr12");
+            register f32 k19 asm("fr13");
+            register f32 py asm("fr13");
+            register f32 zf asm("fr11");
 
-            dy = w->jumpPos.y - em->pos.y + 1000.0f;
-            t = dy * 0.0058479533f;
-            w->x28.z = 0.0f;
-            w->x28.y = t * 18.0f;
-            w->x28.x = 0.0f;
+            posy = em->pos.y;
+            dy = w->jumpPos.y - posy + 1000.0f;
+            k = 0.0058479533f;
+            t = dy * k;
+            zf = 0.0f;
+            k19 = 18.0f;
+            py = t * k19;
+            w->x28.x = zf;
+            w->x28.y = py;
+            w->x28.z = zf;
             w->x18 = t;
             em->xFF = 1;
         }
@@ -7726,16 +7762,16 @@ void em39ArmControl(cEm39* em)
         w->armMot.speedRate = 1.0f;
         w->armMot.flags2 |= 0x10000000;
         MotionSetCore(em, EM39_ARM_MOT(w), ARC(0x108), 0, 0, 1, 0);
-        se = 1;
         w->x8BC = 1;
+        se = 1;
         w->x8BB++;
         goto MOVE;
     case 0xE:
         w->armMot.speedRate = 1.0f;
         w->armMot.flags2 |= 0x10000000;
         MotionSetCore(em, EM39_ARM_MOT(w), ARC(0x109), 0, 0, 1, 0);
-        se = 1;
         w->x8BC = 1;
+        se = 1;
         w->x8BB++;
         goto MOVE;
     case 0x10:
@@ -7755,11 +7791,11 @@ void em39ArmControl(cEm39* em)
         MotionSequenceCtrl(EM39_ARM_MOT(w));
         break;
     case 0x12: {
-        MotionData* md = (MotionData*) ARC(0x10A);
+        int mf = ((MotionData*) ARC(0x10A))->maxFrame;
 
         w->armMot.speedRate = 1.0f;
         w->armMot.flags2 |= 0x10000000;
-        MotionSetCore(em, EM39_ARM_MOT(w), ARC(0x10A), 0, 0, 0, (u16) ((md->maxFrame & 0x3FFF) - 1));
+        MotionSetCore(em, EM39_ARM_MOT(w), ARC(0x10A), 0, 0, 0, (u16) ((mf & 0x3FFF) - 1));
         w->x8BC = se;
         w->x8BB++;
     }

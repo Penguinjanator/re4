@@ -12383,3 +12383,121 @@ ninja -k 0 && dtk shasum -c` = 111 OK after each accepted change.
 - DB_NUMERIC ctor (db_widget, 2): `register f32 arg asm("fr1"); arg = 0.0f;` as an input of the keep-alive asm and the
   SetDefault argument moves the `fmr f1,f31` too early (before `lfs f0`, 5 words); the target issues it between the
   first and second zero store.
+
+### em2b / em39 seventh pass (em2b 117 -> 120/121, em39 146 -> 148/153 masked-identical; sections equal; neither flipped; 2026-09-10)
+- Harness /home/adityas/.cache/em2b39_p7 (`tryv.py MOD FUNC variants.py [--keep N] [--sbs N] [--asm N]` compiles a variant of
+  src/MOD/MOD.cpp with the module flags, `mcmp.py`, `sbs.py MOD SYM -a [-d]` (now keyed by object name, no stale
+  disassembly), `mdump.sh MOD/UNIT -dX` with `SRC_OVERRIDE`, `mdump2.sh` = the same with `CC1PLUS=...`; `sngcc/` = a private
+  copy of tools/sn-gcc whose cc1plus prints, under `LA_DEBUG=1`, every local-alloc qty (`LA qty N order I first_reg R refs
+  birth death pri class sugg` + `-> hard H`) and every `flush_pending_lists` of sched1/sched2 (`FLUSH fn schedN at insn U
+  len L`). Nothing installed.
+- **em2bAtkRtnCk 195 -> 0 (zero code).** The #6 mechanism, sharpened: jump2's `jump_chain` is indexed by label UID and sized
+  at `max_uid` when the pass starts, so a jump that do_cross_jump REDIRECTS TO A NEW LABEL (`INSN_UID (JUMP_LABEL) <
+  max_uid` fails) is never a chain candidate again -- and neither are the other jumps threaded to that label. The target's
+  Debug copy (`beq skip; li r3,1; b END`, no label before its `li`) is the only jump-around copy, so it survives every
+  scan; each region has ONE `return 1` after its if/else arms (a labelled `Lret: li r3,1; b END` the arms fall into or
+  `b Lret`), Lret1..3 merge into Lret4 (existing labels, 1 insn + label bonus), Lret4 into the Debug copy through a NEW
+  label, threading turns every `b Lret` into `b NEW`, and the 4 identical `RS(1,0x11)` / 3 `RS(1,7)` copies now all
+  `b NEW` are immune. Source: `if (PlRunCk) { if (..) RS(0x11) else RS(9); } else RS(6); return 1;`, `if ((Rnd()&1) &&
+  !pSUB) RS(5); else if (!FriendCk) RockOrKick(); return 1;` (twice) -- every `return 1` inside an arm gives that arm
+  its own `li r3,1` tail and lets the chain merge it. The `mr. r3,r3` and the `stb r3` zeros of RS(6) come for free
+  (the PlRunCk result pseudo is local to the compare block once the arm shares the return). Rule of record: identical
+  arms the target keeps apart after a shared `return K` = jumps to a jump2-created label; identical arms ours merges =
+  each arm owns its return.
+- **em39ArmControl 56 -> 0 (zero code):** cases 0xC/0xE `w->x8BC = 1; se = 1;` (the store BEFORE `se = 1`: cse otherwise
+  reuses se's SI pseudo for the byte store, `stb r28`, and the C/E tails become identical with case 0x10's `stb r28`
+  tail and cross-jump 8 deep; the target has a fresh QI `li r0,1; stb r0`), and case 0x12 reads `int mf = ((MotionData*)
+  ARC(0x10A))->maxFrame` BEFORE the speedRate/flags2 stores (the `lhzx` then precedes the stores and the subArc is
+  reloaded once into r11 both times). The `x8BB++; goto MOVE` copies of cases 2/6/A/C/E/10 merge their 2-insn tails into
+  case 10's fall-through through a new label (`b L3d8`), which is why C and E's identical `add; bl; lbz; li r0,1; stb`
+  tails stay separate -- the same new-label rule as AtkRtnCk. The `oris r10` register followed.
+- **em2bClothSet 11 -> 0 (tagged #13):** every constant of the 24-store block as a variable (`zero`, `num`, `parts`, ...,
+  `zf`, `flags`) kept alive past the block by two `asm("" : "=m"(w->x63C) : 8 inputs)` / `"=m"(w->x640)` (max 10 operands
+  per asm; the output must be a field the block does not store). With no store carrying a death the block is pure LUID
+  order = source order (target), the allocation is unchanged. Only-some-constants keep-alive fails: sched1's
+  `INSN_REG_WEIGHT` is +1 per SET (stores included) and -1 per REG_DEAD, and `rank_for_schedule` sorts weight before
+  LUID, so any store that still dies is issued before every non-dying one.
+- **em2b_R1_DashAtk 2 -> 0 (tagged #13):** `cEm2b* e; asm("" : "=r"(e) : "0"(em));` declared BEFORE the two stores of
+  em2bAtkEndSetL arm 2, `em2bNextRtnSet(e)` -- the codeless tied copy gives the argument move (`mr r3,em`, em live after
+  the switch) the earlier LUID; with the keep-alive on the stores (weights equal) LUID decides and the `mr` leads the
+  stores as in the target. A plain `cEm2b* e = em` is folded by cse (35), an asm-emitted `mr` costs 3.
+- **em39_R1_JumpUp2 5 -> 0, JumpUp3 20 -> 4 (tagged #2, value-carrying FPR pins).** local-alloc `combine_regs` ties the
+  result to the FIRST operand that dies; the target's `fmuls f12,f0,f12` (result in the constant's register) needs the
+  sum operand to be non-tieable (`reg_qty < 0`: multi-block or two deaths), which no zero-code form gives here (a
+  function-scope sum crosses the calls, a dead test splits the block before the pool `lis`). A hard-register operand
+  does NOT help: `combine_regs` records it as `qty_phys_sugg` for the result and returns 0 AFTER giving the result a
+  qty, so the constant operand can no longer tie (`fmuls f0,f0,f12`). Pin everything instead: `register f32 posy
+  asm("fr11")` (pos.y), `dy asm("fr0")`, `k asm("fr12")`, `t asm("fr12")`, `k19 asm("fr13")`, `py asm("fr13")` written
+  as separate statements (JumpUp2; the 1000.0 may stay a pseudo). JumpUp3: per-arm pins (arm 1 posy f0 / dy f13 / k19,py
+  f0; arm 2 posy f13 / dy f0 / k19,py f13; zero `zf asm("fr11")` = the 1000.0 register) and the stores written `x28.x;
+  x28.y; x28.z; x18` -- with pinned values the dying stores (y, z = zf's LAST use, x18) keep source order and the
+  non-dying first zero store (x) sinks last. Left (4): arm 2's `li r0,1` sits before `stfs f13,0x2c` in the target
+  (`em->xFF = 1` earlier: 9) and the `lis K374@ha`/`fmr f2,f1` pair before Muku2 (the fmr is the call-result copy right
+  after GetXZAngle, prio 3 via its anti-dep to `lfs f1`; the lis comes from the reload split of `lfs f3` behind it;
+  a `spd` local for the constant is folded back). Pins on an FPR that a later `fmr`/store reads are safe when no call
+  lies between the pin's set and its last use.
+- **em39_R0_Init 17 -> 16 (zero code):** `rtn = em->x38D; switch (rtn) { case 0: default: rtn = 0x26; case 1: rtn = 4;
+  case 4: break; }` -- the switch register IS rtn, so case 4 jumps straight to the store block (`beq L9d4`, `stb r0`
+  reads the compare register); `rtn = no` in case 4 is folded to 4 by cse and shares case 1's `li r0,4`. Block B's
+  `stb ff/fe` before the subArc load (6 words) and block A's argument-move order after the do-while barrier (10) stay;
+  a volatile subArc read / `arc11` pin / "=m" keep-alive / barrier around B's stores: 16-18.
+- **em2bShortRopeSet (3, left; ~3 h, mechanisms exact, no form found).** Same #13 family as ClothSet but 25 stores +
+  two `5` stores (r6 = x38, num) and a `mr r5,r3` chain copy; all-constants keep-alive gives the store order but (a)
+  local-alloc ranks the now-longer-lived pseudos differently (parts/up/down/at rotate r9/r11/r10/r8, k100/five/chain
+  r7/r6/r5): fixed by asm operand DUPLICATES (`"r"(parts), "r"(parts), "r"(parts)`: qty priority = floor_log2(refs) *
+  refs / life, each asm mention is a ref -- parts x3, up/down/at x2, k100 x2 reproduce the target's registers), and
+  (b) the keep-alive asms themselves are scheduled: sched1 puts an asm whose inputs all die there (weight -12) at the
+  first free slot (t25/t26, right where the target's `mr r3,r5` (deleted only in jump2's noop-move pass, `find_equiv_reg`)
+  and `addi r4,r29,0x844` sit), so `addi r4` slips one slot behind `stfs f31,0x4ac` (2 words). Every way to delay the
+  asm fails: a `"m"` input on a store gives that store +1 priority (all dependence kinds INTO an asm cost 1 --
+  `insn_cost` sets LINK_COST_FREE for an unrecognizable `used` insn -- so it is hoisted before the block), and a `"=m"`
+  output on a stored field is an output dep with the same +1; `"m"` reads count DOUBLE in `pending_lists_length`
+  (25 stores + 2 asm writes + 2 x reads > 32 flushes at the last asm: anti-deps on every store); pins on r5-r9 get
+  anti-deps from the next call's argument moves (`li r9,0`, `addi r8,r1,0x18`) = +1 dependents = issued first; r3/r4
+  pins for the `this`/arg moves give them priority 2 and hoist them to t16. Recommendation: leave it, or find a
+  zero-code way to make `num`'s store non-dying without an asm.
+- **em39JumpUpCk3 (20), RouteCk (14), Atk_MG (12), left.** JumpUpCk3: inner-loop entry test through the top `emi`
+  (r6 = emi copy) while the latch reloads pG->pRoomEmi (r5 = pG copy, hoisted `lwz r9,0x4f30(r5)`); `emi->n` /
+  `EM39_EMI->n` / guarded do-while / a cached `GlobalWork* g` in either position: 24-62. RouteCk: pins on `&a` (r26) and
+  `&em->pos` (r27) alone cost 68-70 (the two pool/pPL highs cannot be named). Atk_MG: the target's `addi r27,r1,0x28`
+  + `mr r25,r27` before GetXZAngle = a gcse PRE insertion at the end of a block that ended before the first call; a
+  dead test there (`if (em->x38D == 0) t = ang;`) creates the edge but PREs a second frame address into a ghost
+  callee-saved register (288).
+
+### em3c flipped (em3cPartsBombControl 106 -> 0, zero code; em3c 47/47, `em3c.rel` byte-identical; 2026-09-10)
+
+- Harness /home/adityas/.cache/em3c_close (em29_3c copies with the paths rewritten; `tv.py em3c PartsBombControl v_x.py`,
+  `mdump.sh em3c/em3c -dG -dg -dl -dS`, `rtlc.py DUMP FUNC`; `slots.py` = the CORRECTED bucket model below; `OBJ=out/v_em3c_X.o
+  python3 mcmp.py em3c SYM` for the word diff of a variant). Both fixes are zero-code, no tag; the phantom-edge `#3` test
+  from the previous pass stays. Flip needed `asm(".comm common_em3c,52,4")` (0x34 COMMON block, make_rel error otherwise).
+- **The "20-28 missing insns" reading of the previous section was wrong: the spill-slot residue was the pseudo NUMBER of
+  `bomb`.** Facts (gcse.c `hash_expr_1`, rtl.def, machmode.def): `hash((plus:SI (reg R) (const_int C))) = PLUS(68) +
+  SImode(6) + (REG(54) << 7) + R + (CONST_INT(49) << 7) + C = 13258 + R + C`, bucket = hash % expr_hash_table_size, size =
+  (insns at gcse / 2) | 1 -- read it off the dump header `Expression hash table (N buckets, ..)`: ours is 237 (the old
+  model's "281 (562 insns)" never existed, and it hashed `bomb+12` as `p+308`: bomb = `p + 296` is its OWN pseudo, so
+  `bomb+C` hashes with bomb's number, not p's). `pre_delete` creates the reaching regs bucket by bucket (same-bucket ties in
+  insertion order), reload's `alter_reg` walks pseudos ascending, so the PRE'd address pseudos' spill slots follow bucket
+  order; the fp expressions `(plus (reg 31) D)` sit at fixed buckets, and the target's interleaving (`fp+88` after
+  `bomb+24`, `fp+120` after `bomb+64`) needs `31 + 88 - (B + 24)` in 9..11, i.e. B = bomb's pseudo in 84..87 with p = 84,
+  i = 85 (slots.py enumerates: S = 237 keeps P = 84, I = 85 and needs B in {86, 87}; no table-size change at all).
+  Pseudo numbers are declaration order of the routine-scope variables (em 82, w 83, p 84, i 85, n 86, j 87, k 88; a
+  variable declared inside the loop body gets its number after the body's temps: `bomb` was 97). Source: `Em3cPartsBomb*
+  bomb;` declared at routine scope right after `u32 i;` (before n/j/k: bomb = 86; after n also works). 106 -> 92 words,
+  and with the slots right the sum is the natural `spd.x*x + spd.y*y + spd.z*z` (the y-first order was compensating the
+  swapped slots). Rule: when two PRE'd address families interleave differently in the frame, compute the buckets with the
+  formula above before touching insn counts; the levers are the pseudo numbers (declaration order / scope) of the bases.
+- **pGS for a pG read behind a struct copy through a pointer (92 -> 0).** `p->worldPos = cen; if (pG->debug_mode == 8)`:
+  ours hoists the `pG` load above the copy's `stw` pieces (sched1 priority 7 vs the stores' 6; alias.c
+  `fixed_scalar_and_varying_struct_p`: `(mem/f (lo_sum R pG))` is a scalar at a non-varying address -- rtx_varies_p of a
+  LO_SUM looks only at the symbol -- and the pieces are `mem/s` at a pseudo address, so true_dependence says no), then
+  local-alloc/reload have `cen.y/cen.z` live across it (r10/r11, the high(pG) reload takes r8 = the whole r8/r9/r11 vs
+  r9/r10/r11 temp-register residue, and the sched2 orders follow). `pGS->debug_mode` (global.h: the struct-member view of
+  `pG`) makes the load `mem/s` -> dependence -> the load waits for the stores, cen.z dies before it and r9/r11 are reused
+  exactly as in the target. Same mechanism as the esp10/esp15 notes on global.h; check any `pG->` read that follows a
+  store through `this`/a member pointer when the target shows the `lis pG@ha` after those stores.
+- Reload temp-register facts confirmed on the way (reload1.c): `order_regs_for_reload` is per insn (registers with no
+  pseudo live across the insn first, in REG_ALLOC_ORDER r0, r9, r11, r10, r8, ...), `finish_spills` unions every insn's
+  picks into `spill_regs` in ascending regno order, and `allocate_reload_reg` hands them out round-robin from
+  `last_spill_reg` -- so one insn that needs r8 (all of r0/r9/r10/r11 holding live block pseudos) shifts the temp
+  registers of every later reload in the function. Find that insn with `Spilling for insn N. Spilling reg 8.` in the
+  -dg dump and remove the live pseudos there (here: the hoisted pG value).
