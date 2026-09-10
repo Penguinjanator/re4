@@ -13205,3 +13205,75 @@ paths rewritten: `mcmp.py UNIT [SYM]`, `tryv.py UNIT SYM variants.py`, `vapply.p
   - tcNextAdatPtr (2), editScreenDisp (11: the `extsh`/`subi` operands are `(subreg:HI (reg:SI))` so combine_regs
     would refuse the tie -- ours still shares r0/r11, the target r10; `int` temps are folded back), tvib_R0_VibLoopSet
     (32: the cse2 fresh-`lis V@ha` family, 8 loads share one high in the target -- the asm-high pair x8 would do it).
+
+### em2b / em39 eighth pass (em2b flipped: ShortRopeSet 3 -> 0, 121/121, `em2b.rel` byte-identical; em39 148 -> 150/153: R0_Init 16 -> 0, JumpUp3 4 -> 2; 2026-09-10)
+- Harness /home/adityas/.cache/em2b39_p8 (p7 copies with the paths rewritten; `sngcc/cc1plus` additionally prints, under
+  `LA_DEBUG=1` with `-fsched-verbose-2`, every ready-list entry as `uid(pP,wW,cC,dD,lL)` = INSN_PRIORITY, INSN_REG_WEIGHT,
+  class against the last scheduled insn, number of dependents, INSN_LUID -- the exact rank_for_schedule keys; `rtlc.py`,
+  `prio.py` copied from em3c_close; `v8_rope.py`/`v8_sweep.py`/`v8_ju3.py`/`v8_r0.py` = the variant files). DOL symbols
+  untouched (the `_vt.6cEsp*` renames in config/G4BE08/symbols.txt are the esp units' owners' work).
+- **em2bShortRopeSet 3 -> 0 (tagged #13): three keep-alive asms placed where their sched2 slots are free.** Facts read off
+  the ready lists (sched2, 2 insns/cycle, one lsu): after the SetChain call the target issues t21 {li r0, mr r5,r3}, t22 {li
+  r6,5, addi parts}, t23 {addi up, addi down}, t24 {addi at, li r7,100}, t25 {stfs x50, mr r3,r5 (a noop jump2 deletes)},
+  t26 {stw x58, addi r4}, t27 {stfs x48, --}, then one store per cycle. Rank = prio, [weight in sched1], class, dependents,
+  LUID; the three stores of call-crossing values (x50/x58/x48: TRUE link to the call = prio 8) lead, everything else is
+  prio 7, so an asm (prio 7 through its `=m` output, 7 dependents through the anti-deps of its call-clobbered input
+  registers) ready before t27 takes the `mr r3,r5`/`addi r4` slot. Recipe:
+  (1) A `"m"` INPUT of a prio-8 store anchors an asm after that store without raising its priority (`max(8, 1+7)`), but
+  adds a dependent, so x50/x58/x48 must get the SAME count (their sched2 rank is LUID among equals). Anchor without a
+  read: an `"=m"` OUTPUT on a different-mode view of the stored field (`*(u16*) &w->rope[1].x58`, `*(u32*) &x48`): the
+  output dependence makes the asm ready one cycle after the store, flow keeps the real store because `insn_dead_p`
+  compares MEMs with rtx_equal_p (mode included), and the asm's write is the write it has anyway.
+  (2) Pending-list budget: `pending_lists_length > 32` is tested at every STORE; in sched2 the asms sit early in the RTL
+  (sched1 issues them at t27-28), so their writes + `"m"` reads count against the 22 stores that follow: 3 pool loads + 3
+  stores + W + R + 21 <= 32 -> W + R <= 5. Three asms leave two `"m"` reads; a flush at the last store makes every store a
+  dependent of a prio-7 insn (all stores prio 8, t21-24 reshuffled).
+  (3) Dependents balance in sched2 (anti-deps to the next block's setters count): li0 (14) > `mr r5,r3` = li5 (6, LUID
+  mr first) > addis (5) = li100 (5, LUID addis first) needs readers(chain) = readers(five) = 1, readers(k100) =
+  readers(each addi) = 1 (a second asm reading k100 puts `li r7,100` before the addis). Operand DUPLICATES add refs
+  without dependents: parts x3 (refs 7: 14/40), up/down/at x2 (12/38), k100 x2 (8/26 = 3077) keep the local-alloc order
+  parts > up = down = at > k100 > five (8/38) > chain (8/48) with the lifetimes the asms leave (the parts store lands
+  after `addi r4` in sched1 -- both prio 7 w1, addi d3 vs store d2 -- so parts lives 2 units longer than up).
+  (4) The asm reading only zero/zf (r0/f31 are not re-set in the next block: 2 dependents) may be ready at t26: it ranks
+  below `addi r4` (d3) and `mr r3,r5` (d4) and fills t27's free slot; it takes the `"m"(x50)` read. Result: C = `"=m"(w->
+  x63C) : zero, zf, "m"(x50)`, A = `"=m"(u16 view of x58) : chain, parts x3, up x2, down x2`, B = `"=m"(u32 view of x48) :
+  at x2, k100 x2, five, g20, g08, g01`; statements in the target's store order with `x54` FIRST of the zero stores.
+- **Negative results on the way (do not repeat):** an asm whose `"=r"` output is `register .. asm("r31")` survives flow1
+  (a frame-pointer set is never dead before reload) and IS deleted by flow2 (dead after elimination) -- a sched1-only
+  keep-alive with no sched2 insn -- but the set makes alias.c drop r31's base value (`record_set` on the frame pointer),
+  so every frame store then conflicts with every pointer load (`lwz r3,0x4c4(r30)` sank below the setParent2 frame
+  stores: 35 words). `"=r"` outputs in call-clobbered registers (r12, f9) are dead at the next call and deleted by flow1.
+  A dead-store anchor (`"=m"` on a field stored later) is deleted by flow1 when the MEMs are rtx_equal; a pointer-based
+  view (`rp = (u8*) w + 1000; *(u32*) (rp + 216)`) is NOT folded into the asm MEM by combine, and `rp` becomes a
+  callee-saved pseudo. Pins on the six constants (r9/r11/r10/r8/r6/r7) give the pinned stores anti-dependents in sched1
+  (the next block re-sets every one of them) while the zero stores keep d2: non-uniform d breaks the LUID order.
+- **em2b flip:** `asm(".comm common_em2b,52,4")` and five `.data` objects made non-static (`em2b_r11e_pos`, the four
+  `PlClothAt` tables: `scope:global` in the module symbols -> ADDR16 fields hold A only; the split's `lbl_em2b_data_*`
+  names are not synced, so `make_rel --verify` is the check: it names the `.text` offsets of the S+A fields).
+- **em39_R0_Init 16 -> 0 (zero code):** the routine bytes `xFC, xFD, xFE, xFF` stored in EVERY switch arm of both
+  blocks (jump2 cross-jumps the identical tails: `li r0,4; b L`, case 4 straight into the store block). In their own
+  blocks the QI stores precede the subArc load (ours proves `0xFC..0xFF` disjoint from `0x378` -- memrefs_conflict_p runs
+  before true_dependence's QImode rule -- so a shared join block hoists the load), and the dying `xFF` store (zero's last
+  use in the arm, written LAST) leads the `xFE` one. The `do {} while (0)` barrier of block A is gone with it: the
+  argument moves after `lwz r11,subArc` are no longer all dependents of the barrier insn and come out `mr r3; addi r4;
+  li r7; lwz r5; li r8; lwz r6; li r9`.
+- **em39_R1_JumpUp3 4 -> 2 (tagged #13):** arm 2's `li r0,1` before `stfs f13,0x2c`: `int one = 1;` FIRST in the arm,
+  the four stores in the target order `x28.y, x28.z, x18, x28.x`, `asm("" : "=m"(w->x4) : "f"(py), "f"(zf), "f"(t))`
+  keeping every stored value alive (all stores w1, LUID order; the li (w1, smaller LUID) then beats them at equal prio 3),
+  and `em->xFF = one;` LAST -- a QI store placed before the stfs's in RTL becomes their predecessor (alias.c: a QImode
+  store may alias any later access) and is hoisted with them. Left (2): `lis r9,K374@ha` before `fmr f2,f1` at the Muku2
+  call. Both are prio 11 with 4 dependents in sched2; the fmr's LUID is smaller because sched1 ranks the result copy
+  (weight 0: f1 dies) above the `lis` (weight 1) at equal priority 11 (copy: 1 + the anti-dependent `lfs f1` (10); lis:
+  1 + lfs (2 + call)). An inline wrapper with the constant as a parameter is folded by cse, a tied `asm("" : "=f"(k) :
+  "0"(0.39269908f))` costs the same path length (link into an asm = 1), a `ry` pseudo for rot.y is folded by combine and
+  a laundered one adds a dependent to the fmr, a DF read of f1 keeps weight but not the dependents. Not found.
+- **em39_R1_Atk_MG (12, left):** gcse's `pre_insert` puts the `&b` (fp+40) recomputation at the END of the block that
+  ends in the switch (cse2 folds it to `mr r25,r28`); the target's `addi r27,r1,0x28; mr r25,r27` sit before the first
+  call, i.e. the original's block ended before GetXZAngle AND `&b` was computed in that block. `Vec* pb = &b` at the top
+  moves the occurrence (12), any dead test splitting the block (`em->x38D == 0`, `w->x8 == 0`, `w->gunPitch > 0.0f`) PREs
+  `&em->pos` as well (`mr r25,r29`, `mr r3,r25` in case 1: 90-94), an `em` launder after the call kills that PRE but also
+  the `&em->pos` pseudo (`addi r3,r31,0x94` everywhere: 94), the r31-clobber asm in case 0 / block 0: 27-116.
+- **em39RouteCk (14, left), numbers:** global-alloc priorities (`prio.py rc` on the -dl/-dg dumps, floor_log2(refs)*refs/
+  len): &a (pseudo 288, 3 sets = the PRE reaching reg) 4/74 = 0.108 > &em->pos (286) 4/106 = 0.075 > PI high (172)
+  3/178 = 0.017 > pPL high (287, 3 sets) 5/1096 = 0.009; the target needs &em->pos > &a and pPL > PI. pPL's REG_LIVE_LENGTH
+  (doubled: REG_EQUIV high) would need 3 more refs or PI's high a length above 330. em39JumpUpCk3 (20) not iterated.

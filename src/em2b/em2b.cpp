@@ -48,6 +48,10 @@ int GetWepDmVal(cEm* em, u32 a, int b);   // em10.h (not included: it pulls emwe
 extern void (*EmInitFunc)(cEm* em);   // game/em.cpp
 extern FootShadowTbl Em2b_fs_tbl;     // game/foot_shadow_tbl.cpp
 
+// The module's 0x34-byte COMMON block: uninitialised template statics of the original object,
+// merged into .bss by the REL link.
+asm(".comm common_em2b,52,4");
+
 // game/obj20.cpp
 extern "C" cObj* SetObaModel(cObj* parent, int partsNo, Vec* ofs, f32 rad, u8 type, f32 h);
 // COMPILER-DIFF #1: floats-first view for the call site whose `fmr f2` precedes `li r6` (Die_Event).
@@ -374,7 +378,7 @@ static EmAtkInfo em2b_atk_info[7] = {
     { 1000.0f, 8, 800, 0, 10, 0 },
 };
 
-static Vec em2b_r11e_pos = { -4390.0f, 0.0f, -480.0f };
+Vec em2b_r11e_pos = { -4390.0f, 0.0f, -480.0f };
 // Hand object the strangled player hangs on (plem2b_Strangle). A one-member struct so that every
 // store through the object reloads it.
 static struct {
@@ -390,7 +394,7 @@ static f32 em2b_cloth_max[10] = { 0.5f, 0.5f, 0.5f, 0.5f, 0.5f, 0.5f, 0.5f, 0.5f
 static f32 em2b_cloth_rate[10] = { 0.8f, 0.8f, 0.8f, 0.8f, 0.8f, 0.8f, 0.8f, 0.8f, 0.8f, 0.8f };
 
 // Collision volumes of the chain cloth (pl_cloth.h PlClothAt: parts pair, radius, offsets).
-static PlClothAt em2b_cloth_at[2] = {
+PlClothAt em2b_cloth_at[2] = {
     { 0, 4, 4, 1.0f, 300.0f, { 0.0f, -200.0f, 210.0f }, { 0.0f, 0.0f, 0.0f } },
     { 0, 4, 4, 1.0f, 300.0f, { 0.0f, -300.0f, 250.0f }, { 0.0f, 0.0f, 0.0f } },
 };
@@ -399,7 +403,7 @@ static PlClothAt em2b_cloth_at[2] = {
 static u8 em2b_rope_parts[8] = { 1, 2, 3, 4, 5, 0, 0, 0 };
 static u8 em2b_rope_up[8] = { 0xFF, 1, 2, 3, 4, 0, 0, 0 };
 static u8 em2b_rope_down[8] = { 2, 3, 4, 5, 0xFF, 0, 0, 0 };
-static PlClothAt em2b_rope_at[5] = {
+PlClothAt em2b_rope_at[5] = {
     { 0, 3, 3, 1.0f, 650.0f, { -70.0f, 0.0f, 0.0f }, { -70.0f, 0.0f, 0.0f } },
     { 0, 2, 3, 0.5f, 750.0f, { 70.0f, 0.0f, 0.0f }, { 70.0f, 0.0f, 0.0f } },
     { 0, 2, 2, 1.0f, 900.0f, { 70.0f, 0.0f, 0.0f }, { 70.0f, 0.0f, 0.0f } },
@@ -409,14 +413,14 @@ static PlClothAt em2b_rope_at[5] = {
 static u8 em2b_chain_parts[8] = { 1, 2, 3, 4, 5, 6, 7, 8 };
 static u8 em2b_chain_up[8] = { 0xFF, 1, 2, 3, 4, 5, 6, 7 };
 static u8 em2b_chain_down[8] = { 2, 3, 4, 5, 6, 7, 8, 0xFF };
-static PlClothAt em2b_chain_at[5] = {
+PlClothAt em2b_chain_at[5] = {
     { 0, 3, 3, 1.0f, 650.0f, { -70.0f, 0.0f, 0.0f }, { -70.0f, 0.0f, 0.0f } },
     { 0, 2, 3, 0.5f, 750.0f, { 70.0f, 0.0f, 0.0f }, { 70.0f, 0.0f, 0.0f } },
     { 0, 2, 2, 1.0f, 900.0f, { 70.0f, 0.0f, 0.0f }, { 70.0f, 0.0f, 0.0f } },
     { 0, 5, 5, 1.0f, 700.0f, { 70.0f, 0.0f, 0.0f }, { 70.0f, 0.0f, 0.0f } },
     { 0, 0xB, 0xB, 1.0f, 700.0f, { 70.0f, 0.0f, 0.0f }, { 70.0f, 0.0f, 0.0f } },
 };
-static PlClothAt em2b_chain_at2[5] = {
+PlClothAt em2b_chain_at2[5] = {
     { 0, 2, 3, 0.5f, 900.0f, { 0.0f, 0.0f, 150.0f }, { 0.0f, 0.0f, 150.0f } },
     { 0, 2, 2, 1.0f, 900.0f, { 0.0f, 0.0f, 150.0f }, { 0.0f, 0.0f, 150.0f } },
     { 0, 1, 1, 1.0f, 850.0f, { 0.0f, 0.0f, 150.0f }, { 0.0f, 0.0f, 150.0f } },
@@ -4545,39 +4549,71 @@ void em2bShortRopeSet(cEm2b* em)
     Vec pos;
     Vec b;
     Vec rot;
+    // COMPILER-DIFF: 13 -- the original issues the 25-store block in pure source order (no store carries a
+    // register death); ours needs every constant kept alive past its store.  The three keep-alives are
+    // placed where their sched2 slots are free: C reads x50 (ready after the first store, only r0/f31
+    // inputs so it ranks below `mr r3,r5`/`addi r4`), A writes a u16 view of x58 (output dependence:
+    // ready after the second store; a different mode keeps flow from deleting the real store), B a u32
+    // view of x48 (ready after the third).  Operand duplicates set the local-alloc ranks (refs):
+    // parts x3 > up/down/at x2 > k100 x2 > five > chain.
+    const u8* parts;
+    const u8* up;
+    const u8* down;
+    PlClothAt* at;
+    int five;
+    f32 g20;
+    f32 g08;
+    int k100;
+    f32 g01;
+    int zero;
+    f32 zf;
 
-    pos.x = 0.0f;
-    pos.y = 0.0f;
-    pos.z = 0.0f;
-    rot.x = 0.0f;
-    rot.y = 0.0f;
-    rot.z = 0.0f;
+    zf = 0.0f;
+    pos.x = zf;
+    pos.y = zf;
+    pos.z = zf;
+    rot.x = zf;
+    rot.y = zf;
+    rot.z = zf;
     chain = SetChain(ARC(0x11), ARC(0x12), &pos, &rot);
-    w->rope[1].pParts = em2b_rope_parts;
-    w->rope[1].x08 = 0;
-    w->rope[1].x0C = 0;
-    w->rope[1].x10 = 0;
-    w->rope[1].x14 = 0;
-    w->rope[1].pUp = em2b_rope_up;
-    w->rope[1].pDown = em2b_rope_down;
-    w->rope[1].pMax = 0;
-    w->rope[1].x2C = 0;
-    w->rope[1].x30 = 0;
-    w->rope[1].x34 = em2b_rope_at;
-    w->rope[1].x20 = 0;
-    w->rope[1].x24 = 0;
-    w->rope[1].x38 = 5;
-    w->rope[1].num = 5;
+    w->rope[1].x50 = zf;
     w->rope[1].x58 = em;
-    w->rope[1].x3C = 20.0f;
-    w->rope[1].x40 = 0.800000012f;
-    w->rope[1].x44 = 100;
-    w->rope[1].x48 = 0.0f;
-    w->rope[1].x50 = 0.0f;
-    w->rope[1].x4C = 0.100000001f;
+    w->rope[1].x48 = zf;
+    parts = em2b_rope_parts;
+    w->rope[1].pParts = parts;
+    up = em2b_rope_up;
+    w->rope[1].pUp = up;
+    down = em2b_rope_down;
+    w->rope[1].pDown = down;
+    at = em2b_rope_at;
+    w->rope[1].x34 = at;
+    five = 5;
+    w->rope[1].x38 = five;
+    g20 = 20.0f;
+    w->rope[1].x3C = g20;
+    g08 = 0.800000012f;
+    w->rope[1].x40 = g08;
+    k100 = 100;
+    w->rope[1].x44 = k100;
+    g01 = 0.100000001f;
+    w->rope[1].x4C = g01;
     w->pObj4C4 = (cObj*) chain;
-    w->rope[1].flags = 0;
-    w->rope[1].x54 = 0;
+    w->rope[1].num = five;
+    zero = 0;
+    w->rope[1].x54 = (cModel**) zero;
+    w->rope[1].x08 = (const u8*) zero;
+    w->rope[1].x0C = (const u8*) zero;
+    w->rope[1].x10 = (const u8*) zero;
+    w->rope[1].x14 = (const u8*) zero;
+    w->rope[1].pMax = (const f32*) zero;
+    w->rope[1].x2C = (const f32*) zero;
+    w->rope[1].x30 = (const f32*) zero;
+    w->rope[1].x20 = (const f32*) zero;
+    w->rope[1].x24 = (const f32*) zero;
+    w->rope[1].flags = zero;
+    asm("" : "=m"(w->x63C) : "r"(zero), "f"(zf), "m"(w->rope[1].x50));                                              // COMPILER-DIFF: 13
+    asm("" : "=m"(*(u16*) &w->rope[1].x58) : "r"(chain), "r"(parts), "r"(parts), "r"(parts), "r"(up), "r"(up), "r"(down), "r"(down)); // COMPILER-DIFF: 13
+    asm("" : "=m"(*(u32*) &w->rope[1].x48) : "r"(at), "r"(at), "r"(k100), "r"(k100), "r"(five), "f"(g20), "f"(g08), "f"(g01)); // COMPILER-DIFF: 13
     chain->setChain(&w->rope[1]);
     pos.x = -290.0f;
     pos.y = -162.949997f;

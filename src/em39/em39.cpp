@@ -877,23 +877,31 @@ static void em39_R0_Init(cEm39* em)
 
         em->setStatus(5);
         rtn = em->x38D;
+        // The routine bytes are stored in every arm (jump2 cross-jumps the identical tails): in their own
+        // blocks the QI stores precede the subArc load, and the dying `xFF` store leads the `xFE` one.
         switch (rtn) {
         case 0:
         default:
             rtn = 0x26;
-            break;
-        case 1:
-            rtn = 4;
-            break;
-        case 4:
-            break;
-        }
-        do {   // LOOP_END barrier: the routine bytes are issued before the MotionSetCore argument block
             em->xFC = one;
             em->xFD = rtn;
             em->xFE = zero;
             em->xFF = zero;
-        } while (0);
+            break;
+        case 1:
+            rtn = 4;
+            em->xFC = one;
+            em->xFD = rtn;
+            em->xFE = zero;
+            em->xFF = zero;
+            break;
+        case 4:
+            em->xFC = one;
+            em->xFD = rtn;
+            em->xFE = zero;
+            em->xFF = zero;
+            break;
+        }
         arc11 = em->subArc;
         MotionSetCore(em, MOTION(em), PL_ARC_PTR(arc11, 0x73), (int) PL_ARC_PTR(arc11, 0x74), 0, 1, 0);
     } else {
@@ -906,22 +914,28 @@ static void em39_R0_Init(cEm39* em)
         default:
             em->xFC = one;
             em->xFD = 4;
+            em->xFE = zero;
+            em->xFF = zero;
             break;
         case 1:
             em->xFC = one;
             em->xFD = 4;
+            em->xFE = zero;
+            em->xFF = zero;
             break;
         case 2:
             em->xFC = one;
             em->xFD = no;
+            em->xFE = zero;
+            em->xFF = zero;
             break;
         case 3:
             em->xFC = one;
             em->xFD = no;
+            em->xFE = zero;
+            em->xFF = zero;
             break;
         }
-        em->xFF = zero;
-        em->xFE = zero;
         MotionSetCore(em, MOTION(em), ARC(0xF5), 0, 0, 1, 0);
     }
     MotionMoveF(em, 0);
@@ -2590,11 +2604,17 @@ static void em39_R1_JumpUp3(cEm39* em)
             zf = 0.0f;
             k19 = 18.0f;
             py = t * k19;
-            w->x28.x = zf;
-            w->x28.y = py;
-            w->x28.z = zf;
-            w->x18 = t;
-            em->xFF = 1;
+            {
+                // COMPILER-DIFF: 13 -- the `li r0,1` precedes the four stores: with the values kept alive
+                // past the stores (no store dies) the block is in LUID order, and the `1` is set first.
+                int one = 1;
+                w->x28.y = py;
+                w->x28.z = zf;
+                w->x18 = t;
+                w->x28.x = zf;
+                asm("" : "=m"(w->x4) : "f"(py), "f"(zf), "f"(t)); // COMPILER-DIFF: 13
+                em->xFF = one;
+            }
         }
         PSMTXRotRad(m, 'y', GetXZAngle(&em->pos, &w->jumpPos));
         TransMatrix(m, &em->pos);
