@@ -207,8 +207,8 @@ int cTexSys::TexRegist(TEXPalette* tpl, TexAnm* anm, u8 id, u32 owner, int clamp
             }
         }
         if (lod_enable) {
-            hdr = desc->textureHeader;
-            GXInitTexObjLOD(obj, 0, 0, (f32) hdr->minLOD, (f32) hdr->maxLOD, hdr->LODBias, 0, hdr->edgeLODEnable, 0);
+            TEXHeader* h = desc->textureHeader;
+            GXInitTexObjLOD(obj, 0, 0, (f32) h->minLOD, (f32) h->maxLOD, h->LODBias, 0, h->edgeLODEnable, 0);
         }
     }
     PSMTXIdentity(w->mtx);

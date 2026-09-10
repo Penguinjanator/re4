@@ -10072,3 +10072,67 @@ output to the installed compiler; NOTE mk.sh must rm the insn-*.o objects or a p
   RouteCk 33 (pPL/RO highs and &plPos/&em->pos pairs swapped), set2ndBattle 16 (the `w`-death: `asm("" : "=r"(dmy) :
   "r"(w))` after the block gives the store order but swaps em/w r29/r30), JumpUpCk3 24, JumpUp3 20, CatchCk/KickHitCk
   18, R0_Init 17, ArrowFire 13, T_LongAtk/Atk_MG 12, GetCliffPos 12, SlantCk 11, T_JumpAtk 10 not iterated this pass.
+
+### DOL sweep 9, mid-gap units (obj1b Matching; texture 12 -> 13/14, cam_ctrl 74 -> 75/84, cam_extra 32 -> 33/43 with the Binocular ctor 67 -> 31 words, model drawBoundingBox 39 -> 32; 2026-09-10)
+
+- Harness /tmp/dol9 (dol8 copies with the paths rewritten: `mcmp.py`, `tryv.py UNIT SYM variants.py` (`STRIP=1` for
+  STRIP_UNUSED units), `vapply.py`, `sbs.sh UNIT SYM [OBJ]`, `dump.sh UNIT -dX` with `SRC_OVERRIDE`, `rtl.py DUMP FUNC`).
+- **Reassigned pointer variable vs a block-local one is a whole-function register lever** (texture TexRegist 91 -> 0):
+  `hdr = desc->textureHeader;` reassigned inside `if (lod_enable)` made `hdr` a two-set global pseudo (r12 in both
+  places); the original's second load is a block-local `TEXHeader* h` (local-alloc'd r12 in the LOD block). With one
+  pseudo less in the loop the local-alloc order of the LOD block's qtys (two fpmem loadaddrs, two QI bytes) changed
+  enough that the second loadaddr took r30 (`mr r30,r10`: `this` is dead by then, r9/r11/r10 taken), which is the
+  "dead zero copy occupying the 10th callee-saved GPR" of the earlier note, and the `clamp == 0` compare then had no
+  free callee-saved GPR and went to cr4 (`mfcr r12` prologue). Eight passes had read that as a compiler difference;
+  the lever is only "one variable per load". Left: DataLoad (6 words: the ofsId/ofsTpl/ofsAnm temporaries r9/r11/r0
+  vs r0/r9/r0 -- a local-alloc fake-lifetime tie decided by the sched1 position of the third `lwz`; statement orders,
+  u32/u8* bases, `const` locals and do-while barriers tried).
+- **Two `getPartsPtr` results in a register-sized pointer array** (cam_ctrl StartLookDownEm 12 -> 0, cam_extra
+  CameraScope ctor 37 -> 0, CameraBinocular ctor part): `cModel* p[2]; p[0] = pPL->getPartsPtr(0x20); p[1] =
+  pPL->getPartsPtr(0x21); PSVECAdd(&p[0]->worldPos, &p[1]->worldPos, ..)`. The 8-byte array is a DImode pseudo; its two
+  halves are set as subregs (`mr r28,r3` / `mr r29,r3` into a consecutive callee-saved PAIR, never folded into the
+  `addi r4,rX,112` because combine does not substitute through a subreg set), which is the "p1 kept callee-saved,
+  `mr r28,r3; addi r4,r28,112`" shape (and the `stmw r27` with an unused r31 in StartLookDownEm: the DI pseudo's
+  allocation). Two separate `cModel* p0, *p1` locals fold both copies into the addis. Also fixed there: `worldPos`, not
+  `pos`.
+- **A value-select `if/else` (or ternary) ends cse's extended block at its join** (obj1b obj1bHitCk 36 -> 0, unit
+  Matching): `no = part->partsNo ? part->partsNo - 1 : 0;` before `getPartsPtr(no)` -- jump1 still hoists the else-set
+  (`li r25,0; cmpwi; beq; addi`, the same CFG as `no = 0; if (..) no = ..`), but cse1 stops at the select's join, so the
+  later `&obj->pos` occurrences (written literally at PSMTXMultVec / VECNormalize / PSVECAdd, no `Vec* p` local) are fresh
+  and gcse PREs them: the reaching-reg copy `mr r26,r28` lands right after the following `bl getPartsPtr` (before the
+  PSMTXInverse parameter loads) and VECNormalize's `.y/.z` reads stay `obj`-relative. With `no = 0; if (partsNo) no =
+  ..;` cse's skip-blocks path carries the top block's `&obj->pos` pseudo into the arm and folds every later occurrence
+  (the documented "90 placements tried" residue). A dead `do {} while (0)` at that point gives the same PRE shape but
+  reorders the neighbours (6 words) -- prefer the select.
+- **Chain pointer separate from the loop pointer** (model drawBoundingBox 39 -> 32): the eight `VecSet(c, ..); c++;`
+  corner stores use a caller-saved per-statement register (`addi r9,r1,N` + `.y/.z` through r9, `.x` frame-direct) only
+  when that `c` does not also drive the following `PSVECAdd` loop (`Vec* d = v; do {..} while (d <= end)` with its own
+  variable); one variable for both is a multi-set pseudo live across the calls (callee-saved r30 for the whole chain).
+  Left: sx/sy f9/f10 (local-alloc order), the last corner through `mr r9,r31` (a copy of `end` that our cse folds into
+  the store base), `mr r30,r24` placement, q-address callee-saved numbering.
+- cam_extra CameraBinocular ctor (67 -> 31): the `p[2]` array plus `up.x/y/z = pPL->mat[..]` written BEFORE `param.pos
+  = c` (the target loads pPL first and interleaves the copy with the `up` stores; a pl local does not do it). Left (31):
+  (a) the else arm's `addi r30,this,164; addi r29,this,176` + PRE copies `mr r26,r30; mr r25,r29` are issued BEFORE the
+  first getPartsPtr call in the target and after it in ours -- the `&param.pos/.at` pseudos cross calls, so sched1 is
+  free to sink them (no `sched_before_next_call` pin), and the PRE insertions at the end of the else-arm block are
+  hoisted next to them; `Vec* pp = &param.pos; Vec* pa = &param.at;` at the arm top compiles to the same RTL (cse
+  folds them into the same pseudos); (b) the x100..x124 constant stores: the target issues pure source order, ours the
+  last store of each FPR first -- and the em2b `asm("" : "=r"(dmy) : "f"(k)..)` launder does NOT apply when a call
+  follows immediately (a call-clobbered hard-register `dmy` is deleted as dead before sched1, the sched dump shows no
+  asm), while a volatile input-only asm is a barrier that pushes the interleaved `id.init` argument moves below the
+  stores (35 words).
+- Negative results this pass (do not retry the same forms): cam_ctrl StartLookDownEm dead tests on p1 (`if (p1->serial
+  == 0) p0 = 0;`, `s = p1->serial` before / `p1->serial != s` after the calls: 10-17 words -- the p1/em/p0 allocation
+  order differs from the target's; the array form was the answer); texture DataLoad (12 statement/base forms, above);
+  model matBlend (`addi r0,r31,60; mr r28,r0` for `wm = p->worldMat`: `(MtxPtr) &p->worldMat`, `&p->worldMat[0]`,
+  `Mtx*` local, `u8*` arithmetic, `cCoord*` view, `wm` reassigned in the if-block or declared outside the loop, reads via
+  `wm` -- all 12 or worse; the target's copy-from-a-temp has no source form found); model debugSkeletonDisp (4: the
+  loop-hoisted 10.0/1.0 highs r21/r22 in gcse hash-bucket order, the ErrorHandler `.LC` family); mercenaries
+  MercSysSetSaveWork (the three OR terms in all 6 orders, `u32` locals, `w |=` chain: 11-28) and MercSysGetSaveWork
+  (`k = i*15 + j*3` local, `k += 3` loop counter: 39-56; the three flagCk givs r4/r6/r5 vs r12/r5/r4 and `mr r4,r11`
+  are loop.c giv order); db_menu move (the dead `andi. r11,r9,1` + reload of `cursor`: dead tests `if (cursor & 1)
+  odd = 1;` in one- and two-set forms, `color = 0` (a live variable's dead store), volatile reloads, a `menuEven(t)`
+  inline returning `!(cursor & 1)`: 26-33 -- our cse folds the second `& 1` into the first (`not r0,r0`) and jump1's
+  store-flag/branch folding removes the dead test before flow; the target's reload needs an ebb break there that no
+  form gave); title titleDebugMenu (`no`/`room` r31/r30: `int no = 0`, a dead `if (no == 99)` test, `room` merged into
+  `no` (143)); card errorDisp (mesNo/step r29/r31 global-alloc order, not attempted beyond reading).

@@ -1422,6 +1422,7 @@ void drawBoundingBox(Mtx m, ModelBound* bound)
     Vec v[8];
     Vec q[4];
     Vec* c;
+    Vec* d;
     Vec* end = &v[7];
     int i;
     f32 sx = bound->size.x;
@@ -1444,11 +1445,11 @@ void drawBoundingBox(Mtx m, ModelBound* bound)
     VecSet(c, -sx, sy, sz);
     c++;
     VecSet(c, sx, sy, sz);
-    c = v;
+    d = v;
     do {
-        PSVECAdd(c, &bound->center, c);
-        c++;
-    } while (c <= end);
+        PSVECAdd(d, &bound->center, d);
+        d++;
+    } while (d <= end);
     PSMTXMultVecArray(m, v, v, 8);
     for (i = 0; i < 6; i++) {
         q[0] = v[ptbl[i][0]];

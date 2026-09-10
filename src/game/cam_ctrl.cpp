@@ -2160,14 +2160,11 @@ void CameraControl::endPushObject()
 void CameraControl::StartLookDownEm(void* em)
 {
     Vec c;
-    cModel* p0;
-    cModel* p1;
+    cModel* p[2];
 
-    // worldPos (+0x70), not pos; the target keeps p1 in a callee-saved register (`mr r28,r3;
-    // addi r4,r28,112`) where ours folds the +0x70 into the call result (open).
-    p0 = pPL->getPartsPtr(0x20);
-    p1 = pPL->getPartsPtr(0x21);
-    PSVECAdd(&p0->worldPos, &p1->worldPos, &c);
+    p[0] = pPL->getPartsPtr(0x20);
+    p[1] = pPL->getPartsPtr(0x21);
+    PSVECAdd(&p[0]->worldPos, &p[1]->worldPos, &c);
     PSVECScale(&c, &c, 0.5f);
     extra = new (extra_buf) CameraLookDownEm(em, &c);
     state = 0xD;

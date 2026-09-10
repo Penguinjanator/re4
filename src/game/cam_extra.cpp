@@ -247,11 +247,12 @@ CameraScope::CameraScope(Vec* pos, Vec* at)
         pos_ofs = *pos;
         PSVECSubtract(at, pos, &dir);
     } else {
-        cModel* p0 = pPL->getPartsPtr(0x20);
-        cModel* p1 = pPL->getPartsPtr(0x21);
+        cModel* p[2];
         Vec* d;
 
-        PSVECAdd(&p0->worldPos, &p1->worldPos, &pos_ofs);
+        p[0] = pPL->getPartsPtr(0x20);
+        p[1] = pPL->getPartsPtr(0x21);
+        PSVECAdd(&p[0]->worldPos, &p[1]->worldPos, &pos_ofs);
         PSVECScale(&pos_ofs, &pos_ofs, 0.5f);
         d = &dir;
         d->x = pPL->mat[0][2];
@@ -546,14 +547,15 @@ CameraBinocular::CameraBinocular(Vec* pos, Vec* at, void* a, void* b)
         this->up.z = 0.0f;
     } else {
         mode = 1;
-        cModel* p0 = pPL->getPartsPtr(0x20);
-        cModel* p1 = pPL->getPartsPtr(0x21);
-        PSVECAdd(&p0->worldPos, &p1->worldPos, &c);
+        cModel* p[2];
+        p[0] = pPL->getPartsPtr(0x20);
+        p[1] = pPL->getPartsPtr(0x21);
+        PSVECAdd(&p[0]->worldPos, &p[1]->worldPos, &c);
         PSVECScale(&c, &c, 0.5f);
-        param.pos = c;
         up.x = pPL->mat[0][2];
         up.y = pPL->mat[1][2];
         up.z = pPL->mat[2][2];
+        param.pos = c;
         PSVECAdd(&c, &up, &param.at);
         {
             Vec* u = &this->up;

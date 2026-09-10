@@ -1,6 +1,3 @@
-// Left: obj1bHitCk (36 words) keeps `Vec* p = &obj->pos` as a separate callee-saved copy
-// (`mr r26,r28` after getPartsPtr) in the original -- the gcse PRE copy shape (COMPILER-DIFF #3
-// family); ours folds every p use into the argument pseudo.
 #include "atari.h"
 #include "light.h"
 #include "obj.h"
@@ -576,19 +573,15 @@ int obj1bHitCk(cObjSpear* obj)
             Mtx inv;
             Vec v;
             cModel* parts;
-            Vec* p = &obj->pos;
 
-            no = 0;
-            if (part->partsNo) {
-                no = part->partsNo - 1;
-            }
+            no = part->partsNo ? part->partsNo - 1 : 0;
             parts = em->getPartsPtr(no);
             PSMTXInverse(parts->mat, inv);
-            PSMTXMultVec(inv, &part->pos, p);
+            PSMTXMultVec(inv, &part->pos, &obj->pos);
 #line 825 "D:/Bio4/Prog/obj1b.cpp"
-            VECNormalize(p, &v);
+            VECNormalize(&obj->pos, &v);
             PSVECScale(&v, &v, -50.0f);
-            PSVECAdd(p, &v, p);
+            PSVECAdd(&obj->pos, &v, &obj->pos);
             len = SQRTF(obj->pos.x * obj->pos.x + obj->pos.z * obj->pos.z);
             obj->rot.x = -atan2f(-obj->pos.y, len);
             obj->rot.y = atan2f(-obj->pos.x, -obj->pos.z);

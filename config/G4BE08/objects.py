@@ -1538,3 +1538,8 @@ MATCHING.update({
 MATCHING.update({
     "game/espgen10.cpp": True,  # EspgenDataSet: EspEvModList high/low as pinned r9/r11 asm insns + pinned r9 index (#13: REG_EQUIV high and mem never allocated in the original)
 })
+
+# DOL sweep 9 (2026-09-10)
+MATCHING.update({
+    "game/obj1b.cpp": True,  # obj1bHitCk: `no = partsNo ? partsNo - 1 : 0` ends cse's ebb at the select's join, so the later `&obj->pos` occurrences are PRE'd into the post-getPartsPtr copy
+})
