@@ -1257,7 +1257,7 @@ static void r201_throwBonbe(int no)
     case 1:
         bonbe = r221_work.p->bonbe[1];
         atNo = 5;
-        eff0 = 2;
+        asm("li %0,2" : "=r"(eff0)); // COMPILER-DIFF: 2 (opaque set keeps the (u8) eff0 masks)
         RsfSet(G_ROOM_ID, 1);
         eff1 = 7;
         eff2 = 3;

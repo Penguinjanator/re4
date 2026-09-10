@@ -1700,6 +1700,7 @@ void ResultScreen::highscore(int score)
 {
     int digit[7];
     int i;
+    register int pin asm("r28"); // COMPILER-DIFF: candidate #17 (see below)
 
     IdTexRelease(4);
     IdSys.roomInit();
@@ -1709,6 +1710,12 @@ void ResultScreen::highscore(int score)
         digit[i] = score % 10;
         score /= 10;
     }
+    // COMPILER-DIFF: candidate #17 -- the original allocates `score` to r28 although r31 is free,
+    // i.e. r28 was in global.c's regs_used_so_far (pass 0) when the highest-priority pseudo was
+    // allocated; nothing in the final code uses r28 there. Two codeless asms make r28 ever-live in
+    // the gap where `score` is dead; the loop's IdSys high then falls to r31 in pass 1.
+    asm("" : "=r"(pin));
+    asm("" : : "r"(pin));
     score = 0;
     for (i = 6; i >= 0; i--) {
         IdUnit* u = IdSys.unitPtr(i + 1, 0x28);

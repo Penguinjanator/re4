@@ -760,7 +760,8 @@ static u8 em35ClothUp2[2] = { 0xFF, 0x19 };
 static u8 em35ClothDp2[2] = { 0x1A, 0xFF };
 static f32 em35ClothMax2[2] = { 0.3f, 0.4f };
 static f32 em35ClothRate2[2] = { 0.8f, 0.8f };
-static PlClothAt em35ClothAt2[5] = {
+// em35ClothAt2/3 are the only globals among the cloth tables (REL ADDR16 field 0 = global symbol).
+PlClothAt em35ClothAt2[5] = {
     { 0, 4, 4, 1.0f, 120.0f, { 0.0f, -100.0f, -30.0f }, { 0.0f, 0.0f, 0.0f } },
     { 0, 2, 3, 0.3f, 130.0f, { 0.0f, 0.0f, 0.0f }, { 0.0f, 0.0f, 0.0f } },
     { 0, 5, 5, 1.0f, 130.0f, { 0.0f, 0.0f, 0.0f }, { 0.0f, 0.0f, 0.0f } },
@@ -772,7 +773,7 @@ static u8 em35ClothUp3[2] = { 0xFF, 0x0B };
 static u8 em35ClothDp3[2] = { 0x0C, 0xFF };
 static f32 em35ClothMax3[2] = { 0.3f, 0.4f };
 static f32 em35ClothRate3[2] = { 0.8f, 0.8f };
-static PlClothAt em35ClothAt3[5] = {
+PlClothAt em35ClothAt3[5] = {
     { 0, 9, 9, 1.0f, 120.0f, { 0.0f, -100.0f, -30.0f }, { 0.0f, 0.0f, 0.0f } },
     { 0, 7, 8, 0.3f, 130.0f, { 0.0f, 0.0f, 0.0f }, { 0.0f, 0.0f, 0.0f } },
     { 0, 0xF, 0xF, 1.0f, 130.0f, { 0.0f, 0.0f, 0.0f }, { 0.0f, 0.0f, 0.0f } },
@@ -3050,13 +3051,15 @@ static void em35_R1_U_AtkSpear(cEm35* em)
         Vec v;
         f32 ang;
 
+        // blendB before atkHit: the switch register (known 0) then dies at the `stb`, which is the store
+        // sched1 issues right after blendA; blendB keeps weight 0 and sinks before v.y.
         w->blendA = 10;
+        w->blendB = 0;
         w->atkHit = 0;
         w->blendRate = 0.0f;
         v.x = -87.72f;
         v.y = 0.0f;
         v.z = 678.9f;
-        w->blendB = 0;
         PSMTXMultVec(em->mat, &v, &v);
         ang = Muku(&v, &pPL->pos, em->rot.y, PI);
         if (ang > 0.0f) {

@@ -607,6 +607,14 @@ LINKONCE_DROP = {
         "create__t8cManager1Z6cLight",
         "create__t8cManager1Z6cLightiUl",
     ],
+    # r22c.cpp includes light.h but the original object only carries the cManager<cObj>/<cEm> copies.
+    "st2_4/r22c.cpp": [
+        "log__t8cManager1Z6cLightPCce",
+        "countActiveWork__t8cManager1Z6cLight",
+        "create__t8cManager1Z6cLighti",
+        "create__t8cManager1Z6cLight",
+        "create__t8cManager1Z6cLightiUl",
+    ],
 }
 
 # Units whose compiled object replaces the split object in the REL link.
@@ -620,6 +628,7 @@ MATCHING = {
     "st2_2/em_wrap.cpp": True,
     "st2_3/em_wrap.cpp": True,
     "st2_4/em_wrap.cpp": True,
+    "st2_4/r22c.cpp": True,
     "st4_0/em_wrap.cpp": True,
     "st1_2/r10d.cpp": True,
     "st1_2/r10e.cpp": True,
@@ -746,6 +755,7 @@ MATCHING = {
     "em3a/em3a.cpp": True,
     "em23/em23.cpp": True,
     "em2c/em2c.cpp": True,
+    "em35/em35.cpp": True,
     "em36/em36.cpp": True,
     # weapon modules (src/wepXX/wepXX.cpp, the whole REL)
     "wep00/wep00.cpp": True,

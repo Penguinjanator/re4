@@ -4478,7 +4478,7 @@ target) stays unresolved and `make_rel` then fails with "undefined symbol".
     blocks), em22_R1_Jump (`fmr f12, f1` copy of the getFloor result), em22DirMatrix (f0/f13 naming of
     the tilt blend), em22ParaSetMotWait/Atk (em/i r30/r29 swap), em22ParaSetMotAtkHit (arm order of
     the i == 1 / i == 2 bodies), em22FootSeControl (em/w r30/r31 swap).
-- em35 (110/112 byte-identical, not Matching; include/em35.h, src/em35/em35.cpp, 2026-09): the
+- em35 (Matching 112/112 since 2026-09-10, see "em35 flipped" at the end; was 110/112; include/em35.h, src/em35/em35.cpp, 2026-09): the
   two-form Regenerator-like enemy (0xC9C0, 113 functions, .data 0x868 / .rodata 0x8A0 equal). Left:
   em35_R1_AtkSpear (5 words: the blendA/atkHit/blendRate/blendB/Vec store order, all 5040 permutations
   tried) and em35_R1_Critical (10 words: the `lfs f2` Muku argument and the `lis`/`fmr f2, f1` order
@@ -10269,3 +10269,175 @@ stmt.c/jump.c and confirmed with cc1plus probes:
   match the ELSE kind-0 body whole (+14 insns, 74 diff lines vs 50 without the if).  The original merged the whole
   body (longest/other-candidate match first) -- COMPILER-DIFF 6 (cross-jump policy).  if/switch, `!=`, default-first
   and `return` forms all give the same partial merge; not reproducible from source.
+
+### Stage rooms, never-iterated units pass 3 (r22c Matching 50/50; r221 throwBonbe 20 -> 18; r216/r22a/r11b/r21a/r224/r120 mechanisms read; 2026-09-10)
+
+- Harness /tmp/rooms_c5 (rooms_c4 + deadtest copies with the paths rewritten; `tryv.py MOD/UNIT FUNC variants.py`,
+  `vapply.py`, `lr.sh VARIANT.cpp FUNC REGEX` (r221 only), `mdump.sh MOD/UNIT -dX` needs `SRC_OVERRIDE=src/st2/rNNN.cpp`
+  for the stage rooms (the unit source lives in src/st1|st2/, not src/<mod>/), `sbs.sh MOD/UNIT SYM [OBJ]`).
+- mcmp's `fn_<mod>_XXXX: missing` row for a room that includes light.h is the nameless 0x3B8 cManager<cLight> block
+  (r226, Matching, shows the same row): 36/38 in r221 and 12/14 in r11b are really 37/38 and 13/14.
+- **COMPILER-DIFF candidate #17: global.c pass 0 `regs_used_so_far` (r22c ResultScreen::highscore 10 -> 0, unit
+  Matching).** The target allocates the 14-ref `score` to r28 while r31 is free and the 3-ref loop high `IdSys@ha`
+  gets r31: `find_reg` pass 0 only hands out registers already in `regs_used_so_far` (local-alloc's picks +
+  `regs_ever_live`), pass 1 takes the first free one in REG_ALLOC_ORDER (r31 downwards). Local-alloc never uses r31
+  (find_free_reg sets `used` for HARD_FRAME_POINTER_REGNUM), so with `this` (r29) and the bb0 high (r30) local, the
+  first global pseudo gets r31 in ours; in the original r28 was ever-live before global-alloc. Zero-code
+  reproduction: `register int pin asm("r28"); asm("" : "=r"(pin)); asm("" : : "r"(pin));` in the gap where `score`
+  is dead (between the digit loop and `score = 0`): r28 is then used-so-far and conflict-free, `score` takes it in
+  pass 0, `i`/the digit pointer take r29/r30 in pass 0 (their local predecessors are dead) and the loop high falls
+  to r31 in pass 1. Placing the pair after `score = 0` (17 words) makes r28 conflict with `score`. No natural
+  source form found (a separate `found` flag still sends the param pseudo to r31 in pass 1); a `found`-flag source
+  with the ORIGINAL's local-alloc choosing r28 for something invisible is the likely truth. Also needed for the
+  flip: `LINKONCE_DROP["st2_4/r22c.cpp"]` (light.h included, no cLight block in the original object; the .o was
+  0x3B8 too big and the REL check failed until the drop; force the recompile -- the config is not a ninja dep).
+- **Live lengths are POST-sched1 numbers** (r221 throwBonbe eff2 window): haifa `schedule_insns` rewrites
+  REG_LIVE_LENGTH from the scheduled order (`sched_reg_live_length`), so moving `eff2 = K` among the arm's free `li`s
+  changes nothing unless the schedule changes (mot0/mot1 before eff2 in all four arms: 282 in every variant). The
+  7th-ref dead test `if (eff2 == 0) atNo = 0;` at the tail is PRE'd as a `compare` expression to the end of the join
+  block (eff2 is never re-set) and sched1 issues it in the first free slot after `mr k1,r3` -> 290 whatever precedes
+  it; a memory operand (`eff2 == (int) bonbe->be_flag`) pins it after the preceding call (after `SceAtSetEnable(atNo, 1)`: 308, in the window)
+  but the adjacent jump splits the join block and the PRE'd `lis`/`clrlwi`/`cmpwi cr4` all move to the second
+  sub-block (64-129 words), and a PRE'd compare costs the extra CR save word. Applied only the #2 opaque
+  `asm("li %0,2" : "=r"(eff0))` (20 -> 18); the r21/r22 tie stays.
+- **r216 cR216Pole::close (2, tie read off sched1)**: at t=4 the lsu takes the pool `lfs 0.0` (prio 5) so `stfs ang.y`
+  (prio 3) waits while `addi r4,&ang` (iu2, prio 3) issues; sched2 then keeps that LUID order (both class 3, one
+  dependent each). The stfs can only lead if the r4 setter is not ready before t=6 or the 0.0 load is elsewhere --
+  no source form does either without changing the bytes (`open()` has the same shape and the target's order there).
+- **r22a RopeMove (4)**: the word-8 template load leads in ours because it kills the `addi` base (weight 0 vs +1);
+  every way of keeping the base alive (`asm("" :: "r"(&tbl))` after the copy / KeyStop / U32Set, a `const Vec*`
+  local, a tied dummy) costs 15-109 words -- the asm is a barrier for the following free insns. Left.
+- **r11b R11bInit (14)**: sched2 ranks `lwz r7,rot@l` at 29 through TWO alias chains -- `[r29+8]` (pos words) vs the
+  rodata loads and `[r1+0x20]` vs `[r30+4]` -- because r29/r30 are hard registers set twice in the function
+  (`lis r29,pPL@ha` / `addi r29,r1,16`; `addi r30,r1,32` / `addi r30,r1,48`): alias.c `record_set` drops a hard
+  register's base on its second set, so every frame store through them conflicts with everything. The target's
+  order (`addi r9; addi r8` at clock 3, `lwz r7` at clock 7, word 4 before word 8) is what our dump gives when both
+  chains are absent -- the ORIGINAL's sched2 knew the bases although the same registers are set twice there too
+  (same alias.c family as the r119 Init note). Not source-fixable.
+- **r21a FallRoofDie (66)**: the target keeps `&obj->pos` in ONE pseudo (r28, `Vec* op = &obj->pos` shape) and PRE-copies
+  `&camAt` (`mr r27,r29`) and the inline's `&v` (`mr r26,r30`) at the end of bb 1 (after SndCall); ours also inserts
+  the three copies at the end of bb 1 (-dG: `PRE/HOIST: end of bb 1` for `(plus fp 32)`, `(plus fp 48)`, `(plus obj
+  148)`) but the `&camAt` copy is scheduled up to the block move (`mr r28,r9`, its source dies) while the target's
+  stays behind the call (its source r29 is the callee-saved block-move base). `Vec* op`/`Vec* pa = &camAt` locals:
+  61/59/54 words (op_pa: r28 = &camAt directly, no copy, but the target HAS the copy). The 0.0 -> GPR (`lwz r28`) of
+  the 10-loop follows only once r28 is a used-so-far GPR free across that loop (pass 0), i.e. after this copy
+  structure matches. Left.
+- **r224 reva_common_move (32)**: an opaque `asm("lfs %0,%1" : "=f"(zero) : "m"(0.0f))` does load the pool word (same
+  .LC entry) but the "m" operand is printed as `0(r9)` after an `addi r9,r9,.LC@l` (no lo_sum form) and loop.c does
+  not hoist an ASM_OPERANDS insn (`lis; addi; lfs` inside the loop, 32-38 words). The DOL-sweep recipe (a top-level
+  asm `.rodata` word + `lis %0,SYM@ha` / `lfs %0,SYM@l(%1)` pairs) would need all three 0.0 loads rewritten. Left.
+- **r120 R120Event (114)**: both `beq` skip jumps target the tail label (LABEL_NUSES 2), so cse1 can neither follow
+  nor skip there in the original either (`cse_end_of_basic_block` requires `LABEL_NUSES == 1` for both paths); the
+  tail's `lwz pG@l(r31)` is the PRE'd bb-0 high used directly (no cse2 re-materialisation = the #3/cse2 family), and
+  the inner block's fresh `lis r4; addi r4` for the SAME string label (rodata_1224 twice) means the original did not
+  PRE the string high while ours does (`addi r4,r29,308` twice). Restructuring with a goto cannot reduce the label's
+  uses. Left.
+- r225 operateCrank / SceElevator_r225, r213 (StatusSetChain/EventSwitchMain), r10c not iterated this pass.
+
+### em35 flipped (112/112, module Matching) + em2d JumpAtk / CamouflageMove mechanisms (em2d 124/129 unchanged; 2026-09-10)
+- Harness /tmp/em35_2d (em_one2 + em2d_p5 copies with the paths rewritten; `variants.py MOD SUBSTR v_x.py` for module units
+  (the copied `tryv.py` is the DOL version: no `-G 0 -DREL_MODULE`, its counts are wrong for modules), `one.sh MOD NAME v_x.py SYM`
+  = compile one variant and print its sbs diff lines, `datarelocs.py MOD [OBJ]` = `.data`/`.rodata` reloc targets of the
+  split object vs ours by function name (the pre-flip check the em2c pass asked for), `mdump.sh MOD/UNIT -dS -fsched-verbose-9`).
+- **em35 R1_U_AtkSpear (5 -> 0): the "second zero pseudo" was a source-order question.** Read the sched1 table: the seven stores
+  all have priority 10 except `stfs blendRate` (11, the TRUE link to the call), and sched2 (hard regs, w-based vs frame stores
+  conflict pairwise, so only same-base stores can swap) already moves blendA above blendRate by dependents (6 vs 5: `stw r0`
+  and `stb r8` gain an ANTI dependent at the SECOND call because r0/r8 are call-used, f31 is not). So the only sched1 fact
+  that had to change was `stb atkHit` ranking below `v.x`/`v.z`: its source P (the switch register, cse-known 0) died at the
+  LATER `stw blendB` (weight -1 there, 0 at the stb). Writing `w->blendB = 0;` BEFORE `w->atkHit = 0;` moves P's death to the
+  stb (weight -1, LUID right after blendA) and blendB (weight 0) sinks to the LUID slot before `v.y` -- exactly the target
+  (blendA, atkHit, blendRate, v.x, v.z, blendB, v.y). Rule: with a register shared by several stores, the target position of
+  the store that carries the death tells you which store is LAST in source order; the other users of the register keep
+  weight 0 and sort with the non-dying stores. (The "5040 permutations" of the first pass predate the R1_Critical/macro
+  fixes; permute again after any change to the block.)
+- **REL ADDR16 field = symbol scope, and mcmp cannot see it.** After the flip em35.rel failed on two 16-bit fields (`cmp -l`
+  vs orig: ours 0x6E4/0x7B4, original 0): `addi rX,rY,em35ClothAt2@l` / `em35ClothAt3@l` -- a `static` table's field holds
+  S+A, a global's only A (REL modules Facts), and the generator had already written `scope:global` for
+  `lbl_em35_data_6E4/7B4` in the module symbols.txt. Both tables are now non-static (the other 14 cloth tables stay static).
+  Before flipping a module: `grep scope:global config/G4BE08/modules/<mod>/symbols.txt` against the unit's `static` data.
+  `sync_rel_symbols.py` does not rename those data labels (0 symbols changed), which is fine for the link.
+- **em2d JumpAtk (2, left; mechanism now exact).** Block 0 in sched1: `cmpwi fe` (425) and `stw flags` (26) are both ready at
+  t=5 with priority 2 (each has only the block's `beq` as dependent: `add_branch_dependences` gives EVERY insn of the block an
+  ANTI link to the branch, and `rs6000_adjust_cost` returns 0 for anti links which `insn_cost` clamps to 1, so no insn can
+  have priority < 2). rank_for_schedule then compares INSN_REG_WEIGHT before anything else: a compare sets a CC pseudo (+1)
+  and a store can never exceed 0, so ours must issue the store first; sched2 keeps the order (equal priority, class 3 both,
+  1 dependent each, LUID = sched1 order). The target's `cmpwi` first therefore needs priority 3 = a codeless dependent of the
+  compare inside block 0 (a `(use (reg:CC))`-like insn), which no C++ construct produces; the compare tree is emitted by
+  `expand_end_case` and moved to the switch head with `reorder_insns`, so its LUID is always above the RMW's. Tried this
+  pass: volatile RMW, comma-expression switch index, `s8` index (17), asm use in case 0 (7): 2 words each. Leave it.
+- **em2d CamouflageMove (26, left; mechanisms read off the RTL and jump.c):** (1) arm 1's `addi r0,r9,24; b JOIN` merges into 2a's
+  through `find_cross_jump`'s jump-around-jump rule: after the one matching `addi`, the mismatching insn before it is arm 1's
+  own `bgt L_ff` whose label's `prev_real_insn` is arm 1's `b` -> `--minimum` -> 1 insn suffices (jump-vs-jump otherwise
+  needs 2). The two `addi`s are `(plus:SI (subreg:SI (reg:QI c)) 24)` and `(plus:SI (reg:SI parm) 24)`, equal under
+  `rtx_renumbered_equal_p`; only a QImode plus in one arm would stop the merge, and the C++ front end never shortens
+  (`v += 0x18`, `(u8)(c + 0x18)`, `u8 t` temps all stay SImode: 26-30 words). (2) the `clrlwi` after `addi r0,r9,-24` is the
+  promoted `u8 v`'s `zero_extend (subreg:QI R)` at the inline's join (insn 651), reached by 2a/2b/li128; with a single
+  `return 0x80` it sits after the shared `li r0,128` instead (`li; clrlwi`), with `int v` it disappears but arm 1 becomes a
+  single insn and jump.c hoists `li r0,255` (29-33). (3) 2b's `addi -24; b STORE` merges into the else arm's `addi; stb`
+  (target `bgt L_sub`) only when both are SImode: `p->color2[0] = p->color2[0] - 0x18` instead of `-= 0x18` gives the mode
+  but not the merge in combination (26). (4) `clrlwi r0,r9,24; cmplwi r0,152` in the target = a QImode `c` whose
+  zero-extension cse did not fold on the taken-`bne` path; ours promotes the inline parameter to SImode (`reg/v:SI 247`)
+  so no compare is masked. (5) fade FPRs (target 0.9 f13 / conv f12 / 12.8 f0): `const f32` locals 32, two-set `add` 61,
+  add-first / `f += ...` forms 26. Direct per-arm stores (28-37) lose the shared STORE because jump-vs-jump needs two
+  matching insns and `stb; b END` is one. The five mechanisms interact through jump2's iteration order; not closed.
+
+### Tool RELs, bytes-first pass 6 (t_id 52->53/69 with .rodata/.data now equal: idEditSize 330->22, idEditRot 235->18, idEditColor 340->201; t_camera_data 13->14/17: tcDataImport 15->0; nothing flipped; 2026-09-10)
+
+- Harness /tmp/tools_p6 (tools_p5 copies with the paths rewritten; `tryv.py` needs `EXTRA=-DTOOLS_ARRAY` for t_id and
+  `SRC=src/tools/db_light.cpp EXTRA="-fno-implement-inlines -DTOOLS_ARRAY"` for Tools/db_light). The SN loop.c source is
+  readable at /tmp/st2rooms/loop.c (maybe_eliminate_biv_1 at 8540, update_giv_derive 5860, recombine_givs 7246).
+- **Biv kept + `lwzx rD,rOfs,rTbl` table walk (t_id idEditSize/idEditRot inner loops)**: loop.c eliminates a counter through
+  a compare-with-constant only via a giv whose add_val is a SYMBOL_REF/CONST or a POINTER-flagged register
+  (`maybe_eliminate_biv_1`, and DEST_ADDR givs are always `always_computable`), so `axisName[j]` (giv `4j + &axisName`)
+  eliminates `j` and spills `&axisName + 4k` compare constants into anonymous `.rodata` words (t_id's 0x444 diff). The
+  target's shape (`cmpwi rJ,k` compares kept, `lwzx r8,r28,r23`, `addi r28,r28,4`) is an explicit byte-offset biv with a
+  non-pointer base: function-scope `const char** tbl; u32 ofs;`, `tbl = axisName;` in each case arm (the multi-set pseudo
+  is not hoisted out of the outer loop: fresh `lis/addi` per arm, one register for all three loops) and
+  `for (j = 0, ofs = 0; j <= 2; j++, ofs += 4) .. *(const char**)(ofs + (u32) tbl)`. A giv form `ofs = j * 4` at the loop
+  top derives the mem giv (`lwz 0(rG)`), mid-body forms leave `slwi` unreduced.
+- **`add r4,rY,rI14` inside the inner loops with `mr r24,r11` after the outer `mulli`** = the outer `yy = y + i * 0xE` for
+  the row eprintfs and `y + i * 0xE` written literally in the inner-loop eprintf: gcse PREs the second `mulli` into the
+  copy, the `add` is a hard-register argument set loop.c never hoists.
+- **Colour-select forms, read off the branch polarity**: `col = 7; if (f & 0x10) col = 0;` = `li 7; andi.; beq; li 0` (the
+  ternary `(f & 0x10) ? 0 : 7` is fold-inverted -- then-value zero -> arms swapped, test inverted -> `li 0; bne; li 7`);
+  `li 7; cmpw; beq; li 0` for `((j != 0) == bit) ? 7 : 0` is the if/else STATEMENT `if ((j != 0) != bit) col = 0; else
+  col = 7;` (jump.c hoists the else set; the ternary is fold-inverted again); `sy + ((sy > 7) ? -0xE : 0)` is distributed
+  by fold into `sy > 7 ? sy - 0xE : sy` (`mr r0,r4; ble; subi`) -- the target's `li r0,-0xe; ..; bgt; li r0,0; add` is a
+  variable `dy = -0xE; if (sy <= 7) dy = 0;`.
+- **s8 wrap clamp with a `case 0: break;` tree** (idEditSize subCur 2): `s8 cur = 0; s8 n; .. n = cur; n = cur - 1; n = n + 1;
+  n = n < 0 ? 0 : (n > 2 ? 2 : n); if (n != cur) { ..; switch (n) { case 0: break; case 1: ..; case 2: .. } }` gives
+  `mr r11,r10` (no extsb: s8 = s8), `subi; extsb`, `addi; extsb`, the `mr r9,r11; extsb r0,r9; cmpwi 2; ble; li r9,2;
+  extsb r0,r9` clamp and `cmpwi 1; beq; ble default; cmpwi 2; beq` (the case-0 node). A u8 member clamp whose `< 0` compare
+  survives (`lbz; cmpwi 0; blt`, idEditRot rotAxis) is `int n = d->rotAxis; d->rotAxis = n < 0 ? 0 : (n > 2 ? 2 : n)`.
+- **Member re-reads, not locals** (idEditSize case 0): `if (d->sizeX > d->sizeY) ratio = d->sizeY / d->sizeX ..` gives the
+  `lfs f13; lfs f0; fmr f11,f13; fmr f12,f0; fcmpu f13,f0` PRE copies and `fsubs f0,f11,f10; stfs` for `d->sizeX -= step`;
+  `d->flags10A` read three times gives `lbz r0; mr r8,r0` + `andi. r0,r8,..`.
+- **Function-scope float constants** (idEditRot): `f32 step = 1.0f; f32 v = 0.0f;` before the switch -> both `lfs` in the
+  prologue (f30/f31), reused by case 1's `grid.x = grid.y = 1.0f` stores and the `SctrlInitCursor(.., 0.0f, 0.0f)` args;
+  pool order 1.0, 0.0, 10.0; case 0's `step = (on & 0x100) ? 10.0f : 1.0f` still reloads 1.0 in the else arm (other ebb).
+  idEditColor: `int v = 0; int step;` at function scope puts `li r10,0` before the Joy `addi`.
+- **Dead test to stop loop.c pass 2** (idEditRot case-0 loop, 69 -> 18): the loop has 67 real insns in pass 2, so the `">"`
+  string high (life 1) is hoisted (71 >= 67); the target keeps it in the if-arm. `if (d->x109 == 0) col = 7;` at the body
+  end (+5 insns, col re-set at the loop top, x109 not otherwise read in the loop) -- tagged `COMPILER-DIFF: 3`.
+- `switch (i) { case 2: ..; case 3: .. }` instead of `if (i == 2) ..; if (i == 3) ..` (the second `if` kept cr4 alive:
+  `mfcr r12` prologue, `cmpwi cr4`). `*(u32*) &c0 = 0; c0.a = 0xFF;` per iteration = `stw r15,8(r1); stb r16,3(r31)` with
+  `li r15,0; li r16,0xff` hoisted by loop.c (idEditColor; the `= {0,0,0,0xFF}` initializer or byte chains give `stb`s).
+- **t_camera_data tcDataImport 15 -> 0**: `pLog.p->err(..)` inside the loop's error arm (the em2b rule: the `operator->`
+  inline's BLOCK notes make loop.c hoist `lis pLog`), and the target's `extsb r7,r11` into r7 = the 4th argument register:
+  the err call passed `s->camera_no` (the source had the `%02d` without its argument).
+- Open, per function (one to three tries each): idEditSize/idEditRot preheader `li rOfs,0` issued LAST in the target
+  (after the PRE `li i+1` and the `addi rX,x,0x40` giv init: an RTL position after loop.c's giv init that no for/while/
+  do/ofs-first/tbl-in-loop form gives) and the tbl / `i*14`-copy r23/r24 pair; idEditColor `y` r22 vs r14 (lowest
+  priority in ours) cascade; idEditPos not iterated (its 0x20a4 switch tree differs -- casetree); loadItemIdName `p` r31 /
+  `e` r30: e (16 refs / 19 insns = 3.4) outranks p (33/76 = 2.2), the target needs e in (2.1, 2.17] (u32 `no`, in-place
+  `e += len; e -= 0x40000`, `e = (char*) strtoul` forms 29); tcSetBesideCamera loop-2 `o` (146: 12 refs/16 = 2.25) vs the
+  src giv (190: 17/30 = 2.27) razor-thin (if/else o, `Vec* dst`, `Vec* src`, byte-offset forms 9); t_atari plmove10
+  (memcpy / word copies / `Vec old = w->pos` initializer / struct view / `Vec old[1]` / `asm("" :: "r"(&old))` / copy
+  before the step select: 19-62); db_light printEditTable: `-fno-gcse` reproduces the target's `li r30,10; addi r30,r30,1;
+  slwi r3,r30,3` x-variable shape exactly, i.e. the target's cprop did not fold `x = 10` into the `x++` after the `?:`
+  join, and the row's `y` has TWO PRE copies (`mr r26,r23` for the "P" eprintf only, `mr r29,r23` for the rest) -- the
+  inline/macro boundary of printEditRow is not understood; db_light editColor: `tmp` at 8 / `c` at 0xC (ADDRESSOF purge
+  order: c forced first in the target; tmp/c declaration order, `GXColor tmpa[1]`, `u32 tmpw`, `GXColor* pc = &c` forms
+  120-208); t_snd_vol editScreenDisp: `base + rows*0x14 + 4` and `base - 4` recomputed after the two loops from a
+  `mr r10,r23` copy of base (#3 PRE family; `asm("" : "+r"(base))` 87, dead do-while 83); t_scroll loadBinName `addi p`
+  before `cmplwi num` at the loop end (sched tie; if-break / for(;;) forms 52, `++p` / `< 0xF9` 2).
