@@ -3856,7 +3856,7 @@ target) stays unresolved and `make_rel` then fails with "undefined symbol".
   of the format string, drawScurve's `i`/`&wp` register swap (r26/r27), sctrlMenu's cross-jump of the
   case-1 cursor call.
 
-### Single-unit enemy modules (em2e, em26, em18, em34, em24 Matching; em21, em27, em28, em3d Matching since the #13 sweep 2026-09-10; em30 22/23, em3a 36/39, em3c 43/47 -> 46/47, em38 71/76, em22 64/72 -> 70/72; src/<em>/<em>.cpp, 2026-09)
+### Single-unit enemy modules (em2e, em26, em18, em34, em24 Matching; em21, em27, em28, em3d Matching since the #13 sweep 2026-09-10; em2f, em2a, em3b Matching since the one-function-away sweep 2026-09-10; em30 22/23, em3a 36/39, em3c 43/47 -> 46/47, em38 71/76, em22 64/72 -> 70/72; src/<em>/<em>.cpp, 2026-09)
 
 - Layout of every one-file enemy REL: `_prolog` (`OSReport("<em> prolog Ok\n")` + `EmInitFunc = EmXXInit`;
   em2e has no OSReport), empty `_epilog`/`_unresolved`, `EmXXInit` = `new (em) cEmXX()`, `emXXDmCk`, the
@@ -8010,3 +8010,60 @@ confirmed on the units named):
   `andi. r30,r0,0x800` result — `int z`/`f32 py` locals cost 30 words; the guard block's `flags & 0x1010` arm keeps
   `beq; li r0,2; b` where ours hoists the li (jump.c's "x=a; goto" needs the `li` insn note-free — the target's had a
   note); hp<=0 arms' RS(3,3) cross-jump), T_Wait 143, the three blend-init blocks, BlendMotSet/2 (#2), HideWait 2.
+
+### Enemy one-function-away sweep (em2f, em2a, em3b Matching; em23, em3a, em38, em29, em3c, em22, em35 residues analysed; 2026-09-10)
+
+- Harness /tmp/em_one (copies of /tmp/cd13 `tryv.py MOD/UNIT FUNC variants.py`, `mcmp.py MOD [-o OBJ]`, `mdump.sh MOD/UNIT -dX`
+  and /tmp/em_polish2 `sbs.sh MOD SYM [OBJ]` with the paths rewritten; tryv totals omit the linkonce copies).
+- **em2f SetPosHideMode (3 -> 0, module Matching 41/41):** the `fmr f0,f1; lfs f13,PI; fadds f0,f0,f13; fmr f1,f0; stfs f0`
+  shape after `GetXZAngle` is the em3c member form `em->rot.y = GetXZAngle(..); em->rot.y += PI; em->rot.y =
+  LIMIT_ANGLE(em->rot.y);` (three member statements, no `ry` local: the first store is dropped and the result copy is
+  a block-local pseudo that combine does not fuse). A `ry` local in any form fuses the copy (`fadds f0,f1,f0`).
+- **em2a Trap1BiteSubCk (6 -> 0, module Matching 37/37 + `asm(".comm common_em2a,52,4")`):** `li r9,1; li r0,2` for
+  `EmRoutineSet(em, 1, 2, 0, dead)` is the #13 int shape (a): a FUNCTION-scope `int two = 2;` used once as the
+  inline's argument (tagged `// COMPILER-DIFF: #13`); the 1 keeps its allocated r9, the moved `li r0,2` sits next to
+  the `stb`, and `li r3,1` moves above the `stfs`. Block-local `int two`, `int one`, hard registers: 2-6 words.
+- **em3b (25 -> 28/28, module Matching):** RunDownCkCart/Truck (four x/z distance tests): `static inline f32
+  em3bDistXZ(cModel* p, Vec* q) { t = dx*dx; d = dz*dz; d += t; return d; }` — the em21 VsElgigante order (temp
+  BEFORE d) gives `fsubs f0 dz; fmuls f0; fsubs f13 dx; fmadds f0,f13,f13,f0` with the result in dz's register; the
+  three-term y-distance of the same function matches written inline. SlopeMove: `fb = fa - em->pos.y; fb = fabsf(fb);
+  if (fb > 500)` (two statements into the function-scope `fb` that the later getFloor result reuses) puts the
+  difference and the fabs in f1 (`fsubs f1,f31,f0; fabs f1,f1`); `fabsf(fa - em->pos.y)` inline or `ang`/`fb` as a
+  single statement keep f0 (2-3 words).
+- Residues (one try each, all documented ties confirmed; per-function cause):
+  - em23 R20ALanding (3): the gcse PRE reaching reg of the arms' `em->subArc` loads (5 sets, `mr r10,r9` at the
+    cross-jumped join, global allocno: `pref BASE_REGS`, conflicts r0 = m1 / r9 = the arm loads) takes r11 in ours
+    (first free in alloc order) and r10 in the target; the same inline gives r11 in matched R1_Takeoff. No allocno
+    prefers r11 and no local pseudo holds it in the join block; do-while around the inline (5), macro body (3),
+    `PlArc* arc` two-set / `u8*` forms (3, 26) do not move it.
+  - em3a R1_Fix (7): sched2 table read: `addi r31,em,0x3e0` (w) has priority 2 (only the final jump depends on
+    it) and is issued last; the target issues it at t=4 among the priority-6 argument moves, i.e. the original's
+    insn had a dependence on the `bl` (priority 6, lowest LUID wins the tie). Nothing in the source can create it
+    (do-while around the call, `w` after the call, `cSatMgr*` local, `u8*` view: 7-12). The same block's `lis
+    r3`/`lfs f1` swap is a haifa LUID tie (equal priority 7, one dependent each).
+  - em38 plemEscape (27): register naming only — `zero` (0.0, born between Muku and Rnd) and 500.0 (born after Rnd)
+    both have 5 refs; the longer live length gives zero f30 / 500 f31, the target has f31/f30. `do { zero = 0.0f; }
+    while (0)` (3x ref weight) fixes the FPRs but the loop notes re-base the `&pl->pos` PRE (`addi r30,r31,148` at
+    the top instead of `addi r4; mr r25,r4`), 45 words; `asm("" :: "f"(zero))` refs 28-38. Needs a 6th ref of zero
+    without loop notes.
+  - em29DmCk (91): function-scope `int zero` after the wep switch for the EstSet stack args + a zero-parameter
+    RoutineSet inline still gives 115 (cse merges the zeros: the hp<=0 arm's RS cross-jumps with the first one); the
+    hp>0 arm keeps the dead `lbz dmWep; cmpwi 0x21` (em30 family), so the module cannot flip.
+  - em3c PartsBombControl (295): our gcse PRE-hoists the j latch's `j+1` to the end of the block before the k loop
+    (lcm cannot push a computation into the inner loop) and loop.c's `basic_induction_var` only looks at the
+    PREVIOUS insn for `(set j t)`, so j is no biv and `j*20`/`j*12` stay `mulli`. The target hoists `n+1` the same way
+    but keeps `j++` at the latch with both givs. `while (1) {..; j++; if (j >= 5) break;}`, `do {} while (++j < 5)`,
+    do-while around the k loop or the increment: 295-306. COMPILER-DIFF #3 family.
+  - em22 R1_Jump (9): `fl` (getFloor result, two-set) gets f1 by copy preference in ours, f12 in the target
+    (`fmr f12,f1; fcmpu f12`). `register f32 fl asm("fr12")` gives the copy and compare but local-alloc ties the
+    difference to the dying hard register (`fsubs f12,f12,f0`, 2 words); an `asm("" :: "f"(fl))` keep-alive moves
+    the difference to f13 instead of the target's f0. ycopy/ternary/if-else/block-local/do-while/FSet forms 6-14.
+    R1_Threat (20, fresh `lis pPL@ha`, #12 family) not attempted — the module needs both.
+  - em35 R1_U_AtkSpear (5): sched1 dump read: the `stb atkHit` (QI store of the switch register P, known 0) has
+    priority 10 like the other stores and is ranked LAST among them (issued t=10, the target issues it 2nd right
+    after the dying `stw blendA`); reordering the source (v.z, blendB, v.y) and function-scope `int zero` forms for
+    blendB all canonicalise back to P (`stw r8; stb r8`, 5 words); `asm volatile` keep-alives of the switch byte
+    cost 145. R1_Critical (4): `lis`/`fmr f2,f1` after LIMIT_ANGLE — both priority 11 at t=13, ours picks the true
+    dependent of the call (class 1) over the anti-dependent `lis` (class 2); the target the reverse. haifa
+    tie-break family (#5), no lever.
+  - em36 (91/101) not attempted (ten functions, no flip possible this pass).

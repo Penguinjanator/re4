@@ -770,6 +770,19 @@ static void em3b_R1_Cart_Lost(cEm3b* em)
 }
 
 // Run over the player, the partner and the Ganados in front of the truck.
+// x/z squared distance: the temp computed BEFORE d fuses dx into d's register and keeps dz*dz standalone
+// (em21 VsElgigante rule).
+static inline f32 em3bDistXZ(cModel* p, Vec* q)
+{
+    f32 t;
+    f32 d;
+
+    t = (p->worldPos.x - q->x) * (p->worldPos.x - q->x);
+    d = (p->worldPos.z - q->z) * (p->worldPos.z - q->z);
+    d += t;
+    return d;
+}
+
 void em3bRunDownCkTruck(cEm3b* em)
 {
     Em3bWork* w = EM3B_WK(em);
@@ -782,8 +795,7 @@ void em3bRunDownCkTruck(cEm3b* em)
             int zero = 0;
 
             p = em->getPartsPtr(parts[i]);
-            if ((p->worldPos.x - pPL->pos.x) * (p->worldPos.x - pPL->pos.x) + (p->worldPos.z - pPL->pos.z) * (p->worldPos.z - pPL->pos.z)
-                < 6250000.0f) {
+            if (em3bDistXZ(p, &pPL->pos) < 6250000.0f) {
                 U16Set(pG->pl_life, zero);
                 pPL->rot.y += Muku(&pPL->pos, &p->worldPos, pPL->rot.y, PI);
                 pPL->rot.y = LIMIT_ANGLE(em->rot.y);
@@ -798,8 +810,7 @@ void em3bRunDownCkTruck(cEm3b* em)
             int zero = 0;
 
             p = em->getPartsPtr(parts[i]);
-            if ((p->worldPos.x - pSUB->pos.x) * (p->worldPos.x - pSUB->pos.x) + (p->worldPos.z - pSUB->pos.z) * (p->worldPos.z - pSUB->pos.z)
-                < 6250000.0f) {
+            if (em3bDistXZ(p, &pSUB->pos) < 6250000.0f) {
                 U16Set(pG->sub_life, zero);
                 // reference store: pSUB and rot.y are re-read for LIMIT_ANGLE (a plain store is forwarded)
                 FSet(pSUB->rot.y, pSUB->rot.y + Muku(&pSUB->pos, &p->worldPos, pSUB->rot.y, PI));
@@ -833,7 +844,7 @@ void em3bRunDownCkTruck(cEm3b* em)
         if (e == w->pDriver) {
             continue;
         }
-        if ((p->worldPos.x - e->pos.x) * (p->worldPos.x - e->pos.x) + (p->worldPos.z - e->pos.z) * (p->worldPos.z - e->pos.z) < 20250000.0f) {
+        if (em3bDistXZ(p, &e->pos) < 20250000.0f) {
             e->hp = zero;
             EmRoutineSet(e, 3, 4, zero, zero);
             SndCall(1, 0x4B, &em->pos, 0, 0, 0);
@@ -850,8 +861,7 @@ void em3bRunDownCkCart(cEm3b* em)
     if ((s16) pG->pl_life > 0 && !em3bDeadCk(pPL)) {
         for (i = 0; i < 2; i++) {
             p = em->getPartsPtr(1);
-            if ((p->worldPos.x - pPL->pos.x) * (p->worldPos.x - pPL->pos.x) + (p->worldPos.z - pPL->pos.z) * (p->worldPos.z - pPL->pos.z)
-                < 2250000.0f) {
+            if (em3bDistXZ(p, &pPL->pos) < 2250000.0f) {
                 LifeDownSet(pPL, 500, 0);
                 pPL->rot.y = em->rot.y + PI;
                 pPL->rot.y = LIMIT_ANGLE(em->rot.y);
@@ -925,7 +935,10 @@ void em3bSlopeMove(cEm3b* em)
         return;
     }
     fa = SatMgr.getFloor(&em->pos, 600.0f, 100000.0f, 0, 0);
-    if (fabsf(fa - em->pos.y) > 500.0f) {
+    // two statements into the function-scope fb: the difference and the fabs share fb's register (f1)
+    fb = fa - em->pos.y;
+    fb = fabsf(fb);
+    if (fb > 500.0f) {
         return;
     }
     em->pos.y = fa;

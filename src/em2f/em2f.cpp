@@ -1546,7 +1546,6 @@ void em2fSetPosHideMode(cEm2f* em)
     Mtx m;
     Vec v;
     f32 ang;
-    f32 ry;
 
     if (Rnd() & 1) {
         ang = 2.45f;
@@ -1560,11 +1559,9 @@ void em2fSetPosHideMode(cEm2f* em)
     v.y = 0.0f;
     PSMTXMultVec(m, &v, &em->pos);
     em->pos.y = w->waterY - 37894.84f - 4882.0f;
-    ry = GetXZAngle(&em->pos, &pPLS->pos);
-    ry += PI;
-    em->rot.y = ry;
-    ry = LIMIT_ANGLE(ry);
-    em->rot.y = ry;
+    em->rot.y = GetXZAngle(&em->pos, &pPLS->pos);
+    em->rot.y += PI;
+    em->rot.y = LIMIT_ANGLE(em->rot.y);
     PSMTXRotRad(m, 'y', em->rot.y);
     TransMatrix(m, &em->pos);
     v.x = -10000.0f;

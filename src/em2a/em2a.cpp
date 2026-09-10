@@ -33,6 +33,10 @@
 #include "math_sub.h"
 #include "db_log.h"
 
+// The module's 0x34-byte COMMON block (st_room.h): uninitialised template statics of the original
+// object, merged into .bss by the REL link.
+asm(".comm common_em2a,52,4");
+
 extern "C" void OSReport(const char* fmt, ...);
 extern void (*EmInitFunc)(cEm* em);   // game/em.cpp
 void EmCatchSubSet(cEm* em, cEm* sub, u32 type, int a, f32 x, f32 y, f32 z, f32 w);   // em_sub.cpp
@@ -989,6 +993,7 @@ int em2aTrap1BiteCk(cEm2a* em)
 int em2aTrap1BiteSubCk(cEm2a* em)
 {
     int dead;
+    int two = 2;  // COMPILER-DIFF: #13 (single-use constant re-materialised at the store: `li r0,2` next to `stb`)
 
     if (pSUB == 0) {
         return 0;
@@ -1011,6 +1016,6 @@ int em2aTrap1BiteSubCk(cEm2a* em)
         return 0;
     }
     em->pos.y = pSUB->pos.y;
-    EmRoutineSet(em, 1, 2, 0, dead);
+    EmRoutineSet(em, 1, two, 0, dead);
     return 1;
 }
