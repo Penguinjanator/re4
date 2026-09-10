@@ -225,12 +225,15 @@ u8 r404_initEmSet()
 {
     u8 n = Rnd() % 3;
     Vec pos[3] = {{-640.0f, 0.0f, -15890.0f}, {2734.0f, 8000.0f, -26577.0f}, {26356.0f, 3000.0f, -32655.0f}};
-    Vec* p = &pos[n];
     Vec rot[3] = {{0.0f, 3.13f, 0.0f}, {0.0f, -2.18f, 0.0f}, {0.0f, -3.06f, 0.0f}};
-    Vec* r = &rot[n];
+    // `&rot[n]` as the pos base plus the frame-slot distance, both computed AFTER the two template
+    // copies (the target forms `(n*12 + &pos) + 0x28`; ours never relates the two frame addresses).
+    // Residue: the target multiplies n*12 a second time for the rot pointer.
+    u8* b = (u8*) &pos + n * 12;
+    Vec* r = (Vec*) (b + 0x28);
     cPlayer* pl = pPL;
 
-    pl->setPos(p);
+    pl->setPos((Vec*) b);
     pl->setAng(r);
     switch ((u32) n) {
     case 0:

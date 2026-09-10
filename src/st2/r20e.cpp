@@ -104,6 +104,8 @@ static R20eWork* r20e_work;
 // `&p->piece[i]` as integer arithmetic, index first (`mulli; add idx, p; addi 0x10`): the array
 // subscript folds the 0x10 into the product and puts the pointer first in the add.
 #define PUZZLE_PIECE(p, i) ((R20ePiece*) ((i) * sizeof(R20ePiece) + (u32) (p) + 0x10))
+// `&p->cell[x][y]` with the row term first and the 0x178 last (`mulli; add p; add y*16; lwzu 0x178`).
+#define PUZZLE_CELL(p, x, y) ((R20eCell*) ((x) * sizeof(R20eCell[3]) + (u32) (p) + (y) * sizeof(R20eCell) + 0x178))
 
 // The address of the caller's Vec goes straight into the argument register (no PRE'd pseudo).
 static inline void SetAngV(cModel* m, Vec* v)
@@ -570,28 +572,28 @@ static void r20e_moveCrestDoor(int open, int init)
             r20e_work->snd = 0;
             SceAtSetEnable(5, 0);
         } else {
-            // pool order: the step before the 0.0 the speed starts from
-            const f32 add = 15.0f;
-            f32 spd;
 
             SceAtSetEnable(5, 1);
             SndCall(6, 0x26, 0, 0, 0, 0);
-            spd = 0.0f;
-            // The first step is written out before the goto loop (no loop notes: the 15.0 and the
-            // work pointer are reloaded per iteration) and both exits store the rest height.
-            obj->pos.y -= spd;
-            spd += add;
-            if (obj->pos.y < r20e_work->crestDoorY) {
-                obj->pos.y = r20e_work->crestDoorY;
-            } else {
-            wait:
-                SceSleep(1);
-                obj->pos.y -= spd;
-                spd += add;
-                if (!(obj->pos.y < r20e_work->crestDoorY)) {
-                    goto wait;
+            {
+                // pool order: the step before the 0.0 the speed starts from; declared after the
+                // calls so the dead initialiser's `lis` is not live across them (else it is the
+                // high of the peel's 15.0 load, hoisted into r30 above SndCall)
+                const f32 add = 15.0f;
+                f32 spd = 0.0f;
+
+                // the compiler peels the first step (jump1 duplicate_loop_exit_test); FSub keeps
+                // the work-pointer load below the pos.y store (a plain member store is a varying
+                // struct store that never conflicts with the fixed scalar load)
+                while (1) {
+                    FSub(obj->pos.y, spd);
+                    spd += add;
+                    if (obj->pos.y < r20e_work->crestDoorY) {
+                        obj->pos.y = r20e_work->crestDoorY;
+                        break;
+                    }
+                    SceSleep(1);
                 }
-                obj->pos.y = r20e_work->crestDoorY;
             }
             SndCall(6, 0x27, 0, 0, 0, 0);
         }
@@ -620,8 +622,12 @@ void r20d_moveArmorStatue(int noAnim)
                 SceSleep(1);
             }
         }
-        o23->pParts->rot.y = 3.1415927f;
-        o24->pParts->rot.y = 3.1415927f;
+        // weight lever: the two extra refs rank o23 above noAnim in global-alloc (o23 r31, noAnim r30,
+        // o24 r29, i r28)
+        do {
+            o23->pParts->rot.y = 3.1415927f;
+            o24->pParts->rot.y = 3.1415927f;
+        } while (0);
     }
 }
 
@@ -819,8 +825,13 @@ static void r20e_checkFinalPieceUse()
     }
     SceSleep(30);
     SceMesWait();
-    r20e_work->snd = 0;
-    SceSetEventCancel(1, (TaskFunc) r20e_checkFinalPieceUse_end, 0, 0, 1);
+    {
+        // the function address evaluated before the store: `addi r4,end@l` is issued before `stw snd`
+        TaskFunc fn = (TaskFunc) r20e_checkFinalPieceUse_end;
+
+        r20e_work->snd = 0;
+        SceSetEventCancel(1, fn, 0, 0, 1);
+    }
     CamCtrl.CutCall(6);
     r20e_moveCrestDoor(1, 0);
     while (CamCtrl.IsMotionEnd() == 0) {
@@ -854,10 +865,12 @@ static inline int r20e_checkSolved(R20ePuzzle* p)
         R20eCell* c = &p->cell[0][y];
 
         for (x = 0; x < 3; x++) {
-            if (c->piece != *t) {
+            s8 v = *t;
+
+            t += 3;
+            if (c->piece != v) {
                 return 0;
             }
-            t += 3;
             c += 3;
         }
     }
@@ -895,19 +908,19 @@ static inline int r20e_movePiece(R20ePiece* pc)
     return 0;
 }
 
-// The piece of `from` slides into the empty cell `to`.
-static inline void r20e_slidePiece(R20ePuzzle* p, R20eCell* from, R20eCell* to)
-{
-    s8 pc;
-    Vec pos;
-
-    pc = from->piece;
-    pos = to->pos;
-    p->piece[pc].target = pos;
-    p->piece[pc].state = 1;
-    to->piece = pc;
-    from->piece = -1;
-}
+// The piece of `from` slides into the empty cell `to` (a macro over PUZZLE_CELL cells: `p->cy`
+// is reloaded for every cell address, the piece is `pc * 0x28 + p + 0x10`).
+#define r20e_slidePiece(p, from, to)                  \
+    {                                                 \
+        s8 pc = (from)->piece;                        \
+        Vec pos = (to)->pos;                          \
+        R20ePiece* q = PUZZLE_PIECE(p, pc);           \
+                                                      \
+        q->target = pos;                              \
+        q->state = 1;                                 \
+        (to)->piece = pc;                             \
+        (from)->piece = -1;                           \
+    }
 
 // Cursor moves and slides of one frame; 1 once the puzzle is solved.
 static inline int r20e_puzzleMove(R20ePuzzle* p)
@@ -933,7 +946,8 @@ static inline int r20e_puzzleMove(R20ePuzzle* p)
     p->cx = p->cx < 0 ? 0 : (p->cx > 2 ? 2 : p->cx);
     p->cy = p->cy < 0 ? 0 : (p->cy > 2 ? 2 : p->cy);
     if (p->frame) {
-        R20eCell* c = &p->cell[p->cx][p->cy];
+        // cy*16 first, then (cx*48 + p), 0x178 last: `mulli cx; add p; add cy16; lwzu 0x178`
+        R20eCell* c = (R20eCell*) (p->cy * 0x10 + (p->cx * 0x30 + (u32) p) + 0x178);
         Vec pos;
 
         pos = c->pos;
@@ -960,11 +974,11 @@ static inline int r20e_puzzleMove(R20ePuzzle* p)
                 SndCall(6, 0, 0, 0, 0, 0);
                 if (j < p->cx) {
                     for (k = j + 1; k <= p->cx; k++) {
-                        r20e_slidePiece(p, &p->cell[k][p->cy], &p->cell[k - 1][p->cy]);
+                        r20e_slidePiece(p, PUZZLE_CELL(p, k, p->cy), PUZZLE_CELL(p, k - 1, p->cy));
                     }
                 } else {
                     for (k = j - 1; k >= p->cx; k--) {
-                        r20e_slidePiece(p, &p->cell[k][p->cy], &p->cell[k + 1][p->cy]);
+                        r20e_slidePiece(p, PUZZLE_CELL(p, k, p->cy), PUZZLE_CELL(p, k + 1, p->cy));
                     }
                 }
                 return 0;
@@ -975,11 +989,11 @@ static inline int r20e_puzzleMove(R20ePuzzle* p)
                 SndCall(6, 0, 0, 0, 0, 0);
                 if (j < p->cy) {
                     for (k = j + 1; k <= p->cy; k++) {
-                        r20e_slidePiece(p, &p->cell[p->cx][k], &p->cell[p->cx][k - 1]);
+                        r20e_slidePiece(p, PUZZLE_CELL(p, p->cx, k), PUZZLE_CELL(p, p->cx, k - 1));
                     }
                 } else {
                     for (k = j - 1; k >= p->cy; k--) {
-                        r20e_slidePiece(p, &p->cell[p->cx][k], &p->cell[p->cx][k + 1]);
+                        r20e_slidePiece(p, PUZZLE_CELL(p, p->cx, k), PUZZLE_CELL(p, p->cx, k + 1));
                     }
                 }
                 return 0;
@@ -1052,15 +1066,17 @@ static inline void r20e_setLayout(R20ePuzzle* p, const s8 tbl[3][3])
 
     for (y = 0; y < 3; y++) {
         for (x = 0; x < 3; x++) {
+            R20eCell* c = &p->cell[x][y];
             s8 pc = tbl[x][y];
 
-            p->cell[x][y].piece = pc;
+            c->piece = pc;
             if (pc != -1) {
+                R20ePiece* q = PUZZLE_PIECE(p, pc);
                 Vec pos;
 
-                pos = p->cell[x][y].pos;
-                if (p->piece[pc].obj) {
-                    p->piece[pc].obj->pos = pos;
+                pos = c->pos;
+                if (q->obj) {
+                    q->obj->pos = pos;
                 }
             }
         }
@@ -1097,10 +1113,11 @@ void r20e_initPuzzle()
         p->frame->be_flag &= ~2;
         p->frame->x12C = 2;
     }
-    p->hidden = n - 1;
     {
-        R20ePiece* pc = &p->piece[n - 1];
+        int hidden = n - 1;
+        R20ePiece* pc = PUZZLE_PIECE(p, hidden);
 
+        p->hidden = hidden;
         pc->visible = 0;
         if (pc->obj) {
             pc->obj->be_flag &= ~2;

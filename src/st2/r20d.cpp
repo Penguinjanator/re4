@@ -1062,18 +1062,25 @@ void cLanternUnit::throwLantern(cLanternUnit* u)
     // function's constants (an unused function-local static const array is emitted before the pool).
     static const f32 angTbl[5] = {3.1415927f, 0.7853982f, 1.5707964f, 2.7488935f, 0.3926991f};
     Vec pos;
-    int st = 0;
+    // The original keeps `st` (0) in r29 for the whole head and never folds it: `stw r29,0xc(u)` then
+    // `add r29,u,r29; lwz r4,0x18(r29)` (a byte offset into mot[]), with the two stores issued before
+    // `lis pPL@ha`. Ours folds a user variable known to be 0 (cse) and lets the fixed-scalar pPL load
+    // pass the struct stores; the hard register + launder hide the value, the reference setters order
+    // the stores.
+    register int st asm("r29"); // COMPILER-DIFF: #12 (user variable constant not folded)
     int cnt = 0;
     f32 zero;
     f32 turn;
 
-    u->step = st;
-    u->state = 1;
+    st = 0;
+    asm("" : "+r"(st)); // COMPILER-DIFF: #12
+    IntSet(u->step, st);
+    U32Set(u->state, 1);
     ((cUnitEventView*) pPL)->beginEvent(0);
     AtariFlagsOr(&pPL->atari, 0x100);
     pPL->dmg.set(0, 0x80);
     u->target = u->getTargetPos(&pos);
-    pPL->motionSet(u->mot[st + 1], 0xA, 0, 1, 0);
+    pPL->motionSet(*(void**) ((u8*) u->mot + st + 4), 0xA, 0, 1, 0);
     u->em->be_flag |= 0x20;
     zero = 0.0f;
     turn = zero;

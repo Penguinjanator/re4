@@ -740,14 +740,24 @@ static void door5_close()
     }
 }
 
+// Struct view of pPL (r20e idiom): the load after the FSet stores through it is a fresh `lwz pPL`.
+struct PlPtr {
+    cPlayer* p;
+};
+#define pPLS (((PlPtr*) &pPL)->p)
+
 // Swing on a chandelier: `no` picks the chandelier, `pos`/`rot` its placement, the four offsets the
-// landing spots and `ofsBase` the swing-start offsets.
+// landing spots and `ofsBase` the swing-start offsets. Shapes (the r117 EventChandelier idioms): the
+// first wait is a `do {} while (1)` (a `while (1)` gets rotated by jump.c: `b TOP; SLEEP: ..; TOP:`,
+// which loop.c then rejects as "phony" and nothing is hoisted), `frame = 0` right before it (flow nop),
+// the dead `do {} while (0)` after it re-materialises `lis pPL@ha` for the second block, FSet + pPLS
+// reload pPL after each pos store, `Vec* rot` keeps `&crot0` in a callee-saved pointer.
 #define CHANDELIER(no, cpos0, crot0, dx0, dz0, dx1, dz1, dx2, dz2, postLoop)                                  \
     {                                                                                                              \
         cPlayer* pl = pPL;                                                                                         \
         Mtx m;                                                                                                     \
         Vec cpos;                                                                                                  \
-        int frame = 0;                                                                                             \
+        int frame;                                                                                                 \
         u32 mf;                                                                                                    \
         int far;                                                                                                   \
         f32 nx;                                                                                                    \
@@ -755,23 +765,25 @@ static void door5_close()
         void* motPl;                                                                                               \
         void* motCh;                                                                                               \
         cModel* mdl;                                                                                               \
+        Vec* rot = (Vec*) &crot0;                                                                                  \
                                                                                                                    \
         ((cUnitEventView*) pl)->beginEvent(0);                                                                     \
         ((cUnitEventView*) r204_work.p->chand[no])->beginEvent(0);                                                 \
-        low_RotMatrix(m, (Vec*) &crot0);                                                                           \
+        low_RotMatrix(m, rot);                                                                                     \
         PSMTXMultVec(m, (Vec*) &r204_chandOfs, &cpos);                                                             \
         PSVECAdd((Vec*) &cpos0, &cpos, &cpos);                                                                     \
-        pPL->pos.z = cpos.z - (dz0);                                                                               \
-        pPL->pos.x = cpos.x + (dx0);                                                                               \
-        mdl = pPL;                                                                                                 \
+        FSet(pPL->pos.z, cpos.z - (dz0));                                                                          \
+        FSet(pPL->pos.x, cpos.x + (dx0));                                                                          \
+        mdl = pPLS;                                                                                                \
         mdl->setPos(&mdl->pos);                                                                                    \
-        mdl->setAng((Vec*) &crot0);                                                                                \
+        mdl->setAng(rot);                                                                                          \
         pPL->motionSet(ROOM_ARC_PTR(pG->pRoomArc, 0x25), 3, 0, 1, 0);                                             \
         r204_work.p->chand[no]->motionSet(ROOM_ARC_PTR(pG->pRoomArc, 0x21), 3, 0, 1, 0);                          \
         PlSeCall(0x29, &pPL->pos, 0, 0, 0);                                                                        \
         pl->dmg.set(0, 0x80);                                                                                      \
         pl->be_flag &= ~0x10;                                                                                      \
-        while (1) {                                                                                                \
+        frame = 0;                                                                                                 \
+        do {                                                                                                       \
             if (frame++ == 0x1D) {                                                                                 \
                 RoomSeCall(8, &pPL->pos, 0, 0, 0);                                                                 \
             }                                                                                                      \
@@ -779,7 +791,8 @@ static void door5_close()
                 break;                                                                                             \
             }                                                                                                      \
             SceSleep(1);                                                                                           \
-        }                                                                                                          \
+        } while (1);                                                                                               \
+        do { } while (0);                                                                                          \
         pPL->motionSet(ROOM_ARC_PTR(pG->pRoomArc, 0x26), 3, 0, 5, 0);                                             \
         r204_work.p->chand[no]->motionSet(ROOM_ARC_PTR(pG->pRoomArc, 0x22), 3, 0, 5, 0);                          \
         RoomSeCall(0x13, &pPL->pos, 0, 0, 0);                                                                      \
@@ -815,9 +828,9 @@ static void door5_close()
             SceSleep(1);                                                                                           \
         }                                                                                                          \
         frame = 0;                                                                                                 \
-        pPL->pos.x = nx;                                                                                           \
-        pPL->pos.z = nz;                                                                                           \
-        mdl = pPL;                                                                                                 \
+        FSet(pPL->pos.x, nx);                                                                                      \
+        FSet(pPL->pos.z, nz);                                                                                      \
+        mdl = pPLS;                                                                                                \
         mdl->setPos(&mdl->pos);                                                                                    \
         mdl->setAng(&mdl->rot);                                                                                    \
         pPL->motionSet(motPl, 3, 0, 1, 0);                                                                         \

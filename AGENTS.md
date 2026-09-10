@@ -6576,7 +6576,8 @@ target) stays unresolved and `make_rel` then fails with "undefined symbol".
   strength-reduced into `cmpw/cmplw rPtr, &tbl[k]` compares with the `&tbl[k]` invariants hoisted
   (em2fTentacleMove); `int i` gives signed compares and no hoisting.
 - em2fDmCk tree: `case 0x10: case 0x11:` in the damage-1 arm and `0x29, 0x2A, 0x2C` in the default group.
-- Candidate COMPILER-DIFF #12 (cse AROUND-path knowledge, r104 execEvent00 family): em25DmCk's
+- Candidate COMPILER-DIFF #12 (cse AROUND-path knowledge, r104 execEvent00 family; the four source-visible
+  forms and their recipes are consolidated in "COMPILER-DIFF #12 sweep" at the end of this file): em25DmCk's
   `hitCnt = 0` gets a fresh `li` in the original while `zero == 0` is known past the skipped
   `if (wep == 0x10)` block in ours; `asm("" : "+r"(zero)); // COMPILER-DIFF` gives 0 words (17 without);
   -fno-cse-skip-blocks fixes it but breaks RouteCk/CatchCk/SetParasite.
@@ -8632,3 +8633,149 @@ confirmed on the units named):
   preferred or dist allocated first), puzzle pzlBoard::init (`cmpwi n,0; beq` + `mtctr`: guarded do-while
   gives the test but no ctr, `u32` forms give `cmplw`), item get (COMPILER-DIFF #6: separate `li r3,1; b end`
   copies), item use (#6, 11 call tails), sce_at SceAtCreateItemAt (`li r9,7`/`li r11,3` local-alloc tie).
+
+### Stage rooms, st2_1 bytes-first pass 3 (r20e 25->28/31, r204 21/24 with EventChandelier 156->94, r209 57/61 with 2ndBattleEmSet 28->2, r20d throwLantern 44->31, r404 initEmSet 61->15; none flipped; 2026-09-10)
+
+- Harness: /tmp/rooms_a3 (copies of /tmp/rooms_a2 with the paths rewritten; `tryv.py MOD/UNIT FUNC variants.py [--apply N]`
+  builds ~8 variants/s, `sbs.sh MOD/UNIT SYM [OBJ]`, `mm.py`, `mdump.sh MOD/UNIT -dX` with `SRC_OVERRIDE`).
+- **`while (1) { A; if (c) { S; break; } SceSleep(1); }` is jump1's own peel** (r20e moveCrestDoor 33 -> 0): the
+  compiler duplicates A + the test in front of the loop (`sub; stfs; lfs spd=15; cmp; bge W; stfs; b END; W: sleep; ..`),
+  which is the target's "first step written out" shape, and loop.c still hoists the highs whose body copies cse2 then
+  turns back into `lis` (the per-iteration `lis r9,15@ha`/`lis r11,work@ha` are NOT a rejected loop). Two more levers
+  were needed: (1) the pool-order `const f32 add = 15.0f;` must be declared AFTER the calls that precede the loop (at
+  the block top the dead initialiser's `high` pseudo is cse-merged with the peel's 15.0 load and becomes live across
+  `SceAtSetEnable`/`SndCall` -> `lis r30` above the calls, one more callee-saved register); (2) `FSub(obj->pos.y, spd)`
+  (reference store) for the `-=`: a plain member store is a varying struct store that never conflicts with the fixed
+  scalar `lwz work@l` (alias.c fixed_scalar_and_varying_struct_p), so ours hoists the work load above it; the target
+  keeps `lwz work` below `stfs pos.y` in both the peel and the loop. `do {} while (1)` / `for (;;)` / goto forms: 24-45.
+- **`while (1)` vs `do {} while (1)` for a sleep loop with a mid-body break** (r204 CHANDELIER first wait, 156 -> 116):
+  with `while (1) { if (frame++ == 0x1D) ..; if (MotionGetState() & 4) break; SceSleep(1); }` our jump1 rotates the
+  loop (`b TOP; SLEEP: bl SceSleep; TOP: ..; beq SLEEP`), loop.c then prints "Loop from N to M is phony" (the first insn
+  after LOOP_BEG is a jump) and hoists NOTHING; every `lis` of the loop body stays at the loop and is re-materialised
+  per block. `do { .. } while (1)` (the r117 form) keeps the natural layout, loop.c hoists the highs of all three
+  loops and sched1 moves them above the entry calls (`stmw r16`, target). The `frame = 0;` right before the loop and
+  the dead `do {} while (0);` after it are the r117 flow-nop / cse-path levers (needed here too).
+- FSet(pPL->pos.x, ..) + `mdl = pPLS` (struct view) for the chandelier position writes: the target reloads pPL after
+  each pos store and again for `setPos(&mdl->pos)` (three `lwz pPL@l`), the plain stores share one load (116 -> 94).
+  `Vec* rot = (Vec*) &crot0;` as a pointer local (`mr r4, rot` at low_RotMatrix and setAng). Residue (94/96 words):
+  one callee-saved register less (the target's `&crot0` lo_sum gets its own register with the high in another,
+  ours ties them: `addi r30,r30,@l`), `mf -= 5` as `subi r0,mf,5; mr mf,r0; cmplwi r0` (a temp copied into mf;
+  `mf2 = mf - 5; mf = mf2; if (mf2 > 0x41)` and `(mf -= 5) > 0x41` do not give it), pPL high naming.
+- **gcse across a loop containing calls is where the original differs** (COMPILER-DIFF #3, mechanism candidate): in
+  r20e initPuzzle the target hoists `y+1` (and `y<<4`) out of the outer latch into the pre-inner-loop block for the
+  two setLayout loops (no call in the inner loop) exactly like ours, but NOT for the first loop whose inner body calls
+  SmdGetObjPtr (there the target keeps `y` as a biv with reduced givs `y*4`, `y*16+0x178`); in r209 2ndBattleEmSet
+  ours cprop's `next = 4` through the for loop with calls into `step = next` (`li step,4` after the loop) while the
+  target keeps the pseudo (`li r25,4` before the `if`, `mr r29,r25` after the loop); R209Main and R402MoveDoor02
+  (the known #3 items) also have calls in the crossed loop. Our lcm.c is the block-based one with `delayin` zero-
+  initialised (an insertion can never be delayed through a loop header), so any anticipatable expression is hoisted
+  to the inner loop's preheader regardless of calls. Workaround where no biv is involved: `asm volatile("" :
+  "+r"(next)); // COMPILER-DIFF: #3` right after the constant's set (r209 2ndBattleEmSet 28 -> 2; a non-volatile asm
+  or the asm after the loop swaps two registers). For a loop counter the launder kills the biv, so initPuzzle's first
+  loop (103 words) and R209Main stay open.
+- **Two-step `&p->cell[x][y]` addresses** (r20e checkPuzzle 366 -> 224): the slide code is a MACRO over
+  `PUZZLE_CELL(p, x, y) = (x)*48 + (u32)(p) + (y)*16 + 0x178` cells (`(k*48 + p)` is the single loop.c giv, `+cy*16`
+  added per access with 0x178/0x184/0x148 as displacements, `p->cy` reloaded for every cell address after the piece
+  stores); the inline `r20e_slidePiece(p, R20eCell* from, R20eCell* to)` gave three givs (`k*48`, `k*48-48`,
+  `k*48+p`) and one shared cy load. The frame block wants `p->cy*16 + (p->cx*48 + p) + 0x178` (cy term first). The
+  piece pointer is `PUZZLE_PIECE(p, pc)` everywhere (`mulli; add p; addi 0x10`). `s8 v = *t; t += 3; if (c->piece != v)`
+  in checkSolved (the tbl load and its increment before the compare). Residue: the target loads the first word of a
+  `Vec pos = to->pos` copy through the copy's own address pseudo (`mr r9,r11; lwzu r8,0x148(r9)`) and keeps the piece
+  pointer's `addi r11,r11,0x10` before `stw 0xc(r11)`; our cse (find_best_addr, "prefer the costlier equivalent
+  address") rewrites both to `base+C` forms — also in the frame block (`lwzu r11,0x178(r9)`) and in initPuzzle's
+  `obj->pos` copy the target rewrites like ours, so the rule is not simply "never rewrite".
+- **`int hidden = n - 1; pc = PUZZLE_PIECE(p, hidden)`** (initPuzzle) keeps the target's `subi; mulli; add p; addi 0x10`
+  (the array form folds to `n*0x28 - 0x18`). The `visible = 0` store there uses the reversed inner-loop counter
+  register (cse2 knows it is 0 after `subic.; bne`) — the target has a fresh `li`; cse2 ignores LOOP_END notes
+  ("after_loop"), so the dead do-while barrier does not work for a loop.c-created counter.
+- **Weight lever for a call-result pair** (r20e moveArmorStatue 17 -> 0): `do { o23->..rot.y = PI; o24->..rot.y = PI; }
+  while (0);` around the two final stores gives o23 the two refs that rank it above the parameter `noAnim` in global
+  (o23 r31, noAnim r30, o24 r29, loop counter r28).
+- **Function address evaluated before a store** (r20e checkFinalPieceUse 2 -> 0): `TaskFunc fn = (TaskFunc) end;
+  work->snd = 0; SceSetEventCancel(1, fn, ..)` issues `addi r4,end@l` before `stw snd` (sched tie broken by LUID).
+- **Frame-address relation via a `u8*` base declared after BOTH templates** (r404 initEmSet 61 -> 15): `u8* b = (u8*)
+  &pos + n * 12; Vec* r = (Vec*) (b + 0x28);` written after the `Vec pos[3]`/`Vec rot[3]` copies (declared between
+  them: 65). Residue = the target's second `mulli n,12` for the rot pointer (our gcse merges it across the rot copy
+  loop; an `asm`-laundered index copy gives 64).
+- r20d throwLantern 44 -> 31 (two tagged launders, COMPILER-DIFF #12 family): `register int st asm("r29"); st = 0;
+  asm("" : "+r"(st));` + `IntSet(u->step, st); U32Set(u->state, 1)` + `*(void**) ((u8*) u->mot + st + 4)` gives the
+  target's `stw r29,0xc(u); stw r0,8(u)` before `lis pPL@ha` and `add r29,u,r29; lwz r4,0x18(r29)`; a pseudo `st`
+  with the asm gets split by the setter's parameter copy (`mr`), the reference setters are what order the stores
+  before the pPL load, `*(int*)&u->step = st` does not.
+- Negative results (do not retry): cFence20e::move (10 words) — the 2200 `lis` is issued one cycle late in the target
+  (`lis; fadds; lfs f12` vs ours `lis; lfs; fadds`), consistent with the 2200 high being a reload-rematerialised
+  pseudo (#13 shape for a compiler-generated high, the shadow make_comn_fit family); 16 forms (const placement,
+  literal, `lim` local, do-while, register asm, static const) all 10-22. r209 Switch/BridgeAppearCheck (7 each) and
+  R209Main (124) unchanged (while(1)+break, `asm` on j, pointer forms); r402 MoveDoor02 15 (`id` inside the loop
+  block 66, two-set `idp` 15, asm 40); r40f BombSet 5 (`cEmWrap* b0` before the Vecs 9, top-level Vec decls 69, p1
+  first 15, dead do-while 49); r20d moveWall 3 (`i = 0` after either call: 3), r204 nige_check 228 not iterated.
+
+### COMPILER-DIFF #12 sweep (r218 + Tools/t_mv Matching; r108 openCover, em22 R1_Threat, t_event RunStop, r10b Evt_R10BS00 0 words; 2026-09-10)
+
+- Harness /tmp/cd12 (rooms_c2 copies with the paths rewritten; `tryv.py`/`vapply.py` also accept single-unit modules
+  `em22/em22`; `fsect.sh DUMP FUNC` prints one function's section of a -dX dump; `flag12.py`/`flag12b.py SWEEP` list the
+  target-only fresh `lis`/`li 0`/pool `lfs` lines of every non-identical function, optionally only those within a few
+  lines after a loop back-edge; `ctx.sh MOD/UNIT SYM` = sbs diff lines with context — remember zsh does not word-split
+  `$f`, use a bash script for `MOD/UNIT SYM` pairs).
+- **#12 is one mechanism with four source-visible forms.** Our cse1 (and cse2) carries its hash table into a block the
+  original's cse entered with an empty table. Confirm in the `-ds` dump: the block's expression already reads the pseudo of an
+  EARLIER block (`(mem (lo_sum (reg N) sym))` with N set before a branch; a store whose source is the `andi.`/`zero`
+  pseudo instead of a fresh `(const_int 0)`), and `-dG` shows no PRE for it (gcse only ever *copies* a reaching reg,
+  cse is what *substitutes*). Forms and recipes, all confirmed this pass:
+  - **(a) loop-exit / AROUND form** — a `do { ..; if (c) break; SceSleep(1); } while (1)` (or any poll loop) whose exit
+    jump lands right after `b top; LOOP_END`: `cse_end_of_basic_block`'s backward scan stops at the LOOP_END note,
+    `skip_blocks` treats the exit branch as "around a block" and the exit block inherits `high(work)`, hoisted pool
+    constants and jump equivalences. ZERO-CODE RECIPE: a dead `do { } while (0);` as the FIRST statement after the
+    loop (its LOOP_BEG/LOOP_END notes end the path; the r117 lever). r218 checkClawManDead/_end/appearClawMan: 14+8 ->
+    0 with four of them, and the earlier `extern R218WorkPtr r218_work_v asm("r218_work")` aliases became unnecessary
+    (removed); r108 openCover 19 -> 0 (`lis coverL/coverR@ha` + the 220.0 reload) with one, unit 10 -> 11/16. Use it
+    before any alias: it also fixes the pool-constant reload that no alias can reach (cse folds every pool load to its
+    CONST_DOUBLE). Fallback when the do-while is refused by the shape: a `.rodata` object emitted by a top-level asm right
+    before the function (`asm(".section \".rodata\"\n\t.align 2\nr218_k2500:\n\t.long 0x451c4000\n\t.section
+    \".text\"")` + `extern const f32 r218_k2500;` reads everywhere + `extern const f32 r218_k2500_v asm("r218_k2500")` for
+    the exit statement) — same word, same position as the pool entry (the pool is emitted right before the function, so
+    every constant of that function's pool must become an object, in target order, for the .rodata to stay equal), local
+    symbol, `mem/u` so loop.c still hoists it, fold-proof because `fold_rtx` only folds CONSTANT_POOL_ADDRESS_P MEMs; but
+    the hoisted pseudo then has no `REG_EQUIV` (update_equiv_regs makes MEM equivalences only for single-block pseudos;
+    the CONST_DOUBLE REG_EQUAL of a real pool load is what doubles the live length in global-alloc), so FPR naming can
+    drift (r108: 220 took f30 over x0/x1). Both r218 functions matched with it too; the do-while is preferred.
+  - **(b) fallthrough-arm form** — the arm entered by falling through a conditional jump (then arm of `bne`, the
+    `if (!(x & bit))` body) stores a fresh `li rX,0` in the original while ours stores a register cse knows to be 0:
+    the `andi./andis.` result (record_jump_equiv on the not-taken edge) or a `zero` variable set before the branch. Our
+    cse1 re-walks the path with the last branch NOT_TAKEN and the entry block's table (cse.c
+    `cse_end_of_basic_block`, "If the last branch was previously TAKEN, mark it NOT_TAKEN"); the original's arm started
+    with an empty table. Plain launders fail (`asm("" : "+r"(c))` on `u8 c = 0` becomes `mr rX,r29`: cse substitutes the
+    known register into the asm INPUT), `int zero = 0` locals are folded the same way, `asm volatile("")` at the arm top
+    does NOT help (the flush happens, but the substitution is already in the RTL cse emits? — 7 words unchanged, do not
+    retry), dead do-while does not help (no loop end on this path). TAGGED RECIPE: let the asm produce the constant,
+    `int c; asm("li %0,0" : "=r"(c)); p->cursor = c;` (`// COMPILER-DIFF: candidate #12 (fallthrough-arm form)`), so cse
+    never sees a `(const_int 0)` source; a non-volatile asm with a register output is an ordinary insn for sched (no
+    barrier) and local-alloc names it like the original's `li`. Tools/t_mv mvInit 7 -> 0 (module Matching), t_event
+    RunStop 21 -> 0 (`sth stopWait` zero, module 56 -> 57/69), r11d appearLittleSister 17 -> 8 (the callee-saved `li r31,0`
+    feeding two EstSet stack zeros; residue = global-alloc order zero/work r31/r30 and the stack-store slots).
+  - **(c) chain form (`lis` glued to its use)** — a `high(sym)` set in an early block is substituted by cse1 into a block
+    reached through a chain of else-if tests (single-use labels, path length < PATHLENGTH), gcse then PREs it and
+    update_equiv_regs drags the single-use copy next to the load AFTER sched1, so sched2 cannot lift it (anti-dependence
+    on the reused r9) and the block's temporaries get other names; the original's block kept its own `lis` pseudo through
+    sched1 (issued at slot 4, r7). Recipe: a distinct SYMBOL_REF for that block's read (`extern cPlayer* pPL_v asm("pPL")`,
+    the em2a/em21 TrapCamMove lever) or the struct view (`pPLS->pos` = `((PlayerPtr*) &pPL)->p`) — in em22 R1_Threat the
+    struct view alone gave 0 once the control flow was right: the source had `if (fabsf(Muku) < 1.047) { if (timer)
+    timer--; else RS; } else if (routeAngAbs > 1.57) ..` but the target's `timer--` arm jumps INTO the else-if chain
+    (`b .L_27C0`), i.e. `if (..) { if (timer) timer--; else { RS; break; } } if (routeAngAbs > 1.57) ..` — a `b` to
+    the wrong label in a 1-word diff is a source-logic bug, not a compiler difference. em22 is 71/72 (R1_Jump: `fl`
+    prefers f1 by copy preference, target f12 with `fmr f12,f1` and the compare on the copy; ternary `fl = (t == K) ?
+    pos.y : t` reproduces the copy but compares `t`; hard-reg/keep-alive forms documented earlier — still OPEN).
+  - **(d) thread_jumps form** (r104 execEvent00, pass 2): `u32 f = pG->flags; if (f & bit) skip = 1; if (!(pG->flags &
+    bit))` — the user variable on one side keeps the second compare's label through cse1.
+- Not #12 although flagged by the fresh-`lis`/`li 0` heuristic (checked in the sbs diff, leave them): r103/r106
+  openShelf_main (two pool `lfs` vs `lwz pParts` issue order, sched tie), r113 execHide / r11d execHide_main (arg-`li`
+  family), r11c closeGate / r103 / r105 execOpenCover (#7/#9 peeled loop), r10b chkWater (loop-invariant `lis` hoist
+  order), r10b Evt_R10BS00 (18 -> 0: the r214 `IdBinocularCutinI(bino, 0)` int-argument alias, #4 family; unit 11 ->
+  12/18), r222 BoxMove (26 -> 13 with `f32 lim; lim = 2.12f` assigned in BOTH predecessors of the goto-loop test —
+  the target compares/stores that register; the rest is the target's gcse hoisting `high(2.12)` above the `if (opened)`
+  for the then arm and the else arm, which keeps our else arm from being cross-jumped into the wait body: #3 family),
+  t_movie/t_se_at ToolSeAt (`addi r7,sym+80` vs a separate label), t_esp/db_widget AddPrimitive (#6 return-0 tail),
+  t_camera_data tcDataImport (loop-hoisted `high` r23 vs the target's in-loop `lis`, equiv/loop family), em35
+  R1_Critical (#5), r223 reva_common_move (#1 prologue order), r224 R224Main (#13 stack zero), tvib_R0_VibLoopSet (the
+  reverse direction: the target KEEPS the PRE'd high, ours re-materialises).
+- r108 str_check / r203 StreamCheck untouched (#3 double EmMgr chain); r203/r20d/r226 belong to other agents.
