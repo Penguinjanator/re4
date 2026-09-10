@@ -486,7 +486,7 @@ UNITS = {
         ("t_esp/db_window.cpp", "DB_MOUSE::DB_MOUSE", None, {".rodata": 0x3410}),
         ("t_esp/t_esp.cpp", "__builtin_new", None, {".rodata": 0x35E0}),
         ("t_esp/t_util.cpp", "TutilInitDefault", "tools/t_util_nomenu.cpp", {".rodata": 0x53B0}),
-        ("t_esp/tools.cpp", "_prolog"),
+        ("t_esp/tools.cpp", "_prolog", "tools/tools.cpp"),
     ],
 }
 # The 16 Ganado modules (em10..em20) are three objects. (1) The same em10.cpp ("D:/Bio4/Prog/em10.cpp":
@@ -529,6 +529,7 @@ for _em in ["em10", "em11", "em12", "em13", "em14", "em15", "em16", "em17", "em1
 CFLAGS = {
     "Sscrn": ["-fno-implement-inlines"],
     "t_id": ["-DTOOLS_ARRAY"],
+    "t_esp": ["-DTOOLS_ARRAY", "-DTOOLS_EM_ARRAY"],
     "Tools": ["-fno-implement-inlines", "-DTOOLS_ARRAY"],
     "t_event": ["-fno-implement-inlines"],
 }
@@ -690,6 +691,7 @@ MATCHING = {
     "Tools/t_mes.cpp": True,
     "Tools/t_cons.cpp": True,
     "Tools/tools.cpp": True,
+    "t_esp/tools.cpp": True,
     "Tools/t_tplview.cpp": True,
     "Tools/t_util.cpp": True,
     "Tools/t_eminfo.cpp": True,
