@@ -62,6 +62,83 @@ cc1plus and are therefore compiler-build differences (the original is a later SN
    asm, while our gcse routinely creates a pseudo for `&local` used in several blocks; the original
    also never cross-jumps a single-insn tail (`find_cross_jump` minimum). Under investigation with the
    harness; until then use the `&local` levers (frame-offset-0 local, inline helper taking `Vec*`).
+   RESEARCH 2026-09-10 (/tmp/gcse3: copy of the /tmp/sched5 harness, `gcc/` = SN source with `-D`
+   hooks in gcse.c/lcm.c/flow.c, `t3.py` = 18-function #3 test set, `dump.sh CFG UNIT -dG` = gcse
+   dump of one unit; base 18586/19929 identical). Result: NO configuration reproduces the original;
+   nothing is installed.
+   - Source facts: SN's gcse.c and lcm.c are byte-for-byte stock 2.95.3 apart from the SN header;
+     toplev.c's -O2 defaults are stock (gcse, rerun-cse-after-loop, rerun-loop-opt, strength-reduce,
+     expensive-optimizations, regmove, sched1/2, caller-saves, force-mem, thread-jumps,
+     cse-follow-jumps/skip-blocks); its only rest_of_compilation difference from stock 2.95.3 is the
+     2.95.2 order `cse1; delete_trivially_dead_insns; jump` (stock deletes after jump), which is
+     what our build does anyway. 2.95.3 gcse: MAX_PASSES 1, no bb/edge bail-outs, no hoist_code
+     (-Os only), `want_to_gcse_p` rejects only REG/SUBREG/CONST_INT/CONST_DOUBLE/CALL (so `(plus fp
+     N)`, `(plus reg 1)`, `(high sym)` are all PRE candidates), a CALL_INSN kills only call-used hard
+     regs and MEMs (`mem_set_in_block`), never a pseudo expression; `pre_lcm` is Muchnick's
+     block-based formulation on antloc/transp only, `delayin/delayout` zero-initialised (an insertion
+     is never delayed through a loop header), `optimal & redundant` is empty by construction so
+     `pre_insert_copies` is dead code: every partially redundant expression gets a fresh
+     recomputation `R = expr` at the end of each optimal block (`insert_insn_end_bb`: before a
+     block-ending jump; before the first parameter load if the block ends in a CALL_INSN, which only
+     happens inside an EH region; else after the last insn), also in blocks that already compute it.
+     The edge-based LCM (`pre_edge_lcm`, insertion on edges, working copies) is mainline 1999-10-17
+     (Andrew MacLeod, ChangeLog.2), never on the 2.95 branch; 2.95.3's flow.c already has the edge
+     cfg (`split_edge`, `insert_insn_on_edge`, `commit_edge_insertions`).
+   - Whole-tree table (regressions = functions identical with the installed compiler that stop being
+     identical / newly identical; lists via `python3 h.py cmp base CFG` in /tmp/gcse3):
+       -fno-gcse                          4192 / 3 (mes move, t_scroll edit_select_sub, r20d moveWall)
+       -fno-rerun-cse-after-loop          cc1plus ICEs in 164 units (unusable)
+       -fno-rerun-loop-opt                 433 / 5 (r108 str_check + r203 StreamCheck 18 -> 0, pl0f
+                                                   R1_Drop 42 -> 0, t_id DbRandom): the "double EmMgr
+                                                   chain" is the SECOND loop pass hoisting the inner
+                                                   loop's pseudo, not gcse (#3 tag wrong)
+       -fno-strength-reduce               1225 / 0    -fno-thread-jumps          418 / 1
+       -fno-expensive-optimizations       2796 / 1    -fno-regmove                 1 / 0
+       -fno-schedule-insns               13844 / 0    -fno-move-all-movables,
+                                                     -fno-reduce-all-givs          0 / 0 (default off)
+       -fno-exceptions                    no change on r120/r213/r226/event (no EH regions anywhere)
+     `-D` variants (regressions counted over the 16 test units = 539 identical functions; none makes
+     any #3 case identical):
+       GCSE3_EDGE (GCC 3.0 edge LCM: comp-aware earliest, ones-initialised LATER, edge insertion,
+         working pre_insert_copies, fake exit edges)      179 / 0  (R120Event 114 -> 29, R209Main
+                                                                    149, MoveDoor02 41, R226Init 0 -> 105)
+       GCSE3_EDGE + no copy-prop in the final cprop       178 / 0
+       GCSE3_CALLENDS (calls end blocks, gcse cfg only)    79 / 0; + no parm-load search 73
+       GCSE3_CALLKILL_TRANSP (a call kills transparency)  124 / 0  (R120Event 24, initPuzzle 88)
+       GCSE3_CALLKILL_LOCAL (call kills antloc/avail)      29 / 0
+       GCSE3_COPY_COMP_A/B (copy instead of recomputing
+         in blocks with comp set; A after the occurrence,
+         B at the block end)                            96 / 0, 64 / 0  (R120Event 24; R213Init 15)
+       GCSE3_DELAY_GFP (block LCM, delayin as a greatest
+         fixed point = insertions delayed into loops)     36 / 0  (R209Main 124 -> 76 with the
+                                                                    target's outer givs; MoveDoor02 38,
+                                                                    PartsBombControl 358)
+   - Evidence that the original's gcse IS the 2.95.3 block-based PRE: R226Init (matched) has fresh
+     `lis r21`/`lis r19` for high(r226_work)/high(pG) at the top of bb 0 although bb 0 already
+     computes both (insns 13/49, `lis r11`), plus `addi r27,r1,80; addi r24,r1,16; addi r31,r1,32`
+     hoisted there — the recompute-at-earliest-block shape; every variant that delays or copies
+     (edge, comp-copy, dgfp) breaks 36-179 of the 539 matched functions in the sample. `high(sym)` is
+     CONSTANT_P, so cse never merges two of them and only gcse does — the per-use `lis; addi` pairs
+     the target keeps in R120Event's tail (`sym+288@ha`, `sym+308@ha`: CONST offsets folded into the
+     reloc) are an address-form difference, not PRE; R120Event's gcse part is exactly 114 -> 24 under
+     any variant that stops PREing high(pG) to the end of bb 0.
+   - Sharpened #3 (what the original does and does not do): (a) it does PRE `(high sym)` and `(plus
+     fp N)` into the end of the earliest block including recomputations in blocks that already
+     compute the expression, and into inner-loop preheaders across call-free loops (initPuzzle's
+     setLayout loops) — same as ours; (b) it does NOT hoist a single-occurrence loop-latch expression
+     (`j+1`, `n = 4`) across an inner loop that contains calls (R209Main, em3c PartsBombControl,
+     r209 2ndBattleEmSet, initPuzzle's first loop): with -fno-gcse ours forms the target's outer givs
+     (`addi r22,4; addi r23,8`) and GCSE3_DELAY_GFP halves R209Main, but neither "delay through
+     loops" nor "calls kill transparency" reproduces it without breaking (a); (c) for an expression
+     computed in bb 0 and reused after a call (R213Init `P = fp+24; r3 = P; bl memset`) the target
+     defines the reaching reg BETWEEN the argument move and the call (`addi r3,r1,24; li r4,0; mr
+     r31,r3` = regmove's optimize_reg_copy_1 on `r3 = P` seeing `R = P` after it), whereas ours
+     inserts `R = fp+24` after the block's last insn (after the call, cse2 -> `R = P`, P lives across
+     the call); a copy right after the computation (3.0 placement) is undone by cse2's `(set REG0
+     REG1)` swap (`R = fp+24; P = R`, 15 words) and copies at the block end, calls-end-blocks and
+     no-parm-search insertion do not give it either. (b) and (c) together are not any GCC 2.95/3.0
+     gcse variant we could build; treat #3 as a compiler-build difference with unknown mechanism and
+     keep using the `&local`/`asm("" : "+r")` levers.
 4. Narrow-argument truncation: the original build does not truncate `int` -> `u16` arguments at call
    sites nor a wider value on a narrow `return`, but masks a u8-returning call assigned to a u16.
    Workaround: asm-labelled int-view / narrow-view declarations (item.h `constructI`, `searchI`).
