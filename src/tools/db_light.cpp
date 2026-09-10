@@ -3750,7 +3750,7 @@ static void edit_scale()
         }
         break;
     }
-    eprintf(0x20, 0x2A, 4, pTool->color, "LIT SCALE");
+    eprintf(0x20, 0x2A, 4, pTool->color, "LIT TUNE");
     eprintf(0x20, 0x38, 0, pTool->color, "MODEL  TEV SCALE %s", scale_name[env->tevScale[0]]);
     eprintf(0x20, 0x46, 0, pTool->color, "PLAYER TEV SCALE %s", scale_name[env->tevScale[1]]);
     LightMgr.setEnv(env, -1);
