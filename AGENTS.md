@@ -4210,15 +4210,13 @@ target) stays unresolved and `make_rel` then fails with "undefined symbol".
   + qualified `((cUnit*)&em)->cUnit::~cUnit()` reproduces frame, inlined dtor and the linkonce copies.
 - After `sync_rel_symbols.py` the module split objects are not re-split by ninja; delete
   `build/G4BE08/config.json` to force it, otherwise unit_info/fdiff report stale names.
-- COMPILER-DIFF candidate #7: the original duplicates the leading insns of a two-predecessor loop-test
-  block into both predecessors (pool load / `lfs; fadds; fcmpu; stfs`), leaving the constant in a
-  caller-saved f13 reloaded after the call; our gcse only inserts with partial availability.
-  RESEARCH 2026-09-10 (~/.cache/ccfp7, see "#7 compiler-side research" under the st1_1/st1_3/st2_0 pass 6
-  section): not gcse at all (CCFP copyability has zero whole-tree effect); it is jump1 leaving
-  `duplicate_loop_exit_test`'s copied FP exit jump unfolded over the following `b END`, then jump2's fall-through
-  cross-jump pairing the two exit jumps. A `-D` hook reproduces r106 shakeClosetDoorR/L and r11c closeGate
-  byte-for-byte from the natural `while` source but regresses 30 other FP-loop functions; the rule that separates
-  the two sets is still open. Nothing installed.
+- COMPILER-DIFF candidate #7 -- CLOSED 2026-09-10 as a SOURCE FORM (not a compiler difference; see "#7/#9
+  closed" at the end of this file). The shape `A0; cmp0; b TEST; TOP: sleep; A; cmp; TEST: bcc TOP; store` is
+  what our own jump.c produces from `for (;;) { A; if (c) { x = lim; break; } SceSleep(1); }`: the exit
+  store on the break path sits between the copied exit jump and its `b END`, so jump1's jump-over-jump fold
+  cannot fire, and jump2's fall-through cross-jump then merges `store; bcc TOP` (and any register-identical
+  tail) of the copy into the loop's. r106 shakeClosetDoorR/L/Body, r11c closeGate (unit Matching), r103/r105
+  execOpenCover and r202 throwRock are all 0 words from that spelling. Nothing installed.
 - Room idioms found on r11d / r10f / r11e / r119 (src/st1/, 2026-09):
   - `RsfSet`/`RsfClear` store through a cast-then-deref word (flag_rsf.h `RsfFlagWord`, not
     `MEM_IN_STRUCT_P`): the rooms reload `pG` and their static work pointer *after* an RsfSet
@@ -4729,9 +4727,13 @@ target) stays unresolved and `make_rel` then fails with "undefined symbol".
   tree with `ble end`; `case 0x13: case 0x14:` gives the range test, `a <= hi && a >= lo` folds.
 - `.rodata` 8-alignment with no double constant: `asm(".section .rodata\n\t.balign 8\n\t.text")` as
   the first line of the unit (before header strings).
-- COMPILER-DIFF candidate #9: loop exit-test duplication -- original `sub; b test; L: sleep; sub;
-  test: bge L` (no duplicated entry test); our jump1 always duplicates it on rotated loops
-  (r103/r105 `execOpenCover`).
+- COMPILER-DIFF candidate #9 -- CLOSED 2026-09-10 as a SOURCE FORM (see "#7/#9 closed" at the end of this
+  file). "No duplicated entry test" is either (a) the #7 shape above with the WHOLE copy cross-jumped away
+  because it is register-identical to the loop's exit code (r106's close halves: the copy's load cannot be
+  cse-forwarded across the previous loop's END label), or (b) an exit code longer than 20 insns at jump1
+  (a clamp/store block on the break path, an inline constant) so jump1 never peels; the pre-cse2 jump pass
+  peels it only when nothing was inserted between LOOP_BEG and the entry jump (r202 throwRock: peel made
+  after loop.c, hence `fmr f28,f30`; puzzle selPiece: never).
 - Tools REL, second pass (t_mes, t_cons, tools.cpp Matching; t_tplview 3/4, 2026-09):
   - Tools' `tools.cpp` needs `-DTOOLS_ARRAY` (modules.py CFLAGS, like t_id): with it the object is
     byte-identical including the six `cManager<T>::arrayPush/arrayPop` instantiations behind the cLight
@@ -13435,3 +13437,69 @@ shows the same reloc name on both sides, not code).
   the reload-rematerialised shape the notes describe.
 - Not iterated: r20e initPuzzle/checkPuzzle, r204 EventChandelier1/2 (frame 0xc0 vs 0xb8: ours has an unused 8-byte
   slot at 0x50 before the fpmem slot; `lis r30; addi r25,r30,crot0@l` two-register high) and nige_check.
+
+### COMPILER-DIFF #7/#9 closed: peeled FP loop exit tests are a source form (r106, r11c Matching, r202 throwRock 0, r103/r105 natural, puzzle selPiece 61% -> 99.5%; 2026-09-10)
+
+- Harness ~/.cache/fold7 (copy of ccfp7 with paths rewritten; `dj.sh CFG SRC MOD OUTDIR -dX..` = cpp + cc/CFG/cc1plus
+  + NgcAs with the dumps kept, `rtl.py DUMP FUNC [-a]` one line per insn, `exitcode.py DUMP FUNC` = the copied
+  exit code (VTOP..LOOP_END) and the insns before each LOOP_BEG, `duppass.py CFG UNIT FUNC` = in which jump pass
+  duplicate_loop_exit_test fired, `scan8.py` = target-asm scan for the `b L; ..; L: bcc` two-compare shape,
+  `mk.sh NAME "-Ddefs"` builds a hooked cc1plus; jump.c hooks FOLD7_NODUP1/2, FOLD7_DUPLIMIT=N, FOLD7_NOFOLD_FWD).
+  `stock/jump.c` = stock 2.95.3 from gcc-mirror: SN's jump.c is stock apart from the header and PROTO removal.
+- **Mechanism (jump.c read, -dj/-dJ dumps on the natural forms).** `expand_end_loop` rotates any loop whose first
+  jump to the end label is within 30 insns (`for (;;) { A; if (c) { S; break; } sleep; }` -> `LOOP_BEG; b START;
+  TOP: sleep; START: A; cmp; bcc TOP; S; b END`), and jump1's `duplicate_loop_exit_test` copies START..LOOP_END
+  (<= 20 INSN/JUMP_INSN, no call/label/asm/inner LOOP_BEG) in front of LOOP_BEG, rescanning the copy at once.
+  The copy's `bcc TOP` is folded over the following `b END` ("conditional jump jumping over an unconditional
+  jump", `prev_active_insn (b END) == insn`) whenever the two are adjacent; for FP compares the fold goes through
+  invert_exp's arm SWAP (`can_reverse_comparison_p` refuses MODE_FLOAT reversal and the swapped `(pc) (label_ref)`
+  branch pattern exists), which is why VecRadLimit's peel prints `cror; bns END` (swapped GE) and not `blt END`.
+  The parent hypothesis "fold iff can_reverse_comparison_p" is therefore wrong: the fold never depends on it.
+  What the original did in r106/r11c is simply the case where an INSN sits between the copied `bcc TOP` and
+  `b END` -- the exit store `x = lim` on the break path -- so no fold is possible in any jump pass; at jump2
+  the fall-through cross-jump of the copy's `b END` (`find_cross_jump (b END, END, 1)`) matches backwards
+  `store == store`, `bcc TOP == bcc TOP` (same CR reg and label after reload) and stops at the first
+  register difference (the compares: the copy's operand is cse1's forwarded pre-loop temp f0, the loop's is its
+  own temp f13), deleting the copy's tail and redirecting `b END` to a new label before the loop's `bcc`:
+  `A0; cmp0; b TEST; TOP: sleep; A; cmp; TEST: bcc TOP; stfs lim; END`. With `while (!(c)) {..}` or `if (c)
+  break;` there is nothing between the copied jump and `b END`, the fold fires and jump2 has nothing to pair.
+- **Why the 30 "fold" functions fold**: their break path is empty (`while (p[i] >= PI) p[i] -= PI2;`, r207
+  `while (pos.z < K) {...}`), so the copy folds; r227 checkBox0Fall's `while (1) { A; if (c) break; sleep; }`
+  has a >20-insn exit code at jump1, is peeled by the pre-cse2 jump pass and folded there, then jump2's
+  condjump cross-jump (`jump_back_p`) deletes the LOOP's register-identical exit code (`TOP: A; cmp; blt END;
+  sleep; b TOP`). The whole-tree `-D` variants (FP-only no-fold = 30 regressions; "no fold when the compared
+  MEM is stored earlier in the block" = 7 / FP-only 1 regression, esp08 move) are all superseded: nothing is
+  installed, the base compiler reproduces every case from the right source.
+- **Source recipes (all verified byte-identical with the installed compiler):**
+  - Peeled test, compare in both predecessors, `b TEST` entry, store after the loop's test (r106 doors/body,
+    r11c closeGate, r103/r105 execOpenCover):
+    `for (;;) { m->rot.y += K; if (m->rot.y > lim) { m->rot.y = lim; break; } SceSleep(1); }`
+    (`for (;;)`, NOT `while (1)`: the constant-true test changes the rotation). The exit store must be on the
+    break path. A second such loop right after the first (r106's close half) shows no peel at all: its copy
+    sits after the first loop's END label, cse1 cannot forward the `rot.y = lim` store into it, the copy is
+    register-identical to the loop's exit code and jump2 deletes all of it (`stfs lim; b TEST2; wait: sleep;
+    TEST2: A; cmp; stfs; bge wait; stfs 0`).
+  - `step` as a variable (f31 across SceSleep), constants for the limit written inline in BOTH the compare and
+    the exit store (r103/r105: `if (rot.z < -(73.0f * 0.01f)) { rot.z = -(73.0f * 0.01f); break; }`; a `lim`
+    variable gives 54 words). r103's `do { } while (0);` sched barrier is not needed any more (the for-loop's
+    LOOP_END note is the barrier).
+  - Peel made AFTER loop.c (`fmr f28,f30` = the exit store's constant hoisted and cse2'd into `lim`, the copy's
+    store `stfs f30`, the loop's `stfs f28`; r202 throwRock): make the exit code > 20 insns at jump1 so jump1
+    refuses (ours was exactly 19 + `b END`): `v += -0.034906585f;` inline (3 insns for the constant) instead
+    of `v += a;`, exit store `rot.x = -0.24137f;` as a constant (cse1 folds the copy's load into `lim`).
+    The third (bounce) loop is the natural nested `for (i..) { lim *= 0.5f; v *= -0.5f; for (;;) { rot.x += v;
+    v += K; if (rot.x < lim && v < 0.0f) { rot.x = lim; break; } SceSleep(1); } }` (never peeled: > 20 insns
+    at jump1, gcse insertions between LOOP_BEG and the entry jump at the pre-cse2 pass). throwRock 9 -> 0.
+  - Never-peeled integer loop with a store on the break path (puzzle selPiece): the clamp macro goes INSIDE the
+    `if (p == 0) { SEL_CHECK(..); break; }` (exit code > 20 insns), not after the loop. 115 -> 17 words, the
+    17 left are the r27/r29 (`ret`/`d`) allocation swap.
+- Sanity limits of duplicate_loop_exit_test that decide "peeled or not" (count on the raw expansion, rescanned
+  each `while (changed)` round without the deleted `b END`): 20 INSN+JUMP_INSN, no CALL_INSN, no CODE_LABEL, no
+  ASM_OPERANDS, no LOOP_BEG/LOOP_CONT note inside START..LOOP_END. A second chance is the pre-cse2 after_regscan
+  jump pass, which only fires when LOOP_BEG is still directly followed by the entry jump (gcse PRE insertions
+  and loop.c hoists land between them whenever the loop has a preheader block, r106 under FOLD7_NODUP1).
+- Results: r106 shakeClosetDoorR/L 9+9 -> 0, shakeClosetBody 8 -> 0 (unit 16/17, openShelf_main r29/r30 +
+  r9/r11 swaps left); r11c closeGate 21 -> 0, unit Matching (st1_3.rel OK); r202 throwRock 9 -> 0 (unit 27/30);
+  r103/r105 execOpenCover rewritten to the natural form, bytes identical (both RELs OK); puzzle selPiece
+  61.9% -> 99.5%. r214 not touched (another agent).
+

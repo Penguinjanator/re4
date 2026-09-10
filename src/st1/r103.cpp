@@ -257,26 +257,18 @@ static void r103_execOpenCover(R103Cesspit* c)
     pG->flags_51C0 |= 0x04000000;
     lid = SmdGetObjPtr(c->lid);
     SndCall(6, 9, &lid->pos, 0, 0, 0);
-    // Goto loop entered at its test (no loop notes: nothing peeled or hoisted): `step` is a variable
-    // (f31 across the call), `lim` is assigned in BOTH predecessors of the test (f13 in each, the
-    // exit store reuses it), and the dead do-while puts a LOOP_END note between the store and the
-    // call so `lwz c->at14` becomes a sched barrier that `li r4,1` cannot pass.
+    // `step` a variable (f31 across the call); the exit store on the break path keeps the peeled
+    // exit test unfolded so jump2 merges the two exit jumps (AGENTS.md COMPILER-DIFF #7/#9).
     f32 step = 0.06981317f;
-    f32 lim;
 
-    lid->pParts->rot.x -= step;
-    lim = -1.83f;
-    goto test;
-wait:
-    SceSleep(1);
-    lid->pParts->rot.x -= step;
-    lim = -1.83f;
-test:
-    if (!(lid->pParts->rot.x < lim)) {
-        goto wait;
+    for (;;) {
+        lid->pParts->rot.x -= step;
+        if (lid->pParts->rot.x < -1.83f) {
+            lid->pParts->rot.x = -1.83f;
+            break;
+        }
+        SceSleep(1);
     }
-    lid->pParts->rot.x = lim;
-    do { } while (0);   // COMPILER-DIFF: dead loop notes (sched barrier), see above
     SceAtSetEnable(c->at14, 1);
 }
 

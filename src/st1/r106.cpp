@@ -370,25 +370,22 @@ static void r106_shakeClosetBody(cModel* m)
     f32 lim = fRand0_1() * 0.015707962f + 0.006981317f;
     f32 spd = fRand0_1() * 0.008726646f + 0.004363323f;
 
-    m->rot.x += spd;
-    if (!(m->rot.x > lim)) {
-    up_wait:
-        SceSleep(1);
+    for (;;) {
         m->rot.x += spd;
-        if (!(m->rot.x > lim)) {
-            goto up_wait;
+        if (m->rot.x > lim) {
+            m->rot.x = lim;
+            break;
         }
+        SceSleep(1);
     }
-    m->rot.x = lim;
-    goto down;
-down_wait:
-    SceSleep(1);
-down:
-    m->rot.x -= spd;
-    if (!(m->rot.x < 0.0f)) {
-        goto down_wait;
+    for (;;) {
+        m->rot.x -= spd;
+        if (m->rot.x < 0.0f) {
+            m->rot.x = 0.0f;
+            break;
+        }
+        SceSleep(1);
     }
-    m->rot.x = 0.0f;
 }
 
 // The right closet door swings open a little and shuts.
@@ -396,25 +393,25 @@ static void r106_shakeClosetDoorR(cModel* m)
 {
     f32 lim = fRand0_1() * 0.034906585f + 0.034906585f;
 
-    m->rot.y += 0.02617994f;
-    if (!(m->rot.y > lim)) {
-    open_wait:
-        SceSleep(1);
+    // The exit store inside the break path keeps jump1 from folding the peeled exit test's
+    // `ble TOP` over `b END`; jump2's fall-through cross-jump then merges the two exit jumps
+    // (`cmp; b TEST; ...; TEST: ble TOP`) -- see AGENTS.md COMPILER-DIFF #7/#9 (not a diff).
+    for (;;) {
         m->rot.y += 0.02617994f;
-        if (!(m->rot.y > lim)) {
-            goto open_wait;
+        if (m->rot.y > lim) {
+            m->rot.y = lim;
+            break;
         }
+        SceSleep(1);
     }
-    m->rot.y = lim;
-    goto close;
-close_wait:
-    SceSleep(1);
-close:
-    m->rot.y -= 0.02617994f;
-    if (!(m->rot.y < 0.0f)) {
-        goto close_wait;
+    for (;;) {
+        m->rot.y -= 0.02617994f;
+        if (m->rot.y < 0.0f) {
+            m->rot.y = 0.0f;
+            break;
+        }
+        SceSleep(1);
     }
-    m->rot.y = 0.0f;
 }
 
 // The left closet door swings open a little and shuts.
@@ -422,25 +419,22 @@ static void r106_shakeClosetDoorL(cModel* m)
 {
     f32 lim = fRand0_1() * 0.06981317f - 0.06981317f;
 
-    m->rot.y -= 0.05235988f;
-    if (!(m->rot.y < lim)) {
-    open_wait:
-        SceSleep(1);
+    for (;;) {
         m->rot.y -= 0.05235988f;
-        if (!(m->rot.y < lim)) {
-            goto open_wait;
+        if (m->rot.y < lim) {
+            m->rot.y = lim;
+            break;
         }
+        SceSleep(1);
     }
-    m->rot.y = lim;
-    goto close;
-close_wait:
-    SceSleep(1);
-close:
-    m->rot.y += 0.05235988f;
-    if (!(m->rot.y > 0.0f)) {
-        goto close_wait;
+    for (;;) {
+        m->rot.y += 0.05235988f;
+        if (m->rot.y > 0.0f) {
+            m->rot.y = 0.0f;
+            break;
+        }
+        SceSleep(1);
     }
-    m->rot.y = 0.0f;
 }
 
 // The closet Ashley hides in: created, then it shakes every 5..260 frames until the event.

@@ -795,23 +795,18 @@ static void r105_execOpenCover()
     RsfSet(G_ROOM_ID, 3);
     obj = SmdGetObjPtr(0x30);
     SndCall(6, 0x5F, &obj->pos, 0, 0, 0);
-    // Goto loop entered at its test (r103 execOpenCover): `step` a variable (f31 across the call),
-    // `lim` assigned in both predecessors of the test (f13, the exit store reuses it).
+    // `step` a variable (f31 across the call); the exit store on the break path keeps the peeled
+    // exit test unfolded so jump2 merges the two exit jumps (AGENTS.md COMPILER-DIFF #7/#9).
     f32 step = 0.06981317f;
-    f32 lim;
 
-    obj->pParts->rot.z -= step;
-    lim = -(73.0f * 0.01f);
-    goto test;
-wait:
-    SceSleep(1);
-    obj->pParts->rot.z -= step;
-    lim = -(73.0f * 0.01f);
-test:
-    if (!(obj->pParts->rot.z < lim)) {
-        goto wait;
+    for (;;) {
+        obj->pParts->rot.z -= step;
+        if (obj->pParts->rot.z < -(73.0f * 0.01f)) {
+            obj->pParts->rot.z = -(73.0f * 0.01f);
+            break;
+        }
+        SceSleep(1);
     }
-    obj->pParts->rot.z = lim;
     SceAtSetEnable(9, 1);
 }
 

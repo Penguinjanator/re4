@@ -766,23 +766,17 @@ static void r11c_closeGate(u32 id)
     f32 spd = 0.0f;
 
     g->be_flag |= 0x20;
-    // COMPILER-DIFF: #9 -- the original is the rotated `while (1) { move; if (done) break; SceSleep(1); }`
-    // without the duplicated entry test (`b test`); our jump1 always duplicates it, so the loop is
-    // spelled with gotos (no loop notes), which also leaves `acc` rematerialised at its single use.
-    // Residue: the original's shared bottom branch sits between the compare and the `bge` (the
-    // compare is on both paths); the label here forces a reload of pos.y for the compare.
-    g->pos.y -= spd;
-    spd += acc;
-    goto test;
-top:
-    SceSleep(1);
-    g->pos.y -= spd;
-    spd += acc;
-test:
-    if (!(g->pos.y < dst)) {
-        goto top;
+    // The exit store on the break path keeps jump1 from folding the peeled exit test over `b END`;
+    // jump2's cross-jump merges the two exit jumps (`cmp; b TEST; ...; TEST: bge TOP; stfs dst`).
+    for (;;) {
+        g->pos.y -= spd;
+        spd += acc;
+        if (g->pos.y < dst) {
+            g->pos.y = dst;
+            break;
+        }
+        SceSleep(1);
     }
-    g->pos.y = dst;
     W->closeGate = 0;
 }
 

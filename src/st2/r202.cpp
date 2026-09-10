@@ -1032,9 +1032,7 @@ static void r202_throwRock(cCatapult* c)
 {
     int i;
     f32 v;
-    f32 a;
     f32 lim;
-    f32 lim2;
 
     c->obj->pParts->rot.x = -0.24137f;
     for (i = 10; i != 0; i--) {
@@ -1042,41 +1040,34 @@ static void r202_throwRock(cCatapult* c)
         SceSleep(1);
     }
     c->throwRock();
-    a = -0.034906585f;
     v = -0.06981317f;
     lim = -0.24137f;
-    c->obj->pParts->rot.x += v;
-    v += a;
-    // The loop's exit store uses a hoisted COPY of `lim` (target `fmr f28,f30` in the pre-block):
-    // the copy must survive gcse's copy propagation, so `lim` itself is laundered after it.
-    lim2 = lim;
-    asm("" : "+f"(lim));   // COMPILER-DIFF: #9 (jump1 peel + loop.c hoist of the exit constant)
-    if (c->obj->pParts->rot.x < lim) {
-        c->obj->pParts->rot.x = lim;
-    } else {
-        do {
-            SceSleep(1);
-            c->obj->pParts->rot.x += v;
-            v += a;
-        } while (!(c->obj->pParts->rot.x < lim));
-        c->obj->pParts->rot.x = lim2;
+    // Loop shapes (see AGENTS.md COMPILER-DIFF #7/#9, both closed as source forms): the exit store on
+    // the break path keeps jump1 from folding the peeled exit test; this loop's exit code is > 20 insns
+    // at jump1 (the constant in `v +=` costs 3), so the peel is made by the pre-cse2 jump pass, after
+    // loop.c hoisted the exit store's constant (`fmr f28,f30`); the bounce loop's exit code is never
+    // peeled (> 20 insns, then gcse's preheader insertions).
+    for (;;) {
+        c->obj->pParts->rot.x += v;
+        v += -0.034906585f;
+        if (c->obj->pParts->rot.x < lim) {
+            c->obj->pParts->rot.x = -0.24137f;
+            break;
+        }
+        SceSleep(1);
     }
     for (i = 0; i < 4; i++) {
         lim *= 0.5f;
         v *= -0.5f;
-        goto step;
-    wait2:
-        SceSleep(1);
-    step:
-        c->obj->pParts->rot.x += v;
-        v += -0.034906585f;
-        if (!(c->obj->pParts->rot.x < lim)) {
-            goto wait2;
+        for (;;) {
+            c->obj->pParts->rot.x += v;
+            v += -0.034906585f;
+            if (c->obj->pParts->rot.x < lim && v < 0.0f) {
+                c->obj->pParts->rot.x = lim;
+                break;
+            }
+            SceSleep(1);
         }
-        if (!(v < 0.0f)) {
-            goto wait2;
-        }
-        c->obj->pParts->rot.x = lim;
     }
     c->throwRockTask = 0;
 }

@@ -977,13 +977,11 @@ void pzlPlayer::giveupExtraPiece()
 }
 
 // Cursor clamp after a move: written twice per axis in the original (a macro): once in the loop's
-// `q == 0` else arm and once after the loop (jump2 cross-jumps the tails); the `cur < 0` compare is
-// shared between the outer `||` and the inner `if` (cr7).
-// OPEN (COMPILER-DIFF candidate #9): with the else arm ending in `goto done` the only `break` is the
-// `p == 0` one, expand_end_loop rotates the loop around it and the original enters it with a plain
-// `b INC` (no duplicated exit test), while our jump.c duplicates the `curX += d; if (p == 0)` exit
-// code at the loop entry (duplicate_loop_exit_test refuses only calls/labels/>20 insns; a goto loop
-// keeps the layout but loses the loop.c-hoisted `cmpwi p` in cr4).
+// `q == 0` else arm and once on the `p == 0` break path INSIDE the loop; the `cur < 0` compare is
+// shared between the outer `||` and the inner `if` (cr7). The clamp on the break path makes the
+// rotated loop's exit code (`cur += d; if (p == 0) { clamp; break; }`) longer than 20 insns, so
+// jump1's duplicate_loop_exit_test never peels it and the loop is entered with a plain `b INC`
+// (AGENTS.md COMPILER-DIFF #9, closed: a source form, not a compiler difference).
 #define SEL_CHECK(cur, size, lo, hi, done)                                                          \
     if (b->cur < 0 || b->cur > b->size - 1) {                                                        \
         if (b->cur < 0) {                                                                            \
@@ -1020,6 +1018,7 @@ int pzlPlayer::selPiece(pzlBoard* b)
         for (;;) {
             b->curX += d;
             if (p == 0) {
+                SEL_CHECK(curX, w, 3, 4, doneX);
                 break;
             }
             {
@@ -1034,7 +1033,6 @@ int pzlPlayer::selPiece(pzlBoard* b)
                 }
             }
         }
-        SEL_CHECK(curX, w, 3, 4, doneX);
     }
 doneX:
     d = 0;
@@ -1050,6 +1048,7 @@ doneX:
         for (;;) {
             b->curY += d;
             if (p == 0) {
+                SEL_CHECK(curY, h, 1, 2, doneY);
                 break;
             }
             {
@@ -1064,7 +1063,6 @@ doneX:
                 }
             }
         }
-        SEL_CHECK(curY, h, 1, 2, doneY);
     }
 doneY:
     return ret;
