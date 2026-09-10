@@ -10200,3 +10200,72 @@ output to the installed compiler; NOTE mk.sh must rm the insn-*.o objects or a p
   store-flag/branch folding removes the dead test before flow; the target's reload needs an ebb break there that no
   form gave); title titleDebugMenu (`no`/`room` r31/r30: `int no = 0`, a dead `if (no == 99)` test, `room` merged into
   `no` (143)); card errorDisp (mesNo/step r29/r31 global-alloc order, not attempted beyond reading).
+
+### Switch tree model (tools/casetree.py, stmt.c + jump.c; validated on 836 switches of the Matching modules, 2026-09-10)
+
+Read tools/casetree.py's docstring for the API; `python3 tools/casetree.py <cases> --layout A,B,D --target
+build/G4BE08/<mod>/asm/<mod>/<unit>.s:<func>[:rN[:.L_start]] [--ours <mod>/<unit>:<func>]` prints the model's final
+branch sequence next to the target's/ours and MATCH/DIFF (harness /tmp/casetree2: validate.py parses every switch of a
+source function and checks it against the target runs; validate_all.py over all Matching modules).  Rules, all read off
+stmt.c/jump.c and confirmed with cc1plus probes:
+- **Expansion:** SN's stmt.c never emits a jump table (`if (1)` at the CASE_VALUES_THRESHOLD test); the rest of the
+  case-tree code is stock 2.95.3.  Nodes = sorted case values after `group_case_nodes` (adjacent values whose labels
+  have the same first real insn merge: two `break`-only arms merge with each other and with `default: break;`; an arm
+  with a real body never merges with its neighbour even when the bodies are identical).  Default-grouped and
+  break-arm values are real nodes that shape the balance; their compares fold away later (see jump1), so the target
+  tree is reproduced by LISTING them (`case 5: case 6: .. default:` / `case 0x17: case 0x2A: break;`), searched with
+  casetree.search.
+- **Balance (plain mode):** root = the node where a countdown from `(n + ranges + 1) / 2` (2 per range, 1 per single)
+  reaches <= 0; exactly 3 nodes -> middle; 1-2 nodes -> linear right chain.  A list of >= 4 nodes never makes its
+  FIRST node the root.
+- **Cost mode** (`use_cost_table`): on when the index is not an enum (the un-promoted type is tested; a u8 member is
+  int, an `enum` switch is OFF) and every case value is in -1..127 with no control char other than \0 \b \t \n \v \f
+  (0x1..0x7, 0xE..0x1F, 0x7F disable it -> every damage switch is plain).  Then the split bisects the cost_table
+  weights (alnum 16, punct/space 8, \0 \t 4, \n 2, \b \v \f 1, -1 -> 0), and a list whose first node reaches half the
+  cost is left LOPSIDED: root = first node, right chain LINEAR (`case 'A'..'D': / 'a' / 'x'` -> `cmpwi 65 blt; cmpwi 68
+  ble; cmpwi 97 beq; cmpwi 120 beq`).  A game switch is in cost mode when all its values are 0, 8..0xC or 0x20..0x7E.
+- **Index type:** u8/u16 members and enums are int (`cmpwi`, INT bounds).  `s8`/`s16`/`char` (char is signed) keep
+  their type: a leaf whose high is 127 (low -128) gets no bound test.  `(u32)` index: ordered compares `cmplwi`, EQ
+  compares still `cmpwi` (SELECT_CC_MODE), the two are not cse-merged (`cmpwi 5; beq; cmplwi 5; ble`), and a leaf with
+  low 0 has a low bound (no `cmplwi 0; blt`).
+- **Bound pruning** (`node_has_low/high_bound`): a leaf whose low-1 / high+1 is a parent's high / low emits no test
+  on that side; both sides bounded -> plain `b label` (`[D]` between `[0-C]` and `[E-11]` in em31DmCk).  A right-only
+  range node emits `[cmpwi low; blt D]; cmpwi high; ble label` (the LT only without a low bound), a left-only one
+  `[cmpwi high; bgt D]; cmpwi low; bge label`, a both-children node `cmpwi high; bgt T (or the right child's label if
+  that child is bounded); cmpwi low; bge label; <left>; b D; T: <right>`; a single node `cmpwi v; beq label` then the
+  same dispatch on its children (`bgt/blt` straight to a bounded child; a single leaf child is handled as `cmpwi
+  child; beq` with no range test).
+- **jump1** (before flow; a deleted conditional jump loses its compare): `beq D; b D` (a default/break leaf's EQ
+  followed by the default jump) -> both gone; `b L; L:` -> gone; `bgt L1; b L2; L1:` -> `ble L2`; jumps to
+  `default: break;` / `case X: break;` labels thread to the switch exit; from the second round on, the range swap
+  `if (foo) bar; else break;` (`bcc L1; R1; b L2; L1: R2; b X; L2:`, L1 used once) -> `b!cc L1; R2; b X; L1: R1; b
+  L2`: fires when the left subtree's final `b A` targets the arm laid out right after the tree (A written FIRST),
+  giving the "right child before left" order (em29DmCk 0x29, em31DmCk high half) and also on a case label whose
+  arm follows the tree (`beq A; ..; b B; A: body; b END; B:` -> `bne A'; body; b END; A': ..`).  A `default: goto
+  normal;` written FIRST puts the default label right behind the tree: the last node's `bgt default; b big` inverts
+  to `ble big` and falls into `default: b normal` (em36BloodSet, `--goto D=N`).
+- **jump2** (after reload, with sched2 on): `delete_computation` deletes only the jump, so a conditional jump made
+  redundant by jump2's cross-jumping keeps its compare: `cmpwi 0; b D` (em28DmCk, three identical arms), `lbz dmWep;
+  cmpwi 0x21` with no branch (em30DmCk `if ((em->dmWep ^ 0x21) == 0) return em->dmWep;`, em29DmCk).  Cross-jumping
+  also merges the last branch of two nodes when the arm body is not adjacent (`cmpwi 1; b L; T: cmpwi 7; L: beq A`,
+  em24DmCk's hitCheck switch whose arm ends in `return`): model it with 'EXIT' in the layout before the far arm.
+  Identical arms: `merge={'A1': 'A0'}` (survivor normally the LAST identical arm; `'A3+'` when the copies jump past a
+  private first insn of the survivor, e.g. its own dead `fcmpu`).
+- **em31DmCk (11 words, compiler-side):** the target's `> 0x17` half is `[18-28] -> [2b-2c]{[29-2a],[2d]}` -- a
+  right-only range root with a BALANCED right subtree.  balance_case_nodes never picks the first node of a >= 4 list
+  in plain mode, and cost mode (off here: 0..C, 0xE..0x11, 0x18..0x1F are control chars) leaves such a root with a
+  LINEAR chain.  The left half additionally needs `[12-13]` to have a bounded right child (`cmpwi 0x13; ble X; b
+  EXIT` = an explicit `case 0x14..0x16: default:`), which makes the left list cost 9 and would move the root off 0x17
+  unless the right list costs 9-10 -- no (n, r) rule and no ctype cost table satisfies both halves; brute force over
+  explicit default/break labels for 0x14-0x16, 0x18-0x28 (any split), 0x2B-0x2C, 0x2E-0x30 x 9 layouts x 3 empty sets
+  (15876 configurations, /tmp/casetree2/em31s2.py) finds no match.  Nested `if`/switch forms cannot bound `[29-2a]`
+  from below (an inner switch's `[29-2a]` has no parent with high 0x28: `cmpwi 0x29; blt` appears).  Left as a
+  compiler-side difference; do not retry source forms.
+- **em29DmCk hp>0 arm (`lbz dmWep; cmpwi 0x21` dead, then the kind switch):** the mechanism is `if (em->dmWep == 0x21)
+  em29DmRoutineSet(em, kind); else em29DmRoutineSet(em, kind);` -- jump2 cross-jumps the THEN copy into the ELSE copy,
+  `bne ELSE; b ELSE` loses its branch and the compare survives.  With our jump.c the THEN copy only collapses
+  partially: its kind-0 body's `b END` is first tried against the code before END (the ELSE kind-2 body's `stb r0,fe`,
+  a 1-insn match, `find_cross_jump(insn, END, 1)`), so it becomes `b NEW` and never reaches the chain lookup that would
+  match the ELSE kind-0 body whole (+14 insns, 74 diff lines vs 50 without the if).  The original merged the whole
+  body (longest/other-candidate match first) -- COMPILER-DIFF 6 (cross-jump policy).  if/switch, `!=`, default-first
+  and `return` forms all give the same partial merge; not reproducible from source.
