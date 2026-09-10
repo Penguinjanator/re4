@@ -200,7 +200,7 @@ public:
             u8 x4FD;              // 0x4FD
             u8 x4FE;              // 0x4FE
             u8 xButtonWait;       // 0x4FF  player: frames until the X button (partner command) is accepted again
-            u8 pad_500[4];
+            f32 blendRate500;     // 0x500  player: em2b plBlendMotSet: neckMot blend rate source (the strangle button mash 0..255)
             u32 sndId504;         // 0x504  player: SndCall handle cPlayer::interrupt stops
             cModel* pLockEm;      // 0x508  player: locked-on enemy (pl_wep lock, knife aim)
             u8 pad_50C[0x518 - 0x50C];
@@ -233,7 +233,7 @@ public:
             MotionWorkSub subBackMot;   // 0x454 .. 0x524  look-back motion blended in (backCheckSet -> blendMot)
         };
     };
-    u8 pad_524[8];
+    cModelInfo* subHand[2];   // 0x524  cSubChar: hand model infos (pl11 cSubAshley::setHand)
     f32 sub52C;           // 0x52C  cSubChar: fence / window action direction
     int subHideMode;      // 0x530  cSubChar (pl_sub SubCharCtrlHide); pl_npc: general step counter
     int subX534;          // 0x534  cSubChar (SubCharCtrlHide mode 0 sets 1)
@@ -281,16 +281,28 @@ public:
     class cPlPush* pPush; // 0x7A0  player: push-object control (pl_push.cpp, 0x10 bytes)
     class cMotBase* pMotBase;  // 0x7A4  (0x38 bytes)
     u8 pad_7A8[4];
-    Vec bustBase[3];      // 0x7AC  Ashley: rest positions of parts 0x1D, 0x1E, 0x1A (pl_ashley moveBust)
+    union {
+        Vec bustBase[3];      // 0x7AC  Ashley: rest positions of parts 0x1D, 0x1E, 0x1A (pl_ashley moveBust)
+        struct {              // Krauser (pl0a pl_klauser.cpp): the three fading model infos and their state
+            cModelInfo* krModel[3];   // 0x7AC  [0]/[1] arm models faded against each other, [2] the tex-render one
+            int krX7B8;               // 0x7B8  (ctor: 0)
+            int krX7BC;               // 0x7BC
+            int krX7C0;               // 0x7C0  (ctor: 0)
+            u8 krPad_7C4[0x7D0 - 0x7C4];
+        };
+    };
     u8 pad_7D0[4];
     cLight* subLight;         // 0x7D4  cSubChar: back light (cLightMgr::createBack)
     void* subShape;       // 0x7D8  cSubChar: ShapeMove work (NULL = none)
     void (*subFunc)();        // 0x7DC  cSubChar: routine 4 (damage) handler (cSubChar::move)
     Vec subBustBase[3];   // 0x7E0  cSubChar: rest positions of parts 0x1D, 0x1E, 0x1A (moveBust)
-    u8 pad_804[0x890 - 0x804];
+    u8 pad_804[0x880 - 0x804];
+    f32 x880;             // 0x880  player (Krauser): ctor 1.0
+    u8 pad_884[0x890 - 0x884];
     int x890;             // 0x890  player (Krauser): cleared by cPlayer::interrupt with pG->flags_5018 bit23
     int x894;             // 0x894  player (Krauser): -1 -> 1 there
-    u8 pad_898[0x9BC - 0x898];
+    int x898;             // 0x898  player (Krauser): tex-render model alpha pulse counter (0..0x1F, transMove)
+    u8 pad_89C[0x9BC - 0x89C];
     f32 x9BC;             // 0x9BC  (objTrolley objTrolleyFallEM: rot.y when thrown off the car)
     u8 pad_9C0[0xD60 - 0x9C0];
     Mtx rackMat;          // 0xD60  cEmRack push range matrix (setRange: rot * trans of the rack)

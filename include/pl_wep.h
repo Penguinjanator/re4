@@ -101,11 +101,15 @@ class cPlWep {
 public:
     u8 pad_0[0x20];
     u8 x20;              // 0x20  (ctor: 0)
-    u8 pad_21[3];
+    u8 pad_21[2];
+    u8 x23;              // 0x23  (wep07 ready00: 0)
     u8 knifeStance;      // 0x24  knife ready stance: 0 low, 1 middle, 2 high
+    u8 pad_25;
+    u8 x26;              // 0x26  bit0: reload requested by the routine (wep11 pl_machine)
+    u8 pad_27;
     f32 pitch;           // 0x28  aim pitch
     f32 x2C;             // 0x2C
-    u8 pad_30[4];
+    f32 x30;             // 0x30  camera direction at the ready start (wep13 pl_rocket: the player turns to it over ready10's first frames)
     cObjWep* pObj;       // 0x34  weapon object (cObjLauncher for the rocket launcher)
     cObjWep* pObj2;      // 0x38  second weapon object (rifles / launchers display part)
     u8 pad_3C[4];

@@ -369,7 +369,7 @@ void EndSubDamage()
     }
     sub->dmg.clear();
     if (sub->id == 4) {
-        pSUB->endDamageCore();
+        pSUB->modelSet();
     } else {
         sub->endDamage();
     }

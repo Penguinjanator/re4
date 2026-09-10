@@ -4750,3 +4750,55 @@ target) stays unresolved and `make_rel` then fails with "undefined symbol".
   tvibFrameLineDraw (frame +0x10, one more callee-saved), tvibListVibDraw, tvibEditFrameDisp; t_rck and
   db_mod not iterated (db_mod dbmodGetFilenames: the target strength-reduces `type * 0x800 + 0x3a1`
   as an outer-loop giv `li r22,0x3a1 .. addi r22,0x800`, ours recomputes `slwi; addi` per iteration).
+
+### Player modules (pl11, pl06, pl02 Matching; pl0d/pl_wesker.cpp Matching; pl0a 38/39; include/pl_mod.h; 2026-09)
+
+- Layout: the 8 player RELs are `PlInitFunc = PlXXInit` modules (`_prolog` also `OSReport`s "PlXX <NAME> prolog
+  Ok"; pl11 sets `EmInitFunc` and has no OSReport), `PlXXInit(cEm*)` = `new (em) cPlXxx()`, the player class
+  (cPlayer subclass: ctor, setMotion, move, setModel, setRightHand, setLeftHand, setFace, setHead x2, initCloth,
+  moveCloth in that .text order), then `_prolog/_epilog/_unresolved`, the synthesized destructor and the
+  in-class `initCloth/moveCloth` bodies when they are one-liners, then the cUnit linkonce copies. pl11 is a
+  `cSubChar` subclass (`cSubAshley`: modelSet / setFace / setHand / initCloth / moveCloth; vtable slot 9 of
+  cSubChar is `modelSet`, renamed from the pl_npc.h placeholder `endDamageCore`). pl0a and pl0d are
+  multi-object: the weapon module's routine object rebuilt WITHOUT its `PlXxxMove` entry (pl0a: wep07's r2/r3
+  routines + `wepDown` + the named cManager<cLight> pair, .data `wep07_func_tbl[5] = {ready, set, fire, 0, 0}`
+  kept although unreferenced; pl0d: cObjRuger without `ObjRuger_init`, then the wep02 routines) followed by
+  `pl_klauser.cpp` / `pl_wesker.cpp` (their `__FILE__` strings); modules.py UNITS pins the header-string
+  groups. pl0e/pl0f (`pl0e.cpp`/`pl0f.cpp`, jet ski: cPl0e/cPl0f cEm subclasses with a 0x118-byte work at
+  0x3E0, routine tables in .data, 0x34 COMMON) and pl14 (Luis: cSubLuis + cRoutine/cAction/cAnalysis/cVoice
+  classes, cObjLuisItem, static-init pair) are single files, unwritten.
+- The costume classes are templates of pl_leon.cpp / pl_ashley.cpp: `setMotion` is Leon's table verbatim
+  (`PSet(pMotTbl[0x5F..], PL_ARC(0x32..))`), ctor = `init0; setModel; weaponRelease; weaponLoad(pG->wep_no,
+  pG->wep_type); weaponInit; init1; setMotion; arc = pG->pPlArc; EspDataLoad(arc[0x1A], 3, 0); startUp;
+  pFootShadowTbl = pl_fs_tbl` (Krauser moves EspDataLoad right after init0 and adds five stores + a pGS flag
+  clear; Ada adds an `EstSet` under `costume == 1`), setRightHand/setLeftHand = Leon's with the module's
+  archive indices and switch cases (`default: data = (void*) no;`; a `case 0..9` run with `case 1` in the
+  middle gives the `cmplwi 1; blt / cmplwi 9; bgt` range tree), setFace = Leon's, setHead(int) deletes pHair
+  (HUNK/Ada/Krauser: pShape) then creates ARC(0xB/0xC)+ARC(7). Error strings are copied between characters
+  (Ada's setModel mixes "cPlAda", "cPlAshley" and "cPlLeon" messages; HUNK's is "cSubLuis::init() failed.").
+- Idioms: (1) synthesized destructors (no user dtor) for the size-0x20/0x24 `_._` bodies; (2) `cModelInfo`
+  members stored then followed by a pG read need `PSet` (pl02 pHair, Krauser pShape); (3) partner archive reads
+  go through `subSelf` (`SUB_ARC`: `lwz 0x3e0; lwz 0x378`), `hp = pGS->sub_life` keeps the pG load below the
+  vptr store; (4) `subHand[0] = create(); if (subHand[0]) addModel(subHand[0])` (member re-read, forwarded
+  `mr r4,r3` after the compare) vs `info = create(); subHand[1] = info; if (info)` (`mr r4,r3` before the
+  store) are the two hand blocks of cSubAshley::setHand; (5) a data table the REL addresses with field 0 is a
+  global (pl02 `adaHair2P`, `adaHolsterAt`; pl_wesker `weskerJacketAt`): make it non-static or the ADDR16
+  field carries S+A; (6) a module whose first object defines the cUnit copies: name its `_vt.5cUnit` label in
+  symbols.txt/sym_map.tsv so a later unit's dtor binds to it (pl0d); (7) unreferenced first-object linkonce
+  copies and later-object nameless blocks are handled by ngccc as documented, the nameless block has no symbol
+  so a by-name compare reports it "missing" — compare the .text tail bytes directly; (8) the two `setHead`
+  overloads are ambiguous for sync_rel_symbols: rename `setHead__NcPlXxxi` / `setHead__NcPlXxxPvT1` by hand;
+  (9) cloth setters (`testHairSetAda2`, `testHolsterSetAda2`, `testJacketSetWesker`) follow pl_cloth.cpp's
+  member order with the zero stores last and `x54 = 0` as the last zero; a `rate` local shared by `x40`/`x50`
+  needs the order `pModel = 0; x40 = rate; x50 = rate; flags; x54 = 0` (brute-forced); (10) Krauser's
+  transMove: `if (m->color[3] <= 0xBE) m->color[3] = a + 0x40; else m->color[3] = 0xFF;` (a store per arm —
+  a single result variable lets jump.c hoist the constant arm above the compare) with `int a` for the signed
+  `cmpwi`, the fade-out written out per arm with direct member reads (`u8 b` copy gives the `clrlwi`
+  mask), and `krModel[2]` re-read in both arms of the pulse-length `if`; (11) `pl_R1_KlauserAttack`: the
+  pool wants `const f32 hitLen = 3000.0f;` at the top (case-0x15 constant first), `BitOn/BitOff(pGS->flags_5018, ..)`
+  after `x890` stores. OPEN: transMove's alpha-pulse block (30 words: t/a register names r0/r10 vs r6/r0 and
+  the second half's constant-load interleave; do/while(0) placement, temp variables, declaration orders tried).
+- Tools used (/tmp/plmod): `mcmp.py MOD[/UNIT]` (masked word compare per function incl. function order,
+  .rodata/.data words + reloc targets), `perm.py MOD/UNIT SYM` (statement permutations between `// PERM_BEGIN`
+  / `// PERM_END`), `variants.py` (`// VAR_ALT`-separated alternatives). Store-order blocks of 5-6
+  statements are solved in < 1 minute this way.

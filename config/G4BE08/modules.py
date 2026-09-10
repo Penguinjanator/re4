@@ -26,6 +26,176 @@ _ST4 = ("st4.cpp", "set", "st4/st4.cpp")
 # object in st1_1 and st1_3), then st1.cpp/st2.cpp/st4.cpp. Room .rodata starts are pinned at the room's
 # first header string (cFlag.set()/atari.h/event.h/map_obj.h..., emitted at parse time, never referenced).
 UNITS = {
+    # Weapon RELs (wepXX): the player routine object of the weapon class (shared by every module of
+    # that class: src/wep/pl_<class>.cpp, `PlXxxMove` + the r2/r3 routines + the named
+    # cManager<cLight> countActiveWork/create(int) copies), then the module's own object
+    # (WepXX_init, the cObjXxx class, ObjXxx_init, _prolog/_epilog/_unresolved, nameless cLight block,
+    # cObj createBack, cUnit copies). Some modules put the weapon class in its own object before the
+    # routines (objXxx.cpp). Every object's .rodata starts with its own [cFlag.set()][atari.h][light.h]
+    # header strings (unreferenced, hence the pins). Real file names are not in the binary.
+    # pl0a (Krauser): the shotgun player routines in Krauser's build (no PlShotgunMove / reload; the
+    # weapon modules' pl_shotgun object with fewer functions), then pl_klauser.cpp. Both objects start
+    # with their own [cFlag.set()][atari.h][light.h] header strings (pl_klauser adds dmg.h).
+    "pl0a": [
+        ("pl0a/wep07.cpp", None, None),
+        ("pl0a/pl_klauser.cpp", "setTexRender", None, {".rodata": 0x150, ".data": 0x30, ".bss": 0x0}),
+    ],
+    # pl0d (Wesker): the wep02 module's objects rebuilt for the player module (the cObjRuger class object
+    # without ObjRuger_init, the handgun routines without PlHandgunMove) then pl_wesker.cpp. Each object
+    # starts with its own header strings ([cFlag.set()][atari.h] / [..][light.h]).
+    "pl0d": [
+        ("pl0d/objRuger.cpp", None, None),
+        ("pl0d/wep02.cpp", "wep02_r2_ready", None, {".rodata": 0x190, ".data": 0x0}),
+        ("pl0d/pl_wesker.cpp", "testJacketSetWesker", None, {".rodata": 0x358, ".data": 0x58, ".bss": 0x0}),
+    ],
+    "wep13": [
+        ("wep13/pl_rocket.cpp", None, "wep/pl_rocket.cpp"),
+        ("wep13/wep13.cpp", "Wep13_init", None, {".rodata": 0x1BC}),
+    ],
+    # Handgun family (wep01/02/04/05/06/15/38/43/44): one shared src/wep/pl_handgun.cpp object
+    # (byte-identical in all nine modules) plus the module's weapon class objects. wep02 (Red9 /
+    # Punisher): objMauser.cpp, objRuger.cpp, pl_handgun.cpp, wep02.cpp; each object opens its
+    # .rodata with its own [cFlag.set()][atari.h[light.h]] header strings (pins).
+    "wep02": [
+        ("wep02/objMauser.cpp", None, None),
+        ("wep02/objRuger.cpp", "ObjRuger_init", None, {".rodata": 0x1D0}),
+        ("wep02/pl_handgun.cpp", "PlHandgunMove", "wep/pl_handgun.cpp", {".rodata": 0x360}),
+        ("wep02/wep02.cpp", "Wep02_init", None, {".rodata": 0x528}),
+    ],
+    "wep01": [
+        ("wep01/objFn57.cpp", None),
+        ("wep01/pl_handgun.cpp", "PlHandgunMove", "wep/pl_handgun.cpp", {".rodata": 0x198}),
+        ("wep01/wep01.cpp", "Wep01_init", None, {".rodata": 0x360}),
+    ],
+    "wep02": [
+        ("wep02/objMauser.cpp", None),
+        ("wep02/objRuger.cpp", "ObjRuger_init", None, {".rodata": 0x1d0}),
+        ("wep02/pl_handgun.cpp", "PlHandgunMove", "wep/pl_handgun.cpp", {".rodata": 0x360}),
+        ("wep02/wep02.cpp", "Wep02_init", None, {".rodata": 0x528}),
+    ],
+    "wep04": [
+        ("wep04/pl_handgun.cpp", None, "wep/pl_handgun.cpp"),
+        ("wep04/wep04.cpp", "Wep04_init", None, {".rodata": 0x1c8}),
+    ],
+    "wep05": [
+        ("wep05/objCivilian.cpp", None),
+        ("wep05/pl_handgun.cpp", "PlHandgunMove", "wep/pl_handgun.cpp", {".rodata": 0x170}),
+        ("wep05/wep05.cpp", "Wep05_init", None, {".rodata": 0x338}),
+    ],
+    "wep06": [
+        ("wep06/pl_handgun.cpp", None, "wep/pl_handgun.cpp"),
+        ("wep06/wep06.cpp", "Wep06_init", None, {".rodata": 0x1c8}),
+    ],
+    "wep07": [
+        ("wep07/pl_shotgun.cpp", None, "wep/pl_shotgun.cpp"),
+        ("wep07/wep07.cpp", "Wep07_init", None, {".rodata": 0x1f8}),
+    ],
+    "wep08": [
+        ("wep08/pl_shotgun.cpp", None, "wep/pl_shotgun.cpp"),
+        ("wep08/wep08.cpp", "Wep08_init", None, {".rodata": 0x1f8}),
+    ],
+    "wep09": [
+        ("wep09/objSniper.cpp", None),
+        ("wep09/pl_rifle.cpp", "PlRifleMove", "wep/pl_rifle.cpp", {".rodata": 0x190}),
+        ("wep09/wep09.cpp", "Wep09_init", None, {".rodata": 0x338}),
+    ],
+    "wep10": [
+        ("wep10/objHkSniper.cpp", None),
+        ("wep10/pl_rifle.cpp", "PlRifleMove", "wep/pl_rifle.cpp", {".rodata": 0x160}),
+        ("wep10/wep10.cpp", "Wep10_init", None, {".rodata": 0x308}),
+    ],
+    "wep11": [
+        ("wep11/objMachinegun.cpp", None, "wep/objMachinegun.cpp"),
+        ("wep11/pl_machine.cpp", "PlMachineMove", "wep/pl_machine.cpp", {".rodata": 0x1b8}),
+        ("wep11/wep11.cpp", "Wep11_init", None, {".rodata": 0x334}),
+    ],
+    "wep12": [
+        ("wep12/objTompson.cpp", None),
+        ("wep12/pl_machine.cpp", "PlMachineMove", "wep/pl_machine.cpp", {".rodata": 0x188}),
+        ("wep12/wep12.cpp", "Wep12_init", None, {".rodata": 0x304}),
+    ],
+    "wep14": [
+        ("wep14/objMine.cpp", None),
+        ("wep14/wep14.cpp", "Wep14_init", None, {".rodata": 0x208}),
+    ],
+    "wep15": [
+        ("wep15/pl_handgun.cpp", None, "wep/pl_handgun.cpp"),
+        ("wep15/wep15.cpp", "Wep15_init", None, {".rodata": 0x1c8}),
+    ],
+    "wep16": [
+        ("wep16/pl_knife.cpp", None, "wep/pl_knife.cpp"),
+        ("wep16/wep16.cpp", "Wep16_init", None, {".rodata": 0x1d8}),
+    ],
+    "wep17": [
+        ("wep17/objVp70.cpp", None),
+        ("wep17/wep17.cpp", "Wep17_init", None, {".rodata": 0x190}),
+    ],
+    "wep19": [
+        ("wep19/pl_grenade.cpp", None, "wep/pl_grenade.cpp"),
+        ("wep19/wep19.cpp", "Wep19_init", None, {".rodata": 0x298}),
+    ],
+    "wep26": [
+        ("wep26/pl_knife.cpp", None, "wep/pl_knife.cpp"),
+        ("wep26/wep26.cpp", "Wep26_init", None, {".rodata": 0x1d8}),
+    ],
+    "wep27": [
+        ("wep27/pl_machine.cpp", None, "wep/pl_machine.cpp"),
+        ("wep27/wep27.cpp", "Wep27_init", None, {".rodata": 0x180}),
+    ],
+    "wep28": [
+        ("wep28/pl_bow.cpp", None, "wep/pl_bow.cpp"),
+        ("wep28/wep28.cpp", "Wep28_init", None, {".rodata": 0x190}),
+    ],
+    "wep29": [
+        ("wep29/objMachinegun.cpp", None, "wep/objMachinegun.cpp"),
+        ("wep29/pl_machine.cpp", "PlMachineMove", "wep/pl_machine.cpp", {".rodata": 0x1b8}),
+        ("wep29/wep29.cpp", "Wep29_init", None, {".rodata": 0x334}),
+    ],
+    "wep30": [
+        ("wep30/pl_grenade.cpp", None, "wep/pl_grenade.cpp"),
+        ("wep30/wep30.cpp", "Wep30_init", None, {".rodata": 0x298}),
+    ],
+    "wep33": [
+        ("wep33/pl_shotgun.cpp", None, "wep/pl_shotgun.cpp"),
+        ("wep33/wep33.cpp", "Wep33_init", None, {".rodata": 0x1f8}),
+    ],
+    "wep38": [
+        ("wep38/pl_handgun.cpp", None, "wep/pl_handgun.cpp"),
+        ("wep38/wep38.cpp", "Wep38_init", None, {".rodata": 0x1c8}),
+    ],
+    "wep39": [
+        ("wep39/pl_machine.cpp", None, "wep/pl_machine.cpp"),
+        ("wep39/wep39.cpp", "Wep39_init", None, {".rodata": 0x180}),
+    ],
+    "wep40": [
+        ("wep40/pl_rifle.cpp", None, "wep/pl_rifle.cpp"),
+        ("wep40/wep40.cpp", "Wep40_init", None, {".rodata": 0x1a8}),
+    ],
+    "wep41": [
+        ("wep41/pl_grenade.cpp", None, "wep/pl_grenade.cpp"),
+        ("wep41/wep41.cpp", "Wep41_init", None, {".rodata": 0x298}),
+    ],
+    "wep42": [
+        ("wep42/pl_grenade.cpp", None, "wep/pl_grenade.cpp"),
+        ("wep42/wep42.cpp", "Wep42_init", None, {".rodata": 0x298}),
+    ],
+    "wep43": [
+        ("wep43/objRuger.cpp", None),
+        ("wep43/pl_handgun.cpp", "PlHandgunMove", "wep/pl_handgun.cpp", {".rodata": 0x190}),
+        ("wep43/wep43.cpp", "Wep43_init", None, {".rodata": 0x358}),
+    ],
+    "wep44": [
+        ("wep44/pl_handgun.cpp", None, "wep/pl_handgun.cpp"),
+        ("wep44/wep44.cpp", "Wep44_init", None, {".rodata": 0x1c8}),
+    ],
+    "wep45": [
+        ("wep45/pl_grenade.cpp", None, "wep/pl_grenade.cpp"),
+        ("wep45/wep45.cpp", "Wep45_init", None, {".rodata": 0x298}),
+    ],
+    "wep47": [
+        ("wep47/pl_rifle.cpp", None, "wep/pl_rifle.cpp"),
+        ("wep47/wep47.cpp", "Wep47_init", None, {".rodata": 0x1a8}),
+    ],
     "st1_0": [
         ("st1_0/em_wrap.cpp", None, "st/em_wrap.cpp", {".rodata": 0x0}),
         ("st1_0/r100.cpp", "R100Init", "st1/r100.cpp", {".rodata": 0xae8}),
@@ -415,7 +585,15 @@ STRIP_UNUSED = {
 # Units whose compiled object replaces the split object in the REL link.
 MATCHING = {
     "st1_0/em_wrap.cpp": True,
+    "st1_1/em_wrap.cpp": True,
+    "st1_2/em_wrap.cpp": True,
+    "st1_3/em_wrap.cpp": True,
+    "st2_0/em_wrap.cpp": True,
+    "st2_1/em_wrap.cpp": True,
+    "st2_2/em_wrap.cpp": True,
+    "st2_3/em_wrap.cpp": True,
     "st2_4/em_wrap.cpp": True,
+    "st4_0/em_wrap.cpp": True,
     "st1_2/r10d.cpp": True,
     "st1_2/r10e.cpp": True,
     "st1_2/r11a.cpp": True,
@@ -455,6 +633,7 @@ MATCHING = {
     "st4_0/r406.cpp": True,
     "st4_0/r405.cpp": True,
     "st4_0/r40d.cpp": True,
+    "st4_0/r400.cpp": True,
     "st2_0/cSceObj.cpp": True,
     "st2_3/cSceObj.cpp": True,
     "st4_0/cSceObj.cpp": True,
@@ -502,6 +681,18 @@ MATCHING = {
     "em34/em34.cpp": True,
     "em24/em24.cpp": True,
     "em30/em30.cpp": True,
+    "em3e/em3e.cpp": True,
+    # weapon modules (src/wepXX/wepXX.cpp, the whole REL)
+    "wep00/wep00.cpp": True,
+    "wep34/wep34.cpp": True,
+    "wep35/wep35.cpp": True,
+    "wep36/wep36.cpp": True,
+    "wep37/wep37.cpp": True,
+    # single-unit player modules (src/plXX/plXX.cpp, the whole REL; include/pl_mod.h)
+    "pl11/pl11.cpp": True,
+    "pl06/pl06.cpp": True,
+    "pl02/pl02.cpp": True,
+    "pl0d/pl_wesker.cpp": True,
 }
 # The Ganado modules' per-enemy objects (src/<em>/<em>_set.cpp: entry points + EmXXInit/Set/WeaponSet).
 for _em in ["em10", "em11", "em12", "em13", "em14", "em15", "em16", "em17", "em19", "em1a", "em1b",

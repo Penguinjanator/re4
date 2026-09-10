@@ -17,7 +17,7 @@ public:
     virtual void beginEvent();
     virtual void endEvent();
     virtual void move();
-    virtual void endDamageCore() = 0;   // slot 9: pure here; pl_sub EndSubDamage calls it for id 4
+    virtual void modelSet() = 0;   // slot 9: pure here (`cSubAshley::modelSet` in pl11); pl_sub EndSubDamage calls it for id 4
     virtual void setFace(int no);
     virtual void setHand(int no);
     virtual void initCloth();
