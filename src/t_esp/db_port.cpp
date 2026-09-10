@@ -435,6 +435,9 @@ extern "C" void SeqSet(EspSeqData* head, int mode)
 {
     cModel* m;
     u32 f;
+    // COMPILER-DIFF: #13 (int shape, em27DmCk): the EstSet stack zero is a function-scope constant with
+    // one use in another block, so update_equiv_regs moves the `li` next to the store (r0)
+    int zero = 0;
 
     m = dbModGetEmPtr(db_modelNo);
     if (m == 0) {
@@ -451,7 +454,7 @@ extern "C" void SeqSet(EspSeqData* head, int mode)
     if (evtToolOn()) {
         f |= 0x1000;
     }
-    EstSet(m, -1, 0, 0, head, f | 1, 0, (u32) m, 0xCF, 0);
+    EstSet(m, -1, 0, 0, head, f | 1, 0, (u32) m, 0xCF, (void*) zero);
 }
 
 extern "C" void DB_EventCamLoad()
@@ -2031,13 +2034,9 @@ extern "C" int num_get(char** pp)
     return strtol(*pp, pp, 10);
 }
 
-static inline int symbolOnOff(char** pp)
-{
-    if (symbol_check(pp, "ON") || symbol_check(pp, "on")) {
-        return 1;
-    }
-    return 0;
-}
+// a macro, not an inline: the "ON"/"on" strings must be emitted at the TRANS branch of DB_ConfigLoad
+// (an inline body emits them at its definition, before "ESPTOOL:open error!")
+#define symbolOnOff(pp) ((symbol_check(pp, "ON") || symbol_check(pp, "on")) ? 1 : 0)
 
 extern "C" int DB_ConfigLoad(const char* file)
 {

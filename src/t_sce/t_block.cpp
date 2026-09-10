@@ -431,7 +431,6 @@ static void tBlockConnect_ListDisp()
 {
     TBlockWork* w = pW;
     BlockLink* l = &w->link[w->blockNo];
-    int n;
     int end;
     int i;
 
@@ -464,11 +463,11 @@ static void tBlockConnect_ListDisp()
     if (pW->listTop > pW->blockNo) {
         pW->listTop = pW->blockNo;
     }
-    n = pW->listTop + 5;
-    if (n > BLOCK_NUM) {
+    // else arm re-reads the expression (t_sce_item ListDisp idiom: cse1 stops at the join label)
+    if (pW->listTop + 5 > BLOCK_NUM) {
         end = BLOCK_NUM;
     } else {
-        end = n;
+        end = pW->listTop + 5;
     }
     eprintf(pW->x - 8, pW->y + (pW->blockNo - pW->listTop) * 16, 0, 0, ">");
     for (i = pW->listTop; i < end; i++) {
@@ -600,7 +599,6 @@ static void tBlockArea()
 
 static void tBlockArea_ListDisp()
 {
-    int n;
     int end;
     int i;
 
@@ -618,11 +616,11 @@ static void tBlockArea_ListDisp()
     if (pW->listTop > pW->areaNo) {
         pW->listTop = pW->areaNo;
     }
-    n = pW->listTop + 5;
-    if (n > AREA_NUM) {
+    // else arm re-reads the expression (t_sce_item ListDisp idiom: cse1 stops at the join label)
+    if (pW->listTop + 5 > AREA_NUM) {
         end = AREA_NUM;
     } else {
-        end = n;
+        end = pW->listTop + 5;
     }
     eprintf(pW->x - 8, pW->y + (pW->areaNo - pW->listTop) * 16, 0, 0, ">");
     for (i = pW->listTop; i < end; i++) {

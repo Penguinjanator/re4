@@ -836,11 +836,13 @@ DB_NUMERIC::DB_NUMERIC() : DB_STRING(255, "")
     edit = 0;
     minus = 0;
     unit = 0.0f;
-    numFlg = 0;
     nameTbl = 0;
     nameNum = 0;
-    flag |= DB_PRIM_FLAG_SELECTABLE | DB_PRIM_FLAG_MOUSE_ON;
+    // the target stores 2 (DB_NUM_FLAG_NO_SELECT) here before SetNumFlg(0) overwrites it, after the
+    // nameTbl/nameNum zeros; type before flag
+    numFlg = DB_NUM_FLAG_NO_SELECT;
     type = DB_PRIM_NUMERIC;
+    flag |= DB_PRIM_FLAG_SELECTABLE | DB_PRIM_FLAG_MOUSE_ON;
     SetNumFlg(0);
     minus = 0;
     pNum = 0;

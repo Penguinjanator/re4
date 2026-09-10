@@ -430,7 +430,6 @@ static void tSceItemAreaEdit()
 
 static void tSceItemAreaEdit_ListDisp()
 {
-    int n;
     int end;
     int i;
 
@@ -445,11 +444,12 @@ static void tSceItemAreaEdit_ListDisp()
     }
     if (pW->listTop < pW->areaNo - 6) pW->listTop = pW->areaNo - 6;
     if (pW->listTop > pW->areaNo) pW->listTop = pW->areaNo;
-    n = pW->listTop + 7;
-    if (n > AREA_NUM) {
+    // the else arm re-reads the expression: jump1 cannot hoist a load into `end = n`, so cse1 follows the
+    // taken branch into the else arm and stops at the join label -> the eprintf block reloads pW
+    if (pW->listTop + 7 > AREA_NUM) {
         end = AREA_NUM;
     } else {
-        end = n;
+        end = pW->listTop + 7;
     }
     eprintf(pW->x, pW->y, 0, 0, "NO    ID");
     pW->y += 0x10;
@@ -465,16 +465,17 @@ void dispItemSetList1(s16 x, s16 y, int no)
 {
     SceAtWork* a = &pW->area[no];
     int col;
+    int col2; // a second variable: one `col` set in four places is global and loses r29 to `a`
     u16 id;
 
     if (a->flag & 1) {
         col = 0;
         if (no == pW->areaNo) col = 6;
         eprintf(x, y, col, 0, "[%02d]", no);
-        col = 0;
-        if (no == pW->areaNo) col = 6;
+        col2 = 0;
+        if (no == pW->areaNo) col2 = 6;
         id = a->item.id;
-        eprintf(x, y, (u8) col, 0, "      %02x %s", id, getItemIdStr(id));
+        eprintf(x, y, (u8) col2, 0, "      %02x %s", id, getItemIdStr(id));
     } else {
         eprintf(x, y, 7, 0, "[%02d]", no);
     }

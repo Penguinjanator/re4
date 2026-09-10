@@ -541,6 +541,7 @@ CFLAGS = {
 # ButtonBase, which needs both destructors deferred (see the db_toolbase.h notes).
 UNIT_CFLAGS = {
     "Tools/db_toolbase.cpp": ["-fimplement-inlines"],
+    "t_event/db_toolbase.cpp": ["-fimplement-inlines"],
 }
 
 STRIP_UNUSED = {

@@ -680,7 +680,9 @@ static void edit_cutsel()
     static void (*cutsel_tbl[])() = {edit_cutsel_main, edit_cutsel_sub};
     int i;
     cLightEnv* env;
-    int line;
+    // COMPILER-DIFF: #4 (reverse): the original stores `i + 6` into this narrow local as a plain `mr r30, r0`
+    // (no mask); ours emits `clrlwi 24` (an `int line` folds the copy into the `addi`, 6 words off instead of 1)
+    u8 line;
 
     eprintf(0x20, 0x2A, 4, pTool->color, "CUT TABLE");
     eprintf(0x20, 0x46, 4, pTool->color, "NO  LI AMB FOG  MFOG SHDW FOCUS BLR TUNE SCL");
@@ -1621,9 +1623,10 @@ static void edit_light_id_shadow()
     } else {
         // COMPILER-DIFF: #2 -- the original zero-extends the u8 `col` once before this arm's two
         // uses (`clrlwi r30,r30,24`); ours knows the promoted value fits. The launder + (u8) casts
-        // reproduce the mask and the register assignment (the mask is scheduled one call later).
+        // reproduce the mask and the register assignment; `volatile` keeps the mask before the first call
+        // (the plain asm let sched1 issue it one call later, the flrAtDataLoad rule).
         int c = col;
-        asm("" : "+r"(c));
+        asm volatile("" : "+r"(c));
         eprintf(0x40, 0xB6, 0, pTool->color, "USE_TEX: ");
         eprintf(0x40, 0xC4, 0, pTool->color, "INV_TEX:");
         eprintf(0x40, 0xC4, (u8) c, pTool->color, "         %s", shadow_onoff[(w->flags >> 2) & 1]);

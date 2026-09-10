@@ -7872,3 +7872,67 @@ confirmed on the units named):
 - r10c EmEvent_exit / r11b EmEvent / r119 (f0/f13 pair of two Vec constant temps): `const f32` pool-order
   declarations + `f32 z = kz; f32 x = kx;` variables reorder the LOADS and the f0/f13 names to the target's but
   swap the r10/r11 of the two `lis` highs (still 4 words); the target's local-alloc had x's high shorter-lived.
+
+### Tool RELs, bytes-first pass 3 (db_toolbase t_event sizes fixed; t_sce_item 39->41/43, t_block 25->27/31, t_dr 14->15/16, db_light 128->129/134 x5, db_port 61->63/68 + .rodata re-equalised; nothing flipped; 2026-09-10)
+
+- Harness /tmp/tools_p3 (tools_p2 copies with the paths rewritten; `ndump.sh MOD/UNIT -dFLAGS` compiles a unit with its
+  build.ninja cflags and leaves the RTL dumps in /tmp/tools_p3/dump; `tryvh.py` = tryv with `HDRS="include/a.h include/b.h"`
+  header variants, tuples `(hdr, old, new)`). tryv counts are lower than mcmp's (no fold_linkonce); judge per function.
+- UNIT_CFLAGS is keyed per MODULE unit: `Tools/db_toolbase.cpp` had `-fimplement-inlines` but t_event's copy of the same
+  source (`t_event/db_toolbase.cpp`) did not, so its object lacked `cDbgWindow::Init` (0x9f0 vs 0xa60). Every shared source
+  needs its flag entry in every module that builds it.
+- Clamp-with-reload idiom (t_sce_item / t_block ListDisp, t_dr ListDisp, three units): the target reloads the work pointer
+  (`lwz r9, pW@l(r31)`) and `lha listTop` for the eprintf arguments after the `n = listTop + 7; end = n > 128 ? 128 : n`
+  diamond, and ties `lha r9; addi r9,r9,7; mr r29,r9; cmpwi r9`. Our jump1 rewrites `if (c) end = 128; else end = n;` into
+  `end = n; if (c) end = 128;` BEFORE cse1, so cse1 skips the block and carries the pointer over the join. Write the else
+  arm as a RE-READ of the expression (`if (pW->listTop + 7 > 128) end = 128; else end = pW->listTop + 7;`): jump1 cannot
+  hoist a load, cse1 follows the taken branch into the else arm (folds the re-read to n) and STOPS at the join label, the
+  block after the join starts with an empty table (pointer reloaded), and the jump pass after cse hoists the copy. 0 words.
+- dispItemSetList1: one `int col` set 0/6 in two places (two eprintf calls) is a global pseudo that outranks the element
+  pointer `a` for r29; a second variable `col2` for the second block gives the target's `li r29,0/6; clrlwi r29,r29,24`
+  (col2 dies at the mask and is tied to it) and puts high(pW) in r29, `a` in r27.
+- db_light edit_light_id_shadow: the COMPILER-DIFF #2 launder must be `asm volatile("" : "+r"(c))` — the plain asm let
+  sched1 issue the `clrlwi` one call later (the flrAtDataLoad rule holds for statement-level launders too). edit_cutsel:
+  `u8 line = i + 6` reproduces the target's `addi r0,r28,6` + copy shape with `clrlwi` where the original has `mr r30,r0`
+  (COMPILER-DIFF #4 in reverse: the original does not mask a narrow local store); `int line` folds the copy into the addi
+  (6 words vs 1). No launder form (`asm` on the temp, `"=r"/"0"`) yields the plain copy.
+- db_port: `symbolOnOff` must be a MACRO — as an inline its "ON"/"on" strings were emitted at its definition, before
+  "ESPTOOL:open error!" (the .rodata had drifted since the pass-2 commit). SeqSet: the em27 `#13 (int shape)` recipe —
+  a function-scope `int zero = 0` set in the first block and used only as the EstSet stack argument in the call block —
+  gives the target's `li r0,0; stw r0,0xc(r1)` right before the store (10 -> 5 words; the rest is the `on`/andis r9/r11).
+- db_widget DB_NUMERIC ctor: the target stores 2 (`DB_NUM_FLAG_NO_SELECT`) into numFlg before `SetNumFlg(0)`, after the
+  nameTbl/nameNum zeros, and `type` before `flag |=` — block 1 exact (13 -> 7 words). Block 2 (9 constant stores after
+  SetNumFlg) is the #13 dying-store shape: the target issues it in pure source order although `zero`/`1.0f` die at their
+  last stores; ours hoists `edit = 0` and `step = 1.0f`. Neither the emrock `asm volatile("" :: "r"(zero))` nor keeping
+  every constant (`3`, `255.0f`, `1.0f`, `0.0f`) live reproduces it: with all constants live ours issues the stores of
+  freshly loaded values (`li r0,3`, `lfs f0/f13`) before the r29/f31 ones. Left at 7.
+- cDbgWindow::Init (db_toolbase, 13 words, the same shape in FileSelect/OkCancel Init and t_esp_area
+  `Init__20cDbgFileSelectWindow`), mechanism found but no admissible form: our first-issued store is the LAST RTL store
+  because it carries the deaths of BOTH the zero pseudo and `this` (weight -1); the target's order (w, cyMax, pName, h,
+  cxMax, then the six zeros in RTL order with pTop last) is reproduced EXACTLY by keeping both live past the block
+  (`asm volatile("" : : "r"(this), "r"(zero))`), which then only leaves `li r0,1; li r9,0` (ours `li r0,0; li r9,1`: the
+  zero has 7 dependents and is ranked first). The zero is REG_EQUIV 0 (`-dl`), the `1` REG_EQUIV 1, `this` has no note —
+  why the original keeps `this` live is not understood; `register int z asm("r9")`, `int zero` at the top / after the
+  call, `w = strlen(name)` last, and a use of `this` alone (10 words) do not reach it. Do not retry statement orders.
+- Skeleton-compare rule refined (msq_R0_QuitCk, t_esp Save*FileNoUpdateCallback x5): the target keeps `cmpwi 0; beq L;
+  cmpwi 1; L:` / `cmpwi 0; cmpwi 0xff` of arms that set the same constant. Ours: with both arms identical the whole switch
+  (and the `lwz sub3`) is folded before flow; a `register int m asm("r0")` + one live set folds it too (only FindCk's
+  distinct-value arms survive). The Save* pair dies in jump2: `delete_jump` of the jump-to-following `ble` deletes its
+  compare through the cr0 REG_DEAD note (delete_computation) — the original's jump2 keeps the compare. Compiler-side.
+- One try each, unchanged (documented ties): t_atari plmove10 (copy stores after the RMW stfs: `memcpy`, pointer, mid /
+  after / declaration-initialiser copies, precomputed deltas — the copy `lwz`s outrank the RMW `lfs`s in ours because
+  the copy stores carry output deps to the frame stores), t_mv mvInit (cse1 processes the fallthrough arm of a taken
+  `bne` with the entry table on the re-walk — path re-scan with the last branch NOT_TAKEN — so the literal 0 becomes the
+  `zero` register; the original's arm gets a fresh `li r10,0`: cse path difference, the same family as edit_select_sub /
+  r104 execEvent00), t_dr Menu_main (high(DR) r30 vs `a` r28: priorities 0.146 vs 0.167 from `-dl` refs/lengths;
+  a-first, `int no` local, `DrWork* d` forms unchanged), t_block tBlockAreaInfo_Menu case 0 (rep2 r9 / n r11 swap; rep
+  local, m clamp, assignment forms), t_block dispAreaInfoList1 (`li r30,7` speculated into the test block, #5 family),
+  t_se_at seAtInit (the `lwz pW` below the Snd stores: a `do {} while (0)` barrier keeps it below but also pins the
+  `addi &g->Cam.param.pos` and `li r5,2` that the target computes inside the Snd block; an unknown-base `SndWork* s`
+  launder makes the load wait but frees the save stores — the target needs a dependence of the pW load on the four Snd
+  stores only; store order `Snd.se_at = 0; Snd.se_at_list = 0;` gives the target's 0x98-then-0x94), t_se_at ToolSeAt
+  (`lis seAtWk@ha` before `mr r0,r3`), db_port DB_VecMulEmPartsMat (no/tbl/p r0/r11/r9 naming; if/else and ternary
+  forms 19 words), db_light edit_light_parent (`n` r8/r10 and the case-2 `+101` temp untied: `u32 t`, `u16 hi`, `u32 hi`,
+  `n + x` forms unchanged, a `t` shared by both arms 79), draw_light_graph (`col` in r5 = a hard-reg preference the
+  original got from passing `col` unmasked in r5 somewhere; `col = 0; eprintf(.., col, ..)` before the second block and
+  the ColU8 inline launder give 22-44 words, `asm("" : "+r"(col))` on the u8 drops the mask).

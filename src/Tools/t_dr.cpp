@@ -213,7 +213,6 @@ static inline void tDrLimit(DrWork* w, int lo, int hi)
 static void tDrArea_ListDisp()
 {
     u16 v;
-    int n;
     int end;
     int i;
 
@@ -246,11 +245,12 @@ static void tDrArea_ListDisp()
     if (DR->listTop > DR->areaNo) {
         DR->listTop = DR->areaNo;
     }
-    n = DR->listTop + 7;
-    if (n > 128) {
+    // the else arm re-reads the expression (t_sce_item ListDisp idiom): cse1 then stops at the join
+    // label and the eprintf block reloads DR
+    if (DR->listTop + 7 > 128) {
         end = 128;
     } else {
-        end = n;
+        end = DR->listTop + 7;
     }
     eprintf(DR->x - 8, DR->y + (DR->areaNo - DR->listTop) * 16, 0, 0, ">");
     for (i = DR->listTop; i < end; i++) {
