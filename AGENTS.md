@@ -9018,3 +9018,68 @@ confirmed on the units named):
   copy), set2ndBattle 16 (store order/regs), GetCliffPos 12, SlantCk 11, CatchCk/KickHitCk 18, RouteCk 33, JumpDownCk
   37, GuardCk 43, BloodSet 46, ThrowGR 48, AtkCk2 55, AppearMG2/Bow 6/7, T_JumpAtk 10, T_LongAtk 12, Atk_MG 12,
   ArrowFire 13, PLNearTowerCk 21, Goto 21, JumpUpCk3 24 not iterated.
+
+### Stage rooms, never-iterated units pass 2 (r226 Matching 33/33; r11b 12/14 Init 18->14, r10c SetEmHitAtari 149->95 + .rodata equal; r221/r21a/r225/r22c analysed; 2026-09-10)
+
+- Harness: /tmp/rooms_c4 (copies of /tmp/rooms_c3 with the paths rewritten; `lr.sh VARIANT.cpp FUNC REGEX` prints the
+  lreg `Register N used ..` lines of a variant). The -dl dump's `dump_flow_info` runs AFTER local_alloc, so its live
+  lengths already include update_equiv_regs' REG_EQUIV doubling; the -dg dump's `;; N regs to allocate:` list IS the
+  global-alloc priority order (allocno_compare = `floor_log2(refs)*refs/length`, descending).
+- **`if (i++ == N)` for a counter whose increment the target issues between the compare and the branch** (r226
+  RoboWalkPassageStart 9 -> 0, BridgeStart 12 -> 0): `if (i == N) {call} i++;` puts the `addi` after the call in ours
+  (no interblock motion, #5 leaf rule); the post-increment in the test puts it in the compare block by source form.
+- **Definition-side COMPILER-DIFF 1 (`fmr f31,f1` before `mr r28,r6` in a prologue)**: declare the definition with
+  the f32 parameter BEFORE the trailing int one (same argument registers under the ABI: ints take r3.., floats f1..)
+  as `extern "C" void name__F<orig mangled>(...)` and a macro with the original argument order for the callers
+  (r226 playerPillarDownCk 2 -> 0). An `asm("name")` label on a DEFINITION does not work with this cc1plus: it emits
+  `.l_f*name_s:` (the `*` verbatim prefix leaks into the local size label) and NgcAs rejects it.
+- **Narrow-local masks that the original keeps although every set is a constant (`extsb`/`clrlwi` of s8/u8 locals
+  set in both if/else arms, r226 PassageSwitchMain 49 -> 0; r221 throwBonbe `(u8) eff0` two sites)** = COMPILER-DIFF 2
+  mechanism: ours deletes the extension in combine through `reg_nonzero_bits`/`reg_sign_bit_copies` (the global
+  per-pseudo summary of ALL sets, `set_nonzero_bits_and_sign_copies`), the original does not use it (eff2's mask in
+  the same function survives in ours only because gcse PRE'd it into a block where combine has no LOG_LINK to the
+  use). Zero-cost reproduction: replace ONE arm's constant set by `asm("li %0,29" : "=r"(var))` -- an asm source makes
+  reg_nonzero_bits full, the bytes are the same `li`, and refs/live length are unchanged (an `asm("" : "+r")`
+  launder adds a set and a pseudo copy and shifts the callee-saved allocation). For a promoted `s8`/`u8` VARIABLE the
+  conversion `(int) var` is a plain copy at expand time (SUBREG_PROMOTED_VAR_P), so the extension must be written on
+  an `int` copy: `int c2 = cut2; cutX = (s8) c2;` (cse merges c2 into cut2 and combine then sees the opaque set).
+  In r226 the extsb of `cut2` survives with a plain `cut2 = 8` in both arms once estNo has the asm set; per-loop
+  `int i` for the three trailing loops fixed the r29/r30 counter/giv and the r31 10-loop counter. NOT applied in r221
+  (the `li %0,2` form gives 20 -> 18 but the eff2/pG-high r21/r22 tie remains, see below).
+- **Global-alloc order of a user variable against a REG_EQUIV `high`** (r221 throwBonbe eff2 r21/r22, OPEN): the -dg
+  order shows the high (13 refs / 870 as printed by the post-local-alloc dump) at 3*13/870 = 0.0448 just
+  above eff2 (6 refs / 282 = 0.0426); mot0/mot1 (7/292 = 0.048) sit right above. eff2 needs a priority in
+  (0.0448, 0.0479]: 6 refs with a live length in [251, 267] (ours 282), or 7 refs with [293, 312]. Moving `eff2 = K`
+  one statement later in the four arms shortens it by ~8.5 insns PER ARM (248 total, already above mot0/mot1 -> r24)
+  and reorders the arm's `li`s (LUID tie among the free `li`s: the first in RTL takes the cycle-0 slot, the rest
+  sink to the block end). A 7th ref through `asm("" : "=r"(e2x) : "0"(eff2), "r"(eff2))` (two inputs, no code)
+  works arithmetically but the mask of e2x is no longer PRE'd into the join block (165 words); a goto loop for the
+  300-frame wait (loop depth 1 -> the high loses 3 refs) drops the high below eff1 and re-materialises the loop's
+  first pG load (34). No zero-code lever with the exact window found.
+- **Single-use function-scope `int one = 1;` for the `li r0,1; stb` #13 shape** (r11b Init 18 -> 14): with the
+  then-arm's `l->x3 = one` (the else arm keeps the literal) update_equiv_regs moves the `li` right before the
+  `stb` after sched1, local-alloc gives it r0 and sched2 keeps it below the template copies' r0 temps. A `register
+  int one asm("r0")` set in the arm is scheduled at the block top by sched1 (the copies' temps are still pseudos
+  then) and pushes the temps to r9/r11 (17). Residue (14): sched2 of the same block -- ours hoists the second
+  template's word-0 load `lwz r7,rot@l(r11)` to clock 3 (prio 29 through the store chain `stw r7,32(r1)` ->
+  `stw 4(r30)` -> `stw 8(r30)`: alias.c cannot separate `[r1+0x20]` from `[r30+4]` because the `&rot` pseudo's
+  `addi r30,r1,32` has no REG_EQUAL note, so the three stores chain) while the target issues it at clock 6 after the
+  two `addi`s and loads word 1 before word 2 (the same tie decided the other way = the stores did not chain in the
+  original); plus the `lwz pG` r9/r11 naming after the first call.
+- **Pool order of constants assigned in both arms of an if/else** (r10c SetEmHitAtari, .rodata now equal, 149 -> 95):
+  the target pool is [0.0][then-arm 750..500][0.01 0.05 0.06][else 93412..], i.e. the spd constants are created
+  between the arms: `spdA = 0.01f; spdB = 0.05f; spdC = 0.06f;` as the LAST statements of the then arm and the FIRST
+  of the else arm (angA/B/C = 0.0f right before the `if`). OPEN: the target loads all six values (one 0.0 `lfs` + two
+  `fmr`, three spd `lfs`) in the block BEFORE the RsfCheck `bl` (the `lis` of 0.0 floats to the function top, the
+  `lfs` cannot cross the nine SmdGetObjPtr calls -> RTL position after the ninth call); ours keeps a copy at the end
+  of each arm (+0x18 .text). 2.95 gcse has no code hoisting and jump.c no common-prefix motion, so the placement
+  is unexplained (assignments before the `if` give the pred-block loads but the pool order [0.0 0.01 0.05 0.06 750..],
+  170 words).
+- r21a FallRoofMove (13, OPEN): the -dg order allocates PI (5 refs / 734) before 180 (5 / 730) although the printed
+  lengths give 180 the higher priority (10/1460 vs 10/1468 after doubling, both REG_EQUIV) -- the allocation order
+  contradicts the dump numbers; not resolved. FallRoofDie (66): the loop's 0.0 pseudo is the inline's `y` parameter
+  copy (`pref NON_SPECIAL_REGS`, 3 refs); the target gives it r28 in pass 0 (a GPR already used by the 60-loop
+  counter `li r28,60`), ours has no free used-so-far GPR at its turn (the counter is r30, `&camAt`/`&v` copies in
+  r26-r28) and takes f27 in pass 1 (+1 FPR save, frame +8). The address-pseudo permutation must be fixed first.
+- r225 operateCrank (77) / SceElevator_r225 (301), r22c highscore (10), r120 R120Event (114), r216, r22a, r213 not
+  iterated this pass.

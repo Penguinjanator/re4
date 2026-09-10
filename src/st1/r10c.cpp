@@ -897,15 +897,12 @@ static void SetEmHitAtari()
     Vec ofsC;
     Mtx m;
     Vec tmp;
-    f32 angC = 0.0f;
-    f32 angB = 0.0f;
-    f32 angA = 0.0f;
-    // OPEN: the target's pool has 0.01/0.05/0.06 after the first if's YarareInitCube constants
-    // (750 .. 500) and before its else constants (93412 ..), while the loads sit before the
-    // first RsfCheck; initialising them in both arms puts the loads after the join.
-    f32 spdB = 0.05f;
-    f32 spdC = 0.06f;
-    f32 spdA = 0.01f;
+    f32 angC;
+    f32 angB;
+    f32 angA;
+    f32 spdB;
+    f32 spdC;
+    f32 spdA;
 
     PSVECSubtract(&SmdGetObjPtr(0x61)->pos, &SmdGetObjPtr(0x5E)->pos, &ofsA);
     PSVECSubtract(&SmdGetObjPtr(0x62)->pos, &SmdGetObjPtr(0x5F)->pos, &ofsB);
@@ -919,6 +916,9 @@ static void SetEmHitAtari()
     SmdGetObjPtr(0x6A)->be_flag |= 0x20;
     SmdGetObjPtr(0x6B)->be_flag |= 0x20;
     SmdGetObjPtr(0x6C)->be_flag |= 0x20;
+    angA = 0.0f;
+    angB = 0.0f;
+    angC = 0.0f;
     if (RsfCheck(G_ROOM_ID, 14) == 0) {
         r10c_work.p->hit[0][0] = SetEmHit((void*) (pG->pArc->ofs_20 + (u32) pG->pArc), (void*) (pG->pArc->ofs_24 + (u32) pG->pArc),
                                           &SmdGetObjPtr(0x61)->pos, &SmdGetObjPtr(0x61)->rot, 0);
@@ -929,9 +929,19 @@ static void SetEmHitAtari()
         r10c_work.p->hit[0][2] = SetEmHit((void*) (pG->pArc->ofs_20 + (u32) pG->pArc), (void*) (pG->pArc->ofs_24 + (u32) pG->pArc),
                                           &SmdGetObjPtr(0x61)->pos, &SmdGetObjPtr(0x61)->rot, 0);
         YarareInitCube(r10c_work.p->hit[0][2], 0.0f, 450.0f, 0.0f, 500.0f, 1500.0f, 500.0f, 0, 1);
+        // Pool order: 0.01/0.05/0.06 are created after this arm's YarareInitCube constants and
+        // before the else arm's positions (.rodata equal). OPEN: the target loads all six values
+        // in the block BEFORE the RsfCheck call (one 0.0 load + two fmr, then the three spd loads);
+        // ours keeps a copy at the end of each arm.
+        spdA = 0.01f;
+        spdB = 0.05f;
+        spdC = 0.06f;
     } else {
         cObj* obj;
 
+        spdA = 0.01f;
+        spdB = 0.05f;
+        spdC = 0.06f;
         SmdSetTrans(0x6A, 0);
         SceExec(0x12, (TaskFunc) hako_down, (int) SmdGetObjPtr(0x61), 0, 2, 0);
         obj = SmdGetObjPtr(0x61);

@@ -84,6 +84,7 @@ void R11bInit()
     Vec rot2;
     EmListData* l;
     cObj* obj = 0;   // the zero of the EstSet data arguments and the list entry's x3 (r27)
+    int one = 1;     // COMPILER-DIFF: #13 (single use: update_equiv_regs moves the li next to the store)
 
     BitOn(pG->flags_54, 0x800);
     if (pG->x4F9F == 1) {
@@ -116,7 +117,7 @@ void R11bInit()
 
         pos = r11b_boatPos0;
         rot = r11b_boatRot0;
-        l->x3 = 1;
+        l->x3 = one;
         PSet(r11b_work.p->boat, EmSetFromList2(0x3C, 0));
         pG->room_id_prev = 0x11B;
         r11b_work.p->boat->setPos(&pos);

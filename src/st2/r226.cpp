@@ -201,7 +201,11 @@ void playerRunCamInitBridge();
 void playerRunCamMovePassage(cPlayer* pl, f32 t);
 void playerRunCamMoveBridge(cPlayer* pl, f32 t);
 void playerRunCamDiePassage(cPlayer* pl);
-void playerPillarDownCk(cObjRobo* robo, int smdNo, u32 flagNo, int idx, f32 dist);
+// COMPILER-DIFF: 1 -- the original's prologue copies `fmr f31,f1` before `mr r28,r6` (FP parameter copy
+// before the trailing int one); ours orders the copies by parameter order, so the definition declares
+// `dist` before `idx` (same argument registers) under the original mangled name as a C symbol.
+extern "C" void playerPillarDownCk__FP8cObjRoboiUlif(cObjRobo* robo, int smdNo, u32 flagNo, f32 dist, int idx);
+#define playerPillarDownCk(robo, smdNo, flagNo, idx, dist) playerPillarDownCk__FP8cObjRoboiUlif(robo, smdNo, flagNo, dist, idx)
 static void playerPillarDownTask(int smdNo);
 
 // Sets the room's 13 statue-chase enemies from the list (the ones not active yet) and wakes them.
@@ -624,7 +628,6 @@ static void R226EventPassageSwitchMain(int side)
     int cutX;
     int estX;
     cObj* o;
-    int i;
 
     if (side == 0) {
         flagNo = 7;
@@ -641,20 +644,19 @@ static void R226EventPassageSwitchMain(int side)
         objPos = 0x3E;
         cut = 6;
         cut2 = 8;
-        estNo = 0x1D;
+        asm("li %0,29" : "=r"(estNo));   // COMPILER-DIFF: 2
     }
     if (RsfCheck(G_ROOM_ID, flagNo)) {
         return;
     }
     RsfSet(G_ROOM_ID, flagNo);
-    // COMPILER-DIFF: 2 -- the original sign-/zero-extends the narrow locals once here (`extsb`,
-    // `clrlwi 24`) and keeps the extended values; ours treats the promoted pseudos as extended.
+    // COMPILER-DIFF: 2 -- the original sign-/zero-extends the narrow locals here (`extsb`, `clrlwi 24`)
+    // although both arms set them to constants; the int copies make the conversions real, and the asm set
+    // in the else arm keeps estNo's bits unknown to combine (an `asm("" : "+r")` launder costs a pseudo).
     {
         int c2 = cut2;
         int e = estNo;
 
-        asm("" : "+r"(c2));
-        asm("" : "+r"(e));
         cutX = (s8) c2;
         estX = (u8) e;
     }
@@ -689,7 +691,7 @@ static void R226EventPassageSwitchMain(int side)
     EstSet(0, -1, 0, 0, 1, estX, 1, 2, 0, 0);
     o = SmdGetObjPtr(objPos);
     if (o) {
-        for (i = 0; i < 60; i++) {
+        for (int i = 0; i < 60; i++) {
             if (i == 0x1C) {
                 SndCall(6, 6, &o->pos, 0, 0, 0);
             }
@@ -709,13 +711,13 @@ static void R226EventPassageSwitchMain(int side)
         o = SmdGetObjPtr(0x4C);
         if (o) {
             SndCall(6, 0xC, &o->pos, 0, 0, 0);
-            for (i = 0; i < 60; i++) {
+            for (int i = 0; i < 60; i++) {
                 SceCamMove(&pos, &at, fovy);
                 setPosXYZ(o, -4225.0f + (f32) i * 2290.0f / 60.0f, o->pos.y, o->pos.z);
                 SceSleep(1);
             }
         }
-        for (i = 0; i < 10; i++) {
+        for (int i = 0; i < 10; i++) {
             SceCamMove(&pos, &at, fovy);
             SceSleep(1);
         }
@@ -842,10 +844,9 @@ static void R226EventRoboWalkPassageStart()
     i = 0;
     MotionSetCore(robo, &robo->mot, ROOM_ARC_PTR(pG->pRoomArc, 0x39), 0, 0, 1, 0);
     while (MotionGetState(robo) == 0) {
-        if (i == 0x2C) {
+        if (i++ == 0x2C) {
             SndCall(6, 9, &robo->pos, 0, 0, 0);
         }
-        i++;
         SceSleep(1);
     }
     SetPlDamage((int) robo, playerRunMovePassage);
@@ -975,10 +976,9 @@ static void R226EventRoboWalkBridgeStart()
     EstSet(0, -1, 0, 0, 1, 0xB, 1, 2, 0, 0);
     i = 0;
     while (MotionGetState(robo) == 0) {
-        if (i == 9) {
+        if (i++ == 9) {
             SndCall(6, 9, &robo->pos, 0, 0, 0);
         }
-        i++;
         robo->WalkSequence(robo, 1);
         SceSleep(1);
     }
@@ -1483,7 +1483,7 @@ void playerRunCamDiePassage(cPlayer* pl)
 }
 
 // Starts the pillar `smdNo` falling once the player passed it by `dist`.
-void playerPillarDownCk(cObjRobo* robo, int smdNo, u32 flagNo, int idx, f32 dist)
+extern "C" void playerPillarDownCk__FP8cObjRoboiUlif(cObjRobo* robo, int smdNo, u32 flagNo, f32 dist, int idx)
 {
     RoboWork* rw = &robo->robo;
 
