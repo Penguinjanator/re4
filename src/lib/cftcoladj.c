@@ -51,15 +51,13 @@ void CFT_MakeInverseMtx3D(Float32 *m, Float32 *inv)
 	inv[8] = s * ((a * e - b * d) / det);
 }
 
-/* (M1: the chroma part keeps j/v in r9/r10 in the original, ours renumbers them)
- * luma table: 0..15 spread (2 of 3), 16..175 halved, 176..191 linear, then doubled and clipped;
+/* luma table: 0..15 spread (2 of 3), 16..175 halved, 176..191 linear, then doubled and clipped;
  * chroma tables: 3-wide steps for 24 values either side of 128 and linear ramps to the ends */
 void CFT_MakeInvConvTableCustom(Uint8 *ytbl, Uint8 *cbtbl, Uint8 *crtbl)
 {
 	Sint32 i;
 	Sint32 j;
 	Sint32 v;
-	Sint32 f;
 	Sint32 t;
 
 	j = 0;
@@ -102,11 +100,9 @@ void CFT_MakeInvConvTableCustom(Uint8 *ytbl, Uint8 *cbtbl, Uint8 *crtbl)
 		j -= 3;
 		v--;
 	}
-	f = j * v;
 	for (i = j; i >= 0; i--) {
-		cbtbl[i] = f / j;
-		crtbl[i] = f / j;
-		f -= v;
+		cbtbl[i] = i * v / j;
+		crtbl[i] = i * v / j;
 	}
 
 	v = 0x80;
@@ -121,8 +117,9 @@ void CFT_MakeInvConvTableCustom(Uint8 *ytbl, Uint8 *cbtbl, Uint8 *crtbl)
 		v += 3;
 		t++;
 	}
-	for (i = v; i <= 0xFF; i++) {
-		cbtbl[i] = t + (0xFF - t) * (i - v) / (0xFF - v);
-		crtbl[i] = t + (0xFF - t) * (i - v) / (0xFF - v);
+	i = v;
+	for (; v <= 0xFF; v++) {
+		cbtbl[v] = t + (0xFF - t) * (v - i) / (0xFF - i);
+		crtbl[v] = t + (0xFF - t) * (v - i) / (0xFF - i);
 	}
 }

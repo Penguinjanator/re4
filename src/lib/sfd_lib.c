@@ -125,7 +125,9 @@ Sint32 SFD_Init(SFD_INIT_PRM *prm)
 	UTY_MemsetDword((Uint32 *)&SFLIB_libwork, 0, sizeof(SFLIB_libwork) / 4 - 1);
 	MEM_Copy(&SFLIB_libwork, SFPLY_cond_dfl, sizeof(SFLIB_libwork.cond));
 	/* OPEN: target loads prm1 into r4 and trif_tbl into r5 (stores trif_tbl first); every
-	 * local/direct/inline-helper/struct-copy form gives the first-stored value r4. */
+	 * local/direct/inline-helper form gives the first-stored value r4; a two-word struct copy
+	 * (`*(SFD_INIT_PRM *)&SFLIB_libwork.trif_tbl = *prm`, also as Sint64) gives the target's
+	 * registers but loads word 0 before word 4 (the target loads 4 first). */
 	tbl = prm->trif_tbl;
 	p1 = prm->prm1;
 	SFLIB_libwork.trif_tbl = tbl;

@@ -240,8 +240,8 @@ Sint32 mfCiReqRd(MFCI mfci, Sint32 nsct, Uint8 *buf)
 		rem = nsct;
 	}
 	mfci->rqsct = rem;
-	rd_nbyte = mfci->rqsct * mfci->sctlen;
 	rd_ofst = mfci->pos_sct * mfci->sctlen;
+	rd_nbyte = mfci->rqsct * mfci->sctlen;
 	if (rd_nbyte == 0) {
 		mfci->stat = MFCI_STAT_COMPLETE;
 		SVM_Unlock();

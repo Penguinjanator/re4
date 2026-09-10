@@ -59,6 +59,7 @@ void DCT_AcInit(void)
 	Sint32 i;
 	Sint32 j;
 	Float64 c;
+	Float64 w;
 	Float64 v;
 
 	dctac_version_dummy = DCT_GetVerStr();
@@ -68,8 +69,9 @@ void DCT_AcInit(void)
 		} else {
 			c = 0.5;
 		}
+		w = (DCTAC_PI / 8.0) * (Float64)i;
 		for (j = 0; j < 8; j++) {
-			v = c * cos((DCTAC_PI / 8.0) * (Float64)i * (0.5 + (Float64)j));
+			v = c * cos(w * (0.5 + (Float64)j));
 			dctac_i_const[i][j] = v;
 			dctac_f_const[j][i] = v;
 		}

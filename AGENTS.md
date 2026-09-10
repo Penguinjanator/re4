@@ -1978,6 +1978,60 @@ the three 0x400 `.data` tables are 256-entry `switch` jump tables, one per funct
   tables `(level << 8) | run` halfwords (mpv_vlc.c's `RL(len, a, b)` arguments are really
   `(len, level, run)`); D pictures (`picatr.pic_type == 4`) skip the AC loop in IntraBlock only.
 
+### CRI one-function-away pass (cftcoladj, lsc Matching; sfd.h SFSEE_WORK pad fixed; 2026-09-10)
+- HAZARD (struct headers): `SFSEE_SHDR` had grown to 0x198 bytes (wave 9) while `SFSEE_WORK`'s
+  following pad still assumed 0x30 (`pad8d0[0xAD0 - 0x8D0]`), so every member from `a1hdr` on was
+  0x168 too far (sfd_ply `sfply_ResetHn` 0xF38 vs 0xDD0, sfd_see 2/9). Fixing the pad moved sfd_see
+  2 -> 8/9, sfd_ply 20 -> 21/22, sfd_adxt 20 -> 22/28 with no regression. After changing a nested
+  struct, re-check the parent's offsets: compile a probe `char off_x[(int)&((T *)0)->x];` /
+  `char sz[sizeof(T)];` with the CRI flags and read the symbol sizes with objdump -t.
+- A multiply of the loop counter by an invariant (`cbtbl[i] = i * v / j`) is strength-reduced by MWCC
+  into a decremented IV; writing that IV yourself (`f = j * v; ...; f -= v`) turns it into a source
+  local and re-ranks the volatile registers of the block (j/v/f r9/r10/r8 vs r8/r9/r10). A ramp loop
+  whose start is another variable's value (`mr r12,r10` copy then the counter continues in r10) is
+  `i = v; for (; v <= 0xFF; v++)`, not `for (i = v; ...)` (cftcoladj).
+- Temporaries "in place" (`slwi r4,r4,5` then `addi r31,r4,0x38`): read the raw previous id first
+  (`id = tbl[(wr_idx + N - 1) % N].id`), then `ent = &tbl[wr_idx]`, then the wrap ternary; the
+  inlined-helper order (ent first, id helper second) gave the two temporaries swapped (lsc).
+- Two products sharing one load (`rd_nbyte = rqsct * sctlen; rd_ofst = pos * sctlen`): the target's
+  load order (`sctlen` first) comes from the *other* statement order (rd_ofst first); a cached local
+  changes the registers instead (mfci).
+- Bit-reader last read: `cur |= nxt >> k; val = cur >> n;` as two statements gives `or r7,r7,r0` into
+  the dead `cur`; `(cur | (nxt >> k)) >> n` computes into r0 (mps_dec BS_GET_LAST).
+- Inlined helper returning `if (v >= 0) return v; return -1;` gives the value in r3 and the -1 in r0
+  (`li r0,-1 ... mr r0,r3`); `endpos = -1; if (v >= 0) endpos = v; return endpos;` gives a plain
+  temp (sfd_see `sfsee_GetInputEndPos`).
+- `p = (Uint8 *)(i + (Sint32)buf)` gives `add rP, rI, rBuf` (source operand order) without moving
+  the callee-saved ranking; a *second* integer-cast use of `i` in the function does move it
+  (adx_bwav: i r18 -> r23). `((buf + i) + 4)` always folds into `addi; lwzx`; no form keeps
+  `add r4,r18,r20; lwz r5,4(r4)` (OPEN, adx_bwav `ADX_DecodeInfoWav`).
+- Named `static const Float64` literals pool exactly like anonymous ones (M2 confirmed on named
+  objects; strip_unused drops non-static globals not in sym_map). Declaring the hoisted loop
+  product as a local (`w = (PI/8) * (Float64)i`) fixes the f27/f28 order under the pool (dct_ac).
+- Block-local `SFUO_CH *ch = &uo->ch[i]` inside the loop reproduces the target's `addi r6` / store
+  interleave (sfd_uo `SFUO_Create` 81 -> 94%); the remaining `mr` copy of `uo` (target steps `uo`
+  itself) and `i = 0` copied from the NULL register are M1.
+- Unroller compiler-build difference (candidate M6): in an 8x unrolled `(x >> 8) | (x << 8)` on
+  `Uint16` the original emits `extrwi 8,16` for the *last* copy's out0 and `srawi 8` for the other
+  15; ours emits `srawi` for all 16 (adx_bau `ADXB_ExecOneAu16`, adx_baif `ADXB_ExecOneAiff16`,
+  1 instruction each; masked/temp/pointer/operand-order spellings all change every copy).
+- Derived-IV placement (adx_stmc `adxstmf_create`): `stm = &obj[ofst++]` gives `mulli` +
+  per-iteration `add` with the `addi 0x60` before the `lbz`; the original has it after the `beq`
+  (latch block). `ofst++` as a statement / `ofst + i` / for-increment forms turn the pointer itself
+  into the IV instead. OPEN (1 instruction).
+- adx_baif `AIFF_GetInfo` (80 -> 83%): the FORM/size words share the loop's `ckid`/`cksz` registers
+  (`mr r27,r30` / `mr r28,r12` before their last byte insert) and the size is swapped before the
+  FORM/AIFF checks; reusing `ckid`/`cksz` for the header removes the loop's `mr` but not the header
+  ones (OPEN).
+- Still M1 after this pass (no source form moves them): mfci `mfCiReqRd` (mfci r29 vs buf r28),
+  mps_dec `mpsdec_DecPackHd` (p never gets adr's r4; nxt/pos/cur/p declaration order is closest),
+  mwsfdply `MWSFPLY_SetFlowLimit` (r5..r7 vs r4..r6), rna_res `RNARES_Init` (IV ranked first),
+  sfd_set `SFD_SetCond` (hoisted id*4 takes sfd's freed r28 in the target), sfd_lib `SFD_Init`
+  (a two-word struct copy gives the registers but loads word 4 before word 0), sfx_alp, sfd_ply
+  `SFD_Destroy`, sfx_cnv `SFX_MakeTable` (fp conversion temps/stack slots), mpv_cdec
+  `MPVCDEC_IntraBlocks` (the 192-store clear switches to an `mpv+0x720` base at store 84; every
+  loop/helper shape keeps r3 then the r31 copy), dct_ac `DCT_AcInit` (M2).
+
 ## REL modules
 
 The game loads its rooms, enemies, weapons and debug tools as Nintendo REL overlays. `ninja` rebuilds the

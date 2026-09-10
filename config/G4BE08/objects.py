@@ -1518,3 +1518,8 @@ MATCHING.update({
     "game/esp_efm.cpp": True,  # EfmSetObj04: parent/parentSerial stored through a u32* (register-address store invalidates x79 in cse1)
 })
 
+# CRI one-function-away pass (2026-09-10)
+MATCHING.update({
+    "lib/cftcoladj.c": True,  # `cbtbl[i] = i * v / j` (the i*v product is MWCC's strength-reduced IV, not a source local); last ramp loops on v with the start copied
+    "lib/lsc.c": True,  # EntryFileRange: raw previous id read first, then ent = GetWrEntry, then the wrap ternary (temporaries in place)
+})

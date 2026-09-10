@@ -184,8 +184,6 @@ Uint8 *AIFF_GetInfo(Uint8 *buf, Sint32 *sfreq, Sint32 *nch, Sint32 *bps, Sint32 
 	Uint8 *data;
 	Uint32 ckid;
 	Uint32 cksz;
-	Uint32 size;
-	Uint32 form;
 	Uint32 type;
 	Sint32 comm_flg;
 	Sint32 ssnd_flg;
@@ -197,20 +195,22 @@ Uint8 *AIFF_GetInfo(Uint8 *buf, Sint32 *sfreq, Sint32 *nch, Sint32 *bps, Sint32 
 	comm_flg = 0;
 	ssnd_flg = 0;
 	data = NULL;
-	/* OPEN: register assignment of form/size/type and the loop temporaries differs (copies `mr r27,r30`
-	 * / `mr r28,r12` before the last rlwimi of form and size); the 16-bit reads mask p[1] to 16 bits
-	 * (`clrlslwi 16,8`) in the original. */
-	form = LE32(buf);
-	size = LE32(buf + 4);
+	/* OPEN: the original copies the FORM word and the size word into the callee-saved registers the
+	 * loop's cksz/ckid use (`mr r27,r30` / `mr r28,r12` before their last rlwimi) and swaps the size
+	 * before the FORM/AIFF checks; reusing the loop variables for the header (below) removes the
+	 * loop's `mr` copy but not the header ones; the 16-bit reads mask p[1] to 16 bits (`clrlslwi
+	 * 16,8`) in the original. */
+	ckid = LE32(buf);
+	cksz = LE32(buf + 4);
+	cksz = SWAP32(cksz);
 	type = LE32(buf + 8);
-	if (form != AIFF_FORM) {
+	if (ckid != AIFF_FORM) {
 		return NULL;
 	}
 	if (type != AIFF_AIFF) {
 		return NULL;
 	}
-	size = SWAP32(size);
-	end = p + (size - 4);
+	end = p + (cksz - 4);
 	while (p < end) {
 		ckid = LE32(p);
 		cksz = LE32(p + 4);

@@ -58,7 +58,8 @@ typedef void (*MPSDEC_PESFN)(void *obj, Uint8 stmid);
 #define BS_GET_LAST(n, val)                                     \
 	if (pos >= 32 - (n)) {                                  \
 		if (pos - (32 - (n)) != 0) {                    \
-			val = (cur | (nxt >> ((n) - (pos - (32 - (n)))))) >> (32 - (n)); \
+			cur |= nxt >> ((n) - (pos - (32 - (n))));  \
+			val = cur >> (32 - (n));                \
 		} else {                                        \
 			val = cur >> (32 - (n));                \
 		}                                               \
@@ -305,13 +306,13 @@ void mpsdec_DecSysHd(MPS mps, Uint8 *adr, Sint32 *hdrlen)
 
 /* pack header: adr points at the 00 00 01 BA start code; MPEG-1 packs are 12 bytes.
  * M1: the original numbers the reader state p r4 (adr's register, dead after BS_INIT), pos r6,
- * cur r7, nxt r8 and evaluates the last read's `pos - 10` into r0 twice instead of updating the
- * dead pos; instruction stream identical otherwise. */
+ * cur r7, nxt r8; no declaration order gives p the lowest register (nxt/pos/cur/p is closest),
+ * instruction stream identical otherwise. */
 void mpsdec_DecPackHd(MPS mps, Uint8 *adr, Sint32 *hdrlen)
 {
-	Uint32 cur;
-	Sint32 pos;
 	Uint32 nxt;
+	Sint32 pos;
+	Uint32 cur;
 	Uint32 *p;
 	Uint32 ver;
 	Uint32 hi;

@@ -138,15 +138,6 @@ static LSC_ENTRY *lsc_GetWrEntry(LSC lsc)
 	return &lsc->tbl[lsc->wr_idx];
 }
 
-static Sint32 lsc_GetNewId(LSC lsc)
-{
-	Sint32 id;
-
-	id = lsc->tbl[(lsc->wr_idx + LSC_MAX_ENTRY - 1) % LSC_MAX_ENTRY].id;
-	id = (id == LSC_ID_MAX) ? 0 : id + 1;
-	return id;
-}
-
 Sint32 LSC_EntryFileRange(LSC lsc, Char8 *fname, void *dir, Sint32 ofst, Sint32 nsct)
 {
 	LSC_ENTRY *ent;
@@ -165,10 +156,9 @@ Sint32 LSC_EntryFileRange(LSC lsc, Char8 *fname, void *dir, Sint32 ofst, Sint32 
 		LSC_CallErrFunc("E0011: Illigal parameter fname=%s\n", fname);
 		return -1;
 	}
-	/* OPEN: target computes id's temporaries before ent's (slwi r4 in place, r6 for the mod) while
-	 * keeping ent in r31/id in r30; every ordering/helper/local form tried gives one or the other. */
+	id = lsc->tbl[(lsc->wr_idx + LSC_MAX_ENTRY - 1) % LSC_MAX_ENTRY].id;
 	ent = lsc_GetWrEntry(lsc);
-	id = lsc_GetNewId(lsc);
+	id = (id == LSC_ID_MAX) ? 0 : id + 1;
 	ent->id = id;
 	ent->fname = fname;
 	len = strlen(fname);

@@ -213,7 +213,7 @@ Sint32 ADX_DecodeInfoWav(Uint8 *buf, Sint32 bsize, Sint16 *hdrlen, Sint8 *x0c, S
 	if (i % 4 != 0) {
 		return -1;
 	}
-	p = buf + i;
+	p = (Uint8 *)(i + (Sint32)buf);
 	if ((Sint16)SWAP16(*(Uint16 *)(p + 8)) > 1) {
 		return -1;
 	}

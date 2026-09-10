@@ -508,8 +508,8 @@ typedef struct {
 	Sint32 ncount;             /* 0x004 total time */
 	Sint32 tscale;             /* 0x008 */
 	SFHDS_FHD fhd;             /* 0x00C system header analysis */
-	SFSEE_SHDR shdr;           /* 0x8A0 system stream analysis (sfd_mps.c) */
-	Uint8 pad8d0[0xAD0 - 0x8D0];
+	SFSEE_SHDR shdr;           /* 0x8A0 system stream analysis (sfd_mps.c), 0x198 bytes */
+	Uint8 pada38[0xAD0 - 0xA38];
 	Sint32 a1hdr;              /* 0xAD0 audio 1 header analysed */
 	Sint32 a1ncount;           /* 0xAD4 */
 	Sint32 a1tscale;           /* 0xAD8 */

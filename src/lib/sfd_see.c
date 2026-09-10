@@ -186,17 +186,15 @@ static Sint32 sfsee_GetInputEndPos(SFD sfd)
 {
 	SFD_TR *tr;
 	SFD_TR *out;
-	Sint32 endpos;
 	Sint32 v;
 
 	tr = sfd->tr;
-	endpos = -1;
 	out = &tr[sfd->buf[tr[0].bufout].out_tr];
 	v = out->x20;
 	if (v >= 0) {
-		endpos = v;
+		return v;
 	}
-	return endpos;
+	return -1;
 }
 
 /* estimate the file size and the total time once the input driver knows them */
@@ -236,13 +234,21 @@ static void sfsee_ExecEstimate(SFD sfd, SFSEE_WORK *wk, SFSEE_REQ *req)
 	}
 }
 
+/* M1: the original materialises the inlined sfsee_ExecEstimate arguments after the call
+ * (wk r29, &see.req r30); ours folds &sfd->see.req into its load unless a local holds it, and the
+ * local is then hoisted above the wk test with the registers swapped. */
 void SFSEE_ExecServer(SFD sfd)
 {
-	if (sfd->see.wk == NULL) {
+	SFSEE_HN *see;
+	SFSEE_REQ *req;
+
+	see = &sfd->see;
+	if (see->wk == NULL) {
 		return;
 	}
+	req = &see->req;
 	sfsee_ExecHeadAnaly(sfd);
-	sfsee_ExecEstimate(sfd, sfd->see.wk, &sfd->see.req);
+	sfsee_ExecEstimate(sfd, see->wk, req);
 }
 
 void SFSEE_FixAvPlay(SFD sfd, Sint32 a, Sint32 b)

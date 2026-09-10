@@ -60,12 +60,16 @@ Sint32 SFUO_Create(SFD sfd)
 	sfd->tr[8].hn = uo;
 	uobuf = sfd->tr[8].bufin;
 	sfd->uo_tbl.nch = 0;
+	/* M1: the original steps uo itself as the induction pointer and copies i = 0 from the NULL
+	 * register (`mr r30, r31`); ours copies uo (`mr r30, r0`) and materialises a second zero. */
 	for (i = 0; i < 3; i++) {
-		uo->ch[i].sj = NULL;
-		uo->ch[i].prm = NULL;
-		uo->ch[i].rsv1 = 0;
-		uo->ch[i].rsv2 = 0;
-		SFBUF_SetUoch(sfd, uobuf, i, &uo->ch[i]);
+		SFUO_CH *ch = &uo->ch[i];
+
+		ch->sj = NULL;
+		ch->prm = NULL;
+		ch->rsv1 = 0;
+		ch->rsv2 = 0;
+		SFBUF_SetUoch(sfd, uobuf, i, ch);
 	}
 	return 0;
 }
