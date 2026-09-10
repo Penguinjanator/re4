@@ -3906,16 +3906,18 @@ void em36SlopeMove(cEm36* em)
     Vec v;
     Mtx m;
     f32 ang;
-    f32 tilt;
+    f32 tilt; // one f32 for the half-length, the SQRTF result and the tilt: the `fmr f2,tilt`
+              // atan2f argument copy gives the pseudo an f2 copy preference in global alloc,
+              // which is where all three values sit in the target (a block-local `h` is
+              // local-alloc'd to f13 and `tilt` alone falls to f12)
 
     if (w->flags & 0x80) {
         f32 fa;
         f32 fb;
-        f32 h;
 
-        h = em->atari.rectX * em->scale.z - 100.0f;
-        b.z = -h;
-        a.z = h;
+        tilt = em->atari.rectX * em->scale.z - 100.0f;
+        b.z = -tilt;
+        a.z = tilt;
         a.x = 0.0f;
         a.y = 1000.0f;
         b.x = 0.0f;
@@ -3937,7 +3939,8 @@ void em36SlopeMove(cEm36* em)
         if (fa < -1500.0f) {
             fa = -1500.0f;
         }
-        ang = -atan2f(fa, SQRTF((a.x - b.x) * (a.x - b.x) + (a.z - b.z) * (a.z - b.z)));
+        tilt = SQRTF((a.x - b.x) * (a.x - b.x) + (a.z - b.z) * (a.z - b.z));
+        ang = -atan2f(fa, tilt);
         if (w->slopeTimer) {
             w->slopeTimer--;
         }
@@ -3962,10 +3965,13 @@ void em36SlopeMove(cEm36* em)
     if (w->slopeTimer == 0 || w->slopeTimer == 30) {
         tilt = 0.0f;
     }
-    w->slopeLift = tilt * 150.0f * 0.1f + w->slopeLift * 0.9f;
+    // `tilt *= 150` as its own statement and slopeLift*0.9 written first: the fmadds fuses the
+    // 0.1 product (`fmuls f2,f2,f13; fmuls f0,f2,f0; fmadds f13,f13,f12,f0`)
+    tilt *= 150.0f;
+    w->slopeLift = w->slopeLift * 0.9f + tilt * 0.1f;
     v.x = 0.0f;
-    v.y = w->slopeLift;
-    v.z = 0.0f;
+    v.y = 0.0f;
+    v.z = w->slopeLift;
     PSMTXMultVecSR(em->mat, &v, &v);
     PSVECAdd(&em->pos, &v, &em->pos);
     PSMTXConcat(em->mat, m, em->mat);
@@ -4251,7 +4257,6 @@ void em36PartsSet(cEm36* em, int no, int on)
 {
     Em36Work* w = EM36_WK(em);
     void* bin;
-    void* tpl;
     cModelInfo* info;
 
     switch (em->type) {
@@ -4369,26 +4374,24 @@ void em36PartsSet(cEm36* em, int no, int on)
         }
         break;
     }
-    {
-        // Offset in the switch, one add after the join (the target's `lwz r5, ofs(r11); add r5, r5, r11`).
-        u32 ofs;
-
-        switch (em->type) {
-        case 0:
-        default:
-            ofs = em->subArc->ofs[0x13];
-            break;
-        case 1:
-            ofs = em->subArc->ofs[0x14];
-            break;
-        case 2:
-        case 3:
-            ofs = em->subArc->ofs[0x24];
-            break;
-        }
-        tpl = (void*) (ofs + (u32) em->subArc);
+    // The create call is INSIDE each type arm: jump2 cross-jumps the three identical tails
+    // (`lis/addi ModInfoMgr; add r5; bl create; mr r31,r3`) into one copy that falls into the join,
+    // so the result copy and the join's `cmpwi r31,0` are in different blocks at combine time (no
+    // `mr.` fusion), `info` is a multi-set pseudo (takes r31, em falls to r30), and the merged tail
+    // is ordered by sched2 (`lis; addi; add`). One call after a tpl-offset switch gives `mr. r30,r3`.
+    switch (em->type) {
+    case 0:
+    default:
+        info = ModInfoMgr.create(bin, ARC(0x13));
+        break;
+    case 1:
+        info = ModInfoMgr.create(bin, ARC(0x14));
+        break;
+    case 2:
+    case 3:
+        info = ModInfoMgr.create(bin, ARC(0x24));
+        break;
     }
-    info = ModInfoMgr.create(bin, tpl);
     if (info) {
         if (w->pParts[no]) {
             em->swapModelInfo(w->pParts[no]->pData, info);
@@ -4400,24 +4403,27 @@ void em36PartsSet(cEm36* em, int no, int on)
     }
 }
 
-// The tentacle positions / rotations (three per limb) and their parts.
-static Vec em36_ten_pos[21] = {
-    { 0.0f, 0.0f, 0.0f }, { -120.0f, 150.0f, 0.0f }, { 120.0f, 150.0f, 0.0f },
-    { 0.0f, 0.0f, 50.0f }, { -50.0f, 0.0f, 0.0f }, { 50.0f, 0.0f, 0.0f },
-    { 0.0f, 0.0f, 0.0f }, { 0.0f, 0.0f, 0.0f }, { 0.0f, 0.0f, 0.0f },
-    { 0.0f, 0.0f, 0.0f }, { 0.0f, 0.0f, 0.0f }, { 0.0f, 0.0f, 0.0f },
-    { 0.0f, 0.0f, 20.0f }, { -20.0f, 0.0f, 0.0f }, { 20.0f, 0.0f, 0.0f },
-    { 0.0f, 0.0f, 20.0f }, { -20.0f, 0.0f, 0.0f }, { 20.0f, 0.0f, 0.0f },
-    { 0.0f, 0.0f, 0.0f }, { 0.0f, 0.0f, 0.0f }, { 0.0f, 0.0f, 0.0f },
+// The tentacle positions / rotations (three per limb) and their parts. Two-dimensional: the
+// [i][k] address is a direct pass-1 giv of the k loop (`base + i*36 + k*12`), so its increment is
+// created before the obj-index giv and the latch order is `k, rot, pos, ofs, obj`; a flat
+// `[i * 3 + k]` index is a giv-of-a-giv that only the second loop pass reduces (obj first).
+static Vec em36_ten_pos[7][3] = {
+    { { 0.0f, 0.0f, 0.0f }, { -120.0f, 150.0f, 0.0f }, { 120.0f, 150.0f, 0.0f } },
+    { { 0.0f, 0.0f, 50.0f }, { -50.0f, 0.0f, 0.0f }, { 50.0f, 0.0f, 0.0f } },
+    { { 0.0f, 0.0f, 0.0f }, { 0.0f, 0.0f, 0.0f }, { 0.0f, 0.0f, 0.0f } },
+    { { 0.0f, 0.0f, 0.0f }, { 0.0f, 0.0f, 0.0f }, { 0.0f, 0.0f, 0.0f } },
+    { { 0.0f, 0.0f, 20.0f }, { -20.0f, 0.0f, 0.0f }, { 20.0f, 0.0f, 0.0f } },
+    { { 0.0f, 0.0f, 20.0f }, { -20.0f, 0.0f, 0.0f }, { 20.0f, 0.0f, 0.0f } },
+    { { 0.0f, 0.0f, 0.0f }, { 0.0f, 0.0f, 0.0f }, { 0.0f, 0.0f, 0.0f } },
 };
-static Vec em36_ten_rot[21] = {
-    { 0.5235988f, 0.0f, 0.0f }, { 2.3561945f, 0.5235988f, 0.0f }, { 2.3561945f, -0.5235988f, 0.0f },
-    { 0.0f, 0.0f, 0.0f }, { 0.0f, 0.0f, 0.0f }, { 0.0f, 0.0f, 0.0f },
-    { 0.0f, 0.0f, 1.5707964f }, { 0.0f, 0.0f, 1.5707964f }, { 0.0f, 0.0f, 1.5707964f },
-    { 0.0f, 0.0f, -1.5707964f }, { 0.0f, 0.0f, -1.5707964f }, { 0.0f, 0.0f, -1.5707964f },
-    { 0.0f, 0.0f, PI }, { 0.0f, 0.0f, PI }, { 0.0f, 0.0f, PI },
-    { 0.0f, 0.0f, PI }, { 0.0f, 0.0f, PI }, { 0.0f, 0.0f, PI },
-    { 0.0f, 0.0f, 0.0f }, { 0.0f, 0.0f, 0.0f }, { 0.0f, 0.0f, 0.0f },
+static Vec em36_ten_rot[7][3] = {
+    { { 0.5235988f, 0.0f, 0.0f }, { 2.3561945f, 0.5235988f, 0.0f }, { 2.3561945f, -0.5235988f, 0.0f } },
+    { { 0.0f, 0.0f, 0.0f }, { 0.0f, 0.0f, 0.0f }, { 0.0f, 0.0f, 0.0f } },
+    { { 0.0f, 0.0f, 1.5707964f }, { 0.0f, 0.0f, 1.5707964f }, { 0.0f, 0.0f, 1.5707964f } },
+    { { 0.0f, 0.0f, -1.5707964f }, { 0.0f, 0.0f, -1.5707964f }, { 0.0f, 0.0f, -1.5707964f } },
+    { { 0.0f, 0.0f, PI }, { 0.0f, 0.0f, PI }, { 0.0f, 0.0f, PI } },
+    { { 0.0f, 0.0f, PI }, { 0.0f, 0.0f, PI }, { 0.0f, 0.0f, PI } },
+    { { 0.0f, 0.0f, 0.0f }, { 0.0f, 0.0f, 0.0f }, { 0.0f, 0.0f, 0.0f } },
 };
 static u8 em36_ten_parts[6] = { 1, 4, 7, 0xD, 0x13, 0x17 };
 
@@ -4437,7 +4443,6 @@ void em36RegeneTenMove(cEm36* em)
     step = (*(u16*) ARC(0x8F) & 0x3FFF) / 4;
     for (i = 0; i < 7; i++) {
         u32 k;
-        int ofs;
 
         switch (i) {
         case 0:
@@ -4570,22 +4575,23 @@ void em36RegeneTenMove(cEm36* em)
         default:
             continue;
         }
-        ofs = 0;
         for (k = 0; k < 3; k++) {
             if (w->ten[i].obj[k] == 0) {
                 Vec pos;
                 Vec rot;
                 cObj* obj;
 
-                pos = em36_ten_pos[i * 3 + k];
-                rot = em36_ten_rot[i * 3 + k];
+                pos = em36_ten_pos[i][k];
+                rot = em36_ten_rot[i][k];
                 obj = SetObj16(ARC(0x8D), ARC(0x8E), em, em, em36_ten_parts[i], 0x11, &pos, &rot);
                 if (obj) {
-                    MotSetObj16(obj, ARC(0x8F), 4, ofs);
+                    // `step * k` (a giv, its `li 0` init emitted after the hoisted invariants and
+                    // the increment `add ofs,ofs,step` at the latch) -- an `ofs += step` counter
+                    // puts `li ofs,0` before the k-loop preheader's `lis/addi` and allocates it r20.
+                    MotSetObj16(obj, ARC(0x8F), 4, step * k);
                     w->ten[i].obj[k] = (cObj16*) obj;
                 }
             }
-            ofs += step;
         }
     }
     if (any) {
@@ -4618,7 +4624,13 @@ void em36BloodSet(cEm36* em)
     if (em->dmPart->rad < 36000000.0f) {
         near = 1;
     }
+    // `default:` at the top of the body, jumping to the normal-blood arm: the default label then
+    // sits right after the compare tree, so jump.c inverts the last node's `bgt default; b big`
+    // into `ble big` falling into `default: b normal` (the tree's tail `ble B; b D`); a default
+    // label on the arm itself gives `bgt default; b big`.
     switch (em->dmWep) {
+    default:
+        goto normal;
     case 0xB:
     case 0xC:
     case 0x1B:
@@ -4651,7 +4663,7 @@ void em36BloodSet(cEm36* em)
     case 0x11:
     case 0x26:
     case 0x2B:
-    default:
+    normal:
         EmDmBloodSet2(em, 0x2D, 0, 0, 0, 0);
         em36SetHitMark(em, 0);
         break;

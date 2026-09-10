@@ -4249,7 +4249,7 @@ target) stays unresolved and `make_rel` then fails with "undefined symbol".
   of the format string, drawScurve's `i`/`&wp` register swap (r26/r27), sctrlMenu's cross-jump of the
   case-1 cursor call.
 
-### Single-unit enemy modules (em2e, em26, em18, em34, em24 Matching; em21, em27, em28, em3d Matching since the #13 sweep 2026-09-10; em2f, em2a, em3b Matching since the one-function-away sweep 2026-09-10; em30 22/23, em3a 36/39, em3c 43/47 -> 46/47, em38 71/76, em22 64/72 -> 70/72; src/<em>/<em>.cpp, 2026-09)
+### Single-unit enemy modules (em2e, em26, em18, em34, em24 Matching; em21, em27, em28, em3d Matching since the #13 sweep 2026-09-10; em2f, em2a, em3b Matching since the one-function-away sweep 2026-09-10; em36 Matching since its third pass 2026-09-10; em30 22/23, em3a 36/39, em3c 43/47 -> 46/47, em38 71/76, em22 64/72 -> 70/72; src/<em>/<em>.cpp, 2026-09)
 
 - Layout of every one-file enemy REL: `_prolog` (`OSReport("<em> prolog Ok\n")` + `EmInitFunc = EmXXInit`;
   em2e has no OSReport), empty `_epilog`/`_unresolved`, `EmXXInit` = `new (em) cEmXX()`, `emXXDmCk`, the
@@ -4497,7 +4497,7 @@ target) stays unresolved and `make_rel` then fails with "undefined symbol".
     0x2D}`, switch3 default `{5,6,0xD,0xF,0x12,0x13,0x29,0x2C,0x2D}`).
   - `if ((u32) PlGachaGet() <= 49 || (s16) pG->pl_life <= 1)` for the `cmplwi 0x31; ble` + `lha; cmpwi 1;
     ble` pair (em35_R1_CatchHit).
-- em36 (91/101 -> 97/101 byte-identical, not Matching; include/em36.h, src/em36/em36.cpp, 2026-09): the
+- em36 (91/101 -> 97/101 -> 101/101 byte-identical, Matching since the third pass 2026-09-10; include/em36.h, src/em36/em36.cpp, 2026-09): the
   Regenerator / Iron Maiden (0xD284; four types, five limb weak points `Em36Limb limb[5]`, seven limb
   models `cModelInfo* pParts[7]` swapped by em36PartsSet, three cObj16 tentacles per lost limb
   `Em36Ten ten[7]`, 14 spine scale parts). .data 0x6C0 / .rodata 0x720 equal. Left: em36DmCk (the
@@ -4580,6 +4580,50 @@ target) stays unresolved and `make_rel` then fails with "undefined symbol".
     RegeneTenMove 44 (`i+1` PRE pseudo r28 vs the `&em36_ten_rot[i*3]` pointer r29; rot-first/do-while/declaration
     order tried), BloodSet 2 (`2dLEB JD` = node [2C-2D] with a right child whose compare vanished; a model search
     over default/break labels for 0x1E, 0x22..0x25, 0x2E..0x35 (all-D, all-E) finds no tree that keeps the rest).
+  - Third pass (97 -> 101/101, unit Matching, REL byte-identical; 2026-09-10; harness /tmp/em3236 = em3136/em32f copies
+    with `tryv.py MOD FUNC variants.py`, `relcmp.py MOD .data` = reloc TARGETS of a section split-vs-ours). None of the
+    four was a register tie; each had a source-form cause:
+    - **BloodSet 2 -> 0: `default:` at the TOP of the switch body as `default: goto normal;`** (the D arm keeps its
+      cases, `normal:` label on it). The tail `cmpwi 0x2d; ble big; b default` is NOT a tree shape: the case-list
+      balance cannot put 2B over [2C-2D] with a right child (a 4-node list splits at [2C-2D], the 3-node rule at 2B
+      leaves it childless; a brute force over 3^9 label assignments of 0x1E/0x22-0x25/0x2E-0x31 confirms). It is
+      jump.c: with the default label right after the tree, `bgt default; b big; default: b normal` is "a
+      conditional jump over an unconditional jump" -> `ble big` falling into `default: b normal`, and every other
+      `b/beq default` is threaded to `normal`. A `default:` on the arm gives `bgt default; b big`; a second copy of
+      the D body at the top (cross-jumped) 44 words. Rule: a switch tail `bCC arm; b default` where `default`'s
+      body is NOT laid out next = the default label was a separate `goto`/empty arm placed first in the body.
+    - **SlopeMove 36 -> 0: ONE f32 (`tilt`) for the half-length `h`, the SQRTF result and the tilt** (the em22NeckMove
+      idiom): `tilt = SQRTF(..); ang = -atan2f(fa, tilt);` gives the pseudo an f2 copy preference (`fmr f2,tilt`,
+      global.c's hard_reg_copy_preferences override the alloc-order pick), so all three values sit in f2; a
+      block-local `h` is local-alloc'd (f13, qty tied to its dying input in `fmsubs f13,f13,f0,f12`) and `tilt`
+      alone falls to f12 (pass-0 first free in REG_ALLOC_ORDER: f0/f13 conflict). The "least used by local pseudos"
+      ratio of find_reg only applies when no free register exists (the kick-out path), not to this choice. Plus
+      `tilt *= 150.0f; w->slopeLift = w->slopeLift * 0.9f + tilt * 0.1f;` (combine tries the LOG_LINK of the
+      EARLIER-defined product first: `A*B*C + D*E` fuses A*B*C's last product, `D*E + A*B*C` fuses D*E, the two
+      statement form gives the target's `fmuls f2,f2,f13; fmuls f0,f2,f0; fmadds f13,f13,f12,f0`) and a logic fix:
+      the lift goes into `v.z` (`stfs f13,0x30(r1)`), not `v.y`.
+    - **PartsSet 48 -> 0: the `ModInfoMgr.create(bin, ARC(0x13/0x14/0x24))` call INSIDE each type-switch arm**, not
+      one call after an offset switch. jump2 cross-jumps the three identical tails (`lis/addi ModInfoMgr; add r5;
+      bl create; mr r31,r3`) into one copy that falls into the join, so at combine time the result copy and the
+      join's `cmpwi info,0` are in different blocks (no `mr.` fusion -- the "mes `mr.` family" IS this: a
+      block-crossing call result), `info` is a multi-set pseudo (takes r31, `em` falls to r30 -- the pl0f rule),
+      and the merged tail is ordered by sched2 (`lis; addi; add` instead of sched1's `lis; add; addi`).
+    - **RegeneTenMove 44 -> 0, three levers:** (1) `const Vec* posTbl = em36_ten_pos; rotTbl = ..` assigned ONCE at
+      function scope (after the hp test) and indexed in the k loop: the base pseudos are then REG_EQUIV constants
+      live across the whole i loop with all 18 callee-saved GPRs taken, so reload re-materialises `lis r9; addi
+      r9` right before the giv init `add r27,r0,r9` (r9 shared with the parts high -> anti-dependence -> the parts
+      `lis/addi` is scheduled first, the rot init last; the k-preheader order and thereby the live lengths that
+      put `i+1` in r28 and the rot pointer in r29 all follow); loop.c-hoisted per-iteration bases (the flat
+      `em36_ten_pos[i*3+k]`) get their own r9/r10/r11 highs. (2) `MotSetObj16(.., step * k)` instead of an `ofs +=
+      step` counter: a giv whose `li 0` init is emitted after the hoisted invariants (last in the preheader) and
+      whose increment `add ofs,ofs,step` sits at the latch; a user counter's `li ofs,0` precedes the preheader
+      invariants and is allocated before `k` (r20/r21 swapped). (3) two-dimensional tables `Vec em36_ten_pos[7][3]`
+      indexed `[i][k]`: the address `base + i*36 + k*12` is a direct pass-1 giv of k, so its increment is created
+      before the obj-index giv (increments are emitted in reverse discovery order = ascending new regno) and the
+      latch reads `k; rot; pos; ofs; obj`; the flat `[i*3+k]` index is a giv of the `i*3+k` giv that only the
+      rerun loop pass reduces (obj increment first, 3 words). Row pointers `&tbl[i*3]` before the k loop turn the
+      loop into a pointer-compare loop (128 words). The "dead test" / no-leaf (`if (hp > 0) {..}`) forms changed
+      nothing here (both tail blocks are leaves anyway).
 - Tools REL, third pass (t_atari 16/17 functions, t_dr 13/15; src/Tools/t_atari.cpp, t_dr.cpp, 2026-09):
   - `cSat` has a constructor, `cSat() : cUnit(1) { flags = 0; }` (include/atari.h): t_atari's two
     `static cSat tbl[10]` arrays are built by the static-init loop as `stw 1; stw _vt.4cSat; stb 0,0x2a`
@@ -8162,7 +8206,7 @@ output to the installed compiler; NOTE mk.sh must rm the insn-*.o objects or a p
   `find_cross_jump` over `jump_chain`, head = latest jump) and merges the identical copies -- COMPILER-DIFF #6. A `goto`
   to a label inside the Debug `if` reproduces the survivor but not the un-merged copies (124 words); not applied.
 
-### em32 (U-3, the container-area boss; src/em32/em32.cpp + include/em32.h written from scratch, 105 -> 106/108 masked-identical, .rodata/.data equal, not flipped; 2026-09-10)
+### em32 (U-3, the container-area boss; src/em32/em32.cpp + include/em32.h written from scratch, 105 -> 106/108 -> 107/108 masked-identical, .rodata/.data equal, not flipped; 2026-09-10)
 - Layout as em25/em36 (R0 table global, R1 flat {br, main} pairs, R2/R3 one entry, EmAtkInfo x6, cloth tables,
   `.data` balign pad, `.comm common_em32`, cUnit/cManager<cObj> linkonce copies at the .text end). Work 0x994 bytes
   (include/em32.h: 28 EmHitInfo, blend-motion sub work, PlCloth, two pDivide units, TexRender blend model, breakNo
@@ -8257,6 +8301,26 @@ output to the installed compiler; NOTE mk.sh must rm the insn-*.o objects or a p
     itself re-promotes the HImode asm output (no mask). An asm-labelled DEFINITION with an `int d` parameter
     (`void em32BlendMotSetI(...) asm("em32BlendMotSet__FP5cEm32PvN31iiUs")`) is rejected by NgcAs: SN's cc1plus
     emits `.L_f*name_s` with the `*` of the asm label. Left at 2 words.
+- Third pass (106 -> 107/108, .data/.rodata relocs equal by target, not flipped; 2026-09-10; harness /tmp/em3236):
+  - **BlendMotSet 2 -> 0 with the em2c pass-4 tied-operand launder**: `int m3i, dd; asm("" : "=r"(m3i) : "0"((int)
+    m3)); asm("" : "=r"(dd) : "0"((int) d));` declared BEFORE `f32 val = fabsf(..)` (before the barrier), `(u16) dd`
+    at both MotionSetCore calls and `m3i` as the first call's int argument. `dd` alone masks both calls (`clrlwi
+    r8,r25,16`) but its copy->asm link (cost 1) lifts d's prologue copy over m3's (`mr r25,r10` before `mr r0,r7`,
+    2 words); the same launder on m3 -- the parameter whose copy the target issues right before d's -- restores the
+    tie, asm order m3 then d (d then m3: 2 words). Tagged `COMPILER-DIFF: #2`.
+  - **R0_Init 2 (OPEN, sharpened):** the sched2 tie `li r0,1` (1561) vs `stb r11,0xfd` (1569) at t=7 is decided by
+    INSN_DEPEND counts 5 vs 6 (rank_for_schedule: equal priority 15, both independent of the last scheduled `li
+    r7,0`, so dependents, then LUID): the stb's extra dependents are `lwz r11,0x378(r31)` (anti, r11 reused by
+    subArc) and `lwz r5,0x24(r11)` (true: r11's base value is 0 -- set many times -- so `memrefs_conflict_p` says
+    conflict with every store; strict aliasing is off in this cc1plus); the li's only in-block dependent is `stb
+    r0,0xfc`. Both sets are forced by the target's own registers and memory forms, so the graph is identical in the
+    original and no source form can flip the pick: statement orders, `six`/`one` store orders, `asm("li %0,1")`
+    opaque set, EM32_W_SET-style non-struct stores for xFC/xFD, a block-local `PlArc* arc`, a dead `if (w->pMot ==
+    0) ee = 2` before the call, `one` as the MotionSetCore `1` argument (cse re-materialises `li r8,1`), a dead
+    tied-operand launder of `one` (deleted by flow) -- all 2 words; `if (w->pMot) xFD = six; else xFD = six;`
+    (store in its own block) 17. A read of r0 after the stb (`asm("" : "+r"(one))`) adds the dependent but costs
+    an issue slot (6 words, second pass). Whatever gave the original's `li r0,1` a 6th dependent (or the stb a 5th)
+    is not a visible insn; left as a #13 residue.
 
 ### Stage rooms, st1_1/st1_3/st2_0 pass 2 (r104, r117 Matching; r105 28/30, r201 34/36, r222 22/29; 2026-09-10)
 

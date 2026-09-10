@@ -3760,19 +3760,19 @@ void em32BlendMotSet(cEm32* em, void* m0, void* m1, void* m2, void* m3, int a, i
 {
     Em32Work* w = EM32_WK(em);
     MotionWork* bm;
+    int m3i, dd;
+    // COMPILER-DIFF: #2 -- the original zero-extends the u16 parameter at both MotionSetCore calls
+    // (`clrlwi r8, r25, 16`); ours drops the mask (combine's setup_incoming_promotions knows r10's
+    // upper bits). The tied-operand launder (em2c BlendMotSet) makes an opaque 3-ref copy, declared
+    // before the fabsf barrier; the same launder on m3 (whose prologue copy the target issues before
+    // d's) restores the copies' priority tie.
+    asm("" : "=r"(m3i) : "0"((int) m3)); // COMPILER-DIFF: #2
+    asm("" : "=r"(dd) : "0"((int) d));   // COMPILER-DIFF: #2
     f32 val = fabsf(w->blendVal);
     void* m;
     int arg;
 
-    // COMPILER-DIFF #2 (open, 2 words): the original zero-extends the u16 parameter at both
-    // MotionSetCore calls (`clrlwi r8, r25, 16`); ours drops the mask (combine's
-    // setup_incoming_promotions knows r10's upper bits). An `int` copy laundered with asm("" : "+r")
-    // masks but its extra refs move it up the global-alloc order (c r29, em r28); a `register int c
-    // asm("r25") = d` copy keeps the allocation and masks with a launder after the fabsf barrier, but
-    // then the copy loses its use dependent and sched1 issues it last of the parameter copies (a
-    // launder before the barrier raises its priority instead); an asm-labelled int-parameter
-    // DEFINITION is rejected by NgcAs (`.L_f*name_s` label).
-    MotionSetCore(em, &em->mot, m0, (int) m3, (u8) w->blendCnt, d & 0xFFFF, (u16) w->blendSeq);
+    MotionSetCore(em, &em->mot, m0, m3i, (u8) w->blendCnt, (u16) dd, (u16) w->blendSeq);
     if (w->blendVal > 0.0f) {
         m = m1;
         arg = a;
@@ -3781,7 +3781,7 @@ void em32BlendMotSet(cEm32* em, void* m0, void* m1, void* m2, void* m3, int a, i
         arg = b;
     }
     bm = EM32_BLEND_MOT(w);
-    MotionSetCore(em, bm, m, arg, (u8) w->blendCnt, d & 0xFFFF, (u16) w->blendSeq);
+    MotionSetCore(em, bm, m, arg, (u8) w->blendCnt, (u16) dd, (u16) w->blendSeq);
     em->motBlend = bm;
     bm->blendRate = val * 0.00390625f;
     if (w->blendCnt) {
