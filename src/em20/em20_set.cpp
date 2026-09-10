@@ -5,6 +5,7 @@
 // archive (cEm::subArc) by model type.
 
 #include "types.h"
+#include "atari.h"
 #include "global.h"
 #include "cManager.h"
 #include "em10.h"

@@ -350,6 +350,9 @@ void Ctrl12SetS(cCtrl* c, int idx, s16 val) asm("Ctrl12Set__FP5cCtrliUs");
 u32 Ctrl11SetSe2I(cCtrl* c, cModel* m, s16 time, int no, int idx, int blk) asm("Ctrl11SetSe2__FP5cCtrlP6cModelsUsiUs");
 // COMPILER-DIFF: narrow-argument truncation (AGENTS.md item 4): int-view of em10CallVoiceSe's u16 se number (em10SetDamageVoice).
 extern "C" void em10CallVoiceSeI(cEm10* em, int no) asm("em10CallVoiceSe");
+// COMPILER-DIFF: argument-move order (AGENTS.md item 1): em10_R1_R10FGondola's setThrow issues the
+// `addi r5, Em10AtkTbl` before `fmr f1, t`; the GPR-args-first redeclaration is ABI-identical.
+void cEmWepSetThrowF(cEmWep* wep, Vec* spd, EmAtkInfo* atk, f32 grav) asm("setThrow__6cEmWepP3VecfP9EmAtkInfo");
 
 // Helpers of this unit used before their definition.
 int em10CrashCk(cEm10* em);
@@ -3665,13 +3668,16 @@ static void em10_R1_Keeper(cEm10* em)
 }
 
 // Hidden (invisible, no collision) and appearing states shared by the hide routines.
+// Store order: the pool `lfs` of the 0.0f depends on every store issued before it in RTL (sched1
+// true-dependence of a `mem/u` pool load on the `mem/s` stores), so the alpha store must be the FIRST
+// statement for its load to be hoisted to the block top like the target; the rest is LUID order.
 static inline void em10HideOn(cEm10* em, Em10Work* w)
 {
+    em->alpha = 0.0f;
     em->be_flag &= ~2;
+    em->dmType = 0x80;
     EM10_WK(em)->flags |= 0x400000;
     em->atari.flags &= ~0x300;
-    em->alpha = 0.0f;
-    em->dmType = 0x80;
     w->x6B6 = 1;
 }
 
@@ -4695,19 +4701,20 @@ static void em10_R1_R10FGondola(cEm10* em)
         if (w->pWep == 0) {
             em->xFE = 4;
         } else {
-            f32 lim;
+            // `dist` (the tgt distance above) reused for the limit: the multi-set pseudo is global and
+            // takes f13 for both the `fmadds` result and the limit loads.
             switch (em->emsetNo % 3) {
             default:
-                lim = 400000000.0f;
+                dist = 400000000.0f;
                 break;
             case 1:
-                lim = 324000000.0f;
+                dist = 324000000.0f;
                 break;
             case 2:
-                lim = 256000000.0f;
+                dist = 256000000.0f;
                 break;
             }
-            if (em->plDist2 < lim && em->pos.y < pPL->pos.y) {
+            if (em->plDist2 < dist && em->pos.y < pPL->pos.y) {
                 em->xFE = 2;
             }
         }
@@ -4766,7 +4773,7 @@ static void em10_R1_R10FGondola(cEm10* em)
             PSMTXRotRad(m, 'y', atan2f(diff.x, diff.z));
             PSMTXMultVecSR(m, &spd, &spd);
             if (w->wepType != 6) {
-                w->pWep->setThrow(&spd, t, &Em10AtkTbl[5]);
+                cEmWepSetThrowF(w->pWep, &spd, &Em10AtkTbl[5], t);
             } else {
                 plPos = pPL->pos;
                 plPos.y += 1500.0f;
@@ -5871,16 +5878,20 @@ static void em10_R1_R30FBullJump(cEm10* em)
             v = em->pos;
             v.y = em->oldPos.y;
             y = SatMgr.getFloor(&v, 600.0f, 100000.0f, 0, 0);
+            // The landing tail is repeated in both arms (jump2 cross-jumps it): with the MotionSetCore call
+            // in the SndCall's block, the SndCall arg `li r3, 8` is issued after `mr r8` like the target.
             if (em->pos.y < y) {
                 em->pos.y = y;
                 w->x5A4.y = 0.0f;
                 SndCall(8, 5, &em->pos, em->id, 0, em);
-            } else if (!end) {
-                break;
+                MotionSetCore(em, MOTION(em), PL_ARC_PTR(em->subArc, 0x25), 0, 3, 1, 0);
+                MotionMoveF(em, 0);
+                em->xFE = 2;
+            } else if (end) {
+                MotionSetCore(em, MOTION(em), PL_ARC_PTR(em->subArc, 0x25), 0, 3, 1, 0);
+                MotionMoveF(em, 0);
+                em->xFE = 2;
             }
-            MotionSetCore(em, MOTION(em), PL_ARC_PTR(em->subArc, 0x25), 0, 3, 1, 0);
-            MotionMoveF(em, 0);
-            em->xFE = 2;
         }
         break;
     case 2:
@@ -7705,8 +7716,8 @@ static void em10_R1_DownWake(cEm10* em)
 static void em10_R1_Crash(cEm10* em)
 {
     Em10Work* w = EM10_WK(em);
-    void* m1;
     void* m0;
+    void* m1;
     int flag;
 
     switch (em->xFE) {
@@ -7719,7 +7730,12 @@ static void em10_R1_Crash(cEm10* em)
             m0 = PL_ARC_PTR(em->subArc, 0x1B);
             m1 = PL_ARC_PTR(em->subArc, 0x1C);
         }
-        MotionSetCore(em, MOTION(em), m0, (int) m1, 6, flag, Rnd() % 5);
+        {
+            // Rnd() before the call statement: the `addi r4, em, 0x1d8` is then computed after the
+            // call and regmove ties it to r4 (issued after `mr r3`); m0 declared before m1 for r30/r29.
+            int r = Rnd() % 5;
+            MotionSetCore(em, MOTION(em), m0, (int) m1, 6, flag, r);
+        }
         em->xFE++;
     case 1:
         w->flags |= 0x2000;
@@ -16521,11 +16537,15 @@ extern "C" int em10GetWanderRouteEmi(cEm10* em)
         return -1;
     }
     cnt = 0;
+    // Byte-offset entry address: the `i*64 + 8` DEST_REG giv has a constant addend, so loop.c makes the
+    // later `.sub` address giv (+9) the base (`addi r9,emi,9`, type at -1(r9)); `&emi->entry[i]`
+    // gives a zero-addend giv that wins the combine (base +0).
     for (i = 0; i < emi->n; i++) {
-        if (emi->entry[i].type != 1) {
+        EmiEntry* e = (EmiEntry*) ((u8*) emi + 8 + i * 0x40);
+        if (e->type != 1) {
             continue;
         }
-        if (emi->entry[i].sub != 3) {
+        if (e->sub != 3) {
             continue;
         }
         cnt++;
@@ -16535,12 +16555,13 @@ extern "C" int em10GetWanderRouteEmi(cEm10* em)
     }
     r = Rnd() % cnt;
     cnt = 0;
-    emi = (EmiData*) pG->pRoomEmi;
-    for (i = 0; i < emi->n; i++) {
-        if (emi->entry[i].type != 1) {
+    // pG->pRoomEmi re-read here: the loop bound is then a gcse PRE copy (`mr r8, r9`) of the entry test's load.
+    for (i = 0; i < ((EmiData*) pG->pRoomEmi)->n; i++) {
+        EmiEntry* e = (EmiEntry*) ((u8*) pG->pRoomEmi + 8 + i * 0x40);
+        if (e->type != 1) {
             continue;
         }
-        if (emi->entry[i].sub != 3) {
+        if (e->sub != 3) {
             continue;
         }
         if (r == cnt) {
@@ -16745,7 +16766,19 @@ extern "C" int em10CatchPLRtnCk(cEm10* em)
     if (w->pShield != 0) {
         return 0;
     }
-    if (em->type == 0xA || em->type == 0xD || em->type == 2 || em->type == 0x18) {
+    // Four separate ifs, not an `||` chain: cse follows at most 9 conditional jumps per extended
+    // block (PATHLENGTH 10), so the x3E0 test below is the 10th and the pWep block starts a fresh
+    // ebb -- `w->flags` is reloaded there (not merged with em->x3E0) exactly like the target.
+    if (em->type == 0xA) {
+        return 0;
+    }
+    if (em->type == 0xD) {
+        return 0;
+    }
+    if (em->type == 2) {
+        return 0;
+    }
+    if (em->type == 0x18) {
         return 0;
     }
     if ((s16) pG->pl_life <= 0) {
@@ -18413,11 +18446,11 @@ void cEm10::setHand(int no, int type)
         tpl = w->mot[13];
         break;
     case 3:
-        tpl = w->mot[14];
         bin = w->mot[9];
         if (w->wepType == 6) {
             bin = w->mot[10];
         }
+        tpl = w->mot[14]; // after the if: tpl's shorter range gives it r4 (bin r9) like the target
         break;
     }
     if (no) {
@@ -18990,6 +19023,7 @@ int em10SetDamageDoor(cEm10* em, int kind)
                 }
                 break;
             case 2:
+            door_break:
                 if (d->type == 0) {
                     d->setBreak(&em->pos);
                 } else {
@@ -19021,6 +19055,7 @@ int em10SetDamageDoor(cEm10* em, int kind)
                     }
                     break;
                 }
+                goto door_break; // the hp <= 1 path falls into the FIRST switch's type-check body (`ble` target)
             case 2:
                 if (d->type == 0) {
                     d->setBreak(&em->pos);
@@ -19092,7 +19127,9 @@ int em10RackBreakCk(cEm10* em)
         if (SatMgr.hitCheck(&a, &b, 0, 0, 0, 0)) {
             continue;
         }
-        EmRoutineSet(em, 1, e->type == 0 ? 0x3E : 0x3D, 0, 0);
+        do { // loop notes keep `li r3, 1` below the routine stores, so the hitCheck result (known 0) stays in r3
+            EmRoutineSet(em, 1, e->type == 0 ? 0x3E : 0x3D, 0, 0);
+        } while (0);
         return 1;
     }
     return 0;
@@ -20730,20 +20767,6 @@ void em10ScaleCompress(cEm10* em)
     }
 }
 
-// Bell-position hearing check of em10FindCk (one switch arm).
-#define EM10_BELL_FIND_CK() \
-    { \
-        f32 r = 25000.0f; \
-        f32 dx = em->pos.x - pGS->bell_pos.x; \
-        f32 dy = em->pos.y - pGS->bell_pos.y; \
-        f32 dz = em->pos.z - pGS->bell_pos.z; \
-        if (dx * dx + dy * dy + dz * dz < r * r) { \
-            if ((w->flags & 1) && w->x524 < r) { \
-                find = 1; \
-            } \
-        } \
-    }
-
 int em10FindCk(cEm10* em, int a)
 {
     Em10Work* w = EM10_WK(em);
@@ -20806,16 +20829,30 @@ int em10FindCk(cEm10* em, int a)
         case 12:
         case 13:
             if (pG->flags_5010 & 0x20000000) {
-                // OPEN: the original keeps the dispatch's dead `cmpwi bell_stat,0 / beq / cmpwi bell_stat,1`
-                // and reloads pG in the (cross-jumped) arm: its cse did not carry pG through the switch
-                // jumps (cse-follow-jumps, see AGENTS.md esp_efm/emrock/route_ck). Ours folds the
-                // three identical arms in jump1 and flow deletes the compares.
+                // em3c bell idiom: three arms assigning `r` keep the dispatch compares (cross-jumped
+                // after flow) and `r * r` unfolded. OPEN (as in em3c): the target issues the `lfs r`
+                // and its `fmuls` after the pos/bell loads, ours first.
+                f32 r;
                 switch (pG->bell_stat) {
                 case 0:
-                case 1:
-                default:
-                    EM10_BELL_FIND_CK();
+                    r = 25000.0f;
                     break;
+                case 1:
+                    r = 25000.0f;
+                    break;
+                default:
+                    r = 25000.0f;
+                    break;
+                }
+                {
+                    f32 dx = em->pos.x - pGS->bell_pos.x;
+                    f32 dy = em->pos.y - pGS->bell_pos.y;
+                    f32 dz = em->pos.z - pGS->bell_pos.z;
+                    if (dx * dx + dy * dy + dz * dz < r * r) {
+                        if ((w->flags & 1) && w->x524 < r) {
+                            find = 1;
+                        }
+                    }
                 }
             }
             if (pG->flags_500C & 0x00800000) {
@@ -26624,12 +26661,12 @@ void Em1fClothSet(cModel* m, PlCloth* c)
     c->x3C = 20.0f;
     c->x40 = 0.1f;
     c->x44 = 4;
-    c->x48 = 0.0f; // OPEN: the target stores this 0.0f last, after pModel
+    c->pModel = m; // between the two 0.0f stores: weight-0 stores (x48's 0.0 is not the constant's last use) go in LUID order
+    c->x48 = 0.0f;
     c->x4C = 0.05f;
     c->x50 = 0.0f;
     c->flags = 0x100;
     c->x54 = 0;
-    c->pModel = m;
     PenClothSet(m, (PenCloth*) c, 100.0f);
 }
 

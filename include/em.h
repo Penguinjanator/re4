@@ -203,7 +203,8 @@ public:
             f32 blendRate500;     // 0x500  player: em2b plBlendMotSet: neckMot blend rate source (the strangle button mash 0..255)
             u32 sndId504;         // 0x504  player: SndCall handle cPlayer::interrupt stops
             cModel* pLockEm;      // 0x508  player: locked-on enemy (pl_wep lock, knife aim)
-            u8 pad_50C[0x518 - 0x50C];
+            cEm* pBoat;           // 0x50C  player: the jet ski the player rides (pl0e cPl0e::setRide / PlBoatMove)
+            u8 pad_510[0x518 - 0x510];
             int gachaCnt;         // 0x518  player: button mash counter (pl_sub PlGacha*)
             u8 pad_51C[2];
             u8 eyeMode;           // 0x51E  player (pl_sub PlSetEyeMode)
@@ -220,7 +221,7 @@ public:
             u8 sub409;            // 0x409
             u8 sub40A;            // 0x40A  timer
             u8 pad_40B;
-            u32 pad_40C;
+            f32 subBlendRate;     // 0x40C  cSubChar: blend rate of subBackMot (pl0e subBlendMotSet, like the player's blendRate500)
             f32 subAng;           // 0x410  angle to the player (analyze)
             f32 subDist;          // 0x414  distance to the player (analyze)
             Vec subTarget;        // 0x418  position to walk to

@@ -53,6 +53,8 @@ int getRoomEtcSwitch(int no, cEm** out, int flag);
 int getRoomEtcBarred(int no, cEm** out, int flag);
 int getRoomEtcDram(int no, cEm** out, int flag);
 int EtcGetDasAddr(int id, void** out);   // archive of etc model `id` (r400 setLadderMotion)
+// Generic lookup by etc type (getRoomEtc* call it; r20d counts the torches / lamps with it).
+int getRoomEtc(int no, int type, cEm** out, int flag);
 }
 
 #endif
