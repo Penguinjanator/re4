@@ -55,6 +55,17 @@ cc1plus and are therefore compiler-build differences (the original is a later SN
    run over all game units, with `calls.tsv` = 1209 classified call sites); every candidate rule
    either regresses matched functions or fails SetEmBarred's interleave, so NOTHING is installed.
    Workaround: a floats-first asm-labelled redeclaration (include/atari_init.h) for the affected callee.
+   RESEARCH 2026-09-10 (/tmp/rank18 -> /var/tmp/rank18, whole-tree harness with `-D`-hooked haifa-sched.c /
+   calls.c / regmove.c and alternative rs6000.md timings; see "COMPILER-DIFF #1 / #8 research" at the end of
+   this file): SN's haifa-sched.c, calls.c, regmove.c and rs6000_adjust_cost/adjust_priority are stock; every
+   rank_for_schedule / weight / arg-emission-order / md-latency variant regresses 4-13558 matched functions
+   and fixes at most 2; the residues are decided by whether the FP argument's source pseudo DIES at the arg
+   move (weight 0 = issued before the `li`s) -- in the original the FP constants reach the call as dying
+   pseudos rematerialised by reload (the #13 constant handling), in ours cse folds the second use to a
+   hard-reg copy `fmr f2,f1` (weight +1). Nothing installed; the alias stays. The #8 prologue family
+   (`fmr fN,f1` ranked as if f1 did not die: emshield setFall, emwep setThrow, r223 mode, r226 idx, pl_wep
+   PlWepAutoTrack mode, em_sub EmYarareContactCk out -- the only 6 such prologues in the whole tree) has no
+   source lever either (a parameter's incoming hard register always dies at its copy in ours).
 2. Narrow-argument extension: the original sign/zero-extends narrow values at some call sites and
    entries (`extsh`, `clrlwi 24/16`) where ours treats them as promoted. Workaround: asm-labelled
    alias with the signed/narrow type (id_sys.h `setTimeS`).
@@ -11223,3 +11234,134 @@ stmt.c/jump.c and confirmed with cc1plus probes:
   upstream. Copy order / u32-view / pointer-copy forms: 15-107. r11b Init, r213 StatusSetChain (24 store permutations + an
   `fr11` pin: 7-12), r21a FallRoofDie (the PRE insertion block is fixed by the camAt template copy's antloc in bb 1: lcm.c
   `delayout = delayin & ~antloc`), r120, r225, r10c not moved.
+
+### COMPILER-DIFF #1 / #8 research: argument-move order and FPR argument deaths are not a rank_for_schedule difference (whole-tree harness, 30 compiler variants, nothing installed; 2026-09-10)
+
+- Harness /tmp/rank18/h (a symlink: /tmp was a full 32 GB tmpfs, the tree lives in /var/tmp/rank18/h; `TMPDIR` for
+  ngccc's scratch dirs is set in h.py). Copy of the /tmp/cd6/h whole-tree harness on a fresh src/ snapshot:
+  `python3 h.py build CFG` = all 755 ProDG units with cc/CFG/cc1plus (+ cc/CFG/flags) in 11 s, per-function masked
+  compare against the split objects (base 18726/19929 identical); `h.py cmp base CFG` regressions/fixes; `mk.sh NAME
+  "-DDEFS"` builds a cc1plus from gcc/ = tools/sn-gcc with `-D` hooks (RK_* in haifa-sched.c, CA_* in calls.c, RM_* in
+  regmove.c; the Makefile needed `$(SCHED5)` added to CFLAGS); `mkmd.sh NAME md/X.md` builds with an alternative
+  rs6000.md (the insn-*.c files are make intermediates: `rm cc1plus; touch the md` or nothing regenerates);
+  `bp.sh CFG` builds the 83 plain-form test units from tree_plain/ (every `// COMPILER-DIFF: #1` alias reverted to the
+  real call: atari_init.h `AtariInit` calling `at->init(parts, flags, cnt, x..h)`, SetObaModel, de_Boor_Cox,
+  PathGetPosEm, cSatMgr::create, SoftShadowGXDraw, R213ChainAngSet, r226 playerPillarDownCk in the mangled parameter
+  order, emrock's #13 `asm volatile` removed); `t18.py CFG...` = the 31-function test table + whole-tree counts;
+  `fd.sh CFG UNIT SYM [all]` side-by-side disassembly; `dump.py CFG UNIT [--plain] -dS -fsched-verbose-7` (DUMP_ROOT
+  selects a tree); `prolog.py CFG` lists every function whose prologue parameter-copy set matches ours but in another
+  order (6 in the whole tree); `prolog2.py` classifies the copied parameters by use.
+- **Source facts (SN v1.79 vs stock 2.95.3, /tmp/equiv13/stock).** haifa-sched.c, regmove.c: byte-identical apart from
+  the SN header / PROTO removal. calls.c is stock 2.95.2 (only the `HAVE_call_pop` test differs); on rs6000 there is no
+  PUSH_ROUNDING, so PUSH_ARGS_REVERSED is undefined: `initialize_argument_information`, `precompute_arguments` and
+  `load_register_parameters` all walk the arguments first-to-last (LOAD_ARGS_REVERSED is not defined either), i.e. the
+  register moves are emitted in declaration order and that is the LUID order sched1 sees. `precompute_register_parameters`
+  copies a value into a pseudo only if it is not a REG, `rtx_cost (value, SET) > 2` and `preserve_subexpressions_p ()`
+  (inside a loop; SMALL_REGISTER_CLASSES is 0 on rs6000): CONST_INT and CONST_DOUBLE cost 0 (`CONST_COSTS`), so
+  constants are never precomputed; an FP constant argument is `fN = mem(LC)` straight from `emit_move_insn`/
+  `force_const_mem`, and a second use of the same constant at the call is folded by cse into the hard-reg copy
+  `fM = fN` (class {mem, fN}: the hard reg costs 2, the MEM more). rs6000.h/rs6000.c: `ADJUST_COST` = rs6000_adjust_cost
+  (anti/output links cost 0 -> clamped to 1 by insn_cost; a data link into a `jmpreg` insn 4) and `ADJUST_PRIORITY` =
+  rs6000_adjust_priority whose body is `#if 0` (a no-op) exist in stock 2.95.3 too; no MD_SCHED_INIT/REORDER/
+  VARIABLE_ISSUE hooks, ISSUE_RATE = 2 for ppc750. rs6000.md carries SN-Phil's Gekko timings (store/fpstore
+  ready-delay 2 instead of 1, compare 1 instead of 3, fpcompare 1 instead of 5, mtjmpr 3 instead of 4, fp 1 instead
+  of 3, dmul 2 instead of 4, a new sdiv 17/17); reverting any one of them regresses 3011-3994 matched functions and all
+  of them 7590, fixing none -- the original was built with v1.79's timings.
+- **rank_for_schedule (haifa-sched.c 4158) and INSN_REG_WEIGHT as they are.** Order of tests: INSN_PRIORITY (longest
+  latency path to the block end; every insn of a block ending in a branch has an anti link to the branch, so the
+  minimum is 2 there; the priority of an arg move is 1 + priority(call), of an `lfs` 2 + ...); then, in sched1 only,
+  INSN_REG_WEIGHT (smaller first) = +1 per SET or CLOBBER in the pattern (a `(set (mem) ..)` store counts +1 like a
+  register set) minus 1 per REG_DEAD or REG_UNUSED note whose operand is a REG (hard registers included, so `mr r31,r4`
+  and `fmr f29,f1` parameter copies are 0, `li r4,K` is +1, a store of a dying pseudo 0, a compare setting a CC pseudo
+  +1 unless an operand dies); then interblock preferences; then the class relative to the last scheduled insn (data
+  dependent with cost > 1 = worst; on rs6000 only loads and the few multi-cycle ops give that, every anti/output link
+  is cost 1 = class 3); then the number of dependents; then INSN_LUID. `adjust_priority` (called only for insns released
+  by schedule_insn, never for the initially ready ones): its death part is dead code (REG_DEAD notes were removed), the
+  `birthing_insn_p` part is live (a single-set pseudo live at the block end gets INSN_PRIORITY := max_priority when it
+  becomes ready); sched2 has no weights at all (find_pre_sched_live runs only before reload) and inherits sched1's
+  order as its LUIDs. `insn_cost` for a `fmr` is 1 (type fp, SN timing), for `li`/`mr`/`addi` 1, `lfs`/`lwz` 2.
+- **Whole-tree table** (regressions = functions identical with the installed compiler that stop being identical /
+  newly identical; lists in /tmp/rank18/h/logs/<cfg>.cmp; the test-set columns in `python3 t18.py <cfgs>`):
+    RK_NOWEIGHT   weight test skipped                             11138 / 2 (cam_qfps init 12 -> 0, t_snd_vol editDataDraw)
+    RK_NODEATH    no -1 for deaths (weight = number of sets)      11187 / 2 (same two)
+    RK_DEATH_GPR_ONLY  FP-mode deaths not counted                  3891 / 0
+    RK_DEATH_FPR_ONLY  only FP-mode deaths counted                10888 / 1
+    RK_NOHARDDEATH     hard-register deaths not counted             897 / 0
+    RK_NOFPHARDDEATH   FP hard-register deaths not counted          344 / 2 (emwep setThrow, emshield setFall)
+    RK_NREFS2  hard-reg death in a copy into a single-use pseudo
+               not counted (REG_N_REFS <= 2)                        288 / 2 (same two; r226 idx 2 -> 4)
+    RK_PARMCOPY  hard-reg death in any copy into a pseudo ignored   316 / 0
+    RK_NOUNUSED  REG_UNUSED not counted                               4 / 0
+    RK_STORE_NOSET  a MEM store does not count +1                  2800 / 0
+    RK_DEPS_BEFORE_WEIGHT  dependents compared before weight       2535 / 0
+    RK_WEIGHT_AFTER_CLASS  weight compared after the class test      12 / 0
+    RK_NOCLASS   last-scheduled-insn class test skipped              13 / 0
+    RK_NODEPCOUNT  dependents test skipped                         9852 / 0
+    RK_REVLUID   LUID tie reversed                                13558 / 0
+    RK_NOBIRTH   birthing priority boost off                       3770 / 2 (merchant sellPrice, t_camera tcNextAdatPtr)
+    CA_FPFIRST   FP arg moves emitted before int arg moves          418 / 1 (379 of them not alias sites; fixes em2b
+                                                                  Die_Event, r402 6 -> 4, em38 7 -> 4 in the plain set)
+    CA_INTFIRST  int arg moves before FP arg moves                  159 / 0
+    CA_LOADREV   moves emitted last-to-first                      11835 / 1 (pl0e pl0ePathMove plain 2 -> 0)
+    CA_PUSHREV   PUSH_ARGS_REVERSED (evaluation last-to-first)    11876 / 1
+    CA_NOPRECOMP precompute copy never                              599 / 0
+    CA_PRECOMP_ALL  precompute copy of every non-REG value with
+                    rtx_cost > 2 (constants still cost 0)           126 / 0
+    RM_NOHARDDEST regmove never substitutes a hard destination      997 / 1 (r20d execRoundSwitch)
+    RM_NOHARD     regmove leaves every hard-reg copy alone          998 / 1
+    md fp 3 / fp 2 / store 1 / compare 3 / all stock timings   3312 / 3011 / 3912 / 3994 / 7590, 0 fixes
+  Flags on the test units (installed compiler): -fno-regmove alone changes nothing at -O2 (toplev runs regmove under
+  -fexpensive-optimizations too); -fno-gcse / -fno-strength-reduce / -fno-cse-skip-blocks only make the test functions
+  worse. No variant fixes more than 2 functions; the original's haifa, calls.c and regmove are ours.
+- **What the target's order says about the original's RTL at sched1 entry (all six prologue cases simulated by hand
+  against the .sched dumps).** The only prologues in the whole tree whose parameter-copy order differs from ours are
+  emshield `setFall(f32 gravity, Vec* spd)` (target `mr r31,r4; stw pMotion; fmr f29,f1`), emwep `setThrow(Vec*, f32
+  grav, EmAtkInfo*)` (`mr r26,r5; addi; fmr f30,f1`), r223 `reva_common_move(cObj*, int axis, int mode, f32 lo, f32 hi)`
+  (`mr r31,r3; fmr f28,f1; fmr f29,f2; mr r29,r5`), pl_wep `PlWepAutoTrack(cModel*, int mode, f32 rate)` (`fmr f31,f1`
+  before `mr r29,r4`), em_sub `EmYarareContactCk(cEm*, Vec*, Vec* out, f32 r)` (`fmr f1` before `mr r5`) and r226
+  `playerPillarDownCk(.., f32 dist, int idx)` (`fmr f31,f1; mr r28,r6`, the alias reorders the parameters). In every one
+  of them the stock ranking with the priorities of our dump reproduces the target exactly if ONE copy has weight +1,
+  i.e. the incoming hard register did not carry a REG_DEAD note on that copy in the original: f1 in setFall and
+  setThrow, r5 (`mode`) in r223, r4 (`mode`) in PlWepAutoTrack, r5 (`out`) in EmYarareContactCk, r6 (`idx`) in r226;
+  every other copy of those functions dies as in ours. The affected parameters are used once in a store (gravity,
+  grav, idx) or only in compares (mode, `if (out)`), but obj16 `SetObj16`'s `partsNo` (one `stw`) and obj20
+  `SetObaModel`'s `type`/`partsNo` copies die normally, so the property is not "single use" (RK_NREFS2 fixes
+  setFall/setThrow and breaks 288 others), not "FP hard reg" (RK_NOFPHARDDEATH breaks the `stfs f1` parameter stores and
+  SetObaModel's `fmr f31,f1`), not the parameter order (the six cases move FP copies both earlier and later than
+  declaration order), not regmove (stock, and our RTL keeps the copies). In ours a register parameter's copy always
+  carries the REG_DEAD of the incoming register (nothing in C++ can add a later use of `f1`; `register f32 asm("fr1")`
+  keep-alives are deleted, an asm input materialises a second copy), so the #8 prologue family has no source lever:
+  keep the r226-style reorder alias (declaration under the mangled name with the parameters in the target's copy
+  order) where a module needs it, and leave the two DOL cases (emshield setFall, emwep setThrow, 2 words each).
+- **Arg-move ties (#1).** In the plain forms the FP and int arg moves of one call have equal priority (1 + the call's)
+  and, whenever the FP move is a hard-reg copy (`fmr f2,f1`, cse's fold of a repeated constant) or its source pseudo
+  lives on, equal weight +1 and one dependent, so ours issues them in LUID = declaration order (em2b Die_Event's third
+  `SetObaModel(em, 0xD, &v, 1000.0f, 0, 1000.0f)`: sched2 t=3 `li r6,0; fmr f2,f1`, target `fmr f2,f1; li r6,0`; em10
+  R0_Init's init: ours `li r4; stb; li r5; stfs; li r6; stfs; fmr f2,f1; stfs; fmr f3,f1; fmr f6,f5`, target `fmr f2,f1;
+  stb; fmr f3,f1; stfs; fmr f6,f5; stfs; li r4; stfs; li r5; li r6`; emobj create: target issues `lfs f1,h` before the
+  `lwz attr`/`lwz flag` loads of equal priority 5 and LUID before it). Under the stock ranking the target needs either
+  LUID(FP move) < LUID(li) -- CA_FPFIRST, which fixes em2b/em38/r402 and breaks 379 sites where the target keeps
+  `mr r3,x; mr r4,y; fmr f1` / `mr r3,r30; lfs f4` in declaration order -- or weight 0 for the FP move = its source
+  pseudo dying there: `f1 = P; f2 = P` with P the 1000.0 pseudo dying at the third call reproduces all three Die_Event
+  calls (at calls 1/2 P lives on, +1, and the target indeed has `li r6,0; fmr f2,f1` there), and separate dying zero
+  pseudos for x/y/z plus `f6 = P250` as P250's death reproduce em10. That is the #13 world: constants held in pseudos
+  with a REG_EQUIV that reload rematerialises at each use (`lfs f1,LC(r30)` before every call, `fmr f2,f1` after the
+  pseudo was tied to f1); ours re-loads the constant per use at expansion (no pseudo, so no death) and a hand-made
+  pseudo (`f32 r = 1000.0f;`, with or without `asm("" : "+f"(r))`) is folded back to `f2 = f1` by regmove's
+  optimize_reg_copy_1 (`f1 = P` followed by P's death at `f2 = P`) -- and with RM_NOHARDDEST + CA_PRECOMP_ALL the fold is
+  gone but the tree loses 1123 matches. So #1 is the same compiler-build difference as #13 (how constant pseudos are
+  allocated/rematerialised), not a scheduler policy. Levers that DO work in ours (already used, restated): (a) the
+  floats-first asm alias = the LUID lever; (b) an inline wrapper whose float parameters are the arguments
+  (atari_init.h `AtariInit`) turns each constant into a pseudo that dies at its arg move (weight 0) -- it reproduces the
+  interleave only when the pseudo is not shared with another use (a constant shared with a store, e.g. the 0.0 of
+  `pos = 0`, keeps +1 and sorts with the `li`s); (c) an FP argument that is the last use of a variable (`fmr f1,P`, P
+  dying) always precedes the `li`s -- passing a value through a variable used once at the call is the source form of a
+  dying FP move.
+- **Other test-set residues, classified by the variants:** cam_qfps init (12) is fixed only by switching the weight rule
+  off (RK_NOWEIGHT/NODEATH); em2b Hook/UpperCut/DashAtk (15/21/6: `li r9,0; stw r9` vs ours `stw r0`) and em32 R0_Init
+  (2) do not move under any scheduler variant -- they are the zero-register choice (#13), not an ordering; r11d
+  execHide_main / r113 execHide (`li r3,6` after `li r4,20; li r6,0` in the target) and em2d JumpAtk (`cmpwi` before
+  `stw`) move under no variant either (JumpAtk even gets worse without weights), so they are not rank ties of our RTL;
+  t_option tp_pl_flag (5, the `addi r3,r30,ItemMgr@l` "no dying-source bonus") is untouched by every death variant
+  because its PRE'd high pseudo's death is real in ours -- again an RTL difference (the #12/#3 families), not the bonus.
+- Do not re-run the rank_for_schedule/weight/calls.c/md experiments; nothing in /tmp/rank18 is to be installed.
