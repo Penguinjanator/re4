@@ -4990,3 +4990,48 @@ target) stays unresolved and `make_rel` then fails with "undefined symbol".
   rewrites all 110 modules' files -- run it in a temporary copy of config/G4BE08 and install only the
   target module's files.
 
+
+### t_esp/t_esp.cpp (the effect editor, 170/212 functions byte-identical, .rodata/.data/.bss identical, not Matching; 2026-09)
+
+- Structure (src/t_esp/t_esp.cpp, `namespace t_esp_namespace`, include set = db_widget.h only: the .rodata header
+  group is atari/light/map_obj/widget with no event.h string, so db_port's API is redeclared locally): 50 window
+  structs `{DB_PRIM_ARRAY* pa; DB_WINDOW* win;}` built by IN-CLASS constructors that InitTool inlines
+  (`g_pXWin = new X_WINDOW(g_pPrimArray)`), each widget in its own block `{ DB_POINT pos(x, y); int sx = N;
+  pa->CreateButton(win, "..", &pos, cb, &sx, sy); }`. The `.rodata` proves the layout: every window's strings
+  sit between its callbacks' strings/pools (parse order of the class body), InitTool's own pool (0x140 floats,
+  first-use order = construction order) follows ClearSeqData's, so InitTool is one function calling the inlined
+  ctors in .text order: Menu, Exit, Edit x4, Model, Load, LoadEm/Room/Sst/Event, Save, SaveEm/Room/Sst/Event,
+  LoadCheck, SaveCheck, Option, DataSet, Time, ID, Path, Parent, Pos, Size, Speed, Color, Blend, Flag, Life, RT,
+  AnmRate, Rotate, Vec0-2, Sub, Work0-6, WorkSp0-3, BasePos (the SUB_WINDOW class is DEFINED after WorkSp3
+  although constructed before Work0; the LOAD_CHECK class right after LoadCheckClose_callback, before Save).
+- Block-scoped `DB_POINT pos(x, y)` (db_widget.h gained `DB_POINT()` / `DB_POINT(f32, f32)`; db_widget/db_window/
+  db_port unchanged) + `int sx` per widget are NOT slot-reused: the class-with-ctor temporaries get monotonic
+  frame slots (16 bytes per widget, 0x2048 bytes of locals + one spilled `&local` pseudo each in InitTool's
+  0x2930 frame). Same for inlined helpers holding such blocks. x stored via the frame, y via the ctor's `this`
+  pseudo (`stfs f, 0x20(r1); stfs f, 4(rX)`).
+- A public in-class inline ctor with a `static` local is never inlined (cp/decl.c "function with static variable
+  cannot be inline"): `ID_WINDOW::ID_WINDOW` owns `static const char* kindName[] = {"Esp ", "Ctrl"}` (.data
+  0x1524, defined right before the numeric that uses it, after the window's strings) and is therefore the only
+  out-of-line ctor, emitted as a deferred inline AFTER the module's cManager<cLight> block (sym_map row renamed
+  by hand to `__Q215t_esp_namespace9ID_WINDOWP13DB_PRIM_ARRAY`; sync cannot resolve linkonce copies).
+- .bss order: EspToolTrans's unused `static DB_KEYBORD key;` (object + `_.tmp_0` guard) comes FIRST (function-local
+  statics precede all file-scope ones), then the file-scope statics in declaration order (window pointers
+  154D60..), the few globals (g_pMenuExitButton, the six pos/rpos DB_NUMERIC2*, g_immFlg[256]) interleaved at
+  their declaration position. `.data` = 19 initialised scalars (`u8 = 0` stays in .data under -G 0), the name
+  tables at the top (model 243 entries with two duplicated names, parent/parts 256, blend 17, filter 71, render
+  9), then ID_WINDOW's table, ColorSimTypeUpdate's 16-entry table and three unreferenced statics
+  (0, 0, 0x40000). `db_modelNo` (db_port.cpp .data+0x754, module label renamed by hand) is the BasePos "WorKNo".
+- The record is the tool's own 0x12C struct (`TOOL_SEQ`: EspGenWork with array views x104[4]/x10C[4]/x110[4]/
+  x124[4]/x128[4] and `Vec` fields); MakeImmSeq/AddSeq are 115-field macro expansions (`IMM(f)`: compare, flag
+  byte, copy; `ADD(f)`: if/else store — the ternary form forwards the stored value and loses the clamp reload).
+  s8 fields compare with plain `lbz/cmpw` (no extsb), s16 with `lha`. AddSeq's colour adds skip `no++` on the
+  saturated paths (original bug, reproduced); the un-merged single `stb` of the 255 arm is COMPILER-DIFF #6.
+- Idioms: `ISet(int&, int)` for `win->bring = 1` / `win->active = 0` in callbacks (the target reloads the next
+  window pointer after the store); toggles are `if (v) v = 0; else v = 1;`; the dead `cmpwi 0; cmpwi 0xff` pair
+  in the Save*FileNo callbacks is an `if (t < 0) .. else if (t > 0xFF)` on an unused s16 copy of the model type;
+  `u32 i` edit-row loop (`(f32) i * 16.0f` is the unsigned double trick); PosStick scales 2000/-2000, 100/-100,
+  40/-40, 1000/-1000, 1/-1 (fneg), 10/-10 with the y sign flipped for parts 0xF8..0xFD (`(u8)(parts + 8) <= 5`).
+- Open: InitTool (-0x350: the 50 inlined ctors are written, register/`&local` spill order and `pa`/`p` choice per
+  window not verified), ID_WINDOW ctor (254 words), Load/SaveEmTypeUpdate (group-skip loop shape), the
+  0x12C struct-copy loops (DeleteSeq/InsertSeq/Copy/Paste/Make*SeqData: giv/base register choice), EspToolMain/
+  ToolEspMain/DrawPosCursor (+-4..20), EditActiveChange (+4), the `bring`/`active` callbacks' zero register.

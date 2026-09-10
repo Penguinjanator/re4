@@ -24,6 +24,11 @@ struct DB_POINT {
     f32 x;
     f32 y;
 
+    DB_POINT() {}
+    DB_POINT(f32 x_, f32 y_) {
+        x = x_;
+        y = y_;
+    }
 };
 
 struct DB_RECT {
