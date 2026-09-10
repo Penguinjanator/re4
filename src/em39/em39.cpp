@@ -827,7 +827,6 @@ static void em39_R0_Init(cEm39* em)
     em->lockOfs.x = 0.0f;
     em->lockOfs.y = 0.0f;
     em->lockOfs.z = 0.0f;
-    zero = 0;
     EspDataLoad((u32) ARC(4), 0x2F, 0);
     w->x59C = 0.0f;
     w->pDoor = 0;
@@ -841,6 +840,7 @@ static void em39_R0_Init(cEm39* em)
     w->dmgTotal = 0;
     w->x8A0 = 0;
     w->x69C = 0;
+    zero = 0;
     w->x8C4 = zero;
     w->x8A8 = 0x1D;
     w->x684 = 300;
@@ -6908,7 +6908,7 @@ int em39AppearCk(cEm39* em)
     Em39Work* w = EM39_WK(em);
     Vec plPos;
     Vec pos;
-    int retry = 1;
+    int retry;
     u32 i;
 
     if (pG->pRoomEmi == 0) {
@@ -6922,10 +6922,10 @@ int em39AppearCk(cEm39* em)
     }
     plPos = pPL->pos;
     plPos.y += 1500.0f;
+    retry = 1;
     GetPlPos(&pos, 0, 20.0f);
     for (i = 0; i < EM39_EMI->n; i++) {
         EmiEntry* e = &EM39_EMI->entry[i];
-        int st;
 
         if (e->type != 0xE) {
             continue;
@@ -6934,13 +6934,15 @@ int em39AppearCk(cEm39* em)
             continue;
         }
         if (w->x8C0 != -1 && retry) {
-            if ((*(u32*) &EM39_EMI->entry[w->x8C0] & 0xFFFFFF) == (*(u32*) e & 0xFFFFFF)) {
+            u32 ofs = w->x8C0 * 0x40 + 8;
+
+            if ((*(u32*) ((u32) EM39_EMI + ofs) & 0x00FF00FF) == (*(u32*) e & 0x00FF00FF)) {
                 continue;
             }
         }
         switch (e->sub) {
-        case 0:
-            st = e->state;
+        case 0: {
+            int st = e->state;
             if (st != 0) {
                 continue;
             }
@@ -6949,12 +6951,18 @@ int em39AppearCk(cEm39* em)
             }
             w->x698 = st;
             EM39_APPEAR_POS(em, w, e);
-            em->rot.y = GetXZAngle(&em->pos, &pPL->pos);
+            em->rot.y = GetXZAngle(&em->pos, &pPLS->pos);
             w->x680 = st;
-            EmRoutineSet(em, 1, 5, st, 1);
+            em->xFC = 1;
+            em->xFD = 5;
+            em->xFE = st;
+            em->xFF = 1;
             w->x8C0 = i;
             w->dmgTotal = st;
-            break;
+            w->flags |= 0x800;
+            w->flags &= ~0x2000;
+            return 1;
+        }
         case 1: {
             u32 j;
             int found;
@@ -6970,9 +6978,9 @@ int em39AppearCk(cEm39* em)
             }
             found = 0;
             for (j = i + 1; j < EM39_EMI->n; j++) {
-                EmiEntry* f = &EM39_EMI->entry[j];
+                u8* f = (u8*) &EM39_EMI->entry[j];
 
-                if (f->type == 0xE && f->sub == e->sub && f->state == e->state && f->pad_3 == e->pad_3) {
+                if (f[0] == 0xE && f[1] == e->sub && f[2] == e->state && f[3] == e->pad_3) {
                     found = 1;
                     break;
                 }
@@ -6987,13 +6995,18 @@ int em39AppearCk(cEm39* em)
             em->rot.y = e->rotY + PI;
             em->rot.y = LIMIT_ANGLE(em->rot.y);
             w->x680 = 0;
-            EmRoutineSet(em, 1, 7, 0, 1);
+            em->xFC = 1;
+            em->xFD = 7;
+            em->xFE = 0;
+            em->xFF = 1;
             w->dmgTotal = 0;
             w->x8C0 = i;
-            break;
+            w->flags |= 0x800;
+            w->flags &= ~0x2000;
+            return 1;
         }
-        case 2:
-            st = e->state;
+        case 2: {
+            int st = e->state;
             if (st != 0) {
                 continue;
             }
@@ -7012,13 +7025,13 @@ int em39AppearCk(cEm39* em)
             EmRoutineSet(em, 1, 9, st, st);
             w->dmgTotal = st;
             w->x8C0 = i;
-            break;
+            w->flags |= 0x800;
+            w->flags &= ~0x2000;
+            return 1;
+        }
         default:
             continue;
         }
-        w->flags |= 0x800;
-        w->flags &= ~0x4000;
-        return 1;
     }
     return 0;
 }
@@ -7065,7 +7078,6 @@ int em39ExitCk(cEm39* em)
 int em39AreaMoveCk(cEm39* em)
 {
     Em39Work* w = EM39_WK(em);
-    EmiEntry* g;
     u32 i;
     u32 j;
 
@@ -7075,25 +7087,27 @@ int em39AreaMoveCk(cEm39* em)
     if (w->pGotoPoint == 0) {
         return 0;
     }
-    g = w->pGotoPoint;
     for (i = 0; i < EM39_EMI->n; i++) {
-        EmiEntry* e = &EM39_EMI->entry[i];
+        EmiEntry* e = (EmiEntry*) ((u32) EM39_EMI + (i * 0x40 + 8));
 
         if (e->type != 0xE) {
             continue;
         }
-        if (e->sub != g->sub) {
+        if (e->sub != w->pGotoPoint->sub) {
             continue;
         }
         if (e->state != 3) {
             continue;
         }
-        if (e->pad_3 != g->pad_3) {
+        if (e->pad_3 != w->pGotoPoint->pad_3) {
             continue;
         }
         w->gotoOn = 1;
         w->gotoPos = e->pos;
-        EmRoutineSet(em, 1, 0xA, 0, 0);
+        em->xFC = 1;
+        em->xFD = 0xA;
+        em->xFE = 0;
+        em->xFF = 0;
         for (j = 0; j < EM39_EMI->n; j++) {
             EmiEntry* f = &EM39_EMI->entry[j];
 
@@ -7522,12 +7536,17 @@ int em39DoorOpenCk(cEm39* em)
             continue;
         }
         st = d->ckOpen();
-        if (st && st <= 3) {
-            continue;
+        if (st) {
+            if ((u32) st <= 3) {
+                continue;
+            }
         }
         if (em->type != 2 && d->type == 0) {
             w->pDoor = d;
-            EmRoutineSet(em, 1, 0x19, 0, 0);
+            em->xFC = 1;
+            em->xFD = 0x19;
+            em->xFE = 0;
+            em->xFF = 0;
             return 1;
         }
         d->setOpen(&em->pos, 0, 0, 0);
@@ -7553,6 +7572,10 @@ void em39ArmControl(cEm39* em)
     switch (w->x8BB) {
     case 0:
         switch (w->x8BC) {
+        case 0:
+        default:
+            mot = ARC(0xFF);
+            break;
         case 1:
             mot = ARC(0x103);
             se = 1;
@@ -7561,27 +7584,22 @@ void em39ArmControl(cEm39* em)
             mot = ARC(0x105);
             se = 1;
             break;
-        default:
-            mot = ARC(0xFF);
-            break;
         }
         MotionSetCore(em, EM39_ARM_MOT(w), mot, 0, 0, 4, 0);
         w->x8BC = 0;
         w->x8BB++;
-    case 1:
-    case 5:
-    case 9:
-        MotionMoveCore(em, EM39_ARM_MOT(w), 0);
-        if (MotionSequenceCtrl(EM39_ARM_MOT(w))) {
-            w->x8BB++;
-        }
-        break;
+        goto STEP;
     case 2:
         MotionSetCore(em, EM39_ARM_MOT(w), ARC(0xFF), 0, 0, 4, 0);
         w->x8BB++;
         goto MOVE;
     case 4:
         switch (w->x8BC) {
+        case 0:
+        default:
+            mot = ARC(0x102);
+            se = 1;
+            break;
         case 1:
             mot = ARC(0x100);
             break;
@@ -7589,25 +7607,22 @@ void em39ArmControl(cEm39* em)
             mot = ARC(0x107);
             se = 1;
             break;
-        default:
-            mot = ARC(0x102);
-            se = 1;
-            break;
         }
         MotionSetCore(em, EM39_ARM_MOT(w), mot, 0, 0, 4, 0);
         w->x8BC = 1;
         w->x8BB++;
-        MotionMoveCore(em, EM39_ARM_MOT(w), 0);
-        if (MotionSequenceCtrl(EM39_ARM_MOT(w))) {
-            w->x8BB++;
-        }
-        break;
+        goto STEP;
     case 6:
         MotionSetCore(em, EM39_ARM_MOT(w), ARC(0x100), 0, 0, 4, 0);
         w->x8BB++;
         goto MOVE;
     case 8:
         switch (w->x8BC) {
+        case 0:
+        default:
+            mot = ARC(0x104);
+            se = 1;
+            break;
         case 1:
             mot = ARC(0x106);
             se = 1;
@@ -7615,14 +7630,14 @@ void em39ArmControl(cEm39* em)
         case 2:
             mot = ARC(0x101);
             break;
-        default:
-            mot = ARC(0x104);
-            se = 1;
-            break;
         }
         MotionSetCore(em, EM39_ARM_MOT(w), mot, 0, 0, 4, 0);
         w->x8BC = 2;
         w->x8BB++;
+    case 1:
+    case 5:
+    case 9:
+    STEP:
         MotionMoveCore(em, EM39_ARM_MOT(w), 0);
         if (MotionSequenceCtrl(EM39_ARM_MOT(w))) {
             w->x8BB++;
@@ -7695,7 +7710,7 @@ int em39FanceJumpCk2(cEm39* em)
     Vec c;
     Vec d;
     Vec e;
-    int side = 0;
+    int side;
     f32 ang;
 
     if ((u32) w->stuckCnt % 10 != 6) {
@@ -7714,6 +7729,7 @@ int em39FanceJumpCk2(cEm39* em)
     }
     ang = atan2f(-nrm.x, -nrm.z);
     w->jumpAng = ang;
+    side = 0;
     w->jumpPos = em->pos;
     PSMTXRotRad(m, 'y', ang);
     TransMatrix(m, &em->pos);
@@ -7800,6 +7816,7 @@ int em39AtkRtnCk(cEm39* em)
     f32 ang;
     int hit;
     int x684;
+    int noFlag;
 
     if ((pPL->flags_324 & 0xFFFF0000) == 0) {
         dead = 0;
@@ -7813,13 +7830,15 @@ int em39AtkRtnCk(cEm39* em)
     if (em->hp <= 0) {
         return 0;
     }
-    if ((w->flags & 1) ^ 1) {
+    noFlag = !(w->flags & 1);
+    if (noFlag) {
         return 0;
     }
     if (w->x680) {
         return 0;
     }
-    dy = fabsf(em->pos.y - pPL->pos.y);
+    dy = em->pos.y - pPL->pos.y;
+    dy = fabsf(dy);
     ang = fabsf(Muku(&pPL->pos, &em->pos, pPL->rot.y, PI));
     if (em->type == 2) {
         if (pG->x4F88 > 1 && w->x688 == 0 && (w->flags & 1) && em->plDist2 > 36000000.0f && em->plDist2 < 100000000.0f &&
@@ -7828,9 +7847,8 @@ int em39AtkRtnCk(cEm39* em)
             b = em->pos;
             a.y += 500.0f;
             b.y += 500.0f;
-            hit = SatMgr.hitCheck(&a, &b, 0, 0, 0, 0);
-            if (hit == 0) {
-                EmRoutineSet(em, 1, 0x12, hit, hit);
+            if (!SatMgr.hitCheck(&a, &b, 0, 0, 0, 0)) {
+                EmRoutineSet(em, 1, 0x12, 0, 0);
                 return 1;
             }
         }
@@ -7844,7 +7862,7 @@ int em39AtkRtnCk(cEm39* em)
             return 1;
         }
         if (em->plDist2 < 4840000.0f && w->routeAngAbs < 1.5707964f && dy < 1500.0f) {
-            int r = (u8) (Rnd() % 100);
+            u32 r = (u8) (Rnd() % 100);
 
             if (em->plDist2 > 4000000.0f && r > 30) {
                 if ((u8) (Rnd() % 10) > 4) {
@@ -7865,7 +7883,7 @@ int em39AtkRtnCk(cEm39* em)
     }
     if (em->plDist2 < 2890000.0f && w->routeAngAbs < 1.5707964f && (w->flags & 1)) {
         a = em->pos;
-        c = pPL->pos;
+        c = pPLS->pos;
         a.y += 500.0f;
         c.y += 500.0f;
         hit = SatMgr.hitCheck(&a, &c, 0, 0, 0, 0);

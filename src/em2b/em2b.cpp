@@ -476,7 +476,6 @@ void em2bDmCk(cEm2b* em)
     EmHitInfo* part;
     int near;
     int dmg;
-    s16 hp;
 
     if (em->dmHit == 0) {
         return;
@@ -520,6 +519,7 @@ void em2bDmCk(cEm2b* em)
     case 0x15:
     case 0x26:
     case 0x28:
+    case 0x2B:
         if (part->partsNo == 0x3F) {
             EmDmBloodSet2(em, w->espKind2, 0x25, 0, 0, 0);
         } else {
@@ -553,6 +553,25 @@ void em2bDmCk(cEm2b* em)
             EmDmBloodSet2(em, w->espKind2, 0, 1, 0, 0);
         }
         break;
+    case 5:
+    case 6:
+    case 0xF:
+    case 0x12:
+    case 0x13:
+    case 0x29:
+    case 0x2C:
+    case 0x2D:
+    default:
+        if (part->partsNo == 0x3F) {
+            EmDmBloodSet2(em, w->espKind2, 0x26, 0, 0, 0);
+        } else {
+            EmDmBloodSet2(em, w->espKind2, 2, 0, 0, 0);
+            EmDmBloodSet2(em, w->espKind2, 0, 1, 0, 0);
+        }
+        break;
+    case 0x17:
+    case 0x2A:
+        break;
     case 0xD:
         if (part->partsNo == 0x3F) {
             EmDmBloodSet2(em, w->espKind2, 0x26, 0, 0, 0);
@@ -562,17 +581,6 @@ void em2bDmCk(cEm2b* em)
         }
         em->hp = 0;
         break;
-    case 0x17:
-    case 0x2A:
-        break;
-    default:
-        if (part->partsNo == 0x3F) {
-            EmDmBloodSet2(em, w->espKind2, 0x26, 0, 0, 0);
-        } else {
-            EmDmBloodSet2(em, w->espKind2, 2, 0, 0, 0);
-            EmDmBloodSet2(em, w->espKind2, 0, 1, 0, 0);
-        }
-        break;
     }
     if (part->partsNo == 0x3F) {
         SndCall(8, 0x2F, &em->pos, em->id, 0, em);
@@ -580,7 +588,6 @@ void em2bDmCk(cEm2b* em)
     } else {
         SndCall(8, 8, &em->pos, em->id, 0, em);
     }
-    hp = em->hp;
     if (part->partsNo == 0x3F) {
         if (em->dmWep != 0x17 && em->dmWep != 0x2A) {
             em->hp -= dmg * 2;
@@ -595,71 +602,91 @@ void em2bDmCk(cEm2b* em)
                 return;
             }
         }
-    } else if (hp > 0) {
-        if (em->flags_3C8 & 8) {
-            return;
-        }
-        if (w->flags & 8) {
-            return;
-        }
-        if (!(w->flags & 0x400) && (em->dmWep == 0x17 || em->dmWep == 0x2A)) {
-            EmRoutineSet(em, 2, 5, 0, 0);
-            return;
-        }
-        w->dmgTotal += dmg;
-        if (w->dmgTotal <= 999) {
-            switch (em->dmWep) {
-            case 0xD:
-            case 0x12:
-            case 0x13:
-            case 0x2D:
-                EmRoutineSet(em, 2, 6, 0, 0);
-                return;
-            }
-            return;
-        }
-        w->dmgTotal = 0;
-        switch (em->dmWep) {
-        case 0:
-        case 1:
-        case 2:
-        case 3:
-        case 4:
-        case 7:
-        case 8:
-        case 9:
-        case 0xA:
-        case 0xB:
-        case 0xC:
-        case 0x10:
-        case 0x11:
-        case 0x1B:
-        case 0x1D:
-        case 0x21:
-        case 0x26:
-        case 0x27:
-        case 0x28:
-        case 0x2B:
-            if (w->pTree) {
-                EmRoutineSet(em, 2, 1, 0, 0);
-            } else {
-                EmRoutineSet(em, 2, 0, 0, 0);
-            }
-            return;
-        default:
-            if (w->pTree == 0) {
-                EmRoutineSet(em, 2, 0, 0, 0);
-            } else {
-                EmRoutineSet(em, 2, 1, 0, 0);
-            }
-            return;
-        }
     }
-    EmSetDie(em);
-    EmReserveDropItem(em);
-    EmSetDieCntE(em);
-    em->clearStatus(5);
-    EmRoutineSet(em, 3, 0, 0, 0);
+    if (em->hp <= 0) {
+        EmSetDie(em);
+        EmReserveDropItem(em);
+        EmSetDieCntE(em);
+        em->clearStatus(5);
+        EmRoutineSet(em, 3, 0, 0, 0);
+        return;
+    }
+    if (em->flags_3C8 & 8) {
+        return;
+    }
+    if (w->flags & 8) {
+        return;
+    }
+    if (!(w->flags & 0x400) && (em->dmWep == 0x17 || em->dmWep == 0x2A)) {
+        EmRoutineSet(em, 2, 5, 0, 0);
+        return;
+    }
+    w->dmgTotal += dmg;
+    if (w->dmgTotal <= 999) {
+        switch (em->dmWep) {
+        case 0xD:
+        case 0x12:
+        case 0x13:
+        case 0x2D:
+            EmRoutineSet(em, 2, 6, 0, 0);
+            return;
+        }
+        return;
+    }
+    w->dmgTotal = 0;
+    switch (em->dmWep) {
+    case 0:
+    case 1:
+    case 2:
+    case 3:
+    case 4:
+    case 7:
+    case 8:
+    case 0x10:
+    case 0x11:
+    case 0x14:
+    case 0x15:
+    case 0x1B:
+    case 0x1D:
+    case 0x21:
+    case 0x26:
+    case 0x27:
+    case 0x28:
+    case 0x2B:
+        if (w->pTree) {
+            EmRoutineSet(em, 2, 1, 0, 0);
+        } else {
+            EmRoutineSet(em, 2, 0, 0, 0);
+        }
+        return;
+    case 9:
+    case 0xA:
+    case 0xB:
+    case 0xC:
+        if (w->pTree) {
+            EmRoutineSet(em, 2, 1, 0, 0);
+        } else {
+            EmRoutineSet(em, 2, 0, 0, 0);
+        }
+        return;
+    case 5:
+    case 6:
+    case 0xD:
+    case 0xE:
+    case 0xF:
+    case 0x12:
+    case 0x13:
+    case 0x29:
+    case 0x2C:
+    case 0x2D:
+    default:
+        if (w->pTree) {
+            EmRoutineSet(em, 2, 1, 0, 0);
+        } else {
+            EmRoutineSet(em, 2, 0, 0, 0);
+        }
+        return;
+    }
 }
 
 void cEm2b::move()
@@ -808,8 +835,8 @@ void cEm2b::move()
 static void em2b_R0_Init(cEm2b* em)
 {
     Em2bWork* w = EM2B_WK(em);
-    cAtariInfo* at = &em->atari;
-    MotionWork* mot = &em->mot;
+    cAtariInfo* at;
+    MotionWork* mot;
     int zero;
     Vec v;
 
@@ -861,9 +888,10 @@ static void em2b_R0_Init(cEm2b* em)
         break;
     }
     w->pCtrl12 = GetCtrlCtrl12();
+    at = &em->atari;
     em2bTexrenderInit(em);
-    em->motFlip = em2b_xflip_tbl;
     em->pFootShadowTbl = &Em2b_fs_tbl;
+    em->motFlip = em2b_xflip_tbl;
     ((cParts*) em->getPartsPtr(0x12))->motParts.flags |= 0x1000;
     ((cParts*) em->getPartsPtr(0x16))->motParts.flags |= 0x1000;
     em2bClothSet(em);
@@ -912,10 +940,11 @@ static void em2b_R0_Init(cEm2b* em)
     w->x640 = zero;
     w->pYagura = 0;
     w->timer62C = zero;
-    if (pG->room_id == 0x224) {
+    if (pGS->room_id == 0x224) {
         w->espKind2 = 1;
     }
     w->pParasite = 0;
+    mot = &em->mot;
     {
         int i;
         for (i = 0; i < 10; i++) {
@@ -4354,12 +4383,10 @@ void em2bQuakeSet(Vec* pos)
 void em2bShortRopeSet(cEm2b* em)
 {
     Em2bWork* w = EM2B_WK(em);
-    PenCloth* c = &w->rope[1];
     cObjChain* chain;
     Vec pos;
-    Vec rot;
-    Vec a;
     Vec b;
+    Vec rot;
 
     pos.x = 0.0f;
     pos.y = 0.0f;
@@ -4368,75 +4395,74 @@ void em2bShortRopeSet(cEm2b* em)
     rot.y = 0.0f;
     rot.z = 0.0f;
     chain = SetChain(ARC(0x11), ARC(0x12), &pos, &rot);
-    c->num = 5;
-    c->pParts = em2b_rope_parts;
-    c->x08 = 0;
-    c->x0C = 0;
-    c->x10 = 0;
-    c->x14 = 0;
-    c->pUp = em2b_rope_up;
-    c->pDown = em2b_rope_down;
-    c->x20 = 0;
-    c->x24 = 0;
-    c->pMax = 0;
-    c->x2C = 0;
-    c->x30 = 0;
-    c->x34 = em2b_rope_at;
-    c->x38 = 5;
-    c->x3C = 20.0f;
-    c->x40 = 0.800000012f;
-    c->x44 = 100;
-    c->x48 = 0.0f;
-    c->x4C = 0.100000001f;
-    c->x50 = 0.0f;
-    c->x54 = 0;
-    c->x58 = em;
-    c->flags = 0;
+    w->rope[1].num = 5;
+    w->rope[1].pParts = em2b_rope_parts;
+    w->rope[1].x08 = 0;
+    w->rope[1].x0C = 0;
+    w->rope[1].x10 = 0;
+    w->rope[1].x14 = 0;
+    w->rope[1].pUp = em2b_rope_up;
+    w->rope[1].pDown = em2b_rope_down;
+    w->rope[1].pMax = 0;
+    w->rope[1].x2C = 0;
+    w->rope[1].x30 = 0;
+    w->rope[1].x34 = em2b_rope_at;
+    w->rope[1].x20 = 0;
+    w->rope[1].x24 = 0;
+    w->rope[1].x38 = 5;
+    w->rope[1].x58 = em;
+    w->rope[1].x3C = 20.0f;
+    w->rope[1].x40 = 0.800000012f;
+    w->rope[1].x44 = 100;
+    w->rope[1].x48 = 0.0f;
+    w->rope[1].x50 = 0.0f;
+    w->rope[1].x4C = 0.100000001f;
     w->pObj4C4 = (cObj*) chain;
-    chain->setChain(c);
-    a.x = -290.0f;
-    a.y = -162.949997f;
-    a.z = 655.0f;
+    w->rope[1].flags = 0;
+    w->rope[1].x54 = 0;
+    chain->setChain(&w->rope[1]);
+    pos.x = -290.0f;
+    pos.y = -162.949997f;
+    pos.z = 655.0f;
     b.x = -290.0f;
     b.y = -412.320007f;
     b.z = 39.1500015f;
-    ((cObjChain*) w->pObj4C4)->setParent2(em, 3, &a, 4, &b, 0);
+    ((cObjChain*) w->pObj4C4)->setParent2(em, 3, &pos, 4, &b, 0);
 }
 
 // Type 3: the three chains on the arms.
 void em2bChainSet(cEm2b* em)
 {
     Em2bWork* w = EM2B_WK(em);
-    PenCloth* c;
+    PenCloth* c = &w->rope[1];
     cObjChain* chain;
     Vec pos;
     Vec rot;
 
-    c = &w->rope[0];
-    c->num = 8;
-    c->pParts = em2b_chain_parts;
-    c->x08 = 0;
-    c->x0C = 0;
-    c->x10 = 0;
-    c->x14 = 0;
-    c->pUp = em2b_chain_up;
-    c->pDown = em2b_chain_down;
-    c->x20 = 0;
-    c->x24 = 0;
-    c->pMax = 0;
-    c->x2C = 0;
-    c->x30 = 0;
-    c->x34 = em2b_chain_at;
-    c->x38 = 5;
-    c->x3C = 30.0f;
-    c->x40 = 0.800000012f;
-    c->x44 = 0;
-    c->x48 = 0.0f;
-    c->x4C = 1.0f;
-    c->x50 = 0.0f;
-    c->x54 = 0;
-    c->x58 = em;
-    c->flags = 0;
+    w->rope[0].num = 8;
+    w->rope[0].pParts = em2b_chain_parts;
+    w->rope[0].x08 = 0;
+    w->rope[0].x0C = 0;
+    w->rope[0].x10 = 0;
+    w->rope[0].x14 = 0;
+    w->rope[0].pUp = em2b_chain_up;
+    w->rope[0].pDown = em2b_chain_down;
+    w->rope[0].pMax = 0;
+    w->rope[0].x2C = 0;
+    w->rope[0].x30 = 0;
+    w->rope[0].x34 = em2b_chain_at;
+    w->rope[0].x20 = 0;
+    w->rope[0].x24 = 0;
+    w->rope[0].x38 = 5;
+    w->rope[0].x58 = em;
+    w->rope[0].x3C = 30.0f;
+    w->rope[0].x40 = 0.800000012f;
+    w->rope[0].x44 = 0;
+    w->rope[0].x48 = 0.0f;
+    w->rope[0].x50 = 0.0f;
+    w->rope[0].x4C = 1.0f;
+    w->rope[0].flags = 0;
+    w->rope[0].x54 = 0;
     pos.x = 0.0f;
     pos.y = 0.0f;
     pos.z = 0.0f;
@@ -4445,37 +4471,36 @@ void em2bChainSet(cEm2b* em)
     rot.z = 0.0f;
     chain = SetChain(ARC(0x13), ARC(0x14), &pos, &rot);
     w->pObj4C4 = (cObj*) chain;
-    chain->setChain(c);
+    chain->setChain(&w->rope[0]);
     pos.x = 0.0f;
     pos.y = 0.0f;
     pos.z = 0.0f;
     ((cObjChain*) w->pObj4C4)->setParent(em, 0x3B, &pos, 0);
 
-    c = &w->rope[1];
-    c->num = 8;
-    c->pParts = em2b_chain_parts;
-    c->x08 = 0;
-    c->x0C = 0;
-    c->x10 = 0;
-    c->x14 = 0;
-    c->pUp = em2b_chain_up;
-    c->pDown = em2b_chain_down;
-    c->x20 = 0;
-    c->x24 = 0;
-    c->pMax = 0;
-    c->x2C = 0;
-    c->x30 = 0;
-    c->x34 = 0;
-    c->x38 = 0;
-    c->x3C = 30.0f;
-    c->x40 = 0.800000012f;
-    c->x44 = 0;
-    c->x48 = 0.0f;
-    c->x4C = 1.0f;
-    c->x50 = 0.0f;
-    c->x54 = 0;
-    c->x58 = em;
-    c->flags = 0;
+    w->rope[1].num = 8;
+    w->rope[1].pParts = em2b_chain_parts;
+    w->rope[1].x08 = 0;
+    w->rope[1].x0C = 0;
+    w->rope[1].x10 = 0;
+    w->rope[1].x14 = 0;
+    w->rope[1].pUp = em2b_chain_up;
+    w->rope[1].pDown = em2b_chain_down;
+    w->rope[1].pMax = 0;
+    w->rope[1].x2C = 0;
+    w->rope[1].x30 = 0;
+    w->rope[1].x34 = 0;
+    w->rope[1].x20 = 0;
+    w->rope[1].x24 = 0;
+    w->rope[1].x38 = 0;
+    w->rope[1].x58 = em;
+    w->rope[1].x3C = 30.0f;
+    w->rope[1].x40 = 0.800000012f;
+    w->rope[1].x44 = 0;
+    w->rope[1].x48 = 0.0f;
+    w->rope[1].x50 = 0.0f;
+    w->rope[1].x4C = 1.0f;
+    w->rope[1].flags = 0;
+    w->rope[1].x54 = 0;
     pos.x = 0.0f;
     pos.y = 0.0f;
     pos.z = 0.0f;
@@ -4490,31 +4515,30 @@ void em2bChainSet(cEm2b* em)
     pos.z = 0.0f;
     ((cObjChain*) w->pObj4C8)->setParent(em, 0x40, &pos, 0);
 
-    c = &w->rope[1];
-    c->num = 8;
-    c->pParts = em2b_chain_parts;
-    c->x08 = 0;
-    c->x0C = 0;
-    c->x10 = 0;
-    c->x14 = 0;
-    c->pUp = em2b_chain_up;
-    c->pDown = em2b_chain_down;
-    c->x20 = 0;
-    c->x24 = 0;
-    c->pMax = 0;
-    c->x2C = 0;
-    c->x30 = 0;
-    c->x34 = em2b_chain_at2;
-    c->x38 = 5;
-    c->x3C = 30.0f;
-    c->x40 = 0.800000012f;
-    c->x44 = 0;
-    c->x48 = 0.0f;
-    c->x4C = 1.0f;
-    c->x50 = 0.0f;
-    c->x54 = 0;
-    c->x58 = em;
-    c->flags = 0;
+    w->rope[1].num = 8;
+    w->rope[1].pParts = em2b_chain_parts;
+    w->rope[1].x08 = 0;
+    w->rope[1].x0C = 0;
+    w->rope[1].x10 = 0;
+    w->rope[1].x14 = 0;
+    w->rope[1].pUp = em2b_chain_up;
+    w->rope[1].pDown = em2b_chain_down;
+    w->rope[1].pMax = 0;
+    w->rope[1].x2C = 0;
+    w->rope[1].x30 = 0;
+    w->rope[1].x34 = em2b_chain_at2;
+    w->rope[1].x20 = 0;
+    w->rope[1].x24 = 0;
+    w->rope[1].x38 = 5;
+    w->rope[1].x58 = em;
+    w->rope[1].x3C = 30.0f;
+    w->rope[1].x40 = 0.800000012f;
+    w->rope[1].x44 = 0;
+    w->rope[1].x48 = 0.0f;
+    w->rope[1].x50 = 0.0f;
+    w->rope[1].x4C = 1.0f;
+    w->rope[1].flags = 0;
+    w->rope[1].x54 = 0;
     pos.x = 0.0f;
     pos.y = 0.0f;
     pos.z = 0.0f;
@@ -5466,10 +5490,11 @@ int em2bAtkRtnCkDebug(cEm2b* em)
         if (w->targetAngAbs < 0.392699093f && w->targetDist > 6250000.0f && w->targetDist < 12250000.0f) {
             if (em2bPlRunCk(em)) {
                 EmRoutineSet(em, 1, 0x11, 0, 0);
+                return 1;
             } else {
                 EmRoutineSet(em, 1, 0x11, 0, 0);
+                return 1;
             }
-            return 1;
         }
         if (w->targetAngAbs < 0.628318548f && w->targetDist < 9000000.0f) {
             EmRoutineSet(em, 1, 0x11, 0, 0);
@@ -5521,11 +5546,17 @@ int em2bAtkRtnCkDebug(cEm2b* em)
         }
         break;
     case 6:
-        if ((w->targetAngAbs < 0.628318548f && w->targetDist < 9000000.0f) ||
-            (em2bPlRunCk(em) && w->targetAngAbs < 0.628318548f && w->targetDist < 25000000.0f)) {
+        if (w->targetAngAbs < 0.628318548f && w->targetDist < 9000000.0f) {
             EmRoutineSet(em, 1, 9, 0, 0);
             return 1;
         }
+        if (em2bPlRunCk(em) && w->targetAngAbs < 0.628318548f && w->targetDist < 25000000.0f) {
+            EmRoutineSet(em, 1, 9, 0, 0);
+            return 1;
+        }
+        break;
+    case 0:
+    default:
         break;
     }
     return 0;
