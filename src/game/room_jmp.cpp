@@ -126,13 +126,14 @@ CRoomInfo* cRoomJmp::getRoomInfo(u8 stage, u8 idx)
     if (stage >= p[0]) {
         return 0;
     }
-    ofs = (p + 1)[stage];
+    // COMPILER-DIFF: tie. The loop notes double the weight of this `ofs` set, so local-alloc
+    // allocates ofs before n (ofs r0, n r11) and global-alloc can give base the freed r0.
+    do { ofs = (p + 1)[stage]; } while (0);
     n = *(u32*) ((u8*) p + ofs);
     base = (u32) p + ofs;
     if (idx >= n) {
         return 0;
     }
-    // Only the r0/r9/r11 assignment of ofs/n/base still differs from the target.
     {
         u32 o = idx * sizeof(CRoomInfo) + 4;
         return (CRoomInfo*) (base + o);

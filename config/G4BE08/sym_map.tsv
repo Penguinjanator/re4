@@ -803,7 +803,7 @@ address	size	section	unit	scope	name	demangled
 0x8003C80C	0x118	.text	game/objPillar.cpp	global	plemEscape2	plemEscape2
 0x8003C924	0xC8	.text	game/objPillar.cpp	global	objPillarEatSet	objPillarEatSet
 0x8003C9EC	0x20	.text	game/objPillar.cpp	global	_._10cObjPillar	cObjPillar::~cObjPillar
-0x8003CA0C	0x1F8	.text	game/objRobo.cpp	global	SetObjRobo	SetObjRobo
+0x8003CA0C	0x1F8	.text	game/objRobo.cpp	global	SetObjRobo__FPvT0P3VecT2	SetObjRobo
 0x8003CC04	0x3C	.text	game/objRobo.cpp	global	move__8cObjRobo	cObjRobo::move
 0x8003CC40	0x58	.text	game/objRobo.cpp	global	SetBeginEvent__8cObjRobo	cObjRobo::SetBeginEvent
 0x8003CC98	0x38	.text	game/objRobo.cpp	global	SetEndEvent__8cObjRobo	cObjRobo::SetEndEvent

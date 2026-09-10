@@ -923,12 +923,13 @@ int cPlayer::isKamae()
                 return 0;
             }
         }
+        // `goto ng` (not `return 0`): the `||` then branches straight to the final block and no
+        // label precedes this `return 1`, so jump2 cannot cross-jump it into the later copies
+        // (a CODE_LABEL before the scanned tail lowers find_cross_jump's minimum); the later
+        // copies merge into this one instead, which is the original's survivor.
         if (xFE == 6 || xFE == 3) {
-            return 0;
+            goto ng;
         }
-        // COMPILER-DIFF: 6 (the original keeps this `li r3,1; b end` copy and cross-jumps the
-        // key-check and xFD==0xB copies into it; our jump2 keeps the last copy). The `||` above
-        // blocks the `x = a; goto` hoist so the chain shape (`beq ret0` twice) matches.
         return 1;
     }
     if (xFD == 0xB) {
@@ -940,6 +941,7 @@ int cPlayer::isKamae()
         }
         return 1;
     }
+ng:
     return 0;
 }
 

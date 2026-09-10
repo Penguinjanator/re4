@@ -135,17 +135,15 @@ char *fftoa(double value, int prec, char fmt, int strip, char *sign)
     int ndig, exp, total, dp, n;
     double x, eps;
 
-    /* OPEN (7 words): the original issues `mr r25,r4` before the union's `fmr f0,f30` reload and
-     * allocates lo/sgn to r11/r10 (ours r8/r11). Mechanism (sched dumps): the union is a DImode
-     * pseudo local-allocated to r9:r10, `lo = u.w[1]` is a birthing insn (adjust_priority boosts it to
-     * max priority at cycle 3, before mant/se/sgn), so lo lives 13 insns vs sgn's 11 and global-alloc
-     * takes sgn first (r11), leaving lo r8. The target allocated lo first (r11) and sgn second (r10),
-     * i.e. its `lo` set was scheduled after `sgn`. Union shapes (struct/array/long long/initializer),
-     * read order, statement order, int fmt, a `double v = value` copy and an asm launder on lo all
-     * leave the 7 words. */
-    u.d = value;
-    lo = u.w[1];
-    hi = u.w[0];
+    /* COMPILER-DIFF: tie. The two do/while(0) blocks are loop notes only (no code): the second one doubles the
+     * weight of the `lo`/`hi` word reads so global-alloc takes lo before sgn (lo r11, sgn r10 as in
+     * the original; a plain block gives sgn r11 / lo r8), and the first one is the sched1 barrier
+     * that keeps the `sign` parameter copy `mr r25,r4` ahead of the union's `fmr f0,f30` reload. */
+    do { u.d = value; } while (0);
+    do {
+        lo = u.w[1];
+        hi = u.w[0];
+    } while (0);
     mant = hi & 0xfffff;
     se = hi >> 20;
     sgn = se & 0x800;

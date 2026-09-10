@@ -1494,3 +1494,14 @@ MATCHING.update({
 MATCHING.update({
     "lib/adx_tlk.c": True,
 })
+
+# DOL register/cross-jump tie pass (2026-09-10): the `||` return-0 test written as `goto ng` so no
+# label precedes the surviving `return 1` (pl_class isKamae); a `do {} while (0)` around the last
+# `pCur` store doubles that `this` ref's global-alloc weight (lightPath movePath: this r9, pCur r11)
+MATCHING.update({
+    "game/pl_class.cpp": True,
+    "game/lightPath.cpp": True,
+    "game/rnd.cpp": True,  # `m = (n << 16) >> 16` keeps m out of n's cse class (the `mr r0,r9` copy)
+    "game/emBar.cpp": True,  # do-while around emBarSetBreak: 7th weighted em ref (em r31, p r30)
+    "game/vfprintf.c": True,  # fftoa: do-while notes around `u.d = value` and the lo/hi word reads
+})

@@ -8,16 +8,14 @@ void RndInit(u16 seed)
     Random = seed;
 }
 
-// Residual (`mr r0,r9` copy of n before the compare, `addi r0,r9,0x101` from n): at cse time the
-// original had m and n in different equivalence classes with n mentioned later than m (no
-// "(set REG0 REG1)" swap, no canon_reg rewrite of `n + 0x101`). `u32 m = n; asm("" : "+r"(m));`
-// plus a dead `asm("" : : "r"(n))` after the store reproduces the function byte for byte, but no
-// plain source form found yet (u16/u32 mixes, if/else, ternary, `(void) n`, operand order tried).
+// The 16-bit truncation `(n << 16) >> 16` keeps m out of n's cse equivalence class (cse does not
+// fold the shift pair; combine later reduces it to the copy `mr r0,r9`, which survives because n is
+// still needed for `n + 0x101`), so m gets its own register like the original.
 u8 Rnd()
 {
     u16 r = Random;
     u32 n = ((u8) ((r >> 1) + (r >> 8)) << 8) | (u8) (r >> 1);
-    u32 m = n;
+    u32 m = (n << 16) >> 16;
 
     if (m == r) {
         m = n + 0x101;

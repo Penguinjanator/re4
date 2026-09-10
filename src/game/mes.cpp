@@ -1,6 +1,10 @@
 // game/mes: in-game message system (D:/Bio4/Prog/mes.cpp).
 #include "types.h"
 #include "vec.h"
+// Declared before global.h/mes.h name MesData: uninitialised objects are emitted in first-declaration
+// order and the original .bss is cMes, MesFont, MesData, MsgQueue.
+class MessageFont;
+extern MessageFont MesFont[4];
 #include "gx.h"
 #include "global.h"
 #include "main.h"
@@ -69,7 +73,7 @@ u32 mes_col_tbl[10] = {
 };
 
 MessageControl cMes;
-static MessageFont MesFont[4];
+MessageFont MesFont[4];
 MessageData MesData;
 static MesQue MsgQueue[3][0x100];
 

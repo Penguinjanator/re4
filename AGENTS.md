@@ -2767,8 +2767,9 @@ target) stays unresolved and `make_rel` then fails with "undefined symbol".
   obj13.h, objGondola.h are their room-side views of the DOL objects); r10c (st1_2, 15/23,
   .rodata/.data equal) and r11b (st1_2, 8/14 + the nameless cLight block, .rodata equal) are written;
   st4_0 r410, r40b, r411 and st2_3 r22b, r229 are Matching, r40a (8/9) and r22a (6/7) written;
-  r100, r11c, r117 (st1) and the other st2/st4 rooms are unwritten (cSceObj.cpp, which r40c/r406/
-  r40e/r220/r225 need, has no source yet);
+  r100 (st1_0) is Matching, r117 (st1_3, 20/21) and r11c (st1_3, 19/23 + reloc-name-only) are written
+  (see "Stage rooms, st1 r100/r117/r11c pass"); the other st2/st4 rooms are unwritten (cSceObj.cpp,
+  which r40c/r406/r40e/r220/r225 need, has no source yet);
   em_wrap.cpp matches in st1_0/st2_4 (Matching) and is one register-allocation diff away elsewhere.
 - db_light.cpp (src/tools/db_light.cpp: the light editor, 0x12408 of code in t_camera/t_light/t_event;
   Tools = the same object with `SetToolLight` in front (`tools/db_light_tools.cpp`, DB_LIGHT_SET_TOOL_LIGHT),
@@ -5363,3 +5364,63 @@ target) stays unresolved and `make_rel` then fails with "undefined symbol".
 - mcmp.py note: after `sync_rel_symbols.py` the remaining `_prolog`/`equipWeapon` "2 words" of a module object
   are cross-unit reloc *names* (the split object's placeholder vs our mangled name, e.g. `PlHandgunMove` vs
   `PlHandgunMove__FP7cPlayer`; undefined symbols are not demangled by the tool) -- the REL shasum is the judge.
+
+### DOL register-tie pass with the em10 levers (pl_class, lightPath, rnd, emBar, vfprintf Matching; 2026-09-10)
+
+- Harness /tmp/dolties (`mcmp.py UNIT [SYM]` masked compare of `build/G4BE08/obj/<unit>.o` vs ours or `OBJ=`;
+  it folds `GXWGFifo` relocs into the absolute word, accepts a raw `lis rX,0x80NN` the split object left
+  unpaired against our `@ha` reloc, names `_GLOBAL_.I/.D` = `global_constructors/destructors`, compares
+  data sections with relocated fields masked; `tryv.py UNIT SYM variants.py` builds source variants privately
+  and prints the word count; `dump.sh UNIT -dX` = cpp + cc1plus dumps with the DOL flags, no `-G`).
+- `do { stmt; } while (0)` as a pure allocation lever (loop notes: no code, the refs inside count one more in
+  REG_N_REFS for BOTH local-alloc `qty_n_refs` and global-alloc `allocno_n_refs`; the notes are also a sched1
+  barrier, so pick a statement whose neighbours are already ordered by dependences):
+  - lightPath movePath: around the LAST `pCur = pCur + 1` store (`this` 9 weighted refs > pCur 5/14 -> this r9,
+    pCur r11); the same wrap on the first arm's store or on the `v = pCur->data[0]` load reorders the code.
+  - emBar emBarHitCk: around `emBarSetBreak(em, 2)` (or `em->dmType = 0`, or the `hp <= 0` test): 7th em ref
+    (1686 > p 1509) -> em r31, p r30.
+  - vfprintf fftoa: `do { u.d = value; } while (0); do { lo = u.w[1]; hi = u.w[0]; } while (0);` -- the second
+    block makes lo (3 refs) beat sgn in global-alloc (lo r11, sgn r10), the first is the barrier that keeps the
+    `sign` copy `mr r25,r4` ahead of the union's `fmr f0,f30` reload (that order alone was the 2-word residue).
+  - room_jmp getRoomInfo: around `ofs = (p + 1)[stage]` (or around the `n` load): local-alloc then takes ofs
+    first (r0), n r11, and global-alloc gives `base` the freed r0 (`add r0,r3,r0`).
+  - Where it does NOT work: obj00 FallMove (the hit loop's QI `1`, 3 refs/82 vs the k loop's `k+1` giv 4/46 =
+    1739; nested do-whiles around `w->sePlayed = 1` also raise `w`'s weight and move r25/r26), read readEmData
+    (`m->flag |= 4` / `|= 1` in a do-while flips m/newSize to r29/r28 but the notes reorder the adjacent
+    block: `cmplw; lwz pArc; ori; sth` becomes `ori; sth; lwz; cmplw`, or the MEM_ALLOC `li r5,__LINE__`
+    moves -- 4 words either way), pad PadRead (the `&Pad_data` lo_sum pseudo has no statement of its own to
+    wrap; `dead` 5/269 vs `&Pad_data` 4/227 with both REG_EQUIV-doubled), esp45 HideCheck, datactrl.
+- Cross-jump survivor without COMPILER-DIFF 6 (pl_class isKamae, now Matching): find_cross_jump lowers its
+  minimum to 1 when the insn before the scanned tail is a CODE_LABEL, so a `return 1` copy preceded by the
+  join label of an `a || b` return-0 test is merged into the LAST identical copy. Writing that test as
+  `if (a || b) goto ng;` with `ng: return 0;` being the function's final return puts `beq ng` twice with no
+  label before the `li r3,1`; the scan of that copy then fails (1 insn, no jump-around-jump), the later copies
+  cross-jump into each other and finally into it (`b kamae` / `bne kamae`), exactly the original layout.
+- cse equivalence class breaker (rnd Rnd, now Matching): `u32 m = (n << 16) >> 16;` (n < 0x10000) keeps m out
+  of n's class -- cse does not fold the shift pair, combine reduces it to `mr r0,r9` after cse, and the copy
+  survives because n is still needed for `n + 0x101`. (`n & 0xFFFF` / `(u16) n` give the copy but swap the
+  `clrlslwi`/`clrlwi` pair; the AND is folded by cse through nonzero_bits-free simplify_binary_operation.)
+- .bss order: `MesData` was emitted before `MesFont` because global.h/mes.h declare `extern MesData` before
+  mes.cpp's static; a forward `class MessageFont; extern MessageFont MesFont[4];` above the includes (and a
+  non-static definition) restores cMes, MesFont, MesData, MsgQueue. mes is 71/73 (move `mr.`, WidthCk).
+- Sched1 issue-order residues that the levers do not reach (all 1-3 words, unit otherwise byte-identical):
+  - objWep drawPoint: the QI `0` for `esp->xA7` must sit BEFORE `stb 0xa4` at local-alloc time (then the four
+    `esp` reloads get r11/r9/r11/r9 via the fake lifetimes: 154 fake death 12 overlaps 156 fake birth) while
+    the final order is `stb; li r7,0; lwz r9` (sched2); ours issues `stb` first in sched1 (priority: the
+    stb heads the mem-dependence chain of the following reloads). do-while/int-zero/order forms tried.
+  - filter06 cParticle06::move: the `(u8) a` loadaddr pseudo must be issued below `lbz alphaBase` in sched1
+    (then it has the shorter range and takes r9, alphaBase r11); ours ranks the loadaddr first (longer chain
+    through psq_st/lbz/clrlwi).
+  - esp45 HideCheck: the `i*4` giv init `li r30,0` (LUID after the movables) is issued after the hoisted
+    `lis r26,Screen@ha` here and before it in the original; an explicit `u32 ofs` variable puts the `li`
+    first but swaps hidden/ofs to r30/r29.
+  - datactrl dispDebug: x1 (pseudo 106) inherits a preference for r7 from the local-alloc'd `x1 - x0` temp
+    (set_preference on the MINUS operand: reg 199 = r7 counts as a hard reg) and takes it; the original's x1
+    is r5 (`subf r7,r6,r5`), i.e. that preference was not applied there.
+  - exception ErrorHandler: max_cuid at gcse time is 503 (251 buckets: `symbol_err_tbl` 72 < `.LC64` 194);
+    255 or 257 buckets (508..515 real insns) or a `.LC70/71/73` label would flip the two PRE pseudos.
+    Duplicated call tails are not cross-jumped back (flow's `use` after a block-ending CALL differs), the
+    `-Joy.ssx` neg trick adds only +2, and a `if (n != 0)` dead block was not const-propagated by gcse.
+  - obj00 FallMove: B (`w->sePlayed = 1`'s QI 1) takes r24 in pass 0 because A (`k+1` giv, allocated first)
+    already used r24 and does not conflict; the original's B in r23 = C's register (the k loop's SI 1), so
+    there A was allocated after B or r24 conflicted.

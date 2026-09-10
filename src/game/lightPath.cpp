@@ -59,7 +59,9 @@ int cLightPath::movePath()
         pCur = pStart;
         v = pCur->data[0];
         if (flag & 2) v = 200 - v;
-        pCur = (cLightPathData*) ((u8*) pCur + 1);
+        // COMPILER-DIFF: tie. The loop notes double this store's `this` ref weight (9 refs > pCur's
+        // 5/14 priority), which puts `this` in r9 and pCur in r11 like the original; no code changes.
+        do { pCur = (cLightPathData*) ((u8*) pCur + 1); } while (0);
     }
     return v;
 }
