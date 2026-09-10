@@ -10,8 +10,10 @@
 //    were cross-jumped only in jump2, after global alloc, so they counted 2 extra insns in both
 //    ranges. Still off:
 //  - DiscChange (92%): the `game[4]` template copy loads words 0,8,c,4 in the original (ours
-//    0,4,8,c); every load/store has equal priority, so the original RTL order of the pieces must
-//    differ (declaration order, `char company[]`, `const char* game[]` tried).
+//    0,4,8,c). sched2: our word-4 load ranks first (priority 9: its `stw r9` anti-depends on the
+//    following `lwz r9,pSys`); the target order needs the word-0 store issued before the word-4
+//    load by sched1 (there it ranks 7 vs 8) and non-/u template loads. Declaration order,
+//    `char company[]`, `const char* game[]`, inline-owned/inline-pointer/struct/2-D/volatile tried.
 #include "types.h"
 #include "dvd.h"
 

@@ -96,14 +96,16 @@ int PullEsp(cEsp** out, int id)
     return ret;
 }
 
-// OPEN (97.9%): the target's third loop has `mr r9,r10` (a copy of the sys+0x10000 base) before
-// the loop and in its latch, with the pEspBuf load reading r9. That is cse_around_loop (cse.c):
-// it only runs on a loop with LOOP_BEG/END notes whose latch jumps straight back to the header,
-// and it rewrites the header's `sys+0x10000` into the latch's REG_LOOP_TEST_P copy. Writing
-// loop3 as `for (i = start; i < sys->xC554; i++)` reproduces both copies exactly, but loop.c
-// (find_and_verify_loops) then moves the `PushEsp; goto found` block behind the found: block
-// (guarded exit block ending in a jump out of the loop). Loops 1/2 as for/while loops get
-// strength-reduced `&esp->flag` givs the target lacks, so they stay goto loops.
+// The target's third loop has `mr r9,r10` (a copy of the sys+0x10000 base) before the loop and in
+// its latch, with the pEspBuf load reading r9. That is cse_around_loop (cse.c): it only runs on a
+// loop with LOOP_BEG/END notes whose latch jumps straight back to the header, and it rewrites the
+// header's `sys+0x10000` into the latch's REG_LOOP_TEST_P copy. So loop3 is a real `for` loop;
+// loop.c (find_and_verify_loops) would then move the `PushEsp; goto found` block behind the found:
+// block (a guarded block ending in a jump out of the loop) and, with no call left in the loop,
+// hoist the pEspBuf load. The `do { PushEsp(esp); goto found; } while (0)` wrapper stops that: the
+// backward scan from the `goto` stops at the inner NOTE_INSN_LOOP_BEG instead of the guard jump.
+// Loops 1/2/4 as for/while loops get strength-reduced `&esp->flag` givs the target lacks, so they
+// stay goto loops.
 void* cEsp::operator new(unsigned int size)
 {
     static u32 old_hit = 0;
@@ -148,19 +150,13 @@ loop2:
         }
     }
     if (ret == sys->pDmy) {
-        i = start;
-        if (i < sys->xC554) {
-            ofs = i * 0x150;
-loop3:
-            esp = (cEsp*) (sys->pEspBuf + ofs);
+        for (i = start; i < sys->xC554; i++) {
+            esp = (cEsp*) (sys->pEspBuf + i * 0x150);
             if ((esp->flag & 1) && (esp->flags & 0x40000)) {
-                PushEsp(esp);
-                goto found;
-            }
-            i++;
-            ofs += 0x150;
-            if (i < sys->xC554) {
-                goto loop3;
+                do { // keeps loop.c from moving this block out of the loop (see above)
+                    PushEsp(esp);
+                    goto found;
+                } while (0);
             }
         }
         i = 0;

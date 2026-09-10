@@ -457,8 +457,14 @@ cObj* EfmSetObj04(cObj* obj, EspGenWork* gen, EfmCore* info, u32* seed, cModel* 
                 w->parentWorld = pEffParentWorld;
                 Efm04RotMatrix(obj, mtx);
             } else {
-                w->parent = parent;
-                w->parentSerial = parent->serial;
+                // parent/parentSerial stored through a word pointer: the store `(mem link)` has a
+                // register address, so cse1 (following the `beq` into this arm) treats it as
+                // aliasing `w->x79` and the getPartsPtr argument is reloaded (`lbz r4,0x79(w)`);
+                // combine folds the address back into `stw 0x6C(w)`. A plain member store never
+                // conflicts (same base, disjoint offsets) and the arm reuses the switch register.
+                u32* link = (u32*) &w->parent;
+                link[0] = (u32) parent;
+                link[1] = parent->serial;
                 w->parentWorld = parent->getPartsPtr(w->x79);
                 if (ofs) {
                     PSVECAdd(&obj->pos, ofs, &obj->pos);

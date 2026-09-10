@@ -1511,3 +1511,10 @@ MATCHING.update({
     "game/datactrl.cpp": True,  # dispDebug: one function-scope x1 shared with the over block (conflict union -> r5)
     "game/read.cpp": True,  # readEmData: do-while around the dll else arm (m 15 weighted refs > newSize)
 })
+
+# DOL sweep 4, one-function units (2026-09-10)
+MATCHING.update({
+    "game/esp.cpp": True,  # operator new: loop3 as a `for` (cse_around_loop copy) with a do-while(0) around `PushEsp; goto found`
+    "game/esp_efm.cpp": True,  # EfmSetObj04: parent/parentSerial stored through a u32* (register-address store invalidates x79 in cse1)
+})
+

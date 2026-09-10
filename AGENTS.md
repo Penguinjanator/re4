@@ -1501,7 +1501,8 @@ mark it Matching.
   had >= 72 pre-combine insns (OPEN: which extra RTL).
 - Dump-script note: the build passes no `-G` to cc1plus (cflags have none); a hand-run cc1plus with
   `-G1024` changes small-data references and callee-saved counts. Use `-O2 -mfast-cast -da` only.
-- mercenaries MercSysInitRoom (OPEN): the `wk->stage = 0` zero is a reload-materialised pseudo in
+- mercenaries MercSysInitRoom (SOLVED 2026-09-10, COMPILER-DIFF #13 `register int z asm("r11")`): the
+  `wk->stage = 0` zero is a reload-materialised pseudo in
   the original (`li r11,0` right before the `stw`, after `lwz pG`), ours a sched1-hoisted `li r0,0`
   (local-alloc'd); and the SndStrReq `lfs f1` pool load is issued last (right before `bl`) although
   its `lis r29` sits at the block top — sched2 in ours hoists it at once. Reference stores (`BitSet`),
@@ -1538,7 +1539,8 @@ mark it Matching.
   reading explains compiler-build difference 1 (`fmr f1, x` arg moves issued before `li`/`mr`
   int arg moves). No source form changes it; the SatMgrCreateF / atariInitF floats-first aliases
   remain the workaround at call sites (emBarred emBarredEatSet sub[0]/sub[1]).
-- Dying-register tie-break not applied by the original (OPEN): emrock SetRock's `stb r30, 0x95`
+- Dying-register tie-break not applied by the original (SetRock SOLVED 2026-09-10 with a #13 launder, see
+  the sweep section; ShotArrow still OPEN): emrock SetRock's `stb r30, 0x95`
   (last use of the zero pseudo) stays in source order and `li r30, 0` is re-materialised after the
   next label; emwep emWep_R1_ShotArrow's `mr r3, part` (part dies) is issued *last* of the arg
   moves where ours puts a dying copy first. Both look like a spilled/REG_EQUIV pseudo reloaded
@@ -3144,7 +3146,7 @@ target) stays unresolved and `make_rel` then fails with "undefined symbol".
   placement no LCM/PRE gives for a single occurrence: our gcse leaves the compare at the join; `case 3:
   break;` gives 164 words, `if (a == 3) asm("")` in the else arm 72) and `setHand` (2: `no` r10 vs r11 with
   no r11 user anywhere -- global-alloc pass 0 has r11 free in ours; needs an r11 conflict that exists only
-  in the original). `em10FindCk` is closed (COMPILER-DIFF #13 hard-register launder). Do not re-attempt
+  in the original). `em10FindCk` is closed (the untagged bell override `r = 25000.0f;` after the switch, see the #13 sweep; the hard-register launder was not needed). Do not re-attempt
   LostHead without a mechanism that hoists a non-redundant compare (interblock motion, #5 family).
 
 - Room helpers that exist under the same name in several rooms of one module (`em_reset`, `em_destroy`,
@@ -3800,7 +3802,7 @@ target) stays unresolved and `make_rel` then fails with "undefined symbol".
   of the format string, drawScurve's `i`/`&wp` register swap (r26/r27), sctrlMenu's cross-jump of the
   case-1 cursor call.
 
-### Single-unit enemy modules (em2e, em26, em18, em34, em24 Matching; em30 22/23, em3a 36/39, em3c 43/47, em38 71/76, em22 64/72; src/<em>/<em>.cpp, 2026-09)
+### Single-unit enemy modules (em2e, em26, em18, em34, em24 Matching; em21, em27, em28, em3d Matching since the #13 sweep 2026-09-10; em30 22/23, em3a 36/39, em3c 43/47 -> 46/47, em38 71/76, em22 64/72 -> 70/72; src/<em>/<em>.cpp, 2026-09)
 
 - Layout of every one-file enemy REL: `_prolog` (`OSReport("<em> prolog Ok\n")` + `EmInitFunc = EmXXInit`;
   em2e has no OSReport), empty `_epilog`/`_unresolved`, `EmXXInit` = `new (em) cEmXX()`, `emXXDmCk`, the
@@ -3956,9 +3958,9 @@ target) stays unresolved and `make_rel` then fails with "undefined symbol".
     same padding). `static f32 tbl[5][5][5] = { 0.0f };` (explicit zero) lands in `.data`.
   - `EmSetDieCntE(em) asm("EmSetDieCnt")` again; `GetPlPos(Vec*, cEm*, f32)` (em_sub.cpp, marked
     local in Bio4.sym) is called from the module and now declared in em_sub.h.
-  - OPEN: em3c_R1_Die_Normal's case-0 then-arm materialises a fresh `li r0, 0` for the EstSet stack
-    argument where ours reuses the switch register (xFE == 0, cse followed `beq case0`); every
-    switch/if form tried keeps the reuse (-4 bytes). em3cPartsBombSet: `add r29, rBase, rMult` for
+  - SOLVED (2026-09-10): em3c_R1_Die_Normal's case-0 then-arm materialises a fresh `li r0, 0` for the
+    EstSet stack argument (the dead `do {} while (0)` before `case 0:` plus a function-scope `int zero =
+    0` used once there, see the #13 sweep section). em3cPartsBombSet: `add r29, rBase, rMult` for
     `em3c_bomb_pt[kind]` and `add r0, rAdd, rTime` for `add + em3c_bomb_time[i]` (ours swapped; a
     pointer local gives the first, a u16 parameter the second but with a `clrlwi` at entry).
     em3cPartsBombControl (0x7C8 bytes, -12): structure identical, callee-saved assignment (em r18
@@ -5756,7 +5758,8 @@ target) stays unresolved and `make_rel` then fails with "undefined symbol".
 
 ### Weapon modules, wave 3 (wep14 written + Matching; module objects of wep01/04/06/13/17/19/30/38/41/42/43/45 flipped; pl_shotgun 17/18, pl_rocket 24/24 Matching since 2026-09-10; 2026-09)
 
-- Every weapon module is Matching except the three pl_shotgun copies (wep07/08/33, `wep07_r3_fire00` 2 words);
+- Every weapon module is Matching (the three pl_shotgun copies wep07/08/33 flipped 2026-09-10: `wep07_r3_fire00`
+  = COMPILER-DIFF #13 `register f32 zero asm("fr0")`, see the #13 sweep section);
   pl_rocket (wep13) flipped 2026-09-10 (`wep13_r3_down00` solved, see below; wep13.rel byte-identical).
 - wep14 (mine thrower) = `wep14/objMine.cpp` (cObjMine: init/moveReady/moveFire/setBullet/moveDown/moveReload/
   setCartridge/interrupt/setMotion + the free `partsSet(cObjMine*)`) and `wep14/wep14.cpp` (its own copy of the
@@ -5819,7 +5822,7 @@ target) stays unresolved and `make_rel` then fails with "undefined symbol".
   a plain struct copy makes cse reuse it for the copy's addresses and gcse PRE hoists it into a callee-saved
   register. Copy through `static inline void VecCopy(Vec* d, const Vec* s) { *d = *s; }` (the inline's pointer
   parameter is substituted by integrate and never joins the cse class): 16 -> 0 words.
-- OPEN pl_shotgun `wep07_r3_fire00` (2 words): after PlWepLockRand the original issues `lfs f0, 0.0` before
+- pl_shotgun `wep07_r3_fire00` (2 words, SOLVED 2026-09-10 with the #13 hard-register zero): after PlWepLockRand the original issues `lfs f0, 0.0` before
   `lfs f13, m3r[2]` (`fcmpu f13,f0`), ours the loads in RTL order. Both loads have weight 0 in sched1 (`&m3r`
   dies at the m3r[2] load because the `m3r[1] = pitch` store precedes it in RTL), equal priority, equal class and
   dependents, so LUID decides; the target's 0.0 is nevertheless allocated f0 (the shorter-range qty), which
@@ -6189,10 +6192,11 @@ target) stays unresolved and `make_rel` then fails with "undefined symbol".
   `p` untied from the `&p->mat` addi, in its own callee-saved register (68 -> 15 words).
 - em28 EscapeCk source bug fixed: target is `Rnd() % 15 + 15`, not `% 30`.
 - OPEN residues: em3a R1_Fix (sched2 sinks `addi r31,em,0x3e0`, needs a dependence on the `bl` nothing
-  creates); em27DmCk/em3c R1_Die_Normal EstSet stack-store interleave (NOT the pl_rocket wep13_r3_down00
-  mechanism, which is solved -- see the weapon wave-3 section: the em stores are not ready at the arm's
-  block start in the original, a readiness difference no source lever reaches); em3d ChainGunMove FPR order (angY before shared limX pool); em38 plemEscape/
-  EscapeCamMove birthing boost (#5); em28 EscapeCk bell-radius arm merge before sched1 (FindCk OPEN);
+  creates); em27DmCk/em3c R1_Die_Normal EstSet stack-store interleave (SOLVED 2026-09-10: a function-scope
+  `int zero = 0` used once as the EstSet stack argument -- the store is a leaf in sched1 and
+  update_equiv_regs moves the `li` next to it, r0; see the #13 sweep section); em3d ChainGunMove FPR
+  order (SOLVED: the GUN_AIM macro's temporaries are the function's variables); em38 plemEscape/
+  EscapeCamMove birthing boost (#5); em28 EscapeCk bell-radius arm merge (SOLVED: the override form);
   em23 SetWing PRE copy at join; em2a Trap1BiteSubCk local-alloc tie, R0_Init hp*0.001*0.5 chain tie.
 
 ### Player modules, flags-first pass (pl0e Matching; pl14 77/80, pl0f 66/104, pl0a pl_klauser 25/26; 2026-09-10)
@@ -6373,7 +6377,8 @@ target) stays unresolved and `make_rel` then fails with "undefined symbol".
   high half's `cmpwi 0x29; beq D; ble W; ..; W: cmpwi 0x26; blt D` (right child laid out before left) is
   not a stmt.c emission order. em2f left: R0_Init 56, Swim 56, SetNextRoute 69, Packman 41,
   RisingDragon 37, ChangeRoute 40, SwimWait 10 (store perm best 6), CriCamMove 12, SetPosHideMode 3
-  (`fmr; fadds` copy fused by combine, mes family). em21DmCk 4 words (local-alloc r0/r9).
+  (`fmr; fadds` copy fused by combine, mes family). em21DmCk 4 words (local-alloc r0/r9; SOLVED 2026-09-10
+  with `register int c asm("r9")`, #13).
 
 ### Enemy tie-breaker sweep 2 (em23/em2a/em21/em38/em3b/em3c/em29)
 - Default-grouped case values derived with tools/casetree.py: em3b DmCkCart/StopCart need
@@ -6795,6 +6800,18 @@ target) stays unresolved and `make_rel` then fails with "undefined symbol".
   `fr0` when the value dies at the multiply) set ONCE at the use site, keeping the dead multi-arm sets for
   the compare skeleton; tag every line `// COMPILER-DIFF: #13`. For the em21DmCk/MercSysInitRoom integer
   shape the analogous form is `register int c asm("rN")` set right before the store.
+  **#13 sweep (2026-09-10, see "COMPILER-DIFF #13 sweep" below): the bell-radius shape does NOT need the
+  hard register.** `f32 r; switch (bell_stat) {three identical arms} r = K;` (the em3cFindCk override) gives
+  0 words in em10 FindCk, em21 WakeCk, em28 EscapeCk and the em2d FindCk bell block: the arm sets are dead,
+  `r` becomes a block-local pseudo loaded at the use and local-alloc hands it the next free FPR (f9 after
+  f0/f13/f12/f11/f10 in FindCk, f0 in WakeCk, f13 in EscapeCk where f0 holds the chain's result) and the
+  high r10 (r9/r11 = pG). em10 FindCk now uses that form (no tag). The hard-register launder stays for
+  the shapes where the constant's register is not the local-alloc choice: em21DmCk (`register int c
+  asm("r9")`, r0 = `mode`), MercSysInitRoom (`asm("r11")`), pl_shotgun wep07_r3_fire00 (`register f32
+  zero asm("fr0")` right after `m3r[1] = pitch`: 0.0 in f0 loaded before m3r[2], which then takes f13).
+  Spill-register rules observed: the reload register is the first FPR/GPR in `order_regs_for_reload`
+  order that is free at the insertion point — f0 unless the chain's live result holds it (then f13),
+  r9 unless r0/r9/r11 are busy (r10 with pG in r9/r11, r11 with `lhz r0` following).
 - em2f left: SetPosHideMode 3 words (`fmr f0,f1; fadds f0,f0,f13` after GetXZAngle — combine fuses the
   hard-reg copy into the add; 8 forms incl. two-set variables, FSet, `PI + ry`; only a volatile insn or a
   block boundary between the copy and the add would block can_combine_p, mes `mr. r4,r3` family).
@@ -7005,6 +7022,83 @@ confirmed on the units named):
   CamMove 28, JumpAtk 2 (`cmpwi fe` vs `stw flags` issue order). OPEN em2c: DmCk 501, T_Wait 143, TailDmCk 98,
   BlendMotSet/BlendMotSet2 (COMPILER-DIFF #2: the u16 `d` argument masked at each MotionSetCore call; the
   launder changes the parameter register order).
+- em2d recipes verified privately in the #13 sweep (2026-09-10, NOT applied — the em2c/em2d owner applies
+  them): em2dFindCk 34 -> 12 words with the untagged bell override, i.e. `r = 25000.0f;` written right after
+  the three-arm `switch (pG->bell_stat)` (the bell block then matches byte for byte incl. `lis r10`/`lfs
+  f9`/`fmuls f13,f9,f9`); the 12 left are the `&&` chain's failing branches (three separate out-of-line
+  targets in ours, one label in the target). InitRtnSet's case-4 shared 0.0 in f31 is an ALLOCATED
+  constant in the original (the opposite of the #13 shape): not a #13 candidate.
+
+### COMPILER-DIFF #13 sweep (em21, em27, em28, em3d + wep07/08/33 pl_shotgun Matching; em3c 46/47, em22 70/72, emrock SetRock, mercenaries MercSysInitRoom; 2026-09-10)
+
+- Harness /tmp/cd13 (copies of /tmp/em2f_p `tryv.py MOD/UNIT FUNC variants.py [--asm NAME]`, `mcmp.py MOD
+  [SYM]`, `mdump.sh MOD/UNIT -dX`; /tmp/dolties3 `dtryv.py UNIT FUNC variants.py`, `dmcmp.py UNIT [SYM]`,
+  `dsbs.sh UNIT SYM [OBJ]`, `ddump.sh UNIT -dX` for DOL units; /tmp/wep_last `tryv.py wep07/pl_shotgun ..`
+  with `SRC=src/wep/pl_shotgun.cpp` for the shared weapon sources). REG_EQUIV of the pseudo was checked in
+  the `-dl` dump before every launder (`Register N ... set 3 times; user var; FLOAT_REGS` with
+  `REG_EQUIV (const_double ...)` on each arm set for the bell `r`; `REG_EQUIV (const_int 30)` on the
+  single QI set of em21DmCk).
+- Results (words before -> after): em21 WakeCk 25 -> 0 (untagged override form), em21DmCk 4 -> 0 (`register
+  int c asm("r9")`), em3c R1_Die_Normal 3 -> 0, em27DmCk 3 -> 0 (both: function-scope `int zero = 0` used
+  once as the EstSet stack argument, tagged #13), em28 EscapeCk 23 -> 0 (override form), em3d ChainGunMove
+  15 -> 0 (not #13: the GUN_AIM macro temporaries as FUNCTION variables, see below), em10 FindCk 0 -> 0
+  with the tag removed (override form), em22 R1_Wait 16 -> 0 (block-local `int zero = 0` before the pG
+  test), emrock SetRock 24 -> 0 (`asm volatile("" : : "r"(zero))` after the store block, #13), mercenaries
+  MercSysInitRoom 3 -> 0 (`register int z asm("r11")`, #13), pl_shotgun wep07_r3_fire00 2 -> 0 (`register
+  f32 zero asm("fr0")`, #13; wep07/08/33 flipped). Not #13 / left: cam_qfps init 12 (below), em_sub
+  EmRackCk 49 (below), sce_at sceAtFunc_pos_jump 5 (below), shadow make_comn_fit/parallel_light 2+2 (the
+  1.0 pool HIGH is r11 in the target = a reload spill register; a compiler-generated high cannot be named),
+  em3a/em38/em23/em2a/em3b/em35/em36 residues (register ties, branch polarity, store order: none has a
+  constant loaded late or a REG_EQUIV pseudo in the diff), Sscrn PieceCombine::move (61 words of register
+  allocation around the `curX = 0` cse-path residue; the unit cannot flip), em10 setHand `no` (r10/r11, no
+  REG_EQUIV pseudo involved).
+- The int shape has two zero-cost forms besides the hard register: (a) EstSet-style stack constant after
+  a compare (em3c R1_Die_Normal then-arm, em27DmCk): a FUNCTION-scope `int zero = 0;` used exactly once in
+  another block. sched1 then sees `stw zero, 0xc(r1)` as a leaf (issued after `mr r3`, before `li r4`,
+  like a substituted constant store) and update_equiv_regs moves the `li` right before it, where it takes
+  r0 (the shortest qty) — `li r0,0; mr r3,r31; stw r0,0xc(r1); li r4,-1; stw r31,8(r1)` is what the
+  original's reload rematerialisation + sched2 give. cse must not know a register equal to 0 there (em3c
+  keeps its dead `do {} while (0)` before `case 0:`; em27's `zero = 0` is assigned after `em->dmHit = 0`
+  so the QI zero store does not merge into it). (b) A zero whose `li` the target issues at the top of the
+  test block before the pG load (em22 R1_Wait's third EmRoutineSet): a block-local `int zero = 0;` declared
+  before the `if` (two uses -> not moved by update_equiv_regs, scheduled as a free insn at the block top).
+- Dying-store shape of #13 (emrock SetRock, 24 -> 0): the original's zero pseudo (REG_EQUIV 0, never
+  allocated, reloaded per label region: `li r30,0` again after the join) does NOT die at `seAlways[2] = 0`,
+  so the 30-store block is issued in pure source order; ours would hoist that dying store to the block
+  top. `int zero; zero = 0;` before the block + `asm volatile("" : : "r"(zero)); // COMPILER-DIFF: #13`
+  right after the last store of the block keeps our pseudo live past it; the second block's zeros stay
+  literals (the original's fresh `li r30,0`/`li r0,0` after the label). Caveat: the volatile asm
+  invalidates reload_cse (a later `mr r3,rX` copy the original's reload_cse deleted reappears when the
+  asm sits between the copy's source and a call: cam_qfps init, +1 word) and a non-volatile `asm("" : :
+  "r"(x))` does the same, so the launder only works when no call argument copy follows in the block.
+- cam_qfps init (12, OPEN): the same dying-store family — eleven reference stores in pure source order in
+  the target (0.8/0.0 both in f0, 0/1/2 in r7/r10/r8 = reload spill registers with inheritance) — the
+  order is reproduced by the asm launder (all five constants + the flags RMW temp live past the block) but
+  the names are not (r9/r7/r10 rotate: allocated pseudos, not spill registers) and the `mr r3,r31` of the
+  following call reappears; `register int` variables for the constants get copied into pseudos by the
+  `u8&`/`s16&` setters (worse). Left.
+- em3d ChainGunMove (15 -> 0, NOT #13): the two EM3D_GUN_AIM copies share the four clamp constants (cse
+  merges the second copy into the first's pseudos, all hoisted); the target's f29 for `angY` and f28 for
+  limX come from ONE multi-set `angY` (both copies write the function's variable) that conflicts with every
+  constant and is allocated after limY (f30); macro-local `angY`s are two short block-local pseudos and
+  the first takes f30. Rule: when a macro is expanded twice and the target's register order puts a
+  per-copy temporary below the shared constants, the temporary was a function-scope variable.
+- em_sub EmRackCk (49, OPEN, NOT #13): the target hoists the 400.0 clamp constant in loop.c's SECOND pass
+  (last `lfs` of the preheader, highest allocation priority -> f27) although its set is inside the
+  maybe_never region and used in six blocks — our loop.c (scan_loop: "used in basic blocks other than the
+  one where it is set ... && maybe_never" -> unsafe; the comment says the old behaviour that allowed it for
+  non-user temporaries "was removed") never hoists it. Setting `xmax` at the loop top hoists it in pass 1
+  (longest life -> f23, 44 words with `const f32` pool-order declarations); adding an `asm("" :: "f"(xmax))`
+  use gives the target's registers (14 words) but the preheader `lfs` order (400 first instead of last)
+  cannot follow: not applied.
+- sce_at sceAtFunc_pos_jump (5, OPEN, #13-consistent): the 0.0 (two stores) is f13 and `dstAngle` f0 in
+  the target = the only local-alloc'd FPR pseudo took f0 and reload's 0.0 the next free register; ours
+  gives the 3-ref 0.0 f0. `register f32 z asm("fr13")` fixes the registers but the hard-register set is
+  scheduled unlike a reload insn (issued first, so the `rot.z` store overtakes `rot.y`: 2 words in all six
+  store orders); pseudo forms (`f32 z = 0.0f` first, laundered `a`) keep 5.
+- Bell-radius rule of record (supersedes the hard-register recipe for this shape): keep the three
+  identical `switch (pG->bell_stat)` arms and write `r = K;` once after the switch; no tag needed. em3c
+  FindCk, em10 FindCk, em21 WakeCk, em28 EscapeCk, em2d FindCk (recipe recorded for its owner) all match.
 
 ### Tool RELs, bytes-first pass 2 (t_rck 13->28/33 + .rodata/.data equal; db_light 122->128/134 in every module; db_widget 95->102/113; t_snd_vol 13->19/27; t_event 56->61/69; t_id 48->52/69; 2026-09-10)
 
@@ -7321,3 +7415,70 @@ confirmed on the units named):
   shorter and takes r7 first; moving `x44 = 100` before `x3C = 5.0f` gives the target registers but issues the
   store three slots early (3 words); swapping the two statements swaps the stores (4). CrashAdjustSet 3, Swim 7,
   R10xOut 5 x 3, BossCamMove 420 not re-attempted (see the pl0f polish section).
+
+### DOL sweep 4, one-function units (esp, esp_efm Matching; pad 15 -> 7, espgen02 8 -> 4 words; 2026-09-10)
+
+- Harness /tmp/dol_one (copy of /tmp/dolties3 with the paths rewritten: `mcmp.py`, `tryv.py UNIT SYM variants.py`,
+  `vapply.py`, `sbs.sh`, `dump.sh UNIT -dX` with `SRC_OVERRIDE`; `-fsched-verbose-9` (dash, not `=`) prints the
+  haifa dependence table with priorities). NOTE: mcmp counts the `Esp*_Create` vtable reloc (`.rodata+N` vs
+  `_vt.6cEspNN`) as 2 words in esp04/esp12/esp16 — reloc-name noise; the real diff of those units is the Trans/move10
+  function.
+- loop.c `find_and_verify_loops` moves a guarded block that ends in a jump out of the loop (`if (cond) { call;
+  goto found; }` inside a real `for`/`do` loop: `b found` is a simplejump to a label outside the loop, the backward
+  scan from it stops at the guard's condjump `p`, and `next_real_insn (JUMP_LABEL (p)) == our_next`) behind the
+  jump target, and with no call left in the loop hoists the loop's member loads. A `do { call; goto found; }
+  while (0)` around the block stops it: the scan now stops at the inner NOTE_INSN_LOOP_BEG (not a JUMP_INSN).
+  This lets the loop keep LOOP notes, which is what cse.c `cse_around_loop` needs for the target's `mr r9,r10` base
+  copy before the loop and in its latch (esp `cEsp::operator new` loop3, 16 -> 0 words; goto loops lose the copy).
+- cse1 memory invalidation is by address FORM, not by value: a store `(mem (plus w 0x6C))` never invalidates a
+  known `(mem (plus w 0x79))` (same base, disjoint offsets), so an arm reached by a followed `beq` reuses the
+  register holding `w->x79`. A store whose address is a REGISTER (`u32* link = (u32*) &w->parent; link[0] = ..;
+  link[1] = ..;` — two uses keep `link` a pseudo; a single `*pp = v` is folded back to the offset form, and a
+  reference setter `PSet(w->parent, v)` has its `(plus w 0x6C)` argument substituted by integrate) hits
+  `memrefs_conflict_p (P, (plus w 0x79))` with different registers -> conflict -> the arm reloads `lbz r4,0x79(w)`
+  (esp_efm EfmSetObj04 else arm, 20 -> 0). combine folds `link = w + 0x6C` back into `stw 0x6C(w)`, so the bytes
+  are the plain member stores plus the reload. (A store through the OTHER base, `obj->efm04.parent`, also
+  conflicts — bases equal, registers differ — but then the store itself is `stw 0x38C(obj)`.)
+- sched2 memory rule (alias.c `fixed_scalar_and_varying_struct_p`): a struct-member store through a hard register
+  never conflicts with a load of a fixed scalar (`lwz r4, pSys@sda21`), so the load does not depend on it and the
+  store stays a leaf (priority 1). A reference store (`U64Set(k->on, 0)` with `KeyWork* k = &Key` so the address
+  folds to `16(r11)`, not `Key+16@l`) has neither flag, conflicts, and lifts the stores above the count reload
+  `li r0,64; mtctr r0` (pad PadRead Key preheader, 15 -> 7). Generalises the "pG reload after a reference store"
+  rule to scheduling order.
+- espgen02 `espgen02_Update` (8 -> 4): three f32 rates with 6 weighted refs each; the FPR order is a live-length
+  knife edge — the `scaleR = spdR; colR = spdR` zero copies written as statements after `int add = 0` (uninitialised
+  declarations, `f32 spdR = 0.0f` only) give the target registers (scaleR f25, colR f24, spdR f23) but issue the
+  copies after `li add,0`; as initialisers or as statements between the `b*` zero stores the registers swap back;
+  hoisting spdR's load above `p = w->work` puts spdR on top (f25). Remaining 4 words = that sched1 position.
+- Negative results (do not retry the same forms):
+  - dvd DiscChange (7 words): the `game[]` template copy lsu order (target 8, c, w0-store, 4; ours 4, w0, 8, c).
+    sched2 model: our word-4 load has priority 9 because its store's `r9` anti-depends on the following
+    `lwz r9,pSys` (the other two chains 8). The target order needs LUID(word-0 store) < LUID(word-4 load) AND
+    non-/u template loads (so the word-4 load depends on the store), i.e. an original sched1 that issued the store
+    before the last load — our sched1 ranks the store (7) below every load (8). Inline-owned/inline-pointer/struct/
+    2-D array/volatile/declaration-order forms all tried (inline-owned arrays become frame-direct stores).
+  - pad PadRead `dead`/`&Pad_data` r16/r17 (7 words left): global.c priorities 190 (dead: 5 refs, doubled length
+    526) vs 178 (&Pad_data hoist: 4 refs, 448); the hoist would need a 5th ref or an undoubled length (no REG_EQUIV:
+    two-set `pd` pointer forms change loop 1 and the PADRead args).
+  - objWep drawPoint (2): the QI zero for `esp->xA7` has sched1 priority 3 (tail of the stb -> stack reload chain)
+    against 7/11/15 for the other constants and is issued in the same cycle as the first `stb` but after it (lsu
+    first); local/int/U8Set/inline-with-pointer forms do not change the chain, do-while forms cost 5-10 words.
+  - emshield setFall (2, COMPILER-DIFF #8): `fmr f29,f1` vs `mr r31,r4` tie at t=4 (both priority 1, weight 0,
+    depend count 0 -> LUID). A `register f32 g1 asm("fr1"); asm("" : "+f"(g1))` to keep f1 alive is deleted (no
+    effect); a two-set `g` costs 36.
+  - t_option tp_pl_flag (5): `li r4,0xfe` before `addi r3,r30,ItemMgr@l` in the dump/get arms; ours puts the addi
+    first because the PRE'd high pseudo dies there (weight 0 vs +1). `cItemMgr* im` local (181 words), int result
+    local, arm swap, `int id`, void asm-labelled aliases: no change.
+  - esp04 move10 / esp12 Esp12_Trans / esp16 Esp16_Trans (one family): the target has `lfs f12, 0.0; ...; fmr fT,
+    f12` for `t = 0.0f` (an intermediate pseudo the copy into `t` never absorbed) and hoists the 0x4330 magic high
+    right after CameraCurrentProjection (a dead int->float conversion at that point, see the esp16 comment); inline
+    returning 0.0f, reference init, `zero` local, chain `t = tw = 0`, two-set `t`, `rate = 0; t = rate` all fold to
+    the direct load (23/47 words unchanged).
+  - exception ErrorHandler (4): the gcse table is already 257 buckets here (the older 251/255/257 note is stale);
+    dead `T* p = 1` initialisers of later-assigned locals do not change the table size (deleted before gcse).
+  - pl_debug DrawGage (18): `fw*fnow/fmax` product in a temp (f12) and `fadds f25,f13,f25` (fx first); scalar f32
+    declaration orders and a `t = fw*fnow` temp change nothing.
+  - db_menu move (27): the cursor-wrap arm's dead `andi. r11,r9,1` + reload + materialised `!(cursor & 1)` (see the
+    source comment) not reproduced; t_flag move (11) r29/r30 tie, filter06 (3), esp45 (2), obj00 FallMove (2),
+    espgen10 (22), room_jmp (56), emBarred SetEmBarred (COMPILER-DIFF #1 interleave), dbmodule, view, esp18, esp02
+    not re-attempted this pass.

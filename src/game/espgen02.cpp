@@ -115,22 +115,25 @@ static f32 Calc_D256(Espgen02Work* p, u8 d, f32 rate)
     return ret;
 }
 
-// OPEN (99.94%): both ours and the target load the shared 0.0f into spdR and copy it to scaleR
-// and colR (cse2 makes spdR the canonical register); the only diff is the FPR assignment
-// spdR/colR = f24/f23 (ours) vs f23/f24 (target), i.e. global-alloc priority: ours gives spdR
-// 5 refs (load, two copy sources, Calc_D256 set, PSVECScale use) against colR's 4, the target
-// ranks colR higher — colR has an extra reference or spdR one fewer there. Declaration order,
-// use order and a local copy for the PSVECScale argument tried.
+// OPEN (4 words): the shared 0.0f is loaded into spdR and copied to scaleR and colR. The FPR
+// order scaleR f25 / colR f24 / spdR f23 is a global-alloc live-length knife edge (all three have
+// 6 weighted refs): with the copies written as initialisers in declaration order colR loses to
+// spdR (f23/f24 swapped); with the two copies as statements after `add = 0` colR's range is a
+// few insns shorter and wins, but then sched1 issues `li add,0` before the two `fmr`s where the
+// target has the copies between the `bScale` and `bSpd` zero stores (copies placed there give
+// the swapped registers again; hoisting spdR's load above `p` puts spdR on top).
 void espgen02_Update(EspgenWork* w)
 {
     Espgen02Work* p = (Espgen02Work*) w->work;
-    f32 scaleR = 0.0f;
+    f32 scaleR;
     f32 spdR = 0.0f;
-    f32 colR = 0.0f;
+    f32 colR;
     int bScale = 0;
     int bSpd = 0;
     int bCol = 0;
     int add = 0;
+    scaleR = spdR;
+    colR = spdR;
     cModel* model = p->model;
     Mtx sm;
     Mtx rm;

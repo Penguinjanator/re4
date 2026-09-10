@@ -1,7 +1,9 @@
-// game/pad: 11/12 functions byte-identical. PadRead (15 words open): `dead` (5 refs / 269 insns) beats
-// `&Pad_data` (4 / 227) in global-alloc priority (target r16/r17, ours swapped; no statement of its own
-// to weight), and the Key loop preheader issues the `li r0,64; mtctr` reload pair before the `Key.on = 0`
-// stores (the original after them) -- a sched2 ranking no source form changed.
+// game/pad: 11/12 functions byte-identical. PadRead (7 words open): `dead` (5 refs / 526 doubled insns,
+// priority 190) beats the loop-2 `&Pad_data` hoist (4 / 448, 178) in global-alloc (target r16/r17, ours
+// swapped; both pseudos are REG_EQUIV-doubled and no statement of their own exists to weight; two-set
+// `pd` pointer forms change the loop-1 code). The Key loop preheader order (`Key.on = 0` stores before
+// the `li r0,64; mtctr` pair) is a reference store: the pSys load then depends on it (a struct-member
+// store never conflicts with a fixed scalar), which lifts the stores above the count reload.
 #include "types.h"
 #include "global.h"
 #include "main.h"
@@ -11,6 +13,8 @@
 #include "math_sub.h"
 #include "rnd.h"
 #include "eprintf.h"
+
+static inline void U64Set(u64& d, u64 v) { d = v; }
 
 #define KEY_BIT(n) ((u64) 1 << (n))
 
@@ -185,7 +189,12 @@ void PadRead()
         }
     }
 
-    Key.on = 0;
+    {
+        // Reference store through a `&Key` pointer: `stw 16(r11)` with r11 = &Key, and the following
+        // `pSys` load depends on it, so the stores are issued before the `li r0,64; mtctr` pair.
+        KeyWork* k = &Key;
+        U64Set(k->on, 0);
+    }
     for (i = 0, bit = 1; i < 64; bit <<= 1, i++) {
         if (Joy[0].on & Key_type_tbl[pSys->key_type][i]) {
             Key.on |= bit;
