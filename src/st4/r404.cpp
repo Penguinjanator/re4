@@ -141,7 +141,6 @@ void R404Init()
     } else {
         r404_work.p->slide->motionSet(ROOM_ARC_PTR(pG->pRoomArc, 0x24), 0, 0, 1, 0);
     }
-    int one = 1;
     r404_work.p->slide->mot.speedRate = 0.0f;
     r404_work.p->slide->be_flag |= 0x1000;
     r404_work.p->slide->setNoSuspend(0);
@@ -165,8 +164,8 @@ void R404Init()
             break;
         }
         init.m.x20 = 30000;
+        init.m.mesStart = 1;
         init.m.mesA8 = 0xC;
-        init.m.mesStart = one;
         init.m.mesAC = 0xD;
         init.m.x58 = 0xE;
         init.m.mes[0] = 2;
@@ -651,8 +650,12 @@ void r404_checkEmSetJ()
 // COMPILER-DIFF 9: the original enters the rotated loop through `b test` without duplicating the test.
 static void r404_checkEmSetChainSaw()
 {
-    while (r404_work.p->total - r404_work.p->cnt <= 0x1D) {
-        SceSleep(1);
+    goto test;
+sleep:
+    SceSleep(1);
+test:
+    if (r404_work.p->total - r404_work.p->cnt <= 0x1D) {
+        goto sleep;
     }
     r404_setEmChainSaw();
 }
@@ -733,10 +736,12 @@ static void slide_move()
     pl->pWep->setTrans(0, 0);
     PlSetHand(1, 0);
     if (pG->x4FB8 == 2) {
+        cModel* m = pPL;
+
         v.x = 8271.77f;
         v.y = 7622.3f;
         v.z = -56912.93f;
-        pPL->setPos(&v);
+        m->setPos(&v);
         v.y = -1.5707964f;
         v.x = 0.0f;
         v.z = 0.0f;
@@ -744,10 +749,12 @@ static void slide_move()
         pPL->motionSet(ROOM_ARC_PTR(pG->pRoomArc, 0x20), 0, 0, 0x201, 0);
         r404_work.p->slide->motionSet(ROOM_ARC_PTR(pG->pRoomArc, 0x23), 0, 0, 1, 0);
     } else {
+        cModel* m = pPL;
+
         v.x = 8349.89f;
         v.y = 7626.05f;
         v.z = -56921.73f;
-        pPL->setPos(&v);
+        m->setPos(&v);
         v.y = -1.3962634f;
         v.x = 0.0f;
         v.z = 0.0f;

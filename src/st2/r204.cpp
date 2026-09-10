@@ -1,9 +1,10 @@
 #include "types.h"
 #include "main_mem.h"
 #include "st_room.h"
+#include "event.h"
 #include "atari.h"
-#include "light.h"
 #include "map_obj.h"
+#include "light.h"
 #include "widget.h"
 #include "flag_rsf.h"
 #include "global.h"
@@ -31,7 +32,6 @@
 #include "math_sub.h"
 #include "act_btn.h"
 #include "area.h"
-#include "event.h"
 #include "read.h"
 #include "stage.h"
 #include "sscrn.h"
@@ -76,7 +76,7 @@ static R204WorkPtr r204_work;
 int cEmWrapSetEmI(cEmWrap* w, int no, int list, int errOn, int chkDead, int setAlive) asm("setEm__7cEmWrapsSciii");
 
 static void door_rsf_off();
-void setTexRender();
+static void setTexRender();
 static void r204_openBox(int id);
 static void r204_openedBox(int id);
 static void r204_openTana();
@@ -276,7 +276,7 @@ static void door_rsf_off()
     RsfClear(G_ROOM_ID, 8);
 }
 
-void setTexRender()
+static void setTexRender()
 {
     cObj* obj;
     u8* tbl = r204_texTbl;
@@ -448,13 +448,12 @@ void r204_TanaMove(int opened)
         SndCall(6, 1, 0, 0, 0, 0);
     }
     const f32 lim = -2.83f;
+    const f32 spd = -0.09f;
     if (opened == 1) {
         a->rot.z = lim;
         b->rot.z = -lim;
     } else {
         while (1) {
-            const f32 spd = -0.09f;
-
             a->rot.y += spd;
             b->rot.y -= spd;
             if (a->rot.y < lim) {

@@ -102,8 +102,9 @@ void R402Init()
     cEm* door1;
     cEm* ladder;
 
+    R402Work*& wp = r402_work.p;
 #line 45 "D:/Bio4/Prog/r402.cpp"
-    r402_work.p = (R402Work*) MEM_CALLOC(sizeof(R402Work), 1, 0xd);
+    wp = (R402Work*) MEM_CALLOC(sizeof(R402Work), 1, 0xd);
     SceSetItemEvent(0x14, 0x80, 2, -1, OpenBoxTreasure, (void (*)()) OpenedBoxTreasure, 0x80, 0);
     SceSetItemEvent(0x15, 0x81, 3, -1, OpenBoxTreasure, (void (*)()) OpenedBoxTreasure, 0x81, 0);
     SceSetItemEvent(0x16, 0x82, 4, -1, OpenBoxTreasure, (void (*)()) OpenedBoxTreasure, 0x82, 0);
@@ -196,7 +197,9 @@ static void setLadderMotion(int no)
                 mot[6] = GetEtcAddr(das, "et06000.fcv");
                 mot[7] = GetEtcAddr(das, "et06001.fcv");
                 mot[8] = GetEtcAddr(das, "et06002.fcv");
-                mot[9] = ROOM_ARC_PTR(pG->pRoomArc, 0x25);
+                // struct view: the pG load stays below the mot[8] frame store (the target issues
+                // the das reload for mot[10] first); a plain pG read is hoisted above it
+                mot[9] = ROOM_ARC_PTR(pGS->pRoomArc, 0x25);
                 mot[10] = GetEtcAddr(das, "et06003.fcv");
                 mot[11] = GetEtcAddr(das, "et060000.seq");
                 mot[12] = GetEtcAddr(das, "et060010.seq");
@@ -324,6 +327,9 @@ static void R402ExecEvent02Main()
 }
 
 // The collision pieces of the two door 02 halves (objects 0x40 / 0x41).
+// COMPILER-DIFF: #1 (the original issues `fmr f1,h` before the `li 0x40; li 0x100` argument moves)
+cSat* SatMgrCreateF(cSatMgr* m, Vec* pos, Vec* rot, Vec* poly, f32 h, int attr, int flag) asm("create__7cSatMgrP3VecN21iif");
+
 void R402InitDoor02()
 {
     Vec poly[4] = {{0.0f, -2495.0f, -200.0f}, {1630.0f, -2495.0f, -200.0f}, {1630.0f, -2495.0f, 200.0f}, {0.0f, -2495.0f, 200.0f}};
@@ -335,8 +341,8 @@ void R402InitDoor02()
         cObj* obj = SmdGetObjPtr(id[i]);
 
         if (obj) {
-            r402_work.p->sat[i] = SatMgr.create(&obj->pos, &obj->rot, poly, 0x40, 0x100, h);
-            r402_work.p->eat[i] = EatMgr.create(&obj->pos, &obj->rot, poly, 0x40, 0x100, h);
+            r402_work.p->sat[i] = SatMgrCreateF(&SatMgr, &obj->pos, &obj->rot, poly, h, 0x40, 0x100);
+            r402_work.p->eat[i] = SatMgrCreateF(&EatMgr, &obj->pos, &obj->rot, poly, h, 0x40, 0x100);
         }
     }
 }
@@ -353,7 +359,9 @@ static void R402MoveDoor02(int dir)
     int i;
 
     SndCall(6, 0, &snd, 0, 0, 0);
-    for (t = 0; t <= 40; t++) {
+    t = 0;
+top:
+    {
         for (i = 0; i < 2; i++) {
             cObj* obj = SmdGetObjPtr(id[i]);
 
@@ -382,6 +390,10 @@ static void R402MoveDoor02(int dir)
             }
         }
         SceSleep(1);
+        t++;
+        if (t <= 40) {
+            goto top;
+        }
     }
 }
 

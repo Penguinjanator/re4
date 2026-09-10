@@ -3148,6 +3148,11 @@ target) stays unresolved and `make_rel` then fails with "undefined symbol".
   `setTexRender`, `setLadderMotion`, `slide_move` in st4_0) MUST be `static`: r400/r405 (and flipped r406's
   `setTexRender`) still define them global and will clash in the -r link once a second such room flips.
   Make them static before flipping (sync then reports 0 renames; REL24 calls are binding-independent).
+  Status 2026-09-10: r403's `reset_40..46` and r204's `setTexRender` made static; r405/r406 both still define
+  a global `setTexRender` and link (ngcld -r keeps one symbol-table entry, the REL bytes are unaffected).
+  A duplicated name stays a placeholder in symbols.txt (`setTexRender_A194`, `reset_40_7178`: the sync
+  "keeps" it because the mangled name already exists at the first copy) — objdiff/unit_info then show 0%
+  for a byte-identical function; compare with /tmp/rooms_a/mm.py (pairs leftovers by .text order).
 - COMPILER-DIFF candidate #11 (temp slots): two freed 12-byte Vec slots of a block are merged by
   `combine_temp_slots` into one 24-byte slot; a sibling block's first Vec takes the whole slot (24-16 < 16
   forbids the split) so its second Vec gets a fresh slot (+0x10 frame); the original reuses both. 16-byte
@@ -6554,3 +6559,73 @@ target) stays unresolved and `make_rel` then fails with "undefined symbol".
 - Harness: /tmp/rooms_b (`mcmp.py MOD/UNIT [SYM]` with `OBJ=`, `tryv.py MOD/UNIT FUNC variants.py` resolving
   the room source through modules.py UNITS, `vapply.py`, `sbs.sh MOD/UNIT SYM [OBJ]`, `mdump.sh MOD/UNIT
   -dX` with `SRC_OVERRIDE`).
+
+### Stage rooms, st4_0/st2_1 sync + polish pass (r206, r403, r40a, r20f Matching; r404 37/38, r402 18/19, r40e 12/14, r40f 8/9, r204 21/24, r209 54/61, r20d 19/32, r20e 25/31; 2026-09-10)
+
+- The "0.00% on almost every function" state of r402/r403/r404/r204/r206/r209 was the unsynced
+  symbols.txt (placeholder names); after `sync_rel_symbols.py` (no DOL rename in any of the six) the real
+  counts were 15/19, 30/32, 34/38, 20/24, 28/29, 53/61. Names that a Matching room already carries
+  (`reset_40__Fv` of r400, `setTexRender__Fv` of r20a/r406, `OpenBoxTreasure__Fi` of r40c (size 0x44 vs
+  r402's 0x94), `em_destroy__Fv`, `setLadderMotion__Fi`) stay placeholders and keep showing 0% — see the
+  helper note above; the module `.rel` shasum and a positional masked compare are the judges.
+- Harness: /tmp/rooms_a (`mm.py MOD/UNIT [SYM]` = masked compare with target->ours name aliasing for the
+  placeholder pairs; `tryv.py MOD/UNIT FUNC variants.py [--asm N] [--apply N]` compiles a room source from
+  src/st4|st2 with the module flags; `sbs.sh MOD/UNIT SYM [OBJ]`; `mdump.sh MOD/UNIT -dX` with SRC_OVERRIDE).
+- `cModel* m = pPL;` (or `= pSUB`) declared at the top of the block that does `v.x = K; v.y = K; v.z = K;
+  m->setPos(&v);` fixes the FPR pair swap of two pool constants (`lfs f12/f13` x/y or x/z exchanged, the
+  stores following): the pointer load moves out of the store block and local-alloc's qty order follows.
+  Fixed r206_snipe, r403/r404 slide_move (both arms), r40a first_init (the r10c/r40a OPEN "x-first/z-first"
+  item). A `Vec* pv` local or `f32 x/y/z` locals do not do it; the local declared AFTER the stores does not.
+- `R402Work*& wp = r402_work.p; wp = MEM_CALLOC(..)` (the r21d/r11b reference-store idiom) also decides
+  which of two hoisted `lis sym@ha` pseudos gets r30/r29 (R402Init: OpenBoxTreasure/OpenedBoxTreasure)
+  and the whole PRE/copy shape of `Vec pos = {0,0,0}; Vec rot = {0,0,0}` memsets followed by create
+  calls (R20fInit 35 -> 0 words: target `addi r3,r1,0x18; mr r31,r3` = the PRE copy taken right after the
+  arg computation, ours had the address hoisted above the first memset into a callee-saved register).
+- `pGS->pRoomArc` (struct view) for the `mot[9]` load between the GetEtcAddr calls of setLadderMotion
+  (r400's fix, needed identically in r402/r403).
+- `goto test; sleep: SceSleep(1); test: if (cond) goto sleep;` for `while (work->a - work->b <= K)
+  SceSleep(1);` where the target reloads `lis work@ha` inside the test (no loop notes -> no loop.c hoist;
+  r404_checkEmSetChainSaw 0x68 -> 0x48). The same goto shape for R402MoveDoor02's outer `for (t..40)` keeps
+  `lfd 2^52`, `cmpwi cr4,dir,1` and `addi r23,r28,1` inside the outer body (41 -> 15 words).
+- `init.m.x20 = 30000; init.m.mesStart = 1; init.m.mesA8 = 0xC; mesAC; x58; mes[0..9]` (mesStart second,
+  a literal 1, no `int one` local) gives R404Init's `li`/`stw` order; `int one = 1` at function scope
+  turned the 1 into an SI pseudo in r0 and shifted every constant register.
+- COMPILER-DIFF #1 in a room: `SatMgr.create(&pos, &rot, poly, 0x40, 0x100, h)` needs the floats-first
+  alias `cSat* SatMgrCreateF(cSatMgr*, Vec*, Vec*, Vec*, f32 h, int, int) asm("create__7cSatMgrP3VecN21iif")`
+  (emobj.cpp's) so `fmr f1,f31` is issued before `li r7,0x40; li r8,0x100` (R402InitDoor02).
+- `(c0 && AT(1)) || c0` with `c0` a variable: our cse deletes the dead AT(1) test (cse AROUND path); the
+  target keeps it because the second operand was the macro re-expanded (`|| R209_SNIPE_AT(at, i, 0)` — a
+  fresh load cse merges into c0's register while the compare survives). r209_BowgunActionSet4 83 -> 0.
+- `const f32 lim = 11225.0f; const f32 limB = 8716.0f;` right before a `while (y < lim) { y += 50.0f; ..}`
+  loop whose exit stores `y = lim; yB = limB;` puts 8716 before 50 in the pool (r209_SwitchAppearCheck,
+  .rodata now equal); `const f32 lim = -2.83f; const f32 spd = -0.09f;` before the if/else of r204_TanaMove
+  (pool -2.83, -0.09, 2.83) — the const-at-top pool lever, once more.
+- `f32 ry = -1.388f;` declared before `pl->setPos(&p)` and stored after it (`stfs f31,0xc`), and the
+  divisor/loop bound of `spd = (4000 - y) / 90; while ((f32) i < 90)` as ONE `const f32 n = 90.0f;` (both
+  uses literal, `fmr f29,f13` copy of the constant register for the loop compare) — r20d_moveWall 29 -> 3.
+- Include order is visible in `.rodata`: r204's target group is `[event.h][cFlag.set()][atari.h][map_obj.h]
+  [light.h][widget.h][flag_rsf.h]`, i.e. event.h is included before atari.h and map_obj.h before light.h.
+- r20d has a dead-stripped static helper after r20d_moveWall (pool 1.0, the signed int->float double, 120,
+  PI/180, 2000, -1, PI/135; `r20d_dbgWall`, unit added to STRIP_UNUSED); r20d's `.rodata` still differs:
+  execThrough's pool wants 10.0 first (ours 0.1, PI, 0.0, 10.0) and five unreferenced words {PI, PI/4, PI/2,
+  7PI/8, PI/8} follow getTargetPos's PI at 0x2064 (a dead table or dead code of getTargetPos/throwLantern).
+- r40e: the r104 `FCRef(vol)` static-const idiom for `SndStrReq(.., 0.0f)` after RsfSet (execShowView);
+  `pG->flags_54 |= 0x04000000` (was 0x400) in gameResult.
+- OPEN (this pass): r404_initEmSet (61: the target PRE-hoists `n*12` above the rot template-copy loop
+  (`mulli r4` before, `add r4,r4,r6` after) and forms `&rot[n]` as `(n*12 + &pos) + 0x28` with a SECOND
+  mulli — two cse blocks; every p/r placement, `int`/`u8` index and `&rot[0]+n` form tried, best 60);
+  R402MoveDoor02 (15: `&id` PRE-hoisted above the goto loop in ours, in the outer body in the target;
+  r22/r23/r24 permutation follows); r40e gameResult (8: `li r28,0xff` of FadeSetW's `black` issued after
+  the two systemVISetBlack calls in the target, at the block top in ours; single-variable fade helper does
+  not move it) and R40EExecEventS00 (2: the `addi r31,r9,cMes@l; addi r31,r31,4` two-step, same as r108/
+  r117/r11c/r11d); r40f BombSet (the known "second word pair" template-copy OPEN); r209 R209Main (124:
+  gcse PRE hoists `j+1` from the outer latch to the end of the pre-inner-loop block ("PRE/HOIST ... copying
+  expression" in the gcse dump), so loop.c never sees `j` as a biv and the `j*4`/`j*8` givs are not
+  reduced; a separate `u32 bit` counter gives the target's inner loop (pointer compare `cmplw r31,r25`,
+  `k` biv) but the outer loop stays); r209 Switch/BridgeAppearCheck (7 each: `lis RO; lis work` order and
+  the EstSet `li r8/li r10` order), 2ndBattleEmSet 29, BridgeAppearCheckEnd 28, OpenPicture 13;
+  r204 EventChandelier1/2 (155/156) and nige_check (228): macro-generated, callee-saved set differs
+  (stmw r16 vs r20); r20d throwLantern 84 (`switch (u->step)` tree `cmpwi 2; beq; cmplwi 2; bgt; cmpwi 0;
+  beq; cmpwi 1; beq` and an `add r29,u,st; lwz 0x18(r29)` indexed motion pointer), operateCrank 68,
+  execThrough 71, getTargetPos 51, setThrowLantern 46, execRoundSwitch 45; r20e checkPuzzle 366,
+  initPuzzle 119, moveCrestDoor 33 (not looked at).

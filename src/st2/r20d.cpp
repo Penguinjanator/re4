@@ -685,7 +685,6 @@ static void r20d_moveWall()
     cPlayer* pl;
     cObj* wall;
     u32 i = 0;
-    f32 n;
     f32 spd;
 
     SceEventStart(0);
@@ -694,15 +693,16 @@ static void r20d_moveWall()
     p.y = -1000.0f;
     p.z = 13197.0f;
     pl = pPL;
+    f32 ry = -1.388f;
     pl->setPos(&p);
     p.x = 0.0f;
-    p.y = -1.388f;
+    p.y = ry;
     p.z = 0.0f;
     pl->setAng(&p);
     CamCtrl.CutCall(0xC);
     wall = SmdGetObjPtr(0x17);
     wall->be_flag |= 0x20;
-    n = 90.0f;
+    const f32 n = 90.0f;
     spd = (4000.0f - wall->pos.y) / n;
     SndCall(6, 8, 0, 0, 0, 0);
     do {
@@ -717,6 +717,22 @@ static void r20d_moveWall()
     CamCtrl.Comeback(0);
     pPL->setNoSuspend(0);
     SceEventEnd(0);
+}
+
+// Never-called debug helper of the original object: the original REL link dead-stripped its body and
+// kept its constant pool (1.0, the signed int->float double, 120, PI/180, 2000, -1, PI/135) right after
+// r20d_moveWall's pool; the unit is in modules.py STRIP_UNUSED so ours drops the body too.
+static void r20d_dbgWall(int frame)
+{
+    f32 rate = 1.0f;
+    f32 t = (f32) frame;
+    f32 ang = t / 120.0f * 0.017453292f;
+    f32 y = 2000.0f * ang;
+
+    if (y < -1.0f) {
+        rate = 0.023271058f;
+    }
+    pPL->pos.y = y * rate;
 }
 
 void r20d_checkPictureCombination()

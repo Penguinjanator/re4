@@ -108,10 +108,16 @@ static void r40e_execShowView_end()
 }
 
 // Area 3: the camera shows the room (cut 11) with its stream.
+static inline f32 FCRef(const f32& v) { return v; }
+
 static void r40e_execShowView()
 {
+    // The 0.0 is loaded after the RsfSet store: a pool constant would move above it (pool loads never
+    // depend on stores), a `static const` read through a reference stays below (AGENTS.md, r104).
+    static const f32 vol = 0.0f;
+
     RsfSet(G_ROOM_ID, 3);
-    r40e_work->str = SndStrReq(0, 0x33, 0x80000003, 0, 0, 0.0f);
+    r40e_work->str = SndStrReq(0, 0x33, 0x80000003, 0, 0, FCRef(vol));
     SceSetEventCancel(1, (TaskFunc) r40e_execShowView_end, 0, -1, 1);
     SceEventStart(0);
     CamCtrl.CutCall(0xB);
@@ -411,7 +417,7 @@ static void gameResult()
         delete res;
         swap.SwapIn();
     }
-    pG->flags_54 |= 0x400;
+    pG->flags_54 |= 0x04000000;
 }
 
 extern "C" void Evt_R40ES00_Func(Event* e)

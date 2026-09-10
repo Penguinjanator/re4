@@ -83,8 +83,9 @@ void R20fInit()
     cObj* obj0;
     cObj* obj1;
 
+    R20fWork*& wp = r20f_work.p;
 #line 45 "D:/Bio4/Prog/r20f.cpp"
-    r20f_work.p = (R20fWork*) MEM_CALLOC(sizeof(R20fWork), 1, 0xd);
+    wp = (R20fWork*) MEM_CALLOC(sizeof(R20fWork), 1, 0xd);
     Vec pos = {0.0f, 0.0f, 0.0f};
     Vec rot = {0.0f, 0.0f, 0.0f};
     cEm* door;

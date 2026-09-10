@@ -1229,13 +1229,16 @@ static void r209_SwitchAppearCheck()
             r209_work.p->seId = RoomSeCall(0xD, 0, 0, 0, 0);
             obj1->be_flag |= 0x20;
             objB7->be_flag |= 0x20;
-            while (obj1->pos.y < 11225.0f) {
+            const f32 lim = 11225.0f;
+            const f32 limB = 8716.0f;
+
+            while (obj1->pos.y < lim) {
                 obj1->pos.y += 50.0f;
                 objB7->pos.y += 50.0f;
                 SceSleep(1);
             }
-            obj1->pos.y = 11225.0f;
-            objB7->pos.y = 8716.0f;
+            obj1->pos.y = lim;
+            objB7->pos.y = limB;
             RoomSeCall(0xE, 0, 0, 0, 0);
             while (CamCtrl.IsMotionEnd() == 0) {
                 SceSleep(1);
@@ -1642,7 +1645,7 @@ extern "C" void r209_BowgunActionSet4(int i, int flag, int pt)
     memclr_asm(e->path, 0x14);
     at = r209_work.p->atCur;
     c0 = R209_SNIPE_AT(at, i, 0);
-    if ((c0 && R209_SNIPE_AT(at, i, 1)) || c0) {
+    if ((c0 && R209_SNIPE_AT(at, i, 1)) || R209_SNIPE_AT(at, i, 0)) {
         if (pt >= 9 && pt <= 11) {
             e->path[cnt] = &r209_bowgunPos2[1];
             cnt = 1;

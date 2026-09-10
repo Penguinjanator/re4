@@ -147,10 +147,11 @@ static void first_init()
     SceSleep(1);
     y = pPL->pos.y;
     pPL->setNoSuspend(1);
+    cModel* m = pPL;
     v.x = 773.0f;
     v.y = 4010.0f;
     v.z = 939.0f;
-    pPL->setPos(&v);
+    m->setPos(&v);
     v.y = 1.59f;
     v.x = 0.0f;
     v.z = 0.0f;

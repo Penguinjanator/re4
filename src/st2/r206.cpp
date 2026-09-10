@@ -884,11 +884,12 @@ wave_done:
     SceEventStart(1);
     {
         Vec pos;
+        cModel* m = pSUB;
 
         pos.x = 5669.0f;
         pos.y = 0.0f;
         pos.z = -19307.0f;
-        pSUB->setPos(&pos);
+        m->setPos(&pos);
     }
     CamCtrl.CutCall(3);
     while (CamCtrl.IsMotionEnd() == 0) {

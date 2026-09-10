@@ -550,6 +550,7 @@ STRIP_UNUSED = {
     "st2_3/r229.cpp",
     "st2_3/r226.cpp",
     "st2_2/r216.cpp",
+    "st2_1/r20d.cpp",
     # em2f: a never-called static (six pool constants between em2fRouteCk and em2fWaterEffSet)
     "em2f/em2f.cpp",
 
@@ -638,6 +639,8 @@ MATCHING = {
     "st2_1/r20a.cpp": True,
     "st2_1/r20b.cpp": True,
     "st2_1/r20c.cpp": True,
+    "st2_1/r206.cpp": True,
+    "st2_1/r20f.cpp": True,
     "st2_2/st2.cpp": True,
     "st2_2/r211.cpp": True,
     "st2_2/r219.cpp": True,
@@ -659,6 +662,8 @@ MATCHING = {
     "st4_0/r405.cpp": True,
     "st4_0/r40d.cpp": True,
     "st4_0/r400.cpp": True,
+    "st4_0/r403.cpp": True,
+    "st4_0/r40a.cpp": True,
     "st2_0/cSceObj.cpp": True,
     "st2_3/cSceObj.cpp": True,
     "st4_0/cSceObj.cpp": True,

@@ -84,13 +84,13 @@ int cEmWrapSetEmI(cEmWrap* w, int no, int list, int errOn, int chkDead, int setA
 static void r403_DuraluminCaseOpen(int no);
 static void r403_DuraluminCaseOpened(int no);
 static int em_reset(int no, int chk);
-void reset_40();
-void reset_41();
-void reset_42();
-void reset_43();
-void reset_44();
-void reset_45();
-void reset_46();
+static void reset_40();
+static void reset_41();
+static void reset_42();
+static void reset_43();
+static void reset_44();
+static void reset_45();
+static void reset_46();
 void reset_47();
 void reset_48();
 void reset_49();
@@ -238,7 +238,7 @@ static int em_reset(int no, int chk)
     return 1;
 }
 
-void reset_40()
+static void reset_40()
 {
     SceDebugDisp("RESET_AREA[0]");
     em_reset(6, 1);
@@ -248,7 +248,7 @@ void reset_40()
     em_reset(0xA, 1);
 }
 
-void reset_41()
+static void reset_41()
 {
     SceDebugDisp("RESET_AREA[1]");
     em_reset(0xC, 1);
@@ -258,7 +258,7 @@ void reset_41()
     em_reset(0x10, 1);
 }
 
-void reset_42()
+static void reset_42()
 {
     SceDebugDisp("RESET_AREA[2]");
     em_reset(0x12, 1);
@@ -268,7 +268,7 @@ void reset_42()
     em_reset(0x16, 1);
 }
 
-void reset_43()
+static void reset_43()
 {
     SceDebugDisp("RESET_AREA[3]");
     em_reset(0x18, 1);
@@ -278,7 +278,7 @@ void reset_43()
     em_reset(0x1C, 1);
 }
 
-void reset_44()
+static void reset_44()
 {
     SceDebugDisp("RESET_AREA[4]");
     em_reset(0x1E, 1);
@@ -288,7 +288,7 @@ void reset_44()
     em_reset(0x22, 1);
 }
 
-void reset_45()
+static void reset_45()
 {
     SceDebugDisp("RESET_AREA[5]");
     em_reset(0x24, 1);
@@ -298,7 +298,7 @@ void reset_45()
     em_reset(0x28, 1);
 }
 
-void reset_46()
+static void reset_46()
 {
     SceDebugDisp("RESET_AREA[6]");
     em_reset(0x2A, 1);
@@ -637,10 +637,12 @@ static void slide_move()
     pl->pWep->setTrans(0, 0);
     PlSetHand(1, 0);
     if (pG->x4FB8 == 2) {
+        cModel* m = pPL;
+
         v.x = 58241.0f;
         v.y = 16600.2f;
         v.z = -11855.78f;
-        pPL->setPos(&v);
+        m->setPos(&v);
         v.y = -0.18653207f;
         v.x = 0.0f;
         v.z = 0.0f;
@@ -648,10 +650,12 @@ static void slide_move()
         pPL->motionSet(ROOM_ARC_PTR(pG->pRoomArc, 0x29), 0, 0, 0x201, 0);
         r403_work.p->slide->motionSet(ROOM_ARC_PTR(pG->pRoomArc, 0x2D), 0, 0, 1, 0);
     } else {
+        cModel* m = pPL;
+
         v.x = 58200.0f;
         v.y = 16588.34f;
         v.z = -11855.78f;
-        pPL->setPos(&v);
+        m->setPos(&v);
         v.x = 0.0f;
         v.y = 0.0f;
         v.z = 0.0f;
@@ -727,7 +731,9 @@ static void setLadderMotion(int no)
                 mot[6] = GetEtcAddr(das, "et06000.fcv");
                 mot[7] = GetEtcAddr(das, "et06001.fcv");
                 mot[8] = GetEtcAddr(das, "et06002.fcv");
-                mot[9] = ROOM_ARC_PTR(pG->pRoomArc, 0x35);
+                // struct view: the pG load stays below the mot[8] frame store (the target issues
+                // the das reload for mot[10] first); a plain pG read is hoisted above it
+                mot[9] = ROOM_ARC_PTR(pGS->pRoomArc, 0x35);
                 mot[10] = GetEtcAddr(das, "et06003.fcv");
                 mot[11] = GetEtcAddr(das, "et060000.seq");
                 mot[12] = GetEtcAddr(das, "et060010.seq");
