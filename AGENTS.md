@@ -8782,3 +8782,68 @@ confirmed on the units named):
   R1_Critical (#5), r223 reva_common_move (#1 prologue order), r224 R224Main (#13 stack zero), tvib_R0_VibLoopSet (the
   reverse direction: the target KEEPS the PRE'd high, ours re-materialises).
 - r108 str_check / r203 StreamCheck untouched (#3 double EmMgr chain); r203/r20d/r226 belong to other agents.
+
+### DOL sweep 7, one-function units (emBarred Matching; pl_debug DrawGage 18 -> 1 word; drawPoint/EspDrawLaserLine/em_set/espgen10 classified as #13; 2026-09-10)
+
+- Harness /tmp/dol_one3 (copy of /tmp/dol_one2 with the paths rewritten: `mcmp.py`, `tryv.py UNIT SYM variants.py`
+  (`STRIP=1` for STRIP_UNUSED units, else the vtable words show as false diffs), `vapply.py`, `sbs.sh UNIT SYM [ABS_OBJ]`,
+  `dump.sh UNIT -dX` with `SRC_OVERRIDE`; C++ asm statements need `: :`, not `::`).
+- **Flow-nop rule generalised to switch arms** (emBarred SetEmBarred 69 -> 0, unit Matching): when identical call tails of
+  a `switch` must cross-jump into the FALL-THROUGH arm's copy (the target's survivor is the arm laid out last, with the
+  other arms jumping N insns deep into it), no arm may end in the CALL_INSN. The statement that follows the switch in
+  the natural source (`em->hpMax = em->hp = 1000`) is written inside EVERY arm after its call (the empty `case 0: case 7:`
+  arm too): jump2 merges all eight copies into case 4's tail (`lfs f6; mr r3; fmr f3; li r4; li r5; bl; li; sth; sth`) and
+  the 140.0 arms then merge a second level into the default arm's `lfs f6`. A `do{}while(0)` around the duplicated
+  store costs 4 words; `asm volatile("")` after the call does not help (the asm becomes the mismatching tail insn).
+- **Multi-set variable as the result register of a float chain** (pl_debug DrawGage 18 -> 1): the target's `fw*fnow` in a
+  caller-saved temp (`fmuls f12`) with `fdivs f25` into `len`, then `fadds f25` and later `fmuls f25` for the second
+  quad's width = ONE 3-set `len` (`len = fw*fnow/fmax; ... len = fx + len; ... len = fw*(1-fnow/fmax); size.x = len`).
+  A multi-set block-local pseudo already has a qty when the dividing insn is reached (`combine_regs: reg_qty[sreg] >= -1`)
+  so the dying product is never tied into it; a single-set `len` ties the whole chain into one register. Residue 1 word:
+  `fadds f25,f13,f25` (fx + len, tied to len = op2) vs ours `fadds f25,f25,f13`: `len = fx + len` is swapped by
+  expand_binop (`rtx_equal_p (op1, target)`), and a separate `x2 = fx + len` ties to fx (op1 dies first in our sched1
+  order because the `pos.x = fx` store is hoisted above the add) and drags fx into a callee-saved register (34 words).
+- **#13 (REG_EQUIV constants never allocated) explains four more residues, read off the local-alloc fake lifetimes**
+  (local-alloc.c 1490: a qty is first tried with birth-2/death+1 so it conflicts with the qty born in the NEXT insn):
+  - objWep drawPoint (2): the `esp->xA7 = 0` QI zero. In ours its `li` is a real insn issued at t=3 between `stb a4` and
+    the `lwz esp` reload, so reload 1's fake death misses reload 2's birth and both take r9; in the original the const
+    was folded into the store (no insn at all) and reload re-materialised `li r7,0` (first free spill reg), which sched2
+    then hoisted to right after `stb a4`. Anything that puts a `li` in the block (hard-register `register int z asm("r7")`,
+    `int zero` moved by update_equiv_regs -> r0, keep-alive asm inputs, do-while barriers 5-9 words) keeps the shape wrong;
+    a hard-reg set cannot be delayed past `lwz` reload 2 without the loop notes also blocking sched2.
+  - esp_app EspDrawLaserLine (13): the same block plus `colA *= 0.8f`; the pool HIGH (`lis 0.8@ha`, REG_EQUIV high) is a
+    qty in ours (issued after `stb a4`, born before reload 2 so it takes r9 and every later reload flips r9/r11); in the
+    original it is reload-materialised right before the `lfs` (r11) and the reloads come out r9,r9,r11,r9,r11 exactly as
+    the fake-lifetime walk predicts with no HIGH qty. Statement order / FSet / const locals: unchanged.
+  - em_set EmSetEvent/EmSetFromList2 (73/74): the seven fpmem `loadaddr` pseudos are NOT REG_EQUIV (unspec source); the
+    three pool highs ARE, and the target loads them `lis r9; lfs; lis r9; lfs; lis r11; lfs` (each `lis` re-materialised
+    before its `lfs`, spill regs r9/r9/r11) where ours hoists three allocated highs to the block top.
+  - espgen10 EspgenDataSet (9): `list` (REG_EQUIV `symbol_ref` from the movsi split) is re-materialised at the `lwzx`
+    (`lis r9; addi r11`) and then hoisted above `cmplwi no,127` by the original's interblock sched2 (#5: our find_rgns
+    gives this leaf-ending function single-block regions). Two compiler-build differences, no source lever.
+- **Two-set constant variable = one REG_EQUIV pseudo with the live length doubled TWICE** (obj00 FallMove analysis):
+  update_equiv_regs accepts a pseudo "set once, or always to the same value" and runs `REG_LIVE_LENGTH *= 2` per
+  initialising insn (392 = 4 x 98 in the .lreg dump). The target's `li r23,1` in both the k-loop and the hit-loop
+  preheaders with one register = a two-set `int one` (`one = 1` before each loop, `p->hit = n->hit = one`, `w->sePlayed
+  = one`): priority 3*10/392 = 765 < obj (1057) so `one` takes r22 and pushes obj to r23; the target needs
+  1057 < prio(one) < 1739 (A = the k+1 giv). 14-17 weighted refs reach it -- `asm("" : : "r"(one), "r"(one))` at the
+  bottom of the k-loop body gives r23/r22 (2 -> 12 words) but the extra insn shifts the gcse hash order (spill-slot
+  rotation) and two sched1 LUID ties (`li r9,0`/`mr r29,r21`, the second `li` position); a single-use asm or
+  do-while weighting lands on 13 refs (994). Not applied; the baseline 2 words stay.
+- **Dying-source bonus not applied by the original** (t_option tp_pl_flag 5, #8 family): both arms issue `li r4,0xfe` before
+  `addi r3,r30,ItemMgr@l` although the PRE'd high dies at the addi (weight 0 in ours -> first). With equal weights the
+  int-returning callee's r3 output dependence ranks the addi last, exactly the target. No source form removes the death
+  (a later ItemMgr use would emit code; asm inputs of `&ItemMgr` materialise an addi).
+- **Loop rotation blocker** (stmt.c expand_end_loop, read): the exit-test scan stops at a NOTE_INSN_LOOP_BEG ("must not walk
+  into a nested loop"), so a dead `do { } while (0);` as the FIRST statement of a `for (;;)`/`while (1)` body before the
+  `if (!c) break;` keeps the test at the top with `b top` from every arm (dbmodule DrawObjWireframe gets the target's
+  un-rotated shape) -- but the loop notes spill `part` and reorder the header (155 words vs 59), so not applied there.
+  Also read: the body's LAST insn being a condjump disables rotation, which is why do-while loops never rotate; a
+  trailing `if (c) continue;` does not qualify (the if's end label is the last insn).
+- t_flag move (11): the target's `add r29,r11,r9` (x = lo + (lo >> 2)) ties neither operand although both die there
+  (`combine_regs` refuses when the dest already has a qty or is -1): reusing the loop's `i` (2-set, global) reproduces
+  the untied add but combine then folds `i += 23` into a fresh temp; reusing the u16 `w` adds `clrlwi`s. 70-83 words.
+- esp45 HideCheck (2): `li r30,0` (giv init) before `lis r26,Screen@ha` = the high hoisted by loop pass 2 after pass 1's
+  giv init; in ours the high is a pass-1 movable (LUID before the giv init). filter06 move (3): loadaddr qty ordering,
+  compiler-side (fpmem address pseudo). espgen02 Update (4): `int add` after the copies fixes the `li r29` position but
+  swaps scaleR/colR (6 refs each, lengths 1412/1410: the later-born copy wins f25); every order tried gives 9-14.

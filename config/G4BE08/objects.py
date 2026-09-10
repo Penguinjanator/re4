@@ -1528,3 +1528,8 @@ MATCHING.update({
     "lib/cftcoladj.c": True,  # `cbtbl[i] = i * v / j` (the i*v product is MWCC's strength-reduced IV, not a source local); last ramp loops on v with the start copied
     "lib/lsc.c": True,  # EntryFileRange: raw previous id read first, then ent = GetWrEntry, then the wrap ternary (temporaries in place)
 })
+
+# DOL sweep 7, one-function units (2026-09-10)
+MATCHING.update({
+    "game/emBarred.cpp": True,  # SetEmBarred: `em->hpMax = em->hp = 1000` repeated in every YarareInitCube arm so case 4 does not end in the call (flow `use 0` nop) and all arms cross-jump into its tail
+})

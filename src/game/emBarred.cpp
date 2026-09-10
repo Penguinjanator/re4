@@ -1,11 +1,12 @@
 // game/emBarred.cpp: barred gate enemy (cEmBarred): iron gates that rise for the player when he
 // stands near, drop back shut, and can be shot open (type 6).
 //
-// Not yet byte-identical: SetEmBarred (69 words): the YarareInitCube tails. The original merges the
-// 140.0 arms (default/8/9) into the DEFAULT arm's `lfs f6` and the 250.0 arms (3/4) into case 4's
-// `lfs f6` + call tail; ours merges the 5-insn call tails only, into case 3's copy, because case 4
-// (the fall-through arm) ends in a call followed by the join label (flow's `use 0` nop blocks the
-// fall-through cross-jump). The atari init interleave is COMPILER-DIFF #1 (atari_init.h AtariInit).
+// SetEmBarred: the `em->hpMax = em->hp = 1000` pair is written in every YarareInitCube arm (the
+// original's source shape): with the store after each call no arm ends in a CALL_INSN, so flow's
+// `(use (const_int 0))` nop never blocks the fall-through cross-jump and jump2 merges every arm into
+// case 4's `lfs f6` + call + store tail (then 8/9 into the default arm's 140.0 `lfs f6`). A single
+// `hp = 1000` after the switch left case 4's call block ending in the call (69 words). The atari
+// init interleave is COMPILER-DIFF #1 (atari_init.h AtariInit).
 // emBarredEatSet only differs in two `lis 0x8023` words the split object carries without a
 // relocation (their `lfs` sits in another block); the linked bytes are identical.
 
@@ -116,12 +117,15 @@ cEmBarred* SetEmBarred(void* bin, void* tpl, Vec* pos, Vec* rot, int flagNo, int
     case 5:
     default:
         YarareInitCube(em, 0.0f, 0.0f, 0.0f, 800.0f, 2400.0f, 140.0f, 0, 0x41);
+        em->hpMax = em->hp = 1000;
         break;
     case 8:
         YarareInitCube(em, 0.0f, 0.0f, 0.0f, 850.0f, 2600.0f, 140.0f, 0, 0x41);
+        em->hpMax = em->hp = 1000;
         break;
     case 9:
         YarareInitCube(em, 0.0f, 0.0f, 0.0f, 750.0f, 3100.0f, 140.0f, 0, 0x41);
+        em->hpMax = em->hp = 1000;
         break;
     case 6:
         YarareInitCube(em, 0.0f, 260.0f, 0.0f, 490.0f, 1880.0f, 140.0f, 0, 0x41);
@@ -129,23 +133,25 @@ cEmBarred* SetEmBarred(void* bin, void* tpl, Vec* pos, Vec* rot, int flagNo, int
         YarareAddCube(em, &w->hit[1], 490.0f, 0.0f, 0.0f, 80.0f, 2400.0f, 140.0f, 0, 0x41);
         YarareAddCube(em, &w->hit[2], 0.0f, 0.0f, 0.0f, 650.0f, 260.0f, 140.0f, 0, 0x41);
         YarareAddCube(em, &w->hit[3], 0.0f, 2040.0f, 0.0f, 650.0f, 260.0f, 140.0f, 0, 0x41);
+        em->hpMax = em->hp = 1000;
         break;
     case 2:
         YarareInitCube(em, 0.0f, 0.0f, 0.0f, 800.0f, 2700.0f, 120.0f, 0, 0x41);
+        em->hpMax = em->hp = 1000;
         break;
     case 3:
         YarareInitCube(em, 0.0f, 0.0f, 0.0f, 4150.0f, 4800.0f, 250.0f, 0, 0x41);
+        em->hpMax = em->hp = 1000;
         break;
     case 4:
         YarareInitCube(em, 0.0f, 0.0f, 0.0f, 1650.0f, 3150.0f, 250.0f, 0, 0x41);
+        em->hpMax = em->hp = 1000;
         break;
     case 0:
     case 7:
+        em->hpMax = em->hp = 1000;
         break;
     }
-    do {
-        em->hpMax = em->hp = 1000;
-    } while (0);
     if (pos) {
         em->pos = *pos;
     } else {

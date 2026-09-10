@@ -279,6 +279,10 @@ void cPlMaho::regist(const char* code, void (*func)())
     num++;
 }
 
+// DrawGage (1 word left): `len` is the one variable for both widths and the right edge (a multi-set
+// pseudo is never tied to the dying product, so `fw*fnow` stays in f12 like the original); the
+// original's `fadds f25,f13,f25` (fx first, result tied to len) needs fx to outlive the add, which
+// no statement order gives here (ours `fadds f25,f25,f13`).
 void DrawGage(int x, int y, int h, int w, int now, int max, int color)
 {
     Vec pos;
@@ -308,7 +312,8 @@ void DrawGage(int x, int y, int h, int w, int now, int max, int color)
     pos.x = len;
     pos.y = fy;
     pos.z = 1.0f;
-    size.x = fw * (1.0f - fnow / fmax);
+    len = fw * (1.0f - fnow / fmax);
+    size.x = len;
     size.y = fh;
     size.z = 1.0f;
     Draw_quad(&pos, &size, color & 0xFF000000);
