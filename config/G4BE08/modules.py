@@ -553,6 +553,8 @@ STRIP_UNUSED = {
     "st2_1/r20d.cpp",
     # em2f: a never-called static (six pool constants between em2fRouteCk and em2fWaterEffSet)
     "em2f/em2f.cpp",
+    # em31: the never-called single-link Em31ClothSet (five pool constants between em31RouteCk and Em31ClothSet2)
+    "em31/em31.cpp",
 
     # the tool library objects are the t_emlist versions minus what the module never calls
     "t_camera/t_prim.cpp", "t_camera/t_util.cpp", "t_light/t_util.cpp", "t_event/t_util.cpp", "t_sce/t_util.cpp",
