@@ -270,8 +270,11 @@ static void toolIdPrev(IdTool* w)
             sprintf(path, "x:\\soft/Room/SubScreen/%s/share.eff", langName[w->lang]);
             if (HDRead(path, pIdBuf2) > 0x300000) {
                 pLog->err(0, 0, "toolIdInit(): Eff(%s) file is too large.", path);
-            } else if (w->type > 1 || w->type < 0) {
-                IdTexDataLoad(pIdBuf2, 8);
+            } else {
+                int t = w->type;
+                if (t > 1 || w->type < 0) {
+                    IdTexDataLoad(pIdBuf2, 8);
+                }
             }
             sprintf(path, "x:\\soft/Room/SubScreen/%s/%s.eff", langName[w->lang], subScreenName[w->type]);
             if (HDRead(path, pIdBuf3) > 0x900000) {
@@ -339,11 +342,6 @@ static void toolIdMain(IdTool* w)
 
 void toolIdDataInit(ID_DATA* d)
 {
-    d->sizeY = 0.0f;
-    d->be_flag = 0xD;
-    d->kind = 0;
-    d->col0[0] = 0xFF;
-    d->col1[0] = 0;
     d->texId = 0xFF;
     d->mark = 0xFF;
     d->pos.x = 0.0f;
@@ -351,14 +349,13 @@ void toolIdDataInit(ID_DATA* d)
     d->pos.z = 0.0f;
     d->vtxType = 0;
     d->sizeX = 0.0f;
+    d->sizeY = 0.0f;
+    d->be_flag = 0xD;
+    d->kind = 0;
     d->xF4 = 0;
     d->parentNo = 0xFF;
-    d->col0[3] = 0xFF;
-    d->col0[2] = 0xFF;
-    d->col0[1] = 0xFF;
-    d->col1[3] = 0;
-    d->col1[2] = 0;
-    d->col1[1] = 0;
+    d->col0[0] = d->col0[1] = d->col0[2] = d->col0[3] = 0xFF;
+    d->col1[0] = d->col1[1] = d->col1[2] = d->col1[3] = 0;
     memclr_asm(&d->path0, sizeof(d->path0));
     memclr_asm(&d->path1, sizeof(d->path1));
     memclr_asm(&d->curve0, sizeof(d->curve0));
@@ -426,8 +423,8 @@ ID_DATA* toolIdPull()
 
 static void toolIdEdit(IdTool* w)
 {
-    JOY* joy = &Joy[0];
     ID_DATA* d = toolIdGetPtrPR(w->parentNo, w->no);
+    JOY* joy = &Joy[0];
     int r;
 
     w->focus = 1;
@@ -839,8 +836,8 @@ int idEditId(IdTool* w, int x, int y)
             w->parentNo = d->unitNo;
             w->level++;
             toolIdFocusReset(w, d);
-            w->no = n;
             w->x21 = n;
+            w->no = n;
             return 0;
         }
         w->editStep++;
@@ -852,18 +849,22 @@ int idEditId(IdTool* w, int x, int y)
             step = 10;
         }
         if (joy->rep & 0x10001) {
-            d->texId = old - step;
+            d->texId -= step;
         }
         if (joy->rep & 0x20002) {
             d->texId += step;
         }
         if (old != d->texId && !(d->flags10A & 0x80)) {
-            TexAnm* anm;
+            struct { TexAnm* p; } anm;
 
-            if (IdGetAnmAddr(d->texId, &anm) == 1) {
-                TexAnmSize* sz = (TexAnmSize*) anm;
-                d->sizeX = (f32) sz->w;
-                d->sizeY = (f32) (int) ((f32) (int) sz->h * 480.0f / 448.0f + 0.5f);
+            if (IdGetAnmAddr(d->texId, &anm.p) == 1) {
+                d->sizeX = (f32) ((TexAnmSize*) anm.p)->w;
+                {
+                    f32 h = (f32) (int) ((TexAnmSize*) anm.p)->h;
+                    h = h * 480.0f / 448.0f;
+                    h += 0.5f;
+                    d->sizeY = (f32) (int) h;
+                }
             }
         }
         if (joy->trg & 0x200) {
@@ -876,12 +877,18 @@ int idEditId(IdTool* w, int x, int y)
     y += 0xE;
     yy = y;
     for (i = 0; i <= 0; i++, yy += 0xE) {
+        int col;
+
         eprintf(x, yy, (w->subCur == i) ? 4 : 0, 0, "%s", idMenuName[i]);
         if (w->subCur == i && (w->cnt & 0x18)) {
             eprintf(x - 8, yy, 0x16, 0, ">");
         }
+        col = 7;
+        if (w->subCur == i) {
+            col = 0;
+        }
         if (i == 0) {
-            eprintf(x + 0x20, y, (w->subCur == i) ? 0 : 7, 0, "%02X", d->texId);
+            eprintf(x + 0x20, y, col, 0, "%02X", d->texId);
         }
     }
     return ret;
@@ -967,8 +974,8 @@ static inline void idDrawGuide(IdTool* w, ID_DATA* d)
 
 int idEditPos(IdTool* w, int x, int y)
 {
-    JOY* joy = &Joy[0];
     ID_DATA* d = toolIdGetPtrPR(w->parentNo, w->no);
+    JOY* joy;
     int ret = 1;
     Vec* pos;
     int i, j;
@@ -978,6 +985,7 @@ int idEditPos(IdTool* w, int x, int y)
     idPath.path = (FuncPathData*) &d->path0;
     w->pRandom = &idRandom;
     idRandom.pVal = (s16*) d->x17C8;
+    joy = &Joy[0];
     pos = &d->pos;
     w->gridLv = d->vtxType >> 4;
     switch (w->editStep) {
@@ -1244,8 +1252,8 @@ static const char* axisName[3] = { "X-Y", "-X-", "-Y-" };
 
 int idEditSize(IdTool* w, int x, int y)
 {
-    JOY* joy = &Joy[0];
     ID_DATA* d = toolIdGetPtrPR(w->parentNo, w->no);
+    JOY* joy = &Joy[0];
     int ret = 1;
     Vec* pos = &d->pos;
     int i, j;
@@ -1502,8 +1510,8 @@ static const char* onOffName3[2] = { "ON", "OFF" };
 
 int idEditColor(IdTool* w, int x, int y)
 {
-    JOY* joy = &Joy[0];
     ID_DATA* d = toolIdGetPtrPR(w->parentNo, w->no);
+    JOY* joy = &Joy[0];
     int ret = 1;
     u8* pc = 0;
     int i, j;
@@ -1710,8 +1718,8 @@ static const char* onOffName4[2] = { "ON", "OFF" };
 
 int idEditRot(IdTool* w, int x, int y)
 {
-    JOY* joy = &Joy[0];
     ID_DATA* d = toolIdGetPtrPR(w->parentNo, w->no);
+    JOY* joy = &Joy[0];
     int ret = 1;
     f32* pr = 0;
     int i, j;
@@ -1880,8 +1888,8 @@ static const char* transModeName[5] = { "NORMAL", "NEGA  ", "R-NRML", "R-OFST", 
 
 int idEditTrans(IdTool* w, int x, int y)
 {
-    JOY* joy = &Joy[0];
     ID_DATA* d = toolIdGetPtrPR(w->parentNo, w->no);
+    JOY* joy = &Joy[0];
     int ret = 1;
     int i, j;
     int yy;
@@ -2001,8 +2009,8 @@ static const char* markMenuName[1] = { "Mark:" };
 
 int idEditMark(IdTool* w, int x, int y)
 {
-    JOY* joy = &Joy[0];
     ID_DATA* d = toolIdGetPtrPR(w->parentNo, w->no);
+    JOY* joy = &Joy[0];
     int ret = 1;
     int i;
     int yy;
@@ -2093,7 +2101,7 @@ void toolIdEditDisp(IdTool* w)
         row = 0x14;
     }
     if (w->x21 + 7 < w->no) {
-        w->x21 = w->no - 7;
+        w->x21 = w->no + 0xF9;
     } else if (w->x21 > w->no) {
         w->x21 = w->no;
     }
@@ -2110,8 +2118,7 @@ void toolIdEditDisp(IdTool* w)
                 eprintf((cx + wdt) << 3, yy, 0x16, 0, "<");
             }
         }
-        cx++;
-        cx += wdt;
+        cx += wdt + 1;
     }
     row = 0xC;
     if (w->dispTop == 0) {
@@ -3244,11 +3251,11 @@ int toolIdCountSelected()
 
 ID_DATA* toolIdCopy(ID_DATA* d, u8 level)
 {
-    ID_DATA* p;
     ID_DATA* c;
     int i;
 
     if (d == 0) {
+        ID_DATA* p;
         for (i = 0, p = idData; i < ID_DATA_NUM; i++, p++) {
             if (p->be_flag != 0xFF && (p->be_flag & 0x80)) {
                 toolIdCopy(p, level);
@@ -3265,6 +3272,7 @@ ID_DATA* toolIdCopy(ID_DATA* d, u8 level)
             c->level = level;
             if (d->kind == 1) {
                 int j;
+                ID_DATA* p;
 
                 for (j = 0, p = idData; j < ID_DATA_NUM; j++, p++) {
                     if (p->be_flag != 0xFF && d->unitNo == p->parentNo) {

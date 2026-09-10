@@ -123,9 +123,7 @@ void ToolCamera()
         } else {
             int ret = w->pLightTool->move();
             if (ret == 0) {
-                if (PTC->pLightTool) {
-                    delete PTC->pLightTool;
-                }
+                delete PTC->pLightTool;
                 PTC->lightTool = ret;
             }
         }
@@ -357,6 +355,8 @@ void tcSubMenu()
 static void tcEdit()
 {
     TcWork* w = pTc;
+    int x;
+    int y;
 
     switch (w->editMode) {
     case 0:
@@ -366,8 +366,6 @@ static void tcEdit()
         if (TC_ON & 0x10) {
             if (w->editSel == 1) {
                 TcCdat* c = tcCdatPtr(w->cdatNo);
-                int x;
-                int y;
                 if (TC_REP & 0x1) {
                     c = tcNextCdatPtr(PTC->cdatNo, -1);
                 }
@@ -383,8 +381,6 @@ static void tcEdit()
                 x += 7;
                 eprintf(x * 8, y * 14, 0, 0, "%02d", PTC->cdatNo);
             } else if (w->editSel == 0) {
-                int x;
-                int y;
                 if (TC_REP & 0x1) {
                     PTC->pAdat = tcNextAdatPtr(w->adatNo, w->x5E1, -1);
                 }
@@ -1040,14 +1036,16 @@ void tcAdatInit(TcAdat* a, int area_no, int cam_no)
     poly->pt[1].x = 2000.0f;
     poly->pt[2].z = -2000.0f;
     poly->pt[2].x = -2000.0f;
-    poly->pt[3].x = -2000.0f;
     poly->pt[3].z = 2000.0f;
+    poly->pt[3].x = -2000.0f;
     pos = pPL->pos;
     PSMTXIdentity(m);
     PSMTXRotAxisRad(m, &axis, pPL->rot.y);
     PSMTXTransApply(m, m, pos.x, pos.y, pos.z);
     for (i = 0; i < 4; i++) {
-        PSMTXMultVec(m, &a->pt[i], &a->pt[i]);
+        do {
+            PSMTXMultVec(m, &a->pt[i], &a->pt[i]);
+        } while (0);
     }
     poly->pt[0].y = poly->pt[1].y = poly->pt[2].y = poly->pt[3].y = a->base_y;
 }

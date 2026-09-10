@@ -56,8 +56,9 @@ struct EvtDebugView {
 #define EVTDBG ((EvtDebugView*) &EvtDebug)
 
 // cFlag-style bit numbering (from the MSB of flags) over the tool's flag word
-#define TE_FLG_ON(t, bit) (((u32*) &(t)->flags)[(bit) >> 5] |= 0x80000000 >> ((bit) & 0x1F))
-#define TE_FLG_OFF(t, bit) (((u32*) &(t)->flags)[(bit) >> 5] &= ~(0x80000000 >> ((bit) & 0x1F)))
+static inline u32 FlagBit(u32 f, u32 bit) { return f & bit; }
+static inline void TE_FLG_ON(ToolEvt* t, int bit) { u32* p = (u32*) &t->flags; p[(u32) bit >> 5] |= 0x80000000 >> (bit & 0x1F); }
+static inline void TE_FLG_OFF(ToolEvt* t, int bit) { u32* p = (u32*) &t->flags; p[(u32) bit >> 5] &= ~(0x80000000 >> (bit & 0x1F)); }
 
 #define CAM_MOTION_FLAGS(p) (*(u16*) ((u8*) (p) + 0x40))
 
@@ -362,10 +363,8 @@ ToolEvt::ToolEvt()
 
 ToolEvt::~ToolEvt()
 {
-    if (pLightTool) {
-        delete pLightTool;
-    }
-    pG->flags_60 &= ~0x02000000;
+    delete pLightTool;
+    BitOff(pG->flags_60, 0x02000000);
     ((cUnitEventView*) pPL)->endEvent(0);
     EvtTaskSignal(0);
     TutilQuitDefault();
@@ -440,15 +439,16 @@ static TOOL_MENU mainMenu[2] = {
 void ToolEvt::MainMenu(ToolEvt* t)
 {
     int sel;
+    int zero = 0;
 
     eprintf(0x38, 0x30, 5, 0, "MENU");
     t->flags &= ~0x40000000;
     sel = ToolMenuDisp_cur(0x40, 0x40, 1, &t->menuCur, mainMenu, sizeof(mainMenu), t->pJoy0);
     if (sel != -1) {
-        t->x06 = 0;
         t->mode = sel + 1;
-        t->step = 0;
-        t->x04 = 0;
+        t->step = zero;
+        t->x04 = zero;
+        t->x06 = zero;
     }
 }
 
@@ -682,10 +682,10 @@ void ToolEvt::MainExit(ToolEvt* t)
             break;
         }
     case 1:
-        t->x06 = 0;
         t->mode = 0;
         t->step = 0;
         t->x04 = 0;
+        t->x06 = 0;
         break;
     }
 }
@@ -693,7 +693,7 @@ void ToolEvt::MainExit(ToolEvt* t)
 void ToolEvt::EventDel(Event* ev)
 {
     EvtTaskSignal(0);
-    ev->status &= ~0x60000000;
+    ev->status &= ~0x20000000;
     ev->status |= 0x00020000;
     ev->RunEvtCancel();
     EvtMgr.DelEvt(ev, 0);
@@ -719,7 +719,11 @@ void ToolEvt::SubMenuMain(ToolEvt* t, Event* ev)
         t->flags &= ~0x02000000;
         break;
     case 1:
-        t->SubToolLightInit(t, (t->flags & 0x00040000) ? 0 : 1);
+        if (!(t->flags & 0x00040000)) {
+            t->SubToolLightInit(t, 1);
+        } else {
+            t->SubToolLightInit(t, 0);
+        }
         break;
     case 2:
         ev->EspToolSetDat();
@@ -730,21 +734,25 @@ void ToolEvt::SubMenuMain(ToolEvt* t, Event* ev)
         t->step = 4;
         break;
     case 3:
-        t->fogCur = 0;
         t->subMode = 1;
         t->x0A = 0;
         t->x0C = 0;
         t->x0E = 0;
+        t->fogCur = 0;
         break;
     case 4:
-        t->focusCur = 0;
         t->subMode = 2;
         t->x0A = 0;
         t->x0C = 0;
         t->x0E = 0;
+        t->focusCur = 0;
         break;
     case 5:
-        t->SubToolMessInit(t, (t->flags & 0x8000) ? 0 : 1);
+        if (!(t->flags & 0x8000)) {
+            t->SubToolMessInit(t, 1);
+        } else {
+            t->SubToolMessInit(t, 0);
+        }
         break;
     case 6:
         t->capCnt = 0;
@@ -775,10 +783,11 @@ static TOOL_MENU fogMenu[6] = {
 
 void ToolEvt::SubMenuFog(ToolEvt* t, Event* ev)
 {
-    char dir[] = "x:/soft/room/event";
+    char dir[0x100];
     char path[0x100];
     char name[0x100];
 
+    strcpy(dir, "x:/soft/room/event");
     sprintf(path, "%s/%s/%s/etc/%s_%03d.fog", dir, t->room, t->no, t->no, ev->cut);
     sprintf(name, "[%s_%03d.fog]", t->no, ev->cut);
     ev->FogMove(ev, &t->fog);
@@ -835,10 +844,11 @@ static TOOL_MENU focusMenu[8] = {
 
 void ToolEvt::SubMenuFocus(ToolEvt* t, Event* ev)
 {
-    char dir[] = "x:/soft/room/event";
+    char dir[0x100];
     char path[0x100];
     char name[0x100];
 
+    strcpy(dir, "x:/soft/room/event");
     sprintf(path, "%s/%s/%s/etc/%s_%03d.fcs", dir, t->room, t->no, t->no, ev->cut);
     sprintf(name, "[%s_%03d.fcs]", t->no, ev->cut);
     ev->FocusMove(ev, &t->focus);
@@ -911,7 +921,7 @@ int ToolEvt::SubMenuSelectYesNo(ToolEvt* t, const char* s1, const char* s2)
 int ToolEvt::SubMenuEditFocusLevel(ToolEvt* t, Event* ev, const char* name, f32* level)
 {
     TaskSleep(1);
-    for (;;) {
+    while (1) {
         eprintf(0x38, 0x30, 0x16, 0, "EDIT FOCUS LEVEL [%s] : %f", name, *level);
         if (Joy[0].rep & 0x10000) {
             *level -= 1.0f;
@@ -931,7 +941,7 @@ int ToolEvt::SubMenuEditFocusLevel(ToolEvt* t, Event* ev, const char* name, f32*
         if (*level > 10.0f) {
             *level = 10.0f;
         }
-        if ((t->pJoy0->trg & 0x100) || (t->pJoy0->trg & 0x200)) {
+        if (FlagBit(t->pJoy0->trg, 0x100) || FlagBit(t->pJoy0->trg, 0x200)) {
             break;
         }
         ev->FocusMove(ev, &t->focus);
@@ -980,9 +990,9 @@ void ToolEvt::SubToolLightInit(ToolEvt* t, int sw)
         EvtDebug.flags |= 0x20000000;
         pG->flags_60 |= 0x20000000;
     } else {
-        EvtDebug.flags &= ~0x60000000;
-        pG->flags_170 &= ~0x40000000;
-        pG->flags_60 &= ~0x60000000;
+        EvtDebug.flags &= ~0x20000000;
+        BitOff(pG->flags_170, 0x40000000);
+        pG->flags_60 &= ~0x20000000;
         TaskSleep(1);
     }
     SubToolIn(t, sw, 13);
@@ -994,7 +1004,7 @@ void ToolEvt::SubToolLightMove(ToolEvt* t)
 
     if ((u32) lt >= 0x80000000 && (u32) lt <= 0x82FFFFFF) {
         if (lt->move() == 0) {
-            SubToolLightInit(t, 0);
+            t->SubToolLightInit(t, 0);
         }
         View.move();
     }
@@ -1031,9 +1041,9 @@ void ToolEvt::SubToolFogInit(ToolEvt* t, int sw, Event* ev, int which)
             return;
         }
         if (which == 0) {
-            SctrlToolInit(t, (Hermite1*) &t->fog.start, (f32) ev->maxFrame, 100000.0f);
+            t->SctrlToolInit(t, (Hermite1*) &t->fog.start, (f32) ev->maxFrame, 100000.0f);
         } else {
-            SctrlToolInit(t, (Hermite1*) &t->fog.end, (f32) ev->maxFrame, 100000.0f);
+            t->SctrlToolInit(t, (Hermite1*) &t->fog.end, (f32) ev->maxFrame, 100000.0f);
         }
         t->curveNo = which;
     } else {
@@ -1076,8 +1086,8 @@ void ToolEvt::SubToolFocusWkInit(ToolEvt* t, Event* ev)
     t->focus.far_.key[1].v = 10000.0f;
     t->focus.far_.key[1].out = 0.0f;
     t->focus.far_.key[1].in = 0.0f;
-    t->focus.farLevel = 5.0f;
     t->focus.nearLevel = 5.0f;
+    t->focus.farLevel = 5.0f;
 }
 
 void ToolEvt::SubToolFocusInit(ToolEvt* t, int sw, Event* ev, int which)
@@ -1088,9 +1098,9 @@ void ToolEvt::SubToolFocusInit(ToolEvt* t, int sw, Event* ev, int which)
             return;
         }
         if (which == 0) {
-            SctrlToolInit(t, (Hermite1*) &t->focus.near_, (f32) ev->maxFrame, 10000.0f);
+            t->SctrlToolInit(t, (Hermite1*) &t->focus.near_, (f32) ev->maxFrame, 10000.0f);
         } else {
-            SctrlToolInit(t, (Hermite1*) &t->focus.far_, (f32) ev->maxFrame, 10000.0f);
+            t->SctrlToolInit(t, (Hermite1*) &t->focus.far_, (f32) ev->maxFrame, 10000.0f);
         }
         t->curveNo = which;
     } else {
@@ -1305,7 +1315,8 @@ static inline int EvtEditStep()
 // exec callbacks return 1 while editing
 static inline int EvtEditDone()
 {
-    return (Joy[0].trg & 0x200) == 0;
+    u32 t = Joy[0].trg & 0x200;
+    return t == 0;
 }
 
 int CallbackCutNoExec(int no, EventMessageData::MessElem* w, cDbgButtonTemplate<EventMessageData::MessElem>* b)
