@@ -764,9 +764,11 @@ static void r227_execGondola(int dir)
     {
         Vec rot;
 
-        rot.y = -1.57f;
+        f32 ry = -1.57f;
+
         rot.x = 0.0f;
         rot.z = 0.0f;
+        rot.y = ry;
         pPL->setAng(&rot);
     }
     SndCall(6, 0, 0, 0, 0, 0);

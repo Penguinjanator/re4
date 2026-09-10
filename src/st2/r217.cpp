@@ -279,20 +279,20 @@ void R217Main()
 }
 
 // The second wave: the camera shows the enemies arriving (cuts 4 / 9) while the player is held.
+struct PlPtr { cPlayer* p; };
+#define pPLS (((PlPtr*) &pPL)->p)
 static void r217_2nd_set()
 {
-    u32 i;
-
     SndCall(6, 6, 0, 0, 0, 0);
     SceSleep(30);
     SndCall(6, 7, 0, 0, 0, 0);
     SceEventStart(1);
-    for (i = 3; i < 8; i++) {
+    for (u32 i = 3; i < 8; i++) {
         cEmWrapSetEmI(&r217_work.p->em[i], r217_emTbl[i], -1, 0, 1, 1);
         r217_work.p->em[i].setFlag(1);
         r217_work.p->em[i].setNoSuspend(1);
     }
-    for (i = 8; i < 10; i++) {
+    for (u32 i = 8; i < 10; i++) {
         cEmWrapSetEmI(&r217_work.p->em[i], r217_emTbl[i], -1, 0, 1, 1);
         r217_work.p->em[i].setNoSuspend(1);
     }
@@ -306,33 +306,36 @@ static void r217_2nd_set()
         SceSleep(1);
     }
     CamCtrl.CutCall(9);
-    for (i = 0; i < 20; i++) {
+    for (u32 i = 0; i < 20; i++) {
+        cEmWrap* e = &r217_work.p->em[8];
         Vec* pa = &ang;
+        f32 y = 2.99f;
 
-        pa->y = 2.99f;
         ang.x = 0.0f;
+        pa->y = y;
         ang.z = 0.0f;
-        r217_work.p->em[8].setAng(pa);
+        e->setAng(pa);
         SceSleep(1);
     }
     pG->flags_5010 &= ~0x10000000;
-    pPL->dmg.set(0, 0x80);
-    for (i = 8; i < 10; i++) {
+    pPLS->dmg.set(0, 0x80);
+    for (u32 i = 8; i < 10; i++) {
         r217_work.p->em[i].setFlag(1);
     }
     while (CamCtrl.IsMotionEnd() == 0) {
         Vec* pa = &ang;
+        f32 y = 2.99f;
 
-        pa->y = 2.99f;
         ang.x = 0.0f;
+        pa->y = y;
         ang.z = 0.0f;
         r217_work.p->em[8].setAng(pa);
         SceSleep(1);
     }
-    for (i = 3; i < 8; i++) {
+    for (u32 i = 3; i < 8; i++) {
         r217_work.p->em[i].setNoSuspend(0);
     }
-    for (i = 8; i < 10; i++) {
+    for (u32 i = 8; i < 10; i++) {
         r217_work.p->em[i].setNoSuspend(0);
     }
     CamCtrl.Comeback(0);
@@ -477,7 +480,9 @@ static void r217_Puzzle()
         }
         for (k = 0; k < 11; k++) {
             for (i = 0; i < 76; i++) {
-                PSVECScale(&r217_savePos[i], R217_OBJ_VEC(SmdGetObjPtr(r217_objTbl[i])), (f32) k * 0.1f);
+                cObj* o = SmdGetObjPtr(r217_objTbl[i]);
+
+                PSVECScale(&r217_savePos[i], R217_OBJ_VEC(o), (f32) k * 0.1f);
                 SmdGetObjPtr(r217_objTbl[i])->be_flag |= 0x20;
             }
             SceSleep(1);

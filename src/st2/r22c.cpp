@@ -1509,10 +1509,10 @@ static void r22cGateCtrl()
         break;
     }
     up = (cEmMark*) EmMgr.create(0x3E);
-    open = 0;
     up->init(type | 1, (EmMarkInst*) &r22c_d3920, 0.0f, 0.0f, 0.0f);
     down = (cEmMark*) EmMgr.create(0x3E);
     down->init(type, (EmMarkInst*) &r22c_d3920, 0.0f, 0.0f, 0.0f);
+    open = 0;
     for (;;) {
         if (pG->flags_174 & 0x10000000) {
             pG->flags_174 &= ~0x10000000;
@@ -1532,8 +1532,7 @@ static void r22cGateCtrl()
                 down->pos.x -= spd;
             }
         } else {
-            lim = 0.0f;
-            if (up->pos.x > lim) {
+            if (up->pos.x > 0.0f) {
                 up->pos.x -= spd;
                 if (open == 0) {
                     SndCall(6, 3, &pPL->pPartsHead->worldPos, 0, 0, 0);
@@ -1542,7 +1541,7 @@ static void r22cGateCtrl()
             } else if (open != 0) {
                 SndCall(6, 4, &pPL->pPartsHead->worldPos, 0, 0, 0);
                 open = 0;
-                up->pos.x = lim;
+                up->pos.x = 0.0f;
             }
             if (down->pos.x < 0.0f) {
                 down->pos.x += spd;

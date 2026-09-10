@@ -89,7 +89,7 @@ void R218Init()
     if (RsfCheck(G_ROOM_ID, 1) == 0) {
         pos.x = -13650.0f;
         pos.y = 1060.0f;
-        pos.z = 4359.0f;
+        pos.z = 4367.0f;
         rot.x = 0.0f;
         rot.y = PI;
         rot.z = 0.0f;

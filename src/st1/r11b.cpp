@@ -261,35 +261,36 @@ static void r11b_ThunderMove()
 }
 
 // Moves the shore Ganado list entries to the pier for the return from 1-1A.
+#define EM_LIST_S(no) ((EmListData*) &pGS->emlist[(no) * 0x20])
 extern "C" void EmSetChange()
 {
     EmListData* l;
 
-    l = EM_LIST(0x40);
+    l = EM_LIST_S(0x40);
     l->flags = 1;
     l->flags4 |= 0x40000000;
     l->pos[0] = -5972;
     l->pos[1] = 267;
     l->pos[2] = -1348;
     l->x3 = 0;
-    l = EM_LIST(0x41);
+    l = EM_LIST_S(0x41);
     l->flags = 1;
+    l->x3 = 0;
     l->pos[0] = -5582;
     l->pos[1] = 394;
     l->pos[2] = -1958;
-    l->x3 = 0;
-    l = EM_LIST(0x3E);
+    l = EM_LIST_S(0x3E);
     l->flags = 1;
+    l->x3 = 0;
     l->pos[0] = -6060;
     l->pos[1] = 386;
     l->pos[2] = -2616;
-    l->x3 = 0;
-    l = EM_LIST(0x3F);
+    l = EM_LIST_S(0x3F);
     l->flags = 1;
+    l->x3 = 0;
     l->pos[0] = -6440;
     l->pos[1] = 375;
     l->pos[2] = -2932;
-    l->x3 = 0;
 }
 
 static void r11b_EmEvent_exit()

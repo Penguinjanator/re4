@@ -124,33 +124,28 @@ extern "C" void Evt_R213S00_Func(Event* e);
 
 #define R213_EM_ARC(no) ((void*) (pG->pArc->ofs_##no + (u32) pG->pArc))
 
-// The collision pieces (inlined into R213Init: `rot` is the inline's frame, so the memset gets its
-// address straight into r3 and the create calls a copy of it; `pos` is the caller's offset-0 local).
-static inline void R213SatInit(Vec* pos)
+// The collision pieces are set up in R213Init itself: `pos` at the frame base is the frame pointer
+// (fresh `addi r6,r1,8` per create call), `&rot` is a gcse PRE copy of the memset argument
+// (`addi r3,r1,24; mr r31,r3`; ours hoists that addi and `&door0` to the block top: OPEN).
+void R213Init()
 {
+#line 67 "D:/Bio4/Prog/r213.cpp"
+    r213_work.p = (R213Work*) MEM_CALLOC(sizeof(R213Work), 1, 0xd);
+    Vec pos = {0.0f, 0.0f, 0.0f};
     Vec rot = {0.0f, 0.0f, 0.0f};
+    cEm* door0;
+    cEm* door1;
     u32 i;
 
     for (i = 0; i < 3; i++) {
         r213_work.p->sat[i] = 0;
         r213_work.p->eat[i] = 0;
     }
-    PSetSat(r213_work.p->sat[0], SatMgr.create(ROOM_ARC_PTR(pG->pRoomArc, 5), 0, pos, &rot, 1));
-    PSetSat(r213_work.p->eat[0], EatMgr.create(ROOM_ARC_PTR(pG->pRoomArc, 0x12), 0, pos, &rot, 1));
-    PSetSat(r213_work.p->sat[1], SatMgr.create(ROOM_ARC_PTR(pG->pRoomArc, 5), 0, pos, &rot, 2));
-    PSetSat(r213_work.p->sat[2], SatMgr.create(ROOM_ARC_PTR(pG->pRoomArc, 5), 0, pos, &rot, 3));
+    PSetSat(r213_work.p->sat[0], SatMgr.create(ROOM_ARC_PTR(pG->pRoomArc, 5), 0, &pos, &rot, 1));
+    PSetSat(r213_work.p->eat[0], EatMgr.create(ROOM_ARC_PTR(pG->pRoomArc, 0x12), 0, &pos, &rot, 1));
+    PSetSat(r213_work.p->sat[1], SatMgr.create(ROOM_ARC_PTR(pG->pRoomArc, 5), 0, &pos, &rot, 2));
+    PSetSat(r213_work.p->sat[2], SatMgr.create(ROOM_ARC_PTR(pG->pRoomArc, 5), 0, &pos, &rot, 3));
     r213_work.p->eat[2] = EatMgr.create(ROOM_ARC_PTR(pG->pRoomArc, 0x12), 0, &r213_satPos, &r213_satRot, 2);
-}
-
-void R213Init()
-{
-#line 67 "D:/Bio4/Prog/r213.cpp"
-    r213_work.p = (R213Work*) MEM_CALLOC(sizeof(R213Work), 1, 0xd);
-    Vec pos = {0.0f, 0.0f, 0.0f};
-    cEm* door0;
-    cEm* door1;
-
-    R213SatInit(&pos);
     EvtMgr.SetFunc("evt_r213s00_func", (void*) Evt_R213S00_Func);
     if (getRoomEtcDoor(0x22, &door0, 1) && getRoomEtcDoor(0x23, &door1, 1)) {
         ((cEmDoor*) door0)->setDoor((cEmDoor*) door1);

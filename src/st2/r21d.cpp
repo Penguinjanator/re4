@@ -147,6 +147,28 @@ static inline u32 flagBit(u32 f, u32 bit)
 // Event skip: the skip key or the skip flag; the event is marked skipped.
 #define R21D_SKIP ((Key.trg & 0x20000000) || (int) pG->flags_174 < 0)
 #define R21D_SKIP_SET() pG->flags_174 |= 0x80000000
+// fade.h's FadeSetW with `zero`/`black` locals (zero first): the loop-hoisted constants of moveFence's
+// skip block get the target's registers (0 -> r27, 0xFF -> r28) and store order (start, end).
+static inline void r21d_FadeSetW(int no, u32 time, u32 z, int late)
+{
+    FadeColorPair col;
+    u32 black;
+    u32 zero;
+
+    zero = 0;
+    black = 0xFF;
+    if (no & 0x80000000) {
+        *(u32*) &col.start = black;
+    } else {
+        *(u32*) &col.start = zero;
+    }
+    if (no & 0x80000000) {
+        *(u32*) &col.end = zero;
+    } else {
+        *(u32*) &col.end = black;
+    }
+    FadeSet(no, &col.start, &col.end, time, z, late);
+}
 
 void R21dInit()
 {
@@ -678,7 +700,7 @@ void r21d_moveFence()
     for (i = 0; i < 15; i++) {
         if (R21D_SKIP) {
             R21D_SKIP_SET();
-            FadeSetW(0x80000000, 10, 0, 0);
+            r21d_FadeSetW(0x80000000, 10, 0, 0);
             SubScreenWait(20);
             break;
         }

@@ -97,7 +97,7 @@ static void r224_em_set();
 static void r224_toroko();
 static void reva_common_move();
 static void futa_move();
-void gnd_open();
+static void gnd_open();
 void gnd_close();
 static void reva_move();
 static void em_die_ck();
@@ -245,10 +245,14 @@ static void r224_em_set()
     Vec v;
 
     r224_work.p->plPos = pPLS->pos;
-    v.x = 3000.0f;
-    v.y = 0.0f;
-    v.z = 0.0f;
-    pPLS->setPos(&v);
+    {
+        cPlayer* pl = pPLS;
+
+        v.x = 3000.0f;
+        v.y = 0.0f;
+        v.z = 0.0f;
+        pl->setPos(&v);
+    }
     SceEventStart(0);
     SceExec(0x12, (TaskFunc) r224_cam_task, 0, 0, 2, 0);
     r224_work.p->em0.setEm(0xC8, -1, 1, 1, 1);
@@ -449,7 +453,7 @@ static void futa_move()
     }
 }
 
-void gnd_open()
+static void gnd_open()
 {
     f32 spd = 0.01f;
     f32 acc = 0.005f;

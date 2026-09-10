@@ -7180,3 +7180,81 @@ confirmed on the units named):
   pPL x2, work x2, pG x2, ActBtn, Key, two strings — into callee-saved registers at the top; FSet on the two pos
   stores made it worse) and nige_check (228), r20e (checkFinalPieceUse 2, move 10, moveCrestDoor 33, initPuzzle 119,
   checkPuzzle 366) not iterated this pass.
+
+### Stage rooms, st2_2/st2_3/st1_2 bytes-first pass (r217 + r21d Matching; r214 15->22/25, r22c 49/50, r224 15/19, r11b 11/14, r227 26/30; 2026-09-10)
+
+- Syncs: st2_3/r225 carried 9 unmangled placeholders (now synced; 2/13 -> 10/13 with no source change — the
+  "0.00%" rows were placeholder names). `gnd_open` was defined global in BOTH r224.cpp and r225.cpp (now `static`
+  in both; symbols.txt `gnd_open_13994 -> gnd_open__Fv scope:local`). r21d/r221's `setTexRender` and r226's
+  `SceBgmCheck` placeholders renamed by hand (`setTexRender__Fv scope:local` twice is fine — locals). Rule: after a
+  sync run `diff` against a saved copy of config/G4BE08/symbols.txt (no DOL rename happened this time).
+- flow's `(use (const_int 0))` nop (call immediately followed by the `for (;;)` label) is what pushed r22cGateCtrl's
+  `li open,0` and the loop-invariant `lis` fillers one call later each: `open = 0;` written right before the loop
+  (18 -> 2 words); the else arm's literal `0.0f` in both the compare and the store (instead of a `lim` local set
+  before the compare) puts the pool `lfs` after the member load (-> 0). r22c is 49/50: ResultScreen::highscore
+  (10 words) is a global-alloc order tie (`score` r28 <-> loop `IdSys@ha` r31; with our priorities score (14 refs)
+  can never rank below a 3-ref lis whose REG_EQUIV doubles its live length — not source-fixable).
+- Inline `Vec` parameter vs frame-base local (r213 Init, 23 -> 14): a `Vec* pos` PARAMETER of a static inline
+  always gets a pseudo copy (integrate.c process_reg_param copies a non-USERVAR arg such as the frame pointer),
+  so the calls pass `mr r6,r31`; the target's fresh `addi r6,r1,8` per call is a caller-local `Vec pos` at frame
+  offset 0 (the frame pointer itself, no pseudo). The target's `&rot` shape `addi r3,r1,24; li r4,0; mr r31,r3` is
+  the gcse PRE copy of the memset argument pseudo (`(plus fp 16)` computed in the memset block, redundant in the
+  create block after the zero loop) — a plain caller local, not an inline temp: write the setup flat in R213Init.
+  Residue: ours issues `addi r30,r1,24` (T_0) and `addi r26,r1,40` (`&door0`) at the block top, the target after the
+  memsets (frame-address pseudos are ready at t=0 for our sched1; the target's were not).
+- Loop counter per loop (r217 2nd_set 37 -> 0): with one function-scope `u32 i` shared by five loops, `i` is one
+  low-priority global pseudo and the `i*12` givs get r31; `for (u32 i = ...)` per loop gives every counter r31
+  and the giv r30 as in the target. `pPLS->dmg.set()` (struct view) after a `pG->flags_5010 &= ~x` store keeps
+  the pPL load below it. A `cEmWrap* e = &work.p->em[8];` local before the three `ang` stores puts the work load
+  before them (`lwz r3; mr r4; stfs x`) — the bare member call issues `stfs x` first in one loop and not the
+  other. `f32 y = 2.99f; ang.x = 0; pa->y = y; ang.z = 0;` = pool order y-first with stores x, y, z.
+- `cObj* o = SmdGetObjPtr(tbl[i]);` inside a nested loop body (r217 Puzzle) swaps the two hoisted table-address
+  pseudos (`objTbl` r27 / `savePos` r24) into the target's registers; a `const u8* tbl` local does the same.
+- r214: `Vec p; Vec v = {0,0,0};` declaration order (p first) for the setRock frame; `c->em.getHp()` written on the
+  member (no `cEmWrap* w` local) in the 50-iteration wait loop gives the target's `mr r29,r28` loop copy of `&c->em`;
+  `R214Work*& wp` + `BitOn(pG->flags_51C0, ..)` in Init (32 -> 0, also `#line` moved to 98); Evt_R214S00_Func: the
+  `work->bino = new (&work->binoObj) IdBinocular` / `work->focus = &work->focusObj` stores are PLAIN member stores
+  (one work load, `addi r0,r9,1372; stw r11,1372(r9); stw r0,1360(r9)`), the following `bino->init(&pGS->Cam, ...)`
+  needs the struct view so pG loads after them, and `IdBinocular::cutin()` is called with `li r4,0` (old prototype:
+  `void IdBinocularCutinI(IdBinocular*, int) asm("cutin__11IdBinocular")`). initCatapult (37 -> 29): the target's
+  `cmpw d, tbl+24` (SIGNED pointer compare) is loop.c's biv elimination of an `int i` counter, `for (int i = 0; i <
+  3; i++) { R214CatapultData* d = &tbl[i]; ... }` — the `do { d++; i++; } while (d <= &tbl[2])` walk of the
+  earlier note gives `cmplw`; residue = work@ha/i*68 giv r30/r31 swap. checkEmReset (86 -> 0): the two
+  `if (barred[k]) setOpened()` blocks come BEFORE the locals (`int emNo[4] = {..}; int done[4]; u32 n = 0; for (i)
+  done[i] = 0; cEmWrapD em[4];` mid-block, the `done` zeroing is an explicit loop = `mtctr 4; stw; bdnz`, not the
+  `= {0,0,0,0}` memset). throwRock (68) is the #9 peel family (target peels the 2nd loop, ours the 3rd).
+- r218 pos.z of bell 0 is 4367.0f (source typo 4359 fixed; .rodata now equal). The three remaining r218 functions
+  (checkClawManDead_end 19, appearClawMan 25, checkClawManDead 27) are ONE mechanism, also behind r108 openCover,
+  r226 RoboStartMain and r20d checkSwitch — the post-loop re-materialisation of `lis work@ha` / the pool constant
+  after a `do { ..; if (c) break; SceSleep(1); } while (1)`: it is NOT gcse (our gcse dump: 0 substs) but cse1's
+  AROUND path (`cse_end_of_basic_block`: the `bso/blt exit` jump's label is preceded by [SceSleep; b top; BARRIER;
+  LOOP_END], the scan stops at the LOOP_END note, `skip_blocks` treats the jump as "around a block" and carries
+  `high(work)` and the CONST_DOUBLE equivalence into the exit block). Experiment (/tmp/rooms_c/sngcc, cse.c patched
+  to refuse the AROUND path when a BARRIER lies between the jump and its label): r218 5 -> 7/8, r226 26 -> 27,
+  r108 10 -> 11, r20d +1, 0 changes over the 347 DOL units (7304 functions, argorder harness), but r20e execThrough
+  (register names) and Sscrn ss_term OpeMesMove (an extra `mr`) regress, and r21d/r201/r224 loops whose exit block
+  is entered by a FALL-THROUGH past LOOP_END ARE merged by the original — so the original's rule is narrower than
+  "never across a loop end"; treat the shape as COMPILER-DIFF candidate #12 (loop-exit form). Nothing installed.
+  Correction to the r226 pass note: "the exit edge bso is preceded by the LOOP_END note so cse never follows it —
+  the merge is gcse's" is wrong; the merge is cse1's (`invalidate_skipped_block` only drops memory, not `high()`).
+- r21d moveFence (4 -> 0, unit Matching): the two loop-hoisted FadeSetW constants: `u32 zero = 0; u32 black =
+  0xFF;` declared/assigned in that order inside the inline (room-local `r21d_FadeSetW`, fade.h untouched — 39 users)
+  gives 0 -> r27, 0xFF -> r28 and the `start, end` store order; the header's `black`-only form swaps the pair.
+- r227 execGondola: `f32 ry = -1.57f; rot.x = 0; rot.z = 0; rot.y = ry;` (pool y-first, stores z, y, x). r224 em_set:
+  a block-local `cPlayer* pl = pPLS;` AFTER the `work->plPos = pPLS->pos` copy makes the 3000.0 `lis` take r29
+  (callee-saved: r3 is busy with the `this` load at local-alloc time), 12 -> 0. r11b EmSetChange (45 -> 0): the
+  four EM_LIST groups through `pGS` (`#define EM_LIST_S(no) ((EmListData*) &pGS->emlist[(no) * 0x20])`, so the next
+  group's pG load stays below the previous group's struct stores) and the store order `x3 = 0` FIRST, then pos[0..2]
+  in groups 2-4 (group 1 keeps flags, flags4 |=, pos, x3); reference setters (U8Set/S16Set) fold the address into
+  `sth rX, 0x5AF4(rPG)` instead. `sbs.sh` cannot show an `extern "C"` function of a variant object — use mcmp.
+- Tried without effect (documented OPEN shapes confirmed): r216 close `stfs ang.y` before `addi r4,&ang` (open()
+  has the reverse and matches; scope/order/pointer forms), r213 StatusSetChain FPR naming of four pool constants
+  (0.0 has 3 refs and wins local-alloc here, loses in the target), r213 EventSwitchMain `lis` pair order
+  (pG/CamCtrl PRE'd highs and the two loop constants), r227 operateElv `&cMes` r31 tie, r21a Init function-address
+  `lis` pair, r119 Init (all 35 store permutations of the 2nd tree block), r11b EmEvent (36 Vec store orders: the
+  f0/f13 pair), r224 reva_common_move (the loop's `0.0f` compare constant is a second pool load in the target,
+  `fmr f26,f31` copy of `spd`'s initial 0.0 in ours), r224 Main (stack-arg zero `li` position).
+- Harness: /tmp/rooms_c (mcmp/tryv/vapply/sbs/mdump copies with `fold_linkonce` added to tryv so the counts equal
+  the ninja build's; `xcc.sh`/`xsweep2.sh` compile a unit with an alternative cc1plus dir and module CFLAGS —
+  NEVER compare a recompiled object against the ninja .o of a unit with module CFLAGS, compile both ways).
+  Variant names must not collide case-insensitively (wibo's cpp): `v_xyzXYZ` and `v_XYZxyz` clobber each other.

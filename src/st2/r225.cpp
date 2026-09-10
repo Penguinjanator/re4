@@ -66,7 +66,7 @@ static inline void PSet(cObj*& d, cObj* v) { d = v; }
 static SceElevatorData r225_elvArrive = {2, 0x15, {0.0f, 0.0f, 0.0f}, {80130.0f, 1500.0f, -22530.0f}, {0.0f, -1.6f, 0.0f}, -1, 0, 0xE, 0, 0xF, {-3300.0f, 5000.0f, 22200.0f}, {0.0f, 3.14f, 0.0f}, 0x226};
 static SceElevatorData r225_elvLeave = {3, 0x15, {0.0f, 0.0f, 0.0f}, {80130.0f, 1500.0f, -22530.0f}, {0.0f, -1.6f, 0.0f}, 8, 0, 0xD, 0, 0xF, {-3300.0f, 5000.0f, 22200.0f}, {0.0f, 3.14f, 0.0f}, 0x226};
 
-void gnd_open();
+static void gnd_open();
 static void r225_operateCrank();
 void r225_open_door();
 static void r225_DoorMes_exec();
@@ -159,7 +159,7 @@ void R225Main()
 }
 
 // The crank raised the ground plate: the door slides open.
-void gnd_open()
+static void gnd_open()
 {
     SceEventStart(0);
     CamCtrl.CutCall(7);

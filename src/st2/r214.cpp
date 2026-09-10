@@ -116,8 +116,8 @@ int cEmWrapSetPtrI(cEmWrap* w, int no, int list, int errOn) asm("setPtr__7cEmWra
 // COMPILER-DIFF: #4 - the original masks the u8 result of GetEmIdFromList before passing it on;
 // the int view makes ours emit the same `clrlwi`.
 int GetEmIdFromListI(u32 no) asm("GetEmIdFromList");
-static inline void PSet(IdBinocular*& d, IdBinocular* v) { d = v; }
-static inline void PSetF(FocusAnimation*& d, FocusAnimation* v) { d = v; }
+// The room passes `li r4,0` to the parameterless IdBinocular::cutin (old prototype).
+void IdBinocularCutinI(IdBinocular*, int) asm("cutin__11IdBinocular");
 
 // Local arrays of these get the constructor loop and the (empty) destructor loop.
 class cEmWrapD : public cEmWrap {
@@ -154,10 +154,11 @@ void R214Init()
 {
     cEm* barred;
 
-#line 99 "D:/Bio4/Prog/r214.cpp"
-    r214_work.p = (R214Work*) MEM_CALLOC(sizeof(R214Work), 1, 0xD);
+#line 98 "D:/Bio4/Prog/r214.cpp"
+    R214Work*& wp = r214_work.p;   // reference: the following `lwz pG` stays below the store (r227 idiom)
+    wp = (R214Work*) MEM_CALLOC(sizeof(R214Work), 1, 0xD);
     if (pG->x4F9F == 1) {
-        pG->flags_51C0 |= 0x40000000;
+        BitOn(pG->flags_51C0, 0x40000000);
         RsfSet(G_ROOM_ID, 2);
         RsfSet(G_ROOM_ID, 5);
     }
@@ -296,10 +297,6 @@ static void r214_checkBgmPlay()
 // Task: keeps four enemies of the last wave coming until enough are alive.
 static void r214_checkEmReset()
 {
-    int emNo[4] = {0xFB, 0xFC, 0xFD, 0xFE};
-    int done[4] = {0, 0, 0, 0};
-    u32 n = 0;
-    cEmWrapD em[4];
     u32 lim;
     u32 i;
 
@@ -309,6 +306,13 @@ static void r214_checkEmReset()
     if (r214_work.p->barred[1]) {
         ((cEmBarred*) r214_work.p->barred[1])->setOpened();
     }
+    int emNo[4] = {0xFB, 0xFC, 0xFD, 0xFE};
+    int done[4];
+    u32 n = 0;
+    for (i = 0; i < 4; i++) {
+        done[i] = 0;
+    }
+    cEmWrapD em[4];
     lim = SceCountEmAlive(0x10, 0x20);
     if (lim <= 4) {
         lim = 5;
@@ -655,11 +659,11 @@ void r214_setFireAll()
 
 void r214_initCatapult(R214CatapultData* tbl)
 {
-    R214CatapultData* d;
-    u32 i = 0;
+    int i;
 
-    d = tbl;
-    do {
+    for (i = 0; i < 3; i++) {
+        R214CatapultData* d = &tbl[i];
+
         r214_work.p->cat[i].active = 1;
         r214_work.p->cat[i].x31 = 1;
         r214_work.p->cat[i].obj = SmdGetObjPtr(d->objId);
@@ -674,9 +678,7 @@ void r214_initCatapult(R214CatapultData* tbl)
         r214_work.p->cat[i].setNewArea(0xE, 0xA);
         r214_work.p->cat[i].setNewArea(0xB, 0xB);
         r214_work.p->cat[i].setNewArea(0xC, 0xC);
-        d++;
-        i++;
-    } while (d <= &tbl[2]);
+    }
     r214_setFireAll();
     r214_work.p->catTask = SceExec(0x12, (TaskFunc) r214_checkCatapult, 0, 0, 2, 0);
 }
@@ -795,23 +797,22 @@ int cCatapult214::checkHitArea()
 // Task: the crew loads a rock (dies -> the task ends).
 static void r214_setRock(cCatapult214* c)
 {
-    cEmWrap* w = &c->em;
     u32 i;
 
-    w->setFlag(1);
-    w->motionSet(ROOM_ARC_PTR(pG->pRoomArc, 0x21), 10, 0, 1, 0);
+    c->em.setFlag(1);
+    c->em.motionSet(ROOM_ARC_PTR(pG->pRoomArc, 0x21), 10, 0, 1, 0);
     SceSleep(54);
-    if (w->getHp() <= 0) {
+    if (c->em.getHp() <= 0) {
         SceExit();
     }
     Vec pos = {0.0f, 0.0f, 0.0f};
     Vec rot = {0.0f, 0.0f, 0.0f};
     c->rock = SetRock(ROOM_ARC_PTR(pG->pRoomArc, 0x1F), ROOM_ARC_PTR(pG->pRoomArc, 0x20), &pos, &rot, 0);
-    if (w->getPtr()) {
-        c->rock->setParent(w->getPtr(), 10, 0);
+    if (c->em.getPtr()) {
+        c->rock->setParent(c->em.getPtr(), 10, 0);
     }
     for (i = 0; i < 50; i++) {
-        if (w->getHp() <= 0) {
+        if (c->em.getHp() <= 0) {
             c->rock->setTransMode(0);
             SceExit();
         }
@@ -829,8 +830,8 @@ static void r214_setRock(cCatapult214* c)
 // Puts the rock into the catapult's cup.
 void cCatapult214::setRock()
 {
-    Vec v = {0.0f, 0.0f, 0.0f};
     Vec p;
+    Vec v = {0.0f, 0.0f, 0.0f};
 
     v.x = r214_rockOfs.x / obj->scale.x;
     v.y = r214_rockOfs.y / obj->scale.y;
@@ -1014,12 +1015,12 @@ void Evt_R214S00_Func(Event* e)
         case 4:
             if (e->frame == 0 && !(pG->flags_500C & 0x400)) {
                 BitOn(pG->flags_500C, 0x400);
-                PSet(r214_work.p->bino, new (&r214_work.p->binoObj) IdBinocular);
-                r214_work.p->bino->init(&pG->Cam, ROOM_ARC_PTR(pG->pRoomArc, 0x22), ROOM_ARC_PTR(pG->pRoomArc, 0x23));
+                r214_work.p->bino = new (&r214_work.p->binoObj) IdBinocular;
+                r214_work.p->bino->init(&pGS->Cam, ROOM_ARC_PTR(pG->pRoomArc, 0x22), ROOM_ARC_PTR(pG->pRoomArc, 0x23));
                 if (e->cut != 1) {
-                    r214_work.p->bino->cutin();
+                    IdBinocularCutinI(r214_work.p->bino, 0);
                 }
-                PSetF(r214_work.p->focus, &r214_work.p->focusObj);
+                r214_work.p->focus = &r214_work.p->focusObj;
                 r214_work.p->focus->init(-1);
             }
             r214_work.p->bino->move(&pG->Cam);
