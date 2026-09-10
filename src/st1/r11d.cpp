@@ -52,6 +52,8 @@ struct R11dWork {
 };
 
 static R11dWork* r11d_work;
+// The original's .data is 8-aligned (r105 has the same).
+asm(".section .data; .balign 8");
 static u8 r11d_hideCnt = 0;
 
 // COMPILER-DIFF #4: the original passes the int list entries to the s16 parameters without
@@ -358,12 +360,17 @@ static void r11d_execShowView_end()
 }
 
 // Show the room: camera cuts 2 and 3 with the stream and the glow.
+static inline f32 FCRef(const f32& v) { return v; }
+
 static void r11d_execShowView()
 {
+    // The 0.0 is loaded after the RsfSet store: a pool constant would move above it (pool loads never
+    // depend on stores), a `static const` read through a reference stays below (AGENTS.md, cSceObj).
+    static const f32 vol = 0.0f;
     void* zero = 0;
 
     RsfSet(G_ROOM_ID, 2);
-    r11d_work->strId = SndStrReq(0, 0x16, 0x80000003, 0, 0, 0.0f);
+    r11d_work->strId = SndStrReq(0, 0x16, 0x80000003, 0, 0, FCRef(vol));
     SceSetEventCancel(1, (TaskFunc) r11d_execShowView_end, 0, -1, 1);
     SceEventStart(1);
     pG->flags_5010 &= ~0x10000000;
@@ -388,7 +395,7 @@ extern "C" void r11d_execHide_main(int mode, u32 objId)
     door = SmdGetObjPtr(objId);
     door->be_flag |= 0x20;
     if (mode == 0) {
-        const f32 lim = -1.69f;
+        const f32 lim = -1.692f;
         const f32 add = 0.1f;
         f32 spd = 0.0f;
 

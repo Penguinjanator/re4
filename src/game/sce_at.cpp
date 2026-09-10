@@ -2986,7 +2986,7 @@ int SceAtDestroy(int no)
 }
 
 #line 3850 "D:/Bio4/Prog/sce_at.cpp"
-int SceAtCreateExecAt(cModel* m, Vec* pos, int a, int b, int c, f32 h, int d, f32 ang, int e, f32 range, int prio, TaskFunc func, int arg, u8 flag)
+int SceAtCreateExecAt(cModel* m, Vec* pos, int a, int b, int c, f32 h, int d, f32 ang, f32 range, int e, int prio, TaskFunc func, int arg, u8 flag)
 {
     SceAtWork* w;
 

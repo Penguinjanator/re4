@@ -5424,3 +5424,67 @@ target) stays unresolved and `make_rel` then fails with "undefined symbol".
   - obj00 FallMove: B (`w->sePlayed = 1`'s QI 1) takes r24 in pass 0 because A (`k+1` giv, allocated first)
     already used r24 and does not conflict; the original's B in r23 = C's register (the k loop's SI 1), so
     there A was allocated after B or r24 conflicted.
+
+### Stage rooms, st1 r100/r117/r11c pass (r100 Matching; r117 20/21, r11c 21/23; r103/r104/r108/r118/r11d/r11e/r113/r120 residues and sections; 2026-09-10)
+
+- r100 (st1_0, 37/37 byte-identical, sections identical, Matching; st1_0.rel byte-identical). r117 (st1_3,
+  20/21, sections identical), r11c (st1_3, 21/23 real: closeGate is a #9 loop, EventBesiegedStart differs
+  only in the `cManager<cEm>::create` reloc name and the two template instances are name-only) written.
+- REL `.data`/`.rodata` alignment: the split object's section alignment must match ours or every later
+  unit's data shifts (st1_0 r100: our 4-aligned `.data` moved the REL's .data start by 4, `st1_0.rel: FAILED`
+  with every function identical). GNU as pads the section END to its alignment, so the alignment also
+  shows as a size diff (r103 `.data` 0x24 vs 0x28, r104 `.rodata` 0x2a4 vs 0x2a8, r113/r11e/r11d `.data`).
+  `asm(".section .data; .balign 8");` (or `.rodata`) before the first object of the section; check the
+  target's `readelf -S` Al column (r100, r103, r104, r113, r11d, r11e now match). The reverse: r120's
+  `.rodata .balign 8` was WRONG (the split object's align 8 is inferred from the address; st1.cpp's
+  `.rodata` follows at 0x13b4, 4-aligned) — removed, `.rodata` 0x2c4 now equal. Check the next unit's
+  offset in modules.py before trusting the split object's alignment.
+- Unreferenced `.data` zero words: GCC 2.95 puts `static int x = 0;` in `.data` (r100's `r100_sndTimer`
+  after `r100_sndPos`, 0x34 -> 0x38).
+- Stack `cEm` in a room (r100 R100Init, r103 r103_setCorpse; em.h's cEm is the 0xDE0 EmMgr stride, the
+  original's stack object is 0x3E0): `class RxxxEm : public cModel { u8 pad_320[0x378-0x320]; PlArc*
+  subArc; u8 pad_37C[0x3E0-0x37C]; RxxxEm() asm("__3cEm"); };` with `RxxxEm em; RxxxEm* pe = &em;` and
+  the store `*(PlArc**) ((u8*) pe + 0x378) = ...` — the original addresses subArc through the ctor's `this`
+  pseudo (`addi r3,r1,8; mr r29,r3; ... 0x378(r29)`), a member access on `em` folds to the frame. The
+  implicit `~cUnit` is emitted at scope end: do NOT add an explicit `((cUnit*) &em)->cUnit::~cUnit();`
+  (double dtor). HEADER DEBT: plain `cEm em;` once em.h splits the work area off.
+- Separate local per re-assigned object (r100 R100Init cop[0]/cop[1]): `o = SetObjSmd(); ...; o =
+  SetObjSmd();` gives the first `addi r4, o, 0x1d8` an extra anti-dependence (the later re-assignment)
+  -> one more dependent -> rank_for_schedule issues it before the argument `li`s (the original has it
+  last). `cObj* o; cObj* o2;` — one local per object — drops the edge.
+- `RsfSet(G_ROOM_ID, n); W->strId = SndStrReq(a, b, 0x80000003, 0, 0, 0.0f);` (execShowView in r104,
+  r108, r118, r11d): the original loads the 0.0 AFTER the RsfSet store; a pool constant is
+  RTX_UNCHANGING_P and floats above stores. `static inline f32 FCRef(const f32& v) { return v; }` +
+  `static const f32 vol = 0.0f;` read as `FCRef(vol)` stays below (the cSceObj idiom); the `static const`
+  takes the pool word's place in `.rodata` (sizes unchanged). Fixed 4 functions.
+- `flag = RsfCheck(..); zero = 0; if (flag == 0)` (int locals) puts the else arm's `li 0` above the branch
+  (#5 interblock shape, r100). Block-local `cEm* em = W->em;` for the xFC..xFF byte stores keeps the
+  original's store order.
+- r103 openShelf_main (4 words): two `lis` high halves get r9/r11 swapped. local-alloc orders qtys by
+  n_refs/lifetime and, with sched2 on, extends each qty's life by one insn each side (`fake_birth/
+  fake_death`), so hard regs of qtys dying just before/born just after are avoided — the two adjacent `lis`
+  pseudos take the other's register when their births are one insn apart. Direct constants/FSet forms give
+  the same result. OPEN.
+- r103 checkCloseCover (4 words, constant-load pairing / `mr r30` position): all 24 declaration orders of
+  `w, h, x, z` and the literal form tried; `wzxh` gives 2 words but changes the `.rodata` pool order. OPEN.
+- r103 execOpenCover, r11c closeGate: #9 (our jump.c duplicates the rotated loop's exit test; `for`/`>=`
+  forms give `cror`/`bns`, `while (!(x < c))` still duplicates, a goto form cross-jumps the peeled
+  subtraction).
+- r104 execEvent00 (1 word): `if (f & 0x40) skip = 1; if (!(f & 0x40)) {...}` — the target's second test
+  is thread_jumped and its compare cse-deleted but the jump stays `bne` (cc0-equivalent compare); ours
+  folds it to `b` (cse's record_jump_equiv/qty_comparison_code on the fallthrough path). `if (skip == 0)`
+  (+16 bytes) and `== 0` forms tried. OPEN.
+- r11d: the openDoor limit is -1.692f, not -1.69f (`.rodata` word 0x12c; check pool constants against
+  rodump when a "pool order" diff is a single word). execHide_main (6 words): the target loads `spd = 0.0`
+  between `li r4` and `li r6` and issues `li r3,6` last; init-after-call and a `Vec* pos` local do not
+  move it. OPEN.
+- r118 ThunderMove (2 words, `ori r30`/`li r28` order): declaring the zero inside the EstSet arm makes it
+  worse (r31 stores, +0x194). OPEN.
+- r117 EventChandelier (-4 bytes): after the first swing loop the target re-materialises `lis r29, pPL@ha`
+  into a fresh callee-saved register, ours reuses the loop pseudo (gcse/cse path class, see the cse1 path
+  items above). OPEN.
+- Header additions: `include/sce_at.h` / `src/game/sce_at.cpp` `SceAtCreateExecAt(cModel* m, Vec* pos,
+  int a, int b, int c, f32 h, int d, f32 ang, f32 range, int e, int prio, TaskFunc func, int arg, u8 flag)`
+  (parameter order from r117/r11c call sites); `include/obj.h` `class cObjWep* allow;` at 0x200 (line 512).
+- mcmp noise reminder: `MISSING cUnit_dt_cUnit/beginEvent/endEvent/op_delete` + `extra _._5cUnit ...` and a
+  `.rodata reloc cUnit_dt_cUnit vs _._5cUnit` are naming-only; the REL shasum is the judge.

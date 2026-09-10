@@ -267,7 +267,7 @@ void sceAtItemFindFlgOn(SceAtItem* it);
 int sceAtItemFindFlgCk(SceAtItem* it);
 int SceAtDestroy(int no);
 // Area of the four corners `pos` around `m`: (x37, x38, x39, height, x44, angle, angle range, x4A, prio, func, arg, flag).
-int SceAtCreateExecAt(cModel* m, Vec* pos, int a, int b, int c, f32 h, int d, f32 ang, int e, f32 range, int prio, TaskFunc func, int arg, u8 flag);
+int SceAtCreateExecAt(cModel* m, Vec* pos, int a, int b, int c, f32 h, int d, f32 ang, f32 range, int e, int prio, TaskFunc func, int arg, u8 flag);
 int SceAtCreateFieldAt(cModel* m, Vec* pos, int a, int b, int c, f32 h, int d, f32 ang, int e, f32 range, int val, SceAtField** out);
 int SceAtCreateItemAt(Vec* pos, u16 id, int num, int effType, int saveNo, cModel* parent, int parts);
 void SceAtReserveItemAt(int key, Vec* pos, u16 id, int num, int effType, int saveNo);

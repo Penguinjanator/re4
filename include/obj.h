@@ -561,7 +561,8 @@ struct SpearWork {
 struct RoboWork {
     s8 routine;           // 0x00  R0Tbl index
     s8 step;              // 0x01
-    u8 pad_2[0xA];
+    u8 pad_2[6];
+    int pillar;           // 0x08  r226: index of the bridge pillar being pushed over (playerPillarDownCk)
     class cSat* sat[2];   // 0x0C  scenario pieces (front / back)
     class cSat* eat[2];   // 0x14  effect pieces
     class cEmHit* hit[14];  // 0x1C

@@ -72,6 +72,8 @@ struct R104Work {
 
 static R104Work* r104_work;
 
+// The original's .rodata and .data are 8-aligned (the .rodata end is padded to 0x2a8; r105 has the same).
+asm(".section .rodata; .balign 8; .section .data; .balign 8");
 static R104ResetData r104_resetData[4] = {
     {{0xD9, 0xDA, 0xDB}, 2, 3, 4, 1},
     {{0xDC, 0xDD, 0xDE}, 5, 6, 7, 2},
@@ -412,10 +414,16 @@ static void r104_execShowView_end()
 }
 
 // Show the farm: camera cut 4 with the stream.
+static inline f32 FCRef(const f32& v) { return v; }
+
 static void r104_execShowView()
 {
+    // The 0.0 is loaded after the RsfSet store: a pool constant would move above it (pool loads never
+    // depend on stores), a `static const` read through a reference stays below (AGENTS.md, cSceObj).
+    static const f32 vol = 0.0f;
+
     RsfSet(G_ROOM_ID, 14);
-    r104_work->strId = SndStrReq(0, 0x15, 0x80000003, 0, 0, 0.0f);
+    r104_work->strId = SndStrReq(0, 0x15, 0x80000003, 0, 0, FCRef(vol));
     SceSetEventCancel(1, (TaskFunc) r104_execShowView_end, 0, -1, 1);
     SceEventStart(1);
     pG->flags_5010 &= ~0x10000000;

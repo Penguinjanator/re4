@@ -132,10 +132,16 @@ static void r108_execShowView_end()
 }
 
 // Show the altar: camera cut 11 with its stream.
+static inline f32 FCRef(const f32& v) { return v; }
+
 static void r108_execShowView()
 {
+    // The 0.0 is loaded after the RsfSet store: a pool constant would move above it (pool loads never
+    // depend on stores), a `static const` read through a reference stays below (AGENTS.md, cSceObj).
+    static const f32 vol = 0.0f;
+
     RsfSet(G_ROOM_ID, 1);
-    r108_work->strId = SndStrReq(0, 0x33, 0x80000003, 0, 0, 0.0f);
+    r108_work->strId = SndStrReq(0, 0x33, 0x80000003, 0, 0, FCRef(vol));
     SceSetEventCancel(1, (TaskFunc) r108_execShowView_end, 0, -1, 1);
     SceEventStart(1);
     CamCtrl.CutCall(0xB);

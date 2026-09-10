@@ -1,6 +1,3 @@
-// the split object's .rodata is 8-aligned (no double constant in this unit forces it); emitted
-// before the first header string, while the assembler output has no current section yet.
-asm(".section .rodata\n\t.balign 8\n\t.text");
 #include "types.h"
 #include "main_mem.h"
 #include "st_room.h"

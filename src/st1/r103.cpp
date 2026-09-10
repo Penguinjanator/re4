@@ -43,16 +43,22 @@ struct R103Shelf {
     u8 door[2];
 };
 
-// em.h's cEm carries the 0xA00 per-enemy work area (EmMgr's stride 0xDE0); the class itself is
-// 0x3E0, which is what the local of r103_setCorpse takes in the original frame. HEADER DEBT: make it
-// a plain `cEm em;` once em.h splits the work area off.
-struct R103EmLocal {
-    u8 buf[0x3E0];
+// em.h's cEm carries the player fields (EmMgr's stride 0xDE0); the class the original puts on the
+// stack here is 0x3E0 (the r103_setCorpse frame). HEADER DEBT: make it a plain `cEm em;` once em.h
+// splits the work area off (r100 has the same class).
+class R103Em : public cModel {
+public:
+    u8 pad_320[0x378 - 0x320];
+    PlArc* subArc;        // 0x378
+    u8 pad_37C[0x3E0 - 0x37C];
+
+    R103Em() asm("__3cEm");
 };
-void cEmConstruct(cEm* em) asm("__3cEm");
 
 static R103Work* r103_work;
 
+// The original's .data is 8-aligned (r105 has the same).
+asm(".section .data; .balign 8");
 R103Cesspit r103_cesspit = {0x52, 0x53, 0x8A, 0x9E, 6, 3, 0xA};
 static R103Shelf r103_shelf0 = {{0x57, 0x58}};
 static R103Shelf r103_shelf1 = {{0x59, 0x5A}};
@@ -172,14 +178,14 @@ extern "C" void r103_openShelf(R103Shelf* s)
 // The ten corpses: scroll objects with the corpse parts models and a motion, darkened by a third.
 extern "C" void r103_setCorpse(void* m0, void* m1, void* m2, void* m3, void* m4, void* m5, void* m6, void* m7, void* m8, void* m9)
 {
-    R103EmLocal em;
+    R103Em em;
+    // The ctor's `this` pseudo (`addi r3, r1, 8; mr r29, r3`) is what the original addresses subArc
+    // through (`0x378(r29)`); a member access on `em` folds to the frame, so the store and the row
+    // loads go through the pointer (see r100's R100Init).
+    R103Em* pe = &em;
     int i;
 
-    cEmConstruct((cEm*) &em);
-    // OPEN: the original keeps `&em` in a callee-saved register (`addi r3,r1,8; mr r29,r3` before the
-    // ctor call) and addresses subArc as 0x378(r29), reloading it once per table row; ours folds the
-    // frame address (0x380(r1)); a `cEm* pe = (cEm*) &em` pointer reloads it per element instead.
-    ((cEm*) &em)->subArc = (PlArc*) EmReadSearch(0x12, 0, 0);
+    *(PlArc**) ((u8*) pe + 0x378) = (PlArc*) EmReadSearch(0x12, 0, 0);
     Vec pos = {0.0f, 0.0f, 0.0f};
     Vec rot = {0.0f, 0.0f, 0.0f};
     {
@@ -187,16 +193,16 @@ extern "C" void r103_setCorpse(void* m0, void* m1, void* m2, void* m3, void* m4,
         // get a memset per row (C++ TYPE_FIELDS holds the class name too, so expr.c's field count
         // never matches the initializer); the original used a plain 2-D pointer array.
         void* tbl[10][6] = {
-            {PL_ARC_PTR(((cEm*) &em)->subArc, 0x1BC), PL_ARC_PTR(((cEm*) &em)->subArc, 0x1BE), PL_ARC_PTR(((cEm*) &em)->subArc, 0x1C0), PL_ARC_PTR(((cEm*) &em)->subArc, 0x1C5), PL_ARC_PTR(((cEm*) &em)->subArc, 0x1BD), m0},
-            {PL_ARC_PTR(((cEm*) &em)->subArc, 0x1D8), PL_ARC_PTR(((cEm*) &em)->subArc, 0x1DA), PL_ARC_PTR(((cEm*) &em)->subArc, 0x1C0), PL_ARC_PTR(((cEm*) &em)->subArc, 0x1C5), PL_ARC_PTR(((cEm*) &em)->subArc, 0x1D9), m1},
-            {PL_ARC_PTR(((cEm*) &em)->subArc, 0x1E0), PL_ARC_PTR(((cEm*) &em)->subArc, 0x1E3), PL_ARC_PTR(((cEm*) &em)->subArc, 0x1C0), PL_ARC_PTR(((cEm*) &em)->subArc, 0x1C5), PL_ARC_PTR(((cEm*) &em)->subArc, 0x1E1), m2},
-            {PL_ARC_PTR(((cEm*) &em)->subArc, 0x1BC), PL_ARC_PTR(((cEm*) &em)->subArc, 0x1BE), PL_ARC_PTR(((cEm*) &em)->subArc, 0x1C0), PL_ARC_PTR(((cEm*) &em)->subArc, 0x1C5), PL_ARC_PTR(((cEm*) &em)->subArc, 0x1DD), m3},
-            {PL_ARC_PTR(((cEm*) &em)->subArc, 0x1D8), PL_ARC_PTR(((cEm*) &em)->subArc, 0x1DA), PL_ARC_PTR(((cEm*) &em)->subArc, 0x1C0), PL_ARC_PTR(((cEm*) &em)->subArc, 0x1C5), PL_ARC_PTR(((cEm*) &em)->subArc, 0x1BD), m4},
-            {PL_ARC_PTR(((cEm*) &em)->subArc, 0x1E0), PL_ARC_PTR(((cEm*) &em)->subArc, 0x1E3), PL_ARC_PTR(((cEm*) &em)->subArc, 0x1C0), PL_ARC_PTR(((cEm*) &em)->subArc, 0x1C5), PL_ARC_PTR(((cEm*) &em)->subArc, 0x1D9), m5},
-            {PL_ARC_PTR(((cEm*) &em)->subArc, 0x1BC), PL_ARC_PTR(((cEm*) &em)->subArc, 0x1BE), PL_ARC_PTR(((cEm*) &em)->subArc, 0x1C0), PL_ARC_PTR(((cEm*) &em)->subArc, 0x1C5), PL_ARC_PTR(((cEm*) &em)->subArc, 0x1E1), m6},
-            {PL_ARC_PTR(((cEm*) &em)->subArc, 0x1D8), PL_ARC_PTR(((cEm*) &em)->subArc, 0x1DA), PL_ARC_PTR(((cEm*) &em)->subArc, 0x1C0), PL_ARC_PTR(((cEm*) &em)->subArc, 0x1C5), PL_ARC_PTR(((cEm*) &em)->subArc, 0x1DD), m7},
-            {PL_ARC_PTR(((cEm*) &em)->subArc, 0x1E0), PL_ARC_PTR(((cEm*) &em)->subArc, 0x1E3), PL_ARC_PTR(((cEm*) &em)->subArc, 0x1C0), PL_ARC_PTR(((cEm*) &em)->subArc, 0x1C5), PL_ARC_PTR(((cEm*) &em)->subArc, 0x1BD), m8},
-            {PL_ARC_PTR(((cEm*) &em)->subArc, 0x1BC), PL_ARC_PTR(((cEm*) &em)->subArc, 0x1BE), PL_ARC_PTR(((cEm*) &em)->subArc, 0x1C0), PL_ARC_PTR(((cEm*) &em)->subArc, 0x1C5), PL_ARC_PTR(((cEm*) &em)->subArc, 0x1D9), m9},
+            {PL_ARC_PTR(pe->subArc, 0x1BC), PL_ARC_PTR(pe->subArc, 0x1BE), PL_ARC_PTR(pe->subArc, 0x1C0), PL_ARC_PTR(pe->subArc, 0x1C5), PL_ARC_PTR(pe->subArc, 0x1BD), m0},
+            {PL_ARC_PTR(pe->subArc, 0x1D8), PL_ARC_PTR(pe->subArc, 0x1DA), PL_ARC_PTR(pe->subArc, 0x1C0), PL_ARC_PTR(pe->subArc, 0x1C5), PL_ARC_PTR(pe->subArc, 0x1D9), m1},
+            {PL_ARC_PTR(pe->subArc, 0x1E0), PL_ARC_PTR(pe->subArc, 0x1E3), PL_ARC_PTR(pe->subArc, 0x1C0), PL_ARC_PTR(pe->subArc, 0x1C5), PL_ARC_PTR(pe->subArc, 0x1E1), m2},
+            {PL_ARC_PTR(pe->subArc, 0x1BC), PL_ARC_PTR(pe->subArc, 0x1BE), PL_ARC_PTR(pe->subArc, 0x1C0), PL_ARC_PTR(pe->subArc, 0x1C5), PL_ARC_PTR(pe->subArc, 0x1DD), m3},
+            {PL_ARC_PTR(pe->subArc, 0x1D8), PL_ARC_PTR(pe->subArc, 0x1DA), PL_ARC_PTR(pe->subArc, 0x1C0), PL_ARC_PTR(pe->subArc, 0x1C5), PL_ARC_PTR(pe->subArc, 0x1BD), m4},
+            {PL_ARC_PTR(pe->subArc, 0x1E0), PL_ARC_PTR(pe->subArc, 0x1E3), PL_ARC_PTR(pe->subArc, 0x1C0), PL_ARC_PTR(pe->subArc, 0x1C5), PL_ARC_PTR(pe->subArc, 0x1D9), m5},
+            {PL_ARC_PTR(pe->subArc, 0x1BC), PL_ARC_PTR(pe->subArc, 0x1BE), PL_ARC_PTR(pe->subArc, 0x1C0), PL_ARC_PTR(pe->subArc, 0x1C5), PL_ARC_PTR(pe->subArc, 0x1E1), m6},
+            {PL_ARC_PTR(pe->subArc, 0x1D8), PL_ARC_PTR(pe->subArc, 0x1DA), PL_ARC_PTR(pe->subArc, 0x1C0), PL_ARC_PTR(pe->subArc, 0x1C5), PL_ARC_PTR(pe->subArc, 0x1DD), m7},
+            {PL_ARC_PTR(pe->subArc, 0x1E0), PL_ARC_PTR(pe->subArc, 0x1E3), PL_ARC_PTR(pe->subArc, 0x1C0), PL_ARC_PTR(pe->subArc, 0x1C5), PL_ARC_PTR(pe->subArc, 0x1BD), m8},
+            {PL_ARC_PTR(pe->subArc, 0x1BC), PL_ARC_PTR(pe->subArc, 0x1BE), PL_ARC_PTR(pe->subArc, 0x1C0), PL_ARC_PTR(pe->subArc, 0x1C5), PL_ARC_PTR(pe->subArc, 0x1D9), m9},
         };
 
         for (i = 0; i < 10; i++) {
@@ -221,7 +227,6 @@ extern "C" void r103_setCorpse(void* m0, void* m1, void* m2, void* m3, void* m4,
             }
         }
     }
-    ((cUnit*) &em)->cUnit::~cUnit();
 }
 
 // The sub-mission target (etc item 0x13) hangs on scroll object `objNo` until it is taken.
@@ -252,6 +257,7 @@ static void r103_execOpenCover(R103Cesspit* c)
     pG->flags_51C0 |= 0x04000000;
     lid = SmdGetObjPtr(c->lid);
     SndCall(6, 9, &lid->pos, 0, 0, 0);
+    // COMPILER-DIFF candidate #9 (AGENTS.md): the original's rotated loop has no duplicated entry test.
     while (1) {
         lid->pParts->rot.x -= 0.06981317f;
         if (lid->pParts->rot.x < -1.83f) {
