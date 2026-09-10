@@ -6259,7 +6259,8 @@ target) stays unresolved and `make_rel` then fails with "undefined symbol".
   u8 psq conversion (prio 24) precedes it through the fpmem serialisation (both families set `(reg:DF 76
   fpmem)`, in sched2 too); no operand order, `const f32`, do-while placement or temp form changes the
   priorities (16 variants). Needs a mechanism, not more permutations.
-- OPEN pl14 think (37 words: `fl`/`af` are QImode pseudos in the target — `lbz r0; mr r11,r0` PRE copies with
+- SOLVED 2026-09-10 (see "Player modules, third pass": u8-parameter inline `Chk8`, cMot3Rate pointer inlines):
+  pl14 think (37 words: `fl`/`af` are QImode pseudos in the target — `lbz r0; mr r11,r0` PRE copies with
   `clrlwi` at the int uses — while u8/s8/int locals are all SImode-promoted in ours; direct member reads with
   `(u8)` casts give 64+ words) and moveEye (132 words: eye-rate stores, `Rnd() % 200` conversion register
   names, matUpdate blocks). pl0f OPEN (largest): BossCamMove 431, BoatControl 203 (frame/callee-saved),
@@ -7258,3 +7259,65 @@ confirmed on the units named):
   the ninja build's; `xcc.sh`/`xsweep2.sh` compile a unit with an alternative cc1plus dir and module CFLAGS —
   NEVER compare a recompiled object against the ninja .o of a unit with module CFLAGS, compile both ways).
   Variant names must not collide case-insensitively (wibo's cpp): `v_xyzXYZ` and `v_XYZxyz` clobber each other.
+
+### Player modules, third pass (pl14 Matching 80/80; pl0a transMove and the pl0f leftovers analysed; 2026-09-10)
+
+- pl14/pl14.cpp is Matching (`pl14.rel` byte-identical; think 37 -> 0, moveEye 132 -> 0). Harness /tmp/pl_p3
+  (copies of /tmp/pl0f_polish with the paths rewritten; `ndiff.sh MOD/UNIT FUNC VARIANTS.py NAME` = label/symbol-
+  masked diff of the target against one tryv variant, `apply.py MOD/UNIT VARIANTS.py NAME` applies it in place;
+  mcmp.py pairs `global_constructors_keyed_to_X` with our `_GLOBAL_.I.*`).
+- QImode flag pseudos (`lbz r0; mr r11,r0` PRE copies, one shared `clrlwi` per extended block, `andi.` straight on
+  the QI copy where the extension has a single use): the flag tests go through an inline with a **u8 parameter**
+  (`static inline int Chk8(u8 f, int b) { return f & b; }`, `Chk8(flags, 1)`, `!Chk8(analysis.flags, 2) &&
+  Chk8(analysis.flags, 4)`). integrate copies the byte argument into a QImode pseudo (`copy_to_mode_reg (GET_MODE
+  (loc), ..)` with the parm's promoted subreg), gcse PREs the loads and cse shares the zero_extend. A `u8`/`int`
+  local is SImode-promoted (no copies); direct `flags & bit` reads give SImode `zero_extend(mem)` loads and,
+  written `!(x & 2) && (x & 4)` on one lvalue, fold merges them into `(x & 6) == 4`. (cSubLuis::think; the flag
+  bytes are `s8` in pl14.h — the inline's u8 parameter is also what makes the extension a `clrlwi`, not `extsb`.)
+- `addi r3, this, 0x540; lwz r0, 4(r3)` at the function top with the FIRST arms' `set()` calls reusing r3 (no
+  `addi` before their `bl`) and later arms recomputing it: a block-local `cAction* a = &action; if (a->mode == 5)
+  return; if (a->mode == 6) return;` — the pointer pseudo takes r3 (dies at the first call), and cse replaces the
+  `(plus this 0x540)` hard-reg argument sets of every `set()` on its jump-following path (labels with one use)
+  with the pseudo; arms behind a multi-use label recompute. A pointer used in all arms is callee-saved (worse).
+- A file-scope object accessed through inlines taking its pointer (`EyeSet(&luisEye, v)`, `EyeLimit(&luisEye,
+  lo, hi)`, `EyeGet`, `EyeMove` = the cMot3Rate methods of the original): every inlined call copies the constant
+  address into its own pseudo P (`lis/addi`); r[1]/r[2] are `4(rP)`/`8(rP)`, while the offset-0 member goes
+  through cse's `find_best_addr` rewrite `(mem (reg P))` -> `(mem (lo_sum high sym))` = `sym@l(rHigh)` INSIDE the
+  ebb where P was set, and stays `0(rP)` after a multi-use label (EyeLimit's snap store after the clamp's join).
+  The tail's EyeGet/EyeMove after a call get a fresh high/pointer pair (`lis r28; addi r27,r28`) only when the
+  clamp and the snap are ONE inline (their pointer dies in the clamp block; with a separate EyeSnap inline cse
+  merges the tail's `&luisEye` with the clamp's and keeps it callee-saved). The clamp bounds as inline f32
+  arguments load both constants before the first compare (cSubLuis::moveEye).
+- `u8 r = Rnd() % 200` block-scoped in each block: a function-scope `u8 r` assigned twice is a global pseudo (r0,
+  `clrlwi r0,r3,24; xoris r0`), the block-local one is tied to the dying `subf` result (`clrlwi r3,r3,24`).
+- `luisEyeTimer = (Rnd() & 3) ? 0 : 0x5A;` gives the jump.c-hoisted `andi.; li r0,0; bne; li r0,0x5a; stw`;
+  the if/else store form and an `int t` temp both duplicate the store. Blink: `EyeSet(e, (r * 0.01f - 1.0f) *
+  0.03141593f + luisEye.r[1])` (sum written product-first) loads 0.01 before 1.0 like the target; the `r[1] +
+  product` order loads 1.0 first (case 0's `(r * 0.01f - 1.0f) * PI * 0.1f` loads 1.0 first either way).
+- Static-init key: `global constructors keyed to LuisInit` means `LuisInit` is PUBLIC and assembled before the
+  first initialised public object (`cRoutine_move_tbl`): define `void LuisInit(cEm*)` above the table (the `.sym`
+  says local; the ADDR16 fields of a .text+0 symbol are 0 either way, so sync's `scope local -> global` did not
+  change the split object and the REL check stayed green). Other flipped modules keep the dtk
+  `global_constructors_keyed_to_X` name in symbols.txt; the sync skips `_GLOBAL_` names.
+- OPEN pl0a cPlKlauser::transMove (30 words), mechanism read off the sched1 dump: in the join block the psq (u8)
+  and the double-trick (int) conversions share the `(reg:DF fpmem)` pseudo, so `stw hi` output-depends on `stw lo`
+  and both anti-depend on the `psq_l`; priorities come out lbz 24 > loadaddr(psq) 23 > stb 22 > psq_l = xoris =
+  loadaddr(df) 20 > stw lo 19 > `lis 0x4330` 18 — the target issues `lis r6,0x4330` FIRST, which needs the two
+  DF stores independent (a MEM slot, prio(xoris) == prio(lis) with the lis's lower LUID winning) and no loadaddr
+  pseudo-insns taking the cycle-0 iu2 slot. No source form changes the fpmem representation: `(f32) t *
+  (f32) color`, `f32 tf = (f32) t` inside/outside the do-while, `p = (f32) t; do { p = color * p * k } while (0)`
+  (DF conversion first, 27 words: the psq is then fully after it, the target interleaves them). Compiler-side
+  (fpmem as a pseudo before reload), same family as the loadaddr slot note.
+- OPEN pl0f (all one-try, documented ties): R1_Drop 42 — `Pl0fNode* n` local, `VecCopy` inline for the copy
+  in/out/both, `Vec* pd`, `f32 zero`/`f32 s` locals, `int i` (reverses the loop, `subic.`) never reach the loop
+  size that stops loop pass 2 hoisting the VECNormalize string `lis`. ScrAdjust 85 / BoatControl 203: the target's
+  per-iteration `add r30, w, ofs` (one byte-offset giv r28 stepped next to `i`, node pointer recomputed) means
+  `n = w + ofs` was NOT recognised as a giv — loop.c's `simplify_giv_expr` returns 0 for a register whose IV
+  record does not exist yet, i.e. `ofs`'s set was scanned AFTER `n`'s: `ofs = (i + 1) * sizeof(Pl0fNode) + 0x168`
+  at the body END reproduces the `add` (with a second giv register, 116 words); an explicit `ofs` biv, `ofs`
+  computed at the top, in the `for` test, `(u32) w + ofs`, `(u8*) em + 0x3E0 + ofs` are all reduced to stepping
+  pointers (85). LongRopeSet 4: `li r7,0x64; li r6,0x108` — the two constants are allocated in qty-length
+  order; ours issues `li 0x64` one cycle before `li 0x108` paired with lsu stores, so 0x108's range is one insn
+  shorter and takes r7 first; moving `x44 = 100` before `x3C = 5.0f` gives the target registers but issues the
+  store three slots early (3 words); swapping the two statements swaps the stores (4). CrashAdjustSet 3, Swim 7,
+  R10xOut 5 x 3, BossCamMove 420 not re-attempted (see the pl0f polish section).

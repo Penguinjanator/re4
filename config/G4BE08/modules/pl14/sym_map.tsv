@@ -1,5 +1,5 @@
 section	offset	size	unit	scope	name	demangled
-.text	0x00000000	0x40	pl14/pl14.cpp	local	LuisInit__FP3cEm	LuisInit
+.text	0x00000000	0x40	pl14/pl14.cpp	global	LuisInit__FP3cEm	LuisInit
 .text	0x00000040	0xC0	pl14/pl14.cpp	global	__8cSubLuis	cSubLuis::cSubLuis
 .text	0x00000100	0x6C	pl14/pl14.cpp	global	_._8cSubLuis	cSubLuis::~cSubLuis
 .text	0x0000016C	0x38C	pl14/pl14.cpp	global	init__8cSubLuis	cSubLuis::init

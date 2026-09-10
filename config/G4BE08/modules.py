@@ -805,6 +805,7 @@ MATCHING = {
     "pl0d/wep02.cpp": True,
     "pl0d/pl_wesker.cpp": True,
     "pl0e/pl0e.cpp": True,
+    "pl14/pl14.cpp": True,
 }
 # The Ganado modules' per-enemy objects (src/<em>/<em>_set.cpp: entry points + EmXXInit/Set/WeaponSet).
 for _em in ["em10", "em11", "em12", "em13", "em14", "em15", "em16", "em17", "em19", "em1a", "em1b",

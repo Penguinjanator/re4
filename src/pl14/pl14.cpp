@@ -61,7 +61,15 @@ static inline void RoutineStepClear(cSubLuis* o)
     o->xFD = 0;
 }
 
-static void LuisInit(cEm* em);
+// LuisInit is public and defined before the first initialised public object: the static initializer's
+// key (`global constructors keyed to LuisInit`) is the first public function/initialised object assembled.
+void LuisInit(cEm* em)
+{
+    cSubLuis* luis = new (em) cSubLuis();
+    luis->modelSet();
+    luis->init();
+    luis->equipWeapon();
+}
 
 // Routine handlers by routine number (owner->xFC); 4 (event) calls cSubLuis::evFunc instead.
 void (cRoutine::*cRoutine_move_tbl[18])() = {
@@ -89,14 +97,6 @@ static int luisBlink = 0;        // frames to the next eye shift
 static int luisUnused = 0;       // never read (the second .data word)
 
 static cMot3Rate luisEye;        // [0] current eye yaw, [1] target, [2] mix
-
-static void LuisInit(cEm* em)
-{
-    cSubLuis* luis = new (em) cSubLuis();
-    luis->modelSet();
-    luis->init();
-    luis->equipWeapon();
-}
 
 cSubLuis::cSubLuis()
 {
@@ -211,40 +211,44 @@ void cSubLuis::move()
     seqSeCtrl();
 }
 
+// Flag tests through a u8-parameter inline: integrate copies the byte into a QImode pseudo
+// (`lbz r0; mr r11, r0` PRE copies, one shared `clrlwi` per extended block); a promoted u8/int local
+// or a direct `flags & bit` read gives SImode pseudos and no copies.
+static inline int Chk8(u8 f, int b) { return f & b; }
+
 void cSubLuis::think()
 {
     static const Vec upPos = { 112160.0f, 3182.64f, -51016.84f };
-    u8 fl;
-    u8 af;
 
-    if (action.mode == 5) return;
-    if (action.mode == 6) return;
+    {
+        cAction* a = &action;
+        if (a->mode == 5) return;
+        if (a->mode == 6) return;
+    }
 
-    fl = flags;
-    if (fl & 1) {
+    if (Chk8(flags, 1)) {
         if (xFC == 4) action.set(6);
         else action.set(5);
         flags &= ~1;
         analysis.flags &= ~4;
     } else {
-        af = analysis.flags;
-        if (af & 0x10) {
+        if (Chk8(analysis.flags, 0x10)) {
             action.set(0xA);
-        } else if (!(af & 2) && (analysis.flags & 4)) {
+        } else if (!Chk8(analysis.flags, 2) && Chk8(analysis.flags, 4)) {
             action.set(9);
-        } else if (fl & 2) {
+        } else if (Chk8(flags, 2)) {
             action.set(4);
-        } else if (af & 2) {
+        } else if (Chk8(analysis.flags, 2)) {
             action.set(8);
-        } else if (x38D == 2 && !(fl & 4)) {
+        } else if (x38D == 2 && !Chk8(flags, 4)) {
             action.set(3);
             if (GetDistance(*(Vec*) &upPos, pos) < 1000000.0f) flags |= 4;
-        } else if (x38D == 1 && (rackCheck() || ((af = analysis.flags) & 0x80))) {
+        } else if (x38D == 1 && (rackCheck() || Chk8(analysis.flags, 0x80))) {
             action.set(0xC);
         } else if (x38D == 1 && !(action.flags & 2)) {
             action.set(0xB);
         } else if (analysis.pTarget) {
-            if ((af & 8) && !stairCheck(pPL) && !stairCheck(this) && sameFloorCheck(this, pPL) &&
+            if (Chk8(analysis.flags, 8) && !stairCheck(pPL) && !stairCheck(this) && sameFloorCheck(this, pPL) &&
                 (s16) pG->pl_life > 0) {
                 action.set(7);
                 analysis.flags &= ~8;
@@ -1345,20 +1349,37 @@ void cSubLuis::endDamage()
     routine.end();
 }
 
+// The eye rates are handled through inlines taking the object pointer (cMot3Rate methods in the original):
+// each inlined call copies `&luisEye` into its own pseudo, so r[1]/r[2] go through `4(rP)`/`8(rP)` while
+// cse rewrites the offset-0 `r[0]` access to the `luisEye@l(rHigh)` form inside the same extended block
+// and leaves the pointer form after a join label (EyeLimit's snap store `stfs f0, 0(r10)`); the tail's
+// EyeGet/EyeMove then get a fresh high/pointer pair after the getPartsPtr call instead of reusing the
+// clamp's. The clamp bounds are inline arguments: both constants are loaded before the first compare.
+static inline void EyeSet(cMot3Rate* e, f32 v) { e->r[1] = v; if (e->r[2] == 0.0f) e->r[0] = e->r[1]; }
+static inline void EyeLimit(cMot3Rate* e, f32 lo, f32 hi)
+{
+    if (e->r[1] < lo) e->r[1] = lo;
+    else if (e->r[1] > hi) e->r[1] = hi;
+    if (e->r[2] == 0.0f) e->r[0] = e->r[1];
+}
+static inline f32 EyeGet(cMot3Rate* e) { return e->r[0]; }
+static inline void EyeMove(cMot3Rate* e) { e->r[0] = e->r[0] * e->r[2] + e->r[1] * (1.0f - e->r[2]); }
+
 void cSubLuis::moveEye()
 {
     static int luisEyeTimer;   // eyelid animation frame; a function-local static so it precedes the ctor'd luisEye in .bss
     cModel* p = getPartsPtr(0x1C);
-    u8 r;
+    // `u8 r` is block-scoped in both Rnd blocks: one function-scope `r` is a two-set global pseudo (r0)
+    // where the target ties the masked remainder to the Rnd result (`clrlwi r3, r3, 24`).
 
     switch (luisEyeTimer++) {
     default: p->rot.x = 0.0f; break;
-    case 0:
-        r = Rnd() % 200;
-        luisEye.r[1] = (r * 0.01f - 1.0f) * PI * 0.1f;
-        if (luisEye.r[2] == 0.0f) luisEye.r[0] = luisEye.r[1];
+    case 0: {
+        u8 r = Rnd() % 200;
+        EyeSet(&luisEye, (r * 0.01f - 1.0f) * PI * 0.1f);
         p->rot.x = 0.17453292f;
         break;
+    }
     case 1: p->rot.x = 0.34906584f; break;
     case 2: p->rot.x = 0.6981317f; break;
     case 3: p->rot.x = 0.62831855f; break;
@@ -1366,12 +1387,10 @@ void cSubLuis::moveEye()
     case 5: p->rot.x = 0.34906584f; break;
     case 6: p->rot.x = 0.17453292f; break;
     case 0x1E:
-        luisEye.r[1] = 0.0f;
-        if (luisEye.r[2] == 0.0f) luisEye.r[0] = 0.0f;
+        EyeSet(&luisEye, 0.0f);
         break;
     case 0x58:
-        if (!(Rnd() & 3)) luisEyeTimer = 0x5A;
-        else luisEyeTimer = 0;
+        luisEyeTimer = (Rnd() & 3) ? 0 : 0x5A;
         break;
     case 0x5A: p->rot.x = 0.17453292f; break;
     case 0x5B: p->rot.x = 0.34906584f; break;
@@ -1389,20 +1408,17 @@ void cSubLuis::moveEye()
     p->matUpdate();
 
     if (--luisBlink < 0) {
-        r = Rnd() % 200;
-        luisEye.r[1] += (r * 0.01f - 1.0f) * 0.03141593f;
-        if (luisEye.r[2] == 0.0f) luisEye.r[0] = luisEye.r[1];
+        u8 r = Rnd() % 200;
+        EyeSet(&luisEye, (r * 0.01f - 1.0f) * 0.03141593f + luisEye.r[1]);
         luisBlink = (u8) (Rnd() % 3) + 2;
     }
-    if (luisEye.r[1] < -0.31415927f) luisEye.r[1] = -0.31415927f;
-    else if (luisEye.r[1] > 0.31415927f) luisEye.r[1] = 0.31415927f;
-    if (luisEye.r[2] == 0.0f) luisEye.r[0] = luisEye.r[1];
+    EyeLimit(&luisEye, -0.31415927f, 0.31415927f);
 
-    getPartsPtr(0x20)->rot.y = luisEye.r[0];
+    getPartsPtr(0x20)->rot.y = EyeGet(&luisEye);
     getPartsPtr(0x20)->cCoord::matUpdate();
-    getPartsPtr(0x21)->rot.y = luisEye.r[0];
+    getPartsPtr(0x21)->rot.y = EyeGet(&luisEye);
     getPartsPtr(0x21)->cCoord::matUpdate();
-    luisEye.r[0] = luisEye.r[0] * luisEye.r[2] + luisEye.r[1] * (1.0f - luisEye.r[2]);
+    EyeMove(&luisEye);
 }
 
 void cSubLuis::neckSet(f32 ang, f32 limit)
