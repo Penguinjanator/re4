@@ -11062,3 +11062,65 @@ stmt.c/jump.c and confirmed with cc1plus probes:
   Use `/bin/rm -rf` (the plain `rm` alias refuses tmpfs). Orchestrator removed the finished passes'
   directories; agents should delete their /tmp harness when done or write large outputs under
   ~/.cache/<pass>/.
+
+### Stage rooms, never-iterated units pass 4 (r216 Matching 30/30; r21a FallRoofMove 13 -> 0 (16/17); r224 15 -> 18/19 with reva_common_move 32 -> 12; r214 throwRock 68 -> 7; 2026-09-10)
+
+- Harness /tmp/rooms_c6 (rooms_c5 copies with the paths rewritten; `tryv.py MOD/UNIT FUNC variants.py`, `sbs.sh MOD/UNIT SYM [OBJ]`,
+  `mdump.sh MOD/UNIT -dX` with `SRC_OVERRIDE=src/st2/rNNN.cpp`, `fn.sh DUMP FUNC`).
+- **global.c priority is `int(10000 * floor_log2(refs) * refs / live_length)` with `allocno_size` = 1 word** (dump_conflicts prints
+  ` (N)` only for multi-word allocnos; none in these functions), so the "contradiction" recorded for r21a FallRoofMove's PI/180
+  pair (5 refs / 734 vs 730) is a TIE at 136 broken by pseudo number (PI first). For r221 throwBonbe: pG high 448, eff2 425,
+  mot0 479, mot1 482; eff2's window is 6 refs with length [251, 267] or 7 refs with [293, 311] (the earlier note's numbers hold).
+  Whatever changes one real insn inside one pseudo's range but not the other's flips such a tie: r21a FallRoofMove 13 -> 0 by
+  writing `cnt = 0;` BEFORE `step = 0; spd = 0.0f;` (its `li` then sits between the hoisted PI and 180 loads in sched1's order,
+  PI gets the longer range and 180 wins f28/f27 as in the target). Read the -dg order and the -dl lengths together before
+  trying pins.
+- **The #17 pin cannot fix throwBonbe** (tested p1..p5, 108-207 words): with r22 pinned in an arm or bb 1, every pass-1
+  allocno allocated before the high (bonbe 135, k0/k1 138/139, mot0/mot1 133/134, the RoomData high 96) takes r22 in pass 0
+  unless it is live at the pin, and there is no gap where all of them are live while eff2 (or its PRE'd mask pseudo, born
+  exactly where eff2 dies) is dead. `sbs.sh` on the variant objects showed the whole callee-saved set re-packed (`stmw r16`).
+  The r21/r22 tie needs the priority route (a 7th eff2 ref with length 293-311; the join-block dead compare gives 290).
+- **r216 cR216Pole::close (2 -> 0, unit flipped): a one-use `cEmWrap* e = em;` declared between `ang.y = em->getAngY() + spd`
+  and the `ang.x/z = 0` stores, with `e->setAng(&ang)`.** The load `P = em` (pseudo, prio 5 through the coalesced `mr r3,P`)
+  beats the `fadds` (prio 4) for the t=3 slot after the call, so `addi r4,&ang` (prio 3, weight +1) is no longer issued in the
+  same cycle as the pool `lfs` while `stfs ang.y` waits; local-alloc ties P to r3 and the bytes are the target's
+  `lwz r3; lfs; fadds; stfs y; addi r4`. open() keeps the direct `em->setAng` (its target has the other order). Same
+  lever whenever a store that depends on a call result must precede an argument `addi` that a free `lwz r3,this` beats.
+- **Memory-input asms as position anchors (r224 R224Main 9 -> 0, gnd_close 2 -> 0, both tagged COMPILER-DIFF: 13).** An asm
+  with an input operand is scheduled after that operand's producer, and its output pseudo's live range starts there:
+  - R224Main: `u32 v = pG->flags_174 & ~m; pG->flags_174 = v; asm("li %0,0" : "=r"(zero) : "r"(v));` for the stack-argument
+    zero of `ActBtn.set(..., 0, zero)`. The zero is born after the RMW value, so local-alloc gives it r0 after the rlwinm temp
+    dies (target `li r0,0; stw r0,8(r1)` after the store, `lwz r9,pG` instead of r11 because r9 is no longer taken by an early
+    zero). An `"m"(pG->flags_174)` input orders it after the STORE instead and swaps `li r9,1`/`li r10,0` (2 words).
+  - gnd_close: `cObj* o = SmdGetObjPtr(0x14); o->rot.x = 0.0f; asm("li %0,5" : "=r"(five) : "m"(o->rot.x));
+    asm("li %0,0" : "=r"(zero) : "r"(five)); SceAtSetEnable(five, zero);` -- both argument `li`s wait for the `stfs` (the
+    target's `stfs; li r3,5; li r4,0`); an `"r"(o)` input instead keeps `o` live across the asm and copies it (`mr r9,r3`).
+    A bare `asm("li %0,5" : "=r"(x))` (no inputs) is a constant for gcse and is hoisted to bb 0 into a callee-saved register.
+- **The pool-constant reload family, half-closed by a named `static const` + asm loads (r224 reva_common_move 32 -> 12, tagged
+  COMPILER-DIFF: 12):** `static const f32 k0 = 0.0f;` inside the function takes the pool word's .rodata slot (emitted at its
+  declaration, before the function's pool); `asm("lis %0,%1@ha" : "=b"(h) : "i"(&k0)); asm("lfs %0,%1@l(%2)" : "=f"(x) :
+  "i"(&k0), "b"(h))` loads it opaquely (cse2 cannot fold the compare constant into spd's register), and a plain `FCRef(k0)`
+  read (r10c's `static inline f32 FCRef(const f32&)`) inside a conditional arm gives the target's loop.c-hoisted `lis r28` with
+  the `lfs` left in the arm. Facts learned: `FCRef`'s MEM is not `/u`, so loop.c never hoists the LOAD (the compare constant
+  must be the asm, placed before the loop); a `const f32*` deref is not `/u` either; and haifa's "don't let a pseudo cross a
+  call after scheduling if it doesn't already cross one" (sched_analyze_1/2, REG_N_CALLS_CROSSED == 0) is what keeps a
+  loop.c-hoisted `lis` after the preceding call while an asm `lis` whose output is used in the loop floats to the function
+  top -- write the asm `lis` where the register is consumed (the reload's high must stay compiler-generated). Residue 12:
+  the preheader schedule (`lfs f30,acc` last in the target, our asm `lfs zero` last), f26/f27 and r28/r29 pairs -- with the
+  reload's high now a single loop occurrence it is a loop.c movable (after pG's) instead of gcse's R insertion.
+- **`duplicate_loop_exit_test` runs in TWO jump passes: jump1 (pre-cse, exit code counted on the raw expansion) and the
+  `JUMP_AFTER_REGSCAN` pass right after loop.c (before cse2).** The 20-insn limit is applied to the RTL of that moment, and a
+  jump1 peel makes loop.c IGNORE the loop ("multiple entry points": the copied `bge L_sleep` enters the loop body). r214
+  throwRock 68 -> 7: loop 2 must NOT peel at jump1 (raw exit code > 20: `c->obj->pParts->rot.x += spd` expands to two address
+  chains, the literal `spd += -0.0349f` adds a pool load -- 22) but MUST peel post-loop (hoisted constants, 12 insns), and the
+  store constant must be a pseudo distinct from the compare's so jump2 cannot cross-jump the peel back: compare against
+  `lim` (set before the loop), store the LITERAL `-0.24137f` (cse2 then turns the loop copy's hoisted pool pseudo into the
+  target's `fmr f28,f30`). `acc` is kept only as a mid-block `const f32` for the pool order. Loop 3 is the target's
+  sleep-first goto form (`goto body; sleep: SceSleep(1); body: ..; if (!(c)) goto sleep;`), no peel. Residue 7: `cmplwi`
+  (u32 `i`; an `int` counter is reversed by loop.c: `li 3; addi -1; cmpwi 0`), the preheader `fmuls/addi` order and the
+  r9/r11 naming of the loop-3 body loads.
+- r22a RopeMove (4): sched2 ranks the word-8 load higher because `stw r9,8(r31)` anti-depends on the later `lwz r9,pG@l(r24)`
+  (prio 47 vs 46); the DAG is identical in the target (same registers), so the original's sched2 input order differed
+  upstream. Copy order / u32-view / pointer-copy forms: 15-107. r11b Init, r213 StatusSetChain (24 store permutations + an
+  `fr11` pin: 7-12), r21a FallRoofDie (the PRE insertion block is fixed by the camAt template copy's antloc in bb 1: lcm.c
+  `delayout = delayin & ~antloc`), r120, r225, r10c not moved.

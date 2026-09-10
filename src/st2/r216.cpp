@@ -421,9 +421,10 @@ void cR216Pole::close()
         obj[2]->rot.y += spd;
         if (em) {
             ang.y = em->getAngY() + spd;
+            cEmWrap* e = em;
             ang.x = 0.0f;
             ang.z = 0.0f;
-            em->setAng(&ang);
+            e->setAng(&ang);
         }
         if (obj[0]->rot.y > 3.1415927f) {
             obj[0]->rot.y = -3.1415927f;

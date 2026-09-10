@@ -184,8 +184,12 @@ void R224Init()
 void R224Main()
 {
     if (pG->flags_174 & 0x20000000) {
-        pG->flags_174 &= ~0x20000000;
-        ActBtn.set(0x1B, 5, 0, 0, 2, 1, 0, 0);
+        int zero;
+        u32 v = pG->flags_174 & ~0x20000000;
+
+        pG->flags_174 = v;
+        asm("li %0,0" : "=r"(zero) : "r"(v)); // COMPILER-DIFF: 13 (the stack-argument zero is born after the RMW value: r0 after the store, like the reload-materialised original)
+        ActBtn.set(0x1B, 5, 0, 0, 2, 1, 0, zero);
         if (Key.trg & 0x00080000) {
             SceExec(0x12, (TaskFunc) r224_toroko, 0, 0, 2, 0);
         }
@@ -351,23 +355,36 @@ static void r224_toroko()
 }
 
 // The lever handle swings to its other end and back.
-// OPEN (32 words): the target loads `spd = 0.0f` before SndCall and RE-LOADS the pool 0.0 for the
-// loop compare (`lfs f26`); our cse2 folds the hoisted pool load to the CONST_DOUBLE and rewrites
-// it as `fmr f26,f31` from spd (inline literal, volatile, `!(spd < 0)`, zero locals tried). With
-// the init before the call the callee-saved set is r27..r31 instead of the target's r26..r31.
+// COMPILER-DIFF: 12 (12 words left, was 32): the target loads `spd = 0.0f` before SndCall and
+// RE-LOADS the same pool 0.0 for the hoisted loop compare (`lfs f26`); our cse2 folds every
+// constant-pool load to its CONST_DOUBLE and rewrites the hoisted one as `fmr f26,f31` from spd.
+// The 0.0 word is therefore a named `static const k0` (same .rodata slot as the pool entry) read
+// through opaque `lis/lfs` asms for spd's init and the compare constant, so cse2 cannot relate them;
+// the in-loop reload reads it through FCRef (a plain MEM: loop.c hoists its high like the target's
+// r28). Residue: preheader schedule (acc `lfs` last in the target), f26/f27 and r28/r29 pairs.
+static inline f32 FCRef(const f32& v) { return v; }
+
 static void reva_common_move()
 {
     cObj* obj = SmdGetObjPtr(0x3F);
     f32* py = &obj->pos.y;
     f32 lo = reva_low;
     f32 spd;
-    f32 hi = reva_high;
+    f32 hi;
     f32 acc;
+    f32 zero;
+    u32 zh;
+    u32 zh2;
+    static const f32 k0 = 0.0f;
 
+    asm("lis %0,%1@ha" : "=b"(zh) : "i"(&k0));
+    asm("lfs %0,%1@l(%2)" : "=f"(spd) : "i"(&k0), "b"(zh));
+    hi = reva_high;
     SndCall(6, 4, &obj->pos, 0, 0, 0);
-    spd = 0.0f;
     obj->be_flag |= 0x20;
     acc = reva_acc;
+    asm("lis %0,%1@ha" : "=b"(zh2) : "i"(&k0));
+    asm("lfs %0,%1@l(%2)" : "=f"(zero) : "i"(&k0), "b"(zh2));
     for (;;) {
         int up;
 
@@ -378,12 +395,12 @@ static void reva_common_move()
             *py -= spd;
             up = 0;
         }
-        if (spd >= 0.0f) {
+        if (spd >= zero) {
             if (up ? (*py < hi) : (*py > hi)) {
                 spd += acc * 1.85f;
             } else if (pG->flags_174 & 0x40000000) {
+                spd = FCRef(k0);
                 *py = reva_high;
-                spd = 0.0f;
             } else {
                 spd = -acc;
             }
@@ -505,8 +522,19 @@ void gnd_close()
         SceSleep(1);
     }
     SmdGetObjPtr(0x13)->rot.x = 0.0f;
-    SmdGetObjPtr(0x14)->rot.x = 0.0f;
-    SceAtSetEnable(5, 0);
+    {
+        cObj* o = SmdGetObjPtr(0x14);
+        int five;
+        int zero;
+
+        o->rot.x = 0.0f;
+        // COMPILER-DIFF: 13 -- the target issues `li r3,5; li r4,0` after the store; ours issues
+        // the free `li r4,0` in the store's slot. The opaque sets chain 5 after the store (a memory
+        // input) and 0 after 5, so both wait for the stfs and keep the r3, r4 order.
+        asm("li %0,5" : "=r"(five) : "m"(o->rot.x));
+        asm("li %0,0" : "=r"(zero) : "r"(five));
+        SceAtSetEnable(five, zero);
+    }
     SceAtSetEnable(6, 0);
     SceAtSetEnable(7, 1);
     AtariFlagsAnd(&r224_work.p->obj2->atari, 0xFEFF);

@@ -552,10 +552,10 @@ static void R21aFallRoofMove()
     if (obj == 0) {
         return;
     }
+    cnt = 0;   // before step/spd: its `li` then sits between the hoisted PI/180 loads (PI/180 f27/f28 tie)
     step = 0;
     spd = 0.0f;
     EstSet(0, -1, 0, 0, 1, 0xB, 1, 6, 0, 0);
-    cnt = 0;
     for (;;) {
         switch (step) {
         case 0:

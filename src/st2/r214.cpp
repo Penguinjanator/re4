@@ -844,7 +844,6 @@ static void r214_throwRock(cCatapult214* c)
 {
     u32 i;
     f32 spd;
-    f32 acc;
     f32 lim;
 
     c->obj->pParts->rot.x = -0.24137f;
@@ -853,30 +852,35 @@ static void r214_throwRock(cCatapult214* c)
         SceSleep(1);
     }
     c->throwRock();
-    acc = -0.034906585f;
+    // Loop 2 is peeled by the post-loop jump pass (duplicate_loop_exit_test), not by jump1: with
+    // `lim` in the compare but the LITERAL in the store, the exit code has > 20 insns before cse1
+    // (no early peel, so loop.c still hoists) and < 20 after loop.c (peel), and the store's constant
+    // is its own hoisted pseudo (`fmr f28,f30` in the preheader). `acc` is only pool order.
+    const f32 acc = -0.034906585f;
     spd = -0.06981317f;
+    lim = -0.24137f;
     for (;;) {
         c->obj->pParts->rot.x += spd;
         spd += acc;
-        if (c->obj->pParts->rot.x < -0.24137f) {
+        if (c->obj->pParts->rot.x < lim) {
             c->obj->pParts->rot.x = -0.24137f;
             break;
         }
         SceSleep(1);
     }
-    lim = -0.24137f;
     i = 0;
     do {
         lim *= 0.5f;
         spd *= -0.5f;
         i++;
-        for (;;) {
-            c->obj->pParts->rot.x += spd;
-            spd += -0.034906585f;
-            if (c->obj->pParts->rot.x < lim && spd < 0.0f) {
-                break;
-            }
-            SceSleep(1);
+        goto body;
+    sleep:
+        SceSleep(1);
+    body:
+        c->obj->pParts->rot.x += spd;
+        spd += -0.034906585f;
+        if (!(c->obj->pParts->rot.x < lim && spd < 0.0f)) {
+            goto sleep;
         }
         c->obj->pParts->rot.x = lim;
     } while (i < 4);
