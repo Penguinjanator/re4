@@ -282,6 +282,9 @@ Do not spend unit time on any of these; use the workarounds and move on. POLICY:
 for a compiler-build difference (asm-labelled aliases, `asm("" : "+r"(x))` launders, `register ...
 asm("rN")`, dead `p = 0` initialisers used only to shift gcse/loop.c counts) must carry a comment
 `// COMPILER-DIFF: <which item>` so they can be removed mechanically if the original build turns up.
+PURE C (owner decision 2026-09-11): no whole-function `asm` transcription of target machine code anywhere in the
+CRI units (SDK units keep Nintendo's own asm functions; CRI's uty_ppc.c GQR save/restore is CRI's own asm); byte
+identity must come from C or from identifying the real compiler build. Small tagged pins/levers stay (CRI pass 8).
 
 ### Host-dependence of our cc1plus (negative result, do not re-investigate)
 The configured cc1plus is a 32-bit static i386 build (HOST_WIDE_INT = int, like Win32). cse.c hashes
@@ -2534,6 +2537,8 @@ both tagged `// COMPILER-DIFF: M1`:
   `vtbl` and the `beq add; b check` shape remain (-1.3% net, not applied).
 
 ### CRI pass 6 (21 units Matching: adx_sjd, adx_dcd, dct_ac, sfd_see, sfd_pts, mwsfdply, sfx_alp, mwsfdsfx, adx_bau, adx_stmc, mpv_cdec, sfx_cnv, sfd_cre, cri_cvfs, mpv_cmc, adx_baif, adx_dcd5, sfd_hds, mwsfdsvr, sfd_tst, sfx_zmv; 2026-09-10)
+SUPERSEDED IN PART by CRI pass 8 (below): the whole-asm-function route is banned (pure C); the 15
+units that relied on it are False again. The pin/lever findings stand.
 Harness: /home/adityas/.cache/cri6/ (cri5 copied; `tryf.py unit Func variants.py [offs] [--target]
 [--bytecmp]` = tryfn + tryregs + bytecmp in one run, `tryhm.py unit Helper Main variants.py offs`
 swaps an inlined helper and its caller together (`VARIANTS=[(label, helper_text, main_text)]`),
@@ -2723,6 +2728,88 @@ pragmas, `register`, asm-defined register locals and hard-register pins were use
 - Hazard seen during the pass: another agent's removal of the pass-6 asm functions from adx_bau /
   adx_dcd / dct_ac left those units flagged Matching while no longer byte-identical (main.dol FAILED,
   110/111) — check `bytecmp.py lib/adx_bau lib/adx_dcd lib/dct_ac` before blaming your own flip.
+
+### CRI pass 8: pure-C revert (15 units 21 -> 6 Matching from pass 6; 2026-09-11)
+Owner decision: the source is PURE C. Every whole-function `asm` transcription that pass 6 added was
+removed (32 asm functions in 15 units); the C body that pass 6 kept (under `#else` or as the dead
+`Func_c` twin) is the real function again under its original name. Also removed: the dead
+`*_pool_order` ordering functions, the `extern _savefpr_27/_restfpr_27/__div2i/__cvt_fp2unsigned`
+declarations, the named literals that existed only for the asm (adx_dcd `adxcoef_*`, dct_ac `dctac_*`,
+sfx_cnv `sfxcnv_*`, sfx_zmv `sfxz_*`, mpv_cdec `mpvcdec_zero`, cri_cvfs `cvfs_build_str`, mwsfdsvr
+`mwsfsvr_msg_bdrhndl`). Kept (C-level levers that still work): sfd_tst's named `sftst_msg_hdr` /
+`sftst_msg_fmt` strings (they give the original .rodata order; SFTST_Create copies the header with a
+struct copy `SFTST_HDRSTR hdr = *(const SFTST_HDRSTR *)sftst_msg_hdr`, which is the same inline block
+copy as `Char8 hdr[] = "..."` — the twin's `memcpy` was a call, -32 bytes), every pass-5/6/7 register
+pin, and the `#pragma dont_inline` around mwsfd_ExecSvrHndl. New this pass: mpv_cmc MPVCMC_InitMcOiRt
+caches `w = mpv->width; h = mpv->height` in locals (the target loads each once; the field form
+reloaded height per store), 12 -> 8 words. The 15 units are flagged False in objects.py with the
+function/word list; `python3 configure.py && ninja -k 0 && dtk shasum -c` = 111 OK. The ldscript
+`_savefpr_15..31/_restfpr_15..31` aliases were removed again: after the revert no linked object
+references them (only dct_ac's C body calls `_savefpr_27`, and dct_ac links the split object now).
+They WILL be needed again the moment a Matching MWCC unit saves f15..f31 (dct_ac DCT_AcInit, or any C
+function with 2..17 callee-saved FPRs) — re-add them then (`_savefpr_N = _savefpr_14 + 4*(N-14)`).
+`asm {}` in SDK units (OS*, PPCArch, mtx*, vec, GX*, psmtx, reverb_*, chorus, sndvd, ai, db) and CRI's
+uty_ppc.c (UTY_PushGqr/PopGqr, CRI's own asm) are not transcriptions and stay.
+
+Residue signatures (words = differing rows of `tools/fdiff.py`; sizes target/ours) — the list the
+compiler-identification work should reproduce:
+- adx_dcd `ADX_GetCoefficient` 81w, 604/568: **M2** — target loads its 9 float literals unpooled (3 of
+  them through `lis; addi r5; lfd 0(r5)`), ours pools through a `...rodata.0` base in r31 (c1/c2 drop
+  to r29/r30, one more callee-saved), and the load order of the pooled constants renumbers the inlined
+  sqrt Newton chains (target 0.5 in f2 / cos result kept in f1 until `frsp f7`; ours `frsp f2, f1`
+  early, 0.5 in f1).
+- dct_ac `DCT_AcInit` 37w, 256/244: **M2** — 4 double literals pooled (target `lis/lfd @N@l` each) and
+  `dctac_version_dummy` addressed through a `...bss.0` base (target: `dctac_i_const + 0x400`); r30 pool
+  base pushes the IVs down one register (stmw r24 vs r25).
+- adx_bau `ADXB_ExecOneAu16` 1w and adx_baif `ADXB_ExecOneAiff16` 1w: **M6** — unrolled copy 15 of the
+  2ch swap loop is `extrwi r9, r10, 8, 16` in the target, `srawi r9, r10, 8` in all 16 of ours.
+- adx_stmc `ADXSTM_Create` 4w, 628/628: **M1/scheduling** — the derived-IV step `addi r3, r3, 0x60` is
+  in the loop latch after the `beq` in the target, before the `lbz` in ours (both inlined copies).
+- mpv_cdec `MPVCDEC_IntraBlocks` 1108/1104: **M1** — target clears 192 doubles with 83 stores off the
+  parameter register and the rest off a second base `addi r8, r31, 0x720`; ours has no second base and
+  switches to the r31 copy at store 64 (every store from there differs in base/offset, 200 rows).
+- sfx_cnv `SFX_MakeTable` 113w, 1144/1148: **M1** — target shares one `li r0, 0` between the unroller
+  guard and the 16 zero stores (ours re-materialises it: +1), `tbl`/`i` in r3/r4 vs r4/r3, and the 8x
+  unrolled 1.164f conversion uses different fctiwz FPRs and stack-slot order (`stfd f6, 0x10` ... vs
+  ours `stfd f4, 0x20`). Plus **M2** .rodata: target order 1.164f, 0x43300000_80000000, "E201311"
+  string; ours emits the conversion constant after the string (the string is parsed inside the
+  function, the cvt constant is created at the end) — sfxcnv_IsCnvUpHalf's string moves 8 bytes.
+- sfd_cre `sfcre_AnalyMpv` 18w (`size -= ofs + 1` computed in place in ofs's register vs a fresh r0;
+  header bytes b4 r4 / b7 r5 / ofs r6 / b6 r7 vs ours), `sfcre_AnalyAudio` 43w (parameters r24..r26
+  below the locals, `end - p <= 6` diamond r3/r0, the inlined AnalyAau's 15 field temporaries),
+  `sfcre_AnalyMps` 28w (callee-saved permutation of the inlined AnalyPackSiz values p1 r30 / n1 r28 /
+  mps r22): all **M1**.
+- cri_cvfs `cvFsGetFileSize` 45w (callee-saved permutation of the inlined device-search values),
+  `cvFsOpen` 106w, 1636/1632 (pool base r29 and the loop index/pointer r3/r4 swapped, ours one
+  instruction shorter), `cvFsAddDev` 14w (target devname r29 / vtbl r28 with a two-definition
+  `mr r0, r3; ...; mr r28, r0` bounce and a `beq add; b check` search exit): **M1**.
+- mpv_cmc `MPVCMC_InitMcOiRt` 8w, 64/60 and `MPVCMC_InitObj` 17w, 140/136: **M1** — target keeps a
+  separate member-array base (`addi r5, r3, 0x124` / `addi r5, r31, 0x158`) for the six `oi[i].n`
+  stores; ours folds the offsets into the object register.
+- adx_baif `AIFF_GetInfo` 91w, 624/616: **M1** — the FORM/size header words share the loop's ckid/cksz
+  registers and the size word is byte-swapped before the FORM/AIFF compares; ours loads the header
+  bytes in a different order (r28/r30 vs r30/r27) and swaps after.
+- adx_dcd5 `ADX_DecodeSte4AsSte` 118w, `ADX_DecodeSte4AsMono` 142w (752/748), `ADX_DecodeMono4` 54w:
+  **M5 + M1** — shift forwarding in the 4-bit decode loop (see mpvabdec's M5 note) and the AdxQtbl
+  address hoisted above the `extsh` parameter conversions (`lis r11; ...; addi r28, r11` vs target
+  `lis r28; lha; addi r28, r28`), one more callee-saved register (stmw r25 vs r26).
+- sfd_hds `sfhds_DoProcessHdr` 111w and `SFHDS_SetHdr` 11w: **M1** — the target ranks the parameters
+  above the locals (fhd r31 / sfh r30 / ver r29; result r30 / len r29 / p r28 / sfd r27), ours locals
+  first (the pass-5 first-parameter copy lever fixes only the first one).
+- mwsfdsvr `mwlSfdSleepDecSvr` 24w, 164/184: **M1** — the target materialises the zero for the inlined
+  ClrSleepBdr twice as copies (`li r28, 0; mr r30, r28; mr r31, r28`), which needs 5 callee-saved
+  registers and turns the prologue/epilogue into `stmw/lmw r27` (ours one `li` each, 4 registers,
+  8 single stw/lwz); `mwsfd_ExecSvrHndl` 15w (mwply r31 / sfd r30 vs ours r30 / r31; with the
+  `dont_inline` pragma the M3 inlining itself is fixed); `mwSfdExecDecSvrHndl` 12w (the pool `lis r4`
+  above the `stw r0; stmw; mr r29` prologue stores, ours below them).
+- sfd_tst `SFTST_Calc` 83w, 2640/2640: **M1** — the 64-bit abs diamond is kept in place with two `mr`
+  in the target (`beq; subfic/subfze; b; mr r22, r25`), ours sinks the copies above the compare and
+  renumbers r21..r25 through the rest of the function; `SFTST_Create` 4w: `lwz r3, sftst_debout_buf`
+  + `cmplwi` scheduled above the header copy tail in ours, below it in the target.
+- sfx_zmv `sfxzmv_MakeCnvZTbl` 94w, 1168/1168: **M1** — the inlined copy helper's src/dst are r3/r4 in
+  the target and r4/r3 in ours (three inlined copies, plus r28/r29 in the fourth); `sfxzmv_MakeOrgZ32-
+  TblByCCIR` 77w: the 8x unrolled 1.164f loop's slot/FPR order, as sfx_cnv (the .rodata order here
+  is already the target's).
 
 ## REL modules
 
@@ -14285,3 +14372,71 @@ em29_3c and pointed at `~/.cache/dol14/<PRE>_lreg.txt` / `<PRE>_greg.txt`). Buil
   m/cpos, so it is a post-expand `assign_stack_local` (reload secondary memory for a DImode reload is the suspect). r208
   operateCrank (Matching) has the same two ingredients AND the slot in its target (vars 0x10..0x20, unexplained 0x20..0x28,
   fpmem 0x28), so the original produces it under some condition r204's source did not meet. Not found.
+
+### Stage rooms, st1_1/st1_3/st2_0 pass 7 (r103 (both modules), r106, r10b, r11e Matching -> st1_1 fully linked; r10f 11/14, r202 30/32; 2026-09-11)
+
+- Harness ~/.cache/rooms_b7 (rooms_b6 + fold7 copies: `cc.sh`, `cmp.py OBJ MOD/UNIT [SYM] [--trunc]`, `tryv.py SRC MOD/UNIT SYM
+  variants.py [--dump "-dX"]`, `sect.py`, `rtl.py`, `fn.sh`; the LA_DEBUG cc1plus is ~/.cache/em2b39_p7/sngcc/cc1plus, run with
+  `LA_DEBUG=1 CC1=... ./cc.sh ...` to print local-alloc's qty order/PRI per block). The SN gcc source for reading passes is
+  tools/sn-gcc/src/gcc.
+- **openShelf_main 4 -> 0 in r103 AND r106 (tagged `candidate #17 (local-alloc qty order of the two pool highs)`): a
+  pseudo -> hard-register copy of the pParts pointer as a sched1-only insn.** Mechanism confirmed with LA_DEBUG: qty PRI =
+  10000 * floor_log2(refs) * refs / (death - birth) with birth/death = 2 * sched1 insn index; the +1.92 high B (span 2)
+  beat the -1.92 high A (span 4, `lwz pParts` between its `lis` and `lfs`) and took r9, A then conflicted through the
+  fake-lifetime adjacency (A dies at `lfs A`, B born at the next insn) and got r11. Recipe: `cModel* pa = *(cModel*
+  volatile*) &a->pParts; register cModel* pa2 asm("r10"); pa2 = pa; pa2->rot.y = ra; asm("" : "=m"(b->be_flag) :
+  "r"(pa2)); b->pParts->rot.y = rb;`. Why each piece: the copy `(set r10 pa)` has prio 6 in sched1 (-> stfs a) and is
+  ready at t3 (lwz latency 2), so it is issued right after `lis B` and before `lfs B` (prio 4), lengthening B's span to
+  A's -> tie -> lower qty number (A) first -> r9/r11 as the target; local-alloc gives `pa` the r10 copy suggestion, the
+  copy becomes `mr r10,r10` and reload_cse deletes it, so sched2 sees the target's insn set and reproduces its order.
+  combine kills a plain copy in BOTH directions: `lwz pa -> mr r10,pa` merges into `lwz r10` unless the load is
+  volatile (`can_combine_p` refuses a volatile MEM source), and `mr r10,pa -> stfs [r10]` merges into `stfs [pa]` unless
+  r10 has a second use, which the codeless `"=m"` asm provides (its memory operand also keeps it a live store: pick a
+  field nothing stores later; the `"=m"(a->be_flag)` form added a ref to `a` and swapped a/b's global-alloc order in
+  r106, `"=m"(b->be_flag)` did not). A hard-register copy without the asm was also undone by regmove/combine; pins on
+  pa/pb alone change nothing (the two highs' qtys are unaffected). Rejected zero-code ideas, with the reasons: a
+  do-while(0) around the -1.92 statement for the loop-depth REG_N_REFS boost -- the insn after a LOOP_BEG/LOOP_END note
+  is a full sched barrier in BOTH passes, and every layout puts B's `lis`/`lfs` on the wrong side of it; a codeless asm
+  with a dead output is deleted at flow1 (before sched1), so it cannot be a sched1-only insn; `update_equiv_regs` moves
+  a set before its use only for REG_BASIC_BLOCK < 0 pseudos.
+- **r106 openShelf_main `li r30,0; li r29,0`: declare `b` before `a`** (the two zero inits tie at every sched rank and
+  LUID = declaration order).
+- **r10b readEvent 3 -> 0, zero code: `return 0;` in the err arms instead of `goto fail`.** With `goto fail` the block
+  ends `bl err; b fail`; with `return 0` it continues `bl err; li r3,0; b END` at sched2 time (jump2 cross-jumps the tail
+  afterwards, so the final layout is the same). The `li r3,0` gives `lwz r3,pLog` an output dependent and the block-end
+  jump becomes a dependent of every insn, so `mr r7,size` (3 deps) and `lwz r3` (3) outrank the string `lis` (2) at
+  their ties -- the pl14 cRoutine::set shape. Rule: when an error arm's argument copies/`this` load are issued before the
+  string `lis` in the target and after it in ours, check whether the arm `return`s (block continues) or `goto`s.
+- **r10b Evt_R10BS10_Func 10 -> 0, zero code: a user variable in the re-test.** jump.c `thread_jumps` (the jump pass
+  after cse1) redirected our first `beq` past an identical second `if (pG->flags_60 & bit)` test; `rtx_equal_for_thread_p`
+  returns 0 for `REG_USERVAR_P` pseudos, so `u32 f = pG->flags_60; if (f & bit)` in the second test keeps the target's
+  re-read (the `li r9,1` #13-looking residue vanished with it). Not cse (the `-ds` dump only reflects the jump pass).
+- **r10b chkWater 16 -> 0 / GakeEvent 8 -> 0, zero code: reference stores so a fixed-scalar load waits.** `BitOn(pG->
+  flags_174, bit)` (chkWater) and `PSet(r10b_work->boat, EmSetFromList2(..))` (GakeEvent): a plain in-struct store never
+  conflicts with the `mem/f` `lwz r10b_work`/`lwz pG` (fixed_scalar_and_varying_struct_p) and the load floats to the
+  block top; the reference store is an unflagged MEM and the load depends on it (target: `stw; lwz`).
+- **r10b chkEmDie 162 -> 0, zero code: `while (EvtMgr.IsAliveEvt(evtKey(&EvtMgr), 0, 0)) SceSleep(1);` in the inline
+  wait loop, no `EventMgr* m = &EvtMgr` before it.** With `m` the lo_sum is set before the inner loop and gcse PREs one
+  `high(EvtMgr)` for all six sites (one callee-saved reg); with `&EvtMgr` inside the loop test loop.c hoists the inner
+  `addi` from its own high (the target's second `lis EvtMgr@ha`, r26, next to the SetEvt sites' r28).
+- **r11e EmSet_exit 11 -> 0: `pe = &em;` AFTER `em.setEm(..)`** (the setEm `this` stays a fresh `addi r3,r1,8`; sched1
+  hoists the pe addi to the top anyway since it crosses calls). **move_sasaeki1 8 -> 0: `const f32 w/h`** for the
+  YarareInitCube constants (pool order w, h before 0.0; literals give the same code but move 0.0 first in the pool).
+  **R11eInit 67 -> 0: `PSet(r11e_work->sat[i], SatMgr.create(..))`** for all eight create stores (the next create's `lwz
+  pG` waits for the store; also fixed the koyaA/sakuA Pos/Rot high pairs' r27/r28, r23/r24 order).
+- **r202 R202Init 2 -> 0, r10f R10fInit 6 -> 0 (tagged `candidate #17`, value-carrying pins): `register GlobalWork* g
+  asm("r10"); g = pG;`** for the pG temp of a test right after `stw r3, work@l(r9)` (local-alloc adjacency of the work
+  high and the pG load under the target's sched1 order) and, in R10fInit, for the setSubMotion block's pG temp (target
+  pG r10 / work r11, ours reversed). A `pGS` struct view does not change it; pinning the work pointer to r11 works too.
+- **r10f GondolaEmSet 71 -> 1: `s16 (*t)[3] = tbl; for (n = 0; n < 3 && t[k][n] != -1; n++)`** (no `p = tbl[k]` pointer:
+  that made the `fp+24` PRE reg a second copy hoisted by loop.c, one more callee-saved register). Left 1 word: the
+  peeled entry test is `lhax r0,t,k6` in the target and `lhax r0,k6,t` in ours -- expr.c `both_summands` puts a MULT
+  term first in an EXPAND_SUM address (`(plus (mult k 6) t)`), cse/combine never reorder two REGs, and every spelling
+  of the index (`t[k][n]`, `(*(t+k))[n]`, `*(t + k*3 + n)`, u8*/u32 casts) reaches the same MULT-first form while the
+  loop's own giv init `add p,k6,t` matches; a byte-offset variable `ofs = k * 6` would give `(plus t ofs)` for the test
+  but also for the giv add_val. Not found.
+- Left: r10f GondolaGetOn 435 / GetOff 234 (frame layout + the `lwz 0xc/0x10/0x14/0x4/0x8` template-copy order of two
+  Vec templates -- a different block-move shape; not iterated), r202 initCatapult 106 (#3) / setRock 4 (also a
+  pre-existing pool-order diff at .rodata 0x1d8: -0.0349/-0.0698 swapped since the throwRock rewrite), r210 funcAshley2
+  9 (the 1.0 `lfs`/`stfs` sit early in the target, after all `stb`s in ours; `"=m"` keep-alives, a hard-reg r0 zero,
+  statement orders: 8-10), dai_go 10, toroko_ret 323, r222 (6 functions) not iterated.

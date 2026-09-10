@@ -164,7 +164,11 @@ void R202Init()
 {
 #line 58 "D:/Bio4/Prog/r202.cpp"
     r202_work.p = (R202Work*) MEM_CALLOC(sizeof(R202Work), 1, 0xd);
-    if (RsfCheck(G_ROOM_ID, 1) == 0) {
+    // COMPILER-DIFF: candidate #17 (value-carrying pin): the pG temp of the first RsfCheck is r10
+    // in the original (local-alloc adjacency with the work high's r9 under its sched1 order), r9 in ours.
+    register GlobalWork* g asm("r10");
+    g = pG;
+    if (RsfCheck(*(u16*) &g->stage_no, 1) == 0) {
         r202_initCatapult();
         if (RsfCheck(G_ROOM_ID, 2) == 0) {
             SceAtDataSet_exec(5, 0x12, 0, (TaskFunc) r202_CatapultGo, 0, 1);

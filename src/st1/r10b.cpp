@@ -85,9 +85,9 @@ static inline u32* evtKey(EventMgr* m) { return &m->x34; }
 // Waits for the running event to end.
 static inline void r10b_waitEvt()
 {
-    EventMgr* m = &EvtMgr;
-
-    while (m->IsAliveEvt(&m->x34, 0, 0)) {
+    // `&EvtMgr` inside the loop (no pointer local before it): loop.c hoists the `addi` into the
+    // inner preheader from its own `lis` (the target's second EvtMgr high, r26).
+    while (EvtMgr.IsAliveEvt(evtKey(&EvtMgr), 0, 0)) {
         SceSleep(1);
     }
 }
@@ -234,14 +234,17 @@ extern "C" int readEvent(int no, int wait, void** out)
         if (R10B_WORK->evt[no]->waitLoadOk() == 0) {
             R10B_WORK->evt[no]->setCommand(3, 0, 0);
             pLog->err(0, 0, "readEvent() : out of memory (0x%x)", R10B_WORK->evt[no]->size);
-            goto fail;
+            return 0;
         }
         EspEmDataSwapPush(0x2F);
         m = SearchEmModule(0x2F);
         max = m->size;
         if (R10B_WORK->evt[no]->size > max) {
+            // `return 0` (not `goto fail`): at sched2 the block continues past the err call with
+            // `li r3,0`, whose output dependence on the pLog load and the block-end jump rank the
+            // `mr r7,size` and `lwz r3` above the string `lis`; jump2 then cross-jumps the tail.
             pLog->err(0, 0, "readEvent() : event size too large!![%d]>[%d]", R10B_WORK->evt[no]->size, max);
-            goto fail;
+            return 0;
         }
         MemorySwap(m->pArc, (u32) R10B_WORK->evt[no]->addr, R10B_WORK->evt[no]->size);
         *out = m->pArc;
@@ -342,7 +345,7 @@ static void R10b_chkWater()
             cEm* em;
             Vec pos;
 
-            pG->flags_174 |= 0x40000000;
+            BitOn(pG->flags_174, 0x40000000);    // reference RMW: the r10b_work load waits for the store
             EmMgr.destroy(r10b_work->boat);
             EffectEventDelete();
             DmgMgr.beginEvent(0);
@@ -428,7 +431,7 @@ static void r10b_GakeEvent()
             }
             freeEvent(3);
         }
-        r10b_work->boat = EmSetFromList2(0xA3, 0);
+        PSet(r10b_work->boat, EmSetFromList2(0xA3, 0));    // reference store: the pG load waits for it
         pG->flags_54 |= 0x400;
         SceSleep(4);
         SceEventEnd(0);
@@ -590,8 +593,14 @@ extern "C" void Evt_R10BS10_Func(Event* e)
             r10b_effDelete(3);
             EstSet(0, -1, 0, 0, 1, 3, 1, 2, 0, 0);
         }
-        if (pG->flags_60 & 0x02000000) {
-            pG->flags_174 &= ~0x8000;
+        {
+            // A user variable: jump.c's thread_jumps never equivalences a REG_USERVAR_P pseudo, so
+            // the re-test survives (the original re-reads the flag after the effect calls).
+            u32 f = pG->flags_60;
+
+            if (f & 0x02000000) {
+                pG->flags_174 &= ~0x8000;
+            }
         }
         break;
     case 1:

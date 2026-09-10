@@ -265,8 +265,9 @@ static void r106_ctrlEm1()
 // Open shelf `type` (opened != 0: already open): the two doors turn 110 degrees over 30 frames.
 extern "C" void r106_openShelf_main(int type, int opened)
 {
-    cObj* a = 0;
+    // b declared first: its `li` is the first insn of block 0 (LUID tie of the two zero inits).
     cObj* b = 0;
+    cObj* a = 0;
 
     switch (type) {
     case 0:
@@ -282,8 +283,20 @@ extern "C" void r106_openShelf_main(int type, int opened)
         a->be_flag |= 0x20;
         b->be_flag |= 0x20;
         if (opened == 1) {
-            a->pParts->rot.y = -1.9198622f;
-            b->pParts->rot.y = 1.9198622f;
+            f32 ra = -1.9198622f;
+            f32 rb = 1.9198622f;
+            // COMPILER-DIFF: candidate #17 (local-alloc qty order of the two pool highs), the
+            // r103 openShelf_main recipe: the volatile load + hard-register copy + keep-alive asm
+            // put a no-op `mr r10,r10` (deleted by reload_cse) between the second `lis` and its
+            // `lfs` in sched1, so the two highs' spans tie and the -1.92 high is allocated first.
+            // The keep-alive reads b (not a) so the a/b global-alloc order is unchanged.
+            cModel* pa = *(cModel* volatile*) &a->pParts;
+            register cModel* pa2 asm("r10");
+
+            pa2 = pa;
+            pa2->rot.y = ra;
+            asm("" : "=m"(b->be_flag) : "r"(pa2));
+            b->pParts->rot.y = rb;
         } else {
             int i;
 

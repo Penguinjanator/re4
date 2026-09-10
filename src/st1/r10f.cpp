@@ -85,7 +85,12 @@ void R10fInit()
 #line 57 "D:/Bio4/Prog/r10f.cpp"
     r10f_work.p = (R10fWork*) MEM_CALLOC(sizeof(R10fWork), 1, 0xd);
 
-    if (!(pG->door_unlock[0] & 0x00800000)) {
+    // COMPILER-DIFF: candidate #17 (value-carrying pins): the pG temp of the first test is r10 in the
+    // original (local-alloc adjacency with the work high's r9 under its sched1 order) and the pG temp of
+    // the setSubMotion block is r10 too (its qty ahead of the work pointer's; ours reverses the two).
+    register GlobalWork* g asm("r10");
+    g = pG;
+    if (!(g->door_unlock[0] & 0x00800000)) {
         SceAtDataSet_exec(2, 0x12, 0, (TaskFunc) r10f_DoorClose, 0, 1);
         SceExec(0x12, (TaskFunc) r10f_checkFalseEyeUse, 0, 0, 2, 0);
     }
@@ -112,7 +117,9 @@ void R10fInit()
             if (r10f_work.p->gondola[i] != 0) {
                 r10f_work.p->gondola[i]->setMoveMotion(ROOM_ARC_PTR(pG->pRoomArc, 0x26), (u16) (i * 0x1C2));
                 if (m != 0) {
-                    r10f_work.p->gondola[i]->setSubMotion((MotionWork*) m++, ROOM_ARC_PTR(pG->pRoomArc, 0x30), ROOM_ARC_PTR(pG->pRoomArc, 0x31));
+                    register GlobalWork* g2 asm("r10");    // COMPILER-DIFF: candidate #17 (see above)
+                    g2 = pG;
+                    r10f_work.p->gondola[i]->setSubMotion((MotionWork*) m++, ROOM_ARC_PTR(g2->pRoomArc, 0x30), ROOM_ARC_PTR(g2->pRoomArc, 0x31));
                 }
             }
         }
@@ -372,16 +379,20 @@ static void r10f_GondolaEmSet(int idx)
     } else {
         cur = idx + 7;
     }
+    // `t[k][n]` with a row-pointer view of the table: the k*6 offset stays a per-iteration
+    // `mulli`, the n loop gets a stepping pointer giv, and the peeled entry test reads
+    // `lhax t,k*6`. Left (1 word): the target's lhax has the base first (`(plus t ofs)`), ours
+    // the MULT term first (expr.c both_summands "put a multiplication first").
+    s16 (*t)[3] = tbl;
+
     for (k = 0; k < 6; k++) {
         u32 n;
-        s16* p;
 
         while (r10f_work.p->gondola[cur]->motFrame <= 2000.0f) {
             SceSleep(1);
         }
-        p = tbl[k];
-        for (n = 0; n < 3 && *p != -1; n++, p++) {
-            if (em.setEm(*p, -1, 0, 1, 0) == 1) {
+        for (n = 0; n < 3 && t[k][n] != -1; n++) {
+            if (em.setEm(t[k][n], -1, 0, 1, 0) == 1) {
                 r10f_work.p->gondola[cur]->setRideEm(em.getPtr());
             }
         }

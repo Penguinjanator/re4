@@ -50,6 +50,7 @@ static R11eWork* r11e_work;
 
 // Pointer stores through references: the work pointer and the field are reloaded after them.
 static inline void PSet(cEmRock*& d, cEmRock* v) { d = v; }
+static inline void PSet(cSat*& d, cSat* v) { d = v; }    // the pG reload of the next create waits for the store
 
 // The original's .data is 8-aligned (r105 has the same).
 asm(".section .data; .balign 8");
@@ -99,14 +100,14 @@ void R11eInit()
         SceExec(0x12, (TaskFunc) r11e_checkDoor102KeyUse, 0, 0, 2, 0);
     }
     SceExec(0x12, (TaskFunc) koya_destroy_check, 0, 0, 2, 0);
-    r11e_work->sat[0] = SatMgr.create(ROOM_ARC_PTR(pG->pRoomArc, 0x28), 0, &r11e_koyaAPos, &r11e_koyaARot, 0);
-    r11e_work->sat[1] = SatMgr.create(ROOM_ARC_PTR(pG->pRoomArc, 0x28), 0, &r11e_koyaBPos, &r11e_koyaBRot, 0);
-    r11e_work->sat[2] = SatMgr.create(ROOM_ARC_PTR(pG->pRoomArc, 0x2A), 0, &r11e_sakuAPos, &r11e_sakuARot, 0);
-    r11e_work->sat[3] = SatMgr.create(ROOM_ARC_PTR(pG->pRoomArc, 0x2A), 0, &r11e_sakuBPos, &r11e_sakuBRot, 0);
-    r11e_work->eat[0] = EatMgr.create(ROOM_ARC_PTR(pG->pRoomArc, 0x29), 0, &r11e_koyaAPos, &r11e_koyaARot, 0);
-    r11e_work->eat[1] = EatMgr.create(ROOM_ARC_PTR(pG->pRoomArc, 0x29), 0, &r11e_koyaBPos, &r11e_koyaBRot, 0);
-    r11e_work->eat[2] = EatMgr.create(ROOM_ARC_PTR(pG->pRoomArc, 0x2A), 0, &r11e_sakuAPos, &r11e_sakuARot, 0);
-    r11e_work->eat[3] = EatMgr.create(ROOM_ARC_PTR(pG->pRoomArc, 0x2A), 0, &r11e_sakuBPos, &r11e_sakuBRot, 0);
+    PSet(r11e_work->sat[0], SatMgr.create(ROOM_ARC_PTR(pG->pRoomArc, 0x28), 0, &r11e_koyaAPos, &r11e_koyaARot, 0));
+    PSet(r11e_work->sat[1], SatMgr.create(ROOM_ARC_PTR(pG->pRoomArc, 0x28), 0, &r11e_koyaBPos, &r11e_koyaBRot, 0));
+    PSet(r11e_work->sat[2], SatMgr.create(ROOM_ARC_PTR(pG->pRoomArc, 0x2A), 0, &r11e_sakuAPos, &r11e_sakuARot, 0));
+    PSet(r11e_work->sat[3], SatMgr.create(ROOM_ARC_PTR(pG->pRoomArc, 0x2A), 0, &r11e_sakuBPos, &r11e_sakuBRot, 0));
+    PSet(r11e_work->eat[0], EatMgr.create(ROOM_ARC_PTR(pG->pRoomArc, 0x29), 0, &r11e_koyaAPos, &r11e_koyaARot, 0));
+    PSet(r11e_work->eat[1], EatMgr.create(ROOM_ARC_PTR(pG->pRoomArc, 0x29), 0, &r11e_koyaBPos, &r11e_koyaBRot, 0));
+    PSet(r11e_work->eat[2], EatMgr.create(ROOM_ARC_PTR(pG->pRoomArc, 0x2A), 0, &r11e_sakuAPos, &r11e_sakuARot, 0));
+    PSet(r11e_work->eat[3], EatMgr.create(ROOM_ARC_PTR(pG->pRoomArc, 0x2A), 0, &r11e_sakuBPos, &r11e_sakuBRot, 0));
     getRoomEtcDoor(0xE, &door, 1);
     getRoomEtcDoor(0xF, &door, 1);
     if (RsfCheck(G_ROOM_ID, 0)) {
@@ -313,8 +314,8 @@ static void r11e_move_sasaeki1()
         hitA = SetEmHit((void*) (pG->pArc->ofs_20 + (u32) pG->pArc), (void*) (pG->pArc->ofs_24 + (u32) pG->pArc), &objA->pos, &objA->rot, 0);
         objA->be_flag |= 0x20;
         {
-            f32 w = 2000.0f;
-            f32 h = 800.0f;
+            const f32 w = 2000.0f;    // const: pool order w, h before 0.0, uses stay literal (sched ties)
+            const f32 h = 800.0f;
             YarareInitCube(hitA, 0.0f, 0.0f, 0.0f, w, h, w, 0, 1);
         }
         pos.x = -8182.04f;
@@ -335,8 +336,8 @@ static void r11e_move_sasaeki1()
         hitB = SetEmHit((void*) (pG->pArc->ofs_20 + (u32) pG->pArc), (void*) (pG->pArc->ofs_24 + (u32) pG->pArc), &objB->pos, &objB->rot, 0);
         objB->be_flag |= 0x20;
         {
-            f32 w = 2000.0f;
-            f32 h = 800.0f;
+            const f32 w = 2000.0f;
+            const f32 h = 800.0f;
             YarareInitCube(hitB, 0.0f, 0.0f, 0.0f, w, h, w, 0, 1);
         }
         pos.x = 31737.52f;
@@ -396,10 +397,11 @@ static void r11e_EmSet_exit()
     {
         cEmWrap em;
         Vec p;
-        cEmWrap* pe = &em;
+        cEmWrap* pe;
         Vec* pp = &p;
 
         em.setEm(0xF0, -1, 1, 1, 1);
+        pe = &em;    // after setEm: its `this` stays a fresh `addi r3,r1,8`, the pe addi is hoisted anyway
         p.x = 529.26f;
         pp->y = -25.64f;
         pp->z = 5624.71f;

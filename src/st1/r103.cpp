@@ -145,8 +145,19 @@ extern "C" void r103_openShelf_main(R103Shelf* s, int opened)
         if (opened == 1) {
             f32 ra = -1.9198622f;
             f32 rb = 1.9198622f;
+            // COMPILER-DIFF: candidate #17 (local-alloc qty order of the two pool highs). The
+            // original allocates the -1.92 high first (r9); ours allocates the +1.92 high first
+            // because the `lwz pParts` fills the cycle between its `lis` and `lfs` in sched1, so
+            // its span is longer. A pseudo -> hard-register copy of the pParts pointer (kept
+            // from combine by the volatile load and the keep-alive asm, a no-op deleted by
+            // reload_cse after both take r10) is issued between the second `lis` and its `lfs`
+            // in sched1, which equalises the spans and lets the qty number decide.
+            cModel* pa = *(cModel* volatile*) &a->pParts;
+            register cModel* pa2 asm("r10");
 
-            a->pParts->rot.y = ra;
+            pa2 = pa;
+            pa2->rot.y = ra;
+            asm("" : "=m"(a->be_flag) : "r"(pa2));
             b->pParts->rot.y = rb;
         } else {
             int i;
