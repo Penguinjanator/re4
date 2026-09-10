@@ -106,19 +106,6 @@ const Sint32 SFPLY_cond_dfl[101] = {
 	0,
 };
 
-/* dead: the handle control work size the last handle was created with */
-Sint32 SFPLY_GetLastHnCtrlWkSiz(void)
-{
-	return sfply_last_hnctrl_wksiz;
-}
-
-/* dead: PTS manager hooks */
-void SFPLY_SetPtsmFn(void (*setfn)(SFPLY_PTSM *ptsm), void (*resetfn)(SFPLY_PTSM *ptsm))
-{
-	SFPLY_SetPtsInfo = setfn;
-	SFPLY_ResetPtsm = resetfn;
-}
-
 Sint32 SFD_SetSupplySj(SFD sfd, SFBUF_SUP *sup)
 {
 	if (SFLIB_CheckHn(sfd) != 0) {
@@ -170,6 +157,20 @@ Sint32 SFD_GetFrm(SFD sfd, void **frm)
 		SFPLY_recordgetfrm(sfd, *frm);
 	}
 	return ret;
+}
+
+/* dead (placed after SFD_GetFrm: .bss is in first-reference order, SFPLY_recordgetfrm comes
+ * first): the handle control work size the last handle was created with */
+Sint32 SFPLY_GetLastHnCtrlWkSiz(void)
+{
+	return sfply_last_hnctrl_wksiz;
+}
+
+/* dead: PTS manager hooks */
+void SFPLY_SetPtsmFn(void (*setfn)(SFPLY_PTSM *ptsm), void (*resetfn)(SFPLY_PTSM *ptsm))
+{
+	SFPLY_SetPtsInfo = setfn;
+	SFPLY_ResetPtsm = resetfn;
 }
 
 Sint32 SFD_TermSupply(SFD sfd)
@@ -385,30 +386,30 @@ Sint32 SFD_Start(SFD sfd)
 	return ret;
 }
 
-/* M1 (register ranking): the original keeps sfd in r31 and the SFLIB_libwork base in r30, ours the
- * reverse (SFD_Stop, with the same inlined sfply_StopHn, ranks them the other way round and matches);
- * instruction stream identical. Helper / indexed / Sint32-return forms do not move it. */
-void SFD_Destroy(SFD sfd)
+/* returns SFTRN_CallTrSetup's result (mwsfdcre checks it): keeping r3 live across the table clear is
+ * what gives the loop r4/r5 and sfd r31 / the SFLIB_libwork base r30 */
+Sint32 SFD_Destroy(SFD sfd)
 {
 	SFD *tbl;
 	Sint32 i;
+	Sint32 ret;
 
 	if (SFLIB_CheckHn(sfd) != 0) {
-		SFLIB_SetErr(NULL, 0xFF000131);
-		return;
+		return SFLIB_SetErr(NULL, 0xFF000131);
 	}
 	sfply_StopHn(sfd);
 	SFHDS_FinishFhd(&sfd->fhd);
 	SFBUF_DestroySj(sfd);
 	sfd->stat = SFD_STAT_NONE;
 	sfd->req = 0;
-	SFTRN_CallTrSetup(sfd, 4);
+	ret = SFTRN_CallTrSetup(sfd, 4);
 	tbl = SFLIB_libwork.hn;
 	for (i = 0; i < SFD_HN_MAX; i++, tbl++) {
 		if (*tbl == sfd) {
 			*tbl = NULL;
 		}
 	}
+	return ret;
 }
 
 void SFPLY_AddSkipPic(SFD sfd, Sint32 n, void *arg)

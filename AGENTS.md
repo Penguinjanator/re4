@@ -2394,6 +2394,71 @@ out.o` = standalone CRI-flag compile of a probe file; `triage.py`, `fm.sh`, `per
   `&blk[0][20]` from store 84 on; a `static` ClearBlk function instead of the macro switches to a
   plain `r31` base at store 64, `memset` is a call, one flat 192 loop is a `mtctr` loop).
 
+### CRI pass 4 (sfd_ply, sfd_set, mps_dec Matching; 2026-09-10)
+Harness: /home/adityas/.cache/cri4/ (cri3 copied; `bytecmp.py` now also compares the ORDER of the
+symbols both objects define in NOBITS sections — a `.bss` first-reference-order error is invisible to
+objdiff and to a size-only check and only shows up as a DOL mismatch after the flip; `tryfn.py unit
+Func variants.py` / `tryregion.py unit START END variants.py` swap a function body / a text region
+for each `(label, text)` of `VARIANTS` and print the match%, `apply.py` / `applyr.py` keep one).
+- "M1" is often not M1. Before accepting a register-only residue, check the semantics and the
+  instruction SHAPE first: sfd_ply `SFD_Destroy` is `Sint32` and returns `SFTRN_CallTrSetup`'s result
+  (mwsfdcre tests it) — keeping r3 live across the hn-table clear is what gives the loop r4/r5 and
+  sfd r31 / the libwork base r30 (100%, previously "M1"). mps_dec `mpsdec_DecPackHd`: the target
+  loads `p[0]` straight into cur's register and shifts in place (`cur = p[0]; nxt = p[1]; cur <<=
+  pos;` written out instead of the BS_INIT macro's `cur = p[0] << pos`, which goes through r0); with
+  that shape the declaration order p, pos, cur, nxt gives the target's registers (100%). A shape
+  difference of one instruction "through r0" blocks every declaration-order permutation, so fix the
+  shape and re-run the permutations.
+- `.bss` order of sfd_ply was wrong all along (the two dead getters were at the top of the file and
+  referenced `sfply_last_hnctrl_wksiz`/`SFPLY_SetPtsInfo` before `SFD_GetFrm`'s `SFPLY_recordgetfrm`);
+  dead functions must sit where their first reference falls in the original `.bss` order.
+- An asm-DEFINED `register` local is coloured differently from a C-defined one: sfd_set `SFD_SetCond`
+  `register Sint32 ofs; asm { slwi ofs, id, 2 }` (with `register` on `id`) takes the DEAD PARAMETER
+  register (r28 = sfd's, the target's) where the compiler's own hoisted `id*4` temporary takes a
+  fresh r31; with `hn` declared first the remaining locals fall into place (100%, COMPILER-DIFF: M1).
+  The trick did not transfer to adx_dcd `ADX_DecodeInfoAinf` (asm `add q, data, o` still r8, the
+  most recently freed register, not the dead `len` r4), mps_dec (asm `clrrwi p`), sfd_pts or
+  sfd_see — it works when the dead parameter register is the only freed callee-saved register.
+- `register` on a parameter that is named in an asm block changes the parameter register ORDER
+  (sfd_set: `register SFD sfd, register Sint32 id` both used in asm -> sfd r26, id r27, val r28
+  instead of r28/r26/r27); `register` on parameters not used in asm changes nothing (mfci: 7 combos).
+- asm `mr p, param` on a `register` local is coalesced into the prologue copy (`mr r31, r3` stays
+  in place, no extra instruction) and `p` keeps r31 — a free way to get a register-qualified copy
+  of a parameter for later asm blocks (sfd_see). asm `addi x, base, K` from a parameter/base is
+  folded into the following loads (`lwz 0x34d0(r30)`); from a register local that is itself
+  `&p->member` it stays a real `addi` (folded into `addi x, p, K1+K2`) and is kept as a base.
+  asm `addi c, 0, K` is constant-propagated like a C constant (sfx_alp).
+- Volatile-register numbering (no calls in the function, sfd_pts `SFPTS_ReadPtsQue`): the inlined
+  loop's temporaries take r7/r8 first, then the caller's locals in DECLARATION order from r9 up,
+  and the locals declared after the volatiles run out get the callee-saved registers (declared
+  5th..7th of ten -> r31/r30/r29). Declaration order `hn, i, end, ent, rd, num, ofst, size, cnt,
+  idx` gives the target's num/ofst/size r31/r30/r29 and ent/rd r11/r12 (40 -> 37 words); the
+  target's hn r7 / i r8 (before the loop temporaries) is the residue — helper signatures with hn as
+  a parameter, helper local orders and the whole block as a helper do not move it.
+- rna_res `RNARES_Init`: an explicit `ofs += 0x2000` IV local plus `ptr = rnares_aram_ptr` gives
+  ptr r7 / res r8 like the target (39 -> 38 words) but a source IV always ranks after the
+  compiler's temporaries (r6) while the target's IV is first (r4); inlined-helper and indexed
+  forms are worse.
+- sfx_alp `SFXA_Create` (five constants): asm-defined constants (`li`/`addi c, 0, K` in asm) are
+  constant-propagated and re-ranked (all-asm gives r8..r4 descending, zero in r0), `asm { lis/addi }`
+  for the pool address is placed but loses the `stfd`-free shape; the target's `li r5,0x1f` /
+  `addi r5,r4,@l` register sharing (lis not hoisted to the top) has no source lever found (helper
+  splits a..f, shared temporaries, volatile, asm).
+- mpv_cdec `MPVCDEC_IntraBlocks`: the target uses the param r3 for stores 0..82 (0x680..0x918) and
+  `r8 = mpv+0x720` from store 83 on; ours r3 for 0..63 and r31 after. Outer-loop / 3x64 / 2x96 / 192
+  / pointer-stepping forms lose the full unroll (only 6 loops of exactly 32 with `int i` unroll
+  without a guard); an asm `addi q, b0, 0xa0` second base with 19/13-iteration loops gets guards.
+  Still OPEN.
+- adx_stmc `adxstmf_create`: with `asm { addi o, o, 0x60 }` the `register` IV `o` always gets r4
+  (target r3) and the hoisted `adxstmf_obj` base r3 whatever the declaration order or asm
+  definition of the base; the C form keeps r3/r4 right but the step before the `lbz`. Zero-code
+  form kept (1 instruction).
+- Still M1 (forms tried this pass, no gain): sfd_see `SFSEE_ExecServer` (wk/req r29/r30: 30
+  asm/declaration/helper-signature forms), mfci `mfCiReqRd` (mfci r29 / buf r28 vs ours r28/r29:
+  `register` combos, local copies, asm uses), mwsfdply `MWSFPLY_SetFlowLimit` (lwz r5 / xoris r4:
+  asm lwz, locals, getter, 2nd parameter), adx_dcd `ADX_DecodeInfoAinf` (q r4: 120 declaration
+  permutations, asm add, CSE forms). M2 unchanged: adx_dcd `ADX_GetCoefficient`, dct_ac.
+
 ## REL modules
 
 The game loads its rooms, enemies, weapons and debug tools as Nintendo REL overlays. `ninja` rebuilds the

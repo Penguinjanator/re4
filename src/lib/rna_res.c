@@ -116,6 +116,8 @@ void RNARES_Setup(Uint32 aram_ptr, Sint32 aram_size)
 
 void RNARES_Init(void)
 {
+	Uint32 ofs;
+	Uint32 ptr;
 	Uint32 i;
 	Uint32 n;
 	RNARES_OBJ *res;
@@ -127,13 +129,19 @@ void RNARES_Init(void)
 			rnares_aram_ptr = ARAlloc(RNARES_DEF_ARAM_SIZE);
 		}
 		memset(rnares_obj, 0, sizeof(rnares_obj));
-		/* OPEN: target allocates the i*0x2000 induction variable first (r4), then the 0x1000
-		 * constant, the sum temp and the hoisted aram_ptr load; ours puts the induction last. */
+		/* M1: the target allocates the i*0x2000 induction variable first (r4, a compiler temporary),
+		 * then the 0x1000 constant and the sum (r5/r6), then ptr r7 / res r8; a source-level `ofs`
+		 * ranks after the temporaries (r6) whatever its declaration position, `i * RNARES_BUF_SIZE`
+		 * gives the IV last (r7) and the hoisted aram_ptr load r6. Inlined-helper and indexed forms
+		 * are worse. */
 		n = rnares_nbuf;
 		res = rnares_obj;
+		ptr = rnares_aram_ptr;
+		ofs = 0;
 		for (i = 0; i < n; i++, res++) {
-			res->buf = (rnares_aram_ptr + i * RNARES_BUF_SIZE) >> 1;
+			res->buf = (ptr + ofs) >> 1;
 			res->size = RNARES_BUF_SIZE / 2;
+			ofs += RNARES_BUF_SIZE;
 		}
 	}
 	rnares_init_cnt++;

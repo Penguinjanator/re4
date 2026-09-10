@@ -73,22 +73,26 @@ static void sfset_SetCondDef(SFD sfd, Sint32 id, Sint32 val)
 	}
 }
 
-Sint32 SFD_SetCond(SFD sfd, Sint32 id, Sint32 val)
+/* COMPILER-DIFF: M1 -- the original hoists id*4 into the dead sfd register (r28) and gives hn r31;
+ * ours ranks the compiler temporary first. An asm-defined `register` local takes the freed parameter
+ * register, and hn declared first takes r31. */
+Sint32 SFD_SetCond(SFD sfd, register Sint32 id, Sint32 val)
 {
+	SFD hn;
 	Sint32 i;
 	SFD *p;
-	SFD hn;
+	register Sint32 ofs; /* COMPILER-DIFF: M1 */
 
 	if (sfd == NULL) {
-		/* OPEN: target allocates hn to r31 and the hoisted id*4 to r28 (ours the reverse). */
 		p = SFLIB_libwork.hn;
+		asm { slwi ofs, id, 2 } /* COMPILER-DIFF: M1 */
 		for (i = 0; i < 8; i++, p++) {
 			hn = *p;
 			if (SFLIB_CheckHn(hn) == 0) {
 				SFSET_SetCond(hn, id, val);
 			}
 		}
-		SFLIB_libwork.cond[id] = val;
+		*(Sint32 *)((Uint8 *)SFLIB_libwork.cond + ofs) = val; /* COMPILER-DIFF: M1: SFLIB_libwork.cond[id] = val */
 	} else {
 		if (SFLIB_CheckHn(sfd) != 0) {
 			return SFLIB_SetErr(NULL, 0xFF000112);

@@ -1583,3 +1583,10 @@ MATCHING.update({
 MATCHING.update({
     "game/espgen02.cpp": True,  # espgen02_Update: colR pinned to f24, copies between the bScale/bSpd zero stores (#17)
 })
+
+# CRI pass 4 (2026-09-10)
+MATCHING.update({
+    "lib/sfd_ply.c": True,  # SFD_Destroy returns SFTRN_CallTrSetup's result (r3 live across the hn-table clear -> loop r4/r5, sfd r31)
+    "lib/sfd_set.c": True,  # SFD_SetCond: id*4 as an asm-defined `register` local (takes the dead sfd register r28), hn declared first (COMPILER-DIFF: M1)
+    "lib/mps_dec.c": True,  # mpsdec_DecPackHd: reader init written out (`cur = p[0]; ... cur <<= pos;`), locals declared p, pos, cur, nxt
+})

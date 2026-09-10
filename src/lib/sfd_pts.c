@@ -57,20 +57,22 @@ static Sint32 sfpts_SearchPts(SFPTS_ENT *ent, Sint32 idx, Sint32 cnt, Sint32 num
 }
 
 /* the buffer is addressed through one base (sfd + strm * sizeof(SFBUF_WORK)) kept across the inlined
- * search: the shifted view (sfd_buf.c SFBUF_HN). M1: the target keeps the base in r7 and ofst/size in
- * r30/r29; ours ranks them the other way round. */
+ * search: the shifted view (sfd_buf.c SFBUF_HN). Volatile registers follow the declaration order from
+ * r9 (r7/r8 go to the inlined loop's temporaries), the locals declared after the fourth get the
+ * callee-saved ones: this order gives num/ofst/size r31/r30/r29 and ent/rd r11/r12 like the target.
+ * M1: the target gives hn r7 and i r8 (before the loop temporaries), ours r9/r4. */
 Sint32 SFPTS_ReadPtsQue(SFD sfd, Sint32 strm, Uint32 pos, SFPTS_ENT *out)
 {
-	Uint32 ofst;
+	SFBUF_HN *hn;
+	Sint32 i;
 	Uint32 end;
 	SFPTS_ENT *ent;
-	Uint32 size;
-	SFBUF_HN *hn;
-	Sint32 cnt;
-	Sint32 num;
-	Sint32 idx;
 	Sint32 rd;
-	Sint32 i;
+	Sint32 num;
+	Uint32 ofst;
+	Uint32 size;
+	Sint32 cnt;
+	Sint32 idx;
 
 	out->pts = -1;
 	hn = SFBUF_GET_HN(sfd, strm);

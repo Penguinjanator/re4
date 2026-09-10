@@ -304,23 +304,29 @@ void mpsdec_DecSysHd(MPS mps, Uint8 *adr, Sint32 *hdrlen)
 	}
 }
 
-/* pack header: adr points at the 00 00 01 BA start code; MPEG-1 packs are 12 bytes.
- * M1: the original numbers the reader state p r4 (adr's register, dead after BS_INIT), pos r6,
- * cur r7, nxt r8; no declaration order gives p the lowest register (nxt/pos/cur/p is closest),
- * instruction stream identical otherwise. */
+/* pack header: adr points at the 00 00 01 BA start code; MPEG-1 packs are 12 bytes. The reader
+ * init is written out: `cur = p[0]; ... cur <<= pos;` loads p[0] straight into cur's register and
+ * shifts in place (the BS_INIT macro's `cur = p[0] << pos` goes through r0), which is the target's
+ * shape here (the other decoders use the macro); with it the declaration order p, pos, cur, nxt
+ * gives the target's p r4 (adr's register, dead after the init) / nxt r8. */
 void mpsdec_DecPackHd(MPS mps, Uint8 *adr, Sint32 *hdrlen)
 {
-	Uint32 nxt;
+	Uint32 *p;
 	Sint32 pos;
 	Uint32 cur;
-	Uint32 *p;
+	Uint32 nxt;
 	Uint32 ver;
 	Uint32 hi;
 	Uint32 mid;
 	Uint32 lo;
 	Uint32 rate;
 
-	BS_INIT(adr + 4);
+	p = (Uint32 *)((Uint32)(adr + 4) & ~3);
+	pos = ((Uint32)(adr + 4) - (Uint32)p) * 8;
+	cur = p[0];
+	nxt = p[1];
+	cur <<= pos;
+	p += 2;
 	BS_GET2_FIRST(ver);
 	BS_SKIP(2);
 	BS_GET(3, hi);
