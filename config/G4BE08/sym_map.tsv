@@ -10806,7 +10806,7 @@ address	size	section	unit	scope	name	demangled
 0x802D9C2C	0xC	.bss	game/db_cam.cpp	global	target_bak.982	target_bak.982
 0x802D9C38	0x20	.bss	game/db_cam.cpp	global	CamDbg	CamDbg
 0x802D9C58	0x108	.bss	game/db_cam.cpp	global	g_local_ready	g_local_ready
-0x802D9D60	0x108	.bss	game/db_cam.cpp	local	g_local_trans	g_local_trans
+0x802D9D60	0x108	.bss	game/db_cam.cpp	global	g_local_trans	g_local_trans
 0x802D9E68	0x34	.bss	game/db_menu.cpp	global	test	test
 0x802D9E9C	0xC0	.bss	game/debug.cpp	global	tile.1260	tile.1260
 0x802D9F5C	0xC0	.bss	game/debug.cpp	local	tile.1272	tile.1272

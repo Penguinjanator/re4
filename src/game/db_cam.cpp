@@ -46,7 +46,7 @@ extern f32 ORTHO_R;
 
 debugCamera CamDbg;
 QfpsOfs g_local_ready[2][3];
-static QfpsOfs g_local_trans[2][3];
+QfpsOfs g_local_trans[2][3];
 f32 g_local_floor_ratio;
 f32 g_local_fovy[2];
 

@@ -49,4 +49,11 @@ void moveOnPlaneXZ(Vec* in, Vec* out);
 void drawGround(int big);
 int adjust_qFPS(JOY* joy, int x, int y, int flag, int* out);
 
+// shoulder-camera edit buffers of adjust_qFPS (t_camera's tcEdit_camera_qfps copies them into the cut;
+// g_local_trans is static in the DOL, the REL imports it by name)
+#include "cam_qfps.h"
+extern QfpsOfs g_local_ready[2][3];
+extern QfpsOfs g_local_trans[2][3];
+extern f32 g_local_floor_ratio;
+
 #endif
