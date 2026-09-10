@@ -106,13 +106,16 @@ static int mvInit()
     dbModelInit();
     SetToolLight(2);
     memclr_asm(pMv, 0x18);
-    // OPEN (+0x10): the original's then arm has its own `li r10, 0` for `cursor = 0`; ours reuses the
-    // `zero` register (r29) and cross-jumps the arms. Not a launder case: `asm("" : "+r"(c))` on a
-    // `u8 c = 0` becomes `mr r10, r29` (cse substitutes r29 into the asm input); switch, inverted
-    // if/else, early return, goto and a literal 0 in both arms all reuse r29 or the loaded byte.
+    // COMPILER-DIFF: candidate #12 (fallthrough-arm form). The original's then arm has its own `li r10,0`
+    // for `cursor = 0`; our cse1 re-walks the entry block with the `bne` NOT_TAKEN, so the fallthrough
+    // arm knows `zero == 0` (and `loaded == 0`), reuses r29 and the arms cross-jump. A plain launder is
+    // substituted too (`asm("" : "+r"(c))` on `u8 c = 0` becomes `mr r10,r29`); the constant has to be
+    // produced by the asm itself so cse never sees a `(const_int 0)` source.
     if (pDbModState->loaded == 0) {
+        u8 c;
+        asm("li %0,0" : "=r"(c));
         pMv->step = 1;
-        pMv->cursor = 0;
+        pMv->cursor = c;
     } else {
         pMv->step = 2;
         pMv->cursor = zero;

@@ -101,6 +101,8 @@ static void R10b_chkEmDie();
 static void R10b_chkWater();
 static void r10b_GakeEvent();
 extern "C" void Evt_R10BS00_Func(Event* e);
+// The room passes `li r4,0` to the parameterless IdBinocular::cutin (old prototype, r214 idiom).
+void IdBinocularCutinI(IdBinocular*, int) asm("cutin__11IdBinocular");
 extern "C" void em2fTentacleMove(cEm* em, Event* e, int mode);
 extern "C" void Evt_R10BS10_Func(Event* e);
 extern "C" void Evt_R10BS20_Func(Event* e);
@@ -470,7 +472,7 @@ extern "C" void Evt_R10BS00_Func(Event* e)
                 PSet(r10b_work->bino, new (&r10b_work->binoObj) IdBinocular);
                 r10b_work->bino->init(&pG->Cam, ROOM_ARC_PTR(pG->pRoomArc, 0x26), ROOM_ARC_PTR(pG->pRoomArc, 0x27));
                 if (e->cut != 1) {
-                    r10b_work->bino->cutin();
+                    IdBinocularCutinI(r10b_work->bino, 0);
                 }
                 PSet(r10b_work->focus, &r10b_work->focusObj);
                 r10b_work->focus->init(-1);

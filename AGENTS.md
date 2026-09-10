@@ -8745,9 +8745,12 @@ confirmed on the units named):
     cse1 re-walks the path with the last branch NOT_TAKEN and the entry block's table (cse.c
     `cse_end_of_basic_block`, "If the last branch was previously TAKEN, mark it NOT_TAKEN"); the original's arm started
     with an empty table. Plain launders fail (`asm("" : "+r"(c))` on `u8 c = 0` becomes `mr rX,r29`: cse substitutes the
-    known register into the asm INPUT), `int zero = 0` locals are folded the same way, `asm volatile("")` at the arm top
-    does NOT help (the flush happens, but the substitution is already in the RTL cse emits? — 7 words unchanged, do not
-    retry), dead do-while does not help (no loop end on this path). TAGGED RECIPE: let the asm produce the constant,
+    known register into the asm INPUT), `int zero = 0` locals are folded the same way, dead do-while does not help (no
+    loop end on this path). Proof that it is cse: cse.c flushes its table at a volatile ASM_OPERANDS insn, but only when the
+    PATTERN is the bare `(asm_operands)` — `asm volatile("")` is an ASM_INPUT, `"=r"` outputs wrap it in a SET, a "memory"
+    clobber in a PARALLEL, none flush (7/4/7 words); `asm volatile("" : : "r"(pMv))` at the arm top flushes and the arm
+    gets its fresh `li r10,0`, but the flush also drops `high(pMv)` (a reload `lis r8; lwz` in the arm, 6 words) — too
+    broad. TAGGED RECIPE: let the asm produce the constant,
     `int c; asm("li %0,0" : "=r"(c)); p->cursor = c;` (`// COMPILER-DIFF: candidate #12 (fallthrough-arm form)`), so cse
     never sees a `(const_int 0)` source; a non-volatile asm with a register output is an ordinary insn for sched (no
     barrier) and local-alloc names it like the original's `li`. Tools/t_mv mvInit 7 -> 0 (module Matching), t_event

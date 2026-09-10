@@ -242,17 +242,21 @@ void r222_BoxMove(cObj* obj, int opened)
     if (opened == 1) {
         obj->pParts->rot.x = 2.1206448f;
     } else {
-        // a goto loop: the constants are reloaded per iteration
+        f32 lim;
+        // a goto loop: the constants are reloaded per iteration; the limit is computed in both
+        // predecessors of `test` (the target loads 2.12 there and compares/stores that register)
         obj->pParts->rot.x += 0.05f;
+        lim = 2.1206448f;
         goto test;
     wait:
         SceSleep(1);
         obj->pParts->rot.x += 0.05f;
+        lim = 2.1206448f;
     test:
-        if (!(obj->pParts->rot.x > 2.1206448f)) {
+        if (!(obj->pParts->rot.x > lim)) {
             goto wait;
         }
-        obj->pParts->rot.x = 2.1206448f;
+        obj->pParts->rot.x = lim;
     }
 }
 

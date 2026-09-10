@@ -401,7 +401,11 @@ void ToolEvt::RunStop(ToolEvt* t, Event* ev)
         int flg;
 
         if (!(t->pJoy0->on & 0x10)) {
-            t->stopWait = 0;
+            // COMPILER-DIFF: candidate #12 (fallthrough-arm form): the original stores a fresh `li r0,0`; our
+            // cse1 knows the `andi.` result is 0 on the fall-through and stores that register (t_mv mvInit).
+            int z;
+            asm("li %0,0" : "=r"(z));
+            t->stopWait = z;
         }
         flg = 0;
         if (--t->stopWait <= 0) {

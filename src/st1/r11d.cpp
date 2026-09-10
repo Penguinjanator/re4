@@ -230,13 +230,19 @@ extern "C" void r11d_appearLittleSister()
             ((cEmGanado*) em)->setR11DMotion(ROOM_ARC_PTR(pG->pRoomArc, 0x23));
         }
     }
+    int zero;
+
+    // COMPILER-DIFF: candidate #12 (fallthrough-arm form): the two EstSet stack zeros come from one
+    // callee-saved `li r31,0` in the original; on the fall-through of `RsfCheck(..) == 0` our cse1 knows
+    // the `andis.` result is 0 and stores that register instead (a plain `int zero = 0` is folded too).
+    asm("li %0,0" : "=r"(zero));
     pG->flags_174 |= 0x40000000;
     BitOff(SmdGetObjPtr(0x32)->be_flag, 2);
     BitOn(SmdGetObjPtr(0x1A)->be_flag, 2);
     if (RsfCheck(G_ROOM_ID, 5) == 0) {
         RsfSet(G_ROOM_ID, 5);
-        EstSet(0, -1, 0, 0, 1, 7, 1, 0, 0, 0);
-        EstSet(0, -1, 0, 0, 1, 8, 1, 0, 0, 0);
+        EstSet(0, -1, 0, 0, 1, 7, 1, 0, (u32) zero, (void*) zero);
+        EstSet(0, -1, 0, 0, 1, 8, 1, 0, (u32) zero, (void*) zero);
     }
 }
 

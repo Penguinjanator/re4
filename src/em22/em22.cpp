@@ -1051,8 +1051,10 @@ static void em22_R1_Threat(cEm22* em)
                 } else {
                     EmRoutineSet(em, 1, 7, 0, 0);
                 }
+                break;
             }
-        } else if (w->routeAngAbs > 1.5707964f) {
+        }
+        if (w->routeAngAbs > 1.5707964f) {
             EmRoutineSet(em, 1, 9, 0, 0);
         } else if (em22PlRunCk(em)) {
             if (w->plDist > 5000.0f) {
@@ -1060,7 +1062,7 @@ static void em22_R1_Threat(cEm22* em)
             }
         } else if (em->plDist2 < 16000000.0f && w->routeAngAbs < 0.5235988f && w->plDeadWait == 0) {
             a = em->pos;
-            b = pPL->pos;
+            b = pPLS->pos;
             a.y += 500.0f;
             b.y += 500.0f;
             if (SatMgr.hitCheck(&a, &b, 0, 0, 0, 0) == 0) {

@@ -351,6 +351,9 @@ extern "C" void r108_openCover()
         }
         SceSleep(1);
     } while (1);
+    // COMPILER-DIFF: candidate #12 (loop-exit form). The dead loop's notes end cse1's AROUND path over the
+    // poll loop's exit, so the block below re-materialises the cover highs and 220.0 like the original.
+    do { } while (0);
     FSet(r108_coverL->pos.x, x0 + 220.0f);
     FSet(r108_coverR->pos.x, x1 - 220.0f);
     SceSleep(15);
