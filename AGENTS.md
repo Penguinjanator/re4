@@ -6198,3 +6198,52 @@ target) stays unresolved and `make_rel` then fails with "undefined symbol".
   not a stmt.c emission order. em2f left: R0_Init 56, Swim 56, SetNextRoute 69, Packman 41,
   RisingDragon 37, ChangeRoute 40, SwimWait 10 (store perm best 6), CriCamMove 12, SetPosHideMode 3
   (`fmr; fadds` copy fused by combine, mes family). em21DmCk 4 words (local-alloc r0/r9).
+
+### Enemy tie-breaker sweep 2 (em23/em2a/em21/em38/em3b/em3c/em29)
+- Default-grouped case values derived with tools/casetree.py: em3b DmCkCart/StopCart need
+  `case 0: case 0xE: case 0x10: case 0x14: case 0x15: case 0x18: default:` (root 0x16); DmCkTruck
+  `case 5: case 0xD: case 0xF: case 0x12: case 0x29: case 0x2C: default:` (root 0x10–0x11). Compare
+  the model against the target after normalising GE->LT/LE->GT and dropping compares on
+  default-labelled leaves (jump threading deletes them).
+- Death body written twice (hitCheck arm with `return`, and `case 0x16:` reached by `goto` from the
+  blood arm, laid out after the default arm): each copy stores the dmgWait register cse knows to be 0;
+  jump2 cross-jumps them into the later copy. A shared `goto die` label materialises `li r0,0`.
+- `if (em->dmWep == 0x10) ...; switch (em->dmWep)` — the member read twice around a byte store reloads
+  it; a `u8 wep` local keeps one load.
+- `p = em->getPartsPtr(0); ...switch...; LifeDownSet2(...); pos = &p->worldPos;` — the parts pointer
+  crossing the call is the callee-saved `mr r30,r3` with the `addi ..,112` hoisted above the `bl`.
+- `if (w->pDriver && w->pDriver->hp <= 0) { RS(end, end) } if (em->hp <= 1) { RS(0, 0) }` with
+  `int end = MotionMoveF(...)`: the second test's label has two uses, so its literal zero is a fresh
+  `li`, and the two RS copies survive; `||` merges them.
+- Loop-body `int zero = 0` (hoisted by loop.c to the preheader end, after the biv init) vs a pre-loop
+  `zero = 0` (issued before the bound load); `e->hp = zero; EmRoutineSet(e, 3, 4, zero, zero)` gives
+  the ff-first store order.
+- Two sets for a float variable break local-alloc's chain tie: the wire-scaling block written in both
+  `case 1:` and `case 2:` with a function-scope `scale` (em2a R0_Init); a shared `goto wire` block ties
+  everything to f31. `(f32) em->hp` on the s16 field = `psq_l qr5`.
+- Dead `do { } while (0);` before `case 2:` plus `int z = 0;` inside the arm: the arm no longer knows
+  `zero == 0`, `z` is a fresh SI pseudo set before the arm's call (`li r30,0` kept across clearStatus).
+- Volatile store `*(volatile f32*) &w->cam.param.fovy = ...` keeps the w-relative address (an `FSet`
+  reference folds it to `em+0xCA8`) and orders later memory ops behind it, issuing the store before the
+  pool loads (em38EscapeCamMove).
+- COMPILER-DIFF candidate #12 second shape (applied, tagged, in em2a/em21 TrapCamMove): `cam = &Sym`
+  after `&Sym.param.pos/at` pointers are known is a fresh `lis/addi` pair in the original while our cse
+  (`use_related_value`) rewrites it as `at - 0xB0`. `extern Camera Sym_v asm("Sym")` gives cse a
+  distinct SYMBOL_REF and reproduces the pair. Same shape as the emrock OPEN item.
+- `arc`-in-arms / two-set `bin`,`tpl` per arm (em23 SetWing) for a `create(ARC(a|b), ARC(c))` whose tpl
+  offset load is cross-jumped into the join ahead of the bin add.
+- em29 DmCk: kind==1 arm stores the kind register into both xFC and xFD, so the inline is
+  `EmRoutineSet(em, 1, 1, 0, 0)` (was 2,1). Still open: the three inline arms are cross-jumped with the
+  second call site because both share one zero pseudo (target `li r30,0` / `li r29,0`).
+- OPEN: em23 R20ALanding (gcse PRE copy r11 vs r10, no allocno prefers r11); em3c PartsBombControl
+  (ours gcse PRE/HOISTs `j+1` to the end of the j-body's first block, killing the j biv so `j*20`,
+  `&pt[j]`, `j*12` become `mulli` per iteration; target keeps `j++` at the latch; 295 words);
+  em22 R1_Jump (`fl` gets f1 by copy preference; target `fmr f12,f1`), R1_Threat (fresh `lis pPL@ha`
+  in the first hitCheck block, r120 cse-path class); em2a Trap1BiteSubCk (identical .sched/.lreg
+  dumps, tie-break differs); em38 plemEscape (#5); em3b RunDownCk dz/dx f0/f13 swap, SlopeMove fabs.
+
+### Hazard: configure.py rewritten from a stale copy
+- 10:22: the working tree's configure.py had lost the `"lib/sfd_mpv.c": deferred` CRI_CFLAG_OVERRIDES
+  entry (uncommitted deletion, no agent owned it) and sfd_mpv.o failed in strip_unused. Never rewrite
+  configure.py / modules.py / objects.py from memory: re-read immediately before editing and use a
+  surgical edit. Restored from HEAD.

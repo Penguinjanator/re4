@@ -987,6 +987,7 @@ void em23SetWing(cEm23* em, int on)
     Em23Work* w = EM23_WK(em);
     cModelInfo* info;
     void* bin;
+    void* tpl;
 
     if (w->wing == on) {
         return;
@@ -996,12 +997,16 @@ void em23SetWing(cEm23* em, int on)
         em->deleteModelData(w->pWingInfo->pData);
         w->pWingInfo = 0;
     }
+    // bin and tpl both assigned in each arm (two-set pseudos, tails cross-jumped into the join with
+    // the tpl offset load first); a shared `ARC(8)` after the join gets a gcse PRE copy of subArc
     if (on) {
         bin = ARC(7);
+        tpl = ARC(8);
     } else {
         bin = ARC(6);
+        tpl = ARC(8);
     }
-    info = ModInfoMgr.create(bin, ARC(8));
+    info = ModInfoMgr.create(bin, tpl);
     w->pWingInfo = info;
     if (info) {
         em->addModel(info);

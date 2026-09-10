@@ -106,7 +106,7 @@ static inline void em29DmRoutineSet(cEm29* em, u32 kind)
         EmRoutineSet(em, 2, 0, 0, 0);
         break;
     case 1:
-        EmRoutineSet(em, 2, 1, 0, 0);
+        EmRoutineSet(em, 1, 1, 0, 0);   // R1 routine 1 (the target stores the kind register for both bytes)
         break;
     case 2:
         EmRoutineSet(em, 2, 2, 0, 0);

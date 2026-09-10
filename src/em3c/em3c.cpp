@@ -2014,10 +2014,15 @@ void em3cPartsBombControl(cEm3c* em)
         ScaleMatrix(p->mat, &p->scale);
         p->worldPos = cen;
         if (pG->debug_mode == 8) {
-            for (j = 0; j < 5; j++) {
-                for (k = 0; k < 5; k++) {
-                    if (j != k) {
-                        Draw_line3d(&bomb->pt[j], &bomb->pt[k], 0xFFFFFFFF, 0);
+            // own counters: a shared `j` gives gcse a second `j + 1` and the PRE'd increment
+            // (`addi t,j,1` at the body top + `mr j,t`) stops loop.c from reducing the j givs
+            u32 dj;
+            u32 dk;
+
+            for (dj = 0; dj < 5; dj++) {
+                for (dk = 0; dk < 5; dk++) {
+                    if (dj != dk) {
+                        Draw_line3d(&bomb->pt[dj], &bomb->pt[dk], 0xFFFFFFFF, 0);
                     }
                 }
             }

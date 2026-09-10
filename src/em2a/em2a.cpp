@@ -198,6 +198,10 @@ static Em2aFunc Em2a_R1_move_tbl[16] = {
 // The camera plemResuceAshley installs (the partner rescue cut): explicitly zero-initialised so it
 // stays in .data.
 static Camera em2a_rescue_cam = { 0 };
+// COMPILER-DIFF: candidate #12 (cse related-value): `cam = &em2a_rescue_cam` after the `&em2a_rescue_cam.param.pos/at`
+// pointers are known is a fresh `lis/addi` pair in the original; our cse rewrites it as `at - 0xB0`.
+// An asm-labelled alias declaration gives cse a distinct SYMBOL_REF and keeps the fresh pair.
+extern Camera em2a_rescue_cam_v asm("em2a_rescue_cam");
 // .data is padded to 8 bytes before the linker's BSS tag word.
 asm(".section .data\n\t.balign 8\n\t.text");
 
@@ -233,6 +237,7 @@ static void em2a_R0_Init(cEm2a* em)
     Em2aWork* w = EM2A_WK(em);
     cAtariInfo* at;
     int zero;
+    f32 scale;
 
     switch (em->type) {
     case 0:
@@ -249,7 +254,20 @@ static void em2a_R0_Init(cEm2a* em)
             em->xFC = 0xFF;
             return;
         }
-        goto wire;
+        // the wire scaling is written out in case 1 AND case 2 (jump2 cross-jumps the copies): the
+        // function-scope `scale` then has two sets and local-alloc cannot tie the hp * 0.001 temp to it
+        // (temp in f0, scale in f31); a shared `goto wire` block ties the whole chain to f31
+        {
+            f32 hp = (f32) em->hp;
+            cModel* p;
+
+            scale = hp * 0.001f * 0.5f;
+            p = em->getPartsPtr(1);
+            p->pos.z *= scale;
+            p = em->getPartsPtr(2);
+            p->pos.z *= scale;
+        }
+        break;
     case 2:
         if (em->modelInit(ARC(8), ARC(9)) == 0) {
             pLog->err(0, 0, "em2a 02() ModelInit failed.");
@@ -259,17 +277,17 @@ static void em2a_R0_Init(cEm2a* em)
         if (em->hp <= 0) {
             em->hp = 1;
         }
-    wire: {
-        f32 hp = (f32) (u16) em->hp;
-        f32 scale = hp * 0.001f * 0.5f;
-        cModel* p;
+        {
+            f32 hp = (f32) em->hp;
+            cModel* p;
 
-        p = em->getPartsPtr(1);
-        p->pos.z *= scale;
-        p = em->getPartsPtr(2);
-        p->pos.z *= scale;
+            scale = hp * 0.001f * 0.5f;
+            p = em->getPartsPtr(1);
+            p->pos.z *= scale;
+            p = em->getPartsPtr(2);
+            p->pos.z *= scale;
+        }
         break;
-    }
     }
     em->be_flag &= ~0x10;
     {
@@ -322,11 +340,17 @@ static void em2a_R0_Init(cEm2a* em)
         case 1:
             EmRoutineSet(em, 1, 5, zero, zero);
             break;
-        case 2:
+            // dead loop: its LOOP_END note stops cse from following `beq case2`, so the arm does not
+            // know zero == 0 and `z` is a fresh SI zero pseudo set before the clearStatus call (li r30,0)
+            do { } while (0);
+        case 2: {
+            int z = 0;
+
             em->hp = zero;
             em->clearStatus(5);
-            EmRoutineSet(em, 1, 3, 0, 1);
+            EmRoutineSet(em, 1, 3, z, 1);
             break;
+        }
         }
         break;
     case 1:
@@ -614,7 +638,7 @@ void plem2aTrapCamMove(cModel* m)
         f32 dy = pos->y - at->y;
         f32 dz = pos->z - at->z;
 
-        cam = &em2a_rescue_cam;
+        cam = &em2a_rescue_cam_v;   // COMPILER-DIFF: candidate #12
         cam->up.x = 0.0f;
         cam->up.y = 1.0f;
         cam->up.z = 0.0f;

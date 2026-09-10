@@ -2343,7 +2343,9 @@ void em38EscapeCamMove(cEm38* em)
     Vec b;
     Vec c;
 
-    w->cam.param.fovy = g->Cam.param.fovy;
+    // volatile store: keeps the w-relative address (a reference setter folds it to em+0xCA8) and
+    // orders every later memory op behind it, which issues the store before the pool loads
+    *(volatile f32*) &w->cam.param.fovy = g->Cam.param.fovy;
     a.x = -376.0f;
     a.y = 575.0f;
     a.z = -1831.0f;

@@ -47,6 +47,12 @@ static void subem3bRunDown();
 
 #define ARC(no) PL_ARC_PTR(em->subArc, no)
 
+// Scalar-reference store: the following pPL/pSUB loads stay below it (they are reloaded after it).
+static inline void U16Set(u16& d, int v)
+{
+    d = v;
+}
+
 // Routine bytes written through an int inline (player.cpp PlRoutineSet).
 static inline void EmRoutineSet(cEm* em, int r0, int r1, int r2, int r3)
 {
@@ -87,6 +93,7 @@ void em3bDmCkTruck(cEm3b* em)
     int wep;
     int dmg;
     Vec* pos;
+    cModel* p;
 
     if (em->dmHit == 0) {
         return;
@@ -96,7 +103,7 @@ void em3bDmCkTruck(cEm3b* em)
     if (wep == 0x14 || wep == 0x16 || wep == 0x17 || wep == 0x2A || wep == 0xE) {
         return;
     }
-    pos = &em->getPartsPtr(0)->worldPos;
+    p = em->getPartsPtr(0);
     em->dmType = 1;
     if (em->dmWep == 0x10) {
         em->dmType = 0x11;
@@ -131,16 +138,23 @@ void em3bDmCkTruck(cEm3b* em)
             dmg = 200;
         }
         break;
+    case 5:
+    case 0xD:
+    case 0xF:
+    case 0x12:
+    case 0x29:
+    case 0x2C:
+    default:   // the default-grouped values are real tree nodes (root 0x10-0x11, casetree.py)
+        dmg = 1000;
+        break;
     case 0xE:
         dmg = 0;
         break;
-    case 0xD:
-    case 0x29:
-    default:
-        dmg = 1000;
-        break;
     }
     LifeDownSet2(em, dmg, 0, 1);
+    // the parts pointer crosses LifeDownSet2 (callee-saved copy right after getPartsPtr) and the
+    // worldPos address is formed here; sched1 hoists the addi above the call
+    pos = &p->worldPos;
     EmDmBloodSet2(em, 1, 0x21, 0, 0, 0);
     SndCall(6, 4, pos, 0, 0, em);
     if (em->hp <= 1 && w->dmgWait == 0) {
@@ -154,7 +168,6 @@ void em3bDmCkTruck(cEm3b* em)
 void em3bDmCkCart(cEm3b* em)
 {
     Em3bWork* w = EM3B_WK(em);
-    u8 wep;
 
     if ((em->be_flag & 2) && !em3bDeadCk(em) && em->hp > 0) {
         switch (DmgMgr.hitCheck(&em->pos, 0)) {
@@ -162,19 +175,26 @@ void em3bDmCkCart(cEm3b* em)
         case 4:
         case 5:
         case 7:
+            // the death body is written here AND in case 0x16 (jump2 cross-jumps the copies into the
+            // later one; each copy stores the dmgWait register cse knows to be 0)
             if (w->dmgWait == 0) {
-                goto die;
+                w->dmgWait = 150;
+                EmRoutineSet(em, 1, 5, 0, 0);
+                EstSet((int) em, -1, 0, 0, 0xCA, 1, 0, w->espKind, (u32) em, 0);
+                w->dmgWait = 150;
+                return;
             }
         }
     }
     if (em->dmHit) {
-        wep = em->dmWep;
         em->dmHit = 0;
         em->dmType = 1;
-        if (wep == 0x10) {
+        // dmWep read directly at both uses: the byte store between them forces the reload the
+        // target has before the switch (a u8 local keeps one load)
+        if (em->dmWep == 0x10) {
             em->dmType = 0x11;
         }
-        switch (wep) {
+        switch (em->dmWep) {
         case 1:
         case 2:
         case 3:
@@ -203,21 +223,27 @@ void em3bDmCkCart(cEm3b* em)
         case 0x2C:
         case 0x2D:
             EmDmBloodSet2(em, 0xCA, 0, 0, 0, 0);
+            goto stop_ck;
+        case 0x17:
+        case 0x2A:
+            break;
+        case 0:
+        case 0xE:
+        case 0x10:
+        case 0x14:
+        case 0x15:
+        case 0x18:
+        default:   // the default-grouped values are real tree nodes (root 0x16, casetree.py)
+            EmDmBloodSet2(em, 0xCA, 4, 0, 0, 0);
+            break;
         case 0x16:
+        stop_ck:   // laid out after the default arm: the blood arm reaches it through the goto
             if (w->dmgWait == 0) {
-            die:
                 w->dmgWait = 150;
                 EmRoutineSet(em, 1, 5, 0, 0);
                 EstSet((int) em, -1, 0, 0, 0xCA, 1, 0, w->espKind, (u32) em, 0);
                 w->dmgWait = 150;
             }
-            break;
-        case 0x17:
-        case 0x2A:
-            break;
-        case 0x18:
-        default:
-            EmDmBloodSet2(em, 0xCA, 4, 0, 0, 0);
             break;
         }
     }
@@ -226,7 +252,6 @@ void em3bDmCkCart(cEm3b* em)
 void em3bDmCkStopCart(cEm3b* em)
 {
     Em3bWork* w = EM3B_WK(em);
-    u8 wep;
 
     if ((em->be_flag & 2) && !em3bDeadCk(em) && em->hp > 0) {
         switch (DmgMgr.hitCheck(&em->pos, 0)) {
@@ -234,19 +259,24 @@ void em3bDmCkStopCart(cEm3b* em)
         case 4:
         case 5:
         case 7:
+            // the death body is written here AND in case 0x16 (jump2 cross-jumps the copies into the
+            // later one; each copy stores the dmgWait register cse knows to be 0)
             if (w->dmgWait == 0) {
-                goto die;
+                em->hp = 0;
+                EmRoutineSet(em, 1, 7, 0, 0);
+                return;
             }
         }
     }
     if (em->dmHit) {
-        wep = em->dmWep;
         em->dmHit = 0;
         em->dmType = 1;
-        if (wep == 0x10) {
+        // dmWep read directly at both uses: the byte store between them forces the reload the
+        // target has before the switch (a u8 local keeps one load)
+        if (em->dmWep == 0x10) {
             em->dmType = 0x11;
         }
-        switch (wep) {
+        switch (em->dmWep) {
         case 1:
         case 2:
         case 3:
@@ -275,19 +305,25 @@ void em3bDmCkStopCart(cEm3b* em)
         case 0x2C:
         case 0x2D:
             EmDmBloodSet2(em, 0xCA, 0, 0, 0, 0);
-        case 0x16:
-            if (w->dmgWait == 0) {
-            die:
-                em->hp = 0;
-                EmRoutineSet(em, 1, 7, 0, 0);
-            }
-            break;
+            goto stop_ck;
         case 0x17:
         case 0x2A:
             break;
+        case 0:
+        case 0xE:
+        case 0x10:
+        case 0x14:
+        case 0x15:
         case 0x18:
-        default:
+        default:   // the default-grouped values are real tree nodes (root 0x16, casetree.py)
             EmDmBloodSet2(em, 0xCA, 4, 0, 0, 0);
+            break;
+        case 0x16:
+        stop_ck:   // laid out after the default arm: the blood arm reaches it through the goto
+            if (w->dmgWait == 0) {
+                em->hp = 0;
+                EmRoutineSet(em, 1, 7, 0, 0);
+            }
             break;
         }
     }
@@ -494,16 +530,21 @@ static void em3b_R1_Truck_Run(cEm3b* em)
         w->seTimer = 30;
         EstSet((int) em, -1, 0, 0, 1, 0, 1, 0, (u32) em, 0);
         em->xFE++;
-    case 3:
-        if (MotionMoveF(em, 0)) {
+    case 3: {
+        int end = MotionMoveF(em, 0);
+
+        if (end) {
             em->xFE++;
             break;
         }
         em3bRunDownCkTruck(em);
         f = em->frame;
         if (f > 249.7f && f < 250.3f) {
-            if (w->pDriver == 0 || w->pDriver->hp <= 0) {
-                EmRoutineSet(em, 1, 2, 0, 0);
+            // the first stop stores the (zero) MotionMoveF result kept in a callee-saved register; the
+            // second test's label has two uses (pDriver == 0 and the `&&` false path), so cse does not
+            // carry the known zero into it and its literal zero is a fresh `li` — two copies survive
+            if (w->pDriver && w->pDriver->hp <= 0) {
+                EmRoutineSet(em, 1, 2, end, end);
                 break;
             }
             if (em->hp <= 1) {
@@ -540,6 +581,7 @@ static void em3b_R1_Truck_Run(cEm3b* em)
             SndStop(w->sndId, 0);
         }
         break;
+    }
     case 4:
         break;
     }
@@ -734,16 +776,15 @@ void em3bRunDownCkTruck(cEm3b* em)
     int parts[3] = { 0, 1, 4 };
     cModel* p;
     u32 i;
-    int zero;
 
     if ((s16) pG->pl_life > 0) {
-        zero = 0;
-
         for (i = 0; i < 3; i++) {
+            int zero = 0;
+
             p = em->getPartsPtr(parts[i]);
             if ((p->worldPos.x - pPL->pos.x) * (p->worldPos.x - pPL->pos.x) + (p->worldPos.z - pPL->pos.z) * (p->worldPos.z - pPL->pos.z)
                 < 6250000.0f) {
-                pG->pl_life = zero;
+                U16Set(pG->pl_life, zero);
                 pPL->rot.y += Muku(&pPL->pos, &p->worldPos, pPL->rot.y, PI);
                 pPL->rot.y = LIMIT_ANGLE(em->rot.y);
                 PlSetDamage(8, 0, 0);
@@ -753,16 +794,15 @@ void em3bRunDownCkTruck(cEm3b* em)
         }
     }
     if (pSUB && (s16) pG->sub_life > 0) {
-        int* pp;
+        for (i = 0; i < 3; i++) {
+            int zero = 0;
 
-        zero = 0;
-
-        for (pp = parts; pp <= &parts[2]; pp++) {
-            p = em->getPartsPtr(*pp);
+            p = em->getPartsPtr(parts[i]);
             if ((p->worldPos.x - pSUB->pos.x) * (p->worldPos.x - pSUB->pos.x) + (p->worldPos.z - pSUB->pos.z) * (p->worldPos.z - pSUB->pos.z)
                 < 6250000.0f) {
-                pG->sub_life = zero;
-                pSUB->rot.y += Muku(&pSUB->pos, &p->worldPos, pSUB->rot.y, PI);
+                U16Set(pG->sub_life, zero);
+                // reference store: pSUB and rot.y are re-read for LIMIT_ANGLE (a plain store is forwarded)
+                FSet(pSUB->rot.y, pSUB->rot.y + Muku(&pSUB->pos, &p->worldPos, pSUB->rot.y, PI));
                 pSUB->rot.y = LIMIT_ANGLE(pSUB->rot.y);
                 SetSubDamage((int) em, (void*) subem3bRunDown);
                 SndCall(1, 0x4B, &pSUB->pos, 0, 0, 0);
@@ -771,9 +811,9 @@ void em3bRunDownCkTruck(cEm3b* em)
         }
     }
     p = em->getPartsPtr(0);
-    zero = 0;
     for (i = 0; i < EmMgr.nArray; i++) {
         cEm* e = (cEm*) ((u8*) EmMgr.pArray + EmMgr.size * i);
+        int zero = 0;
 
         if ((e->be_flag & 0x201) != 1) {
             continue;
@@ -794,11 +834,8 @@ void em3bRunDownCkTruck(cEm3b* em)
             continue;
         }
         if ((p->worldPos.x - e->pos.x) * (p->worldPos.x - e->pos.x) + (p->worldPos.z - e->pos.z) * (p->worldPos.z - e->pos.z) < 20250000.0f) {
-            e->xFF = zero;
             e->hp = zero;
-            e->xFC = 3;
-            e->xFD = 4;
-            e->xFE = zero;
+            EmRoutineSet(e, 3, 4, zero, zero);
             SndCall(1, 0x4B, &em->pos, 0, 0, 0);
         }
     }
@@ -809,12 +846,11 @@ void em3bRunDownCkCart(cEm3b* em)
 {
     cModel* p;
     u32 i;
-    int zero;
 
     if ((s16) pG->pl_life > 0 && !em3bDeadCk(pPL)) {
         for (i = 0; i < 2; i++) {
             p = em->getPartsPtr(1);
-            if ((p->worldPos.z - pPL->pos.z) * (p->worldPos.z - pPL->pos.z) + (p->worldPos.x - pPL->pos.x) * (p->worldPos.x - pPL->pos.x)
+            if ((p->worldPos.x - pPL->pos.x) * (p->worldPos.x - pPL->pos.x) + (p->worldPos.z - pPL->pos.z) * (p->worldPos.z - pPL->pos.z)
                 < 2250000.0f) {
                 LifeDownSet(pPL, 500, 0);
                 pPL->rot.y = em->rot.y + PI;
@@ -825,9 +861,9 @@ void em3bRunDownCkCart(cEm3b* em)
         }
     }
     p = em->getPartsPtr(1);
-    zero = 0;
     for (i = 0; i < EmMgr.nArray; i++) {
         cEm* e = (cEm*) ((u8*) EmMgr.pArray + EmMgr.size * i);
+        int zero = 0;
 
         if ((e->be_flag & 0x201) != 1) {
             continue;
@@ -846,11 +882,8 @@ void em3bRunDownCkCart(cEm3b* em)
         }
         if ((p->worldPos.x - e->pos.x) * (p->worldPos.x - e->pos.x) + (p->worldPos.y - e->pos.y) * (p->worldPos.y - e->pos.y)
             + (p->worldPos.z - e->pos.z) * (p->worldPos.z - e->pos.z) < 2890000.0f) {
-            e->xFF = zero;
             e->hp = zero;
-            e->xFC = 3;
-            e->xFD = 4;
-            e->xFE = zero;
+            EmRoutineSet(e, 3, 4, zero, zero);   // the ff store is the zero's last use: issued first
         }
     }
 }
