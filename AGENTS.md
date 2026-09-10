@@ -2794,6 +2794,12 @@ target) stays unresolved and `make_rel` then fails with "undefined symbol".
   orphan sections of Sscrn/t_esp/t_event/t_id/t_movie/Tools/t_sce (their original ELFs had 12 extra
   sections between .text and .ctors, concatenated behind .text in the REL).
 
+- em10 OPEN (3 left, pass-order class): `em10LostHead` (59: `a == 3` kept in cr4 across calls with compares at
+  the dispatch and after `EmSetDie`; `if (X == K) { asm volatile("" :: "r"(X)); }` forces a cr4 compare at
+  that site but pays a `bne cr4` per site and re-emits on every path -- not clean), `em10FindCk` (20: bell
+  arms merged before sched1 in the original, in jump2 for us), `setHand` (5: `lwz tpl` before the compare).
+  Five passes; do not re-attempt without a new mechanism.
+
 ## Don'ts
 
 - Never change the semantics of a shared tool (strip_unused.py, fold_linkonce.py, sync_symbols.py,
