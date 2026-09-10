@@ -11365,3 +11365,67 @@ stmt.c/jump.c and confirmed with cc1plus probes:
   t_option tp_pl_flag (5, the `addi r3,r30,ItemMgr@l` "no dying-source bonus") is untouched by every death variant
   because its PRE'd high pseudo's death is real in ours -- again an RTL difference (the #12/#3 families), not the bonus.
 - Do not re-run the rank_for_schedule/weight/calls.c/md experiments; nothing in /tmp/rank18 is to be installed.
+
+### em2d, em31, em32 flipped (em2d 129/129, em31 138/138, em32 108/108; all three RELs byte-identical; 2026-09-10)
+- Harness /tmp/em_close (em35_2d + em3236 + casetree2 copies with the paths rewritten; `variants.py MOD SUBSTR v_x.py`,
+  `one.sh MOD NAME v_x.py SYM`, `camtail.sh V.py NAME` = compile a variant and print one function's tail with labels,
+  `datarelocs.py MOD`; `tt/gen*.py` = 10-line stand-alone test functions compiled straight with cc1plus, 0.3 s per
+  variant -- build the shape there first, then port). `rm` is aliased to a trash tool that refuses tmpfs: use `/bin/rm`.
+  /tmp (32G tmpfs) filled up during this pass; keep dumps small and delete `-dr`/`-ds` files after reading.
+- **em2d CamouflageMove (26 -> 0, zero code).** Three findings on the `color2[0]` select: (1) the value-select variable is a
+  2-byte struct local (`struct Em2dColSel { u16 v; }`): a non-promoted HImode pseudo, so the constant arms are SImode
+  `li r0,0xff`/`li r0,0x80` (a `struct { u8 b; }` gives QImode `li r0,-1`/`li r0,-128`, different bytes), the `+ 0x18`
+  arms compute `(plus:SI (subreg:SI (zero_extend:HI Q)) 24)` (folded to `addi r0,r9,24` on the byte register when Q's
+  load is in the same block), and jump.c's two hoists (`if (c) x = a; else x = b` / `if (c) { x = a; goto l; } x = b`)
+  never fire because `x = a` is two insns before reload (plus + HI subreg copy) and at jump2 the deleted copy leaves
+  `(reg:SI 0)` vs `(reg:HI 0)` dests (rtx_equal_p fails). An `int v` hoists `li 0xff`/`subi` (jump1), a promoted `u8 v`
+  keeps `clrlwi` after every add. (2) The `> 0x98` compare is masked (`clrlwi r0,r9,24; cmplwi r0,0x98`) only if a STORE
+  (or call) sits between the arm's `lbz` and the compare in RTL order: combine's `get_last_value` of the QI load pseudo
+  returns the `(mem)` which `get_last_value_validate` clobbers when `INSN_CUID (insn) <= mem_last_set`, so
+  `nonzero_bits` is unknown and `simplify_comparison` cannot use `(subreg:SI Q)`; same-block compares (0xE6, 0x67, 0x18)
+  fold. Multi-set QI struct variables do NOT do it (`reg_nonzero_bits` ORs the lbz sets, 0xFF). Source: the `!(c & 0x80)`
+  arm owns the store (`sel.v = c + 0x18; color2_store: p->color2[0] = sel.v;`), the `> 0x98` arm is a direct
+  `p->color2[0] -= 0x18` (2-insn cross-jump into the else arm's `subi; stb`, `bgt L60`), and the shared `sel.v = 0x80`
+  arm is `else { color2_80: sel.v = 0x80; goto color2_store; }` (laid out after the 0x98 test = the target's L40 with
+  the first arm's `bgt` into it). The stb after `color2_store:` merges into the else arm's `stb r0` by the label rule
+  (1 insn), so 2a becomes `addi; b STORE`; arm 1 keeps its own join (`sel.v = ..; p->color2[0] = sel.v;`) and its
+  `addi; b STORE` is NOT cross-jumped into 2a's (the two `b STORE` are the redirected join jumps and jump2 never pairs
+  them). (3) FPR naming of the fade (`lfs f13,0.9; psq_l f12; lfs f0,12.8; fmadds f12,f12,f13,f0`): ONE routine-scope
+  `f32 f` set in both arms (`f = (f32) c; f = f * 0.9f + 12.8f; c = (u8) f;`): the value is a multi-set global pseudo
+  (f12 after the locals), the two pool constants local-alloc first (12.8 life 1 -> f0, 0.9 -> f13). The single-
+  expression form local-allocs conv+result first (f0) by qty priority refs*log2(refs)/life.
+- **em2d JumpAtk (2 -> 0, tagged `COMPILER-DIFF: #8 candidate`):** `u32 f = w->flags | 0x10000; asm("" : "=r"(f) :
+  "0"(f)); w->flags = f;` -- the codeless tied launder is a latency-1 link between the `oris` and the `stw`, so the
+  store is ready at t=6 and the compare (ready t=5) is issued first without a rank tie. Facts checked in haifa-sched.c:
+  `INSN_REG_WEIGHT` is +1 per SET/CLOBBER pattern (a store counts) minus 1 per REG_DEAD/REG_UNUSED note, so a compare
+  is +1 and a store of a dying register 0; `rank_for_schedule` order is priority, weight (sched1 only), class vs the
+  last scheduled insn, dependents, LUID; `add_branch_dependences` skips insns that already have dependents
+  (INSN_REF_COUNT). No C construct puts an insn between a switch/if compare and its branch, so a compare can never
+  reach priority 3 -- the latency trick on the OTHER insn is the general lever for "compare before store" ties.
+- **em31DmCk (11 -> 0, zero code): the `> 0x17` half written out inside the switch.** `int no = em->dmWep; switch (no)`
+  with `case 0x18 ... 0x1A: goto high1; case 0x1B ... 0x1D: goto high2; case 0x1E ... 0x20: goto high3; case 0x21 ...
+  0x23: goto high4; case 0x24 ... 0x7FFFFFFF: goto high5;` then `high1: .. high5:` + the if-chain `if (no <= 0x28)
+  break; if (no > 0x2C) { if (no == 0x2D) goto down; break; } if (no >= lim2B) break; down: case 0xD: ..` and
+  `case 0x14: case 0x15: case 0x16: default: break;`. Rules learned: (a) `group_case_nodes` merges adjacent ranges whose
+  bodies are simplejumps to the SAME label (`rtx_equal_p (SET_SRC ..)`), so identical `goto high;` bodies collapse into
+  one node -- distinct labels on one statement keep the nodes; (b) five ranges (weight 10) + the explicit `[14-16]` node
+  keep `(n + r + 1) / 2 = 10` reaching `[17]` (root), and `[12-13]` gets `[14-16]` as its bounded right child (`cmpwi
+  0x13; ble DOWN; b DEF` -- the target's leaf, previously wrong by 2 words); (c) the right child of `[17]` is the 5-list
+  root, so `bgt T` is emitted and the dead tree (`cmpwi 0x1A/0x1E/0x20/0x23`) is threaded/deleted -- pick range
+  boundaries whose compares collide with none of the live constants, else gcse PREs the chain's compare into the dead
+  tree's block (`cmpwi cr7` + `bgt cr7`, 10 words with `[18-28],[29-2A],[2B-2C],[2D-MAX]`); (d) fold rewrites `x >= C`
+  to `x > C-1` (and `x < C` to `x <= C-1`) for a positive literal C, so the target's `cmpwi 0x2B; bge` (stmt.c emits GE
+  directly) needs `int lim2B = 0x2B; if (no >= lim2B)` -- cse folds the register into the compare and keeps the code;
+  (e) the chain must compare the switch INDEX pseudo (`int no`), a re-read `em->dmWep` gets a `mr r9,r0` copy and
+  `(int) em->dmWep <= K` is narrowed to `cmplwi` by fold. Enum indexes do not help: g++ 2.95's `c_expand_start_case`
+  runs `default_conversion` (enum -> int) and `get_unwidened` strips only widening NOP_EXPRs (bitschange > 0), so the
+  tree's index_type is `int` (INT_MIN/INT_MAX bounds); `finish_enum` sets TYPE_MIN/MAX from the enumerators' precision,
+  not their values. `case A ... 0x7FFFFFFF:` (INT_MAX high) is how a node gets `node_has_high_bound` without a parent.
+- **em32 R0_Init (2 -> 0, tagged `COMPILER-DIFF: #13`):** the sched2 tie `li r0,1` vs `stb r11,0xfd` (dependents 5 vs 6)
+  is broken by giving the `li` a sixth dependent that IS one of the target's insns: the MotionSetCore `0` argument
+  (r9) as `asm("li %0,0" : "=r"(flip) : "r"(one))` -- an opaque set with a dummy read of the hard-register `one`
+  (true dependence, no extra code, the asm is the target's `li r9,0`). Other argument slots (`li r8,1`, `li r7,0`)
+  moved other insns (2-5 words).
+- Flip notes: em2d needed `asm(".comm common_em2d,52,4")` (0x34 COMMON block); em31/em32 already had theirs. `.data`
+  reloc targets (datarelocs.py), the three `scope:global` data labels (R0 table + two weak vtables) and
+  `sync_rel_symbols.py` (0 symbols changed) were checked before each flip; `git diff config/G4BE08/symbols.txt` empty.

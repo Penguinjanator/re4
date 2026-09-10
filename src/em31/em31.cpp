@@ -416,13 +416,46 @@ void em31DmCk(cEm31* em)
         }
         break;
     default:
-        switch (em->dmWep) {
+        int no = em->dmWep;
+        int lim2B = 0x2B;
+
+        switch (no) {
+        // The `> 0x17` half of the tree is written out: five `goto` ranges up to INT_MAX (distinct labels, so
+        // group_case_nodes keeps five nodes: right list weight 10 with 0x14..0x16 explicit) keep the 0x17 root;
+        // their compares (0x1A/0x1E/0x20/0x23) collide with nothing, jump1 threads the bodies away, and the
+        // if-chain gives the `[18-28] -> [2b-2c]{[29-2a],[2d]}` compares that balance_case_nodes cannot
+        // produce (a 4-list never has its first node as root).
+        case 0x18 ... 0x1A:
+            goto high1;
+        case 0x1B ... 0x1D:
+            goto high2;
+        case 0x1E ... 0x20:
+            goto high3;
+        case 0x21 ... 0x23:
+            goto high4;
+        case 0x24 ... 0x7FFFFFFF:
+            goto high5;
+        high1:
+        high2:
+        high3:
+        high4:
+        high5:
+            if (no <= 0x28) {
+                break;
+            }
+            if (no > 0x2C) {
+                if (no == 0x2D) {
+                    goto down;
+                }
+                break;
+            }
+            if (no >= lim2B) {  // a variable: fold rewrites a literal `>= 0x2B` to `> 0x2A`
+                break;
+            }
+        down:
         case 0xD:
         case 0x12:
         case 0x13:
-        case 0x29:
-        case 0x2A:
-        case 0x2D:
             EM31_SET_DOWN(90, 0);
             break;
         case 0x17:
@@ -445,25 +478,9 @@ void em31DmCk(cEm31* em)
         case 0xF:
         case 0x10:
         case 0x11:
-        case 0x18:
-        case 0x19:
-        case 0x1A:
-        case 0x1B:
-        case 0x1C:
-        case 0x1D:
-        case 0x1E:
-        case 0x1F:
-        case 0x20:
-        case 0x21:
-        case 0x22:
-        case 0x23:
-        case 0x24:
-        case 0x25:
-        case 0x26:
-        case 0x27:
-        case 0x28:
-        case 0x2B:
-        case 0x2C:
+        case 0x14:
+        case 0x15:
+        case 0x16:
         default:
             break;
         }

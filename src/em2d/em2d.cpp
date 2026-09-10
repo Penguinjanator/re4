@@ -39,6 +39,10 @@
 #include "quake.h"
 #include "item.h"
 
+// The module's 0x34-byte COMMON block (st_room.h): uninitialised template statics of the original
+// object, merged into .bss by the REL link.
+asm(".comm common_em2d,52,4");
+
 extern "C" void OSReport(const char* fmt, ...);
 extern void (*EmInitFunc)(cEm* em);   // game/em.cpp
 
@@ -1739,8 +1743,13 @@ static void em2d_R1_JumpAtk(cEm2d* em)
 {
     Em2dWork* w = EM2D_WK(em);
     int fe = em->xFE;
+    u32 f = w->flags | 0x10000;
 
-    w->flags |= 0x10000;
+    // block 0 tie: `cmpwi fe,0` and `stw flags` are both ready at t=5 with priority 2 and sched1 ranks the
+    // store first (its source dies, weight 0 vs the compare's +1); the original issues the compare first.
+    // The codeless tied launder adds a latency-1 link before the store, so it is ready one cycle later.
+    asm("" : "=r"(f) : "0"(f)); // COMPILER-DIFF: #8 candidate (sched1 compare/store tie)
+    w->flags = f;
     switch (fe) {
         do { } while (0);  // dead loop before the label: the arm does not know fe == 0
     case 0:
@@ -4975,21 +4984,12 @@ void em2dSetFallMatrix(cEm2d* em)
     TransMatrix(em->mat, &em->pos);
 }
 
-// u8 parameter: integrate copies the byte into a QImode pseudo (`andi.` on the byte, `clrlwi r0` only
-// for the 0x98 compare, `subi` on the byte register)
-static inline int em2dColor2On(u8 c)
-{
-    if (!(c & 0x80)) {
-        if (c <= 0x67) {
-            return c + 0x18;
-        }
-        return 0x80;
-    }
-    if (c > 0x98) {
-        return c - 0x18;
-    }
-    return 0x80;
-}
+// The colour byte select is a 2-byte struct local (HImode pseudo, not promoted): the constant arms
+// are SImode `li r0,0xff`/`li r0,0x80`, the `+ 0x18` arms keep the byte register (no `clrlwi`), and
+// jump.c never hoists an arm (the HI dest never equals the SI add's dest).
+struct Em2dColSel {
+    u16 v;
+};
 
 void em2dCamouflageMove(cEm2d* em)
 {
@@ -4997,7 +4997,7 @@ void em2dCamouflageMove(cEm2d* em)
     cModelInfo* info;
     cModelInfo* p;
     int on = 0;
-    u8 c;
+    f32 f;
 
     if (em->type == 4) {
         return;
@@ -5074,10 +5074,16 @@ void em2dCamouflageMove(cEm2d* em)
     info = em->pInfo;
     if (info) {
         if (w->blendRatio == 0xFF) {
+            // one routine-scope `f` set in both arms: the fade value is a global pseudo (f12) and the
+            // two pool constants are local-allocated first (12.8/3.2 f0, 0.9 f13)
             if (w->x4D0) {
-                info->color[3] = (u8) ((f32) info->color[3] * 0.899999976f + 12.8000002f);
+                f = (f32) info->color[3];
+                f = f * 0.899999976f + 12.8000002f;
+                info->color[3] = (u8) f;
             } else {
-                info->color[3] = (u8) ((f32) info->color[3] * 0.899999976f + 3.20000005f);
+                f = (f32) info->color[3];
+                f = f * 0.899999976f + 3.20000005f;
+                info->color[3] = (u8) f;
             }
         } else {
             if (info->color[3] <= 0xE6) {
@@ -5093,21 +5099,36 @@ void em2dCamouflageMove(cEm2d* em)
         em->x12F = 5;
     }
     if (on) {
-        u8 v;  // value select: the join's single `stb` cross-jumps into the else arm's store (1-insn label rule)
+        Em2dColSel sel;
         p = em->pInfo;
         if (p == 0) {
             return;
         }
         if (w->blendRatio == 0) {
             if (p->color2[0] <= 0xE6) {
-                v = p->color2[0] + 0x18;
+                sel.v = p->color2[0] + 0x18;
             } else {
-                v = 0xFF;
+                sel.v = 0xFF;
             }
+            p->color2[0] = sel.v;
         } else {
-            v = em2dColor2On(p->color2[0]);
+            // the store sits between this arm's load and the `> 0x98` compare, so combine cannot
+            // prove the byte's upper bits zero there (`clrlwi r0,r9,24; cmplwi r0,0x98`)
+            if (!(p->color2[0] & 0x80)) {
+                if (p->color2[0] > 0x67) {
+                    goto color2_80;
+                }
+                sel.v = p->color2[0] + 0x18;
+            color2_store:
+                p->color2[0] = sel.v;
+            } else if (p->color2[0] > 0x98) {
+                p->color2[0] -= 0x18;
+            } else {
+            color2_80:
+                sel.v = 0x80;
+                goto color2_store;
+            }
         }
-        p->color2[0] = v;
     } else {
         p = em->pInfo;
         if (p == 0) {

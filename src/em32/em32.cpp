@@ -778,12 +778,13 @@ static void em32_R0_Init(cEm32* em)
     p->scale.z = fzero;
     // hp = 500 and the routine bytes 6/1 are REG_EQUIV pseudos re-materialised by the original's reload
     // (r0, r11, r0 again): with no dying register the `sth hp` stays in source order ahead of the
-    // routine stores. OPEN (2 words): sched2 issues `li r0,1` after `stb r11,0xfd` (both priority 15;
-    // ours has one more dependent on the stb), the original the other way round.
+    // routine stores. sched2 issues `li r0,1` after `stb r11,0xfd` (both priority 15; ours has one more
+    // dependent on the stb) unless the `li` gets a dependent, see the asm below.
     {
         register int hp asm("r0"); // COMPILER-DIFF: #13
         register int six asm("r11"); // COMPILER-DIFF: #13
         register int one asm("r0"); // COMPILER-DIFF: #13
+        int flip;
         hp = 500;
         em->hp = hp;
         six = 6;
@@ -792,8 +793,12 @@ static void em32_R0_Init(cEm32* em)
         em->xFD = six;
         em->xFE = zero;
         em->xFF = zero;
+        // the MotionSetCore `0` (r9) as an opaque set with a dummy read of `one`: sched2's tie between
+        // `li r0,1` and `stb r11,0xfd` (both priority 15) is broken by dependent counts, and this gives the
+        // `li` its sixth dependent so it is issued first like the original's (no extra insn: the asm IS the li r9,0)
+        asm("li %0,0" : "=r"(flip) : "r"(one)); // COMPILER-DIFF: #13
+        MotionSetCore(em, &em->mot, ARC(9), 0, 0, 1, flip);
     }
-    MotionSetCore(em, &em->mot, ARC(9), 0, 0, 1, 0);
     MotionMoveF(em, 0);
     em32_R0_Move(em);
     if (w->pMot) {
