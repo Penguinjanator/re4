@@ -4229,7 +4229,7 @@ target) stays unresolved and `make_rel` then fails with "undefined symbol".
     0x2D}`, switch3 default `{5,6,0xD,0xF,0x12,0x13,0x29,0x2C,0x2D}`).
   - `if ((u32) PlGachaGet() <= 49 || (s16) pG->pl_life <= 1)` for the `cmplwi 0x31; ble` + `lha; cmpwi 1;
     ble` pair (em35_R1_CatchHit).
-- em36 (91/101 byte-identical, not Matching; include/em36.h, src/em36/em36.cpp, 2026-09): the
+- em36 (91/101 -> 97/101 byte-identical, not Matching; include/em36.h, src/em36/em36.cpp, 2026-09): the
   Regenerator / Iron Maiden (0xD284; four types, five limb weak points `Em36Limb limb[5]`, seven limb
   models `cModelInfo* pParts[7]` swapped by em36PartsSet, three cObj16 tentacles per lost limb
   `Em36Ten ten[7]`, 14 spine scale parts). .data 0x6C0 / .rodata 0x720 equal. Left: em36DmCk (the
@@ -4283,6 +4283,35 @@ target) stays unresolved and `make_rel` then fails with "undefined symbol".
     PRE copy `mr r24, r30` / `addi r24, r25, 0xc` in both arms), `w->pTarget = pPLS; w->flags &= ~4;`
     order, and store triples written B, C, A to come out A, B, C (`targetAng/AngAbs/Dist`).
   - MEM_ALLOC line number: `#line 966 "D:/Bio4/Prog/em36.cpp"` before the alloc in em36_R0_Init.
+  - Second pass (91 -> 97/101, 2026-09-10, harness /tmp/em3136): DmCk 207 -> 0: switch 2 (flags & 0x20) case set
+    read off the target tree with tools/casetree.py (Rnd arm `0..4, 0xB, 0xC, 0x10, 0x11, 0x14, 0x15, 0x1B, 0x1D,
+    0x26, 0x27, 0x2B`, blood arm `0xD, 0x12, 0x13, 0x29, 0x2D` plus a SEPARATE `case 0xE: em36BloodSet(em); break;`
+    arm -- `dEQ; eEQ` are two nodes, a shared label would group [D-E]); arm ORDER = target layout (switch 1: the
+    `near`/LostParts arms first, then the two blood arms, `case 0xE` last; switch 3: the blood+RS(2,1) arm before
+    the LimbHitCk arm); em36LimbHitCk as a MACRO that sets the routine from inside the loop (`EM36_LIMB_HIT_CK(no)`,
+    one stepping `Em36Limb* l` pointer with `-8/0` offsets and the hit path jumping into the RS arm; the int inline
+    returned a flag through `li r0,1` and used two index registers); the Rnd arm of switch 2 as `if ((u8)(Rnd() %
+    10) != 5) goto blood; goto lost;` with `blood:` INSIDE the LostParts arm's `if` body (`bne BLOOD; b LOST`: the
+    jump-over-jump fires after jump2's cross-jump; `if (r == 5) goto lost; BloodSet(); break;` gives `beq LOST; b
+    BLOOD`). R0_Init 38 -> 0: `espKind[3] = 0x44` before `[2] = 0x43` (the later-set constant gets r0), `flags = 0`
+    before `wait = 0` (dying zero store first), the spine clear through a stepping `f32* sp` (ascending `addi
+    r9,r9,4`), cases 0 and 1 of the x38D switch as plain byte stores `xFC, xFD, xFE, xFF` (QImode zero -> the
+    MotionSetCore `0` argument gets its own `li r9,0`). WeakInit 9 -> 0: `u32 r; do { r = (u8)(Rnd() % 10); } while
+    (0); if (r <= 4) a = 2; else a = 3;` (region end after the chain + jump.c's else-hoist put `li r27,3` right
+    before the `bgt`). SetHitMark 20 -> 0: `register u8 kind asm("r30"); // COMPILER-DIFF: #2` -- the target's one
+    `clrlwi r30,r30,24` before both calls; a u8 local or a u8 inline parameter set from the constants 3/4 loses the
+    extension in combine (nonzero_bits 7, WORD_REGISTER_OPERATIONS), the hard register keeps it; `asm("" : "+r")`
+    launders do not re-extend. FanceOverCk 9 -> 0: `rem = w->stuckCnt - w->stuckCnt / 10 * 10;` (the second load is
+    cse'd, `rem` is set once and ranks below SatMgr@ha -> r24; `rem = w->stuckCnt; rem %= 10;` ties the load to
+    rem's register, `rem = cnt % 10` puts the quotient in r25). AtkRtnCk 27 -> 0: `dy = a - b; dy = fabsf(dy);` in
+    both blocks (d f30 / dy f31, `fabs f31,f31`). PartsSet 52 -> 48: tpl offset chosen in the type switch
+    (`u32 ofs`) and ONE `tpl = ofs + (u32) em->subArc` after it (`lwz r5,ofs(r11); add r5,r5,r11`).
+  - Still open (one try each, documented ties): PartsSet 48 (`mr r31,r3; cmpwi r31,0` un-fused + em/info r30/r31
+    -- the mes `mr.` family; `addi r3` before `add r5` in the create block), SlopeMove 36 (`h`/`tilt` in f2 in the
+    target: global alloc prefers the FPR least used by local pseudos; statement/do-while/operand orders tried),
+    RegeneTenMove 44 (`i+1` PRE pseudo r28 vs the `&em36_ten_rot[i*3]` pointer r29; rot-first/do-while/declaration
+    order tried), BloodSet 2 (`2dLEB JD` = node [2C-2D] with a right child whose compare vanished; a model search
+    over default/break labels for 0x1E, 0x22..0x25, 0x2E..0x35 (all-D, all-E) finds no tree that keeps the rest).
 - Tools REL, third pass (t_atari 16/17 functions, t_dr 13/15; src/Tools/t_atari.cpp, t_dr.cpp, 2026-09):
   - `cSat` has a constructor, `cSat() : cUnit(1) { flags = 0; }` (include/atari.h): t_atari's two
     `static cSat tbl[10]` arrays are built by the static-init loop as `stw 1; stw _vt.4cSat; stb 0,0x2a`
@@ -7899,7 +7928,7 @@ confirmed on the units named):
     `lfs f13` limit reloaded per iteration). r200 execTruckEvent_end: #11. r222 R222Main 7 (template load after
     `seTimer = 30`, known).
 
-### em31 (El Gigante; src/em31/em31.cpp + include/em31.h written from scratch, 134/138 masked-identical, .rodata/.data equal, not flipped; 2026-09-10)
+### em31 (El Gigante; src/em31/em31.cpp + include/em31.h written from scratch, 134 -> 137/138 masked-identical, .rodata/.data equal, not flipped; 2026-09-10)
 - Layout as em25/em36 (R0 table global, R1 flat {br, main} pairs x35, R2 x4, R3 x1, EmAtkInfo x8, two u16 flip
   tables, `em31CatchObj` one-member struct, three PlCloth table sets, `.comm common_em31,52,4`, cUnit/cManager<cObj>
   linkonce copies at the .text end). Work 0x994 bytes (include/em31.h: 29 EmHitInfo, route/target angles, body/
@@ -7959,6 +7988,34 @@ confirmed on the units named):
   (`li r3,1` last in the store blocks of the target, second in ours; sched tie, `return 1` placements exhausted);
   PillarCk 5 words (ObjMgr@ha / hoisted `4` in r22/r23 swapped, global-alloc order); TailAtkCk 17 words (`em` r30
   and `t` r31 swapped, same cause).
+- Second pass (134 -> 137/138, 2026-09-10; harness /tmp/em3136 = copies of /tmp/em31w, /tmp/em4agent, /tmp/cd13 with
+  the paths rewritten). Solved:
+  - AtkRtnCk (37 -> 0): `return 1` AFTER the `if (Rnd()%10 > 4) RS(9) else RS(0xA)` join, not inside both arms (the
+    arms' stores cross-jump, the join label disappears, `li r3,1` stays after the last `stb`; the PillarCk `li r3,1;
+    b END` is NOT merged with it by our jump2: find_cross_jump breaks at `beq` vs `stb` before the jump-around
+    reduction). The `w->atkRtnWait = 15; return 0;` block needs `do { w->atkRtnWait = 15; } while (0); return 0;`:
+    the LOOP_END ends the sched1 region, `li r3,0` stays after the `stw` and jump2 folds it into the shared `li r3,0`
+    tail (`b CAB4`); without it sched1 pairs the `li r3,0` with `li r0,0xf` at t=1 (+1 word).
+  - PillarCk (5 -> 0): the two `EmRoutineSet(em, 1, 0xF, 0, 1/4)` arms as PLAIN byte stores. The int inline's `4`
+    parameter pseudo has lifetime 6 (set at the inline head, used by the last store) and loop.c moves it in pass 1
+    (`threshold * savings * lifetime >= insn_count`), BEFORE the 4000.0 pool high (lifetime 1, "not desirable" in
+    pass 1, moved in pass 2); the QImode `4` of a plain store has lifetime 1 too, so both go in pass 2 in insn order
+    (`lis r24,K4B8; li r23,4`) and the `4`/`ObjMgr@ha` allocation order follows. Loop-dump signature: "Insn N:
+    regno R (life 1), move-insn savings 1 not desirable" in pass 1, "moved to" in pass 2.
+  - TailAtkCk (17 -> 0): the second loop indexed over the pointer, `for (i = 0; i < 4; i++) { o = t[i]; .. }` with
+    `t = w->pTail` set before the first loop. loop.c's giv (`t + 4i`, highest global priority) is initialised from
+    `t`, which dies at the copy, so both share r31 (the conflict-union form of the r31 rule) and `em` drops to r30;
+    the limit is `addi r28, r31, 0xc` (from the register `t`), unlike the first loop's `em + 0xA70`. The `do { o =
+    *t++; } while (t <= end)` form keeps `t` a multi-set user var that loses to `em` (17 vs 11 weighted refs).
+  - DmCk (11, still OPEN, 45 min): confirmed with stmt.c that the `> 0x17` subtree needs `[18-28]` as the root of a
+    4-list with only a right child (balanced `[2b-2c]{[29-2a],[2d]}` = exactly the 3-node middle rule + jump.c's
+    range swap since the DOWN arm follows the tree). Plain-mode balance never picks k=0 for n>2 ((n+r+1)/2 > cost
+    of one node), cost mode (SN's stmt.c enables it for any non-enum index with all-"text" values) is off because
+    0x1..0x7/0xD are control chars, and would give an unbalanced chain anyway. Two-level splits (`if (wep != 0x17)
+    { if (wep > 0x17) HIGH else LOW }` with HIGH = `if (wep > 0x28) switch` / explicit 0x18..0x28 defaults /
+    `switch ((u32)(wep - 0x29))`) emit `cmplwi` for the u8 and an extra `cmpwi 0x29; blt DEF` ([29-2a] has no
+    parent with high 0x28), 55-62 words; `case 0x14..0x16:` explicit moves the root to [14-16] (24). Left as a
+    compiler-side difference in case-tree emission unless a cheaper idea appears.
 
 ### Stage rooms, st2_2/st2_3/st2_4/st1_0/st1_2 pass 2 (r227 Matching; r214 22->23/25, r218 5->6/8, r224 reva_common_move 52->32 words; 2026-09-10)
 

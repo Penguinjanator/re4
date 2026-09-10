@@ -271,21 +271,21 @@ void Em36Init(cEm* em)
     new (em) cEm36();
 }
 
-// A lost limb whose hit box took the damage (em36DmCk).
-static inline int em36LimbHitCk(cEm36* em, EmHitInfo* part)
-{
-    Em36Work* w = EM36_WK(em);
-    int i;
-
-    if (pG->flags_5010 & 0x04000000) {
-        for (i = 0; i < 5; i++) {
-            if (w->limb[i].pObj != 0 && part == &w->hit[w->limb[i].hit]) {
-                return 1;
-            }
-        }
+// A lost limb whose hit box took the damage (em36DmCk): the routine is set straight from the loop (one
+// stepping limb pointer, the hit path jumps into the RS arm); an int inline returns through a flag.
+#define EM36_LIMB_HIT_CK(no)                                                                       \
+    if (pG->flags_5010 & 0x04000000) {                                                             \
+        int i;                                                                                     \
+                                                                                                   \
+        for (i = 0; i < 5; i++) {                                                                  \
+            Em36Limb* l = &w->limb[i];                                                             \
+                                                                                                   \
+            if (l->pObj != 0 && part == &w->hit[l->hit]) {                                         \
+                EmRoutineSet(em, 2, no, 0, 0);                                                     \
+                return;                                                                            \
+            }                                                                                      \
+        }                                                                                          \
     }
-    return 0;
-}
 
 void em36DmCk(cEm36* em)
 {
@@ -374,6 +374,23 @@ void em36DmCk(cEm36* em)
     }
     if (w->flags & 0x100) {
         switch (em->dmWep) {
+        case 7:
+        case 8:
+        case 0x21:
+            if (near == 0) {
+                break;
+            }
+        case 5:
+        case 6:
+        case 9:
+        case 0xA:
+        case 0xF:
+        case 0x28:
+        case 0x2C:
+            if (em36LostParts(em) == 0) {
+                em36BloodSet(em);
+            }
+            break;
         case 0:
         case 1:
         case 2:
@@ -398,23 +415,6 @@ void em36DmCk(cEm36* em)
         case 0x12:
         case 0x13:
             em36BloodSet(em);
-            break;
-        case 7:
-        case 8:
-        case 0x21:
-            if (near == 0) {
-                break;
-            }
-        case 5:
-        case 6:
-        case 9:
-        case 0xA:
-        case 0xF:
-        case 0x28:
-        case 0x2C:
-            if (em36LostParts(em) == 0) {
-                em36BloodSet(em);
-            }
             break;
         case 0xE:
             em36BloodSet(em);
@@ -429,6 +429,8 @@ void em36DmCk(cEm36* em)
         case 2:
         case 3:
         case 4:
+        case 0xB:
+        case 0xC:
         case 0x10:
         case 0x11:
         case 0x14:
@@ -438,11 +440,10 @@ void em36DmCk(cEm36* em)
         case 0x26:
         case 0x27:
         case 0x2B:
-            if ((u8) (Rnd() % 10) == 5) {
-                goto lost;
+            if ((u8) (Rnd() % 10) != 5) {
+                goto blood;
             }
-            em36BloodSet(em);
-            break;
+            goto lost;
         case 7:
         case 8:
         case 0x21:
@@ -455,26 +456,24 @@ void em36DmCk(cEm36* em)
         case 0x2C:
         lost:
             if (em36LostParts(em) == 0) {
+            blood:
                 em36BloodSet(em);
             }
             break;
-        case 0xB:
-        case 0xC:
         case 0xD:
-        case 0xE:
         case 0x12:
         case 0x13:
         case 0x29:
         case 0x2D:
             em36BloodSet(em);
             break;
+        case 0xE:
+            em36BloodSet(em);
+            break;
         case 9:
         case 0xA:
         case 0x28:
-            if (em36LimbHitCk(em, part)) {
-                EmRoutineSet(em, 2, 4, 0, 0);
-                return;
-            }
+            EM36_LIMB_HIT_CK(4);
             if (em36LostParts(em) == 0) {
                 em36BloodSet(em);
             }
@@ -515,13 +514,20 @@ void em36DmCk(cEm36* em)
             return;
         }
         goto lost2;
+    case 0xD:
+    case 0x12:
+    case 0x13:
+    case 0x17:
+    case 0x29:
+    case 0x2A:
+    case 0x2D:
+        em36BloodSet(em);
+        EmRoutineSet(em, 2, 1, 0, 0);
+        return;
     case 9:
     case 0xA:
     case 0x28:
-        if (em36LimbHitCk(em, part)) {
-            EmRoutineSet(em, 2, 2, 0, 0);
-            return;
-        }
+        EM36_LIMB_HIT_CK(2);
     case 5:
     case 6:
     case 0xF:
@@ -532,16 +538,6 @@ void em36DmCk(cEm36* em)
             em36BloodSet(em);
         }
         EmRoutineSet(em, 2, 0, 0, 0);
-        return;
-    case 0xD:
-    case 0x12:
-    case 0x13:
-    case 0x17:
-    case 0x29:
-    case 0x2A:
-    case 0x2D:
-        em36BloodSet(em);
-        EmRoutineSet(em, 2, 1, 0, 0);
         return;
     case 0xE:
         em36BloodSet(em);
@@ -718,17 +714,23 @@ static void em36_R0_Init(cEm36* em)
     em->lockOfs.y = 0.0f;
     em->lockOfs.z = 0.0f;
     w->x780 = 0.0f;
+    // Store order read off the target: espKind[3] before [2] (0x44 takes r9, 0x43 r0), flags before wait
+    // (the dying zero store is issued first), spine cleared through a stepping pointer (ascending loop).
     w->espKind[0] = 0x41;
     w->espKind[1] = 0x42;
-    w->espKind[2] = 0x43;
     w->espKind[3] = 0x44;
-    w->wait = 0;
+    w->espKind[2] = 0x43;
     w->flags = 0;
+    w->wait = 0;
     w->findWait = (u8) (Rnd() % 150) + 150;
     w->seWait = (int) Rnd() % 600 + 450;
     w->scale = 1.0f;
-    for (i = 0; i < 14; i++) {
-        w->spine[i] = 0.0f;
+    {
+        f32* sp = w->spine;
+
+        for (i = 0; i < 14; i++) {
+            *sp++ = 0.0f;
+        }
     }
     for (i = 0; i < 7; i++) {
         w->ten[i].obj[0] = 0;
@@ -738,14 +740,21 @@ static void em36_R0_Init(cEm36* em)
     switch (em->x38D) {
     case 0:
     default:
+        // Plain byte stores (QImode zero): MotionSetCore's 0 argument gets its own `li r9, 0`.
         em36AppearEsp(em, w);
         em->setStatus(5);
-        EmRoutineSet(em, 1, 0, 0, 0);
+        em->xFC = 1;
+        em->xFD = 0;
+        em->xFE = 0;
+        em->xFF = 0;
         MotionSetCore(em, MOTION(em), ARC(0x26), 0, 0, 5, 0);
         MotionMoveF(em, 0);
         break;
     case 1:
-        EmRoutineSet(em, 1, 0x1A, 0, 0);
+        em->xFC = 1;
+        em->xFD = 0x1A;
+        em->xFE = 0;
+        em->xFF = 0;
         MotionSetCore(em, MOTION(em), ARC(0x26), 0, 0, 5, 0);
         MotionMoveF(em, 0);
         break;
@@ -3785,9 +3794,17 @@ void em36WeakInit(cEm36* em)
         b = a;
     }
     if (pG->x4F88 <= 2) {
-        a = 3;
-        if ((u8) (Rnd() % 10) <= 4) {
+        u32 r;
+
+        // Region end after the Rnd chain (zero code) + else-arm 3: jump.c hoists `a = 3` right before the
+        // branch and sched1 leaves it after the `cmplwi` instead of pairing it with the `lis` after the call.
+        do {
+            r = (u8) (Rnd() % 10);
+        } while (0);
+        if (r <= 4) {
             a = 2;
+        } else {
+            a = 3;
         }
     }
     {
@@ -4021,7 +4038,9 @@ void em36SetHitMark(cEm36* em, int big)
     Vec d;
     MtxPtr m;
     EspSeqData* seq;
-    u8 kind;
+    // The original zero-extends the u8 once (`clrlwi r30`) before both calls; a hard-register QImode variable
+    // keeps the extension (combine drops it for a pseudo whose sets are the constants 3/4).
+    register u8 kind asm("r30"); // COMPILER-DIFF: #2
     u32 i;
     f32 len;
 
@@ -4139,7 +4158,8 @@ int em36AtkRtnCk(cEm36* em)
             GetPlPos(&v, pSUB, 18.0f);
         }
         d = (em->pos.x - v.x) * (em->pos.x - v.x) + (em->pos.z - v.z) * (em->pos.z - v.z);
-        dy = fabsf(em->pos.y - pSUB->pos.y);
+        dy = em->pos.y - pSUB->pos.y;
+        dy = fabsf(dy);
         if ((w->flags & 2) && d < 2250000.0f && dy < 500.0f) {
             if ((w->flags2 & 3) != 3) {
                 EmRoutineSet(em, 1, 8, 0, 0);
@@ -4156,7 +4176,8 @@ int em36AtkRtnCk(cEm36* em)
         GetPlPos(&v, 0, 18.0f);
     }
     d = (em->pos.x - v.x) * (em->pos.x - v.x) + (em->pos.z - v.z) * (em->pos.z - v.z);
-    dy = fabsf(em->pos.y - pPL->pos.y);
+    dy = em->pos.y - pPL->pos.y;
+    dy = fabsf(dy);
     if (w->findWait == 0 && (w->flags & 1) && !(w->flags2 & 3) && d > 2250000.0f && d < 12250000.0f && dy < 250.0f &&
         (w->flags & 0x800) && w->routeAngAbs < 0.7853982f) {
         switch (em->type) {
@@ -4348,18 +4369,24 @@ void em36PartsSet(cEm36* em, int no, int on)
         }
         break;
     }
-    switch (em->type) {
-    case 0:
-    default:
-        tpl = ARC(0x13);
-        break;
-    case 1:
-        tpl = ARC(0x14);
-        break;
-    case 2:
-    case 3:
-        tpl = ARC(0x24);
-        break;
+    {
+        // Offset in the switch, one add after the join (the target's `lwz r5, ofs(r11); add r5, r5, r11`).
+        u32 ofs;
+
+        switch (em->type) {
+        case 0:
+        default:
+            ofs = em->subArc->ofs[0x13];
+            break;
+        case 1:
+            ofs = em->subArc->ofs[0x14];
+            break;
+        case 2:
+        case 3:
+            ofs = em->subArc->ofs[0x24];
+            break;
+        }
+        tpl = (void*) (ofs + (u32) em->subArc);
     }
     info = ModInfoMgr.create(bin, tpl);
     if (info) {
@@ -4783,8 +4810,9 @@ int em36FanceOverCk(cEm36* em)
     if (pG->flags_5014 & 0x08000000) {
         return 0;
     }
-    rem = w->stuckCnt;
-    rem = rem % 10;
+    // Written-out modulo: the second load is cse'd, the subtraction's operand is the dying load temp (r9) and
+    // `rem` is set once (lowest global priority -> r24 below SatMgr@ha); `rem % 10` ties the load to rem.
+    rem = w->stuckCnt - w->stuckCnt / 10 * 10;
     if (rem != 5) {
         return 0;
     }

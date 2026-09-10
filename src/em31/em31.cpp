@@ -3698,7 +3698,6 @@ void em31TailAtkCk(cEm31* em)
 {
     Em31Work* w = EM31_WK(em);
     cObj16** t;
-    cObj16** end;
     cObj16* o;
     u8 hit;
     u32 i;
@@ -3724,13 +3723,14 @@ void em31TailAtkCk(cEm31* em)
     em31SmallTentacleMove(em);
     hit = w->atkHit;
     w->atkHit = 0;
-    end = &t[3];
-    do {
-        o = *t++;
+    // Indexed over `t`: loop.c's giv (r31, highest priority) is initialised from t and t dies at the copy, so
+    // both share r31 and em drops to r30; the limit is `t + 12` (not em + 0xA70 as in the first loop).
+    for (i = 0; i < 4; i++) {
+        o = t[i];
         if (o) {
             em31AtkCk(em, &o->getPartsPtr(7)->worldPos, &em->pos, 7);
         }
-    } while (t <= end);
+    }
     w->atkHit = hit;
 }
 
@@ -4104,10 +4104,18 @@ int em31PillarCk(cEm31* em)
             PSMTXMultVec(inv, &o->pos, &lp);
             if (lp.x > -3500.0f && lp.x < 3500.0f && lp.y > -500.0f && lp.y < 500.0f && lp.z > 0.0f &&
                 lp.z < 4000.0f) {
+                // Plain byte stores: the QImode `4` (lifetime 1) is hoisted by loop.c's second pass, after
+                // the 4000.0 pool high, which is what gives it r23 and the high r22.
                 if (lp.x < 0.0f) {
-                    EmRoutineSet(em, 1, 0xF, 0, 1);
+                    em->xFC = 1;
+                    em->xFD = 0xF;
+                    em->xFE = 0;
+                    em->xFF = 1;
                 } else {
-                    EmRoutineSet(em, 1, 0xF, 0, 4);
+                    em->xFC = 1;
+                    em->xFD = 0xF;
+                    em->xFE = 0;
+                    em->xFF = 4;
                 }
                 return 1;
             }
@@ -4695,9 +4703,9 @@ int em31AtkRtnCk(cEm31* em)
         lp.z > 3000.0f && lp.z < 4000.0f) {
         if ((u8) (Rnd() % 10) > 4) {
             EmRoutineSet(em, 1, 9, 0, 0);
-            return 1;
+        } else {
+            EmRoutineSet(em, 1, 0xA, 0, 0);
         }
-        EmRoutineSet(em, 1, 0xA, 0, 0);
         return 1;
     }
     if (w->pTen == 0) {
@@ -4714,15 +4722,18 @@ int em31AtkRtnCk(cEm31* em)
         return 0;
     }
     if ((u8) (Rnd() % 10) > 4) {
-        w->atkRtnWait = 15;
+        // Region end (zero code): keeps `li r3, 0` after the store so jump2 folds it into the shared tail.
+        do {
+            w->atkRtnWait = 15;
+        } while (0);
         return 0;
     }
     if (lp.x > -500.0f && lp.x < 500.0f && lp.y > -100.0f && lp.y < 100.0f && lp.z > 3000.0f && lp.z < 5000.0f) {
         if ((u8) (Rnd() % 10) > 4) {
             EmRoutineSet(em, 1, 0xF, 0, 0);
-            return 1;
+        } else {
+            EmRoutineSet(em, 1, 0xB, 0, 0);
         }
-        EmRoutineSet(em, 1, 0xB, 0, 0);
         return 1;
     }
     if (lp.x > -800.0f && lp.x < 800.0f && lp.y > -100.0f && lp.y < 100.0f && lp.z > 0.0f && lp.z < 2000.0f) {
