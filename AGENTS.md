@@ -10931,3 +10931,59 @@ stmt.c/jump.c and confirmed with cc1plus probes:
   folds; the pool order z, 0.0, 0.5, 1.0, 2.0, 0.25 says both `z` and the zero are declaration initialisers); Espgen43
   SetSandWork, em_cloth, at_mod, model, cam_qfps, emrock, emmine, option, main_mem, sce_com, pendulum, cam_extra, cam_ctrl,
   motion, puzzle, item not iterated this pass.
+
+### em3c / em29 / em32 pass (em29DmCk 91 -> 27 words; PartsBombControl 295 = a phantom CFG edge, modelled; em32_R0_Init 2 left; none flipped; 2026-09-10)
+
+- Harness /tmp/em3c29 (em_one2/em3236 copies with the paths rewritten; `tryv.py MOD/UNIT FUNC variants.py [--asm NAME]`,
+  `tryv_src.py` = tryv with `SRC=path` for shared sources, `vapply.py`, `mdump.sh MOD/UNIT -dX` with `SRC_OVERRIDE`, `fn.sh
+  DUMP FUNC`, `fdis.py OBJ SYM [START END]`; outputs go to /home/adityas/.cache/em3c29/{out,dump} because the 32 GB /tmp
+  tmpfs filled up mid-pass; `lcm.py` + `lcm_pbc.py` = an exact Python model of 2.95.3 `pre_lcm` + `pre_insert`/`pre_delete`
+  fed with the `BB data` of a `-dG` dump -- it reproduces every insertion of the em3c dump, including i+1's three points).
+- **em3cPartsBombControl (295, #3, mechanism now exact).** The target hoists `i+1` (three insertions), `n+1` (to the j
+  preheader) and the debug nest's `dj+1` (to the dk preheader) exactly like our block LCM, but leaves the relaxation
+  `j+1` at its latch (j stays a biv with the three givs). The block-LCM equations are symmetric for n and j on our CFG,
+  so the original's CFG at gcse time differed: the model says `j+1` stays iff some block of the k loop (27..32) or the
+  j body head (26) has an extra edge to the n latch (34) or the n body head (25) -- an exit from the k loop that skips
+  `j++`; a kill of j in bb 26 works for gcse but makes j a non-biv (`j += zero` variants: 339-351, the `j*20` giv lost).
+  A real `if (bomb->timer == 0xFFFF) goto next_n;` in the k body confirms the model (j becomes a biv with `addi r24,r24,1`
+  at the latch and all givs) but leaves the test (328). No C construct produces such an edge that vanishes: a dead-test
+  store only skips itself (edge to the next insn), cprop cannot fold PPC compares (`cmpsi` needs a register operand),
+  `j >= 5` tests are threaded/folded before cse1, loop rotation + duplicate_loop_exit_test turn every `for`/`while`/
+  `do`/`++j` spelling into the same RTL, narrow loop types (u8/u16/int j) compile identically. pl0fBoatControl (203,
+  pass/j/k) and R209Main's j loop are the same shape (middle latch kept, inner loop with calls); the previous "calls kill
+  transparency" reading is refuted by the debug nest (1 call, hoisted) and by r209 2ndBattleEmSet: its `li r25,4 ..
+  mr r29,r25` IS our PRE of `step+1` -- the source is `step++` at the end of `case 3:` (0 words with our compiler,
+  tested via tryv_src on src/st2/r209.cpp, not applied: the unit belongs to the stage-room passes; the `u32 next = 4;
+  asm volatile("" : "+r"(next)); // COMPILER-DIFF: #3` there can be replaced by `step++`). Left at 295.
+- **em29DmCk 91 -> 27 (module 35/36, not flipped).** Applied form: `int zero; zero = 0;` right after the wep switch,
+  passed as the 9th/10th EstSet argument and to a 3-parameter `em29DmRoutineSetZ(em, kind, z)` (`EmRoutineSet(em, 2,
+  z/1/2, z, z)`); the early hitCheck set keeps the literal-zero inline (its zero is the `em->hp = 0` register r30) so the
+  two sets are register-distinct and none of the 3+3 `stb; b END` tails cross-jump (each pair shares only its last insn:
+  1 < the jump-to-jump minimum of 2, and the code before END ends in `stb r0,254`). Three levers were needed on top:
+  (1) the hp > 0 arm is reached by `if (em->hp > 0) goto alive;` with the hp <= 0 code inline, `return;` and a dead
+  `do { } while (0);` before `alive:` -- the LOOP_END note in front of the label stops cse1 from carrying `zero == 0`
+  into the arm (its routine stores keep fresh `li r0,0`/`li r9,0` like the target; with the arm inside zero's ebb the
+  stores take `zero`, zero gets 24 refs and beats `&em->pos` in global alloc, taking r30); (2) `do { EstSet..; RSZ; }
+  while (0)` around the whole hp <= 0 body doubles zero's ref weight (10 -> 20) so it ranks above `kind` (27/444) and
+  is allocated before it: em r31, b1 r30, zero r29, kind r28, w r27, b3 r26 (pass-0 rule: zero conflicts with `&em->pos`
+  (r30, allocated first) and takes r29; b3 then finds r30..r27 taken and goes to r26 = the target's `stmw r26`);
+  (3) `if (em->dmWep == 0x21) RS(kind); else RS(kind);` for the dead `lbz dmWep; cmpwi 0x21` (jump2's
+  `delete_computation` bails out after reload with sched2 on -- "schedulers do not keep REG_DEAD notes" -- so a jump
+  deleted in jump2 always keeps its compare; a dead-test `if (X) local = K;` loses the compare in flow2 instead).
+  Residue 27 = (a) 12 words of the then-copy's kind-0 body: our jump2 first tries the code before END for every
+  `b END` (minimum 1) and merges the kind-0 body's last `stb r0,254` into the else kind-2 tail, redirecting it to a new
+  label that is not in `jump_chain`, so the whole-body match against the else kind-0 copy is never tried; the original
+  merged the body first AND the tail second (COMPILER-DIFF 6). No layout/asm variant reproduces both (a `goto fe:`
+  shared-store form splits the FE store into its own block, 66; the asm launder blocks both merges); (b) 3 words:
+  the pre-switch block issues `rlwinm b1; stb dmHit; rlwinm b3` in the target, `stb; b3; b1` in ours (sched1 tie,
+  source order irrelevant). `em29DmRoutineSetZ`'s case-1 arm stores the kind register, so `EmRoutineSet(em, 2, 1, z, z)`.
+- **em32_R0_Init (2, left).** The sched2 tie `li r0,1` vs `stb r11,0xfd` cannot be moved from source: the stb's sixth
+  dependent is `lwz r5,36(r11)` (ARC(9) through the reloaded subArc in r11 -- r11 is set many times so its base value is
+  0 and every store conflicts); a `const PlArc*` view does not make the load `mem/u` (expand refuses RTX_UNCHANGING_P
+  for pointer-to-const derefs, so `true_dependence`'s unchanging shortcut never applies), the store's r31 base "varies"
+  for `fixed_scalar_and_varying_struct_p`, and the anti-dependence on `lwz r11,888` is forced by the shared r11. Both
+  counts are fixed by the target's own registers; leave it (#13 residue).
+- Rule of record for jump2 compares: a conditional jump that becomes redundant only in jump2 (cross-jump, "conditional
+  jump to the same place as the following unconditional jump") keeps its compare and operand load (em28 `cmpwi 0; b D`,
+  em29/em30 `lbz dmWep; cmpwi 0x21`), while a dead test deleted through flow (dead store -> jump-to-next in flow2) loses
+  them. Pick the lever by which of the two the target shows.

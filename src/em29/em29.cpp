@@ -114,6 +114,25 @@ static inline void em29DmRoutineSet(cEm29* em, u32 kind)
     }
 }
 
+// The tail's routine set: `z` is the `zero` pseudo (target `li r29,0` at the dmg join) so the arms are
+// register-distinct from the early set's (whose zero is the `em->hp = 0` register) and jump2 does not
+// cross-jump the two sets into one.
+static inline void em29DmRoutineSetZ(cEm29* em, u32 kind, int z)
+{
+    switch (kind) {
+    case 0:
+    default:
+        EmRoutineSet(em, 2, z, z, z);
+        break;
+    case 1:
+        EmRoutineSet(em, 2, 1, z, z);
+        break;
+    case 2:
+        EmRoutineSet(em, 2, 2, z, z);
+        break;
+    }
+}
+
 extern "C" void _prolog()
 {
     OSReport("em29 prolog Ok\n");
@@ -142,6 +161,7 @@ void em29DmCk(cEm29* em)
     int b1;
     int b3;
     int dmg;
+    int zero;
 
     kind = 0;
     if (w->flags & 0x40) {
@@ -220,6 +240,7 @@ void em29DmCk(cEm29* em)
         dmg = 0;
         break;
     }
+    zero = 0;
     if (b1) {
         dmg <<= 2;
     }
@@ -231,11 +252,29 @@ void em29DmCk(cEm29* em)
         EmDmBloodSet2(em, 0x21, 1, 0, 0, 0);
     }
     SndCall(8, 0xE, &em->pos, em->id, 0, em);
-    if (em->hp <= 0) {
-        EstSet(0, -1, &em->pos, &em->rot, 0x21, 0, 0, 0, 0, 0);
+    if (em->hp > 0) {
+        goto alive;
+    }
+    // The do-while doubles zero's ref weight so global alloc places it (r29) before `kind` (r28)
+    // and `b3` (r26) -- with plain refs kind ranks above zero and the two swap registers.
+    do {
+        EstSet(0, -1, &em->pos, &em->rot, 0x21, 0, 0, 0, (u32) zero, (void*) zero);
         em->be_flag &= ~2;
         Ctrl12CntAdd(w->pCtrl12, 2, 1);
         em29LastCk(em);
+        em29DmRoutineSetZ(em, kind, zero);
+    } while (0);
+    return;
+    // Dead loop in front of the `alive` label: its LOOP_END note stops cse from carrying `zero == 0`
+    // into the hp > 0 arm, whose routine sets keep fresh `li r0,0`/`li r9,0` like the target.
+    do {
+    } while (0);
+alive:
+    // Dead test with identical arms: jump2 cross-jumps the copies and the surviving `lbz dmWep;
+    // cmpwi 0x21` is the target's dead compare. Our jump2 leaves the then-copy's kind-0 body (12
+    // words): it merges that body's last `stb` into the kind-2 tail before trying the whole-body
+    // match (COMPILER-DIFF 6, cross-jump policy).
+    if (em->dmWep == 0x21) {
         em29DmRoutineSet(em, kind);
     } else {
         em29DmRoutineSet(em, kind);
