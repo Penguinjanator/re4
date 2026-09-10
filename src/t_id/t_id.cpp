@@ -1260,6 +1260,8 @@ int idEditSize(IdTool* w, int x, int y)
     Vec* pos = &d->pos;
     int i, j;
     int yy;
+    const char** tbl;
+    u32 ofs;
 
     switch (w->editStep) {
     case 0:
@@ -1287,14 +1289,13 @@ int idEditSize(IdTool* w, int x, int y)
             }
             break;
         case 2: {
-            u8 f = d->flags10A;
-            int cur = 0;
+            s8 cur = 0;
             s8 n;
 
-            if (f & 0x10) {
+            if (d->flags10A & 0x10) {
                 cur = 1;
             }
-            if (f & 0x20) {
+            if (d->flags10A & 0x20) {
                 cur = 2;
             }
             n = cur;
@@ -1306,8 +1307,10 @@ int idEditSize(IdTool* w, int x, int y)
             }
             n = n < 0 ? 0 : (n > 2 ? 2 : n);
             if (n != cur) {
-                d->flags10A = f & 0xCF;
+                d->flags10A = d->flags10A & 0xCF;
                 switch (n) {
+                case 0:
+                    break;
                 case 1:
                     d->flags10A |= 0x10;
                     break;
@@ -1351,29 +1354,49 @@ int idEditSize(IdTool* w, int x, int y)
             }
             switch (i) {
             case 2:
-                for (j = 0; j <= 2; j++) {
+                tbl = axisName;
+                for (j = 0, ofs = 0; j <= 2; j++, ofs += 4) {
                     if (j == 0) {
-                        col = (d->flags10A & 0x30) ? 7 : 0;
+                        col = 0;
+                        if (d->flags10A & 0x30) {
+                            col = 7;
+                        }
                     }
                     if (j == 1) {
-                        col = (d->flags10A & 0x10) ? 0 : 7;
+                        col = 7;
+                        if (d->flags10A & 0x10) {
+                            col = 0;
+                        }
                     }
                     if (j == 2) {
-                        col = (d->flags10A & 0x20) ? 0 : 7;
+                        col = 7;
+                        if (d->flags10A & 0x20) {
+                            col = 0;
+                        }
                     }
-                    eprintf(x + 0x40 + j * 0x20, yy, col, 0, "%s", axisName[j]);
+                    eprintf(x + 0x40 + j * 0x20, y + i * 0xE, col, 0, "%s", *(const char**)(ofs + (u32)tbl));
                 }
                 break;
             case 3:
-                for (j = 0; j <= 1; j++) {
-                    col = ((j != 0) == ((d->x109 >> 1) & 1)) ? 7 : 0;
-                    eprintf(x + 0x40 + j * 0x20, yy, col, 0, "%s", onOffName2[j]);
+                tbl = onOffName2;
+                for (j = 0, ofs = 0; j <= 1; j++, ofs += 4) {
+                    if ((j != 0) != ((d->x109 >> 1) & 1)) {
+                        col = 0;
+                    } else {
+                        col = 7;
+                    }
+                    eprintf(x + 0x40 + j * 0x20, y + i * 0xE, col, 0, "%s", *(const char**)(ofs + (u32)tbl));
                 }
                 break;
             case 4:
-                for (j = 0; j <= 1; j++) {
-                    col = ((j != 1) == (d->flags10A >> 7)) ? 7 : 0;
-                    eprintf(x + 0x40 + j * 0x20, yy, col, 0, "%s", texFixName[j]);
+                tbl = texFixName;
+                for (j = 0, ofs = 0; j <= 1; j++, ofs += 4) {
+                    if ((j != 1) != (d->flags10A >> 7)) {
+                        col = 0;
+                    } else {
+                        col = 7;
+                    }
+                    eprintf(x + 0x40 + j * 0x20, y + i * 0xE, col, 0, "%s", *(const char**)(ofs + (u32)tbl));
                 }
                 break;
             }
@@ -1390,23 +1413,21 @@ int idEditSize(IdTool* w, int x, int y)
             }
             step = (joy->on & 0x100) ? 10.0f : 1.0f;
             if (joy->on & 0x800) {
-                f32 sx = d->sizeX;
-                f32 sy = d->sizeY;
                 f32 ratio;
                 int big;
 
-                if (sx > sy) {
-                    ratio = sy / sx;
+                if (d->sizeX > d->sizeY) {
+                    ratio = d->sizeY / d->sizeX;
                     big = 0;
                 } else {
-                    ratio = sx / sy;
+                    ratio = d->sizeX / d->sizeY;
                     big = 1;
                 }
                 if ((joy->rep & 9) || (joy->on & 0x90000)) {
                     if (big == 0) {
-                        d->sizeX = sx - step;
+                        d->sizeX -= step;
                     } else {
-                        d->sizeY = sy - step;
+                        d->sizeY -= step;
                     }
                 }
                 if ((joy->rep & 6) || (joy->on & 0x60000)) {
@@ -1476,9 +1497,10 @@ int idEditSize(IdTool* w, int x, int y)
     if (w->editStep == 1 && w->subCur == 0) {
         Vec p;
         Vec a;
-        Vec b;
         Vec c;
+        Vec b;
         int sx, sy;
+        int dy;
 
         p = *pos;
         if (!(d->vtxType & 0xF)) {
@@ -1494,7 +1516,11 @@ int idEditSize(IdTool* w, int x, int y)
         Draw_line3d(&a, &b, 0xFFFFFFFF, 0);
         sx = (int) ((p.x + a.x) * 0.5f * 256.0f / 320.0f + 256.0f);
         sy = (int) (224.0f - p.y * 224.0f / 240.0f);
-        eprintf(sx - 0x10, sy + ((sy > 7) ? -0xE : 0), 0, 0, "(%3.0f)", d->sizeX);
+        dy = -0xE;
+        if (sy <= 7) {
+            dy = 0;
+        }
+        eprintf(sx - 0x10, sy + dy, 0, 0, "(%3.0f)", d->sizeX);
         c = p;
         c.y -= d->sizeY;
         Draw_line3d(&p, &c, 0xFFFFFFFF, 0);
@@ -1504,7 +1530,11 @@ int idEditSize(IdTool* w, int x, int y)
         Draw_line3d(&c, &b, 0xFFFFFFFF, 0);
         sx = (int) (p.x * 256.0f / 320.0f + 256.0f);
         sy = (int) (224.0f - (p.y + c.y) * 0.5f * 224.0f / 240.0f);
-        eprintf(sx + ((sx > 0x2F) ? -0x30 : 8), sy, 0, 0, "(%3.0f)", d->sizeY);
+        dy = -0x30;
+        if (sx <= 0x2F) {
+            dy = 8;
+        }
+        eprintf(sx + dy, sy, 0, 0, "(%3.0f)", d->sizeY);
     }
     return ret;
 }
@@ -1521,11 +1551,11 @@ int idEditColor(IdTool* w, int x, int y)
     u8* pc = 0;
     int i, j;
     int yy;
+    int v = 0;
+    int step;
 
     switch (w->editStep) {
     case 0: {
-        int v = 0;
-        int step;
 
         if (joy->trg & 0x10) {
             w->editStep = ret;
@@ -1584,9 +1614,9 @@ int idEditColor(IdTool* w, int x, int y)
                 f32 fy;
 
                 yy = y + i * 0xE;
-                c0.r = c0.g = c0.b = 0;
+                *(u32*) &c0 = 0;
                 c0.a = 0xFF;
-                c1.r = c1.g = c1.b = 0;
+                *(u32*) &c1 = 0;
                 c1.a = 0xFF;
                 eprintf(x, yy, (w->colCur == i) ? 4 : 0, 0, "%s", colName[i]);
                 if (w->colCur == i && (w->cnt & 0x18)) {
@@ -1732,12 +1762,14 @@ int idEditRot(IdTool* w, int x, int y)
     f32* pr = 0;
     int i, j;
     int yy;
+    f32 step = 1.0f;
+    f32 v = 0.0f;
+    const char** tbl;
+    u32 ofs;
+    int n;
 
     switch (w->editStep) {
     case 0: {
-        f32 v = 0.0f;
-        f32 step;
-
         if (joy->trg & 0x10) {
             w->editStep = ret;
             break;
@@ -1789,6 +1821,11 @@ int idEditRot(IdTool* w, int x, int y)
             case 2: pr = &d->rot.z; break;
             }
             eprintf(x + 0x18, yy, col, 0, "%4.0f", *pr);
+            // dead test: the original loop has 5 more insns than ours, which keeps loop.c's second pass
+            // from hoisting the ">" string high (71 >= insn_count); col is re-set at the loop top
+            if (d->x109 == 0) { // COMPILER-DIFF: 3 (dead-test lever)
+                col = 7;
+            }
         }
         break;
     }
@@ -1818,7 +1855,8 @@ int idEditRot(IdTool* w, int x, int y)
             if (joy->rep & 0x20002) {
                 d->rotAxis++;
             }
-            d->rotAxis = d->rotAxis < 0 ? 0 : (d->rotAxis > 2 ? 2 : d->rotAxis);
+            n = d->rotAxis;
+            d->rotAxis = n < 0 ? 0 : (n > 2 ? 2 : n);
             break;
         case 2:
             if (joy->rep & 0x10001) {
@@ -1835,23 +1873,41 @@ int idEditRot(IdTool* w, int x, int y)
         for (i = 0; i <= 4; i++) {
             int col;
 
-            col = (i == 0) ? 5 : ((w->subCur + 1 == i) ? 4 : 0);
+            if (i == 0) {
+                col = 5;
+            } else if (w->subCur + 1 == i) {
+                col = 4;
+            } else {
+                col = 0;
+            }
             yy = y + i * 0xE;
             eprintf(x, yy, col, 0, "%s", rotMenuName[i]);
             if (w->subCur + 1 == i && (w->cnt & 0x18)) {
                 eprintf(x - 8, yy, 0x16, 0, ">");
             }
-            if (i == 2) {
-                for (j = 0; j <= 2; j++) {
-                    col = (j == d->rotAxis) ? 0 : 7;
-                    eprintf(x + 0x40 + j * 0x20, yy, col, 0, "%s", rotAxisName[j]);
+            switch (i) {
+            case 2:
+                tbl = rotAxisName;
+                for (j = 0, ofs = 0; j <= 2; j++, ofs += 4) {
+                    if (j == d->rotAxis) {
+                        col = 0;
+                    } else {
+                        col = 7;
+                    }
+                    eprintf(x + 0x40 + j * 0x20, y + i * 0xE, col, 0, "%s", *(const char**)(ofs + (u32)tbl));
                 }
-            }
-            if (i == 3) {
-                for (j = 0; j <= 1; j++) {
-                    col = ((j != 0) == ((d->x109 >> 3) & 1)) ? 7 : 0;
-                    eprintf(x + 0x40 + j * 0x20, yy, col, 0, "%s", onOffName4[j]);
+                break;
+            case 3:
+                tbl = onOffName4;
+                for (j = 0, ofs = 0; j <= 1; j++, ofs += 4) {
+                    if ((j != 0) != ((d->x109 >> 3) & 1)) {
+                        col = 0;
+                    } else {
+                        col = 7;
+                    }
+                    eprintf(x + 0x40 + j * 0x20, y + i * 0xE, col, 0, "%s", *(const char**)(ofs + (u32)tbl));
                 }
+                break;
             }
         }
         break;
