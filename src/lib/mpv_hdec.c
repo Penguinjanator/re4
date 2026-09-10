@@ -75,12 +75,17 @@ void MPVHDEC_SetMcFunc(Sint32 dc11, Sint32 type, MPV_MCFUNC bi, MPV_MCFUNC bw, M
 }
 
 /* consume the header bytes up to the reader position: return them to the free side, push the rest
- * back to the data side (needs the local `Uint8 *q`) */
+ * back to the data side (needs the local `Uint8 *q`).
+ * COMPILER-DIFF: M1 -- ck.data read into an asm-defined `register` local (also in mpvhdec_DecSlice's
+ * loop test and tail): the target keeps q in the argument register and the load in a fresh one; the
+ * C form reuses the dying argument register for the load. */
 #define MPVHDEC_FLUSH(mpv, sj)                                                                 \
 	{                                                                                      \
 		SJCK rest;                                                                     \
+		register Uint8 *data;                                                          \
 		MPVBIT_BYTEPTR(q);                                                             \
-		SJ_SplitChunk(&(mpv)->ck, q - (mpv)->ck.data, &(mpv)->ck, &rest);              \
+		asm { lwz data, MPV_OBJ.ck.data(mpv) } /* COMPILER-DIFF: M1 */                       \
+		SJ_SplitChunk(&(mpv)->ck, q - data, &(mpv)->ck, &rest);                        \
 		SJ_PutChunk(sj, SJ_CK_FREE, &(mpv)->ck);                                       \
 		SJ_UngetChunk(sj, SJ_CK_DATA, &rest);                                          \
 	}
@@ -113,7 +118,7 @@ void MPVHDEC_SetMcFunc(Sint32 dc11, Sint32 type, MPV_MCFUNC bi, MPV_MCFUNC bw, M
 		SJ_UngetChunk(sj, SJ_CK_DATA, &rest);                                          \
 	}
 
-static void mpvhdec_DecSlice(MPV mpv, SJ sj)
+static void mpvhdec_DecSlice(register MPV mpv, SJ sj)
 {
 	Sint32 bitpos;
 	Uint32 *ptr;
@@ -123,6 +128,9 @@ static void mpvhdec_DecSlice(MPV mpv, SJ sj)
 	Sint32 row;
 	Uint8 *q;
 	SJCK rest;
+	register Uint8 *data;
+	register Uint8 *d2;
+	register Sint32 len;
 
 	SJ_GetChunk(sj, SJ_CK_DATA, 0x7FFFFFFF, &mpv->ck);
 	MPVBIT_INIT(mpv->ck.data);
@@ -143,7 +151,9 @@ static void mpvhdec_DecSlice(MPV mpv, SJ sj)
 		}
 		MPVBIT_SKIP(9);
 		MPVBIT_BYTEPTR(q);
-		if (mpv->ck.len <= q - mpv->ck.data) {
+		asm { lwz d2, MPV_OBJ.ck.data(mpv) } // COMPILER-DIFF: M1
+		asm { lwz len, MPV_OBJ.ck.len(mpv) } // COMPILER-DIFF: M1
+		if (len <= q - d2) {
 			return;
 		}
 	}
@@ -151,7 +161,8 @@ static void mpvhdec_DecSlice(MPV mpv, SJ sj)
 	q = (Uint8 *)ptr;
 	q += (bitpos - mpv->bitofs + 7) >> 3;
 	q -= 8;
-	SJ_SplitChunk(&mpv->ck, q - mpv->ck.data, &mpv->ck, &rest);
+	asm { lwz data, MPV_OBJ.ck.data(mpv) } // COMPILER-DIFF: M1
+	SJ_SplitChunk(&mpv->ck, q - data, &mpv->ck, &rest);
 	SJ_PutChunk(sj, SJ_CK_FREE, &mpv->ck);
 	SJ_UngetChunk(sj, SJ_CK_DATA, &rest);
 	mpv->dec_mbs_func(mpv, sj);
@@ -266,15 +277,17 @@ Sint32 MPVHDEC_DecPicture(MPV mpv, SJ sj)
 	return 0;
 }
 
-Sint32 mpvhdec_DecSeqUdsc(MPV mpv, Char8 *buf, Sint32 len)
+/* COMPILER-DIFF: M1 -- `p = &buf[(Uint32)i + 4]` written as an asm add of the register locals: the C form
+ * emits `add p, i, buf` (index first), the original has buf first. */
+Sint32 mpvhdec_DecSeqUdsc(MPV mpv, register Char8 *buf, Sint32 len)
 {
 	Sint32 ret;
-	Char8 *p;
-	Sint32 i;
+	register Char8 *p;
+	register Sint32 i;
 
 	ret = 0;
 	for (i = 0; i < len - 4; i++) {
-		p = &buf[(Uint32)i + 4];
+		asm { add p, buf, i; addi p, p, 4 } // COMPILER-DIFF: M1
 		if (strncmp(p, "IDCPREC", 7) == 0) {
 			if (atoi(p + 16) == 0) {
 				mpv->dcprec = 0;
@@ -369,7 +382,7 @@ Sint32 mpvhdec_AnalyUd(MPV mpv, Uint8 *buf, Sint32 len)
 	return ret;
 }
 
-Sint32 mpvhdec_DecPscSj(MPV mpv, SJ sj)
+Sint32 mpvhdec_DecPscSj(register MPV mpv, SJ sj)
 {
 	Sint32 bitpos;
 	Uint32 bbuf;
@@ -434,7 +447,7 @@ Sint32 mpvhdec_DecPscSj(MPV mpv, SJ sj)
 	return 0;
 }
 
-static Sint32 mpvhdec_DecGscSj(MPV mpv, SJ sj)
+static Sint32 mpvhdec_DecGscSj(register MPV mpv, SJ sj)
 {
 	Sint32 bitpos;
 	Uint32 bbuf;
@@ -461,7 +474,7 @@ static Sint32 mpvhdec_DecGscSj(MPV mpv, SJ sj)
 	return 0;
 }
 
-Sint32 mpvhdec_DecShcSj(MPV mpv, SJ sj)
+Sint32 mpvhdec_DecShcSj(register MPV mpv, SJ sj)
 {
 	Sint32 bitpos;
 	Uint32 bbuf;

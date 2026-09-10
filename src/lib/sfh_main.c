@@ -2,11 +2,13 @@
  * reads the pack/element/feature fields out of it.
  *
  * 29/36 functions identical. The seven big-endian 32-bit readers (SFH_AnlyElemSmpHz, MaxFrmNum,
- * MaxPlyLenVid/Aud, ByteRate, PackSiz, HdrSiz) differ only in the store of the swapped word: the
+ * MaxPlyLenVid/Aud, ByteRate, PackSiz, HdrSiz) differ in the store of the swapped word: the
  * original keeps `rlwinm 8,8,15 / rlwimi 24,0,7 / rlwimi 24,16,23 / rlwimi 8,24,31 / stw`, our 2.4.7
  * folds any dead byte-swap store into `stwbrx` (every mask/shift/cast/helper spelling, every GC
- * compiler build and every -opt sub-option tried; only `nopeephole` stops it and that also stops the
- * rlwimi merging). Compiler-build difference (M4). */
+ * compiler build and every -opt sub-option tried, and an inline-asm rlwinm/rlwimi/stw chain as well;
+ * only the peephole pragma stops it and that also stops the rlwimi merging, so the six helper-based
+ * readers spell the chain in asm under `#pragma peephole off`, see SFH_SWAP32_STORE). Compiler-build
+ * difference (M4). */
 #include "cri_xpt.h"
 #include "sfh.h"
 
@@ -105,6 +107,16 @@ static const Char8 *sfhlib_version_dummy;
 
 #define SWAP16(x) ((Uint16)((((x) & 0xFF) << 8) | (((x) >> 8) & 0xFF)))
 #define SWAP32(x) (((x) << 24) | (((x) << 8) & 0x00FF0000) | (((x) >> 8) & 0x0000FF00) | (((x) >> 24) & 0xFF))
+
+/* COMPILER-DIFF: M4 -- six of the seven big-endian readers keep the original's `rlwinm/rlwimi x3/stw`
+ * where our 2.4.7's peephole folds any byte-swap store (C or inline-asm spelled) into `stwbrx`: the swap
+ * is written as an asm-defined register local and the six sfh_GetHdrU32 callers are compiled under
+ * `#pragma peephole off` (1 word left each: the loaded word takes the dying base register r5, the
+ * original a fresh r6; a `mr r6` pin is dropped by the compiler). SFH_AnlyElemSmpHz keeps the C form:
+ * its inlined element search needs the peephole's displacement folding. */
+#define SFH_SWAP32_STORE(val, w, s)                                                            \
+	asm { rlwinm s, w, 8, 8, 15; rlwimi s, w, 24, 0, 7; rlwimi s, w, 24, 16, 23; rlwimi s, w, 8, 24, 31 } /* COMPILER-DIFF: M4 */\
+	*(val) = s
 
 
 Sint32 getPicRate(Uint32 code)
@@ -571,11 +583,14 @@ Bool SFH_AnlyElemCodecAud(SFH sfh, Uint8 id, Sint32 *val)
 static Bool sfh_GetHdrU32(SFH sfh, Sint32 ofs, Sint32 *val)
 {
 	Uint8 *hdr = sfh->hdr;
+	register Uint32 w;
+	register Uint32 s;
 
 	if (!sfh_IsAnlyOk(sfh)) {
 		return FALSE;
 	}
-	*val = SWAP32(*(Uint32 *)(hdr + ofs));
+	w = *(Uint32 *)(hdr + ofs);
+	SFH_SWAP32_STORE(val, w, s);
 	return TRUE;
 }
 
@@ -604,6 +619,8 @@ static Bool sfh_GetHdrU8(SFH sfh, Sint32 ofs, Sint32 *val)
 static Bool sfh_GetHdrU32Ver(SFH sfh, Sint32 ofs, Sint32 ver, Sint32 *val)
 {
 	Uint8 *hdr = sfh->hdr;
+	register Uint32 w;
+	register Uint32 s;
 
 	if (!sfh_IsAnlyOk(sfh)) {
 		return FALSE;
@@ -611,33 +628,42 @@ static Bool sfh_GetHdrU32Ver(SFH sfh, Sint32 ofs, Sint32 ver, Sint32 *val)
 	if (sfh->ver < ver) {
 		return FALSE;
 	}
-	*val = SWAP32(*(Uint32 *)(hdr + ofs));
+	w = *(Uint32 *)(hdr + ofs);
+	SFH_SWAP32_STORE(val, w, s);
 	return TRUE;
 }
 
+#pragma peephole off
 Bool SFH_AnlyMaxFrmNum(SFH sfh, Sint32 *val)
 {
 	*val = 0;
 	return sfh_GetHdrU32(sfh, SFH_HDR_MAXFRMNUM_OFS, val);
 }
+#pragma peephole reset
 
+#pragma peephole off
 Bool SFH_AnlyMaxPlyLenVid(SFH sfh, Sint32 *val)
 {
 	*val = 0;
 	return sfh_GetHdrU32(sfh, SFH_HDR_MAXPLYLEN_VID_OFS, val);
 }
+#pragma peephole reset
 
+#pragma peephole off
 Bool SFH_AnlyMaxPlyLenAud(SFH sfh, Sint32 *val)
 {
 	*val = 0;
 	return sfh_GetHdrU32(sfh, SFH_HDR_MAXPLYLEN_AUD_OFS, val);
 }
+#pragma peephole reset
 
+#pragma peephole off
 Bool SFH_AnlyByteRate(SFH sfh, Sint32 *val)
 {
 	*val = 0;
 	return sfh_GetHdrU32Ver(sfh, SFH_HDR_BYTERATE_OFS, SFH_VER_110, val);
 }
+#pragma peephole reset
 
 Bool SFH_AnlyNumElemPrv(SFH sfh, Sint32 *val)
 {
@@ -663,11 +689,13 @@ Bool SFH_AnlyNumElemTot(SFH sfh, Sint32 *val)
 	return sfh_GetHdrU8(sfh, SFH_HDR_NUMELEM_TOT_OFS, val);
 }
 
+#pragma peephole off
 Bool SFH_AnlyPackSiz(SFH sfh, Sint32 *val)
 {
 	*val = 0;
 	return sfh_GetHdrU32(sfh, SFH_HDR_PACKSIZ_OFS, val);
 }
+#pragma peephole reset
 
 Bool SFH_AnlyPketSizLen(SFH sfh, Sint32 *val)
 {
@@ -681,11 +709,13 @@ Bool SFH_AnlyPackType(SFH sfh, Sint32 *val)
 	return sfh_GetHdrU8(sfh, SFH_HDR_PACKTYPE_OFS, val);
 }
 
+#pragma peephole off
 Bool SFH_AnlyHdrSiz(SFH sfh, Sint32 *val)
 {
 	*val = 0;
 	return sfh_GetHdrU32(sfh, SFH_HDR_SIZ_OFS, val);
 }
+#pragma peephole reset
 
 Bool SFH_AnlyHdrToolVer(SFH sfh, Sint32 *major, Sint32 *minor)
 {

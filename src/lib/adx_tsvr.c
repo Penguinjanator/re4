@@ -1,7 +1,10 @@
 /* CRI ADXT server (adx_tsvr.c): the per-handle state machine run from ADXT_ExecServer, the
  * decoder-information stage and the decoder trap / stream end-of-sector callbacks (looping and
  * linked files). Every function is instruction-identical to the original; the remaining diffs
- * are callee-saved register permutations (M1). */
+ * are callee-saved register permutations (M1).
+ * COMPILER-DIFF: M1 -- adxt_trap_entry_lps / adxt_nlp_trap_entry / adxt_stat_decinfo take the
+ * asm-defined `register` copy of the adxt parameter (`asm { mr p, adxt }`, coalesced into the
+ * prologue mr) so the parameter ranks above the locals (r30/r31) like the original. */
 #include <string.h>
 #include "cri_xpt.h"
 #include "sj.h"
@@ -167,119 +170,122 @@ void ADXT_ExecHndl(ADXT adxt)
 
 /* the decoder has read the header: size the decode step, set up looping / end handling and
  * program the renderer */
-static void adxt_stat_decinfo(ADXT adxt)
+static void adxt_stat_decinfo(register ADXT adxt)
 {
-	void *sjd;
+	register ADXT p;
+	register void *sjd;
 	Sint32 sfreq;
 	Sint32 nloop;
 	Sint32 blk;
 	Sint32 nch;
 	Sint32 nsmpl;
 	Sint32 tmp;
+	void *info;
 	Sint32 lpendofst;
 	Sint32 lpendsct;
-	Sint32 sfreq2;
 	Char8 buf[32];
 	Sint32 oct;
 	Sint32 cent;
 
-	sjd = adxt->sjd;
+	asm { mr p, adxt } // COMPILER-DIFF: M1
+	asm { lwz r29, ADXT_OBJ.sjd(p); mr sjd, r29 } // COMPILER-DIFF: M1
 	oct = 0;
 	cent = 0;
-	if ((adxt->mode == 0 || adxt->mode == 1) && adxt->stmstart == 1) {
-		if (ADXSTM_GetStat(adxt->stm) == ADXSTM_STAT_EXEC) {
+	if ((p->mode == 0 || p->mode == 1) && p->stmstart == 1) {
+		if (ADXSTM_GetStat(p->stm) == ADXSTM_STAT_EXEC) {
 			return;
 		}
-		if (adxt->sjf != NULL) {
-			SJ_Reset(adxt->sjf);
+		if (p->sjf != NULL) {
+			SJ_Reset(p->sjf);
 		}
-		adxt_start_stm(adxt, adxt->stm_fname, adxt->stm_dir, adxt->stm_ofst, adxt->stm_nsct);
-		adxt->stmstart = 0;
+		adxt_start_stm(p, p->stm_fname, p->stm_dir, p->stm_ofst, p->stm_nsct);
+		p->stmstart = 0;
 	}
 	if (ADXSJD_GetStat(sjd) != 2) {
 		return;
 	}
 	nch = ADXSJD_GetNumChan(sjd);
-	if (nch > adxt->maxnch) {
-		ADXERR_ItoA2(nch, adxt->maxnch, buf, 16);
+	if (nch > p->maxnch) {
+		ADXERR_ItoA2(nch, p->maxnch, buf, 16);
 		ADXERR_CallErrFunc2("E9081001 adxt_stat_decinfo: can't play this number of channels", buf);
-		ADXT_Stop(adxt);
+		ADXT_Stop(p);
 		return;
 	}
 	sfreq = ADXSJD_GetSfreq(sjd);
 	nloop = ADXSJD_GetNumLoop(sjd);
 	if (nloop > 0) {
-		adxt->maxdecsmpl = sfreq / adxt->svrfreq * 3;
+		p->maxdecsmpl = sfreq / p->svrfreq * 3;
 	} else {
-		adxt->maxdecsmpl = sfreq / adxt->svrfreq * 3 / 2;
+		p->maxdecsmpl = sfreq / p->svrfreq * 3 / 2;
 	}
 	blk = ADXSJD_GetBlkSmpl(sjd) * 2;
-	adxt->maxdecsmpl = blk * ((adxt->maxdecsmpl + blk) / blk);
-	ADXSJD_SetMaxDecSmpl(sjd, adxt->maxdecsmpl);
+	p->maxdecsmpl = blk * ((p->maxdecsmpl + blk) / blk);
+	ADXSJD_SetMaxDecSmpl(sjd, p->maxdecsmpl);
 	if (nloop > 0) {
-		if (adxt->mode == 2) {
-			adxt->lpendmod = 0;
+		if (p->mode == 2) {
+			p->lpendmod = 0;
 		} else {
 			lpendofst = ADXSJD_GetLpEndOfst(sjd);
-			adxt->lpendmod = 0x800 - lpendofst % 0x800;
+			p->lpendmod = 0x800 - lpendofst % 0x800;
 			lpendsct = (lpendofst + 0x7FF) / 0x800;
-			adxt->lpendmod = adxt->lpendmod % 0x800;
-			adxt->lpendsct = lpendsct;
-			ADXSTM_SetEos(adxt->stm, lpendsct);
-			ADXSTM_EntryEosFunc(adxt->stm, adxt_eos_entry, adxt);
+			p->lpendmod = p->lpendmod % 0x800;
+			p->lpendsct = lpendsct;
+			ADXSTM_SetEos(p->stm, lpendsct);
+			ADXSTM_EntryEosFunc(p->stm, adxt_eos_entry, p);
 		}
 		nsmpl = ADXSJD_GetLpEndPos(sjd);
-		adxt->trapnsmpl = ADXSJD_GetLpStartPos(sjd);
-		ADXSJD_SetTrapNumSmpl(sjd, adxt->trapnsmpl);
+		p->trapnsmpl = ADXSJD_GetLpStartPos(sjd);
+		ADXSJD_SetTrapNumSmpl(sjd, p->trapnsmpl);
 		ADXSJD_SetTrapDtLen(sjd, 0);
 		ADXSJD_SetTrapCnt(sjd, 0);
-		ADXSJD_EntryTrapFunc(sjd, adxt_trap_entry_lps, adxt);
+		ADXSJD_EntryTrapFunc(sjd, adxt_trap_entry_lps, p);
 	} else {
-		if (adxt->stm != NULL) {
-			ADXSTM_SetEos(adxt->stm, 0x7FFFFFFF);
+		if (p->stm != NULL) {
+			ADXSTM_SetEos(p->stm, 0x7FFFFFFF);
 		}
 		ADXSJD_SetTrapNumSmpl(sjd, ADXSJD_GetTotalNumSmpl(sjd));
 		ADXSJD_SetTrapDtLen(sjd, 0);
 		ADXSJD_SetTrapCnt(sjd, 0);
-		ADXSJD_EntryTrapFunc(sjd, adxt_nlp_trap_entry, adxt);
+		ADXSJD_EntryTrapFunc(sjd, adxt_nlp_trap_entry, p);
 	}
-	sfreq2 = ADXSJD_GetSfreq(sjd);
+	sfreq = ADXSJD_GetSfreq(sjd);
 	nch = ADXSJD_GetNumChan(sjd);
 	nsmpl = ADXSJD_GetTotalNumSmpl(sjd);
 	tmp = ADXSJD_GetOutBps(sjd);
-	ADXRNA_SetBitPerSmpl(adxt->rna, tmp);
-	ADXRNA_SetSfreq(adxt->rna, sfreq2);
-	ADXRNA_SetNumChan(adxt->rna, nch);
-	ADXRNA_SetTotalNumSmpl(adxt->rna, nsmpl);
-	ADXRNA_SetOutVol(adxt->rna, adxt->outvol + ADXSJD_GetDefOutVol(adxt->sjd));
-	ADXT_GetTranspose(adxt, &oct, &cent);
+	ADXRNA_SetBitPerSmpl(p->rna, tmp);
+	ADXRNA_SetSfreq(p->rna, sfreq);
+	ADXRNA_SetNumChan(p->rna, nch);
+	ADXRNA_SetTotalNumSmpl(p->rna, nsmpl);
+	ADXRNA_SetOutVol(p->rna, p->outvol + ADXSJD_GetDefOutVol(p->sjd));
+	ADXT_GetTranspose(p, &oct, &cent);
 	if (oct != 0 || cent != 0) {
-		ADXT_SetTranspose(adxt, oct, cent);
+		ADXT_SetTranspose(p, oct, cent);
 	}
-	if (ADXSJD_GetNumChan(adxt->sjd) == 1) {
-		ADXT_SetOutPan(adxt, 0, adxt->outpan[0]);
+	if (ADXSJD_GetNumChan(p->sjd) == 1) {
+		ADXT_SetOutPan(p, 0, p->outpan[0]);
 	} else {
-		ADXT_SetOutPan(adxt, 0, adxt->outpan[0]);
-		ADXT_SetOutPan(adxt, 1, adxt->outpan[1]);
+		ADXT_SetOutPan(p, 0, p->outpan[0]);
+		ADXT_SetOutPan(p, 1, p->outpan[1]);
 	}
-	if (adxt->amp != NULL) {
-		ADXAMP_SetSfreq(adxt->amp, sfreq2);
+	if (p->amp != NULL) {
+		ADXAMP_SetSfreq(p->amp, sfreq);
 	}
 	if (ADXSJD_GetFormat(sjd) == 2) {
-		tmp = (Sint32)ADXSJD_GetSpsdInfo(sjd);
-		ADXRNA_SetStmHdInfo(adxt->rna, (void *)tmp);
+		info = ADXSJD_GetSpsdInfo(sjd);
+		ADXRNA_SetStmHdInfo(p->rna, info);
 	}
-	ADXRNA_SetTransSw(adxt->rna, 1);
+	ADXRNA_SetTransSw(p->rna, 1);
 	if (adxt_enddecinfo_cbfn != NULL) {
-		adxt_enddecinfo_cbfn(adxt, sfreq2, nch, nsmpl);
+		adxt_enddecinfo_cbfn(p, sfreq, nch, nsmpl);
 	}
-	adxt->stat = ADXT_ISTAT_PREP;
+	p->stat = ADXT_ISTAT_PREP;
 }
 
 /* non-loop end trap: with the link switch on, look for a following ADX file behind the footer
  * (its info code) and restart the decoder on it */
-void adxt_nlp_trap_entry(ADXT adxt)
+void adxt_nlp_trap_entry(register ADXT adxt)
 {
+	register ADXT p;
 	void *sjd;
 	SJ sji;
 	SJCK ck;
@@ -293,16 +299,17 @@ void adxt_nlp_trap_entry(ADXT adxt)
 	Sint32 n2;
 	Sint32 ofst2v;
 
-	sjd = adxt->sjd;
-	sji = adxt->sji;
-	if (adxt->lnksw == 0) {
+	asm { mr p, adxt } // COMPILER-DIFF: M1
+	sjd = p->sjd;
+	sji = p->sji;
+	if (p->lnksw == 0) {
 		return;
 	}
 	ofst2 = 0;
 	SJ_GetChunk(sji, SJ_CK_DATA, 0x7FFFFFFF, &ck);
 	SJ_GetChunk(sji, SJ_CK_DATA, 0x7FFFFFFF, &ck2);
 	if (ADX_DecodeFooter(ck.data, ck.len, &ofst) != 0) {
-		ADXT_SetLnkSw(adxt, 0);
+		ADXT_SetLnkSw(p, 0);
 		SJ_UngetChunk(sji, SJ_CK_DATA, &ck2);
 		SJ_UngetChunk(sji, SJ_CK_DATA, &ck);
 		return;
@@ -319,7 +326,7 @@ void adxt_nlp_trap_entry(ADXT adxt)
 	if (n1 != 0 && n2 != 0) {
 		SJ_UngetChunk(sji, SJ_CK_DATA, &ck2);
 		SJ_UngetChunk(sji, SJ_CK_DATA, &ck);
-		ADXT_SetLnkSw(adxt, 0);
+		ADXT_SetLnkSw(p, 0);
 		return;
 	}
 	if (n1 == 0) {
@@ -333,15 +340,15 @@ void adxt_nlp_trap_entry(ADXT adxt)
 		SJ_PutChunk(sji, SJ_CK_FREE, &ck2);
 		SJ_UngetChunk(sji, SJ_CK_DATA, &ck4);
 	}
-	adxt->decsmpl += ADXSJD_GetDecNumSmpl(sjd);
+	p->decsmpl += ADXSJD_GetDecNumSmpl(sjd);
 	ADXSJD_Stop(sjd);
 	ADXSJD_Start(sjd);
 	ADXSJD_ExecHndl(sjd);
 	if (ADXSJD_GetStat(sjd) != 2) {
-		ADXT_SetLnkSw(adxt, 0);
+		ADXT_SetLnkSw(p, 0);
 		return;
 	}
-	ADXSJD_SetMaxDecSmpl(sjd, adxt->maxdecsmpl);
+	ADXSJD_SetMaxDecSmpl(sjd, p->maxdecsmpl);
 	ADXSJD_SetTrapNumSmpl(sjd, ADXSJD_GetTotalNumSmpl(sjd));
 	ADXSJD_SetTrapDtLen(sjd, 0);
 	ADXSJD_SetTrapCnt(sjd, 0);
@@ -406,21 +413,23 @@ void adxt_trap_entry(ADXT adxt)
 }
 
 /* first trap at the loop start: remember the decoder state and arm the loop end trap */
-void adxt_trap_entry_lps(ADXT adxt)
+void adxt_trap_entry_lps(register ADXT adxt)
 {
+	register ADXT p;
 	void *sjd;
 	Sint32 lpstart;
 	Sint32 lpstartofst;
 	Sint32 lpend;
 
-	sjd = adxt->sjd;
+	asm { mr p, adxt } // COMPILER-DIFF: M1
+	sjd = p->sjd;
 	lpstart = ADXSJD_GetLpStartPos(sjd);
 	lpstartofst = ADXSJD_GetLpStartOfst(sjd);
 	lpend = ADXSJD_GetLpEndPos(sjd);
 	ADXSJD_TakeSnapshot(sjd);
 	ADXSJD_SetTrapCnt(sjd, 0);
-	ADXSJD_SetTrapNumSmpl(sjd, adxt->trapnsmpl = lpend - lpstart);
+	ADXSJD_SetTrapNumSmpl(sjd, p->trapnsmpl = lpend - lpstart);
 	ADXSJD_SetTrapDtLen(sjd, lpstartofst);
 	ADXSJD_SetDecPos(sjd, lpstart);
-	ADXSJD_EntryTrapFunc(sjd, adxt_trap_entry, adxt);
+	ADXSJD_EntryTrapFunc(sjd, adxt_trap_entry, p);
 }

@@ -151,9 +151,10 @@ Sint32 mwPlyGetNumRemainFrm(MWPLY mwply)
 	}
 
 /* SFD header callback (cond 0x4B / 0x4C): record what the Sofdec header says about the video.
- * M1: the original keeps sfh in r31 and mwply in r30, ours the reverse; instruction stream identical. */
-static void mwsffrm_AnalySofdecHeader(MWPLY mwply, void *data, Uint32 size)
+ * COMPILER-DIFF: M1 -- mwply pinned to r30 through the asm-defined register copy so sfh takes r31. */
+static void mwsffrm_AnalySofdecHeader(register MWPLY mwply, void *data, Uint32 size)
 {
+	register MWPLY p;
 	SFH sfh;
 	Sint32 ccs;
 	Sint32 maxfrm;
@@ -164,7 +165,8 @@ static void mwsffrm_AnalySofdecHeader(MWPLY mwply, void *data, Uint32 size)
 	Sint32 num;
 	Sint32 wr;
 
-	mwply->sfh_cnt++;
+	asm { mr r30, mwply; mr p, r30 } // COMPILER-DIFF: M1
+	p->sfh_cnt++;
 	if (size < MWSFFRM_SFH_SIZE || data == NULL) {
 		return;
 	}
@@ -190,14 +192,14 @@ static void mwsffrm_AnalySofdecHeader(MWPLY mwply, void *data, Uint32 size)
 		maxfrm = num;
 	}
 	MWSFFRM_CNV_FXTYPE(sfh, fxtype);
-	wr = mwply->sfh_wr;
-	mwply->sfhinf[wr].no = mwply->sfh_cnt - 1;
-	mwply->sfhinf[wr].ccs = ccs;
-	mwply->sfhinf[wr].maxfrm = maxfrm;
-	mwply->sfhinf[wr].fxtype = fxtype;
-	mwply->sfhinf[wr].valid = 1;
-	mwply->sfh_wr++;
-	mwply->sfh_wr = mwply->sfh_wr % MWSFFRM_SFHINF_NUM;
+	wr = p->sfh_wr;
+	p->sfhinf[wr].no = p->sfh_cnt - 1;
+	p->sfhinf[wr].ccs = ccs;
+	p->sfhinf[wr].maxfrm = maxfrm;
+	p->sfhinf[wr].fxtype = fxtype;
+	p->sfhinf[wr].valid = 1;
+	p->sfh_wr++;
+	p->sfh_wr = p->sfh_wr % MWSFFRM_SFHINF_NUM;
 	SFH_Destroy(sfh);
 }
 
@@ -274,19 +276,25 @@ Sint32 mwPlyGetFxType(MWPLY mwply)
 }
 
 /* look for the Sofdec header in the second and third sectors of the file head.
- * M1: callee-saved numbering (original inf r31, -1 r30, sfh r29, i r28, size r27, data r26). */
-void MWSFFRM_AnalyTotalFrmNum(Uint8 *data, Uint32 size, MWSFFRM_TOTINF *inf)
+ * COMPILER-DIFF: M1 -- inf pinned to r31 through the asm-defined register copy (then -1 r30, sfh r29,
+ * i r28 fall into place). The fxtype analysis is written out with `type` at function scope between
+ * nmax and nvid: the address-taken scalars take their stack slots in declaration order (0x18 down)
+ * and the macro's block-local `type` would push nmax to the lowest slot. */
+void MWSFFRM_AnalyTotalFrmNum(Uint8 *data, Uint32 size, register MWSFFRM_TOTINF *inf)
 {
+	register MWSFFRM_TOTINF *p;
 	SFH sfh;
 	Sint32 i;
 	Sint32 issfd;
 	Sint32 nmax;
-	Sint32 fxtype;
+	Sint32 type;
 	Sint32 nvid;
 	Sint32 naud;
+	Sint32 fxtype;
 	Sint32 ofst;
 
-	inf->maxfrm = -1;
+	asm { mr r31, inf; mr p, r31 } // COMPILER-DIFF: M1
+	p->maxfrm = -1;
 	if (size < MWSFFRM_SFH_SIZE || data == NULL) {
 		return;
 	}
@@ -297,16 +305,39 @@ void MWSFFRM_AnalyTotalFrmNum(Uint8 *data, Uint32 size, MWSFFRM_TOTINF *inf)
 			continue;
 		}
 		if (SFH_IsSfdHeader(sfh, &issfd) == 0 || issfd == 0) {
-			inf->maxfrm = -1;
-			inf->fxtype = -1;
+			p->maxfrm = -1;
+			p->fxtype = -1;
 			SFH_Destroy(sfh);
 			continue;
 		}
-		inf->maxfrm = (SFH_AnlyMaxFrmNum(sfh, &nmax) == 0) ? -1 : nmax;
-		MWSFFRM_CNV_FXTYPE(sfh, fxtype);
-		inf->fxtype = fxtype;
-		inf->numelem_vid = (SFH_AnlyNumElemVid(sfh, &nvid) == 0) ? -1 : nvid;
-		inf->numelem_aud = (SFH_AnlyNumElemAud(sfh, &naud) == 0) ? -1 : naud;
+		p->maxfrm = (SFH_AnlyMaxFrmNum(sfh, &nmax) == 0) ? -1 : nmax;
+		if (SFH_AnlyFtrFxType(sfh, MWSFFRM_VID_STMID, &type) == 0) {
+			fxtype = SFX_COMPO_YCC420PLN;
+		} else {
+			switch (type) {
+			case 1:
+				fxtype = SFX_COMPO_YCC420PLN_UPHALF;
+				break;
+			case 3:
+				fxtype = SFX_COMPO_0x51;
+				break;
+			case 6:
+				fxtype = SFX_COMPO_0x61;
+				break;
+			case 0:
+			case 2:
+			case 4:
+			case 5:
+			case 7:
+			case 8:
+			default:
+				fxtype = SFX_COMPO_YCC420PLN;
+				break;
+			}
+		}
+		p->fxtype = fxtype;
+		p->numelem_vid = (SFH_AnlyNumElemVid(sfh, &nvid) == 0) ? -1 : nvid;
+		p->numelem_aud = (SFH_AnlyNumElemAud(sfh, &naud) == 0) ? -1 : naud;
 		SFH_Destroy(sfh);
 		return;
 	}
@@ -559,55 +590,68 @@ static Bool mwsffrm_IsPicUsrDat(MWPLY mwply)
 	return mwply->picusr_dat != NULL;
 }
 
-/* M1: original mwply r30 / frm r29, ours the reverse; instruction stream identical. */
-void mwPlyGetCurFrm(MWPLY mwply, MWS_FRM *frm)
+/* COMPILER-DIFF: M1 -- hard-register pins: mwply r30 (parameter copy), sfd r27 (call result pinned through
+ * the s0 copy), nskip r26 (load), i r28 (pinned through its increment: an asm `li` init is constant-propagated
+ * away), usrptr/usrlen r27/r28 (loads), ftype r27 (pinned after the DecideFrmType switch, written out here, into
+ * the ft2 copy that carries the later `= 2`). A hard register written in an asm is unavailable to every other
+ * value of the function, so the loop registers had to be pinned once usrptr/usrlen were. */
+void mwPlyGetCurFrm(register MWPLY mwply, register MWS_FRM *frm)
 {
+	register MWPLY mp;
+	register MWS_FRM *f;
 	MWSFFRM_VFRM *vfrm;
 	Sint32 slen;
 	void *sptr;
-	Sint32 i;
-	void *sfd;
-	Sint32 nskip;
-	void *usrptr;
-	Sint32 usrlen;
+	register Sint32 i;
+	register void *sfd;
+	register void *s0;
+	register Sint32 nskip;
+	register void *usrptr;
+	register Sint32 usrlen;
+	register MWSFFRM_USRDAT *u;
 	Sint32 coladj;
-	Sint32 ftype;
+	register Sint32 ftype;
+	register Sint32 ft2;
 	MWSFFRM_VFRM *p;
 
-	if (MWSFD_IsEnableHndl(mwply) == 0) {
+	asm { mr r30, mwply; mr mp, r30 } // COMPILER-DIFF: M1
+	if (MWSFD_IsEnableHndl(mp) == 0) {
 		MWSFSVM_Error("E1122614: mwPlyGetCurFrm: handle is invalid.");
 		frm->bufadr = NULL;
 		return;
 	}
-	sfd = mwPlyGetSfdHn(mwply);
+	s0 = mwPlyGetSfdHn(mp);
+	asm { mr r27, s0; mr sfd, r27 } // COMPILER-DIFF: M1
 	SFD_GetFrm(sfd, &vfrm);
-	if (vfrm != NULL && mwply->noskip == 0) {
-		nskip = mwply->prm.max_skip;
-		for (i = 0; i < nskip; i++) {
-			if (mwPlyIsNextFrmReady(mwply) != 1) {
+	if (vfrm != NULL && mp->noskip == 0) {
+		asm { lwz r26, MWPLY_OBJ.prm.max_skip(mp); mr nskip, r26 } // COMPILER-DIFF: M1
+		for (i = 0; i < nskip;) {
+			if (mwPlyIsNextFrmReady(mp) != 1) {
 				break;
 			}
 			SFD_RelFrm(sfd, vfrm);
-			mwply->nskipdisp++;
+			mp->nskipdisp++;
 			SFD_GetFrm(sfd, &vfrm);
+			asm { addi r28, i, 1; mr i, r28 } // COMPILER-DIFF: M1
 		}
 	}
 	if (vfrm != NULL) {
-		mwply->ngetfrm++;
-		mwply->curfrm = vfrm;
+		mp->ngetfrm++;
+		mp->curfrm = vfrm;
 		p = vfrm;
-		mwply->pic_struct = p->pic_struct;
-		mwply->chroma_format = p->chroma_format;
-		mwply->x94 = p->x6c;
-		mwply->x98 = p->x6d;
-		mwply->x9c = p->x6e;
-		mwply->chromapos_h = p->chromapos_h;
-		mwply->chromapos_v = p->chromapos_v;
-		mwply->xa8 = 0;
-		mwl_convFrmInfFromSFD(mwply, vfrm, frm);
-		usrptr = vfrm->usr->ptr;
-		usrlen = vfrm->usr->len;
-		if (MWSFD_GetUsePicUsr() == 1 && mwply->picusr_buf != NULL) {
+		mp->pic_struct = p->pic_struct;
+		mp->chroma_format = p->chroma_format;
+		mp->x94 = p->x6c;
+		mp->x98 = p->x6d;
+		mp->x9c = p->x6e;
+		mp->chromapos_h = p->chromapos_h;
+		mp->chromapos_v = p->chromapos_v;
+		mp->xa8 = 0;
+		mwl_convFrmInfFromSFD(mp, vfrm, frm);
+		u = vfrm->usr;
+		asm { lwz r27, MWSFFRM_USRDAT.ptr(u); mr usrptr, r27 } // COMPILER-DIFF: M1
+		asm { lwz r28, MWSFFRM_USRDAT.len(u); mr usrlen, r28 } // COMPILER-DIFF: M1
+		if (MWSFD_GetUsePicUsr() == 1 && mp->picusr_buf != NULL) {
 			if (usrptr != NULL && usrlen > 4) {
 				SUD_SearchSudDat((Uint8 *)usrptr + 4, usrlen - 4, &sptr, &slen);
 			} else {
@@ -615,39 +659,55 @@ void mwPlyGetCurFrm(MWPLY mwply, MWS_FRM *frm)
 				slen = 0;
 			}
 			if (sptr != NULL && slen > 0) {
-				if (slen > mwply->picusr_bsize) {
-					slen = mwply->picusr_bsize;
+				if (slen > mp->picusr_bsize) {
+					slen = mp->picusr_bsize;
 				}
-				memset(mwply->picusr_buf, 0, mwply->picusr_bsize);
-				memcpy(mwply->picusr_buf, sptr, slen);
-				mwply->picusr_dat = mwply->picusr_buf;
-				mwply->picusr_len = slen;
+				memset(mp->picusr_buf, 0, mp->picusr_bsize);
+				memcpy(mp->picusr_buf, sptr, slen);
+				mp->picusr_dat = mp->picusr_buf;
+				mp->picusr_len = slen;
 			} else {
-				mwply->picusr_dat = NULL;
-				mwply->picusr_len = 0;
+				mp->picusr_dat = NULL;
+				mp->picusr_len = 0;
 			}
-			MWSFSFX_SetPicUsrDat(mwply, mwply->picusr_dat, mwply->picusr_len);
+			MWSFSFX_SetPicUsrDat(mp, mp->picusr_dat, mp->picusr_len);
 		}
-		if (mwply->tag_x1a4 < frm->frmno) {
-			MWSFTAG_UpdateTagInf(mwply);
+		if (mp->tag_x1a4 < frm->frmno) {
+			MWSFTAG_UpdateTagInf(mp);
 		}
-		mwply->tag_x1a4 = frm->frmno;
-		coladj = mwsffrm_IsCurCcs(mwply) == 1;
-		if (mwsffrm_IsPicUsrDat(mwply) == 1) {
-			if (MWSFSFX_IsFrmCcs(mwply) == 1) {
+		mp->tag_x1a4 = frm->frmno;
+		coladj = mwsffrm_IsCurCcs(mp) == 1;
+		if (mwsffrm_IsPicUsrDat(mp) == 1) {
+			if (MWSFSFX_IsFrmCcs(mp) == 1) {
 				coladj = 1;
 			} else {
 				coladj = 0;
 			}
 		}
-		MWSFD_SetColAdj(mwply, coladj);
-		mwsffrm_DecideFrmType(vfrm, &ftype);
-		if (MWSFD_GetUsePicUsr() == 1 && MWSFD_IsFrmDivField(mwply) == 1) {
+		MWSFD_SetColAdj(mp, coladj);
+		ftype = 0;
+		switch (vfrm->pic_struct) {
+		case 3:
+			if (vfrm->x6c == 0) {
+				ftype = 2;
+			}
+			break;
+		case 1:
+		case 2:
 			ftype = 2;
+			break;
+		case 0:
+		default:
+			MWSFSVM_Error("E301271: mwsffrm_DecideFrmType() : Invalid Pstruct");
+			break;
 		}
-		frm->ftype = ftype;
-		mwply->sfh_cur = frm->frmno;
-		MWSFSFX_SetFxType(mwply, mwsffrm_GetCurFxType(mwply));
+		asm { mr r27, ftype; mr ft2, r27 } // COMPILER-DIFF: M1
+		if (MWSFD_GetUsePicUsr() == 1 && MWSFD_IsFrmDivField(mp) == 1) {
+			ft2 = 2;
+		}
+		frm->ftype = ft2;
+		mp->sfh_cur = frm->frmno;
+		MWSFSFX_SetFxType(mp, mwsffrm_GetCurFxType(mp));
 	} else {
 		frm->bufadr = NULL;
 	}

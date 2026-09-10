@@ -112,7 +112,7 @@ Sint32 mpvdec_MotionSub(MPV mpv, MPV_MV *mv, Sint32 *vec, Sint32 *pred);
 		MPVBIT_PEEK(code, nbit);                                                       \
 		val = tbl[code];                                                               \
 		(mpv)->mbtype = val >> 8;                                                      \
-		MPVBIT_SKIP(val & 0xFF);                                                       \
+		MPVBIT_SKIP((Uint8)val);                                                       \
 	}
 
 #define MPVDEC_QUANT(mpv)                                                                      \
@@ -126,7 +126,7 @@ Sint32 mpvdec_MotionSub(MPV mpv, MPV_MV *mv, Sint32 *vec, Sint32 *pred);
 		MPVBIT_PEEK(code, 9);                                                          \
 		val = mpvvlc_cbp[code];                                                        \
 		(mpv)->cbp_code = (val >> 4) << 20;                                            \
-		MPVBIT_SKIP(val & 0xFF);                                                       \
+		MPVBIT_SKIP((Uint8)val);                                                       \
 	} else {                                                                               \
 		(mpv)->cbp_code = 0;                                                           \
 	}
@@ -154,18 +154,22 @@ Sint32 mpvdec_MotionSub(MPV mpv, MPV_MV *mv, Sint32 *vec, Sint32 *pred);
 		MPVDEC_START(mpv, bofs);                                                       \
 	}
 
-/* end of slice: return the consumed bytes, skip to the next start code */
+/* end of slice: return the consumed bytes, skip to the next start code.
+ * COMPILER-DIFF: M1 -- the asm-defined register local `data` keeps ck.data out of the argument
+ * register (target lwz r8 / q in r4; the C form reuses the dying r4 in place). */
 #define MPVDEC_END(mpv, sj)                                                                    \
 	{                                                                                      \
 		SJCK rest;                                                                     \
+		register Uint8 *data;                                                          \
 		MPVBIT_BYTEPTR(q);                                                             \
-		SJ_SplitChunk(&(mpv)->ck, q - (mpv)->ck.data, &(mpv)->ck, &rest);              \
+		asm { lwz data, MPV_OBJ.ck.data(mpv) } /* COMPILER-DIFF: M1 */                       \
+		SJ_SplitChunk(&(mpv)->ck, q - data, &(mpv)->ck, &rest);                        \
 		SJ_PutChunk(sj, SJ_CK_FREE, &(mpv)->ck);                                       \
 		SJ_UngetChunk(sj, SJ_CK_DATA, &rest);                                          \
 	}                                                                                      \
 	return MPV_GoNextDelimSj(sj)
 
-Sint32 MPVDEC_DecDpicMb(MPV mpv, SJ sj)
+Sint32 MPVDEC_DecDpicMb(register MPV mpv, SJ sj)
 {
 	Sint32 bitpos;
 	Uint32 bbuf;
@@ -205,7 +209,7 @@ Sint32 MPVDEC_DecDpicMb(MPV mpv, SJ sj)
 	MPVDEC_END(mpv, sj);
 }
 
-Sint32 MPVDEC_DecBpicMb(MPV mpv, SJ sj)
+Sint32 MPVDEC_DecBpicMb(register MPV mpv, SJ sj)
 {
 	Sint32 bitpos;
 	Uint32 bbuf;
@@ -313,7 +317,8 @@ Sint32 mpvdec_MotionSub(MPV mpv, MPV_MV *mv, Sint32 *vec, Sint32 *pred)
 	if (mcode == 0x7F) {
 		ret = -1;
 	} else {
-		MPVBIT_SKIP((val >> 8) & 0xFF);
+		len = (Uint8)(val >> 8);
+		MPVBIT_SKIP(len);
 		if (mcode == 0) {
 			*vec = *pred;
 		} else {
@@ -349,7 +354,7 @@ void MPVDEC_ResetMv(MPV_MV *mv)
 	MPVDEC_RESET_MV(mv);
 }
 
-Sint32 MPVDEC_DecPpicMb(MPV mpv, SJ sj)
+Sint32 MPVDEC_DecPpicMb(register MPV mpv, SJ sj)
 {
 	Sint32 bitpos;
 	Uint32 bbuf;
@@ -417,7 +422,7 @@ Sint32 MPVDEC_DecPpicMb(MPV mpv, SJ sj)
 	MPVDEC_END(mpv, sj);
 }
 
-Sint32 MPVDEC_DecIpicMb(MPV mpv, SJ sj)
+Sint32 MPVDEC_DecIpicMb(register MPV mpv, SJ sj)
 {
 	Sint32 bitpos;
 	Uint32 bbuf;

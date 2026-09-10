@@ -2621,6 +2621,109 @@ under `#else` or, with `--dead`, compiled as a dead `Func_c` twin). Every workar
   mpv_dec, mpv_mcy) which were not touched this pass; all of them are reachable with the same two
   routes (pins for register-only residues, asm functions with named literals for the rest).
 
+### CRI pass 7 (mpv_dec Matching; mpv_hdec 9 -> 12/15, mwsfdfrm 7 -> 10/11, adx_tsvr 2 -> 3/6, gcci 11 -> 12/15, sfh_main M4 residue 16 -> 4 bytes x6; no whole-asm functions; 2026-09-11)
+Harness: /home/adityas/.cache/cri7/ (cri6's bytecmp/tryf/tryhm + `trymacro.py unit variants.py [offs]
+[--target] [--bytecmp]` = apply a list of exact `(old, new)` text replacements per variant, for macro
+and multi-site edits; `perm_sdi.py` = declaration-order brute force template). Only C forms,
+pragmas, `register`, asm-defined register locals and hard-register pins were used (tagged
+`// COMPILER-DIFF: M<n>`); every whole-asm route was left alone.
+- **Dying-operand load ("lwz into the freed argument register") = asm-defined register local.** The
+  target's `lwz r8, ck.data; add r4, ptr, n; subi r0, r4, 8; subf r4, r8, r0` where ours gives the
+  load r4 and the sum r6 (mpv_dec `MPVDEC_END`, mpv_hdec `MPVHDEC_FLUSH`, `mpvhdec_DecSlice`'s loop
+  test and tail): `register Uint8 *data; asm { lwz data, MPV_OBJ.ck.data(mpv) }` (soft, no hard
+  register; `register` on the `mpv` parameter) puts the load in the fresh register and leaves the sum in
+  r4. One asm-defined local per SITE (a second site sharing the variable inherits the first site's
+  register: DecSlice needed `d2`/`len` for the loop and `data` for the tail). Zero-code companions
+  found on the way: `MPVBIT_SKIP((Uint8)val)` (mask spelled as a cast) swaps the val/len numbering of
+  the MBTYPE/CBP sites, `len = (Uint8)(val >> 8); MPVBIT_SKIP(len)` keeps the motion-code length out
+  of the dying register (mpv_dec `mpvdec_MotionSub`).
+- **Parameter above the locals, soft form is enough when the target has it at the top**
+  (`asm { mr p, adxt }`, pass 5): adx_tsvr `adxt_trap_entry_lps` (100%), `adxt_nlp_trap_entry`
+  (99.95%), `adxt_stat_decinfo`. **Parameter BELOW a local = hard pin of the parameter** (`asm { mr r30,
+  mwply; mr p, r30 }`, coalesced into the prologue `mr`): mwsfdfrm `mwsffrm_AnalySofdecHeader` (sfh
+  r31 / mwply r30), `MWSFFRM_AnalyTotalFrmNum` (inf r31, then -1 r30 / sfh r29 / i r28 fall into
+  place), `mwPlyGetCurFrm` (mwply r30 / frm r29). The soft form placed AFTER the first use of the
+  parameter loses the prologue coalescing (`stw r0,184(r3)` keeps r3: -0.1%).
+- **Call results CAN be pinned when the next instruction is not an argument move**: mwPlyGetCurFrm
+  `s0 = mwPlyGetSfdHn(mp); asm { mr r27, s0; mr sfd, r27 }` emits the direct `mr r27, r3`. When the
+  instruction after the copy is an argument move of the next call (`mr r3, sjd; bl`), every pin form
+  (`t = f(); asm { mr rN, t; mr v, rN }`, same-name `asm { mr rN, v; mr v, rN }`, read-only
+  `asm { mr rN, v }`) produces a bounce `mr r0, r3; mr r3, sjd; ...; mr rN, r0` plus one extra
+  instruction (adx_tsvr `adxt_stat_decinfo`: sfreq r28, 12 forms). The bounce itself is a source
+  property there: a FRESH variable defined from a call result followed by an argument move bounces
+  through r0, a REDEFINITION of a variable with an earlier live definition copies directly
+  (`sfreq = ADXSJD_GetSfreq(sjd)` a second time is `mr r30, r3`; a fresh `sfreq2` is `mr r0, r3 ...
+  mr r27, r0`; a fresh `void *info = GetSpsdInfo()` is what gives the target's `mr r0, r3; lwz r3;
+  mr r4, r0`, our 2-def `tmp` was direct). stat_decinfo 98.6 -> 99.8% with `sfreq` reused and
+  `info` fresh; the remaining 3 words are sfreq's first web r27 vs r28 (ranking, M1).
+- **Hard register written in an asm is unavailable to EVERY other value of the function**, not only to
+  compiler temporaries: pinning usrptr/usrlen to r27/r28 in mwPlyGetCurFrm pushed the loop's `sfd`
+  (r27) / `i` (r28) / `nskip` down to r25/r26/r24, so the loop values had to be pinned as well
+  (nskip: load pin `asm { lwz r26, MWPLY_OBJ.prm.max_skip(mp); mr nskip, r26 }`).
+- **Constant pins are dropped**: `asm { li rN, 0; mr v, rN }` for a loop counter (`for (; i < n; i++)`)
+  or for a variable that has later definitions (`ftype = 0` then `ftype = 2` in switch arms) is
+  constant-propagated away, the register stays unpinned (`addi rN, 0, 0` assembles as `mr rN, r0`, `lis
+  rN, 0` / `xor` keep the pin but are different instructions). Two working substitutes: pin the
+  INCREMENT (`for (i = 0; i < n;) { ...; asm { addi r28, i, 1; mr i, r28 } }` gives `li r28, 0` for the
+  init and the target's `addi r28, r28, 1`), or pin the variable AFTER its last constant definition into
+  a copy that carries the remaining definitions (`asm { mr r27, ftype; mr ft2, r27 }` after the switch,
+  `ft2 = 2` in the later `if`, `frm->ftype = ft2`: the switch arms' `li` then target r27). A C-level
+  `if (c) ftype = 2` after an inlined out-parameter helper had to be written out for this.
+- **`sym@l(rX)` in an asm is not a use of rX even for the `lwz rD, sym@l(rX)` shape**: `asm { lis r4,
+  MPSLIB_libwork@ha; lwz r5, MPSLIB_libwork@l(r4); mr lw, r5 }` deletes the `lis` (and with register
+  locals `asm { lis hi, ...; lwz lw, ...@l(hi) }` allocates hi to a register that is redefined in between
+  = wrong code). The target's `lis r4; lwz r5, sym@l(r4)` vs ours `lis r4; addi r4; lwz r4, 0(r4)`
+  (mps_lib's inlined `mpslib_SetErr(NULL, ..)`) is the peephole folding `addi rD, rA, @l; lwz rX,
+  0(rD)` only when rX != rD, i.e. the same dying-register ranking as above; not reachable (r4 pins
+  poison the `lis r4` address temporaries). mps_lib stays 2/7.
+- **Asm-defined volatile temporaries by declaration order** (pass 5 lever) closed gcci
+  `gcCiSetSctLen`: the recomputation `n = sctlen + fsize_byte; fsize_sct = (n-1)/sctlen; pos_sct =
+  pos_byte/sctlen` with `register Sint32 n, sl, pos_byte, ps, sl0, fb` and `asm { lwz ps, ..; lwz sl0,
+  .. } asm { mullw pos_byte, ps, sl0 } asm { lwz sl, ..; lwz fb, ..; add n, sl, fb }` gives n r5 / sl r6
+  / pos_byte r7 (C form r7/r5/r6). mpv_hdec `mpvhdec_DecSeqUdsc`: `p = &buf[(Uint32)i + 4]` always
+  emits `add p, i, buf`; `asm { add p, buf, i; addi p, p, 4 }` on register locals gives the target's
+  operand order (`asm { add p, buf, i } p += 4;` folds the +4 into the argument instead).
+- **Address-taken scalar slots are declaration order top-down only when nothing block-scoped
+  intervenes**: mwsfdfrm `MWSFFRM_AnalyTotalFrmNum` (issfd 0x18, nmax 0x10, type 0x14?, nvid 0xc, naud
+  0x8) needed the fxtype macro's block-local `Sint32 type` hoisted to function scope between nmax and
+  nvid (the macro form pushes nmax to the lowest slot whatever the order; 120 permutations). mpv_hdec
+  `MPV_DecodePicAtrSj` is the same class at function level: the target lays out [block-scoped macro
+  `rest`s][own ck/ck2][inlined helpers' aggregates], ours [macro rests][inlined][own]; static-function
+  and function-scope forms of the macros did not move it (OPEN, 0x20 shift on every slot).
+- **Register-variable budget**: a function with ~18 asm-named `register` variables (pinned copies of
+  the 3 parameters + 10 field copies + 2 shared pinned temporaries) fails with `out of registers for
+  local variable <param>` even though the pinned live ranges do not overlap; MWCC does not share
+  registers between asm-named variables. mwl_convFrmInfFromSFD (target: 10 field copies r31..r22
+  above the parameters r21..r19, time/ftype/pstruct r18..r16, sfd/scale/pptr all r15, bufadr/noptr
+  r14) is therefore out of reach for pins (best 98.95% with 14 pins vs 96.6% plain; kept plain).
+  Pinning a stepping pointer (`t0 = tbl; asm { mr r30, t0; mr t, r30 }; for (..; t++)`) pins only the
+  initial definition, the loop IV is split into another register (gcci `gcCiExecServer`,
+  adx_tsvr `ADXT_ExecHndl`); an asm `lis/addi` address for it keeps the IV but loses the alias
+  information (the `stb gcg_ci_debug.stat` store is no longer hoisted above the loads through it).
+- **M4 (sfh_main) is a peephole**: our 2.4.7 folds even an inline-asm `rlwinm/rlwimi x3/stw` chain into
+  `stwbrx`; `#pragma peephole off` around the function plus the chain as asm-defined register locals
+  (`SFH_SWAP32_STORE`) reproduces the target's five instructions in the six sfh_GetHdrU32-based readers
+  (88 -> 99.4%, 1 word each: the loaded word takes the dying base r5 where the target uses r6; a
+  `mr r6` pin is dropped, an asm `lwz r6, ofs(hdr)` needs the helper as a macro and then poisons the
+  `li r6` temporaries of the inlined validity check). SFH_AnlyElemSmpHz keeps the C form: peephole off
+  also stops the displacement folding of its inlined element search (-1.5%).
+- Not moved (register-only, forms tried): adx_tsvr `ADXT_ExecHndl` (two counted loops: the target
+  ranks i above the compiler's `mr rX, adxt` IV, ours the reverse; source pointers give `addi` instead
+  of the folded `lwz 0x18(rX)`), `adxt_nlp_trap_entry` (`lha r4, ofst` vs r0 after a call: the r4 pin
+  works but the `lis r4, 0x8000` it displaces cannot be re-pinned without the asm `lis` being scheduled
+  next to its `subi` instead of after `mr r3`), gcci `gcCiReqRd` (the `tbl` address kept in r29 from
+  before the inlined IsBusy loop; `gcci` pin alone 98.8 -> 99.4% but not applied), `gcCiClose` (the
+  inlined StopTr keeps a SECOND copy of the parameter `mr r29, r3` next to `mr. r28, r3` and reuses
+  cr0 for its own NULL test: an uncoalesced inline-parameter copy, no source form), mpv_hdec
+  `mpvhdec_AnalyUd` (len r25 at the bottom: the hard pin works but splits `n`'s two webs), `DecPscSj`
+  (r_size's GET temp r9 in place vs r7; the mulli/slwi table-index temporaries swapped), sfd_mps
+  `sfmps_ExecServerSub` (wcnt/rcnt slot order + a deleted `li r26,0`), sfd_adxt (SetSpeed is M2).
+- Units still blocked by non-pin classes: sfd_tim (InitHn float pool M2), sfd_adxt (SetSpeed M2),
+  mpvabdec (M5), cftfx (deferred-inline order), sfd_buf (SFBUF_InitHn union alias, unchanged).
+- Hazard seen during the pass: another agent's removal of the pass-6 asm functions from adx_bau /
+  adx_dcd / dct_ac left those units flagged Matching while no longer byte-identical (main.dol FAILED,
+  110/111) — check `bytecmp.py lib/adx_bau lib/adx_dcd lib/dct_ac` before blaming your own flip.
+
 ## REL modules
 
 The game loads its rooms, enemies, weapons and debug tools as Nintendo REL overlays. `ninja` rebuilds the
