@@ -162,6 +162,8 @@ void em2fDmCk(cEm2f* em)
     case 0xA:
     case 0xB:
     case 0xC:
+    case 0x10:
+    case 0x11:
     case 0x14:
     case 0x1B:
     case 0x1D:
@@ -187,6 +189,9 @@ void em2fDmCk(cEm2f* em)
     case 0xF:
     case 0x12:
     case 0x13:
+    case 0x29:
+    case 0x2A:
+    case 0x2C:
     default:
         dmg = 1000;
         break;
@@ -1203,15 +1208,17 @@ static void em2f_R0_Die(cEm2f* em)
 static void em2f_R1_Die_Normal(cEm2f* em)
 {
     Em2fWork* w = EM2F_WK(em);
+    cPlayer* pl;
 
     switch (em->xFE) {
     case 0:
         em2fSetPosDie(em);
         MotionSetCore(em, MOTION(em), ARC(0x2E), 0, 0, 0x401, 0);
-        pPL->xFD = 0xF;
-        pPL->xFE = 0xC;
-        pPL->xFF = 0;
-        pPL->xFC = 0;
+        pl = pPL;
+        pl->xFD = 0xF;
+        pl->xFE = 0xC;
+        pl->xFC = 0;
+        pl->xFF = 0;
         if (w->pBoat) {
             w->pBoat->xFC = 1;
             w->pBoat->xFD = 1;
@@ -1406,8 +1413,8 @@ void em2fSetPosBetweenBoat(cEm2f* em)
             continue;
         }
         em->rot.x = 0.0f;
+        em->rot.y = pPLS->rot.y;
         em->rot.z = 0.0f;
-        em->rot.y = pPL->rot.y;
         em->be_flag |= 2;
         em2fEffectDelete(em, w);
         PSMTXRotRad(m, 'y', em->rot.y);
@@ -1415,8 +1422,8 @@ void em2fSetPosBetweenBoat(cEm2f* em)
         v.y = w->waterY;
         TransMatrix(m, &v);
         v.x = -5000.0f;
-        v.z = -40000.0f;
         v.y = -5000.0f;
+        v.z = -40000.0f;
         PSMTXMultVec(m, &v, &em->pos);
         break;
     }
@@ -1507,6 +1514,7 @@ void em2fSetPosHideMode(cEm2f* em)
     Mtx m;
     Vec v;
     f32 ang;
+    f32 ry;
 
     if (Rnd() & 1) {
         ang = 2.45f;
@@ -1520,13 +1528,16 @@ void em2fSetPosHideMode(cEm2f* em)
     v.y = 0.0f;
     PSMTXMultVec(m, &v, &em->pos);
     em->pos.y = w->waterY - 37894.84f - 4882.0f;
-    em->rot.y = GetXZAngle(&em->pos, &pPL->pos) + PI;
-    em->rot.y = LIMIT_ANGLE(em->rot.y);
+    ry = GetXZAngle(&em->pos, &pPLS->pos);
+    ry += PI;
+    em->rot.y = ry;
+    ry = LIMIT_ANGLE(ry);
+    em->rot.y = ry;
     PSMTXRotRad(m, 'y', em->rot.y);
     TransMatrix(m, &em->pos);
-    v.z = 0.0f;
     v.x = -10000.0f;
     v.y = 0.0f;
+    v.z = 0.0f;
     PSMTXMultVec(m, &v, &em->pos);
     em2fEffectDelete(em, w);
 }
@@ -1549,21 +1560,21 @@ int em2fRisingDragonCk(cEm2f* em)
     int one;
 
     one = 1;
-    if (!(pG->flags_5010 & 0x00400000)) {
-        return 0;
-    }
-    if (w->rndFlag) {
-        if (Rnd() & 3) {
-            w->rndFlag = 0;
+    if (pG->flags_5010 & 0x00400000) {
+        if (w->rndFlag) {
+            if (Rnd() & 3) {
+                w->rndFlag = 0;
+            }
+            EmRoutineSet(em, one, 7, 0, 0);
+        } else {
+            if (Rnd() & 3) {
+                w->rndFlag = one;
+            }
+            EmRoutineSet(em, one, 8, 0, 0);
         }
-        EmRoutineSet(em, one, 7, 0, 0);
-    } else {
-        if (Rnd() & 3) {
-            w->rndFlag = one;
-        }
-        EmRoutineSet(em, one, 8, 0, 0);
+        return 1;
     }
-    return 1;
+    return 0;
 }
 
 void em2fChangeRoute(cEm2f* em)
@@ -1644,6 +1655,7 @@ void em2fIslandCrashCk(cEm2f* em)
         cObj1c* o = (cObj1c*) ((u8*) ObjMgr.pArray + ObjMgr.size * i);
         cModel* p;
         f32 r;
+        f32 d;
 
         if (!o->isAlive()) {
             continue;
@@ -1655,28 +1667,29 @@ void em2fIslandCrashCk(cEm2f* em)
             continue;
         }
         r = o->scale.x * 1800.0f;
-        if ((em->pos.x - o->pos.x) * (em->pos.x - o->pos.x) + (em->pos.z - o->pos.z) * (em->pos.z - o->pos.z) > 1600000000.0f) {
+        d = (em->pos.x - o->pos.x) * (em->pos.x - o->pos.x) + (em->pos.z - o->pos.z) * (em->pos.z - o->pos.z);
+        if (d > 1600000000.0f) {
             continue;
         }
         p = em->getPartsPtr(8);
         r = r * r;
-        if ((p->worldPos.x - o->pos.x) * (p->worldPos.x - o->pos.x) + (p->worldPos.y - o->pos.y) * (p->worldPos.y - o->pos.y)
-                + (p->worldPos.z - o->pos.z) * (p->worldPos.z - o->pos.z)
-            < r) {
+        d = (p->worldPos.x - o->pos.x) * (p->worldPos.x - o->pos.x) + (p->worldPos.y - o->pos.y) * (p->worldPos.y - o->pos.y) +
+            (p->worldPos.z - o->pos.z) * (p->worldPos.z - o->pos.z);
+        if (d < r) {
             o->setCrashBig(&p->worldPos);
             continue;
         }
         p = em->getPartsPtr(3);
-        if ((p->worldPos.x - o->pos.x) * (p->worldPos.x - o->pos.x) + (p->worldPos.y - o->pos.y) * (p->worldPos.y - o->pos.y)
-                + (p->worldPos.z - o->pos.z) * (p->worldPos.z - o->pos.z)
-            < r) {
+        d = (p->worldPos.x - o->pos.x) * (p->worldPos.x - o->pos.x) + (p->worldPos.y - o->pos.y) * (p->worldPos.y - o->pos.y) +
+            (p->worldPos.z - o->pos.z) * (p->worldPos.z - o->pos.z);
+        if (d < r) {
             o->setCrashBig(&p->worldPos);
             continue;
         }
         p = em->getPartsPtr(0x19);
-        if ((p->worldPos.x - o->pos.x) * (p->worldPos.x - o->pos.x) + (p->worldPos.y - o->pos.y) * (p->worldPos.y - o->pos.y)
-                + (p->worldPos.z - o->pos.z) * (p->worldPos.z - o->pos.z)
-            < r) {
+        d = (p->worldPos.x - o->pos.x) * (p->worldPos.x - o->pos.x) + (p->worldPos.y - o->pos.y) * (p->worldPos.y - o->pos.y) +
+            (p->worldPos.z - o->pos.z) * (p->worldPos.z - o->pos.z);
+        if (d < r) {
             o->setCrashBig(&p->worldPos);
         }
     }
@@ -1686,34 +1699,39 @@ void em2fTentacleMove(cEm2f* em)
 {
     Em2fWork* w = EM2F_WK(em);
     u16 step = (*(u16*) ARC(0x31) & 0x3FFF) / 6;
-    int i;
+    u32 i;
 
     if ((em->seFlags28B & 0x20) && (w->flags & 0x80)) {
-        cObj16** t;
         int frame = 0;
 
-        for (t = w->pTentacle; t <= &w->pTentacle[5]; t++, frame += step) {
+        for (i = 0; i < 6; i++, frame += step) {
             int parts;
             Vec pos;
             Vec rot;
 
-            if (*t) {
+            if (w->pTentacle[i]) {
                 continue;
             }
-            if (t == &w->pTentacle[0]) {
+            switch (i) {
+            case 0:
+            default:
                 parts = 0x1D;
-            } else if (t == &w->pTentacle[1]) {
+                break;
+            case 1:
                 parts = 0x1E;
-            } else if (t == &w->pTentacle[2]) {
+                break;
+            case 2:
                 parts = 0x1F;
-            } else if (t == &w->pTentacle[3]) {
+                break;
+            case 3:
                 parts = 0x20;
-            } else if (t == &w->pTentacle[4]) {
+                break;
+            case 4:
                 parts = 0x21;
-            } else if (t == &w->pTentacle[5]) {
+                break;
+            case 5:
                 parts = 0x22;
-            } else {
-                parts = 0x1D;
+                break;
             }
             pos.x = 0.0f;
             pos.y = 0.0f;
@@ -1721,9 +1739,9 @@ void em2fTentacleMove(cEm2f* em)
             rot.x = PI / 2.0f;
             rot.y = 0.0f;
             rot.z = fRand1_1() * PI;
-            *t = (cObj16*) SetObj16(ARC(0x2F), ARC(0x30), em, em, parts, 0xA, &pos, &rot);
-            if (*t) {
-                MotSetObj16(*t, ARC(0x31), 4, frame);
+            w->pTentacle[i] = (cObj16*) SetObj16(ARC(0x2F), ARC(0x30), em, em, parts, 0xA, &pos, &rot);
+            if (w->pTentacle[i]) {
+                MotSetObj16(w->pTentacle[i], ARC(0x31), 4, frame);
             }
         }
         if (w->seTimer4) {

@@ -6099,3 +6099,38 @@ target) stays unresolved and `make_rel` then fails with "undefined symbol".
   ours cross-jumps them into one. jump.c refuses to cross-jump CALL_INSNs only across EH regions
   (`in_same_eh_region`, and SN's cc1plus defaults `flag_exceptions = 0` in cp/lex.c) -- COMPILER-DIFF 6
   territory, not retried.
+
+### em25 (Matching 65/65) and em2f second pass
+- em25: `int zero` assigned right after the first call feeds the QI/SI zero stores of an init block; a
+  work-store block through `w` comes out in pure source order only when the store where the shared zero
+  dies is the FIRST one in the target — write that field last, the others in target order; a store
+  through `em` (`w->flags` folded to `em+0x3E0`) conflicts with every `w`-based store and keeps RTL order.
+- `int one`-style constants for a `switch (em->x38D)` in R0_Init need plain routine byte stores in both
+  arms (em30 rule); the `EstSet(..., (void*) 0)` stack zero stays separate from the QI routine zeros.
+- A `cObj*`/`cModel*` pointer local assigned in two blocks (`t = pPL->getPartsPtr(3); tgt = t->worldPos;
+  ... t = pSUB->getPartsPtr(3); ...`) keeps the copy's `addi rX,r3,0x70` in a fresh register instead of
+  clobbering r3 (em25OnParent, em25SetPoison, em25PlHeadLost).
+- A table address held in a callee-saved register across the preceding `getPartsPtr` call is a pointer
+  local assigned before that call (`atk = em25_poison_atk; p = em->getPartsPtr(0); SetObj08(.., atk)`).
+- `if (hit) { ...; return 1; } return 0;` when every `return 0` shares the `li r3,0` at the function END
+  (em25AtkCk, ckLock, em2fRisingDragonCk); `if (a || b) return 0` puts it after the second test.
+- `pPLS->pos` / `pPLS->rot.y` / `LifeDownSet2(pPLS, ..)` wherever the target loads `pPL` after a
+  `w->timer--` store or a `stfs rot.x`; `w->pTarget = pPLS` keeps the load below the target-copy stores.
+- A distance recomputed in several blocks with the fmadds result in f0 (not tied to the dying `dz`) is
+  one function-scope `f32 d` assigned in each block (em25 P_Wait, em2f IslandCrashCk).
+- `if (pG->flags & bit) lightInfo.x50 = 0x80; else lightInfo.x50 = 2;` gives `andis.; li 2; beq;
+  li 0x80; stb`; the ternary and a `col` local hoist the `li`.
+- `for (u32 i...) switch (i) { case 0: default: ...; case 1..5 }` over a pointer array is
+  strength-reduced into `cmpw/cmplw rPtr, &tbl[k]` compares with the `&tbl[k]` invariants hoisted
+  (em2fTentacleMove); `int i` gives signed compares and no hoisting.
+- em2fDmCk tree: `case 0x10: case 0x11:` in the damage-1 arm and `0x29, 0x2A, 0x2C` in the default group.
+- Candidate COMPILER-DIFF #12 (cse AROUND-path knowledge, r104 execEvent00 family): em25DmCk's
+  `hitCnt = 0` gets a fresh `li` in the original while `zero == 0` is known past the skipped
+  `if (wep == 0x10)` block in ours; `asm("" : "+r"(zero)); // COMPILER-DIFF` gives 0 words (17 without);
+  -fno-cse-skip-blocks fixes it but breaks RouteCk/CatchCk/SetParasite.
+- OPEN: em29DmCk (114 words) — no default-grouped case set gives root [0x10,0x11] with right root 0x21
+  (root needs n+r in 21..24, right subtree 13..14); the two-level if/switch split gives 129 words; the
+  high half's `cmpwi 0x29; beq D; ble W; ..; W: cmpwi 0x26; blt D` (right child laid out before left) is
+  not a stmt.c emission order. em2f left: R0_Init 56, Swim 56, SetNextRoute 69, Packman 41,
+  RisingDragon 37, ChangeRoute 40, SwimWait 10 (store perm best 6), CriCamMove 12, SetPosHideMode 3
+  (`fmr; fadds` copy fused by combine, mes family). em21DmCk 4 words (local-alloc r0/r9).
