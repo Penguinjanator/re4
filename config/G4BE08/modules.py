@@ -737,6 +737,9 @@ MATCHING = {
     "wep09/objSniper.cpp": True,
     "wep09/pl_rifle.cpp": True,
     "wep09/wep09.cpp": True,
+    "wep08/wep08.cpp": True,
+    "wep33/wep33.cpp": True,
+    "wep07/wep07.cpp": True,
     # single-unit player modules (src/plXX/plXX.cpp, the whole REL; include/pl_mod.h)
     "pl11/pl11.cpp": True,
     "pl06/pl06.cpp": True,

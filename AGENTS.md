@@ -3737,7 +3737,7 @@ target) stays unresolved and `make_rel` then fails with "undefined symbol".
     current frame, +0x294 motion count, +0x94 pos, +0xF4 parts list) everywhere; strings and pools in
     .rodata are in the order listed by secdump.
 
-### Ganado shared library (em10/em10.cpp, 374/382 byte-identical, .data/.rodata/.bss identical, not Matching; 2026-09)
+### Ganado shared library (em10/em10.cpp, 379/382 byte-identical, .data/.rodata/.bss identical, not Matching; 2026-09)
 
 - The unit is shared by 16 modules (`common_<mod>` .comm block from `REL_MODULE`, everything else
   identical); flag MATCHING for all 16 at once, only when every function matches. em10.cpp is in
@@ -3868,20 +3868,50 @@ target) stays unresolved and `make_rel` then fails with "undefined symbol".
       (COMPILER-DIFF 1) for `w->pWep->setThrow(&spd, t, &Em10AtkTbl[5])`.
     - SetDamageDoor: switch-2's `case 1:` ends in `goto door_break;` into switch-1's case-2 body
       (`ble` target = the first type-check copy).
-    - setHand: `tpl = w->mot[14]` AFTER the `wepType == 6` if in case 3 (shorter range -> r4).
-  - OPEN (8): LostHead (59 words: `cmpwi cr4, r28, 3` hoisted into the dispatch block, #5-like);
-    LadderClimbCk (38: the PI `lis` is hoisted by our loop pass 2 at 70 insns, threshold 71; the
-    original loop has >= 72 real insns at pass 2 — seven forms of the body tried, none changes the
-    count); SetTakeawayPos (34: `&best` allocated before `em` in the original, em r27/&best r28;
-    ours em first); RackBreakCk (28: em/e r31<->r30 — em needs 32 weighted refs, has 30 — and the
-    ternary temp r0 vs r9 with `li 61` after the compare; `int t = e->type; if (t == 0) ..` gives
-    the shape but moves the temp to r3); FindCk (20: em3c's bell OPEN, `lfs r`/`fmuls` late);
-    SetDamageDoor (12: kind/in r24<->r25 — kind 13 refs/259 vs in 10/204 needs +7 insns in kind's
-    range; a duplicated type-check body in case 1 flips it but pushes loop pass 1 to 301 > 284 and
-    loses the `high(EmMgr)` hoist); setHand (7: `no` r10 vs r11, case-3 `lwz tpl` first);
-    ShieldAtkCk (3: `fsubs f13, f0, f13` tied to op2 with em allocated f0 — no local-alloc order
-    reproduces em first AND the tie; `register .. asm("fr13")`, `+f` launders, `__builtin_fabsf`,
-    dy-style multi-set all tried).
+    - setHand: `bin = w->mot[9]; tpl = w->mot[14];` before the `wepType == 6` if in case 3 (tpl's
+      shorter range -> r4, bin r9; 5 words left, see OPEN).
+  - Fifth pass (374 -> 379, 2026-09-10; harness /tmp/em10e = em10d + `mini_run.sh`): global-alloc
+    priority is `floor_log2(refs) * refs / live_length` with REG_N_REFS weighted by the LOOP DEPTH at
+    flow time (a ref inside one loop counts 2, inside a `do { } while (0)` nested in it 3, ...), so
+    loop notes are a lever that changes NO real insn:
+    - `do { x = 1; } while (0);` around a store makes that set count one more per copy (SetDamageDoor:
+      the three `in = 1` of the IN_CK macro -> `in` 13 weighted refs > `kind` 13/259, in r25/kind r24;
+      the do-while around the WHOLE if-chain moved the arms' pool `lis` hoists instead).
+    - Two nested `do { } while (0)` around `EmRoutineSet(..)` put its four `stb`s at depth 4
+      (RackBreakCk: em 34 weighted refs > e 21/95 -> em r31, e r30). The loop notes are also a
+      sched1 barrier: `int type = e->type;` BEFORE the notes and the ternary `type == 0 ? 0x3E :
+      0x3D` inside keeps jump.c's hoisted `li 0x3D` behind the compare (the barrier insn's
+      `reg_pending_sets_all` makes it output-dependent), so the loaded byte and the ternary temp
+      share r0; with `int t = e->type; if (t == 0) t = ..` the temp is set by the insn where `e` dies
+      and `expand_preferences` gives it e's r3/r11 preferences (t lands in r3, the hitCheck result
+      moves to r0).
+    - Source duplication that jump2 (which runs AFTER sched2 and global alloc here) cross-jumps
+      away counts at allocation time: SetTakeawayPos writes `else if (bestAng < PI/2) { copy }
+      else if (d < bestD) { copy }` instead of `||` in both loops (`&best` 17 refs > em 29/241 ->
+      &best r28, em r27; the loop-2 `&c` PRE copy 10 refs > p -> r29); the final code is the `||`
+      shape. LadderClimbCk is a `while (o)` loop with `o = o->next; continue;` written out before
+      every `continue` (82 real insns at loop pass 2 instead of 70, so the Muku PI `lis` stays in
+      the loop: threshold 71 * savings 1 * life 1 < insn_count); the seven copies cross-jump into one.
+    - ShieldAtkCk: `f32 t = em->pos.y; d = pSUB->pos.y; d = t - d; d = fabsf(d);` — a multi-set `d`
+      is not local-allocated, so `combine_regs` cannot tie the `fsubs` result to the dying `t`
+      (`reg_qty[sreg] >= -1` -> fail) and it stays the op-2 pseudo `d`; the block-local `t` then
+      takes f0 in local-alloc and global alloc gives `d` f13 (`fsubs f13, f0, f13`).
+    - jump.c's `if (c) x = a; else x = b;` hoist (jump.c:479) skips the else-set only when the
+      then-arm is not a single set or the else arm has REG_NOTES; a plain ternary is hoisted in
+      jump1, so the `li` is free to schedule above the compare unless something depends on it.
+  - OPEN (3): LostHead (59 words: `cmpwi cr4, r28, 3` in the switch dispatch block AND after `bl
+    EmSetDie` in the shared case-0/1/2-else tail, the join's compare gone, cr4 saved with `mfcr r12`;
+    our gcse never PREs it (single occurrence); `case 3: break;` makes it PRE'd but into block 2 + the
+    case-1 body with the CC spilled through `mfcr r30`, 164 words; `case 3:` grouped with default or
+    an `if (a == 3) asm("")` do nothing/worse — pass order (#5-like) rather than source); FindCk (20:
+    the em3c bell OPEN — the target's pool `lis r10`/`lfs f9` of the 3-arm `r` and `fmuls r, r` are
+    scheduled INSIDE the distance block and the high got r10 (r9/r11 busy), i.e. the identical arms
+    were merged before local-alloc/sched1; ours cross-jumps them only in jump2, which runs after
+    sched2 here, so the arm's `lis r9; lfs` stays first — if/else-if, `asm volatile("")`,
+    do-while, inline expression and `rr` temp forms all 20); setHand (5: `no` r10 vs r11 with
+    nothing else in r11, and the case-3 block order `lbz; lwz tpl; lwz bin; cmpwi` needs the
+    compared byte NOT to die at the compare (an `asm volatile("" : : "r"(wt))` reproduces the order
+    but moves the registers); switch/if-else/u8/u32 forms tried).
 
 ### Small tool RELs, third pass (t_camera_draw Matching; t_camera_data 12/16, t_movie/t_se_at 11/19; 2026-09)
 

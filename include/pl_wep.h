@@ -101,7 +101,8 @@ class cPlWep {
 public:
     u8 pad_0[0x20];
     u8 x20;              // 0x20  (ctor: 0)
-    u8 pad_21[2];
+    u8 x21;              // 0x21  (wep07 pl_shotgun reload: 0)
+    u8 pad_22;
     u8 x23;              // 0x23  (wep07 ready00: 0)
     u8 knifeStance;      // 0x24  knife ready stance: 0 low, 1 middle, 2 high
     u8 pad_25;

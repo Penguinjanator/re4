@@ -485,7 +485,8 @@ struct ObjWepWork {
     u8 x18;               // 0x18 (0x340)  handgun modules (wep02 objMauser/objRuger init): three bytes from a const table
     u8 x19;               // 0x19 (0x341)
     u8 x1A;               // 0x1A (0x342)
-    u8 pad_1B[5];
+    u8 x1B;               // 0x1B (0x343)  (wep04 objXd9: 4th table byte)
+    u8 pad_1C[4];
     cModel* parent;       // 0x20 (0x348)  model the weapon hangs on (parentSet)
     u16 x24;              // 0x24 (0x34C)  (cObjLauncher::init: 0x35)
     u8 mode;              // 0x26 (0x34E)  0 stay, 1 ready, 2 fire, 3 down, 4 reload, 5 drop (move dispatch)
@@ -504,6 +505,12 @@ struct LauncherWork {
     Vec from;             // 0x44 (0x36C)  launch line (getMarkerPos)
     Vec to;               // 0x50 (0x378)
     class cObjRocket* rocket;  // 0x5C (0x384)  loaded rocket (loadRocket)
+};
+
+// Bow work (wep28 module `cObjBow` : cObjWep).
+struct BowWork {
+    ObjWepWork wep;       // 0x00 .. 0x40
+    class cObjWep* allow; // 0x40 (0x368)  the arrow object shown on the bow (cObjAllow, ObjMgr id 0x10)
 };
 
 // Rocket work (game/objRocket.cpp `cObjRocket`).
@@ -707,6 +714,7 @@ public:
         PillarWork pillar;
         ObjWepWork wep;
         LauncherWork launcher;
+        BowWork bow;
         RocketWork rocket;
         SpearWork spear;
         RoboWork robo;

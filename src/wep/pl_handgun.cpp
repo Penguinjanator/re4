@@ -48,6 +48,7 @@ static void wep02_r2_reload(cPlayer* pl);
 static Vec pos = {0.0f, 0.0f, 0.0f};
 static Vec tgt = {0.0f, 0.0f, 0.0f};
 
+#ifndef PL_HANDGUN_NO_MOVE
 void PlHandgunMove(cPlayer* pl)
 {
     static void (*func_tbl[])(cPlayer*) = {
@@ -61,6 +62,16 @@ void PlHandgunMove(cPlayer* pl)
     func_tbl[pl->xFE](pl);
     pl->pWep->lockMove();
 }
+#else
+// pl0d (Wesker, src/pl0d/wep02.cpp): the same object without PlHandgunMove; its routine table stays in .data.
+static void (*wep02_func_tbl[])(cPlayer*) = {
+    wep02_r2_ready,
+    wep02_r2_set,
+    wep02_r2_fire,
+    0,
+    wep02_r2_reload,
+};
+#endif
 
 static void wep02_r2_ready(cPlayer* pl)
 {
@@ -497,3 +508,7 @@ static void wep02_r2_reload(cPlayer* pl)
         break;
     }
 }
+
+// The object's .data is 8-aligned in the original link (wep01: .data starts 4 bytes after the end of
+// .rodata); the size is already a multiple of 8, so this only raises the section alignment.
+asm(".section .data\n\t.balign 8\n\t.text");

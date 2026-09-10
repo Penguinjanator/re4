@@ -41,9 +41,13 @@ void Obj10SetEst(cObj* obj, int no0, int prm0, u32 type, int no1, int prm1, int 
 // Store through a scalar reference: the following global load stays below it (pl_leon PSet).
 static inline void PSet(void*& d, void* v) { d = v; }
 static inline void PSet(cModel*& d, cModel* v) { d = v; }
+static inline void PSet(cObjWep*& d, cObjWep* v) { d = v; }
 static inline void U16Set(u16& d, int v) { d = v; }
 // Collision flag bits changed through the info's address (`addi rX, obj, 0x2b4; lhz 0x1a(rX)`).
 static inline void AtariFlagsAnd(cAtariInfo* at, u16 mask) { at->flags &= mask; }
+// wep17 ready00: the following pG load stays below the store and the info address is kept in a
+// register (`addi rX, obj, 0x2b4; lhz/sth 0x1a(rX)`): only the volatile scalar access gives both.
+static inline void AtariFlagsOr(cAtariInfo* at, u16 mask) { *(volatile u16*) &at->flags |= mask; }
 
 // Machine gun (wep11 = TMP, wep29; wep/objMachinegun.cpp shared object; wep12 Thompson, wep27
 // Klauser MG and wep39 carry their own copies of the class in the module object).
@@ -70,5 +74,47 @@ public:
     void setCartridge();
 };
 void ObjTompson_init(cObj* obj);   // wep12/objTompson.cpp
+
+// Semi-auto rifle (wep10 = own object wep10/objHkSniper.cpp; wep40 / wep47 carry a copy of the class
+// in the module object). Routines: wep/pl_rifle.cpp.
+class cObjHkSniper : public cObjWep {
+public:
+    virtual void moveFire();
+    virtual void moveReload();
+    virtual void init(cModel* parent);
+    virtual void setMotion(cPlayer* pl);
+};
+
+// Knife (wep16 Leon's, wep26 Krauser's; wepXX/wepXX.cpp): a cObjWep whose own `init()` takes no
+// parent (the vtable keeps cObjWep::init); the routines are the DOL's pl_knife.cpp (wep/pl_knife.cpp).
+class cObjKnife : public cObjWep {
+public:
+    virtual void setMotion(cPlayer* pl);
+
+    void init();
+};
+
+// Krauser's bow (wep28; wep28/wep28.cpp): the arrow object (declared first: its vtable and destructor
+// follow the bow's) and the bow, whose routines (wep/pl_bow.cpp) show/hide the arrow model.
+class cObjAllow : public cObjWep {
+public:
+    virtual void moveFire();
+    virtual void init(cModel* parent);
+    virtual void setMotion(cPlayer* pl);
+};
+
+class cObjBow : public cObjWep {
+public:
+    virtual void moveReady();
+    virtual void moveFire();
+    virtual void moveDown();
+    virtual void init(cModel* parent);
+    virtual void setMotion(cPlayer* pl);
+    virtual void interrupt();
+    virtual int keyKamae();
+
+    void setDispAllow(int on);   // scale the arrow parts (parts 4) to 1 / 0
+    void setAllow();             // shoot: SetMine arrow along the bow's line
+};
 
 #endif
