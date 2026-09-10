@@ -3731,7 +3731,7 @@ target) stays unresolved and `make_rel` then fails with "undefined symbol".
     current frame, +0x294 motion count, +0x94 pos, +0xF4 parts list) everywhere; strings and pools in
     .rodata are in the order listed by secdump.
 
-### Ganado shared library (em10/em10.cpp, 365/382 byte-identical, .data/.rodata/.bss identical, not Matching; 2026-09)
+### Ganado shared library (em10/em10.cpp, 374/382 byte-identical, .data/.rodata/.bss identical, not Matching; 2026-09)
 
 - The unit is shared by 16 modules (`common_<mod>` .comm block from `REL_MODULE`, everything else
   identical); flag MATCHING for all 16 at once, only when every function matches. em10.cpp is in
@@ -3824,16 +3824,58 @@ target) stays unresolved and `make_rel` then fails with "undefined symbol".
     - ThrowAxe: `pPLS->pos` in the `w->x4--` Muku call; Goto: `case 0xE: break;` after the [C-D]
       arm of the second x5EC switch (`ble ARM; b END`), and case 6's MotionSetCore with `m0/m1/flag`
       locals (the `addi r4, em, 0x1d8` after the flag branch).
-  - OPEN (17, 3 of them compiler-side): LostHead's `cmpwi cr4, r28, 3` hoisted into the dispatch
-    block and the case-2 else arm (the `a == 3` compare kept in cr4 across the calls; #5-like
-    interblock motion, -0x14 bytes incl. mfcr/mtcrf); SetDamageDoor `kind`/`in` r24<->r25 and
-    SetTakeawayPos em r27<->r28 / p r28<->r29 (global-alloc order; declaration orders tried);
-    Crash m0/m1 r29<->r30; R30FBullJump `li r3, 8` issued after `mr r8` (the SndCall arg block has
-    no following call, so ours takes LUID order); R10FGondola `fmadds` fresh f13; ShieldAtkCk's
-    pSUB `fsubs` tied to op2; Em1fClothSet `x48` after pModel; Hide/HideFall/HideJump (em10HideOn
-    inline: target stores be_flag, atari, alpha, dmType, flags, x6B6 with the flags LOAD second --
-    24 statement orders and BitOn/EM10_WK forms tried); FindCk bell_stat; LadderClimbCk;
-    RackBreakCk (loop.c threshold); CatchPLRtnCk; setHand; GetWanderRouteEmi.
+  - Fourth pass (365 -> 374, 2026-09-10; harness copied to /tmp/em10d, `fdis.py SYM` prints one
+    function with branch targets as function-relative offsets, `fn.sh DUMP FUNC` cuts one function
+    out of a cc1plus dump):
+    - cse follows at most 9 conditional jumps per extended block (cse.c PATHLENGTH 10): the 10th
+      `if (c) return 0;` of a run is not followed, so the code after its `return` block starts a
+      FRESH ebb — register equivalences (`w = em + 0x3E0`) and loaded values are forgotten there.
+      CatchPLRtnCk's `w->flags` reload (`lwz r0, 0(r29)`, not merged with the `em->x3E0` word of
+      the previous test) needs the four `em->type == K` tests written as SEPARATE ifs (an `||`
+      chain is one jump). Conversely, `asm volatile("")`, `do {} while (0)` and `A || B` do not end
+      a cse ebb (followed/AROUND paths keep the table); only labels hit by fallthrough and the
+      path limit do.
+    - A pool-constant `lfs` (`mem/u`) gets a sched1 TRUE dependence on every `mem/s` store that
+      precedes it in RTL (this alias.c does not exempt unchanging loads), so a `= 0.0f` member
+      store whose `lfs` the target hoists to the block top must be the FIRST statement of the block
+      (em10HideOn: `alpha = 0.0f; be_flag &= ~2; dmType = 0x80; flags |= ..; atari.flags &= ..;
+      x6B6 = 1;` gives the target's be_flag/atari/alpha/dmType/flags/x6B6 store order).
+    - loop.c giv combination (`combine_givs`): equal-benefit address givs are combined into the one
+      recorded LAST (giv_array is the reversed giv list), but a DEST_REG giv with a zero addend
+      (`&emi->entry[i]` = `emi + i*64`, "ncav" +1 benefit) always wins. GetWanderRouteEmi's
+      `addi r9, emi, 9` / `lbz -1(r9)` base (the `.sub` field) comes from a byte-offset entry
+      address, `(EmiEntry*) ((u8*) emi + 8 + i * 0x40)`, whose DEST_REG giv has a constant addend;
+      the second loop re-reads `pG->pRoomEmi` for the bound (gcse PRE copy `mr r8, r9`).
+    - `int one = 1;`-style `do { EmRoutineSet(..); } while (0)` after a tested call: the loop notes
+      keep `li r3, 1` (the `return 1`) below the routine stores, so the call result (known 0 on the
+      fall-through, reused for the xFE/xFF zeros) stays in r3: `mr. r3, r3` + `stb r3` (RackBreakCk).
+    - A struct-copy `pModel = m` store the target issues before a pool 0.0f store that is NOT the
+      constant's last use: put the pointer store between the two 0.0f statements (Em1fClothSet
+      `x44; pModel; x48 = 0.0f; x4C; x50 = 0.0f`) — weight-0 stores go in LUID order.
+    - Crash: `int r = Rnd() % 5;` before the MotionSetCore statement (the `&em->mot` addi is then
+      computed after the call and regmove ties it to r4, issued after `mr r3`), m0 declared before m1.
+    - R30FBullJump: the landing tail (`MotionSetCore; MotionMoveF; xFE = 2`) repeated in the
+      `pos.y < y` arm and the `else if (end)` arm (jump2 cross-jumps it); the call following the
+      SndCall in one block makes its `li r3, 8` the last arg move like the target.
+    - R10FGondola: one `f32 dist` for the tgt distance AND the `emsetNo % 3` limit switch (multi-set
+      -> global pseudo f13 for the `fmadds` result), plus the GPR-first `cEmWepSetThrowF` alias
+      (COMPILER-DIFF 1) for `w->pWep->setThrow(&spd, t, &Em10AtkTbl[5])`.
+    - SetDamageDoor: switch-2's `case 1:` ends in `goto door_break;` into switch-1's case-2 body
+      (`ble` target = the first type-check copy).
+    - setHand: `tpl = w->mot[14]` AFTER the `wepType == 6` if in case 3 (shorter range -> r4).
+  - OPEN (8): LostHead (59 words: `cmpwi cr4, r28, 3` hoisted into the dispatch block, #5-like);
+    LadderClimbCk (38: the PI `lis` is hoisted by our loop pass 2 at 70 insns, threshold 71; the
+    original loop has >= 72 real insns at pass 2 — seven forms of the body tried, none changes the
+    count); SetTakeawayPos (34: `&best` allocated before `em` in the original, em r27/&best r28;
+    ours em first); RackBreakCk (28: em/e r31<->r30 — em needs 32 weighted refs, has 30 — and the
+    ternary temp r0 vs r9 with `li 61` after the compare; `int t = e->type; if (t == 0) ..` gives
+    the shape but moves the temp to r3); FindCk (20: em3c's bell OPEN, `lfs r`/`fmuls` late);
+    SetDamageDoor (12: kind/in r24<->r25 — kind 13 refs/259 vs in 10/204 needs +7 insns in kind's
+    range; a duplicated type-check body in case 1 flips it but pushes loop pass 1 to 301 > 284 and
+    loses the `high(EmMgr)` hoist); setHand (7: `no` r10 vs r11, case-3 `lwz tpl` first);
+    ShieldAtkCk (3: `fsubs f13, f0, f13` tied to op2 with em allocated f0 — no local-alloc order
+    reproduces em first AND the tie; `register .. asm("fr13")`, `+f` launders, `__builtin_fabsf`,
+    dy-style multi-set all tried).
 
 ### Small tool RELs, third pass (t_camera_draw Matching; t_camera_data 12/16, t_movie/t_se_at 11/19; 2026-09)
 
@@ -4883,3 +4925,55 @@ target) stays unresolved and `make_rel` then fails with "undefined symbol".
 - Post-increment in a loop condition (`i++ < n - 1`) yields `mr r0,rI; cmpw; addi rI` with `n-1`
   hoisted; `++i < n` yields the in-place biv compare.
 
+
+### Weapon modules (wep00/34/35/36/37, wep11/12/27/29/39 Matching; wep13 pl_rocket 20/24; include/wep_mod.h, src/wep/, src/wepXX/; 2026-09)
+
+- Every weapon REL is 2-4 objects, not one (config/G4BE08/modules.py UNITS; the `[cFlag.set()][atari.h][light.h]`
+  header-string group repeats once per object and pins each object's `.rodata`): the player routine object of the
+  weapon class (`PlXxxMove` + `wepNN_r2/r3_*` routines + the NAMED cManager<cLight> countActiveWork/create(int)
+  copies; byte-identical in every module of the class, so one shared source `src/wep/pl_<class>.cpp`: pl_machine
+  = wep11/12/27/29/39, pl_rocket = wep13, pl_handgun = wep01/02/04/05/06/15/38/43/44, pl_shotgun = 07/08/33,
+  pl_rifle = 09/10/40/47, pl_knife = 16/26, pl_bow = 28, pl_grenade = 19/30/41/42/45), then the module object
+  (`WepXX_init` [+ `equipWeapon`], the cObjXxx class when it is not a separate object, `ObjXxx_init`,
+  `_prolog/_epilog/_unresolved`, the nameless 0x3B8 cLight block, the cObj countActiveWork/createBack copies,
+  the cUnit copies). wep01/02/05/09/10/11/12/29/43 put the weapon class in its own FIRST object (wep02 has two:
+  objMauser + objRuger), wep14/wep17 have no routine object. The five hand modules (wep00/34-37) are one object.
+- `ObjXxx_init` scope follows the object layout: static when it sits in the module object (wep39/wep27: the REL
+  field holds S+A), global when the class is a separate object (wep11/wep29/wep12: `_prolog` in another object
+  stores it; the field is 0 either way because S = 0, so the .sym's `local` is wrong there).
+- The module's `.data` section is 8-aligned in the original (`lockCtr` u8 at 0, the routine tables from 4):
+  `asm(".section .data\n\t.balign 8\n\t.text")` at the end of the routine source, otherwise the REL's .data
+  moves by 4. Each routine object defines its OWN `u8 lockCtr = 0;` (.data+0, a copy of pl_wep.cpp's) in the
+  machine gun / rocket classes; the knife/grenade routines import the DOL's.
+- Skeleton (include/wep_mod.h): `_prolog` = `WeaponInitFunc = WepXX_init; WeaponMoveFunc = PlXxxMove;
+  ObjInitFunc[id] = ObjXxx_init; OSReport(...)`, `_epilog` = `ObjInitFunc[id] = 0`. `WepXX_init(cModel*)` =
+  `createBack(id)` (or `equipWeapon`), err on NULL, `pl->pWep->pObj = obj; obj->init(pl); obj->setMotion(pl);
+  EspDataLoad((u32) WEP_ARC_PTR(n), owner, 1); PlWepMot[0..2] = WEP_ARC_PTR(..)`. Player virtual slots used
+  by the modules: setRightHand (vtable 0x68), setLeftHand (0x70); cObjWep::init (0x70), setMotion (0x78).
+- `setMotion`: every `pl->pMotTbl[i] = WEP_ARC_PTR(n)` store is a `PSet(void*&, void*)` reference store (the
+  original reloads `pG` AND `pl->pMotTbl` after each one; a plain `[i]` store keeps `pG` for the in-struct
+  indices). `PL_ARC_PTR(pG->pPlArc, 0x5D)` for slot 0x3D, NULL slots as `PSet(.., 0)`.
+- cObjXxx::init: the light `static const Vec p0/p1` are declared in a block AFTER the modelInit error (the
+  string precedes them in .rodata); `AtariFlagsAnd(&sub2B4.atari, 0xFCFF)` (pointer form, `addi 0x2b4; lhz 0x1a`);
+  `PSet(wep.parent, parent)`; the type switch is `case 0: default:` + 1/2/3 (`cmpwi 1; beq; ble default`) with
+  `PSet(pMotNormal); PSet(pMotEmpty); wep.x24 = K; setAbility(..)` in that order; the ability constants are
+  folded products of the cObjWep::init defaults (`5.73f * 0.7f`, `2.86f * 0.7f`, `0.2864f * 0.7f`, `* 0.2f`,
+  `* 0.5f`). objTompson: `wep.parent = parent; U16Set(wep.x24, 0x34); wep.pMotNormal = ..; resetMotion();
+  setAbility(5.73f, 2.86f, 0.2864f, 0.2864f)` (the multiplies are real code there).
+- Routine bytes in the routine files: both plain `pl->xFC..xFF` stores and the int inline `PlRoutineSet(pl,
+  r0, r1, r2, r3)` occur, block by block; brute-force with the /tmp harness (24 permutations + the inline,
+  0.3 s each). Found: `PlRoutineSet` wherever an SI zero must not merge with a preceding QI byte store
+  (wep13 r2_throw `wep.step = 0` before the call), the natural `fc, fd, fe, ff` order for most plain blocks,
+  `RS(..); x3E0 = 0;` vs `x3E0 = 0; RS(..)` decided per block, and the `flags_420 & 0x40` else-arms need
+  `int md = 3; PlRoutineSet(pl, 0, 6, md, 0);` (a local for the xFE constant puts its `li` first).
+- `FACE_SET` (face blend reset) is a plain `{ }` block, not do/while(0): the loop notes flip the callee-saved
+  order of `pl` vs a `joyLKamae()` result (wep13 down30). `if ((int) pl->x3E0++ > 9)` gives the `mr r0,r9;
+  addi r9; cmpwi r0` post-increment (u32 field, signed compare). `int se = 0x28; if (..) se = 0x29;
+  SndCall(1, (u16) se, ..)` gives the `clrlwi` (multi-set int). `const f32 endFrame = 5.0f;` at the function
+  top orders the pool (pl_machine ready10). `cObjWep* obj = pl->pWep->pObj; obj->wep.mode = 5; obj->wep.step
+  = 0;` (one pObj load for two byte stores; the following `pl->pWep->pObj->setMotion(pl)` re-reads it).
+- OPEN (wep13 pl_rocket, 3 functions): r2_set keeps a callee-saved `&to` pseudo for the launcher line copy
+  where the original recomputes `addi r5,r1,0x18` and reads `to` from the frame (16 words; direct call,
+  inline-with-locals, pointer-parameter inline, memberwise copy, struct/array locals all tried); r2_next's
+  last arm `li r9,1; li r0,6` order (24 permutations + inline tried); down00 `li r9,3` before the stack-arg
+  `stw` of mot3.set (locals forms tried).
