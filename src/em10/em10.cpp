@@ -1851,9 +1851,11 @@ static void em10DmSetWep09(cEm10* em)
         if (type == 2) {
             int no;
             em10BloodSet(em, 0);
-            no = 0x11;
-            if (part->partsNo == 5) {
+            no = part->partsNo;
+            if (no == 5) {
                 no = 1;
+            } else {
+                no = 0x11;
             }
             em->xFC = type;
             em->xFD = no;
@@ -2579,7 +2581,8 @@ void cEm10::move()
         return;
     }
     if (seFlags28B & 0x80) {
-        w->flags |= 0x01000010;
+        w->flags |= 0x10;
+        w->flags |= 0x01000000;
         setStatus(3);
     }
     if (w->flags & 0x800) {
@@ -2660,19 +2663,21 @@ void cEm10::move()
         }
     }
     switch (x38D) {
-    case 7:
-    case 8:
-    case 9:
-        if (!EM_RTN(this, 1, 8)) {
-            EffectEspDelete(0, w->x69E, (u32) this, 0);
-            EffectEspgenDelete(0, w->x69E, (int) this);
-            EffectEfmDelete(0, w->x69E, (int) this);
-        }
+    default:
         break;
     case 5:
     case 6:
     case 0x1A:
         if (!EM_RTN(this, 1, 7)) {
+            EffectEspDelete(0, w->x69E, (u32) this, 0);
+            EffectEspgenDelete(0, w->x69E, (int) this);
+            EffectEfmDelete(0, w->x69E, (int) this);
+        }
+        break;
+    case 7:
+    case 8:
+    case 9:
+        if (!EM_RTN(this, 1, 8)) {
             EffectEspDelete(0, w->x69E, (u32) this, 0);
             EffectEspgenDelete(0, w->x69E, (int) this);
             EffectEfmDelete(0, w->x69E, (int) this);
@@ -2813,8 +2818,6 @@ void cEm10::move()
 void em10InitRtnSet(cEm10* em)
 {
     Em10Work* w = EM10_WK(em);
-    void** mot0 = &w->evtMot[0];
-    void** mot4 = &w->evtMot[4];
     u32 i;
 
     switch (em->type) {
@@ -2846,24 +2849,22 @@ void em10InitRtnSet(cEm10* em)
     w->x5D0 = 0.0f;
     w->x674 = Rnd() % 450 + 150;
     w->x67E = Rnd() % 90 + 90;
-    w->x66C = 0.0f;
     w->x680 = 0;
     w->x598.x = 0.0f;
     w->x598.y = 0.0f;
     w->x598.z = 0.0f;
+    w->x66C = 0.0f;
     w->x634 = 0;
     w->x68C = 0;
     w->x668 = 0;
-    w->x528 = 100000000.0f;
-    w->x6AD = 0xFF;
     w->x524 = 100000000.0f;
     w->x52C = 100000000.0f;
     w->x530 = 100000000.0f;
+    w->x528 = 100000000.0f;
+    w->x6AD = 0xFF;
     w->x664 = Rnd() % 150;
     w->x6B5 = 2;
-    w->x6B6 = 0;
     w->x5D8 = 1.0f;
-    w->x58C = 0;
     w->x660 = 0;
     w->sndId = 0;
     w->x670 = 0;
@@ -2871,6 +2872,8 @@ void em10InitRtnSet(cEm10* em)
     w->x5EC = 0;
     w->x682 = 0;
     w->pParasite = 0;
+    w->x6B6 = 0;
+    w->x58C = 0;
     for (i = 0; i < 5; i++) {
         w->x578[i] = 0;
     }
@@ -2895,8 +2898,6 @@ void em10InitRtnSet(cEm10* em)
     w->x6BF = 0;
     w->x646 = 450;
     w->x686 = Rnd() % 150 + 150;
-    w->x6C4 = 0;
-    w->x594 = 0;
     w->x6C0 = 0;
     w->x564 = 0;
     w->pGatling = 0;
@@ -2907,7 +2908,11 @@ void em10InitRtnSet(cEm10* em)
     w->x6A6 = 0;
     w->x6A8 = 0;
     w->x590 = 0;
+    w->x6C4 = 0;
+    w->x594 = 0;
     for (i = 0; i < 3; i++) {
+        void** mot0 = &w->evtMot[0];
+        void** mot4 = &w->evtMot[4];
         mot0[i] = 0;
         mot4[i] = 0;
     }
@@ -2921,8 +2926,12 @@ void em10InitRtnSet(cEm10* em)
     if (em->type == 0xA || em->type == 0xD) {
         Vec pos;
         Vec rot;
-        pos.x = pos.y = pos.z = 0.0f;
-        rot.x = rot.y = rot.z = 0.0f;
+        pos.x = 0.0f;
+        pos.y = 0.0f;
+        pos.z = 0.0f;
+        rot.x = 0.0f;
+        rot.y = 0.0f;
+        rot.z = 0.0f;
         w->pParasite = (cObj16*) SetObj16(PL_ARC_PTR(em->subArc, 0x227), PL_ARC_PTR(em->subArc, 0x228), em, em, 0x24, 4, &pos, &rot);
         if (w->pParasite) {
             PlArc* arc = em->subArc;
@@ -2931,7 +2940,11 @@ void em10InitRtnSet(cEm10* em)
                                      PL_ARC_PTR(arc, 0x22A), PL_ARC_PTR(arc, 0x229), PL_ARC_PTR(arc, 0x229));
         }
     }
-    if (em->x38D < 0x14 || em->x38D > 0x15) {
+    switch (em->x38D) {
+    case 0x14:
+    case 0x15:
+        break;
+    default:
         if (w->wepType == 7) {
             w->pWep->setEffAlways(0x10, 0x14);
             w->pWep->setEffFall(0x10, 0x1C);
@@ -2939,6 +2952,7 @@ void em10InitRtnSet(cEm10* em)
         if (w->wepType == 8 && w->pWep) {
             EstSetEm(w->pWep, -1, 0, 0, 0x10, 0x1F, 0, w->x69F, w->pWep, 0);
         }
+        break;
     }
     if (em->x38D == 0x1D) {
         w->x6B9 = 1;
@@ -2950,6 +2964,7 @@ void em10InitRtnSet(cEm10* em)
         em->setFindPL();
     }
     switch (em->x38D) {
+    case 0:
     default:
         em10SetWaitMotion(em, 0);
         em->setStatus(5);
@@ -3224,9 +3239,9 @@ void em10InitRtnSet(cEm10* em)
         em->scale.x = 1.0f;
         em->scale.y = 1.0f;
         em->scale.z = 1.0f;
-        w->scaleBase.z = 1.0f;
         w->scaleBase.x = 1.0f;
         w->scaleBase.y = 1.0f;
+        w->scaleBase.z = 1.0f;
         EmRoutineSet(em, 1, 0x66, 0, 0);
         break;
     case 0x3C:
@@ -3520,10 +3535,9 @@ static void em10_R1_Wait(cEm10* em)
             break;
         }
         if ((s16) pG->pl_life <= 0 || (pSUB && (s16) pG->sub_life <= 0)) {
-            em->xFC = one;
-            em->xFD = 0x1B;
-            em->xFE = 0;
-            em->xFF = 0;
+            do { // loop notes keep `one` at its declaration (update_equiv_regs moves single-use constants only outside loops)
+                EmRoutineSet(em, one, 0x1B, 0, 0);
+            } while (0);
             break;
         }
         if (em10FindCk(em, 0)) {
@@ -3777,8 +3791,8 @@ static void em10_R1_HideJump(cEm10* em)
         em->rot.y += Muku(&em->pos, &w->x54C, em->rot.y, 0.15707964f);
         em->rot.y = LIMIT_ANGLE(em->rot.y);
         MotionMoveF(em, 0);
-        v.y = 0.0f;
         v.x = 0.0f;
+        v.y = 0.0f;
         v.z = 200.0f;
         PSMTXMultVec(em->mat, &v, &v);
         y = SatMgr.getFloor(&v, 600.0f, 100000.0f, 0, 0);
@@ -5479,18 +5493,18 @@ static void em10_R1_R100TurnWalk(cEm10* em)
         em->xFE++;
     case 2:
         arc = em->subArc;
-        // `em->subArc` again: cse keeps the load pseudo (r11) for these two, `arc` is its copy (`mr r10, r11`)
-        m0 = PL_ARC_PTR(em->subArc, 0x18);
-        m1 = PL_ARC_PTR(em->subArc, 0x19);
+        m0 = PL_ARC_PTR(arc, 0x18);
+        m1 = PL_ARC_PTR(arc, 0x19);
         flag = (w->x518 < 0.0f) ? 0x41 : 1;
+        // direct `em->subArc` reads below: cse copies the `arc` load into a second pseudo (`mr r10, r11`)
         if (w->pShield) {
-            m0 = PL_ARC_PTR(arc, 0x16C);
-            m1 = PL_ARC_PTR(arc, 0x16D);
+            m0 = PL_ARC_PTR(em->subArc, 0x16C);
+            m1 = PL_ARC_PTR(em->subArc, 0x16D);
             flag = (em->flags_3C8 & 0x1000000) ? 0x41 : 1;
         }
         if (em->type == 10 || em->type == 13) {
-            m0 = PL_ARC_PTR(arc, 0x116);
-            m1 = PL_ARC_PTR(arc, 0x117);
+            m0 = PL_ARC_PTR(em->subArc, 0x116);
+            m1 = PL_ARC_PTR(em->subArc, 0x117);
         }
         MotionSetCore(em, MOTION(em), m0, (int) m1, 10, flag, 0);
         em->xFE++;
@@ -5905,7 +5919,9 @@ static void em10_R1_R320Gatling(cEm10* em)
                 em->setFindPL();
                 w->flags |= 0x40000;
             } else if ((s16) pG->pl_life <= 0 || (pSUB && (s16) pG->sub_life <= 0)) {
-                EmRoutineSet(em, one, 0x1B, 0, 0);
+                do { // loop notes keep `one` at its declaration (update_equiv_regs moves single-use constants only outside loops)
+                    EmRoutineSet(em, one, 0x1B, 0, 0);
+                } while (0);
             } else if (!em10FindCk(em, 0)) {
                 if (em->plDist2 < 9000000.0f) {
                     em->x38D = 0;
@@ -6173,15 +6189,11 @@ static void em10_R1_Pickup(cEm10* em)
             em10WeaponSet(em);
         }
         if (MotionMoveF(em, 0)) {
-            cEmWep* wep;
-            u8 type;
-            // assignments inside the condition: the compares read the load temps, the variables
-            // are copies (`mr r10, r0` / `mr r9, r0`, re-extended `clrlwi` at the second use)
-            if ((wep = w->pWep) != 0 && (type = w->wepType) == 4 && !(w->flags & 0x80000000)) {
+            if (w->pWep && w->wepType == 4 && !(w->flags & 0x80000000)) {
                 EmRoutineSet(em, 1, 0xE, 0, 0);
                 break;
             }
-            if (wep && type == 9 && w->x640 == 0 && (w->x524 < 15000.0f || em->x3D0 == 2) && (w->flags & 1)) {
+            if (w->pWep && w->wepType == 9 && w->x640 == 0 && (w->x524 < 15000.0f || em->x3D0 == 2) && (w->flags & 1)) {
                 if (em->flags_3C8 & 0x10000) {
                     EmRoutineSet(em, 1, 0xF, 0, 0);
                     break;
@@ -6879,6 +6891,8 @@ static void em10_R1_Goto(cEm10* em)
                     }
                 }
                 break;
+            case 0xE: // default-grouped case after [C-D]: shapes the compare tree (`ble` into the arm, `b` to default)
+                break;
             }
         }
         break;
@@ -6914,9 +6928,13 @@ static void em10_R1_Goto(cEm10* em)
             EmRoutineSet(em, 3, 3, 0, 0);
         }
         break;
-    case 6:
-        MotionSetCore(em, MOTION(em), PL_ARC_PTR(em->subArc, 0x73), (int) PL_ARC_PTR(em->subArc, 0x74), 10, (em->flags_3C8 & 0x1000000) ? 0x41 : 1, 0);
+    case 6: {
+        void* m0 = PL_ARC_PTR(em->subArc, 0x73);
+        void* m1 = PL_ARC_PTR(em->subArc, 0x74);
+        int flag = (em->flags_3C8 & 0x1000000) ? 0x41 : 1;
+        MotionSetCore(em, MOTION(em), m0, (int) m1, 10, flag, 0);
         em->xFE++;
+    }
     case 7:
         w->x24 = w->x4EC;
         em->rot.y += Muku(&em->pos, &w->x24, em->rot.y, 0.19634955f);
@@ -7786,11 +7804,11 @@ static void em10_R1_DoorAtk(cEm10* em)
                     em10SetDamageRack(em, 2);
                     break;
                 }
-                if (em10SetDamageDoor(em, 1) == 1) {
-                    em10SetDamageRack(em, 0);
+                if (em10SetDamageDoor(em, 1) != 1) {
+                    em10SetDamageRack(em, 2);
                     break;
                 }
-                em10SetDamageRack(em, 2);
+                em10SetDamageRack(em, 0);
             } else {
                 em10SetDamageDoor(em, 0);
                 em10SetDamageRack(em, 0);
@@ -8545,7 +8563,8 @@ static void em10_R1_JumpUp(cEm10* em)
     case 0:
         MotionSetCore(em, MOTION(em), PL_ARC_PTR(em->subArc, 0x1A0), (int) PL_ARC_PTR(em->subArc, 0x1A1), 10, 1, 0);
         f = w->x5E0.y - em->pos.y + 500.0f;
-        w->x18 = f * 0.010989011f;
+        w->x18 = f;
+        w->x18 *= 0.010989011f;
         w->x5A4.x = 0.0f;
         w->x5A4.y = w->x18 * 13.0f;
         w->x5A4.z = 0.0f;
@@ -9499,7 +9518,7 @@ static void em10_R1_ThrowAxe(cEm10* em)
     case 1:
         if (w->x4) {
             w->x4--;
-            em->rot.y += Muku(&em->pos, &pPL->pos, em->rot.y, 0.09817477f);
+            em->rot.y += Muku(&em->pos, &pPLS->pos, em->rot.y, 0.09817477f);
             em->rot.y = LIMIT_ANGLE(em->rot.y);
         }
         if (em->seFlags28B & 4) {
@@ -16108,7 +16127,7 @@ void em10RouteCk(cEm10* em)
     }
     w->x6AF = 0;
     if (w->flags & 0x8000) {
-        w->flags &= ~0x08000000;
+        BitOff(w->flags, 0x08000000);
         w->x534 = pPL->pos;
         w->x504 = Muku(&em->pos, &w->x534, em->rot.y, 3.1415927f);
         w->x508 = fabsf(w->x504);
@@ -16251,13 +16270,13 @@ void em10RouteCk(cEm10* em)
     } else {
         w->x680 = 0;
     }
-    w->x524 = RouteCkPosToPosDis(&em->pos, &pPL->pos);
+    FSet(w->x524, RouteCkPosToPosDis(&em->pos, &pPL->pos));
     w->x52C = RouteCkPosToPosDis(&w->x4D8, &pPL->pos);
     w->x530 = RouteCkPosToPosDis(&w->x4D8, &em->pos);
     if ((em->type == 0xA || em->type == 0xD) && w->x5EC == 0 && (w->flags & 0x100)) {
         r = w->x5F0;
     }
-    w->flags &= ~3;
+    BitOff(w->flags, 3);
     fl = 0;
     if (pPL->pos.y > em->pos.y + 1000.0f) {
         fl = 1;
@@ -16276,7 +16295,7 @@ void em10RouteCk(cEm10* em)
     }
     if (pSUB) {
         RouteCkToEm(em, pSUB, &w->x540, 0);
-        w->x528 = RouteCkPosToPosDis(&em->pos, &pSUB->pos);
+        FSet(w->x528, RouteCkPosToPosDis(&em->pos, &pSUB->pos));
         w->x514 = (em->pos.x - pSUB->pos.x) * (em->pos.x - pSUB->pos.x) + (em->pos.z - pSUB->pos.z) * (em->pos.z - pSUB->pos.z);
         w->x50C = Muku(&em->pos, &w->x540, em->rot.y, 3.1415927f);
         w->x510 = fabsf(w->x50C);
@@ -16380,7 +16399,7 @@ void em10RouteCk(cEm10* em)
         w->x51C = fabsf(w->x518);
         w->x520 = (em->pos.x - w->x4EC.x) * (em->pos.x - w->x4EC.x) + (em->pos.z - w->x4EC.z) * (em->pos.z - w->x4EC.z);
         w->x6AF = 1;
-        if (pG->flags_60 & 0x4000) {
+        if (pGS->flags_60 & 0x4000) {
             dbg = em->pos;
             dbg.y += 250.0f;
             Draw_line3d(&dbg, &w->x4EC, 0xFFFF0000, 0);
@@ -17214,8 +17233,17 @@ int em10LostHead(cEm10* em, int a, int b)
         paras = 1;
     }
     switch ((u32) a) {
-    case 1:
+    case 0:
     default:
+        SndStop(w->x5B8, 0);
+        SndStop(w->x5BC, 0);
+        SndCall(8, 7, &em->pos, em->id, 0, em);
+        w->flags |= 0x80;
+        EmSetDie(em);
+        EmReserveDropItem(em);
+        em10SetPoint(em);
+        break;
+    case 1:
         SndStop(w->x5B8, 0);
         SndStop(w->x5BC, 0);
         SndCall(8, 7, &em->pos, em->id, 0, em);
@@ -23234,7 +23262,7 @@ void cEm10::setWeaponFall()
             return;
         }
     }
-    switch (wtype) {
+    switch (w->wepType) {
     case 6:
     case 7:
     case 0xB:
@@ -23360,7 +23388,6 @@ void cEm10::setGoto(Vec* pos, int range)
 void cEm10::setGotoSwitch(cModel* sw, int near, Vec* pos)
 {
     Em10Work* w = EM10_WK(this);
-    Vec* dst;
     f32 y;
 
     if (w->flags & 0x4000) {
@@ -23368,18 +23395,16 @@ void cEm10::setGotoSwitch(cModel* sw, int near, Vec* pos)
     }
     w->x5EC = near ? 3 : 4;
     if (pos) {
-        dst = &w->x5F0;
-        *dst = *pos;
+        w->x5F0 = *pos;
     } else {
-        dst = &w->x5F0;
-        *dst = sw->pos;
+        w->x5F0 = sw->pos;
     }
-    y = SatMgr.getFloor(dst, 600.0f, 100000.0f, 0, 0);
+    y = SatMgr.getFloor(&w->x5F0, 600.0f, 100000.0f, 0, 0);
     if (y != -100000.0f) {
         w->x5F0.y = y + 50.0f;
     }
     w->pSwitch = sw;
-    w->x4EC = *dst;
+    w->x4EC = w->x5F0;
     w->flags |= 0x04000004;
     if (!(flags_3C8 & 0x40)) {
         w->flags &= ~0x100;
@@ -24793,6 +24818,7 @@ extern "C" int em10HideRtnCk(cEm10* em)
     u32 i;
     EmiEntry* e;
     f32 ang;
+    f32 a;
 
     if (pG->pRoomEmi == 0) {
         return 0;
@@ -24817,7 +24843,8 @@ extern "C" int em10HideRtnCk(cEm10* em)
                 }
             }
             ang = Muku(&e->pos, &pPL->pos, e->rotY, 3.1415927f);
-            if (fabsf(ang) > 1.0471976f) {
+            a = fabsf(ang);
+            if (a > 1.0471976f) {
                 continue;
             }
             {
@@ -24840,7 +24867,10 @@ extern "C" int em10HideRtnCk(cEm10* em)
                 }
             }
             em->rot.y = e->rotY;
-            EmRoutineSet(em, 1, 0x17, 0, 1);
+            em->xFC = 1;
+            em->xFD = 0x17;
+            em->xFE = 0;
+            em->xFF = 1;
             return 1;
         case 1:
             {
@@ -24856,7 +24886,8 @@ extern "C" int em10HideRtnCk(cEm10* em)
                 }
             }
             ang = Muku(&e->pos, &pPL->pos, e->rotY, 3.1415927f);
-            if (fabsf(ang) > 1.0471976f) {
+            a = fabsf(ang);
+            if (a > 1.0471976f) {
                 continue;
             }
             {
@@ -24879,7 +24910,10 @@ extern "C" int em10HideRtnCk(cEm10* em)
                 }
             }
             em->rot.y = e->rotY;
-            EmRoutineSet(em, 1, 0x17, 0, 0);
+            em->xFC = 1;
+            em->xFD = 0x17;
+            em->xFE = 0;
+            em->xFF = 0;
             return 1;
         case 2:
             if (w->wepType != 8) {
@@ -24894,7 +24928,8 @@ extern "C" int em10HideRtnCk(cEm10* em)
                 }
             }
             ang = Muku(&e->pos, &pPL->pos, e->rotY, 3.1415927f);
-            if (fabsf(ang) > 1.0471976f) {
+            a = fabsf(ang);
+            if (a > 1.0471976f) {
                 continue;
             }
             {
@@ -24906,7 +24941,10 @@ extern "C" int em10HideRtnCk(cEm10* em)
                 }
             }
             em->rot.y = e->rotY;
-            EmRoutineSet(em, 1, 0x1A, 0, 0);
+            em->xFC = 1;
+            em->xFD = 0x1A;
+            em->xFE = 0;
+            em->xFF = 0;
             return 1;
         }
     }
@@ -24919,6 +24957,7 @@ int em10HideRtnCk2(cEm10* em)
     u32 i;
     EmiEntry* e;
     f32 ang;
+    f32 a;
 
     if (pG->pRoomEmi == 0) {
         return 0;
@@ -24939,7 +24978,8 @@ int em10HideRtnCk2(cEm10* em)
                 }
             }
             ang = Muku(&e->pos, &pPL->pos, e->rotY, 3.1415927f);
-            if (fabsf(ang) > 1.0471976f) {
+            a = fabsf(ang);
+            if (a > 1.0471976f) {
                 continue;
             }
             {
@@ -24951,7 +24991,10 @@ int em10HideRtnCk2(cEm10* em)
                 }
             }
             em->rot.y = e->rotY;
-            EmRoutineSet(em, 1, 0x18, 0, 0);
+            em->xFC = 1;
+            em->xFD = 0x18;
+            em->xFE = 0;
+            em->xFF = 0;
             return 1;
         case 1:
             {
@@ -24963,7 +25006,8 @@ int em10HideRtnCk2(cEm10* em)
                 }
             }
             ang = Muku(&e->pos, &pPL->pos, e->rotY, 3.1415927f);
-            if (fabsf(ang) > 1.0471976f) {
+            a = fabsf(ang);
+            if (a > 1.0471976f) {
                 continue;
             }
             {
@@ -24975,7 +25019,10 @@ int em10HideRtnCk2(cEm10* em)
                 }
             }
             em->rot.y = e->rotY;
-            EmRoutineSet(em, 1, 0x18, 0, 1);
+            em->xFC = 1;
+            em->xFD = 0x18;
+            em->xFE = 0;
+            em->xFF = 1;
             return 1;
         case 2:
             if (w->wepType != 8) {
@@ -24990,7 +25037,8 @@ int em10HideRtnCk2(cEm10* em)
                 }
             }
             ang = Muku(&e->pos, &pPL->pos, e->rotY, 3.1415927f);
-            if (fabsf(ang) > 1.0471976f) {
+            a = fabsf(ang);
+            if (a > 1.0471976f) {
                 continue;
             }
             {
@@ -25002,7 +25050,10 @@ int em10HideRtnCk2(cEm10* em)
                 }
             }
             em->rot.y = e->rotY;
-            EmRoutineSet(em, 1, 0x1A, 0, 0);
+            em->xFC = 1;
+            em->xFD = 0x1A;
+            em->xFE = 0;
+            em->xFF = 0;
             return 1;
         }
     }
@@ -25556,12 +25607,11 @@ int em10GotoPosCk(cEm10* em)
     Em10Work* w = EM10_WK(em);
     u32 i;
     u32 j;
-    u32 k;
     int found;
     u32 cnt;
     EmiEntry* e;
     EmiEntry* f;
-    EmiEntry* g;
+    f32 d;
 
     if (pG->pRoomEmi == 0) {
         return 0;
@@ -25601,7 +25651,8 @@ int em10GotoPosCk(cEm10* em)
                 f32 dx = f->pos.x - pPL->pos.x;
                 f32 dy = f->pos.y - pPL->pos.y;
                 f32 dz = f->pos.z - pPL->pos.z;
-                if (dx * dx + dy * dy + dz * dz < 9000000.0f) {
+                d = dx * dx + dy * dy + dz * dz;
+                if (d < 9000000.0f) {
                     found = 1;
                     break;
                 }
@@ -25611,8 +25662,8 @@ int em10GotoPosCk(cEm10* em)
             continue;
         }
         cnt = 0;
-        for (k = 0; k < EmMgr.nArray; k++) {
-            cEm* o = (cEm*) ((u8*) EmMgr.pArray + EmMgr.size * k);
+        for (j = 0; j < EmMgr.nArray; j++) {
+            cEm* o = (cEm*) ((u8*) EmMgr.pArray + EmMgr.size * j);
             if ((o->be_flag & 0x201) != 1) {
                 continue;
             }
@@ -25632,7 +25683,8 @@ int em10GotoPosCk(cEm10* em)
                 f32 dx = o->pos.x - e->pos.x;
                 f32 dy = o->pos.y - e->pos.y;
                 f32 dz = o->pos.z - e->pos.z;
-                if (dx * dx + dy * dy + dz * dz > 25000000.0f) {
+                d = dx * dx + dy * dy + dz * dz;
+                if (d > 25000000.0f) {
                     continue;
                 }
             }
@@ -25644,21 +25696,21 @@ int em10GotoPosCk(cEm10* em)
         if (cnt < e->state) {
             return 0;
         }
-        for (k = 0; k < EMI_DATA->n; k++) {
-            g = &EMI_DATA->entry[k];
-            if (g->type != 0xF) {
+        for (j = 0; j < EMI_DATA->n; j++) {
+            f = &EMI_DATA->entry[j];
+            if (f->type != 0xF) {
                 continue;
             }
-            if (g->sub != 1) {
+            if (f->sub != 1) {
                 continue;
             }
-            if (g->pad_3 != e->pad_3) {
+            if (f->pad_3 != e->pad_3) {
                 continue;
             }
             if (!(em->flags_3C8 & 0x40)) {
                 w->flags &= ~0x100;
             }
-            em->setGoto(&g->pos, 0xC);
+            em->setGoto(&f->pos, 0xC);
             return 1;
         }
     }

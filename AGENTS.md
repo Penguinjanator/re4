@@ -3680,7 +3680,7 @@ target) stays unresolved and `make_rel` then fails with "undefined symbol".
     current frame, +0x294 motion count, +0x94 pos, +0xF4 parts list) everywhere; strings and pools in
     .rodata are in the order listed by secdump.
 
-### Ganado shared library (em10/em10.cpp, 346/382 byte-identical, .data/.rodata/.bss identical, not Matching; 2026-09)
+### Ganado shared library (em10/em10.cpp, 365/382 byte-identical, .data/.rodata/.bss identical, not Matching; 2026-09)
 
 - The unit is shared by 16 modules (`common_<mod>` .comm block from `REL_MODULE`, everything else
   identical); flag MATCHING for all 16 at once, only when every function matches. em10.cpp is in
@@ -3717,13 +3717,72 @@ target) stays unresolved and `make_rel` then fails with "undefined symbol".
   - `EmiData` loops: `for (i = 0; i < emi->n; i++) { EmiEntry* e = &emi->entry[i]; ..continue; }`.
   - status: objdiff REPLACE/ARG_MISMATCH rows whose text is identical or whose reloc differs only by
     `R_PPC_NONE` are matches (`/tmp/em10w/status2.py` resolved reloc targets by name).
-  - OPEN (36): FindCk's bell_stat pair (em3c note); global-alloc register order between a parameter
-    and a loop-local flag (SetDamageDoor `kind`/`in` r24<->r25: declaration order/scope/cast tried);
-    `int one` hoists in R1_Wait/R320Gatling; `mr r10, r11` arc copy in R100TurnWalk; Em1fClothSet's
-    `x48 = 0.0f` stored after pModel; R1_Crash's 0x74/0x78 load order; GetWanderRouteEmi's
-    strength-reduced entry pointer; R10FGondola's `fmadds` writing a fresh f13; the emi loops
-    (GotoPosCk keeps `em` in r12 with w in r31, one more callee-saved reg); InitRtnSet/RouteCk/
-    RackBreakCk/LostHead (long straight-line store orders).
+  - Third pass (348 -> 365, 2026-09-10; private harness /tmp/em10c: mcmp.py masked compare, sbs.sh
+    side-by-side objdump diff, variants.py + pbuild.sh incl. strip_unused/fold_linkonce):
+    - Long init store blocks (InitRtnSet): the target order is NOT the source order. Derive the
+      source from the sched1 model: between two calls, stores whose source register crosses a call
+      get a data dep to the next call (prio +2, issued first as a group), stores whose source was
+      defined after the previous call get an anti dep (prio +1, issued after); inside a group, the
+      store where a register dies (its LAST store in RTL) goes first, the rest in RTL order. So a
+      target block `A B C D E` where A's source dies means the source wrote `B C D E A`
+      (`x680, x598.x/y/z, x66C` after the f31 stores; `x524, x52C, x530, x528, x6AD`; Block B ends
+      `pParasite = 0; x6B6 = 0; x58C = 0`; the post-loop block ends `x6C4 = 0; x594 = 0`).
+    - `void** mot0 = &w->evtMot[0]` declared INSIDE the `for (i < 3)` body (both pointers): gcse PRE
+      hoists the two `w + ofs` to the first block after the join (r28-based `addi`, callee-saved r27/
+      r26) and the loop keeps `mr r8, r27; mr r10, r26` copies with one shared `i*4` giv (`stwx`).
+    - `switch (em->x38D)` in InitRtnSet needs `case 0: default:` (tree root 0x11, left subtree root
+      [7-9]); `switch (x38D) { case 0x14: case 0x15: break; default: ... }` gives the unfolded
+      `cmpwi 21; bgt; cmpwi 20; bge` pair (an `if (x < 0x14 || x > 0x15)` is range-folded).
+    - Six separate `pos.x = 0.0f; ... rot.z = 0.0f;` statements (chained `a = b = c = 0` reorders);
+      `scaleBase.x/y/z = 1.0f` in x, y, z order (target `z, x, y` = last-store-first).
+    - `a = fabsf(ang); if (a > K) continue;` with `f32 a` at FUNCTION scope set in three switch arms
+      gives the untied `fabs f0, f1` (a multi-set pseudo is not local-allocated); the direct
+      `if (fabsf(ang) > K)` ties `fabs f1, f1` (HideRtnCk/HideRtnCk2).
+    - Routine stores inside loops (HideRtnCk arms): PLAIN `em->xFC = 1; xFD = 0x17; xFE = 0; xFF = 0`
+      byte stores in all arms; the int inline's SI zero pseudos are combined and hoisted by loop.c
+      (`li r22, 0` callee-saved), QI zeros stay `li r0, 0` inside each arm.
+    - GotoPosCk: one `EmiEntry* f` reused for both inner loops (`mr r4, r11` giv copy, the register
+      set r25..r31), one `u32 j` for all inner loops (r6), and a FUNCTION-scope `f32 d` for the
+      inner-loop distances (`fmadds f0, f12, f12, f13`: the global pseudo takes f0, `dz` stays f12).
+    - cEm10::move: `w->flags |= 0x10; w->flags |= 0x01000000;` (two statements -> `ori; oris` order;
+      one `|= 0x01000010` gives `oris; ori`); the x38D switch written `default: break;` FIRST, then
+      `case 5: case 6: case 0x1A:`, `case 7: case 8: case 9:`, `case 0xA: case 0xB: break;` (the
+      jump.c "if (foo) bar; else break" swap needs the 5/6 body first and no `beq ARM; b END; ARM:`).
+    - LostHead: `switch ((u32) a) { case 0: default: BODY; break; case 1: BODY (identical copy);
+      break; case 2: ... }` -> `cmpwi 1; beq; cmplwi 1; blt; cmpwi 2; beq` (0 and 1 are separate
+      nodes only when case 1 has its own body; cross-jumping merges the copies).
+    - `int one = 1;` + `do { EmRoutineSet(em, one, 0x1B, 0, 0); } while (0);` keeps the `li r28, 1`
+      at the declaration across the calls (R1_Wait, R320Gatling): update_equiv_regs moves a
+      single-use constant next to its use only outside loop notes (`depth == 0`).
+    - RouteCk: `BitOff(w->flags, 0x08000000)` / `BitOff(w->flags, 3)` where the target keeps
+      `lwz pPL` below the flags store; `FSet(w->x524, RouteCkPosToPosDis(..))`, `FSet(w->x528, ..)`
+      where the following pPL/pSUB loads stay below the store; `pGS->flags_60` after the x520 store.
+    - setGotoSwitch: no `dst` pointer -- `w->x5F0 = *pos` / `= sw->pos`, `getFloor(&w->x5F0, ..)`,
+      `w->x4EC = w->x5F0` (PRE copies `addi r9, w, 0x5F0; mr r30, r9` in each arm, x from `1520(w)`).
+    - setWeaponFall: `u8 wtype = w->wepType` for the compares but `switch (w->wepType)` (direct
+      member) for the QI pseudo + `clrlwi` re-extension shape; Pickup: plain `w->pWep && w->wepType
+      == 4` / `== 9` member reads in both conditions (no temps).
+    - R100TurnWalk: `arc = em->subArc; m0/m1 = PL_ARC_PTR(arc, ..)` first, the later if-arms read
+      `em->subArc` directly (cse copies the load pseudo: `mr r10, r11`).
+    - DmSetWep09: `no = part->partsNo; if (no == 5) no = 1; else no = 0x11;` (`lha r0; cmpwi r0,5;
+      li r0,17; bne; li r0,1`: the else-set cannot pass the compare of the same register).
+    - JumpUp: `w->x18 = f; w->x18 *= 0.010989011f;` (the multiply result lands in the constant's
+      register f12, `x5A4.y` stored before `x18`).
+    - DoorAtk: `if (em10SetDamageDoor(em, 1) != 1) { em10SetDamageRack(em, 2); break; }
+      em10SetDamageRack(em, 0);` (the `== 1` form lays the arms out the other way round).
+    - ThrowAxe: `pPLS->pos` in the `w->x4--` Muku call; Goto: `case 0xE: break;` after the [C-D]
+      arm of the second x5EC switch (`ble ARM; b END`), and case 6's MotionSetCore with `m0/m1/flag`
+      locals (the `addi r4, em, 0x1d8` after the flag branch).
+  - OPEN (17, 3 of them compiler-side): LostHead's `cmpwi cr4, r28, 3` hoisted into the dispatch
+    block and the case-2 else arm (the `a == 3` compare kept in cr4 across the calls; #5-like
+    interblock motion, -0x14 bytes incl. mfcr/mtcrf); SetDamageDoor `kind`/`in` r24<->r25 and
+    SetTakeawayPos em r27<->r28 / p r28<->r29 (global-alloc order; declaration orders tried);
+    Crash m0/m1 r29<->r30; R30FBullJump `li r3, 8` issued after `mr r8` (the SndCall arg block has
+    no following call, so ours takes LUID order); R10FGondola `fmadds` fresh f13; ShieldAtkCk's
+    pSUB `fsubs` tied to op2; Em1fClothSet `x48` after pModel; Hide/HideFall/HideJump (em10HideOn
+    inline: target stores be_flag, atari, alpha, dmType, flags, x6B6 with the flags LOAD second --
+    24 statement orders and BitOn/EM10_WK forms tried); FindCk bell_stat; LadderClimbCk;
+    RackBreakCk (loop.c threshold); CatchPLRtnCk; setHand; GetWanderRouteEmi.
 
 ### Small tool RELs, third pass (t_camera_draw Matching; t_camera_data 12/16, t_movie/t_se_at 11/19; 2026-09)
 
