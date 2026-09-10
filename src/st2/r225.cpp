@@ -529,7 +529,15 @@ void SceElevator_r225(SceElevatorData* d)
         }
         obj->setPos(&d->pos);
         pPL->setPos(&d->plPos);
-        for (;;) {
+        // The up-loop is a goto loop in the target (`b TOP; SLEEP: SceSleep; spd += accel; TOP: ...`,
+        // no loop notes): loop.c hoists none of its highs, which the `for (;;)` form hoists into
+        // callee-saved registers (301 -> 285 words).
+        goto up_top;
+    up_sleep:
+        SceSleep(1);
+        spd += accel;
+    up_top:
+        {
             if (spd > maxSpd) {
                 spd = maxSpd;
             }
@@ -572,11 +580,11 @@ void SceElevator_r225(SceElevatorData* d)
                     }
                 }
                 SceAtExecRoomJump(d->room, &d->jumpPos, &d->jumpRot, 0);
-                break;
+                goto up_end;
             }
-            SceSleep(1);
-            spd += accel;
+            goto up_sleep;
         }
+    up_end:;
     }
     if (d->dir == 0 || d->dir == 2) {
         BitOff(pG->flags_5010, 0x10000000);

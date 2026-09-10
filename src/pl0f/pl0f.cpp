@@ -608,6 +608,7 @@ static void pl0f_R1_Drop(cPl0f* em)
             }
             for (i = 0; i < 2; i++) {
                 Vec d;
+                f32 s = spd;
 
                 d = w->node[i].spd;
                 if (d.x != 0.0f && d.y != 0.0f && d.z != 0.0f) {
@@ -618,8 +619,14 @@ static void pl0f_R1_Drop(cPl0f* em)
                 }
 #line 806
                 VECNormalize(&d, &d);
-                PSVECScale(&d, &d, spd);
+                PSVECScale(&d, &d, s);
                 w->node[i].spd = d;
+                // Dead test (flow deletes the store, jump2 the branch): its insns keep the loop
+                // above loop.c's pass-2 threshold, so the VECNormalize string `lis` stays inside
+                // the loop like the target's.
+                if (w->timer == 0) {
+                    s = 0.0f;
+                }
             }
         }
         break;

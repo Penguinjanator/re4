@@ -9503,3 +9503,79 @@ output to the installed compiler; NOTE mk.sh must rm the insn-*.o objects or a p
     iterated; the mid-gap units (item, cam_ctrl, puzzle, sce_at, em_sub, emwep, emrock, cam_extra, motion, shadow,
     card, cam_qfps, emmine, main_mem, db_cam, route_ck, pendulum, option, mercenaries, merchant, model, event, snd)
     were surveyed (per-function word counts in the sweep table) but not iterated beyond the two fixes above.
+
+### Dead-test lever sweep (pl0f R1_Drop 42 -> 0, pl0f 94 -> 95/104; r225 SceElevator_r225 301 -> 285; r10c/r120/r221/r22c/r204/r209 analysed; 2026-09-10)
+
+- Harness /tmp/deadtest (rooms_c4 copies with the paths rewritten; `tryv.py`/`vapply.py` also take single-unit
+  modules such as `pl0f/pl0f`; `fn.sh DUMP FUNC`; the SN gcse.c/lcm.c/cse.c/local-alloc.c source under `sngcc/`).
+- **Dead-test lever, rules of record** (a dead `if (X) local = K;` = the LostHead/setHand mechanism, generalised):
+  - Lifetimes: the store goes in flow (after loop.c, before combine/sched1/regalloc), the compare and its operand
+    load in jump2's `delete_computation` (after sched2/reload). So the test's insns COUNT for loop.c's
+    `insn_count` (both passes), gcse (CFG edges; its load/compare are hash-table occurrences), cse1's path
+    structure (its labels), global-alloc (a ref of the compared pseudo, live range extended to the compare) and
+    sched1's block boundaries; they never count for the final bytes.
+  - The store target must be a pseudo with OTHER refs in the function (a never-read variable is trivially dead:
+    deleted before cse1 and the empty `if` folded -> no effect at all, R120Event `done = 1`), and dead by
+    liveness (redefined before every read: a block-local copy at the loop top `f32 s = spd; ... s;` re-set at the
+    body end, a body-local pointer `u = 0;` before its real `u = f();`, `paras = 0` before the case-1 body).
+    Memory targets (Vec/array locals) are never deleted.
+  - Side effects that ruin the shape: (a) the test's operand creates a new occurrence of its `high`/address
+    expression -> PRE and a hoisted pointer (r22c `IdSys.active`: `&IdSys` becomes a callee-saved pseudo and the
+    loop's `addi r3,rH,IdSys@l` a `mr`; r10c `r10c_work.p->cnt`: high(r10c_work) PRE'd to the top) -- test a
+    symbol/field the function does not reference otherwise, or a local; (b) any computed temp in the test
+    (`eff2 * 100 + 5`) is a single occurrence our block LCM hoists across the following loop -> a ghost
+    callee-saved register (r221: +r14, frame +8); (c) a test inside a straight-line prologue splits sched1's
+    block, so the `lis`es hoisted to the function top lose their slots (r204 EventChandelier 94 -> 120..240,
+    r10c 95 -> 107..174); (d) a dead `if/else if/else` chain leaves the branch skeleton (the skip jumps do not
+    become jumps to the next insn, r10c dt2: 75 with `lbz; cmpwi; beq` residue) -- one test, one store,
+    falling into the next statement.
+  - Where it works: **inside a loop body to raise loop.c's pass-2 `insn_count`** (pl0f R1_Drop 42 -> 0: the
+    VECNormalize string `lis` needed insn_count > 71 = threshold*savings*life; the dead `if (w->timer == 0)
+    s = 0.0f;` at the body end adds 4). Check the arithmetic in the -dL dump first: `Loop from .. : N real
+    insns` (pass 2 is the second listing) and each movable's `savings`/`life`; the rule is
+    `threshold(71 with a call) * savings * life >= insn_count`, threshold -= 3 after every moved movable. A dead
+    test gives +3..+5: r225 operateCrank (262, the 2^52 `lfd` needs >= 285) and r10c hako_down (260; 0.0 moves at
+    284, -100.0 at 272 after the first move) are out of reach; their original loops had 13-25 more real insns.
+  - Register-priority use (r221 throwBonbe eff2 vs the pG high): a dead read of eff2 after its last use adds the
+    7th ref and extends the range to the compare; `if (eff2 == 0) atNo = 0;` after the last call gives 290
+    (window [293, 312]: eff2 then ranks above mot0/mot1, 23 words), the `* 100 + 5` form 296 (20 -> 12 words)
+    but with the ghost register above. Not applied.
+- **gcse basic blocks span calls** in these dumps (bb 0 of SetEmHitAtari holds 20 calls up to the first
+  `bne`): "PRE/HOIST: end of bb 0" inserts before that jump and sched1 then floats the free `lis` to the
+  function top (callee-saved). `insert_insn_end_bb` puts an insertion before the first parameter load only when
+  the block really ends in a CALL_INSN.
+- **cse2 re-materialises PRE'd `high` copies** (r10c SetEmHitAtari `lis r11` at P, R120Event `lis r9` for the
+  x4F8E test, R213Init): gcse turns the redundant occurrence into `(set P (reg R))` with the old
+  `REG_EQUAL (high sym)` note; cse2's `fold_rtx` returns R's known `(high sym)` (HIGH is CONSTANT_P), SN's
+  `CONST_COSTS` gives HIGH cost 0 = REG, and `cse_insn` prefers src_folded on ties -> `lis` again. The target
+  uses R directly (one `lis r31`/`lis r27` at the top, no second `lis`): the #3 family seen from cse2's side. A
+  dead test only changes WHICH blocks are redundant, never this fold, so it cannot produce the target's
+  one-`lis` shape (r10c `dtx_*`, r120 `else_*` variants: 41-107 words).
+- **cse's AROUND path needs no label between the jump and its target** (`cse_end_of_basic_block`:
+  `no_labels_between_p (p, q)` for the skip_blocks case; the TAKEN case needs a BARRIER before the label). An
+  inner `if` inside an outer `if` body therefore makes the code after the outer `if` a fresh ebb (R120Event's
+  tail: high(pG) recomputed -> PRE at bb 0's end). A dead `else { x = K; }` on the outer `if` gives the tail the
+  body's table instead (the arm ends in `b tail` = BARRIER), but then our cse2 fold above re-materialises the
+  highs per use (43-47 words).
+- r10c SetEmHitAtari (95, unchanged): the six pre-block loads come from `spdA = 0.01f; spdB = 0.05f; spdC =
+  0.06f;` written BEFORE the `if` with the then-arm's constants entered into the pool first by a dead
+  `{ const f32 k750 = 750.0f; ... k500 = 500.0f; }` block after `angC = 0.0f` (.rodata equal, structure equal;
+  residue: the 0.0 high hoisted to the top in r27 = a high pseudo that crossed calls in the original's RTL, and
+  the spdB/spdC f27/f28 order). A `f32 angA = 0.0f` declaration initialiser gives 59 words (cse merges the
+  later assignment, arms use f29). Not applied (same count).
+- r225 SceElevator_r225 (301 -> 285, applied): the target's up-loop is `b TOP; SLEEP: SceSleep(1); spd += accel;
+  cmpwi cr4,faded,0; TOP: ...` = a goto loop (`goto up_top; up_sleep: ...; up_top: {...; goto up_sleep;}`), no
+  loop notes, so none of its highs is hoisted (ours hoisted pG/RoomData/Fade into r18/r19/r24/r30). `while (1)`
+  and `do {} while (1)` compile like `for (;;)` here (no jump1 rotation: the body's first `if` is a clamp, not
+  a break). The `faded == 0` compare is PRE'd by both (`compare` expression, inserted at the dispatch block and
+  the latch); cr4 vs `mfcr r28` is the TexRegist pass-0 rule (a used callee-saved GPR is free in ours because
+  the loop's hoisted highs took different registers). Residue 285: SetPosXYZ-style inline blocks (`lfs y; lfs x;
+  lfs z; fadds; stfs x,y,z` with one shared slot at 8, the FadeSet colours reusing it), the shake loops'
+  `fRand1_1()` evaluated before `pos.x` (y-first), the down-loop -- needs its own pass.
+- Not dead-test shapes (analysed, unchanged): R209Main `j+1` / R402MoveDoor02 `&id` / R213Init `(plus fp 24)`
+  -- the block LCM's `delayin` is zero-initialised so it never passes a loop header and hoists a SINGLE occurrence
+  from the outer latch to the pre-inner-loop block (latein[B] & ~isoout[B] with isoout[B] = isoin[I] = 0); a kill
+  of `j` inside the inner loop would stop it but is never dead. r22c highscore (the loop's IdSys high must beat
+  `score` (14 refs) in priority: not by refs). r204 EventChandelier: the extra callee-saved register is the
+  crot0 high H kept apart from its lo_sum X (`lis r30; addi r25,r30`) = H had a second, deleted use in a
+  branch-free prologue (not a test).
