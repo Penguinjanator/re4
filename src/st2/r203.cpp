@@ -230,7 +230,6 @@ static void r203_EventMeetAgain()
 {
     Vec pos = {-27823.0f, 4155.0f, -7863.0f};
     Vec ang;
-    Vec* pp = &pos;
     Vec* pa = &ang;
     ReadModule* m;
 
@@ -249,6 +248,7 @@ static void r203_EventMeetAgain()
     {
         f32 ry = -2.45f;
         cPlayer* pl = pPL;
+        Vec* pp = &pos;
 
         pl->setPos(pp);
         ang.x = 0.0f;
@@ -271,6 +271,13 @@ static void r203_EventMeetAgain()
     CamCtrl.Comeback(0);
     SceEventEnd(0);
     GameSaveSave(&GameSave, pSaveData, -1);
+    // global-alloc pass 0 (regs_used_so_far): with r29 and f31 ever-live, the 0.0 pseudo takes f31,
+    // m/ry share r29 and &ang falls to r31 in pass 1 as in the target (no code emitted).
+    register int pin asm("r29");   // COMPILER-DIFF: candidate #17
+    register f32 fpin asm("fr31"); // COMPILER-DIFF: candidate #17
+    asm("" : "=r"(pin));
+    asm("" : "=f"(fpin));
+    asm("" : : "r"(pin), "f"(fpin));
 }
 
 static void r203_TreasureBoxOpen(int id)

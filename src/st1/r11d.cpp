@@ -269,14 +269,11 @@ static void r11d_execEmAppear_end()
     BitOff(pG->flags_174, 0x20000000);
     int list0[11] = {0xDD, 0xDF, 0xE0, 0xE1, 0xE2, 0xE3, 0xE4, 0xE5, 0xE7, 0xE8, 0xF5};
     int list1[9] = {0xED, 0xEE, 0xEF, 0xF2, 0xF3, 0xF4, 0xE9, 0xEA, 0xEB};
-    cEmWrap em;
     cEm* ladder;
     for (i = 0; i < 11; i++) {
+        cEmWrap em;
         cEmWrapSetPtrI(&em, list0[i], -1, 0);
-        if (em.isAlive() == 1) {
-            if (((cEmGanado*) em.getPtr())->ckTakeAway() == 1) {
-                break;
-            }
+        if (!(em.isAlive() == 1 && ((cEmGanado*) em.getPtr())->ckTakeAway() == 1)) {
             em.destroy();
         }
     }
@@ -410,16 +407,20 @@ extern "C" void r11d_execHide_main(int mode, u32 objId)
         const f32 add = 0.1f;
         f32 spd = 0.0f;
 
+        // A real loop (LOOP_BEG note after the call = sched1 barrier: the entry jump depends on the
+        // li r4..r8 but not on li r3, which the call re-sets, so `li r3,6` is issued last as in the
+        // target). The asm keeps jump1 from peeling the exit test (asm_noperands in the exit code).
         SndCall(6, 0x14, &pSUB->pos, 0, 0, 0);
-        goto open;
-    wait_open:
-        SceSleep(1);
-    open:
-        door->pParts->rot.x -= spd;
-        spd += add;
-        if (!(door->pParts->rot.x < lim)) {
-            goto wait_open;
+        for (;;) {
+            door->pParts->rot.x -= spd;
+            asm("" : "+f"(spd)); // COMPILER-DIFF: candidate #9
+            spd += add;
+            if (door->pParts->rot.x < lim) {
+                break;
+            }
+            SceSleep(1);
         }
+        door->pParts->rot.x = lim;
     } else {
         SndCall(6, 0x13, &pSUB->pos, 0, 0, 0);
         goto close;

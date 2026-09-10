@@ -151,19 +151,18 @@ static void r113_execHide(int mode)
         const f32 add = 0.1f;
         f32 spd = 0.0f;
 
-        // OPEN: the original issues this call's `li r3, 6` last (after the li r4..r8 and the spd load);
-        // ours first. The mode 1 call below (no float load in the block) matches with the same source.
-        // sched1 dump: all six `li`s tie on priority/weight and ours takes LUID order (r3 first); a
-        // void alias, a Vec* local, u32 result local, or spd assigned after the call do not move it.
+        // A real loop (LOOP_BEG note after the call = sched1 barrier: the entry jump depends on the
+        // li r4..r8 but not on li r3, which the call re-sets, so `li r3,6` is issued last as in the
+        // target). The asm keeps jump1 from peeling the exit test (asm_noperands in the exit code).
         SndCall(6, 0x14, &pSUB->pos, 0, 0, 0);
-        goto open;
-    wait_open:
-        SceSleep(1);
-    open:
-        door->pParts->rot.z += spd;
-        spd += add;
-        if (!(door->pParts->rot.z > lim)) {
-            goto wait_open;
+        for (;;) {
+            door->pParts->rot.z += spd;
+            asm("" : "+f"(spd)); // COMPILER-DIFF: candidate #9
+            spd += add;
+            if (door->pParts->rot.z > lim) {
+                break;
+            }
+            SceSleep(1);
         }
         door->pParts->rot.z = lim;
     } else {

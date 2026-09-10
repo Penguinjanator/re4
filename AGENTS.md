@@ -3744,7 +3744,7 @@ target) stays unresolved and `make_rel` then fails with "undefined symbol".
   menus) has 36 of 53 functions matched (skeleton, data and menus done; the disp/camera/target functions
   are left); the stage rooms are split (config/G4BE08/modules.py); r10d, r10e, r11a (st1_2), r109, r107,
   r10a (st1_1) and r102 (st1_1 + st1_3) are Matching, r108 (st1_1/st1_3) is Matching since pass 4
-  (2026-09-10); r11d (st1_3, 18/21 incl. reloc-only), r10f (st1_3, 11/14), r11e (st1_3, 16/18) and r119
+  (2026-09-10); r11d, r113 (st1_3) and r203 (st2_0) are Matching since pass 5 (2026-09-10); r10f (st1_3, 11/14), r11e (st1_3, 16/18) and r119
   (st1_2, 26/27: only Init's table-address registers differ) have full sources (include/obj00.h,
   obj13.h, objGondola.h are their room-side views of the DOL objects); r10c (st1_2, 15/23,
   .rodata/.data equal) and r11b (st1_2, 8/14 + the nameless cLight block, .rodata equal) are written;
@@ -11714,3 +11714,77 @@ stmt.c/jump.c and confirmed with cc1plus probes:
   target stores through the first high `stfs f1,m3r@l(r11)` -- #3/#12 high family), em_sub EmYarareContactCk 109 ->
   103 (prologue fixed; frame 0xd0 vs 0xc0 with one more GPR saved, allocation residue). The top-of-file #1 note and
   the "#1 / #8 research" section's "no source lever" sentence are superseded by this section.
+
+### Stage rooms, st1_1/st1_3/st2_0 pass 5 (r113, r11d, r203 Matching; r118 2, r105/r103/r11c #9 mechanism read; 2026-09-10)
+
+- Harness: /tmp/rooms_b5 (rooms_b4 copies with the paths rewritten; `out/` and `dump/` are symlinks into
+  ~/.cache/rooms_b5 because /tmp (32G tmpfs) was full -- `export TMPDIR=/home/adityas/.cache/tmp` before running
+  ngccc.py/cc1plus when `df /tmp` shows 100%; the zsh "write failed: no space left on device" lines are harmless).
+  ~/.cache/rooms_b5/sngcc is a cc1plus built from tools/sn-gcc with gcse.c `MAX_PASSES 2` (`xcc.sh` uses it):
+  NEGATIVE, identical word counts on r105 execOpenCover and r11c closeGate in every source form -- a second PRE pass
+  is not what the original did; nothing installed.
+- **The arg-`li` family closed (r113 execHide 5 -> 0, r11d execHide_main 6 -> 0): the insn after a LOOP_BEG/LOOP_END
+  note is a full sched1 barrier** (haifa `sched_analyze_insn`, `schedule_barrier_found`: it gets a TRUE dependence on
+  `reg_last_sets[i]` of EVERY register). When a call is followed by a real loop entered by a jump (`call; LOOP_BEG; b
+  START`), the entry jump depends on the call's `li r4..r8` (their registers' last sets) but NOT on `li r3` (r3's last
+  set is the CALL itself, which re-sets it), so `li r3,K` has one dependent fewer and is issued last -- the target's
+  "li r3 after lfs spd" order in the mode-0 arm (the mode-1 arm's goto loop has no notes and keeps LUID order, which is
+  why the same call matched there). A goto loop has no notes -> LUID order (ours). So the original's open arm was a real
+  loop: `SndCall(..); for (;;) { rot -= spd; asm("" : "+f"(spd)); spd += add; if (rot < lim) break; SceSleep(1); }`.
+  The asm (tagged `// COMPILER-DIFF: candidate #9`) only stops jump1's `duplicate_loop_exit_test` (`asm_noperands > 0`
+  in the exit code refuses the peel; the other refusals are a CALL_INSN, a CODE_LABEL, a LOOP_BEG/LOOP_CONT note or
+  more than 20 insns between the test label and LOOP_END -- ours has 18 here; inline helpers with a return label
+  refuse it too but leave `li r0`/`cmpwi` behind, `&&` adds a compare). The loop is then "phony" for loop.c (`-dL`:
+  gcse PRE's `high(add)`/`high(lim)` insertions at the end of the preheader block land AFTER the LOOP_BEG note, before
+  the `b START`, so `scan_loop`'s first insn is neither a label nor the entry jump) and nothing is hoisted -- the
+  target's per-iteration `lis/lfs` reloads, previously read as "goto loop".
+- Source-logic fixes found from 1-2 word diffs (check the branch targets with mcmp before any lever): r11d
+  execHide_main's open arm ends with `rot.x = lim` (the target's exit jumps to the close arm's `stfs f12,0xa0(r9)` =
+  cross-jumped final store); r11d execEmAppear_end declares `cEmWrap em;` INSIDE the 11-loop (the ctor `bl __7cEmWrap`
+  is at the loop label) and destroys every enemy except the one being taken away: `if (!(em.isAlive() == 1 &&
+  ckTakeAway() == 1)) em.destroy();` (was `if (alive) { if (takeAway) break; destroy; }`: a `bne`/`beq` pair 8 bytes
+  off). Unit 18 -> 21/21, flipped.
+- **r203 EventMeetAgain 26 -> 0 (unit Matching)**: (1) `Vec* pp = &pos;` declared at the USE (in the block after the
+  `if (waitLoadOk) {..}` join, next to `pl->setPos(pp)`), not at the top: the join block's `pp = fp+8` is a fresh
+  occurrence that gcse PREs (`mr r27,r11` = R copied from the template copy's pointer P right after `addi r11,r1,8`, `mr
+  r4,r27` at the call); at the top, cse1 folds `pp` into P and cprop removes the copy (`addi r28,r1,8` used directly).
+  A hard-register arg (`setPos(&pos)` -> `(set (reg 4) (plus fp 8))`) is never a gcse occurrence (pseudo dests only).
+  (2) The callee-saved permutation (m/ry r29, &ang r31, pPL high r28, R r27, 0.0 f31) is #17 with TWO pins:
+  `register int pin asm("r29"); register f32 fpin asm("fr31"); asm("" : "=r"(pin)); asm("" : "=f"(fpin)); asm("" : :
+  "r"(pin), "f"(fpin));` placed AFTER the last call (the input-only asm is a sched barrier; at the top it reorders the
+  template copy, 23 words). Why both: REG_ALLOC_ORDER lists the FPRs before the GPRs, so a NON_SPECIAL_REGS store-only
+  constant (0.0, prio 0.263, first) takes a used-so-far GPR in pass 0 unless an FPR is used-so-far too; with f31 pinned
+  0.0 -> f31, m and ry (non-overlapping) -> r29 in pass 0, &ang (conflicts with both) -> r31 in pass 1.
+- **r118 ThunderMove (2, left)**: `li r28,0` (`void* zero`) vs loop.c's hoisted `0x88888889` pair (`lis; ori`, split
+  from one `movsi` at sched1, same pseudo, no death -> weight +1 like the li): prio 1, weight 1, 0 dependents both; LUID
+  decides and the hoisted pair sits at the preheader END, after every source insn. The target issues `ori` in the
+  `bl SceSleep` cycle and `li r28` last, i.e. its zero came after the hoist (a pass-2 hoist or a later insertion). A
+  block-local `void* zero = 0` in the EstSet arm folds into the `andi.` result (#12 (b)); at the body top it is hoisted
+  before the constant (scan order). Not found.
+- **#9 family read (r105/r103 execOpenCover 25/27, r11c closeGate 21; all left)**: the target is jump1's peel PLUS
+  jump2's conditional cross-jump (jump.c `cross_jump && condjump_p`: `x = prev_real_insn (JUMP_LABEL (insn))` must be
+  an opposing jump back to the label right after `insn` (`jump_back_p`), then `find_cross_jump (insn, x, 2)` compares
+  the insns BEFORE both jumps): the peeled copy `lwz r9,pParts; lfs f0,rot; fcmpu f0,f13; blt END` before `TOP:` matches
+  the loop's `lwz; lfs; fcmpu; bge TOP` (3 insns; the `stfs` bases differ), the copy is deleted and `blt END` becomes
+  `b .L` with .L placed before the loop's `lwz` = the target's `sub; b test; L: sleep; sub; test: bge L`; the peel
+  also deleted the original `b TEST` so body and test are ONE block (the body's `lis r9; lfs f13,lim` is the test's
+  load scheduled up), and the copy's `lfs f13,lim` in the preheader is the dead remainder of the deleted compare. Ours
+  peels the same way (`while (1) { sub; if (rot < lim) break; SceSleep(1); }`) but loop.c then hoists `lim` and
+  `step` into f30/f31 (`fmr` copies after the peeled compare), so the loop's compare reads f31 and the copy's f13 -- no
+  match, no cross-jump. What stopped the original's loop.c is not known (a phony loop as in execHide needs an
+  insertion after LOOP_BEG, which the peel layout does not give; `for (init; cond;)`, `while (!(rot < lim))`,
+  hand-peeled `if (c) do {} while (c)` forms: 21-54 words). The tagged asm form (no peel, phony loop) gives 15-16 words
+  with `lim` reloaded in the test block instead of both predecessors -- not applied. r11c closeGate is the same peel +
+  cross-jump on a compare of the pseudo `y = pos.y - spd` (`f32 y` variable, `y` stored and compared: the body reuses
+  f0 for both); the pre keeps `fcmpu; stw; lfs; stfs; b .L` and `.L: bge TOP` alone. Note CCFP compares cannot be PRE'd
+  by gcse in our build (`can_copy_p[CCFPmode] = 0`: rs6000.md's movcc is CCmode only), so the compare-in-both-preds
+  shape is not PRE. `if (!(y < dst)) { top: SceSleep(1); y = ..; if (!(y < dst)) goto top; }` (peel_goto) gives the
+  target modulo `blt END` vs `b .L` and the f30/f31 swap (10 words); with loop notes (`peel_do`) the pre matches and
+  the body hoists `acc` (17).
+- r101 Event20 (2, left): the four PRE insertions at the end of bb 6 (`&win`, `&pos`, `high(pPL)`, `&ang`, prio 2,
+  1 uniform dependent each, LUID = expression index = first-occurrence order) fill the free slots in LUID order; the
+  target's order (pPL high, &win, &pos, &ang) and its `addi r26,r1,24` BEFORE `li r3,21` (prio 4) need `&ang` ranked
+  above an argument load -- a dead `do {} while (0)` or `Vec* pa = &ang` before SearchEmModule: 10/2 words.
+- r103 openShelf_main (4, left): the two pool highs `ra`/`rb` r9/r11 swapped = local-alloc qty order under the same
+  sched1 order (span A 3 vs B 2, QTY_CMP_PRI refs/span); statement swap, cModel* locals, FSet, const, literal,
+  declaration order: 4-16 words.
