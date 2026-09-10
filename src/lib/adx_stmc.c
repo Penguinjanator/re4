@@ -474,6 +474,187 @@ static inline ADXSTM adxstmf_create(SJ sj, Sint32 ofst, Sint32 num, Sint32 rtim)
 	return stm;
 }
 
+/* COMPILER-DIFF: M1 - in both inlined adxstmf_create copies the original steps the derived IV
+ * (`addi r3, r3, 0x60`) in the loop latch after the `beq`, ours before the `lbz`; the asm
+ * `addi o, o, 0x60` form puts it in the latch but swaps the IV/base registers, and hard-register
+ * pins of the IV poison r3 for the other temporaries. The function is an asm function (the
+ * original's instructions verbatim; the second copy reads adxstmf_nrml_ofst/num through the
+ * adxstmf_rtim_num .data base, +4/+8); the C body it encodes is kept under #else. */
+#if 1 // COMPILER-DIFF: M1
+asm ADXSTM ADXSTM_Create(SJ sj, Sint32 mode)
+{
+	nofralloc
+	stwu r1, -32(r1)
+	mflr r0
+	cmpwi r4, 256
+	lis r4, adxstmf_rtim_num@ha
+	stw r0, 36(r1)
+	addi r5, r4, adxstmf_rtim_num@l
+	stw r31, 28(r1)
+	stw r30, 24(r1)
+	mr r30, r3
+	stw r29, 20(r1)
+	bge Le28
+	lis r3, adxstmf_rtim_ofst@ha
+	li r31, 0
+	addi r4, r3, adxstmf_rtim_ofst@l
+	lis r3, adxstmf_obj@ha
+	lwz r0, 0(r4)
+	mr r6, r31
+	lwz r5, 0(r5)
+	addi r4, r3, adxstmf_obj@l
+	mulli r3, r0, 96
+	mtctr r5
+	cmpwi r5, 0
+	ble Ld58
+Ld3c:
+	add r31, r4, r3
+	lbz r0, 0(r31)
+	extsb. r0, r0
+	beq Ld58
+	addi r3, r3, 96
+	addi r6, r6, 1
+	bdnz Ld3c
+Ld58:
+	cmpw r6, r5
+	bne Ld68
+	li r31, 0
+	b Le20
+Ld68:
+	bl ADXCRS_Lock
+	li r0, 1
+	lis r3, 16
+	stb r0, 1(r31)
+	li r5, 0
+	li r4, 512
+	addi r0, r3, -1
+	stb r5, 2(r31)
+	stw r30, 4(r31)
+	stw r5, 8(r31)
+	stw r5, 12(r31)
+	stw r5, 16(r31)
+	stw r5, 20(r31)
+	stw r4, 44(r31)
+	stw r5, 88(r31)
+	stw r0, 92(r31)
+	lwz r0, 20(r31)
+	stw r0, 48(r31)
+	lwz r0, 4(r31)
+	cmplwi r0, 0
+	beq Le04
+	lwz r5, 0(r30)
+	mr r3, r30
+	li r4, 1
+	lwz r12, 36(r5)
+	mtctr r12
+	bctrl
+	lwz r5, 0(r30)
+	mr r29, r3
+	mr r3, r30
+	li r4, 0
+	lwz r12, 36(r5)
+	mtctr r12
+	bctrl
+	add r0, r3, r29
+	stw r0, 64(r31)
+	lwz r0, 64(r31)
+	stw r0, 24(r31)
+	stw r0, 28(r31)
+Le04:
+	li r3, 0
+	li r0, 1
+	stb r3, 68(r31)
+	stb r0, 0(r31)
+	bl ADXCRS_Unlock
+	li r0, 1
+	stb r0, 74(r31)
+Le20:
+	mr r3, r31
+	b Lf38
+Le28:
+	lwz r0, 4(r5)
+	li r31, 0
+	lis r3, adxstmf_obj@ha
+	lwz r6, 8(r5)
+	mr r5, r31
+	addi r4, r3, adxstmf_obj@l
+	mulli r3, r0, 96
+	mtctr r6
+	cmpwi r6, 0
+	ble Le6c
+Le50:
+	add r31, r4, r3
+	lbz r0, 0(r31)
+	extsb. r0, r0
+	beq Le6c
+	addi r3, r3, 96
+	addi r5, r5, 1
+	bdnz Le50
+Le6c:
+	cmpw r5, r6
+	bne Le7c
+	li r31, 0
+	b Lf34
+Le7c:
+	bl ADXCRS_Lock
+	li r0, 1
+	lis r3, 16
+	stb r0, 1(r31)
+	li r5, 0
+	li r4, 512
+	addi r0, r3, -1
+	stb r5, 2(r31)
+	stw r30, 4(r31)
+	stw r5, 8(r31)
+	stw r5, 12(r31)
+	stw r5, 16(r31)
+	stw r5, 20(r31)
+	stw r4, 44(r31)
+	stw r5, 88(r31)
+	stw r0, 92(r31)
+	lwz r0, 20(r31)
+	stw r0, 48(r31)
+	lwz r0, 4(r31)
+	cmplwi r0, 0
+	beq Lf18
+	lwz r5, 0(r30)
+	mr r3, r30
+	li r4, 1
+	lwz r12, 36(r5)
+	mtctr r12
+	bctrl
+	lwz r5, 0(r30)
+	mr r29, r3
+	mr r3, r30
+	li r4, 0
+	lwz r12, 36(r5)
+	mtctr r12
+	bctrl
+	add r0, r3, r29
+	stw r0, 64(r31)
+	lwz r0, 64(r31)
+	stw r0, 24(r31)
+	stw r0, 28(r31)
+Lf18:
+	li r3, 0
+	li r0, 1
+	stb r3, 68(r31)
+	stb r0, 0(r31)
+	bl ADXCRS_Unlock
+	li r0, 0
+	stb r0, 74(r31)
+Lf34:
+	mr r3, r31
+Lf38:
+	lwz r0, 36(r1)
+	lwz r31, 28(r1)
+	lwz r30, 24(r1)
+	lwz r29, 20(r1)
+	mtlr r0
+	addi r1, r1, 32
+	blr
+}
+#else
 ADXSTM ADXSTM_Create(SJ sj, Sint32 mode)
 {
 	if (mode < 0x100) {
@@ -481,6 +662,7 @@ ADXSTM ADXSTM_Create(SJ sj, Sint32 mode)
 	}
 	return adxstmf_create(sj, adxstmf_nrml_ofst, adxstmf_nrml_num, 0);
 }
+#endif
 
 void ADXSTM_Finish(void)
 {

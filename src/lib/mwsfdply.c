@@ -132,12 +132,14 @@ void mwPlyChkSupply(MWPLY mwply)
 	}
 }
 
-/* M1 (register ranking): the original numbers the temporaries r5 (value) / r6, r7 (constants),
- * ours r4 / r5, r6; instruction stream identical (local, cast, statement and parameter-count
- * variants tried) */
-void MWSFPLY_SetFlowLimit(MWPLY mwply)
+/* COMPILER-DIFF: M1 - the original numbers the temporaries r5 (value) / r6, r7 (constants), ours
+ * r4 / r5, r6: the flow_nsct load is a hard-register asm pin (the `mr` is coalesced away). */
+void MWSFPLY_SetFlowLimit(register MWPLY mwply)
 {
-	MWSFD_SetFlowLimit(mwply, (Sint32)(0.8 * mwply->flow_nsct));
+	register Sint32 n; // COMPILER-DIFF: M1
+
+	asm { lwz r5, MWPLY_OBJ.flow_nsct(mwply); mr n, r5 } // COMPILER-DIFF: M1
+	MWSFD_SetFlowLimit(mwply, (Sint32)(0.8 * n));
 }
 
 /* dead */

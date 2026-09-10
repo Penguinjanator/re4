@@ -23,4 +23,39 @@ SECTIONS
   __ArenaHi = 0x81780000;
   /* GX write-gather FIFO (include/gx.h declares it as an extern object). */
   GXWGFifo = 0xCC008000;
+  /* MWCC (CRI) objects call the EABI helpers by register number; SN's eabi has only _savefpr_14/_restfpr_14 as symbols. */
+  _savefpr_15 = _savefpr_14 + 0x4;
+  _restfpr_15 = _restfpr_14 + 0x4;
+  _savefpr_16 = _savefpr_14 + 0x8;
+  _restfpr_16 = _restfpr_14 + 0x8;
+  _savefpr_17 = _savefpr_14 + 0xc;
+  _restfpr_17 = _restfpr_14 + 0xc;
+  _savefpr_18 = _savefpr_14 + 0x10;
+  _restfpr_18 = _restfpr_14 + 0x10;
+  _savefpr_19 = _savefpr_14 + 0x14;
+  _restfpr_19 = _restfpr_14 + 0x14;
+  _savefpr_20 = _savefpr_14 + 0x18;
+  _restfpr_20 = _restfpr_14 + 0x18;
+  _savefpr_21 = _savefpr_14 + 0x1c;
+  _restfpr_21 = _restfpr_14 + 0x1c;
+  _savefpr_22 = _savefpr_14 + 0x20;
+  _restfpr_22 = _restfpr_14 + 0x20;
+  _savefpr_23 = _savefpr_14 + 0x24;
+  _restfpr_23 = _restfpr_14 + 0x24;
+  _savefpr_24 = _savefpr_14 + 0x28;
+  _restfpr_24 = _restfpr_14 + 0x28;
+  _savefpr_25 = _savefpr_14 + 0x2c;
+  _restfpr_25 = _restfpr_14 + 0x2c;
+  _savefpr_26 = _savefpr_14 + 0x30;
+  _restfpr_26 = _restfpr_14 + 0x30;
+  _savefpr_27 = _savefpr_14 + 0x34;
+  _restfpr_27 = _restfpr_14 + 0x34;
+  _savefpr_28 = _savefpr_14 + 0x38;
+  _restfpr_28 = _restfpr_14 + 0x38;
+  _savefpr_29 = _savefpr_14 + 0x3c;
+  _restfpr_29 = _restfpr_14 + 0x3c;
+  _savefpr_30 = _savefpr_14 + 0x40;
+  _restfpr_30 = _restfpr_14 + 0x40;
+  _savefpr_31 = _savefpr_14 + 0x44;
+  _restfpr_31 = _restfpr_14 + 0x44;
 }

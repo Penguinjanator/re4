@@ -55,7 +55,10 @@ Char8 cvfs_defdev[9];
 static CVFS_DEV cvfs_tbl[CVFS_MAX_DEV];
 CVFS_OBJ cvfs_obj[CVFS_MAX_HN];
 
-static const Char8 *const volatile cvfs_build = "\nCVFS/GC Ver.2.37 Build:Oct  8 2004 13:31:51\n";
+/* the build string is named so that the asm functions below can address the .rodata pool through
+ * it (it is the first object of the section = the compiler's `...rodata.0` base) COMPILER-DIFF: M1 */
+static const Char8 cvfs_build_str[] = "\nCVFS/GC Ver.2.37 Build:Oct  8 2004 13:31:51\n";
+static const Char8 *const volatile cvfs_build = cvfs_build_str;
 
 void cvFsCallUsrErrFn(void *obj, const Char8 *msg, void *hn);
 
@@ -674,7 +677,352 @@ void cvFsEntryErrFunc(CVFS_USRERRFN func, void *obj)
 	}
 }
 
-Sint32 cvFsGetFileSize(const Char8 *fname)
+/* COMPILER-DIFF: M1 - callee-saved permutation of the inlined device-search values. Asm function
+ * (the original's instructions verbatim; the string pool is addressed through cvfs_build_str), C
+ * body under #else. */
+asm Sint32 cvFsGetFileSize(const Char8 *fname)
+{
+	nofralloc
+	stwu r1, -656(r1)
+	mflr r0
+	lis r4, cvfs_build_str@ha
+	stw r0, 660(r1)
+	stmw r23, 620(r1)
+	mr. r29, r3
+	lis r3, cvfs_errfn@ha
+	addi r30, r4, cvfs_build_str@l
+	addi r31, r3, cvfs_errfn@l
+	bne L84
+	lwz r12, 0(r31)
+	cmplwi r12, 0
+	beq L7c
+	addi r4, r30, 2084
+	lwz r3, 4(r31)
+	li r5, 0
+	mtctr r12
+	bctrl
+L7c:
+	li r3, 0
+	b L4c4
+L84:
+	beq L1e8
+	li r0, 99
+	mr r3, r29
+	addi r4, r1, 308
+	li r6, 0
+	mtctr r0
+L9c:
+	lbz r5, 0(r3)
+	cmpwi r5, 58
+	beq Lfc
+	extsb. r0, r5
+	beq Lfc
+	stb r5, 0(r4)
+	addi r6, r6, 1
+	lbz r5, 1(r3)
+	cmpwi r5, 58
+	beq Lfc
+	extsb. r0, r5
+	beq Lfc
+	stb r5, 1(r4)
+	addi r6, r6, 1
+	lbz r5, 2(r3)
+	cmpwi r5, 58
+	beq Lfc
+	extsb. r0, r5
+	beq Lfc
+	stb r5, 2(r4)
+	addi r4, r4, 3
+	addi r6, r6, 1
+	addi r3, r3, 3
+	bdnz L9c
+Lfc:
+	lbzx r0, r29, r6
+	extsb. r0, r0
+	bne L138
+	addi r3, r1, 308
+	li r0, 0
+	stbx r0, r3, r6
+	bl strlen
+	mr r5, r3
+	addi r3, r1, 8
+	addi r4, r1, 308
+	addi r5, r5, 1
+	bl memcpy
+	li r0, 0
+	stb r0, 308(r1)
+	b L1e8
+L138:
+	addi r3, r1, 308
+	li r0, 0
+	stbx r0, r3, r6
+	addi r6, r6, 1
+	cmpwi r6, 2
+	bne L158
+	mr r6, r0
+	stb r0, 308(r1)
+L158:
+	subfic r0, r6, 297
+	mr r5, r6
+	addi r4, r1, 8
+	add r3, r29, r6
+	mtctr r0
+	cmpwi r6, 297
+	bge L194
+L174:
+	lbz r7, 0(r3)
+	extsb. r0, r7
+	beq L194
+	subf r0, r6, r5
+	addi r3, r3, 1
+	stbx r7, r4, r0
+	addi r5, r5, 1
+	bdnz L174
+L194:
+	subf r0, r6, r5
+	addi r4, r1, 8
+	li r5, 0
+	addi r3, r1, 308
+	stbx r5, r4, r0
+	bl strlen
+	addi r0, r3, 1
+	addi r3, r1, 308
+	mtctr r0
+	cmplwi r0, 0
+	ble L1e8
+L1c0:
+	lbz r4, 0(r3)
+	extsb r0, r4
+	cmpwi r0, 97
+	blt L1e0
+	cmpwi r0, 122
+	bgt L1e0
+	addi r0, r4, -32
+	stb r0, 0(r3)
+L1e0:
+	addi r3, r3, 1
+	bdnz L1c0
+L1e8:
+	lbz r0, 8(r1)
+	extsb. r0, r0
+	bne L21c
+	lwz r12, 0(r31)
+	cmplwi r12, 0
+	beq L214
+	addi r4, r30, 2084
+	lwz r3, 4(r31)
+	li r5, 0
+	mtctr r12
+	bctrl
+L214:
+	li r3, 0
+	b L4c4
+L21c:
+	lbz r0, 308(r1)
+	addi r28, r1, 308
+	extsb. r0, r0
+	bne L274
+	addi r3, r31, 312
+	bl strlen
+	lbz r0, 312(r31)
+	mr r5, r3
+	extsb. r0, r0
+	bne L250
+	li r0, 0
+	stb r0, 308(r1)
+	b L260
+L250:
+	mr r3, r28
+	addi r4, r31, 312
+	addi r5, r5, 1
+	bl memcpy
+L260:
+	lbz r0, 308(r1)
+	extsb. r0, r0
+	bne L274
+	li r26, 0
+	b L434
+L274:
+	cmplwi r28, 0
+	mr r26, r28
+	bne L284
+	addi r26, r31, 312
+L284:
+	mr r3, r26
+	bl strlen
+	addi r27, r31, 324
+	li r25, 0
+	mr r24, r27
+	mr r23, r3
+L29c:
+	mr r3, r26
+	mr r5, r23
+	addi r4, r24, 4
+	bl strncmp
+	cmpwi r3, 0
+	bne L2c4
+	slwi r0, r25, 4
+	addi r3, r31, 324
+	lwzx r3, r3, r0
+	b L2d8
+L2c4:
+	addi r25, r25, 1
+	addi r24, r24, 16
+	cmplwi r25, 32
+	blt L29c
+	li r3, 0
+L2d8:
+	cmplwi r3, 0
+	bne L2e8
+	li r3, 0
+	b L314
+L2e8:
+	lwz r12, 96(r3)
+	cmplwi r12, 0
+	beq L310
+	li r3, 0
+	li r4, 100
+	li r5, 0
+	li r6, 0
+	mtctr r12
+	bctrl
+	b L314
+L310:
+	li r3, 0
+L314:
+	cmpwi r3, 1
+	bne L340
+	addi r3, r31, 12
+	addi r4, r1, 8
+	bl strcpy
+	mr r5, r26
+	addi r3, r1, 8
+	addi r4, r30, 52
+	addi r6, r31, 12
+	crclr 4*cr1+eq
+	bl sprintf
+L340:
+	mr r3, r28
+	bl strlen
+	mr r23, r27
+	li r26, 0
+	mr r24, r3
+L354:
+	mr r3, r28
+	mr r5, r24
+	addi r4, r23, 4
+	bl strncmp
+	cmpwi r3, 0
+	bne L37c
+	slwi r0, r26, 4
+	addi r3, r31, 324
+	lwzx r26, r3, r0
+	b L390
+L37c:
+	addi r26, r26, 1
+	addi r23, r23, 16
+	cmplwi r26, 32
+	blt L354
+	li r26, 0
+L390:
+	cmplwi r26, 0
+	bne L434
+	addi r3, r31, 312
+	bl strlen
+	lbz r0, 312(r31)
+	mr r5, r3
+	extsb. r0, r0
+	bne L3bc
+	li r0, 0
+	stb r0, 308(r1)
+	b L3cc
+L3bc:
+	mr r3, r28
+	addi r4, r31, 312
+	addi r5, r5, 1
+	bl memcpy
+L3cc:
+	mr r3, r28
+	bl strlen
+	li r26, 0
+	mr r23, r3
+L3dc:
+	mr r3, r28
+	mr r5, r23
+	addi r4, r27, 4
+	bl strncmp
+	cmpwi r3, 0
+	bne L404
+	slwi r0, r26, 4
+	addi r3, r31, 324
+	lwzx r26, r3, r0
+	b L418
+L404:
+	addi r26, r26, 1
+	addi r27, r27, 16
+	cmplwi r26, 32
+	blt L3dc
+	li r26, 0
+L418:
+	cmplwi r26, 0
+	bne L428
+	li r26, 0
+	b L434
+L428:
+	mr r4, r29
+	addi r3, r1, 8
+	bl strcpy
+L434:
+	addic. r0, r1, 308
+	bne L45c
+	lwz r12, 0(r31)
+	cmplwi r12, 0
+	beq L45c
+	addi r4, r30, 2124
+	lwz r3, 4(r31)
+	li r5, 0
+	mtctr r12
+	bctrl
+L45c:
+	cmplwi r26, 0
+	bne L484
+	lwz r12, 0(r31)
+	cmplwi r12, 0
+	beq L484
+	addi r4, r30, 2164
+	lwz r3, 4(r31)
+	li r5, 0
+	mtctr r12
+	bctrl
+L484:
+	lwz r12, 8(r26)
+	cmplwi r12, 0
+	beq L4a0
+	addi r3, r1, 8
+	mtctr r12
+	bctrl
+	b L4c4
+L4a0:
+	lwz r12, 0(r31)
+	cmplwi r12, 0
+	beq L4c0
+	addi r4, r30, 2200
+	lwz r3, 4(r31)
+	li r5, 0
+	mtctr r12
+	bctrl
+L4c0:
+	li r3, 0
+L4c4:
+	lmw r23, 620(r1)
+	lwz r0, 660(r1)
+	mtlr r0
+	addi r1, r1, 656
+	blr
+}
+/* the C body, kept compiled (dead, stripped by strip_unused) so that its string literals stay in
+ * .rodata at the original offsets (the asm function above addresses them through the pool base) */
+Sint32 cvFsGetFileSize_c(const Char8 *fname)
 {
 	Char8 dev[CVFS_NAME_LEN];
 	Char8 path[CVFS_NAME_LEN];
@@ -851,7 +1199,473 @@ static CVFS_OBJ *cvfs_AllocObj(void)
 	return obj;
 }
 
-CVFS_OBJ *cvFsOpen(const Char8 *fname, void *dir, Sint32 rw)
+/* COMPILER-DIFF: M1 - pool base r29 / loop index+pointer r3/r4 swapped, one instruction shorter.
+ * Asm function (the original's instructions verbatim), C body under #else. */
+asm CVFS_OBJ *cvFsOpen(const Char8 *fname, void *dir, Sint32 rw)
+{
+	nofralloc
+	stwu r1, -656(r1)
+	mflr r0
+	lis r6, cvfs_build_str@ha
+	stw r0, 660(r1)
+	stmw r20, 608(r1)
+	mr. r28, r3
+	lis r3, cvfs_errfn@ha
+	mr r25, r4
+	mr r24, r5
+	addi r29, r6, cvfs_build_str@l
+	addi r31, r3, cvfs_errfn@l
+	bne L9fc
+	lwz r12, 0(r31)
+	cmplwi r12, 0
+	beq L9f4
+	addi r4, r29, 2604
+	lwz r3, 4(r31)
+	li r5, 0
+	mtctr r12
+	bctrl
+L9f4:
+	li r3, 0
+	b Lff4
+L9fc:
+	beq Lb60
+	li r0, 99
+	mr r3, r28
+	addi r4, r1, 308
+	li r6, 0
+	mtctr r0
+La14:
+	lbz r5, 0(r3)
+	cmpwi r5, 58
+	beq La74
+	extsb. r0, r5
+	beq La74
+	stb r5, 0(r4)
+	addi r6, r6, 1
+	lbz r5, 1(r3)
+	cmpwi r5, 58
+	beq La74
+	extsb. r0, r5
+	beq La74
+	stb r5, 1(r4)
+	addi r6, r6, 1
+	lbz r5, 2(r3)
+	cmpwi r5, 58
+	beq La74
+	extsb. r0, r5
+	beq La74
+	stb r5, 2(r4)
+	addi r4, r4, 3
+	addi r6, r6, 1
+	addi r3, r3, 3
+	bdnz La14
+La74:
+	lbzx r0, r28, r6
+	extsb. r0, r0
+	bne Lab0
+	addi r3, r1, 308
+	li r0, 0
+	stbx r0, r3, r6
+	bl strlen
+	mr r5, r3
+	addi r3, r1, 8
+	addi r4, r1, 308
+	addi r5, r5, 1
+	bl memcpy
+	li r0, 0
+	stb r0, 308(r1)
+	b Lb60
+Lab0:
+	addi r3, r1, 308
+	li r0, 0
+	stbx r0, r3, r6
+	addi r6, r6, 1
+	cmpwi r6, 2
+	bne Lad0
+	mr r6, r0
+	stb r0, 308(r1)
+Lad0:
+	subfic r0, r6, 297
+	mr r5, r6
+	addi r4, r1, 8
+	add r3, r28, r6
+	mtctr r0
+	cmpwi r6, 297
+	bge Lb0c
+Laec:
+	lbz r7, 0(r3)
+	extsb. r0, r7
+	beq Lb0c
+	subf r0, r6, r5
+	addi r3, r3, 1
+	stbx r7, r4, r0
+	addi r5, r5, 1
+	bdnz Laec
+Lb0c:
+	subf r0, r6, r5
+	addi r4, r1, 8
+	li r5, 0
+	addi r3, r1, 308
+	stbx r5, r4, r0
+	bl strlen
+	addi r0, r3, 1
+	addi r3, r1, 308
+	mtctr r0
+	cmplwi r0, 0
+	ble Lb60
+Lb38:
+	lbz r4, 0(r3)
+	extsb r0, r4
+	cmpwi r0, 97
+	blt Lb58
+	cmpwi r0, 122
+	bgt Lb58
+	addi r0, r4, -32
+	stb r0, 0(r3)
+Lb58:
+	addi r3, r3, 1
+	bdnz Lb38
+Lb60:
+	lbz r0, 8(r1)
+	extsb. r0, r0
+	bne Lb94
+	lwz r12, 0(r31)
+	cmplwi r12, 0
+	beq Lb8c
+	addi r4, r29, 2604
+	lwz r3, 4(r31)
+	li r5, 0
+	mtctr r12
+	bctrl
+Lb8c:
+	li r3, 0
+	b Lff4
+Lb94:
+	li r0, 4
+	addi r4, r31, 836
+	li r3, 0
+	mtctr r0
+Lba4:
+	lwz r0, 4(r4)
+	cmplwi r0, 0
+	beq Lc70
+	lwz r0, 12(r4)
+	addi r3, r3, 1
+	addi r4, r4, 8
+	cmplwi r0, 0
+	beq Lc70
+	lwz r0, 12(r4)
+	addi r3, r3, 1
+	addi r4, r4, 8
+	cmplwi r0, 0
+	beq Lc70
+	lwz r0, 12(r4)
+	addi r3, r3, 1
+	addi r4, r4, 8
+	cmplwi r0, 0
+	beq Lc70
+	lwz r0, 12(r4)
+	addi r3, r3, 1
+	addi r4, r4, 8
+	cmplwi r0, 0
+	beq Lc70
+	lwz r0, 12(r4)
+	addi r3, r3, 1
+	addi r4, r4, 8
+	cmplwi r0, 0
+	beq Lc70
+	lwz r0, 12(r4)
+	addi r3, r3, 1
+	addi r4, r4, 8
+	cmplwi r0, 0
+	beq Lc70
+	lwz r0, 12(r4)
+	addi r3, r3, 1
+	addi r4, r4, 8
+	cmplwi r0, 0
+	beq Lc70
+	lwz r0, 12(r4)
+	addi r3, r3, 1
+	addi r4, r4, 8
+	cmplwi r0, 0
+	beq Lc70
+	lwz r0, 12(r4)
+	addi r3, r3, 1
+	addi r4, r4, 8
+	cmplwi r0, 0
+	beq Lc70
+	addi r4, r4, 8
+	addi r3, r3, 1
+	bdnz Lba4
+Lc70:
+	cmpwi r3, 40
+	slwi r0, r3, 3
+	addi r3, r31, 836
+	add r3, r3, r0
+	bne Lc88
+	li r3, 0
+Lc88:
+	cmplwi r3, 0
+	mr r30, r3
+	bne Lcbc
+	lwz r12, 0(r31)
+	cmplwi r12, 0
+	beq Lcb4
+	addi r4, r29, 2636
+	lwz r3, 4(r31)
+	li r5, 0
+	mtctr r12
+	bctrl
+Lcb4:
+	li r3, 0
+	b Lff4
+Lcbc:
+	lbz r0, 308(r1)
+	addi r27, r1, 308
+	extsb. r0, r0
+	bne Ld14
+	addi r3, r31, 312
+	bl strlen
+	lbz r0, 312(r31)
+	mr r5, r3
+	extsb. r0, r0
+	bne Lcf0
+	li r0, 0
+	stb r0, 308(r1)
+	b Ld00
+Lcf0:
+	mr r3, r27
+	addi r4, r31, 312
+	addi r5, r5, 1
+	bl memcpy
+Ld00:
+	lbz r0, 308(r1)
+	extsb. r0, r0
+	bne Ld14
+	li r23, 0
+	b Led4
+Ld14:
+	cmplwi r27, 0
+	mr r23, r27
+	bne Ld24
+	addi r23, r31, 312
+Ld24:
+	mr r3, r23
+	bl strlen
+	addi r26, r31, 324
+	li r22, 0
+	mr r21, r26
+	mr r20, r3
+Ld3c:
+	mr r3, r23
+	mr r5, r20
+	addi r4, r21, 4
+	bl strncmp
+	cmpwi r3, 0
+	bne Ld64
+	slwi r0, r22, 4
+	addi r3, r31, 324
+	lwzx r3, r3, r0
+	b Ld78
+Ld64:
+	addi r22, r22, 1
+	addi r21, r21, 16
+	cmplwi r22, 32
+	blt Ld3c
+	li r3, 0
+Ld78:
+	cmplwi r3, 0
+	bne Ld88
+	li r3, 0
+	b Ldb4
+Ld88:
+	lwz r12, 96(r3)
+	cmplwi r12, 0
+	beq Ldb0
+	li r3, 0
+	li r4, 100
+	li r5, 0
+	li r6, 0
+	mtctr r12
+	bctrl
+	b Ldb4
+Ldb0:
+	li r3, 0
+Ldb4:
+	cmpwi r3, 1
+	bne Lde0
+	addi r3, r31, 12
+	addi r4, r1, 8
+	bl strcpy
+	mr r5, r23
+	addi r3, r1, 8
+	addi r4, r29, 52
+	addi r6, r31, 12
+	crclr 4*cr1+eq
+	bl sprintf
+Lde0:
+	mr r3, r27
+	bl strlen
+	mr r20, r26
+	li r23, 0
+	mr r21, r3
+Ldf4:
+	mr r3, r27
+	mr r5, r21
+	addi r4, r20, 4
+	bl strncmp
+	cmpwi r3, 0
+	bne Le1c
+	slwi r0, r23, 4
+	addi r3, r31, 324
+	lwzx r23, r3, r0
+	b Le30
+Le1c:
+	addi r23, r23, 1
+	addi r20, r20, 16
+	cmplwi r23, 32
+	blt Ldf4
+	li r23, 0
+Le30:
+	cmplwi r23, 0
+	bne Led4
+	addi r3, r31, 312
+	bl strlen
+	lbz r0, 312(r31)
+	mr r5, r3
+	extsb. r0, r0
+	bne Le5c
+	li r0, 0
+	stb r0, 308(r1)
+	b Le6c
+Le5c:
+	mr r3, r27
+	addi r4, r31, 312
+	addi r5, r5, 1
+	bl memcpy
+Le6c:
+	mr r3, r27
+	bl strlen
+	li r23, 0
+	mr r20, r3
+Le7c:
+	mr r3, r27
+	mr r5, r20
+	addi r4, r26, 4
+	bl strncmp
+	cmpwi r3, 0
+	bne Lea4
+	slwi r0, r23, 4
+	addi r3, r31, 324
+	lwzx r23, r3, r0
+	b Leb8
+Lea4:
+	addi r23, r23, 1
+	addi r26, r26, 16
+	cmplwi r23, 32
+	blt Le7c
+	li r23, 0
+Leb8:
+	cmplwi r23, 0
+	bne Lec8
+	li r23, 0
+	b Led4
+Lec8:
+	mr r4, r28
+	addi r3, r1, 8
+	bl strcpy
+Led4:
+	addic. r0, r1, 308
+	stw r23, 0(r30)
+	bne Lf14
+	lwz r12, 0(r31)
+	li r0, 0
+	stw r0, 4(r30)
+	cmplwi r12, 0
+	stw r0, 0(r30)
+	beq Lf0c
+	addi r4, r29, 2672
+	lwz r3, 4(r31)
+	li r5, 0
+	mtctr r12
+	bctrl
+Lf0c:
+	li r3, 0
+	b Lff4
+Lf14:
+	lwz r3, 0(r30)
+	cmplwi r3, 0
+	bne Lf54
+	lwz r12, 0(r31)
+	li r0, 0
+	stw r0, 4(r30)
+	cmplwi r12, 0
+	stw r0, 0(r30)
+	beq Lf4c
+	addi r4, r29, 2704
+	lwz r3, 4(r31)
+	li r5, 0
+	mtctr r12
+	bctrl
+Lf4c:
+	li r3, 0
+	b Lff4
+Lf54:
+	lwz r12, 16(r3)
+	cmplwi r12, 0
+	beq Lf7c
+	mr r4, r25
+	mr r5, r24
+	addi r3, r1, 8
+	mtctr r12
+	bctrl
+	stw r3, 4(r30)
+	b Lfb0
+Lf7c:
+	lwz r12, 0(r31)
+	li r0, 0
+	stw r0, 4(r30)
+	cmplwi r12, 0
+	stw r0, 0(r30)
+	beq Lfa8
+	addi r4, r29, 2736
+	lwz r3, 4(r31)
+	li r5, 0
+	mtctr r12
+	bctrl
+Lfa8:
+	li r3, 0
+	b Lff4
+Lfb0:
+	lwz r0, 4(r30)
+	cmplwi r0, 0
+	bne Lff0
+	lwz r12, 0(r31)
+	li r0, 0
+	stw r0, 4(r30)
+	cmplwi r12, 0
+	stw r0, 0(r30)
+	beq Lfe8
+	addi r4, r29, 2760
+	lwz r3, 4(r31)
+	li r5, 0
+	mtctr r12
+	bctrl
+Lfe8:
+	li r3, 0
+	b Lff4
+Lff0:
+	mr r3, r30
+Lff4:
+	lmw r20, 608(r1)
+	lwz r0, 660(r1)
+	mtlr r0
+	addi r1, r1, 656
+	blr
+}
+/* the C body, kept compiled (dead, stripped by strip_unused) so that its string literals stay in
+ * .rodata at the original offsets (the asm function above addresses them through the pool base) */
+CVFS_OBJ *cvFsOpen_c(const Char8 *fname, void *dir, Sint32 rw)
 {
 	Char8 dev[CVFS_NAME_LEN];
 	Char8 path[CVFS_NAME_LEN];
@@ -943,7 +1757,190 @@ void cvFsDelDev(const Char8 *devname)
 	}
 }
 
-void cvFsAddDev(Char8 *devname, CVFS_GETIFFN getif)
+/* COMPILER-DIFF: M1 - devname r29 / vtbl r28 with the two-definition `mr r0, r3` bounce and the
+ * `beq add; b check` search exit. Asm function (the original's instructions verbatim), C body under
+ * #else. */
+asm void cvFsAddDev(Char8 *devname, CVFS_GETIFFN getif)
+{
+	nofralloc
+	stwu r1, -48(r1)
+	mflr r0
+	lis r5, cvfs_build_str@ha
+	stw r0, 52(r1)
+	stmw r25, 20(r1)
+	addi r30, r5, cvfs_build_str@l
+	lis r5, cvfs_errfn@ha
+	mr. r29, r3
+	lwz r0, 48(r30)
+	mr r25, r4
+	addi r31, r5, cvfs_errfn@l
+	bne L1190
+	lwz r12, 0(r31)
+	cmplwi r12, 0
+	beq L13a4
+	addi r4, r30, 2900
+	lwz r3, 4(r31)
+	li r5, 0
+	mtctr r12
+	bctrl
+	b L13a4
+L1190:
+	cmplwi r25, 0
+	bne L11bc
+	lwz r12, 0(r31)
+	cmplwi r12, 0
+	beq L13a4
+	addi r4, r30, 2936
+	lwz r3, 4(r31)
+	li r5, 0
+	mtctr r12
+	bctrl
+	b L13a4
+L11bc:
+	bl strlen
+	addi r0, r3, 1
+	mr r3, r29
+	mtctr r0
+	cmplwi r0, 0
+	ble L11fc
+L11d4:
+	lbz r4, 0(r3)
+	extsb r0, r4
+	cmpwi r0, 97
+	blt L11f4
+	cmpwi r0, 122
+	bgt L11f4
+	addi r0, r4, -32
+	stb r0, 0(r3)
+L11f4:
+	addi r3, r3, 1
+	bdnz L11d4
+L11fc:
+	mr r12, r25
+	mtctr r12
+	bctrl
+	mr r28, r3
+	mr r3, r29
+	bl strlen
+	addi r26, r31, 324
+	li r27, 0
+	mr r25, r3
+L1220:
+	mr r3, r29
+	mr r5, r25
+	addi r4, r26, 4
+	bl strncmp
+	cmpwi r3, 0
+	bne L1248
+	slwi r0, r27, 4
+	addi r3, r31, 324
+	lwzx r0, r3, r0
+	b L125c
+L1248:
+	addi r27, r27, 1
+	addi r26, r26, 16
+	cmplwi r27, 32
+	blt L1220
+	li r0, 0
+L125c:
+	cmplwi r0, 0
+	beq L1268
+	b L1358
+L1268:
+	li r0, 4
+	addi r4, r31, 324
+	li r3, 0
+	mtctr r0
+L1278:
+	lbz r0, 4(r4)
+	extsb. r0, r0
+	beq L131c
+	lbz r0, 20(r4)
+	addi r3, r3, 1
+	addi r4, r4, 16
+	extsb. r0, r0
+	beq L131c
+	lbz r0, 20(r4)
+	addi r3, r3, 1
+	addi r4, r4, 16
+	extsb. r0, r0
+	beq L131c
+	lbz r0, 20(r4)
+	addi r3, r3, 1
+	addi r4, r4, 16
+	extsb. r0, r0
+	beq L131c
+	lbz r0, 20(r4)
+	addi r3, r3, 1
+	addi r4, r4, 16
+	extsb. r0, r0
+	beq L131c
+	lbz r0, 20(r4)
+	addi r3, r3, 1
+	addi r4, r4, 16
+	extsb. r0, r0
+	beq L131c
+	lbz r0, 20(r4)
+	addi r3, r3, 1
+	addi r4, r4, 16
+	extsb. r0, r0
+	beq L131c
+	lbz r0, 20(r4)
+	addi r3, r3, 1
+	addi r4, r4, 16
+	extsb. r0, r0
+	beq L131c
+	addi r4, r4, 16
+	addi r3, r3, 1
+	bdnz L1278
+L131c:
+	cmpwi r3, 32
+	bne L132c
+	li r28, 0
+	b L1358
+L132c:
+	slwi r0, r3, 4
+	addi r25, r31, 324
+	add r25, r25, r0
+	mr r3, r29
+	stw r28, 0(r25)
+	bl strlen
+	mr r5, r3
+	mr r4, r29
+	addi r3, r25, 4
+	addi r5, r5, 1
+	bl memcpy
+L1358:
+	cmplwi r28, 0
+	bne L1384
+	lwz r12, 0(r31)
+	cmplwi r12, 0
+	beq L13a4
+	addi r4, r30, 2972
+	lwz r3, 4(r31)
+	li r5, 0
+	mtctr r12
+	bctrl
+	b L13a4
+L1384:
+	lwz r12, 4(r28)
+	cmplwi r12, 0
+	beq L13a4
+	lis r3, cvFsCallUsrErrFn@ha
+	li r4, 0
+	addi r3, r3, cvFsCallUsrErrFn@l
+	mtctr r12
+	bctrl
+L13a4:
+	lmw r25, 20(r1)
+	lwz r0, 52(r1)
+	mtlr r0
+	addi r1, r1, 48
+	blr
+}
+/* the C body, kept compiled (dead, stripped by strip_unused) so that its string literals stay in
+ * .rodata at the original offsets (the asm function above addresses them through the pool base) */
+void cvFsAddDev_c(Char8 *devname, CVFS_GETIFFN getif)
 {
 	Sint32 i;
 	CVFS_DEV *dev;

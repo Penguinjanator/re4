@@ -145,6 +145,265 @@ void ADXB_ExecOneAu8(ADXB adxb)
 	}
 }
 
+/* COMPILER-DIFF: M6 - the original's unroller spells the 15th of the 16 unrolled 16-bit swaps of the
+ * 2ch loop as `extrwi 8,16` (zero-extended) where ours emits `srawi 8` for all 16; no C spelling
+ * changes one copy only and the hand-unrolled forms re-rank the 1ch preheader temporaries (M1).
+ * The function is therefore an asm function (the original's instructions verbatim); the C body it
+ * encodes is kept under #else. */
+#if 1 // COMPILER-DIFF: M6
+asm void ADXB_ExecOneAu16(ADXB adxb)
+{
+	nofralloc
+	stwu r1, -16(r1)
+	mflr r0
+	stw r0, 20(r1)
+	stw r31, 12(r1)
+	mr r31, r3
+	stw r30, 8(r1)
+	lwz r0, 4(r3)
+	lwz r30, 72(r3)
+	cmpwi r0, 1
+	bne Laac
+	lwz r3, 8(r31)
+	bl ADXPD_GetStat
+	cmpwi r3, 0
+	bne Laac
+	lwz r12, 120(r31)
+	addi r4, r31, 104
+	addi r5, r31, 108
+	addi r6, r31, 112
+	lwz r3, 124(r31)
+	mtctr r12
+	bctrl
+	lwz r5, 104(r31)
+	lwz r0, 96(r31)
+	lwz r4, 108(r31)
+	subf r3, r5, r0
+	cmpw r3, r4
+	ble L7b0
+	mr r3, r4
+L7b0:
+	lwz r0, 76(r31)
+	cmpw r3, r0
+	ble L7c0
+	mr r3, r0
+L7c0:
+	lbz r0, 14(r31)
+	slwi r4, r5, 1
+	lwz r6, 92(r31)
+	extsb r0, r0
+	cmpwi r0, 2
+	add r0, r6, r4
+	bne L990
+	lwz r4, 100(r31)
+	cmpwi r3, 0
+	li r8, 0
+	add r4, r4, r5
+	slwi r4, r4, 1
+	add r7, r6, r4
+	ble La8c
+	cmpwi r3, 8
+	addi r10, r3, -8
+	ble L938
+	addi r9, r10, 7
+	mr r4, r30
+	srwi r9, r9, 3
+	mr r5, r0
+	mr r6, r7
+	mtctr r9
+	cmpwi r10, 0
+	ble L938
+L824:
+	lhz r10, 0(r4)
+	addi r8, r8, 8
+	srawi r9, r10, 8
+	rlwimi r9, r10, 8, 8, 23
+	sth r9, 0(r5)
+	lhz r10, 2(r4)
+	srawi r9, r10, 8
+	rlwimi r9, r10, 8, 8, 23
+	sth r9, 0(r6)
+	lhz r10, 4(r4)
+	srawi r9, r10, 8
+	rlwimi r9, r10, 8, 8, 23
+	sth r9, 2(r5)
+	lhz r10, 6(r4)
+	srawi r9, r10, 8
+	rlwimi r9, r10, 8, 8, 23
+	sth r9, 2(r6)
+	lhz r10, 8(r4)
+	srawi r9, r10, 8
+	rlwimi r9, r10, 8, 8, 23
+	sth r9, 4(r5)
+	lhz r10, 10(r4)
+	srawi r9, r10, 8
+	rlwimi r9, r10, 8, 8, 23
+	sth r9, 4(r6)
+	lhz r10, 12(r4)
+	srawi r9, r10, 8
+	rlwimi r9, r10, 8, 8, 23
+	sth r9, 6(r5)
+	lhz r10, 14(r4)
+	srawi r9, r10, 8
+	rlwimi r9, r10, 8, 8, 23
+	sth r9, 6(r6)
+	lhz r10, 16(r4)
+	srawi r9, r10, 8
+	rlwimi r9, r10, 8, 8, 23
+	sth r9, 8(r5)
+	lhz r10, 18(r4)
+	srawi r9, r10, 8
+	rlwimi r9, r10, 8, 8, 23
+	sth r9, 8(r6)
+	lhz r10, 20(r4)
+	srawi r9, r10, 8
+	rlwimi r9, r10, 8, 8, 23
+	sth r9, 10(r5)
+	lhz r10, 22(r4)
+	srawi r9, r10, 8
+	rlwimi r9, r10, 8, 8, 23
+	sth r9, 10(r6)
+	lhz r10, 24(r4)
+	srawi r9, r10, 8
+	rlwimi r9, r10, 8, 8, 23
+	sth r9, 12(r5)
+	lhz r10, 26(r4)
+	srawi r9, r10, 8
+	rlwimi r9, r10, 8, 8, 23
+	sth r9, 12(r6)
+	lhz r10, 28(r4)
+	rlwinm r9, r10, 24, 24, 31
+	rlwimi r9, r10, 8, 8, 23
+	sth r9, 14(r5)
+	addi r5, r5, 16
+	lhz r10, 30(r4)
+	addi r4, r4, 32
+	srawi r9, r10, 8
+	rlwimi r9, r10, 8, 8, 23
+	sth r9, 14(r6)
+	addi r6, r6, 16
+	bdnz L824
+L938:
+	slwi r9, r8, 1
+	slwi r5, r8, 2
+	subf r4, r8, r3
+	add r5, r30, r5
+	add r6, r0, r9
+	add r7, r7, r9
+	mtctr r4
+	cmpw r8, r3
+	bge La8c
+L95c:
+	lhz r4, 0(r5)
+	srawi r0, r4, 8
+	rlwimi r0, r4, 8, 8, 23
+	sth r0, 0(r6)
+	addi r6, r6, 2
+	lhz r4, 2(r5)
+	addi r5, r5, 4
+	srawi r0, r4, 8
+	rlwimi r0, r4, 8, 8, 23
+	sth r0, 0(r7)
+	addi r7, r7, 2
+	bdnz L95c
+	b La8c
+L990:
+	cmpwi r3, 0
+	li r4, 0
+	ble La8c
+	cmpwi r3, 8
+	addi r6, r3, -8
+	ble La54
+	addi r5, r6, 7
+	mr r7, r30
+	srwi r5, r5, 3
+	mr r8, r0
+	mtctr r5
+	cmpwi r6, 0
+	ble La54
+L9c4:
+	lhz r6, 0(r7)
+	addi r4, r4, 8
+	srawi r5, r6, 8
+	rlwimi r5, r6, 8, 8, 23
+	sth r5, 0(r8)
+	lhz r6, 2(r7)
+	srawi r5, r6, 8
+	rlwimi r5, r6, 8, 8, 23
+	sth r5, 2(r8)
+	lhz r6, 4(r7)
+	srawi r5, r6, 8
+	rlwimi r5, r6, 8, 8, 23
+	sth r5, 4(r8)
+	lhz r6, 6(r7)
+	srawi r5, r6, 8
+	rlwimi r5, r6, 8, 8, 23
+	sth r5, 6(r8)
+	lhz r6, 8(r7)
+	srawi r5, r6, 8
+	rlwimi r5, r6, 8, 8, 23
+	sth r5, 8(r8)
+	lhz r6, 10(r7)
+	srawi r5, r6, 8
+	rlwimi r5, r6, 8, 8, 23
+	sth r5, 10(r8)
+	lhz r6, 12(r7)
+	srawi r5, r6, 8
+	rlwimi r5, r6, 8, 8, 23
+	sth r5, 12(r8)
+	lhz r6, 14(r7)
+	addi r7, r7, 16
+	srawi r5, r6, 8
+	rlwimi r5, r6, 8, 8, 23
+	sth r5, 14(r8)
+	addi r8, r8, 16
+	bdnz L9c4
+La54:
+	slwi r7, r4, 1
+	subf r5, r4, r3
+	add r6, r30, r7
+	add r7, r0, r7
+	mtctr r5
+	cmpw r4, r3
+	bge La8c
+La70:
+	lhz r4, 0(r6)
+	addi r6, r6, 2
+	srawi r0, r4, 8
+	rlwimi r0, r4, 8, 8, 23
+	sth r0, 0(r7)
+	addi r7, r7, 2
+	bdnz La70
+La8c:
+	stw r3, 144(r31)
+	slwi r3, r3, 1
+	li r0, 2
+	lbz r4, 14(r31)
+	extsb r4, r4
+	mullw r3, r4, r3
+	stw r3, 148(r31)
+	stw r0, 4(r31)
+Laac:
+	lwz r0, 4(r31)
+	cmpwi r0, 2
+	bne Lad8
+	lwz r12, 128(r31)
+	lwz r3, 132(r31)
+	lwz r4, 148(r31)
+	lwz r5, 144(r31)
+	mtctr r12
+	bctrl
+	li r0, 3
+	stw r0, 4(r31)
+Lad8:
+	lwz r0, 20(r1)
+	lwz r31, 12(r1)
+	lwz r30, 8(r1)
+	mtlr r0
+	addi r1, r1, 16
+	blr
+}
+#else
 void ADXB_ExecOneAu16(ADXB adxb)
 {
 	Uint16 *inbuf;
@@ -184,6 +443,7 @@ void ADXB_ExecOneAu16(ADXB adxb)
 		adxb->stat = ADXB_STAT_DONE;
 	}
 }
+#endif
 
 static Sint32 adxb_DecodeInfoAu(ADXB adxb, Uint8 *buf, Sint32 bsize, Sint16 *hdrlen, Sint32 *type)
 {

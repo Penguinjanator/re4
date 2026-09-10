@@ -32,16 +32,21 @@ Sint32 SFPTS_IsPtsQueFull(SFD sfd, Sint32 strm)
 	return PQ(sfd, strm).cnt >= PQ(sfd, strm).num;
 }
 
-static Sint32 sfpts_SearchPts(SFPTS_ENT *ent, Sint32 idx, Sint32 cnt, Sint32 num, Uint32 pos, Uint32 ofst,
+/* inlined into SFPTS_ReadPtsQue only; the hard-register asm pins (idx r4, st r3) are COMPILER-DIFF: M1 */
+static Sint32 sfpts_SearchPts(SFPTS_ENT *ent, register Sint32 idx0, Sint32 cnt, Sint32 num, Uint32 pos, Uint32 ofst,
 			      Uint32 size, Uint32 end)
 {
-	Uint32 st;
+	register Uint32 st;
+	register SFPTS_ENT *e;
 	Uint32 en;
-	Sint32 i;
+	register Sint32 i;
+	register Sint32 idx;
 
+	asm { mr r4, idx0; mr idx, r4 } // COMPILER-DIFF: M1
 	for (i = 0; i < cnt; i++) {
-		st = ent[idx].pos;
-		en = ent[idx].pos + ent[idx].len;
+		e = &ent[idx];
+		asm { lwz r3, SFPTS_ENT.pos(e); mr st, r3 } // COMPILER-DIFF: M1
+		en = e->pos + e->len;
 		if (en <= end) {
 			if (st <= pos && pos < en) {
 				return i;
@@ -60,22 +65,35 @@ static Sint32 sfpts_SearchPts(SFPTS_ENT *ent, Sint32 idx, Sint32 cnt, Sint32 num
  * search: the shifted view (sfd_buf.c SFBUF_HN). Volatile registers follow the declaration order from
  * r9 (r7/r8 go to the inlined loop's temporaries), the locals declared after the fourth get the
  * callee-saved ones: this order gives num/ofst/size r31/r30/r29 and ent/rd r11/r12 like the target.
- * M1: the target gives hn r7 and i r8 (before the loop temporaries), ours r9/r4. */
-Sint32 SFPTS_ReadPtsQue(SFD sfd, Sint32 strm, Uint32 pos, SFPTS_ENT *out)
+ * COMPILER-DIFF: M1 - the original ranks hn r7 (shared with the -1 constant) and i r8 before the
+ * inlined loop's temporaries, idx r4, st r3 and the tail temporaries r3; every one of them is a
+ * hard-register asm pin (`asm { op rN, ..; mr var, rN }`, the `mr` is coalesced away). A hard
+ * register written in asm is never used for a compiler temporary anywhere else in the function, so
+ * the tail's r3 values (cnt - i, &ent[idx]) had to be pinned as well. */
+Sint32 SFPTS_ReadPtsQue(register SFD sfd, register Sint32 strm, Uint32 pos, SFPTS_ENT *out)
 {
-	SFBUF_HN *hn;
-	Sint32 i;
+	register SFBUF_HN *hn; // COMPILER-DIFF: M1 (r7)
+	register SFBUF_HN *h0;
+	register Sint32 m1; // COMPILER-DIFF: M1 (the -1 in r7)
+	register Sint32 i;
+	register Sint32 c; // COMPILER-DIFF: M1 (r3)
+	register SFPTS_ENT *src; // COMPILER-DIFF: M1 (r3)
+	register Sint32 o;
 	Uint32 end;
 	SFPTS_ENT *ent;
-	Sint32 rd;
-	Sint32 num;
+	register Sint32 rd; // COMPILER-DIFF: M1 (r12)
+	register Sint32 num;
 	Uint32 ofst;
 	Uint32 size;
 	Sint32 cnt;
-	Sint32 idx;
+	register Sint32 idx; // COMPILER-DIFF: M1 (r4)
+	register Sint32 n;
 
-	out->pts = -1;
-	hn = SFBUF_GET_HN(sfd, strm);
+	asm { li r7, -1; mr m1, r7 } // COMPILER-DIFF: M1
+	((Sint32 *)&out->pts)[1] = m1; /* out->pts = -1 */
+	((Sint32 *)&out->pts)[0] = m1;
+	h0 = SFBUF_GET_HN(sfd, strm);
+	asm { mr r7, h0; mr hn, r7 } // COMPILER-DIFF: M1
 	ent = hn->w.u.ring.ptsque.ent;
 	ofst = hn->w.u.ring.sup.ofst;
 	size = hn->w.u.ring.sup.size;
@@ -89,13 +107,20 @@ Sint32 SFPTS_ReadPtsQue(SFD sfd, Sint32 strm, Uint32 pos, SFPTS_ENT *out)
 	cnt = hn->w.u.ring.ptsque.cnt;
 	if (cnt != 0) {
 		num = hn->w.u.ring.ptsque.num;
-		rd = hn->w.u.ring.ptsque.rd;
+		asm { lwz r12, SFBUF_HN.w.u.ring.ptsque.rd(hn); mr rd, r12 } // COMPILER-DIFF: M1
 		i = sfpts_SearchPts(ent, rd, cnt, num, pos, ofst, size, end);
 		if (i != -1) {
-			idx = sfpts_Wrap(rd + i, num);
-			hn->w.u.ring.ptsque.cnt -= i;
+			n = rd + i; /* idx = sfpts_Wrap(rd + i, num) */
+			asm { subf r4, num, n; mr idx, r4 } // COMPILER-DIFF: M1
+			if (n < num) {
+				idx = n;
+			}
+			asm { lwz r3, SFBUF_HN.w.u.ring.ptsque.cnt(hn); subf r3, i, r3; mr c, r3 } // COMPILER-DIFF: M1 (cnt -= i)
+			hn->w.u.ring.ptsque.cnt = c;
 			hn->w.u.ring.ptsque.rd = idx;
-			*out = hn->w.u.ring.ptsque.ent[idx];
+			o = idx << 4;
+			asm { lwz r3, SFBUF_HN.w.u.ring.ptsque.ent(hn); add r3, r3, o; mr src, r3 } // COMPILER-DIFF: M1 (&ent[idx])
+			*out = *src;
 		}
 	}
 	return 0;

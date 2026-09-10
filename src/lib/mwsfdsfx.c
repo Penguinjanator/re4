@@ -140,6 +140,15 @@ void MWSFD_MakeTblZ16(MWPLY mwply, void *tbl)
 	SFX_MakeTblZ16(mwply->sfx, &sfxfrm, tbl);
 }
 
+/* COMPILER-DIFF: M3 (.rodata order) - the original parsed mwsftag_GetAinfFromSj's "CRITAGS"/"CRITAGE"
+ * after MWSFTAG_UpdateTagInf's "SFXINFS"/"SFXINFE" and mwPlyAttachAddInfBuf's message (literal
+ * numbers @773/@774 > @742/@743/@746) while its .text precedes UpdateTagInf (the callee was emitted
+ * before its first caller). A named string is emitted at its declaration, so the three later
+ * strings are declared here, ahead of mwsftag_GetAinfFromSj's literals. */
+static const Char8 mwsftag_sfxinfs[] = "SFXINFS"; // COMPILER-DIFF: M3
+static const Char8 mwsftag_sfxinfe[] = "SFXINFE";
+static const Char8 mwsftag_msg_bufsize[] = "W2121001 : mwPlyAttachAddInfBuf(): bufsize is short.";
+
 /* pick the tag block out of the additional-info stream */
 static void mwsftag_GetAinfFromSj(MWPLY mwply)
 {
@@ -204,7 +213,7 @@ void MWSFTAG_UpdateTagInf(MWPLY mwply)
 	}
 	ck.data = mwply->tag_ptr;
 	ck.len = mwply->tag_size;
-	if (SJ_SearchTag(&ck, "SFXINFS", "SFXINFE", &out) == NULL) {
+	if (SJ_SearchTag(&ck, mwsftag_sfxinfs, mwsftag_sfxinfe, &out) == NULL) {
 		SFX_SetTagInf(sfx, NULL, 0);
 		return;
 	}
@@ -215,7 +224,7 @@ void MWSFTAG_UpdateTagInf(MWPLY mwply)
 Sint32 mwPlyAttachAddInfBuf(MWPLY mwply, void *buf, Sint32 bsize)
 {
 	if (bsize < mwply->ainf_bsize) {
-		MWSFSVM_Error("W2121001 : mwPlyAttachAddInfBuf(): bufsize is short.");
+		MWSFSVM_Error(mwsftag_msg_bufsize);
 		return 0;
 	}
 	mwply->addinf_buf = buf;
@@ -435,12 +444,10 @@ void mwPlyFxCnvFrmZ16(MWPLY mwply, void *dst)
  * layout and keeps the arm's dead `b end`, which the original has in all four switches; the first
  * switch's variable must be `v` too (the elimination needs a prior definition of the variable).
  * The four messages are named statics declared in reverse use order: the original's pool holds
- * them reversed (OPEN why; anonymous literals are emitted in use order). Residue M1: mwply/sfxfrm
- * r30/r31 vs the pool base r29 (ours ranks the pool base first).
- * OPEN (.rodata): the original parsed mwsftag_GetAinfFromSj's "CRITAGS"/"CRITAGE" after
- * mwPlyAttachAddInfBuf's string (literal numbers @773/@774 > @746) while its .text precedes
- * MWSFTAG_UpdateTagInf; defining the helper after mwPlyAttachAddInfBuf (forward declaration) gives
- * the .rodata order but moves its .text after UpdateTagInf in ours. */
+ * them reversed (OPEN why; anonymous literals are emitted in use order). COMPILER-DIFF: M1 -
+ * mwply/frm/sfxfrm r30/r27/r31 above the pool base r29 (ours ranked the pool base first) and the
+ * plane-1 load order are hard-register / asm-defined register pins. The .rodata order of the tag
+ * strings is fixed at mwsftag_GetAinfFromSj (COMPILER-DIFF: M3). */
 static const Char8 mwsfsfx_msg_chromapos[] = "E301274 : chromapos is invalid.";
 static const Char8 mwsfsfx_msg_chroma_format[] = "E301273 : chroma_format is invalid.";
 static const Char8 mwsfsfx_msg_pic_struct[] = "E301272 : picture_structure is invalid.";
@@ -464,16 +471,22 @@ typedef struct {
 	Sint32 crwidth;
 } MWSFSFX_YCC420PLN;
 
-void MWSFSFX_CnvFrmInfToSfx(MWPLY mwply, MWS_FRM *frm, SFX_FRM *sfxfrm)
+void MWSFSFX_CnvFrmInfToSfx(register MWPLY mwply0, register MWS_FRM *frm0, register SFX_FRM *sfxfrm0)
 {
+	register MWPLY mwply; // COMPILER-DIFF: M1 (r30, r27, r31: parameters above the pool base r29)
+	register MWS_FRM *frm;
+	register SFX_FRM *sfxfrm;
+
 	MWSFSFX_YCC420PLN pln;
 	Sint32 tag_b;
 	Sint32 tag_a;
 	Sint32 width;
 	Sint32 height;
 	Sint32 v;
+	register void *cb; // COMPILER-DIFF: M1 (plane 1 loads buf r0 before width r3)
+	register Sint32 cbw;
 
-	switch (frm->fmt) {
+	switch (frm0->fmt) {
 	case MWSFD_BUFFMT_1:
 		v = 1;
 		break;
@@ -488,6 +501,9 @@ void MWSFSFX_CnvFrmInfToSfx(MWPLY mwply, MWS_FRM *frm, SFX_FRM *sfxfrm)
 		v = 3;
 		break;
 	}
+	asm { mr r27, frm0; mr frm, r27 } // COMPILER-DIFF: M1 (hard-register pins, coalesced into the prologue copies; placed after the first frm use so that use keeps r4 and `lis r4` follows it)
+	asm { mr r30, mwply0; mr mwply, r30 } // COMPILER-DIFF: M1
+	asm { mr r31, sfxfrm0; mr sfxfrm, r31 } // COMPILER-DIFF: M1
 	sfxfrm->frmfmt = v;
 	width = frm->width;
 	height = frm->height;
@@ -498,7 +514,8 @@ void MWSFSFX_CnvFrmInfToSfx(MWPLY mwply, MWS_FRM *frm, SFX_FRM *sfxfrm)
 	} else {
 		mwPlyCalcYccPlane(frm->bufadr, width, height, (CFT_YCC420PLN *)&pln);
 		mwsfsfx_SetPln(&sfxfrm->pln[0], pln.y, pln.ywidth, height);
-		mwsfsfx_SetPln(&sfxfrm->pln[1], pln.cb, pln.cbwidth, height);
+		asm { lwz cb, pln.cb; lwz cbw, pln.cbwidth } // COMPILER-DIFF: M1 (asm-defined register locals: load order + r0/r3 by declaration order)
+		mwsfsfx_SetPln(&sfxfrm->pln[1], cb, cbw, height);
 		mwsfsfx_SetPln(&sfxfrm->pln[2], pln.cr, pln.crwidth, height);
 	}
 	sfxfrm->tblsrc = frm->tblsrc;

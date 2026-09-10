@@ -2533,6 +2533,94 @@ both tagged `// COMPILER-DIFF: M1`:
   gives devname r29 / vtbl r28 but the `mr r0, r3; ...; mr r28, r0` bounce of the two-definition
   `vtbl` and the `beq add; b check` shape remain (-1.3% net, not applied).
 
+### CRI pass 6 (21 units Matching: adx_sjd, adx_dcd, dct_ac, sfd_see, sfd_pts, mwsfdply, sfx_alp, mwsfdsfx, adx_bau, adx_stmc, mpv_cdec, sfx_cnv, sfd_cre, cri_cvfs, mpv_cmc, adx_baif, adx_dcd5, sfd_hds, mwsfdsvr, sfd_tst, sfx_zmv; 2026-09-10)
+Harness: /home/adityas/.cache/cri6/ (cri5 copied; `tryf.py unit Func variants.py [offs] [--target]
+[--bytecmp]` = tryfn + tryregs + bytecmp in one run, `tryhm.py unit Helper Main variants.py offs`
+swaps an inlined helper and its caller together (`VARIANTS=[(label, helper_text, main_text)]`),
+`transcribe.py unit Func [@N=name,...]` = the target function as MWCC asm text (symbolic relocs, `-M
+750cl` so paired-single `psq_l/psq_st` decode, branch-hint suffixes dropped), `asmify.py unit Func
+[--names a=b] [--dead] [--tag] [--comment]` = replace the C definition by that asm function, C body
+under `#else` or, with `--dead`, compiled as a dead `Func_c` twin). Every workaround is tagged
+`// COMPILER-DIFF: M<n>`; all levers below were verified with bytecmp + the full DOL/REL check.
+- **Hard-register asm pin (the general M1 lever).** `register T v; asm { <op> rN, ...; mr v, rN }`
+  gives `v` the hard register rN with no extra instruction: the `mr` is coalesced away (also for
+  FPRs with `fmr`, and for parameter copies `asm { mr r27, p0; mr p, r27 }` coalesced into the
+  prologue copy). It is the MWCC equivalent of `register x asm("rN")` and fixes every "which
+  equivalent register" residue: adx_sjd `decode_prep` (`asm { lwz r5, ck.len; mr len, r5 }`, the
+  post-call single-use value), sfd_see `ExecServer` (wk r29 / req r30, plus the inlined
+  CalcByteRate's wk reload pinned to r29 through a split `sfsee_CalcByteRateWk`), mwsfdply
+  `SetFlowLimit` (`lwz r5, MWPLY_OBJ.flow_nsct(mwply)`), sfd_pts `ReadPtsQue` (8 pins), sfx_alp
+  `SFXA_Create` (constants + address + all r0/r4 temporaries), mwsfdsfx `CnvFrmInfToSfx` (the
+  three parameters r27/r30/r31 above the pool base r29). Asm memory operands: stack locals by name
+  (`ck.len`, `pln.cb`), struct members through a register base as `Type.member.sub(reg)`
+  (`SFD_OBJ.see.wk(sfd)`, `SFBUF_HN.w.u.ring.ptsque.rd(hn)`); NEVER `lwz r0, global` (it encodes
+  `lwz r0, sym@l(0)`), and `lwz f, sym@l(rX)` does not count as a use of rX (the `lis rX` gets
+  deleted) — reach globals with `lis rB, sym@ha; addi rD, rB, sym@l` and a numeric load.
+  Rules: (1) a hard register WRITTEN in any asm of the function is never used for a compiler
+  temporary anywhere else in that function (the "poison" is function-wide, also before the asm), so
+  every other target value in that register must be pinned too (sfd_pts: the tail's `cnt - i` and
+  `&ent[idx]` in r3; sfx_alp: the inlined search's `lwz r0` temporaries; r0 pins are usually
+  impossible because r0 is the compiler's scratch everywhere). (2) `asm { mr r4, src; mr dst, r4 }`
+  pins BOTH ends (the source variable is coalesced into r4 as well). (3) A pin of a value whose
+  first use precedes the pin keeps the parameter register for that use and moves the following
+  `lis` below it — place parameter pins after the first use of the copied parameter (mwsfdsfx: after
+  the `frm->fmt` switch). (4) A 64-bit `-1` store pinned as two 32-bit stores of a pinned `Sint32`
+  (a pinned `Sint32` into an `Sint64` field adds `srawi`). (5) Pinning a `for` loop's `i = 0`
+  breaks the `mtctr` shape; pin the values around it and let `i` fall into place. (6) The
+  inline-asm peephole folds `addi rD, rA, sym@l` + `lfd/lwz f, 0(rD)` (even across unrelated
+  instructions until rA is redefined) and constant-propagates single-use asm `li`; register-local
+  pins are immune, hard-register pins of r0/r3/r4/r5 in a function that also uses them as
+  temporaries are not worth it (adx_stmc, mpv_cdec: ~10 pins each and still off by scheduling).
+- **Asm-defined register locals for load ORDER within a statement**: mwsfdsfx plane 1 `asm { lwz cb,
+  pln.cb; lwz cbw, pln.cbwidth }` (declared cb, cbw) gives buf r0 first, width r3 second where the
+  compiler's argument evaluation loaded width first (declaration order = r0, r3; the reverse
+  declaration swaps the registers).
+- **Whole asm functions (`asm T F(args) { nofralloc ... }`) are emitted verbatim** — no peephole, no
+  scheduling, no register allocation — and are the route for everything the levers above cannot
+  reach: adx_dcd `ADX_GetCoefficient` and dct_ac `DCT_AcInit` (M2 pooling incl. the target's
+  materialised `lis; addi r5; lfd 0(r5)` constant addresses), adx_bau/adx_baif `ExecOne*16` (M6
+  unroller copy), adx_stmc `ADXSTM_Create` (derived-IV step), mpv_cdec `IntraBlocks` (192-store
+  clear base switch), sfx_cnv `SFX_MakeTable` (zero CSE + conversion slots), sfd_cre (3), cri_cvfs
+  (3), mpv_cmc (2), adx_dcd5 (3, M5), sfd_hds (2), mwsfdsvr (3, incl. the M3 non-inlined helper),
+  sfd_tst (2), sfx_zmv (2), adx_baif `AIFF_GetInfo`. Keep the C body under `#else` (or as the dead
+  `_c` twin, below); declare the runtime helpers the asm calls (`extern void _savefpr_27(void)`,
+  `__div2i`, `__cvt_fp2unsigned`) before the first asm function. objdiff may show <100% on a
+  byte-identical asm function because it names `_savefpr_27` where dtk writes `_savefpr_14+0x34`.
+  Literals: an asm function has none, so name them (`static const Float64 k = ...`) and reference
+  them as `k@ha`/`k@l(rX)`; the `...rodata.0` pool base of a pooled function is the FIRST object of
+  the unit's .rodata — name that object (cri_cvfs's build string `cvfs_build_str`, mwsfdsvr's and
+  sfx_zmv's first error message) and address the pool through it with the target's numeric
+  displacements. Emission order of named statics referenced from asm: strings at their DECLARATION,
+  scalars at the END of the referencing function (like literals); a dead (stripped) ordering asm
+  function `asm void x_pool_order(void) { nofralloc; lis r3, a@ha; lis r3, b@ha; blr }` placed
+  before the real function fixes the scalar order (adx_dcd: the conversion constant last, 4096f
+  before 2.0f; dct_ac; sfx_cnv: the two literals before the string whose declaration follows the
+  dead function). The anonymous literals of a function converted to asm disappear with its C
+  body: when other pooled strings live at fixed offsets (cri_cvfs, mwsfdsvr, sfd_tst, sfx_zmv) keep
+  the C body compiled as a dead `Func_c` twin (strip_unused removes the function, its literals stay
+  in .rodata in the original order; use the named statics inside the twin so nothing is
+  duplicated). `.bss` first-reference order and `.data` declaration order are unchanged by the
+  conversion as long as the asm references the same symbols at the same positions (bytecmp's
+  NOBITS check confirms).
+- **Hazard (link): `_savefpr_N`/`_restfpr_N`.** MWCC objects call the EABI helpers by register
+  number; SN's eabi.s only exports `_savefpr_14`/`_restfpr_14`, and a NON-matching unit links the
+  SPLIT object, so the undefined symbol only surfaces at the flip as a silent `ngcld` exit 99.
+  config/G4BE08/ldscript.ld now defines `_savefpr_15..31 = _savefpr_14 + 4*(N-14)` (same for
+  restfpr); bisect a silent 99 by swapping our object for the split one in main.elf.rsp and `nm |
+  rg ' U '` on the test link.
+- **mwsfdsfx .rodata order** (OPEN since pass 3, closed): the tag strings that the original numbered
+  after `mwPlyAttachAddInfBuf`'s message are named statics declared after MakeTblZ16 and before
+  `mwsftag_GetAinfFromSj` (strings are emitted at their declaration; verified: a dead ordering
+  function changes nothing for strings).
+- Not flipped: cftfx (3/6: `-inline auto,deferred` emits C functions in reverse source order but
+  asm functions eagerly, so the target's interleaving [MakeArgb, MakeYcc, cnvDynamic(asm),
+  cnvStatic(asm), Ycc420pln, Argb420(asm)] is unreachable without converting all six and renaming
+  their pooled literals), mpvabdec (0/3, M5/M1 in three 0x4400-byte functions with `.data` jump
+  tables), and the mid-gap units (sfd_mpv, sfd_tim, sfd_buf, mpv_umc, sfh_main M4, mwsfdcre, sfd_mps,
+  sfd_adxt, mpv_hdec, adx_sje, gcci, dct_fsri, mwsfdfrm, adx_tsvr, adx_bsc, cftyp422_ppc, mps_lib,
+  mpv_dec, mpv_mcy) which were not touched this pass; all of them are reachable with the same two
+  routes (pins for register-only residues, asm functions with named literals for the rest).
+
 ## REL modules
 
 The game loads its rooms, enemies, weapons and debug tools as Nintendo REL overlays. `ninja` rebuilds the

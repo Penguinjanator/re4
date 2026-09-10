@@ -55,14 +55,25 @@ void SFXA_Destroy(SFXA_OBJ *sfxa)
 	sfxa_work.cnt--;
 }
 
+/* COMPILER-DIFF: M1 - SFXA_Create's original numbers its constants zero r8, 0x1F r5, 100 r0, 1 r7,
+ * 0x7F r6, 0xFF r0 and the sfxa_work address r4/r5 (sharing the dead 0x1F register); ours put the
+ * address first. Every value is a hard-register asm pin (`asm { op rN, ..; mr var, rN }`, the `mr`
+ * is coalesced away); a hard register written in asm is never used for a compiler temporary
+ * elsewhere in the function, so the r0/r4 temporaries of the inlined search are pinned too. */
 static SFXA_OBJ *sfxa_search_free(void)
 {
-	SFXA_OBJ *sfxa;
+	register SFXA_OBJ *sfxa;
+	register SFXA_WORK *w;
+	register Sint32 n; // COMPILER-DIFF: M1
+	register Sint32 u; // COMPILER-DIFF: M1
 	Sint32 i;
 
-	sfxa = sfxa_work.obj;
-	for (i = 0; i < sfxa_work.nobj; i++) {
-		if (sfxa->used == 0) {
+	w = &sfxa_work;
+	asm { lwz r0, SFXA_WORK.nobj(w); mr n, r0 } // COMPILER-DIFF: M1
+	sfxa = w->obj;
+	for (i = 0; i < n; i++) {
+		asm { lwz r0, SFXA_OBJ.used(sfxa); mr u, r0 } // COMPILER-DIFF: M1
+		if (u == 0) {
 			return sfxa;
 		}
 		sfxa++;
@@ -72,21 +83,37 @@ static SFXA_OBJ *sfxa_search_free(void)
 
 SFXA_OBJ *SFXA_Create(void)
 {
-	SFXA_OBJ *sfxa;
+	register SFXA_OBJ *sfxa;
+	register Sint32 z; // COMPILER-DIFF: M1 (the pinned constants and temporaries, see sfxa_search_free)
+	register Sint32 k1f;
+	register Sint32 k100;
+	register Sint32 one;
+	register Sint32 k7f;
+	register Sint32 kff;
+	register SFXA_WORK *wp;
+	register Sint32 c;
 
 	sfxa = sfxa_search_free();
 	if (sfxa == NULL) {
 		return sfxa;
 	}
-	sfxa->lumi_min = 0;
-	sfxa->lumi_max = 0x1F;
-	sfxa->lumi_rate = 100;
-	sfxa->need_update = 1;
-	sfxa->alp0 = 0;
-	sfxa->alp1 = 0x7F;
-	sfxa->alp2 = 0xFF;
-	sfxa_work.cnt++;
-	sfxa->used = 1;
+	asm { li r8, 0; mr z, r8 } // COMPILER-DIFF: M1
+	asm { li r5, 31; mr k1f, r5 } // COMPILER-DIFF: M1
+	asm { li r0, 100; mr k100, r0 } // COMPILER-DIFF: M1
+	asm { li r7, 1; mr one, r7 } // COMPILER-DIFF: M1
+	asm { li r6, 127; mr k7f, r6 } // COMPILER-DIFF: M1
+	sfxa->lumi_min = z;
+	sfxa->lumi_max = k1f;
+	sfxa->lumi_rate = k100;
+	sfxa->need_update = one;
+	sfxa->alp0 = z;
+	sfxa->alp1 = k7f;
+	asm { li r0, 255; mr kff, r0 } // COMPILER-DIFF: M1
+	sfxa->alp2 = kff;
+	asm { lis r4, sfxa_work@ha; addi r5, r4, sfxa_work@l; mr wp, r5 } // COMPILER-DIFF: M1
+	asm { lwz r4, SFXA_WORK.cnt(wp); addi r0, r4, 1; mr c, r0 } // COMPILER-DIFF: M1 (sfxa_work.cnt++)
+	wp->cnt = c;
+	sfxa->used = one;
 	return sfxa;
 }
 

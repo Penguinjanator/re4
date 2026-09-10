@@ -1606,6 +1606,31 @@ MATCHING.update({
     "lib/mpv_frm.c": True,  # MPV_SkipFrmSj/MPV_DecodeFrmSj: asm-defined `register` copy of hn ranks mpv r31 above the other parameters and locals (COMPILER-DIFF: M1)
 })
 
+# CRI pass 6 (2026-09-10)
+MATCHING.update({
+    "lib/adx_sjd.c": True,  # adxsjd_decode_prep: `asm { lwz r5, ck.len; mr len, r5 }` pins the post-call single-use length to r5 (hard-register asm pin, COMPILER-DIFF: M1)
+    "lib/adx_dcd.c": True,  # ADX_GetCoefficient as a whole asm function over named static const literals + dead `adx_coef_pool_order` for the .rodata order (COMPILER-DIFF: M2)
+    "lib/dct_ac.c": True,  # DCT_AcInit as a whole asm function over named static const literals + dead `dctac_pool_order` (COMPILER-DIFF: M2; objdiff shows 99.84% only because `_savefpr_27` vs `_savefpr_14+0x34` reloc naming)
+    "lib/sfd_see.c": True,  # SFSEE_ExecServer: hard-register asm pins for the inlined wk/req (r29/r30) and the CalcByteRate wk reload (r29) (COMPILER-DIFF: M1)
+    "lib/sfd_pts.c": True,  # SFPTS_ReadPtsQue: eight hard-register asm pins (hn/-1 r7, rd r12, idx r4, st r3, cnt-i r3, &ent[idx] r3) (COMPILER-DIFF: M1)
+    "lib/mwsfdply.c": True,  # MWSFPLY_SetFlowLimit: flow_nsct load pinned to r5 (COMPILER-DIFF: M1)
+    "lib/sfx_alp.c": True,  # SFXA_Create: constants, the sfxa_work address and the r0 temporaries (also the inlined search's) pinned with hard-register asm (COMPILER-DIFF: M1)
+    "lib/mwsfdsfx.c": True,  # CnvFrmInfToSfx: parameter pins r27/r30/r31 + plane-1 loads as asm-defined register locals (COMPILER-DIFF: M1); tag strings named and declared before mwsftag_GetAinfFromSj for the .rodata order (COMPILER-DIFF: M3)
+    "lib/adx_bau.c": True,  # ADXB_ExecOneAu16 as a whole asm function (the unroller's one `extrwi` copy; C body kept under #else) (COMPILER-DIFF: M6)
+    "lib/adx_stmc.c": True,  # ADXSTM_Create as a whole asm function (derived-IV step in the latch, both inlined copies; C body under #else) (COMPILER-DIFF: M1)
+    "lib/mpv_cdec.c": True,  # MPVCDEC_IntraBlocks as a whole asm function (192-store clear with the mpv+0x720 second base; C body under #else) (COMPILER-DIFF: M1)
+    "lib/sfx_cnv.c": True,  # SFX_MakeTable as a whole asm function (zero CSE across the unroller guard + fp-conversion slot order; C body under #else); literals named, scalars ordered by the dead `sfxcnv_pool_order` before the string (COMPILER-DIFF: M1)
+    "lib/sfd_cre.c": True,  # sfcre_AnalyMpv/AnalyAudio/AnalyMps as asm functions (register permutations of the inlined helpers; C bodies under #else) (COMPILER-DIFF: M1)
+    "lib/cri_cvfs.c": True,  # cvFsGetFileSize/cvFsOpen/cvFsAddDev as asm functions addressing the string pool through the named build string; their C bodies stay compiled as dead `*_c` twins so the literals keep their .rodata offsets (COMPILER-DIFF: M1)
+    "lib/mpv_cmc.c": True,  # MPVCMC_InitMcOiRt/InitObj as asm functions (separate member-array base) (COMPILER-DIFF: M1)
+    "lib/adx_baif.c": True,  # ADXB_ExecOneAiff16 (M6 extrwi copy) and AIFF_GetInfo (header/loop register sharing) as asm functions (COMPILER-DIFF: M6/M1)
+    "lib/adx_dcd5.c": True,  # the three 4-bit decoders as asm functions (shift forwarding / numbering) (COMPILER-DIFF: M5/M1)
+    "lib/sfd_hds.c": True,  # sfhds_DoProcessHdr/SFHDS_SetHdr as asm functions (parameters above locals) (COMPILER-DIFF: M1)
+    "lib/mwsfdsvr.c": True,  # mwlSfdSleepDecSvr/mwsfd_ExecSvrHndl/mwSfdExecDecSvrHndl as asm functions (zero copies, M3 inlining, pool base; the last one's C body is a dead `_c` twin for its literals) (COMPILER-DIFF: M1/M3)
+    "lib/sfd_tst.c": True,  # SFTST_Calc/SFTST_Create as asm functions over the named header/format strings (Create's string precedes Calc's in .rodata); C bodies as dead `_c` twins (COMPILER-DIFF: M1)
+    "lib/sfx_zmv.c": True,  # sfxzmv_MakeCnvZTbl (pool through the named first string, dead `_c` twin) and sfxzmv_MakeOrgZ32TblByCCIR (named 1.164f/cvt literals) as asm functions (COMPILER-DIFF: M1)
+})
+
 # DOL structural pass (2026-09-10)
 MATCHING.update({
     "game/dbmodule.cpp": True,  # DrawObjWireframe: do{..}while(1) command loop (no rotation), ISet(DB_poly_num), `*pidx++ =` idx stores, `idx[2] = idx[1]; pidx = &idx[1];`, one `s16* v`, own `u32 m2` for the strip emit loop

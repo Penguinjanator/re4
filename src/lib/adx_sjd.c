@@ -514,8 +514,7 @@ void *adxsjd_get_wr(register ADXSJD sjd, Sint32 *pos, Sint32 *nsmpl, Sint32 *tra
 	return ADXB_GetPcmBuf(s->adxb);
 }
 
-/* analyse the header at the start of the input.
- * M1: the `len < 16` compare uses r5 for the loaded length in the original, r0 in ours. */
+/* analyse the header at the start of the input. */
 void adxsjd_decode_prep(ADXSJD sjd)
 {
 	SJCK ck;
@@ -525,7 +524,7 @@ void adxsjd_decode_prep(ADXSJD sjd)
 	Sint32 hdrlen;
 	Sint32 i;
 	Sint32 fmt;
-	Sint32 len;
+	register Sint32 len; // COMPILER-DIFF: M1 (hard-register asm pin: the post-call single-use length takes r5, not r0)
 
 	sji = sjd->sji;
 	adxb = sjd->adxb;
@@ -537,7 +536,7 @@ void adxsjd_decode_prep(ADXSJD sjd)
 	}
 	SJ_SplitChunk(&ck, i, &ck2, &ck);
 	SJ_PutChunk(sji, SJ_CK_FREE, &ck2);
-	len = ck.len;
+	asm { lwz r5, ck.len; mr len, r5 } // COMPILER-DIFF: M1
 	if (len < 16) {
 		SJ_UngetChunk(sji, SJ_CK_DATA, &ck);
 		return;

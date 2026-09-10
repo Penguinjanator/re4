@@ -66,6 +66,261 @@ void ADXB_ExecOneAiff8(ADXB adxb)
 	}
 }
 
+/* COMPILER-DIFF: M6 - the unroller's 15th 16-bit swap copy is `extrwi` in the original (see adx_bau). Asm function (the original's instructions verbatim). */
+#if 1 // COMPILER-DIFF: M6
+asm void ADXB_ExecOneAiff16(ADXB adxb)
+{
+	nofralloc
+	stwu r1, -16(r1)
+	mflr r0
+	stw r0, 20(r1)
+	stw r31, 12(r1)
+	mr r31, r3
+	stw r30, 8(r1)
+	lwz r0, 4(r3)
+	lwz r30, 72(r3)
+	cmpwi r0, 1
+	bne L6d8
+	lwz r3, 8(r31)
+	bl ADXPD_GetStat
+	cmpwi r3, 0
+	bne L6d8
+	lwz r12, 120(r31)
+	addi r4, r31, 104
+	addi r5, r31, 108
+	addi r6, r31, 112
+	lwz r3, 124(r31)
+	mtctr r12
+	bctrl
+	lwz r5, 104(r31)
+	lwz r0, 96(r31)
+	lwz r4, 108(r31)
+	subf r3, r5, r0
+	cmpw r3, r4
+	ble L3dc
+	mr r3, r4
+L3dc:
+	lwz r0, 76(r31)
+	cmpw r3, r0
+	ble L3ec
+	mr r3, r0
+L3ec:
+	lbz r0, 14(r31)
+	slwi r4, r5, 1
+	lwz r6, 92(r31)
+	extsb r0, r0
+	cmpwi r0, 2
+	add r0, r6, r4
+	bne L5bc
+	lwz r4, 100(r31)
+	cmpwi r3, 0
+	li r8, 0
+	add r4, r4, r5
+	slwi r4, r4, 1
+	add r7, r6, r4
+	ble L6b8
+	cmpwi r3, 8
+	addi r10, r3, -8
+	ble L564
+	addi r9, r10, 7
+	mr r4, r30
+	srwi r9, r9, 3
+	mr r5, r0
+	mr r6, r7
+	mtctr r9
+	cmpwi r10, 0
+	ble L564
+L450:
+	lhz r10, 0(r4)
+	addi r8, r8, 8
+	srawi r9, r10, 8
+	rlwimi r9, r10, 8, 8, 23
+	sth r9, 0(r5)
+	lhz r10, 2(r4)
+	srawi r9, r10, 8
+	rlwimi r9, r10, 8, 8, 23
+	sth r9, 0(r6)
+	lhz r10, 4(r4)
+	srawi r9, r10, 8
+	rlwimi r9, r10, 8, 8, 23
+	sth r9, 2(r5)
+	lhz r10, 6(r4)
+	srawi r9, r10, 8
+	rlwimi r9, r10, 8, 8, 23
+	sth r9, 2(r6)
+	lhz r10, 8(r4)
+	srawi r9, r10, 8
+	rlwimi r9, r10, 8, 8, 23
+	sth r9, 4(r5)
+	lhz r10, 10(r4)
+	srawi r9, r10, 8
+	rlwimi r9, r10, 8, 8, 23
+	sth r9, 4(r6)
+	lhz r10, 12(r4)
+	srawi r9, r10, 8
+	rlwimi r9, r10, 8, 8, 23
+	sth r9, 6(r5)
+	lhz r10, 14(r4)
+	srawi r9, r10, 8
+	rlwimi r9, r10, 8, 8, 23
+	sth r9, 6(r6)
+	lhz r10, 16(r4)
+	srawi r9, r10, 8
+	rlwimi r9, r10, 8, 8, 23
+	sth r9, 8(r5)
+	lhz r10, 18(r4)
+	srawi r9, r10, 8
+	rlwimi r9, r10, 8, 8, 23
+	sth r9, 8(r6)
+	lhz r10, 20(r4)
+	srawi r9, r10, 8
+	rlwimi r9, r10, 8, 8, 23
+	sth r9, 10(r5)
+	lhz r10, 22(r4)
+	srawi r9, r10, 8
+	rlwimi r9, r10, 8, 8, 23
+	sth r9, 10(r6)
+	lhz r10, 24(r4)
+	srawi r9, r10, 8
+	rlwimi r9, r10, 8, 8, 23
+	sth r9, 12(r5)
+	lhz r10, 26(r4)
+	srawi r9, r10, 8
+	rlwimi r9, r10, 8, 8, 23
+	sth r9, 12(r6)
+	lhz r10, 28(r4)
+	rlwinm r9, r10, 24, 24, 31
+	rlwimi r9, r10, 8, 8, 23
+	sth r9, 14(r5)
+	addi r5, r5, 16
+	lhz r10, 30(r4)
+	addi r4, r4, 32
+	srawi r9, r10, 8
+	rlwimi r9, r10, 8, 8, 23
+	sth r9, 14(r6)
+	addi r6, r6, 16
+	bdnz L450
+L564:
+	slwi r9, r8, 1
+	slwi r5, r8, 2
+	subf r4, r8, r3
+	add r5, r30, r5
+	add r6, r0, r9
+	add r7, r7, r9
+	mtctr r4
+	cmpw r8, r3
+	bge L6b8
+L588:
+	lhz r4, 0(r5)
+	srawi r0, r4, 8
+	rlwimi r0, r4, 8, 8, 23
+	sth r0, 0(r6)
+	addi r6, r6, 2
+	lhz r4, 2(r5)
+	addi r5, r5, 4
+	srawi r0, r4, 8
+	rlwimi r0, r4, 8, 8, 23
+	sth r0, 0(r7)
+	addi r7, r7, 2
+	bdnz L588
+	b L6b8
+L5bc:
+	cmpwi r3, 0
+	li r4, 0
+	ble L6b8
+	cmpwi r3, 8
+	addi r6, r3, -8
+	ble L680
+	addi r5, r6, 7
+	mr r7, r30
+	srwi r5, r5, 3
+	mr r8, r0
+	mtctr r5
+	cmpwi r6, 0
+	ble L680
+L5f0:
+	lhz r6, 0(r7)
+	addi r4, r4, 8
+	srawi r5, r6, 8
+	rlwimi r5, r6, 8, 8, 23
+	sth r5, 0(r8)
+	lhz r6, 2(r7)
+	srawi r5, r6, 8
+	rlwimi r5, r6, 8, 8, 23
+	sth r5, 2(r8)
+	lhz r6, 4(r7)
+	srawi r5, r6, 8
+	rlwimi r5, r6, 8, 8, 23
+	sth r5, 4(r8)
+	lhz r6, 6(r7)
+	srawi r5, r6, 8
+	rlwimi r5, r6, 8, 8, 23
+	sth r5, 6(r8)
+	lhz r6, 8(r7)
+	srawi r5, r6, 8
+	rlwimi r5, r6, 8, 8, 23
+	sth r5, 8(r8)
+	lhz r6, 10(r7)
+	srawi r5, r6, 8
+	rlwimi r5, r6, 8, 8, 23
+	sth r5, 10(r8)
+	lhz r6, 12(r7)
+	srawi r5, r6, 8
+	rlwimi r5, r6, 8, 8, 23
+	sth r5, 12(r8)
+	lhz r6, 14(r7)
+	addi r7, r7, 16
+	srawi r5, r6, 8
+	rlwimi r5, r6, 8, 8, 23
+	sth r5, 14(r8)
+	addi r8, r8, 16
+	bdnz L5f0
+L680:
+	slwi r7, r4, 1
+	subf r5, r4, r3
+	add r6, r30, r7
+	add r7, r0, r7
+	mtctr r5
+	cmpw r4, r3
+	bge L6b8
+L69c:
+	lhz r4, 0(r6)
+	addi r6, r6, 2
+	srawi r0, r4, 8
+	rlwimi r0, r4, 8, 8, 23
+	sth r0, 0(r7)
+	addi r7, r7, 2
+	bdnz L69c
+L6b8:
+	stw r3, 144(r31)
+	slwi r3, r3, 1
+	li r0, 2
+	lbz r4, 14(r31)
+	extsb r4, r4
+	mullw r3, r4, r3
+	stw r3, 148(r31)
+	stw r0, 4(r31)
+L6d8:
+	lwz r0, 4(r31)
+	cmpwi r0, 2
+	bne L704
+	lwz r12, 128(r31)
+	lwz r3, 132(r31)
+	lwz r4, 148(r31)
+	lwz r5, 144(r31)
+	mtctr r12
+	bctrl
+	li r0, 3
+	stw r0, 4(r31)
+L704:
+	lwz r0, 20(r1)
+	lwz r31, 12(r1)
+	lwz r30, 8(r1)
+	mtlr r0
+	addi r1, r1, 16
+	blr
+}
+#else
 void ADXB_ExecOneAiff16(ADXB adxb)
 {
 	Uint16 *inbuf;
@@ -105,6 +360,7 @@ void ADXB_ExecOneAiff16(ADXB adxb)
 		adxb->stat = ADXB_STAT_DONE;
 	}
 }
+#endif
 
 static Sint32 adxb_DecodeInfoAiff(ADXB adxb, Uint8 *buf, Sint32 bsize, Sint16 *hdrlen)
 {
@@ -177,6 +433,178 @@ Sint32 ADXB_CheckAiff(Uint8 *buf)
 	return 0;
 }
 
+/* COMPILER-DIFF: M1 - the FORM/size words share the loop's ckid/cksz registers and the size is swapped before the FORM/AIFF checks (OPEN since pass 1). Asm function (the original's instructions verbatim). */
+#if 1 // COMPILER-DIFF: M1
+asm Uint8 *AIFF_GetInfo(Uint8 *buf, Sint32 *sfreq, Sint32 *nch, Sint32 *bps, Sint32 *nsmpl)
+{
+	nofralloc
+	stwu r1, -32(r1)
+	addi r8, r3, 12
+	li r9, 0
+	stmw r27, 12(r1)
+	lbz r10, 1(r3)
+	lbz r30, 0(r3)
+	rlwimi r30, r10, 8, 16, 23
+	lbz r10, 2(r3)
+	lbz r0, 5(r3)
+	rlwimi r30, r10, 16, 8, 15
+	lbz r12, 4(r3)
+	rlwimi r12, r0, 8, 16, 23
+	lbz r11, 6(r3)
+	lbz r31, 3(r3)
+	mr r27, r30
+	rlwimi r12, r11, 16, 8, 15
+	lbz r0, 9(r3)
+	lbz r10, 8(r3)
+	rlwimi r27, r31, 24, 0, 7
+	rlwimi r10, r0, 8, 16, 23
+	lbz r11, 10(r3)
+	lbz r29, 7(r3)
+	addis r0, r27, -19794
+	cmplwi r0, 20294
+	mr r28, r12
+	rlwimi r28, r29, 24, 0, 7
+	lbz r3, 11(r3)
+	rlwinm r12, r28, 24, 16, 23
+	rlwimi r10, r11, 16, 8, 15
+	rlwimi r12, r28, 8, 24, 31
+	li r0, 0
+	rlwimi r12, r28, 8, 8, 15
+	rlwimi r10, r3, 24, 0, 7
+	rlwimi r12, r28, 24, 0, 7
+	li r3, 0
+	beq L9a0
+	li r3, 0
+	b Lb6c
+L9a0:
+	addis r10, r10, -17990
+	cmplwi r10, 18753
+	beq L9b4
+	li r3, 0
+	b Lb6c
+L9b4:
+	addi r10, r12, -4
+	lis r11, 19789
+	add r10, r8, r10
+	addi r11, r11, 20291
+	b Lb64
+L9c8:
+	lbz r30, 1(r8)
+	lbz r28, 0(r8)
+	rlwimi r28, r30, 8, 16, 23
+	lbz r31, 2(r8)
+	lbz r12, 5(r8)
+	lbz r27, 4(r8)
+	rlwimi r28, r31, 16, 8, 15
+	lbz r30, 3(r8)
+	rlwimi r27, r12, 8, 16, 23
+	lbz r12, 6(r8)
+	lbz r29, 7(r8)
+	rlwimi r28, r30, 24, 0, 7
+	rlwimi r27, r12, 16, 8, 15
+	addi r8, r8, 8
+	rlwimi r27, r29, 24, 0, 7
+	cmpw r28, r11
+	rlwinm r29, r27, 24, 16, 23
+	rlwimi r29, r27, 8, 24, 31
+	rlwimi r29, r27, 8, 8, 15
+	rlwimi r29, r27, 24, 0, 7
+	beq La34
+	bge Lb58
+	lis r12, 17486
+	addi r12, r12, 21331
+	cmpw r28, r12
+	beq Lb0c
+	b Lb58
+La34:
+	cmpwi r9, 0
+	bne Lb64
+	cmpwi r29, 18
+	bge La4c
+	li r3, 0
+	b Lb6c
+La4c:
+	lbz r12, 1(r8)
+	cmpwi r0, 0
+	lbz r29, 0(r8)
+	li r9, 1
+	rlwinm r12, r12, 8, 8, 23
+	rlwimi r12, r29, 0, 24, 31
+	stw r12, 0(r5)
+	lwz r29, 0(r5)
+	rlwinm r12, r29, 8, 16, 23
+	rlwimi r12, r29, 24, 24, 31
+	stw r12, 0(r5)
+	lbz r12, 3(r8)
+	lbz r29, 2(r8)
+	rlwimi r29, r12, 8, 16, 23
+	lbz r30, 4(r8)
+	lbz r12, 5(r8)
+	rlwimi r29, r30, 16, 8, 15
+	rlwimi r29, r12, 24, 0, 7
+	stw r29, 0(r7)
+	lwz r29, 0(r7)
+	stwbrx r29, 0, r7
+	lbz r12, 7(r8)
+	lbz r29, 6(r8)
+	rlwinm r12, r12, 8, 8, 23
+	rlwimi r12, r29, 0, 24, 31
+	stw r12, 0(r6)
+	lwz r29, 0(r6)
+	rlwinm r12, r29, 8, 16, 23
+	rlwimi r12, r29, 24, 24, 31
+	stw r12, 0(r6)
+	lbz r12, 9(r8)
+	lbz r29, 8(r8)
+	rlwimi r29, r12, 8, 16, 23
+	lbz r12, 11(r8)
+	lbz r30, 10(r8)
+	rlwinm r31, r29, 8, 16, 23
+	rlwimi r30, r12, 8, 16, 23
+	addi r8, r8, 18
+	rlwimi r31, r29, 24, 24, 31
+	rlwinm r12, r30, 8, 16, 23
+	rlwimi r12, r30, 24, 24, 31
+	clrlwi r27, r31, 16
+	clrlwi r28, r12, 16
+	subfic r12, r27, 16398
+	sraw r12, r28, r12
+	stw r12, 0(r4)
+	beq Lb64
+	b Lb6c
+Lb0c:
+	cmpwi r0, 0
+	bne Lb64
+	lbz r3, 1(r8)
+	cmpwi r9, 0
+	lbz r12, 0(r8)
+	li r0, 1
+	lbz r31, 2(r8)
+	rlwimi r12, r3, 8, 16, 23
+	lbz r30, 3(r8)
+	addi r8, r8, 4
+	rlwimi r12, r31, 16, 8, 15
+	rlwimi r12, r30, 24, 0, 7
+	rlwinm r3, r12, 24, 16, 23
+	rlwimi r3, r12, 8, 24, 31
+	rlwimi r3, r12, 8, 8, 15
+	rlwimi r3, r12, 24, 0, 7
+	add r3, r8, r3
+	beq Lb64
+	b Lb6c
+Lb58:
+	addi r12, r29, 1
+	clrrwi r12, r12, 1
+	add r8, r8, r12
+Lb64:
+	cmplw r8, r10
+	blt L9c8
+Lb6c:
+	lmw r27, 12(r1)
+	addi r1, r1, 32
+	blr
+}
+#else
 Uint8 *AIFF_GetInfo(Uint8 *buf, Sint32 *sfreq, Sint32 *nch, Sint32 *bps, Sint32 *nsmpl)
 {
 	Uint8 *p;
@@ -259,3 +687,4 @@ Uint8 *AIFF_GetInfo(Uint8 *buf, Sint32 *sfreq, Sint32 *nch, Sint32 *bps, Sint32 
 	}
 	return data;
 }
+#endif
