@@ -332,10 +332,14 @@ void EffAreaUpdate()
         }
     }
     flag |= sys->sstAddAreaFlag;
+    asm("" : "=m"(*(u32*) &pos)); // COMPILER-DIFF: candidate (sched2 issue-slot filler)
     y = 0;
     // y is the hit count; the row `0xE8 + y * 0x10` is a strength-reduced giv (its `li 0xE8` is
-    // the last preheader insn). OPEN (98.2%): the target issues `or flag` before the hoisted
-    // `lis "%d"`, ours the other way round.
+    // the last preheader insn). The codeless asm above is an issue-slot filler: sched2 (2 insns
+    // per cycle) issues it with the `lwz sstAddAreaFlag`, so `li j` and `li 1` take cycle 2 and
+    // the hoisted `lis "%d"` is issued after the `or` like the target (the original's block had
+    // one more insn there). A scalar frame MEM (`*(u32*) &pos`) has no dependence on the in-struct
+    // load; `pos.x` (in-struct) would delay the lwz.
     for (j = 0; j < 32; j++) {
         if (flag & (1 << j)) {
             if (pG->flags_6C & 0x8000) {
@@ -420,10 +424,14 @@ void EffEm2d_setTexRender(cModel* m)
     m->pInfo->setBlendRatio(0);
 }
 
-// OPEN (99.0%): the reloads of `esp` (address-taken, reloaded after every byte store) get r9/r11
-// in the opposite alternation to the target; the `lis` of the 0.8f pool address takes r9 in ours.
-// Local-alloc order differs, so the sched1 (pre-reload) order of the block differs even though the
-// final order is identical.
+// The 0.8f pool high is a reload-materialised `lis r11` in the original (#13); as a local qty in
+// ours it is BASE_REGS-allocated first (20000 priority, born after reload 1 died) and takes r9,
+// flipping every later `esp` reload (r9,r9,r11,r9,r11 -> r11,r11,r9,r11,r9). Recipe: the constant
+// as a named .rodata word (`k08`, nosda, emitted at the pool's position), `lis` and `lfs` as asms
+// with `hi` pinned to r11, plus `li r8,5` as an asm chained lis -> ... so the asm `lfs` (an IU insn
+// for the scheduler, unlike the real LSU load) is ready one cycle later: `c5` depends on `c4`
+// (issued with the `lis`), the `lfs` on `c5`, so sched2 gives `stb; li r8,5; lfs` and `li r10,4`
+// keeps the first slot (two dependents like the `lis`, earlier LUID).
 void EspDrawLaserLine(Vec from, Vec to, f32 width)
 {
     cEsp* esp;
@@ -442,11 +450,19 @@ void EspDrawLaserLine(Vec from, Vec to, f32 width)
     w->target = to;
     w->len *= width;
     if (pGS->flags_5010 & 1) {
+        static const f32 k08 __attribute__((nosda)) = 0.8f;
+        register u32 hi asm("r11"); // COMPILER-DIFF: #13
+        register int c5 asm("r8"); // COMPILER-DIFF: #13
+        int c4 = 4;
+        f32 k;
+        asm("lis %0,%1@ha" : "=r"(hi) : "i"(&k08)); // COMPILER-DIFF: #13
+        asm("li %0,5" : "=r"(c5) : "r"(c4)); // COMPILER-DIFF: #13
         esp->xA4 = 1;
-        esp->xA5 = 4;
-        esp->xA6 = 5;
+        esp->xA5 = c4;
+        asm("lfs %0,%1@l(%2)" : "=f"(k) : "i"(&k08), "r"(hi), "r"(c5)); // COMPILER-DIFF: #13
+        esp->xA6 = c5;
         esp->xA7 = 0;
-        esp->colA *= 0.8f;
+        esp->colA *= k;
     }
 }
 
@@ -502,3 +518,6 @@ void setPlWaterOtType()
         pPL->x12F = 7;
     }
 }
+
+// The original's .rodata is 8-aligned (0x2A0, 4 bytes of end padding after the last pool).
+asm(".section .rodata; .balign 8");

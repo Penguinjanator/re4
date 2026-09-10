@@ -90,7 +90,7 @@ static inline void ISet(int& d, int v) { d = v; }
 
 static int x = 0;
 static int y = 0;
-MemDump test;
+MemDump test asm("test_802F1358");  // a second global `test` (db_menu.cpp has `test test`); the link needs the split object's name
 OSContext sv_context;
 static OSContext* pContext = &sv_context;
 static u32 call_stack[16];
@@ -477,14 +477,15 @@ void excepRegConsoleDump(int error, u32 dsisr, u32 dar)
     OSReport("\n");
 }
 
-// Not matched (4 words): the loop-invariant `lis` of "DSISR: %08X  DAR: %08X" and of symbol_err_tbl
-// swap r15/r16. Both are gcse PRE pseudos numbered in hash-bucket order. Exact numbers (gcse.c):
-// hash = 119(HIGH) + 6(SImode) + (61(SYMBOL_REF) << 7) + h(name), h = h*129 + c per char; the table
-// has n_insns/2|1 buckets (n_insns = real insns at gcse time, ours 504..507 -> 253 buckets, where
-// ".LC64" -> 158 and "symbol_err_tbl" -> 150). The target's order needs .LC64's bucket below the
-// table's: 255 or 257 buckets (1..7 more real insns at gcse time; dead `int x = 0` initialisers are
-// deleted by cse before gcse and `asm volatile("")` breaks the loop-invariant motion) or a string
-// label in .LC70..79 / .LC90..128 (our TU has one hidden label, .LC0). Left open.
+// The loop-invariant `lis` of "DSISR: %08X  DAR: %08X", symbol_err_tbl and "CALL STACK (%s)" are
+// gcse PRE pseudos of equal priority, numbered (and so allocated r16/r15/r14) in hash-bucket order:
+// bucket = (h(name) + 90) % 253 with h = h*129 + c per char ("*.LCn" for a string label), 253 =
+// n_insns/2|1 buckets. Our TU numbered the strings .LC64/.LC65 (buckets 158/159, both above the
+// table's 150); the original's were .LC79/.LC80 (39/159: the only wrap that straddles 150 besides
+// .LC59/.LC60), i.e. its TU had 15 more constants before them. The 15 dead `f32 lcN = K;` locals
+// below consume 15 pool labels (force_const_mem numbers them at expand; the dead loads are deleted
+// before gcse and the unreferenced pool entries are never output, so .rodata and the insn count are
+// unchanged). The hash formula was calibrated on the -dG dump (.LC60..66 -> 154..160).
 void ErrorHandler(OSError error, OSContext* context, ...)
 {
     va_list ap;
@@ -498,6 +499,23 @@ void ErrorHandler(OSError error, OSContext* context, ...)
     MemDump* w;
     int col;
     static int timer = 0;
+    // COMPILER-DIFF: candidate (gcse PRE pseudo numbering): 15 dead pool constants shift the string
+    // labels to .LC79/.LC80 (see the comment above the function).
+    f32 lc0 = 1.5f;
+    f32 lc1 = 2.5f;
+    f32 lc2 = 3.5f;
+    f32 lc3 = 4.5f;
+    f32 lc4 = 5.5f;
+    f32 lc5 = 6.5f;
+    f32 lc6 = 7.5f;
+    f32 lc7 = 8.5f;
+    f32 lc8 = 9.5f;
+    f32 lc9 = 10.5f;
+    f32 lc10 = 11.5f;
+    f32 lc11 = 12.5f;
+    f32 lc12 = 13.5f;
+    f32 lc13 = 14.5f;
+    f32 lc14 = 15.5f;
 
     *pContext = *context;
     va_start(ap, context);

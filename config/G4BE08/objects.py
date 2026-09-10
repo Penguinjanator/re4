@@ -1584,9 +1584,22 @@ MATCHING.update({
     "game/espgen02.cpp": True,  # espgen02_Update: colR pinned to f24, copies between the bScale/bSpd zero stores (#17)
 })
 
+# DOL sweep 12 (2026-09-10)
+MATCHING.update({
+    "game/event.cpp": True,  # DelEvt: FadeSetW written out (`u32* c`, `c[1]` keeps P tied to r4), `int zero; zero = 0;` set before `if (fade)` (#13 single-use zero, update_equiv_regs moves the li to the store -> r0)
+    "game/esp45.cpp": True,  # Esp45_HideCheck: dead `if (w->flags == 99) ox = oy;` at the loop body end (+3 real insns: high(Screen) misses loop pass 1's threshold and is hoisted in pass 2, after the giv init)
+    "game/exception.cpp": True,  # ErrorHandler: 15 dead `f32 lcN = K;` pool constants shift the string labels to .LC79/.LC80 so the gcse PRE pseudo order (hash-bucket) gives DSISR r16 / symbol_err_tbl r15 / CALL STACK r14
+    "game/esp_app.cpp": True,  # EspDrawLaserLine: 0.8f as a named .rodata word + asm lis/lfs with hi pinned r11 and `li r8,5` asm-chained (#13); EffAreaUpdate: codeless "=m" asm as a sched2 issue-slot filler
+})
+
 # CRI pass 4 (2026-09-10)
 MATCHING.update({
     "lib/sfd_ply.c": True,  # SFD_Destroy returns SFTRN_CallTrSetup's result (r3 live across the hn-table clear -> loop r4/r5, sfd r31)
     "lib/sfd_set.c": True,  # SFD_SetCond: id*4 as an asm-defined `register` local (takes the dead sfd register r28), hn declared first (COMPILER-DIFF: M1)
     "lib/mps_dec.c": True,  # mpsdec_DecPackHd: reader init written out (`cur = p[0]; ... cur <<= pos;`), locals declared p, pos, cur, nxt
+})
+
+# DOL structural pass (2026-09-10)
+MATCHING.update({
+    "game/dbmodule.cpp": True,  # DrawObjWireframe: do{..}while(1) command loop (no rotation), ISet(DB_poly_num), `*pidx++ =` idx stores, `idx[2] = idx[1]; pidx = &idx[1];`, one `s16* v`, own `u32 m2` for the strip emit loop
 })

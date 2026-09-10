@@ -295,6 +295,12 @@ void Esp0e_HideCheck(cEsp* esp0)
                 hidden++;
             }
         }
+        // COMPILER-DIFF: candidate (loop.c pass-1 insn_count). Dead test (+3 real insns at loop
+        // pass 1) so `high(Screen)` misses pass 1's threshold and is hoisted in pass 2, after the
+        // giv init `li i4,0` (see esp45 Esp45_HideCheck); the operand must not add a ref to `w`.
+        if (Zs_bias0e == 99) {
+            ox = oy;
+        }
     }
     if (hidden == 12) {
         w->hideAlpha = 0.0f;

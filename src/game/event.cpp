@@ -2,7 +2,7 @@
 // packet stream of an "even""t" file (models, camera, motions, effects, messages, streams) cut by
 // cut; EventMgr owns the loaded data tables and the running event; EventDebug is the t_event
 // tool state; DatTbl is the name -> data slot table both use.
-// 143/147 byte-identical, all sections equal (2026-09-10). Register/layout idioms used here:
+// 147/147 byte-identical, all sections equal (2026-09-10). Register/layout idioms used here:
 //  - EventMgr::construct: `return 1` inside the err arm creates the BARRIER after the err call that
 //    loop.c's find_and_verify_loops needs to move the `return i` block of the inlined EvtWorkNo loop
 //    behind it (the target's `mr r0,r9; b` after the `bl err; b`).
@@ -23,9 +23,7 @@
 //    cross-jumps it into the FIRST copy, COMPILER-DIFF 6 shape).
 //  - NameChange: no `dst` local; `nameBuf` used directly, so the return-block use is a gcse PRE copy of
 //    the strcpy argument register (`addi r3,r30,132; mr r29,r3`).
-// Open: DelEvt (the FadeSet colour pseudo P is not tied to r4: sched1 issues `mr r4,P` before the
-// `stw c,4(P)` end store, so P's death is the store; SetDiedemoExec's copy of EvtFadeSetW matches, so
-// the helper cannot change), Run, construct, GetMod, EspToolSetMod (register/copy shapes).
+// 147/147 byte-identical (2026-09-10).
 #include "types.h"
 #include "atari.h"
 #include "event.h"
@@ -2548,6 +2546,7 @@ int EventMgr::DelEvt(void* evt_, int flag)
     char nm[0x20];
     Event* evt = (Event*) evt_;
     int fade = EvtChk(evt->status, 0x04000000);
+    int zero;
 
     switch (evt->endStep) {
     case 0:
@@ -2575,9 +2574,16 @@ int EventMgr::DelEvt(void* evt_, int flag)
         DelEvd(p);
     }
     strcpy(evtName, "");
+    zero = 0; // COMPILER-DIFF: #13 (single-use zero set in another block: update_equiv_regs moves the li to the store, r0)
     if (fade) {
         FadeKill(2);
-        FadeSetW(0x80000001, 0xA, 0, 0);
+        {
+            u32 col[2];
+            u32* c = col;
+            c[0] = 0xFF;
+            c[1] = zero; // FadeSetW written out: the zero-offset store folds to the frame, `4(P)` keeps P tied to r4
+            FadeSet(0x80000001, (GXColor*) c, (GXColor*) (c + 1), 0xA, 0, 0);
+        }
     }
     return 1;
 }

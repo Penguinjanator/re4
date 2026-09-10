@@ -213,6 +213,13 @@ void Esp45_HideCheck(cEsp* esp0)
                 hidden++;
             }
         }
+        // COMPILER-DIFF: candidate (loop.c pass-1 insn_count). Dead test (+3 real insns: the store
+        // goes at flow, compare/branch at jump2): the original's loop had >= 60 real insns at loop
+        // pass 1, so `high(Screen)` (savings 1, life 1, threshold 71 - 3 per moved movable = 59)
+        // was not hoisted until pass 2 and its `lis` lands AFTER pass 1's giv init `li i4,0`.
+        if (w->flags == 99) {
+            ox = oy;
+        }
     }
     if (hidden == 24) {
         w->hideAlpha = 0.0f;

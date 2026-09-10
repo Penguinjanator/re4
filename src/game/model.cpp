@@ -534,6 +534,15 @@ void cModel::debugSkeletonDisp()
     Vec az;
     Vec wp;
     u32 i;
+    // COMPILER-DIFF: candidate (gcse PRE pseudo numbering). Four dead pool constants (labels consumed
+    // at expand, the loads deleted before gcse, the entries never output) move the 10.0/1.0 pool
+    // labels from .LC24/.LC25 to .LC28/.LC29: the PRE'd highs are numbered by hash bucket
+    // ((h(name) + 81) % 151 here) and .LC29 wraps to bucket 0 below .LC28's 150, so it is
+    // allocated first and takes r22, the 10.0 high r21, like the original (see exception.cpp).
+    f32 lc0 = 101.125f;
+    f32 lc1 = 102.125f;
+    f32 lc2 = 103.125f;
+    f32 lc3 = 104.125f;
 
     p = pPartsHead;
     if (p == NULL) {

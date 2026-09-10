@@ -1804,8 +1804,8 @@ mark it Matching.
   r9/r10/r11 (t4-style `struct A { int x[61]; virtual void f(); }; *a = *b;` reproduces it in
   isolation). Only these two units have the pattern.
 - `esp43`'s stray `.rodata` zero word is a dead-stripped static with one `x != 0.0f` compare
-  (`Esp43_SetPos`, STRIP_UNUSED); `esp_app`'s 4-byte `.rodata` tail is the 8-alignment pad before
-  `esp_efm` (our .rodata is 4-aligned, the linker re-creates the gap).
+  (`Esp43_SetPos`, STRIP_UNUSED); `esp_app`'s 4-byte `.rodata` tail is 8-alignment end padding that the
+  linker does NOT re-create (DOL sweep 12: `asm(".section .rodata; .balign 8")` at the end of the file).
 
 ## CRI middleware (`lib/adx_*`, `lib/sfd_*`, ... — CodeWarrior 2.4.7)
 
@@ -12632,3 +12632,87 @@ ninja -k 0 && dtk shasum -c` = 111 OK after each accepted change.
   20-43 words), loop forms (`for/while/do` + break, goto loop, tail inside the arm, dead do-while around/before the
   tail) 1-109. moveWall (3): `li r31,0` (i = 0) first in the target's post-call block needs a dependent with the
   pPL-load chain's priority; an asm `li r4,1` anchored on `i` only reaches prio 3 (not tried in bytes).
+
+### DOL sweep 12, remaining game units closest-first (event, esp_app, esp45, exception Matching; esp0e HideCheck 2 -> 0, model debugSkeletonDisp 4 -> 0, dvd .rodata equal; 2026-09-10)
+
+Flipped: event (147/147), esp_app (15/15), esp45 (7/7), exception (9/9). Harness ~/.cache/dol12 (dol11 copies with the
+paths rewritten: `mcmp.py UNIT [SYM]`, `tryv.py UNIT SYM variants.py`, `vapply.py`, `sbs.sh UNIT SYM [OBJ]`, `dump.sh UNIT
+-dX` with `SRC_OVERRIDE`, `fsec.py DUMP FUNC`, `order.py UNIT`; variant files under `v/`). Build was 111 OK after every flip.
+
+- **mcmp's reloc compare hides a duplicate-name clash** (exception): our object referenced `test` (MemDump), the split
+  object `test_802F1358` -- mcmp pairs relocs by canonical name, so the function read "identical" while the link bound
+  `test` to db_menu's `test test` at 0x802D9E68 (3 DOL bytes). A second global with a name another unit already exports
+  must carry the split's suffixed name: `MemDump test asm("test_802F1358");`. Check `objdump -dr` reloc names against
+  the split object before a flip when sym_map has two globals of one name.
+- **The .rodata end padding is NOT re-created by the linker** (esp_app, dvd): a unit whose original `.rodata` is
+  8-aligned and 4 bytes longer than ours shifts every later `.rodata` address (esp_app: 6 DOL bytes with 111 -> 110 OK).
+  `asm(".section .rodata; .balign 8");` at the end of the file gives the pad (the earlier "esp_app's 4-byte tail is the
+  8-alignment pad before esp_efm, the linker re-creates the gap" note was wrong).
+- **`.LC` label hash lever for gcse PRE pseudo order (exception ErrorHandler 4 -> 0, model debugSkeletonDisp 4 -> 0).**
+  Loop-invariant `high(sym)` pseudos of equal global-alloc priority are allocated in pseudo-number order = the gcse
+  expr_hash_table bucket order; the bucket of a string/pool label is `(h("*.LCn") + K) % buckets` with `h = h*129 + c`
+  per char (K = 90 for exception's 253 buckets, 81 for model's 151; calibrate K from one `-dG` "Index N (hash value
+  V)" line, then predict). Consecutive labels give consecutive buckets except at a decade wrap (`.LC?9` -> `.LC(?+1)0`
+  drops by ~124 mod buckets), so the target's register order fixes the label numbers modulo the wrap: exception needed
+  DSISR/CALL STACK at .LC79/.LC80 (39 < symbol_err_tbl 150 < 159; .LC64/.LC65 gave 158/159 both above), model needed
+  10.0/1.0 at .LC28/.LC29 (150 / 0). A dead `f32 lcN = K;` local (unused, distinct value) consumes exactly one
+  label: force_const_mem numbers the pool entry at expand, the dead load is deleted before gcse and the unreferenced
+  entry is never output, so `.rodata`, the insn count (bucket count) and the code are unchanged. Exactly 15 (exception)
+  and 4 (model) such locals at the function top; +14/+16 and +3/+5 do nothing. Tagged
+  `COMPILER-DIFF: candidate (gcse PRE pseudo numbering)`. A dead FP compare (`if (f == 2.5f) col = 0;`) also consumes
+  labels but survives to gcse (FP compares of constants are not folded without -ffast-math) and changes the bucket
+  count -- use the plain unused initialiser.
+- **Dead test inside a loop body to push a movable into loop.c pass 2 (esp45/esp0e HideCheck 2 -> 0).** The target's
+  `li i4,0` (giv init) before `lis Screen@ha` = the high hoisted in pass 2, after pass 1's giv inits: pass 1's
+  `move_movables` threshold is 71 - 3 per moved movable, and with ours at 58 real insns the high (savings 1, life 1)
+  passes at 59; a dead `if (w->flags == 99) ox = oy;` (+3 real insns at pass 1, gone at flow/jump2) makes it fail and
+  pass 2 (48 insns) hoists it. The compare operand must not add refs to a mis-ranked pseudo: `w->flags` was fine in
+  esp45 (w already r31) but swapped w/hidden/giv in esp0e, where `Zs_bias0e == 99` (a .sdata scalar) worked. Tagged
+  `candidate (loop.c pass-1 insn_count)`.
+- **#13 single-use zero set in another block, DelEvt form (event 4 -> 0, unit Matching):** FadeSetW written out in the
+  function with `u32 col[2]; u32* c = col; c[0] = 0xFF; c[1] = zero;` (cse folds the offset-0 store to the frame and
+  keeps `4(P)`, P tied to r4 exactly like the inline) and `int zero; zero = 0;` in the block BEFORE `if (fade)`, used
+  once: update_equiv_regs moves the `li` next to the store after sched1 (the store keeps its slot before `mr r4,P`) and
+  the 1-insn qty takes r0 after the 255 died; sched2 then issues it after `lis r3` like the reload-materialised
+  original. A `zero = 0` at the function top (merges with other zeros) or a hard-register `r0` (P folded into
+  frame-direct stores, `mr r4` untied) do not work.
+- **Asm-emitted pool constant, scheduler-complete recipe (esp_app EspDrawLaserLine 13 -> 0):** `static const f32 k08
+  __attribute__((nosda)) = 0.8f;` in the function (emitted where the pool would be; only works for a function whose
+  pool is that one constant), `register u32 hi asm("r11"); asm("lis %0,%1@ha" : "=r"(hi) : "i"(&k08));` and `asm("lfs
+  %0,%1@l(%2)" : "=f"(k) : "i"(&k08), "r"(hi))`. With the high out of local-alloc the five address-taken `esp` reloads
+  fall into r9,r9,r11,r9,r11 by the fake-lifetime walk (as a qty the BASE_REGS high is allocated first at 20000 and
+  takes r9, born right after reload 1 died). The asm `lfs` is an IU insn for the scheduler and its anti-dependence on
+  the reload that re-sets r11 gives it priority 16 > `li r8,5`'s 14, so it steals the cycle-3 slot the target's real
+  LSU load had to leave: chain it -- `int c4 = 4;` before, `register int c5 asm("r8"); asm("li %0,5" : "=r"(c5) :
+  "r"(c4));`, the `lfs` asm with `"r"(c5)` -- so `li r8,5` issues at t=3 and the load at t=4; `c4` first so the
+  `lis` (2 dependents, prio 18 like `li r10,4`) loses the LUID tie. `"m"` inputs on the asm load (esp slot, e1->xA4)
+  add anti-dependences to every later byte store (prio 18-20, the lis jumps ahead of `li r10,4`); pinning the
+  reloads instead (#17) loses the true store->load dependence of the pinned reload (hard-reg anti-dep recorded first,
+  `add_dependence` keeps one link) and issues it before the load.
+- **Codeless asm as a sched2 issue-slot filler (esp_app EffAreaUpdate 2 -> 0):** the target's preheader
+  `lwz; li j; li 1; or; lis "%d"; li y` needs only one IU insn in cycle 2 although three are ready. `asm("" :
+  "=m"(*(u32*) &pos));` (a scalar frame MEM: `fixed_scalar_and_varying_struct_p` gives it no dependence on the
+  in-struct `lwz`; `pos.x` is in-struct and delays the load) after `flag |= ...` takes a slot with the `lwz` in both
+  passes and shifts the free `li`s by one cycle; `"r"(sys)` inputs change the allocation. Tagged `candidate (sched2
+  issue-slot filler)`. The original's block had one more insn there -- unknown which.
+- Register-allocation facts read this pass: local-alloc `fake_birth = birth - 2 + birth%2` reaches only the insn
+  itself (a qty born in the insn after a death does not conflict with the dying qty); `elf_high`'s `=b` constraint
+  keeps every `lis` out of r0; local-alloc qtys are numbered in block scan order and `qty_compare_1` breaks priority
+  ties by qty number; `insn_cost` gives anti/output links cost 1 (LINK_COST_FREE), never 0, and an asm consumer
+  (`INSN_CODE < 0`) also forces cost 1; `rank_for_schedule` after priority and (sched1) weight prefers the insn with
+  MORE dependents, then the smaller LUID.
+- Open after this pass (forms tried, do not retry): pad PadRead 7 (a dead `if (pad == Pad_data) j = 0;` in loop 2 gives
+  the hoist r17 / dead r16 but rotates the three pool FPRs and the `li r16,10` slot: 8; a laundered `PADStatus* pd`
+  base changes loop 1: 98; dead uses of `dead` after the loops are hoisted into a callee-saved CR compare: 111).
+  t_option tp_pl_flag 5 (asm-li args are tied to r4/r5 before sched1 and lose to the addi by LUID; every keep-alive
+  mention of `&ItemMgr` is a fresh cse2 `lis`; an asm `this` for the num call makes the arms re-materialise their own
+  `lis r3`: the target's `li r4,254; addi r3,r30` needs the arm's PRE copy `rX = R` alive at sched1, i.e. cse1 must
+  not merge the arm highs with the num call's -- no form found). obj00 FallMove 2 (two-set `int one` with
+  `do{}while(0)` x2 around both `hit = one` stores gives r23 but moves the hit-loop `li r23,1` four slots up and swaps
+  the copy-loop pointers r30/r31: 19; a pinned r23 shifts every allocno: 32-110). dvd DiscChange 7 (the target's word-1
+  load/store of the `game[]` template are last because the word-1 store had no dependence in the original's sched1;
+  memcpy/struct/volatile/pointer/declaration forms 7-44). esp09 HideCheck 2 (`fneg` slot; m22/m23/inv2 orders
+  unchanged), shadow make_comn_fit/parallel_light 2+2 (the 1.0 high loses r11 to the fpmem loadaddr qty; the named
+  .rodata recipe needs the constant to be the pool's first entry), em_set 73/74 (frame +16 and r25 besides the three
+  pool highs; not started). `Esp*_Create` 2 words in esp04/09/0e/12/16 are the vtable reloc name only (`.rodata+N`
+  vs `_vt.6cEspNN`), not a flip blocker once the other functions match.
