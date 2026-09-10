@@ -739,6 +739,8 @@ MATCHING = {
     "Tools/db_toolbase.cpp": True,
     "t_event/db_toolbase.cpp": True,
     "Tools/t_dr.cpp": True,
+    "Tools/t_sce_at.cpp": True,
+    "t_sce/t_sce_at.cpp": True,
     # single-unit enemy modules (src/<em>/<em>.cpp, the whole REL)
     "em2e/em2e.cpp": True,
     "em26/em26.cpp": True,

@@ -309,6 +309,7 @@ SKIP_LINE:
             }
         }
         p++;
+        asm("" : : "r"(p)); // COMPILER-DIFF: #13 (keep-alive: the `addi p` outranks the exit compare in the original)
     } while (num <= 0xF8);
     Mem_free(buf);
     return 1;

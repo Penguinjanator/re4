@@ -724,6 +724,20 @@ static const char* tSceAtTargetName[16] = {"",              "PL",            "  
                                             "      OBJ+SUB", "PL+   OBJ+SUB", "   EM+OBJ+SUB", "PL+EM+OBJ+SUB"};
 
 // the eight lines every type shares (ID .. PRIORITY); `menu` gets its angle / action lines enabled
+// Nine fresh-`lis` sites of the original (the menu[5] test and the first pCur read of each case): our
+// cse1 carries the earlier high pseudo along the AROUND/taken paths into them and gcse then
+// copy-propagates the PRE reg into every later site of the case; the original kept them as
+// separate occurrences.  Distinct SYMBOL_REFs for the same object keep them apart.
+extern SceAtWorkPtr sceAtCur_m5 asm("sceAtCur"); // COMPILER-DIFF: #12 (cse path / PRE copy)
+extern SceAtWorkPtr sceAtCur_c0 asm("sceAtCur"); // COMPILER-DIFF: #12 (cse path / PRE copy)
+extern SceAtWorkPtr sceAtCur_c1 asm("sceAtCur"); // COMPILER-DIFF: #12 (cse path / PRE copy)
+extern SceAtWorkPtr sceAtCur_c2 asm("sceAtCur"); // COMPILER-DIFF: #12 (cse path / PRE copy)
+extern SceAtWorkPtr sceAtCur_c3 asm("sceAtCur"); // COMPILER-DIFF: #12 (cse path / PRE copy)
+extern SceAtWorkPtr sceAtCur_c4 asm("sceAtCur"); // COMPILER-DIFF: #12 (cse path / PRE copy)
+extern SceAtWorkPtr sceAtCur_c5 asm("sceAtCur"); // COMPILER-DIFF: #12 (cse path / PRE copy)
+extern SceAtWorkPtr sceAtCur_c6 asm("sceAtCur"); // COMPILER-DIFF: #12 (cse path / PRE copy)
+extern SceAtWorkPtr sceAtCur_c7 asm("sceAtCur"); // COMPILER-DIFF: #12 (cse path / PRE copy)
+#define PC(n) (sceAtCur_##n.p)
 void tSceAtDataInput_basic_menu(int sel, TOOL_MENU* menu)
 {
     s16 x;
@@ -736,14 +750,15 @@ void tSceAtDataInput_basic_menu(int sel, TOOL_MENU* menu)
     if (on) on = 1;
     menu[2].enable = on;
     menu[3].enable = on;
-    on = pCur->x38 & 8;
+    do { } while (0); // COMPILER-DIFF: #12 (ends the cse1 path from bb0; sched region split)
+    on = PC(m5)->x38 & 8;
     if (on) on = 1;
     menu[5].enable = on;
     x = pW->x + 0x80;
     y = pW->y;
     switch (sel) {
     case 0:
-        n = pCur->x35;
+        n = PC(c0)->x35;
         if (Joy[0].rep & REP_RIGHT) {
             n++;
             if (n == 3) n = 4;
@@ -756,14 +771,14 @@ void tSceAtDataInput_basic_menu(int sel, TOOL_MENU* menu)
         pCur->x35 = m;
         break;
     case 1:
-        n = pCur->x37;
+        n = PC(c1)->x37;
         if (Joy[0].rep & REP_RIGHT) n--;
         if (Joy[0].rep & REP_LEFT) n++;
         m = WRAP(n, 3);
         pCur->x37 = m;
         break;
     case 2: {
-        SceAtWork* a = pCur;
+        SceAtWork* a = PC(c2);
         if (a->x37 & 2) {
             n = a->angle;
             if (Joy[0].rep & 0x20000) n += 0x2D;
@@ -777,8 +792,8 @@ void tSceAtDataInput_basic_menu(int sel, TOOL_MENU* menu)
         break;
     }
     case 3:
-        if (pCur->x37 & 2) {
-            n = pCur->angleRange;
+        if (PC(c3)->x37 & 2) {
+            n = PC(c3)->angleRange;
             if (Joy[0].rep & REP_RIGHT) n += 5;
             if (Joy[0].rep & REP_LEFT) n -= 5;
             CLAMP(n, m, 0x5A);
@@ -786,7 +801,7 @@ void tSceAtDataInput_basic_menu(int sel, TOOL_MENU* menu)
         }
         break;
     case 4: {
-        SceAtWork* a = pCur;
+        SceAtWork* a = PC(c4);
         u8 f = a->x38;
         n = f & 0x7F;
         if (Joy[0].rep & REP_RIGHT) {
@@ -831,21 +846,21 @@ void tSceAtDataInput_basic_menu(int sel, TOOL_MENU* menu)
         break;
     }
     case 5:
-        if (pCur->x38 & 8) {
-            n = pCur->x4A;
+        if (PC(c5)->x38 & 8) {
+            n = PC(c5)->x4A;
             STEP(rep2, n);
             m = WRAP(n, 0x41);
             pCur->x4A = m;
         }
         break;
     case 6:
-        n = pCur->x39;
+        n = PC(c6)->x39;
         STEP(rep, n);
         CLAMP(n, m, 0xF);
         pCur->x39 = m;
         break;
     case 7:
-        n = pCur->x44;
+        n = PC(c7)->x44;
         STEP(rep, n);
         CLAMP(n, m, 0xF);
         pCur->x44 = m;
@@ -869,8 +884,10 @@ void tSceAtDataInput_basic_menu(int sel, TOOL_MENU* menu)
     } else {
         y += 0x20;
     }
-    n = pCur->x38 & 0x7F;
-    eprintf(x, y, 0, 0, "%s", (u32) n <= 8 ? tSceAtTrgName[n] : "...no string");
+    {
+        u32 t = pCur->x38 & 0x7F;
+        eprintf(x, y, 0, 0, "%s", t <= 8 ? tSceAtTrgName[t] : "...no string");
+    }
     if (pCur->x38 & 0x80) {
         eprintf(x, y, 6, 0, "         (boot up only ones.)");
     }

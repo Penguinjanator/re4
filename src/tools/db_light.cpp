@@ -681,7 +681,7 @@ static void edit_cutsel()
     int i;
     cLightEnv* env;
     // COMPILER-DIFF: #4 (reverse): the original stores `i + 6` into this narrow local as a plain `mr r30, r0`
-    // (no mask); ours emits `clrlwi 24` (an `int line` folds the copy into the `addi`, 6 words off instead of 1)
+    // (no mask); ours emits `clrlwi 24` (an `int line` folds the copy into the `addi`), so the copy is an asm `mr`
     u8 line;
 
     eprintf(0x20, 0x2A, 4, pTool->color, "CUT TABLE");
@@ -689,7 +689,10 @@ static void edit_cutsel()
     for (i = 0; i < 20; i++) {
         env = pTool->lit.getCut(pTool->top + i);
         eprintf(0x20, 0x54 + i * 14, pTool->top + i == pTool->cutNo ? 0 : 0x14, pTool->color, "%03d", pTool->top + i);
-        line = i + 6;
+        {
+            int t = i + 6;
+            asm("mr %0,%1" : "=r"(line) : "r"(t)); // COMPILER-DIFF: 4 (unmasked narrow store)
+        }
         if (PTR_OK(env)) {
             eprintf(0x40, 0x54 + i * 14, 0, pTool->color, "%2d               %d%d%d  %5d %3d", env->nLight, 0, 0, 0,
                     env->x28 / 10, env->blurAlpha);

@@ -10987,3 +10987,78 @@ stmt.c/jump.c and confirmed with cc1plus probes:
   jump to the same place as the following unconditional jump") keeps its compare and operand load (em28 `cmpwi 0; b D`,
   em29/em30 `lbz dmWep; cmpwi 0x21`), while a dead test deleted through flow (dead store -> jump-to-next in flow2) loses
   them. Pick the lever by which of the two the target shows.
+
+### Tool RELs, bytes-first pass 7 (t_sce_at Matching in Tools + t_sce: basic_menu 215 -> 0; t_sce_item 41 -> 42/43; db_light 130 -> 131/135 x5; t_scroll 38 -> 39/42; 2026-09-10)
+
+- Harness /tmp/tools_p7 (tools_p6 copies with the paths rewritten; `sbs2.py T.s O.s [ctx]` = side-by-side asm diff of two
+  dtk listings with labels/relocs masked, `odis.sh OBJ FUNC` = one function's dtk disassembly of any object, `fsect.sh DUMP
+  FUNC` = one function's section of a -dX dump). /tmp is a 32 GB tmpfs that was FULL this pass (other harnesses: 2.2 GB
+  /tmp/hostdep, 1.9 GB /tmp/c066-build3.log, 1.3 GB /tmp/re4disc ...): tryv/tryvh/mdump now write their objects and dumps
+  under /home/adityas/.cache/tools_p7/{out,dump}; `rm` is a gio-trash alias here, use `/bin/rm`.
+- **basic_menu (t_sce_at, 215 -> 0, unit flipped in Tools and t_sce) -- the "fresh `lis` vs r27" mechanism, read off -dG:**
+  the target's four `lwz rX, sceAtCur@l(r27)` sites (x49 in the if-arm, x38&8, x39, x44 of the disp part) are NOT the
+  sites gcse deletes directly. cse1 substitutes the block's own high pseudo Q into the NEXT site along its path (the
+  fall-through of a `beq` into the arm, a single-use join label reached by the taken `beq`), the site becomes a copy
+  `P = Q` and canon_reg makes the load use Q; gcse's PRE then turns Q's `lis` into `Q = R` (R = the bb-0 insertion, r27),
+  cprop pass 2 copy-propagates R into Q's uses in OTHER blocks (`lwz (r27)` there), and Q's same-block uses keep Q whose
+  copy cse2 re-materialises (`REG_EQUAL (high)` cost 0 < pseudo 1 in cse_insn's trial order) = the target's "fresh" `lis`
+  in that block. So a fresh-`lis` block followed by an r27 block is ONE plain symbol with a cse1 path between them; the
+  22-alias variant of pass 4 had broken that path at PC(19)..PC(22) (29 words), plain there gives the four r27 sites for
+  free. Nine aliases stay (`extern SceAtWorkPtr sceAtCur_cN asm("sceAtCur")`, the menu[5] test and the FIRST pCur read of
+  each of the eight cases; every other alias was removed one at a time at 0 words; each remaining one costs 36-383 words
+  when plain): our cse1 reaches the case entries from bb 0 through the compare-tree dispatch (taken `beq`s to single-use
+  labels + AROUND over the two `if (on) on = 1` blocks, path length 7 < PATHLENGTH), the original's did not. Not a flag
+  (-fno-cse-follow-jumps 110, -fno-cse-skip-blocks 417, -fno-gcse 241 on the plain source).
+- **The `do { } while (0);` before the second `on = pCur->x38 & 8` (the J1 block after `if (on) on = 1`)**: the target
+  issues `stb; stb; lis; lwz` (the free `lis` after both menu stores), ours `stb; lis; stb; lwz` (lis at t=1 with the
+  first store). The dead loop's LOOP_END note (a) ends cse1's path scan ("Don't cse out the end of a loop", cse.c) and
+  (b) makes haifa give the first insn after it REG_DEP_ANTI links on every earlier insn of the block and `reg_pending_sets_all`
+  (every later insn depends on it) -- the sched region split of the cDbgWindow::Init recipe, mechanism now exact. Caveat
+  seen in t_sce_item's copy of the block: the lis->lwz link then becomes the 1-cycle anti link instead of the 2-cycle true
+  one, so a compare that follows the lis in the target (`lis; cmpwi r3,1; lwz`) comes out `lis; lwz; cmpwi` (2 -> 3 words):
+  the barrier is right only when nothing but the lis's own chain follows it. t_sce_item basic_menu (64 -> 2 with the four
+  case aliases, tagged) keeps this residue; `asm volatile("")`/`asm("" ::: "memory")` barriers and the store-order variants
+  are 5-8 words.
+- **`u32 t = pCur->x38 & 0x7F` block-local for the `(u32) n <= 8 ? tbl[n] : "..."` select**: the function-scope `int n`
+  (the switch cases' variable) is a global pseudo (r10 in ours); the target's `clrlwi r0,r0,25; cmplwi r0,8; slwi r0,r0,2`
+  is a short-lived local (r0). Any block-local temp (u8/u32/int) gives it.
+- **loadItemIdName (t_sce_item, 28 -> 0)**: (1) COMPILER-DIFF candidate #17 applied as `register int pin asm("r30"); asm("" :
+  "=r"(pin)); asm("" : : "r"(pin));` at the function top -- r30 becomes used-so-far, `e`/`no` (allocated first, priority
+  3.4) take it in pass 0 and `p` falls to r31 in pass 1 (target p r31 / e r30); the two asms emit nothing. (2) the sys
+  arm's tail `add r30,r30,r29; li r0,0; subis r30,r30,4; stb r0,0(r30)` = in-place `e += len; e -= 0x40000; *e = zero;`
+  with a BLOCK-LOCAL `int zero = 0;` declared before the `e += len` (a plain `*e = 0` puts the `li` after the `subis` in
+  LUID order, and sched1's weight rule then keeps it there: `li` +1 vs `subis` 0 at equal priority; a function-scope zero
+  is 84 words, an asm-li also 0 but tagged).
+- **plmove10 (t_atari, 19, left; mechanism read off the sched2 dump)**: in sched2 the frame stores of the `old = w->pos`
+  copy (`stw [r1+8]`, `stw [r30+4]`, `stw [r30+8]`) and the w-based RMW loads/stores all conflict pairwise, so the copy
+  loads inherit the RMW stores' chain and outrank the RMW loads (46: prio 10, 65: 9; sched1 had them equal and LUID-ordered
+  like the target). Cause: alias.c `find_base_term` for `(plus r31 N)` after reload -- r31 = `mr r31,r3` gets base
+  `ADDRESS(VOIDmode, r3)` (copying-arguments), and the PLUS case returns 0 for a VOIDmode ADDRESS operand, so every
+  `[r31+N]` has no base and `base_alias_check` returns 1 against the stack refs (in sched1 the pseudo has the pointer flag
+  and the stack rule applies). The original's sched2 did not see these conflicts: the r119/r11b sched2-alias family, not
+  source-fixable (memcpy / 12 word- and member-copy orders / `Vec* po` / precomputed RMW values: 19-62).
+- **tcSetBesideCamera (t_camera_data, 9, left)**: `o` (146: 12 refs/16 insns, floor_log2 3 -> 2.25) vs the src giv (190:
+  17/30, log2 4 -> 2.27) -- the global-alloc priority is `floor_log2(refs)*refs/length`, REG_ALLOC_ORDER is 0, 9, 11, 10,
+  8, 7, ... so the FIRST allocated gets r8 (ours: src), the target allocated `o` first. #17 pins of r7/r8 in the outer
+  loop change nothing (both are used-so-far already); a dead test at the body end (`if (c->flags == 7) o = 0;` /
+  `if (i == 5) o = 0;`) flips the pair (9 -> 6/7) but its extra pseudo pushes the `i + 1` copy from r5 to r28. Left.
+- **OkCancel Init x3 in ToolEspArea/ToolLightAreaMain (571/507, left)**: `asm("li %0,0" : "=r"(z) : "r"(len))` after the
+  strlen for `pBottom = pTop = pCur = z` gives the target's separate `li r0,0` + pBottom/pCur/pTop store order, but the
+  block's other order (all field stores before the AddButton `li r4..r10` argument moves, pName's dying store first) is
+  the #13 constant-store family and the counts stay 564-593; not applied.
+- **db_light**: edit_cutsel 1 -> 0 with `int t = i + 6; asm("mr %0,%1" : "=r"(line) : "r"(t));` (COMPILER-DIFF 4, the
+  unmasked narrow store: applied, all five modules). printEditTable: `asm("li %0,10" : "=r"(x))` for `x = 10` with `7 * 8`
+  and `10 * 8` written as literals reproduces the target's unfolded `li r30,0xa .. addi r30,r30,1; slwi r3,r30,3` chain
+  exactly (gcse cprop pass 1 replaces reg x in `x + 1` with 10 and validate_replace_rtx folds it; the original's cprop did
+  not), but the rest of the function (one more callee-saved register for the hoisted string highs r17/r18/r21, the two
+  `y` copies, col at 0xc vs 8) is unchanged and the count rises 183 -> 219: not applied.
+- **t_scroll loadBinName (2 -> 0)**: `p++; asm("" : : "r"(p));` at the loop end (COMPILER-DIFF #13 keep-alive) gives the
+  `addi p` a same-block dependent, so it outranks the exit `cmplwi num` (an `asm("" : "+r"(p))` after the increment also
+  0, before it 2). edit_litmask (2): `lbz id; lwz x54; li r9,1; slw` -- ours issues the `li 1` at t=1 with the lbz; the
+  target's r9 anti-dependence on the lbz base is in ours too (same registers), the swap/temp/xor-eq forms 2-5, left.
+
+### Hazard: /tmp is a 32 GB tmpfs and `rm` is aliased to gio-trash in the interactive shell
+- 2026-09-10 19:00: /tmp hit 26 GB from finished harness directories and a tools pass ran out of space.
+  Use `/bin/rm -rf` (the plain `rm` alias refuses tmpfs). Orchestrator removed the finished passes'
+  directories; agents should delete their /tmp harness when done or write large outputs under
+  ~/.cache/<pass>/.

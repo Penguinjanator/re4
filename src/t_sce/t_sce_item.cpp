@@ -762,6 +762,14 @@ static void tSceItemAreaEdit_DataInput()
 static const char* tSceItemHitTypeName[4] = {"UNDER", "FRONT", "UNDER+ANGLE", "FRONT+ANGLE"};
 
 // the common head of the data input menu: hit type, hit angle, open angle, priority
+// The first pCur read of each case is a fresh `lis` in the original; our cse1 substitutes the
+// earlier high pseudo along the dispatch tree and gcse then copy-propagates the PRE reg into the
+// later sites of the case (the t_sce_at basic_menu mechanism).  Distinct SYMBOL_REFs keep them apart.
+extern SceAtWorkPtr sceItemCur_c0 asm("sceItemCur"); // COMPILER-DIFF: #12 (cse path / PRE copy)
+extern SceAtWorkPtr sceItemCur_c1 asm("sceItemCur"); // COMPILER-DIFF: #12 (cse path / PRE copy)
+extern SceAtWorkPtr sceItemCur_c2 asm("sceItemCur"); // COMPILER-DIFF: #12 (cse path / PRE copy)
+extern SceAtWorkPtr sceItemCur_c3 asm("sceItemCur"); // COMPILER-DIFF: #12 (cse path / PRE copy)
+#define PC(n) (sceItemCur_##n.p)
 void tSceItemDataInput_basic_menu(int sel, TOOL_MENU* menu)
 {
     s16 x;
@@ -778,14 +786,14 @@ void tSceItemDataInput_basic_menu(int sel, TOOL_MENU* menu)
     y = pW->y;
     switch (sel) {
     case 0:
-        n = pCur->x37;
+        n = PC(c0)->x37;
         if (Joy[0].rep & REP_RIGHT) n--;
         if (Joy[0].rep & REP_LEFT) n++;
         m = WRAP(n, 3);
         pCur->x37 = m;
         break;
     case 1: {
-        SceAtWork* a = pCur;
+        SceAtWork* a = PC(c1);
         if (a->x37 & 2) {
             n = a->angle;
             if (Joy[0].rep & 0x20000) n += 0x2D;
@@ -799,8 +807,8 @@ void tSceItemDataInput_basic_menu(int sel, TOOL_MENU* menu)
         break;
     }
     case 2:
-        if (pCur->x37 & 2) {
-            n = pCur->angleRange;
+        if (PC(c2)->x37 & 2) {
+            n = PC(c2)->angleRange;
             if (Joy[0].rep & REP_RIGHT) n += 5;
             if (Joy[0].rep & REP_LEFT) n -= 5;
             CLAMP(n, m, 0x5A);
@@ -808,7 +816,7 @@ void tSceItemDataInput_basic_menu(int sel, TOOL_MENU* menu)
         }
         break;
     case 3:
-        n = pCur->x44;
+        n = PC(c3)->x44;
         STEP(rep, n);
         CLAMP(n, m, 0xF);
         pCur->x44 = m;
@@ -1660,6 +1668,14 @@ void loadItemIdName(const char* path, char* names, char* names2)
     u32 no;
     int len;
     int sys;
+    {
+        // The original allocates `e`/`no` to r30 and `p` to r31 although e outranks p in global-alloc
+        // priority: r30 was ever-live before global-alloc there.  Two codeless asms make r30
+        // used-so-far, so e/no take it in pass 0 and p falls to r31 in pass 1.
+        register int pin asm("r30"); // COMPILER-DIFF: candidate #17
+        asm("" : "=r"(pin));
+        asm("" : : "r"(pin));
+    }
 
     sys = 0;
     if (HDReadDebugAlloc(path, &buf, 1) == 0) return;
@@ -1696,7 +1712,12 @@ void loadItemIdName(const char* path, char* names, char* names2)
             no *= 64;
             e = (char*) (no + (u32) names2);
             memcpy(e - 0x40000, p, len);
-            *(e + len - 0x40000) = 0;
+            {
+                int zero = 0; // declared before the `e += len` so its `li` precedes the `subis` in LUID order
+                e += len;
+                e -= 0x40000;
+                *e = zero;
+            }
         }
     }
 done:
