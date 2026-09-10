@@ -14110,3 +14110,75 @@ em29_3c and pointed at `~/.cache/dol14/<PRE>_lreg.txt` / `<PRE>_greg.txt`). Buil
     local-alloc; the target needs the loadaddr at <= 3 refs or global), em_set, db_menu, esp04/12/18/02/08, sce_at,
     cam_ctrl, Espgen43, at_mod, em_cloth, emwep, emrock, puzzle, motion, card, cam_qfps, main_mem, title, sce_com,
     db_cam, route_ck, pendulum, option, mercenaries Set/GetSaveWork.
+
+### Stage rooms, st4_0/st2_1 pass 7 (r209 Matching 61/61 -> st2_1 flag; r20d 31/32 with execThrough 4 -> 0; r20e 29/31 with cFence20e::move 10 -> 0 and initPuzzle 103 -> 49; r204 unchanged; 2026-09-10)
+
+- Harness /home/adityas/.cache/rooms_a7 (rooms_a6 copies with the paths rewritten; `tryv.py MOD/UNIT FUNC variants.py
+  [--asm N] [--apply N]`, `vsbs.sh`, `mm.py`, `mdump.sh MOD/UNIT -dX` with an ABSOLUTE `SRC_OVERRIDE` (a relative path is
+  taken from the re4 root and cpp fails silently, leaving the previous dumps in place); new `prio.py UNIT FUNCPAT` = the
+  callee-saved/FPR global allocnos of dump/UNIT.i.{lreg,greg} for one function with refs/len/priority in allocation order).
+- **R209Main 6 -> 0, zero code (unit flipped): an integer (u32) copy of the flags base for the bit-set block.** The block's
+  three local qtys (byte index, shift amount/shifted bit, loaded word/or) go through local-alloc's 3-qty hand sort; with a
+  pointer base the index pseudo prefers GENERAL_REGS (regclass: the pointer-flagged operand of `(plus idx base)` is the base,
+  the other the index) and takes r0, so `lwzx` prints `r28,r0` (rs6000 prints the r0 operand second). `u32 fb = (u32) flags;
+  u32 ofs = ((u32) bit >> 5) << 2; *(u32*) (ofs + fb) |= 0x80000000 >> (bit & 31);` makes both plus operands non-pointer
+  -> half BASE_REGS preference -> idx r9, amt r0, `lwzx r11,r9,r28` like the target. `fb` must be read BEFORE the shift
+  constant's first use: the loop.c-hoisted base copy `mr r28,r20` and `lis r24,0x8000` both have sched1 priority 1 in the
+  preheader and the LUID (= RTL order of first occurrence in the loop body) decides the cycle-2 slot; with the cast written
+  inside the statement (`ofs + (u32) flags`) the constant came first and `addi r11,r11,0x5dc` slipped between (2 words).
+  A `register u32 ofs asm("r9")` pin also works (pin9c/pin9d) but is not needed.
+- **Flip lesson (r209): local `.data` tables.** The REL shasum failed with ADDR16 fields `0` vs `S+A` for six r209 tables
+  (`r209_leaderPoint`, `r209_snipeEmNo`, `r209_zeroVec`, `r209_bowgunStartPos/Pos/Pos2`): they are `static` in the original
+  (the field holds S+A for a local symbol). `make_rel.py --verify orig/.../st2_1.rel` with the `--link` list from build.ninja
+  names every differing field; mm.py cannot see it (it compares by section+offset). Make the tables static, re-sync, rebuild.
+- **r20d execThrough 4 -> 0: the r31-clobber asm's OPERAND decides a sched2 dependent count.** The tagged #3 asm
+  (`asm("" : "=r"(X) : "0"(X) : "r31")` in the loop body, after setAng) has anti-dependences on every r1/r31 reader of the
+  block; with `X = d` it was a 4th dependent of `addi r4,r1,0x18` (mr r3,r30 had 3) and won the cycle beside `stfs f31`.
+  With `X = p` (the block's `cPlayer* p`) the asm is instead an anti-dependent of `mr r3,p`: both copies have 4 dependents,
+  equal priority, and sched2's LUID tie-break (sched1 had issued the dying `mr` first) puts `mr r3,r30` first like the target.
+  Rule: a codeless asm's operand adds one INSN_DEPEND to the last setter/reader of that register -- pick the operand whose
+  copy the target issues first.
+- **r20d checkSwitch 1 (unchanged; mechanism now exact, no source form).** The target's tail `lfs f1,0.0@l(r29)` = cse1 knew
+  the pool constant's HIGH in the tail but not its VALUE. In ours cse1 reaches the tail through the AROUND path of `blt tail`
+  (q = LOOP_END; `invalidate_skipped_block` only removes `in_memory` MEMs (a `mem/u` pool load is not one unless its address
+  is FIXED_BASE_PLUS_P), call-clobbered hard regs and the regs SET in the skipped block) and finds the compare's 0.0 pseudo Z.
+  Every way of breaking the path also loses the high: a fresh tail ebb (second label use, label in the skipped block) leaves
+  the tail's `high(LC)` to gcse, which deletes it as redundant with reaching reg R inserted at the END of the preheader
+  block P (`R = high` after the SceAtSetEnable call); R is used in other blocks and `maybe_never` there, so loop.c's outer
+  pass never hoists it (scan_loop's `! reg_in_basic_block_p && (maybe_never || ...)` -> not a movable) and it stays a second
+  `lis r30` (20 words). Only invalidating Z on the AROUND path gives the target's shape, and Z is the anonymous compare
+  constant: a `zero` variable compared instead and re-set by `asm("" : "+f"(zero))` in the tail DOES stop the fold
+  (`lfs f1`) but with `zero` set in P the body has no `high(LC)` any more and the tail's high is fresh again (14 words); a
+  variable set in the body has two sets and is not hoisted. `static const` replacements of the pool constant are folded by
+  the front end (scalar) or lose the REG_EQUAL const_double notes cse2/loop.c use (struct member: 45 words). Tail inside
+  the else arm (5: f28/f29 swap, the 0.0 pseudo gains a depth-3 ref), `while (1)`, `t = 0.0f; move(t)`: 1. Classified
+  compiler-side (#12: the original's cse did not carry Z into the tail while carrying the high).
+- **r20e cFence20e::move 10 -> 0, tagged `COMPILER-DIFF: #13` (asm-emitted pool constant).** The target's
+  `lis r9,2200@ha` reuses the dead 50.0 high's r9 one insn after `lfs f13` and `lfs f12` follows a cycle later = a reload-
+  rematerialised constant. As a pseudo the 2200 high is born (sched1 t=2, right after the 50.0 high's death) inside the
+  fake lifetime local-alloc uses when sched2 runs (`fake_birth = birth - 2`: "avoid hard registers of qtys born immediately
+  after this qty dies"), so it takes r11 and sched2 hoists the load. No priority change moves the `lis` two insns later (the
+  block has no other IU insn), and `f32 up = 2200.0f` in an earlier block keeps `lis/lfs` there (update_equiv_regs moves an
+  init only when the REG_EQUIV note equals the SET_SRC, i.e. the `high`, not a pool load). Recipe (DOL sweep 12's): the
+  constant is the pool's FIRST entry, so `static const f32 k2200 = 2200.0f;` in the function takes its slot (.rodata equal)
+  and `register u32 hi asm("r9"); asm("lis %0,%1@ha" : "=r"(hi) : "i"(&k2200)); asm("lfs %0,%1@l(%2)" : "=f"(up) :
+  "i"(&k2200), "r"(hi));` after `obj->pos.y += 50.0f` gives the anti-dependence on `lfs f13,(r9)` and the target's order.
+- **r20e initPuzzle 103 -> 49, zero code: the first layout pass shares the object loop's counters.** `r20e_setLayout` as an
+  inline has its own `x`/`y`, so the object loop's `y + 1` was PRE'd across the SmdGetObjPtr inner loop (no biv, `slwi` per
+  outer iteration). A macro `R20E_SET_LAYOUT(p, tbl)` over the FUNCTION's `x`/`y` for the first call (the else arm keeps the
+  inline: the target's third nest has its own caller-saved r8 counter while nests 1 and 2 share r28 -- a counter that crosses
+  the object loop's calls) leaves `y + 1` at the object loop's latch (pl0f BoatControl rule), forms the `y*4`/`y*16`
+  givs and the `subic.` count-down and gives the target's r28 y / r27 p / r26 cnt order (y's refs and the shared life do
+  it; the deadexit em3c form alone gave the loop shape with y ranked last, 70 words). The cell address in the macro must
+  go through an inline `r20e_placePiece(p, &p->cell[x][y], pc)` that owns the `Vec pos` temp (integrate substitutes the
+  frame address; a macro-local `Vec pos` gets its address PRE'd into r4 and the copy goes `stw r7,4(r4)`). Residue 49: the
+  target stores `c->piece` through a giv COPY (`mr r7,r11`, stepped in parallel) and loads `c->pos` through the base giv
+  in y,x,z order in both layout nests, ours has one pointer and x,y,z (c_store/expr_load forms 64-91: the source expression
+  split does not decide it); `li r25,0x10` one slot later in the preheader.
+- **r204 EventChandelier1/2 (94/96, unchanged; frame read):** the target frame is 8 smaller with ONE MORE callee-saved GPR
+  (stmw r16, `lis r30; addi r25,r30,crot0@l` two-register high). Our extra 8 bytes are an unreferenced frame slot that
+  appears only when the u64 `Key.trg & 0x80000` test and the f32->u32 `mf` conversion are both present (`(int)` conversion
+  or a u32 Key test: fpmem at 0x50, frame 0xb0/0xb8; `(u32) Key.trg & ..` still has it); expand-time frame refs are only
+  m/cpos, so it is a post-expand `assign_stack_local` (reload secondary memory for a DImode reload is the suspect). r208
+  operateCrank (Matching) has the same two ingredients AND the slot in its target (vars 0x10..0x20, unexplained 0x20..0x28,
+  fpmem 0x28), so the original produces it under some condition r204's source did not meet. Not found.

@@ -234,12 +234,21 @@ void R20eMain()
 
 void cFence20e::move()
 {
+    // COMPILER-DIFF: #13 (asm-emitted pool constant): the lift height is a reload-rematerialised
+    // constant in the original (`lis r9` reusing the dead 50.0 high's register one insn after its
+    // last use, `lfs f12` a cycle later); as a pseudo our local-alloc gives its high r11 (the fake
+    // lifetime of a qty born right after another's death) and sched2 hoists the load.  The named
+    // static const takes the pool's first slot (the pool keeps 50.0 and 20.0), so .rodata is unchanged.
+    static const f32 k2200 = 2200.0f;
+
     if (obj && active) {
         if (state == 1) {
-            // the pool lists the lift height before the step
-            const f32 up = 2200.0f;
+            register u32 hi asm("r9");   // COMPILER-DIFF: #13
+            f32 up;
 
             obj->pos.y += 50.0f;
+            asm("lis %0,%1@ha" : "=r"(hi) : "i"(&k2200));                 // COMPILER-DIFF: #13
+            asm("lfs %0,%1@l(%2)" : "=f"(up) : "i"(&k2200), "r"(hi));   // COMPILER-DIFF: #13
             if (obj->pos.y > baseY + up || force == 1) {
                 obj->pos.y = baseY + up;
                 SceAtSetEnable(atNo, 0);
@@ -1083,6 +1092,34 @@ static inline void r20e_setLayout(R20ePuzzle* p, const s8 tbl[3][3])
     }
 }
 
+// Places piece `pc` (of cell `c`): the Vec temp is the inline's own local (integrate substitutes its
+// frame address, no PRE), while the loops and their counters belong to the caller.  The first layout
+// pass in r20e_initPuzzle is this macro over the function's own `x`/`y` (the target's r28 serves as y
+// in both the object loop and the layout loop): with the counter shared, `y + 1` stays a latch biv in
+// the object loop instead of being PRE'd across the inner loop (pl0f BoatControl rule), which is what
+// forms the `y*4`/`y*16` givs and the `subic.` count-down.  The else arm's layout keeps the inline
+// r20e_setLayout (its own counter, caller-saved r8 in the target).
+static inline void r20e_placePiece(R20ePuzzle* p, R20eCell* c, s8 pc)
+{
+    c->piece = pc;
+    if (pc != -1) {
+        R20ePiece* q = PUZZLE_PIECE(p, pc);
+        Vec pos;
+
+        pos = c->pos;
+        if (q->obj) {
+            q->obj->pos = pos;
+        }
+    }
+}
+
+#define R20E_SET_LAYOUT(p, tbl)                                    \
+    for (y = 0; y < 3; y++) {                                      \
+        for (x = 0; x < 3; x++) {                                  \
+            r20e_placePiece(p, &(p)->cell[x][y], (tbl)[x][y]);     \
+        }                                                          \
+    }
+
 void r20e_initPuzzle()
 {
     R20ePuzzle* p = &r20e_work->puzzle;
@@ -1126,7 +1163,7 @@ void r20e_initPuzzle()
     p->cx = 2;
     p->cy = 2;
     last->piece = -1;
-    r20e_setLayout(p, r20e_initLayout);
+    R20E_SET_LAYOUT(p, r20e_initLayout);
     if (RsfCheck(G_ROOM_ID, 3) == 0) {
         SceAtDataSet_exec(1, 0x12, 0, (TaskFunc) r20d_checkPuzzle, 0, 1);
         SceAtSetEnable(0xD, 0);

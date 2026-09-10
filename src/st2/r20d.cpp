@@ -921,7 +921,10 @@ static void r20d_execThrough(int no)
         p->setAng(&a);
         // COMPILER-DIFF: 3 (frame-address PRE): the r31 clobber kills gcse's transparency for
         // `(plus fp 0x18)` in the loop body, so `&a` is not PRE'd into a callee-saved register.
-        asm("" : "=r"(d) : "0"(d) : "r31");
+        // The operand must be `p`: the asm's anti-dependence on `mr r3,p` gives that copy the same
+        // dependent count as `addi r4,r1,0x18` (both 4), and sched2's LUID tie-break issues the
+        // copy first like the target; with `d` as the operand the addi had one dependent more.
+        asm("" : "=r"(p) : "0"(p) : "r31");
         SceSleep(1);
     }
     do { } while (0);   // COMPILER-DIFF: candidate #12 (loop-exit form): the block after reloads 0.0 from the pool

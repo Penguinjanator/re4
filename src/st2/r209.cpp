@@ -179,7 +179,7 @@ struct R209EmSet {
     int point;  // r209_bowgunStartPos index (-1: none)
 };
 
-Vec r209_leaderPoint[8] = {
+static Vec r209_leaderPoint[8] = {
     {-37320.0f, 1950.0f, 24415.0f},
     {-19660.0f, 6000.0f, 27190.0f},
     {-30740.0f, 1000.0f, 16330.0f},
@@ -189,15 +189,15 @@ Vec r209_leaderPoint[8] = {
     {-41522.0f, 4000.0f, 7581.0f},
     {-18070.0f, 6000.0f, 8900.0f},
 };
-int r209_snipeEmNo[8] = {7, 8, 9, 10, 11, 12, 13, 14};
-Vec r209_bowgunStartPos[4] = {
+static int r209_snipeEmNo[8] = {7, 8, 9, 10, 11, 12, 13, 14};
+static Vec r209_bowgunStartPos[4] = {
     {-58048.0f, 7216.0f, 14032.0f},
     {-58390.0f, 7216.0f, 628.0f},
     {-74392.0f, 7216.0f, 266.0f},
     {-74265.0f, 7216.0f, 14347.0f},
 };
-Vec r209_zeroVec = {0.0f, 0.0f, 0.0f};
-Vec r209_bowgunPos[12] = {
+static Vec r209_zeroVec = {0.0f, 0.0f, 0.0f};
+static Vec r209_bowgunPos[12] = {
     {-75080.0f, 7216.0f, 15738.0f},
     {-74170.0f, 7216.0f, 14660.0f},
     {-75500.0f, 7216.0f, 7950.0f},
@@ -211,7 +211,7 @@ Vec r209_bowgunPos[12] = {
     {-57115.0f, 7216.0f, 15746.0f},
     {-66500.0f, 7216.0f, 15500.0f},
 };
-Vec r209_bowgunPos2[4] = {
+static Vec r209_bowgunPos2[4] = {
     {-75480.0f, 7216.0f, 7465.0f},
     {-66790.0f, 7216.0f, 15670.0f},
     {-57280.0f, 7216.0f, 7780.0f},
@@ -436,7 +436,15 @@ void R209Main()
                 u32 bit = j + base8;
                 bit += 8;
                 if (SceAtCheckHitModel(atNo[j], r209_work.p->em[idx].w.getPtr())) {
-                    R209_BIT_ON(flags, bit);
+                    // Not R209_BIT_ON: the block's three local qtys (idx, amt/shift, val/or) are
+                    // hand-sorted by local-alloc, and with a pointer base the idx pseudo prefers
+                    // GENERAL_REGS and takes r0.  An integer (u32) base makes both plus operands
+                    // half-BASE_REGS, so idx takes r9 and the shift amount r0 like the target
+                    // (`lwzx r11,r9,r28`); `fb` must be read before the shift constant's first use
+                    // so the hoisted `mr r28,r20` copy keeps its LUID ahead of `lis r24,0x8000`.
+                    u32 fb = (u32) flags;
+                    u32 ofs = ((u32) bit >> 5) << 2;
+                    *(u32*) (ofs + fb) |= 0x80000000 >> (bit & 31);
                 }
             }
         }
