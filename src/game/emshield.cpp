@@ -1,8 +1,8 @@
 // game/emshield.cpp: shield enemy (cEmShield): a wooden shield carried by an enemy that loses its
 // planks when shot and falls to the ground as a three-node rope.
 //
-// Not yet byte-identical: emShieldDmCk (0xB0 bytes short: switch/damage layout), setFall (the
-// `fmr f29, gravity` prologue copy ranks last in the original: FPR-argument death rule, AGENTS.md).
+// Not yet byte-identical: setFall (the `fmr f29, gravity` prologue copy ranks last in the original:
+// FPR-argument death rule, AGENTS.md).
 
 #include "atari.h"
 #include "map_obj.h"
@@ -157,10 +157,17 @@ void cEmShield::beginEvent()
 
 // Damage: every few hits a plank (hit box parts 2..10) breaks off; the fourth plank, an explosion
 // or a heavy weapon destroys the shield.
-// TODO (67%): the target lays the bodies out as default(A) / B / breakAll / plank / blood / C / D /
-// C-continuation, keeps both EstSet(0x63 / 0x61) calls un-merged, and its compare tree differs
-// (B = {5,6,9,0xA,0xF,0x28,0x2C}, C = {7,8,0x21}, D = {0xD,0x12,0x13,0x15,0x1C,0x29,0x2D},
-// explicit default members 0xB,0xE,0x14,0x1B,0x1D,0x26,0x27,0x2B; 0..4 are not in the tree).
+// Byte-identical. Shape notes: the compare tree needs the default-labelled members 0..4, 0xB, 0xE,
+// 0x10, 0x11, 0x14, 0x1B, 0x1D, 0x26, 0x27, 0x2B (tools/casetree.py: [0,4] and [16,17] only add
+// balance weight, their compares are jump-threaded away); the two plank bodies (default arm / B arm)
+// stay separate copies only because they use different pointer variables (`parts0` = the top
+// getPartsPtr(0) variable, also the breakAll/D one, so it crosses calls and is callee-saved r31;
+// `parts` in B, `parts2` in the C continuation), the C arm falls through into D with `goto plank`
+// for its own body laid out after D, and `!(rad < K)` gives the plain `bge`. The D arm's SndCall
+// goes through a do-while(0) + void-returning alias: the loop notes give `&parts0->worldPos` a 5th
+// weighted ref (global-alloc priority above `w`: r26/r25) and the void result keeps `li r3,8`
+// ahead of the other argument `li`s inside the notes (u32 SndCall issues it last there).
+void SndCallV(u16, u16, Vec*, int, int, cUnit*) asm("SndCall__FUsUsP3VeciiP5cUnit");
 void emShieldDmCk(cEmShield* em)
 {
     EmShieldWork* w = EMSHIELD_WK(em);
@@ -170,6 +177,7 @@ void emShieldDmCk(cEmShield* em)
     EmHitInfo* part;
     cModel* parts;
     cModel* parts0;
+    cModel* parts2;
 
     if (em->dmHit == 0) {
         return;
@@ -199,8 +207,15 @@ void emShieldDmCk(cEmShield* em)
     }
     switch (em->dmWep) {
     default:
+    case 0:
+    case 1:
+    case 2:
+    case 3:
+    case 4:
     case 0xB:
     case 0xE:
+    case 0x10:
+    case 0x11:
     case 0x14:
     case 0x1B:
     case 0x1D:
@@ -219,20 +234,20 @@ void emShieldDmCk(cEmShield* em)
         if (w->breakCnt > 3) {
             goto breakAll;
         }
-        parts = em->getPartsPtr(part->partsNo - 1);
-        p = parts->worldPos;
-        Matrix2AxisAngle(parts->mat, &r);
+        parts0 = em->getPartsPtr(part->partsNo - 1);
+        p = parts0->worldPos;
+        Matrix2AxisAngle(parts0->mat, &r);
         if (part->partsNo == 5) {
             EstSet(0, -1, &p, &r, 0x10, 0x63, 0, 0, 0, 0);
         } else {
             EstSet(0, -1, &p, &r, 0x10, 0x61, 0, 0, 0, 0);
         }
         if (w->pParent) {
-            SndCall(8, 0xAD, &parts->worldPos, w->pParent->id, 0, em);
+            SndCall(8, 0xAD, &parts0->worldPos, w->pParent->id, 0, em);
         }
-        parts->scale.x = 0.0f;
-        parts->scale.y = 0.0f;
-        parts->scale.z = 0.0f;
+        parts0->scale.x = 0.0f;
+        parts0->scale.y = 0.0f;
+        parts0->scale.z = 0.0f;
         part->flags &= ~1;
         break;
     case 5:
@@ -288,33 +303,8 @@ void emShieldDmCk(cEmShield* em)
         if (part->rad > 64000000.0f) {
             break;
         }
-        if (w->breakCnt <= 3 && part->rad >= 12250000.0f) {
-            if (part->partsNo == 0) {
-                break;
-            }
-            parts = em->getPartsPtr(part->partsNo - 1);
-            p = parts->worldPos;
-            Matrix2AxisAngle(parts->mat, &r);
-            if (part->partsNo == 5) {
-                EstSet(0, -1, &p, &r, 0x10, 0x63, 0, 0, 0, 0);
-            } else {
-                EstSet(0, -1, &p, &r, 0x10, 0x61, 0, 0, 0, 0);
-            }
-            w->hitCnt -= 3;
-            if (w->hitCnt > 0) {
-                break;
-            }
-            w->breakCnt++;
-            parts->scale.x = 0.0f;
-            parts->scale.y = 0.0f;
-            parts->scale.z = 0.0f;
-            part->flags &= ~1;
-            w->hitCnt = (Rnd() % 3) + 2;
-            if (w->pParent) {
-                parts0 = em->getPartsPtr(0);
-                SndCall(8, 0xAD, &parts0->worldPos, w->pParent->id, 0, em);
-            }
-            break;
+        if (w->breakCnt <= 3 && !(part->rad < 12250000.0f)) {
+            goto plank;
         }
     case 0xD:
     case 0x12:
@@ -333,7 +323,35 @@ void emShieldDmCk(cEmShield* em)
         em->xFE = 0;
         em->xFF = 0;
         if (w->pParent) {
-            SndCall(8, 0xAE, &parts0->worldPos, w->pParent->id, 0, em);
+            do {
+                SndCallV(8, 0xAE, &parts0->worldPos, w->pParent->id, 0, em);
+            } while (0);
+        }
+        break;
+    plank:
+        if (part->partsNo == 0) {
+            break;
+        }
+        parts2 = em->getPartsPtr(part->partsNo - 1);
+        p = parts2->worldPos;
+        Matrix2AxisAngle(parts2->mat, &r);
+        if (part->partsNo == 5) {
+            EstSet(0, -1, &p, &r, 0x10, 0x63, 0, 0, 0, 0);
+        } else {
+            EstSet(0, -1, &p, &r, 0x10, 0x61, 0, 0, 0, 0);
+        }
+        w->hitCnt -= 3;
+        if (w->hitCnt > 0) {
+            break;
+        }
+        w->breakCnt++;
+        parts2->scale.x = 0.0f;
+        parts2->scale.y = 0.0f;
+        parts2->scale.z = 0.0f;
+        part->flags &= ~1;
+        w->hitCnt = (Rnd() % 3) + 2;
+        if (w->pParent) {
+            SndCall(8, 0xAD, &em->getPartsPtr(0)->worldPos, w->pParent->id, 0, em);
         }
         break;
     }

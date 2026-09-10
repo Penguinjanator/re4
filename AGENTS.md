@@ -6028,3 +6028,74 @@ target) stays unresolved and `make_rel` then fails with "undefined symbol".
   Vec share one slot 0x10 in the target with a second unused 16-byte slot; block-scoping and an inline for
   the boarding block did not reproduce it), R10xIn trio 9 (`stb x4FC` before `stfs blendRate500`), the
   0.5/1.0, 50/20, 1500/500/1.0 pool orders.
+
+### DOL third sweep, bytes-first (emshield 13/14; em_sub EmRackCk 209 -> 49 words; cam_extra CameraScope ctor 104 -> 37, IdBinocular::cutin 13 -> 3; puzzle selPiece restructured; 2026-09-10)
+
+- Harness /tmp/dolties3 (copy of /tmp/dolties2 with the paths rewritten; `vapply.py UNIT VARIANTS.py NAME`
+  applies one tryv variant in place). Per-unit word totals at the start of the sweep (sum of mcmp words):
+  cam_extra 1206, puzzle 1102, pendulum 1066, em_sub 973, cam_ctrl 714, sce_com 576, item 498, emshield 406,
+  db_cam 368, dbmodule 332 (one function, DrawObjWireframe), sce_at 222, snd 205, main_mem 200.
+- emshield emShieldDmCk (404 -> 0 words): (1) default-labelled RANGES shape the compare tree too: `case 0..4`
+  and `case 0x10: case 0x11:` grouped with `default:` add balance weight 2 each while emitting only a
+  `b default` that jump.c folds (tools/casetree.py reproduces the target root once they are listed); (2) two
+  identical plank bodies (default arm / B arm) survive jump2 only because their pointer variables differ:
+  `parts0` (the top `getPartsPtr(0)` variable, also breakAll's and D's, so it crosses calls and is r31
+  everywhere) in the default arm, `parts` in B, `parts2` in the C continuation -- identical registers make
+  jump2 merge the copies from `cmpwi 5; bne` on; (3) the C arm's `if (breakCnt <= 3 && !(rad < K)) goto plank;`
+  falls through into the D case body and `plank:` is laid out after D (`!(a < b)` = plain `bge`); (4) the D
+  arm's SndCall is `do { SndCallV(..); } while (0)` with `void SndCallV(...) asm("SndCall__...")`: the loop
+  notes give `&parts0->worldPos` a 5th weighted ref (global-alloc priority above `w`, r26/r25) and the void
+  return type keeps `li r3,8` ahead of the other argument `li`s inside the notes (the u32 SndCall issues it last).
+- Global-alloc REG_LIVE_LENGTH is flow's count at life_analysis time (pre-combine RTL, real insns only) and
+  is NOT recomputed by recompute_reg_usage after sched1 (only REG_N_REFS/SETS/DEATHS are): the `.lreg`
+  "across N insns" is that number, so pre-combine-only insns (masks, separate compares, `mr` copies) count.
+- puzzle selPiece: the cursor clamp is written twice per axis (a `SEL_CHECK` macro: `if (cur < 0 || cur >
+  size-1) { if (cur < 0) ret = lo; if (cur > size-1) ret = hi; cur = save; } else goto done;` -- the shared
+  `cmpwi cr7` of the outer `||` and the inner `if`), once in the loop's `q == 0` else arm (+ `goto done`)
+  and once after the loop, so the only `break` is `if (p == 0) break;` and expand_end_loop rotates the loop
+  around it (`b INC; body; INC: curX += d; bne cr4 body`). A second `break` as the loop's last insn stops the
+  rotation (`last_test_insn == get_last_insn()`). OPEN (COMPILER-DIFF #9): our jump.c
+  duplicate_loop_exit_test then copies the `curX += d; if (p == 0)` exit code at the loop entry (peel), the
+  original enters with a plain `b INC`; both known #9 cases (r103/r105 execOpenCover, selPiece) have a
+  MEMORY STORE in the exit code -- candidate rule for the original's jump.c. A goto loop keeps the layout but
+  loses the loop.c-hoisted `cmpwi p` (cr4). The rewrite costs words (115 -> 132) but is the target's structure.
+- em_sub EmRackCk (209 -> 49): six identical `&&` box tests; the target hoists ALL seven compare constants
+  (25e6, 50, 400, -400, 2000, 1000, -1000 -> f21..f27) and reloads 0.0 per corner. Ours PRE-unifies the
+  `high` of every constant except the first compare's (400: its first occurrence is the block right after
+  the PSMTXMultVec call, PRE inserts a copy before the `bl` for corners 2-6 and corner 1 keeps its own
+  `lis`), so loop.c's combine_movables never sees six equal loads. A `f32 xmax` variable assigned right after
+  `v.z = hz;` (pool order 0.0 before 400) gives the target's register set; residue: ours cannot hoist it
+  (set after the `continue` tests = maybe_never, used in other blocks) while the original did.
+- cam_extra CameraScope ctor (104 -> 37): the wep_type filter is `int t = pG->wep_type; if (t == 0) type = t;
+  else if (t == 1) type = t; else if (t == 2) type = t;` (three EQ compares, jump2 cross-jumps the stores;
+  a switch or `||` on one value range-folds to `cmplwi 2`), ONE body for `case 9: case 10: case 0x28:` (the
+  label has a jump use, so cse reloads pG there) and the `type = 0` arm written LAST (its `stb` is the
+  cross-jump survivor: `bne default; b stb`); `&dir` per use (a `Vec* dir` local merges the arms' PRE copies
+  `mr r29, ..`); in the else arm `cModel* p0/p1` locals + `Vec* d = &dir; d->x = ..` (x via r31, y/z via
+  the pointer); `const f32 len = 300000.0f` at the top for the pool order (300000, 0.5, 0.0, 45, ..);
+  `-70.0f * 3.1415927f / 180.0f` = 0xbf9c61ab (the literal -1.2217305f is ..aa); zero stores in natural
+  x, y, z order (`yure.z` last is the dying store issued first); `f32 zero = 0.0f;` declared before
+  `param.fovy = 45.0f` puts the 0.0 `lis` first. Residue: pos/at r27/r26 vs r29/r28 (the target keeps
+  `p1 = getPartsPtr(0x21)` in a callee-saved r29 and never folds it into the `addi`).
+- cam_extra CameraBinocular ctor (74 -> 67): declaration order `Vec c; Vec up; Mtx inv;` (frame c 8, up
+  0x18, inv 0x28), `up.x = 0; up.y = 1; up.z = 0` natural order, `Vec* u = &this->up` in the else arm.
+  OPEN: the seven x100..x124 constant stores are issued in pure source order by the target although the
+  three constant registers die there (the "dying-store rule not applied" family: emrock SetRock, cam_qfps
+  init); FSet/chains/order permutations do not give it.
+- cam_extra IdBinocular::cutin (13 -> 3): `switch (i) { case 0xD: case 0x37..0x3B: continue; }` for the
+  unfolded `cmpwi 13; beq; cmpwi cr7,59; blt; cmpwi 55; bgt cr7; bge` (an `||`/`&&` range folds). Residue:
+  the three `sth` in source order (114, 116, 118) with `u` dying at the last -- same family as above.
+- texture TexRegist (91 words, analysed): the loop-invariant `cmpwi clamp,0` lives in cr4 in the target and
+  in a GPR (`mfcr r26`/`mtcrf`) in ours. The branch pattern's constraint is "x,?y", so regclass gives a CC
+  pseudo with two branch uses pref CR0_REGS (alt NON_FLOAT_REGS); crossing calls it cannot take cr0 and
+  global.c then walks the alt class in alloc order (callee-saved GPRs before cr2-cr4) -- cr4 is reached
+  only when every callee-saved GPR conflicts. The target's GPRs are all taken because a dead PRE copy of a
+  zero (`mr r30,r10`, ours `mr r10,r11`) got a callee-saved register there (its pseudo crosses the LOD
+  call in the original's liveness, not in ours). No source lever found.
+- em_set EmSetFromList2/EmSetEvent (73/74): the target needs a 5th callee-saved register because local-alloc
+  hands the seven fpmem loadaddr copies r8..r3 (ours r4..r7, r10, r11) and `&em->pos` then falls to r30;
+  pure qty ordering, `const f32` forms of the EmSetWork constants regress EmSetFromList (matched).
+- item use (132): every `healing(N)` arm keeps its own `bl; cmpwi; bne; b` tail in the original (11 copies);
+  ours cross-jumps them into one. jump.c refuses to cross-jump CALL_INSNs only across EH regions
+  (`in_same_eh_region`, and SN's cc1plus defaults `flag_exceptions = 0` in cp/lex.c) -- COMPILER-DIFF 6
+  territory, not retried.

@@ -216,62 +216,75 @@ void FocusAnimation::clear()
 // CameraScope: rifle scope view.
 // ---------------------------------------------------------------------------
 
+// The wep_type filter is an if/else-if chain on a local (`t == 0`, `== 1`, `== 2`, each storing
+// `t`; jump2 cross-jumps the three `stb`s) -- a switch or `||` on one value range-folds; the 9/10/0x28
+// arm is one body (its label has a jump use, so cse reloads pG there) and the `type = 0` arm is written
+// last so its `stb` is the cross-jump survivor; `&dir` is written per use (a `Vec* dir` local
+// merges the arms' PRE copies `mr r29, ..`).
+#define SCOPE_WEP_TYPE()                                                                             \
+    {                                                                                                \
+        int t = pG->wep_type;                                                                        \
+        if (t == 0) {                                                                                \
+            type = t;                                                                                \
+        } else if (t == 1) {                                                                         \
+            type = t;                                                                                \
+        } else if (t == 2) {                                                                         \
+            type = t;                                                                                \
+        }                                                                                            \
+    }
+
+struct PlayerPtr {
+    cPlayer* p;
+};
+#define pPLS (((PlayerPtr*) &pPL)->p)
 CameraScope::CameraScope(Vec* pos, Vec* at)
 {
     Mtx inv;
-    Vec* dir = &this->dir;
+    const f32 len = 300000.0f;
 
-    PSMTXInverse(pPL->mat, inv);
+    PSMTXInverse(pPLS->mat, inv);
     if (pos && at) {
         pos_ofs = *pos;
-        PSVECSubtract(at, pos, dir);
+        PSVECSubtract(at, pos, &dir);
     } else {
-        PSVECAdd(&pPL->getPartsPtr(0x20)->worldPos, &pPL->getPartsPtr(0x21)->worldPos, &pos_ofs);
+        cModel* p0 = pPL->getPartsPtr(0x20);
+        cModel* p1 = pPL->getPartsPtr(0x21);
+        Vec* d;
+
+        PSVECAdd(&p0->worldPos, &p1->worldPos, &pos_ofs);
         PSVECScale(&pos_ofs, &pos_ofs, 0.5f);
-        dir->x = pPL->mat[0][2];
-        dir->y = pPL->mat[1][2];
-        dir->z = pPL->mat[2][2];
+        d = &dir;
+        d->x = pPL->mat[0][2];
+        d->y = pPL->mat[1][2];
+        d->z = pPL->mat[2][2];
     }
     PSMTXMultVec(inv, &pos_ofs, &pos_ofs);
 #line 306 "D:/Bio4/Prog/cam_extra.cpp"
-    VECNormalize(dir, dir);
-    PSVECScale(dir, dir, 300000.0f);
-    PSMTXMultVecSR(inv, dir, dir);
+    VECNormalize(&dir, &dir);
+    PSVECScale(&dir, &dir, len);
+    PSMTXMultVecSR(inv, &dir, &dir);
     switch (pG->wep_no) {
     case 9:
     case 10:
-        switch (pG->wep_type) {
-        case 0:
-        case 1:
-        case 2:
-            type = pG->wep_type;
-            break;
-        }
+    case 0x28:
+        SCOPE_WEP_TYPE();
         break;
     case 13:
     case 14:
     case 0x1D:
         type = 0;
         break;
-    case 0x28:
-        switch (pG->wep_type) {
-        case 0:
-        case 1:
-        case 2:
-            type = pG->wep_type;
-            break;
-        }
-        break;
     }
+    f32 zero = 0.0f;
     param.fovy = 45.0f;
-    angle_min = -1.2217305f;
-    angle_max = 1.2217305f;
-    yure.z = 0.0f;
-    param.roll = 0.0f;
-    zoom = 0.0f;
-    angle_x = 0.0f;
-    yure.x = 0.0f;
-    yure.y = 0.0f;
+    angle_min = -70.0f * 3.1415927f / 180.0f;
+    angle_max = 70.0f * 3.1415927f / 180.0f;
+    param.roll = zero;
+    zoom = zero;
+    angle_x = zero;
+    yure.x = zero;
+    yure.y = zero;
+    yure.z = zero;
     id.init(&type);
     focus.init(0x9A);
 }
@@ -498,11 +511,16 @@ void IdScope::quit(void*)
 // CameraBinocular
 // ---------------------------------------------------------------------------
 
+// Frame order c 0x8, up 0x18, inv 0x28 (declaration order); the else arm keeps the getPartsPtr
+// results in cModel* locals and writes this->up through a `Vec* u`. OPEN (67 words): the target
+// issues the seven x100..x124 constant stores in pure source order although the three constant
+// registers die there (the emrock SetRock / cam_qfps init family); FSet, chains and every statement
+// order tried.
 CameraBinocular::CameraBinocular(Vec* pos, Vec* at, void* a, void* b)
 {
-    Mtx inv;
     Vec c;
     Vec up;
+    Mtx inv;
 
     id_a = a;
     id_b = b;
@@ -510,21 +528,26 @@ CameraBinocular::CameraBinocular(Vec* pos, Vec* at, void* a, void* b)
         mode = 0;
         param.pos = *pos;
         param.at = *at;
+        this->up.x = 0.0f;
         this->up.y = 1.0f;
         this->up.z = 0.0f;
-        this->up.x = 0.0f;
     } else {
         mode = 1;
-        PSVECAdd(&pPL->getPartsPtr(0x20)->worldPos, &pPL->getPartsPtr(0x21)->worldPos, &c);
+        cModel* p0 = pPL->getPartsPtr(0x20);
+        cModel* p1 = pPL->getPartsPtr(0x21);
+        PSVECAdd(&p0->worldPos, &p1->worldPos, &c);
         PSVECScale(&c, &c, 0.5f);
         param.pos = c;
         up.x = pPL->mat[0][2];
         up.y = pPL->mat[1][2];
         up.z = pPL->mat[2][2];
         PSVECAdd(&c, &up, &param.at);
-        this->up.x = pPL->mat[0][1];
-        this->up.y = pPL->mat[1][1];
-        this->up.z = pPL->mat[2][1];
+        {
+            Vec* u = &this->up;
+            u->x = pPL->mat[0][1];
+            u->y = pPL->mat[1][1];
+            u->z = pPL->mat[2][1];
+        }
     }
     param.fovy = 45.0f;
     CameraSetOrientationUp(this);
@@ -673,12 +696,20 @@ void IdBinocular::init(Camera* cam, void* a, void* b)
     sizeX = u->sizeX;
 }
 
+// The skipped ids are a switch (`||`/`&&` range tests fold to `cmplwi 4`). OPEN (3 words): the three
+// `sth` come out in source order in the target although `u` dies at the last one.
 void IdBinocular::cutin()
 {
     int i;
 
     for (i = 0; i <= 0x40; i++) {
-        if (i == 0xD || (i >= 0x37 && i <= 0x3B)) {
+        switch (i) {
+        case 0xD:
+        case 0x37:
+        case 0x38:
+        case 0x39:
+        case 0x3A:
+        case 0x3B:
             continue;
         }
         IdUnit* u = IdSys.unitPtr(i, 0x24);

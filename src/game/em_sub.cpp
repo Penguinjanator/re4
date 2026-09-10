@@ -2563,6 +2563,11 @@ static void EmSubDead2(f32* p)
 
 // Rack (id 0x45) in the way of `em` moving to `pos` heading `ang`: 0 when one of the rack's
 // corner / edge points falls into the box in front of the position.
+// The x limit is a variable (`xmax`, assigned after `v.z = hz` for the pool order 0.0, 400): as a
+// literal its first compare sits in the block right after the PSMTXMultVec call and gcse PRE gives
+// corners 2-6 a copy of the `lis` while corner 1 keeps its own, so loop.c never combines the six
+// loads. OPEN (49 words): the original hoists `xmax` with the other six constants (f27); ours cannot
+// (set after the `continue` tests = maybe_never, used in the other corners' blocks).
 int EmRackCk(cEm* em, Vec* pos, f32 ang)
 {
     Vec v;
@@ -2572,6 +2577,7 @@ int EmRackCk(cEm* em, Vec* pos, f32 ang)
     EmRackWork* w;
     f32 hx;
     f32 hz;
+    f32 xmax;
 
     PSMTXRotRad(m, 'y', ang);
     TransMatrix(m, pos);
@@ -2600,9 +2606,10 @@ int EmRackCk(cEm* em, Vec* pos, f32 ang)
         v.x = hx;
         v.y = 0.0f;
         v.z = hz;
+        xmax = 400.0f;
         PSMTXMultVec(e->mat, &v, &v);
         PSMTXMultVec(m, &v, &v);
-        if (v.x < 400.0f && v.x > -400.0f && v.z < 2000.0f && v.z > 0.0f && v.y < 1000.0f && v.y > -1000.0f) {
+        if (v.x < xmax && v.x > -400.0f && v.z < 2000.0f && v.z > 0.0f && v.y < 1000.0f && v.y > -1000.0f) {
             return 0;
         }
         v.x = hx;
@@ -2610,7 +2617,7 @@ int EmRackCk(cEm* em, Vec* pos, f32 ang)
         v.z = -hz;
         PSMTXMultVec(e->mat, &v, &v);
         PSMTXMultVec(m, &v, &v);
-        if (v.x < 400.0f && v.x > -400.0f && v.z < 2000.0f && v.z > 0.0f && v.y < 1000.0f && v.y > -1000.0f) {
+        if (v.x < xmax && v.x > -400.0f && v.z < 2000.0f && v.z > 0.0f && v.y < 1000.0f && v.y > -1000.0f) {
             return 0;
         }
         v.x = -hx;
@@ -2618,7 +2625,7 @@ int EmRackCk(cEm* em, Vec* pos, f32 ang)
         v.z = hz;
         PSMTXMultVec(e->mat, &v, &v);
         PSMTXMultVec(m, &v, &v);
-        if (v.x < 400.0f && v.x > -400.0f && v.z < 2000.0f && v.z > 0.0f && v.y < 1000.0f && v.y > -1000.0f) {
+        if (v.x < xmax && v.x > -400.0f && v.z < 2000.0f && v.z > 0.0f && v.y < 1000.0f && v.y > -1000.0f) {
             return 0;
         }
         v.x = -hx;
@@ -2626,7 +2633,7 @@ int EmRackCk(cEm* em, Vec* pos, f32 ang)
         v.z = -hz;
         PSMTXMultVec(e->mat, &v, &v);
         PSMTXMultVec(m, &v, &v);
-        if (v.x < 400.0f && v.x > -400.0f && v.z < 2000.0f && v.z > 0.0f && v.y < 1000.0f && v.y > -1000.0f) {
+        if (v.x < xmax && v.x > -400.0f && v.z < 2000.0f && v.z > 0.0f && v.y < 1000.0f && v.y > -1000.0f) {
             return 0;
         }
         v.x = 0.0f;
@@ -2634,7 +2641,7 @@ int EmRackCk(cEm* em, Vec* pos, f32 ang)
         v.z = -hz;
         PSMTXMultVec(e->mat, &v, &v);
         PSMTXMultVec(m, &v, &v);
-        if (v.x < 400.0f && v.x > -400.0f && v.z < 2000.0f && v.z > 0.0f && v.y < 1000.0f && v.y > -1000.0f) {
+        if (v.x < xmax && v.x > -400.0f && v.z < 2000.0f && v.z > 0.0f && v.y < 1000.0f && v.y > -1000.0f) {
             return 0;
         }
         v.x = 0.0f;
@@ -2642,7 +2649,7 @@ int EmRackCk(cEm* em, Vec* pos, f32 ang)
         v.z = hz;
         PSMTXMultVec(e->mat, &v, &v);
         PSMTXMultVec(m, &v, &v);
-        if (v.x < 400.0f && v.x > -400.0f && v.z < 2000.0f && v.z > 0.0f && v.y < 1000.0f && v.y > -1000.0f) {
+        if (v.x < xmax && v.x > -400.0f && v.z < 2000.0f && v.z > 0.0f && v.y < 1000.0f && v.y > -1000.0f) {
             return 0;
         }
     }

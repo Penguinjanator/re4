@@ -976,6 +976,27 @@ void pzlPlayer::giveupExtraPiece()
     extra = 0;
 }
 
+// Cursor clamp after a move: written twice per axis in the original (a macro): once in the loop's
+// `q == 0` else arm and once after the loop (jump2 cross-jumps the tails); the `cur < 0` compare is
+// shared between the outer `||` and the inner `if` (cr7).
+// OPEN (COMPILER-DIFF candidate #9): with the else arm ending in `goto done` the only `break` is the
+// `p == 0` one, expand_end_loop rotates the loop around it and the original enters it with a plain
+// `b INC` (no duplicated exit test), while our jump.c duplicates the `curX += d; if (p == 0)` exit
+// code at the loop entry (duplicate_loop_exit_test refuses only calls/labels/>20 insns; a goto loop
+// keeps the layout but loses the loop.c-hoisted `cmpwi p` in cr4).
+#define SEL_CHECK(cur, size, lo, hi, done)                                                          \
+    if (b->cur < 0 || b->cur > b->size - 1) {                                                        \
+        if (b->cur < 0) {                                                                            \
+            ret = lo;                                                                                \
+        }                                                                                            \
+        if (b->cur > b->size - 1) {                                                                  \
+            ret = hi;                                                                                \
+        }                                                                                            \
+        b->cur = save;                                                                               \
+    } else {                                                                                         \
+        goto done;                                                                                   \
+    }
+
 int pzlPlayer::selPiece(pzlBoard* b)
 {
     int ret = 0;
@@ -1008,19 +1029,12 @@ int pzlPlayer::selPiece(pzlBoard* b)
                         goto doneX;
                     }
                 } else {
-                    break;
+                    SEL_CHECK(curX, w, 3, 4, doneX);
+                    goto doneX;
                 }
             }
         }
-        if (b->curX < 0) {
-            ret = 3;
-        } else if (b->curX <= b->w - 1) {
-            goto doneX;
-        }
-        if (b->curX > b->w - 1) {
-            ret = 4;
-        }
-        b->curX = save;
+        SEL_CHECK(curX, w, 3, 4, doneX);
     }
 doneX:
     d = 0;
@@ -1045,19 +1059,12 @@ doneX:
                         goto doneY;
                     }
                 } else {
-                    break;
+                    SEL_CHECK(curY, h, 1, 2, doneY);
+                    goto doneY;
                 }
             }
         }
-        if (b->curY < 0) {
-            ret = 1;
-        } else if (b->curY <= b->h - 1) {
-            goto doneY;
-        }
-        if (b->curY > b->h - 1) {
-            ret = 2;
-        }
-        b->curY = save;
+        SEL_CHECK(curY, h, 1, 2, doneY);
     }
 doneY:
     return ret;
