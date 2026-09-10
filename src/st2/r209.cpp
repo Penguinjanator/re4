@@ -424,13 +424,17 @@ void R209Main()
             i++;
         } while (i < atNum);
         // The outer counter is `i` (the same variable as the other loops keeps `i + 1` at the latch as a
-        // biv instead of a PRE-hoisted copy); the bit index is its own counter, so the inner `j` has only
-        // the `atNo[j]` giv left and is eliminated into the pointer compare.
+        // biv instead of a PRE-hoisted copy). The bit index is a loop.c giv of `j` written as two
+        // consecutive sets of one variable (consec_sets_giv): one giv with benefit 2 adds and no
+        // not-worth intermediate, so `j` still has only reducible givs and is eliminated into the
+        // pointer compare, and the giv init `addi bit,base8,8` is emitted after the loop's movables.
         for (i = 0; i < (u32) r209_work.p->snipeCnt; i++) {
-            u32 bit = 8 + i * 8;
+            u32 base8 = i * 8;
             int idx = r209_work.p->snipeIdx[i];
 
-            for (j = 0; j < atNum; j++, bit++) {
+            for (j = 0; j < atNum; j++) {
+                u32 bit = j + base8;
+                bit += 8;
                 if (SceAtCheckHitModel(atNo[j], r209_work.p->em[idx].w.getPtr())) {
                     R209_BIT_ON(flags, bit);
                 }
@@ -1237,11 +1241,17 @@ static void r209_SwitchAppearCheck()
             EstSet(0, -1, 0, 0, 1, 0, 1, 2, 0, 0);
             pG->flags_174 &= ~0x00100000;
             SceSetEventCancel(1, (TaskFunc) r209_SwitchAppearCheckEnd, 0, 0xB, 1);
-            r209_work.p->seId = RoomSeCall(0xD, 0, 0, 0, 0);
-            obj1->be_flag |= 0x20;
-            objB7->be_flag |= 0x20;
+            int seId = RoomSeCall(0xD, 0, 0, 0, 0);
             const f32 lim = 11225.0f;
             const f32 limB = 8716.0f;
+            // COMPILER-DIFF: candidate (sched1 order of the pool/work highs): the seId store through the
+            // loaded work pointer has alias base 0, so ours chains it to the obj loads and issues
+            // `lis work` before `lis lim`; the codeless asm ties the store to the lim load instead.
+            R209Work* wp = r209_work.p;
+            asm("" : "=r"(seId), "=r"(wp) : "0"(seId), "1"(wp), "f"(lim));
+            wp->seId = seId;
+            obj1->be_flag |= 0x20;
+            objB7->be_flag |= 0x20;
 
             while (obj1->pos.y < lim) {
                 obj1->pos.y += 50.0f;
@@ -1313,8 +1323,13 @@ static void r209_BridgeAppearCheck()
             pG->flags_174 &= ~0x00100000;
             SceSetEventCancel(1, (TaskFunc) r209_BridgeAppearCheckEnd, 0, 0xB, 1);
             obj->be_flag |= 0x20;
-            r209_work.p->seId = RoomSeCall(0xF, 0, 0, 0, 0);
-            while (obj->pos.z < 3322.0f) {
+            int seId = RoomSeCall(0xF, 0, 0, 0, 0);
+            const f32 lim = 3322.0f;
+            // COMPILER-DIFF: candidate (sched1 order of the pool/work highs), see r209_SwitchAppearCheck
+            R209Work* wp = r209_work.p;
+            asm("" : "=r"(seId), "=r"(wp) : "0"(seId), "1"(wp), "f"(lim));
+            wp->seId = seId;
+            while (obj->pos.z < lim) {
                 obj->pos.z += 50.0f;
                 SceSleep(1);
             }

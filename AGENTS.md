@@ -13359,3 +13359,79 @@ shows the same reloc name on both sides, not code).
   global-allocated, so local-alloc gave the high r11 -- no source form found to make the fpmem pseudo cross the call).
   obj00 FallMove 2 (pass-0 r24 before r23; a pin shifts all allocnos). t_option, em_set, sce_at, model, db_menu and
   the larger units were not iterated this pass.
+
+### Stage rooms, st4_0/st2_1 pass 6 (r40f Matching 9/9 -> st4_0 fully linked; r209 60/61 with R209Main 9 -> 6; r20d 30/32 with moveWall, throwLantern, operateCrank 0 and execThrough 62 -> 4; 2026-09-10)
+
+- Harness /home/adityas/.cache/rooms_a6 (rooms_a5 copies with the paths rewritten; `tryv.py MOD/UNIT FUNC variants.py
+  [--asm N] [--apply N]`, `vsbs.sh MOD/UNIT FUNC variants.py NAME`, `mm.py`, `mdump.sh MOD/UNIT -dX` with `SRC_OVERRIDE`;
+  the LA_DEBUG cc1plus of ~/.cache/em2b39_p7/sngcc prints local-alloc's qty order/priorities for any `dump/<unit>.i`).
+- **r40f BombSet 5 -> 0, zero code (unit flipped, st4_0 now linked in full): struct view of the work pointer for the two
+  `setGoto` calls** (`struct R40fWorkPtr { R40fWork* p; }; #define r40f_workS (((R40fWorkPtr*) &r40f_work)->p)`). The
+  p0 word-1/word-2 issue order is a sched2 priority: the w2 store `stw r3,8(r11)` had +1 over the w1 store from its anti
+  dependence on the following `lwz r3,work` (a `mem/f` fixed scalar never depends on the `mem/s` frame stores through
+  r11), and with equal RTL no LUID permutation can flip it. As `mem/s` the work load conflicts with the frame stores
+  (bases: r11 = frame vs the symbol -- known, so `fixed_scalar_and_varying_struct_p` was the only thing separating
+  them), every frame store gains the load as a dependent, the chains tie and LUID/weight give the target's order in
+  both sched passes. Every asm anchor (`"+m"(p0.y)` etc.) shifts the allocation instead (an asm's frame operand is
+  `(plus r31 N)`, unrelatable to the PRE'd `(plus P 4)` store addresses, so it conflicts with both words).
+- **r209 Switch/BridgeAppearCheck 7+7 -> 0, tagged `COMPILER-DIFF: candidate (sched1 order of the pool/work highs)`.**
+  Mechanism confirmed with the LA trace: local-alloc allocates the three 2-ref qtys (lim high, work high, work ptr) in
+  qty-number = sched1 birth order (equal QTY_CMP_PRI), and the ptr can share the lim high's r9 only if the high is
+  allocated first (`post_mark_life` marks `[birth, death)`, the ptr's fake_birth = birth - 2 touches the lfs slot, so
+  `lfs; lwz` adjacency is fine once the RO high owns r9). The codeless asm `asm("" : "=r"(seId), "=r"(wp) : "0"(seId),
+  "1"(wp), "f"(lim))` after `int seId = RoomSeCall(..); const f32 lim = K; R209Work* wp = r209_work.p;` ties the store
+  to the lim load (both highs then carry the store chain: equal priority, LUID puts `lis lim` first) without adding a
+  ref to the pointer -- an asm on the pointer alone doubles its refs (`used 4 times`, pri 2.67 > the highs' 0.33) and it
+  is allocated first (r9), pushing the lim high to r11; an asm on `seId` alone leaves the ptr's fake lifetime touching
+  the RO high's last slot (r10). The `const f32 lim` must be declared AFTER the call (before it: hoisted `lis r30`
+  callee-saved, 65 words). Alias facts read on the way: `find_base_value` returns a hard REG itself as the base (objs
+  = `(reg 3)` copies), `(mem)` sources give 0, and base_alias_check treats two non-ADDRESS bases as never aliasing --
+  the loaded work pointer (base 0) is what chains the seId store to the obj loads; noalias/restrict alias sets are
+  unreachable from C++ (`c_get_alias_set`'s `//QAZ` return gives every COMPONENT_REF set 0; the restrict path needs a
+  nonzero pointed-to set, which the same bug zeroes).
+- **R209Main 9 -> 6 (bit index as a consec_sets giv).** `u32 base8 = i * 8;` in the outer body and, inside the inner
+  loop, `u32 bit = j + base8; bit += 8;` (two consecutive sets of one variable = `consec_sets_giv`, one giv with
+  benefit 2 adds, no not-worth intermediate): j keeps only reducible givs and is eliminated into the pointer compare,
+  and the giv init `addi r29,r23,8` is emitted by loop.c after the movables (the target's LUID). Single-expression forms
+  fail: `j + base8 + 8` / `(j + 8) + base8` create a `j + inv` intermediate DEST_REG giv (benefit 4 - add_cost 4 = 0,
+  "not worth while", all_reduced = 0, `Cannot eliminate biv .. used in insn` = the duplicated entry compare in pass 2);
+  `bit = j + K` with K hoisted is itself not worth. Residue 6 = the bit-set block's r0/r9 names: three tied qtys (idx:
+  3 refs x depth, amt/shift and val/or 4 refs x depth each) sorted by the buggy 3-qty hand sort (`qty_compare (0, 1)`
+  on qty NUMBERS, then swapped back): with idx born first the final order is [idx, amt, val] -> r0/r9/r11; the target's
+  [amt r0, idx r9, val r11] needs PRI(idx) >= PRI(val), which no depth (2..4) or tie structure of these lens gives.
+- **r20d moveWall 3 -> 0, zero code: the flow nop takes the issue slot.** `SndCall(6, 8, ..); do { .. }` puts a
+  `(use (const_int 0))` after the call (call followed by the loop label); the nop has weight 0 and beats the free
+  `li i,0` (weight +1) for the slot beside `bl SceEventStart`. `i = 0;` written right after the SndCall (declaration
+  uninitialised) removes the nop and the `li` is issued with the first call as in the target.
+- **r20d throwLantern 31 -> 0** (three zero-code levers + two tags): `pPLS` on BOTH pPL reads around the `sth atari.flags`
+  store (`AtariFlagsOr(&pPLS->atari, ..); pPLS->dmg.set(..)`): cse1's `invalidate` runs true_dependence against the
+  table's FIRST load, and a `mem/f` load survives a varying `mem/s` store through the fixed-scalar rule; only a `mem/s`
+  first load is removed, so the second read reloads pPL (target: two `lwz pPL@l`). `*(void**) ((u8*) u + st + 0x18)`
+  (u first) for `add r29,u,st`. `register f32 zero asm("fr30")` (tagged #2, value-carrying pin) for the 0.0/turn f30/f31
+  tie. `asm("" : "+r"(u));` next to the `st` launder (tagged #12, companion): the `st` launder gave `li r29,0` one
+  priority level over the parameter copy `mr r31,r3`; the same codeless copy on `u` restores the tie and the copy leads.
+  `pPLS->rot.y` for the read after `u->step++` (the plain read floats above the struct store).
+- **r20d operateCrank 68 -> 0, zero code:** loop-state zero-inits (`spd/lastMot/accel/seId = 0`) written after the
+  switch (declared uninitialised: the `li`s belong to the block before the beginEvent calls, not block 0);
+  `t = *(f32*) (idx * sizeof(cFence) + (u32) r20d_work.p + 0x2c)` (mult first: `add r11,idx36,work; lfs 0x2c(r11)`;
+  the array form gives `addi work,0x2c; lfsx`); `if (t >= 1.0f)` for both exit tests -- the GE code on CCFPmode prints
+  `cror un,eq,gt; bso/bns`, `!(t < 1.0f)` is TRUTH_NOT (fold does not invert FP compares) and prints a plain `bge/blt`.
+- **r20d execThrough 62 -> 4:** `pPLS` on both sides of the atari `sth` (head and tail), `while (1)` for the final
+  poll loop (SceSleep at the bottom, `bgt` exit; `for (;;)` lays the sleep out of line), the `a` Vec block-local in the
+  loop AND in the block after it (same slot 0x18) with `f32 ry = p->rot.y` loaded before setPos and stored after
+  (callee-saved f31), `FAdd(pPL->rot.y, da)` (reference store: the pPL reload and a separate rot.y load follow),
+  `asm("" : "=r"(d) : "0"(d) : "r31")` after `setAng(&a)` in the loop body (tagged `COMPILER-DIFF: 3`: kills the PRE of
+  `(plus fp 0x18)` into a callee-saved register -- placed in the after-block it is too late, cse2 still substitutes the
+  hoisted pseudo) and `do { } while (0);` after the loop (tagged candidate #12: the after-block reloads 0.0 from the
+  pool). Residue 4: `mr r3,r30` for setAng is issued first in the target's post-setPos block and fourth in ours (the
+  frame stores have +1 via their true dependence on the call; a comma-expression argument order does not change it).
+- **r20d checkSwitch 1 (unchanged, mechanism sharpened):** a second use of the tail label (`if (z) goto down_end;` with a
+  block-local `int z = 0` in the sleep block, folded by cse1 later than the tail) does stop the skip_blocks fold and the
+  tail gets its `lfs f1,0.0`, but the tail's `high(LC)` is then a fresh ebb occurrence: gcse PREs it into a second
+  callee-saved register and cse2 re-materialises (`lis r30`, 20 words). The target's tail knew the high but not the 0.0
+  register -- not reproducible by label uses; `FCRef(static const zero)` reads are not hoisted by loop.c here.
+- **r20e cFence20e::move 10 (unchanged):** FPR/high pins (`register f32 up asm("fr12")`, `lim asm("fr0")`, both
+  constants) leave 10-11; the target's `lis r9,2200` reusing the dead 50-high's r9 and the `lfs f12` one slot later are
+  the reload-rematerialised shape the notes describe.
+- Not iterated: r20e initPuzzle/checkPuzzle, r204 EventChandelier1/2 (frame 0xc0 vs 0xb8: ours has an unused 8-byte
+  slot at 0x50 before the fpmem slot; `lis r30; addi r25,r30,crot0@l` two-register high) and nige_check.

@@ -460,10 +460,10 @@ static void r20d_operateCrank(int no)
     cObj* crank = 0;
     int idx = 0;
     f32 t;
-    int spd = 0;
-    int lastMot = 0;
-    int accel = 0;
-    u32 seId = 0;
+    int spd;
+    int lastMot;
+    int accel;
+    u32 seId;
 
     pG->flags_174 |= 0x40000000;
     switch ((u32) no) {
@@ -485,7 +485,14 @@ static void r20d_operateCrank(int no)
         CamCtrl.CutCall(0xE);
         break;
     }
-    t = r20d_work.p->fence[idx].t;
+    // `idx*36 + work + 0x2c` (mult first): the target adds the scaled index to the work pointer and
+    // keeps 0x2c as the displacement (`add r11,r28,r11; lfs f31,0x2c(r11)`); the zero-inits of the
+    // loop state follow the switch (issued in the block before the beginEvent calls).
+    t = *(f32*) (idx * sizeof(cFence) + (u32) r20d_work.p + 0x2c);
+    spd = 0;
+    lastMot = 0;
+    accel = 0;
+    seId = 0;
     ((cUnitEventView*) pPL)->beginEvent(0);
     ((cUnitEventView*) crank)->beginEvent(0);
     pPL->motionSet(ROOM_ARC_PTR(pG->pRoomArc, 0x34), 3, 0, 5, (int) ROOM_ARC_PTR(pG->pRoomArc, 0x35));
@@ -585,7 +592,7 @@ static void r20d_operateCrank(int no)
         }
         t += (f32) (mot + 1) * 0.0005f;
         r20d_work.p->fence[idx].move(t);
-        if (!(t < 1.0f)) {
+        if (t >= 1.0f) {   // `>=` (not `!(t < 1.0f)`): the GE code prints the `cror un,eq,gt; bso` pair
             t = 1.0f;
             r20d_work.p->fence[idx].move(t);
             break;
@@ -604,7 +611,7 @@ static void r20d_operateCrank(int no)
     ((cUnitEventView*) pPL)->endEvent(0);
     crank->motionPause();
     ((cUnitEventView*) crank)->endEvent(0);
-    if (!(t < 1.0f)) {
+    if (t >= 1.0f) {
         if (seId != 0) {
             SndStop(seId, 0);
         }
@@ -687,7 +694,7 @@ static void r20d_moveWall()
     Vec p;
     cPlayer* pl;
     cObj* wall;
-    u32 i = 0;
+    u32 i;
     f32 spd;
 
     SceEventStart(0);
@@ -708,6 +715,9 @@ static void r20d_moveWall()
     const f32 n = 90.0f;
     spd = (4000.0f - wall->pos.y) / n;
     SndCall(6, 8, 0, 0, 0, 0);
+    // `i = 0` right after the call: the loop label then follows an insn, not the call, so flow adds no
+    // `(use 0)` nop (weight 0) that would take the issue slot beside `bl SceEventStart` from `li i,0`.
+    i = 0;
     do {
         wall->pos.y += spd;
         i++;
@@ -873,15 +883,16 @@ static void r20d_execThrough(int no)
     cPlayer* pl = pPL;
     const R20dThroughData* d;
     Vec step;
-    Vec a;
     f32 da;
     u32 i;
     f32 dist;
     const f32 frame = 10.0f;   // pool order: 10 before 0.1/PI/0.0
 
     pl->beginAction();
-    AtariFlagsAnd(&pPL->atari, 0xFEFF);
-    pPL->atari.setPriority(1);
+    // pPLS (struct view) on both sides of the `sth atari.flags` store: cse1 then invalidates the first
+    // pPL load and setPriority reloads pPL (target: `lwz r3,pPL@l; addi r3,r3,0x2b4`).
+    AtariFlagsAnd(&pPLS->atari, 0xFEFF);
+    pPLS->atari.setPriority(1);
     pPL->dmg.set(0, 0x80);
     d = &r20d_throughData[no];
     if (d->cut >= 0) {
@@ -891,24 +902,36 @@ static void r20d_execThrough(int no)
     PSVECSubtract(&d->pos, &pPL->pos, &step);
     PSVECScale(&step, &step, 0.1f);
     da = Muku2(pPL->rot.y, d->ang, 3.1415927f) * 0.1f;
+    // `a` is block-local in the loop and in the block after it (same frame slot 0x18); the target
+    // computes `addi r4,r1,0x18` in both blocks and keeps the rot.y value in a callee-saved FPR across
+    // setPos (FAdd = reference store, so the pPL reload and the separate rot.y load follow it).
     for (i = 0; i < 10; i++) {
         cPlayer* p;
+        f32 ry;
+        Vec a;
 
         PSVECAdd(&pPL->pos, &step, &pPL->pos);
-        pPL->rot.y += da;
+        FAdd(pPL->rot.y, da);
         p = pPL;
-        a.y = p->rot.y;
+        ry = p->rot.y;
         p->setPos(&p->pos);
+        a.y = ry;
         a.x = 0.0f;
         a.z = 0.0f;
         p->setAng(&a);
+        // COMPILER-DIFF: 3 (frame-address PRE): the r31 clobber kills gcse's transparency for
+        // `(plus fp 0x18)` in the loop body, so `&a` is not PRE'd into a callee-saved register.
+        asm("" : "=r"(d) : "0"(d) : "r31");
         SceSleep(1);
     }
+    do { } while (0);   // COMPILER-DIFF: candidate #12 (loop-exit form): the block after reloads 0.0 from the pool
     {
         cPlayer* p = pPL;
+        Vec a;
+        f32 ry = d->ang;
 
-        a.y = d->ang;
         p->setPos((Vec*) &d->pos);
+        a.y = ry;
         a.x = 0.0f;
         a.z = 0.0f;
         p->setAng(&a);
@@ -918,7 +941,7 @@ static void r20d_execThrough(int no)
     }
     pPL->motionSet(ROOM_ARC_PTR(pG->pRoomArc, 0x21), 5, 0, 0x205, 0);
     dist = d->dist * d->dist;
-    for (;;) {
+    while (1) {   // `while (1)` (not `for (;;)`): jump1 lays the SceSleep out at the loop bottom, exit by `bgt`
         if (MotionCheckCrossFrame(&pPL->mot, 0.0f) == 1) {
             SndCall(6, 0xE, 0, 0, 0, 0);
         }
@@ -937,8 +960,8 @@ static void r20d_execThrough(int no)
     CamCtrl.Comeback(0);
     pl->endAction(8);
     pPL->dmg.clear();
-    AtariFlagsOr(&pPL->atari, 0x100);
-    pPL->atari.setPriority(0);
+    AtariFlagsOr(&pPLS->atari, 0x100);
+    pPLS->atari.setPriority(0);
 }
 
 // Every torch / lamp of the room (etc types 0xB and 0x10) becomes a lantern unit.
@@ -1073,18 +1096,26 @@ void cLanternUnit::throwLantern(cLanternUnit* u)
     // the stores.
     register int st asm("r29"); // COMPILER-DIFF: #12 (user variable constant not folded)
     int cnt = 0;
-    f32 zero;
+    // COMPILER-DIFF: #2 (value-carrying FPR pin): the 0.0 pseudo is f30 and its `turn` copy f31 in the
+    // target; local-alloc ties them the other way round.
+    register f32 zero asm("fr30");
     f32 turn;
 
     st = 0;
     asm("" : "+r"(st)); // COMPILER-DIFF: #12
+    // COMPILER-DIFF: #12 (companion of the `st` launder): the launder gives `li r29,0` one priority level
+    // over the `mr r31,r3` parameter copy; the same codeless copy on `u` restores the tie (the copy leads).
+    asm("" : "+r"(u));
     IntSet(u->step, st);
     U32Set(u->state, 1);
     ((cUnitEventView*) pPL)->beginEvent(0);
-    AtariFlagsOr(&pPL->atari, 0x100);
-    pPL->dmg.set(0, 0x80);
+    // pPLS (struct view) for the pPL read that precedes the `sth atari.flags` store: the store then
+    // invalidates it in cse1 and `dmg.set` reloads pPL (target: two `lwz pPL@l`).
+    AtariFlagsOr(&pPLS->atari, 0x100);
+    pPLS->dmg.set(0, 0x80);
     u->target = u->getTargetPos(&pos);
-    pPL->motionSet(*(void**) ((u8*) u->mot + st + 4), 0xA, 0, 1, 0);
+    // `u + st + 0x18` (not `u->mot + st + 4`): the target adds `u` first (`add r29,u,st`).
+    pPL->motionSet(*(void**) ((u8*) u + st + 0x18), 0xA, 0, 1, 0);
     u->em->be_flag |= 0x20;
     zero = 0.0f;
     turn = zero;
@@ -1108,7 +1139,7 @@ void cLanternUnit::throwLantern(cLanternUnit* u)
                 ((cEmTorch*) u->em)->setParent(pPLS, 0xA, 0);
                 u->step++;
                 cnt = 0;
-                f32 a = LIMIT_ANGLE(pPL->rot.y + zero);
+                f32 a = LIMIT_ANGLE(pPLS->rot.y + zero);
                 turn = Muku(&pPL->pos, &pos, a, 3.1415927f) / 15.0f;
                 pos2 = pos;
             }
