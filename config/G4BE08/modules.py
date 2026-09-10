@@ -579,6 +579,26 @@ STRIP_UNUSED = {
                                  "em1c", "em1d", "em1e", "em1f", "em20"]
 }
 
+# Linkonce (template) functions the original REL link dropped although no unit of the module names
+# the class instance (tools/ngccc.py place_linkonce_module keeps such copies nameless by default):
+# wep14.cpp / wep17.cpp include light.h (header string in .rodata) but their modules have no cLight block.
+LINKONCE_DROP = {
+    "wep17/wep17.cpp": [
+        "log__t8cManager1Z6cLightPCce",
+        "countActiveWork__t8cManager1Z6cLight",
+        "create__t8cManager1Z6cLighti",
+        "create__t8cManager1Z6cLight",
+        "create__t8cManager1Z6cLightiUl",
+    ],
+    "wep14/wep14.cpp": [
+        "log__t8cManager1Z6cLightPCce",
+        "countActiveWork__t8cManager1Z6cLight",
+        "create__t8cManager1Z6cLighti",
+        "create__t8cManager1Z6cLight",
+        "create__t8cManager1Z6cLightiUl",
+    ],
+}
+
 # Units whose compiled object replaces the split object in the REL link.
 MATCHING = {
     "st1_0/em_wrap.cpp": True,
@@ -602,6 +622,7 @@ MATCHING = {
     "st1_3/r111.cpp": True,
     "st1_3/r112.cpp": True,
     "st1_0/st1.cpp": True,
+    "st1_0/r100.cpp": True,
     "st1_1/st1.cpp": True,
     "st1_2/st1.cpp": True,
     "st1_3/st1.cpp": True,
@@ -717,6 +738,25 @@ MATCHING = {
     "wep28/pl_bow.cpp": True,
     "wep28/wep28.cpp": True,
     "wep26/pl_knife.cpp": True,
+    # mine thrower (wep14: objMine.cpp + the module's own routines)
+    "wep14/objMine.cpp": True,
+    "wep14/wep14.cpp": True,
+    # module objects of the handgun / grenade / rocket / VP70 modules (byte-identical after the symbol sync)
+    "wep01/objFn57.cpp": True,
+    "wep01/wep01.cpp": True,
+    "wep04/wep04.cpp": True,
+    "wep06/wep06.cpp": True,
+    "wep13/wep13.cpp": True,
+    "wep17/objVp70.cpp": True,
+    "wep17/wep17.cpp": True,
+    "wep19/wep19.cpp": True,
+    "wep30/wep30.cpp": True,
+    "wep38/wep38.cpp": True,
+    "wep41/wep41.cpp": True,
+    "wep42/wep42.cpp": True,
+    "wep43/objRuger.cpp": True,
+    "wep43/wep43.cpp": True,
+    "wep45/wep45.cpp": True,
     "wep26/wep26.cpp": True,
     "wep16/pl_knife.cpp": True,
     "wep16/wep16.cpp": True,

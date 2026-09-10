@@ -5282,3 +5282,84 @@ target) stays unresolved and `make_rel` then fails with "undefined symbol".
   not stop the PRE), disp_sit_normal/disp_sequencer/snd_test_disp_rit (original-only shapes, see
   the fourth-pass notes); db_sctrl and t_camera_data residues are the ones listed in their sections
   (tcDataImport: `extsb r7,r11` untied index + `lis pLog` not hoisted out of the record loop).
+
+### Weapon modules, wave 3 (wep14 written + Matching; module objects of wep01/04/06/13/17/19/30/38/41/42/43/45 flipped; pl_shotgun 17/18, pl_rocket 23/24; 2026-09)
+
+- Every weapon module is Matching except the three pl_shotgun copies (wep07/08/33, `wep07_r3_fire00` 2 words)
+  and pl_rocket (wep13, `wep13_r3_down00` 2 words); both residues are scheduler tie-breaks, see below.
+- wep14 (mine thrower) = `wep14/objMine.cpp` (cObjMine: init/moveReady/moveFire/setBullet/moveDown/moveReload/
+  setCartridge/interrupt/setMotion + the free `partsSet(cObjMine*)`) and `wep14/wep14.cpp` (its own copy of the
+  handgun routine with a scope aim type, `wep14changeRightHand`, `equipWeapon`). Idioms found there:
+  - A module object that includes light.h but whose REL has no cManager<cLight> block (wep14.cpp, wep17.cpp: the
+    header string is in `.rodata`, the 0x3B8 block is not in `.text`): list the five instantiations in modules.py
+    `LINKONCE_DROP` (the linkonce rule keeps unnamed copies when no unit of the module names the class instance).
+  - `!(pG->wep_type & 1)` in a `int normal = !(...); if (normal)` local gives the `lbz; xori 1; andi. 1; beq`
+    shape; a direct `if (pG->wep_type & 1)` is the plain `andi.`. The shape is shared by setBullet / ready00 /
+    r2_set, so the original had the negated test in a variable (or an inline returning it).
+  - `cAtariInfo::init` with immediate ints and constant floats: `atariInitF(at, 0.0f, 100.0f, ...,1, 0, 0)`
+    (include/atari_init.h, COMPILER-DIFF #1) reproduces the `fmr f5,f2; li r5; fmr f6,f5; mr r3; fmr f3,f1; li r4;
+    fmr f7,f6; fmr f4,f3` chain; keep `cAtariInfo* at = &sub2B4.atari` for the following `AtariFlagsAnd(at, ..)`.
+  - `U16Set(wep.x24, 0x36)` before modelInit (the `sth` precedes `lis pG`), `PSet(wep.parent, parent)` before the
+    `PSet(wep.pMotNormal, ..)` (the `stw parent` precedes `lwz pG`): reference stores, like the setMotion table.
+  - Three static Vecs with a `Vec* pos` chosen per branch (setBullet): the `pos = &minePos;` assignment must sit
+    between `PSVECAdd(&minePos, ..)` and `PSVECSubtract(&mineAt, &minePos, &mineDir)` with the literal `&minePos`
+    written everywhere (reload_cse turns the later lo_sums into `mr rX,r26`, the earlier calls keep fresh `addi`s
+    and the `lis mineDir@ha` is issued before GetWepTargetPos); with `pos` used in the calls the &hit PRE copy and
+    the `lis` swap slots (38 words), with `pos` assigned at the end the address is rematerialised (31).
+  - `VECNormalize(&v, &v)` on a static Vec: `#line 212 "D:/Bio4/Prog/objMine.cpp"` right before it (the macro's
+    `__LINE__`); `.x` through `sym@l(rHigh)`, `.y/.z` through one `addi` pseudo, the fail arm's `.x` store with a
+    fresh `lis` -- all natural.
+  - `static const f32 reloadFrame[2] = { 74.0f, 58.0f };` declared in the else block of moveReload emits the
+    table twice in `.rodata` (0xF0 and 0xF8, the second referenced) -- our compiler does it too, no action.
+  - `if (pG->x4FBA == 1) A else B` where the `!= 1` arm falls through (`cmpwi 1; beq L; [B]; b; L: [A]`): write it
+    as a `switch (pG->x4FBA) { default: B; break; case 1: A; break; }` (objVp70 form) for both the motion pointer
+    and the `se` constant (`li r4,0x20; beq; li r4,2`).
+  - `obj->wep.mode = K; obj->wep.step = 0;` pairs come out in every order: `mode = 3; step = 0` -> `stb 34f;
+    stb 34e` (r2_ready, wep17 wepDown), `step = 0; mode = 4` -> `stb 34f; stb 34e` too (r2_reload: both die),
+    while r2_down's `stb r10(3),34e; stb r0(0),34f` needs `int md = 3; obj->wep.mode = md; obj->wep.step = 0;`
+    (pl_knife's `int on = 1` idiom: an SImode constant for one of the two byte stores) -- `U8Set(step, 0)` with a
+    promoted parameter works as well. Brute-force the four forms per block.
+  - Two zero stores followed by a `pG` load that must stay below them (r2_next case 0: `stw 3e4; lis pG; stw 3e0;
+    ...; lwz pG` after the `li r6`): `U32Set(pl->x3E0, 0); IntSet(pl->x3E4, 0);` (scalar-reference stores; the
+    plain stores let the load float between them). wep17's r2_next (`stw r29,3e4; cmpwi; stw r29,3e0`, both
+    from the switch register) only needs the source order `x3E0 = 0; x3E4 = 0;` (dying-first).
+  - `FSet(pl->pWep->x30, CamCtrl.getCameraDirection())` when the next statement loads `pG`
+    (wep14changeRightHand's WEP_ARC_PTR): the plain member store lets the `lwz pG` move above the `stfs`.
+  - `AtariFlagsAndV(WEP_ATARI(pl), 0xFDFF)` (wep_mod.h, volatile like AtariFlagsOr) for a `clrFlag200()` that is
+    followed by a `pG` load (r2_down); the plain `clrFlag200()` hoists the load above the `sth`.
+  - Fall-through case bodies: wep14's r2_reload `case 0:` runs into `case 1:` (no break; the target's case-1 code
+    follows the mode/step stores directly), moveReady's `case 0:` falls into `case 1:`.
+  - The `flags_420 & 0x40` else-arm `li r9,1; li r0,6` order is the `int md = 1; PlRoutineSet(pl, 0, 6, md, 0);`
+    idiom (also fixed pl_rocket r2_next and r2_set's `md = 3`); it fails when the same constant is stored later
+    in the function (pl_rocket down00: `int hokan = 3` is cse'd into `pl->xFF = 3` and kept in a callee-saved
+    register).
+  - Class-object scope: `ObjMine_init` is global (the .sym's `local` is wrong: `_prolog` in the other object
+    stores it); `ObjXxx_init` must be DEFINED before the class's first member (wep04/wep06 had it after
+    setMotion, which reorders `.text` although every function matched: check `unit_info` offsets before flipping).
+- pl_shotgun `wep07_r3_fire10`: the dead `cmpwi r0,0x21` after the tree comes from a THIRD case value below 8
+  grouped with the default (`case 8: ..; case 0x21: endFrame = 0x28; break; case 7: default: endFrame = 0x28;`):
+  the 3-node tree emits `beq L8; bgt test; [7: -> default]; b D; test: cmpwi 0x21; beq L21`, jump1 turns the
+  vanished 7 leaf into `ble default`, jump2 cross-jumps the separate 0x21 body into the default and deletes
+  only the `beq` (no cc0). Two case values alone give a linear list (`cmpwi 8; beq; cmpwi 0x21; beq; b`) whose
+  0x21 compare our jump2 deletes together with the branch (10 forms tried before the tree was recognised).
+- pl_rocket `wep13_r2_set`: the launcher line copy `obj->launcher.to = to` after `getTrajectory(&from, &to)`
+  reads `to` straight from the frame (`lwz 0x18(r1)..0x20(r1)`) in the original while `from` (frame offset 0)
+  goes through `addi r10,r1,8`: the call's `&to` is precomputed into a pseudo (a `(plus vsv 16)` argument),
+  a plain struct copy makes cse reuse it for the copy's addresses and gcse PRE hoists it into a callee-saved
+  register. Copy through `static inline void VecCopy(Vec* d, const Vec* s) { *d = *s; }` (the inline's pointer
+  parameter is substituted by integrate and never joins the cse class): 16 -> 0 words.
+- OPEN pl_shotgun `wep07_r3_fire00` (2 words): after PlWepLockRand the original issues `lfs f0, 0.0` before
+  `lfs f13, m3r[2]` (`fcmpu f13,f0`), ours the loads in RTL order. Both loads have weight 0 in sched1 (`&m3r`
+  dies at the m3r[2] load because the `m3r[1] = pitch` store precedes it in RTL), equal priority, equal class and
+  dependents, so LUID decides; the target's 0.0 is nevertheless allocated f0 (the shorter-range qty), which
+  contradicts a plain sched1 swap. The 0.0 pool word is shared with the loop's un-hoisted `p1.y/z = 0` loads
+  (all 18 callee-saved FPRs hold loop constants). Literal/`0.0f ==`/`f32 zero` (right order, f0/f13 swapped)/
+  `f32 z = m3r[2]`/`m3r` pointer/FSet/if-else duplication tried. pl_machine's identical tail (no loop) matches.
+- OPEN pl_rocket `wep13_r3_down00` (2 words): `mot3.set(pl, mot0, mot0, mot0, (int) mot1, 3, 0, 4, 0)` issues
+  `li r9,3` before the stack-argument `stw r0,8(r1)` in the original; both are true/anti dependences of the
+  call with cost 1 (SN's insn_cost clamps anti-dependences to 1), so ours prefers the store (register weight
+  -1 vs +1). The stores rank between `li r9` and `mr r6/mr r7/li r10` in the target, which no single
+  rank_for_schedule change explains; `int/u8 hokan = 3` locals are cse'd into the later `xFF = 3` (13 words).
+- mcmp.py note: after `sync_rel_symbols.py` the remaining `_prolog`/`equipWeapon` "2 words" of a module object
+  are cross-unit reloc *names* (the split object's placeholder vs our mangled name, e.g. `PlHandgunMove` vs
+  `PlHandgunMove__FP7cPlayer`; undefined symbols are not demangled by the tool) -- the REL shasum is the judge.
