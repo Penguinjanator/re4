@@ -409,15 +409,20 @@ static inline void r201_attachGem(R201Work* w, cModel* g)
     if (g) {
         u32 i = 0;
 
-        // a goto loop (no loop notes): `i * 4` is recomputed per iteration
+        // a goto loop (no loop notes): `i * 4` is recomputed per iteration.
+        // The `do { } while (0)` around the increment block only (the label INSIDE the notes)
+        // puts that block at loop depth 2, so `i` gets 8 weighted refs and is allocated first
+        // (r9); `a->sub + 8`/`i * 4`/work then take r11/r10/r11 as in the original.
         if (w->altar.sub[0] == 0) {
             w->altar.sub[0] = g;
         } else {
-        next:
-            i++;
-            if (i > 3) {
-                return;
-            }
+            do {
+            next:
+                i++;
+                if (i > 3) {
+                    return;
+                }
+            } while (0);
             if (a->sub[i] != 0) {
                 goto next;
             }

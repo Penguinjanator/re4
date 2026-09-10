@@ -245,8 +245,10 @@ extern "C" void r11d_appearLittleSister()
     if (RsfCheck(G_ROOM_ID, 5) == 0) {
         RsfSet(G_ROOM_ID, 5);
         EstSet(0, -1, 0, 0, 1, 7, 1, 0, (u32) zero, (void*) zero);
-        EstSet(0, -1, 0, 0, 1, 8, 1, 0, (u32) zero, (void*) zero);
     }
+    // Outside the `if`: the original's `bne` skips only the first EstSet (a source-logic bug had both
+    // inside, which also gave the first call's `li`s output dependents and sank its stack stores).
+    EstSet(0, -1, 0, 0, 1, 8, 1, 0, (u32) zero, (void*) zero);
 }
 
 static void r11d_execEmAppear_end()
@@ -499,9 +501,13 @@ sleep:
     check:;
     } while ((u32) SceCountEmAlive(0x10, 0x20) > 10);
     setEm(t[i], -1, 0, 1, 1);
-    if (i++ != 9) {
-        goto sleep;
-    }
+    // The `do { } while (0)` puts the test's block at loop depth 2 (weighted refs of `i` 5 -> 8), so
+    // global-alloc ranks `i` above `t` (r31/r30 as in the original).
+    do {
+        if (i++ != 9) {
+            goto sleep;
+        }
+    } while (0);
 }
 
 // Thunder every 90..235 frames, paused during the appear event.

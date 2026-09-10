@@ -3629,8 +3629,8 @@ target) stays unresolved and `make_rel` then fails with "undefined symbol".
   64-entry `{char name[16]; const char** flag, *type, *set, *x}` id table, TOOL_MENU-like char[]
   menus) has 36 of 53 functions matched (skeleton, data and menus done; the disp/camera/target functions
   are left); the stage rooms are split (config/G4BE08/modules.py); r10d, r10e, r11a (st1_2), r109, r107,
-  r10a (st1_1) and r102 (st1_1 + st1_3) are Matching, r108 (st1_1/st1_3) is written with 9/15 functions
-  exact; r11d (st1_3, 16/21 incl. reloc-only), r10f (st1_3, 11/14), r11e (st1_3, 16/18) and r119
+  r10a (st1_1) and r102 (st1_1 + st1_3) are Matching, r108 (st1_1/st1_3) is Matching since pass 4
+  (2026-09-10); r11d (st1_3, 18/21 incl. reloc-only), r10f (st1_3, 11/14), r11e (st1_3, 16/18) and r119
   (st1_2, 26/27: only Init's table-address registers differ) have full sources (include/obj00.h,
   obj13.h, objGondola.h are their room-side views of the DOL objects); r10c (st1_2, 15/23,
   .rodata/.data equal) and r11b (st1_2, 8/14 + the nameless cLight block, .rodata equal) are written;
@@ -10786,3 +10786,79 @@ stmt.c/jump.c and confirmed with cc1plus probes:
     em29DmCk "1-insn match first" partial merge is the fall-through candidate 1 (minimum 1) winning over a longer chain
     match -- the policy is the original's, so the original's THEN copy did not see `stb r0,fe` before END: its ELSE kind-2
     body did not fall into END (ended in a jump or a use), which is a layout question for the owner.
+
+### Stage rooms, st1_1/st1_3/st2_0 pass 4 (r201, r207, r108 Matching (r108 in both st1_1 and st1_3); r203 11->13/15, r11d 16->18/21; 2026-09-10)
+
+- Harness: /tmp/rooms_b4 (rooms_b3 copies with the paths rewritten; `tryv.py MOD/UNIT FUNC variants.py [--asm NAME]`,
+  `vapply.py`, `sbs.sh MOD/UNIT SYM [OBJ]`, `mdump.sh MOD/UNIT -dX` with `SRC_OVERRIDE`; new: `galloc.py DUMP.lreg FUNC
+  [REGNOS]` = per-hard-reg local refs/length ratios + global allocno priorities `floor_log2(refs)*refs/len` from a -dl dump;
+  `skel.py DUMP START END` = labels/jumps/calls skeleton of an RTL dump range, for reading jump2's cross-jump order).
+- **Global-alloc order through the block-head loop depth, applied to a goto loop (r201 moveAltarObj 36 -> 0, unit
+  Matching)**: `do { next: i++; if (i > 3) return; } while (0);` around ONLY the increment/compare block of the
+  attachGem goto loop (the label INSIDE the notes) puts that block at depth 2: `i` gets 8 weighted refs (3*8/22 = 1.09 >
+  work's 5/10 = 1.0) and is allocated first (r9); `a->sub + 8`, `i * 4` and work then take r11/r10/r11 as the original.
+  Wrapping the whole loop raises `i*4`/`a+8` too (65 words). Same lever for r11d checkEmReset (7 -> 0): the do-while
+  around `if (i++ != 9) goto sleep;` gives `i` 8 refs and r31 over the array pointer `t` (r30).
+- **`galloc.py` numbers are the whole story for a callee-saved permutation**: r108 switchSymbol (12 -> 0) needed `dial`
+  (5/88) above `n` (4/61) and the step constant (3/96, SF) above the 2^52 PRE copy (3/98 but DF = size 2, so 0.061 vs
+  0.031). One dead test `if (ang + 0.10471976f == *(f32*) &r108_dial) rot = ang;` in the loop body (weighted refs +2
+  for the step constant and +2 for the dial high) fixes both. Placement rule for a dead test inside a loop.c loop:
+  BEFORE the loop's first conditional jump (here right after `next = ...`, before `turn:`), because a pool constant or
+  high whose first use (= its set) is in a `maybe_never` block and that is used in another block is never hoisted
+  ("used in basic blocks other than the one where it is set && maybe_never" -- the em_sub EmRackCk rule): the same test
+  at `turn:` or after `SceSleep(2)` left the `lfs`/`lis` inside the loop (49-61 words). Comparing the constant against
+  `ang` needs an FP compare (deleted at flow2 with the tidied jump); `*(f32*) &r108_dial` reads the pointer through the
+  dial high without a new symbol.
+- **The dying-store/arg-`li` shapes of r207 EnemySetEndProc (10 -> 0, unit Matching) are the block TAIL rule**
+  (haifa `sched_analyze`'s "branches, calls, uses ... force them to remain in order at the end of the block": the
+  trailing run of CALL/JUMP/USE insns is chained and EVERY earlier insn gets an ANTI dependence on the run's first insn,
+  so a block ending `bl f; b L` gives every insn one uniform extra dependent on that call, and an arg `li` whose
+  register is re-set by the next call has `call + output + uniform` = the same count as a never-re-set `li` with `call +
+  anti(next call) + uniform`). When the block continues past the last call with a non-call insn, the uniform dependent
+  disappears and the never-re-set `li r6..r8` (3 real dependents) outrank the re-set `li r4/r5` (2) -- the original's
+  order. Code-less continuation used: `asm("" : "=r"(loop) : "0"(loop));` at the end of case 0 and `asm("" :
+  "=r"(wave) : "0"(wave));` at the end of case 1 (tied non-volatile launders of live variables; a volatile or
+  input-only asm is a scheduling barrier that adds ANTI dependents to every pseudo user, e.g. the `addi r3,work,N`
+  arg, and moves it; two identical asms would be cross-jumped). The same insn also stops jump2 from merging arm 0's
+  single `bl setGoto` into arm 1's fall-through copy (the fall-through `find_cross_jump` has minimum 1; the original
+  never merges a one-insn tail = #6). Tagged `// COMPILER-DIFF: #6`.
+- **jump2 cross-jump mechanics (read from jump.c, confirmed with `skel.py` before/after dumps)**: for a simple jump the
+  FALL-THROUGH candidate (insns before the target label, minimum 1) is tried first, other jumps to the same label
+  (minimum 2) only if it fails; on the label side `find_cross_jump` skips NOTEs and CODE_LABELs, on the jump side a
+  CODE_LABEL stops the match; CALL_INSNs match unless `CALL_INSN_FUNCTION_USAGE` differs; the flow nop `(use
+  (const_int 0))` (a call directly before a label at ANY find_basic_blocks scan -- gcse, flow1, flow2) is an INSN and
+  kills the fall-through candidate (`GET_CODE` mismatch with a CALL_INSN), which is why arm 1's nop had protected the
+  single-`bl` merge in the old source; after sched2 `delete_computation` is disabled (`reload_completed &&
+  flag_schedule_insns_after_reload`), so a dead conditional jump surviving to jump2 leaves its compare and loads behind
+  (3 words) -- a dead test must be tidied at flow2 (jump to the fall-through block with a SINGLE successor:
+  `if (X) v = K; L:` falling into the same block; `beq L; L: b M` is 2 successors and survives).
+- **Dead test to raise loop.c's pass-2 insn count (r108 str_check 18 -> 0, r203 StreamCheck 18 -> 0, the "#3 double
+  EmMgr chain")**: the outer `for (;;)` hoist of the inner loop's `lis EmMgr@ha` happens only in the SECOND loop pass
+  (pass 1's `move_insn` of `&EmMgr` re-materialises `high`+`lo_sum` with a fresh pseudo whose uid is above
+  `max_uid_for_loop`, so pass 1 ignores it; pass 2 moves it: threshold 71 * savings 1 * life 1 >= insn_count 68). A dead
+  `if (EmMgr.size == 0) found = 1; found = 2;` at the end of the outer body (both stores die in flow, the jump is tidied
+  at flow2) raises pass 2's count above 71 while pass 1 still moves the entry-test chain (its movable matches the dead
+  test's `lo_sum` -> savings 2), and cse2 then merges the two highs in the inner preheader = the original's chain B.
+  `-fno-rerun-loop-opt` gives the same code; the rule "dead insns count for loop.c in both passes" is what makes the
+  two passes differ.
+- **Dead test to break haifa's region (r203 GanadoWandering 27 -> 0)**: the loop had exactly MAX_RGN_BLOCKS (10) blocks;
+  one dead test at the body end (`if (r203_work.p->data == 0) em = 0;`, `em` the body-local pointer) makes 11 -> no
+  interblock region -> nothing is hoisted above the branches, as the original. Check `;; rgn N nr_blocks` at the top of
+  a `-dS -fsched-verbose-6` dump before counting LUIDs (the old note's "~24 LUIDs" was the block limit).
+- **Source-logic check before any lever (r11d appearLittleSister 5 -> 0)**: the target's `bne` skipped only the first
+  EstSet; our source had both inside the `if`, which also gave the first call's `li`s output dependents on the second's
+  and sank its stack stores (the "stores after the li's" residue of pass 3). Moving `EstSet(..8..)` after the `if`
+  fixed it; the #12 asm zero is still needed.
+- Analysed, still OPEN (one try each): r103 openShelf_main (4: local-alloc span tie of the two constant highs -- the
+  `lwz a->pParts` (prio 8) is issued between `lis A` and `lfs A` so A's span is 5 vs B's 3; 8 constant forms unchanged);
+  r11d/r113 execHide `li r3,6` (the arg `li` with the lowest LUID and the same 1 dependent as the others is issued
+  first in ours, last in the target; `spd` init placement/volatile forms 6-14); r118 ThunderMove (2: the `li zero,0` vs the
+  hoisted `ori` -- both prio 1, weight +1, 0 dependents, LUID; the ori would win on weight only if its `lis` were a
+  separate dying pseudo); r202 setRock (4: `lis -0.024` vs `lwz pParts` local qty order -- our sched1 issues the lis
+  before `lfs 0.0`, the target's local-alloc needed pParts first; 6 constant forms); r210 dai_go (10: the three
+  `v.x/v.z/v.y` store blocks -- the target stores x, z, y with loads x, z in every block, ours applies the
+  last-dying-first rule in two of them; all 4 source orders tried) and funcAshley2 (#13), toroko_ret (38, not
+  iterated); r101 Event20 (2: the PRE'd `&ang` addi before `li r3,21` = both would tie only if the block ended at the
+  SearchEmModule call); r203 EventMeetAgain (26: `addi r11,r1,8; mr r27,r11` + `mr r30,r29; mr r3,r30` = two pseudos
+  per frame address, #3 (c); pointer/copy forms 26-39); r11d execEmAppear_end (11, same family: `mr r4,r8; mr r31,r4`
+  around the template-copy loop); r11e, r10f, r11c, r222, r105, r106, r10b not iterated this pass.

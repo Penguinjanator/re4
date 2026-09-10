@@ -211,14 +211,17 @@ static void r203_GanadoWandering(int no)
             {
                 s8* pt = r203_work.p->pt;
 
-                // Residual: the original does not hoist `cmpwi 2` / the setGoto arg moves above the
-                // branches here (haifa interblock motion; adding ~24 LUIDs to the loop body makes ours
-                // match, so the original loop had more RTL — unknown what).
                 pt[no] = pt[no] < 0 ? 2 : (pt[no] > 2 ? 0 : pt[no]);
             }
             em->setGoto((Vec*) (r203_work.p->pt[no] * sizeof(Vec) + (u32) r203_wanderPos), 6);
         }
         SceSleep(1);
+        // Dead test (store dead in flow, compare in flow2): its extra basic block takes the loop to 11
+        // blocks, above haifa's MAX_RGN_BLOCKS (10), so sched1 forms no interblock region and nothing
+        // is hoisted above the branches (the original's shape; its loop had one more block).
+        if (r203_work.p->data == 0) {
+            em = 0;
+        }
     }
 }
 
@@ -320,6 +323,12 @@ static void r203_StreamCheck()
             }
         }
         SceSleep(1);
+        // Dead test (r108 str_check idiom): keeps the second loop pass from hoisting the inner
+        // loop's EmMgr high out of the outer loop (the original's two EmMgr chains).
+        if (EmMgr.size == 0) {
+            find = 1;
+        }
+        find = 2;
     }
 }
 

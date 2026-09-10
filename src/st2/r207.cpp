@@ -540,6 +540,14 @@ static void r207_EnemySetEndProc()
                 r207_work.p->em[6].em.setEm(0xD7, -1, 0, 1, 1);
                 r207_work.p->em[5].em.setGoto(&gotoPos, 0xD);
                 r207_work.p->em[6].em.setGoto(&gotoPos, 0xD);
+                // A code-less insn after the last call of each arm (a tied, non-volatile launder of
+                // a live variable; the two arms must launder DIFFERENT variables): (1) the block's
+                // tail is then not the call, so the second setEm's `li r6..r8` keep setGoto's
+                // anti-dependence as a distinct dependent and are issued before the re-set
+                // `li r4/r5` (the original's order); (2) jump2 cannot cross-jump arm 0's single
+                // `bl setGoto` into arm 1's (the original never merges a one-insn tail).
+                // COMPILER-DIFF: #6
+                asm("" : "=r"(loop) : "0"(loop));
                 break;
             case 1:
                 wave = 2;
@@ -548,6 +556,7 @@ static void r207_EnemySetEndProc()
                 r207_work.p->em[1].em.setEm(0xD1, -1, 0, 1, 1);
                 r207_work.p->em[0].em.setGoto(&gotoPos, 0xD);
                 r207_work.p->em[1].em.setGoto(&gotoPos, 0xD);
+                asm("" : "=r"(wave) : "0"(wave)); // COMPILER-DIFF: #6 (see case 0)
                 break;
             }
         }

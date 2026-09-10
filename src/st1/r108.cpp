@@ -312,12 +312,20 @@ extern "C" void r108_switchSymbol(int n)
 
     for (i = 0; i < n; i++) {
         f32 next;
+        f32 rot;
 
         SndCall(6, 3, 0, 0, 0, 0);
         r108_symIdx++;
         next = (f32) (int) r108_symIdx * 0.8975979f;
+        // Dead test (store dead in flow, compare/loads in flow2), placed before the loop's first
+        // conditional jump so loop.c still hoists both operands: it adds a loop-weighted ref to the
+        // step constant (f29 before the two `fmr` copies) and to the r108_dial high (r31 before `n`).
+        if (ang + 0.10471976f == *(f32*) &r108_dial) {
+            rot = ang;
+        }
     turn:
-        r108_dial->pParts->rot.y = -LIMIT_ANGLE(ang);
+        rot = -LIMIT_ANGLE(ang);
+        r108_dial->pParts->rot.y = rot;
         ang += 0.10471976f;
         if (ang >= next) {
             goto done;
@@ -455,5 +463,13 @@ static void r108_str_check()
             on = 0;
         }
         SceSleep(1);
+        // Dead test (both stores die in flow, the compare/branch in flow2): its insns raise the outer
+        // loop's real-insn count above loop.c's hoist threshold in the SECOND loop pass, so the inner
+        // loop's `lis EmMgr@ha` (a fresh pseudo made by pass 1 when it hoisted `&EmMgr`) stays in the
+        // outer body and cse2 merges it with the pArray load's high (the original's two EmMgr chains).
+        if (EmMgr.size == 0) {
+            found = 1;
+        }
+        found = 2;
     }
 }
