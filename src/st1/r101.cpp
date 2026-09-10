@@ -204,7 +204,7 @@ void R101Init()
             SceAtDataSet_exec(0, 0x12, 0, (TaskFunc) r101_DoorDontOpen100, 0, 1);
             SceAtDataSet_exec(2, 0x12, 0, (TaskFunc) r101_DoorDontOpen103, 0, 1);
         }
-        r101_work->evt30 = DC.setData(EvtMgr.NameChange("evd/r101s30.evd"));
+        PSet(r101_work->evt30, DC.setData(EvtMgr.NameChange("evd/r101s30.evd")));
         if (RsfCheck(G_ROOM_ID, 8) == 0) {
             PSet(r101_work->evt21, DC.setData(EvtMgr.NameChange("evd/r101s21.evd")));
             r101_work->evt21->setCommand(2, 0, 0);

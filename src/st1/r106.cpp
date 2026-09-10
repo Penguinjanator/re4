@@ -361,18 +361,23 @@ static void r106_Event()
 // The closet rocks: body tilt and back. OPEN (r103 execOpenCover has the same shape): the
 // original's loop-test blocks have their leading load / compare duplicated into both predecessors
 // (no loop notes, constants reloaded after the call); no source form gives that with our cc1plus.
+// The swing-open halves are a peeled first step + a goto loop inside the `if` (no loop notes, so the
+// step constant is reloaded per iteration like the target); the peel's own compare is what the target
+// cross-jumps into the loop's `ble` (`fadds; fcmpu; stfs; b L`). The `goto open; open:` form (jumping into
+// the loop's test) reloads rot before the compare instead.
 static void r106_shakeClosetBody(cModel* m)
 {
     f32 lim = fRand0_1() * 0.015707962f + 0.006981317f;
     f32 spd = fRand0_1() * 0.008726646f + 0.004363323f;
 
-    goto up;
-up_wait:
-    SceSleep(1);
-up:
     m->rot.x += spd;
     if (!(m->rot.x > lim)) {
-        goto up_wait;
+    up_wait:
+        SceSleep(1);
+        m->rot.x += spd;
+        if (!(m->rot.x > lim)) {
+            goto up_wait;
+        }
     }
     m->rot.x = lim;
     goto down;
@@ -392,13 +397,13 @@ static void r106_shakeClosetDoorR(cModel* m)
     f32 lim = fRand0_1() * 0.034906585f + 0.034906585f;
 
     m->rot.y += 0.02617994f;
-    goto open;
-open_wait:
-    SceSleep(1);
-    m->rot.y += 0.02617994f;
-open:
     if (!(m->rot.y > lim)) {
-        goto open_wait;
+    open_wait:
+        SceSleep(1);
+        m->rot.y += 0.02617994f;
+        if (!(m->rot.y > lim)) {
+            goto open_wait;
+        }
     }
     m->rot.y = lim;
     goto close;
@@ -418,13 +423,13 @@ static void r106_shakeClosetDoorL(cModel* m)
     f32 lim = fRand0_1() * 0.06981317f - 0.06981317f;
 
     m->rot.y -= 0.05235988f;
-    goto open;
-open_wait:
-    SceSleep(1);
-    m->rot.y -= 0.05235988f;
-open:
     if (!(m->rot.y < lim)) {
-        goto open_wait;
+    open_wait:
+        SceSleep(1);
+        m->rot.y -= 0.05235988f;
+        if (!(m->rot.y < lim)) {
+            goto open_wait;
+        }
     }
     m->rot.y = lim;
     goto close;

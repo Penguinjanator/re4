@@ -123,6 +123,9 @@ struct R202CatapultData {
     int emNo;
 };
 
+// Reference store: the following `RsfCheck` keeps its `lwz pG` below the `stw sat` (a plain member store lets
+// the scalar-global load float above it).
+static inline void PSetSat(cSat*& d, cSat* v) { d = v; }
 static inline void SetVecXYZ(Vec* v, f32 x, f32 y, f32 z)
 {
     v->x = x;
@@ -189,7 +192,7 @@ void R202Init()
         Vec pos = {0.0f, 0.0f, 0.0f};
         Vec rot = {0.0f, 0.0f, 0.0f};
 
-        r202_work.p->sat = EatMgr.create(ROOM_ARC_PTR(pG->pRoomArc, 0x12), 0, &pos, &rot, 1);
+        PSetSat(r202_work.p->sat, EatMgr.create(ROOM_ARC_PTR(pG->pRoomArc, 0x12), 0, &pos, &rot, 1));
         if (RsfCheck(G_ROOM_ID, 0) == 0) {
             r202_work.p->idoY1 = r202_work.p->ido1->pos.y;
             r202_work.p->idoY0 = r202_work.p->ido0->pos.y;

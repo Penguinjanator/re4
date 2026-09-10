@@ -115,9 +115,10 @@ static const AtEffInfo r208_eff_info5 = {
 };
 
 extern "C" {
-void setResetNum(int n);
-u32 getResetNum();
-void incResetNum();
+// Also defined in r222.cpp (same module): static so the two objects do not clash in the -r link.
+static void setResetNum(int n);
+static u32 getResetNum();
+static void incResetNum();
 cEm* getMostFarEm(f32 range);
 void setTexRender();
 void emGroupeA_reset();
@@ -188,7 +189,7 @@ static int r208_underEmTbl[16] = {
 };
 
 // The number of enemy resets is kept in room flags 15..19.
-extern "C" void setResetNum(int n)
+static void setResetNum(int n)
 {
     if (n & 1) {
         RsfSet(G_ROOM_ID, 15);
@@ -217,7 +218,7 @@ extern "C" void setResetNum(int n)
     }
 }
 
-extern "C" u32 getResetNum()
+static u32 getResetNum()
 {
     int n = 0;
 
@@ -239,7 +240,7 @@ extern "C" u32 getResetNum()
     return n;
 }
 
-extern "C" void incResetNum()
+static void incResetNum()
 {
     if (getResetNum() != 0x1F) {
         setResetNum(getResetNum() + 1);
@@ -869,10 +870,10 @@ extern "C" void setTexRender()
 // The first Ganado come at the player, then walk to the courtyard points.
 static void setEmGo()
 {
-    int go7 = 0;
-    int go8 = 0;
-    int go2 = 0;
-    int go0 = 0;
+    int go7;
+    int go8;
+    int go2;
+    int go0;
 
     SceSleep(0x1E);
     W->em[3].setFindPL();
@@ -888,6 +889,12 @@ static void setEmGo()
     W->em[8].setGoto(&r208_goPos1, 0xC);
     W->em[2].setGoto(&r208_goPos4, 0xC);
     W->em[0].setGoto(&r208_goPos5, 0xC);
+    // Initialised between the last call and the loop (the `li`s are hoisted anyway): a call directly
+    // followed by the loop label gets flow's `(use (const_int 0))` nop, which costs a sched1 issue slot.
+    go7 = 0;
+    go8 = 0;
+    go2 = 0;
+    go0 = 0;
     while (1) {
         if (W->em[7].isAlive() && W->em[7].ckGoto() == 0) {
             if (go7 == 0) {
@@ -1694,8 +1701,11 @@ static void footingB_up()
     SceEventStart(1);
     EstSet(0, -1, 0, 0, 1, 4, 1, 2, 0, 0);
     CamCtrl.CutCall(0xE);
-    y = SmdGetObjPtr(0x58)->pos.y = 2900.0f;
+    SmdGetObjPtr(0x58)->pos.y = 2900.0f;
     SceSetEventCancel(1, (TaskFunc) footingB_up_exit, 0, -1, 1);
+    // `y` is initialised AFTER the call: a call directly followed by the loop label gets flow's
+    // `(use (const_int 0))` nop, which takes a sched1 issue slot and splits the `cnt`/`se` zero pair.
+    y = 2900.0f;
     while (y < 5400.0f) {
         SmdGetObjPtr(0x58)->pos.y = y;
         y += 41.666668f;

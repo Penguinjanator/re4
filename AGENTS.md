@@ -6485,3 +6485,72 @@ target) stays unresolved and `make_rel` then fails with "undefined symbol".
   gcse PRE copy that no local/cast/macro form reproduces (combine removes the redundant extension).
 - Do not flip a unit whose module symbols.txt got a `scope:` change: a global's ADDR32 field is A, a
   local's S+A, so changing a target symbol's scope changes the split object and the REL check.
+
+### Stage rooms, st1_1/st1_3/st2_0 bytes-first pass (r104 28/30, r208 38/41, r201 33/36, r207 18/21, r222 20/29, r11f 15/17, r106 13/18; none flipped; 2026-09-10)
+
+- Syncs: st1_3/r103, st1_3/r11c and st2_0/r208 carried unmangled placeholders (0.00% rows). r208's static
+  `funcAshley2(cEm*)` has the same mangled name as r210's: `sync_rel_symbols` leaves the placeholder alone
+  ("already defined elsewhere") — rename it by hand in symbols.txt + sym_map.tsv; two LOCAL symbols with one
+  name are fine (Tools has `OptionExec__Fv` twice). r208 and r222 both define `setResetNum/getResetNum/
+  incResetNum` (r208's `extern "C"`, r222's C++): now `static` in both (`extern "C" { static ... }` in r208).
+- flow's `(use (const_int 0))` nop: `find_basic_blocks` emits it after a CALL_INSN that ends a basic block
+  (a call immediately followed by a loop label at gcse time — before loop.c places the hoisted invariants).
+  It survives into sched1 as a ready insn on unit "none" and TAKES AN ISSUE SLOT (two-issue), splitting a pair
+  of independent `li`s (r208 footingB_up `li r30,0; li r31,0` -> `li; lhz; li`) or pushing a low-priority `lis`
+  past the next `bl` (r208 setEmGo). Fix = any statement between the call and the loop: `y = 2900.0f;` after
+  the SceSetEventCancel (the `fmr` lands where the target has it), the go-flags zeroed right before `while (1)`
+  (the `li`s hoist anyway). Check for it with `-fsched-verbose-6`: an insn with code -1 and unit `none`.
+- `pGS->flag` (global.h struct view of pG) keeps the pG load below the preceding template-copy stores of a
+  `Vec pos = {..}` (r11f EventS10EndProc) and below a `SmdGetObjPtr(n)->be_flag |= 2` store (r222
+  first_cut_exit); `PSet(work->x, call())` for a work pointer assigned from a call right before an RsfCheck
+  (r101 Init evt30, r202 Init sat: the target loads pG after the store). Target rule of thumb across this
+  pass: the original never hoists a scalar-global load above a store through a pointer/reference and never
+  hoists a store above a pseudo-based load (r208 SubUnderCrankExec loads all three template words before its
+  first frame store, r222 R222Main loads the template after `seTimer = 30`); ours needs the reference/struct
+  view per site, and an RTX_UNCHANGING pool/template load cannot be held back by any store form (IntSet,
+  `const Vec&` reads change the copy shape instead).
+- `static inline void AtariFlagsAnd(cAtariInfo* a, u16 m) { *(volatile u16*) &a->flags &= m; }` (r207
+  EnemySet): the following `work->sub = pSUB; pSUB = NULL;` reloads pSUB after the `sth` and keeps pSUB@ha in a
+  callee-saved register (31 -> 10 words). Residue: the zero of `pSUB = NULL` is issued after the `sth` in the
+  target (`li r9,0` reusing the atari pointer's register) and before it in ours (do-while, volatile store,
+  local copies tried).
+- Item-event "done" callbacks with `__Fv` names (r104 openedBox/openedShelf): `static void f() { int no;
+  g(no, 1); }` — the uninitialised local forwards r3 untouched (`li r4,1; bl` only), which is what the
+  original's void-parameter callbacks did.
+- r207 Init: `if (RsfCheck(G_ROOM_ID, 0) == 0)` (first visit sets flags 0/5/6) — the polarity was inverted
+  (`blt` vs `bge` was the only diff).
+- r201 moveAltarObj: both directions in ONE `for (;;) { if (open == 1) { if (!move()) {..; break;} } else
+  {..} SceSleep(1); }` — the target shares one `li r3,1; bl SceSleep` block and re-tests the mfcr'd `open`
+  compare after it (`b test; sleep: ..; test: mtcrf; bne`). Residue: the three inlined attachGem copies
+  allocate `i`/`i*4`/work as r9/r10/r11 in the target and r10/r11/r9 in ours (int/u32, declaration order,
+  pointer forms tried).
+- r10b readEvent: `pLog->err(0, 0, "...[%d]>[%d]", size, max)` — the second `%d` argument IS `max` (the
+  target's compare register r8 is the argument register, `mr r8` folded); the source lacked it (5 -> 3).
+- r106 shake* halves: `x += k; if (!(x > lim)) { wait: SceSleep(1); x += k; if (!(x > lim)) goto wait; }
+  x = lim;` (a goto loop INSIDE the `if`, label first): the peel keeps its own compare and the target
+  cross-jumps its `ble` with the loop's (`fadds; fcmpu; stfs; b L`); the `goto open; open: if (..)` form
+  jumped into the test and reloaded rot before the compare (19 -> 9 words per door; the rest is the loop's
+  f0/f13 pair swapped — local-alloc priority of the two dying loads).
+- r222 em_reset: `u32 idx = (u32) getResetNum() % 3; EM_LIST(0x19 + idx)` gives the remainder its own
+  register (r9) instead of reusing the call result's r3.
+- OPEN, arg-`li` family (r113 execHide / r11d execHide_main `li r3,6` of a u32-returning SndCall; r207
+  EnemySetEndProc second setEm `li r4/r5` before a following setGoto's r4/r5; r201 setSwitchEnv `li r3,0`
+  followed by `li r3,3`; r11f Evt_R11FS00_Func `li r5` vs `addi r4`): the target issues an argument `li`
+  LAST among the call's `li`s when its register is set again later in the block (by the call's return value
+  or the next call's argument); ours ranks it first (it has one more dependent through the output
+  dependence, then LUID). All rank_for_schedule inputs checked (prio/weight/class/dependents equal);
+  int-argument aliases, statement order, locals, void/u32 aliases do not move it. Mechanism unknown.
+- OPEN, jump1 exit-test copy vs loop.c (r202 throwRock, COMPILER-DIFF #9 family): when the duplicated exit
+  test contains a store + jump-to-exit, the copy's conditional jump lands on a label INSIDE the loop and
+  loop.c rejects the loop ("ignored due to multiple entry points", `-dL`) — nothing is hoisted. The target
+  has the same peel AND the hoisted store constant (`fmr f28,f30`) before the peel's compare, so its copy
+  sat inside the loop notes. r106's close halves (store in the exit code, no peel in the target) are the
+  known #9 shape; write those as goto loops.
+- OPEN r201 checkSwitch: `while (on != 1) {..}` — loop.c hoists the invariant `cmpwi on,1` into a CC pseudo
+  (`mfcr r30`/`mtcrf`) in ours, the target re-compares at the loop bottom while still hoisting the
+  `lis disarmTrap@ha` (so the loop was valid); for/do-while/goto/volatile forms tried.
+- r200 execTruckEvent_end is COMPILER-DIFF #11 exactly (two freed 12-byte Vec slots merge into a 24-byte
+  slot, no split -> +0x10 frame); a prototyped `memset` or a struct copy loses the `crclr` libcall.
+- Harness: /tmp/rooms_b (`mcmp.py MOD/UNIT [SYM]` with `OBJ=`, `tryv.py MOD/UNIT FUNC variants.py` resolving
+  the room source through modules.py UNITS, `vapply.py`, `sbs.sh MOD/UNIT SYM [OBJ]`, `mdump.sh MOD/UNIT
+  -dX` with `SRC_OVERRIDE`).

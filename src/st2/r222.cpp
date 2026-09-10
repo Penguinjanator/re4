@@ -91,9 +91,10 @@ static void first_cut_exit();
 static void first_cut();
 static void em_appear_exit();
 static void em_appear();
-void setResetNum(int n);
-int getResetNum();
-void incResetNum();
+// setResetNum/getResetNum/incResetNum are also defined in r208.cpp (same module): static.
+static void setResetNum(int n);
+static int getResetNum();
+static void incResetNum();
 void em_reset();
 
 // A dragon's shot target: hit box on the object's position.
@@ -672,7 +673,7 @@ static void first_cut_exit()
     SmdGetObjPtr(0x17)->be_flag |= 2;
     SmdGetObjPtr(0x14)->be_flag |= 2;
     SmdGetObjPtr(0x15)->be_flag |= 2;
-    if (pG->sceat_x17C & 0x20000000) {
+    if (pGS->sceat_x17C & 0x20000000) {   // struct view: the pG load stays below the be_flag store
         SndStrReq(r222_work.p->strId, 8, 0, 0);
     }
 }
@@ -735,7 +736,7 @@ static void em_appear()
 }
 
 // The enemy reset counter lives in room save flags 9..13.
-void setResetNum(int n)
+static void setResetNum(int n)
 {
     if (n & 1) {
         RsfSet(G_ROOM_ID, 9);
@@ -764,7 +765,7 @@ void setResetNum(int n)
     }
 }
 
-int getResetNum()
+static int getResetNum()
 {
     int n = 0;
 
@@ -786,7 +787,7 @@ int getResetNum()
     return n;
 }
 
-void incResetNum()
+static void incResetNum()
 {
     if (getResetNum() != 0x1F) {
         setResetNum(getResetNum() + 1);
@@ -800,7 +801,9 @@ void em_reset()
         if (r222_work.p->resetTimer > 0) {
             r222_work.p->resetTimer--;
         } else {
-            cEm* em = EmSetEvent(EM_LIST(0x19 + (u32) getResetNum() % 3));
+            // the remainder in its own variable: a fresh register (r9) instead of the call result's r3
+            u32 idx = (u32) getResetNum() % 3;
+            cEm* em = EmSetEvent(EM_LIST(0x19 + idx));
 
             if (em) {
                 em->flags_3C8 |= 1;

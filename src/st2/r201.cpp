@@ -458,16 +458,21 @@ void r201_moveAltarObj(int open, int init)
                 r201_work.p->altar.setReverse(1);
                 EstSet(0, -1, 0, 0, 1, 9, 1, (u8) r201_work.p->altarEff, 0, 0);
             }
-            if (open == 1) {
-                while (r201_work.p->altar.move()) {
-                    SceSleep(1);
+            // ONE loop for both directions: the `SceSleep(1)` block is shared and the `open` compare
+            // (kept in r29 by mfcr) is re-tested per iteration after the sleep (`b test; sleep: ..; test:`).
+            for (;;) {
+                if (open == 1) {
+                    if (r201_work.p->altar.move() == 0) {
+                        SceAtSetEnable(0x1A, 0);
+                        break;
+                    }
+                } else {
+                    if (r201_work.p->altar.move() == 0) {
+                        SceAtSetEnable(0x1A, 1);
+                        break;
+                    }
                 }
-                SceAtSetEnable(0x1A, 0);
-            } else {
-                while (r201_work.p->altar.move()) {
-                    SceSleep(1);
-                }
-                SceAtSetEnable(0x1A, 1);
+                SceSleep(1);
             }
             SndCall(6, 0x13, 0, 0, 0, 0);
         }

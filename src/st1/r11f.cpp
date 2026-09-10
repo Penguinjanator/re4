@@ -507,7 +507,8 @@ static void r11f_EventS10EndProc()
 {
     Vec pos = {36459.0f, -8000.0f, -63991.0f};
 
-    if (pG->flags_174 & 0x20000000) {
+    // struct-member view: the pG load stays below the three template-copy stores of `pos`
+    if (pGS->flags_174 & 0x20000000) {
         SndStrReq(r11f_work->strId, 8, 0, 0);
     }
     CamCtrl.Comeback(0);

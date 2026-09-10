@@ -238,7 +238,7 @@ extern "C" int readEvent(int no, int wait, void** out)
         m = SearchEmModule(0x2F);
         max = m->size;
         if (R10B_WORK->evt[no]->size > max) {
-            pLog->err(0, 0, "readEvent() : event size too large!![%d]>[%d]", R10B_WORK->evt[no]->size);
+            pLog->err(0, 0, "readEvent() : event size too large!![%d]>[%d]", R10B_WORK->evt[no]->size, max);
             goto fail;
         }
         MemorySwap(m->pArc, (u32) R10B_WORK->evt[no]->addr, R10B_WORK->evt[no]->size);
