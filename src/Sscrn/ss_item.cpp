@@ -1332,16 +1332,17 @@ void itemMakeDisp(SUB_SCREEN* wk, int x, int y)
     int i;
     u16 id;
 
-    eprintf(x * 8, y * 14, 5, 0, "----- ITEM MAKE -----");
-    y++;
-    for (i = 0; i < 3; i++) {
+    eprintf(x * 8, y++ * 14, 5, 0, "----- ITEM MAKE -----");
+    for (i = 0; i < 3; i++, y++) {
         u8 col;
+        int c;
         if (i == mk->cursor) {
             eprintf(x * 8, y * 14, 0x16, 0, ">");
-            col = 4;
+            c = 4;
         } else {
-            col = 0;
+            c = 0;
         }
+        col = c;
         eprintf((x + 1) * 8, y * 14, col, 0, "%s", item_make_name[i]);
         eprintf((x + 9) * 8, y * 14, 0, 0, ": ID[0x  ]");
         switch (i) {
@@ -1353,10 +1354,8 @@ void itemMakeDisp(SUB_SCREEN* wk, int x, int y)
             eprintf((x + 9) * 8, y * 14, col, 0, "       %02x", cur->id);
             break;
         }
-        y++;
     }
-    eprintf(x * 8, y * 14, 0, 0, "---------------------");
-    y++;
+    eprintf(x * 8, y++ * 14, 0, 0, "---------------------");
     id = 0;
     switch (mk->cursor) {
     case 0:
@@ -1367,8 +1366,8 @@ void itemMakeDisp(SUB_SCREEN* wk, int x, int y)
         id = cur->id;
         break;
     }
-    cMes.MesSet(id, (x + 1) * 8 + item_make_mes_x, y * 14 + item_make_mes_y, 0x20088, 0, 0, 4);
-    y += 2;
+    cMes.MesSet(id, (x + 1) * 8 + item_make_mes_x, y++ * 14 + item_make_mes_y, 0x20088, 0, 0, 4);
+    y++;
     eprintf(x * 8, y * 14, 0, 0, "---------------------");
 }
 

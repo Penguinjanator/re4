@@ -2398,16 +2398,18 @@ target) stays unresolved and `make_rel` then fails with "undefined symbol".
   destructor inlines `cManager<T>::~cManager` (stores the cManager vtable) as the target does.
 - Status: ss_cap, ss_debug, ss_file, ss_item_draw Matching (the REL is byte-identical with the four
   compiled); ss_main has 57/58 functions byte-identical (open: SubScreenTask, only the three `lis
-  pG@ha`, see its item); ss_item is written (34 functions incl. dtors, 30 byte-identical,
-  .rodata/.data/.bss identical), open items below; ss_term (29/29 named functions, eof block open)
+  pG@ha`, see its item); ss_item is written (34 functions incl. dtors, 31 byte-identical after the
+  fifth pass, .rodata/.data/.bss identical, .text 4 bytes short), open items below; ss_term (29/29 named functions, eof block open)
   and ss_model (46/47, wep09Init = compiler-build difference 6) are written, see their items; ss_map (src/Sscrn/
   ss_map.cpp, 102/105 named functions byte-identical after the fourth pass (2026-09-10; open:
   mapColor, mapPositionCheck, mapModelInit, see the pass item), .rodata/.data/.bss identical since 2026-09:
   the former 8-byte gap was doorModelInit's missing 2^52 pool entry (`(f32) (int) e->ang` of the u8
   angle, the classic double trick, not a fast-cast psq_l) plus the two file-scope `static const`
-  tables in the wrong order (map_cam_entire is defined before mark_model_tbl); see its item) and ss_pzzl (src/Sscrn/ss_pzzl.cpp, 54/64 after the third pass, .rodata/.data/.bss identical) are
-  written; ss_shop (src/Sscrn/ss_shop.cpp, the merchant screen: 64/74 functions byte-identical incl.
-  the 0x980 eof block, .rodata/.data/.bss identical, .text 16 bytes short) is written, see its item.
+  tables in the wrong order (map_cam_entire is defined before mark_model_tbl); see its item) and ss_pzzl (src/Sscrn/ss_pzzl.cpp, 54/64 after the fifth pass with .text only 4 bytes short
+  (PieceCommand::move is size-identical), .rodata/.data/.bss identical) are
+  written; ss_shop (src/Sscrn/ss_shop.cpp, the merchant screen: 69/74 functions byte-identical after
+  the fifth pass incl. the 0x980 eof block, .rodata/.data/.bss identical, .text 8 bytes short) is
+  written, see its item and the fifth-pass list.
 - ss_shop idioms (2026-09): include order light.h, map_obj.h, widget.h (the three header strings), then
   "ss_shop.dat" (SsShopInit::move) and the HALT string (mem_alloc lines 0x1BA/0x242). The 13 widgets are
   declared in the order SsShopInit, SsShopMain (ss_main.h), ShopTopMenu(3 links, ctor sets cursor = 1),
@@ -2901,6 +2903,94 @@ target) stays unresolved and `make_rel` then fails with "undefined symbol".
     reloc names; RIGHT = ours: `.rodata+0x..` names); the "ours N insns, split M insns" header is
     the only thing named the other way round. Check the reloc names before deciding which side
     hoisted what - three of this pass's hypotheses were inverted by misreading the columns.
+- Fifth pass (2026-09-10, ss_shop 64 -> 69/74, ss_item 30 -> 31/34, ss_pzzl 54/64 with PieceCommand::move
+  -0x98 -> 0 and PieceCombine::move -0x10 -> -4 bytes; harness /tmp/ssw7 = ssw6 copies + `varf.py <unit>
+  <func> <variants>` (whole-function variants) + `fdis.py` from /tmp/em10e):
+  - **Invalid loop = loop notes without loop.c** (dispSellItemList, dispBuyItemList, both matched): the
+    "hand-rolled goto loop" of the item lists is really `i = top; do { end = i + n; } while (0); goto TEST;
+    while (1) { BODY; i++; TEST: if (!(i < end)) break; item = ..; row = i - top; pe = ..; if (pe == 0)
+    break; }`. The `goto TEST` INTO the loop makes loop.c mark it invalid (no invariant hoisting, no givs:
+    the 320/0.8/240 pool loads and the `lis IdSub` stay inside), but the LOOP notes are still there, so
+    flow counts every body ref at depth 1 for the global-alloc priorities (that is what puts `sw`/`col`/
+    `price`/`m` in the target's registers - `for (;;)` with the same `goto TEST` did NOT reproduce it,
+    `while (1)` did) and update_equiv_regs/loop.c see the body as depth 1. The `end = i + n` after the
+    dispScrollBar call must stay after it: sched1 hoists the free `add` above the calls (it is one basic
+    block), the `do { } while (0)` LOOP_END makes it depend on everything before. `i = top` after the call
+    is what keeps the call's first argument `top` (cse canonicalises `top` to `i` only for insns after the
+    copy), and `sw` declared before `m` gives the target's `lwz pMerchant` first (equal priority, LUID).
+  - `i++` written AFTER the last call of the body (`dispPrice(..); } i++;`) is a free insn that sched1
+    hoists to the earliest free slot (Sell: right after the unitPtr call; Buy: the last slot before the
+    dispPrice call, because it has no dependent there); `i++` before the call in source gets a
+    sched_before_next_call anti-dependence (its pseudo... see haifa `REG_N_CALLS_CROSSED`) and is issued
+    two cycles earlier.
+  - `n` dying at a call's `mr r4,n` arg move is issued first (weight rule); the target issuing it LAST
+    means `n` is still live: `end = top + n` written AFTER the dispScrollBar call (the `add` is hoisted
+    above the call anyway, but the death moves to it) - dispLvUpItemList, matched with that plus
+    block-scoped `for (int k ...)` counters for the two 5-loops, `Vec pos` block-scoped (frame 152, `info`
+    reuses its slot), the `mark = unitPtr(0x3F)` pointer form, `if (m->tunable(item)) col = 0; else col =
+    6;`. NOTE the fdiff3 columns again: the dispLvUp loop's fresh `lis r9,IdSub` per unitPtr call
+    (documented as "rematerialised") is a hoisted PRE pseudo with a REG_EQUIV `high(IdSub)` that got no
+    callee-saved register (r14..r31 all taken); the i/k counters decide who gets r31.
+  - levelItemDisp (-0x18 -> -0xC): `Vec pos` block-scoped around each PSVECAdd/x/y block and `int
+    digit[3]` block-scoped in the digit block (both at frame 8, first-fit reuse; `val`/`tag` are the
+    address-taken small arrays at 40/48 after `pos2`'s 24), `tag[cur]` (a variable index puts the 2-byte
+    array in the stack: `sth 0x7174,48(r1)` + `lbz 1(r16)`), and `cur = 1;` placed BEFORE the ratio
+    `switch (type)`: set after a conditional jump (maybe_never) and used in another block, loop.c leaves
+    it in the type loop (right before the digit loop it was hoisted as `li r14,1`, and `int cur = 0` at
+    the body top is deleted by cse as a dead set). Open there: the target's `li 0,1; slwi 7,0,2` is the
+    single-use constant moved next to its use by update_equiv_regs, which needs loop depth 0 at the use -
+    ours keeps `li r28,1` at the statement (depth 1) although the target's type loop hoists the pool
+    constants like a real loop; the `lis cMes`/`addi 14,9,cMes` pair hoisted in the target for the getMes
+    stores (ours keeps `lis 10; addi 10` in the loop; a `pm = &cMes` local at the body top merges with the
+    setLayout/MesSet `this` highs), the `mr 9,11` loadaddr copy, sw/swk/type register names.
+  - dispPrice (matched): ONE function-scope `int n` for both digit blocks (a global pseudo in r4 in both;
+    per-block locals gave r4/r5) and block-scoped `for (int i ...)` counters in the price block.
+  - itemMakeDisp (matched): `u8 col; int c; if (i == mk->cursor) { eprintf(..">"); c = 4; } else c = 0;
+    col = c;` (the int temp is `li r5,4/0` after the call, `clrlwi r30,r5,24` at the join - a `u8 col`
+    assigned directly is hoisted above the call as a callee-saved pseudo), `eprintf(x * 8, y++ * 14, ..)`
+    post-increments inside the eprintf/MesSet argument lists (the `addi y,1` then precedes the string
+    `lis`: it is RTL-before the address setup), and `for (i = 0; i < 3; i++, y++)` (the `y++` giv
+    increments follow `i++`'s in the latch).
+  - PieceCommand::move (-0x98 -> 0 bytes): (1) `case 5: default:` in the `type` switch; (2) `case 9:`
+    written AFTER `default:` - its body (`if (x26C == 0) command_id = 5`) is the fall-through copy before
+    the shared `stw command_id`, and because its `li 0,5` precedes the `lis` (the `high` there is the
+    PRE pseudo reloaded next to the store), every other `lis; li 0,K; stw` copy cross-jumps only the
+    `stw` (the scan stops at the new label) and keeps its own `lis; li` (8 copies of `li 0,6` in the
+    target; with the default arm last, its `case 3: command_id = 6` fell through and all `li 0,6` copies
+    merged into it); (3) block-scoped `for (int i ...)` counters (r8, not r31); (4) `used =
+    ItemMgr.arm(..)` (int, no `!= 0`: `mr. r28,r3`); (5) case 0 is `if (trg & 0x40000000) { ..; break; }
+    if (trg & 0x80000000) { ..; if (used == 1) { ..; SndCall(0,8); return; } SndCall(0,7); }` followed by
+    the cursor block WITHOUT an else: the target falls from `SndCall(0,7)` into the `Key.rep` cursor code
+    (and the Key.trg u64 pair then lands in r11:r12 like the target); (6) `mode = 1; subSel = 0;` in case
+    4 (stores come out reversed). Left (0 bytes, ~40 words): the type-2 `case 1: command_id = 5` copy that
+    the target cross-jumped 3 insns deep into the case-9 fall-through (`b` to its `li 0,5`; a `goto` into
+    the case-9 arm makes the label 2-use and merges more), case 6's separate QI/SI `1` constants and
+    `stw; stb` order, `extra`/`extraNum` r30/r31, the `cmpwi`-then-`beq` polarity of two `if (x == K)`
+    diamonds (lines 756/766: ours `bt 2; cmpwi; bt 2; b`, target `bf 2` fall-through arms).
+  - PieceCombine::move (-0x10 -> -4): no `pzlPlayer* pl` local (`wk->x2B0->` re-read per statement: the
+    target reloads `lwz r3,0x2b0(wk)` before every call and keeps the first load only in caller-saved
+    r7), `pzlPiece** psel = &pzzl_sel;` declared before the loadCursor call with `*psel = ..ptrPiece(..)`
+    (the `lis pzzl_sel@ha` in callee-saved r30 before the calls), `wk->x267 = 2;` BEFORE the `cur`/
+    `caseBoard` loads (byte store first: the loads are RTL-after it), `if (b == pl->caseBoard) other =
+    pl->spaceBoard; else other = pl->caseBoard;` (the `mr r27,r0` copy of the compared load = the
+    hoisted else-set), `int h = b->h; b->curY = h - 1;` (keeps `extsb`, see the s8 narrowing rule), and
+    ONE `SndCall(0, se, ..)` after a `switch (info.type) { case 6: se = 0x27; case 2: se = 0x29;
+    default: se = 0x28; }` (bodies laid out 6, 2, default; the shared tail then starts at `li r3,0`; an
+    if/else-if chain hoists the else-set). Left: wk/b/other = r29/r31/r27 vs r31/r29/r26, and case 4's
+    `curX = 0` where ours stores the known-zero `trg & 0x80000000` register (cse skip-blocks carries it
+    over the `if (getPieceNum())` diamond) and the target loads `li 0,0` (its cse path was one branch
+    longer: PATHLENGTH).
+  - Negative results this pass: itemSelect's second loop counter (r30 in the target; 12 variable-role
+    permutations, `i` reuse, `no` reuse all give r31 or swap i/no); itemMakeInit's `types` (the target
+    neither hoists the else-`li` nor narrows `& 0xFF` to `& 0xF`: switch/u16/init forms, all fold -
+    likely the same combine `reg_nonzero_bits` difference as LvUpConfirm's `extsb`, candidate #12:
+    ours knows the union of a multi-set pseudo's constant sets, the original does not); itemMakeMove
+    hi/lo (r28/r29 vs r23/r24); SellItemNum::move this/val r24/r25 (a `do { } while (0)` around the
+    first digit loop fixes this/val and the magic/i pair but swaps wk with the second `lis IdSub`);
+    LvUpItemSelect::move item/x (do-while around either MesSet arm does not move it); mapModelInit's
+    `j + 1` (r4 = the target picks from the caller-saved order 0,9,11,10,8,7,6,5,4 with r11..r5 all
+    busy - `no++` placement, block-scoped j, `int j = 0` forms identical); levelItemDisp's type loop as a
+    goto loop (loses every hoist: it IS a real loop in the target).
 - The map model globals are named `ssPlModel`/`ssWepModel` (.bss 0x494/0x498, MapMgr works 0/1),
   `ssPlMotion`/`ssWepModel2` (.data 0x978/0x97C), renamed by hand in symbols.txt/sym_map.tsv
   (data labels have no .sym name for the sync tool); the generator attributes them to ss_map.cpp.

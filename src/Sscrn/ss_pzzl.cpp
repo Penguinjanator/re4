@@ -1965,21 +1965,25 @@ void PieceCombine::init(SUB_SCREEN* wk)
 void PieceCombine::move(SUB_SCREEN* wk)
 {
     pzlPlayer* pl = wk->x2B0;
-    pzlBoard* b = pl->cur;
-    pzlBoard* other = pl->caseBoard;
+    pzlBoard* b;
+    pzlBoard* other;
 
     wk->x267 = 2;
-    if (b == other) {
+    b = pl->cur;
+    if (b == pl->caseBoard) {
         other = pl->spaceBoard;
+    } else {
+        other = pl->caseBoard;
     }
     switch (state) {
     case 0:
         if (Key.trg & 0x40000000) {
-            pl->loadCursor();
-            pzzl_sel = wk->x2B0->ptrPiece(wk->x2B0->cur);
+            pzlPiece** psel = &pzzl_sel;
+            wk->x2B0->loadCursor();
+            *psel = wk->x2B0->ptrPiece(wk->x2B0->cur);
             transit(1, wk);
         } else if (Key.trg & 0x80000000) {
-            if (pl->ptrPiece(b)) {
+            if (wk->x2B0->ptrPiece(b)) {
                 pzlPiece* p = wk->x2B0->ptrPiece(wk->x2B0->cur);
                 pzlPiece* sel = pzzl_sel;
                 int extra = p == wk->x2B0->extra;
@@ -2009,12 +2013,20 @@ void PieceCombine::move(SUB_SCREEN* wk)
                         wk->x2B0->rehash();
                         transit(0, wk);
                         itemInfo(idB, &info);
-                        if (info.type == 2) {
-                            SndCall(0, 0x29, 0, 0, 0, 0);
-                        } else if (info.type == 6) {
-                            SndCall(0, 0x27, 0, 0, 0, 0);
-                        } else {
-                            SndCall(0, 0x28, 0, 0, 0, 0);
+                        {
+                            int se;
+                            switch (info.type) {
+                            case 6:
+                                se = 0x27;
+                                break;
+                            case 2:
+                                se = 0x29;
+                                break;
+                            default:
+                                se = 0x28;
+                                break;
+                            }
+                            SndCall(0, se, 0, 0, 0, 0);
                         }
                     } else {
                         int no;
@@ -2032,29 +2044,34 @@ void PieceCombine::move(SUB_SCREEN* wk)
                 SndCall(0, 7, 0, 0, 0, 0);
             }
         } else {
-            int r = pl->selPiece(b);
+            int r = wk->x2B0->selPiece(b);
 
             if (r == 5) {
                 wk->x268 |= 1;
                 SndCall(0, 6, 0, 0, 0, 0);
             }
             switch (r) {
-            case 1:
-                b->curY = b->h - 1;
+            case 1: {
+                int h = b->h;
+                b->curY = h - 1;
                 break;
+            }
             case 2:
                 b->curY = 0;
                 break;
-            case 3:
+            case 3: {
+                int w;
                 if (other->getPieceNum() != 0) {
-                    pl->cur = other;
+                    wk->x2B0->cur = other;
                     b = wk->x2B0->cur;
                 }
-                b->curX = b->w - 1;
+                w = b->w;
+                b->curX = w - 1;
                 break;
+            }
             case 4:
                 if (other->getPieceNum() != 0) {
-                    pl->cur = other;
+                    wk->x2B0->cur = other;
                     b = wk->x2B0->cur;
                 }
                 b->curX = 0;
@@ -2125,7 +2142,6 @@ void PieceCommand::move(SUB_SCREEN* wk)
 {
     Vec pos;
     int corner;
-    int i;
 
     wk->x267 = 1;
     if (inSpace) {
@@ -2141,12 +2157,14 @@ void PieceCommand::move(SUB_SCREEN* wk)
     switch (mode) {
     case 0:
         if (Key.trg & 0x40000000) {
-            for (i = 0; i < num * 2 + 6; i++) {
+            for (int i = 0; i < num * 2 + 6; i++) {
                 id[i]->dir |= 0xF;
             }
             transit(0, wk);
             SndCall(0, 5, 0, 0, 0, 0);
-        } else if (Key.trg & 0x80000000) {
+            break;
+        }
+        if (Key.trg & 0x80000000) {
             int used = 0;
             int type = itemCommandType(pzzl_sel->item);
 
@@ -2264,11 +2282,7 @@ void PieceCommand::move(SUB_SCREEN* wk)
                     break;
                 }
                 break;
-            case 9:
-                if (wk->x26C == 0) {
-                    command_id = 5;
-                }
-                break;
+            case 5:
             default:
                 switch (wk->x26C) {
                 case 0:
@@ -2285,9 +2299,14 @@ void PieceCommand::move(SUB_SCREEN* wk)
                     break;
                 }
                 break;
+            case 9:
+                if (wk->x26C == 0) {
+                    command_id = 5;
+                }
+                break;
             }
             if (command_id == 2 || command_id == 5) {
-                for (i = 0; i < num * 2 + 6; i++) {
+                for (int i = 0; i < num * 2 + 6; i++) {
                     id[i]->dir |= 0xF;
                 }
                 wk->x2B0->saveCursor();
@@ -2298,16 +2317,16 @@ void PieceCommand::move(SUB_SCREEN* wk)
                     break;
                 }
                 if (wk->flags & 2) {
-                    for (i = 0; i < num * 2 + 6; i++) {
+                    for (int i = 0; i < num * 2 + 6; i++) {
                         id[i]->dir |= 0xF;
                     }
                     mode = 3;
                     openMsgWindow(wk, 0x27);
                 } else {
-                    used = ItemMgr.arm(pzzl_sel->item) != 0;
+                    used = ItemMgr.arm(pzzl_sel->item);
                     if (used) {
                         wk->x2B0->rehash();
-                        for (i = 0; i < num * 2 + 6; i++) {
+                        for (int i = 0; i < num * 2 + 6; i++) {
                             id[i]->dir |= 0xF;
                         }
                     }
@@ -2344,8 +2363,8 @@ void PieceCommand::move(SUB_SCREEN* wk)
             }
             case 4:
                 if (pSUB && ((cModel*) pSUB)->id == 3) {
-                    subSel = 0;
                     mode = 1;
+                    subSel = 0;
                     SndCall(0, 4, 0, 0, 0, 0);
                     return;
                 }
@@ -2369,15 +2388,16 @@ void PieceCommand::move(SUB_SCREEN* wk)
             }
             if (used == 1) {
                 wk->x2B0->rehash();
-                for (i = 0; i < num * 2 + 6; i++) {
+                for (int i = 0; i < num * 2 + 6; i++) {
                     id[i]->dir |= 0xF;
                 }
                 transit(0, wk);
                 SndCall(0, 8, 0, 0, 0, 0);
-            } else {
-                SndCall(0, 7, 0, 0, 0, 0);
+                return;
             }
-        } else {
+            SndCall(0, 7, 0, 0, 0, 0);
+        }
+        {
             int cur;
 
             if (Key.rep & 0x01000000) {
@@ -2396,7 +2416,7 @@ void PieceCommand::move(SUB_SCREEN* wk)
                 SndCall(0, 0xA, 0, 0, 0, 0);
             }
             if (cursorOld != wk->x26C) {
-                for (i = 0; i < num; i++) {
+                for (int i = 0; i < num; i++) {
                     if (i == wk->x26C) {
                         id[6 + i * 2]->flags |= 8;
                     } else {
@@ -2421,7 +2441,7 @@ void PieceCommand::move(SUB_SCREEN* wk)
         } else if (inSpace == 1) {
             type = 0x1D;
         }
-        for (i = 0; i < 11; i++) {
+        for (int i = 0; i < 11; i++) {
             sub[i] = IdSub.unitPtr(base + i, type);
             sub[i]->flags |= 8;
             sub[i]->dir &= 0xF0;
@@ -2431,7 +2451,7 @@ void PieceCommand::move(SUB_SCREEN* wk)
     }
     case 2:
         if (Key.trg & 0x40000000) {
-            for (i = 0; i < 11; i++) {
+            for (int i = 0; i < 11; i++) {
                 sub[i]->dir |= 0xF;
             }
             mode = 0;
@@ -2488,10 +2508,10 @@ void PieceCommand::move(SUB_SCREEN* wk)
                 }
                 break;
             }
-            for (i = 0; i < num * 2 + 6; i++) {
+            for (int i = 0; i < num * 2 + 6; i++) {
                 id[i]->dir |= 0xF;
             }
-            for (i = 0; i < 11; i++) {
+            for (int i = 0; i < 11; i++) {
                 sub[i]->dir |= 0xF;
             }
             if (used) {

@@ -857,8 +857,8 @@ END:;
 
 void dispSellItemList(SUB_SCREEN* wk, int n, int cursor)
 {
-    Merchant* m = wk->pMerchant;
     ShopWork* sw = wk->pShopWk;
+    Merchant* m = wk->pMerchant;
     int top = sw->top;
     int i;
     int end;
@@ -872,12 +872,15 @@ void dispSellItemList(SUB_SCREEN* wk, int n, int cursor)
             IdSub.unitPtr(0x80 + k, 0x1D)->flags &= ~8;
         }
     }
-    i = top;
     dispScrollBar(top, n, sw->num, IdSub.unitPtr(0xF8, 0x1D), IdSub.unitPtr(0xFD, 0x1D),
                   IdSub.unitPtr(0xFE, 0x1D));
-    end = top + n;
+    i = top;
+    // The LOOP_END note keeps the `add end` below the dispScrollBar call (sched1 hoists a free add).
+    do { end = i + n; } while (0);
+    // `goto TEST` into the `while (1)` makes loop.c reject the loop (no hoisting, no givs) while the
+    // loop notes still weight every body reference (global-alloc order of sw/col/price/m).
     goto TEST;
-BODY: {
+    while (1) {
         int num;
         int col;
         IdUnit* frame;
@@ -951,17 +954,18 @@ BODY: {
             IdUnit* u = IdSub.unitPtr(row + 0x40, 0x1D);
             Vec pos;
             PSVECAdd(&u->parent->pos, &u->scr, &pos);
-            i++;
             dispPrice(row + 0x80, num, price, &pos, price_disp_num | price_disp_price);
         }
-    }
-TEST:
-    if (i < end) {
+        i++;
+    TEST:
+        if (!(i < end)) {
+            break;
+        }
         item = m->exerciseItemPtr(i);
         row = i - top;
         pe = m->exerciseItemNo(i);
-        if (pe) {
-            goto BODY;
+        if (pe == 0) {
+            break;
         }
     }
 }
@@ -1316,12 +1320,15 @@ void dispBuyItemList(SUB_SCREEN* wk, int n, int cursor)
             IdSub.unitPtr(0x80 + k, 0x1D)->flags &= ~8;
         }
     }
-    i = top;
     dispScrollBar(top, n, sw->num, IdSub.unitPtr(0xF8, 0x1D), IdSub.unitPtr(0xFD, 0x1D),
                   IdSub.unitPtr(0xFE, 0x1D));
-    end = top + n;
+    i = top;
+    // The LOOP_END note keeps the `add end` below the dispScrollBar call (sched1 hoists a free add).
+    do { end = i + n; } while (0);
+    // `goto TEST` into the `while (1)` makes loop.c reject the loop (no hoisting, no givs) while the
+    // loop notes still weight every body reference (global-alloc order of sw/col/price/m).
     goto TEST;
-BODY: {
+    while (1) {
         int col;
         IdUnit* frame;
         IdUnit* text;
@@ -1389,16 +1396,17 @@ BODY: {
             } else {
                 flags = price_disp_price | price_disp_sold;
             }
-            i++;
             dispPrice(row + 0x80, 0, price, &pos, flags);
         }
-    }
-TEST:
-    if (i < end) {
-        pe = m->sellingItemNo(i);
+        i++;
+    TEST:
+        if (!(i < end)) {
+            break;
+        }
         row = i - top;
-        if (pe) {
-            goto BODY;
+        pe = m->sellingItemNo(i);
+        if (pe == 0) {
+            break;
         }
     }
 }
@@ -1845,14 +1853,20 @@ void dispLvUpItemList(SUB_SCREEN* wk, int n, int cursor)
     int i;
     int end;
 
-    for (i = 0; i < 5; i++) {
-        dispPrice(0x80 + i, 0, 0, 0, 0);
+    {
+        int k;
+        for (k = 0; k < 5; k++) {
+            dispPrice(0x80 + k, 0, 0, 0, 0);
+        }
     }
-    end = top + n;
     dispScrollBar(top, n, sw->num, IdSub.unitPtr(0xF8, 0x1D), IdSub.unitPtr(0xFD, 0x1D),
                   IdSub.unitPtr(0xFE, 0x1D));
-    for (i = 0; i < 5; i++) {
-        IdSub.unitPtr(0x80 + i, 0x1D)->flags &= ~8;
+    end = top + n;
+    {
+        int k;
+        for (k = 0; k < 5; k++) {
+            IdSub.unitPtr(0x80 + k, 0x1D)->flags &= ~8;
+        }
     }
     stockNumDisp(0, 0);
     for (i = top; i < end; i++) {
@@ -1866,13 +1880,15 @@ void dispLvUpItemList(SUB_SCREEN* wk, int n, int cursor)
         int x;
         int y;
         int slot;
-        Vec pos;
 
         if (le == 0) {
             break;
         }
         if (item) {
-            col = m->tunable(item) ? 0 : 6;
+            col = 6;
+            if (m->tunable(item)) {
+                col = 0;
+            }
         } else {
             col = 6;
         }
@@ -1881,15 +1897,21 @@ void dispLvUpItemList(SUB_SCREEN* wk, int n, int cursor)
         if (i == sw->cursor) {
             PSVECAdd(&frame->parent->pos, &frame->scr, &IdSub.unitPtr(0x3F, 0x1D)->scr);
         }
-        if (cursor) {
-            IdSub.unitPtr(0x3F, 0x1D)->flags |= 8;
-        } else {
-            IdSub.unitPtr(0x3F, 0x1D)->flags &= ~8;
+        {
+            IdUnit* mark = IdSub.unitPtr(0x3F, 0x1D);
+            if (cursor) {
+                mark->flags |= 8;
+            } else {
+                mark->flags &= ~8;
+            }
         }
         id = le->id;
-        PSVECAdd(&text->parent->pos, &text->scr, &pos);
-        x = (int) ((pos.x + 320.0f) * 0.8f);
-        y = (int) ((240.0f - pos.y) * 0.8f);
+        {
+            Vec pos;
+            PSVECAdd(&text->parent->pos, &text->scr, &pos);
+            x = (int) ((pos.x + 320.0f) * 0.8f);
+            y = (int) ((240.0f - pos.y) * 0.8f);
+        }
         slot = (u8) (row + 8);
         cMes.setLayout(slot, 6);
         cMes.MesSet(id, x, y, 0x200A8, slot, col, 4);
@@ -1968,8 +1990,6 @@ void levelItemDisp(SUB_SCREEN* wk, int sw)
     {
         ItemWork* item = m->levelupItemPtr(swk->cursor);
         int type;
-        int digit[3];
-        Vec pos;
         int val[2];
         char tag[2];
         int max;
@@ -1983,11 +2003,14 @@ void levelItemDisp(SUB_SCREEN* wk, int sw)
             int cur;
 
             {
-                IdUnit* u = IdSub.unitPtr(type, 0x1D);
-                PSVECAdd(&u->parent->pos, &u->scr, &pos);
+                Vec pos;
+                {
+                    IdUnit* u = IdSub.unitPtr(type, 0x1D);
+                    PSVECAdd(&u->parent->pos, &u->scr, &pos);
+                }
+                x = (int) ((pos.x + 320.0f) * 0.8f);
+                y = (int) ((240.0f - pos.y) * 0.8f);
             }
-            x = (int) ((pos.x + 320.0f) * 0.8f);
-            y = (int) ((240.0f - pos.y) * 0.8f);
             cMes.setLayout(slot, 6);
             cMes.MesSet(type + 6, x, y, 0x200A1, slot, 0, 3);
             U16Set(cMes.getMes(slot)->ot, 0x13);
@@ -2037,6 +2060,7 @@ void levelItemDisp(SUB_SCREEN* wk, int sw)
                 lvNum->no = lv;
                 lvNum->flags_7F |= 2;
             }
+            cur = 1;
             {
                 u16 id = item->id;
 
@@ -2067,14 +2091,15 @@ void levelItemDisp(SUB_SCREEN* wk, int sw)
                     break;
                 }
             }
-            cur = 1;
+            {
+            int digit[3];
             for (j = 0; j < 3; j++) {
                 digit[j] = val[cur] % 10;
                 val[cur] /= 10;
             }
             on = 0;
             for (j = 2; j >= 0; j--) {
-                IdUnit* u = IdSub.unitPtr(tag[1] + j, 0x1D);
+                IdUnit* u = IdSub.unitPtr(tag[cur] + j, 0x1D);
 
                 u->flags_7F |= 2;
                 u->no = digit[j];
@@ -2091,8 +2116,10 @@ void levelItemDisp(SUB_SCREEN* wk, int sw)
                     u->flags |= 8;
                 }
             }
+            }
             if (lv <= max && lv <= WeaponId2MaxLevel(item->id, type)) {
                 IdUnit* u = IdSub.unitPtr(type + 0x40, 0x1D);
+                Vec pos;
                 PSVECAdd(&u->parent->pos, &u->scr, &pos);
                 dispPrice(type + 0x80, 0, m->levelupPrice(item, type, lv), &pos, price_disp_price);
             } else {
@@ -2103,6 +2130,7 @@ void levelItemDisp(SUB_SCREEN* wk, int sw)
             int total = 0;
             int x;
             int y;
+            Vec pos;
 
             {
                 IdUnit* u = IdSub.unitPtr(0x44, 0x1D);
@@ -2683,6 +2711,8 @@ void stockNumDisp(int num, int sw)
 // the sold-out mark (0x20).
 void dispPrice(int type, int num, int price, Vec* pos, u32 flags)
 {
+    int n;
+
     if (flags == 0) {
         IdSub.unitPtrI(0, type)->flags &= ~8;
         return;
@@ -2693,7 +2723,6 @@ void dispPrice(int type, int num, int price, Vec* pos, u32 flags)
     }
     if (price_disp_num & flags) {
         int digit[4];
-        int n;
         int on;
 
         IdSub.unitPtrI(0x10, type)->flags |= 8;
@@ -2725,21 +2754,19 @@ void dispPrice(int type, int num, int price, Vec* pos, u32 flags)
     }
     if (price_disp_price & flags) {
         int digit[7];
-        int n;
-        int i;
         int on;
 
         IdSub.unitPtrI(0xFE, type)->flags |= 8;
         n = price;
-        for (i = 0; i < 7; i++) {
+        for (int i = 0; i < 7; i++) {
             digit[i] = n % 10;
             n /= 10;
         }
-        for (i = 0; i < 7; i++) {
+        for (int i = 0; i < 7; i++) {
             IdSub.unitPtrI(1 + i, type)->flags &= ~8;
         }
         on = 0;
-        for (i = 6; i >= 0; i--) {
+        for (int i = 6; i >= 0; i--) {
             IdUnit* d;
 
             if (on == 0) {
