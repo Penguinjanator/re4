@@ -139,6 +139,53 @@ cc1plus and are therefore compiler-build differences (the original is a later SN
      no-parm-search insertion do not give it either. (b) and (c) together are not any GCC 2.95/3.0
      gcse variant we could build; treat #3 as a compiler-build difference with unknown mechanism and
      keep using the `&local`/`asm("" : "+r")` levers.
+   RESEARCH 2026-09-10, cse cost side (/tmp/highcost: h.py harness on a fresh src/ snapshot, base
+   18676/19929 identical; `gcc/` = SN source with `-D` hooks HC_HIGH=n / HC_LOSUM=n in rs6000.h
+   CONST_COSTS/RTX_COSTS and HC_REGPREF[_ALL] in cse.c's trial loop; `mk.sh NAME "-Ddefs"`). NEGATIVE:
+   every cost/preference variant regresses thousands of functions; nothing is installed.
+   - Source facts: SN's cse.c is stock 2.95.2 apart from PROTO removal (it still deletes the dead code
+     after a jump cse made unconditional; 2.95.3 leaves that to jump/flow); `CONST_COSTS` (HIGH,
+     CONST_INT, CONST, SYMBOL_REF, LABEL_REF, CONST_DOUBLE all `return 0`) and `ADDRESS_COST 0` are
+     byte-identical to stock 2.95.3 rs6000.h, so HIGH's cost 0 is NOT SN-specific. `COST(x)`: REG = 0
+     for fp/sp/ap/fixed hard regs and hard user vars, 1 for a pseudo, 2 for another hard reg; anything
+     else = 2 * rtx_cost(x, SET), so `(high sym)` = 0, `(lo_sum R sym)` = 2*(2+1+0) = 6, `(plus fp N)` = 4.
+     `cse_insn`'s trial order is `src_folded <= src <= src_eqv <= src_related <= elt` (all `<=`, i.e.
+     src_folded wins ties), but for `(set P (reg R))` there is no tie and no fold: `fold_rtx` returns a
+     REG unchanged (src_folded = R, cost 1), gcse's pre_delete adds no REG_EQUAL note, and the trial
+     that wins is the hash-table class head `elt->first_same_value` = the `(high sym)` constant (cost
+     0, `insert` sorts a class by cost, so a constant always heads its class above the pseudo that
+     holds it). The dead-test note above ("cse_insn prefers src_folded on ties") names the wrong rule;
+     the effect is the same: cost 0 < 1 re-materialises `lis`.
+   - Whole-tree table (regressions = identical with base that stop being identical; test cases = words
+     before -> after: r10c SetEmHitAtari 95, R120Event 114, R213Init 14, SubScreenTask 72, t_sce_at
+     basic_menu 215, R11bInit 14, r209 SwitchAppearCheck 7 / BridgeAppearCheck 7, R226Init 0):
+       HC_HIGH=1 (rtx_cost HIGH 1, COST 2 > REG)      4053 / 0 fixed; r10c 121, r120 15, r213 69, ss 493,
+                                                       menu 267, r11b 49, r209 68/61, R226Init 175
+       HC_HIGH=2                                       4053 / 0 (identical objects to HC_HIGH=1)
+       HC_LOSUM=0 (lo_sum cost 0, no operand sum)      4687 / 1 (emmine R1_Fall 8 -> 0); r10c 287, r120 114
+       HC_LOSUM=1                                      4610 / 1 (same fix)
+       HC_REGPREF (trial loop skips a HIGH trial when
+         the insn's src is a pseudo REG)               2997 / 0; r10c 388, r120 13, r213 69, ss 500,
+                                                       menu 265, r11b 42, r209 17/7, R226Init 172
+       HC_REGPREF_ALL (skips any CONSTANT_P trial)     3047 / 0
+       HC_HIGH=1 + HC_REGPREF                          4051 / 0
+     Only R120Event moves toward the target (114 -> 13/15: the x4F8E test becomes `lwz r9,N(r31)`,
+     the 13 left are the tail's per-use `sym+288@ha/@l` pairs); every other named case gets worse.
+   - What the regressions show: the ORIGINAL re-materialises a copied `high` exactly like stock cse.
+     sce_sys SceExecEventCancel (matched) has `lis r9; addi r31,r9; lis r9; addi r9,r9` for one high
+     with no holder register (REGPREF gives `lis r28` callee-saved + two `addi rX,r28`, 9 words),
+     db_light edit_light_priority has a fresh `lis r9; lwz r9,N(r9)` where REGPREF uses r30, R226Init's
+     fresh top-of-bb-0 `lis`es break under every variant (172-175 words, three more callee-saved regs),
+     and HC_HIGH additionally merges every second `lis sym@ha` of an ebb into a copy (49 words in
+     SceExecEventCancel alone). So the "target uses R directly" family (r10c r27, r120 r31, R213Init,
+     SubScreenTask, r11b) is not a cost or source-preference rule: in those functions the original's cse2
+     never SAW `R = high` when it reached the redundant copy -- a different extended-basic-block/path
+     structure (the #12 taken-branch/AROUND family) or a different PRE placement (#3 proper), not cse's
+     choice. Flag probes with the installed compiler: `-fno-cse-follow-jumps` changes nothing on
+     r120/r10c/r213; `-fno-cse-skip-blocks` takes R120Event 114 -> 36 (the AROUND path from bb 0 is what
+     carries `R = high` into the tail) but regresses 3782 functions whole-tree, so the original's cse does
+     skip blocks too. Do not revisit HIGH/LO_SUM costs or REG preference in cse; nothing in /tmp/highcost
+     is to be installed.
 4. Narrow-argument truncation: the original build does not truncate `int` -> `u16` arguments at call
    sites nor a wider value on a narrow `return`, but masks a u8-returning call assigned to a u16.
    Workaround: asm-labelled int-view / narrow-view declarations (item.h `constructI`, `searchI`).
@@ -9916,3 +9963,112 @@ output to the installed compiler; NOTE mk.sh must rm the insn-*.o objects or a p
   `goto end` forms all 27 -- the region is formed either way, so the target's missing hoists are the 100-LUID limit);
   r108 switchSymbol 12, r108/r203 str_check/StreamCheck (#3), r103/r105 execOpenCover + r11c closeGate (#9), r202 throwRock
   (#9), r11e/r10f/r222/r106/r10b not iterated this pass.
+
+### em2b / em39 fourth pass (em2b 101 -> 106/121, em39 120 -> 126/153 masked-identical; sections equal; neither flipped; 2026-09-10)
+- Harness /tmp/em2b39_p4 (copies of /tmp/em2b39_p3 with the paths rewritten; `perm.py MOD FUNC spec.json` brute-forces
+  statement orders, `mdump.sh MOD/UNIT -dX` with `SRC_OVERRIDE=out/vN/MOD.cpp` dumps a tryv variant). Never use
+  `'D'` as a case label with tools/casetree.py: `_norm_label` maps it to `default`.
+- **Source bugs read off the target** (fix these before any idiom work): em2b Walk `if ((Rnd() & 1) || pSUB)` (was
+  `pSUB == 0`; the `beq` past the pSUB test lands on the RS(8) arm whose zeros are the pSUB register), GetTree
+  `ARC(0xAE)/ARC(0xAF)` (were AB/AC) and `w->flags &= ~0x200` (was 0x400), em39AtkCk2 `EmAtkHitCk(&em39_atk_tbl[no - 1],
+  ..)` (the target's `.data+0x298` is the entry before the table; mcmp showed it as a 2-word reloc "name" diff),
+  em39 ThrowGR/Goto register arms.
+- **Two same-typed locals in different arms share one frame slot, an inline's Vec temp only if nothing bigger is free**
+  (plem2b_AtkParasite 174 -> 4): the then-arm's `Vec v` + `PSMTXMultVec` block was a second inline (`em2bPlOnEmSetRev`,
+  `rot.y = LIMIT_ANGLE(rot.y = em->rot.y + PI)` inside it) so both arms' vectors are freed temps in ONE slot (frame 16);
+  a caller `Vec v` in one arm pushes the other arm's inline temp to slot 32 and its address into a pseudo
+  (`addi r9,r1,32; mr r4,r9; stfs 4(r9)`). Also there: `pl->atari.flags &= 0xFCFF` instead of `throughOn()` (the
+  inline's `this` pseudo gives `addi r9,pl,692` and keeps the following `lbz xFE` below the `sth`), `((int) pl->x3E0 +
+  90) / 100` for the signed `mulhw/srawi/subf` + the `lvl < 0` clamp, `f32 ratio = frame / (f32) frameMax` before the
+  u32 double trick (r225 rule), the difficulty `add` and `lvl` are ONE variable (`lvl = 8/12/10/6/4; x3E0 += lvl; lvl =
+  ..`: the reuse gives the target's r10 for both), and em2bParasiteBtnCk as a MACRO (the inline's `return 1; return 0;`
+  is materialised `li r0,1; b; li r0,0; cmpwi` at both users). Left (4): the case-4 `x3FC/x3E4/x3E8/x3F8 = 0` block
+  issues the dying x3F8 store first; the `"+r"(w)` keep-alive gives the order but shifts the `li r4,16`/`stw` pairing
+  (8), 120 statement permutations 8-12.
+- **Slot reuse rule of record** (em2b GetTree 120 -> 0): `pop_temp_slots` frees every slot of the ending block and
+  `combine_temp_slots` merges ADJACENT free BLKmode slots into one, so a `Mtx m` + `Vec v` declared in one case block
+  become a 64-byte free slot that the next block's `Vec s` takes at m's offset (32); the target's `s` at v's offset (80)
+  needs `m` at FUNCTION scope (never freed, so only v's 16 bytes are free and `assign_stack_temp` picks the exact size)
+  -- a nested `{ Vec v; }` block does not help (the merge runs whenever both are free). A function-scope `Vec dv` (the
+  case-1 delta) takes the first slot (16) and moves `m` to 32, where our cse keeps `&m` as a callee-saved pseudo
+  (`addi r29,r1,32; mr r3,r29` per call) like the target instead of `addi r3,r1,16` per call (the frame-offset-0
+  fold). `w->pTree = w->pTarget508; w->pTarget508 = 0; tree = w->pTree;` (re-read) gives the target's `lwz r0; mr
+  r31,r0; stw r0,1280` copy; `tree->rot.z = 0` written LAST of the six zero stores (its dying store is hoisted first).
+- **Block-local p vs one function-scope p** (em2b HouseBreak 114 -> 0): the parts pointer of BOTH `seFlags28B & 1`
+  blocks and both `& 2` blocks is ONE function-scope `cModel* p` (`p = em->getPartsPtr(0x10); em2bHandLandingP(em,
+  p);` with an inline taking the pointer instead of `p = em2bHandLanding(em, 0x10)`, whose own local `p` is a
+  separate pseudo copied into the caller's): 22 refs / 70-insn live length outranks `em` (77 refs / 620) in global-alloc
+  and, crossing the SndCall/EstSet calls of the `& 2` blocks, takes r31 (em r29, w r28). Block-local pointers give two
+  non-call-crossing pseudos (`mr r4,r3`), the inline-returned form a local qty in r29 (local-alloc never hands out r31,
+  the frame pointer) and em r31. global.c `find_reg`: pass 0 only considers registers already in `regs_used_so_far`
+  (call-used regs + local-alloc's); a call-crossing allocno therefore gets the first callee-saved of REG_ALLOC_ORDER
+  (r31, r30, ..) in pass 1 unless a lower one is already used.
+- **cse re-walk knowledge (#12) in a switch-of-switch** (em2b Walk 150 -> 0): the spd switch has NO default (`b end`),
+  each arm is `switch (w->variant) { case 0: default: A; break; case 1: B; break; }` (the em2bFlip two-node shape works
+  in a function body too -- Turn180 already had it), `u32 spd` for the `cmplwi 1; blt` node. The variant-1 body of the
+  `case 1` arm stores the variant byte's register for its `1`s (`stw r11,0xc/0x39c`) and the case-3 variant-1 body
+  fresh `li r11,0` zeros: on our cse1 re-walk both arms also know `spd == 1` / `zero == 0` and fold to the older
+  register; `asm("" : "+r"(spd))` / `asm("" : "+r"(zero))` at the top of those two `case` arms (tagged #12) with the
+  variant-0 bodies reading `spd`/`zero` explicitly gives the target. `blendD = 1; mode = 1;` (D first: the dying
+  store of the variant register is hoisted, the target has mode first), `w->blendCnt = em->xFF;` BEFORE `w->blendSeq =
+  atk` (the pool PI `lfs` then precedes the `lbz`), `xFE = atk; xFF = atk` order in both tail copies, the StayCk arm as
+  `EmRoutineSet(em, 1, atk, atk, atk)` (ff, fc, fd, fe).
+- **A reloaded global** (em2bRouteCk 140 -> 0): `w->pTarget = *(cPlayer* volatile*) &pSUB` for the pSUB arm's last
+  store -- the target reloads pSUB after the targetDist stores so the arm's tail is not cross-jumped with the pFriend
+  arm's (a `pSUBS` struct view is the same MEM for cse and still merges; an `asm("pSUB")` alias costs 24). Also:
+  `pG->stage_no == 1 && pG->room_no == 0x19` for `lwz; clrrwi 16; cmpw` (fold merges the adjacent byte compares),
+  `(int) em->flags_3C8 < 0 && !((dist = SQRTF(plDist2)) < 8000.0f)` (one SQRTF, `blt` else), declaration order `Vec v;
+  Vec a; Vec plPos; Vec d;` (frame 8/24/40/56), `dist *= 4e-5f; v.x = dist * -15000.0f;` (the first product ties into
+  dist's f1), `routeAng = 0; routeAngAbs = 0` order.
+- **Unused inline + shared loop counter** (em2bDashScrCk 36 -> 10): the house loop (em2bHouseBrkCk) written out in
+  the function with the SAME `int i` as the rock loop (callee-saved r30 in both), `if (d < r*r) setBreak()` (plain `blt`
+  polarity) and one function-scope `f32 d` for both loops' distances (the fmadds result is tied to it: f13 in both, the
+  em25 rule). Left: the rock loop's `EMROCK_WK(e)->radius` through an `addi r9,e,992` pseudo (ours folds to
+  `lfs 1008(e)`; rw locals, `f32 r`, launders: 10-32).
+- em2b Catch (58 -> 16): `int one = 1; asm("" : "+r"(one));` BEFORE `w->variant = 1` with arms 2/3 passing `one` and arm
+  1 a literal (gcse cprop folds a REG_EQUIV `one` into every arm; tagged candidate), `em2bR11eScrBrkCk2(em,
+  &p->worldPos, ..)` + `&p->worldPos` again at both SndCalls (no `hp`: the em2d Dm_Normal PRE-copy shape `addi r4,p,112;
+  mr r27,r4`). Left: the two dist compares' f12/f13 naming (6 term orders, locals, macro: 16-25).
+- em2b Strangle (38 -> 4): `AtariFlagsOrV(&em->atari, 0x300)` for every `throughOff()` and `pGS->flags_5010` after
+  the dmgTotal store (the pG load must follow the sth/stw), `(u32) PlGachaGet() > 30`. Left: `timer = 70; timer8 = 0`
+  store order/regs (swap gives the order with the registers exchanged).
+- em2b Dm_Face (72 -> 0): `int flip = em2bFlip(w, 5, 0x45)` at the case top with the room test choosing only the
+  MotionSetCore blend argument (100 / 0), `EmAtkInfo* atk = &em2b_atk_info[6]` local before the pl_life test.
+- **QImode stores alias every later load** (alias.c true_dependence: `if (mem_mode == QImode) return 1`), so in a
+  post-call init block the `stb` stores get the following `lwz pPL/pG` as an extra dependent (priority +2) and are
+  issued first while `stw`s of the same block do not depend on the scalar load (fixed_scalar_and_varying_struct_p).
+  em39 ThrowGR (48 -> 18): `pPLS->pos.x` (struct view) for the first pPL read after the block makes ALL its stores
+  feed the load, they issue in source order; then `x684 = 600; x4 = 15; x8B7 = 0; x8B6 = 0; x10 = 0` (perm search).
+  `hand = pPLS->getPartsPtr(4)->worldPos` keeps the pPL load below the three Vec template copies. Left (18): the
+  template block's `lis pPL` slot and the `spd.x/y/z` store order (dying y/z first).
+- **loop.c leaves a giv unreduced when its benefit goes negative** (em39AreaMoveCk 50 -> 27, the outer `i*64+8`
+  recomputed `slwi; addi 8` per iteration like the target): `benefit -= copy_cost (4)` for a NON-replaceable
+  user-variable giv and `-= add_cost (2) * biv_count`; a user variable is non-replaceable only when it has a second
+  set in the function AND no final value (`check_final_value` re-marks a single-set-in-loop giv replaceable), so
+  `u32 t, ofs;` shared by BOTH loops (`t = i * 0x40; ofs = t + 8;` and the same with `j`) gives benefit 3-4-2 / 5-4-2
+  for the outer copies (not reduced) while the inner copies keep a final value and are reduced as before. `u32 ofs =
+  0;` alone is re-marked replaceable (85). Left: caller-saved naming (target i and j share r4, w r5).
+- em39AtkCk2 (55 -> 0): `ang = Muku(..); ang = fabsf(ang); if (ang < K)` (two statements) keeps `fabs f13,f1` on the
+  multi-set variable (the one-expression form ties the fabs into f1), `FSet(pPL->rot.y, pPL->rot.y + Muku(..))` in the
+  EM39_ATK_SIDE arms (pPL reloaded for the `xFF` store), plus the `[no - 1]` table index above.
+- em39BloodSet (46 -> 0): `case 0: case 0x14: default: break;` (tools/casetree.py search: the two default-labelled
+  nodes move the left root to [7,8] and keep `cmpwi 0x14; beq X`).
+- em39GuardCk (43 -> 0): the two tail tests read `h->partsNo` too (the old `em->dmPart->partsNo` kept `em` live, so
+  `h` could not take r3); the ten `if (h->partsNo == K) return 1;` stay separate statements (an `||` chain folds
+  `0xE || 0xF` into `subi; cmplwi 1`).
+- em39JumpDownCk (37 -> 21): every `return 0` written before the last probe's (`if (em->type == 2) return 0;` first,
+  `if (dist < 4e6) return 0;`, the last probe `if (hitCheck & mask) { set; return 1; } return 0;`): jump2 keeps the
+  LAST `li r3,0; b end` copy as the survivor, which is the probe's inline `bne SET; li r3,0; b end`. Left: res0/res1/
+  w/&hit callee-saved order (res0 5 refs/77 insns ranks first in ours, last in the target; `= 0` inits change the
+  zeros).
+- em39_R1_Goto (21 -> 0): `u8 zero = 0; w->gotoOn = zero; EmRoutineSet(em, 1, 4, zero, zero);` -- the u8 zero is shared
+  by the QI `gotoOn` store and the routine bytes (`int` params or plain stores give a second zero pseudo).
+- em39ExitCk (16 -> 0): no `g = w->pGotoPoint` local -- `w->pGotoPoint->sub / ->pad_3` read directly in the loop (gcse
+  PRE copies `mr r6,r0` / `mr r10,r6`, the AreaMoveCk form).
+- em39PLNearTowerCk (21 -> 11): one function-scope `f32 d` for both distance compares (FPR naming); left: the 4e6
+  pool `lfs` issued before the pPL load in the target (`f32 lim` / `const f32` at any position: unchanged).
+- Left / not iterated: em2b HoleAtk 19, ClothSet 11, ShortRopeSet 6 (documented #13 shapes), Hook/UpperCut/DashAtk/
+  Stamp/Punch/Kick (documented), AtkRtnCk 195 (#6); em39 ArmControl 56 (#6 tails + the `oris` r9/r10 tie),
+  RouteCk 33 (pPL/RO highs and &plPos/&em->pos pairs swapped), set2ndBattle 16 (the `w`-death: `asm("" : "=r"(dmy) :
+  "r"(w))` after the block gives the store order but swaps em/w r29/r30), JumpUpCk3 24, JumpUp3 20, CatchCk/KickHitCk
+  18, R0_Init 17, ArrowFire 13, T_LongAtk/Atk_MG 12, GetCliffPos 12, SlantCk 11, T_JumpAtk 10 not iterated this pass.
