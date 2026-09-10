@@ -121,7 +121,11 @@ void em21DmCk(cEm21* em)
         case 5:
         case 7:
             mode = em->x38D;
-            em->dmType = 0x1E;
+            {
+                register int c asm("r9"); // COMPILER-DIFF: #13
+                c = 0x1E;
+                em->dmType = c;
+            }
             if (mode != 2) {
                 if ((em->stat & 0xFFFF0000) == 0x01050000 && w->pTrap) {
                     w->pTrap->xFC = 1;
@@ -1161,6 +1165,8 @@ int em21WakeCk(cEm21* em)
     if (pG->flags_5010 & 0x20000000) {
         f32 r;
 
+        // three identical arms + the override after the switch: the arm sets are dead (the
+        // compare skeleton stays) and the block-local `r` is loaded at the use (em3cFindCk idiom)
         switch (pG->bell_stat) {
         case 0:
             r = 15000.0f;
@@ -1172,6 +1178,7 @@ int em21WakeCk(cEm21* em)
             r = 15000.0f;
             break;
         }
+        r = 15000.0f;
         if ((em->pos.x - pG->bell_pos.x) * (em->pos.x - pG->bell_pos.x) + (em->pos.y - pG->bell_pos.y) * (em->pos.y - pG->bell_pos.y)
                 + (em->pos.z - pG->bell_pos.z) * (em->pos.z - pG->bell_pos.z)
             < r * r) {

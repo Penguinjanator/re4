@@ -1495,6 +1495,11 @@ static void em3c_R0_Die(cEm3c* em)
 static void em3c_R1_Die_Normal(cEm3c* em)
 {
     Em3cWork* w = EM3C_WK(em);
+    // COMPILER-DIFF: #13 (int shape): the EstSet stack zero of the then-arm is a function-scope
+    // constant with one use in another block, so sched1 sees the store as a leaf (issued after
+    // `mr r3`) and update_equiv_regs moves the `li` next to it, where it takes r0 like the
+    // original's rematerialised reload.
+    int zero = 0;
 
     switch (em->xFE) {
         // Unreachable loop: its NOTE_INSN_LOOP_END survives in front of the `case 0:` label, so
@@ -1504,7 +1509,7 @@ static void em3c_R1_Die_Normal(cEm3c* em)
     case 0:
         w->timer = 60;
         if (em->xFF) {
-            EstSet((int) em, -1, 0, 0, 0x31, 5, 0, 0, (u32) em, 0);
+            EstSet((int) em, -1, 0, 0, 0x31, 5, 0, 0, (u32) em, (void*) zero);
         } else {
             EstSet((int) em, -1, 0, 0, 0x31, 0, 0, 0, (u32) em, 0);
             EstSet((int) em, -1, 0, 0, 0x31, 3, 0, 0, (u32) em, 0);

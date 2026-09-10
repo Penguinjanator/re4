@@ -789,9 +789,14 @@ static void em22_R1_Wait(cEm22* em)
         EmRoutineSet(em, 1, 7, 0, 0);
         return;
     }
-    if ((pG->flags_500C & 0x00800000) && em->plDist2 < 625000000.0f) {
-        EmRoutineSet(em, 1, 7, 0, 0);
-        return;
+    {
+        // the zero of the last routine set is a block-local pseudo set before the test (its
+        // `li` lands at the top of the test block, above the pG load)
+        int zero = 0;
+        if ((pG->flags_500C & 0x00800000) && em->plDist2 < 625000000.0f) {
+            EmRoutineSet(em, 1, 7, zero, zero);
+            return;
+        }
     }
     em22SlaverSet(em, 0);
 }

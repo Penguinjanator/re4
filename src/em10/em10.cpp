@@ -20873,14 +20873,11 @@ int em10FindCk(cEm10* em, int a)
         case 12:
         case 13:
             if (pG->flags_5010 & 0x20000000) {
-                // em3c bell idiom: three arms assigning `r` keep the dispatch compares. COMPILER-DIFF
-                // #13: the original never allocates the REG_EQUIV constant pseudo `r`; reload deletes
-                // the arms' equivalencing loads and re-materialises `lis/lfs` at the first use (spill
-                // register = least-used FPR/BASE reg: f9/r10), the second use inherits f9. The
-                // hard-register variable set once in the distance block reproduces that: the arm sets
-                // are dead (flow deletes them, the compares stay) and the block-local `lfs f9` is
-                // scheduled like the reload insn.
-                register f32 r asm("fr9"); // COMPILER-DIFF: #13
+                // em3c bell idiom: three identical arms assigning `r` keep the dispatch compares; the
+                // override in the distance block makes the arm sets dead (flow deletes them, the
+                // compares stay) and `r` a block-local pseudo loaded at the use (local-alloc gives
+                // it the next free FPR, f9, and the high r10 because r9/r11 hold pG).
+                f32 r;
                 switch (pG->bell_stat) {
                 case 0:
                     r = 25000.0f;
@@ -20896,7 +20893,7 @@ int em10FindCk(cEm10* em, int a)
                     f32 dx = em->pos.x - pGS->bell_pos.x;
                     f32 dy = em->pos.y - pGS->bell_pos.y;
                     f32 dz = em->pos.z - pGS->bell_pos.z;
-                    r = 25000.0f; // COMPILER-DIFF: #13
+                    r = 25000.0f;
                     if (dx * dx + dy * dy + dz * dz < r * r) {
                         if ((w->flags & 1) && w->x524 < r) {
                             find = 1;

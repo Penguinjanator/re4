@@ -750,6 +750,8 @@ int em28EscapeCk(cEm28* em)
     if (pG->flags_5010 & 0x20000000) {
         f32 r;
 
+        // three identical arms + the override after the switch: the arm sets are dead (the
+        // compare skeleton stays) and the block-local `r` is loaded at the use (em3cFindCk idiom)
         switch (pG->bell_stat) {
         case 0:
             r = 15000.0f;
@@ -761,6 +763,7 @@ int em28EscapeCk(cEm28* em)
             r = 15000.0f;
             break;
         }
+        r = 15000.0f;
         if ((em->pos.x - pG->bell_pos.x) * (em->pos.x - pG->bell_pos.x) + (em->pos.y - pG->bell_pos.y) * (em->pos.y - pG->bell_pos.y)
             + (em->pos.z - pG->bell_pos.z) * (em->pos.z - pG->bell_pos.z) < r * r) {
             esc = 1;

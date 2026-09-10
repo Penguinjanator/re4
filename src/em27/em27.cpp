@@ -104,12 +104,17 @@ void em27DmCk(cEm27* em)
     Em27Work* w = EM27_WK(em);
     int wep;
     int dmg;
+    // COMPILER-DIFF: #13 (int shape): the EstSet stack zero is a function-scope constant with one
+    // use in another block, so sched1 sees the store as a leaf and update_equiv_regs moves the
+    // `li` next to it (r0, like the original's rematerialised reload).
+    int zero;
 
     if (em->dmHit == 0) {
         return;
     }
     wep = em->dmWep;
     em->dmHit = 0;
+    zero = 0;
     if (wep == 0x14 || wep == 0x16 || wep == 0x17 || wep == 0x2A) {
         return;
     }
@@ -163,7 +168,7 @@ void em27DmCk(cEm27* em)
             EmDmBloodSet2(em, 0x1F, 6, 0, 0, 0);
         } else {
             EmDmBloodSet2(em, 0x1F, 7, 0, 0, 0);
-            EstSet((int) em, -1, 0, 0, 0x1F, 8, 0, 0, (u32) em, 0);
+            EstSet((int) em, -1, 0, 0, 0x1F, 8, 0, 0, (u32) em, (void*) zero);
         }
     }
     em->alpha = 1.0f;

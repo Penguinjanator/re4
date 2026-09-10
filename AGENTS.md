@@ -7482,3 +7482,70 @@ confirmed on the units named):
     source comment) not reproduced; t_flag move (11) r29/r30 tie, filter06 (3), esp45 (2), obj00 FallMove (2),
     espgen10 (22), room_jmp (56), emBarred SetEmBarred (COMPILER-DIFF #1 interleave), dbmodule, view, esp18, esp02
     not re-attempted this pass.
+
+### em2b / em39 second bytes-first pass (em2b 84 -> 87/121, em39 106 -> 110/153 masked-identical; sections equal; 2026-09-10)
+- Continues "em2b / em39 bytes-first pass" above. Harness /tmp/em2b39_p2 (mcmp/try/variants/apply/perm, `sbs.py MOD SYM
+  [OBJ]` = normalised side-by-side with rodata offsets and local calls folded, `tasm.sh MOD SYM` = target asm with labels).
+- em2bDmCk (343 -> 0): blood switch default group `5,6,F,12,13,29,2C,2D` (tools/casetree.py search; root [12,13], right
+  root 0x26), 0x2B belongs to the first blood arm, the `default:` arm written BEFORE `case 0xD:` so the 0xD arm (with its
+  `hp = 0` tail) is laid out last and the `2,0 / 0,1` EmDmBloodSet2 pair of the default arm is the cross-jump survivor
+  (`li r6,1` falls into the shared `li r7; li r8; bl`). Routine switch: `case 9..0xC` is a SEPARATE arm with the same
+  `if (pTree) RS(2,1) else RS(2,0)` body (the tree needs [7,8] and [9..C] as different labels; the copies merge in jump2),
+  default group `5,6,D,E,F,12,13,29,2C,2D`, all three pTree arms written `if (pTree) RS(2,1) else RS(2,0)`. hp handling:
+  no `hp` local at all -- `em->hp` read directly in every test (gcse PRE hoists one HImode `lhz r11,hp` above the
+  partsNo `bne`, the RMW `em->hp -= dmg*2` reuses it, the 0x2000 arm's `if (em->hp > 0)` folds to `lha` and its fall-
+  through threads straight to the die block, the else arm's reload gets the PRE copy `mr r11,r0`); a `s16 hp` local is
+  promoted to SImode and gives `extsh` at the top instead. Die block laid out before the live block: `if (em->hp <= 0)
+  { die; return; } live...` (`bgt live` over the die code).
+- em2bAtkRtnCkDebug (241 -> 0): `case 0: default:` in the debugAtk switch (node 0 makes case 2 a bounded `bgt`);
+  `return 1` INSIDE both arms of the `if (em2bPlRunCk(em)) RS else RS` (sched1 places `li r3,1` among the stores of each
+  arm, so the call result must live in r9 and the arms cannot cross-jump: `mr. r9,r3`); case 6's
+  `(A && B) || (PlRunCk && A' && C)` written as two separate `if`s (the `||` form keeps the 0.628 pool constant in f31
+  across the call, +8 frame bytes).
+- em2b_R0_Init (169 -> 43): `cAtariInfo* at` assigned right after `w->pCtrl12 = GetCtrlCtrl12()` and `MotionWork* mot`
+  after `w->pParasite = 0` (declared at the top, unassigned: the `addi`s land where the target has them instead of the
+  prologue); `pFootShadowTbl` stored before `motFlip`; `pGS->room_id` (the pG load stays below the init stores).
+  OPEN (43): the init block's two `900` stores (`timer624` early, `timer620` late) -- the target emits the whole 25-store
+  block in pure source order although the 900/1.0/0x23 registers die inside it; ours issues the dying stores first
+  (weight rule). Same "no dying-first" shape in em39_R0_Init's init block and em2bShortRopeSet's rope block: in these
+  long post-call init blocks the original ranks by LUID only. Making the register live past the block (asm use) moves
+  the dying store into place, so it is the weight, not a dependence.
+- em39AppearCk (203 -> 0): the `w->flags |= 0x800; w->flags &= ~0x2000; return 1;` tail is written in EVERY case arm
+  (jump2 merges case 0's into case 1's from the `ori` on, case 2's from the `lwz flags`), which also makes jump.c's
+  range swap hoist the case-2 body above the loop; the entry filter mask is `0x00FF00FF` (`lis 0xff; ori 0xff` -- sub and
+  pad_3, not 0xFFFFFF); the inner `for (j...)` compares written as `EM39_EMI->entry[j].sub == e->sub` etc. (array refs;
+  a pointer local `f` lets fold_truthop merge the three adjacent byte compares into one `lwzx/clrlwi/cmpw`) or as
+  `u8* f` byte indexes; `retry = 1` assigned right before GetPlPos; per-arm block-scoped `int st`; `EmRoutineSet` of
+  cases 0/1 as PLAIN byte stores (the int inline's `5`/`7` SI pseudos are hoisted out of the outer loop by loop.c's
+  second pass -- 246 insns < 4*threshold -- while the byte-store QI constants have lifetime 1 and stay).
+- em39ArmControl (133 -> 56): inner `switch (x8BC)` with `case 0: default:` written FIRST (default body falls out of
+  the tree: `beq c1; ble D; cmpwi 2; beq c2; D:`); case 8 falls into `case 1: case 5: case 9: STEP:` and cases 0/4 end
+  `x8BC = k; x8BB++; goto STEP;` (a full tail copy in cases 0/4 lets cse share the `&armMot` pseudo between the
+  MotionSetCore argument and the MotionMoveCore tail, `mr r4,r30` before the call; with the goto the tail is another
+  block and the argument stays `addi r4,r31,0x7c4`). OPEN: cases 0xC/0xE tails (`add; bl MotionSetCore; lbz; li 1; stb`)
+  are not cross-jumped in the target (ours merges them, -40 bytes) -- #6 family; r9/r10 flags2 tie.
+- em39_R0_Init (102 -> 69): `zero = 0` assigned right before `w->x8C4 = zero` (after the literal-zero stores, so those
+  reuse the older `x58C = 0` pseudo r20 while `zero` gets r30 for x8C4/xFE/xFF). OPEN: x8C4 takes the HI zero pseudo of
+  `dmgTotal = 0` (src_related widening, `li r8,0`) instead of `zero`; routine-set block store/pArc-load order.
+- em39AtkRtnCk (72 -> 0): `noFlag = !(w->flags & 1); if (noFlag) return 0;` (xori/andi.), `dy = a - b; dy = fabsf(dy);`
+  (two statements: `fsubs f31; fabs f31,f31`), `u32 r = (u8)(Rnd() % 100)` for `cmplwi 30`, `c = pPLS->pos`, and
+  `if (!SatMgr.hitCheck(...)) { RS(1, 0x12, 0, 0); return 1; }` -- the `hit` variable form gets r30 and makes the RS
+  stores identical to the x684 arm's (cross-jumped); the direct call test gives `mr. r11,r3` with the zeros from r11.
+- em39DoorOpenCk (64 -> 0): `if (st) { if ((u32) st <= 3) continue; }` (the `&&` folds to subi/cmplwi) and plain byte
+  stores for the routine set (the inline's 1/0x19 hoisted out of the loop as r22/r23).
+- em39FanceJumpCk2 (73 -> 0): `int side;` assigned `side = 0` after the atan2f/jumpAng store (one callee-saved less).
+- em39AreaMoveCk (58 -> 50): `w->pGotoPoint->sub`/`->pad_3` read directly (two PRE copies r7/r30, no `g` local),
+  `(EmiEntry*) ((u32) EM39_EMI + (i * 0x40 + 8))`, plain byte stores (QI `1` shared with `gotoOn = 1`, QI zero separate
+  from the SI pointer zero). OPEN: the outer loop's `i*64+8` is a giv in ours (`addi r8,64`), recomputed per iteration
+  in the target (`slwi; addi 8`) while the inner loop's giv is reduced in both.
+- em2bChainSet (117 -> 0): rope[0]/[1] init through `w->rope[k].field` directly (w-relative stores; a `c` pointer keeps
+  the stores c-relative), field order `num, pParts, x08, x0C, x10, x14, pUp, pDown, pMax, x2C, x30, x34, x20, x24, x38,
+  x58, x3C, x40, x44, x48, x50, x4C, flags, x54`; `PenCloth* c = &w->rope[1]` declared at the top and used only by the
+  second/third `chain->setChain(c)` (callee-saved r21 hoisted to the prologue), the first is `setChain(&w->rope[0])`.
+  em2bShortRopeSet (55 -> 6): same direct-store form, frame `Vec pos; Vec b; Vec rot;` with the setParent2 vectors
+  written into `pos`/`b` (pos slot reused), `x54 = 0` written LAST (the zero's death is the first zero store emitted).
+- em2bAtkRtnCk (195, unchanged): the target keeps the FIRST `li r3,1; b end` (the `em2bAtkRtnCkDebug` return) as the
+  cross-jump survivor and jumps every later `return 1` to it (`b L_DB50`, `bne L_DB50` for the FriendCk tests) while
+  the three RockOrKick inline copies stay un-merged; our jump2's chain order merges into the LAST copy (jump.c
+  `find_cross_jump` over `jump_chain`, head = latest jump) and merges the identical copies -- COMPILER-DIFF #6. A `goto`
+  to a label inside the Debug `if` reproduces the survivor but not the un-merged copies (124 words); not applied.

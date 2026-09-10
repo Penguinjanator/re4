@@ -182,7 +182,14 @@ int MercSysInitRoom(MercInit* pMInit)
     }
     memset(&wk->score, 0, sizeof(MercSysWork) - 0x24);
     GamePointInit(2);
-    wk->stage = 0;
+    {
+        // COMPILER-DIFF: #13 (int shape): the original never allocates the single-use REG_EQUIV zero;
+        // reload re-materialises `li r11, 0` right before the store (after the pG load), where ours
+        // local-allocs the constant to r0 and hoists it above the load.
+        register int z asm("r11"); // COMPILER-DIFF: #13
+        z = 0;
+        wk->stage = z;
+    }
     if (pG->room_id != 0x400) {
         if (pG->room_id == 0x402) {
             wk->stage = 1;

@@ -717,6 +717,10 @@ MATCHING = {
     "em30/em30.cpp": True,
     "em3e/em3e.cpp": True,
     "em25/em25.cpp": True,
+    "em21/em21.cpp": True,
+    "em27/em27.cpp": True,
+    "em28/em28.cpp": True,
+    "em3d/em3d.cpp": True,
     # weapon modules (src/wepXX/wepXX.cpp, the whole REL)
     "wep00/wep00.cpp": True,
     "wep34/wep34.cpp": True,
@@ -797,6 +801,9 @@ MATCHING = {
     "wep08/wep08.cpp": True,
     "wep33/wep33.cpp": True,
     "wep07/wep07.cpp": True,
+    "wep07/pl_shotgun.cpp": True,
+    "wep08/pl_shotgun.cpp": True,
+    "wep33/pl_shotgun.cpp": True,
     # single-unit player modules (src/plXX/plXX.cpp, the whole REL; include/pl_mod.h)
     "pl11/pl11.cpp": True,
     "pl06/pl06.cpp": True,

@@ -406,13 +406,16 @@ static void wep07_r3_fire00(cPlayer* pl)
     pitch = m3r[0];
     PlWepLockRand(pl, 2, &pitch, &pl->x400);
     m3r[1] = pitch;
-    // OPEN (2 words): the original loads the 0.0 before m3r[2] here (both weight 0 in sched1, equal
-    // priority; ours keeps the RTL order) while still giving the 0.0 f0. Loading the 0.0 first is
-    // easy (a `zero` local after the call) but then local-alloc gives f0 to the shorter-range
-    // m3r[2] load; only a 4-weighted-refs `zero` (nested do-while) or a non-local m3r[2] pseudo
-    // reproduces the registers, and the loop notes displace the `addi`/`lis` -- see AGENTS.md.
-    if (m3r[2] == 0.0f) {
-        m3r[0] = pitch;
+    {
+        // COMPILER-DIFF: #13: the original never allocates the REG_EQUIV 0.0 pseudo; reload
+        // re-materialises `lis/lfs` for the compare in the first free FPR (f0, so m3r[2] takes f13)
+        // and sched2 issues it before the m3r[2] load. Ours would local-alloc the shorter m3r[2]
+        // load to f0 and keep the RTL order (m3r[2] first).
+        register f32 zero asm("fr0"); // COMPILER-DIFF: #13
+        zero = 0.0f;
+        if (m3r[2] == zero) {
+            m3r[0] = pitch;
+        }
     }
     pl->xFF = 1;
 }

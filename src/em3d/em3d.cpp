@@ -604,15 +604,12 @@ void em3dRoterMove(cEm3d* em)
 // Aim one gun mount at `aim`: the mount (parts `gun`) pitches, the barrel (parts `gun` + 1) yaws,
 // each towards the helicopter's own angle plus the offset to the target, limited to +/- lim. Macros
 // (like EM3D_TURN_TO): the constants are loaded where they are used and shared by cse between the
-// two identical mounts, an inline's parameters would be live across the whole function.
+// two identical mounts, an inline's parameters would be live across the whole function. The
+// temporaries (p, len, angX, angY, m) are the FUNCTION's variables: one multi-set `angY` pseudo
+// conflicts with every shared clamp constant and is allocated after `limY` (f29 below f30);
+// macro-local variables give a short block-local angY that takes f30 first.
 #define EM3D_GUN_AIM(em, aim, d, mount, gun, rotX, rotY, limX, nlimX, limY, nlimY)     \
     {                                                                                   \
-        cModel* p;                                                                      \
-        f32 len;                                                                        \
-        f32 angX;                                                                       \
-        f32 angY;                                                                       \
-        f32 m;                                                                          \
-                                                                                        \
         p = (em)->getPartsPtr(mount);                                                   \
         PSVECSubtract(aim, &p->worldPos, &(d));                                         \
         len = SQRTF((d).x * (d).x + (d).z * (d).z);                                     \
@@ -686,6 +683,10 @@ void em3dChainGunMove(cEm3d* em)
     f32 rotX;
     f32 rotY;
     cModel* p;
+    f32 len;
+    f32 angX;
+    f32 angY;
+    f32 m;
     int noAim;
     int t;
 

@@ -149,12 +149,14 @@ cEmRock* SetRock(void* bin, void* tpl, Vec* pos, Vec* rot, u8 type)
             em->lightInfo.init2(0, 1, &ofs, &size, 8);
         }
     }
-    // OPEN (SetRock): the original issues `stb r30, 0x95` (seAlways[2] = 0, the last use of the zero
-    // pseudo in this block) in source order although the register dies there, and re-materialises
-    // `li r30, 0` after the next join label; ours hoists the dying store to the block top. The
-    // shape is what reload gives a *spilled* REG_EQUIV-0 pseudo (per-label region `li`, QI use via
-    // `li r0, 0`), but a `zero` variable is allocated a register here (r28 / a 9th callee-saved reg).
-    LockPartsSet(em, 0);
+    // COMPILER-DIFF: #13 (dying-store shape): the original's zero pseudo (REG_EQUIV 0, never
+    // allocated, reloaded per label region as `li r30, 0`) does not die at `seAlways[2] = 0`, so the
+    // store block comes out in source order; ours allocates the pseudo and would hoist that dying
+    // store to the block top. The volatile use after the block keeps our pseudo live past it; the
+    // second block's literal zeros are the fresh post-label `li r30, 0` of the original.
+    int zero;
+    zero = 0;
+    LockPartsSet(em, zero);
     em->lockOfs.x = 0.0f;
     em->lockOfs.y = 0.0f;
     em->lockOfs.z = 0.0f;
@@ -165,36 +167,37 @@ cEmRock* SetRock(void* bin, void* tpl, Vec* pos, Vec* rot, u8 type)
     em->atari.clrFlag100();
     em->be_flag &= ~0x10;
     w->alwaysWait = 4;
-    w->sndId = 0;
-    w->flags = 0;
-    w->x24 = 0;
-    w->pParent = 0;
-    w->x30 = 0;
-    w->pAtk = 0;
-    w->xA1 = 0;
-    w->se8C = 0;
+    w->sndId = zero;
+    w->flags = zero;
+    w->x24 = zero;
+    w->pParent = (cEm*) zero;
+    w->x30 = zero;
+    w->pAtk = (EmAtkInfo*) zero;
+    w->xA1 = zero;
+    w->se8C = zero;
     w->seFall[0] = 0xFF;
     w->seFall[1] = 0xFF;
-    w->seFall[2] = 0;
-    w->seFall[3] = 0;
+    w->seFall[2] = zero;
+    w->seFall[3] = zero;
     w->se8D[0] = 0xFF;
     w->se8D[1] = 0xFF;
-    w->se8D[2] = 0;
+    w->se8D[2] = zero;
     w->se97[0] = 0xFF;
     w->se97[1] = 0xFF;
-    w->se97[2] = 0;
+    w->se97[2] = zero;
     w->se90[0] = 0xFF;
     w->se90[1] = 0xFF;
-    w->se90[2] = 0;
+    w->se90[2] = zero;
     w->seAlways[0] = 0xFF;
     w->seAlways[1] = 0xFF;
-    w->seAlways[2] = 0;
+    w->seAlways[2] = zero;
     w->effFall[0] = 0xFF;
     w->effFall[1] = 0xFF;
     w->eff9E[0] = 0xFF;
     w->eff9E[1] = 0xFF;
     w->eff9C[0] = 0xFF;
     w->eff9C[1] = 0xFF;
+    asm volatile("" : : "r"(zero)); // COMPILER-DIFF: #13
     if (em->type != 3) {
         w->radius = em->scale.x * 600.0f;
     } else {
@@ -203,22 +206,22 @@ cEmRock* SetRock(void* bin, void* tpl, Vec* pos, Vec* rot, u8 type)
     w->started = 0;
     w->grav = 20.0f;
     w->rollWait = 0;
-    em->pMotion = 0;
-    w->plMot[2] = 0;
-    w->plMot[3] = 0;
-    w->plMot[4] = 0;
-    w->plMot[5] = 0;
-    w->plMot[6] = 0;
-    w->plMot[7] = 0;
-    w->plMot[8] = 0;
-    w->plMot[9] = 0;
-    w->plMot[10] = 0;
-    w->plMot[11] = 0;
-    w->mot1 = 0;
-    w->mot0 = 0;
-    w->mot2 = 0;
-    w->mot3 = 0;
-    w->pSat = 0;
+    em->pMotion = (void*) 0;
+    w->plMot[2] = (void*) 0;
+    w->plMot[3] = (void*) 0;
+    w->plMot[4] = (void*) 0;
+    w->plMot[5] = (void*) 0;
+    w->plMot[6] = (void*) 0;
+    w->plMot[7] = (void*) 0;
+    w->plMot[8] = (void*) 0;
+    w->plMot[9] = (void*) 0;
+    w->plMot[10] = (void*) 0;
+    w->plMot[11] = (void*) 0;
+    w->mot1 = (void*) 0;
+    w->mot0 = (void*) 0;
+    w->mot2 = (void*) 0;
+    w->mot3 = (void*) 0;
+    w->pSat = (cSat*) 0;
     w->espKind = EspPullCoreKind();
     em->setStatus(5);
     em->flags_3C8 &= ~1;
