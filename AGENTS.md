@@ -13990,3 +13990,81 @@ shows the same reloc name on both sides, not code).
   association (ours needs f26), and the dead-function pool 0x48..0x80 after the function's four constants (1.0f,
   0x4330000080000000, 2*pi, 12.0f, 0x4330000000000000, 1/1024, pi/2 -- a never-called static after `orientation` +
   STRIP_UNUSED).
+
+### DOL sweep 14, remaining game units closest-first (mercenaries MercSysMoveStart 6 -> 0, model matBlend 12 -> 0, drawBoundingBox 32 -> 15, cam_extra IdBinocular::cutin 2 -> 0; nothing flipped; 2026-09-10)
+
+Harness ~/.cache/dol14 (dol13 copies with the paths rewritten: `mcmp.py`, `tryv.py UNIT SYM v/x.py`, `vapply.py`, `sbs.sh UNIT
+SYM [OBJ]`, `dump.sh UNIT -dX`, `fsec.py DUMP FUNC`, `rtl.py DUMP FUNC`, `order.py UNIT`, plus `prio.py PRE` copied from
+em29_3c and pointed at `~/.cache/dol14/<PRE>_lreg.txt` / `<PRE>_greg.txt`). Build 111 OK after every edit; no flag set.
+
+- **Live-length tie of two REG_EQUIV highs broken by a codeless fake store (mercenaries MercSysMoveStart 6 -> 0, tagged
+  `tie (global-alloc live length)`).** `high(mercId+20)` (5 refs / 344 = 290 in `int(10000*floor(log2 refs)*refs/len)`)
+  and `&cMes` (4 refs / 276 = 289) were allocated in that order (r25 then r24); the target has them the other way. Both
+  lengths are doubled (REG_EQUIV high / symbol), so one more REAL insn inside the mercId high's range but before the
+  `&cMes` addi is born (between `initTime()` and `frameOut()`, i.e. between the hoisted `lis` after `bl memset` and the
+  loop preheader) makes 290 -> 289 and the tie goes to the lower pseudo (`&cMes`). `asm("" : "=m"(*(u16*) st));` there:
+  a `"=m"` output on a different-mode view of a field the block also stores (`st[0] = 1`) survives flow1 (`insn_dead_p`
+  compares MEMs with rtx_equal_p, mode included), is counted by `recompute_reg_usage`, and its sched slot before the
+  call was free. Dead tests (`if (wk->stage == 99) m = 0;` at five positions) split the block and sank the `lis`
+  instead (14-54); `"r"(&cMes)` keep-alive inputs add 2 refs when placed in the loop (`&cMes` then jumps above the
+  0.037 pair: 8) and a fresh cse2 `lis` when placed after it (11).
+- **Address-copy shape with the zero-offset store through the base (model matBlend 12 -> 0, tagged `3 (address-copy
+  shape)`).** `MtxPtr t = p->worldMat; asm("mr %0,%1" : "=r"(wm) : "r"(t));` gives the target's `addi r0,r31,60; mr
+  r28,r0` (the plain `wm = p->worldMat` folds the copy; 12 forms had been tried). Because the asm hides `wm == p+60`
+  from cse, the `wm[0][0]` store must be written `p->worldMat[0][0] = vx.x` explicitly (the target's `stfs f0,60(r31)`
+  is cse's zero-offset-through-the-base form, the other eleven go through `wm`); with it the whole function is 0.
+- **Dead trailing mention keeps the loop pointer canonical (model drawBoundingBox 32 -> 15, tagged `candidate (cse
+  canonical register)`).** `c = d;` after the `do {} while (d <= end)` copy loop: `c`'s last uid is then later than
+  `end`'s, so the eighth `VecSet(c, ..)` (c == &v[7] == end) is `mr r9,r31; stfs ..(r9)` like the target instead of
+  frame-direct through r31, and the sx/sy FPR pair falls into place. Left (15): `m` (2 refs / 43) and the PRE'd `&q[1]`
+  (2 refs / 43) tie at 465; the target allocates `&q[1]` first (r26, m -> r25, hence `mr r25,r26` in the preheader),
+  ours `m` first (lower pseudo). A third ref on `&q[1]` via a `"r"(&q[1])` asm input raises it above the q pair
+  (14-31, rotation); a +1 real insn in m's range only (from `mr rM,r3` at the block's slot 18 to the call) was not found.
+- **Non-volatile `"=m"` keep-alive on an UNSTORED field replaces a volatile input-only asm (cam_extra IdBinocular::cutin
+  2 -> 0, tag kept `#13 (keep-alive)`).** `asm("" : "=m"(u->timer[3]) : "r"(u));` after the three `sth` keeps `u`
+  alive past the last store (source order) without the barrier that swapped the `clrlwi r4`/`addi r3` argument moves
+  of `unitPtr`. A `"=m"(*(u32*) &u->timer[0])` view works too; `*(u32*) &u->timer[1]` (3) and an extra `"r"(i)` (3) do
+  not.
+- Facts read this pass:
+  - regmove `optimize_reg_copy_1` (stock, verified in tools/sn-gcc regmove.c) turns `p0 = p; pp = p;` (p dying at the
+    second copy) into `pp = p0`; the scan stops at a JUMP_INSN, CODE_LABEL, LOOP_BEG/END note, a CALL_INSN (C++:
+    `flag_exceptions`), a USE of the source, or any set of src/dest. A `do {} while (0)` around the second copy blocks it
+    (esp09 PolyTrans 64 -> 60) but is a sched barrier (`pp = p` then issued second, target third).
+  - cse `make_regs_eqv`: for `(set new old)` the new reg becomes the class head only if its REGNO_LAST_UID is strictly
+    later than the old one's (and its range leaves the ebb); equal last uids (both mentioned by one dead trailing
+    statement) keep the OLD head -- the "dead `p = pn`" idiom relies on this.
+  - global.c pass 0 takes the highest-numbered free callee-saved register that is `regs_used_so_far`, and a
+    `register T x asm("rN")` variable is used-so-far from the function start: any pin on a register that a
+    higher-priority, non-conflicting allocno can take breaks the function (obj00 hr pins: 32-148 words). A pin only
+    works when the pinned register is live across every earlier allocno's range.
+  - `update_equiv_regs` substitutes a single-use constant into its use when `validate_replace_rtx` succeeds (`mr r4,c`
+    -> `li r4,254`) and only MOVES the init when the substitution is invalid (a store); gcse cprop had already folded a
+    register-copy use before that, so the `int c = K` trick only works for stores and stack arguments.
+- Open after this pass (forms tried, do not retry):
+  - esp09 PolyTrans (64): the target's `pn = S` copy sits in the LOOP PREHEADER (after the copied exit test, among
+    loop.c's hoists), `S = &w->pts[idx]` is a 2-block pseudo in r3, and `p0 = p; pp = p` both read p (no regmove).
+    Separate-S forms, for-init, `while`, guarded do-while (154: changes the loop), `pn = p - 1`, `pn = &pts[idx-1]`,
+    statement orders, do-while(0) around the copies (60): none puts the copy in the preheader.
+  - esp16 Esp16_Trans (8): sched2 priorities read off the dump: `lis 0.0` 5 -> `lfs` 4 -> `fmr f29,f12` 2 vs `lbz
+    partsNo` 6 -> addi 4 -> clrlwi 3 -> cmplwi 2 -> bgt 1; the target issues lis, lfs, THEN lbz, so its zero chain was
+    >= 7 or the lbz not ready for two cycles after the call. A `"=f"(z)` clobber asm after `t = z` (24), `tw` first (23),
+    z before CommonStateSet (28), a RefU8 reference read of partsNo (8, no change), RefU8 in the `&&` (50).
+  - obj00 FallMove (2): allocation ranks: k+1 giv (4 refs / 46, 0.174) -> r24, k-loop one (7/102) -> r23, hit-loop one
+    (3/82 doubled, 0.037) -> r24 (pass 0, r24 free after the k loop). The target needs the hit-one allocated between
+    them or r24 busy; a dead `if (k == 99) diff = 0.0f;` anywhere after the k loop keeps r24 live but makes loop.c use
+    the giv register for the exit compare (`cmplwi r25,29`, no `mr r9`) and lifts k+1 above `w` (23-38).
+  - t_option tp_pl_flag (5): the arms' `high(ItemMgr)` is ONE cse1 pseudo (r257) whose case-block set became the PRE
+    copy `r257 = r320` and whose arm uses were cprop'd to r320; `asm("" : : "m"(ItemMgr))` after the call keeps r320
+    alive (weight tie) but LUID still puts the addi first (5, unchanged); the same asm before the call or at the join
+    gets a fresh cse2 `lis` (25-27); a `"=m"(PlKaiou)` output changes nothing.
+  - emmine setBomb (4): the target stores `hit` (r27, known 0) into xFE LAST and the HI zero r26 into xFF first, and
+    the EstSet stack zeros 8 then 12. `xFE = hit` (also `u8 hit`, volatile store) is folded to r26 by cse's wider-mode
+    zero lookup; a launder gives `stb r27` and fixes the stack order but the store then dies and is issued first (4);
+    every keep-alive after it introduces a `mr r0,r27` copy (5-18).
+  - cam_extra .rodata (0x310 vs 0x308): FocusAnimation::move's pool lacks `0.5, 100000.0` and IdBinocular::move has a
+    1.0 where the target has an SF 0.0 before its two conversion magics -- pool/expression differences of the two big
+    unmatched functions, not padding.
+  - Not iterated: dvd DiscChange, shadow (loadaddr qty: 4 refs / life 13 = 2.46 beats the 1.0 high's 2/4 = 2.0 in
+    local-alloc; the target needs the loadaddr at <= 3 refs or global), em_set, db_menu, esp04/12/18/02/08, sce_at,
+    cam_ctrl, Espgen43, at_mod, em_cloth, emwep, emrock, puzzle, motion, card, cam_qfps, main_mem, title, sce_com,
+    db_cam, route_ck, pendulum, option, mercenaries Set/GetSaveWork.

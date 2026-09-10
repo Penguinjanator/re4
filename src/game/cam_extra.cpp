@@ -731,8 +731,10 @@ void IdBinocular::cutin()
         u->timer[0] = 0x96;
         u->timer[1] = 0x96;
         u->timer[2] = 0x96;
-        asm volatile("" : : "r"(u)); // COMPILER-DIFF: #13 (stores in source order: the original's u does not die
-                                     // at the last store; the clrlwi/addi arg order left is the asm's side effect)
+        // Codeless keep-alive on an unstored field: the original's u does not die at the last
+        // store, so the three sth stay in source order; the non-volatile form (unlike the earlier
+        // volatile input-only asm) is no scheduling barrier, so the unitPtr arg moves keep their order.
+        asm("" : "=m"(u->timer[3]) : "r"(u)); // COMPILER-DIFF: #13 (keep-alive)
     }
 }
 

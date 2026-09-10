@@ -279,6 +279,11 @@ int MercSysMoveStart(MercSysWork* wk)
     pPL->setNoSuspend(1);
     Cckpt.getCountDown()->flags |= 1;
     Cckpt.getCountDown()->initTime(MercMin, MercSec, MercCes);
+    // Codeless fake store surviving to global alloc: one more real insn in the range of the
+    // hoisted `mercId.idsys` high (r24) but not in `&cMes`'s (r25), so their equal-priority
+    // buckets (int(10000 * floor(log2 refs) * refs / len): 290/289) tie and the lower pseudo
+    // (&cMes) is allocated first, as in the original.
+    asm("" : "=m"(*(u16*) st)); // COMPILER-DIFF: tie (global-alloc live length)
     Cckpt.getCountDown()->frameOut();
     st[0] = 1;
     do {

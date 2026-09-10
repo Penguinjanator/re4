@@ -334,7 +334,14 @@ void cModel::matBlend(f32 rate)
     Vec trans;
 
     for (p = pPartsHead; p; p = p->pNext) {
-        MtxPtr wm = p->worldMat;
+        MtxPtr wm;
+        {
+            // The original computes `&p->worldMat` into a temp and copies it (`addi r0,r31,60;
+            // mr r28,r0`); every plain form folds the copy into the addi. The opaque copy hides
+            // wm's value from cse, so the `[0][0]` store below stays written through `p`.
+            MtxPtr t = p->worldMat;
+            asm("mr %0,%1" : "=r"(wm) : "r"(t)); // COMPILER-DIFF: 3 (address-copy shape)
+        }
 
         vx.x = p->worldMat[0][0];
         vx.y = p->worldMat[1][0];
@@ -361,7 +368,7 @@ void cModel::matBlend(f32 rate)
             if (len.z != 1.0f) {
                 PSVECScale(&vz, &vz, 1.0f / len.z);
             }
-            wm[0][0] = vx.x;
+            p->worldMat[0][0] = vx.x;
             wm[1][0] = vx.y;
             wm[2][0] = vx.z;
             wm[0][1] = vy.x;
@@ -1459,6 +1466,9 @@ void drawBoundingBox(Mtx m, ModelBound* bound)
         PSVECAdd(d, &bound->center, d);
         d++;
     } while (d <= end);
+    // Dead: a later mention of `c` keeps it (not `end`) as cse's canonical register for the last
+    // corner (`mr r9,r31; stfs ..(r9)`), which also settles the sx/sy FPR order.
+    c = d; // COMPILER-DIFF: candidate (cse canonical register)
     PSMTXMultVecArray(m, v, v, 8);
     for (i = 0; i < 6; i++) {
         q[0] = v[ptbl[i][0]];
