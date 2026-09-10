@@ -35,6 +35,10 @@
 #include "math_sub.h"
 #include "db_log.h"
 
+// The module's 0x34-byte COMMON block: uninitialised template statics of the original object,
+// merged into .bss by the REL link.
+asm(".comm common_em38,52,4");
+
 extern "C" void OSReport(const char* fmt, ...);
 extern void (*EmInitFunc)(cEm* em);   // game/em.cpp
 
@@ -2263,14 +2267,16 @@ static void plemEscape(cPlayer* pl)
         Vec b;
         int side;
         int hit;
-        f32 zero;
 
-        Muku(&PL_EM(pl)->pos, &pl->pos, pl->rot.y, PI);
-        zero = 0.0f;
+        if (Muku(&PL_EM(pl)->pos, &pl->pos, pl->rot.y, PI) > 0.0f) {
+            side = 1;
+        } else {
+            side = 0;
+        }
         side = Rnd() & 1;
-        a.x = zero;
+        a.x = 0.0f;
         a.y = 500.0f;
-        a.z = zero;
+        a.z = 0.0f;
         b.x = 2000.0f;
         b.y = 500.0f;
         b.z = 1000.0f;
@@ -2280,9 +2286,9 @@ static void plemEscape(cPlayer* pl)
         if (SatMgr.hitCheck(&a, &b, 0, 0, 0, 0)) {
             hit |= 1;
         }
-        a.x = zero;
+        a.x = 0.0f;
         a.y = 500.0f;
-        a.z = zero;
+        a.z = 0.0f;
         b.x = -2000.0f;
         b.y = 500.0f;
         b.z = 1000.0f;

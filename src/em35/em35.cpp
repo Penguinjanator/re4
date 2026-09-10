@@ -2029,10 +2029,11 @@ static void em35_R1_br_Critical(cEm35* em)
 // Turn towards the player with a slight lead (em35_R1_Critical). A macro, not an inline: the PI
 // pool load is issued above the preceding `timer--` store (an inlined body's pool loads lose
 // RTX_UNCHANGING_P and sink below it).
-#define EM35_CRITICAL_TURN(em)                                                                      \
+// `ang` is the routine's variable (one pseudo for both expansions): a global pseudo takes the copy
+// preference f1 (ascending scan) where a block-local one takes f2 (allocation order), which decides
+// whether the `fmr f2,f1` argument copy sits before or after the `lis` of Muku2's limit.
+#define EM35_CRITICAL_TURN(em, ang)                                                                 \
     {                                                                                               \
-        f32 ang;                                                                                    \
-                                                                                                    \
         ang = LIMIT_ANGLE((em)->rot.y + Muku(&(em)->pos, &pPLS->pos, (em)->rot.y, PI) + 0.05235988f); \
         (em)->rot.y += Muku2((em)->rot.y, ang, 0.09817477f);                                        \
         (em)->rot.y = LIMIT_ANGLE((em)->rot.y);                                                     \
@@ -2041,6 +2042,7 @@ static void em35_R1_br_Critical(cEm35* em)
 static void em35_R1_Critical(cEm35* em)
 {
     Em35Work* w = EM35_WK(em);
+    f32 ang;
 
     switch (em->xFE) {
     case 0:
@@ -2053,7 +2055,7 @@ static void em35_R1_Critical(cEm35* em)
         w->flags |= 0x80;
         if (w->timer) {
             w->timer--;
-            EM35_CRITICAL_TURN(em);
+            EM35_CRITICAL_TURN(em, ang);
         }
         if (MotionMoveF(em, 0)) {
             em->xFE++;
@@ -2073,7 +2075,7 @@ static void em35_R1_Critical(cEm35* em)
         }
         if (w->timer) {
             w->timer--;
-            EM35_CRITICAL_TURN(em);
+            EM35_CRITICAL_TURN(em, ang);
         }
         if (em->motEvent & 4) {
             ActBtn.set(0x25, 0xB, (int) em35DashEscapeAction, (int) em, 1, 3, 0, 0);

@@ -37,6 +37,10 @@
 #include "math_sub.h"
 #include "db_log.h"
 
+// The module's 0x34-byte COMMON block: uninitialised template statics of the original object,
+// merged into .bss by the REL link.
+asm(".comm common_em22,52,4");
+
 extern "C" void OSReport(const char* fmt, ...);
 extern void (*EmInitFunc)(cEm* em);   // game/em.cpp
 
@@ -1637,11 +1641,10 @@ static void em22_R1_Jump(cEm22* em)
         }
         w->delta = fl - em->pos.y;
         em->xFE++;
-    case 1: {
-        f32 d = w->delta * 0.1f;
-
-        em->pos.y += d;
-        w->delta -= d;
+    case 1:
+        fl = w->delta * 0.1f;
+        em->pos.y += fl;
+        w->delta -= fl;
         w->flags |= 0x88;
         em22DirMatrix(em, 0.0f);
         if (MotionMoveF(em, 0)) {
@@ -1650,7 +1653,6 @@ static void em22_R1_Jump(cEm22* em)
             }
         }
         break;
-    }
     }
     em22SlaverSet(em, 1);
 }

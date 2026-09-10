@@ -715,8 +715,17 @@ static void em3a_R1_Fix(cEm3a* em)
 {
     Em3aWork* w = EM3A_WK(em);
     Vec v;
+    int t;
 
     SatMgr.getFloor(&em->pos, 600.0f, 100000.0f, 0, 0);
+    // Dead test (t is reassigned before its use): flow1 deletes the arms and jump2 the branch, but
+    // the `w->flags` load behind the call gives `w` its sched priority (addi issued among the arg
+    // moves) and the branch splits the block for gcse/sched1.
+    if (w->flags & 2) {
+        t = 1;
+    } else {
+        t = 0;
+    }
     switch (em->xFE) {
     case 0:
         switch (em->xFF) {
@@ -747,7 +756,8 @@ static void em3a_R1_Fix(cEm3a* em)
             w->spd.z = 350.0f;
             break;
         }
-        w->timer = 20;
+        t = 20;
+        w->timer = t;
         em->xFE++;
     case 1:
         PSMTXMultVecSR(em->mat, &w->spd, &v);

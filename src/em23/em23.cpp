@@ -405,13 +405,37 @@ static inline void em23FlyMove(cEm23* em, Em23Work* w)
     em23AddSpeedAir(em, em->rot.y);
 }
 
+// Both motion switches are written out with ONE pair of routine-scope pointers (not the
+// em23WaitMotion/em23TakeoffMotion inlines): the shared `m1` pseudo is what makes the takeoff join's
+// subArc copy take r10 instead of r11 (global-alloc `regs_someone_prefers`).
 static void em23_R1_R20ALanding(cEm23* em)
 {
     Em23Work* w = EM23_WK(em);
+    void* m0;
+    void* m1;
 
     switch (em->xFE) {
     case 0:
-        em23WaitMotion(em);
+        switch (Rnd() & 3) {
+        case 0:
+        default:
+            m0 = ARC(9);
+            m1 = 0;
+            break;
+        case 1:
+            m0 = ARC(0xA);
+            m1 = 0;
+            break;
+        case 2:
+            m0 = ARC(0xB);
+            m1 = ARC(0x1C);
+            break;
+        case 3:
+            m0 = ARC(0xC);
+            m1 = ARC(0x1D);
+            break;
+        }
+        MotionSetCore(em, MOTION(em), m0, (int) m1, 5, 5, 0);
         em->hp = 1;
         em23SetWing(em, 1);
         em->xFE++;
@@ -425,7 +449,25 @@ static void em23_R1_R20ALanding(cEm23* em)
         }
         break;
     case 2:
-        em23TakeoffMotion(em);
+        switch (em->emsetNo % 5) {
+        case 0:
+        default:
+            m1 = ARC(0x24);
+            break;
+        case 1:
+            m1 = ARC(0x25);
+            break;
+        case 2:
+            m1 = ARC(0x26);
+            break;
+        case 3:
+            m1 = ARC(0x27);
+            break;
+        case 4:
+            m1 = ARC(0x28);
+            break;
+        }
+        MotionSetCore(em, MOTION(em), ARC(0xE), (int) m1, 5, 1, 0);
         w->spd.x = 0.0f;
         w->spd.y = 0.0f;
         w->spd.z = 0.0f;
