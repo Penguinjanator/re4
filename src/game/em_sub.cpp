@@ -1792,7 +1792,11 @@ EmHitInfo* EmYarareContactCk(cEm* em, Vec* pos, Vec* out, f32 r)
     f32 step;
     u32 n;
     u32 i;
+    register s16 hm asm("r5"); // COMPILER-DIFF: #8
 
+    // COMPILER-DIFF: #8 -- the original ranks `mr r26,r5` (out) after `fmr f28,f1`, i.e. as if r5
+    // did not die at the copy; the HImode read of r5 keeps it live past the copy (AGENTS.md #8).
+    asm("" : "=m"(em->hitInfo.flags) : "r"(hm));
     if (em->hp <= 0) {
         return 0;
     }

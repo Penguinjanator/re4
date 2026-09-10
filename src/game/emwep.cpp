@@ -2,9 +2,7 @@
 // a three-node rope), throw (axes, scythes, dynamite, grenades) or shoot (arrows, rockets) at the
 // player, with the player's escape routines of the grenade.
 //
-// Not yet byte-identical (.rodata / .data and every section size match): setThrow (the `fmr` copy
-// of grav ranks last among the prologue moves in the original, as if the incoming f1 did not die
-// there: FPR-argument death rule, see emshield setFall / AGENTS.md), emWep_R1_ShotArrow
+// Not yet byte-identical (.rodata / .data and every section size match): emWep_R1_ShotArrow
 // (EmAtkSetDamagePL/Sub: the `mr r3, part` copy of a dying pseudo is issued last in the original,
 // not first), emWepEscapeCamMove (fovy store scheduled below the pPL load, constant registers),
 // setCloth (the x50 = 0.0 store scheduled before the pointer stores).
@@ -1856,7 +1854,12 @@ void cEmWep::setThrow(Vec* spd, f32 grav, EmAtkInfo* atk)
     EmWepWork* w = EMWEP_WK(this);
     Vec v;
     Mtx m;
+    register f64 hd asm("fr1"); // COMPILER-DIFF: #8
 
+    // COMPILER-DIFF: #8 -- the original ranks `fmr f30,f1` (grav) after `mr r26,r5; addi w`, i.e. as
+    // if f1 did not die at the copy; the DFmode read of f1 keeps it live past the copy (see
+    // emshield setFall / AGENTS.md #8).
+    asm("" : "=m"(hp) : "f"(hd));
     if (spd) {
         v = *spd;
     } else {

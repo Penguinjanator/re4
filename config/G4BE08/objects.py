@@ -1548,3 +1548,8 @@ MATCHING.update({
 MATCHING.update({
     "game/texture.cpp": True,  # DataLoad: ofsId/ofsTpl temporaries pinned to r9/r11 (local-alloc fake-lifetime tie; same schedule)
 })
+
+# COMPILER-DIFF #8 pass (2026-09-10)
+MATCHING.update({
+    "game/emshield.cpp": True,  # setFall: DFmode `register f64 asm("fr1")` read in a "=m" asm keeps f1 live past the parameter copy (#8: the copy ranks as weight +1)
+})

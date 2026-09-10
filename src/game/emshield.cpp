@@ -1,8 +1,8 @@
 // game/emshield.cpp: shield enemy (cEmShield): a wooden shield carried by an enemy that loses its
 // planks when shot and falls to the ground as a three-node rope.
 //
-// Not yet byte-identical: setFall (the `fmr f29, gravity` prologue copy ranks last in the original:
-// FPR-argument death rule, AGENTS.md).
+// Byte-identical. setFall carries a COMPILER-DIFF #8 keep-alive (the `fmr f29, gravity` prologue copy
+// ranks last in the original: the incoming f1 did not die at the copy there, AGENTS.md #8).
 
 #include "atari.h"
 #include "map_obj.h"
@@ -738,8 +738,14 @@ void cEmShield::setFall(f32 gravity, Vec* spd)
     Mtx m;
     Vec v;
     u32 i;
+    register f64 hd asm("fr1"); // COMPILER-DIFF: #8
 
     pMotion = 0;
+    // COMPILER-DIFF: #8 -- the original ranks `fmr f29,f1` as if f1 did not die at the copy. A DFmode
+    // read of f1 after the copy keeps f1 live past it (regmove's optimize_reg_copy_1 only moves the
+    // death when the dying mode matches the copy's SFmode); the "=m" output on a `this` field the
+    // block does not touch keeps the codeless asm dependence-free.
+    asm("" : "=m"(hp) : "f"(hd));
     for (i = 0; i < 3; i++) {
         if (spd) {
             f32 ang;
