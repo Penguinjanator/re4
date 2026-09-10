@@ -20,20 +20,31 @@ int DB_RECT::ChkHitRect(DB_POINT* p)
 DB_PRIMITIVE::DB_PRIMITIVE()
 {
     int i;
+    // the first store block comes out in source order in the target: the rect fields go through a DB_RECT* (rect.x via
+    // `this`, y/w/h via the pointer, like the SetBase temp), the two zeros are locals
+    DB_RECT* r = &rect;
+    f32 fz = 0.0f;
+    int iz = 0;
 
-    pos.x = pos.y = 0.0f;
-    drawPos.x = drawPos.y = 0.0f;
-    rect.x = rect.w = rect.y = rect.h = 0.0f;
-    base.y = 0.0f;
-    flag = 0;
-    size.x = size.y = 0.0f;
-    base.x = 0.0f;
-    type = 0;
+    pos.x = fz;
+    pos.y = fz;
+    drawPos.x = fz;
+    drawPos.y = fz;
+    r->x = fz;
+    r->y = fz;
+    r->w = fz;
+    r->h = fz;
+    base.y = fz;
+    flag = iz;
+    size.x = fz;
+    size.y = fz;
+    base.x = fz;
+    type = iz;
     parent = 0;
     child = 0;
     prev = 0;
     next = 0;
-    id = 0;
+    id = iz;
     for (i = 0; i < 3; i++) {
         click[i] = 0;
     }
@@ -60,9 +71,11 @@ DB_PRIMITIVE::DB_PRIMITIVE()
     SetOnHitCallback(0);
     SetUpdateCallback(0);
     for (i = 0; i < 3; i++) {
-        click[0] = 0;
-        click[1] = 0;
-        click[2] = 0;
+        // a pointer to click: its `&click` is PRE'd into the first block (`addi r29,r31,0x4c`) and copied here
+        int* p = click;
+        p[0] = 0;
+        p[1] = 0;
+        p[2] = 0;
     }
 }
 
@@ -106,18 +119,25 @@ void DB_PRIMITIVE::CallDrawCallback()
     }
 }
 
+// the .y store goes through a DB_POINT* (`(mem (plus p 4))`: cse1 does not forward it into the DB_RECT temp's
+// re-read, the load survives to sched1 behind the store and reload_cse turns it into `fmr`); the .x store precedes
+// the rect copy (its output dependence on the rect stores otherwise sinks it below them)
 void DB_PRIMITIVE::SetSize(f32 w, f32 h)
 {
-    size.y = h;
-    rect = DB_RECT(base.x, base.y, w, size.y);
+    DB_POINT* s = &size;
+
+    s->y = h;
     size.x = w;
+    rect = DB_RECT(base.x, base.y, size.x, size.y);
 }
 
 void DB_PRIMITIVE::SetBase(f32 x, f32 y)
 {
-    base.y = y;
-    rect = DB_RECT(x, base.y, size.x, size.y);
+    DB_POINT* b = &base;
+
+    b->y = y;
     base.x = x;
+    rect = DB_RECT(base.x, base.y, size.x, size.y);
 }
 
 int DB_PRIMITIVE::AddChild(DB_PRIMITIVE* p)

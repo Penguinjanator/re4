@@ -185,6 +185,19 @@ static inline int evtToolOn()
     return on;
 }
 
+// the same `on` shape for another flag word (EspToolInit: `li 1; cmp; bcc; li 0; cmpwi; beq`)
+static inline int flagOn(u32 f, u32 bit)
+{
+    int on = 1;
+    if ((f & bit) == 0) {
+        on = 0;
+    }
+    return on;
+}
+
+// the event's cut number as written in the debug data (two ascii digits) through the caller's buffer
+#define EVT_CUT_NO(buf) ((buf)[0] = EvtDebug.pad_0[0x49], (buf)[1] = EvtDebug.pad_0[0x4A], (buf)[2] = 0, atoi(buf))
+
 // the event's cut number as written in the debug data (two ascii digits)
 static inline int evtCutNo()
 {
@@ -645,18 +658,17 @@ extern "C" void DbModCarSet(cModel* m)
     carPartsClear(m, 0xF);
 }
 
-// name[15..] of an event model file name
-static inline int nameIs4(char* name, char a, char b, char c, char d)
-{
-    return name[0xF] == a && name[0x10] == b && name[0x11] == c && name[0x12] == d;
-}
+// name[15..] of an event model file name (a macro: an inline's `&&` chain ends in a setcc)
+#define nameIs4(name, a, b, c, d) ((name)[0xF] == (a) && (name)[0x10] == (b) && (name)[0x11] == (c) && (name)[0x12] == (d))
 
-static inline void texBlendSet(cModelInfo* info, u8* tbl)
-{
-    info->setTexBlendTbl(tbl);
-    info->setBlendRatio(0xFF);
-    info->setBlendType(1);
-}
+// a macro: the info chain (`em->pInfo->pNext->..`) is re-walked for every call
+// (a plain block: a do-while's loop notes end cse's path and split `&tbl` into two pseudos)
+#define texBlendSet(info, tbl) \
+    { \
+        (info)->setTexBlendTbl(tbl); \
+        (info)->setBlendRatio(0xFF); \
+        (info)->setBlendType(1); \
+    }
 
 static inline void texBlendTbl(u8* tbl, TexRenderMng* t)
 {
@@ -677,17 +689,25 @@ static inline void texBlendTbl(u8* tbl, TexRenderMng* t)
 #define INFO8(m) (INFO7(m)->pNext)
 #define INFO9(m) (INFO8(m)->pNext)
 
+// the name copies: an inline wrapper gives strcpy's destination as a fresh `addi r3,r1,0x110` per call (integrate
+// substitutes `&name` into the hard-register argument set) while strcat's `name` stays the PRE'd pseudo; the source
+// goes through a `char*` local so the element address is `pModel + ofs` (base first) like the target
+static inline void StrCpy(char* d, const char* s) { strcpy(d, s); }
+#define NAME_SET(src_) { char* src = (src_); StrCpy(name, src); }
+// every model field is re-read as EvtDebug.pModel[i].field (no `m` pointer: the target reloads pModel per use)
+#define M EvtDebug.pModel[i]
+
 extern "C" void EspToolInit(int* out, u8* pStage, u8* pCut)
 {
     char buf3[3];
     char path[0x100];
-    char name[0x50];
+    char name[0x30];
     void* buf;
     int parent;
     int nModel;
-    int* pParent = &parent;
     int i;
     u32 room;
+    int one = 1;
 
     db_effOwner = 0xCF;
     db_motionOn = 0;
@@ -708,8 +728,8 @@ extern "C" void EspToolInit(int* out, u8* pStage, u8* pCut)
     BitOff(pG->flags_58, 0x1000000);
     BitOff(pG->flags_170, 0x40000);
     db_fcvData = 0;
-    db_fog = 1;
-    db_emArray = 1;
+    db_fog = one;
+    db_emArray = one;
     db_cinesco = 0;
     db_workPushed = 0;
     DB_WorkPush(1, 1);
@@ -726,21 +746,22 @@ extern "C" void EspToolInit(int* out, u8* pStage, u8* pCut)
     SetLoopFlag(0, 2);
     SetLoopFlag(0, 3);
     SetLoopFlag(0, 4);
-    if ((s32) EvtDebug.flags < 0) {
+    if (flagOn(EvtDebug.flags, 0x80000000)) {
         int n;
         u8 c;
+        u32 nLit;
+        int k;
+        cModel** list;
 
         EvtDebug.flags = (EvtDebug.flags & 0x7FFFFFFF) | 0x40000000;
         BitOn(pG->flags_5010, 0x10000000);
-        for (i = 0; i < 0x80; i++) {
-            EspEvModList[i] = 0;
-        }
         BitOn(pG->flags_5014, 0x80000);
         BitOn(pG->flags_5014, 0x10000);
-        buf3[2] = 0;
-        buf3[1] = EvtDebug.pad_0[0x4A];
-        buf3[0] = EvtDebug.pad_0[0x49];
-        n = atoi(buf3);
+        list = EspEvModList;
+        for (room = 0; room < 0x80; room++) {
+            list[room] = 0;
+        }
+        n = EVT_CUT_NO(buf3);
         c = n;
         *pStage = ((c / 10) << 4) + c % 10;
         c = EvtDebug.pad_0[0xDB];
@@ -753,13 +774,13 @@ extern "C" void EspToolInit(int* out, u8* pStage, u8* pCut)
         }
         *out = 0;
         DB_WorkPop(3, db_emArray);
-        strcpy(name, EvtDebug.evName);
+        StrCpy(name, EvtDebug.evName);
         strcpy(path, "x:/soft/room/");
         strcat(path, name);
         if (HDReadDebugAlloc(path, &db_camMotion, 1) == 0) {
             db_camMotion = 0;
         }
-        strcpy(name, EvtDebug.camName);
+        StrCpy(name, EvtDebug.camName);
         strcpy(path, "x:/soft/room/");
         strcat(path, name);
         if (HDReadDebugAlloc(path, &db_litData, 1) == 0) {
@@ -769,56 +790,65 @@ extern "C" void EspToolInit(int* out, u8* pStage, u8* pCut)
         BitOff(pG->flags_170, 0x1000000);
         LightMgr.roomLitSet((cLit*) db_litData);
         LightMgr.update(0, -1);
-        for (i = 0; i < LightMgr.nArray; i++) {
-            cLight* l = LightMgr.getWorkPtr(i);
+        nLit = LightMgr.nArray;
+        for (k = 0; k < nLit; k++) {
+            cLight* l = LightMgr.getWorkPtr(k);
             if ((l->be_flag & 3) == 3 && l->parentType == 1) {
                 l->be_flag &= ~2;
             }
         }
         nModel = EvtDebug.nModel;
         for (i = 0; i < nModel; i++) {
+            // set before the static guards: a set after their `bne`s is `maybe_never` for loop.c and stays in the body
+            int* pParent = &parent;
             static DB_MODEL_FILES bin;
             static DB_MODEL_FILES tpl;
             static DB_MODEL_FILES xtra;
-            EvtDebugModel* m;
             cModel* em;
             int slot;
             int j;
+            int nBin;
             TexRenderMng* t;
 
             bin.init();
             tpl.init();
             xtra.init();
-            m = &EvtDebug.pModel[i];
-            if (m->flags & 0x20000000) {
+            if (flagOn(M.flags, 0x20000000)) {
+                int idx;
+                int parentModel;
+
+                idx = (s8) M.pad_63A[0];
+                parent = (s8) M.pad_63A[1];
                 Vec ofs = {0.0f, 0.0f, 0.0f};
-                parent = (s8) m->pad_63A[1];
-                dbModelParentChild((s8) i, (s8) (int) EvtDebug.pModel[(s8) m->pad_63A[0]].pModel, ((s8*) pParent)[3], &ofs, &ofs);
+                // an int local: `(s8)` of the field itself narrows the load to `lbz 0x637`
+                parentModel = (int) EvtDebug.pModel[idx].pModel;
+                dbModelParentChild((s8) i, (s8) parentModel, ((s8*) pParent)[3], &ofs, &ofs);
             } else {
-                strcpy(name, m->name);
+                NAME_SET(M.name);
                 strcpy(path, "x:/soft/room/");
                 strcat(path, name);
                 xtra.append(path);
             }
-            if (m->pScr) {
-                bin.append(m->pScr->pInfo->pData);
-                tpl.append(m->pScr->pInfo->pTpl);
+            if (M.pScr) {
+                bin.append(M.pScr->pInfo->pData);
+                tpl.append(M.pScr->pInfo->pTpl);
             } else {
-                for (j = 0; j < m->nBin; j++) {
-                    strcpy(name, m->bin[j]);
+                nBin = M.nBin;
+                for (j = 0; j < nBin; j++) {
+                    NAME_SET(M.bin[j]);
                     strcpy(path, "x:/soft/room/");
-                    if (G_ROOM_ID == 0x332 && evtCutNo() == 0 && db_cutNo == 0x19 &&
+                    if (G_ROOM_ID == 0x332 && EVT_CUT_NO(buf3) == 0 && db_cutNo == 0x19 &&
                         strcmp(name, "event/model/ev3000/ev3001.bin") == 0) {
                         strcat(path, "event/model/ev3000/ev3001a.bin");
                     } else {
                         strcat(path, name);
                     }
                     bin.append(path);
-                    strcpy(name, m->tpl[j]);
+                    NAME_SET(M.tpl[j]);
                     strcpy(path, "x:/soft/room/");
                     if (G_ROOM_ID == 0x317 && strcmp(name, "event/model/ev0000/ev0001.tpl") == 0) {
                         strcat(path, "event/model/ev0000/ev0001_kizu.tpl ");
-                    } else if (G_ROOM_ID == 0x332 && evtCutNo() == 0 && db_cutNo == 0x19 &&
+                    } else if (G_ROOM_ID == 0x332 && EVT_CUT_NO(buf3) == 0 && db_cutNo == 0x19 &&
                                strcmp(name, "event/model/ev3000/ev3001.tpl") == 0) {
                         strcat(path, "event/model/ev3000/ev3001a.tpl");
                     } else {
@@ -827,7 +857,7 @@ extern "C" void EspToolInit(int* out, u8* pStage, u8* pCut)
                     tpl.append(path);
                 }
             }
-            strcpy(name, m->name);
+            NAME_SET(M.name);
             if (G_ROOM_ID == 0x11B && nameIs4(name, 'p', 'l', '0', '0')) {
                 strcpy(path, "x:/soft/room/event/model/ev0000/ev0001a.bin");
                 bin.append(path);
@@ -842,7 +872,7 @@ extern "C" void EspToolInit(int* out, u8* pStage, u8* pCut)
                 strcpy(path, "x:/soft/room/event/model/ev0000/ev000b.tpl");
                 tpl.append(path);
             }
-            strcpy(name, m->name);
+            NAME_SET(M.name);
             if (G_ROOM_ID == 0x11C) {
                 if (nameIs4(name, 'p', 'l', '0', '0')) {
                     strcpy(path, "x:/soft/room/event/model/ev0000/ev000c.bin");
@@ -857,7 +887,7 @@ extern "C" void EspToolInit(int* out, u8* pStage, u8* pCut)
                     tpl.append(path);
                 }
             }
-            strcpy(name, m->name);
+            NAME_SET(M.name);
             if (G_ROOM_ID == 0x325) {
                 if (db_cutNo == 4 && nameIs4(name, 'p', 'l', '0', '0')) {
                     strcpy(path, "x:/soft/room/event/model/ev0000/ev000f.bin");
@@ -872,40 +902,49 @@ extern "C" void EspToolInit(int* out, u8* pStage, u8* pCut)
                     tpl.append(path);
                 }
             }
-            slot = (int) m->pModel;
+            slot = (int) M.pModel;
             dbModelLoad(slot, &bin, &tpl, &xtra);
             SetLoopFlag(0, slot);
             em = dbModGetEmPtr(slot);
             if (em) {
                 Vec size;
                 Vec center;
+                cModel* p;
+                cModelInfo* info;
+                ModelBound* b;
+                u8 lit;
 
                 em->setNoSuspend(1);
+                p = dbModGetEmPtr(slot);
+                list = EspEvModList;
                 if ((u32) slot <= 0x7F) {
-                    EspEvModList[slot] = dbModGetEmPtr(slot);
+                    list[slot] = p;
                 }
-                em->x12F = m->x638;
-                if ((s32) m->flags < 0) {
+                em->x12F = M.x638;
+                if (flagOn(M.flags, 0x80000000)) {
                     em->x12C = 1;
                 }
-                if (m->flags & 0x40000000) {
+                if (flagOn(M.flags, 0x40000000)) {
                     em->be_flag |= 0x1000;
                 }
-                size.x = em->pInfo->bound.size.x;
-                size.y = em->pInfo->bound.size.y;
-                size.z = em->pInfo->bound.size.z;
-                PSVECSubtract(&em->pInfo->bound.center, &em->pParts->pos, &center);
-                em->lightInfo.init2(2, 1, &center, &size, m->x639);
+                info = em->pInfo;
+                b = &info->bound;
+                lit = M.x639;
+                size.x = b->size.x;
+                size.y = b->size.y;
+                size.z = b->size.z;
+                PSVECSubtract(&b->center, &em->pParts->pos, &center);
+                em->lightInfo.init2(2, 1, &center, &size, lit);
             }
-            strcpy(name, m->name);
+            NAME_SET(M.name);
             if (nameIs4(name, 'o', 'b', 'm', '1') && name[0x13] == 'a') {
                 DbModCarSet(em);
             }
             if (G_ROOM_ID == 0x10B && nameIs4(name, 'p', 'l', '0', 'f')) {
                 cModel* p = em->getPartsPtr(3);
-                p->scale.z = p->scale.x = p->scale.y = 0.0f;
+                p->scale.z = p->scale.y = p->scale.x = 0.0f;
             }
-            strcpy(name, m->name);
+            NAME_SET(M.name);
             if (G_ROOM_ID == 0x11B && nameIs4(name, 'p', 'l', '0', '0')) {
                 static u8 tbl0[0x20];
                 static u8 tbl1[0x20];
@@ -934,22 +973,23 @@ extern "C" void EspToolInit(int* out, u8* pStage, u8* pCut)
                     em->x138 = 0x90;
                 }
                 if (db_cutNo == 6) {
-                    INFO8(em)->be_flag |= 8;
-                    INFO9(em)->be_flag &= ~8;
+                    BitOn(INFO7(em)->be_flag, 8);
+                    BitOff(INFO8(em)->be_flag, 8);
                 }
                 if (db_cutNo == 7) {
-                    INFO8(em)->be_flag &= ~8;
-                    INFO9(em)->be_flag |= 8;
+                    BitOff(INFO7(em)->be_flag, 8);
+                    BitOn(INFO8(em)->be_flag, 8);
                 }
                 if (db_cutNo == 8) {
-                    INFO8(em)->be_flag |= 8;
-                    INFO9(em)->be_flag &= ~8;
-                    if (db_cutNo == 8) {
-                        db_nearClip = 1;
-                    }
+                    BitOn(INFO7(em)->be_flag, 8);
+                    BitOff(INFO8(em)->be_flag, 8);
+                }
+                // a second `if` after the reference stores (BitOn: a non-struct store invalidates the db_cutNo load in cse)
+                if (db_cutNo == 8) {
+                    db_nearClip = 1;
                 }
             }
-            strcpy(name, m->name);
+            NAME_SET(M.name);
             if (G_ROOM_ID == 0x11C) {
                 static u8 tbl2[0x20];
                 static u8 tbl3[0x20];
@@ -965,7 +1005,7 @@ extern "C" void EspToolInit(int* out, u8* pStage, u8* pCut)
                     t = GetTexRenderMgrAddr(0);
                     if (t->used) {
                         texBlendTbl(tbl3, t);
-                        texBlendSet(INFO5(em), tbl3);
+                        texBlendSet(INFO4(em), tbl3);
                     }
                 }
             }
@@ -1036,6 +1076,7 @@ extern "C" void EspToolInit(int* out, u8* pStage, u8* pCut)
         HDReadDebugAlloc("X:\\Soft\\Room\\Event\\r332\\s00\\em3000a\\face\\ev3001_s00_019.fcv", &db_fcvData, 1);
     }
 }
+#undef M
 
 extern "C" void EspToolExitEstSet(EspSeqData* head, int on, int mode)
 {
