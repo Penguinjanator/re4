@@ -34,6 +34,11 @@ struct R218WorkPtr {
 };
 
 static R218WorkPtr r218_work;
+// COMPILER-DIFF: candidate #12 (loop-exit form). After a `do { ..; if (c) break; SceSleep(1); } while (1)`
+// our cse1 follows the exit branch AROUND the SceSleep block and reuses the loop's `lis work@ha`
+// register in the exit block; the original re-materialises it. A second SYMBOL_REF for the work
+// pointer gives cse nothing to merge (the em2a/em21 TrapCamMove idiom).
+extern R218WorkPtr r218_work_v asm("r218_work");
 
 static void r218_checkEmSet();
 static void r218_checkBellBreak();
@@ -179,7 +184,7 @@ static void r218_checkClawManDead_end()
             }
             SceSleep(1);
         } while (1);
-        o28->pos.y = r218_work.p->y0 + 2500.0f;
+        o28->pos.y = r218_work_v.p->y0 + 2500.0f;   // COMPILER-DIFF: candidate #12
         SndCall(6, 5, 0, 0, 0, 0);
     }
 }
@@ -189,7 +194,7 @@ static void r218_checkClawManDead()
     cEmWrap em0;
     cEmWrap em1;
     cObj* o29;
-    u32 snd = 0;
+    u32 snd;
 
     em0.setPtr(0, -1, 1);
     em1.setPtr(1, -1, 1);
@@ -201,6 +206,7 @@ static void r218_checkClawManDead()
     pG->door_flags_51C8 |= 0x20;
     SceAtSetEnable(0, 1);
     SceAtSetEnable(2, 0);
+    snd = 0;
     r218_work.p->snd = snd;
     SceSetEventCancel(1, (TaskFunc) r218_checkClawManDead_end, 0, 0, 1);
     f32 spd = 40.0f;
@@ -215,8 +221,8 @@ static void r218_checkClawManDead()
             }
             SceSleep(1);
         } while (1);
-        o29->pos.y = r218_work.p->y1 + 2500.0f;
-        r218_work.p->snd = 0;
+        o29->pos.y = r218_work_v.p->y1 + 2500.0f;   // COMPILER-DIFF: candidate #12
+        r218_work_v.p->snd = 0;                     // COMPILER-DIFF: candidate #12
         SndCall(6, 1, 0, 0, 0, 0);
     }
     while (CamCtrl.IsMotionEnd() == 0) {
@@ -302,9 +308,9 @@ static void r218_appearClawMan()
             }
             SceSleep(1);
         } while (1);
-        r218_work.p->snd = 0;
+        r218_work_v.p->snd = 0;                     // COMPILER-DIFF: candidate #12
         SndCall(6, 3, 0, 0, 0, 0);
-        o29->pos.y = r218_work.p->y1;
+        o29->pos.y = r218_work_v.p->y1;             // COMPILER-DIFF: candidate #12
     }
     while (CamCtrl.IsMotionEnd() == 0) {
         SceSleep(1);
@@ -321,9 +327,9 @@ static void r218_appearClawMan()
             }
             SceSleep(1);
         } while (1);
-        r218_work.p->snd = 0;
+        r218_work_v.p->snd = 0;                     // COMPILER-DIFF: candidate #12
         SndCall(6, 7, 0, 0, 0, 0);
-        o28->pos.y = r218_work.p->y0;
+        o28->pos.y = r218_work_v.p->y0;             // COMPILER-DIFF: candidate #12
     }
     while (CamCtrl.IsMotionEnd() == 0) {
         SceSleep(1);

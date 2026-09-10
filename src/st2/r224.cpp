@@ -351,16 +351,21 @@ static void r224_toroko()
 }
 
 // The lever handle swings to its other end and back.
+// OPEN (32 words): the target loads `spd = 0.0f` before SndCall and RE-LOADS the pool 0.0 for the
+// loop compare (`lfs f26`); our cse2 folds the hoisted pool load to the CONST_DOUBLE and rewrites
+// it as `fmr f26,f31` from spd (inline literal, volatile, `!(spd < 0)`, zero locals tried). With
+// the init before the call the callee-saved set is r27..r31 instead of the target's r26..r31.
 static void reva_common_move()
 {
     cObj* obj = SmdGetObjPtr(0x3F);
     f32* py = &obj->pos.y;
     f32 lo = reva_low;
-    f32 spd = 0.0f;
+    f32 spd;
     f32 hi = reva_high;
     f32 acc;
 
     SndCall(6, 4, &obj->pos, 0, 0, 0);
+    spd = 0.0f;
     obj->be_flag |= 0x20;
     acc = reva_acc;
     for (;;) {

@@ -662,19 +662,17 @@ void r214_initCatapult(R214CatapultData* tbl)
     int i;
 
     for (i = 0; i < 3; i++) {
-        R214CatapultData* d = &tbl[i];
-
         r214_work.p->cat[i].active = 1;
         r214_work.p->cat[i].x31 = 1;
-        r214_work.p->cat[i].obj = SmdGetObjPtr(d->objId);
+        r214_work.p->cat[i].obj = SmdGetObjPtr(tbl[i].objId);
         r214_work.p->cat[i].obj->be_flag |= 0x20;
-        r214_work.p->cat[i].obj->rot.y = LIMIT_ANGLE(d->ang);
+        r214_work.p->cat[i].obj->rot.y = LIMIT_ANGLE(tbl[i].ang);
         r214_work.p->cat[i].step = 0;
         r214_work.p->cat[i].timer = 0;
         r214_work.p->cat[i].thrown = 0;
         r214_work.p->cat[i].nArea = 0;
         r214_work.p->cat[i].height = 8000.0f;
-        r214_work.p->cat[i].emNo = d->emNo;
+        r214_work.p->cat[i].emNo = tbl[i].emNo;
         r214_work.p->cat[i].setNewArea(0xE, 0xA);
         r214_work.p->cat[i].setNewArea(0xB, 0xB);
         r214_work.p->cat[i].setNewArea(0xC, 0xC);

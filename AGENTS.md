@@ -7795,3 +7795,80 @@ confirmed on the units named):
   (`li r3,1` last in the store blocks of the target, second in ours; sched tie, `return 1` placements exhausted);
   PillarCk 5 words (ObjMgr@ha / hoisted `4` in r22/r23 swapped, global-alloc order); TailAtkCk 17 words (`em` r30
   and `t` r31 swapped, same cause).
+
+### Stage rooms, st2_2/st2_3/st2_4/st1_0/st1_2 pass 2 (r227 Matching; r214 22->23/25, r218 5->6/8, r224 reva_common_move 52->32 words; 2026-09-10)
+
+- Harness: /tmp/rooms_c2 (copies of /tmp/rooms_c with the paths rewritten; `gsize.sh MOD/UNIT SRC FUNC` prints a
+  function's gcse expression-hash-table size from a -dG dump).
+- **Loop-hoisted float constants get the target's FPR names only as `const f32` locals** (r227 checkBox0/1Fall
+  17 -> 0 each, unit flipped): the four constants of the second wait loop (`rot.x > rotLim`, `+= -0.0349`,
+  `spd += acc`, `dy > lim`) are allocated in the order of their preheader `lfs`s (shorter live range = higher
+  priority = higher FPR); plain `f32 acc = 20.0f; f32 lim = 10000.0f; f32 rotLim = ...` declared before the loop
+  are set in declaration order (`lfs` order acc, lim, rotLim, then the hoisted body literal), `const f32` locals
+  fold into their uses so loop.c hoists all four in BODY order (rotLim, -0.0349, acc, lim) while the declarations
+  still fix the pool order. Same lever as r20d `const f32 lim` / r227 operateElv `step`/`power`.
+- The `&cMes` two-set pointer idiom (`MesWork* w = (MesWork*) &cMes; w = (MesWork*) ((u8*) w + 4);`, r40e)
+  closes r227 operateElv's `addi r31,r9,cMes@l; addi r31,r31,4` (2 -> 0).
+- **loop.c giv order = reverse discovery order** (r214 initCatapult 29 -> 0): `move_movables` emits the giv inits
+  in reverse order of `record_giv` (the list is prepended), and the LAST init in the preheader has the shortest
+  live range and wins the highest callee-saved register. `R214CatapultData* d = &tbl[i];` as the loop's first
+  statement makes `&tbl[i]` the first giv and `i*68` (the work index) the last -> `li i68,0` before `mr d,tbl`
+  and i68 in r30; the target's `mr r29,r26; li r31,0` needs the `tbl[i].field` reads written inline (the `&tbl[i]`
+  giv is then discovered at the `SmdGetObjPtr(tbl[i].objId)` call, after the first `cat[i]` access).
+- **cse folds every constant-pool load to its CONST_DOUBLE** (cse.c fold_rtx MEM case, `/u` or not), so a literal
+  that the target RELOADS from the pool while a register already holds the value (r224 reva_common_move's loop
+  compare `spd >= 0.0f` vs `f32 spd = 0.0f`, r218's post-loop `y0 + 2500.0f`, r226 RoboStartMain's final
+  `setAng(0.0f)`) cannot be produced by any literal/inline/volatile/static-const form once cse's path knows the
+  register: the inline-body-literal lever (RTX_UNCHANGING_P dropped) only stops gcse/loop.c, not cse's fold. In
+  r224 the merge happens in cse2 within one block (init and hoisted loop constant); in r218 it is cse1's AROUND
+  path. Still OPEN; r224's `spd = 0.0f` assigned after `SndCall`/`acc = reva_acc` gives the target's r26..r31
+  set (52 -> 32 words, applied) but puts the init after the call (target: before).
+- **`extern T sym_v asm("sym")` alias for the cse AROUND-path family** (COMPILER-DIFF candidate #12, the em2a/em21
+  TrapCamMove lever, tagged): r218's three `do { ..; if (c) break; SceSleep(1); } while (1)` exit blocks
+  re-materialise `lis work@ha` in the target; `r218_work_v.p->y0` in the exit statements gives cse a distinct
+  SYMBOL_REF (appearClawMan 25 -> 0, checkClawManDead 27 -> 14 with `snd = 0;` moved to right before its store
+  (the target keeps `li r29,0` in a callee-saved register and issues it after the wait loop), checkClawManDead_end
+  19 -> 8). The alias to a `static` object is fine: one local symbol in the .o, 45 relocs against it. The residue
+  in both is the 2500.0 pool reload (previous item). Do NOT alias `wp = r11b_work.p`-style references whose high
+  the target keeps hoisted with a single use: with one use our update_equiv_regs moves the `lis` next to the
+  store (R11bInit 42 -> 94); that shape (target `lis r30` before the first SceExec, one use `stw r3,0(r30)`, a
+  second high r26 for the reads) is the #13 family from the other side (the original keeps a single-use
+  REG_EQUIV `high` pseudo where it was set). OPEN.
+- Global-alloc priority is `floor_log2(refs)*refs/live_length` (global.c allocno_compare) with REG_EQUIV pseudos'
+  length doubled; r22c highscore's `score` (14 refs) can never rank below the loop's 3-ref `IdSys@ha` pseudo with
+  our numbers (`on` flag split off, per-loop `int i`, `u32 i`, `IDSystem*` local, do-while, pointer walk: 10-35
+  words). The target's order (lis r31 before score r28) is not reachable by source; OPEN (r22c stays 49/50).
+- r216 close (2 words, `stfs ang.y` vs `addi r4,&ang`): sched2's ready list at the cycle after `fadds` ranks the
+  `addi r4,r1,8` (class 3, independent of the last scheduled insn) above the store that depends on it with cost
+  1 (also class 3) by LUID; our sched1 issued the addi at t=4 with the `lfs` on the other unit, the target's sched1
+  order had the store first. Block-local/volatile/FSet/`Vec* pa` (before and after the stores)/store orders/`y`
+  locals/do-while all 2+ words. OPEN (documented tie confirmed).
+- r213 Init (14 words) is the block-based LCM of our gcse (lcm.c `pre_lcm` uses only antloc/transp, never `comp`):
+  `(plus fp 24)` (&rot) is computed by the second memset's `force_operand` pseudo P in bb 0 AND inserted again at
+  the end of bb 0 (`PRE/HOIST: end of bb 0, copying expression 3`), so the copy `mr r31,P` lands after the memset
+  call and regmove cannot coalesce P into r3; the target's `addi r3,r1,24; li r4,0; mr r31,r3` is
+  `pre_insert_copy_insn` right after the computation (an edge-based LCM that sees comp[bb0]) + regmove. Same
+  family as R402MoveDoor02/R209Main (#3). A `do { } while (0)` after the Vec declarations moves `addi r26,r1,40`
+  (&door0) to the target's place after the memsets but costs 6 words elsewhere (20).
+- r213 EventSwitchMain (8 words): the two PRE'd highs (pG, CamCtrl) get their reaching pseudos in gcse
+  hash-bucket order (`pre_delete` walks the table by bucket): bucket = raw hash % (n_insns/2 | 1); with our 117
+  buckets pG is 105 and CamCtrl 80 (raw 22335 / 1384400942; the rtl-code constant offset was fitted from the
+  dump), the target's order needs a table size in {105, 111, 113, 129, ...} = 8..11 fewer or 24+ more insns at
+  gcse time. No source rewrite of the function changed n_insns (dead statements are gone by then). OPEN.
+- r119 Init third SetTree block (7 words): after sched1 the `lwz r11,pG@l(r31)` sits between `stfs rot.z` and
+  `stfs rot.x/rot.y` in BOTH compilers' RTL; ours then hoists it above all six stores in sched2 because the two
+  later stores anti-depend on it (`anti_dependence` finds no alias-set exit for r31 = the hard frame pointer whose
+  `reg_base_value` is wiped by the `lis r31,pG@ha` set) giving it +1 priority, while the earlier stores do not
+  conflict (`true_dependence` exits on DIFFERENT_ALIAS_SETS_P). The target kept it in place, i.e. its load also
+  depended on the earlier stores. Compiler-build difference candidate (alias.c true/anti asymmetry); OPEN.
+- r223 .rodata is 4-aligned in ours, 8 in the split object (0x264 vs 0x268): r224's `.rodata` is 8-aligned in
+  both, so the link pads identically; harmless for the REL. reva_common_move's prologue (`fmr f28,f1; fmr f29,f2`
+  before `mr r29,r5`) is COMPILER-DIFF 1 in a definition; an inline body with the parameters reordered changes
+  nothing (integrate substitutes the outer param pseudos directly).
+- r224 R224Main (9 words, the stack-argument zero `li r0,0; stw r0,8(r1)` issued after `li r8,2; li r9,1` in the
+  target): the `register int zero asm("r0")` #13 recipe gives the r0 but sched1 still issues the store early
+  (weight -1); `int zero` locals unchanged. gnd_close (2 words: `li r3,5` before `li r4,0` after `stfs f31,160(r3)`)
+  unchanged by `int off` locals / FSet / a shared `f32 z`.
+- r10c EmEvent_exit / r11b EmEvent / r119 (f0/f13 pair of two Vec constant temps): `const f32` pool-order
+  declarations + `f32 z = kz; f32 x = kx;` variables reorder the LOADS and the f0/f13 names to the target's but
+  swap the r10/r11 of the two `lis` highs (still 4 words); the target's local-alloc had x's high shorter-lived.

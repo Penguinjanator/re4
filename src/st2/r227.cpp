@@ -201,9 +201,9 @@ static void r227_checkBox0Fall()
         }
         SceSleep(1);
     }
-    f32 acc = 20.0f;
-    f32 lim = 10000.0f;
-    f32 rotLim = -1.5707964f;
+    const f32 acc = 20.0f;
+    const f32 lim = 10000.0f;
+    const f32 rotLim = -1.5707964f;
     f32 baseY = r227_work.p->rack[0]->pos.y;
     f32 spd = 0.0f;
     while (1) {   // `for (;;)` here rotates the SceSleep to the loop top
@@ -235,9 +235,9 @@ static void r227_checkBox1Fall()
         }
         SceSleep(1);
     }
-    f32 acc = 20.0f;
-    f32 lim = 10000.0f;
-    f32 rotLim = 1.5707964f;
+    const f32 acc = 20.0f;
+    const f32 lim = 10000.0f;
+    const f32 rotLim = 1.5707964f;
     f32 baseY = r227_work.p->rack[1]->pos.y;
     f32 spd = 0.0f;
     while (1) {   // `for (;;)` here rotates the SceSleep to the loop top
@@ -457,14 +457,17 @@ static void r227_operateElv()
     f32 lim;
 
     SceAtSetEnable(3, 0);
-    SceMesSet(0, 0, 1, 0x64, 0x150 - cMes.getWork()->lineSpace - cMes.getWork()->fontH - 1);
+    // Two sets of one pointer variable (the r40e idiom): `addi r31,r9,cMes@l; addi r31,r31,4`.
+    MesWork* w = (MesWork*) &cMes;
+    w = (MesWork*) ((u8*) w + 4);
+    SceMesSet(0, 0, 1, 0x64, 0x150 - w->lineSpace - w->fontH - 1);
     switch (SceMesGetSelection()) {
     case 1:
         SndCall(6, 0xB, 0, 0, 0, 0);
         if (r227_checkElvMovePermit() == 1) {
             break;
         }
-        SceMesSet(1, 0, 1, 0x64, 0x150 - cMes.getWork()->lineSpace - cMes.getWork()->fontH - 1);
+        SceMesSet(1, 0, 1, 0x64, 0x150 - w->lineSpace - w->fontH - 1);
     case -1:
     case 0:
     case 2:
