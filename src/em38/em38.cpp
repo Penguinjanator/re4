@@ -1759,7 +1759,9 @@ void em38BirthParasite(cEm38* em)
         for (i = 0; i < EmMgr.nArray; i++) {
             cEm25* p = (cEm25*) em38EmWork(i);
 
-            if ((p->be_flag & 0x201) == 1 && p->id == 0x25) {
+            // isAlive() (not the open-coded flag test): the inline's extra RTL keeps the loop
+            // above loop.c's 71-insn threshold in pass 2, so `li 240` stays inside the loop
+            if (p->isAlive() && p->id == 0x25) {
                 if (p->isFree()) {
                     Vec v;
 
@@ -1968,6 +1970,7 @@ void em38BloodSet(cEm38* em)
             case 0x2D:
                 EstSet((int) em, -1, 0, 0, 0x2E, 0xB, 0, 0, (u32) em, 0);
                 break;
+            case 0:
             case 0x14:
                 break;
             }
@@ -2028,6 +2031,7 @@ void em38BloodSet(cEm38* em)
         case 0x2D:
             EmDmBloodSet2(em, 0x2E, 2, 0, 0, 0);
             break;
+        case 0:
         case 0x14:
             break;
         }

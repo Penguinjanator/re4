@@ -1791,6 +1791,10 @@ void em3cPartsBombSet(cEm3c* em, int add)
 {
     u32 i;
     u32 j;
+    // pointer locals: the table bases stay first in the `add`/`lhzx` (a symbol operand is
+    // swapped behind the index at expand time)
+    u16* tm = em3c_bomb_time;
+    Vec (*pt)[5] = em3c_bomb_pt;
 
     for (i = 0; i < 25; i++) {
         int no = em3c_bomb_parts[i];
@@ -1826,14 +1830,18 @@ void em3cPartsBombSet(cEm3c* em, int add)
             kind = 3;
             break;
         }
-        tbl = em3c_bomb_pt[kind];
+        tbl = pt[kind];
         for (j = 0; j < 5; j++) {
             PSMTXMultVec(p->mat, &tbl[j], &b->pt[j]);
             b->spd[j].x = fRand1_1() * 50.0f;
             b->spd[j].y = fRand1_1() * 30.0f;
             b->spd[j].z = fRand1_1() * 50.0f;
         }
-        b->timer = add + em3c_bomb_time[i];
+        {
+            u16* tp = tm + i;
+            int t = *tp;
+            b->timer = add + t;
+        }
     }
 }
 
@@ -2250,6 +2258,10 @@ int em3cFindCk(cEm3c* em)
             r = 25000.0f;
             break;
         }
+        // the override after the switch makes the arm stores dead (flow deletes them, the
+        // compares stay) and puts the pool load into the join block; `r` keeps 4 sets so
+        // `r * r` is not folded
+        r = 25000.0f;
         if ((em->pos.x - pG->bell_pos.x) * (em->pos.x - pG->bell_pos.x) + (em->pos.y - pG->bell_pos.y) * (em->pos.y - pG->bell_pos.y)
                 + (em->pos.z - pG->bell_pos.z) * (em->pos.z - pG->bell_pos.z)
             < r * r) {

@@ -2833,39 +2833,36 @@ static void em2d_R1_W_Turn180(cEm2d* em)
 
 // Wall fall step: the position follows `spd` (added twice: before and after the floor check),
 // which falls 20 per frame. 1 = landed (or died below the floor), 0 = still falling.
-static inline int em2dWallFallStep(cEm2d* em, Em2dWork* w)
-{
-    Vec d;
-    f32 fl;
-
-    PSVECAdd(&em->pos, &w->spd, &em->pos);
-    w->spd.y -= 20.0f;
-    fl = SatMgr.getFloor(&em->pos, 600.0f, 100000.0f, 0, 0);
-    PSVECAdd(&em->pos, &w->spd, &em->pos);
-    if (em->pos.y < fl) {
-        em->pos.y = fl;
-        if (fl <= -99000.0f) {
-            em->be_flag |= 0x10000;
-            EmRoutineSet(em, 3, 0, 0, 0);
-            return 1;
-        }
-        d.x = 0.0f;
-        d.y = 0.0f;
-        d.z = 1.0f;
-        PSMTXMultVecSR(em->mat, &d, &d);
-        em->rot.y = atan2f(d.x, d.z);
-        em2dSetdLandingEff(em);
-        MotionSetCore(em, &em->mot, ARC(0x4F), 0, 5, 1, 0);
-        MotionMoveF(em, 0);
-        em->xFE = 6;
-        return 1;
-    }
-    return 0;
-}
+// The wall-fall step (em2d_R1_W_Fall): open-coded like the damage falls (see EM2D_DM_FALL); the
+// macro ends in `else` and the caller supplies the fall arm as the following block.
+#define EM2D_WALL_FALL(em, w, v_, fl_)                                                            \
+    PSVECAdd(&(em)->pos, &(w)->spd, &(em)->pos);                                               \
+    (w)->spd.y -= 20.0f;                                                                       \
+    fl_ = SatMgr.getFloor(&(em)->pos, 600.0f, 100000.0f, 0, 0);                                 \
+    PSVECAdd(&(em)->pos, &(w)->spd, &(em)->pos);                                               \
+    if ((em)->pos.y < fl_) {                                                                   \
+        (em)->pos.y = fl_;                                                                     \
+        if (fl_ <= -99000.0f) {                                                                \
+            (em)->be_flag |= 0x10000;                                                          \
+            EmRoutineSet(em, 3, 0, 0, 0);                                                      \
+        } else {                                                                               \
+            v_.x = 0.0f;                                                                       \
+            v_.y = 0.0f;                                                                       \
+            v_.z = 1.0f;                                                                       \
+            PSMTXMultVecSR((em)->mat, &v_, &v_);                                               \
+            (em)->rot.y = atan2f(v_.x, v_.z);                                                  \
+            em2dSetdLandingEff(em);                                                            \
+            MotionSetCore(em, &(em)->mot, ARC(0x4F), 0, 5, 1, 0);                              \
+            MotionMoveF(em, 0);                                                                \
+            (em)->xFE = 6;                                                                     \
+        }                                                                                      \
+    } else
 
 static void em2d_R1_W_Fall(cEm2d* em)
 {
     Em2dWork* w = EM2D_WK(em);
+    Vec d;
+    f32 fl;
     int t;
 
     w->flags |= 0x140;
@@ -2897,12 +2894,11 @@ static void em2d_R1_W_Fall(cEm2d* em)
             em->xFE++;
             break;
         }
-        if (em2dWallFallStep(em, w)) {
-            break;
-        }
-        em2dSetFallMatrix(em);
-        if (MotionMoveF(em, 0)) {
-            em->xFE++;
+        EM2D_WALL_FALL(em, w, d, fl) {
+            em2dSetFallMatrix(em);
+            if (MotionMoveF(em, 0)) {
+                em->xFE++;
+            }
         }
         break;
     case 2:
@@ -2910,17 +2906,16 @@ static void em2d_R1_W_Fall(cEm2d* em)
         em->xFE++;
     case 3:
         w->flags |= 0x1000;
-        if (em2dWallFallStep(em, w)) {
-            break;
-        }
-        em2dSetFallMatrix(em);
-        MotionMoveF(em, 0);
-        if (em2dFallCatchCk(em)) {
-            em->pos.y = pPL->pos.y;
-            if ((Rnd() & 1) == 0 && (s16) pG->pl_life > 299) {
-                em->stat = 0x010C0000;
-            } else {
-                em->stat = 0x010B0000;
+        EM2D_WALL_FALL(em, w, d, fl) {
+            em2dSetFallMatrix(em);
+            MotionMoveF(em, 0);
+            if (em2dFallCatchCk(em)) {
+                em->pos.y = pPL->pos.y;
+                if ((Rnd() & 1) != 0 || (s16) pG->pl_life <= 299) {
+                    em->stat = 0x010B0000;
+                } else {
+                    em->stat = 0x010C0000;
+                }
             }
         }
         break;
@@ -2929,17 +2924,16 @@ static void em2d_R1_W_Fall(cEm2d* em)
         em->xFE++;
     case 5:
         w->flags |= 0x1000;
-        if (em2dWallFallStep(em, w)) {
-            break;
-        }
-        em2dSetFallMatrix(em);
-        MotionMoveF(em, 0);
-        if (em2dFallCatchCk(em)) {
-            em->pos.y = pPL->pos.y;
-            if ((Rnd() & 1) == 0 && (s16) pG->pl_life > 299) {
-                em->stat = 0x010C0000;
-            } else {
-                em->stat = 0x010B0000;
+        EM2D_WALL_FALL(em, w, d, fl) {
+            em2dSetFallMatrix(em);
+            MotionMoveF(em, 0);
+            if (em2dFallCatchCk(em)) {
+                em->pos.y = pPL->pos.y;
+                if ((Rnd() & 1) != 0 || (s16) pG->pl_life <= 299) {
+                    em->stat = 0x010B0000;
+                } else {
+                    em->stat = 0x010C0000;
+                }
             }
         }
         break;
@@ -3942,43 +3936,53 @@ static void em2d_R1_Dm_Down(cEm2d* em)
 
 // Fall step of the damage jumps: `spd` added twice around the floor check, 20 per frame of
 // gravity. 1 = landed / died, 0 = still falling.
-static inline int em2dDmFallStep(cEm2d* em, Em2dWork* w, int a, int b, int downEff, int next)
-{
-    Vec d;
-    f32 fl;
-
-    PSVECAdd(&em->pos, &w->spd, &em->pos);
-    w->spd.y -= 20.0f;
-    fl = SatMgr.getFloor(&em->pos, 600.0f, 100000.0f, 0, 0);
-    PSVECAdd(&em->pos, &w->spd, &em->pos);
-    if (em->pos.y < fl) {
-        em->pos.y = fl;
-        if (fl <= -99000.0f) {
-            em->be_flag |= 0x10000;
-            EmRoutineSet(em, 3, 0, 0, 0);
-            return 1;
-        }
-        d.x = 0.0f;
-        d.y = 0.0f;
-        d.z = 1.0f;
-        PSMTXMultVecSR(em->mat, &d, &d);
-        em->rot.y = atan2f(d.x, d.z);
-        MotionSetCore(em, &em->mot, ARC(a), (int) ARC(b), 5, 1, 0);
-        MotionMoveF(em, 0);
-        if (downEff) {
-            em2dSetDownEff(em);
-        } else {
-            em2dSetdLandingEff(em);
-        }
-        em->xFE = next;
-        return 1;
+// The fall step of the damage routines, a macro (not an inline: integrate.c drops the
+// RTX_UNCHANGING_P flag of an inlined body's constant-pool loads, which then sink below the int
+// argument moves). The landing tail (`xFE = NEXT`) and the fall arm live inside it, so the caller
+// has no return-value diamond.
+#define EM2D_DM_FALL(em, w, v_, fl_, A, B, DOWN, NEXT, END_INC)                                  \
+    {                                                                                          \
+        PSVECAdd(&(em)->pos, &(w)->spd, &(em)->pos);                                           \
+        (w)->spd.y -= 20.0f;                                                                   \
+        fl_ = SatMgr.getFloor(&(em)->pos, 600.0f, 100000.0f, 0, 0);                             \
+        PSVECAdd(&(em)->pos, &(w)->spd, &(em)->pos);                                           \
+        if ((em)->pos.y < fl_) {                                                               \
+            (em)->pos.y = fl_;                                                                 \
+            if (fl_ <= -99000.0f) {                                                            \
+                (em)->be_flag |= 0x10000;                                                      \
+                EmRoutineSet(em, 3, 0, 0, 0);                                                  \
+            } else {                                                                           \
+                v_.x = 0.0f;                                                                   \
+                v_.y = 0.0f;                                                                   \
+                v_.z = 1.0f;                                                                   \
+                PSMTXMultVecSR((em)->mat, &v_, &v_);                                           \
+                (em)->rot.y = atan2f(v_.x, v_.z);                                              \
+                MotionSetCore(em, &(em)->mot, ARC(A), (int) ARC(B), 5, 1, 0);                  \
+                MotionMoveF(em, 0);                                                            \
+                if (DOWN) {                                                                    \
+                    em2dSetDownEff(em);                                                        \
+                } else {                                                                       \
+                    em2dSetdLandingEff(em);                                                    \
+                }                                                                              \
+                (em)->xFE = NEXT;                                                              \
+            }                                                                                  \
+        } else {                                                                               \
+            em2dSetFallMatrix(em);                                                             \
+            if (END_INC) {                                                                     \
+                if (MotionMoveF(em, 0)) {                                                      \
+                    (em)->xFE++;                                                               \
+                }                                                                              \
+            } else {                                                                           \
+                MotionMoveF(em, 0);                                                            \
+            }                                                                                  \
+        }                                                                                      \
     }
-    return 0;
-}
 
 static void em2d_R1_Dm_Jump(cEm2d* em)
 {
     Em2dWork* w = EM2D_WK(em);
+    f32 fl;
+    Vec d;
     Vec ofs;
 
     w->flags |= 0x40;
@@ -3993,8 +3997,8 @@ static void em2d_R1_Dm_Jump(cEm2d* em)
         RotMatrix(em->mat, &em->rot);
         TransMatrix(em->mat, &em->pos);
         ScaleMatrix(em->mat, &em->scale);
-        w->spd.y = 0.0f;
         w->spd.x = 0.0f;
+        w->spd.y = 0.0f;
         w->spd.z = -100.0f;
         PSMTXMultVecSR(em->mat, &w->spd, &w->spd);
         MotionSetCore(em, &em->mot, ARC(0x53), 0, 0, 5, 0);
@@ -4002,23 +4006,13 @@ static void em2d_R1_Dm_Jump(cEm2d* em)
         w->flags |= 0x4000;
         em->xFE++;
     case 1:
-        if (em2dDmFallStep(em, w, 0x55, 0x56, 0, 4)) {
-            break;
-        }
-        em2dSetFallMatrix(em);
-        if (MotionMoveF(em, 0)) {
-            em->xFE++;
-        }
+        EM2D_DM_FALL(em, w, d, fl, 0x55, 0x56, 0, 4, 1);
         break;
     case 2:
         MotionSetCore(em, &em->mot, ARC(0x54), 0, 0, 5, 0);
         em->xFE++;
     case 3:
-        if (em2dDmFallStep(em, w, 0x55, 0x56, 1, 4)) {
-            break;
-        }
-        em2dSetFallMatrix(em);
-        MotionMoveF(em, 0);
+        EM2D_DM_FALL(em, w, d, fl, 0x55, 0x56, 1, 4, 0);
         break;
     case 4:
         em->xFE++;
@@ -4038,6 +4032,7 @@ static void em2d_R1_Dm_Jump(cEm2d* em)
 static void em2d_R1_Dm_Wall(cEm2d* em)
 {
     Em2dWork* w = EM2D_WK(em);
+    f32 fl;
     Vec ofs;
     Mtx m;
 
@@ -4056,11 +4051,7 @@ static void em2d_R1_Dm_Wall(cEm2d* em)
         w->flags |= 0x4000;
         em->xFE++;
     case 1:
-        if (em2dDmFallStep(em, w, 0x55, 0x56, 1, 2)) {
-            break;
-        }
-        em2dSetFallMatrix(em);
-        MotionMoveF(em, 0);
+        EM2D_DM_FALL(em, w, ofs, fl, 0x55, 0x56, 1, 2, 0);
         break;
     case 2:
         em->xFE++;
@@ -4159,18 +4150,14 @@ static void em2d_R1_Dm_Ceiling(cEm2d* em)
         }
         break;
     case 2:
-        w->spd.z = 0.0f;
-        w->spd.y = -200.0f;
         w->spd.x = 0.0f;
+        w->spd.y = -200.0f;
+        w->spd.z = 0.0f;
         em->pos.y = em->getPartsPtr(0)->worldPos.y - 250.0f;
         MotionSetCore(em, &em->mot, ARC(0x54), 0, 0, 5, 0);
         em->xFE++;
     case 3:
-        if (em2dDmFallStep(em, w, 0x55, 0x56, 1, 4)) {
-            break;
-        }
-        em2dSetFallMatrix(em);
-        MotionMoveF(em, 0);
+        EM2D_DM_FALL(em, w, d, fl, 0x55, 0x56, 1, 4, 0);
         break;
     case 4:
         em->xFE++;
@@ -4306,38 +4293,44 @@ static void em2d_R1_Die_Down(cEm2d* em)
 }
 
 // Fall step of the die routines (no death below the floor). 1 = landed, 0 = still falling.
-static inline int em2dDieFallStep(cEm2d* em, Em2dWork* w, int downEff, int next)
-{
-    Vec d;
-    f32 fl;
-
-    PSVECAdd(&em->pos, &w->spd, &em->pos);
-    w->spd.y -= 20.0f;
-    fl = SatMgr.getFloor(&em->pos, 600.0f, 100000.0f, 0, 0);
-    PSVECAdd(&em->pos, &w->spd, &em->pos);
-    if (em->pos.y < fl) {
-        em->pos.y = fl;
-        d.x = 0.0f;
-        d.y = 0.0f;
-        d.z = 1.0f;
-        PSMTXMultVecSR(em->mat, &d, &d);
-        em->rot.y = atan2f(d.x, d.z);
-        MotionSetCore(em, &em->mot, ARC(0x55), (int) ARC(0x56), 5, 1, 0);
-        MotionMoveF(em, 0);
-        if (downEff) {
-            em2dSetDownEff(em);
-        } else {
-            em2dSetdLandingEff(em);
-        }
-        em->xFE = next;
-        return 1;
+// Same for the die routines (no bottomless-pit check).
+#define EM2D_DIE_FALL(em, w, v_, fl_, DOWN, NEXT, END_INC)                                       \
+    {                                                                                          \
+        PSVECAdd(&(em)->pos, &(w)->spd, &(em)->pos);                                           \
+        (w)->spd.y -= 20.0f;                                                                   \
+        fl_ = SatMgr.getFloor(&(em)->pos, 600.0f, 100000.0f, 0, 0);                             \
+        PSVECAdd(&(em)->pos, &(w)->spd, &(em)->pos);                                           \
+        if ((em)->pos.y < fl_) {                                                               \
+            (em)->pos.y = fl_;                                                                 \
+            v_.x = 0.0f;                                                                       \
+            v_.y = 0.0f;                                                                       \
+            v_.z = 1.0f;                                                                       \
+            PSMTXMultVecSR((em)->mat, &v_, &v_);                                               \
+            (em)->rot.y = atan2f(v_.x, v_.z);                                                  \
+            MotionSetCore(em, &(em)->mot, ARC(0x55), (int) ARC(0x56), 5, 1, 0);               \
+            MotionMoveF(em, 0);                                                                \
+            if (DOWN) {                                                                        \
+                em2dSetDownEff(em);                                                            \
+            } else {                                                                           \
+                em2dSetdLandingEff(em);                                                        \
+            }                                                                                  \
+            (em)->xFE = NEXT;                                                                  \
+        } else {                                                                               \
+            em2dSetFallMatrix(em);                                                             \
+            if (END_INC) {                                                                     \
+                if (MotionMoveF(em, 0)) {                                                      \
+                    (em)->xFE++;                                                               \
+                }                                                                              \
+            } else {                                                                           \
+                MotionMoveF(em, 0);                                                            \
+            }                                                                                  \
+        }                                                                                      \
     }
-    return 0;
-}
 
 static void em2d_R1_Die_Wall(cEm2d* em)
 {
     Em2dWork* w = EM2D_WK(em);
+    f32 fl;
     Vec ofs;
     Mtx m;
 
@@ -4355,11 +4348,7 @@ static void em2d_R1_Die_Wall(cEm2d* em)
         w->flags |= 0x4000;
         em->xFE++;
     case 1:
-        if (em2dDieFallStep(em, w, 0, 2)) {
-            break;
-        }
-        em2dSetFallMatrix(em);
-        MotionMoveF(em, 0);
+        EM2D_DIE_FALL(em, w, ofs, fl, 0, 2, 0);
         break;
     case 2:
         em->xFE++;
@@ -4375,6 +4364,8 @@ static void em2d_R1_Die_Wall(cEm2d* em)
 static void em2d_R1_Die_Air(cEm2d* em)
 {
     Em2dWork* w = EM2D_WK(em);
+    f32 fl;
+    Vec d;
 
     w->flags |= 0x840;
     em->setStatus(3);
@@ -4384,32 +4375,22 @@ static void em2d_R1_Die_Air(cEm2d* em)
         RotMatrix(em->mat, &em->rot);
         TransMatrix(em->mat, &em->pos);
         ScaleMatrix(em->mat, &em->scale);
-        w->spd.y = 0.0f;
-        w->spd.z = -100.0f;
         w->spd.x = 0.0f;
+        w->spd.z = -100.0f;
+        w->spd.y = 0.0f;
         PSMTXMultVecSR(em->mat, &w->spd, &w->spd);
         MotionSetCore(em, &em->mot, ARC(0x53), 0, 0, 5, 0);
         SndCall(8, 0xF, &em->pos, em->id, 0, em);
         w->flags |= 0x4000;
         em->xFE++;
     case 1:
-        if (em2dDieFallStep(em, w, 0, 4)) {
-            break;
-        }
-        em2dSetFallMatrix(em);
-        if (MotionMoveF(em, 0)) {
-            em->xFE++;
-        }
+        EM2D_DIE_FALL(em, w, d, fl, 0, 4, 1);
         break;
     case 2:
         MotionSetCore(em, &em->mot, ARC(0x54), 0, 0, 5, 0);
         em->xFE++;
     case 3:
-        if (em2dDieFallStep(em, w, 1, 4)) {
-            break;
-        }
-        em2dSetFallMatrix(em);
-        MotionMoveF(em, 0);
+        EM2D_DIE_FALL(em, w, d, fl, 1, 4, 0);
         break;
     case 4:
         em->xFE++;
@@ -4425,6 +4406,8 @@ static void em2d_R1_Die_Air(cEm2d* em)
 static void em2d_R1_Die_Ceiling(cEm2d* em)
 {
     Em2dWork* w = EM2D_WK(em);
+    f32 fl;
+    Vec d;
     Mtx m;
 
     w->flags |= 0x40;
@@ -4442,11 +4425,7 @@ static void em2d_R1_Die_Ceiling(cEm2d* em)
         w->flags |= 0x4000;
         em->xFE++;
     case 1:
-        if (em2dDieFallStep(em, w, 0, 2)) {
-            break;
-        }
-        em2dSetFallMatrix(em);
-        MotionMoveF(em, 0);
+        EM2D_DIE_FALL(em, w, d, fl, 0, 2, 0);
         break;
     case 2:
         em->xFE++;

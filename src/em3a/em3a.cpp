@@ -934,15 +934,15 @@ static void em3a_R1_B_HideWait(cEm3a* em)
             break;
         }
         if (w->turnDir) {
-            f32 ry;
-
+            // LIMIT_ANGLE written in both arms: the tails are cross-jumped after reload, while
+            // a shared statement makes `ry` a global pseudo and swaps the f0/f13 temps.
             if (w->turnDir & 1) {
-                ry = 0.02617994f + em->rot.y;
+                em->rot.y += 0.02617994f;
+                em->rot.y = LIMIT_ANGLE(em->rot.y);
             } else {
-                ry = em->rot.y - 0.02617994f;
+                em->rot.y -= 0.02617994f;
+                em->rot.y = LIMIT_ANGLE(em->rot.y);
             }
-            em->rot.y = ry;
-            em->rot.y = LIMIT_ANGLE(em->rot.y);
         }
         if (w->timer) {
             w->timer--;

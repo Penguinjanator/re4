@@ -1257,7 +1257,10 @@ static void em2c_R1_Walk(cEm2c* em)
         if (ang < -0.785398185f) {
             ang = -0.785398185f;
         }
-        w->blendVal = w->blendVal * 0.800000012f + ang * 324.676086f * 0.200000003f;
+        {
+            f32 blend = ang * 324.676086f; // separate statement: pool order 324.676086, 0.8, 0.2
+            w->blendVal = w->blendVal * 0.800000012f + blend * 0.200000003f;
+        }
         em->rot.y += w->blendVal * 0.00392156886f * 0.0490873866f;
         em->rot.y = LIMIT_ANGLE(em->rot.y);
         em2cBlendMotSetI(em, w->blendM0, w->blendM1, w->blendM2, w->blendA, 0, 0, w->blendD);
@@ -3008,7 +3011,10 @@ static void em2c_R1_F_Walk(cEm2c* em)
         if (ang < -1.04719758f) {
             ang = -1.04719758f;
         }
-        w->blendVal = w->blendVal * 0.800000012f + ang * 243.50705f * 0.200000003f;
+        {
+            f32 blend = ang * 243.50705f; // separate statement: pool order 243.50705, 0.8, 0.2
+            w->blendVal = w->blendVal * 0.800000012f + blend * 0.200000003f;
+        }
         em->rot.y += w->blendVal * 0.00392156886f * 0.0490873866f;
         em->rot.y = LIMIT_ANGLE(em->rot.y);
         em2cBlendMotSetI(em, w->blendM0, w->blendM1, w->blendM2, w->blendA, 0, 0, w->blendD);
@@ -3171,7 +3177,6 @@ static void em2c_R1_W_Walk(cEm2c* em)
     f32 ny;
     int t;
     int r;
-    u32 flags;
 
     w->flags |= 0x120;
     em->setStatus(3);
@@ -3220,9 +3225,8 @@ static void em2c_R1_W_Walk(cEm2c* em)
             EmRoutineSet(em, 1, 0x20, 0, 0);
             break;
         }
-        flags = w->flags;
         ny = w->wallNrm.y;
-        if ((flags & 1) && plPos.x > -300.0f && plPos.x < 300.0f && plPos.y > 0.0f && plPos.y < 2200.0f &&
+        if ((w->flags & 1) && plPos.x > -300.0f && plPos.x < 300.0f && plPos.y > 0.0f && plPos.y < 2200.0f &&
             plPos.z > 0.0f && plPos.z < 2000.0f) {
             if (ny > 0.899999976f) {
                 d.x = 0.0f;
@@ -3238,7 +3242,7 @@ static void em2c_R1_W_Walk(cEm2c* em)
                 break;
             }
         }
-        if (ny < -0.899999976f && em->plDist2 < 1000000.0f) {
+        if (ny < -0.899999976f && em->plDist2 < 250000.0f) {
             if (Rnd() % 10 > 2) {
                 EmRoutineSet(em, 1, 0x1E, 0, 0);
             } else {
@@ -3246,7 +3250,7 @@ static void em2c_R1_W_Walk(cEm2c* em)
             }
             break;
         }
-        t = flags & 0x2000;
+        t = w->flags & 0x2000;
         if (t) {
             EmRoutineSet(em, 1, 0x20, 0, 0);
             break;
@@ -4077,39 +4081,57 @@ static void em2c_R1_Dm_Down(cEm2c* em)
 }
 
 // Damage fall step: the position follows `spd` with gravity; on the floor the landing motion.
-static inline int em2cDmFallLand(cEm2c* em, Em2cWork* w, int down)
-{
-    Vec v;
-    f32 fl;
-
-    PSVECAdd(&em->pos, &w->spd, &em->pos);
-    w->spd.y -= 20.0f;
-    em->dmType = 2;
-    fl = SatMgr.getFloor(&em->pos, 600.0f, 100000.0f, 0, 0);
-    PSVECAdd(&em->pos, &w->spd, &em->pos);
-    if (em->pos.y < fl) {
-        em->pos.y = fl;
-        v.x = 0.0f;
-        v.y = 0.0f;
-        v.z = 1.0f;
-        PSMTXMultVecSR(em->mat, &v, &v);
-        em->rot.y = atan2f(v.x, v.z);
-        MotionSetCore(em, &em->mot, ARC(0x69), (int) ARC(0x6A), 5, 1, 0);
-        MotionMoveF(em, 0);
-        if (down) {
-            em2cSetDownEff(em);
-        } else {
-            em2cSetdLandingEff(em);
-        }
-        em->xFE = 4;
-        return 1;
+// The fall step of the damage/die routines, a macro (not an inline: integrate.c drops the
+// RTX_UNCHANGING_P flag of an inlined body's constant-pool loads, which then depend on the
+// preceding byte store and sink below the int argument moves). The landing tail (`xFE = next`)
+// and the fall arm live inside it, so the caller has no return-value diamond.
+#define EM2C_DM_FALL(em, w, v_, DM_TYPE, DOWN, ATARI_ON, NEXT, FALL_MTX, END_INC)                \
+    {                                                                                          \
+        f32 fl_;                                                                               \
+                                                                                               \
+        PSVECAdd(&(em)->pos, &(w)->spd, &(em)->pos);                                           \
+        (w)->spd.y -= 20.0f;                                                                   \
+        if (DM_TYPE) {                                                                         \
+            (em)->dmType = 2;                                                                  \
+        }                                                                                      \
+        fl_ = SatMgr.getFloor(&(em)->pos, 600.0f, 100000.0f, 0, 0);                             \
+        PSVECAdd(&(em)->pos, &(w)->spd, &(em)->pos);                                           \
+        if ((em)->pos.y < fl_) {                                                               \
+            (em)->pos.y = fl_;                                                                 \
+            v_.x = 0.0f; \
+            v_.y = 0.0f; \
+            v_.z = 1.0f; \
+            PSMTXMultVecSR((em)->mat, &v_, &v_);                                               \
+            (em)->rot.y = atan2f(v_.x, v_.z);                                                  \
+            MotionSetCore(em, &(em)->mot, ARC(0x69), (int) ARC(0x6A), 5, 1, 0);               \
+            MotionMoveF(em, 0);                                                                \
+            if (DOWN) {                                                                        \
+                em2cSetDownEff(em);                                                            \
+            } else {                                                                           \
+                em2cSetdLandingEff(em);                                                        \
+            }                                                                                  \
+            if (ATARI_ON) {                                                                    \
+                AtariOn(&(em)->atari, 0x300);                                                  \
+            }                                                                                  \
+            (em)->xFE = NEXT;                                                                  \
+        } else {                                                                               \
+            if (FALL_MTX) {                                                                    \
+                em2cSetFallMatrix(em);                                                         \
+            }                                                                                  \
+            if (END_INC) {                                                                     \
+                if (MotionMoveF(em, 0)) {                                                      \
+                    (em)->xFE++;                                                               \
+                }                                                                              \
+            } else {                                                                           \
+                MotionMoveF(em, 0);                                                            \
+            }                                                                                  \
+        }                                                                                      \
     }
-    return 0;
-}
 
 static void em2c_R1_Dm_Jump(cEm2c* em)
 {
     Em2cWork* w = EM2C_WK(em);
+    Vec v;
     Vec ofs;
     u8 fe;
 
@@ -4126,8 +4148,8 @@ static void em2c_R1_Dm_Jump(cEm2c* em)
         RotMatrix(em->mat, &em->rot);
         TransMatrix(em->mat, &em->pos);
         ScaleMatrix(em->mat, &em->scale);
-        w->spd.y = 0.0f;
         w->spd.x = 0.0f;
+        w->spd.y = 0.0f;
         w->spd.z = -100.0f;
         PSMTXMultVecSR(em->mat, &w->spd, &w->spd);
         MotionSetCore(em, &em->mot, ARC(0x67), 0, 0, 5, 0);
@@ -4140,23 +4162,13 @@ static void em2c_R1_Dm_Jump(cEm2c* em)
         EffectEfmDelete(0, w->espKind2, (int) em);
         em->xFE++;
     case 1:
-        if (em2cDmFallLand(em, w, 0)) {
-            break;
-        }
-        em2cSetFallMatrix(em);
-        if (MotionMoveF(em, 0)) {
-            em->xFE++;
-        }
+        EM2C_DM_FALL(em, w, v, 1, 0, 0, 4, 1, 1);
         break;
     case 2:
         MotionSetCore(em, &em->mot, ARC(0x68), 0, 0, 5, 0);
         em->xFE++;
     case 3:
-        if (em2cDmFallLand(em, w, 1)) {
-            break;
-        }
-        em2cSetFallMatrix(em);
-        MotionMoveF(em, 0);
+        EM2C_DM_FALL(em, w, v, 1, 1, 0, 4, 1, 0);
         break;
     case 4:
         em->xFE++;
@@ -4201,12 +4213,7 @@ static void em2c_R1_Dm_Wall(cEm2c* em)
         EffectEfmDelete(0, w->espKind2, (int) em);
         em->xFE++;
     case 1:
-        if (em2cDmFallLand(em, w, 1)) {
-            em->xFE = 2;
-            break;
-        }
-        em2cSetFallMatrix(em);
-        MotionMoveF(em, 0);
+        EM2C_DM_FALL(em, w, ofs, 1, 1, 0, 2, 1, 0);
         break;
     case 2:
         em->xFE++;
@@ -4346,6 +4353,7 @@ static void em2c_R1_Dm_Freeze(cEm2c* em)
 static void em2c_R1_Dm_C_Freeze(cEm2c* em)
 {
     Em2cWork* w = EM2C_WK(em);
+    Vec v;
     u8 fe;
 
     w->flags |= 0x40;
@@ -4354,7 +4362,7 @@ static void em2c_R1_Dm_C_Freeze(cEm2c* em)
     switch (fe) {
     case 0:
         PSVECScale(&w->wallNrm, &w->spd, 100.0f);
-        em->pos = pPL->pos;
+        em->pos = pPLS->pos;
         em->pos.y += 6000.0f;
         em->rot.y = pPLS->rot.y + 3.14159274f;
         em->rot.y = LIMIT_ANGLE(em->rot.y);
@@ -4373,13 +4381,7 @@ static void em2c_R1_Dm_C_Freeze(cEm2c* em)
         EffectEfmDelete(0, w->espKind2, (int) em);
         em->xFE++;
     case 1:
-        if (em2cDmFallLand(em, w, 1)) {
-            AtariOn(&em->atari, 0x300);
-            em->xFE = 2;
-            break;
-        }
-        em2cSetFallMatrix(em);
-        MotionMoveF(em, 0);
+        EM2C_DM_FALL(em, w, v, 0, 1, 1, 2, 0, 0);
         break;
     case 2:
         em->xFE++;
@@ -4711,19 +4713,14 @@ static void em2c_R1_Die_Wall(cEm2c* em)
         EmSetDieCntE(em);
         em->xFE++;
     case 1:
-        if (em2cDmFallLand(em, w, 0)) {
-            em->xFE = 2;
-            break;
-        }
-        em2cSetFallMatrix(em);
-        MotionMoveF(em, 0);
+        EM2C_DM_FALL(em, w, ofs, 0, 0, 0, 2, 1, 0);
         break;
     case 2:
         em->xFE++;
     case 3:
         w->flags &= ~0x40;
         if (MotionMoveF(em, 0)) {
-            EmRoutineSet(em, 3, 0, 0, 0);
+            EmRoutineSet(em, 3, 3, 0, 0);
         }
         break;
     }
