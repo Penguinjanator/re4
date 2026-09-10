@@ -956,7 +956,13 @@ static void edit_litmask()
         }
     }
     if (pWork->joy[0].rep & 0x100) {
-        u32 mask = obj->lightInfo.x54 ^ (1 << pWork->id);
+        // COMPILER-DIFF: #13 (reload-materialised `li 1` after the x54 load) + candidate #17 (value-carrying pins:
+        // the asm-li alone rotates r9/r11/r0)
+        register u32 x54 asm("r11");
+        register u32 one asm("r9");
+        x54 = obj->lightInfo.x54;
+        asm("li %0,1" : "=r"(one) : "r"(x54));
+        u32 mask = x54 ^ (one << pWork->id);
 
         do {
             obj->lightInfo.x54 = mask;
@@ -1742,23 +1748,23 @@ static void printEditTable()
     int no;
     int x;
     int col;
+    int x2;  // the tail column base: a second variable (x for 4/8 lives in r3 and never crosses a call; the
+             // 0x11 base is callee-saved), and `obj->be_flag` is re-read at every use (the target's `mr r11,r0`
+             // is gcse's PRE copy of the isAlive load, not a `flag` local)
     char name[8];
 
     eprintf(0x20, 0x15E, 4, 0, "NO= NAME==== ID LIT_MASK OT FLAG COL  TEX POS ANG SCL ========");
     for (i = 0, y = 0x1A, no = pWork->top; i < pWork->rows; i++, y++, no++) {
-        u32 flag;
-
         obj = SmdGetGroupObjPtr(no);
         x = 4;
         if (obj == NULL || !obj->isAlive()) {
             col = 0x14;
         } else {
-            flag = obj->be_flag;
             if (obj->x12E != 2 && obj->x12E != 4) {
                 col = 5;
             } else {
                 col = 0;
-                if (!(flag & 4)) {
+                if (!(obj->be_flag & 4)) {
                     col = 0x14;
                 }
             }
@@ -1769,7 +1775,6 @@ static void printEditTable()
             eprintf(x * 8, y * 14, 0x14, 0, "NO REGIST");
             continue;
         }
-        flag = obj->be_flag;
         switch (obj->x12E) {
         case 2:
         case 4:
@@ -1782,7 +1787,7 @@ static void printEditTable()
         }
         if (obj->x12E == 4) {
             col = 6;
-        } else if (!flagBit(flag, 4) || !flagBit(flag, 2)) {
+        } else if (!flagBit(obj->be_flag, 4) || !flagBit(obj->be_flag, 2)) {
             col = 0x14;
         } else {
             col = 0;
@@ -1792,7 +1797,7 @@ static void printEditTable()
         }
         if (obj->x12E != 2 && obj->x12E != 4) {
             eprintf(x * 8, y * 14, col, 0, "UNKNOWN");
-            x = 0x11;
+            x2 = 0x11;
         } else {
             char* n;
             int j;
@@ -1800,23 +1805,34 @@ static void printEditTable()
             for (j = 0; j < 8; j++) {
                 name[j] = 0;
             }
-            n = pWork->nameTbl[no];
+            {
+                // COMPILER-DIFF: 3 -- the original keeps a fresh `lis scrollWorkPtr@ha` at each of the three
+                // pWork sites of the loop; our block LCM PREs this single occurrence above the name loop and
+                // then merges all three into one hoisted high (r14), which displaces the "SCL" string high.
+                ScrollWork* wb;
+                u32 hib;
+                asm volatile("lis %0,scrollWorkPtr@ha" : "=r"(hib));
+                asm("lwz %0,scrollWorkPtr@l(%1)" : "=r"(wb) : "r"(hib));
+                n = wb->nameTbl[no];
+            }
             if ((u32) n >= 0x80000000 && (u32) n <= 0x82FFFFFF) {
                 strncpy(name, n, 7);
             }
             name[7] = 0;
             eprintf(x * 8, y * 14, col, 0, "%8s", name);
-            x = 0x11;
+            // COMPILER-DIFF: candidate #12 (cprop): the original keeps `(x2 + k) * 8` unfolded although both arms
+            // set 0x11; our gcse cprop merges the two identical constant sets and folds the tail
+            asm("li %0,0x11" : "=r"(x2));
         }
-        eprintf(x * 8, y * 14, col, 0, "%02d", obj->x12E == 2 ? obj->type : obj->id);
-        eprintf((x + 3) * 8, y * 14, col, 0, "%08x", obj->lightInfo.x54);
-        eprintf((x + 0xC) * 8, y * 14, col, 0, "%02d", obj->x12F);
-        eprintf((x + 0xF) * 8, y * 14, col, 0, "FLAG");
-        eprintf((x + 0x14) * 8, y * 14, col, 0, "%s", cullShort[obj->x135]);
-        eprintf((x + 0x19) * 8, y * 14, col, 0, "TEX");
-        eprintf((x + 0x1D) * 8, y * 14, col, 0, "POS");
-        eprintf((x + 0x21) * 8, y * 14, col, 0, "ANG");
-        eprintf((x + 0x25) * 8, y * 14, col, 0, "SCL");
+        eprintf(x2 * 8, y * 14, col, 0, "%02d", obj->x12E == 2 ? obj->type : obj->id);
+        eprintf((x2 + 3) * 8, y * 14, col, 0, "%08x", obj->lightInfo.x54);
+        eprintf((x2 + 0xC) * 8, y * 14, col, 0, "%02d", obj->x12F);
+        eprintf((x2 + 0xF) * 8, y * 14, col, 0, "FLAG");
+        eprintf((x2 + 0x14) * 8, y * 14, col, 0, "%s", cullShort[obj->x135]);
+        eprintf((x2 + 0x19) * 8, y * 14, col, 0, "TEX");
+        eprintf((x2 + 0x1D) * 8, y * 14, col, 0, "POS");
+        eprintf((x2 + 0x21) * 8, y * 14, col, 0, "ANG");
+        eprintf((x2 + 0x25) * 8, y * 14, col, 0, "SCL");
     }
 }
 

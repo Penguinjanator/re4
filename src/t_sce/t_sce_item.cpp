@@ -127,7 +127,7 @@ static SceAtWorkPtr sceItemCur;
 extern "C" {
 void tSceItemInit_base();
 void tSceItemInit();
-void set_filename();
+static void set_filename();  // duplicated in t_block / t_sce_at: static here (they own the module names)
 static void tSceItemExit();
 static void tSceItemMainMenu();
 static void tSceItemAreaEdit();
@@ -139,7 +139,7 @@ static void tSceItemAreaEdit_AreaCopy();
 static void tSceItemAreaEdit_AreaPaste();
 static void tSceItemAreaEdit_CopyBuffClear();
 static void tSceItemAreaEdit_AreaDelete();
-void angle_arrow_disp(SceAtWork* a);
+static void angle_arrow_disp(SceAtWork* a);
 void tSceItemAreaEdit_disp();
 static void tSceItemAreaEdit_AreaMove();
 static void tSceItemAreaEdit_DataInput();
@@ -304,7 +304,7 @@ void tSceItemInit()
     loadItemIdName(buf, (char*) pW->idName, (char*) pW->idName2);
 }
 
-void set_filename()
+static void set_filename()
 {
     sprintf(pW->path, "d:\\bio4\\room\\st%1x\\r%03x\\r%03x.ita", pG->stage_no, pG->room_id, pG->room_id);
     sprintf(pW->pathX, "x:\\soft\\room\\st%1x\\r%03x\\r%03x.ita", pG->stage_no, pG->room_id, pG->room_id);
@@ -614,7 +614,7 @@ static void tSceItemAreaEdit_AreaDelete()
 
 // the hit-angle arrow of an area: centre, direction and the +-range fan (the older RotMatrix build
 // of t_sce_at's angle_arrow_disp)
-void angle_arrow_disp(SceAtWork* a)
+static void angle_arrow_disp(SceAtWork* a)
 {
     Vec center;
     Vec p;

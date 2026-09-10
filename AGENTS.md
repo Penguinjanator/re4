@@ -12306,3 +12306,80 @@ ninja -k 0 && dtk shasum -c` = 111 OK after each accepted change.
   jump-to-following at jump2 (cross-jump or a reload no-op/USE between), keeping the compare, or (2) a fold that
   happens after gcse but before flow1 (cse2 with LOOP_END knowledge, the post-loop jump pass), dropping the compare
   too; combine cannot fold a PPC compare, jump2 cannot fold anything.
+
+### Tool RELs, bytes-first pass 9 (t_scroll 40->41/42: edit_litmask 2->0, printEditTable 112->71; t_snd_vol editScreenDisp 82->11; t_sce_item duplicates made static; nothing flipped; 2026-09-10)
+
+- Harness /home/adityas/.cache/tools_p9 (tools_p8 copies with the paths rewritten; `tryv.py` variant names must be at
+  least two characters -- a one-letter name (`v_UNIT_A.o`) is silently not produced by ngccc/NgcAs; background
+  `( ... &)` sweeps are killed with the tool call, run them in the foreground with a long block).
+- **edit_litmask (t_scroll, 2 -> 0, tagged `#13` + `candidate #17`)**: `register u32 x54 asm("r11"); register u32 one
+  asm("r9"); x54 = obj->lightInfo.x54; asm("li %0,1" : "=r"(one) : "r"(x54)); mask = x54 ^ (one << pWork->id);`. The
+  target's `lbz id; lwz x54; li r9,1; slw` is the #13 reload-materialised constant (LUID right before the `slw`, after
+  the lwz; sched2 ties on priority/dependents and LUID decides); the asm-li alone (pass 8: 5 words) leaves the x54
+  pseudo and the `one` output to local-alloc, which rotates r9/r11/r0 -- the two value-carrying pins fix the names.
+  Pinning `id` to r0 as well is worse (2): the lbz destination must stay a free temp.
+- **printEditTable (t_scroll, 112 -> 71)**, three findings:
+  (1) `x` (the column) is TWO variables in the original: `x = 4` / `x = 8` live in r3 (`li r3,4` AFTER the
+  SmdGetGroupObjPtr call, `slwi r3,r3,3` at the eprintf, `slwi r24,r3,3` PRE'd across strncpy) and the tail base
+  0x11 in a callee-saved register (r27, the dead `no`). One `int x` is one pseudo that crosses the tail's nine eprintf
+  calls, so ours hoisted `li r26,4` above the call (REG_N_CALLS_CROSSED > 0 lets sched1 move the set) and kept it
+  callee-saved everywhere. A second variable `x2` for the tail gives the r3 shape for free (a pseudo with
+  N_CALLS_CROSSED == 0 gets the `sched_before_next_call`-style anti link that keeps its set after the call).
+  (2) `flag = obj->be_flag` as a local is wrong: the target's `lwz r0,0(r28); andi. r9,r0,0x201; mr r11,r0; cmpwi
+  r9,1` is gcse PRE of the LATER `obj->be_flag` reads (fully redundant after the isAlive load): the insertion `R =
+  (mem be_flag)` at the end of the isAlive block becomes `mr r11,r0` through cse2. Re-read `obj->be_flag` at every
+  use; the second block now has the copy (ours issues the `mr` before the `andi.`, a tie), the first block's copy is
+  still cprop'd away by ours (it has one use).
+  (3) the tail `(x2 + 3) * 8` is NOT folded in the target although both arms set 0x11 -- our gcse's
+  `insert_set_in_table` merges two `(set x2 17)` insns into one entry (expr_equiv_p on the whole SET), so the
+  constant is available at the join and cprop folds. The original's cprop does fold `x = 8` into the NO REGIST /
+  UNKNOWN MODEL arms (`li r3,0x40`), so cross-block cprop exists there; what it did not do is merge the two arm
+  sets. Applied `asm("li %0,0x11" : "=r"(x2))` in the else arm (tagged `candidate #12 (cprop)`, the UNKNOWN arm plain):
+  111 -> 82. Note an input-less asm is PRE'd (gcse treats ASM_OPERANDS as an expression): the `li` moved to the
+  else arm's preheader block with a copy `mr r31,r27` at the statement -- the target has the SAME early `li r27,0x11`
+  without the copy, so the original's set was in the preheader block (before the name loop) in the source.
+  (4) the three `pWork` sites: ours PREs high(scrollWorkPtr) of the nameTbl site above the j loop (single occurrence,
+  block LCM never delays through a loop header) and then merges all three into one hoisted `lis r14`, which displaces
+  the "SCL" string high (target r14) and adds a `lis r9` at the last eprintf. The edit_select_sub asm-high recipe at the
+  nameTbl site alone (`asm volatile("lis")` + `asm("lwz")`, tagged 3) leaves the other two sites fresh like the target
+  (82 -> 71). Left: i/y/no allocation (target y=r31, no=r27, i=r26; ours i first: 14 refs/226 vs y 13/228 -- the refs are
+  1 + 2 x (4 PRE'd `+1` insertions + latch copy + compare), and the original has the same sets; declaration and
+  for-init orders change nothing), the first block's `mr r11,r0`, and `x*8` PRE into r24 before the name loop.
+- **editScreenDisp (t_snd_vol, 82 -> 11)**: (1) `x` is reused in loop 2 (`x = 0x40;` before the loop, `pt[0].x = x`):
+  the target's `li r31,0x40` before loop 2 and `extsh r31,r9` in loop 1 are the same callee-saved pseudo, i.e. x is
+  live across loop 2's calls (ours had loop 1's x block-local in r9 and pushed every callee-saved name by one);
+  (2) `x = (u16) (s16) (...)` for the target's `psq_st qr5` + `lhz`; (3) loop 2's `pt[0].y`/`pt[1].y` through the
+  existing `s16 v` (`extsh` then two `sth`; two direct member expressions store the SI sum without the extsh);
+  (4) the post-loop `mr r10,r23` copy of `base` from which the target computes `base - 4` and `base + rows*0x14 + 4`:
+  ours PREs the single `base - 4` above the two loops (the block-LCM loop-header rule again). Applied
+  `asm("mr %0,%1" : "=r"(b) : "r"(base), "r"(i))` after the loops (tagged 3) -- the dummy `i` input keeps gcse from
+  PREing the asm itself above the loops (with `base` alone it moved there, 94); store order in that block brute-forced
+  (720 permutations, `x, z0, x1, y1, y0, z1` = 11). Left (11 words): three local-alloc temps where the target does not
+  reuse a dying source (`extsh r10,r0` / `subi r0,r10,4` vs ours `extsh r0,r0` / `subi r11,r11`, and `lwz r10` vs
+  `lwz r11` for the work pointer) -- the local-alloc fake-lifetime parity family; barriers, launders, fresh/int temps
+  and all 726 loop-2 statement orders leave it.
+- **t_sce_item**: `set_filename` / `angle_arrow_disp` are `static` now (t_block owns `set_filename`, t_sce_at
+  `angle_arrow_disp` in the t_sce .sym). Safe: our objects carry no relocation against them (NgcAs resolves the
+  same-section `bl`s; the split objects' REL24/REL14 entries are dtk artefacts), so the scope has no ADDR field to
+  change; 43/43 and 111 OK after the change.
+- **plmove10 (t_atari, 19, left) -- the mechanism is sched1-side, not sched2-side**: the target's `stw` copy stores
+  come AFTER the three `stfs` RMW stores; after reload every `[r30+N]`/`[r1+8]` frame store conflicts pairwise with
+  the `[r31+N]` stores (find_base_term returns 0 for `(plus r31 N)`, the same in both builds), so the sched2 output
+  dependences follow the RTL order and the original's RTL at sched2 entry already had stfs before stw. Our sched1
+  issues the copy stores first because their loads are ready early (`46 prio 9` ties the `lfs`, LUID wins). SN's
+  toplev does NOT enable `-fstrict-aliasing` at -O2 (only the explicit flag; `get_alias_set` returns 0 otherwise), so
+  the "u32 view / alias set != 0" idea is void: `-fstrict-aliasing` on the unit regresses two functions and leaves
+  plmove10 at 19; `u32` word temporaries loaded before the RMW and stored after give the target's load/store
+  structure but lose the `&w->pos`/`&old` pseudo addressing (`4(r9)`, `8(r30)`: 41-55 words).
+- **tcSetBesideOffset (t_camera_data, 27, left)**: manual strength reduction (`u32 ofs = 0x18C; ofs += 0xC` etc., with
+  and without `register ... asm("r3")` pins) 68-97; the giv list is prepended (record_giv), so the 0xc giv (found first)
+  is initialised last in both builds and the 4-giv is the shorter allocno in ours; a different priority in the original
+  is not explained by refs or lengths.
+- **ToolSeAt (t_se_at, 2, left)**: `mr r0,r3` vs `lis r9` after the Debug_alloc call is a sched2 tie at equal priority
+  (both class 3 against the call: the result copy's data link costs 1, the `lis` has a cost-0 ANTI link); the deciding
+  dependents count includes the memclr argument copy `mr r3,r0` (insn 29), which ours still has at sched2 -- it is only
+  deleted by jump2's noop-move `find_equiv_reg` rule -- and which the original evidently did not have there. Alloc-
+  through-a-local, `PSet`-style and volatile store forms: 2-6 words.
+- DB_NUMERIC ctor (db_widget, 2): `register f32 arg asm("fr1"); arg = 0.0f;` as an input of the keep-alive asm and the
+  SetDefault argument moves the `fmr f1,f31` too early (before `lfs f0`, 5 words); the target issues it between the
+  first and second zero store.

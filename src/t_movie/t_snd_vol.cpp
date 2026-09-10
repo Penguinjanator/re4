@@ -1013,23 +1013,32 @@ void editScreenDisp()
         TprimDrawFrameFn_s16(pt, &col, 2);
     }
     *(u32*) &col = 0x80808080;
+    x = 0x40;
     for (i = 0; i <= rows; i++) {
-        pt[0].x = 0x40;
-        pt[0].y = base + i * 0x14;
+        v = base + i * 0x14;
+        pt[0].x = x;
+        pt[0].y = v;
         pt[0].z = 0;
         pt[1].x = 0x1E0;
-        pt[1].y = base + i * 0x14;
+        pt[1].y = v;
         pt[1].z = 0;
         TprimDrawFrameFn_s16(pt, &col, 2);
     }
     *(u32*) &col = 0x80800080;
-    x = (u16) ((work->curDist - (f32) work->left) * 32.0f) + 0x40;
-    pt[0].x = x;
-    pt[0].y = base - 4;
-    pt[0].z = 0;
-    pt[1].x = x;
-    pt[1].y = base + rows * 0x14 + 4;
-    pt[1].z = 0;
+    x = (u16) (s16) ((work->curDist - (f32) work->left) * 32.0f) + 0x40;
+    {
+        // COMPILER-DIFF: 3 -- the original computes `base - 4` and `base + rows * 0x14 + 4` here from a copy of
+        // base (`mr r10,r23`); our block LCM PREs the single `base - 4` occurrence above the two loops. The
+        // opaque copy (with the loop counter as a dummy input so it is not hoisted itself) is that copy.
+        s16 b;
+        asm("mr %0,%1" : "=r"(b) : "r"(base), "r"(i));
+        pt[0].x = x;
+        pt[0].z = 0;
+        pt[1].x = x;
+        pt[1].y = b + rows * 0x14 + 4;
+        pt[0].y = b - 4;
+        pt[1].z = 0;
+    }
     TprimDrawFrameFn_s16(pt, &col, 2);
     pt[0].x = 0x3C;
     pt[0].y = curY;
