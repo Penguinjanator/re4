@@ -83,10 +83,17 @@ typedef struct MPVMC {
 	Uint8 pad44[0x54 - 0x44];
 } MPVMC;
 
-/* block decoder parameters (mpv_cdec.c -> intra/nintra block decode function) */
+/* block decoder parameters (mpv_cdec.c -> intra/nintra block decode function; the first six are
+ * the run/level decode state of mpvabdec.c) */
 typedef struct {
-	Uint8 pad0[0x1C];
-	Float64 *dst;                   /* 0x1C block coefficient buffer */
+	Sint32 run;                     /* 0x00 */
+	Sint32 level;                   /* 0x04 */
+	Sint32 sign;                    /* 0x08 */
+	Sint32 len;                     /* 0x0C code length in bits */
+	Sint32 idx0;                    /* 0x10 zigzag position of the first coefficient */
+	Sint32 idx;                     /* 0x14 zigzag position of the last coefficient */
+	Sint32 pad18;
+	Float64 *dst;                   /* 0x1C block coefficient buffer (64 Float32) */
 	Uint8 *iqm;                     /* 0x20 quantiser matrix */
 	Sint32 qscale;                  /* 0x24 */
 	Sint32 *dcpred;                 /* 0x28 intra DC predictor of the component */

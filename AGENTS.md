@@ -1894,6 +1894,17 @@ Write the remaining CRI units for source completeness; flag only what matches.
 - M4 byte-swap store: our 2.4.7 folds any dead `store(bswap32(x))` into `stwbrx` regardless of
   spelling (only `nopeephole` stops it, which breaks `rlwimi` merging); the Sofdec originals keep
   `rlwinm/rlwimi x3/stw` (ADX originals do use `stwbrx`). Accept 16 bytes/function.
+- M5 shift forwarding (Sofdec, mpvabdec): our 2.4.7 forwards a shift definition of a local into
+  every rlwinm-foldable use of the same basic block even when the variable is materialised anyway:
+  `code <<= 1; n = (code >> 24) & 0xFF` -> `extrwi n,code_old,8,1` + `slwi code,code_old,1`, and
+  `x = (Uint32)code >> 22; tbl[x >> 1]; ... x & 1` -> two `rlwinm` from `code` plus `srwi x`. The
+  original keeps the materialised register: `slwi r0,r0,1; srwi. r11,r0,24` and `srwi x; clrrwi;
+  clrlwi`. No `-O` level, `-opt` keyword or `#pragma` (opt_propagation, peephole, opt_common_subs,
+  optimization_level...) reproduces it; ours stops forwarding only when the first use in the block
+  is not foldable (a compare/store) or the definition is conditional (`c ? x << 1 : x`). Verified
+  by inserting a dummy compare after the shift: the register assignment of the whole prologue then
+  matches, so the register residue around such sites is M5-caused, not M1. Costs 1-2 instructions
+  and a register renumbering per site (mpvabdec: 6 sites x 3 functions).
 
 - Inlined helper locals are laid out first-declared -> lowest frame offset (reverse of a function's
   own locals); each inlined call gets a block below the previous one.
@@ -1918,6 +1929,46 @@ Write the remaining CRI units for source completeness; flag only what matches.
 - Paired-single inline asm needs the scheduler ON to reproduce swapped adjacent pairs; non-PS asm
   bodies need `#pragma scheduling off`. Inline asm cannot use compiler pool constants: declare
   `static const Float32 x` and use `x@ha`/`x@l`; GQR operands must be numeric.
+
+mpvabdec (`MPVABDEC_NintraBlock/IntraBlock/IntraBlockDc11`, 99.3/99.6/99.6%, residue M5 + M1;
+the three 0x400 `.data` tables are 256-entry `switch` jump tables, one per function):
+- A dense `switch` (256 cases on `(code >> 24) & 0xFF`) is a `.data` jump table (`@N`, one
+  `.rel` per value) with `srwi 24; cmplwi 0xff; bgt after_switch; slwi 2; lwzx; mtctr; bctr`; a
+  sparse one (`0, 1, 2-3, 4-7, default`) is a compare tree. Case bodies are emitted in source order
+  (the original: coefficient cases 0xFF down to 0x00, then the EOB-terminated cases 0xFE down,
+  `default:` first in the sparse switch); `continue` cases branch to the loop head, `break` cases and
+  the out-of-range test fall to the code after the loop.
+- Struct fields are reloaded after every store (`prm->idx = *++zz; ... prm->iqm[prm->idx]` gives
+  `stw; lwz`); several reads in one expression share the reload. `prm->idx = prm->idx0 = v` stores
+  `idx0` first.
+- `p[1]` then `p += 2` in one block gives `lbz 1(p); lbzu 2(p)` (the increment is deferred into the
+  next load); when `p` is dead afterwards the second load is a plain `lbz`.
+- `(Float32)i` is the `xoris 0x8000; stw; lfd; fsubs` double trick with the 0x43300000 word stored
+  per conversion; two conversions in one block use two stack slots with both high-word stores
+  hoisted to the top.
+- `Sint32 code` with `(code >> n) & mask` gives the `rlwinm` forms (`srwi`/`extrwi`) and
+  `(code << 8) < 0` gives `slwi.; bge`; `(Uint32)code >> n` where no mask is wanted (`srwi x` kept
+  as a variable). A `Uint32` look-ahead folds everything into `rlwinm` chains.
+- `(prm->level << 1) * prm->qscale` evaluates `qscale` into the first temporary (target
+  `lwz r11 qscale; slwi r12 level; mullw r11, r12, r11`); `prm->level * 2` evaluates `level` first.
+- `zz = tbl + run` as one expression computes into a temporary and copies (`add r5; lbz; mr r6,r5`);
+  `zz = tbl; zz += run;` defines `zz` directly. The operand order of the loop's `add` for
+  `zz += prm->run` is NOT spelling dependent (`zz += run`, `zz = run + zz`, `&zz[run]` are
+  identical); a pre-loop `zz = tbl; zz += prm->run;` made the loop adds `add zz, run, zz` (target),
+  functions without it keep `add zz, zz, run` (OPEN, 5 sites in IntraBlock/Dc11).
+- A block clear through a pointer field (`prm->dst[i] = 0.0`) reloads the pointer per store (the
+  `Float64` store aliases the field); copy it to a local first.
+- Volatile registers of the loop-invariant locals follow declaration order (first -> lowest) but
+  a value that is a copy of another variable (`code = bbuf`) is ranked last whatever its position
+  (Dc11: target `code r6 ... bbuf r10`, ours `bbuf r6 ... code r10`, M1). The three functions
+  needed three declaration orders (Nintra `code, zz, bbuf, nbuf, bitpos, ptr`; Intra
+  `bbuf, nbuf, bitpos, ptr, zz, code`; Dc11 `bbuf, nbuf, bitpos, ptr, code, zz`).
+- Layouts: `MPV_BLKPRM` 0x00 run, 0x04 level, 0x08 sign, 0x0C len, 0x10 idx0, 0x14 idx (the
+  return value: idx, negated when more than one coefficient was stored); `mpv->scale_tbl` is
+  `Float32[64]`, `mpv->bitmsk_tbl` is read as `Sint16` (`lhax`), `prm->dctbl` as `Uint8`
+  (`(size << 4) | len`); `rl_8` entries are `(len << 16) | (level << 8) | run`, the 11..17-bit
+  tables `(level << 8) | run` halfwords (mpv_vlc.c's `RL(len, a, b)` arguments are really
+  `(len, level, run)`); D pictures (`picatr.pic_type == 4`) skip the AC loop in IntraBlock only.
 
 ## REL modules
 
