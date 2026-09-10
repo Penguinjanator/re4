@@ -801,21 +801,26 @@ static void em21_R1_VsElgigante(cEm21* em)
     case 8:
         MotionSetCore(em, MOTION(em), ARC(0x1A), (int) ARC(0x1D), 3, 5, 0);
         em->xFE++;
-    case 9: {
-        f32 lim;
-
+    case 9:
         w->flags |= 2;
+        // the Muku limit shares the `ang` variable: its f2 argument copy gives the pseudo an f2
+        // preference, so `fabs f2, f1` in every arm
         if (w->stuckTimer) {
-            lim = 0.058904864f;
+            ang = 0.058904864f;
         } else {
-            lim = PI / 40.0f;
+            ang = PI / 40.0f;
         }
-        em->rot.y += Muku(&em->pos, &w->targetPos, em->rot.y, lim);
+        em->rot.y += Muku(&em->pos, &w->targetPos, em->rot.y, ang);
         em->rot.y = LIMIT_ANGLE(em->rot.y);
         em21DirMatrix(em, Muku(&em->pos, &w->targetPos, em->rot.y, PI));
         MotionMoveF(em, 0);
-        d = (em->pos.z - w->barkPos.z) * (em->pos.z - w->barkPos.z);
-        d += (em->pos.x - w->barkPos.x) * (em->pos.x - w->barkPos.x);
+        {
+            // temp computed BEFORE d: combine then substitutes t (the later LOG_LINK is tried
+            // first) and the fmadds keeps d's own register for the dz*dz term
+            f32 t = (em->pos.x - w->barkPos.x) * (em->pos.x - w->barkPos.x);
+            d = (em->pos.z - w->barkPos.z) * (em->pos.z - w->barkPos.z);
+            d += t;
+        }
         if (d < 4000000.0f) {
             ang = fabsf(Muku(&em->pos, &g->pos, em->rot.y, PI));
             if (ang < 1.7453293f) {
@@ -829,7 +834,6 @@ static void em21_R1_VsElgigante(cEm21* em)
             em->xFE = 6;
         }
         break;
-    }
     case 0xA:
         MotionSetCore(em, MOTION(em), ARC(0xA), (int) ARC(0x16), 3, 1, 0);
         em->xFE++;
@@ -1085,10 +1089,14 @@ void em21NeckMove(cEm21* em)
     }
     p = (cParts*) em->getPartsPtr(4);
     if (w->flags & 2) {
-        f = Muku(&em->pos, &p->worldPos, em->rot.y, 1.0471976f);
-        w->neckY += Muku2(w->neckY, f, 0.098174773f);
-        PSVECSubtract(&tp->worldPos, &p->worldPos, &d);
-        len = SQRTF(d.x * d.x + d.z * d.z);
+        // do{}while(0) (COMPILER-DIFF-tagged tie lever): the refs inside count twice, so tp
+        // outranks em in global-alloc (tp r29, em r28); the notes sit at block edges (no barrier)
+        do {
+            f = Muku(&em->pos, &p->worldPos, em->rot.y, 1.0471976f);
+            w->neckY += Muku2(w->neckY, f, 0.098174773f);
+            PSVECSubtract(&tp->worldPos, &p->worldPos, &d);
+            len = SQRTF(d.x * d.x + d.z * d.z);
+        } while (0);
         f = -atan2f(d.y, len);
         if (f > 0.7853982f) {
             f = 0.7853982f;

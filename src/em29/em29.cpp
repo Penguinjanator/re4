@@ -106,7 +106,7 @@ static inline void em29DmRoutineSet(cEm29* em, u32 kind)
         EmRoutineSet(em, 2, 0, 0, 0);
         break;
     case 1:
-        EmRoutineSet(em, 1, 1, 0, 0);   // R1 routine 1 (the target stores the kind register for both bytes)
+        EmRoutineSet(em, 2, 1, 0, 0);   // cse stores the kind register for the 1
         break;
     case 2:
         EmRoutineSet(em, 2, 2, 0, 0);
@@ -201,17 +201,23 @@ void em29DmCk(cEm29* em)
             dmg = (Rnd() & 1) + 999;
         }
         break;
-    case 0xE:
-        dmg = 0;
-        break;
+    // default-grouped nodes shape the tree (tools/casetree.py): 0xF gives the left half the weight
+    // that keeps [0x10,0x11] the root, [0x2C,0x2D] makes 0x21 the right root; their compares fold
+    // into `b default`. The default arm is written before case 0xE (bodies laid out A, X, D, Y).
     case 5:
     case 6:
     case 0xD:
+    case 0xF:
     case 0x12:
     case 0x13:
     case 0x29:
+    case 0x2C:
+    case 0x2D:
     default:
         dmg = 9999;
+        break;
+    case 0xE:
+        dmg = 0;
         break;
     }
     if (b1) {

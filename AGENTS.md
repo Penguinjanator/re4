@@ -6629,3 +6629,86 @@ target) stays unresolved and `make_rel` then fails with "undefined symbol".
   beq; cmpwi 1; beq` and an `add r29,u,st; lwz 0x18(r29)` indexed motion pointer), operateCrank 68,
   execThrough 71, getTargetPos 51, setThrowLantern 46, execRoundSwitch 45; r20e checkPuzzle 366,
   initPuzzle 119, moveCrestDoor 33 (not looked at).
+
+### em2f third pass (32 -> 40/41), em21 (30 -> 33/35), em29DmCk (114 -> 91 words); 2026-09-10
+
+- Harness /tmp/em2f_p (copies of /tmp/em25w mcmp/rb/dis/tdis + /tmp/plx tryv/mdump with the paths
+  rewritten; `tryv.py MOD/UNIT FUNC variants.py [--asm NAME]`, `mdump.sh MOD/UNIT -dX` with `SRC_OVERRIDE`).
+- update_equiv_regs as a local-alloc lever (em2f SwimWait, RisingDragon, Packman routine sets): a
+  function-scope `int one = 1;` with ONE use in another block gets its `li` moved right before the `stb`
+  after sched1, so it is the shortest qty and takes r0 (`li r9,3; li r0,1; stb r0,0xfc`) while the be_flag
+  RMW written BEFORE `EmRoutineSet(em, one, 3, 0, 0)` gives the `stb ff; stb fc; stw; stb fd; stb fe` order
+  (a store whose base pointer dies there has weight -2: derive the order with that in the weight rule).
+- cse2 canonical register (em2f RisingDragon/Packman case 1, `stb r11` from the `andis.` result instead of
+  the timer register): with two pseudos known == 0 (`cmpwi timer,0; bne` fall-through and `andis. t; bne`
+  fall-through) `make_regs_eqv` makes the register whose LAST use lies beyond the current ebb canonical, and
+  in cse2 the timer's last use is the `w->timer--` of the taken branch (cse1 had not yet merged that reload).
+  Fix: give the and-result a later mention — one `u32 hide` assigned in case 1 AND at the function end
+  (`hide = pG->flags_5010 & bit; if (hide == 0)` both times) — so it stays canonical. The decrement's
+  `stw` before the `lwz timer2` needs `do { w->timer--; } while (0);` (LOOP_END barrier); with the
+  `hide` variable the two stores no longer alias-order themselves.
+- `EmRoutineSet(pPL, r, 0xF, 9, r)` (the int inline through pPL, not four `pPL->x = ..` stores): one pPL
+  load for the four `stb`s (the plain byte stores reload pPL after each, byte stores alias everything).
+- CriCamMove/emrock "fresh `lis/addi` for `Camera* cam = &G`" (was OPEN): assign `cam = &G` BEFORE the
+  `Vec* pos = &G.param.pos` / `at` pointers in the tail block. cse then finds no register for `G+N`
+  (the call arguments were hard regs, invalidated by the call) and keeps the lo_sum; the later pointer
+  lo_sums are found in the table (the pre-call argument expressions) and are NOT re-based on `cam`
+  (`use_related_value` cost 2 beats a lo_sum's 3 only for the first of the two). The FPR naming of the
+  distance chain (`fsubs f1,f1,f11; fmadds f1,f1,f1,f0` for dx) followed from the same change.
+- Two-step distance with the intermediate in the variable's register (`fmadds f0, f13, f13, f0`): the
+  fused product is the one whose LOG_LINK combine tries first, i.e. the LAST set before the add in RTL.
+  `f32 t = dx*dx; d = dz*dz; d += t;` (temp computed BEFORE d) fuses dx into d's own register and keeps
+  dz*dz standalone in d (em21 VsElgigante); `d = dz*dz; d += dx*dx` gives the temp-fused form.
+- One f32 variable for a Muku limit and the fabs result (`ang = PI/40; ... Muku(.., ang); ang =
+  fabsf(Muku(..))`): the `fmr f2, ang` argument copy gives the pseudo an f2 preference, `fabs f2, f1` in
+  every arm (em21 VsElgigante, the em22NeckMove "one f32 for every temporary" idiom).
+- Global-alloc weight via a do-while covering a whole block whose notes sit at block edges (em21 NeckMove):
+  `do { f = Muku(..); w->neckY += Muku2(..); PSVECSubtract(&tp->..); len = SQRTF(..); } while (0);` as the
+  entire then-arm doubles tp's refs (3 -> 4 -> priority 8/len) so tp outranks em (r29/r28); LOOP_BEG at
+  the arm start and LOOP_END before the join are not barriers, a do-while around one statement in the
+  middle reorders the `stfs neckY` against the call's arg moves.
+- Loop/tail pointer variables shared between a search loop and the tail (em2f ChangeRoute): `EmiEntry* e;
+  EmiEntry* prev;` at function scope, assigned in the loop and again in the tail, give the tail's `add
+  r30`/`add r3` the loop's registers and fix the inner loop's r11/r10 naming (block-scoped pointers were
+  the whole 40-word diff). `IntSet(w->routeIdx, best)` (int& setter, local to em2f.cpp) keeps the tail's
+  `lwz pG` below the store (also frees r10 for `idx` in SetNextRoute: the pG reload is born after idx dies).
+- `i = Rnd() & 3; w->pos = tbl[i];` with the LOOP COUNTER as the index variable: the r3 copy preference
+  puts `i` in r3 for the whole loop (em2f SetNextRoute/ChangeRoute `clrlwi r3/r29`).
+- Returning then-arm layout (SetNextRoute): `if (idx == -1) { ..; return Rnd() % 3; } idx-arm; return e->sub;`
+  puts the idx arm first (`beq` to the Rnd arm, which jump.c moves to the end and cross-jumps with the
+  first `return Rnd() % 3`); `if (idx != -1) {..return} rest` lays `rest` first.
+- em2f Swim: case 2 falls into the swim step (`goto swim;` at the `case 3: case 5:` label) — the target's
+  case-2 tail is cross-jumped into case 4's (`b` into its `bl EstSet`) and continues into the Muku body;
+  our `break` was a behaviour bug. `w->waitTimer = Rnd() % 90 + 90;` BEFORE the three `x424/x420/x41C`
+  stores (they are issued after the call, interleaved with the `%` chain); `f32 t = w->dive * 0.05f` shared
+  by `pos.y += t; dive -= t`.
+- em2f R0_Init: `w->flags = zero; w->x580 = em->pos.y; w->x584 = 0.0f; ..` (the pos.y load depends on the
+  flags store only, so `stw flags` heads the block), `effTimer2 = 3; effTimer3 = 3` (59c issued first),
+  the six zero stores after `atkCnt = Rnd() % 3 + 1` with `pBoat` written LAST (dying zero first), `u32 i`
+  for the ascending `mtctr` clearing loop, `waterY` before `routeIdx = -1`, `case 0: default:` on the x38D
+  switch, plain byte stores in the default arm (em30 rule), `nextRouteType = call; routeType = nextRouteType`.
+- em29DmCk tree (114 -> 91): tools/casetree.py search with `(0x29,EQ),(0x29,GT),(0x26,LT),(0x2B,EQ)` as the
+  0x29 subtree finds the default group `5,6,D,F,12,13,29,2C,2D` (0xF adds the left-half weight that keeps
+  [0x10,0x11] the root, [0x2C,0x2D] makes 0x21 the right root; the extra 0xF/0x2B/0x2D compares fold into
+  `b default`). The target's "right child before left" at 0x29 is jump.c's `if (foo) bar; else break;`
+  range swap (jump.c:1821): it fires when the left subtree's final `b A` targets the label that follows the
+  tree, i.e. the A (Rnd) arm is written FIRST; X (7/8/0x21) second falls into the surviving Rnd copy,
+  default third, `case 0xE` last. `em29DmRoutineSet` case 1 is `EmRoutineSet(em, 2, 1, 0, 0)` (cse stores
+  the kind register for the 1; (1,1) made the arm identical to case 2's and cross-jumped them).
+  OPEN (91 words): the target's tail `int zero` (`li r29,0` at the dmg join, used for the EstSet stack
+  args and the hp<=0 routine set, so that routine set does not cross-jump with the first one whose zero is
+  the `em->hp = 0` register) — `zero = 0` after the switch costs 115-134 words here; the hp>0 arm's dead
+  `lbz dmWep; cmpwi 0x21` (em30 family); b3 in r26.
+- Candidate COMPILER-DIFF #13 (REG_EQUIV constants are not kept in registers): em21DmCk `lbz r0 mode; li
+  r9,0x1e; stb r9` = a single-use constant substituted into its store by update_equiv_regs
+  (`validate_replace_rtx` accepts `(set (mem) (const_int))`, which our movqi/movsi condition
+  `gpc_reg_operand(op0) || gpc_reg_operand(op1)` rejects) and re-materialised by reload in the first free
+  spill register (r9 because `mode` holds r0); ours keeps the QI pseudo, which wins r0 in local-alloc
+  (2 refs/len 1 beats mode's 8/7). Same family: mercenaries MercSysInitRoom `li r11,0` before `stw`, and
+  the bell-radius `r` of em21 WakeCk / em3c R1_Die / em10 FindCk (three equal constant sets = one REG_EQUIV
+  pseudo re-materialised `lis r10; lfs f0; fmuls f0,f0,f0` inside the distance block instead of being
+  allocated; its high then takes r10 and em/w land in r8/r10). No source form changes it; the `int one`
+  update_equiv move reproduces the bytes only when the reload register would have been r0.
+- em2f left: SetPosHideMode 3 words (`fmr f0,f1; fadds f0,f0,f13` after GetXZAngle — combine fuses the
+  hard-reg copy into the add; 8 forms incl. two-set variables, FSet, `PI + ry`; only a volatile insn or a
+  block boundary between the copy and the add would block can_combine_p, mes `mr. r4,r3` family).

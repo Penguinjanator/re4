@@ -106,6 +106,8 @@ static inline void EmRoutineSet(cEm* em, int r0, int r1, int r2, int r3)
     em->xFF = r3;
 }
 
+static inline void IntSet(int& d, int v) { d = v; }
+
 // Effect `no` of the monster's effect set on itself.
 static inline void em2fEstSet(cEm2f* em, Em2fWork* w, int no)
 {
@@ -310,7 +312,7 @@ static void em2f_R0_Init(cEm2f* em)
 {
     Em2fWork* w = EM2F_WK(em);
     int zero;
-    int i;
+    u32 i;
 
     switch (em->type) {
     case 0:
@@ -353,52 +355,59 @@ static void em2f_R0_Init(cEm2f* em)
     em->lockOfs.z = 0.0f;
     EspDataLoad((u32) ARC(8), 0x27, 0);
     w->flags = zero;
+    w->x580 = em->pos.y;
     w->x584 = 0.0f;
     w->x5C9 = zero;
     w->x5CB = zero;
-    w->x580 = em->pos.y;
     w->effTimer1 = 30;
-    w->effTimer3 = 3;
     w->effTimer2 = 3;
-    w->pBoat = (cEm*) zero;
+    w->effTimer3 = 3;
+    w->atkCnt = Rnd() % 3 + 1;
+    // the zero's dying store (pBoat, written last) is issued first, the rest in source order
     w->seTimer1 = zero;
     w->seTimer2 = zero;
     w->seTimer3 = zero;
     w->sndId1 = zero;
     w->sndId2 = zero;
-    w->atkCnt = Rnd() % 3 + 1;
+    w->pBoat = (cEm*) zero;
     w->rndFlag = Rnd() & 1;
     for (i = 0; i < 6; i++) {
         w->pTentacle[i] = 0;
     }
     w->pCtrl12 = GetCtrlCtrl12();
     w->espKind = EspPullCoreKind();
-    w->routeIdx = -1;
     w->waterY = em->pos.y;
-    w->routeType = em2fSetNextRoute(em);
-    w->nextRouteType = w->routeType;
+    w->routeIdx = -1;
+    w->nextRouteType = em2fSetNextRoute(em);
+    w->routeType = w->nextRouteType;
     switch (em->x38D) {
+    case 0:
     default:
         em->setStatus(5);
-        EmRoutineSet(em, 1, 0, 0, 0);
+        // plain byte stores (em30 rule): the int inline's SI zero would take r9 and reload_cse
+        // would delete MotionSetCore's `li r9, 0`
+        em->xFC = 1;
+        em->xFD = 0;
+        em->xFE = 0;
+        em->xFF = 0;
         MotionSetCore(em, MOTION(em), ARC(0xA), 0, 0, 0x401, 0);
         MotionMoveF(em, 0);
         break;
     case 1:
         em->atari.flags &= ~0x100;
         em->setStatus(5);
-        em->scale.z = 2.0f;
         em->scale.x = 2.0f;
         em->scale.y = 2.0f;
+        em->scale.z = 2.0f;
         EmRoutineSet(em, 1, 2, 0, 0);
         MotionSetCore(em, MOTION(em), ARC(0xA), 0, 0, 0x401, 0);
         MotionMoveF(em, 0);
         break;
     case 2:
         em->atari.flags &= ~0x100;
-        em->scale.z = 2.0f;
         em->scale.x = 2.0f;
         em->scale.y = 2.0f;
+        em->scale.z = 2.0f;
         em->setStatus(3);
         em->atari.flags &= ~0x300;
         em->atari.flags |= 8;
@@ -458,6 +467,9 @@ static void em2f_R1_Walk(cEm2f* em)
 
 static void em2f_R1_SwimWait(cEm2f* em)
 {
+    // single use in another block: update_equiv_regs moves the li next to the stb (short qty, r0)
+    int one = 1;
+
     switch (em->xFE) {
     case 0:
         MotionSetCore(em, MOTION(em), ARC(0xA), 0, 0, 1, 0);
@@ -466,8 +478,8 @@ static void em2f_R1_SwimWait(cEm2f* em)
         em->xFE++;
     case 1:
         if (pG->flags_5010 & 0x00200000) {
-            EmRoutineSet(em, 1, 3, 0, 0);
             em->be_flag |= 2;
+            EmRoutineSet(em, one, 3, 0, 0);
         }
         break;
     }
@@ -487,10 +499,10 @@ static void em2f_R1_Swim(cEm2f* em)
     case 0:
         em->atari.flags &= ~0x100;
         MotionSetCore(em, MOTION(em), ARC(0xA), (int) ARC(0x1D), 30, flip, 0);
+        w->waitTimer = Rnd() % 90 + 90;
         w->x424 = 0;
         w->x420 = 10;
         w->x41C = 0.0f;
-        w->waitTimer = Rnd() % 90 + 90;
         if (w->flags & 0x10) {
             w->dive = w->waterY - 5000.0f - em->pos.y;
         } else {
@@ -507,15 +519,18 @@ static void em2f_R1_Swim(cEm2f* em)
         } else {
             w->flags &= ~0x20;
         }
-        em->pos.y += w->dive * 0.05f;
-        w->dive -= w->dive * 0.05f;
+        {
+            f32 t = w->dive * 0.05f;
+            em->pos.y += t;
+            w->dive -= t;
+        }
         break;
     case 2:
         MotionSetCore(em, MOTION(em), ARC(0xE), (int) ARC(0x1F), 30, flip, 0);
         em2fEstSet(em, w, 0xC);
         w->timer = 80;
         em->xFE++;
-        break;
+        goto swim;  // the target's case 2 runs the swim step too (tails cross-jumped into case 4's)
     case 4:
         MotionSetCore(em, MOTION(em), ARC(0xD), (int) ARC(0x1E), 30, flip, 0);
         em2fEstSet(em, w, 4);
@@ -523,6 +538,7 @@ static void em2f_R1_Swim(cEm2f* em)
         em->xFE++;
     case 3:
     case 5:
+    swim:
         em->rot.y += Muku(&em->pos, &w->nextPos, em->rot.y, PI / 200.0f);
         em->rot.y = LIMIT_ANGLE(em->rot.y);
         if (MotionMoveF(em, 0)) {
@@ -711,6 +727,12 @@ static void em2f_R1_RisingDragon(cEm2f* em)
 {
     Em2fWork* w = EM2F_WK(em);
     int r;
+    // `hide` is set again after the switch: its last mention lies beyond the case-1 ebb, so cse2
+    // keeps it (not the timer register, whose last use is the decrement) as the canonical zero of
+    // the routine stores. `one` (single use in another block) is moved next to its stb by
+    // update_equiv_regs and takes r0.
+    u32 hide;
+    int one = 1;
 
     em->flags_3C8 |= 0x80;
     switch (em->xFE) {
@@ -727,14 +749,15 @@ static void em2f_R1_RisingDragon(cEm2f* em)
         em->flags_3C8 |= 0x108;
         MotionMoveF(em, 0);
         if (w->timer == 0) {
-            if (!(pG->flags_5010 & 0x00400000)) {
-                EmRoutineSet(em, 1, 3, 0, 0);
+            hide = pG->flags_5010 & 0x00400000;
+            if (hide == 0) {
+                EmRoutineSet(em, one, 3, 0, 0);
                 break;
             }
             em->xFE++;
             break;
         }
-        w->timer--;
+        do { w->timer--; } while (0);  // LOOP_END barrier: the timer2 load stays below the store
         if (w->timer2) {
             w->timer2--;
             if (w->timer2 == 0) {
@@ -780,10 +803,7 @@ static void em2f_R1_RisingDragon(cEm2f* em)
         } else {
             if (em->seFlags28B & 1) {
                 if (pG->flags_5010 & 0x00400000) {
-                    pPL->xFF = r;
-                    pPL->xFD = 0xF;
-                    pPL->xFE = 9;
-                    pPL->xFC = r;
+                    EmRoutineSet(pPL, r, 0xF, 9, r);
                     SndCall(8, 0x1E, &em->pos, em->id, 0, em);
                     SndCall(8, 0x1F, &pPL->pos, em->id, 0, pPL);
                 }
@@ -800,7 +820,8 @@ static void em2f_R1_RisingDragon(cEm2f* em)
         }
         break;
     }
-    if (!(pG->flags_5010 & 0x00400000)) {
+    hide = pG->flags_5010 & 0x00400000;
+    if (hide == 0) {
         w->risingOk = 1;
     }
     if (w->risingOk && em2fRisingDragonCk(em)) {
@@ -813,6 +834,8 @@ static void em2f_R1_Packman(cEm2f* em)
 {
     Em2fWork* w = EM2F_WK(em);
     int r;
+    u32 hide;  // see em2f_R1_RisingDragon
+    int one = 1;
 
     switch (em->xFE) {
     case 0:
@@ -828,14 +851,15 @@ static void em2f_R1_Packman(cEm2f* em)
         em->flags_3C8 |= 0x108;
         MotionMoveF(em, 0);
         if (w->timer == 0) {
-            if (!(pG->flags_5010 & 0x00400000)) {
-                EmRoutineSet(em, 1, 3, 0, 0);
+            hide = pG->flags_5010 & 0x00400000;
+            if (hide == 0) {
+                EmRoutineSet(em, one, 3, 0, 0);
                 break;
             }
             em->xFE++;
             break;
         }
-        w->timer--;
+        do { w->timer--; } while (0);  // LOOP_END barrier: the timer2 load stays below the store
         if (w->timer2) {
             w->timer2--;
             if (w->timer2 == 0) {
@@ -888,10 +912,7 @@ static void em2f_R1_Packman(cEm2f* em)
         } else {
             if (em->seFlags28B & 1) {
                 if (pG->flags_5010 & 0x00400000) {
-                    pPL->xFF = r;
-                    pPL->xFD = 0xF;
-                    pPL->xFE = 9;
-                    pPL->xFC = r;
+                    EmRoutineSet(pPL, r, 0xF, 9, r);
                     pPL->be_flag &= ~2;
                     SndCall(8, 0x1E, &em->pos, em->id, 0, em);
                 }
@@ -917,7 +938,8 @@ static void em2f_R1_Packman(cEm2f* em)
         }
         break;
     }
-    if (!(pG->flags_5010 & 0x00400000)) {
+    hide = pG->flags_5010 & 0x00400000;
+    if (hide == 0) {
         w->risingOk = 1;
     }
     if (w->risingOk && em2fRisingDragonCk(em)) {
@@ -1158,13 +1180,18 @@ void em2fCriCamMove(cEm2f* em)
     PSVECAdd(&em2f_cri_cam.param.pos, &v, &em2f_cri_cam.param.pos);
     PSVECAdd(&em2f_cri_cam.param.at, &v, &em2f_cri_cam.param.at);
     {
-        Vec* pos = &em2f_cri_cam.param.pos;
-        Vec* at = &em2f_cri_cam.param.at;
-        f32 dx = pos->x - at->x;
-        f32 dy = pos->y - at->y;
-        f32 dz = pos->z - at->z;
-
+        // cam BEFORE the pos/at pointers: its lo_sum finds no register for em2f_cri_cam+N (the call
+        // arguments were hard regs) and stays a fresh lis/addi; the pointers then reuse the call
+        // arguments' lo_sum table entries instead of being re-based on cam.
+        Vec* pos;
+        Vec* at;
+        f32 dx, dy, dz;
         cam = &em2f_cri_cam;
+        pos = &em2f_cri_cam.param.pos;
+        at = &em2f_cri_cam.param.at;
+        dx = pos->x - at->x;
+        dy = pos->y - at->y;
+        dz = pos->z - at->z;
         cam->param.fovy = c->param.fovy;
         cam->up.x = 0.0f;
         cam->up.y = 1.0f;
@@ -1364,7 +1391,8 @@ int em2fSetNextRoute(cEm2f* em)
     int idx;
 
     if (emi == 0) {
-        w->nextPos = em2f_route_tbl[Rnd() & 3];
+        i = Rnd() & 3;  // the loop counter: its r3 copy preference puts i in r3
+        w->nextPos = em2f_route_tbl[i];
         return Rnd() % 3;
     }
     idx = -1;
@@ -1383,16 +1411,20 @@ int em2fSetNextRoute(cEm2f* em)
             idx = i;
         }
     }
-    if (idx != -1) {
+    // the returning then-arm is moved to the end by jump.c, so the idx arm is the fall-through
+    if (idx == -1) {
+        i = Rnd() & 3;
+        w->nextPos = em2f_route_tbl[i];
+        return Rnd() % 3;
+    }
+    {
         EmiEntry* e;
 
-        w->routeIdx = idx;
+        IntSet(w->routeIdx, idx);  // reference store: the pG reload waits for it (idx frees r10)
         e = &((EmiData*) pG->pRoomEmi)->entry[idx];
         w->nextPos = e->pos;
         return e->sub;
     }
-    w->nextPos = em2f_route_tbl[Rnd() & 3];
-    return Rnd() % 3;
 }
 
 // Puts the monster right under the boat, facing the player.
@@ -1585,19 +1617,22 @@ void em2fChangeRoute(cEm2f* em)
     int bestPrev;
     f32 bestAng;
     int i;
+    EmiEntry* e;     // function scope: shared by the search loop and the tail (e r30, prev r3)
+    EmiEntry* prev;
 
     if (emi == 0) {
-        w->nextPos = em2f_route_tbl[Rnd() & 3];
+        i = Rnd() & 3;
+        w->nextPos = em2f_route_tbl[i];
         return;
     }
     best = -1;
     bestPrev = -1;
     bestAng = PI;
     for (i = 0; i < ((EmiData*) pG->pRoomEmi)->n; i++) {
-        EmiEntry* e = &((EmiData*) pG->pRoomEmi)->entry[i];
-        EmiEntry* prev;
         int j;
         f32 ang;
+
+        e = &((EmiData*) pG->pRoomEmi)->entry[i];
 
         if (e->type != 2) {
             continue;
@@ -1632,18 +1667,16 @@ void em2fChangeRoute(cEm2f* em)
         bestPrev = j;
     }
     if (best == -1) {
-        w->nextPos = em2f_route_tbl[Rnd() & 3];
+        i = Rnd() & 3;
+        w->nextPos = em2f_route_tbl[i];
         return;
     }
-    w->routeIdx = best;
-    {
-        EmiEntry* e = &((EmiData*) pG->pRoomEmi)->entry[best];
-        EmiEntry* prev = &((EmiData*) pG->pRoomEmi)->entry[bestPrev];
-
-        w->nextPos = e->pos;
-        w->routeType = prev->sub;
-        w->nextRouteType = e->sub;
-    }
+    IntSet(w->routeIdx, best);  // reference store: the pG reload stays below it
+    e = &((EmiData*) pG->pRoomEmi)->entry[best];
+    prev = &((EmiData*) pG->pRoomEmi)->entry[bestPrev];
+    w->nextPos = e->pos;
+    w->routeType = prev->sub;
+    w->nextRouteType = e->sub;
 }
 
 // Breaks the floating islands the head or the tail runs into.
