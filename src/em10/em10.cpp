@@ -17268,14 +17268,15 @@ int em10LostHead(cEm10* em, int a, int b)
     switch ((u32) a) {
     case 0:
     default:
-        SndStop(w->x5B8, 0);
-        SndStop(w->x5BC, 0);
-        SndCall(8, 7, &em->pos, em->id, 0, em);
-        w->flags |= 0x80;
-        EmSetDie(em);
-        EmReserveDropItem(em);
-        em10SetPoint(em);
-        break;
+        // Dead test falling through into case 1 (the store is deleted by flow, the compare stays
+        // live because gcse PRE reuses it for the `a == 3` after em10HeadSet): its block gives the
+        // case-1 label a second predecessor where the compare is already computed, so PRE inserts
+        // `cmpwi cr4, a, 3` at the end of the dispatch block and of the case-2 else arm and deletes
+        // the join's compare. Any dead local store works here; the tree still needs case 0 and
+        // case 1 as separate nodes (`cmpwi 1; beq; cmplwi 1; blt`).
+        if (a == 3) {
+            paras = 0;
+        }
     case 1:
         SndStop(w->x5B8, 0);
         SndStop(w->x5BC, 0);
@@ -18450,8 +18451,8 @@ void cEm10::setHand(int no, int type)
         // loads; the barrier keeps the byte compare after `lwz bin` (rank_for_schedule prefers the
         // compare: equal priority, weight 0 vs +1, then more dependents -- no plain form ranks the
         // load first). tpl loaded first would cost it r4 (global-alloc priority 2*5/16 vs bin's
-        // 2*6/19), so the tpl create below is weighted with a do{}while(0). OPEN (2 words): `no` is
-        // r10 in the target, r11 here (alloc order r0, r9, r11, r10; nothing holds r11).
+        // 2*6/19), so the tpl create below is weighted with a do{}while(0). `no` is r10 because of
+        // the dead x184 test below.
         {
             u8 wt = w->wepType;
             tpl = w->mot[14];
@@ -18462,6 +18463,12 @@ void cEm10::setHand(int no, int type)
             }
         }
         break;
+    }
+    // Dead test (`type` is dead here; flow deletes the store, jump2 deletes the jump-to-next and,
+    // through delete_computation, the compare and the load). Its load temp holds r11 through
+    // global alloc, so `no` takes r10 (alloc order r0, r9, r11, r10). Only this load reproduces it.
+    if (w->x184 == 0) {
+        type = 0;
     }
     if (no) {
         info = ModInfoMgr.create(bin, w->mot[0]);
@@ -26832,3 +26839,7 @@ void em10SetPoint(cEm10* em)
     MercSysSetPoint(pt, 0);
 }
 #undef EM10_CLAW_PART_MOVE
+
+// The original em10.cpp object has an 8-aligned .data (the split object's sh_addralign); the size is already
+// a multiple of 8, so this only raises the section alignment (the REL places .data at +0x460D0, not +0x460CC).
+asm(".section .data\n\t.balign 8\n\t.text");

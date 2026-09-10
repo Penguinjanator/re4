@@ -111,7 +111,9 @@ cc1plus and are therefore compiler-build differences (the original is a later SN
      bigger regions only make them worse). They are intrablock tie-breaks / register allocation, not
      region formation. em10LostHead's two `cmpwi cr4,a,3` copies cannot be haifa at all: haifa never
      duplicates an insn (update_bbs only feed check_live/update_live), and with a whole-function
-     region (bigrgn) the compare still sits once at the join.
+     region (bigrgn) the compare still sits once at the join. (RESOLVED 2026-09-10: they are gcse PRE
+     insertions on a CFG with a dead `if (a == 3)` test falling through into case 1 -- see the Ganado
+     shared library seventh pass; the other #5-tagged residues deserve the same "dead test" check.)
    - The "hoist" workarounds tagged `COMPILER-DIFF: 5` are not haifa either: with the launders removed
      and regions forced, shadow ShadowTrans stays 4 words (`mr r3,r31; lwz r0,N(r3)` — the load is
      REBASED on the copy, which only cse can do, so the copy preceded the test in the original RTL
@@ -3384,7 +3386,10 @@ target) stays unresolved and `make_rel` then fails with "undefined symbol".
   orphan sections of Sscrn/t_esp/t_event/t_id/t_movie/Tools/t_sce (their original ELFs had 12 extra
   sections between .text and .ctors, concatenated behind .text in the REL).
 
-- em10 OPEN (2 left after the sixth pass, 2026-09-10; see "Ganado shared library" sixth pass): `em10LostHead`
+- em10 CLOSED (seventh pass 2026-09-10, 382/382, all 16 modules Matching; LostHead = a dead `if (a == 3)`
+  in `case 0: default:` falling through into case 1 -> gcse PRE inserts the compare at the dispatch block and
+  the else arm; setHand = a dead `if (w->x184 == 0) type = 0;` whose PRE copy pseudo holds r11 -- see the
+  "Ganado shared library" seventh pass). The old note, for the record: `em10LostHead`
   (59: `a == 3` PRE'd into cr4 at the END of the last multi-predecessor block before the join on each path
   -- the switch dispatch block for cases 0/1/2-then and the case-2 else arm's first call block -- a
   placement no LCM/PRE gives for a single occurrence: our gcse leaves the compare at the join; `case 3:

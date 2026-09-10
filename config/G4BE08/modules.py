@@ -834,3 +834,4 @@ for _em in ["em10", "em11", "em12", "em13", "em14", "em15", "em16", "em17", "em1
             "em1c", "em1d", "em1e", "em1f", "em20"]:
     MATCHING[f"{_em}/{_em}_set.cpp"] = True
     MATCHING[f"{_em}/em10_tmpl.cpp"] = True
+    MATCHING[f"{_em}/em10.cpp"] = True
