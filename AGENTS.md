@@ -5780,13 +5780,48 @@ target) stays unresolved and `make_rel` then fails with "undefined symbol".
   dies at the m3r[2] load because the `m3r[1] = pitch` store precedes it in RTL), equal priority, equal class and
   dependents, so LUID decides; the target's 0.0 is nevertheless allocated f0 (the shorter-range qty), which
   contradicts a plain sched1 swap. The 0.0 pool word is shared with the loop's un-hoisted `p1.y/z = 0` loads
-  (all 18 callee-saved FPRs hold loop constants). Literal/`0.0f ==`/`f32 zero` (right order, f0/f13 swapped)/
+  (14 callee-saved FPRs f18-f31 hold loop constants; f14-f17 are free, a call-crossing `zero` gets f31).
+  Literal/`0.0f ==`/`f32 zero` (right order, f0/f13 swapped)/
   `f32 z = m3r[2]`/`m3r` pointer/FSet/if-else duplication tried. pl_machine's identical tail (no loop) matches.
-- OPEN pl_rocket `wep13_r3_down00` (2 words): `mot3.set(pl, mot0, mot0, mot0, (int) mot1, 3, 0, 4, 0)` issues
-  `li r9,3` before the stack-argument `stw r0,8(r1)` in the original; both are true/anti dependences of the
-  call with cost 1 (SN's insn_cost clamps anti-dependences to 1), so ours prefers the store (register weight
-  -1 vs +1). The stores rank between `li r9` and `mr r6/mr r7/li r10` in the target, which no single
-  rank_for_schedule change explains; `int/u8 hokan = 3` locals are cse'd into the later `xFF = 3` (13 words).
+  Sixth pass (2026-09-10, /tmp/wep_last, 45 variants): the load order is easy (`z2 = m3r[2]` before the
+  `m3r[1] = pitch` store, or `zero = 0.0f` after the call: 3 words, the register pair swapped), the register
+  pair is the hard part. local-alloc's QTY_CMP_PRI = floor_log2(refs)*refs*size/(death-birth) with refs 2 for
+  both loads: whichever is loaded SECOND (shorter range) gets f0, so "0.0 loaded first AND in f0" needs 0.0
+  with >= 4 weighted refs (nested `do { do { zero = 0.0f; } while (0); } while (0);` gives `lfs f0 zero; lfs
+  f13 m3r[2]; fcmpu f13,f0` = the target's registers and order) or m3r[2]'s value not local-allocated (a
+  multi-block or two-death pseudo -> global.c gives it f13 after the local 0.0 took f0). Every loop-note
+  form displaces something else: the LOOP_END ends cse's extended block, so the `m3r + 4/8` addresses are
+  re-derived after the call (`addi r11` after the `bl` instead of the callee-saved `addi r30` before it; an
+  `f32* mp = m3r` local keeps the addi but the block-33 `m3r[0] = pitch` then reuses its high pseudo (`stfs
+  m3r@l(r29)`) where the target has a fresh `lis r9`), and a LOOP_BEG placed after the call makes the pool
+  `lis` a barrier that the pitch reload cannot pass (`lfs f12` after `lis`/`lfs zero` instead of before). No
+  zero-code form found that makes the m3r[2] pseudo multi-block. Still OPEN (2 words); best alternative forms
+  reach 16-20 words. The mechanism (which of two equal-refs qtys the ORIGINAL local-alloc gave f0 to) is the
+  same "shorter range did not win" family as the emrock/cam_qfps dying-store items.
+- SOLVED pl_rocket `wep13_r3_down00` (was 2 words; now 24/24, Matching): `mot3.set(pl, mot0, mot0, mot0,
+  (int) mot1, 3, 0, 4, 0)` had `stw r0,8(r1)` (the u16 stack argument 4) before `li r9,3` in ours, after it
+  in the original. The two tie in sched2 (`-dR -fsched-verbose-9`: both priority 9, both 4 dependents = the
+  call, the second call (every r1 user / hard-reg setter anti-depends on every later call), the `li r0,3` of
+  `xFF = 3` (r0 anti) resp. the `lis r9, m3r@ha` (r9 output), and the jump), so sched2 falls to LUID = the
+  sched1 issue order. In sched1 the stack store is ready only at t=5 (anti-dependence on the two `pMotTbl`
+  loads, which may alias the frame slot), while `li r9,3` (weight +1, RTL after `addi r3`/`mr r4`) loses the
+  t=3/t=4 iu2 slots to `addi r3, mot3@l` and `mr r4, pl` by LUID and is issued at t=8, after the store. The
+  lever: `u8 hokan = 3;` as a local -- the argument becomes a copy of a dying pseudo (weight 0), which beats
+  `mr r4, pl` (+1) at t=4 and therefore precedes the store in LUID; reload ties the pseudo to r9 so the code
+  is still `li r9,3`. The known failure of that local (cse's src_related reuses the SImode pseudo for the
+  later QImode `pl->xFF = 3` store via a subreg and keeps the 3 in a callee-saved register) is cured by a
+  dead `do { } while (0);` between `mot3.move(..)` and `pl->xFF = 3;`: its NOTE_INSN_LOOP_END ends cse's
+  extended block (the em3c R1_Die_Normal idiom), the store gets its own `li r0,3`, and the note is a harmless
+  sched barrier there (`li r0,3` follows the second call anyway). General rule: when a constant register
+  argument must issue before a stack-argument store, make the constant a local (dying copy) and, if the
+  same constant is stored later in the function, put a dead `do { } while (0);` before that store.
+  Checked against em3c R1_Die_Normal / em27DmCk (the `EstSet` stack-store interleave): NOT the same
+  mechanism -- there the original places the stores three different ways in one function (then-arm
+  `li r0; mr r3; stw c; li r4; stw 8; li r5..`, else-arm call 1 stores LAST after eight `li`s, call 2 stores
+  FIRST), which no static rank_for_schedule order gives: a weight-0 `stw r31,8(r1)` never loses to the +1
+  `mr r3,em` when both are ready, so the original's stores were not ready at the block start (the
+  then/else blocks start right after `lbz r30,0xff; cmpwi; beq`); the down00 lever (a dying-copy argument)
+  cannot reorder a store against a non-dying `mr r3` copy.
 - mcmp.py note: after `sync_rel_symbols.py` the remaining `_prolog`/`equipWeapon` "2 words" of a module object
   are cross-unit reloc *names* (the split object's placeholder vs our mangled name, e.g. `PlHandgunMove` vs
   `PlHandgunMove__FP7cPlayer`; undefined symbols are not demangled by the tool) -- the REL shasum is the judge.
@@ -6712,3 +6747,79 @@ target) stays unresolved and `make_rel` then fails with "undefined symbol".
 - em2f left: SetPosHideMode 3 words (`fmr f0,f1; fadds f0,f0,f13` after GetXZAngle — combine fuses the
   hard-reg copy into the add; 8 forms incl. two-set variables, FSet, `PI + ry`; only a volatile insn or a
   block boundary between the copy and the add would block can_combine_p, mes `mr. r4,r3` family).
+
+### em2b / em39 bytes-first pass (em2b 69 -> 84/121, em39 85 -> 106/153 masked-identical; sections equal; 2026-09-10)
+- Two more 'byte-identical' rows per module are reloc-name noise (`Em2bInit`/`Em39Init` store `_vt.5cEm2b`
+  where the split object names the .rodata offset; the `_._5cUnit` copy): mcmp counts them as 2 words.
+- em39's function order was wrong in the SOURCE (12 functions defined at the file end or too early:
+  em39_R0_Damage/Die, em39ActOn, plemDmSide, em39ArrowFire, DoorOpenCk, ArmControl, AtkRtnCk, FootEff,
+  PLVoiceCk, LeftArmAtkCk, GetCliffPos) — objdiff never shows it, `.rodata` does (each function's pool and
+  strings sit at its definition): compare the symbol order of both objects before chasing pool diffs.
+  Move a function together with the `#define` block that precedes it.
+- Vtable order = virtual declaration order: em39.h had `ckHide` three slots too late (`_vt.5cEm39` slot
+  10). Read the target's `.rodata` reloc list when a class has more than ~8 virtuals.
+- Dead pool words of a function whose body compiled to nothing (em39WaistMove: `stwu/addi/blr`, pool
+  `0.9, 0.020000001, 1.0` after em39NeckMove's): the original never ran mark_constant_pool. An
+  operand-only `asm("" :: "m"(0.9f), ...)` keeps the entries but emits three `lis` (the lo_sum address
+  needs a register); the zero-code form is a file-scope `asm(".section .rodata\n\t.long ...\n\t.text")`
+  right after the function (COMPILER-DIFF candidate #10, applied there). Read the words from rodump:
+  0x3ca3d70b is `0.020000001f`, not `0.02f`.
+- `.data` 4 bytes short of the split object with everything else equal = the 8-alignment pad before
+  ngcld's BSS tag: `asm(".section .data\n\t.balign 8\n\t.text")` at the end of the unit (em3c rule).
+- `switch (w->variant) { case 0: default: A; break; case 1: B; break; }` gives the target's
+  `cmpwi 0; beq A; cmpwi 1; beq B` two-node dispatch only INSIDE a `static inline` (em2bFlip shape);
+  the same switch written in the function body emits the range form `cmpwi 1; bgt; cmpwi 0; blt`.
+  em2b's per-variant motion/effect blocks are `em2bVariantMot(em, w, a0, a1, b0, b1, blend, flip)`
+  (arms set `m0`/`m1`, ONE MotionSetCore after the switch: the target's `add; add; mr; addi; li; bl`
+  tail is shared by both arms, the arms only load the two offsets) and `em2bVariantEst(...)` (arms
+  end in `return` after their own EstSet calls; call-ending arms cannot cross-jump anyway).
+  A duplicated `default:` body (case 0 and default written twice) is NOT merged: +60 words.
+- A `case 1:` arm storing the switched byte (`em->xFF = w->variant`) must store the literal
+  (`em->xFF = 1`): the direct member read gives `lbz r9; clrlwi r0,r9,24` (QI pseudo + re-extension)
+  where the target stores the compare register.
+- `em2bFlip(w, a, b)` (variant switch returning a constant) computed twice in the arms of an `if`
+  stays two switches; the target's single dispatch before the `if` is `int flip = em2bFlip(...)`
+  declared at the case-block top (em2b Kick case 2).
+- `if (A || B || C == 0) { inc } else { dec }` vs the target's `beq inc` with the dec arm falling
+  through: write the inverse `if (!A && !B && C != 0) { dec } else { inc }` (plem2bEscapeTree).
+- `for (i = 0, frame = 0; ...; i++, frame += step)` puts the `add frame` after the `i*4` giv step;
+  the target's `addi i; add frame; addi i*4` is the em22 giv form `step * i` written at the use
+  (em2bSetTentacle).
+- `hp = 0` (HI store) whose zero the later `EmRoutineSet` QI zeros must NOT share (target: `li r0,0;
+  sth r0` dying, fresh `li r30,0` before the calls): store the s16 through a reference setter
+  (`S16Set(hp, 0)`, promoted `s16` parameter) — a plain `int zero` after the store is still merged
+  by cse (the QI zeros find the older HI pseudo through src_related widening) (ckR224Drop).
+- `T* p = 0;` dead initialiser at the top of a function whose arms set `p = em->getPartsPtr(..)`
+  (em2bFootSe): the `li r3,0` in block 0 is that initialiser kept alive by cse rewriting the
+  `em->seNo = 0` byte store to `stb r3`, and `pos = &p->worldPos` after the join then folds to
+  `addi r30,r3,112` on the call result. Without it the zero is `li r0,0` at the store and `p`
+  becomes `mr r30,r3; addi r30,r30,112`. The seNo test is the direct member twice (`lbz r4` shared,
+  `addi r31,r4,-1`), not a `u32 no = em->seNo` local.
+- `pl->x3E0 = SndCall(...)` followed by `VibSetData(pG->pArc...)`: `pGS->pArc` keeps the `lwz pG` after
+  the `stw` AND after the call's `li r4/r5` (plem2b_Strangle); the x4FC/x4FD/blendRate500 zero block of
+  the same case is `x4FD; x4FC; blendRate500` (brute-forced).
+- Camera helpers (em2bBlowCamMove/StampCamMove/ParasiteAtkCamMove/EscapeCamMove): `cModel* p =
+  pPLS->getPartsPtr(0); PosToPos(&g->Cam.param.at, &p->worldPos, ..)` (the nested call precomputes
+  `&g->Cam.param.at` into a callee-saved pseudo before the call; the target recomputes `addi r3,r28,292`
+  after it and loads `pPL` last); `PSMTXMultVec(pPLS->mat, ..)` on the FIRST matrix call keeps the fovy
+  store above the pPL load and lets the `&at`/`&w->cam` address pseudos fill the load-latency slots
+  before the getPartsPtr call (the target's `addi r27,r1,24; addi r25,r28,2296` in block 0 are plain
+  sched1 hoists, not PRE).
+- `w->mode = 0; w->timer = 45; if (pGS->x4F88 <= 1)`: the struct view on the FIRST pG read keeps the
+  `lis pG@ha` below the two stores (a plain read hoists it to the block top) (em2b_R1_Dm_Parasite).
+- Pool-order fixes read off rodump: `d *= k; spd.x = 0; spd.y = 250; spd.z = d;` (the multiply expanded
+  before the 250 literal, em39 AppearGR); `rot.x = 0; rot.y = K; rot.z = 0;` (ArrowSet, 0.0 before K
+  and the z store first); `dy = ..; t = dy * k;` with `t` block-local per arm ties `fmuls` to the
+  constant's register (`fmuls f12,f13,f12`) because the multi-set `dy` cannot be tied (JumpUp2/3).
+- COMPILER-DIFF #4 in em39: an `int` SE number passed to SndCall's `u16 no` is `mr r4,rN` in the
+  original, `clrlwi 16` in ours — `SndCallI(u16, int, ...) asm("SndCall__FUsUsP3VeciiP5cUnit")`
+  (SetVoice, FootEff, PLVoiceCk). COMPILER-DIFF #1: `SetObaModelF` floats-first alias for the third
+  SetObaModel of em2b_R1_Die_Event only (the first two match with the real declaration).
+- em2b OPEN (register/scheduler ties, all forms in the notes tried): em2bAtkEndSet inline (10 words in
+  Stamp/Punch/Hook/UpperCut/Kick/DashAtk: the target loads `w->x63C` into reload's r11 and leaves r0 to
+  the global `flags` pseudo; ours local-allocs the load to r0 — the `andi.` scratch r9/r11 follows
+  reload's round-robin count); em2bBlendMotSet's `clrlwi r8,r25,16` on the u16 parameter (COMPILER-DIFF
+  #2; the launder costs a register permutation); Hook/UpperCut case 1 `li r4,10` after the `andi.` and
+  `li r6,2` issued LAST of the em2bAtkCk arg moves (ours first: it is the only insn ready right after
+  the getPartsPtr call). em39 OPEN: JumpUp3 arm-2 FPR permutation and the `lis`/`fmr f2,f1` order before
+  Muku2; Die_Flash `li r4,8`/`mr r3,r31` swap after clearStatus (Die_Normal's identical pair matches).

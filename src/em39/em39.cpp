@@ -54,6 +54,10 @@ extern FootShadowTbl Em39_fs_tbl;     // game/foot_shadow_tbl.cpp
 
 // motion.h declares the one-argument form; the enemies pass a second argument.
 u16 MotionMoveF(cModel* m, int flag) asm("MotionMove");
+// COMPILER-DIFF #4: the original passes an int SE number to SndCall's u16 parameter without the
+// truncation ours emits (`mr` instead of `clrlwi 16`): int-view declaration (em39SetVoice, em39FootEff,
+// em39PLVoiceCk).
+u32 SndCallI(u16 blk, int no, Vec* pos, int id, int vol, cUnit* obj) asm("SndCall__FUsUsP3VeciiP5cUnit");
 // em_set.h declares the empty form; this unit passes the dying enemy (the original prototype
 // took it; em_set.cpp ignores its arguments).
 void EmSetDieCntE(cEm* em) asm("EmSetDieCnt");
@@ -979,18 +983,6 @@ static void em39_R0_Move(cEm39* em)
 {
     Em39_R1_move_tbl[em->xFD * 2](em);
     Em39_R1_move_tbl[em->xFD * 2 + 1](em);
-}
-
-static void em39_R0_Damage(cEm39* em)
-{
-    EM39_WK(em)->flags |= 8;
-    Em39_R1_dmg_tbl[em->xFD](em);
-}
-
-static void em39_R0_Die(cEm39* em)
-{
-    EM39_WK(em)->flags |= 8;
-    Em39_R1_die_tbl[em->xFD](em);
 }
 
 static void em39_R1_br_Dummy(cEm39* em)
@@ -2510,28 +2502,33 @@ static void em39_R1_JumpUp3(cEm39* em)
     Em39Work* w = EM39_WK(em);
     Mtx m;
     Vec v;
+    f32 dy;
 
     w->flags |= 0x100;
     em->setStatus(3);
     switch (em->xFE) {
     case 0: {
-        f32 t;
-
         if (fabsf(Muku(&em->pos, &w->jumpPos, em->rot.y, PI)) < 1.5707964f) {
             MotionSetCore(em, MOTION(em), ARC(0x6A), (int) ARC(0x6B), 0xA, 1, 0);
-            t = (w->jumpPos.y - em->pos.y + 1000.0f) * 0.0052631581f;
-            w->x28.y = t * 19.0f;
+            f32 t;
+
+            dy = w->jumpPos.y - em->pos.y + 1000.0f;
+            t = dy * 0.0052631581f;
             w->x28.z = 0.0f;
-            w->x18 = t;
+            w->x28.y = t * 19.0f;
             w->x28.x = 0.0f;
+            w->x18 = t;
             em->xFF = 0;
         } else {
             MotionSetCore(em, MOTION(em), ARC(0x68), (int) ARC(0x69), 0xA, 1, 0);
-            t = (w->jumpPos.y - em->pos.y + 1000.0f) * 0.0058479533f;
-            w->x28.y = t * 18.0f;
+            f32 t;
+
+            dy = w->jumpPos.y - em->pos.y + 1000.0f;
+            t = dy * 0.0058479533f;
             w->x28.z = 0.0f;
-            w->x18 = t;
+            w->x28.y = t * 18.0f;
             w->x28.x = 0.0f;
+            w->x18 = t;
             em->xFF = 1;
         }
         PSMTXRotRad(m, 'y', GetXZAngle(&em->pos, &w->jumpPos));
@@ -2546,13 +2543,15 @@ static void em39_R1_JumpUp3(cEm39* em)
     }
     case 1:
         if (em->xFF) {
-            f32 a = GetXZAngle(&w->jumpPos, &em->pos);
+            f32 a;
 
+            a = GetXZAngle(&w->jumpPos, &em->pos);
             em->rot.y += Muku2(em->rot.y, a, 0.39269908f);
+            em->rot.y = LIMIT_ANGLE(em->rot.y);
         } else {
             em->rot.y += Muku(&em->pos, &w->jumpPos, em->rot.y, 0.39269908f);
+            em->rot.y = LIMIT_ANGLE(em->rot.y);
         }
-        em->rot.y = LIMIT_ANGLE(em->rot.y);
         if (em->seFlags28B & 0x40) {
             if (em->seFlags28B & 0x10) {
                 PSVECAdd(&em->pos, &w->x28, &em->pos);
@@ -3945,9 +3944,10 @@ static void em39_R1_AppearGR(cEm39* em)
             if (d < 5000.0f) {
                 d = 5000.0f;
             }
+            d *= 0.022222223f;
             spd.x = 0.0f;
             spd.y = 250.0f;
-            spd.z = d * 0.022222223f;
+            spd.z = d;
             PSMTXMultVecSR(em->mat, &spd, &spd);
             EM39_GRENADE_THROW(em, w, spd);
         }
@@ -5507,6 +5507,12 @@ static void plem39_CliffAtk(cPlayer* pl)
     pl->subArc = pl->subArc2;
 }
 
+static void em39_R0_Damage(cEm39* em)
+{
+    EM39_WK(em)->flags |= 8;
+    Em39_R1_dmg_tbl[em->xFD](em);
+}
+
 // Damage entry: drop the hanging object and the grenade in hand, delete the effects, voice + speech.
 #define EM39_DM_DROP(em, w, voice, speech)                                                          \
     if ((w)->pObj12 && (w)->x678 == 0) {                                                           \
@@ -5922,6 +5928,12 @@ static void em39_R1_Dm_T_DownHead(cEm39* em)
     }
 }
 
+static void em39_R0_Die(cEm39* em)
+{
+    EM39_WK(em)->flags |= 8;
+    Em39_R1_die_tbl[em->xFD](em);
+}
+
 static void em39_R1_Die_Normal(cEm39* em)
 {
     Em39Work* w = EM39_WK(em);
@@ -5931,7 +5943,7 @@ static void em39_R1_Die_Normal(cEm39* em)
     case 0:
         AtariOff(&em->atari, 0xFCFF);
         em->pos.x = 6640.0f;
-        em->pos.y = 12048.0f;
+        em->pos.y = 12050.0f;
         em->pos.z = -14796.0f;
         em->rot.y = 1.57f;
         MotionSetCore(em, MOTION(em), ARC(0xE7), 0, 0, 0x201, 0);
@@ -6086,6 +6098,10 @@ void em39RouteCk(cEm39* em)
             a = pPL->pos;
             plPos = a;
         }
+        // dead clamp of the unused dy: puts the 0.0 pool word before the 1000 / PI of the tests below
+        if (dy < 0.0f) {
+            dy = 0.0f;
+        }
     }
     up = 0;
     if (pPL->pos.y > em->pos.y + 1000.0f) {
@@ -6180,6 +6196,11 @@ void em39WaistMove(cEm39* em)
 {
     Vec a;
 }
+
+// The original keeps the three constant-pool words (0.9, 0.020000001, 1.0) of em39WaistMove's
+// dead-stripped body; ours drops unreferenced pool entries (mark_constant_pool).
+// COMPILER-DIFF: candidate #10 (unreferenced constant-pool entries kept).
+asm(".section .rodata\n\t.long 0x3f666666, 0x3ca3d70b, 0x3f800000\n\t.text");
 
 // Laser marker: from the machine gun muzzle (x8B4 == 3) or the bow (x8B4 == 4) to the target.
 void em39MarkerMove(cEm39* em)
@@ -7326,476 +7347,15 @@ void em39ArrowSet(cEm39* em)
     pos.x = -850.0f;
     pos.y = 5.0f;
     pos.z = 24.0f;
+    rot.x = 0.0f;
     rot.y = -1.5707964f;
     rot.z = 0.0f;
-    rot.x = 0.0f;
     w->x58C = SetWeapon(ARC(0x37), ARC(0x38), &pos, &rot, 0);
     if (w->x58C) {
         w->x58C->setParent(em, 0xA, 0);
         em39BowSet(em, 0);
         SndCall(8, 0x10, &em->pos, em->id, 0, em);
     }
-}
-
-// Bow string parts (4) drawn / hidden, arrow transparency and the aiming effect.
-void em39BowSet(cEm39* em, int on)
-{
-    Em39Work* w = EM39_WK(em);
-    cModel* p;
-
-    if (w->pWep3 == 0) {
-        return;
-    }
-    p = w->pWep3->getPartsPtr(4);
-    if (on) {
-        p->scale.x = 1.0f;
-        p->scale.y = 1.0f;
-        p->scale.z = 1.0f;
-        if (w->x58C) {
-            w->x58C->setTransMode(0);
-        }
-        EstSet((int) w->pWep3, -1, 0, 0, 0x2F, 9, 0, w->espKind2, (u32) em, 0);
-    } else {
-        p->scale.x = 0.0f;
-        p->scale.y = 0.0f;
-        p->scale.z = 0.0f;
-        if (w->x58C) {
-            w->x58C->setTransMode(1);
-        }
-        EffectEspDelete(0, w->espKind2, (u32) em, 0);
-        EffectEspgenDelete(0, w->espKind2, (int) em);
-        EffectEfmDelete(0, w->espKind2, (int) em);
-    }
-}
-
-// Fence jump: a fence (attribute 0x20) right in front; the landing side is the free one.
-int em39FanceJumpCk2(cEm39* em)
-{
-    Em39Work* w = EM39_WK(em);
-    Vec a;
-    Vec b;
-    Vec hit;
-    Vec nrm;
-    Mtx m;
-    Vec c;
-    Vec d;
-    Vec e;
-    int side = 0;
-    f32 ang;
-
-    if ((u32) w->stuckCnt % 10 != 6) {
-        return 0;
-    }
-    a.x = 0.0f;
-    a.y = 500.0f;
-    a.z = 0.0f;
-    b.x = 0.0f;
-    b.y = 500.0f;
-    b.z = 800.0f;
-    PSMTXMultVec(em->mat, &a, &a);
-    PSMTXMultVec(em->mat, &b, &b);
-    if (!(SatMgr.hitCheck(&a, &b, &hit, &nrm, 0, 0) & 0x20)) {
-        return 0;
-    }
-    ang = atan2f(-nrm.x, -nrm.z);
-    w->jumpAng = ang;
-    w->jumpPos = em->pos;
-    PSMTXRotRad(m, 'y', ang);
-    TransMatrix(m, &em->pos);
-    d.x = 300.0f;
-    d.y = 1200.0f;
-    d.z = 0.0f;
-    e.x = 300.0f;
-    e.y = 1200.0f;
-    e.z = 800.0f;
-    PSMTXMultVec(m, &d, &d);
-    PSMTXMultVec(m, &e, &e);
-    if (SatMgr.hitCheck(&d, &e, 0, 0, 0, 0x20)) {
-        side = 1;
-    }
-    d.x = -300.0f;
-    d.y = 1200.0f;
-    d.z = 0.0f;
-    e.x = -300.0f;
-    e.y = 1200.0f;
-    e.z = 800.0f;
-    PSMTXMultVec(m, &d, &d);
-    PSMTXMultVec(m, &e, &e);
-    if (SatMgr.hitCheck(&d, &e, 0, 0, 0, 0x20)) {
-        side |= 2;
-    }
-    if (side == 3) {
-        return 0;
-    }
-    if (side & 1) {
-        c.x = -300.0f;
-        c.y = 0.0f;
-        c.z = 0.0f;
-        PSMTXMultVec(m, &c, &w->jumpPos);
-    }
-    if (side & 2) {
-        c.x = 300.0f;
-        c.y = 0.0f;
-        c.z = 0.0f;
-        PSMTXMultVec(m, &c, &w->jumpPos);
-    }
-    return 1;
-}
-
-int em39FanceJumpCk(cEm39* em)
-{
-    if (em39FanceJumpCk2(em)) {
-        EmRoutineSet(em, 1, 0x17, 0, 0);
-        return 1;
-    }
-    return 0;
-}
-
-// Damage value of the hit (100 for the non-weapon ids), doubled at the head parts.
-int em39SetDmVal(cEm39* em)
-{
-    Em39Work* w = EM39_WK(em);
-    EmHitInfo* h = em->dmPart;
-    int far = 0;
-    int val;
-
-    if (h->rad < 36000000.0f) {
-        far = 1;
-    }
-    val = 100;
-    if (em->dmWep <= 0x2D) {
-        val = GetWepDmVal(em, em->dmWep, far);
-    }
-    if (h->partsNo == 5) {
-        val += val;
-        w->x698 += 200;
-    }
-    return val;
-}
-
-int em39GotoCk(cEm39* em)
-{
-    Em39Work* w = EM39_WK(em);
-
-    if (w->gotoOn == 0) {
-        return 0;
-    }
-    EmRoutineSet(em, 1, 0xA, 0, 0);
-    return 1;
-}
-
-void cEm39::set2ndBattle()
-{
-    Em39Work* w = EM39_WK(this);
-    Vec p = { 31259.0f, 5250.0f, -14068.0f };
-
-    AtariOff(&atari, 0xFCFF);
-    rot.y = 1.4660766f;
-    setPos(&p);
-    w->x680 = 30;
-    w->x8C4 = 3;
-    w->x69C = 0;
-    w->pGotoPoint = 0;
-    w->dmgTotal = 0;
-    w->x698 = 0;
-    EmRoutineSet(this, 1, 4, 0, 0);
-}
-
-void cEm39::set1stDoorClear()
-{
-    Em39Work* w = EM39_WK(this);
-
-    w->x69C = 0;
-    w->x8C4 = 1;
-}
-
-void cEm39::set2ndDoorClear()
-{
-    Em39Work* w = EM39_WK(this);
-
-    w->x69C = 0;
-    w->x8C4 = 4;
-}
-
-// Motion-key voice request (seNo - 1) for the voice numbers the enemy owns.
-void em39VoiceMove(cEm39* em)
-{
-    u32 v = em->seNo;
-
-    if (v == 0) {
-        return;
-    }
-    v--;
-    switch (v) {
-    case 6:
-    case 9:
-    case 0x19:
-    case 0x1E:
-    case 0x1F:
-    case 0x20:
-    case 0x21:
-    case 0x22:
-    case 0x23:
-    case 0x24:
-    case 0x25:
-    case 0x26:
-    case 0x27:
-    case 0x28:
-    case 0x29:
-    case 0x2A:
-    case 0x2B:
-    case 0x2C:
-    case 0x2D:
-    case 0x2E:
-    case 0x2F:
-    case 0x30:
-    case 0x31:
-    case 0x32:
-    case 0x33:
-    case 0x34:
-    case 0x3E:
-    case 0x3F:
-        em->seNo = 0;
-        em39SetVoice(em, (u8) v);
-        break;
-    }
-}
-
-void em39SetVoice(cEm39* em, int no)
-{
-    Em39Work* w = EM39_WK(em);
-    cModel* p = em->getPartsPtr(4);
-
-    SndStop(w->voiceId, 0);
-    w->voiceId = SndCall(8, no, &p->worldPos, em->id, 0, em);
-    w->speechTime = 0;
-}
-
-void em39SetSpeech(cEm39* em, int no, int time)
-{
-    Em39Work* w = EM39_WK(em);
-
-    w->speechTime = no;
-    w->speechNo = time;
-}
-
-void em39SpeechMove(cEm39* em)
-{
-    Em39Work* w = EM39_WK(em);
-
-    if (w->speechTime) {
-        w->speechTime--;
-        if (w->speechTime == 0) {
-            em39SetVoice(em, w->speechNo);
-        }
-    }
-}
-
-// Slant (side-step) towards the player from mid range; the side alternates.
-int em39SlantCk(cEm39* em)
-{
-    Em39Work* w = EM39_WK(em);
-    Vec a;
-    Vec b;
-    int hit;
-
-    if (em->type == 2) {
-        return 0;
-    }
-    if (em->plDist2 > 144000000.0f) {
-        return 0;
-    }
-    if (em->plDist2 < 12250000.0f) {
-        return 0;
-    }
-    if (w->targetAngAbs > 0.5235988f) {
-        return 0;
-    }
-    if (fabsf(Muku(&em->pos, &pPL->pos, em->rot.y, PI)) > 0.5235988f) {
-        return 0;
-    }
-    if (fabsf(em->pos.y - pPL->pos.y) > 500.0f) {
-        return 0;
-    }
-    a = em->pos;
-    b = pPL->pos;
-    a.y += 500.0f;
-    b.y += 500.0f;
-    hit = SatMgr.hitCheck(&a, &b, 0, 0, 0, 0);
-    if (hit) {
-        return 0;
-    }
-    w->slantSide ^= 1;
-    EmRoutineSet(em, 1, 0x10, hit, w->slantSide);
-    return 1;
-}
-
-// Tower form: jump aside when the player aims from far enough (by difficulty / remaining hp).
-int em39SlantCk2(cEm39* em)
-{
-    Em39Work* w = EM39_WK(em);
-
-    if (em->type != 2) {
-        return 0;
-    }
-    if (em->plDist2 < 6250000.0f) {
-        return 0;
-    }
-    if (w->targetAngAbs > 0.5235988f) {
-        return 0;
-    }
-    if (fabsf(Muku(&em->pos, &pPL->pos, em->rot.y, PI)) > 0.5235988f) {
-        return 0;
-    }
-    if (pG->x4F88 <= 1) {
-        return 0;
-    }
-    if (pG->x4F88 <= 3 && (u8) (Rnd() % 10) > 4) {
-        return 0;
-    }
-    if (pG->x4F88 <= 9 && em->hp > em->hpMax / 2 && (u8) (Rnd() % 10) <= 6) {
-        return 0;
-    }
-    EmRoutineSet(em, 1, 0x11, 0, 0);
-    return 1;
-}
-
-// Guard check (tower form): the hit landed on the shield parts.
-int em39GuardCk(cEm39* em)
-{
-    EmHitInfo* h;
-
-    if (em->type != 2) {
-        return 0;
-    }
-    h = em->dmPart;
-    if (h->partsNo == 0xE) {
-        return 1;
-    }
-    if (h->partsNo == 0xF) {
-        return 1;
-    }
-    if (h->partsNo == 0x62) {
-        return 1;
-    }
-    if (h->partsNo == 0x63) {
-        return 1;
-    }
-    if (h->partsNo == 0x64) {
-        return 1;
-    }
-    if (h->partsNo == 0x65) {
-        return 1;
-    }
-    if (h->partsNo == 0x66) {
-        return 1;
-    }
-    if (h->partsNo == 0x7B) {
-        return 1;
-    }
-    if (h->partsNo == 0x7C) {
-        return 1;
-    }
-    if (h->partsNo == 0x7D) {
-        return 1;
-    }
-    if (em->dmPart->partsNo == 0x7E) {
-        return 1;
-    }
-    return em->dmPart->partsNo == 0x7F;
-}
-
-int cEm39::ckHide()
-{
-    if (EM39_WK(this)->flags & 0x400) {
-        return 1;
-    }
-    return 0;
-}
-
-void cEm39::setDie()
-{
-    EmRoutineSet(this, 3, 0, 0, 0);
-}
-
-void cEm39::setDieCancel()
-{
-    AtariOff(&atari, 0xFCFF);
-    pos.x = 9210.38f;
-    pos.y = 12048.0f;
-    pos.z = -14974.03f;
-    rot.y = 1.57f;
-    EmRoutineSet(this, 3, 0, 2, 0);
-}
-
-int cEm39::ckTalk1st()
-{
-    Em39Work* w = EM39_WK(this);
-
-    if (w->flags & 0x80000) {
-        return 0;
-    }
-    if (w->flags & 0x40000) {
-        return 1;
-    }
-    return 0;
-}
-
-void cEm39::setTalk1st()
-{
-    Em39Work* w = EM39_WK(this);
-
-    SndStop(w->voiceId, 0);
-    w->flags |= 0x80000;
-    dmType = 2;
-    EmRoutineSet(this, 1, 0, 0, 0);
-}
-
-void cEm39::setTalk1stCancel()
-{
-    AtariOn(&atari, 0x300);
-    if ((u8) (Rnd() % 10) > 4 && plDist2 > 25000000.0f) {
-        EmRoutineSet(this, 1, 0x1D, 0, 1);
-    } else {
-        EmRoutineSet(this, 1, 0x23, 0, 1);
-    }
-}
-
-int cEm39::ckTalk2nd()
-{
-    Em39Work* w = EM39_WK(this);
-
-    if (w->flags & 0x200000) {
-        return 0;
-    }
-    if (w->flags & 0x100000) {
-        return 1;
-    }
-    return 0;
-}
-
-void cEm39::setTalk2nd()
-{
-    Em39Work* w = EM39_WK(this);
-
-    SndStop(w->voiceId, 0);
-    w->flags |= 0x200000;
-    dmType = 2;
-    EmRoutineSet(this, 1, 1, 0, 0);
-}
-
-void cEm39::setTalk2ndCancel()
-{
-    EM39_WK(this)->x8C4 = 5;
-    EmRoutineSet(this, 1, 0x26, 0, 0);
-}
-
-int cEm39::ckBombCutEnable()
-{
-    if (EM39_WK(this)->flags & 0x800000) {
-        return 1;
-    }
-    return 0;
 }
 
 // Arrow shot from the bow at `target` (mode 1 / 2: aimed 1000 to the right / left of it).
@@ -7870,6 +7430,37 @@ void em39ArrowFire(cEm39* em, Vec* target, int mode)
     w->x58C->setShotArrow(&dir, &em39_atk_tbl[0]);
     w->x58C->setSeHitWall(8, 0x13, em->id);
     w->x58C = 0;
+}
+
+// Bow string parts (4) drawn / hidden, arrow transparency and the aiming effect.
+void em39BowSet(cEm39* em, int on)
+{
+    Em39Work* w = EM39_WK(em);
+    cModel* p;
+
+    if (w->pWep3 == 0) {
+        return;
+    }
+    p = w->pWep3->getPartsPtr(4);
+    if (on) {
+        p->scale.x = 1.0f;
+        p->scale.y = 1.0f;
+        p->scale.z = 1.0f;
+        if (w->x58C) {
+            w->x58C->setTransMode(0);
+        }
+        EstSet((int) w->pWep3, -1, 0, 0, 0x2F, 9, 0, w->espKind2, (u32) em, 0);
+    } else {
+        p->scale.x = 0.0f;
+        p->scale.y = 0.0f;
+        p->scale.z = 0.0f;
+        if (w->x58C) {
+            w->x58C->setTransMode(1);
+        }
+        EffectEspDelete(0, w->espKind2, (u32) em, 0);
+        EffectEspgenDelete(0, w->espKind2, (int) em);
+        EffectEfmDelete(0, w->espKind2, (int) em);
+    }
 }
 
 // A door (em 0x41) the knife swing can open: in front, within its frame, openable.
@@ -8092,6 +7683,111 @@ void em39ArmControl(cEm39* em)
     }
 }
 
+// Fence jump: a fence (attribute 0x20) right in front; the landing side is the free one.
+int em39FanceJumpCk2(cEm39* em)
+{
+    Em39Work* w = EM39_WK(em);
+    Vec a;
+    Vec b;
+    Vec hit;
+    Vec nrm;
+    Mtx m;
+    Vec c;
+    Vec d;
+    Vec e;
+    int side = 0;
+    f32 ang;
+
+    if ((u32) w->stuckCnt % 10 != 6) {
+        return 0;
+    }
+    a.x = 0.0f;
+    a.y = 500.0f;
+    a.z = 0.0f;
+    b.x = 0.0f;
+    b.y = 500.0f;
+    b.z = 800.0f;
+    PSMTXMultVec(em->mat, &a, &a);
+    PSMTXMultVec(em->mat, &b, &b);
+    if (!(SatMgr.hitCheck(&a, &b, &hit, &nrm, 0, 0) & 0x20)) {
+        return 0;
+    }
+    ang = atan2f(-nrm.x, -nrm.z);
+    w->jumpAng = ang;
+    w->jumpPos = em->pos;
+    PSMTXRotRad(m, 'y', ang);
+    TransMatrix(m, &em->pos);
+    d.x = 300.0f;
+    d.y = 1200.0f;
+    d.z = 0.0f;
+    e.x = 300.0f;
+    e.y = 1200.0f;
+    e.z = 800.0f;
+    PSMTXMultVec(m, &d, &d);
+    PSMTXMultVec(m, &e, &e);
+    if (SatMgr.hitCheck(&d, &e, 0, 0, 0, 0x20)) {
+        side = 1;
+    }
+    d.x = -300.0f;
+    d.y = 1200.0f;
+    d.z = 0.0f;
+    e.x = -300.0f;
+    e.y = 1200.0f;
+    e.z = 800.0f;
+    PSMTXMultVec(m, &d, &d);
+    PSMTXMultVec(m, &e, &e);
+    if (SatMgr.hitCheck(&d, &e, 0, 0, 0, 0x20)) {
+        side |= 2;
+    }
+    if (side == 3) {
+        return 0;
+    }
+    if (side & 1) {
+        c.x = -300.0f;
+        c.y = 0.0f;
+        c.z = 0.0f;
+        PSMTXMultVec(m, &c, &w->jumpPos);
+    }
+    if (side & 2) {
+        c.x = 300.0f;
+        c.y = 0.0f;
+        c.z = 0.0f;
+        PSMTXMultVec(m, &c, &w->jumpPos);
+    }
+    return 1;
+}
+
+int em39FanceJumpCk(cEm39* em)
+{
+    if (em39FanceJumpCk2(em)) {
+        EmRoutineSet(em, 1, 0x17, 0, 0);
+        return 1;
+    }
+    return 0;
+}
+
+// Damage value of the hit (100 for the non-weapon ids), doubled at the head parts.
+int em39SetDmVal(cEm39* em)
+{
+    Em39Work* w = EM39_WK(em);
+    EmHitInfo* h = em->dmPart;
+    int far = 0;
+    int val;
+
+    if (h->rad < 36000000.0f) {
+        far = 1;
+    }
+    val = 100;
+    if (em->dmWep <= 0x2D) {
+        val = GetWepDmVal(em, em->dmWep, far);
+    }
+    if (h->partsNo == 5) {
+        val += val;
+        w->x698 += 200;
+    }
+    return val;
+}
+
 // Attack return: what the enemy does after an attack ended.
 int em39AtkRtnCk(cEm39* em)
 {
@@ -8204,6 +7900,238 @@ int em39AtkRtnCk(cEm39* em)
     return 0;
 }
 
+int em39GotoCk(cEm39* em)
+{
+    Em39Work* w = EM39_WK(em);
+
+    if (w->gotoOn == 0) {
+        return 0;
+    }
+    EmRoutineSet(em, 1, 0xA, 0, 0);
+    return 1;
+}
+
+void cEm39::set2ndBattle()
+{
+    Em39Work* w = EM39_WK(this);
+    Vec p = { 31259.0f, 5250.0f, -14068.0f };
+
+    AtariOff(&atari, 0xFCFF);
+    rot.y = 1.4660766f;
+    setPos(&p);
+    w->x680 = 30;
+    w->x8C4 = 3;
+    w->x69C = 0;
+    w->pGotoPoint = 0;
+    w->dmgTotal = 0;
+    w->x698 = 0;
+    EmRoutineSet(this, 1, 4, 0, 0);
+}
+
+void cEm39::set1stDoorClear()
+{
+    Em39Work* w = EM39_WK(this);
+
+    w->x69C = 0;
+    w->x8C4 = 1;
+}
+
+void cEm39::set2ndDoorClear()
+{
+    Em39Work* w = EM39_WK(this);
+
+    w->x69C = 0;
+    w->x8C4 = 4;
+}
+
+// Motion-key voice request (seNo - 1) for the voice numbers the enemy owns.
+void em39VoiceMove(cEm39* em)
+{
+    u32 v = em->seNo;
+
+    if (v == 0) {
+        return;
+    }
+    v--;
+    switch (v) {
+    case 6:
+    case 9:
+    case 0x19:
+    case 0x1E:
+    case 0x1F:
+    case 0x20:
+    case 0x21:
+    case 0x22:
+    case 0x23:
+    case 0x24:
+    case 0x25:
+    case 0x26:
+    case 0x27:
+    case 0x28:
+    case 0x29:
+    case 0x2A:
+    case 0x2B:
+    case 0x2C:
+    case 0x2D:
+    case 0x2E:
+    case 0x2F:
+    case 0x30:
+    case 0x31:
+    case 0x32:
+    case 0x33:
+    case 0x34:
+    case 0x3E:
+    case 0x3F:
+        em->seNo = 0;
+        em39SetVoice(em, (u8) v);
+        break;
+    }
+}
+
+void em39SetVoice(cEm39* em, int no)
+{
+    Em39Work* w = EM39_WK(em);
+    cModel* p = em->getPartsPtr(4);
+
+    SndStop(w->voiceId, 0);
+    w->voiceId = SndCallI(8, no, &p->worldPos, em->id, 0, em);
+    w->speechTime = 0;
+}
+
+void em39SetSpeech(cEm39* em, int no, int time)
+{
+    Em39Work* w = EM39_WK(em);
+
+    w->speechTime = no;
+    w->speechNo = time;
+}
+
+void em39SpeechMove(cEm39* em)
+{
+    Em39Work* w = EM39_WK(em);
+
+    if (w->speechTime) {
+        w->speechTime--;
+        if (w->speechTime == 0) {
+            em39SetVoice(em, w->speechNo);
+        }
+    }
+}
+
+// Slant (side-step) towards the player from mid range; the side alternates.
+int em39SlantCk(cEm39* em)
+{
+    Em39Work* w = EM39_WK(em);
+    Vec a;
+    Vec b;
+    int hit;
+
+    if (em->type == 2) {
+        return 0;
+    }
+    if (em->plDist2 > 144000000.0f) {
+        return 0;
+    }
+    if (em->plDist2 < 12250000.0f) {
+        return 0;
+    }
+    if (w->targetAngAbs > 0.5235988f) {
+        return 0;
+    }
+    if (fabsf(Muku(&em->pos, &pPL->pos, em->rot.y, PI)) > 0.5235988f) {
+        return 0;
+    }
+    if (fabsf(em->pos.y - pPL->pos.y) > 500.0f) {
+        return 0;
+    }
+    a = em->pos;
+    b = pPL->pos;
+    a.y += 500.0f;
+    b.y += 500.0f;
+    hit = SatMgr.hitCheck(&a, &b, 0, 0, 0, 0);
+    if (hit) {
+        return 0;
+    }
+    w->slantSide ^= 1;
+    EmRoutineSet(em, 1, 0x10, hit, w->slantSide);
+    return 1;
+}
+
+// Tower form: jump aside when the player aims from far enough (by difficulty / remaining hp).
+int em39SlantCk2(cEm39* em)
+{
+    Em39Work* w = EM39_WK(em);
+
+    if (em->type != 2) {
+        return 0;
+    }
+    if (em->plDist2 < 6250000.0f) {
+        return 0;
+    }
+    if (w->targetAngAbs > 0.5235988f) {
+        return 0;
+    }
+    if (fabsf(Muku(&em->pos, &pPL->pos, em->rot.y, PI)) > 0.5235988f) {
+        return 0;
+    }
+    if (pG->x4F88 <= 1) {
+        return 0;
+    }
+    if (pG->x4F88 <= 3 && (u8) (Rnd() % 10) > 4) {
+        return 0;
+    }
+    if (pG->x4F88 <= 9 && em->hp > em->hpMax / 2 && (u8) (Rnd() % 10) <= 6) {
+        return 0;
+    }
+    EmRoutineSet(em, 1, 0x11, 0, 0);
+    return 1;
+}
+
+// Guard check (tower form): the hit landed on the shield parts.
+int em39GuardCk(cEm39* em)
+{
+    EmHitInfo* h;
+
+    if (em->type != 2) {
+        return 0;
+    }
+    h = em->dmPart;
+    if (h->partsNo == 0xE) {
+        return 1;
+    }
+    if (h->partsNo == 0xF) {
+        return 1;
+    }
+    if (h->partsNo == 0x62) {
+        return 1;
+    }
+    if (h->partsNo == 0x63) {
+        return 1;
+    }
+    if (h->partsNo == 0x64) {
+        return 1;
+    }
+    if (h->partsNo == 0x65) {
+        return 1;
+    }
+    if (h->partsNo == 0x66) {
+        return 1;
+    }
+    if (h->partsNo == 0x7B) {
+        return 1;
+    }
+    if (h->partsNo == 0x7C) {
+        return 1;
+    }
+    if (h->partsNo == 0x7D) {
+        return 1;
+    }
+    if (em->dmPart->partsNo == 0x7E) {
+        return 1;
+    }
+    return em->dmPart->partsNo == 0x7F;
+}
+
 // Motion-key foot sounds (seNo - 1) with the footstep dust in the tower room.
 void em39FootEff(cEm39* em)
 {
@@ -8255,7 +8183,7 @@ void em39FootEff(cEm39* em)
         return;
     }
     em->seNo = 0;
-    SndCall(8, no, &em->getPartsPtr(0)->worldPos, em->id, 0, pPL);
+    SndCallI(8, no, &em->getPartsPtr(0)->worldPos, em->id, 0, pPL);
 }
 
 // Motion-key player voice (seNo - 1 = 0x43 / 0x44 / 0x54), Ashley's numbers in her chapter.
@@ -8288,7 +8216,15 @@ void em39PLVoiceCk(cEm39* em)
         return;
     }
     em->seNo = 0;
-    SndCall(8, no, &pPL->getPartsPtr(4)->worldPos, em->id, 0, pPL);
+    SndCallI(8, no, &pPL->getPartsPtr(4)->worldPos, em->id, 0, pPL);
+}
+
+int cEm39::ckHide()
+{
+    if (EM39_WK(this)->flags & 0x400) {
+        return 1;
+    }
+    return 0;
 }
 
 // Tower form left arm attack: the arm parts origins and points along the forearm (parts 0x63).
@@ -8409,3 +8345,91 @@ int em39GetCliffPos(cEm39* em)
     w->jumpAng = best->rotY;
     return 1;
 }
+
+void cEm39::setDie()
+{
+    EmRoutineSet(this, 3, 0, 0, 0);
+}
+
+void cEm39::setDieCancel()
+{
+    AtariOff(&atari, 0xFCFF);
+    pos.x = 9210.38f;
+    pos.y = 12050.0f;
+    pos.z = -14974.03f;
+    rot.y = 1.57f;
+    EmRoutineSet(this, 3, 0, 2, 0);
+}
+
+int cEm39::ckTalk1st()
+{
+    Em39Work* w = EM39_WK(this);
+
+    if (w->flags & 0x80000) {
+        return 0;
+    }
+    if (w->flags & 0x40000) {
+        return 1;
+    }
+    return 0;
+}
+
+void cEm39::setTalk1st()
+{
+    Em39Work* w = EM39_WK(this);
+
+    SndStop(w->voiceId, 0);
+    dmType = 2;
+    w->flags |= 0x80000;
+    EmRoutineSet(this, 1, 0, 0, 0);
+}
+
+void cEm39::setTalk1stCancel()
+{
+    AtariOn(&atari, 0x300);
+    if ((u8) (Rnd() % 10) > 4 && plDist2 > 25000000.0f) {
+        EmRoutineSet(this, 1, 0x1D, 0, 1);
+    } else {
+        EmRoutineSet(this, 1, 0x23, 0, 1);
+    }
+}
+
+int cEm39::ckTalk2nd()
+{
+    Em39Work* w = EM39_WK(this);
+
+    if (w->flags & 0x200000) {
+        return 0;
+    }
+    if (w->flags & 0x100000) {
+        return 1;
+    }
+    return 0;
+}
+
+void cEm39::setTalk2nd()
+{
+    Em39Work* w = EM39_WK(this);
+
+    SndStop(w->voiceId, 0);
+    dmType = 2;
+    w->flags |= 0x200000;
+    EmRoutineSet(this, 1, 1, 0, 0);
+}
+
+void cEm39::setTalk2ndCancel()
+{
+    EM39_WK(this)->x8C4 = 5;
+    EmRoutineSet(this, 1, 0x26, 0, 0);
+}
+
+int cEm39::ckBombCutEnable()
+{
+    if (EM39_WK(this)->flags & 0x800000) {
+        return 1;
+    }
+    return 0;
+}
+
+// The split object's .data is 8-aligned (4 pad bytes before the ngcld BSS tag).
+asm(".section .data\n\t.balign 8\n\t.text");

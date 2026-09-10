@@ -112,9 +112,9 @@ public:
     virtual void move();
     virtual void setNoSuspend(int on);
     virtual void set2ndBattle();
+    virtual int ckHide();
     virtual void set1stDoorClear();
     virtual void set2ndDoorClear();
-    virtual int ckHide();
     virtual void setDie();
     virtual void setDieCancel();
     virtual int ckTalk1st();
