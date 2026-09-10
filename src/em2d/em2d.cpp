@@ -933,17 +933,18 @@ void em2dInitRtnSet(cEm2d* em)
         Vec top;
         Vec bottom;
         Vec hit;
+        f32 fy;
 
         w->flags |= 0x80;
-        top = em->pos;
-        bottom = em->pos;
+        top = bottom = em->pos;  // chained: bottom stored first, top.x reloaded from bottom.x
         top.y -= 500.0f;
         bottom.y += 2000.0f;
         if (SatMgr.hitCheck(&top, &bottom, &hit, 0, 0, 0x383830)) {
             em->pos.y = hit.y;
         }
-        w->homePos.y = SatMgr.getFloor(&em->pos, 600.0f, 100000.0f, 0, 0);
+        fy = SatMgr.getFloor(&em->pos, 600.0f, 100000.0f, 0, 0);
         w->homePos = em->pos;
+        w->homePos.y = fy;  // the floor y overrides the copy (stfs after the copy's stw)
         EmRoutineSet(em, 1, 0x27, 0, 0);
         MotionSetCore(em, &em->mot, ARC(0x47), 0, 0, 5, 0);
         break;
@@ -956,12 +957,14 @@ void em2dInitRtnSet(cEm2d* em)
         Vec nrm;
         int one = 1;      // routine 1 of both arms in a callee-saved register
         Vec* pos = &em->pos;
-        f32 fz;
+        // COMPILER-DIFF: #14 candidate -- a store-only SF constant (class GENERAL_OR_FLOAT) lands in
+        // a GPR with our cc1plus; the original allocated it to f31.
+        register f32 fz asm("fr31");
 
         em->x38D = one;
         PSMTXRotRad(m, 'y', em->rot.y);
         TransMatrix(m, pos);
-        fz = 0.0f;        // one 0.0 pseudo for the line ends and the else arm's spd (f31)
+        fz = 0.0f;        // one 0.0 for the line ends and the else arm's spd
         a.x = fz;
         a.y = fz;
         a.z = fz;
@@ -3887,7 +3890,6 @@ static void em2d_R0_Damage(cEm2d* em)
 static void em2d_R1_Dm_Normal(cEm2d* em)
 {
     Em2dWork* w = EM2D_WK(em);
-    Vec* pos;
     int side;
     int hit;
 
@@ -3899,7 +3901,6 @@ static void em2d_R1_Dm_Normal(cEm2d* em)
         } else {
             side = 1;
         }
-        pos = &em->pos;
         if (Rnd() & 1) {
             side = 2;
         }
@@ -3915,7 +3916,7 @@ static void em2d_R1_Dm_Normal(cEm2d* em)
             MotionSetCore(em, &em->mot, ARC(0x51), 0, 5, 1, 0);
             break;
         }
-        SndCall(8, 0xF, pos, em->id, 0, em);
+        SndCall(8, 0xF, &em->pos, em->id, 0, em);  // second `&em->pos`: gcse PRE copies the Muku argument pseudo (`mr r28,r30`)
         if (w->poisonTimer <= 10) {
             w->poisonTimer = 10;
         }
@@ -4948,6 +4949,22 @@ void em2dSetFallMatrix(cEm2d* em)
     TransMatrix(em->mat, &em->pos);
 }
 
+// u8 parameter: integrate copies the byte into a QImode pseudo (`andi.` on the byte, `clrlwi r0` only
+// for the 0x98 compare, `subi` on the byte register)
+static inline int em2dColor2On(u8 c)
+{
+    if (!(c & 0x80)) {
+        if (c <= 0x67) {
+            return c + 0x18;
+        }
+        return 0x80;
+    }
+    if (c > 0x98) {
+        return c - 0x18;
+    }
+    return 0x80;
+}
+
 void em2dCamouflageMove(cEm2d* em)
 {
     Em2dWork* w = EM2D_WK(em);
@@ -5050,30 +5067,21 @@ void em2dCamouflageMove(cEm2d* em)
         em->x12F = 5;
     }
     if (on) {
+        u8 v;  // value select: the join's single `stb` cross-jumps into the else arm's store (1-insn label rule)
         p = em->pInfo;
         if (p == 0) {
             return;
         }
         if (w->blendRatio == 0) {
             if (p->color2[0] <= 0xE6) {
-                p->color2[0] += 0x18;
+                v = p->color2[0] + 0x18;
             } else {
-                p->color2[0] = 0xFF;
-            }
-        } else if (!(p->color2[0] & 0x80)) {
-            if (p->color2[0] <= 0x67) {
-                p->color2[0] += 0x18;
-            } else {
-                p->color2[0] = 0x80;
+                v = 0xFF;
             }
         } else {
-            c = p->color2[0];
-            if (c > 0x98) {
-                p->color2[0] = c - 0x18;
-            } else {
-                p->color2[0] = 0x80;
-            }
+            v = em2dColor2On(p->color2[0]);
         }
+        p->color2[0] = v;
     } else {
         p = em->pInfo;
         if (p == 0) {
@@ -5085,9 +5093,9 @@ void em2dCamouflageMove(cEm2d* em)
             p->color2[0] = on;
         }
     }
-    p->color2[3] = p->color2[0];
     p->color2[1] = p->color2[0];
     p->color2[2] = p->color2[0];
+    p->color2[3] = p->color2[0];
 }
 
 int em2dCatchCk(cEm2d* em)

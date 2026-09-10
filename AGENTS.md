@@ -8471,3 +8471,71 @@ confirmed on the units named):
   - r226 PassageStart/BridgeStart `i++` in the compare block (#5 interblock), playerPillarDownCk prologue (#1),
     PassageSwitchMain (49, #2). r22c highscore: `found` flag / `IDSystem* sys` per iteration / `int* d = digit`: 10-14
     (tie confirmed). r216 close, r22a RopeMove, r213 x3 not retried (documented ties).
+
+### em2c / em2d bytes-first pass 3 (em2d 118 -> 119/129, em2c 109/120 with DmCk 283 -> 151; sections identical; neither flipped; 2026-09-10)
+- Harness /tmp/em2cd_p3 (em2cd_p2 copies with the paths rewritten; `variants.py` takes `SRC=<file>` to apply the
+  edits to a variant base instead of src/). All DOL symbols untouched (`git diff config/G4BE08/symbols.txt` empty).
+- em2d InitRtnSet (141 -> 9): three fixes. (1) case 4's shared 0.0 is `register f32 fz asm("fr31")` (tagged
+  `COMPILER-DIFF: #14 candidate`): a store-only SF constant has class GENERAL_OR_FLOAT with our cc1plus and takes
+  a GPR (`lwz r28`/`stw`), the original allocated it to f31; FSet reference stores, a `volatile f32*` view, `asm("" :
+  "+f")` and an FP expression all keep or worsen it (110-158 words). With f31 the GPR count drops to r24-r31 and every
+  later register agrees. (2) `top = bottom = em->pos;` (chained struct copy): the target stores bottom first and
+  RELOADS top.x from bottom.x (`stw r0,32(r1); lwz r0,32(r1); stw r0,16(r1)`) while y/z go through the r29/r30 word
+  copies -- two separate `= em->pos` copies share all three words. (3) Source bug: `fy = SatMgr.getFloor(..);
+  w->homePos = em->pos; w->homePos.y = fy;` -- the previous `homePos.y = getFloor(); homePos = em->pos;` overwrote the
+  floor y (the target's `stfs f1,896` comes AFTER `stw r10,4(r9)`). Left (9): block 0's seven f0/f13 stores and case
+  5's three are pure source order in the target, ours issues the two dying stores (`x4F8 = 1.0` last use of f13,
+  `wallNrm.x` last use of f0) first -- the #13 dying-store shape. The `asm volatile("" :: "f"(one), "f"(zero))`
+  launder after the block gives the FP order but (a) the sched barrier makes the stfs outrank the three `stw zero`
+  (the fp stores get the call as an extra dependent through the asm; equal priority, more dependents wins) and (b) the
+  volatile ASM_OPERANDS flushes cse's table so `&w->homePos` is re-based on w (`addi r8,r28,892`): 32-54 words. A
+  non-volatile `asm("" : "=r"(z2) : "0"(zero), "f"(one), "f"(zero))` with z2 used by the post-call stores: 40.
+  `register f32 asm("fr0"/"fr13")` for the block-0/case-5 constants: unchanged (hard regs get REG_DEAD notes too, the
+  weight is the same).
+- em2d Dm_Normal (24 -> 0): write `&em->pos` a SECOND time at the SndCall (`SndCall(8, 0xF, &em->pos, ..)`) instead of
+  a `pos` variable assigned next to the Muku call. cse1 folds `pos = &em->pos` into the Muku argument pseudo on the
+  AROUND path (skip_blocks is on in cse1 too: `cse_end_of_basic_block (.., flag_cse_follow_jumps, after_loop,
+  flag_cse_skip_blocks)`), and gcse cprop then kills the copy; a recomputation in the SndCall block (reached through a
+  multi-use label) is NOT folded, gcse PRE deletes it and inserts `R = P1` right after the argument's `addi` -- P1 is
+  local (r30, dies), R is global (r28): `addi r30,r31,148; mr r3,r30; ..; mr r28,r30` byte for byte.
+- em2d CamouflageMove (32 -> 26): the `on` arm is a value select `u8 v; if (blendRatio == 0) { v = c <= 0xE6 ? c+0x18 :
+  0xFF } else v = em2dColor2On(p->color2[0]); p->color2[0] = v;` with `static inline int em2dColor2On(u8 c)` holding
+  the `& 0x80` / `<= 0x67` / `> 0x98` chain (the u8 parameter gives the QImode pseudo: `andi. r0,r9,128` on the byte,
+  `clrlwi r0,r9,24; cmplwi r0,0x98` only for the compare, `subi` on r9). `u8 v` (not `int v`): `v = c + 0x18` is then
+  two insns and jump.c's "if (..) x = a; else x = b" hoist of `li r0,255` does not fire (the arms' `addi; b`/`li; b`
+  stay as in the target). Tail stores `color2[1]; [2]; [3]` order. Left (26): the first sub-arm's `addi r0,r9,24; b`
+  cross-jumps into the second's (ours `ble`, target `bgt` with two copies), `subi; clrlwi; b` in the third arm (the
+  int->u8 truncation of the inline's result is not folded into the shared store block), fmadds f12/f0 naming of the
+  two u8->f32 conversions (local-alloc qty order: conv+result tied, 12.8 and 0.9 -- the target's order is 12.8, 0.9,
+  conv).
+- em2d W_Walk (47, left, mechanism): cse1 (not cse2) folds cmp2's `alpha` to the load temp: the fall-through block of a
+  conditional jump is always on the same cse path (NOT_TAKEN) -- following the jump (TAKEN) needs a BARRIER before
+  the label, and a `goto` into the body (1-use label, `bgt BODY` with `bge SKIP` before the label) does not qualify as
+  AROUND either (verified with -fno-cse-skip-blocks: same fold). So `ny = w->wallNrm.y; alpha = ny; if (ny > .9 ||
+  alpha < -.9)` with a dead later `ny` mention keeps cmp1 on ny but cmp2 becomes ny too; `alpha = ..; if
+  (w->wallNrm.y > .9 || alpha < -.9)` / `(alpha = w->wallNrm.y) > .9` / member twice: 47-48. The target's `lfs f0; fmr
+  f12,f0; fcmpu f0; ..; fcmpu f12` needs cmp2 outside cmp1's cse path (path-length / 1000-insn flush family).
+- em2d A_CatchHit (22, left): w r27 vs the PRE reaching register for `&em->pos` (10 sets, the `em->x3A8 = em->pos` copy
+  base) r26: allocno priorities 3*12/180 (w) vs 3*12/174 -- moving `w = EM2D_WK(em)` after the flags RMWs
+  (`EM2D_WK(em)->flags |= ..` for the em-based stores) does not change w's length. SideStep (22, left): the target
+  PRE-inserts `lfs 0.0` AND `addi &a` into both `bx = +-900` arms (partially available from case 0 through the case
+  fall-through) -- our lcm.c-based gcse never inserts into both preds of a join for an expression only computed at the
+  join (a.z in both arms is the closest form, 22; a.z at the join 29-37).
+- em2c DmCk (283 -> 151): (1) three source bugs read off the target's store blocks: the `flags & 0x1010` arms of the
+  guard block, of the hp<=0 guard arm and of the routine chain are `EmRoutineSet(em, 2, 2, 0, 0)` (`.L_9F4: li r0,2;
+  li r9,0; stb r9,ff; stb r0,fd; stb r0,fc; stb r9,fe` -- fd is r0 = 2), not (2, 0, 0, 0). (2) the dmType 0xA arm is ONE
+  if/else over a ternary condition: `py = part->pos.y; if (em->pos.y > 1700.0f ? py > 1.0f : py > 0.0f) RS(1,0xD)
+  else RS(1,5)` -- do_jump of the COND_EXPR gives `bgt L_D; b L_5` / `ble L_5` falling into L_D with the two RS
+  blocks' fresh `li r0,0; li r9,1; li r11,13/5` (the label L_D has one use and no extension, so cse1 starts a new path
+  there and the zeros stay literals) and the stores cross-jumped once. The four-arm nest (RS in each of the 2x2 arms)
+  merges the store tails first (chain order d, c, b), leaves the four `li; li; li; b` copies unmerged (jumps to the new
+  label are not in jump_chain) and takes the `andi. r30,r0,0x800` result as the zeros (cse1 knows it is 0 on the
+  fall-through path; `int zero`, dead do-while, `asm volatile("")` (ASM_INPUT: cse does not flush) and `asm volatile(""
+  ::: "memory")` (a PARALLEL: no flush either) do not stop it; only a bare volatile ASM_OPERANDS `asm volatile("" ::
+  "r"(em))` flushes, 255). `f32 py` local before the compare (the target loads `part->pos.y` once, after the `stb
+  dmType`). Left (151, mostly one shift): the hp<=0 guard arm's `andi. r10,r0,0x1010; beq; li r0,2; b .L_9FC` -- ours
+  hoists the `li r0,2` above the `beq` (jump.c "if (..) { x = a; goto l; } x = b" with x = r0 and `x = b` = the next
+  block's `lbz r0`); `int two2 = 2` at the die-block top (278), in the arm, `two2 = 2` in the arm, one-use forms: 171 or
+  worse. Plus `li r9,7`/`li r9,8` and store-order ties in the last routine chain.
+- Not attempted this pass (time): em2c T_Wait 143, the three blend-init blocks, HideWait 2, BlendMotSet/2, em2d RouteCk
+  4, JumpAtk 2.

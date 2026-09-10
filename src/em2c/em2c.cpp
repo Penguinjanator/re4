@@ -334,6 +334,7 @@ void em2cDmCk(cEm2c* em)
     int dmg;
     f32 dmAng;
     f32 dist;
+    f32 py;
 
     if (em->hp > 0) {
         if (!(w->flags & 0x100840) && !em2cDeadCk(em)) {
@@ -350,7 +351,7 @@ void em2cDmCk(cEm2c* em)
                 return;
             }
             if (w->flags & 0x1010) {
-                EmRoutineSet(em, 2, 0, 0, 0);
+                EmRoutineSet(em, 2, 2, 0, 0);
                 return;
             }
             if (w->flags & 0x400) {
@@ -396,7 +397,7 @@ void em2cDmCk(cEm2c* em)
                         return;
                     }
                     if (w->flags & 0x1010) {
-                        EmRoutineSet(em, 2, 0, 0, 0);
+                        EmRoutineSet(em, 2, 2, 0, 0);
                         return;
                     }
                     if (w->flags & 0x400) {
@@ -449,18 +450,13 @@ void em2cDmCk(cEm2c* em)
     case 0x2C:
         if (!(w->flags & 0x800) && w->routeAngAbs < 0.52359879f && (w->flags & 0x40000) && Rnd() % 100 > 49) {
             em->dmType = 0xA;
-            if (em->pos.y > 1700.0f) {
-                if (part->pos.y > 1.0f) {
-                    EmRoutineSet(em, 1, 0xD, 0, 0);
-                } else {
-                    EmRoutineSet(em, 1, 5, 0, 0);
-                }
+            py = part->pos.y;  // loaded once (both arms read it)
+            // one if/else (two RS blocks, fresh zeros): the four-arm nest cross-jumps the stores first and
+            // leaves the li blocks unmerged
+            if (em->pos.y > 1700.0f ? py > 1.0f : py > 0.0f) {
+                EmRoutineSet(em, 1, 0xD, 0, 0);
             } else {
-                if (part->pos.y > 0.0f) {
-                    EmRoutineSet(em, 1, 0xD, 0, 0);
-                } else {
-                    EmRoutineSet(em, 1, 5, 0, 0);
-                }
+                EmRoutineSet(em, 1, 5, 0, 0);
             }
             return;
         }
@@ -670,7 +666,7 @@ void em2cDmCk(cEm2c* em)
         return;
     }
     if (w->flags & 0x1010) {
-        EmRoutineSet(em, 2, 0, 0, 0);
+        EmRoutineSet(em, 2, 2, 0, 0);
         return;
     }
     if (w->flags & 0x400) {
