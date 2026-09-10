@@ -748,6 +748,7 @@ MATCHING = {
     "Sscrn/ss_map.cpp": True,
     "Sscrn/ss_model.cpp": True,
     "Sscrn/ss_pzzl.cpp": True,
+    "Sscrn/ss_shop.cpp": True,
     "Tools/t_prim.cpp": True,
     "Tools/t_mes.cpp": True,
     "Tools/t_cons.cpp": True,

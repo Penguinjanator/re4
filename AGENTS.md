@@ -3056,9 +3056,10 @@ target) stays unresolved and `make_rel` then fails with "undefined symbol".
   tables in the wrong order (map_cam_entire is defined before mark_model_tbl); see its item) and ss_pzzl (src/Sscrn/ss_pzzl.cpp, Matching since the twelfth pass (64/64:
   PieceSelect::move, pieceFrameDisp, caseModelMove in the twelfth; pieceTblInit, PzzlThinking::move, SsPzzlMain::init in the eleventh; pzzlCursorDisp in the tenth; pieceModelDisp in the ninth; PieceCommand::move and PieceCombine::move since the sixth), .rodata/.data/.bss identical,
   eof block order fixed (in-class `init` bodies, see the eleventh-pass item); the module COMMON block is widened by `asm(".comm _7pzlGrid.size,52,4")` and msg_open/pzzl_cursor/pzzl_sel/pzzl_dbg are non-static for the REL fields, see the twelfth-pass item) are
-  written; ss_shop (src/Sscrn/ss_shop.cpp, the merchant screen: 73/74 functions byte-identical after
-  the eleventh pass (levelItemDisp; LvUpItemSelect::move in the tenth, LvUpConfirm::move in the ninth, BuyItemNum::move in the seventh) incl. the 0x980 eof block, .rodata/.data/.bss
-  identical, .text size equal since the ninth pass; open: SellItemNum::move 4 insns, the only non-Matching Sscrn unit) is written, see its item and the fifth..twelfth-pass lists.
+  written; ss_shop (src/Sscrn/ss_shop.cpp, the merchant screen: Matching since the thirteenth pass (74/74: SellItemNum::move
+  closed with a tagged #13 slot filler, see the thirteenth-pass item; levelItemDisp in the eleventh, LvUpItemSelect::move in the tenth, LvUpConfirm::move in the ninth, BuyItemNum::move in the seventh) incl. the 0x980 eof block, .rodata/.data/.bss
+  identical; shop_msg / shop_pos_save / shop_msg_buf are non-static for the REL's ADDR16 fields) is written, see its item and the fifth..thirteenth-pass lists.
+  Sscrn.rel is byte-identical with 10 of 11 units compiled; ss_term stays on its split object (eof vtable/dtor order, see its item).
 - ss_shop idioms (2026-09): include order light.h, map_obj.h, widget.h (the three header strings), then
   "ss_shop.dat" (SsShopInit::move) and the HALT string (mem_alloc lines 0x1BA/0x242). The 13 widgets are
   declared in the order SsShopInit, SsShopMain (ss_main.h), ShopTopMenu(3 links, ctor sets cursor = 1),
@@ -4137,7 +4138,41 @@ target) stays unresolved and `make_rel` then fails with "undefined symbol".
     in both loop-2 uses drops the recompute (78 lines). Also rejected: dead tests near MesSet (block split, IdSub high not
     shared), do-while barriers, enclosing-block `digit`, and the dq asm plus a dead `dz = digit;` in the test block / before
     the loop to restore gcse's anticipation (v_x3/v_x4: unchanged 35 lines). Candidate left: a form that keeps the test
-    load's own `P = fp+8` insn while its giv base is the asm output.
+    load's own `P = fp+8` insn while its giv base is the asm output. (CLOSED in the thirteenth pass, next item.)
+- Sscrn thirteenth pass (2026-09-11, harness ~/.cache/ssw15 = ssw14 copies with the paths rewritten; ss_shop 73 -> 74/74,
+  Matching, `Sscrn.rel: OK`, 111 files OK; 10 of the 11 Sscrn units compiled, ss_term left on its split object):
+  - **SellItemNum::move 4 insns -> 0 (tagged `COMPILER-DIFF: #13`): the addi did not need a dependence, it needed to LOSE
+    the free slot.** Re-read of the two sched dumps: block 0 (prologue .. the k switch, 5 calls, one basic block) has free
+    issue slots at t=8, 22, 23, 24, 30 (MesSet's cycle: the call takes the bpu, an iu slot is free) and t=32 (`li r5,31`
+    alone); the prio-1 insns with no dependents (`val = 0`, `n = 0`, `base = 0`, the PRE'd `lis IdSub` 484, and the pass-2
+    hoist `R = fp+8`) fill them in LUID order, so the fp+8 hoist -- RTL-last in the k preheader -- lands at t=30. In sched2
+    the same insn is `addi r17,r1,8` and r1 IS `call_used_regs` (fixed regs are call-used on rs6000), so it gets the ANTI
+    link to MesSet (`sched_analyze_2`, hard-reg use -> `last_function_call`) and unitPtr gets one on it: ready at t=31 with
+    the arg moves' priority, and the tie among `addi r3; li r4; li r5; addi r17` (all prio 12, class 3, one dependent) is
+    the sched1 LUID order. The target's `addi r17` after `li r5,31` therefore only says that the original's sched1 issued
+    it at t=32, i.e. something else took the t=30 slot -- a free insn that left no bytes. Reproduced with a single-use
+    constant that update_equiv_regs moves after sched1: `int zero;` at function scope, `zero = 0;` as the FIRST statement
+    of the k body (loop pass 1 hoists it to the k preheader, `Insn 193: regno 94 (life 665), global move-insn savings 1
+    moved to 1561`, RTL between the gcse insertions and the pass-2 fp+8 hoist 1562 -- pass-1 movables are emitted before
+    `loop_start` after gcse's end-of-block insertions, pass-2's after them), and `self->fast = zero;` for the ONE store in
+    the `repeat <= 30` arm (`li 0,0; sth 0,18(24)`). sched1 t=30 ready list `1562 1561 132`: MesSet + `zero`; t=32: `li r5`
+    + the fp+8 hoist. gcse's cprop cannot fold the `(set (mem:HI) (subreg:HI zero))` store (movhi has no store-immediate),
+    the set carries loop.c's REG_EQUAL, REG_N_REFS is 2 and the use is at loop depth 0, so local-alloc's update_equiv_regs
+    (`validate_replace_rtx` fails -> `depth == 0` branch) re-emits the `li` right before the `sth` (`.lreg`: insn 1593 with
+    REG_EQUIV before 1199, `Register 94 used 2 times across 2 insns in block 50`, r0) -- the same `li r0,0; sth` bytes as the
+    literal. Why the store choice matters: a store whose block also sets another constant (`repeat = 30; fast = 1`) is
+    reordered in sched1 (the store of the live-in pseudo is free and issues before the other `li`), and the moved `li`
+    then has the larger LUID; the `cursor = 1` store after the price MesSet would put the moved `li` behind the
+    `addi cMes@l`. Rule of record: **a free hoisted insn in the wrong free slot = count the block's free slots from the
+    sched1 ready lists (`-dS -fsched-verbose-6`); one more prio-1 insn with a LUID between the right neighbours shifts
+    it by one slot, and a #13 single-use constant (set at a loop-body top, stored once at depth 0) is a free insn that
+    vanishes at local-alloc.**
+  - ss_shop flip: `scopes.py` flagged `shop_msg` (.data), `shop_pos_save`, `shop_msg_buf` (.bss) as scope:global vs
+    static -> made non-static (the vtable WEAK mismatches are the known false positives); bcmp's `.text DIFF at 28 bytes`
+    at 0x8128/0x8198.. are the 7 `bl countActiveWork/create` words of the nameless cManager<cLight> block that the split
+    object has linker-resolved (no reloc) -- present for every Sscrn unit, harmless; the REL sha1 is the check.
+  - fdiff/unit_info still show `REPLACE` lines with identical text and 87-99% for ss_shop's (and ss_pzzl's) functions:
+    objdiff's reloc-name comparison against the split's `lbl_Sscrn_*` placeholders, not a code difference.
 - The map model globals are named `ssPlModel`/`ssWepModel` (.bss 0x494/0x498, MapMgr works 0/1),
   `ssPlMotion`/`ssWepModel2` (.data 0x978/0x97C), renamed by hand in symbols.txt/sym_map.tsv
   (data labels have no .sym name for the sync tool); the generator attributes them to ss_map.cpp.

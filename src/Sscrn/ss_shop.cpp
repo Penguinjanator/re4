@@ -224,7 +224,9 @@ static u32 price_disp_num = 2;
 static u32 price_disp_sold = 4;
 
 // Merchant line table: {message, voice stream} (indexes are the greeting / answer numbers).
-static ShopMsg shop_msg[26] = {
+// Not static: scope:global in the module symbols (the REL's ADDR16 fields hold A only), like
+// shop_pos_save / shop_msg_buf below.
+ShopMsg shop_msg[26] = {
     {0x13, 0xB9}, {0x14, 0xB6}, {0x15, 0xFF}, {0x16, 0xFF}, {0x17, 0xFF}, {0xFF, 0xBA}, {0x0B, 0xB7},
     {0x18, 0xB5}, {0xFF, 0xB4}, {0xFF, 0xBB}, {0x0C, 0xB7}, {0x19, 0xBC}, {0x1A, 0xBD}, {0x1B, 0xBE},
     {0x1C, 0xBF}, {0x1D, 0xC0}, {0x1E, 0xFF}, {0x1F, 0xC1}, {0x20, 0xC2}, {0x0A, 0xB8}, {0x0D, 0xFF},
@@ -303,8 +305,8 @@ static ShopItemPlace shop_item_place[51] = {
 
 static void* shop_clear_z;
 static int shop_read_req;
-static Vec shop_pos_save;
-static void* shop_msg_buf[5];
+Vec shop_pos_save;
+void* shop_msg_buf[5];
 
 // Struct-member view of the cModel manager pointers (ss_main.cpp MGR_PTR).
 struct MgrPtr {
@@ -1108,6 +1110,12 @@ void SellItemNum::move(SUB_SCREEN* wk)
     int n = 0;
     int base = 0;
     int max;
+    // COMPILER-DIFF: #13. `zero` is set once at the top of the k loop and stored once after it
+    // (`self->fast = zero`): loop.c hoists the `li` to the k preheader, where sched1 issues it in
+    // the MesSet call's free slot (the slot the PRE'd `&digit` addi took), and local-alloc's
+    // update_equiv_regs then moves the `li` next to the store (no store-immediate), so the addi
+    // lands after `li r5,31` like the target and the store keeps its `li r0,0`.
+    int zero;
 
     dispSellItemList(wk, 5, 1);
     u = IdSub.unitPtr(0xFC, 0x1C);
@@ -1122,6 +1130,7 @@ void SellItemNum::move(SUB_SCREEN* wk)
         int digit[10];
         int on;
 
+        zero = 0; // COMPILER-DIFF: #13 (see above)
         switch (k) {
         case 0:
             n = 4;
@@ -1209,7 +1218,7 @@ void SellItemNum::move(SUB_SCREEN* wk)
                         self->repeat = 30;
                         self->fast = 1;
                     } else {
-                        self->fast = 0;
+                        self->fast = zero; // COMPILER-DIFF: #13 (see above)
                     }
                 } else {
                     self->repeat = 0;
