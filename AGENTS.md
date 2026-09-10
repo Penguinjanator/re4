@@ -3053,12 +3053,12 @@ target) stays unresolved and `make_rel` then fails with "undefined symbol".
   non-static since the ninth pass for the REL fields), .rodata/.data/.bss identical since 2026-09:
   the former 8-byte gap was doorModelInit's missing 2^52 pool entry (`(f32) (int) e->ang` of the u8
   angle, the classic double trick, not a fast-cast psq_l) plus the two file-scope `static const`
-  tables in the wrong order (map_cam_entire is defined before mark_model_tbl); see its item) and ss_pzzl (src/Sscrn/ss_pzzl.cpp, 61/64 after the eleventh pass
-  (pieceTblInit, PzzlThinking::move, SsPzzlMain::init; pzzlCursorDisp in the tenth; pieceModelDisp in the ninth; PieceCommand::move and PieceCombine::move since the sixth), .rodata/.data/.bss identical,
-  eof block order fixed (in-class `init` bodies, see the eleventh-pass item); open: pieceFrameDisp, caseModelMove, PieceSelect::move) are
+  tables in the wrong order (map_cam_entire is defined before mark_model_tbl); see its item) and ss_pzzl (src/Sscrn/ss_pzzl.cpp, Matching since the twelfth pass (64/64:
+  PieceSelect::move, pieceFrameDisp, caseModelMove in the twelfth; pieceTblInit, PzzlThinking::move, SsPzzlMain::init in the eleventh; pzzlCursorDisp in the tenth; pieceModelDisp in the ninth; PieceCommand::move and PieceCombine::move since the sixth), .rodata/.data/.bss identical,
+  eof block order fixed (in-class `init` bodies, see the eleventh-pass item); the module COMMON block is widened by `asm(".comm _7pzlGrid.size,52,4")` and msg_open/pzzl_cursor/pzzl_sel/pzzl_dbg are non-static for the REL fields, see the twelfth-pass item) are
   written; ss_shop (src/Sscrn/ss_shop.cpp, the merchant screen: 73/74 functions byte-identical after
   the eleventh pass (levelItemDisp; LvUpItemSelect::move in the tenth, LvUpConfirm::move in the ninth, BuyItemNum::move in the seventh) incl. the 0x980 eof block, .rodata/.data/.bss
-  identical, .text size equal since the ninth pass; open: SellItemNum::move 4 insns) is written, see its item and the fifth..eleventh-pass lists.
+  identical, .text size equal since the ninth pass; open: SellItemNum::move 4 insns, the only non-Matching Sscrn unit) is written, see its item and the fifth..twelfth-pass lists.
 - ss_shop idioms (2026-09): include order light.h, map_obj.h, widget.h (the three header strings), then
   "ss_shop.dat" (SsShopInit::move) and the HALT string (mem_alloc lines 0x1BA/0x242). The 13 widgets are
   declared in the order SsShopInit, SsShopMain (ss_main.h), ShopTopMenu(3 links, ctor sets cursor = 1),
@@ -4091,6 +4091,53 @@ target) stays unresolved and `make_rel` then fails with "undefined symbol".
     getPieceNum result; the target keeps them apart only because cse's zero class differs per arm (r9 = the `mr.` result
     in arm 1, r27 = the `switch (state)` register in arm 2, r25 = the Key OR in case 4). pieceFrameDisp / caseModelMove
     not iterated this pass.
+- Sscrn twelfth pass (2026-09, harness ~/.cache/ssw14: `sellv.sh`/`psv.sh`/`pfv.sh name=v_x.py` fvar variants over
+  `ss_shop.base.cpp`/`ss_pzzl.base.cpp`/`ss_pzzl.cur.cpp`, `dump.sh`, `fn.sh`, `rtlc.py`, `prio.py`, `bcmp.py`, `scopes.py`).
+  ss_pzzl closed (64/64, Matching, `Sscrn.rel: OK`); ss_shop still 73/74.
+  - **PieceSelect::move 113 -> 0 (one tagged dead store + one tagged dead test, rest zero code)**. The r==1/r==2 arms are
+    kept apart by giving each its own zero register: `int st = state; switch (st) { case 0: mode = st; ...` makes `st` the
+    zero pseudo of the whole case-0 body (r27 in the target), and the r==2 arm writes `mode = r; x265 = st; x264 = st;`
+    (`= st`, not `= 0`: a literal 0 is cse'd to whichever zero heads the class). The r==1 arm keeps its own zero (the
+    getPieceNum result `n`, `mr. r9,r3; stb r9`) only if `n`'s REGNO_LAST_UID lies past case 4's Key-zero store: the tagged
+    `space = (pzlBoard*) n;` dead store at the end of case 4 (candidate #12, cse2 make_regs_eqv order) does that; without it
+    the class head becomes the Key `or.` result (r25) and the arm merges. Case 1's `if (link[3] == 0 && (n =
+    space->getPieceNum()) == 0 && wk->type != 4)` puts the getPieceNum call in the condition (`mr.` on the result), the
+    else arm is `int h = b->h; b->curY = h - 1;`. Case 3/4 want the store duplicated in both if/else arms (`b->curX = w -
+    1;` twice, `b->curX = 0;` twice) — a shared store after the if/else is a different block layout. The 0x80000000 arm
+    stores through a pointer local `pzlPiece** psel = &pzzl_sel; *psel = ...ptrPiece(...); transit(0, wk);` (the `lis/stw
+    ..@l` split around the call). In `case 1:` of the state switch `msg_open = st;` (the zero again) and arm A ends with the
+    tagged dead test `if (st == r) { b = 0; }` placed BEFORE `back2PieceSelect(wk)` (global-alloc priority: extends `st`'s
+    live length below `b`'s so b gets r28 and st r27; at the end of the arm the compare is jump-threaded to END and the
+    SndCall tails stop cross-jumping). Case 2: `mode &= ~8; switch ((u32) mode) { case 1: break; case 2: ...; case 4:
+    transit(3, wk); break; } state = 0;` — the unsigned index plus an explicit `case 1: break;` gives casetree's `cmplwi
+    ..; ble default` shape (a default-grouped neighbour value).
+  - **pieceFrameDisp -> 0 (tagged: six dead stores, candidate #13; rest zero code)**. The inline `VECNormalize` (through
+    `pLog->err`, inline `operator->`) has loop-invariant lifetime 3 and is hoisted in loop pass 1 BEFORE the `&c` copy; the
+    target's order needs lifetime 1, so the unit has a `VECNormalizeP(src, dst)` macro that calls `pLog.p->err(...)`
+    directly (pass-2 hoist, emitted after the copy). `PSVECAdd(&c, &v[i], &c)` (invariant first) not `(&v[i], &c, &c)`.
+    Case 4's tile call has `&v[3]` in r31 and `&v[1]` in r27 only when gcse's expression table has 159 buckets, i.e. six
+    more insns at gcse time: `i = 0; i = 1; ... i = 5;` after the corner loop (deleted at flow1, so no bytes). A dead FP
+    test (`if (c.x == 1.0f)`) instead adds a pool constant and steals a callee-saved register; a dead test before the
+    `switch (type)` steals cr0 from the saved compare (extra `slwi`); a dead test in the corner loop breaks the switch's
+    biv elimination.
+  - **caseModelMove -> 0 (zero code)**: reuse one `IdUnit* u` for both unitPtr results (`u = IdSub.unitPtr(0, 0x10);
+    screenPos2puzzlePos(&u->pos, &q); ... u->scr.y = scr2.y;`), no second pointer local.
+  - **REL flip of ss_pzzl**: make_rel refused the module until the COMMON block was 0x34 bytes with `pzlGrid::size` first:
+    `f32 pzlGrid::size;` followed by `asm(".comm _7pzlGrid.size,52,4");` (NgcAs accepts the second .comm and widens the
+    symbol). The REL shasum then differed in 60 ADDR16 bytes: `msg_open`, `pzzl_cursor`, `pzzl_sel`, `pzzl_dbg` were static
+    but scope:global — the target's ADDR16 fields hold A only (scopes.py missed the three .bss ones; it also gives a
+    false MISMATCH for `common_Sscrn` and reports vtables as WEAK, both harmless). `pzzl_clear_z`/`pzzl_read_req` stay static.
+  - **SellItemNum::move (4 insns, still open) — mechanism confirmed, no accepted form**. `R = fp+8` is loop pass 2's hoist
+    (insn 1555, REG_N_CALLS_CROSSED 4), free in sched1, issued at t=30 in MesSet's own cycle; the target needs it after
+    `li r5,31`. Every source-level asm gets a smaller LUID than the arg moves and wins the sched2 tie; hoisted insns can
+    depend only on the last call. A k-body-top `int* dq; asm("addi %0,1,8" : "=r"(dq) : : "r6");` with `dq[i]` in the
+    loop-2 test DOES put the addi in the target's slot (the r6 clobber anchors it to MesSet, loop.c hoists it), but the
+    test load no longer carries a `P = fp+8` insn so gcse's r480 (`addi r30,r1,8` in the body) is not inserted at the
+    loop-2 header and the byte load becomes an fp+11-based giv with its own callee-saved register (35 lines); `dq[i]`
+    in both loop-2 uses drops the recompute (78 lines). Also rejected: dead tests near MesSet (block split, IdSub high not
+    shared), do-while barriers, enclosing-block `digit`, and the dq asm plus a dead `dz = digit;` in the test block / before
+    the loop to restore gcse's anticipation (v_x3/v_x4: unchanged 35 lines). Candidate left: a form that keeps the test
+    load's own `P = fp+8` insn while its giv base is the asm output.
 - The map model globals are named `ssPlModel`/`ssWepModel` (.bss 0x494/0x498, MapMgr works 0/1),
   `ssPlMotion`/`ssWepModel2` (.data 0x978/0x97C), renamed by hand in symbols.txt/sym_map.tsv
   (data labels have no .sym name for the sync tool); the generator attributes them to ss_map.cpp.

@@ -88,6 +88,10 @@ struct pzlGrid {
     static f32 size;
 };
 f32 pzlGrid::size;
+// The module's 0x34-byte COMMON block (make_rel appends the COMMON symbols after .bss): pzlGrid::size
+// is its first word, the other 0x30 bytes are the unnamed template statics the original objects
+// carried; the second .comm of the same name widens the symbol to the block size.
+asm(".comm _7pzlGrid.size,52,4");
 
 // Cursor frame: the four corner vertices of the cell run under the cursor (drawCursor).
 struct PzzlCursor {
@@ -132,7 +136,7 @@ static void setCommandId(u8 type, IdUnit** tbl, s8* num, int lang);
 
 static int sscrn_pzzl_out(SUB_SCREEN* wk);
 
-static int msg_open = 0;
+int msg_open = 0; // non-static: the REL's ADDR16 fields for it hold A only (scope:global)
 int pzzlDbgNo = -12;
 f32 pzzlDbgPos = -300.0f;
 static u16 cursor_line_w_ot = 0xF;
@@ -179,9 +183,10 @@ u8 pzzl_tbl_AD0[20] = {0xF6, 0xF6, 0xF6, 0xF6, 0x00, 0x00, 0x27, 0x10, 0x05, 0x0
 
 static void* pzzl_clear_z;
 static int pzzl_read_req;
-static PzzlCursor pzzl_cursor;
-static pzlPiece* pzzl_sel;
-static ssDbgPzzl pzzl_dbg;
+// Non-static like msg_open: the REL's ADDR16 fields for these three hold A only (scope:global).
+PzzlCursor pzzl_cursor;
+pzlPiece* pzzl_sel;
+ssDbgPzzl pzzl_dbg;
 
 // COMPILER-DIFF: item 4 (narrow-argument truncation): s16 view of MessageControl::setFontSize.
 class MessageControlS : public MessageControl {
@@ -819,6 +824,17 @@ void pieceModelOrientation(SUB_SCREEN* wk, pzlPiece* p)
     m->partsWorldCalc();
 }
 
+// math_sub.h's VECNormalize with the log pointer read as a plain struct member (the pl0f/em27
+// form): the inline `cLogPtr::operator->` puts block notes between `high(pLog)` and its load, which
+// gives the high a loop.c lifetime of 3 and a pass-1 hoist; with lifetime 1 it is a pass-2 movable
+// emitted after the `&c` copy (`mr r30,r24; lis r20,pLog@ha` in the line loop's preheader).
+#define VECNormalizeP(src, dst)                                                         \
+    if (0.0f == (src)->x && 0.0f == (src)->y && 0.0f == (src)->z) {                    \
+        pLog.p->err(0, 0, "VECNormalize:[%s/%d]", __FILE__, __LINE__);                  \
+        (dst)->x = (dst)->y = (dst)->z = 0.0f;                                          \
+    } else                                                                              \
+        PSVECNormalize(src, dst)
+
 // Frame around a piece model: type 0 corner lines, 1..3 tiles, 4 the whole piece (scaled).
 void pieceFrameDisp(cModel* m, u32 color, int type)
 {
@@ -863,6 +879,16 @@ void pieceFrameDisp(cModel* m, u32 color, int type)
         c.z = m->mat[2][3];
         PSVECAdd(&c, &ofs, &v[i]);
     }
+    // COMPILER-DIFF: candidate #13 (gcse expression-table size). Six dead stores (flow1 deletes
+    // them) add six insns at gcse time, so the expression hash table has 159 buckets instead of
+    // 155 and the PRE'd `&v[3]` (fp+84) reaching register is numbered before `&v[1]` (fp+60):
+    // case 4's tile call then has `&v[3]` in r31 and `&v[1]` in r27.
+    i = 0;
+    i = 1;
+    i = 2;
+    i = 3;
+    i = 4;
+    i = 5;
     switch (type) {
     case 0:
         for (i = 0; i < 4; i++) {
@@ -881,9 +907,9 @@ void pieceFrameDisp(cModel* m, u32 color, int type)
 
                 PSVECSubtract(&v[k], &v[i], &c);
 #line 1158 "D:/Bio4/Prog/ss_pzzl.cpp"
-                VECNormalize(&c, &c);
+                VECNormalizeP(&c, &c);
                 PSVECScale(&c, &c, frame_line_len);
-                PSVECAdd(&v[i], &c, &c);
+                PSVECAdd(&c, &v[i], &c);
                 ss_Draw_line3d(&v[i], &c, frame_line_col, frame_line_blend, 0, 1, frame_line_w_ot, frame_line_w_prio);
             }
         }
@@ -1110,7 +1136,6 @@ void caseModelMove(int sw)
     Vec scr;
     Vec q;
     pzlBoard* b;
-    IdUnit* u3;
     const f32 size = 100.0f;
 
     if (sw) {
@@ -1164,9 +1189,9 @@ void caseModelMove(int sw)
         tmp[2][3] = p.z;
         MTX_COPY(tmp, b->mat);
     }
-    u3 = IdSub.unitPtr(0, 0x10);
+    u = IdSub.unitPtr(0, 0x10);
     b = wk->x2B0->spaceBoard;
-    screenPos2puzzlePos(&u3->pos, &q);
+    screenPos2puzzlePos(&u->pos, &q);
     if (sw) {
         q = ofsB;
     }
@@ -1192,7 +1217,7 @@ void caseModelMove(int sw)
         mat[2][3] = t.z;
         MTX_COPY(mat, b->mat);
         puzzlePos2screenPos(&q, &scr2);
-        u3->scr.y = scr2.y;
+        u->scr.y = scr2.y;
     }
 }
 
@@ -1809,8 +1834,9 @@ void PieceSelect::move(SUB_SCREEN* wk)
 
     // x267 store first, then a block-local `pl` for the three board loads only (r11, dies at
     // `space`); every later statement re-reads wk->x2B0 (the target reloads it per call). The
-    // if/else for `other` gives the hoisted else-set `mr r26,r0` copy. Left: this/mode r31/r30 swap,
-    // `state` kept in r27 for case 2's x264/x265 stores, case 1's `mr. r9,r3` result register.
+    // if/else for `other` gives the hoisted else-set `mr r26,r0` copy. `st` (the state load,
+    // r27) is the zero register of the r==2 arm's x264/x265 stores (cse's zero class on the path
+    // from `beq CASE0`); the r==1 arm's zero is the getPieceNum result `mr. r9,r3` (see `n`).
     wk->x267 = 1;
     {
         pzlPlayer* pl = wk->x2B0;
@@ -1826,9 +1852,10 @@ void PieceSelect::move(SUB_SCREEN* wk)
         transit(2, wk);
         return;
     }
-    switch (state) {
+    int st = state;
+    switch (st) {
     case 0:
-        mode = state;
+        mode = st;
         if (Key.trg & 0x00100000) {
             mode = 1;
             if (!isTerminable(wk)) {
@@ -1874,7 +1901,9 @@ void PieceSelect::move(SUB_SCREEN* wk)
             }
         } else if (Key.trg & 0x80000000) {
             if (wk->x2B0->ptrPiece(wk->x2B0->cur) && link[0]) {
-                pzzl_sel = wk->x2B0->ptrPiece(wk->x2B0->cur);
+                pzlPiece** psel = &pzzl_sel;
+
+                *psel = wk->x2B0->ptrPiece(wk->x2B0->cur);
                 transit(0, wk);
             }
         } else if (Key.trg & 0x00020000) {
@@ -1885,6 +1914,7 @@ void PieceSelect::move(SUB_SCREEN* wk)
             }
         } else {
             int r = wk->x2B0->selPiece(wk->x2B0->cur);
+            int n;
 
             if (r == 5) {
                 wk->x268 |= 1;
@@ -1892,21 +1922,23 @@ void PieceSelect::move(SUB_SCREEN* wk)
             }
             switch (r) {
             case 1:
-                if (link[3] == 0 && space->getPieceNum() == 0 && wk->type != 4) {
+                if (link[3] == 0 && (n = space->getPieceNum()) == 0 && wk->type != 4) {
                     mode = 2;
-                    wk->x264 = 0;
                     wk->x265 = 0;
+                    wk->x264 = 0;
                     SndCall(0, 0xA, 0, 0, 0, 0);
                 } else {
-                    b->curY = b->h - 1;
+                    int h = b->h;
+
+                    b->curY = h - 1;
                     SndCall(0, 6, 0, 0, 0, 0);
                 }
                 break;
             case 2:
                 if (link[3] == 0 && space->getPieceNum() == 0 && wk->type != 4) {
                     mode = r;
-                    wk->x264 = state;
-                    wk->x265 = state;
+                    wk->x265 = st;
+                    wk->x264 = st;
                     SndCall(0, 0xA, 0, 0, 0, 0);
                 } else {
                     b->curY = 0;
@@ -1915,19 +1947,33 @@ void PieceSelect::move(SUB_SCREEN* wk)
                 break;
             case 3:
                 if (other->getPieceNum() != 0) {
+                    int w;
+
                     wk->x2B0->cur = other;
                     b = wk->x2B0->cur;
+                    w = b->w;
+                    b->curX = w - 1;
+                } else {
+                    int w = b->w;
+
+                    b->curX = w - 1;
                 }
-                b->curX = b->w - 1;
                 SndCall(0, 6, 0, 0, 0, 0);
                 break;
             case 4:
                 if (other->getPieceNum() != 0) {
                     wk->x2B0->cur = other;
                     b = wk->x2B0->cur;
+                    b->curX = 0;
+                } else {
+                    b->curX = 0;
                 }
-                b->curX = 0;
                 SndCall(0, 6, 0, 0, 0, 0);
+                // COMPILER-DIFF: candidate #12 (cse2 qty order). Dead store (flow1 deletes it)
+                // that moves REGNO_LAST_UID of the r==1 arm's getPieceNum result `n` past case 4's
+                // Key-zero store, so cse2's make_regs_eqv keeps `n` (not the Key `or.` result) as
+                // the first register of the zero quantity in the r==1 arm: `mr. r9,r3; stb r9`.
+                space = (pzlBoard*) n;
                 break;
             }
         }
@@ -1935,7 +1981,7 @@ void PieceSelect::move(SUB_SCREEN* wk)
     case 1: {
         int r;
 
-        msg_open = state;
+        msg_open = st;
         r = CMES_RESULT;
         if (r == 0) {
             break;
@@ -1952,6 +1998,12 @@ void PieceSelect::move(SUB_SCREEN* wk)
                 ItemMgr.offboardDump(0);
             }
             wk->x2B0->rehash();
+            // COMPILER-DIFF: candidate (global-alloc priority, dead test). Extends `st`'s live
+            // length below `b`'s priority (b r28, st r27) while this/wk (both live here) keep
+            // their order; the compare goes in jump2, the store in flow1.
+            if (st == r) {
+                b = 0;
+            }
             back2PieceSelect(wk);
             state = 2;
             SndCall(0, 0xD, 0, 0, 0, 0);
@@ -1963,10 +2015,12 @@ void PieceSelect::move(SUB_SCREEN* wk)
     }
     case 2:
         mode &= ~8;
-        switch (mode) {
+        switch ((u32) mode) {
+        case 1:
+            break;
         case 2:
-            wk->x264 = 4;
             wk->x265 = 4;
+            wk->x264 = 4;
             break;
         case 4:
             transit(3, wk);
