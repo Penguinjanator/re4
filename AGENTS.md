@@ -3965,7 +3965,8 @@ target) stays unresolved and `make_rel` then fails with "undefined symbol".
   menus) has 36 of 53 functions matched (skeleton, data and menus done; the disp/camera/target functions
   are left); the stage rooms are split (config/G4BE08/modules.py); r10d, r10e, r11a (st1_2), r109, r107,
   r10a (st1_1) and r102 (st1_1 + st1_3) are Matching, r108 (st1_1/st1_3) is Matching since pass 4
-  (2026-09-10); r11d, r113 (st1_3) and r203 (st2_0) are Matching since pass 5 (2026-09-10); r10f (st1_3, 11/14), r11e (st1_3, 16/18) and r119
+  (2026-09-10); r11d, r113 (st1_3) and r203 (st2_0) are Matching since pass 5 (2026-09-10); r118 (st1_3), r101 and
+  r105 (st1_1) are Matching since pass 6 (2026-09-10); r10f (st1_3, 11/14), r11e (st1_3, 16/18) and r119
   (st1_2, 26/27: only Init's table-address registers differ) have full sources (include/obj00.h,
   obj13.h, objGondola.h are their room-side views of the DOL objects); r10c (st1_2, 15/23,
   .rodata/.data equal) and r11b (st1_2, 8/14 + the nameless cLight block, .rodata equal) are written;
@@ -12716,3 +12717,90 @@ paths rewritten: `mcmp.py UNIT [SYM]`, `tryv.py UNIT SYM variants.py`, `vapply.p
   .rodata recipe needs the constant to be the pool's first entry), em_set 73/74 (frame +16 and r25 besides the three
   pool highs; not started). `Esp*_Create` 2 words in esp04/09/0e/12/16 are the vtable reloc name only (`.rodata+N`
   vs `_vt.6cEspNN`), not a flip blocker once the other functions match.
+
+### Stage rooms, st1_1/st1_3/st2_0 pass 6 (r118, r101, r105 Matching; r103 18/19 in both modules, r202 28/32; r11c closeGate and r106's doors classified #7 = CCFP PRE; 2026-09-10)
+
+- Harness: ~/.cache/rooms_b6 (rooms_b5's `/tmp` copies were gone; rewritten from scratch: `cc.sh SRC MOD OUTDIR [cc1plus
+  flags]` = SN cpp.exe + native cc1plus + NgcAs with the module's flags, dumps land in OUTDIR; `cmp.py OBJ MOD/UNIT [SYM|ALL]
+  [--trunc]` = word-masked compare of our object against `build/G4BE08/<mod>/asm/<mod>/<unit>.s` (masks ADDR16/REL24
+  fields, resolves NgcAs' REL14 fields; `--trunc` for a folded build object whose last function carries the linkonce
+  block); `tryv.py SRC MOD/UNIT SYM variants.py [-k NAME] [--dump "-dX ..."]` (VARIANTS = {name: [(old, new), ..]});
+  `sect.py MOD/UNIT` = .rodata/.data bytes + .bss size vs the split object; `fn.sh DUMP FUNC` = one function of an RTL dump.
+  The SN gcc source is in ~/.cache/rooms_b6/sngcc/src/gcc (loop.c, jump.c, haifa-sched.c, gcse.c, local-alloc.c were
+  read for the rules below).
+- **r118 ThunderMove 2 -> 0 (unit Matching): loop.c emits its hoists in movables-list = scan order, so the order of two
+  hoisted constants in the preheader is decided by where their FIRST occurrence sits in the loop body.** The target's
+  `ori r30,0x8889` (the `% 30` magic) precedes the EstSet arm's zero `li r28,0`, but the arm comes first in RTL. A dead
+  test at the top of the `cnt <= 0` body, `if (cnt == (int) 0x88888889) cnt = 0;` (cnt is re-set on every path of the
+  body, so the store dies in flow and the compare goes at jump2), puts a `(const_int 0x88888889)` movable first in the
+  list; `combine_movables` then folds the three `% 30` constants into it ("matches"), and the zero -- the `#12 (b)`
+  `asm("li %0,0" : "=r"(zero))` in the then arm, hoisted as an invariant asm -- follows. Both tagged. Every source
+  position of a plain `zero` variable fails: before the loop it is a preheader insn (LUID below every hoist), at the
+  body top it is the first movable, in the arm cse folds it into the EffGetAreaState result, and a peel copy /
+  gcse insertion cannot land after the hoists (both emit before LOOP_BEG; hoists are emitted right before the note,
+  i.e. after everything the source or jump1 put there).
+- **r101 (unit Matching, 25 -> 29/29):**
+  - TitleCall 74 -> 0: **gcse PREs a loop-invariant `&scalar` argument (`addi rX,r1,8` + `mr r5,rX`, one more
+    callee-saved reg) only when the loop has a preheader BLOCK.** `EventMgr* m = &EvtMgr;` before the `do {} while`
+    made a block between the previous poll loop's exit test and the loop label; with `m = &EvtMgr` written INSIDE the
+    loop body (loop.c hoists it later, the target's `addi r31,r9,EvtMgr@l` in the preheader) the poll loop's exit
+    branch falls straight into the do-loop's label, the only predecessor block ends in a two-successor jump and the
+    block-based LCM has no place to insert -> `addi r5,r1,8` at the call each iteration. (The `r101_getEvt(m, &evt)`
+    inline did not help: an ADDRESSOF scalar's address is a pseudo after purge_addressof, i.e. a PRE occurrence.)
+  - Event00 10 -> 0: `pSysS->region` (struct view of pSys, defined locally like em10.cpp's) keeps the pSys load
+    below the `ang = pPL->pos` copy stores.
+  - Event30 16 -> 0: the target frame has an unused 8-byte slot before `win`/`ladder` (0x30 vs 0x28); an unreferenced
+    `u32 unused[2]` gets no slot, so a codeless `asm("" : "=m"(unused))` inside the `pLog->err` arm keeps the
+    8-byte temp allocated (aggregate temps are allocated at expansion, address-taken scalars after them). Tagged
+    COMPILER-DIFF (frame layout; the original's use is not in the bytes). At the function top the same asm takes an
+    issue slot and shifts block 0's `lis/lwz` order (4 words).
+  - Event20 2 -> 0: the four PRE insertions at the end of the SearchEmModule block (`&win`, `&pos`, high(pPL), `&ang`)
+    are emitted in hash-table = first-occurrence order and fill sched1's free slots in that order; the LAST one shares
+    the cycle with `li r3,0x15` and loses to it on priority, and sched2 keeps that pair's LUID order. The target's last
+    filler is high(pPL), ours was `&ang`: `Vec* pa = &ang;` moved BEFORE `pl = pPLS;` (after `pos = template`) gives
+    `&ang` the lower index, so `addi r26,r1,24` is issued a cycle earlier and precedes the `li` in sched2. Rule: a
+    PRE filler's issue order is its expression index; move the first source occurrence to reorder the fillers.
+- **r103/r105 execOpenCover 27/25 -> 0 (r105 Matching): the "#9 peel + conditional cross-jump" reading was wrong.** For
+  CCFP compares `jump_back_p` can only pair a NORMAL conditional jump with an INVERTED one (`can_reverse_comparison_p`
+  refuses FP reversal), and jump2 deletes the tail of the SCANNED jump, which then is always the loop's inverted `bge
+  TOP`, never the peel copy's `blt END` -- the target's `sub; b TEST; TOP: sleep; sub; TEST: lwz; lfs; fcmpu; bge TOP`
+  is simply a goto loop entered at its test with NO peel: `rot -= step; lim = K; goto test; wait: SceSleep(1); rot -=
+  step; lim = K; test: if (!(rot < lim)) goto wait; rot = lim;` with `f32 step = K;` a variable (f31 across the call) and
+  `f32 lim` assigned in BOTH predecessors of the test (f13 in each; the exit store reuses the register). r103 also
+  needs a dead `do { } while (0);` between `rot = lim` and `SceAtSetEnable(c->at14, 1)`: its LOOP_END note makes the
+  `lwz c->at14` a sched barrier (`reg_pending_sets_all`), so `li r4,1` gets an output dependence and follows the
+  load (target `stfs; lwz r3; li r4`; without it `li r4` fills the store->load stall). Tagged.
+- **COMPILER-DIFF #7 sharpened (r11c closeGate 19, r106 shakeClosetDoorR/L 27+27, all left): the original's gcse PREs
+  CCFP compares.** Shape: `fcmpu` in BOTH predecessors of the loop test and the test block reduced to the bare
+  `bge/ble TOP`, the pre-block ending `b TEST`. That is the block-based LCM's earliest placement of `(compare:CCFP y
+  dst)` whose operands are set in every predecessor (INSERT = PPOUT & ~AVOUT & ~TRANSP), which our gcse skips because
+  `can_copy_p[CCFPmode] = 0` (rs6000.md's `movcc` is CCmode only; `compute_can_copy` recog-tests a reg-reg move per
+  MODE_CC mode). Integer compares ARE PRE'd by both (the r225 `faded == 0` note). No source form: C cannot branch on
+  a CC computed in another block, and an asm branch would hide control flow from flow/regalloc. r103's loop is not
+  #7 because its compared value is a MEM load made in the test block (the compare is not anticipatable there).
+- **r202 throwRock 19 -> 9: the exit store's constant is a COPY of `lim` hoisted into the pre-block (`fmr f28,f30`).**
+  Mechanism in the original: `for (;;) { sub; if (rot < lim) { rot = K; break; } SceSleep(1); }` is rotated by
+  expand_end_loop (the `b END` exit jump is the "qualified conditional exit"), jump1 peels the exit region `sub; cmp;
+  bge TOP; stfs; b END` before LOOP_BEG, and the original's loop.c still treated the loop as valid (hoisting the exit
+  store's constant load to the preheader, cse2 -> `fmr` from `lim`); OUR loop.c invalidates it ("multiple entry
+  points": the copy's `bge TOP` is a jump from outside the notes, `mark_loop_jump`), so nothing is hoisted and the
+  store stays a fresh load -- a compiler-build difference in jump.c/loop.c (the peel copy sits outside the notes in
+  2.95.3). Reproduction: hand-peeled `sub; lim2 = lim; asm("" : "+f"(lim)); if (rot < lim) rot = lim; else { do {
+  sleep; sub; } while (!(rot < lim)); rot = lim2; }` -- the plain copy `lim2 = lim` survives gcse's copy propagation
+  only because `lim` is laundered right after it (tagged #9); a launder on `lim2` itself (or `asm("fmr")`) changes
+  lim2's ref count and swaps f28/f29. Left (9): the pre-block's GPR names (obj/pParts/lim-high r11/r10/r8 vs
+  r10/r8/r11: local-alloc qty order under the same schedule) and `addi r31,r31,1` before the two `fmuls` in the bounce
+  loop (gcse PREs the latch's `i + 1` to the end of the loop's top block in both builds; in ours `i` dies at that
+  insn (weight 0) and it is issued first, in the target it ranked last).
+- **r103 openShelf_main 4 (left): `lis A`/`lis B` r9/r11 swap = local-alloc's `QTY_CMP_PRI` (refs/span, then qty
+  number).** sched1 issues `lis A; lwz a->pParts; lfs A; lis B; lfs B` (the lwz fills A's cycle), so A's high spans
+  5 insn units vs B's 3 and B is allocated first (r9); A then conflicts with B through the fake-lifetime adjacency
+  and takes r11. The target needs A allocated first, i.e. the `lwz` not between `lis A` and `lfs A` in SCHED1 (sched2
+  may still put it there: r1-based `addi`s and loads after a call depend on the call in sched2 because r1 is in
+  CALL_USED_REGISTERS). Launders/literals/const/FSet/pointer locals/dead do-while: 4-17 words; not found.
+- Other reads: r10b readEvent 3 (`mr r7,r5` before `lis r6` = a sched2 tie broken by sched1's LUID order; in sched1
+  the `max` copy has one dependent fewer than the string high); r222 R222Main 7 (the `Vec pos = {..}` template loads
+  are `mem/u` and float above the `seTimer = 30` store; the target's did not -- a non-const view of a `static const
+  Vec` puts the store first but changes the copy to `addi; lwz 0/8/4(rX)`); r202 initCatapult 106 (two `high(r202_work)`
+  chains, #3 family); r10f R10fInit 6, r11e 8+11, r210 dai_go 10 / funcAshley2 9 / toroko_ret 323, r10b chkEmDie 162 /
+  chkWater 16 / GakeEvent 8 / S10 10, r222 BoxMove 36 / dragon_down* 51+159+156 / Init 88 not iterated this pass.

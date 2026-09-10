@@ -1034,6 +1034,7 @@ static void r202_throwRock(cCatapult* c)
     f32 v;
     f32 a;
     f32 lim;
+    f32 lim2;
 
     c->obj->pParts->rot.x = -0.24137f;
     for (i = 10; i != 0; i--) {
@@ -1046,20 +1047,19 @@ static void r202_throwRock(cCatapult* c)
     lim = -0.24137f;
     c->obj->pParts->rot.x += v;
     v += a;
+    // The loop's exit store uses a hoisted COPY of `lim` (target `fmr f28,f30` in the pre-block):
+    // the copy must survive gcse's copy propagation, so `lim` itself is laundered after it.
+    lim2 = lim;
+    asm("" : "+f"(lim));   // COMPILER-DIFF: #9 (jump1 peel + loop.c hoist of the exit constant)
     if (c->obj->pParts->rot.x < lim) {
-        c->obj->pParts->rot.x = -0.24137f;
+        c->obj->pParts->rot.x = lim;
     } else {
-        // OPEN: the target hoists this store's constant into the peel block (`fmr f28, f30`); ours
-        // copies it after the loop (20 words of order).
-        for (;;) {
+        do {
             SceSleep(1);
             c->obj->pParts->rot.x += v;
             v += a;
-            if (c->obj->pParts->rot.x < lim) {
-                c->obj->pParts->rot.x = -0.24137f;
-                break;
-            }
-        }
+        } while (!(c->obj->pParts->rot.x < lim));
+        c->obj->pParts->rot.x = lim2;
     }
     for (i = 0; i < 4; i++) {
         lim *= 0.5f;

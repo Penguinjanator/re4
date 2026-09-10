@@ -69,6 +69,11 @@ struct PlPtr {
     cPlayer* p;
 };
 #define pPLS (((PlPtr*) &pPL)->p)
+// Same for pSys (em10.cpp): the load stays below the preceding `ang = pPL->pos` copy stores (Event00).
+struct SystemWorkPtr {
+    SystemWork* p;
+};
+#define pSysS (((SystemWorkPtr*) &pSys)->p)
 
 // Pointer stores through a reference: the work pointer is reloaded after them (see st_room.h).
 static inline void PSet(cEmWrap*& d, cEmWrap* v) { d = v; }
@@ -382,12 +387,6 @@ static void r101_checkEmNum()
     }
 }
 
-// The running event (the caller's `&evt` stays a per-call frame address inside the inline).
-static inline int r101_getEvt(EventMgr* m, void** evt)
-{
-    return m->GetEvt(&m->x34, evt);
-}
-
 // The chapter title over the bell event.
 static void r101_Event30_TitleCall()
 {
@@ -413,12 +412,15 @@ static void r101_Event30_TitleCall()
         }
         SceSleep(1);
     }
-    m = &EvtMgr;
+    // `m` is set INSIDE the loop (loop.c hoists it): with it before the loop the previous poll
+    // loop's exit no longer falls straight into this loop's label, the two `addi` form a preheader
+    // block and gcse PREs `&evt` into it (`addi r28,r1,8` + `mr r5,r28`, one more callee-saved reg).
     do {
         int frame = 0;
         void* evt;
 
-        if (r101_getEvt(m, &evt)) {
+        m = &EvtMgr;
+        if (m->GetEvt(&m->x34, &evt)) {
             frame = ((Event*) evt)->totalFrame;
         }
         if (frame > 1099) {
@@ -450,7 +452,7 @@ end:
 static void r101_Event30()
 {
     int fail = 0;
-    u32 unused[2];
+    u32 unused[2];   // an 8-byte aggregate slot precedes `win`/`ladder` in the original's frame (0x30)
     ReadModule* m;
     cEm* win;
     cEm* ladder;
@@ -483,6 +485,9 @@ static void r101_Event30()
     m = SearchEmModule(0x15);
     if (fail != 1) {
         if (r101_work->evt30->size > m->size) {
+            // COMPILER-DIFF: frame layout -- codeless use that keeps the 8-byte slot allocated
+            // (an unreferenced aggregate gets no slot; the original's use is not in the bytes).
+            asm("" : "=m"(unused));
             pLog->err(0, 0, "r101_Event30 exec error");
         } else {
             EspDataRelease(0x10, 0, 1);
@@ -704,9 +709,12 @@ static void r101_Event20()
         cPlayer* pl;
 
         pos = r101_plPos20;
+        // `&ang` before the first pPL read: gcse's PRE insertions at the end of the SearchEmModule
+        // block are emitted in hash-table (first-occurrence) order, and the LAST one shares sched1's
+        // cycle with `li r3,0x15`; it must be high(pPL), not `&ang` (sched2 then keeps addi before li).
+        Vec* pa = &ang;
         pl = pPLS;
         pl->setPos(&pos);
-        Vec* pa = &ang;
         ang.x = 0.0f;
         pa->y = ry;
         ang.z = 0.0f;
@@ -992,7 +1000,7 @@ static void r101_Event00()
     }
     pPL->dmg.set(0, 0x80);
     ang = pPL->pos;
-    if (pSys->region == 0) {
+    if (pSysS->region == 0) {   // struct view: the pSys load stays below the `ang` copy stores
         at.x = 3492.0f;
         at.y = 1100.0f;
         at.z = 3695.0f;

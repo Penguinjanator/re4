@@ -795,16 +795,23 @@ static void r105_execOpenCover()
     RsfSet(G_ROOM_ID, 3);
     obj = SmdGetObjPtr(0x30);
     SndCall(6, 0x5F, &obj->pos, 0, 0, 0);
-    // The original enters this loop at its bottom test without the duplicated entry test jump1 adds
-    // to every rotated while/for here (r103 execOpenCover has the same residue).
-    while (1) {
-        obj->pParts->rot.z -= 0.06981317f;
-        if (obj->pParts->rot.z < -(73.0f * 0.01f)) {
-            break;
-        }
-        SceSleep(1);
+    // Goto loop entered at its test (r103 execOpenCover): `step` a variable (f31 across the call),
+    // `lim` assigned in both predecessors of the test (f13, the exit store reuses it).
+    f32 step = 0.06981317f;
+    f32 lim;
+
+    obj->pParts->rot.z -= step;
+    lim = -(73.0f * 0.01f);
+    goto test;
+wait:
+    SceSleep(1);
+    obj->pParts->rot.z -= step;
+    lim = -(73.0f * 0.01f);
+test:
+    if (!(obj->pParts->rot.z < lim)) {
+        goto wait;
     }
-    obj->pParts->rot.z = -(73.0f * 0.01f);
+    obj->pParts->rot.z = lim;
     SceAtSetEnable(9, 1);
 }
 

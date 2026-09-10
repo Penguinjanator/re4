@@ -248,7 +248,6 @@ static void r118_ThunderFlagOff()
 static void r118_ThunderMove()
 {
     int cnt;
-    void* zero = 0;   // OPEN: the original issues its `li` after loop.c's hoisted `ori 0x8889`
     cEm* em;
 
     SceSleep(1);
@@ -260,8 +259,13 @@ static void r118_ThunderMove()
     em = r118_work->em.getPtr();
     for (;;) {
         if (cnt <= 0) {
+            // COMPILER-DIFF: dead test; its 0x88888889 constant is loop.c's FIRST movable, so the
+            // hoisted `lis/ori` pair precedes the then arm's zero in the preheader (target LUID order).
+            if (cnt == (int) 0x88888889) cnt = 0;
             if (EffGetAreaState(3) == 0 && (em == 0 || ((cEmDog*) em)->ckFindPL() != 1)) {
                 if (Rnd() & 0x80) {
+                    void* zero;
+                    asm("li %0,0" : "=r"(zero));   // COMPILER-DIFF: candidate #12 (fallthrough-arm form)
                     EstSet(0, -1, 0, 0, 1, 4, 1, 0, (u32) zero, zero);
                 } else {
                     EstSet(0, -1, 0, 0, 1, 1, 1, 0, 0, 0);
