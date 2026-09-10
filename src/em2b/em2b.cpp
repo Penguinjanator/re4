@@ -228,6 +228,36 @@ static inline void em2bAtkEndSet(cEm2b* em, Em2bWork* w)
         w->x63C = 0;
         em2bNextRtnSet(em);
     } else if (w->pFriend && !(w->flags & 0x80) && (x63c = w->x63C, x63c == 0)) {
+        int k = 900;
+        u32 f = w->flags | 0x80;
+
+        w->flags = f;
+        w->dmGuard = k;
+        // COMPILER-DIFF: #13 -- the original's `ori` result and 900 (REG_EQUIV constants) do not die at
+        // their stores, so sched1 issues `mr r3,em` (em dies there: weight 0) before them.
+        asm("" : "=m"(w->x63C) : "r"(f), "r"(k));
+        em2bNextRtnSet(em);
+    } else if (w->atkHit) {
+        w->timer61C = 150;
+        EmRoutineSet(em, 1, 4, 0, 0);
+    } else {
+        em2bNextRtnSet(em);
+    }
+}
+
+// The same for a caller that reads `em` after it (DashAtk): `em` does not die at the `mr r3,em`, so
+// with the keep-alive above the stores are issued first and jump2 cross-jumps the arms' tails (35
+// words); the plain form gives the target order except the `mr`/`stw` pair (2 words).
+static inline void em2bAtkEndSetL(cEm2b* em, Em2bWork* w)
+{
+    register int x63c asm("r11"); // COMPILER-DIFF: #13 (see em2bAtkEndSet)
+
+    if (w->pFriend && w->atkHit) {
+        w->flags |= 0x80;
+        w->dmGuard = 900;
+        w->x63C = 0;
+        em2bNextRtnSet(em);
+    } else if (w->pFriend && !(w->flags & 0x80) && (x63c = w->x63C, x63c == 0)) {
         w->dmGuard = 900;
         w->flags |= 0x80;
         em2bNextRtnSet(em);
@@ -1522,17 +1552,17 @@ static void em2b_R1_Hook(cEm2b* em)
     case 1:
         if (em->seFlags28B & 1) {
             cModel* p;
-            int no = 0xA;
             if (em->motFlags & 0x40) {
-                no = 0x10;
+                p = em->getPartsPtr(0x10);
+            } else {
+                p = em->getPartsPtr(0xA);
             }
-            p = em->getPartsPtr(no);
             em2bAtkCk(em, &p->worldPos, &p->x88, 2);
-            no = 9;
             if (em->motFlags & 0x40) {
-                no = 0xF;
+                p = em->getPartsPtr(0xF);
+            } else {
+                p = em->getPartsPtr(9);
             }
-            p = em->getPartsPtr(no);
             em2bAtkCk(em, &p->worldPos, &p->x88, 2);
             em2bR11eScrBrkCk2(em, &p->worldPos, 3000.0f);
         }
@@ -1564,23 +1594,23 @@ static void em2b_R1_UpperCut(cEm2b* em)
     case 1:
         if (em->seFlags28B & 1) {
             cModel* p;
-            int no = 0xA;
             if (em->motFlags & 0x40) {
-                no = 0x10;
+                p = em->getPartsPtr(0x10);
+            } else {
+                p = em->getPartsPtr(0xA);
             }
-            p = em->getPartsPtr(no);
             em2bAtkCk(em, &p->worldPos, &p->x88, 2);
-            no = 9;
             if (em->motFlags & 0x40) {
-                no = 0xF;
+                p = em->getPartsPtr(0xF);
+            } else {
+                p = em->getPartsPtr(9);
             }
-            p = em->getPartsPtr(no);
             em2bAtkCk(em, &p->worldPos, &p->x88, 2);
-            no = 8;
             if (em->motFlags & 0x40) {
-                no = 0xE;
+                p = em->getPartsPtr(0xE);
+            } else {
+                p = em->getPartsPtr(8);
             }
-            p = em->getPartsPtr(no);
             em2bAtkCk(em, &p->worldPos, &p->x88, 2);
             em2bR11eScrBrkCk2(em, &p->worldPos, 3000.0f);
         }
@@ -1801,14 +1831,14 @@ static void em2b_R1_DashAtk(cEm2b* em)
         int flip = em2bFlip(w, 0x41, 1);
 
         MotionSetCore(em, &em->mot, ARC(0x49), (int) ARC(0x97), 10, flip, 0);
-        w->stuckCnt = 0;
         w->atkHit = 0;
+        w->stuckCnt = 0;
         EstSet((int) em, -1, 0, 0, w->espKind2, 0xE, 0, 0, (u32) em, 0);
         em->xFE++;
     }
     case 5:
         if (MotionMoveF(em, 0)) {
-            em2bAtkEndSet(em, w);
+            em2bAtkEndSetL(em, w);
         }
         break;
     }
@@ -4071,11 +4101,14 @@ void em2bBlendMotSet(cEm2b* em, void* m0, void* m1, void* m2, int a, int b, int 
 {
     Em2bWork* w = EM2B_WK(em);
     MotionWork* bm;
+    int ai, dd;
+    asm("" : "=r"(ai) : "0"((int) a)); // COMPILER-DIFF: #2 (u16 argument masked at the calls)
+    asm("" : "=r"(dd) : "0"((int) d)); // COMPILER-DIFF: #2
     f32 val = fabsf(w->blendVal);
     void* m;
     int arg;
 
-    MotionSetCore(em, &em->mot, m0, a, (u8) w->blendCnt, d & 0xFFFF, (u16) w->blendSeq);
+    MotionSetCore(em, &em->mot, m0, ai, (u8) w->blendCnt, (u16) dd, (u16) w->blendSeq);
     if (w->blendVal < 0.0f) {
         m = m1;
         arg = b;
@@ -4084,7 +4117,7 @@ void em2bBlendMotSet(cEm2b* em, void* m0, void* m1, void* m2, int a, int b, int 
         arg = c;
     }
     bm = EM2B_BLEND_MOT(w);
-    MotionSetCore(em, bm, m, arg, (u8) w->blendCnt, d & 0xFFFF, (u16) w->blendSeq);
+    MotionSetCore(em, bm, m, arg, (u8) w->blendCnt, (u16) dd, (u16) w->blendSeq);
     em->motBlend = bm;
     bm->blendRate = val * 0.00390625f;
     if (w->blendCnt) {

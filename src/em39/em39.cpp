@@ -1418,7 +1418,8 @@ static void em39_R1_WallWait(cEm39* em)
             if (w->x4) {
                 w->x4--;
             } else {
-                dy = fabsf(em->pos.y - pPL->pos.y);
+                dy = em->pos.y - pPL->pos.y;
+                dy = fabsf(dy);
                 if (fabsf(Muku(&em->pos, &pPL->pos, em->rot.y, PI)) < 2.3561945f || em->plDist2 < 25000000.0f) {
                     w->x684 = 300;
                     w->x680 = 0;
@@ -2302,7 +2303,7 @@ static void em39_R1_SuperDash(cEm39* em)
         d = GetDistance3(&em->pos, &pPLS->pos) - 7100.0f;
         w->x18 = d * 0.25f;
         w->x688 = 600;
-        if (pG->x4F88 <= 3) {
+        if (pGS->x4F88 <= 3) {
             w->x688 = 900;
         }
         if (pG->x4F88 > 6) {
@@ -2849,9 +2850,10 @@ static void em39_R1_KnifeCatch(cEm39* em)
             w->x18 = em->rot.y + 1.5707964f;
         }
         w->x18 = LIMIT_ANGLE(w->x18);
+        asm("" : "=m"(w->x4) : "f"(pang)); // COMPILER-DIFF: candidate #12 (cse2 canonical register)
         w->x4 = 10;
-        w->x8B7 = 0;
         w->x8B6 = 0;
+        w->x8B7 = 0;
         em39WepSet(em, 1);
         if (w->pWep) {
             MotionSetCore(w->pWep, MOTION(w->pWep), ARC(0x29), 0, 0, 5, 0);
@@ -3784,11 +3786,10 @@ static void em39_R1_AppearMG2(cEm39* em)
         w->x18 = em->rot.y + PI;
         em->xFE++;
     case 1: {
-        f32 d = Muku(&em->pos, &target, w->x18, 0.09817477f);
-
-        w->x18 += d;
+        ang = Muku(&em->pos, &target, w->x18, 0.09817477f);
+        w->x18 += ang;
         w->x18 = LIMIT_ANGLE(w->x18);
-        em->rot.y += d;
+        em->rot.y += ang;
         em->rot.y = LIMIT_ANGLE(em->rot.y);
         if (MotionMoveF(em, 0)) {
             em->xFE++;
@@ -4147,6 +4148,7 @@ static void em39_R1_ThrowGR(cEm39* em)
             if (em->pos.y > tpos.y + 2000.0f) {
                 spd.y = 0.0f;
             }
+            asm volatile("" : : "f"(d)); // COMPILER-DIFF: #13 (dying stores issued in source order)
             PSMTXRotRad(m, 'y', GetXZAngle(&em->pos, &tpos));
             PSMTXMultVecSR(m, &spd, &spd);
             w->pGrenade->setGrenadeThrow(&spd, 45, ARC(0x10B), ARC(0x10C), ARC(0x10D), ARC(0x111));
@@ -4291,8 +4293,8 @@ static void em39_R1_AppearBow(cEm39* em)
                 MotionSetCore(w->pWep3, MOTION(w->pWep3), ARC(0x34), 0, 0, 0, 0);
             }
         } else {
-            w->bowMot3 = 0;
             w->bowMot0 = ARC(0xCE);
+            w->bowMot3 = 0;
             w->bowMot1 = ARC(0xCF);
             w->bowMot2 = ARC(0xD0);
             if (w->pWep3) {
@@ -4671,9 +4673,9 @@ static void em39_R1_T_LongAtk(cEm39* em)
         w->x4 = 30;
         w->x684 = 450;
         w->x8 = 15;
-        w->x8B7 = 0;
         w->x8B6 = 0;
-        if (pG->x4F88 <= 1) {
+        w->x8B7 = 0;
+        if (pGS->x4F88 <= 1) {
             w->x8 = 5;
         }
         if (pG->x4F88 <= 3) {
@@ -4686,7 +4688,7 @@ static void em39_R1_T_LongAtk(cEm39* em)
             w->x8 = 18;
         }
         w->x10 = Rnd() & 1;
-        if (pG->x4F88 <= 3) {
+        if (pGS->x4F88 <= 3) {
             w->x10 = 0;
         }
         em->xFE++;
@@ -4740,9 +4742,9 @@ static void em39_R1_T_JumpAtk(cEm39* em)
         EstSet((int) em, -1, 0, 0, 0x2F, 0x3C, 0, w->espKind, (u32) em, 0);
         w->x684 = 450;
         w->x4 = 15;
-        w->x8B7 = 0;
         w->x8B6 = 0;
-        if (pG->x4F88 <= 1) {
+        w->x8B7 = 0;
+        if (pGS->x4F88 <= 1) {
             w->x4 = 5;
         }
         if (pG->x4F88 <= 3) {
@@ -4755,7 +4757,7 @@ static void em39_R1_T_JumpAtk(cEm39* em)
             w->x4 = 18;
         }
         w->x10 = Rnd() & 1;
-        if (pG->x4F88 <= 3) {
+        if (pGS->x4F88 <= 3) {
             w->x10 = 0;
         }
         w->xC = 1;
@@ -6055,6 +6057,12 @@ static void em39_R1_Die_Flash(cEm39* em)
                 em->clearStatus(5);
                 em->setStatus(8);
                 EmSetDropItem(em);
+                AtariOff(&em->atari, 0xFCFF);
+                em->be_flag |= 0x10000000;
+                em->setStatus(1);
+                em->be_flag &= ~2;
+                em->xFE++;
+                break;
             } else {
                 break;
             }
@@ -6262,10 +6270,10 @@ void em39MarkerMove(cEm39* em)
             return;
         }
         p = w->pWep3->getPartsPtr(0);
-        to.x = 50000.0f;
         from.x = 0.0f;
         from.y = 0.0f;
         from.z = 0.0f;
+        to.x = 50000.0f;
         to.y = 0.0f;
         to.z = 0.0f;
         break;
@@ -6919,9 +6927,12 @@ void em39BlendMotSet(cEm39* em, void* m0, void* m1, void* m2, int a, int b, int 
     MotionWorkSub* bm;
     void* m;
     int seq;
+    int ai, dd;
+    asm("" : "=r"(ai) : "0"((int) a)); // COMPILER-DIFF: #2 (u16 argument masked at the calls)
+    asm("" : "=r"(dd) : "0"((int) d)); // COMPILER-DIFF: #2
     f32 rate = fabsf(w->gunPitch);
 
-    MotionSetCore(em, MOTION(em), m0, a, (u8) w->x6D0, (u16) d, (u16) w->x6D4);
+    MotionSetCore(em, MOTION(em), m0, ai, (u8) w->x6D0, (u16) dd, (u16) w->x6D4);
     if (w->gunPitch < 0.0f) {
         m = m1;
         seq = b;
@@ -6930,14 +6941,14 @@ void em39BlendMotSet(cEm39* em, void* m0, void* m1, void* m2, int a, int b, int 
         seq = c;
     }
     bm = &w->blendMot;
-    MotionSetCore(em, bm, m, seq, (u8) w->x6D0, (u16) d, (u16) w->x6D4);
+    MotionSetCore(em, bm, m, seq, (u8) w->x6D0, (u16) dd, (u16) w->x6D4);
     em->blendMot = bm;
     bm->blendRate = rate * 0.00390625f;
     if (w->x6D0) {
         w->x6D0--;
     }
     w->x6D4++;
-    if (w->x6D4 >= em->frameMax) {
+    if ((u32) w->x6D4 >= em->frameMax) {
         w->x6D4 = 0;
     }
 }
@@ -7210,7 +7221,7 @@ int em39SitChg(cEm39* em)
         if (e->state != 0) {
             continue;
         }
-        if (w->pGotoPoint->sub != 0) {
+        if (e->state != w->pGotoPoint->sub) {
             continue;
         }
         if (e->pad_3 != w->pGotoPoint->pad_3) {
@@ -7457,10 +7468,14 @@ void em39ArrowFire(cEm39* em, Vec* target, int mode)
     }
     em39BowSet(em, 0);
     w->x58C->setTransMode(1);
-    pos.x = 500.0f;
-    pos.y = 0.0f;
-    pos.z = 0.0f;
-    PSMTXMultVec(w->pWep3->getPartsPtr(4)->mat, &pos, &pos);
+    {
+        cModel* p = w->pWep3->getPartsPtr(4);
+
+        pos.x = 500.0f;
+        pos.y = 0.0f;
+        pos.z = 0.0f;
+        PSMTXMultVec(p->mat, &pos, &pos);
+    }
     TransMatrix(w->x58C->mat, &pos);
     switch ((u32) mode) {
     case 0:
@@ -7991,10 +8006,11 @@ int em39GotoCk(cEm39* em)
 
 void cEm39::set2ndBattle()
 {
-    Em39Work* w = EM39_WK(this);
+    register Em39Work* w asm("r29"); // COMPILER-DIFF: #13 -- w kept live past its last store (see the asm below)
     Vec p = { 31259.0f, 5250.0f, -14068.0f };
     u32 zero;
 
+    w = EM39_WK(this);
     AtariOff(&atari, 0xFCFF);
     rot.y = 1.4660766f;
     setPos(&p);
@@ -8006,7 +8022,7 @@ void cEm39::set2ndBattle()
     w->dmgTotal = zero;
     w->x698 = zero;
     EmRoutineSet(this, 1, 4, 0, 0);
-    asm volatile("" : : "r"(zero)); // COMPILER-DIFF: #13 -- the zero does not die at its last store in the original (pure source order)
+    asm volatile("" : : "r"(zero), "r"(w)); // COMPILER-DIFF: #13 -- neither the zero nor w dies at its last store in the original (pure source order)
 }
 
 void cEm39::set1stDoorClear()
@@ -8134,7 +8150,10 @@ int em39SlantCk(cEm39* em)
         return 0;
     }
     w->slantSide ^= 1;
-    EmRoutineSet(em, 1, 0x10, hit, w->slantSide);
+    em->xFC = 1;
+    em->xFD = 0x10;
+    em->xFE = hit;
+    em->xFF = w->slantSide;
     return 1;
 }
 
@@ -8398,13 +8417,15 @@ int em39GetCliffPos(cEm39* em)
 {
     Em39Work* w = EM39_WK(em);
     EmiData* emi = EM39_EMI;
-    EmiEntry* best = 0;
-    f32 bestDist = 4000000.0f;
+    EmiEntry* best;
+    f32 bestDist;
     u32 i;
 
     if (emi == 0) {
         return 0;
     }
+    bestDist = 4000000.0f;
+    best = 0;
     for (i = 0; i < emi->n; i++) {
         EmiEntry* e = &emi->entry[i];
         f32 d;

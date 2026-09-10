@@ -11429,3 +11429,86 @@ stmt.c/jump.c and confirmed with cc1plus probes:
 - Flip notes: em2d needed `asm(".comm common_em2d,52,4")` (0x34 COMMON block); em31/em32 already had theirs. `.data`
   reloc targets (datarelocs.py), the three `scope:global` data labels (R0 table + two weak vtables) and
   `sync_rel_symbols.py` (0 symbols changed) were checked before each flip; `git diff config/G4BE08/symbols.txt` empty.
+
+### em2b / em39 sixth pass (em2b 111 -> 117/121, em39 130 -> 146/153 masked-identical; sections equal; neither flipped; 2026-09-10)
+- Harness /tmp/em2b39_p6 (p5 copies with the paths rewritten: `tryv.py MOD FUNC variants.py [--sbs I] [--keep I] [--asm I]`,
+  `mdump.sh MOD/UNIT -dX` with `SRC_OVERRIDE=out/vN/MOD.cpp`, `fn.sh DUMP FUNC`, `sbs.py MOD SYM [OBJ]`, `mcmp.py MOD [SYM]`,
+  `gen_route.py` = pin-placement sweep generator). DOL symbols untouched; the modules.py/Sscrn diffs in the tree are other
+  agents' work (a transient Sscrn.rel failure of theirs showed up in one checkpoint).
+- **#2 tied-operand launder applied to both BlendMotSets (em39 3 -> 0, em2b 2 -> 0):** `int ai, dd; asm("" : "=r"(ai) : "0"((int)
+  a)); asm("" : "=r"(dd) : "0"((int) d));` declared before the `fabsf` barrier, `(u16) dd` at both MotionSetCore calls and `ai`
+  as the first call's int argument (the em2c/em32 recipe; laundering `d` alone leaves the parameter-copy order, 2). em39 also
+  needed `(u32) w->x6D4 >= em->frameMax` for the `cmplw`.
+- **Both-arms duplication for an argument-move tie (em39 Die_Flash 2 -> 0):** `li r4,8` beat `mr r3,r31` in the target because
+  the `li` had one more sched2 dependent (a later `li r4,1` in the SAME block); the then-arm of `if (w->x4) {..}` ends the block in
+  ours (join label before the tail). Writing the tail (`AtariOff; be_flag |= ..; setStatus(1); be_flag &= ~2; xFE++; break;`)
+  a second time inside the arm gives the bigger block and jump2 cross-jumps the copies back. Die_Normal's identical pair already
+  matched because its block continues into `EstSet(0, -1, ..)` (the `li r4,-1`). Rule: an arg-move pair swap next to a block end
+  = the original's block continued; duplicate the following tail into the arm.
+- **cse2 canonical flip needs a later mention of the wanted pseudo, keep-alive form (em39 KnifeCatch 3 -> 0):** `fabs f31,f31`
+  reads `pang` in the target, ours the inline `fabsf` parameter copy (reg 100 = the register cse1 gave the `ang < 0.0f` compare
+  after `pang` was re-set). cse2 walks the NOT_TAKEN path last and there reg 100's last use lies beyond the block end while
+  pang's does not, so `make_regs_eqv` makes reg 100 canonical. `asm("" : "=m"(w->x4) : "f"(pang))` after the if/else chain
+  (before `w->x4 = 10`) extends pang past it; every dead-test form (`if (pang == ang) ang = 0.0f;`) splits the block (27-28),
+  the opaque `fabs` asm forms 38. Then `w->x8B6 = 0; w->x8B7 = 0;` in that order (the target stores 2230 before 2231; the same
+  swap fixed T_LongAtk and T_JumpAtk -- em39 writes x8B6 first everywhere).
+- **Constant-pool `lis` order = statement order (em39 MarkerMove 2 -> 0):** the case-4 block issues `lis RO:864` (50000)
+  before `lis RO:860` (0.0) in the target: write `from.x/y/z = 0.0f` BEFORE `to.x = 50000.0f` (natural order); `to.x` first,
+  `to.z` first: 2-8.
+- **The ThrowGR `spd` block (2 -> 0):** `asm volatile("" : : "f"(d));` AFTER the `if (em->pos.y > tpos.y + 2000.0f) spd.y = 0.0f;`
+  (before PSMTXRotRad) -- only `d` needs keeping alive; adding `"f"(120.0f)` or `"f"(2000.0f)` re-ranks the FPRs (f11/f13
+  swap, 4-12), the `"=m"` forms before the `if` add a dependent to one store (7-14). Tagged #13.
+- **set2ndBattle 4 -> 0 with a pinned `w` (tagged #13):** `register Em39Work* w asm("r29"); w = EM39_WK(this);` and
+  `asm volatile("" : : "r"(zero), "r"(w))` after EmRoutineSet: `w` then does not die at `w->x698 = zero` (source order) and,
+  being a hard register, is not ranked against `this` (a pseudo `w` in the asm gets 8 refs = log2 3 and outranks `this`,
+  r29/r30 swap). `"r"(this)` balancing 14, dead test 16.
+- **WallWait 4 -> 0:** `dy = em->pos.y - pPL->pos.y; dy = fabsf(dy);` (two statements: `fsubs f31; fabs f31,f31`, the
+  em39AtkRtnCk form). **SuperDash 5 -> 0:** `pGS->x4F88` on the FIRST pG read after the `w->x688 = 600` store (em2b rule).
+  **T_LongAtk / T_JumpAtk 12/10 -> 0:** `pGS->x4F88` for the first read after the init block AND for the read after `Rnd()`
+  (`w->x10 = Rnd() & 1; if (pGS->x4F88 <= 3)`), plus the x8B6/x8B7 order above.
+- **Callee-saved FPR for a short negation = a variable shared with a call-crossing value (em39 AppearMG2 6 -> 0):**
+  `fneg f31,f1; fmuls f1,f31,f0` -- the EM39_GUN_PITCH2 `ang` is ONE function-scope variable with case 1's Muku delta
+  (`ang = Muku(..); w->x18 += ang; ..; em->rot.y += ang;` -- that use crosses the LIMIT_ANGLE call, so the pseudo is
+  call-crossing and global-alloc gives every set f31). A block-local `d` there left `ang` a call-free pseudo (`fneg f1,f1`
+  tied); keep-alive asms on `ang` gave f31 but moved `t` to f11 (18-21). Rule: when a target keeps a one-use temporary in a
+  callee-saved register, look for another variable of the same type in the function that crosses a call and merge them.
+- **AppearBow 7 -> 0:** the else arm's `w->bowMot3 = 0` written SECOND (`bowMot0 = ARC; bowMot3 = 0; bowMot1; bowMot2`): first,
+  the zero store has the `lwz em->subArc` reload as a true dependent (w-based store vs em-based load: reg_known_value needs a
+  REG_EQUAL note, so alias.c cannot relate `(plus w 1972)` to `(plus em 888)`) and leads the block; last, 10.
+- **SitChg 7 -> 0 (source read off the target):** `if (e->state != w->pGotoPoint->sub) continue;` -- the target compares the
+  goto point's sub against the register that holds `e->state` (known 0), not against a literal 0.
+- **SlantCk 11 -> 0:** plain byte stores `em->xFC = 1; em->xFD = 0x10; em->xFE = hit; em->xFF = w->slantSide;` -- the QI
+  stores invalidate cse's copy of the just-stored `slantSide`, so the last store re-loads it (`lbz r0,2245; stb r0,255`) like
+  the target; the int inline evaluates the argument first and forwards the register.
+- **GetCliffPos 12 -> 0:** `bestDist = 4000000.0f; best = 0;` as statements AFTER the `emi == 0` test (declaration
+  initialisers put the `lfs`/`li` in block 0); `best = 0` before `bestDist` 4, bestDist only 10.
+- **ArrowFire 13 -> 0:** `cModel* p = w->pWep3->getPartsPtr(4);` BEFORE the `pos.x/y/z` stores, then `PSMTXMultVec(p->mat,
+  &pos, &pos)` (the nested-call form evaluates the stores first).
+- **em2b Hook / UpperCut 15/21 -> 2 (the `li r4,10` after `andi.`):** the parts index is chosen with TWO calls, `if (em->motFlags &
+  0x40) p = em->getPartsPtr(0x10); else p = em->getPartsPtr(0xA);` (each arm its own call): jump2 cross-jumps the identical
+  `mr r3,r31; bl` tails and then its "if (c) { x = a; goto l; } x = b" transform hoists the else arm's `li r4,10` to just before
+  the `beq` (after the `andi.`), which is the target's shape. The `int no = 0xA; if (..) no = 0x10;` form (and ternary /
+  inline selector) puts the `li` in the block before sched2, where it is issued at t1 next to the `lhz`.
+- **em2b DashAtk case 4 (4 of 6 -> 0):** `w->atkHit = 0;` BEFORE `w->stuckCnt = 0;` -- the QI store first gets its own zero
+  pseudo (cse's src_related only widens, so the later SI stores/EstSet arg share a second pseudo: `li r9,0` / `li r0,0`).
+- **em2bAtkEndSet arm 2 (`mr r3,em` before `stw flags; stw dmGuard`; Stamp/Punch/Kick/Hook/UpperCut 2 -> 0, tagged #13):**
+  `u32 f = w->flags | 0x80; w->flags = f; w->dmGuard = k;` (flags store FIRST, like arm 1) and `asm("" : "=m"(w->x63C) :
+  "r"(f), "r"(k))` with `int k = 900` -- both stores lose their deaths and the `mr` (em dies there) leads. The `"=m"` operand
+  must be a memory the block does not store (`w->flags`/`w->dmGuard` outputs add a dependent to that store, 10; volatile 40);
+  with `dmGuard = 900` first the dying/non-dying mix gives 9-10. DashAtk (em live after the call: `mr r3,em` no longer wins)
+  gets the plain form through a second inline `em2bAtkEndSetL` (with the keep-alive its arm 2 became `stw; stw; mr; bl` and
+  jump2 cross-jumped arm 1's tail into it: 35 words); left at 2.
+- **#17 pins in em39RouteCk (14, left; sweep in gen_route.py):** a pin register is taken in pass 0 by the FIRST allocno in
+  priority order that does not conflict with it (routePos, `this`, `w` grabbed r24/r27/r28 pins placed outside their ranges),
+  the pins' asm insns add two LUIDs to every range they sit in (routePos/&a priorities flipped), a volatile consumer flushes cse
+  (`lis pPL` unshared, 188), and `"=m"` consumers shift the sched1 slot next to them (`lfs 1720` vs `li r6,0`). The r28@E +
+  r27@B + r24@F set that the conflict algebra predicts gives `w` r28 (79). No pin set found; the target's order (&em->pos >
+  &a > pPL high > PI high) is a priority order ours does not have.
+- Left / mechanisms read: em39 JumpUp2 5 (the `fmuls f12,f0,f12` tie: `t` must not tie to the sum; a global `t`/`dy` with a
+  second block use changes case 1's registers, 11-19), Atk_MG 12 (the target computes `&b` (r27) and its PRE copy before the
+  first GetXZAngle call, ours after it -- an `addi` reading r1 cannot cross a call in sched1, so the original's RTL had it
+  before the call: #3 family), R0_Init 17 (block B's byte stores need the do-while barrier like block A, but the barrier's
+  first insn `lwz r11,subArc` then gives every argument move a cost-2 true dependence (`reg_pending_sets_all` after loop notes)
+  and the args issue li-first: 18-19; the original had no barrier -- its QI stores aliased the subArc load), JumpUpCk3 20,
+  JumpUp3 20, ArmControl 56 (#6), em2b ShortRopeSet 3 (num-late + keep-alive re-ranks 5/100 to r7/r6: 17-34), ClothSet 11,
+  AtkRtnCk 195 (#6) not iterated.
