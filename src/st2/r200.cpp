@@ -260,19 +260,22 @@ found:
 }
 
 // The truck has passed: Leon is placed at the gate, the collision of the truck is added.
+// COMPILER-DIFF: 11 -- a 16-byte `ang` makes the merged free slot of the first block (12 + 16 = 28)
+// large enough for assign_stack_temp to split it, so the second block's Vecs reuse both slots (frame 0x50).
+struct R200Vec4 { Vec v; f32 pad; };
 static void r200_execTruckEvent_end()
 {
     {
         Vec pos = {10850.0f, 88.0f, 86.0f};
-        Vec ang;
-        Vec* pa = &ang;
+        R200Vec4 ang;
+        Vec* pa = &ang.v;
         cPlayer* pl = pPL;
         f32 ry = 1.352f;
 
         pl->setPos(&pos);
-        ang.x = 0.0f;
+        ang.v.x = 0.0f;
         pa->y = ry;
-        ang.z = 0.0f;
+        ang.v.z = 0.0f;
         pl->setAng(pa);
         CamCtrl.Comeback(0);
         EffectEspDelete(0, (u8) r200_work.p->eff0C, 0, 0);

@@ -995,8 +995,6 @@ void r201_setSwitchSe(int on)
 void r201_setSwitchEnv(int on)
 {
     void* zero;
-    SceAtWork* at;
-    f32 ang;
 
     r201_work.p->sePos.x = 41100.0f;
     r201_work.p->sePos.y = 3500.0f;
@@ -1025,15 +1023,13 @@ void r201_setSwitchEnv(int on)
         SceAtSetEnable(5, 1);
         if (SceAtHitCheck(2) == 0) {
             SceAtSetEnable(0, 1);
-            at = SceAtPtr(3);
-            ang = 0.0f;
+            SceAtPtr(3)->dstAngle = 0.0f;
+            SceAtPtr(0x28)->dstAngle = 0.0f;
         } else {
             SceAtSetEnable(1, 1);
-            at = SceAtPtr(3);
-            ang = 3.1415927f;
+            SceAtPtr(3)->dstAngle = 3.1415927f;
+            SceAtPtr(0x28)->dstAngle = 3.1415927f;
         }
-        at->dstAngle = ang;
-        SceAtPtr(0x28)->dstAngle = ang;
     }
 }
 

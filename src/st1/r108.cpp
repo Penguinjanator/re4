@@ -162,6 +162,7 @@ static void r108_operator()
 }
 
 // Ringing the bell: re-create up to three of the outside Ganados when few are left.
+cEm* setEmI(int no, int list, int errOn, int chkDead, int setAlive) asm("setEm__FsSciii");   // COMPILER-DIFF: 4 (no int->s16 truncation at the call)
 extern "C" void r108_checkEmReset()
 {
     int list[11] = {1, 2, 0x2D, 0x47, 0x4B, 0x4D, 0x33, 0x35, 0x3B, 0x67, 0x6A};
@@ -173,8 +174,12 @@ extern "C" void r108_checkEmReset()
         u32 cnt = 0;
         int* p;
 
+        // COMPILER-DIFF: 3 -- the original forms the end pointer from the array pseudo (`addi r29,r31,40`),
+        // ours folds `&list[10]` to the frame; the launder hides the frame address from cse.
+        asm("" : "+r"(tbl));
+
         for (p = tbl; p <= &tbl[10]; p++) {
-            if (setEm(*p, -1, 0, 1, 1) != 0) {
+            if (setEmI(*p, -1, 0, 1, 1) != 0) {
                 cnt++;
                 if (cnt > 2) {
                     break;
@@ -193,10 +198,12 @@ static void r108_initChurchBell()
     bell = SmdGetObjPtr(0x1C);
     hit = SetEmHit((void*) (pG->pArc->ofs_20 + (u32) pG->pArc), (void*) (pG->pArc->ofs_24 + (u32) pG->pArc), &bell->pos, &bell->rot, 1);
     {
-        f32 w = 1000.0f;
-        f32 h = -3000.0f;
-        f32 x = 0.0f;
-        f32 z = 500.0f;
+        // `const`: the single-use constants are loaded in declaration order (w, x, h, z), not in
+        // argument order (the r103 checkCloseCover lever)
+        const f32 w = 1000.0f;
+        const f32 h = -3000.0f;
+        const f32 x = 0.0f;
+        const f32 z = 500.0f;
         YarareInitCube(hit, x, x, z, w, h, w, 0, 1);
     }
     for (;;) {

@@ -323,7 +323,8 @@ extern "C" void Evt_R11FS00_Func(Event* e)
             skip = 0;
         }
         if (skip == 0) {
-            EvtMgr.EvtSndStrPlay(&EvtMgr.x34, 1, 0x50, 1, 0.0f);
+            EventMgr* em = &EvtMgr;
+            em->EvtSndStrPlay(&em->x34, 1, 0x50, 1, 0.0f);
         }
         break;
     }

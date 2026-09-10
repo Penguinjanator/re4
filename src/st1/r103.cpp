@@ -283,10 +283,12 @@ static void r103_checkCloseCover(R103Cesspit* c)
     FSet(cover->rot.x, -0.5235988f);
     hit = SetEmHit((void*) (pG->pArc->ofs_20 + (u32) pG->pArc), (void*) (pG->pArc->ofs_24 + (u32) pG->pArc), &cover->pos, &cover->rot, 0);
     {
-        f32 w = 100.0f;
-        f32 h = 1200.0f;
-        f32 x = 0.0f;
-        f32 z = 50.0f;
+        // `const`: the single-use constants are loaded in declaration order (w, x, h, z), not in
+        // argument order
+        const f32 w = 100.0f;
+        const f32 h = 1200.0f;
+        const f32 x = 0.0f;
+        const f32 z = 50.0f;
         YarareInitCube(hit, x, x, z, w, h, w, 0, 1);
     }
     do {

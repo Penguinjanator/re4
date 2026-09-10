@@ -78,6 +78,8 @@ struct R208WorkPtr {
 static u8 r208_texTbl[0x20];
 static R208WorkPtr r208_work;
 #define W r208_work.p
+struct PlPtr { cPlayer* p; };
+#define pPLS (((PlPtr*) &pPL)->p)
 // EM_LIST through the struct view of pG: the load stays below a preceding work-struct store.
 #define EM_LIST_S(no) ((EmListData*) &pGS->emlist[(no) * 0x20])
 // Element stores through the vector's address (r202): the address pseudo is shared with the call
@@ -1219,7 +1221,7 @@ static void r208_operateCrank()
         Vec v = {500.0f, 4000.0f, -29300.0f};
         cPlayer* pl;
 
-        v.y = pPL->pos.y;
+        v.y = pPLS->pos.y;   // struct view: the pPL load is issued after the W load (target order)
         FSet(pPL->rot.y, W->crank->rot.y - 1.5707964f);
         pl = pPL;
         SetPosAng(pl, &v, &pl->rot);
@@ -1732,7 +1734,7 @@ static void SubUnderCrankExec()
         Vec pos = {447.0f, 4000.0f, -29225.0f};
         Vec d;
 
-        pG->flags_174 |= 0x08000000;
+        pGS->flags_174 |= 0x08000000;   // struct view: the template copy's three loads precede its first frame store
         while (1) {
             f32 dist;
 

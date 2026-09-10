@@ -452,6 +452,10 @@ static void r207_EnemySet()
     Vec sePos = {800.0f, 1200.0f, 700.0f};
     Vec gotoPos = {-1834.0f, 4149.0f, -11795.0f};
     u32 cnt = 0;
+    // COMPILER-DIFF: #13 -- the `pSUB = NULL` zero is a reload-rematerialised constant in the original
+    // (`li r9,0` after the `sth`, reusing the atari pointer's register); a single-use function-scope
+    // variable gets its `li` moved next to the store by update_equiv_regs and the same register.
+    cSubChar* zero = NULL;
 
     do {
         if (pPL->pos.y <= 4100.0f) {
@@ -472,7 +476,7 @@ static void r207_EnemySet()
     if (pSUB) {
         AtariFlagsAnd(&pSUB->atari, 0xFDFF);
         r207_work.p->sub = pSUB;
-        pSUB = NULL;
+        pSUB = zero;
     }
     r207_work.p->em[2].em.setEm(0xD3, -1, 0, 1, 1);
     r207_work.p->em[3].em.setEm(0xD4, -1, 0, 1, 1);

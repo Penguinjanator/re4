@@ -352,6 +352,7 @@ static void r222_dai_ret()
 }
 
 // Areas 3/4: the cart ride to r212 (dir 0: left cart, 1: right cart).
+static inline f32 FCRef(const f32& v) { return v; }
 static void toroko_go(int dir)
 {
     cPlayer* pl = pPL;
@@ -371,7 +372,11 @@ static void toroko_go(int dir)
         pos = r210_torokoGoPos1;
     }
     obj->be_flag |= 0x20;
-    SndStrReq(1, 0xE4, 0x80000003, 0, 0, 0.0f);
+    {
+        // the 0.0 volume is loaded AFTER the be_flag store (a pool constant would float above it)
+        static const f32 vol = 0.0f;
+        SndStrReq(1, 0xE4, 0x80000003, 0, 0, FCRef(vol));
+    }
     SceEventStart(0);
     pl->setRightHand(1);
     pl->pWep->setTrans(0, 0);

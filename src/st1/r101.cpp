@@ -634,8 +634,12 @@ static void r101_Event20()
         FSet(rack->pos.x, 7201.0f);
         FSet(rack->pos.z, -7280.0f);
         r = rack;
-        r->setPos(&r->pos);
-        r->setAng(&r->rot);
+        {
+            Vec* pp = &r->pos;
+            Vec* pa = &r->rot;
+            r->setPos(pp);
+            r->setAng(pa);
+        }
     }
     SceDestroyEm(0x10, 0x20);
     SceSleep(2);

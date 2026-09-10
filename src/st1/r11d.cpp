@@ -223,6 +223,14 @@ extern "C" void r11d_appearBigSister()
 // The little sister with her own motion; the first time the two flash effects.
 extern "C" void r11d_appearLittleSister()
 {
+    int zero;
+
+    // COMPILER-DIFF: candidate #12 (fallthrough-arm form): the two EstSet stack zeros come from one
+    // callee-saved `li r31,0` in the original; on the fall-through of `RsfCheck(..) == 0` our cse1 knows
+    // the `andis.` result is 0 and stores that register instead (a plain `int zero = 0` is folded too),
+    // so the asm produces the constant. The original's zero pseudo also conflicts with the work high
+    // (zero r31, work r30): the code-less volatile asm makes it live from the function entry.
+    asm volatile("" : "=r"(zero));
     if (r11d_work->em1.setEm(0xEC, -1, 0, 1, 1) == 1) {
         cEm* em = r11d_work->em1.getPtr();
 
@@ -230,12 +238,7 @@ extern "C" void r11d_appearLittleSister()
             ((cEmGanado*) em)->setR11DMotion(ROOM_ARC_PTR(pG->pRoomArc, 0x23));
         }
     }
-    int zero;
-
-    // COMPILER-DIFF: candidate #12 (fallthrough-arm form): the two EstSet stack zeros come from one
-    // callee-saved `li r31,0` in the original; on the fall-through of `RsfCheck(..) == 0` our cse1 knows
-    // the `andis.` result is 0 and stores that register instead (a plain `int zero = 0` is folded too).
-    asm("li %0,0" : "=r"(zero));
+    asm("li %0,0" : "+r"(zero));
     pG->flags_174 |= 0x40000000;
     BitOff(SmdGetObjPtr(0x32)->be_flag, 2);
     BitOn(SmdGetObjPtr(0x1A)->be_flag, 2);
@@ -480,18 +483,24 @@ static void r11d_checkEmReset()
 
     RsfSet(G_ROOM_ID, 0);
     u8 tbl[10] = {0xD2, 0xD7, 0xD3, 0xD8, 0xD4, 0xD9, 0xD5, 0xDA, 0xD6, 0xDB};
+    u8* t = tbl;
+    // Layout of the target: `bl SceSleep; b CHECK`, the 60-frame sleep falling into the wait loop's
+    // body (one SceSleep(1) copy shared by the first wait and the re-waits), the count test, setEm, and
+    // the exit as the fall-through of `bne sleep` -- no labelled empty exit block, so haifa forms one
+    // region for the whole loop and hoists setEm's `li r4..r7` above the count compare. `i++` in the
+    // test puts the `addi` between the compare and the branch; `t` keeps the array base in one pseudo.
     SceSleep(1);
     i = 0;
-next:
-    while ((u32) SceCountEmAlive(0x10, 0x20) > 10) {
+    goto check;
+sleep:
+    SceSleep(60);
+    do {
         SceSleep(1);
-    }
-    setEm(tbl[i], -1, 0, 1, 1);
-    i++;
-    if (i < 10) {
-        SceSleep(60);
-        SceSleep(1);
-        goto next;
+    check:;
+    } while ((u32) SceCountEmAlive(0x10, 0x20) > 10);
+    setEm(t[i], -1, 0, 1, 1);
+    if (i++ != 9) {
+        goto sleep;
     }
 }
 
