@@ -2898,6 +2898,20 @@ target) stays unresolved and `make_rel` then fails with "undefined symbol".
   arms merged before sched1 in the original, in jump2 for us), `setHand` (5: `lwz tpl` before the compare).
   Five passes; do not re-attempt without a new mechanism.
 
+- Room helpers that exist under the same name in several rooms of one module (`em_reset`, `em_destroy`,
+  `setTexRender`, `setLadderMotion`, `slide_move` in st4_0) MUST be `static`: r400/r405 (and flipped r406's
+  `setTexRender`) still define them global and will clash in the -r link once a second such room flips.
+  Make them static before flipping (sync then reports 0 renames; REL24 calls are binding-independent).
+- COMPILER-DIFF candidate #11 (temp slots): two freed 12-byte Vec slots of a block are merged by
+  `combine_temp_slots` into one 24-byte slot; a sibling block's first Vec takes the whole slot (24-16 < 16
+  forbids the split) so its second Vec gets a fresh slot (+0x10 frame); the original reuses both. 16-byte
+  objects split fine. Explains frame diffs in r200/r20e/r221/r225/r402.
+- `rank_for_schedule` in the SN source is stock: priority, then register weight, then class vs last
+  scheduled, dependents, LUID; anti/output dependences cost 1.
+- cse AROUND path: `beq` around a single-set block followed by a re-test of the same condition folds the
+  second jump to `b`; the original keeps the conditional jump (r104 `execEvent00`) -- cse-pass difference.
+- `IntSet(r->last, d->last)` on the LAST field of a struct copy keeps the following `lwz pG` below the copy.
+
 ## Don'ts
 
 - Never change the semantics of a shared tool (strip_unused.py, fold_linkonce.py, sync_symbols.py,

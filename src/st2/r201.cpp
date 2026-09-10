@@ -108,8 +108,9 @@ static void r201_execEvent00_sub();
 
 void R201Init()
 {
-#line 53 "D:/Bio4/Prog/r201.cpp"
-    r201_work.p = (R201Work*) MEM_CALLOC(sizeof(R201Work), 1, 0xd);
+#line 52 "D:/Bio4/Prog/r201.cpp"
+    R201Work*& wp = r201_work.p;   // reference: the following `lwz pG` stays below the store (r227 idiom)
+    wp = (R201Work*) MEM_CALLOC(sizeof(R201Work), 1, 0xd);
     if (pG->x4F9F == 2) {
         RsfSet(G_ROOM_ID, 0);
         BitOn(pG->flags_51BC, 0x10000);

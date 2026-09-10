@@ -65,8 +65,9 @@ extern "C" void Evt_R200S00_Func(Event* e);
 
 void R200Init()
 {
-#line 52 "D:/Bio4/Prog/r200.cpp"
-    r200_work.p = (R200Work*) MEM_CALLOC(sizeof(R200Work), 1, 0xd);
+#line 51 "D:/Bio4/Prog/r200.cpp"
+    R200Work*& wp = r200_work.p;   // reference: the following `lwz pG` stays below the store (r227 idiom)
+    wp = (R200Work*) MEM_CALLOC(sizeof(R200Work), 1, 0xd);
     if (pG->x4F9F == 1) {
         RsfSet(G_ROOM_ID, 4);
         RsfSet(G_ROOM_ID, 2);
@@ -165,12 +166,18 @@ static void r200_execShowView_end()
 }
 
 // The camera pans over the village on the first visit.
+static inline f32 FCRef(const f32& v) { return v; }
+
 static void r200_execShowView()
 {
+    // The 0.0 is loaded after the BitOn store: a pool constant would move above it (pool loads never
+    // depend on stores), a `static const` read through a reference stays below (AGENTS.md, cSceObj).
+    static const f32 vol = 0.0f;
+
     RsfSet(G_ROOM_ID, 4);
     if ((pG->flags_54 & 0x40) == 0) {
         BitOn(pG->flags_54, 0x40);
-        r200_work.p->snd = SndStrReq(0, 0x18, 0x80000003, 0, 0, 0.0f);
+        r200_work.p->snd = SndStrReq(0, 0x18, 0x80000003, 0, 0, FCRef(vol));
         SceSetEventCancel(1, (TaskFunc) r200_execShowView_end, 0, -1, 1);
         SceEventStart(0);
         r200_work.p->eff2C = EspPullCoreKind();

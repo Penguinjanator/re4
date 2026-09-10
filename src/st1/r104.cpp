@@ -476,7 +476,7 @@ extern "C" void EmReset_init(EmReset* r, R104ResetData* d)
     r->flagA = d->flagA;
     r->flagB = d->flagB;
     r->flagC = d->flagC;
-    r->flagD = d->flagD;
+    IntSet(r->flagD, d->flagD);   // reference store: keeps the `lwz pG` of the RsfCheck below the copies
     if (RsfCheck(G_ROOM_ID, r->flagC) == 0) {
         if (RsfCheck(G_ROOM_ID, r->flagB)) {
             RsfClear(G_ROOM_ID, r->flagB);

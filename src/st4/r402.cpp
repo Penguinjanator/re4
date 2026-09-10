@@ -78,7 +78,7 @@ struct R402MercInit {
     u32 x5C[4];
 };
 
-void setLadderMotion(int no);
+static void setLadderMotion(int no);
 static void OpenBoxTreasure(int no);
 static void OpenedBoxTreasure(int no);
 static void R402ExecEvent01Main();
@@ -90,7 +90,7 @@ static void R402ExecEvent03Main00();
 static void R402ExecEvent03End00();
 static void R402ExecEvent03Main01();
 static void R402ExecEvent03End01();
-void em_destroy();
+static void em_destroy();
 int R402EmSetSubMugen(int no, int list, int* cnt, int max, int findPl);
 void R402EmSetSub(int no, int list, int findPl);
 static void R402EmSetMain();
@@ -145,6 +145,9 @@ void R402Init()
         init.m.smdMot = ROOM_ARC_PTR(pG->pRoomArc, 0x26);
         init.m.x20 = 30000;
         init.m.mesStart = 2;
+        init.m.mesA8 = 0xD;
+        init.m.mesAC = 0xE;
+        init.m.x58 = 0xF;
         init.m.mes[0] = 3;
         init.m.mes[1] = 4;
         init.m.mes[2] = 5;
@@ -155,9 +158,6 @@ void R402Init()
         init.m.mes[7] = 0xA;
         init.m.mes[8] = 0xB;
         init.m.mes[9] = 0xC;
-        init.m.mesA8 = 0xD;
-        init.m.mesAC = 0xE;
-        init.m.x58 = 0xF;
         MercSysInitRoom(&init.m);
     }
 }
@@ -177,7 +177,7 @@ void R402Main()
 }
 
 // The ladder motions of the Ada game (her own climb set from the etc archive).
-void setLadderMotion(int no)
+static void setLadderMotion(int no)
 {
     cEm* ladder;
     void* das;
@@ -525,7 +525,7 @@ static void R402ExecEvent03End01()
 }
 
 // Every 300 frames: the alive but inactive (out of range) enemies are removed.
-void em_destroy()
+static void em_destroy()
 {
     int i;
 
@@ -686,7 +686,8 @@ static void R402EmSetMain()
                 R402EmSetSub(0x4E, 0xD6, 0);
             }
         }
-        if ((pG->sceat_x17C & 0x80000000) && n <= 7) {
+        u32 at = pG->sceat_x17C;   // a user variable stops thread_jumps from folding this test into the previous one
+        if ((at & 0x80000000) && n <= 7) {
             if (!(pG->flags_174 & 0x4000000)) {
                 pG->flags_174 |= 0x4000000;
                 R402EmSetSub(0x4B, 0xD2, 1);

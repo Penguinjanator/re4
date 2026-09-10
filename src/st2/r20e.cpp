@@ -416,11 +416,10 @@ static void r20e_checkSwitch(int sw)
 // Switch 3 works only while the rack is off its area.
 static void r20e_checkEnableSwitch3()
 {
-    int on;
+    int on = 0;
 
     SceAtSetEnable(0xB, 0);
     SceSleep(1);
-    on = 0;
     for (;;) {
         if (on == 0) {
             if (SceAtCheckHitModel(0x12, r20e_work->rack) == 0) {

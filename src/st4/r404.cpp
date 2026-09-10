@@ -121,7 +121,7 @@ void r404_checkEmSetI();
 void r404_checkEmSetJ();
 static void r404_checkEmSetChainSaw();
 static void r404_execEmSetCheck();
-void setTexRender();
+static void setTexRender();
 static void slide_move();
 
 void R404Init()
@@ -662,7 +662,7 @@ static void r404_execEmSetCheck()
 {
     SceSleep(1);
     r404_work.p->emId = GetEmIdFromList(0xF5);
-    r404_work.p->total = r404_work.p->cnt = SceCountEmAlive(r404_work.p->emId, -1);
+    r404_work.p->cnt = r404_work.p->total = SceCountEmAlive(r404_work.p->emId, -1);   // chain: total stored first
     r404_work.p->cnt1_4 = 0;
     r404_work.p->cnt2_5 = 0;
     r404_work.p->cnt3 = 0;
@@ -693,7 +693,7 @@ static void r404_execEmSetCheck()
 }
 
 // The render target of the reflecting floor (object 0xC7).
-void setTexRender()
+static void setTexRender()
 {
     cObj* obj;
     u8* tbl = r404_texTbl;

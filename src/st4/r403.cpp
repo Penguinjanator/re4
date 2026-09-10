@@ -83,7 +83,7 @@ int cEmWrapSetEmI(cEmWrap* w, int no, int list, int errOn, int chkDead, int setA
 
 static void r403_DuraluminCaseOpen(int no);
 static void r403_DuraluminCaseOpened(int no);
-int em_reset(int no, int chk);
+static int em_reset(int no, int chk);
 void reset_40();
 void reset_41();
 void reset_42();
@@ -106,11 +106,11 @@ void reset_52();
 void reset_53();
 void reset_54();
 void reset_55();
-void em_destroy();
+static void em_destroy();
 void emset_gatling(int no);
 static void slide_move();
-void setTexRender();
-void setLadderMotion(int no);
+static void setTexRender();
+static void setLadderMotion(int no);
 
 void R403Init()
 {
@@ -221,7 +221,7 @@ static void r403_DuraluminCaseOpened(int no)
 }
 
 // Resets list entry `no` (chk: only while fewer than 10 enemies are alive); 1 when it was set.
-int em_reset(int no, int chk)
+static int em_reset(int no, int chk)
 {
     if (chk == 1 && r403_work.p->cnt > 9) {
         return 0;
@@ -455,7 +455,7 @@ void reset_55()
 }
 
 // Destroys the resettable enemies (ids 0x10..0x20) so they can be set again.
-void em_destroy()
+static void em_destroy()
 {
     u32 i;
     int lo = 0x10;  // a variable: `id >= 0x10` would fold to `id > 0xF`
@@ -683,7 +683,7 @@ static void slide_move()
 }
 
 // The render target of the reflecting floor (object 0x16).
-void setTexRender()
+static void setTexRender()
 {
     cObj* obj;
     u8* tbl = r403_texTbl;
@@ -708,7 +708,7 @@ void setTexRender()
 }
 
 // The ladder motions of the Ada game (her own climb set from the etc archive).
-void setLadderMotion(int no)
+static void setLadderMotion(int no)
 {
     cEm* ladder;
     void* das;
