@@ -253,6 +253,16 @@ cc1plus and are therefore compiler-build differences (the original is a later SN
 6. Cross-jump survivor choice: our jump2 always keeps the *last* identical `li r3,1; b end` copy;
    the original sometimes keeps an earlier arm's copy and cross-jumps later ones into it (pl_class
    `isKamae`), and never merges single-insn tails (item `use`). Compiler-build difference.
+   RESOLVED 2026-09-10 (harness /tmp/cd6/h, whole-tree build with a `-D`-hooked jump.c; see "COMPILER-DIFF #6
+   resolved" at the end of this file): the original's jump2 cross-jump POLICY is stock 2.95.3 = ours. Every
+   variant of it -- fall-through candidate with minimum 2 or not tried, no CODE_LABEL `--minimum`, oldest-first
+   jump_chain, no jump-around-jump bonus, no USE move, no range swap, swap in round 1 -- regresses 428-3767 of the
+   18695 matched functions and fixes none. The two sentences above are wrong: ours keeps the first copy too when
+   the first copy's own scan fails (isKamae `goto ng` form), and single-insn tails DO merge (label rule /
+   fall-through minimum 1). Every #6 residue is an RTL-at-jump2-entry difference with a source lever: a `(use r3)`
+   or flow.c `(use (const_int 0))` insn ending the fall-through arm, sched2's position of `li r3,K`, jump1's layout
+   (USE move, range swap), or a same-looking insn with a different RTL mode/register form. Model:
+   tools/xjump.py (jump2 loop, candidates, minimum rules; validated on -dJ dumps). Not a compiler-build difference.
 Do not spend unit time on any of these; use the workarounds and move on. POLICY: every workaround
 for a compiler-build difference (asm-labelled aliases, `asm("" : "+r"(x))` launders, `register ...
 asm("rN")`, dead `p = 0` initialisers used only to shift gcse/loop.c counts) must carry a comment
@@ -10658,3 +10668,121 @@ stmt.c/jump.c and confirmed with cc1plus probes:
   (`pang` declared in the case / after Muku / `f32 zero` local / an explicit `asm("fabs")`: 20-38). em39_R0_Init (17) and
   ArmControl (56, #6 + the `oris` r9/r10 local-alloc tie), JumpUp3 20, ArrowFire 13, T_LongAtk/Atk_MG 12, GetCliffPos 12,
   SlantCk 11, T_JumpAtk 10 not iterated this pass.
+
+### COMPILER-DIFF #6 resolved: the jump2 cross-jump policy is stock; the survivor is decided by the RTL at jump2 entry (db_widget AddPrimitive 92 -> 100%, DB_NUMERIC2::OnCalcMsg 94 -> 100%; tools/xjump.py; 2026-09-10)
+
+- Harness /tmp/cd6/h (copy of the /tmp/sched5 h.py whole-tree harness: `python3 h.py build CFG` compiles all 755 ProDG units
+  with cc/CFG/cc1plus in 11 s and compares every function with the split object, `h.py cmp base CFG` lists
+  regressions/fixes; `mk.sh NAME "-DDEFS"` builds a cc1plus from gcc/ = the repo's tools/sn-gcc source with `-D` hooks in
+  jump.c; `CJ_LOG=file` makes the hooked jump.c log every cross-jump it performs: function, candidate kind fall/chain/
+  return/cond, minimum, matched insns, what precedes the scanned tail). Base: 18695/19929 functions identical (the 5 wep*
+  errors are another agent's transient PSet redefinition). Every policy variant regresses matched functions and fixes NONE:
+    fall-through candidate minimum 2 (`find_cross_jump (insn, JUMP_LABEL, 2)`)   2147 regressions / 0 fixes
+    no fall-through candidate at all                                              3767 / 0
+    no `--minimum` when the backward scan hits a CODE_LABEL                         428 / 0
+    jump_chain walked oldest-first instead of latest-first                          467 / 0
+    no jump-around-jump `--minimum`                                                 516 / 0
+    no USE-before-jump move (jump1's `use r3; b END` -> `b END'; END': use r3`)   1732 / 0
+    USE move followed by `next = insn` (immediate re-examination)                    840 / 0
+    range swap refused when range2's jump targets label2                            833 / 0
+    range swap allowed in the first round / no range swap                      955 / 0, 1012 / 0
+  So the original's jump.c is ours on every decision that picks a cross-jump survivor; the residues come from the RTL
+  that reaches jump2 (expansion/jump1 layout, sched2 order, insn identity), i.e. they have source levers. tools/xjump.py
+  models the jump2 loop on a hand-written insn list (fall-through / chain candidates, minimum rules, label creation,
+  re-examination, jump-over-jump inversion, threading) and prints the merges and the final layout; validated against
+  `-dR`/`-dJ` dumps of AddPrimitive (both forms), OnCalcMsg, isKamae, item use.
+- **The rule (jump.c `jump_optimize_1`, cross_jump pass = jump2, after sched2).** Jumps are scanned in insn order,
+  repeatedly until nothing changes; a successful cross-jump deletes the SCANNED jump's tail and redirects that jump to a
+  label put before the CANDIDATE's tail (an existing label is reused), so the candidate is the survivor. A copy survives
+  iff its own scan fails every time it is examined. For a simplejump `b L`:
+  (1) candidate 1 = the code falling into L, `find_cross_jump (insn, L, minimum = 1)`: ONE matching insn suffices, but the
+      first compared pair is the last insn before L vs the last insn before the jump -- a mismatch there ends it. The
+      fall-through arm's last insn is what protects it: flow.c's `(use (const_int 0))` nop after a CALL_INSN that ends a
+      basic block (count_basic_blocks inserts it whenever a call is followed by a label), the `(use r3)` that a
+      value-select return leaves (`int r; if (c) {..; r = 1;} else r = 0; return r;` -- reload turns the dead `mr r3,r3`
+      into a USE, and it sits between the else arm's `li r3,0` and the return label), a compare/branch, or simply a
+      different insn (`li r3,0` before END vs the `li r3,1` tails).
+  (2) candidates 2..n = the other simplejumps to L in jump_chain order = the LATEST in insn order first (mark_all_labels
+      prepends; a jump redirected by an earlier merge is moved to the new label's chain and no longer competes),
+      `minimum = 2`: two matching insns, or one insn plus a bonus. Bonuses: a CODE_LABEL directly before the scanned
+      tail (`--minimum`, then stop -- this includes the label that an EARLIER merge created before a survivor's tail, so a
+      survivor that collects copies can itself merge into a later/earlier copy with one insn); or, at the first
+      mismatching pair, i1 (scanned side) is a conditional jump whose label is right after the scanned jump
+      (`bcc skip; li r3,K; b END; skip:`) -- but `GET_CODE (i1) != GET_CODE (i2)` breaks BEFORE that test, so the bonus
+      only applies when the candidate's preceding insn is also a JUMP_INSN (`bcc skip; li; b END` vs `stb; li; b END`:
+      no bonus, no merge; vs `bne X; li; b END`: merge). USE/CLOBBER insns must match but do not count.
+  (3) RETURN insns (leaf functions, `b END` -> `blr` conversion in the same pass) cross-jump among themselves from
+      jump_chain[0], latest first, minimum 2; conditional jumps only when the target follows an opposing jump back.
+  Consequences: with N identical `li r3,K; b END` copies and no fall-through match, copy 1 survives iff its scan fails
+  (no label before its `li`, its preceding insn not a condjump-around whose counterpart is a jump); copies 2..N-1 with a
+  label/bonus merge into copy N; copy N -- now preceded by the label the merges created -- merges into copy 1 with one
+  insn: copy 1 is the survivor and everything else reads `b/bcc L1` (pl_class isKamae, em2bAtkRtnCk's Debug copy DB50,
+  item use's E3F4). If copy 1 has a label before its `li` (an `a || b` join), copy 1 merges into copy N first and copy N
+  survives -- the "ours keeps the last copy" observation. Whether a `return K` copy has a 1-insn `li r3,K` tail at all is
+  sched2's decision (em2bAtkRtnCk: the target's `li r3,1` sits among the RS stores in 6 blocks and last in 9).
+- **Recipes (all verified with our cc1plus):**
+  - Keep an early `X: li r3,K; b END` copy separate from a final `return K` that falls into END: write the final
+    if/else as a value select `int ret; if (c) {..; ret = 1;} else {ret = 0;} return ret;` (db_widget AddPrimitive 100%:
+    `beq DT; cmpwi; bne L2; DT: li r3,0; b END; ..; bne Lz; THEN; li r3,1; ..; b END; Lz: li r3,0; END:` -- the same source
+    with two `return` statements gives the jump1 range swap (THEN last) and the DT copy merged through the chain).
+    `if (c) {..; return 1;} return 0;` / `if (!c) return 0; ..; return 1;` / `goto ng` / for-break / do-while forms all
+    merge the copy (12 forms tried, /tmp/cd6/p3.cpp).
+  - Keep the fall-through arm of a switch/if-chain out of the merges while the other identical arms merge into each other
+    (DB_NUMERIC2::OnCalcMsg 100%: MIN's `lfs f31; mr r3; bl SetNumFloat` tail jumps into MAX's, DEFAULT keeps its own):
+    end every such arm in the CALL -- write the arm's other statements BEFORE the call (`v = 0.0f; SetNumFloat(min);`
+    instead of `SetNumFloat(min); v = 0.0f;`), so the fall-through arm ends `bl; (use 0)` and cannot be candidate 1; the
+    arms then merge in chain order (latest first) -- MIN into MAX because MAX is the last `b JOIN`. With the statement
+    after the call (`lis; lfs f31` behind the `bl`, r9 is call-clobbered so sched2 cannot hoist it) all three arms merge
+    into DEFAULT's copy. Same family as the emBarred "flow-nop rule" above.
+  - Make an early copy the survivor of later `return K` copies (isKamae, IsExePacket): the early copy must have no label
+    before its `li` and must not be `bcc skip; li; b END` when some later copy is `bcc X; li; b END` -- e.g. `if (a || b)
+    goto ng;` with `ng: return 0;` at the very end, or a store before the `li` (`if (c) { p->x = 1; return 1; }`).
+  - A `return 0` copy that must NOT be merged into an identical later one: give it a different tail (a store or a
+    `(use)`: `asm volatile("")` between the compare and the return -- tagged COMPILER-DIFF earlier, now just a layout
+    lever) or make its preceding insn a non-jump.
+  - Identical multi-insn arms that the target keeps apart although both are `b JOIN` with 2+ identical insns
+    (em39ArmControl 0xC/0xE `add; bl MotionSetCore; lbz; li r0,1; stb; b`, em2bAtkRtnCk's r11-zero RS(1,0x11) copies A/D/
+    F/H) cannot be produced by this policy from identical RTL: in the original the insns differed in a way the asm does
+    not show (mode/form of the constant or zero register: a QImode `li r0,1` for `x8BC = 1` vs an SImode one, a `(reg)` vs
+    `(subreg)` zero substituted by cse's AROUND-path knowledge). Check ours with `-dR`: if the two arms' RTL is
+    identical in ours, the lever is upstream (give one arm a distinct constant/register form: the "register-distinct
+    duplicate bodies survive jump2" lever), not jump2.
+- **Per-residue recommendations for the owners** (read-only analysis, target vs our -dR dump):
+  - em2b em2bAtkRtnCk (195): the Debug survivor follows from the rule: its `beq DB58; li r3,1; b END` tail finds no
+    chain candidate whose insn before `li r3,1` is a JUMP_INSN (all later copies precede `li r3,1` with a `stb`), so
+    it survives, and the 9 copies whose sched2 order ends `stb rX,0xfe; li r3,1` merge into it one by one (1 insn each:
+    they are scanned later, the chain leads them to each other first and finally, via the created label, into DB50).
+    Two things ours must reproduce first: (a) sched2's `li r3,1` position -- ours leaves `li r3,1` LAST in every
+    return-1 block, the target has it among the stores in the 6 blocks that still `b END` (DD08 `stb; stb; li r3,1; stb;
+    stb`, DD20, DE0C, E0B0, E290, E2CC) -- those are the blocks with a fresh `li rX,0` zero (`li r0,0`/`li r9,0`) or an
+    extra `stw` (timer stores), so the zero/constant pseudos' lifetimes decide the tie; (b) the un-merged identical
+    r11-group copies (see above: RTL identity). The `goto` into the Debug `if` (124 words) is the wrong lever: the
+    survivor is free once (a) holds.
+  - em39 em39ArmControl (56): the 0xC/0xE tails are identical in our RTL and merge (5 insns, chain); the target keeps them
+    -> give the two arms different RTL for the `x8BC = 1` store (`li r0,1` QI vs SI: e.g. one arm `em->x8BC = 1`, the other
+    through an `int` variable / `k` value, or a different zero/one pseudo), then jump2 leaves both; the third arm's
+    `stb r28` (the SI `1` shared with `flag = 1`) already differs.
+  - item get / use / bulletNum (game, DOL owner): use -- the 11 `li r3,N; bl healing; cmpwi; bne EXIT; li r3,0; b END`
+    arms are un-merged in the target from `bl` on, their `li r3,0` copies all merged into E3F4 (the ITEM_TYPE `return 0`,
+    a `bne E3FC; li r3,0; b END` jump-around copy that survives). tools/xjump.py on our RTL reproduces OURS exactly
+    (everything collapses: the ITEM_TYPE copy merges into a later `li r3,0` because its jump-around bonus applies against
+    a JUMP_INSN counterpart, the healing tails merge 3 insns deep into the last arm). Under the stock policy the target
+    needs, at each healing copy's scan, every later healing copy to mismatch within the first two insns (`li r3,0` then
+    `bne EXIT`): i.e. the `bne`s did not all target the same label at jump2 time, or the `li r3,0` was not directly
+    before the `b` (a `(use)`/store between). Not reproduced; levers to search with the DOL harness: arm order in the
+    switch, a per-arm `break` target, an `int` result variable, `asm volatile("")` after the call (tagged, 1 arm). get: separate `li r3,1; b
+    end` copies = the "copy 1 survives" rule (no label before its `li`, no jump-around counterpart that is a jump).
+    bulletNum: the inner default's `li r3,0; b end` is not merged into the outer default's `li r3,0` fall-through -> the
+    outer default's block must not end in `li r3,0` (value-select `n = 0` join with `return n`, i.e. a `(use r3)` before
+    END, as in AddPrimitive).
+  - t_esp AddSeq (t_* owner): the un-merged `li r0,0xff; stb r0,0x9c(r3); b JOIN` 255 arm is a layout question: in the
+    target the IMM arm (`lbz r0,0x9c(r5); b STORE`) sits between the 0 arm and the ELSE arm, and ELSE (`add; STORE: stb;
+    addi r8`) falls into JOIN ending in `addi` -- no 1-insn `stb` can match it. Ours lays IMM last (`lbz; addi; stb` falls
+    into JOIN ending in the `stb`) and the 255 arm's stb merges into it. Reorder the arms so the `+= delta; no++` arm is
+    last (e.g. `if (imm) {...} else if (v > 255) .. else if (v < 0) .. else {...}` with `no++` after the store) --
+    `no++` before/after the store and `no = no + 1` do not change ours' block order (3 variants).
+  - em29DmCk hp>0 arm, em2d CamouflageMove, em2c DmCk `type = 0`, ss_pzzl quit, event IsExePacket, cam_ctrl roomInit:
+    already consistent with the rule (their notes describe the fall-through/label/chain mechanics correctly); the
+    em29DmCk "1-insn match first" partial merge is the fall-through candidate 1 (minimum 1) winning over a longer chain
+    match -- the policy is the original's, so the original's THEN copy did not see `stb r0,fe` before END: its ELSE kind-2
+    body did not fall into END (ended in a jump or a use), which is a layout question for the owner.
