@@ -5182,3 +5182,103 @@ target) stays unresolved and `make_rel` then fails with "undefined symbol".
   the loop-invariant `lis` fillers one call earlier each, so `pG@ha` gets its own r24; every placement
   of `open = 0`, lim/spd/type forms tried); ResultScreen::highscore (10 words: `score` param r28 <->
   loop `IdSys@ha` r31 global-alloc order; `on` reusing `score` gives the target's r28 for the flag).
+
+### Small tool RELs, flags-first sweep (t_scroll 38/42, snd_test 68/77, t_esp 186/212; none flipped; 2026-09-10)
+
+- Judge with a masked compare whose `.rodata` reloc targets are compared by *content* (the referenced
+  bytes), not by offset: snd_test's one missing pool word (the `Snd_voice_work` spill, original-only)
+  shifted every later string and made 14 byte-identical functions look different. Placeholder-named
+  target functions (`menu_13488`) pair with ours by `.text` order only when both objects list the same
+  function set; sync the names first or the pairing lies (t_event today).
+- `while ((s8) *p != '\n' && (s8) *p != '/') p++; if ((s8) *p != '\n')` — the second test in the SAME
+  mode (`(s8)`) as the loop's exit compare lets jump.c thread the loop's `'\n'` exit past it
+  (`beq -> loop end`); combine then narrows the single-use compare back to `lbz; cmpwi`. A `u8` view
+  (`*p != '\n'`) keeps the re-test (t_scroll loadBinName).
+- `lbzu rX,3(rP); cmpwi rX,'\n'; ... extsb` (no `clrlwi`, extsb only for the switch) is
+  `p += 3; while (*p != '\n') { switch ((s8) *p) {..} p++; }` — the value re-read per iteration; a `c`
+  variable (any type) that feeds both the compare and the switch gets an extra extension.
+- `lbz r0; mr r31,r0; stb r0` (loaded byte copied into a long-lived variable, the store from the load
+  register) is a *read-back of the just-stored member*: `obj->x = pWork->id; id = obj->x;` (cse forwards
+  the store as a plain `mr`); `int id = pWork->id; obj->x = pWork->id;` gives `clrlwi` (t_scroll edit_ot).
+- `lbz r0,40(r3); extsb r0; slwi r0; add r3,r0,r9` with the index temp in r0 in every arm of a
+  function returning `idx * size + base`: ONE result variable assigned in each arm and a single
+  `return p;` — the result pseudo is global, so local-alloc cannot tie the dying index to r3 (direct
+  `return` expressions tie it: `lbz r3; ... add r3,r3,r9`) (snd_test test_get_tpara_adrs).
+- `li r3,1` before the compare + `bne end` skipping a shared out-of-line `li r3,0` = `if (a != b)
+  return 1; return 0;`; the `== b` form puts `li r3,0` inline and jumps to a trailing `li r3,1`
+  (test_tbl_para_select). Same family: `beq body; li r3,1; b end; body..; li r3,1; b end; li r3,0` =
+  an early `if (x != old) return 1;` plus a tail written `if (v == cur) return 0; store; call; return 1;`
+  (the success block is the fallthrough, the fail `li r3,0` sits out of line at the end) (Snd_test_volume).
+- A member RMW whose store is unconditional while only the update is guarded (`lhz` at the function
+  top, `beq skip; xor; skip: sth`) is `v = *p; ...; if (c) v ^= bit; *p = v;` (move_type_flag).
+- `lbz r3,3(r31); extsb r9,r3; lbzx ..,r9; ...; mr r3,r9` (raw byte in r3, sign-extended index in r9,
+  copied to the call argument) = the s8 member read DIRECTLY at both uses (`w->efxState[w->aux]`,
+  `Snd_efx_req(w->aux, ..)`): cse shares the QI load and the extension is a separate pseudo. A
+  `s8 aux = w->aux` local ties the extension to r3 (test_efx_on_or_off).
+- `lis/addi Snd_ctrl_work` hoisted into a callee-saved register before earlier calls, member stores
+  `stb/sth off(rX)` = a `SND_CTRL_WORK* ctrl = &Snd_ctrl_work;` local declared before the calls
+  (test_play_or_stop, Snd_test_disp_vol, Snd_test_disp_req_para). Snd_test_disp_req_para ignores its
+  parameter: `SndTestWork* w = &Snd_test_work;` (the `lis/addi Snd_test_work` in r30).
+- A function-level `int n = 0;` whose `li` the target issues AFTER a preceding loop is `int n; ...
+  n = 0;` assigned after that loop; `int step = 1` likewise assigned after the early return / after
+  the value it is compared against (test_tbl_aux_ck, Snd_test_volume, aram_dump_disp).
+- `x` column as an explicit variable (`int x = 0x68; ... x += 0x18;` re-initialised per outer
+  iteration) instead of the `0x68 + j * 0x18` giv: the counter keeps the higher register (target j r31,
+  x r30) and the increments come out `j++, x += 24, n++` (aram_dump_disp).
+- `v &= 0x7F; *p = v;` ties the mask to the variable's register (`clrlwi r9,r9,25`); `*p = v & 0x7F`
+  gives a fresh `clrlwi r0,r9,25` (test_tbl_aux_ck).
+- s8 fields the target `extsb`s in an eprintf `%d` argument while the header declares them u8:
+  cast at the use (`(s8) sit->se_flag`), do not change the shared header (disp_sit_midi).
+- A dead string in `.rodata` between two functions' string groups with no code using it: an `if (0)`
+  call with that literal at the end of the preceding function reproduces it without STRIP_UNUSED
+  (snd_test blk_file_disp "sbb").
+- Pointer-global stores followed by a `->member` load of another global (t_esp callbacks
+  `g_pLoadNow = NULL; g_pSaveNow = X; BRING(X)`): BOTH stores through a pointer-reference setter
+  (`WSet(TOOL_WINDOW*&, ..)`, incl. the NULL one) keep the `lwz 4(rX)` below them AND in source
+  order; with only the second one a reference the dependent store is issued first. `ISet` on an int
+  global (`g_dataChanged = 1`, `g_modelLoad = 1`) before `BRING(g_pMenuWin)` likewise. `ISet(w->active,
+  0)` on the parameter window keeps the `lwz g_pEditWin1` below it (EditActiveNext/PrevWindow).
+- Nested call as an argument: the original re-reads a memory operand argument AFTER the inner call
+  (`bl inner; mr r5,r3; lwz r4,0(r30)` with only the address `lis` callee-saved) — sequence the inner
+  call into a local first (`int num = MakeSaveSeqData(..); SaveData(path, g_pSeqHead, num)`); ours
+  precomputes the operand into a callee-saved pseudo before the inner call (SaveCheckOkCallback).
+  OPEN variant (snd_test test_play_or_stop): the target has a DEAD `lhz r4,32(r31)` before the inner
+  call and the reload after it — no source form gives the dead load (2 words, kept nested).
+- Two identical if/else tails `r = g; b = a;` shared after an inner if/else (`b d8` into the sibling
+  arm's copies): write the tail ONCE after the inner if/else, not per arm (SetEditTblColor; the
+  remaining `lfs f28/fmr f30` vs `lfs f30/fmr f28` is cse's (set REG0 REG1) swap on `g = 1.0f; a = g;`
+  — a's REGNO_LAST_UID is later than g's; no join order gives both the target's copy direction and
+  copy order).
+- `mulli r0,row,43; slwi r0,r0,2; add base` for a `[5][43]` table row loop = a FLAT index
+  (`g_editNum[0][row * 43 + i]`); the 2-D `g_editNum[row][i]` folds to `mulli 172`.
+- `sel->selX == 3 || sel->selX == 4` with two `cmpwi/beq` in the target: `SelXIs(sel, 3) ||
+  SelXIs(sel, 4)` inline compares (the SysRegionIs idiom; the lvalue form is range-folded).
+- `.bss` order of two pointer globals (`g_pLoadDirButton`/`g_pSaveDirButton` swapped): first
+  declaration order, visible only through the reloc offsets of a function that reads both.
+- Init store blocks derived in one shot with the refined store-order rule (ClearSeqData, 14 stores):
+  target issue order = [the LAST dying store in RTL] + [the other dying stores in RTL order] + [the
+  non-dying stores in RTL order]; a constant shared by several stores dies at its LAST store. Read
+  the RTL order off the target: parts(0xFE), w, h, dplus, x30, anmRate, r, g, b, a, dr, dg, db, da
+  with r/g/b/a and dr/dg/db/da as SEPARATE statements (a chain reverses them).
+- OPEN, compiler-side (do not retry): edit_select_sub — gcse PRE turns the three post-loop
+  `high(scrollWorkPtr)` into copies of a bb0 pseudo, the post-PRE cprop pass then substitutes that
+  pseudo into the skipped-block join (`lo_sum 193`), cse2 restores the `lis` in every block and the
+  join keeps its own pseudo (fresh `lis r9`); the target shares one `lis r10` between the `& 0x900`
+  block and the `& 0x200` join, i.e. its cprop did not touch the join. DbSctrl `w->x/w->y` order:
+  sched1 gives the target order (y, x), sched2 flips it through the anti-dependence of `stw r4` on
+  the later `lwz r4,pG` (the clamped anti-dep cost rule). Snd_test_disp_voice / toolIdSpace:
+  interblock speculative motion of the arm's arg moves / of the `&&` second compare into the test
+  block — ours moves in disp_voice where the target does not, the target moves in toolIdSpace where
+  ours does not (COMPILER-DIFF #5 family). Save*FileNoUpdateCallback (t_esp, 5 x 5 words): the dead
+  `cmpwi 0; cmpwi 255` pair — ours keeps only the first compare of the dead `if (type < 0) ..
+  else if (type > 0xFF)` (flow deletes the second store first, jump2's delete_computation removes its
+  compare); switch/ternary/two-if/int forms all keep one compare or a branch.
+- Not moved (register/schedule only, forms tried in the sources): t_scroll edit_litmask (`li 1`
+  before `lwz x54`: both issue at the same cycle, unit choice), loadBinName tail `addi p` vs
+  `cmplwi num`, printEditTable (112 words, allocation); snd_test test_blk_enable_ck (three
+  callee-saved invariants vs r3/r0), dir_entry_read (gcse PRE of `&w->dir` into the loop's first
+  block marks the loop phony: no invariant hoisting; the target hoists `cmpwi cr4,dirs` and the
+  `blk_ext_name`/`dirName`/`dirIsDir` addresses — a `DVDDir* dir` local or moving `name[]` does
+  not stop the PRE), disp_sit_normal/disp_sequencer/snd_test_disp_rit (original-only shapes, see
+  the fourth-pass notes); db_sctrl and t_camera_data residues are the ones listed in their sections
+  (tcDataImport: `extsb r7,r11` untied index + `lis pLog` not hoisted out of the record loop).

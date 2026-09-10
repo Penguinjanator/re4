@@ -442,14 +442,20 @@ void test_tbl_now_check(SndTestWork* w, int dir, int max)
 
 TestPara* test_get_tpara_adrs(SndTestWork* w)
 {
-    // integer form: `add r3, idx, tbl` operand order
+    // integer form: `add r3, idx, tbl` operand order; one result variable: the index temp is not
+    // tied to r3 by local-alloc (the result pseudo is global), so it lands in r0
+    TestPara* p;
+
     if (w->tbl == 0) {
         if (w->type == 3) {
-            return (TestPara*) (w->cur * sizeof(TestPara) + (u32) test_para_midi);
+            p = (TestPara*) (w->cur * sizeof(TestPara) + (u32) test_para_midi);
+        } else {
+            p = (TestPara*) (w->cur * sizeof(TestPara) + (u32) test_para_sit);
         }
-        return (TestPara*) (w->cur * sizeof(TestPara) + (u32) test_para_sit);
+    } else {
+        p = (TestPara*) (w->cur * sizeof(TestPara) + (u32) test_para_rit);
     }
-    return (TestPara*) (w->cur * sizeof(TestPara) + (u32) test_para_rit);
+    return p;
 }
 
 int test_tbl_para_select(SndTestWork* w, int max)
@@ -468,10 +474,10 @@ int test_tbl_para_select(SndTestWork* w, int max)
         w->cur++;
         test_tbl_now_check(w, 1, max);
     }
-    if (w->cur == old) {
-        return 0;
+    if (w->cur != old) {
+        return 1;
     }
-    return 1;
+    return 0;
 }
 
 static void move_type_num(SndTestWork* w, TestPara* para)
@@ -517,6 +523,7 @@ static void move_type_flag(SndTestWork* w, TestPara* para)
     u16* p = (u16*) para->ptr;
     s8 type = para->type;
     u16 bit = (type == 3) ? 0x2000 : 0;
+    u16 v = *p;
 
     if (type == 4) {
         bit = 0x4000;
@@ -531,8 +538,9 @@ static void move_type_flag(SndTestWork* w, TestPara* para)
         bit = 1;
     }
     if (w->rep & 3) {
-        *p ^= bit;
+        v ^= bit;
     }
+    *p = v;
 }
 
 static void move_type_nop(SndTestWork* w, TestPara* para)
@@ -599,14 +607,15 @@ int test_play_or_stop(SndTestWork* w)
         u32 id;
 
         if (tbl == 0) {
+            SND_CTRL_WORK* ctrl = &Snd_ctrl_work;
             SND_SIT* sit = Snd_get_sit_adrs(blk, w->reqCur);
 
             if (sit->srd_type == 1) {
-                Snd_ctrl_work.x50 = 1;
+                ctrl->x50 = 1;
             } else {
-                Snd_ctrl_work.x50 = 0;
+                ctrl->x50 = 0;
             }
-            Snd_ctrl_work.flag_58 = 0x100;
+            ctrl->flag_58 = 0x100;
             id = Snd_iss_req_para(blk, w->reqCur, NULL);
             if (id) {
                 w->sndId = id;
@@ -757,21 +766,19 @@ int test_efx_type_select(SndTestWork* w, SND_EFX_WORK* efx)
 int test_efx_on_or_off(SndTestWork* w, SND_EFX_WORK* efx)
 {
     if (w->trg & 0x100) {
-        s8 aux = w->aux;
-
-        if (w->efxState[aux] <= 0) {
-            if (Snd_efx_req(aux, w->efxCur) == 0) {
+        if (w->efxState[w->aux] <= 0) {
+            if (Snd_efx_req(w->aux, w->efxCur) == 0) {
                 w->efxState[w->aux] = 1;
             }
+            return 1;
         }
+    }
+    if (w->trg & 0x10) {
+        w->efxState[w->aux] = -1;
+        Snd_efx_req(w->aux, 6);
         return 1;
     }
-    if (!(w->trg & 0x10)) {
-        return 0;
-    }
-    w->efxState[w->aux] = -1;
-    Snd_efx_req(w->aux, 6);
-    return 1;
+    return 0;
 }
 
 int test_aux_para_select(SndTestWork* w)
@@ -936,7 +943,7 @@ void test_tbl_aux_ck(SndTestWork* w)
 {
     s8* p;
     s8 v;
-    int step = 1;
+    int step;
 
     if (w->tbl == 0) {
         p = &w->sit.x8;
@@ -950,6 +957,7 @@ void test_tbl_aux_ck(SndTestWork* w)
         }
     }
     v = *p;
+    step = 1;
     if (w->on & 0x20) {
         step = 10;
     }
@@ -965,14 +973,15 @@ void test_tbl_aux_ck(SndTestWork* w)
     if (w->rep & 0x400000) {
         v = 0x7F;
     }
-    *p = v & 0x7F;
+    v &= 0x7F;
+    *p = v;
 }
 
 int Snd_test_volume(SndTestWork* w)
 {
     s8 old = w->volCursor;
     s16* p;
-    int step = 1;
+    int step;
     s8 cur;
     s8 v;
 
@@ -994,11 +1003,12 @@ int Snd_test_volume(SndTestWork* w)
         return 1;
     }
     p = vol_ptr_tbl[w->volCursor];
+    cur = *p >> 8;
+    v = cur;
+    step = 1;
     if (w->on & 0x20) {
         step = 10;
     }
-    cur = *p >> 8;
-    v = cur;
     if (w->on & 0x400) {
         if (w->on & 1) {
             v = 0;
@@ -1021,12 +1031,12 @@ int Snd_test_volume(SndTestWork* w)
         }
     }
     v &= 0x7F;
-    if (v != cur) {
-        *p = v << 8;
-        Snd_reset_vol_all();
-        return 1;
+    if (v == cur) {
+        return 0;
     }
-    return 0;
+    *p = v << 8;
+    Snd_reset_vol_all();
+    return 1;
 }
 
 static void (*disp_tbl[5])(SndTestWork*) = {(void (*)(SndTestWork*)) snd_test_disp_sit,
@@ -1170,8 +1180,8 @@ void disp_sit_midi(SND_ISS_BLK* blk, SND_SIT* sit, int x, int y)
         eprintf(x, y + 0x54, 0, 1, "MIDI_TYPE :    SE");
     }
     eprintf(x, y + 0x70, 0, 1, "VOL 0     : %5d", sit->rnd_no);
-    eprintf(x, y + 0x7E, 0, 1, "VOL 1     : %5d", sit->se_flag);
-    eprintf(x, y + 0x8C, 0, 1, "VOL 2     : %5d", sit->wall_vol);
+    eprintf(x, y + 0x7E, 0, 1, "VOL 1     : %5d", (s8) sit->se_flag);
+    eprintf(x, y + 0x8C, 0, 1, "VOL 2     : %5d", (s8) sit->wall_vol);
     seq = Snd_search_seq_work_snd_id(Snd_test_work.sndId);
     if (seq == NULL) {
         seq = &Snd_seq_work[0];
@@ -1538,15 +1548,19 @@ void Snd_test_disp_voice(SndTestWork* w)
 
 static char* tbl_name[2] = {"I.S.S.(SIT)", "STREAM(RIT)"};
 
-void Snd_test_disp_req_para(SndTestWork* w)
+// the parameter is ignored: the original reads the global work and the control work through locals
+void Snd_test_disp_req_para(SndTestWork* unused)
 {
+    SndTestWork* w = &Snd_test_work;
+    SND_CTRL_WORK* ctrl = &Snd_ctrl_work;
+
     eprintf(0x18, 0x142, 0, 1, "TBL    : %s", tbl_name[w->tbl]);
     eprintf(0x18, 0x150, 0, 1, "BLK_NO : %4d / %4d", w->blkNo[w->tbl], w->blkMax[w->tbl] - 1);
     eprintf(0x18, 0x15E, 0, 1, "REQ_NO : %4d / %4d", w->reqCur, w->reqMax[w->tbl] - 1);
-    eprintf(0x18, 0x17A, 0, 1, "MASTER : %4d / %4d", Snd_ctrl_work.sys_vol[0] >> 8, Snd_ctrl_work.sys_vol[1] >> 8);
-    eprintf(0x18, 0x188, 0, 1, "ISS    : %4d / %4d", Snd_ctrl_work.sys_vol[2] >> 8, Snd_ctrl_work.sys_vol[3] >> 8);
-    eprintf(0x18, 0x196, 0, 1, "STR    : %4d / %4d", Snd_ctrl_work.sys_vol[4] >> 8, Snd_ctrl_work.sys_vol[5] >> 8);
-    eprintf(0x18, 0x1A4, 0, 1, "VOICE  : %4d / %4d", Snd_ctrl_work.voice_num, Snd_ctrl_work.voice_peak);
+    eprintf(0x18, 0x17A, 0, 1, "MASTER : %4d / %4d", ctrl->sys_vol[0] >> 8, ctrl->sys_vol[1] >> 8);
+    eprintf(0x18, 0x188, 0, 1, "ISS    : %4d / %4d", ctrl->sys_vol[2] >> 8, ctrl->sys_vol[3] >> 8);
+    eprintf(0x18, 0x196, 0, 1, "STR    : %4d / %4d", ctrl->sys_vol[4] >> 8, ctrl->sys_vol[5] >> 8);
+    eprintf(0x18, 0x1A4, 0, 1, "VOICE  : %4d / %4d", ctrl->voice_num, ctrl->voice_peak);
 }
 
 static u8 efx_type_col[8] = {7, 4, 4, 4, 4, 4, 0, 2};
@@ -1662,18 +1676,19 @@ static void test_disp_efx_rev_dpl2(SndTestWork* w, SND_EFX_WORK* efx, int x, int
 void Snd_test_disp_vol()
 {
     SndTestWork* w = &Snd_test_work;
+    SND_CTRL_WORK* ctrl = &Snd_ctrl_work;
     int y;
 
     y = w->volCursor * 14 + 0x54;
     eprintf(0xA8, y, 4, 1, ">");
     y = w->volCursor * 14 + 0x54;
     eprintf(0x160, y, 4, 1, "<");
-    eprintf(0xB8, 0x54, 0, 1, "MASTER VOL BGM : %3d", Snd_ctrl_work.sys_vol[0] >> 8);
-    eprintf(0xB8, 0x62, 0, 1, "MASTER VOL SE  : %3d", Snd_ctrl_work.sys_vol[1] >> 8);
-    eprintf(0xB8, 0x70, 0, 1, "I.S.S. VOL BGM : %3d", Snd_ctrl_work.sys_vol[2] >> 8);
-    eprintf(0xB8, 0x7E, 0, 1, "I.S.S. VOL SE  : %3d", Snd_ctrl_work.sys_vol[3] >> 8);
-    eprintf(0xB8, 0x8C, 0, 1, "STREAM VOL BGM : %3d", Snd_ctrl_work.sys_vol[4] >> 8);
-    eprintf(0xB8, 0x9A, 0, 1, "STREAM VOL SE  : %3d", Snd_ctrl_work.sys_vol[5] >> 8);
+    eprintf(0xB8, 0x54, 0, 1, "MASTER VOL BGM : %3d", ctrl->sys_vol[0] >> 8);
+    eprintf(0xB8, 0x62, 0, 1, "MASTER VOL SE  : %3d", ctrl->sys_vol[1] >> 8);
+    eprintf(0xB8, 0x70, 0, 1, "I.S.S. VOL BGM : %3d", ctrl->sys_vol[2] >> 8);
+    eprintf(0xB8, 0x7E, 0, 1, "I.S.S. VOL SE  : %3d", ctrl->sys_vol[3] >> 8);
+    eprintf(0xB8, 0x8C, 0, 1, "STREAM VOL BGM : %3d", ctrl->sys_vol[4] >> 8);
+    eprintf(0xB8, 0x9A, 0, 1, "STREAM VOL SE  : %3d", ctrl->sys_vol[5] >> 8);
 }
 
 void Snd_test_load_init(SndTestWork* w)
@@ -1885,6 +1900,11 @@ void blk_file_disp(SndTestWork* w)
         change_to_cap(name);
         eprintf(0x88, 0x10A, 0, 1, "%s", name);
     }
+    // dead code: the original's .rodata keeps an "sbb" literal between "NO DATA" and aram_dump_disp's
+    // strings; the code that used it is gone
+    if (0) {
+        eprintf(0x88, 0x10A, 0, 1, "sbb");
+    }
 }
 
 // removes the last directory of the current path
@@ -2051,17 +2071,23 @@ void aram_dump_disp(SndTestWork* w)
 {
     u32 i;
     u32 j;
-    int n = 0;
+    int n;
+    int x;
 
+    x = 0x68;
     for (i = 0; i < 16; i++) {
-        eprintf(0x68 + i * 0x18, 0x46, 4, 1, "%02X", i);
+        eprintf(x, 0x46, 4, 1, "%02X", i);
+        x += 0x18;
     }
+    n = 0;
     for (i = 0; i < 16; i++) {
         int y = 0x54 + i * 14;
 
         eprintf(0x20, y, 4, 1, "%08X", w->aramAdrs + i * 16);
+        x = 0x68;
         for (j = 0; j < 16; j++) {
-            eprintf(0x68 + j * 0x18, y, 0, 1, "%02X", w->dump[n]);
+            eprintf(x, y, 0, 1, "%02X", w->dump[n]);
+            x += 0x18;
             n++;
         }
     }

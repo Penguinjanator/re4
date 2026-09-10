@@ -290,27 +290,22 @@ SKIP_LINE:
         while ((s8) *p != '\n' && (s8) *p != '/') {
             p++;
         }
-        if (*p != '\n') {
-            u8 c;
-
+        // the same (s8) view as the loop above: jump.c threads the loop's '\n' exit past this test
+        if ((s8) *p != '\n') {
             p += 3;
-            c = *p;
-            // COMPILER-DIFF: #4 shape (ours zero-extends the lbzu result once more before the compare)
-            if (c != '\n') {
-                do {
-                    switch ((s8) c) {
-                    case 'G':
-                        pWork->flagTbl[num] |= 1;
-                        break;
-                    case 'N':
-                        pWork->flagTbl[num] |= 2;
-                        break;
-                    case 'S':
-                        pWork->flagTbl[num] |= 4;
-                        break;
-                    }
-                    c = *++p;
-                } while (c != '\n');
+            while (*p != '\n') {
+                switch ((s8) *p) {
+                case 'G':
+                    pWork->flagTbl[num] |= 1;
+                    break;
+                case 'N':
+                    pWork->flagTbl[num] |= 2;
+                    break;
+                case 'S':
+                    pWork->flagTbl[num] |= 4;
+                    break;
+                }
+                p++;
             }
         }
         p++;
@@ -986,10 +981,10 @@ static void edit_ot()
         pWork->id = (pWork->id + 6 - 1) % 6;
     }
     if (pWork->joy[0].rep & 0x100) {
-        int id = pWork->id;
+        int id;
 
-        // COMPILER-DIFF: #4 shape (the original copies the loaded byte with `mr`, ours re-extends it)
         obj->x12F = pWork->id;
+        id = obj->x12F;  // read back the just-stored member: forwarded as a plain copy
         while ((obj = SmdGetGroupNext(obj)) != NULL) {
             obj->x12F = id;
         }

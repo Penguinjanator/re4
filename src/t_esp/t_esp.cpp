@@ -377,8 +377,8 @@ static TOOL_WINDOW* g_pWorkSp2Win;
 static TOOL_WINDOW* g_pWorkSp3Win;
 static TOOL_WINDOW* g_pBasePosWin;
 DB_BUTTON* g_pMenuExitButton;
-static DB_BUTTON* g_pSaveDirButton;
 static DB_BUTTON* g_pLoadDirButton;
+static DB_BUTTON* g_pSaveDirButton;
 DB_NUMERIC2* g_pPosNumX;
 DB_NUMERIC2* g_pPosNumY;
 DB_NUMERIC2* g_pPosNumZ;
@@ -416,6 +416,8 @@ void DrawPosCursor();
 void ToolEspMain();
 
 static inline void ISet(int& d, int v) { d = v; }
+// reference store of a window pointer: keeps the following `->win` load below the store
+static inline void WSet(TOOL_WINDOW*& d, TOOL_WINDOW* v) { d = v; }
 #define BRING(w) ISet((w)->win->bring, 1)
 #define DEACTIVATE(w) ISet((w)->win->active, 0)
 #define WIN_SEL(w) ((w)->win->sel)
@@ -590,15 +592,15 @@ public:
 void EditActiveNextWindow(DB_WINDOW* w)
 {
     DB_ACTIVE_SELECT* sel = &w->sel;
-    w->active = 0;
+    ISet(w->active, 0);  // reference store: the g_pEditWin1 load stays below it
     if (w == g_pEditWin1->win) g_pEditActive = g_pEditWin2;
     if (w == g_pEditWin2->win) g_pEditActive = g_pEditWin3;
     if (w == g_pEditWin3->win) g_pEditActive = g_pEditWin4;
     if (w == g_pEditWin4->win) g_pEditActive = g_pEditWin1;
     DB_WINDOW* nw = g_pEditActive->win;
     DB_ACTIVE_SELECT* nsel = &nw->sel;
-    nw->bring = 1;
     nw->active = 1;
+    nw->bring = 1;
     nw->pos = w->pos;
     nsel->SetSelX(0);
     nsel->SetSelY(sel->selY);
@@ -607,15 +609,15 @@ void EditActiveNextWindow(DB_WINDOW* w)
 void EditActivePrevWindow(DB_WINDOW* w)
 {
     DB_ACTIVE_SELECT* sel = &w->sel;
-    w->active = 0;
+    ISet(w->active, 0);
     if (w == g_pEditWin1->win) g_pEditActive = g_pEditWin4;
     if (w == g_pEditWin2->win) g_pEditActive = g_pEditWin1;
     if (w == g_pEditWin3->win) g_pEditActive = g_pEditWin2;
     if (w == g_pEditWin4->win) g_pEditActive = g_pEditWin3;
     DB_WINDOW* nw = g_pEditActive->win;
     DB_ACTIVE_SELECT* nsel = &nw->sel;
-    nw->bring = 1;
     nw->active = 1;
+    nw->bring = 1;
     nw->pos = w->pos;
     nsel->SetSelX(nsel->w - 1);
     nsel->SetSelY(sel->selY);
@@ -1403,7 +1405,7 @@ static void ModelTypeUpdateCallback(DB_PRIMITIVE* p)
 
 static void ModelLoadCallback(DB_PRIMITIVE*)
 {
-    g_modelLoad = 1;
+    ISet(g_modelLoad, 1);
     BRING(g_pMenuWin);
     DEACTIVATE(g_pModelWin);
 }
@@ -1471,8 +1473,8 @@ void GetSelectFileMenu(TOOL_WINDOW* w)
 
 static void LoadLoadEmCallback(DB_PRIMITIVE*)
 {
-    g_pSaveNow = NULL;
-    g_pLoadNow = (TOOL_WINDOW*) g_pLoadEmWin;
+    WSet(g_pSaveNow, NULL);
+    WSet(g_pLoadNow, (TOOL_WINDOW*) g_pLoadEmWin);
     BRING(g_pLoadEmWin);
     DEACTIVATE(g_pLoadWin);
     GetSelectFileMenu((TOOL_WINDOW*) g_pLoadWin);
@@ -1480,8 +1482,8 @@ static void LoadLoadEmCallback(DB_PRIMITIVE*)
 
 static void LoadLoadRoomCallback(DB_PRIMITIVE*)
 {
-    g_pSaveNow = NULL;
-    g_pLoadNow = (TOOL_WINDOW*) g_pLoadRoomWin;
+    WSet(g_pSaveNow, NULL);
+    WSet(g_pLoadNow, (TOOL_WINDOW*) g_pLoadRoomWin);
     BRING(g_pLoadRoomWin);
     DEACTIVATE(g_pLoadWin);
     GetSelectFileMenu((TOOL_WINDOW*) g_pLoadWin);
@@ -1489,8 +1491,8 @@ static void LoadLoadRoomCallback(DB_PRIMITIVE*)
 
 static void LoadLoadSstCallback(DB_PRIMITIVE*)
 {
-    g_pSaveNow = NULL;
-    g_pLoadNow = (TOOL_WINDOW*) g_pLoadSstWin;
+    WSet(g_pSaveNow, NULL);
+    WSet(g_pLoadNow, (TOOL_WINDOW*) g_pLoadSstWin);
     BRING(g_pLoadSstWin);
     DEACTIVATE(g_pLoadWin);
     GetSelectFileMenu((TOOL_WINDOW*) g_pLoadWin);
@@ -1498,8 +1500,8 @@ static void LoadLoadSstCallback(DB_PRIMITIVE*)
 
 static void LoadLoadEventCallback(DB_PRIMITIVE*)
 {
-    g_pSaveNow = NULL;
-    g_pLoadNow = (TOOL_WINDOW*) g_pLoadEventWin;
+    WSet(g_pSaveNow, NULL);
+    WSet(g_pLoadNow, (TOOL_WINDOW*) g_pLoadEventWin);
     BRING(g_pLoadEventWin);
     DEACTIVATE(g_pLoadWin);
     GetSelectFileMenu((TOOL_WINDOW*) g_pLoadWin);
@@ -1899,7 +1901,7 @@ static void LoadCheckOkCallback(DB_PRIMITIVE*)
 {
     LoadData(g_filePath, g_pSeqHead);
     MakeLoadSeqData(g_pSeqHead, &g_seqTbl[0][0], 4, 64);
-    g_dataChanged = 1;
+    ISet(g_dataChanged, 1);
     BRING(g_pMenuWin);
     DEACTIVATE(g_pLoadCheckWin);
 }
@@ -1950,8 +1952,8 @@ public:
 
 static void SaveSaveEmCallback(DB_PRIMITIVE*)
 {
-    g_pLoadNow = NULL;
-    g_pSaveNow = (TOOL_WINDOW*) g_pSaveEmWin;
+    WSet(g_pLoadNow, NULL);
+    WSet(g_pSaveNow, (TOOL_WINDOW*) g_pSaveEmWin);
     BRING(g_pSaveEmWin);
     DEACTIVATE(g_pSaveWin);
     GetSelectFileMenu((TOOL_WINDOW*) g_pSaveWin);
@@ -1959,8 +1961,8 @@ static void SaveSaveEmCallback(DB_PRIMITIVE*)
 
 static void SaveSaveRoomCallback(DB_PRIMITIVE*)
 {
-    g_pLoadNow = NULL;
-    g_pSaveNow = (TOOL_WINDOW*) g_pSaveRoomWin;
+    WSet(g_pLoadNow, NULL);
+    WSet(g_pSaveNow, (TOOL_WINDOW*) g_pSaveRoomWin);
     BRING(g_pSaveRoomWin);
     DEACTIVATE(g_pSaveWin);
     GetSelectFileMenu((TOOL_WINDOW*) g_pSaveWin);
@@ -1968,8 +1970,8 @@ static void SaveSaveRoomCallback(DB_PRIMITIVE*)
 
 static void SaveSaveSstCallback(DB_PRIMITIVE*)
 {
-    g_pLoadNow = NULL;
-    g_pSaveNow = (TOOL_WINDOW*) g_pSaveSstWin;
+    WSet(g_pLoadNow, NULL);
+    WSet(g_pSaveNow, (TOOL_WINDOW*) g_pSaveSstWin);
     BRING(g_pSaveSstWin);
     DEACTIVATE(g_pSaveWin);
     GetSelectFileMenu((TOOL_WINDOW*) g_pSaveWin);
@@ -1977,8 +1979,8 @@ static void SaveSaveSstCallback(DB_PRIMITIVE*)
 
 static void SaveSaveEventCallback(DB_PRIMITIVE*)
 {
-    g_pLoadNow = NULL;
-    g_pSaveNow = (TOOL_WINDOW*) g_pSaveEventWin;
+    WSet(g_pLoadNow, NULL);
+    WSet(g_pSaveNow, (TOOL_WINDOW*) g_pSaveEventWin);
     BRING(g_pSaveEventWin);
     DEACTIVATE(g_pSaveWin);
     GetSelectFileMenu((TOOL_WINDOW*) g_pSaveWin);
@@ -2358,7 +2360,9 @@ static void SaveCheckNameUpdateCallback(DB_PRIMITIVE* p)
 
 static void SaveCheckOkCallback(DB_PRIMITIVE*)
 {
-    SaveData(g_filePath, g_pSeqHead, MakeSaveSeqData(g_pSeqHead, &g_seqTbl[0][0], 4, 64));
+    int num = MakeSaveSeqData(g_pSeqHead, &g_seqTbl[0][0], 4, 64);
+
+    SaveData(g_filePath, g_pSeqHead, num);
     BRING(g_pMenuWin);
     DEACTIVATE(g_pSaveCheckWin);
 }
@@ -3144,6 +3148,8 @@ public:
 
 // parts 0xF8..0xFD are the screen-space parents
 #define IS_SCREEN_PARENT(seq) ((u8) ((seq)->parts + 8) <= 5)
+// `a == 3 || a == 4` on one lvalue is range-folded; the inline calls keep the two compares
+static inline int SelXIs(DB_ACTIVE_SELECT* s, int v) { return s->selX == v; }
 
 static void PosActiveChange_callback(DB_WINDOW* w, DB_PRIMITIVE* p, DB_KEYBORD* k)
 {
@@ -4696,14 +4702,12 @@ void SetEditTblColor(int row, u8 no, TOOL_SEQ* seq)
             if (g_pEditTbl[no].type == 0) {
                 g = 1.0f;
                 a = g;
-                r = g;
-                b = a;
             } else {
                 g = 0.7f;
                 a = 1.0f;
-                r = g;
-                b = a;
             }
+            r = g;
+            b = a;
         }
     } else {
         g = 0.4f;
@@ -4712,7 +4716,7 @@ void SetEditTblColor(int row, u8 no, TOOL_SEQ* seq)
         b = g;
     }
     for (i = 0; i < 43; i++) {
-        g_editNum[row][i]->SetColor(r, g, b, a);
+        ((DB_NUMERIC**) g_editNum)[row * 43 + i]->SetColor(r, g, b, a);
     }
 }
 
@@ -4722,11 +4726,17 @@ void ClearSeqData(TOOL_SEQ* seq)
     seq->parts = 0xFE;
     seq->w = 200.0f;
     seq->h = 200.0f;
-    seq->r = seq->g = seq->b = seq->a = 0xFF;
-    seq->x30 = 1.0f;
     seq->dplus = 1.0f;
-    seq->dr = seq->dg = seq->db = seq->da = 1.0f;
+    seq->x30 = 1.0f;
     seq->anmRate = 0;
+    seq->r = 0xFF;
+    seq->g = 0xFF;
+    seq->b = 0xFF;
+    seq->a = 0xFF;
+    seq->dr = 1.0f;
+    seq->dg = 1.0f;
+    seq->db = 1.0f;
+    seq->da = 1.0f;
 }
 
 void InitSeqTbl()
@@ -5460,7 +5470,7 @@ void DrawPosCursor()
 {
     Vec pos;
     DB_ACTIVE_SELECT* sel = &WIN_SEL(g_pEditActive);
-    if ((g_pEditActive == g_pEditWin1 && (sel->selX == 3 || sel->selX == 4)) || g_pBasePosWin->win->select) {
+    if ((g_pEditActive == g_pEditWin1 && (SelXIs(sel, 3) || SelXIs(sel, 4))) || g_pBasePosWin->win->select) {
         if (IS_SCREEN_PARENT(g_pEditSeq)) {
             pos = g_pEditSeq->pos;
             DB_DrawCursor2D(&pos);
