@@ -19835,7 +19835,7 @@ the word count is noise), `v/*.py` variant files); deleted at the end. Build 111
 - t_event/t_event not started: its .text gap (0x7320/0x72f0) is SubToolMessInit's shared `cDbgToolMain<T>` ctor loops (pass 18a)
   plus CallbackLoad 0xC.
 
-### DOL sweep 26a, closest-first (cam_extra 32 -> 37/43: `.rodata` equal (0x310), FocusAnimation::init 8 -> 0, FocusAnimation::move 97 -> 0, CameraLookDownEm ctor 4 -> 0, both dtors 1 -> 0 zero code, CameraBinocular ctor 31 -> 17, CameraPushObject::move 131 -> 117; sce_at sceAtGetItem_NoModel 12 -> 4 and sceAtGetItem 98 -> 91 with one #12 asm removed; shadow, dvd, Espgen43 mechanisms sharpened, unchanged; nothing flipped; 2026-09-11)
+### DOL sweep 26a, closest-first (cam_extra 32 -> 38/43: `.rodata` equal (0x310), FocusAnimation::init 8 -> 0, FocusAnimation::move 97 -> 0, CameraAttachedToMotion::move 62 -> 0, CameraLookDownEm ctor 4 -> 0, both dtors 1 -> 0 zero code, CameraBinocular ctor 31 -> 17, CameraPushObject::move 131 -> 117; sce_at sceAtGetItem_NoModel 12 -> 4 and sceAtGetItem 98 -> 91 with one #12 asm removed; shadow, dvd, Espgen43 mechanisms sharpened, unchanged; nothing flipped; 2026-09-11)
 
 Harness ~/.cache/dol26a (dol25b copies with the paths rewritten; `tryv.py UNIT SYM v/x.py` with `STRIP=1` for STRIP_UNUSED units,
 `sbs.sh UNIT SYM [OBJ]`, `dump.sh UNIT -dX`), deleted at the end. 111 OK before and after.
@@ -19849,7 +19849,7 @@ Harness ~/.cache/dol26a (dol25b copies with the paths rewritten; `tryv.py UNIT S
   (template copy `lwz/stw x3` from the {0,1,0} template CameraBinocular::move already emitted at 0x104 -- templates are shared by
   `output_constant_def`'s hash, scalar `= 1.0f` stores add a per-function 1.0). A lone 0.0 word before an 8-aligned magic double
   (0x16C) is the DF alignment pad, not a constant: it appears by itself once the words before it are right. Fixing (a)+(b)+(c)
-  closed the LookDownEm ctor and the two dtors (pool-offset relocs only).
+  closed CameraAttachedToMotion::move (62), the LookDownEm ctor and the two dtors (pool-offset relocs only).
 - **FocusAnimation::init 8 -> 0 (zero code): `if (id < 0) { filter0a_mask_flag = use_filter0a = 0; } else { filter0a_mask_id
   = id; filter0a_mask_flag = use_filter0a = 1; }`.** The target's `li r0,0; blt L; li r0,1; stb r4,mask_id; L: stb r0,flag; stb
   r0,use` is jump2's cross-jump of the two arms' identical `stb r0; stb r0` tails followed by the "x = b; if (...) x = a" hoist
@@ -20163,3 +20163,77 @@ confirmed in 1-4 builds. Concurrent hazard: an edit of mine was overwritten by t
   (3) `*(volatile T *)&x` is the general "keep this single-use load in a named variable" lever (IsGopSkip, SetFrmPara `h`);
   (4) a single-use def is not substituted across an `if` (DecodeOneUnit `n`), only across calls; (5) a source pointer IV in the
   `for` increment vs `&arr[i]` decides the latch order of two IV updates (GC/2.7 only).
+
+### DOL cam_extra/em_set closer (em_set 147 -> 27 words tagged #13 (EmSetFromList2 73 -> 9, EmSetEvent 74 -> 18); cam_extra CameraAttachedToMotion::move 62 -> 0 zero code; the "#13 pool-high" family of em_set REPRODUCED by a compiler experiment: RTX_UNCHANGING_P kept on inlined constant-pool MEMs gives 74 -> 1 / 73 -> 3 from the plain source but regresses 30 constant-store functions tree-wide, nothing installed; nothing flipped; 2026-09-11)
+
+Harness ~/.cache/dol_camx (dol26a copies with the paths rewritten + `h.py build LABEL [ENV=VAL..]` / `h.py stat LABEL` /
+`h.py cmp A B` = whole-tree build of every prodg_cc unit of build.ninja with the private cc1plus in `sngcc/` (16 threads,
+~10 s) and the per-function masked compare against the split objects, `hk.sh UNIT FUNC..` = one unit with that compiler;
+`NCC=` overrides the compiler dir), deleted at the end. 111 OK before and after every edit. cam_extra.cpp was being edited
+by the "DOL pass 26a" agent at the same time (FocusAnimation::init/move went identical under their hands, CameraPushObject::
+move / IdScopeZoomDisp / CameraBinocular are theirs); only CameraAttachedToMotion::move was touched here.
+
+- **cam_extra CameraAttachedToMotion::move 62 -> 0, zero code (the two cCamera/IDApplication dtor words go with it in the
+  masked compare): declaration order `Vec hit; Vec nrm; Vec pos; Vec at; Vec d; Mtx inv; Vec to; Vec from;` (frame 8/24/40/
+  56/72/88/136/152 = the target's `addi rX,r1,N`), the model-space test is `at.z > 0.0f && pos.z < 0.0f` (the target loads
+  at.z (64) first, `ble`, then pos.z (48), `bge`), and the hit check is `cameraHitCheck(&hit, &nrm, &to, &from)` with
+  `to = param.at; from = param.pos;` (r5 = the param.at copy at 136, r6 = the param.pos copy at 152).** Read the frame
+  offsets of the `addi rN,r1,X` arguments before anything else: they give the declaration order for free.
+- **em_set EmSetFromList2/EmSetEvent (73/74 -> 9/18, tagged `COMPILER-DIFF: #13`, macro `EM_SET_WORK_K` in em_set.cpp; the
+  matched EmSetFromList keeps the plain `EmSetWork` inline).** What the target's block is (read off the lreg dump of ours):
+  the three EmSetWork constants are loaded `lis r9; lfs f11` / `lis r9; lfs f12` / `lis r11; lfs f13` (kx, kp, kr) and the
+  seven fpmem loadaddr pseudos take r10 (survivor) + copies r8,r7,r6,r5,r4,r3 while `&em->pos`/`&em->oldPos` fall to r30/r29
+  (7 callee-saved, frame 0x38 = 28 + 12 fpmem (the `main_save_offset % 8` pad of rs6000_stack_info) + 8 + align, fpmem slot at
+  0x10). Ours: the highs are 2-insn local qtys (r10/r9/r11, dying at t5-t8), so loadaddr #4 (born t11) takes r11 and &pos
+  falls to r3 (6 callee-saved, frame 0x28, slot 8). So in the ORIGINAL the highs were live across every loadaddr birth (t2..t18)
+  and across the two `addi`s (t19/t20): kx and kp shared r9 (kp's `lis` after kx's `lfs`), kr held r11 -- i.e. the `lfs`
+  loads were issued LATE in sched1 and sched2 re-paired `lis`/`lfs` (kx, kp, kr order = kp waits for r9). The `li r28,0xff` is
+  a direct QI store of the literal (`(em)->emsetNo = 0xFF` in a macro, `immed_double_const` keeps 255 for QImode); through a
+  `u8`/`int` parameter it is `li -1` (cse folds `(subreg:QI (reg 255))`).
+  Tagged form: `static const f32 kx/kr/kp __attribute__((nosda))` inside the macro take the pool words' .rodata slots (the
+  pool keeps only 1e16; .rodata still `pad`-equal), `register u32 hx asm("r9")` (set twice: kx then kp) and `hr asm("r11")`
+  with `asm("lis %0,%1@ha" : "=r"(h) : "i"(&k)); asm("lfs %0,%1@l(%2)" : "=f"(v) : "i"(&k), "r"(h))`, and the r11 high kept
+  live past the loadaddr/addi births by `register int hp_ asm("r9") = (d)->hp; asm("" : "+r"(hp_) : "r"(hr));` (the hp copy at
+  t~35; an `"r"(hr)` input on a later asm `li`/`stb` also works but then r11 is blocked for the pos.x word (`lwz r11,148`) --
+  the consumer must sit between the `addi`s (t20) and the pos.x load (t60)). Left (9/18): `mr r8,r10` one slot after
+  `lbz r0,3` (the codeless asm shifts sched2 by a slot), the oldPos copy stores z before y (`lwz r0,8; lwz r9,4; stw r0,8(r29);
+  stw r9,4(r29)` vs target `lwz r9,8; lwz r0,4; stw r0,4; stw r9,8`: the sched1 order of the two word stores flips with the
+  asms present), and EmSetDist's 1e16 load placement (see below). Forms that do NOT work: keep-alive `asm("" :: "r"(hr))`
+  without outputs (volatile -> a scheduling barrier, 82-88), the highs' consumers on the addi (`asm addi` output pointer =
+  opaque, the x store cannot fold to `272(r31)`), `asm stw` for flags4 (IU insn, displaces the addis).
+- **em_set's mechanism found and reproduced with a private cc1plus (NOT installed).** The plain source has every EmSetWork
+  constant load as `(set (reg/v:SF) (mem:SF (reg)))` WITHOUT `/u` in EmSetFromList2/EmSetEvent, but `mem/u` in the standalone
+  cCoord::cCoord / the mini tests: integrate.c `copy_rtx_and_substitute`'s MEM case (`if (! map->integrating)
+  RTX_UNCHANGING_P (copy) = RTX_UNCHANGING_P (orig)`, stock 2.95.3) drops the unchanging bit of every MEM copied into an
+  inlined body, and pool references in inline bodies are `(mem/u (reg))` (memory_address forces the constant address into a
+  register while `cse_not_expected` is 0), not the shared `(mem (symbol))` the comment calls "handled elsewhere". Without /u
+  the pool loads get anti-dependences on ALL later stores (prio 107 of 108 in sched1 -> hoisted to the block top -> short
+  highs), with /u they are free (prio ~ their fmuls chain -> late -> long highs -> the target's local-alloc; sched2 then
+  hoists them and places `lis` right before `lfs`). Experiment (`HK_INTU=1`: keep RTX_UNCHANGING_P when integrating):
+  EmSetEvent 74 -> 1 (only the `li -1` of the u8 parameter), EmSetFromList2 73 -> 3 (the 1e16 load/`f12` in the EmSetDist
+  block), EmSetFromList/checkListId/EmSetDie unchanged; whole tree (674 DOL+REL units with split objects, 18215 identical
+  functions): **30 regressions, 0 newly identical**. `HK_INTU=2` (keep /u only for MEMs whose address pseudo is set by a
+  `lo_sum`/REG_EQUAL of a constant-pool `ADDRESS`/CONSTANT_POOL_ADDRESS_P symbol -- the inline body stores pool refs as
+  `(address (const_double))`, RTX_INTEGRATED_P): 24 regressions (cModel/cParts ctors, every weapon `init(cModel*)`, r21d/r225
+  moveGrave, r220/r221 moveElevator, objRuger init), 2 newly identical (main_mem MemReplaceHeap, t_esp PosActiveChange). The
+  regressions are all inlined CONSTANT STORES (`scale.x = 1.0f` in cCoord::cCoord inlined into cModel::cModel): there the
+  target's pool load keeps the RAW dependence on the preceding `stw pParent` (`stw; lis; lis; addi; lfs` -- the stw has
+  the highest priority, i.e. dependents), while em_set's constant loads (operands of `fmuls`, and EmSetDist's 1e16 store
+  operand in EmSetEvent: `lfs f10` issued one cycle after `stb d->flags` where `lwz pPL` needs two) carry NO dependence
+  either way. So the original's rule is not "all inlined pool MEMs unchanging"; the property that separates the two cases
+  (constant used as an arithmetic operand / variable initialiser vs constant stored to memory) is unknown -- candidates
+  that do not fit: `easy_fp_constant` (the pool order e8 kx, ec kr, f0 kp is expansion order, and kr = 0x39490FDB is not
+  easy), `fixed_scalar_and_varying_struct_p` (would exempt the cModel RAW too), REG_USERVAR_P (the 1e16 store operand is
+  a temporary). This is the mechanism behind the sweep-8 "asm-pool-high"/#13 pool cases (esp_app EspDrawLaserLine, em_set,
+  cam_extra dtor rodata noise): a pool constant inside an inlined function whose load sits BEFORE stores of the same block.
+  Hook (in the harness's sngcc/src/gcc/integrate.c, not in tools/): `if (! map->integrating || getenv("HK_INTU"))` at the
+  MEM case of copy_rtx_and_substitute; the variant 2 scan marks `SET_DEST` pseudos of `(lo_sum _ (address ..))`/REG_EQUAL
+  `(address ..)` insns of the inline body before the copy loop (`insns` = FIRST_FUNCTION_INSN (header)).
+- **cam_extra CameraScope::move (91, unchanged; two things read):** (1) `sct-- == 0` on the `static u8 sct`: the target
+  computes `clrlwi r0,r9,24; addi r9,r9,255; cmpwi r0,0; stb r9` (QImode `plus 255` on the loaded byte, the old value
+  compared) where ours has `addi r9,r9,-1; clrlwi new; stb; cmpwi 255` (combine folds `old == 0` into `new == 255` because our
+  constant is -1); `u8 o = sct; sct = o + 0xFF; if (o == 0)` gives the `addi 255` but compares the lbz result directly and
+  costs 76 words elsewhere -- not applied. (2) The target frame is 168 with `stmw r27` (5 GPRs) vs ours 152 / `stmw r28`:
+  12 more bytes of locals (one Vec) and one more callee-saved GPR.
+- Not iterated: cam_extra CameraBinocular ctor 17 / CameraBinocular::move 79 / CameraPushObject::move 117 / IdBinocular::move
+  271 (owned by the 26a agent while this pass ran), em_set's remaining 27 words.

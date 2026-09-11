@@ -78,14 +78,14 @@ CameraAttachedToMotion::~CameraAttachedToMotion()
 void CameraAttachedToMotion::move()
 {
     AttachCamera* ac = MOTION(model)->cam;
-    Mtx inv;
+    Vec hit;
+    Vec nrm;
     Vec pos;
     Vec at;
     Vec d;
-    Vec hit;
-    Vec nrm;
-    Vec from;
+    Mtx inv;
     Vec to;
+    Vec from;
 
     if (ac == 0) {
         return;
@@ -108,7 +108,9 @@ void CameraAttachedToMotion::move()
         PSMTXInverse(model->mat, inv);
         PSMTXMultVec(inv, &param.pos, &pos);
         PSMTXMultVec(inv, &param.at, &at);
-        if (pos.z > 0.0f && at.z < 0.0f) {
+        // Frame order hit, nrm, pos, at, d, inv, to, from; the model-space test is at.z > 0 && pos.z < 0
+        // and the hit check runs from the transformed `at` copy to the `pos` copy.
+        if (at.z > 0.0f && pos.z < 0.0f) {
             PSVECSubtract(&at, &pos, &d);
             PSVECScale(&d, &d, -pos.z / d.z);
             PSVECAdd(&pos, &d, &to);
@@ -116,7 +118,7 @@ void CameraAttachedToMotion::move()
         }
         to = param.at;
         from = param.pos;
-        if (cameraHitCheck(&hit, &nrm, &from, &to)) {
+        if (cameraHitCheck(&hit, &nrm, &to, &from)) {
             param.pos = hit;
         }
     }
@@ -129,15 +131,13 @@ void CameraAttachedToMotion::move()
 
 void FocusAnimation::init(int id)
 {
-    u8 f = 0;
-
     filter0a_mask_alpha = alpha_max;
-    if (id >= 0) {
-        f = 1;
+    if (id < 0) {
+        filter0a_mask_flag = use_filter0a = 0;
+    } else {
         filter0a_mask_id = id;
+        filter0a_mask_flag = use_filter0a = 1;
     }
-    filter0a_mask_flag = f;
-    use_filter0a = f;
     state = 1;
     frame = (f32) init_focus_frame;
     alpha = init_alpha_max;
@@ -148,8 +148,6 @@ void FocusAnimation::move(int dir)
 {
     static int _filter0a_flag = 0;
     static f32 level_max = 7.0f;
-    int cnt;
-    f32 fr;
 
     if (dir != 0) {
         frame = focus_frame;
@@ -180,19 +178,21 @@ void FocusAnimation::move(int dir)
         break;
     }
     if (_filter0a_flag) {
-        cnt = count;
-        fr = frame;
-        if ((f32) cnt > fr) {
-            cnt = (int) fr;
+        int cnt;
+        if ((f32) count > frame) {
+            cnt = (int) frame;
+        } else {
+            cnt = count;
         }
-        filter0a_mask_alpha = (u8) ((f32) (alpha * cnt) / fr);
+        filter0a_mask_alpha = (u8) ((f32) (alpha * cnt) / frame);
     } else {
-        cnt = count;
-        fr = frame;
-        if ((f32) cnt > fr) {
-            cnt = (int) fr;
+        int cnt;
+        if ((f32) count > frame) {
+            cnt = (int) frame;
+        } else {
+            cnt = count;
         }
-        Filter01SetParam(1, 100, 1, level_max * (f32) cnt / fr);
+        Filter01SetParam(1, 100, 1, level_max * (f32) cnt / frame);
         filter0a_mask_alpha = 0;
     }
 }
@@ -500,6 +500,13 @@ void IdScope::move(void* p)
     b->rot.z = (FRef(maxB) - FRef(minB)) * rb + FRef(minB);
 }
 
+// Never called: its body is stripped at link (STRIP_UNUSED) but its pool words (0.5f, 100000.0f)
+// follow IdScope::move's in the original `.rodata`.
+static int IdScopeZoomDisp(f32* zoom)
+{
+    return (int) ((*zoom + 0.5f) * 100000.0f);
+}
+
 void IdScope::save(int)
 {
     save_a = (s16) IdSys.unitPtr(0, 0x25)->timer[0];
@@ -526,10 +533,9 @@ void IdScope::quit(void*)
 // ---------------------------------------------------------------------------
 
 // Frame order c 0x8, up 0x18, inv 0x28 (declaration order); the else arm keeps the getPartsPtr
-// results in cModel* locals and writes this->up through a `Vec* u`. OPEN (67 words): the target
-// issues the seven x100..x124 constant stores in pure source order although the three constant
-// registers die there (the emrock SetRock / cam_qfps init family); FSet, chains and every statement
-// order tried.
+// results in cModel* locals and writes this->up through a `Vec* u`. OPEN (17 words): the else arm's
+// gcse copies of `&param.pos`/`&param.at` (`addi r30,r31,164; addi r29,r31,176; mr r26; mr r25`) sit
+// before the first getPartsPtr call in the target and after the second one in ours.
 CameraBinocular::CameraBinocular(Vec* pos, Vec* at, void* a, void* b)
 {
     Vec c;
@@ -647,7 +653,7 @@ void CameraBinocular::move()
         x104 = x104 + add;
     }
     if (Joy[0].sy != 0 || (Joy[0].on & 0xC)) {
-        add = gain * (f32) Joy[0].sy * -0.05f * DEG;
+        add = gain * (f32) Joy[0].sy * 0.05f * DEG;
         if (Joy[0].on & 8) {
             add = gain * BINO_VEL_X + add;
         }
@@ -905,14 +911,9 @@ void CameraPushObject::move()
     Vec em_pos;
     Vec near_pos;
     Mtx plmat;
-    Vec pos;
-    Vec at;
-    Vec look;
-    Vec axis;
-    Vec hit;
-    Vec nrm;
-    Vec from;
-    Vec to;
+    Vec plpos;
+    Vec v[2];
+    f32 fr[2];
     cModel* em = 0;
     cModel* e;
     u32 i;
@@ -922,7 +923,7 @@ void CameraPushObject::move()
     plmat[0][0] = inv[0][0]; plmat[0][1] = inv[1][0]; plmat[0][2] = inv[2][0];
     plmat[1][0] = inv[0][1]; plmat[1][1] = inv[1][1]; plmat[1][2] = inv[2][1];
     plmat[2][0] = inv[0][2]; plmat[2][1] = inv[1][2]; plmat[2][2] = inv[2][2];
-    plmat[0][3] = inv[0][3]; plmat[1][3] = inv[1][3]; plmat[2][3] = inv[2][3];
+    plpos.x = inv[0][3]; plpos.y = inv[1][3]; plpos.z = inv[2][3];
     for (i = 0; i < EmMgr.nArray; i++) {
         e = (cModel*) ((u8*) EmMgr.pArray + EmMgr.size * i);
         if ((e->id == 0x41 || e->id == 0x44 || e->id == 0x46) && (e->be_flag & 0x201) == 1) {
@@ -940,17 +941,16 @@ void CameraPushObject::move()
     }
     PSMTXIdentity(rot);
     if (em) {
-        axis.x = 0.0f;
-        axis.y = 1.0f;
-        axis.z = 0.0f;
+        Vec look;
+        Vec axis = {0.0f, 1.0f, 0.0f};
         if (em->id == 0x41) {
             look.x = ((f32*) em)[0x784 / 4];
             look.y = ((f32*) em)[0x794 / 4];
             look.z = ((f32*) em)[0x7A4 / 4];
         } else {
-            look.x = em->mat[0][1];
-            look.y = em->mat[1][1];
-            look.z = em->mat[2][1];
+            look.x = em->mat[0][2];
+            look.y = em->mat[1][2];
+            look.z = em->mat[2][2];
         }
         if (VecAngle(&look, (Vec*) &plmat[2]) > 0.7853982f && VecAngle(&look, (Vec*) &plmat[2]) < 2.3561945f) {
             if (near_pos.x > 0.0f) {
@@ -960,18 +960,26 @@ void CameraPushObject::move()
             }
         }
     }
-    PSMTXMultVec(rot, (Vec*) &default_ofs[0], &pos);
-    PSMTXMultVec(rot, (Vec*) &default_ofs[3], &at);
-    param.fovy = default_ofs[7];
-    param.roll = default_ofs[6];
-    PSMTXMultVec(inv, &pos, &pos);
-    PSMTXMultVec(inv, &at, &at);
-    param.pos = pos;
-    param.at = at;
-    from = param.at;
-    to = param.pos;
-    if (cameraHitCheck(&hit, &nrm, &from, &to)) {
-        param.pos = hit;
+    PSMTXMultVec(rot, (Vec*) &default_ofs[0], &v[0]);
+    PSMTXMultVec(rot, (Vec*) &default_ofs[3], &v[1]);
+    fr[1] = default_ofs[7];
+    fr[0] = default_ofs[6];
+    PSMTXMultVec(inv, &v[0], &v[0]);
+    PSMTXMultVec(inv, &v[1], &v[1]);
+    param.pos = v[0];
+    param.at = v[1];
+    param.roll = fr[0];
+    param.fovy = fr[1];
+    {
+        Vec hit;
+        Vec nrm;
+        Vec from;
+        Vec to;
+        from = param.at;
+        to = param.pos;
+        if (cameraHitCheck(&hit, &nrm, &from, &to)) {
+            param.pos = hit;
+        }
     }
 }
 
