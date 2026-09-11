@@ -8,6 +8,7 @@
 #include "joy.h"
 #include "item.h"
 #include "model.h"
+#include "math_sub.h"
 #include "db_log.h"
 #include "eprintf.h"
 #include "puzzle.h"
@@ -358,14 +359,16 @@ void pzlPiece::snap()
     }
 }
 
+// s8 rotation matrix kept in one word (rlwimi inserts); the products are (s8)px * s8 entries so
+// convert_to_integer narrows the multiplies to QImode (the low byte of the word is used raw,
+// byte 2 comes out as `extsh; srawi 8`); the negated sine goes through an s8 local (its
+// `extsb; neg`); the mirror test is a `case 4..7` range (`cmpwi 7; bgt` then `cmpwi 4; blt`).
 int pzlPiece::shape(int px, int py)
 {
-    union {
-        s8 m[4];
-        u32 w;
-    } rot;
+    s8 rot[2][2];
     f32 ang;
     s8 o;
+    s8 s;
     int rx;
     int ry;
 
@@ -375,21 +378,41 @@ int pzlPiece::shape(int px, int py)
         o = orient;
     }
     ang = (f32) o * -3.1415927f * 0.5f;
-    rot.m[0] = cosf(ang);
-    rot.m[1] = -(s8) sinf(ang);
-    rot.m[2] = sinf(ang);
-    rot.m[3] = cosf(ang);
-    rx = (s8) (px * rot.m[0] + py * rot.m[1]);
-    ry = (s8) (px * rot.m[2] + py * rot.m[3]);
-    if (orient <= 7) {
-        if (orient >= 4) {
-            rx = (s8) -rx;
-        }
+    rot[0][0] = cosf(ang);
+    s = sinf(ang);
+    rot[0][1] = -s;
+    rot[1][0] = sinf(ang);
+    rot[1][1] = cosf(ang);
+    rx = (s8) ((s8) px * rot[0][0] + (s8) py * rot[0][1]);
+    ry = (s8) ((s8) px * rot[1][0] + (s8) py * rot[1][1]);
+    switch (orient) {
+    case 4:
+    case 5:
+    case 6:
+    case 7:
+        rx = (s8) -rx;
+        break;
     }
     if (rx < 0 || rx >= data->w || ry < 0 || ry >= data->h) {
         return 0;
     }
     return data->shape[rx + data->w * ry] == '1';
+}
+
+// Debug shape display. Dead: the original linker dropped the body (STRIP_UNUSED); its strings
+// ("#", "") and constant pool (the int->f32 double trick, 8.0f, 14.0f) stay in .rodata between
+// shape's pool and pzlBoard::init's strings.
+static void dispShape(pzlPiece* p, int px, int py)
+{
+    int i;
+    int j;
+
+    for (j = 0; j < p->data->h; j++) {
+        for (i = 0; i < p->data->w; i++) {
+            f32 x = (f32) (px + i) * 8.0f + 14.0f;
+            eprintf((int) x, py + j, 0, 0, p->shape(i, j) ? "#" : "");
+        }
+    }
 }
 
 #line 540 "D:/Bio4/Prog/puzzle.cpp"
@@ -413,8 +436,16 @@ int pzlBoard::init(int w_, int h_, int pieceMax_)
         Mem_free(cells);
         return 0;
     }
-    for (i = 0; i < pieceMax_; i++) {
-        pieces[i] = 0;
+    // Guarded count-down (`cmpwi n,0; beq` + `mtctr n` after the guard): the counter is a local set
+    // inside the guard, so its CTR copy is initialised after the branch, not before it.
+    if (pieceMax_ != 0) {
+        int n = pieceMax_;
+        i = 0;
+        do {
+            pieces[i] = 0;
+            i++;
+            n--;
+        } while (n != 0);
     }
     pieceMax = pieceMax_;
     return 1;
@@ -575,16 +606,16 @@ int pzlBoard::putPiece(pzlPiece* p)
             }
         }
     }
-    for (i = 0; i < pieceMax; i++) {
-        if (pieces[i] == 0) {
-            int k;
-            int l;
-            pieces[i] = p;
-            for (k = 0; k != sx; sx > 0 ? k++ : k--) {
-                for (l = 0; l != sy; sy > 0 ? l++ : l--) {
-                    if (p->shape((s8) k, (s8) l)) {
-                        s8 cx_ = vx + k;
-                        s8 cy_ = vy + l;
+    // The slot search has its own counter (r10: no call crossed); the marking nest reuses i/j,
+    // which then conflict with the cx_/cy_ temps (r31/r30) and take r28/r29 in both nests.
+    for (int n = 0; n < pieceMax; n++) {
+        if (pieces[n] == 0) {
+            pieces[n] = p;
+            for (i = 0; i != sx; sx > 0 ? i++ : i--) {
+                for (j = 0; j != sy; sy > 0 ? j++ : j--) {
+                    if (p->shape((s8) i, (s8) j)) {
+                        s8 cx_ = vx + i;
+                        s8 cy_ = vy + j;
                         if (!(cellState(cx_, cy_) & 1)) {
                             *cell(cx_, cy_) |= 1;
                         }
@@ -677,9 +708,10 @@ int pzlBoard::rmPiece(pzlPiece* p)
             }
         }
     }
-    for (i = 0; i < pieceMax; i++) {
-        if (pieces[i] == p) {
-            pieces[i] = 0;
+    // Own counter for the slot search (r11, no call crossed: sy then takes r30 and i r29).
+    for (int n = 0; n < pieceMax; n++) {
+        if (p == pieces[n]) {
+            pieces[n] = 0;
             break;
         }
     }
@@ -728,27 +760,41 @@ void pzlBoard::clearState(u8 mask)
     }
 }
 
+// Debug cell display. Dead (STRIP_UNUSED); its "%c" sits between pzlBoard::init's file string
+// and pzlPlayer::init's strings.
+static void dispCell(pzlBoard* b, int x, int y)
+{
+    eprintf(x, y, 0, 0, "%c", (b->cellState(x, y) & 1) ? '1' : '0');
+}
+
+// Case sizes: the switch is on an unsigned index with a `case 0` sharing the default label
+// (balanced tree root 1, `cmplwi/blt` to default for 0, case bodies laid out 3, 2, 1, default).
+// One `p` for both piece loops (its priority then beats `item`'s: p r31, item r30); the flag
+// clear loop has its own counter (r10, no call crossed); item positions are stored halved
+// (save() doubles them back).
 int pzlPlayer::init(int type)
 {
     int w;
     int h;
     int i;
     int extraGame;
+    pzlPiece* p;
 
     extraGame = pG->x4FB8 == 1;
-    switch (type) {
-    case 1:
-        w = 0xB;
-        h = 7;
+    switch ((u32) type) {
+    case 3:
+        w = 0xF;
+        h = 8;
         break;
     case 2:
         w = 0xC;
         h = 8;
         break;
-    case 3:
-        w = 0xF;
-        h = 8;
+    case 1:
+        w = 0xB;
+        h = 7;
         break;
+    case 0:
     default:
         w = 0xA;
         h = 6;
@@ -788,8 +834,11 @@ int pzlPlayer::init(int type)
         return 0;
     }
     pieceNum_ = piece_max;
-    for (i = 0; i < pieceNum_; i++) {
-        pieces[i].flags = 0;
+    {
+        int j;
+        for (j = 0; j < pieceNum_; j++) {
+            pieces[j].flags = 0;
+        }
     }
     {
         int k = 0;
@@ -802,13 +851,13 @@ int pzlPlayer::init(int type)
                 ok = 0;
             }
             if (ok) {
-                pzlPiece* p = &pieces[k];
+                p = &pieces[k];
                 PieceData* d = searchItemPieceData(item->id, piece_info);
                 if (d) {
                     k++;
                     p->init(d);
-                    p->x = (f32) item->x;
-                    p->y = (f32) item->y;
+                    p->x = (f32) item->x * 0.5f;
+                    p->y = (f32) item->y * 0.5f;
                     p->orientation((s8) item->orient);
                     p->item = item;
                 }
@@ -816,8 +865,12 @@ int pzlPlayer::init(int type)
         }
     }
     for (i = 0; i < pieceNum_; i++) {
-        pzlPiece* p = &pieces[i];
-        if (p->flags & 1) {
+        p = &pieces[i];
+        // `!(bool)`: the flag test is `xori; andi.; bne` (the negated bool materialised).
+        if (!((bool) (p->flags & 1))) {
+            continue;
+        }
+        {
             pzlBoard* b = p->item->board ? caseBoard : spaceBoard;
             if (b->putPiece(p) == 0) {
                 p->item->board = 0;
@@ -998,71 +1051,79 @@ void pzlPlayer::giveupExtraPiece()
         goto done;                                                                                   \
     }
 
+// Per-axis block locals: `d` and `save` are one pseudo per axis (half the live length), so `ret`
+// (r29) is allocated before the saves (both r28) and the saves before the two `d`s (both r27).
+// `d` is s8: the QImode step is a REG operand of the byte add, so expand_binop keeps it first
+// (`add r0,r27,r0`); the `d != 0` test drops the extension (combine's simplify_comparison).
 int pzlPlayer::selPiece(pzlBoard* b)
 {
     int ret = 0;
-    int d;
     pzlPiece* p;
-    s8 save;
 
     if (Key.rep & 0x0F000000) {
         ret = 5;
     }
-    d = 0;
-    if (Key.rep & 0x08000000) {
-        d = -1;
-    }
-    if (Key.rep & 0x04000000) {
-        d = 1;
-    }
-    if (d != 0) {
-        save = b->curX;
-        p = b->getPiece(save, b->curY);
-        for (;;) {
-            b->curX += d;
-            if (p == 0) {
-                SEL_CHECK(curX, w, 3, 4, doneX);
-                break;
-            }
-            {
-                pzlPiece* q = b->getPiece(b->curX, b->curY);
-                if (q) {
-                    if (q->item != p->item) {
+    {
+        s8 d = 0;
+        s8 save;
+        if (Key.rep & 0x08000000) {
+            d = -1;
+        }
+        if (Key.rep & 0x04000000) {
+            d = 1;
+        }
+        if (d != 0) {
+            save = b->curX;
+            p = b->getPiece(save, b->curY);
+            for (;;) {
+                b->curX += d;
+                if (p == 0) {
+                    SEL_CHECK(curX, w, 3, 4, doneX);
+                    break;
+                }
+                {
+                    pzlPiece* q = b->getPiece(b->curX, b->curY);
+                    if (q) {
+                        if (q->item != p->item) {
+                            goto doneX;
+                        }
+                    } else {
+                        SEL_CHECK(curX, w, 3, 4, doneX);
                         goto doneX;
                     }
-                } else {
-                    SEL_CHECK(curX, w, 3, 4, doneX);
-                    goto doneX;
                 }
             }
         }
     }
 doneX:
-    d = 0;
-    if (Key.rep & 0x01000000) {
-        d = -1;
-    }
-    if (Key.rep & 0x02000000) {
-        d = 1;
-    }
-    if (d != 0) {
-        save = b->curY;
-        p = b->getPiece(b->curX, save);
-        for (;;) {
-            b->curY += d;
-            if (p == 0) {
-                SEL_CHECK(curY, h, 1, 2, doneY);
-                break;
-            }
-            {
-                pzlPiece* q = b->getPiece(b->curX, b->curY);
-                if (q) {
-                    if (q->item != p->item) {
+    {
+        s8 d = 0;
+        s8 save;
+        if (Key.rep & 0x01000000) {
+            d = -1;
+        }
+        if (Key.rep & 0x02000000) {
+            d = 1;
+        }
+        if (d != 0) {
+            save = b->curY;
+            p = b->getPiece(b->curX, save);
+            for (;;) {
+                b->curY += d;
+                if (p == 0) {
+                    SEL_CHECK(curY, h, 1, 2, doneY);
+                    break;
+                }
+                {
+                    pzlPiece* q = b->getPiece(b->curX, b->curY);
+                    if (q) {
+                        if (q->item != p->item) {
+                            goto doneY;
+                        }
+                    } else {
+                        SEL_CHECK(curY, h, 1, 2, doneY);
                         goto doneY;
                     }
-                } else {
-                    SEL_CHECK(curY, h, 1, 2, doneY);
-                    goto doneY;
                 }
             }
         }
@@ -1146,11 +1207,13 @@ int pzlPlayer::chgPiece(pzlBoard* b)
     return 0;
 }
 
+// `ex = 0` after the lapPiece check (its `li` follows the call); the success path is the then-arm
+// of `if (combine())` so the failing `return 0` is laid out last; `if (!used) {...} else hand = 0`.
 pzlPiece* pzlPlayer::cmbPiece(pzlBoard* b)
 {
     pzlPiece* p;
     pzlPiece* h;
-    ItemWork* ex = 0;
+    ItemWork* ex;
     ItemInfo info;
     int rel = 0;
     int used;
@@ -1162,6 +1225,7 @@ pzlPiece* pzlPlayer::cmbPiece(pzlBoard* b)
     if (p == 0) {
         return 0;
     }
+    ex = 0;
     h = hand;
     if (extra == p || extra == h) {
         ex = extra->item;
@@ -1179,231 +1243,270 @@ pzlPiece* pzlPlayer::cmbPiece(pzlBoard* b)
             rel = 1;
         }
     }
-    if (ItemMgr.combine(p->item, h->item, 0) == 0) {
-        return 0;
+    if (ItemMgr.combine(p->item, h->item, 0)) {
+        if (ex) {
+            giveupExtraPiece();
+        }
+        used = 0;
+        if (!(h->item->flags & 1)) {
+            used = 1;
+        }
+        if (!used) {
+            if (rel) {
+                relPiece(cur);
+            }
+        } else {
+            hand = 0;
+        }
+        return p;
     }
-    if (ex) {
-        giveupExtraPiece();
-    }
-    used = 0;
-    if (!(h->item->flags & 1)) {
-        used = 1;
-    }
-    if (used) {
-        hand = 0;
-    } else if (rel) {
-        relPiece(cur);
-    }
-    return p;
+    return 0;
 }
 
+// Structure notes (bytes): the Joy arms set `ret = 2` and `goto cursor` past the wall block (a
+// `do {} while (0)` would be a loop: its invariants get hoisted), so they skip the `Key.rep & 0x0F000000` test and fall into the cursor
+// update; `Joy` is read through a pointer (`&Joy` materialised in block 0); `out` is `== 1`
+// (`xori; subfic; adde`); the board swap writes `ny` (0.0f on the impossible third path, the step
+// is the -2.0f constant); `edge` and `step` are ints converted with the double trick; the
+// `size_y < 0` clamp adds `cur->h` implicitly (int -> float, magic) where the compare casts (psq_l);
+// the `dir` shuffle is a two-case switch.
 int pzlPlayer::movePiece()
 {
     pzlPiece* p = hand;
     int ret = 0;
+    JOY* joy = Joy;
     int dir;
 
-    if (Key.rep & 0x08000000) {
-        if ((f32) (int) p->ver0_y() != p->ver0_y()) {
-            p->y -= 0.5f;
-        }
-        if ((f32) (int) p->ver0_x() != p->ver0_x()) {
-            p->x -= 0.5f;
-        } else {
-            p->x -= 1.0f;
-        }
-        ret = 1;
-    } else if (Key.rep & 0x04000000) {
-        if ((f32) (int) p->ver0_y() != p->ver0_y()) {
-            p->y += 0.5f;
-        }
-        if ((f32) (int) p->ver0_x() != p->ver0_x()) {
-            p->x += 0.5f;
-        } else {
-            p->x += 1.0f;
-        }
-        ret = 1;
-    } else if (Key.rep & 0x01000000) {
-        if ((f32) (int) p->ver0_x() != p->ver0_x()) {
-            p->x -= 0.5f;
-        }
-        if ((f32) (int) p->ver0_y() != p->ver0_y()) {
-            p->y -= 0.5f;
-        } else {
-            p->y -= 1.0f;
-        }
-        ret = 1;
-    } else if (Key.rep & 0x02000000) {
-        if ((f32) (int) p->ver0_x() != p->ver0_x()) {
-            p->x += 0.5f;
-        }
-        if ((f32) (int) p->ver0_y() != p->ver0_y()) {
-            p->y += 0.5f;
-        } else {
-            p->y += 1.0f;
-        }
-        ret = 1;
-    } else if (Joy[0].trg & 0x20) {
-        p->rotate(0);
-        if (fabsf((f32) (s8) p->size_y()) > (f32) (cur->h + 2)) {
-            p->rotate(0);
-        }
-        return 2;
-    } else if (Joy[0].trg & 0x40) {
-        p->rotate(1);
-        if (fabsf((f32) (s8) p->size_y()) > (f32) (cur->h + 2)) {
-            p->rotate(1);
-        }
-        return 2;
-    } else if (Joy[0].trg & 0x00C00000) {
-        p->mirror(1);
-        return 2;
-    } else if (Joy[0].trg & 0x00300000) {
-        p->mirror(0);
-        return 2;
-    }
-    if (Key.rep & 0x0F000000) {
-        int out = cur->outPiece(p) == 0;
-        int wall = cur->ckInsideWall(p) == 0;
-        if (out || wall) {
-            dir = 0;
-            if (wall) {
-                switch (cur->wallDir) {
-                case 1:
-                    dir = 1;
-                    break;
-                case 2:
-                    dir = 2;
-                    break;
-                case 3:
-                    dir = 3;
-                    break;
-                case 4:
-                    dir = 4;
-                    break;
-                }
-            } else if (out) {
-                switch (cur->outDir) {
-                case 1:
-                    dir = 1;
-                    break;
-                case 2:
-                    dir = 2;
-                    break;
-                case 3:
-                    dir = 3;
-                    break;
-                case 4:
-                    dir = 4;
-                    break;
-                }
+    {
+        if (Key.rep & 0x08000000) {
+            if ((f32) (int) p->ver0_y() != p->ver0_y()) {
+                p->y -= 0.5f;
             }
-            if (dir == 1 || dir == 2) {
-                s8 edge;
-                f32 fy;
-                if (cur == caseBoard) {
-                    cur = spaceBoard;
-                    p->y -= 2.0f;
-                } else if (cur == spaceBoard) {
-                    cur = caseBoard;
-                    p->y += 2.0f;
+            if ((f32) (int) p->ver0_x() != p->ver0_x()) {
+                p->x -= 0.5f;
+            } else {
+                p->x -= 1.0f;
+            }
+            ret = 1;
+        } else if (Key.rep & 0x04000000) {
+            if ((f32) (int) p->ver0_y() != p->ver0_y()) {
+                p->y += 0.5f;
+            }
+            if ((f32) (int) p->ver0_x() != p->ver0_x()) {
+                p->x += 0.5f;
+            } else {
+                p->x += 1.0f;
+            }
+            ret = 1;
+        } else if (Key.rep & 0x01000000) {
+            if ((f32) (int) p->ver0_x() != p->ver0_x()) {
+                p->x -= 0.5f;
+            }
+            if ((f32) (int) p->ver0_y() != p->ver0_y()) {
+                p->y -= 0.5f;
+            } else {
+                p->y -= 1.0f;
+            }
+            ret = 1;
+        } else if (Key.rep & 0x02000000) {
+            if ((f32) (int) p->ver0_x() != p->ver0_x()) {
+                p->x += 0.5f;
+            }
+            if ((f32) (int) p->ver0_y() != p->ver0_y()) {
+                p->y += 0.5f;
+            } else {
+                p->y += 1.0f;
+            }
+            ret = 1;
+        } else if (joy->trg & 0x20) {
+            p->rotate(0);
+            if (fabsf((f32) (s8) p->size_y()) > (f32) (cur->h + 2)) {
+                p->rotate(0);
+            }
+            ret = 2;
+            goto cursor;
+        } else if (joy->trg & 0x40) {
+            p->rotate(1);
+            if (fabsf((f32) (s8) p->size_y()) > (f32) (cur->h + 2)) {
+                p->rotate(1);
+            }
+            ret = 2;
+            goto cursor;
+        } else if (joy->trg & 0x00C00000) {
+            p->mirror(1);
+            ret = 2;
+            goto cursor;
+        } else if (joy->trg & 0x00300000) {
+            p->mirror(0);
+            ret = 2;
+            goto cursor;
+        }
+        if (Key.rep & 0x0F000000) {
+            int out = cur->outPiece(p) == 1;
+            int wall = cur->ckInsideWall(p) == 0;
+            if (out || wall) {
+                dir = 0;
+                if (wall) {
+                    switch (cur->wallDir) {
+                    case 1:
+                        dir = 1;
+                        break;
+                    case 2:
+                        dir = 2;
+                        break;
+                    case 3:
+                        dir = 3;
+                        break;
+                    case 4:
+                        dir = 4;
+                        break;
+                    }
+                } else if (out) {
+                    switch (cur->outDir) {
+                    case 0:
+                        break;
+                    case 1:
+                        dir = 1;
+                        break;
+                    case 2:
+                        dir = 2;
+                        break;
+                    case 3:
+                        dir = 3;
+                        break;
+                    case 4:
+                        dir = 4;
+                        break;
+                    }
                 }
-                if (fabsf((f32) (s8) p->size_y()) > (f32) (cur->h + 2)) {
-                    p->rotate(1);
-                    p->snap();
-                }
-                if (dir == 1) {
-                    edge = cur->w;
-                    if (p->size_x() > 0) {
-                        edge -= (int) (fabsf((f32) (s8) p->size_x()) - 1.0f);
+                if (dir == 1 || dir == 2) {
+                    int edge;
+                    f32 fy;
+                    f32 ny = 0.0f;
+                    if (cur == caseBoard) {
+                        cur = spaceBoard;
+                        ny = p->y - -2.0f;
+                    } else if (cur == spaceBoard) {
+                        cur = caseBoard;
+                        ny = p->y + -2.0f;
                     }
-                } else {
-                    edge = -1;
-                    if (p->size_x() < 0) {
-                        edge = (int) (fabsf((f32) (s8) p->size_x()) - 1.0f) - 1;
+                    p->y = ny;
+                    if (fabsf((f32) (s8) p->size_y()) > (f32) (cur->h + 2)) {
+                        p->rotate(1);
+                        p->snap();
                     }
-                }
-                p->x = (f32) edge + p->cx;
-                if (p->size_y() < 0) {
-                    if (p->ver0_y() > (f32) cur->h) {
-                        p->y = (f32) cur->h + p->cy;
-                    }
-                    fy = p->ver0_y() + (f32) (p->size_y() + 1);
-                    if (fy < -1.0f) {
-                        p->y = (f32) ((int) (fabsf((f32) (s8) p->size_y()) - 1.0f) - 1) + p->cy;
-                    }
-                } else {
-                    fy = p->ver0_y() + (f32) (p->size_y() - 1);
-                    if (fy > (f32) cur->h) {
-                        p->y = (f32) (cur->h + 1 - p->size_y()) + p->cy;
-                    }
-                    if (p->ver0_y() < -1.0f) {
-                        p->y = p->cy + -1.0f;
-                    }
-                }
-                if (cur->outPiece(p) == 1) {
-                    if (fabsf((f32) (s8) p->size_x()) == 1.0f && fabsf((f32) (s8) p->size_y()) == 1.0f) {
-                        if (dir == 1) {
-                            p->x -= 1.0f;
-                        } else if (dir == 2) {
-                            p->x += 1.0f;
+                    if (dir == 1) {
+                        edge = cur->w;
+                        if (p->size_x() > 0) {
+                            edge -= (int) (fabsf((f32) (s8) p->size_x()) - 1.0f);
+                        }
+                    } else {
+                        edge = -1;
+                        if (p->size_x() < 0) {
+                            edge = (int) (fabsf((f32) (s8) p->size_x()) - 1.0f) - 1;
                         }
                     }
-                    if (fabsf((f32) (s8) p->size_y()) == 1.0f && cur->outPiece(p) == 1) {
-                        f32 step = (p->y < (f32) (s8) (cur->h / 2)) ? 1.0f : -1.0f;
-                        do {
-                            p->y += step;
-                        } while (cur->outPiece(p) == 1);
-                    }
-                    if (fabsf((f32) (s8) p->size_x()) == 1.0f && cur->outPiece(p) == 1) {
-                        f32 step = (p->x < (f32) (s8) (cur->w / 2)) ? 1.0f : -1.0f;
-                        do {
-                            p->x += step;
-                        } while (cur->outPiece(p) == 1);
-                    }
-                }
-            } else {
-                if (fabsf((f32) (s8) p->size_y()) == 1.0f) {
-                    if (dir == 3) {
-                        do {
-                            p->y += 1.0f;
-                        } while (cur->outPiece(p) == 0);
-                        p->y -= 1.0f;
+                    p->x = (f32) edge + p->cx;
+                    if (p->size_y() < 0) {
+                        f32 vy = p->ver0_y();
+                        int h = cur->h;
+                        if (vy > (f32) (s8) h) {
+                            p->y = (f32) h + p->cy;
+                        }
+                        fy = p->ver0_y() + (f32) (p->size_y() + 1);
+                        if (fy < -1.0f) {
+                            p->y = (f32) ((int) (fabsf((f32) (s8) p->size_y()) - 1.0f) - 1) + p->cy;
+                        }
                     } else {
-                        do {
-                            p->y -= 1.0f;
-                        } while (cur->outPiece(p) == 0);
-                        p->y += 1.0f;
+                        fy = p->ver0_y() + (f32) (p->size_y() - 1);
+                        edge = cur->h;
+                        if (fy > (f32) (s8) edge) {
+                            p->y = (f32) ((s8) edge + 1 - p->size_y()) + p->cy;
+                        }
+                        if (p->ver0_y() < -1.0f) {
+                            p->y = p->cy + -1.0f;
+                        }
+                    }
+                    if (cur->outPiece(p) == 1) {
+                        if (fabsf((f32) (s8) p->size_x()) == 1.0f && fabsf((f32) (s8) p->size_y()) == 1.0f) {
+                            switch (dir) {
+                            case 1:
+                                p->x -= 1.0f;
+                                break;
+                            case 2:
+                                p->x += 1.0f;
+                                break;
+                            }
+                        }
+                        if (fabsf((f32) (s8) p->size_y()) == 1.0f && cur->outPiece(p) == 1) {
+                            int step = -1;
+                            if (p->y < (f32) (s8) (cur->h / 2)) {
+                                step = 1;
+                            }
+                            do {
+                                p->y += (f32) step;
+                            } while (cur->outPiece(p) == 1);
+                        }
+                        if (fabsf((f32) (s8) p->size_x()) == 1.0f && cur->outPiece(p) == 1) {
+                            int step = -1;
+                            if (p->x < (f32) (s8) (cur->w / 2)) {
+                                step = 1;
+                            }
+                            do {
+                                p->x += (f32) step;
+                            } while (cur->outPiece(p) == 1);
+                        }
                     }
                 } else {
-                    if (dir == 3) {
-                        do {
-                            p->y += 1.0f;
-                        } while (cur->ckInsideWall(p) == 1);
-                        p->y -= 1.0f;
-                    } else {
-                        do {
+                    if (fabsf((f32) (s8) p->size_y()) == 1.0f) {
+                        if (dir == 3) {
+                            do {
+                                p->y += 1.0f;
+                            } while (cur->outPiece(p) == 0);
                             p->y -= 1.0f;
-                        } while (cur->ckInsideWall(p) == 1);
-                        p->y += 1.0f;
+                        } else {
+                            do {
+                                p->y -= 1.0f;
+                            } while (cur->outPiece(p) == 0);
+                            p->y += 1.0f;
+                        }
+                    } else {
+                        if (dir == 3) {
+                            do {
+                                p->y += 1.0f;
+                            } while (cur->ckInsideWall(p) == 1);
+                            p->y -= 1.0f;
+                        } else {
+                            do {
+                                p->y -= 1.0f;
+                            } while (cur->ckInsideWall(p) == 1);
+                            p->y += 1.0f;
+                        }
                     }
                 }
             }
         }
     }
+cursor:
     cur->curX = (s8) (p->x + 0.5f);
     cur->curY = (s8) (p->y + 0.5f);
     if (cur->curX & 0x80) {
         cur->curX = 0;
     }
-    if (cur->curX > cur->w - 1) {
-        cur->curX = cur->w - 1;
+    {
+        int wm = cur->w - 1;
+        if (cur->curX > wm) {
+            cur->curX = wm;
+        }
     }
     if (cur->curY & 0x80) {
         cur->curY = 0;
     }
-    if (cur->curY > cur->h - 1) {
-        cur->curY = cur->h - 1;
+    {
+        int hm = cur->h - 1;
+        if (cur->curY > hm) {
+            cur->curY = hm;
+        }
     }
     return ret;
 }
@@ -1454,12 +1557,16 @@ void pzlPlayer::salvCursor()
     }
 }
 
-int PutInCase(u16 id, int num, int type)
+// `num` is u16 (its copies into `rest` are plain moves and cse propagates `num` into the peeled
+// first order entry, so jump2 cannot cross-jump the peeled head), `max` u16 (shorten_compare gives the
+// unsigned compares); `item` is declared before `info`; each loop has its own counter (the two
+// placement nests share i/j); the fill-up loop is a guarded do-while (`cmpwi nOrder,0; ble`).
+int PutInCase(u16 id, u16 num, int type)
 {
-    ItemInfo info;
     ItemWork item;
+    ItemInfo info;
     pzlPlayer* pl;
-    int max;
+    u16 max;
     int total;
     int i;
     int j;
@@ -1477,18 +1584,18 @@ int PutInCase(u16 id, int num, int type)
         }
         max = info.x4;
     }
-    if ((u32) num > (u32) max) {
-        pLog->err(0, 0, "PutInCase(): Volume of ITEM(0x%02x) is OOL.", id);
+    if (num > max) {
         num = max;
+        pLog->err(0, 0, "PutInCase(): Volume of ITEM(0x%02x) is OOL.", id);
     }
     ItemMgr.ordering(id);
     total = 0;
-    for (i = 0; i < ItemMgr.nOrder; i++) {
+    for (int i = 0; i < ItemMgr.nOrder; i++) {
         total += max - ItemMgr.pOrder[i].item->num;
     }
     if (total >= num) {
         u16 rest = num;
-        for (i = 0; i < ItemMgr.nOrder; i++) {
+        for (int i = 0; i < ItemMgr.nOrder; i++) {
             ItemWork* w = ItemMgr.pOrder[i].item;
             u16 room = max - w->num;
             if (room >= rest) {
@@ -1519,8 +1626,8 @@ int PutInCase(u16 id, int num, int type)
         s8 bw = pl->caseBoard->w;
         for (i = 0; i < bh; i++) {
             for (j = 0; j < bw; j++) {
-                p->y = (f32) i + p->cy;
                 p->x = (f32) j + p->cx;
+                p->y = (f32) i + p->cy;
                 if (pl->putPiece(pl->caseBoard)) {
                     ok = 1;
                     goto placed;
@@ -1530,8 +1637,8 @@ int PutInCase(u16 id, int num, int type)
         p->orientation(1);
         for (i = 0; i < bh; i++) {
             for (j = 0; j < bw; j++) {
-                p->y = (f32) i + p->cy;
                 p->x = (f32) j + p->cx;
+                p->y = (f32) i + p->cy;
                 if (pl->putPiece(pl->caseBoard)) {
                     ok = 1;
                     goto placed;
@@ -1542,20 +1649,29 @@ int PutInCase(u16 id, int num, int type)
 placed:
     pl->save();
     if (ok) {
-        u16 rest = num;
+        u16 rest;
+        int n;
         ItemMgr.ordering(id);
-        for (i = 0; i < ItemMgr.nOrder; i++) {
-            ItemWork* w = ItemMgr.pOrder[i].item;
-            u16 room = max - w->num;
-            w->num = max;
-            rest -= room;
+        rest = num;
+        n = 0;
+        if (ItemMgr.nOrder > 0) {
+            do {
+                ItemWork* w = ItemMgr.pOrder[n].item;
+                u16 room = max - w->num;
+                w->num = max;
+                rest -= room;
+                n++;
+            } while (n < ItemMgr.nOrder);
         }
         ItemMgr.get(id, rest);
-        if (ItemMgr.pLast) {
-            ItemMgr.pLast->x = item.x;
-            ItemMgr.pLast->y = item.y;
-            ItemMgr.pLast->orient = item.orient;
-            ItemMgr.pLast->board = item.board;
+        {
+            ItemWork* last = ItemMgr.pLast;
+            if (last) {
+                last->x = item.x;
+                last->y = item.y;
+                last->orient = item.orient;
+                last->board = item.board;
+            }
         }
     }
     pl->quit();

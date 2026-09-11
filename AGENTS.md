@@ -20536,3 +20536,149 @@ move / IdScopeZoomDisp / CameraBinocular are theirs); only CameraAttachedToMotio
   it; `precompute_register_parameters` converts the u16 MEM into a pseudo before the nested call in ours (`lhz r30; mr r4,r30`);
   RTX_UNCHANGING_P is only set for TREE_STATIC readonly objects (expr.c), so a `const` view is not the lever.
 - Tools/t_esp_area, Tools/t_lightarea, t_camera/t_camera_data: unchanged (438/393+59, 27+142).
+
+### DOL pendulum closer (game/pendulum 7 -> 9/12, 1066 -> 151 words: penClothAtMake 16 -> 0 and penClothAtCkParallel 68 -> 0 zero code; PenClothMove3 276 -> 7, PenClothMove2 247 -> 7 (one #17 pin), PenClothMove 459 -> 137; not flipped; 2026-09-11)
+
+Harness ~/.cache/dol_pend (dol26a copies with the paths rewritten; `tryv.py game/pendulum FUNC v/X.py` = private variant
+builds + masked word count, `vstat.sh VARIANT FUNC` = the global-alloc priority table (`rank/pseudo/hard reg/refs/len/sets/
+calls/pri = floor_log2(refs)*refs/len`) of a variant's `.lreg/.greg` dumps, `insns.py DUMP` = one-line-per-insn listing of a
+cc1plus dump; deleted at the end). 111 OK before and after.
+
+- **penClothAtMake 16 -> 0 (zero code): the inline `penPartsWorldPos` body is `do { PSMTXMultVec(p->mat, ofs, out); } while (0);`.**
+  The LOOP_BEG note before the second call's argument sets makes the first of them (`r3 = p1 + 12`) a full sched barrier:
+  haifa never clears `reg_last_uses` for call-used registers at a CALL (sched_analyze_insn, r1 is fixed hence call-used), so
+  without the note every later call in the block anti-depends on every earlier `addi rX, r1, N`, and the first call's `r5 =
+  fp + 8` had 3 dependants (call1, the second `r5 =` set, call2) against 2 for `r3`/`r4` and was issued first (`r5, r4, r3`);
+  with the barrier all three have 2 and the sched1 LUID order (`mr r30,r3` first, then `r4` (weight +1, RTL order), then `r3
+  = p0 + 12` (weight 0 but anti-dependent on the copy), then `r5`) gives the target's `r4, r3, r5`. The same note also fixed
+  the &v0/&up/&ax callee-saved order (r25/r23/r24) that the pendulum section of 2026-09 left open. Rule: an argument-move
+  order inverted between two calls in one block with frame-address arguments = a loop note (macro body) between the calls.
+- **penClothAtCkParallel 68 -> 0 (zero code, three pieces).** (1) The three-term sums are two statements: `dot = (a->p0.x -
+  p1.x) * d.x + (a->p0.y - p1.y) * d.y; dot += (a->p0.z - p1.z) * d.z;` and the same for `d1`/`d0`. Read off the target: the
+  first fmadds of each sum writes the VARIABLE's register (`fmadds f7,f9,f12,f0` then `fmadds f7,..,f7`; `fmadds f12,..; fmadds
+  f12,f13,f13,f12`), so the partial sum is the variable's own pseudo (ours tied the partial temp to operand 1 as local-alloc
+  does for a dying operand: `fmadds f0,f0,f10,f13`). Effect on global-alloc: dot gets 2 sets + 4 uses = 12 weighted refs
+  (floor_log2 3) and is born earlier, pri 36/50 > rr's 24/36, so the order f7/f6/f5/f4/f3 = dot, rr, p1.x, p1.y, p1.z is
+  the target's (ours had dot last in f3 with 8 refs over 48 insns). (2) Cylinder case: `l1 = ..; l0 = ..;` BEFORE `ld.x/y/z =
+  lp0 - lp1` (the target loads lp1.x, lp0.x, lp1.z, lp0.z in that order and issues `fmuls lp1.z^2` before `lp0.z^2`; with ld
+  first the loads come from the subtractions in lp0-first order), and (3) `rr = a->r * a->r` LAST of the block (after dot and
+  ldSq: the target's `fmuls f10` sits between `fneg` and `fmuls ld.z^2`, i.e. its LUID is after theirs). Note the sphere-case
+  rr stays first: the FPR names there are decided by the global priorities, not by rr's position.
+- **PEN_FLOOR_CK is a `do { } while (0)` macro (Move 459 -> 139, Move2 247 -> 108, Move3 276 -> 9 from this alone).** The loop
+  notes put the `w->pos.*` references of the macro body at loop depth + 1 in `recompute_reg_usage`, and `w` (one function-scope
+  variable, 6 sets) needs >= 256 weighted refs (233 -> 257, floor_log2 7 -> 8: pri 1.67 -> 2.11) to outrank the PRE'd `&v`
+  pseudo (106 refs / 308 = 2.07) for r31 in Move2; in Move3 the same +8 lifts w (358/1076 = 2.66) over `uw` (179/475 =
+  2.64). The 16 combinations of PEN_FIX / PEN_FLOOR_CK / PEN_FLOOR_CK2 / PEN_FLOOR_CK3 as do-whiles were built (`v/m2d.py`):
+  only FLOOR_CK (with or without FLOOR_CK2) gives Move3 9 and Move 139; FIX or FLOOR_CK3 as do-while pushes Move3 back to 276
+  /346 (uw's `PEN_FIX(uw)` refs grow too). A statement form of PEN_PARTS (`do { if (x54) p = ..; else p = ..; } while (0)`)
+  is wrong everywhere (257/262/324). Rule: when a function-scope pointer loses a callee-saved register to a gcse pseudo by
+  a hair, count its refs inside the macro bodies -- the original's macros were do-whiles.
+- **Move2 `max`/`spdRate` are ONE variable (108 -> 76): `spdRate = c->pMax[i]; if (ang > spdRate ..) spdRate = ang*0.2f +
+  spdRate*0.8f`.** d (7 sets, 58 refs / 122 = 2.38) outranked max (10 / 14 = 2.14) and took f31; the target has max in f31
+  and d in f30 everywhere (Move3, with 5 d sets, 40/106 = 1.89, already had the target order). Merged with the final loop's
+  spdRate (10 refs / 17) the variable is 20/31 = 2.58 > d. Applied to all three Move functions (Move/Move3 unchanged by it).
+- **`uw = PEN_WORK(np); parts->worldPos = uw->pos;` (in that order) in the final loops (Move2/Move3 9 -> 7, Move 139 -> 137).**
+  With the copy after the stores, `np` died at `uw = np + 0x128` (sched1 weight 0), so the addi was issued before the P copy
+  `mr r23,r11` and the first `stw`; the target's order `mr; stw; addi` is the RTL order with all three at weight +1.
+- **Move2 `register const u8* pp asm("r21")` (tagged `#17 (register pin)`, 76 -> 7).** The FLOOR_CK do-while adds 3 weighted
+  refs to `i` (its `pUp[i]` in three sites at depth +1): i 98 -> 101 refs / 2584 = 0.2345 vs pp 59 / 1285 = 0.2296, and the
+  target has pp (r21) above i (r20). Declaration order (tie-break only), `pp = c->pParts, i = 0` order: no effect. The zero-code
+  form is not found (Move3's i is 93 refs and already below pp; Move2's extra `i` uses are x20/x2C/x30/x24[i]).
+- **Left (Move2 7, Move3 7, Move 137; mechanisms read):**
+  - The final-loop `if (uw) hit = PEN_AT_CK(c,&w->pos,&uw->pos,at); else hit = PEN_AT_CK(c,&w->pos,&parts->worldPos,at);`
+    diamond in all three: jump2 cross-jumps the two `mr r5,r18; bl penClothAtCkBorder; b END` tails in ours (J1 finds J2 in
+    jump_chain[END] with minimum 2) where the target keeps both Border calls and instead cross-jumps the AtCk pair (`b BCC`
+    into the fall-through arm's `mr r5,r18; bl penClothAtCk`, minimum 1). The k/i-loop PEN_AT_CK sites match with the ternary
+    macro, so the macro itself is right; for the target's result J1/J2 must NOT share a label when the chain is built, i.e. a
+    real insn must sit between the else-arm ternary's end label and the if/else join (mark_jump_label merges consecutive
+    labels; only a LOOP_BEG note stops it, and only in jump1). Tried and wrong: inline-function PEN_AT_CK (Move 84 but Move3
+    112 / Move2 164: the k/i sites merge more, .text -0x1c), `(void) &hit` (58, -8 bytes), `volatile hit` (101), `u8 hit` (78),
+    `if (hit)` inside each arm (58), `if (PEN_AT_CK(..))` direct (18, different shape), nested ternary `hit = uw ? .. : ..`
+    (7, unchanged), per-arm `int h = ..; hit = h;` (54), a pointer ternary (111).
+  - Move loop 2 (`if (c->x2C) { ang = sinf(LIMIT_ANGLE(..)) + 1.0f; ..}` after `ang = 1.0f`): the target hoists ONE 1.0 pseudo
+    with its own `lis r9` into the loop-2 preheader (`lfs f30`) and uses it at both `+ 1.0f` sites; ours folds site 1's
+    constant into `ang` (cse1's NOT_TAKEN re-run of the `if (c->x2C)` branch knows ang == mem[1.0]: `fadds f29,f1,f29`) and
+    leaves site 2 as an unhoisted single-use load through the PRE'd high (`lfs f0,0x8c(r22)`). That also decides the r17/r22
+    swap of the 0x8c high vs the `&mpos` pseudo (the target's PRE high has fewer refs). Not found: `do {} while (0)` around the
+    Normalize/Scale calls, around `ang = 1.0f`, around the `if (c->x2C)` block, `ang += 1.0f`, `asm volatile("")`, a block-local
+    `rate` (144-190); removing the `c->x20` diamond before it (PATHLENGTH test) still folds.
+  - Move 750: `addi r5,r1,0x38; mr r28,r5` (arg first, PRE copy after, the regmove optimize_reg_copy_1 shape) vs ours `addi
+    r30,r1,0x38; mr r5,r30; mr r28,r30` for `PSVECSubtract(&w->pos, &mpos, &v)`: the same "&local is fresh in one call and a
+    pseudo copy elsewhere" family as the 2026-09 pendulum note; not attempted this pass.
+
+### DOL puzzle closer (game/puzzle 38 -> 46/49; .text 0x8C-short and .rodata 0x20-short gaps closed; init/pzlBoard::init/selPiece/putPiece/rmPiece/cmbPiece/append/remove 0 words zero code; shape 30 -> 2, PutInCase 222 -> 6, movePiece 535 -> 57; nothing flipped; 2026-09-11)
+
+Harness ~/.cache/dol_puz (dol26a copies with the paths rewritten; deleted at the end). No tag in the unit: every
+change is a source form. `include/puzzle.h`: `PutInCase(u16 id, u16 num, int type)` (callers item.cpp IDENTICAL,
+sce_at sceAtGetItem 91 words with either prototype). `game/puzzle.cpp` added to STRIP_UNUSED.
+
+- **The size/rodata gap was two things.** (1) Code: pzlPlayer::init (0x18) and movePiece (0x74) were missing
+  statements: `p->x = (f32) item->x * 0.5f` (the 0.5f pool word at 0xF4 that init references; save() doubles the
+  position back) and, in movePiece, `int step` converted with the double trick inside the two `outPiece` loops
+  (`li -1; fcmpu; bge; li 1; xoris; stw; stw; lfd; fsub; frsp`, 2 x 8 insns), `int edge` (magic conversion instead
+  of psq_l), the second `ItemMgr`-free `Joy` pointer, and the `ret = 2` arms. (2) .rodata: the target's `"#"`, `""`,
+  `0x4330000080000000 / 8.0f / 14.0f` between shape's pool and pzlBoard::init's file string, and `"%c"` between that
+  string and "Can't create pzlPlayer()", are the strings AND constant pool of two dead `static` functions
+  (`dispShape` after shape, `dispCell` after clearState): a dead static is assembled in place (strings at
+  expansion, pool at assemble_start_function, both before the next function's strings) and the SN linker dropped
+  only its body (STRIP_UNUSED). A dead `static inline` emits the strings but NOT the pool (its rtl is deferred and
+  init_function_start resets the pool). movePiece's pool is 0.5, 1.0, 0.0, -2.0, -1.0: the board swap writes
+  `f32 ny = 0.0f; if (cur == caseBoard) { cur = spaceBoard; ny = p->y - -2.0f; } else if (cur == spaceBoard)
+  { cur = caseBoard; ny = p->y + -2.0f; } p->y = ny;` (the 0.0f store on the impossible third path is in the
+  target: `lfs f0,0.0` before the compare, `stfs f0,0x18(r31)` at the join).
+- **pzlPlayer::init 83 -> 0 (zero code).** `switch ((u32) type)` with `case 0: default:` sharing the default label
+  and bodies in the order 3, 2, 1, default: the four case nodes balance to root 1 with a left leaf 0 that is
+  bounded (unsigned min = 0, high+1 = parent), so emit_case_nodes emits `cmpwi 1; beq; cmplwi 1; blt default;
+  cmpwi 2; beq; cmpwi 3; bne default` (an int index or an enum -- `use_cost_table` is off for ENUMERAL_TYPE and
+  for control-char values -- gives the balanced `cmpwi 2` tree). The flag-clear loop has its own counter (r10: no
+  call crossed); ONE `pzlPiece* p` for the item loop and the placement loop (28 weighted refs / 43 insns beats
+  `item`'s 16 / 38, so p takes r31 first and item r30; a per-loop p ranks below item); the placement loop's test is
+  `if (!((bool) (p->flags & 1))) continue;` (the negated bool materialised: `xori; andi.; bne`).
+- **pzlBoard::init 4 -> 0 (zero code): `if (n != 0) { int cnt = n; i = 0; do { pieces[i] = 0; i++; cnt--; } while
+  (cnt != 0); }`.** The guard is `cmpwi; beq` (not the for-loop's `ble`), and because the counter is a local set
+  INSIDE the guard its CTR copy (`mtctr`) is emitted after the branch; `while (n != 0)` / `if (n) do..while (--n)`
+  with n set before the guard put the `mtctr` above the `cmpwi`.
+- **selPiece 17 -> 0 (zero code).** Per-axis block locals `s8 d; s8 save;`: one pseudo per axis halves the live
+  lengths, so `ret` (19 refs / 344) outranks the saves (6 / 60 each, both r28) and the saves outrank the `d`s (6 /
+  83, both r27). `d` is s8: `b->curX += d` is a QImode add whose step operand is a REG (the promoted QI var), so
+  expand_binop keeps it first (`add r0,r27,r0`); with an int d the `(subreg:QI d)` operand is swapped behind the
+  loaded byte. The `d != 0` test needs no extension (combine's simplify_comparison drops it).
+- **putPiece 22 -> 0, rmPiece 24 -> 0 (zero code).** Loops that cross no call get their own counter (`for (int n
+  ...)` -> r10/r11); putPiece's marking nest reuses `i`/`j` (they then conflict with the cx_/cy_ temps in r31/r30
+  and take r28/r29 in both nests); rmPiece compares `p == pieces[n]`.
+- **cmbPiece 36 -> 0 (zero code).** `ex = 0` after the lapPiece check (its `li` follows the call), the success
+  path is the then-arm of `if (ItemMgr.combine(..))` so the failing `return 0` is laid out last, and `if (!used)
+  { if (rel) relPiece(cur); } else hand = 0;`.
+- **shape 30 -> 2.** `s8 rot[2][2]` in one word (rlwimi inserts); `rx = (s8) ((s8) px * rot[0][0] + (s8) py *
+  rot[0][1])`: with both mult operands unwidened s8, convert_to_integer narrows the MULTs to QImode (the low byte of
+  the word is multiplied raw, byte 2 is `extsh; srawi 8`); `s8 s = sinf(ang); rot[0][1] = -s;` keeps the `extsb;
+  neg`; the mirror test is `switch (orient) { case 4: case 5: case 6: case 7: rx = (s8) -rx; }` (range node:
+  `cmpwi 7; bgt; cmpwi 4; blt`). Left: `mullw r0,r0,r28` vs the target's `mullw r0,r28,r0` for the byte-2 product
+  (the byte-2 extraction returns a REG:QI, expand_binop's "op1 REG, op0 not" swap puts it first; the other three
+  extractions are SUBREGs) and the `o` join (target: `subi r0,r9,4` in the arm, `extsb r0,r0` at the join; ours
+  extends inside the arm and the else path reuses the compare's extension). `int o` + `(f32)(s8) o`, `+cur->h`,
+  `s8 x = px` locals, per-row locals: 8-32.
+- **PutInCase 222 -> 6.** `u16 num` parameter and `u16 max`: `rest = num` is a plain copy (cse propagates num into
+  the peeled first order entry, so jump2 cannot cross-jump the copied head into the loop as ours did with the
+  `clrlwi` rest), shorten_compare gives the `cmplw`s; `ItemWork item` declared before `ItemInfo info` (frame 8 /
+  24); `num = max` before the err call (callee-saved `mr` hoisted over the `bl`); every loop has its own counter,
+  the two placement nests share `i`/`j`, `p->x` assigned before `p->y`; the fill-up loop is `n = 0; if
+  (ItemMgr.nOrder > 0) do { .. } while (n < ItemMgr.nOrder);` (guard `cmpwi nOrder,0; ble`, exit `cmpw n,nOrder;
+  blt`); `ItemWork* last = ItemMgr.pLast` local (one load; the s8 stores alias the pLast reload otherwise). Left
+  (6): `last` is r31 in the target = an allocno that crosses a call (r0/r9/r11..r3 all skipped); a block-local
+  pointer gets r11, `register asm("r31")` gets r31 but the hard-reg base then lets sched hoist the `item` byte
+  loads over the stores (9 words), reusing `p` (cast) shifts p/j. Not closed.
+- **movePiece 535 -> 57 (size 0xCA4 vs 0xCA8).** The Joy arms end in `ret = 2; goto cursor;` (past the `Key.rep &
+  0x0F000000` block; a `do {} while (0)` + break is a loop and hoists every constant into its preheader);
+  `JOY* joy = Joy;` (the `addi r6,Joy@l` in block 0); `out = cur->outPiece(p) == 1` (`xori; subfic; adde`); `int
+  edge`, `int step`; `#include "math_sub.h"` so fabsf is the SDK's volatile-asm barrier (the 1.0f/`h+2` loads
+  after `fabs`; the undeclared `fabsf` was the builtin); `switch (dir) { case 1: x -= 1; case 2: x += 1; }`;
+  the cursor clamps through `int wm = cur->w - 1` (one `addi`, shared by compare and store); `int h = cur->h`
+  after `f32 vy = p->ver0_y()` with `vy > (f32)(s8) h` and `p->y = (f32) h + p->cy` (psq_l for the compare, magic
+  for the store); in the else arm `edge = cur->h` reused with `(s8) edge` casts. Left (57): the target
+  re-extends that h after the size_y call (`extsb r30,r30; addi 1; subf`: a pseudo whose sign copies combine
+  cannot prove -- our `(s8)` casts fold), the `(f32) h` extsb before the branch in the first arm (ours sinks it),
+  the board-swap load order (`lwz caseBoard` before `lis 0.0`), `addi r0,r9,-1` vs `addi r9,r9,-1` names, and the
+  `case 0:` in the outDir switch is in.
+- General: a target function that uses a pool constant nobody else uses (init's 0.5f) is a missing statement,
+  not a missing function; check `rg 'lbl_<rodata>+0x..'` per function before hunting dead code.

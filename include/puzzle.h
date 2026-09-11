@@ -134,7 +134,7 @@ extern PieceInfo piece_info[];
 extern "C" {
 PieceData* searchItemPieceData(int id, PieceInfo* tbl);
 u8* searchItemModelData(int id, PieceInfo* tbl);
-int PutInCase(u16 id, int num, int type);
+int PutInCase(u16 id, u16 num, int type);
 }
 
 #endif
