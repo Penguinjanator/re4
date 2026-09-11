@@ -463,8 +463,8 @@ int retry_load_menu(OptionScreen* o)
             ScreenReSize(0x200, 0x1C0);
             if (o->fromTitle != 1) {
                 Cckpt.roomInit();
-                register Cockpit* ck asm("r29") = &Cckpt;  // COMPILER-DIFF: ck reuses old's r29
-                ck->move();
+                Cckpt.move();
+                Cockpit* ck = &Cckpt;
                 ck->life.fix(1);
                 ck->lifeMeterDisp(0);
             }
@@ -500,6 +500,7 @@ int controller_menu(OptionScreen* o)
     IdUnit* u;
     IdUnit* off;
     int i;
+    int j;
 
     if (Key.trg & KEY_B) {
         if (old == 3) {
@@ -519,7 +520,7 @@ int controller_menu(OptionScreen* o)
             break;
         case 1:
             if (o->keyB) {
-                pSys->flags |= 0x08000000;
+                BitOn(pSys->flags, 0x08000000);
                 VibSet(vib_time, vib_level, 0, 4);
             } else {
                 pSys->flags &= ~0x08000000;
@@ -637,8 +638,8 @@ int controller_menu(OptionScreen* o)
         }
     }
     off = IdSys.unitPtr(0xE, ID_OPT);
-    for (i = 0; i < 3; i++) {
-        switch (i) {
+    for (j = 0; j < 3; j++) {
+        switch (j) {
         case 0:
             if (o->keyA) {
                 sel = IdSys.unitPtr(3, ID_OPT);
@@ -667,7 +668,7 @@ int controller_menu(OptionScreen* o)
             }
             break;
         }
-        if (o->sub == i) {
+        if (j == o->sub) {
             setColor(sel, base);
         } else {
             sel->col0[3] = sel->col0[2] = sel->col0[1] = sel->col0[0] = 0xFF;
@@ -677,6 +678,7 @@ int controller_menu(OptionScreen* o)
         uns->col0[2] = off->col0[2];
         uns->col0[3] = off->col0[3];
     }
+    asm("" : : "r"(sel));  // COMPILER-DIFF: candidate (global.c allocno order: sel 29/338 must outrank o 42/600 for r31)
     if ((s32) pSys->flags < 0) {
         IdSys.unitPtr(0xA, ID_OPT)->flags |= 8;
         IdSys.unitPtr(0xB, ID_OPT)->flags &= ~8;

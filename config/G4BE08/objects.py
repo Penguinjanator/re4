@@ -1883,3 +1883,8 @@ MATCHING.update({
     "game/act_btn.cpp": True,  # 10/10: checkButton 18 -> 0: cases 9/0xA are separate `break` nodes with a codeless `asm volatile("")` in the case-9 arm (COMPILER-DIFF 6): the real insn keeps group_case_nodes from merging 9/0xA into a range and blocks jump2's `x = a; if (c) goto l` hoist on the case-7 tail once the shared `li r3,0; blr` block is adjacent
     "game/pl_wep.cpp": True,  # 29/29: PlWepHitCheck2 180 -> 0, pure C: `case 7:` stacked on `default:` (block LCM inserts the second switch's compare at the end of the left-root block) and the 4/8/0xC body placed after 5/6 (leaf layout = source order)
 })
+
+# option closer (2026-09-12)
+MATCHING.update({
+    "game/option.cpp": True,  # 20/20: retry_load_menu zero code (`Cckpt.roomInit(); Cckpt.move(); Cockpit* ck = &Cckpt;` keeps the Cckpt@ha high alive across the first call so local-alloc cannot tie ck to it); controller_menu: own `j` counter for loop 2, `BitOn(pSys->flags, ..)` before VibSet (store not disjoint from the vib_time/vib_level scalars), `j == o->sub`, one codeless `asm("" : : "r"(sel))` after loop 2 (COMPILER-DIFF candidate: sel 29/338 must outrank o 42/600 in global.c)
+})
