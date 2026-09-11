@@ -1927,9 +1927,11 @@ def generate_build_ninja(
     else:
         n.default(build_config_path)
 
-    # Write build.ninja
-    with open("build.ninja", "w", encoding="utf-8") as f:
+    # Write build.ninja atomically: concurrent configure runs (many agents editing objects.py) must
+    # never expose a truncated manifest to a running ninja.
+    with open("build.ninja.tmp", "w", encoding="utf-8") as f:
         f.write(out.getvalue())
+    os.replace("build.ninja.tmp", "build.ninja")
     out.close()
 
 
@@ -2156,13 +2158,15 @@ def generate_objdiff_config(
         else:
             return d
 
-    # Write objdiff.json
-    with open("objdiff.json", "w", encoding="utf-8") as w:
+    # Write objdiff.json atomically (see generate_build_ninja): a concurrent configure's json.load of
+    # a half-written file was the "FAILED: build.ninja objdiff.json" race.
+    with open("objdiff.json.tmp", "w", encoding="utf-8") as w:
 
         def unix_path(input: Any) -> str:
             return str(input).replace(os.sep, "/") if input else ""
 
         json.dump(cleandict(objdiff_config), w, indent=2, default=unix_path)
+    os.replace("objdiff.json.tmp", "objdiff.json")
 
 
 def generate_compile_commands(
