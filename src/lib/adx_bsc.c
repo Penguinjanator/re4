@@ -430,27 +430,38 @@ void ADXB_ExecOneAdx(ADXB adxb)
 	}
 }
 
-/* hand the input to the expander: stereo, Pro Logic II or mono */
-static void adxb_EntryDecode(void *obj, Sint32 n)
+/* hand the input to the expander: stereo, Pro Logic II or mono (the `void *` copies keep the
+ * arms' wr_pos reloads apart from the caller's pos, and the out_nch/xdc tests in the caller) */
+static void adxb_EntrySte(void *obj, Sint32 n)
 {
 	ADXB adxb = obj;
 	ADXPD pd;
 
-	if (adxb->out_nch == 2) {
-		pd = adxb->pd;
-		ADXPD_EntrySte(pd, adxb->inbuf, n * 2, adxb->pcmbuf + adxb->wr_pos,
-		               adxb->pcmbuf + adxb->wr_pos + adxb->pcmbuf_chofst);
-		ADXPD_Start(pd);
-	} else if (adxb->xdc != NULL) {
-		pd = adxb->pd;
-		ADXPD_EntryPl2(pd, adxb->inbuf, n, adxb->pcmbuf + adxb->wr_pos,
-		               adxb->pcmbuf + adxb->wr_pos + adxb->pcmbuf_chofst);
-		ADXPD_Start(pd);
-	} else {
-		pd = adxb->pd;
-		ADXPD_EntryMono(pd, adxb->inbuf, n, adxb->pcmbuf + adxb->wr_pos, NULL);
-		ADXPD_Start(pd);
-	}
+	pd = adxb->pd;
+	ADXPD_EntrySte(pd, adxb->inbuf, n * 2, adxb->pcmbuf + adxb->wr_pos,
+	               adxb->pcmbuf + adxb->wr_pos + adxb->pcmbuf_chofst);
+	ADXPD_Start(pd);
+}
+
+static void adxb_EntryPl2(void *obj, Sint32 n)
+{
+	ADXB adxb = obj;
+	ADXPD pd;
+
+	pd = adxb->pd;
+	ADXPD_EntryPl2(pd, adxb->inbuf, n, adxb->pcmbuf + adxb->wr_pos,
+	               adxb->pcmbuf + adxb->wr_pos + adxb->pcmbuf_chofst);
+	ADXPD_Start(pd);
+}
+
+static void adxb_EntryMono(void *obj, Sint32 n)
+{
+	ADXB adxb = obj;
+	ADXPD pd;
+
+	pd = adxb->pd;
+	ADXPD_EntryMono(pd, adxb->inbuf, n, adxb->pcmbuf + adxb->wr_pos, NULL);
+	ADXPD_Start(pd);
 }
 
 void ADXB_EvokeDecode(ADXB adxb)
@@ -465,19 +476,21 @@ void ADXB_EvokeDecode(ADXB adxb)
 	Sint32 nblk2;
 	Sint32 pos;
 	Sint32 blksmpl;
+	Sint32 n2b;
 
 	blksmpl = adxb->out_fmt;
-	x70 = adxb->wr_x70;
 	pos = adxb->wr_pos;
 	bufsmpl = adxb->pcmbuf_nsmpl;
 	wr_nsmpl = adxb->wr_nsmpl;
 	n = adxb->inbuf_nsmpl / adxb->out_nch;
 	ofst = blksmpl - 1;
+	x70 = adxb->wr_x70;
 	ofst += x70;
 	nblk = ofst / blksmpl;
 	pad = (blksmpl - 1) - (ofst - nblk * blksmpl);
 	nblk2 = (blksmpl + (bufsmpl - pos) - 1) / blksmpl;
-	if (nblk < nblk2 && pos + nblk2 * blksmpl - pad < bufsmpl) {
+	n2b = nblk2 * blksmpl;
+	if (nblk < nblk2 && pos + n2b - pad < bufsmpl) {
 		nblk2++;
 	}
 	if (x70 < wr_nsmpl) {
@@ -492,7 +505,13 @@ void ADXB_EvokeDecode(ADXB adxb)
 	if (n > nblk2) {
 		n = nblk2;
 	}
-	adxb_EntryDecode(adxb, n);
+	if (adxb->out_nch == 2) {
+		adxb_EntrySte(adxb, n);
+	} else if (adxb->xdc != NULL) {
+		adxb_EntryPl2(adxb, n);
+	} else {
+		adxb_EntryMono(adxb, n);
+	}
 }
 
 Sint32 ADXB_GetDecNumSmpl(ADXB adxb)

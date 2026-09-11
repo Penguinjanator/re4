@@ -691,9 +691,10 @@ L_80206C54:
  * block) through the half-pel kernels selected by the motion vector; ofs[] receives the
  * macroblock's chroma/luma offsets in the frame. Declaration order = the target's callee-saved
  * order (cpitch r31 .. fn_y r25; the two-definition chx/yhx are computed before the first call).
- * OPEN 72w: the target's `vx & 1` of yhx is not CSE'd with the kernel index (yhx one node in
- * r24 above chx r23 / rfb r22 / dst r21); ours shares it and range-splits yhx below the
- * parameters (r21). */
+ * The nested `yhx = (vx = ..) & 1` keeps yhx's `vx & 1` apart from the kernel index (the frontend
+ * CSE'd them, range-splitting yhx below the parameters): yhx r24 / chx r23 as the target. OPEN 69w:
+ * cvx/vx/vy are level-2 nodes in ours (>= 29 neighbours, coloured r0/r6/r4 before the temporaries)
+ * and level-1 in the target (r28/r25/r11, coloured after them). */
 void mpvumc_OneReadMb(MPVUMC_OBJ *mpv, Uint8 *dst, Sint32 *ofs, MPVUMC_RFB *rfb, MPV_MV *mv)
 {
 	Sint32 cpitch;
@@ -725,14 +726,13 @@ void mpvumc_OneReadMb(MPVUMC_OBJ *mpv, Uint8 *dst, Sint32 *ofs, MPVUMC_RFB *rfb,
 	ofs[1] = mbx * 16 + mby * 16 * rfb->ypitch;
 	tbl_y = mpvumc_oneref_y[mcflag];
 	tbl_c = mpvumc_oneref[mcflag];
-	vx = mv->vec[0];
+	yhx = (vx = mv->vec[0]) & 1;
 	vy = mv->vec[1];
 	cvx = vx / 2;
 	cvy = vy / 2;
 	fn_y = tbl_y[vy & 1][vx & 1];
 	fn_c = tbl_c[cvy & 1][cvx & 1];
 	chx = cvx & 1;
-	yhx = vx & 1;
 	chx &= mcflag;
 	yhx &= mcflag;
 	cpos = ofs[0] + (cvy >> 1) * cpitch + (cvx >> 1);
@@ -910,20 +910,23 @@ L_802071B8:
 	}
 }
 
+/* the nested assignments keep x8/yofs as variables (the frontend would otherwise substitute them and
+ * reassociate yofs into `(y16 * ypitch + pln) + x16`); mbx/mby own locals declared in this order */
 void MPVUMC_Intra(MPVUMC_OBJ *mpv)
 {
+	Sint32 mbx;
+	Sint32 mby;
+	Sint32 x8;
+	Sint32 y8;
 	Sint32 cofs;
 	Sint32 yofs;
 	Sint32 ypitch;
-	Sint32 y8;
-	Sint32 y16;
 	MPVUMC_OUTBLK *ob;
 
-	y8 = mpv->mb_y * 8;
-	y16 = mpv->mb_y * 16;
-	cofs = mpv->mb_x * 8 + y8 * mpv->out_cpitch;
-	ypitch = mpv->out_ypitch;
-	yofs = mpv->mb_x * 16 + y16 * ypitch;
+	x8 = (mbx = mpv->mb_x) * 8;
+	y8 = (mby = mpv->mb_y) * 8;
+	cofs = x8 + y8 * mpv->out_cpitch;
+	yofs = mbx * 16 + mby * 16 * (ypitch = mpv->out_ypitch);
 	ob = &mpv->outblk;
 	MPVUMC_SET_OUT_BLOCKS(mpv, ob, cofs, yofs, ypitch);
 	mpvumc_OutputIntra6blk(mpv->mcbuf, ob, mpv->clip_base);

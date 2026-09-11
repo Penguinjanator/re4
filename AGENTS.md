@@ -19463,6 +19463,67 @@ fd.py for a variant object).
   loop's fourteen >= 29-degree values (c, crp0..3, cbp0..3, cbv, crv, ccnt, o1..o3, i) removed one at a time as spill
   candidates (cost order, not id order) -- not a declaration-order problem, left.
 
+### CRI pass 17b: the post-RA CSE trigger, addi-off-addi, and anchored single-use locals (mpv_cmc Matching; mpv_umc 14 -> 15/16, Intra 16 -> 0; adx_bsc EvokeDecode 22 -> 12w; OneReadMb 72 -> 69w; pure C, no pins; 2026-09-11)
+Harness /home/adityas/.cache/cri17b/ (deleted): cri16a's `bld.sh`/`fd.py`/`tryvar.py`/`mwcc.sh` copies, `passes.sh
+SRC FUNC..` (the backend pass list the mwcc-debugger records per function), a sparse clone of
+github.com/ShulkMaster/mk-deception (`src/libmwsfdg`: their mpv_cmc/sfx_zmv/... carry the same residues as ours --
+decompiled style, no structure information). ~/.cache/mwccdbg reused; every claim below was read off a dump or a
+variant build (~0.3 s each).
+
+**Read off the dumps / variants (verified):**
+- **The backend picks its passes per function from flags set while the PCode is built, not from a fixed -O4 list**
+  (mwcc_debugger's breakpoint map: -O2/-O3/-O4 groups, each pass guarded). Probes f1..f6, g1..g3: the loop passes need
+  a loop; the PRE-RA CSE (0x500604) is brought in by a same-address reload with the SAME base vreg in another block
+  (`if (s->d) o = s->d;` -- a reload through an inlined helper's `void *` copy is a different vreg and does NOT count,
+  which is why adx_bsc's EvokeDecode never got it); the POST-RA CSE (0x433EFD, `addi r0, r24, -1` -> `mr r0, r23`)
+  runs only when two identical ALU instructions sit in one block with the first result still live at the second --
+  i.e. it depends on the PRE-RA SCHEDULE: f1 (`o = a - 1; o += x; pad = (a - 1) - rem`) gets it, the same statements
+  with more work in the block (g1, EvokeDecode) do not because the second `addi` is scheduled after the in-place
+  `add o, o, x` clobbers the first. In EvokeDecode the target's B1 also holds the `mullw nblk2 * blksmpl` of the `&&`
+  condition's second operand: **a single-use local whose only use is the right operand of `&&`/`||` (another block) is
+  NOT forward-substituted** (`n2b = nblk2 * blksmpl; if (nblk < nblk2 && pos + n2b - pad < bufsmpl)`), which puts the
+  mullw at the block's end and changes the bottom-up list schedule of everything above it; with `x70 =
+  adxb->wr_x70` loaded in the statement before `ofst += x70` (its load created after `ofst = blksmpl - 1`, ExecOneAdx's
+  shape) the pad `addi` lands two slots after ofst's and the post-RA CSE fires: 22 -> 12w.
+- **EADDASS/in-place adds always emit `add o, o, X`**, also for `o = (x = load) + o` (nested rhs, 12w = same code):
+  the codegen puts the destination operand first. The target's `add ofst, x70, ofst` (ExecOneAdx 1w, EvokeDecode)
+  therefore has ofst != the operand pre-RA: a range-split `ofst = blksmpl - 1; ofst = x70 + ofst` gives exactly that
+  operand order, but the split makes `blksmpl - 1` an available @temp and the frontend CSEs pad's `(blksmpl - 1)`
+  into it (T live to the pad subf, ofst r7 instead of r8, 29w); the CSE ignores `(Sint32)(Uint32)` casts, `1u`,
+  `+ 0`; `x70 + (blksmpl - 1)` and every nested-assignment spelling of it are reassociated to `(x70 + blksmpl) - 1`;
+  `pad = ofst` copies (pad 2-def or via a third local) are frontend-propagated. Still OPEN (1w in both functions).
+- **Add-propagation does not re-fold an `addi` it has just created**: `ob = &mpv->outblk; oi = ob->rt;` (two addis,
+  `oi = ob + 4`) folds `ob` into its ccnt store and into `oi` (`addi oi, mpv, 0x124`) but leaves `oi` as the base
+  register of the six stores -- the target's `addi r5, r3, 0x124` (OPEN since pass 1, "M1"). A pointer derived from
+  another pointer local is the C form of an unfolded member-array base; one level (`oi = mpv->oi_rt`) always folds.
+  Same class as sfd_buf's `ring` (not retried there).
+- **Nested-assignment anchors, extended**: the anchored variable is the one whose DEF contains the assignment, and the
+  nested variable survives only if used later. mpv_umc Intra: `x8 = (mbx = mpv->mb_x) * 8` keeps x8 (an own local:
+  coloured after the backend temporaries -> r9, `add cofs` in place) and makes mbx/mby OWN locals in place of the
+  CSE @temps (declared `mbx, mby`: mbx r6 above mby r7 -- as @temps mb_y was created first and took r6); `yofs = .. *
+  (ypitch = mpv->out_ypitch)` keeps yofs unpropagated (`add yofs, mbx16, prod` in place, `add pln2, yofs`). 16 -> 0.
+  OneReadMb: `yhx = (vx = mv->vec[0]) & 1` stops the frontend CSE of `vx & 1` with the kernel index (yhx r24 / chx r23
+  = target, 72 -> 69w); the rest is level membership (cvx/vx/vy have >= 29 neighbours in ours: r0/r6/r4 coloured
+  before the temporaries; level 1 in the target: r28/r25/r11). Statement orders move it 65-69w, not applied.
+- Inlined-helper single-use parameters (`mpvumc_AddOfs(x, y)`) and single-use `pcm` locals are substituted like own
+  locals; a helper-scope `pcm` with a fake second use gave the target's mono-arm schedule (pd loaded after pcmbuf) but
+  keeps its `mr r6` copy (pcmbuf r4) -- EvokeDecode's arm residue (10w: pcmbuf/shift r6/r7 in the stereo arms, the pd
+  load one slot later in the mono arm) is a scheduler tie between `lwz pd -> mr r3` and `lwz pcmbuf -> add r6` that
+  the target breaks the other way; not a declaration/statement-order effect (12 forms).
+- sfd_adxt `SFADXT_SetSpeed` 42w: the target addresses its four literals with per-literal `lis/lfs` pairs and no
+  pool base; ours pools (also 3 literals in a probe). `-pool off` / `#pragma pool_data off` give the shape (11w, +4
+  bytes: one `lis; addi r4, r3; lfs 0(r4)` left unfolded) and leave the other 23 functions identical, but the same
+  flag breaks dct_ac (AcIdctDouble, .rodata) / sfd_tst / sfd_cre / sfh_main, so it is not a library flag; the
+  function-level condition that disabled pooling there is unknown. Not applied (pragma, not C).
+- sfd_cre `sfcre_AnalyMpv` 15w / sfd_tst `SFTST_Calc` 79w / sfx_zmv `MakeCnvZTbl` 96w (src/dst declaration swaps move
+  the whole function, 35-110w) / cri_cvfs (four `cvfs_tbl` addis in backend-00, one per inlined search; the
+  target's single materialisation after strlen) / sfd_hds `SetHdr`: retried with the new anchors, unchanged.
+
+**Applied:** mpv_cmc (Matching, 111 OK: `MPVCMC_OUTBLK { ccnt; rt[6] }` struct, `ob`/`oi`/`work` locals with `work`
+declared first), mpv_umc `MPVUMC_Intra` 16 -> 0 and `mpvumc_OneReadMb` 72 -> 69 (15/16), adx_bsc `ADXB_EvokeDecode`
+22 -> 12 (three `void *` arm helpers `adxb_EntrySte/Pl2/Mono` with the out_nch/xdc tests in the caller, `n2b`, x70
+loaded at the add; 34/36). Not reached: adx_baif, adx_dcd5, cftfx, cftyp422_ppc, dct_ac, sfh_main.
+
 ### Tool RELs, t_esp pass 9 (t_esp 200 -> 201/212: ID_WINDOW ctor 157 -> 0 zero code; InitTool 11629 -> 9684 words with the frame now EXACT (0x2930) and .text 0x9ebc -> 0xa124 of 0xa20c; Load/SaveEmType 2/2 loop body reproduced, entry left; db_widget DB_STRING ctor 11 untouched; nothing flipped; 2026-09-11)
 
 - Harness ~/.cache/tesp9 (deleted): `mk.sh MOD/UNIT SRC OUTDIR` = compile with the module cflags + strip_unused/fold_linkonce

@@ -6,12 +6,15 @@ typedef struct {
 } MPVCMC_REF;
 
 typedef struct {
+	Sint32 ccnt;
+	MPVCMC_REF rt[6];
+} MPVCMC_OUTBLK;
+
+typedef struct {
 	Uint8 pad0[0xCC];
 	Uint8 mc[0x120 - 0xCC]; /* 0xCC */
-	Sint32 ccnt_rt;         /* 0x120 */
-	MPVCMC_REF oi_rt[6];    /* 0x124 */
-	Sint32 ccnt;            /* 0x154 */
-	MPVCMC_REF oi[6];       /* 0x158 */
+	MPVCMC_OUTBLK ob_rt;    /* 0x120 */
+	MPVCMC_OUTBLK ob;       /* 0x154 */
 	Uint8 pad188[0x1A4 - 0x188];
 	Sint32 mcflag;          /* 0x1A4 */
 	Uint8 pad1A8[0x280 - 0x1A8];
@@ -39,14 +42,16 @@ void MPVCMC_SetCcnt(MPV_OBJ *mpv)
 	} else {
 		ccnt = 4;
 	}
-	mpv->ccnt = ccnt;
-	mpv->ccnt_rt = ccnt;
+	mpv->ob.ccnt = ccnt;
+	mpv->ob_rt.ccnt = ccnt;
 }
 
-/* COMPILER-DIFF: M1 - the original keeps `addi r5, r3, 0x124` as a separate base for six stores into a member array while every C form folds the offsets into r3 (OPEN since pass 1). Pure C by project decision (CRI pass 8). */
+/* the block table is addressed through the output-block struct: `oi = ob->rt` is an addi off `ob`, and
+ * add-propagation folds only `ob` (into the ccnt store), leaving `oi` as the stores' base register */
 void MPVCMC_InitMcOiRt(MPV_OBJ *mpv)
 {
-	MPVCMC_REF *oi = mpv->oi_rt;
+	MPVCMC_OUTBLK *ob = &mpv->ob_rt;
+	MPVCMC_REF *oi = ob->rt;
 	Sint32 ccnt;
 	Sint32 i;
 	Sint32 w;
@@ -57,7 +62,7 @@ void MPVCMC_InitMcOiRt(MPV_OBJ *mpv)
 	} else {
 		ccnt = 4;
 	}
-	mpv->ccnt_rt = ccnt;
+	ob->ccnt = ccnt;
 	w = mpv->width;
 	for (i = 0; i < 2; i++) {
 		oi[i].n = w;
@@ -68,24 +73,27 @@ void MPVCMC_InitMcOiRt(MPV_OBJ *mpv)
 	}
 }
 
-/* COMPILER-DIFF: M1 - same separate member-array base as MPVCMC_InitMcOiRt. Pure C by project decision (CRI pass 8). */
 void MPVCMC_InitObj(MPV_OBJ *mpv)
 {
+	Uint8 *work;
+	MPVCMC_OUTBLK *ob;
 	MPVCMC_REF *oi;
 	Sint32 ccnt;
 	Sint32 i;
 
 	MPVMC08_Init(mpv->mc);
 	MPVMC16_Init(mpv->mc);
-	oi = mpv->oi;
+	ob = &mpv->ob;
+	oi = ob->rt;
+	work = mpv->work;
 	if (mpv->mcflag == 0) {
 		ccnt = -1;
 	} else {
 		ccnt = 4;
 	}
-	mpv->ccnt = ccnt;
+	ob->ccnt = ccnt;
 	for (i = 0; i < 6; i++) {
-		oi[i].p = mpv->work;
+		oi[i].p = work;
 	}
 	for (i = 0; i < 6; i++) {
 		oi[i].n = 8;

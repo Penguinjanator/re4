@@ -1626,7 +1626,6 @@ MATCHING.update({
     "lib/mpv_cdec.c": True,  # MPVCDEC_IntraBlocks: the six blocks cleared by six calls of a static inline helper storing 32 doubles through a `Float64 **cur` cursor (the second clear base `addi r8, mpv, 0x720` follows; CRI pass 9, shape from mk-deception)
     "lib/sfd_cre.c": False,  # CRI pass 14: sfcre_AnalyMpv 15w (the `ofs + 1` backend temp is coloured after the b4/b7 byte variables in the target, r0, before them in ours, r4 in place of ofs) / AnalyAudio 43w / AnalyMps 28w (inlined-helper temporaries and callee-saved permutations)
     "lib/cri_cvfs.c": False,  # CRI pass 13: 11/13, cvFsGetFileSize 63w / cvFsOpen 240w (-4 bytes) (the inlined cvfs_ResolveDev: pdev above tbl, tbl materialised after strlen); cvFsAddDev fixed by kept devname/getif copies + the inlined cvfs_AddDevTbl helper
-    "lib/mpv_cmc.c": False,  # CRI pass 8 (pure-C revert): MPVCMC_InitMcOiRt 8w / InitObj 17w (M1: separate member-array base `addi r5, r3, 0x124/0x158` folded into the offsets)
     "lib/adx_baif.c": False,  # CRI pass 10: 5/6, AIFF_GetInfo 91w (M1: FORM/size words share the loop registers); ExecOneAiff16 fixed by the `Uint16` swap temporary
     "lib/adx_dcd5.c": False,  # CRI pass 9: ADX_DecodeSte4AsSte 118w / Ste4AsMono 167w / Mono4 39w (M1 register ranking only: the original keeps smul in r0 / i in r10 / c1,c2 extended in place; the history locals declared first fixed the AdxQtbl address hoist)
     "lib/sfd_hds.c": False,  # CRI pass 13: 10/11, SFHDS_SetHdr 11w (result r30 > len r29 > p r28 = the inlined SetHdrPkt's parameter copies kept as nodes in the target); sfhds_DoProcessHdr fixed by per-site if/else locals for the vid ternaries
@@ -1766,4 +1765,9 @@ MATCHING.update({
 # CRI pass 16b (2026-09-11)
 MATCHING.update({
     "lib/sfx_cnv.c": True,  # CRI pass 16b: the LUMI table loop is a static helper defined before SFX_MakeTable (its 1.164f literal and int->float constant are created before MakeTable's strings; the inlined helper's `i` shares the zero `li` and takes r4) and the conversion is `(Uint8)(1.164f * ...)` without the (Sint32) cast (the fctiwz slot/FPR order); pure C
+})
+
+# CRI pass 17b (2026-09-11)
+MATCHING.update({
+    "lib/mpv_cmc.c": True,  # CRI pass 17b: the block tables addressed through an MPVCMC_OUTBLK struct pointer (`oi = ob->rt`: an addi off another addi is not folded by add-propagation), `work` local declared first
 })
