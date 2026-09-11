@@ -9,9 +9,8 @@
 #include "os_vi.h"
 #include "db_log.h"
 
-// Remaining diffs: AddSandPower keeps the Chk_pos address in r10/r11 swapped (99%); SetSandWork
-// (returns w like SetWaterWork, frame now equal) allocates j+1 / the 0x4330 high / the three pool
-// addresses of the first strip loop to other registers (44 words); everything else matches.
+// Remaining diff: AddSandPower issues `stfs f1, Add_power` two slots late (3 words: registers are
+// the target's, only the sched2 slot of the store differs); everything else matches.
 // Effect controller 43: sand surface. A (nx+1) x (ny+1) height grid drawn as triangle strips
 // through a prebuilt display list; AddSandPower pushes the grid down around a world position
 // and GetSandHeight samples it (obj09).
@@ -128,7 +127,7 @@ void AddSandPowerSub(EspgenWork* w)
 void AddSandPower(Vec* pos, f32 power)
 {
     if (pG->flags_500C & 2) {
-        FSet(Add_power, power);
+        Add_power = power;
         ISet(Height_find, 0);
         Chk_pos = *pos;
         EspgenApplyFunc(AddSandPowerSub);
