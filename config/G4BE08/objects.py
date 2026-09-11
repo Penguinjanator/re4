@@ -1053,6 +1053,7 @@ STRIP_UNUSED = {
     "game/map_obj.cpp",
     "game/Espgen43.cpp",
     "game/Espgen42.cpp",
+    "game/espgen45.cpp",
     "game/esp43.cpp",
     "game/emtree.cpp",
     "game/objRobo.cpp",
