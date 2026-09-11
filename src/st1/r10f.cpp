@@ -150,6 +150,17 @@ void R10fMain()
 {
 }
 
+// View of the three tables of GondolaGetOn/GetOff as one object: the target forms `&posA[side]` as
+// `mulli; add r4,r4,&mot; addi r4,r4,24` (`&posB[side]`: `addi 48`), i.e. get_inner_reference's
+// "base + variable offset, then the constant field offset" shape (the Vec alignment (4) fails the
+// bitpos-folding test that folds `mot[side][2]` into `addi r9,r1,16; lwzx`), with `&mot` (fp+8) the
+// base pseudo in a callee-saved register. Plain `&posA[side]` puts `fp+32` into its own pseudo instead.
+struct R10fGondolaTbl {
+    void* mot[2][3];
+    Vec posA[2];
+    Vec posB[2];
+};
+
 // Get on the cable car at `side` (0: the village side, 1: the far side): Leon and Ashley step
 // on, the gondolas move to their positions and the ride starts.
 static void r10f_GondolaGetOn(int side)
@@ -165,6 +176,7 @@ static void r10f_GondolaGetOn(int side)
     cObj* obj;
     u32 i;
     cSubChar* sub = pSUB;
+    R10fGondolaTbl& t = *(R10fGondolaTbl*) mot;
 
     if (sub != 0 && RouteCkPosToPosDis(&pPL->pos, &sub->pos) > 10000.0f) {
         cMes.MesSet(0x67, 0x64, 0x150 - cMes.getWork()->lineSpace - cMes.getWork()->fontH - 1, 1, 0, 0, 4);
@@ -181,7 +193,7 @@ static void r10f_GondolaGetOn(int side)
         {
             cPlayer* pl = pPL;
 
-            pl->setPos(&posA[side]);
+            pl->setPos(&t.posA[side]);
             ang.x = 0.0f;
             pa->y = ry;
             ang.z = 0.0f;
@@ -194,7 +206,7 @@ static void r10f_GondolaGetOn(int side)
             {
                 cSubChar* s = pSUB;
 
-                s->setPos(&posB[side]);
+                s->setPos(&t.posB[side]);
                 ang.x = 0.0f;
                 pa->y = ry;
                 ang.z = 0.0f;
@@ -298,6 +310,7 @@ static void r10f_GondolaGetOff(int side)
     Vec zero;
     Vec p;
     cObj* obj;
+    R10fGondolaTbl& t = *(R10fGondolaTbl*) mot;
 
     SceAtSetEnable(9, 0);
     SceEventStart(0);
@@ -311,7 +324,7 @@ static void r10f_GondolaGetOff(int side)
         {
             cPlayer* pl = pPL;
 
-            pl->setPos(&posA[side]);
+            pl->setPos(&t.posA[side]);
             ang.x = 0.0f;
             pa->y = ry;
             ang.z = 0.0f;
@@ -324,7 +337,7 @@ static void r10f_GondolaGetOff(int side)
             {
                 cSubChar* s = pSUB;
 
-                s->setPos(&posB[side]);
+                s->setPos(&t.posB[side]);
                 ang.x = 0.0f;
                 pa->y = ry;
                 ang.z = 0.0f;

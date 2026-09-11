@@ -57,7 +57,7 @@ struct R222WorkPtr {
 
 static R222WorkPtr r222_work;
 
-Vec r222_zero = {0.0f, 0.0f, 0.0f};
+static Vec r222_zero = {0.0f, 0.0f, 0.0f};  // local in the REL (ADDR16 fields hold S+A)
 static f32 r222_angA0 = 0.68f;
 static f32 r222_angA1 = 1.08f;
 static f32 r222_angA2 = -2.53f;
@@ -97,12 +97,12 @@ static int getResetNum();
 static void incResetNum();
 void em_reset();
 
-// A dragon's shot target: hit box on the object's position.
-static inline void r222_setHit(int no, u32 objId)
-{
-    r222_work.p->hit[no] = SetEmHit((void*) (pG->pArc->ofs_20 + (u32) pG->pArc), (void*) (pG->pArc->ofs_24 + (u32) pG->pArc), &SmdGetObjPtr(objId)->pos, &SmdGetObjPtr(objId)->rot, 1);
-    YarareInitCube(r222_work.p->hit[no], 0.0f, -3500.0f, 0.0f, 550.0f, 1300.0f, 550.0f, 0, 1);
-}
+// A dragon's shot target: hit box on the object's position. A macro, not an inline: integrate.c drops
+// RTX_UNCHANGING_P from an inlined body's pool loads, which then wait for the `hit[no]` store (cost 2);
+// as pool MEMs of the function itself the YarareInitCube constants are `mem/u` and issue before it.
+#define r222_setHit(no, objId)                                                                                  \
+    r222_work.p->hit[no] = SetEmHit((void*) (pG->pArc->ofs_20 + (u32) pG->pArc), (void*) (pG->pArc->ofs_24 + (u32) pG->pArc), &SmdGetObjPtr(objId)->pos, &SmdGetObjPtr(objId)->rot, 1); \
+    YarareInitCube(r222_work.p->hit[no], 0.0f, -3500.0f, 0.0f, 550.0f, 1300.0f, 550.0f, 0, 1)
 
 void R222Init()
 {
@@ -110,10 +110,10 @@ void R222Init()
 
     // Reference store for the calloc result: its `lis r222_work@ha` is hoisted into a callee-saved register
     // before the call (the r11b/r402 idiom); the sixth be_flag store is a BitOn so the RsfCheck's `lwz pG`
-    // stays below it.
-    R222Work*& wp = r222_work.p;
-
+    // stays below it. The reference is declared after the pG flag store so that `high(pG)` is the earlier
+    // gcse expression: the two PRE'd highs fill the prologue's free slots in first-occurrence order.
     pG->flags_64 |= 0x20000;
+    R222Work*& wp = r222_work.p;
 #line 70 "D:/Bio4/Prog/r222.cpp"
     wp = (R222Work*) MEM_CALLOC(sizeof(R222Work), 1, 0xd);
     pG->flags_5010 |= 1;
@@ -314,6 +314,10 @@ void Hit(int no)
 void R222Main()
 {
     f32 ry;
+    // The SE timer's reset value lives in a pseudo set here and used once: update_equiv_regs moves the
+    // `li` next to the store AFTER sched1, so sched1 issues the store at t1 (with the template's `lis`)
+    // and the template's word-0 load gets the work pointer's register.
+    int seReset = 30;
 
     if (DebugTrg(0)) {
         SceExec(0x12, (TaskFunc) dragon_down, 0, 0, 2, 0);
@@ -351,7 +355,7 @@ void R222Main()
     r222_work.p->satRot.y = SmdGetObjPtr(1)->pParts->rot.y;
     r222_work.p->sat->setCoord(&r222_work.p->satPos, &r222_work.p->satRot);
     if (r222_work.p->seTimer <= 0) {
-        r222_work.p->seTimer = 30;
+        r222_work.p->seTimer = seReset;
         Vec pos = {-37635.0f, -7165.0f, -10599.0f};
 
         pos.x += fRand1_1() * 32107.0f;

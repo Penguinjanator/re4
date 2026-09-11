@@ -16014,3 +16014,76 @@ rewritten; `tryv.py UNIT SYM v/x.py`, `sbs.sh UNIT SYM [OBJ]`, `dump.sh UNIT -dX
   `pos` below `lwz o` (may-alias through the unknown-base pointer) and gives y r0 (29 words) -- structurally worse;
   not applied. `Vec* v = &c->pos`, memcpy, `Vec pos = c->pos`, memberwise y,x,z (67): no r0.
 - r20e checkPuzzle 224 not iterated (pass 8's region list stands).
+
+### Stage rooms, st1_3/st2_0 pass 9 (r222 Matching 29/29 -> `st2_0/r222.cpp` flipped; r202 initCatapult mechanism read (67 unchanged); r10f GondolaGetOff 77 -> 26, GetOn 141 -> 126 via the struct-view address form; 2026-09-11)
+
+- Harness ~/.cache/rooms_b9 (rooms_a8 copies with the paths rewritten: `mcmp.py MOD/UNIT [SYM]` with `OBJ=`, `tryv.py
+  MOD/UNIT SYM v/x.py`, `mdump.sh MOD/UNIT -dX` with an ABSOLUTE `SRC_OVERRIDE`, `sbs.sh MOD/UNIT SYM [OBJ]`, `fn.sh`,
+  `prio.py`, `order.py`; new: `tailcmp.py MOD/UNIT [OBJ]` = masked compare of the nameless `fn_*` linkonce block
+  (`0 word diffs` = only reloc names differ), `flipchk.sh MOD UNIT...` = re-link the module with our objects for the
+  named units (rsp built from build.ninja) + `make_rel.py --verify` against the original REL; deleted at the end).
+- **r222 R222Main 7 -> 0, zero code: `int seReset = 30;` at the function top, `seTimer = seReset`.** The pseudo is set
+  in bb 0 and used once in the store block, so at sched1 the `stw` has no `li` to wait for and is issued at t1 with
+  the template's `lis` (t1: lis + stw; t2: `lwz word0` + addi-low, w0 first by weight 0 vs +1); update_equiv_regs
+  then moves the `li` right before the store (after sched1: `li r0,30` is a 2-insn qty, r0) and local-alloc gives
+  word 0 r11 (the work pointer died at the stw before its birth) and the addi-low r9 (born after the high's death
+  at the lwz). Rule: when the target issues a constant store BEFORE `mem/u` loads that our sched1 puts after it,
+  give the constant a pseudo set in another block (a literal is a `li` in the block that delays the store one cycle).
+- **r222 R222Init 72 -> 0, zero code, two pieces.** (1) `r222_setHit` as a MACRO, not an inline: integrate.c copies
+  the inline body's pool loads without RTX_UNCHANGING_P (the `mem/u` MEM becomes `(mem (reg))` through the forced
+  address), so all four YarareInitCube constants of every block got a cost-2 true dependence on the `stw hit[no]`
+  (`-fsched-verbose-6`: the store's dependents listed the `lfs`es) and issued after it; as pool MEMs of the function
+  itself they are `mem/u` and never depend on a store (the em2dGravityMove lever). (2) `R222Work*& wp = r222_work.p;`
+  declared AFTER `pG->flags_64 |= 0x20000`: the two PRE'd highs (`high(pG)`, `high(r222_work)`) are inserted at the
+  end of bb 0 in expression-index = first-occurrence order and fill sched1's free slots in that order (target `lis
+  r22 pG` before the stw, `lis r31 work` after); with the reference first, `high(r222_work)` was the earlier
+  expression (its lo_sum is expanded at the declaration). Also `static Vec r222_zero` (make_rel --verify: ADDR16
+  fields S+A, the split's `lbl_st2_0_data_300` is `scope:local`). Unit 29/29 (the 0x3B8 nameless cLight block
+  differs only in REL24 names), `st2_0/r222.cpp` flipped, 111 OK.
+- **r202 initCatapult 67 (unchanged; the mechanism is now exact, two pieces):**
+  - The after-loop `stw r28,180(r9)` is the LOOP's hoisted zero: zero-code with `int zero;` declared before the loop,
+    `zero = 0;` written INSIDE the body right before `cat[i].state = zero` (state/timer/thrown/nArea = zero, the two
+    ScePrim* stores may stay literal 0: cse's class head), `cat[2].timer = zero` after the loop. loop.c hoists the
+    user variable like the literal (same movables position: after `lis work` and `li 1`), and the after-block uses
+    the same pseudo. Declared at the top or set before the loop, its `li` sits before the hoisted insns (LUID).
+  - The after-loop `lwz r3,work@l(r27)` x9 = gcse's reaching reg R (`PRE/HOIST: end of bb 0, copying expression 13`)
+    used directly: our copy `r_a = R` in the after-block carries cse1's `REG_EQUAL (high work)` and cse2
+    re-materialises it (`high` cost 0 < REG 1); cprop cannot help (the copy is in the same block as every use --
+    AVIN-based `find_avail_set`, and `insert_insn_end_bb` only reaches bb 0). Every sched/cse path was checked: cse's
+    ebbs cannot carry bb 0 into the after-block (the template-copy label and the loop label end them; a backward
+    `bne` is never followed: `no_labels_between_p` fails), `-fno-rerun-cse-after-loop` keeps the copy as `mr` but does
+    not propagate it, a dead do-while around the loop hoists the body high to the top. TAGGED FORM TRIED (11 words,
+    not applied): `register u32 hi asm("r27"); asm("lis %0,%1@ha" : "=r"(hi) : "i"(&r202_work))` at the top plus
+    `({ asm("lwz %0,%1@l(%2)" : "=r"(t_) : "i"(&r202_work), "r"(hi), "m"(*(R202Work**) hi)); asm("" : "=r"(w_) :
+    "0"(t_)); w_; })` for the nine reloads (the fake register-addressed "m" gives the store->load dependence
+    without a second high; the codeless chain asm restores the load's 2-cycle latency so `li r4; li r5; addi r3`
+    keep the target order) and `asm volatile("" : : "r"(hi))` at the end (the last reload otherwise reuses r27).
+    It reproduces everything except bb 0: the asm `lis` has prio 1 / weight +1 like `li r10,48` and wins the t3 tie
+    by LUID (any source insn precedes the block move's insns; the PRE insertion's LUID is after them), a "memory"
+    clobber (weight +2) drops it behind the PRE `addi`s. So the `lis r27` in bb 0 can only be gcse's own R; the
+    function needs R to survive (the #3 "target uses R directly" family: r10c r27, r120 r31, R213Init).
+- **r10f GondolaGetOff 77 -> 26, GetOn 141 -> 126 (pure C++, no tag): `struct R10fGondolaTbl { void* mot[2][3];
+  Vec posA[2]; Vec posB[2]; }; R10fGondolaTbl& t = *(R10fGondolaTbl*) mot;` and `&t.posA[side]`, `&t.posB[side]`.**
+  The target's `mulli r4,side,12; add r4,r4,r31; addi r4,r4,24` (`addi 48` for posB) with `r31 = fp+8` (the mot
+  copy's dest pseudo) is expr.c normal_inner_ref: base object `*t` at fp+8, variable offset `side*12` added first,
+  the constant field offset (bitpos 24/48) last -- the bitpos-folding test (`(alignment * BITS_PER_UNIT) ==
+  GET_MODE_ALIGNMENT (mode1)`) fails for a Vec (alignment 4, BLKmode), while for `mot[side][2]` (SImode, alignment 4)
+  it folds the constant into the frame base first (`addi r9,r1,16; lwzx`), in both builds. A standalone
+  `&posA[side]` forces `(plus fp 32)` into its own pseudo (r29) and cse merges it with the template copy's address.
+  The plain struct initializer (`t = {{{..}},{..},{..}}`) is wrong (memset + element stores); the mot temp-copy and
+  the two Vec templates need three separate array declarations. Left: GetOff's target recomputes `side*12` at each
+  of the three uses (`mr r23,r3` kept, three `mulli`) while cse1 shares ours (bb-0 ebb through the pSUB fall-through
+  and the AROUND path to the join) -- and GetOn's target DOES share it (`mulli r26,r22,12; mr r4,r26; add r4,r4,r23;
+  addi r4,r4,24`: the copy `r4 = r26` and the `(r_m + r_8) + 24` association survive, ours combines to `addi
+  r4,r26,24; add r4,r31,r4`); both read as the address chain computed with the hard argument register as its
+  target (a hard-reg dest is not a gcse/cse candidate, an `(set r4 (plus r4 ..))` chain is not re-associated by
+  combine) -- no source form found that expands a call argument that way (`static inline` on the functions,
+  `&((Vec*) &mot[2])[side]`: unchanged). Also left in both: `li r4,0; li r3,9` before `stw r0,32(r1)`, the
+  `lis r22`/`lis r21` order, GetOn's `mr r23,r8` (&mot copied early) and the 0x14 frame difference.
+- Facts read this pass: integrate.c drops RTX_UNCHANGING_P from an inlined body's constant-pool loads (only
+  MEM_IN_STRUCT_P / MEM_VOLATILE_P / alias set are copied); cse's `use_related_value` applies to CONST (symbol +
+  offset) only -- frame addresses `(plus fp N)` have no related-value folding; `cse_end_of_basic_block` follows a
+  conditional jump TAKEN only when the label has one use and is preceded by a BARRIER, AROUND only when the jump is
+  forward with no label between (a loop's back edge is never followed; the fall-through continues the ebb); the
+  `(use (const_int 0))` flow nop is emitted only after a CALL_INSN that ends a block; a codeless `asm("" : "=r"(w) :
+  "0"(t))` chained on an asm load restores the 2-cycle latency the asm load lacks (asm producers cost 1).
