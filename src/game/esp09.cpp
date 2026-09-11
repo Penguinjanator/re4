@@ -265,6 +265,7 @@ void Esp09_PolyTrans(cEsp09* esp, u8 r, u8 g, u8 b, u8 a)
     Vec* p0;
     Vec* pp;
     Vec* s;
+    Vec* pn;
     int idx = w->idx;
     s8 n1 = w->n - 1;
     int i = 0;
@@ -275,23 +276,30 @@ void Esp09_PolyTrans(cEsp09* esp, u8 r, u8 g, u8 b, u8 a)
 
     esp->scale = 1.0f;
     spd = esp->scaleSpd;
-    // The next point is recomputed from idx: loop.c strength-reduces it as a giv of the biv idx
-    // (`addi -12` after idx--, `add r25,r14,r20` after the wrap, `mr r29,r25` at the set) and its
-    // preheader init folds to the block-0 temporary `s` (kept as cse's head by the dead trailing
-    // `p = s`). Left: the `p0 = p; pp = p` pair (ours folds pp = p0), s in r0 (target r3).
+    // The next point pn is recomputed from idx: loop.c strength-reduces it as a giv of the biv idx
+    // (`addi -12` after idx--, `add r25,r14,r20` after the wrap) and its preheader init folds to
+    // the block-0 temporary `s` (kept as cse's head by the dead trailing `p = s`). The Subtract
+    // argument reads the giv register (`mr r3,r25`) and `p = pn` is the asm-emitted `mr r29,r25`
+    // (a plain copy makes p a second giv). idx-- between the two copies puts the giv `addi` before
+    // `mr pp,p`. The two codeless asms give p (2 in-loop mentions -> 17 refs) and pp (4 -> 14 refs)
+    // the target's global-alloc order p r29 > pp r28 > esp r27 (ours ranked esp first); the pp asm
+    // sits after the second PSVECAdd with a memory input written by that call so it takes no issue
+    // slot before the `bl`. The wrap-arm asm also keeps `pp = p` reading p (regmove).
     s = &w->pts[idx];
     p = s;
     for (i = 0; i < n1; i++) {
         p0 = p;
-        pp = p;
         idx--;
+        pp = p;
         if (idx < 0) {
             idx = n1;
+            asm("" : "=m"(d) : "r"(p), "r"(p));  // COMPILER-DIFF: candidate (global-alloc priority)
         }
-        p = &w->pts[idx];
+        pn = &w->pts[idx];
+        asm("mr %0,%1" : "=r"(p) : "r"(pn), "0"(p));  // COMPILER-DIFF: candidate (cse canonical register)
         rate = (f32)i / (f32)n1;
         half = (rate * esp->sizeY + (1.0f - rate) * esp->sizeX) * 0.1f;
-        PSVECSubtract(p, p0, &d);
+        PSVECSubtract(pn, p0, &d);
         if (w->flags & 1) {
             up.x = 0.0f;
             up.y = 0.0f;
@@ -317,6 +325,7 @@ void Esp09_PolyTrans(cEsp09* esp, u8 r, u8 g, u8 b, u8 a)
         if (first == 0) {
             PSVECAdd(pp, &q[0], &v[0]);
             PSVECAdd(pp, &q[1], &v[1]);
+            asm("" : "=m"(d) : "r"(pp), "r"(pp), "r"(pp), "r"(pp), "m"(v[1].x));  // COMPILER-DIFF: candidate (global-alloc priority)
             first = 1;
         } else {
             v[0] = v[3];

@@ -743,12 +743,14 @@ void MercSysSetSaveWork(MercSaveWork* save)
 
     for (i = 0; i < 4; i++) {
         {
-            // Two-set `w` (mode first, then the whole word): the mode chain leaves local-alloc, so
-            // i*12 takes r10 and pSys r8 like the original. Left (10): the target's first `or` is
-            // `or r0,r7,r0` = a fresh dest tied to the MODE operand (the score chain's qty was not
-            // tieable there), mode chain r0 / score chain r7.
-            u32 w = (save->stage[i].mode & 7) << 28;
-            w = (((save->stage[i].score / 10) & 0x0FFFFFFF) | w) | (save->stage[i].newFlag << 31);
+            // Two-set `sc` (the load, then the scaled/masked value): two deaths make it a global
+            // pseudo, so local-alloc cannot tie the first `or` to it (the result is tied to the mode
+            // operand instead: `or r0,r7,r0`) and global.c gives it r7 after local-alloc took r10/r8
+            // for i*12 / pSys.
+            u32 sc = save->stage[i].score;
+            u32 w;
+            sc = (sc / 10) & 0x0FFFFFFF;
+            w = (sc | ((save->stage[i].mode & 7) << 28)) | (save->stage[i].newFlag << 31);
             SysRef(pSys)->x10[i] = w;
         }
         for (j = 0; j < 5; j++) {

@@ -1706,3 +1706,8 @@ MATCHING.update({
 MATCHING.update({
     "lib/builtin-delete.c": True,  # strings of SN's dead-stripped libstdc++ operator new/delete stubs (static bodies, LIBSN_UNITS strip)
 })
+
+# DOL sweep 18a (2026-09-11)
+MATCHING.update({
+    "game/esp09.cpp": True,  # PolyTrans: `pn = &w->pts[idx]` giv read by the Subtract argument, `p = pn` as an asm-emitted `mr` (cse canonical), idx-- between the p0/pp copies; two codeless "=m" asms with dead in-loop mentions rank p (17 refs) and pp (14 refs) above esp in global-alloc (candidate: global-alloc priority)
+})

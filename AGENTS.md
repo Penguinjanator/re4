@@ -3190,6 +3190,89 @@ frame out as an inlined block and bounces `delim`, -4 bytes).
   then inlined helpers' aggregates in inlining order (nested/second-round inlines lowest), independent of
   code order.
 
+### CRI pass 12: the kept parameter copy (mwsfdsvr Matching; gcci 12 -> 13/15; adx_tsvr pins -> C; 2026-09-11)
+Tooling (PERSISTENT, reuse it): `/home/adityas/.cache/mwccdbg/` = cadmic's mwcc-debugger + encounter's
+retrowin32 `gdb-stub` build; `README.md` there has the exact build/run commands; `ra.py lib/unit Func
+[--src file.c] [--out DIR]` runs it with the unit's ninja flags on GC/2.6 (~3 s, static functions by plain
+name) and `rasum.py DIR [--nb]` prints the priority list as one line per node (`vid -> reg name
+removed-degree/total [neighbours]` + the coalesced ghosts). Pass harness /home/adityas/.cache/cri12/
+(deleted): `bytecmp.py lib/unit [--funcs]`, `tryvar.py lib/unit variants.py Func.. [--offs] [--keep LABEL]`
+(~60 ms per variant, `--keep` writes the variant source for ra.py), probe files `probe_copy*.c`.
+
+**The "kept copy" question, answered with probes (t1..t7, u1..u16, v1..v12 in probe_copy*.c):**
+- A plain `p = param` is removed by the FRONTEND (copy propagation). A copy whose right side carries a
+  type conversion is kept by the frontend as `EASS p = ETYPCON(param)`: `void *obj` -> `MWPLY mwply =
+  obj` (implicit), `(MWPLY)obj`, and even a no-op explicit cast `(MWPLY)(MWPLY_OBJ *)mwply` or
+  `(Sint32 *)(void *)result`. Conversions of call ARGUMENTS (`f((S *)p)`, `void *` prototypes) create
+  no temporaries and no ghosts (probe w1..w5).
+- The BACKEND then propagates that `mr copy, param` away unless the copy is later moved into an
+  argument register with `mr rN, copy` that cannot collapse: i.e. rN != the parameter's own register
+  (u14 `f2(0, p)` with p from r3; u2 `f(p)` with p from r4) or rN == the parameter's register but only
+  after a call clobbered it (v10 `f(p->sfd); f(p)`). `f(p)` as the FIRST call of an r3 parameter (u4,
+  u16 with r4/r4), stores of the copy (`glob = p`), loads/stores through it, compares (u3, u5, u13, v1..v7)
+  all let the backend remove the copy. When it survives, the parameter is coalesced into its argument
+  register (ghost `r32 -> r3 = obj`) and the copy is a real node with the LOCAL's id: it ranks by its
+  declaration position (last declared = lowest), above the parameters — that is the pass-5 "asm copy of
+  the first parameter" lever and pass 11's "ghost the original kept", in plain C.
+- Where the original CRI code got such copies for free: handlers declared with `void *` parameters
+  (server callbacks, CVFS interface functions, decoder trap callbacks) that convert the object to the
+  typed handle in their first statement. adx_sjd's real `ADXSJD_EntryTrapFunc(sjd, void (*fn)(void *obj),
+  obj)` signature confirms the callback type.
+
+**Fixed (pure C, no pins):**
+- mwsfdsvr (Matching). `mwsfd_ExecSvrHndl(void *obj)` + `MWPLY mwply = obj` declared before `sfd` (mwply
+  r31 above sfd r30; the M3 `dont_inline` pragma stays). `mwSfdExecDecSvrHndl(void *obj)`: the kept copy
+  also schedules the pool `lis` above the parameter move (target `lis r4; stw r0; stmw; mr r29, r3`),
+  and ONE function-scope `void *sfd` assigned in both switch cases: its PLAYING redefinition is a
+  range-split frontend copy that outranks the backend temporaries (r28, where a block-scoped second
+  `sfd` got r27); `sfd` declared before `mwply` (mwply r29 below sfd r30). `mwlSfdSleepDecSvr`: the 10x
+  wait loop as its own `static void mwsfd_SleepLoop(MWPLY)` helper (inlined) — the two zero stores of
+  the inlined ClrSleepBdr then become copies of the counter's zero (`li r28, 0; li r29, 1; mr r30, r28;
+  mr r31, r28`) because the helper's `i = 0` lands in the same block as the hoisted loop constants and
+  the backend CSE pairs each `li 0` with the first one (i is multi-def, so the copies cannot be
+  propagated; the two `li 1` collapse into one). In the caller's own loop the `li i, 0` sits in the
+  `if` block and the constants in a new preheader block: CSE is block-local (do/while, while, `for`
+  without init, `Sint32 i = 0` at the top, register/short/Uint8 counters: all 43w).
+- gcci 12 -> 13/15: the CVFS handlers take `void *hn` (`GCCI gcci = hn`, as the `CVFS_IF` slots are
+  typed): `gcCiReqRd` gets the target's gcci r27 / buf r26 / nsct r25 (157 -> 1w together with
+  `gcci_IsBusy(gcg_ci_obj)`/`gcci_ExecServer(gcg_ci_obj)` indexing `tbl[i]`, no `tbl` local), `gcCiClose`
+  (Matching) needs `gcCiStopTr(void *hn)` as well and the call written `gcCiStopTr(hn)`: the inlined
+  copy is then a second copy of r3 (`mr. r28, r3; mr r29, r3`, stmw r24) instead of a copy of gcci.
+- adx_tsvr: the three trap callbacks `adxt_trap_entry_lps/adxt_nlp_trap_entry/adxt_trap_entry(void *obj)`
+  with `ADXT p = obj` replace the two pass-5 `asm { mr p, adxt }` pins byte for byte (still 5/6:
+  nlp_trap_entry's `lha r4` below).
+
+**Residues read off the dumps (exact class):**
+- gcci `gcCiReqRd` 1w: the target initialises the ExecServer stepping pointer `addi r29, pool, 0x14`
+  BEFORE the inlined IsBusy loop and IsBusy's own pointer is `mr r4, r29`; ours materialises IsBusy's
+  pointer directly and ExecServer's at its loop. A `tbl` local stepped by an inlined `gcci++` parameter
+  gives `mr r29, r5` (the copy of a multi-definition destination is neither propagated nor coalesced);
+  a macro loop stepping `tbl` itself gives the target's copy structure but ranks the loop locals as
+  own locals (153w). `gcCiExecServer` 33w wants the pointer above `i` (pointer-local-declared-last
+  helper: 0w there, 94w in ReqRd) — no single helper body fits both callers (18 forms).
+- sfd_hds `sfhds_DoProcessHdr`: the vid-section `id` is the range-split copy @151 (30 neighbours = 12
+  physical + sfh/fhd + the NINE `?:` result temporaries @122..@146 (created at IR conversion, so they
+  get HIGHER ids than the split copies made later) + `li -1`, `li 0`, the `eff != 0` chain and the
+  second `lwz eff`). Removal scans ids upward: a node is removed in iteration 1 only if its degree is
+  < 29 at its own scan, and @151's small neighbours all have higher ids, so it survives to iteration
+  2 with sfh/fhd and is pushed after them (r31). The target needs @151 removed in iteration 1: two
+  neighbours with lower ids or absent. Block-scoped `Sint32 val` for the ternaries, a shared `t`, a
+  separate `vid_id` local (still 30, still level 2 -> r31), if/else stores (two stw) do not do it.
+  `SFHDS_SetHdr`: target order result r30 / len r29 / p r28 = `result` a node between len and the
+  frontend temps, i.e. an inlined-helper parameter or first-declared local copy; casts on the call
+  argument and `(Sint32 *)(void *)result` copies are propagated (no argument move exists for it), a
+  wrapper+helper split turns the Bool return into an r7 variable (44w).
+- adx_tsvr `adxt_nlp_trap_entry` `lha r4` vs `r0`: the temporary's neighbours are r1, r3 (n2 in r3 via
+  the coalesced `?:` copies r54/r55), ofst1, n1, sfd/sji/p, ofst2v; no r0-coloured node exists in the
+  target's instruction stream between the join and the add, `add` operands get no physical-r0 edge
+  (only `addi`/load bases do, cf. r44/r46 vs r51), so the extra edge is not derivable from the bytes;
+  31 spellings (ternary/if forms of n2, initialisations, casts, orders, Sint16 temporaries) leave r0.
+- cri_cvfs `cvFsAddDev` 32w: level 2 = {pool@, errfn@, vtbl (30), devname (40)}, coloured by id: vtbl
+  r29 above devname r28; the target has devname r29 / vtbl r28 and the direct `mr r28, r3` of a
+  redefinition (`vtbl = NULL` inits are dead-store-eliminated, 5 forms).
+- mpv_hdec `MPV_DecodePicAtrSj`: mpv/sj swap is the kept-copy class (mpv passed to the inlined helpers'
+  real calls after calls) but the frame-layout residue (0x20 shift, pass 7) stays; not touched.
+
 ## REL modules
 
 The game loads its rooms, enemies, weapons and debug tools as Nintendo REL overlays. `ninja` rebuilds the
@@ -16631,3 +16714,73 @@ HAZARD: wibo's NgcAs writes the `-o` path case-insensitively -- two tryv variant
   `k255` local, moving `max = 255.0f` first and a `"m"` keep-alive asm change nothing (4-31 words). Not resolved.
 - Not iterated: db_widget DB_STRING (11) / DB_WINDOW (14), db_mod IKreport (10) and the larger residues, t_esp's larger
   residues.
+
+### DOL sweep 18a, closest-first (esp09 Matching; mercenaries SetSaveWork 10 -> 0, emmine R1_Shot 40 -> 8; db_menu move / GetSaveWork mechanisms read; 2026-09-11)
+
+Flipped: esp09 (14/14); build 111 OK after the flip and after every edit. Harness ~/.cache/dol18a (dol17 copies with the paths
+rewritten: `tryv.py UNIT SYM v/x.py`, `sbs.sh UNIT SYM [OBJ]`, `dump.sh UNIT -dX` with `SRC_OVERRIDE` (output named by the unit
+basename), `fsec.py DUMP FUNC`, `prio.py PRE`, `order.py UNIT`, `t/cc.sh FILE.cpp` = compile a scratch .cpp and disassemble);
+deleted at the end.
+
+- **Global-alloc order changed with codeless in-loop mentions (esp09 Esp09_PolyTrans 48 -> 0, unit Matching; tagged
+  `candidate (global-alloc priority)` x2 + `candidate (cse canonical register)`).** The target allocates p (r29) and pp (r28)
+  BEFORE esp (r27, 17 refs / 201 = 0.338); ours ranked p 13/181 = 0.215 and pp 6/120 = 0.100. Priority = floor(log2 refs) *
+  refs / len, refs weighted +2 per in-loop mention: an asm input `"r"(p), "r"(p)` in the `if (idx < 0)` wrap arm (its own
+  2-insn block, no slot effect) gives p 17 refs (0.372), and `"r"(pp)` x4 gives pp 14 refs / 125 = 0.336 vs esp 68/203 =
+  0.335 (int priorities 3360 vs 3349). Rules read: (a) the mentions of a COPY (`pp = p`) are copy-propagated to the source
+  while the copy is still valid, so pp's mentions must sit after p's reassignment (the `asm("mr ..")` that sets p = pn);
+  (b) a `"=m"` asm in a block takes an issue slot and, having every later call as a dependent, is issued at its earliest
+  ready cycle -- at the top of the `first == 0` arm it displaced `li r15,1` and the `addi r30/r31` fillers (7-9 words); a
+  memory INPUT written by the preceding call (`"m"(v[1].x)` after the second PSVECAdd) makes it ready only after that call,
+  and placed after the second call it lands in a free slot (0 words) although pp's length grows by 5; (c) `idx--` written
+  between `p0 = p` and `pp = p` puts loop.c's giv `addi -12` before `mr pp,p` (all four insns prio 2, LUID order); (d) the
+  arg `PSVECSubtract(pn, ..)` with `pn = &w->pts[idx]` a replaceable giv reads the giv register (`mr r3,r25`) and gives pn
+  11 refs > n1's (0.196 vs 0.172 -- the target's pn r25 / n1 r24), `p = pn` stays a single asm-emitted `mr` (a plain copy
+  makes p a second giv, 109).
+- **Two-set variable = a global pseudo: no local-alloc tie and allocated after the block's qtys (mercenaries
+  MercSysSetSaveWork 10 -> 0, zero code).** `u32 sc = save->stage[i].score; sc = (sc / 10) & 0x0FFFFFFF;` (the load and
+  the scaled value are two sets -> two deaths -> `reg_qty == -1`): the first `or` cannot tie its result to sc and ties it
+  to the dying mode operand (`or r0,r7,r0`), and sc is allocated by global.c to the first free caller-saved register AFTER
+  local-alloc took r10 (i*12) and r8 (pSys) -- r7. A keep-alive asm on a one-set sc also breaks the tie but leaves sc a
+  block qty with the highest priority (r10; 10 words); `w = score | w` with w the target swaps the operands (expand_binop:
+  `target == op1` -> swap, so the target variable is always operand 1).
+- **A separate pointer for the water blocks + the routine-byte order (emmine emMine_R1_Shot 40 -> 8, zero code).** The
+  target's EstSet stack zeros in the water `else` arm are `stw r30` = the OUTER `info` (known 0 there) while the water
+  `getEffInfo(2)` result is another register (r29): a second variable `AtEffInfo* wi` at function scope, used by both
+  water blocks (the two blocks' arms still cross-jump because they share one pseudo). Ours had ONE `info` (2 sets) and cse
+  fed the zeros from the HitCk result instead, which then lived across every call (r25, and `mr. r25,r3` instead of the
+  target's `mr. r3,r3; stb r3,100(r28)`). The no-info block stores `xFC = 1; xFD = 2; xFE = 0; xFF = 0` in that order
+  (576-permutation brute force: 8 words at best). Left (8): the constant 2 is `li r6,2` in the target (`li r7,0; mr r8,r31`
+  are issued before the `stb 253`, so r7/r8 are busy in its range) and `li r8,2` in ours; the SndCall argument moves come
+  out r7, r8, r5, r4, r6, r3 in the target vs r5, r3, r4, r6, r7, r8 in ours (the two matched SndCall blocks have r5, r3, r4,
+  r6, r7, r8 in both). Variables / `cUnit*` copies for the arguments, a `register .. asm("r7")` zero: 8-18.
+- **db_menu move (27, mechanism read, not closed).** The cursor wrap is `xori r0,r0,1; andi. r9,r0,1; beq L33; li r0,1;
+  cmpwi r0,0; li r0,32; bne LST; L33: li r0,33` after a dead `andi. r11,r9,1` and a RELOAD `lbz r0,4(r31)` of the cursor
+  just stored. Reproduced except the dead `andi.` by `t->cursor = (!(*(volatile s8*)&t->cursor & 1) && !(n & 1)) ? n - 2
+  : n - 1;` (the `&&` with `!(n & 1)`, n the `sizeof(menu)/sizeof(menu[0])` LOCAL: cprop folds it to the `li r0,1` and the
+  `cmpwi r0,0; li 32; bne` is the second `&&` test + jump.c's arm hoist; the volatile read gives the fresh `lbz` -- a plain
+  re-read is cse-folded to the stored register, `not r0,r0`). The dead `andi.` = a conditional jump on `cursor & 1` deleted
+  in JUMP2 (after combine fused the compare: sched2 is on, so `delete_computation` deletes only the jump): flow2's
+  `tidy_fallthru_edge` deletes a jump-to-next EARLIER and the compare dies with it (h1: `if (t->cursor & 1) i = 0;` -- the
+  dead set is deleted by flow1, then flow2 removes jump and compare), so the arm must hold an insn that disappears only in
+  jump2 (a no-op move after regalloc is already deleted by reload_cse_regs; a cross-jumped identical arm needs both arms'
+  `andi.` scratch to be the same register -- ours gives r9/r11 by reload's round-robin, `if (odd) X; else X;` forms
+  16-39). thread_jumps (jump.c) can only redirect a jump whose compare operands match the target block's compare insn by
+  insn back to the label (same_regs pairs must be resolved by a matching SET pair before the label), so the `T = 0` of a
+  bool materialisation is never threaded away here; the `li r0,1; cmpwi r0,0` survives cse only because `!(n & 1)`'s
+  constant is folded after cse2 (gcse cprop of `n = 34` + the jump form). Forms that do NOT give the value form: `toBool()`
+  / `isEven()` inlines (`return (bool) x` = stmt.c's `T = 1; if (x) skip; T = 0`), `bool b = e` (do_store_flag's
+  set/compare/jump/set fallback, `li 1` first), `int e = ..; bool b = e; b ? :` (b user var: no threading).
+- **mercenaries MercSysGetSaveWork (39, mechanism read).** The target computes the rank pointer `add r12,r0,r29` as the
+  SECOND insn of the i-body (a single-set "birthing" pseudo boosted by adjust_priority) and the bit-index givs get r4 (+0),
+  r6 (+1), r5 (+2); ours emits the giv init `add r8,r8,r29` last (loop.c's new_reg has 2 sets, no boost), so i*4 lives
+  to the block end (r8 instead of r0) and the rank pointer takes r8. A source pointer `int* rp = &save->rank[0][i]` +
+  `rp[j * 4] = r` gives the giv allocation (r4/r5/r6, r12) but regmove coalesces `new_reg = rp` into rp's set (2 sets
+  again, `add` still last: 34); `rk0 = &save->rank[0][0]` hoisted + `rk0 + i` 42; a keep-alive on rp keeps the copy
+  (`mr r12,r31`, 26). The original's `rp` copy was not coalesced -- a label or LOOP note between rp's set and the j-loop
+  preheader copy (regmove's backward scan stops there) is the missing structure.
+- Read, not closed: Espgen43 AddSandPower (5): local-alloc qty order H(Chk_pos) (3 refs / span 15) before word-8 (2 /
+  11) in ours; the target's word-8 qty was allocated first (r11), i.e. its load sat closer to its store in the original's
+  sched1 output (our sched1 hoists the word-8 load above the word-0/word-4 loads because its store is anti-dependent on
+  the later loads). dvd DiscChange (7): the sweep-13 mechanism, forms exhausted there.
+- Not iterated: emmine R1_ShotArrow (140, size 0x4c4/0x4e0), em_set, shadow, at_mod, em_cloth, sce_at, cam_extra.

@@ -242,6 +242,7 @@ void emMine_R1_Shot(cEmMine* em)
     f32 len;
     int attr;
     AtEffInfo* info;
+    AtEffInfo* wi;  // the water blocks' own pointer: its zero (not the HitCk result's) feeds their EstSet stack zeros
 
     switch (em->xFE) {
     case 0:
@@ -308,13 +309,13 @@ void emMine_R1_Shot(cEmMine* em)
             } else {
                 if (GetWaterHeight(&em->pos, &wh) && em->pos.y <= wh) {
                     em->pos.y = wh;
-                    info = EatMgr.getEffInfo(2);
-                    if (info) {
-                        if (!(info->eff0[0] == 0xD2 && info->eff0[1] == 1)) {
-                            EstSet(0, -1, &em->pos, 0, info->eff0[0], (u8) info->eff0[1], 0, 0, 0, 0);
+                    wi = EatMgr.getEffInfo(2);
+                    if (wi) {
+                        if (!(wi->eff0[0] == 0xD2 && wi->eff0[1] == 1)) {
+                            EstSet(0, -1, &em->pos, 0, wi->eff0[0], (u8) wi->eff0[1], 0, 0, 0, 0);
                         }
-                        w->effKind = (u8) info->eff6[0];
-                        w->effNo = (u8) info->eff6[1];
+                        w->effKind = (u8) wi->eff6[0];
+                        w->effNo = (u8) wi->eff6[1];
                         SndCall(5, 0x24, &em->pos, 0, 0, em);
                         AddWaterPower(&em->pos, 0.5f);
                     } else {
@@ -341,10 +342,10 @@ void emMine_R1_Shot(cEmMine* em)
                 w->snd1 = 0x14;
                 w->effKind = 0;
                 w->snd0 = 1;
-                em->xFD = 2;
                 em->xFC = 1;
-                em->xFF = 0;
+                em->xFD = 2;
                 em->xFE = 0;
+                em->xFF = 0;
                 SndCall(2, 0x14, &em->pos, 0, 0, em);
             }
         DELETE_EFFECT:
@@ -355,13 +356,13 @@ void emMine_R1_Shot(cEmMine* em)
         }
         if (GetWaterHeight(&em->pos, &wh2) && em->pos.y <= wh2) {
             em->pos.y = wh2;
-            info = EatMgr.getEffInfo(2);
-            if (info) {
-                if (!(info->eff0[0] == 0xD2 && info->eff0[1] == 1)) {
-                    EstSet(0, -1, &em->pos, 0, info->eff0[0], (u8) info->eff0[1], 0, 0, 0, 0);
+            wi = EatMgr.getEffInfo(2);
+            if (wi) {
+                if (!(wi->eff0[0] == 0xD2 && wi->eff0[1] == 1)) {
+                    EstSet(0, -1, &em->pos, 0, wi->eff0[0], (u8) wi->eff0[1], 0, 0, 0, 0);
                 }
-                w->effKind = (u8) info->eff6[0];
-                w->effNo = (u8) info->eff6[1];
+                w->effKind = (u8) wi->eff6[0];
+                w->effNo = (u8) wi->eff6[1];
                 SndCall(5, 0x24, &em->pos, 0, 0, em);
                 AddWaterPower(&em->pos, 0.5f);
             } else {
