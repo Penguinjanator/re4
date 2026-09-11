@@ -23164,3 +23164,56 @@ regalloc pass-1 all/assigned).
 `sfcre_MpsMuxRate`, expression-form `sfcre_AnalyPackSiz`, flat `sfcre_AnalyMps`; AnalyAudio's `sfcre_MinLe` /
 `sfcre_SkipPketHd` helpers and two-web `n`), src/lib/sfx_zmv.c (index-form linear loops, `src++; dst++` order). Neither
 unit flips (AnalyMpv 15w, CCIR 74w).
+
+### Tool RELs, t_esp pass 13 (t_esp 208/212: InitTool 11057 -> 8389 words = the pass-12 NOMALLOC oracle exactly, frame 0x2930 and the entry's callee-saved set `r31=&8 r21=&20 r20=&30 r19=&40 r18=&50 r17=&60 r28=&110 r16=&120 r15=&130 r14=&140` exact, all 50 inlined windows in the target's `mr rX,r3; stw rZ,4(rX); stw rP,0(rX)` shape; the alias base is removed by a tagged class-scope `operator new` bound to the `__builtin_new` symbol, no natural source form found; Load/SaveEmType 2/2 and fn_t_esp_3DE4C 24 untouched; nothing flipped; 2026-09-11)
+
+- Harness ~/.cache/tesp13 (deleted): `mk.sh SRC OUTDIR [-dX..]` (module cflags, wibo cpp + native cc1plus + NgcAs; `CC1=` picks
+  the hooked sngcc), `gen.py [names]` (probe variants of a MENU/EXIT two-window InitTool from tmpl.h macros, judged by
+  `depchk.py SCHED_DUMP FUNC`: for every `(set (mem (reg X)) ..)` store whether the defining r3 copy carries REG_NOALIAS and
+  whether REG_DEP_OUTPUT links to the following fp-relative stores exist = the target's behaviour), `rtlseq.py DUMP N` (the N
+  insns after each `__builtin_new` call, per pass), `tryt.py SRC LABEL` (full-unit variant: bytecmp InitTool with `OBJ=`, frame,
+  the entry block's `addi rN,r1,C` callee-saved set against the oracle line, the early-store shape over the 51 `bl
+  __builtin_new`).
+- **Applied (tagged, `// COMPILER-DIFF` on TOOL_WINDOW): `static void* operator new(unsigned n) asm("__builtin_new");` in the
+  common base.** calls.c special_function_p (546-623) sets is_malloc for `__nw`/`__builtin_new` only when `DECL_CONTEXT
+  (fndecl) == NULL_TREE && TREE_PUBLIC (fndecl) && IDENTIFIER_LENGTH <= 17`; a class-scope allocator has DECL_CONTEXT = the
+  class, so expand_call (2349-2375) emits no REG_NOALIAS on the result copy, alias.c record_set never gives the pseudo a unique
+  ADDRESS, init_alias_analysis leaves its base 0 (`find_base_value (reg 3)` -> reg_base_value[3], wiped at the first r3 set),
+  and every `mem(this)` store gets an output dependence on the later `pos` stores. The asm label keeps the call `bl
+  __builtin_new` (the symbol is printed from the `*`-prefixed assembler name; the module's own `__builtin_new` definition binds
+  it). Every other insn is the same as before: build_op_new_call -> build_method_call of the static member, args `(size)`,
+  `copy_to_reg (valreg)` path instead of the is_malloc temp, the ctor's `this` chain collapses in cse the same way. Result =
+  the oracle to the word (8389, size 0xa148 vs 0xa20c: the residue is the pass-11 spill-slot order/offsets of the 880 hoisted
+  `&pos` address pseudos -- 4570 offset mismatches and ~1900 unaligned `stw rX,slot(r1)`/`addi rX,r1,C` pairs, the entry block
+  cycling r8/r10/r0 where ours cycles r0/r10 -- plus the per-segment residues; nothing window-shaped remains).
+- **Why no natural form: every way a pseudo loses its REG_NOALIAS base was read and probed (stock cc1plus, gen.py):**
+  - the base is lost only by (a) `record_set` seeing a second set of the same pseudo in stream order (`reg_seen`, any
+    position, or a CLOBBER after the noted set), (b) the noted insn not being a plain SET with the note (combine merged it:
+    distribute_notes 11468-11483 drops REG_NOALIAS unless from_insn == i3), (c) the store base being a pseudo whose set has a
+    base-less source (MEM, hard reg without note, ASM_OPERANDS). Forms tested and their route: base / `::new` / `new X[1]`
+    (`bl __builtin_vec_new`, same name list, plus an expand_vec_init loop with labels: free and wrong shape) / `(u32)`,`(void*)` casts (find_base_value passes through NOP moves: no
+    insn at all on 32-bit) / `MENU_WINDOW* m = new ..; m->Init(p)` (integrate.c 1540-1561: `this` is TREE_READONLY so no arg
+    copy, process_reg_param maps `this` straight onto a REG_USERVAR_P pseudo -- the stores DO use the user variable, but it has
+    one set: cse's prev-rewrite (cse.c 7965-8010, needs the r3 copy immediately before and the dest canonical) turns `temp =
+    r3 [NOALIAS]; m = temp` into `m = r3 [NOALIAS(temp)]`, note kept) / slot through the global (`g_pX = new X; g_pX->Init(p)`:
+    cse forwards the store to the load, no MEM base) / inlined helper parameter / reference-slot helper / derived-pointer
+    helper / placement new on a `::operator new` result / a base-class or member inline `operator new` wrapper calling
+    `::operator new` (the inner call is the builtin decl: is_malloc again): all keep the base (depchk `NOALIAS free`).
+  - forms that lose it and why they are not the target: `if (m) m->Init(p)` (combine folds the r3 copy into the compare ->
+    `mr.` PARALLEL, note dropped -- adds a branch); a ctor with a branch inside (the copy survives cse because `this` is
+    canonical, but combine's two-SET parallel split copy-propagates the temp into every use and gcse cprop does the same
+    across the label: base kept, so `free`); a shared `TOOL_WINDOW* w` reassigned per window (two sets -> base 0 only when
+    `w` is canonical, i.e. used across a label: then it is a whole-function allocno, pass 12's 11201; in one block cse
+    substitutes the temps and the base is kept); `X* m = NULL; ..; m = new X; m->Init(p)` loses the base only when the zero
+    set stays live because cse reuses `m` as the block's canonical zero register (prevar probe: second window only) -- in
+    InitTool the SI zero is born at the top (`li r29,0`) and the QI zero for the `stb`s is a different pseudo, so a
+    pre-initialised window pointer's zero set is dead and flow deletes it.
+  - declarations that cannot change is_malloc: a namespace-scope `operator new` ICEs (cp/decl.c 4158, assert 378 in pushdecl:
+    IDENTIFIER_GLOBAL_VALUE (`__nw`) is the builtin); a global `static void* operator new(unsigned)` is emitted `.globl`
+    (TREE_PUBLIC stays 1, is_malloc 1); a user global `operator new(size_t)` mangles to `__builtin_new` (cp/method.c
+    1633-1646, one-parameter non-method special case) and its DECL_NAME is `__nw`, in the list; `__attribute__((const))` on
+    it takes the `is_const` branch first (2349, libcall block, REG_EQUAL, and cse would merge the equal-size calls); an
+    indirect call through a function pointer gives fndecl 0 but `bctrl`.
+- The entry block still differs in schedule (target: `li r29,0; stw r29,g_pTexRender`, `g_pEditSeq2 = &g_editSeqWk2` first,
+  then the `addi/stw` spill pairs cycling r8/r10/r0, then `li r0,0` + the three `stb`; ours: the `stb` zeros first, the SI
+  zero at the end of the pairs) -- part of the pass-11 spill-slot residue, not touched.
