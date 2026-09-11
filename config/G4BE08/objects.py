@@ -1827,3 +1827,8 @@ MATCHING.update({
 MATCHING.update({
     "game/cam_ctrl.cpp": True,  # 84/84: HermiteExport 142 -> 0 zero code (`((u8*) &tmp)[n]` byte copies on one function-scope `n`, case 2/3 loads v,v0,v1, `cut->num - 1 == k`, pad loop on `j` with an in-place `rem`); cameraHitCheck 125 -> 0 (`do { } while (0)` LOOP_END anchor breaks cse1's ebb at the hit join, `register cAtariInfo* at asm("r29")` + launder so the copy loop runs on the ctor's `this` temp and `at` is not cprop'd, `hit = 0` after the p copy; COMPILER-DIFF); r0_RailBehind 3 -> 0 (asm `la` for the three VecLinearCombination pointer args, COMPILER-DIFF: #3)
 })
+
+# em_cloth closer (2026-09-11)
+MATCHING.update({
+    "game/em_cloth.cpp": True,  # Em18ClothSet 26 -> 0, pure C (the four codeless asms removed): the `if (a)` arm repeats `c->x40 = 0.1f; c->x44 = 4;` -- real uses for flow/sched1/regalloc (0.1 and 4 live across the branch: f11, callee-saved r28; the store weights and the 0.1 lfs priority follow), deleted by reload_cse_regs as no-op stores (reload_cse_noop_set_p: the MEM already holds the register) before sched2
+})

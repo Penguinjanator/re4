@@ -302,29 +302,19 @@ void Em18ClothSet(cModel* m, PlCloth* c, int a)
     c->pModel = m;
     c->x40 = 0.1f;
     c->x44 = 4;
-    {
-        // COMPILER-DIFF: 13 (Em18ClothSet, 47 -> 26 words). In the original the 0.1 pseudo has a
-        // consumer chain three insns longer than its store (its lfs ranks 6 in sched2, so the 0.1
-        // high issues first and the lfs right behind it while the other three pool constants queue
-        // up), and 0.1 and 4 stay live past their stores (x40/x44 land in the second store group
-        // with pModel/x48/x54; 0.1 keeps f11 as the longest-lived FPR). Three codeless asms give the
-        // chain (lfs -> k -> k -> fake x54 half-word store -> x54 store) without raising any store.
-        u32 k;
-        asm("" : "=r"(k) : "f"(0.1f));
-        asm("" : "+r"(k));
-        asm("" : "=m"(*(u16*) &c->x54) : "r"(k));
-    }
     c->x48 = 0.0f;
     c->x4C = 0.05f;
     c->x50 = 0.0f;
     c->flags = 0x100;
     c->x54 = 0;
     if (a) {
+        // The x40/x44 stores repeat the defaults: they are real uses for flow/sched1/regalloc
+        // (0.1 and 4 live across the branch: f11, callee-saved r28) and reload_cse_regs deletes
+        // them as no-op stores before sched2 (no code).
         c->pRate = 0;
+        c->x40 = 0.1f;
+        c->x44 = 4;
         c->x4C = 1.0f;
-        // COMPILER-DIFF: 13 (see above): the 0.1 and 4 values die outside block 0 (a use in
-        // another block adds no dependent in block 0, so the `li 4` keeps its place among the li's).
-        asm("" : "=m"(*(u16*) &c->x4C) : "r"(4), "f"(0.1f));
     }
     PenClothSet(m, (PenCloth*) c, 100.0f);
 }

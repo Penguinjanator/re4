@@ -23217,3 +23217,91 @@ unit flips (AnalyMpv 15w, CCIR 74w).
 - The entry block still differs in schedule (target: `li r29,0; stw r29,g_pTexRender`, `g_pEditSeq2 = &g_editSeqWk2` first,
   then the `addi/stw` spill pairs cycling r8/r10/r0, then `li r0,0` + the three `stb`; ours: the `stb` zeros first, the SI
   zero at the end of the pairs) -- part of the pass-11 spill-slot residue, not touched.
+
+### DOL em_cloth/Espgen43 closer (em_cloth Em18ClothSet 26 -> 0 pure C, unit Matching, 111 OK; Espgen43 AddSandPower 5 (a 4-word asm-lis/addi form exists, not applied), SetSandWork 44 untouched; 2026-09-11)
+
+- **em_cloth `Em18ClothSet` 26 -> 0, pure C, no tags** (`MATCHING["game/em_cloth.cpp"] = True`, `ninja -k 0` clean, dtk
+  shasum 111 OK). The four codeless anchors are gone; the `if (a)` arm repeats two defaults: `c->pRate = 0; c->x40 = 0.1f;
+  c->x44 = 4; c->x4C = 1.0f;`. Mechanism: the duplicated stores are real uses for flow/sched1/regalloc (0.1 stays in f11 and
+  4 in callee-saved r28 across the branch; the store weights and the 0.1 `lfs` priority follow), and `reload_cse_regs`
+  deletes them as no-op stores before sched2 (`reload_cse_noop_set_p`: the MEM already holds the register; values are
+  forgotten at CODE_LABELs only, so the fall-through if-arm keeps the block-0 knowledge). The earlier hypothesis (anchor
+  chain referencing `c`) was not the mechanism; the differences were table-high lens and r9 pool-high blocking, both fixed
+  by the duplicated stores.
+- **Espgen43 `AddSandPower` 5 words** (target: `lis r10/addi r8,r10` for Chk_pos, `lwz r11,8(r7)`; ours `lis r11/addi r8,r11`,
+  `lwz r10`). Read: local-alloc order W0 > W4 > W8 > high > addi needs `len_W8 < 2/3 len_high` (W8 2 refs, high 3 refs:
+  set, addi, `stw r0,@l(high)`), i.e. W8 born at sched1 position 8 with the fn `addi` at 7 (sched1 base: t4 = [W8 (prio
+  5, weight 0 since pos dies at the RTL-last load), addi fn (prio 3)]). Sched1 prios here: stores 3, loads 5, addi Chk 4,
+  lis Chk 5, lis/addi fn 4/3, `li 0` 8, stfs/stw 7. A C `addi` can never outrank W8 (its only dependent is the call); an
+  asm `addi` can when a load depends on it: `asm("addi %0,%2,%3@l" : "=r"(fn), "=m"(((u32*)pos)[1]) : "r"(hi), "i"(f))`
+  before `Chk_pos = *pos` (fake store to pos.y: the pos.y load depends on it, the pos.x/pos.z loads do not — same base,
+  disjoint offsets; the Chk_pos stores get output deps since an arg pointer may alias a symbol), with
+  `asm("lis %0,%1@ha" : "=r"(hi) : "i"(f), "m"(Height_find))` gated on the t2 store so it is ready at t3. This gives the
+  target's registers exactly (4 words left): sched1 t3 = [asm lis, addi Chk], t4 = [asm addi, W8] and sched2 t3 =
+  [asm lis (prio 7) before addi Chk (4)], t4 = [asm addi, W0] (tie at 6, the asm has 5 dependents vs W0's 4). Not closable
+  in the box: raising addi Chk's prio needs a dependent at load level (`"r"(&Chk_pos)` on the asm CSEs with the Chk_pos
+  pointer but adds a ref, pri 1.0 -> r9); W0 cannot gain a dependent or the asm lose one (any fake store that reaches
+  pos.y also reaches the three Chk_pos stores: `fixed_scalar_and_varying_struct_p` needs one side scalar+fixed, all of
+  these are struct+varying); every dep into an asm costs 1 (`LINK_COST_FREE`), so no class-1 tiebreak; a pinned or
+  copied pos (`register Vec* p asm("r7")`, `p = pos`) either delays the loads in sched2 too or takes r0 by pri 2.0
+  (4 refs) / conflicts with pos's r7. A volatile barrier shifts every prio uniformly and does not change the ties.
+  Facts checked in the source: `rank_for_schedule` class 3 for cost-1 deps, `insn_cost` returns 1 into any INSN_CODE<0
+  insn, `rs6000_adjust_cost` returns 0 for anti/output (then clamped to 1), local-alloc ties an asm output to a hard-reg
+  input via `qty_phys_copy_sugg` (extract_insn handles asm constraints) but never to a global pseudo (V3/V5 grew a `mr`).
+- **Espgen43 `SetSandWork` 44 words**: pure global-alloc rotation. The three outer-loop pool pointers (LC23 = 0x4330...
+  double, LC24 = 2.0f, LC25 = 1.0f; pseudos 872/874/876, each `used 5 times`, lengths 736/734/730) get pri 135/136/136
+  (`allocno_compare`: `floor_log2(refs)*refs/len*10000`, ties by allocno number) -> ours allocates 874 (r27, used-so-far
+  pass 0), 876 (r12, used-so-far), 872 (r24, pass 1); the target has 876 r27, 874 r24, 872 r12, i.e. 876 > 874 > 872
+  with r24 already in `regs_used_so_far` (nothing else in the target's SetSandWork uses r24, so it must come from a
+  local-alloc qty or a preference; not resolved). The same rotation moves (i+1) r28/r29, (j+1) r29/r3, the 0x4330 high
+  r5/r10 and the second strip loop's pool pointers r3/r4. Declaration order (i/j/k/rep/fx/fy, n/d, x/y/idx), `++i` in
+  the if, `while` for the outer `for`, `k = j + i*(nx+1)` change nothing (44); `k + 1` instead of `k++` and a `rep`
+  initializer cost 68/199. The load-motion order in the .loop dump is LC25, LC23, LC24 for the outer loop (inner-loop
+  preheader loads seen first) while the address pseudos are numbered LC23 < LC24 < LC25; the preheader RTL order is
+  h23,l23,h24,l24,h25,l25 in both builds (the target's `lis r9; lis r11; addi r12; addi r24; lis r9; addi r27` is that
+  order scheduled), so the lengths cannot be reordered from the source; the remaining lever is `regs_used_so_far` /
+  `regs_someone_prefers` (a pin of an unrelated block-local value to r24 would seed it, untested).
+- Harness (deleted): `mk.sh` (cc1plus replica with dumps), `tryv.py UNIT FUNC V.py` (substring variants -> word counts),
+  `sbs.py UNIT SYM OBJ` (masked objdump side-by-side; fdiff.py ignores `OBJ=` and reruns unlocked ninja, do not use it
+  for variants).
+
+### DOL puzzle pass 4 (game/puzzle 47 -> 48/49, 16 -> 1 word; movePiece 14 -> 0 (two ints + one volatile launder), shape 2 -> 1 (the join `ble` with zero code; the byte-2 `mullw` operand order is an expand_binop REG/SUBREG asymmetry, not reachable from source); .text size equal; item.cpp IDENTICAL; nothing flipped; 111 OK; 2026-09-11)
+
+Harness ~/.cache/dol_puzzle4 (var.py = region replace + try.sh + optional LA dump; sngcc/ = private tools/sn-gcc with an
+`LA_DEBUG` dump of every local-alloc qty (`LA fn bbN ordI qtyQ pri refs size birth death calls -> reg [pseudos]`, printed in
+block_alloc right before the assignments are propagated), a print in optabs.c expand_binop's commutative swap and one in
+expr.c's NOP_EXPR expansion; deleted at the end).
+
+- **movePiece 14 -> 0.** The y clamp is two ints, not one: `int ch = cur->h;` in the compare arm (single set, `(f32) ch + p->cy`
+  in the then-block) and `int h;` declared with `edge`, set in bb 85 as `h = (int)(fabsf((f32)(s8) size_y()) - 1.0f) - 1;`
+  and in arm 2 as `h = edge - sy;` (both then `p->y = (f32) h + p->cy`). Mechanism (LA dump): the pass-3 story "P vs A4 priority"
+  was the wrong frame. In the target bb 85 the fix result X is a single-set block-local pseudo, so local-alloc `combine_regs`
+  ties it to the fctiwz temp's fpmem loadaddr A4 ({A4, X}: 5 refs, pri 6250 > P 5000) -> A4 first -> r9; P (`high(1.0f)`)
+  then takes r11 through the fake-lifetime conflict, A5 r11 (`mr r11,r9`). That needs `h - 1` to be a separate insn whose
+  dest is NOT tied to X, i.e. a multi-set (global) pseudo: `h = X - 1` with `h` set elsewhere too. A global GENERAL pseudo
+  takes r0 (`subi r0,r9,1; xoris r0,r0`), and the same `h` in arm 2 explains `subf r0,r3,r30`: with a fresh local dest the
+  dying hard reg r3 becomes a `qty_phys_sugg` and the suggested pass (real lifetimes, local-alloc.c ~1419) hands it r3
+  (`subf r3,r3,r30; xoris r3,r3`); a global dest gets no suggestion. With `h` global the compare arm's `ch` lands on r9 by
+  itself (v4/c* variants with a one-variable `h` had the compare extsb in r0 and the then-block `lfs`/`stw` swapped; both
+  disappeared with the split, no anchor needed). Arm 2's target writes `edge` itself (`extsb r30,r30; addi r30,r30,1`):
+  `edge = (s8) edge; edge += 1;` -- without a launder the (s8) survives here (edge has other, non-extending sets), but both
+  insns hoist above the `bl size_y` (edge crosses calls, so haifa gives them no anti-dependence on the call; the old temp
+  form stayed below because a fresh pseudo with REG_N_CALLS_CROSSED == 0 gets one). `int sy = p->size_y(); asm volatile(""
+  : "+r"(edge));` placed after the call pins them: the volatile asm is a two-way barrier and the extsb depends on its
+  output. Non-volatile `asm("" : "+r"(edge) : "r"(sy))` (depends on the call through sy) leaves the `addi`/`lfs` order
+  (2 words); `edge = (s8) edge + 1` with the volatile launder puts the extsb into a temp (2 words).
+- **shape 2 -> 1.** Join: `int oi = orient; s8 o; if (oi > 3) o = orient - 4; else o = oi;` (or `o = oi > 3 ? orient - 4 : oi`).
+  The compare's extension is `oi` (r0); the else arm is the promoted store `(set o_p (sign_extend (subreg:QI oi)))` =
+  `extsb r0,r0`, the then arm `subi r0,r9,4` falls into it, so `ble` lands on the extsb. Still 1 word: `mullw r0,r28,r0`
+  (px, byte 2) vs ours `mullw r0,r0,r28`. Verified with the hooked build: expand_binop swaps a commutative op when op1 is
+  a REG and op0 is not (optabs.c ~840). `(s8) px` expands to `(subreg:QI v83)` (NOP_EXPR with target 0 -> convert_to_mode ->
+  gen_lowpart); byte 2 of the register array comes out of extract_fixed_bit_field's "narrowest mode containing the field"
+  path as `(subreg:HI ...)` -> convert_to_mode copies it into a fresh QI REG (bytes 0/1/3 stay SImode subregs, hence px/py
+  first there). Every spelling either keeps that REG (source order `rot[1][0] * (s8) px` gives (byte, px) with no swap; the
+  union `s16` view `(s8)(rot.h[1] >> 8)` and even `(int) rot.h[1] >> 8` are shortened by cp's build_binary_op `short_shift`
+  to an HImode shift -> the same SUBREG:HI -> REG) or changes the extraction (`(s8)(rot[1][0] * 1)` / `int b` / `px *
+  rot[1][0]` untyped: `rlwinm 24,8,31; extsb`, 3 words; `((s16*) rot)[1]` / `*(s16*)&rot[1][0]` put rot in memory, 45).
+  `(s8)(s16) px` / `(u16)` / `(u8)` / `(u32)` are collapsed by fold's two-conversions rule. px becomes a REG only if the
+  NOP_EXPR is expanded with a target, which needs the QI multiply itself to have a REG target: the sum is reached through
+  the `(int)(QI plus)` NOP which always passes NULL_RTX (COND_EXPR / SAVE_EXPR temps would, none is natural here). An
+  asm-emitted `mullw` (22-29 words) destroys the mult latency schedule. Left as is.
