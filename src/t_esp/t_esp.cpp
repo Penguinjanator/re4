@@ -902,8 +902,11 @@ static inline void CreateEditWindow1(TOOL_WINDOW*& slot)
         int sx = -1;
         pa_->CreateButton(win_, ">>", &pos, EditPageNextCallback, &sx, -1);
     }
+    // the table address as a pseudo set before the loop (target: `lis r9; addi r9,r9,g_editNum@l; addi r30,r9,0x30`
+    // = the giv init `tbl + 0x30` with tbl rematerialised by reload; `&g_editNum[i][12]` folds g_editNum+48 at expand)
+    DB_NUMERIC* (*tbl)[43] = g_editNum;
     for (i = 0; i < 5; i++) {
-        DB_NUMERIC** num = g_editNum[i];
+        DB_NUMERIC** num = tbl[i];
         {
             DB_PRIM_ARRAY* pa_ = pa;
             DB_WINDOW* win_ = e->win;
@@ -939,8 +942,11 @@ static inline void CreateEditWindow1(TOOL_WINDOW*& slot)
             num[3] = pa_->CreateNumeric(win_, &g_pEditRow[i]->parts, &pos, &sx, i, DB_NUM_FLAG_LOCK | DB_NUM_FLAG_HEX);
             num[3]->SetKeta(2);
             num[3]->SetOnHitCallback(OnParent_Callback);
-            num[3]->nameNum = 256;
-            num[3]->nameTbl = g_partsNameTbl;
+            // one load of num[3] for both stores (target `lwz r9,0xc(r30)` once; the plain `num[3]->` form
+            // reloads it after the nameNum store), nameTbl first (target store order 0xc4 then 0xc0 = sched1 LUID)
+            DB_NUMERIC* n = num[3];
+            n->nameTbl = g_partsNameTbl;
+            n->nameNum = 256;
         }
         {
             DB_PRIM_ARRAY* pa_ = pa;
@@ -1175,8 +1181,11 @@ static inline void CreateEditWindow2(TOOL_WINDOW*& slot)
         int sx = -1;
         pa_->CreateButton(win_, ">>", &pos, EditPageNextCallback, &sx, -1);
     }
+    // the table address as a pseudo set before the loop (target: `lis r9; addi r9,r9,g_editNum@l; addi r30,r9,0x30`
+    // = the giv init `tbl + 0x30` with tbl rematerialised by reload; `&g_editNum[i][12]` folds g_editNum+48 at expand)
+    DB_NUMERIC* (*tbl)[43] = g_editNum;
     for (i = 0; i < 5; i++) {
-        DB_NUMERIC** num = &g_editNum[i][12];
+        DB_NUMERIC** num = &tbl[i][12];
         {
             DB_PRIM_ARRAY* pa_ = pa;
             DB_WINDOW* win_ = e->win;
@@ -1306,8 +1315,11 @@ static inline void CreateEditWindow3(TOOL_WINDOW*& slot)
         int sx = -1;
         pa_->CreateButton(win_, ">>", &pos, EditPageNextCallback, &sx, -1);
     }
+    // the table address as a pseudo set before the loop (target: `lis r9; addi r9,r9,g_editNum@l; addi r30,r9,0x30`
+    // = the giv init `tbl + 0x30` with tbl rematerialised by reload; `&g_editNum[i][12]` folds g_editNum+48 at expand)
+    DB_NUMERIC* (*tbl)[43] = g_editNum;
     for (i = 0; i < 5; i++) {
-        DB_NUMERIC** num = &g_editNum[i][22];
+        DB_NUMERIC** num = &tbl[i][22];
         {
             DB_PRIM_ARRAY* pa_ = pa;
             DB_WINDOW* win_ = e->win;
@@ -1445,8 +1457,11 @@ static inline void CreateEditWindow4(TOOL_WINDOW*& slot)
         int sx = -1;
         pa_->CreateButton(win_, ">>", &pos, EditPageNextCallback, &sx, -1);
     }
+    // the table address as a pseudo set before the loop (target: `lis r9; addi r9,r9,g_editNum@l; addi r30,r9,0x30`
+    // = the giv init `tbl + 0x30` with tbl rematerialised by reload; `&g_editNum[i][12]` folds g_editNum+48 at expand)
+    DB_NUMERIC* (*tbl)[43] = g_editNum;
     for (i = 0; i < 5; i++) {
-        DB_NUMERIC** num = &g_editNum[i][32];
+        DB_NUMERIC** num = &tbl[i][32];
         {
             DB_PRIM_ARRAY* pa_ = pa;
             DB_WINDOW* win_ = e->win;
@@ -4916,7 +4931,8 @@ void InitTool()
     // the 880 spilled `&pos` address pseudos (13289 + C) % N, i.e. their spill-slot order: the target's
     // slot order needs N = 5233 or 5235 (fitn.py, pass 11); the plain source gives 5195.
     // (pass 14: 118 sets give 5233 buckets = the target order and offsets with the `pa` form of the EDIT windows;
-    // the count is (real insns at gcse) / 2 | 1, so every change to InitTool's insn count re-fits it.)
+    // the count is (real insns at gcse) / 2 | 1, so every change to InitTool's insn count re-fits it.
+    // pass 15: 116 sets = 5235 with the `tbl` locals of the EDIT row loops.)
     i = 1; i = 2; i = 3; i = 4; i = 5; i = 6; i = 7; i = 8;
     i = 9; i = 10; i = 11; i = 12; i = 13; i = 14; i = 15; i = 16;
     i = 17; i = 18; i = 19; i = 20; i = 21; i = 22; i = 23; i = 24;
@@ -4931,7 +4947,7 @@ void InitTool()
     i = 89; i = 90; i = 91; i = 92; i = 93; i = 94; i = 95; i = 96;
     i = 97; i = 98; i = 99; i = 100; i = 101; i = 102; i = 103; i = 104;
     i = 105; i = 106; i = 107; i = 108; i = 109; i = 110; i = 111; i = 112;
-    i = 113; i = 114; i = 115; i = 116; i = 117; i = 118;
+    i = 113; i = 114; i = 115; i = 116;
     for (i = 0; i < 5; i++) {
         g_pEditRow[i] = &g_editRowWk[i];
         g_editRowNo[i] = i;
