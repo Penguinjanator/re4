@@ -1393,6 +1393,7 @@ void disp_sequencer()
 {
     SND_SEQ_WORK* seq;
     int ch;
+    int y0;
 
     seq = Snd_search_seq_work_snd_id(Snd_test_work.sndId);
     if (seq == NULL) {
@@ -1413,10 +1414,15 @@ void disp_sequencer()
     eprintf(0x18, 0xFC, 0, 1, "HOLD     :");
     eprintf(0x18, 0x10A, 0, 1, "AUX A    :");
     eprintf(0x18, 0x118, 0, 1, "AUX B    :");
+    // `y0`: the PAN row's y is `li r9,84; addi r27,r9,84` at the top of the join block in the
+    // original: a single-set constant pseudo (REG_EQUIV 84, rematerialised at its use) set
+    // before the loop, added after the D diamond's join label (cse cannot fold across it). Its
+    // `li` is also the first free filler of the preheader (LUID before `ch = 0`), which is what
+    // puts the two spilled row pointers (ch_flag/ch_prio) one header eprintf later.
+    y0 = 0x54;
     for (ch = 0; ch < 16; ch++) {
         int x = 0x70 + ch * 0x18;
         SND_VOICE_WORK* const voices = Snd_voice_work;
-        int k;
         int y;
 
         // `ch + 1`: the target passes r10 = ch+1 to the label eprintf2 and keeps that value
@@ -1425,13 +1431,7 @@ void disp_sequencer()
         if (seq->ch_flag[ch] & 1) {
             eprintf2(6, 13, x, 0x54, 4, 1, "D");
         }
-        // COMPILER-DIFF: #13 (asm-emitted constant + keep-alive). The PAN row's y is `li r9,84;
-        // addi r27,r9,84` at the top of the join block in the original (an unfolded 84 that
-        // loop.c did not hoist); the "r"(ch) input keeps the asm in the loop body, the keep-alive
-        // gives the add an in-block dependent so sched1 issues the pair before the voices load.
-        asm("li %0,84" : "=r"(k) : "r"(ch));
-        y = k + 0x54;
-        asm("" : : "r"(y));
+        y = y0 + 0x54;
         eprintf2(6, 13, x, 0x62, 0, 1, "%3d", seq_note_count(ch, voices));
         eprintf2(6, 13, x, 0x70, 0, 1, "%3d", seq->ch_prio[ch]);
         eprintf2(6, 13, x, 0x7E, 0, 1, "%3d", seq->ch_prog[ch] + 1);

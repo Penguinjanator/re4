@@ -209,6 +209,15 @@ void ToolInterfaceDesign()
             pIdTool->cnt++;
         }
         TaskSleep(1);
+        // COMPILER-DIFF: dead test (haifa MAX_RGN_BLOCKS: the body has 9 blocks and forms an interblock
+        // region that hoists the arms' li/addi above the branches; the target keeps them in their blocks,
+        // so its loop had >= 11 blocks. The two compares are deleted by jump2, the set by flow.)
+        {
+            IdTool* dead;
+            if (pIdTool->cnt == 0 && pIdTool->mode == 0) {
+                dead = 0;
+            }
+        }
     }
 }
 

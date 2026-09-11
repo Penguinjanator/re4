@@ -398,6 +398,7 @@ EspgenWork* SetSandWork(EspgenWork* w, Vec* pos, Vec* rot, f32 size, f32 sizeRat
             *(u16*) d = k;
             d++;
             d++;
+            k++;
             *(f32*) d = (f32) j / p->nx * rep;
             TEX_WRAP(*(f32*) d);
             d++;
@@ -410,7 +411,6 @@ EspgenWork* SetSandWork(EspgenWork* w, Vec* pos, Vec* rot, f32 size, f32 sizeRat
             d++;
             d++;
             d++;
-            k++;
             *(u16*) d = p->nx + k;
             d++;
             d++;
@@ -446,13 +446,13 @@ EspgenWork* SetSandWork(EspgenWork* w, Vec* pos, Vec* rot, f32 size, f32 sizeRat
             d++;
             d++;
             d++;
+                k++;
                 *(f32*) d = (f32) i / p->ny * rep;
                 TEX_WRAP(*(f32*) d);
                 d++;
             d++;
             d++;
             d++;
-                k++;
                 *(u16*) d = p->nx + k;
                 d++;
             d++;

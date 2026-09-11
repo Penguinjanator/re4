@@ -719,6 +719,7 @@ int brightness_menu(OptionScreen* o)
     int level;
     int digits;
     int i;
+    int j;
     Vec a;
     Vec b;
     Vec c;
@@ -752,14 +753,23 @@ int brightness_menu(OptionScreen* o)
             if (Key.rep2 & KEY_RIGHT) {
                 pSys->brightness++;
             }
-            if (pSys->brightness < DEFAULT + MIN_OFS) {
-                pSys->brightness = DEFAULT + MIN_OFS;
-            } else {
-                n = pSys->brightness;
-                if (n > DEFAULT + MAX_OFS) {
-                    n = DEFAULT + MAX_OFS;
+            {
+                // COMPILER-DIFF: candidate (global alloc order): pSys must be allocated after DEFAULT
+                // (target r10/r11; ours has pSys 4 refs/18 = 0.444 > DEFAULT 3/9 = 0.333).
+                register SystemWork* s asm("r10") = pSys;
+
+                if (s->brightness < DEFAULT + MIN_OFS) {
+                    // COMPILER-DIFF: candidate (local-alloc qty order): the byte-narrowed DEFAULT must take
+                    // r9 (D dies into the sum) so the two `stb r9,0xa(r10)` tails cross-jump.
+                    register u8 d asm("r9") = DEFAULT;
+                    s->brightness = d + MIN_OFS;
+                } else {
+                    n = s->brightness;
+                    if (n > DEFAULT + MAX_OFS) {
+                        n = DEFAULT + MAX_OFS;
+                    }
+                    s->brightness = n;
                 }
-                pSys->brightness = n;
             }
             pRK->brightness = pSys->brightness;
             if (bright != pSys->brightness) {
@@ -807,11 +817,11 @@ int brightness_menu(OptionScreen* o)
             u->col0[3] = 0xFF;
         }
     }
-    for (i = 0; i < 2; i++) {
+    for (j = 0; j < 2; j++) {  // its own counter: a shared `i` outranks o/digits for r29
         int d = digits % 10;
 
         digits /= 10;
-        u = IdSys.unitPtr((u8) (3 - i), ID_OPT);
+        u = IdSys.unitPtr((u8) (3 - j), ID_OPT);
         u->no = d;
         u->flags_7F |= 2;
         if (o->sub == 0) {
