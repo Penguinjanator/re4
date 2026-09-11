@@ -1267,9 +1267,6 @@ int stageSelect(TitleWork* w)
         u->flags |= 8;
         IdSys.setTime(u, 0);
     }
-    // OPEN: the target sets mode = 0 right before MercSysGetSaveWork; written there, jump1 turns the
-    // first `if` into a store-flag (`xori/subfic/adde`). Before the flag blocks the li lands earlier.
-    mode = 0;
     {
         IdUnit* u;
         u = IdSys.unitPtr(1, ID_OMAKE);
@@ -1304,6 +1301,10 @@ int stageSelect(TitleWork* w)
         }
         u->no = 3;
         u->flags_7F |= 2;
+        // The target's `li r30,0` sits right before MercSysGetSaveWork; a plain `mode = 0` there lets
+        // jump1 turn the first `if` into a store-flag (`xori/subfic/adde`), earlier it is hoisted.
+        // An asm-emitted zero (cse cannot fold it) whose memory input keeps it below the last store.
+        asm("li %0,0" : "=r"(mode) : "m"(u->no));  // COMPILER-DIFF: #13 (asm-emitted constant)
     }
     {
         MercSysGetSaveWork(&save);

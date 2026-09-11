@@ -1104,6 +1104,8 @@ void emWep_R1_ShotArrow(cEmWep* em)
                 EmPlBloodSet2(em, &em->pos, 1, 0xFF, 0xFF);
             }
             EmAtkSetDamagePL((cEm*) part, w->pAtk, &em->oldPos, &em->pos);
+            // `mr r3,part` is the LAST argument move in the original (part does not die there).
+            asm("" : "=m"(hit) : "r"(part));  // COMPILER-DIFF: #13 (keep-alive)
         } else {
             part = EmAtkLineHitCkSub(&em->oldPos, &em->pos, &hit, &nrm);
             if (part == 0) {
@@ -1121,6 +1123,7 @@ void emWep_R1_ShotArrow(cEmWep* em)
                 EmPlBloodSet2(em, &em->pos, 1, 0xFF, 0xFF);
             }
             EmAtkSetDamageSub(part, w->pAtk, &em->oldPos, &em->pos);
+            asm("" : "=m"(hit) : "r"(part));  // COMPILER-DIFF: #13 (keep-alive)
         }
         emWepArrowBomb(em);
         EffectEspDelete(0, w->espKind, (u32) em, 0);

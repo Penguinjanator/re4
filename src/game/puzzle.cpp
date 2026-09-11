@@ -302,11 +302,13 @@ none:
     return 0;
 }
 
-// OPEN: the last arm's `neg; extsb; blr` tail is cross-jumped into the previous arm in the
-// original (size_x gets the same merge from ours); jump2 leaves it unmerged here.
+// The last arm's `neg; extsb; blr` tail is cross-jumped into the previous arm in the original:
+// jump2 only pairs RETURN insns, so every arm returns on its own (the `break` form's last arm falls
+// into the shared return and is never a candidate). With per-arm returns the byte value prefers r3
+// (global.c's sign_extend preference); the original keeps it in r0.
 int pzlPiece::size_y()
 {
-    s8 size;
+    register s8 size asm("r0");  // COMPILER-DIFF: #17 (value pin)
 
     if (data == 0) {
         return 0;
@@ -315,24 +317,20 @@ int pzlPiece::size_y()
     case 0:
     case 4:
         size = data->h;
-        break;
+        return size;
     case 1:
     case 7:
         size = data->w;
-        break;
+        return size;
     case 2:
     case 6:
         size = -data->h;
-        break;
+        return size;
     case 3:
     case 5:
         size = -data->w;
-        break;
-    default:
-        goto none;
+        return size;
     }
-    return size;
-none:
     return 0;
 }
 

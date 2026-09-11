@@ -15619,3 +15619,109 @@ Build 111 OK after every flip (sscrn, esp0a, mes, lib/crt0, lib/crtbegin).
   `t = type` copy in the arms is hoisted by jump.c when both arms match and conflicts with `type` otherwise (9-15).
 - Not iterated: db_mod (position_usage 34, IKreport 10, the rest), db_widget DB_WINDOW ctor (14), t_esp MakeLoadSeqData (9)
   and the larger residues.
+
+### DOL sweep 16b, remaining game units closest-first (esp04, esp12, esp02 Matching; cam_qfps init 12 -> 0, title stageSelect 87 -> 6, emwep ShotArrow 6 -> 0, puzzle size_y 5 -> 0, sce_com SceUpCut 8 -> 0 / SceUpCutEnd 16 -> 0 / SceExecItemEvent 14 -> 3, main_mem ResetDebugAlloc 11 -> 0 / MemReplaceHeap 34 -> 18; 2026-09-11)
+
+Flipped: esp04 (7/7), esp12 (6/6), esp02 (7/7); build 111 OK after each flip. Harness ~/.cache/dol16b (dol15b copies with
+the paths rewritten: `tryv.py UNIT SYM v/x.py` (`STRIP=1` for STRIP_UNUSED units), `sbs.sh UNIT SYM [OBJ]`, `mcmp.py`,
+`dump.sh UNIT -dX` with `SRC_OVERRIDE`, `fsec.py DUMP 'FUNC'`, `rtl.py`, `order.py`, `prio.py`), deleted at the end.
+
+- **Loop-carried copy issued last = its source stays live past the copy (esp04 move10 27 -> 0, tagged `#17 (FPR value
+  pin)` + `#13 (keep-alive)`).** The y-loop preheader is `fmr f0,f11 (step = sizeY); fmr f11,f13 (bound); fmr f13,f12
+  (v = y)` in the target: the `v = y` copy comes LAST although its RTL position (a source statement, before LOOP_BEG) is
+  before loop.c's two hoists, so in the original `y` did not die at the copy (weight +1 vs the hoists' 0) and, y being live
+  when the loop bound is born, the bound cannot take y's f12. `register f32 s asm("fr0"); s = esp->sizeY; v = y; while (v <
+  lim - esp->sizeX) v += s; esp->pos.y = v; asm("" : "=m"(esp->pos.y) : "f"(y));` -- the keep-alive after the store (a dead
+  `if (y == v) v = 0.0f;` test works too), the pin because the step's pseudo otherwise lands in f12. The x-loop (bound
+  recomputed in the loop, `lim - sizeX` shares the step's load through loop.c's `r106 = r103 ... r103 = r106` pair) was
+  already right.
+- **A 3-ref conversion constant is hoisted to the block top, a 2-ref one is moved next to its store (esp12 Esp12_Trans 47 ->
+  0, unit Matching; tagged `#13 (hoisted conversion constant)` + `#13 (keep-alive)`).** The target's `lis r28,0x4330`
+  right after `bl CameraCurrentProjection` feeds ONE `stw r28,176(r1)` (the `(f32) w->n` conversion four blocks later);
+  update_equiv_regs moves a REG_N_REFS == 2 constant whose use is in another block right before the use (local-alloc.c:
+  the move needs `depth == 0 && REG_BASIC_BLOCK < 0`), so the original's pseudo had a third ref. `u32 magic = 0x43300000;`
+  after `esp->CommonStateSet()` (cse1 follows the taken `bgt` to the once-used label and substitutes it into the
+  conversion's `force_reg` constant) plus `asm("" : "=m"(nrm.x) : "r"(magic));` after `GXBegin` (3 refs, live across the
+  calls -> callee-saved, set once and live at block end -> birthing boost -> first insn of the block). The same block also
+  needed the Esp16_Trans zero recipe (`register f32 z asm("fr12"); z = 0.0f; if (esp->cnt + w->n + esp->anmNo == 99) t = z;
+  t = z;` -- the recipe cost 106 in sweep 13 only because the constant was not hoisted yet), `nrm.x/y/z = 0.0f` as three
+  statements (no death in the block: source order), `(r * sizeY + (1.0f - r) * sizeX) * scale` (the standalone `fmuls` is
+  the second term) and `t += tstep` BETWEEN the two vertices (the second `GXTexCoord2f32(1.0f, t)` stores the incremented
+  t: a semantic difference the diff hid behind an `fadds` position). Side effect: the `li r6,4; li r7,0` argument order of
+  the third GXSetVtxAttrFmt followed (ours had `li r7,0` first because the late `lis r7,0x4330` was a 5th sched2 dependent).
+- **One frame-address pseudo, spilled, uses rewritten frame-direct (esp02 esp02Trans_sub 84 -> 0, unit Matching, zero
+  code).** `Vec* pd = &d;` at function scope plus `&d` in the calls made TWO pseudos for `fp+232` (the user variable in
+  r26, the PRE'd call argument spilled to 376); the target has one, spilled, with the inlined VECNormalize's `pd->y/z`
+  reads rewritten by reload's REG_EQUIV substitution to `lfs f0,236(r1)`. Write `&d` everywhere (no `pd`). Also there:
+  `org.x/y/z = 0.0f` as three statements (source order, f31 never dies), `nz = 1.0f - nz;` in place (the fsubs result is
+  nz's register), and `u32 i` for a 1-iteration `for` (`addic.; beq` = unsigned `i + 1 < 1`, `int` gives `ble`).
+- **Eleven reference stores in pure source order (cam_qfps CameraQuasiFPS::init 12 -> 0, tagged `#13 (value pin)` x3 +
+  `#13 (keep-alive)`).** The target's constants are reload spill registers (r10 = 1, r8 = 2, r7 = 0, the flags RMW temp
+  r0, both pool floats through f0) and no store has a dying source. Pinned `register int one asm("r10"), two asm("r8"),
+  zero asm("r7")` stored through PLAIN references (`{ u8& r_ = reset; r_ = one; }`: the `U8Set`/`S16Set` inline setters
+  copy a hard register into a pseudo for their promoted parameter and the pin is lost), `fl = flags & ~7; BitSet(flags,
+  fl);` for the RMW, `fz = 0.0f` assigned AFTER the two 0.8 stores (pool order 0.8, 0.0), and one `asm("" :
+  "=m"(floor_ratio) : "r"(one), "r"(two), "r"(zero), "f"(fz), "r"(fl))` at the block end. The `"=m"` operand must be a
+  field the block does NOT store: on a stored field the asm is that store's dependent and boosts it to the block top
+  (`search_count` moved from last to fourth). A plain `int one = 1` with the keep-alive reproduces the order but not the
+  names (local-alloc: the zero has 4 refs with the keep-alive and beats the 0.0 high for r9).
+- **Asm-emitted constant with a LATE memory input (title stageSelect 87 -> 6, tagged `#13 (asm-emitted constant)`).**
+  `mode = 0` right before MercSysGetSaveWork is store-flagged by jump1 (`xori/subfic/adde`), earlier it is hoisted. `asm("li
+  %0,0" : "=r"(mode) : "m"(u->no));` after the last `u->flags_7F |= 2`: cse cannot fold it, and the memory input (the
+  block's last store) keeps it out of the first free slot (with no input a non-volatile asm is hoisted to the function top;
+  `"m"(u->flags_7F)`/`"r"(u)` inputs leave it two slots early). Left (6): `rank` (7 weighted refs / 54) beats the `i * 12`
+  giv (6 / 51) for r28; the target allocates the giv first. u32/block-scoped/declaration-order forms do not change the refs.
+- **Keep-alive of a dying argument copy (emwep emWep_R1_ShotArrow 6 -> 0, tagged `#13 (keep-alive)`).** `asm("" :
+  "=m"(hit) : "r"(part));` after `EmAtkSetDamagePL/Sub(part, ..)` in both arms: `mr r3,part` is the LAST argument move in
+  the target (weight +1, not the dying-first 0 of ours).
+- **RETURN cross-jumps pair only RETURN insns already in the chain (puzzle pzlPiece::size_y 5 -> 0, tagged `#17 (value
+  pin)`).** jump.c's `b END -> RETURN` conversion happens in the forward scan, so a converted arm can only match EARLIER
+  arms (the target's "later arm jumps into the earlier one"); the `break` form's LAST arm falls into the shared `extsb; blr`
+  and is never a candidate. Per-arm `return size;` gives the merge, but a multi-set `s8 size` then takes r3 (global.c
+  `set_preference` strips the SIGN_EXTEND and prefers the return register); `register s8 size asm("r0")` is the target.
+  size_x matched with the `break` form because its merging arm is not the last one.
+- **Both arms store the byte, jump2 merges the stores (sce_com SceUpCut 8 -> 0, zero code).** `if (flags & 2) m.x5 = 1;
+  else m.x5 = 0;` puts `stb r0,13` in both arms (cross-jumped into one at the then-arm's end): the byte stays in r0 and the
+  join block's LSU slot is free for `sth a,10` before the `&m` argument (`t1 = flags & 2; if (t1) t1 = 1; m.x5 = t1;` stores
+  a pseudo at the join, r11, and `addi r3,r1,8` overtakes the sth so `a` is copied to r10).
+- **SceUpCutEnd 16 -> 0 (zero code):** `BitOff(pGS->flags_5010, ..)` after `pPL->atari.setFlag100()` (the pG load waits for
+  the in-struct `sth`), and `ScePrim* p = SceCTask(); u8 v = s->x70; p->task->flag = v;` (both loads after the call, the
+  byte read first by LUID -- `a->b = c` evaluates the address first).
+- **sce_com SceExecItemEvent 14 -> 3 (zero code):** `int flag = e->flag;` (`lbz` straight into r31; a `u8` local gives
+  `lbz r0; mr r31,r0`). Left (3): the HALT block's `lis r3 (fmt)` before `lis r4 (__FILE__)` while `.rodata` has the file
+  string first -- the `file_` local of the HALT macro creates the file high first (LUID) AND emits the string first;
+  a macro without the local flips both. Not found.
+- **Pointer + index instead of a 2-D index (main_mem ResetDebugAlloc 11 -> 0, MemReplaceHeap 34 -> 18, zero code).**
+  `OSHeapDescriptor* hd = HeapHead + Heap[CurrentDbgHeap].handle; cell = hd->allocated;` gives `add r11,r11(HeapHead),r0`
+  (the pointer is the first plus operand and the sum is tied to it); `HeapHead[idx].allocated` puts the `mult` first and
+  ties the sum to the index. MemReplaceHeap's constant-index blocks (`Heap[1..3]`) still swap the high/HeapHead names.
+- Read, not closed (do not retry the listed forms):
+  - esp18 Esp18_Trans (322 -> 292 with `register cEsp18* esp asm("r27")`, NOT applied): the residue is not one allocation
+    order. The target never hoists the loop's five `lis 0x4330` (each conversion has its own, `lis r0/r11` right before the
+    `stw`) while ours cse-merges them into one loop.c-hoisted r14; `stages`/`texGens` are r29/r25 with `addi r25,r25,1;
+    clrlwi r3,r25,24` (ours folds `texGens++` to `li 3`); `li r14,1` (the GXInitTexObjCI stack `1`) is a loop.c hoist; the
+    m4/m5 template stores and the `ang = 0.0f` load sit above the static-init guard test (`ang = 0.0f` between `static u32
+    esp18_lp` and the guarded `esp18_div` declaration gives 287). `int one`/`texGens` launder forms 288-295.
+  - esp08 (305/440, `.sdata` 0x10 vs 0xc): FPR naming across two 5-7 KB functions, not started.
+  - cam_qfps move (64): the inner `j` loop is `mulli r0,r29,12; addi r30,r29,1; ...; mr r29,r30` before the Draw_line3d
+    call with j (r29) and nj (r30) BOTH callee-saved; `nj = j + 1; a = &p[j]; b = &p[nj % 4]; j = nj; Draw_line3d(a, b, ..)`
+    gives the shape with nj in r9 and the copy before `li r6,0` (67); `&point[j++], &point[j % 4]` in the arguments 44
+    (frame/callee-saved set right, the giv strength-reduced). setAreaData (74): the target keeps `i * 132` as one outer giv
+    (`stwx r11,r3,r28`, `add r7,r29,r3`) and steps only the j pointers (+44); ours forms `base + i*132` pointer givs per
+    array (+132 and +44 steps).
+  - title titleMain (9): the `w->step = 0` zero of the `mode = 6` block is `li r0,0` re-materialised after `stb r0,88`
+    (r0 = the x3 temp); an `asm("li %0,0" : "=r"(z) : "m"(w->saveX3))` with `register u8 z asm("r0")` gives the position
+    but local-alloc's fake-lifetime adjacency then keeps the x3 temp out of r0 (`"m"(saveSub)`: 6, `"m"(saveCnt)`: 8,
+    store reorders 7-11). titleSub (26): the 2-iteration `mtctr 2` loop -- SN's insert_bct returns for `n_iterations < 3`
+    (loop.c 9148) and the runtime path is `#if 0`, so `li r9,2; mtctr r9` cannot come from our loop.c: compiler-side.
+  - emwep setCloth (32): pure source-order stores with reload-named constants (#13 dying-store family); six GPR + four FPR
+    pins with two keep-alive asms give the store order and names (20) but the pool loads then issue in pin order
+    (`f11, f13, f0, f12` vs the target's `f11, f12, f13, f0`) and `const f32` pool-order locals move the highs (25). Not
+    applied.
+  - puzzle pzlBoard::init (4): the zeroing loop's guard is `cmpwi r30,0; beq` + `mtctr r30` (check_dbra_loop's bct; insert_bct
+    fails with "!= comparison" in both). `u32 i`, `i != n`, guarded do-while/for (`beq` + a second `ble`), pointer forms: 8-15.
+  - main_mem MemCheckHeapEnd (12): the target re-reads `d->allocated` for the loop init after the if/else (ours PREs the
+    load into `mr r9,r0`); a volatile read gives the reload (8) but the hoisted `li r3,0` (else arm, jump.c) then issues
+    before the compare where the target has it after `cmpwi`.
+  - Not iterated: card, emrock, motion, route_ck, db_cam, pendulum, option, cam_ctrl, emwep EscapeCamMove, the other puzzle
+    residues, sce_com SceChapterEnd/SceSetItemEvent/SceUpCutStart/OpenBoxMain/SceElevator, title titleDebugMenu.

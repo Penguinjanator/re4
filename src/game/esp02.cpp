@@ -116,23 +116,23 @@ void esp02Trans_sub(cEsp02* esp)
     Vec q[2];
     Vec v[4];
     Vec n2;
-    Vec* pd;
     f32 half;
     f32 nz;
-    int i;
+    u32 i;
 
     dir.x = -esp->sizeX;
     dir.y = 0.0f;
     dir.z = 0.0f;
     PSMTXMultVecSR(esp->mat, &dir, &dir);
-    org.x = org.y = org.z = 0.0f;
+    org.x = 0.0f;
+    org.y = 0.0f;
+    org.z = 0.0f;
     PSMTXMultVec(esp->mat, &org, &org);
     pts[0] = org;
     pts[0].x += dir.x;
     pts[0].y += dir.y;
     pts[0].z += dir.z;
     pts[1] = org;
-    pd = &d;
     for (i = 0; i < ESP02_STRIP_NUM; i++) {
         PSVECSubtract(&pts[i + 1], &pts[i], &d);
         tmp = pts[i];
@@ -155,7 +155,7 @@ void esp02Trans_sub(cEsp02* esp)
         PSVECAdd(&pts[i + 1], &q[0], &v[2]);
         PSVECAdd(&pts[i + 1], &q[1], &v[3]);
 #line 267 "D:/Bio4/Prog/esp02.cpp"
-        VECNormalize(pd, &n2);
+        VECNormalize(&d, &n2);
         nz = n2.z;
         if (nz < 0.0f) {
             nz = -nz;
@@ -163,13 +163,14 @@ void esp02Trans_sub(cEsp02* esp)
         nz = nz * nz;
         nz = nz * nz;
         nz = nz * nz;
+        nz = 1.0f - nz;
         {
             GXColor c;
 
             c.r = (u8)esp->colR;
             c.g = (u8)esp->colG;
             c.b = (u8)esp->colB;
-            c.a = (u8)(esp->colA * (1.0f - nz));
+            c.a = (u8)(esp->colA * nz);
             GXSetChanMatColor(4, c);
         }
         EspStrip_draw_poly(esp, i, v, 1, 1);

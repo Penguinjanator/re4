@@ -243,14 +243,16 @@ void SceUpCutEnd()
     BitOff(pG->flags_58, 0x40000000);
     BitOff(pG->flags_58, 0x20000000);
     pPL->atari.setFlag100();
-    BitOff(pG->flags_5010, 0x10000000);
+    BitOff(pGS->flags_5010, 0x10000000);  // the pG load waits for the setFlag100 store
     if (s->x6C == 1) {
         pG->flags_170 = s->x60;
         s->x6C = 0;
     }
     if (s->checkCTaskRange() == 1) {
         if (s->x70 != 0) {
-            SceCTask()->task->flag = s->x70;
+            ScePrim* p = SceCTask();
+            u8 v = s->x70;  // read before the task pointer (both loads after the call)
+            p->task->flag = v;
         }
     }
     SceSys.x70 = 0;
@@ -340,19 +342,19 @@ void SceMesCamSndSet(int no, int cut, int se)
 void SceUpCut(int a, int b, int c, int flags)
 {
     SceAtMesData m;
-    int t0;
-    int t1;
 
-    t0 = flags & 1;
-    if (t0) {
-        t0 = 1;
+    // Both flag bytes stored in each arm (jump2 cross-jumps the else arm's store into the
+    // then arm's): the byte stays in r0 and `sth a` precedes the `&m` argument.
+    if (flags & 1) {
+        m.type = 1;
+    } else {
+        m.type = 0;
     }
-    m.type = t0;
-    t1 = flags & 2;
-    if (t1) {
-        t1 = 1;
+    if (flags & 2) {
+        m.x5 = 1;
+    } else {
+        m.x5 = 0;
     }
-    m.x5 = t1;
     m.no = a;
     m.x4 = b + 1;
     m.x6 = c + 1;
@@ -486,7 +488,7 @@ extern "C" void SceExecItemEvent(SceItemEvent* e);
 void SceExecItemEvent(SceItemEvent* e)
 {
     u32 i;
-    u8 flag;
+    int flag;  // `lbz` straight into the callee-saved register (a u8 local adds an `mr` copy)
     u16 room;
 
     SceAtSetEnable(e->atNo, 0);

@@ -1677,3 +1677,10 @@ MATCHING.update({
     "lib/crt0.c": True,  # data-only libsn crt0 half: the two 32-byte message buffers, the version words, `LinkFiddle = {__mod2i, 0}` (the code is lib/__start.s)
     "lib/crtbegin.c": True,  # .ctor/.dtor -1 list heads (`__CTOR_LIST__`/`__DTOR_LIST__` with section attributes)
 })
+
+# DOL sweep 16b (2026-09-11)
+MATCHING.update({
+    "game/esp04.cpp": True,  # move10: y-loop step pinned to fr0 (#17) + a "=m" keep-alive of y after the loop (#13): the `v = y` copy is issued after the hoisted step/bound copies and the loop bound cannot take y's f12
+    "game/esp12.cpp": True,  # Esp12_Trans: `u32 magic = 0x43300000` in the CommonStateSet block + a "=m" keep-alive after GXBegin (#13: the conversion constant is a 3-ref callee-saved pseudo hoisted to the block top), the Esp16_Trans zero recipe (fr12 pin + dead three-load test), nrm zero stores as three statements, `r*sizeY + (1-r)*sizeX`, `t += tstep` between the two vertices
+    "game/esp02.cpp": True,  # esp02Trans_sub: `&d` in the calls and the inlined VECNormalize (no `pd` copy: one fp+232 pseudo, spilled, its uses rewritten frame-direct), `org.x/y/z = 0.0f` as three statements, `nz = 1.0f - nz` in place, `u32 i` (unsigned `addic.; beq` exit); zero code
+})

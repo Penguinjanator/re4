@@ -91,11 +91,17 @@ void move10(cEsp04* esp)
         }
     } else if (y < -esp->sizeY) {
         if (y < lim - esp->sizeX) {
+            // The original's loop step lives in f0 and its `v = y` copy is issued after the
+            // hoisted step/bound copies (y stays live past it, so the loop bound cannot take
+            // y's f12): value pin + keep-alive.
+            register f32 s asm("fr0");  // COMPILER-DIFF: #17 (FPR value pin)
+            s = esp->sizeY;
             v = y;
             while (v < lim - esp->sizeX) {
-                v += esp->sizeY;
+                v += s;
             }
             esp->pos.y = v;
+            asm("" : "=m"(esp->pos.y) : "f"(y));  // COMPILER-DIFF: #13 (keep-alive)
         }
     }
     x = esp->pos.x;  // dead: keeps x/y alive past v for cse (see above)

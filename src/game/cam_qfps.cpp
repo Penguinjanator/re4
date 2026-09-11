@@ -1132,16 +1132,32 @@ void CameraQuasiFPS::bindAreaCamera(CameraAreaRec* rec)
 // dying-source stores first) — the dying-store family of emrock SetRock / obj1b SetSpear.
 void CameraQuasiFPS::init()
 {
+    // The original issues the eleven reference stores in pure source order with the constants
+    // in reload's spill registers (r10/r8/r7, the flags temp r0, both pool floats through f0):
+    // nothing dies at a store there. Pinned constants stored through plain references (the
+    // u8&/s16& setters would copy a hard register into a pseudo) plus one codeless keep-alive
+    // at the block end so no store has a dying source.
+    register int one asm("r10");   // COMPILER-DIFF: #13 (value pin)
+    register int two asm("r8");    // COMPILER-DIFF: #13 (value pin)
+    register int zero asm("r7");   // COMPILER-DIFF: #13 (value pin)
+    f32 fz;
+    u32 fl;
+    one = 1;
+    two = 2;
+    zero = 0;
     FSet(smooth_ratio, 0.8f);
     FSet(CamSmth.ratio, 0.8f);
-    FSet(x1A8, 0.0f);
-    U8Set(reset, 1);
-    S16Set(search_frame, 0);
-    U8Set(site, 2);
-    BitOff(flags, 7);
-    FSet(angle_y, 0.0f);
-    FSet(angle_x, 0.0f);
-    S16Set(search_count, 0);
+    fz = 0.0f;  // after the 0.8 stores: pool order 0.8, 0.0
+    FSet(x1A8, fz);
+    { u8& r_ = reset; r_ = one; }
+    { s16& r_ = search_frame; r_ = zero; }
+    { u8& r_ = site; r_ = two; }
+    fl = flags & ~7;
+    BitSet(flags, fl);
+    FSet(angle_y, fz);
+    FSet(angle_x, fz);
+    { s16& r_ = search_count; r_ = zero; }
+    asm("" : "=m"(floor_ratio) : "r"(one), "r"(two), "r"(zero), "f"(fz), "r"(fl));  // COMPILER-DIFF: #13 (keep-alive)
     if (pPL) {
         setPlayerLocation(pPL->mat, pPL->pFloorNrm);
     }

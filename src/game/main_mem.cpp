@@ -298,20 +298,20 @@ int MemReplaceHeap(int from, int to)
     u32 end;
 
     if (CurrentHeap == 0) {
-        OSHeapDescriptor* hh = HeapHead;
-        cell_main = hh[Heap[CurrentHeap].handle].allocated;
+        OSHeapDescriptor* hd = HeapHead + Heap[CurrentHeap].handle;
+        cell_main = hd->allocated;
     }
     if (CurrentHeap == 1) {
-        OSHeapDescriptor* hh = HeapHead;
-        cell_game = hh[Heap[CurrentHeap].handle].allocated;
+        OSHeapDescriptor* hd = HeapHead + Heap[CurrentHeap].handle;
+        cell_game = hd->allocated;
     }
     if (CurrentHeap == 2) {
-        OSHeapDescriptor* hh = HeapHead;
-        cell_stage = hh[Heap[CurrentHeap].handle].allocated;
+        OSHeapDescriptor* hd = HeapHead + Heap[CurrentHeap].handle;
+        cell_stage = hd->allocated;
     }
     if (CurrentHeap == 3) {
-        OSHeapDescriptor* hh = HeapHead;
-        cell_dll = hh[Heap[CurrentHeap].handle].allocated;
+        OSHeapDescriptor* hd = HeapHead + Heap[CurrentHeap].handle;
+        cell_dll = hd->allocated;
     }
     if (!memCheckHeapActive(from)) {
         return 0;
@@ -431,7 +431,12 @@ void ResetDebugAlloc()
     MemCellHead tmp;
 
     Dalloc_flg = 0;
-    for (cell = HeapHead[Heap[CurrentDbgHeap].handle].allocated; cell != NULL; cell = tmp.next) {
+    {
+        // pointer + index (the pointer is the first `add` operand, tied to HeapHead's register)
+        OSHeapDescriptor* hd = HeapHead + Heap[CurrentDbgHeap].handle;
+        cell = hd->allocated;
+    }
+    for (; cell != NULL; cell = tmp.next) {
         tmp = *(MemCellHead*) cell;
         if (strcmp((char*) cell + cell->size - 8, "toolmem") == 0) {
             Debug_free((u8*) cell + 0x20);
