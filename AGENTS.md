@@ -22328,3 +22328,73 @@ dev/tbl r27/r28 -> target dev r28). The target materialises tbl after the inline
   later or in both arms) is the lever to try.
 - mpv_umc OneReadMb 68w, sfd_tst Calc 79w (400+ nodes, three levels, r23/r25 pair swap cascades), sfx_zmv CCIR 74w, adx_baif,
   adx_dcd5, cftfx, cftyp422 (also .bss order + .rodata size) not attempted this pass.
+
+### DOL closer: debug/em_set/db_cam/cam_extra (debug processBarDisp 159 -> 138 zero code; db_cam 10 -> 11/13: move 141 -> 0 zero code; cam_extra CameraPushObject::move 117 -> 62 zero code; em_set 9/18 unchanged; nothing flipped; 111 OK; 2026-09-11)
+
+Harness ~/.cache/dol_dc2 (mk.sh/try.sh = compile a variant as game/UNIT + bytecmp; `sbs.sh UNIT SRC SYM [--all]` = objdump-based
+side-by-side of one function against the split object with branch targets/pool labels normalised (tools/fdiff.py ignores OBJ=
+and runs ninja unlocked, do not use it for variants); `dump.sh UNIT SRC LABEL [-dr]` = RTL dumps; `t/cc.sh FILE.cpp` = scratch
+compiles), deleted at the end. 111 OK before and after every edit.
+
+- **PIN HAZARD: `register T x asm("r31")` is UNSAFE with this compiler.** global.c never records a conflict between an allocno and
+  hard reg 31 (verified in the greg dump: `;; N conflicts:` lists every other explicit hard reg but never 31; the likely reason
+  is `mark_reg_store`'s `! fixed_regs[regno]` test with r31 = the eliminable frame pointer still fixed), so a
+  pseudo live across the pin's set can be allocated to r31 and be clobbered (scratch t/pin3.cpp: `s16 x0 = f(); register int y0
+  asm("r31") = x0 + 30; ... x1 - x0` gives `extsh 31,3; addi 31,31,30; subf 0,31,30` = wrong code; the same with r30 is correct and
+  `;; N conflicts:` in the greg dump lists 30 but never 31). Pin any other register; if a value must sit in r31, arrange the other
+  pins so it falls there. Also: an `int` pin assigned from an s16 inline/fast-cast result gives `extsh rT,r0; mr rP,rT` (the
+  sign-extension is a pseudo copied into the hard reg) or `lhz rP; extsh rP,rP` (local-alloc ties the HI temp to the pin), and an
+  `int` pin whose s16 copy is read back for a fast-cast conversion ICEs ("Could not split insn" floathisf2 with a hard-reg subreg).
+  processBarDisp's x0/x1/x2/y0 pins were abandoned for these reasons.
+- **debug processBarDisp 159 -> 138, zero code, two pieces.** (1) The tick->bar conversion is a MACRO `TICKX(t) ((s16)((f32)(t) /
+  total * 400.0f))`, not an inline returning s16, and the fourth bar has no `x3` variable: `t->h = TICKX(proc_tick[3]) - x0;`. The
+  target's `subf r0,r28,r0` subtracts the raw `lhz` result: the front end shortens `(s16)(a - b)` to a HImode minus and expand_binop
+  widens the operands with `gen_lowpart` (no extension). An inline's s16 return value is sign-extended before the caller sees it
+  (`extsh`, scratch t/sh2.cpp), and a `s16 x3` variable is promoted (`extsh` as well, t/sh3.cpp g); only the macro/expression form
+  drops it (t/sh3.cpp g2). (2) The two bus-clock reads AFTER the if/else (`eprintf2(10,16,0,16,..)` and `g_proc_cnt`) go through
+  the constant `OS_BUS_CLOCK` while the arms and the loop keep the `clk` pointer variable: the target re-materialises the 0x8000
+  high in the join block into its own call-crossing register (`lis r28; lwz r0,0xf8(r28)` twice) and uses the block-0 r14 in the
+  arms and in the loop. With the constant everywhere ours shares one pseudo from the first read and hoists a second `lis` in the
+  loop preheader; with the variable everywhere the join block uses r14. Left (138): the x0/x1/x2/y0 allocation (target 4
+  callee-saved r28/r27/r29/r31, ours 3 with y0 and x2 sharing r29; y0 = `x0 + 30` (A) dies at tile 3's `sth` in both final
+  orders, so in the target A and x2 conflicted in the post-sched1 order or A's rank at that store was lower (it did not die
+  there); y0 store position in source (before/after `h`), an `int y0` variable, a keep-alive asm (`"+r"(y0) : "r"(x2)`, breaks the
+  B copy: 290) do not give it) and the `12` constant (not allocated in the target because no callee-saved register is left).
+- **em_set EmSetFromList2 9 / EmSetEvent 18: unchanged; what was tried.** The `mr r8,r10` slot: it is NOT the codeless
+  `asm("" : "+r"(hp_) : "r"(hr))` (replacing it with an asm `sth` of hpMax carrying `"r"(hr)` gives the same 9/18); the asm
+  `lis r11` is issued 2 slots earlier than the target's reload-generated `lis` because it exists at sched1 time and has a low LUID
+  (the target's high is created by reload right before its `lfs`, so sched2 ranks it late). Forms that are worse: hr as an input
+  of the kp/kx `lfs` asm (12/21, 67/69), `lis`+`lfs` in one asm (28/36, 15/29), an asm `lhz` for hp with `"r"(hr)` (33/45), the kr
+  pair moved below the hp copy without the codeless asm (61/63), `asm("lfs %0,%1" : "=f" : "m"(k))` (reload gives `lis; addi;
+  lfs 0(r9)`, 82/75). The oldPos copy: per-component forms (x,y,z / z,y,x / x,z,y) cost 60-70 words, a `Vec* op = &oldPos` cursor
+  is identical to the struct copy. EmSetDist's 1e16: `register f32 big asm("fr12")` inside the inline gives FromList2 8 / Event 17
+  but breaks EmSetFromList (42) since the inline is shared; as a separate macro used only in FromList2 it is 12; EmSetEvent's
+  target loads the constant FIRST (`lfs f10` before `lwz pPL`, high hoisted into callee-saved r26 in the head), which an fr10 pin
+  turns into a head load (65). Register names are `"fr12"`, not `"f12"`.
+- **db_cam move 141 -> 0, zero code: the enemy search loop calls a local `EmMgrWorkP` = em.h's EmMgrWork with `cEmMgr* m = &EmMgr;`
+  (one `&EmMgr` instead of three per-field `high/lo_sum` pairs = 4 fewer expand-time insns).** stmt.c expand_end_loop scans up to
+  30 INSN/JUMP_INSNs after the first exit test for the last jump to the end label; `while (--i)` expands its test as 4 insns
+  (addi, compare, `bcc AROUND`, `b END`, then the label: expand_exit_loop_if_false's conditional-around-unconditional shape), so
+  the `break`'s `b END` was insn 31 with em.h's inline (17 insns) and the loop rotated at the `--i` test (`bdnz` at the bottom);
+  with the pointer form it is insn 27 and the rotation moves the whole prefix (test + body + match tests) below the increment:
+  `b TEST; INC: numEm++/wrap; TEST: bdz EXIT; body; beq INC; bgt INC; EXIT:` = the target. Final code of the inline is unchanged
+  (cse folds the pointer). Count the window with `dump.sh .. -dr`: list `(insn|jump_insn)(/i)?` between the loop's start label and
+  the break, remembering the 4-insn while-test that the rotation moved to the end. em.h's EmMgrWork itself was not changed (every
+  EmMgrWork user would need a re-touch; the original probably had the pointer form -- try it when a unit with a search loop over
+  EmMgr still differs). A single-return `e = 0; if (no < n) e = ..; return e;` also fits but changes the body (`li 0` hoisted,
+  `bge`). menu 72 / menuFlag 144: `int cm = cam_mode` / `u32 cm` (switch becomes unsigned) / `(int)` casts / `(u8) old_cam_mode`
+  / block-local `cm` do not give the `clrlwi r11,r0,24`; not closed. Note the target's `lis r9,0x8027` in the switch is a raw
+  word (dtk lost the @ha pairing); bytecmp's `fold_addr` treats it as equal.
+- **cam_extra CameraPushObject::move 117 -> 62, zero code: `f32 ofs[8]` local replaces `Vec v[2]` + `f32 fr[2]` (v[0] at
+  [0], v[1] at [3], roll/fovy at [6]/[7]: one 32-byte slot at 0xF8, the two floats stored to 0x110/0x114 and reloaded after the
+  inv-MultVec calls, `ofs[6]` before `ofs[7]` in source), and the two `VecAngle(&look, (Vec*) &plmat[2])` calls go through
+  `static inline f32 VecAngleI(Vec*, Vec*)`: integrate substitutes the frame address into each call (`addi r4,r1,216` per
+  call) instead of gcse's PRE'd copy held across the first call.** Left (62): `&look` is a hoisted pseudo in the target (`addi
+  r17,r1,280` in the head, `mr r3,r17` per call) but recomputed per call through the inline (a `Vec* pl = &look` gives the pseudo
+  but costs 9 words elsewhere: 71); `&inv` = `addi r0,r1,8; mr r29,r0` (the #3 frame-address copy, used for exactly the three
+  column-2 loads `lfs 40/8/24(r29)` of the plmat transposition, the other nine through r1; a `f32* q = (f32*) inv` cursor
+  routes all twelve through the pointer: 70); the `em_pos.z >= 0 && Mag <= 4000` tests (`cror so,eq,gt; bso` vs `cror; bns`).
+  The 2 dtor words (`bl __dl__7cCamera`) and the `.rodata` "reloc targets differ" that appeared with this change are the .text
+  size shift (PushObject 0x454 vs 0x44c; before, the four functions' +-4 cancelled): they vanish with the size.
+- Not attempted: cam_extra CameraScope::move 91, CameraBinocular ctor 17, CameraBinocular::move 79, IdBinocular::move 271;
+  db_cam menuFlag 144.

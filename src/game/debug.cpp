@@ -101,10 +101,10 @@ void debugPadInfoDisp()
     }
 }
 
-static inline s16 tickX(u32 tick, f32 total)
-{
-    return (s16) ((f32) tick / total * 400.0f);
-}
+// A macro, not an inline: the fourth bar's `TICKX(..) - x0` is stored as s16 directly (the front-end
+// shortens the subtraction to HImode, `subf` on the raw lhz); an inline's s16 return value is
+// sign-extended first (`extsh`) whatever the caller does with it.
+#define TICKX(tick) ((s16) ((f32) (tick) / total * 400.0f))
 
 // Progressive (60Hz) screen: the 400-line bars are squashed to 300 lines below y = 56.
 #define PROG_Y(y) ((s16) ((f32) (s16) (y) / 1.3333334f + 56.0f))
@@ -128,11 +128,10 @@ void processBarDisp()
     s16 x0;
     s16 x1;
     s16 x2;
-    s16 x3;
     u32 i;
 
     total = (f32) frameTick;
-    x0 = tickX(proc_tick[4], total);
+    x0 = TICKX(proc_tick[4]);
     t->z0 = 0;
     t->code = 4;
     t->x0 = 6;
@@ -150,7 +149,7 @@ void processBarDisp()
     AddPrim(&MainOt[1], (u32*) t);
     t++;
 
-    x1 = tickX(proc_tick[1], total);
+    x1 = TICKX(proc_tick[1]);
     t->code = 4;
     t->x0 = 6;
     t->y0 = x0 + 30;
@@ -168,7 +167,7 @@ void processBarDisp()
     AddPrim(&MainOt[1], (u32*) t);
     t++;
 
-    x2 = tickX(proc_tick[2], total);
+    x2 = TICKX(proc_tick[2]);
     t->y0 = x0 + 30;
     t->code = 4;
     t->x0 = 12;
@@ -190,7 +189,6 @@ void processBarDisp()
     if (x1 > x2) {
         x0 = x1;
     }
-    x3 = tickX(proc_tick[3], total);
     t->y0 = x0 + 30;
     t->c0.g = 0x80;
     t->code = 4;
@@ -200,7 +198,7 @@ void processBarDisp()
     t->c0.r = 0x20;
     t->c0.b = 0x20;
     t->c0.cd = 0xFF;
-    t->h = x3 - x0;
+    t->h = TICKX(proc_tick[3]) - x0;
     if (SysRef(pSys)->flags & 0x40000000) {
         t->y0 = PROG_Y(t->y0);
         t->h = PROG_H(t->h);
@@ -248,8 +246,11 @@ void processBarDisp()
         eprintf2(10, 16, 12, 400, 0, 1, "%4.0f", TICK_100F(proc_tick[2]));
         eprintf2(10, 16, 12, 416, 0, 1, "%4.0f", TICK_100F(proc_tick[3]));
     }
-    eprintf2(10, 16, 0, 16, 0, 13, "%4.0f", TICK_100F(proc_tick[3]));
-    g_proc_cnt = (u32) TICK_100F(proc_tick[3]);
+    // The two reads after the if/else go through the OS_BUS_CLOCK constant, not `clk`: the join
+    // block re-materialises the 0x8000 high into its own call-crossing register (`lis r28`) while
+    // the arms and the loop keep the block-0 `clk` (r14).
+    eprintf2(10, 16, 0, 16, 0, 13, "%4.0f", (f32) proc_tick[3] * 60.0f / (f32) (OS_BUS_CLOCK >> 2) * 100.0f);
+    g_proc_cnt = (u32) ((f32) proc_tick[3] * 60.0f / (f32) (OS_BUS_CLOCK >> 2) * 100.0f);
     eprintf2(10, 16, 42, 28, 0, 2, "1000/F");
     for (i = 5; i < proc_tick_idx_bak + 5; i++) {
         eprintf2(10, 16, 32, 50 + (i - 5) * 16, 0, 2, "%5.0f %s", TICK_1000F(proc_tick[i] - proc_tick[i - 1]), proc_name[i]);

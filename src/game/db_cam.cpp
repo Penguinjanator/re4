@@ -44,6 +44,20 @@ extern f32 ORTHO_R;
         ORTHO_L -= (t);                  \
     }
 
+// EmMgrWork with the manager through a pointer (one `&EmMgr` instead of three per-field
+// `high/lo_sum` pairs): four fewer expand-time insns, so the enemy search loop's `break` sits
+// within stmt.c's 30-insn rotation window and the loop rotates at the match test (`bdz` at the
+// top, the two tests jumping back to the increment) instead of at the `--i` test (`bdnz`).
+// Same final code as em.h's EmMgrWork everywhere else (cse folds the pointer).
+static inline cEm* EmMgrWorkP(u32 no)
+{
+    cEmMgr* m = &EmMgr;
+    if (no >= m->nArray) {
+        return 0;
+    }
+    return (cEm*) ((u8*) m->pArray + m->size * no);
+}
+
 debugCamera CamDbg;
 QfpsOfs g_local_ready[2][3];
 QfpsOfs g_local_trans[2][3];
@@ -151,7 +165,7 @@ void debugCamera::move(Camera* cam, JOY* joy, int flag)
                 numEm = 0;
             }
             while (--i) {
-                e = EmMgrWork(numEm);
+                e = EmMgrWorkP(numEm);
                 if ((e->be_flag & 1) && e->id <= 0x3F) {
                     break;
                 }

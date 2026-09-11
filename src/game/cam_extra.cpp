@@ -902,6 +902,10 @@ CameraPushObject::~CameraPushObject()
     memset(this, 9, 0x200);
 }
 
+// The two VecAngle calls take `&plmat[2]` through an inline: integrate substitutes the frame address
+// into each call (`addi r4,r1,216` per call) instead of gcse holding one PRE'd copy across the call.
+static inline f32 VecAngleI(Vec* a, Vec* b) { return VecAngle(a, b); }
+
 void CameraPushObject::move()
 {
     static f32 default_ofs[8] = {0.0f, 2000.0f, -2000.0f, 0.0f, 800.0f, 800.0f, 0.0f, 45.0f};
@@ -912,8 +916,8 @@ void CameraPushObject::move()
     Vec near_pos;
     Mtx plmat;
     Vec plpos;
-    Vec v[2];
-    f32 fr[2];
+    f32 ofs[8];   // the rotated default_ofs: v[0] at [0], v[1] at [3], roll/fovy at [6]/[7] (one 32-byte slot;
+                  // [6]/[7] are stored to the frame and reloaded after the two inv-MultVec calls, not kept in f30/f31)
     cModel* em = 0;
     cModel* e;
     u32 i;
@@ -952,7 +956,7 @@ void CameraPushObject::move()
             look.y = em->mat[1][2];
             look.z = em->mat[2][2];
         }
-        if (VecAngle(&look, (Vec*) &plmat[2]) > 0.7853982f && VecAngle(&look, (Vec*) &plmat[2]) < 2.3561945f) {
+        if (VecAngleI(&look, (Vec*) &plmat[2]) > 0.7853982f && VecAngleI(&look, (Vec*) &plmat[2]) < 2.3561945f) {
             if (near_pos.x > 0.0f) {
                 MtxRotAxisPosRad(rot, &axis, (Vec*) &default_ofs[3], 1.5707964f);
             } else {
@@ -960,16 +964,16 @@ void CameraPushObject::move()
             }
         }
     }
-    PSMTXMultVec(rot, (Vec*) &default_ofs[0], &v[0]);
-    PSMTXMultVec(rot, (Vec*) &default_ofs[3], &v[1]);
-    fr[1] = default_ofs[7];
-    fr[0] = default_ofs[6];
-    PSMTXMultVec(inv, &v[0], &v[0]);
-    PSMTXMultVec(inv, &v[1], &v[1]);
-    param.pos = v[0];
-    param.at = v[1];
-    param.roll = fr[0];
-    param.fovy = fr[1];
+    PSMTXMultVec(rot, (Vec*) &default_ofs[0], (Vec*) &ofs[0]);
+    PSMTXMultVec(rot, (Vec*) &default_ofs[3], (Vec*) &ofs[3]);
+    ofs[6] = default_ofs[6];
+    ofs[7] = default_ofs[7];
+    PSMTXMultVec(inv, (Vec*) &ofs[0], (Vec*) &ofs[0]);
+    PSMTXMultVec(inv, (Vec*) &ofs[3], (Vec*) &ofs[3]);
+    param.pos = *(Vec*) &ofs[0];
+    param.at = *(Vec*) &ofs[3];
+    param.roll = ofs[6];
+    param.fovy = ofs[7];
     {
         Vec hit;
         Vec nrm;
