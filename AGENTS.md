@@ -15130,3 +15130,49 @@ reads `<PRE>_lreg.txt`/`<PRE>_greg.txt` cut with `fsec.py`; `dump.sh` names its 
 - **r20e checkPuzzle 224 (not iterated):** 158 differing lines in several independent regions (the pG-address form at
   the top, `lwzu` cell-address forms in the frame block, the slide blocks' store order and `li r31,1` placement) --
   a multi-pass job; casetree/xjump not applicable (no switch, no return tails).
+
+### DOL structural pass 3 (view initPerspective 311 -> 255, not flipped; the normal-group PRE pattern modelled; 2026-09-11)
+
+- Harness ~/.cache/dol_view3 (deleted at the end): dol15 copies (`tryv.py` with an `XF=` extra-cflags env, `mcmp.py`, `sbs.sh`,
+  `dump.sh`, `fsec.py`, `rtl.py`, `vapply.py`, `order.py`) plus `reg.py [OBJ] [-m] [-p]` = normalised-asm diff of ONE region of
+  initPerspective (default: the five r31-based normal groups), `-m` masks register numbers so the STRUCTURE can be compared while
+  the allocation cascades; the masked whole-function word count swings 255-611 between variants that differ only in the
+  allocation of `this`/the spill slots, judge a structural change by the region first.
+- **gcse PRE in this compiler is Muchnick's block-level LCM (lcm.c `pre_lcm`), not the edge-based one, and it has two
+  quirks that matter:** (1) `compute_latein` sets `latein = delayin` for every block but the last (the intended `~AND_succ
+  delayin` term is only applied to the last block), so an expression is "latest" in every block from the first kill down
+  to its first occurrence; (2) `compute_delayinout` starts `delayout` at zero and intersects over predecessors, so a block
+  with a back edge (a loop body) never becomes "delayed": every expression whose first occurrence lies after a loop that
+  follows its operand's definition is REDUNDANT at that first occurrence and gets INSERTED at the end of the loop's
+  preheader (`insert_insn_end_bb`) -- this is why the target's second half has all 14 `&c->point/normal[k]` addresses in
+  the halving loop's preheader and needs no explicit pointer locals, and why frame addresses (`&t2`, `&t3`, `&q[k]`)
+  are PRE'd everywhere. `pre_insert_copies` (copy right after an occurrence) is dead code: `optimal & redundant` is
+  empty by construction, so a PRE copy is always a NEW computation at the END of the optimal block, folded to a copy by
+  cse2 -- its position (block end, after the group's calls) gives it a REG_DEAD of the source and sched1 weight 0, so it
+  is issued EARLY (weight ranks above priority before reload) and the source pseudo dies before the next call and is
+  tied to r3 (`addi r3,..; mr rX,r3`). The target's `addi r29,r31,120; mr r3,r29; bl; mr r23,r29` (source live across
+  the call, copy weight +1 issued after the call) therefore is NOT a gcse copy: it is a copy of a pseudo that the
+  arg load reads after the copy in RTL order (a user-variable copy or an equivalent).
+- **The target's first-half pattern is impossible with plain `(plus r87 K)` expressions**: `&point[0]` (G1, G2) and
+  `&point[4]` (G1, G2, G5) have identical antloc/transp under any kill placement, yet the target PREs only `&point[4]`
+  G1 -> G2; any kill between G1 and G2 makes G2's `&point[4]` latest (not redundant), no kill makes `&point[0]`
+  redundant. Hence the shared second operands (used twice per group) and the else-arm normalize pointer (`addi
+  r3,r31,12k; mr r4,r3`) are not gcse expressions in the original's RTL, and A/C operands need a kill between G2 and
+  G4 (else `&point[3]` G1 -> G4 is PRE'd). `-fno-gcse` reproduces the whole first-half structure except the `&t2` PRE
+  and the `&point[4]` copy. Zero-code forms tried (do not retry): inline wrappers (2.95 `process_reg_param` ALWAYS
+  copies a non-user-variable argument into a fresh `/v` pseudo -- there is no bare `(plus r87 K)` substitution, so
+  the "FadeSet hard-reg-set mechanism" only exists for a user-variable REG argument), per-group `b = &localFull`
+  (cse folds the group this-based), per-group launders (kill everything), `Vec* pb` locals (PRE'd the same), this-based
+  A/C. Applied (tagged `COMPILER-DIFF: 3`): `VADDR(dst, b, off, tag)` = `asm("addi %0,%1,%2" : "=r"(dst) : "r"(b),
+  "i"(off), "i"(tag))` for every group's shared operand and for the else-arm pointer (a local `VECNormalizeQ` macro
+  whose err arm keeps the `(dst)->x = (dst)->y = (dst)->z` pointer stores -- `(dst)` must stay an address expression:
+  the FE does not fold `(&b->normal[k])->y`, expand makes a fresh `(plus r87 12k)` pseudo and cse1 merges it into
+  the Cross-arg pseudo, which is the target's `stfs f31,4(rN); stfs f31,8(rN); stfs f31,12(r31)` and the reason that
+  pseudo has 3 uses; `b->normal[k].y` direct gives `stfs 16(r31)`), a distinct dummy `"i"` operand per site because
+  NON-volatile ASM_OPERANDS with equal strings/operands ARE hashed and PRE'd by gcse, `asm("" : "+r"(b))` before G2 as
+  the kill, and `pk = &b->point[4]` carried from G1 to G2. Region structure now matches except: the `&point[4]` copy
+  (`pk` and its source coalesce: cse1 replaces the later use, regmove `optimize_reg_copy_1` merges the copy when the
+  source dies within the block; a `+r` launder of the copy or the source did not keep two registers), `addi r5,r1,8`
+  vs the G3 normal address order, and the `&point[5]` G3 -> G5 PRE (a kill at G3 fixes it structurally but the
+  whole function then swings to 540+ words). Left as before: `c = &local` block, det/centre FP association (f26), dead
+  pool 0x48..0x7c. `#line 198/203/208/213/218` before each VECNormalizeQ keep the target's err-line numbers.

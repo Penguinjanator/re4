@@ -7,6 +7,23 @@
 
 #define VIEW_ASPECT 1.33333333f
 
+// COMPILER-DIFF: 3 -- the original PREs exactly one r31-based address of the full-frustum normal
+// groups (`&point[4]`, G1 -> G2) and recomputes every other one; our gcse PREs all of them. The
+// shared second operand of each group and the else-arm normalize pointer are emitted by an asm
+// `addi` (an ASM_OPERANDS with a distinct dummy operand per site: not the same gcse expression),
+// and `b` is laundered before G2 (a transparency kill) so `&point[3]` is not carried into G4 and the
+// G1 `&point[4]` copy is the only PRE. Applied for structure; the function is not byte-identical yet.
+#define VADDR(dst, base, off, tag) asm("addi %0,%1,%2" : "=r"(dst) : "r"(base), "i"(off), "i"(tag))
+#define VECNormalizeQ(src, dst, b, off, tag)                                                \
+    if (0.0f == (src)->x && 0.0f == (src)->y && 0.0f == (src)->z) {                    \
+        pLog->err(0, 0, "VECNormalize:[%s/%d]", __FILE__, __LINE__);                    \
+        (dst)->x = (dst)->y = (dst)->z = 0.0f;                                          \
+    } else {                                                                            \
+        Vec* q;                                                                         \
+        VADDR(q, b, off, tag);                                                          \
+        PSVECNormalize(q, q);                                                           \
+    }
+
 VIEW View;
 u8 ViewHit[0xD00];
 
@@ -65,6 +82,8 @@ void VIEW::initPerspective(f32 fovy_, f32 aspect_, f32 znear_, f32 zfar_)
     Vec t3;
     Vec q[4];
     ViewFrustum* b;
+    Vec* pb;
+    Vec* pk;
     ViewFrustum* c;
     Vec* p0;
     Vec* p1;
@@ -138,30 +157,42 @@ void VIEW::initPerspective(f32 fovy_, f32 aspect_, f32 znear_, f32 zfar_)
     PSVECCrossProduct(&t1, &t2, &b->normal[0]);
     VECNormalize(&b->normal[0], &b->normal[0]);
 
-    PSVECSubtract(&b->point[3], &b->point[0], &t1);
-    PSVECSubtract(&b->point[4], &b->point[0], &t2);
+    VADDR(pb, b, 72 + 12 * 0, 1);
+    PSVECSubtract(&b->point[3], pb, &t1);
+    pk = &b->point[4]; // carried to G2 (the original's only shared address; it copies it, `mr r23,r29`)
+    PSVECSubtract(pk, pb, &t2);
     PSVECCrossProduct(&t1, &t2, &b->normal[1]);
-    VECNormalize(&b->normal[1], &b->normal[1]);
+#line 198 "D:/Bio4/Prog/view.cpp"
+    VECNormalizeQ(&b->normal[1], &b->normal[1], b, 12, 11);
 
-    PSVECSubtract(&b->point[4], &b->point[0], &t1);
-    PSVECSubtract(&b->point[1], &b->point[0], &t2);
+    asm("" : "+r"(b)); // COMPILER-DIFF: 3 (transparency kill)
+    VADDR(pb, b, 72 + 12 * 0, 2);
+    PSVECSubtract(pk, pb, &t1);
+    PSVECSubtract(&b->point[1], pb, &t2);
     PSVECCrossProduct(&t1, &t2, &b->normal[2]);
-    VECNormalize(&b->normal[2], &b->normal[2]);
+#line 203 "D:/Bio4/Prog/view.cpp"
+    VECNormalizeQ(&b->normal[2], &b->normal[2], b, 24, 12);
 
-    PSVECSubtract(&b->point[5], &b->point[1], &t1);
-    PSVECSubtract(&b->point[2], &b->point[1], &t2);
+    VADDR(pb, b, 72 + 12 * 1, 3);
+    PSVECSubtract(&b->point[5], pb, &t1);
+    PSVECSubtract(&b->point[2], pb, &t2);
     PSVECCrossProduct(&t1, &t2, &b->normal[3]);
-    VECNormalize(&b->normal[3], &b->normal[3]);
+#line 208 "D:/Bio4/Prog/view.cpp"
+    VECNormalizeQ(&b->normal[3], &b->normal[3], b, 36, 13);
 
-    PSVECSubtract(&b->point[6], &b->point[2], &t1);
-    PSVECSubtract(&b->point[3], &b->point[2], &t2);
+    VADDR(pb, b, 72 + 12 * 2, 4);
+    PSVECSubtract(&b->point[6], pb, &t1);
+    PSVECSubtract(&b->point[3], pb, &t2);
     PSVECCrossProduct(&t1, &t2, &b->normal[4]);
-    VECNormalize(&b->normal[4], &b->normal[4]);
+#line 213 "D:/Bio4/Prog/view.cpp"
+    VECNormalizeQ(&b->normal[4], &b->normal[4], b, 48, 14);
 
-    PSVECSubtract(&b->point[7], &b->point[4], &t1);
-    PSVECSubtract(&b->point[5], &b->point[4], &t2);
+    VADDR(pb, b, 72 + 12 * 4, 5);
+    PSVECSubtract(&b->point[7], pb, &t1);
+    PSVECSubtract(&b->point[5], pb, &t2);
     PSVECCrossProduct(&t1, &t2, &b->normal[5]);
-    VECNormalize(&b->normal[5], &b->normal[5]);
+#line 218 "D:/Bio4/Prog/view.cpp"
+    VECNormalizeQ(&b->normal[5], &b->normal[5], b, 60, 15);
 
     c = &local;
     *c = localFull;
