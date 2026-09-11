@@ -22241,3 +22241,90 @@ side, `prio.py out/PREFIX` = global-alloc rows (refs, len, pri) from `fn.sh`-ext
   not iterated. bytecmp's SceEventEnd 2 / SceEventStart 3 are not diffs: mcmp (relocs by name) says identical -- they are `bl`s
   to functions laid out after SceElevator, whose 8-byte size gap shifts every later address; they vanish when SceElevator hits
   its size.
+
+### CRI pass 19b: the pool base as an own local, `addi rD, rA, 0` needs a relocation, IV-temp creation order, hard-pin schedule costs (dct_ac Matching 2 -> 3/3 + ldscript `_savefpr_27/_restfpr_27`; sfx_zmv MakeCnvZTbl 96 -> 12w; cri_cvfs GetFileSize 63 -> 45w; adx_tsvr 2w / sfh_main 6w / sfd_cre 15w / sfd_adxt 51w read, not closed; 2026-09-11)
+Harness /home/adityas/.cache/cri19b/ (deleted): `bld.sh UNIT SRC OUT.o` (the unit's MWCC GC/2.7 flags through sjiswrap + strip_unused,
+no ninja), `try.sh UNIT SRC [FUNC]` (bytecmp with `OBJ=`), `tryvar.py UNIT BASE.c VARS.py FUNC [--keep NAME]` (`V = {name: [(old,
+new), ..]}` exact replacements, ~0.25 s per variant, unit total per line), `fd.py UNIT FUNC [OBJ] [--all]` (side-by-side
+`llvm-objdump --triple=powerpc-unknown-eabi -d -r` with the relocation symbols folded in; there is no powerpc objdump in
+build/binutils, llvm-objdump from /usr/bin works). ~/.cache/mwccdbg/ra.py + rasum.py for every ranking question. 111 OK after
+the flip; tools/bytecmp.py is the judge (a standalone compile shows `_savefpr_27` UNRESOLVED until the DOL is relinked -- that is
+not a diff).
+
+**dct_ac DCT_AcInit 7 -> 0 (Matching), two mechanisms:**
+- **The asm-emitted .bss pool base ranked below the frontend's induction-pointer temporaries.** With `ip[j] = v; fp[j * 8] = v` the
+  inner loop's row/column pointers are range-split frontend temps `@103/@104` (ids above every own local), coloured before `bss`
+  (a `register` local): r56 = the hoisted 0x4330 constant took r31, @103 r30, @104 r29, and `bss` then took the lowest free
+  handed-out callee-saved register = r29. Writing the two pointers as OWN locals `p = ip; q = fp; *p = v; *q = v; p++; q += 8`
+  declared BELOW `bss` (first declared = highest id) puts `bss` first among the locals: it does not overlap the 0x4330 constant,
+  so it takes r31 (the target: the pool base is the compiler's last-created backend temp = highest id = r31, the constant reuses
+  r31 after the base dies), p r30, q r29, ip r28, fp r27 -- p/q must be declared BEFORE ip/fp (pq_after gave ip r30 / fp r29).
+- **`asm { addi ip, bss, 0 }` becomes `mr`: the backend's constant propagation turns a literal `addi rD, rA, 0` into a copy**
+  (every spelling: `la ip, 0(bss)`, `subi`, symbol differences are rejected by the asm parser; `opt_propagation off`,
+  `opt_lifetimes off` do not stop it). The target's `addi r28, r31, 0` is the pooler's pool-relative offset, emitted after that
+  pass. Fix: give the immediate a relocation whose resolved low half is 0 -- `addi ip, bss, __ArenaHi@l` (`extern Uint8
+  __ArenaHi[]`; the ldscript absolute 0x81780000; bytecmp folds an `abs` target into the word and compares it equal to the
+  literal 0, the linker writes 0). The pass-18b `addi ip, bss, dctac_i_const@l` / `addi fp, bss, dctac_f_const@l` were wrong
+  code (bss is already the full address; the low halves 0xfa18/0xfc18 were double-added) -- the pool offsets are 0 / 0x200.
+- NEGATIVE, `pool_data on` route: the compiler's own .bss pool gives `addi 28, 31, 0` and r31 for free, and the rodata pool goes
+  away with only two anonymous literal objects left (0.5 x2 refs + cvt: the threshold counts objects, not references), but the
+  two named `static const Float64` for 0.3535/pi/8 (defined right before AcInit they DO land at .rodata +0x18/+0x20 = the target
+  order) cannot be loaded: an asm `lis a, sym@ha; lfd k, sym@l(a)` under pooling has its `lis` DELETED by the register allocator
+  (the lfd keeps `sym@l` with a garbage base -- the pooler treats the asm high half as a pool-base def); a `*(volatile Float64
+  *)&sym` read is pooled like any object (4 objects again). Under `pool_data off` the asm lis survives (pass 18b's base).
+  Also: loop-code-motion hoists an asm `lfd` out of the loop but not its `lis` when the address register variable is shared
+  by two asm blocks (a1/a2 must be distinct); FPR ranking of `register Float64` locals follows the GPR rule (k/c/w declared
+  in that order = f29/f28/f27).
+- ldscript: `_savefpr_27 = _savefpr_14 + 0x34; _restfpr_27 = _restfpr_14 + 0x34;` (symbol expressions on the split object's
+  symbols; the pass-8 note said these would be needed at the first Matching unit saving f27..f31).
+
+**sfx_zmv sfxzmv_MakeCnvZTbl 96 -> 12w (pure C): the frontend creates the induction-pointer temps in the order of their FIRST
+USE in the loop body, and a temp created first has the higher id.** `*dst++ = (Uint16)(*src++ >> 15)` / `*dst = *src++ & ..`
+create dst's @N first (the store's address is visited before the load) -> dst coloured first -> dst r3 / src r4 (target src r3 /
+dst r4 in the two linear loops, src r5 / dst r6 and src r29 / dst r28 in the perspective loops where `if (*src == 0)` uses src
+first). Declaring the pair dst-first and ASSIGNING src-first (`Uint32 *dst; Uint32 *src; src = orgtbl; dst = tbl;`) in all four
+inlined branches gives the target's pairs; the assignment order matters twice: with the copies in that order `tbl` (the caller's
+r31) stays live across the three src copies, which are its 3 missing neighbours (33 -> 30 total with dst copied first: tbl drops
+from level 2 to level 1 and takes r29, zmf_dat r31). Left 12w: with assignment statements the two linear loops' copies are emitted
+in the loop-guard block (`li 0,0; mr 3,27; cmpwi 0,256; mr 4,31; bf`) where declaration initialisers are sunk into the
+preheader after the `bf` (`li 0,16; mr; mr; mtctr`) -- but initialisers can only be dst-first-copied; any multi-statement body
+(`v = *src++; *dst++ = v`, split increments) also lands in the guard block; a `void *tbl` helper parameter (kept conversion
+copy) changes nothing; plus one `addi 28, 28, 4` slot in the Z32 perspective loop. Hard r3/r4 pins of the pair (pin_lin)
+displace the sfxz_work address temps and the r5/r6 copies (40w): the poison rule again.
+
+**cri_cvfs cvFsGetFileSize 63 -> 45w / cvFsOpen 148 -> 152w:** `tbl = cvfs_tbl;` assigned AFTER the default-device block in
+the inlined `cvfs_ResolveDev` (an initialiser hoists the `addi tbl, base, 324` above `addi dev, r1, 308` and renumbers
+dev/tbl r27/r28 -> target dev r28). The target materialises tbl after the inlined cvFsGetDevIf's strlen (`addi 27, 31, 324; mr
+24, 27` = the pass-13 "tbl materialised after strlen"); ours still hoists it above the `bf` of the guard. Without the local
+(`cvfs_tbl` in all three calls) the shared copy disappears (114w).
+
+**Read, not closed (mechanisms for the next pass):**
+- **adx_tsvr `adxt_nlp_trap_entry` 2w (`lha r4` vs r0).** The three r4 free-choice values of the target (the first call's
+  `lis r4, 0x8000`, the second call's vtbl `lwz r4, 0(sji)`, the `lha r4`) CAN all be hard-pinned (`asm { lis r4, 0x8000; mr
+  hi, r4 }` + `hi - 1` as the argument; `asm { lwz r4, SJ_OBJ.vtbl(sji); mr vt, r4 }` + `(*vt->GetChunk)(...)`; `asm { lha r4,
+  ofst; add ofst1, ofst1, r4 }`, all with `register` locals): registers all match, but the pinned lis's consumer `addi r5, r4,
+  -1` is then scheduled BEFORE the argument move `mr r3, sji` (target after it), 2w in a new place. Why: with a C `addi` after
+  an asm `lis`+coalesced copy, the post-RA scheduler refills the deleted copy's slot with the addi (its `li r4, 1` WAR successor
+  outranks the arg move); with an asm `addi` (or an inlined helper containing the asm) the pre-RA order already has it before
+  the arg moves (an inlined helper's body is emitted before the call's argument moves; the asm's own dependency has no
+  latency). `asm { mr r4, hi }` and `asm { mr r4, hi; mr hi, r4 }` are deleted as dead copies (no pin: a pin needs a hard
+  DEFINITION inside the asm). 20 spellings/placements tried; the r0 neighbour the target had (a value coloured r0 live at the
+  lha) has no C source in our shape. Accepted at 2w.
+- **sfh_main `SFH_AnlyElemSmpHz` 6w (M4).** `#pragma peephole off` around it: 10w = `clrlwi 9`/`mr 7` order, the two `lbz
+  408/472(hdr)` folds lost, and the swap word/result r0/r4 vs the target's r6/r0 (the same "one more r0/r4 neighbour" the
+  pass-11 note describes: the target's swap chain was merged after allocation, so its partial results were live); an
+  asm-spelled `lbz pid, (0x180+0x18)(hdr)` search copy under peephole off = 39w (the unrolled search loses `addi 6, 8, 384`
+  and the `mr 7, 3` counter). Accepted at 6w; the unit stays 35/36.
+- **sfd_cre `sfcre_AnalyMpv` 15w:** the whole permutation follows from ONE interference: ours schedules `addi ofs+1` between
+  `rlwinm r50` (the `(b7 >> 4) & 0xF` test temp, r0) and its `cmpi`, so ofs+1 cannot take r0 and goes in place (r4), which
+  pushes b4 to r6, ofs to r4, b5 r7, b6 r8, b8 r4; the target fills that gap with `lbz b6` (ofs+1 r0, b4 r4, ofs r6, b5 r6
+  reusing ofs, b6 r7, b8 r8 -- every colour then follows the lowest-free rule). Seven statement orders (byte loads before/after
+  the ofs/size block, b6 before b5, size first, the test moved) leave the schedule unchanged; the target's `lbz b6` outranks
+  the addi, so b6 (or the addi) had a different in-block height in the original -- a different statement shape, not an order.
+- **sfd_adxt `sfadxt_AdjustSync` 51w is a level problem in both directions:** ours has endflg (32 neighbours) in level 2 and
+  astart (23) in level 1; the target has astart in level 2 (r27) and endflg in level 1 (reusing r27 after astart dies), tim in
+  level 1 coloured after vstart (r21). Uniform level shifters (hard pins add +1 to every node) cannot lower endflg while raising
+  astart; the neighbour sets themselves differ (astart needs +6, endflg -4): a different live range for endflg (e.g. defined
+  later or in both arms) is the lever to try.
+- mpv_umc OneReadMb 68w, sfd_tst Calc 79w (400+ nodes, three levels, r23/r25 pair swap cascades), sfx_zmv CCIR 74w, adx_baif,
+  adx_dcd5, cftfx, cftyp422 (also .bss order + .rodata size) not attempted this pass.

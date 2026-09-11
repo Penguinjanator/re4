@@ -23,4 +23,7 @@ SECTIONS
   __ArenaHi = 0x81780000;
   /* GX write-gather FIFO (include/gx.h declares it as an extern object). */
   GXWGFifo = 0xCC008000;
+  /* MWCC callee-saved FPR helpers: entry points inside _savefpr_14/_restfpr_14 (dct_ac DCT_AcInit saves f27..f31). */
+  _savefpr_27 = _savefpr_14 + 0x34;
+  _restfpr_27 = _restfpr_14 + 0x34;
 }

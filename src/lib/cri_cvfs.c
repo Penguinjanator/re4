@@ -233,7 +233,7 @@ static void cvfs_GetDefDev(Char8 *dev)
 static CVFS_DEVIF *cvfs_ResolveDev(const Char8 *fname, Char8 *dev, Char8 *path)
 {
 	CVFS_DEVIF *vtbl;
-	CVFS_DEV *tbl = cvfs_tbl;
+	CVFS_DEV *tbl;
 
 	if (dev[0] == '\0') {
 		cvfs_GetDefDev(dev);
@@ -241,6 +241,7 @@ static CVFS_DEVIF *cvfs_ResolveDev(const Char8 *fname, Char8 *dev, Char8 *path)
 			return NULL;
 		}
 	}
+	tbl = cvfs_tbl; /* materialised after the default-device block (CRI pass 19b: GetFileSize 63 -> 45w, Open 148 -> 152w) */
 	if (cvfs_OptFn(cvFsGetDevIf(tbl, dev), NULL, 100, 0, 0) == 1) {
 		strcpy(add_dev_tmp, path);
 		sprintf(path, "%s:%s", dev, add_dev_tmp);

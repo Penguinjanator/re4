@@ -118,9 +118,11 @@ static void sfxzmv_MakeZ32Tbl(SFXZ_OBJ *sfxz, Uint32 *orgtbl, Uint32 *tbl)
 
 	if (sfxz_work.linear == 1) {
 		Sint32 i;
-		Uint32 *src = orgtbl;
-		Uint32 *dst = tbl;
+		Uint32 *dst;
+		Uint32 *src;
 
+		src = orgtbl;
+		dst = tbl;
 		for (i = 0; i < 256; i++) {
 			*dst = *src++ & 0x7FFFFF80;
 			*dst <<= 1;
@@ -128,12 +130,14 @@ static void sfxzmv_MakeZ32Tbl(SFXZ_OBJ *sfxz, Uint32 *orgtbl, Uint32 *tbl)
 		}
 	} else {
 		Sint32 i;
-		Uint32 *src = orgtbl;
-		Uint32 *dst = tbl;
+		Uint32 *dst;
+		Uint32 *src;
 		Float64 rcp;
 		Float64 a;
 		Float64 b;
 
+		src = orgtbl;
+		dst = tbl;
 		rcp = 1.0 / (zmax - zmin);
 		a = 16777215.0 * zmax * rcp;
 		b = zmax * (16777215.0 * rcp * zmin);
@@ -155,20 +159,24 @@ static void sfxzmv_MakeZ16Tbl(SFXZ_OBJ *sfxz, Uint32 *orgtbl, Uint16 *tbl)
 
 	if (sfxz_work.linear == 1) {
 		Sint32 i;
-		Uint32 *src = orgtbl;
-		Uint16 *dst = tbl;
+		Uint16 *dst;
+		Uint32 *src;
 
+		src = orgtbl;
+		dst = tbl;
 		for (i = 0; i < 256; i++) {
 			*dst++ = (Uint16)(*src++ >> 15);
 		}
 	} else {
 		Sint32 i;
-		Uint32 *src = orgtbl;
-		Uint16 *dst = tbl;
+		Uint16 *dst;
+		Uint32 *src;
 		Float64 rcp;
 		Float64 a;
 		Float64 b;
 
+		src = orgtbl;
+		dst = tbl;
 		rcp = 1.0 / (zmax - zmin);
 		a = 65535.0 * zmax * rcp;
 		b = zmax * (65535.0 * rcp * zmin);
@@ -183,9 +191,12 @@ static void sfxzmv_MakeZ16Tbl(SFXZ_OBJ *sfxz, Uint32 *orgtbl, Uint16 *tbl)
 }
 
 /* the 256-entry conversion table at tbl (Uint16 or Uint32 per zbit) from the original 32-bit Z
- * values built at tbl + 0x400 (or by the handle's own table maker). (M1: the linear loops' src/dst
- * copies are r3/r4 in the original, ours r4/r3) */
-/* COMPILER-DIFF: M1 - inlined helper src/dst r3/r4 and the pool base. Pure C by project decision (CRI pass 8). */
+ * values built at tbl + 0x400 (or by the handle's own table maker). The helpers' src/dst pairs are
+ * declared dst-first and assigned src-first (CRI pass 19b, 96 -> 12w, pure C): the copy assigned
+ * first ranks above the other (src r3/r5/r29 before dst r4/r6/r28) and tbl stays live across the
+ * src copy (its three extra neighbours keep it in level 2 = r31). Left: the two linear loops' copies
+ * sit in the guard block (assignment statements; declaration initialisers are sunk into the loop
+ * preheader but then rank dst first), and one addi slot in the Z32 perspective loop. */
 void sfxzmv_MakeCnvZTbl(SFXZ_OBJ *sfxz, Uint32 zmf_dat, Uint32 zmf_siz, void *tbl)
 {
 	Uint32 *orgtbl;

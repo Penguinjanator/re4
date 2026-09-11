@@ -63,14 +63,20 @@ void DCT_AcFdctDouble(Float64 *in, Float64 *out)
  * but a function that also references a string pools literals with it (adx_tlk ADXT_GetTime/Create).
  * CRI pass 18b: `#pragma pool_data off` removes the rodata pool but also the .bss pool the target
  * keeps (dctac_i_const = the .bss start, dctac_version_dummy at +0x400, dctac_f_const at +0x200), so
- * the .bss pool base and the two table pointers are asm-emitted pool addresses (COMPILER-DIFF: M2);
- * 7 words left: the base is coloured r29 (ours ranks it below the loop temporaries), r31 in the
- * target (reused by the int->double constant after the base dies), and the second `addi` slot. */
+ * the .bss pool base and the two table pointers are asm-emitted pool addresses (COMPILER-DIFF: M2).
+ * CRI pass 19b (0 words): the pool base ranks first only when the inner-loop row/column pointers are
+ * OWN variables declared below it (p, q: the frontend's range-split copies @N outrank every local, so
+ * with `ip[j]`/`fp[j * 8]` the base was coloured after them and took r29); and the pool-relative
+ * `addi ip, bss, 0` must carry a relocation, because the backend's constant propagation turns a
+ * literal `addi rD, rA, 0` into `mr`: `__ArenaHi@l` is the linker absolute 0x81780000, low half 0. */
+extern Uint8 __ArenaHi[]; // COMPILER-DIFF: M2 (a DOL absolute whose low half is 0)
 #pragma pool_data off // COMPILER-DIFF: M2
 void DCT_AcInit(void)
 {
 	register Uint8 *bss; // COMPILER-DIFF: M2 (.bss pool base)
 	register Uint8 *hi; // COMPILER-DIFF: M2
+	register Float64 *p;
+	register Float64 *q;
 	register Float64 *ip; // COMPILER-DIFF: M2 (dctac_i_const row pointer = pool + 0)
 	register Float64 *fp; // COMPILER-DIFF: M2 (dctac_f_const column pointer = pool + 0x200)
 	Sint32 i;
@@ -81,8 +87,8 @@ void DCT_AcInit(void)
 
 	asm { lis hi, dctac_i_const@ha; addi bss, hi, dctac_i_const@l } // COMPILER-DIFF: M2
 	*(const Char8 **)(bss + 0x400) = DCT_GetVerStr(); /* dctac_version_dummy through the pool */
-	asm { addi ip, bss, dctac_i_const@l } // COMPILER-DIFF: M2
-	asm { addi fp, bss, dctac_f_const@l } // COMPILER-DIFF: M2
+	asm { addi ip, bss, __ArenaHi@l } // COMPILER-DIFF: M2 (`addi ip, bss, 0` with a relocation, see above)
+	asm { addi fp, bss, 0x200 } // COMPILER-DIFF: M2
 	for (i = 0; i < 8; i++) {
 		if (i == 0) {
 			c = 0.3535533905932738;
@@ -90,10 +96,14 @@ void DCT_AcInit(void)
 			c = 0.5;
 		}
 		w = (DCTAC_PI / 8.0) * (Float64)i;
+		p = ip;
+		q = fp;
 		for (j = 0; j < 8; j++) {
 			v = c * dctac_Cos(w, j);
-			ip[j] = v;
-			fp[j * 8] = v;
+			*p = v;
+			*q = v;
+			p++;
+			q += 8;
 		}
 		ip += 8;
 		fp++;

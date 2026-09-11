@@ -1797,3 +1797,10 @@ MATCHING.update({
 MATCHING.update({
     "game/main_mem.cpp": True,  # MemCheckUsedHeap 143 -> 0, zero code: y0/y1 and `int x = 498` function-scope (x = REG_EQUIV constant rematerialised by reload before each `sth x0`, so the code constant's r0/r11 is reused), datactrl's tile store order (code, x0, y0, ...; r, g, b), `mt = &tile[0]` before the end-marker conversion, `hd = HeapHead + handle` for the cell loop
 })
+
+# CRI pass 19b (2026-09-11)
+MATCHING.update({
+    "lib/sfx_zmv.c": False,  # CRI pass 19b: 6/8, sfxzmv_MakeCnvZTbl 96 -> 12w (the helpers' src/dst declared dst-first and assigned src-first: src ranks above dst = r3/r4, tbl keeps its level-2 r31; left: the linear loops' copies in the guard block + one addi slot), MakeOrgZ32TblByCCIR 74w (the eight `i - k` computed up front in the target: a different DAG)
+    "lib/cri_cvfs.c": False,  # CRI pass 19b: 11/13, cvFsGetFileSize 63 -> 45w (`tbl = cvfs_tbl` assigned after the default-device block), cvFsOpen 148 -> 152w (-4 bytes); the inlined cvfs_ResolveDev's tbl still hoisted above the strlen
+    "lib/dct_ac.c": True,  # CRI pass 19b: DCT_AcInit 7 -> 0: the inner-loop row/column pointers are own variables declared below the asm .bss pool base (the frontend's range-split copies outranked the base, r29 -> r31), `addi ip, bss, __ArenaHi@l` = the pool-relative `addi 0` with a relocation (a literal 0 becomes `mr` in the backend's constant propagation); ldscript aliases _savefpr_27/_restfpr_27 (COMPILER-DIFF: M2)
+})
