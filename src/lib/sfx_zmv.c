@@ -118,15 +118,10 @@ static void sfxzmv_MakeZ32Tbl(SFXZ_OBJ *sfxz, Uint32 *orgtbl, Uint32 *tbl)
 
 	if (sfxz_work.linear == 1) {
 		Sint32 i;
-		Uint32 *dst;
-		Uint32 *src;
 
-		src = orgtbl;
-		dst = tbl;
 		for (i = 0; i < 256; i++) {
-			*dst = *src++ & 0x7FFFFF80;
-			*dst <<= 1;
-			dst++;
+			tbl[i] = orgtbl[i] & 0x7FFFFF80;
+			tbl[i] <<= 1;
 		}
 	} else {
 		Sint32 i;
@@ -145,8 +140,9 @@ static void sfxzmv_MakeZ32Tbl(SFXZ_OBJ *sfxz, Uint32 *orgtbl, Uint32 *tbl)
 			if (*src == 0) {
 				*src = 1;
 			}
-			*dst++ = (Uint32)(a - b / (zmax * (Float64)*src / 2147483647.0));
+			*dst = (Uint32)(a - b / (zmax * (Float64)*src / 2147483647.0));
 			src++;
+			dst++;
 		}
 	}
 }
@@ -159,13 +155,9 @@ static void sfxzmv_MakeZ16Tbl(SFXZ_OBJ *sfxz, Uint32 *orgtbl, Uint16 *tbl)
 
 	if (sfxz_work.linear == 1) {
 		Sint32 i;
-		Uint16 *dst;
-		Uint32 *src;
 
-		src = orgtbl;
-		dst = tbl;
 		for (i = 0; i < 256; i++) {
-			*dst++ = (Uint16)(*src++ >> 15);
+			tbl[i] = (Uint16)(orgtbl[i] >> 15);
 		}
 	} else {
 		Sint32 i;
@@ -194,9 +186,10 @@ static void sfxzmv_MakeZ16Tbl(SFXZ_OBJ *sfxz, Uint32 *orgtbl, Uint16 *tbl)
  * values built at tbl + 0x400 (or by the handle's own table maker). The helpers' src/dst pairs are
  * declared dst-first and assigned src-first (CRI pass 19b, 96 -> 12w, pure C): the copy assigned
  * first ranks above the other (src r3/r5/r29 before dst r4/r6/r28) and tbl stays live across the
- * src copy (its three extra neighbours keep it in level 2 = r31). Left: the two linear loops' copies
- * sit in the guard block (assignment statements; declaration initialisers are sunk into the loop
- * preheader but then rank dst first), and one addi slot in the Z32 perspective loop. */
+ * src copy (its three extra neighbours keep it in level 2 = r31). The linear loops index tbl/orgtbl
+ * directly: the strength-reduced pointers are initialised in the loop preheader (after the guard),
+ * where user copies sit in the guard block (CRI pass 20, 12 -> 0w). The Z32 perspective loop
+ * increments src before dst (`*dst = ...; src++; dst++`). */
 void sfxzmv_MakeCnvZTbl(SFXZ_OBJ *sfxz, Uint32 zmf_dat, Uint32 zmf_siz, void *tbl)
 {
 	Uint32 *orgtbl;

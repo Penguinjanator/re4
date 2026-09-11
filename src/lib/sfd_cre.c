@@ -102,20 +102,9 @@ static Bool sfcre_AnalyAau(Uint8 *data, Sint32 size, SFD_CREINF *inf)
 	return 0;
 }
 
-/* the Sofdec file header packet found at p */
-static void sfcre_AnalySfdHdr(Uint8 *p, Sint32 n, SFD_CREINF *inf)
+/* header fields of a valid Sofdec file header into inf */
+static void sfcre_SetSfdHdrInf(SFHDS_FHD *fhd, SFD_CREINF *inf)
 {
-	SFHDS_FHD *fhd = &sfcre_fhd;
-	Sint32 len;
-
-	fhd->valid = 0;
-	len = SFHDS_RAW_SIZE;
-	if (n < SFHDS_RAW_SIZE) {
-		len = n;
-	}
-	MEM_Copy(fhd->raw, p, len);
-	fhd->rawsiz = len;
-	SFHDS_ProcessHdr(fhd);
 	if (fhd->valid != 0) {
 		if (fhd->byterate > 0) {
 			inf->bitrate = fhd->byterate;
@@ -133,33 +122,85 @@ static void sfcre_AnalySfdHdr(Uint8 *p, Sint32 n, SFD_CREINF *inf)
 	}
 }
 
-/* pack size from the distance of three consecutive pack start codes: 0 none, -1 irregular */
-static Sint32 sfcre_AnalyPackSiz(Uint8 *data, Sint32 size, Sint32 *mux_rate)
+/* the Sofdec file header packet in the first four packs. The search loop and the header copy are
+ * one helper inlined straight from sfcre_AnalyMps: MWCC inlines breadth-first, so this helper's
+ * locals (i, ps, fhd, len) are numbered before the nested pack-start searches of sfcre_AnalyPackSiz
+ * and are coloured before their temporaries (i r27, ps r28, p r29, n r30; fhd r28, len r27). The
+ * field stores are a further helper so the body stays under the auto-inline size. */
+static void sfcre_AnalySfdHdr(Uint8 *p, Sint32 n, SFD_CREINF *inf)
 {
-	Uint8 *p1;
-	Uint8 *p2;
-	Uint8 *p3;
-	Sint32 ofs1;
-	Sint32 ofs2;
-	Sint32 n1;
-	Sint32 packsiz;
+	Sint32 ps;
+	Sint32 i;
+	SFHDS_FHD *fhd;
+	Sint32 len;
+
+	i = 0;
+	ps = inf->packsiz;
+	for (;;) {
+		if (SFHDS_IsSfdHeader(p, n)) {
+			break;
+		}
+		p += ps;
+		n -= ps;
+		if (i >= 3) {
+			return;
+		}
+		if (n <= 0) {
+			return;
+		}
+		i++;
+	}
+	fhd = &sfcre_fhd;
+	fhd->valid = 0;
+	len = SFHDS_RAW_SIZE;
+	if (n < SFHDS_RAW_SIZE) {
+		len = n;
+	}
+	MEM_Copy(fhd->raw, p, len);
+	fhd->rawsiz = len;
+	SFHDS_ProcessHdr(fhd);
+	sfcre_SetSfdHdrInf(fhd, inf);
+}
+
+/* mux_rate from the pack header of the first pack (a helper so that mps is numbered after the
+ * three pack-start searches: r22 after p3) */
+static void sfcre_MpsMuxRate(Uint8 *p, Sint32 n, Sint32 *mux_rate)
+{
 	MPS mps;
 	Sint32 len;
 	Sint32 flags;
 	MPS_PACKHD packhd;
 
+	mps = MPS_Create();
+	if (mps != NULL) {
+		MPS_DecHd(mps, p, n, &len, &flags);
+		if (flags & 0x10000) {
+			MPS_GetPackHd(mps, &packhd);
+			MPS_Destroy(mps);
+			*mux_rate = packhd.mux_rate;
+		}
+	}
+}
+
+/* pack size from the distance of three consecutive pack start codes: 0 none, -1 irregular.
+ * `p1 - data` and `size - (p1 - data)` are written as expressions: the frontend CSE temporaries
+ * rank below the search pointer (p1 r30, ofs r29, n r28), where locals would rank above it. */
+static Sint32 sfcre_AnalyPackSiz(Uint8 *data, Sint32 size, Sint32 *mux_rate)
+{
+	Uint8 *p1;
+	Uint8 *p2;
+	Uint8 *p3;
+	Sint32 packsiz;
+
 	p1 = sfcre_SearchDelim(data, size, 0x10000);
 	if (p1 == NULL) {
 		return 0;
 	}
-	ofs1 = p1 - data;
-	n1 = size - ofs1;
-	p2 = sfcre_SearchDelim(p1 + 1, n1 - 1, 0x10000);
+	p2 = sfcre_SearchDelim(p1 + 1, (size - (p1 - data)) - 1, 0x10000);
 	if (p2 == NULL) {
 		return 0;
 	}
-	ofs2 = p2 - data;
-	p3 = sfcre_SearchDelim(p2 + 1, size - ofs2 - 1, 0x10000);
+	p3 = sfcre_SearchDelim(p2 + 1, size - (p2 - data) - 1, 0x10000);
 	if (p3 == NULL) {
 		return 0;
 	}
@@ -167,18 +208,10 @@ static Sint32 sfcre_AnalyPackSiz(Uint8 *data, Sint32 size, Sint32 *mux_rate)
 	if (packsiz != p3 - p2) {
 		return -1;
 	}
-	if (ofs1 % packsiz != 0) {
+	if ((p1 - data) % packsiz != 0) {
 		return -1;
 	}
-	mps = MPS_Create();
-	if (mps != NULL) {
-		MPS_DecHd(mps, p1, n1, &len, &flags);
-		if (flags & 0x10000) {
-			MPS_GetPackHd(mps, &packhd);
-			MPS_Destroy(mps);
-			*mux_rate = packhd.mux_rate;
-		}
-	}
+	sfcre_MpsMuxRate(p1, size - (p1 - data), mux_rate);
 	return packsiz;
 }
 
@@ -281,10 +314,40 @@ Sint32 sfcre_AnalyAdx(Uint8 *data, Sint32 size, SFD_CREINF *inf)
 	return 0;
 }
 
-/* audio: the payload of the first audio packet (stream id 0xC0..0xDF) */
-/* COMPILER-DIFF: M1 - parameters r24..r26 below the locals (pins fix them) but the `end - p <= 6`
- * diamond (r3/r0) and the inlined sfcre_AnalyAau's fifteen field temporaries stay permuted. Pure C by project
- * decision (CRI pass 8). */
+/* min helper: the result local ranks above the `a` parameter, so `end - p` takes r3 and the
+ * result r0 (an open-coded diamond ranks the sub temporary first) */
+static Sint32 sfcre_MinLe(Sint32 a, Sint32 b)
+{
+	Sint32 r = b;
+	if (a <= b) {
+		r = a;
+	}
+	return r;
+}
+
+/* payload start of the packet at p: after the decoded packet header, or after the 6-byte minimum
+ * when no MPS handle is available. A pointer-returning helper makes q a frontend temporary that is
+ * coalesced with the inlined AAU search pointer (39 neighbours, level 2, r30 right after p). */
+static Uint8 *sfcre_SkipPketHd(Uint8 *p, Uint8 *end)
+{
+	MPS mps;
+	Sint32 n;
+	Sint32 len;
+	Sint32 flags;
+
+	mps = MPS_Create();
+	if (mps == NULL) {
+		n = sfcre_MinLe(end - p, 6);
+		return p + n;
+	}
+	MPS_DecHd(mps, p, end - p, &len, &flags);
+	MPS_Destroy(mps);
+	return p + len;
+}
+
+/* audio: the payload of the first audio packet (stream id 0xC0..0xDF). `n` holds the stream id
+ * first and the packet length second: the second web is a range-split temporary that carries the
+ * inlined AAU search counter (level 2, r29 shared with the search count and mps). */
 void sfcre_AnalyAudio(Uint8 *data, Sint32 size, SFD_CREINF *inf)
 {
 	Uint8 *end;
@@ -293,9 +356,6 @@ void sfcre_AnalyAudio(Uint8 *data, Sint32 size, SFD_CREINF *inf)
 	Uint8 *q;
 	Sint32 n;
 	Sint32 ofs;
-	MPS mps;
-	Sint32 flags;
-	Sint32 len;
 
 	end = data + size;
 	packsiz = inf->packsiz;
@@ -304,19 +364,9 @@ void sfcre_AnalyAudio(Uint8 *data, Sint32 size, SFD_CREINF *inf)
 		if (p == NULL) {
 			return;
 		}
-		if (p[3] >= 0xC0 && p[3] <= 0xDF) {
-			mps = MPS_Create();
-			if (mps == NULL) {
-				n = 6;
-				if (end - p <= 6) {
-					n = end - p;
-				}
-				q = p + n;
-			} else {
-				MPS_DecHd(mps, p, end - p, &len, &flags);
-				MPS_Destroy(mps);
-				q = p + len;
-			}
+		n = p[3];
+		if ((Uint8)n >= 0xC0 && (Uint8)n <= 0xDF) {
+			q = sfcre_SkipPketHd(p, end);
 			n = packsiz;
 			if (end - q < packsiz) {
 				n = end - q;
@@ -335,16 +385,10 @@ void sfcre_AnalyAudio(Uint8 *data, Sint32 size, SFD_CREINF *inf)
 	}
 }
 
-/* COMPILER-DIFF: M1 - callee-saved permutation of the inlined sfcre_AnalyPackSiz values (p1 r30,
- * n1 r28, mps r22 ...). Pure C by project decision (CRI pass 8). */
 Sint32 sfcre_AnalyMps(Uint8 *data, Sint32 size, SFD_CREINF *inf)
 {
 	Sint32 mux_rate = 0;
 	Sint32 packsiz;
-	Uint8 *p;
-	Sint32 n;
-	Sint32 i;
-	Sint32 ps;
 
 	packsiz = sfcre_AnalyPackSiz(data, size, &mux_rate);
 	if (packsiz == 0) {
@@ -358,28 +402,7 @@ Sint32 sfcre_AnalyMps(Uint8 *data, Sint32 size, SFD_CREINF *inf)
 		inf->bitrate = mux_rate * 50;
 	}
 	inf->strif = &SFD_tr_sd_mps;
-	p = data;
-	n = size;
-	i = 0;
-	ps = inf->packsiz;
-	for (;;) {
-		if (SFHDS_IsSfdHeader(p, n)) {
-			goto found;
-		}
-		p += ps;
-		n -= ps;
-		if (i >= 3) {
-			break;
-		}
-		if (n <= 0) {
-			break;
-		}
-		i++;
-	}
-	goto done;
-found:
-	sfcre_AnalySfdHdr(p, n, inf);
-done:
+	sfcre_AnalySfdHdr(data, size, inf);
 	sfcre_AnalyAudio(data, size, inf);
 	sfcre_AnalyMpv(data, size, inf);
 	return 1;

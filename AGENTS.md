@@ -23111,3 +23111,56 @@ t_event.cpp, t_lightarea.cpp, t_esp_area.cpp, db_toolbase.cpp; db_toolbase.h onl
   tool body, not of the ctor. fn_Tools_30410 (0x7cc, after LocalDisp<LIGHT_AREA>, calls strlen/FindButton/Joy) is
   cDbgFileSelectWindow::LocalUpdate (nameless in our object; fn_Tools_2F2D8 0x3b8 / fn_Tools_31174 0x98 its Init/dtor): its
   59 words were the 12-byte .text shift, gone now that ToolLightAreaMain is size-exact.
+
+### CRI pass 20: breadth-first inlining numbers the ids, user copies are never coalesced, index loops put the IV copies in the preheader (sfd_cre AnalyAudio 43 -> 0, AnalyMps 28 -> 0, AnalyMpv 15w open; sfx_zmv MakeCnvZTbl 12 -> 0, MakeOrgZ32TblByCCIR 74w open (post-RA schedule); adx_tsvr 2w / sfh_main 6w unchanged; nothing flipped; pure C, no new tags; 2026-09-11)
+
+Units read: lib/adx_tsvr (5/6, `adxt_nlp_trap_entry` 2w), lib/sfh_main (35/36, `SFH_AnlyElemSmpHz` 6w), lib/sfd_cre (3/6 ->
+5/6), lib/sfx_zmv (6/8 -> 7/8). Judge `tools/bytecmp.py`; dumps with mwccdbg `ra.py` (frontend ASTs, backend passes,
+regalloc pass-1 all/assigned).
+
+**Mechanisms (each confirmed on the dumps, then reproduced in the real source):**
+- **Inlining is breadth-first (FIFO).** The depth-1 callees of a function are cloned in call order, then each clone's
+  callees in order. Ids (pass 11 ranking) follow the clone order in DESCENDING creation order: a depth-1 helper's locals
+  outrank every depth-2 temporary, and a depth-2 helper called after another depth-1 helper's callees is processed after
+  them. In sfcre_AnalyMps: `sfcre_AnalyPackSiz` (depth 1) -> its three `sfcre_SearchDelim` clones and then
+  `sfcre_MpsMuxRate` (depth 2); `sfcre_AnalySfdHdr` (depth 1, the header search loop) -> `sfcre_SetSfdHdrInf`. Moving the
+  loop into a depth-1 helper is what puts its `i r27, ps r28, p r29, n r30` above the pack-start searches' temporaries,
+  and moving `mps` into a depth-2 helper called after the searches gives `mps r22` after p3.
+- **Within an inlined helper** later-declared locals get the higher id (coloured first); parameter clones rank above the
+  helper's locals; a call result assigned to a helper local propagates into the `@ret` temp (the local vanishes), an
+  arithmetic-defined local survives.
+- **The RA coalesces only compiler copies** (`@ret`, argument moves, `?:` copies). A user copy `res = cur` (macro form
+  of a loop) always leaves its `mr`; the `bf 2, next; b found` found-path shape is a deleted coalesced `@ret` copy.
+- **Expression CSE temps rank below inline temps.** `size - (p1 - data)` written twice as an expression gives frontend
+  CSE temporaries created last (just above own locals), so the search pointer p1 keeps r30 with `ofs r29, n r28`; the same
+  values as locals would rank above it.
+- **MWCC does not inline a function containing a label/goto**, and auto-inline has a size limit: the search loop plus the
+  header copy plus the four field stores is over it (`static inline` does not help; `#pragma inline_max_size /
+  inline_max_total_size(100000)` inlines everything and wrecks the unit, 718w). Splitting the field stores into a second
+  helper (`sfcre_SetSfdHdrInf`) brings the loop helper under the limit.
+- **Loop layout:** `for (;;) { if (hit) break; advance; if (i >= 3) return; if (n <= 0) return; i++; }` gives the target's
+  block order; `while (!hit) { ... }` rotates the loop (26w).
+- **Strength-reduced index loops initialise their pointer IVs in the loop preheader** (after the `cmpwi 0, 256; bf`
+  guard) where user copies `src = orgtbl; dst = tbl;` sit in the guard block and are hoisted around the compare. sfx_zmv
+  MakeZ32Tbl/MakeZ16Tbl linear loops as `tbl[i] = orgtbl[i] & 0x7FFFFF80; tbl[i] <<= 1;` / `tbl[i] = (Uint16)(orgtbl[i]
+  >> 15)`: 12 -> 2w; the Z32 perspective loop `*dst = ...; src++; dst++` (src incremented before dst): 2 -> 0w.
+  Declaration initialisers (either order, `i` first or last, mixed) all keep the copies in the guard block.
+
+**Open, with the exact class:**
+- sfd_cre `sfcre_AnalyMpv` 15w: the target computes `ofs + 1` into a fresh r0 and colours the header bytes b4 r4, b7 r5,
+  ofs r6, b6 r7, b5 r6 (b5 reuses ofs's register); ours folds `ofs + 1` in place and numbers the bytes differently.
+  Declaration/statement orders of the byte loads and `ofs` (about 30 forms over passes 8-20) do not move it.
+- sfx_zmv `sfxzmv_MakeOrgZ32TblByCCIR` 74w: **ours' pre-RA schedule (backend pass 17) is instruction-for-instruction the
+  target's final order** of the 8x-unrolled 1.164f loop body (same registers, same 452 instructions); ours' post-RA list
+  scheduler (pass 23) re-hoists the constant hi-word `stw r0, 8(r1)` and the `addi i-k` chain. The target's block was not
+  re-scheduled after RA and nothing in the bytes shows why (block B8 is 91 instructions at pass 22; the 70-instruction
+  `tbl[i] = ztbl[ytbl[i]]` block matches). Not the mechanism: a `k = i - 16` / `Float32 f` local, a `k++` counter (235w),
+  a `q = ytbl + 16` pointer (113w), `(Uint8)` cast, operand order, a `static` luma-table helper (99w), a hand-unrolled
+  `i += 8` body with eight `k0..k7` locals (133w, smaller .text: the compiler's unroll is the target's).
+- adx_tsvr `adxt_nlp_trap_entry` 2w and sfh_main `SFH_AnlyElemSmpHz` 6w (M4 stwbrx fold / size 0x15c vs 0x14c): read
+  again, no zero-code form; the pragma forms (`peephole off`, `scheduling off` around the callers) do not close them.
+
+**Applied (pure C, no new tags):** src/lib/sfd_cre.c (`sfcre_SetSfdHdrInf`, loop helper `sfcre_AnalySfdHdr(p, n, inf)`,
+`sfcre_MpsMuxRate`, expression-form `sfcre_AnalyPackSiz`, flat `sfcre_AnalyMps`; AnalyAudio's `sfcre_MinLe` /
+`sfcre_SkipPketHd` helpers and two-web `n`), src/lib/sfx_zmv.c (index-form linear loops, `src++; dst++` order). Neither
+unit flips (AnalyMpv 15w, CCIR 74w).
