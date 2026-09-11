@@ -21430,3 +21430,79 @@ scratch file for shape tests; deleted at the end). 111 OK before and after. debu
   expand-time insns, 25b rule), ours rotates at the `--i` test (`bdnz` at the bottom, `li r6,0` zero register) because the
   EmMgrWork inline + the two tests exceed the 30-insn window. Shorten the body's RTL (count INSN/JUMP_INSN between the loop
   label and the second `break` in `-dr`) or move the `numEm++` block before the tests in source. menuFlag 144 not read.
+
+### DOL closer: shadow/dvd/Espgen43/sce_at/em_cloth/at_mod (shadow Matching 36/36; em_cloth 21 -> 22/23: Em34ClothSet1 9 -> 0; sce_at 112 -> 113/114: sceAtGetItem_NoModel 4 -> 0, sceAtGetItem 91 -> 77; at_mod ObaLineHitChk 73 -> 9 (.text size now equal); dvd 7, Espgen43 5 + 44, Em18ClothSet 47 unchanged; 2026-09-11)
+
+Harness ~/.cache/dol_sd (dol27a copies with the paths rewritten; `tryv.py` also honours `XFLAGS=-fno-...` for flag probes), deleted at
+the end. 111 OK before and after. Today's rule was pins/anchors for the last words; what each one does and why is written below so
+the tags can be hunted later.
+
+- **shadow make_comn_fit/parallel_light 2+2 -> 0 (tag, unit Matching): a late r11 pin for a local-alloc qty tie.** The 1.0 pool high
+  (2 refs, sched1 slots 5-9) ranks below the classic conversion's fpmem loadaddr qty (4 refs, slots 1-14), so the loadaddr takes r11
+  (alloc order r0, r9, r11, r10, r8 ...) and the high gets r10. A hard reg live inside the loadaddr's life but outside the high's
+  removes r11 from the loadaddr's choice: `register u32 k asm("r11"); asm("" : "=r"(k) : "f"(1.0f)); asm("" : "=m"(pos.x) :
+  "r"(k));` right before the `if (mng->fov < 1.0f)` test. The def is ready only after the 1.0 `lfs` (slot 9, so it cannot overlap
+  the high), the use is a codeless write to a dead frame local (a stack MEM never aliases the pointer-based `mng->fov`, so nothing
+  reloads; the `"=m"(w->x18)` form made cse reload fov = 10 words), both fill the empty second slots of t10-t13 in sched1 and
+  sched2 (every insn, codeless or not, costs an issue slot: `schedule_block` decrements `can_issue_more` for asm insns too, so an
+  in-block asm must land where the second slot is free or it shifts the visible order -- the `"=m"(mng->fov)` anchor placed before
+  the fmuls cost 7 words that way). Same form in make_comn_parallel_light (its x18 is added without the cast). COMPILER-DIFF: 13.
+- **em_cloth Em34ClothSet1 9 -> 0 (tag): a prio-4 codeless filler ahead of the pUp2 `lis`.** The three table qtys Up2/Dp2/Max2 have
+  lives 26/25/25 (sched1 issues the table highs one per cycle at t3-t7 behind the pool lfs, the stores from t15 in statement order),
+  so Dp2/Max2 (ties -> qty number) take r10/r8 and Up2 r7; the target (Up2 r10, Dp2 r8, Max2 r7) is the all-equal case. `register u32
+  k asm("r12"); asm("" : "=r"(k)); asm("" : "=m"(em34ClothRate[1]) : "r"(k));` as the first statement: the def (no inputs, prio 4 =
+  1 + the use's 3, lowest LUID among the prio-4 highs) takes t3's iu2 slot and pushes every table high one slot later while the
+  stores stay, i.e. Up2's life alone shrinks by 2 (the filler sits between its `lis` and the others' only through the cascade:
+  lives 25/25/25). The use anchors on a small-data table entry (`@sda21`, no address register; a `"=m"(em34ClothMax2[0])` output
+  needed its own `lis/addi` and merged with the pMax2 high = 28 words; `"m"(c->x14)` as input pulled `mr r9,r4` up to prio 4).
+  The pin register matters in sched2: an unpinned k took r0 and the `li r0,0` then anti-depended on the use (F prio 5, `lfs f12`
+  displaced: 2 words); r12 (and r31) are untouched in the block -> 0. COMPILER-DIFF: 13.
+- **sce_at sceAtGetItem_NoModel 4 -> 0 (one anchor + zero code).** (a) block 0 sched2 ranks `addi r29,&w->item` (prio 8 through
+  `lhz r3,28(r29)` -> itemInfo) above `li r31,0` (7 through the swep_flag store's anti-dependence on the call); the target has the
+  zero first, so its `it->id` load waited on the swep_flag store: `asm("" : "=m"(*(int*) &it->id) : "m"(swep_flag));` after
+  `swep_flag = 0;` (a `int& sf = swep_flag; sf = 0;` reference store gates everything and gives 91 words). (b) `ItemMgr.use(&tmp);
+  put = 1;` -- `put = 1` AFTER the call: sched2 hoists the callee-saved `li r25,1` above the call (no dependence on a call for a
+  non-call-used hard reg), and its LUID is now the highest of the block's prio-3 insns, so `addi r4,&tmp` (also prio 3) issues
+  first. sceAtGetItem 91 -> 77 with `register SceAtWork* w asm("r24") = w_;` (the parameter copy; the w/cancel pair r24/r25 was the
+  target's). Left (77): it r31/r29, the ItemMgr address r30/r31 and money r29/r30 rotate, and the target has a fresh `li r29,0` for
+  the x12 zero where ours stores cancel's r25 (#13 family). Pinning `it` to r31 frees a callee-saved register (stmw r21, every
+  allocno shifts: 102-194); a pinned `cItemMgr* im asm("r30")` for the five ItemMgr uses is far worse (230): the target computes the
+  address per site. Global-alloc pairs are not pinnable one at a time here.
+- **at_mod ObaLineHitChk 73 -> 9, zero code except one launder (.text size 0x3e0 -> 0x3d0 = target).** (1) `f32 mag = PSVECMag(&n);
+  depth = SQRTF(rr - mag * mag);` -- the original calls PSVECMag once (the second call was the 16 extra bytes). (2) `tc = t < 0 ? 0 :
+  (t > 1 ? 1 : t); s = s < 0 ? 0 : (s > 1 ? 1 : s);` and `1.0f - s` / `s` in the two PSVECScale calls: s is clamped IN PLACE -- the
+  ternary's temporary (f13: `fmr f13,f30; fcmpu f30,f0; ble; fmr f13,f0` with the two arms cross-jumped on f0) is copied back into
+  s (`fmr f30,f13`) because s is both the target and an operand, while tc's temporary coalesces into f29; that is why s sits in a
+  callee-saved f30 although it dies before the calls (if/else forms of the same clamp: 37-46). (3) `asm("" : "+f"(den));` after
+  `den = dd * ee - de * de;` puts den in f0 and t in f31 (den's fmsubs before the t numerator; `register f32 den asm("fr0")`
+  alone: 74, with t/s pins: 66 -- a pinned t blocks f31 for ee and adds f26 to the prologue). Left (9): the `&p0` argument of the
+  first PSMTXMultVec after the getPartsPtr call is a fresh `addi r4,r1,8` in the target, ours `mr r4,r28` with the struct copy's
+  address pseudo P kept across the call -- cse's AROUND path over the `beq` (`cse_end_of_basic_block`: one-use label, no label in
+  the skipped block) folds the join block's `(plus fp 8)` into P; `-fno-cse-skip-blocks` gives 2 words (only `mr r3,r27` one slot).
+  There is no loop to hang a dead `do{}while(0)` on (before the `if` it ends cse1's block but cse2 runs after loop and folds
+  anyway: 28); a `Vec* pp = &p0; *pp = ..; asm("" : "+r"(pp))` launder does not help because emit_block_move copies the address
+  into a second pseudo with a REG_EQUAL (plus fp 8) note that survives (9). The target's `lha r29,parts` (callee-saved) is only
+  the alloc order with r4 held by P (r0, r9-r11 copy temps, r5-r8 incoming args, r3 m) -- not a call-crossing use.
+- **Espgen43 AddSandPower (5, unchanged; every in-block form measured).** Needed: the Chk_pos high qty (3 refs) below W8 (2 refs) in
+  local-alloc, i.e. lives len_w < 2/3 len_h; ours 10/14. (a) Codeless `"=m"` anchors after the copy anti-depend on the three `*pos`
+  loads in sched1 (`anti_dependence` has no fixed-scalar exemption; the plain store's true dependence does), so a chain that lifts
+  `lis` to prio 8 also lifts the loads to 7 and li/stw to 9-10 (H2-H6: 7). (b) A plain `Height_find = 0` + `"=m"(Height_find)`
+  chain (stw prio 5, li 6) issues `lis` at t1 but the stw then trails the loads or, when it does not, the sched2 tie li = stfs
+  (both 2 + W0) puts stfs first (12-13). (c) A `"=m"(Add_power)` after the FSet deletes the store (flow's mem_set_list: a later
+  identical MEM store with no aliasing read between = dead store; F1/F3), an asm-emitted `stfs` has no lsu slot and lands late
+  (F5: 3). (d) An r11 pin must be live in slots 3-5 only; t3/t4 have no free slot in either pass, and a pin that reaches the loads
+  moves `pos` to r6 (P1-P3: 7-10). What remains is exactly the 26a statement: in sched1 one of li/stfs/stw must rank below the
+  Chk_pos `lis` while in sched2 all three rank above it, and the only pass-dependent priority source (the r0 anti-chain) is one
+  point short. SetSandWork (44) not iterated (global-alloc rotation of the first strip loop's j+1 / i+1 / 0x4330 / pool pointers).
+- **dvd DiscChange (7, unchanged).** Flag probes with the installed compiler (`XFLAGS`): -fno-cse-skip-blocks/-follow-jumps,
+  -fno-regmove, -fno-gcse (45), -fno-schedule-insns (49), -fno-schedule-insns2 (28), -fno-sched-spec/-interblock, -fno-strength-
+  reduce, -fno-rerun-loop-opt, -fno-thread-jumps, -fno-caller-saves, -fno-force-mem: none reproduces the target's L8, L12, S0, L4,
+  S8, S12, S4 order. Pins/anchors tried: `register int region asm("r10")` (9), an r9 pin between the copy and the region test
+  (23), `asm("" : "=m"(game[1]) : "m"(game[0]))` (7), `register SystemWork* s asm("r9") = pSys` / `register u8 rg asm("r0") =
+  pSys->region` (7). With the final registers S4 anti-depends on `lwz r9,pSys` (prio 7 > S12's 6) in any stock haifa graph, yet
+  the target issues S12 before S4 with S4 ready -- the 26a conclusion (two graph differences) stands; an in-block anchor cannot
+  hold L4 at c9 without displacing `mr r31,r3`/`mr r30,r4` (c8/c9 both full).
+- **em_cloth Em18ClothSet (47, read only).** sched1 issues the stores by weight (`+1 - deaths`, deaths by RTL order) then LUID:
+  ours dying stores in statement order, the six r31 zeros, pModel (m alive), x48 (its 0.0 dies at the later x50 in RTL), x54. The
+  target's second group is pModel, x40 (0.1), x44 (4), x48, x54, so in the original the 0.1 and 4 pseudos were still live after
+  their stores (r28 for the 4 = allocated under pressure like the others) -- a later RTL use we do not have in the source.

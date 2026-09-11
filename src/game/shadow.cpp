@@ -673,8 +673,15 @@ void make_comn_fit_light(ShadowMng* mng, cModel* m)
     }
     mng->fov = atan2f(r, dist) * (360.0f / PI);
     mng->fov -= (f32) (int) w->x18;
-    if (mng->fov < 1.0f) {
-        mng->fov = 1.0f;
+    {
+        // COMPILER-DIFF: 13 (local-alloc qty order): r11 pinned after the 1.0 load and before the
+        // conversion's lfd, so the fpmem loadaddr cannot take r11 and the 1.0 pool high gets it.
+        register u32 k asm("r11");
+        asm("" : "=r"(k) : "f"(1.0f));
+        asm("" : "=m"(pos.x) : "r"(k));
+        if (mng->fov < 1.0f) {
+            mng->fov = 1.0f;
+        }
     }
     if (mng->fov > 89.95f) {
         Vec v;
@@ -740,8 +747,14 @@ void make_comn_parallel_light(ShadowMng* mng, cModel* m)
     }
     mng->fov = atan2f(r, dist) * (360.0f / PI);
     mng->fov -= w->x18;
-    if (mng->fov < 1.0f) {
-        mng->fov = 1.0f;
+    {
+        // COMPILER-DIFF: 13 (local-alloc qty order): see make_comn_fit_light.
+        register u32 k asm("r11");
+        asm("" : "=r"(k) : "f"(1.0f));
+        asm("" : "=m"(pos.x) : "r"(k));
+        if (mng->fov < 1.0f) {
+            mng->fov = 1.0f;
+        }
     }
     if (mng->fov > 89.95f) {
         Vec v2;

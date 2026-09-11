@@ -995,8 +995,10 @@ void releaseModel(SceAtWork* w, int keep)
         return;                                           \
     }
 
-static void sceAtGetItem(SceAtWork* w)
+static void sceAtGetItem(SceAtWork* w_)
 {
+    // COMPILER-DIFF: 13 (global-alloc pair w/cancel r24/r25): value pin of the parameter copy.
+    register SceAtWork* w asm("r24") = w_;
     static int disp_flag_bak;
     static int sub_screen_open;
     static int swep_flag;
@@ -1265,6 +1267,9 @@ static void sceAtGetItem_NoModel(SceAtWork* w)
     pPL->setNoSuspend(1);
     BitOff(pG->flags_58, 0x40000000);
     swep_flag = 0;
+    // COMPILER-DIFF: 12 (sched2 rank in block 0): the `it->id` load after the swep_flag store ranks
+    // `li r31,0` (cancel) above `addi r29,&w->item` in the prologue.
+    asm("" : "=m"(*(int*) &it->id) : "m"(swep_flag));
     itemInfo(it->id, &info);
     switch (info.type) {
     case 0:
@@ -1415,8 +1420,8 @@ static void sceAtGetItem_NoModel(SceAtWork* w)
                     tmp.num = n;
                 }
                 ItemMgr.x12 = 0;
-                put = 1;
                 ItemMgr.use(&tmp);
+                put = 1;
             }
         }
     } else {

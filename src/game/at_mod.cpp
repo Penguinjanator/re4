@@ -25,8 +25,11 @@ int emLineCubeCrossCk(Vec* a, Vec* b, Mtx m, f32 sx, f32 sy, f32 sz, cAtariInfo*
 // `li 2` after the call). The row pointers step destination first (`d_++; s_++;`): that LUID order
 // gives the target's `addi d; addi s` pairs and keeps the second copy's `sp_ = *s_` a separate
 // register copy (s_ r0, sp_ r9) -- ComnHitCheck is byte-identical with it.
-// ObaLineHitChk (73 words): t/s/den are f31/f30/f0 in the target (ours f0/f13/f31), so its s clamp
-// loads both 0.0 and 1.0 into f0 and cross-jumps the `sc = 0` arm into the `sc = 1` fmr (`blt`).
+// ObaLineHitChk (9 words): one PSVECMag call squared (`mag * mag`), tc/s clamped with ternaries (s in
+// place: its temporary is copied back into f30), den anchored in f0. Left: the `&p0` argument after
+// the getPartsPtr call is a fresh `addi r4,r1,8` in the target while our cse folds it into the copy's
+// address pseudo through the `beq` AROUND path (r28 across the call; `-fno-cse-skip-blocks` gives 2
+// words) -- the #12 AROUND form with no loop to anchor a do-while on -- and `mr r3,r27` one slot.
 #define MTX_COPY(src, dst)               \
     {                                    \
         MtxPtr d_ = (dst);               \
@@ -705,7 +708,6 @@ int ObaLineHitChk(cEm* m, cAtariInfo* info, Vec* a, Vec* b, Vec* hit, Vec* nrm)
     f32 t;
     f32 s;
     f32 tc;
-    f32 sc;
     f32 rr;
     f32 depth;
     int parts;
@@ -730,34 +732,26 @@ int ObaLineHitChk(cEm* m, cAtariInfo* info, Vec* a, Vec* b, Vec* hit, Vec* nrm)
     ef = PSVECDotProduct(&e, &f);
     de = PSVECDotProduct(&d, &e);
     den = dd * ee - de * de;
+    // COMPILER-DIFF: 13 (FPR naming): den is settled in f0 before the t numerator is formed.
+    asm("" : "+f"(den));
     t = (ee * df - de * ef) / den;
     s = (de * df - dd * ef) / den;
-    if (t < 0.0f) {
-        tc = 0.0f;
-    } else {
-        tc = t;
-        if (t > 1.0f) {
-            tc = 1.0f;
-        }
-    }
-    if (s < 0.0f) {
-        sc = 0.0f;
-    } else {
-        sc = s;
-        if (s > 1.0f) {
-            sc = 1.0f;
-        }
-    }
+    tc = t < 0.0f ? 0.0f : (t > 1.0f ? 1.0f : t);
+    // s is clamped in place: the ternary's temporary (f13) is copied back into s (f30) after the join.
+    s = s < 0.0f ? 0.0f : (s > 1.0f ? 1.0f : s);
     PSVECScale(&w0, &g, 1.0f - tc);
     rr = rad * rad;
     PSVECScale(&w1, &h, tc);
     PSVECAdd(&g, &h, &q);
-    PSVECScale(a, &g, 1.0f - sc);
-    PSVECScale(b, &h, sc);
+    PSVECScale(a, &g, 1.0f - s);
+    PSVECScale(b, &h, s);
     PSVECAdd(&g, &h, &r);
     if (PSVECSquareDistance(&q, &r) <= rr) {
         PSVECSubtract(&q, &r, &n);
-        depth = SQRTF(rr - PSVECMag(&n) * PSVECMag(&n));
+        {
+            f32 mag = PSVECMag(&n);
+            depth = SQRTF(rr - mag * mag);
+        }
 #line 1434 "D:/Bio4/Prog/at_mod.cpp"
         VECNormalize(&e, &n);
         PSVECScale(&n, &n, -depth);

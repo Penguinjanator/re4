@@ -1782,3 +1782,8 @@ MATCHING.update({
     "lib/adx_bsc.c": True,  # CRI pass 18b: EvokeDecode arms `pcm = pcmbuf; pcm += wr_pos` (pcmbuf is the in-place add destination = r6); `asm { add ofst, x70, ofst }` operand-order pins in ExecOneAdx/EvokeDecode (COMPILER-DIFF: M1)
     "lib/sfd_hds.c": True,  # CRI pass 18b: SFHDS_SetHdr hard pins p r28 / len r29 + sfh r31 in the inlined SFHDS_IsSfdHeader (the three physical neighbours lift result/sfd to the next level: result r30, sfd r27) (COMPILER-DIFF: M1); sfhds_DoProcessHdr fixed in pass 13 by per-site if/else locals for the vid ternaries
 })
+
+# DOL closer 3 (2026-09-11)
+MATCHING.update({
+    "game/shadow.cpp": True,  # make_comn_fit/parallel_light: `register u32 k asm("r11")` defined by a codeless asm fed by the 1.0 pool value and killed by a `"=m"(pos.x)` asm -- r11 is live between the 1.0 `lfs` and the conversion's `lfd`, so the fpmem loadaddr qty (ranked above the 1.0 high in local-alloc) cannot take r11 and the 1.0 high does (COMPILER-DIFF: 13)
+})
