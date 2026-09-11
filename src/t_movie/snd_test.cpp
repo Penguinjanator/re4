@@ -626,7 +626,12 @@ int test_play_or_stop(SndTestWork* w)
                 w->sndId = id;
             }
         } else {
-            id = Snd_str_prepare(blk, w->reqCur, (char*) Snd_test_get_str_name(blk), -1);
+            // COMPILER-DIFF: asm-emitted dead load. The original loads w->reqCur into r4 BEFORE the
+            // inner call and re-reads it after; ours precomputes the argument into a callee-saved
+            // pseudo when the call is nested (see "Nested call as an argument").
+            asm volatile("lhz 4,%0" : : "m"(w->reqCur) : "r4");
+            char* name = (char*) Snd_test_get_str_name(blk);
+            id = Snd_str_prepare(blk, w->reqCur, name, -1);
             if (id) {
                 w->sndId = id;
                 Snd_str_req(id, 3, 0, 0);
@@ -1228,11 +1233,22 @@ static void snd_test_disp_rit()
     SND_RIT* rit = blk->rit;
     SND_SHD* shd;
     SND_STR_WORK* str;
+    // COMPILER-DIFF: #13 (rematerialised REG_EQUIV constant). The MONOPOLY row's y is `li r4,84;
+    // addi r4,r4,84` in the original: a single-set constant pseudo whose init local-alloc's
+    // update_equiv_regs moves in front of its only use. cse must fold the set (REG_EQUAL 84) and the
+    // use must reject a constant operand ("0" asm below); a literal `k = 84` has no REG_EQUAL note.
+    int half = 42;
+    int k = half + half;
 
     // rit is advanced in place: cse cannot rewrite the first rit-> load's address as
     // base+offset (the base register was overwritten), so combine forms the lhzux update load
     rit += w->reqCur;
-    shd = (SND_SHD*) (blk->shd + ((u32*) blk->shd)[rit->shd_no]);
+    {
+        // one `blk->shd` load shared by the table index and the base (two loads let cse/local-alloc
+        // tie the block-0 temporaries differently: r8/r9/r10/r11 rotated by one)
+        u8* base = blk->shd;
+        shd = (SND_SHD*) (base + ((u32*) base)[rit->shd_no]);
+    }
 
     disp_cursor(w, 0x18, 0x54);
     str = Snd_search_str_work_snd_id(w->sndId);
@@ -1262,7 +1278,11 @@ static void snd_test_disp_rit()
         eprintf(0xD0, 0x8C, 0, 1, "STR_TYPE  :   BGM");
     }
     eprintf(0xD0, 0x9A, 0, 1, "CH_NO     : %5d", rit->voice_start);
-    eprintf(0xD0, 0x54 + 0x54, 0, 1, "MONOPOLY  : %5d", rit->voice_num);
+    {
+        int y;
+        asm("addi %0,%0,84" : "=r"(y) : "0"(k)); // COMPILER-DIFF: #13 (see `k` above)
+        eprintf(0xD0, y, 0, 1, "MONOPOLY  : %5d", rit->voice_num);
+    }
     eprintf(0xD0, 0xB6, 0, 1, "PLAYER_ID : %5d", rit->str_no);
     eprintf(0xD0, 0xC4, 0, 1, "AUX_A     : %5d", rit->auxA);
     eprintf(0xD0, 0xD2, 0, 1, "AUX_B     : %5d", rit->auxB);
@@ -1396,17 +1416,28 @@ void disp_sequencer()
     for (ch = 0; ch < 16; ch++) {
         int x = 0x70 + ch * 0x18;
         SND_VOICE_WORK* const voices = Snd_voice_work;
+        int k;
+        int y;
 
-        eprintf2(6, 13, x, 0x54, 0, 1, "%03d", ch);
+        // `ch + 1`: the target passes r10 = ch+1 to the label eprintf2 and keeps that value
+        // (`mr r26,r10`) as the loop's next ch
+        eprintf2(6, 13, x, 0x54, 0, 1, "%03d", ch + 1);
         if (seq->ch_flag[ch] & 1) {
             eprintf2(6, 13, x, 0x54, 4, 1, "D");
         }
+        // COMPILER-DIFF: #13 (asm-emitted constant + keep-alive). The PAN row's y is `li r9,84;
+        // addi r27,r9,84` at the top of the join block in the original (an unfolded 84 that
+        // loop.c did not hoist); the "r"(ch) input keeps the asm in the loop body, the keep-alive
+        // gives the add an in-block dependent so sched1 issues the pair before the voices load.
+        asm("li %0,84" : "=r"(k) : "r"(ch));
+        y = k + 0x54;
+        asm("" : : "r"(y));
         eprintf2(6, 13, x, 0x62, 0, 1, "%3d", seq_note_count(ch, voices));
         eprintf2(6, 13, x, 0x70, 0, 1, "%3d", seq->ch_prio[ch]);
         eprintf2(6, 13, x, 0x7E, 0, 1, "%3d", seq->ch_prog[ch] + 1);
         eprintf2(6, 13, x, 0x8C, 0, 1, "%3d", (s8) seq->ch_vol[ch]);
         eprintf2(6, 13, x, 0x9A, 0, 1, "%3d", (s8) seq->ch_exp[ch]);
-        eprintf2(6, 13, x, 0x54 + 0x54, 0, 1, "%3d", seq->ch_pan[ch]);
+        eprintf2(6, 13, x, y, 0, 1, "%3d", seq->ch_pan[ch]);
         eprintf2(6, 13, x, 0xB6, 0, 1, "%3d", seq->ch_pitch_lo[ch]);
         eprintf2(6, 13, x, 0xC4, 0, 1, "%3d", seq->ch_pitch_hi[ch]);
         eprintf2(6, 13, x, 0xD2, 0, 1, "%3d", seq->ch_data_msb[ch]);
