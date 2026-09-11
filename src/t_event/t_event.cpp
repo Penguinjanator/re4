@@ -62,7 +62,7 @@ static inline void TE_FLG_OFF(ToolEvt* t, int bit) { u32* p = (u32*) &t->flags; 
 
 #define CAM_MOTION_FLAGS(p) (*(u16*) ((u8*) (p) + 0x40))
 
-#define EVT_MES_Y (336 - cMes.mes[0].fontH - cMes.mes[0].lineSpace - 1)
+#define EVT_MES_Y (336 - cMes.getWork()->lineSpace - cMes.getWork()->fontH - 1)
 
 static inline int EvtStatusChk(Event* ev, u32 bit)
 {
@@ -96,19 +96,28 @@ struct XmlNodeData {
 
 static inline void XmlNodeDataClear(XmlNodeData* d)
 {
+    XmlNode* n = d->node;
     int i;
     int j;
 
-    for (i = 0; i < XML_NODE_MAX; i++) {
-        for (j = 0; j < 11; j++) {
-            memset(d->node[i].s[j], 0, 0x10);
+    i = XML_NODE_MAX;
+    while (i--) {
+        char* p = (char*) n;
+        j = 11;
+        while (j--) {
+            memset(p, 0, 0x10);
+            p += 0x10;
         }
+        n++;
     }
 }
 
-static inline bool XmlStrToBool(const char* s)
+static inline int XmlStrToBool(const char* s)
 {
-    return strcmp(s, "true") == 0 || strcmp(s, "True") == 0 || strcmp(s, "TRUE") == 0;
+    if (strcmp(s, "true") == 0 || strcmp(s, "True") == 0) {
+        return 1;
+    }
+    return strcmp(s, "TRUE") == 0;
 }
 
 static inline long XmlStrToLong(const char* s)
@@ -120,7 +129,7 @@ static inline long XmlStrToLong(const char* s)
 }
 
 // Reads the xml file into `d`: 0 when it is missing or too big.
-static inline int EvtReadXml(const char* name, XmlNodeData* d, char* tmp, char* buf, u32 max)
+static inline int EvtReadXml(const char* name, XmlNodeData* d, char* tmp, char* buf)
 {
     XmlSimple xml;
     char* cur;
@@ -129,7 +138,7 @@ static inline int EvtReadXml(const char* name, XmlNodeData* d, char* tmp, char* 
 
     size = HDRead(name, buf);
     buf[size] = 0;
-    if (size > max) {
+    if (size > XML_BUF_SIZE - 1) {
         pLog->err(0, 0, "ReadXml : FileSize over [%d]", size);
         return 0;
     }
@@ -138,7 +147,7 @@ static inline int EvtReadXml(const char* name, XmlNodeData* d, char* tmp, char* 
         return 0;
     }
     cur = buf;
-    xml.GetXmlStart(&cur, buf, "Node");
+    xml.GetXmlStart(&cur, cur, "Node");
     d->num = 0;
     for (i = 0; i < XML_NODE_MAX; i++) {
         XmlNode* n = &d->node[i];
@@ -185,9 +194,8 @@ static inline int EvtReadXml(const char* name, XmlNodeData* d, char* tmp, char* 
 }
 
 // The message list from its xml file (path built by the caller).
-static inline void EvtMessRead(ToolEvt* t, const char* path)
+static inline void EvtMessRead(EventMessageData* m, const char* path)
 {
-    EventMessageData* m = t->pMess;
     XmlNodeData d;
     char tmp[0x80];
     char buf[XML_BUF_SIZE];
@@ -196,35 +204,37 @@ static inline void EvtMessRead(ToolEvt* t, const char* path)
     XmlNodeDataClear(&d);
     m->num = 0;
     memset(m, 0, sizeof(m->elem));
-    if (EvtReadXml(path, &d, tmp, buf, XML_BUF_SIZE - 1) == 0) {
+    if (EvtReadXml(path, &d, tmp, buf) == 0) {
         pLog->err(0, 0, "ReadData : File Not Found [%s]", path);
         return;
     }
     m->num = d.num;
     for (i = 0; i < m->num; i++) {
-        EventMessageData::MessElem* e = &m->elem[i];
-        XmlNode* n = &d.node[i];
-        int on = XmlStrToBool(n->s[XN_SETFLG]);
+        int on = XmlStrToBool(d.node[i].s[XN_SETFLG]);
 
         if (on == 1) {
-            e->flag = on;
-            e->no = i;
-            e->cutNo = XmlStrToLong(n->s[XN_CUTNO]);
-            e->frame = XmlStrToLong(n->s[XN_FRAME]);
-            e->messNo = XmlStrToLong(n->s[XN_DAT0]);
-            e->timer = XmlStrToLong(n->s[XN_DAT1]);
+            m->elem[i].flag = on;
+            m->elem[i].no = i;
+            m->elem[i].cutNo = XmlStrToLong(d.node[i].s[XN_CUTNO]);
+            m->elem[i].frame = XmlStrToLong(d.node[i].s[XN_FRAME]);
+            m->elem[i].messNo = XmlStrToLong(d.node[i].s[XN_DAT0]);
+            m->elem[i].timer = XmlStrToLong(d.node[i].s[XN_DAT1]);
         } else {
-            e->flag = 0;
-            e->no = 0;
-            e->cutNo = 0;
-            e->frame = 0;
-            e->messNo = 0;
-            e->timer = 0;
+            m->elem[i].flag = 0;
+            m->elem[i].no = 0;
+            m->elem[i].cutNo = 0;
+            m->elem[i].frame = 0;
+            m->elem[i].messNo = 0;
+            m->elem[i].timer = 0;
         }
     }
 }
 
-static cDbgToolMain<EventMessageData::MessElem>* pMessTool;
+// One-member struct: the tool pointer is a struct member (not a fixed scalar), so it is re-read after
+// every store made through it (SubToolMessInit's Set*Func / callback stores reload it each time).
+static struct {
+    cDbgToolMain<EventMessageData::MessElem>* p;
+} MessTool;
 
 // cDbgToolMain::CreateMenuWindow of this build of db_toolbase.h: the menu sits one row lower
 // (Init(5, 4)) than in the Tools REL's header (Init(5, 3)).
@@ -243,6 +253,18 @@ template <class T> static inline void MessCreateMenuWindow(cDbgToolMain<T>* tool
     tool->pMenu->AddButton(1, 2, "Save  ", 0, 2, 0, 0);
     tool->pMenu->AddButton(1, 3, "Option", 0, 3, 0, 0);
     tool->pMenu->AddButton(1, 4, "Exit  ", 0, 4, 0, 0);
+}
+
+// the save / load callback setters (one tool-pointer read for the two stores of each)
+template <class T> static inline void MessSetSaveFunc(cDbgToolMain<T>* tool, int (*f)(void*), void* arg)
+{
+    tool->pSaveFunc = f;
+    tool->saveArg = arg;
+}
+template <class T> static inline void MessSetLoadFunc(cDbgToolMain<T>* tool, int (*f)(void*), void* arg)
+{
+    tool->pLoadFunc = f;
+    tool->loadArg = arg;
 }
 
 int IsWorkAlive(EventMessageData::MessElem* w);
@@ -1146,6 +1168,7 @@ void ToolEvt::SubToolFocusMove(ToolEvt* t, Event* ev)
 
 void ToolEvt::SubToolMessInit(ToolEvt* t, int sw)
 {
+    EventMessageData* m = t->pMess;
     int i;
 
     if (sw == 1) {
@@ -1154,32 +1177,29 @@ void ToolEvt::SubToolMessInit(ToolEvt* t, int sw)
         EvtDebug.flags |= 0x04000000;
         MessDeleteAll();
         sprintf(path, "%s/evt_%s%s_mes.xml", "x:/soft/room/event/evd", t->room, t->no);
-        EvtMessRead(t, path);
-        pMessTool = new cDbgToolMain<EventMessageData::MessElem>;
-        MessCreateMenuWindow(pMessTool);
-        pMessTool->CreateFileWindows(0x16, 0xA, "X:\\Soft\\Room\\event\\", "test", ".txt");
-        pMessTool->pSaveFunc = CallbackSave;
-        pMessTool->saveArg = t;
-        pMessTool->pLoadFunc = CallbackLoad;
-        pMessTool->loadArg = t;
-        pMessTool->CreateEditWindow(0xA, 4, "No  ==CutNo== ==Frame== ==MessNo= ==Timer==", t->pMess->elem,
-                                    XML_NODE_MAX, 5);
-        pMessTool->AddEditColumn(4, "         ", 1, CallbackCutNoExec, CallbackCutNoUpdate);
-        pMessTool->AddEditColumn(0xE, "         ", 2, CallbackFrameExec, CallbackFrameUpdate);
-        pMessTool->AddEditColumn(0x18, "         ", 3, CallbackMessNoExec, CallbackMessNoUpdate);
-        pMessTool->AddEditColumn(0x22, "         ", 4, CallbackTimerExec, CallbackTimerUpdate);
-        pMessTool->SetIsWorkAliveFunc(IsWorkAlive);
-        pMessTool->SetSetWorkAliveFunc(SetWorkAlive);
-        pMessTool->SetGetWorkNoFunc(GetWorkNo);
-        pMessTool->SetSetWorkNoFunc(SetWorkNo);
-        pMessTool->SetInitWorkFunc(InitWork);
-        pMessTool->InitAllWork();
+        EvtMessRead(m, path);
+        MessTool.p = new cDbgToolMain<EventMessageData::MessElem>;
+        MessCreateMenuWindow(MessTool.p);
+        MessTool.p->CreateFileWindows(0x16, 0xA, "X:\\Soft\\Room\\event\\", "test", ".txt");
+        MessSetSaveFunc(MessTool.p, CallbackSave, t);
+        MessSetLoadFunc(MessTool.p, CallbackLoad, t);
+        MessTool.p->CreateEditWindow(0xA, 4, "No  ==CutNo== ==Frame== ==MessNo= ==Timer==", m->elem, XML_NODE_MAX, 5);
+        MessTool.p->AddEditColumn(4, "         ", 1, CallbackCutNoExec, CallbackCutNoUpdate);
+        MessTool.p->AddEditColumn(0xE, "         ", 2, CallbackFrameExec, CallbackFrameUpdate);
+        MessTool.p->AddEditColumn(0x18, "         ", 3, CallbackMessNoExec, CallbackMessNoUpdate);
+        MessTool.p->AddEditColumn(0x22, "         ", 4, CallbackTimerExec, CallbackTimerUpdate);
+        MessTool.p->SetIsWorkAliveFunc(IsWorkAlive);
+        MessTool.p->SetSetWorkAliveFunc(SetWorkAlive);
+        MessTool.p->SetGetWorkNoFunc(GetWorkNo);
+        MessTool.p->SetSetWorkNoFunc(SetWorkNo);
+        MessTool.p->SetInitWorkFunc(InitWork);
+        MessTool.p->InitAllWork();
         CallbackLoad(t);
     } else {
         EvtDebug.flags &= ~0x04000000;
         MessDeleteAll();
-        if (pMessTool) {
-            delete pMessTool;
+        if (MessTool.p) {
+            delete MessTool.p;
         }
         TaskSleep(1);
     }
@@ -1188,21 +1208,22 @@ void ToolEvt::SubToolMessInit(ToolEvt* t, int sw)
 
 void ToolEvt::SubToolMessMove(ToolEvt* t, Event* ev)
 {
+    EventMessageData::MessElem unused; // COMPILER-DIFF: frame-only T local (24 bytes) of the original
     int i;
 
-    if (pMessTool->Update() == 0) {
+    if (MessTool.p->Update() == 0) {
         SubToolMessInit(t, 0);
         return;
     }
-    pMessTool->Disp();
+    MessTool.p->Disp();
     if (t->flags & 0x40000000) {
-        // GetCy through the base type: the template's GetCy is not instantiated here, so the
-        // out-of-line virtuals keep their class order (GetCx before GetCy)
-        int cy = ((cDbgWindowBase*) pMessTool->pEdit)->GetCy();
-        int no = pMessTool->pEdit->GetCurrentNo();
+        // the message column (cx 3) of the cursor row shows its message
+        int cx = MessTool.p->pEdit->GetCx();
+        int no = MessTool.p->pEdit->GetCurrentNo();
 
-        if (cy == 3) {
-            EventMessageData::MessElem* e = &t->pMess->elem[no];
+        if (cx == 3) {
+            EventMessageData* m = t->pMess;
+            EventMessageData::MessElem* e = &m->elem[no];
 
             if (IsWorkAlive(e)) {
                 if (e->messNo == -1) {
@@ -1210,11 +1231,7 @@ void ToolEvt::SubToolMessMove(ToolEvt* t, Event* ev)
                     int cnt = 1;
                     int j;
 
-                    for (j = no - 1; j >= 0; j--) {
-                        p = &t->pMess->elem[j];
-                        if (p->messNo != -1) {
-                            break;
-                        }
+                    for (j = no - 1; j >= 0 && (p = &m->elem[j])->messNo == -1; j--) {
                         cnt++;
                     }
                     ev->MesSet(p->messNo, 0, 100, EVT_MES_Y);
@@ -1407,36 +1424,17 @@ void CallbackTimerUpdate(int no, EventMessageData::MessElem* w, cDbgButtonTempla
     DbgButtonSetName(b, buf);
 }
 
-int CallbackSave(void* arg)
+// Writes the node records of `d` as the message xml into buf and saves it as `name`.
+static inline int EvtWriteXml(const char* name, XmlNodeData* d, char* tmp, char* buf)
 {
-    ToolEvt* t = (ToolEvt*) arg;
-    EventMessageData* m = t->pMess;
-    char path[0x100];
-    XmlNodeData d;
-    char tmp[0x80];
-    char buf[XML_BUF_SIZE];
     XmlSimple xml;
     char* cur;
-    EventMessageData::MessElem* e;
     int i;
 
-    sprintf(path, "%s/evt_%s%s_mes.xml", "x:/soft/room/event/evd", t->room, t->no);
-    XmlNodeDataClear(&d);
-    d.num = 0;
-    for (e = m->elem; e <= &m->elem[XML_NODE_MAX - 1]; e++) {
-        if (e->flag & 1) {
-            sprintf(d.node[d.num].s[XN_SETFLG], "true");
-            sprintf(d.node[d.num].s[XN_CUTNO], "%ld", e->cutNo);
-            sprintf(d.node[d.num].s[XN_FRAME], "%ld", e->frame);
-            sprintf(d.node[d.num].s[XN_DAT0], "%ld", e->messNo);
-            sprintf(d.node[d.num].s[XN_DAT1], "%ld", e->timer);
-            d.num++;
-        }
-    }
     cur = buf;
     xml.SetXmlStart((int*) &cur, buf);
-    for (i = 0; i < d.num; i++) {
-        XmlNode* n = &d.node[i];
+    for (i = 0; i < d->num; i++) {
+        XmlNode* n = &d->node[i];
 
         XmlElemStart(&xml, &cur, cur, "Node");
         strcpy(tmp, n->s[XN_SETFLG]);
@@ -1464,16 +1462,53 @@ int CallbackSave(void* arg)
         XmlElemEnd(&xml, &cur, cur, "Node");
     }
     xml.SetXmlEnd((int*) &cur, cur);
-    HDWrite(path, buf, cur - buf);
+    HDWrite(name, buf, cur - buf);
+    return 1;
+}
+
+// The message list to its xml file (path built by the caller).
+static inline void EvtMessWrite(EventMessageData* m, const char* path)
+{
+    XmlNodeData d;
+    char tmp[0x80];
+    char buf[XML_BUF_SIZE];
+    EventMessageData::MessElem* e;
+    int i;
+
+    XmlNodeDataClear(&d);
+    d.num = 0;
+    for (i = 0; i < XML_NODE_MAX; i++) {
+        e = &m->elem[i];
+        if (e->flag & 1) {
+            sprintf(d.node[d.num].s[XN_SETFLG], "true");
+            sprintf(d.node[d.num].s[XN_CUTNO], "%ld", e->cutNo);
+            sprintf(d.node[d.num].s[XN_FRAME], "%ld", e->frame);
+            sprintf(d.node[d.num].s[XN_DAT0], "%ld", e->messNo);
+            sprintf(d.node[d.num].s[XN_DAT1], "%ld", e->timer);
+            d.num++;
+        }
+    }
+    EvtWriteXml(path, &d, tmp, buf);
+}
+
+int CallbackSave(void* arg)
+{
+    ToolEvt* t = (ToolEvt*) arg;
+    EventMessageData* m = t->pMess;
+    char path[0x100];
+
+    sprintf(path, "%s/evt_%s%s_mes.xml", "x:/soft/room/event/evd", t->room, t->no);
+    EvtMessWrite(m, path);
     return 0;
 }
 
 int CallbackLoad(void* arg)
 {
     ToolEvt* t = (ToolEvt*) arg;
+    EventMessageData* m = t->pMess;
     char path[0x100];
 
     sprintf(path, "%s/evt_%s%s_mes.xml", "x:/soft/room/event/evd", t->room, t->no);
-    EvtMessRead(t, path);
+    EvtMessRead(m, path);
     return 0;
 }

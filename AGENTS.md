@@ -22398,3 +22398,88 @@ compiles), deleted at the end. 111 OK before and after every edit.
   size shift (PushObject 0x454 vs 0x44c; before, the four functions' +-4 cancelled): they vanish with the size.
 - Not attempted: cam_extra CameraScope::move 91, CameraBinocular ctor 17, CameraBinocular::move 79, IdBinocular::move 271;
   db_cam menuFlag 144.
+
+### Tool RELs, t_event closer (t_event/t_event 900 -> 362 words in-tree, .text 0x72f0 -> 0x7324 of 0x7320: CallbackLoad 136 -> 1, CallbackSave 174 -> 12, SubToolMessInit 212 -> 42 (0x1074 -> 0x1098 of 0x10a0), SubToolMessMove 346 -> 274 (106 with the dbg_tool.h Update() case order below); nothing flipped; 2026-09-11)
+
+- Harness ~/.cache/tools_tev (deleted): `mbuild.sh SRC OUTDIR` (module cflags + fold_linkonce, absolute OUTDIR), `mtryv.py FUNC v.py
+  [--apply N] [--keep]` (variants may carry `{'src': [...], 'hdr': {'include/x.h': [(old, new)]}}` = a copied include dir), `msbs.sh
+  SYM [OBJ]` (ours truncated to the target's length: the unnamed template tail follows every function in our object), `mdump.sh -dX`
+  with `SRC_OVERRIDE`, `lcount.sh SRC FUNC` (the `Loop from .. real insns` / `savings` lines of one function). All builds under the lock.
+- **Both xml callbacks are three inline levels, the arrays owned by the middle one, and the tool's `EventMessageData* m = t->pMess`
+  loaded at the callback's top.** `CallbackLoad(arg) { t; m = t->pMess; char path[0x100]; sprintf; EvtMessRead(m, path); }` (m in a
+  callee-saved reg BEFORE sprintf: the target never keeps `t`), `EvtMessRead(m, path) { XmlNodeData d; char tmp[0x80]; char
+  buf[XML_BUF_SIZE]; XmlNodeDataClear(&d); m->num = 0; memset(m); if (!EvtReadXml(path, &d, tmp, buf)) err; m->num = d.num; loop }`,
+  `EvtReadXml(name, d, tmp, buf) { XmlSimple xml; char* cur; size = HDRead(name, buf); buf[size] = 0; if (size > XML_BUF_SIZE - 1)
+  ..; cur = buf; xml.GetXmlStart(&cur, cur, "Node"); d->num = 0; loop; }` -- frame path 8, d 264, tmp 17872, buf 18000, xml/cur at
+  fp+0x35390/94 in both callbacks; the save side mirrors it (`EvtMessWrite(m, path)` / `EvtWriteXml(name, d, tmp, buf)` with
+  `cur = buf; SetXmlStart(&cur, buf); .. HDWrite(name, buf, cur - buf)`). SubToolMessInit has the same `m = t->pMess` at function
+  scope (loaded before the `sw == 1` test) and calls `EvtMessRead(m, path)` with its block-local `char path[0x80]`.
+- **The size limit is a literal, not a parameter** (`if (size > XML_BUF_SIZE - 1)`): a `u32 max` parameter of the inline is a pseudo
+  live across HDRead (`lis r30,3; ori` before the call, callee-saved); the literal is materialised after the call into r0 (18 -> 1).
+- **`xml.GetXmlStart(&cur, cur, "Node")` with `cur = buf` just before** = `mr r5,r27`: cse forwards the store to the load and the
+  argument is the buf pseudo; `GetXmlStart(&cur, buf, ..)` also gives `mr r5,r27` in ours but its 4 words vanished with `cur`
+  (CallbackLoad 5 -> 1) -- the source reads from `cur`, like `GetXmlNext(&cur, cur, ..)`.
+- **XmlNodeDataClear is two `while (i--)` loops over a stepped pointer** (`XmlNode* n = d->node; i = 100; while (i--) { char* p =
+  (char*) n; j = 11; while (j--) { memset(p, 0, 16); p += 16; } n++; }`): both loops are check_dbra_loop's GE/nonneg reversal (start
+  99 / 10, `cmpwi rJ,0; subi rJ,1; bne` inner = combine's `(ge (plus j -1) 0)` -> `(ne j 0)`, outer `subi r28,r9,1 .. mr r9,r28;
+  cmpwi r9,-1; bne` with the decrement and `n + 176` PRE'd to the outer body top). A `for (j = 0; j < 11; j++)` gets the NE form
+  (`li 11; addic.; bne`) because its duplicated exit test sets `loop_info->vtop`; `for (i = 99; i >= 0; i--)` / do-while / `for (i =
+  100; i > 0; i--)` are 33-99 words. The memset address must not be a giv of the counter (a call in the loop allows the reversal only
+  with `no_use_except_counting`), hence the separate pointers. Left in both callbacks: the two PRE'd registers swap (`i-1` r28 /
+  `n+176` r29 in CallbackLoad, the reverse in CallbackSave; ours the opposite of the target in each) -- 4 words each, not found
+  (declaration orders, u32, s[0] / `char (*s)[16]`, `while (i-- != 0)` all identical).
+- **`XmlStrToBool` is `if (strcmp(s, "true") == 0 || strcmp(s, "True") == 0) return 1; return strcmp(s, "TRUE") == 0;`** (int; the
+  last term as a value = `subfic r0,r3,0; adde r3,r0,r3; cmpwi r3,1` with the two `||` terms jumping to `li r3,1`); the single `||`
+  chain (bool or int, inline or written out) is jumps only (78), `(a || b) ? 1 : c` 43.
+- **The fill loop indexes `d.node[i].s[k]` / `m->elem[i].x` directly (no `n`/`e` pointer locals) and the SAVE loop has `e = &m->elem[i]`
+  INSIDE the body.** Two effects: (1) with the pointer locals the loop is 70 real insns at loop pass 2 and the "true" `lis` (savings 1,
+  life 1) is hoisted (`threshold * savings * life >= insn_count`, threshold = (1 + n_non_fixed_regs) = 72 with a call in the loop);
+  the direct forms re-derive every address (88 insns) and the `lis` stays in the loop like the target (16 words). (2) giv increments
+  are emitted in the giv list order = reverse discovery, so the LAST address expression discovered (the `e` giv of the save loop's
+  `&m->elem[i]` written after the strcmp/`d.node[i]` uses) gets the FIRST increment (`addi r30,r30,24` right after `addi r23,r23,1`);
+  `for (..; i++, e++)` / `e++` in the body give e's increment the right slot but put its init before the entry test (target: giv init in
+  the preheader). Save loop: `for (i = 0; i < 100; i++) { e = &m->elem[i]; if (e->flag & 1) {..} }` -- the biv i is eliminated
+  (`cmpw r30,r28` SIGNED compare against `m + 2376`); a pointer loop `for (e = m->elem; e <= &m->elem[99]; e++)` compares `cmplw` with an
+  entry test (62), `for (i..) m->elem[i].x` keeps i*24 as a second giv (64).
+- **HDRead's buffer argument is a fresh `addi r4,r1,18000` in the target while r27 holds the same address (1 word, CallbackLoad and
+  SubToolMessInit; the reverse in CallbackSave: `mr r4,r14; subf r5,r4,r5` where ours re-materialises).** Mechanism read in
+  integrate.c: an inline argument that is `(plus fp N)` is copied to a `reg/v` pseudo by process_reg_param with a CONST_AGE_PARM
+  equivalence, and `subst_constants` rewrites every VALID use to the address (`(set r4 (plus fp N))` for call arguments; stores /
+  addresses keep the pseudo). Our `(set r4 (plus fp 18000))` is then folded by cse1 into the pseudo when the parameter copy is in the
+  same ebb (EvtReadXml entered after the clear loop) or left alone when it is not (CallbackSave's HDWrite after the write loop). The
+  target does the OPPOSITE in both places, so its parameter copy of `buf` is in another ebb for the read side and in the same ebb for
+  the write side -- consistent with EvtReadXml's `buf` being bound at the function top (an inline entered before the clear loop that
+  also owns `HDRead`) but every such structure moved the `d` copies / `name` substitution (58-65). Not closed; `char* const` params
+  change nothing (TREE_READONLY is what integrate sets itself; only a SET of the parm reg clears it).
+- **SubToolMessMove: `if (pEdit->GetCx() == 3)`, not GetCy** (vtable slot 16 = GetCx: column 3 is the MessNo column), `EventMessageData*
+  m = t->pMess` local (`m->elem[no]`, `m->elem[j]`: the target loads pMess once), the back-search as `for (j = no - 1; j >= 0 && (p =
+  &m->elem[j])->messNo == -1; j--) cnt++;` (the exit test duplicated at the entry = the peeled `mulli; add; lwz 16; cmpwi -1` copy;
+  ours still eliminates j into a pointer compare `cmpw r9,r8` where the target keeps `addic. r11,-1` -- open), `EVT_MES_Y` as `336 -
+  cMes.getWork()->lineSpace - cMes.getWork()->fontH - 1` (the `addi rX,cMes,4` base; our `fontH - lineSpace` order came out swapped),
+  and a frame-only `EventMessageData::MessElem unused;` first local (tagged COMPILER-DIFF: 24 bytes below the fast-cast temps, frame
+  136 -> 160 = the target; the CreateEditWindow `T unused` precedent). The mesCnt block is open: the target addresses `mesCnt[no+1]`
+  as a register (&EvtDebug+196, `4(r28)` for [2], `0(r28)` for [1]) and `mesCnt[no]` through `lwzu r8,192(r30)`, then stores `stwx
+  r27,r30,r27` / `stwx r0,r26,r27` / `stw r31,4(r26)` (no = 0 folded only in the third); `mesCnt[no+k]` in the eprintfs, `mesCnt[2] =
+  i` literal, `s32* mc` bases: 105-107, never the mixed form.
+- **`pMessTool` is a one-member struct global** (`static struct { cDbgToolMain<..>* p; } MessTool; MessTool.p->SetIsWorkAliveFunc(..)`):
+  the target reloads the tool pointer after every Set*Func / callback-pointer store (`lwz r9,pMessTool; lwz r11,4(r9); stw; stw;
+  lwz r9,pMessTool ..`), which only a non-scalar load (struct member) gives against struct-member stores (98 -> 86). SubToolMessMove
+  reads the global per use (`MessTool.p->Update()`, `MessTool.p->Disp()`, `MessTool.p->pEdit->GetCx()` -- a local copy moves the
+  tool pointer off r31 and keeps it live: 263). Two more SubToolMessInit facts: `CreateEditWindow(.., m->elem, 100, 5)` takes the
+  function-level `m` (the target stores `stw r15,40(r31)` = pWork straight from m's register; `t->pMess->elem` reloads it and swaps
+  the m/path registers, 86 -> 71), and the four callback-pointer stores are TWO helper calls, `MessSetSaveFunc(MessTool.p,
+  CallbackSave, t)` / `MessSetLoadFunc(MessTool.p, CallbackLoad, t)` (inline `tool->pSaveFunc = f; tool->saveArg = arg;`): one tool
+  read per pair (`lwz pMessTool; stw 64; stw 32; lwz pMessTool; stw 68; stw 36`), where the member-by-member stores reload the struct
+  global after every store (71 -> 42; this also settled the clear loop's PRE-register pair in this function).
+- **dbg_tool.h (owned by the tools closer, NOT edited): three findings from the t_event target, all confirmed against
+  t_lightarea's ToolLightAreaMain too.** (1) `cDbgToolMain<T>::Update()` lays its arms out 0, 1, 2, 6, 3, 7, 4, 5?, 8: case 6
+  (LoadData) directly after case 2 and case 7 (SaveData) after case 3 (t_lightarea target: `lwz 0x44(r22); li 6; Debug_alloc/HDRead;
+  lwz 0x40; li 7; Debug_alloc/HDWrite; lwz 0x48; li 5`); with the header copy reordered SubToolMessMove drops 346 -> 106 (in-tree 274).
+  (2) case 4's pad test reads a u32 at offset 0 of a symbol (`lwz r0,0(r9); andi. 512`), not `Joy[0].on` (+16). (3) `ret = 0` (case 5,
+  `li r20,0`) is laid out at the very end, after case 8. The 11-word `cDbgToolMain<T>` ctor loop gap of SubToolMessInit and the
+  template members (fn_1B528 24, execCopyWindow 3, LocalUpdate 2, cutBuffer 1, fn_1D370 2) are the same header items as in
+  Tools/t_lightarea. Remaining in SubToolMessInit besides the header (the ctor's extra `stw r0,616(r31)` and the CreateEditWindow
+  `mfcr r29 .. mtcrf` CR-kept null test that does not come out for MessElem): the HDRead buffer word and a `li r27,5 / addis /
+  lwz t` issue-order triple before the CreateEditWindow ctor.
+- .rodata reloc "diffs" (`_._t18cDbgButtonTemplate.. +0` vs `NoButtonUpdate_callback+0xc0`) and `__7ToolEvt`'s 1 word are the
+  nameless template tail shifting with our .text size (+0x10); they go with the sizes.
