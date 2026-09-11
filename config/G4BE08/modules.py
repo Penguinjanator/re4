@@ -709,6 +709,7 @@ MATCHING = {
     "st2_3/r221.cpp": True,  # throwBonbe: single-set `evNo` slot filler for the eff2/pG-high r21/r22 tie (COMPILER-DIFF candidate #17)
     "st2_3/r22a.cpp": True,
     "st2_3/r21a.cpp": True,
+    "st2_3/r225.cpp": True,  # SceElevator: goto-entered noted up loop + volatile-asm cse flush in the RsfSet arm (COMPILER-DIFF candidate #12), dead pPL read, do-while(0) sched barrier
     "st2_2/r213.cpp": True,  # Init: hard-register `&rot` memset argument + volatile asm behind the second memset (COMPILER-DIFF 3)
     "st1_2/r11b.cpp": True,  # Init: codeless asm issue-slot filler between the two flags_51BC RMWs (COMPILER-DIFF candidate)
     "st1_2/r10c.cpp": True,  # SetEmHitAtari: dead hard-register 0.0 load at the top for the hoisted high (COMPILER-DIFF 3)

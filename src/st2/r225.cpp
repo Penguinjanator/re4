@@ -537,10 +537,13 @@ void SceElevator_r225(SceElevatorData* d)
     f32 stopDist2;
     f32 spd;
     f32 step;
+    f32 move;
     int faded;
     int done;
     FadeWork* fade;
+    u32 white;
     int i;
+    int j;
     u32 hSnd;
 
     obj = SmdGetObjPtr(d->objId);
@@ -568,27 +571,37 @@ void SceElevator_r225(SceElevatorData* d)
     if (d->dir == 1 || d->dir == 3) {
         SndCall(6, d->seStart, &obj->pos, 0, 0, 0);
         spd = accel;
-        step = minSpd;
         for (i = 0; i < 10; i++) {
             obj->setPos(&d->pos);
             pPL->setPos(&d->plPos);
-            SetPosXYZ(obj, obj->pos.x, fRand1_1() * step + obj->pos.y, obj->pos.z);
-            SetPosXYZ(pPL, pPL->pos.x, fRand1_1() * step + pPL->pos.y, pPL->pos.z);
+            SetPosXYZ(obj, obj->pos.x, fRand1_1() * 10.0f + obj->pos.y, obj->pos.z);
+            SetPosXYZ(pPL, pPL->pos.x, fRand1_1() * 10.0f + pPL->pos.y, pPL->pos.z);
             SceSleep(1);
         }
         obj->setPos(&d->pos);
         pPL->setPos(&d->plPos);
-        // The up-loop is a goto loop in the target (`b TOP; SLEEP: SceSleep; spd += accel; TOP: ...`,
-        // no loop notes): loop.c hoists none of its highs, which the `for (;;)` form hoists into
-        // callee-saved registers (301 -> 285 words). `fade` computed here = the target's
-        // `lis/addi &Fade[2]` before the loop with `lhz 0x18(fade)` in the arm.
+        // Up loop: a noted loop that loop.c does not process (entered by the goto below = "multiple
+        // entry points"), laid out `b TOP; SLEEP: SceSleep; spd += accel; TOP: ...`. The loop notes
+        // give flow's depth-2 ref weights (accel above minSpd in the FPR order, the faded compare's
+        // CC pseudo allocated before `done` -> cr4) and update_equiv_regs leaves `white` in bb 7;
+        // loop.c must stay out or it single-usage-replaces the pG/RoomData highs of the RsfCheck
+        // block with the gcse reaching registers (a 14th GPR). `fade`/`white` computed here are the
+        // target's `lis/addi &Fade[2]` and `li 255` before the loop.
         fade = &Fade[2];
+        white = 0xFF;
         goto up_top;
-    up_sleep:
-        SceSleep(1);
-        spd += accel;
-    up_top:
-        {
+        for (;;) {
+            SceSleep(1);
+            // COMPILER-DIFF: candidate (sched1 loop-note barrier). The target issues `spd += accel`
+            // after the SceSleep call; sched1 only keeps it there behind a loop note.
+            do { } while (0);
+            spd += accel;
+        up_top:
+            // COMPILER-DIFF: candidate #12 (reverse). The target's pPL load of the second SetPosXYZ
+            // uses the gcse reaching register of high(pPL) (`lwz r9,pPL@l(r23)`) while ours
+            // re-materialises `lis`; a dead pPL read at the loop top shares its high with that
+            // load, so the final gcse cprop substitutes the reaching register there.
+            cPlayer* p = pPL;
             if (spd > maxSpd) {
                 spd = maxSpd;
             }
@@ -599,12 +612,17 @@ void SceElevator_r225(SceElevatorData* d)
             SetPosXYZ(obj, obj->pos.x, obj->pos.y + step, obj->pos.z);
             SetPosXYZ(pPL, pPL->pos.x, pPL->pos.y + step, pPL->pos.z);
             if (faded == 0) {
-                if (!(spd < maxSpd)) {
-                    FadeSetRGBA(2, 0, 0xFF);
+                if (spd >= maxSpd) {
+                    FadeSetRGBA(2, 0, white);
                     faded = 1;
                 }
-            } else if (!(fade->flags & 1)) {
+            } else if ((fade->flags & 1) == 0) {
                 if (RsfCheck(G_ROOM_ID, 4) == 0) {
+                    // COMPILER-DIFF: candidate #12 (fallthrough-arm form). Our cse carries the
+                    // RsfCheck block's pG/RoomData highs into this arm (and cse2 through a
+                    // do-while(0)); the original re-materialises both `lis` here. The bare
+                    // volatile asm flushes cse's table in both passes.
+                    asm volatile("" : : "r"(d));
                     RsfSet(G_ROOM_ID, 4);
                     SceEventEnd(0);
                     SceSetChapterEnd(0xC, 1);
@@ -613,71 +631,77 @@ void SceElevator_r225(SceElevatorData* d)
                     }
                 }
                 SceAtExecRoomJump(d->room, &d->jumpPos, &d->jumpRot, 0);
-                goto up_end;
+                break;
             }
-            goto up_sleep;
         }
-    up_end:;
     }
     if (d->dir == 0 || d->dir == 2) {
         BitOff(pG->flags_5010, 0x10000000);
         spd = maxSpd;
-        step = stopDist2;
+        move = stopDist2;
         if (d->dir == 0) {
-            step = -step;
+            move = -move;
         }
-        SetPosXYZ(obj, obj->pos.x, obj->pos.y + step, obj->pos.z);
-        SetPosXYZ(pPL, pl->pos.x, pPL->pos.y + step, pl->pos.z);
+        SetPosXYZ(obj, obj->pos.x, obj->pos.y + move, obj->pos.z);
+        SetPosXYZ(pPL, pl->pos.x, pPL->pos.y + move, pl->pos.z);
         CamCtrl.Comeback(0);
         FadeSetRGBA(0x80000002, 0xFF, 0);
         hSnd = SndCall(6, d->seStart, &obj->pos, 0, 0, 0);
-        do {
+        // Down loop: `for (;;) { body; if (done) { tail; break; } SceSleep(1); }` -- expand_end_loop
+        // rotates it (`b TOP; SLEEP; TOP: body; beq SLEEP`), the gcse insertions before the entry
+        // jump land after LOOP_BEG (loop.c: "phony", the in-loop `lis pG` stays) and behind the
+        // sched1 note barrier (`addi r29,r1,8` after the SndCall), and the tail inside the loop puts
+        // LOOP_END before the shake preheader (`lis/li` after the setAng call). `y` is only the
+        // fabs operand (__builtin_fabsf: the volatile asm would block the `fmr f12,f13` copy of the
+        // PRE'd `obj->pos.y` re-read), `move` is a second step variable so `step` dies in the up
+        // loop and `spd` stays cse-canonical there (`fneg f31,f30`).
+        for (;;) {
             f32 y = obj->pos.y;
-            if (fabsf(d->pos.y - y) < stopDist) {
+            if (__builtin_fabsf(d->pos.y - y) < stopDist) {
                 spd -= accel;
                 if (spd < minSpd) {
                     spd = minSpd;
                 }
             }
-            step = spd;
+            move = spd;
             if (d->dir != 0) {
-                step = -step;
+                move = -move;
             }
-            SetPosXYZ(obj, obj->pos.x, y + step, obj->pos.z);
-            SetPosXYZ(pPL, pPL->pos.x, pPL->pos.y + step, pPL->pos.z);
+            SetPosXYZ(obj, obj->pos.x, obj->pos.y + move, obj->pos.z);
+            SetPosXYZ(pPL, pPL->pos.x, pPL->pos.y + move, pPL->pos.z);
             {
                 Vec q = {0.0f, 0.0f, 0.0f};
-                q.y = step;
+                q.y = move;
                 pG->quake_ofs = q;
             }
             done = 0;
             if (d->dir == 0) {
-                if (!(obj->pos.y < d->pos.y)) {
+                if (obj->pos.y >= d->pos.y) {
                     done = 1;
                 }
             }
             if (d->dir == 2) {
-                if (!(obj->pos.y > d->pos.y)) {
+                if (obj->pos.y <= d->pos.y) {
                     done = 1;
                 }
             }
-            if (done == 0) {
-                SceSleep(1);
+            if (done != 0) {
+                if (hSnd) {
+                    SndStop(hSnd, 0);
+                }
+                SndCall(6, d->seStop, &obj->pos, 0, 0, 0);
+                obj->setPos(&d->pos);
+                pPL->setPos(&d->plPos);
+                pPL->setAng(&d->plRot);
+                break;
             }
-        } while (done == 0);
-        if (hSnd) {
-            SndStop(hSnd, 0);
+            SceSleep(1);
         }
-        SndCall(6, d->seStop, &obj->pos, 0, 0, 0);
-        obj->setPos(&d->pos);
-        pPL->setPos(&d->plPos);
-        pPL->setAng(&d->plRot);
-        step = 10.0f;
-        for (i = 0; i < 10; i++) {
+        for (j = 0; j < 10; j++) {
             obj->setPos(&d->pos);
             pPL->setPos(&d->plPos);
-            SetPosXYZ(obj, obj->pos.x, fRand1_1() * step + obj->pos.y, obj->pos.z);
-            SetPosXYZ(pPL, pPL->pos.x, fRand1_1() * step + pPL->pos.y, pPL->pos.z);
+            SetPosXYZ(obj, obj->pos.x, fRand1_1() * 10.0f + obj->pos.y, obj->pos.z);
+            SetPosXYZ(pPL, pPL->pos.x, fRand1_1() * 10.0f + pPL->pos.y, pPL->pos.z);
             SceSleep(1);
         }
         obj->setPos(&d->pos);

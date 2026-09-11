@@ -16505,3 +16505,56 @@ HAZARD: wibo's NgcAs writes the `-o` path case-insensitively -- two tryv variant
   `lbz 0(r9); addi r9,48` giv, `li r3,1; li r4,-1` (state 1 / -1 constants in r3/r4, ours r31/r3), `lwzu r8,328(r9)`
   for the `to->pos` copy, and the target's temp order (x r8, z r0, y r10; `stw r0,16(r1)` after `addi r11,16`).
   Not iterated further.
+
+### Stage rooms, st2_3 pass 3 (r225 Matching 13/13 -> st2_3 fully linked; SceElevator_r225 157 -> 0; 2026-09-11)
+
+- Harness /home/adityas/.cache/rooms_c10 (rooms_b9 copies with the paths rewritten: `mcmp.py MOD/UNIT [SYM]`, `tryv.py
+  MOD/UNIT FUNC variants.py`, `vapply.py`, `mdump.sh MOD/UNIT -dX` with an ABSOLUTE `SRC_OVERRIDE`, `sbs.sh`, `prio.py`,
+  `tailcmp.py` for the nameless cLight block). The 13th "function" `fn_st2_3_14FFC` is the linkonce block (0 word diffs,
+  27 REL14/REL24 key diffs = naming), sections equal, order equal; `make_rel.py --verify` identical.
+- **Read the loop shape from the layout, then reproduce the NOTES, not just the CFG.** Both elevator loops are laid out
+  `b TOP; SLEEP: SceSleep(1)[; spd += accel]; TOP: body; ... -> SLEEP`. Three different sources give those bytes and
+  they differ in what the compiler passes see:
+  - `goto TOP; SLEEP: SceSleep(1); TOP: ...; goto SLEEP;` (goto loop): no notes at all.
+  - `for (;;) { body; if (done) { tail...; break; } SceSleep(1); }`: expand_end_loop's rotation moves
+    [start_label .. the FIRST jump to end_label] behind the rest (`LOOP_BEG; b start; newstart: SLEEP; start: body;
+    beq newstart`), so a deep `break` DOES rotate as long as no NOTE_INSN_LOOP_BEG (an inner noted loop, e.g. the
+    chapter-end `for (;;) SceSleep(1);`) precedes it in RTL. The gcse insertions of the pre-loop block go before the
+    entry jump = AFTER LOOP_BEG: (a) loop.c finds a non-label scan_start and prints "Loop from A to B is phony" (nothing
+    hoisted, the in-loop `lis pG@ha` stays a rematerialised copy), (b) sched1 makes the first inserted insn a loop-note
+    barrier (`addi r29,r1,8` after `bl SndCall; mr r28,r3`, the `&obj->pos` copy after A's last use so local-alloc ties
+    them: no `mr r28,r30`), (c) with the tail inside the `if (done)` arm LOOP_END precedes the next loop's preheader and
+    anchors its hoisted `lis/li/lfs` behind the last call. This is the down loop.
+  - `goto TOP; for (;;) { SceSleep(1); do { } while (0); spd += accel; TOP: body; ...; break; }`: notes present, loop.c
+    prints "ignored due to multiple entry points" (no single-usage replacement of the PRE'd highs in the RsfCheck
+    block), flow weights the in-loop refs x2 (accel's `spd += accel` puts accel above minSpd in the FPR order; the
+    `faded == 0` CC pseudo gets 5 refs and is allocated before `done`, so pass 0 finds no used callee-saved GPR and it
+    lands in cr4 with the `mfcr r12` prologue), update_equiv_regs leaves `white = 0xFF` set before the loop (depth 1 at
+    the FadeSet store). This is the up loop; the `do { } while (0)` (tagged candidate) is the only way sched1 keeps
+    `spd += accel` behind the SceSleep call (the note barrier; get_block_head_tail skips notes at a block HEAD, so a
+    LOOP_BEG right after the block label is not one).
+- **gcse cprop of a copy is per block start** (`oprs_not_set_p`): a `P = R` PRE copy is propagated only into LATER
+  blocks. So in the up loop cse1 merging the RsfSet block's `high(pG)` into the RsfCheck block's pseudo (the #12
+  fallthrough-arm carry) makes the RsfSet load use the reaching register R directly, while the RsfCheck block keeps
+  `P = R` and cse2 re-materialises `lis` there; a single remaining use of R is moved next to it by update_equiv_regs
+  (fresh `lis`, depth 0 only) -- two uses (bb 18 + the down loop's quake block through loop.c's single-usage
+  replacement in the old do-while) were the 14th GPR r19. Fix (tagged `COMPILER-DIFF: candidate #12`): a bare
+  `asm volatile("" : : "r"(d))` at the RsfSet arm's top flushes cse1 AND cse2 (a `do { } while (0)` only ends cse1's
+  path: `cse_end_of_basic_block` stops at LOOP_END only when `after_loop == 0`).
+- **cse2 keeps `P = R` (and canon-substitutes R into P's uses) only when R or its `high` is already in the table;
+  otherwise the REG_EQUAL `high` (cost 0) wins and `lis` is re-materialised.** The target's `lwz r9,pPL@l(r23)` in the
+  up loop's second SetPosXYZ = a dead `cPlayer* p = pPL;` at the loop top (tagged candidate #12 reverse): its high is
+  cse1-merged with the SetPosXYZ load's, gcse deletes it as a copy in the earlier block and the final cprop puts R into
+  the load; pPL's high then has 8 refs and takes r23 ahead of `&d->pos`/`&d->plPos`.
+- **Zero-code forms found:** `spd >= maxSpd` / `obj->pos.y >= d->pos.y` / `<=` are the `cror un,eq,gt; bns` compares
+  (`!(a < b)` is `blt`); `(fade->flags & 1) == 0` is the plain `andi.; bne`; the shake loops use the literal
+  `fRand1_1() * 10.0f` (loop.c hoists the pool load and cse2 folds the up arm's to `fmr f31,minSpd` -- a `step = minSpd`
+  copy is cprop'ed away, a literal survives because the copy is only created after gcse); separate counters `i`/`j`
+  for the two shake loops keep `done` the canonical zero of the PRE'd `faded == 0` compare (`cmpwi cr4,r26` with a
+  live top `li r26,0`), a shared `i` makes its `i = 0` the canonical register; a second step variable (`move`) in
+  the down arm ends `step`'s life in the up loop so `spd` stays canonical in the `d->dir == 1` arm (`fneg f31,f30`,
+  the target's `-spd`; one variable gives `-step`); `f32 y = obj->pos.y` for the fabs only with `obj->pos.y + step`
+  re-read in SetPosXYZ is gcse's PRE of the load (`fmr f12,f13` + `fadds f13,f12,f31`), which needs `__builtin_fabsf`
+  (the volatile-asm fabsf is a sched barrier that pins the copy behind the fsubs and local-alloc ties it away).
+- objdiff/unit_info still show 98-99% for the byte-identical operateCrank/open_door/moveGrave/SceElevator (dtk `Sym+off`
+  relocs such as `Fade+0x48`): judge with mcmp.py only.
