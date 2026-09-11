@@ -912,6 +912,15 @@ static void SetEmHitAtari()
     f32 spdC;
     f32 spdA;
 
+    // COMPILER-DIFF: 3 -- the original's `high(0.0)` for the `angX = 0.0f` loads below is a
+    // callee-saved pseudo born at the function top (`lis r27` after the first call, dying at the
+    // `lfs f30`); ours computes it in place. A dead pool load into a hard register creates that
+    // high here: cse1 forwards the high (a constant) to the later load, the hard-register value
+    // itself is invalidated by the calls (no `fmr` forwarding), and the dead set is deleted.
+    {
+        register f32 z asm("fr0");
+        z = 0.0f;
+    }
     PSVECSubtract(&SmdGetObjPtr(0x61)->pos, &SmdGetObjPtr(0x5E)->pos, &ofsA);
     PSVECSubtract(&SmdGetObjPtr(0x62)->pos, &SmdGetObjPtr(0x5F)->pos, &ofsB);
     PSVECSubtract(&SmdGetObjPtr(0x63)->pos, &SmdGetObjPtr(0x60)->pos, &ofsC);
@@ -923,10 +932,26 @@ static void SetEmHitAtari()
     SmdGetObjPtr(0x63)->be_flag |= 0x20;
     SmdGetObjPtr(0x6A)->be_flag |= 0x20;
     SmdGetObjPtr(0x6B)->be_flag |= 0x20;
-    SmdGetObjPtr(0x6C)->be_flag |= 0x20;
+    // Reference store: the RsfCheck `lwz pG`/`lhz room_id` must stay below this store (the
+    // scalar-reference rule), which puts them behind the 0.0 load like the original.
+    BitOn(SmdGetObjPtr(0x6C)->be_flag, 0x20);
     angA = 0.0f;
     angB = 0.0f;
     angC = 0.0f;
+    // Pool order: the then-arm's YarareInitCube constants precede 0.01/0.05/0.06 in the original
+    // pool although the spd loads sit in this block; the folded const declarations create the
+    // entries here without code.
+    {
+        const f32 k750 = 750.0f;
+        const f32 k1500 = 1500.0f;
+        const f32 k100 = 100.0f;
+        const f32 k1800 = 1800.0f;
+        const f32 k450 = 450.0f;
+        const f32 k500 = 500.0f;
+    }
+    spdA = 0.01f;
+    spdB = 0.05f;
+    spdC = 0.06f;
     if (RsfCheck(G_ROOM_ID, 14) == 0) {
         r10c_work.p->hit[0][0] = SetEmHit((void*) (pG->pArc->ofs_20 + (u32) pG->pArc), (void*) (pG->pArc->ofs_24 + (u32) pG->pArc),
                                           &SmdGetObjPtr(0x61)->pos, &SmdGetObjPtr(0x61)->rot, 0);
@@ -937,19 +962,9 @@ static void SetEmHitAtari()
         r10c_work.p->hit[0][2] = SetEmHit((void*) (pG->pArc->ofs_20 + (u32) pG->pArc), (void*) (pG->pArc->ofs_24 + (u32) pG->pArc),
                                           &SmdGetObjPtr(0x61)->pos, &SmdGetObjPtr(0x61)->rot, 0);
         YarareInitCube(r10c_work.p->hit[0][2], 0.0f, 450.0f, 0.0f, 500.0f, 1500.0f, 500.0f, 0, 1);
-        // Pool order: 0.01/0.05/0.06 are created after this arm's YarareInitCube constants and
-        // before the else arm's positions (.rodata equal). OPEN: the target loads all six values
-        // in the block BEFORE the RsfCheck call (one 0.0 load + two fmr, then the three spd loads);
-        // ours keeps a copy at the end of each arm.
-        spdA = 0.01f;
-        spdB = 0.05f;
-        spdC = 0.06f;
     } else {
         cObj* obj;
 
-        spdA = 0.01f;
-        spdB = 0.05f;
-        spdC = 0.06f;
         SmdSetTrans(0x6A, 0);
         SceExec(0x12, (TaskFunc) hako_down, (int) SmdGetObjPtr(0x61), 0, 2, 0);
         obj = SmdGetObjPtr(0x61);
@@ -1124,7 +1139,11 @@ static void hako_down(cObj* obj)
 {
     f32 spdX = 0.0f;
     f32 spdY = -20.0f;
-    f32 lim = -16141.0f;
+    // `const`: both uses fold to the literal, so the limit is a pool load inside the loop (262
+    // instead of 260 real insns at loop.c pass 2) that pass 2 hoists ahead of the 0.0 copy; the
+    // extra `threshold -= 3` step leaves the -100.0 of the `spdY < -100.0f` arm in the arm (the
+    // original reloads it there) and puts the hoisted limit behind the 0.022 pair (r11/r9).
+    const f32 lim = -16141.0f;
     int splash = 0;
     int landed = 0;
 

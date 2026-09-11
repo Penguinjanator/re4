@@ -93,6 +93,11 @@ void R11bInit()
     R11bWork*& wp = r11b_work.p;   // the store's `lis` sits before the SceExec call (r30)
     SceExec(0x12, (TaskFunc) r11b_bort_pos_chk, 0, 0, 2, 0);
     BitOn(pG->flags_51BC, 8);
+    // COMPILER-DIFF: candidate (sched1 issue-slot filler): the codeless asm depends on the flags
+    // store (output dependence) and is issued in the idle cycle between it and the next pG reload,
+    // so local-alloc's fake lifetimes of the two pG values no longer touch and both take r9 (the
+    // original's `lwz r9; ... lwz r9`); without it the first load gets r11.
+    asm("" : "=m"(rot2.x));
     BitOn(pG->flags_51BC, 2);
     BitOn(pG->flags_51C0, 0x01000000);
     BitOff(pG->door_flags_51CC, 0x8000);
@@ -115,8 +120,11 @@ void R11bInit()
         static const Vec r11b_boatPos0 = {141127.0f, -1299.0f, -57107.0f};
         static const Vec r11b_boatRot0 = {0.0f, -0.68f, 0.0f};
 
-        pos = r11b_boatPos0;
-        rot = r11b_boatRot0;
+        // Copy-initialisation (placement new): the template loads are `mem/s/u` like a `Vec x = tbl;`
+        // declaration, so sched2 does not chain them behind the frame stores through the twice-set
+        // r29/r30 (an assignment `pos = tbl` goes through the synthesized operator= and loses /u).
+        new (&pos) Vec(r11b_boatPos0);
+        new (&rot) Vec(r11b_boatRot0);
         l->x3 = one;
         PSet(r11b_work.p->boat, EmSetFromList2(0x3C, 0));
         pG->room_id_prev = 0x11B;

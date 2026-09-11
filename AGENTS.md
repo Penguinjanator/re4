@@ -2983,6 +2983,72 @@ functions fail there, so the pass-8 "M1" list has no missed semantics that their
   HEAD (`PSet` redefined in wep_mod.h, stale objects had masked it; fixed by another agent meanwhile).
   Never pass `-t clean`; delete the one object file instead.
 
+### CRI pass 10 (mwsfdfrm, adx_bau, adx_stmc Matching; adx_tsvr 3 -> 4/6, all zero-pin C shapes; 2026-09-11)
+Harness /home/adityas/.cache/cri10/ (deleted): `bytecmp.py lib/unit [--funcs]` (sections + per-function
+bytes with relocation fields masked, NOBITS symbol order), `tryvar.py lib/unit variants.py Func.. [--offs
+0x..,..] [--show]` = `(old, new)` text replacements per variant compiled with the unit's ninja flags, word
+count per function and our-vs-target instruction at chosen offsets; ~60 ms per variant, so declaration
+permutations of 5 locals (120) or two 4-variable groups (576) are cheap.
+- **Declaration order CAN move the callee-saved ranking, but only in some functions.** mwsfdfrm
+  `mwl_convFrmInfFromSFD` (10/11 -> Matching): the ten `x00..frmno` field copies declared LAST (after
+  `bufadr`) take r31..r22 above the parameters (frm r21 / vfrm r20 / mwply r19) and the remaining locals
+  follow in declaration order (time r18, ftype r17, pstruct r16, sfd r15, bufadr r14); declared before
+  `bufadr` they sit below the parameters and `x00` (first declared) falls to r14. The tail needed `pptr`
+  declared before `usrlen` and `usrptr` (pptr r15 / usrptr r17); 20 of 120 tail permutations work.
+  The same sweep does NOTHING in adx_tsvr `ADXT_ExecHndl` (i vs the compiler IV, 72 orders), sfd_hds
+  `sfhds_DoProcessHdr` (`ver` at 9 positions, 20 different names — names are irrelevant), sfd_cre
+  `sfcre_AnalyAudio` (240 orders, q stays r24), gcci `gcCiReqRd` (576), adx_tsvr `adxt_stat_decinfo`
+  (240): treat it as a cheap first sweep, not a rule.
+- **A plain (non-`register`, no asm) copy of the parameter replaces two hard pins**: adx_tsvr
+  `adxt_stat_decinfo` is byte-identical with `ADXT p; void *sjd; ... p = adxt; sjd = p->sjd;` (p declared
+  first) where the pass-7 `asm { mr p, adxt }` + `asm { lwz r29, ..sjd(p); mr sjd, r29 }` pins left 3
+  words (the r29 poison re-ranked sfreq/nch). The same plain copy does NOT replace the `mr p` pin in
+  `adxt_nlp_trap_entry` / `adxt_trap_entry_lps` (45w/18w worse) nor help gcci `gcCiReqRd`, sfd_hds
+  `SFHDS_SetHdr`, mwsfdsvr `mwsfd_ExecSvrHndl`: try it wherever a pin exists, keep the pin if it loses.
+- **"M6" was a source shape**: adx_bau `ADXB_ExecOneAu16` / adx_baif `ADXB_ExecOneAiff16` (the unroller's
+  15th copy `extrwi 8,16` vs `srawi 8`) are byte-identical with the swap through a `Uint16 x` temporary
+  (`x = inbuf[i * 2]; out0[i] = (x << 8) | (x >> 8);` — with the temporary the operand order matters:
+  `(x >> 8) | (x << 8)` gives the two rlwinm/rlwimi swapped in copy 15; `Uint32`/`Sint16`/`int`
+  temporaries, `& 0xFF`, casts and `opt_unroll_count` change nothing or everything). adx_bau Matching;
+  adx_baif 4 -> 5/6 (AIFF_GetInfo remains).
+- **Derived-IV step in the latch** (adx_stmc `ADXSTM_Create`, Matching): `stm = (ADXSTM)((Uint8 *)
+  adxstmf_obj + ofst * sizeof(ADXSTM_OBJ)); if (stm->used == 0) break; ofst++;` keeps the scaled index as
+  the IV (`mulli` once, `add r31, base, ofs` per iteration, `addi ofs, 0x60` after the `beq`).
+  `&adxstmf_obj[ofst++]` steps before the load; `&adxstmf_obj[ofst]` + `ofst++` after the test, the
+  `Sint32`-cast sum, a byte-offset local and pointer stepping all become a pointer IV (`lbz 0(r3); mr
+  r31, r3`, +8 bytes); `#pragma opt_strength_red off` changes nothing.
+- gcci `gcCiReqRd`: `tbl = gcg_ci_obj; if (gcci_IsBusy(tbl)) ..; gcci_ExecServer(tbl)` is what makes the
+  `mr r29, r5` copy (tbl in a volatile for the call-free IsBusy loop, copied for the inlined ExecServer's
+  stepping parameter). With `gcci_IsBusy(void)` / `gcci_ExecServer(void)` both indexing `gcg_ci_obj[i]`
+  directly the two `&gcg_ci_obj[0]` temporaries CSE into r29 like the target (155 -> 26w, the rest is the
+  gcci r27 / buf r26 / nsct r25 parameter ranking) but gcCiExecServer then ranks i above the base (29w;
+  the pointer-local-declared-last helper form gives gcCiExecServer identical and ReqRd the copy again).
+  Also `gcci->sctlen * (over / gcci->sctlen)` for the target's `mullw r3, r4, r3` operand order. Not
+  applied (no form fixes both callers). `gcCiClose`: a `GCCI gcci` copy declared LAST in gcCiStopTr gives
+  the target's frame (stmw r24, 0x1c4 bytes, the second parameter copy r29) but tests the copy
+  (`cmplwi r29, 0`) where the target reuses cr0 of Close's `mr.` (7w) and costs gcCiStopTr 6w.
+- sfd_tst `SFTST_Calc`: `if (diff < 0) adiff = -diff; else adiff = diff;` (and the ternary) is
+  forward-substituted into its single use after the sftst_Conv call (the diamond moves below the `bl`);
+  a second use of `adiff` keeps it in place with the target's arm shape (`beq; subfic; subfze; b; mr`),
+  but ours copies both words in the else arm (`mr r22, lo; mr r21, hi`, diff.hi in volatile r5) where
+  the target coalesces adiff.hi with diff.hi (r23) and copies only the low word. Still M1 (82w).
+- sfd_mpv `SFMPV_Stop` (`lwz; li r3, 0; cmplwi r0, 0; blr`): 33 forms (void/Bool/volatile compares,
+  `?: 0 : 0`, `& 0`, `* 0`, if/else returns, do/while/switch/goto, `ret = ret`) give either the
+  branch (`bnelr`) or no compare. OPEN.
+- mpv_cmc `MPVCMC_InitMcOiRt/InitObj`: an inline helper taking `oi`, two-step pointer derivation,
+  pointer stepping, `register`, `void *`, `Uint8 *` casts, block-local `wk = mpv->work` — the member
+  array base is always folded into r3/r31 (OPEN since pass 1, 12 more forms).
+- dct_ac `DCT_AcInit`: `#pragma pool_data off` plus explicit `dctac_i_const`-relative table pointers
+  (`tbl[64 + ..]`, `(Uint8 *)base + 0x200/0x400`, `Float64 (*tbl)[8]`) trade the pooled literals for
+  `stfdx`/`mr` forms (42..55w vs 58w); the target's `addi r28, r31, 0` is a pool-member address, so the
+  function really has the .bss pool with unpooled FP literals (M2 exclusion rule, unchanged).
+- sfh_main readers (`lwz r6` vs r5 for the swapped word): helper declaration orders, a `Uint32 *p`
+  local, `register hdr`, indexed load, asm `lwz w, 0(p)` — the word always takes the dying base r5.
+- adx_tsvr `adxt_nlp_trap_entry` (`lha r4` vs r0): local temporaries, `(Sint32)` casts, operand
+  order, statement order — r0 in all 10 forms. `ADXT_ExecHndl`: the compiler IV of `adxt->sjo[i]` ranks
+  above `i` (r28) in every declaration order / loop form; a source pointer gives `addi` instead of the
+  folded `lwz 0x18(rIV)`.
+
 ## REL modules
 
 The game loads its rooms, enemies, weapons and debug tools as Nintendo REL overlays. `ninja` rebuilds the
@@ -15176,3 +15242,72 @@ reads `<PRE>_lreg.txt`/`<PRE>_greg.txt` cut with `fsec.py`; `dump.sh` names its 
   vs the G3 normal address order, and the `&point[5]` G3 -> G5 PRE (a kill at G3 fixes it structurally but the
   whole function then swings to 540+ words). Left as before: `c = &local` block, det/centre FP association (f26), dead
   pool 0x48..0x7c. `#line 198/203/208/213/218` before each VECNormalizeQ keep the target's err-line numbers.
+
+### Stage rooms, tagged-forms pass 2 (st2_2 r213 30/30, st1_2 r11b 13/14 + cLight block, st1_2 r10c 23/23 flipped; st2_3 r225 10 -> 11/13: operateCrank 77 -> 0, SceElevator_r225 285 -> 157; 2026-09-11)
+
+- Harness /home/adityas/.cache/rooms_c9 (rooms_c8 copy). Read the `-fsched-verbose-6` trace with `--> scheduling insn
+  <<<N>>> on unit` lines before reasoning about slots; `sbs.sh` prints the TARGET on the left, ours on the right.
+- **r213 StatusSetChain 2 -> 0, zero code (store order = local-alloc order of the pool constants).** Four pool
+  constants (0.8 f0, 50 f13, 0.1 f12, 0.0 f11): sched1 sinks the non-dying `x48 = 0.0` store behind three zero
+  stores (0.0's qty life 63 > 1.5x the others), and `x4C = 0.1f` written last puts its store after the dying x54
+  (0.1's life equals 50's; the earlier qty wins). Only the statement order changes.
+- **r213 Init 14 -> 0 (COMPILER-DIFF 3):** the second `memset(&rot)` argument is a hard-register variable
+  (`register Vec* a3 asm("r3"); a3 = &rot; pr = a3; r213_memset(a3, 0, 12)` with the varargs `asm("memset")`
+  alias for `crclr`), then `asm volatile("")` right after the call keeps the later gcse insertions behind it; `pr`
+  replaces `&rot` in the four `SatMgr.create` calls.
+- **r11b Init 14 -> 0:** copy-initialisation by placement new (`new (&pos) Vec(r11b_boatPos0)`) gives the `mem/s/u`
+  template loads (assignment loses /u through the synthesized operator=); a codeless `asm("" : "=m"(rot2.x))`
+  between the two `flags_51BC` RMWs is a sched1 issue-slot filler (tagged candidate; the original block had one more
+  insn there). The nameless cLight block differs only in REL24 fields.
+- **r10c hako_down 16 -> 0, zero code:** `const f32 lim = -16141.0f;` folds every use to the literal; the pool entry
+  is created at the declaration, and a literal used twice in the loop becomes a loop.c pass-2 movable (262 insns,
+  the extra threshold step keeps `-100.0` in the arm behind the 0.022 pair).
+- **r10c SetEmHitAtari 5 -> 0 (COMPILER-DIFF 3):** the target's early `high(0.0)` is a dead pinned pool load
+  `{ register f32 z asm("fr0"); z = 0.0f; }` at the top (cse forwards the constant, the hard reg is clobbered by
+  the calls); `BitOn(SmdGetObjPtr(0x6C)->be_flag, 0x20)` as the reference store keeps the RsfCheck `lwz pG`/`lhz`
+  below it; pool ORDER without code = a block of folded `const f32 k750 = 750.0f; ...` declarations; the three
+  `spd = 0.01/0.05/0.06f` assignments hoisted before the `if` (both arms set them).
+- **r225 operateCrank 77 -> 0, five independent pieces (three tagged candidates):**
+  - Layout: `while (1) { ...; if (!(x < 800.0f)) { gnd_open(); break; } body...; SceSleep(1); } else break;` puts
+    the gnd_open arm at the loop's end (zero code).
+  - loop.c pass 2 (262 insns, T = 71): the 2^52 conversion magic is hoisted because `4*71 >= 262`; TWO earlier
+    movables lower T to 65 first. A dead invariant product `ratio = pPL->pos.y * 3.7f;` before the real `ratio =`
+    supplies `high(3.7)` + the forced pool load (both deleted at flow1 with the dead store; no callee-saved FPR
+    because nothing survives to reload). Tagged `candidate (loop.c pass-2 threshold)`. Dead FP compares fail here
+    (the hoisted constant's compare survives to flow2 and costs an `stfd`).
+  - gcse PRE pseudo numbering: verified `hash = 119+6+(61<<7)+h(name)`, `h = h*129+c`, table = n_insns/2|1 buckets;
+    the three loop highs (`CamCtrl`, `.LC27`, `r225_work`: 3 refs, lengths 688/682/696 -> all priority 43) are
+    allocated in pseudo-number = bucket order. Ours (223 buckets) gives LC27 < work < CamCtrl; the target's
+    r19/r18/r17 needs CamCtrl < LC27 < work = 219/229/233/235/281... buckets. Three dead big-constant tests
+    `if (spd == 0x12345) lvl = 0;` (4 insns each, deleted at flow2) reach 229; other counts (1-5 simple, 1/2/4 big,
+    mixes) miss either the bucket window or a global-alloc truncation window. Tagged `candidate (gcse table size)`.
+    Compute candidates with the formula before scanning.
+  - `pos.y = pPLS->pos.y;` (struct view, `struct PlPtr { cPlayer* p; }`): the scalar `mem/f` pPL load has no
+    dependence on the in-struct template stores (`fixed_scalar_and_varying_struct_p`), so its chain
+    `lwz pPL -> lfs pos.y -> stfs 20(r1) -> [unknown-base alias] lwz crank -> lfs -> fsubs -> stfs` outranks the
+    `r225_work` load (21 vs 17) and sched2 issues it first; the in-struct load waits for the stores and the work
+    load goes first as in the target. The `stfs 20(r1) -> lwz 0(r11)` dependence exists in both (loaded pointer =
+    unknown base); const views (`/u` casts) do not remove it.
+  - Block-0 issue slots: the target issues only `lis pPL@ha` in cycle 3 and only `bl` in cycle 8, so every free
+    `li 0`/hoisted `lis` lands one slot later than ours; haifa's ready loop issues from the top of the sorted list
+    and free insns fill every slot. A codeless asm on the first call's argument (`u32 n; asm("" : "=r"(n) :
+    "0"(0x16)); SmdGetObjPtr(n)`) is ready one cycle after `li r3,22` with the argument's priority and takes the
+    cycle-2 slot, which shifts the fillers exactly as the target. A `"=m"(local)` asm placed first also fits but
+    wins cycle 1 over `li r3` (equal priority = `1 + prio(bl)`, lower LUID) and costs a frame slot; `"m"(global)`
+    inputs and a bare `asm("")` (volatile barrier) wreck the block. Tagged `candidate (sched2 issue-slot filler)`.
+- **r225 SceElevator_r225 285 -> 157 (all zero-code):** inline `SetPosXYZ(m, x, y, z)` for every Vec block with the
+  PLAIN argument form in the shake loops (`SetPosXYZ(pPL, pPL->pos.x, fRand1_1() * step + pPL->pos.y, pPL->pos.z)`:
+  argument MEMs are evaluated lazily -- pointer before the call, load after it, `lwz r30,pPL; bl; lfs 148(r30)`; a
+  `y` local first gives the reload form); the FadeSet colours in an inline `FadeSetRGBA(mode, rgba0, rgba1)` whose
+  locals are ONE 12-byte BLKmode struct (`GXColor c0, c1; u32 pad`): 4-byte GXColor locals are ADDRESSOF pseudos
+  (SImode) that purge_addressof turns into permanent slots (24/28, 32/36); the inline frame temp is BLKmode and
+  `assign_stack_temp` reuses the free 12-byte Vec slot only for an equal mode (8/12 as in the target). A
+  `FadeWork* fade = &Fade[2];` before the goto up-loop is the target's hoisted `lis/addi Fade+0x48` with
+  `lhz 0x18(fade)` in the arm. With the register pressure of these forms the `faded == 0` compare lands in cr4
+  (`mfcr r12` prologue: TexRegist pass-0 rule, all used callee-saved GPRs conflict). Residue 157: ours PREs
+  `high(pG)`/`high(RoomData)` to the pre-shake-loop block (bb 5 "PRE/HOIST", redundant RsfSet + quake-store
+  occurrences); RoomData's pseudo is rematerialised from its REG_EQUIV but pG's gets r19 (14 GPRs, frame +8) while
+  the target recomputes `lis pG@ha` at every use (13 GPRs); the target hoists `li 255` (FadeSet colour) and the
+  pre-loop `done = 0` survives as the compare operand (`cmpwi cr4,r26` = a second zero register), ours folds a
+  fresh `li 0`; FP callee-saved numbering (f26-f29 permuted) and the down-loop's `hSnd`/`done` block follow from
+  those. sce_com's own SceElevator (DOL) is 82% with the same shapes.
