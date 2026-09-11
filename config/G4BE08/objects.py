@@ -1842,3 +1842,8 @@ MATCHING.update({
 MATCHING.update({
     "game/cam_extra.cpp": True,  # 43/43 zero code, no tags. CameraBinocular ctor 17 -> 0 (`PlRef(pPL)->getPartsPtr` makes the pPL load wait for the member stores; dying-store order permuted), CameraPushObject::move 62 -> 0 (`getColumn(inv, 2, ..)` frame-offset-0 pointer shape, single VecAngle call, `!(a < b) && !(m >= c)` negated float tests), CameraBinocular::move 79 -> 0 (two-arm clamps cross-jumped, zoom clamp as a value, PlRef(pPL)->mat, orientation call after the mode block), CameraScope::move 91 -> 0 (Key.on & 0x10, angle_min/angle_max clamp, worldMat, `u8 c = sct--`, FRef(ytime)/FRef(xtime), Joy word-0 read, block-scoped cModel* pl), IdBinocular::move 271 -> 0 (getColumn(cam->mat, 2, &dir); `cnt` crosses no call: `unitPtr(cnt + 1)` + `cnt++` after the stores, cse makes the increment a copy of the call-crossing temp, so `li cnt,0/1` are anchored below the unitPtr calls and cnt takes the temp's r30 by copy preference; `i = cnt` for the while loop and the digit loop, block-scoped `k` for the unit loops; `MessageControl* mc = &cMes` after setLayout so `&mc->mes[1]` stays `addi 240` off a pseudo; FRef on every read of ratio/m/n with `u->v0 = FRef(ratio)` before `u->v1 = 1.0f`; scr2.x not scr3.x)
 })
+
+# motion closer (2026-09-11)
+MATCHING.update({
+    "game/motion.cpp": True,  # MTX_COPY: dst pointer first, `int i_ = 2` between the two pointers, `for (; i_ != -1; i_--)`, `d_++` before `s_++`; tbl end pointer as two statements; `u32 zero` with a dead-use anchor (COMPILER-DIFF) and a memory anchor in MotionSetCore; nearZero(1.0f - v) inline with `f32 one` loaded first
+})

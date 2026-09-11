@@ -10,22 +10,26 @@ extern const Vec vecZero;
 extern "C" void* memset(void* dst, int c, unsigned int n);
 
 // Matrix copy written out as loops (the original never calls PSMTXCopy for these).
+// Shape matters (all four sites byte-identical only this way): dst pointer first, the row
+// counter `i_ = 2` between the two pointers, `for (; i_ != -1; i_--)` (a `while (i_--)` leaves
+// the folded `li 2` behind the source pointer), `d_++` before `s_++` (gcse numbers the
+// hoisted `+16` pseudos in that order).
 #define MTX_COPY(src, dst)               \
     {                                    \
-        MtxPtr s_ = (src);               \
         MtxPtr d_ = (dst);               \
-        int i_ = 3;                      \
+        int i_ = 2;                      \
+        MtxPtr s_ = (src);               \
         int j_;                          \
         f32* sp_;                        \
         f32* dp_;                        \
-        while (i_--) {                   \
+        for (; i_ != -1; i_--) {         \
             dp_ = *d_;                   \
             sp_ = *s_;                   \
             for (j_ = 0; j_ < 4; j_++) { \
                 *dp_++ = *sp_++;         \
             }                            \
-            s_++;                        \
             d_++;                        \
+            s_++;                        \
         }                                \
     }
 
@@ -204,7 +208,10 @@ void MotionSetCore(cModel* m, void* w_, void* data_, int seq_, int hokan, int fl
     if (!(w->flags2 & 0x10000000)) {
         IKInit(m, w);
     }
-    tbl = (u32*) (((u32) w->partsNo + w->nParts + 3) & ~3);
+    // Two statements: the end pointer lives in `tbl` (r10) before the align (one expression ties the
+    // partsNo reload to the sum and allocates it).
+    tbl = (u32*) ((u32) w->partsNo + w->nParts);
+    tbl = (u32*) (((u32) tbl + 3) & ~3);
     tbl++;
     if ((s32) tbl[0] >= 0) {
         for (i = 0; i < w->nParts; i++) {
@@ -312,10 +319,12 @@ void MotionSetCore(cModel* m, void* w_, void* data_, int seq_, int hokan, int fl
             f = 0;
         }
     }
-    pp->flags = 0;
+    u32 zero = 0;
+    pp->flags = zero;
     pp->maxFrame = w->maxFrame;
     if (w->flags & 2) {
         if (!(w->flags & 0x1000)) {
+            asm("" : : "r"(zero));  // COMPILER-DIFF: dead use makes the zero global (r11), w->flags takes r0
             pp->flags = 2;
         }
     } else {
@@ -377,6 +386,7 @@ void MotionSetCore(cModel* m, void* w_, void* data_, int seq_, int hokan, int fl
                 HermiteInterpolation(pp, &v2, hist0);
             }
             cam->frame = 0;
+            asm volatile("" : : : "memory");  // COMPILER-DIFF: anchor, the type load stays after the frame store
             if (cam->type == 1) {
                 cam->pMat = &m->mat;
             } else if (cam->type == 2) {
@@ -756,9 +766,11 @@ void MotionMoveCore(cModel* m, MotionWork* w, int flag)
     } while (++i < n);
 }
 
-static inline int nearOne(f32 v, f32 eps)
+// The caller forms `1.0f - v`: with the subtraction inside the inline body the argument copy
+// (a load) precedes the constant load in RTL and sched1 keeps that order (equal prio/weight).
+static inline int nearZero(f32 d, f32 eps)
 {
-    if (fabsf(1.0f - v) < eps) {
+    if (fabsf(d) < eps) {
         return 1;
     }
     return 0;
@@ -784,7 +796,6 @@ void MotionHokan(cModel* m, MotionWork* w)
     f32 s0, s1, s2;
     f32 n0, n1, n2;
     f32 sx, sz, sy;
-    u32 fl;
 
     w->hokanCnt--;
     t = (f32) (w->hokanMax - w->hokanCnt);
@@ -869,25 +880,29 @@ void MotionHokan(cModel* m, MotionWork* w)
         C_QUATSlerp(&q0, &q1, &q2, t);
         PSMTXQuat(p->worldMat, &q2);
         if (g_scale_cancel) {
-            if (!(nearOne(p->scale.x, epsilon) && nearOne(p->scale.y, epsilon) && nearOne(p->scale.z, epsilon))) {
-                if (nearOne(p->pParent->prevScale.x * p->scale.x, EPS) && nearOne(p->pParent->prevScale.y * p->scale.y, EPS) &&
-                    nearOne(p->pParent->prevScale.z * p->scale.z, EPS)) {
+            // `one` is loaded before the first scale load (the target's constant load comes first).
+            f32 one = 1.0f;
+            if (!(nearZero(one - p->scale.x, epsilon) && nearZero(one - p->scale.y, epsilon) && nearZero(one - p->scale.z, epsilon))) {
+                if (nearZero(1.0f - p->pParent->prevScale.x * p->scale.x, EPS) && nearZero(1.0f - p->pParent->prevScale.y * p->scale.y, EPS) &&
+                    nearZero(1.0f - p->pParent->prevScale.z * p->scale.z, EPS)) {
                     MOTION_PARTS(p)->flags |= 0x20000;
                 }
             }
         } else {
             MOTION_PARTS(p)->flags &= ~0x20000;
         }
-        fl = MOTION_PARTS(p)->flags;
         if (MOTION_PARTS(p)->flags & 0x20000) {
-            sz = 1.0f / p->pParent->scale.z;
+            // Source order x, y, z: sched1 issues first the load where the pParent pointer dies (the last one).
             sx = 1.0f / p->pParent->scale.x;
             sy = 1.0f / p->pParent->scale.y;
+            sz = 1.0f / p->pParent->scale.z;
         } else {
             sx = s0 * u + n0 * t;
             sy = s1 * u + n1 * t;
             sz = s2 * u + n2 * t;
         }
+        // Before the products: the store is ready early and wins the LSU slot on LUID (equal priority).
+        MOTION_PARTS(p)->flags &= ~0x20000;
         p->worldMat[0][0] *= sx;
         p->worldMat[1][0] *= sx;
         p->worldMat[2][0] *= sx;
@@ -897,13 +912,16 @@ void MotionHokan(cModel* m, MotionWork* w)
         p->worldMat[0][2] *= sz;
         p->worldMat[1][2] *= sz;
         p->worldMat[2][2] *= sz;
-        MOTION_PARTS(p)->flags = fl & ~0x20000;
         p->prevScale = p->scale;
         p->scale.x = sx;
         p->scale.y = sy;
         p->scale.z = sz;
         TransMatrix(p->worldMat, &pos);
-        PSMTXCopy(p->worldMat, p->prevMat);
+        {
+            MtxPtr pm;
+            asm("" : "=r"(pm) : "0"(p->prevMat));  // COMPILER-DIFF: launder, the extra insn on the r4 path ranks both addi r4 above mr r3
+            PSMTXCopy(p->worldMat, pm);
+        }
     }
 }
 
