@@ -408,28 +408,6 @@ static void mwsfcre_InitCompoWork(MWPLY mwply, MWSFD_CRPRM *cprm)
 	}
 }
 
-/* hand the picture user data buffer to the decoder: one slot per frame that may be in flight
- * (a macro: the strings are emitted at the first expansion, inside mwPlyCreateSofdec) */
-#define MWSFCRE_ATTACH_PICUSRBUF(mwply) \
-	{ \
-		MWSFD_PICUSR *pu = (mwply)->picusr_ptr; \
-		Sint32 nskip; \
-		Sint32 usize; \
-		void *buf; \
-		if (pu == NULL) { \
-			MWSFSVM_Error("E02120501: Internal Error: mwsfcre_AttachPicUsrBuf()."); \
-		} else { \
-			nskip = (mwply)->prm.max_skip; \
-			usize = pu->usize; \
-			buf = pu->buf; \
-			if (pu->bsize < (nskip + 3) * usize) { \
-				MWSFSVM_Error("E02120502: mwsfcre_AttachPicUsrBuf(): usrdatbuf is short."); \
-			} else if (MWSFD_GetUsePicUsr() == 1) { \
-				SFD_SetPicUsrBuf((mwply)->sfd, buf, nskip + 3, usize); \
-			} \
-		} \
-	}
-
 /* largest integer not above f */
 #define MWSFCRE_FLOOR(f, n) \
 	{ \
@@ -495,8 +473,10 @@ static Sint32 mwsfcre_CalcYccSize(Sint32 width, Sint32 height)
  * string lands where the original emitted it) */
 #define MWSFCRE_CALC_FRMSIZ(cprm, fsize) \
 	{ \
-		Sint32 height = (cprm)->max_height; \
-		Sint32 width = (cprm)->max_width; \
+		Sint32 height; \
+		Sint32 width; \
+		width = (cprm)->max_width; \
+		height = (cprm)->max_height; \
 		if ((cprm)->buffmt >= 4 || (cprm)->buffmt < 0) { \
 			MWSFSVM_Error("E206011: MwsfdCrePrm: illigal buffmt."); \
 		} \
@@ -517,12 +497,100 @@ static Bool mwsfcre_IsUseAdxt(Sint32 mode)
 	return TRUE;
 }
 
+/* hand the picture user data buffer to the decoder: one slot per frame that may be in flight.
+ * Inlined helper (not a macro): its locals rank above the frontend's strength-reduction temporaries
+ * of the inlined mwSfdDestroy loops, which then take the lowest handed-out registers r23/r24/r25
+ * instead of fresh ones (frame 0x50 = 9 callee-saved registers, target). Declared buf, usize,
+ * nskip: nskip (last) colours first (r27), usize r25, buf r24. */
+static inline void mwsfcre_AttachPicUsrBuf(MWPLY mwply)
+{
+	MWSFD_PICUSR *pu = mwply->picusr_ptr;
+	void *buf;
+	Sint32 usize;
+	Sint32 nskip;
+
+	if (pu == NULL) {
+		MWSFSVM_Error("E02120501: Internal Error: mwsfcre_AttachPicUsrBuf().");
+	} else {
+		nskip = mwply->prm.max_skip;
+		usize = pu->usize;
+		buf = pu->buf;
+		if (pu->bsize < (nskip + 3) * usize) {
+			MWSFSVM_Error("E02120502: mwsfcre_AttachPicUsrBuf(): usrdatbuf is short.");
+		} else if (MWSFD_GetUsePicUsr() == 1) {
+			SFD_SetPicUsrBuf(mwply->sfd, buf, nskip + 3, usize);
+		}
+	}
+}
+
+/* decoder conditions of a new handle: the frame pool size in frames of the reference rate.
+ * Inlined helper for the same reason; sfdhn (declared last) r24, vfreq r25, npool r23, nfrm r23. */
+static inline void mwsfcre_SetSfdCond(MWPLY mwply, MWSFD_LIBWORK *lw)
+{
+	Float32 ftime;
+	Sint32 nfrm;
+	Sint32 npool;
+	Sint32 vfreq;
+	void *sfdhn;
+
+	sfdhn = mwply->sfd;
+	npool = lw->nfrm_pool;
+	vfreq = lw->x08;
+	SFD_SetCond(sfdhn, 8, 0);
+	SFD_SetCond(sfdhn, 1, 1);
+	SFD_SetCond(sfdhn, 0, 0);
+	SFD_SetCond(sfdhn, 0x17, 4);
+	ftime = 0.5f + (Float32)(vfreq * npool * 1000);
+	MWSFCRE_FLOOR(ftime, nfrm);
+	SFD_SetCond(sfdhn, 0x2D, nfrm);
+	SFD_SetCond(sfdhn, 0x2C, nfrm);
+	SFD_SetCond(sfdhn, 0x2A, nfrm);
+	SFD_SetCond(sfdhn, 0xF, 2);
+	SFD_SetCond(sfdhn, 0x33, 0);
+	SFD_SetCond(sfdhn, 0xE, 0);
+	SFD_SetCond(sfdhn, 0x1C, 0);
+	SFD_SetMpvCond(sfdhn, 5, 0);
+}
+
+/* mwPlyCalcWorkSfd's copy of the size macro: `mode` is a block local declared after bps (bps r0,
+ * mode r4 = the target's colouring; a function-level mode is coloured first). */
+#define CWS_BUFSIZ(cprm, sib, vib, aib, sjb, adxibuf, adxwk) \
+	{ \
+		Sint32 nsec = (cprm)->nsec; \
+		Sint32 bps; \
+		Sint32 mode; \
+		mode = (cprm)->mode; \
+		bps = (cprm)->max_bps; \
+		if (nsec <= 0) { \
+			nsec = 1; \
+		} \
+		if (mode == MWSFD_FTYPE_MPV) { \
+			sib = 0; \
+			vib = 0; \
+			aib = 0; \
+			adxibuf = 0; \
+			adxwk = 0; \
+			sjb = nsec * (bps / 8 / 0x800 * 0x800); \
+		} else if (mode == MWSFD_FTYPE_VONLYSFD) { \
+			sib = 0; \
+			aib = 0; \
+			adxibuf = 0; \
+			adxwk = 0; \
+			sjb = nsec * (bps / 8 / 0x800 * 0x800); \
+			vib = bps / 8 / 0x800 * 0x800 / 2 + 0x800; \
+		} else { \
+			sib = 0; \
+			aib = 0x5DCC; \
+			sjb = nsec * (bps / 8 / 0x800 * 0x800); \
+			vib = bps / 8 / 0x800 * 0x800 / 2 + 0x800; \
+			adxibuf = 0x5F0C; \
+			adxwk = 0xC1C0; \
+		} \
+	}
+
 MWPLY mwPlyCreateSofdec(MWSFD_CRPRM *cprm)
 {
 	MWSFD_LIBWORK *lw;
-	Sint32 vfreq;
-	Sint32 npool;
-	void *sfdhn;
 	MWPLY mwply;
 	void *sfd;
 	Sint32 sibsiz;
@@ -533,9 +601,6 @@ MWPLY mwPlyCreateSofdec(MWSFD_CRPRM *cprm)
 	Sint32 adxwksiz;
 	Sint32 i;
 	SFX_OBJ *sfx;
-	Sint32 nfrm;
-	Float32 ftime;
-	Sint32 mode;
 
 	if (cprm == NULL) {
 		MWSFSVM_Error("E1122612 mwPlyCreateSofdec : cprm is NULL.");
@@ -572,25 +637,9 @@ MWPLY mwPlyCreateSofdec(MWSFD_CRPRM *cprm)
 		mwSfdDestroy(mwply);
 		return NULL;
 	}
-	MWSFCRE_ATTACH_PICUSRBUF(mwply);
-	MWSFCRE_CALC_BUFSIZ(cprm, mode, sibsiz, vibsiz, aibsiz, sjbsiz, adxibsiz, adxwksiz);
-	sfdhn = mwply->sfd;
-	npool = lw->nfrm_pool;
-	vfreq = lw->x08;
-	SFD_SetCond(sfdhn, 8, 0);
-	SFD_SetCond(sfdhn, 1, 1);
-	SFD_SetCond(sfdhn, 0, 0);
-	SFD_SetCond(sfdhn, 0x17, 4);
-	ftime = 0.5f + (Float32)(vfreq * npool * 1000);
-	MWSFCRE_FLOOR(ftime, nfrm);
-	SFD_SetCond(sfdhn, 0x2D, nfrm);
-	SFD_SetCond(sfdhn, 0x2C, nfrm);
-	SFD_SetCond(sfdhn, 0x2A, nfrm);
-	SFD_SetCond(sfdhn, 0xF, 2);
-	SFD_SetCond(sfdhn, 0x33, 0);
-	SFD_SetCond(sfdhn, 0xE, 0);
-	SFD_SetCond(sfdhn, 0x1C, 0);
-	SFD_SetMpvCond(sfdhn, 5, 0);
+	mwsfcre_AttachPicUsrBuf(mwply);
+	CWS_BUFSIZ(cprm, sibsiz, vibsiz, aibsiz, sjbsiz, adxibsiz, adxwksiz);
+	mwsfcre_SetSfdCond(mwply, lw);
 	mwply->file_sj = SJRBF_Create((void *)mwply->x1d8, mwply->flow_nsct, mwply->x1e0);
 	if (mwply->file_sj == NULL) {
 		MWSFSVM_Error("E2013 mwPlyCreate:can't create SJ");
@@ -1008,41 +1057,6 @@ Sint32 mwPlyCalcWorkCprmSfd(MWSFD_CRPRM *cprm)
 }
 
 /* component work needed by mwsfcre_CreateSfd */
-/* mwPlyCalcWorkSfd's copy of the size macro: `mode` is a block local declared after bps (bps r0,
- * mode r4 = the target's colouring; a function-level mode is coloured first). */
-#define CWS_BUFSIZ(cprm, sib, vib, aib, sjb, adxibuf, adxwk) \
-	{ \
-		Sint32 nsec = (cprm)->nsec; \
-		Sint32 bps; \
-		Sint32 mode; \
-		mode = (cprm)->mode; \
-		bps = (cprm)->max_bps; \
-		if (nsec <= 0) { \
-			nsec = 1; \
-		} \
-		if (mode == MWSFD_FTYPE_MPV) { \
-			sib = 0; \
-			vib = 0; \
-			aib = 0; \
-			adxibuf = 0; \
-			adxwk = 0; \
-			sjb = nsec * (bps / 8 / 0x800 * 0x800); \
-		} else if (mode == MWSFD_FTYPE_VONLYSFD) { \
-			sib = 0; \
-			aib = 0; \
-			adxibuf = 0; \
-			adxwk = 0; \
-			sjb = nsec * (bps / 8 / 0x800 * 0x800); \
-			vib = bps / 8 / 0x800 * 0x800 / 2 + 0x800; \
-		} else { \
-			sib = 0; \
-			aib = 0x5DCC; \
-			sjb = nsec * (bps / 8 / 0x800 * 0x800); \
-			vib = bps / 8 / 0x800 * 0x800 / 2 + 0x800; \
-			adxibuf = 0x5F0C; \
-			adxwk = 0xC1C0; \
-		} \
-	}
 
 Sint32 mwPlyCalcWorkSfd(MWSFD_CRPRM *cprm)
 {

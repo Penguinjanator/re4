@@ -76,6 +76,12 @@ typedef struct {
 	Sint32 rawlen;             /* 0x238 */
 } SFSEE_VHDR;
 
+/* the cached header bytes and their length (SFSEE_VHDR raw/rawlen) as one object */
+typedef struct {
+	Uint8 dat[0x200];          /* 0x000 */
+	Sint32 len;                /* 0x200 */
+} SFSEE_VRAW;
+
 /* decoded frame information block handed to the user (SFD_VFRM.inf, 0x80 bytes) */
 typedef struct {
 	Sint32 width;              /* 0x00 */
@@ -968,6 +974,66 @@ chk:
 	return 0;
 }
 
+/* the GOP time code disagrees with the running time: reform the time codes. Inlined helper so that
+ * `flag` is a helper local: its `li 0` is CSE'd with the zero of the caller's 64-bit `d < 0` compare
+ * (one `li r5, 0`), and the emptied `valid == 0` THEN arm leaves the target's `bne body; b test`
+ * pair (an emptied ELSE arm folds to a plain `beq`). t1/t2/unit declared in this order = slots 8/c/10. */
+static inline Sint32 sfmpv_ChkGopTc(SFD sfd)
+{
+	SFTIM tim = SFD_TIM(sfd);
+	SFTIM_TTU *ttu1 = &tim->ttu1;
+	SFTIM_TC tc;
+	Sint32 t1;
+	Sint32 t2;
+	Sint32 unit;
+	Sint32 k;
+	Sint32 flag;
+
+	if (ttu1->valid == 0) {
+		flag = 0;
+	} else {
+		tc = tim->tc;
+		SFTIM_Tc2Time(&tc, &t1, &unit);
+		SFTIM_Tc2Time(&ttu1->tc, &t2, &unit);
+		k = unit * SFSET_GetCond(sfd, 0x35);
+		if (t1 <= t2) {
+			flag = 1;
+		} else if (t1 >= t2 + k) {
+			flag = 1;
+		} else {
+			flag = 0;
+		}
+	}
+	return flag;
+}
+
+/* reform the time codes when the GOP time code disagrees with the running time. Inlined helper so
+ * that `reform` (last declared) outranks the reloaded `newgop` and ChkGopTc's `ttu1` in the colouring
+ * (reform r17, newgop r18, ttu1 r19); as own locals of DecodePicAtr they colour in the other order. */
+static inline void sfmpv_ReformTc(SFD sfd, SFMPV_WORK *mpv, MPV_PICATR *atr, Sint64 d)
+{
+	Sint32 newgop = mpv->newgop;
+	Sint32 reform;
+
+	reform = SFSET_GetCond(sfd, 0x34);
+	if (reform == 0) {
+		if (d < 0 && atr->ngop != 0 && atr->x57 == 0) {
+			if (newgop == 0) {
+				goto reform_chk;
+			}
+			if (sfmpv_ChkGopTc(sfd) == 0) {
+				goto reform_chk;
+			}
+		}
+		SFSET_SetCond(sfd, 0x34, 1);
+		reform = 1;
+	}
+reform_chk:
+	if (reform == 1) {
+		sfmpv_DoReformTc(sfd, atr, d, newgop);
+	}
+}
+
 /* decode a sequence / GOP / picture header and derive the picture's time */
 Sint32 sfmpv_DecodePicAtr(SFD sfd, SJCK *ck, SJ sj, Sint32 mask, Sint32 *result)
 {
@@ -977,6 +1043,7 @@ Sint32 sfmpv_DecodePicAtr(SFD sfd, SJCK *ck, SJ sj, Sint32 mask, Sint32 *result)
 	SFTIM tim = SFD_TIM(sfd);
 	SFMPV_STMINF *inf;
 	SFMPV_WORK *wk;
+	SFSEE_WORK *swk;
 	SFSEE_VHDR *vhdr;
 	Sint32 bufin;
 	/* frame layout: aggregates and address-taken scalars in the REVERSE of the natural order (first
@@ -984,7 +1051,6 @@ Sint32 sfmpv_DecodePicAtr(SFD sfd, SJCK *ck, SJ sj, Sint32 mask, Sint32 *result)
 	 * Tc2Time out-parameter pairs are distinct variables (two more slots, frame 0xf0). */
 	SFTIM_TC tc2;
 	SFTIM_TC tc3;
-	SFTIM_TC tc;
 	SFPTS_ENT ent;
 	Sint32 flow;
 	Sint32 err;
@@ -999,8 +1065,6 @@ Sint32 sfmpv_DecodePicAtr(SFD sfd, SJCK *ck, SJ sj, Sint32 mask, Sint32 *result)
 	Sint32 prate;
 	Sint32 tmpref;
 	Sint32 k;
-	Sint32 reform;
-	Sint32 flag;
 	Sint32 tscale0;
 	Sint32 ncount0;
 	Sint32 tscale;
@@ -1009,15 +1073,12 @@ Sint32 sfmpv_DecodePicAtr(SFD sfd, SJCK *ck, SJ sj, Sint32 mask, Sint32 *result)
 	Sint32 delay;
 	Sint32 vbvsiz;
 	Sint32 bitrate;
-	Sint32 unit;
-	Sint32 t2;
-	Sint32 t1;
 	Sint32 rsiz;
 	Sint32 n;
+	Sint32 len;
 	Sint32 br;
 	Sint32 vb;
-	Uint8 *raw;
-	SFTIM_TTU *ttu1;
+	SFSEE_VRAW *raw;
 	SFTIM_TTU *ttu0;
 	SFMPV_SEQFN seqfn;
 	void *seqobj;
@@ -1094,13 +1155,18 @@ Sint32 sfmpv_DecodePicAtr(SFD sfd, SJCK *ck, SJ sj, Sint32 mask, Sint32 *result)
 	newgop = mpv->newgop;
 	wk = SFMPV_WK(sfd);
 	bufin = SFMPV_BUFIN(sfd);
-	pts = -1;
 	d = -1;
+	pts = -1;
 	if (p != NULL) {
 		SFPTS_ReadPtsQue(sfd, bufin, p, &ent);
 		if (ent.pts >= 0) {
-			/* tmpref/prate are loaded before the origin test (target order); the 64-bit results are clamped
-			 * as `?:` on a local Sint64 and stored afterwards (`beq; b; mr; mr` kept in registers) */
+			/* the running time is computed in a block-scoped `dd` and copied to `d` at the block end:
+			 * the frontend splits dd (the subtraction) from its clamped web, the low word of `d = dd`
+			 * is coalesced and the high word stays a copy (target `mr r22, r21`), d keeps the -1 init in
+			 * r20/r22. A single `d` is range-split into a pair that outranks wk/prate/tmpref (r25/r26,
+			 * one more callee-saved register). tmpref/prate are loaded before the origin test. */
+			Sint64 dd;
+
 			tmpref = atr->temp_ref;
 			prate = SFTIM_prate[atr->frame_rate];
 			if (!(tim->x150 >= 0)) {
@@ -1109,8 +1175,8 @@ Sint32 sfmpv_DecodePicAtr(SFD sfd, SJCK *ck, SJ sj, Sint32 mask, Sint32 *result)
 				t = (t > 0) ? t : 0;
 				tim->x150 = t;
 			}
-			d = ent.pts - tim->x150;
-			d = (d > 0) ? d : 0;
+			dd = ent.pts - tim->x150;
+			dd = (dd > 0) ? dd : 0;
 			if (memcmp(&wk->ptsent, &ent, 4) != 0) {
 				wk->ptsent = ent;
 				wk->pts_ofst = 0;
@@ -1129,9 +1195,10 @@ Sint32 sfmpv_DecodePicAtr(SFD sfd, SJCK *ck, SJ sj, Sint32 mask, Sint32 *result)
 				}
 				k = tmpref - wk->pts_tmpref;
 				wk->pts_max = (wk->pts_max > k) ? wk->pts_max : k;
-				d += (Sint64)(wk->pts_ofst + k) * 90000000 / prate;
-				d = (d > 0) ? d : 0;
+				dd += (Sint64)(wk->pts_ofst + k) * 90000000 / prate;
+				dd = (dd > 0) ? dd : 0;
 			}
+			d = dd;
 		}
 	}
 	mpv->pts = pts;
@@ -1139,40 +1206,7 @@ Sint32 sfmpv_DecodePicAtr(SFD sfd, SJCK *ck, SJ sj, Sint32 mask, Sint32 *result)
 		return 0;
 	}
 	sfmpv_CalcRepeatField(sfd, atr, mpv->newgop);
-	newgop = mpv->newgop;
-	reform = SFSET_GetCond(sfd, 0x34);
-	if (reform == 0) {
-		flag = 0;
-		if (d > 0 && atr->ngop != 0 && atr->x57 == 0) {
-			if (newgop == 0) {
-				goto reform_chk;
-			}
-			/* the GOP time code disagrees with the running time: reform the time codes */
-			ttu1 = &tim->ttu1;
-			if (ttu1->valid != 0) {
-				tc = tim->tc;
-				SFTIM_Tc2Time(&tc, &t1, &unit);
-				SFTIM_Tc2Time(&ttu1->tc, &t2, &unit);
-				k = unit * SFSET_GetCond(sfd, 0x35);
-				if (t1 <= t2) {
-					flag = 1;
-				} else if (t1 >= t2 + k) {
-					flag = 1;
-				} else {
-					flag = 0;
-				}
-			}
-			if (flag == 0) {
-				goto reform_chk;
-			}
-		}
-		SFSET_SetCond(sfd, 0x34, 1);
-		reform = 1;
-	}
-reform_chk:
-	if (reform == 1) {
-		sfmpv_DoReformTc(sfd, atr, d, newgop);
-	}
+	sfmpv_ReformTc(sfd, mpv, atr, d);
 	/* video start time */
 	/* the three SFTIM_TTU blocks are addressed through pointer locals (struct copies through a kept
 	 * base: ttu0 r17 before its test, ttu1/ttu3 for the picture time and the ttu1 = ttu3 copy) */
@@ -1188,8 +1222,12 @@ reform_chk:
 	}
 	/* time of this picture */
 	{
-		SFTIM_TTU *ttu1b = &tim->ttu1;
-		SFTIM_TTU *ttu3 = &tim->ttu3;
+		/* declaration order gives the colours (ttu3 r18, ttu1b r17), statement order the addi order */
+		SFTIM_TTU *ttu3;
+		SFTIM_TTU *ttu1b;
+
+		ttu1b = &tim->ttu1;
+		ttu3 = &tim->ttu3;
 		tc3 = tim->tc;
 		SFTIM_Tc2Time(&tc3, &ncount, &tscale);
 		ttu3->tc = tc3;
@@ -1223,21 +1261,28 @@ reform_chk:
 		wk->vbvsiz = rsiz;
 	}
 	br = bitrate;
-	if (sfd->see.wk == NULL) {
+	/* both pointers loaded before the test (`swk` r4 / the mpv reload r3: swk is the later-declared
+	 * own local, wk's second definition a range-split copy coloured before it); the header bytes and
+	 * their length through the SFSEE_VRAW view (`stw/lwz 0x200(raw)`), `len` a local declared after
+	 * `n` so that n colours r0 and the length r4 */
+	swk = sfd->see.wk;
+	wk = SFMPV_WK(sfd);
+	if (swk == NULL) {
 		vhdr = NULL;
-	} else if (SFMPV_WK(sfd)->nconcat > 0) {
+	} else if (wk->nconcat > 0) {
 		vhdr = NULL;
 	} else {
-		vhdr = (SFSEE_VHDR *)&sfd->see.wk->a1hdr;
+		vhdr = (SFSEE_VHDR *)&swk->a1hdr;
 	}
 	if (vhdr != NULL && vhdr->analyzed == 0) {
-		raw = vhdr->raw;
+		raw = (SFSEE_VRAW *)vhdr->raw;
+		len = ck->len;
 		n = 0x200;
-		if (ck->len < 0x200) {
-			n = ck->len;
+		if (len < 0x200) {
+			n = len;
 		}
-		vhdr->rawlen = n;
-		MEM_Copy(raw, ck->data, vhdr->rawlen);
+		raw->len = n;
+		MEM_Copy(raw->dat, ck->data, raw->len);
 		if (br == 0x3FFFF) {
 			vhdr->byterate = 0;
 			vhdr->tunit = 0;
@@ -1248,14 +1293,14 @@ reform_chk:
 		vhdr->ttu = tim->ttu0;
 		vhdr->analyzed = 1;
 	}
-	br = bitrate;
 	vb = vbvsiz;
+	br = bitrate;
 	inf->width = atr->width;
 	inf->height = atr->height;
 	inf->mb_width = atr->mb_width;
 	inf->mb_height = atr->mb_height;
-	inf->bitrate = br;
 	inf->picrate = atr->frame_rate;
+	inf->bitrate = br;
 	inf->vbvsiz = vb;
 	return sfmpv_ChkBufSiz(sfd, inf, br, vb);
 }
@@ -1529,9 +1574,11 @@ Sint32 sfmpv_ChkBufSiz(SFD sfd, SFMPV_STMINF *inf, Sint32 bitrate, Sint32 vbvsiz
 	w16 = (width + 15) / 16 * 16;
 	h16 = (height + 15) / 16 * 16;
 	ywidth = (w16 + 31) / 32 * 32;
-	cwidth = (w16 / 2 + 31) / 32 * 32;
 	ysize = h16 * ywidth;
-	csize = (h16 / 2) * cwidth;
+	/* cwidth assigned inside the csize expression: the h16/2 sign chain is then created before the
+	 * w16/2 chain, h16/2 (r0) and ywidth (r7) live across it, and the cwidth temporaries colour r8
+	 * in place of w16 (a separate `cwidth = ...` statement gives w16 r9 / the chain r0,r7: 18w) */
+	csize = (h16 / 2) * (cwidth = (w16 / 2 + 31) / 32 * 32);
 	fsize = ysize + csize * 2 + 0x20;
 	fsize2 = sfmpv_CalcFrmSiz(mpv->para.width, mpv->para.height);
 	if (fsize * 2 > fsize2 * 2) {
@@ -2385,12 +2432,6 @@ Sint32 SFMPV_Seek(SFD sfd)
 	}
 	return 0;
 }
-
-/* the cached header bytes and their length (SFSEE_VHDR raw/rawlen) as one object */
-typedef struct {
-	Uint8 dat[0x200];          /* 0x000 */
-	Sint32 len;                /* 0x200 */
-} SFSEE_VRAW;
 
 /* restart from the cached sequence header after a seek */
 static inline Sint32 sfmpv_SeekVhdr(SFD sfd, Sint32 *flg)
