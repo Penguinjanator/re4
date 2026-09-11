@@ -465,7 +465,7 @@ cflags_libm = [*cflags_game, "-msafe-sda", "-G 1024", "-fno-builtin", "-mstrict-
 # SN Systems libsn (ProDG runtime: stdio stubs, debugger stub, fp/64-bit helpers): GCC 2.95 -O2 with
 # no small data (`first.183` of dummy.c sits in .data) and no common symbols (FSasync's uninitialised
 # globals sit in the unit's own .bss in declaration order).
-LIBSN_UNITS = {f"lib/{name}.c" for name in ["dummy", "tealeaf", "FSasync", "sndvd", "fileserver", "crt0"]}
+LIBSN_UNITS = {f"lib/{name}.c" for name in ["dummy", "tealeaf", "FSasync", "sndvd", "fileserver", "crt0", "crtbegin"]}
 cflags_libsn = [*cflags_game, "-G 0", "-fno-common"]
 # libsn/crt units that were hand-written assembly in the original (no C form exists): the split
 # name stays lib/<name>.c, the source is src/lib/<name>.s, assembled by the template's `as` rule

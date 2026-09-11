@@ -3,8 +3,9 @@
 .include "macros.inc"
 
 # 0x80062A60..0x80064AE0 | size: 0x2080
+# The library object's .text is 32-byte aligned (the DOL pads sscrn's .text up to 0x80062A60).
 .text
-.balign 4
+.balign 32
 
 # .text:0x0 | 0x80062A60 | size: 0x88
 .fn fn_80062A60, global

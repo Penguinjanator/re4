@@ -63,6 +63,12 @@ void ScenarioRoomInit()
 {
     cSceSys* s = &SceSys;
 
+    s->eventCancel = 0;
+    s->x6D = 0;
+    s->x6C = 0;
+    s->x6E = 0;
+    s->x6F = 0;
+    s->x70 = 0;
     s->sndFlag = 1;
     s->cancelFlagNo = -1;
     s->pause = 0;
@@ -75,13 +81,7 @@ void ScenarioRoomInit()
     s->x134 = 0;
     s->x75 = 0;
     s->x76 = 0;
-    s->eventCancel = 0;
-    s->x6D = 0;
-    s->x6C = 0;
-    s->x6E = 0;
-    s->x6F = 0;
-    s->x70 = 0;
-    pG->flags_51BC &= ~0x80;
+    pGS->flags_51BC &= ~0x80;
     ScenarioTaskAllOff();
     SceInitItemEvent();
     SceAtSetSaveItem();
@@ -182,25 +182,20 @@ void cSceSys::scheduler()
     OSThread* parent = pParentThread;
     TASK* ctask;
     ScePrim* p;
-    u8* f;
     u8 running;
-    int i;
+    u32 i;
     int waitRead;
 
     pParentThread = 0;
     ctask = pCTask;
     if (SceSys.x76 == 0 && SceSys.pause == 0) {
-        f = &prim[0].running;
         for (i = 0; i < 13; i++) {
-            *f = 0;
-            f += sizeof(ScePrim);
+            prim[i].running = 0;
         }
     } else {
         prim[0].running = 0;
-        f = &prim[1].running;
         for (i = 1; i < 13; i++) {
-            *f = 1;
-            f += sizeof(ScePrim);
+            prim[i].running = 1;
         }
     }
     p = (ScePrim*) scenarioSetOtStart();

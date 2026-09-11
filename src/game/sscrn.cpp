@@ -589,6 +589,19 @@ void SubScreenExitCore(SubScreenWork* wk)
     }
 }
 
+// Fade from black to clear with the clear word passed in: SubScreenExit sets it to 0 before
+// cMes.roomInit() (the `li r30,0` before that call), which keeps the zero a loop-body pseudo that
+// loop.c does not hoist and does not merge with the `type = flags = 0` zero (the FadeSetW inline's
+// own zero constant is combined with it by combine_movables and hoisted to the prologue).
+static inline void FadeSetBlackOut(u32 clear, u32 time, u32 z, int late)
+{
+    FadeColorPair col;
+
+    *(u32*) &col.start = 0xFF;
+    *(u32*) &col.end = clear;
+    FadeSet(0x80000000, &col.start, &col.end, time, z, late);
+}
+
 void SubScreenExit()
 {
     SubScreenWork* wk = &SubScreenWk;
@@ -649,8 +662,8 @@ void SubScreenExit()
                 pl->weaponLoad(wepNo, wepType);
                 pG->wep_x4FB2 = wepLv;
                 pl->weaponInit();
-                wk->noBullet = 0;
                 wk->scope = 0;
+                wk->noBullet = 0;
             }
             {
                 int change = 0;
@@ -671,11 +684,11 @@ void SubScreenExit()
             systemVISetBlack(0);
             pG->Cam = wk->cam;
             View.move();
-            pG->flags_58 = wk->save58;
+            BitSet(pG->flags_58, wk->save58);
             if (wk->bino == 0) {
                 pG->flags_170 &= ~0x80000000;
             }
-            pG->flags_5010 &= ~2;
+            BitOff(pG->flags_5010, 2);
             if (wk->x1B6) {
                 pG->flags_5010 |= 0x10000000;
             }
@@ -701,15 +714,18 @@ void SubScreenExit()
                     PlReloadBullet();
                 }
             }
-            cMes.roomInit();
-            if (pG->flags_54 & 0x40000000) {
-                mercId.set();
-            }
             {
-                Cockpit* ck = &Cckpt;
-                ck->countDown.loadDisp();
+                u32 clear = 0;
+                cMes.roomInit();
+                if (pG->flags_54 & 0x40000000) {
+                    mercId.set();
+                }
+                {
+                    Cockpit* ck = &Cckpt;
+                    ck->countDown.loadDisp();
+                }
+                FadeSetBlackOut(clear, 3, 0, 0);
             }
-            FadeSetW(0x80000000, 3, 0, 0);
             TaskSignal(0);
             SndSubScreenExit();
             BitOn(pG->flags_500C, 0x02000000);
@@ -719,10 +735,10 @@ void SubScreenExit()
                 u32 mode;
                 if (wk->scope == 2) {
                     mode = 2;
-                } else if (CamCtrl.area_no == -1) {
-                    mode = 0;
-                } else {
+                } else if (CamCtrl.area_no != -1) {
                     mode = 1;
+                } else {
+                    mode = 0;
                 }
                 LightMgr.outSscrn(mode);
             }
@@ -731,7 +747,8 @@ void SubScreenExit()
             } else {
                 pG->flags_170 = wk->save170;
             }
-            wk->type = wk->flags = 0;
+            wk->type = 0;
+            wk->flags = 0;
             pG->debug_mode = wk->debugMode;
             if (wk->x354) {
                 pG->flags_68 |= 0x40000000;
@@ -861,6 +878,10 @@ void OpeSetOpenTerm(int no, f32 x, f32 y, f32 z, f32 ang)
     SceSleep(1);
 END:
     OpeSetOpenTermEnd();
+    // COMPILER-DIFF: tie (global-alloc live length): x (4 refs / 216 insns) and z (2 / 54) both truncate
+    // to priority 370 and the lower pseudo (x) took f30; the original allocated z first. One codeless
+    // real insn inside x's range but past z's death makes it 217 -> 368.
+    asm("" : "=m"(pos.x));
     if (x != 0.0f) {
         pPL->setPos(&wk->savePos);
         pPL->setAng(&wk->saveRot);
@@ -893,12 +914,11 @@ void OpeSetOpenTermEnd()
 
 // The next unit (lib/ppcdown.c, an SDK library) starts 32-byte aligned in .text and .bss and the
 // split object carries the padding: 12 zero bytes after cManager<cMap>::roomInit in .text and
-// 0x1C bytes of .bss after IdNum (both depend on the absolute address, so `.balign` cannot
-// reproduce them). The .bss gap is a zero-initialised static referenced only by a never-called
-// inline (the dmg.cpp trick); the .text gap is emitted directly.
+// 0x1C bytes of .bss after IdNum. The .text gap comes from lib/ppcdown.s's `.balign 32` (a
+// `.long 0, 0, 0` here would land before the folded roomInit instantiation); the .bss gap is a
+// zero-initialised static referenced only by a never-called inline (the dmg.cpp trick).
 static u8 sscrn_pad[0x1C];
 static inline u8* sscrnPad()
 {
     return sscrn_pad;
 }
-asm(".text\n\t.long 0, 0, 0");

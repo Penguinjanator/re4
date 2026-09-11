@@ -726,6 +726,7 @@ void Message::move()
                 }
             }
             code = getCharCode(*pMsg);
+            asm("" : : "r"(code));  // COMPILER-DIFF: candidate (combine: the original keeps the call-result copy and `cmpwi` apart, ours fuses them into `mr.`)
             if (code == 0) {
                 x += (s16) ((f32) MesData.getSpaceWidth() * scaleX);
             } else {
@@ -807,6 +808,7 @@ void Message::WidthCk()
                 break;
             }
             code = getCharCode(*pMsg);
+            asm("" : "+r"(code));  // COMPILER-DIFF: candidate (combine: the original keeps the call-result copy and `cmpwi` apart, ours fuses them into `mr.`)
             if (code != 0) {
                 s16 w = font->getSize(code, &l, &r);
                 int a = (s16) ((f32) w * scaleX) + charSpace;

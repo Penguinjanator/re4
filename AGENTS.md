@@ -15311,3 +15311,110 @@ reads `<PRE>_lreg.txt`/`<PRE>_greg.txt` cut with `fsec.py`; `dump.sh` names its 
   pre-loop `done = 0` survives as the compare operand (`cmpwi cr4,r26` = a second zero register), ours folds a
   fresh `li 0`; FP callee-saved numbering (f26-f29 permuted) and the down-loop's `hSnd`/`done` block follow from
   those. sce_com's own SceElevator (DOL) is 82% with the same shapes.
+
+### DOL sweep 15b, closest-first (sscrn, esp0a, mes Matching; lib/crt0, lib/crtbegin written and Matching; objRobo 14 -> 16/19, sce_sys 27 -> 28/30; 2026-09-11)
+
+Harness ~/.cache/dol15b (dol15 copies with the paths rewritten: `mcmp.py`, `tryv.py UNIT SYM v/x.py`, `vapply.py`, `sbs.sh UNIT
+SYM [OBJ]`, `dump.sh UNIT -dX` with `SRC_OVERRIDE`, `fsec.py DUMP FUNC`, `rtl.py DUMP FUNC`, `order.py UNIT`, `prio.py PRE`).
+Build 111 OK after every flip (sscrn, esp0a, mes, lib/crt0, lib/crtbegin).
+
+- **loop.c `combine_movables` sums the savings AND lifetimes of matching constant movables (sscrn SubScreenExit 84 -> 0, zero
+  code).** Two `(set r 0)` movables in one loop (the FadeSetW inline's `col.end = 0` and the `wk->type = wk->flags = 0`
+  chain's zero) are combined ("done move-insn matches 851": `m->savings += m1->savings; m->lifetime += m1->lifetime`), and the
+  sum (2 x 3 x 71 = 426 >= 383 insns) hoists the first one to the prologue in pass 2 while each alone (71, 142) would stay.
+  The target keeps both in the loop: its fade zero is a pseudo set BEFORE `cMes.roomInit()` (`li r30,0` scheduled before that
+  `bl`: sched1 hoists a `li` above a call only when the pseudo already crosses a call in the RTL -- "don't let it cross a call
+  after scheduling if it doesn't already cross one"), callee-saved, and NOT combined with the later zero. Form: `u32 clear = 0;`
+  at the top of the block that starts with `cMes.roomInit()`, passed to a local `static inline FadeSetBlackOut(u32 clear, time,
+  z, late)` (`*(u32*)&col.end = clear`), and `wk->type = 0; wk->flags = 0;` as two statements. Also there: `BitSet(pG->flags_58,
+  wk->save58)` / `BitOff(pG->flags_5010, 2)` (the target reloads pG and re-reads flags_5010 after the store), `wk->scope = 0;
+  wk->noBullet = 0;` (dying-first), and the mode select as `else if (CamCtrl.area_no != -1) mode = 1; else mode = 0;` (jump.c
+  hoists the FIRST arm's constant: `li r4,0` before the compare).
+- **OpeSetOpenTerm's f29/f30 tie closed (6 -> 0, tagged `tie (global-alloc live length)`)**: x (4 refs / 216) and z (2 / 54)
+  both truncate to 370 and the lower pseudo (x) took f30; one codeless `asm("" : "=m"(pos.x))` after `OpeSetOpenTermEnd()` (in
+  x's range, past z's death) makes x 217 -> 368 and z wins f30. A `"=m"` on a dead frame slot after the last call adds no
+  dependence (frame vs symbol bases).
+- **A trailing `.text` pad emitted by top-level asm lands BEFORE the folded linkonce instantiations** (sscrn's 12 zero bytes
+  before lib/ppcdown: fold_linkonce appends `cManager<cMap>::roomInit` after the whole main .text, so the pad sat before it and
+  the DOL would have differed although every function matched). The pad is the NEXT unit's alignment: lib/ppcdown.s (the
+  libsn debugger stub, our assembly source) now says `.balign 32` for its .text and the linker produces the gap. Check the
+  position of every `asm(".text\n .long ...")` pad against `dtk elf info` of the split object before a flip.
+- **esp0a flipped (Esp0a_Trans 102 -> 0, SetFreeWork 81 -> 0): the esp0e polymorphic-copy recipe at four sites, with three
+  refinements.** (1) The `u8* s = (u8*) src` local must be declared right before the `memcpy` (inside its own block): the
+  block move copies the source pointer into a stepping pseudo, and only when `S = load; S2 = S` are adjacent does cse's
+  `(set REG0 REG1)` swap fold the load into S2 (target `lwz r11,32(r1)` used directly; with `vt = ..` between them a `mr r10,r0`
+  copy survives). The dest `u8* d` is declared first and feeds the vptr save (`vt = *(u32*)(d + 0xF4)`), the restore goes
+  through the memory variable again (`*(u32*)((u8*)e.p + 0xF4) = vt` -> fresh `lwz r11,36(r1)` for the store). (2) A
+  one-member-struct pointer (`EspPtr e`) is reloaded after EVERY store only for SEPARATE statements: `e.p->colRSpd = e.p->colGSpd
+  = .. = 1.0f` chains evaluate all `e.p` reads before the stores (one load, 4 stores); the target's `lwz; stfs; lwz; stfs` needs
+  `e.p->colRSpd = 1.0f; e.p->colGSpd = 1.0f; ...` (same for `xA8/xAA/spdCnt/scaleCnt = 0`); `spd.x = spd.y = spd.z = 0.0f` stays
+  a chain (one load, three stores). (3) `AddOtWorldPos(e.p, .., 8, 0.0f)`'s `mr r6,r29` = an `int ot = 8;` local declared after
+  the copy and before the `if (parent != pEffParentWorld)` branch (a pseudo crossing the PSMTXMultVec call, callee-saved, `li r29,8`
+  scheduled among the copy tail; loop.c does not hoist it: savings 1 x life 1 < 106). (4) `e.p->parent != pEffParentWorld`
+  read through a local `static inline cCoord* RefCoordP(cCoord*& p) { return p; }` -- the reference read stays below the stores
+  and keeps the direct `lwz r0,pEffParentWorld@sda21(r0)`; the `pEffParentWorldS` wrapper view and a `cCoord*& pw = ..`
+  reference variable both force the sda21 address into a register (`li r7,sym@sda21; lwz r0,0(r7)`), only the inline
+  parameter form substitutes the constant address.
+- **mes flipped (move 1 -> 0, WidthCk 27 -> 0, tagged `candidate (combine mr. fusion)`)**: the OPEN `code = getCharCode(x); if
+  (code == 0)` pair. Ours fuses `P = r3; compare P` into `mr.`; the target keeps them apart in both sites (`cmpwi r3,0` with P in
+  r3 in move; `mr r4,r3; cmpwi r4,0` in WidthCk). A codeless asm between the call and the test does it: `asm("" : : "r"(code))`
+  (an input-only asm is volatile = a USE of the pseudo; the compare then reads r3 directly) for move, `asm("" : "+r"(code))` for
+  WidthCk where the copy must survive; the `+r` launder in move costs 9-22 words (the value lives into the else arm), so pick
+  per site. ~30 plain forms had been tried on this pair before.
+- **objRobo**: `SetObjRobo` was declared inside `extern "C"` (the DOL symbol is `SetObjRobo__FPvT0P3VecT2`, r226 calls it
+  mangled) -- a flip would have failed the link. R0Init 8 -> 0: the hit loop's `w->hit[i] = 0; hit = SetEmHit(pG->pArc...)`
+  reads pG through `static inline GlobalWork* GRef(GlobalWork*& g)` (snd's GRefS idiom) so the `lwz pG` waits for the store
+  (`pGS` gives the same order but `li r18,pG@sda21` hoisted). Left: TaskSwitchFront/Back 9 each -- the loop invariants `range =
+  to` (a copy `fmr f29,f28` the target keeps) and `max = (f32) i` get f29/f30 the other way round; a block-local `max` makes
+  max win f30 but then cse folds the block-local `range = to` into `to` (to is used later, stays canonical) and the
+  function-scope `range` (2 sets, 6 refs / 80) outranks any single-block max. R0WalkBridge 38 not iterated.
+- **sce_sys scheduler 9 -> 0 (zero code)**: `for (i = 0; i < 13; i++) prim[i].running = 0;` with a `u32 i` (an `int` counter steps
+  the pointer DOWN from the last element) instead of the explicit `u8* f` pointer loop: the zero's `li` is a loop.c movable
+  emitted BEFORE the giv init (`li r0,0; mtctr; addi r9`), the pointer form puts `f = &prim[0]` first. The else arm's
+  `for (i = 1; i < 13; i++) prim[i].running = 1;` gives `li r11,1` (movable) before `stb r0,156`, `addi`, `li r0,12; mtctr r0`.
+- **sce_sys SceSetEventCancel (23, mechanism read)**: the target's first store is the folded `stb r30,SceSys+0x71@l(r9)` = a
+  reference store `U8Set(SceSys.eventCancel, on)` (integrate substitutes the CONST address `(const (plus sym 113))`, legitimised
+  into a `lo_sum` MEM address with no pseudo); a plain `SceSys.x = v` on a non-small-data object goes through `expand_expr`'s
+  VAR_DECL legitimisation (`lo_sum` pseudo for `&SceSys`, then `+113` displacement: our `addi r29,r9,SceSys@l`). With the fold
+  in place cse1 still relates the tail's `s = &SceSys` to the store's address through the skipped `if (flagNo >= 0)` block
+  (`addi r26,r9,113` kept callee-saved, `addi r9,r26,-113` in the tail; a `volatile` store and a launder on `s` do not stop it --
+  the relation is made when `s`'s lo_sum is cse'd, before any launder): #12 AROUND family. An asm-emitted `lis/addi` pair for the
+  tail gives the target shape but leaves `on`/`flagNo` swapped (on 5 refs / 12 vs flagNo 5 / 26; the target allocates flagNo
+  first). Not applied. ScenarioRoomInit 26 -> 16: `pGS->flags_51BC &= ~0x80` (the struct view makes the pG load depend on the
+  preceding stores through `s`), and the six byte zeros (`eventCancel, x6D, x6C, x6E, x6F, x70`) written BEFORE the word stores
+  so they own a QImode zero (`li r9,0`) while `x75/x76 = 0` after the words reuse the SImode one -- a `u8 zero = 0` variable is
+  cprop-folded and a laundered one becomes `mr r10,r0`. Left (16): the target issues `stb x76` and `stb x70` in source order
+  although their zero registers die there (ours hoists both dying stores).
+- **t_bugcheck (27/14/14, mechanism read, not closed)**: menuPosMove's 14 loop-invariant highs (SatMgr, 0.0, 600, 100000, 500,
+  nine strings) compete for r14-r25; every one has 3 weighted refs so the priority is `int(30000 / REG_LIVE_LENGTH)` with the
+  doubled lengths 458..492 = set position in bb 0 (gcse insertion order = expression index = first occurrence in the loop);
+  ties go to the lower pseudo = the gcse hash bucket of the label name. The target's allocation ([Z] r25, [X] r24, [A] r23, [L]
+  r22, [R] r21, R r20, Z r19, X r18, Y r17, 600 r16, 100000 r15, 500 r14, SatMgr and 0.0 spilled) is reproduced EXACTLY by (a)
+  one more real insn in the loop at global-alloc time (`asm("" : "=m"(v.x))` at the loop end: all lengths +2) and (b) the
+  `.LC` decade wrap between Z and R (one more `.LC` label before "X:%.0f": `f32 lc0 = K;` dead local) -- 28 -> 3 words, the 3 left
+  = the `setAng(&pl->rot)` arg pair (`addi r4,r30,160; mr r3,r30`: regmove's optimize_reg_copy_1 substitutes r3 into the addi
+  because `pl` dies there; the target did not) and the Draw_pos reloc (the source declared `Draw_pos` without `extern "C"`;
+  fixed). menuLife's allocation needs +2 real insns in ITS loop and no label shift (brute-force over insertion positions,
+  tools in the harness). Neither natural source was found: the `.LC` numbers count the constants of every header inline body
+  compiled in the TU (cCoord::cCoord = .LC2, cObjWep::init .LC3-5, setAbility .LC6-7: inline functions get RTL and pool
+  labels even when never emitted), so the original's include set or inline bodies differ; adding any single header changes the
+  label count by 0 or by 2+ with new strings. Not applied (three tagged items for one function).
+- **The "100% but not complete" report rows**: `lib/crt0`, `lib/crtbegin`, `lib/builtin-delete` had NO source (linked from the
+  split objects; the report scores a unit with no code 100%). crt0 (the data half of libsn's start-up object: `struct { char
+  wait[32]; char version[32]; } lbl_80253A20`, `__SN_Libsn_version_60 = 0` (the version is in the NAME), `__SN_Libsn_version =
+  60`, `static void* LinkFiddle[2] = { __mod2i, 0 }`, `.data` 8-aligned) and crtbegin (`func_ptr __CTOR_LIST__[1]
+  __attribute__((section(".ctor"))) = { (func_ptr) -1 }` + `__DTOR_LIST__`) are now C sources under LIBSN_UNITS (crtbegin added
+  to the configure.py list) and Matching. `lib/builtin-delete` (0x168 of .rodata: "bad_alloc" and four "*** Library warning
+  ***" strings of SN's stripped libstdc++ operator new/delete unit) needs a C++ source with dead bodies + STRIP_UNUSED under a
+  `.c` unit name -- left. `lib/_eh` stays False: its 16 .bss bytes at 0x802821D0 are statics of the dead-stripped SN exception
+  runtime (the `_register_malloc` hook family) that no reference keeps; `auto_02_8021C9CC_ctor` / `auto_03_8021CA2C_dtor` are
+  dtk placeholders for the 20 zero bytes after the last `.ctor`/`.dtor` entry (crtend's terminator word + 32-byte alignment
+  padding), not units.
+- Facts read this pass: `update_equiv_regs` moves a single-use constant only when `REG_N_REFS == 2 && REG_BASIC_BLOCK < 0`
+  (weighted refs: a set and a use inside a loop count 2 each, so loop-body constants are never moved and stay where sched1 put
+  them); loop.c's `m->savings` is `n_times_set` (the number of SETS, i.e. 1) plus the matched movables' savings, and
+  `m->lifetime` is the LUID span plus the matched ones' spans; `insn_dead_p` deletes an asm only when its `"=m"` output is an
+  identical MEM stored later in the block (a `"=r"` output with no user is deleted) -- so a `"=m"` codeless asm is a durable
+  real insn for global-alloc live lengths; `expand_expr`'s VAR_DECL case legitimises a non-small-data object's address into a
+  `lo_sum` pseudo before the member displacement is added (plain `Obj.member` = `addi rP,sym@l` + `ofs(rP)`), while an
+  address that reaches `memory_address` as a CONST (inline `&` parameter, `*(u8*)((u8*)&Obj + N)`) folds into `sym+N@l(rH)`.

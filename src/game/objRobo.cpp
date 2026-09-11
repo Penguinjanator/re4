@@ -43,12 +43,14 @@ public:
 extern "C" {
 int MotionMove(cModel* m, int a);
 void* memset(void* p, int c, unsigned int n);
-cObj* SetObjRobo(void* bin, void* tpl, Vec* pos, Vec* rot);
 }
+cObj* SetObjRobo(void* bin, void* tpl, Vec* pos, Vec* rot);
 void MotionSetCore(cModel* m, void* work, void* mot, int a, int b, int c, int d);
 
 // Pointer store through a reference: the following `pG` load is kept behind it.
 static inline void PSet(cSat*& d, cSat* v) { d = v; }
+// Reference read of pG: an unflagged MEM that stays below the preceding `w->hit[i] = 0` store.
+static inline GlobalWork* GRef(GlobalWork*& g) { return g; }
 
 // Event flag words at pG->flags_174 (the sce_sys accessor): recomputed at every use, so the base
 // is reloaded after the hit counter store.
@@ -211,7 +213,7 @@ void cObjRobo::R0Init(cObjRobo* robo)
 
     for (i = 0; i < 14; i++) {
         w->hit[i] = 0;
-        hit = SetEmHit((void*) (pG->pArc->ofs_20 + (u32) pG->pArc), (void*) (pG->pArc->ofs_24 + (u32) pG->pArc), 0, 0, 1);
+        hit = SetEmHit((void*) (GRef(pG)->pArc->ofs_20 + (u32) GRef(pG)->pArc), (void*) (GRef(pG)->pArc->ofs_24 + (u32) GRef(pG)->pArc), 0, 0, 1);
         if (hit) {
             hit->setParent(robo, tbl[i].parts, 0);
             if (tbl[i].parts == 0x15 || tbl[i].parts == 0x16) {
