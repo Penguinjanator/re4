@@ -116,7 +116,10 @@ int RouteCkToEm(cEm* em, cEm* target, Vec* out, int flag)
         *out = target->pos;
         return 1;
     }
-    tbl = rtpNextTbl();
+    {
+        RtpData* r = (RtpData*) Global.pRoomRtp;
+        tbl = (s8*) (r->nextOfs + (u32) r);
+    }
     next = rtpNext(tbl, p, t);
     if (next == -1) {
         *out = target->pos;
@@ -251,7 +254,10 @@ int RouteCkToPos(cEm* em, Vec* target, Vec* out, int flag, f32* dist)
         }
         return 1;
     }
-    tbl = rtpNextTbl();
+    {
+        RtpData* r = (RtpData*) Global.pRoomRtp;
+        tbl = (s8*) (r->nextOfs + (u32) r);
+    }
     next = rtpNext(tbl, p, t);
     if (next == -1) {
         *out = *target;
@@ -340,7 +346,10 @@ int RouteCkPosToPos(Vec* from, Vec* to, Vec* out)
         *out = *to;
         return 1;
     }
-    tbl = rtpNextTbl();  // pointer local: the index lands in r0 (base pointer-flagged)
+    {
+        RtpData* r = (RtpData*) Global.pRoomRtp;
+        tbl = (s8*) (r->nextOfs + (u32) r);
+    }
     next = rtpNext(tbl, p, t);
     if (next == -1) {
         *out = *to;
@@ -397,6 +406,10 @@ f32 RouteCkPosToPosDis(Vec* from, Vec* to)
     a.y += 500.0f;
     b.y += 500.0f;
     if (pG->pRoomRtp != NULL) {
+        // COMPILER-DIFF: candidate (reload_cse register table): the original keeps `mr r3,r31; mr r4,r29`
+        // for the from/to arguments although r3/r4 still hold them since the entry copies; ours deletes
+        // the two copies in reload_cse_regs. The volatile asm forgets the table (a label or call would too).
+        asm volatile("" : : : "memory");
         if (rckLineHitCheck(from, to, 0, 0) == 0) {
             PosToPos(&a, &b, &c, 0.5f);
             if (SatMgr.getFloor(&c, 600.0f, 100000.0f, NULL, 0) > c.y - 2000.0f) {
@@ -455,7 +468,10 @@ f32 RouteCkGetDist(int a, int b)
     if (a == b) {
         return d;
     }
-    tbl = rtpNextTbl();
+    {
+        RtpData* r = (RtpData*) Global.pRoomRtp;
+        tbl = (s8*) (r->nextOfs + (u32) r);
+    }
     pt = &rtpPoint(rtpData())[a];
     do {
         next = rtpNext(tbl, a, b);

@@ -1,9 +1,15 @@
 // game/emrock.cpp: rolling rock enemy (cEmRock): boulders that hang on a parent, fall, get
 // thrown, roll after the player (with the escape event) or drop on him.
 //
-// Not yet byte-identical (see AGENTS.md OPEN items): SetRock (one byte-store position),
-// emRockRollStartCk (a `mr` copy of pG), plemRockEscapeCamMove2 / plemRockDropDieCamMove /
-// emRockPushCamMove / emRockDropCamMove (address forms of the camera tail). .rodata and .data match.
+// Not yet byte-identical (see AGENTS.md OPEN items): emRockDropCamMove (the three up/fovy pool
+// highs' local-alloc names). .rodata and .data match.
+//
+// Camera tails: `Camera* cam = &emRockCam;` is declared BEFORE the `cp`/`ca` pointers. cse rewrites
+// `&emRockCam` from the OLDEST related constant (`emRockCam+K`) whose class still holds a register
+// (use_related_value walks the ring from the base symbol): with `ca = &emRockCam.param.at` declared
+// first, `cam` came out `ca - 176`; the original has `cp - 164` (PushCamMove: the `pos = p` block
+// copy's address pseudo) or a fresh `lis/addi` (EscapeCamMove2/DropDieCamMove: the PosToPos/PSVECAdd
+// argument registers were clobbered by the calls), i.e. `cam` was computed before `ca` existed.
 
 #include "atari.h"
 #include "atari_init.h"
@@ -1455,12 +1461,14 @@ int emRockRollStartCk(cEmRock* em)
     EmiData* emi;
     int dead;
     int i;
+    GlobalWork* g;
 
     emi = (EmiData*) pG->pRoomEmi;
+    g = pGS;  // the struct-view read is a second pG pseudo (`mr r11,r9`) that the pl_life test reads
     if (emi == 0) {
         return 0;
     }
-    if ((s16) pG->pl_life <= 0) {
+    if ((s16) g->pl_life <= 0) {
         return 0;
     }
     dead = 1;
@@ -1863,12 +1871,11 @@ void plemRockEscapeCamMove2(cPlayer* pl, int side)
     PSVECAdd(&emRockCam.param.pos, &r, &emRockCam.param.pos);
     PSVECAdd(&emRockCam.param.at, &r, &emRockCam.param.at);
     {
+        Camera* cam = &emRockCam;
         Vec* cp = &emRockCam.param.pos;
         Vec* ca = &emRockCam.param.at;
-        Camera* cam;
 
         len = (cp->x - ca->x) * (cp->x - ca->x) + (cp->y - ca->y) * (cp->y - ca->y) + (cp->z - ca->z) * (cp->z - ca->z);
-        cam = &emRockCam;
         cam->up.x = 0.0f;
         cam->up.y = 1.0f;
         cam->up.z = 0.0f;
@@ -1901,12 +1908,11 @@ void plemRockDropDieCamMove(cEmRock* em)
     PosToPos(&gcam->param.at, &parts->worldPos, &emRockCam.param.at, 0.1f);
     PosToPos(&gcam->param.pos, &p, &emRockCam.param.pos, 0.1f);
     {
+        Camera* cam = &emRockCam;
         Vec* cp = &emRockCam.param.pos;
         Vec* ca = &emRockCam.param.at;
-        Camera* cam;
 
         len = (cp->x - ca->x) * (cp->x - ca->x) + (cp->y - ca->y) * (cp->y - ca->y) + (cp->z - ca->z) * (cp->z - ca->z);
-        cam = &emRockCam;
         cam->up.x = 0.0f;
         cam->up.y = 1.0f;
         cam->up.z = 0.0f;
@@ -1952,12 +1958,11 @@ void emRockPushCamMove(cEmRock* em)
     PosToPos(&gcam->param.at, &parts->worldPos, &emRockCam.param.at, 1.0f);
     emRockCam.param.pos = p;
     {
+        Camera* cam = &emRockCam;
         Vec* cp = &emRockCam.param.pos;
         Vec* ca = &emRockCam.param.at;
-        Camera* cam;
 
         len = (cp->x - ca->x) * (cp->x - ca->x) + (cp->y - ca->y) * (cp->y - ca->y) + (cp->z - ca->z) * (cp->z - ca->z);
-        cam = &emRockCam;
         cam->up.x = 0.0f;
         cam->up.y = 1.0f;
         cam->up.z = 0.0f;

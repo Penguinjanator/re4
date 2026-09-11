@@ -1749,3 +1749,8 @@ MATCHING.update({
     "game/db_menu.cpp": True,  # move: GetGameTime declared with its real `u32` return (main_sub.h) -- the call then SETS r3, so the `addi r3,&h` argument move has one dependent (the call) instead of two (call + the next `lha r3`), ranks below `addi r4/r5` in sched1 and issues after the `subf`; zero code
     "game/emmine.cpp": True,  # R1_Shot/R1_ShotArrow: the no-info block's Effect*Delete tail written out (jump2 cross-jumps it into DELETE_EFFECT), so at sched1 the SndCall block runs through three more calls and its r7/r8 argument moves (never re-set) collect an anti-dependence from every later call: depend count r7/r8 4 > r4/r5/r6 3 > r3 2 gives the target order r7, r8, r5, r4, r6, r3; zero code
 })
+
+# DOL sweep 21b (2026-09-11)
+MATCHING.update({
+    "game/title.cpp": True,  # titleSub: every fade through FadeSetW (the colour pair is the inline's own BLKmode local at 32/36; in the `flags_54 & 0x40000000` arm cse rewrites the start address to the frame pseudo, `mr r4,r29` PRE'd, while `&col.end` stays a hard-reg-dest `addi r5,r1,36`); titleDebugMenu: one `int no` for case 3's checkRoomNo result and case 5's room (crosses the getPointNum calls -> r31 for both, the dbgPoint temp r30), the s8-parameter calls through int-view aliases (#4)
+})

@@ -83,15 +83,6 @@ union FadeColor {
     u32 w;
 };
 
-// Fade-in helper of the omake screens: the colours are set through a pointer to the first of the
-// two FadeColor locals (`stw 0x4(rP)` for the second one).
-static inline void fadeIn(FadeColor* fc, int time)
-{
-    fc[0].w = 0x000000FF;
-    fc[1].w = 0x00000000;
-    FadeSet(0x80000000, &fc[0].c, &fc[1].c, time, 0, 0);
-}
-
 
 // Read-error report of the original: the condition never holds, only the strings survive.
 #define READ_ERROR(msg)                                           \
@@ -871,8 +862,6 @@ void titleSub(TitleWork* w)
     static u32 snd_id;
     static int title_snd_wait = 7;
     int charBit[5] = {4, 4, 6, 5, 7};
-    FadeColor c0;
-    FadeColor c1;
 #define OMK_PTR(no) TITLE_ARC_PTR((TitleArc*) omk_addr, no)
 
     switch (w->step) {
@@ -889,9 +878,7 @@ void titleSub(TitleWork* w)
         if (w->req == 0) {
             break;
         }
-        c0.w = 0x00000000;
-        c1.w = 0x000000FF;
-        FadeSet(0, &c0.c, &c1.c, 5, 0, 0);
+        FadeSetW(0, 5, 0, 0);
         w->step++;
         if ((s32) pG->flags_54 < 0) {
             snd_id = SndStrReq(0, 60, 0x80000003, 0, 0, 0.0f);
@@ -911,7 +898,7 @@ void titleSub(TitleWork* w)
         }
         break;
     case 3: {
-        fadeIn(&c0, 5);
+        FadeSetW(0x80000000, 5, 0, 0);
         IdTexDataLoad(OMK_PTR(4), 6);
         IdSys.kill(0xFF, ID_TITLE);
         IdSys.kill(0xFF, ID_MENU);
@@ -937,9 +924,7 @@ void titleSub(TitleWork* w)
     }
     case 4:
         if (Key.trg & KEY_B) {
-            c0.w = 0x00000000;
-            c1.w = 0x000000FF;
-            FadeSet(0, &c0.c, &c1.c, 5, 0, 0);
+            FadeSetW(0, 5, 0, 0);
             w->step++;
             SndCall(0, 5, 0, 0, 0, 0);
             SndStrReq(snd_id, 4, 200, 0);
@@ -947,9 +932,7 @@ void titleSub(TitleWork* w)
             if (w->omkCursor == 0) {
                 if ((s32) pG->flags_54 < 0) {
                     w->mode = 7;
-                    c0.w = 0x00000000;
-                    c1.w = 0x000000FF;
-                    FadeSet(0, &c0.c, &c1.c, 90, 0, 0);
+                    FadeSetW(0, 90, 0, 0);
                     pG->x4FB8 = 2;
                     pG->costume = 1;
                     w->sndId = SndCall(6, 6, 0, 0, 0, 0);
@@ -981,17 +964,16 @@ void titleSub(TitleWork* w)
                         BitOff(pSys->x4, 0x04000000);
                         BitOff(pSys->x4, 0x01000000);
                     }
-                    c0.w = 0x00000000;
-                    c1.w = 0x000000FF;
-                    FadeSet(0, &c0.c, &c1.c, 5, 0, 0);
+                    // Every fade of this function is the FadeSetW inline (its own colour pair at 32/36):
+                    // here `&col.start` is PRE'd across the loops (`addi r29,r1,32`, `mr r4,r29`) while
+                    // `&col.end` stays a hard-register argument set (`addi r5,r1,36` at the call).
+                    FadeSetW(0, 5, 0, 0);
                     w->omkChar = 0;
                     w->step = 6;
                     SndCall(0, 60, 0, 0, 0, 0);
                 }
             } else {
-                c0.w = 0x00000000;
-                c1.w = 0x000000FF;
-                FadeSet(0, &c0.c, &c1.c, 5, 0, 0);
+                FadeSetW(0, 5, 0, 0);
                 w->step++;
                 SndCall(0, 5, 0, 0, 0, 0);
                 SndStrReq(snd_id, 4, 200, 0);
@@ -1021,7 +1003,7 @@ void titleSub(TitleWork* w)
             IdSys.kill(0xFF, ID_OMAKE_BG);
             IdSys.kill(0xFF, ID_OMAKE);
             Mem_free(w->pOmk);
-            fadeIn(&c0, 5);
+            FadeSetW(0x80000000, 5, 0, 0);
             w->mode = 5;
             w->step = w->saveStep;
             w->sub = w->saveSub;
@@ -1041,7 +1023,7 @@ void titleSub(TitleWork* w)
         break;
     case 7: {
         int i;
-        fadeIn(&c0, 5);
+        FadeSetW(0x80000000, 5, 0, 0);
         IdTexDataLoad(OMK_PTR(4), 6);
         IdSys.set(OMK_PTR(7), 0xFF, ID_OMAKE, 0x13, 4, 0);
         for (i = 0; i < 5; i++) {
@@ -1079,9 +1061,7 @@ void titleSub(TitleWork* w)
             BitOn(tbl[bit >> 5], 0x80000000 >> (bit & 0x1F));
         }
         if (Key.trg & KEY_B) {
-            c0.w = 0x00000000;
-            c1.w = 0x000000FF;
-            FadeSet(0, &c0.c, &c1.c, 5, 0, 0);
+            FadeSetW(0, 5, 0, 0);
             w->step++;
             SndCall(0, 5, 0, 0, 0, 0);
         } else if (Key.trg & KEY_A) {
@@ -1117,9 +1097,7 @@ void titleSub(TitleWork* w)
             }
             w->step = 10;
             w->omkStage = 0;
-            c0.w = 0x00000000;
-            c1.w = 0x000000FF;
-            FadeSet(0, &c0.c, &c1.c, 15, 0, 0);
+            FadeSetW(0, 15, 0, 0);
             SndCall(0, 0x3F, 0, 0, 0, 0);
         } else if (Key.rep & (KEY_RIGHT | KEY_LEFT)) {
             s8 old = w->omkChar;
@@ -1170,7 +1148,7 @@ void titleSub(TitleWork* w)
         }
         break;
     case 11:
-        fadeIn(&c0, 15);
+        FadeSetW(0x80000000, 15, 0, 0);
         w->step = 12;
         stageSelectInit(w);
         break;
@@ -1190,9 +1168,7 @@ void titleSub(TitleWork* w)
         }
         if (w->sub > 30) {
             w->mode = 7;
-            c0.w = 0x00000000;
-            c1.w = 0x000000FF;
-            FadeSet(0, &c0.c, &c1.c, 60, 0, 0);
+            FadeSetW(0, 60, 0, 0);
             SndStrReq(snd_id, 4, 200, 0);
         }
         break;
@@ -1536,6 +1512,10 @@ void titleExit(TitleWork* w)
     TaskChain(GameTask, 0);
 }
 
+// COMPILER-DIFF: #4 (int argument to an s8 parameter: the original passes `no` without the extsb)
+s8 RjGetPointNumI(cRoomJmp* rj, s8 stage, int room) asm("getPointNum__8cRoomJmpScSc");
+s8 RjGetNextPointNoI(cRoomJmp* rj, s8 stage, int room, s8 point, int dir) asm("getNextPointNo__8cRoomJmpScScSci");
+
 void titleDebugMenu(TitleWork* w)
 {
     static char* title_debug_tbl[21] = {
@@ -1555,7 +1535,6 @@ void titleDebugMenu(TitleWork* w)
     int lines = 21;
     int no;
     int num;
-    s8 room;
 
     if (Joy[0].on & 0x00200000) {
         w->dbgX += 4;
@@ -1668,22 +1647,22 @@ void titleDebugMenu(TitleWork* w)
         }
         break;
     case 5:
-        room = pRj->getRoomInfo(w->dbgStage, w->dbgRoom[w->dbgStage])->room;
+        no = (s8) pRj->getRoomInfo(w->dbgStage, w->dbgRoom[w->dbgStage])->room;
         if (Joy[0].rep2 & 0x00020002) {
-            if (pRj->getPointNum(w->dbgStage, room) - 1 == w->dbgPoint) {
+            if (RjGetPointNumI(pRj, w->dbgStage, no) - 1 == w->dbgPoint) {
                 w->dbgPoint = 0;
             } else {
-                w->dbgPoint = pRj->getNextPointNo(w->dbgStage, room, w->dbgPoint, 1);
+                w->dbgPoint = RjGetNextPointNoI(pRj, w->dbgStage, no, w->dbgPoint, 1);
             }
         }
         if (Joy[0].rep2 & 0x00010001) {
             if (w->dbgPoint == 0) {
-                w->dbgPoint = pRj->getPointNum(w->dbgStage, room) - 1;
+                w->dbgPoint = RjGetPointNumI(pRj, w->dbgStage, no) - 1;
             } else {
-                w->dbgPoint = pRj->getNextPointNo(w->dbgStage, room, w->dbgPoint, -1);
+                w->dbgPoint = RjGetNextPointNoI(pRj, w->dbgStage, no, w->dbgPoint, -1);
             }
         }
-        w->dbgPoint = w->dbgPoint < 0 ? 0 : (w->dbgPoint > pRj->getPointNum(w->dbgStage, room) - 1 ? pRj->getPointNum(w->dbgStage, room) - 1 : w->dbgPoint);
+        w->dbgPoint = w->dbgPoint < 0 ? 0 : (w->dbgPoint > RjGetPointNumI(pRj, w->dbgStage, no) - 1 ? RjGetPointNumI(pRj, w->dbgStage, no) - 1 : w->dbgPoint);
         break;
     case 6:
         num = w->dbgEmList;
