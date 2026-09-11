@@ -75,23 +75,25 @@ void MPVHDEC_SetMcFunc(Sint32 dc11, Sint32 type, MPV_MCFUNC bi, MPV_MCFUNC bw, M
 }
 
 /* consume the header bytes up to the reader position: return them to the free side, push the rest
- * back to the data side (needs the local `Uint8 *q`).
- * COMPILER-DIFF: M1 -- ck.data read into an asm-defined `register` local (also in mpvhdec_DecSlice's
- * loop test and tail): the target keeps q in the argument register and the load in a fresh one; the
- * C form reuses the dying argument register for the load. */
+ * back to the data side (needs the locals `Uint8 *q`, `Uint32 *ptr`, `Sint32 bitpos`).
+ * The byte pointer is `(Uint8 *)(ptr - 2) + n` (the two pre-loaded words as a word-pointer step): the
+ * codegen emits `(ptr + n) - 8` with the sum a backend temporary created after the `ck.data` load, so
+ * the sum takes the argument register and the load a fresh one (target `lwz r7; add r4; subi r0, r4,
+ * 8; subf r4, r7, r0`); MPVBIT_BYTEPTR's `q = ptr; q += n; q -= 8` keeps q a variable ranked below
+ * the load, and `ptr + n - 8` is folded to `ptr + (n - 8)` (CRI pass 14; replaced the pass-7 asm
+ * `lwz data` pins here and in mpvhdec_DecSlice). */
+#define MPVHDEC_BYTEPTR_M2(q) q = (Uint8 *)(ptr - 2) + ((bitpos + 7) >> 3)
 #define MPVHDEC_FLUSH(mpv, sj)                                                                 \
 	{                                                                                      \
 		SJCK rest;                                                                     \
-		register Uint8 *data;                                                          \
-		MPVBIT_BYTEPTR(q);                                                             \
-		asm { lwz data, MPV_OBJ.ck.data(mpv) } /* COMPILER-DIFF: M1 */                       \
-		SJ_SplitChunk(&(mpv)->ck, q - data, &(mpv)->ck, &rest);                        \
+		MPVHDEC_BYTEPTR_M2(q);                                                         \
+		SJ_SplitChunk(&(mpv)->ck, q - (mpv)->ck.data, &(mpv)->ck, &rest);              \
 		SJ_PutChunk(sj, SJ_CK_FREE, &(mpv)->ck);                                       \
 		SJ_UngetChunk(sj, SJ_CK_DATA, &rest);                                          \
 	}
 
 
-static void mpvhdec_DecSlice(register MPV mpv, SJ sj)
+static void mpvhdec_DecSlice(MPV mpv, SJ sj)
 {
 	Sint32 bitpos;
 	Uint32 *ptr;
@@ -101,9 +103,6 @@ static void mpvhdec_DecSlice(register MPV mpv, SJ sj)
 	Sint32 row;
 	Uint8 *q;
 	SJCK rest;
-	register Uint8 *data;
-	register Uint8 *d2;
-	register Sint32 len;
 
 	SJ_GetChunk(sj, SJ_CK_DATA, 0x7FFFFFFF, &mpv->ck);
 	MPVBIT_INIT(mpv->ck.data);
@@ -123,19 +122,14 @@ static void mpvhdec_DecSlice(register MPV mpv, SJ sj)
 			break;
 		}
 		MPVBIT_SKIP(9);
-		MPVBIT_BYTEPTR(q);
-		asm { lwz d2, MPV_OBJ.ck.data(mpv) } // COMPILER-DIFF: M1
-		asm { lwz len, MPV_OBJ.ck.len(mpv) } // COMPILER-DIFF: M1
-		if (len <= q - d2) {
+		MPVHDEC_BYTEPTR_M2(q);
+		if (mpv->ck.len <= q - mpv->ck.data) {
 			return;
 		}
 	}
 	mpv->bitofs = bitpos & 7;
-	q = (Uint8 *)ptr;
-	q += (bitpos - mpv->bitofs + 7) >> 3;
-	q -= 8;
-	asm { lwz data, MPV_OBJ.ck.data(mpv) } // COMPILER-DIFF: M1
-	SJ_SplitChunk(&mpv->ck, q - data, &mpv->ck, &rest);
+	q = (Uint8 *)(ptr - 2) + ((bitpos - mpv->bitofs + 7) >> 3);
+	SJ_SplitChunk(&mpv->ck, q - mpv->ck.data, &mpv->ck, &rest);
 	SJ_PutChunk(sj, SJ_CK_FREE, &mpv->ck);
 	SJ_UngetChunk(sj, SJ_CK_DATA, &rest);
 	mpv->dec_mbs_func(mpv, sj);
@@ -580,9 +574,19 @@ static Sint32 mpvhdec_GetM2vMode(MPV mpv, Sint8 *data, Sint32 len)
 /* skip an extension / user data header: consume its 4 start-code bytes and go to the next delimiter.
  * Inline helpers (not macros) so that their `rest` chunks are first-round inlined aggregates and the
  * GoNextDelim copies they call are second-round ones, laid out below the loop-top NextDelim's (frame
- * order own ck/ck2, the two rests, NextDelim's nested chunks, then these; CRI pass 13). The byte
- * pointer through MPVBIT_BYTEPTR + 12 (its -8 plus the 4 start-code bytes) keeps the target's
- * `(ptr + n) + 4` association; `+ ((bitpos + 7) >> 3) + 4` is reassociated to `ptr + (n + 4)`. */
+ * order own ck/ck2, the two rests, NextDelim's nested chunks, then these; CRI pass 13).
+ * MPVHDEC_SETPOS_KEEP: the word pointer is assigned INSIDE the bit-position expression, so the
+ * frontend cannot forward-substitute the single-use `bitpos` into the byte-pointer computation
+ * (the nested assignment is a side effect): bitpos stays a variable coloured after ptr (EXT: ptr r4 /
+ * bitpos r7) and, in the UD case, is computed before the mpvhdec_AnalyUd call (r26/r29 live across
+ * it) like the target. MPVHDEC_SKIPWORD: `(Uint8 *)(ptr + 1) + n` - the codegen turns it into
+ * `(ptr + n) + 4` with the sum a backend temporary created after the `ck.data` reload (r4 / r7);
+ * `ptr + n + 4` is folded to `ptr + (n + 4)`, and a `q += ..` variable ranks below the reload (CRI pass
+ * 14). */
+#define MPVHDEC_SETPOS_KEEP(buf) \
+	bitpos = ((Uint32)(buf) - (Uint32)(ptr = (Uint32 *)((Uint32)(buf) & ~3))) << 3
+#define MPVHDEC_SKIPWORD(q) q = (Uint8 *)(ptr + 1) + ((bitpos + 7) >> 3)
+
 static inline void mpvhdec_SkipExt(MPV mpv, SJ sj)
 {
 	Sint32 bitpos;
@@ -591,9 +595,8 @@ static inline void mpvhdec_SkipExt(MPV mpv, SJ sj)
 	SJCK rest;
 
 	SJ_GetChunk(sj, SJ_CK_DATA, 0x7FFFFFFF, &mpv->ck);
-	MPVBIT_SETPOS(mpv->ck.data);
-	MPVBIT_BYTEPTR(q);
-	q += 12;
+	MPVHDEC_SETPOS_KEEP(mpv->ck.data);
+	MPVHDEC_SKIPWORD(q);
 	SJ_SplitChunk(&mpv->ck, q - mpv->ck.data, &mpv->ck, &rest);
 	SJ_PutChunk(sj, SJ_CK_FREE, &mpv->ck);
 	SJ_UngetChunk(sj, SJ_CK_DATA, &rest);
@@ -608,10 +611,9 @@ static inline void mpvhdec_SkipUd(MPV mpv, SJ sj)
 	SJCK rest;
 
 	SJ_GetChunk(sj, SJ_CK_DATA, 0x7FFFFFFF, &mpv->ck);
-	MPVBIT_SETPOS(mpv->ck.data);
+	MPVHDEC_SETPOS_KEEP(mpv->ck.data);
 	mpvhdec_AnalyUd(mpv, mpv->ck.data, mpv->ck.len);
-	MPVBIT_BYTEPTR(q);
-	q += 12;
+	MPVHDEC_SKIPWORD(q);
 	SJ_SplitChunk(&mpv->ck, q - mpv->ck.data, &mpv->ck, &rest);
 	SJ_PutChunk(sj, SJ_CK_FREE, &mpv->ck);
 	SJ_UngetChunk(sj, SJ_CK_DATA, &rest);

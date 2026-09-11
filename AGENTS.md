@@ -3549,6 +3549,88 @@ AddRead` (the if/else chain; 68 -> 16w, 136 -> 22w: the extra `li ret, 0` and `r
 - Build hazard again: `ninja -k 0` from several agents at once loops on the objdiff.json race for 20+
   minutes (nj.sh retries); compile the unit with `ninja -t commands` (bld.sh) and run the full check once.
 
+### CRI pass 14: nested-assignment anchors and word-pointer steps (mpv_hdec Matching; sfd_tst 83 -> 79w; 2026-09-11)
+Harness /home/adityas/.cache/cri14/ (deleted): cri13b's `bytecmp.py`/`tryvar.py`/`fd.py`/`bld.sh`/`mwcc.sh`
+(probe compile with a unit's flags + `dtk elf disasm`); ~/.cache/mwccdbg reused. Every finding below was read
+off one dump (`frontend-01` for what the frontend kept, `backend-00` for the codegen tree, `backend-1N` for
+the post-RA peephole) before the build.
+
+**Model additions (verified with probes):**
+- **A nested assignment blocks the frontend's forward substitution.** `x = expr` with a single use is
+  substituted into the use (past calls too: the def's operands are locals, so nothing stops it — the
+  pass-13 "single-use def sunk past a call" class). When the def's expression CONTAINS an assignment
+  (`bitpos = ((Uint32)d - (Uint32)(ptr = (Uint32 *)((Uint32)d & ~3))) << 3`), the side effect makes it
+  non-substitutable: `bitpos` stays a variable, coloured by its declaration position (mpv_hdec: ptr r4 /
+  bitpos r7 in the EXT skip; ptr r26 / bitpos r29 live across the AnalyUd call in the UD skip). The same
+  anchor keeps the 64-bit abs diamond above a call: `adiff = ((diff = a - b) < 0) ? -diff : diff;` (sfd_tst
+  `SFTST_Calc`: the ECONDASS of `adiff` is otherwise substituted into `excess < adiff` below the
+  sftst_Conv call; if/else and `?:` forms, self-assignments, `adiff = (adiff = ..)` nests, dead `diff = 0`
+  defs all sink). Nesting a plain COPY (`p = (p = buf + i) + 4`) does not anchor: the copy is propagated
+  first.
+- **Codegen folds a constant into the non-pointer operand of an add chain**: `(ptr + n) + 4`, `ptr + n - 8`,
+  `(Sint32)ptr + n + 4`, `(Uint8 *)((Uint32)q + 4)`, `&q[4]` all emit `addi n', n, K; add ptr, n'` (the sum
+  after the constant), whatever casts sit between. Two ways to get the target's `add q, ptr, n; addi/subi
+  r0, q, K`: (a) q a VARIABLE stepped by `q += n` (MPVBIT_BYTEPTR's shape) — then q is a frontend @temp
+  ranked BELOW the backend temporaries (the `ck.data` reload takes r4, q r6); (b) **the constant as a
+  word-pointer step, `(Uint8 *)(ptr + 1) + n` / `(Uint8 *)(ptr - 2) + n`**: codegen pulls the scaled
+  constant out to the end, the sum is a backend temporary created after the reload (right operand first),
+  so it is coloured before it and takes the argument register (target `lwz r7, ck.data; add r4, ptr, n;
+  addi r0, r4, 4; subf r4, r7, r0`). (b) is byte-identical at all five mpv_hdec sites and REPLACED the
+  pass-7 asm `lwz data` pins (MPVHDEC_FLUSH, mpvhdec_DecSlice loop test and tail) — the `register` on
+  DecSlice's parameter went with them.
+- **The stwbrx fold is the post-RA peephole** (backend "after-peephole" following prologue/epilogue): it
+  matches the merged `rlwinm 8,8,15; rlwimi 24,0,7; rlwimi 24,16,23; rlwimi 8,24,31; stw` on the SAME
+  source register. Every linear-OR spelling of the swap (term order, casts, Sint32/Uint32, volatile store,
+  a `static` swap helper, a `static` store helper, `| 0`, a second use of the swapped local) is merged
+  pre-RA and folded; only pairwise associations `(a|b)|(c|d)` or `s |= ..` statements keep an `or` (and
+  then are not the target's chain either). sfh_main's target has the same five instructions, same
+  registers except the word (r6), unfolded: not a source shape in this compiler's post-RA peephole — the
+  M4 `#pragma peephole off` + asm chain stays.
+- **The frontend CSEs `(Uint32)(mpv->ck.data)` across two macro uses into one @temp but does NOT CSE a
+  struct-field read across a call** (the `q - mpv->ck.data` after `mpvhdec_AnalyUd` is a fresh
+  EINDIRECT in both builds); an `extern` callee makes no difference.
+
+**Fixed:** mpv_hdec `MPV_DecodePicAtrSj` 21 rows -> 0 (Matching, 15/15): MPVHDEC_SETPOS_KEEP (the nested
+`ptr =`) + MPVHDEC_SKIPWORD (`(Uint8 *)(ptr + 1) + ((bitpos + 7) >> 3)`) in the two skip helpers; the FLUSH
+pins removed as above. sfd_tst `SFTST_Calc` 83 -> 79w (not flipped, see below).
+
+**Residues (exact class, forms tried):**
+- sfd_tst `SFTST_Calc` 79w: with the anchor the diamond has the target's shape (`beq; subfic r22; subfze
+  r23, r23; b; mr r22, r25`) but diff's pair are lo r23 / hi r25 (target lo r25 / hi r23): the backend
+  copy-propagates `mr diff, sub` so diff is the backend pair r226/r227 (lo lower vid), adiff.hi (@119)
+  coalesces INTO diff.hi's copy (the lower vid survives) and diff.lo (vid 226) is coloured before the
+  merged hi (vid 96). The target needs diff kept as a variable (own-local vids below adiff's @temp) — a
+  live second definition of `diff` (`diff = sftst_Conv(..)` right after gives the target's pair, wrong
+  semantics); `diff` reused for t/step/adj/aave (disjoint webs, range-split away), dead `diff = 0` inits,
+  ECOND inside the compare with the call, 6 declaration orders: 79w.
+- sfd_hds `SFHDS_SetHdr` 11w: the target's `result` node has a vid between the inlined IsSfdHeader's `sfh`
+  (@231) and the own locals (len > p, i.e. `Sint32 len; Uint8 *p;`): a frontend @temp created AFTER the
+  nested inline, holding result. Every `res = (Sint32 *)(void *)result` copy (5 placements, a `void *`
+  local, helper `void *` parameters for result/p/sfd) is kept by the frontend and removed by the backend
+  copy propagation (no argument move exists for result: pass-12 rule confirmed on the dumps); a kept sfd
+  copy `s = (SFD)(SFD_OBJ *)sfd` (argument move after calls) pushes result to 29 neighbours = level 2 =
+  r31 above sfh (4w, wrong order); parameter reuse `data -= 6; size += 6` (62w), the two-site return
+  form, a body helper with p/len as parameters (44w).
+- adx_tsvr `adxt_nlp_trap_entry` 2w: unchanged (the `lha r4` load feeds only the `add`; no r0-coloured
+  value and no argument use in the target's bytes) — not touched this pass.
+- adx_baif `AIFF_GetInfo` 129w: the header FORM word is substituted into the compare (single use) while
+  the target keeps it as a variable (3 bytes in r30, `mr r27, r30`, byte 3 merged into the copy = the
+  shape our 2-def `cksz` has); the target's swapped size is a single-use temp (`rlwinm r12, r28 ..; subi
+  r10, r12, 4; add r10, r8, r10`). `ckid` reused for the AIFF word, `if ((ckid = LE32(buf)) != FORM)`
+  nests, `end = p + (SWAP32(cksz) - 4)` swap-as-temp, a stepping-p header, `||`-joined checks: 138-150w.
+- sfd_cre `sfcre_AnalyMpv` 15w: b7 is CSE'd into an int @temp (both uses convert it), coloured first
+  (r5); the real difference is the `ofs + 1` temporary: coloured before the byte variables in ours (takes
+  r4 in place of the dying ofs) and after b4/b7 in the target (r0, `addi r0, r6, 1`) although it is a
+  backend temporary in both. `Sint32/int/Uint32 b7` between b4 and ofs in 8 orders: 15-26w.
+- cri_cvfs `cvFsGetFileSize` 63w / `cvFsOpen` 240w: `tbl` materialised after GetDevIf's strlen in the
+  target (`addi r27, r31, 0x144; mr r24, r27`); no `tbl` local / `dev = tbl = cvfs_tbl` inside GetDevIf
+  (114w/267w), `tbl = cvfs_tbl` before the GetDevIf call (45w/259w, pass 13) — not applied.
+- mpv_hdec `mpvhdec_DecSeqUdsc` keeps its pass-7 asm `add p, buf, i; addi p, p, 4` pin: `(buf + 4) + i`,
+  `&buf[4] + i`, `(Char8 *)((Uint32)buf + i) + 4` fold to `buf + (i + 4)`; `(Char8 *)((Uint32 *)buf + 1)
+  + i` hoists `buf + 4` as a loop invariant (87w); `p = buf + i; p = (Char8 *)((Uint32 *)p + 1)` gives
+  the order but the sum in a temp (`add r3; addi r26, r3, 4`, 2w) — the target's `add p` is in place,
+  i.e. p a variable with the +4 as its second definition.
+
 ## REL modules
 
 The game loads its rooms, enemies, weapons and debug tools as Nintendo REL overlays. `ninja` rebuilds the

@@ -98,7 +98,13 @@ typedef struct {
 } SFTST_HDRSTR;
 static const Char8 sftst_msg_fmt[] = "%p, %ld, %ld, %08lX%08lX, %ld, %ld, %ld, %ld,   %ld, %ld,   %ld, %ld, %ld, %ld,   %ld, %ld,   %ld, %ld, %ld, %ld, %ld,   %ld, %ld,   %ld \n";
 
-/* COMPILER-DIFF: M1 - the 64-bit abs diamond kept in place with two `mr` (if/else and ternary forms get sunk to the compare). Pure C by project decision (CRI pass 8). */
+/* The 64-bit abs diamond: `adiff = (diff < 0) ? -diff : diff` (and the if/else form) becomes a single-def
+ * ECONDASS that the frontend forward-substitutes into `excess < adiff` BELOW the sftst_Conv call; the
+ * nested `diff = ..` assignment inside the condition is a side effect that anchors it above the call with
+ * the target's arm shape (`beq; subfic; subfze` in place; else `mr` of the low word, adiff.hi coalesced
+ * with the dying diff.hi). Residue (79w): the backend propagates `mr diff, sub` so diff's pair are backend
+ * temporaries ranked above adiff.hi (lo r23 / hi r25; target lo r25 / hi r23 = diff kept as a variable
+ * below the ECONDASS temporary). CRI pass 14. */
 void SFTST_Calc(SFTST tst, SFTST_TIME *mt, SFTST_TIME *hlp, SFTST_TIME *out)
 {
 	Sint64 est;
@@ -158,11 +164,7 @@ void SFTST_Calc(SFTST tst, SFTST_TIME *mt, SFTST_TIME *hlp, SFTST_TIME *out)
 			tst->adj_limit++;
 		}
 	} else if (tst->adjflg == 1) {
-		diff = mt->cnt - est;
-		adiff = diff;
-		if (diff < 0) {
-			adiff = -diff;
-		}
+		adiff = ((diff = mt->cnt - est) < 0) ? -diff : diff;
 		excess = sftst_Conv(&tst->excesserr, mt->unit);
 		if (excess < adiff) {
 			tst->base_hlp = hlp->cnt;
