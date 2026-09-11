@@ -933,9 +933,13 @@ public:
         // frame-only: the original's helper had a T-sized local here (no code refers to it; it is
         // the sizeof(T) gap below the tool's spill slots in both ToolEspArea and ToolLightAreaMain)
         T unused;
+        cDbgEditWindow<T>* edit;
 
-        pEdit = new cDbgEditWindow<T>(wx, wy, name, work, n, nRows);
-        if (pEdit == 0) {
+        // the pointer local (like the other Create* helpers): the `new` expression's own null test
+        // and `edit == 0` are one compare, kept in a CR field across the inlined ctor loop
+        edit = new cDbgEditWindow<T>(wx, wy, name, work, n, nRows);
+        pEdit = edit;
+        if (edit == 0) {
             pLog->err(0, 0, "CreateEditWindow(): new failed.");
         }
     }

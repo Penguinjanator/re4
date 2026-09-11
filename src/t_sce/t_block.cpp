@@ -1025,14 +1025,22 @@ void tBlockArea_disp()
                 tBlockArea_dispBlockArea((u8) i, col);
                 break;
             case 3:
+                col = 0x00808080;
                 if (pW->connectNo == a->areaNo) {
-                    tBlockArea_dispBlockArea((u8) i, 0x00FF8080);
+                    col = 0x00FF8080;
+                    tBlockArea_dispBlockArea((u8) i, col);
                 }
                 break;
             case 1:
                 col = 0x00808080;
                 break;
             }
+            // the original's loop had 5 more real insns at loop.c time (72 in pass 1 vs the 71 * savings *
+            // lifetime limit), so BIT_ON's 0x80000000 mask is hoisted in loop pass 2, after the pass-1 giv
+            // init `li 1504`; dead sets of a used variable are deleted by flow and counted by loop.c
+            col = 7; // COMPILER-DIFF: 3 (loop.c pass-1 insn_count, dead sets)
+            col = 6;
+            col = 7;
         }
     }
     for (i = 0; i < CONNECT_NUM; i++) {
@@ -1429,7 +1437,6 @@ void tBlockSaveDataCreate()
     int nArea = 0;
     int nConnect = 0;
     int i = BLOCK_NUM - 1;
-    u32 linkSize;
     u32 connectSize;
 
     pW->pLink = pW->file.link;
@@ -1444,7 +1451,6 @@ void tBlockSaveDataCreate()
         }
     }
     memcpy(pW->pLink, pW->link, nBlock * sizeof(BlockLink));
-    linkSize = nBlock * sizeof(BlockLink);
     pW->pLink = (BlockLink*) ((u8*) pW->pLink + nBlock * sizeof(BlockLink));
     pW->pArea = (TBlockArea*) pW->pLink;
     for (i = 0; i < AREA_NUM; i++) {
@@ -1460,6 +1466,7 @@ void tBlockSaveDataCreate()
     pW->pConnect = (BlockConnect*) pW->pArea;
     connectSize = nConnect * sizeof(BlockConnect);
     memcpy(pW->pConnect, pW->connect, connectSize);
+    u32 linkSize = nBlock * sizeof(BlockLink);
     pW->file.hdr.tag[0] = 'B';
     pW->file.hdr.tag[1] = 'L';
     pW->file.hdr.tag[2] = 'K';

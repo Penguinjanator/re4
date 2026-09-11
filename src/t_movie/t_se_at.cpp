@@ -437,7 +437,6 @@ static const char* seAtFlagName[16] = {"NO SET POS", "", "", "", "", "", "", "",
 static void seAtAreaEdit_DataInput()
 {
     u8 col;
-    int col2;
     u32 i;
     int j;
     s16 x;
@@ -489,6 +488,9 @@ static void seAtAreaEdit_DataInput()
         break;
     case 1:
         if (pW->step == 0) {
+            // cases 1-4 clamp through per-arm `v`/`n` locals (block-local qtys: n ties to the dying v,
+            // `ori r11,r11,0x8000` without the `mr`); case 0 keeps the function-scope pair (`mr r0,r11`)
+            int v, n;
             v = pCur->se_no;
             SEAT_STEP(v);
             if (v >= 0) {
@@ -503,7 +505,8 @@ static void seAtAreaEdit_DataInput()
         break;
     case 2:
         switch (pW->step) {
-        case 0:
+        case 0: {
+            int v, n;
             pW->input = 0;
             v = pCur->interval;
             SEAT_STEP(v);
@@ -521,6 +524,7 @@ static void seAtAreaEdit_DataInput()
                 pW->input = 1;
             }
             break;
+        }
         case 1:
             num = 2;
             oy = 0xF0;
@@ -539,7 +543,8 @@ static void seAtAreaEdit_DataInput()
                 eprintf(0x30, 0xF0 + pW->rndCursor * 16, 0, 0, ">");
             }
             switch (pW->rndCursor) {
-            case 0:
+            case 0: {
+                int v, n;
                 v = pCur->rnd_base;
                 SEAT_STEP(v);
                 if (v >= 0) {
@@ -551,7 +556,9 @@ static void seAtAreaEdit_DataInput()
                 pCur->rnd_base = n;
                 eprintf(0x30, 0x190, 0, 0, "RANDOM BASE VALUE(0-65535)");
                 break;
-            case 1:
+            }
+            case 1: {
+                int v, n;
                 v = pCur->rnd_range;
                 SEAT_STEP(v);
                 if (v > 0) {
@@ -564,13 +571,15 @@ static void seAtAreaEdit_DataInput()
                 eprintf(0x30, 0x190, 0, 0, "RANDOM MAX INTERVAL(1-65535,+BASE VALUE)");
                 break;
             }
+            }
             if (Joy[0].trg & JOY_B) pW->step--;
             eprintf(0xC8, 0xF0, 0, 0, "%d", pCur->rnd_base);
             eprintf(0xC8, 0x100, 0, 0, "%d", pCur->rnd_range);
             break;
         }
         break;
-    case 3:
+    case 3: {
+        int v, n;
         v = pCur->wait;
         SEAT_STEP(v);
         if (v >= 0) {
@@ -582,7 +591,9 @@ static void seAtAreaEdit_DataInput()
         pCur->wait = n;
         eprintf(0x30, 0x190, 0, 0, "DELAY TIME (0 - 65535)");
         break;
-    case 4:
+    }
+    case 4: {
+        int v, n;
         v = pCur->repeat;
         SEAT_STEP(v);
         if (v >= -1) {
@@ -594,6 +605,7 @@ static void seAtAreaEdit_DataInput()
         pCur->repeat = n;
         eprintf(0x30, 0x190, 0, 0, "CALL NUM (1 - 32767,0:INFINITY,-1:NO CALL)");
         break;
+    }
     case 5:
         x = pW->x + 0x60;
         y = pW->y + 0x50;
@@ -616,42 +628,43 @@ static void seAtAreaEdit_DataInput()
     x = pW->x + 0x60;
     y = pW->y;
     if (pW->input == 0) {
-        col2 = 0;
+        col = 0;
         if (Joy[0].trg & JOY_B) {
             pW->sub = 0;
             pW->step = 0;
             pW->step2 = 0;
         }
     } else {
-        col2 = 7;
+        col = 7;
     }
-    eprintf(x, y, (u8) col2, 0, "%s", (u32) pCur->blk <= 6 ? seAtBlockName[pCur->blk] : "...no string");
+    eprintf(x, y, col, 0, "%s", (u32) pCur->blk <= 6 ? seAtBlockName[pCur->blk] : "...no string");
     y += 16;
-    eprintf(x, y, (u8) col2, 0, "%d", pCur->se_no);
+    eprintf(x, y, col, 0, "%d", pCur->se_no);
     y += 16;
     if (pCur->interval == 0) {
-        eprintf(x, y, (u8) col2, 0, "RANDOM  >>");
+        eprintf(x, y, col, 0, "RANDOM  >>");
     } else {
-        eprintf(x, y, (u8) col2, 0, "%d", pCur->interval);
+        eprintf(x, y, col, 0, "%d", pCur->interval);
     }
     y += 16;
-    eprintf(x, y, (u8) col2, 0, "%d", pCur->wait);
+    eprintf(x, y, col, 0, "%d", pCur->wait);
     y += 16;
     switch (pCur->repeat) {
     case -1:
-        eprintf(x, y, (u8) col2, 0, "NO CALL");
+        eprintf(x, y, col, 0, "NO CALL");
         break;
     case 0:
-        eprintf(x, y, (u8) col2, 0, "INFINITY");
+        eprintf(x, y, col, 0, "INFINITY");
         break;
     default:
-        eprintf(x, y, (u8) col2, 0, "%d", pCur->repeat);
+        eprintf(x, y, col, 0, "%d", pCur->repeat);
         break;
     }
     if (pW->inputCursor != 5) {
+        u32 k;
         y += 16;
-        for (i = 0; i < 16; i++) {
-            eprintf(x + i * 8, y, 0, 0, "%d", (pCur->flags2 >> (15 - i)) & 1);
+        for (k = 0; k < 16; k++) {
+            eprintf(x + k * 8, y, 0, 0, "%d", (pCur->flags2 >> (15 - k)) & 1);
         }
     }
 }

@@ -802,6 +802,7 @@ MATCHING = {
     "t_sce/t_sce_at.cpp": True,
     "t_sce/t_sce_item.cpp": True,
     "t_sce/db_light.cpp": True,
+    "t_sce/t_block.cpp": True,
     # single-unit enemy modules (src/<em>/<em>.cpp, the whole REL)
     "em2e/em2e.cpp": True,
     "em26/em26.cpp": True,
