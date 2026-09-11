@@ -127,10 +127,10 @@ public:
     void* tex[FILE_NUM];      // 0x088
     void* motData[FILE_NUM];  // 0x0C8
     DbMotWork mot[FILE_NUM];  // 0x108
-    u8 motStat[FILE_NUM];     // 0xE08
+    s8 motStat[FILE_NUM];     // 0xE08
     u8 motFlag[FILE_NUM];     // 0xE18
-    u8 xE28;                  // 0xE28
-    u8 xE29;                  // 0xE29
+    s8 xE28;                  // 0xE28
+    s8 xE29;                  // 0xE29
     u16 setNo;                // 0xE2A
     cEm* parent;              // 0xE2C  parent model (setParent)
     s8 no;                    // 0xE30  slot number / parent slot
@@ -1492,7 +1492,8 @@ static int dbmod_motion()
     len = strlen(pDbModState.p->motName[pDbModState.p->sub]) - pDbModState.p->hashOfs[pDbModState.p->sub];
     nlen = strlen(dbmodSkipPath(pDbModState.p->motName[pDbModState.p->sub]));
     hs = nlen - len;
-    eprintf((hs - 1 + (pDbModState.p->digits[pDbModState.p->sub] - pDbModState.p->digit) + 25) * 8, 6 * 14, 0x16, 0, "^");
+    hs += pDbModState.p->digits[pDbModState.p->sub] - pDbModState.p->digit;
+    eprintf((hs - 1 + 25) * 8, 6 * 14, 0x16, 0, "^");
     motion_usage();
     return ret;
 }
@@ -1871,6 +1872,8 @@ static int dbmod_trans()
     JOY* joy = &Joy[0];
     u16* flag;
     int i;
+    int y;
+    int color;
 
     if (em->pEm == 0) {
         pDbModState.p->mode--;
@@ -1879,12 +1882,14 @@ static int dbmod_trans()
     flag = &em->mot[0].flags;
     switch (pDbModState.p->step) {
     case 0:
-        if (!(em->mot[0].flags & 1)) {
-            pDbModState.p->transMode = 1;
-        } else if (em->mot[0].flags & 0x10) {
-            pDbModState.p->transMode = 0;
+        if (em->mot[0].flags & 1) {
+            if (em->mot[0].flags & 0x10) {
+                pDbModState.p->transMode = 0;
+            } else {
+                pDbModState.p->transMode = 2;
+            }
         } else {
-            pDbModState.p->transMode = 2;
+            pDbModState.p->transMode = 1;
         }
         pDbModState.p->step++;
     case 1:
@@ -1916,11 +1921,16 @@ static int dbmod_trans()
         break;
     }
     eprintf(5 * 8, 3 * 14, 5, 0, "---- TRANS -----");
+    y = 4;
     for (i = 0; i <= 3; i++) {
-        int row = 4 * 14;
-        eprintf((6 + i * 4) * 8, row, (i == pDbModState.p->transMode) ? 0 : 7, 0, "%s", dbmodTransLabel[i]);
+        if (i == pDbModState.p->transMode) {
+            color = 0;
+        } else {
+            color = 7;
+        }
+        eprintf((6 + i * 4) * 8, y * 14, color, 0, "%s", dbmodTransLabel[i]);
         if (i != 3) {
-            eprintf((9 + i * 4) * 8, row, 0, 0, "/");
+            eprintf((9 + i * 4) * 8, y * 14, 0, 0, "/");
         }
     }
     return 0;
@@ -2067,10 +2077,10 @@ static int dbmod_blend()
     f32 speed = 0.01f;
     f32 rate;
     int old, method;
-    int x = 6;
-    int cx = 5;
-    int nx = 16;
-    int ny = 6;
+    int x;
+    int cx;
+    int nx;
+    int ny;
     int i, color;
 
     if (em->pEm == 0) {
@@ -2096,6 +2106,8 @@ static int dbmod_blend()
         }
         pDbModState.p->sub = CLAMP(pDbModState.p->sub, 1, 2);
         switch (pDbModState.p->sub) {
+        case 0:
+            break;
         case 1:
             if (joy->trg & 0x10) {
                 pDbModState.p->blendRate = 0.0f;
@@ -2128,12 +2140,12 @@ static int dbmod_blend()
             if (em->motData[1] && old != method) {
                 switch (pDbModState.p->blendMode) {
                 case 0:
-                    MotionSetCore(em->pEm, &em->mot[1], em->motData[0], 0, 0, em->mot[0].flags | 0x200, 0);
+                    MotionSetCore(em->pEm, &em->pEm->mot, em->motData[0], 0, 0, em->mot[0].flags | 0x200, 0);
                     em->pEm->motBlend = (MotionWork*) &em->mot[1];
                     em->pEm->motBlend->flags2 &= 0x7FFFFFFF;
                     break;
                 case 1:
-                    MotionSetCore(em->pEm, &em->mot[1], em->motData[0], 0, 0, em->mot[0].flags | 0x200, 0);
+                    MotionSetCore(em->pEm, &em->pEm->mot, em->motData[0], 0, 0, em->mot[0].flags | 0x200, 0);
                     em->pEm->motBlend = (MotionWork*) &em->mot[1];
                     em->pEm->motBlend->flags2 |= 0x80000000;
                     break;
@@ -2151,6 +2163,10 @@ static int dbmod_blend()
         em->pEm->motBlend->blendRate = pDbModState.p->blendRate;
     }
     eprintf(5 * 8, 3 * 14, 5, 0, "---- BLEND ----");
+    x = 6;
+    cx = 5;
+    nx = 16;
+    ny = 6;
     for (i = 0; i <= 2; i++) {
         int row = (i + 4) * 14;
         eprintf(x * 8, row, (i == pDbModState.p->sub) ? 4 : 0, 0, "%s", dbmodBlendLabel[i]);
@@ -2620,9 +2636,9 @@ static int dbmod_p_info()
     MotionWork* mw;
     cParts* p;
     int n = 0;
-    int i, j;
+    int i, j, k;
     int type;
-    int x = 6;
+    int x;
     int y = 4;
     Vec* v;
 
@@ -2633,18 +2649,18 @@ static int dbmod_p_info()
     mw = &model->mot;
     switch (pDbModState.p->step) {
     case 0:
-        for (i = 0; i < mw->nParts; i++) {
-            u8 info = (u8) mw->partsInfo[i];
-            u8 no = mw->partsNo[i];
+        for (k = 0; k < mw->nParts; k++) {
+            int info = mw->partsInfo[k] & 0xFF;
+            u8 no = mw->partsNo[k];
             type = -1;
             if (info & 0x30) {
                 type = 0;
                 if (info & 0x20) {
                     type = 1;
                 }
-            }
-            if (info & 0x80) {
-                type = 2;
+                if (info & 0x80) {
+                    type = 2;
+                }
             }
             if (type != -1) {
                 pinfoParts[n] = no;
@@ -2691,6 +2707,8 @@ static int dbmod_p_info()
     }
 
     eprintf(5 * 8, 3 * 14, 5, 0, "-- PARTS INFO --");
+    v = 0;
+    x = 6;
     for (i = 0; i < pinfoNum; i++) {
         int color = (i == pDbModState.p->sub) ? 4 : 0;
         if (i == pDbModState.p->sub && (pDbModState.p->timer & 0x18)) {
@@ -2732,7 +2750,7 @@ static int dbmod_p_info()
                         v = &p->worldPos;
                         break;
                     }
-                    eprintf2(dbmodPinfoW, dbmodPinfoH, dbmodPinfoX, dbmodPinfoY + (i + 1 + j) * dbmodPinfoH, 0, 0,
+                    eprintf2(dbmodPinfoW, dbmodPinfoH, dbmodPinfoX, dbmodPinfoY + (i + j + 1) * dbmodPinfoH, 0, 0,
                              "%s (%f, %f, %f)", dbmodPinfoLabel[j], v->x, v->y, v->z);
                 }
             }

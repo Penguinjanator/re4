@@ -19835,7 +19835,7 @@ the word count is noise), `v/*.py` variant files); deleted at the end. Build 111
 - t_event/t_event not started: its .text gap (0x7320/0x72f0) is SubToolMessInit's shared `cDbgToolMain<T>` ctor loops (pass 18a)
   plus CallbackLoad 0xC.
 
-### DOL sweep 26a, closest-first (cam_extra 32 -> 37/43: `.rodata` equal (0x310), FocusAnimation::init 8 -> 0, FocusAnimation::move 97 -> 0, CameraLookDownEm ctor 4 -> 0, both dtors 1 -> 0 zero code, CameraBinocular ctor 31 -> 17, CameraPushObject::move 131 -> 106; shadow, dvd, Espgen43 mechanisms sharpened, unchanged; nothing flipped; 2026-09-11)
+### DOL sweep 26a, closest-first (cam_extra 32 -> 37/43: `.rodata` equal (0x310), FocusAnimation::init 8 -> 0, FocusAnimation::move 97 -> 0, CameraLookDownEm ctor 4 -> 0, both dtors 1 -> 0 zero code, CameraBinocular ctor 31 -> 17, CameraPushObject::move 131 -> 117; sce_at sceAtGetItem_NoModel 12 -> 4 and sceAtGetItem 98 -> 91 with one #12 asm removed; shadow, dvd, Espgen43 mechanisms sharpened, unchanged; nothing flipped; 2026-09-11)
 
 Harness ~/.cache/dol26a (dol25b copies with the paths rewritten; `tryv.py UNIT SYM v/x.py` with `STRIP=1` for STRIP_UNUSED units,
 `sbs.sh UNIT SYM [OBJ]`, `dump.sh UNIT -dX`), deleted at the end. 111 OK before and after.
@@ -19871,14 +19871,25 @@ Harness ~/.cache/dol26a (dol25b copies with the paths rewritten; `tryv.py UNIT S
   structure the else arm's `filter0a_mask_alpha = 0` is a fresh `li r0,0` (cse no longer reaches the else arm with `flag ==
   0`), so no `u8 a` out-variable is needed (an out-variable adds `clrlwi r0,r0,24`: the fast-cast `unsigned_fix:QI` result
   is QImode and PROMOTE_MODE zero-extends it into any SImode variable; only a direct QI store avoids it).
-- CameraPushObject::move: `look` in the non-0x41 arm is `em->mat[i][2]` (offsets 0x14/0x24/0x34), not column 1. Left (106):
-  the target writes `inv`'s translation column to a separate 12-byte slot at 0xE8 (right after `plmat` 0xB8..0xE7) with
-  `plmat[*][3]` untouched -- a `Vec plpos` declared after `plmat` puts the stores right but costs a 16-byte frame slot
-  (0x1D0 vs 0x1E0), so the target's Vec is one of the existing locals (reverted); the `em_pos.z >= 0 && Mag <= 4000` tests are
-  `blt; cror so,eq,gt; bso` in the target vs `cror; bns` in ours (compare spelling), and the local slot order differs.
+- CameraPushObject::move 131 -> 117 (frame map read off the target): `look` in the non-0x41 arm is `em->mat[i][2]`
+  (0x14/0x24/0x34), not column 1; `inv`'s translation column goes to its own Vec right after `plmat` (`Vec plpos` at 0xE8);
+  pos/at are one `Vec v[2]` (0xF8, 0x104: two 12-byte Vecs packed = an array, a separate Vec local is 8-aligned); `look`
+  and `axis` are declared inside `if (em)` (0x118/0x128) and `hit/nrm/from/to` in a block after it (hit reuses look's 0x118,
+  then 0x138/0x148/0x158; `&nrm` is a reload spill at 0x168). Left: the target keeps `default_ofs[7]/[6]` in an 8-byte slot
+  at 0x110 across the two inv-MultVec calls (`stfs 0x114/0x110` right after the loads, reloaded before the param stores);
+  `f32 fr[2]`/a 2-float struct local are scalarised into f30/f31 by ours (117 either way), and the `em_pos.z >= 0 && Mag <=
+  4000` tests are `blt; cror so,eq,gt; bso` in the target vs `cror; bns` in ours.
 - CameraBinocular ctor (17): the else arm's PRE copies of `&param.pos`/`&param.at` (`addi r30,r31,164; addi r29,r31,176; mr
   r26,r30; mr r25,r29`) are inserted at the end of the else arm's FIRST block (before the first getPartsPtr call's parameter
   loads) in the target and after the second call in ours; else-arm statement order/`p[2]` array not yet varied.
+- **A store that the target issues as the FIRST insn of a join block, with its source register dead right there, is a
+  cross-jumped store written in BOTH arms (sce_at sceAtGetItem_NoModel 12 -> 4, sceAtGetItem 98 -> 91, zero code, the
+  `asm("li %0,0")` #12 workaround for `ItemMgr.x12 = 0` removed in both).** `if (n == 0) { itemInfo(..); tmp.num = info.x3; }
+  else { tmp.num = n; }` puts one `sth` at the end of each arm; jump2 merges them into `L: sth r0,0x12(r1)` and `n` dies in
+  its arm, so the join's fresh `li r0,0` reuses r0. The single `tmp.num = n` after the if ranks below `lis ItemMgr`/`li 0`
+  (prio 3 vs 4) in sched1, overlaps the zero and pushes `n` to r9 (the 12 words). Left in NoModel (4): `li r31,0` (cancel)
+  issued before the two `addi`s of the prologue in the target, and `addi r4,r1,16` before `stb r0,18(r3)`; sceAtGetItem's 91
+  are global-alloc pairs (w r24/r25, cancel r25/r24, it r31/r29, ItemMgr r30/r31) only.
 - **shadow make_comn_fit/parallel_light (2+2, unchanged; the qty numbers).** Block 19 sched1 (0-based slots after the call):
   LC23 high 0, loadaddr 1, lfs LC23 2, 0x4330 3, magic high 4, 1.0 high 5, lfd magic 6, fmuls 7, stfs fov 8, lfs 1.0 9, lbz
   10, xor 11, stw 12, stw 13, lfd 14. QTY_CMP_PRI (`floor_log2(refs)*refs*size/(death-birth)`, births/deaths at 2*insn):
@@ -19985,3 +19996,78 @@ every variant, and `sngcc/` = the LADBG cc1plus (fprintf in local-alloc.c block_
   = frac (4 refs/35 insns, 0.229) must outrank mf (3/11, 0.273): frac needs a 5th ref or a life <= 29, or mf a longer life -- the
   target's `fsubs f13,f13,f0` ties frac into the dying seqFrame because mf is allocated after it; sce_com SceElevator/OpenBoxMain,
   card, option, puzzle, pendulum, esp08/esp18, cam_ctrl not iterated.
+
+### Tool RELs, db_mod pass 3 (t_esp 61 -> 62/75, Tools 49 -> 50/63, 929 -> 600 words in both, .text gap 0x3C -> 0x1C ours shorter; dbmod_trans 71 -> 0 zero code; dbmod_blend 184 -> 25, dbmod_p_info 158 -> 117 (0x62c -> 0x630 of 0x638), dbModMotionMove 194 -> 163, dbmod_motion 54 -> 27; nothing flipped; 2026-09-11)
+
+- Harness ~/.cache/dbmod3 (deleted): `mbuild.sh MOD SRC OUTDIR` (module cflags from build.ninja + strip_unused/fold_linkonce
+  `--module`, output `OUTDIR/db_mod.o`), `mtryv.py FUNC v.py [--mod MOD] [--apply NAME]` (substring variants, judged with
+  `OBJ= tools/bytecmp.py MOD/db_mod FUNC`, 0.5 s per variant), `mrel.py MOD SYM [OBJ] [--all|--ours|--target]` (side-by-side
+  disassembly with function-relative branch targets: the target's REL14/REL24 are resolved from the `SYM+0x..` reloc line, ours from
+  the `.text+0x..` one -- a first version looped forever on the reloc lines, increment the index before every `continue`),
+  `mdump.sh MOD -dX` (`-G0`, module defines, `SRC_OVERRIDE=`), `mcheck.sh` (both modules). 111 OK before and after; every change is
+  pure C++ (no tag, no asm); `python3 tools/bytecmp.py` DIFF in both modules, both modules.py flags stay False.
+- **dbmod_trans 71 -> 0 (zero code, three pieces):** (1) case 0 is `if (flags & 1) { if (flags & 0x10) transMode = 0; else
+  transMode = 2; } else transMode = 1;` -- the `!(flags & 1)`-first spelling makes fold turn `(f & 1) == 0` into `(f ^ 1) & 1`
+  (`xori; andi.`) and the `transMode = 0` store then reuses that zero instead of the switch register `step` (the target's `stb r9`
+  stores the `lbz step` register cse knows to be 0 in case 0). (2) `y = 4;` right after the title eprintf (`int y;` at the top)
+  and the literal `y * 14` at BOTH calls: the `mulli r31,r23,14` stays inside the loop (the target's `li r23,4` in the preheader
+  and the per-iteration mult) -- with `int row = 4 * 14` or `y` set at the declaration the row folds to `li r4,56`. (3) the colour
+  is the statement form `if (i == transMode) color = 0; else color = 7;` (jump.c hoists the else set: `li r5,7; bne; li r5,0`);
+  the ternary as an argument gives `li 0; beq; li 7`. Same size, 10 callee-saved registers (r22-r31) reproduced.
+- **dbmod_blend 184 -> 25 (size +4 left):** (1) `x = 6; cx = 5; nx = 16; ny = 6;` assigned right AFTER the title eprintf
+  (`int x; int cx; int nx; int ny;` uninitialised at the top): pass 2's rule for the pages whose x/y are only used in the display
+  loop -- the target's `li r19,6 / li r24,5 / li r28,16 / li r27,6` land in the preheader after the title and every use is
+  `slwi r3,rX,3` / `mulli r4,r24,14` / `mulli r4,r27,14` (pass 2 measured 185 -> 291 for this because (2) and (3) were missing,
+  not because x/y are used before the title -- they are not). (2) the sub switch has an EMPTY `case 0: break;` before `case 1:`
+  (CLAMP(sub, 1, 2) makes it dead): the target's tree is `cmpwi 1; beq C1; ble END; cmpwi 2; beq C2; b END`, the `ble END` is
+  the empty case below 1. (3) **MotionSetCore's second argument is `&em->pEm->mot` (the model's own MotionWork, pEm + 472), not
+  `&em->mot[1]` (em + 472; the same offset by coincidence)** -- the target's `lwz r3,4(r30); addi r4,r3,472` computes it from the
+  loaded pEm and stores em + 472 separately for `motBlend`; our `addi r30,r31,472` shared one pseudo for both. Left (25): case 0's
+  eprintf passes the `color` register set at the switch head (`li r5,0` before the tree, no set in case 0) while ours folds it to
+  a fresh `li r5,0` in case 0 (cse1's NOT_TAKEN re-walk / gcse cprop knows color == 0 there; `int color = 0` at the declaration,
+  block-scoped colours and per-arm forms not tried), and the cx/pDbModState-high naming (r24/r23 vs r23/r22 = one callee-saved
+  register more in the target).
+- **dbmod_p_info 158 -> 117 (0x62c -> 0x630 of 0x638):** (1) case 0's classification is `if (info & 0x30) { type = 0; if (info &
+  0x20) type = 1; if (info & 0x80) type = 2; }` (the 0x80 test INSIDE the 0x30 block, IKreport's structure) with `int info =
+  mw->partsInfo[k] & 0xFF` (`lhzx; clrlwi`, not the `u8` local's `lbz`), and its loop counter is a THIRD variable `k` (target
+  r6, caller-saved; the display loop's `i` is r29): a shared `i` gives r29 in both loops. Left there: the gcse recomputation copy
+  `mr r9,r0` for the third test (IKreport's exact mechanism, pass 7). (2) the j-loop row is `(i + j + 1) * H`: a giv of biv j
+  with add_val `i + 1` (`mr r29,r28` from the PRE'd `i + 1` copy, `addi r29,r29,1` in the latch, `mullw r6,r29,r4`); `(i + 1 + j)`
+  is folded to `i + (j + 1)` and cse merges the `j + 1` with the increment (`addi r30,r11,1; add r6,r28,r30`, no giv). (3) `v = 0;
+  x = 6;` (that order) after the title eprintf, BEFORE the `for`: the target's `li r26,0; li r15,6` sit between `li r29,0` (i)
+  and the entry compare, i.e. straight-line statements (a loop movable would land after the `bge` exit test); `x = 6` at the
+  declaration puts `li r17,6` in the prologue and lets cprop fold `x + 7`/`x + 13` early (hoisted `li r14,13`). Left (117):
+  `x + 13 -> 19` still hoisted to the preheader in pass 2 (`li r14,19`; the target keeps `li r0,19` / `li r0,13` next to their
+  `slwi` in the loop -- the life of the folded constant at loop pass 2 decides, ours is 4-5 after scan_loop's single-use
+  replacement moves the `ashift` next to the `r3 =` arg move), the zero pseudo `li r25,0` + `mr r7,r25` for the 5th eprintf2
+  argument of both j-loop calls (a variable holding 0 that cse cannot fold in the j-loop ebb; `int c = 0` in the else arm / at the
+  j-body top and `color` tried: 126-131), the `mr r18,r27` label-pointer copy of the j == 0 arm, and the register names that follow
+  (pinfoNum high r14/r15, x r15/r16).
+- **dbModMotionMove 194 -> 163 (size now +4):** `DB_EM::xE28`, `xE29` and `motStat[FILE_NUM]` are `s8` (`lbz; extsb; cmpwi 1`,
+  `addi; extsb; stb`, `lbzx; extsb; clrlwi 16` for the `(u16) motStat[xE29]` argument) -- DB_EM is defined in db_mod.cpp, no
+  header change; every other function of the unit unchanged (62/75 stays). Left (163): the `order[]` init loop -- the target has
+  TWO decrementing registers plus `bdnz` (`li r24,63; addi r9,r1,71; stb r24,0(r9); addi r9,-1; addi r24,-1`): the address giv
+  `&order[i]` was strength-reduced from the frame pointer directly (init fp + 71) while `&order` (fp + 8) is still PRE'd into
+  r23 for the later `lbzx`; ours keeps `stbx rI,rBase,rI` because the address is `(plus (reg fp+8) i)` (gcse replaced the
+  frame address everywhere, giv benefit 0 -> "not worth while"). `s8`/`u8` counters, `(u8) i` index, `i - 1` / `i--` spellings,
+  a separate `n` counter and a stepping pointer (119, unnatural) do not give it; the ORIGINAL's address must have been a
+  three-operand `fp + i + 8` at loop time (an expression whose `fp + 8` sub-term gcse could not match). Also left: the swap loop's
+  `i + 1` (the target computes `addi r7,r7,1` in the no-swap arm and `mr r7,r5` on the swap path = gcse inserted `i + 1` at the
+  end of the ELSE block, not in the compare block; `continue`, `while`, `++j` forms unchanged), and the register naming after it.
+- **dbmod_motion 54 -> 27:** the `^` cursor of the digit editor accumulates into `hs`: `hs = nlen - len; hs += digits[sub] - digit;
+  eprintf((hs - 1 + 25) * 8, ...)` -- the target's `subf r30; add r30,r30,r0; addi r30,r30,24; slwi r3,r30,3` is one user
+  variable (global pseudo, callee-saved) through the whole chain; the single expression `(hs - 1 + (d - digit) + 25) * 8`
+  computes `add r3,r3,r27` into the argument register. Left (27): register naming (k r29/r31, hs r31/r29), `li r19,16` (nx) in
+  the preheader where ours has the pDbModState high, and the `s8 no` at +0x168 in r8 vs our r4.
+- **position_usage 10 (read, not applied):** `int position_usage(int mode) { ...; return y; }` reproduces the tail exactly
+  (`addi r31,r31,1` above the Back call, `addi r4,r31,-1; mulli` for B) at the cost of a `mr r3,r31` the target does not have
+  (8 words, size 0x2f4 vs 0x2f0); a static store, a dead `if (mode == 2)` call and a trailing dead loop give 9-19. The other 4
+  words are the join block's `li r30,43` AFTER `mulli r4,r31,14` (the x = 43 is evaluated after the Reset row in the target)
+  and the first `y++` above the Reset call. Not closed.
+- **dbmod_scale 2 (read, not closed):** loop pass 1 moves our folded `x - 1 = 5` (regno 267, life 1, savings 1, insn_count 64)
+  while the same-shaped `high("%f")`/`16` movables are "not desirable" in the same loop, so the target's `li r30,56 (giv init);
+  li r24,5` order = `x - 1` moved in pass 2 (after the giv init) as in dbmod_light (124 insns, life 1 -> life 2 in pass 2). The
+  criterion is `threshold * savings * lifetime >= insn_count` (loop.c 1861) with threshold = (1 + n_non_fixed_regs) ~ 53..63
+  here; why 267 passes it (already_moved / forces are not printed) was not resolved; `i < 1`, x in the loop, a second counter,
+  do-while, `(x - 1) << 3`, `8 * (x - 1)`, statement order, `f32 sc` local, `switch (i)`, a label pointer: 2-57, none 0.
+- Not iterated: IKreport 10 (pass 7), dbmodGetFilenames 17 (pass 2 permutation), dbmodDispModelName 100, dbmod_locate 103.
