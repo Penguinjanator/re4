@@ -1213,34 +1213,35 @@ void dbmodDispModelName()
 {
     int x = 6;
     int y = 4;
-    int cx = 5;
-    int nx = 14;
     int i, k;
     int color;
     int len, nlen, hs, he;
     char* name;
     DB_MODEL_FILES* f;
+    int no;
 
     eprintf(5 * 8, 3 * 14, 5, 0, "---- MODEL -----");
     for (i = 2; i >= 0; i--) {
         eprintf(x * 8, (i + 4) * 14, (i == pDbModState.p->sub) ? 4 : 0, 0, "%s", dbmodModelLabel[i]);
         if (i == pDbModState.p->sub && (pDbModState.p->timer & 0x18)) {
-            eprintf(cx * 8, (i + 4) * 14, 0x16, 0, ">");
+            eprintf((x - 1) * 8, (i + 4) * 14, 0x16, 0, ">");
         }
         switch (i) {
         case 0:
-            eprintf(nx * 8, y * 14, 0, 0, "%s", pDbModState.p->setName);
+            eprintf((x + 8) * 8, y * 14, 0, 0, "%s", pDbModState.p->setName);
             break;
         case 1:
             if (pDbModState.p->motNo[0] == -1) {
-                eprintf(nx * 8, cx * 14, 0, 0, "[%6s]", "null");
+                eprintf((x + 8) * 8, (y + 1) * 14, 0, 0, "[%6s]", "null");
                 break;
             }
-            if (pDbModState.p->motNum[0] == -1) {
-                eprintf(nx * 8, cx * 14, 0, 0, "[%6s] --------.---", pDbModState.p->motDir[0]);
+            no = pDbModState.p->motNum[0];
+            asm("" : "+b"(no)); // COMPILER-DIFF: the target loads motNum into r9 (a BASE-class pseudo), ours r0
+            if (no == -1) {
+                eprintf((x + 8) * 8, (y + 1) * 14, 0, 0, "[%6s] --------.---", pDbModState.p->motDir[0]);
                 break;
             }
-            eprintf(nx * 8, cx * 14, 0, 0, "[%6s]", pDbModState.p->motDir[0]);
+            eprintf((x + 8) * 8, (y + 1) * 14, 0, 0, "[%6s]", pDbModState.p->motDir[0]);
             switch (pDbModState.p->motType[0]) {
             case 0:
                 color = 0;
@@ -1251,10 +1252,10 @@ void dbmodDispModelName()
                 color = 2;
                 break;
             }
-            len = strlen(pDbModState.p->motName[0]) - pDbModState.p->hashOfs[0];
+            hs = strlen(pDbModState.p->motName[0]) - pDbModState.p->hashOfs[0];
             name = dbmodSkipPath(pDbModState.p->motName[0]);
             nlen = strlen(name);
-            hs = nlen - len;
+            hs = nlen - hs;
             he = hs + pDbModState.p->digits[0] - 1;
             for (k = 0; k < nlen; k++) {
                 if (k >= hs && k <= he) {
@@ -1285,9 +1286,9 @@ void dbmodDispModelName()
     y = 8;
     color = 0;
     f = &dbModSlot[pDbModState.p->no].files[0];
-    for (k = 0; k < pDbModState.p->binNum; k++) {
-        if (k < f->m_num && strcmp(pDbModState.p->name[0][k], f->m_name[k]) == 0) {
-            switch (f->m_stat[k]) {
+    for (i = 0; i < pDbModState.p->binNum; i++) {
+        if (i < f->m_num && strcmp(pDbModState.p->name[0][i], f->m_name[i]) == 0) {
+            switch (f->m_stat[i]) {
             case 3:
                 color = 0;
                 break;
@@ -1301,16 +1302,16 @@ void dbmodDispModelName()
         } else {
             color = 0;
         }
-        name = dbmodSkipPath(pDbModState.p->name[0][k]);
-        eprintf(x * 8, (9 + k) * 14, color, 0, "%s", name);
+        name = dbmodSkipPath(pDbModState.p->name[0][i]);
+        eprintf(x * 8, (9 + i) * 14, color, 0, "%s", name);
     }
     eprintf(20 * 8, y * 14, 0, 0, "TEX:[%6s]", pDbModState.p->texDir);
     x = 20;
     color = 0;
     f = &dbModSlot[pDbModState.p->no].files[1];
-    for (k = 0; k < pDbModState.p->texNum; k++) {
-        if (k < f->m_num && strcmp(pDbModState.p->name[1][k], f->m_name[k]) == 0) {
-            switch (f->m_stat[k]) {
+    for (i = 0; i < pDbModState.p->texNum; i++) {
+        if (i < f->m_num && strcmp(pDbModState.p->name[1][i], f->m_name[i]) == 0) {
+            switch (f->m_stat[i]) {
             case 3:
                 color = 0;
                 break;
@@ -1324,8 +1325,8 @@ void dbmodDispModelName()
         } else {
             color = 0;
         }
-        name = dbmodSkipPath(pDbModState.p->name[1][k]);
-        eprintf(x * 8, (9 + k) * 14, color, 0, "%s", name);
+        name = dbmodSkipPath(pDbModState.p->name[1][i]);
+        eprintf(x * 8, (9 + i) * 14, color, 0, "%s", name);
     }
 }
 
@@ -1475,10 +1476,10 @@ static int dbmod_motion()
             color = 2;
             break;
         }
-        len = strlen(pDbModState.p->motName[i]) - pDbModState.p->hashOfs[i];
+        hs = strlen(pDbModState.p->motName[i]) - pDbModState.p->hashOfs[i];
         name = dbmodSkipPath(pDbModState.p->motName[i]);
         nlen = strlen(name);
-        hs = nlen - len;
+        hs = nlen - hs;
         he = hs + pDbModState.p->digits[i] - 1;
         for (j = 0; j < nlen; j++) {
             if (i == pDbModState.p->sub) {
@@ -1490,10 +1491,9 @@ static int dbmod_motion()
         }
     }
     len = strlen(pDbModState.p->motName[pDbModState.p->sub]) - pDbModState.p->hashOfs[pDbModState.p->sub];
-    nlen = strlen(dbmodSkipPath(pDbModState.p->motName[pDbModState.p->sub]));
-    hs = nlen - len;
-    hs += pDbModState.p->digits[pDbModState.p->sub] - pDbModState.p->digit;
-    eprintf((hs - 1 + 25) * 8, 6 * 14, 0x16, 0, "^");
+    len = strlen(dbmodSkipPath(pDbModState.p->motName[pDbModState.p->sub])) - len;
+    len += pDbModState.p->digits[pDbModState.p->sub] - pDbModState.p->digit;
+    eprintf((len - 1 + 25) * 8, 6 * 14, 0x16, 0, "^");
     motion_usage();
     return ret;
 }
@@ -2645,7 +2645,7 @@ static int dbmod_p_info()
     int type;
     int x;
     int y = 4;
-    Vec* v;
+    register Vec* v asm("r26"); // COMPILER-DIFF: pin (the target ranks v between the label giv r27 and the zero r25)
 
     if (model == 0) {
         pDbModState.p->mode--;
@@ -2738,10 +2738,17 @@ static int dbmod_p_info()
         } else {
             p = (cParts*) model->getPartsPtr(em->partsNo);
             for (j = 0; j <= 4; j++) {
+                // COMPILER-DIFF: the colour of both calls is ONE zero-valued pseudo that gcse PREs into the j-loop
+                // preheader (`li r25,0` after the four dbmodPinfo* highs) and that cprop never folds: an asm-produced
+                // zero as the 5th argument of both calls, forced onto the same source line so the two ASM_OPERANDS
+                // are equal (gcse hashes the line number). The `"m"` use gives the label giv one more ref (r27 above
+                // the zero's r25).
                 if (j == 0) {
-                    eprintf2(dbmodPinfoW, dbmodPinfoH, dbmodPinfoX, dbmodPinfoY + (i + 1) * dbmodPinfoH, 0, 0, "%s %08x",
+#line 2960
+                    eprintf2(dbmodPinfoW, dbmodPinfoH, dbmodPinfoX, dbmodPinfoY + (i + 1) * dbmodPinfoH, ({ int z; asm("li %0,0" : "=r"(z)); z; }), 0, "%s %08x",
                              dbmodPinfoLabel[j], p->motParts.flags);
                 } else {
+                    asm("" : : "m"(dbmodPinfoLabel[j])); // COMPILER-DIFF (see above)
                     switch (j) {
                     case 1:
                         v = &p->pos;
@@ -2756,8 +2763,10 @@ static int dbmod_p_info()
                         v = &p->worldPos;
                         break;
                     }
-                    eprintf2(dbmodPinfoW, dbmodPinfoH, dbmodPinfoX, dbmodPinfoY + (i + j + 1) * dbmodPinfoH, 0, 0,
+#line 2960
+                    eprintf2(dbmodPinfoW, dbmodPinfoH, dbmodPinfoX, dbmodPinfoY + (i + j + 1) * dbmodPinfoH, ({ int z; asm("li %0,0" : "=r"(z)); z; }), 0,
                              "%s (%f, %f, %f)", dbmodPinfoLabel[j], v->x, v->y, v->z);
+#line 3101
                 }
             }
             drawOrientation(p);
@@ -2913,8 +2922,8 @@ void dbModMotionMove()
     int n, i, j;
     int noMotion;
     int allDone = 1;
-    int move;
     u16 flags;
+    u16 f2;
     Vec ax, ay, az, az2;
     f32 lim;
 
@@ -3019,15 +3028,21 @@ void dbModMotionMove()
                 model->mat[2][2] = az.z;
             }
         } else {
+            // the target tests `move` in each arm with the CR set there and one cross-jumped `beq`, and reads
+            // tests 2-3 through a copy of the u16 flags (`mr r9,r0`)
             flags = em->mot[0].flags;
-            if ((flags & 1) && (flags & 0x10)) {
-                move = model->mot.state & 3;
+            f2 = flags;
+            asm("" : "+r"(f2)); // COMPILER-DIFF: keeps the copy (cprop propagates a plain `f2 = flags` away)
+            if ((flags & 1) && (f2 & 0x10)) {
+                if (model->mot.state & 3) {
+                    model->pos = em->pos;
+                    model->rot = em->rot;
+                }
             } else {
-                move = !(flags & 1);
-            }
-            if (move) {
-                model->pos = em->pos;
-                model->rot = em->rot;
+                if (~f2 & 1) {
+                    model->pos = em->pos;
+                    model->rot = em->rot;
+                }
             }
             if (em->motData[0] == 0) {
                 model->pos = em->pos;

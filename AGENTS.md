@@ -22610,3 +22610,81 @@ Harness ~/.cache/dol_fin5 (dol14 copies with paths rewritten, deleted at the end
   before W4 and its allocation came from (a) or (b). Sched2-only asymmetries need a hard-reg dependence (an r11 pin
   written after S8) whose def cannot be placed after S8 in sched1 without a memory reference. Result 4 words with (c); not
   applied (the target's shape is (a) or (b), which our graph cannot express). SetSandWork (44) not iterated.
+
+### Tool RELs, db_mod pass 5 (t_esp 67 -> 68/75, Tools 55 -> 56/63, 409 -> 240 words in both; dbmod_p_info 71 -> 0 (three tags), dbmod_motion 11 -> 2 (zero code), dbmodDispModelName 100 -> 19 (one tag), dbModMotionMove 98 -> 90 (one tag); dbmod_locate 103 untouched; nothing flipped; 2026-09-11)
+
+- Harness ~/.cache/dbmod5 (deleted): `mbuild.sh MOD SRC OUTDIR` (module cflags + strip_unused/fold_linkonce, `OUTDIR/db_mod.o`,
+  `CC1DIR=` for a hooked cc1plus, 0.3 s), `mtryv.py FUNC v.py [--only A,B] [--apply N] [--keep]` (substring variants judged with
+  `OBJ= tools/bytecmp.py MOD/db_mod`), `mrel.py MOD SYM [OBJ] [--all|--target|--ours]` (side-by-side objdump, function-relative
+  labels, reloc immediates masked as `@R`), `mdump.sh MOD SRC OUTDIR -dX..` (cpp via wibo, then cc1plus with dump flags, dumps
+  next to `OUTDIR/db_mod.i`), `sngcc/` = copy of tools/sn-gcc with a `GDBG=1` hook in global.c printing, per allocno in
+  allocation order, `GORDER <fn> i: reg R refs N len L calls C pri P -> hard  used14-31 <regs_used_so_far> conf
+  <hard_reg_conflicts> smpref <regs_someone_prefers>` BEFORE find_reg (the two bit strings are r14..r31). 111 not re-checked
+  (nothing flipped; both db_mod objects rebuilt through the locked ninja).
+- **Register-allocation facts read from global.c/local-alloc.c this pass (they decide every remaining permutation):**
+  (1) `find_reg` pass 0 never allocates a hard reg for the first time: candidates are `regs_used_so_far` (call-used regs,
+  `regs_ever_live`, and the regs local-alloc handed out) minus conflicts; only pass 1 takes a virgin callee-saved reg, in
+  `reg_alloc_order` (31, 30, ...). So the first callee-saved global allocno does NOT get r31 when r30/r29 were used by some
+  local qty somewhere in the function and do not conflict with it. (2) local-alloc never uses r31 (`find_free_reg` sets
+  FRAME_POINTER_REGNUM = 31 in `used`), so a callee-saved value in r31 is always a GLOBAL pseudo and a chain like `subf r30,r11,r3;
+  subf r30,r30,r3; add r30,r30,r0; addi r30,r30,24; slwi r3,r30,3` (all one register, then the shift into r3) is a LOCAL qty:
+  `combine_regs` ties the output to a dying pseudo input only if that input is local (`reg_qty >= 0`) and the output has no qty
+  yet; a hard-reg input (the call result r3) gives the output a qty with an r3 suggestion first, which blocks the tie
+  (`addi r3,rX,24` = ours). (3) `update_equiv_regs` DOUBLES `REG_LIVE_LENGTH` of a pseudo set once to a constant/invariant
+  (REG_EQUIV), halving its global priority; an asm-produced value has no REG_EQUIV and keeps its short length. (4) global
+  priority = floor(log2(refs))*refs/len: one weighted ref more across a log2 boundary (63 -> 64, 31 -> 32) or a length change of a
+  few insns flips neighbours; the `GORDER` hook shows the numbers. (5) local-alloc allocates with a lifetime extended by one insn
+  on each side (`fake_birth/fake_death`, INSN_SCHEDULING) and only retries with the real lifetime if that fails, so two local
+  qtys where one dies at the insn that births the other never share a register unless the whole class is exhausted.
+- **dbmod_p_info 71 -> 0 (three `// COMPILER-DIFF` tags):** (a) the zero colour of both eprintf2 calls is ONE asm-produced value,
+  `({ int z; asm("li %0,0" : "=r"(z)); z; })` as the 5th argument of both calls with `#line 2960` before each call (gcse hashes
+  ASM_OPERANDS with their line number; only equal expressions are PRE'd together). Mechanism: gcse PRE inserts partially
+  redundant expressions at the END of the preheader block in bitmap-index order = order of FIRST OCCURRENCE in the insn
+  stream, and the 5th argument is evaluated after the four dbmodPinfo* highs (arguments 1-4), which is why `li r25,0` follows the
+  four `lis`. An inlined `dbmodZero()` call as the argument is precomputed FIRST (`precompute_arguments` evaluates arguments
+  containing a CALL_EXPR before the others when a stack argument exists), landing before the highs; a statement-expression
+  without `#line` gives two different expressions (no PRE). cprop never folds the PRE'd reaching register (`regno >=
+  max_gcse_regno`), so the target's zero was most likely `(set R E)` with E folded to 0 by cse2 (REG_EQUIV, doubled length ->
+  lowest priority -> r25); no C spelling of E was found (`x - 6`, `y - 4`, `i - i` are folded by cprop/cse1/fold before PRE).
+  (b) `register Vec* v asm("r26")` and (c) `asm("" : : "m"(dbmodPinfoLabel[j]))` at the else-arm top: with the asm zero's
+  undoubled length its priority (3636) beats the label giv (2746) and v (2211); the pin puts v where the target has it and the
+  `"m"` use adds one ref to the label giv (13 -> 16 weighted, 4507) so it is allocated before the zero (r27 above r25). A
+  `"r"(&dbmodPinfoLabel[j])` use creates a second giv; the `"m"` form shares the DEST_ADDR giv; placed in the j == 0 arm it
+  changes that arm's `lwzx r10,r18,r30` into `lwz 0(r27)`.
+- **dbmod_motion 11 -> 2 (zero code):** the loop's `len` is the variable reused: `hs = strlen(motName[i]) - hashOfs[i]; name =
+  ..; nlen = strlen(name); hs = nlen - hs; he = ..` (len/hs in ONE register r31: a global pseudo allocated late, when every
+  used callee-saved reg conflicted, hence the virgin r31; with a separate `len` it is a local qty in r29 that conflicts with
+  `j` and pushes j to r31), and the tail's chain is a fourth variable used ONLY there and reused through the chain: `len =
+  strlen(..) - hashOfs[sub]; len = strlen(dbmodSkipPath(..)) - len; len += digits[sub] - digit; eprintf((len - 1 + 25) * 8, ..)`
+  (a block-local `int l` is the same thing) -- a local qty, so local-alloc ties every step into r30 and the pDbModState high
+  gets r29. Left (2): `lhax r9,r9,r11; cmpwi r9,-1` for the motNum test (ours r0): the loaded value's preferred class is
+  BASE_REGS in the target (r0 excluded) and it shares the address temp's r9, which with (5) above means it is not a plain local
+  GENERAL qty; `asm("" : "+b"(no))` on an `int no` gives r9 but moves the address temp to r11 (9 words), eleven spellings of
+  the test (`+ 1 == 0`, `(s16) -1`, `< 0`, `~x == 0`, pointer forms) change nothing. Same residue in DispModelName (there the
+  `+b` launder is exact, applied).
+- **dbmodDispModelName 100 -> 19 (one tag):** (1) the bin/tex loops count with `i`, not `k` (the target's tail loop counter is
+  r26 = the display loop's i; k stays r31 for the hash and type loops -- with k in all four loops k has 63 weighted refs and
+  ranks below the k-loop givs). (2) `hs = strlen(motName[0]) - hashOfs[0]; ..; hs = nlen - hs;` (len/hs one register, as in
+  motion). (3) no `cx`/`nx` variables: the cursor column is `(x - 1) * 8`, case 0/1's column `(x + 8) * 8`, case 1's row
+  `(y + 1) * 14`, with `int x = 6; int y = 4;` at the declarations (x, y are multi-set -- reassigned for the BIN/TEX part -- so
+  they live in stack slots and the loop-invariant `x - 1`, `x + 8`, `y + 1` are loop.c movables folded by cse2 in the preheader
+  ebb to `li r14,5` / `li r15,14`, which is why those two `li` follow the hoisted highs; `int cx = 5` at the declaration puts
+  them first, `cx = 5` anywhere in the loop-top block folds the cursor's `cx * 8`). (4) `int no = motNum[0]; asm("" : "+b"(no))`
+  (COMPILER-DIFF) for `lha r9,98(r8)`. Left (19): `lis r11; addi r7,r11,"%s"@l` per use (ours r9 and the `lis` scheduled later),
+  and nlen r25 / `li r24,184` (the `(23 + k) * 8` giv) swapped because the target hoists the "^" high in loop PASS 2 (after the
+  giv init): its hash loop had >= 63 real insns at pass 1 (ours 58; four movables lower the threshold 71 -> 62 for the fourth,
+  `62 * 1 * 1 < 63`). Five codeless asms at the hash-loop top reproduce the giv order but lengthen the pDbModState high's life
+  (20 refs/720 -> 730) below the "^" high's (5/90 -> 98) -- the target has both at exactly 1111 (20/720 vs 5/90, tie broken by
+  allocno number), so its extra pass-1 insns were gone by flow time (merged by cse2/combine); not applied.
+- **dbModMotionMove 98 -> 90 (one tag):** `move` is not a variable: each arm tests and copies itself (`if ((flags & 1) &&
+  (f2 & 0x10)) { if (model->mot.state & 3) { pos/rot copy } } else { if (~f2 & 1) { pos/rot copy } }`; jump2 cross-jumps the
+  two copies and the two `beq` into the target's `andi. r9,r0,3; b L; L508: not r0,r9; andi. r11,r0,1; L: beq`), and tests 2-3
+  read a copy of the u16 flags: `u16 f2 = flags; asm("" : "+r"(f2))` (COMPILER-DIFF: a plain `f2 = flags` is copy-propagated
+  away by gcse, unlike IKreport's `flag = info`). Left (90): the copy's direction (`lhz r9; mr r0,r9` vs the target's `lhz r0;
+  mr r9,r0` -- the loaded value is the short-lived one in the target), the `order[]` init (`addi r23,r1,8` first, n r24) and
+  the swap loop's `i + 1` (target: computed separately in each arm, `mr r7,r5` after the search; ours PRE'd above the test),
+  `!(em->xE38 & 1)` (`xori; andi.; beq` -- the empty-then nested if `if (xE38 & 1) {} else {..}` is 149), the dbModSlot end
+  pointer (`addis r11,r9,10; addi r11,r11,-21076` = `&dbModSlot[64]` computed from the loaded pointer) and the trailing loop's
+  register names.
+- Not iterated: dbmod_locate 103 (pass 2's list still applies), the 24/1/1-word `fn_*`/`create`/`loadModel` rows (the .text
+  size pairing artefact, gone when the sizes agree).
