@@ -788,6 +788,8 @@ MATCHING = {
     "Tools/tools.cpp": True,
     "t_esp/tools.cpp": True,
     "t_esp/db_light.cpp": True,
+    "t_esp/db_mod.cpp": True,
+    "Tools/t_tplview.cpp": True,
     "Tools/t_tplview.cpp": True,
     "Tools/t_util.cpp": True,
     "Tools/t_eminfo.cpp": True,

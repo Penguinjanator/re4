@@ -1236,12 +1236,13 @@ void dbmodDispModelName()
                 break;
             }
             no = pDbModState.p->motNum[0];
-            asm("" : "+b"(no)); // COMPILER-DIFF: the target loads motNum into r9 (a BASE-class pseudo), ours r0
             if (no == -1) {
                 eprintf((x + 8) * 8, (y + 1) * 14, 0, 0, "[%6s] --------.---", pDbModState.p->motDir[0]);
                 break;
             }
-            eprintf((x + 8) * 8, (y + 1) * 14, 0, 0, "[%6s]", pDbModState.p->motDir[0]);
+            // the surplus `no` argument is in the original: it is passed in r9 (unused by the format), which is
+            // why motNum lands in r9 and why reload's "[%6s]"/"%s" highs use r11 (r9 is live at the lo_sum)
+            eprintf((x + 8) * 8, (y + 1) * 14, 0, 0, "[%6s]", pDbModState.p->motDir[0], no);
             switch (pDbModState.p->motType[0]) {
             case 0:
                 color = 0;
@@ -1258,6 +1259,8 @@ void dbmodDispModelName()
             hs = nlen - hs;
             he = hs + pDbModState.p->digits[0] - 1;
             for (k = 0; k < nlen; k++) {
+                f = 0;  // COMPILER-DIFF: candidate (loop.c insn_count): two dead sets, deleted by flow, keep
+                no = k; // the "^" high out of loop pass 1 (58 -> 60 real insns, its threshold 59 < 60)
                 if (k >= hs && k <= he) {
                     color = (i == pDbModState.p->sub) ? 4 : 0;
                 } else {
@@ -1462,14 +1465,13 @@ static int dbmod_motion()
             eprintf(nx * 8, (i + 4) * 14, 0, 0, "[%6s]", "null");
             continue;
         }
-        // COMPILER-DIFF: the target loads motNum[i] into the address temp's r9 (`lhax r9,r9,r11`); every C spelling of the
-        // test allocates the value to r0 -- this asm emits that one instruction (the operands are the cse'd address and index)
-        asm("lhax %0,%1,%2" : "=r"(no) : "b"(pDbModState.p->motNum), "r"(i * 2));
+        no = pDbModState.p->motNum[i];
         if (no == -1) {
             eprintf(nx * 8, (i + 4) * 14, 0, 0, "[%6s] --------.---", pDbModState.p->motDir[i]);
             continue;
         }
-        eprintf(nx * 8, (i + 4) * 14, 0, 0, "[%6s]", pDbModState.p->motDir[i]);
+        // surplus `no` argument (r9) as in dbmodDispModelName: it is what puts motNum[i] into r9 (`lhax r9,r9,r11`)
+        eprintf(nx * 8, (i + 4) * 14, 0, 0, "[%6s]", pDbModState.p->motDir[i], no);
         switch (pDbModState.p->motType[i]) {
         case 0:
             color = 0;
