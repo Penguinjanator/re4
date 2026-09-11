@@ -684,15 +684,15 @@ void dbmodGetFilenames()
         switch (i) {
         case 0:
             t = 1;
-            dir = pDbModState.p->binDir;
             pNo = &pDbModState.p->binNo;
             pNum = &pDbModState.p->binNum;
+            dir = pDbModState.p->binDir;
             break;
         case 1:
             t = 2;
-            dir = pDbModState.p->texDir;
             pNo = &pDbModState.p->texNo;
             pNum = &pDbModState.p->texNum;
+            dir = pDbModState.p->texDir;
             break;
         }
         p = mottblUnitPtr(pMotTbl.p->unit[t], *pNo);
@@ -1340,7 +1340,7 @@ static int dbmod_motion()
     int step, max;
     int x;
     int nx;
-    int i, k;
+    int i, k, j;
     int color;
     int len, nlen, hs, he;
     char* name;
@@ -1392,7 +1392,7 @@ static int dbmod_motion()
                 break;
             }
             if (joy->on & 0x800) {
-                old = pDbModState.p->motSub[k];
+                int oldSub = pDbModState.p->motSub[k];
                 if (joy->trg & 0x00080008) {
                     pDbModState.p->motSub[k]++;
                 }
@@ -1400,7 +1400,7 @@ static int dbmod_motion()
                     pDbModState.p->motSub[k]--;
                 }
                 pDbModState.p->motSub[k] = LOOP(pDbModState.p->motSub[k], 0, pMotTbl.p->count[3] - 1);
-                if (old != pDbModState.p->motSub[k]) {
+                if (oldSub != pDbModState.p->motSub[k]) {
                     pDbModState.p->motNum[k] = 0;
                     pDbModState.p->digit = 0;
                 }
@@ -1451,8 +1451,8 @@ static int dbmod_motion()
     eprintf(5 * 8, 3 * 14, 5, 0, "---- MOTION ----");
     x = 6;
     for (i = 0; i <= 1; i++) {
-        nx = 16;
         eprintf(x * 8, (i + 4) * 14, (i == pDbModState.p->sub) ? 4 : 0, 0, "%s", dbmodMotionLabel[i]);
+        nx = 16;
         if (i == pDbModState.p->sub && (pDbModState.p->timer & 0x18)) {
             eprintf(5 * 8, (i + 4) * 14, 0x16, 0, ">");
         }
@@ -1480,13 +1480,13 @@ static int dbmod_motion()
         nlen = strlen(name);
         hs = nlen - len;
         he = hs + pDbModState.p->digits[i] - 1;
-        for (k = 0; k < nlen; k++) {
+        for (j = 0; j < nlen; j++) {
             if (i == pDbModState.p->sub) {
-                color = (k >= hs && k <= he) ? 4 : 0;
+                color = (j >= hs && j <= he) ? 4 : 0;
             } else {
                 color = 0;
             }
-            eprintf((25 + k) * 8, (i + 4) * 14, color, 0, "%c", name[k]);
+            eprintf((25 + j) * 8, (i + 4) * 14, color, 0, "%c", name[j]);
         }
     }
     len = strlen(pDbModState.p->motName[pDbModState.p->sub]) - pDbModState.p->hashOfs[pDbModState.p->sub];
@@ -2078,9 +2078,7 @@ static int dbmod_blend()
     f32 rate;
     int old, method;
     int x;
-    int cx;
-    int nx;
-    int ny;
+    int y;
     int i, color;
 
     if (em->pEm == 0) {
@@ -2164,16 +2162,18 @@ static int dbmod_blend()
     }
     eprintf(5 * 8, 3 * 14, 5, 0, "---- BLEND ----");
     x = 6;
-    cx = 5;
-    nx = 16;
-    ny = 6;
+    y = 4;
     for (i = 0; i <= 2; i++) {
         int row = (i + 4) * 14;
         eprintf(x * 8, row, (i == pDbModState.p->sub) ? 4 : 0, 0, "%s", dbmodBlendLabel[i]);
         if (i == pDbModState.p->sub && (pDbModState.p->timer & 0x18)) {
-            eprintf(cx * 8, row, 0x16, 0, ">");
+            eprintf((x - 1) * 8, row, 0x16, 0, ">");
         }
         color = 0;
+        // COMPILER-DIFF: the target passes the switch-head `color` register (`li r5,0` before the
+        // tree, no set in case 0); ours folds case 0's argument to a fresh `li r5,0` (cse1 knows
+        // color == 0 there). The launder hides the constant from cse.
+        asm("" : "+r"(color));
         switch (i) {
         case 0:
             if (pDbModState.p->blendMode == 0) {
@@ -2181,24 +2181,24 @@ static int dbmod_blend()
             } else {
                 rate = 1.0f;
             }
-            eprintf(nx * 8, row, color, 0, "%.2f", rate);
+            eprintf((x + 10) * 8, row, color, 0, "%.2f", rate);
             break;
         case 1:
             if (em->pEm->motBlend == 0) {
                 color = 7;
             }
-            eprintf(nx * 8, cx * 14, color, 0, "%.2f", pDbModState.p->blendRate);
+            eprintf((x + 10) * 8, (x - 1) * 14, color, 0, "%.2f", pDbModState.p->blendRate);
             break;
         case 2:
             switch (pDbModState.p->blendMode) {
             case 1:
-                eprintf(nx * 8, ny * 14, 0, 0, "-----/ADD--/-----");
+                eprintf((x + 10) * 8, (y + 2) * 14, 0, 0, "-----/ADD--/-----");
                 break;
             case 0:
-                eprintf(nx * 8, ny * 14, 0, 0, "BLEND/-----/-----");
+                eprintf((x + 10) * 8, (y + 2) * 14, 0, 0, "BLEND/-----/-----");
                 break;
             default:
-                eprintf(nx * 8, ny * 14, 0, 0, "-----/-----/NONE-");
+                eprintf((x + 10) * 8, (y + 2) * 14, 0, 0, "-----/-----/NONE-");
                 break;
             }
             break;
@@ -2521,6 +2521,11 @@ static int dbmod_scale()
     x = 6;
     y = 4;
     for (i = 0; i <= 0; i++) {
+        // COMPILER-DIFF: two codeless insns make the loop 66 real insns at loop pass 1, so the folded
+        // `x - 1` (third movable, threshold 71-3-3 = 65 < 66) is moved in pass 2 after the giv init
+        // (`li r30,56; li r24,5`); the original's loop had two more insns here that are gone by final.
+        asm("" : : "r"(i));
+        asm("" : : "r"(i));
         eprintf(x * 8, (y + i) * 14, (i == pDbModState.p->sub) ? 4 : 0, 0, "%s", dbmodScaleLabel[i]);
         if (i == pDbModState.p->sub && (pDbModState.p->timer & 0x18)) {
             eprintf((x - 1) * 8, (y + i) * 14, 0x16, 0, ">");
@@ -2651,6 +2656,7 @@ static int dbmod_p_info()
     case 0:
         for (k = 0; k < mw->nParts; k++) {
             int info = mw->partsInfo[k] & 0xFF;
+            int flag = info; // IKreport's second byte variable (`mr r9,r0` for the third test)
             u8 no = mw->partsNo[k];
             type = -1;
             if (info & 0x30) {
@@ -2658,7 +2664,7 @@ static int dbmod_p_info()
                 if (info & 0x20) {
                     type = 1;
                 }
-                if (info & 0x80) {
+                if (flag & 0x80) {
                     type = 2;
                 }
             }
@@ -2909,11 +2915,16 @@ void dbModMotionMove()
     int allDone = 1;
     int move;
     u16 flags;
-    Vec ax, ay, az;
+    Vec ax, ay, az, az2;
     f32 lim;
 
-    for (i = SLOT_NUM - 1; i >= 0; i--) {
-        order[i] = i;
+    {
+        // the target's init loop: `addi r9,r1,71` + two decrementing registers + `bdnz` = a pointer
+        // walked down from &order[SLOT_NUM - 1] with the (callee-saved, reused below) `n` as the value
+        s8* p = &order[SLOT_NUM - 1];
+        for (n = SLOT_NUM - 1; n >= 0; n--) {
+            *p-- = n;
+        }
     }
     for (i = 0; i <= SLOT_NUM - 1; i++) {
         if (order[i] != dbModSlot[order[i]].no) {
@@ -3094,22 +3105,22 @@ void dbModMotionMove()
         ay.x = model->mat[0][1];
         ay.y = model->mat[1][1];
         ay.z = model->mat[2][1];
-        az.x = model->mat[0][2];
-        az.y = model->mat[1][2];
-        az.z = model->mat[2][2];
+        az2.x = model->mat[0][2];
+        az2.y = model->mat[1][2];
+        az2.z = model->mat[2][2];
 #line 3929
         VECNormalize(&ax, &ax);
         VECNormalize(&ay, &ay);
-        VECNormalize(&az, &az);
+        VECNormalize(&az2, &az2);
         model->mat[0][0] = ax.x;
         model->mat[1][0] = ax.y;
         model->mat[2][0] = ax.z;
         model->mat[0][1] = ay.x;
         model->mat[1][1] = ay.y;
         model->mat[2][1] = ay.z;
-        model->mat[0][2] = az.x;
-        model->mat[1][2] = az.y;
-        model->mat[2][2] = az.z;
+        model->mat[0][2] = az2.x;
+        model->mat[1][2] = az2.y;
+        model->mat[2][2] = az2.z;
         model->partsMatCalc();
         model->partsWorldCalc();
         if (em->xE34 & 1) {
@@ -3533,7 +3544,7 @@ void blend_usage()
 
 void position_usage(int mode)
 {
-    int x;
+    int x = 43;
     int y = 5;
 
     eprintf(43 * 8, 4 * 14, 7, 0, "------ USAGE ------");
@@ -3545,36 +3556,23 @@ void position_usage(int mode)
         eprintf(43 * 8, 77, 7, 0, "     : Move        ");
         eprintf(43 * 8, 91, 7, 0, "     :  (X-Z plane)");
         eprintf(43 * 8, 8 * 14, 7, 0, "Y+U/D: Move(Y axis)");
-        x = 43;
-    } else {
-        if (mode == 1) {
-            eprintf(43 * 8, 5 * 14, 7, 0, "L<->R: Select Axis ");
-            y = 7;
-            eprintf(43 * 8, 6 * 14, 7, 0, "Up/Dn: Move Pos    ");
-        }
-        // `x = 43` at the END of both arms (defined on every path): cse cannot fold the join's `x * 8`
-        // (`li r30,43; slwi` once, `mr r3,r30` per call, the tail's PRE copy `mr r29,r30`), and with no
-        // call crossed the two `li`s stay behind the arms' last calls and jump2 merges them into one.
-        x = 43;
+    } else if (mode == 1) {
+        eprintf(43 * 8, 5 * 14, 7, 0, "L<->R: Select Axis ");
+        y = 7;
+        eprintf(43 * 8, 6 * 14, 7, 0, "Up/Dn: Move Pos    ");
     }
-    eprintf(x * 8, y * 14, 7, 0, "     : Reset Pos   ");
-    y++;
+    eprintf(x * 8, y++ * 14, 7, 0, "     : Reset Pos   ");
     eprintf(x * 8, (y - 1) * 14, 5, 0, "Z                  ");
-    eprintf(x * 8, y * 14, 7, 0, "R    : Move x 0.1  ");
-    y++;
-    eprintf(x * 8, y * 14, 7, 0, "L    : Move x 0.01 ");
-    y++;
+    eprintf(x * 8, y++ * 14, 7, 0, "R    : Move x 0.1  ");
+    eprintf(x * 8, y++ * 14, 7, 0, "L    : Move x 0.01 ");
     if (mode == 0) {
-        eprintf(x * 8, y * 14, 7, 0, "X    :->           ");
-        y++;
+        eprintf(x * 8, y++ * 14, 7, 0, "X    :->           ");
         eprintf(x * 8, (y - 1) * 14, 0x16, 0, "         X,Y,Z Mode");
     } else if (mode == 1) {
-        eprintf(x * 8, y * 14, 7, 0, "X    :->           ");
-        y++;
+        eprintf(x * 8, y++ * 14, 7, 0, "X    :->           ");
         eprintf(x * 8, (y - 1) * 14, 0x16, 0, "         X-Z,Y Mode");
     }
-    eprintf(x * 8, y * 14, 7, 0, "     : Back        ");
-    y++;
+    eprintf(x * 8, y++ * 14, 7, 0, "     : Back        ");
     eprintf(x * 8, (y - 1) * 14, 2, 0, "B                  ");
 }
 
@@ -3681,6 +3679,9 @@ void DB_EM::IKreport()
     mw = &pEm->mot;
     for (i = 0; i < mw->nParts; i++) {
         int info = mw->partsInfo[i] & 0xFF;
+        // a second variable holding the byte: cse1 rewrites the first two tests to the older pseudo,
+        // the copy (`mr r11,r0`) survives for the third test in the join block
+        int flag = info;
         u8 no = mw->partsNo[i];
         type = -1;
         if (info & 0x30) {
@@ -3688,7 +3689,7 @@ void DB_EM::IKreport()
             if (info & 0x20) {
                 type = 1;
             }
-            if (info & 0x80) {
+            if (flag & 0x80) {
                 type = 2;
             }
         }

@@ -21203,3 +21203,84 @@ Plain em_set = the tagged `EM_SET_WORK_K` call sites replaced by the `EmSetWork`
   number of predecessors, the list = forward dependents); the sched dumps' order is what the target follows for the
   in-block diffs of this family (INTU=2 + TD=3 reproduces cObjBow::init to the byte although only the LC17 load
   gained the RAW dependence -- the parameter-constant loads were waiting on the lsu anyway).
+
+### Tool RELs, db_mod pass 4 (t_esp 62 -> 67/75, Tools 50 -> 55/63, 600 -> 409 words in both, .text 0x1C short -> 0xC short; dbmod_scale 2 -> 0 (tagged), position_usage 10 -> 0, IKreport 10 -> 0, dbmodGetFilenames 17 -> 0, dbmod_blend 25 -> 0 (tagged); dbmod_motion 27 -> 11, dbModMotionMove 163 -> 98, dbmod_p_info 117 -> 71; DispModelName 100 / locate 103 untouched; nothing flipped; 2026-09-11)
+
+- Harness ~/.cache/dbmod4 (deleted): `mbuild.sh MOD SRC OUTDIR` (module cflags, strip_unused/fold_linkonce, output `OUTDIR/db_mod.o`),
+  `mtryv.py FUNC v.py [--mod MOD] [--only A,B] [--apply NAME] [--keep]` (v.py = `VARIANTS = {name: [(old, new), ..]}` substring
+  edits, judged with `OBJ= tools/bytecmp.py MOD/db_mod FUNC`, 0.3 s per variant), `mrel.py MOD SYM [OBJ] [--all|--target|--ours]`
+  (side-by-side objdump with function-relative branch labels and the reloc-name/offset noise removed from the diff key),
+  `mdump.sh MOD -dX [-fsched-verbose-9]` (`CC1DIR=` for a hooked cc1plus, `SRC_OVERRIDE=`), `tree.py build LABEL [CC1DIR] [ENV=v]` /
+  `tree.py cmp BASE NEW` (every prodg_cc edge of build.ninja in 9 s on 24 threads + bytecmp per unit, regressions/fixes per
+  function). Hooked private cc1plus (copy of tools/sn-gcc): loop.c prints `[thr N ic N am N mo N]` per movable and reads
+  `LOOP_THR_ADJ`/`SR_THR_ADJ`; global.c prints `;; ORDER i: reg R refs N len L -> hard` per allocno under `GDBG=1`; haifa-sched.c
+  prints `;; LL reg R block B seg N` = the post-sched1 live-length segments under `GDBG=1`. 111 OK before and after.
+- **dbmod_scale 2 -> 0 (TAGGED, `// COMPILER-DIFF`): two `asm("" : : "r"(i))` at the loop-body top.** The mechanism, read with the
+  hooked loop.c: move_movables' threshold starts at `1 + n_non_fixed_regs` = 71 and is lowered by 3 after every moved movable
+  (71, 68, 65, 62 ...); the loop has 64 real insns at pass 1, so the third movable (the cprop-folded `x - 1` = `li r24,5`) still
+  passes (65 >= 64) and the fourth ("%f" high, 62) does not; the target moved only two in pass 1 and `x - 1` in pass 2 (after the
+  giv init `li r30,56`), i.e. its loop had >= 66 real insns at loop pass 1 that were gone by final (or one more pass-1 movable).
+  Ten source spellings of the body change nothing; the two codeless volatile asms (real insns, no code, no operands to allocate)
+  reproduce it. Whole-tree `LOOP_THR_ADJ=-1/-2/-3` regress 81/97/181 matched functions (a lower threshold is NOT the original's
+  compiler), so the extra insns are a source-shape fact still to be found.
+- **position_usage 10 -> 0 (zero code): `int x = 43;` at the declaration (no `x = 43` in the arms) and the increments inside the
+  argument list, `eprintf(x * 8, y++ * 14, ..)` followed by `eprintf(x * 8, (y - 1) * 14, ..)`.** (1) `y++` as a post-increment
+  argument is queued by expand and emitted at `emit_queue` BEFORE the call (`addi r31,r31,1` above every `bl`), and combine refuses
+  to fold the following `(y - 1) * 14` because `INSN_CUID (insn) < last_call_cuid` ("don't combine across a CALL_INSN") -- that is
+  the whole "y live past the last call" story of passes 2/3. (2) a single `x = 43` at the top with all uses in later ebbs: cse1
+  never sees the constant at `x * 8`, the pseudo has a REG_EQUIV constant, loses global-alloc (the function uses r28-r31 for y and
+  the tail copies) and reload REMATERIALISES it at the use -- the target's `li r30,43; slwi r30,r30,3` inside the join block after
+  `mulli r4,r31,14` is that rematerialisation, not a cross-jumped arm tail. Rule: a `li rX,K; slwi rX,rX,n` pair mid-block with K a
+  declaration-time constant = spilled REG_EQUIV pseudo, declare the variable initialised.
+- **IKreport 10 -> 0 (zero code): a second variable holding the byte, `int info = .. & 0xFF; int flag = info;`, tests 1-2 on
+  `info`, test 3 (`& 0x80`, the join block) on `flag`.** cse1 canonicalises `flag` to the older pseudo inside its ebb (tests 1-2
+  use r0) and the copy `mr r11,r0` survives for the test outside the ebb. The same copy closed dbmod_p_info's case-0 classifier
+  (117 -> 71, size 0x62c -> 0x634 of 0x638). Not gcse (pass 7's reading): a plain second variable.
+- **dbmodGetFilenames 17 -> 0 (zero code): the case bodies are `t = 1; pNo = &..binNo; pNum = &..binNum; dir = ..binDir;` (dir
+  LAST, pNo/pNum/dir in that order).** The pseudo copied from the loaded `pDbModState.p` dies at the last statement; sched1 ranks the
+  three `addi`s by register weight (the one carrying the REG_DEAD is issued first, then LUID order) and the post-sched1 live
+  lengths of pNo/dir change with it, which is what flips the {pNo, dir} vs {name-table biv, pMotTbl high} callee-saved
+  permutation of passes 2/3 (global.c priority `floor_log2(refs) * refs * 4 / live_length * 10000`, ties by allocno number; the
+  four were 7 refs / 148, 148, 150, 148 insns in ours). Rule: for a callee-saved permutation among equal-ref pseudos, look at
+  which statement of the block carries the death of their common source -- the statement ORDER inside the arms, not the
+  declarations, moves the lengths.
+- **dbmod_blend 25 -> 0 (one TAGGED item): `x = 6; y = 4;` before the loop and the expressions `(x - 1) * 8` (cursor), `(x + 10) * 8`
+  (values), `(x - 1) * 14` (case-1 row), `(y + 2) * 14` (case-2 rows) instead of the cx/nx/ny variables** -- cse1 does not know x/y
+  in the loop, cprop folds each `x + k` to a constant pseudo inside the loop, loop.c hoists them in insn order (pDbModState high,
+  5, 16, "%.2f" high, 6: the target's preheader), cse2 merges the duplicates; `y = 4` itself dies after cprop (no `li r,4`, the
+  target has none). The colour of case 0 stays tagged: `asm("" : "+r"(color))` after `color = 0` keeps `(set r5 color)` in case 0
+  (the target's `li r5,0` before the tree serves case 0; ours folds the argument to a fresh `li r5,0`). Setting `color` at the
+  body top / mid / as `int color = 0` in the loop: 61 words each.
+- **dbmod_motion 27 -> 11:** (1) the motSub `old` is a block-local variable (`int oldSub = ..` inside `if (joy->on & 0x800)`): the
+  shared `old` pseudo spans blocks and goes to global alloc (r4), the local one to local-alloc's first free register (r8);
+  (2) `nx = 16` after the first eprintf of the body (pass-1 rule sharpened: after, not before); (3) the digit loop uses a THIRD
+  counter `j` (not the `k` of case 1): k's 31 refs over 151 insns outrank hs/nlen and take r31; with `j` the loop counters are
+  r29/r30/r31 as in the target. Left (11): `lhax r9` vs `r0` for the motNum test (a `no` variable, int or s16, does not change it)
+  and the tail's pDbModState high r29/r30 + `len`/`hs` r30/r31 with `addi r30,r30,24` written into the variable's register
+  (`hs = hs - 1 + 25; eprintf(hs * 8, ..)` and the len-only forms give 18-42: the tail's chain is a different variable from the
+  loop's hs/len, and its identity was not found).
+- **dbModMotionMove 163 -> 98 (size 0xa58 -> 0xa5c of 0xa54):** (1) the sub-slot loop normalises the z column through a FOURTH
+  Vec (`Vec ax, ay, az, az2;`, frame 192 -> 208 = the target's; the first loop's az stays at 104(r1), the second uses 120(r1));
+  (2) the `order[]` init is `s8* p = &order[SLOT_NUM - 1]; for (n = SLOT_NUM - 1; n >= 0; n--) *p-- = n;` with `n` = the main
+  loop's callee-saved counter (the value register is `li r24,63`, callee-saved, later `li r24,0` for the main loop; with `i` it is
+  r7): `addi r9,r1,71; stb; addi -1; addi -1; bdnz` reproduced. Left (98): &order r23/r24 and n r24/r26 naming, the swap loop's
+  `i + 1` (target: `addi r7,r7,1` in the no-mismatch arm and `mr r7,r5` after the search = PRE insertion at the END of the else
+  block; `continue`/`while` forms unchanged), `!(em->xE38 & 1)` as `andi.; bne` (ours `xori; andi.; beq`; `== 0`, nested-if and a
+  u32 local: 458/458/142), and `move`: the target evaluates `((flags & 1) && (flags & 0x10)) ? state & 3 : ~flags & 1` in the
+  arms with the CR set there and one shared `beq` (`andi. r9,r0,3; b L; L508: not r0,r9; andi. r11,r0,1; L: beq`), plus a
+  `mr r9,r0` copy of the u16 flags used by tests 2-3 -- the ternary inside the `if` gives the `not`/`andi.` arm (140) but not the
+  shared beq nor the copy.
+- **dbmod_p_info 117 -> 71 (size now 0x634, +4 short):** the `flag` copy above. Left: the zero pseudo (`li r25,0` in the j-loop
+  PREHEADER, `mr r7,r25` as the colour of both eprintf2 calls) and, as its consequence, `li r0,19` (x + 13) rematerialised at the
+  use instead of hoisted to r14: with one more callee-saved pseudo live across the j loop the '19' pseudo is the one that loses
+  global alloc (r14 goes to the pinfoNum high, r15 to x, ... the target's names). The zero must be a loop MOVABLE (set inside the
+  j body, one set, not live at loop entry) that cse1 cannot fold at the two calls: `int color = 0` at the top (38, hoisting order
+  wrong), `color = 0` before the loop / at the i-body top (71), at the j-body bottom (33: live around the loop, not moved),
+  `y - 4` / `x - 6` (71). Also left: `mr r18,r27` (the label base copy) and the register names after it.
+- **dbmodDispModelName 100 (read, unchanged):** `register asm` pins on i/k destroy the giv machinery (231-254 words, -0x60 bytes);
+  cx/nx inside the loop (bottom / case 2) 175-244. The residue is the callee-saved permutation i r26/r24, k r31/r27, len/name/hs
+  and the givs; global.c's order for ours: color (40 refs/139) r30, the k-loop givs (11/42, 11/46, 18/102) r31/r29/r28, k (63/462)
+  r27, ... i (31/288) r24 -- the target hands r31 to k and r26 to i, so its k-loop temporaries rank BELOW k (fewer refs or longer
+  lives) -- the same kind of lever as GetFilenames' statement order, not found this pass.
+- Compiler-side facts (whole-tree, nothing installed): `LOOP_THR_ADJ` -1/-2/-3 = 81/97/181 regressions, 1/3/3 fixes. The
+  `fn_*_1BF24 24`, `create__t8cManager1Z3cEmi 1`, `loadModel 1` rows are still the .text-size pairing artefact.
