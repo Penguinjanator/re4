@@ -17737,3 +17737,82 @@ retry in a loop until the target object is newer than its source (`[ x.o -nt x.c
   t_sce.rel 32ad15d7.. / t_movie.rel 63a9e15a.. as build.sha1, 111 OK. t_movie's undefined `__pp__t9cVarRange1ZUci`,
   `__opi__t9cVarRange1ZUc`, `tcCurrentCameraNo__Fv` (stripped in this build, no `--link` list) resolve to the DOL like
   the original's imports -- the sync's "unresolved (no matching relocation in the split object)" lines are expected.
+
+### Stage rooms, st2_1 pass 11 (r20e Matching 31/31 -> `st2_1/r20e.cpp` flipped, st2_1.rel byte-identical, st2_1 fully linked: checkPuzzle 224 -> 0, one tagged item; 2026-09-11)
+
+- Harness ~/.cache/rooms_a11 (dol19a copies with the paths rewritten + module support: `mcmp.py`/`order.py`/`sbs.sh` find
+  `build/G4BE08/<mod>/obj/<mod>/<unit>.o`; `tryv.py MOD/UNIT FUNC v.py` with `SRC`/`XFLAGS`/`FOLDMOD` env (`env.sh`); `dump.sh
+  st2/r20e -dX` with `XCPP`/`XCC` (`-G0 -DREL_MODULE=..`); `cnt.sh x NAME..` = words + loop.c's per-pass outer-loop insn
+  counts of a variant); deleted at the end. Judge: mcmp 31/32 (the nameless 0x3B8 cLight linkonce block shows "missing" in
+  every room), a private `link_rel.py` + `make_rel.py --verify orig/.../st2_1.rel` -> `cmp` identical BEFORE flipping.
+- **checkPuzzle 224 -> 0. Zero-code levers (all C++), read off the RTL passes (cse1/gcse/loop/combine/reload_cse):**
+  - **`lwzu` copy source = a pointer PARAMETER of an inline (`r20e_framePos(Vec& pos, R20eCell* c)`, `r20e_cellPos(Vec&,
+    R20eCell* to, ..)`)**: integrate expands inline arguments with EXPAND_SUM and `copy_to_mode_reg` -> `force_operand`
+    computes the address sum INTO the parameter pseudo (`c = cy16 + cxp; c = c + 0x178`). cse1's `find_best_addr` cannot
+    rewrite the block copy's first word `(mem c)` into the "costlier equivalent" `(plus X 0x178)` because that table entry
+    mentions the re-set register (`exp_equiv_p` validate: REG_IN_TABLE != REG_TICK), so combine merges the `addi` into the
+    load (`movsi_update`: `lwzu r11,0x178(r9)`), the later words stay `4(r9)/8(r9)`. Every non-parameter spelling (`Vec pos
+    = c->pos`, `((R20eCell*)sum)->pos`, `*(Vec*)sum`, a pointer local) goes through fresh pseudos (memory_address ->
+    force_operand(NULL)) and gets `addi r11,r9,376; lwz r10,376(r9)`. The r101 `BitOff(*(u32*)(sum), ..)` / event
+    `BitOn(EvtDebug.pModel[no].flags, ..)` `lwzu`s are the same mechanism (a `u32&` parameter). The destination is a `Vec&`
+    to the CALLER's block-local temp (all five copies share 8(r1); an inline-local Vec gets its own slot per copy).
+  - **Statement order inside the inline decides the chain's survival**: `to`'s chain must be computed BEFORE `from`'s
+    address (cse1 otherwise turns every chain step into a copy of `from`'s pseudos and rewrites `(mem to)`), and the piece
+    byte must be loaded before the copy's stores (a later `p->cy` read reloads cy). `r20e_cellPos` does `pc = CELL(from)
+    ->piece; pos = to->pos;` -- inline ARGUMENTS are not evaluated left to right (a MEM-reading or side-effecting argument
+    was expanded before the pointer argument in every form tried), so the order has to come from statements.
+  - **`mr r9,r11; lwzu r8,328(r9)` (row) vs `add r9,r9,r6; lwzu r8,0x168(r9)` (column) is reload_cse**: both `to` chains
+    end in `T = a + r6; T = T + c`; when the add's operand order equals `from`'s `add` (`rtx_equal_p`), `reload_cse_regs`
+    replaces the second add by a copy of the register holding the value (the `mr`), otherwise it stays. The orders come
+    from expand's EXPAND_SUM association (`both_summands`: a sum with a constant is moved last, then "put a MULT first"),
+    and the constants from fold's `(V+C)+A -> V+(A+C)`: `PUZZLE_CELL(p, x, y) = (x)*48 + 0x178 + (u32)p + (y)*16` folds
+    to `x48 + (p + 0x178) + y16`; from = `(cy16 + (k48 + p)) + 0x184` / to `(cy16 + (k48 + p)) + 0x148` (row: equal
+    orders -> `mr`), from = `(k16 + (cx48 + p))` / to `((cx48 + p) + k16) + 0x168` (column: `(plus k16 -16)` is a
+    sum-with-constant, so the association puts it second -> separate add). `(k-1)*16` must reach expand as such
+    (distributed to `k*16 - 16` under EXPAND_SUM); a `kk = k - 1` variable makes the to-address a second reduced giv
+    (two bivs: DEST_REG givs combine only when identical, `combine_givs_p`).
+  - **`addi r11,r11,0x10; stw 0xc(r11); stw 0(r11)` = the piece pointer as a chained parameter** (`r20e_setPiece(R20ePiece*
+    q, const Vec&)`); a `q` local folds the 0x10 into the offsets (cse's associative `(plus (plus T 16) 12)` fold).
+  - **`extsb r7,r0; stb r7` = a puzzleMove-scope `int pc` set in all four slide loops**: a global allocno (r7, after the
+    locals took r0/r8..r11); a block-local `pc` is tied to its `lbz` byte by local-alloc (`combine_regs` ties operand 0
+    with any dying operand) and the merged qty's refs put it first -> r0.
+  - **The two cell scans are pointer BIVs** (`for (j = 0, c = PUZZLE_CELL(p, 0, cy); j < 3; j++, c += 3)`): `c->piece` is
+    the address giv `c + 12` with benefit 0 ("not worth while"), so `lbz 12(c)` and `addi c,48` at the latch; a DEST_REG
+    giv `c = CELL(j, cy)` (single use) is folded into the address (`lbz 0(g)`, +388 init, step after the load). Row init
+    `p + (cy16 + 0x178)` needs `cy` invariant (`int cy = p->cy`) and the M4 macro's fold; column init `cx48 + (p + 0x178)`
+    needs `p->cx` re-read: gcse PREs the load at the end of the test block and cse2 makes the recomputation the copy
+    `mr r10,r9` (the "#3 (c)" shape; a `cx` local gives no copy).
+  - **`beq` straight into the shared `li r0,0`**: the occupied-cell test is `if (piece != -1) { both scans }` around the
+    scans; `if (piece == -1) return 0;` gets jump1's "hoist the single dead set above the conditional jump" (`li r0,0;
+    beq`), so the tail never cross-jumps.
+  - **cMes lo_sum kept in the arm (mechanism (a) of pass 10)**: `MesWork* w` assigned before BOTH SceMesSet calls. The
+    arm's `w = getWork()` (`+4`) then has REGNO_FIRST_UID outside the loop -> `reg_in_basic_block_p` false + maybe_never ->
+    not a movable, so it neither forces the lo_sum (savings 1, life 3: 62*3 < 691) nor moves itself. A single `w`, a
+    `MessageControl* m`, or split loads still force (life 10-13, savings 2 -> moved). `force_movables` runs BEFORE
+    `combine_movables`, and `m->savings`/`lifetime` are the SUMS over forced/matched movables ("savings 3" = 1 + 1 + 1).
+  - **`fdivs f1,f31,f30` (one f31, frames f30) with pool order 10.0, 1.0, 4.0**: `int cnt = 4; f32 frames = cnt; f32 one
+    = 1.0f;`. cse1 folds the int->float conversion to 4.0 as a REG_EQUAL note, loop.c's move_insn re-emits it as a pool
+    load when hoisting (the 4.0 entry is created THEN, after 1.0's), while the loop-body order (frames first) is the
+    movable/preheader order; the first-loaded constant has the longer life -> allocated second -> f30. Declaration-order
+    swaps flip the pool instead.
+- **One tagged item (`COMPILER-DIFF: candidate (loop.c pass-2 insn_count)`, two dead sets of a `KeyWork* key` in
+  checkPuzzle's loop)**: the Key.rep block's `high(Key)` (savings 3 = itself + the cancel test's high + that high's
+  lo_sum, life 3) is hoisted in loop pass 2 (71*9 = 639 >= 624 real insns); the target keeps it in the body. 20 in-loop
+  nops (>= 640 insns) reproduce the target, so the original's pass-2 count was >= 640 (or it had the cancel test's
+  lo_sum in a multi-set/other-block pseudo); no zero-code form gave either (kk/`return 0`/spellings measured with cnt.sh:
+  622-625). The lever: `KeyWork* key = 0;` at the loop top and `key = (KeyWork*)(p + result);` after puzzleMove, `key =
+  &Key; if (key->trg & ..)` for the cancel test -> `key` has three sets in three blocks (`may_not_optimize`), so the
+  cancel test's lo_sum is not a movable, its high is not forced, and the Key.rep high drops to savings 2 x life 2 (284 <
+  624). The second dead set's two insns also move gcse's expression table from 331 to 333 buckets (`max_cuid / 2`) --
+  at 331 the reaching regs of `high(pG)`/`high(RoomData)` are numbered in the other order (bucket 275 > 34) and the arm's
+  r25/r24 swap. Bucket = `(7933 + h(name)) % size` as in pass 10; pG < RoomData holds for sizes 329, 330, 332-340, not
+  331. Both dead sets are deleted by flow (no code).
+- Facts read this pass: `expand_expr` never uses subtargets at -O2 (`preserve_subexpressions_p` = flag_expensive_
+  optimizations), so chained same-pseudo sums come only from `force_operand` (inline args, `copy_addr_to_reg` of an unforced
+  sum); rs6000 `expand_block_move` copies both addresses with `copy_addr_to_reg` (the `S = c` copies in the .rtl dump);
+  `combine_movables` refuses DEST_REG g1 with a single use and combines DEST_REG g2 only when identical (`tem ==
+  g1->dest_reg`), DEST_ADDR g2 when `g1 + c` is a valid address; loop.c's `move_movables` threshold is `(1 + n_non_fixed_
+  regs) * (has_call ? 1 : 2)` = 71 with calls, -3 per moved insn, and pass 2 (rerun-loop-opt) restarts at 71 with the
+  post-cse2 count; `reg_in_basic_block_p` returns 0 as soon as REGNO_FIRST_UID is not the insn (a variable set before the
+  loop disables the in-loop set as a movable); `do { } while (0)` loops are "phony" to loop.c (no movables); the `cmpwi
+  cancel,0; mfcr r24 .. mtcrf; beq` shape is the CC pseudo of the duplicated exit test living across the loop.

@@ -104,8 +104,15 @@ static R20eWork* r20e_work;
 // `&p->piece[i]` as integer arithmetic, index first (`mulli; add idx, p; addi 0x10`): the array
 // subscript folds the 0x10 into the product and puts the pointer first in the add.
 #define PUZZLE_PIECE(p, i) ((R20ePiece*) ((i) * sizeof(R20ePiece) + (u32) (p) + 0x10))
-// `&p->cell[x][y]` with the row term first and the 0x178 last (`mulli; add p; add y*16; lwzu 0x178`).
-#define PUZZLE_CELL(p, x, y) ((R20eCell*) ((x) * sizeof(R20eCell[3]) + (u32) (p) + (y) * sizeof(R20eCell) + 0x178))
+// `&p->cell[x][y]` as integer arithmetic, `(x*48 + 0x178) + p + y*16`: fold moves the constant to
+// the other operand (`(V+C)+A -> V+(A+C)`), so the tree is `x*48 + (p + 0x178) + y*16`, which is what
+// the puzzleMove loops need: `PUZZLE_CELL(p, 0, cy)` gives `p + (cy*16 + 0x178)` (`addi r0,r11,0x178;
+// add r9,r30,r0`), `PUZZLE_CELL(p, cx, 0)` gives `cx*48 + (p + 0x178)`, and in the slide loops
+// expand's EXPAND_SUM association makes the row `to` cell `(cy16 + (k48 + p)) + 0x148` (same operand
+// order as `from`, so reload_cse turns the second `add` into `mr r9,r11`) but the column `to` cell
+// `((cx48 + p) + k16) + 0x168` (the other order: a separate `add r9,r9,r6`).  The `y*16` is never
+// grouped with 0x178 (`(k-1)*16` must distribute to `k*16 - 16` under EXPAND_SUM).
+#define PUZZLE_CELL(p, x, y) ((R20eCell*) ((x) * sizeof(R20eCell[3]) + 0x178 + (u32) (p) + (y) * sizeof(R20eCell)))
 
 // The address of the caller's Vec goes straight into the argument register (no PRE'd pseudo).
 static inline void SetAngV(cModel* m, Vec* v)
@@ -886,12 +893,16 @@ static inline int r20e_checkSolved(R20ePuzzle* p)
     return 1;
 }
 
-// One frame of a piece's slide; returns whether it is moving.
+// One frame of a piece's slide; returns whether it is moving.  `frames` is the int->float
+// conversion of `cnt`, declared BEFORE `one`: cse folds the conversion to 4.0 and loop.c
+// re-materialises it as a pool load when it hoists the movable, so the 4.0 pool entry is created
+// after 1.0 (pool order 10.0, 1.0, 4.0) while the hoisted loads come out frames-first (loop body
+// order) -- the first-loaded constant gets f30, so `one` is f31 (`fdivs f1,f31,f30`).
 static inline int r20e_movePiece(R20ePiece* pc)
 {
-    f32 one = 1.0f;
-    f32 frames = 4.0f;
     int cnt = 4;
+    f32 frames = cnt;
+    f32 one = 1.0f;
 
     if (pc->visible == 0) {
         return 0;
@@ -917,18 +928,50 @@ static inline int r20e_movePiece(R20ePiece* pc)
     return 0;
 }
 
-// The piece of `from` slides into the empty cell `to` (a macro over PUZZLE_CELL cells: `p->cy`
-// is reloaded for every cell address, the piece is `pc * 0x28 + p + 0x10`).
-#define r20e_slidePiece(p, from, to)                  \
-    {                                                 \
-        s8 pc = (from)->piece;                        \
-        Vec pos = (to)->pos;                          \
-        R20ePiece* q = PUZZLE_PIECE(p, pc);           \
-                                                      \
-        q->target = pos;                              \
-        q->state = 1;                                 \
-        (to)->piece = pc;                             \
-        (from)->piece = -1;                           \
+// The cell-address chain: a pointer PARAMETER of an inline receives its argument through
+// `copy_to_mode_reg` of the EXPAND_SUM sum, i.e. `force_operand` computes the sum INTO the
+// parameter pseudo (`c = cy16 + cxp; c = c + 0x178`).  cse cannot rewrite the copy's first word
+// `(mem c)` into `(mem (plus X 0x178))` because the `(plus c 0x178)` table entry mentions the
+// re-set register (REG_IN_TABLE != REG_TICK), so combine forms `lwzu r11,0x178(r9)`; a local
+// pointer variable or a direct `->pos` goes through fresh pseudos and cse picks the costlier
+// equivalent address (`addi r11,r9,376; lwz r10,376(r9)`).  The destination `Vec&` is the
+// caller's block-local temp (all slide blocks share 8(r1); an inline-local Vec would get its own
+// frame slot per copy).
+static inline void r20e_framePos(Vec& pos, R20eCell* c)
+{
+    pos = c->pos;
+}
+
+// The slide's source cell: the `to` chain must be computed BEFORE the `from` address (cse would
+// otherwise fold the chain into copies of `from`'s pseudos and rewrite `(mem to)`), and the piece
+// load before the copy's stores (a later `p->cy` read would reload cy).  Only statement order
+// inside one inline gives this order; inline arguments are not evaluated left to right.
+static inline int r20e_cellPos(Vec& pos, R20eCell* to, R20ePuzzle* p, int fx, int fy)
+{
+    int pc = PUZZLE_CELL(p, fx, fy)->piece;
+
+    pos = to->pos;
+    return pc;
+}
+
+// `q` as a chained parameter keeps `addi r11,r11,0x10` (the `+0x10` is not folded into the
+// `stw 0xc(r11)`/`stw 0(r11)` offsets).
+static inline void r20e_setPiece(R20ePiece* q, const Vec& pos)
+{
+    q->target = pos;
+    q->state = 1;
+}
+
+// `pc` is the caller's (puzzleMove-scope) variable: with four sets in four loops it is a global
+// allocno (r7); a block-local `pc` is tied to the `lbz` byte by local-alloc and takes r0.
+#define r20e_slidePiece(p, fx, fy, tx, ty)                                    \
+    {                                                                         \
+        Vec pos;                                                              \
+        pc = r20e_cellPos(pos, PUZZLE_CELL(p, tx, ty), p, fx, fy);            \
+                                                                              \
+        r20e_setPiece(PUZZLE_PIECE(p, pc), pos);                              \
+        PUZZLE_CELL(p, tx, ty)->piece = pc;                                   \
+        PUZZLE_CELL(p, fx, fy)->piece = -1;                                   \
     }
 
 // Cursor moves and slides of one frame; 1 once the puzzle is solved.
@@ -936,6 +979,7 @@ static inline int r20e_puzzleMove(R20ePuzzle* p)
 {
     int i;
     int busy;
+    int pc;
 
     if (r20e_checkSolved(p) == 1) {
         return 1;
@@ -956,10 +1000,9 @@ static inline int r20e_puzzleMove(R20ePuzzle* p)
     p->cy = p->cy < 0 ? 0 : (p->cy > 2 ? 2 : p->cy);
     if (p->frame) {
         // cy*16 first, then (cx*48 + p), 0x178 last: `mulli cx; add p; add cy16; lwzu 0x178`
-        R20eCell* c = (R20eCell*) (p->cy * 0x10 + (p->cx * 0x30 + (u32) p) + 0x178);
         Vec pos;
 
-        pos = c->pos;
+        r20e_framePos(pos, (R20eCell*) (p->cy * 0x10 + (p->cx * 0x30 + (u32) p) + 0x178));
         pos.y += 10.0f;
         p->frame->pos = pos;
         p->frame->be_flag |= 2;
@@ -970,56 +1013,69 @@ static inline int r20e_puzzleMove(R20ePuzzle* p)
     if (busy) {
         return 0;
     }
+    // `cy` is a local (the row scan's cell pointer is a loop-invariant + biv step, `lbz 12(c)`
+    // with `addi c,48` at the latch: a `c + 12` giv has benefit 0 and is not reduced), `cx` is
+    // NOT: the column scan re-reads `p->cx`, gcse PREs the load at the end of the test block
+    // and cse2 turns the recomputation into the copy `mr r10,r9`.  The occupied-cell test is a
+    // nested `if` around both scans, not an early `return 0`: the return arm's `li r0,0` would be
+    // hoisted above the `beq` by jump1 instead of cross-jumping into the shared `li r0,0`.
     if (Key.trg & 0x00080000) {
-        int cx = p->cx;
-        int j;
-        int k;
+        int cy = p->cy;
 
-        if (p->cell[cx][p->cy].piece == -1) {
-            return 0;
-        }
-        for (j = 0; j < 3; j++) {
-            if (p->cell[j][p->cy].piece == -1) {
-                SndCall(6, 0, 0, 0, 0, 0);
-                if (j < p->cx) {
-                    for (k = j + 1; k <= p->cx; k++) {
-                        r20e_slidePiece(p, PUZZLE_CELL(p, k, p->cy), PUZZLE_CELL(p, k - 1, p->cy));
+        if (PUZZLE_CELL(p, p->cx, p->cy)->piece != -1) {
+            R20eCell* c;
+            int j;
+            int k;
+
+            for (j = 0, c = PUZZLE_CELL(p, 0, cy); j < 3; j++, c += 3) {
+                if (c->piece == -1) {
+                    SndCall(6, 0, 0, 0, 0, 0);
+                    if (j < p->cx) {
+                        for (k = j + 1; k <= p->cx; k++) {
+                            r20e_slidePiece(p, k, p->cy, k - 1, p->cy);
+                        }
+                    } else {
+                        for (k = j - 1; k >= p->cx; k--) {
+                            r20e_slidePiece(p, k, p->cy, k + 1, p->cy);
+                        }
                     }
-                } else {
-                    for (k = j - 1; k >= p->cx; k--) {
-                        r20e_slidePiece(p, PUZZLE_CELL(p, k, p->cy), PUZZLE_CELL(p, k + 1, p->cy));
-                    }
+                    return 0;
                 }
-                return 0;
             }
-        }
-        for (j = 0; j < 3; j++) {
-            if (p->cell[cx][j].piece == -1) {
-                SndCall(6, 0, 0, 0, 0, 0);
-                if (j < p->cy) {
-                    for (k = j + 1; k <= p->cy; k++) {
-                        r20e_slidePiece(p, PUZZLE_CELL(p, p->cx, k), PUZZLE_CELL(p, p->cx, k - 1));
+            for (j = 0, c = PUZZLE_CELL(p, p->cx, 0); j < 3; j++, c++) {
+                if (c->piece == -1) {
+                    SndCall(6, 0, 0, 0, 0, 0);
+                    if (j < p->cy) {
+                        for (k = j + 1; k <= p->cy; k++) {
+                            r20e_slidePiece(p, p->cx, k, p->cx, k - 1);
+                        }
+                    } else {
+                        for (k = j - 1; k >= p->cy; k--) {
+                            r20e_slidePiece(p, p->cx, k, p->cx, k + 1);
+                        }
                     }
-                } else {
-                    for (k = j - 1; k >= p->cy; k--) {
-                        r20e_slidePiece(p, PUZZLE_CELL(p, p->cx, k), PUZZLE_CELL(p, p->cx, k + 1));
-                    }
+                    return 0;
                 }
-                return 0;
             }
         }
     }
     return 0;
 }
 
+// `w` is assigned before BOTH SceMesSet calls: the second set (in the loop arm) has its
+// REGNO_FIRST_UID outside the loop, so `reg_in_basic_block_p` fails and loop.c does not treat the
+// `+4` as a movable -- the lo_sum of cMes then stands alone (savings 1, life 3) and stays in the arm
+// (`addi r9,r20,cMes@l; addi r9,r9,4`) instead of being hoisted with the `+4` folded into the reloc.
 static void r20d_checkPuzzle()
 {
     int cancel = 0;
+    MesWork* w;
 
     SceEventStart(0);
     CamCtrl.CutCall(5);
     SceSleep(1);
-    SceMesSet(0, 0x200, 1, 0x64, 0x150 - cMes.getWork()->lineSpace - cMes.getWork()->fontH - 1);
+    w = cMes.getWork();
+    SceMesSet(0, 0x200, 1, 0x64, 0x150 - w->lineSpace - w->fontH - 1);
     switch (SceMesGetSelection()) {
     case -1:
     case 2:
@@ -1031,9 +1087,19 @@ static void r20d_checkPuzzle()
     }
     while (cancel == 0) {
         R20ePuzzle* p = &r20e_work->puzzle;
+        // COMPILER-DIFF: candidate (loop.c pass-2 insn_count). Two dead sets of `key` (flow deletes
+        // both). (1) They make the cancel test's `&Key` a multi-set pseudo (may_not_optimize), so it
+        // no longer forces its `high`, and the Key.rep block's `high(Key)` -- which that high is
+        // combined into -- drops from savings 3 x life 3 to 2 x 2: 71 * 4 < 624 insns, not hoisted
+        // in loop pass 2 (the original's loop had >= 640 real insns at that pass, or an equivalent
+        // structure; ours has 624 and hoists `lis r23,Key@ha` to the preheader). (2) The second
+        // set's two insns move gcse's expression table from 331 to 333 buckets so the reaching regs
+        // of `high(pG)` and `high(RoomData)` keep the target's allocation order (r25/r24).
+        KeyWork* key = 0;
         int result;
 
         result = r20e_puzzleMove(p);
+        key = (KeyWork*) (p + result);
         if (result == 1) {
             int frame;
             int i;
@@ -1052,10 +1118,12 @@ static void r20d_checkPuzzle()
             RsfSet(G_ROOM_ID, 3);
             SceAtDataSet_exec(1, 0x12, 0, (TaskFunc) r20d_checkPuzzle2, 0, 1);
             SceExec(0x12, (TaskFunc) r20e_checkFinalPieceUse, 0, 0, 2, 0);
-            SceMesSet(1, 0, 1, 0x64, 0x150 - cMes.getWork()->lineSpace - cMes.getWork()->fontH - 1);
+            w = cMes.getWork();
+            SceMesSet(1, 0, 1, 0x64, 0x150 - w->lineSpace - w->fontH - 1);
             break;
         }
-        if (Key.trg & 0x00040000) {
+        key = &Key;
+        if (key->trg & 0x00040000) {
             if (r20e_work->puzzle.frame) {
                 r20e_work->puzzle.frame->be_flag &= ~2;
             }
