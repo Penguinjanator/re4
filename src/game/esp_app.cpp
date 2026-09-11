@@ -428,7 +428,7 @@ void EffEm2d_setTexRender(cModel* m)
 // ours it is BASE_REGS-allocated first (20000 priority, born after reload 1 died) and takes r9,
 // flipping every later `esp` reload (r9,r9,r11,r9,r11 -> r11,r11,r9,r11,r9). Recipe: the constant
 // as a named .rodata word (`k08`, nosda, emitted at the pool's position), `lis` and `lfs` as asms
-// with `hi` pinned to r11, plus `li r8,5` as an asm chained lis -> ... so the asm `lfs` (an IU insn
+// with `hi` (r11 by allocation), plus `li r8,5` as an asm chained lis -> ... so the asm `lfs` (an IU insn
 // for the scheduler, unlike the real LSU load) is ready one cycle later: `c5` depends on `c4`
 // (issued with the `lis`), the `lfs` on `c5`, so sched2 gives `stb; li r8,5; lfs` and `li r10,4`
 // keeps the first slot (two dependents like the `lis`, earlier LUID).
@@ -451,7 +451,7 @@ void EspDrawLaserLine(Vec from, Vec to, f32 width)
     w->len *= width;
     if (pGS->flags_5010 & 1) {
         static const f32 k08 __attribute__((nosda)) = 0.8f;
-        register u32 hi asm("r11"); // COMPILER-DIFF: #13
+        u32 hi;
         register int c5 asm("r8"); // COMPILER-DIFF: #13
         int c4 = 4;
         f32 k;

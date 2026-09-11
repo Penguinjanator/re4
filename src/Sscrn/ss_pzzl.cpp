@@ -741,12 +741,11 @@ void pieceTblInit(SUB_SCREEN* wk)
             tex = *(volatile u16*) (ofs + (u32) base);
             break;
         }
-        // Index-first `lwzx` (offset + arc, not arc->ofs[no]); the tex index is laundered because the
-        // index-first form lets combine fold its +20 into the load displacement. COMPILER-DIFF: 12 (address form).
+        // Index-first `lwzx` (offset + arc, not arc->ofs[no]); the tex index goes through a block-local
+        // so the +20 is not folded into the load displacement.
         mp[-1] = (void*) (*(u32*) (mdl * 4 + (u32) wk->x1E4) + (u32) wk->x1E4);
         {
             u32 tix = (tex * 2 + 5) * 4;
-            asm("" : "+r"(tix));  // COMPILER-DIFF: 12 (address form)
             mp[0] = (void*) (*(u32*) (tix + (u32) wk->x1E4) + (u32) wk->x1E4);
         }
         mp += 30;

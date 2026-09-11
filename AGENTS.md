@@ -16784,3 +16784,65 @@ deleted at the end.
   sched1 output (our sched1 hoists the word-8 load above the word-0/word-4 loads because its store is anti-dependent on
   the later loads). dvd DiscChange (7): the sweep-13 mechanism, forms exhausted there.
 - Not iterated: emmine R1_ShotArrow (140, size 0x4c4/0x4e0), em_set, shadow, at_mod, em_cloth, sce_at, cam_extra.
+
+### COMPILER-DIFF tag audit 2 (2026-09-11)
+
+Harness ~/.cache/tagaudit2 (copies of ~/.cache/dol18a plus `inventory.py` -> `tags.tsv`/`scope.txt`; `h.py units|base|try|check|diff
+SRC` = rebuild every unit of a source privately with the real ninja cflags/post-build and compare every non-symtab section
+byte-for-byte (bytes + relocs) against a saved base .o; `necessity.py [FILTER]` = derive the PLAIN form of every code-bearing
+tag line mechanically (asm launder/keep-alive -> deleted, `asm(""... "=r"(x):"0"(y))` -> `x = y`, `asm("li %0,K")` ->
+`x = K`, `register T x asm("rN")` -> `T x`, `do{}while(0)` -> deleted) and rebuild). Scope: 363 tag lines in Matching DOL
+units (objects.py) and Matching REL units (modules.py), EXCLUDING lib/CRI, tools/*, t_*/Tools, and the units other agents own
+(st2/r202,r204,r20e,r225, st1/r10f, and the unmatched-unit list). Every accepted change kept the unit byte-identical (private
+compile + `ninja <unit>.o` + `cmp` with the pre-edit copy).
+
+- **Mechanical necessity sweep: 113 code-bearing tag lines reduced to plain C and rebuilt; 5 were unnecessary (removed,
+  byte-identical), 108 needed (restored).** This is the whole-scope confirmation of audit-1's per-item findings: every
+  asm-emitting form (`lis`/`li`/`lfs`/`addi`/`mr`/`fmr` asms, `.rodata` pins), every value pin/keep-alive, every launder and
+  dead statement stays needed EXCEPT:
+
+  | tag group | site (before -> after) | structural form that replaced it |
+  |---|---|---|
+  | #2 order-only launder | em2c em2cBlendMotSet2 (2 launders -> 0) | pass the promoted `m1`/`b` arguments straight into `MotionSetCore` (the `int mm1/bb` opaque copies were unnecessary; the prologue copy order is unchanged) |
+  | #13 value pin | game/cam_qfps init `one` r10 (pin -> plain `int one`) | a plain `int one` gets r10 anyway; only `two` r8 and `zero` r7 still need the pin |
+  | #13 asm-block reg pin | game/esp_app EspDrawLaserLine `hi` r11 (pin -> plain `u32 hi`) | plain `u32 hi` takes r11; the asm `lis`/`li`/`lfs` and `c5` r8 pin still needed |
+  | candidate #12 address form | Sscrn/ss_pzzl pieceTblInit `asm("" : "+r"(tix))` (launder -> deleted) | the block-local `u32 tix` alone keeps the +20 out of the load displacement |
+  | #12 AROUND form | st2 r20d_checkSwitch `asm("fmr")` copy + `do{}while(0)` marker (2 -> 0) | `zero = spd;` plain assignment; the loop-exit `do{}while(0)` was redundant with the k0-asm block already present |
+
+- **Groups confirmed fully needed (representative sites tried with the view/ss_term structural lens, all DIFF when plainified):**
+  - #1 atari-init floats-first alias (`atariInitF`/`AtariInit`, 15 sites in em24/26/28/29/2e/2f/31/34/35/38/3a/3b/3c/39): all still need the alias (the 8 audit-1 removals were the member-call sites; these are the interleaved ones). Compiler-side (rank18 negative).
+  - #1 arg-move order comments (em10, emBarred, pl0e, pl14, r213, r226, r402, t_option): compiler-side, no code to remove.
+  - #4 int-view/narrow aliases (em10 x3, em2b, em2c, em32, em39, r104/r108/r11d/r203/r205/r209/r216/r217/r21b/r223/r226/r400/r403/r404/r40e, ss_file/ss_item/ss_model/ss_pzzl/ss_shop): all needed. Compiler-side; see the PROMOTE_PROTOTYPES probe below.
+  - #2 narrow extension (em2b, em2c x4, em32, em36 `register u8 kind`, em39, item, pl_class, r20d, r221, r226): all needed. See the PROMOTE_PROTOTYPES probe.
+  - #13 asm-emitted constants / hard-register pins / keep-alives (em21DmCk r9, em2a `int two`, em2b x63c + the x63C/x640/x4/rope keep-alives, em32 R0_Init lw/bn/hp/six/one + `li flip`, em39 zero/w r29, esp04 `s` fr0 + keep-alive, esp12/esp16 `z` fr12 + magic, esp_app `lis`/`li`/`lfs`, espgen10 hi/list/idx, event `zero`, item `sz`/`m1`, pad `dead` r16, pl0f, pl_shotgun `zero` fr0, r11b `one`, r201, r207, r224 x2, ss_pzzl `lis`/`addi`/`mr`, ss_shop `zero`/`cur`): all needed. Compiler-side (equiv13 negative: the original allocates REG_EQUIV constant pseudos like stock 2.95 in >12000 identical functions).
+  - #12 cse-path forms (em2b re-walk x2 + gcse-cprop `one`, em25 AROUND, em32 W_FRESH/W_SET + path knowledge, r20d k0-asm block + `st` r29 + `addi rot` regmove pick, r213/r224/r226 AROUND, ss_item `li` x2): all needed. Compiler-side (cse hash table carried into a block the original entered empty).
+  - #3 (em3c, item `wm` copy in model, merchant, r108, r10c, r213, r222, r20d, ss_shop `scr` launders, r402): all needed. Compiler-side (gcse3/highcost negative).
+  - #5 (em18 fabsf, ss_map/ss_pzzl sched ties, r20c): RESOLVED stock-haifa source levers, not removable.
+  - #6 (item `use` 11 `asm volatile("")` layout barriers, em35, EtcModel, event, r207 x2, r22c, ss_pzzl x2): RESOLVED stock-jump2 RTL-at-entry levers. item `use` tried in 13 structural spellings (break/goto-ng/return-0/inline-dec/goto-declabel polarity, big-arm variants) -> min 22 words: the ten identical `bl healing; cmpwi; bne KEEP; b NG` tails are register-identical, so stock jump2 merges them without the barrier; needed.
+  - #8 (emshield `fr1`, em2d `f`, r223): RESOLVED, the different-mode hard-register read; needed.
+  - #17 candidates (esp04 `s`, espgen02 colR, event `pin` r27, filter06, item `arm` r0 x2, objWep, obj00, pad, ss_item pin/hi/lo, ss_pzzl base/mp, ss_shop val, r103/r106/r10c/r203/r22c pins, r221 evNo, t_flag, em39 pep/x8B6): all needed (global.c pass-0 regs_used_so_far / local-alloc fake-lifetime).
+  - candidate "polymorphic copy vptr temp" (esp0a x4, esp0e): NOT removable. `*p = *esp` on a class with a vptr expands to a block move of the WHOLE object (the vptr word included, `mem/f` at +0xF4 with a plain SImode set) -- so ours floats the vptr reload above the block stores (fixed scalar vs varying struct). The manual `memcpy` + `volatile u32 vt` save/restore is the source form that reproduces the target's ordered reload; `*p = *esp` / a plain (non-volatile) temp both DIFF (28-33 words). Confirmed: the synthesized `operator=` (cp/method.c do_build_assign_ref) is bitwise for these POD-with-vptr classes, so there is no member-wise assignment to lean on.
+
+- **Compiler-config probe (NEGATIVE, nothing installed): `#define PROMOTE_PROTOTYPES` in rs6000.h.** #2/#4 are the narrow
+  argument extension/truncation family. cc1plus's rs6000.h defines PROMOTE_FUNCTION_ARGS but NOT PROMOTE_PROTOTYPES, so cp/decl.c
+  keeps `DECL_ARG_TYPE = TREE_TYPE` for a prototyped narrow parameter and cp/call.c/typeck.c pass the value unpromoted; the callee
+  then has no `clrlwi`/`extsh` to fold and combine's setup_incoming_promotions drops the extension at the use. Built a
+  PROMOTE_PROTOTYPES cc1plus (~/.cache/tagaudit2/sngcc-pp) and tried it on the #2 sites: it makes em2c em2cBlendMotSet/Set2 and
+  pl_class cMot3::set MASK correctly (`clrlwi` at the calls) with the plain source -- BUT it regresses 5 of 63 Matching game units
+  whole-source (t_log, db_log, atari, flr_at, quake) and leaves em2c 3 words off (a prologue-copy order shift), so it is NOT the
+  shipped compiler's config either. The lever is real for the #2/#4 mechanism (narrow prototyped args) but not installable; the
+  aliases/launders stay. (Recommendation for a future compiler hunt: a later SN build may enable PROMOTE_PROTOTYPES selectively;
+  smoke-test the 5 regressors before adopting.)
+
+- **Tag table after audit 2** (per group: sites in Matching scope -> removed / needed):
+  #1 23 -> 0/23; #2 14 -> 2/12; #3 16 -> 0/16; #4 27 -> 0/27; #5 3 -> 0/3; #6 20 -> 0/20; #8 6 -> 0/6; #9 4 -> 0/4;
+  #11 1 -> 0/1; #12 (all forms incl candidate) 40 -> 3/37; #13 (all forms) 69 -> 2/67; #17 (incl candidate) 45 -> 0/45;
+  cand "polymorphic copy vptr temp" 31 -> 0/31; misc ties (loop-note weight, sched slot, global-alloc) 30 -> 0/30.
+  Total 363 code+comment lines, 113 code-bearing tested, 5 sites (7 tag lines) removed. Every remaining tag is a confirmed
+  source lever for a stock-compiler difference (#1/#2/#3/#4/#12/#13/#17) or a resolved source-form lever (#5/#6/#8/#9) -- none is
+  removable until a later SN compiler build turns up; treat them as permanent per the audit-1 note.
+- **DOL/REL state:** the 111-check was 111 OK at the start of this pass; at the end main.dol was FAILED because emwep.cpp
+  (SetWeapon 99.80%) and id_sys.cpp (IDSystem::move 98.70%) -- both in the skip list, both Matching=True, both edited by other
+  agents within the last 20 min -- were mid-edit and not byte-identical. That regression is not this pass's: all 5 edited units
+  (em2c, cam_qfps, esp_app, ss_pzzl, r20d) are byte-identical to their pre-edit .o (verified by private compile + `cmp`).
+- Files changed: src/em2c/em2c.cpp, src/game/cam_qfps.cpp, src/game/esp_app.cpp, src/Sscrn/ss_pzzl.cpp, src/st2/r20d.cpp.

@@ -362,8 +362,7 @@ static void r20d_setEm()
 //   doubling: `spd` gets a tail keep-alive (the tail load's "f"(spd) input), `zero` one in the
 //   sleep block (live everywhere, ranked below the pool constants and above z0);
 // - an asm load has latency 1 (the pool `lfs` has 2), so the compare copy `zero = spd` would be
-//   ready one cycle early and take the `li r30,0` slot: the copy is an asm `fmr` (priority 1, not
-//   the fmr's 2) and `open = 0` an asm `li` with a fake "=m"(sw) output (anti-dependent on the
+//   ready one cycle early and take the `li r30,0` slot: `open = 0` is an asm `li` with a fake "=m"(sw) output (anti-dependent on the
 //   load's "m"(sw) read -> ready with `li r4,1`, memory write -> the call depends on it, weight 2
 //   -> issued after `li r4,1`).
 static void r20d_checkSwitch(int opened)
@@ -424,7 +423,7 @@ static void r20d_checkSwitch(int opened)
                 SndCall(6, 0x26, 0, 0, 0, 0);
                 asm("lfs %0,%1@l(%2)" : "=f"(spd) : "i"(&k0), "r"(hi), "m"(sw)); // COMPILER-DIFF: #12
                 asm("li %0,0" : "=r"(open), "=m"(sw));                          // COMPILER-DIFF: #12
-                asm("fmr %0,%1" : "=f"(zero) : "f"(spd));                        // COMPILER-DIFF: #12
+                zero = spd;
                 SceAtSetEnable(0, 1);
                 for (;;) {
                     r20d_work.p->fence[0].move(t);
@@ -953,7 +952,6 @@ static void r20d_execThrough(int no)
         asm("" : "=r"(p) : "0"(p) : "r31");
         SceSleep(1);
     }
-    do { } while (0);   // COMPILER-DIFF: candidate #12 (loop-exit form): the block after reloads 0.0 from the pool
     {
         cPlayer* p = pPL;
         Vec a;
