@@ -5110,14 +5110,19 @@ void MakeExecSeqData(EspSeqData* head, TOOL_SEQ* tbl, u32 nGroup, u32 nSeq)
     u16* num = (u16*) head;
     TOOL_SEQ* rec;
     u32 j;
-    for (i = 0; i < nGroup; i++) num[i] = 0;
+    // the clearing loop's zero is the low half of `rec` (the target's `li r10,0` is rec's register r10): a
+    // `rec = 0` inside the loop is hoisted by loop.c as the SImode zero the u16 stores reuse (cse lowpart), and
+    // the two-set pointer pseudo has BASE_REGS class, so global.c skips r0 for it
+    for (i = 0; i < nGroup; i++) {
+        rec = 0;
+        num[i] = 0;
+    }
     rec = (TOOL_SEQ*) head->rec; // after the clearing loop: `addi rec,head,48` sits in the second loop's preheader
     for (j = 0; j < nSeq; j++, tbl++) {
         // g_page and the flag table pointer are read through struct views: both loads stay in the loop body (the
         // target reloads them per iteration; a fixed-scalar `g_page` read is hoisted with `&g_seqFlgNum[g_page]`
         // and takes the callee-saved register the target gives to high(g_page)); `(x & 1) == 0` keeps the plain
-        // `andi.; beq` (`!(x & 1)` folds to `xori; bne`). Left (2 words): the clearing loop's HImode zero is r0
-        // in ours and r10 (rec's later register) in the target.
+        // `andi.; beq` (`!(x & 1)` folds to `xori; bne`).
         if (g_seqFlgNum[((PageView*) &g_page)->v] != 0 && (((SeqFlgPtr*) &g_pSeqFlg)->p[j] & 1) == 0) continue;
         if (tbl->stat & 1) {
             *rec++ = *tbl;

@@ -59,9 +59,9 @@ struct DB_COLOR {
     DB_COLOR(f32 v) { a = b = g = r = v; }
     DB_COLOR(f32 r_, f32 g_, f32 b_, f32 a_) {
         r = r_;
-        a = a_;
-        b = b_;
         g = g_;
+        b = b_;
+        a = a_;
     }
 };
 

@@ -619,8 +619,8 @@ DB_PRIMITIVE* DB_ACTIVE_SELECT::SetActiveDefault()
 // The colour temp is built inside an inline taking the destination by pointer: the block copy's
 // loads then stay frame-relative (`lwz 8..20(r1)`) while the ctor stores go through the temp's
 // `this` (`addi r9,r1,8`); written as a member assignment cse rewrites the copy's `fp+12` into
-// `this+4`. Left: the temp's a/b/g store order (ours g, a, b: the 0.1 pseudo and the temp's `this`
-// die at the g store, the target issues a, b, g as if neither died).
+// `this+4`. The temp's store order a, b, g is sched1's register-pressure rank of the ctor's RTL
+// order r, g, b, a: g +1, b 0 (the 0.1 pseudo dies), a -1 (the 0.3 pseudo and the temp's `this` die).
 static inline void DB_ColorSet(DB_COLOR* c, f32 r, f32 g, f32 b, f32 a)
 {
     *c = DB_COLOR(r, g, b, a);

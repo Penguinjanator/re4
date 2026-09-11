@@ -17924,3 +17924,75 @@ retry in a loop until the target object is newer than its source (`[ x.o -nt x.c
   - t_movie/snd_test 53/77 (559 w): disp_sit_normal__FP11SND_ISS_BLKP7SND_SITii 123 (0x684/0x674), disp_sequencer__Fv 64 (0x5a0/0x58c), disp_se_wt_data__FP11SndTestWorkP11SND_ISS_BLKP7SND_SIT 46, snd_test_disp_rit__Fv 37 (0x638/0x634), dir_entry_read__FP11SndTestWorki 37 (0x124/0x114), test_blk_enable_ck__FP11SndTestWorki 31, Snd_test_disp_voice__FP11SndTestWork 31 (0xf0/0xf4), Snd_test_disp_menu__FP11SndTestWork 26, Snd_test_disp_efx__Fv 20, disp_adsr_para__FP11SndTestWork 18, test_disp_efx_delay__FP11SndTestWorkP12SND_EFX_WORKii 18, Snd_test_disp_vol__Fv 16, Snd_test_disp_req_para__FP11SndTestWork 14, test_disp_efx_rev_hi__FP11SndTestWorkP12SND_EFX_WORKii 12, directory_disp__FP11SndTestWork 12, test_disp_efx_rev_std__FP11SndTestWorkP12SND_EFX_WORKii 10, test_disp_efx_rev_dpl2__FP11SndTestWorkP12SND_EFX_WORKii 10, blk_file_disp__FP11SndTestWork 10, aram_dump_disp__FP11SndTestWork 9, test_disp_efx_chorus__FP11SndTestWorkP12SND_EFX_WORKii 6, Snd_test_disp_aux__FP11SndTestWork 3, test_play_or_stop__FP11SndTestWork 2, load_select__FP11SndTestWork 2, cursor_disp__FP11SndTestWork 2 | .text size 0x5120/0x50ec; .rodata size 0x1004/0x1000 bytes: first diff @0x6d4, 583 words relocs: 1/0 entries reloc targets differ @0x6d4: (1, (addr, 0x802a2c64)) vs  (+0 more); .data reloc targets differ @0x5f0: (1, (t_movie, .rodata, 0x2060)) vs (1, (t_movie, .rodata, 0x205c)) (+22 more)
   - t_movie/t_se_at 18/20 (82 w): seAtAreaEdit_DataInput__Fv 58 (0xc6c/0xc68), fn_t_movie_19D18 24 | .text size 0x2e14/0x2e10
   - t_movie/t_snd_vol 21/27 (1635 w): edit_reverb_param__Fv 812 (0x15e8/0x1018), file_save__Fv 330 (0x804/0x8a4), data_edit__Fv 152 (0x884/0x868), file_load__Fv 122 (0x784/0x780), combine_tbl_edit__Fv 115 (0x3c0/0x344), combine_tbl_disp__FP7CombSel 104 (0x464/0x44c) | .text size 0x616c/0x5b88
+
+### Tool RELs, t_esp pass 7 (db_widget 111 -> 112/113: DB_WINDOW ctor 3 -> 0 zero code; t_esp 195 -> 196/212: MakeExecSeqData 2 -> 0 zero code; DB_STRING ctor 11 -> 8 with a pin (not applied), Save*FileNo x5 and db_mod position_usage / IKreport mechanisms sharpened; nothing flipped; 2026-09-11)
+
+- Harness ~/.cache/tesp7 (dol20a copies with the paths rewritten; module-aware `mcmp.py MOD/UNIT [SYM]` (module vtable
+  relocs `.rodata+N` vs `_vt.X` counted equal), `order.py MOD/UNIT`, `mtryv.py MOD/UNIT FUNC v.py [--apply N] [--asm N]`
+  whose variants may also edit a header copy (`{'src': [...], 'hdr': {'db_widget.h': [...]}}`, the variant dir goes first
+  on the include path), `msbs.sh`, `mdump.sh MOD/UNIT -dX` (absolute `SRC_OVERRIDE`, `-G0` like the module build), `fsec.py`,
+  `prio.py`); build.ninja copied to `x.ninja` for `ninja -f` object builds without the manifest regeneration. Deleted at
+  the end. 111 OK before and after every edit.
+- **DB_WINDOW ctor (db_widget, 3 -> 0, zero code): the four-argument `DB_COLOR(r, g, b, a)` ctor stores `r, g, b, a` in
+  that order (db_widget.h; the only caller is DB_ColorSet).** The temp's store order is sched1's register-pressure rank of
+  the ctor's RTL order: with `r, g, b, a` the g store is +1, b 0 (the 0.1 pseudo dies), a -1 (the 0.3 pseudo and the temp's
+  `this` die) -> a, b, g = the target; the old `r, a, b, g` order made g the -1 store. Rule: a temp copied through a
+  pointer inline is ordered by the dying operands of the CTOR BODY's statement order, so read the target's store order
+  as "dying stores first, then LUID" and permute the ctor body, not the call site.
+- **MakeExecSeqData (t_esp, 2 -> 0, zero code): `rec = 0;` inside the count-clearing loop (`for (i..) { rec = 0; num[i] =
+  0; }`).** The target's HImode zero is r10 = `rec`'s later register because the zero IS rec: loop.c hoists the
+  invariant `rec = 0` into the preheader as an SImode zero, the `num[i] = 0` stores take its lowpart (cse's
+  `notreg_cost` subreg rule), and `rec` (two sets: the zero and `head->rec`) is a global pseudo with BASE_REGS class
+  (`addi`/`stw` through it), so global.c cannot give it r0 and takes r10 after i (r11) and num (r9). A `TOOL_SEQ* rec =
+  0` at the declaration, `u16 z = 0` locals (top, before the loop, per iteration), `u32 z`, `*num++ = 0` all stay r0 (4-5).
+  Rule: a constant that shares a register with a later POINTER value is the pointer variable's dead initialiser; the
+  set must sit where loop.c hoists it (inside the loop) so cse's lowpart reuse sees it in the preheader.
+- **DB_STRING ctor (db_widget, 11, mechanism exact, no source form applied).** (1) The target's four constant names
+  (LC high r9, `_vt` r11, zero r0, type r9) are reload's spill round-robin over {r0, r9, r11} (`lis` needs BASE_REGS -> r9,
+  then r11, r0, r9) on REG_EQUIV pseudos that local-alloc did not allocate = the #13 tie again; our local-alloc gives vt
+  (high+lo TIED by block_alloc's "tie with any dying operand" rule on the elf_low insn: 4 refs / life 12 = 6666) r9 before
+  LC (2 refs / life 4 = 5000) r11, type (2500) r0 before zero (1363) r11. (2) `register int zero asm("r0"); zero = 0; str =
+  (char*) zero; len = zero;` gives ALL FOUR names (11 -> 8): the pinned `li r0,0` is issued FIRST at t=4 (sched1 boosts a
+  SET of a register in `bb_live_regs` to max_priority -- `birthing_insn_p`; call-used hard regs are in bb_live_regs because
+  every call marks them live and nothing kills them), so `lis LC; lfs` become adjacent (LC life 2 -> 10000 >= vt's 8/8)
+  and LC takes r9, vt r11, type r9 (r0 busy). Residue: the r0 stores are issued early because in sched1 every later call
+  (strcpy, strlen) collects an ANTI link on them through `reg_last_uses[r0]` -- the new[] result copy `mr r0,r3` is a PSEUDO
+  set in sched1 and does not clear the list -- and **LOG_LINKS are never cleared between sched1 and sched2** (no pass
+  frees them; flow2 prepends its def-use links; `add_dependence` only upgrades kinds), so sched2's depend counts include
+  sched1's pseudo-based links: 5 dependents vs the target's 3 (`77 79 127`). Pinning the new[] result to r0 as well
+  (`register char* p asm("r0")`) clears the uses but cse/reload_cse then forward r3 into the store (`stw r3,116`, the `mr
+  r0,r3` vanishes: 6). Combine merges a single-use hard-register copy `(set r0 P)` into its use, so a second r0 SET
+  needs two uses to survive to sched1. Not applied (tagged pins that do not close the function).
+- **Save*FileNoUpdateCallback x5 (t_esp, 5 each, mechanism exact from the bytes, no pure-C form).** The target has BOTH
+  compares and NO branch: `lha r11; cmpwi r11,0; cmpwi r11,255`. Reading the passes: jump1 keeps both branches (the dead
+  `type = 0xFF/0` sets are not trivially dead -- the pseudo has uses in the compares); flow1 deletes the two sets; the
+  branches then survive to jump2 only if their arm BLOCKS are non-empty at flow2's `find_basic_blocks (.., 1)` (its
+  fallthru tidy deletes a conditional jump whose block has a single successor, and life_analysis then deletes the
+  compare); at jump2 the arms must contain only USE/CLOBBER insns (`prev_active_insn` skips them) so both jumps are
+  "jump to following insn" and `delete_jump` leaves the compares. A bare `(use hard)`/`(clobber hard)` insn is what
+  satisfies both (flow never deletes a hard-register CLOBBER or a USE; final emits nothing), but at -O2 no C++ construct
+  emits one: `use_variable` runs only under `obey_regdecls` (-O0), store_constructor's union CLOBBER targets a pseudo (a
+  `register union .. asm("r11")` local is still expanded into a pseudo, 6 words), asm statements are active insns, and a
+  no-op or redundant move is deleted by reload_cse before flow2. Leave the five at 5 words (`lha r0` + one compare).
+- **IKreport (db_mod, 10, mechanism exact).** Ours: `int info = mw->partsInfo[i] & 0xFF` expands as `(and:HI load 255)`
+  + `(zero_extend:SI ..)` (the FE narrows the u16 bit-op), which is why cse does NOT fold the tests into the load (its
+  `lookup_as_function (reg, AND)` shortcut needs an AND-of-constant equivalence): `int v = load; int info = v & 0xFF`
+  or `(u8) v` forms lose the `clrlwi` (tests folded onto the load: 22). The target's `mr r11,r0` is gcse's recomputation
+  `R = E` of the byte expression inserted at the end of the first block (cse2 then folds it to `R = info`) for a second
+  occurrence of E in the third test's block -- which requires that block to be OUTSIDE cse1's path from the first
+  (every plain spelling puts it on the AROUND path: the `if (info & 0x20) type = 1;` diamond is a skippable
+  straight-line block with a single-use join label, so cse1 folds the second occurrence to `info` and no copy exists).
+  A `do {} while (0)` boundary plus a re-derived byte gives a fresh ebb but the re-derivation either folds (int/u16
+  locals) or hashes differently (a second load, `(and info 255)`); no natural form found.
+- **position_usage (db_mod, 10, read).** The target issues every `y++` (`addi r31,r31,1`) ABOVE the eprintf call whose y
+  argument used the old y and keeps the LAST increment (`addi r31,1; addi r4,r31,-1; mulli` for "B"): ours folds the last
+  `y++; (y - 1) * 14` by combine because y dies there (same block), i.e. in the original y was live after the last call
+  or the increment and its use were in different blocks; `y++` inside the argument list (`y++ * 14`) creates a temp copy
+  that cse folds the next `(y - 1)` into. Not closed.
+- Facts read this pass: local-alloc `block_alloc` ties operand 0 with ANY dying register operand when no constraint
+  requires a match (`lis`+`addi` pairs are one qty); `QTY_CMP_PRI = floor(log2 refs) * refs * size / (death - birth)`
+  in half-insn units, ties by qty number = birth (SET) order; sched1's `sched_before_next_call` gives every insn USING a
+  non-call-crossing pseudo an ANTI link to the next call, so a store from such a pseudo has prio 12 (anti cost 1) while
+  a store from a call-crossing one gets the TRUE memory dependence (prio 13) and is issued first; ANTI/OUTPUT cost is 1
+  on rs6000 (`rs6000_adjust_cost` returns 0, `insn_cost` clamps to 1); `insert_insn_end_bb` puts gcse's recomputation
+  before the block-ending jump, after the compare.
