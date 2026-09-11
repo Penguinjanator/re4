@@ -22951,3 +22951,51 @@ sfd_tst 10/11, mpv_umc 15/16 stay False; sfd_tst and mpv_umc sources unchanged.
 **r0_RailBehind 3 -> 0, one tag.** The three pointer arguments of the single `VecLinearCombination` call are `asm("la %0,%1" : "=r"(p) : "m"(x.first_member))` (`la rD,off(r1)` assembles to the target's `addi rD,r1,off`; the dying asm temporaries are retargeted to r3/r4/r5 by regmove `optimize_reg_copy_2`). In the tree's C form gcse PRE deletes the three `plus fp const` computations of this block (`pre_delete`: antic occurrences, available from both if/else predecessors) and replaces them with copies of the reaching registers (`mr r3,r28` ...); the target keeps them fresh here while the very next call (`PSVECSubtract`) uses the reaching registers. Not derived: why PRE spares exactly this block in the original. `COMPILER-DIFF: #3`.
 
 **Tooling notes.** `try.sh`'s `KEEP=` must be an absolute path (mk.sh chdirs into the repo, a relative name lands the object in the repo root). `fdiff.py` runs `ninja` unlocked on the tree object; for variants use `OBJ=... bytecmp.py unit sym` (prints the differing words with offsets).
+
+### CRI SWAR kernels pass 4: the 1p pack temporaries are @temps (helper-local per call gives the target's order), the first-word load is the open node; nothing applied (mpv_mcy 1p stays 57w; 2026-09-11)
+Harness /home/adityas/.cache/cri_swar4/ (deleted): pass-3 `try.py lib/unit file.c [Func..] [--sbs Func] [--all]` (unit flags, strip_unused,
+bytecmp with OBJ=, side-by-side `dtk elf disasm`), ~/.cache/mwccdbg `ra.py`/`rasum.py` (dumps ra_base, ra_vN1, ra_vN3, ra_vN5, ra_vN21,
+ra_vK8). Task: test "static inline helper / block-local per pack step" for `MPVMC16_OneRef1p_TuneC` (lib/mpv_mcy, 57w), then the 8x8
+kernels (lib/mpv_mc, not opened this pass: no shape reached the target for 16x16). `MPVMC08_OneRef1p_TuneC` asm untouched. No unit flipped,
+no source change, 111 OK unchanged.
+
+**Read off the dumps (verified, each with one `backend-10` + `regalloc-gpr` dump):**
+- **Copies into OWN locals are never coalesced; copies into @temps are.** The or->rlwimi merge always emits `rlwinm t, lo, 24..; mr x, t;
+  rlwimi x, hi, 8, 0, 23`. With x a function local the `mr` is a real node ranked by its declaration (N1: x0 r54 and its srwi temp r158 both
+  in the priority list, `mr r5, r0` in the code, frame for b: 242w); with x an inlined helper's local or a CSE @temp the srwi temp is a
+  ghost merged into x (K8 r159/r161/r163, N5 r155/r156/r157) and the code is the target's `srwi x; rlwimi x`. So the target's pack values
+  are @temps (or backend temps) and its `lbz r12; mr r0, r12` means `b`/`h1` ARE own locals.
+- **Helper locals are @N-numbered in REVERSE declaration order per inlining and in CALL order across inlinings.** N3 (each odd case as a
+  `static void mpvmc16_cpN(MPVMC *mc, Uint8 *s)`): cp2's 13 locals are @280..@292 with the LAST declared (h1) at @280 = coloured first
+  (h1 r3, w2 r4, w1 r5, w0 r6, p r7, d r8, i r9, x2 r0, x1 r10, x0 r11, pitch r12: 160w) -- the mirror of own locals (first declared =
+  coloured first). N5 (one `static void mpvmc16_st8(Uint32 *d, Uint32 hi, Uint32 lo) { Uint32 x; x = hi << 8; x |= lo >> 24; *d = x; }`
+  call per pack): the three x are @284/@286/@288 in call order and colour d[0]'s first: `srwi r3; srwi r4; srwi r5` = the target's
+  ASCENDING order (pass 3's open question) with the `b` copy `mr r0` as in the target. Two-def `x = hi << 8; x |= lo >> 24` gives the srwi
+  base (the `or`'s SECOND operand is the base, the first is fused) -- but the first def `rlwinm x, hi` stays as a dead instruction until RA
+  and its output dependence delays the rlwimi (schedule `srwi; lwz w0; srwi; lbz; rlwimi T2; rlwimi T1`), and with the packs at r3-r5
+  the loop values shift by one register and b spills to r31: 271w. `x = lo >> 24; x |= hi << 8` makes the slwi the base (pass 3).
+- **The inliner gives an argument a @temp only when the argument has a side effect**; pure arguments are substituted into the body (N19
+  `st4(d, P0, P1, P2, P3)` = base 57w; N21 with only `*(volatile Uint8 *)(p + 15)` in P3: P3 alone becomes @270 (b coalesced into it,
+  r5), P0-P2 stay backend temps, 99w; N18 with nested word loads in every P: all four are @temps in the target's order, T1 r3/T2 r4/T3
+  r5). **Arguments are evaluated RIGHT to LEFT** (N18's P3 `lbz` first; a nested-load chain across arguments is therefore UB and read
+  the previous row's w3). N2 (`st(&d[k], P)` with the nested loads inside each call): the loads stay behind the inlined stores (148w).
+- **The single-use first-word load (`w0 = *(Uint32 *)(p - 1)`, `h0 = *(Uint16 *)p`) is inlined into its use regardless of
+  `#pragma opt_propagation off`** (Pb 62w, P5 175w, P19 62w: the 1/5 loop unchanged) -- it is not the frontend's propagation pass. It
+  stays a variable only behind a store, an `if`, or `__dcbt` -- and `__dcbt` is also a scheduling barrier (N6: `lwz w0` stuck above the
+  dcbt, W0 r3, 108w). Not blocked by: `(Uint32)*(Sint32 *)`, a `Sint32 w0`, a `Sint32 hi` parameter, `*(volatile Uint32 *)` (a
+  `*(volatile Uint16 *)` IS kept: ETYPCON of a volatile load, N7 `lhz r3`), a word pointer `q = (Uint32 *)(p - 1); w0 = q[0]`, inlined
+  `ldw(p + k)` helpers for the other words (N12-14), dead nested pointer assignments `*(Uint32 *)(q = p - 1)` (q removed first; the
+  pass-14 anchor needs the nested variable live). A nested `(h0 = load)` inside another def anchors the OUTER def and is itself
+  substituted when single-use (N1/N3 `lhz r0` backend temp).
+- **Parse-time folds** (no temp, no code; K9/K10/K14/K16/K17 = base 57w): `v | v`, `v & v`, `(v ^ v) ^ v`, `if (v != v)`, `(v << 0) | v`,
+  `(0, e)`. Kept: `v ? v : v` (172w), a self-assignment `(w1 = w1) >> 24` (not removed; makes the slwi the base, 98w).
+- **Target model of the 1p loop (1/5):** pack temporaries = @temps coloured in statement order (r0, r3, r4), `b` an own local with the
+  uncoalesced copy (r0), the first-word load an own local coloured AFTER the first two packs (r4), the loop values own locals in
+  declaration order (stride r5 .. b r12); 2/6 the same with pitch a late backend temp (pass 3, `clrrwi r3`) coloured before the packs
+  and `h0` after them. Every form here that makes the packs @temps (call-order helper locals, side-effect arguments) leaves the first-word
+  load a backend temp coloured first (r0, packs shift to r3-r5, +1 register, frame): OPEN = a codeless way to keep `w0`/`h0` a variable
+  (or a @temp created after the second pack) with pack @temps that carry no dead first def.
+
+**Residues (exact class, forms tried this pass):** mpv_mcy 1p 57w (above); mpv_mcy 4p 136w / H2 225w / V2 225w and mpv_mc 4p 72w / V2
+73w / H2 436w untouched (the 1p shape was the precondition). N1 242w, N2 148w, N3 160w, N5 271w (= Na/Ne/Nh/Ni/N12-17 conversions,
+pointers, load helpers, dead anchors), N6 108w, N7 171w, N18 107w (UB), N20 98w, N21 99w, K15 172w, Pb/P19 62w, P5 175w.
