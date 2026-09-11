@@ -1183,7 +1183,7 @@ void ToolEvt::SubToolMessInit(ToolEvt* t, int sw)
         MessTool.p->CreateFileWindows(0x16, 0xA, "X:\\Soft\\Room\\event\\", "test", ".txt");
         MessSetSaveFunc(MessTool.p, CallbackSave, t);
         MessSetLoadFunc(MessTool.p, CallbackLoad, t);
-        MessTool.p->CreateEditWindow(0xA, 4, "No  ==CutNo== ==Frame== ==MessNo= ==Timer==", m->elem, XML_NODE_MAX, 5);
+        MessTool.p->CreateEditWindow(0xA, 4, m->elem, "No  ==CutNo== ==Frame== ==MessNo= ==Timer==", 5, XML_NODE_MAX);
         MessTool.p->AddEditColumn(4, "         ", 1, CallbackCutNoExec, CallbackCutNoUpdate);
         MessTool.p->AddEditColumn(0xE, "         ", 2, CallbackFrameExec, CallbackFrameUpdate);
         MessTool.p->AddEditColumn(0x18, "         ", 3, CallbackMessNoExec, CallbackMessNoUpdate);

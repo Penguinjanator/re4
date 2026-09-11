@@ -392,8 +392,23 @@ public:
         bufValid = 0;
         num = 0;
         pCur = 0;
-        // the last six zero stores form their own sched region (pSetWorkNo, the dying one, first)
+        // the last six zero stores form their own sched region (pSetWorkNo, the dying one, first).
+        // The LOOP_END note also blinds cse1 to everything after it, so the dead test below reaches
+        // gcse unfolded.
         do { } while (0); // COMPILER-DIFF: #13 (sched region split)
+        // Emit-nothing sched barrier: sched2 must not see a real insn as the first one after the
+        // notes (that insn would be forced to issue first; the target's region starts with the
+        // free `lis; lis | cmpwi; stw` schedule). The volatile asm is the barrier at both sched
+        // passes and produces no code; gcse's end-of-block insertions (the hoisted compare, the
+        // `Joy`/`pPL` highs) land between it and the jump, i.e. inside this region.
+        asm(""); // COMPILER-DIFF: codeless sched barrier
+        // Dead test on an already-stored parameter: the jump survives cse1 (blind, see above) and
+        // splits the block at gcse; PRE then inserts `cmpwi edit,0` (the `edit == 0` test after
+        // the AddButton loop, carried in a CR field via mfcr/mtcrf) at the end of this block.
+        // The constant `n` folds the test before flow1 (gcse cprop / cse2), flow1 merges the
+        // blocks again and the zero stays block-local (r0). `n` must be a parameter that is written here: a read-only inline
+        // parameter is replaced by its constant actual and the test folds at expand time.
+        if (n > 128) n = 128; // COMPILER-DIFF: dead test (gcse block boundary)
         pTop = 0;
         pBottom = 0;
         pIsWorkAlive = 0;
@@ -928,7 +943,9 @@ public:
             return;
         }
     }
-    void CreateEditWindow(int wx, int wy, const char* name, T* work, u32 n, u32 nRows)
+    // parameter order (work before name, nRows before n) is the inline entry's pseudo order:
+    // `lis work` is issued before `lis name` and the rows constant is the one hoisted above strlen
+    void CreateEditWindow(int wx, int wy, T* work, const char* name, u32 nRows, u32 n)
     {
         // frame-only: the original's helper had a T-sized local here (no code refers to it; it is
         // the sizeof(T) gap below the tool's spill slots in both ToolEspArea and ToolLightAreaMain)

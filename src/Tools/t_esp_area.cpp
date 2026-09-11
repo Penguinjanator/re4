@@ -234,7 +234,7 @@ void ToolEspArea()
     sprintf(path1, "X:\\Soft\\Room\\st%d\\r%03x\\", pG->stage_no, pG->room_id);
     sprintf(path2, "r%03x", pG->room_id);
     tool.CreateFileWindows(0x16, 0xA, path1, path2, ".ear");
-    tool.CreateEditWindow(4, 0x19, "No ========Position=========== =Data=", esp_area_work, ESP_AREA_MAX, 5);
+    tool.CreateEditWindow(4, 0x19, esp_area_work, "No ========Position=========== =Data=", 5, ESP_AREA_MAX);
     tool.AddEditColumn(3, "                          ", 1, PosExec_callback, PosUpdate_callback);
     tool.AddEditColumn(0x20, "    ", 2, AreaNoExec_callback, AreaNoUpdate_callback);
     tool.SetIsWorkAliveFunc(IsWorkAlive);

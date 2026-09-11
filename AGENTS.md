@@ -23045,3 +23045,69 @@ DUMPPREFIX` (global-alloc priority table with `;; regs to allocate` rank), hooke
     set twice, so its alias base is 0 and base_alias_check returns 1 against the SDA symbol), ours issues the load 6 insns
     before the store, i.e. ours has no such dependence -- why the two differ is not established (next's two sets should give
     base 0 in both); also the psq_l destination f10 vs f12 and the sum's FPR names. Not found.
+
+### Tool RELs, cDbgToolMain ctor boundary (Tools/t_esp_area ToolEspArea 438 -> 399 (size 0x1c4c vs 0x1c50), Tools/t_lightarea ToolLightAreaMain 393 -> 462 words but .text size now EXACT (37/38, fn_Tools_30410 59 -> name-only), t_event SubToolMessInit 145 -> 16; one header change (include/dbg_tool.h), db_toolbase stays IDENTICAL; nothing flipped; 2026-09-11)
+
+Harness ~/.cache/tools_ctor (deleted): `htry.py v.py` built the three units against a copied include/ with header/source
+edits and judged each with `OBJ=.. bytecmp.py` (3 s per variant); `sbs.py MOD/UNIT SYM OBJ` normalised side-by-side;
+`hdump.sh MOD/UNIT INCDIR -dX ...` with `SRC_OVERRIDE=` for the swapped-signature sources (`-fsched-verbose-5` prints the
+per-insn prio/cost/deps table and the ready lists). All three units share the inlined `cDbgEditWindow<T>` ctor, so every
+item below is in include/dbg_tool.h and was verified on all four includers after each change (`rg -l dbg_tool.h src include`:
+t_event.cpp, t_lightarea.cpp, t_esp_area.cpp, db_toolbase.cpp; db_toolbase.h only mentions it).
+
+- **ninja does not track include/dbg_tool.h** (`ninja -t deps` is truncated, "premature end of file"); after a header edit
+  remove the four objects (`/bin/rm build/G4BE08/src/{Tools/t_esp_area,Tools/t_lightarea,t_event/t_event,Tools/db_toolbase}.o`)
+  before the flock'd ninja, otherwise "no work to do" judges the old objects.
+- **Target ctor shape (all three units):** block A after `bl strlen`: `li r0,0; li r9,1; li r11,n` then the 17 constant stores;
+  block B: `lis r9,"00"@ha; lis r11,NoButtonUpdate@ha; cmpwi edit,0; stw r0,pSetWorkNo; stw pTop; addi; stw; addi; stw;
+  li i,0; stw; mfcr r29; stw; addi rX,r1,184; lis Joy`; loop `mr r5,i; mr r8,i; mr r3,edit; li r4,0; mr r6,label; li r7,0;
+  li r9,0; mr r10,cb; bl AddButton`; after it `stw edit,4(tool); mtcrf 128,r29; bne err`. `cmpwi edit,0` is gcse block-PRE
+  of `(compare edit 0)` (the `edit == 0` test after the loop) inserted at the end of the pre-loop block; it needs a basic-block
+  boundary between the `new` result copy and the loop head at gcse time, and that boundary must be gone by flow1 (the zero is
+  block-local -> r0 from local-alloc; the `1` r9, `n` r11 follow in REG_ALLOC_ORDER).
+- **The boundary construct (`if (n > 128) n = 128;` after the `do {} while (0);`, tagged dead test):** cse.c
+  `cse_end_of_basic_block` stops the cse1 EBB at a NOTE_INSN_LOOP_END not followed by a label (`! after_loop`), so cse1 never
+  sees the constant `n` for a test placed after the do-while and the jump reaches gcse; cse2 (after_loop) / gcse cprop fold
+  it, the never-taken jump is deleted, the post-cse2 jump pass drops the label, flow1 sees one block. The tested parameter must
+  be WRITTEN in the ctor: integrate.c substitutes the constant actual for an unmodified formal and the test folds at expand
+  (`if (n > 128) return;`, `&&` forms, tests on `rows`/`num` memory: no boundary or real code). `if (nRows > 128) nRows = 128;`
+  also works but then `n` (not rows) is the constant hoisted above strlen. A test placed BEFORE the do-while is folded by cse1
+  (435/389/38 words: no boundary).
+- **CreateEditWindow parameter order `(int wx, int wy, T* work, const char* name, u32 nRows, u32 n)` (call sites reordered in
+  t_esp_area.cpp:237, t_lightarea.cpp:382, t_event.cpp:1186):** the inline entry copies the actuals into pseudos in formal
+  order and sched1 breaks priority ties by LUID: `lis work` issues before `lis name` (target `lis r28; lis r30; addi r30;
+  addi r28`), and the rows constant (lower LUID than n) is the one issued above `bl strlen` (`li r29,5` between `stw pName`
+  and `stw wy`). The ctor's own parameter order is irrelevant (its formals reuse the caller's pseudos).
+- **`asm("")` before the test (tagged codeless sched barrier): block B's issue order.** Ours had `stw r0,pSetWorkNo` FIRST in
+  block B, target `lis; lis; cmpwi; stw pSetWorkNo; stw pTop; addi; ...`. Read off -dS with `-fsched-verbose-5`: haifa attaches
+  LOOP_BEG/END notes to the next insn as a full barrier (both sched passes); after reload the first insn after the notes was
+  the pSetWorkNo store (sched1 puts the dying-zero store first by INSN_REG_WEIGHT; the PRE copy `high(esp_area_work)` that
+  preceded it is a REG_EQUIV init deleted by reload), so sched2 issued it alone in cycle 1. The target's order is exactly the
+  issue-rate-2 (750) schedule of the region with NO real insn forced first: cycle {lis, lis}, {cmpwi, stw764}, {stw744, addi},
+  {stw, addi}, {stw, li}, {stw, mfcr}, {stw, addi r1,184}, {lis Joy}. A volatile asm (`asm("")`, no outputs => volatile) is a
+  sched barrier both ways (haifa `ASM_OPERANDS && MEM_VOLATILE_P`: all-regs deps + `reg_pending_sets_all`) and emits nothing,
+  so it takes the notes' slot at sched2. It must sit BEFORE the dead test: gcse's `insert_insn_end_bb` puts the block-A
+  insertions (`cmpwi edit,0`, `addi r1,184`, `lis Joy/pPL/LC`) right before the jump, i.e. after the asm; with the asm after
+  the test they land before the barrier and `cmpwi`/`mfcr` move into block A (447 words). Results: t_esp_area 407 -> 399,
+  t_lightarea 474 -> 462, t_event SubToolMessInit 27 -> 16 (its ctor region is now identical; the 16 are before `new`).
+- **Remaining ctor residue: `wx`/`rows` r28 vs target r29 and `work` r29 vs r28 (2 x 5 words per unit).** local-alloc
+  (`QTY_CMP_PRI = floor_log2(refs)*refs*size*10000/(death-birth)`, birth/death = 2*insn_number in the sched1 output, notes not
+  counted, lo_sum output combined with its dying high input: work qty = 4 refs) gives name 9523 (r30), work 320000/48 = 6666,
+  wx 80000/12 = 6666 -- an exact tie broken by qty number (work born first) -> work r29, wx r28, rows reuses r28. The target
+  needs wx above work: one insn less between `li wx` (issued at t=3 with `li r3,772`) and `stw wx`, or one more between
+  `lis work` and `stw pWork`, or a third wx ref. Not found: swapping x/y store order, wy/wx or work/name-first parameter
+  orders in either signature (401-456), `asm("" : "+r"(wx))` launders (wx becomes post-call r0; 406-413), `+r`(work) (409),
+  update_equiv_regs does not move a `REG_EQUIV const` init inside a block (`REG_BASIC_BLOCK >= 0`), REG_N_REFS is loop-depth
+  weighted per BLOCK HEAD only (flow.c `calculate_loop_depth`), so the do-while notes inside the block do not weight the refs.
+- **Not the mechanism (each built and read):** memory-based tests (`rows`, `num`: real code, 445), two-condition register tests
+  with both params modified (block B zero separate but the loop entry test `0 < rows` no longer folds, 447), the six stores
+  inside a `do {} while (0)` (406-445), a `z` pointer local for the zeros (unchanged), chained `pTop = pBottom = .. = 0`
+  (type error across the function-pointer members), label/cb declared before the stores (unchanged / 476).
+- **Tool-body residues left (t_esp_area 399 = 10 ctor + ~389 body; t_lightarea 462; same causes):** `tool` pointer r23 vs r22
+  with the `addi r1,184` local taking the other (global.c allocno order; tool 27 refs / 4326 insns), `lis r19/r20`, the
+  main-loop `mr r8,r30` + `mr r3,r8` (target keeps the edit pointer in r8 across the switch; ours reloads `mr r3,r30`), `lwz
+  r11,4(tool)` vs ours `lwz r11,12(r1)` (target re-reads pEdit from the tool struct where ours has a spill slot), and the
+  cDbgToolMain::Update case-3 `pSaveFunc` block placed ~0x90 earlier in ours (jump1 block layout) -- all downstream of the
+  tool body, not of the ctor. fn_Tools_30410 (0x7cc, after LocalDisp<LIGHT_AREA>, calls strlen/FindButton/Joy) is
+  cDbgFileSelectWindow::LocalUpdate (nameless in our object; fn_Tools_2F2D8 0x3b8 / fn_Tools_31174 0x98 its Init/dtor): its
+  59 words were the 12-byte .text shift, gone now that ToolLightAreaMain is size-exact.
