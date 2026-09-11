@@ -519,7 +519,7 @@ void CameraControl::switchCamera(CameraAreaRec* rec)
     CameraCut* cut = rec->cut;
     CameraLerp* lerp = NULL;
     CameraDataHeader* d;
-    int i;
+    register int i asm("r11");  // COMPILER-DIFF: loop counter r11 / pointer r10 (global allocates `r` first in ours: 14 refs/28 insns vs `i` 16/64)
     CameraAreaRec* r;
     int size;
 
@@ -535,8 +535,7 @@ void CameraControl::switchCamera(CameraAreaRec* rec)
     if (flags_2C & 2) {
         if (!(rec->area->attr & 8)) {
             d = data;
-            r = (CameraAreaRec*) (d + 1);
-            for (i = 0; i < d->numArea; i++, r++) {
+            for (r = (CameraAreaRec*) (d + 1), i = 0; i < d->numArea; r++, i++) {
                 if (r->area->attr & 8) {
                     r->area->enable = 0;
                 }
@@ -551,8 +550,7 @@ void CameraControl::switchCamera(CameraAreaRec* rec)
             a->enable = 0;
         } else if (a->attr & 8) {
             d = data;
-            r = (CameraAreaRec*) (d + 1);
-            for (i = 0; i < d->numArea; i++, r++) {
+            for (r = (CameraAreaRec*) (d + 1), i = 0; i < d->numArea; r++, i++) {
                 if (r->area->attr & 8) {
                     r->area->enable = 0;
                 }
@@ -609,7 +607,7 @@ void CameraControl::switchCamera(CameraAreaRec* rec)
         if (extra) {
             delete extra;
         }
-        extra = new (extra_buf) CameraMotion(CameraMotionBuffer, 0, 0, 100.0f);
+        extra = new (extra_buf) CameraMotion(CameraMotionBuffer, 0, 0, 0.0f);
         ((CameraMotion*) extra)->base_mat = NULL;
         state = 5;
         break;
@@ -621,20 +619,23 @@ void CameraControl::switchCamera(CameraAreaRec* rec)
         if (extra) {
             delete extra;
         }
-        extra = new (extra_buf) CameraMotion(CameraMotionBuffer, 0, 0, 100.0f);
+        extra = new (extra_buf) CameraMotion(CameraMotionBuffer, 0, 0, 0.0f);
         state = 9;
         break;
     case 8: {
+        // two pointers to qfps: `q` (blend_src, setAreaData, bindAreaCamera) keeps the addi; `p`
+        // (blend_dst, setBlendData) and the direct `qfps.` calls share gcse's copy (mr r29,r30)
         CameraQuasiFPS* q = &qfps;
-        if (q->blend_src && q->blend_dst) {
-            q->setBlendData(q->blend_src, q->blend_dst);
+        CameraQuasiFPS* p = &qfps;
+        if (q->blend_src && p->blend_dst) {
+            p->setBlendData(q->blend_src, p->blend_dst);
         }
-        qfps.setAreaData(area_rec->cut);
-        qfps.bindAreaCamera(area_rec);
+        q->setAreaData(area_rec->cut);
+        q->bindAreaCamera(area_rec);
         if (prev_state == 10 && !(flags_2C & 0x10)) {
-            q->setBlendCount(10);
+            qfps.setBlendCount(10);
         } else {
-            q->init();
+            qfps.init();
             sub_state = 0;
         }
         state = 10;
@@ -688,8 +689,8 @@ int areaHit(Vec* pos, CameraAreaInfo* area, f32 dir)
 
 int area_hit_p3(Vec* pos, CameraAreaInfo* area)
 {
-    Vec c1, c0, v0, v2, v1;
-    Vec *p0, *p1, *p2;
+    Vec* p[3];  // the three corner pointers live in memory (stw/lwz around the calls)
+    Vec v1, v2, v0, c0, c1;
     f32 y = pos->y + 100.0f;
     int i, n, i0;
 
@@ -702,12 +703,12 @@ int area_hit_p3(Vec* pos, CameraAreaInfo* area)
     for (i = 0; i <= 1; i++) {
         n = area->num;
         i0 = (i + i + 1) % n;
-        p0 = &area->points[i0];
-        p2 = &area->points[(i0 + n - 1) % n];
-        p1 = &area->points[(i0 + 1) % n];
-        PSVECSubtract(pos, p0, &v0);
-        PSVECSubtract(p2, p0, &v1);
-        PSVECSubtract(p1, p0, &v2);
+        p[0] = &area->points[i0];
+        p[1] = &area->points[(i0 + n - 1) % n];
+        p[2] = &area->points[(i0 + 1) % n];
+        PSVECSubtract(pos, p[0], &v0);
+        PSVECSubtract(p[1], p[0], &v1);
+        PSVECSubtract(p[2], p[0], &v2);
         PSVECCrossProduct(&v1, &v0, &c0);
         PSVECCrossProduct(&v2, &v0, &c1);
         if (c0.y > 0.0f) {
@@ -1007,23 +1008,23 @@ void CameraControl::roomInit()
             flags_28 = 0;
         }
     }
-    flags_28 &= ~4;
-    flags_30 &= ~4;
     area_rec = NULL;
     state = 0xA;
+    flags_28 &= ~4;
+    flags_30 &= ~4;
     qfps.offsetCorrection();
     qfps.bindDefaultCamera();
     qfps.setFloorRatio(0.33333334f);
     qfps.init();
-    camera_no = -1;
-    x6E0 = 0xF;
     area_no = -1;
     x691 = -1;
+    camera_no = -1;
     x6CC = 60.0f;
     x6D0 = 600.0f;
     x6D4 = 400.0f;
     x6D8 = 0.7853982f;
     x6DC = 0.3926991f;
+    x6E0 = 0xF;
     x6E4 = 0.001f;
     x6E8 = 0.75f;
     clearAttachCamera();
@@ -1506,6 +1507,8 @@ void CameraControl::r0_RailBehind()
     int edge;
     f32 t;
     f32 k;
+    f32 n;
+    f32 mm;
 
     switch (sub_state) {
     case 0:
@@ -1518,17 +1521,15 @@ void CameraControl::r0_RailBehind()
             dbg_at = target_ofs0;
         }
         pos_old = pPL->pos;
-        reset = 1;
         memclr_asm(&camera_old, sizeof(Camera));
         x36 = 0;
         sub_state++;
-        ang.x = 0.0f;
-        ang.y = 0.0f;
-        ang.z = 0.0f;
+        edge_camera = 0;
         init_flg = 1;
+        ang.x = ang.y = ang.z = 0.0f;
         key_flg = 0xFF;
         c_rno = 0;
-        edge_camera = 0;
+        reset = 1;
     case 1:
         if (c_rno == 0) {
             if (joy->trg & 0xF00000) {
@@ -1563,9 +1564,7 @@ void CameraControl::r0_RailBehind()
                 c_rno++;
             }
             if (joy->trg & 0x200) {
-                ang.x = 0.0f;
-                ang.y = 0.0f;
-                ang.z = 0.0f;
+                ang.x = ang.y = ang.z = 0.0f;
                 key_flg = 0;
             }
         } else {
@@ -1606,7 +1605,7 @@ void CameraControl::r0_RailBehind()
         searchRail(bs, cut, &aim, 0);
         edge = 0;
         if (cut->flags & 4) {
-            if (bs->t == 0.0f || bs->t == (f32) (cut->num - 1)) {
+            if (bs->t == 0.0f || (f32) (cut->num - 1) == bs->t) {
                 cam = camera_old;
                 edge = 1;
             }
@@ -1710,8 +1709,10 @@ void CameraControl::r0_RailBehind()
         } else {
             a = ang;
         }
-        k = 1.0f / ((f32) mI + (f32) nI);
-        VecLinearCombination(&cam.param.at, &cam.param.pos, (f32) mI * k, (f32) nI * k, &floor);
+        n = (f32) nI;
+        mm = (f32) mI;
+        k = 1.0f / (mm + n);
+        VecLinearCombination(&cam.param.at, &cam.param.pos, mm * k, n * k, &floor);
         PSVECSubtract(&cam.param.at, &cam.param.pos, &dir);
         dir.y = 0.0f;
         PSVECCrossProduct(&yaxis, &dir, &xaxis);
@@ -1727,7 +1728,7 @@ void CameraControl::r0_RailBehind()
             PSVECSubtract(&pos_old, &pPL->pos, &d);
             pos_old = pPL->pos;
             PSMTXMultVecSR(inv, &d, &d);
-            move_z += d.z;
+            FSet(move_z, move_z + d.z);
             if (move_z > x6D4 || move_z < -x6D4) {
                 if (edge_camera == 0) {
                     x36 = 0;
@@ -2382,6 +2383,10 @@ AttachCamera* CameraControl::getAttachCamera(cModel* model)
     return NULL;
 }
 
+// struct-member view of pG with a direct symbol address (no `li rX, pG@sda21`): the original
+// reloads pG and `extra` after every one of the four param copies below
+extern GlobalWorkPtr pGW asm("pG");
+
 void CameraControl::checkAttachCamera()
 {
     static int inter_frame;
@@ -2421,14 +2426,14 @@ void CameraControl::checkAttachCamera()
                 delete extra;
             }
             extra = new (extra_buf) CameraAttachedToMotion(model);
-            extra->param.pos = pG->Cam.param.pos;
-            extra->param.at = pG->Cam.param.at;
-            extra->param.roll = pG->Cam.param.roll;
-            extra->param.fovy = pG->Cam.param.fovy;
+            extra->param.pos = pGW.p->Cam.param.pos;
+            extra->param.at = pGW.p->Cam.param.at;
+            extra->param.roll = pGW.p->Cam.param.roll;
+            extra->param.fovy = pGW.p->Cam.param.fovy;
         }
         inter_frame = ac->frame;
     } else if (attach_cur) {
-        flags_2C = 0x10;
+        BitSet(flags_2C, 0x10);
         interp.set(inter_frame, &pG->Cam.param);
     }
     attach_cur = model;

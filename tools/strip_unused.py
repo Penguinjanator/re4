@@ -78,6 +78,24 @@ def target_symbols(unit):
     return names if seen else None
 
 
+def fully_named_demangled(unit):
+    """{section: set(demangled)} of the demangled names whose every sym_map row of this unit already
+    carries a real mangled name. A compiled function that only matches such a name through demangling
+    is another overload the DOL does not have (cam_ctrl owns cManager<cLight>::create(int) and
+    create(), the fold appends the unreferenced create(int, u32) too; the original linker dropped it)."""
+    rows = {}
+    path = os.path.join(ROOT, "config", VER, "sym_map.tsv")
+    with open(path) as f:
+        next(f)
+        for line in f:
+            addr, size, sec, u, scope, name, dn = line.rstrip("\n").split("\t")
+            if u != unit or not dn or dn == ".":
+                continue
+            named = "__" in name and (demangle_v2(name) or name) == dn
+            rows.setdefault(sec, {}).setdefault(dn, []).append(named)
+    return {sec: {dn for dn, flags in d.items() if all(flags)} for sec, d in rows.items()}
+
+
 def module_target_symbols(module, unit):
     """{section: set(names)} of the symbols the module's REL keeps for this unit, from
     config/<ver>/modules/<mod>/sym_map.tsv (section, offset, size, unit, scope, name, demangled). The
@@ -172,6 +190,7 @@ def main():
     keep = module_target_symbols(args.module, args.unit) if args.module else target_symbols(args.unit)
     if keep is None:
         sys.exit(f"strip_unused: unit {args.unit} not in sym_map.tsv")
+    fully_named = fully_named_demangled(args.unit) if args.gcc and not args.module else {}
 
     def module_kept(nm, size, ks):
         """--module: a function is kept when the module names it (mangled, or demangled base name; an
@@ -224,7 +243,10 @@ def main():
                 dead_funcs.setdefault(shndx, []).append((s[1], s[1] + s[2]))
             continue
         if args.gcc and (demangle_v2(nm) or nm) in ks:
-            continue
+            # a demangled-only match against a name whose rows are all mangled already is another
+            # overload (a linkonce copy the fold kept because it shares the base name): strip it
+            if nm in ks or (demangle_v2(nm) or nm) not in fully_named.get(elf.names[shndx], ()):
+                continue
         if nm not in ks and not (nm.startswith("_GLOBAL_.I.") and "_GLOBAL_.I.*" in ks) and not (nm.startswith("_GLOBAL_.D.") and "_GLOBAL_.D.*" in ks):
             dead_funcs.setdefault(shndx, []).append((s[1], s[1] + s[2]))
 
@@ -300,7 +322,8 @@ def main():
             if module_kept(name, s[2], keep.get(secname, ())) or (shndx, s[1]) in module_keep:
                 continue
         elif args.gcc and (demangle_v2(name) or name) in keep.get(secname, ()):
-            continue
+            if not (stype == STT_FUNC and (demangle_v2(name) or name) in fully_named.get(secname, ())):
+                continue
         if args.gcc and re.search(r"\.\d+$", name) and re.sub(r"\.\d+$", ".*", name) in keep.get(secname, ()):
             continue
         if name.startswith("_GLOBAL_.I.") and "_GLOBAL_.I.*" in keep.get(secname, ()):

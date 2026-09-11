@@ -20237,3 +20237,169 @@ move / IdScopeZoomDisp / CameraBinocular are theirs); only CameraAttachedToMotio
   12 more bytes of locals (one Vec) and one more callee-saved GPR.
 - Not iterated: cam_extra CameraBinocular ctor 17 / CameraBinocular::move 79 / CameraPushObject::move 117 / IdBinocular::move
   271 (owned by the 26a agent while this pass ran), em_set's remaining 27 words.
+
+### DOL cam_ctrl closer (73 -> 76/84; ORDER + the create(int,u32) copy fixed via STRIP_UNUSED; roomInit 15 -> 0, switchCamera 20 -> 0 (one pin), checkAttachCamera 38 -> 0, r0_RailBehind 36 -> 3, area_hit_p3 73 -> 76 at target SIZE (was -0x10); .rodata 3 -> 2 words; nothing flipped; 2026-09-11)
+
+- ORDER / extra `create__t8cManager1Z6cLightiUl`: cam_ctrl OWNS the DOL's cManager<cLight> linkonce block
+  (sym_map: log / countActiveWork / create(int) / create() at 0x800094AC..0x80009708). fold_linkonce keeps a
+  linkonce function whose DEMANGLED name is in the unit's sym_map rows, and all three `create` overloads
+  demangle to `cManager<cLight>::create`, so the unreferenced create(int, u32) (light.h `createNo`) was appended
+  too (+0x138 .text, ORDER DIFFERS). The original linker dropped it. Fix: `game/cam_ctrl.cpp` in STRIP_UNUSED
+  (objects.py, "cam_ctrl closer" comment) plus a conditional rule in tools/strip_unused.py (`fully_named_demangled`):
+  a FUNC that matches a sym_map row only through demangling, while every row of that demangled name in the unit
+  already carries a real mangled name (`__` in the name, demangles to the same string), is another overload the DOL
+  does not have and is stripped. Rows whose names are still placeholders keep the old behaviour (nothing else moved:
+  bytecmp of all STRIP_UNUSED units before/after identical except other agents' concurrent changes; DOL+RELs 111 OK).
+  The two 1-word `create` diffs (bl reloc `countActiveWork+0x84`) are pure offset artefacts of the size gap.
+- Size gap: bytecmp's `size A/B` is TARGET/ours. Target LARGER in HermiteExport (+0x10), areaHitCheck (+0x2c),
+  area_hit_pN (+0x2c) -> ours is MISSING code there (the prompt had it backwards). area_hit_p3 (+0x10) and
+  checkAttachCamera (+0xc) closed: area_hit_p3 keeps its three corner pointers in MEMORY (`Vec* p[3]`, stw/lwz
+  around the PSVEC calls) and hoists the 0.0 pool word into f31 before the loop; checkAttachCamera reloads pG and
+  `this->extra` after each of the four param copies (see below).
+- roomInit 15 -> 0, zero code: member stores in FIELD-OFFSET order. `area_no(0x690) = -1; x691 = -1; camera_no(0x692)
+  = -1; x6CC..x6DC floats; x6E0 = 0xF; x6E4; x6E8` (x6E0 between the floats: the `stw` then sits between stfs 0x6dc
+  and stfs 0x6e4 in sched1's output, which shortens x6D8's pseudo to the same live length as x6E4/x6E8 and lets it
+  win f13 by pseudo number). Head group: `area_rec = NULL; state = 0xA; flags_28 &= ~4; flags_30 &= ~4;`
+  (found with a 24-permutation sweep; the dying-store rule alone does not predict it).
+- switchCamera 20 -> 0: case 8 uses TWO pointers to qfps: `CameraQuasiFPS* q = &qfps; CameraQuasiFPS* p = &qfps;
+  if (q->blend_src && p->blend_dst) p->setBlendData(q->blend_src, p->blend_dst); q->setAreaData(..);
+  q->bindAreaCamera(..); ... qfps.setBlendCount(10) / qfps.init()` (the last two DIRECT, so they stay separate
+  `this+0x278` computations that PRE folds into p's copy). q keeps the `addi r30`, p is gcse's `mr r29,r30`.
+  A single q plus direct calls gives the same pair with the roles swapped (r29/r30 mismatch in 6 `mr r3`).
+  Also: `new (extra_buf) CameraMotion(CameraMotionBuffer, 0, 0, 0.0f)` — the frame argument is 0.0f, not 100.0f
+  (the .rodata word at 0x138 was wrong while the code matched: the pool load is offset-identical).
+  PINNED (tag): `register int i asm("r11")` for the two `for (r = (CameraAreaRec*)(d+1), i = 0; ...; r++, i++)`
+  loops: global allocates `r` (14 refs / 28 insns, pri 1.5) before `i` (16 refs / 64 insns, pri 1.0), r takes
+  r11 in pass 0 (already used by local-alloc), i gets r10 in pass 1; the target has i r11 / r r10. Init order,
+  increment order, per-loop variables, scoped `int k` (goes to local-alloc, r8) all tried; why `i`'s live length
+  is 64 while both are live in the same blocks is OPEN (flow's REG_LIVE_LENGTH).
+- checkAttachCamera 38 -> 0, zero code: the original reloads `pG` AND `this->extra` after every one of
+  `extra->param.pos/at/roll/fovy = pG->Cam.param.*`. A plain `pG` load is a fixed-address scalar, so in-struct
+  stores never invalidate it (alias.c: struct store vs non-struct fixed scalar -> no dependence); `pGS`
+  (GlobalWorkPtr cast) makes the load in-struct but forces `li r7, pG@sda21; lwz r9, 0(r7)` (memory_address on a
+  bare sdata SYMBOL_REF). Form that works: a second declaration of the same symbol as a struct object,
+  `extern GlobalWorkPtr pGW asm("pG");` and `pGW.p->Cam.param.pos` — DECL_RTL keeps the direct `pG@sda21` load
+  and the MEM is in-struct, so struct-vs-struct = may alias = reload. The `else if (attach_cur)` arm needs
+  `BitSet(flags_2C, 0x10)` (reference store) to keep the pG / inter_frame loads below the store.
+- r0_RailBehind 36 -> 3: (1) case-0 statics: `edge_camera = 0; init_flg = 1; ang.x = ang.y = ang.z = 0.0f;
+  key_flg = 0xFF; c_rno = 0; reset = 1` (reset AFTER the statics so init_flg's 1 is a fresh `li` instead of
+  reset's spilled pseudo reloaded from 0x244(r1); the chained ang assignment = RTL order z, y, x, found by a
+  hill-climb over the 7 statements, `climb.py`); the `joy->trg & 0x200` block also `ang.x = ang.y = ang.z = 0`.
+  (2) `FSet(move_z, move_z + d.z)` keeps `lfs x6D4` below the move_z store. (3) `(f32)(cut->num - 1) == bs->t`
+  (operand order of the fcmpu). (4) `n = (f32) nI; mm = (f32) mI; k = 1.0f / (mm + n);
+  VecLinearCombination(&cam.param.at, &cam.param.pos, mm * k, n * k, &floor)` (nI converted first, plus operands
+  mI + nI, args mI*k, nI*k — named floats are the only spelling that gives that order). OPEN (3 words): the
+  target computes `addi r3,r1,0xb8 / addi r4,r1,0xac / addi r5,r1,0x220` FRESH at this call although the PRE regs
+  r28/r26/r25 hold them and the very next PSVECSubtract uses `mr r3,r28`; in ours gcse marks the three arg sets
+  (pseudo dests) redundant (dump: "PRE: redundant insn"). Reference-typed alias of the callee: no change.
+- area_hit_p3: the target's shared `return 0` block is the LAST copy (inside the loop, after the `bge` over it) and
+  the loop is still a valid loop (0.0 hoisted to f31, no strength reduction of `i+i+1`: target recomputes
+  `add r11,r31,r31; addi 1` per iteration where ours makes a second biv `li r31,1; addi r31,r31,2`). A `goto fail`
+  into `if (c1.y < 0.0f) { fail: return 0; }` reproduces the layout (52 words) but the jump into the loop kills
+  the loop notes (no f31 hoist, size -8). Kept: natural returns + `Vec* p[3]` + `Vec v1, v2, v0, c0, c1` (76 words,
+  size exact). Index spellings `(2*i+1)`, inline `area->num`, no `i0` do not stop the strength reduction.
+- Not reached: areaHitCheck 81 (+0x2c), cameraHitCheck 116, area_hit_pN 118 (+0x2c; its pool is [100, 1.0, 0.0]
+  in the target vs ours [100, 0.0, 1.0] = the 2 remaining .rodata words), HermiteExport 192 (+0x10).
+- Harness: perm.py (all permutations of N consecutive statements, rebuild + bytecmp word count) and climb.py
+  (pairwise swaps / single moves, keep improvements) were the productive tools for store-order questions.
+
+### Tool RELs, t_esp pass 10 (t_esp 201 -> 208/212: ToolEspMain 38 -> 0, EspToolMain 40 -> 0, PartPasteSeqData 46 -> 0, EditActiveChange_callback 50 -> 0, MakeSaveSeqData 58 -> 0, PosActiveChange_callback 62 -> 0, AddSeq 197 -> 0, all zero code; Load/SaveEmType 2/2 and InitTool 9684 unchanged; db_widget DB_STRING ctor 11 untouched; nothing flipped; 2026-09-11)
+
+- Harness ~/.cache/tesp10 (deleted): `mk.sh MOD/UNIT SRC OUTDIR` (module cflags parsed from build.ninja + fold_linkonce
+  `--module`, output `OUTDIR/<unit>.o`), `mtryv.py MOD/UNIT FUNC v.py [--apply NAME]` (variants = exact-substring edits of the
+  unit source, optional `{'src': [...], 'hdr': {...}}` header copies via `INC=`; judged with `OBJ= tools/bytecmp.py`),
+  `mdump.sh MOD/UNIT -dX` (module defines/-G0 from build.ninja, `SRC_OVERRIDE=`), `msbs.sh MOD/UNIT SYM [ABS_OBJ]` (the OBJ
+  path must be absolute: the script cds into the repo). 111 OK before and after every edit; judged with tools/bytecmp.py.
+- **Body census for RELs: NOT AVAILABLE.** The module `.sym` lists `.text` functions only; every data symbol is a `lbl_<mod>_<sec>_<off>`
+  label, so the target has no `name.N` local-static numbers to compare `var_labelno` against (ours: `key.1039`/`_.tmp_0.1040` =
+  346 bodies parsed before EspToolTrans, `kindName.690` = 230 before the ID_WINDOW ctor; `nb.sh db_widget.h` = 74 bodies /
+  7 labels from our header set). The DOL-unit census (sweep 25a) cannot be repeated for t_esp/db_widget; the "original has more
+  RTL" signal for InitTool stays the pass-9 uid-count reading. Use the header-string groups of `.rodata` (identical already) as
+  the only include-set evidence.
+- **ToolEspMain (38 -> 0, zero code, four independent pieces):** (1) `sel` is a BLOCK-LOCAL pointer in each of the sp_* test
+  blocks (`{ DB_ACTIVE_SELECT* s = &WIN_SEL(g_pEditActive); if (.. && s->selX == 0) sp_sphere(..); }`; the target's `addi
+  r11,r11,148` / `addi r9,r11,148` are block-local qtys); only the PosRand/0x1A pair shares one `sel` across the call (r30).
+  A function-scope `sel` assigned in five blocks is a multi-set global pseudo and takes r30 everywhere (the pass-8 form).
+  (2) `sp_ctrl01_trans(g_pEditSeq)`: db_port.cpp defines `sp_ctrl01_trans(EspGenWork*)`; t_esp.cpp had redeclared it with no
+  parameter, so the test block's `g_pEditSeq` load died at the `lbz` (r9) instead of living into the call as r3 (`lwz
+  r3,0(r28); lbz r0,265(r3); ..; lbz r0,1(r3); ..; bl`). Rule: a test block whose pointer load sits in r3/r4 with no visible
+  argument move = the following call takes that pointer; check the callee's real prototype before reading registers.
+  (3) constant-store blocks are read back as "dying store first (sched1 weight -1), then source order (LUID)": entry `g_eventNo
+  = 0; g_eventSNo = 0; g_work = 1;` gives the target's `stb SNo; addi r3; stw work; addi r4; stb eNo` (the zero's LAST use is
+  eventSNo, `one` dies at work); exit `g_initDone = 0; g_lightTool = 0; g_modelLoad = 0;` gives `stw modelLoad; stw initDone;
+  stw lightTool` (modelLoad = the zero's last use, its `lis` issued last). (4) The loop-invariant `lis` order at the end of bb 0
+  (`lis r14 lightTool` before `lis r27 camMode`) is gcse's bitmap_index = FIRST-OCCURRENCE order of the expressions in the RTL
+  scan: `g_lightTool = 0; g_exitReq = 0; g_camMode = 0;` puts high(lightTool) first (the store block itself is issued in the
+  same order either way). Rule: PRE insertions at one block end are ordered by the first occurrence of each expression in
+  source order, so a store-block permutation is a lever on the `lis` filler order between calls.
+- **EspToolMain (40 -> 0, zero code):** (1) `DB_MOUSE mouse = *g_pMouse; DB_KEYBORD key = *g_pKey;` declared mid-block as
+  COPY-INITIALISED locals: no default-ctor calls (the target has no `bl DB_MOUSE::DB_MOUSE`), the bitwise copy loops stay, and
+  the frame layout (mouse 8, key 104) is unchanged. Rule: a class local with a user ctor whose ctor call is absent in the target
+  = a copy-initialised declaration. (2) `memclr_asm(((SeqPtrView*) &g_pEditSeq2)->p, ..)`: the pointer load waits below the
+  preceding 300-byte record copy (struct view = may alias the copy's stores; a fixed-scalar load is hoisted above them).
+  (3) store orders by the dying-store rule: `g_initDone = 1; g_lightTool = 0; g_modelLoad = 0; g_fovy = 45.0f;` (target
+  initDone, modelLoad, fovy, lightTool) and `g_dataChanged = 1; g_fileMenu = 3; g_motionCam = 1;` (target fileMenu, motionCam,
+  dataChanged with the `lis` order dC, fM, mC).
+- **PartPasteSeqData (46 -> 0, zero code): `union { struct { s8 x10C, x10D, x10E, x10F; }; s8 inter[4]; };` in TOOL_SEQ and
+  `dst->inter[i] = src->inter[i]` in the 4-iteration copy loop.** `(&dst->x10C)[i]` is pointer arithmetic: loop.c strength-reduces
+  both addresses into pointer bivs (`lbz r9,0(r6); addi r6,1; stb; addi r5,1`), while an ARRAY_REF member keeps `base + i`
+  (`lbzx r9,r26,r7; stbx r9,r25,r7` with the two bases hoisted) like the neighbouring `path[i]`/`x124[i]`/`x128[i]`; the
+  u16 `x110[i]` is a separate `i*2` giv (r6) in both. Anonymous structs inside a union compile in this cc1plus.
+- **EditActiveChange_callback (50 -> 0, zero code):** (1) `if (sel->selX == 0) { if (w != g_pEditWin1->win) prevWin = 1; }
+  else { sel->SetSelX(0); p = ..; }` (the target lays the flag arm out first, `bne` to the call arm; the `else if` form puts the
+  calls first). (2) `(g_pSeqFlg[n] & 1) == 0` (the `!` form folds to `xori; andi.; beq`). (3) `static u32 g_editTop;`:
+  `g_editTop + 5 <= SEQ_TBL_LAST` is `cmplwi` in the target (no other user of the variable changes). (4) `u32 ofs = n *
+  sizeof(TOOL_SEQ); ((TOOL_SEQ*) ((u32) g_pEditTbl + ofs))->stat`: a REG offset keeps the table base first in the PLUS (`lbzx
+  r0,r10,r9`), while `g_pEditTbl[n].stat` is expanded mult-first (`lbzx r0,r9,r10`; PartPasteSelectData's target IS mult-first,
+  so the two functions were spelled differently). A `SeqTblView { TOOL_SEQ e[1]; }` view gives base-first too but shifts the
+  register allocation of `n`/`dir` (19 words); the local offset does not.
+- **MakeSaveSeqData (58 -> 0, zero code): `size += sizeof(TOOL_SEQ)` LAST in the inner body (after the copy and the count
+  increment).** With it first, `head` (10 loop-weighted refs / 70 insns) outranks `size` (8 / 110) in global.c and takes r3 (its
+  parameter preference); with the increment last `size` wins r3 and `head` moves to r5 (`mr r5,r3` at the top). Also: `TOOL_SEQ*
+  t;` declared BEFORE `u32 i, j` (loop.c reduces `t + 300` ahead of `j + 1`: r31 / r4), `size = 0x30;` before `rec = head->rec`
+  (`li r3,48; addi r10,r5,48`), `rec` assigned after the clearing loop, `&tbl[nSeq * i]`, and the count through the
+  `SeqCountView` array member (`lhzx r9,r5,r8`, base first). Rule: when the return value's register is r3 but a pointer
+  parameter was copied out of r3 at the top, the accumulator outranked the parameter in global.c -- move the accumulator's
+  update to the end of the loop body (its live length shrinks, its priority rises).
+- **PosActiveChange_callback (62 -> 0, zero code):** (1) `w->sel.SetActivePrimitive(p);` (the `this` address goes straight
+  into r3 as a pseudo that dies at the copy -> `addi r3,r29,148`), `sel = &w->sel;` AFTER the pos block, and the arms call
+  `w->sel.SetActiveDown()` etc. DIRECTLY (not `sel->`): each direct member call is a fresh `(plus w 148)` pseudo occurrence in
+  its own cse ebb, gcse PREs them (redundant from the join's `sel = E`), inserts `R = E` at the END of the join block ("also in
+  blocks that already compute it"), cse2 turns it into `R = sel` and `sel` dies there: `addi r9,w,148; lwz r0,24(r9); mr r29,r9`
+  with r29 = R used by every later `mr r3,r29`. With `sel->` everywhere the join's occurrence is isolated (no later occurrence)
+  and no copy exists (`addi r29,r29,148`, 46 words). Rule: `addi rT,rB,N; lwz ..(rT); mr rG,rT` at a join = a pointer local
+  whose LATER uses were spelled as fresh member-address expressions (PRE copies), not through the local. (2) The pos stores
+  through the struct view `((SeqPtrView*) &g_pEditSeq)->p->pos.x = 256.0f` etc.: the target reloads g_pEditSeq after each store
+  (`stfs f0,12(r4); lwz r9; stfs f13,16(r9); lwz r11; stfs f12,20(r11)`) while the else arm's three addresses share the first
+  load -- a plain `TOOL_SEQ* seq` local shares r4 for the stores too.
+- **AddSeq (197 -> 0, zero code): the saturating colour macro reads the flag once (`u8 f = g_immFlg[no]`) and tests it in
+  EVERY arm of the clamp chain, with the imm/add choice as a nested if in the final else and ONE `no++`:**
+  `f32 v; if (f == 0) v = ..; if (f == 0 && v > 255.0f) tbl->f = 255; else if (f == 0 && v < 0.0f) tbl->f = 0; else { if (f)
+  tbl->f = imm->f; else tbl->f = tbl->f + delta->f; no++; }`. Mechanism: jump1's thread_jumps threads the first `f != 0`
+  branch through the two `f == 0` re-tests straight to the imm store (`bne Limm`), cse1 folds the fall-through tests (f == 0
+  known; the 0 arm stores the flag register, `stb r6`), the final else's `beq Ladd` folds to a fall-through, and jump2
+  cross-jumps the imm arm's `stb` into the add arm's (`Limm: lbz; b Lst; Ladd: add; Lst: stb; addi`) -- the `no++` sits alone
+  in the Lend block (a label at sched2 time), so the tail is `stb; addi`. With `no++` inside each arm (the old form) sched2
+  hoists the `addi` into the store's load shadow in both arms (`addi; stb`), the cross-jump then also swallows the 255 arm's
+  `stb` (the tail ends in `stb`), and every branch offset of the four colour blocks shifts (197). Rule: a cross-jumped tail
+  `stb; addi` where our sched2 gives `addi; stb` = the increment was in a block of its own (a shared statement after the
+  if/else), i.e. the arms were structured with a common continuation, not duplicated.
+- **Load/SaveEmTypeUpdateCallback (2/2, unchanged; the mechanism sharpened one step).** cse1 can never know the outer
+  `high(g_modelType)` at the loop-2 TOP block: `cse_end_of_basic_block` stops at EVERY code label, and follows a conditional
+  jump into a 1-use label only when the label is preceded by a BARRIER (cse.c 8602-8640) -- the target's TOP is entered by
+  fall-through from the `lbz r0,1(r8); lis r12; extsb r10,r0` preheader, so its `sth r9,0(r4)` through the OUTER high is a gcse
+  PRE replacement (TOP's occurrence redundant, reaching reg = the outer pseudo after cse2's copy), and the fresh `lis r12` that
+  loop.c hoists is the LAST block's (`lhz t`) occurrence, kept because it is the isolated/latein one. Ours deletes the last
+  block's occurrence and keeps TOP's. The lever is therefore in `pre_lcm`'s isolatedness of the two in-loop occurrences (which
+  depends on the exit-path blocks' antloc), not in cse; the do-while / rotated-while / peeled forms of pass 9 all leave TOP as
+  the kept one. Not closed.
+- **InitTool (9684, unchanged; segment census):** with `bl` as the segment separator, 675 of 806 segments differ, but every
+  one of the 40 inspected differs only by (a) the spill-slot offsets of the `&pos` reloads (`lwz r0,8624(r1)` vs 8688: our slot
+  numbering is 16 slots behind by the 5th widget and the difference varies along the function -- reload assigns slots in
+  pseudo-number order, so the set/order of spilled `&pos` pseudos differs), (b) the callee-saved register of the window
+  object (`e` r28/r30 vs r30/r29) and of the `pa_`/`win_` reloads, (c) reload order inside a block. No segment differs in
+  instruction set or count except the entry spill block (the target's zero `li r29,0` for the `sx = 0` stores is callee-saved
+  in both). The pass-9 reading stands: schedule/allocation only; the structural work (the 566 widget blocks, the four
+  CreateEditWindow helpers, the frame) is done.
+- Not iterated: db_widget DB_STRING ctor 11 (pass 8's local-alloc arithmetic stands: LC/vt and zero/type qty order), db_mod
+  (owned by the db_mod pass).
