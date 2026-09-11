@@ -108,9 +108,9 @@ public:
     static void SubMenuFocus(ToolEvt* t, Event* ev);
     int SubMenuSelectYesNo(ToolEvt* t, const char* s1, const char* s2);
     int SubMenuEditFocusLevel(ToolEvt* t, Event* ev, const char* name, f32* level);
-    static int SubToolCameraMove(ToolEvt* t);
+    int SubToolCameraMove(ToolEvt* t);
     void SubToolLightInit(ToolEvt* t, int sw);
-    static void SubToolLightMove(ToolEvt* t);
+    void SubToolLightMove(ToolEvt* t);
     int SubToolFogWkInit(ToolEvt* t, Event* ev);
     void SubToolFogInit(ToolEvt* t, int sw, Event* ev, int which);
     void SubToolFogMove(ToolEvt* t, Event* ev);
