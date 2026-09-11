@@ -492,11 +492,9 @@ void debugCamera::menu(Camera* cam, JOY* joy)
         timer = 5;
         pG->debug_mode = save_mode;
     }
-    // COMPILER-DIFF: the original keeps the byte in a QImode pseudo and zero-extends it separately
-    // (`lbz r0,24(r31); clrlwi r11,r0,24`), the extension feeding both this compare and the switch;
-    // every promoted form tried (u8/u32 local, local set twice, cast, read hoisted above the
-    // `ret == -1` stores) lets combine fold the load into the extend. The extra `this` reference
-    // also swaps the r30/r31 assignment of `this`/`joy` (30 words).
+    // The split `lbz r0,24(r31); clrlwi r11,r0,24` head and the `beq` landing on the tail's `stw`
+    // are gcse PRE of the cam_mode byte into `old_cam_mode = cam_mode` below; it needs the empty
+    // join block after the inner if/else, kept alive by the `do {} while (0)` at the end of this body.
     if (old_cam_mode != cam_mode) {
         switch (cam_mode) {
         case 0:
@@ -544,6 +542,7 @@ void debugCamera::menu(Camera* cam, JOY* joy)
             CameraSetOrientationUp(&pG->Cam);
             pG->flags_60 |= 0x10000000;
         }
+        do { } while (0);
     }
     old_cam_mode = cam_mode;
 }

@@ -25497,7 +25497,7 @@ Scratch /home/adityas/.cache/tev3/: `hv.sh <dbg_tool.h variant> [t_event src]` j
   zero's `li` to stay late in sched1 (short qty, pri > 5000 -> r0) AND the stores without extra dep links: not found.
   Reordering `len = zero; str = zero` (d4) or moving the zero block before the float stores (d5): 7 words unchanged.
 
-### DOL em_sub closer (GetDropBullet 449 -> 108 -> 16 words, zero code; RandomItemCk 53 / EmCatchMotionMove 8 untouched; in progress 2026-09-12)
+### DOL em_sub closer (GetDropBullet 449 -> 0: 449 -> 108 -> 16 zero code + one tagged asm `li r0,0` for the fallback; em_sub 48 -> 49/51, not flipped: RandomItemCk 53 / EmCatchMotionMove 8 open; 2026-09-12)
 
 - **GetDropBullet 449 -> 108 (reapplied): every arm stores `*id = i; *num = n; return;` itself** (first branch, the
   switch arms, case 2's four arms, case 3's two arms, case 5's arms; the case-5 `r <= 0x59` arm stores `*num = 0`).
@@ -25527,8 +25527,25 @@ Scratch /home/adityas/.cache/tev3/: `hv.sh <dbg_tool.h variant> [t_event src]` j
   pG->stage_no; if (m > 1) ..`) fire T1 in JUMP1 -> sched1 hoists `set m 0` to the block top (2 IUs, ready at t=1) ->
   m conflicts with the r0 temps -> r11 (165); the `m = stage_no` form keeps `li r0,0` after the compare (exact fallback)
   but the join label before the store is OLD -> chained -> the `% 3` sites merge into one block (124/133). u8/u16 m: the
-  frontend promotes to SImode, no mode mismatch. Open: a source form whose else-arm `li r0,0` is NOT adjacent-identical
-  to the `% 3` sites' `li r0,0` at jump2 entry (or whose sites are processed after T1), see the next section.
+  frontend promotes to SImode, no mode mismatch.
+- **Fallback 16 -> 0, tagged (asm-emitted `li`, hard r0):** `*id = 4; if (pG->stage_no > 1) { *num = 20; } else {
+  register int z asm("r0"); asm("li %0,0" : "=r"(z)); *num = z; }`. The asm insn is compared as a different pattern
+  from the sites' `(set r0 (const_int 0))`, so every `li r0,0; stw r0,0(num); b end` tail matches only the store (new
+  label Lst, unchained), Lelse keeps one use, and T1 hoists the asm before the `ble`. Two traps read on the way:
+  (1) a pseudo `int z; asm("li %0,0" : "=r"(z)); *num = z;` gets local-alloc's REG_EQUIV (mem:SI num) note (set once,
+  stored once) -> T1's `REG_NOTES (temp2)` test fails -> T2 -> `li r0,0x14; bgt; li r0,0` (3 words); the `register ..
+  asm("r0")` dest is a hard reg, update_equiv_regs skips it. (2) `int z = 0; asm("" : "+r"(z))`: the asm's input r0 is
+  set by the then-arm's `li r0,20` between the compare and the asm -> `modified_between_p` fails T1 (3 words).
+  Zero-code form still wanted: any else-arm zero insn whose PATTERN differs from `(set (reg:SI 0) (const_int 0))`
+  while assembling to `li r0,0` and carrying no REG_EQUIV/REG_EQUAL note other than its own value.
+- **EmCatchMotionMove 8, read, open:** target `lfs f13,0xa4(em); fmr f31,f13; fadds f0,f31,f0` = the rot.y load in a
+  scratch pseudo (f13) copied into `ry` (f31), then `step` (`fmuls f13,f0,f29`) takes f13 because global.c's find_reg
+  pass 0 only hands out `regs_used_so_far` and f13 is used by that load temp; ours loads rot.y straight into ry, f13 is
+  never used, step gets rate's f30 (rate dies at the multiply, no conflict) and rate/rate2 swap (f30/f29). Forms tried
+  this pass (all 8-10 words): `f32 y = em->rot.y; ry = y; ..`, `.. ; ry = y;` after the add, `em->rot.y += catchTurn`.
+  The copy needs a load pseudo that combine cannot fold into ry (ry is set twice; a plain assignment loads directly).
+- Harness: `~/.cache/dol_emsub2/` (tv.py = spec-driven replace + `~/.cache/kit/variant.sh`; rtlseg.py = compact RTL
+  window; variants e4/k3/f*/g*/q*/m*), delete at the end of the family.
 - **Residue (2), the second dead `b` of both inlined IsUseAdxt switches (`b T; b T; li r0,0; b end; li r0,1`), still open; the mechanism is
   now pinned down to one missing statement.** Facts read off ra.py dumps of a 20-line probe TU (`probe/pr2.sh`): (a) the `case 4:` label is
   forwarded to DEFAULT at PARSE time (frontend-00 already has `CASE 0x4: L@19 = DEFAULT`) whenever the label is followed directly by the
@@ -25567,3 +25584,36 @@ Scratch /home/adityas/.cache/tev3/: `hv.sh <dbg_tool.h variant> [t_event src]` j
   peephole off` around the function is wrong elsewhere (`extrwi` -> `srwi`, the pool `addi`). Left at 4w.
 - Flags: `lib/mwsfdcre.c` stays False (8/10, CreateSfd 115w + CalcWorkSfd 4w); objects.py untouched; the tree object rebuilt through the
   locked ninja (bytecmp 8/10). Harness /home/adityas/.cache/cri_mws6 deleted.
+- **Y84C44 179 -> 114w, pure C (semantic bug + variable kinds).** The 179w were a register permutation over IDENTICAL
+  instruction streams except ONE real bug hidden among the register diffs: the chroma tile pointer steps `cskip * 8` words
+  per tile row (`slwi r23, r11, 5`), not `cskip` (ours `slwi .., 2`). Then, reading the target's colours as the Chaitin
+  order (volatiles lowest-free first, callee-saved handed out r31 downward for the spill-candidate picks, the low-degree
+  leftovers coloured last and REUSING handed-out callee-saved from r21 upward), the source shapes that reproduce them:
+  (a) ONE `cnt` variable for both loops (`cnt = ywidth / 8` then `cnt = ywidth / 2 / 4`): it spans both loops, is coloured
+  early and takes ybuf's r4 in place (`addze r4, r4`) in both; separate `cnt`/`ccnt` gave r28/r29. (b) The y-row steps are
+  BYTE offsets kept in own locals: `yskip = ywidth * 3 / 8 * 8; dskip = (width - ywidth) / 8 * 32; y0 = (Float64 *)((Uint8
+  *)y0 + yskip)` — with element counts (`y0 += yskip`) the loop-carried value is the hoisted `slwi` scale temp (high vid,
+  coloured before every own local: r9/r10), with byte offsets the named locals themselves carry the loop (r21/r22, coloured
+  after the y pointers). (c) `ywidth * 3` written twice (y3 offset and yskip) is one CSE temp (r10, volatile), not a local.
+  (d) Loop-2 row pointers are assigned cb-first (`cbp1 = cbp0 + cw; cbp2 = cbp0 + cw * 2; cbp3 = cbp0 + cw3; crp1 ..`, no
+  o1..o3 locals — the offsets come out as the same hoisted `slwi` temps) and declared crp3, crp2, crp1, cbp3, cbp2, cbp1:
+  the spill-candidate ties go to the highest vid, and BOTH the declaration order and the assignment order move the group
+  order. (e) Loop-1 own locals declared in the target's colour order: `ywidth, n, y3, yskip, dskip, y2, y1, d, y0, yw2, hblk,
+  cnt, i` (low-degree own locals are coloured in DECLARATION order, first declared first; `n`'s position is irrelevant — the
+  `while (n-- > 0)` counter copy is coloured before every own local). Residue 114w: two swaps — target crp0 r3 / c r5 /
+  crv r6 / cbp1 r9 / cbv r10 vs ours c r3 / crv r5 / crp0 r6 / cbv r9 / cbp1 r10 (crp0 must be coloured before c; no
+  declaration order, `register`, statement order or cbwidth/o-expression spelling moves it — all 120 permutations of the
+  five loop-2 top declarations tried), and ywidth r9 / n r11 vs ours r11 / r9 (ywidth as a CSE'd `src->ywidth` breaks the
+  in-loop y1 offset: the stores alias). chaitin.py does not replay this function (65 divergences), so no model help.
+- Tree now carries the `do { } while (0);` (menu 30 -> 2, size exact). The 2-word campos residue was confirmed as the register-weight
+  tie: `asm("" : "=m"(ProjType) : "r"(&campos))` after the first memcpy moves the base's REG_DEAD past the loads and the target's
+  y-then-z order appears, but the asm insn takes an issue slot and swaps r0/r8 and two iu2 insns (9 words) -> not applied. A pure-C
+  way to keep `&campos`'s pseudo alive past the z load without a new insn was not found (struct assignment `pos = campos` and a direct
+  `memcpy(&pG->Cam.param.pos, ..)` change the dest pointer shape: 46 words). OPEN.
+- **menuFlag 69 (not improved).** New structural fact from the target: `addi r4,r31,0x15; mr r25,r4; .. mulli r4,r4,0xe` = the row's
+  `y + i` is a block-local temp A (r4) with a gcse PRE copy P (r25) for the arms, and the row's `* 14` still reads A (regmove did not
+  move A's use to P, so no coalescing); ours has one shared pseudo (`addi r30,r31,0x15; mulli r29,r30,0xe`). Inside the key/target
+  j-loops the target recomputes `mulli r4,r25,0xe` per iteration (not hoisted by loop.c) where ours hoists it and copies `mr r4,r25`.
+  Both point at the same thing: in the original the `(y + i) * 14` of the sub-rows is not the head's expression at loop.c time (a
+  copy/temp structure different from writing `(y + i) * 14` in every row). `c` reused as the OFF colour (`c = 7 / c = col`) = 117
+  words, wrong direction. The `x + 19` second use and the r16..r31 save (one more callee-saved value, `x` in r16) remain OPEN.
