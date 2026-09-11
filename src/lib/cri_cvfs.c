@@ -245,9 +245,17 @@ static CVFS_DEVIF *cvfs_FindDev(CVFS_DEV *tbl, const Char8 *name, Sint32 len)
 }
 
 /* the device of a split name: the name's device, else the default device (the path is then the
- * whole name); a device asking for it gets the "DEV:path" form. (OPEN: the search helpers' loop
- * registers / the vtbl chain differ - M1, register ranking: the target's `i` of the two
- * SearchDev copies and the vtbl chain take r26 before r25/r24/r23 are handed out) */
+ * whole name); a device asking for it gets the "DEV:path" form. (OPEN: M1 register ranking: the
+ * target colours vtbl chain / i3 r26 before the first search's i/dev/len r25/r24/r23, and the
+ * second copy's `dev` r23 / `len` r24 AFTER the first search's len - its `dev = tbl` copy ranks
+ * below a late strlen @ret copy, which no clone-local form of ours does) */
+/* the first search one inlining level deeper than the two SearchDev copies (CRI pass 32): cloned
+ * after them, its i/dev get the lowest ids and the second copy's `i` takes r26 like the target */
+static Sint32 cvfs_WantsDevForm(CVFS_DEV *tbl, const Char8 *name, Sint32 len)
+{
+	return cvfs_OptFn(cvfs_FindDev(tbl, name, len), NULL, 100, 0, 0) == 1;
+}
+
 static CVFS_DEVIF *cvfs_ResolveDev(const Char8 *fname, Char8 *dev, Char8 *path)
 {
 	CVFS_DEVIF *vtbl;
@@ -267,7 +275,7 @@ static CVFS_DEVIF *cvfs_ResolveDev(const Char8 *fname, Char8 *dev, Char8 *path)
 	}
 	len = strlen(name);
 	tbl = cvfs_tbl;
-	if (cvfs_OptFn(cvfs_FindDev(tbl, name, len), NULL, 100, 0, 0) == 1) {
+	if (cvfs_WantsDevForm(tbl, name, len)) {
 		strcpy(add_dev_tmp, path);
 		sprintf(path, "%s:%s", name, add_dev_tmp); /* the target passes the checked `name` (r26), not `dev` */
 	}
@@ -862,8 +870,8 @@ void cvFsClose(CVFS_OBJ *obj)
 /* a free handle slot */
 static CVFS_OBJ *cvfs_AllocObj(void)
 {
+	CVFS_OBJ *obj; /* declared before i: the later-declared helper local ranks higher -> i r3, obj r4 */
 	Sint32 i;
-	CVFS_OBJ *obj;
 
 	obj = cvfs_obj;
 	for (i = 0; i < CVFS_MAX_HN; i++) {
@@ -879,8 +887,8 @@ static CVFS_OBJ *cvfs_AllocObj(void)
 	return obj;
 }
 
-/* COMPILER-DIFF: M1 - pool base r29 / loop index+pointer r3/r4 swapped, one instruction shorter.
- * Pure C by project decision (CRI pass 8). */
+/* COMPILER-DIFF: M1 - the inlined device search's vtbl chain / dev / len registers (same class as
+ * cvFsGetFileSize). Pure C by project decision (CRI pass 8). */
 CVFS_OBJ *cvFsOpen(const Char8 *fname, void *dir, Sint32 rw)
 {
 	Char8 dev[CVFS_NAME_LEN];

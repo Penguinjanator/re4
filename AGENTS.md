@@ -25047,3 +25047,102 @@ Continues "### DOL option/card closer 2" above (the retry_load_menu mechanics li
   `CASE 4 -> DEFAULT` label. The surviving block in the target therefore carries a statement the frontend KEEPS and the backend
   removes (pass 16a's IsGopSkip shape: a store to the inline result that repeats the reaching value); with TRUE as the fall-through
   value of this function that store (`ret = TRUE` with `Bool ret = TRUE` at the top) hoists `li r0, 1` above the tree instead. Open.
+
+### CRI pass 33 (cftyp422_ppc 2/8: .bss order fixed, Init 24 -> 9w; IN PROGRESS 2026-09-12)
+Harness /home/adityas/.cache/cri33/ (variants p_*.c, ra_* dumps; deleted at the end). Kit only.
+- **.bss is NOT definition order** (probe: the six objects declared in the target's order leave the layout unchanged); it is
+  TU first-reference order in codegen, as pass 16 and the mwsfdcre pass 5 found. Lever applied (tagged, `cftyp_bss_order`): a
+  never-called global function defined between cnvDynamic and cnvStatic that stores to cr_r, cr_g, cb_b, cb_g, y in that
+  order; strip_unused.py drops it from .text (it is not in sym_map.tsv), its references fix the .bss layout (target offsets
+  +4/+0x404/+0x804/+0xc04/+0x1020/+0x1420 all match now). The original's cnvStatic is C and references the tables through its
+  gqr_save-based pool; the asm transcription carries the pool immediates, so nothing in our code references them before Init.
+- **Init 24 -> 9w, pure C**: the five induction pointers are OWN locals declared after `i` (`Sint32 i; Float32 *py = y,
+  *pcb_g, *pcb_b, *pcr_r, *pcr_g;` in the store order, `*py++ = ..`): i (highest own id) is coloured first and takes the
+  dead .bss base's r5, the pointers r6..r10; the index form makes them IV @temps above i (i r10, cr_g's IV reuses r5). The
+  `stw CFT_dummy`/`li r0, 0x100` schedule followed. Residue 9w = FPR order: the target's y product is coloured LAST (f8,
+  a variable vid below the hoisted 1.164 f7 / magic f6 literal loads); ours is an expression temp created after them (f6).
+  A `Float32 v` local is forward-substituted (E/F/G/J/K/L/P/Q variants: `register`, `*py = v; py++`, a cast, `(void)v`, an
+  inlined helper's return); the two-def `v = (Float32)(i - 16); v = 1.164f * v` keeps v a node (product f8, conv f2 =
+  target) but generates the conversion first, so the magic/1.164 literal ids swap (8w). Left.
+
+### Tool RELs, t_id pass 5
+
+- idEditPos 334w (size 0x10ac vs 0x10d4) -> IDENTICAL (one #17 pin). Structural reading in order: (1) the ID_DRAW_GUIDE
+  eprintf's `sx + (sx > 0x198 ? -0x68 : 8)` computed as `int dx/dy` statements before the call (loop.c scan_loop
+  lines 904-1000: a single-use invariant pseudo in a loop with calls gets its set deleted and the source substituted
+  into the use when `no_labels_between_p`; a `?:` in the argument list puts the join label between the plus and the
+  arg set, so the `add r4,r24,r25` stays inside the loop only when the col/ofs is a statement); `p = *pos` not
+  `p = d->pos`. (2) subCur-0 arm: `PSVECAdd(&d->vtx[i], &d->pos, &d->vtx[i])`, the `a = vt & 0xF` read as a block
+  `{ int t = d->vtxType; a = t & 0xF; } vt = d->vtxType;` (two loads, the target's order), case 0 =
+  `PSVECAdd(&vtx[0], &vtx[2], &pos); PSVECScale(&pos, &pos, 0.5f)`, cases 1-4 `d->pos = d->vtx[N]` (struct copy:
+  rs6000 expand_block_move copy_addr_to_reg pseudos -> "first word via base+const, y/z via pseudo": cse.c
+  find_best_addr with ADDRESS_COST 0 rewrites `(mem S)` to `(mem (plus base const))` for the first word only).
+  (3) subCur case 5 (subStep=0; editStep++) placed after case 4. (4) menu loop `for (i = 0; i <= 5; i++)` with
+  `y + i * 0xE` inside the inner eprintfs and `y += 0xE` after the POS-MENU eprintf (gcse PRE puts `addi r24,r25,0xe`
+  at the arm tails; `y + 0xE + i*0xE` folds to addi-after-add = worse). Inner loops: `int col = 7; if (j == ..) col = 0;`
+  (if-form puts `li 7` before the compare, ternary after), the onOffName loop as `u32 ofs = j * 4; ...
+  *(const char**)(ofs + (u32) onOffName)` (address kept as a giv), IPOW loop `(u8) col`. (5) editStep 2 / subCur 1
+  / subStep 0: `Vec t; Vec* pt = &t; pt->x = mat[0][3]; pt->y = mat[1][3]; pt->z = mat[2][3];` then `ofs.x = t.x;
+  ofs.y = t.y; ofs.z = 0.0f` - the store order x,z,y comes from haifa rank_for_schedule INSN_REG_WEIGHT (sets minus
+  dead notes; the pseudo `pt` dies at the z store), not from source order; frame-based `(plus fp N)` and pseudo-based
+  `(plus S N)` stores conflict in alias.c (reg_known_value only from REG_EQUAL/EQUIV), which serialises them.
+- Last 3w (IPOW loop `li r5,7 / li r5,0 / clrlwi r30,r5,24`, ours r30 for col): global.c set_preference strips ONE
+  operator level (`GET_RTX_FORMAT(code)[0] == 'e'` -> src = XEXP(src,0)), so `(set ext (zero_extend (subreg col)))`
+  with ext already local-alloc'd to r30 gives col a hard_reg_preference for r30 (GDBG `pref 000000000000000010`), and
+  find_reg honours a preference after the pass-0 scan whenever the reg is in regs_used_so_far and free of conflicts
+  (r30 is in used_so_far from local-alloc's own assignments). The target's col has no such preference, so its ext
+  pseudo was not local-alloc'd (multi-block or two deaths) - shape not found in 20 min; `u8 col` / `s8 col` /
+  `u8 c = col` / shared `int col` / `col & 0xFF` all reproduce ours (u8 var: promoted, no clrlwi at all). Applied
+  `register int col asm("r5"); // COMPILER-DIFF: #17`.
+- mdiff.py (scratch, masked structural diff of dtk target vs ours with `--regs`): the `b .L` vs `b idEditRot` and
+  `bl .L` lines are dtk relocation artefacts, ignore. The 1-4w diffs in `create__t8cManager1Z6cLighti` vanished with
+  the size fix; `_._6cCoord/_._7ID_DATA/_._5cUnit` 2w and `__static_initialization_and_destruction_0` 4w remain.
+
+### CRI pass 32 (sfd_adxt AdjustSync 47 -> 0w pure C, ExecServerSub 112 -> 88w at target size; cri_cvfs cvFsGetFileSize 36 -> 32w, cvFsOpen 56 -> 18w; sfd_tst SFTST_Calc 79w unchanged; no flip; 2026-09-12)
+Harness /home/adityas/.cache/cri32/ (deleted at the end): `try.sh <unit> <abs variant.c> <FUNC>` (variant.sh word counts only), ra_* dumps,
+v*.c / a*.c / e*.c variants. No pins, no pragmas; all edits are declaration order / helper boundaries.
+- **The colour rule, restated from chaitin.py (it is what pass 25 mis-read): a node takes the lowest-NUMBERED free register among
+  r0, r3..r12 and the callee-saved registers ALREADY handed out, else a NEW one from r31 downward.** Consequences used below: a
+  value coloured right after a group of higher-level values reuses the LOWEST dead one of their registers, not the most recent;
+  "X needs an rN-coloured neighbour" is only true when rN is below every other free register.
+- **The LEVEL of an own local depends on the declaration order too.** The removal scan runs in ascending id = reverse declaration
+  order, and each removed node lowers its not-yet-scanned neighbours' degrees. A local with ~30 neighbours therefore stays in
+  level 2 only when its removable (level-1) neighbours are declared BEFORE it (higher id, scanned later). sfd_adxt AdjustSync:
+  skipbyte (31 total) stays in level 2 with lim/frmbyte declared before it; declared after them it drops to level 1 and the whole
+  colouring shifts (a1 variant: skipbyte r23, parameters r27..r24).
+- **sfd_adxt `sfadxt_AdjustSync` 47 -> 0 (pure C):** declaration order `lim, frmbyte, skip, skipbyte, nch, endflg, tim, vstart,
+  astart, sfreq, ofs, n, dmy, vflg, diff, wk, ins, cnt`. Level 2 colours in that order (skip r30, skipbyte r29, nch r28, endflg
+  r27, parameters r26..r23); in level 1 the @temps p/ofs come first (r30/r28 = the dead skip/nch registers), then lim r22 /
+  frmbyte r21 (new), then tim, vstart, astart, sfreq take the lowest free each: r21, r22, r27, r29 = the target. No skip edge
+  and no `li` placement question: the target's `li r30, 0` after the `bl` is exactly ours once the colours agree. The else
+  branch's silence count is its own variable `cnt` (declared last, r21 = frmbyte's dead register): as a second web of `n` it
+  interferes with frmbyte (the then-path `n = len / frmbyte * ..` keeps frmbyte alive) and lands in r24.
+- **sfd_adxt `sfadxt_ExecServerSub` 112 -> 88 (sizes now equal 0x428):** (1) the target loads `SFADXT_WK(sfd)->adxt` BEFORE the
+  `que_wr == que_rd` test (hoisted into the compare block): `adxt = SFADXT_WK(sfd)->adxt;` precedes the `if`. (2) The
+  `nsmpl = ADXT_GetNumSmpl(adxt)` copy bounces (`mr r0, r3; mr r3, adxt; mr r24, r0`, +4 bytes) as an own local of the real
+  function; as a local of an inlined helper (`sfadxt_WriteTotSmpl(sfd)`, the whole tail) it propagates into the @ret and the
+  copy is the single `mr r24, r3` (the pass-20 helper-local rule, now seen on a non-inlined caller too). (3) `void *obj` +
+  `SFD sfd = obj` (pass 12) puts sfd above len; the declaration order `err, len, bufout, bufin, tst, stat, adxterr, adxt, wk`
+  colours the middle block like the target (bufout r28, bufin r27, tst r27, stat r28, adxterr r26, adxt r25, wk r24).
+  Left (88 words, all renames): sfd r31 / err r30 (target has sfd in level 3: ours 28 at removal, one neighbour short; the err
+  range-split @432 is above sfd in level 2 either way), and the ahdr / svrfreq / tail blocks: target ahdr r25, adxt r24, wk r25,
+  nsmpl r24, i.e. r28..r26 are blocked there although stat/tst/adxterr are dead — the target's ahdr-block values interfere with
+  something coloured r28/r27/r26 that ours does not have (a range-split copy of adxt or wk live across the ahdr block is the
+  candidate; ours reuses the lowest free r28/r29). Not closed.
+- **cri_cvfs cvFsGetFileSize 36 -> 32w, cvFsOpen 56 -> 18w (pure C):** (1) cvfs_AllocObj declares `obj` before `i`: the
+  later-declared helper local ranks higher, so `i` is coloured first and takes r3, `obj` r4 (34 of cvFsOpen's words). (2) The
+  first device search is one inlining level deeper than the two SearchDev copies (`cvfs_WantsDevForm(tbl, name, len)` =
+  `OptFn(FindDev(..)) == 1`, called from ResolveDev): cloned after them, its `i`/`dev` get the lowest ids and the second copy's
+  `i` takes r26 like the target. (3) Read off the dumps with the correct colour rule, the target's full order is
+  {name, vtbl chain, i2, i3} > i1 > dev1 > len1 > dev2 > {len2, len3}: the second SearchDev copy's `dev = tbl` copy (r23) is
+  coloured AFTER the first search's strlen result (r23, a late range-split copy @139x created after every clone local), while
+  the same copy's `i` is coloured before the first search. No clone-local form gives that (a clone's `i` and `dev` are adjacent
+  ids); `tbl++` on the parameter instead of `dev = tbl` makes the copy at clone entry, before the strlen (wrong shape, 33w).
+  The coalesced vtbl chain ranks by its LOWEST-id member (the last clone's return temp @1387), so it sits below every clone
+  local; raising it needs the third search's return temp created before the second search's locals. Also open: pdev r28 / tbl
+  r27 (both level 2, tbl is a later-created copy leader @1391 above pdev; pdev at 28 needs one more level-2 neighbour or ghost).
+- **sfd_tst SFTST_Calc 79w:** not touched (box spent on the units above). Re-read of the sprintf block with the lowest-free
+  rule: the nine mutually interfering values take r30..r21 in colouring order; target order hlp.lo, hlp.hi, mt_max.lo,
+  mt_max.hi, mt.lo, MulDiv, out.lo, out.hi, mt.hi (mt.hi LAST, r21); ours colours mt.hi FIRST (r30) and the other eight in the
+  target's order. So the single residue of that block is mt.hi's rank: ours has it above the other eight (highest id or a
+  higher level), the target below all of them.

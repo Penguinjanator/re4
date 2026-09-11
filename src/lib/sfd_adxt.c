@@ -631,30 +631,34 @@ static Sint32 sfadxt_SearchEndcode(Uint8 *data, Sint32 lim, Sint32 *endflg)
 	return ofs;
 }
 
-/* transfer state 3: align the audio start to the video start (skip frames or insert silence)
- * (M1: callee-saved register permutation only -- the target colours skip r30 / skipbyte r29 / nch r28 /
- * astart r27 above the parameters and vstart r22 / tim r21 below them; the reversed declaration order
- * gives the parameters r23..r26 = target, 69 -> 51w. `wk->smplofst -= ins` subtracts the
- * InsertSilence RESULT, not the remaining n: `subf r0, r3, r0` in the target) */
+/* transfer state 3: align the audio start to the video start (skip frames or insert silence).
+ * Declaration order = the register ranking (CRI pass 32, 47 -> 0w): lim/frmbyte before skipbyte keep
+ * skipbyte's degree at 29 for level 2 (skip r30, skipbyte r29, nch r28, endflg r27, then the
+ * parameters r26..r23); tim/vstart/astart/sfreq declared after lim/frmbyte are coloured after them
+ * and take r21/r22/r27/r29 (the lowest free register each). The silence count of the else branch
+ * is its own variable `cnt` (r21 = frmbyte's register): as a second web of `n` it would interfere
+ * with frmbyte and land in r24. `wk->smplofst -= ins` subtracts the InsertSilence RESULT, not the
+ * remaining count: `subf r0, r3, r0` in the target. */
 void sfadxt_AdjustSync(SFD sfd, Uint8 *data, Sint32 len, Sint32 *nbyte)
 {
-	Sint32 ofs;
-	Sint32 n;
 	Sint32 lim;
 	Sint32 frmbyte;
-	Sint32 skipbyte;
-	Sint32 endflg;
-	Sint32 dmy; /* before vflg: frame slots vflg 0xc / dmy 0x10 (CRI pass 28, 51 -> 47w) */
-	Sint32 vflg;
-	Sint32 diff;
 	Sint32 skip;
+	Sint32 skipbyte;
+	Sint32 nch;
+	Sint32 endflg;
+	SFTIM tim;
 	Sint32 vstart;
 	Sint32 astart;
 	Sint32 sfreq;
-	Sint32 nch;
-	SFTIM tim;
+	Sint32 ofs;
+	Sint32 n;
+	Sint32 dmy; /* before vflg: frame slots vflg 0xc / dmy 0x10 (CRI pass 28, 51 -> 47w) */
+	Sint32 vflg;
+	Sint32 diff;
 	SFADXT_WORK *wk;
 	Sint32 ins;
+	Sint32 cnt;
 
 	*nbyte = 0;
 	tim = SFADXT_TIM(sfd);
@@ -703,13 +707,13 @@ void sfadxt_AdjustSync(SFD sfd, Uint8 *data, Sint32 len, Sint32 *nbyte)
 		}
 	} else {
 		if (vflg != 0) {
-			n = (-diff) / 32 * 32;
-			if (n > 0) {
-				ins = ADXT_InsertSilence(SFADXT_WK(sfd)->adxt, nch, n);
-				n -= ins;
+			cnt = (-diff) / 32 * 32;
+			if (cnt > 0) {
+				ins = ADXT_InsertSilence(SFADXT_WK(sfd)->adxt, nch, cnt);
+				cnt -= ins;
 				wk->smplofst -= ins;
 			}
-			if (n <= 0) {
+			if (cnt <= 0) {
 				wk->func = sfadxt_CopyData;
 			}
 		}
@@ -799,23 +803,45 @@ static Sint32 sfadxt_Transfer(SFD sfd, Sint32 *len)
 	return err;
 }
 
-/* M1: callee-saved register permutation only (sfd r31 / err r30 / len r29 in the original) */
-static Sint32 sfadxt_ExecServerSub(SFD sfd)
+/* the total sample count into the control queue once it is empty */
+static void sfadxt_WriteTotSmpl(SFD sfd)
 {
-	SFADXT_WORK *wk;
 	ADXT adxt;
-	void *tst;
-	Sint32 err;
-	Sint32 len;
-	Sint32 bufin;
-	Sint32 bufout;
-	Sint32 stat;
-	Sint32 adxterr;
-	Sint32 freq;
 	Sint32 nsmpl;
 	Sint32 sfreq;
+
+	adxt = SFADXT_WK(sfd)->adxt;
+	if (sfd->con.que_wr == sfd->con.que_rd) {
+		nsmpl = ADXT_GetNumSmpl(adxt);
+		sfreq = ADXT_GetSfreq(adxt);
+		if (nsmpl > 0 && sfreq > 0) {
+			SFCON_WriteTotSmplQue(sfd, nsmpl, sfreq);
+		}
+	}
+}
+
+/* M1: callee-saved register permutation only. CRI pass 32: the tail helper and the hoisted adxt reload
+ * give the target size; `void *obj` + kept copy puts sfd above len; the declaration order
+ * err, len, bufout, bufin, tst, stat, adxterr, adxt, wk colours the middle block like the target
+ * (bufout r28, bufin r27, tst r27, stat r28, adxterr r26, adxt r25, wk r24). Left: sfd r31 / err r30
+ * (sfd needs one more level-2 neighbour: 28 at removal) and the ahdr/svrfreq/tail blocks (target
+ * ahdr r25, adxt r24, wk r25: r28..r26 blocked there, ours takes the lowest free r28/r29). */
+static Sint32 sfadxt_ExecServerSub(void *obj)
+{
+	SFD sfd;
+	Sint32 err;
+	Sint32 len;
+	Sint32 bufout;
+	Sint32 bufin;
+	void *tst;
+	Sint32 stat;
+	Sint32 adxterr;
+	ADXT adxt;
+	SFADXT_WORK *wk;
+	Sint32 freq;
 	SFSEE_AHDR *ahdr;
 
+	sfd = obj;
 	if (SFSET_GetCond(sfd, SFADXT_COND) == 0) {
 		return 0;
 	}
@@ -893,14 +919,7 @@ static Sint32 sfadxt_ExecServerSub(SFD sfd)
 		ADXT_SetSvrFreq(adxt, freq);
 	}
 
-	if (sfd->con.que_wr == sfd->con.que_rd) {
-		adxt = SFADXT_WK(sfd)->adxt;
-		nsmpl = ADXT_GetNumSmpl(adxt);
-		sfreq = ADXT_GetSfreq(adxt);
-		if (nsmpl > 0 && sfreq > 0) {
-			SFCON_WriteTotSmplQue(sfd, nsmpl, sfreq);
-		}
-	}
+	sfadxt_WriteTotSmpl(sfd);
 	return err;
 }
 
