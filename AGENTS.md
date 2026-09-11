@@ -16558,3 +16558,76 @@ HAZARD: wibo's NgcAs writes the `-o` path case-insensitively -- two tryv variant
   (the volatile-asm fabsf is a sched barrier that pins the copy behind the fsubs and local-alloc ties it away).
 - objdiff/unit_info still show 98-99% for the byte-identical operateCrank/open_door/moveGrave/SceElevator (dtk `Sym+off`
   relocs such as `Fade+0x48`): judge with mcmp.py only.
+
+### Tool RELs, t_esp pass 5 (db_light Matching in all five modules -- t_camera/t_light/t_event 134/134, Tools 135/135, t_esp 136/136, flipped, 111 OK; t_esp 194 -> 195/212: MakeLoadSeqData 9 -> 0, MakeExecSeqData 42 -> 27; db_mod position_usage 34 -> 10 (t_esp 60/75, Tools 48/63); db_widget unchanged; 2026-09-11)
+
+- Harness ~/.cache/tesp5 (tools_p14 copies with the paths rewritten; `mtryv.py MOD/UNIT FUNC v.py [--apply N] [--asm N]`
+  now honours `CC1DIR=<dir with cc1plus>` for a hooked compiler; `msbs.sh`, `mdump.sh` (ABSOLUTE `SRC_OVERRIDE`, dumps named
+  by the unit basename), `fsec.py`, `mcmp.py`, `order.py`, `prio.py PRE`). A hooked cc1plus (copy of tools/sn-gcc
+  {Makefile,src,obj} into ~/.cache/tesp5/sngcc, `make OBJ=obj BIN=. ./cc1plus` after touching gcse.c, ~1 s) with env hooks
+  `NO_CPROP=1` (skip one_cprop_pass) / `NO_CPROP_REGS=a,b,c` (skip cprop into uses of those regnos) was used to test the
+  printEditTable hypothesis; nothing installed, deleted with the harness. Build 111 OK before and after every edit.
+- **edit_light_parent (db_light, 17 -> 0, zero code): one function-scope `u32 no;` reused by both arms of case 2 (`no =
+  cur->parentId >> 16; no = (no + 101) % n;` / `(no + 99) % n`, then `(no << 16)` in the store).** The multi-set,
+  multi-death pseudo is not a local-alloc qty, so the `+101` temp is not tied to it (`addi r10,r9,101` by the fake-lifetime
+  rule) and the remainder goes back into `no` (r9) untied from the dying temp -- exactly the target's r9/r10/r9 chain; `n`
+  then falls to r8. Every fresh-pseudo spelling ties (combine_regs needs `reg_qty[sreg] == -2`, i.e. a single-death pseudo
+  not yet seen); the three-pin form (hi r9, t r10, rem r9) gives 52.
+- **printEditTable (db_light, 183 -> 0; tagged `candidate #12 (gcse cprop)` x2 + `candidate #18`): the row printer is a MACRO
+  over printEditTable's own `x`/`y`/`c`, not an inline with its own locals** (the target's row `x` and the outer `x = 4`
+  are ONE pseudo, r30). Pieces, each read off the target: (1) the "%02d"/"P" columns read `0x150 + i * 14` (the outer
+  expression pseudo, cse-canonical in the row's ebb: `mr r4,r23` for the first row call, its loop.c giv copy `mr r26,r23`
+  for the "P" column after the diamond) while the E.. columns read a SECOND variable `y = (i + 24) * 14;` set right after
+  the outer "%02d" eprintf -- a spelling cse cannot fold into the first pseudo but loop.c combines (mult 14, add 336 ->
+  the second giv copy `mr r29,r23`); (2) `asm("li %0,10" : "=r"(x))` and `int t80; asm("li %0,80" : "=r"(t80))` for the
+  "P" call's `x*8`: the target keeps `li r30,10` and `li r3,80` as pseudo sets of the pre-diamond block (`x + 1` after
+  the join not folded, the r3 arg move not folded, T not moved by update_equiv_regs), ours cprops all three into the "P"
+  join block -- the hooked compiler shows disabling cprop for exactly those pseudos gives the target's chain, so this is
+  the #12 "block entered with less knowledge" family on gcse's side (stock hash_scan_set/cprop_insn record and propagate
+  them; the cause is unknown); (3) `DrawTileV(x * 8 + 1, y + 1, 0x16, 0xC, col)` (the editColor by-value view) for the
+  swatch's 4-byte temp at frame 8 / `col` at 12; (4) the type-4 colour as a FOUR-member chain `col.r = col.g = col.b =
+  col.a = l->color.r;`: the C++ front end re-evaluates the rhs for the value of an assignment to a struct member (the
+  three-member chain `col.r = col.b = col.g = X` loads X for g AND for b: `lbz` x3), so the innermost `col.a = X` owns
+  load 1 and the re-evaluated rhs of `col.b = ...` is the ONE load shared by b, g, r (stores a, g, b, r in that order,
+  `lbz r11; addi r9,r1,12; stb 3(r9); lbz r0; stb 1; stb 2; stb r0,12(r1)`). A `u8/int v` local instead hoists `&col`
+  out of the loop: the `(plus fp 12)` pseudo's loop.c life goes 6 -> 8 (`threshold * savings * life >= insn_count` flips
+  in pass 2), and the extra `lbz` of the three-member chain also decided the "%s"/"E" PRE-high tie (r17/r18: both 7 refs,
+  lengths 706/704 -> 198 vs 198 truncated -> lower pseudo first; one insn fewer in both ranges made it 199 vs 198).
+- **db_light flip: the compiled unit must define the module's 0x34-byte COMMON block** (`asm(".comm common_" STR(REL_MODULE)
+  ",52,4")`, the em10.cpp/st_room.h idiom) or make_rel fails with "COMMON symbols take 0x0 bytes, the original had 0x34";
+  the flag went into modules.py for t_camera, t_light, t_event, Tools and t_esp at once (db_light_tools.cpp /
+  db_light_esp.cpp wrappers: `touch` them after every db_light.cpp edit). The `_._5cUnit / __t8cVarLoop.. / _._10cLightTool:
+  2 words` lines of mcmp in t_camera/t_light/t_event/t_esp are the `.rodata+5640` vs `_vt.5cUnit` reloc-name pairing.
+- **MakeLoadSeqData (t_esp, 9 -> 0, zero code): declare the inner-loop pointer `TOOL_SEQ* t;` at function scope BEFORE
+  `TOOL_SEQ* rec;`.** loop.c reduces the givs in pseudo order, so `t + 300` gets the lower new_reg and is allocated before
+  `rec + 300` (equal priority 6 refs / 23: r6 / r5 instead of r5 / r6), and the four prologue parameter copies reorder
+  with it. Statement forms of the copy loop (`*t = *rec; t++; rec++;` etc.) do not move it.
+- **MakeExecSeqData (t_esp, 42 -> 27):** `rec = (TOOL_SEQ*) head->rec` assigned AFTER the count-clearing loop (the target's
+  `addi rec,head,48` sits in the second loop's preheader), the flag table read per iteration through the struct view
+  `((SeqFlgPtr*) &g_pSeqFlg)->p[j]` and `(.. & 1) == 0` (`!(x & 1)` folds to `xori; bne`), a separate `u32 j` for the
+  second loop. Left: caller-saved naming (zero r10/i r11 vs r0/r10, rec r10 vs r8, the three highs) -- 12 forms tried.
+  MakeSaveSeqData (58): the same `rec` placement helps structurally but `size` must take r3 and `head` move to r5 (the
+  target allocates `size`, 5 weighted refs, before `head`, 9) -- not found, left as is.
+- **position_usage (db_mod, 34 -> 10, zero code): `x = 43;` at the END of both arms of the mode if/else, the else written
+  `else { if (mode == 1) {..} x = 43; }` so x is defined on every path.** Three effects: cse cannot fold the join's
+  `x * 8` (`li r30,43; slwi r30,r30,3` once, `mr r3,r30` per call and the tail's PRE copy `mr r29,r30` -- the pass-1
+  asm-li form left the tail recomputing), and with x live across no call (REG_N_CALLS_CROSSED 0: the uninitialised
+  `mode != 0, 1` path of the else-if form made x live from the entry across every call) sched1 anchors each arm's `li`
+  behind the arm's last call (`add_dependence (insn, last_function_call)`), so jump2 cross-jumps arm A's `li` into arm B's.
+  Left (10): the target's `li r30,43` is issued after the join's `mulli r4,r31,14` (one block, not the cross-jump label
+  block) and the tail's `y++; (y - 1) * 14` is not combined (`addi; addi -1; mulli`, i.e. y live after the last call).
+- **Save*FileNoUpdateCallback x5 (t_esp, 5 each, still compiler-side): the no-op-move construction cannot work in this
+  pass order.** toplev.c rest_of_compilation: reload (598) -> `reload_cse_regs` (607) -> flow2 (660) -> sched2 (689) ->
+  jump2 with JUMP_NOOP_MOVES (713). `reload_cse_noop_set_p` deletes `(set r r)` (dreg == sreg) and every copy whose dest
+  already holds the source's value BEFORE flow2, so the arm is empty at flow2 exactly as now; jump2's `delete_noop_moves`
+  (same-rtx set, sreg == dreg, a copy redundant per `find_equiv_reg`, a constant already in a register) sees nothing
+  reload_cse did not, because `find_equiv_reg` stops at the same CODE_LABEL / volatile asm and reload_cse forgets there
+  too; a bare USE/CLOBBER or an asm keeps the arm alive through jump2 (the branch stays). Pins `register int t asm("r11")`
+  in the arms (6), `asm("" :: "r"(t))` (8), `volatile int t = type` (14).
+- **db_widget DB_NUMERIC ctor (2, unchanged; the sched2 table read):** after `bl DB_STRING` the block's nine stores split
+  5 : 4 -- `minus, pNum, min, ketaFloat, edit` (the source's first five statements) have prio 5 with a TRUE dependence on
+  the SetDefault call, `max, keta, unit, step` prio 4 (anti only), and the `fmr f1,f31` is prio 4 -- so the split is by
+  RTL position, not by base or offset; `DB_NUMERIC* self` / pinned / laundered `this` views, `SetDefault(zero)`, a
+  `k255` local, moving `max = 255.0f` first and a `"m"` keep-alive asm change nothing (4-31 words). Not resolved.
+- Not iterated: db_widget DB_STRING (11) / DB_WINDOW (14), db_mod IKreport (10) and the larger residues, t_esp's larger
+  residues.

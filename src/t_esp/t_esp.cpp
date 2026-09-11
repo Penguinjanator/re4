@@ -5107,10 +5107,14 @@ void MakeExecSeqData(EspSeqData* head, TOOL_SEQ* tbl, u32 nGroup, u32 nSeq)
 {
     u32 i;
     u16* num = (u16*) head;
-    TOOL_SEQ* rec = (TOOL_SEQ*) head->rec;
+    TOOL_SEQ* rec;
+    u32 j;
     for (i = 0; i < nGroup; i++) num[i] = 0;
-    for (i = 0; i < nSeq; i++, tbl++) {
-        if (g_seqFlgNum[g_page] != 0 && !(g_pSeqFlg[i] & 1)) continue;
+    rec = (TOOL_SEQ*) head->rec; // after the clearing loop: `addi rec,head,48` sits in the second loop's preheader
+    for (j = 0; j < nSeq; j++, tbl++) {
+        // the flag table pointer through the struct view is reloaded per iteration (the target's `lwz` in the
+        // body); `(x & 1) == 0` keeps the plain `andi.; beq` (`!(x & 1)` folds to `xori; bne`)
+        if (g_seqFlgNum[g_page] != 0 && (((SeqFlgPtr*) &g_pSeqFlg)->p[j] & 1) == 0) continue;
         if (tbl->stat & 1) {
             *rec++ = *tbl;
             head->num++;
@@ -5146,11 +5150,12 @@ struct SeqCountView { u16 n[1]; };
 void MakeLoadSeqData(EspSeqData* head, TOOL_SEQ* tbl, u32 nGroup, u32 nSeq)
 {
     u32 i, j;
-    TOOL_SEQ* rec;
+    TOOL_SEQ* t;   // declared BEFORE rec: the lower pseudo makes loop.c reduce t's giv first, so `t + 300` is
+    TOOL_SEQ* rec; // allocated ahead of `rec + 300` (r6 / r5) and the prologue copy order follows
     InitSeqTbl();
     rec = (TOOL_SEQ*) head->rec; // after the call: rec lives in a caller-saved register
     for (i = 0; i < nGroup; i++) {
-        TOOL_SEQ* t = &tbl[nSeq * i]; // nSeq first: `mullw r0, nSeq, i`
+        t = &tbl[nSeq * i]; // nSeq first: `mullw r0, nSeq, i`
         for (j = 0; j < ((SeqCountView*) head)->n[i]; j++) {
             *t++ = *rec++;
         }

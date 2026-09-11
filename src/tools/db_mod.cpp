@@ -3495,12 +3495,18 @@ void position_usage(int mode)
         eprintf(43 * 8, 77, 7, 0, "     : Move        ");
         eprintf(43 * 8, 91, 7, 0, "     :  (X-Z plane)");
         eprintf(43 * 8, 8 * 14, 7, 0, "Y+U/D: Move(Y axis)");
-    } else if (mode == 1) {
-        eprintf(43 * 8, 5 * 14, 7, 0, "L<->R: Select Axis ");
-        y = 7;
-        eprintf(43 * 8, 6 * 14, 7, 0, "Up/Dn: Move Pos    ");
+        x = 43;
+    } else {
+        if (mode == 1) {
+            eprintf(43 * 8, 5 * 14, 7, 0, "L<->R: Select Axis ");
+            y = 7;
+            eprintf(43 * 8, 6 * 14, 7, 0, "Up/Dn: Move Pos    ");
+        }
+        // `x = 43` at the END of both arms (defined on every path): cse cannot fold the join's `x * 8`
+        // (`li r30,43; slwi` once, `mr r3,r30` per call, the tail's PRE copy `mr r29,r30`), and with no
+        // call crossed the two `li`s stay behind the arms' last calls and jump2 merges them into one.
+        x = 43;
     }
-    x = 43;
     eprintf(x * 8, y * 14, 7, 0, "     : Reset Pos   ");
     y++;
     eprintf(x * 8, (y - 1) * 14, 5, 0, "Z                  ");

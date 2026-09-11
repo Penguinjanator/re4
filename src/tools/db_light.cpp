@@ -26,6 +26,13 @@
 #include "db_cam.h"
 #include "player.h"
 
+// The module's 0x34-byte COMMON block (uninitialised template statics of the original build; the split
+// skeleton defines it as `common_<mod>`, see em10.cpp / st_room.h): once db_light is compiled in a module
+// the block must come from a compiled object, or make_rel refuses the link.
+#define DB_LIGHT_STR2(x) #x
+#define DB_LIGHT_STR(x) DB_LIGHT_STR2(x)
+asm(".comm common_" DB_LIGHT_STR(REL_MODULE) ",52,4");
+
 // Light editor (D:/Bio4/Prog/db_light.cpp): cLightTool (the editor), cDbLit (the .lit cuts being edited,
 // one Debug_alloc'd cLightEnv per cut) and cLitPathTool (the light path table). The same object is in
 // t_camera / t_light / t_event; Tools adds SetToolLight in front of it (tools/db_light_tools.cpp,
@@ -1890,6 +1897,7 @@ static void edit_light_parent()
     u32 n;
     cModel* m;
     int first;
+    u32 no;
 
     if (pTool->init == 0) {
         pTool->cursor = 0;
@@ -1944,10 +1952,14 @@ static void edit_light_parent()
     case 2:
         n = 100;
         if (pTool->joy.rep & JOY_RIGHT) {
-            cur->parentId = (cur->parentId & 0xFFFF) | ((((cur->parentId >> 16) + 101) % n) << 16);
+            no = cur->parentId >> 16;
+            no = (no + 101) % n;
+            cur->parentId = (cur->parentId & 0xFFFF) | (no << 16);
         }
         if (pTool->joy.rep & JOY_LEFT) {
-            cur->parentId = (cur->parentId & 0xFFFF) | ((((cur->parentId >> 16) + 99) % n) << 16);
+            no = cur->parentId >> 16;
+            no = (no + 99) % n;
+            cur->parentId = (cur->parentId & 0xFFFF) | (no << 16);
         }
         break;
     }
@@ -4719,73 +4731,66 @@ static const char* table_head[] = {
     "NO =======================================================",
 };
 
-// The row's swatch: a by-value GXColor parameter whose address is taken gets a 4-byte SImode stack
-// temp at the inline expansion (before the purge-time slot of the caller's address-taken `col`).
-static inline void drawColorTileC(int x, int y, int w, int h, GXColor c)
-{
-    DrawTile(x, y, w, h, &c);
-}
-
-// One row of the light table (first page of columns).
-static inline void printEditRow(cLight* l, int y, int c)
-{
-    int x;
-    GXColor col;
-
-    x = 7;
-    eprintf(x * 8, y, c, pTool->color, "%02d", l->type);
-    x = 10;
-    eprintf(x * 8, y, c, pTool->color, "%s", (l->xF & 1) ? "P" : "-");
-    x++;
-    eprintf(x * 8, y, c, pTool->color, "%s", (l->xF & 2) ? "E" : "-");
-    x++;
-    eprintf(x * 8, y, c, pTool->color, "%s", (l->xF & 4) ? "O" : "-");
-    x++;
-    eprintf(x * 8, y, c, pTool->color, "%s", (l->xF & 8) ? "E" : "-");
-    x++;
-    eprintf(x * 8, y, c, pTool->color, "%s", (l->xF & 0x10) ? "S" : "-");
-    x += 2;
-    eprintf(x * 8, y, c, pTool->color, "%s", parent_short[l->parentType]);
-    x += 3;
-    eprintf(x * 8, y, c, pTool->color, "%4.0f %3.0f %4.0f", l->pos.x / 1000.0f, l->pos.y / 1000.0f,
-            l->pos.z / 1000.0f);
-    x += 14;
-    if (l->x1C != 0.0f) {
-        eprintf(x * 8, y, c, pTool->color, "%3d", (int) (l->x1C / 1000.0f));
-    } else {
-        eprintf(x * 8, y, c, pTool->color, "INF");
+// One row of the light table (first page of columns), written as a MACRO over printEditTable's own
+// `x`, `y` and `c`: the target keeps ONE `x` pseudo (r30) for the outer `x = 4` and the row's columns,
+// so the row is not an inline with its own locals. The E.. columns use the loop's `y` variable while
+// the "%02d"/"P" columns read `0x150 + i * 14` (see printEditTable).
+#define PRINT_EDIT_TAIL(l, Y, c)                                                                    \
+    {                                                                                               \
+        GXColor col;                                                                                \
+                                                                                                    \
+        eprintf(x * 8, (Y), c, pTool->color, "%s", (l->xF & 2) ? "E" : "-");                        \
+        x++;                                                                                        \
+        eprintf(x * 8, (Y), c, pTool->color, "%s", (l->xF & 4) ? "O" : "-");                        \
+        x++;                                                                                        \
+        eprintf(x * 8, (Y), c, pTool->color, "%s", (l->xF & 8) ? "E" : "-");                        \
+        x++;                                                                                        \
+        eprintf(x * 8, (Y), c, pTool->color, "%s", (l->xF & 0x10) ? "S" : "-");                     \
+        x += 2;                                                                                     \
+        eprintf(x * 8, (Y), c, pTool->color, "%s", parent_short[l->parentType]);                    \
+        x += 3;                                                                                     \
+        eprintf(x * 8, (Y), c, pTool->color, "%4.0f %3.0f %4.0f", l->pos.x / 1000.0f,               \
+                l->pos.y / 1000.0f, l->pos.z / 1000.0f);                                            \
+        x += 14;                                                                                    \
+        if (l->x1C != 0.0f) {                                                                       \
+            eprintf(x * 8, (Y), c, pTool->color, "%3d", (int) (l->x1C / 1000.0f));                  \
+        } else {                                                                                    \
+            eprintf(x * 8, (Y), c, pTool->color, "INF");                                            \
+        }                                                                                           \
+        x += 4;                                                                                     \
+        if (l->type == 4) {                                                                         \
+            /* a four-member chain: `a` gets its own load, the re-evaluated rhs of the innermost   \
+               assignment is the one load shared by b, g, r (a three-member chain reloads) */       \
+            col.r = col.g = col.b = col.a = l->color.r;                                             \
+        } else {                                                                                    \
+            col = l->color;                                                                         \
+        }                                                                                           \
+        /* COMPILER-DIFF: candidate #18 (by-value aggregate view): the swatch's 4-byte temp at frame \
+           offset 0 with `col` in the next slot (the editColor form) */                             \
+        DrawTileV(x * 8 + 1, (Y) + 1, 0x16, 0xC, col);                                              \
+        x += 4;                                                                                     \
+        eprintf(x * 8, (Y), c, pTool->color, "%1.1f", l->power);                                    \
+        x += 4;                                                                                     \
+        if (l->type != 4) {                                                                         \
+            if (l->xD <= 7) {                                                                       \
+                eprintf(x * 8, (Y), c, pTool->color, "%s", light_type_short[l->xD]);               \
+            } else {                                                                                \
+                eprintf(x * 8, (Y), c, pTool->color, "ERR!");                                       \
+            }                                                                                       \
+        } else {                                                                                    \
+            if (l->xD <= 2) {                                                                       \
+                eprintf(x * 8, (Y), c, pTool->color, "%s", shadow_type_short[l->xD]);              \
+            } else {                                                                                \
+                eprintf(x * 8, (Y), c, pTool->color, "ERR!");                                       \
+            }                                                                                       \
+        }                                                                                           \
+        x += 5;                                                                                     \
+        eprintf(x * 8, (Y), c, pTool->color, "%s %02x", (l->kind & 0x80) ? "E" : " ", l->kind);     \
+        x += 5;                                                                                     \
+        eprintf(x * 8, (Y), c, pTool->color, "%02X", l->attr);                                      \
+        x += 5;                                                                                     \
+        eprintf(x * 8, (Y), c, pTool->color, "%d", l->x2B);                                         \
     }
-    x += 4;
-    if (l->type == 4) {
-        col.a = l->color.r;
-        col.r = col.b = col.g = l->color.r;
-    } else {
-        col = l->color;
-    }
-    drawColorTileC(x * 8 + 1, y + 1, 0x16, 0xC, col);
-    x += 4;
-    eprintf(x * 8, y, c, pTool->color, "%1.1f", l->power);
-    x += 4;
-    if (l->type != 4) {
-        if (l->xD <= 7) {
-            eprintf(x * 8, y, c, pTool->color, "%s", light_type_short[l->xD]);
-        } else {
-            eprintf(x * 8, y, c, pTool->color, "ERR!");
-        }
-    } else {
-        if (l->xD <= 2) {
-            eprintf(x * 8, y, c, pTool->color, "%s", shadow_type_short[l->xD]);
-        } else {
-            eprintf(x * 8, y, c, pTool->color, "ERR!");
-        }
-    }
-    x += 5;
-    eprintf(x * 8, y, c, pTool->color, "%s %02x", (l->kind & 0x80) ? "E" : " ", l->kind);
-    x += 5;
-    eprintf(x * 8, y, c, pTool->color, "%02X", l->attr);
-    x += 5;
-    eprintf(x * 8, y, c, pTool->color, "%d", l->x2B);
-}
 
 // The light table: one row per light of the current cut.
 void printEditTable()
@@ -4812,9 +4817,24 @@ void printEditTable()
             c = 0x16;
         }
         eprintf(x * 8, 0x150 + i * 14, c, pTool->color, "%02d", no);
+        // The row's `y`: a SECOND giv of the same value, spelled so that cse cannot fold it into the
+        // `0x150 + i * 14` pseudo above (loop.c combines the two givs: `mr r26,r23` for the "P" column's
+        // expression, `mr r29,r23` for this variable).
+        y = (i + 24) * 14;
         if (l->be_flag & 1) {
             if (page == 0) {
-                printEditRow(l, 0x150 + i * 14, c);
+                eprintf(7 * 8, 0x150 + i * 14, c, pTool->color, "%02d", l->type);
+                // COMPILER-DIFF: candidate #12 (gcse cprop): the target keeps `li r30,10` and `li r3,80`
+                // as pseudos of the pre-diamond block (`x + 1` and the "P" call's r3 not folded); ours
+                // const-propagates both into the "P" join block.
+                asm("li %0,10" : "=r"(x));
+                {
+                    int t80;
+                    asm("li %0,80" : "=r"(t80)); // COMPILER-DIFF: candidate #12 (gcse cprop)
+                    eprintf(t80, 0x150 + i * 14, c, pTool->color, "%s", (l->xF & 1) ? "P" : "-");
+                }
+                x++;
+                PRINT_EDIT_TAIL(l, y, c);
             }
         } else {
             eprintf(0x38, 0x150 + i * 14, 0x14, pTool->color, "EMPTY WORK");
