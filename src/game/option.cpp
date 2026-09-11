@@ -325,7 +325,7 @@ int retry_load_menu(OptionScreen* o)
 {
     static int yes = 0;
     static u32 snd_id = 0;
-    int old = o->sub;
+    register int old asm("r29") = o->sub;  // COMPILER-DIFF: o must outrank old for r31
     int confirm = 0;
     IdUnit* base;
     IdUnit* u;
@@ -463,7 +463,7 @@ int retry_load_menu(OptionScreen* o)
             ScreenReSize(0x200, 0x1C0);
             if (o->fromTitle != 1) {
                 Cckpt.roomInit();
-                Cockpit* ck = &Cckpt;
+                register Cockpit* ck asm("r29") = &Cckpt;  // COMPILER-DIFF: ck reuses old's r29
                 ck->move();
                 ck->life.fix(1);
                 ck->lifeMeterDisp(0);

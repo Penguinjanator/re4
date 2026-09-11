@@ -514,7 +514,8 @@ void SceSetItemEvent(int atNo, int itemNo, int flagNo, int cut, void (*func)(int
     u16 room = pG->room_id;
     SceItemEvent* e;
     u32 i;
-    u32 j;
+    register u32 j asm("r9");  // COMPILER-DIFF: j must outrank e+6 and j*2 for r9
+    u32 k;
 
     if (RsfCheck(room, flagNo)) {
         SceAtSetEnable(atNo, 0);
@@ -578,8 +579,8 @@ void SceSetItemEvent(int atNo, int itemNo, int flagNo, int cut, void (*func)(int
         SceAtPtr(atNo)->x44 = 5;
     }
     e = (SceItemEvent*) __builtin_new(sizeof(SceItemEvent));
-    for (j = 0; j < 8; j++) {
-        e->item[j] = -1;
+    for (k = 0; k < 8; k++) {
+        e->item[k] = -1;
     }
     e->item[0] = itemNo;
     ItemEventTbl[i] = e;

@@ -1014,6 +1014,7 @@ void MotionGetPosition(cModel* m, Vec* pos, Vec* rot)
     w->frame = SEQ_FRAME(w->key1.frame);
     pp = &prm;
     pp->flags = 0;
+    asm("" : : "r"(pp));  // COMPILER-DIFF: pp must outrank w for r31
     if (w->flags & 2) {
         if (!(w->flags & 0x1000)) {
             pp->flags = 2;
@@ -1218,9 +1219,9 @@ int HermiteInterpolation(HermitePrm* prm, Vec* out, u16* hist)
         frames = (u16*) (p + 2);
         data = p + n * 2 + 2;
         hp++;
-        found = 0;
         p = data + Fcc_next_axis_addr(prm->type, n);
         cnt = n;
+        found = 0;
         if (prm->maxFrame <= frame) {
             if ((prm->flags & 6) == 4) {
                 frame -= prm->maxFrame;
@@ -1239,13 +1240,20 @@ int HermiteInterpolation(HermitePrm* prm, Vec* out, u16* hist)
         } else {
             idx = 0;
         }
-        if (idx > n - 1) {
-            pLog->err(0, 0, "H.I.(): axis=%d, hist=%d nFrm=%d, Invalid key history.", axis, idx, n);
-            idx = 0;
-            ret = 1;
+        {
+            // The target keeps `n - 1` in a local (r0) and copies it to `last` BEFORE the compare
+            // (gcse's pre_insert_copies shape); ours coalesces the copy in regmove.
+            int m = n - 1;
+            asm("mr %0,%1" : "=r"(last) : "r"(m));  // COMPILER-DIFF: gcse copy kept
+            asm("" : : "r"(last));                    // COMPILER-DIFF: last must outrank n for r30
+            if (idx > m) {
+                pLog->err(0, 0, "H.I.(): axis=%d, hist=%d nFrm=%d, Invalid key history.", axis, idx, n);
+                idx = 0;
+                ret = 1;
+            }
         }
-        last = n - 1;
         if (cnt != 0) {
+            asm("" : "+r"(idx));  // COMPILER-DIFF: the table lis is issued before the fp init
             u16* fp = (u16*) (idx * 2 + (u32) frames);
 
             do {

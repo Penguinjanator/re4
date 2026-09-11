@@ -1792,3 +1792,8 @@ MATCHING.update({
 MATCHING.update({
     "game/pendulum.cpp": True,  # PenClothMove/Move2/Move3: the final-loop AtCk diamond needs the jump2 cross-jump the other way round (AtCk tails merged, Border tails kept) -- codeless `asm("" : "+r"(hit))` anchors after each penClothAtCk call and after the if-arm's join, one macro line so rtx_renumbered_equal_p matches them; Move loop 2: `asm("" : "+f"(ang))` launder after `ang = 1.0f` keeps the `+ 1.0f` pool loads (loop.c combines the two into the preheader's fresh-high `lis r9; lfs f30`), and r5/r3/r4 argument pins + `asm("mr")` copy into `register Vec* pv asm("r28")` for the `addi r5,r1,0x38; mr r28,r5` PSVECSubtract shape (#3 frame-address PRE); tagged COMPILER-DIFF
 })
+
+# DOL closer 2: main_mem/motion/card/option/sce_com (2026-09-11)
+MATCHING.update({
+    "game/main_mem.cpp": True,  # MemCheckUsedHeap 143 -> 0, zero code: y0/y1 and `int x = 498` function-scope (x = REG_EQUIV constant rematerialised by reload before each `sth x0`, so the code constant's r0/r11 is reused), datactrl's tile store order (code, x0, y0, ...; r, g, b), `mt = &tile[0]` before the end-marker conversion, `hd = HeapHead + handle` for the cell loop
+})

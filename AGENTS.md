@@ -22167,3 +22167,77 @@ Every form below is applied to BOTH units (the two files stay in step).
     signed-division temps (`srawi r10,r0,3` vs `srawi r9,r9,3`, `cmpwi; mr` order) are local-alloc names downstream of
     that. Unchanged from pass 1 apart from the register names fixed by (b).
   - 45: the same three residues plus `lis/lfs 1/2.3` (PSVECScale's f1) and 255.0 positions inside loop A.
+
+### DOL closer 2: main_mem/motion/card/option/sce_com (main_mem Matching 33/33: MemCheckUsedHeap 143 -> 0 zero code; motion 26 -> 28/31: HermiteInterpolation 26 -> 0 (one zero-code fix + three tags), MotionGetPosition 30 -> 0 (one anchor); option retry_load_menu 45 -> 2 (two pins); sce_com SceSetItemEvent 23 -> 17 (one pin); SetCore/Move/Hokan, saveMain/errorDisp, brightness/controller_menu, OpenBoxMain/SceElevator not closed; 111 OK; 2026-09-11)
+
+Harness ~/.cache/dol_mm (dol_dbg copies with paths rewritten: `tryv.py UNIT SYM v/x.py`, `vapply.py`, `dump.sh UNIT -dX`
+(`SRC_OVERRIDE=/abs/path` dumps a variant), `fregion.py SYM START END OBJ [OBJ2]` = objdump of one function's byte range side by
+side, `prio.py out/PREFIX` = global-alloc rows (refs, len, pri) from `fn.sh`-extracted lreg/greg dumps); deleted at the end.
+
+- **main_mem MemCheckUsedHeap 143 -> 0, zero code (unit Matching).** Same shape as the matched datactrl dispDebug: (1) `u32 y0, y1`
+  at FUNCTION scope and the end-marker height computed into `y1` (one pseudo for the loop's y1 and the marker's y: `lwz r26`
+  after the fctiwz in the target is the loop's callee-saved y1 register); (2) `int x = 498` at function scope, set once: it is a
+  REG_EQUIV constant that never gets a hard register (global alloc leaves it, reload rematerialises `li rN,0x1f2` before EACH
+  `sth x0`, choosing the first spill reg free at that insn) -- that is why the target's `li r0,4 ... stw r0,4(r31) ... li r0,0x1f2`
+  reuses the code constant's r0 (loop / marker 0) and r11 (marker 1): the constant is materialised after the code store, not a
+  local qty overlapping it. The sched1 "stw code issued early" reading of the earlier notes was wrong; sched2 puts the stw early
+  only because the reload reg reuses r0/r11 (anti-dependence chain). (3) Tile store order = datactrl's: `code, x0, y0, w, h, z0`
+  in the cell loop, `code, x0, y0, z0, w, h` for the two markers, colours `r, g, b` everywhere (the `stb` order is weight-sorted:
+  the store whose register dies goes first, so `r,g,b` with r/g sharing one constant gives `g, b, r` for 0x60/0x80 and `r, b, g`
+  for 0xFF/0x20 -- the target's orders). The x0-before-y0 order is what makes `sth r9,0xe` (y0) come AFTER `sth x0` in sched1,
+  so y0's r9 is still live when reload picks x0's register (r11, not r9) in marker 1. (4) `mt = &tile[0]` BEFORE the marker's
+  conversion (the `lis/addi r31,tile` is in the conversion's first block; that also gives the fpmem address the target's r11/r9
+  roles and the `mr r9,r11` re-copy after the `bso`). (5) `hd = HeapHead + Heap[CurrentHeap].handle; for (cell = hd->allocated;
+  ...)` (a pointer variable; the array-index form adds `mulli + HeapHead` with the operands swapped, 2 words). Y/T (r8/r10) were
+  a consequence of the `h = y1 - y0` temp's register (Y prefers it through expand_preferences on the `y1 = Y + 1` copy) and fell
+  out with (3).
+- **motion HermiteInterpolation 26 -> 0.** (a) zero code: `p = data + Fcc_next_axis_addr(prm->type, n); cnt = n; found = 0;`
+  (`found = 0` AFTER `cnt = n`; both after the call): sched1 hoists both above the call, the luid order then puts `mr r28,r29`
+  before `li r21,0` in the two-issue slot next to `add r9,r22,r9`. `cnt = n` BEFORE the call makes cse pass `cnt` (canonical:
+  REGNO_LAST_UID beyond n's) as the call argument and swaps n/cnt's registers (35-59). (b) TAG: the target's `subi r0,r29,1; mr
+  r30,r0; cmpw r31,r0` is gcse's pre_insert_copies shape (A = n-1; R = A; use A) surviving regmove; in ours `last = n - 1` after
+  the if is cse'd to `last = A` (cse follows the `ble`) and regmove coalesces (`subi r30`). Written `int m = n - 1; asm("mr %0,%1"
+  : "=r"(last) : "r"(m)); if (idx > m)` (the asm mr is the one target instruction) plus `asm("" :: "r"(last))` right after it (17
+  refs -> `last` outranks n for r30; without it last = 15 refs/59 = 0.763 < n 14/51 = 0.824 and n/cnt/last rotate, 20 words). A
+  `register int last asm("r30")` pin is wrong here: loop.c does not hoist `last + last` (hard regs are never invariant), 64
+  words. No zero-code form found for the surviving copy: `last = n-1` before/after the if, `if (idx > (last = n-1))`, `n - 1`
+  everywhere without `last` (the gcse pseudo appears as in the target but the address/idx pseudos shuffle, 80), an `int m` all
+  coalesce. (c) TAG: `asm("" : "+r"(idx))` before `u16* fp = (u16*)(idx*2 + (u32)frames)` in the `if (cnt != 0)` preheader: the
+  hoisted `lis Fcc_get_data_tbl@ha` (loop.c movable, emitted before NOTE_INSN_LOOP_BEG = after the fp init) and `add r0,r31,r31`
+  are prio-2 ties decided by luid; the launder delays the `add` one cycle.
+- **motion MotionGetPosition 30 -> 0, one anchor:** `asm("" :: "r"(pp))` after `pp->flags = 0` (pp 15 refs/88 = 0.511 < w
+  17/96 = 0.708; the 16th ref gives 4*16/88 = 0.727 and pp takes r31 first). The natural 16th ref would be a fifth `pp->flags`
+  store, but a real `else pp->flags = 0` in the first arm is emitted (`stw r5,8(r31)`, 8 words): only the else-else zero store
+  folds into the shared `stw r0,8(r31)` (cse knows the `andi.` result is 0 on the `beq` path and cross-jump merges the tails).
+- Read, not closed: **motion MotionSetCore 33 / MotionMove 34 (4 bytes short each, the MTX_COPY loop).** All four MTX_COPY
+  instances compile to the same loop; the diff is only which of the two row-pointer copies (`dp_ = *d_`, `sp_ = *s_`) gets
+  coalesced by GLOBAL alloc (both copies survive to lreg; a copy vanishes when src and dest get the same hard reg). Target
+  SetCore/Move#1: d_ r9, sp_ r9 (d_ dies at the dp_ copy, sp_ born after), s_ r0, dp_ r11 -> both `mr`s stay; ours: s_ and sp_
+  share r9, d_ r0 -> one `mr`. The order is s_ vs d_ (d_ 6 refs/8 = 1.5 vs s_ 5/9 = 1.11 in ours; the target allocates s_ first
+  or blocks r0 for d_; the `mr r6,r9` pMat copy is d_'s extra ref). Move#2 (target coalesces sp_) and Move#3 (coalesces dp_)
+  already match. Macro variants (declaration/copy/increment order, `dp_[j_] = sp_[j_]`, per-instance expansions, `cam->pMat`
+  placement) 23-106; not found. MotionSetCore also: `lwz r0,0x34(r31)` (partsNo) after IKInit is a reload of an unallocated
+  REG_EQUIV-memory pseudo in the target (the sum takes a fresh r10, `add r10,r0,r11`), ours allocates it; and in the pp->flags
+  block the zero constant is r11 / `w->flags` r0 (ours swapped: local-alloc order of the `li 0` vs the `lhz`).
+  **MotionHokan 46** not iterated (one extra `mr r11,r0` + `stw r0,0x1c0` placement and an fmadds register rotation).
+- **option retry_load_menu 45 -> 2, two pins:** `register int old asm("r29") = o->sub` (the notes' priority residue: o 29/364 =
+  0.319 < old 13/108 = 0.361) leaves `Cockpit* ck` in r30 (target r29: in the target r30 is not "used so far" when ck is
+  allocated, so pass 0 gives it old's r29); `register Cockpit* ck asm("r29")` fixes that but the `lis/addi Cckpt` high then takes
+  r29 instead of r30 (2 words). Pinning o via a renamed parameter (`register OptionScreen* o asm("r31") = o_`) is 150 words.
+  **brightness_menu 69 (+4 bytes):** the clamp `if (b < D+MIN) b = D+MIN; else {n = b; if (n > D+MAX) n = D+MAX; b = n;}` is
+  the right shape (the if-arm's byte-narrowed `lbz D+3; lbz MIN+3; add` is the C shortening of `(u8)(D+MIN)`, single-store
+  forms give `mr r11,r0` 76); the target cross-jumps the two `stb rX,0xa(r10)` because the if-arm's byte sum lands in r9 (D's
+  qty, MIN takes r0) while ours puts D+sum in r0 and MIN in r9 -- a local-alloc order between the tied D+sum qty and MIN
+  (`MIN_OFS + DEFAULT`, casts: no change). **controller_menu 82** not iterated.
+- **card errorDisp 99 (-24 bytes):** the missing `CoreSeCall(5); mode = 0` arm of `case 2` is cross-jumped into the third arm in
+  ours because both `mode = 0` stores use r31: mesNo (cse substitutes the register known to hold 0) in arm 1 and the `andi.`
+  result in arm 3; in the target mesNo is r29 and the `step` switch index is r31 (ours swapped: mesNo 37 refs/408 = 0.453 vs
+  step 6/28 = 0.429). `register int mesNo asm("r29")` breaks the rest (197). **saveMain 74** not iterated (the L49C shared-tail
+  mechanism in the previous section stands).
+- **sce_com SceSetItemEvent 23 -> 17:** `register u32 j asm("r9")` with a separate `u32 k` for the `item[k] = -1` init loop
+  (pinning the init loop's variable too stops loop.c from turning it into the ctr loop, 27); the residue is the RsfCheck `and.
+  r8` temp and the new'd `e` (r11) / count (r8) / `i*4` (r10) locals in the second half, i.e. in the target r9 is busy (or
+  "used so far") in both places while ours has it free. `u32 j = 0` at the declaration: 53. OpenBoxMain 182 / SceElevator 232
+  not iterated. bytecmp's SceEventEnd 2 / SceEventStart 3 are not diffs: mcmp (relocs by name) says identical -- they are `bl`s
+  to functions laid out after SceElevator, whose 8-byte size gap shifts every later address; they vanish when SceElevator hits
+  its size.

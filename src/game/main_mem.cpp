@@ -515,8 +515,11 @@ void MemFree(void* p)
 }
 
 // Debug heap display (debug page 4): one TILE per allocated cell (0x20-byte primitives).
-// Status: 95.7%; remaining diffs are the tile store blocks' `li`/`stw code` issue order, the
-// register of the y1/tag temporaries (r8/r10) and the fpmem `mr` copies in the end-marker block.
+// Matching. Shape (same as datactrl dispDebug): y0/y1 and `x = 498` are function-scope locals
+// (y1 is reused for the end marker's height, x is a REG_EQUIV constant that reload rematerialises
+// before each `sth x0`, which is what lets the code constant's register be reused), the tile
+// stores are in datactrl's order (code, x0, y0, ...; r, g, b), `mt = &tile[0]` precedes the
+// end-marker conversion, and the cell loop starts from `hd = HeapHead + handle`.
 struct MemTile {
     u32 tag;       // 0x00
     u32 code;      // 0x04
@@ -560,12 +563,17 @@ void MemCheckUsedHeap()
     int cnt;
     OSHeapCell* cell;
     OSHeapCell* next;
+    OSHeapDescriptor* hd;
     MemTile* mt;
     int r;
     int n;
+    u32 y0;
+    u32 y1;
+    int x;
     static int ey_base = 30;
     static MemTile tile[2];
 
+    x = 498;
     if (pG->debug_mode == 4 && (Joy[0].on & 0x10) && (Joy[0].trg & 0x400)) {
         write = 1;
     }
@@ -610,9 +618,10 @@ void MemCheckUsedHeap()
     size = heapEnd - start;
     mt = (MemTile*) pMemTile;
     cnt = 0;
-    for (cell = HeapHead[Heap[CurrentHeap].handle].allocated; cell != NULL; cell = cell->next) {
-        u32 y0 = (u32) ((f32) ((u32) cell - start) * 400.0f / (f32) size);
-        u32 y1 = (u32) ((f32) ((u32) cell + cell->size - start) * 400.0f / (f32) size) + 1;
+    hd = HeapHead + Heap[CurrentHeap].handle;
+    for (cell = hd->allocated; cell != NULL; cell = cell->next) {
+        y0 = (u32) ((f32) ((u32) cell - start) * 400.0f / (f32) size);
+        y1 = (u32) ((f32) ((u32) cell + cell->size - start) * 400.0f / (f32) size) + 1;
 
         u8* tag = (u8*) cell + cell->size - 0x20;
         if ((s32) tag >= 0 || (u32) tag > 0x82FFFFFF) {
@@ -637,19 +646,19 @@ void MemCheckUsedHeap()
         }
         if (pMemTile != NULL && full == 0) {
             mt->code = 4;
+            mt->x0 = x;
             mt->y0 = y0 + 30;
-            mt->z0 = full;
             mt->w = 5;
             mt->h = y1 - y0;
-            mt->x0 = 498;
+            mt->z0 = full;
             if (rest >= 0) {
                 mt->r = 0x60;
-                mt->b = 0x80;
                 mt->g = 0x60;
+                mt->b = 0x80;
             } else {
                 mt->r = 0xFF;
-                mt->b = 0x20;
                 mt->g = 0x20;
+                mt->b = 0x20;
             }
             mt->cd = 0xFF;
             if (SysRef(pSysView)->flags & 0x40000000) {
@@ -664,22 +673,22 @@ void MemCheckUsedHeap()
         }
     }
     if (pMemTile == NULL || full == 1) {
-        u32 y = (u32) ((f32) (end - start) * 400.0f / (f32) size);
         mt = &tile[0];
+        y1 = (u32) ((f32) (end - start) * 400.0f / (f32) size);
         mt->code = 4;
+        mt->x0 = x;
         mt->y0 = 30;
         mt->z0 = 0;
         mt->w = 5;
-        mt->h = y;
-        mt->x0 = 498;
+        mt->h = y1;
         if (rest >= 0) {
+            mt->r = 0x60;
             mt->g = 0x60;
             mt->b = 0x80;
-            mt->r = 0x60;
         } else {
             mt->r = 0xFF;
-            mt->b = 0x20;
             mt->g = 0x20;
+            mt->b = 0x20;
         }
         mt->cd = 0xFF;
         if (SysRef(pSysView)->flags & 0x40000000) {
@@ -785,11 +794,11 @@ void MemCheckUsedHeap()
     {
         mt = &tile[1];
         mt->code = 4;
+        mt->x0 = x;
         mt->y0 = 30;
         mt->z0 = 0;
         mt->w = 5;
         mt->h = 400;
-        mt->x0 = 498;
         mt->b = mt->g = mt->r = 0x20;
         mt->cd = 0xFF;
         if (SysRef(pSysView)->flags & 0x40000000) {
