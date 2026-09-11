@@ -78,10 +78,17 @@ void* pIdBuf1;
 void* pIdBuf2;
 void* pIdBuf3;
 
+static inline void IdBufAlloc(void*& p, u32 size)
+{
+    p = Debug_alloc(size, 1);
+}
+
 static void toolIdInit(IdTool* w)
 {
     GXColor col;
     int i;
+    // COMPILER-DIFF: candidate (the target keeps a 1 in r30 from the prologue for the two lang = 1 arms)
+    u8 one = 1;
 
     ToolArrayPush(0);
     IdDebugAllocBuffer();
@@ -109,8 +116,10 @@ static void toolIdInit(IdTool* w)
         w->lang = 0;
         break;
     case 1:
+        w->lang = one;
+        break;
     case 2:
-        w->lang = 1;
+        w->lang = one;
         break;
     case 3:
         w->lang = 2;
@@ -139,10 +148,10 @@ static void toolIdInit(IdTool* w)
     toolIdClipboardClear();
     w->useCnt = toolIdClipboardCount(0xFF, 1);
     w->empCnt = toolIdClipboardCount(0xFF, 2);
-    pIdBuf0 = Debug_alloc(0x20000, 1);
-    pIdBuf1 = Debug_alloc(0x100000, 1);
-    pIdBuf2 = Debug_alloc(0x300000, 1);
-    pIdBuf3 = Debug_alloc(0x900000, 1);
+    IdBufAlloc(pIdBuf0, 0x20000);
+    IdBufAlloc(pIdBuf1, 0x100000);
+    IdBufAlloc(pIdBuf2, 0x300000);
+    IdBufAlloc(pIdBuf3, 0x900000);
     IdSys.roomInit();
     toolIdSys.gameInit(0x200);
     for (i = ID_DATA_NUM - 1; i >= 0; i--) {
@@ -194,7 +203,7 @@ void ToolInterfaceDesign()
         }
         toolIdSys.move();
         toolIdSys.trans();
-        if (joy->trg != 0) {
+        if (Joy[0].trg != 0) {
             pIdTool->cnt = 0x10;
         } else {
             pIdTool->cnt++;

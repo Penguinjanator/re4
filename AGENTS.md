@@ -21692,3 +21692,74 @@ before it was built.
   asm-emitted zero (`asm("li %0,0" : "=r"(z) : "m"(x))`) is the same global pseudo (r8). Do not retry: dead tests `i = rows/n/wx/7/1`
   (identical to `i = 0`), `x = 0`/`num = 1` (468), `if (pTop == (T*) nRows)` (427).
 - Not iterated: disp_sit_normal 112, tcDataExport 142, fn_t_camera_1B8C4 24, fn_Tools_30410 59.
+
+### Tool RELs, t_snd_vol pass 2 / t_id (t_movie/t_snd_vol 357 -> 135 words, 26/27: data_edit 8 -> 0 (pin), file_load 9 -> 0 (launder), file_save 37 -> 0 zero code, combine_tbl_disp 103 -> 0 zero code, edit_reverb_param 200 -> 135 (launder); t_id/t_id 1176 -> 1155, .text gap 0x78 -> 0x64: toolIdInit 53 -> 16 (size closed), ToolInterfaceDesign size closed; nothing flipped; 2026-09-11)
+
+- Harness ~/.cache/tools_sv2 (deleted): `mtryv.py MOD/UNIT FUNC v.py [--apply NAME] [--keep]` (substring variants of src/MOD/UNIT.cpp,
+  judged with OBJ= bytecmp), `mbuild.sh`, `mdump.sh MOD/UNIT -dX` (SRC_OVERRIDE), `sbs.py MOD/UNIT SYM [OBJ] [--all]` (objdump side by
+  side with branch targets and reloc immediates masked -- fdiff.py runs ninja UNLOCKED and truncates at 80 rows, avoid it), `dump/fn.py
+  DUMP 'void f()' [regex]`. Every edit built under the ninja lock; `ninja -k 0` + shasum = 111 OK before and after.
+- **file_save 37 -> 0, all zero code, three readings of the target's registers.** (1) The offset loop's `s` is untied from its `work`
+  load (`lwz r0,work; add r4,r0,r10`) and sits in r4 = the memcpy source register: ONE function-scope `CombSel* s` assigned in both the
+  offset loop and the copy loop (REG_BASIC_BLOCK global -> local-alloc cannot tie it, global.c takes the `mr r4,s` copy preference).
+  (2) `memcpy(p, t, n); p += n; size += n;` in that order: sched1's tie-break for the two adds after the call is INSN_REG_WEIGHT
+  (sets minus deaths), and `n` dies in whichever add comes LAST in the source -- the target issues `size += n` before the call and
+  `p += n` after, i.e. `n` died in `size += n`. (3) `n = HDWrite_only(...)` reuses the `n` variable (crosses the memcpy calls ->
+  callee-saved r30 = `mr. r30,r3`); a fresh `int ret` gets r3, `i` gets the loop counter's register. Rule: a call result that lands in a
+  callee-saved register with no later call is an existing call-crossing variable being reused.
+- **data_edit 8 -> 0, tagged `register TblEnt* ne asm("r8")`.** local-alloc gives `ne` r10 (num is a GLOBAL pseudo -- live from bb 21 --
+  so its r10 is unknown to local-alloc and does not block ne), then global.c gives editMode r8; the target has ne r8 / editMode r7, i.e.
+  r10 was blocked for ne in ITS local-alloc. Zero-code forms tried (all 8): `int num` local, `tbl->e + tbl->num`, `pe = &e[num-1]; ne =
+  pe + 1`, function-scope ne, `val` store first.
+- **file_load 9 -> 0, tagged launder in the ELSE arm.** `int col; if (sub == 1) col = loadCur == 0 ? 6 : 0; else { col = 0; asm("" :
+  "+r"(col)); }` keeps the `clrlwi r5,r5,24` of `(u8) col` (combine's nonzero_bits of a reg whose every set is a constant folds it; the
+  asm set is an unknown). The launder AFTER the join lands as an insn in the join block and pushes the clrlwi one slot later (2 words);
+  in an arm it is free. `u8 col` variable, uninitialised-path `u8`, `(u8)` on the inner ternary: 9.
+- **combine_tbl_disp 103 -> 0, zero code -- the whole residue was source shape:**
+  - `int y` (not s16) block-local in each loop body, declared at its point of use: the `(s16)` conversion is made ONCE at the first
+    ListDraw arg (cse shares the `sign_extend` for the next two -> `extsh rN,rN; mr r4,rN` x3), and local-alloc ties the sum, the extsh
+    result and the mulli/add operand into one call-crossing qty (`mulli r30; addi r30,r30,186; extsh r30,r30`; r31 is the frame
+    pointer before reload so the first callee-saved a LOCAL qty can take is r30). A function-scope y (s16 or int) is REG_BLOCK_GLOBAL:
+    no tie, the sum goes to r0.
+  - `li r18,275 / li r19,385 / li r21,168` + `mr r3,r18` / `extsh r3,r18` are NOT int variables holding constants (gcse cprop folds
+    `mr r3,x1` whenever the constant set reaches on all paths, even with two identical sets: identical constant sets share one
+    set-table entry): they are `0xA5 + w`, `0xA5 + w * 2`, `ybase - 0x12` with `int w = 0x6E` / `ybase = 0xBA` variables -- cprop
+    cannot substitute a constant into `(plus w 165)` (2.95.3 try_replace_reg has no simplify step), loop.c hoists the invariant
+    plus to the preheader in body order, cse2 folds it there to `li`, and the body uses stay `mr`/`extsh`. Preheader order = first
+    use order in the body (fmt lis, 168, 275, 385).
+  - `CombSel* s = i <= 1 ? &work->sel[work->copySrc] : &work->sel[work->copyDst];` -- each arm computes the whole address (its own
+    `work` load, kept live to the `add`), jump2 cross-jumps the identical `extsb; slwi; addi 108; add` tails (target's `b` into the
+    other arm after the `lbz`). `int n = ..; s = &work->sel[n]` reloads `work` in the join: the three `(mem work)` have distinct
+    `high` pseudos at gcse time, so PRE cannot delete the join load.
+  - Loop 1: `int yb = 0x6A + i * 0x48; int y = yb + (i / 2) * 0x14;` as two statements -- fold reassociates `(0x6A + i*0x48) +
+    (i/2)*0x14` to `(i*0x48 + (i/2)*0x14) + 0x6A` and the giv then starts at 0 (`li r28,0`) instead of 106.
+  - Loop 2's `y` statement sits AFTER the second eprintf (right before the first ListDraw): the sum's pseudo crosses no call, so
+    haifa's "don't let a non-call-crossing pseudo cross a call" anti-dependence pins the addi/extsh after that call.
+  - Once the x/y variables occupy r18/r19/r21, the `&col`/`&c` second pseudos and `high(pG)` are spilled and REMATERIALISED by reload
+    (`addi r9,r1,8` / `lis r9,pG@ha` inside the loop): the "#3 frame-address giv copies" of the previous pass were a register-pressure
+    effect, not PRE.
+- **edit_reverb_param 200 -> 135, tagged launder `asm("" : "+r"(y))` after both `y = 0x80`.** cse1 folds `y += 0x10` to `li r31,144`
+  and cprop folds the first `mr r4,y`; the target keeps the chain. Zero-code forms tried: `y = 0x80` before the col/active diamond
+  (200), two-set y with equal constants (folds: shared set entry). Left 135: (a) `work`/`p`/`Joy` = r11/r10/r10 vs ours r10/r11/r11:
+  global.c order is p (33 refs/113, prio 1.46) > work (16/64, 1.0) > Joy (7/80, 0.17) in ours; the target allocates work before p (work
+  r11 first, p r10, Joy r10) -- p needs <= 31 weighted refs or work >= 32; not found. (b) stereo panel: the target keeps the second
+  `col` value in r7 and stores it (`stw r7,32(r1)`) after the pt[] `sth`s; ours stores at the join. Dropping the duplicated stereo
+  `if` shrinks .text by 0x58 (the target has the duplicate); `u32 c2` register temp / col assigned after pt: 508/545.
+- **t_id toolIdInit 53 -> 16, .text gap closed.** (1) `case 1: w->lang = one; break; case 2: w->lang = one; break;` with `u8 one = 1`
+  declared at the top (tagged candidate): the target has `li r30,1` in the prologue block, a call-crossing pseudo used only by the
+  cross-jumped `stb r30,0x178(r31)` arm; the tree tests 1 and 2 as separate nodes (`beq; bgt` to the same label). (2) The four
+  `lis r30..r27,pIdBufN@ha` before the Debug_alloc calls come from an INDIRECT_REF store whose address is evaluated before the call:
+  `static inline void IdBufAlloc(void*& p, u32 size) { p = Debug_alloc(size, 1); }` -- the reference argument `&pIdBufN` = `lo_sum(high)`
+  is computed as a call argument, cse folds the lo_sum back into the store (`stw r3,sym@l(rN)`) and the `high` crosses the call.
+  `*(void**) &pIdBuf0 = ...` folds back to the plain store (50). Left 16: the field-store block's constant qtys (100/0/1/255 in
+  r8/r7/r11/r10 vs r7/r8/r9/r11) and `w->level = 0` stored from the SImode zero (`stb r7,30` = the `stw r7,36` pseudo) where ours
+  uses the QImode zero: level is assigned an int-typed zero in the target (e.g. an int variable/expression), not the literal.
+- **t_id ToolInterfaceDesign, size closed (25 -> 41 words, 0x130 -> 0x138):** the second joypad test is `Joy[0].trg != 0` (fresh
+  `addi r9,r25,Joy@l` off a hoisted high) while the first stays `joy->trg & 0x400` through the `JOY* joy` pointer (r24). Left 41: pure
+  interblock scheduling -- ours hoists `addi r3,r31,toolIdSys@l`, `li r11,0`, `li r3,1` (TaskSleep arg), `li r11,16` above the
+  branches (haifa forms one 9-block region over the `while (1)` body, `-fsched-interblock` speculative motion); the target has every
+  constant in its own arm, i.e. its loop body was NOT a single region: `too_large` (> 10 blocks or > 100 insns) or a REG_LABEL /
+  computed jump in the function. A source form with two more blocks or > 100 insns in the body would split it -- not tried.
+- Not iterated in t_id: toolIdDrawSafeZone 31 (0x8 short), toolIdPaste 45 (0x4 long), toolIdOption 146 (0x20 short), idEditTrans 176
+  (0x4 long), idEditColor 201 (0x1C short), idEditPos 334 (0x28 short), idEditUnit 79, toolIdEdit 58, idEditId 12, toolIdEditDisp 4,
+  the three dtors/create/static_init (reloc-by-address artefacts of the .text size gap; they vanish when the sizes match).

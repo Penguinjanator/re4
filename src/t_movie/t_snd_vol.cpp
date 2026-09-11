@@ -633,7 +633,8 @@ static void data_edit()
             tbl->e[work->pt].flag |= 1;
             if (work->pt == tbl->num - 1) {
                 if (tbl->e[work->pt].dist != 100.0f) {
-                    TblEnt* ne = &tbl->e[tbl->num];
+                    // COMPILER-DIFF: register pin (local-alloc gives ne r10 / editMode r8; the target has r8 / r7)
+                    register TblEnt* ne asm("r8") = &tbl->e[tbl->num];
 
                     ne->dist = ne[-1].dist + 1.0f;
                     ne->val = ne[-1].val;
@@ -1212,6 +1213,8 @@ static void edit_reverb_param()
     pt[2].x = 0x1B0; pt[2].y = 0x148; pt[2].z = 0;
     pt[3].x = 0x118; pt[3].y = 0x148; pt[3].z = 0;
     y = 0x80;
+    // COMPILER-DIFF: launder (cse/cprop fold y = 0x80 into the first row and y += 0x10; the target keeps the y chain)
+    asm("" : "+r"(y));
     TprimDrawFrameFn_s16(pt, (GXColor*) &col, 4);
     eprintf(0x120, 0x50, 5, 0, "SURROUND MODE");
     eprintf(0x120, 0x70, 4, 0, "REVERB");
@@ -1253,6 +1256,8 @@ static void edit_reverb_param()
     pt[2].x = 0xF0; pt[2].y = 0x148; pt[2].z = 0;
     pt[3].x = 0x58; pt[3].y = 0x148; pt[3].z = 0;
     y = 0x80;
+    // COMPILER-DIFF: launder (cse/cprop fold y = 0x80 into the first row and y += 0x10; the target keeps the y chain)
+    asm("" : "+r"(y));
     TprimDrawFrameFn_s16(pt, (GXColor*) &col, 4);
     eprintf(0x60, 0x50, 5, 0, "STEREO MODE");
     eprintf(0x60, 0x70, 4, 0, "REVERB");
@@ -1285,7 +1290,8 @@ void combine_tbl_disp(CombSel* sel)
 {
     int i;
     int j;
-    s16 y;
+    int ybase;
+    int w = 0x6E;
     u32 col[3];
     u8 c[3];
 
@@ -1293,15 +1299,17 @@ void combine_tbl_disp(CombSel* sel)
         eprintf(0xA5, 0x58, 0, 0, "SET %2d", work->copySrc);
         eprintf(0xA5, 0xFC, 0, 0, "SET %2d", work->copyDst);
         for (i = 0; i < 4; i++) {
-            CombSel* s = &work->sel[i <= 1 ? work->copySrc : work->copyDst];
+            CombSel* s = i <= 1 ? &work->sel[work->copySrc] : &work->sel[work->copyDst];
             if (s->used != 0) {
-                y = 0x6A + i * 0x48 + (i / 2) * 0x14;
+                int yb = 0x6A + i * 0x48;
+                int y = yb + (i / 2) * 0x14;
+
                 work->curTbl = work->vol;
                 ListDraw(0xA5, y, 0xFFFFFFFF, s->vol[i % 2], 0x40);
                 work->curTbl = work->pitch;
-                ListDraw(0x113, y, 0xFFFFFFFF, s->pitch[i % 2], 0x41);
+                ListDraw(0xA5 + w, y, 0xFFFFFFFF, s->pitch[i % 2], 0x41);
                 work->curTbl = work->filter;
-                ListDraw(0x181, y, 0xFFFFFFFF, s->filter[i % 2], 0x42);
+                ListDraw(0xA5 + w * 2, y, 0xFFFFFFFF, s->filter[i % 2], 0x42);
             }
         }
     } else if (sel->used != 0) {
@@ -1309,6 +1317,7 @@ void combine_tbl_disp(CombSel* sel)
         eprintf(0xE1, 0x5A, 0, 0, "VOLUME");
         eprintf(0xE1, 0x6C, 0, 0, "PITCH");
         eprintf(0xE1, 0x7E, 0, 0, "FILTER");
+        ybase = 0xBA;
         for (i = 1; i >= 0; i--) {
             for (j = 0; j < 3; j++) {
                 col[j] = 0xFFFFFFFF;
@@ -1318,19 +1327,20 @@ void combine_tbl_disp(CombSel* sel)
                     c[j] = 6;
                 }
             }
-            y = i * 0x4B + 0xBA;
             eprintf(i * 64 + 0x139, 0x5A, c[0], 0, "%2d", sel->vol[i]);
             work->curTbl = work->vol;
-            eprintf(0xA5, 0xA8, 0, 0, "VOLUME TBL");
+            eprintf(0xA5, ybase - 0x12, 0, 0, "VOLUME TBL");
+            int y = i * 0x4B + ybase;
+
             ListDraw(0xA5, y, col[0], sel->vol[i], 0x40);
             eprintf(i * 64 + 0x139, 0x6C, c[1], 0, "%2d", sel->pitch[i]);
             work->curTbl = work->pitch;
-            eprintf(0x113, 0xA8, 0, 0, "PITCH TBL");
-            ListDraw(0x113, y, col[1], sel->pitch[i], 0x41);
+            eprintf(0xA5 + w, ybase - 0x12, 0, 0, "PITCH TBL");
+            ListDraw(0xA5 + w, y, col[1], sel->pitch[i], 0x41);
             eprintf(i * 64 + 0x139, 0x7E, c[2], 0, "%2d", sel->filter[i]);
             work->curTbl = work->filter;
-            eprintf(0x181, 0xA8, 0, 0, "FILTER TBL");
-            ListDraw(0x181, y, col[2], sel->filter[i], 0x42);
+            eprintf(0xA5 + w * 2, ybase - 0x12, 0, 0, "FILTER TBL");
+            ListDraw(0xA5 + w * 2, y, col[2], sel->filter[i], 0x42);
         }
     }
 }
@@ -1577,6 +1587,7 @@ static void file_save()
     int size = 0;
     int i;
     int n;
+    CombSel* s;
 
     eprintf(0x40, 0x28, 0, 0, "[DATA SAVE]");
     eprintf(0x40, 0x60, 0, 0, "SELECT SAVE FILE");
@@ -1636,7 +1647,7 @@ static void file_save()
         hdr->efx[1] = work->efx[1];
         ofs = sizeof(SndRoomHdr);
         for (i = 0; i < 32; i++) {
-            CombSel* s = &work->sel[i];
+            s = &work->sel[i];
 
             if (s->used != 0) {
                 hdr->curve_sel[i] = ofs;
@@ -1680,7 +1691,7 @@ static void file_save()
         p += n;
         size = n;
         for (i = 0; i < 32; i++) {
-            CombSel* s = &work->sel[i];
+            s = &work->sel[i];
 
             if (s->used != 0) {
                 n = sizeof(CombSel);
@@ -1695,8 +1706,8 @@ static void file_save()
             if (t->num != 0) {
                 n = t->num * 8 + 8;
                 memcpy(p, t, n);
-                size += n;
                 p += n;
+                size += n;
             }
         }
         for (i = 0; i < 32; i++) {
@@ -1705,8 +1716,8 @@ static void file_save()
             if (t->num != 0) {
                 n = t->num * 8 + 8;
                 memcpy(p, t, n);
-                size += n;
                 p += n;
+                size += n;
             }
         }
         for (i = 0; i < 32; i++) {
@@ -1715,13 +1726,13 @@ static void file_save()
             if (t->num != 0) {
                 n = t->num * 8 + 8;
                 memcpy(p, t, n);
-                size += n;
                 p += n;
+                size += n;
             }
         }
-        i = HDWrite_only(work->path, work->fileBuf, size);
+        n = HDWrite_only(work->path, work->fileBuf, size);
         work->timer = 30;
-        if (i != 0) {
+        if (n != 0) {
             work->sub = 3;
             work->step = 0;
             work->x6 = 0;
@@ -1877,8 +1888,17 @@ static void file_load()
         work->timer--;
         break;
     }
-    eprintf(0x40, 0x80, (u8) (work->sub == 1 ? (work->loadCur == 0 ? 6 : 0) : 0), 0, "%s",
-            work->dest == 0 ? "LOCAL" : "SERVER");
+    {
+        int col;
+        if (work->sub == 1) {
+            col = work->loadCur == 0 ? 6 : 0;
+        } else {
+            col = 0;
+            // COMPILER-DIFF: launder (combine drops the (u8) clrlwi because every set of col is a constant)
+            asm("" : "+r"(col));
+        }
+        eprintf(0x40, 0x80, (u8) col, 0, "%s", work->dest == 0 ? "LOCAL" : "SERVER");
+    }
     eprintf(0x80, 0x80, work->sub == 1 ? (work->loadCur == 1 ? 6 : 0) : 0, 0, "STAGE %2d", work->stage);
     eprintf(0xD0, 0x80, work->sub == 1 ? (work->loadCur == 2 ? 6 : 0) : 0, 0, "ROOM %02x", work->room);
     eprintf(0x40, 0xA0, 0, 0, "%s", work->path);
