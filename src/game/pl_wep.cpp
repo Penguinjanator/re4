@@ -55,6 +55,11 @@ static f32 lockRandCtr;
 
 // Stores through references: scalar MEMs, so pG is reloaded after each of them.
 static inline void U8Set(u8& d, u8 v) { d = v; }
+// Aim-rate clamp + sync as one inline taking the limits as PARAMETERS: the actuals -1.0f/1.0f are copied
+// into pseudos before the inlined body (integrate.c copies non-readonly formals), so both constants load
+// up front and the two clamp stores keep distinct registers (no cross-jump); `f32* m` = m3r gives the
+// `addi r10,r9,m3r@l` base pointer of the target (PlWepAutoTrack 24 -> 0, PlWepLockCtrl 45 -> 24).
+static inline void m3rClamp(f32* m, f32 lo, f32 hi) { if (m[1] < lo) m[1] = lo; else if (m[1] > hi) m[1] = hi; if (m[2] == 0.0f) m[0] = m[1]; }
 static inline void Inc32(u32& d) { d++; }
 
 cPlWep::cPlWep()
@@ -894,14 +899,7 @@ void PlWepLockCtrl(cModel* plm)
         if (m3r[2] == 0.0f) {
             m3r[0] = m3r[1];
         }
-        if (m3r[1] < -1.0f) {
-            m3r[1] = -1.0f;
-        } else if (m3r[1] > 1.0f) {
-            m3r[1] = 1.0f;
-        }
-        if (m3r[2] == 0.0f) {
-            m3r[0] = m3r[1];
-        }
+        m3rClamp(m3r, -1.0f, 1.0f);
         d = 0.0f;
         if (Joy[0].on & 2) {
             d -= 0.05f;
@@ -1043,14 +1041,7 @@ void PlWepAutoTrack(cModel* plm, int mode, f32 rate)
     if (m3r[2] == 0.0f) {
         m3r[0] = m3r[1];
     }
-    if (m3r[1] < -1.0f) {
-        m3r[1] = -1.0f;
-    } else if (m3r[1] > 1.0f) {
-        m3r[1] = 1.0f;
-    }
-    if (m3r[2] == 0.0f) {
-        m3r[0] = m3r[1];
-    }
+    m3rClamp(m3r, -1.0f, 1.0f);
 }
 
 void wepSetWaterShot(Vec* p0, Vec* p1, u8 type)

@@ -128,6 +128,13 @@ void cActionButton::disp(ActBtnWork* w)
     Cckpt.action.no = btn;
 }
 
+// Every failing test `break`s to the one `return 0` after the switch (a plain `return 0` in a two-way
+// leaf gets its `li r3,0` hoisted into a conditional return by jump1; a jump to the shared block does
+// not), and the `(u64) key & ~mask` test is written in each leaf (jump2 cross-jumps the two `!(flags &
+// 2)` copies into the first one, `mr r10,rX; b`). Left (71 words): case 9/0xA's `return 0` block is a
+// second `li r3,0; blr` (the target shares the final one), the C/D leaves of the `flags & 2` half keep
+// separate copies in the target, the DI pair order of `key`/`key & mask` (r9:r10/r11:r12 vs ours
+// r11:r12/r9:r10) and the dead `andis.` scratch (r0/r9) in cases 3/4.
 int cActionButton::checkButton(ActBtnWork* w)
 {
     u32 on = Key.on & 0x00CF0000;
@@ -146,69 +153,62 @@ int cActionButton::checkButton(ActBtnWork* w)
                     if (on & 0x80000) {
                         return 1;
                     }
-                    return 0;
-                } else {
-                    if (pG->flags_500C & 0x4000) {
-                        return 1;
-                    }
-                    return 0;
+                    break;
                 }
-            } else {
-                if (flags & 0x10) {
-                    if (on & 0x80000) {
-                        return 1;
-                    }
-                    return 0;
-                } else {
-                    if (trg & 0x80000) {
-                        return 1;
-                    }
-                    return 0;
+                if (pG->flags_500C & 0x4000) {
+                    return 1;
                 }
+                break;
             }
-        } else {
-            if (!(flags & 2)) {
-                if (flags & 0x10) {
-                    if (!(on & 0x80000)) {
-                        return 0;
-                    }
-                    key = on;
-                    if (key & ~(u64) 0x80000) {
-                        return 0;
-                    }
-                    return 1;
-                } else {
-                    if (!(pG->flags_500C & 0x4000)) {
-                        return 0;
-                    }
-                    key = trg;
-                    if (key & ~(u64) 0x80000) {
-                        return 0;
-                    }
+            if (flags & 0x10) {
+                if (on & 0x80000) {
                     return 1;
                 }
-            } else {
-                if (flags & 0x10) {
-                    if (!(on & 0x80000)) {
-                        return 0;
-                    }
-                    key = on;
-                    if (key & ~(u64) 0x80000) {
-                        return 0;
-                    }
-                    return 1;
-                } else {
-                    if (!(trg & 0x80000)) {
-                        return 0;
-                    }
-                    key = trg;
-                    if (key & ~(u64) 0x80000) {
-                        return 0;
-                    }
-                    return 1;
-                }
+                break;
             }
+            if (trg & 0x80000) {
+                return 1;
+            }
+            break;
         }
+        if (!(flags & 2)) {
+            if (flags & 0x10) {
+                if (!(on & 0x80000)) {
+                    break;
+                }
+                key = on;
+                if (key & ~(u64) 0x80000) {
+                    break;
+                }
+                return 1;
+            }
+            if (!(pG->flags_500C & 0x4000)) {
+                break;
+            }
+            key = trg;
+            if (key & ~(u64) 0x80000) {
+                break;
+            }
+            return 1;
+        }
+        if (flags & 0x10) {
+            if (!(on & 0x80000)) {
+                break;
+            }
+            key = on;
+            if (key & ~(u64) 0x80000) {
+                break;
+            }
+            return 1;
+        }
+        if (!(trg & 0x80000)) {
+            break;
+        }
+        key = trg;
+        if (key & ~(u64) 0x80000) {
+            break;
+        }
+        return 1;
     case 3:
         if ((trg & 0xC00000) == 0xC00000 || ((on & 0x400000) && (trg & 0x800000)) ||
             ((trg & 0x400000) && (on & 0x800000))) {
@@ -220,7 +220,7 @@ int cActionButton::checkButton(ActBtnWork* w)
             }
             return 1;
         }
-        return 0;
+        break;
     case 4:
         if ((trg & 0xC0000) == 0xC0000 || ((on & 0x80000) && (trg & 0x40000)) ||
             ((trg & 0x80000) && (on & 0x40000))) {
@@ -232,43 +232,43 @@ int cActionButton::checkButton(ActBtnWork* w)
             }
             return 1;
         }
-        return 0;
+        break;
     case 5:
         if (!(trg & 0x40000)) {
-            return 0;
+            break;
         }
         if (!(w->flags & 0x40)) {
             return 1;
         }
         key = on;
-        if ((key & ~(u64) 0x40000) == 0) {
-            return 1;
+        if (key & ~(u64) 0x40000) {
+            break;
         }
-        return 0;
+        return 1;
     case 6:
         if (!(trg & 0x20000)) {
-            return 0;
+            break;
         }
         if (!(w->flags & 0x40)) {
             return 1;
         }
         key = on;
-        if ((key & ~(u64) 0x20000) == 0) {
-            return 1;
+        if (key & ~(u64) 0x20000) {
+            break;
         }
-        return 0;
+        return 1;
     case 7:
         if (!(trg & 0x10000)) {
-            return 0;
+            break;
         }
         if (!(w->flags & 0x40)) {
             return 1;
         }
         key = on;
-        if ((key & ~(u64) 0x10000) == 0) {
-            return 1;
+        if (key & ~(u64) 0x10000) {
+            break;
         }
-        return 0;
+        return 1;
     case 9:
         return 0;
     case 0xA:

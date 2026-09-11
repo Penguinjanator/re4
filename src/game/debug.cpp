@@ -85,20 +85,19 @@ void debugPadInfoDisp()
     u32 i;
     u32 on = Joy[0].on;
     u32 trg = Joy[0].trg;
-    int x = 10;
-    int x2 = 10;
 
+    // `i * 6 + 10` at all three sites: the two single-use givs of the if/else arms are reduced
+    // separately (two `li 10` / `addi 6`), the third one (short lifetime in a long loop) is not
+    // (`mulli; addi` in the loop), and the arms cross-jump their `crclr; bl`.
     for (i = 0; i < 32; i++) {
         if (on & (0x80000000 >> i)) {
-            eprintf2(6, 12, x2, 2, 4, 1, "I");
+            eprintf2(6, 12, i * 6 + 10, 2, 4, 1, "I");
         } else {
-            eprintf2(6, 12, x, 2, 0, 1, "_");
+            eprintf2(6, 12, i * 6 + 10, 2, 0, 1, "_");
         }
         if (trg & (0x80000000 >> i)) {
             eprintf2(6, 12, i * 6 + 10, 2, 6, 1, "o");
         }
-        x += 6;
-        x2 += 6;
     }
 }
 
@@ -258,18 +257,17 @@ void processBarDisp()
     eprintf2(14, 14, 10, 18, 0, 0, "%c", xchr[cnt]);
 }
 
-// OPEN (else arm, 8 words): the original stores proc_name before proc_tick (its `lis proc_name`
-// first); statement orders, a folded t and an idx local tried.
+// Both arms store proc_tick first: the two independent `stwx` have equal priority and sched1 issues
+// the one with more dying registers first -- the LAST store in RTL order owns the index register's
+// death, so the target's `stwx name` before `stwx tick` means the tick store came first in source.
 void ProcessTickGet(int no, const char* name)
 {
     if ((u32) no <= 4) {
         proc_tick[no] = OSGetTick() - zero_tick;
         proc_name[no] = name;
     } else {
-        u32 t = OSGetTick();
-
+        proc_tick[proc_tick_idx + 5] = OSGetTick() - zero_tick;
         proc_name[proc_tick_idx + 5] = name;
-        proc_tick[proc_tick_idx + 5] = t - zero_tick;
         proc_tick_idx++;
     }
 }
