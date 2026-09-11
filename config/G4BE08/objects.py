@@ -461,7 +461,6 @@ UNITS = [
     "game/trans_ot.cpp",
     "game/tv_mode.cpp",
     "game/view.cpp",
-    "game/view.cpp",
     "game/xml.cpp",
     "game/yz2code.cpp",
     "game/at_sub2.cpp",
@@ -1064,6 +1063,7 @@ STRIP_UNUSED = {
     "game/obj03.cpp",
     "game/obj02.cpp",
     "game/scroll.cpp",
+    "game/view.cpp",
 }
 
 # Capcom sound library (game/snd_*.cpp): C++ with extern "C" functions, compiled unoptimised
