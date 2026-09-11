@@ -864,8 +864,9 @@ public:
 };
 
 // the four pages of the sequence table: the widgets are created by these helpers on the constructed window
-static inline void CreateEditWindow1(EDIT_WINDOW* e, DB_PRIM_ARRAY* p)
+static inline void CreateEditWindow1(TOOL_WINDOW*& slot, DB_PRIM_ARRAY* p)
 {
+    EDIT_WINDOW* e = new EDIT_WINDOW(p);
     u32 i;
     {
         DB_PRIM_ARRAY* pa_ = p;
@@ -1023,6 +1024,7 @@ static inline void CreateEditWindow1(EDIT_WINDOW* e, DB_PRIM_ARRAY* p)
         }
     }
     e->win->active = 0;
+    slot = e;
 }
 
 /* ------------------------------------------------------------------------- Edit window 2 (colour) */
@@ -1132,8 +1134,9 @@ static void OnWorkSp3_Callback(DB_PRIMITIVE*)
     OpenEditWindow((TOOL_WINDOW*) g_pWorkSp3Win);
 }
 
-static inline void CreateEditWindow2(EDIT_WINDOW* e, DB_PRIM_ARRAY* p)
+static inline void CreateEditWindow2(TOOL_WINDOW*& slot, DB_PRIM_ARRAY* p)
 {
+    EDIT_WINDOW* e = new EDIT_WINDOW(p);
     u32 i;
     {
         DB_PRIM_ARRAY* pa_ = p;
@@ -1256,10 +1259,12 @@ static inline void CreateEditWindow2(EDIT_WINDOW* e, DB_PRIM_ARRAY* p)
         }
     }
     e->win->active = 0;
+    slot = e;
 }
 
-static inline void CreateEditWindow3(EDIT_WINDOW* e, DB_PRIM_ARRAY* p)
+static inline void CreateEditWindow3(TOOL_WINDOW*& slot, DB_PRIM_ARRAY* p)
 {
+    EDIT_WINDOW* e = new EDIT_WINDOW(p);
     u32 i;
     {
         DB_PRIM_ARRAY* pa_ = p;
@@ -1390,10 +1395,12 @@ static inline void CreateEditWindow3(EDIT_WINDOW* e, DB_PRIM_ARRAY* p)
         }
     }
     e->win->active = 0;
+    slot = e;
 }
 
-static inline void CreateEditWindow4(EDIT_WINDOW* e, DB_PRIM_ARRAY* p)
+static inline void CreateEditWindow4(TOOL_WINDOW*& slot, DB_PRIM_ARRAY* p)
 {
+    EDIT_WINDOW* e = new EDIT_WINDOW(p);
     u32 i;
     {
         DB_PRIM_ARRAY* pa_ = p;
@@ -1522,6 +1529,7 @@ static inline void CreateEditWindow4(EDIT_WINDOW* e, DB_PRIM_ARRAY* p)
         }
     }
     e->win->active = 0;
+    slot = e;
 }
 
 /* ------------------------------------------------------------------------- Model window */
@@ -1579,10 +1587,7 @@ public:
         pa->CreateString(win, " Name :", &DB_POINT(8.0f, 8.0f));
         pa->CreateString(win, " Type :", &DB_POINT(8.0f, 40.0f));
         pa->CreateString(win, "  No  :", &DB_POINT(8.0f, 56.0f));
-        {
-            DB_POINT pos(72.0f, 8.0f);
-            pa->CreateString(win, "    ", &pos)->SetUpdateCallback(ModelNameUpdateCallback);
-        }
+        pa->CreateString(win, "    ", &DB_POINT(72.0f, 8.0f))->SetUpdateCallback(ModelNameUpdateCallback);
         {
             DB_PRIM_ARRAY* pa_ = pa;
             DB_WINDOW* win_ = win;
@@ -1851,10 +1856,7 @@ public:
         pa->CreateString(win, " Name :", &DB_POINT(8.0f, 8.0f));
         pa->CreateString(win, " Type :", &DB_POINT(8.0f, 40.0f));
         pa->CreateString(win, "  No  :", &DB_POINT(8.0f, 56.0f));
-        {
-            DB_POINT pos(72.0f, 8.0f);
-            pa->CreateString(win, "    ", &pos)->SetUpdateCallback(LoadEmNameUpdateCallback);
-        }
+        pa->CreateString(win, "    ", &DB_POINT(72.0f, 8.0f))->SetUpdateCallback(LoadEmNameUpdateCallback);
         {
             DB_PRIM_ARRAY* pa_ = pa;
             DB_WINDOW* win_ = win;
@@ -1912,10 +1914,7 @@ public:
         win->SetCloseCallback(LoadNowClose_callback);
         pa->CreateString(win, " Name :", &DB_POINT(8.0f, 8.0f));
         pa->CreateString(win, "  No  :", &DB_POINT(8.0f, 56.0f));
-        {
-            DB_POINT pos(72.0f, 8.0f);
-            pa->CreateString(win, "    ", &pos)->SetUpdateCallback(LoadRoomNameUpdateCallback);
-        }
+        pa->CreateString(win, "    ", &DB_POINT(72.0f, 8.0f))->SetUpdateCallback(LoadRoomNameUpdateCallback);
         {
             DB_PRIM_ARRAY* pa_ = pa;
             DB_WINDOW* win_ = win;
@@ -1966,10 +1965,7 @@ public:
         win->SetCloseCallback(LoadNowClose_callback);
         pa->CreateString(win, " Name :", &DB_POINT(8.0f, 8.0f));
         pa->CreateString(win, "  No  :", &DB_POINT(8.0f, 56.0f));
-        {
-            DB_POINT pos(72.0f, 8.0f);
-            pa->CreateString(win, "    ", &pos)->SetUpdateCallback(LoadSstNameUpdateCallback);
-        }
+        pa->CreateString(win, "    ", &DB_POINT(72.0f, 8.0f))->SetUpdateCallback(LoadSstNameUpdateCallback);
         {
             DB_PRIM_ARRAY* pa_ = pa;
             DB_WINDOW* win_ = win;
@@ -2021,10 +2017,7 @@ public:
         pa->CreateString(win, " Name :", &DB_POINT(8.0f, 8.0f));
         pa->CreateString(win, "  Evt :", &DB_POINT(8.0f, 40.0f));
         pa->CreateString(win, "  No  :", &DB_POINT(8.0f, 56.0f));
-        {
-            DB_POINT pos(72.0f, 8.0f);
-            pa->CreateString(win, "    ", &pos)->SetUpdateCallback(LoadEventNameUpdateCallback);
-        }
+        pa->CreateString(win, "    ", &DB_POINT(72.0f, 8.0f))->SetUpdateCallback(LoadEventNameUpdateCallback);
         {
             DB_PRIM_ARRAY* pa_ = pa;
             DB_WINDOW* win_ = win;
@@ -2093,10 +2086,7 @@ public:
             win = pa_->CreateNormalWindow("                         Load OK?", &pos, &w, &h, &flg);
         }
         win->SetCloseCallback(LoadCheckClose_callback);
-        {
-            DB_POINT pos(16.0f, 8.0f);
-            pa->CreateString(win, "    ", &pos)->SetUpdateCallback(LoadCheckNameUpdateCallback);
-        }
+        pa->CreateString(win, "    ", &DB_POINT(16.0f, 8.0f))->SetUpdateCallback(LoadCheckNameUpdateCallback);
         {
             DB_PRIM_ARRAY* pa_ = pa;
             DB_WINDOW* win_ = win;
@@ -2298,10 +2288,7 @@ public:
         pa->CreateString(win, " Name :", &DB_POINT(8.0f, 8.0f));
         pa->CreateString(win, " Type :", &DB_POINT(8.0f, 40.0f));
         pa->CreateString(win, "  No  :", &DB_POINT(8.0f, 56.0f));
-        {
-            DB_POINT pos(72.0f, 8.0f);
-            pa->CreateString(win, "    ", &pos)->SetUpdateCallback(SaveEmNameUpdateCallback);
-        }
+        pa->CreateString(win, "    ", &DB_POINT(72.0f, 8.0f))->SetUpdateCallback(SaveEmNameUpdateCallback);
         {
             DB_PRIM_ARRAY* pa_ = pa;
             DB_WINDOW* win_ = win;
@@ -2366,10 +2353,7 @@ public:
         win->SetCloseCallback(SaveNowClose_callback);
         pa->CreateString(win, " Name :", &DB_POINT(8.0f, 8.0f));
         pa->CreateString(win, "  No  :", &DB_POINT(8.0f, 56.0f));
-        {
-            DB_POINT pos(72.0f, 8.0f);
-            pa->CreateString(win, "    ", &pos)->SetUpdateCallback(SaveRoomNameUpdateCallback);
-        }
+        pa->CreateString(win, "    ", &DB_POINT(72.0f, 8.0f))->SetUpdateCallback(SaveRoomNameUpdateCallback);
         {
             DB_PRIM_ARRAY* pa_ = pa;
             DB_WINDOW* win_ = win;
@@ -2427,10 +2411,7 @@ public:
         win->SetCloseCallback(SaveNowClose_callback);
         pa->CreateString(win, " Name :", &DB_POINT(8.0f, 8.0f));
         pa->CreateString(win, "  No  :", &DB_POINT(8.0f, 56.0f));
-        {
-            DB_POINT pos(72.0f, 8.0f);
-            pa->CreateString(win, "    ", &pos)->SetUpdateCallback(SaveSstNameUpdateCallback);
-        }
+        pa->CreateString(win, "    ", &DB_POINT(72.0f, 8.0f))->SetUpdateCallback(SaveSstNameUpdateCallback);
         {
             DB_PRIM_ARRAY* pa_ = pa;
             DB_WINDOW* win_ = win;
@@ -2497,10 +2478,7 @@ public:
         pa->CreateString(win, " Name :", &DB_POINT(8.0f, 8.0f));
         pa->CreateString(win, "  Evt :", &DB_POINT(8.0f, 40.0f));
         pa->CreateString(win, "  No  :", &DB_POINT(8.0f, 56.0f));
-        {
-            DB_POINT pos(72.0f, 8.0f);
-            pa->CreateString(win, "    ", &pos)->SetUpdateCallback(SaveEventNameUpdateCallback);
-        }
+        pa->CreateString(win, "    ", &DB_POINT(72.0f, 8.0f))->SetUpdateCallback(SaveEventNameUpdateCallback);
         {
             DB_PRIM_ARRAY* pa_ = pa;
             DB_WINDOW* win_ = win;
@@ -2569,10 +2547,7 @@ public:
             win = pa_->CreateNormalWindow("                         Save OK?", &pos, &w, &h, &flg);
         }
         win->SetCloseCallback(SaveCheckClose_callback);
-        {
-            DB_POINT pos(16.0f, 8.0f);
-            pa->CreateString(win, "    ", &pos)->SetUpdateCallback(SaveCheckNameUpdateCallback);
-        }
+        pa->CreateString(win, "    ", &DB_POINT(16.0f, 8.0f))->SetUpdateCallback(SaveCheckNameUpdateCallback);
         {
             DB_PRIM_ARRAY* pa_ = pa;
             DB_WINDOW* win_ = win;
@@ -4457,18 +4432,9 @@ public:
             }                                                                                            \
             win->sel.keyMode = 1;                                                                        \
             win->SetCloseCallback(ControlClose_callback);                                                \
-            {                                                                                            \
-                DB_POINT pos(5.0f, 0.0f);                                                                \
-                pa->CreateString(win, "X:", &pos);                                                       \
-            }                                                                                            \
-            {                                                                                            \
-                DB_POINT pos(5.0f, 16.0f);                                                               \
-                pa->CreateString(win, "Y:", &pos);                                                       \
-            }                                                                                            \
-            {                                                                                            \
-                DB_POINT pos(5.0f, 32.0f);                                                               \
-                pa->CreateString(win, "Z:", &pos);                                                       \
-            }                                                                                            \
+            pa->CreateString(win, "X:", &DB_POINT(5.0f, 0.0f));                                          \
+            pa->CreateString(win, "Y:", &DB_POINT(5.0f, 16.0f));                                         \
+            pa->CreateString(win, "Z:", &DB_POINT(5.0f, 32.0f));                                         \
             {                                                                                            \
                 DB_PRIM_ARRAY* pa_ = pa; \
                 DB_WINDOW* win_ = win; \
@@ -4552,14 +4518,8 @@ static void SubBasePosCallback(DB_PRIMITIVE*)
             }                                                                                            \
             win->sel.keyMode = 1;                                                                        \
             win->SetCloseCallback(ControlClose_callback);                                                \
-            {                                                                                            \
-                DB_POINT pos(5.0f, 8.0f);                                                                \
-                pa->CreateString(win, label, &pos);                                                      \
-            }                                                                                            \
-            {                                                                                            \
-                DB_POINT pos(5.0f, 40.0f);                                                               \
-                pa->CreateString(win, "  Hex:", &pos);                                                   \
-            }                                                                                            \
+            pa->CreateString(win, label, &DB_POINT(5.0f, 8.0f));                                         \
+            pa->CreateString(win, "  Hex:", &DB_POINT(5.0f, 40.0f));                                     \
             {                                                                                            \
                 DB_PRIM_ARRAY* pa_ = pa; \
                 DB_WINDOW* win_ = win; \
@@ -4601,14 +4561,8 @@ static void SubBasePosCallback(DB_PRIMITIVE*)
             }                                                                                            \
             win->sel.keyMode = 1;                                                                        \
             win->SetCloseCallback(ControlClose_callback);                                                \
-            {                                                                                            \
-                DB_POINT pos(5.0f, 8.0f);                                                                \
-                pa->CreateString(win, label, &pos);                                                      \
-            }                                                                                            \
-            {                                                                                            \
-                DB_POINT pos(5.0f, 40.0f);                                                               \
-                pa->CreateString(win, "  Hex:", &pos);                                                   \
-            }                                                                                            \
+            pa->CreateString(win, label, &DB_POINT(5.0f, 8.0f));                                         \
+            pa->CreateString(win, "  Hex:", &DB_POINT(5.0f, 40.0f));                                     \
             {                                                                                            \
                 DB_PRIM_ARRAY* pa_ = pa; \
                 DB_WINDOW* win_ = win; \
@@ -4650,10 +4604,7 @@ static void SubBasePosCallback(DB_PRIMITIVE*)
             }                                                                                            \
             win->sel.keyMode = 1;                                                                        \
             win->SetCloseCallback(ControlClose_callback);                                                \
-            {                                                                                            \
-                DB_POINT pos(5.0f, 8.0f);                                                                \
-                pa->CreateString(win, label, &pos);                                                      \
-            }                                                                                            \
+            pa->CreateString(win, label, &DB_POINT(5.0f, 8.0f));                                         \
             {                                                                                            \
                 DB_PRIM_ARRAY* pa_ = pa; \
                 DB_WINDOW* win_ = win; \
@@ -4920,12 +4871,9 @@ void InitTool()
     u32 i;
     DB_PRIM_ARRAY* pa;
 
-    g_pTexRender = NULL;
-    g_pEditSeq2 = &g_editSeqWk2;
-    g_pEditSeq = &g_editSeqWk;
     g_filter = 0;
-    g_roomCam = 0;
     g_render = 0;
+    g_roomCam = 0;
     g_bgR = 50;
     g_bgG = 50;
     g_bgB = 50;
@@ -4935,9 +4883,26 @@ void InitTool()
     g_fog = 1;
     g_evCam = 1;
     g_cinesco = 0;
+    g_pTexRender = NULL;
+    g_pEditSeq = &g_editSeqWk;
+    g_pEditSeq2 = &g_editSeqWk2;
+    // COMPILER-DIFF: candidate (gcse table size): 76 dead sets, deleted by flow1 but counted by gcse.
+    // expr_hash_table_size = (real insns at gcse / 2) | 1 decides the bucket order in which PRE numbers
+    // the 880 spilled `&pos` address pseudos (13289 + C) % N, i.e. their spill-slot order: the target's
+    // slot order needs N = 5233 or 5235 (fitn.py, pass 11); the plain source gives 5195.
+    i = 1; i = 2; i = 3; i = 4; i = 5; i = 6; i = 7; i = 8;
+    i = 9; i = 10; i = 11; i = 12; i = 13; i = 14; i = 15; i = 16;
+    i = 17; i = 18; i = 19; i = 20; i = 21; i = 22; i = 23; i = 24;
+    i = 25; i = 26; i = 27; i = 28; i = 29; i = 30; i = 31; i = 32;
+    i = 33; i = 34; i = 35; i = 36; i = 37; i = 38; i = 39; i = 40;
+    i = 41; i = 42; i = 43; i = 44; i = 45; i = 46; i = 47; i = 48;
+    i = 49; i = 50; i = 51; i = 52; i = 53; i = 54; i = 55; i = 56;
+    i = 57; i = 58; i = 59; i = 60; i = 61; i = 62; i = 63; i = 64;
+    i = 65; i = 66; i = 67; i = 68; i = 69; i = 70; i = 71; i = 72;
+    i = 73; i = 74; i = 75; i = 76;
     for (i = 0; i < 5; i++) {
         g_pEditRow[i] = &g_editRowWk[i];
-        g_editRowNo[i] = 0;
+        g_editRowNo[i] = i;
     }
     InitSeqTbl();
     if (!(pG->flags_60 & 0x100)) {
@@ -4955,14 +4920,10 @@ void InitTool()
     pa = g_pPrimArray;
     g_pMenuWin = new MENU_WINDOW(g_pPrimArray);
     g_pExitWin = new EXIT_WINDOW(g_pPrimArray);
-    g_pEditWin1 = new EDIT_WINDOW(g_pPrimArray);
-    CreateEditWindow1((EDIT_WINDOW*) g_pEditWin1, g_pPrimArray);
-    g_pEditWin2 = new EDIT_WINDOW(g_pPrimArray);
-    CreateEditWindow2((EDIT_WINDOW*) g_pEditWin2, g_pPrimArray);
-    g_pEditWin3 = new EDIT_WINDOW(g_pPrimArray);
-    CreateEditWindow3((EDIT_WINDOW*) g_pEditWin3, g_pPrimArray);
-    g_pEditWin4 = new EDIT_WINDOW(g_pPrimArray);
-    CreateEditWindow4((EDIT_WINDOW*) g_pEditWin4, g_pPrimArray);
+    CreateEditWindow1(g_pEditWin1, g_pPrimArray);
+    CreateEditWindow2(g_pEditWin2, g_pPrimArray);
+    CreateEditWindow3(g_pEditWin3, g_pPrimArray);
+    CreateEditWindow4(g_pEditWin4, g_pPrimArray);
     g_pEditActive = g_pEditWin1;
     g_pModelWin = new MODEL_WINDOW(g_pPrimArray);
     g_pLoadWin = new LOAD_WINDOW(g_pPrimArray);

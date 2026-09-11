@@ -817,10 +817,16 @@ void DB_BUTTON_CLOSE::OnClick(DB_POINT* p, int btn)
 DB_STRING::DB_STRING(u32 max_, const char* s)
 {
     max = max_;
-    ca = cb = cg = cr = 0.0f;
     type = DB_PRIM_STRING;
-    str = 0;
-    len = 0;
+    ca = cb = cg = cr = 0.0f;
+    {
+        // COMPILER-DIFF: candidate (local-alloc qty order): the zero pinned to r0 gives the target's
+        // registers (LC r9, vt r11, zero r0, type r9); 11 -> 7 words, the str/len stores are still
+        // issued early (the target has them last, after the vptr store).
+        register u32 zero asm("r0") = 0;
+        str = (char*) zero;
+        len = zero;
+    }
     str = new char[max_];
     strcpy(str, s);
     len = strlen(s);

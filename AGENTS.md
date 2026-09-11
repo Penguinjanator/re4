@@ -21506,3 +21506,67 @@ the tags can be hunted later.
   ours dying stores in statement order, the six r31 zeros, pModel (m alive), x48 (its 0.0 dies at the later x50 in RTL), x54. The
   target's second group is pModel, x40 (0.1), x44 (4), x48, x54, so in the original the 0.1 and 4 pseudos were still live after
   their stores (r28 for the 4 = allocated under pressure like the others) -- a later RTL use we do not have in the source.
+
+### Tool RELs, t_esp pass 11 (t_esp 208/212: InitTool 9684 -> 11530 words with the 882 `&pos` spill SLOTS now in the target's order and the entry block's 25 constant registers exact, .text 0xa124 -> 0xa050 of 0xa20c; Load/SaveEmType 2/2 untouched; db_widget DB_STRING ctor 11 -> 7 with a pin; nothing flipped; 111 OK; 2026-09-11)
+
+- Harness ~/.cache/tesp11 (deleted): `mk.sh SRC OUTDIR [-dX..]` (module cflags, `fold_linkonce --module`; with dump flags it runs cpp +
+  cc1plus by hand so the dumps land in OUTDIR), `tryv.py BASE.cpp V.py [names]` (exact-substring variants, `old*` = replace-all; prints
+  InitTool words/size + the entry-block skeleton), `slots.py LISTING dtk|obj v` (the `addi rX,r1,C; stw rX,S(r1)` pairs of the entry
+  block = spill slot S of every PRE'd `&pos` C), `fitn.py SLOTS [K]` (brute-forces the gcse table size N whose bucket order
+  `(K + C) % N` reproduces the slot order), `sbs.py`/`segcmp.py`/`seglen.py` (side-by-side and per-`bl` segment diffs of the dtk target
+  vs our objdump), `skel.py`, `storder.py OBJ` (final order of the entry block's symbol stores), `ins.py DUMP FUNC` (one line per insn
+  of a 2.95 dump), `deadset.py`, `rostr.py OFF..` (the string at a module .rodata offset: unit base 0x35E0), `mkw.sh`/`tryw.py` (the same
+  for db_widget). 111 OK before and after every edit.
+- **InitTool spill-slot order = gcse bucket order, and the table size is a COMPUTATION (done, exact).** Facts: `alloc_expr_hash_table
+  (max_cuid)` with `expr_hash_table_size = (n_insns / 2) | 1` (min 11), `max_cuid` = the count of 'i'-class insns (INSN/JUMP/CALL) when
+  gcse runs; `pre_delete` walks `expr_hash_table[0..N-1]` and each chain in insertion (first-occurrence) order and creates the reaching
+  regs in that order; reload's `alter_reg` assigns fresh slots in ascending pseudo order; `hash((plus:SI (reg 31) (const_int C))) =
+  13289 + C` (13258 + REGNO 31, verified: N = 5195 reproduces our own 883 slots with 0 mismatches). The target's 882 `&pos` slots
+  (0x1a80..0x2844, read with slots.py) are reproduced with 0 mismatches by N = 5233 or 5235 ONLY (2617 also fits but is half; N = 5237
+  already permutes 48). Ours had 5195 (max_cuid 10388..10391); +76 real insns give 5233 and +80 give 5235: 76 dead `i = K;` sets (distinct
+  constants; equal ones are deleted by cse1 as noop sets, `i = K` survives cse1 because `i` has real uses, flow1 deletes them after gcse)
+  right after the entry statement block, tagged `// COMPILER-DIFF: candidate (gcse table size)`. After the rest of this pass's edits the
+  table is 5235 buckets (2353 entries) and the slot ORDER is exact; the two N are equivalent for the slots. Rule for any function with
+  hundreds of PRE'd addresses: read the target's `addi;stw` pairs, fit N with fitn.py (the wrap points of the C sequence give N directly),
+  then move the insn count -- the "original has more RTL" reading of pass 9 was exactly 76-80 insns.
+- **Slot SET (which `&pos` are spilled) is the last residue of the entry: ours spills `&fp+0x60` and keeps `&fp+0x150`, the target the
+  reverse; the low spill region (0x1a54..0x1a7c, copies `T = R` of `&pos` values made before/after the first `__builtin_new`) has 11 slots
+  in the target and 9 in ours (10 before the CreateEditWindow change), so every slot offset is 8 bytes low and each `lwz/stw slot(r1)`
+  differs -- that is the whole 11530-word count (the previous 9684 had the same offset problem plus a wrong order).** Which callee-saved
+  regs the first &pos pseudos get (target r31,r21,r20,r19,r18,r17,r28,r16,r15,r14 = &8,&20,&30,&40,&50,&60,&110,&120,&130,&140; ours
+  now the same set) and which highs of g_pEditSeq/g_pEditSeq2 get hard regs per window (the target has ONE high pseudo per inlined
+  window ctor -- `expr_equiv_p` compares SYMBOL_REF strings by pointer, so the inlined copies are different gcse expressions -- and
+  reload's `find_equiv_reg` reuses a callee-saved register still holding the constant across later windows: r17/r23/r16 regions, fresh
+  `lis r6` where a call-clobbered one held it) are global.c priority effects downstream of that.
+- **Entry statement block (zero code): the order `g_filter, g_render, g_roomCam, g_bgR, g_bgG, g_bgB, g_grid, g_workEm, g_modSk, g_fog,
+  g_evCam, g_cinesco, g_pTexRender, g_pEditSeq, g_pEditSeq2` gives every constant/high the target's register (QI zero r0, SI zero r29
+  callee-saved, one r4, fifty r5, wk2 r10, wk r11, pTexRender r8, pEditSeq r3, pEditSeq2 r30, the 7AC..7CC highs r28/r7/r27/r6/r21/r20/
+  r9/r26/r25/r24/r23/r22) and the target's final store order except `stw pTexRender` (target first, ours after cinesco).** Mechanisms
+  read: (1) the three byte zeros must PRECEDE the first word zero in RTL, otherwise cse1's wider-mode rule (`src_related =
+  gen_lowpart_if_possible` of an SImode register already holding the constant) makes the QI stores `subreg`s of the SI zero and one
+  pseudo serves all six (ours before: `li r0,0` for everything); (2) the SI zero then gets r29 = the first callee-saved in
+  REG_ALLOC_ORDER after r31 (never handed out by local-alloc) and r30 (pEditSeq2's high), i.e. it is the block's lowest-priority qty
+  with the longest life; (3) `g_editRowNo[i] = i;` in the row loop (target `stbx r11,r9,r11` stores the counter, ours stored a zero);
+  (4) the final (sched2) order of block 0 is decided by the hard-register reuse chains reload creates (spill temps r0/r8/r10 through 880
+  pairs), not by sched1 priorities -- `li r29,0; lis r8; stw r29,pTexRender` are first in the target because the pTexRender high sits at
+  the head of the r8 chain, i.e. its store precedes the first r8 spill pair in the post-reload order; ours has it after ~20 pairs.
+- **CreateEditWindow1..4 take the slot by reference and allocate inside (zero code):** the target computes `lis r9,g_pEditWin1@ha; addi
+  r24,r9,@l` BEFORE `__builtin_new`, keeps r24 through the whole widget body and stores `stw r28,0(r24)` at its END; only an address
+  argument evaluated before the inline body gives a `lo_sum` in a register (a plain `g_pEditWin1 = new ..` embeds the address in the
+  MEM and stores right after `new`). Form: `static inline void CreateEditWindowN(TOOL_WINDOW*& slot, DB_PRIM_ARRAY* p) { EDIT_WINDOW* e =
+  new EDIT_WINDOW(p); ...; slot = e; }`, call `CreateEditWindowN(g_pEditWinN, g_pPrimArray)`. Reproduced: `addi r25,r9,@l` before
+  the new, `stw r30,0(r25)` at the end. Costs ~2900 words in the count because it removes one low spill (see above), kept anyway.
+- **The 19 CreateString blocks still written as `{ DB_POINT pos(x, y); pa->CreateString(win, s, &pos); }` (the `->SetUpdateCallback`
+  chains, the X:/Y:/Z: and Work-window macros) are the temporary form `&DB_POINT(x, y)` like the other 117 (zero code).** With the
+  local form ours issued the pos.x fp-store FIRST and the pos.y store through the argument register (`stfs 4(r6)`, regmove folds the
+  dying arg copy into the copy's def); the target's block is `lwz r6,slot; lis; lwz r4; addi r5; lwz r3; [mr r9,r6;] stfs x,C(r1); stfs
+  y,4(r9)` -- the `mr` is reload_cse turning the second reload of the spilled `&pos` R (the pos.y base) into a copy of the argument's
+  reload, present or absent per block depending on whether reload_cse_simplify_operands substitutes the argument register into the
+  store. All 149 CreateString calls are now the temporary form; the 8-line CreateString segments are the target's length.
+- Not closed: InitTool 11530 (the slot SET and the low spill count above; every per-`bl` segment differs only by spill offsets /
+  callee-saved names / reload order; 157 segments differ in length by +-1..9 = the `mr` copies and rematerialised highs);
+  Load/SaveEmTypeUpdateCallback 2/2 (pass 10 mechanism stands: which of loop-2 TOP / the last `lhz t` block cse1 reaches with the outer
+  high); DB_STRING ctor 7 (`register u32 zero asm("r0") = 0` in a block after the float/type stores, tagged `candidate (local-alloc qty
+  order)`: all four constants now in the target's registers; the str/len zero stores are still issued third/sixth where the target has
+  them last after the vptr store -- the zero's stores follow its `li` by haifa's last-scheduled-insn class rule; a live-out zero
+  (asm keep-alive after the `new`) gives 14). fn_t_esp_3DE4C 24 (the shared cDbgToolMain ctor, another owner).
