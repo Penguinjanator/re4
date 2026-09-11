@@ -23975,3 +23975,57 @@ in-place form does not transfer (V2 case 1 with address-order loads + `s0/s1 += 
 a2's load and its use keeps a2 a variable in the AST (mcv2a) but the backend coalesces the dying own local into the pack (`lbz r29;
 rlwimi r29`, 80w): a copy FROM an own local coalesces, so the target's copy needs a2 live past the `or` or a pack destination that is
 an own local (first web of a variable used only in cases 1-3) — not resolved.
+
+### DOL sce_com closer (game/sce_com Matching 33/33: SceElevator 232 -> 0 (r225's shape + one jumpPos pin), OpenBoxMain 182 -> 0 zero code, SceSetItemEvent 17 -> 0 (`ne` second variable + asm-emitted `li j,0`; the r9 pin removed); 111 OK; 2026-09-11)
+
+Harness ~/.cache/dol_scecom (dol_mm2's bld/try/tryv/dump/prio + dol_cx2's sbs.sh; `lens.py UNIT BASE VARS FUNC --pat 'Register (N|M) '`
+= tryv that also prints the lreg `Register N used R times across L insns` rows, which is what every question here came down to);
+deleted at the end.
+
+- **SceElevator 232 -> 16 by copying r225.cpp's `SceElevator_r225` shape** (the DOL function is the same code plus the flags_5014
+  BitOn/BitOff pair and `CamCtrl.Comeback(0)` before the cut test): `SetPosXYZ(m, x, y, z)` / `FadeSetRGBA(mode, c0, c1)` static
+  inline helpers whose locals share frame slot 8 (frame 0x80, not 0xa0: one BLKmode temp popped per statement; a 4-byte GXColor
+  local would get its own permanent slot -- `assign_stack_temp_for_type` reuses a freed slot only with the same mode, so the two
+  colours live in a 12-byte struct), the inline's argument MEMs evaluated lazily (`lwz r30,pPL; bl fRand1_1; lfs 148(r30)`: only
+  the pointer is loaded before the call, `process_reg_param` loads the MEM after all args), the up loop entered by `goto up_top`
+  (SceSleep + `do { } while (0)` + `spd += accel` at the loop top), the down loop `for (;;) { body; if (done) { tail; break; }
+  SceSleep(1); }`, `f32 y = obj->pos.y` as the fabs operand only, `move` as a second step variable. Read the module's matched
+  sibling first: `rg -n '<fn name>' src/` -- a room copy of a DOL function is the DOL function's shape.
+- **Residue 16 words = one global-alloc order.** `done` (r94: 10 refs, live length 106 doubled TWICE by update_equiv_regs = 424,
+  priority 707) and gcse's `&d->pos` copy (r362: 9 refs / 380 = 710) are adjacent in allocno order; the target allocates done
+  first (r25) and the copy second (r24), ours the reverse. Mechanism of the x4: `update_equiv_regs` doubles REG_LIVE_LENGTH at EVERY
+  constant set of a multi-set pseudo until the first set whose REG_EQUAL differs (`done = 0` top, `done = 0` in the down loop, then
+  `done = 1` -> no_equiv): chain order decides the multiplier. REG_LIVE_LENGTH itself is sched1's per-block recount (the flow
+  pass's value is overwritten by `sched_reg_live_length`), so the value follows the sched1 ORDER, not the source order: `done = 0`
+  anywhere in the top block gives 424, only `done = 0` textually before `faded = 0` changes it (436: the two `li`s are a priority
+  tie and take their two slots in luid order). Unit-length experiments (`lens.py`): the target needs 105 = one pre-reload insn
+  fewer in done's range (top block after the `li`, the cut/dir-test blocks, the SndCall block up to the PRE'd compare, the down
+  loop from `li done` to `cmpwi done`); the field-wise `pG->quake_ofs.x = q.x; ...` copy IS one insn shorter (no `addi
+  r9,r11,20336` base) and gives the target's order, but its code is `lfs/stfs` -- not found. Asm launders anywhere in the up
+  branch (even `asm("" : "+f"(spd))`) re-run gcse's PRE with a different result (the `&d->pos` copy drops to 4 refs) -- no
+  codeless anchor is available in a region with PRE'd expressions. Pin used instead: `register Vec* jp asm("r25") = &d->jumpPos`
+  (the up loop's `addi r25,r27,56` in the target) assigned after `spd = accel` and passed to SceAtExecRoomJump: r25 is then
+  unavailable to the copy (conflict) but free for done (dead in the up loop), 16 -> 0 with no other change. `register int done
+  asm("r25")` is 35 (the pin kills cse2's `faded -> done` substitution in the PRE'd preheader compare).
+- **OpenBoxMain 182 -> 0, zero code.** (1) Case bodies are laid out in source order: `case 0x17` (both doors, 160 deg) comes right
+  after `case 0` in both the per-frame and the instant switch (42 words). (2) The rotation type r30 / id2 r31 / o1 r29 / `i` r31:
+  every `for` declares its own `int i`. A single `int i` for the five loops is one pseudo (35 refs / 482, 3630) allocated after
+  type (64/362 = 10607) and o1 (137/962 = 9968), so type takes r31; the two-frame waits' own counters are 5 refs / ~8 insns
+  (12500) and go first -> r31, type r30, o1 r29, and id2 (3/16) plus the 30-frame counter reuse r31 through pass 0 (used so
+  far, no conflict). find_reg's pass 0 never hands out a callee-saved register that no pseudo has used yet, so the FIRST
+  allocno always gets r31 and the question "why is X in r30" is always "which short pseudo was allocated before X".
+- **SceSetItemEvent 17 -> 0.** (a) The new'd entry is a second variable (`SceItemEvent* ne`): one `e` for the search and the
+  allocation is a single pseudo live across the search loop's j / e+6 / j*2 temps, takes r8 there and drags the second half's
+  count/e/i*4 to r9/r8/r11 (target r8/r11/r10) and the RsfCheck `and.` result to r9 (target r8). (b) The pass-2 pin
+  `register u32 j asm("r9")` was wrong twice over: a hard-reg j makes combine fold expand_mult's `copy = j; copy + j` into
+  `(ashift j 1)` = `slwi` where the target has `add r10,r9,r9` (with a pseudo, cse's canon_reg makes it `(plus j j)`, the fold to
+  a shift is not cheaper, and combine never re-simplifies a lone insn), and the pin was only there because j (17 refs / 22) sorted
+  below the e+6 (8/5 = 48000) and j*2 (8/6 = 40000) temps. The 22 is 11 x2: `j = 0` is j's first set in chain order and carries
+  cse's REG_EQUAL, so update_equiv_regs doubles it. Written `asm("li %0,0" : "=r"(j))` (the one target instruction, no note ->
+  no doubling -> 4*17/11 = 61818 -> j first: r9, e+6 r11, j*2 r10, e r8). No C spelling avoids the note (cse adds REG_EQUAL to
+  every constant set; `j = 0` before/after the peeled item[0] test, do-while/for/for(j=1) shapes all 23-52) -- the target's j was
+  not doubled, so its init was not a plain constant set at cse time; open.
+- Rules of thumb confirmed here: REG_LIVE_LENGTH questions are answered by `-dl`'s `Register N used R times across L insns` line
+  divided by the doubling (`-dS` prints sched1's pre-doubling `register N life shortened/extended from A to B`); 1 pre-reload
+  insn in a pseudo's live range = 1 unit (x the equiv multiplier); an `asm` of any kind inside a region with PRE'd expressions
+  is not codeless for gcse.

@@ -512,9 +512,11 @@ void SceExecItemEvent(SceItemEvent* e)
 void SceSetItemEvent(int atNo, int itemNo, int flagNo, int cut, void (*func)(int), TaskFunc doneFunc, int arg, int enable)
 {
     u16 room = pG->room_id;
-    SceItemEvent* e;
+    SceItemEvent* e;   // the searched entry; the new'd one is a second variable (one pseudo for both
+                       // is live across the search loop's j / e+6 / j*2 temps and takes r8 there)
+    SceItemEvent* ne;
     u32 i;
-    register u32 j asm("r9");  // COMPILER-DIFF: j must outrank e+6 and j*2 for r9
+    u32 j;
     u32 k;
 
     if (RsfCheck(room, flagNo)) {
@@ -547,7 +549,13 @@ void SceSetItemEvent(int atNo, int itemNo, int flagNo, int cut, void (*func)(int
             // by a `goto` INTO its body (a jump into the loop invalidates it for loop.c: no giv for
             // j*2, `e + 6` recomputed per iteration, and the exit block's guard targets a label of
             // another loop so find_and_verify_loops leaves `item[0] = itemNo; return` in place).
-            j = 0;
+            // COMPILER-DIFF: asm-emitted `li j,0`. A C `j = 0` gets cse's REG_EQUAL note, and
+            // update_equiv_regs (the first set of j in chain order) doubles j's live length
+            // (11 -> 22: priority 30909 < e+6 48000 / j*2 40000, so j is allocated third and
+            // lands in r10); the asm set has no note, j keeps 11 (61818) and is allocated first
+            // (r9, e+6 r11, j*2 r10, e r8 = the target). Also keeps j a pseudo: a hard-reg pin
+            // makes combine fold expand_mult's `copy + j` into `slwi` where the target has `add`.
+            asm("li %0,0" : "=r"(j));
             if (e->item[0] >= 0) {
                 goto next;
             }
@@ -578,18 +586,18 @@ void SceSetItemEvent(int atNo, int itemNo, int flagNo, int cut, void (*func)(int
         SceAtPtr(atNo)->x4A = 0x10;
         SceAtPtr(atNo)->x44 = 5;
     }
-    e = (SceItemEvent*) __builtin_new(sizeof(SceItemEvent));
+    ne = (SceItemEvent*) __builtin_new(sizeof(SceItemEvent));
     for (k = 0; k < 8; k++) {
-        e->item[k] = -1;
+        ne->item[k] = -1;
     }
-    e->item[0] = itemNo;
-    ItemEventTbl[i] = e;
-    e->cut = cut;
-    e->func = func;
-    e->arg = arg;
-    e->flag = flagNo;
-    e->atNo = atNo;
-    SceAtDataSet_exec(atNo, 0x12, 0, (TaskFunc) SceExecItemEvent, e, 1);
+    ne->item[0] = itemNo;
+    ItemEventTbl[i] = ne;
+    ne->cut = cut;
+    ne->func = func;
+    ne->arg = arg;
+    ne->flag = flagNo;
+    ne->atNo = atNo;
+    SceAtDataSet_exec(atNo, 0x12, 0, (TaskFunc) SceExecItemEvent, ne, 1);
 }
 
 void getChapterSection(int chapter, int* chap, int* sec)
@@ -864,6 +872,11 @@ void OpenBoxMain(int type, int mode, int se, u32 id1, u32 id2, int itemNo)
     cObj* o2 = 0;
     cModel* item = 0;
     f32 dy = 0.0f;
+    // Case bodies are laid out in source order: case 0x17 (both doors, 160 deg) follows case 0 in
+    // both switches. Every loop declares its own `int i`: the two-frame waits' counters are then
+    // short-lived pseudos (5 refs / ~8 insns) that global alloc places first, taking r31 before
+    // `type` (r30) and `o1` (r29); id2 and the 30-frame counter reuse r31 afterwards. One shared
+    // `int i` (35 refs / 482 insns) sorts below them and rotates the three.
     // Constant-pool order: the 30-frame totals, their per-frame steps (folded divisions: the
     // decimal step literals are one ulp off) and the drop step enter the pool here; every use
     // below is folded to the literal.
@@ -872,7 +885,6 @@ void OpenBoxMain(int type, int mode, int se, u32 id1, u32 id2, int itemNo)
     const f32 syA = ryA / 30.0f, syB = ryB / 30.0f, syC = ryC / 30.0f, syD = ryD / 30.0f;
     const f32 sxA = rxA / 30.0f, sxB = rxB / 30.0f, szA = rzA / 30.0f, szB = rzB / 30.0f, spA = pxA / 30.0f, spB = pxB / 30.0f;
     const f32 dropStep = 10.0f;
-    int i;
 
     if (id1 != -1) {
         o1 = SmdGetObjPtr(id1);
@@ -892,21 +904,21 @@ void OpenBoxMain(int type, int mode, int se, u32 id1, u32 id2, int itemNo)
     if (mode == 0) {
         switch (type) {
         case 0x15:
-            for (i = 0; i < 2; i++) {
+            for (int i = 0; i < 2; i++) {
                 SceSleep(1);
             }
-            for (i = 0; i < 2; i++) {
+            for (int i = 0; i < 2; i++) {
                 if (o1) {
                     o1->pParts->rot.z += -0.034906585f;
                 }
                 SceSleep(1);
             }
-            for (i = 0; i < 3; i++) {
+            for (int i = 0; i < 3; i++) {
                 SceSleep(1);
             }
             break;
         case 0x16:
-            for (i = 0; i < 5; i++) {
+            for (int i = 0; i < 5; i++) {
                 SceSleep(1);
             }
             break;
@@ -914,7 +926,7 @@ void OpenBoxMain(int type, int mode, int se, u32 id1, u32 id2, int itemNo)
         if (se != -1) {
             SndCall(6, se, 0, 0, 0, 0);
         }
-        for (i = 0; i < 30; i++) {
+        for (int i = 0; i < 30; i++) {
             switch (type) {
             case 0:
                 if (o1) {
@@ -922,6 +934,14 @@ void OpenBoxMain(int type, int mode, int se, u32 id1, u32 id2, int itemNo)
                 }
                 if (o2) {
                     o2->rot.y += (1.9198622f / 30.0f);
+                }
+                break;
+            case 0x17:
+                if (o1) {
+                    o1->rot.y += (-2.7925267f / 30.0f);
+                }
+                if (o2) {
+                    o2->rot.y += (2.7925267f / 30.0f);
                 }
                 break;
             case 1:
@@ -934,14 +954,6 @@ void OpenBoxMain(int type, int mode, int se, u32 id1, u32 id2, int itemNo)
             case 0x14:
                 if (o1) {
                     o1->rot.y += (1.9198622f / 30.0f);
-                }
-                break;
-            case 0x17:
-                if (o1) {
-                    o1->rot.y += (-2.7925267f / 30.0f);
-                }
-                if (o2) {
-                    o2->rot.y += (2.7925267f / 30.0f);
                 }
                 break;
             case 0x18:
@@ -1072,6 +1084,14 @@ void OpenBoxMain(int type, int mode, int se, u32 id1, u32 id2, int itemNo)
                 o2->rot.y += 1.9198622f;
             }
             break;
+        case 0x17:
+            if (o1) {
+                o1->rot.y += -2.7925267f;
+            }
+            if (o2) {
+                o2->rot.y += 2.7925267f;
+            }
+            break;
         case 1:
         case 0x13:
             if (o1) {
@@ -1082,14 +1102,6 @@ void OpenBoxMain(int type, int mode, int se, u32 id1, u32 id2, int itemNo)
         case 0x14:
             if (o1) {
                 o1->rot.y += 1.9198622f;
-            }
-            break;
-        case 0x17:
-            if (o1) {
-                o1->rot.y += -2.7925267f;
-            }
-            if (o2) {
-                o2->rot.y += 2.7925267f;
             }
             break;
         case 0x18:
@@ -1203,11 +1215,49 @@ void OpenBoxMain(int type, int mode, int se, u32 id1, u32 id2, int itemNo)
 
 extern "C" void SceElevator(SceElevatorData* d);
 
+// Inline helpers owning their locals (r225.cpp SceElevator_r225 has the same function): the inlined
+// frame is one BLKmode temp slot popped at the end of each statement, so every call shares frame slot
+// 8. Argument MEMs are evaluated lazily (the pointer before a call in another argument, the load
+// after it: `lwz r30,pPL; bl fRand1_1; lfs 148(r30)`).
+static inline void SetPosXYZ(cModel* m, f32 x, f32 y, f32 z)
+{
+    Vec v;
+
+    v.x = x;
+    v.y = y;
+    v.z = z;
+    m->setPos(&v);
+}
+
+// The two fade colours must live in a BLKmode object: a 4-byte GXColor local becomes an ADDRESSOF
+// pseudo (SImode) and purge_addressof gives it a permanent frame slot instead of the shared temp at
+// 8/12; a 12-byte struct reuses the Vec slot (temp reuse needs equal modes).
+struct FadeColors {
+    GXColor c0;
+    GXColor c1;
+    u32 pad;
+};
+
+static inline void FadeSetRGBA(u32 mode, u32 rgba0, u32 rgba1)
+{
+    FadeColors c;
+
+    *(u32*) &c.c0 = rgba0;
+    *(u32*) &c.c1 = rgba1;
+    FadeSet(mode, &c.c0, &c.c1, 30, 0, 0);
+}
+
+// Shape from r225.cpp's SceElevator_r225 (SetPosXYZ / FadeSetRGBA inline helpers, the goto-entered up
+// loop, the down loop with its tail inside). Residue closed by the `jp` pin: `done` (10 refs, live
+// length 106 x4 from update_equiv_regs' two `done = 0` REG_EQUIV doublings = 424, priority 707) sorts
+// below gcse's `&d->pos` copy (9 refs / 380 = 710) in global alloc, so the copy takes r25 and done r24;
+// the target has done r25 / copy r24 (done's length there is 105 -> 420 -> 714: one pre-reload insn
+// fewer somewhere in its range). Holding `&d->jumpPos` (the target's r25 in the up loop, where done is
+// dead) in r25 makes the copy take r24 and done r25 without touching anything else.
 void SceElevator(SceElevatorData* d)
 {
     cPlayer* pl = pPL;
     cObj* obj;
-    Vec v;
     f32 accel;
     f32 maxSpd;
     f32 minSpd;
@@ -1215,10 +1265,15 @@ void SceElevator(SceElevatorData* d)
     f32 stopDist2;
     f32 spd;
     f32 step;
+    f32 move;
     int faded;
     int done;
+    FadeWork* fade;
+    u32 white;
     int i;
+    int j;
     u32 hSnd;
+    register Vec* jp asm("r25");  // COMPILER-DIFF: register pin (see the comment above the function)
 
     obj = SmdGetObjPtr(d->objId);
     if (obj == 0) {
@@ -1247,23 +1302,28 @@ void SceElevator(SceElevatorData* d)
     if (d->dir == 1 || d->dir == 3) {
         SndCall(6, d->seStart, &obj->pos, 0, 0, 0);
         spd = accel;
-        step = minSpd;
+        jp = &d->jumpPos;
         for (i = 0; i < 10; i++) {
             obj->setPos(&d->pos);
             pPL->setPos(&d->plPos);
-            v.x = obj->pos.x;
-            v.y = fRand1_1() * step + obj->pos.y;
-            v.z = obj->pos.z;
-            obj->setPos(&v);
-            v.x = pPL->pos.x;
-            v.y = fRand1_1() * step + pPL->pos.y;
-            v.z = pPL->pos.z;
-            pPL->setPos(&v);
+            SetPosXYZ(obj, obj->pos.x, fRand1_1() * 10.0f + obj->pos.y, obj->pos.z);
+            SetPosXYZ(pPL, pPL->pos.x, fRand1_1() * 10.0f + pPL->pos.y, pPL->pos.z);
             SceSleep(1);
         }
         obj->setPos(&d->pos);
         pPL->setPos(&d->plPos);
+        // Up loop: a noted loop that loop.c does not process (entered by the goto below = "multiple
+        // entry points"), laid out `b TOP; SLEEP: SceSleep; spd += accel; TOP: ...` (r225.cpp).
+        fade = &Fade[2];
+        white = 0xFF;
+        goto up_top;
         for (;;) {
+            SceSleep(1);
+            // COMPILER-DIFF: candidate (sched1 loop-note barrier). The target issues `spd += accel`
+            // after the SceSleep call; sched1 only keeps it there behind a loop note.
+            do { } while (0);
+            spd += accel;
+        up_top:
             if (spd > maxSpd) {
                 spd = maxSpd;
             }
@@ -1271,115 +1331,82 @@ void SceElevator(SceElevatorData* d)
             if (d->dir == 1) {
                 step = -spd;
             }
-            v.x = obj->pos.x;
-            v.y = obj->pos.y + step;
-            v.z = obj->pos.z;
-            obj->setPos(&v);
-            v.x = pPL->pos.x;
-            v.y = pPL->pos.y + step;
-            v.z = pPL->pos.z;
-            pPL->setPos(&v);
+            SetPosXYZ(obj, obj->pos.x, obj->pos.y + step, obj->pos.z);
+            SetPosXYZ(pPL, pPL->pos.x, pPL->pos.y + step, pPL->pos.z);
             if (faded == 0) {
-                if (!(spd < maxSpd)) {
-                    GXColor c0;
-                    GXColor c1;
-                    *(u32*) &c0 = 0;
-                    *(u32*) &c1 = 0xFF;
-                    FadeSet(2, &c0, &c1, 30, 0, 0);
+                if (spd >= maxSpd) {
+                    FadeSetRGBA(2, 0, white);
                     faded = 1;
                 }
-            } else if (!(Fade[2].flags & 1)) {
+            } else if ((fade->flags & 1) == 0) {
                 BitOff(pG->flags_5014, 0x20000);
-                SceAtExecRoomJump(d->room, &d->jumpPos, &d->jumpRot, 0);
+                SceAtExecRoomJump(d->room, jp, &d->jumpRot, 0);
                 break;
             }
-            SceSleep(1);
-            spd += accel;
         }
     }
     if (d->dir == 0 || d->dir == 2) {
         BitOff(pG->flags_5010, 0x10000000);
         spd = maxSpd;
-        step = stopDist2;
+        move = stopDist2;
         if (d->dir == 0) {
-            step = -step;
+            move = -move;
         }
-        v.x = obj->pos.x;
-        v.y = obj->pos.y + step;
-        v.z = obj->pos.z;
-        obj->setPos(&v);
-        v.z = pl->pos.z;
-        v.y = pPL->pos.y + step;
-        v.x = pl->pos.x;
-        pPL->setPos(&v);
+        SetPosXYZ(obj, obj->pos.x, obj->pos.y + move, obj->pos.z);
+        SetPosXYZ(pPL, pl->pos.x, pPL->pos.y + move, pl->pos.z);
         CamCtrl.Comeback(0);
-        {
-            GXColor c0;
-            GXColor c1;
-            *(u32*) &c0 = 0xFF;
-            *(u32*) &c1 = 0;
-            FadeSet(0x80000002, &c0, &c1, 30, 0, 0);
-        }
+        FadeSetRGBA(0x80000002, 0xFF, 0);
         hSnd = SndCall(6, d->seStart, &obj->pos, 0, 0, 0);
-        do {
+        // Down loop: `for (;;) { body; if (done) { tail; break; } SceSleep(1); }` (r225.cpp): the
+        // rotated loop with the tail inside it; `y` is only the fabs operand, `move` is a second
+        // step variable so `step` dies in the up loop.
+        for (;;) {
             f32 y = obj->pos.y;
-            if (fabsf(d->pos.y - y) < stopDist) {
+            if (__builtin_fabsf(d->pos.y - y) < stopDist) {
                 spd -= accel;
                 if (spd < minSpd) {
                     spd = minSpd;
                 }
             }
-            step = spd;
+            move = spd;
             if (d->dir != 0) {
-                step = -step;
+                move = -move;
             }
-            v.x = obj->pos.x;
-            v.y = y + step;
-            v.z = obj->pos.z;
-            obj->setPos(&v);
-            v.x = pPL->pos.x;
-            v.y = pPL->pos.y + step;
-            v.z = pPL->pos.z;
-            pPL->setPos(&v);
+            SetPosXYZ(obj, obj->pos.x, obj->pos.y + move, obj->pos.z);
+            SetPosXYZ(pPL, pPL->pos.x, pPL->pos.y + move, pPL->pos.z);
             {
-                Vec q = { 0.0f, 0.0f, 0.0f };
-                q.y = step;
+                Vec q = {0.0f, 0.0f, 0.0f};
+                q.y = move;
                 pG->quake_ofs = q;
             }
             done = 0;
             if (d->dir == 0) {
-                if (!(obj->pos.y < d->pos.y)) {
+                if (obj->pos.y >= d->pos.y) {
                     done = 1;
                 }
             }
             if (d->dir == 2) {
-                if (!(obj->pos.y > d->pos.y)) {
+                if (obj->pos.y <= d->pos.y) {
                     done = 1;
                 }
             }
-            if (done == 0) {
-                SceSleep(1);
+            if (done != 0) {
+                if (hSnd) {
+                    SndStop(hSnd, 0);
+                }
+                SndCall(6, d->seStop, &obj->pos, 0, 0, 0);
+                obj->setPos(&d->pos);
+                pPL->setPos(&d->plPos);
+                pPL->setAng(&d->plRot);
+                break;
             }
-        } while (done == 0);
-        if (hSnd) {
-            SndStop(hSnd, 0);
+            SceSleep(1);
         }
-        SndCall(6, d->seStop, &obj->pos, 0, 0, 0);
-        obj->setPos(&d->pos);
-        pPL->setPos(&d->plPos);
-        pPL->setAng(&d->plRot);
-        step = 10.0f;
-        for (i = 0; i < 10; i++) {
+        for (j = 0; j < 10; j++) {
             obj->setPos(&d->pos);
             pPL->setPos(&d->plPos);
-            v.x = obj->pos.x;
-            v.y = fRand1_1() * step + obj->pos.y;
-            v.z = obj->pos.z;
-            obj->setPos(&v);
-            v.x = pPL->pos.x;
-            v.y = fRand1_1() * step + pPL->pos.y;
-            v.z = pPL->pos.z;
-            pPL->setPos(&v);
+            SetPosXYZ(obj, obj->pos.x, fRand1_1() * 10.0f + obj->pos.y, obj->pos.z);
+            SetPosXYZ(pPL, pPL->pos.x, fRand1_1() * 10.0f + pPL->pos.y, pPL->pos.z);
             SceSleep(1);
         }
         obj->setPos(&d->pos);
