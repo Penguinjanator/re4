@@ -3407,7 +3407,7 @@ target) stays unresolved and `make_rel` then fails with "undefined symbol".
   compiled; ss_model Matching since the sixth pass; ss_main Matching since the eighth pass: SubScreenTask's two `lis
   pG@ha` are a dead test, see the eighth-pass item); ss_item Matching since the ninth pass (34/34: itemSelect and
   itemMakeMove closed with #17 pins, and its eleven .bss objects from item_list on made non-static -- the REL's
-  ADDR16 fields hold A only for them, see the ninth-pass item); ss_term (29/29 named functions, eof block open)
+  ADDR16 fields hold A only for them, see the ninth-pass item); ss_term (Matching since the fourteenth pass)
   and ss_model (47/47 since the sixth pass: wep09Init is a plain `else if` chain, NOT compiler-build difference 6) are written, see their items; ss_map (src/Sscrn/
   ss_map.cpp, Matching since the tenth pass (105/105: mapPositionCheck closed with a tagged asm copy,
   the eof block reordered by instantiating LightSetModel2 and ~Widget before atari.h; see the
@@ -3421,7 +3421,7 @@ target) stays unresolved and `make_rel` then fails with "undefined symbol".
   written; ss_shop (src/Sscrn/ss_shop.cpp, the merchant screen: Matching since the thirteenth pass (74/74: SellItemNum::move
   closed with a tagged #13 slot filler, see the thirteenth-pass item; levelItemDisp in the eleventh, LvUpItemSelect::move in the tenth, LvUpConfirm::move in the ninth, BuyItemNum::move in the seventh) incl. the 0x980 eof block, .rodata/.data/.bss
   identical; shop_msg / shop_pos_save / shop_msg_buf are non-static for the REL's ADDR16 fields) is written, see its item and the fifth..thirteenth-pass lists.
-  Sscrn.rel is byte-identical with 10 of 11 units compiled; ss_term stays on its split object (eof vtable/dtor order, see its item).
+  Sscrn.rel is byte-identical with all 11 units compiled (ss_term Matching since the fourteenth pass: out-of-line dead AddButton, the ~Widget specialization device, the dead screenPos2terminalPos pool, STRIP_UNUSED; see its item).
 - ss_shop idioms (2026-09): include order light.h, map_obj.h, widget.h (the three header strings), then
   "ss_shop.dat" (SsShopInit::move) and the HALT string (mem_alloc lines 0x1BA/0x242). The 13 widgets are
   declared in the order SsShopInit, SsShopMain (ss_main.h), ShopTopMenu(3 links, ctor sets cursor = 1),
@@ -14905,3 +14905,104 @@ reads `<PRE>_lreg.txt`/`<PRE>_greg.txt` cut with `fsec.py`; `dump.sh` names its 
   deleted by jump2 as jumps-to-following, which needs the dead arms non-empty at flow2 yet gone at jump2 -- nothing in the
   passes between (reload, reload_cse, sched2) deletes a register set; compiler-side as concluded in pass 5.
 - Not iterated: db_mod (position_usage 34, IKreport 10), db_light (17/22/120/183), t_esp's larger residues.
+
+### Stage rooms, st1_3/st2_0 pass 8 (r210 Matching 12/12 -> flipped; r222 22 -> 26/29, r202 30 -> 31/33, r10f 11 -> 12/15; 2026-09-11)
+
+- Harness ~/.cache/rooms_b8 (rooms_a8 copies with the paths rewritten: `mcmp.py MOD/UNIT [SYM]` with `OBJ=`, `tryv.py
+  MOD/UNIT SYM v/x.py` (variants dict, `(old, new, count)` triples for text that occurs in two functions), `mdump.sh
+  MOD/UNIT -dX` with an ABSOLUTE `SRC_OVERRIDE` (also for a tryv output under `out/`), `sbs.sh`, `fn.sh`, `rtl.py`,
+  `prio.py`; `la_sim.py` = a local-alloc simulator (birth 2n / death 2m, fake lifetime, QTY_CMP_PRI, REG_ALLOC_ORDER
+  r0,r9,r11,r10,r8..) fed with candidate sched1 orders — it reproduced ours for r202 setRock and listed the orders that
+  give the target's names; deleted at the end).
+- **r10f GondolaEmSet 1 -> 0, zero code: byte arithmetic `t + (k * 6 + n * 2)` with `u8* t = (u8*) tbl`.** expr.c
+  both_summands swaps a MULT second operand to the front, so `t[k][n]` is `(plus (mult k 6) t)` everywhere; with the
+  inner sum written first the address expands to `(plus t (plus (mult n 2) (mult k 6)))` (the outer plus keeps the
+  base first because its second operand is a PLUS, not a MULT). The peeled entry test folds n = 0 to `lhax r0,t,k6`
+  (target order) while loop.c's simplify_giv_expr re-associates `(plus t (plus n2 k6))` as `(plus n2 (plus k6 t))`
+  (the USE operand is swapped behind the biv term), so the giv init stays `add p,k6,t`. Rule: to reorder a `(plus REG
+  MULT)` address without changing the giv, write the index sum as its own parenthesised expression.
+- **r202 setRock 4 -> 0 (tagged `candidate #17`, two value-carrying pins `register cObj* o asm("r10"); register cModel*
+  pp asm("r11")` for the `pParts->rot.x = 0.0f` store).** Local-alloc simulation: the target's names (obj r10, pParts
+  r11, -0.024 high r8) come out only when the -0.024 `lis` is issued in the same cycle as the obj load, i.e. before the
+  0.0 `lis`; ours issues the 0.0 chain first (prio 4 vs 3: the -0.024 load has no consumer in the block) and no source
+  form raises the second high's priority (step variable before/after, keep-alives, loop shapes: 4-8). Pinning
+  pParts alone moves obj to r8 (the -0.024 high, span 4, is allocated before obj, span 8); pinning both leaves the high
+  the only free qty -> r8.
+- **r202 throwRock 6 -> 0: `const f32 step = -0.034906585f;` right before `v = -0.06981317f;`** (the const-at-top pool
+  lever, mid-function: the entry is created at the declaration, the uses stay literals; the `.rodata 0x1d8` swap noted in
+  pass 7 was this, not a pool-emission difference). .rodata of st2_0/r202 equal again.
+- **r210 funcAshley2 9 -> 0, zero code: `FSet(p->motSpeedRate, 1.0f)`.** The block's `lwz pSUB` (fixed scalar, for
+  `&pSUB->atari`) depends on a reference store but not on the in-struct `stfs`, so the 1.0 chain (lis, lfs, stfs) gets the
+  `lwz pSUB -> lhz -> ori -> sth -> call` chain's priority and issues before the routine-byte stores like the target;
+  without it the stfs is a leaf and sinks below all four `stb`s. Rule: when a constant store chain sits early in the
+  target although nothing consumes it, look for a fixed-scalar load later in the block and store through a reference.
+- **r210 dai_go 10 -> 0, zero code:** `cModel* m = pPL;` at the top of both `v.x = K; v.z = K; v.y = 0; m->setPos(&v)`
+  blocks (the st4_0 slide_move lever: the pointer load leaves the store block and the two pool constants allocate x f0 /
+  z f13 instead of z f0 / x f13) and the third block written `v.x = 0; v.z = K; v.y = 0` for the target's y, z, x store
+  order (the shared 0.0 register's two stores bracket the z store; the pSUB block needed nothing).
+- **r210 toroko_ret 38 -> 0, zero code: `static inline void r210_setAng(cModel* m, Vec* a) { m->setAng(a); }` for the
+  three setAng calls.** The target recomputes `&ang` (`addi r4,r1,24`) at every setAng while `&pos` is one PRE'd pseudo
+  (`mr r4,r26`); ours had merged the `&ang` uses with the template copy's destination pseudo (`mr r25,r30`, one more
+  callee-saved register, frame naming shift). Through the inline the address is a hard-register argument set (never a
+  gcse occurrence) — the FadeSet/penClothAtMake rule applied to a member call. Unit 12/12, `st2_0/r210.cpp` flipped,
+  111 OK.
+- **r222 BoxMove 13 -> 0 (tagged `#3` / `#13`, asm-emitted high + loads, named pool word).** The target shares ONE
+  `lis 2.12@ha` (r10, set before the `bne`) between the then arm's store and the else arm's limit load, while the wait
+  body reloads it; the block-based LCM never hoists an expression computed only in two sibling arms (isolated at the
+  join), so the shape is #3. Recipe: top-level `asm(".section \".rodata\"\n\t.align 2\nr222_k212:\n\t.long 0x4007b8a5\n
+  \t.section \".text\"")` right before the function (the word lands where the pool entry was; the pool keeps 0.05) +
+  `extern const f32 r222_k212;` + `extern const f32 r222_k212_v asm("r222_k212");`; in the function `register u32 hi
+  asm("r10"); asm("lis %0,%1@ha" : "=r"(hi) : "i"(&r222_k212));` before the `if`, `asm("lfs %0,%1@l(%2)" : "=f"(t) :
+  "i"(&r222_k212), "r"(hi))` in the then arm and — chained on the loaded `rot.x` value with an extra `"f"(r)` input so
+  it issues after `lfs f0,160(r11)` — in the else pre-block; the wait body reads `r222_k212_v` (fold-proof, `mem/u`,
+  `lis r11; lfs f12,@l(r11)` like the target). A function-local `static const f32` + `FCRef` for the wait body puts the
+  word in the same place but schedules the wait body's load last (8 words); the `"f"(r)` chain on the else-arm asm is
+  needed too (2 words without it). `0x4007b8a5` = `2.1206448f` (compute the word with struct.pack; a wrong word only
+  shows in the .rodata compare).
+- **r222 dragon_down2/3 49+43 -> 0, zero code: `int hit = 0; u32 i = 0; int zero2 = 0;` declared AFTER the two EstSets
+  (mid-block), only `int zero = 0` at the top.** The target has four zero registers (zero r30 local-alloc'd, hit r24,
+  i r25, zero2 r23 global). cse canonicalises a register use to the class member with the latest REGNO_LAST_UID
+  (`make_regs_eqv`): with all four set at the top, `zero`'s stack stores are rewritten to `hit`/`i` (whose last mentions
+  are in the loop) and zero dies. Declared after zero's last use, the three inits join the class after its stores were
+  processed; sched1 still hoists their `li`s above the calls to the block top (a `li` has no dependence on a preceding
+  call), and `zero`, now block-local, takes r30 from local-alloc ahead of the globals. A tail mention of `zero`
+  (`SceExec(.., zero, ..)`) keeps it the class head but survives as a `(use)`/copy and makes it global (r25): wrong.
+- **r222 dragon_down 51 -> 0, zero code: `&obj->pos` written at both SndCall sites instead of a `Vec* pos` local.**
+  gcse PREs the address into the CutCall(4) block's end = between LOOP_BEG and the entry jump of the following poll loop,
+  which makes that loop phony for loop.c (the r113 execHide mechanism): its test reloads `lis CamCtrl@ha` per iteration
+  and the exit code reuses that high for CutCall(5), exactly the target's shape; the pointer local sat above the
+  EstSet and let loop.c hoist the high (`addi r3,r29`). goto forms of the poll loops: 20-191 words.
+- **r222 R222Init 88 -> 72:** `R222Work*& wp = r222_work.p; wp = MEM_CALLOC(..)` hoists the calloc store's `lis
+  r222_work@ha` into a callee-saved register before the call (the r11b/r402 idiom; a second high from the same symbol as
+  the later loads' r31), `BitOn(SmdGetObjPtr(0x15)->be_flag, 0x20)` for the store before the first RsfCheck (`lwz pG`
+  below it). Left (72): the four `r222_setHit` blocks — the target loads the first two YarareInitCube constants BEFORE
+  the `hit[no]` store and reloads `r222_work.p` only after them (`lwz r9; li r4; lfs f1; li r5; stw r3,36(r9); lfs f4;
+  fmr f3; lwz r9; lfs f2; fmr f6; lfs f5; lwz r3,36(r9)`); in ours every `lfs` of the block depends on the `stw
+  r3,36(r9)` with cost 2 (`-fsched-verbose-6`: the store's dependents include the four pool loads although they are
+  `mem/u` and the store is a plain in-struct MEM) and the work reload is issued first. PSet/RefHit/reference views do
+  not remove that dependence; the mechanism (why a pool load waits for an in-struct store here) was not identified.
+  Also the two PRE'd highs `lis pG`/`lis r222_work` in the prologue come out in the other order (gcse hash order).
+- **r222 R222Main 7 (left, mechanism read):** target `li r0,30; lis r9,tpl@ha; stw r0,112(r11); addi r30,r1,8; lwz
+  r11,tpl@l(r9); addi r9,r9,tpl@l; lwz r10,8(r9); lwz r0,4(r9)` = the template copy's word-0 temp took r11 (the work
+  pointer's register, dead at the `stw`) and the addi-low is tied to the high, so sched2's anti-dependences give the
+  order. That needs sched1 to issue `stw` before `lwz word0` and `lwz word0` before `addi-low`; ours issues the word-0
+  load at t2 (mem/u, no dependence on the store) with the addi-low, the store at t3. A `static const Vec` + assignment
+  (`pos = sePos`) makes the loads non-/u so they wait for the store, but with cost 2 the word-0 load lands at t4 and the
+  addi-low at t2 (untied, `addi r11,r9`), 7-14 words in every spelling (init/assign/cast/memcpy/pointer/IntSet/dead
+  do-while); no form found.
+- **r202 initCatapult 67 (left, #3 read exactly):** gcse PREs `high(r202_work)` to the end of bb 0 (before the tbl
+  template loop) in both builds (`-dG`: reaching reg inserted, copies in the for body and in the after-loop block, both
+  carrying cse1's `REG_EQUAL (high ..)` note). loop1 re-materialises the body copy in the preheader (chain B, `lis r30`
+  in both), cse2 re-materialises the after-loop copy in ours (cost 0 < REG) while the target uses the bb-0 register
+  directly (`lwz r3,0(r27)` x8) and stores the loop's zero pseudo (`stw r28,180`) after the loop. The after-loop copy
+  sits in the same block as its uses (calls do not end blocks here: 5 bbs), so cprop cannot propagate it; a REG_EQUAL
+  copy is always re-materialised by cse2. `int zero` forms 67-93, `R202Work*&` view / dead do-while unchanged.
+- **r10f GondolaGetOff 77 / GetOn 141 (left, read):** the target keeps `side` (`mr r23,r3`) and forms `&posA[side]` as
+  `mulli r4,r23,12; add r4,r4,r31; addi r4,r4,24` off the mot table's frame pseudo (cse related value of `(plus fp 32)`
+  through `(plus fp 8)`) with the posA copy's own address pseudo dying at the copy (r11); ours hoists `side*12`
+  (`mulli r23,r3,12` in the prologue) and keeps `&posA` in a callee-saved register. The 24-byte two-Vec template
+  copies load word 0 then 12,16,20 then 4,8 in the target and 0 then 20,4,8,12,16 in ours (the "second word pair"
+  family); frame 0x14 bigger in the target.
+- Fact confirmed: `expr.c both_summands` — "put a constant term last and put a multiplication first": `if (CONSTANT_P
+  (op0) || GET_CODE (op1) == MULT) swap`; a PLUS second operand is never swapped. loop.c `simplify_giv_expr` PLUS: a USE
+  (invariant) first operand is swapped behind a non-USE/non-CONST_INT second operand, two USEs keep their order.

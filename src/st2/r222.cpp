@@ -108,9 +108,14 @@ void R222Init()
 {
     cModel* m;
 
+    // Reference store for the calloc result: its `lis r222_work@ha` is hoisted into a callee-saved register
+    // before the call (the r11b/r402 idiom); the sixth be_flag store is a BitOn so the RsfCheck's `lwz pG`
+    // stays below it.
+    R222Work*& wp = r222_work.p;
+
     pG->flags_64 |= 0x20000;
 #line 70 "D:/Bio4/Prog/r222.cpp"
-    r222_work.p = (R222Work*) MEM_CALLOC(sizeof(R222Work), 1, 0xd);
+    wp = (R222Work*) MEM_CALLOC(sizeof(R222Work), 1, 0xd);
     pG->flags_5010 |= 1;
     Espgen42SetNoWater(1);
     SmdGetObjPtr(0xA)->be_flag |= 0x20;
@@ -118,7 +123,7 @@ void R222Init()
     SmdGetObjPtr(0xF)->be_flag |= 0x20;
     SmdGetObjPtr(0x10)->be_flag |= 0x20;
     SmdGetObjPtr(0x14)->be_flag |= 0x20;
-    SmdGetObjPtr(0x15)->be_flag |= 0x20;
+    BitOn(SmdGetObjPtr(0x15)->be_flag, 0x20);
     if (RsfCheck(G_ROOM_ID, 0)) {
         SatMgr.create(ROOM_ARC_PTR(pG->pRoomArc, 5), 0, &r222_zero, &r222_zero, 4);
         EatMgr.create(ROOM_ARC_PTR(pG->pRoomArc, 5), 0, &r222_zero, &r222_zero, 5);
@@ -235,23 +240,39 @@ static void r222_TreasureBoxOpened(int id)
 }
 
 // Treasure box lid: swings the parts open (`opened` 1: already open).
+// 2.1206448f as a named .rodata word in the pool position (see the COMPILER-DIFF note in r222_BoxMove).
+asm(".section \".rodata\"\n\t.align 2\nr222_k212:\n\t.long 0x4007b8a5\n\t.section \".text\"");
+extern const f32 r222_k212;
+extern const f32 r222_k212_v asm("r222_k212");
+
 void r222_BoxMove(cObj* obj, int opened)
 {
     SndCall(6, 0x5B, &obj->pos, 0, 0, 0);
     obj->be_flag |= 0x20;
+    // COMPILER-DIFF: #3 (the original's gcse shares one `high` of the 2.12 constant between the two arms
+    // of the `if`; ours computes it per arm) / #13 (asm-emitted high and loads, the pool word as a named
+    // .rodata object in its pool position): the high lives in r10 across the branch, both arms load
+    // through it, the wait body reloads the word through the extern view.
+    register u32 hi asm("r10");
+    asm("lis %0,%1@ha" : "=r"(hi) : "i"(&r222_k212));
     if (opened == 1) {
-        obj->pParts->rot.x = 2.1206448f;
+        f32 t;
+
+        asm("lfs %0,%1@l(%2)" : "=f"(t) : "i"(&r222_k212), "r"(hi));
+        obj->pParts->rot.x = t;
     } else {
         f32 lim;
+        f32 r;
         // a goto loop: the constants are reloaded per iteration; the limit is computed in both
         // predecessors of `test` (the target loads 2.12 there and compares/stores that register)
-        obj->pParts->rot.x += 0.05f;
-        lim = 2.1206448f;
+        r = obj->pParts->rot.x;
+        asm("lfs %0,%1@l(%2)" : "=f"(lim) : "i"(&r222_k212), "r"(hi), "f"(r));
+        obj->pParts->rot.x = r + 0.05f;
         goto test;
     wait:
         SceSleep(1);
         obj->pParts->rot.x += 0.05f;
-        lim = 2.1206448f;
+        lim = r222_k212_v;
     test:
         if (!(obj->pParts->rot.x > lim)) {
             goto wait;
@@ -407,7 +428,6 @@ static void dragon_down()
     cObj* obj;
     cObj* o14;
     cObj* o15;
-    Vec* pos;
     f32 h;
     u32 n;
     u32 i;
@@ -445,7 +465,9 @@ static void dragon_down()
     }
     EstSet((int) o14, -1, 0, 0, 1, 8, 1, 0, 0, 0);
     CamCtrl.CutCall(4);
-    pos = &obj->pos;
+    // `&obj->pos` written at both SndCall sites (no pointer local): gcse PREs it into this block's end,
+    // between LOOP_BEG and the entry jump of the poll loop, so loop.c ignores that loop and its test
+    // reloads `lis CamCtrl@ha` per iteration like the first one (the r113 execHide phony-loop shape).
     while (CamCtrl.IsMotionEnd() == 0) {
         SceSleep(1);
     }
@@ -456,12 +478,12 @@ static void dragon_down()
     CamCtrl.CutCall(5);
     n = 120;
     h = h / (f32) n;
-    SndCall(6, 0x10, pos, 0, 0, 0);
+    SndCall(6, 0x10, &obj->pos, 0, 0, 0);
     for (i = 0; i < n; i++) {
         obj->pos.y += h;
         SceSleep(1);
     }
-    SndCall(6, 0x11, pos, 0, 0, 0);
+    SndCall(6, 0x11, &obj->pos, 0, 0, 0);
     SceSleep(15);
     while (CamCtrl.IsMotionEnd() == 0) {
         SceSleep(1);
@@ -525,8 +547,6 @@ static void dragon_down2()
 {
     Vec pos;
     int zero = 0;
-    int hit = 0;
-    u32 i = 0;
     cObj* oA;
     cObj* oB;
     f32 spd;
@@ -541,6 +561,13 @@ static void dragon_down2()
     SndCall(6, 0xD, &SmdGetObjPtr(0xD)->pos, 0, 0, 0);
     MotionSetCore(oA, &oA->mot, ROOM_ARC_PTR(pG->pRoomArc, 0x1F), 0, 0, 1, 0);
     MotionSetCore(oB, &oB->mot, ROOM_ARC_PTR(pG->pRoomArc, 0x1F), 0, 0, 1, 0);
+    // hit / i / zero2 declared after the EstSets: `zero` then has the latest last-mention when cse
+    // canonicalises its stack stores (a zero declared at the top with them would lose them to `hit`) and
+    // stays block-local (r30, local-alloc); sched1 hoists the three `li`s to the block top anyway.
+    int hit = 0;
+    u32 i = 0;
+    int zero2 = 0;
+
     spd = 0.0f;
     for (i = 0; i < 90; i++) {
         spd += -15.0f;
@@ -548,8 +575,6 @@ static void dragon_down2()
         oB->pos.y += spd;
         SceSleep(1);
         if (hit == 0 && oA->pos.y < -3500.0f) {
-            int zero2 = 0;
-
             pos = oA->pos;
             pos.y = -10000.0f;
             EstSet(0, -1, &pos, 0, 1, 0xC, 1, 0, zero2, (void*) zero2);
@@ -615,8 +640,6 @@ static void dragon_down3()
 {
     Vec pos;
     int zero = 0;
-    int hit = 0;
-    u32 i = 0;
     cObj* oA;
     cObj* oB;
     f32 spd;
@@ -631,6 +654,13 @@ static void dragon_down3()
     SmdGetObjPtr(0x12)->be_flag &= ~2;
     SmdGetObjPtr(0x13)->be_flag &= ~2;
     SndCall(6, 0xD, &SmdGetObjPtr(0x12)->pos, 0, 0, 0);
+    // hit / i / zero2 declared after the EstSets: `zero` then has the latest last-mention when cse
+    // canonicalises its stack stores (a zero declared at the top with them would lose them to `hit`) and
+    // stays block-local (r30, local-alloc); sched1 hoists the three `li`s to the block top anyway.
+    int hit = 0;
+    u32 i = 0;
+    int zero2 = 0;
+
     spd = 0.0f;
     for (i = 0; i < 90; i++) {
         spd += -15.0f;
@@ -638,8 +668,6 @@ static void dragon_down3()
         oB->pos.y += spd;
         SceSleep(1);
         if (hit == 0 && oA->pos.y < -3500.0f) {
-            int zero2 = 0;
-
             pos = oA->pos;
             pos.y = -10000.0f;
             EstSet(0, -1, &pos, 0, 1, 0xC, 1, 0, zero2, (void*) zero2);

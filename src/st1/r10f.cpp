@@ -379,11 +379,12 @@ static void r10f_GondolaEmSet(int idx)
     } else {
         cur = idx + 7;
     }
-    // `t[k][n]` with a row-pointer view of the table: the k*6 offset stays a per-iteration
-    // `mulli`, the n loop gets a stepping pointer giv, and the peeled entry test reads
-    // `lhax t,k*6`. Left (1 word): the target's lhax has the base first (`(plus t ofs)`), ours
-    // the MULT term first (expr.c both_summands "put a multiplication first").
-    s16 (*t)[3] = tbl;
+    // Byte arithmetic `t + (k*6 + n*2)`: the inner sum expands to (plus n2 k6) (expr.c both_summands
+    // swaps a MULT second operand to the front) and the outer plus then keeps the base first, `(plus t
+    // (plus n2 k6))`. The peeled entry test folds n = 0 to `lhax r0,t,k6` (base first, like the target) while
+    // loop.c's simplify_giv_expr associates the address as `(plus n2 (plus k6 t))`, so the stepping
+    // pointer's init stays `add p,k6,t`. `t[k][n]` gives `(plus (mult k 6) t)` in both places.
+    u8* t = (u8*) tbl;
 
     for (k = 0; k < 6; k++) {
         u32 n;
@@ -391,8 +392,8 @@ static void r10f_GondolaEmSet(int idx)
         while (r10f_work.p->gondola[cur]->motFrame <= 2000.0f) {
             SceSleep(1);
         }
-        for (n = 0; n < 3 && t[k][n] != -1; n++) {
-            if (em.setEm(t[k][n], -1, 0, 1, 0) == 1) {
+        for (n = 0; n < 3 && *(s16*) (t + (k * 6 + n * 2)) != -1; n++) {
+            if (em.setEm(*(s16*) (t + (k * 6 + n * 2)), -1, 0, 1, 0) == 1) {
                 r10f_work.p->gondola[cur]->setRideEm(em.getPtr());
             }
         }

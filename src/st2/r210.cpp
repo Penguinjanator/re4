@@ -195,9 +195,9 @@ static void funcAshley2(cEm* p)
     if (p->motionMove()) {
         cAtariInfo* at;
 
-        // Residual: the original issues these stores in pure source order (ff, 298, fc, fd, fe);
-        // ours applies the dying-store rule to the shared zero (OPEN family).
-        p->motSpeedRate = 1.0f;
+        // Reference store: the `lwz pSUB` (fixed scalar) below depends on an unflagged MEM store but
+        // not on an in-struct one, which is what ranks the 1.0 chain above the routine bytes.
+        FSet(p->motSpeedRate, 1.0f);
         EmRoutineSet(p, 0, 0, 0, 0);
         at = &pSUB->atari;
         at->throughOff();
@@ -227,10 +227,16 @@ static void r222_dai_go()
         CamCtrl.CutCall(5);
         SetPlDamage(0, plemRide);
         pPL->setNoSuspend(1);
-        v.x = -154.0f;
-        v.z = -17194.0f;
-        v.y = 0.0f;
-        pPL->setPos(&v);
+        {
+            // `cModel* m = pPL` at the block top: the pointer load leaves the store block and the two pool
+            // constants' local-alloc order gives x f0 / z f13 (the st4_0 slide_move lever).
+            cModel* m = pPL;
+
+            v.x = -154.0f;
+            v.z = -17194.0f;
+            v.y = 0.0f;
+            m->setPos(&v);
+        }
         v.y = PI;
         v.x = 0.0f;
         v.z = 0.0f;
@@ -254,10 +260,14 @@ static void r222_dai_go()
         }
         pSUB->motSpeedRate = 1.0f;
     }
-    v.x = -154.0f;
-    v.z = -17194.0f;
-    v.y = 0.0f;
-    pPL->setPos(&v);
+    {
+        cModel* m = pPL;
+
+        v.x = -154.0f;
+        v.z = -17194.0f;
+        v.y = 0.0f;
+        m->setPos(&v);
+    }
     v.y = PI;
     v.x = 0.0f;
     v.z = 0.0f;
@@ -273,9 +283,9 @@ static void r222_dai_go()
     SmdGetObjPtr(0x21)->be_flag |= 0x20;
     CamCtrl.CutCall(1);
     SndCall(6, 1, &SmdGetObjPtr(0x21)->pos, 0, 0x80000000, 0);
-    v.y = 0.0f;
+    v.x = 0.0f;  // x, z, y: the original issues y, z, x (the shared 0.0 register's stores bracket the z store)
     v.z = -17270.0f;
-    v.x = 0.0f;
+    v.y = 0.0f;
     pPL->setPos(&v);
     while (SmdGetObjPtr(0x21)->pos.z > r210_daiZGo) {
         f32 dz;
@@ -432,6 +442,14 @@ static void toroko_go(int dir)
     }
 }
 
+// Inline taking the angle by pointer: the caller's `&ang` becomes a hard-register argument set at each
+// call (never a gcse occurrence), so it is recomputed `addi r4,r1,24` instead of sharing the template copy's
+// address pseudo.
+static inline void r210_setAng(cModel* m, Vec* a)
+{
+    m->setAng(a);
+}
+
 // The cart ride back from r212 (dir 0: left cart, 1: right cart).
 static void toroko_ret(int dir)
 {
@@ -465,17 +483,17 @@ static void toroko_ret(int dir)
         Vec* pp = &pos;
 
         p->setPos(pp);
-        p->setAng(&ang);
+        r210_setAng(p, &ang);
         {
             cSubChar* sub = pSUB;
 
             if (sub) {
                 sub->setPos(pp);
-                sub->setAng(&ang);
+                r210_setAng(sub, &ang);
             }
         }
         obj->setPos(pp);
-        obj->setAng(&ang);
+        r210_setAng(obj, &ang);
     }
     pPL->setNoSuspend(1);
     if (pSUB) {

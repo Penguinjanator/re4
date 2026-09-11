@@ -1007,7 +1007,17 @@ static void r202_setRock(cCatapult* c)
         int i;
 
         c->setRock();
-        c->obj->pParts->rot.x = 0.0f;
+        {
+            // COMPILER-DIFF: candidate #17 (local-alloc qty order): the original's sched1 issued the
+            // -0.024 high before the 0.0 high, so its local-alloc gave obj/pParts r10/r11 and the -0.024
+            // high r8; ours issues the highs the other way round (equal priority, LUID) and names them
+            // r10/r9/r11. Value-carrying pins on the two pointers give the target's names.
+            register cObj* o asm("r10");
+            register cModel* pp asm("r11");
+            o = c->obj;
+            pp = o->pParts;
+            pp->rot.x = 0.0f;
+        }
         for (i = 10; i != 0; i--) {
             c->obj->pParts->rot.x += -0.024137001f;
             SceSleep(1);
@@ -1044,6 +1054,9 @@ static void r202_throwRock(cCatapult* c)
         SceSleep(1);
     }
     c->throwRock();
+    // Pool order: the loop step -0.0349 precedes -0.0698 in the original's pool; the const declaration
+    // creates the entry here while every use stays the literal (no code change).
+    const f32 step = -0.034906585f;
     v = -0.06981317f;
     lim = -0.24137f;
     // Loop shapes (see AGENTS.md COMPILER-DIFF #7/#9, both closed as source forms): the exit store on
