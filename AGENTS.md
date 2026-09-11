@@ -25188,3 +25188,51 @@ v*.c / a*.c / e*.c variants. No pins, no pragmas; all edits are declaration orde
 - Harness used (deleted): a 20-line script running `~/.cache/kit/rtl.sh UNIT SRC --out DIR -dL`, then parsing the
   `.loop` dump for `Loop from A to B: N real insns.` and each `Insn U: regno R (life L), ... moved|not desirable`
   into one line per loop next to bytecmp's word count; ~1 s per variant. Judge the movable list first, bytes second.
+
+### CRI flag search: block split (no MWCC 2.4.7 option or pragma controls the >100 split — it is an immediate `cmp ..,100` in the statement codegen loop; nothing applied; 2026-09-12)
+Harness ~/.cache/cri_flags/ (kept small: `probe.sh "<cflags>" [src] [func]` = mwcc-debugger GC/2.6 run with an arbitrary flag string,
+prints the backend-00 block sizes; `cands.py`/`cands2.py` + `run.sh`/`run2.sh` = the candidate lists; `results.txt` = every result;
+`mw27.dis` = `objdump -d -M intel` of GC/2.7 mwcceppc.exe; `help.txt` = `mwcceppc -help`). Probe TU `probe.c` = 51 x `x = x*3+1;`
+(102 emitted instructions) then `d[0] = x; d[1] = x+1;`: split = `B2=102 B3=4`, unsplit would be one block of 106.
+- **Command-line sweep (75 variants, all SPLIT):** `-O4` / `-O4,s` / `-O3,p` / `-O2,p` / `-O1,p` / `-O0`; `-opt level=4` alone, `+peephole`,
+  `+schedule`, `+peephole,schedule`, `-opt all`; on top of `-O4,p`: `-opt noschedule/nopeep/nospeed/space/nocse/nodeadcode/nodeadstore/
+  nolifetimes/noloop/noprop/nostrength/nointrinsics`; `-schedule off/on`; `-inline off/on/all/auto,deferred/auto,level=0/auto,level=8/
+  noauto`; `-func_align 8/32`; `-pool off`; `-str readonly,noreuse` / `readonly,pool`; `-common on`; `-RTTI off`; `-nosyspath`; `-proc
+  750/generic/7400/603`; `-fp_contract off`; `-fp soft`; `-use_lmw_stmw off`; `-sdata 8 -sdata2 8`; `-g`; `-sym on`; `-enum min`; `-char
+  unsigned`; `-Cpp_exceptions on`; `-vector on`; `-profile on`; `-model other`; `-strict on`; no `-nodefaults`; `-little`; `-align mac68k`;
+  `-r`; `-msext on`; `-noprecompile`; `-once`. Rejected by the driver (no object): `-ipa file`, `-ipa function`, `-unroll`. The only
+  shape changes: scheduling OFF (`-O3,p`/`-O2,p`/`-O1,p`/`-opt level=4[,peephole]`/`-opt noschedule`/`-schedule off`) gives `B1=100
+  B2=6` (no empty entry block, the split one statement earlier — still split); `-O0` gives `B1=102 B2=3`; `-profile on` adds an empty block.
+- **Pragma sweep via `-pragma '...'` (76 variants, all SPLIT):** `scheduling off/750/7450`, `optimization_level 0..4`, `peephole off`,
+  `global_optimizer off/on`, `opt_common_subs/opt_dead_assignments/opt_dead_code/opt_lifetimes/opt_loop_invariants/opt_propagation/
+  opt_strength_reduction off`, `opt_strength_reduction_strict on`, `opt_unroll_loops on/off`, `opt_vectorize_loops on`, `optimize_for_size
+  on/off`, `optimizewithasm on`, `pool_data off`, `merge_float_consts off`, `inline_depth(8)`, `inline_max_size(1000)`,
+  `inline_max_total_size(100000)`, `auto_inline on`, `dont_inline on`, `always_inline on`, `inline_bottom_up on`, `explicit_zero_data on`,
+  `strict_conditional on`, `gen_fsel on`, `no_register_save_helpers on`, `register_coloring off`, `fp_contract off`, `far_data on`,
+  `switch_tables off`, `volatile_asm on`, `profile on`, `sym off`, `traceback off`, `longlong on`, `min_enum_size int`, `unsigned_char on`,
+  `ANSI_strict on`, `only_std_keywords on`, `require_prototypes on`, `check_c_src_compat on`, `defer_codegen on`, `direct_destruction on`,
+  `suppress_init_code on`, `altivec_model/altivec_codegen on`, `processor 750/generic`, `code_seg text`, `ipa file/function/off`, and the
+  unknown-pragma guesses (`loop_unroll`, `unroll`, `opt_loop_unroll`, `unroll_loops`, ... = warnings only). Driver errors (no object):
+  `ppc_unroll_speculative`, `ppc_unroll_instructions_limit`, `ppc_unroll_factor_limit`, `interrupt`, `section text`, `precompile_target`.
+- **Why nothing can work — read off the GC/2.7 binary (`mw27.dis`, statement codegen loop at 0x433726..0x433c91, `switch (stmt->type)`
+  through the table at 0x5a763c):** for ST_EXPRESSION (0x433749), ST_IFGOTO (0x4337e5), ST_IFNGOTO (0x433845), ST_GOTOEXPR (0x4338a5),
+  ST_GOTO (0x433988), ST_RETURN (0x433a15) and ST_SWITCH (0x433a89) the handler does `if (pclastblock->pcodeCount == 0) pclastblock->line =
+  stmt->line; if (pclastblock->pcodeCount > 100) { b = makepcblock(); pcbranch_link(b); }` before generating the statement
+  (`cmp WORD PTR [edi+0x28],0x64; jle +0xc; call 0x4dd020; push eax; call 0x4eadb0`; `pclastblock` = ds:0x5eea88, `pcodeCount` = the s16 at
+  +0x28 the debugger reads). The 100 is an IMMEDIATE; no global, option bit or pragma variable is read anywhere in the check. ST_LABEL,
+  ST_NOP and ST_ASM (0x433c1f, the inline-asm statement) have no check. The identical 7-site byte pattern `66 83 7f/7e 28 64 7e 0c e8` is in
+  GC/1.3.2, 2.0, 2.5, 2.6 and 2.7 (every 2.4.2/2.4.7 build we have); GC/3.0a3 (4.1) has 0 sites (irrelevant: 4.x loses every CRI unit).
+- **Exact rule (probes g/h):** the check runs BEFORE each statement and never inside one: 50 statements (100) + one 60-instruction
+  statement = ONE block of 160 (probe_g); 51 statements (102) + the same statement = 102 | 61 (probe_h). Frontend forwarding decides the
+  statement sizes: in the current 4p body the single-use `p0..p7` assignments emit nothing (their sums are forwarded into the `d[k]`
+  statements: line 52 = 24, 53 = 20, 70 = 24, 71 = 20 instructions), the dual-use pixel loads stay 1-instruction statements; count before
+  `d[16]` = 87, after = 111 > 100 -> split before `d[17]`.
+- **Consequence for the target's 124-instruction body:** its block ends with the `if (i == 7)` IFNGOTO (`cmpwi r4,7 .. bne`, the loop
+  itself is `mtctr/bdnz` with `i` kept in r4 for the test), which is a checked statement, so at codegen time the block held <= 100
+  instructions BEFORE the `if` and no post-codegen pass in our dumps ever merges the split blocks (B3/B4 stay separate through backend-14).
+  Ours emits 136 initial instructions for the body (134 before the `if`; peephole-forward only turns `rlwinm/or` packs into `rlwimi`,
+  -12; the +9 are coalesced `mr`s), so the target's source emitted <= 100 initial instructions for the same 122 final ones: either the original's initial
+  PCode was >= 22 instructions more compact than ours (a form some backend pass expands — not seen in any of our passes) or its statement
+  set differs (e.g. the two stores of a half-row in one statement AND the pointer steps/`if` not last). This is the C-shape question the
+  next pass has to answer; it is NOT a flag/pragma/compiler-build question (mpv_mcy 4p stays 136w under every candidate — untested
+  per-unit because no candidate unsplit the probe; steps 2/3 of the flag plan therefore did not run).
