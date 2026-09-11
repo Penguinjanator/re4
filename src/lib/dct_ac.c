@@ -38,6 +38,13 @@ static void dctac_TransDouble(Float64 *in, Float64 *out, Float64 c[8][8])
 	}
 }
 
+/* the cosine argument of the (i, j) coefficient: a helper defined here creates its 0.5 and int->double
+ * literals before DCT_AcInit's own (0.5, cvt, 0.3535, pi/8 = the target's .rodata order) */
+static Float64 dctac_Cos(Float64 w, Sint32 j)
+{
+	return cos(w * (0.5 + (Float64)j));
+}
+
 void DCT_AcIdctDouble(Float64 *in, Float64 *out)
 {
 	dctac_TransDouble(in, out, dctac_i_const);
@@ -54,16 +61,28 @@ void DCT_AcFdctDouble(Float64 *in, Float64 *out)
  * (every build in build/compilers/GC pools; 1.3.2r pools nothing, -pooldata off also unpools .bss).
  * In the DOL, literal-only functions are never pooled (adx_dcd ADX_GetCoefficient, adx_sje, mpvabdec)
  * but a function that also references a string pools literals with it (adx_tlk ADXT_GetTime/Create).
- * Pure C by project decision (CRI pass 8); the residue is the pool base. */
+ * CRI pass 18b: `#pragma pool_data off` removes the rodata pool but also the .bss pool the target
+ * keeps (dctac_i_const = the .bss start, dctac_version_dummy at +0x400, dctac_f_const at +0x200), so
+ * the .bss pool base and the two table pointers are asm-emitted pool addresses (COMPILER-DIFF: M2);
+ * 7 words left: the base is coloured r29 (ours ranks it below the loop temporaries), r31 in the
+ * target (reused by the int->double constant after the base dies), and the second `addi` slot. */
+#pragma pool_data off // COMPILER-DIFF: M2
 void DCT_AcInit(void)
 {
+	register Uint8 *bss; // COMPILER-DIFF: M2 (.bss pool base)
+	register Uint8 *hi; // COMPILER-DIFF: M2
+	register Float64 *ip; // COMPILER-DIFF: M2 (dctac_i_const row pointer = pool + 0)
+	register Float64 *fp; // COMPILER-DIFF: M2 (dctac_f_const column pointer = pool + 0x200)
 	Sint32 i;
 	Sint32 j;
 	Float64 c;
 	Float64 w;
 	Float64 v;
 
-	dctac_version_dummy = DCT_GetVerStr();
+	asm { lis hi, dctac_i_const@ha; addi bss, hi, dctac_i_const@l } // COMPILER-DIFF: M2
+	*(const Char8 **)(bss + 0x400) = DCT_GetVerStr(); /* dctac_version_dummy through the pool */
+	asm { addi ip, bss, dctac_i_const@l } // COMPILER-DIFF: M2
+	asm { addi fp, bss, dctac_f_const@l } // COMPILER-DIFF: M2
 	for (i = 0; i < 8; i++) {
 		if (i == 0) {
 			c = 0.3535533905932738;
@@ -72,9 +91,12 @@ void DCT_AcInit(void)
 		}
 		w = (DCTAC_PI / 8.0) * (Float64)i;
 		for (j = 0; j < 8; j++) {
-			v = c * cos(w * (0.5 + (Float64)j));
-			dctac_i_const[i][j] = v;
-			dctac_f_const[j][i] = v;
+			v = c * dctac_Cos(w, j);
+			ip[j] = v;
+			fp[j * 8] = v;
 		}
+		ip += 8;
+		fp++;
 	}
 }
+#pragma pool_data on

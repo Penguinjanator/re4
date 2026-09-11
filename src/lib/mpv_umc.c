@@ -694,7 +694,10 @@ L_80206C54:
  * The nested `yhx = (vx = ..) & 1` keeps yhx's `vx & 1` apart from the kernel index (the frontend
  * CSE'd them, range-splitting yhx below the parameters): yhx r24 / chx r23 as the target. OPEN 69w:
  * cvx/vx/vy are level-2 nodes in ours (>= 29 neighbours, coloured r0/r6/r4 before the temporaries)
- * and level-1 in the target (r28/r25/r11, coloured after them). */
+ * and level-1 in the target (r28/r25/r11, coloured after them). `mby8`/`mby16` as own locals give
+ * the target's `mullw r0, mby8, cpitch` operand order (an anonymous `mby * 8` is the second operand;
+ * CRI pass 18b, 69 -> 68w); hard pins of vx r25 / vy r11 poison the temporaries the target reuses
+ * those registers for (74w). */
 void mpvumc_OneReadMb(MPVUMC_OBJ *mpv, Uint8 *dst, Sint32 *ofs, MPVUMC_RFB *rfb, MPV_MV *mv)
 {
 	Sint32 cpitch;
@@ -716,14 +719,18 @@ void mpvumc_OneReadMb(MPVUMC_OBJ *mpv, Uint8 *dst, Sint32 *ofs, MPVUMC_RFB *rfb,
 	MPVUMC_MCFUNC (*tbl_c)[2];
 	MPVUMC_MCFUNC (*tbl_y)[2];
 	Sint32 mcflag;
+	Sint32 mby8;
+	Sint32 mby16;
 
 	mby = mpv->mb_y;
 	cpitch = rfb->cpitch;
 	mbx = mpv->mb_x;
 	mcflag = mpv->mcflag;
 	ypitch = rfb->ypitch;
-	ofs[0] = mbx * 8 + mby * 8 * cpitch;
-	ofs[1] = mbx * 16 + mby * 16 * rfb->ypitch;
+	mby8 = mby * 8;
+	ofs[0] = mbx * 8 + mby8 * cpitch;
+	mby16 = mby * 16;
+	ofs[1] = mbx * 16 + mby16 * rfb->ypitch;
 	tbl_y = mpvumc_oneref_y[mcflag];
 	tbl_c = mpvumc_oneref[mcflag];
 	yhx = (vx = mv->vec[0]) & 1;

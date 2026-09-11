@@ -362,10 +362,11 @@ void ADXB_ExecOneAdx(ADXB adxb)
 	Sint32 pad;
 	Sint32 nch;
 	Sint32 blksmpl;
-	Sint32 ofst;
+	register Sint32 ofst; // COMPILER-DIFF: M1
 	Sint32 i;
 	Sint32 n;
 	ADXPD_OBJ *pd;
+	register Sint32 x70; // COMPILER-DIFF: M1
 	Sint32 nsmpl;
 	Sint32 nblk;
 	Sint32 nblk2;
@@ -399,7 +400,8 @@ void ADXB_ExecOneAdx(ADXB adxb)
 			bufsmpl = adxb->x40;
 			chofst = adxb->x44;
 			ofst = blksmpl - 1;
-			ofst += adxb->wr_x70;
+			x70 = adxb->wr_x70;
+			asm { add ofst, x70, ofst } // COMPILER-DIFF: M1 (ofst += x70: the target's `add o, X, o` operand order; every C spelling gives `add o, o, X` or CSEs blksmpl - 1 into pad)
 			nblk2 = ofst / blksmpl;
 			pad = (blksmpl - 1) - ofst % blksmpl;
 			nblk = ADXPD_GetNumBlk(adxb->pd);
@@ -431,15 +433,20 @@ void ADXB_ExecOneAdx(ADXB adxb)
 }
 
 /* hand the input to the expander: stereo, Pro Logic II or mono (the `void *` copies keep the
- * arms' wr_pos reloads apart from the caller's pos, and the out_nch/xdc tests in the caller) */
+ * arms' wr_pos reloads apart from the caller's pos, and the out_nch/xdc tests in the caller;
+ * `pcm = pcmbuf; pcm += wr_pos` makes pcmbuf the in-place destination of the add = arg r6, the
+ * shifted offset r7, and moves the pd load below pcmbuf in the mono arm) */
 static void adxb_EntrySte(void *obj, Sint32 n)
 {
 	ADXB adxb = obj;
 	ADXPD pd;
 
+	Sint16 *pcm;
+
+	pcm = adxb->pcmbuf;
+	pcm += adxb->wr_pos;
 	pd = adxb->pd;
-	ADXPD_EntrySte(pd, adxb->inbuf, n * 2, adxb->pcmbuf + adxb->wr_pos,
-	               adxb->pcmbuf + adxb->wr_pos + adxb->pcmbuf_chofst);
+	ADXPD_EntrySte(pd, adxb->inbuf, n * 2, pcm, pcm + adxb->pcmbuf_chofst);
 	ADXPD_Start(pd);
 }
 
@@ -448,9 +455,12 @@ static void adxb_EntryPl2(void *obj, Sint32 n)
 	ADXB adxb = obj;
 	ADXPD pd;
 
+	Sint16 *pcm;
+
+	pcm = adxb->pcmbuf;
+	pcm += adxb->wr_pos;
 	pd = adxb->pd;
-	ADXPD_EntryPl2(pd, adxb->inbuf, n, adxb->pcmbuf + adxb->wr_pos,
-	               adxb->pcmbuf + adxb->wr_pos + adxb->pcmbuf_chofst);
+	ADXPD_EntryPl2(pd, adxb->inbuf, n, pcm, pcm + adxb->pcmbuf_chofst);
 	ADXPD_Start(pd);
 }
 
@@ -459,8 +469,12 @@ static void adxb_EntryMono(void *obj, Sint32 n)
 	ADXB adxb = obj;
 	ADXPD pd;
 
+	Sint16 *pcm;
+
+	pcm = adxb->pcmbuf;
+	pcm += adxb->wr_pos;
 	pd = adxb->pd;
-	ADXPD_EntryMono(pd, adxb->inbuf, n, adxb->pcmbuf + adxb->wr_pos, NULL);
+	ADXPD_EntryMono(pd, adxb->inbuf, n, pcm, NULL);
 	ADXPD_Start(pd);
 }
 
@@ -468,9 +482,9 @@ void ADXB_EvokeDecode(ADXB adxb)
 {
 	Sint32 n;
 	Sint32 pad;
-	Sint32 ofst;
+	register Sint32 ofst; // COMPILER-DIFF: M1
 	Sint32 bufsmpl;
-	Sint32 x70;
+	register Sint32 x70; // COMPILER-DIFF: M1
 	Sint32 nblk;
 	Sint32 wr_nsmpl;
 	Sint32 nblk2;
@@ -485,7 +499,7 @@ void ADXB_EvokeDecode(ADXB adxb)
 	n = adxb->inbuf_nsmpl / adxb->out_nch;
 	ofst = blksmpl - 1;
 	x70 = adxb->wr_x70;
-	ofst += x70;
+	asm { add ofst, x70, ofst } // COMPILER-DIFF: M1 (see ADXB_ExecOneAdx)
 	nblk = ofst / blksmpl;
 	pad = (blksmpl - 1) - (ofst - nblk * blksmpl);
 	nblk2 = (blksmpl + (bufsmpl - pos) - 1) / blksmpl;

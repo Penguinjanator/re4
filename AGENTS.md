@@ -21284,3 +21284,71 @@ Plain em_set = the tagged `EM_SET_WORK_K` call sites replaced by the `EmSetWork`
   lives) -- the same kind of lever as GetFilenames' statement order, not found this pass.
 - Compiler-side facts (whole-tree, nothing installed): `LOOP_THR_ADJ` -1/-2/-3 = 81/97/181 regressions, 1/3/3 fixes. The
   `fn_*_1BF24 24`, `create__t8cManager1Z3cEmi 1`, `loadModel 1` rows are still the .text-size pairing artefact.
+
+### CRI pass 18b: hard pins as level-shifters, per-function pool_data, the in-place add destination (adx_bsc Matching 34 -> 36/36; sfd_hds Matching 10 -> 11/11; sfh_main 29 -> 35/36; sfd_adxt 23 -> 26/28; dct_ac AcInit 45 -> 7w + .rodata OK; mpv_umc OneReadMb 69 -> 68w; 2026-09-11)
+Harness /home/adityas/.cache/cri18b/ (deleted): `bld.sh UNIT SRC OUT.o` (the unit's MWCC flags + strip_unused), `try.sh UNIT SRC
+[FUNC]` (bytecmp with `OBJ=`), `tryvar.py UNIT BASE.c VARS.py FUNC [names] [--keep NAME]` (variants = lists of exact text
+replacements, ~0.3 s each), `fd.py UNIT FUNC [OBJ] [--all]` (objdump side-by-side with the relocation symbols folded in, no
+ninja run -- tools/fdiff.py runs ninja UNLOCKED, do not use it while other agents build). ~/.cache/mwccdbg/ra.py reused.
+111 OK after every flip; tools/bytecmp.py is the judge. Tagged forms are `// COMPILER-DIFF: M<n>`.
+
+**Mechanisms read off the variants (verified):**
+- **A hard pin adds a physical neighbour to EVERY node of the function, which shifts colouring levels.** Pinning p r28 / len r29
+  in sfd_hds `SFHDS_SetHdr` (+ sfh r31 inside the inlined `SFHDS_IsSfdHeader`, which leaves the standalone copy byte-identical)
+  takes `result` (28 neighbours, one level with p/len -> r28 in ours) and `sfd` (27) to >= 29: they are removed one iteration
+  later, coloured before the level-1 nodes, and by id `result` (r36) takes the new r30, `sfd` (r32) r27 = the target
+  (result r30 / len r29 / p r28 / sfd r27 / sfh r31). A hard pin of `result` itself gives the registers but swaps the two
+  prologue `mr`s (an asm copy is scheduled by the pre-RA scheduler -- after the `stw` that reads the parameter -- while the
+  allocator's own parameter copies are emitted in colouring order, result before sfd); pin the OTHER values and let the
+  allocator copy the one you want at the top. Pass 11's model predicts this: count the pinned registers as extra neighbours.
+- **The pin poisons the register for the whole function, also where the target reuses it later**: dct_ac `bss` r31 (the
+  int->double `lis r31, 0x4330` reuses r31 after the base dies: pin -> 27w), mpv_umc vx r25 / vy r11 (temporaries take r11
+  later: 74w), sfd_cre ofs r6 + b5 r6 (42w). A pin is only safe when the target uses the register for that value alone.
+- **sfh_main readers (M4 residue closed, 1w each): pin the DYING BASE, not the loaded word.** `asm { lwz r5, SFH_OBJ.hdr(sfh);
+  mr hdr, r5 }` in sfh_GetHdrU32/Ver: the word can no longer take the dying r5 and falls to r6 (r0 = the swap result, r3 =
+  the return value, r4 = val). A soft `asm { lwz w, 0(p) }` still takes the dying base (the asm's def and use do not
+  interfere), a hard `lwz r6` poisons the `li r6` zero of `*val = 0`. SFH_AnlyElemSmpHz (6w) stays C: `peephole off` also
+  disables the pre-RA peephole-forward passes, so the inlined search loses the `lbz r0, 408(hdr)` displacement fold and the
+  schedule that fold implies (the target's `addi p; lbz 24(p)` was scheduled as dependent and folded afterwards); spelling
+  the folded load in C (`hdr[0x180 + i*0x40 + 0x18]`, a struct view, a dedicated search helper) gives the displacement but
+  the lbz then schedules above the addi and the compare operands swap; `scheduling off` as well = 16w; the stwbrx fold
+  fires even on an asm `stw` and with the stored value kept live by a pin after it.
+- **`add o, X, o` (adx_bsc ExecOneAdx/EvokeDecode 1w, OPEN since pass 17b): asm `add ofst, x70, ofst` on register locals**,
+  x70 loaded in C in the statement before. Every C spelling (`o = X + o`, `X += o; o = X`, `-(rem - (b-1))`, `|0`, `-1 +`)
+  either keeps `add o, o, X` or CSEs `blksmpl - 1` into pad (36w). **EvokeDecode's arm residue (10w) is the in-place add
+  destination**: `pcm = adxb->pcmbuf; pcm += adxb->wr_pos;` makes pcmbuf the destination of the add (`add r6, r6, r7`,
+  pcmbuf coalesced with the r6 argument, the shifted offset r7) and moves the pd load below pcmbuf in the mono arm; the
+  expression form `adxb->pcmbuf + adxb->wr_pos` coalesces the result with the shift temporary (`add r6, r7, r6`). Pure C.
+- **`#pragma pool_data off` around ONE function is per-function** (sfd_adxt `SFADXT_SetSpeed`: the other 27 functions keep
+  their pools; `#pragma pool_data on` after the closing brace). The remaining 11w there was the frsp/literal FPR order:
+  `l = (Float32)log((Float32)speed); cent = 1731.234f * (l - 6.9077554f);` -- with the log result in a local the frsp is in
+  place (f1) and the 1731.234f literal takes f2; the one-expression form ranks the literal first. Pragma + one local = 0w.
+- **dct_ac DCT_AcInit .rodata order = a helper's literals** (pure C): `static Float64 dctac_Cos(Float64 w, Sint32 j) { return
+  cos(w * (0.5 + (Float64)j)); }` defined before AcInit creates 0.5 and the int->double constant before AcInit's 0.3535/pi/8
+  (target @228/@230 vs @288/@289: the 58-id gap IS a separate function). `pool_data off` there also unpools .bss (the target
+  keeps the .bss pool: dctac_i_const = the pool base r31, the version dummy at +0x400, dctac_f_const at +0x200), so the
+  .bss addressing is asm-emitted: `asm { lis hi, dctac_i_const@ha; addi bss, hi, dctac_i_const@l }`, `asm { addi ip, bss,
+  dctac_i_const@l }`, `asm { addi fp, bss, dctac_f_const@l }` with `ip += 8; fp++` as the loop pointers (the asm addi IS the
+  IV init; a `(Float64 (*)[8])bss` cast costs a `mr`). 45 -> 7w: the base is coloured r29 (target r31; own local below the
+  loop temporaries, 24 declaration orders tried), and the second addi's slot. `const Float64 x = 0.5;` objects are
+  constant-folded (no rodata object), so named literals cannot replace anonymous ones in C.
+- **A parameter above the locals (sfd_adxt ExcludeHdr data r29, Create wk r30): hard pin at the top**, `asm { mr r29, data;
+  mr d, r29 }` as the first statement (placed after the first statements: 7w -- the copy must be coalesced into the
+  prologue). `asm { addi r30, sfd, SFD_OBJ.adxt; mr wk, r30 }`: the `STRUCT.member` immediate works in addi.
+- **sfd_adxt AdjustSync 69 -> 51w (pure C): `ins = ADXT_InsertSilence(..); n -= ins; wk->smplofst -= ins;`** -- the target's
+  `subf r0, r3, r0` subtracts the call RESULT from smplofst, ours subtracted the remaining n (a real bug in our source), and
+  the locals declared in REVERSE (ofs .. wk) put the parameters at r23..r26 = target. Residue: skip r30 / skipbyte r29 / nch
+  r28 / astart r27 above the parameters and vstart r22 / tim r21 below them in the target; ours tim above, astart/skipbyte
+  below (levels, not ids); a tim pin regresses (69w).
+- mpv_umc OneReadMb: `mby8 = mby * 8` / `mby16 = mby * 16` as own locals give `mullw r0, mby8, cpitch` (an anonymous product
+  is the SECOND operand). 68w left = the schedule of the whole ofs/tbl block (statement orders do not move it) + cvx/vx/vy.
+- adx_tsvr `adxt_nlp_trap_entry` 2w: 12 more spellings (ternary n2, Sint32 temp, cast, reorder) keep `lha r0`; the hard r4
+  pin displaces the two `lis r4, 0x8000` temporaries (6w), as pass 7 found. sfd_cre AnalyMpv 15w: statement orders of the
+  byte loads do not move the schedule; the residue is `ofs + 1` in place vs the target's fresh r0 (target's post-RA schedule
+  puts the addi after the dead-r0 `rlwinm.`; ours schedules it 2nd). cftyp422 table makers 8w each = the hoisted
+  `addi cb/cr` bases scheduled before the pooled literal loads (target interleaves them after `lfs f9`).
+
+**Applied:** adx_bsc Matching (36/36; two `add` pins M1 + the pcm in-place form), sfd_hds Matching (11/11; three hard pins
+M1), sfh_main 35/36 (hdr r5 pins), sfd_adxt 26/28 (SetSpeed pragma M2 + local, Create/ExcludeHdr pins M1, AdjustSync
+C), dct_ac 2/3 with AcInit 7w and .rodata OK (helper + pool_data off + asm pool addresses M2), mpv_umc 15/16 68w. Not
+reached: sfx_zmv, sfd_tst, adx_baif, cri_cvfs, adx_dcd5, cftfx, cftyp422_ppc Init/Y84C44.

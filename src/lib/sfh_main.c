@@ -111,11 +111,13 @@ static const Char8 *sfhlib_version_dummy;
 /* COMPILER-DIFF: M4 -- six of the seven big-endian readers keep the original's `rlwinm/rlwimi x3/stw`
  * where our 2.4.7's peephole folds any byte-swap store (C or inline-asm spelled) into `stwbrx`: the swap
  * is written as an asm-defined register local and the six sfh_GetHdrU32 callers are compiled under
- * `#pragma peephole off` (1 word left each: the loaded word takes the dying base register r5, the
- * original a fresh r6 -- the original's peephole merged the rlwinm/or chain after register allocation,
- * so one partial-result temporary was still live and coloured next to the word; same root as M4, see
- * AGENTS.md "CRI pass 11"). SFH_AnlyElemSmpHz keeps the C form:
- * its inlined element search needs the peephole's displacement folding. */
+ * `#pragma peephole off` (the loaded word took the dying base register r5, the original a fresh r6 --
+ * the original's peephole merged the rlwinm/or chain after register allocation, so one partial-result
+ * temporary was still live and coloured next to the word; same root as M4, see AGENTS.md "CRI pass 11";
+ * closed in CRI pass 18b by a hard r5 pin of hdr in the two helpers, which keeps r5 away from the word).
+ * SFH_AnlyElemSmpHz keeps the C form (stwbrx, 6 words): its inlined element search needs the
+ * peephole's displacement folding `lbz 408(hdr)` and the pre-peephole schedule that folding implies
+ * (addi before the dependent lbz), which no spelling under `peephole off` reproduces. */
 #define SFH_SWAP32_STORE(val, w, s)                                                            \
 	asm { rlwinm s, w, 8, 8, 15; rlwimi s, w, 24, 0, 7; rlwimi s, w, 24, 16, 23; rlwimi s, w, 8, 24, 31 } /* COMPILER-DIFF: M4 */\
 	*(val) = s
@@ -582,12 +584,13 @@ Bool SFH_AnlyElemCodecAud(SFH sfh, Uint8 id, Sint32 *val)
 /* pack / file level fields: the public functions are wrappers around these readers, which gives
  * hdr the register below the IsValid flag (a caller-declared hdr gets the one above it) */
 
-static Bool sfh_GetHdrU32(SFH sfh, Sint32 ofs, Sint32 *val)
+static Bool sfh_GetHdrU32(register SFH sfh, Sint32 ofs, Sint32 *val)
 {
-	Uint8 *hdr = sfh->hdr;
+	register Uint8 *hdr; // COMPILER-DIFF: M1 (hard pin r5: the loaded word then takes r6 instead of the dying hdr; CRI pass 18b)
 	register Uint32 w;
 	register Uint32 s;
 
+	asm { lwz r5, SFH_OBJ.hdr(sfh); mr hdr, r5 } // COMPILER-DIFF: M1
 	if (!sfh_IsAnlyOk(sfh)) {
 		return FALSE;
 	}
@@ -618,12 +621,13 @@ static Bool sfh_GetHdrU8(SFH sfh, Sint32 ofs, Sint32 *val)
 	return TRUE;
 }
 
-static Bool sfh_GetHdrU32Ver(SFH sfh, Sint32 ofs, Sint32 ver, Sint32 *val)
+static Bool sfh_GetHdrU32Ver(register SFH sfh, Sint32 ofs, Sint32 ver, Sint32 *val)
 {
-	Uint8 *hdr = sfh->hdr;
+	register Uint8 *hdr; // COMPILER-DIFF: M1 (as sfh_GetHdrU32)
 	register Uint32 w;
 	register Uint32 s;
 
+	asm { lwz r5, SFH_OBJ.hdr(sfh); mr hdr, r5 } // COMPILER-DIFF: M1
 	if (!sfh_IsAnlyOk(sfh)) {
 		return FALSE;
 	}

@@ -463,9 +463,10 @@ static ADXT sfadxt_CreateAdxt(SFADXT_WORK *wk)
 }
 
 /* M1: the original has wk r30 / adxt r29 */
-Sint32 SFADXT_Create(SFD sfd)
+/* COMPILER-DIFF: M1 - wk r30 above adxt r29 in the target (ours the reverse): hard pin of wk (CRI pass 18b) */
+Sint32 SFADXT_Create(register SFD sfd)
 {
-	SFADXT_WORK *wk;
+	register SFADXT_WORK *wk; // COMPILER-DIFF: M1
 	ADXT adxt;
 	SJ sj;
 	Sint32 ret;
@@ -474,7 +475,7 @@ Sint32 SFADXT_Create(SFD sfd)
 	if (SFSET_GetCond(sfd, SFADXT_COND) == 0) {
 		return 0;
 	}
-	wk = &sfd->adxt;
+	asm { addi r30, sfd, SFD_OBJ.adxt; mr wk, r30 } // COMPILER-DIFF: M1 (wk = &sfd->adxt)
 	sfd->tr[SFADXT_TR].hn = wk;
 	ret = sfadxt_InitInf(sfd, wk);
 	if (ret != 0) {
@@ -584,24 +585,26 @@ static Sint32 sfadxt_SearchFrmTop(SFD sfd, Uint8 *data, Sint32 len)
 }
 
 /* transfer state 2: skip the ADX header; without a header (old mux versions) find the frame
- * alignment from the end codes (M1: callee-saved register permutation only) */
-void sfadxt_ExcludeHdr(SFD sfd, Uint8 *data, Sint32 len, Sint32 *nbyte)
+ * alignment from the end codes (M1: the data parameter is coloured first in the target, r29) */
+void sfadxt_ExcludeHdr(SFD sfd, register Uint8 *data, Sint32 len, Sint32 *nbyte)
 {
+	register Uint8 *d; // COMPILER-DIFF: M1 (data r29 above sfd r28 in the target; the hard pin of the parameter copy, CRI pass 18b)
 	SFADXT_WORK *wk;
 	Sint32 skip;
 	Sint32 hdrsiz;
 
+	asm { mr r29, data; mr d, r29 } // COMPILER-DIFF: M1
 	*nbyte = 0;
 	wk = SFADXT_WK(sfd);
 	if (len < SFADXT_HDRSIZ) {
 		return;
 	}
-	if (ADXT_IsHeader(data, len, &hdrsiz)) {
+	if (ADXT_IsHeader(d, len, &hdrsiz)) {
 		skip = hdrsiz;
 	} else if (SFHDS_GetMuxVerNum(sfd) >= 108) {
 		skip = 0;
 	} else {
-		skip = sfadxt_SearchFrmTop(sfd, data, len);
+		skip = sfadxt_SearchFrmTop(sfd, d, len);
 	}
 	wk->func = sfadxt_AdjustSync;
 	*nbyte = skip;
@@ -629,25 +632,29 @@ static Sint32 sfadxt_SearchEndcode(Uint8 *data, Sint32 lim, Sint32 *endflg)
 }
 
 /* transfer state 3: align the audio start to the video start (skip frames or insert silence)
- * (M1: callee-saved register permutation only) */
+ * (M1: callee-saved register permutation only -- the target colours skip r30 / skipbyte r29 / nch r28 /
+ * astart r27 above the parameters and vstart r22 / tim r21 below them; the reversed declaration order
+ * gives the parameters r23..r26 = target, 69 -> 51w. `wk->smplofst -= ins` subtracts the
+ * InsertSilence RESULT, not the remaining n: `subf r0, r3, r0` in the target) */
 void sfadxt_AdjustSync(SFD sfd, Uint8 *data, Sint32 len, Sint32 *nbyte)
 {
-	SFADXT_WORK *wk;
-	SFTIM tim;
-	Sint32 nch;
-	Sint32 sfreq;
-	Sint32 astart;
-	Sint32 vstart;
-	Sint32 skip;
-	Sint32 diff;
-	Sint32 dmy;
-	Sint32 vflg;
-	Sint32 endflg;
-	Sint32 skipbyte;
-	Sint32 frmbyte;
-	Sint32 lim;
-	Sint32 n;
 	Sint32 ofs;
+	Sint32 n;
+	Sint32 lim;
+	Sint32 frmbyte;
+	Sint32 skipbyte;
+	Sint32 endflg;
+	Sint32 vflg;
+	Sint32 dmy;
+	Sint32 diff;
+	Sint32 skip;
+	Sint32 vstart;
+	Sint32 astart;
+	Sint32 sfreq;
+	Sint32 nch;
+	SFTIM tim;
+	SFADXT_WORK *wk;
+	Sint32 ins;
 
 	*nbyte = 0;
 	tim = SFADXT_TIM(sfd);
@@ -698,8 +705,9 @@ void sfadxt_AdjustSync(SFD sfd, Uint8 *data, Sint32 len, Sint32 *nbyte)
 		if (vflg != 0) {
 			n = (-diff) / 32 * 32;
 			if (n > 0) {
-				n -= ADXT_InsertSilence(SFADXT_WK(sfd)->adxt, nch, n);
-				wk->smplofst -= n;
+				ins = ADXT_InsertSilence(SFADXT_WK(sfd)->adxt, nch, n);
+				n -= ins;
+				wk->smplofst -= ins;
 			}
 			if (n <= 0) {
 				wk->func = sfadxt_CopyData;
@@ -929,12 +937,18 @@ void SFD_SetAdxtPara(SFADXT_PARA *para)
 
 /* speed (1000 = normal) -> pitch transpose in octaves and cents (1200 / ln 2 = 1731.234 cents per
  * neper, ln 1000 = 6.9077554); M2: our 2.4.7 pools the four literals through ...rodata.0 */
+/* COMPILER-DIFF: M2 - the target addresses the four literals of SetSpeed with per-literal `lis/lfs`
+ * pairs and no pool base; our 2.4.7 pools them (>= 3 rodata objects). `pool_data off` around this
+ * function only (the other functions keep their pools); the log result in a local `l` ranks the
+ * frsp result above the 1731.234f literal (frsp f1 in place, the literal f2). CRI pass 18b. */
+#pragma pool_data off // COMPILER-DIFF: M2
 void SFADXT_SetSpeed(SFD sfd, Sint32 speed)
 {
 	ADXT adxt;
 	Float32 cent;
 	Sint32 icent;
 	Sint32 ioct;
+	Float32 l;
 
 	adxt = SFADXT_WK(sfd)->adxt;
 	if (adxt == NULL) {
@@ -944,12 +958,14 @@ void SFADXT_SetSpeed(SFD sfd, Sint32 speed)
 		ioct = 0;
 		icent = 0;
 	} else {
-		cent = 1731.234f * ((Float32)log((Float32)speed) - 6.9077554f);
+		l = (Float32)log((Float32)speed);
+		cent = 1731.234f * (l - 6.9077554f);
 		ioct = (Sint32)(0.01f * cent);
 		icent = (Sint32)cent - ioct * 100;
 	}
 	ADXT_SetTranspose(adxt, ioct, icent);
 }
+#pragma pool_data on // COMPILER-DIFF: M2
 
 static Sint32 SFADXT_GetOutVol(SFD sfd)
 {

@@ -1629,7 +1629,6 @@ MATCHING.update({
     "lib/cri_cvfs.c": False,  # CRI pass 13: 11/13, cvFsGetFileSize 63w / cvFsOpen 240w (-4 bytes) (the inlined cvfs_ResolveDev: pdev above tbl, tbl materialised after strlen); cvFsAddDev fixed by kept devname/getif copies + the inlined cvfs_AddDevTbl helper
     "lib/adx_baif.c": False,  # CRI pass 10: 5/6, AIFF_GetInfo 91w (M1: FORM/size words share the loop registers); ExecOneAiff16 fixed by the `Uint16` swap temporary
     "lib/adx_dcd5.c": False,  # CRI pass 9: ADX_DecodeSte4AsSte 118w / Ste4AsMono 167w / Mono4 39w (M1 register ranking only: the original keeps smul in r0 / i in r10 / c1,c2 extended in place; the history locals declared first fixed the AdxQtbl address hoist)
-    "lib/sfd_hds.c": False,  # CRI pass 13: 10/11, SFHDS_SetHdr 11w (result r30 > len r29 > p r28 = the inlined SetHdrPkt's parameter copies kept as nodes in the target); sfhds_DoProcessHdr fixed by per-site if/else locals for the vid ternaries
     "lib/mwsfdsvr.c": True,  # CRI pass 12: `void *obj` handlers with a kept MWPLY copy, function-scope sfd, the sleep loop as an inlined helper
     "lib/sfd_tst.c": False,  # CRI pass 14: 10/11, SFTST_Calc 79w (the abs diamond anchored above the sftst_Conv call by the nested `diff =` assignment; residue = diff pair lo/hi ranking r23/r25 vs r25/r23: the backend propagates `mr diff, sub` so the pair are backend temps above adiff.hi); .rodata order kept by the named strings
     "lib/sfx_zmv.c": False,  # CRI pass 8 (pure-C revert): sfxzmv_MakeCnvZTbl 94w (M1: inlined helper src/dst r3/r4) / MakeOrgZ32TblByCCIR 77w (M1: unrolled 1.164f loop slot order)
@@ -1776,4 +1775,10 @@ MATCHING.update({
 # DOL closer (2026-09-11)
 MATCHING.update({
     "game/route_ck.cpp": True,  # Draw_rtp: the link loop's test refreshes a `GlobalWork* g` local, `i < ((RtpData*)(g = pG)->pRoomRtp)->nPoint` -- the pG value is ONE pseudo (g is referenced outside the copied exit test, so duplicate_loop_exit_test keeps it) whose PRE'd copies survive as `mr r11,r5` at the entry and the latch, and the body's `rtpData()` reload stays; zero code
+})
+
+# CRI pass 18b (2026-09-11)
+MATCHING.update({
+    "lib/adx_bsc.c": True,  # CRI pass 18b: EvokeDecode arms `pcm = pcmbuf; pcm += wr_pos` (pcmbuf is the in-place add destination = r6); `asm { add ofst, x70, ofst }` operand-order pins in ExecOneAdx/EvokeDecode (COMPILER-DIFF: M1)
+    "lib/sfd_hds.c": True,  # CRI pass 18b: SFHDS_SetHdr hard pins p r28 / len r29 + sfh r31 in the inlined SFHDS_IsSfdHeader (the three physical neighbours lift result/sfd to the next level: result r30, sfd r27) (COMPILER-DIFF: M1); sfhds_DoProcessHdr fixed in pass 13 by per-site if/else locals for the vid ternaries
 })
