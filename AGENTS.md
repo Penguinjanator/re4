@@ -23654,3 +23654,69 @@ relocated immediates masked). `BASE=<variant.cpp>` stacks variants.
 
 **Flags.** Nothing flipped; t_esp/db_mod and Tools/db_mod stay False (19 words in dbmodDispModelName in both). Both
 objects rebuilt through the locked ninja; 111 not re-checked (nothing flipped).
+
+### CRI pass 22: the two-step address (addi-into-addi is never re-propagated), the 8-word array-register limit, and a run-once chain of nine sfd_buf mechanisms (sfd_buf Matching 21 -> 26/26, flipped; sfd_mps 22/26 with .rodata OK and DecodeOneUnit 316 -> 144w at target size; cftfx / adx_sje unchanged; 2026-09-11)
+Harness /home/adityas/.cache/cri22/ (deleted): `bld.sh UNIT SRC OUT.o` (the unit's MWCC GC/2.7 flags + strip_unused, no ninja),
+`try.sh UNIT SRC [FUNC]` (bytecmp with `OBJ=`), `tryvar.py UNIT BASE.c VARS.py [FUNC] [--only ..] [--keep NAME]` (`V = {name:
+[(old, new), ..]}` unique-substring edits, ~0.3 s per variant), `fd.py UNIT FUNC [OBJ] [--all]` (llvm-objdump side by side,
+branch targets relative, relocation symbols folded in; tools/fdiff.py runs ninja unlocked -- do not use it while others build).
+~/.cache/mwccdbg/ra.py + rasum.py + chaitin.py for every ranking question; chaitin.py reproduced DecodeOneUnit's colouring
+(`--check`) and was used as a library to test "what if" graphs before touching the source (see the model_dou notes below).
+
+**Mechanisms read off the dumps (verified, pure C):**
+- **Add-propagation never propagates an addi it has itself just rewritten.** `wk = &hn->w` (addi 0x1308) and `ring = &wk->u.ring`
+  (addi 0x10): the pass folds `addi wk` into wk's loads AND into ring's addi (addi-into-addi -> `addi ring, hn, 0x1318`), but that
+  rewritten addi is not propagated into ring's own loads/stores, so `ring` stays a node (a callee-saved register across the calls,
+  `hn` dying in r3) -- sfd_buf's OPEN `ring`/`sup` class since pass 12b, mpv_cmc's `oi` since pass 15. Conditions: the intermediate
+  pointer must be an OWN local with at least two uses (a single-use `wk` is propagated by the frontend and the constants folded into one
+  addi, which IS propagated; a helper parameter is the same), and the base must not be reassociated: `&sfd->buf[n]` becomes `sfd +
+  (n*0x74 + 0x1308)` (mulli; addi 4872; add) -- keep the SFBUF_HN view `hn = (Uint8 *)sfd + n*0x74` with its own uses (sj, used loads
+  through hn) and `wk = &hn->w` as the second step. Applied in DestroySj (three `wk = &sfd->buf[k]; sup = &wk->u.ring.sup; if
+  (wk->mode ..)` blocks: three addi's, one register), SetSupplySj (`ring` computed before the mode test, declared before `hn` so it
+  colours r29 above hn r28), RingAddRead/AddWrite. The mechanism is the same class as InitHn's `addi 3, 31, 56` being folded: there the
+  ring addi is an original addi off the parameter `wk`.
+- **The backend's array-register transform registerises a stack array only up to 8 words (32 bytes)**: `Uint32 adr[9]` stays in the
+  frame (target InitHn frame 160 = adr[9..11], the 16-byte rounding hides the exact count), `adr[8]` becomes 8 registers (stmw r21 vs
+  r27). It also needs the loads to be plain: with a running value (`a = prm->adr; for (i < 7) { *p++ = a; a += prm->size[i]; } *p = a`)
+  the chain is one register (`add 7, 7, rSize` in place, stores interleaved), the first InitRing reloads adr[0] from the frame
+  (`lwz 3, 92(1)`) and the size loads are software-pipelined one add ahead; `adr[i + 1] = adr[i] + size[i]` gives seven separate
+  temporaries with the stores sunk to the end and no reload. `p++` in the for-header vs in the body changes the schedule (L3 vs M6/M7).
+- **A helper that reads a `Sint32 *size` twice** (InitVfrm/InitAout): `used = (*size != 0)` computed into a local BEFORE the
+  `wk->mode` store, and `wk->u.vfrm.size = *size` after the adr store -> the target's early `lwz size` + a reload after the store
+  (a by-value `size` never reloads; `wk->used = (*size != 0)` after the mode store cannot hoist the load above the store).
+- **The unroller's guard threshold is 8 iterations**: a 7-store clear has no guard (`for (i < 7) rsv[i] = 0`), a 10- or 12-store loop
+  gets `cmpwi; bf` + 8x body; the target's 10 aout words = the rsv[7] loop + 3 explicit stores (aout `rsv2[3]` added to sfd.h,
+  nobody else reads aout), its 12 uoch words = `for (i < 3)` over the four SFUO_CH fields.
+- **The first arm's `ret = 0` (13b/14b `bne body; b end`) in a big body: the whole body as a `static inline` helper** whose locals are
+  declared in REVERSE of the target's colouring (helper locals: first declared = lowest vid = coloured last), the second `sj` a
+  separate `sj2` (a frontend range-split copy is created last and takes the lowest free handed-out register, r25, instead of r26), and
+  `ring->dlm_pos` read inline in the four compares (a `pos` helper local outranks the frontend's ck.data CSE temporaries and takes r3;
+  the inline reads make pos a CSE temporary of the same generation). A plain-function `return ret;`/`return 0;` in the arm becomes
+  `li r3, 0` (the frontend knows ret == 0 there but still keeps the redundant store), `asm {}`/`(void)`/dead stores invert the IF.
+- **Named .rodata objects are emitted in DEFINITION order** (sfd_mps: the `SFD_tr_sd_mps` interface table defined before
+  `sfmps_CopyPketFn` with a prototype block, .rodata OK); literals still follow @N creation order (12b).
+- **`*nskip = *nbyte = delim = 0` chain assignment** shares one zero (target `stw r24` from delim's `li r24, 0`): three statements
+  (any order) give a separate `li r0, 0` because the backend CSE only merges temporaries with temporaries; the frontend constant-
+  propagates `*nbyte = delim` back to a literal.
+- DecodeOneUnit's structure (all read off the target): a single `return ret` at the end of an if/else-if chain (endcode skip 1,
+  endcode skip 2, `delim == 0`, `!(flags & PKET)`, packet copy) -- five `return ret;` statements give five `mr r3, ret` copies;
+  `delim != END ? go = FALSE : (IsEndcodeSkip || IsSystemEndcodeSkip ? go = FALSE : go = TRUE)` for the three `li` sites; the zero-
+  byte scan as `static Bool sfmps_IsZero(Uint8 *data, Sint32 n)` (its own pointer copy `mr r4, data`, `li 1` after the loop = the
+  helper's `return TRUE`; ours advanced the shared `p` past the nonzero byte -- a real bug); `total < 4 && sfmps_IsInTerm(sfd)`
+  (helper local `term` = the lowest frame slot 8, `term2` an own local declared last = slot 12); frame order syshd, flags, hdrlen,
+  copied, cres, term2. 316 -> 144w at the target size; the residue is the level structure: target L3 = {ret, wk, nskip, nbyte, len,
+  data, sfd} (7 new callee-saved r31..r25 in that vid order), ours L3 = the four params only; chaitin.py says ret needs +3 neighbours,
+  or TWO extra live-everywhere nodes (ghosts) move ret/wk/data up together (`all+2` in the model = 11/13 registers with the declaration
+  order p, delim, ret, wk, mps, bufin). Two kept copies live across the function is the class; not found (13 forms).
+
+**Not closed:** sfd_mps ExecServerSub 59w / CopyPrvate 60w (target has a `ret` variable r24 and a kept `len` copy `mr r5, r24`, frame
++16) / CopyPketData 157w untouched; cftfx UserTable 135w (four row pointers y0..y3 with `y1 = y0 + (ywidth - 4)` collapse further,
+0x204; the target keeps three COPIES of `ywidth - 4` (`addi r31, r11, -4; mr r7, r31; mr r4, r31`) each consumed in place by one
+`add rX, yPrev, rX` and recomputes the fourth -- a frontend range-split of the hoisted CSE temp, spelling not found), StaticV 60w,
+Argb420 38w and the size-4 `...rodata.0` pool untouched; adx_sje encode_data 68w: block-scoped `sji`/`n` inside the do body, re-read
+per iteration, or `sje->sji` as the argument (113w) do not create the frontend temporaries the target colours between cnt's split
+copy and the loop-2/loop-3 IV temps -- block scope changes nothing for the ranking (own locals either way); write_end_code /
+output_header 2w post-RA ties untouched.
+
+**Flags.** `"lib/sfd_buf.c": True` (CRI pass 22 block in objects.py), 111 OK (the concurrent `game/motion.o` failure in `ninja -k 0`
+is another agent's half-written unit). sfd_mps, cftfx, adx_sje stay False; sfd.h gained `aout.rsv2[3]` (union size unchanged).

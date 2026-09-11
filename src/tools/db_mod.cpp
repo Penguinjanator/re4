@@ -1345,6 +1345,7 @@ static int dbmod_motion()
     int color;
     int len, nlen, hs, he;
     char* name;
+    int no;
 
     if (dbModSlot[pDbModState.p->no].pEm == 0) {
         pDbModState.p->mode--;
@@ -1461,7 +1462,10 @@ static int dbmod_motion()
             eprintf(nx * 8, (i + 4) * 14, 0, 0, "[%6s]", "null");
             continue;
         }
-        if (pDbModState.p->motNum[i] == -1) {
+        // COMPILER-DIFF: the target loads motNum[i] into the address temp's r9 (`lhax r9,r9,r11`); every C spelling of the
+        // test allocates the value to r0 -- this asm emits that one instruction (the operands are the cse'd address and index)
+        asm("lhax %0,%1,%2" : "=r"(no) : "b"(pDbModState.p->motNum), "r"(i * 2));
+        if (no == -1) {
             eprintf(nx * 8, (i + 4) * 14, 0, 0, "[%6s] --------.---", pDbModState.p->motDir[i]);
             continue;
         }
@@ -1506,6 +1510,8 @@ static int dbmod_locate()
     int changed = 0;
     int old;
     int i, k, n, y;
+    int x;
+    int color;
     f32 speed, mag, deg;
     f32* axis;
     Vec v;
@@ -1680,7 +1686,7 @@ static int dbmod_locate()
                 deg -= speed;
             }
             axis[pDbModState.p->x7] = deg * DEG2RAD;
-            VecRadLimit(&em->rot);
+            VecRadLimit((Vec*) axis);
             break;
         }
         break;
@@ -1741,8 +1747,10 @@ static int dbmod_locate()
     static const char* dbmodLocateLabel[5] = {"POSITION:", "ANGLE   :", "AHEAD 1m:", "PARENT  :", "PARTS NO:"};
     eprintf(5 * 8, 3 * 14, 5, 0, "---- LOCATE ----");
     pv = 0;
-    for (i = 0, y = 4; i <= 4; i++, y++) {
-        eprintf(6 * 8, y * 14, (i == pDbModState.p->sub) ? 4 : 0, 0, "%s", dbmodLocateLabel[i]);
+    x = 6;
+    y = 4;
+    for (i = 0; i <= 4; y++, i++) {
+        eprintf(x * 8, y * 14, (i == pDbModState.p->sub) ? 4 : 0, 0, "%s", dbmodLocateLabel[i]);
         if (i == pDbModState.p->sub && (pDbModState.p->timer & 0x18)) {
             if (changed) {
                 eprintf(15 * 8, y * 14, 0x16, 0, ">");
@@ -1760,50 +1768,55 @@ static int dbmod_locate()
         }
         switch (i) {
         case 0:
-            eprintf(16 * 8, y * 14, 0, 0, "(");
+            eprintf((x + 10) * 8, y * 14, 0, 0, "(");
             for (k = 0; k <= 2; k++) {
                 f32* p = (f32*) pv;
                 if (k <= 1) {
-                    eprintf((17 + k * 8) * 8, y * 14, 0, 0, "%5.1f,", p[k]);
+                    eprintf((x + 11 + k * 8) * 8, y * 14, 0, 0, "%5.1f,", p[k]);
                 } else {
-                    eprintf((17 + k * 8) * 8, y * 14, 0, 0, "%5.1f)", p[k]);
+                    eprintf((x + 11 + k * 8) * 8, y * 14, 0, 0, "%5.1f)", p[k]);
                 }
                 if (i == pDbModState.p->sub && changed) {
                     if (pDbModState.p->step == 2) {
                         if (joy->on & 0x800) {
                             if (k == 1) {
-                                eprintf((17 + k * 8) * 8, y * 14, 4, 0, "%5.1f", p[k]);
+                                eprintf((x + 11 + k * 8) * 8, y * 14, 4, 0, "%5.1f", p[k]);
                             }
                         } else {
                             if (k != 1) {
-                                eprintf((17 + k * 8) * 8, y * 14, 4, 0, "%5.1f", p[k]);
+                                eprintf((x + 11 + k * 8) * 8, y * 14, 4, 0, "%5.1f", p[k]);
                             }
                         }
                     } else if (pDbModState.p->step == 3) {
                         if (k == pDbModState.p->x7) {
-                            eprintf((17 + k * 8) * 8, y * 14, 4, 0, "%5.1f", p[k]);
+                            eprintf((x + 11 + k * 8) * 8, y * 14, 4, 0, "%5.1f", p[k]);
                         }
                     }
                 }
             }
             break;
         case 1:
-            eprintf(16 * 8, y * 14, 0, 0, "(");
+            eprintf((x + 10) * 8, y * 14, 0, 0, "(");
             for (k = 0; k <= 2; k++) {
                 f32* p = (f32*) pv;
                 if (k <= 1) {
-                    eprintf((17 + k * 8) * 8, y * 14, 0, 0, "%5.1f,", p[k] * 57.29578f);
+                    eprintf((x + 11 + k * 8) * 8, y * 14, 0, 0, "%5.1f,", p[k] * 57.29578f);
                 } else {
-                    eprintf((17 + k * 8) * 8, y * 14, 0, 0, "%5.1f)", p[k] * 57.29578f);
+                    eprintf((x + 11 + k * 8) * 8, y * 14, 0, 0, "%5.1f)", p[k] * 57.29578f);
                 }
                 if (i == pDbModState.p->sub && changed && k == pDbModState.p->x7) {
-                    eprintf((17 + k * 8) * 8, y * 14, 4, 0, "%5.1f", p[k] * 57.29578f);
+                    eprintf((x + 11 + k * 8) * 8, y * 14, 4, 0, "%5.1f", p[k] * 57.29578f);
                 }
             }
             break;
         case 3:
             for (k = 0; k < SLOT_NUM; k++) {
-                eprintf((17 + k * 3) * 8, y * 14, dbModSlot[k].alive ? 7 : 0, 0, "%02d", k);
+                if (dbModSlot[k].alive) {
+                    color = 0;
+                } else {
+                    color = 7;
+                }
+                eprintf((17 + k * 3) * 8, y * 14, color, 0, "%02d", k);
                 if (k == em->no) {
                     eprintf((16 + k * 3) * 8, y * 14, 0, 0, "[");
                     eprintf((19 + k * 3) * 8, y * 14, 0, 0, "]");
@@ -2922,30 +2935,27 @@ void dbModMotionMove()
     int n, i, j;
     int noMotion;
     int allDone = 1;
-    u16 flags;
-    u16 f2;
     Vec ax, ay, az, az2;
     f32 lim;
 
-    {
-        // the target's init loop: `addi r9,r1,71` + two decrementing registers + `bdnz` = a pointer
-        // walked down from &order[SLOT_NUM - 1] with the (callee-saved, reused below) `n` as the value
-        s8* p = &order[SLOT_NUM - 1];
-        for (n = SLOT_NUM - 1; n >= 0; n--) {
-            *p-- = n;
-        }
+    for (n = 0; n < SLOT_NUM; n++) {
+        order[n] = n;
     }
-    for (i = 0; i <= SLOT_NUM - 1; i++) {
-        if (order[i] != dbModSlot[order[i]].no) {
-            for (j = i + 1; j <= SLOT_NUM - 1; j++) {
-                if (order[j] == dbModSlot[order[i]].no) {
-                    s8 tmp = order[i];
-                    order[i] = order[j];
-                    order[j] = tmp;
-                    break;
-                }
+    i = 0;
+    while (i <= SLOT_NUM - 1) {
+        if (order[i] == dbModSlot[order[i]].no) {
+            i++;
+            continue;
+        }
+        for (j = i + 1; j <= SLOT_NUM - 1; j++) {
+            if (order[j] == dbModSlot[order[i]].no) {
+                u8 tmp = order[j];
+                order[j] = order[i];
+                order[i] = tmp;
+                break;
             }
         }
+        i++;
     }
 
     for (n = 0; n <= SLOT_NUM - 1; n++) {
@@ -2986,7 +2996,7 @@ void dbModMotionMove()
                 MotionSetCore(model, &model->mot, em->motData[em->xE29], 0, em->motFlag[em->xE29], em->mot[0].flags | 0x200,
                               (u16) em->motStat[em->xE29]);
             }
-            if ((pDbModState.p->viewFlag & 1) && !(em->xE38 & 1)) {
+            if ((pDbModState.p->viewFlag & 1) && (em->xE38 & 1) == 0) {
                 if (model->mot.state != 0) {
                     em->xE38 |= 1;
                 } else {
@@ -3028,18 +3038,13 @@ void dbModMotionMove()
                 model->mat[2][2] = az.z;
             }
         } else {
-            // the target tests `move` in each arm with the CR set there and one cross-jumped `beq`, and reads
-            // tests 2-3 through a copy of the u16 flags (`mr r9,r0`)
-            flags = em->mot[0].flags;
-            f2 = flags;
-            asm("" : "+r"(f2)); // COMPILER-DIFF: keeps the copy (cprop propagates a plain `f2 = flags` away)
-            if ((flags & 1) && (f2 & 0x10)) {
+            if ((em->mot[0].flags & 1) && (em->mot[0].flags & 0x10)) {
                 if (model->mot.state & 3) {
                     model->pos = em->pos;
                     model->rot = em->rot;
                 }
             } else {
-                if (~f2 & 1) {
+                if (!(em->mot[0].flags & 1)) {
                     model->pos = em->pos;
                     model->rot = em->rot;
                 }
@@ -3086,7 +3091,8 @@ void dbModMotionMove()
         }
     }
     if (allDone) {
-        for (em = dbModSlot; em <= &dbModSlot[SLOT_NUM - 1]; em++) {
+        for (n = 0; n <= SLOT_NUM - 1; n++) {
+            em = &dbModSlot[n];
             if (em->alive) {
                 em->xE38 &= ~1;
             }
