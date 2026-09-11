@@ -764,6 +764,7 @@ MATCHING = {
     "t_movie/t_movie.cpp": True,
     "t_movie/db_light.cpp": True,
     "t_movie/t_se_at.cpp": True,
+    "t_movie/t_snd_vol.cpp": True,  # edit_reverb_param: p pin at the four helper call sites + efx_param_move as a macro (inlining drops RTX_UNCHANGING_P on pool loads)
     "t_event/db_filelist.cpp": True,
     "t_sce/db_filelist.cpp": True,
     "t_id/db_path.cpp": True,

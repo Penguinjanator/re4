@@ -1076,8 +1076,11 @@ static char* efx_help[12][2] = {
 };
 
 // One reverb parameter step (dir = -1/+1) on the DPL2 (sel 0) or stereo (sel 1) set; R held = 10x step.
-// Written out per step size and direction: the original has one switch per (big, dir) pair.
-#define EFX_SW_DPL2(op, fs, is)                     \
+// Written out per step size and direction: the original has one switch per (big, dir) pair. Macros, not an
+// inline function: an inlined function's pool loads lose RTX_UNCHANGING_P, which gives them an anti-dependence
+// on the arm's store and flips sched2's depend-count tie-break (the target issues the field load before the
+// pool load in the cross-jumped +=0.01f arms).
+#define EFX_SW_DPL2(sel, op, fs, is)                \
     switch (work->efxCur[sel]) {                    \
     case 0: p->preDelay op fs; break;               \
     case 1: p->time op fs; break;                   \
@@ -1089,7 +1092,7 @@ static char* efx_help[12][2] = {
     case 7: p->aux_em op is; break;                 \
     case 8: p->aux_wep op is; break;                \
     }
-#define EFX_SW_ST(op, fs, is)                       \
+#define EFX_SW_ST(sel, op, fs, is)                  \
     switch (work->efxCur[sel]) {                    \
     case 0: p->preDelay op fs; break;               \
     case 1: p->time op fs; break;                   \
@@ -1102,38 +1105,12 @@ static char* efx_help[12][2] = {
     case 8: p->aux_em op is; break;                 \
     case 9: p->aux_wep op is; break;                \
     }
-static inline void efx_param_move(SndEfxParam* p, int sel, int dir)
-{
-    if (Joy[0].on & 0x400) {
-        if (sel == 0) {
-            if (dir < 0) {
-                EFX_SW_DPL2(-=, 0.1f, 10)
-            } else {
-                EFX_SW_DPL2(+=, 0.1f, 10)
-            }
-        } else {
-            if (dir < 0) {
-                EFX_SW_ST(-=, 0.1f, 10)
-            } else {
-                EFX_SW_ST(+=, 0.1f, 10)
-            }
-        }
-    } else {
-        if (sel == 0) {
-            if (dir < 0) {
-                EFX_SW_DPL2(-=, 0.01f, 1)
-            } else {
-                EFX_SW_DPL2(+=, 0.01f, 1)
-            }
-        } else {
-            if (dir < 0) {
-                EFX_SW_ST(-=, 0.01f, 1)
-            } else {
-                EFX_SW_ST(+=, 0.01f, 1)
-            }
-        }
+#define EFX_PARAM_MOVE(SW, sel, op)                 \
+    if (Joy[0].on & 0x400) {                        \
+        SW(sel, op, 0.1f, 10)                       \
+    } else {                                        \
+        SW(sel, op, 0.01f, 1)                       \
     }
-}
 
 // Reverb parameter clamps, written out in place (an inlined function's pool loads lose RTX_UNCHANGING_P).
 #define EFX_CLAMP_COMMON(p) \
@@ -1168,15 +1145,19 @@ static void edit_reverb_param()
         work->efxCur[work->x29]++;
     } else if (Joy[0].rep & 0x10001) {
         if (work->x29 == 0) {
-            efx_param_move(&work->efx[0], 0, -1);
+            register SndEfxParam* p asm("r10") = &work->efx[0]; // COMPILER-DIFF: pin (global-alloc order: the target allocates work before p: work r11, p r10, Joy r10)
+            EFX_PARAM_MOVE(EFX_SW_DPL2, 0, -=)
         } else {
-            efx_param_move(&work->efx[1], 1, -1);
+            register SndEfxParam* p asm("r10") = &work->efx[1]; // COMPILER-DIFF: pin
+            EFX_PARAM_MOVE(EFX_SW_ST, 1, -=)
         }
     } else if (Joy[0].rep & 0x20002) {
         if (work->x29 == 0) {
-            efx_param_move(&work->efx[0], 0, 1);
+            register SndEfxParam* p asm("r10") = &work->efx[0]; // COMPILER-DIFF: pin
+            EFX_PARAM_MOVE(EFX_SW_DPL2, 0, +=)
         } else {
-            efx_param_move(&work->efx[1], 1, 1);
+            register SndEfxParam* p asm("r10") = &work->efx[1]; // COMPILER-DIFF: pin
+            EFX_PARAM_MOVE(EFX_SW_ST, 1, +=)
         }
     }
     if (work->x29 == 0) {
@@ -1246,10 +1227,14 @@ static void edit_reverb_param()
         col = 0xFFFFFFFF;
         active = 0;
     }
-    if (work->x29 == 1) {
-        col = cursorCol[pG->flags_51E4 % 15];
-    } else {
-        col = 0xFFFFFFFF;
+    {
+        u32 c;
+        if (work->x29 == 1) {
+            c = cursorCol[pG->flags_51E4 % 15];
+        } else {
+            c = 0xFFFFFFFF;
+        }
+        col = c;
     }
     pt[0].x = 0x58; pt[0].y = 0x48; pt[0].z = 0;
     pt[1].x = 0xF0; pt[1].y = 0x48; pt[1].z = 0;

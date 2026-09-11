@@ -214,14 +214,14 @@ void ToolInterfaceDesign()
 
 void toolIdDrawSafeZone(IdTool* w)
 {
+    if (w->drawSafe == 0) {
+        return;
+    }
     Vec a[4] = { { 0.8f, 0.8f, 0.0f }, { -0.8f, 0.8f, 0.0f }, { -0.8f, -0.8f, 0.0f }, { 0.8f, -0.8f, 0.0f } };
     Vec b[4] = { { 0.9f, 0.9f, 0.0f }, { -0.9f, 0.9f, 0.0f }, { -0.9f, -0.9f, 0.0f }, { 0.9f, -0.9f, 0.0f } };
     f32 sx, sy;
     int i;
 
-    if (w->drawSafe == 0) {
-        return;
-    }
     sx = (f32) w->scrW * 0.5f;
     sy = (f32) w->scrH * 0.5f;
     for (i = 0; i < 4; i++) {
@@ -1680,7 +1680,7 @@ int idEditColor(IdTool* w, int x, int y)
                 case 7: c0.r = d->col1[3]; c0.g = d->col1[3]; c0.b = d->col1[3]; break;
                 }
                 fy = (f32) yy;
-                Draw_tileI(x + 0x40, (int) (fy + 2.8f), (int) ((f32) *pc / 255.0f * 100.0f), 8, &c0);
+                Draw_tileI(x + 0x40, (int) (fy + 2.8f), (int) (*pc / 255.0f * 100.0f), 8, &c0);
                 Draw_tileI((int) ((f32) (x + 0x40) - 0.8f), (int) (fy + 1.4f), 0x65, 0xB, &c1);
             }
             c2.r = d->col0[0];
@@ -1730,7 +1730,13 @@ int idEditColor(IdTool* w, int x, int y)
         for (i = 0; i <= 3; i++) {
             int col;
 
-            col = (i == 0) ? 5 : ((w->subCur + 1 == i) ? 4 : 0);
+            if (i == 0) {
+                col = 5;
+            } else if (w->subCur + 1 == i) {
+                col = 4;
+            } else {
+                col = 0;
+            }
             yy = y + i * 0xE;
             eprintf(x, yy, col, 0, "%s", colMenuName[i]);
             if (w->subCur + 1 == i && (w->cnt & 0x18)) {
@@ -1738,8 +1744,11 @@ int idEditColor(IdTool* w, int x, int y)
             }
             if (i == 2) {
                 for (j = 0; j <= 1; j++) {
-                    col = ((j != 0) == ((d->x109 >> 2) & 1)) ? 7 : 0;
-                    eprintf(x + 0x40 + j * 0x20, yy, col, 0, "%s", onOffName3[j]);
+                    col = 7;
+                    if ((j != 0) != ((d->x109 >> 2) & 1)) {
+                        col = 0;
+                    }
+                    eprintf(x + 0x40 + j * 0x20, y + i * 0xE, col, 0, "%s", onOffName3[j]);
                 }
             }
         }
@@ -2023,7 +2032,8 @@ int idEditTrans(IdTool* w, int x, int y)
             if (joy->rep & 0x20002) {
                 v++;
             }
-            d->transType = v < 0 ? 4 : (v > 4 ? 0 : v);
+            v = v < 0 ? 4 : (v > 4 ? 0 : v);
+            d->transType = v;
             break;
         }
         case 1: {
@@ -2035,11 +2045,12 @@ int idEditTrans(IdTool* w, int x, int y)
             if (joy->rep & 0x20002) {
                 v++;
             }
-            d->transMode = v < 0 ? 3 : (v > 3 ? 0 : v);
+            v = v < 0 ? 3 : (v > 3 ? 0 : v);
+            d->transMode = v;
             break;
         }
         case 2: {
-            int step = (joy->on & 0x100) ? 10 : 1;
+            register int step asm("r11") = (joy->on & 0x100) ? 10 : 1; // COMPILER-DIFF: pin (global-alloc order: the target allocates step (r11) before joy (r10))
 
             if (joy->rep & 0x10001) {
                 d->power -= step;
@@ -2058,7 +2069,7 @@ int idEditTrans(IdTool* w, int x, int y)
             }
             break;
         case 4: {
-            int step = (joy->on & 0x100) ? 10 : 1;
+            register int step asm("r11") = (joy->on & 0x100) ? 10 : 1; // COMPILER-DIFF: pin
 
             if (joy->rep & 0x10001) {
                 d->maskTex -= step;
@@ -2087,19 +2098,31 @@ int idEditTrans(IdTool* w, int x, int y)
             case 0:
                 eprintf(x + 0x48, y, 0, 0, "[%s]", transTypeName[d->transType]);
                 for (j = 0; j <= 4; j++) {
-                    eprintf(x + 0x80 + j * 0x18, yy, (j == d->transType) ? 0 : 7, 0, "%02d", j);
+                    int c = 7;
+                    if (j == d->transType) {
+                        c = 0;
+                    }
+                    eprintf(x + 0x80 + j * 0x18, y + i * 0xE, c, 0, "%02d", j);
                 }
                 break;
             case 1:
                 for (j = 0; j <= 3; j++) {
-                    eprintf(x + 0x48 + j * 0x38, yy, (j == d->transMode) ? 0 : 7, 0, "%s", transModeName[j]);
+                    int c = 7;
+                    if (j == d->transMode) {
+                        c = 0;
+                    }
+                    eprintf(x + 0x48 + j * 0x38, y + i * 0xE, c, 0, "%s", transModeName[j]);
                 }
                 break;
             case 2:
                 eprintf(x + 0x48, y + 0x1C, 0, 0, "%5d", d->power);
                 break;
             case 3:
-                eprintf(x + 0x48, y + 0x2A, col, 0, (d->maskSw & 1) ? "ON-/---" : "---/OFF");
+                if (d->maskSw & 1) {
+                    eprintf(x + 0x48, y + 0x2A, col, 0, "ON-/---");
+                } else {
+                    eprintf(x + 0x48, y + 0x2A, col, 0, "---/OFF");
+                }
                 break;
             case 4:
                 eprintf(x + 0x48, y + 0x38, 0, 0, "%2x", d->maskTex);
@@ -2590,13 +2613,13 @@ static void toolIdOption(IdTool* w)
         break;
     }
     cx = 0x23;
-    mx = 0x22;
-    vx = 0x2F;
-    sx = 0x2E;
     r0 = 0xB;
+    eprintf(cx << 3, (r0 - 1) * 0xE, 5, 0, "OPTION");
+    sx = 0x2E;
     r1 = 0xC;
     r2 = 0xD;
-    eprintf(cx << 3, (r0 - 1) * 0xE, 5, 0, "OPTION");
+    mx = 0x22;
+    vx = 0x2F;
     for (i = 0; i <= 2; i++) {
         int y = (r0 + i) * 0xE;
 
@@ -2613,19 +2636,28 @@ static void toolIdOption(IdTool* w)
             eprintf(vx << 3, r0 * 0xE, 0, 0, "%s", langName2[w->lang]);
             break;
         case 1:
-            eprintf(sx << 3, r1 * 0xE, col, 0, (pG->flags_68 & 0x40000000) ? "ON-/---" : "---/OFF");
+            if (pG->flags_68 & 0x40000000) {
+                eprintf(sx << 3, r1 * 0xE, col, 0, "ON-/---");
+            } else {
+                eprintf(sx << 3, r1 * 0xE, col, 0, "---/OFF");
+            }
             break;
         case 2:
-            eprintf(sx << 3, r2 * 0xE, col, 0, (Screen.width == 640.0f) ? "640/---" : "---/512");
+            if (Screen.width == 640.0f) {
+                eprintf(sx << 3, r2 * 0xE, col, 0, "640/---");
+            } else {
+                eprintf(sx << 3, r2 * 0xE, col, 0, "---/512");
+            }
             break;
         }
     }
     if (w->editStep == 2) {
-        u8 c = 0;
+        int sx = 0x2E;
 
+        col = 0;
         for (i = 0; i <= 6; i++) {
             if (i != w->lang) {
-                eprintf(sx << 3, (r0 - w->lang + i) * 0xE, c, 0, "-%s-", langName2[i]);
+                eprintf(sx << 3, (r0 - w->lang + i) * 0xE, (u8) col, 0, "-%s-", langName2[i]);
             }
         }
     }
@@ -3415,10 +3447,10 @@ void toolIdPaste(u8 parentNo, u8 no)
     ID_DATA* p;
     IdParentMap tbl[0x10];
     int nParent = 0;
-    int cnt = 0;
+    int cnt;
     int lv;
     int i, k;
-    u8 level0;
+    int level0;
     u8 unitNo;
 
     if (parentNo != 0xFF) {
@@ -3427,8 +3459,9 @@ void toolIdPaste(u8 parentNo, u8 no)
         level0 = 0;
     }
     for (lv = 0; lv <= 7; lv++) {
-        for (i = 0; i < ID_CLIP_NUM; i++) {
-            c = &idClip[i];
+        c = idClip;
+        cnt = 0;
+        for (i = 0; i < ID_CLIP_NUM; i++, c++) {
             if (c->be_flag != 0xFF && lv == c->level) {
                 p = toolIdPull();
                 unitNo = p->unitNo;
@@ -3449,7 +3482,7 @@ void toolIdPaste(u8 parentNo, u8 no)
                 p->level = level0 + lv;
                 if (p->kind == 1) {
                     if (nParent > 0xF) {
-                        pLog->err(0, 0, "toolIdPaste(): overflow parent table size %d", 0x10);
+                        pLog.p->err(0, 0, "toolIdPaste(): overflow parent table size %d", 0x10);
                     } else {
                         tbl[nParent].oldNo = c->unitNo;
                         tbl[nParent].newNo = p->unitNo;
