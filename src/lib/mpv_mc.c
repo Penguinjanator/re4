@@ -1,575 +1,272 @@
 /* CRI Sofdec MPEG video: 8x8 block motion compensation, "tuned C" versions. One reference block is
  * copied (1p), horizontally (H2) / vertically (V2) / four-point (4p) half-pel averaged into the
- * word-packed destination; the source alignment selects the load strategy. The bodies are still the
- * original's instruction stream as inline assembly (integer SWAR code: update-form loads, lwbrx byte
- * reversal, byte averages `(w & a) + (x & 0x01010101) + ((x & 0xFEFEFEFE) >> 1)` with x = w ^ a,
- * four-point sums `a0 + a1 + b0 + b1 + 2` packed with rlwinm/rlwimi); OneRef1p keeps its alignment
- * switch in C with register variables in the asm. The pragmas below do not affect asm bodies. The
- * C reconstruction (AGENTS.md "CRI paired-single kernels pass 1") reproduces every arithmetic tree
- * and the loop shapes but not the original's instruction schedule / register assignment, so the
- * asm stays until that is understood; mpv_mcy.c holds the pure-C 16x16 counterparts. */
+ * word-packed destination; the source alignment selects the load strategy. Pure C reconstruction of
+ * the original's instruction stream (integer SWAR code: byte averages through 0x01010101/0xFEFEFEFE
+ * masks, four-point sums `a0 + a1 + b0 + b1 + 2` packed with rlwinm/rlwimi; the H2 average is the
+ * two-definition `t = w & a; t += x & m2; t + ((x & m1) >> 1)` with the masks as function-level
+ * variables, the 1p rows are hand-unrolled with the original's dcbt placement); mpv_mcy.c holds the
+ * 16x16 counterparts. Residues: instruction schedule / register assignment, and the 1p update-form
+ * loads (lfdux/lwzux), which this compiler never emits from C (AGENTS.md "CRI SWAR kernels pass 2"). */
 #include "cri_xpt.h"
 #include "mpv.h"
 
+/* four-point average of the pixel pairs (a, a+1) x (b, b+1), packed as four bytes */
+#define MPVMC08_AVG4(p0, p1, p2, p3) \
+	((((p0) << 22) & 0xFF000000) | (((p1) << 14) & 0x00FF0000) | (((p2) << 6) & 0x0000FF00) | (((p3) >> 2) & 0x000000FF))
+
+/* byte-wise average of two packed words (V2 form): with the masks as VARIABLES the frontend keeps the
+ * target's association `(w & a) + (((x & m1) >> 1) + (x & m2))`; with constants it rebuilds
+ * `sh + ((w & a) + (x & m2))` whatever the spelling */
+#define MPVMC08_AVG2(w, a, x, m1, m2) (((w) & (a)) + (((x) & (m1)) >> 1) + ((x) & (m2)))
+
+#define MPVMC08_W(p, n) (*(Uint32 *)((Uint8 *)(p) + (n)))
+#define MPVMC08_H(p, n) (*(Uint16 *)((Uint8 *)(p) + (n)))
+
 void MPVMC08_OneRef4p_TuneC(MPVMC *mc)
 {
-	asm {
-		li r0, 0x8
-		lwz r4, 0x20(r3)
-		lwz r5, 0x24(r3)
-		lwz r6, 0x28(r3)
-		lwz r3, 0x18(r3)
-		mtctr r0
-L_80217908:
-		lbz r9, 0x0(r5)
-		lbz r0, 0x0(r6)
-		dcbt r6, r4
-		lbz r10, 0x1(r5)
-		lbz r7, 0x1(r6)
-		add r0, r10, r0
-		lbz r31, 0x2(r5)
-		add r8, r0, r7
-		lbz r11, 0x2(r6)
-		addi r27, r8, 0x2
-		add r0, r31, r7
-		add r7, r0, r11
-		lbz r28, 0x3(r5)
-		addi r30, r7, 0x2
-		add r27, r9, r27
-		add r30, r10, r30
-		add r7, r28, r11
-		rlwinm r11, r30, 14, 8, 15
-		lbz r8, 0x3(r6)
-		lbz r29, 0x4(r5)
-		rlwimi r11, r27, 22, 0, 7
-		add r7, r7, r8
-		lbz r9, 0x4(r6)
-		add r8, r29, r8
-		lbz r30, 0x5(r5)
-		add r10, r8, r9
-		addi r7, r7, 0x2
-		add r7, r31, r7
-		lbz r12, 0x5(r6)
-		add r8, r30, r9
-		lbz r0, 0x6(r5)
-		add r9, r8, r12
-		lbz r31, 0x6(r6)
-		addi r8, r10, 0x2
-		add r10, r0, r12
-		addi r9, r9, 0x2
-		lbz r12, 0x8(r5)
-		add r9, r29, r9
-		lbz r29, 0x7(r5)
-		add r8, r28, r8
-		add r10, r10, r31
-		addi r27, r10, 0x2
-		lbz r28, 0x7(r6)
-		add r10, r29, r31
-		lbz r31, 0x8(r6)
-		add r12, r12, r28
-		rlwimi r11, r7, 6, 16, 23
-		add r10, r10, r28
-		add r27, r30, r27
-		add r12, r12, r31
-		rlwimi r11, r8, 30, 24, 31
-		addi r10, r10, 0x2
-		rlwinm r7, r27, 14, 8, 15
-		addi r12, r12, 0x2
-		stw r11, 0x0(r3)
-		add r0, r0, r10
-		rlwimi r7, r9, 22, 0, 7
-		add r12, r29, r12
-		add r5, r5, r4
-		rlwimi r7, r0, 6, 16, 23
-		add r6, r6, r4
-		rlwimi r7, r12, 30, 24, 31
-		stw r7, 0x4(r3)
-		addi r3, r3, 0x8
-		bdnz L_80217908
+	Sint32 i;
+	Sint32 stride = mc->stride;
+	Uint8 *s0 = mc->src;
+	Uint8 *s1 = mc->src2;
+	Uint32 *d = mc->dst;
+	Uint32 a0, b0, a1, b1, a2, b2, a3, b3, a4, b4, a5, b5, a6, b6, a7, b7, a8, b8;
+	Uint32 p0, p1, p2, p3, p4, p5, p6, p7;
+
+	for (i = 0; i < 8; i++) {
+		a0 = s0[0]; b0 = s1[0];
+		__dcbt(s1, stride);
+		a1 = s0[1]; b1 = s1[1];
+		a2 = s0[2]; b2 = s1[2];
+		a3 = s0[3]; b3 = s1[3];
+		a4 = s0[4]; b4 = s1[4];
+		a5 = s0[5]; b5 = s1[5];
+		a6 = s0[6]; b6 = s1[6];
+		a7 = s0[7]; b7 = s1[7];
+		a8 = s0[8]; b8 = s1[8];
+		p0 = a0 + a1 + b0 + b1 + 2;
+		p1 = a1 + a2 + b1 + b2 + 2;
+		p2 = a2 + a3 + b2 + b3 + 2;
+		p3 = a3 + a4 + b3 + b4 + 2;
+		p4 = a4 + a5 + b4 + b5 + 2;
+		p5 = a5 + a6 + b5 + b6 + 2;
+		p6 = a6 + a7 + b6 + b7 + 2;
+		p7 = a7 + a8 + b7 + b8 + 2;
+		d[0] = MPVMC08_AVG4(p0, p1, p2, p3);
+		d[1] = MPVMC08_AVG4(p4, p5, p6, p7);
+		s0 += stride;
+		s1 += stride;
+		d += 2;
 	}
 }
 
-#pragma scheduling off
-
+#pragma opt_propagation off
 void MPVMC08_OneRefH2_TuneC(MPVMC *mc)
 {
-	asm {
-		lwz r7, 0x24(r3)
-		lis r5, 0xfeff
-		lis r4, 0x101
-		lwz r6, 0x18(r3)
-		clrlwi r0, r7, 30
-		lwz r3, 0x20(r3)
-		cmpwi r0, 0x2
-		subi r11, r5, 0x102
-		addi r12, r4, 0x101
-		beq L_80217C2C
-		bge L_80217A54
-		cmpwi r0, 0x0
-		beq L_80217A60
-		bge L_80217B34
-		blr
-L_80217A54:
-		cmpwi r0, 0x4
-		bgelr
-		b L_80217D2C
-L_80217A60:
-		li r0, 0x4
-		mtctr r0
-L_80217A68:
-		dcbt r7, r3
-		lwz r4, 0x0(r7)
-		lwz r8, 0x4(r7)
-		lbz r9, 0x8(r7)
-		slwi r5, r4, 8
-		rlwimi r5, r8, 8, 24, 31
-		rlwimi r9, r8, 8, 0, 23
-		xor r10, r4, r5
-		add r7, r7, r3
-		and r4, r4, r5
-		xor r0, r8, r9
-		and r5, r10, r11
-		and r10, r10, r12
-		and r8, r8, r9
-		and r9, r0, r11
-		and r0, r0, r12
-		srwi r5, r5, 1
-		add r4, r4, r10
-		srwi r9, r9, 1
-		add r4, r4, r5
-		add r8, r8, r0
-		stw r4, 0x0(r6)
-		add r8, r8, r9
-		stw r8, 0x4(r6)
-		dcbt r7, r3
-		lwz r4, 0x0(r7)
-		lwz r8, 0x4(r7)
-		lbz r9, 0x8(r7)
-		slwi r5, r4, 8
-		rlwimi r5, r8, 8, 24, 31
-		rlwimi r9, r8, 8, 0, 23
-		xor r10, r4, r5
-		add r7, r7, r3
-		and r4, r4, r5
-		xor r0, r8, r9
-		and r5, r10, r11
-		and r10, r10, r12
-		and r8, r8, r9
-		and r9, r0, r11
-		and r0, r0, r12
-		srwi r5, r5, 1
-		add r4, r4, r10
-		srwi r9, r9, 1
-		add r4, r4, r5
-		add r8, r8, r0
-		stw r4, 0x8(r6)
-		add r8, r8, r9
-		stw r8, 0xc(r6)
-		addi r6, r6, 0x10
-		bdnz L_80217A68
-		blr
-L_80217B34:
-		li r0, 0x4
-		mtctr r0
-		subi r7, r7, 0x1
-L_80217B40:
-		dcbt r7, r3
-		lwz r8, 0x4(r7)
-		lwz r5, 0x0(r7)
-		lhz r9, 0x8(r7)
-		srwi r4, r8, 24
-		rlwimi r4, r5, 8, 0, 23
-		rlwimi r5, r8, 0, 0, 15
-		rotlwi r5, r5, 16
-		rlwimi r9, r8, 16, 0, 15
-		xor r10, r4, r5
-		slwi r8, r8, 8
-		rlwimi r8, r9, 24, 24, 31
-		and r4, r4, r5
-		and r5, r10, r11
-		and r10, r10, r12
-		xor r0, r8, r9
-		and r8, r8, r9
-		and r9, r0, r11
-		srwi r5, r5, 1
-		add r4, r4, r10
-		and r0, r0, r12
-		add r4, r4, r5
-		srwi r9, r9, 1
-		add r8, r8, r0
-		stw r4, 0x0(r6)
-		add r8, r8, r9
-		add r7, r7, r3
-		stw r8, 0x4(r6)
-		dcbt r7, r3
-		lwz r8, 0x4(r7)
-		lhz r9, 0x8(r7)
-		lwz r5, 0x0(r7)
-		srwi r4, r8, 24
-		rlwimi r9, r8, 16, 0, 15
-		add r7, r7, r3
-		rlwimi r4, r5, 8, 0, 23
-		rlwimi r5, r8, 0, 0, 15
-		rotlwi r5, r5, 16
-		slwi r8, r8, 8
-		xor r10, r4, r5
-		rlwimi r8, r9, 24, 24, 31
-		and r4, r4, r5
-		and r5, r10, r11
-		and r10, r10, r12
-		xor r0, r8, r9
-		and r8, r8, r9
-		and r9, r0, r11
-		srwi r5, r5, 1
-		add r4, r4, r10
-		and r0, r0, r12
-		add r4, r4, r5
-		srwi r9, r9, 1
-		add r8, r8, r0
-		stw r4, 0x8(r6)
-		add r8, r8, r9
-		stw r8, 0xc(r6)
-		addi r6, r6, 0x10
-		bdnz L_80217B40
-		blr
-L_80217C2C:
-		li r0, 0x4
-		mtctr r0
-		subi r7, r7, 0x2
-L_80217C38:
-		dcbt r7, r3
-		lwz r4, 0x0(r7)
-		lwz r8, 0x4(r7)
-		slwi r5, r4, 24
-		slwi r4, r4, 16
-		lwz r0, 0x8(r7)
-		slwi r9, r8, 24
-		rlwimi r5, r8, 24, 8, 31
-		rlwimi r4, r8, 16, 16, 31
-		xor r10, r4, r5
-		slwi r8, r8, 16
-		and r4, r4, r5
-		rlwimi r9, r0, 24, 8, 31
-		and r5, r10, r11
-		rlwimi r8, r0, 16, 16, 31
-		and r10, r10, r12
-		add r7, r7, r3
-		xor r0, r8, r9
-		and r8, r8, r9
-		and r9, r0, r11
-		srwi r5, r5, 1
-		add r4, r4, r10
-		and r0, r0, r12
-		add r4, r4, r5
-		srwi r9, r9, 1
-		add r8, r8, r0
-		stw r4, 0x0(r6)
-		add r8, r8, r9
-		stw r8, 0x4(r6)
-		dcbt r7, r3
-		lwz r4, 0x0(r7)
-		lwz r8, 0x4(r7)
-		slwi r5, r4, 24
-		slwi r4, r4, 16
-		lwz r0, 0x8(r7)
-		slwi r9, r8, 24
-		rlwimi r5, r8, 24, 8, 31
-		rlwimi r4, r8, 16, 16, 31
-		xor r10, r4, r5
-		slwi r8, r8, 16
-		and r4, r4, r5
-		rlwimi r9, r0, 24, 8, 31
-		and r5, r10, r11
-		rlwimi r8, r0, 16, 16, 31
-		and r10, r10, r12
-		add r7, r7, r3
-		xor r0, r8, r9
-		and r8, r8, r9
-		and r9, r0, r11
-		srwi r5, r5, 1
-		add r4, r4, r10
-		and r0, r0, r12
-		add r4, r4, r5
-		srwi r9, r9, 1
-		add r8, r8, r0
-		stw r4, 0x8(r6)
-		add r8, r8, r9
-		stw r8, 0xc(r6)
-		addi r6, r6, 0x10
-		bdnz L_80217C38
-		blr
-L_80217D2C:
-		li r0, 0x4
-		mtctr r0
-		subi r7, r7, 0x3
-L_80217D38:
-		dcbt r7, r3
-		lwz r5, 0x4(r7)
-		lwbrx r4, r0, r7
-		rlwimi r4, r5, 24, 8, 31
-		lwz r9, 0x8(r7)
-		xor r10, r4, r5
-		slwi r8, r5, 24
-		rlwimi r8, r9, 24, 8, 31
-		and r4, r4, r5
-		and r5, r10, r11
-		and r10, r10, r12
-		xor r0, r8, r9
-		and r8, r8, r9
-		and r9, r0, r11
-		srwi r5, r5, 1
-		add r4, r4, r10
-		and r0, r0, r12
-		add r4, r4, r5
-		srwi r9, r9, 1
-		add r8, r8, r0
-		stw r4, 0x0(r6)
-		add r8, r8, r9
-		add r7, r7, r3
-		stw r8, 0x4(r6)
-		dcbt r7, r3
-		lwz r5, 0x4(r7)
-		lwbrx r4, r0, r7
-		rlwimi r4, r5, 24, 8, 31
-		lwz r9, 0x8(r7)
-		xor r10, r4, r5
-		slwi r8, r5, 24
-		rlwimi r8, r9, 24, 8, 31
-		and r4, r4, r5
-		and r5, r10, r11
-		and r10, r10, r12
-		xor r0, r8, r9
-		and r8, r8, r9
-		and r9, r0, r11
-		srwi r5, r5, 1
-		add r4, r4, r10
-		and r0, r0, r12
-		add r4, r4, r5
-		srwi r9, r9, 1
-		add r8, r8, r0
-		stw r4, 0x8(r6)
-		add r8, r8, r9
-		add r7, r7, r3
-		stw r8, 0xc(r6)
-		addi r6, r6, 0x10
-		bdnz L_80217D38
+	Sint32 i;
+	Uint8 *s = mc->src;
+	Uint32 *d = mc->dst;
+	Sint32 stride = mc->stride;
+	Uint32 w0, w1, a0, a1, x0, x1, t0, t1;
+	Uint32 m1 = 0xFEFEFEFE;
+	Uint32 m2 = 0x01010101;
+
+	switch ((Uint32)s & 3) {
+	case 0:
+		for (i = 0; i < 8; i++) {
+			__dcbt(s, stride);
+			w0 = MPVMC08_W(s, 0);
+			w1 = MPVMC08_W(s, 4);
+			a1 = s[8];
+			a0 = (w1 >> 24) | (w0 << 8);
+			a1 = (w1 << 8) | a1;
+			x0 = w0 ^ a0;
+			s += stride;
+			x1 = w1 ^ a1;
+			t0 = w0 & a0;
+			t0 += x0 & m2;
+			t1 = w1 & a1;
+			t1 += x1 & m2;
+			d[0] = t0 + ((x0 & m1) >> 1);
+			d[1] = t1 + ((x1 & m1) >> 1);
+			d += 2;
+		}
+		break;
+	case 1:
+		s -= 1;
+		for (i = 0; i < 8; i++) {
+			__dcbt(s, stride);
+			w1 = MPVMC08_W(s, 4);
+			w0 = MPVMC08_W(s, 0);
+			a1 = MPVMC08_H(s, 8);
+			a0 = (w0 << 8) | (w1 >> 24);
+			w0 = __rlwinm(__rlwimi(w0, w1, 0, 0, 15), 16, 0, 31);
+			a1 = (w1 << 16) | a1;
+			x0 = a0 ^ w0;
+			w1 = __rlwimi(w1 << 8, a1, 24, 24, 31);
+			t0 = a0 & w0;
+			t0 += x0 & m2;
+			x1 = w1 ^ a1;
+			t1 = w1 & a1;
+			t1 += x1 & m2;
+			d[0] = t0 + ((x0 & m1) >> 1);
+			d[1] = t1 + ((x1 & m1) >> 1);
+			s += stride;
+			d += 2;
+		}
+		break;
+	case 2:
+		s -= 2;
+		for (i = 0; i < 8; i++) {
+			__dcbt(s, stride);
+			w0 = MPVMC08_W(s, 0);
+			w1 = MPVMC08_W(s, 4);
+			x1 = MPVMC08_W(s, 8);
+			a0 = (w1 >> 8) | (w0 << 24);
+			w0 = (w1 >> 16) | (w0 << 16);
+			x0 = w0 ^ a0;
+			t0 = w0 & a0;
+			a1 = (x1 >> 8) | (w1 << 24);
+			w1 = (x1 >> 16) | (w1 << 16);
+			s += stride;
+			x1 = w1 ^ a1;
+			t1 = w1 & a1;
+			t0 += x0 & m2;
+			t1 += x1 & m2;
+			d[0] = t0 + ((x0 & m1) >> 1);
+			d[1] = t1 + ((x1 & m1) >> 1);
+			d += 2;
+		}
+		break;
+	case 3:
+		s -= 3;
+		for (i = 0; i < 8; i++) {
+			__dcbt(s, stride);
+			a0 = MPVMC08_W(s, 4);
+			w0 = __rlwimi(__lwbrx(s, 0), a0, 24, 8, 31);
+			a1 = MPVMC08_W(s, 8);
+			x0 = w0 ^ a0;
+			w1 = (a1 >> 8) | (a0 << 24);
+			t0 = w0 & a0;
+			t0 += x0 & m2;
+			x1 = w1 ^ a1;
+			t1 = w1 & a1;
+			t1 += x1 & m2;
+			d[0] = t0 + ((x0 & m1) >> 1);
+			d[1] = t1 + ((x1 & m1) >> 1);
+			s += stride;
+			d += 2;
+		}
+		break;
 	}
 }
 
-#pragma peephole off
-
+#pragma opt_propagation reset
 void MPVMC08_OneRefV2_TuneC(MPVMC *mc)
 {
-	asm {
-		lwz r5, 0x24(r3)
-		lwz r6, 0x28(r3)
-		clrlwi r7, r5, 30
-		lwz r4, 0x18(r3)
-		cmpwi r7, 0x2
-		lwz r0, 0x20(r3)
-		beq L_80217FD0
-		bge L_80217E48
-		cmpwi r7, 0x0
-		beq L_80217E54
-		bge L_80217F28
-		b L_8021811C
-L_80217E48:
-		cmpwi r7, 0x4
-		bge L_8021811C
-		b L_80218074
-L_80217E54:
-		lis r8, 0x101
-		lis r7, 0xfeff
-		li r3, 0x4
-		addi r11, r8, 0x101
-		subi r10, r7, 0x102
-		mtctr r3
-L_80217E6C:
-		lwz r8, 0x0(r5)
-		lwz r9, 0x0(r6)
-		lwz r28, 0x4(r5)
-		add r5, r5, r0
-		lwz r29, 0x4(r6)
-		xor r7, r8, r9
-		and r3, r7, r10
-		and r9, r8, r9
-		xor r12, r28, r29
-		and r8, r7, r11
-		srwi r3, r3, 1
-		and r7, r28, r29
-		add r8, r3, r8
-		and r3, r12, r10
-		add r9, r9, r8
-		and r8, r12, r11
-		srwi r3, r3, 1
-		stw r9, 0x0(r4)
-		add r3, r3, r8
-		add r6, r6, r0
-		add r3, r7, r3
-		stw r3, 0x4(r4)
-		lwz r8, 0x0(r5)
-		lwz r9, 0x0(r6)
-		lwz r28, 0x4(r5)
-		add r5, r5, r0
-		lwz r29, 0x4(r6)
-		xor r7, r8, r9
-		and r3, r7, r10
-		and r9, r8, r9
-		xor r12, r28, r29
-		and r8, r7, r11
-		srwi r3, r3, 1
-		and r7, r28, r29
-		add r8, r3, r8
-		and r3, r12, r10
-		add r9, r9, r8
-		and r8, r12, r11
-		srwi r3, r3, 1
-		stw r9, 0x8(r4)
-		add r3, r3, r8
-		add r6, r6, r0
-		add r3, r7, r3
-		stw r3, 0xc(r4)
-		addi r4, r4, 0x10
-		bdnz L_80217E6C
-		b L_8021811C
-L_80217F28:
-		lis r8, 0x101
-		lis r7, 0xfeff
-		li r3, 0x8
-		addi r12, r8, 0x101
-		subi r10, r7, 0x102
-		mtctr r3
-		subi r5, r5, 0x1
-		subi r6, r6, 0x1
-L_80217F48:
-		lwz r11, 0x4(r5)
-		lwz r30, 0x4(r6)
-		lbz r31, 0x8(r6)
-		srwi r3, r11, 24
-		lwz r7, 0x0(r5)
-		srwi r9, r30, 24
-		lwz r8, 0x0(r6)
-		mr r28, r31
-		lbz r29, 0x8(r5)
-		rlwimi r3, r7, 8, 0, 23
-		rlwimi r9, r8, 8, 0, 23
-		rlwimi r29, r11, 8, 0, 23
-		xor r8, r3, r9
-		rlwimi r28, r30, 8, 0, 23
-		and r7, r8, r10
-		and r9, r3, r9
-		xor r31, r29, r28
-		and r11, r8, r12
-		srwi r7, r7, 1
-		add r5, r5, r0
-		and r3, r31, r10
-		and r8, r31, r12
-		add r7, r7, r11
-		add r6, r6, r0
-		add r9, r9, r7
-		srwi r3, r3, 1
-		and r7, r29, r28
-		stw r9, 0x0(r4)
-		add r3, r3, r8
-		add r3, r7, r3
-		stw r3, 0x4(r4)
-		addi r4, r4, 0x8
-		bdnz L_80217F48
-		b L_8021811C
-L_80217FD0:
-		lis r8, 0x101
-		lis r7, 0xfeff
-		li r3, 0x8
-		addi r12, r8, 0x101
-		subi r10, r7, 0x102
-		mtctr r3
-		subi r5, r5, 0x2
-		subi r6, r6, 0x2
-L_80217FF0:
-		lwz r11, 0x4(r5)
-		lwz r30, 0x4(r6)
-		lwz r7, 0x0(r5)
-		srwi r3, r11, 16
-		lhz r29, 0x8(r5)
-		srwi r9, r30, 16
-		lwz r8, 0x0(r6)
-		rlwimi r3, r7, 16, 0, 15
-		lhz r28, 0x8(r6)
-		rlwimi r29, r11, 16, 0, 15
-		rlwimi r9, r8, 16, 0, 15
-		rlwimi r28, r30, 16, 0, 15
-		xor r8, r3, r9
-		add r5, r5, r0
-		and r7, r8, r10
-		xor r31, r29, r28
-		and r11, r8, r12
-		and r9, r3, r9
-		srwi r7, r7, 1
-		and r3, r31, r10
-		add r7, r7, r11
-		and r8, r31, r12
-		add r9, r9, r7
-		srwi r3, r3, 1
-		and r7, r29, r28
-		stw r9, 0x0(r4)
-		add r3, r3, r8
-		add r6, r6, r0
-		add r3, r7, r3
-		stw r3, 0x4(r4)
-		addi r4, r4, 0x8
-		bdnz L_80217FF0
-		b L_8021811C
-L_80218074:
-		lis r8, 0x101
-		lis r7, 0xfeff
-		li r3, 0x8
-		addi r12, r8, 0x101
-		subi r10, r7, 0x102
-		mtctr r3
-		subi r5, r5, 0x3
-		subi r6, r6, 0x3
-L_80218094:
-		lwz r31, 0x4(r5)
-		lwz r30, 0x4(r6)
-		lwz r11, 0x8(r5)
-		srwi r3, r31, 8
-		lwz r7, 0x0(r5)
-		srwi r8, r30, 8
-		lwz r9, 0x0(r6)
-		srwi r29, r11, 8
-		lwz r28, 0x8(r6)
-		rlwimi r3, r7, 24, 0, 7
-		rlwimi r8, r9, 24, 0, 7
-		rlwimi r29, r31, 24, 0, 7
-		srwi r28, r28, 8
-		add r5, r5, r0
-		xor r7, r3, r8
-		and r11, r3, r8
-		and r3, r7, r10
-		rlwimi r28, r30, 24, 0, 7
-		and r7, r7, r12
-		add r6, r6, r0
-		srwi r3, r3, 1
-		xor r8, r29, r28
-		add r9, r3, r7
-		and r7, r29, r28
-		and r3, r8, r10
-		and r8, r8, r12
-		add r9, r11, r9
-		srwi r3, r3, 1
-		stw r9, 0x0(r4)
-		add r3, r3, r8
-		add r3, r7, r3
-		stw r3, 0x4(r4)
-		addi r4, r4, 0x8
-		bdnz L_80218094
-L_8021811C:
+	Sint32 i;
+	Uint32 *d;
+	Uint8 *s0;
+	Uint8 *s1;
+	Sint32 stride;
+	Uint32 x0, w0, a0, x1, w1, a1, w2, a2;
+	Uint32 m1 = 0xFEFEFEFE;
+	Uint32 m2 = 0x01010101;
+
+	s0 = mc->src;
+	s1 = mc->src2;
+	d = mc->dst;
+	stride = mc->stride;
+	switch ((Uint32)s0 & 3) {
+	case 0:
+		for (i = 0; i < 8; i++) {
+			w0 = MPVMC08_W(s0, 0);
+			a0 = MPVMC08_W(s1, 0);
+			w1 = MPVMC08_W(s0, 4);
+			a1 = MPVMC08_W(s1, 4);
+			x0 = w0 ^ a0;
+			x1 = w1 ^ a1;
+			d[0] = MPVMC08_AVG2(w0, a0, x0, m1, m2);
+			d[1] = MPVMC08_AVG2(w1, a1, x1, m1, m2);
+			s0 += stride;
+			s1 += stride;
+			d += 2;
+		}
+		break;
+	case 1:
+		s0 -= 1;
+		s1 -= 1;
+		for (i = 0; i < 8; i++) {
+			w1 = MPVMC08_W(s0, 4);
+			a1 = MPVMC08_W(s1, 4);
+			a2 = s1[8];
+			w0 = MPVMC08_W(s0, 0);
+			a0 = MPVMC08_W(s1, 0);
+			w2 = s0[8];
+			w0 = (w0 << 8) | (w1 >> 24);
+			a0 = (a0 << 8) | (a1 >> 24);
+			w1 = (w1 << 8) | w2;
+			a1 = (a1 << 8) | a2;
+			x0 = w0 ^ a0;
+			x1 = w1 ^ a1;
+			d[0] = MPVMC08_AVG2(w0, a0, x0, m1, m2);
+			d[1] = MPVMC08_AVG2(w1, a1, x1, m1, m2);
+			s0 += stride;
+			s1 += stride;
+			d += 2;
+		}
+		break;
+	case 2:
+		s0 -= 2;
+		s1 -= 2;
+		for (i = 0; i < 8; i++) {
+			w1 = MPVMC08_W(s0, 4);
+			a1 = MPVMC08_W(s1, 4);
+			w0 = MPVMC08_W(s0, 0);
+			w2 = MPVMC08_H(s0, 8);
+			a0 = MPVMC08_W(s1, 0);
+			a2 = MPVMC08_H(s1, 8);
+			w0 = (w0 << 16) | (w1 >> 16);
+			a0 = (a0 << 16) | (a1 >> 16);
+			w1 = (w1 << 16) | w2;
+			a1 = (a1 << 16) | a2;
+			x0 = w0 ^ a0;
+			x1 = w1 ^ a1;
+			d[0] = MPVMC08_AVG2(w0, a0, x0, m1, m2);
+			d[1] = MPVMC08_AVG2(w1, a1, x1, m1, m2);
+			s0 += stride;
+			s1 += stride;
+			d += 2;
+		}
+		break;
+	case 3:
+		s0 -= 3;
+		s1 -= 3;
+		for (i = 0; i < 8; i++) {
+			w1 = MPVMC08_W(s0, 4);
+			a1 = MPVMC08_W(s1, 4);
+			w2 = MPVMC08_W(s0, 8);
+			w0 = MPVMC08_W(s0, 0);
+			a0 = MPVMC08_W(s1, 0);
+			a2 = MPVMC08_W(s1, 8);
+			w0 = (w0 << 24) | (w1 >> 8);
+			a0 = (a0 << 24) | (a1 >> 8);
+			w1 = (w1 << 24) | (w2 >> 8);
+			a1 = (a1 << 24) | (a2 >> 8);
+			x0 = w0 ^ a0;
+			x1 = w1 ^ a1;
+			d[0] = MPVMC08_AVG2(w0, a0, x0, m1, m2);
+			d[1] = MPVMC08_AVG2(w1, a1, x1, m1, m2);
+			s0 += stride;
+			s1 += stride;
+			d += 2;
+		}
+		break;
 	}
 }
 
-#pragma peephole on
-#pragma scheduling on
-
+/* MPVMC08_OneRef1p_TuneC: kept as inline asm -- `lfdux`/`lwzux` are never emitted from C by MWCC 2.4.7
+ * (13 probe forms; only constant loop steps fold to `lwzu`) and case 3/7 row 3 carries a `dcbt` stride typo, so
+ * this kernel was asm in CRI's source (see AGENTS.md "CRI SWAR kernels pass 2"). */
 void MPVMC08_OneRef1p_TuneC(MPVMC *mc)
 {
 	register Uint8 *s = mc->src;

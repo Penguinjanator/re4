@@ -21,7 +21,11 @@ Rules of the day:
   statement. MWCC units: `register` locals, `asm { mr rN, v }` pins, pragmas. Byte identity today
   beats tag purity; tags can be hunted later. Never a whole-function asm body, never `.s`. The
   paired-single kernels (dct_fsri, cftyp422_ppc, mpv_umc Bi/OneMakeMb/OutputIntra6blk/SetGqr) stay
-  asm: MWCC 2.4.7 has no paired-single intrinsics, so that is the original form.
+  asm: MWCC 2.4.7 has no paired-single intrinsics, so that is the original form. General criterion:
+  a function whose target bytes contain instructions this compiler never emits from C (`psq_*`/`ps_*`
+  with quantised GQRs, `mtspr`, `lfdux`/`lwzux`, `stwbrx` with the chain unmerged, ...) was inline asm
+  in the vendor's source — keep the asm body for THAT function and say so in a comment (mpv_mc
+  `MPVMC08_OneRef1p_TuneC`). Everything else must be C.
 - Several agents may edit ONE FILE at once, each owning a set of FUNCTIONS. Edit only your functions
   (surgical StrReplace, re-read before each edit). If the unit does not compile because of another
   agent's half-written function, wait a minute and retry; never revert their code.
@@ -3982,6 +3986,87 @@ Stop 2 -> 0, ExecOneAdx 212 -> 1, EvokeDecode 94 -> 22; .text 0x1888 = target, .
 sfd_adxt 22 -> 23/28 (Pause 12 -> 0). Not reached: adx_dcd5, cri_cvfs, adx_baif, dct_ac, cftfx (its .text
 order is already the target's; cnvDynamic..UserTable 135w is a structural `mr`-copy shape), sfd_adxt
 ExecServerSub/AdjustSync/SetSpeed/ExcludeHdr.
+
+### CRI SWAR kernels pass 2: mpv_mc asm -> pure C (unit now False, split object linked, 111 OK), 8x8 V2 231 -> 73w with case 0 identical, 16x16 V2 263 -> 225w; the average's association and the 1p asm origin (2026-09-11)
+Harness /home/adityas/.cache/cri_swar2/ (deleted): `try.py lib/unit file.c [Func..] [--sbs Func]` (the unit's
+exact compile command cached from `ninja -t commands`, strip_unused, bytecmp with OBJ override, side-by-side
+`dtk elf disasm` with labels normalised; never touches build/), `cc.sh probe.c` (CRI-flag compile + disasm),
+probe files probe_upd*.c, ~50 source variants mc_*.c / mcy_*.c; ~/.cache/mwccdbg `ra.py`/`rasum.py` reused
+(dumps under the harness). All 8x8 kernels are pure C now (no asm anywhere in mpv_mc.c / mpv_mcy.c).
+
+**Read off the builds / dumps (verified):**
+- **The 8x8 1p kernel was inline asm in the original.** Its rows use `lfdux`/`lwzux` (update-form indexed
+  loads) and this compiler NEVER emits them from C: `*(T *)(p += stride)`, `*(p = p + n)`, `*++q`, register
+  locals, volatile, Uint32 strides, do/while and for loops with a register step (probe_upd*.c: 13 forms) all
+  give `add; lwz`/`lfdx`; only a CONSTANT loop step folds (`lwzu r0, 0xc(r4)`, rna_res / sfd_mpv struct
+  copies). Case 3/7's row 3 prefetches with `dcbt s, stride` where rows 0-2/4-5 use `2*stride` — a hand
+  typo in straight-line asm. Pure C for 1p (kept) can therefore only reproduce the arithmetic: case 0/4 as
+  `p += stride; f = *(Float64 *)p` rows, case 2/6 a 2-iteration loop of four hand-unrolled rows (`li 2;
+  mtctr`; an 8-iteration loop is unrolled x8), the second word `h1 | (w0 << 16)` (an `or`: the inserted
+  operand is not a rlwinm, so the or->rlwimi merge does not fire; `(w0 << 16) | h1` merges), cases 1/5
+  and 3/7 hand-pipelined with the original's dcbt placement. 481w, size 0x4b0 vs 0x450 (one `add` per
+  update-form load).
+- **The byte average's association is decided by the frontend before constant propagation, and the
+  masks' KIND decides it.** `T + S + V` with T = `w & a`, S = `(x & 0xFEFEFEFE) >> 1`, V = `x & 0x01010101`
+  as literals is rebuilt as `S + (T + V)` in every one of the 12 parenthesisations/orders (V2 8x8: 97-231w;
+  `T + (V + S)` gives the target's instruction ORDER with the wrong roles, 116w); the same three terms with
+  the masks as LOCAL VARIABLES `Uint32 m1 = 0xFEFEFEFE, m2 = 0x01010101;` (propagated to the same
+  `lis/addi` constants afterwards) give the target's `T + (S + V)` = `add sh, m2; add wa, ·` — 8x8 V2 case
+  0 byte-identical with the declaration order below, 16x16 V2 loop schedule identical (registers left).
+  Pass 1's reading "the macro form IS the target's association" was wrong for both V2s (ours was
+  `add t0 + v; add sh + ·`). `t0 += S + V` is distributed by the frontend into `t0 += V; t0 += S`
+  (= the 8x8 H2 target's two-add shape, operand order t0 first): the H2 spelling `t0 = w & a; t0 += x & m2;
+  t0 + ((x & m1) >> 1)` stays. A two-def `u = S; u += V; d = (w & a) + u` puts the variable LEFT
+  (`add u, t0`); the target's `add t0, u` needs the sum as one expression.
+- **Own-local colouring order = declaration order, applied**: V2 8x8 case 0 needs x0 (r7) < w0 (r8) < a0
+  (r9) < x1 (r12) < w1 (r28) < a1 (r29) [x1 must precede w1, else w1 takes r12]: `Uint32 x0, w0, a0, x1,
+  w1, a1, w2, a2;` (231 -> 73w; five orders of the w2/a2 tail give the same, the cases 1-3 copies do not
+  follow the declaration order). The prologue load order is the statement order (`s0 = mc->src; s1 =
+  mc->src2; d = mc->dst; stride = mc->stride;` with `d, s0, s1, stride` DECLARED first: d r4, s0 r5, s1 r6,
+  stride r0 — V2 8x8 prologue identical; 16x16 loads src2 first: `s1 = mc->src2; s0 = mc->src;`).
+- **The frontend range-splits a function-scope loop variable into one web per `switch` case** (`@N`
+  copies for cases 1-3; the case-0 web keeps the name; `register`, switch-block-scope declarations,
+  do/while loops, `#pragma opt_lifetimes off` (destroys the codegen) do not change it). Consequence for
+  the 8x8 H2 R2: the target's loop values x1 r0, w0 r4, a0 r5, w1 r8, a1 r9, x0 r10 with s r7, d r6,
+  stride r3, m1 r11, m2 r12 and every `and` in place (r4, r5, r10, r8, r9, r0) is exactly the lowest-free
+  colouring of ONE level-2 set {x1, stride, w0, a0, d, s, w1, a1, x0, m1, m2} in that id order, followed
+  by the level-1 temps (t0/u0/v0/t1/u1/v1 in place, the count temps r0, the or-merge bases coalesced by
+  copy preference) — i.e. the six loop values are single nodes across all four case loops (degree >= 29,
+  removed in iteration 2) with the declaration order `x1, stride, w0, a0, d, s, w1, a1, x0, m1, m2`. In
+  ours each case's copies are level-1 nodes coloured after the backend temps (which take r0/r3-r12
+  first) -> 2 callee-saved. The single-case probe (cases 1-3 deleted) with that declaration order gives
+  w0 r4 / a0 r5 / x0 r10 / m1 r11 / m2 r12 and the in-place `and r4 = w0 & a0; and r5 = x0 & m1; and r10 =
+  x0 & m2`, confirming the reading; what keeps the webs whole across the switch in the original is not
+  found (a use after the switch makes them level 2 but changes the loops: 355w).
+- **Mask hoisting (H2 8x8 `lis/lis/subi r11/addi r12` in the entry block)**: 16 spellings of a
+  constant-initialised local (`register`, `const`, `Sint32`, `~m2`, casts, Uint16 halves, shifts by a
+  runtime zero, `__rlwinm` (keeps a `clrrwi`), `if (0)`/`switch (0)`/`sizeof` dead second definitions —
+  all deleted before the propagation decision) are propagated into every loop; only a live second
+  definition or `#pragma opt_propagation off` keeps them. Applied: `#pragma opt_propagation off` around
+  MPVMC08_OneRefH2_TuneC (448 -> 436w, structure right, registers r6/r3 instead of r12/r11 = the R2 above).
+- **4p 8x8 `li r0, 8` / stride r4**: with `__dcbt(s1, stride)` ours colours stride r0 (level 2 first) and
+  the count r6; the target's stride is r0-excluded in BOTH dcbt kernels (H2: r3, 4p: r4) and r0 in V2 (no
+  dcbt). `__dcbt(a, b)` puts the FIRST operand in rA (r0-excluded) and encodes it first: `__dcbt(stride +
+  s1, 0)` / `(void *)stride, (int)s1` give stride r4 + the target's prologue but `dcbt r4, r6` (swapped
+  encoding); `s1 + stride`, `&s1[stride]`, `(Uint32)stride`, an `asm { dcbt s1, stride }` on register
+  locals all leave stride in r0. Not derivable from the bytes; OPEN (72w: the count/stride swap plus the
+  loop's callee-saved permutation r25-r31 vs r27-r31 that follows from it).
+- The 4p / H2 R1 ties (pass 1) are unchanged; the V2 schedules follow the association fix (ORDER identical
+  in 8x8 case 0-3 first copies and 16x16 case 0 once the association is the target's), so R1 there was the
+  DAG, not a tie-break.
+
+**Applied:** src/lib/mpv_mc.c = pure C, all four kernels (4p 72w, H2 436w, V2 73w, 1p 481w; `MATCHING False`
+with the per-kernel counts in objects.py; DOL + 110 RELs 111 OK with the split object); src/lib/mpv_mcy.c V2
+(mask variables through `MPVMC16_AVG2V`, declaration order `d, s0, s1, stride, x2, x0, x3, i, w1, a1, w0, a0,
+w2, a2, w3, a3, x1, w4, a4`; 263 -> 225w, prologue + schedule identical, registers/frame left: 16x16 case 0's
+variables are coloured after the cases 1-3 copies that hand out the callee-saved registers). 16x16 H2 with
+mask variables: 225 -> 300w (not applied; its association differs — check its target before touching it).
+
+**Residues (exact class):** 8x8 H2 R2 (un-split loop webs, above) + the `and` order R1 inside it; 8x8 4p R2
+(stride r0 exclusion) + R1 (`addi p0+2` before `add a2+b1`); 8x8 V2 cases 1-3 (73w: the `@N` copies' order
+— target x1 r31 / a1' r28 with the R3 `mr r28, r31` of `(a1 << 8) | a2` because x1 took r31 first — ours
+x0/x1 swapped, no `mr`); 8x8 1p (asm origin, not reachable from C); 16x16 V2 225w (R2 as above), 16x16 4p
+136w / H2 225w / 1p 61w untouched this pass.
 
 ## REL modules
 

@@ -16,6 +16,9 @@
 
 /* byte-wise average of two packed words */
 #define MPVMC16_AVG2(w, a, x) (((w) & (a)) + (((x) & 0xFEFEFEFE) >> 1) + ((x) & 0x01010101))
+/* the same through mask VARIABLES (propagated to the same constants): the frontend then keeps the
+ * target's association `(w & a) + (sh + (x & m2))`; with literal masks it rebuilds `sh + ((w & a) + (x & m2))` */
+#define MPVMC16_AVG2V(w, a, x, m1, m2) (((w) & (a)) + (((x) & (m1)) >> 1) + ((x) & (m2)))
 
 void MPVMC16_OneRef4p_TuneC(MPVMC *mc)
 {
@@ -208,13 +211,20 @@ void MPVMC16_OneRefH2_TuneC(MPVMC *mc)
 
 void MPVMC16_OneRefV2_TuneC(MPVMC *mc)
 {
+	Uint32 *d;
+	Uint8 *s0;
+	Uint8 *s1;
+	Sint32 stride;
+	Uint32 x2, x0, x3;
 	Sint32 i;
-	Uint8 *s1 = mc->src2;
-	Uint8 *s0 = mc->src;
-	Uint32 *d = mc->dst;
-	Sint32 stride = mc->stride;
-	Uint32 w0, w1, w2, w3, w4, a0, a1, a2, a3, a4, x0, x1, x2, x3;
+	Uint32 w1, a1, w0, a0, w2, a2, w3, a3, x1, w4, a4;
+	Uint32 m1 = 0xFEFEFEFE;
+	Uint32 m2 = 0x01010101;
 
+	s1 = mc->src2;
+	s0 = mc->src;
+	d = mc->dst;
+	stride = mc->stride;
 	__dcbt(s1, 0);
 	switch ((Uint32)s0 & 3) {
 	case 0:
@@ -232,10 +242,10 @@ void MPVMC16_OneRefV2_TuneC(MPVMC *mc)
 			x1 = w1 ^ a1;
 			x2 = w2 ^ a2;
 			x3 = w3 ^ a3;
-			d[0] = MPVMC16_AVG2(w0, a0, x0);
-			d[1] = MPVMC16_AVG2(w1, a1, x1);
-			d[16] = MPVMC16_AVG2(w2, a2, x2);
-			d[17] = MPVMC16_AVG2(w3, a3, x3);
+			d[0] = MPVMC16_AVG2V(w0, a0, x0, m1, m2);
+			d[1] = MPVMC16_AVG2V(w1, a1, x1, m1, m2);
+			d[16] = MPVMC16_AVG2V(w2, a2, x2, m1, m2);
+			d[17] = MPVMC16_AVG2V(w3, a3, x3, m1, m2);
 			s0 += stride;
 			s1 += stride;
 			d += 2;
@@ -271,10 +281,10 @@ void MPVMC16_OneRefV2_TuneC(MPVMC *mc)
 			x1 = w1 ^ a1;
 			x2 = w2 ^ a2;
 			x3 = w3 ^ a3;
-			d[0] = MPVMC16_AVG2(w0, a0, x0);
-			d[1] = MPVMC16_AVG2(w1, a1, x1);
-			d[16] = MPVMC16_AVG2(w2, a2, x2);
-			d[17] = MPVMC16_AVG2(w3, a3, x3);
+			d[0] = MPVMC16_AVG2V(w0, a0, x0, m1, m2);
+			d[1] = MPVMC16_AVG2V(w1, a1, x1, m1, m2);
+			d[16] = MPVMC16_AVG2V(w2, a2, x2, m1, m2);
+			d[17] = MPVMC16_AVG2V(w3, a3, x3, m1, m2);
 			s0 += stride;
 			s1 += stride;
 			d += 2;
@@ -310,10 +320,10 @@ void MPVMC16_OneRefV2_TuneC(MPVMC *mc)
 			x1 = w1 ^ a1;
 			x2 = w2 ^ a2;
 			x3 = w3 ^ a3;
-			d[0] = MPVMC16_AVG2(w0, a0, x0);
-			d[1] = MPVMC16_AVG2(w1, a1, x1);
-			d[16] = MPVMC16_AVG2(w2, a2, x2);
-			d[17] = MPVMC16_AVG2(w3, a3, x3);
+			d[0] = MPVMC16_AVG2V(w0, a0, x0, m1, m2);
+			d[1] = MPVMC16_AVG2V(w1, a1, x1, m1, m2);
+			d[16] = MPVMC16_AVG2V(w2, a2, x2, m1, m2);
+			d[17] = MPVMC16_AVG2V(w3, a3, x3, m1, m2);
 			s0 += stride;
 			s1 += stride;
 			d += 2;
@@ -349,10 +359,10 @@ void MPVMC16_OneRefV2_TuneC(MPVMC *mc)
 			x1 = w1 ^ a1;
 			x2 = w2 ^ a2;
 			x3 = w3 ^ a3;
-			d[0] = MPVMC16_AVG2(w0, a0, x0);
-			d[1] = MPVMC16_AVG2(w1, a1, x1);
-			d[16] = MPVMC16_AVG2(w2, a2, x2);
-			d[17] = MPVMC16_AVG2(w3, a3, x3);
+			d[0] = MPVMC16_AVG2V(w0, a0, x0, m1, m2);
+			d[1] = MPVMC16_AVG2V(w1, a1, x1, m1, m2);
+			d[16] = MPVMC16_AVG2V(w2, a2, x2, m1, m2);
+			d[17] = MPVMC16_AVG2V(w3, a3, x3, m1, m2);
 			s0 += stride;
 			s1 += stride;
 			d += 2;

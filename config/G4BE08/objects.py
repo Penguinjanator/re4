@@ -1379,7 +1379,7 @@ MATCHING.update({
     "lib/sj_rbf.c": True,
     "lib/mpv_lib.c": True,
     "lib/sfx_YCC420PLN_to_ARGB8888PLN.c": True,
-    "lib/mpv_mc.c": True,
+    "lib/mpv_mc.c": False,  # CRI SWAR kernels pass 2: asm bodies replaced by pure C except OneRef1p (lfdux/lwzux: asm in the original); 4p 72w (count/stride r0 swap + loop registers), H2 436w (masks hoisted with opt_propagation off; the target's un-split loop variables), V2 73w (case 0 identical: average through mask variables + declaration order x0, w0, a0, x1, w1, a1; cases 1-3 register/mr residue), 1p 481w (the original's lfdux/lwzux update forms are not emitted from C by this compiler)
 })
 
 # partner character (pl_npc): const f32 locals for pool order, per-value switch bodies, dead
