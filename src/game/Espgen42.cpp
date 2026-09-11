@@ -434,13 +434,15 @@ int GetWaterCrossPos(Vec* pos, Vec* dir, Vec* out)
 // Noise texture (0xFE) index of grid point (x, y).
 #define NOISE_INDEX(x, y) ((((y) << 6) & 0xB00) + (((x) << 2) & 0xA0) + (((y) & 3) << 3) + ((x) & 7))
 
-// u8 -> f32 through GQR2 from a stack byte (the compiler only emits psq_l from its own fpmem slot).
-#define PSQ_L_U8(p) ({ f32 f_; asm("psq_l %0,0(%1),1,2" : "=f"(f_) : "b"(p), "m"(*(p))); f_; })
+// u8 -> f32 through GQR2 from a stack byte (the compiler only emits psq_l from its own fpmem slot). volatile (no
+// memory clobber): a volatile asm is a scheduling barrier for everything in RTL order around it, which is what puts
+// the pos/cur address adds before the noise lbzx and the neighbour loads after it in the target's loop A.
+#define PSQ_L_U8(p) ({ f32 f_; asm volatile("psq_l %0,0(%1),1,2" : "=f"(f_) : "b"(p), "m"(*(p))); f_; })
 
 void Espgen42_Move00(EspgenWork* w)
 {
     static f32 wt_pow = 10.0f;
-    Espgen42Work* p = (Espgen42Work*) w->work;
+    Espgen42Work* p;
     Vec d0;
     Vec d1;
     Vec v;
@@ -454,6 +456,7 @@ void Espgen42_Move00(EspgenWork* w)
     int i;
     int j;
     int k;
+    int nz;   // noise index / byte of both loops: one function-level pseudo (see loop A)
 
     d0.x = 1.0f;
     d0.z = 0.0f;
@@ -472,6 +475,9 @@ void Espgen42_Move00(EspgenWork* w)
     PPCMtmmcr1(0x78000000);
     PPCMtmmcr0(0x42);
     tex = EspGetTexObj(0xFE, frame);
+    // p is read after the call: a pseudo copied from the incoming r3 before the first call gets alias base r3, which
+    // the later `li r3,0` (return value) turns into base 0, and a base-0 pointer's loads wait for the `stb tmp`.
+    p = (Espgen42Work*) w->work;
     if (tex == NULL) {
         return;
     }
@@ -511,19 +517,25 @@ void Espgen42_Move00(EspgenWork* w)
                 // jump2). With 130 (not 125) insns the 0.25 pool pair is "not desirable" in the inner loop (threshold
                 // 71 - 3*13 moves = 32, 32*2*2 = 128 < 130) and the OUTER scan hoists it into its preheader (f17).
                 if (p->mode == 2) c = NULL;
-                tmp = noise[(((i) << 6) & 0xB00) + (((j) << 2) & 0xA0) + i3 + ((j) & 7)];
-                f32 n = PSQ_L_U8(&tmp) - 80.0f;
+                // Before the (volatile) psq_l: `lwz pos; add c; add pos+k12` issue before the noise lbzx (target order).
+                Vec* pv = &p->pos[k];   // a pointer variable: `add pos,k12` (operand order); `p->pos[k].y = ..` gives `add k12,pos`
                 // `c` is a function-level pointer set twice per iteration (set_in_loop != 1, so loop.c
                 // does not treat it as a giv): the neighbours stay `lfs 4(c)/-4(c)` off `add c = cur + k*4`
                 // and `*(c - nx - 1)` becomes `subf` + `lfs -4` off the hoisted `nx*4`.
                 c = cur;
                 c += k;
+                // The index in the function-level `nz` (set in both loops = global pseudo, allocated after local-alloc): the
+                // byte pseudo then finds r0 free in local-alloc (its fake-lifetime pass would refuse the register of a
+                // block-local index dying at the lbzx), and global alloc gives nz r0 too: `lbzx r0,noise,r0; stb r0`.
+                nz = (((i) << 6) & 0xB00) + (((j) << 2) & 0xA0) + i3 + ((j) & 7);
+                tmp = noise[nz];
+                f32 n = PSQ_L_U8(&tmp) - 80.0f;
                 f32 sum = c[-1] + c[1] + *(c - nx - 1) + *(c + nx + 1);
                 f32 h = damp * sum + cdamp * cur[k];
                 h -= next[k];
                 h = n * 0.0002f + h;
                 h *= spread;
-                p->pos[k].y = next[k] = h;   // the pos address is computed before the next[k] store (target `lwz pos` early)
+                pv->y = next[k] = h;   // the pos address is computed before the next[k] store (target `lwz pos` early)
                 Vec* nrm = p->nrm;   // before the v.x/v.z reads: kept across the call (`lfsx nrm[k].x`, `4(nrm+k*12)`)
                 v.x = p->pos[k - 1].y - p->pos[k + 1].y;
                 v.y = 2.0f;
@@ -547,14 +559,17 @@ void Espgen42_Move00(EspgenWork* w)
         for (i = 1; i < p->ny; i++) {
             k = i * (p->nx + 1);
             for (j = 1; j < p->nx; j++) {
-                int nz = noise[NOISE_INDEX(j, i)];
+                nz = NOISE_INDEX(j, i);
+                nz = noise[nz];   // same variable: `lbzx r0,noise,r0; xoris r0` (see loop A)
                 f32* hA = p->hA;
                 f32* hB = p->hB;
                 c = hA;
                 c += k;
                 f32 sum = c[-1] + c[1] + *(c - p->ny - 1) + *(c + p->ny + 1);
-                hB[k] += sum - hA[k] * 4.0f;
+                // n before the hB[k] update: the 0x4330/pool-double and 80.0 movables precede the 4.0 pair in loop.c's
+                // list (the target's inner preheader order is lfd; lfs 80.0; lfs 1.0; ...; 4.0 is in the outer one).
                 f32 n = (f32) nz - 80.0f;
+                hB[k] += sum - hA[k] * 4.0f;
                 hA[k] += n * 0.0001f + hB[k] * 0.04f;
                 hB[k] *= 0.92f;
                 p->pos[k].y = n * 0.0018f + hA[k];

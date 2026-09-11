@@ -22999,3 +22999,49 @@ no source change, 111 OK unchanged.
 **Residues (exact class, forms tried this pass):** mpv_mcy 1p 57w (above); mpv_mcy 4p 136w / H2 225w / V2 225w and mpv_mc 4p 72w / V2
 73w / H2 436w untouched (the 1p shape was the precondition). N1 242w, N2 148w, N3 160w, N5 271w (= Na/Ne/Nh/Ni/N12-17 conversions,
 pointers, load helpers, dead anchors), N6 108w, N7 171w, N18 107w (UB), N20 98w, N21 99w, K15 172w, Pb/P19 62w, P5 175w.
+
+### DOL espgen42/45 final closer (Espgen42 Move00 167 -> 165, espgen45 Move00 203 -> 181; zero-code forms only, no new tags; nothing flipped; 111 OK; 2026-09-11)
+
+Harness ~/.cache/dol_espg3 (deleted): `mk.sh`/`tryv.py UNIT FUNC V.py` (exact-once substring variants, `BASE=` to chain),
+`fd.py UNIT SYM [OURS.o] [--all]` (objdump side-by-side, no ninja), `dump.sh UNIT SRC LABEL` (absolute SRC; RTL dumps), `pri2.py
+DUMPPREFIX` (global-alloc priority table with `;; regs to allocate` rank), hooked cc1plus (`HK_TD_DBG=1` true_dependence bases,
+`HK_LA=1` local-alloc fake/real find_free_reg results). Every form is applied to BOTH units.
+- **Noise byte in r0 (`lbzx r0,noise,r0; stb r0,88(r1)` loop A, `lbzx r0; xoris r0; stw r0` loop B): the index lives in a
+  function-level `int nz` written in both loops (`nz = <index>; tmp = noise[nz];` / `nz = NOISE_INDEX(j, i); nz = noise[nz];`).**
+  Mechanism (local-alloc.c 1490-1520, verified with HK_LA): a block-local index qty dies at the lbzx, and the byte qty's fake
+  lifetime `[birth-2, death+2)` overlaps it, so the byte avoids the index's register (r0) and takes r9; that cascades into &tmp
+  r11, the noise reload r8, and in loop B hA r7 etc. With nz set in both loops it is a global pseudo: during local-alloc r0 is free
+  and the byte takes it; global alloc then gives nz r0 as well (dying at the lbzx where the byte is born is not a conflict). The
+  same-variable form alone (`nidx = noise[nidx]; tmp = nidx;`) does NOT work in loop A: `tmp = nidx` expands as
+  `zero_extend(subreg:QI nidx)` + copies and combine substitutes the load through, leaving a fresh byte pseudo (it does work in
+  loop B because `(f32) nz`'s xor keeps nz as the load's destination). A dead test between the lbzx and the stb also makes the
+  byte global (r0) but splits the block so sched1 cannot interleave `lwz pos; add c` with the index adds (180-182 words).
+- **Loop A issue order (target `add; lwz pos; add; add c; add; add pos+k12; lbzx; addi &tmp; stb; psq_l`): `asm volatile` PSQ_L_U8
+  (no memory clobber) with `Vec* pv = &p->pos[k]; c = cur; c += k;` BEFORE `nz = ..; tmp = noise[nz];`.** A volatile asm is a
+  scheduling barrier both ways (sched.c `flush_pending_lists` + all-regs pending), so everything before it in RTL order issues
+  before it; the pv pointer variable gives `add pos,k12` (expand_binop swaps operands when only op1 is a REG:
+  `p->pos[k].y = ..` at the store gives `add k12,pos`). 42 only: `p = (Espgen42Work*) w->work;` AFTER `tex = EspGetTexObj(..)`:
+  a pseudo copied from r3 before the first call gets alias base `(reg r3)`, which init_alias_analysis' simplification loop turns
+  into 0 when the later `li r3,0` resets r3's base; a base-0 pointer's struct loads then depend on the `stb tmp` (QImode store,
+  `mem_mode == QImode -> return 1`). In 45 p is read before the calls (FSet store) and moving it costs 230+ words.
+- **Loop B: `f32 n = (f32) nz - 80.0f;` BEFORE `hB[k] += sum - hA[k] * 4.0f;`.** Read off -dL: loop.c evaluates movables in insn
+  order with `threshold` 71 (loop has a call) dropping 3 per moved insn; the inner preheader's FPR order (reverse of move order,
+  ties in global alloc go to the shortest live range) in the target is `lfd 0x4330-double; lfs 80.0; lfs 1.0; lfs 0.0018; 2.0;
+  255; 128; 0.25`, so the conversion pair and 80.0 are moved before 4.0 is considered. With this order ours moves 80.0 before 4.0
+  too (165 words) but 4.0 is still "desirable" (8 prior moves: 47*2*2 = 188 >= 175 real insns) and lands in the INNER preheader
+  (f25) while the target has it in the OUTER one (f20), and 0.0018 the other way round (ours outer f23 via the outer scan's
+  53*4 = 212 >= 200, target inner pass 2). Consistent only with the target's inner loop B having >= 189 real insns at loop time
+  (ours 175) and its outer <= 212 (ours 200): the target's loops carry ~14 more RTL insns that vanish before sched2 (same
+  finding as pass 2's "i needs a >= 718-insn live range"); no source construct found that adds them without code.
+- **Residues (42 Move00 165 / 45 Move00 181):**
+  - k r28 vs ours r31 (loop B k4 r31/r30, &nrm[k] r30/r28 permutation): global alloc pass 0 only takes registers already used
+    (`regs_used_so_far`); ours ranks loop B k4 (35 refs / 166 = 1.054) above loop A k12 (26 / 102 = 1.020), so k4 takes r30
+    (used by the tail's `n` local) and k12 is the first to open r31, which k then gets. Target order needs k12 above k4: k4's live
+    length >= 172 (+6 insns in loop B at flow time -- the same missing-insn cause) or 2 fewer weighted refs. No lever.
+  - Loop B 4.0/0.0018 preheader swap and pool order (above); the bump signed-division temps (`srawi r10,r0,3` vs `srawi r9,r9,3`)
+    and `lwz bump` r10 vs r8 are local-alloc names downstream of the byte/k registers; Joy block `lfsx f0,hB,k4` operand order
+    (`p->hB[k] -= wt_pow` gives k4,hB; a `f32* h` local moves the load: 170 vs 167 in pass 2).
+  - 45 loop A: the target loads `g45_wave_mul` right after the `stfsx next[k]` store (looks like a memory dependence: next is
+    set twice, so its alias base is 0 and base_alias_check returns 1 against the SDA symbol), ours issues the load 6 insns
+    before the store, i.e. ours has no such dependence -- why the two differ is not established (next's two sets should give
+    base 0 in both); also the psq_l destination f10 vs f12 and the sum's FPR names. Not found.
