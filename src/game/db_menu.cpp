@@ -276,11 +276,17 @@ void move(struct test* t)
     if (joy->rep & 0x80008) {
         t->cursor -= 2;
         if (t->cursor < 0) {
-            // OPEN (6 words): the target computes `andi. r11,r9,1` (cursor & 1 from the register, unused),
-            // reloads cursor, then `xori 1; andi.; beq; li r0,1; cmpwi r0,0; li 32; bne; li 33` - a
-            // materialised `!(cursor & 1)` tested again. `==0`/`!`/`^1`/bool/int temps, if/else and a
-            // doubled statement were tried.
-            t->cursor = (t->cursor & 1) ? MENU_NUM - 1 : MENU_NUM - 2;
+            // COMPILER-DIFF: candidate (jump2-only deleted arm). The target keeps a dead
+            // `andi. r11,r9,1` (cursor & 1 on the register) whose jump was deleted in jump2, then
+            // re-reads cursor for the value-form test `xori; andi.; beq; li r0,1; cmpwi; li 32; bne;
+            // li 33` = `(!(cursor & 1) && !(n & 1)) ? n - 2 : n - 1` (n the local: cprop folds the
+            // second operand to `li 1`, combine leaves the compare). The parity test's arm must hold
+            // an insn flow2 keeps and jump2 removes: two identical codeless "=m" asms in both arms
+            // are cross-jumped, the condjump becomes a jump-to-next and only the compare survives;
+            // their memory output also keeps cse from folding the re-read (fresh `lbz`). Both asms must
+            // sit on ONE source line: ASM_OPERANDS carries the line number and rtx_equal_p compares it.
+            if (t->cursor & 1) { asm("" : "=m"(t->cursor)); } else { asm("" : "=m"(t->cursor)); }
+            t->cursor = (!(t->cursor & 1) && !(n & 1)) ? n - 2 : n - 1;
         }
     }
     if (joy->rep & 0x40004) {

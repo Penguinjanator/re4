@@ -712,9 +712,14 @@ void MercSysGetSaveWork(MercSaveWork* save)
     int j;
 
     // pSys read through a reference: its load is not hoisted above the stores through `save`
-    // (a plain pSys is a fixed scalar that a varying struct store never aliases).
+    // (a plain pSys is a fixed scalar that a varying struct store never aliases). The x10 table
+    // goes through a pointer local: a pointer variable carries REG_POINTER, so regclass makes it
+    // the base of the `tbl[i]` address and `i*4` the index (GENERAL_REGS: r0, dying at the load);
+    // written `SysRef(pSys)->x10[i]` neither operand is flagged, `i*4` becomes BASE_REGS and its
+    // longer life drags the rank-pointer giv init to the block end (r8 instead of r12).
     for (i = 0; i < 4; i++) {
-        u32 w = SysRef(pSys)->x10[i];
+        u32* tbl = SysRef(pSys)->x10;
+        u32 w = tbl[i];
 
         save->stage[i].score = (w & 0x0FFFFFFF) * 10;
         save->stage[i].mode = (w >> 28) & 7;

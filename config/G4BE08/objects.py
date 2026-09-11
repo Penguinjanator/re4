@@ -1716,3 +1716,8 @@ MATCHING.update({
 MATCHING.update({
     "game/emwep.cpp": True,  # setCloth: statement order num, zeros, tables, owner, x38, floats (x48 before x50), `x54 = 0` LAST (the base register's death rides the zero store, so no float store is weight -1 and the 0.0 pseudo dies late enough for 0.6 to outrank it in local-alloc); emWepEscapeCamMove: the fovy store through `*(f32*)(u8*)&` (no MEM_IN_STRUCT_P: may alias the `pPL` load, whose chain then ranks `mr r29,r3; addi r31` above the pool `lis`es); zero code
 })
+
+# DOL sweep 20a (2026-09-11)
+MATCHING.update({
+    "game/mercenaries.cpp": True,  # GetSaveWork: `u32* tbl = SysRef(pSys)->x10; w = tbl[i]` -- the pointer local carries REG_POINTER, so regclass makes it the base of the `tbl[i]` address and i*4 the GENERAL index (r0, dying at the load); the rank-pointer giv init then issues second in sched2 (anti-dependence on the `clrlwi r0`) and takes r12; zero code
+})

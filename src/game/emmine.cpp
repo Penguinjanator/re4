@@ -2,9 +2,9 @@
 // weapon level is high enough) and the crossbow arrows. They fly, stick to the scenario or an
 // enemy, beep and explode (mines) or fall down as a three-node rope (arrows).
 //
-// Not yet byte-identical: emMine_R1_Shot / emMine_R1_ShotArrow (0x60 bytes long) / setBomb, and
-// emMine_R1_Fall's three spilled `&node[i]` pseudos rotate their stack slots (gcse hash order:
-// the original has a different insn count somewhere in the function).
+// Not yet byte-identical: emMine_R1_Shot / emMine_R1_ShotArrow (8 words each: the no-info block's
+// SndCall argument moves come out r7, r8, r5, r4, r6, r3 in the original, r5, r3, r4, r6, r7, r8 here,
+// so the `xFD = 2` constant takes r8 instead of r6).
 
 #include "atari.h"
 #include "map_obj.h"
@@ -463,11 +463,13 @@ void emMine_R1_ShotArrow(cEmMine* em)
             }
             if (GetWaterHeight(&em->pos, &wh) && em->pos.y <= wh) {
                 em->pos.y = wh;
-                info = EatMgr.getEffInfo(2);
-                if (info) {
-                    EstSet(0, -1, &em->pos, 0, info->eff0[0], (u8) info->eff0[1], 0, 0, 0, 0);
-                    w->effKind = (u8) info->eff6[0];
-                    w->effNo = (u8) info->eff6[1];
+                // Block-scoped water pointers (one single-set pseudo per block: each ranks below `em`
+                // in global-alloc, so em keeps r29 and both take r28; one two-set `wi` outranks em).
+                AtEffInfo* wi = EatMgr.getEffInfo(2);
+                if (wi) {
+                    EstSet(0, -1, &em->pos, 0, wi->eff0[0], (u8) wi->eff0[1], 0, 0, 0, 0);
+                    w->effKind = (u8) wi->eff6[0];
+                    w->effNo = (u8) wi->eff6[1];
                     SndCall(5, 0x24, &em->pos, 0, 0, em);
                     AddWaterPower(&em->pos, 0.5f);
                 } else {
@@ -491,10 +493,10 @@ void emMine_R1_ShotArrow(cEmMine* em)
             w->snd1 = 0x14;
             w->effKind = 0;
             w->snd0 = 1;
-            em->xFD = 2;
             em->xFC = 1;
-            em->xFF = 0;
+            em->xFD = 2;
             em->xFE = 0;
+            em->xFF = 0;
             SndCall(1, 0x50, &em->pos, 0, 0, em);
         DELETE_EFFECT:
             EffectEspDelete(0, w->espKind, em, 0);
@@ -504,11 +506,11 @@ void emMine_R1_ShotArrow(cEmMine* em)
         }
         if (GetWaterHeight(&em->pos, &wh2) && em->pos.y <= wh2) {
             em->pos.y = wh2;
-            info = EatMgr.getEffInfo(2);
-            if (info) {
-                EstSet(0, -1, &em->pos, 0, info->eff0[0], (u8) info->eff0[1], 0, 0, 0, 0);
-                w->effKind = (u8) info->eff6[0];
-                w->effNo = (u8) info->eff6[1];
+            AtEffInfo* wi = EatMgr.getEffInfo(2);
+            if (wi) {
+                EstSet(0, -1, &em->pos, 0, wi->eff0[0], (u8) wi->eff0[1], 0, 0, 0, 0);
+                w->effKind = (u8) wi->eff6[0];
+                w->effNo = (u8) wi->eff6[1];
                 SndCall(5, 0x24, &em->pos, 0, 0, em);
                 AddWaterPower(&em->pos, 0.5f);
             } else {
