@@ -1,10 +1,13 @@
 /* CRI Sofdec MPEG video: 8x8 block motion compensation, "tuned C" versions. One reference block is
  * copied (1p), horizontally (H2) / vertically (V2) / four-point (4p) half-pel averaged into the
- * word-packed destination; the source alignment selects the load strategy. The bodies are inline
- * assembly (update-form loads, lwbrx byte reversal, SWAR byte averages with the 0x01010101 /
- * 0xFEFEFEFE masks); OneRef1p keeps its alignment switch in C with register variables in the asm.
- * MPVMC08_OneRef4p_TuneC was compiled with instruction scheduling, the others with `scheduling
- * off` (and V2 with `peephole off`: its `lbz r31 / mr r28, r31` pair survives). */
+ * word-packed destination; the source alignment selects the load strategy. The bodies are still the
+ * original's instruction stream as inline assembly (integer SWAR code: update-form loads, lwbrx byte
+ * reversal, byte averages `(w & a) + (x & 0x01010101) + ((x & 0xFEFEFEFE) >> 1)` with x = w ^ a,
+ * four-point sums `a0 + a1 + b0 + b1 + 2` packed with rlwinm/rlwimi); OneRef1p keeps its alignment
+ * switch in C with register variables in the asm. The pragmas below do not affect asm bodies. The
+ * C reconstruction (AGENTS.md "CRI paired-single kernels pass 1") reproduces every arithmetic tree
+ * and the loop shapes but not the original's instruction schedule / register assignment, so the
+ * asm stays until that is understood; mpv_mcy.c holds the pure-C 16x16 counterparts. */
 #include "cri_xpt.h"
 #include "mpv.h"
 

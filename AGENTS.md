@@ -3791,6 +3791,86 @@ a dump or a variant build.
 sfh_main, sfd_tst sources unchanged. Not reached: sfx_zmv, adx_baif, sfx_cnv, cri_cvfs, dct_ac, sfd_adxt,
 mwsfdcre, the other sfd_mpv functions.
 
+### CRI paired-single kernels pass 1: mpv_mc / mpv_mcy motion-compensation kernels to C (mpv_mcy asm placeholder -> pure C, 85 -> 689w with 3/4 function sizes exact; mpv_mc kept Matching with its asm; 2026-09-11)
+Harness /home/adityas/.cache/cri_ps1/ (deleted): `try.py unit file.c [Func..]` (unit flags compile + strip_unused +
+bytecmp with OBJ override + side-by-side objdump), `sched.py unit Func file.c [models..]` (register-BLIND
+similarity of a function's instruction stream: mnemonics + immediates with every rN replaced — the only metric
+that ranks schedule variants, word counts are noise once registers shift), `region.py unit Func file.c --from RE
+--to RE [-n K] -v` (the same on one loop body), `cc.sh probe.c` (CRI flags + objdump), `gen4.py`/`genh2*.py`
+(source-variant generators), ~/.cache/mwccdbg reused for raw/scheduled PCode and the priority list.
+**Premise correction:** the eight `asm` kernels of mpv_mc.c/mpv_mcy.c are INTEGER SWAR code (byte averages through
+0x01010101/0xFEFEFEFE masks, rlwimi packing), not paired-single; nothing in them needs `__PS_*`/GQRs. dct_fsri's
+kernel (pass 9) is an `asm` block with `register __vec2x32float__` operands, not intrinsics. github.com/
+ShulkMaster/mk-deception has C for both units (`sfdcore/mpv/mpv_mc.c`, `mpv_mcy.c`): its semantics are right
+except MPVMC16 H2 case 0's last byte (`lbz s[16]`, not `words[4] >> 24`) and the 1p pitches (`(Uint32)stride &
+~7/~3/~1` = `clrrwi`, not signed `/ 8`), but its shapes reload after every store and are 1200+ words off.
+
+**Shapes that reproduce the target's arithmetic and loop structure (verified by region diffs):**
+- Four-point sum: `s0[0] + s0[1] + s1[0] + s1[1] + 2` — the frontend pulls the FIRST leaf out and adds it last
+  (`add a1+b0; add +b1; addi 2; add a0+`), exactly the target; `a0 + (a1 + b0 + b1 + 2)` (mk-deception) is
+  wrong. Pack: `((p0 << 22) & 0xFF000000) | ((p1 << 14) & 0x00FF0000) | ((p2 << 6) & 0xFF00) | ((p3 >> 2) &
+  0xFF)` gives the target's `rlwinm p1; rlwimi p0; rlwimi p2; rlwimi p3` (the OR chain `((A|B)|C)|D` is
+  evaluated D, C, A, B raw and merged pre-RA); `(Uint8)(p >> 2) << n` spells the same code.
+- Byte average, 16x16 units (mpv_mcy): `(w & a) + ((x & 0xFEFEFEFE) >> 1) + (x & 0x01010101)` with `x = w ^ a`
+  a variable (3 uses) — the reassociated tree `wa + (sh + m2)` IS the target's (`add sh+m2; add wa+t`); the
+  masks are per-loop constants (`lis/addi` in each case's preheader) as in the target.
+- Byte average, 8x8 units (mpv_mc "TuneC"): the target adds `(w&a) + (x & m2)` first then `+ ((x & m1) >> 1)`
+  with operand order (t, sh) — NO 3-term spelling gives it (every permutation/parenthesisation, signed or
+  unsigned, is reassociated with the most complex term pulled out as the outer LEFT operand); it needs a
+  two-definition temporary `t0 = w0 & a0; t0 += x0 & m2; d[0] = t0 + ((x0 & m1) >> 1);` (single-def `t0 = A + B`
+  is propagated and reassociated; a variable with a second definition is not, and statement order is then
+  irrelevant — the frontend sinks each definition chain to its use). Its masks are hoisted ABOVE the switch
+  (`lis r5; lis r4; ...; subi r11; addi r12` in the entry block, r11/r12 = LOW priority = variables): a
+  constant-initialised local is propagated into every loop; only a second definition (`if (stride == 0) m1
+  = m2 = 0;`) or `#pragma opt_propagation off` / `opt_dead_assignments off` / `global_optimizer off`
+  materialises it once at the top with the target's registers — the real spelling is still unknown.
+- `(w0 << 8) | (w1 >> 24)` with w0, w1 live afterwards = `srwi t; mr t2, t; rlwimi t2, w0` (the `mr` is the
+  pre-RA or->rlwimi merge whose coalescing fails at high degree; it appears in the 16x16 targets and in ours
+  only where the local degree is as high — a schedule-dependent residue). `A | B` evaluates B first: the
+  target's `slwi w0<<8; rlwimi w1` (8x8 H2 case 0, no mr) is `__rlwimi(w0 << 8, w1, 8, 24, 31)` or `(w1 >>
+  24) | (w0 << 8)`; `(u0 << 16) | (u1 >> 16)` as `rlwimi u0, u1, 0, 0, 15; rotlwi 16` (8x8 H2 case 1) is ONLY
+  `__rlwinm(__rlwimi(u0, u1, 0, 0, 15), 16, 0, 31)` — this 2.4.7 has no rotate idiom, so the 8x8 TuneC source
+  used the `__rlwimi`/`__rlwinm` intrinsics at least there (and `w1 = __rlwimi(u1 << 8, a1, 24, 24, 31)`
+  reads byte 8 out of the already-merged `a1`).
+- `__dcbt(p, stride)` = `dcbt p, stride` (`dcbtct` in objdump), `__dcbt(p, 0)` = `dcbt r0, p`. A dcbt is a
+  memory barrier for the scheduler: loads before it in the raw order stay before it — the 8x8 4p target
+  (`lbz a0; lbz b0; dcbt; ...`) loaded `a0 = s0[0]; b0 = s1[0];` BEFORE the `__dcbt`, everything else after.
+- Every byte/word is loaded once in the targets: values must be in variables before the first store (a
+  `Uint32 *` store makes the frontend reload every `Uint8`/`Uint32` read after it — no type-based aliasing).
+  16x16 4p: two halves (bytes 0-8 -> d[0], d[1] stored, THEN bytes 9-16 with a8/b8 carried in variables).
+- Loop shapes: `for (i = 0; i < 16; i++) { ...; d += 2; if (i == 7) d += 16; }` = the target's `cmpwi i, 7;
+  bne; addi d, 0x40` with `i` kept next to CTR. 8-iteration loops with a small body are unrolled by the
+  compiler: x2 for the H2/V2 rows (`li 4; mtctr` + two identical copies, the second copy's variables become
+  `@N` range splits), fully for the 1p copy rows (`for (8) {4 loads; 4 stores}` twice around `d += 16` = the
+  target's straight-line 16 rows with the `@N` copies rotating through 4 registers). A 7-iteration loop with an
+  `if` inside is NOT unrolled; the 16x16 1p case 0 (doubles) is hand software-pipelined in the source: `a = row;
+  b = next; store a; a = next; store b; ...` written out (16 rows, 4 FPRs), reproduced exactly.
+- 1p prologue registers (16x16, verified): `s` r5 needs NO function-level counter (`i` declared per case
+  after the first declaration; with a function-level `Sint32 i`, before or after `s`, `s` is r6); per case
+  `Sint32 stride = mc->stride;` first (r5 in cases 1/5, 3/7 with `i` r6), the words named/declared in ADDRESS
+  order (`w0 = p+2, w1 = p+6, w2 = p+10` -> r9, r10, r11), `pitch` declared before `i` and `d` (d r7, i r6)
+  and assigned after the dst load (pitch itself stays r5, target r3).
+
+**Residues (exact classes, all in the scheduler/allocator, no semantics left open):**
+- R1 pre-RA scheduler tie-breaks: priority is DAG height (loads with the longest consumer chain first, IV
+  updates and `dcbt` treated as memory-ordered), but the target picks e.g. `addi p0+2` before `add a2+b1`
+  (8x8 4p) and `srwi sh0` before `add t0` (8x8 H2, both H=3) where ours picks the other; raw order changes
+  (statement order, temporaries, intrinsics, `#pragma scheduling 603/604/750/7400/7450`) never flip these
+  two. Best 8x8 shapes: 4p 0.76 blind similarity (mc7: `a0 = s0[0]; b0 = s1[0]; __dcbt; a1 = ..` rolling
+  loads + `#pragma opt_propagation off`), H2 case-0 loop body identical except that one `add t0` (h2c).
+- R2 register assignment: 8x8 H2 uses NO callee-saved register in the target (11 volatile for 11 live
+  values) while every C shape spills 2 (`stwu; stw r30/r31`) — the greedy colouring order differs; the
+  target's order (x1 r0, stride r3, w0 r4, a0 r5, d r6, s r7, w1 r8, a1 r9, x0 r10, m1 r11, m2 r12) does not
+  follow from any declaration order tried (24 orders, block-scoped, inlined-helper parameters). 16x16 1p 61w
+  left: case 2/6 `pitch` r3 (mc dead) vs r5 and `h0` r4 vs the `srwi` temp r0, cases 1/5 & 3/7 `w0` r4 vs the
+  `w2 >> 24` temp r3 (a propagated single-use load outranks the later temp in ours), `li i, 0` before the
+  stride load in the target's preheader (`stride` declared in the loop body reloads it — 0x678).
+- R3 the `mr` copies of the merged OR chains (conservative coalescing at degree >= 29): 16x16 H2 has them on
+  all four `a_i`, ours on two (H2 0x468 vs 0x470); follows R1/R2.
+**Applied:** src/lib/mpv_mcy.c = pure C (all four kernels; sizes 4p/V2/1p exact, H2 -8 bytes; 61+136+225+263w,
+NOT Matching, objects.py untouched); src/lib/mpv_mc.c: header comment only (asm kernels kept, unit IDENTICAL,
+111/111 OK). The 8x8 C candidates were not committed (not identical).
+
 ## REL modules
 
 The game loads its rooms, enemies, weapons and debug tools as Nintendo REL overlays. `ninja` rebuilds the
