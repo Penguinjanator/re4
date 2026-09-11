@@ -62,9 +62,9 @@ static const f32 smooth_ratio[12] = {0.0f, 0.9f, 0.85f, 0.92f, 0.8f, 0.92f, 0.9f
 
 // Converts a rail cut into the CameraMotion key-frame format (cam_motion): header, 4 channels
 // (pos, at, roll, fovy) x 3 components of hermite keys {value, tangent in, tangent out}.
-int CameraControl::HermiteExport(CameraCut* cut, u8* buf)
+int CameraControl::HermiteExport(CameraCut* cut, u8* p)
 {
-    u8* p = buf;
+    u8* buf = p;  // the parameter is the running pointer (r5: `sth 0(r5); stbu 2(r5); addi r5,1`), buf the saved base
     u32* table;
     u16* frames;
     int i;
@@ -150,9 +150,12 @@ int CameraControl::HermiteExport(CameraCut* cut, u8* buf)
                     v0 = cut->roll[k0];
                     break;
                 case 3:
-                    v1 = cut->fovy[k1] * DEG;
-                    v = cut->fovy[k] * DEG;
-                    v0 = cut->fovy[k0] * DEG;
+                    v1 = cut->fovy[k1];
+                    v = cut->fovy[k];
+                    v0 = cut->fovy[k0];
+                    v1 *= DEG;
+                    v *= DEG;
+                    v0 *= DEG;
                     break;
                 }
                 tmp = v;
@@ -176,9 +179,9 @@ int CameraControl::HermiteExport(CameraCut* cut, u8* buf)
             int rem = (p - buf) % 4;
             if (rem) {
                 int pad = 4 - rem;
-                while (pad > 0) {
+                int n;
+                for (n = 0; n < pad; n++) {
                     *p++ = 0;
-                    pad--;
                 }
             }
         }
@@ -389,7 +392,8 @@ int cameraHitCheck(Vec* pos, Vec* nrm, Vec* from, Vec* to)
         ret = 1;
     }
     if (pSubEm && pSubEm->id == 3) {
-        cAtariInfo at;
+        cAtariInfo atBuf;
+        cAtariInfo& at = atBuf;  // the target reads/writes `at` through a pointer register (lha 0x18(r29), stfs 0x4(r29))
         cModel* parts;
         Vec w;
 
@@ -692,7 +696,7 @@ int area_hit_p3(Vec* pos, CameraAreaInfo* area)
     Vec* p[3];  // the three corner pointers live in memory (stw/lwz around the calls)
     Vec v1, v2, v0, c0, c1;
     f32 y = pos->y + 100.0f;
-    int i, n, i0;
+    int i, n, n1, i0;
 
     if (y < area->base_y) {
         return 0;
@@ -702,19 +706,20 @@ int area_hit_p3(Vec* pos, CameraAreaInfo* area)
     }
     for (i = 0; i <= 1; i++) {
         n = area->num;
-        i0 = (i + i + 1) % n;
+        n1 = n - 1;   // its own statement: `(i0 + n - 1)` is reassociated by fold into `(i0 - 1) + n`
+        i0 = i + i + 1;
+        i0 %= n;      // two sets of i0: loop.c does not strength-reduce the 2i+1 giv
         p[0] = &area->points[i0];
-        p[1] = &area->points[(i0 + n - 1) % n];
+        p[1] = &area->points[(i0 + n1) % n];
         p[2] = &area->points[(i0 + 1) % n];
         PSVECSubtract(pos, p[0], &v0);
         PSVECSubtract(p[1], p[0], &v1);
         PSVECSubtract(p[2], p[0], &v2);
         PSVECCrossProduct(&v1, &v0, &c0);
         PSVECCrossProduct(&v2, &v0, &c1);
-        if (c0.y > 0.0f) {
-            return 0;
-        }
-        if (c1.y < 0.0f) {
+        // one `||` return: the shared `li r3,0` block starts with a label, so loop.c's exit-block move
+        // leaves it inside the loop and jump2 folds the two entry returns into it
+        if (c0.y > 0.0f || c1.y < 0.0f) {
             return 0;
         }
     }
@@ -724,10 +729,12 @@ int area_hit_p3(Vec* pos, CameraAreaInfo* area)
 int area_hit_pN(Vec* pos, CameraAreaInfo* area)
 {
     f32 y = pos->y + 100.0f;
-    f32 px, c;
+    f32 a0, c, pz;
     f32 xi, zi, a, b, dx, dz, xmin, xmax, zmin, zmax;
     Vec *pi, *pj;
-    int i, n, count, fx, fz;
+    Vec* pt[2];  // 8-byte pointer pair = one DImode pseudo (r7:r8); its halves are copied out before each
+                 // load (`mr r9,r7; lfs 0(r9)`), which combine cannot fold through the subreg
+    int i, count, fx, fz;
 
     if (y < area->base_y) {
         return 0;
@@ -735,75 +742,65 @@ int area_hit_pN(Vec* pos, CameraAreaInfo* area)
     if (y >= area->base_y + area->height) {
         return 0;
     }
-    px = pos->x;
-    c = pos->x - pos->z;
-    n = area->num;
+    a0 = 1.0f;  // a named 1.0: cse cannot fold it inside the loop (fmsubs/fmadds with f5), pool order 100/1.0/0.0
+    pz = pos->z;
+    c = pos->x - pz;
     count = 0;
-    for (i = 0; i < n; i++) {
+    for (i = 0; i < area->num; i++) {
         pi = &area->points[i];
-        pj = &area->points[(i + 1) % n];
+        pj = &area->points[(i + 1) % area->num];
         dx = pj->x - pi->x;
         dz = pj->z - pi->z;
+        pt[0] = pi;
+        pt[1] = pj;
         if (dz != 0.0f) {
             a = dx / dz;
             b = pi->x - a * pi->z;
-            if (1.0f == a) {
+            if (a0 == a) {
                 continue;
             }
-            xi = (1.0f * b - c * a) / (1.0f - a);
-            zi = (b - c) / (1.0f - a);
+            xi = (a0 * b - c * a) / (a0 - a);
+            zi = (b - c) / (a0 - a);
         } else {
             zi = pi->z;
-            xi = 1.0f * zi + c;
+            xi = a0 * zi + c;
         }
         if (dx > 0.0f) {
-            xmin = pi->x;
-            xmax = pj->x;
+            xmin = pt[0]->x;
+            xmax = pt[1]->x;
             fx = 0;
         } else {
-            xmin = pj->x;
-            xmax = pi->x;
+            xmin = pt[1]->x;
+            xmax = pt[0]->x;
             fx = 1;
         }
         if (dz > 0.0f) {
-            zmin = pi->z;
-            zmax = pj->z;
+            zmin = pt[0]->z;
+            zmax = pt[1]->z;
             fz = 0;
         } else {
-            zmin = pj->z;
-            zmax = pi->z;
+            zmin = pt[1]->z;
+            zmax = pt[0]->z;
             fz = 1;
         }
-        if (!(xi >= px)) {
+        if (!(xi >= pos->x)) {
             continue;
         }
         if (fx == 0) {
-            if (!(xi >= xmin)) {
-                continue;
-            }
-            if (!(xi < xmax)) {
+            if (!(xi >= xmin && xi < xmax)) {
                 continue;
             }
         } else {
-            if (!(xi > xmin)) {
-                continue;
-            }
-            if (!(xi <= xmax)) {
+            if (!(xi > xmin && xi <= xmax)) {
                 continue;
             }
         }
         if (fz == 0) {
-            if (!(zi >= zmin)) {
-                continue;
-            }
-            if (!(zi < zmax)) {
+            if (!(zi >= zmin && zi < zmax)) {
                 continue;
             }
         } else {
-            if (!(zi > zmin)) {
-                continue;
-            }
-            if (!(zi <= zmax)) {
+            if (!(zi > zmin && zi <= zmax)) {
                 continue;
             }
         }
@@ -833,10 +830,10 @@ void CameraControl::areaHitCheck()
     }
     d = data;
     if (d == NULL) {
-        state = 0xA;
         camera_no = -1;
         area_no = -1;
         x691 = -1;
+        state = 0xA;  // LAST: its 0xa register stays live across the `flags_2C & 0x10` test (andi. r10, not r9)
         if (old_area != -1 || (flags_2C & 0x10)) {
             qfps.init();
             flags_2C &= ~0x10;
@@ -853,10 +850,10 @@ void CameraControl::areaHitCheck()
         return;
     }
     if (cameraDataVersion((char*) d) <= 1) {
-        state = 0xA;
         camera_no = -1;
         area_no = -1;
         x691 = -1;
+        state = 0xA;  // LAST: its 0xa register stays live across the `flags_2C & 0x10` test (andi. r10, not r9)
         if (old_area != -1 || (flags_2C & 0x10)) {
             qfps.init();
             flags_2C &= ~0x10;
@@ -945,11 +942,11 @@ void CameraControl::areaHitCheck()
         }
     }
 
-    state = 0xA;
     area_no = -1;
     x691 = -1;
     camera_no = -1;
     area_rec = NULL;
+    state = 0xA;  // LAST (see the reset arms above); store order found by permutation
     if (flags_2C & 0x10) {
         flags_2C &= ~0x10;
         qfps.bindDefaultCamera();
