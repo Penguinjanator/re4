@@ -1872,3 +1872,8 @@ MATCHING.update({
 MATCHING.update({
     "game/t_bugcheck.cpp": True,  # menuLife 4 -> 0: the "LIFE" high is a pinned asm `lis r17` in the preheader (LUID before the eight PRE'd string highs) plus an asm `addi` for the eprintf argument (COMPILER-DIFF: #13 asm pool constant); the dead `lv = 3` bucket knob is gone, the nine dead pool constants and the PlKaiou anchor stay
 })
+
+# Espgen43 closer (2026-09-12)
+MATCHING.update({
+    "game/Espgen43.cpp": True,  # 11/11: AddSandPower 3 -> 0: `stfs Add_power` is an asm with a `"r"` input pinned to r11 (COMPILER-DIFF: asm-emitted stfs, sched2 slot): after reload the asm is anti-dependent on `lwz r11, 8(r7)` (prio 5 + 1 = 6 -> first cycle, second slot, ahead of `lis Chk_pos@ha` prio 5); before reload the load writes a pseudo, so sched1 (stfs at cycle 3 slot 2, prio 3) and the local-alloc order W0 > W4 > W8 > high > addi are unchanged. The plain C store has identical dependences in both passes (the `*pos` loads are exempt as fixed scalar vs varying struct), so no C spelling separates the two schedules
+})

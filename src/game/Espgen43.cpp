@@ -9,8 +9,8 @@
 #include "os_vi.h"
 #include "db_log.h"
 
-// Remaining diff: AddSandPower issues `stfs f1, Add_power` two slots late (3 words: registers are
-// the target's, only the sched2 slot of the store differs); everything else matches.
+// Byte-identical. AddSandPower's `stfs f1, Add_power` is an asm with a hard-register anti-dependence
+// (see the COMPILER-DIFF note there); everything else is plain C.
 // Effect controller 43: sand surface. A (nx+1) x (ny+1) height grid drawn as triangle strips
 // through a prebuilt display list; AddSandPower pushes the grid down around a world position
 // and GetSandHeight samples it (obj09).
@@ -127,7 +127,15 @@ void AddSandPowerSub(EspgenWork* w)
 void AddSandPower(Vec* pos, f32 power)
 {
     if (pG->flags_500C & 2) {
-        Add_power = power;
+        // COMPILER-DIFF: asm-emitted stfs (sched2 slot). The original issues `stfs Add_power` in the
+        // first cycle's second slot (sched2 priority >= 6) while sched1 keeps it at cycle 3 (priority 3,
+        // the local-alloc order W0 > W4 > W8 > high > addi depends on that position). A C store has
+        // the same dependences in both passes (the `*pos` loads are exempt: fixed scalar vs varying
+        // struct). The `r11` input gives the asm an anti-dependence on `lwz r11, 8(r7)` that exists
+        // only after reload (priority 5 + 1 = 6); before reload the load writes a pseudo, so sched1
+        // and the allocation are unchanged.
+        register u32 anti asm("r11");
+        asm("stfs %1,%0" : "=m"(Add_power) : "f"(power), "r"(anti));
         ISet(Height_find, 0);
         Chk_pos = *pos;
         EspgenApplyFunc(AddSandPowerSub);
