@@ -22089,3 +22089,81 @@ pattern is in its command line.
   single-use load into a plain copy only when the copy is the next statement (not across an `if`); (4) the backend emits
   `EADD(a, EADD(x, c))` with the constant last -- a variable whose last def is `+= const` and whose single use is in the
   return expression loses its `addi` position.
+
+### DOL espgen42/45 closer pass 2 (Espgen42 14 -> 15/16: SetWaterWork 39 -> 0 zero code, Move00 326 -> 167; espgen45 18 -> 19/20: SetWaterWork45 25 -> 0 zero code, Move00 252 -> 203; two tags in each Move00; nothing flipped; 111 OK; 2026-09-11)
+
+Harness ~/.cache/dol_espg2 (deleted): `mk.sh UNIT SRC OUT.o` (the build.ninja prodg_cc command + fold_linkonce +
+strip_unused), `try.sh UNIT SRC [FUNC]` (compile + `OBJ=... bytecmp.py`), `fd.py UNIT OBJ SYM [--all]` (objdump side-by-side
+of the split object vs any .o, relocs shown as `{sym+off}`), `dump.sh UNIT SRC LABEL` (cpp + cc1plus RTL dumps), `pri.py
+LREG GREG` (global-alloc priority table `floor_log2(refs)*refs*10000/len` with the hard reg from `;; Register dispositions`),
+`refs.py DUMP REGNO` (loop-depth-weighted ref count of one pseudo), `var.py BASE OUT OLD NEW ...` (exact-match variants).
+Every form below is applied to BOTH units (the two files stay in step).
+- **SetWaterWork / SetWaterWork45 (39/25 -> 0, zero code): the two y-edge init loops also go through the `idx` variable,
+  and the far y edge is `idx = i2 * (p->nx + 1); idx += p->nx;`.** `idx` is then one pseudo across all four init loops and
+  global alloc gives it r8 everywhere (the target's `mullw r8` in every loop); with `p->pos[i2 * (p->nx + 1)]` the y loops
+  had their own block-local temporaries (r11). The `idx += nx` split puts the product into idx's register (`mullw r8;
+  add r8,r8,r11`); `idx = row + p->nx` keeps the product in a temp (r0). Pass 1's residue analysis (sched1 issue order of
+  the entry `cmpw`) was a symptom of this: with idx global the cmp/mullw order is the target's by itself.
+- **Move00 zero-code forms (42: 326 -> 213 with these alone; 45 analogous):**
+  (1) `p->pos[k].y = next[k] = h;` (45: `p->pos[k].y = next[k] = (n * g45_wave_mul + next[k]) * spread;`): expand_assignment
+  computes the LHS address (`lwz pos; add`) before the RHS store, so the pos load has no RAW dependence on `stfsx next[k]`
+  and the target's `stfsx; stfs 4(rX)` pair without a reload appears (the reload `lwz r11,132` comes after the pos store
+  for the v.x/v.z reads, as in the target).
+  (2) `Vec* nrm = p->nrm;` BEFORE the `v.x = ..; v.y = 2; v.z = ..` statements (both loops): p's base is unknown to alias.c
+  in this function (`p = (plus r3 20)` after combine substitutes the incoming hard reg; copying_arguments is over), so a
+  p-based load placed after the frame stores of `v` waits for them; placed before, it only carries anti-deps and issues
+  right after the pos store (`lwz r28,128(r29)` at the target's slot). This also gave p r29 (nrm's shorter range no longer
+  outranks p).
+  (3) Joy block: `k = (int) ((f32) (int) (nx * ny) * 0.5f); p->hB[k] -= wt_pow;` -- the index is the loop variable k
+  (target `lwz r28,100(r1)` = k's callee-saved register), not a block-local `idx`; 45 multiplies `p->nx * p->ny` (target
+  `mullw r0, nx, ny`).
+  (4) Tail sizes `sizeof(Vec) * (p->nx + 1) * (p->ny + 1)` (nx first): fold attaches the 12 to the LAST variable operand,
+  the target has `addi; mulli 12` on ny+1 and `mullw` with nx+1 (both DCStoreRange sizes, and the ny copy `clrlwi r9`
+  first). Pass 1's `(p->ny + 1) * (p->nx + 1)` gave `(nx+1)*12`.
+  (5) `k = i * (nx + 1); k++;` (two statements): the product lands in k's register (`mullw r28,r23,r15; addi r28,r28,1`);
+  `k = i * (nx + 1) + 1` keeps the product in a temp (r9) because k is a global pseudo and the temp is block-local.
+- **Move00 tagged forms:**
+  (a) `COMPILER-DIFF: candidate (loop.c pass-1 insn_count)` -- 42 only: a dead `if (p->mode == 2) c = NULL;` at the TOP of
+  inner loop A (+5 real insns at loop time: 125 -> 130). Mechanism read off the -dL dump: the 0.25 pool pair (`high` +
+  `lfs`, force_movables makes it savings 2 / life 2) is the 14th movable of loop A; `threshold` starts at 71 (loop has a
+  call) and drops 3 per moved movable, so at its turn it is 71 - 3*13 = 32 and `32*2*2 = 128 >= 125` moves it into the
+  INNER preheader (our f26). With >= 129 insns it is "not desirable" there, and the OUTER scan then moves it (the outer
+  loop's threshold is still 68: 68*4 >= 167) into the outer preheader = the target's `lis r9; lfs f17` before the outer
+  top (`mullw r28`). The 128.0/255.0 pairs before it need insn_count <= 152/176 to stay hoisted, so the window is 129..152.
+  Dead-test rules learned here: the test's cmp+jump survive to jump2 (only the dead SET is deleted, by flow), so the test
+  splits the basic block at sched1 -- put it at the body TOP (the top block is just `lbz/cmpwi/bne` and vanishes), never
+  mid-body (pass-1 forms with it before `c = cur` cost ~50 words of scheduling); and everything AFTER the jump is
+  `maybe_never` for loop.c, so an inner-invariant used in another basic block (`(i & 3) << 3`, used after the signed
+  divisions' branches in the bump index) must be computed BEFORE the test (`int i3 = (i & 3) << 3;` as the first statement,
+  used in both indices), otherwise it stops being hoisted (rlwinm in the body, +1 word and a different schedule). In 45 the
+  target keeps 0.25 in the inner preheader (no test needed); its `lfs 255.0` now stays in loop A by itself (-dL: "Insn
+  1084 life 1 savings 1 not desirable" -- with these forms the 255.0 `high` is a gcse pseudo set outside the loop and
+  shared with the 1/2.3 high, so only the lfs is a movable; the target has two `lis` inside, ours one: 128 real insns,
+  pass 1's ">= 143" bound assumed the high+lfs pair).
+  (b) `COMPILER-DIFF: pin` -- `register int j7 asm("r24") = j & 7;` as the last bump-index term, both loops: global alloc
+  ranks i (49 weighted refs / 694 insns = 3530) above j&7 (3417) and the (k-nx)*12 giv (3204) in ours, the target has j&7
+  r24, i r23, (k-nx)*12 r26 (loop B: 0x4330 r22). The pin takes r24 out of i's reach and everything else falls into the
+  target's registers (i r23, (k-nx)*12 r26, 0x4330 r22, nrm r28 shares with k). `register int i asm("r23")` instead is
+  -0x18 bytes (a hard-reg loop counter loses its IV optimisation): never pin a biv. Source levers tried for i's rank: none
+  found -- i's refs are the same insns as the target's, so the target's i must have had a longer live range (>= 718 insns:
+  24 more RTL insns in the loops at flow time) or 2 fewer weighted refs; dead sets are deleted by flow before
+  REG_LIVE_LENGTH is counted (they do not lengthen anything), dead tests lengthen but split blocks.
+- **PSQ_L_U8 macro is now `asm("psq_l %0,0(%1),1,2" : "=f"(f_) : "b"(p), "m"(*(p)))` (no volatile, no memory clobber):**
+  the volatile+"memory" form was a full scheduling barrier (every later memory op depended on it); the target issues `lwz
+  pos` and the `cur` neighbour loads around the psq_l freely. Plain `(f32) tmp` is not an option: our compiler stores the
+  byte into the shared fpmem slot (96(r1)) while the target uses tmp's own slot 88(r1) (the two-slot behaviour of the
+  original build, see "Dead mr").
+- **Residues (42 Move00 167 / 45 Move00 203), all sched1/local-alloc, read off fdiff:**
+  - Loop A body issue order: target `lwz pos; add c = cur + k4; add pos+k12` in the first cycles before `lbzx` (the noise
+    address chain takes 5 cycles); ours issues `add c`, `subf c-nx4`, `add c+nx4` there and `lwz pos` only after the sum
+    (~10 words). Both loads are free of dependences in ours (LOG_LINKS nil); it is a priority/tie difference (ours prio
+    20 for the pos load vs 27 for the neighbour address adds). Not found.
+  - Joy block: target lsu order `lwz hB; lfs 0.5; lfs wt_pow`, ours the reverse; `lfsx f0,hB,k4` operand order (ours
+    k4,hB; a `f32* h = p->hB` local gives hB,k4 but moves the load later: 170 vs 167); the dead fpmem `mr` copies a
+    different prologue high (r10 vs r11). 6 words.
+  - Loop B: k*4 / &nrm[k] swapped (target k*4 r31, &nrm[k] r30): the target computes `&nrm[k]` early (before the frame
+    stores of v), ours right before the call, so ours' &nrm[k] range is shorter and outranks k*4; the size +4 is one more
+    dead fpmem `mr` (6 loadaddr pseudos after the call, the target gives two of them the same register, ours none); the
+    signed-division temps (`srawi r10,r0,3` vs `srawi r9,r9,3`, `cmpwi; mr` order) are local-alloc names downstream of
+    that. Unchanged from pass 1 apart from the register names fixed by (b).
+  - 45: the same three residues plus `lis/lfs 1/2.3` (PSVECScale's f1) and 255.0 positions inside loop A.

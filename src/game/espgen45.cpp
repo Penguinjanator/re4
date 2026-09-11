@@ -98,7 +98,7 @@ void Espgen45_static_init()
 }
 
 // u8 -> f32 through GQR2 from a stack byte (the compiler only emits psq_l from its own fpmem slot).
-#define PSQ_L_U8(p) ({ f32 f_; asm volatile("psq_l %0,0(%1),1,2" : "=f"(f_) : "b"(p) : "memory"); f_; })
+#define PSQ_L_U8(p) ({ f32 f_; asm("psq_l %0,0(%1),1,2" : "=f"(f_) : "b"(p), "m"(*(p))); f_; })
 
 // Bump texture (I8, 8x4 tiles) index of grid point (x, y). x/8 before y/4 (the two signed divisions are
 // separate blocks, so their order is the source order) and `(y / 4) << 5`: with `* 32` fold would
@@ -198,9 +198,9 @@ void Espgen45_Move00(EspgenWork* w)
     }
     if (mode != 1) {
         if ((pG->flags_64 & 0x00800000) && (Joy[0].on & 0x100)) {
-            f32* h = p->hB;
-            int idx = (int) ((f32) (int) (p->ny * p->nx) * 0.5f);
-            h[idx] -= wt_pow;
+            // The index is the loop variable `k` (target `lwz r31` = k's register, base+index `lfsx f0,hB,k4`).
+            k = (int) ((f32) (int) (p->nx * p->ny) * 0.5f);
+            p->hB[k] -= wt_pow;
         }
         f32 damp;
         f32 spread;
@@ -227,9 +227,11 @@ void Espgen45_Move00(EspgenWork* w)
         f32 fy = 1.0f;
         for (i = 1; i < p->ny; i++) {
             f32 fx = 1.0f;
-            k = i * (nx + 1) + 1;
+            k = i * (nx + 1);   // two statements: the product lands in k's register (`mullw r31; addi r31,r31,1`)
+            k++;
             for (j = 1; j < (int) nx; j++) {
-                tmp = noise[NOISE_INDEX(j, i)];
+                int i3 = (i & 3) << 3;
+                tmp = noise[(((i) << 6) & 0xB00) + (((j) << 2) & 0xA0) + i3 + ((j) & 7)];
                 f32 n = PSQ_L_U8(&tmp) - 80.0f;
                 // `c` is a function-level pointer set twice per iteration (set_in_loop != 1, so loop.c
                 // does not treat it as a giv): the neighbours stay `lfs 4(c)/-4(c)` off `add c = cur + k*4`
@@ -238,14 +240,18 @@ void Espgen45_Move00(EspgenWork* w)
                 c += k;
                 f32 sum = c[-1] + c[1] + *(c - nx - 1) + *(c + nx + 1);
                 next[k] = damp * sum + cdamp * cur[k] - next[k];
-                next[k] = (n * g45_wave_mul + next[k]) * spread;
-                p->pos[k].y = next[k];
+                p->pos[k].y = next[k] = (n * g45_wave_mul + next[k]) * spread;   // the pos address is computed before the store (target `lwz pos` early)
+                Vec* nrm = p->nrm;   // before the v.x/v.z reads: kept across the call (`lfsx nrm[k].x`, `4(nrm+k*12)`)
                 v.x = p->pos[k - 1].y - p->pos[k + 1].y;
                 v.y = 2.0f;
                 v.z = p->pos[k - nx].y - p->pos[k + nx].y;
-                Vec* nrm = p->nrm;   // loaded once before the call and kept across it (`lfsx nrm[k].x`, `4(nrm+k*12)`)
                 PSVECScale(&v, &nrm[k], 1.0f / 2.3f);
-                p->bump[BUMP_INDEX(j, i, nx + 1)] = (u8) (nrm[k].x * 255.0f * 2.0f + 128.0f);
+                {
+                    // COMPILER-DIFF: pin (global alloc ranks i (r24) above j&7 and (k-nx)*12; the target has j&7 r24, i r23,
+                    // (k-nx)*12 r26; a pin on i itself disables its IV optimisation). BUMP_INDEX with the pinned last term.
+                    register int j7 asm("r24") = j & 7;
+                    p->bump[(j / 8) * 32 + ((i / 4) << 5) * ((nx + 1) >> 3) + i3 + j7] = (u8) (nrm[k].x * 255.0f * 2.0f + 128.0f);
+                }
                 nrm[k].x += (fx - hx) * inx;
                 nrm[k].z += (fy - hy) * iny;
                 nrm[k].y *= 0.25f;
@@ -269,12 +275,15 @@ void Espgen45_Move00(EspgenWork* w)
                 hA[k] += n * 0.0001f + hB[k] * 0.04f;
                 hB[k] *= 0.92f;
                 p->pos[k].y = n * 0.0018f + hA[k];
+                Vec* nrm = p->nrm;
                 v.x = p->pos[k - 1].y - p->pos[k + 1].y;
                 v.y = 2.0f;
                 v.z = p->pos[k - p->nx].y - p->pos[k + p->nx].y;
-                Vec* nrm = p->nrm;
                 PSVECScale(&v, &nrm[k], 1.0f / 2.3f);
-                p->bump[BUMP_INDEX(j, i, p->nx + 1)] = (u8) (nrm[k].x * 255.0f * 2.0f + 128.0f);
+                {
+                    register int j7 asm("r24") = j & 7;   // COMPILER-DIFF: pin (see loop A)
+                    p->bump[(j / 8) * 32 + ((i / 4) << 5) * ((p->nx + 1) >> 3) + ((i & 3) << 3) + j7] = (u8) (nrm[k].x * 255.0f * 2.0f + 128.0f);
+                }
                 nrm[k].x += ((f32) j - (f32) (p->nx / 2)) * (1.0f / (f32) (int) p->nx);
                 nrm[k].z += ((f32) i - (f32) (p->ny / 2)) * (1.0f / (f32) (int) p->ny);
                 nrm[k].y *= 0.25f;
@@ -283,10 +292,10 @@ void Espgen45_Move00(EspgenWork* w)
         }
     }
     {
-        u32 n = sizeof(Vec) * (p->ny + 1) * (p->nx + 1);
+        u32 n = sizeof(Vec) * (p->nx + 1) * (p->ny + 1);   // nx first: fold attaches the 12 to (ny + 1) as the target
         DCStoreRange(p->pos, n);
         DCStoreRange(p->nrm, n);
-        DCStoreRange(p->bump, sizeof(Vec) * (p->ny + 1) * (p->nx + 1));
+        DCStoreRange(p->bump, sizeof(Vec) * (p->nx + 1) * (p->ny + 1));
     }
 }
 
@@ -831,11 +840,16 @@ EspgenWork* SetWaterWork45(EspgenWork* w, Vec* pos, Vec* rot, f32 size, u32 nx, 
         for (jj = 0; jj < p->nx + 1; jj++) {
             p->pos[idx + jj].y = FGet(g45_init_y);
         }
+        // The y edges also go through `idx` (one pseudo across all four loops = the target's r8 in every
+        // loop), and the far edge is `idx = row; idx += nx` (the product lands in idx's register, not a temp).
         for (i2 = 0; i2 < p->ny + 1; i2++) {
-            p->pos[i2 * (p->nx + 1)].y = FGet(g45_init_y2);
+            idx = i2 * (p->nx + 1);
+            p->pos[idx].y = FGet(g45_init_y2);
         }
         for (i2 = 0; i2 < p->ny + 1; i2++) {
-            p->pos[i2 * (p->nx + 1) + p->nx].y = FGet(g45_init_y2);
+            idx = i2 * (p->nx + 1);
+            idx += p->nx;
+            p->pos[idx].y = FGet(g45_init_y2);
         }
     }
     // Block-local sizes at the tail: local-alloc ties the `nx + 1` temp into them (`addi r30; mullw r30`);
