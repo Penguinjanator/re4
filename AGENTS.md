@@ -3631,6 +3631,98 @@ pins removed as above. sfd_tst `SFTST_Calc` 83 -> 79w (not flipped, see below).
   the order but the sum in a temp (`add r3; addi r26, r3, 4`, 2w) — the target's `add p` is in place,
   i.e. p a variable with the +4 as its second definition.
 
+### CRI pass 14b: backend-folded tests, add-propagation's block rule, counters above IV temps (sfd_tim 37 -> 38/39, mps_lib 5 -> 6/7, adx_sje 11 -> 12/17, mpv_umc Forward/Backward 37 -> 2w, sfd_mps 21 -> 22/26; no unit flipped; pure C; 2026-09-11)
+Harness /home/adityas/.cache/cri14b/ (deleted): cri14's `bld.sh`/`bytecmp.py`/`fd.py`/`tryvar.py` copies;
+~/.cache/mwccdbg reused. Every fix was predicted from one dump (or one pass-13b sentence) and confirmed
+in 1-3 builds; the negatives below are stated with the mechanism the dump showed.
+
+**Read off the dumps (verified):**
+- **A test the backend folds but the frontend keeps = a status variable assigned from an inlined helper's
+  constant return.** `ret = helper(..); if (ret != 0) return ret;` with `static Sint32 helper() { ..; return 0; }`
+  keeps the IF at lowering (`IFNGOTO @join (ret != 0); mr r3, ret; b epilogue; @join:`), the backend then
+  proves `ret == 0`, turns the IFNGOTO into `b @join` and cross-jumps the dead `li r3, 0; b epilogue`
+  with the return block's `li r3, 0` — mps_lib `MPS_Init`'s `b .Lcalls; b .Lreturn` pair and its `li r3,
+  0` at the head of the return block, 12 -> 0w. `if (helper() != 0) return 0/-1;`, `goto end`, `if
+  (helper() == 0) { calls }` all lose it (the frontend folds the call result compared directly).
+- **An inlined helper's `ret = 0` in the FIRST arm of an if/else chain vanishes** (sfd_buf's `bne body; b
+  end` shape, pass 13b): the helper local is a @temp, so the backend CSE rewrites its `li 0` into a copy of
+  the entry `ret = 0` (an extended-basic-block CSE: the first arm has a single predecessor, the later `else
+  if` arm is a join block and keeps its `li`) and coalescing deletes the self-copy. An own local's `li` is
+  never rewritten (pass 12b rule). Applied structure for sfd_buf not kept (57w: `ring` below).
+- **Add-propagation folds `addi rD, rA, K` into rD's uses only when rA is defined in the SAME basic block as
+  the addi** (pass 13b's "across blocks and calls" is about the USES, which may be anywhere). Seen on
+  sfd_buf: an `addi tot, ring, 0x20` created in a join block after the calls stays as a node (the peephole
+  folds it post-RA); the same addi in the entry block folds. Block boundaries in the IR: labels (every
+  if/else join, inlined-helper return labels), the parameter block B1 (`mr r32, r3`... — a parameter's
+  register is defined in B1, so an addi off a parameter in B2 is NOT folded), and every call ends a block.
+  The frontend embeds a nested-inline argument temp's assignment inside its first use (`ring = (@215 =
+  sfd + n*0x74) + 0x1318`), so the argument and the addi share a block. sfd_buf's target `ring` node (addi
+  in the entry block, hn's `add` in the same block by the final bytes) therefore had an IR boundary
+  between hn's definition and ring's addi that left no code — not found (T1..T9: helper parameters,
+  `void *` typed copies, two-level helpers, argument expressions: all folded; a `mr` base defined by a kept
+  copy is also folded).
+- **A one-use `wk = &mpv->x` is propagated into its call argument by the frontend; with TWO uses (a field
+  load `wk->work` and the pointer itself as a later call argument) it stays a variable, the field load is
+  folded by add-propagation and the argument move `mr r3, wk` cannot be, so `wk` lives across the first
+  call in a callee-saved register** (mpv_umc `MPVUMC_Forward/Backward` 37 -> 2w each, +0xc bytes of
+  prologue: `mpvumc_OneReadMb(mpv, wk->work, ..)` instead of `mpv->mcwk.work`).
+- **Loop counters above the strength-reduction pointers, in a public server callback**: adx_sje
+  `ADXSJE_ExecHndl(void *obj)` + `ADXSJE sje = obj` (kept copy, sje r31 first) with the header stage as a
+  `static inline` helper (own locals rank below the IV temps, helper locals above them, pass 13) and the
+  two stepping pointers written as `Uint8 *p/p2/p3 = (Uint8 *)sje` locals stepped by 4/2/4 with `*(SJ *)(p
+  + 0x4)` / `*(Sint16 *)(p2 + 0x2c8)` loads (adx_tsvr's pass-11 idiom: `mr rIV, sje` + offset). Colouring
+  = reverse declaration order with "lowest free handed-out callee-saved register, else a new one": `n, c1,
+  c2, ck, prd, p3, p2, i, p, sjo, ch` gives ch r30, sjo r29, p r28, i r28 (coloured before p2 so it reuses
+  r28), p2 r27, p3 r27, prd r29; the chained store is `first[ch] = first2[ch] = v` (inner store first).
+  35 -> 0w. A plain `static` helper of that size is not auto-inlined (`static inline` needed).
+- **A helper local is created before the return temporary of a helper inlined inside it**: sfd_mps
+  `sfmps_ProcPrep`'s see-header tail as `static inline sfmps_ProcPrepSee(sfd)` with `w` a helper local:
+  `w` (created at inlining) outranks the nested `sfmps_GetSeeShdr`'s @ret (created when that call is
+  inlined), so `w` takes r4 and the shdr temp r5 (target), where an own `w` ranks below the temp and shdr
+  takes the dying r4 in place. 30 -> 0w.
+- **`d = a; base = *(volatile *)&b; d -= base;` with `base` declared before `d`** loads the left operand
+  first and keeps the result in r0 (sfd_tim `SFTIM_IsStagnant` 2 -> 0w): the two-def `d` is coloured before
+  `base` (later declared = higher id) and takes r0, `base` r3; the expression `a - b` loads the right
+  operand first (right-operand-first temp creation), `d = a; d -= b` (no volatile) gives d in r3 because
+  the chg_base temp is coloured first. The unit already uses the volatile re-read idiom (`tim->vcnt`).
+- Post-RA ties, reconfirmed on the dumps: mps_lib `MPS_Create` (pre-RA order = target's `li r4, -1;
+  addi r0`, the post-RA list scheduler swaps them; all registers identical to the target's, so the DAG edge
+  the target has is not visible in the bytes) and mpv_umc `Forward/Backward/BiDirect` (`mr r3, wk` hoisted
+  one slot above `lwz r0, ofs` — here the PRE-RA scheduler already picks `mr r3, wk` before `addi r4,
+  &ccnt_rt`, the target the addi first; the arguments are emitted left to right in ours). Left as 2w.
+
+**Applied:** sfd_tim `SFTIM_IsStagnant` (0w), mps_lib `MPS_Init` (0w), adx_sje `ADXSJE_ExecHndl` (0w),
+mpv_umc `MPVUMC_Forward`/`MPVUMC_Backward` (2w each), sfd_mps `sfmps_ProcPrep` (0w). No flag flipped.
+
+**Residues (exact class):**
+- sfd_tim `SFTIM_IsGetFrmTime` 6w: `tunit` must be created between the helper locals vrate (@122) and
+  tscale (@124) although it is loaded BEFORE the `cond[14]` test (i.e. it is an argument temporary of the
+  Tunit call, @112, created before all helper locals); inlined-helper locals are numbered in reverse
+  declaration order at inlining, so no single-helper declaration order can place an argument temp there,
+  and a typed/`void *`/two-def/cast copy of it inside the helper is always frontend-propagated (dump: the
+  copy's @ is 0/0). 9 more forms.
+- mps_lib `MPS_Create` 2w (post-RA tie, above). `.bss`: the split object carries an extra `lbl_80309B54`
+  label (also sfd_tim `lbl_8030835C`, sfd_mps `lbl_802F629C`, adx_sje `lbl_8031027C`): bytecmp's order
+  check lists them; sizes and bytes are identical.
+- sfd_buf `SFBUF_RingAddWrite/AddRead` 16w/22w: the two mechanisms are identified (helper-local `ret`
+  for the arm, an IR block boundary before `ring`'s addi) but the boundary has no C form yet; T1 (body as
+  `sfbuf_RingAddWriteHn(sfd, hn, nbyte)`) gives the target's `bne; b` and sfd r30 / nbyte r31 but folds
+  `ring` (57w) — not applied.
+- adx_sje `adxsje_encode_data` 84w / `set_rsig` 85w / `calc_rsig` 178w: register permutations (sje r29
+  below sjo/ret in encode_data = another kept-copy/helper-level question), untouched; `output_header` /
+  `write_end_code` 2w ties.
+- mpv_umc `MPVUMC_Intra` 35w (volatile-register permutation of the six block-pointer stores, `mr r5, r3`
+  copy of mpv in the target), `mpvumc_OneReadMb` 91w untouched. `mpvumc_OutputIntra6blk` is still a
+  whole-function `asm` block in the source (pass-8 rule violation, predates this pass; not mine to remove
+  without its C shape).
+- sfd_mps `sfmps_ExecServerSub` 59w: the loop + counters as an inlined helper gives the target's `li r26,
+  0; mr r30, r26; mr r28, r26` (helper-local temps share the zero, pass 12) but sfd stays r25 (target r31 =
+  level 2): 51w, not applied. `CopyPrvate` 60w / `CopyPketData` 157w / `DecodeOneUnit` 412w untouched.
+- Not reached: adx_bsc (.data 8 vs 0 + `skg_version`), mpv_mcy, cftyp422_ppc, cftfx.
+- Build: two `flock ... ninja -k 0` runs showed transient `FileNotFoundError` on SDK objects (wibo compiles
+  producing no .o under load from other agents' builds); the third run and the sha check passed with
+  nothing flipped.
+
 ## REL modules
 
 The game loads its rooms, enemies, weapons and debug tools as Nintendo REL overlays. `ninja` rebuilds the
@@ -18211,3 +18303,144 @@ Flipped: sce_sys (30/30, sections equal, order OK; 111 OK). Harness ~/.cache/dol
   unpromoted until load_register_parameters); not iterated.
 - t_movie/t_snd_vol (21/27): the six residues are 104-812 words with .text size differences up to 0x5d0 (edit_reverb_param,
   file_save, combine_tbl_edit) -- structural rewrites, not tie-breaks; not started this pass.
+
+### DOL sweep 22a, closest-first (db_menu Matching 12/12; emmine Matching 23/23; dvd DiscChange / Espgen43 AddSandPower mechanisms sharpened; 2026-09-11)
+
+Flipped: db_menu (12/12) and emmine (23/23), sections and order identical, 111 OK after each. Harness ~/.cache/dol22a
+(dol21b copies with the paths rewritten: `tryv.py UNIT SYM v/x.py`, `sbs.sh UNIT SYM [OBJ]`, `dump.sh UNIT -dX` with
+`SRC_OVERRIDE`, `fsec.py`, `rtl.py`, `prio.py`, `order.py`, plus `pninja.sh [ninja args]` = configure.py once, then ninja on a
+private manifest without the split/configure edges -- the shared `ninja` never settled with the other agents running);
+deleted at the end. The shared-manifest thrash also produced one transient `main.dol: FAILED` (two vtable words of other
+agents' half-edited units); re-running `pninja.sh -k 0` gave 111 OK.
+
+- **A call's return value is what ranks the first argument move: declare the callee with its real return type (db_menu
+  move 3 -> 0, zero code).** `GetGameTime` was redeclared `void` in db_menu.cpp; main_sub.h has `u32 GetGameTime(...)`. With
+  a void call the three `addi rN,r1,&local` argument moves each have TWO dependents (the call and the next block-internal
+  setter of the same hard register, an OUTPUT dependence: `lha r3/r4,...` and `li r5,0` of the following eprintf) and tie
+  everywhere, so sched1 issues them by LUID r3, r4, r5. With `(set r3 (call ...))` the later `lha r3` output-depends on the
+  CALL instead, the `addi r3` keeps one dependent, loses rank_for_schedule's depend-count tie-break to `addi r4/r5` and
+  issues after the `subf` -- the target's `addi r4; addi r5; subf; addi r3; sth`. The 18a/20a reading ("rematerialised
+  REG_EQUIV `(plus fp 40)`") was wrong: an `int* ph` local (any block) allocates the pseudo to r3 and hoists the `addi`
+  (17-28 words); local-alloc's `reg_equiv_replace` would need a REG_EQUAL note on the pseudo's INIT, which cse attaches
+  only when `(plus fp N)` is already in its table (a second computation on the same path), never to the first `P = fp+N`.
+  Rule: whenever an argument move of a value-returning call sits behind the other moves in the target, check the
+  callee's declared return type before anything else.
+- **The block that a call block runs INTO decides the argument-move order: write out the shared tail so jump2 cross-jumps
+  it (emmine emMine_R1_Shot / emMine_R1_ShotArrow 8 -> 0 each, zero code).** The no-info block ended in `SndCall(...)`
+  followed by the `DELETE_EFFECT:` label (three Effect*Delete calls + return, shared by `goto`s). With the label, every
+  argument move has one dependent and sched1 orders them weight-first (`mr r5,&pos`, the dying PRE'd pseudo) then LUID.
+  With the tail duplicated into the block (jump2 merges it back into the label, byte-identical), the SndCall block runs
+  through three more CALL_INSNs: `sched_analyze` makes every later call depend (REG_DEP_ANTI) on the LAST SET of each
+  call-used register, so the r7/r8 moves (never re-set before the calls) collect 4 dependents, r4/r5/r6 (re-set by the
+  first Effect*Delete's own moves) 3 and r3 (set by the SndCall itself) 2: sched1 issues r5 (weight 0), r7, r8, r4, r6, r3
+  and sched2 (no weights, depend counts) gives the target's r7, r8, r5, r4, r6, r3 -- the `xFD = 2` constant, born while
+  r7/r8 are live, then takes r6. Same recipe for the ShotArrow twin (`SndCall(1, 0x50, ...)` block). Rule: a `goto`-shared
+  tail after a call block is not neutral even when jump2 folds it back -- sched1 saw the longer block.
+- **dvd DiscChange (7, unchanged; sweep-13 mechanism re-derived and narrowed).** In sched2 our word-4 template load
+  (`lwz r9,4(r10)`) has priority 9 (its `stw r9` anti-depends on the following `lwz r9,pSys`, the loads' `lwz r0,8` gets
+  the `lbz r0` output chain) and is issued at c7; the target issues L8 (c7), L12 (c8), S0 (c9), L4 (c10), S8, S12, S4. A
+  memory dependence L4 -> S0 (non-/u load after the store in sched1's order, hard r10 without a base value) would make S0
+  priority 11 and issue it at c7 (it is ready from c5), so that reading is out; with the loads independent, a ready
+  priority-9 L4 cannot wait until c10 under stock haifa, and S4 (priority 7 through the r9 anti-dependence) cannot lose
+  c12 to S12 (6) once L4 has issued at c10. So the target's sched2 dependence graph for this block differs from ours in
+  more than one place (S4 / `lwz r9,pSys` decoupled AND L4 held back); `do{}while(0)` around the region chain (25-46),
+  a `static const char* const` table + memcpy (8), `region` declared after the arrays (7) do not touch it. Not a
+  compiler-side verdict -- the structure that produces that graph is still unread.
+- **Espgen43 AddSandPower (5, unchanged; the allocation is decided by whether the `stfs Add_power` gates the copy's loads
+  in sched1).** Local-alloc order from the target (W0 r0, W4 r9, W8 r11, high r10) needs the Chk_pos high born at sched1
+  position 1 (life 9 -> 12/9 = 1.33 below W8's 8/5 = 1.6): the `lis` must take the second slot of t=1 next to `li r0,0`,
+  i.e. the `stfs` (priority 7 when it gates the `*pos` loads through the reference store's flagless MEM) must not be
+  there. `Add_power = power;` (a plain static store = fixed scalar, exempted from the varying-struct loads by
+  fixed_scalar_and_varying_struct_p) gives EXACTLY the target's registers (3 words left) but the same exemption holds in
+  sched2, where the `stfs` (priority 4) then slips behind the `lis` (5); the target has it at c1, so its sched2 chain is
+  the gating one. A form that gates in sched2 but not in sched1 (or delays the stfs by one sched1 cycle: a parameter copy
+  inside the block) was not found; FSet/ISet order, ISet-after, copy-first, `f32&` local, volatile store, function-pointer
+  local, `__attribute__((noalias))` (SN's DECL_NOALIAS: drops every store->load dependence, 23) tried. Facts read on the
+  way: `find_pre_sched_live` gives +1 per SET regardless of destination (stores included) and the dump's REG_DEAD notes
+  are re-attached after scheduling (weights must be read from the RTL order, not the dumped notes); `rs6000_adjust_cost`
+  returns 0 for anti/output links and haifa clamps that to 1; the arg registers r3-r10 get an ADDRESS base at function
+  entry and lose it at their next unrelated set (`record_set`), which is why hard-register bases are unknown in sched2.
+- Read, not iterated: sce_at SceAtCheckSystemItemSet (10) is the #6 survivor question exactly (0x1001/0x1002 arms'
+  `bl RandomItemCk; cmpwi; beq; b fail` tails: ours keeps the 0x1002 copy, the target the 0x1001 one -- tools/xjump.py
+  on the -dR dump is the next step); cam_extra CameraLookDownEm ctor (4) / FocusAnimation::init (8) are pool-offset
+  relocs from the unit's `.rodata` (0x310 vs 0x308), not code; shadow make_comn_fit/parallel_light (2+2) unchanged
+  (target: 1.0 high r11, the codeless fpmem loadaddr r10 -- both local, so the loadaddr did NOT cross the atan2f call
+  there either; the 4-ref loadaddr outranks the 2-ref high in ours). em_set, at_mod, em_cloth, Espgen43 SetSandWork not
+  iterated.
+
+### DOL sweep 21b, closest-first (title Matching 19/19; emrock 53 -> 57/58, route_ck 10 -> 12/16; main_mem MemCheckHeapEnd and MemReplaceHeap mechanisms read; 2026-09-11)
+
+Flipped: title (19/19, sections equal, order OK; 111 OK). Harness ~/.cache/dol21b (dol19a copies with the paths rewritten; `tryv.py
+UNIT SYM v/x.py`, `sbs.sh UNIT SYM [OBJ]`, `mcmp.py`, `dump.sh UNIT -dX` with `SRC_OVERRIDE`, `order.py`, `prio.py`, plus
+`pninja.sh [targets]` = ninja on a private copy of build.ninja without the configure edge (the shared regeneration loop never
+settled with other agents' configure.py runs), and `sngcc/` = a copy of tools/sn-gcc with an env-guarded `LADBG=1` fprintf in
+local-alloc.c's block_alloc that prints every qty's refs/birth/death/priority in ALLOCATION ORDER (`make ./cc1plus` in the copy
+after copying obj/, ~1 s; run `LADBG=1 sngcc/cc1plus -O2 -mfast-cast -quiet X.i -o /dev/null 2>&1 | grep LADBG`); deleted at
+the end (recreate from this description when a local-alloc name question comes up -- it settles them in minutes).
+
+- **All fades of a function through `FadeSetW` (title titleSub 97 -> 0, zero code).** The colour pair is the inline's own BLKmode
+  local (one 8-byte temp slot shared by every inlined copy, here 32/36): the plain `FadeSet(0, &c0.c, &c1.c, ..)` sites come out
+  identical to explicit `FadeColor c0, c1` locals, but in the `flags_54 & 0x40000000` arm (two `for` loops and a `DebugTrg` call
+  before the FadeSet) the target PREs only `&col.start` (`addi r29,r1,32` at the arm top, `mr r4,r29`) while `&col.end` stays a
+  fresh `addi r5,r1,36` at the call. Mechanism: integrate maps the inline frame to a pseudo P with a CONST_AGE_PARM equivalence and
+  subst_constants turns the argument sets into hard-register-destination `(set r5 (plus fp 36))`, which `hash_scan_set` never
+  enters into the gcse table (hard-reg dest); the start address is a `(set T (plus fp 32))` pseudo (cse rewrote the arg set to
+  the cheaper pseudo) and gets PRE'd. With explicit locals both args are `(plus fp K)` pseudos and both are hoisted (bb 49/50 in
+  the gcse dump: the loop headers stop LCM's delay). A pointer-parameter inline (`fadeIn(&c0, t)`) is an ADDRESSOF argument, not
+  FIXED_BASE_PLUS_P, so its parameter gets no equivalence -- the 19b "integrate substitutes" reading was about the inline's OWN
+  local, not a pointer parameter. The FadeSetW(0x80000000) copies also reproduce the old `fadeIn` sites (`stw r0,32(r1); stw
+  r9,4(r11); mr r4,r11; addi r5,r1,36`: the constant store through P cancels that group and keeps P, cse rewrites the plain
+  `(mem P)` to frame-direct). Rule: when one FadeSet site of a function needs the "first address PRE'd, second fresh" shape, ALL
+  its fades are FadeSetW (the slot must be the inline temp, and user locals would take a later slot).
+- **A call-crossing `no` = the same variable reused in another case (title titleDebugMenu 12 -> 0, tagged `#4`).** Case 3's
+  `no = checkRoomNo()` sits in r31 (`mr. r31,r3`) although nothing crosses a call there; `allocno_calls_crossed` is flow1's
+  REG_N_CALLS_CROSSED summed over the pseudo's whole life, so the pseudo also lives across calls elsewhere: case 5's `room`
+  (`(s8) getRoomInfo()->room`, live across the getPointNum calls) is the SAME `int no` (refs 10 -> allocated before the
+  dbgPoint temp, r31; the temp r30). The s8 parameters of getPointNum/getNextPointNo then need int-view aliases
+  (`RjGetPointNumI(cRoomJmp*, s8, int) asm("getPointNum__8cRoomJmpScSc")`, COMPILER-DIFF #4: a 2-set int pseudo cannot lose
+  the `(sign_extend (subreg:QI no))` -- combine only strips it for single-set pseudos). room_jmp's matched roomJumpMove has
+  the same `mr. r30,r3` for the same reason (`no = w->mode; switch (no)`: cse stores the known-0 `no` into `w->point`).
+- **`Camera* cam = &Sym` declared BEFORE the `Vec* cp/ca` member pointers (emrock emRockPushCamMove 10 -> 0, plemRockEscapeCamMove2
+  15 -> 0, plemRockDropDieCamMove 20 -> 0, zero code).** cse's `use_related_value` rewrites `&Sym` from the OLDEST `(const (plus
+  Sym K))` class in the related ring (insert() links new constants at the ring's end; the walk starts after the base symbol) that
+  still holds a REGISTER: with `ca = &Sym.param.at` assigned first, `cam` came out `ca - 176`; declared after `cam`, the `at`
+  class has only the call-clobbered argument register and `cam` is `cp - 164` (PushCamMove: the `pos = p` block copy's address
+  pseudo) or a fresh `lis/addi` (EscapeCamMove2/DropDieCamMove: nothing holds a `Sym+K` register after the PosToPos/PSVECAdd
+  calls). Same family as the em2a/em21 TrapCamMove `#12 (second shape)` alias, which is therefore probably a declaration order too.
+- **The struct-view read `g = pGS;` after `emi = pG->pRoomEmi` (emrock emRockRollStartCk 9 -> 0, zero code):** a second pG pseudo
+  (`mr r11,r9`) that the `pl_life` test reads through; a plain `GlobalWork* g = pG` is merged with the first load.
+- **The next-hop table sum computed at the call site into the pointer local (route_ck RouteCkPosToPos 5 -> 0, RouteCkToEm 26 -> 21,
+  zero code):** `RtpData* r = (RtpData*) Global.pRoomRtp; tbl = (s8*) (r->nextOfs + (u32) r);` sets `tbl` (REG_POINTER: a
+  pointer-typed local) directly, so `(plus tbl idx)` has a base and the index goes to GENERAL_REGS (`lbzx r9,r11,r0`); through
+  the `rtpNextTbl()` inline the sum is a temp copied into `tbl` and cse propagates the unflagged temp (20a's regclass rule).
+- **route_ck RouteCkPosToPosDis 8 -> 0, tagged `candidate (reload_cse register table)`:** the target keeps `mr r3,r31; mr r4,r29`
+  for `rckLineHitCheck(from, to, ..)` although r3/r4 still hold from/to since the entry copies; ours deletes both in
+  `reload_cse_regs` (r3 recorded equal to r31). The table is forgotten only at a CODE_LABEL, a CALL or a volatile ASM_OPERANDS
+  (`asm volatile("" ::: "memory")`; a bare `asm volatile("")` is an `asm_input` and does not count); SN's reload1.c also skips
+  PSmode insns. No label survives to reload_cse in any natural spelling tried (`while`, `goto route`, pointer copies), so the
+  original's block boundary there is unknown -- barrier applied.
+- **main_mem MemCheckHeapEnd (12, mechanism read exactly, not closed):** the target's `li r3,0` after `cmpwi` and the reload of
+  `d->allocated` for the loop init are ONE fact: jump1's `if (c) x = a; else x = b;` -> `x = b; if (c) x = a;` hoist did NOT
+  happen before reload in the original (jump2, which runs after sched2 (toplev.c: reload -> reload_cse -> flow2 -> sched2 ->
+  jump2), places `li r3,0` between the compare and the branch without rescheduling), and the un-hoisted layout keeps the join
+  block off cse2's AROUND path (`bne ELSE; then; b JOIN; ELSE: ..; JOIN:` -- the path ends at the else arm), so the load is not
+  forwarded. Forms giving that structure: a 2-insn then-arm through all pre-reload jump passes (a dead `cell = NULL;` in the
+  arm, 7 words) or `end = (u32) d->allocated; if (end == 0) end = d->free; else end = 0;` (6 words: the compare references X and
+  the `li` gets an anti-dependence). The 6-7 words left are local-alloc names: the target allocates the loaded value r0, then
+  mulli r9, then the HeapHead load r11 (d prefers it: `set_preference` takes the FIRST operand of a `(plus a b)` source). Read
+  with the LADBG tool: block_alloc's 3-qty `case 3` sort is a partial sort that compares qty NUMBERS 0/1/2 while exchanging
+  positions (stock 2.95 quirk), so with mulli numbered first (sched1 issues it first: imuldiv cost 4 > load 2) the order
+  [loaded, mulli, HeapHead] is unreachable; a REG_EQUIV mem pseudo's `REG_LIVE_LENGTH *= 2` does not enter QTY_CMP_PRI (birth/
+  death are the block scan's suids). Needs the HeapHead load issued before the mulli or a 4th local qty with the loaded value
+  strictly above mulli (3 refs) -- no source form found; do not retry the index/pointer/volatile/ternary forms.
+- **main_mem MemReplaceHeap (18, mechanism read):** blocks 2-4 have four local qtys (high, HeapHead+hd combined, handle*12, cell);
+  ours allocates handle r0, hd r9, cell r11, high r11 by the qsort; the target's high r9 / hd r11 / cell r9 needs the `lis` to
+  be adjacent to its `lwz Heap+16@l` in sched1's output (high length 2 = priority 10000, tie with hd by qty number) -- i.e. the
+  HeapHead load not issued between them (ours issues `lis` and `lwz HeapHead` in the same cycle). Not found.
+- Read, not closed: sce_com SceSetItemEvent (23): j/j*2/e+6 permutation plus the tail's `e` r11 / ctr count r8 (ours r8/r9) --
+  local-alloc names again; emrock emRockDropCamMove (36): the 50.0/0.0/1.0 pool highs r27/r29/r28 (ours r29/r28/r27 -- the 50.0
+  `lfs` is issued early by our sched1 so its high is the shortest-lived; the &p0/&p1 block-copy temps r4/r3 swapped); route_ck
+  RouteCkToEm (21): `target` 16 refs/131 (0.489) vs `out` 25/210 (0.476) -- the original allocates `out` first (+1 weighted ref
+  on `out` or one fewer on `target`), RouteCkEscEm 18 / ToPos 36 / Draw_rtp 15 not iterated.
+- Not iterated: option, card, puzzle (its .rodata 0x280 vs 0x260 makes appendExtraPiece/removeExtraPiece "2/4 words" -- reloc
+  offsets only), motion, db_cam, pendulum, esp08, esp18, cam_ctrl, sce_com OpenBoxMain 182 / SceElevator 232.

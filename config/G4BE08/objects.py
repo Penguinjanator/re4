@@ -1743,3 +1743,9 @@ MATCHING.update({
 MATCHING.update({
     "lib/mpv_hdec.c": True,  # MPV_DecodePicAtrSj: the skip helpers assign `ptr` INSIDE the bitpos expression (a nested assignment blocks the forward substitution of the single-use bitpos, so it stays a variable coloured after ptr and above the AnalyUd call) and take the byte pointer as `(Uint8 *)(ptr + 1) + n` (codegen emits `(ptr + n) + 4` with the sum a backend temp above the ck.data reload); the same `(Uint8 *)(ptr - 2) + n` replaced the pass-7 asm `lwz data` pins in MPVHDEC_FLUSH/DecSlice; pure C
 })
+
+# DOL sweep 22a (2026-09-11)
+MATCHING.update({
+    "game/db_menu.cpp": True,  # move: GetGameTime declared with its real `u32` return (main_sub.h) -- the call then SETS r3, so the `addi r3,&h` argument move has one dependent (the call) instead of two (call + the next `lha r3`), ranks below `addi r4/r5` in sched1 and issues after the `subf`; zero code
+    "game/emmine.cpp": True,  # R1_Shot/R1_ShotArrow: the no-info block's Effect*Delete tail written out (jump2 cross-jumps it into DELETE_EFFECT), so at sched1 the SndCall block runs through three more calls and its r7/r8 argument moves (never re-set) collect an anti-dependence from every later call: depend count r7/r8 4 > r4/r5/r6 3 > r3 2 gives the target order r7, r8, r5, r4, r6, r3; zero code
+})

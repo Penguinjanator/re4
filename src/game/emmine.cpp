@@ -1,10 +1,6 @@
 // game/emmine.cpp: mine / arrow enemy (cEmMine): the mine thrower's mines (homing when the
 // weapon level is high enough) and the crossbow arrows. They fly, stick to the scenario or an
 // enemy, beep and explode (mines) or fall down as a three-node rope (arrows).
-//
-// Not yet byte-identical: emMine_R1_Shot / emMine_R1_ShotArrow (8 words each: the no-info block's
-// SndCall argument moves come out r7, r8, r5, r4, r6, r3 in the original, r5, r3, r4, r6, r7, r8 here,
-// so the `xFD = 2` constant takes r8 instead of r6).
 
 #include "atari.h"
 #include "map_obj.h"
@@ -347,6 +343,13 @@ void emMine_R1_Shot(cEmMine* em)
                 em->xFE = 0;
                 em->xFF = 0;
                 SndCall(2, 0x14, &em->pos, 0, 0, em);
+                // Tail written out (jump2 cross-jumps it into DELETE_EFFECT): the SndCall block then
+                // runs through the three Effect*Delete calls, so its r7/r8 argument moves collect an
+                // anti-dependence from every later call and issue first (r7, r8, r5, r4, r6, r3).
+                EffectEspDelete(0, w->espKind, em, 0);
+                EffectEspgenDelete(0, w->espKind, em);
+                EffectEfmDelete(0, w->espKind, em);
+                return;
             }
         DELETE_EFFECT:
             EffectEspDelete(0, w->espKind, em, 0);
@@ -498,6 +501,10 @@ void emMine_R1_ShotArrow(cEmMine* em)
             em->xFE = 0;
             em->xFF = 0;
             SndCall(1, 0x50, &em->pos, 0, 0, em);
+            EffectEspDelete(0, w->espKind, em, 0); // tail written out, see emMine_R1_Shot
+            EffectEspgenDelete(0, w->espKind, em);
+            EffectEfmDelete(0, w->espKind, em);
+            return;
         DELETE_EFFECT:
             EffectEspDelete(0, w->espKind, em, 0);
             EffectEspgenDelete(0, w->espKind, em);

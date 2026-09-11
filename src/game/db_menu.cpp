@@ -17,7 +17,7 @@ int strcmp(const char* a, const char* b);
 char* strcpy(char* dst, const char* src);
 char* strcat(char* dst, const char* src);
 void* memset(void* dst, int c, unsigned int n);
-void GetGameTime(int* h, int* m, int* s);
+u32 GetGameTime(int* h, int* m, int* s); // returns a value (main_sub.h): the call sets r3, so `addi r3,&h` loses its output dependence and issues last
 void DLL_Link(void* module, void* bss);
 void DLL_Unlink(void* module);
 void TaskChain(void (*func)(), int arg);
@@ -263,8 +263,6 @@ void move(struct test* t)
     joy = GetBugCheckController();
     t->x += joy->ssx / 16;
     t->y -= joy->ssy / 16;
-    // OPEN: the target issues `addi r4,&m; addi r5,&s; addi r3,&h` (h's address last, as if set straight
-    // into r3); declaration orders of h/m/s do not move it.
     GetGameTime(&h, &m, &s);
     eprintf(t->x, t->y, 0, 0, "WELCOME TO TOOL MENU");
     eprintf(t->x + 160, t->y + 405, 0, 0, "MOVE BY SUB-STICK");
