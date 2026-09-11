@@ -23584,3 +23584,73 @@ relocated immediates masked). `BASE=<variant.cpp>` stacks variants.
 - ToolInterfaceDesign 41, idEditColor 132, idEditPos 334 untouched (see pass 2 for their mechanisms).
 
 **Flags.** Nothing flipped; t_id/t_id stays False. `ninja -k 0` + shasum = 111 OK after the pass.
+
+### Tool RELs, db_mod pass 6 (t_esp 68 -> 74/75, Tools 56 -> 62/63, 240 -> 19 words in both; dbmod_locate 103 -> 0 (zero code), dbModMotionMove 90 -> 0 (zero code, pass-5 tag removed), dbmod_motion 2 -> 0 (one tag, asm-emitted `lhax`); dbmodDispModelName 19 untouched (two residues, both explained, not reproduced); nothing flipped; 2026-09-11)
+
+- Harness ~/.cache/dbmod6 (deleted): pass-5 layout (`mbuild.sh`, `mtryv.py FUNC v.py [--only] [--apply] [--keep]`, `mrel.py MOD
+  SYM [OBJ] [--all]`, `mdump.sh MOD SRC OUTDIR -dX..` -- run both .sh with `sh`, pass ABSOLUTE paths (mdump cd's into OUTDIR),
+  `fn.py DUMP FUNC` cuts one function out of a dump, `sngcc/cc1plus` with the GORDER hook). `mrel.py` wants mangled names
+  (`dbmod_motion__Fv`). A second `VARIANTS = {...}` in a v.py silently replaces the first (use `VARIANTS.update`).
+- **dbmod_locate 103 -> 0, zero code**: (1) the label loop is `pv = 0; x = 6; y = 4; for (i = 0; i <= 4; y++, i++)` with
+  every column written through x: `eprintf(x * 8, ...)`, `(x + 10) * 8`, `(x + 11 + k * 8) * 8` (x/y are i-loop invariants
+  that loop.c hoists and cse2 folds, the `y++, i++` order fixes the biv order); (2) case 3's colour is the statement form
+  `if (dbModSlot[k].alive) { color = 0; } else { color = 7; }` (the ternary gives the store-flag form; note the target's
+  polarity is alive -> 0); (3) the angle arm calls `VecRadLimit((Vec*) axis)` (the axis pointer, not `&em->rot`).
+- **dbModMotionMove 90 -> 0, zero code, six readings** (pass-5 `f2` asm tag removed): (1) init loop `for (n = 0; n <
+  SLOT_NUM; n++) order[n] = n;` -- check_dbra_loop reverses it into the `bdnz` down-counter with a pointer giv; its giv
+  inits (`li r24,63; addi r9,r1,71`) are emitted by loop.c and therefore land AFTER the PRE-inserted highs; (2) the fix-up
+  pass is a `while (i <= SLOT_NUM - 1)` whose match arm is `i++; continue;` with a second `i++` at the bottom (PRE leaves
+  `addi r7,r7,1; b` in the match block and cse turns the bottom increment into `mr r7,r5` from `j = i + 1`); the swap is
+  `u8 tmp = order[j]; order[j] = order[i]; order[i] = tmp;` (raw byte, target store order); (3) `(em->xE38 & 1) == 0`
+  gives `andi.; bne` (`!(x & 1)` in a && chain gives the `xori; andi.` store-flag form); (4) the flags block re-reads
+  `em->mot[0].flags` in each of the three tests -- cse1's ebb stops at the 2-use `beq` label, so the re-reads are not
+  merged and PRE inserts the `mr r9,r0` copy the target has; removing the asm launder also shortened the pLog/fmt/file
+  highs' live lengths by 2, which is what orders their priorities (163/163/162) as the target's r21/r20/r19; (5) the
+  allDone loop is the index form `for (n = 0; n <= SLOT_NUM - 1; n++) { em = &dbModSlot[n]; ... }` (biv-eliminated end
+  pointer `addis r11,r9,10; addi r11,r11,-21076`, signed `cmpw`, no entry test; the plain `dbModSlot[n]` form gets
+  `mtctr/bdnz`).
+- **dbmod_motion 2 -> 0, one tag**: the target loads `motNum[i]` into the address temp's register (`lhax r9,r9,r11`, r9
+  reused); every C spelling (14 variables, `+b`/`b` launders, pointer forms) allocates the value to r0, because
+  local-alloc's `block_alloc` ties operand 0 of an insn only with a dying REG operand, never with a register inside a MEM
+  address -- and an asm's input operands ARE plain REG operands, so `asm("lhax %0,%1,%2" : "=r"(no) : "b"(pDbModState.p->
+  motNum), "r"(i * 2)); if (no == -1)` gets the tie (`COMPILER-DIFF`, one asm-emitted instruction; the operands are the
+  cse'd address and index). `asm("" : "+b"(x))` on the address moves the temp to r11 instead: local-alloc's first try uses
+  the extended (fake_birth/fake_death +-1 insn) lifetime when sched2 is on and avoids the neighbour's register.
+- **dbmodDispModelName 19 untouched -- the two residues and what they are:**
+  (a) `lis "%s"@ha` at the first two of five uses: r11 in the target (scheduled 3 insns earlier), r9 in ours (kept below
+  `slwi r3,r9,3` by the anti-dependence). The high is PRE pseudo 440 (`(high "%s")`, 12 refs across 716 insns, crosses 20
+  calls, spilled, REG_EQUIV) rematerialised by reload before each use; `find_reload_regs` orders potential regs per insn
+  (unused regs first in REG_ALLOC_ORDER r0, r9, r11 -- r0 not BASE), so ours takes r9 whenever r9 is free at the insn;
+  the target's r11 means r9 was busy (live pseudo or another reload) at those two insns in its pre-sched2 order. The other
+  three uses match. No source form found.
+  (b) nlen/giv registers (target nlen r25, giv `li 184` r24; ours swapped): global priority `floor_log2(refs)*refs/len*10000`
+  with REG_N_REFS weighted by flow's loop_depth (1 outside loops, 2 in the i-loop, 3 in the hash loop): nlen 9/57 = 4736,
+  giv 469 14/88 = 4772 -> giv first -> r25. The target's `li 184` precedes `lis "^"` in the preheader (the "^" high is
+  hoisted in loop pass 2, after the giv init), making the giv 14/89 = 4719 < 4736. In pass 1 the "^" high is the 4th
+  movable (`"%c"` high 510, `hs - 1` 529, `i + 5` 562, `"^"` 573; move iff `threshold*savings*lifetime >= insn_count`,
+  threshold 71 then -3 per moved movable, so 62*1*1 >= 58 moves it). The target needs insn_count >= 63 in pass 1 or two
+  more movables ahead of it (56 < 58) -- the extra insns must be gone by flow's final pass without touching live lengths
+  (the pDbModState high and the "^" high tie at exactly 1111 = 4*20/720 = 2*5/90 and any extra insn in the range of only
+  one of them flips their r18/r19). Insns that vanish this way: gcse-inserted PRE copies (`(set 214 (reg 442))`) and giv
+  computations (deleted by cse2 after strength reduction), flow's `(use (const_int 0))` nop after a call that ends a
+  block, and dead sets (flow deletes them before its live-length update: `propagate_block` jumps to `flushed`). Tried
+  and rejected: dead `color = 0` at the body top (cse1's ebb continues through the 2-use label and deletes the then-arm's
+  redundant `(set color 0)` instead -- count stays 58), nested ternary, ternary as the eprintf argument, nested ifs,
+  `continue` form, `he - digit` for the caret test, `x = 23 + k` / `y = i + 4` variables, `k * 8 + 184` for the caret
+  column (two givs that combine_givs does not merge, 136 words), `char c = name[k]` (load hoisted, 45), nlen asms in
+  the loop (`"+r"`/`"+b"`/volatile: 63-75, they flip r18/r19 and i's register).
+- **Compiler facts read this pass:** lcm.c PRE is block-based (`earlyin = OR preds earlyout`, `earlyout = ~transp |
+  (earlyin & ~antin)`, `delayin = (antin & earlyin) | AND preds delayout`, `latein = delayin & (antloc | ~AND succs
+  delayin)`, `isoin = latein | (isoout & ~antloc)`, `optimal = latein & ~isoout`, `redundant = antloc & ~optimal`) and
+  inserts at the END of a block (`insert_insn_end_bb`), never on an edge -- a source-level block is needed on the path to
+  get an insertion there. loop.c: `insert_bct` only for a compile-time iteration count (`loop_iterations` bails on
+  multiple back edges or a non-constant initial/final value) with no call/tablejump in the loop; `scan_loop` counts
+  insn_count (`count_loop_regs_set`, every class-'i' insn) BEFORE it substitutes single-use invariants into their use
+  (`loop_has_call && reg_single_usage && no_labels_between_p && validate_replace_rtx` -> the set is deleted, e.g. the PRE
+  copy feeding `(mult 222 14)`); movables are moved in insn order, giv inits after them, pass-2 movables after the giv
+  inits. flow's REG_N_REFS weight is loop_depth (starts at 1). reload: REG_EQUIV `(high sym)` pseudos are
+  rematerialised per use with the reload reg chosen by `find_reload_regs`' per-insn potential order, then
+  `allocate_reload_reg`'s round robin over the function's spill_regs.
+
+**Flags.** Nothing flipped; t_esp/db_mod and Tools/db_mod stay False (19 words in dbmodDispModelName in both). Both
+objects rebuilt through the locked ninja; 111 not re-checked (nothing flipped).

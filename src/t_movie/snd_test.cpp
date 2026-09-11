@@ -1118,7 +1118,6 @@ void disp_sit_normal(SND_ISS_BLK* blk, SND_SIT* sit, int x, int y)
     WTINST* inst = (WTINST*) (wt + hdr->inst_ofs);
     WTREGION* rgn = (WTREGION*) (wt + hdr->rgn_ofs);
     WTART* art = (WTART*) (wt + hdr->art_ofs);
-    s32 attn;
     s32 dlsVol;
     s32 synVol;
     s32 axVol;
@@ -1155,8 +1154,8 @@ void disp_sit_normal(SND_ISS_BLK* blk, SND_SIT* sit, int x, int y)
         eprintf(x, y + 0xE, 0, 1, "LINK     :    OFF");
     }
     eprintf(x, y + 0x1C, 0, 1, "RTBL_NO  :  %5d", sit->rnd_no);
-    eprintf(x, y + 0x2A, 0, 1, "CTRL     :  %5d", sit->se_flag);
-    eprintf(x, y + 0x38, 0, 1, "FREE3    :  %5d", sit->wall_vol);
+    eprintf(x, y + 0x2A, 0, 1, "CTRL     :  %5d", (s8) sit->se_flag);
+    eprintf(x, y + 0x38, 0, 1, "FREE3    :  %5d", (s8) sit->wall_vol);
     eprintf(x, y + 0x46, 0, 1, "FREE4    :  %5d", (s8) sit->inner_vol);
     eprintf(x, y + 0x54, 0, 1, "FREE5    :  %5d", (s8) sit->xF);
     eprintf(x, y + 0x70, 0, 1, "NO FADEOUT :  %s", on_off_name[(sit->se_flag & 1) ? 1 : 0]);
@@ -1165,13 +1164,14 @@ void disp_sit_normal(SND_ISS_BLK* blk, SND_SIT* sit, int x, int y)
     eprintf(x, y + 0x9A, 0, 1, "EVENT OK   :  %s", on_off_name[(sit->se_flag & 8) ? 1 : 0]);
     eprintf(x, y + 0xA8, 0, 1, "WALL CHECK :  %s", on_off_name[(sit->se_flag & 0x10) ? 1 : 0]);
     eprintf(x, y + 0xB6, 0, 1, "AT CHECK   :  %s", on_off_name[(sit->se_flag & 0x20) ? 1 : 0]);
-    attn = rgn->attn;
-    if (attn < 0) {
-        attn += 0xFFFF;
-    }
-    dlsVol = attn >> 16;
-    synVol = sit->vol;
-    if (synVol < 0) {
+    // the driver's iss_ax_set_vol shape: `/ 0x10000` is the branchy signed division (BRANCH_COST 0),
+    // and the two-arm if/else is what keeps the FREE4/FREE5 row y out of cse1's path so that gcse PRE
+    // copies them for the VOL(DLS)/VOL(SYN) rows (`mr r21,r29` / `mr r22,r30`); the then-arm's
+    // `mr r31,r3` is cross-jumped with the call arm's
+    dlsVol = rgn->attn / 0x10000;
+    if (sit->vol >= 0) {
+        synVol = sit->vol;
+    } else {
         synVol = Snd_vol_ax_to_syn(dlsVol);
     }
     axVol = Snd_vol_syn_to_ax(synVol);
