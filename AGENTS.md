@@ -22018,3 +22018,74 @@ Unit judge: 46/49, 22 words, all sections equal, .text size equal; item.cpp IDEN
   7654) vs store_expr's COND special case (BLKmode targets only, expr.c 3655), convert.c pushing narrowing into
   COND arms (385), fold `associate` (fold-const.c 4846-4899), combine `label_tick`/`get_last_value`, cse's
   SUBREG fold excluding SIGN_EXTEND equivalents (cse.c 5249), rs6000 REG_ALLOC_ORDER (0, 9, 11, 10, 8..3, 31..).
+
+### CRI sfd_mpv/mwsfdcre final closer: sfd_mpv 33 -> 35/38 (SFMPV_Destroy 6 -> 0 pins, SFMPV_Create 8 -> 0 pure C; ExecServerSub 17, ChkBufSiz 181, DecodePicAtr 197 open), mwsfdcre 7/10 (CalcWorkSfd 15 -> 6w pure C; CreateSofdec 97, CreateSfd 297 open; 2026-09-11)
+Harness /home/adityas/.cache/cri_mpvfin/ (deleted): cri18b's `bld.sh` (now takes the unit's exact flags from `ninja -t
+commands`, incl. `-inline auto,deferred`), `fd.py`, `tryvar.py`, `probe.sh UNIT FUNC START END BODY.c [--fd] [--ra]` (one
+function body substituted into the tree source, compiled, word-counted, RA-dumped), `pp/` = tiny TUs for the pool-order
+probes. ~/.cache/mwccdbg `ra.py`/`rasum.py` reused; the dump dir numbering differs per run (`backend-NN-...`), grep by
+name. No unit flipped; 111 OK after every edit. Note for the tools: `pkill -f <pattern>` kills your own shell when the
+pattern is in its command line.
+
+**Closed:**
+- `SFMPV_Destroy` 6 -> 0 (two pins): `asm { mr r31, r3; mr sfd, r31 }` reading the INCOMING r3 instead of the `obj`
+  parameter, plus `asm { lwz r29, SFD_OBJ.tr[SFMPV_TR].hn(r31); mr mpv, r29 }` (`register` sfd/mpv). Mechanism: a copy of
+  a parameter variable (`mr r31, obj`) is propagated by the backend into the first load (`lwz mpv, 0x1fb8(r3)`), which
+  keeps r3 live past the copy and pushes the pool `lis` to r4; a copy of the physical register r3 is opaque, obj dies at
+  the `mr` and the `lis r3` reuses it. With sfd pinned r31 the pool base still colours before mpv (mpv r30 / pool r29 with
+  one pin), hence the second pin. RA dump of the plain-parameter form: sfd 28/28 neighbours (level 1, lowest vid ->
+  coloured last, r28); `ret` locals, `void *obj` copies, `mpv->mpv` tests, written-out `sfd->tr[2].hn`: all 28.
+- `SFMPV_Create` 8 -> 0 (pure C, the pin of `mpv` stays): in `sfmpv_SetPicUsrBuf` the local `Uint8 *p` (declared last)
+  is assigned `p = buf;` as the FIRST statement, the NULL test and every store read `p`, and the step is `p += siz`. At the
+  Create site the argument is the global load `sfmpv_picusr_pbuf`: the frontend substitutes the single-use load into `p`
+  (one node), so `p += siz` is a WAR dependence on the `pu->dat = p` store and the pre-RA scheduler cannot hoist the add
+  (`stw r4, 12(r8); add r4, r4, r7`). At the SFD_SetPicUsrBuf site `p = buf` is a plain copy of the caller's parameter
+  and is propagated (stores use r29, `add r4, r29, r31` hoisted) -- both sites from one helper. The copy placed AFTER the
+  NULL test is not substituted (pass 16a's "not across a conditional"), and `p = (Uint8 *)buf + siz` after the stores or
+  `p = buf` + stores through `buf` are two nodes whose add the scheduler hoists (buf r9 / p r4, 8w). Read off the dumps:
+  `backend-11-after-scheduling` showed the pre-RA scheduler moving `add r46, r36, r39` above `stw r36, r42, 0xc`; the
+  stepped-parameter form (`Uint8 *buf; buf += siz`) gives the exact shape at both sites but colours j r4 / n r5 / buf r6
+  (helper locals outrank helper parameters; a nested slot-loop helper 20w).
+- `mwPlyCalcWorkSfd` 15 -> 6 (pure C): two alternating accumulators `size = vib + aib; size2 = size + 0x20; size = size2 +
+  sjb; size2 = size + 0x40 + PICUSR; size2 += rfb; size2 += tab; size2 += adxib; size = size2 + adxwk; size += HNWORK;
+  size += 0x700; size += FNAME; size += sibsiz; return size;` (`b = a + c` is a new node, `b += x` in place = the target's
+  r3/r0 alternation; the frontend keeps size/size2/@939/@940 as in the target). The total MUST be `size += sibsiz; return
+  size;`: `return sibsiz + size` substitutes the whole tail into the return expression and the backend then emits
+  `EADD(sib, EADD(EADD(x, adxwk), c))` as `add; add sib; addi c` (constant moved to the end, 15w); `size = sibsiz + size`
+  merges the same way (7w); `sibsiz += size` adds an `mr` (9w); a nested `(size += c)` anchor, a block-scoped total and
+  `register` do not stop the substitution. Residue 6w: the last add is `add r3, r29, r3` (sib first) in the target and
+  `add r3, r3, r29` in ours (an `asm { add size, sibsiz, size }` gives it but not the rest), the epilogue `lwz r0, 52(r1)`
+  is hoisted 3 slots by the post-RA scheduler in ours (both forms; with the old single-node chain it was not hoisted,
+  because r0 was the chain register), and the FRMSIZ `width`/`height` load order (`lwz r23, 8; lwz r24, 12` vs ours 12
+  then 8) does not follow the declaration or statement order in a private copy of the macro.
+
+**Open (exact class, what was tried):**
+- `sfmpv_ExecServerSub` 17w: target `mpv` (the `stat == 2` block) r31 = coloured before every level-1 temporary (right
+  after ret/sfd; ret shares r31 because they do not interfere). Ours: mpv 18 neighbours, level 1, vid below the backend
+  temporaries -> r28. A hard pin `asm { lwz r31, SFD_OBJ.tr[2].hn(sfd); mr mpv, r31 }` removes r31 from the allocator for
+  the whole function (ret -> r30, sfd -> r28, 70w); pinning ret too via `asm { mr r31, ret; mr ret, r31 }` after the call
+  is propagated away (still 70w). Defining mpv before the SetMpvCond block (more neighbours) gives r28 with the SetMpvCond
+  reload CSE'd into it (21-55w). The target's mpv must be a top-level (>= 29 remaining degree) node or a late backend
+  temporary; a source form for that was not found.
+- `mwsfcre_CreateSfd` 297w: **pool-base order, mechanism found, cause not**: the three section-pool temporaries are created
+  at function start in the CODE order of the FIRST reference to each section (probe TUs `pp/q1..q22`: `lis r33 bss;
+  lis r34 rodata; lis r35 data` for first refs bss, rodata, data) -- NOT declaration order, not TU order (moving the .bss
+  declarations, the crepara/vonlysfd definitions or a dummy early rodata reference changes nothing). But the colouring
+  among them is NOT vid order: they are top-level (spill-candidate) nodes and their order follows the spill-cost ranking
+  (q19 `[cond r] d [b] [r]` -> data r31 / bss r30 / rodata r29, q20 `[cond r] d [r] [b]` -> rodata r31 / bss r30 / data
+  r29: the same first-reference order, different colours). CreateSfd target rodata r31 / bss r30 / data r29 vs ours bss
+  r31 / rodata r30 / data r29 = the rodata pool ranks above the bss pool in the original's spill-cost order (rodata: 4
+  string addresses; bss: ~25 references) -- i.e. the original's bss live range/degree differs (fewer bss references
+  through the pool, or more rodata ones). Everything else in CreateSfd is colouring downstream of this. The IsUseAdxt dead
+  `b` was not touched.
+- `sfmpv_ChkBufSiz` 181w: `#pragma scheduling off` around the function = 243w (the target IS scheduled; the pragma also
+  leaks into following functions if the `on` is misplaced). `sfmpv_DecodePicAtr` 197w: `asm { mr r26, mask; mr msk, r26 }`
+  = 242w (the pin excludes r26 function-wide and reshuffles everything); the extra callee-saved (r16) needs the
+  colouring, not a pin. `mwPlyCreateSofdec` 97w not attempted.
+- Model notes confirmed: (1) a hard-register asm pin makes that register unavailable to every other node of the function
+  (Destroy/Create/GoDdelim pins work only because the pinned register is the target's for a node live across the whole
+  function or otherwise unused); (2) inside an inlined helper the vid order is locals (last declared highest) > parameters
+  (first parameter highest) -- a stepped parameter can never colour above a helper local; (3) the frontend substitutes a
+  single-use load into a plain copy only when the copy is the next statement (not across an `if`); (4) the backend emits
+  `EADD(a, EADD(x, c))` with the constant last -- a variable whose last def is `+= const` and whose single use is in the
+  return expression loses its `addi` position.

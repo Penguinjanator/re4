@@ -1057,6 +1057,7 @@ Sint32 mwPlyCalcWorkSfd(MWSFD_CRPRM *cprm)
 	Sint32 tabsiz;
 	Sint32 fsize;
 	Sint32 size;
+	Sint32 size2;
 
 	CWS_BUFSIZ(cprm, sibsiz, vibsiz, aibsiz, sjbsiz, adxibsiz, adxwksiz);
 	if (mwsfdcre_bufnum != 0) {
@@ -1068,17 +1069,22 @@ Sint32 mwPlyCalcWorkSfd(MWSFD_CRPRM *cprm)
 		rfbsiz = fsize * 2;
 		tabsiz = nfrm2 * fsize;
 	}
+	/* two alternating accumulators (target r3 / r0): `b = a + c` is a new node, `b += x` stays in place;
+	 * a single `size` collapses the chain into one node with the constants reassociated. The total is
+	 * `size += sibsiz; return size;` -- `return sibsiz + size` substitutes the whole chain into the
+	 * return expression, where the backend moves the 0x4800 to the end. Residue: the target's last add
+	 * is `add r3, sib, size` (ours `add r3, size, sib`) and the epilogue `lwz r0` is not hoisted. */
 	size = vibsiz + aibsiz;
-	size += 0x20;
-	size += sjbsiz;
-	size += 0x40;
-	size += MWSFD_PICUSR_SIZE;
-	size += rfbsiz;
-	size += tabsiz;
-	size += adxibsiz;
-	size += adxwksiz;
+	size2 = size + 0x20;
+	size = size2 + sjbsiz;
+	size2 = size + 0x40 + MWSFD_PICUSR_SIZE;
+	size2 += rfbsiz;
+	size2 += tabsiz;
+	size2 += adxibsiz;
+	size = size2 + adxwksiz;
 	size += MWSFD_HNWORK_SIZE;
 	size += 0x700;
 	size += MWSFD_FNAME_SIZE;
-	return sibsiz + size;
+	size += sibsiz;
+	return size;
 }

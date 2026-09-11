@@ -2034,7 +2034,8 @@ static Sint32 SFMPV_Create(register SFD sfd)
 		return 0;
 	}
 	/* the original colours `mpv` (r30) before the .bss pool base (r29); as an own local it ranks
-	 * below the backend's pool temporary (mpv r29 / pool r30), 8 more forms did not move it */
+	 * below the backend's pool temporary (mpv r29 / pool r30), 8 more forms did not move it.
+	 * The inlined sfmpv_SetPicUsrBuf is exact (see the `p = buf` note there). */
 	asm { addi r30, sfd, 0x23a0; mr mpv, r30 } // COMPILER-DIFF: pin
 	sfd->tr[SFMPV_TR].hn = mpv;
 	ret = sfmpv_InitInf(sfd, mpv);
@@ -2166,18 +2167,18 @@ void sfmpv_ErrFn(void *obj, Sint32 code)
 }
 
 /* the buffers survive in the file statics for the next creation */
-Sint32 SFMPV_Destroy(register SFD obj)
+Sint32 SFMPV_Destroy(SFD obj)
 {
 	register SFD sfd; // COMPILER-DIFF: pin
-	SFMPV_WORK *mpv;
+	register SFMPV_WORK *mpv; // COMPILER-DIFF: pin
 	MPV hn;
 
-	/* the original ranks the handle above the .bss pool base (sfd r31, pool r30): a level-2 node
-	 * (>= 29 neighbours) where ours has 28 as a kept `(SFD)(SFD_OBJ *)obj` copy or as the plain
-	 * parameter; the pin gives the registers, the pool `lis` hoisted above the copy and the first
-	 * load through the parameter register (obj propagated into it) remain, 6 words */
-	asm { mr r31, obj; mr sfd, r31 } // COMPILER-DIFF: pin
-	mpv = SFMPV_WK(sfd);
+	/* the original ranks the handle above the .bss pool base (sfd r31, pool r30, mpv r29): a level-2
+	 * node (>= 29 neighbours) where ours has 28 as a kept `(SFD)(SFD_OBJ *)obj` copy or as the plain
+	 * parameter. The copy reads the incoming r3 itself, not `obj`: a copy of the parameter is
+	 * propagated into the first load (`lwz mpv, 0x1fb8(r3)`) and the pool `lis` then cannot reuse r3 */
+	asm { mr r31, r3; mr sfd, r31 } // COMPILER-DIFF: pin
+	asm { lwz r29, SFD_OBJ.tr[SFMPV_TR].hn(r31); mr mpv, r29 } // COMPILER-DIFF: pin
 	hn = mpv->mpv;
 
 	if (hn == NULL) {
@@ -2437,7 +2438,15 @@ static inline Sint32 sfmpv_SetPicUsrBuf(SFD sfd, void *buf, Sint32 num, Sint32 s
 	Sint32 j;
 	Uint8 *p; /* declared after j: coloured first (r4), j r5, n r6 */
 
-	if (buf == NULL || num == 0 || siz == 0) {
+	/* `p` is the buffer pointer from the first statement on and `buf` is not read again: at the
+	 * SFMPV_Create site the argument is a global load, and the frontend substitutes the single-use
+	 * load into `p` (one node, so `p += siz` stays after the `pu->dat = p` store: `add r4, r4, r7`),
+	 * while at the SFD_SetPicUsrBuf site `p = buf` is a plain copy of the parameter that is
+	 * propagated (stores use r29, the add is a new node hoisted above them). `p = buf + siz` after
+	 * the stores, or the copy after the NULL test, is a second node whose add the pre-RA scheduler
+	 * hoists above the `dat` store (p r4 / buf r9 at the Create site). */
+	p = buf;
+	if (p == NULL || num == 0 || siz == 0) {
 		pu->buf = NULL;
 		pu->num = 0;
 		pu->siz = 0;
@@ -2452,12 +2461,12 @@ static inline Sint32 sfmpv_SetPicUsrBuf(SFD sfd, void *buf, Sint32 num, Sint32 s
 	if (num < sfd->prm.x2c + 3) {
 		return SFLIB_SetErr(sfd, 0xFF000F1D);
 	}
-	pu->buf = buf;
+	pu->buf = p;
 	pu->num = num;
 	pu->siz = siz;
-	pu->dat = buf;
+	pu->dat = p;
 	pu->len = 0;
-	p = (Uint8 *)buf + siz;
+	p += siz;
 	n = num - 1;
 	for (j = 0; j < ((n < SFMPV_FRM_NUM) ? n : SFMPV_FRM_NUM); j++) {
 		pu->slot[j].buf = p;
