@@ -2597,6 +2597,7 @@ void cEmWep::setCloth(cModel* owner)
     EmWepWork* w = EMWEP_WK(this);
 
     w->cloth.x58 = owner;
+    w->cloth.num = 10;
     w->cloth.x08 = 0;
     w->cloth.x0C = 0;
     w->cloth.x10 = 0;
@@ -2608,7 +2609,6 @@ void cEmWep::setCloth(cModel* owner)
     w->cloth.x44 = 0;
     w->cloth.flags = 0;
     w->cloth.x54 = 0;
-    w->cloth.num = 10;
     w->cloth.pParts = emWepClothP;
     w->cloth.pUp = emWepClothUp;
     w->cloth.pDown = emWepClothDp;

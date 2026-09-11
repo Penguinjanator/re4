@@ -1696,3 +1696,8 @@ MATCHING.update({
 MATCHING.update({
     "game/view.cpp": True,  # initPerspective: ONE frustum pointer `b` for both halves (the halves' `&b->point/normal[k]` are one gcse expression set: the second half's preheader addi order and the first half's single `&point[4]` PRE follow), `ViewSphere* s = &sphere` for the centre/radius stores (cse's find_best_addr rewrites `(mem s)` to `892(this)`, the rest stay `s`-based, s r18), `/ (2.0f * det)` inline (a fresh call-anchored pseudo), zfar stored before znear; two dead statics carry the .rodata 0x48..0x7f pools (STRIP_UNUSED); zero code
 })
+
+# DOL sweep 18b (2026-09-11)
+MATCHING.update({
+    "game/cam_qfps.cpp": True,  # move: the frustum copy loop counts with `j` (one allocno with the Draw_line3d loop's j: crosses the PSMTXMultVec calls -> callee-saved r29, sched2 hoists `j = nj` above the call), tail stores roll, fovy, reset last; setAreaData(CameraCut*): `p = &ofs[i][j]` before the flags test (cse rewrites the first store to `stwx r3,r28` = j-giv + outer i*132 giv), `for (j..; j++, k++)`; zero code
+})

@@ -16328,3 +16328,116 @@ SYM [OBJ]`, `dump.sh UNIT -dX` with `SRC_OVERRIDE=<abs path>` (the dump is named
   doubles the length at each such insn; `combine_movables` needs `n_times_set == 1` for both movables and `rtx_equal_for_loop_p`
   sources; an asm's `insn_cost` is 1 (a launder always delays its consumer by a cycle); cse's `notreg_cost` makes a
   `(subreg (reg pseudo))` cost 0, which is why a narrow zero store prefers the lowpart of a known wider zero.
+
+### DOL sweep 18b, closest-first (cam_qfps Matching 24/24; title titleMain 9 -> 0, titleSub bct; sce_com SceExecItemEvent 3 -> 0, SceUpCutStart 45 -> 0, SceChapterEnd 36 -> 17; puzzle snap 12 -> 0; emwep setCloth 32 -> 20; 2026-09-11)
+
+Flipped: cam_qfps (24/24; build 111 OK). Harness ~/.cache/dol18b (dol17 copies with the paths rewritten; `tryv.py UNIT SYM v.py`,
+`sbs.sh UNIT SYM [OBJ]`, `mcmp.py`, `dump.sh UNIT -dX` with `SRC_OVERRIDE`, `fsec.py`, `order.py`, `prio.py`), deleted at the end.
+HAZARD: wibo's NgcAs writes the `-o` path case-insensitively -- two tryv variants whose names differ only by case
+(`a`/`A`) clobber each other's `.o` and the second reports a phantom COMPILE ERROR; keep variant names case-distinct.
+
+- **One counter variable for two loops = one allocno crossing the first loop's calls (cam_qfps move 64 -> 0, zero code).**
+  The target's Draw_line3d loop has `j` in r29 and `nj = j + 1` in r30, both callee-saved, with `mr r29,r30` (the biv copy
+  `j = nj` that cse makes of the `j++` increment) BEFORE the call although its RTL position is after it: sched2 can hoist a
+  callee-saved copy over a `bl`, a caller-saved one (ours: `mr r7,r30` after the call) never. `j` is callee-saved because the
+  frustum copy loop before it counts with `j` too (`for (j = 0; j < 8; j++, src++) PSMTXMultVec(..)`: reversed to the
+  `li r29,8; addic.` down-counter, live across those calls); with `i` there the `j` allocno crosses no call and takes r7.
+  Diagnostic: a `register int j asm("r29")` pin closed 64 -> 10 at once (the pin's own side effects were the rest).
+  Tail: `cam.param.pos; at; roll; fovy; reset = 0` -- roll before fovy and the byte store last (the f13/f0 load order and
+  the `stb` slot follow).
+- **`p = &ofs[i][j]` before the flags test, and the k increment in the for header (cam_qfps setAreaData(CameraCut*) 74 -> 0,
+  zero code).** The target computes `add r7,r29,r3` (p) BEFORE `lbz flags; rlwinm; beq`, and its first store is `stwx
+  r11,r3,r28` (j-giv + the outer `i*132` giv) while the others go through p: with p assigned before the `if`, cse's
+  `find_best_addr` rewrites the first store's `(mem p)` to the equal-cost, higher-rtx-cost `(plus giv i132)`; with p inside
+  the arm ours formed separate `base + i*132 + j*44` DEST_ADDR givs per array (three `li rN,0 .. addi rN,rN,132` outer
+  givs, 74 words). `for (j = 0; j < 3; j++, k++)` (instead of `k++` at the body end) puts the j-givs' `addi 44` increments
+  and the `mr r5,r30` init before the k-related ones (loop.c inserts each giv increment before its biv's increment insn;
+  `j++, k++` orders the biv increments j then k).
+- **Constant-index array element = `sym+N@ha/@l` pair (main_mem MemReplaceHeap, zero code, no byte change here).**
+  `Heap[1].handle` in the `CurrentHeap == 1` arm gives `lis r,Heap+16@ha; lwz r0,Heap+16@l(r)` = the target's CONST address;
+  `Heap[CurrentHeap].handle` with the jump-equivalence-folded index gives `lis Heap@ha; lwz Heap@l+16(r)`. mcmp's reloc key
+  hides the difference (same symbol/addend), so check `objdump -dr` for `@ha` addends when a `lis` disagrees. The 18 words
+  left are the high/HeapHead local-alloc names (r9/r11): the `hd` user var is combined with the HeapHead load by
+  `combine_regs` (4 refs) and outranks the 2-ref high; block 0's `lis; addi` form keeps 4 refs on the high side and matches.
+  `Heap[n].handle + HeapHead`, `&HeapHead[..]`, a `base` user var, `hd += n`: unchanged.
+- **HALT strings: the file string of a dead debug block, the flag_rsf.h checks for the code (sce_com SceExecItemEvent 3 ->
+  0, zero code).** `.rodata` had "D:/Bio4/Prog/sce_com.cpp" BEFORE "HALT %s(%d)\n" but the HALT code in SceExecItemEvent
+  reports `__FILE__` = "D:/Bio4/Prog/flag_rsf.h" (reloc .rodata+396, line 17) with the fmt `lis` first: SceExecItemEvent uses
+  flag_rsf.h's `RsfSet`/`RsfCheck` (plain OSReport: fmt high first in LUID order, fmt string first in .rodata) and the
+  sce_com.cpp string comes from a `HALT()` (the `file_`-local macro) at the end of SceInitItemEvent's dead `if (0)` prompt
+  block (its five pLog->err strings precede it in .rodata). A `#line` is needed for `__FILE__` under tryv (the harness
+  compiles a copy). A bare `__FILE__;` statement does NOT output the string (expand_expr with ignore); `const char* file_ =
+  __FILE__` unused outputs it but cse reuses its `lis` for the call (file first again).
+- **`pGS->` for the BitOn after `pPL->atari.clrFlag100()` (sce_com SceUpCutStart 45 -> 0, zero code):** the pG load for
+  `flags_5010` waits for the in-struct `sth` (same recipe as SceUpCutEnd's BitOff); with `pG->` ours hoists `lwz pG` above the
+  `lhz/andi./sth` and the -1 constant moves r10 -> r8.
+- **Mid-function `Vec` declarations = later frame slots (sce_com SceChapterEnd 36 -> 17, zero code).** The FadeSetW inline's
+  colour temp sits at 32/36 in the target and `plPos`/`plRot` at 40/56 (ours 32/48 with the temp at 64): aggregates get
+  their slot at `expand_decl` time, so `Vec plPos; Vec plRot;` declared right before the first `if (SceSys.x78 >= 0)` (after
+  the FadeSetW/SceSleep/SceMesSet calls) puts them after the inline temp. Addressable scalars (`chap`, `sec`, `len`, `data`,
+  `evt`) get theirs at the first `&` use, so their declaration order never matters. Left (17): the `sel` zero r27 vs the
+  colour-temp copy r26 (global priority), `li r25,0`/`li r24,0` order and one `stfs` slot.
+- **`#13` single-use zero set in another block, once more (title titleMain 9 -> 0, tagged):** `int zero = 0;` at the top of
+  the `if (Joy[0].trg & 0x1100)` block, `w->step = zero;` in the inner then-arm: update_equiv_regs moves the `li` next to the
+  store, the 1-insn qty is allocated first and takes r0 after the x3 temp (target `li r0,0` re-materialised after `stb
+  r0,88`). Setting the zero in the same block as the store (before the inner switch of the OTHER `mode = 6` block) is folded
+  by cse and regresses that block (89-100 words) -- find the right `mode = 6` site first (there are two).
+- **2-iteration bct = an eliminable biv, not insert_bct (title titleSub, 26 -> loop identical).** SN's insert_bct refuses
+  `n_iterations < 3`, but check_dbra_loop reverses `for (i = 0; i < 2; i++) *(u32*)((u32)tbl + i * 4) = 0` (biv `i` used only
+  for counting, the `i*4` giv strength-reduced) into `li r9,2; mtctr r9` + the `addi r11,4` giv; the `ofs += 4` form keeps ofs
+  as the index (not eliminable, no bct). The integer address `(u32)tbl + i*4` keeps the `lwz pSys` reload inside the loop
+  (the target reloads it); `((u32*)((u8*)pSys + 0x20))[i]` hoists it. Left: the `&c1` frame-address PRE (`addi r28,r1,36`,
+  #3 family; the target PREs `&c0` only -- its `c1.w` store in another block goes through `4(r9)` with r9 = the `&c0`
+  pseudo), so the function is one insn longer; the `asm("" : "+r"(pc1))` launder does not remove the PRE (the
+  `(plus fp 36)` feeding the asm is still the candidate).
+- **The `+=` statement in both arms (puzzle pzlPiece::snap 12 -> 0, zero code).** `if (ver0_x() >= 0.0f) { vx = ..+0.5f; x +=
+  ver0_x() - (f32) vx; } else { vx = ..-0.5f; x += ver0_x() - (f32) vx; }`: sched1 moves each arm's `mr r3,this` (the third
+  call's argument) above its `fadds`/`fsubs`, jump2 then cross-jumps the tails from the conversion on and each arm keeps its
+  own `mr r3,r31`. With the `+=` after the join the copy sits once at the join.
+- **Compiler-side evidence, bct with a runtime count (puzzle pzlPiece::orientation 8, pzlBoard::init 4, title titleSub's
+  original):** the target's `for (i = 4; i < o; i++) rotate(0)` is `addic. r0,r29,-4; mtctr r0; ble; mfctr r31; .. addic.
+  r31,-1; bne` = the `decrement_and_branch_on_count` pattern with a RUNTIME count in a loop that CONTAINS A CALL (the
+  counter spilled from CTR to r31). Our insert_bct (loop.c 9067) returns for `loop_has_call` and its runtime path is `#if 0`;
+  check_dbra_loop never emits the bct pattern. So the original's loop.c instruments runtime counts and ignores calls: a
+  compiler-build difference (the 2-iteration titleSub bct is probably the same insert_bct without the `< 3` check). Do not
+  look for a source form; the check_dbra route above reproduces only the constant-count cases.
+- **emwep setCloth 32 -> 20 (zero code): `num = 10` as the SECOND statement (after `x58 = owner`)** gives the target's GPR names
+  (10 -> r11, Up r10, Dp r8, Max r7, At r6, ClothP r5); `num` last (source order) gives r5 for the 10. Left (20): 0.0/0.6 FPR
+  names (f12/f13 swapped), the `stfs x50` (0.0, the last statement) hoisted as a dying store, and `stw r4,124` two slots early.
+  Pin experiments (r11/r5/r10/r8/r7/r6 + fr11/fr12/fr13/fr0, one or two `"=m"` keep-alive asms): any `"=m"` asm before the
+  PenClothSet call pushes the `lfs f1,100.0` argument load to the block end (19-46 words); the sweep-16b pin recipe is not
+  the way here.
+- Read, not closed (do not retry the listed forms):
+  - emwep emWepEscapeCamMove (23): the target issues `mr r29,r3; addi r31,r29,992` and the fovy `lfs/stfs` before the six
+    pool `lis`; ours ranks the lis chain (prio 20) above the `mr` (19) in sched1 (`-fsched-verbose-9` dump). `asm("" : "+r")`
+    launders on w/em (26-32), `w` before `g`, `pG->` direct: 23. The fovy store aliasing the stack stores would give the
+    missing priority, but stock alias.c never aliases a parameter-based pointer with the frame.
+  - sce_com SceSetItemEvent (38): the inner `while (e->item[j] >= 0) { if (++j > 7) return; }` is peeled + `add r10,r9,r9;
+    addi r11,r8,6; lhax` in the target = the index address `(plus (plus e 6) j*2)` surviving to reload (the `addi` is a
+    reload insn, regenerated per iteration and inherited by the exit `sthx`); ours strength-reduces it to `lhau`. `for`,
+    `goto` (33: no peel, `e+6` hoisted), `break`+test (32), `u32`/`int` j, B-loop with the store inside: 32-51.
+  - main_mem MemCheckHeapEnd (12): the `mr r9,r0` is gcse PRE of the second `d->allocated` load (available on both paths);
+    dead do-while before the loop, ternary, inverted test, pointer forms, `((u32*) d)[2]` alias-set views: 12. Not cse.
+  - title stageSelect (6): `register int rank asm("r27")` gives 2 (then the `i*16+0x80` base takes r27 over r31); block
+    scope, `s16`/`u8`, `!rank`, `rank > j`, `u32 j`: 6-65.
+  - option retry_load_menu (45): `o` (29 refs / 364, pri 0.319) vs `i` (13 / 108, 0.361) for r31 -- the target allocates `o`
+    first; needs +3 weighted refs on `o` or -2 on `i` without new code.
+  - card makeCardStatus (13): spd/spd2 vs fmt/fmt2 global names and the 64/0 `li` names; statement-order swaps 13-22.
+    errorDisp (99): ours cross-jumps case 2's `CoreSeCall(5); mode = 0` tail into case 1's `CoreSeCall(4); mode = 0` arm
+    (identical `li r4..r7; bl; stb r29,4(r30)` tails at jump2), the target keeps both (#6 family, RTL-at-jump2 difference not
+    found).
+  - route_ck RouteCkPosToPos (5): the index chain is r0 in the target (GENERAL: `tbl` pointer-flagged), r9 in ours (both
+    `(plus)` operands BASE_REGS: the inline's `(s8*)(nextOfs + (u32)r)` sum is a temp pseudo copied into `tbl` and
+    cse-propagated, losing REG_POINTER). Pointer arithmetic forms of the sum and computing it at the call site: 10-28.
+  - emrock emRockRollStartCk (9): the target copies pG (`mr r11,r9`) before the `pRoomEmi` test and reads `pl_life` through
+    the copy; `GlobalWork* g` locals, `pGS->` on either read: 8-9.
+  - puzzle .rodata (0x260 vs 0x280): the target has "D:/Bio4/Prog/puzzle.cpp", "%c" before "Can't create pzlPlayer()", "#",
+    "" and the 0x4330000080000000 / 8.0 / 14.0 pool words before them, and "?" between init's and removeExtraPiece's strings:
+    dead `static inline` debug helpers defined before pzlPlayer::init / removeExtraPiece reproduce the strings (a never-used
+    inline's constants are output with the next function), the pool words belong to a function not written (shape/snap
+    residues). Not applied.
+  - Not iterated: emrock's camera moves, motion, db_cam, pendulum, esp08, esp18, cam_ctrl, option brightness/controller,
+    card saveMain, puzzle shape/putPiece/rmPiece/cmbPiece/init.
+- Not iterated this pass: pl_wep (PlSetLockPitch 11, searchLockEm 21, PlWepAutoTrack 36, PlWepLockCtrl 189, PlWepHitCheck2 242;
+  .rodata 0x350 vs 0x290), espgen45 (SetWaterWork45 91, Move00 454, TransSub 752), Espgen42 (five functions), em_sub (ten,
+  EmYarareDisp 1 word), debug (five), act_btn (disp 17, checkButton 93); roomdata init 7 (the `ofs`/`stage` r26/r27 pair).

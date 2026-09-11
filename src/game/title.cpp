@@ -783,6 +783,7 @@ void titleMain(TitleWork* w)
         }
         case 1:
             if (Joy[0].trg & 0x1100) {
+                int zero = 0;  // COMPILER-DIFF: #13 (single-use zero set in another block: update_equiv_regs moves the `li` next to the store, it takes r0 after the x3 temp)
                 w->mode = 7;
                 if ((s32) pG->flags_54 < 0 || (pG->flags_54 & 0x40000000)) {
                     w->saveSub = w->sub;
@@ -790,7 +791,7 @@ void titleMain(TitleWork* w)
                     w->saveX3 = w->x3;
                     w->saveCnt = w->cnt;
                     w->mode = 6;
-                    w->step = 0;
+                    w->step = zero;
                 } else {
                     Snd.room_ok = 1;
                     c0.w = 0x00000000;
@@ -963,14 +964,13 @@ void titleSub(TitleWork* w)
                                 *(u32*) ((u32) tbl + ofs) = 0;
                             }
                         }
-                        // OPEN: the target counts this 2-iteration loop with mtctr/bdnz as well; GCC 2.95's
-                        // insert_bct refuses loops with a known count below 3, so the original's count was
-                        // not visible to loop.c (form not found).
+                        // Index form: the eliminable biv gives check_dbra_loop's bct (insert_bct refuses a
+                        // known count below 3); the integer address keeps the pSys reload in the loop.
                         {
-                            int ofs;
-                            for (ofs = 0; ofs < 8; ofs += 4) {
+                            int i;
+                            for (i = 0; i < 2; i++) {
                                 u8* tbl = (u8*) pSys + 0x20;
-                                *(u32*) ((u32) tbl + ofs) = 0;
+                                *(u32*) ((u32) tbl + i * 4) = 0;
                             }
                         }
                     }

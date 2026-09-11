@@ -220,7 +220,7 @@ void SceUpCutStart()
     BitOn(pG->flags_58, 0x40000000);
     BitOn(pG->flags_58, 0x20000000);
     pPL->atari.clrFlag100();
-    BitOn(pG->flags_5010, 0x10000000);
+    BitOn(pGS->flags_5010, 0x10000000);  // the pG load waits for the clrFlag100 store
     BitSet(pG->flags_170, 0xFFFFFFFF);
     BitOff(pG->flags_170, 0x40000000);
     BitOff(pG->flags_170, 0x10000);
@@ -449,36 +449,18 @@ void SceInitItemEvent()
     for (i = 0; i < 16; i++) {
         *p++ = 0;
     }
-    // Strings of a debug prompt the original kept around (dead code).
+    // Strings of a debug prompt the original kept around (dead code); its HALT() emits the
+    // "D:/Bio4/Prog/sce_com.cpp" string before "HALT %s(%d)\n" (the flag_rsf.h checks below reuse
+    // both, with the fmt high first).
     if (0) {
         pLog->err(0, 0, "Do you use the PLANTER?");
         pLog->err(0, 0, "You used the PLANTER.");
         pLog->err(0, 0, "You cannot use a PLANTER.");
         pLog->err(0, 0, "              >YES  NO");
         pLog->err(0, 0, "               YES >NO");
-    }
-}
-
-static inline u32* RsfFlagsCk(u16 room)
-{
-    return (u32*) (RoomData.getRoomSavePtr(room) + 4);
-}
-
-#line 14 "D:/Bio4/Prog/sce_com.cpp"
-static inline void RsfSetCk(u16 room, int no)
-{
-    if (no > 0x1F) {
+#line 444 "D:/Bio4/Prog/sce_com.cpp"
         HALT();
     }
-    RsfFlagsCk(room)[(u32) no >> 5] |= 0x80000000 >> (no & 31);
-}
-
-static inline u32 RsfCheckCk(u16 room, int no)
-{
-    if (no > 0x1F) {
-        HALT();
-    }
-    return RsfFlagsCk(room)[(u32) no >> 5] & (0x80000000 >> (no & 31));
 }
 
 #include "flag_rsf.h"
@@ -504,7 +486,7 @@ void SceExecItemEvent(SceItemEvent* e)
     }
     flag = e->flag;
     room = pG->room_id;
-    RsfSetCk(room, flag);
+    RsfSet(room, flag);
     SceUpCutStart();
     if (e->cut >= 0) {
         CamCtrl.CutCall((s8) e->cut);
@@ -534,7 +516,7 @@ void SceSetItemEvent(int atNo, int itemNo, int flagNo, int cut, void (*func)(int
     u32 i;
     u32 j;
 
-    if (RsfCheckCk(room, flagNo)) {
+    if (RsfCheck(room, flagNo)) {
         SceAtSetEnable(atNo, 0);
         if (itemNo >= 0) {
             if (SceAtItemFlgCk(itemNo) == 0) {
@@ -698,8 +680,6 @@ void SceChapterEnd()
     static u32 disp_bak;
     static char chap_data_name[0x20];
     static u32 MARGIN = 0x20000;
-    Vec plPos;
-    Vec plRot;
     void* evt;
     int chap;
     int sec;
@@ -759,6 +739,8 @@ void SceChapterEnd()
     FadeSetW(0x80000000, 10, 0, 0);
     SceSleep(0xF);
     SceMesSet(0x80, 1, 1, 0x64, 0x150 - cMes.getWork()->lineSpace - cMes.getWork()->fontH - 1);
+    Vec plPos;
+    Vec plRot;
     if (SceSys.x78 >= 0) {
         plPos = pPL->pos;
         plRot = pPL->rot;

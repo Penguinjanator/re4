@@ -953,41 +953,39 @@ void CameraQuasiFPS::setAreaData(CameraCut* cut)
         return;
     }
     for (i = 0; i < 4; i++) {
-        for (j = 0; j < 3; j++) {
+        for (j = 0; j < 3; j++, k++) {
             if (i <= 1) {
+                p = &g_readyOfs[14][i][j];
                 if (cut->flags & 0x30) {
-                    p = &g_readyOfs[14][i][j];
                     p->campos = cut->pos[k];
                     p->target = cut->at[k];
                     p->x24 = cut->roll[k];
                     p->fovy = cut->fovy[k];
                 }
             } else {
+                p = &g_transOfs[5][i - 2][j];
                 if (!(cut->flags & 0x20)) {
-                    p = &g_transOfs[5][i - 2][j];
                     p->campos = cut->pos[k];
                     p->target = cut->at[k];
                     p->x24 = cut->roll[k];
                     p->fovy = cut->fovy[k];
                 }
             }
-            k++;
         }
     }
     for (i = 0; i < 4; i++) {
-        for (j = 0; j < 3; j++) {
+        for (j = 0; j < 3; j++, k++) {
             if (i <= 1) {
+                p = &g_readyOfs[14][i][j];
                 if (cut->flags & 0x30) {
-                    p = &g_readyOfs[14][i][j];
                     p->campos2 = cut->pos[k];
                 }
             } else {
+                p = &g_transOfs[5][i - 2][j];
                 if (!(cut->flags & 0x20)) {
-                    p = &g_transOfs[5][i - 2][j];
                     p->campos2 = cut->pos[k];
                 }
             }
-            k++;
         }
     }
 }
@@ -1245,9 +1243,9 @@ void CameraQuasiFPS::move()
 
             CameraSetOrientationRoll(&c);
             src = vf->point;
-            for (i = 0; i < 8; i++, src++) {
-                PSMTXMultVec(c.mat, src, &view_box[cnt].point[i]);
-                PSMTXMultVec(c.mat, src, &view_box[cnt].point[i]);
+            for (j = 0; j < 8; j++, src++) {
+                PSMTXMultVec(c.mat, src, &view_box[cnt].point[j]);
+                PSMTXMultVec(c.mat, src, &view_box[cnt].point[j]);
             }
         }
         for (i = 0; i < 16; i++) {
@@ -1281,7 +1279,7 @@ void CameraQuasiFPS::move()
     }
     cam.param.pos = c.param.pos;
     cam.param.at = c.param.at;
-    reset = 0;
-    cam.param.fovy = c.param.fovy;
     cam.param.roll = c.param.roll;
+    cam.param.fovy = c.param.fovy;
+    reset = 0;
 }

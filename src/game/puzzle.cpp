@@ -339,18 +339,22 @@ void pzlPiece::snap()
     s8 vx;
     s8 vy;
 
+    // The `+=` in both arms: jump2 merges the tails from the conversion on and each arm keeps
+    // its own `mr r3,this` for the third call.
     if (ver0_x() >= 0.0f) {
         vx = ver0_x() + 0.5f;
+        x += ver0_x() - (f32) vx;
     } else {
         vx = ver0_x() - 0.5f;
+        x += ver0_x() - (f32) vx;
     }
-    x += ver0_x() - (f32) vx;
     if (ver0_y() >= 0.0f) {
         vy = ver0_y() + 0.5f;
+        y += ver0_y() - (f32) vy;
     } else {
         vy = ver0_y() - 0.5f;
+        y += ver0_y() - (f32) vy;
     }
-    y += ver0_y() - (f32) vy;
 }
 
 int pzlPiece::shape(int px, int py)
