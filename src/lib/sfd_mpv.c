@@ -233,6 +233,8 @@ Sint32 SFD_SetMpvCond(SFD sfd, Sint32 id, Sint32 val);
 void SFD_CalcYccPlane(void *buf, Sint32 width, Sint32 height, SFMPV_PLANE *plane);
 
 static Sint32 sfmpv_ChkFatal(void);
+static void sfmpv_DecUsrHdr(SFD sfd, SJCK *ck, Sint32 *used);
+static void sfmpv_ChkPrep(SFD sfd);
 static inline Bool sfmpv_IsPrepared(SFD sfd);
 static inline Bool sfmpv_IsEnoughData(SFD sfd);
 static inline Bool sfmpv_IsTerm(SFD sfd, Sint32 size, Sint32 code);
@@ -426,9 +428,6 @@ Sint32 SFMPV_ExecServer(SFD sfd)
 
 Sint32 sfmpv_ExecServerSub(SFD sfd)
 {
-	SFMPV_WORK *mpv;
-	MPV hn;
-	SFTIM tim = SFD_TIM(sfd);
 	Sint32 ret;
 	/* address-taken scalars: frame slots top-down in declaration order (used 0x28 .. sj 0xc) */
 	Sint32 used;
@@ -440,8 +439,6 @@ Sint32 sfmpv_ExecServerSub(SFD sfd)
 	Sint32 wcnt;
 	SJ sj;
 	SJCK ck;
-	Sint32 bufout;
-	Sint32 bufin;
 	Sint32 n;
 
 	if (SFSET_GetCond(sfd, 5) == 0) {
@@ -454,17 +451,7 @@ Sint32 sfmpv_ExecServerSub(SFD sfd)
 		SFD_SetMpvCond(sfd, 5, 0);
 	}
 	if (sfd->stat == 2) {
-		/* decode the sequence header the user supplied before the stream starts */
-		mpv = SFMPV_WK(sfd);
-		hn = mpv->mpv;
-		ck.data = (void *)SFSET_GetCond(sfd, 0x5D);
-		ck.len = SFSET_GetCond(sfd, 0x5E);
-		if (ck.data != NULL && (Uint32)ck.len != 0 && mpv->dlmmask == (SFMPV_DLM_END | SFMPV_DLM_SEQ)) {
-			if (MPV_DecodePicAtr(hn, &ck, &used) == 0) {
-				mpv->picstat = 2;
-				mpv->dlmmask = SFMPV_DLM_END | SFMPV_DLM_SEQ | SFMPV_DLM_GOP;
-			}
-		}
+		sfmpv_DecUsrHdr(sfd, &ck, &used);
 	}
 	for (;;) {
 		ret = sfmpv_GetActiveSize(sfd, &size, &code, &flag);
@@ -484,16 +471,7 @@ Sint32 sfmpv_ExecServerSub(SFD sfd)
 		SFBUF_GetFlowCnt(sj, &wcnt, &rcnt);
 		SFD_CNT(sfd)->v_flow = SFBUF_UpdateFlowCnt(SFD_CNT(sfd)->v_flow, wcnt);
 	}
-	bufout = SFMPV_BUFOUT(sfd);
-	bufin = SFMPV_BUFIN(sfd);
-	if (SFBUF_GetPrepFlg(sfd, bufout) != 1 && SFBUF_GetPrepFlg(sfd, bufin) == 1) {
-		if (sfmpv_IsPrepared(sfd)) {
-			SFBUF_SetPrepFlg(sfd, bufout, 1);
-			if (tim->vofst.val != 0x7FFFFFFF) {
-				tim->vofst.valid = 1;
-			}
-		}
-	}
+	sfmpv_ChkPrep(sfd);
 	n = SFMPVF_GetNumFrm(sfd);
 	if (n == -1 || (SFMPVF_IsTermDec(sfd) && n == 1 && sfd->plyinf.raw[6] != 0)) {
 		SFBUF_SetTermFlg(sfd, SFMPV_BUFOUT(sfd), 1);
@@ -502,6 +480,42 @@ Sint32 sfmpv_ExecServerSub(SFD sfd)
 		}
 	}
 	return ret;
+}
+
+/* decode the sequence header the user supplied before the stream starts. Inlined helper: its
+ * locals mpv/hn are created before the later helpers' locals and colour r31/r29 ahead of them
+ * (as own locals of ExecServerSub they rank below every temporary: r28/r29). */
+static void sfmpv_DecUsrHdr(SFD sfd, SJCK *ck, Sint32 *used)
+{
+	SFMPV_WORK *mpv = SFMPV_WK(sfd);
+	MPV hn = mpv->mpv;
+
+	ck->data = (void *)SFSET_GetCond(sfd, 0x5D);
+	ck->len = SFSET_GetCond(sfd, 0x5E);
+	if (ck->data != NULL && (Uint32)ck->len != 0 && mpv->dlmmask == (SFMPV_DLM_END | SFMPV_DLM_SEQ)) {
+		if (MPV_DecodePicAtr(hn, ck, used) == 0) {
+			mpv->picstat = 2;
+			mpv->dlmmask = SFMPV_DLM_END | SFMPV_DLM_SEQ | SFMPV_DLM_GOP;
+		}
+	}
+}
+
+/* set the output prepared flag once enough frames are decoded (helper locals bufout/bufin colour
+ * r28/r29 before the nested IsPrepared/IsEnoughData locals) */
+static void sfmpv_ChkPrep(SFD sfd)
+{
+	SFTIM tim = SFD_TIM(sfd);
+	Sint32 bufout = SFMPV_BUFOUT(sfd);
+	Sint32 bufin = SFMPV_BUFIN(sfd);
+
+	if (SFBUF_GetPrepFlg(sfd, bufout) != 1 && SFBUF_GetPrepFlg(sfd, bufin) == 1) {
+		if (sfmpv_IsPrepared(sfd)) {
+			SFBUF_SetPrepFlg(sfd, bufout, 1);
+			if (tim->vofst.val != 0x7FFFFFFF) {
+				tim->vofst.valid = 1;
+			}
+		}
+	}
 }
 
 /* the driver is ready to play when enough frames are decoded */
@@ -530,10 +544,10 @@ static inline Bool sfmpv_IsPrepared(SFD sfd)
 /* enough data buffered to start decoding */
 static inline Bool sfmpv_IsEnoughData(SFD sfd)
 {
+	Sint32 n;                  /* declared first: coloured after mpv/hn (r27 after their r29/r27) */
 	SFMPV_WORK *mpv = SFMPV_WK(sfd);
 	MPV hn = mpv->mpv;
 	Sint32 bitrate;
-	Sint32 n;
 	Sint32 rsiz;
 
 	if (SFBUF_GetTermFlg(sfd, SFMPV_BUFIN(sfd)) == 1) {
@@ -1462,29 +1476,52 @@ void sfmpv_Pts2Tc(Sint64 pts, Sint32 prate, Sint32 drop, Sint32 tmpref, SFTIM_TC
 }
 #pragma pool_data on
 
+/* frame table initialisation loops of sfmpv_ChkBufSiz. Inlined helpers: the counter is a helper
+ * local and colours (r23) before the two strength-reduced pointers (r24/r25); `i++, frm++` steps
+ * the frame pointer as a source statement after the counter (the target's increment order). */
+static void sfmpv_InitRfbFrm(SFMPV_WORK *mpv, SFMPV_FRM *frm)
+{
+	Sint32 i;
+
+	for (i = 0; i < 2; i++, frm++) {
+		sfmpv_InitFrm(frm, &mpv->rfb_adr[i]);
+	}
+}
+
+static void sfmpv_InitTaFrm(SFMPV_WORK *mpv, SFMPV_FRM *frm, Sint32 n)
+{
+	Sint32 i;
+
+	for (i = 0; i < n; i++, frm++) {
+		sfmpv_InitFrm(frm, &mpv->ta_adr[i]);
+	}
+}
+
 /* the decoded frame buffers must hold the pictures the stream announces; when the buffers were
- * given as one block, split it into as many frames as fit */
+ * given as one block, split it into as many frames as fit. The long-lived locals are all in the
+ * second colouring level and take r5.. in declaration order: tabuf r5, fsize r6, ywidth r7,
+ * cwidth r8, ysize r9, csize r10, nfrm/i r11, n r12 (h16 reuses r5). */
 Sint32 sfmpv_ChkBufSiz(SFD sfd, SFMPV_STMINF *inf, Sint32 bitrate, Sint32 vbvsiz)
 {
 	SFMPV_WORK *mpv = SFMPV_WK(sfd);
-	Sint32 fsize;
-	Sint32 fsize2;
-	Sint32 tot;
-	Sint32 acc;
-	Sint32 n;
-	Sint32 n2;
-	Sint32 i;
-	Sint32 nfrm = mpv->para.nfrm;
 	Uint8 *tabuf;
-	Uint8 *rfbuf;
-	Sint32 width;
-	Sint32 height;
-	Sint32 w16;
-	Sint32 h16;
+	Sint32 fsize;
 	Sint32 ywidth;
 	Sint32 cwidth;
 	Sint32 ysize;
 	Sint32 csize;
+	Sint32 nfrm = mpv->para.nfrm;
+	Sint32 i;
+	Sint32 n;
+	Sint32 h16;
+	Sint32 fsize2;
+	Sint32 tot;
+	Sint32 acc;
+	Sint32 n2;
+	Uint8 *rfbuf;
+	Sint32 width;
+	Sint32 height;
+	Sint32 w16;
 	SFMPV_FRM *frm = mpv->frm;
 
 	width = inf->width;
@@ -1528,20 +1565,14 @@ Sint32 sfmpv_ChkBufSiz(SFD sfd, SFMPV_STMINF *inf, Sint32 bitrate, Sint32 vbvsiz
 	if (sfd->prm.x38 == 3) {
 		n2 = (n < SFMPV_FRM_NUM - 2) ? n : SFMPV_FRM_NUM - 2;
 		mpv->nfrm = n2 + 2;
-		for (i = 0; i < 2; i++) {
-			sfmpv_InitFrm(&frm[i], &mpv->rfb_adr[i]);
-		}
-		for (i = 0; i < n2; i++) {
-			sfmpv_InitFrm(frm + 2 + i, &mpv->ta_adr[i]);
-		}
+		sfmpv_InitRfbFrm(mpv, frm);
+		sfmpv_InitTaFrm(mpv, frm + 2, n2);
 		mpv->ref[0] = SFMPVF_AllocFrm(sfd);
 		mpv->ref[1] = SFMPVF_AllocFrm(sfd);
 	} else {
 		n2 = (n < SFMPV_FRM_NUM) ? n : SFMPV_FRM_NUM;
 		mpv->nfrm = n2;
-		for (i = 0; i < n2; i++) {
-			sfmpv_InitFrm(&frm[i], &mpv->ta_adr[i]);
-		}
+		sfmpv_InitTaFrm(mpv, frm, n2);
 	}
 	return 0;
 }
