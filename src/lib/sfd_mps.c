@@ -96,6 +96,38 @@ typedef struct {
 #define SFMPS_WK(sfd) ((SFMPS_WORK *)(sfd)->tr[SFMPS_TR].hn)
 #define SFMPS_MPS(sfd) (SFMPS_WK(sfd)->mps)
 
+Sint32 SFMPS_Init(void);
+Sint32 SFMPS_Finish(void);
+static Sint32 SFMPS_ExecServer(SFD sfd);
+Sint32 SFMPS_Create(SFD sfd);
+Sint32 SFMPS_Destroy(SFD sfd);
+Sint32 SFMPS_Standby(SFD sfd);
+Sint32 SFMPS_Start(SFD sfd);
+Sint32 SFMPS_Stop(SFD sfd);
+Sint32 SFMPS_Pause(SFD sfd);
+Sint32 SFMPS_GetWrite(SFD sfd);
+Sint32 SFMPS_AddWrite(SFD sfd);
+Sint32 SFMPS_GetRead(SFD sfd);
+Sint32 SFMPS_AddRead(SFD sfd);
+static Sint32 SFMPS_Seek(SFD sfd);
+
+const SFD_TR_IF SFD_tr_sd_mps = {
+	SFMPS_Init,
+	SFMPS_Finish,
+	SFMPS_ExecServer,
+	SFMPS_Create,
+	SFMPS_Destroy,
+	SFMPS_Standby,
+	SFMPS_Start,
+	SFMPS_Stop,
+	SFMPS_Pause,
+	SFMPS_GetWrite,
+	SFMPS_AddWrite,
+	SFMPS_GetRead,
+	SFMPS_AddRead,
+	SFMPS_Seek,
+};
+
 Sint32 SFMPS_GetConcatCnt(SFD sfd)
 {
 	return SFMPS_WK(sfd)->concat_cnt;
@@ -716,32 +748,51 @@ Sint32 sfmps_CopyPketData(SFD sfd, Uint8 *data, Sint32 len, Sint32 *nbyte, Sint3
 	return ret;
 }
 
+/* the input buffer's terminate flag (terminating the outputs when set) */
+static Sint32 sfmps_IsInTerm(SFD sfd)
+{
+	Sint32 term;
+
+	sfmps_TermIfInTerm(sfd, &term);
+	return term;
+}
+
+/* all bytes of a possible padding unit are zero */
+static Bool sfmps_IsZero(Uint8 *data, Sint32 n)
+{
+	Sint32 i;
+
+	for (i = 0; i < n; i++) {
+		if (data[i] != 0) {
+			return FALSE;
+		}
+	}
+	return TRUE;
+}
+
 /* decodes one pack / system header / packet at `data`: *nbyte consumed, *nskip skipped */
 Sint32 sfmps_DecodeOneUnit(SFD sfd, Uint8 *data, Sint32 len, Sint32 *nbyte, Sint32 *nskip, Sint32 total)
 {
+	Sint8 *p;
+	Sint32 delim;
+	Sint32 ret = 0;
 	SFMPS_WORK *wk;
 	MPS mps;
 	Sint32 bufin;
-	Sint32 delim = 0;
-	Sint32 ret = 0;
-	Sint32 hdrlen;
-	Sint32 flags;
 	MPS_SYSHD syshd;
-	Sint32 term;
-	Sint32 term2;
+	Sint32 flags;
+	Sint32 hdrlen;
 	Sint32 copied;
 	Sint32 cres;
+	Sint32 term2;
 	SFSEE_SHDR *shdr;
 	Uint8 *dst;
 	Sint32 n;
 	Sint32 psize;
-	Sint32 i;
-	Sint8 *p;
 	SFMPS_BUFHN *hn;
 	Bool go;
 
-	*nbyte = 0;
-	*nskip = 0;
+	*nskip = *nbyte = delim = 0;
 	wk = SFMPS_WK(sfd);
 	bufin = sfd->tr[SFMPS_TR].bufin;
 	mps = wk->mps;
@@ -756,21 +807,18 @@ Sint32 sfmps_DecodeOneUnit(SFD sfd, Uint8 *data, Sint32 len, Sint32 *nbyte, Sint
 			wk->endcode = 0;
 		}
 	}
-	if (delim == MPS_DELIM_END && SFCON_IsEndcodeSkip(sfd) == 0 && SFCON_IsSystemEndcodeSkip(sfd) == 0) {
-		go = TRUE;
-	} else {
+	if (delim != MPS_DELIM_END) {
 		go = FALSE;
+	} else if (SFCON_IsEndcodeSkip(sfd) != 0 || SFCON_IsSystemEndcodeSkip(sfd) != 0) {
+		go = FALSE;
+	} else {
+		go = TRUE;
 	}
 	if (go) {
 		sfmps_TermOut(sfd);
 		go = FALSE;
-	} else if (total < 4) {
-		sfmps_TermIfInTerm(sfd, &term);
-		if (term != 0) {
-			go = FALSE;
-		} else {
-			go = TRUE;
-		}
+	} else if (total < 4 && sfmps_IsInTerm(sfd)) {
+		go = FALSE;
 	} else if (len < 0x40) {
 		if (delim == MPS_DELIM_PACK || delim == MPS_DELIM_PKET) {
 			sfmps_TermIfInTerm(sfd, NULL);
@@ -819,54 +867,41 @@ no_syshd:
 		SFMPS_WK(sfd)->concat_cnt++;
 		*nbyte = 4;
 		wk->skip = 4;
-		return ret;
-	}
-	if (flags == MPS_DELIM_END && SFCON_IsSystemEndcodeSkip(sfd) != 0) {
+	} else if (flags == MPS_DELIM_END && SFCON_IsSystemEndcodeSkip(sfd) != 0) {
 		*nbyte = 4;
 		wk->skip = 4;
-		return ret;
-	}
-	if (delim == 0) {
+	} else if (delim == 0) {
 		*nskip = 0;
 		p = (Sint8 *)data;
 		psize = sfd->prm.unit;
-		if (len >= psize + 3) {
-			go = TRUE;
-			for (i = 0; i < psize; i++) {
-				if (*p++ != 0) {
+		if (len >= psize + 3 && sfmps_IsZero(data, psize)) {
+			*nskip = psize;
+		} else {
+			n = 0;
+			while (len >= 4) {
+				if (MPS_CheckDelim((Uint8 *)p) & (MPS_DELIM_PACK | MPS_DELIM_PKET | MPS_DELIM_END)) {
+					*nskip = n;
+					goto skip_done;
+				}
+				n++;
+				p++;
+				len--;
+			}
+			if (len > 0 && len < 4) {
+				hn = SFMPS_BUF_HN(sfd, sfd->tr[SFMPS_TR].bufin);
+				if (hn->w.u.ring.sup.kind == 0 && (hn->w.u.ring.sup.xsize != 0 || hn->w.u.ring.sup.x14 != 0)) {
 					go = FALSE;
-					break;
+				} else if ((Uint32)(p + len) == hn->w.u.ring.sup.ofst + hn->w.u.ring.sup.size) {
+					go = TRUE;
+				} else {
+					go = FALSE;
+				}
+				if (go) {
+					n += len;
 				}
 			}
-			if (go) {
-				*nskip = psize;
-				goto skip_done;
-			}
+			*nskip = n;
 		}
-		n = 0;
-		while (len >= 4) {
-			if (MPS_CheckDelim((Uint8 *)p) & (MPS_DELIM_PACK | MPS_DELIM_PKET | MPS_DELIM_END)) {
-				*nskip = n;
-				goto skip_done;
-			}
-			n++;
-			p++;
-			len--;
-		}
-		if (len > 0 && len < 4) {
-			hn = SFMPS_BUF_HN(sfd, sfd->tr[SFMPS_TR].bufin);
-			if (hn->w.u.ring.sup.kind == 0 && (hn->w.u.ring.sup.xsize != 0 || hn->w.u.ring.sup.x14 != 0)) {
-				go = FALSE;
-			} else if ((Uint32)(p + len) == hn->w.u.ring.sup.ofst + hn->w.u.ring.sup.size) {
-				go = TRUE;
-			} else {
-				go = FALSE;
-			}
-			if (go) {
-				n += len;
-			}
-		}
-		*nskip = n;
 	skip_done:
 		*nbyte = *nskip;
 		if (*nskip > 0 && wk->skip >= 0) {
@@ -880,9 +915,7 @@ no_syshd:
 				*nskip = 0;
 			}
 		}
-		return ret;
-	}
-	if (!(flags & MPS_DECHD_PKET)) {
+	} else if (!(flags & MPS_DECHD_PKET)) {
 		sfmps_TermIfInTerm(sfd, &term2);
 		if (term2 == 0 && len > sfd->prm.unit) {
 			if (hdrlen > 0) {
@@ -893,15 +926,15 @@ no_syshd:
 				*nskip = 1;
 			}
 		}
-		return ret;
+	} else {
+		data += hdrlen;
+		len -= hdrlen;
+		ret = sfmps_CopyPketData(sfd, data, len, &copied, &cres);
+		if (cres == 1) {
+			*nbyte = hdrlen + copied;
+		}
+		wk->skip = -1;
 	}
-	data += hdrlen;
-	len -= hdrlen;
-	ret = sfmps_CopyPketData(sfd, data, len, &copied, &cres);
-	if (cres == 1) {
-		*nbyte = hdrlen + copied;
-	}
-	wk->skip = -1;
 	return ret;
 }
 
@@ -1012,23 +1045,6 @@ Sint32 SFMPS_Init(void)
 	copy_sj_error = 0;
 	return 0;
 }
-
-const SFD_TR_IF SFD_tr_sd_mps = {
-	SFMPS_Init,
-	SFMPS_Finish,
-	SFMPS_ExecServer,
-	SFMPS_Create,
-	SFMPS_Destroy,
-	SFMPS_Standby,
-	SFMPS_Start,
-	SFMPS_Stop,
-	SFMPS_Pause,
-	SFMPS_GetWrite,
-	SFMPS_AddWrite,
-	SFMPS_GetRead,
-	SFMPS_AddRead,
-	SFMPS_Seek,
-};
 
 Sint32 SFD_SetElementOutSj(SFD sfd, Sint32 stmid, void *sj, void (*fn)(void *obj, Sint32 stmid), void *obj)
 {

@@ -246,27 +246,34 @@ void SFBUF_RingGetDlm(SFD sfd, Sint32 n, Uint8 **pos, Sint32 *len)
 	SFLIB_UnlockCs(&cs);
 }
 
-/* AddRead/AddWrite: the target's `nbyte == 0` exit is `bne body; b end` = an if/else chain whose first
- * arm generates no code (ours keeps its `li ret, 0`, +1 word), and it keeps `ring` as its own node
- * (`addi r28, hn, 0x1318`, hn dying in r3 before the calls) where the backend's add-propagation folds
- * ours into hn; OPEN (16w/22w) */
-Sint32 SFBUF_RingAddRead(SFD sfd, Sint32 n, Sint32 nbyte)
+/* AddRead/AddWrite: the bodies are inlined helpers so that the first arm's `ret = 0` is a helper
+ * temporary (the backend CSE turns it into the entry zero and the arm empties: `bne body; b end`);
+ * the helper locals are declared in reverse of the target's register order. `ring` is reached in two
+ * steps through `wk` (an own local with its own uses): add-propagation folds `addi wk` into
+ * `addi ring, wk, 0x10` but never propagates the addi it has just rewritten, so `ring` stays a node
+ * (`addi rR, hn, 0x1318`) while the sj/used reads through wk fold into hn. The delimiter check reads
+ * `ring->dlm_pos` inline (a `pos` local would outrank the ck.data CSE temporaries). */
+static inline Sint32 sfbuf_RingAddReadSub(SFD sfd, Sint32 n, Sint32 nbyte)
 {
-	SFBUF_HN *hn = SFBUF_GET_HN(sfd, n);
-	SFBUF_RING *ring = &hn->w.u.ring;
-	SJ sj;
-	SJCK ck;
-	SJCK ck2;
-	Sint32 rest;
-	Sint32 ret = 0;
-	SJCK ckw;
 	SJCK ck1;
-	Uint8 *pos;
+	SJCK ckw;
+	Sint32 ret = 0;
+	Sint32 rest;
+	SJCK ck2;
+	SJCK ck;
+	SJ sj2;
+	SJ sj;
+	SFBUF_RING *ring;
+	SFBUF_WORK *wk;
+	SFBUF_HN *hn;
 
+	hn = SFBUF_GET_HN(sfd, n);
+	wk = &hn->w;
+	ring = &wk->u.ring;
 	sj = hn->w.u.ring.sup.sj;
 	if (nbyte == 0) {
 		ret = 0;
-	} else if (hn->w.used == 0 || sj == NULL) {
+	} else if (wk->used == 0 || sj == NULL) {
 		ret = 0;
 	} else {
 		SJ_GetChunk(sj, 1, nbyte, &ck);
@@ -280,10 +287,9 @@ Sint32 SFBUF_RingAddRead(SFD sfd, Sint32 n, Sint32 nbyte)
 			}
 		}
 		if (n == 1) {
-			sj = ring->sup.sj;
-			sfbuf_RingGetCk(sj, 1, &ck1, &ckw);
-			pos = ring->dlm_pos;
-			if ((pos < ck1.data || pos >= ck1.data + ck1.len) && (pos < ckw.data || pos >= ckw.data + ckw.len)) {
+			sj2 = ring->sup.sj;
+			sfbuf_RingGetCk(sj2, 1, &ck1, &ckw);
+			if ((ring->dlm_pos < ck1.data || ring->dlm_pos >= ck1.data + ck1.len) && (ring->dlm_pos < ckw.data || ring->dlm_pos >= ckw.data + ckw.len)) {
 				ring->dlm_pos = NULL;
 				ring->dlm_len = 0;
 			}
@@ -294,20 +300,29 @@ Sint32 SFBUF_RingAddRead(SFD sfd, Sint32 n, Sint32 nbyte)
 	return ret;
 }
 
-Sint32 SFBUF_RingAddWrite(SFD sfd, Sint32 n, Sint32 nbyte, Sint32 rsv)
+Sint32 SFBUF_RingAddRead(SFD sfd, Sint32 n, Sint32 nbyte)
 {
-	SFBUF_HN *hn = SFBUF_GET_HN(sfd, n);
-	SFBUF_RING *ring = &hn->w.u.ring;
-	SJ sj;
-	SJCK ck;
-	SJCK ck2;
+	return sfbuf_RingAddReadSub(sfd, n, nbyte);
+}
+
+static inline Sint32 sfbuf_RingAddWriteSub(SFD sfd, Sint32 n, Sint32 nbyte)
+{
 	Sint32 rest;
 	Sint32 ret = 0;
+	SJCK ck2;
+	SJCK ck;
+	SFBUF_RING *ring;
+	SJ sj;
+	SFBUF_WORK *wk;
+	SFBUF_HN *hn;
 
+	hn = SFBUF_GET_HN(sfd, n);
+	wk = &hn->w;
+	ring = &wk->u.ring;
 	sj = hn->w.u.ring.sup.sj;
 	if (nbyte == 0) {
 		ret = 0;
-	} else if (hn->w.used == 0 || sj == NULL) {
+	} else if (wk->used == 0 || sj == NULL) {
 		ret = 0;
 	} else {
 		SJ_GetChunk(sj, 0, nbyte, &ck);
@@ -324,6 +339,11 @@ Sint32 SFBUF_RingAddWrite(SFD sfd, Sint32 n, Sint32 nbyte, Sint32 rsv)
 		sfd->chg_flg = 1;
 	}
 	return ret;
+}
+
+Sint32 SFBUF_RingAddWrite(SFD sfd, Sint32 n, Sint32 nbyte, Sint32 rsv)
+{
+	return sfbuf_RingAddWriteSub(sfd, n, nbyte);
 }
 
 /* the handle address is computed AFTER the inf clear (in both Get functions): the n*0x74 product is
@@ -412,9 +432,8 @@ static Sint32 sfbuf_CheckSup(SFBUF_SUP *sup)
 	return 0;
 }
 
-static void sfbuf_SetSup(SFBUF_WORK *wk, SFBUF_SUP *sup, Sint32 used)
+static void sfbuf_SetSup(SFBUF_WORK *wk, SFBUF_RING *ring, SFBUF_SUP *sup, Sint32 used)
 {
-	SFBUF_RING *ring = &wk->u.ring;
 	Sint32 cs;
 
 	SFLIB_LockCs(&cs);
@@ -428,9 +447,13 @@ static void sfbuf_SetSup(SFBUF_WORK *wk, SFBUF_SUP *sup, Sint32 used)
 	SFLIB_UnlockCs(&cs);
 }
 
+/* ring computed before the mode test through wk (two-step address, see AddRead); declared before
+ * hn so it colours first (ring r29, hn r28) */
 Sint32 SFBUF_SetSupplySj(SFD sfd, SFBUF_SUP *sup)
 {
 	Sint32 n;
+	SFBUF_RING *ring;
+	SFBUF_WORK *wk;
 	SFBUF_HN *hn;
 
 	if (sfbuf_CheckSup(sup) != 0) {
@@ -446,10 +469,12 @@ Sint32 SFBUF_SetSupplySj(SFD sfd, SFBUF_SUP *sup)
 		n = 0;
 	}
 	hn = SFBUF_GET_HN(sfd, n);
+	wk = &hn->w;
+	ring = &wk->u.ring;
 	if (hn->w.mode != SFBUF_MODE_NONE) {
 		return SFLIB_SetErr(sfd, 0xFF000409);
 	}
-	sfbuf_SetSup(&hn->w, sup, sup->sj != NULL);
+	sfbuf_SetSup(wk, ring, sup, sup->sj != NULL);
 	return 0;
 }
 
@@ -461,16 +486,27 @@ static void sfbuf_DestroySup(SFBUF_SUP *sup)
 	}
 }
 
+/* each sup pointer is `&wk->u.ring.sup` off a `wk` local that also tests the mode: the two-step
+ * address keeps `addi sup, sfd, 0x1318 + n*0x74` as a node (three defs, one register) */
 void SFBUF_DestroySj(SFD sfd)
 {
-	if (sfd->buf[0].mode == SFBUF_MODE_RING) {
-		sfbuf_DestroySup(&sfd->buf[0].u.ring.sup);
+	SFBUF_WORK *wk;
+	SFBUF_SUP *sup;
+
+	wk = &sfd->buf[0];
+	sup = &wk->u.ring.sup;
+	if (wk->mode == SFBUF_MODE_RING) {
+		sfbuf_DestroySup(sup);
 	}
-	if (sfd->buf[1].mode == SFBUF_MODE_RING) {
-		sfbuf_DestroySup(&sfd->buf[1].u.ring.sup);
+	wk = &sfd->buf[1];
+	sup = &wk->u.ring.sup;
+	if (wk->mode == SFBUF_MODE_RING) {
+		sfbuf_DestroySup(sup);
 	}
-	if (sfd->buf[2].mode == SFBUF_MODE_RING) {
-		sfbuf_DestroySup(&sfd->buf[2].u.ring.sup);
+	wk = &sfd->buf[2];
+	sup = &wk->u.ring.sup;
+	if (wk->mode == SFBUF_MODE_RING) {
+		sfbuf_DestroySup(sup);
 	}
 }
 
@@ -492,8 +528,8 @@ static Sint32 sfbuf_CreateSj(SFBUF_SUP *sup, Uint32 adr, Sint32 bsize, Sint32 xs
 /* ring buffer of `size` bytes at adr; size 0 leaves the buffer unsupplied */
 static Sint32 sfbuf_InitRing(SFBUF_WORK *wk, Uint32 *adr, Sint32 size, Sint32 xsize)
 {
-	Sint32 mode;
 	Sint32 used;
+	Sint32 mode;
 	SFBUF_SUP sup;
 	Sint32 err;
 
@@ -510,7 +546,7 @@ static Sint32 sfbuf_InitRing(SFBUF_WORK *wk, Uint32 *adr, Sint32 size, Sint32 xs
 		if (err != 0) {
 			return err;
 		}
-		sfbuf_SetSup(wk, &sup, 1);
+		sfbuf_SetSup(wk, &wk->u.ring, &sup, 1);
 	}
 	wk->mode = mode;
 	wk->used = used;
@@ -521,18 +557,22 @@ static Sint32 sfbuf_InitRing(SFBUF_WORK *wk, Uint32 *adr, Sint32 size, Sint32 xs
 	return 0;
 }
 
-static void sfbuf_InitVfrm(SFD sfd, SFBUF_WORK *wk, Uint32 *adr, Sint32 size)
+/* Vfrm/Aout take the size by pointer and read it twice: `used` before the mode store, the size
+ * field after the adr store (the target reloads it there) */
+static void sfbuf_InitVfrm(SFD sfd, SFBUF_WORK *wk, Uint32 *adr, Sint32 *size)
 {
 	Sint32 i;
+	Sint32 used;
 
+	used = (*size != 0);
 	wk->mode = SFBUF_MODE_VFRM;
-	wk->used = (size != 0);
+	wk->used = used;
 	wk->prepflg = 0;
 	wk->termflg = 0;
 	wk->in_tr = SFBUF_TR_NONE;
 	wk->out_tr = SFBUF_TR_NONE;
 	wk->u.vfrm.adr = *adr;
-	wk->u.vfrm.size = size;
+	wk->u.vfrm.size = *size;
 	wk->u.vfrm.x18 = 0;
 	wk->u.vfrm.x1c = 0;
 	wk->u.vfrm.vfrm = sfd->vfrm;
@@ -541,37 +581,47 @@ static void sfbuf_InitVfrm(SFD sfd, SFBUF_WORK *wk, Uint32 *adr, Sint32 size)
 	}
 }
 
-static void sfbuf_InitAout(SFBUF_WORK *wk, Uint32 *adr, Sint32 size)
+static void sfbuf_InitAout(SFBUF_WORK *wk, Uint32 *adr, Sint32 *size)
 {
 	Sint32 i;
+	Sint32 used;
 
+	used = (*size != 0);
 	wk->mode = SFBUF_MODE_AOUT;
-	wk->used = (size != 0);
+	wk->used = used;
 	wk->prepflg = 0;
 	wk->termflg = 0;
 	wk->in_tr = SFBUF_TR_NONE;
 	wk->out_tr = SFBUF_TR_NONE;
 	wk->u.aout.adr = *adr;
-	wk->u.aout.size = size;
+	wk->u.aout.size = *size;
 	for (i = 0; i < 7; i++) {
 		wk->u.aout.rsv[i] = 0;
 	}
-	wk->u.ring.dlm_pos = NULL;
-	wk->u.ring.dlm_len = 0;
-	wk->u.ring.wtot = 0;
+	wk->u.aout.rsv2[0] = 0;
+	wk->u.aout.rsv2[1] = 0;
+	wk->u.aout.rsv2[2] = 0;
 }
 
+/* adr[] stays a stack array (9 elements: with 8 the backend's array-register transform turns it into
+ * registers) and the running address is one variable stored through a stepping pointer: the chain is
+ * then a single register and the first InitRing reloads adr[0] from the frame like the target */
 Sint32 SFBUF_InitHn(SFD sfd, SFBUF_WORK *wk, SFBUF_PRM *prm)
 {
-	Uint32 adr[8];
+	Uint32 adr[9];
 	Sint32 xsize;
 	Sint32 err;
 	Sint32 i;
+	Uint32 *p;
+	Uint32 a;
 
-	adr[0] = prm->adr;
+	a = prm->adr;
+	p = adr;
 	for (i = 0; i < 7; i++) {
-		adr[i + 1] = adr[i] + prm->size[i];
+		*p++ = a;
+		a += prm->size[i];
 	}
+	*p = a;
 	xsize = prm->size[0] % prm->unit;
 	err = sfbuf_InitRing(&wk[0], &adr[0], prm->size[0], xsize);
 	if (err != 0) {
@@ -585,18 +635,21 @@ Sint32 SFBUF_InitHn(SFD sfd, SFBUF_WORK *wk, SFBUF_PRM *prm)
 	if (err != 0) {
 		return err;
 	}
-	sfbuf_InitVfrm(sfd, &wk[3], &adr[3], prm->size[3]);
-	sfbuf_InitAout(&wk[4], &adr[4], prm->size[4]);
-	sfbuf_InitVfrm(sfd, &wk[5], &adr[5], prm->size[5]);
-	sfbuf_InitAout(&wk[6], &adr[6], prm->size[6]);
+	sfbuf_InitVfrm(sfd, &wk[3], &adr[3], &prm->size[3]);
+	sfbuf_InitAout(&wk[4], &adr[4], &prm->size[4]);
+	sfbuf_InitVfrm(sfd, &wk[5], &adr[5], &prm->size[5]);
+	sfbuf_InitAout(&wk[6], &adr[6], &prm->size[6]);
 	wk[7].mode = SFBUF_MODE_UO;
 	wk[7].used = 1;
 	wk[7].prepflg = 0;
 	wk[7].termflg = 0;
 	wk[7].in_tr = SFBUF_TR_NONE;
 	wk[7].out_tr = SFBUF_TR_NONE;
-	for (i = 0; i < 12; i++) {
-		((Sint32 *)wk[7].u.uoch)[i] = 0;
+	for (i = 0; i < 3; i++) {
+		wk[7].u.uoch[i].sj = NULL;
+		wk[7].u.uoch[i].prm = NULL;
+		wk[7].u.uoch[i].rsv1 = 0;
+		wk[7].u.uoch[i].rsv2 = 0;
 	}
 	return 0;
 }

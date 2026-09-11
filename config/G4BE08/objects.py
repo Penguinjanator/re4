@@ -1847,3 +1847,8 @@ MATCHING.update({
 MATCHING.update({
     "game/motion.cpp": True,  # MTX_COPY: dst pointer first, `int i_ = 2` between the two pointers, `for (; i_ != -1; i_--)`, `d_++` before `s_++`; tbl end pointer as two statements; `u32 zero` with a dead-use anchor (COMPILER-DIFF) and a memory anchor in MotionSetCore; nearZero(1.0f - v) inline with `f32 one` loaded first
 })
+
+# CRI pass 22 (2026-09-11)
+MATCHING.update({
+    "lib/sfd_buf.c": True,  # CRI pass 22: 26/26, pure C, no pins. InitHn 447 -> 0: adr[9] stays a stack array (with 8 words the backend's array-register transform registerises it) written through a stepping pointer from one running `a` (`*p++ = a; a += prm->size[i]`), InitVfrm/InitAout take `Sint32 *size` read twice (`used` before the mode store, the field after the adr store), aout clears rsv[7] + 3 more words (rsv2), the uoch clear is a 3-channel loop, InitRing declares `used` before `mode`. DestroySj 20 -> 0 / SetSupplySj 36 -> 0 / RingAddRead 22 -> 0 / RingAddWrite 16 -> 0: the u.ring / sup pointer is a TWO-STEP address through an own `SFBUF_WORK *wk` local with its own uses -- add-propagation folds `addi wk` into `addi ring, wk, 0x10` but never propagates the addi it just rewrote, so `ring` stays a node (`addi rR, hn, 0x1318`); the AddRead/AddWrite bodies are `static inline` helpers (the first arm's `ret = 0` is a helper @temp: CSE'd into the entry zero, arm emptied, `bne body; b end`) with the locals declared in REVERSE of the target's colouring, the second sj a separate `sj2`, and `ring->dlm_pos` read inline in the compares (no `pos` local: a helper local outranks the frontend's ck.data CSE temps)
+})

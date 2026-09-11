@@ -222,6 +222,7 @@ typedef struct {
 			Uint32 adr;        /* 0x10 */
 			Sint32 size;       /* 0x14 */
 			Sint32 rsv[7];     /* 0x18 */
+			Sint32 rsv2[3];    /* 0x34 (cleared by SFBUF_InitHn together with rsv) */
 		} aout;
 		SFUO_CH uoch[3];       /* 0x10 user-output channels */
 	} u;

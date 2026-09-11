@@ -23720,3 +23720,173 @@ output_header 2w post-RA ties untouched.
 
 **Flags.** `"lib/sfd_buf.c": True` (CRI pass 22 block in objects.py), 111 OK (the concurrent `game/motion.o` failure in `ninja -k 0`
 is another agent's half-written unit). sfd_mps, cftfx, adx_sje stay False; sfd.h gained `aout.rsv2[3]` (union size unchanged).
+
+### CRI sfd_mpv/mwsfdcre pass 3 (sfd_mpv 37 -> 38/38 IDENTICAL, unit Matching, pure C, no pins: ChkBufSiz 18 -> 0, DecodePicAtr 197 -> 0; mwsfdcre 7 -> 8/10: CreateSofdec 97 -> 0, CalcWorkSfd 6 -> 4w, CreateSfd 297 unchanged; chaitin.py saved under ~/.cache/mwccdbg; 111 OK; 2026-09-11)
+
+**Tooling (PERSISTENT).** `/home/adityas/.cache/mwccdbg/chaitin.py OUTDIR [--pass N] [--check] [--verbose] [--nb]` = the
+python model of the 2.4.7 GPR Chaitin allocator (pass-2 cost model, re-implemented), fed from an `ra.py` dump directory;
+`--check` diffs it against the compiler's `regalloc-gpr-pass-N-assigned.txt` (order, colour, degree at removal, cost) and
+is IDENTICAL on sfmpv_ExecServerSub, sfmpv_ChkBufSiz, sfmpv_DecodePicAtr (9 spill picks), mwPlyCreateSofdec, mwsfcre_CreateSfd
+pass 1 (incl. the `width` spill) and pass 2, plus the four dumps of this pass. Usage note in that README. Details that the
+pass-2 paragraph did not have, all verified against the compiler's own `cost:` lines: (1) `fCoalesced` nodes were merged INTO
+their `->` target (a physical register for argument moves, another vreg for copies) and stay in every neighbour list as never-
+removed ghosts; `fCoalescedInto` leaders take the union of their members' neighbours minus the members; (2) cost = sum over
+the class's instructions, intra-class `mr` copies excluded, of LOOPWEIGHT*(2*uses+defs); the base of an update-form
+load/store is a use and a def; a node whose SINGLE def is `li`/`lis` costs sum(w_use) - w_def (rematerialisable: r141 `li 0`
+with 5 uses = 4, a multi-def constant variable is charged normally); (3) the parameter moves and the backend-inserted copies
+have no line number in the PCode; (4) the colouring picks the lowest-numbered free register of r0,r3..r12 and the callee-saved
+registers already handed out (ascending), else a new one from r31 down; (5) --pass 2 has no PCode of its own, the costs are
+the compiler's carried-over `cost:` lines. As a library: `g = chaitin.load(DIR); chaitin.allocate(g)` after editing
+`g.adj/g.cost/g.order` answers "does one more neighbour / a lower vid move the target register" before touching the source.
+Harness /home/adityas/.cache/cri_mpv3/ (deleted): `bld.sh UNIT [SRC]` (unit's exact flags into a scratch object, `OBJ=`
+bytecmp), `fd.py UNIT FUNC` (dtk disasm side-by-side, no ninja), `tryvar.py UNIT variants.py FUNC [--fd] [--keep L]`,
+`apply.py variants.py LABEL file` (the winning replacement list applied to the tree source). ra.py runs kept sequential.
+
+**Read off the dumps (verified by the builds):**
+- ChkBufSiz 18 -> 0: `csize = (h16 / 2) * (cwidth = (w16 / 2 + 31) / 32 * 32);` -- the nested assignment creates the
+  h16/2 sign chain (r87..r89) BEFORE the w16/2 chain, so h16/2 (r0, level 2) and ywidth (r7) are live across the cwidth
+  temporaries: r83 loses r7 (ywidth) and r0 (h16/2) and takes r8 = w16's register, the rest of the chain in place. Both
+  operand orders of the product work; `ysize = h16 * ywidth` moved before it.
+- DecodePicAtr 197 -> 0 (all the mechanisms, each one confirmed by a variant):
+  * `d`: the running time computed in a block-scoped `Sint64 dd` inside `if (ent.pts >= 0)` with `d = dd;` as the block's
+    last statement. The frontend splits `dd` (subtraction) from its clamped web @N as before, the backend coalesces the LOW
+    word of the block-end copy and keeps the HIGH word (`mr r22, r21`), so d keeps its -1 init in r20/r22 and the @-pair
+    (r25/r26, coloured before wk/prate/tmpref) disappears -- the 16th callee-saved register with it. A function-scope `dd`
+    keeps both copies (`mr r22, r20; mr r23, r21`); `t` as the temporary and `if (d < 0) d = 0` forms are worse.
+  * the reform section as `static inline sfmpv_ReformTc(sfd, mpv, atr, d)` with helper locals `newgop` (reloaded there) and
+    `reform` declared last: reform r17 > newgop r18 > ChkGopTc's `ttu1` r19 (as own locals of DecodePicAtr they colour
+    ttu1 r17 / newgop r18 / reform r19, because an own local ranks below every @ temp; helper locals are @ temps numbered at
+    the inlining point, last declared = highest vid, a nested inline's locals below the outer's).
+  * the ttu1 block as `static inline sfmpv_ChkGopTc(sfd)` returning `flag`: flag's `li 0` is CSE'd with the zero of the
+    caller's 64-bit compare (one `li r5, 0`, pass-14b helper-local rule; as an own local it never is), and the target's
+    `bne body; b test` pair is `if (ttu1->valid == 0) { flag = 0; } else { ... }` -- the emptied THEN arm leaves the pair, an
+    emptied ELSE arm folds to `beq`. The helper's t1/t2/unit keep the slots 8/c/10 (declared in that order).
+  * `d < 0` (was `d > 0`): the target's `subfc r0, r5, r20` operand order = `d < 0` (force the reform when a PTS exists).
+  * `SFSEE_VRAW *raw = (SFSEE_VRAW *)vhdr->raw; raw->len = n; MEM_Copy(raw->dat, ck->data, raw->len)` = the target's
+    `stw/lwz 0x200(r3)` off the raw pointer (pass-15 class: an address value not folded because it is the call argument).
+  * `swk = sfd->see.wk; wk = SFMPV_WK(sfd);` before the test chain: both loads land before the `bne` (target), swk r4 / the
+    mpv reload r3 (swk = later-declared own local, wk's second def a range-split @ coloured before it).
+  * `len = ck->len` as a local declared AFTER `n` (n r0, len r4: the two-use load is a variable coloured after n, where the
+    load temporary outranks n and takes r0); `d = -1` before `pts = -1` (init order); `ttu3, ttu1b` declared in that order
+    but assigned `ttu1b = ...; ttu3 = ...;` (declaration order gives the colours ttu3 r18 / ttu1b r17, statement order the
+    two addi -- initialised declarations are emitted in REVERSE declaration order); `inf->picrate` stored before
+    `inf->bitrate`, `vb = vbvsiz; br = bitrate;` (the target loads vb first).
+- CreateSofdec 97 -> 0: the frame difference (0x50 vs 0x40) is the 9th callee-saved register (stmw r23), no extra local:
+  MWCC's frame = 8 + locals + 4*nregs rounded to 16. The target colours the inlined mwSfdDestroy loop temporaries (ptr, i,
+  addr of the 7 FreeAll copies) r23/r24/r25 = the lowest handed-out registers, i.e. AFTER npool/vfreq/sfdhn and the
+  ATTACH block's buf/usize/nskip; ours coloured those own locals last. Fix: `mwsfcre_AttachPicUsrBuf(mwply)` (locals pu,
+  buf, usize, nskip) and `mwsfcre_SetSfdCond(mwply, lw)` (ftime, nfrm, npool, vfreq, sfdhn) as `static inline` helpers --
+  round-1 helper locals outrank the round-2 (nested FreeAll) strength-reduction temps @409/@410/@480. Colouring order then:
+  nskip r27, usize r25, buf r24, sfdhn r24, vfreq r25, npool r23, nfrm r23, loop temps r23/r24/r25, zero copy r26. The
+  bps r0 / mode r4 swap = CWS_BUFSIZ (block-local `mode`, the CalcWorkSfd copy) instead of MWSFCRE_CALC_BUFSIZ with the
+  function-scope `mode` (only CreateSfd needs `mode` afterwards).
+- CalcWorkSfd 6 -> 4: `Sint32 height; Sint32 width; width = ...; height = ...;` in MWSFCRE_CALC_FRMSIZ (colours follow
+  the declaration order, the two loads the statement order). Open (4w): the target's last add is `add r3, sib, size` with
+  the epilogue `lwz r0` not hoisted; `size = sibsiz + size; return size;` (and `return (size = ...)`, a `size2`, a helper,
+  `(Sint32)(Uint32)` casts) is substituted into the return and the 0x4800 addi is folded past the add (7-15w);
+  `sibsiz += size; return sibsiz` bounces through `mr r3` (9w). The epilogue is merged into the last body block by the
+  peephole (single predecessor) and the final scheduler then hoists `lwz r0` above `addi; add` but not above `mr r3, r29`.
+
+**CreateSfd (297w, open) -- what the model says.** In ours' pass 2 the top level is one scan of 17 nodes (mwply first at
+alive-degree 28, ..., data 14, rodata 13, bss 12): everything removable, coloured in vid order bss r31 / rodata r30 / data
+r29 / cwk1.. temps r28..r23 / mode r22 / nfrm r21 / height r20 / frmret r19 / adxibuf_p r18 / adxwk_p r17 / cprm r16 /
+mwply r15. The pool creation order is fixed data < rodata < bss (first uses in the initial PCode: bss line 41, rodata 142,
+data 1430 -- NOT first-reference order), so rodata can only beat bss if it is NOT removable at its scan turn while bss is:
+exactly 16 lower-vid top nodes still alive when rodata is scanned (12 physical + bss + 16 = 29) and bss then at 28. With
+the current 17-node top group that needs all of them to survive their own scan turn, which the model shows is impossible
+(they are at 28 or less; one more node makes them all stuck and the picks go by cost/degree, again bss > rodata > data). So
+the target's pass-2 top group is a different SET: its registers say cwk1 r28, cwk2 r27, frmret r26, adxibuf_p r25, adxwk_p
+r24, picusr/hnwork r23/r22, mode r21, (width2/frmtbl ptr) r20, nfrm2 r19, nfrm r18, height r17, cprm r16, mwply r15 -- frmret
+/adxibuf_p/adxwk_p/nfrm2 above mode/nfrm/height (own locals in ours: they are @ temps or helper locals in the target, e.g. the
+adxt/frame allocation blocks as inlined helpers), and the unit's `mwsfd_mps_trsetup` table reads are what gives the rodata
+base its 23 uses. Not attempted in the time box; the next agent should dump the variant and run chaitin.py --pass 2 --check
+before every build.
+
+**Flags.** `lib/sfd_mpv.c` True (bytecmp IDENTICAL, 38/38). `lib/mwsfdcre.c` stays False (8/10). `flock ... ninja -k 0` +
+`dtk shasum -c` = 111 OK. Note: another agent edited the same sfd_mpv functions concurrently during this pass and converged
+on the same ChkGopTc helper (its comment is the longer one in the file).
+
+### DOL espgen42/45 insn-count pass (Espgen42 Move00 165 -> 118, espgen45 Move00 181 -> 160; three zero-code forms + one retargeted tag; nothing flipped; 2026-09-11)
+
+Harness ~/.cache/dol_espg4 (deleted): `try.sh UNIT SRC [FUNC]` (ngccc.py + fold_linkonce + strip_unused into out/, `OBJ=`
+bytecmp), `dump.sh SRC LABEL` (cpp + cc1plus `-dj -ds -dS -dR -dg -dl -dG -dL -fsched-verbose-9`), `loops.sh LABEL FUNC`
+(the `Loop from`/`Insn N: ... moved|not desirable` lines), `insn.py`/`range.py DUMP FUNC UID..` (one RTL item per line),
+`fd.py UNIT SYM [OURS.o] [--all]` (objdump side by side with reloc-normalised operands), `pri.py DUMPDIR FUNC` (lreg
+refs/len priority + greg allocation rank + disposition), `var.py BASE OUT OLD NEW..` (exact-once variants).
+
+**Zero-code forms (all applied to both units unless noted):**
+- **42: `Espgen42Work* p = (Espgen42Work*) w->work;` at the declaration (165 -> 149).** `w` has no other use, so
+  combine folds the parameter copy into `(set p (plus r3 20))` placed after NOTE_INSN_FUNCTION_BEG; alias.c's
+  `find_base_value (reg r3)` with `copying_arguments == 0` returns the hard reg itself, and the simplification loop
+  replaces it by `reg_base_value[3]`, which the later `li r3,0`s have reset to 0: p's base is UNKNOWN, so every
+  p-based load conflicts with the frame stores of `v` and the stores through hA/hB/next (`base_alias_check` returns 1
+  before the stack-reference exemption). That is the target's loop B: `lhz nx` (for v.z) after `stfs v.x/v.y`, `lwz
+  pos` after the hB stores. Pass 3's form (`p = w->work` after the tex call) keeps w's pseudo live across the call, p =
+  `(plus pseudo 20)` gets the argument ADDRESS base (known), and the loads float above the frame stores (the pass-3
+  note had the direction inverted; the .sched dump shows loop A's `lwz pos` with no LOG_LINKS in that form). 45
+  already had p at the top.
+- **Loop B `Vec* pv = &p->pos[k];` right after the noise load, `pv->y = n * 0.0018f + hA[k]` (42 149 -> 121, 45 169 ->
+  160).** With p's base unknown, `p->pos[k].y = ...` at the store loads `pos` AFTER the three hB/hA stores (true
+  dependence); the target issues `lwz pos; add r9,r9,r27` before the first `stfsx hB[k]`, i.e. its address was
+  computed before the updates, as in loop A.
+- **45: `n * FGet(g45_wave_mul)` (181 -> 169).** The static read is a fixed scalar and never aliases the in-struct
+  `stfsx next[k]` (`fixed_scalar_and_varying_struct_p`), so ours issued it 6 insns early; the reference read has
+  neither flag and depends on the store (next's base is 0: set in both arms), landing right after it like the target.
+- **42 loop A dead test now `if (k * 12 == 3) c = NULL;` (121 -> 118; tag retargeted, still `COMPILER-DIFF:
+  candidate (loop.c insn_count)`).** 3 real insns at loop time instead of 5 (cmpwi/bne/li; inner A 129 = the low edge
+  of the 0.25 window 129..152, verified in the -dL dump: 767 "not desirable", outer moves it). The compare is one
+  more use of loop A's k*12 giv (flow weights REG_N_REFS by loop_depth, so +3 refs), which then outranks loop B's
+  k*4 giv in global alloc (pass 3's numbers: k*12 A 26/102 vs k*4 B 35/166; one more inner use flips it): k*4 opens
+  r31 first (target k*4 r31, k*12 r27; with the p->mode compare ours had k r31, k*4 r30).
+  Not for 45: its inner loop A is 128 and the target keeps 0.25 in the inner preheader there (+3 would move it out).
+
+**Insn counts measured (-dL, pass 1 / pass 2), Espgen42 with the forms above: loop B inner 175/153, outer 200/196;
+loop A inner 129/108, outer 169/148. espgen45: loop B inner 177/154, outer 201/195; loop A inner 128/110, outer
+165/147.** Movable list of loop B inner, in order (threshold 71, -3 per moved insn, a `high`+`lfs` pair = 2 moves):
+`(i<<6)&0xb00` pair, `(i&3)<<3` pair, 0x4330 const, 0x4330 double, 80.0 pair, [thr 47] 4.0 pair (47*2*2 = 188 >= 175:
+MOVED in ours, target has it in the OUTER preheader), then 0.0001/0.04/0.92/0.0018/2.0/255/128/0.25 pairs not desirable
+(thr 41: 164), `cmp i,0` single not desirable, 1.0 single (life 18) moved. Outer pass 1 then moves 0.0001, 0.04, 0.92
+(53*4 = 212 >= 200) and 0.0018 (47*4 = 188 < 200: NOT moved -- target has 0.0018 in the INNER preheader, pass 2).
+
+**The 4.0/0.0018 swap is NOT reachable with dead tests (computed, then verified):**
+- Hypothesis A (the target's loops just had more insns): the target needs inner >= 189 (4.0 not desirable at thr 47)
+  AND outer <= 212 (0.92 still moved at thr 53 with 4.0 now first in the outer list: 284/260/236/212/188 for
+  4.0/0.0001/0.04/0.92/0.0018). Every body insn counts in both loops, and a pair moved out of the inner is re-emitted
+  as `high`+`lfs` (+1 in the outer count; 4.0 not moved = -1), so outer - inner is fixed at 24 in 42 (25 - 1) and 23 in
+  45: 42 needs +14 inner (189) which gives outer 213 > 212 -- contradiction by one insn; 45 only works with exactly
+  +12 (189/212). Verified: three dead tests at the END of loop B's body (e3) give 188/212 in 42 (4.0 still moved,
+  and the tests' `li c,0` at the loop end are not deleted: +0x1c bytes, 247 words); after `n = ...` (mid-body, pvm3)
+  186/211 with the block split scrambling the schedule (146 words); at the TOP (a3) they kill the `(i&3)<<3` and 0x4330
+  movables (`!reg_in_basic_block_p && maybe_never`, loop.c 881-903: an invariant set after a conditional jump whose
+  register is used in another basic block is unmovable) and raise the threshold at 4.0 (217 words).
+- Hypothesis B (the target's inner list had ONE more moved pair before the 4.0 use, threshold 41: 164 < 175) fits
+  every number in both units with no extra insns: outer 202/203 (0.92 212 >= N, 0.0018 188 < N), pass 2 155 (0.25 at
+  47*4 = 188 >= 155). Verified mechanically: `v.y = 2.0f` moved before `hB[k] += ...` (its pair then precedes 4.0)
+  puts 4.0 in the outer preheader (f20) and 0.0018 in the inner exactly like the target -- but the v.y frame store
+  then precedes the hB stores (output dependence) and 2.0 takes f25 (pass-1 group) where the target has 0.0018 f25 /
+  2.0 f26 (FPR numbers follow the preheader RTL order = pass-1 moves then pass-2 moves, longer live range = lower
+  FPR): 154 words. So the extra pair in the target is not 2.0, leaves no register (merged by cse2 or dead by flow) and
+  sits between 80.0 and 4.0 in RTL order. Candidates ruled out: a second 0x4330 const/double (cse1 merges all seven
+  conversions of the body through -fcse-skip-blocks: the division diamonds are skippable, the body is one ebb), a
+  differently spelled `(i&3)<<3` (cse folds `(i<<3)&0x18` into one insn and drops the pair), a dead constant set
+  (needs a use that survives `delete_trivially_dead_insns` after cse1 -- the backward scan cascades, only a
+  self-referencing set or an asm use survives, both leave code). Not found.
+- Plain dead sets (`c = NULL` unconditional) DO count for loop.c's insn_count (loop runs before flow; cse1 only
+  deletes sets of registers with no other use) but not for REG_LIVE_LENGTH; dead tests count 5/4/3 at loop time
+  (with/without the shared `p->mode` load, or an `i`/giv compare without a load), 3/2 at global alloc
+  (`recompute_reg_usage` after sched1, the `li` already deleted by flow), 0 after jump2. `move_movables`' single-usage
+  substitution (loop.c 939: an invariant set used once in a loop with a call is folded into its use and deleted after
+  the count) is the only way an insn counts in the inner scan and not in the outer one.
+
+**Residues (42 Move00 118 / 45 Move00 160):**
+- k r28 vs ours r30 and loop B `&nrm[k]` r30 vs ours r28: global alloc ranks k (91: 32 refs / 214, pri 7476 from the
+  lreg stats) above loop B's `&nrm[k]` (537: 18 / 110, 6545); the target allocated `&nrm[k]` first. Needs +3 weighted
+  refs of `&nrm[k]` (one more use inside loop B, e.g. a dead compare of the pointer -- mid-body block split, not tried)
+  or k's range +31 insns. 45's k is r31 in both (no issue there); 45 keeps `mr r29,r10` one insn later and the
+  psq_l destination f10 vs f12 / sum-chain FPR names in loop A.
+- 4.0/0.0018 preheader swap (above), the FPR names of loop B's hB/hA chain (f13/f12/f0 roles follow from which
+  operand holds c[-1]), `lfsx hB,k4` operand order (`lfsx f12,r11,r31` vs ours `f0,r31,r11`), `lwz hB` issued 3
+  insns earlier, bump-index local-alloc names (r0/r9/r10/r11), loop A `slwi k*4` one slot earlier; `i` r23 in both
+  through the j7 pin (unchanged: its rank needs the same missing insns).
+- Flags: nothing flipped (both False); the p-at-top / pv / FGet forms are zero-code, the loop A tag was retargeted,
+  the two j7 pins stay. Objects rebuilt through the locked ninja; 111 not re-checked (nothing flipped).
