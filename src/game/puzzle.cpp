@@ -367,17 +367,20 @@ int pzlPiece::shape(int px, int py)
 {
     s8 rot[2][2];
     f32 ang;
+    int oi;
     s8 o;
     s8 s;
     int rx;
     int ry;
 
-    // Left (1 word): the target's `ble` lands ON the join `extsb` (a QI ?: temp extended once after
-    // the join, else value = the compare's extension in r0); no if/else or ?: spelling found gives
-    // that without an asm launder, which costs the stb/lis schedule. See AGENTS.md "puzzle closer pass 2".
-    o = orient;
-    if (o > 3) {
+    // The join `extsb r0,r0` is the promoted store of `o` from the int `oi` on both paths: the
+    // compare's extension IS `oi` (r0), the else arm copies it into `o` (extsb of r0 -> r0), so the
+    // `ble` lands on that extsb (pass 4).
+    oi = orient;
+    if (oi > 3) {
         o = orient - 4;
+    } else {
+        o = oi;
     }
     ang = (f32) o * -3.1415927f * 0.5f;
     rot[0][0] = cosf(ang);
@@ -1273,11 +1276,14 @@ pzlPiece* pzlPlayer::cmbPiece(pzlBoard* b)
 // `size_y < 0` clamp adds `cur->h` implicitly (int -> float, magic) where the compare casts (psq_l);
 // the `dir` shuffle is a two-case switch. Pass 2: both dir switches have `case 0:` (their lower
 // halves cross-jump), the compares convert the member `cur->h` directly (raw byte to psq_l) while
-// the stores use the int, `caseBoard` goes through a local before the swap (load order), arm 1's
-// `h` takes the fix result (`h = (int)(...)`, then `h - 1`: the fix is a two-set variable, the
-// minus a fresh r0 temp), arm 2 is `(s8)edge - (size_y - 1)` (fold gives `(edge + 1) - size_y`;
-// the (s8) re-extension needs the launder below). Left (14 words): register names in arm 1 (h r9
-// vs r10, the -1.0f pool high r11 vs r9) and the `(s8)edge` dest (r30 = edge in the target).
+// the stores use the int, `caseBoard` goes through a local before the swap (load order). Pass 4
+// (matched): the y clamp uses two ints. `ch` (compare arm only, single set -> r9) and `h`, declared
+// with `edge` and set in BOTH y arms (`h = (int)(fabsf(...) - 1.0f) - 1` and `h = edge - sy`): a
+// multi-set pseudo cannot be tied to the fix result (so the fix ties to the fctiwz temp, r9, and
+// the `- 1` lands in the global r0), and its `subf` gets no r3 suggestion (`subf r0,r3,r30`). Arm 2
+// re-extends and increments `edge` itself (`extsb r30,r30; addi r30,r30,1`); the volatile launder
+// after the size_y call keeps those two below the call (edge crosses calls, so the scheduler has no
+// anti-dependence to hold them there) and keeps the (s8) from folding away.
 int pzlPlayer::movePiece()
 {
     pzlPiece* p = hand;
@@ -1392,6 +1398,7 @@ int pzlPlayer::movePiece()
                 }
                 if (dir == 1 || dir == 2) {
                     int edge;
+                    int h;
                     f32 fy;
                     pzlBoard* cb = caseBoard;
                     f32 ny = 0.0f;
@@ -1421,21 +1428,25 @@ int pzlPlayer::movePiece()
                     p->x = (f32) edge + p->cx;
                     if (p->size_y() < 0) {
                         f32 vy = p->ver0_y();
-                        int h = cur->h;
+                        int ch = cur->h;
                         if (vy > (f32) cur->h) {
-                            p->y = (f32) h + p->cy;
+                            p->y = (f32) ch + p->cy;
                         }
                         fy = p->ver0_y() + (f32) (p->size_y() + 1);
                         if (fy < -1.0f) {
-                            h = (int) (fabsf((f32) (s8) p->size_y()) - 1.0f);
-                            p->y = (f32) (h - 1) + p->cy;
+                            h = (int) (fabsf((f32) (s8) p->size_y()) - 1.0f) - 1;
+                            p->y = (f32) h + p->cy;
                         }
                     } else {
                         fy = p->ver0_y() + (f32) (p->size_y() - 1);
                         edge = cur->h;
                         if (fy > (f32) cur->h) {
-                            asm("" : "+r"(edge)); // COMPILER-DIFF: the target re-extends edge after size_y (extsb r30,r30); ours proves it sign-extended
-                            p->y = (f32) ((s8) edge - (p->size_y() - 1)) + p->cy;
+                            int sy = p->size_y();
+                            asm volatile("" : "+r"(edge)); // COMPILER-DIFF: the target re-extends edge after the size_y call (extsb r30,r30; addi r30,r30,1); ours proves it sign-extended and, edge crossing calls, would hoist the two above the call
+                            edge = (s8) edge;
+                            edge += 1;
+                            h = edge - sy;
+                            p->y = (f32) h + p->cy;
                         }
                         if (p->ver0_y() < -1.0f) {
                             p->y = p->cy + -1.0f;
