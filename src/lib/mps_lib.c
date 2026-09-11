@@ -15,6 +15,8 @@ const Char8 MPSLIB_version_str[] =
 static MPS mpslib_hn_last;
 static const Char8 *cri_verstr_ptr;
 MPSLIB_WORK *MPSLIB_libwork;
+/* unreferenced: MWCC still emits it, after the referenced statics (.bss 0x10, the target's fourth word) */
+static Sint32 mpslib_init_cnt;
 
 /* inlined copies; the public MPSLIB_CheckHn/MPSLIB_SetErr wrap them further down */
 static Sint32 mpslib_CheckHn(MPS mps)

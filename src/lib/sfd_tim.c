@@ -167,8 +167,99 @@ static inline Bool sftim_IsGetFrmTime(SFD sfd, Sint32 ftime, Sint32 tunit)
 	return ret;
 }
 
-/* the force flag is tested here, not in the helper: this function returns TRUE directly while
- * SFTIM_IsGetFrmTime (which inlines it) goes through the result variable */
+/* the frame-taking copy of sftim_IsGetFrmTime: the target ranks `tunit` between the body's own
+ * `tscale` and `vrate` (r10 between r9 and r11), which only a local of the SAME inlined body gets --
+ * a wrapper local or the Tunit call's argument temporary ranks above all of them (6w). `tunit` is
+ * read before `ftime`, as the target loads them */
+static inline Bool sftim_IsGetFrmTimeFrm(SFD sfd, SFD_VFRM *frm)
+{
+	SFTIM tim;
+	SFTIM_LIB *lib;
+	Sint32 ncount;
+	Sint32 tscale;
+	Sint32 tunit;
+	Sint32 adj;
+	Sint32 vrate;
+	Sint32 cnt;
+	Sint32 fast;
+	Float32 tol;
+	Float32 ct;
+	Float32 ft;
+	Bool ret;
+	Sint32 ftime;
+
+	tunit = frm->inf.raw[4];
+	ftime = frm->inf.raw[3];
+	if (sfd->cond[14] != 0) {
+		return TRUE;
+	}
+	tim = SFD_TIM(sfd);
+	lib = SFTIM_LIBWK;
+	tscale = tim->cur_unit;
+	adj = sfd->cond[44];
+	ncount = tim->cur;
+	if (tscale == 1) {
+		if (ncount == -2) {
+			ret = TRUE;
+		} else if (tim->vcnt < 0) {
+			tim->vcnt = 0;
+			ret = TRUE;
+		} else {
+			/* the original re-reads vcnt after the sign test (a second load in both callers) */
+			cnt = *(volatile Sint32 *)&tim->vcnt;
+			if (UTY_CmpTime(ftime, tunit, cnt, lib->vrate) != 0) {
+				ret = TRUE;
+			} else {
+				ret = FALSE;
+			}
+		}
+	} else {
+		vrate = lib->vrate;
+		ncount += tscale * adj / vrate;
+		ft = (Float32)ftime;
+		ft = 10000.0f * ft / (Float32)tunit;
+		ct = 10000.0f * (Float32)ncount / (Float32)tscale;
+		if (sfd->cond[15] != 1) {
+			tol = (Float32)sfd->cond[46];
+			if (ct + tol < ft) {
+				ret = FALSE;
+			} else if (ct - tol >= ft) {
+				ret = TRUE;
+				if (tim->x2c8 != ft) {
+					if (tim->x2c0 != ft) {
+						tim->x2c0 = ft;
+						tim->x2bc++;
+					}
+				}
+			} else {
+				cnt = tim->x2bc;
+				fast = 0;
+				if (vrate == 59940 && sfd->picrate <= 2 && tim->speed == 1000) {
+					fast = 1;
+				}
+				if (cnt <= (fast != 0)) {
+					ret = tim->x2c4;
+				} else if (ct < ft) {
+					ret = FALSE;
+				} else {
+					ret = TRUE;
+				}
+				tim->x2bc = 0;
+				tim->x2c4 = ret;
+				tim->x2c8 = ft;
+			}
+		} else {
+			if (ft <= ct) {
+				ret = TRUE;
+			} else {
+				ret = FALSE;
+			}
+		}
+	}
+	return ret;
+}
+
+/* the force flag is tested here, not in the helper: this function returns TRUE directly */
 Bool SFTIM_IsGetFrmTimeTunit(SFD sfd, Sint32 ftime, Sint32 tunit)
 {
 	if (sfd->cond[14] != 0) {
@@ -182,7 +273,7 @@ Bool SFTIM_IsGetFrmTime(SFD sfd, SFD_VFRM *frm)
 	if (frm == NULL) {
 		return FALSE;
 	}
-	return SFTIM_IsGetFrmTimeTunit(sfd, frm->inf.raw[3], frm->inf.raw[4]);
+	return sftim_IsGetFrmTimeFrm(sfd, frm);
 }
 
 Sint32 SFD_GetFps(SFD sfd, Sint32 *fps)

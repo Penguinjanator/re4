@@ -22871,3 +22871,65 @@ Both units are now `MATCHING = True` (esp18 5/5, esp08 6/6). Forms, mechanisms, 
 - idEditPos 334 (size 0x10d4/0x10ac): mixed store bases for `*pos = d->vtx[N]` (`stw r10,280(r26)` via `d`, the others via `pos`), the clamp temp form for `a`, per-branch `lis r18/r17` hoists, register naming. Too large for this pass.
 
 **Flags.** `"t_movie/t_snd_vol.cpp": True` added to MATCHING. t_id is not Matching (55/69).
+
+### CRI pass 21: the same-body local rank, the pcm redefinition, indexed body writes, and a validated Chaitin simulator (sfd_tim Matching 38 -> 39/39; adx_sje 12 -> 14/17, calc_rsig 41 -> 0, set_rsig 85 -> 0, encode_data 84 -> 68w; mps_lib .bss 0x10 OK; sfd_tst 79w / mpv_umc 68w read, not closed; 2026-09-11)
+
+**Fixed (pure C, no pins):**
+- sfd_tim `SFTIM_IsGetFrmTime` 6 -> 0 (unit IDENTICAL, flipped). The target's `tunit` ranks between the inlined
+  body's `tscale` and `vrate` (r10 between r9/r11). Three passes tried wrapper locals, typed/`void *` copies,
+  argument casts and declaration orders: every one is created either before all body locals (a wrapper's local,
+  the call's argument temporary) or is propagated away. Only a local OF THE SAME inlined body can sit between
+  two of its locals, so the function now inlines a frame-taking copy `sftim_IsGetFrmTimeFrm(sfd, frm)` with
+  `Sint32 tunit;` declared between `tscale` and `vrate`, `tunit = frm->inf.raw[4]` read BEFORE `ftime =
+  frm->inf.raw[3]`, and `if (sfd->cond[14]) return TRUE;` at the top (Tunit keeps the value-taking helper).
+  Probes: tunit declared first or last = 11w/6w, ftime read first = 39w, a thin wrapper that loads tunit into
+  its own local and calls the value-taking body = 6w (the copy is propagated). The two bodies are a duplicate
+  by design; the original evidently had two.
+- adx_sje `adxsje_calc_rsig` 41 -> 0: `pcm = sje->pcm[ch]` re-derived before the second loop. The redefinition
+  is a range-split copy of the same address that coalesces away; its presence schedules the preheader's
+  `li i, 0` above the pool `addi` and lets the post-RA peephole fold the 0x4330 constant's `lfd` onto its `lis`
+  (the `addi rX, rY, @l; lfd f, 0(rX)` fold needs rX == rY, i.e. the constant's address in a dying register).
+- adx_sje `adxsje_set_rsig` 85 -> 0: the nibble packer writes the output through an index (`n = -1; ... if
+  (i % nibs == 0) { nib = 1; dst[++n] = 0; } byte = dst[n]; dst[n] = byte | (...)`), not a pointer. The
+  strength-reduced pointer is then initialised `addi p, dst, -1` off the dying `dst` (a `dst - 1` in the source
+  is constant-folded into the struct offset instead). The shift `(nibs - nib) * sje->bps` is written inline —
+  an own local `sft` ranks below the tail temporaries and shifts the whole tail by one register.
+- adx_sje `adxsje_encode_data` 84 -> 68: `void *obj` + `ADXSJE sje = obj` declared after `sjo` (kept copy,
+  sje r29 = target). Left: `sji` r28 / `n` r27 (target r24 after cnt r25 / r20 after the loop-2 IVs) — the
+  target colours `sji` between cnt's split copy (@544) and the loop-2 IV temps, and `n` between the loop-2 and
+  loop-3 IV temps, i.e. both must be frontend temporaries created in those windows; helper-local/`void *`
+  parameter/cast-argument forms of `sji` (67-92w) do not create them.
+- mps_lib `.bss` 0x10/0x10: an unreferenced `static Sint32 mpslib_init_cnt;` after the referenced statics
+  (MWCC emits unreferenced file-scope statics, after the referenced ones; an `= 0` initialised one would move
+  before them). `MPS_Create` 2w stays (post-RA tie, pass 14b).
+
+**Tooling: `~/.cache/mwccdbg/rasim.py DIR [--drop vid..]` (next to ra.py/rasum.py) — a Chaitin simulator over
+`regalloc-gpr-pass-1-all.txt` that reproduces MWCC's colouring order exactly** (checked on encode_data,
+SFTST_Calc, OneReadMb): nodes whose flags say `fCoalesced` (not `fCoalescedInto`) are ghosts — never removed,
+always counted in their neighbours' degrees; each iteration scans the remaining nodes by ascending vid and
+removes every node whose current degree (physical neighbours + remaining virtual neighbours + ghosts) is
+< 29, decrementing its neighbours as it goes (so a lower-vid node removed earlier in the SAME scan already
+lowers a higher-vid node's degree); nodes removed in a later iteration are coloured first, and within an
+iteration in descending vid. The `previous neighbors: N` field of the assigned dump is the degree at removal.
+With it the level questions become arithmetic:
+- mpv_umc `mpvumc_OneReadMb` 68w: `vx` (30 at its scan), `vy` (32), `cvx` (31) are exactly at the edge; the
+  target has them in level 1. Removing 2 neighbours from vx (then vy needs 3, cvx 1 — vx/vy are scanned first
+  and are cvx's neighbours) drops all three. Their extra neighbours are the ofs/tbl temporaries r67-r94 that are
+  live while the vectors are; a source shape that finishes the vectors' uses (`>> 1`, `& 1`, `/ 2`) before
+  the table/offset temporaries are created is what is needed. Not found this pass.
+- sfd_tst `SFTST_Calc` 79w, two clusters. (1) `diff` lo/hi r23/r25 vs r25/r23: pre-RA the sub writes the
+  backend pair r226/r227 and the ternary's else arm copies `mr @119.lo, r226; mr @119.hi, r227`; r227 dies in
+  the diamond and coalesces INTO @119.hi (vid 96 survives), r226 lives to the hist store and cannot; so lo
+  (vid 226) is coloured before the merged hi (vid 96) and takes r23. The target's pair = the merged hi coloured
+  first (r23) then lo (r25, r24 = est.hi blocked) — either the survivor is the higher vid or `diff` is a kept
+  variable (own vids 46/47, coloured after the IV temps: hi r23, lo r25). 25 more forms (`diff -= est`, no-op
+  `(Sint64)`/`(Uint64)` casts on the assignment or the store, `0 - diff`, `>= 0` ternary, `adiff = diff = ..`,
+  abs helper, `diff = diff` after) all leave the propagated backend pair. (2) the sprintf argument group
+  (mt.cnt/out.cnt/mt_max/hlp.cnt loads and the MulDiv result) is shifted by one register: ours colours it
+  r21-r30 from the bottom with mt.cnt.hi (@172.hi, 27 neighbours = level 1) last in r30; the target's group
+  avoids r21 (mt.cnt.hi gets it last) and r23 for the MulDiv result — a node in r21/r23 interferes with the
+  group in the target and not in ours. Not found.
+- adx_sje `adxsje_write_end_code` 2w / `adxsje_output_header` 2w: post-RA ties (pass 14b), unchanged.
+
+**Flags.** `"lib/sfd_tim.c": True` (CRI pass 21 block in objects.py). 111 OK. adx_sje 14/17, mps_lib 6/7,
+sfd_tst 10/11, mpv_umc 15/16 stay False; sfd_tst and mpv_umc sources unchanged.

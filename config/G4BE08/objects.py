@@ -1817,3 +1817,8 @@ MATCHING.update({
     "game/esp18.cpp": True,  # Esp18_Trans 14 -> 0: `u32 i` declared before the `oy == zero` test (pseudo 237: gcse's PRE pseudos are numbered in hash-bucket order, so `i + 1` follows fp+0xc0 and the spill slots are 0x234/0x238 as in the target) + one codeless `asm("" : "=m"(inv[0][0]))` in the loop (the hoisted 1.0/0.5 REG_EQUIV constants tie at priority 171, older 0.5 coloured first; COMPILER-DIFF: candidate (loop.c insn_count))
     "game/esp08.cpp": True,  # Esp08_Trans/TransShimmer 143/143 -> 0 (shared ESP08_TILES macro): codeless `+f` launders on the four first-tile copies (cse1 promotes each copy to canonical and rewrites the mask quad, gcse/cse2 redo it; COMPILER-DIFF: first-tile copy canon), asm-emitted `fdivs` for the first tile's du/dv (the C divides block the fpu for 17 cycles and push the cu+du/cv+dv adds past the second y0 store, so reload inherits the y0 reload the original re-does; COMPILER-DIFF: asm-emitted fdivs), one `=m` keep-alive of y/st1 after the mask quad (f24/f21 global-alloc order), and zero-code statement order u0/dv/v0/du in the double loop's (j == numX-1, i != numY-1) arm (local-alloc f8/f9); .sdata padded to 8 (`asm(".section .sdata; .balign 8")`, the split object is 0x10)
 })
+
+# CRI pass 21 (2026-09-11)
+MATCHING.update({
+    "lib/sfd_tim.c": True,  # CRI pass 21: SFTIM_IsGetFrmTime 6 -> 0: a frame-taking copy of the inlined body (sftim_IsGetFrmTimeFrm) with `tunit` declared between `tscale` and `vrate` and read before `ftime` -- only a local of the same inlined body ranks between the body's locals (r10 between r9/r11); a wrapper local or the Tunit call's argument temporary ranks above them all
+})

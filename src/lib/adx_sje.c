@@ -187,7 +187,7 @@ Sint32 adxsje_write68(void *src, Sint32 unit, Sint32 n, SJ sj);
 Sint32 adxsje_calc_rsig(ADXSJE sje, Sint32 ch);
 void adxsje_set_rsig(ADXSJE sje, Sint32 ch);
 Sint32 adxsje_output_sdata(ADXSJE sje);
-Sint32 adxsje_encode_data(ADXSJE sje);
+Sint32 adxsje_encode_data(void *obj);
 Sint32 adxsje_write_end_code(ADXSJE sje);
 static Sint32 adxsje_output_header(ADXSJE sje, SJ sjo);
 static void adxsje_encode_exec(ADXSJE sje);
@@ -691,10 +691,11 @@ static Sint32 adxsje_read_pcm(ADXSJE sje, SJ *sji, Sint16 **bufs, Sint32 n)
 
 /* encode as many blocks as the output has room for and the inputs supply; returns the bytes
  * written */
-Sint32 adxsje_encode_data(ADXSJE sje)
+Sint32 adxsje_encode_data(void *obj)
 {
 	Sint32 nbyte;
 	SJ sjo;
+	ADXSJE sje = obj; /* kept conversion copy: sje r29 above the hoisted address temporaries */
 	SJ *sji;
 	Sint32 n;
 	Sint32 cnt;
@@ -781,7 +782,9 @@ Sint32 adxsje_output_sdata(ADXSJE sje)
 }
 
 /* pack the block of channel ch: the residuals scaled, quantised to bps bits and written as
- * nibbles into the block body */
+ * nibbles into the block body. The body bytes are indexed (`dst[++n]`, n from -1): the strength
+ * reducer's pointer is then a temporary initialised `addi p, dst, -1` off the dying `dst`, and the
+ * shift amount is an expression (a variable `sft` ranks as an own local below the tail temporaries) */
 void adxsje_set_rsig(ADXSJE sje, Sint32 ch)
 {
 	Sint16 *res;
@@ -792,8 +795,8 @@ void adxsje_set_rsig(ADXSJE sje, Sint32 ch)
 	Sint32 nibs;
 	ADXSJE_PRDFLT *prd;
 	Sint8 *dst;
+	Sint32 n;
 	Sint32 v;
-	Sint32 sft;
 	Sint32 t;
 	Sint32 q;
 	Sint8 byte;
@@ -802,7 +805,7 @@ void adxsje_set_rsig(ADXSJE sje, Sint32 ch)
 	scl = sje->scl[ch];
 	deq = sje->deq[ch];
 	dst = (Sint8 *)sje->data[ch];
-	dst--;
+	n = -1;
 	nibs = 8 / sje->bps;
 	prd = sje->prd[ch];
 	nib = 0;
@@ -821,12 +824,11 @@ void adxsje_set_rsig(ADXSJE sje, Sint32 ch)
 		deq[i] = ADXSJE_CLIP16(t);
 		if (i % nibs == 0) {
 			nib = 1;
-			*++dst = 0;
+			dst[++n] = 0;
 		}
-		sft = (nibs - nib) * sje->bps;
-		byte = *dst;
+		byte = dst[n];
+		dst[n] = byte | (Sint8)((((Uint8)(q << (8 - sje->bps))) >> (8 - sje->bps)) << ((nibs - nib) * sje->bps));
 		nib++;
-		*dst = byte | (Sint8)((((Uint8)(q << (8 - sje->bps))) >> (8 - sje->bps)) << sft);
 	}
 }
 
@@ -900,6 +902,10 @@ Sint32 adxsje_calc_rsig(ADXSJE sje, Sint32 ch)
 		prd->invscale = 32767.0 / (Float64)prd->maxabs;
 	}
 	adxsje_iirflt_set_hist(prd->iir, sje->hist1[ch], sje->hist2[ch]);
+	/* re-derived before the second pass: the redefinition (a range-split copy of the same address
+	 * temporary, coalesced away) is what schedules the preheader's `li i, 0` above the pool `addi`
+	 * and lets the peephole fold the 0x4330 constant's `lfd` onto its `lis` */
+	pcm = sje->pcm[ch];
 	for (i = 0; i < sje->blksmpl; pcm++, i++) {
 		smp = *pcm;
 		adxsje_prdflt_set_hist(prd, iir->h1, iir->h2);
