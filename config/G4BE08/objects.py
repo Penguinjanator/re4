@@ -1888,3 +1888,8 @@ MATCHING.update({
 MATCHING.update({
     "game/option.cpp": True,  # 20/20: retry_load_menu zero code (`Cckpt.roomInit(); Cckpt.move(); Cockpit* ck = &Cckpt;` keeps the Cckpt@ha high alive across the first call so local-alloc cannot tie ck to it); controller_menu: own `j` counter for loop 2, `BitOn(pSys->flags, ..)` before VibSet (store not disjoint from the vib_time/vib_level scalars), `j == o->sub`, one codeless `asm("" : : "r"(sel))` after loop 2 (COMPILER-DIFF candidate: sel 29/338 must outrank o 42/600 in global.c)
 })
+
+# card closer 3 (2026-09-12)
+MATCHING.update({
+    "game/card.cpp": True,  # 67/67, pure C: saveMain (case 6 `step = 0` zero shares the `(int) fileNo` shift-count local, so its li trails the rotlw, takes r0 and the stb cross-jumps into case 1's copy); errorDisp (`mesNo = K; cardcheck = 0;` in -0x204/-0x206 so cardcheck's zero is the switch index's, which then outranks mesNo for r31; `attr = 0` inside both -0x203 arms so jump1 cannot hoist `mesNo = 1`)
+})

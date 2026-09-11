@@ -1003,9 +1003,15 @@ void cCard::saveMain()
                 BitOff(pG->flags_54, 0x20000);
             }
             if (mode == 3) {
-                isDbgInfoCached &= ~(1 << fileNo);
+                // The zero stored into step shares `no`'s pseudo with the shift count: its `li` then
+                // trails the rotlw (sched1 anti-dependence), takes r0, and jump2 cross-jumps this
+                // arm's `stb step` (and case 2's `step = 4`, the `step = 0xA` arm) into case 1's copy.
+                // A fresh zero is hoisted above the extsb, lands in r10 and keeps its own stb.
+                int no = fileNo;
+                isDbgInfoCached &= ~(1 << no);
                 mode = nextMode;
-                step = 0;
+                no = 0;
+                step = no;
             } else {
                 if (pG->x8 & 0x80) {
                     step = 0xB;
@@ -1505,17 +1511,23 @@ void cCard::errorDisp()
             cardcheck = 0;
             break;
         case -0x203:
+            // `attr = 0` in each arm (as in -0x20A): the arms then share a tail, jump1 cannot hoist
+            // `mesNo = 1` above the branch (jump2 does, after sched1), and `cardcheck = 0` after the join
+            // gets its own zero.
             if (pG->x8 & 0x80) {
                 mesNo = 0x29;
+                attr = 0;
             } else {
                 mesNo = 1;
+                attr = 0;
             }
             cardcheck = 0;
-            attr = 0;
             break;
         case -0x204:
-            cardcheck = 0;
+            // mesNo first: `cardcheck = 0` then takes the switch index's zero (step == 0 here) instead of
+            // mesNo's, which gives the index the refs that put it in r31 before mesNo (r29).
             mesNo = 0x14;
+            cardcheck = 0;
             attr = 0;
             break;
         case -0x202:
@@ -1525,8 +1537,8 @@ void cCard::errorDisp()
             sub2 = 0;
             return;
         case -0x206:
-            cardcheck = 0;
             mesNo = 0x25;
+            cardcheck = 0;
             break;
         case -0x207:
             mesNo = 0x1C;

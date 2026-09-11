@@ -25324,10 +25324,11 @@ prints the backend-00 block sizes; `cands.py`/`cands2.py` + `run.sh`/`run2.sh` =
   by side with real symbol names (dtk labels on the target side): `python3 /tmp/t16/sbs.py ~/.cache/tesp15/T.s
   ~/.cache/tesp15/o_<V>/O_init.s 162 162 30`.
 
-### DOL card closer 3 (card saveMain 74 -> 0 zero code; errorDisp 99 in progress; 2026-09-12)
+### DOL card closer 3 (game/card Matching 67/67: saveMain 74 -> 0, errorDisp 99 -> 0, both pure C; 111 OK; 2026-09-12)
 
-Continues "### DOL option/card closer 2, final". Scratch /home/adityas/.cache/dol_card3/ (rtlflat.py + simp.py turn a
-`-dg`/`-ds` dump into one line per insn; toitems.py feeds that listing to tools/xjump.py).
+Continues "### DOL option/card closer 2, final". Scratch /home/adityas/.cache/dol_card3/ (deleted): rtlflat.py + simp.py turned a
+`-dg`/`-ds` dump into one line per insn, toitems.py fed that listing to tools/xjump.py, try.py = variant.sh + the GDBG
+allocation order of the named allocnos in one line. No pins, no asm, no tags; flag set in objects.py ("# card closer 3").
 - **saveMain 74 -> 0, pure C.** The previous section's "1-insn stb match cannot be accepted" was right about the RTL, wrong
   about the cause: tools/xjump.py on our greg listing reproduces our output exactly, and the SAME listing with case 6's
   `step = 0` zero in r0 instead of r10 reproduces the target (fall-through candidate, minimum 1: the mode==3 arm's
@@ -25339,6 +25340,26 @@ Continues "### DOL option/card closer 2, final". Scratch /home/adityas/.cache/do
   `(int) fileNo`. Form: `int no = fileNo; isDbgInfoCached &= ~(1 << no); mode = nextMode; no = 0; step = no;` (0 words).
   Rule: a `li rK,0; stb` that must cross-jump into a tail whose other copies keep their own li needs the li scheduled
   late enough to take the dying temp's register; a variable reused for two values gives sched1 the anti-dependence.
+- **errorDisp 99 -> 0, pure C, three statement-order items.** The mesNo/step swap (target mesNo r29, switch index r31;
+  ours the reverse) is not an allocation-order rule but cse's choice of the zero for `cardcheck = 0`: in the target the
+  -0x204 and -0x206 arms store the SWITCH INDEX (`stw r31,cardcheck`, r31 = `clrlwi` of step, known 0 in case 0 through
+  record_jump_equiv) while ours stores mesNo (also known 0: cse re-walks the entry ebb along every dispatch path, so both
+  pseudos sit in the const-0 class, mesNo first because merge_equiv_classes inserts the older class's regs before the
+  jump-equiv reg). The original set `mesNo = K` BEFORE `cardcheck = 0` in those two arms, which drops mesNo from the class:
+  the index gets 2 more refs (6/28 -> 8/48, pri 4285 -> 5000 > mesNo 35/402 = 4353) and is allocated first -> r31, mesNo
+  r29; that alone is 99 -> 5 words and the size gap closes (the `mode = 0` cross-jump of case 3 was the same register
+  coincidence). Residue 5 = the -0x203 arm: target `andi.; li r29,1; beq; li r29,0x29; J: li r28,0; li r0,0; stw r0` =
+  jump1 did NOT hoist `mesNo = 1` (jump2 did it after sched1, so the li stays behind the andi.) and cardcheck's zero is
+  fresh although attr's zero precedes it. Both follow from `attr = 0` written inside EACH arm (the -0x20A style):
+  jump1's `x = b; if (c) x = a` needs `x = b` to be the last insn before the join (`reallabelprev == temp2`), jump2's
+  cross-jump of the two `li r28,0` restores that shape post-RA, and the join block is a new cse ebb so `cardcheck = 0`
+  after it does not see attr == 0. `mesNo = 1; if (..) mesNo = 0x29; attr = 0; cardcheck = 0;` is 108w (sched1 hoists the
+  li; cardcheck takes attr's zero).
+- Rules: (1) which pseudo cse picks as "the register holding 0" (first REG of the SI class; QI stores use the same class
+  through the wider-mode rule) shifts global.c refs between user variables -- when two zero-valued pseudos swap callee-saved
+  registers, look at which one the target's zero stores read and reorder the statements so the other is no longer 0 there;
+  (2) a `li` sitting right before a `bcc` after unrelated insns is jump2's hoist, i.e. jump1 was blocked: look for a
+  per-arm duplicate statement that jump2 cross-jumped away.
 
 ### Tool RELs, t_camera_data closer 2 (tcDataExport 193 / tcSetBesideOffset 27 / DB_STRING ctor 7 unchanged; mechanisms pinned down, no source change adopted; 2026-09-12)
 - **tcDataExport buf/pTc-high order (item a) is NOT reachable through buf's refs.** Weighted refs of buf (reg 82) at lreg
@@ -25375,3 +25396,81 @@ Continues "### DOL option/card closer 2, final". Scratch /home/adityas/.cache/do
   asm("r29")` copy of the parameter -> 223 words size -0x18. Do not use pins in tcDataExport.
 - Tools: `~/.cache/tcam2/refs.py <dump> <regno>` = weighted REG_N_REFS per insn from an lreg dump (joins multi-line
   insns, tracks LOOP_BEG/END depth, ignores notes). `~/.cache/tcam2/rtl_base/` has all dumps of the current source.
+
+### CRI mwsfdcre pass 6 (CreateSfd 126 -> 115w, pure C: MallocFrmTbl's height/width declared BEFORE nfrm; the dead `b` and CalcWorkSfd 4w open; 8/10, not flipped; 2026-09-12)
+Harness /home/adityas/.cache/cri_mws6/ (deleted at the end): `gen.py NAME BODY` (base.c with the IsUseAdxt body replaced), `try.sh NAME`
+(variant.sh + differing lines), `probe/pr.sh`/`pr2.sh NAME 'case-4 body' [decl]` (a 20-line TU with an inlined IsUse switch, case 4 last/FIRST,
+ra.py dump -> frontend-00/01 statement list + final PCode in one line), `rasum2.py` (rasum for pass 2).
+- **Residue (1) closed (126 -> 115w, the 11 words were block 2 of the inlined MallocFrmTbl).** Read off the pass-2 dump: nfrm @755 = r106,
+  height @752 = r109, width @751 = r110, ret @756 = r105, fsize r107, i r108 — the inlined helper's locals take ids in DECLARATION order
+  (parameter/first declared = lowest), and the MACRO's block locals (`MWSFCRE_CALC_FRMSIZ` declares `height; width;` in an inner block)
+  come AFTER the helper's own locals. height (30 neighbours) and nfrm (74) are both L2 and colour by descending id: height r109 first -> r19,
+  nfrm -> r20 (target nfrm r19 / height r20). Fix: expand the size macro by hand inside mwsfcre_MallocFrmTbl and declare `ret, height,
+  width, nfrm, fsize, i` (height/width before nfrm) — the PCode/statement order is unchanged, only the ids move. Pass 5's "block-2 colours
+  follow the PCode first-appearance order" was wrong: it is declaration order, the macro's block locals just came last.
+
+### Tool RELs, t_event closer 3 (t_event/t_event 129 -> 55 words, 60 -> 66/69, .text size now equal; header MakeSaveData shares ONE stepped pointer; mesCnt `no` moved into the loop's if; Tools/t_esp_area 7, Tools/t_lightarea 4, db_toolbase IDENTICAL x2; 111 OK; not flipped; 2026-09-12)
+Scratch /home/adityas/.cache/tev3/: `hv.sh <dbg_tool.h variant> [t_event src]` judges a HEADER variant on all five includer objects
+(sed's the `#include "dbg_tool.h"` to the variant's absolute path, variant.sh --no-diff each; baseline reproduces the tree numbers),
+`ins.py <rtl dump> <pseudo,list>` (one line per insn touching the pseudos + the live-in block headers), `sbs.py`. Kit extended:
+`KIT_NLINES=N` env raises variant.py's 400-row side-by-side cap (README updated).
+- **Item 1 (Update() `ret = 0` arm) was already closed by H3** — the 0x3b40 `li r20,0` falls into `cmpwi r20,0` in both. No header work.
+- **Item 4 closed (inlined MakeSaveData register permutation, 26w): dbg_tool.h now uses ONE `T* src` for the count loop and the copy
+  loop** (function-scope, `src = work` twice). Mechanism (GDBG): src (reg 478 refs 19 len 40 pri 19000) was allocated before dst (479
+  refs 18 len 41 pri 17560) and took r29 in pass 0; the target has dst r29 / src r28 in the copy loop AND w r28 / const r29 in the count
+  loop, i.e. one multi-set pointer pseudo whose priority (refs 26 / len 69 -> 15072) drops below dst's, so dst is allocated first. Both
+  loops then use r28 for the pointer, and the count loop's 0x11111111 constant (reg 474, pri 4166) gets r29 because dst is not live there.
+  t_lightarea's own MakeSaveData call has the same shape and stayed at 4w ONLY with `cnt = 0;` BETWEEN the `work` load and `src = work`:
+  cse.c's "(set REG0 REG1) where REG0 is cheapest" rule (cse_insn, the block after the `Special handling for (set REG0 REG1)` comment)
+  fires when the previous insn is the SET of REG1 and REG0 (the multi-set src) lives past REG1's last use — it rewrites `lwz work; mr
+  src,work` into `lwz src; mr work,src` (t_lightarea 4 -> 6w). With `cnt = 0` as the previous insn the rule does not fire.
+  `make_regs_eqv`: a pseudo whose REGNO_LAST_UID is beyond the ebb and later than the class head's becomes the class head.
+- **Item 2b mostly closed (mesCnt block, 46 -> 40w, size equal):** `int no = 0;` declared INSIDE the loop's `if` body (same ebb as the
+  stores) and stored as the value (`EvtDebug.mesCnt[no] = no;`), third store `mesCnt[2] = i`. cse1 then knows no = 0 in that ebb: `(ashift
+  no 2)` folds, the index and the stored value are canonicalised to the same class head `no` -> `stwx rN,rBase,rN` with one hoisted
+  `li rN,0`. With `no` at the block top (previous form) gcse cprop cannot replace `no` inside `(ashift no 2)` (validate_replace_rtx_1
+  only simplifies PLUS/MINUS/extend, so `(set T (ashift (const_int 0) 2))` fails recog) while it DOES fold `(plus no 1)`/`(plus no 2)`
+  -> three hoisted constants 0/4/8 in separate registers (`li r24,0; li r25,0; li r26,4; li r27,8`). Open (~10w): the target forms
+  `&EvtDebug.mesCnt[1]` as a pseudo at the block TOP (`addi r28,r30,0xc4` before the first eprintf), reads mesCnt[2] as `4(r28)` and
+  mesCnt[1] as `0(r28)`, copies it for the loop (`mr r26,r28`) and stores `mesCnt[no+1]` as `stwx r0,r26,rN` and the third as `stw
+  r31,4(r26)`; mesCnt[0] is `lwzu r8,0xc0(r30)` (the loop's `&mesCnt[0]` base formed by combine from `lwz (mem B0)` + `set B0 (plus E
+  0xc0)`, so that base was a pseudo BEFORE the last eprintf too). fold does NOT distribute `(no + 1) * 4` (the ARRAY_REF index is
+  converted first), so `mesCnt[no + 1]` cannot produce a `&mesCnt[1] + no*4` address; a struct-array view `((MesRec*) mesCnt)[no].no`
+  gives the right base but loses the shared zero register (43w). Not found: what makes both bases pseudos at the top of the block.
+- **Item 2a open (back-search giv inits, ~15w).** Read off the target: `mulli r27,r31,0x18` (A = no*24) is callee-saved because the
+  lwzu base giv is initialised as `A + m` AFTER the IsWorkAlive call and reload_cse_regs then rewrites that `add` to `mr r9,r29` (r29
+  = e = m + A already computed, same value) — hence the odd `mr r9,r29; subi r9,r9,8` pair; the p giv is `subi r3,r29,0x18` (combine
+  folded its `mr; subi`). So in the original cse2 did NOT fold `(plus A m)` into e for the address giv, and both giv inits are in
+  terms of `no` (biv initial value must be a REG or constant for loop.c, valid_initial_value_p), i.e. the biv is `j = no` and the
+  index is `elem[j - 1]`, with the compare eliminated into the `j - 1` giv (`subic. r11,r31,1; blt`). Ours with exactly that source
+  (`for (j = no; j > 0 && (p = &m->elem[j - 1])->messNo == -1; j--)`) gives 49w: `ble` instead of `blt`, A callee-saved as in the
+  target (!), but the address giv comes out `(A - 8) + m` (`subi r0,r29,8; add r9,r0,r28`) and p reuses the peeled `m + (no-1)*24`.
+  `while` and `for`+`break` spellings identical (49). The current `j = no - 1; elem[j]` + `asm("" : : "r"(j))` form (46w) stays.
+- Remaining 55w: SubToolMessMove 40 (2a 15 + 2b 10 + register names downstream), CallbackSave 9 (`add r3,r3,r27` operand order 5 +
+  clear-loop PRE pair 4), SubToolMessInit 6 (clear-loop PRE pair).
+
+### DOL db_cam closer 4 (game/db_cam 11/13: debugCamera::menu 30 -> 2 with one zero-code line; menuFlag 69 not started; IN PROGRESS 2026-09-12)
+
+- **menu 30 -> 2: `do { } while (0);` as the last statement of the outer `if (old_cam_mode != cam_mode) { .. }` body
+  (after the inner if/else).** Everything closer 2/3 listed as OPEN (`lbz r0; clrlwi r11,r0,24` split head, `beq` landing on the
+  `stw`, the shared `lbz r0` before the store, size 0x334) is ONE mechanism: gcse PRE of `(mem:QI this+0x18)` from the head into the
+  tail, which needs the empty join block J between the inner if/else end label and the outer if's end label. jump1 and the jump pass
+  after cse1 merge consecutive labels (`mark_jump_label`: a ref is moved to the LAST of consecutive labels, only NOTEs allowed between,
+  except `NOTE_INSN_LOOP_BEG`/`NOTE_INSN_FUNCTION_END` which stop the merge when `!cross_jump`). An empty `do {} while (0)` leaves its
+  LOOP_BEG note between the two labels, so J survives to gcse. `int dead = 0;` there does NOT work (jump1 with after_regscan deletes the
+  single-ref set, the note does not stop the merge). What PRE then does, all seen in the dumps (`~/.cache/kit/rtl.sh`): head
+  `(set A:QI mem)`, inserted copy `(set P A)` right after the load, `(set B (zext A))`; the copy is a second use of A, so combine cannot
+  fold the load into the extend (i2dest used elsewhere -> PARALLEL, no pattern) = `lbz r0; clrlwi r11,r0,24`; regmove then moves A's
+  later use to P, local-alloc ties A/P (no `mr`). J's end gets `(set P mem)` = the `lbz r0` at 0x1B80; the tail's `(set A2 P); (set B2
+  (zext A2)); (set old B2)` combine into `(set old (subreg:SI P))` because `expand_compound_operation` turns `zero_extend (reg:QI P)` into
+  `(and (subreg:SI P) 255)` and with WORD_REGISTER_OPERATIONS + LOAD_EXTEND_OP=ZERO_EXTEND the paradoxical subreg's high bits are
+  known zero (`reg_nonzero_bits[P]` ORed over both sets = 0xff) -> the `and` is dropped -> plain `stw r0`. No `stb`, no `u8 cm`: the
+  plain `if (old_cam_mode != cam_mode) { switch (cam_mode) ..` source is right; the reload_cse no-op-store idea of the prompt is not
+  needed (a `(set (reg:SI) (zero_extend (mem:QI)))` load records `zero_extend (mem)` as the reg's value, so the byte store back is never
+  a no-op anyway; only a QImode load `(set (reg:QI) (mem:QI))` makes `reload_cse_noop_set_p` delete it).
+- **Remaining 2 words: campos copy `lwz r0,4(r9)` / `lwz r8,8(r9)` swapped** (target y then z; the target/up copies are z then y in
+  both). sched1 t=8 tie between insn 465 (y) and 468 (z): same prio 29, same 11 dependents; haifa `rank_for_schedule` second key
+  `INSN_REG_WEIGHT` (births - deaths) prefers the load where the source base pseudo dies = the stream-last load z. The target needs
+  W(y) <= W(z): the base dies at neither (a later use) or each load has its own dying base pseudo. Struct assignment
+  `pG->Cam.param.pos = campos;` / direct `memcpy(&pG->Cam.param.pos, ..)` = 46 words (allocation elsewhere changes); `(u8*) &campos`
+  cast = no change.
