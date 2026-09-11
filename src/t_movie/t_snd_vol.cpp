@@ -51,7 +51,7 @@ struct SndVolWork {
     int tblType;     // 0x20  0 volume, 1 pitch, 2 filter
     int editMode;    // 0x24
     s8 menuCur;      // 0x28
-    u8 x29;          // 0x29  reverb: DPL2/stereo set; combine: column
+    s8 x29;          // 0x29  reverb: DPL2/stereo set; combine: column
     s8 efxCur[2];    // 0x2A  cursor per set
     SndEfxParam efx[2];     // 0x2C
     CombSel sel[32];        // 0x6C
@@ -1087,70 +1087,77 @@ static char* efx_help[12][2] = {
     {"", "DOPPLER (0.0 - )"},
 };
 
-// One reverb parameter step (dir = -1/+1, big = 10x) on the DPL2 (sel 0) or stereo (sel 1) set.
-static inline void efx_param_move(SndEfxParam* p, int sel, int cur, int big, int dir)
-{
-    f32 fstep = big ? 0.1f : 0.01f;
-    int istep = big ? 10 : 1;
-
-    if (dir < 0) {
-        fstep = -fstep;
-        istep = -istep;
+// One reverb parameter step (dir = -1/+1) on the DPL2 (sel 0) or stereo (sel 1) set; R held = 10x step.
+// Written out per step size and direction: the original has one switch per (big, dir) pair.
+#define EFX_SW_DPL2(op, fs, is)                     \
+    switch (work->efxCur[sel]) {                    \
+    case 0: p->preDelay op fs; break;               \
+    case 1: p->time op fs; break;                   \
+    case 2: p->coloration op fs; break;             \
+    case 3: p->damping op fs; break;                \
+    case 4: p->mix op fs; break;                    \
+    case 5: p->aux_core op is; break;               \
+    case 6: p->aux_room op is; break;               \
+    case 7: p->aux_em op is; break;                 \
+    case 8: p->aux_wep op is; break;                \
     }
-    if (sel == 0) {
-        switch (cur) {
-        case 0: p->preDelay += fstep; break;
-        case 1: p->time += fstep; break;
-        case 2: p->coloration += fstep; break;
-        case 3: p->damping += fstep; break;
-        case 4: p->mix += fstep; break;
-        case 5: p->aux_core += istep; break;
-        case 6: p->aux_room += istep; break;
-        case 7: p->aux_em += istep; break;
-        case 8: p->aux_wep += istep; break;
+#define EFX_SW_ST(op, fs, is)                       \
+    switch (work->efxCur[sel]) {                    \
+    case 0: p->preDelay op fs; break;               \
+    case 1: p->time op fs; break;                   \
+    case 2: p->coloration op fs; break;             \
+    case 3: p->damping op fs; break;                \
+    case 4: p->crosstalk op fs; break;              \
+    case 5: p->mix op fs; break;                    \
+    case 6: p->aux_core op is; break;               \
+    case 7: p->aux_room op is; break;               \
+    case 8: p->aux_em op is; break;                 \
+    case 9: p->aux_wep op is; break;                \
+    }
+static inline void efx_param_move(SndEfxParam* p, int sel, int dir)
+{
+    if (Joy[0].on & 0x400) {
+        if (sel == 0) {
+            if (dir < 0) {
+                EFX_SW_DPL2(-=, 0.1f, 10)
+            } else {
+                EFX_SW_DPL2(+=, 0.1f, 10)
+            }
+        } else {
+            if (dir < 0) {
+                EFX_SW_ST(-=, 0.1f, 10)
+            } else {
+                EFX_SW_ST(+=, 0.1f, 10)
+            }
         }
     } else {
-        switch (cur) {
-        case 0: p->preDelay += fstep; break;
-        case 1: p->time += fstep; break;
-        case 2: p->coloration += fstep; break;
-        case 3: p->damping += fstep; break;
-        case 4: p->crosstalk += fstep; break;
-        case 5: p->mix += fstep; break;
-        case 6: p->aux_core += istep; break;
-        case 7: p->aux_room += istep; break;
-        case 8: p->aux_em += istep; break;
-        case 9: p->aux_wep += istep; break;
+        if (sel == 0) {
+            if (dir < 0) {
+                EFX_SW_DPL2(-=, 0.01f, 1)
+            } else {
+                EFX_SW_DPL2(+=, 0.01f, 1)
+            }
+        } else {
+            if (dir < 0) {
+                EFX_SW_ST(-=, 0.01f, 1)
+            } else {
+                EFX_SW_ST(+=, 0.01f, 1)
+            }
         }
     }
 }
 
-static inline void efx_param_clamp(SndEfxParam* p)
-{
-    if (p->preDelay < 0.0f) p->preDelay = 0.0f; else if (p->preDelay > 0.1f) p->preDelay = 0.1f;
-    if (p->time < 0.01f) p->time = 0.01f; else if (p->time > 10.0f) p->time = 10.0f;
-    if (p->coloration < 0.0f) p->coloration = 0.0f; else if (p->coloration > 1.0f) p->coloration = 1.0f;
-    if (p->damping < 0.0f) p->damping = 0.0f; else if (p->damping > 1.0f) p->damping = 1.0f;
-    if (p->mix < 0.0f) p->mix = 0.0f; else if (p->mix > 1.0f) p->mix = 1.0f;
-    if ((s16) p->aux_core < 0) p->aux_core = 0; else if ((s16) p->aux_core > 0x7F) p->aux_core = 0x7F;
-    if ((s16) p->aux_room < 0) p->aux_room = 0; else if ((s16) p->aux_room > 0x7F) p->aux_room = 0x7F;
-    if ((s16) p->aux_em < 0) p->aux_em = 0; else if ((s16) p->aux_em > 0x7F) p->aux_em = 0x7F;
-    if ((s16) p->aux_wep < 0) p->aux_wep = 0; else if ((s16) p->aux_wep > 0x7F) p->aux_wep = 0x7F;
-}
-
-static inline void efx_param_clamp_st(SndEfxParam* p)
-{
-    if (p->preDelay < 0.0f) p->preDelay = 0.0f; else if (p->preDelay > 0.1f) p->preDelay = 0.1f;
-    if (p->time < 0.01f) p->time = 0.01f; else if (p->time > 10.0f) p->time = 10.0f;
-    if (p->coloration < 0.0f) p->coloration = 0.0f; else if (p->coloration > 1.0f) p->coloration = 1.0f;
-    if (p->damping < 0.0f) p->damping = 0.0f; else if (p->damping > 1.0f) p->damping = 1.0f;
-    if (p->crosstalk < 0.0f) p->crosstalk = 0.0f; else if (p->crosstalk > 1.0f) p->crosstalk = 1.0f;
-    if (p->mix < 0.0f) p->mix = 0.0f; else if (p->mix > 1.0f) p->mix = 1.0f;
-    if ((s16) p->aux_core < 0) p->aux_core = 0; else if ((s16) p->aux_core > 0x7F) p->aux_core = 0x7F;
-    if ((s16) p->aux_room < 0) p->aux_room = 0; else if ((s16) p->aux_room > 0x7F) p->aux_room = 0x7F;
-    if ((s16) p->aux_em < 0) p->aux_em = 0; else if ((s16) p->aux_em > 0x7F) p->aux_em = 0x7F;
-    if ((s16) p->aux_wep < 0) p->aux_wep = 0; else if ((s16) p->aux_wep > 0x7F) p->aux_wep = 0x7F;
-}
+// Reverb parameter clamps, written out in place (an inlined function's pool loads lose RTX_UNCHANGING_P).
+#define EFX_CLAMP_COMMON(p) \
+    p->preDelay = p->preDelay < 0.0f ? 0.0f : p->preDelay > 0.1f ? 0.1f : p->preDelay; \
+    p->time = p->time < 0.01f ? 0.01f : p->time > 10.0f ? 10.0f : p->time; \
+    p->coloration = p->coloration < 0.0f ? 0.0f : p->coloration > 1.0f ? 1.0f : p->coloration; \
+    p->damping = p->damping < 0.0f ? 0.0f : p->damping > 1.0f ? 1.0f : p->damping;
+#define EFX_CLAMP_AUX(p) \
+    { int v = p->aux_core; int e = (s16) v; int r; if (e >= 0) { r = v; if (e > 0x7F) r = 0x7F; } else r = 0; p->aux_core = r; } \
+    { int v = p->aux_room; int e = (s16) v; int r; if (e >= 0) { r = v; if (e > 0x7F) r = 0x7F; } else r = 0; p->aux_room = r; } \
+    { int v = p->aux_em; int e = (s16) v; int r; if (e >= 0) { r = v; if (e > 0x7F) r = 0x7F; } else r = 0; p->aux_em = r; } \
+    { int v = p->aux_wep; int e = (s16) v; int r; if (e >= 0) { r = v; if (e > 0x7F) r = 0x7F; } else r = 0; p->aux_wep = r; }
 
 static void edit_reverb_param()
 {
@@ -1158,7 +1165,6 @@ static void edit_reverb_param()
     u32 col;
     int active;
     s16 y;
-    s8* cur = work->efxCur;
 
     eprintf(0x40, 0x28, 0, 0, "[REVERB PARAMETER EDIT]");
     if (Joy[0].trg & 0x200) {
@@ -1169,29 +1175,42 @@ static void edit_reverb_param()
     } else if (Joy[0].trg & 0x60) {
         work->x29 ^= 1;
     } else if (Joy[0].rep & 0x80008) {
-        cur[work->x29]--;
+        work->efxCur[work->x29]--;
     } else if (Joy[0].rep & 0x40004) {
-        cur[work->x29]++;
+        work->efxCur[work->x29]++;
     } else if (Joy[0].rep & 0x10001) {
         if (work->x29 == 0) {
-            efx_param_move(&work->efx[0], 0, cur[0], Joy[0].on & 0x400, -1);
+            efx_param_move(&work->efx[0], 0, -1);
         } else {
-            efx_param_move(&work->efx[1], 1, cur[1], Joy[0].on & 0x400, -1);
+            efx_param_move(&work->efx[1], 1, -1);
         }
     } else if (Joy[0].rep & 0x20002) {
         if (work->x29 == 0) {
-            efx_param_move(&work->efx[0], 0, cur[0], Joy[0].on & 0x400, 1);
+            efx_param_move(&work->efx[0], 0, 1);
         } else {
-            efx_param_move(&work->efx[1], 1, cur[1], Joy[0].on & 0x400, 1);
+            efx_param_move(&work->efx[1], 1, 1);
         }
     }
     if (work->x29 == 0) {
-        cur[0] = cur[0] < 0 ? 0 : cur[0] > 8 ? 8 : cur[0];
+        work->efxCur[0] = work->efxCur[0] < 0 ? 0 : work->efxCur[0] > 8 ? 8 : work->efxCur[0];
     } else {
-        cur[1] = cur[1] < 0 ? 0 : cur[1] > 9 ? 9 : cur[1];
+        work->efxCur[1] = work->efxCur[1] < 0 ? 0 : work->efxCur[1] > 9 ? 9 : work->efxCur[1];
     }
-    efx_param_clamp(&work->efx[0]);
-    efx_param_clamp_st(&work->efx[1]);
+    {
+        SndEfxParam* p = &work->efx[0];
+
+        EFX_CLAMP_COMMON(p);
+        p->mix = p->mix < 0.0f ? 0.0f : p->mix > 1.0f ? 1.0f : p->mix;
+        EFX_CLAMP_AUX(p);
+    }
+    {
+        SndEfxParam* p = &work->efx[1];
+
+        EFX_CLAMP_COMMON(p);
+        p->crosstalk = p->crosstalk < 0.0f ? 0.0f : p->crosstalk > 1.0f ? 1.0f : p->crosstalk;
+        p->mix = p->mix < 0.0f ? 0.0f : p->mix > 1.0f ? 1.0f : p->mix;
+        EFX_CLAMP_AUX(p);
+    }
 
     // DPL2 panel
     if (work->x29 == 0) {
@@ -1205,29 +1224,29 @@ static void edit_reverb_param()
     pt[1].x = 0x1B0; pt[1].y = 0x48; pt[1].z = 0;
     pt[2].x = 0x1B0; pt[2].y = 0x148; pt[2].z = 0;
     pt[3].x = 0x118; pt[3].y = 0x148; pt[3].z = 0;
+    y = 0x80;
     TprimDrawFrameFn_s16(pt, (GXColor*) &col, 4);
     eprintf(0x120, 0x50, 5, 0, "SURROUND MODE");
     eprintf(0x120, 0x70, 4, 0, "REVERB");
-    y = 0x80;
-    eprintf(0x120, y, active ? (cur[0] == 0 ? 6 : 0) : 0, 0, "DELAY       %2.2f", work->efx[0].preDelay);
+    eprintf(0x120, y, active ? (work->efxCur[0] == 0 ? 6 : 0) : 0, 0, "DELAY       %2.2f", work->efx[0].preDelay);
     y += 0x10;
-    eprintf(0x120, y, active ? (cur[0] == 1 ? 6 : 0) : 0, 0, "TIME        %2.2f", work->efx[0].time);
+    eprintf(0x120, y, active ? (work->efxCur[0] == 1 ? 6 : 0) : 0, 0, "TIME        %2.2f", work->efx[0].time);
     y += 0x10;
-    eprintf(0x120, y, active ? (cur[0] == 2 ? 6 : 0) : 0, 0, "COLORATION  %2.2f", work->efx[0].coloration);
+    eprintf(0x120, y, active ? (work->efxCur[0] == 2 ? 6 : 0) : 0, 0, "COLORATION  %2.2f", work->efx[0].coloration);
     y += 0x10;
-    eprintf(0x120, y, active ? (cur[0] == 3 ? 6 : 0) : 0, 0, "DAMPING     %2.2f", work->efx[0].damping);
+    eprintf(0x120, y, active ? (work->efxCur[0] == 3 ? 6 : 0) : 0, 0, "DAMPING     %2.2f", work->efx[0].damping);
     y += 0x10;
-    eprintf(0x120, y, active ? (cur[0] == 4 ? 6 : 0) : 0, 0, "MIX         %2.2f", work->efx[0].mix);
+    eprintf(0x120, y, active ? (work->efxCur[0] == 4 ? 6 : 0) : 0, 0, "MIX         %2.2f", work->efx[0].mix);
     y += 0x30;
     eprintf(0x120, y, 4, 0, "AUX A");
     y += 0x10;
-    eprintf(0x120, y, active ? (cur[0] == 5 ? 6 : 0) : 0, 0, "CORE          %3d", (s16) work->efx[0].aux_core);
+    eprintf(0x120, y, active ? (work->efxCur[0] == 5 ? 6 : 0) : 0, 0, "CORE          %3d", (s16) work->efx[0].aux_core);
     y += 0x10;
-    eprintf(0x120, y, active ? (cur[0] == 6 ? 6 : 0) : 0, 0, "ROOM          %3d", (s16) work->efx[0].aux_room);
+    eprintf(0x120, y, active ? (work->efxCur[0] == 6 ? 6 : 0) : 0, 0, "ROOM          %3d", (s16) work->efx[0].aux_room);
     y += 0x10;
-    eprintf(0x120, y, active ? (cur[0] == 7 ? 6 : 0) : 0, 0, "ENEMY         %3d", (s16) work->efx[0].aux_em);
+    eprintf(0x120, y, active ? (work->efxCur[0] == 7 ? 6 : 0) : 0, 0, "ENEMY         %3d", (s16) work->efx[0].aux_em);
     y += 0x10;
-    eprintf(0x120, y, active ? (cur[0] == 8 ? 6 : 0) : 0, 0, "WEAPON        %3d", (s16) work->efx[0].aux_wep);
+    eprintf(0x120, y, active ? (work->efxCur[0] == 8 ? 6 : 0) : 0, 0, "WEAPON        %3d", (s16) work->efx[0].aux_wep);
 
     // stereo panel
     if (work->x29 == 1) {
@@ -1246,33 +1265,33 @@ static void edit_reverb_param()
     pt[1].x = 0xF0; pt[1].y = 0x48; pt[1].z = 0;
     pt[2].x = 0xF0; pt[2].y = 0x148; pt[2].z = 0;
     pt[3].x = 0x58; pt[3].y = 0x148; pt[3].z = 0;
+    y = 0x80;
     TprimDrawFrameFn_s16(pt, (GXColor*) &col, 4);
     eprintf(0x60, 0x50, 5, 0, "STEREO MODE");
     eprintf(0x60, 0x70, 4, 0, "REVERB");
-    y = 0x80;
-    eprintf(0x60, y, active ? (cur[1] == 0 ? 6 : 0) : 0, 0, "DELAY       %2.2f", work->efx[1].preDelay);
+    eprintf(0x60, y, active ? (work->efxCur[1] == 0 ? 6 : 0) : 0, 0, "DELAY       %2.2f", work->efx[1].preDelay);
     y += 0x10;
-    eprintf(0x60, y, active ? (cur[1] == 1 ? 6 : 0) : 0, 0, "TIME        %2.2f", work->efx[1].time);
+    eprintf(0x60, y, active ? (work->efxCur[1] == 1 ? 6 : 0) : 0, 0, "TIME        %2.2f", work->efx[1].time);
     y += 0x10;
-    eprintf(0x60, y, active ? (cur[1] == 2 ? 6 : 0) : 0, 0, "COLORATION  %2.2f", work->efx[1].coloration);
+    eprintf(0x60, y, active ? (work->efxCur[1] == 2 ? 6 : 0) : 0, 0, "COLORATION  %2.2f", work->efx[1].coloration);
     y += 0x10;
-    eprintf(0x60, y, active ? (cur[1] == 3 ? 6 : 0) : 0, 0, "DAMPING     %2.2f", work->efx[1].damping);
+    eprintf(0x60, y, active ? (work->efxCur[1] == 3 ? 6 : 0) : 0, 0, "DAMPING     %2.2f", work->efx[1].damping);
     y += 0x10;
-    eprintf(0x60, y, active ? (cur[1] == 4 ? 6 : 0) : 0, 0, "CROSSTALK   %2.2f", work->efx[1].crosstalk);
+    eprintf(0x60, y, active ? (work->efxCur[1] == 4 ? 6 : 0) : 0, 0, "CROSSTALK   %2.2f", work->efx[1].crosstalk);
     y += 0x10;
-    eprintf(0x60, y, active ? (cur[1] == 5 ? 6 : 0) : 0, 0, "MIX         %2.2f", work->efx[1].mix);
+    eprintf(0x60, y, active ? (work->efxCur[1] == 5 ? 6 : 0) : 0, 0, "MIX         %2.2f", work->efx[1].mix);
     y += 0x20;
     eprintf(0x60, y, 4, 0, "AUX A");
     y += 0x10;
-    eprintf(0x60, y, active ? (cur[1] == 6 ? 6 : 0) : 0, 0, "CORE          %3d", (s16) work->efx[1].aux_core);
+    eprintf(0x60, y, active ? (work->efxCur[1] == 6 ? 6 : 0) : 0, 0, "CORE          %3d", (s16) work->efx[1].aux_core);
     y += 0x10;
-    eprintf(0x60, y, active ? (cur[1] == 7 ? 6 : 0) : 0, 0, "ROOM          %3d", (s16) work->efx[1].aux_room);
+    eprintf(0x60, y, active ? (work->efxCur[1] == 7 ? 6 : 0) : 0, 0, "ROOM          %3d", (s16) work->efx[1].aux_room);
     y += 0x10;
-    eprintf(0x60, y, active ? (cur[1] == 8 ? 6 : 0) : 0, 0, "ENEMY         %3d", (s16) work->efx[1].aux_em);
+    eprintf(0x60, y, active ? (work->efxCur[1] == 8 ? 6 : 0) : 0, 0, "ENEMY         %3d", (s16) work->efx[1].aux_em);
     y += 0x10;
-    eprintf(0x60, y, active ? (cur[1] == 9 ? 6 : 0) : 0, 0, "WEAPON        %3d", (s16) work->efx[1].aux_wep);
+    eprintf(0x60, y, active ? (work->efxCur[1] == 9 ? 6 : 0) : 0, 0, "WEAPON        %3d", (s16) work->efx[1].aux_wep);
     y += 0x30;
-    eprintf(0x58, y, 0, 0, "%s", efx_help[cur[work->x29]][work->x29]);
+    eprintf(0x58, y, 0, 0, "%s", efx_help[work->efxCur[work->x29]][work->x29]);
 }
 
 void combine_tbl_disp(CombSel* sel)
@@ -1574,7 +1593,6 @@ static void edit_combine_tbl()
 
 static void file_save()
 {
-    SndRoomHdr* hdr = (SndRoomHdr*) work->fileBuf;
     u8* p;
     u32 ofs;
     int size;
@@ -1629,7 +1647,9 @@ static void file_save()
             work->yesno ^= 1;
         }
         break;
-    case 2:
+    case 2: {
+        SndRoomHdr* hdr = (SndRoomHdr*) work->fileBuf;
+
         hdr->efx[0] = work->efx[0];
         hdr->efx[1] = work->efx[1];
         ofs = sizeof(SndRoomHdr);
@@ -1712,6 +1732,7 @@ static void file_save()
             work->x6 = 0;
         }
         break;
+    }
     case 3:
         eprintf(0x40, 0xB0, 6, 0, "DATA SAVE COMPLETE.");
         if ((Joy[0].trg & 0x300) || work->timer <= 0) {

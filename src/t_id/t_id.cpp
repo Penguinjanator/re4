@@ -1084,7 +1084,17 @@ int idEditPos(IdTool* w, int x, int y)
             break;
         }
         case 1:
+            if (joy->trg & 0x100) {
+                w->subStep = 0;
+                w->editStep++;
+            }
+            break;
         case 2:
+            if (joy->trg & 0x100) {
+                w->subStep = 0;
+                w->editStep++;
+            }
+            break;
         case 5:
             if (joy->trg & 0x100) {
                 w->subStep = 0;

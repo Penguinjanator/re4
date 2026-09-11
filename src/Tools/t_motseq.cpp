@@ -511,7 +511,6 @@ static void msq_R0_Sequence()
     cModel* m = dbModSlot[0].pModel;
     s16 cur;
     s16 cur2;
-    int dead;
     cParts* p;
 
     if (w->joy.trg & 0x200) {
@@ -555,13 +554,21 @@ static void msq_R0_Sequence()
         }
     }
     if (cur != cur2) {
+        int t;
+
         if (cur2 > 0) {
             cur2 = cur2 - 1;
         } else {
             cur2 = m->mot.seqMax - 1;
         }
+        // Dead in effect (cur is not read again): the original keeps a `cmpwi cur,0` with no branch here,
+        // which needs a test whose arm is live at flow1 and dies only through a third test (pass 8/18b form).
+        t = cur2;
         if (cur != 0) {
-            dead = 1;
+            t = cur;
+        }
+        if (t != cur2) {
+            cur = t;
         }
     }
     if (MSQ->joy.trg & 0x10) {
@@ -1151,7 +1158,7 @@ void msqDisp()
         x = 40.0f;
         rc.w = 13.0f;
         y0 = (s16) m->mot.seqFrame - 14;
-        const f32 rowStep = 5.0f;
+        f32 rowStep = 5.0f;  // a variable set before the loop: its load precedes every loop.c hoist (369.0 after it)
         const f32 rowH = 4.0f;
         const f32 seH = 24.0f;
         const f32 colStep = 25.0f;
