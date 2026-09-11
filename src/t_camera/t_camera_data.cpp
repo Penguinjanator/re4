@@ -485,3 +485,6 @@ void tcSetBesideCamera()
     CamCtrl.qfps.setAreaData(ready, trans);
     CamCtrl.qfps.setFloorRatio(c->u44.floor);
 }
+
+// the split object ends .rodata with a 4-byte pad to 8 (the linker does not re-create it)
+asm(".section .rodata; .balign 8; .text");

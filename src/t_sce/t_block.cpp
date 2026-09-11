@@ -882,8 +882,9 @@ static void tBlockAreaInfo_Menu()
         }
         switch (pW->infoMenuCursor) {
         case 0: {
-            int n = c->blockNo;
+            register int n asm("r11");  // COMPILER-DIFF: candidate #17 (global-alloc order of n vs the rep2 load)
 
+            n = c->blockNo;
             if (Joy[0].rep2 & 0x20002) n++;
             if (Joy[0].rep2 & 0x10001) n--;
             if (n >= 0) {
@@ -1429,7 +1430,7 @@ void tBlockSaveDataCreate()
     int nBlock = 0;
     int nArea = 0;
     int nConnect = 0;
-    int i;
+    int i = BLOCK_NUM - 1;
     u32 linkSize;
     u32 connectSize;
 
@@ -1437,7 +1438,6 @@ void tBlockSaveDataCreate()
     if (pW->link[BLOCK_NUM - 1].flags & 1) {
         nBlock = BLOCK_NUM;
     } else {
-        i = BLOCK_NUM - 1;
     again:
         i--;
         if (i >= 0) {
@@ -1446,9 +1446,9 @@ void tBlockSaveDataCreate()
         }
     }
     memcpy(pW->pLink, pW->link, nBlock * sizeof(BlockLink));
+    linkSize = nBlock * sizeof(BlockLink);
     pW->pLink = (BlockLink*) ((u8*) pW->pLink + nBlock * sizeof(BlockLink));
     pW->pArea = (TBlockArea*) pW->pLink;
-    linkSize = nBlock * sizeof(BlockLink);
     for (i = 0; i < AREA_NUM; i++) {
         if (pW->area[i].flags & 1) {
             *pW->pArea = pW->area[i];
@@ -1472,8 +1472,12 @@ void tBlockSaveDataCreate()
     pW->file.hdr.nConnect = nConnect;
     pW->file.hdr.ofsLink = sizeof(TBlockHeader);
     pW->file.hdr.ofsArea = sizeof(TBlockHeader) + linkSize;
-    pW->file.hdr.ofsConnect = linkSize + (nArea * sizeof(TBlockArea) + sizeof(TBlockHeader));
-    pW->fileSize = linkSize + (nArea * sizeof(TBlockArea) + sizeof(TBlockHeader)) + connectSize;
+    {
+        u32 areaSize = nArea * sizeof(TBlockArea) + sizeof(TBlockHeader);
+        u32 ofsConnect = linkSize + areaSize;
+        pW->file.hdr.ofsConnect = ofsConnect;
+        pW->fileSize = ofsConnect + connectSize;
+    }
 }
 
 void tBlock_DebugCamera()

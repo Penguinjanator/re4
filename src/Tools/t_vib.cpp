@@ -1044,17 +1044,15 @@ void tvibModeFrameDisp()
 {
     S16Vec v[4];
     u32 col;
-    int x0;
-    int y0;
-    int x1;
-    int y1;
 
+    // per-arm locals: shared function-scope x0..y1 would be one global pseudo each, allocated to the
+    // same registers in both arms, and jump2 then cross-jumps the identical store tails
     switch (V->mode) {
-    case 0:
-        x0 = (u16) list_x - 6;
-        y0 = (u16) list_y - 24;
-        x1 = (u16) list_x + 462;
-        y1 = (u16) list_y + 162;
+    case 0: {
+        int x0 = (u16) list_x - 6;
+        int y0 = (u16) list_y - 24;
+        int x1 = (u16) list_x + 462;
+        int y1 = (u16) list_y + 162;
         v[0].x = x0;
         v[0].y = y0;
         v[0].z = 0;
@@ -1068,12 +1066,13 @@ void tvibModeFrameDisp()
         v[3].y = y1;
         v[3].z = 0;
         break;
+    }
     case 1:
-    case 2:
-        x0 = (u16) menu_x - 34;
-        y0 = (u16) menu_y - 24;
-        x1 = (u16) menu_x + 420;
-        y1 = (u16) menu_y + 154;
+    case 2: {
+        int x0 = (u16) menu_x - 34;
+        int y0 = (u16) menu_y - 24;
+        int x1 = (u16) menu_x + 420;
+        int y1 = (u16) menu_y + 154;
         v[0].x = x0;
         v[0].y = y0;
         v[0].z = 0;
@@ -1087,6 +1086,7 @@ void tvibModeFrameDisp()
         v[3].y = y1;
         v[3].z = 0;
         break;
+    }
     default:
         return;
     }
@@ -1180,7 +1180,7 @@ void tvibFrameVibDraw(TvibData* d)
 void tvibFrameLineDraw(VibDataEntry* e, u32 col)
 {
     S16Vec v[2];
-    u32 c;
+    GXColor c;
     int scroll;
     int start;
     int end;
@@ -1190,7 +1190,7 @@ void tvibFrameLineDraw(VibDataEntry* e, u32 col)
     f32 lv;
     f32 cur;
 
-    c = col;
+    *(u32*) &c = col;
     scroll = V->scroll;
     start = e->wait;
     end = start + e->time;
@@ -1202,19 +1202,16 @@ void tvibFrameLineDraw(VibDataEntry* e, u32 col)
             cur = lv;
             lv += step;
             if (i >= 0) {
-                u16 x;
-
                 if (i >= frame_w - 1) {
                     break;
                 }
-                x = menu_x + cell_w * i;
-                v[0].x = x;
+                v[0].x = (u16) menu_x + cell_w * i;
+                v[1].x = v[0].x + cell_w;
                 v[0].y = (u16) menu_y + (u16) (s16) ((8.0f - cur) * (f32) cell_h);
-                v[0].z = 0;
-                v[1].x = x + cell_w;
                 v[1].y = (u16) menu_y + (u16) (s16) ((8.0f - lv) * (f32) cell_h);
+                v[0].z = 0;
                 v[1].z = 0;
-                TprimDrawFrameFn_s16(v, (GXColor*) &c, 2);
+                TprimDrawFrameFn_s16(v, &c, 2);
             }
         }
     }
@@ -1297,11 +1294,14 @@ void tvibListVibDraw()
 
     page = V->listNo % 16;
     top = (u16) V->listNo - page;
-    for (i = 0; i < 16 && i < 64; i++) {
-        int n = i + top;
-        TvibData* d = &V->list[n];
+    for (i = 0; i < 16; i++) {
+        if (i >= 64) {
+            break;
+        }
+        TvibData* d = &V->list[i + top];
         int x = LIST_X(i);
         int y = LIST_Y(i);
+        int xl = x + 49;
 
         col = 0x60606060;
         v[0].x = x + 48;
@@ -1319,22 +1319,21 @@ void tvibListVibDraw()
             } else {
                 col = 0xFFFFFFFF;
             }
-            tvibListLineDraw(e, col, x + 49, y);
+            tvibListLineDraw(e, col, xl, y);
         }
-        if (n == V->listNo) {
-            int fx;
-
+        if (i + top == V->listNo) {
+            xl = LIST_X(i) + 49;
             if (V->frame > 177) {
-                fx = LIST_X(i) + 49 + 178;
+                xl += 178;
             } else {
-                fx = LIST_X(i) + 49 + V->frame;
+                xl += V->frame;
             }
             y = LIST_Y(i);
             col = 0xFFFF00FF;
-            v[0].x = fx;
+            v[0].x = xl;
             v[0].y = y - 2;
             v[0].z = 0;
-            v[1].x = fx;
+            v[1].x = xl;
             v[1].y = y + 20;
             v[1].z = 0;
             TprimDrawFrameFn_s16(v, (GXColor*) &col, 2);

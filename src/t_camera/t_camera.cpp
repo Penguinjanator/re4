@@ -694,7 +694,7 @@ void tcEdit_select()
                         *n = *src;
                         n->area_no = dstNo;
                         n->cam_no = dstSfx;
-                        PTC->adatTypeNum[dstNo]++;
+                        PTC->adatTypeNum[n->area_no]++;
                     }
                 }
                 PTC->x2 = 0;
@@ -922,11 +922,11 @@ void tcEdit_select()
         cx = 8;
         break;
     default:
-        x += 0x15;
-        x += (cursor - 3) * 5;
+        x += 0x15 + (cursor - 3) * 5;
         cx = 4;
         break;
     }
+    asm("" : : "r"(x));  // COMPILER-DIFF: tie (global-alloc priority of x vs the cut pointer)
     if (blink & 0x18) {
         int xr;
         eprintf(x * 8, y * 14, 0, 0, ">");
@@ -2649,6 +2649,11 @@ void tcDrawRail()
         tcDrawSphere(&c->pos[i], col, r);
         if (PTC->editMode == 1 && PTC->editSel == 1 && i == PTC->x627 && PTC->x6 == 1) {
             v = c->pos[i];
+            {
+                register Vec* a3 asm("r3");  // COMPILER-DIFF: candidate #18 (struct-return-like address in r3 before a no-argument call)
+                a3 = &v;
+                asm("" : "=m"(v.y) : "r"(a3));
+            }
             v.y = tcGetFloor();
             tcDrawLine3D(&c->pos[i], &v, 0xFF0000FE);
         }
@@ -2665,6 +2670,11 @@ void tcDrawRail()
         tcDrawSphere(&c->at[i], col, r);
         if (PTC->editMode == 1 && PTC->editSel == 1 && i == PTC->x627 && PTC->x6 == 2) {
             v = c->at[i];
+            {
+                register Vec* a3 asm("r3");  // COMPILER-DIFF: candidate #18 (struct-return-like address in r3 before a no-argument call)
+                a3 = &v;
+                asm("" : "=m"(v.y) : "r"(a3));
+            }
             v.y = tcGetFloor();
             tcDrawLine3D(&c->at[i], &v, 0xFF0000FE);
         }
@@ -2919,7 +2929,6 @@ static f32 tcDollyDummy = 0.0f;
 void tcToolCameraMove(Camera* cam)
 {
     Vec d = {0.0f, 0.0f, 0.0f};
-    Vec axis = {0.0f, 1.0f, 0.0f};
     f32 z;
 
     if (TC_ON & 0x60) {
@@ -2962,6 +2971,7 @@ void tcToolCameraMove(Camera* cam)
         CameraDolly(cam, &d);
     }
     if (PTC->joy.sx) {
+        Vec axis = {0.0f, 1.0f, 0.0f};
         if (PTC->x62F) {
             CameraRotAxisPosRad(cam, &axis, &cam->param.pos, (f32) PTC->joy.sx / 20.0f * 0.017453292f);
         } else {

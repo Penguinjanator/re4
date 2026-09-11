@@ -16146,3 +16146,185 @@ rewritten; `tryv.py UNIT SYM v/x.py`, `sbs.sh UNIT SYM [OBJ]`, `dump.sh UNIT -dX
   function's `0.0f` + pad. A `static` non-inline function is compiled and its pool output even when never referenced.
 - Hazard seen again: a tool edit to config/G4BE08/objects.py vanished within seconds (another agent's stale rewrite);
   verify with `python3 -c "import ..."` that the set/dict actually contains the unit before running configure.py.
+
+### Tool RELs, bytes-first pass 14 (Tools/t_rck Matching 33/33 -> flipped; t_camera/t_camera Matching 57/57 -> flipped; t_vib 25 -> 27/29; t_block 27 -> 28/31; t_camera_data .rodata equal; 2026-09-11)
+
+- Harness ~/.cache/tools_p14 (deleted at the end): the tesp4 module-aware scripts with the paths rewritten (`mtryv.py MOD/UNIT
+  SYM V.py [--apply NAME]`, `msbs.sh MOD/UNIT SYM [OBJ]` = target LEFT, `mdump.sh MOD/UNIT -dX` with an ABSOLUTE `SRC_OVERRIDE`,
+  `fsec.py DUMP FUNC`, `mcmp.py`, `order.py`, `prio.py PRE` on `<PRE>_lreg.txt`/`<PRE>_greg.txt` cut with fsec). 111 OK after
+  both flips (`Tools/t_rck.cpp` and `t_camera/t_camera.cpp` in modules.py MATCHING; make_rel needed no scope fixes).
+- **rckDrawPointLine (t_rck, 231 -> 0, zero code; five independent facts):** (1) `RckLine* lij = &w->line[i][j]; RckLine* l =
+  &w->line[j][i]; RckPoint* p = &w->pt[i];` POINTER forms: an ADDR_EXPR of `x->arr[i]` builds `(plus w (plus (mult i 16) 724))`
+  (fold groups the member offset with the index term), so `i*16+724` is ONE invariant pseudo hoisted by loop.c (`addi r23,r9,724`
+  in the preheader), `p->pos.x` is rewritten by find_best_addr to `lfsx w,r23` and `.y/.z` read `4(p)`/`8(p)` off `add p,w,r23`;
+  the direct `w->pt[i].pos.y` expands as `(plus (plus w 728) i16)` = `addi w,728; lfsx` per field. (2) ONE `RckPoint* p`
+  reassigned (`p = &w->pt[j]` after the `a` stores): the second set carries an output dependence on the first and anti
+  dependences on every `lfs 4(p)`, so sched1 issues it right after `a.z`'s load and local-alloc gives both the same r11; two
+  pointers put the j add at t2 in its own register. (3) `if (dir.x == 0.0f && dir.z == 0.0f) continue;` between PSVECAdd and
+  VECNormalize -- read off the target's `fcmpu cr7 x; bne; lfs z; fcmpu; beq CONT` (the macro's first test then reuses cr7 as a
+  dead `bne cr7`); the two extra insns also push the inner loop over loop pass 2's `71 * 3 = 213` threshold so the `lis pLog@ha`
+  (life 3) stays in the error block instead of the preheader (ours hoisted it at exactly 213 insns and it took r14, spilling the
+  PRE'd `&colOne` pseudo -- reload then re-materialised `addi rX,r1,196` at both uses). (4) Member-wise Vec copies (`v[0].x =
+  p->pos.x; ...`, `seg0.x = v[0].x; ...`, `v[0].x = mid.x`): `lfs/stfs` per field with the `p->` fields reloaded after the frame
+  stores (cse invalidates the varying-address loads); `Vec seg0, seg1` are two locals (16-byte slots), not `Vec seg[2]`. (5)
+  `u8 red = 0xFF; GXColor colBoth = {red, 0xFF, 0xFF, 0xFF}; colHit = {red, 0xFF, 0, 0xFF}` (the rckDrawPointLineNow idiom: the
+  variable byte gives `stw 0; stb r8(-1)` where a constant first byte folds into the word store) and `RckWork* w = RCK` AFTER the
+  `i == j` test.
+- **tcDrawRail (t_camera, 39 -> 0, tagged `COMPILER-DIFF: candidate #18`):** the target has a dead `mr r3,&v` before each `bl
+  tcGetFloor` (a `()` function, `tcGetFloor__Fv`) and allocates `&v` (r28) above the pos giv (r27); the r3 set is the shape of
+  expand_call's `struct_value_rtx` move or an argument, neither of which the declaration allows. Every natural spelling was tried
+  and rejected: a by-value inline (`Vec tcCdatPos(c, i)` -- integrate.c DROPS the callee's `(set r3 value_address)` because
+  function.c marks it REG_FUNCTION_VALUE_P; with `v = f()` the C++ FE also goes through a temp slot, `Vec v = f()` writes v
+  directly), `Vec* pv = &v` (fixes the allocation, 27), an inline wrapper taking `Vec*` (39), placement-new copy (39). Applied:
+  `register Vec* a3 asm("r3"); a3 = &v; asm("" : "=m"(v.y) : "r"(a3));` after the copy -- the pin's extra refs also give `&v` the
+  target's priority. No other `mr r3,rX; bl *__Fv` with a frame address exists in the whole tree (searched), so the mechanism is
+  unknown; keep the tag.
+- **tcToolCameraMove (87 -> 0, zero code): `Vec axis = {0,1,0}` declared INSIDE `if (PTC->joy.sx) {..}`** (the template copy
+  lands in that block, its address pseudo is local and takes r4 for both arms' calls, frame 72 with r31 only). The last word was
+  a linkage error: Bio4.sym names `CameraTargetDistance__FP6Cameraf` (C++) while camera.h declared it inside `extern "C"` --
+  moved out of the block (cam_sys.cpp's definition now assembles under the mangled name; the DOL bytes are unchanged, the REL
+  reloc resolves). A wrong-linkage declaration only shows in mcmp's reloc-name column and would have broken the flip.
+- **tcEdit_select (159 -> 0; one tagged keep-alive):** (1) `PTC->adatTypeNum[n->area_no]++` (re-reading the just-stored member:
+  cse forwards the `stb` as a copy `mr r0,r28` used as the index, and with that extra pseudo the 264-byte block-copy loop's
+  temps fall into the target's r8/r10/r0/r11) -- the pass-12 "n r8" note was this. (2) `x += 0x15 + (cursor - 3) * 5;` for the
+  default arm (fold keeps `(x + 21)` as a temp: `addi r10,r26,21; ...; add r27,r10,r0`; two statements write x twice, the single
+  `x = x + 0x15 + e` form is re-associated to `x + (e + 21)`). (3) The temp form costs x two refs and x (25 refs / 192) then loses
+  r27 to the cut pointer `c` (8 / 45 = 0.533 vs 0.521); `asm("" : : "r"(x));` right before `if (blink & 0x18)` (tagged `tie
+  (global-alloc refs of x vs the cut pointer)`) adds the ref without extending the range (placed after the block it lengthens x
+  to the end: 26-46 words). The natural extra ref was not found (`x++` in the blink block gives 27 refs but `addi r27,r27,1`).
+- **tvibFrameLineDraw (t_vib, 67 -> 0, zero code):** `GXColor c; *(u32*) &c = col;` (tvibFrameMarkDraw's form: the cast store is
+  an unflagged MEM, so the block's struct loads depend on it and sched1 issues it as the 2nd insn -- a `u32 c = col` store is
+  `mem/f` and sinks); `int x` (no u16 truncation), `(u16) menu_x + cell_w * i` (lhz), `v[1].x = v[0].x + cell_w` (MEM + MEM keeps
+  the written operand order -- see the next item), and the store statements in the order v0.x, v1.x, v0.y, v1.y, v0.z, v1.z
+  (several orders give 0; the x's must precede the y's).
+- **Narrow `+` operand order (tvibFrameLineDraw `x + cell_w`, snd_test `w->cur += dir` / `w->reqCur += step`): ours always puts
+  the MEMORY operand first (`add r8,cw,x`, `add r0,cur,dir`) whatever the source order (`x + cw`, `cw + x`, casts, `dir + w->cur`
+  all identical); the target puts the promoted variable first.** convert_to_integer shortens `(u8)(cur + dir)` to `cur + (u8)dir`
+  in order, expand_binop's swap rule (`op1 REG && op0 != REG`) does not fire for a MEM + SUBREG pair, and widen_operand then
+  force_regs both in operand order -- so the reversal is not in our expand path; with two MEMs (`v[0].x + cell_w`) the order is
+  kept and matches. Treat as the same family as the pass-4 snd_test note; two words each in test_tbl_now_check /
+  test_req_no_select.
+- **tvibModeFrameDisp (80 -> 0, zero code): per-arm block-scoped `int x0, y0, x1, y1`** in each `case` of the mode switch. With
+  function-scope locals set in both arms each is one global pseudo allocated to the same register in both arms, the two 12-store
+  tails are identical RTL and jump2 cross-jumps them (ours 7 stores + `b`); the target's arms allocate differently (case 0's zero
+  is the mode register r7, case 1's a fresh `li r0,0`) and stay separate.
+- **tvibListVibDraw (90 -> 24):** `for (i = 0; i < 16; i++) { if (i >= 64) break; ...}` -- the target's bottom `cmpwi 15; bgt END;
+  cmpwi 63; ble LOOP` is the for-test plus jump.c's duplicate of the break test (`i < 16 && i < 64` is range-folded to one
+  compare); the extra exit block also removes the interblock hoist of the inner loop's `mr r5/r6` arg copies (leaf rule).
+  `TvibData* d = &V->list[i + top]` and `if (i + top == V->listNo)` without an `n` local (gcse's reaching copy `mr r24,r9`). ONE
+  `int xl = x + 49` variable reused for the frame-marker x (`xl = LIST_X(i) + 49` in the listNo block): a multi-set pseudo is not
+  "birthing", so sched1 issues it by priority AFTER `x + 48` (a single-set `xl` live at block end gets adjust_priority's boost and
+  takes the first slot). Left 24: the marker's `if (frame > 177) fx = xl + 178; else fx = xl + frame;` -- the target hoists the
+  else set (`add r31,r31,r9` before `ble`), which jump.c does only when B does not mention X and X is not set between
+  (`modified_between_p`), and with the hoisted layout cse's ebb follows the `ble JOIN` jump so `LIST_Y(i)` after the join reuses
+  the `(i+7)>>3` quotient (`slwi r9,r10,3`; ours recomputes it as `clrrwi` -- combine folds `(ashift (ashiftrt t 3) 3)` when the
+  quotient has one use). `int frame = V->frame` + a separate `fx` gets the hoist and the shared quotient (l11) but fx/xl then
+  allocate apart (fx r5 = tied to the dying `frame`; the target's fx is xl's r31): the form where fx IS xl and B still hoists was
+  not found (`xl += frame` fails modified_between_p).
+- **tBlockAreaInfo_Menu (t_block, 11 -> 0, tagged `candidate #17`): `register int n asm("r11")`** for case 0's blockNo temp.
+  n (10 refs / 17) outranks the rep2 load (3 / 9) in global-alloc and takes r9 in every plain form (n/m split, rep2 local, u8 n,
+  direct RMW: 11-76); pinning rep2 to r9 instead pushes the `lis` high to r11 (a hard-register OUTPUT of the `lwz` conflicts with
+  the address register dying in the same insn, so the high cannot share r9), pinning n leaves the high/rep2 tie intact.
+- **tBlockSaveDataCreate (67 -> 38, zero code):** `int i = BLOCK_NUM - 1` at the declaration (`li r8,31` in block 0), `linkSize
+  = nBlock * sizeof(BlockLink)` right after the memcpy, and `u32 areaSize = nArea * sizeof(TBlockArea) + sizeof(TBlockHeader);
+  u32 ofsConnect = linkSize + areaSize;` locals (fold re-associates `linkSize + (n*56 + 24)` into `(linkSize + 24) + n*56` and cse
+  then shares the `+24` with ofsArea; the target adds `24` to the product). Left: the target keeps `linkSize` as a copy `mr
+  r26,r30` of the memcpy-size pseudo (both live: the pLink advance reads r30 after the copy) -- every statement order (before/
+  after memcpy, advance through linkSize, `pLink += nBlock`) lets cse/regmove merge them (38-50).
+- t_camera_data: the split object's `.rodata` ends with a 4-byte pad to 8 (`asm(".section .rodata; .balign 8; .text")` at the
+  end of the file, the esp_app rule); tcSetBesideOffset (27) / tcDataExport (142) untouched.
+- Facts read this pass: `rank_for_schedule` compares PRIORITY first and register weight second (the pass-13 "weight before
+  priority" reading was wrong) -- a lower-priority insn can only win a slot through adjust_priority's birthing boost (dest set
+  once and live at block end); `expand_binop` swaps commutative operands only for `(op1 == REG && op0 != REG)`, `target == op1`
+  or a CONST_INT op0; jump.c's `x = b; if (..) x = a` hoist needs `x = a` not to reference x (post-cse fold of `xl + 178` to `L +
+  227` satisfies it) AND b's registers unmodified between the hoist point and `x = b` (so `xl += frame` never hoists); global.c
+  `set_preference` takes the FIRST operand of a PLUS as a copy-like preference source; integrate.c drops an inlined struct-return
+  function's `(set r3 value_address)` (REG_FUNCTION_VALUE_P) so a by-value inline never leaves an r3 set; loop.c `move_movables`
+  hoists when `71 * savings * lifetime >= insn_count` with lifetime counting notes (LUIDs), so a `lis` with two BLOCK_BEG notes
+  between it and its load has life 3.
+
+### DOL sweep 17, closest-first (id_sys 31 -> 35/36, sce_sys 28 -> 29/30, t_bugcheck menuPosMove 27 -> 2, objRobo R0WalkBridge 38 -> 21; lib/builtin-delete and lib/_eh written and byte-identical; 2026-09-11)
+
+Harness ~/.cache/dol17 (dol16a copies with the paths rewritten: `mcmp.py`, `tryv.py UNIT SYM v/x.py`, `vapply.py`, `sbs.sh UNIT
+SYM [OBJ]`, `dump.sh UNIT -dX` with `SRC_OVERRIDE=<abs path>` (the dump is named `<base>.i.<pass>`), `fsec.py DUMP 'FUNC('`,
+`prio.py PRE`, `order.py UNIT`; deleted at the end). Build 111 OK after every edit.
+
+- **The `#2` u8-parameter masks (`clrlwi rP,rP,24` / `clrlwi rX,rP,24` per use) have a zero-byte source lever: read the incoming
+  hard register instead of the parameter (id_sys setCk 6 -> 0, dispSw 15 -> 0, unitPtr 10 -> 0, kill 31 -> 0, set 87 -> 4).**
+  Our combine deletes `(and param 255)` because `setup_incoming_promotions` tells it the promoted `u8` parameter is already
+  zero-extended; a `register int r4v asm("r4"); int raw = r4v;` copy of the incoming register has unknown bits, so every `(u8) raw`
+  is a real AND that combine keeps AND knows to be 8-bit (`rlwinm r9,r4,29,27,29` keeps the 3-bit mask). Three shapes, read off
+  the target: a single mask at the entry = `u8 t = raw;` used everywhere (setCk: `clrlwi r4,r4,24` in place because the hard
+  register dies at the mask); a mask per use = `(u8) raw` at each inline argument (dispSw: `clrlwi r9`/`r11` in each switch arm,
+  the `int raw` pseudo keeps r4 untouched); a mask hoisted by loop.c into the loop preheader = `(u8) raw == u->type` inside the
+  loop body (unitPtr/kill: `clrlwi r11,r5,24` after the entry test, callee-saved). The compare operand order follows the source
+  (`id == u->id` gives `cmpw r4,r0`, `u->id == id` gives `cmpw r0,r4`). Forms that do NOT work: an `asm("" : "+r"(t))` launder
+  costs an issue slot before the mask (4 words), an asm-emitted `clrlwi` output is opaque (srawi/slwi, no 3-bit mask), a `register
+  int t asm("r4")` pin ties the mask in place where the target has a new register. Tagged `COMPILER-DIFF: #2`. set's last 4 words:
+  `c = 0` (`li r11,0`) issued between `lwz r9,pG` and `lwz r0,96(r9)` in the target, before the pG load in ours (statement order
+  `c = 0; if ((s32) pG->flags_60 >= 0)`; after `u->flags |= 2` it lands 8 insns later).
+- **sce_sys SceSetEventCancel 23 -> 0 (two tagged items).** (1) `U8SetI(SceSys.eventCancel, on)` (a `u8&` inline; the CONST address
+  folds into `stb r30,SceSys+0x71@l(r9)`) plus a dead `do { } while (0);` as the first statement of the tail (`COMPILER-DIFF: 12
+  (AROUND form)`): every form of the folded store (`u8&`, `u8* const`, `*(u8*)((u8*)&SceSys + 0x71)`) still expands a lo_sum
+  pseudo `= SceSys+113` (the inline's reference pointer / `memory_address`'s forced register) with `REG_EQUAL (const (plus sym
+  113))`, and cse1's `use_related_value` rewrites the tail's `&SceSys` as `addi r9,rP,-113` whenever the tail is on the AROUND
+  path of the skipped `if (flagNo >= 0)` block; the LOOP_END note after the tail label ends the path (a `do {} while (0)` AROUND
+  the `if` does not: jump1 threads the `blt` to the label after LOOP_END, and the note is never scanned). (2) `register int pin
+  asm("r30"); asm volatile("" : "=r"(pin));` in a block at the function end (`COMPILER-DIFF: candidate #17`): stock priorities
+  give `on` (5 refs / 12) r31 and flagNo (5 / 23) r30; with r30 `regs_used_so_far` and free during `on`'s range, `on` takes r30
+  in pass 0 and flagNo r31 in pass 1. Store order of the tail is the source order `cancelFunc, cancelArg, cancelFlagNo, sndFlag`
+  (sndFlag last = the base register's death = issued first). A `"r"(on)` asm input at the end (length 29, refs 6) did not move
+  the allocation.
+- **sce_sys ScenarioRoomInit 16 -> 5 (#13 dying-store shape with a QI/SI zero pair).** `int zero; asm("li %0,0" : "=r"(zero));`
+  for the ten word/`x75`/`x76` stores (cast for the two pointers), `u8 zq = 0;` declared AFTER them for the six byte stores, and
+  `asm volatile("" : : "r"(zero), "r"(zq))` after the last store: the opaque word zero is what keeps the byte zeros a separate
+  QImode pseudo (a plain `int zero = 0` or a `u8 zq` set before the words is folded to `(subreg:QI zero)`, cse's src_related
+  with `notreg_cost` 0), and the keep-alive stops sched1 from hoisting the two dying zero stores (`x76`, `x70`). Left (5): the
+  target issues `li r10,-1; li r11,1; li r9,0(QI)` where ours ranks the QI zero first (prio 18, 6+2 dependents vs 3);
+  `"r"(s)`/`"r"(zero)` inputs on the QI li, dead tests, pins and `"=m"` keep-alives all miss (5-24).
+- **objRobo TaskSwitchFront/Back (9 each, mechanism read exactly): local-alloc's `update_equiv_regs` doubles REG_LIVE_LENGTH once
+  PER SET that carries a constant REG_EQUAL note, and multi-set pseudos only qualify when every set has the SAME constant.**
+  `max = (f32) i` (i = 15 known to cse2 on the AROUND path) has two sets with `REG_EQUAL 15.0` -> 34 x 4 = 136; `range = to`
+  (-1.48) / `range = from - to` (+1.48) differ -> 40 x 2 = 80; so range (12/80) outranks max (12/136) and takes f30. The target
+  (2^52 f31 > max f30 > range f29) needs max in (0.088, 0.174) and range below it: range x4 is impossible (different constants),
+  max x2 = 68 -> 0.1765 beats the 2^52 pseudo (0.1739) by one truncation step, so max needs x2 AND one more real insn in its
+  range (a do-while at the else-arm top makes the else set non-constant, +1 `"=m"` asm in a loop = 70 -> 0.171). Not applied
+  (two tagged items for one register pair). Also read: `range = to` written before the loop is folded by cse (fmr gone, `to` gets
+  f29); a pinned `register f32 max asm("fr30")` cannot be a loop.c movable (hard regs are `may_not_optimize`), so the conversion
+  chain loses its shared 0x4330/2^52 constants (38 words); a `"=f"/"0"(to)` asm launder of the copy removes range's REG_EQUIV
+  (x1 = 40 -> range takes f31, 18). The then-arm's early `fmr f29,f28` (before `lfd f0`/`addi r29`) is a LUID question: ours
+  emits the movable after gcse's `&robo->pMotion` insertion and loses the t=5 tie to it.
+- **objRobo R0WalkBridge 38 -> 21 (zero code).** `Vec* pv = &v;` declared after the x/y stores with `pv->z = -16560.0f;
+  robo->setPos(pv);` gives the target's `addi r11,r1,136; ... stfs f0,8(r11); mr r4,r11` (the plain `&v` argument is set straight
+  into r4 and every store is frame-direct). Left: the three `lis 0x8000` of the flag masks are combined by loop.c
+  (`combine_movables`: `n_times_set == 1`, equal sources -> one hoisted `lis r24`), the target keeps two inside the loop (`lis
+  r11` in the inner block, `lis r8` shared by the join block's test and the hitCnt store) -- a `u32 top; top = 0x80000000;`
+  set in both blocks (2 sets -> not combinable) reproduces that structure but costs the local names (29).
+- **t_bugcheck menuPosMove 27 -> 2 with two of the three 15b items**: `asm("" : "=m"(v.x));` at the loop end (tagged tie) and a
+  dead `{ f32 lc0 = 1.0f; }` before the "X:%.0f" eprintf (tagged candidate: a `0.0f` adds no label, the pool already has one).
+  The remaining pair `addi r4,r30,160; mr r3,r30` is combine: `Vec* rot = &pl->rot; pl->setAng(rot)` expands `P = pl+160; r3 =
+  pl; r4 = P` (the target's shape), but combine merges the single-use P into the r4 move (the addi then sits after the r3 copy
+  and regmove substitutes r3 into it); an asm-emitted `addi` is merged the same way; a second use of `rot` (`"r"(rot)` on a
+  `"=m"` asm before/after the call) shifts the 14-high allocation (25-55). The label shift costs menuLife 14 -> 18 (its hoisted
+  highs are bucket-ordered by label name too): the two functions want opposite label counts, so the original TU's `.LC`
+  numbering is not ours (15b) and menuLife's insn-count lever (+1..+4 `"=m"` asms, two positions) stays at 16 with the shift.
+- **roomdata linkRelData 7 -> 6**: the target stores `x1C` AFTER the zero test (`sth` behind the `beq`), i.e. `u16 rel = ...;
+  if (rel == 0) return; x1C = rel;`. Left: `clrlwi r3,r0,16` shared by the compare and the DvdRead argument -- the u16 local is a
+  promoted SImode pseudo (`subreg/s/u`), so no extension exists to keep (#2 family; launders on the promoted variable give
+  `cmpwi r0` on the halfword register + a separate `clrlwi`/`mr` for the argument).
+- **lib/builtin-delete written and byte-identical**: `src/lib/builtin-delete.c` = five dead `static` functions (the "bad_alloc"
+  name and the four "*** Library warning ***" printf bodies of SN's libstdc++ operator new/delete stubs, in that order), the unit
+  added to configure.py's LIBSN_UNITS so strip_unused drops the bodies (a plain `lib/*.c` unit has no strip step). cc1 emits each
+  string at its first use, word-aligned (`CONSTANT_ALIGNMENT`), which is the DOL's 0x168 layout.
+- **lib/_eh byte-identical**: the 16 .bss bytes are the 8-byte-granule remainders of unreferenced statics (strip_unused's linker
+  model: `eh` 16 -> 0, `initialized` 4 -> 4, `top_elt` 8 -> 0, so 12 more bytes = three unreferenced 4-byte statics): the
+  `_register_malloc` hook pointers appended to src/lib/_eh.c after the libgcc2 include.
+- Facts read this pass: `find_reg` pass 0 uses `regs_used_so_far` = `regs_ever_live` | local-alloc'd registers, and a
+  `register T x asm("rN")` mentioned anywhere makes rN used-so-far while conflicting only with allocnos live at its insns
+  (the #17 pin at a function's end perturbs nothing else); `recompute_reg_usage` recomputes REG_N_REFS/REG_N_SETS only, the
+  REG_LIVE_LENGTH global-alloc sees is haifa's `find_post_sched_live` count of real insns; `INSN_REG_WEIGHT` is +1 per SET/CLOBBER
+  (any destination, MEM included) and -1 per REG_DEAD/REG_UNUSED note, so the store whose base register also dies is the block's
+  -2 and is issued first; `update_equiv_regs` requires `rtx_equal_p` constant notes on every set of a multi-set pseudo and
+  doubles the length at each such insn; `combine_movables` needs `n_times_set == 1` for both movables and `rtx_equal_for_loop_p`
+  sources; an asm's `insn_cost` is 1 (a launder always delays its consumer by a cycle); cse's `notreg_cost` makes a
+  `(subreg (reg pseudo))` cost 0, which is why a narrow zero store prefers the lowpart of a known wider zero.

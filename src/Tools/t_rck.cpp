@@ -832,16 +832,18 @@ void rckDrawPoint()
 
 void rckDrawPointLine()
 {
-    GXColor colBoth = {0xFF, 0xFF, 0xFF, 0xFF};
+    u8 red = 0xFF;
+    GXColor colBoth = {red, 0xFF, 0xFF, 0xFF};
     GXColor colOne = {0, 0, 0xFF, 0xFF};
-    GXColor colHit = {0xFF, 0xFF, 0, 0xFF};
+    GXColor colHit = {red, 0xFF, 0, 0xFF};
     Vec v[2];
     Vec a;
     Vec b;
     Mtx m;
-    Vec seg[2];
+    Vec seg0;
+    Vec seg1;
     Vec dir;
-    Vec t;
+    Vec tip;
     Vec mid;
     int i;
     int j;
@@ -849,52 +851,74 @@ void rckDrawPointLine()
     TprimSetBlend(0);
     for (i = 0; i < RCK->hdr.nPoint; i++) {
         for (j = 0; j < RCK->hdr.nPoint; j++) {
-            RckWork* w = RCK;
-
             if (i == j) {
                 continue;
             }
-            if (w->line[i][j].to == -1) {
+            RckWork* w = RCK;
+            RckLine* lij = &w->line[i][j];
+            if (lij->to == -1) {
                 continue;
             }
-            if (w->line[j][i].to != -1 && i > j) {
+            RckLine* l = &w->line[j][i];
+            if (l->to != -1 && i > j) {
                 continue;
             }
-            v[0] = w->pt[i].pos;
-            a.x = w->pt[i].pos.x;
-            a.y = w->pt[i].pos.y + 500.0f;
-            a.z = w->pt[i].pos.z;
-            v[1] = w->pt[j].pos;
-            b.x = w->pt[j].pos.x;
-            b.y = w->pt[j].pos.y + 500.0f;
-            b.z = w->pt[j].pos.z;
+            RckPoint* p = &w->pt[i];
+            v[0].x = p->pos.x;
+            v[0].y = p->pos.y;
+            v[0].z = p->pos.z;
+            a.x = p->pos.x;
+            a.y = p->pos.y + 500.0f;
+            a.z = p->pos.z;
+            p = &w->pt[j];
+            v[1].x = p->pos.x;
+            v[1].y = p->pos.y;
+            v[1].z = p->pos.z;
+            b.x = p->pos.x;
+            b.y = p->pos.y + 500.0f;
+            b.z = p->pos.z;
             if (SatMgr.hitCheck(&a, &b, NULL, NULL, 0x6000, 0x3C3070)) {
                 TprimDrawLineFn(v, &colHit, 2);
-            } else if (w->line[j][i].to == -1) {
+            } else if (l->to == -1) {
                 TprimDrawLineFn(v, &colOne, 2);
             } else {
                 TprimDrawLineFn(v, &colBoth, 2);
             }
-            if (w->line[j][i].to == -1) {
-                seg[0] = v[0];
-                seg[1] = v[1];
-                PSVECSubtract(&seg[0], &seg[1], &dir);
+            if (l->to == -1) {
+                seg0.x = v[0].x;
+                seg0.y = v[0].y;
+                seg0.z = v[0].z;
+                seg1.x = v[1].x;
+                seg1.y = v[1].y;
+                seg1.z = v[1].z;
+                PSVECSubtract(&seg0, &seg1, &dir);
                 PSVECScale(&dir, &dir, 0.5f);
-                PSVECAdd(&seg[1], &dir, &mid);
+                PSVECAdd(&seg1, &dir, &mid);
+                if (dir.x == 0.0f && dir.z == 0.0f) {
+                    continue;
+                }
 #line 1173 "D:/Bio4/Prog/t_rck.cpp"
                 VECNormalize(&dir, &dir);
                 PSVECScale(&dir, &dir, 500.0f);
                 PSMTXRotRad(m, 'y', 0.7853982f);
-                PSMTXMultVec(m, &dir, &t);
-                PSVECAdd(&mid, &t, &t);
-                v[0] = mid;
-                v[1] = t;
+                PSMTXMultVec(m, &dir, &tip);
+                PSVECAdd(&mid, &tip, &tip);
+                v[0].x = mid.x;
+                v[0].y = mid.y;
+                v[0].z = mid.z;
+                v[1].x = tip.x;
+                v[1].y = tip.y;
+                v[1].z = tip.z;
                 TprimDrawLineFn(v, &colOne, 2);
                 PSMTXRotRad(m, 'y', -0.7853982f);
-                PSMTXMultVec(m, &dir, &t);
-                PSVECAdd(&mid, &t, &t);
-                v[0] = mid;
-                v[1] = t;
+                PSMTXMultVec(m, &dir, &tip);
+                PSVECAdd(&mid, &tip, &tip);
+                v[0].x = mid.x;
+                v[0].y = mid.y;
+                v[0].z = mid.z;
+                v[1].x = tip.x;
+                v[1].y = tip.y;
+                v[1].z = tip.z;
                 TprimDrawLineFn(v, &colOne, 2);
             }
         }
