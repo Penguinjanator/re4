@@ -43,6 +43,9 @@ void snd_work_clear(void)
     Snd_test_work_clear();
 }
 
+// t_movie/snd_test defines its own static cb_dma_end; the header must not declare this one.
+void cb_dma_end(u32 task);
+
 void zero_buff_clear(void)
 {
     SND_CTRL_WORK* ctrl = &Snd_ctrl_work;

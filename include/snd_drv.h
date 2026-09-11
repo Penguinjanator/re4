@@ -590,7 +590,6 @@ extern u8 zero_tbl[0x100];
 void Snd_system_init(void);
 void snd_work_clear(void);
 void zero_buff_clear(void);
-void cb_dma_end(u32 task);
 void cb_audio_frame(void);
 void Snd_sound_mode_init(void);
 u32 Snd_sound_mode_init_load(u32 mode);
