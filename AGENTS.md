@@ -15060,3 +15060,73 @@ reads `<PRE>_lreg.txt`/`<PRE>_greg.txt` cut with `fsec.py`; `dump.sh` names its 
 - Fact confirmed: `expr.c both_summands` — "put a constant term last and put a multiplication first": `if (CONSTANT_P
   (op0) || GET_CODE (op1) == MULT) swap`; a PLUS second operand is never swapped. loop.c `simplify_giv_expr` PLUS: a USE
   (invariant) first operand is swapped behind a non-USE/non-CONST_INT second operand, two USEs keep their order.
+
+### Stage rooms, st2_1 pass 8 (r20d Matching 32/32 -> flipped, st2_1.rel byte-identical; r204 EventChandelier1/2 94/96 -> 50/55 with the frame + save set fixed; r20e initPuzzle/checkPuzzle analysed, unchanged; 2026-09-11)
+
+- Harness /home/adityas/.cache/rooms_a8 (rooms_c9 copies with the paths rewritten: `tryv.py MOD/UNIT FUNC variants.py`,
+  `mcmp.py MOD/UNIT [SYM]`, `sbs.sh MOD/UNIT SYM [OBJ]`, `mdump.sh MOD/UNIT -dX` with an ABSOLUTE `SRC_OVERRIDE`;
+  `prio.py UNIT FUNCPAT` = global allocnos of dump/UNIT.i.{lreg,greg} with refs/len/priority in allocation order).
+  Dump-flag reminder: `-dS` is sched1 (`.sched`), `-dR` sched2 (`.sched2`); `-fsched-verbose-9` (dash, not `=`) prints
+  the dependence table with every insn's priority/cost/dependents and the per-cycle issue trace -- read it before
+  theorising about a tie (below, every guess about weight/LUID was wrong until the table was read).
+- **r20d checkSwitch 1 -> 0, unit + module flipped (all `COMPILER-DIFF: #12`, the AROUND-form tail reload).** The
+  target's tail `move(0.0f)` reloads the pool 0.0 with the high shared with every other 0.0 load (`lfs f1,0.0@l(r29)`);
+  our cse1 folds it to the compare's register on the AROUND path. No compiler-load form keeps both (a fresh tail ebb
+  leaves the tail's high to gcse -> a second `lis` from P's reaching reg; a non-pool object loses the REG_EQUAL notes), so
+  the 0.0 word is `static const f32 k0 = 0.0f;` in the pool's first slot (.rodata unchanged) and every 0.0 load is an
+  asm `lfs %0,%1@l(%2)` through one asm `lis` (`u32 hi`, unpinned: it ranks below open/work/opened and takes r29 by
+  itself; a `register .. asm("r29")` pin made `opened` take r29 = regs_used_so_far). Four consequences, each solved:
+  (a) asm loads carry no REG_EQUAL note, so the multi-set `spd` (2 sets: update_equiv_regs doubles REG_LIVE_LENGTH on
+  the FIRST noted set even when a later set clears the equivalence) and the compare copy `zero` lose their doubled
+  length and outrank `t`/the pool constants: `spd` gets a keep-alive as an extra `"f"(spd)` input of the tail asm
+  (+11 len -> 1.24 < t's 1.47), `zero` (function-scope) a `asm("" : : "f"(zero))` in the shared `sleep:` block (live
+  everywhere: refs 7/len 121 = 0.116, below 0.005's 0.259 and above z0's 0.027 -> f28 after the constants, f27 for z0).
+  (b) A `"m"(sw)` input (the address-taken `cEm* sw` slot) gives the spd asm its anti-dependence on the preceding
+  SndCall (without it the asm is issued at t=4 beside the call) AND a second dependent (the call's memory flush), so
+  it outranks the argument `li`s at t=5 like the target's `lfs` (prio 5 = theirs, depend count 2 vs 1).
+  (c) An asm has latency 1, the pool `lfs` 2: the compiler copy `zero = spd` (fmr, priority 2 = fpu latency) became
+  ready one cycle early and beat `li r30,0` (priority 1) for the t=6 slot; only readiness decides, no
+  LUID/weight/class lever reaches it. Fix: the copy is an asm `fmr %0,%1` (priority 1) and `open = 0` an asm
+  `li %0,0` with a FAKE `"=m"(sw)` output: the write after the load's read is an anti-dependence (ready at t=6, with
+  `li r4,1`), the memory write makes the call depend on it (priority 5 = li r4's) and the 2 SETs give weight 2 > 1,
+  so sched1 issues `li r4,1` first; sched2 then follows sched1's LUIDs. A `"+f"(zero)` chain, a `"cc"` clobber
+  (REG_UNUSED cancels the weight), a junk second output (double-counts every input's REG_N_REFS: `hi` 6 -> 8 and it
+  takes r31), a pinned-r3/r4 dependence (the arg `li` moves to t=5) and an `open` input (+2 refs -> open r31) all fail.
+  (d) `SceAtSetEnable` must stay directly followed by the loop label (the flow nop `(use 0)` takes the t=4 slot beside
+  the SndCall by weight 0; a copy written after the call removes it and `li r30,0` moves up).
+- **r204 EventChandelier1/2 94/96 -> 50/55 (frame 184 and `stmw r16` now match; tagged `#13` + `12`).** The
+  "unexplained 8-byte slot" of passes 3-7 is not a slot: with 15 saved GPRs (60 bytes) the save area rounds
+  differently than with 16, so the target's ONE extra callee-saved register is the whole frame difference. That
+  register is the untied `&crot0` pair `lis r30; addi r25,r30,crot0@l` (ours ties them `addi r30,r30`), with the high
+  dying after the cpos setup (r30 is then reused for pPL). Form: `register u32 rh asm("r30"); asm("lis %0,%1@ha" :
+  "=r"(rh) : "i"(&crot0)); asm("addi %0,%1,%2@l" : "=r"(rot) : "r"(rh), "i"(&crot0));` plus a codeless keep-alive
+  `asm("" : "=m"(m) : "r"(rh))` after PSVECAdd (`m` is dead there); an unpinned `rh` or no keep-alive gives `rot` r30
+  again (90-94). `mdl->setAng(&mdl->rot)` in the second block needs the r20d execRoundSwitch `asm("addi %0,%1,0xa0" :
+  "=r"(rp) : "r"(mdl) : "cc")` (target `addi r4,r30,160; mr r3,r30`, ours `mr r3; addi r4,r3`). Left (50/55): the
+  `mf -= 5` temp (`addi r0,r30,-5; mr r30,r0; cmplwi r0,65`: cse must NOT canonicalise the temp to `mf` in the
+  compare, i.e. the temp's REGNO_LAST_UID must be later than mf's second compare in the Key block -- an asm `addi`
+  into `mft` with `mf = mft; if (mft > 0x41)` is still folded to `addi r30,r30,-5` because cse rewrites the compare),
+  the r25/r26/r27 naming of `rot` and the pG/work highs, and the chandOfs `addi r4` slot. Macro-line hazard: a `//`
+  comment before the line-continuation backslash swallows it -- tags inside CHANDELIER are `/* COMPILER-DIFF: .. */`.
+- **r204 nige_check 228 (not iterated, casetree read):** `python3 tools/casetree.py <19 cases> --target ..:r204_nige_check__Fv
+  --ours st2_1/r204:r204_nige_check__Fv` shows the target's tree compares `cnt - 0x1E` (0x8, 0x13, 0x14, 0x1e, 0x28,
+  0x32, 0x41, 0x46, 0x50, 0x55, 0x64, 0x78, 0xdb, 0xdc, 0xe6, 0xf0, 0xfa, 0x109 = our case values minus 30) with 18
+  nodes: `case 0x8E` (em[8]) does not exist in the original switch. Rewrite the switch as `switch (cnt - 30)` (or the
+  counter with a -30 bias) with 18 cases first; the rest of the 228 words was not looked at.
+- **r20e initPuzzle 49 (unchanged; mechanism read).** In both layout nests the target has TWO stepping cell pointers
+  with equal value (`add r11,..; mr r7,r11`, both `addi ,48`): the piece store through the copy (`stb r0,12(r7)`), the
+  three `c->pos` loads through the base in y,x,z order. In ours the nest-2 (setLayout inline) ALSO has two pointers but
+  split the other way ({x load} vs {store, y, z}): cse1's find_best_addr rewrites the bare-register address of the
+  block copy's first word (`(mem (reg c))` -> the "costlier equivalent" `(plus 221 223)`) while `(plus c 4/8/12)`
+  cannot be rewritten (a 3-term address is invalid), and after loop.c's move_movables left `223 = 312` the x-load's
+  giv has add_val register 312, the others 223, so combine_givs (express_from needs structurally equal add_vals) keeps
+  them apart; cse2 then makes the second init a copy (`mr`). The y,x,z load order is sched2's WAR on r0: the target's
+  x word lands in r0 (pc's register, free after `mulli r9,r0,40`) and must follow the mulli. So the target's split
+  needs the STORE's address in the other add_val family and ALL loads on the base: 25 forms tried (array/pointer
+  splits for store vs loads, `(u8*)p + x*48 + (y*16 + 0x178)`, `&p->cell[x][0] + y` (41 words: the two-pointer shape
+  but x-only split), pointer-biv loops `c += 3` with an explicit or inline-parameter copy `g = c` (44: cse merges the
+  copy), byte-pointer and Vec-cast forms: 41-78). The single-use DEST_REG rule (`combine_givs` skips a DEST_REG giv
+  used once as g1) means the store pointer must have >= 2 uses or be a non-replaceable giv; not found.
+- **r20e checkPuzzle 224 (not iterated):** 158 differing lines in several independent regions (the pG-address form at
+  the top, `lwzu` cell-address forms in the frame block, the slide blocks' store order and `li r31,1` placement) --
+  a multi-pass job; casetree/xjump not applicable (no switch, no return tails).

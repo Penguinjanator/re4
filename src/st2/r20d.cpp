@@ -352,10 +352,28 @@ static void r20d_setEm()
 }
 
 // The switch that raises / lowers fence 0.
+// COMPILER-DIFF: #12 (AROUND form): the target's tail `move(0.0f)` reloads the pool 0.0
+// (`lfs f1,0.0@l(r29)`, the high shared with the other 0.0 loads); our cse1 reaches the tail
+// through the AROUND path of the down-loop exit and folds it to the compare's 0.0 register
+// (`fmr f1,f28`). No compiler load form keeps the shared high AND the reload, so the 0.0 word is a
+// named `static const` in the pool's first slot (.rodata unchanged) and every 0.0 load is an
+// asm-emitted `lfs` through one asm-emitted `lis` (`hi`, r29). Consequences handled below:
+// - the asm loads have no REG_EQUAL const note, so spd/zero lose global-alloc's live-length
+//   doubling: `spd` gets a tail keep-alive (the tail load's "f"(spd) input), `zero` one in the
+//   sleep block (live everywhere, ranked below the pool constants and above z0);
+// - an asm load has latency 1 (the pool `lfs` has 2), so the compare copy `zero = spd` would be
+//   ready one cycle early and take the `li r30,0` slot: the copy is an asm `fmr` (priority 1, not
+//   the fmr's 2) and `open = 0` an asm `li` with a fake "=m"(sw) output (anti-dependent on the
+//   load's "m"(sw) read -> ready with `li r4,1`, memory write -> the call depends on it, weight 2
+//   -> issued after `li r4,1`).
 static void r20d_checkSwitch(int opened)
 {
+    static const f32 k0 = 0.0f; // COMPILER-DIFF: #12
     cEm* sw;
     int open;
+    u32 hi;   // COMPILER-DIFF: #12 (asm-emitted high of k0)
+    f32 z0;   // COMPILER-DIFF: #12
+    f32 zero; // COMPILER-DIFF: #12
 
     getRoomEtcSwitch(0xF, &sw, 1);
     if (sw == 0) {
@@ -368,11 +386,13 @@ static void r20d_checkSwitch(int opened)
         open = 1;
         ((cEmSwitch*) sw)->setOpened();
     }
+    asm("lis %0,%1@ha" : "=r"(hi) : "i"(&k0));                 // COMPILER-DIFF: #12
+    asm("lfs %0,%1@l(%2)" : "=f"(z0) : "i"(&k0), "r"(hi));    // COMPILER-DIFF: #12
     for (;;) {
         f32 t = r20d_work.p->fence[0].t;
 
         if (open == 0) {
-            if (t != 0.0f) {
+            if (t != z0) {
                 open = 1;
                 ((cEmSwitch*) sw)->setOpen();
                 if (pG->flags_174 & 0x40000000) {
@@ -402,14 +422,15 @@ static void r20d_checkSwitch(int opened)
                 f32 spd;
 
                 SndCall(6, 0x26, 0, 0, 0, 0);
-                open = 0;
-                spd = 0.0f;
+                asm("lfs %0,%1@l(%2)" : "=f"(spd) : "i"(&k0), "r"(hi), "m"(sw)); // COMPILER-DIFF: #12
+                asm("li %0,0" : "=r"(open), "=m"(sw));                          // COMPILER-DIFF: #12
+                asm("fmr %0,%1" : "=f"(zero) : "f"(spd));                        // COMPILER-DIFF: #12
                 SceAtSetEnable(0, 1);
                 for (;;) {
                     r20d_work.p->fence[0].move(t);
                     t -= spd;
                     spd += 0.005f;
-                    if (!(t < 0.0f)) {
+                    if (!(t < zero)) {
                         if (((cEmSwitch*) sw)->ckOpen() == 1) {
                             goto sleep;
                         }
@@ -419,11 +440,16 @@ static void r20d_checkSwitch(int opened)
                     }
                 }
                 SndCall(6, 0x27, 0, 0, 0, 0);
-                r20d_work.p->fence[0].move(0.0f);
+                {
+                    f32 v;
+                    asm("lfs %0,%1@l(%2)" : "=f"(v) : "i"(&k0), "r"(hi), "f"(spd)); // COMPILER-DIFF: #12 (+ spd keep-alive)
+                    r20d_work.p->fence[0].move(v);
+                }
             }
         }
     sleep:
         SceSleep(1);
+        asm("" : : "f"(zero)); // COMPILER-DIFF: #12 (zero keep-alive, see above)
     }
 }
 

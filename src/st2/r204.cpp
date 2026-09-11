@@ -752,6 +752,16 @@ struct PlPtr {
 // which loop.c then rejects as "phony" and nothing is hoisted), `frame = 0` right before it (flow nop),
 // the dead `do {} while (0)` after it re-materialises `lis pPL@ha` for the second block, FSet + pPLS
 // reload pPL after each pos store, `Vec* rot` keeps `&crot0` in a callee-saved pointer.
+// COMPILER-DIFF: #13 (asm-emitted high, `rh`/`rot` below): the target's `&crot0` is a two-register
+// `lis r30; addi r25,r30,crot0@l` whose high lives on until after the cpos setup (r30 is then reused
+// for pPL) -- one more callee-saved GPR (stmw r16) and, through the save-area rounding, a frame 8
+// bytes smaller (the "unexplained 8-byte slot" of earlier passes is that rounding, not a local).
+// Ours ties the dying high to the lo_sum (`addi r30,r30`). The asm pair with the pinned high and a
+// codeless keep-alive after PSVECAdd (a "=m" on the dead `m`) reproduces the frame, the save set
+// and the high's death point; the two chandelier functions go 94/96 -> 50/55 words (the mf temp
+// copy `addi r0,mf,-5; mr mf,r0; cmplwi r0` and the r25/r26/r27 high naming are left).
+// COMPILER-DIFF: 12 (regmove operand pick, `rp` below): `addi r4,mdl,0xa0` must be computed from
+// mdl's register before `mr r3,mdl` (the r20d execRoundSwitch "cc"-clobber asm).
 #define CHANDELIER(no, cpos0, crot0, dx0, dz0, dx1, dz1, dx2, dz2, postLoop)                                  \
     {                                                                                                              \
         cPlayer* pl = pPL;                                                                                         \
@@ -765,13 +775,17 @@ struct PlPtr {
         void* motPl;                                                                                               \
         void* motCh;                                                                                               \
         cModel* mdl;                                                                                               \
-        Vec* rot = (Vec*) &crot0;                                                                                  \
+        register u32 rh asm("r30"); /* COMPILER-DIFF: #13 */                                                       \
+        Vec* rot;                                                                                                  \
                                                                                                                    \
+        asm("lis %0,%1@ha" : "=r"(rh) : "i"(&crot0)); /* COMPILER-DIFF: #13 */                                     \
+        asm("addi %0,%1,%2@l" : "=r"(rot) : "r"(rh), "i"(&crot0)); /* COMPILER-DIFF: #13 */                        \
         ((cUnitEventView*) pl)->beginEvent(0);                                                                     \
         ((cUnitEventView*) r204_work.p->chand[no])->beginEvent(0);                                                 \
         low_RotMatrix(m, rot);                                                                                     \
         PSMTXMultVec(m, (Vec*) &r204_chandOfs, &cpos);                                                             \
         PSVECAdd((Vec*) &cpos0, &cpos, &cpos);                                                                     \
+        asm("" : "=m"(m) : "r"(rh)); /* COMPILER-DIFF: #13 */                                                      \
         FSet(pPL->pos.z, cpos.z - (dz0));                                                                          \
         FSet(pPL->pos.x, cpos.x + (dx0));                                                                          \
         mdl = pPLS;                                                                                                \
@@ -832,7 +846,11 @@ struct PlPtr {
         FSet(pPL->pos.z, nz);                                                                                      \
         mdl = pPLS;                                                                                                \
         mdl->setPos(&mdl->pos);                                                                                    \
-        mdl->setAng(&mdl->rot);                                                                                    \
+        {                                                                                                          \
+            Vec* rp;                                                                                               \
+            asm("addi %0,%1,0xa0" : "=r"(rp) : "r"(mdl) : "cc"); /* COMPILER-DIFF: 12 */                           \
+            mdl->setAng(rp);                                                                                       \
+        }                                                                                                          \
         pPL->motionSet(motPl, 3, 0, 1, 0);                                                                         \
         r204_work.p->chand[no]->motionSet(motCh, 3, 0, 1, 0);                                                      \
         PlSeCall(0x29, &pPL->pos, 0, 0, 0);                                                                        \

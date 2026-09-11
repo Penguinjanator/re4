@@ -683,6 +683,7 @@ MATCHING = {
     "st2_1/r206.cpp": True,
     "st2_1/r20f.cpp": True,
     "st2_1/r209.cpp": True,
+    "st2_1/r20d.cpp": True,
     "st2_2/st2.cpp": True,
     "st2_2/r211.cpp": True,
     "st2_2/r219.cpp": True,
