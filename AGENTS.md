@@ -15808,3 +15808,56 @@ rewritten; `tryv.py UNIT SYM v/x.py`, `sbs.sh UNIT SYM [OBJ]`, `dump.sh UNIT -dX
   (`stb r3,100(r28)` = hitFlag zero from the dying HitCk result and the later stack zeros from `info` (r30, known 0 in the
   else arm): the original's cse did not carry the HitCk result into the `hitFlag = 1` ebb; a `goto BOMB` shared label
   between the two setBomb arms does not stop the AROUND path) and R1_ShotArrow 140.
+
+### DOL structural pass 4 (view initPerspective 255 -> 188, not flipped; second half is plain C++ now; 2026-09-11)
+
+- Harness ~/.cache/dol_view4 (deleted at the end): dol16a copies with the paths rewritten plus `gen.py FORM.py` (rewrite
+  the five first-half normal groups from a `group(A,B,C,k,line)` template, or `base`/`subs` for arbitrary variants, build
+  privately, print the masked word count) and `reg.py OBJ [-m] [-w]` (side-by-side of the G1..G5 region, `-w` whole
+  function, `-m` masks r14-r31 so structure can be judged through the allocation cascade).
+- **Second half (halving loop + six `c->` normal groups) is pure C++ now: NO pointer locals, plain loop.** Pass 1's 14
+  `Vec* p0..p7, n0..n5` locals and the `px[i * 3] *= 0.5f` two-base loop were modelling the target's 14 preheader
+  `addi rX,r31,K` by hand; the same code comes out of gcse alone: `c = &local; *c = localFull; for (i..8) { c->point[i].x
+  *= 0.5f; c->point[i].y *= 0.5f; }` then `PSVECSubtract(&c->point[1], &c->point[0], &t1); ...` inline. Block LCM never
+  delays through the halving loop's back edge (`delayout` zero-initialised), so every `(plus c K)` whose first occurrence
+  is after the loop is redundant there and inserted at the END of the loop preheader (the 14 addis before `mtctr`), and
+  the loop's own invariant `&c->point[0].x` (hoisted by loop.c to before NOTE_INSN_LOOP_BEG, i.e. AFTER gcse's block-end
+  insertion) folds in cse2 into a COPY of the PRE'd `&c->point[0]` -- the target's `addi r30,r31,0x48; mr r10,r30` (the
+  pointer-local form had the copy the other way round or coalesced). With the locals gone the plain `c->point[i].x/.y`
+  pair is NOT combined into one stepping pointer (pass 1's 441-word note was measured with the locals present): loop.c
+  sees two hoisted invariant bases and one `i*12` giv -> `lfsx/stfsx f,r9,rBase` as in the target. Rule: when the
+  target hoists N addresses into a loop preheader and uses them after the loop, write NOTHING -- gcse does it; explicit
+  pointer locals only change copy directions and the allocation.
+- **First half: hypothesis (a) of the brief is refuted by the bytes** -- r31 (`addi r31,r28,0x1d4`, `&localFull`) is the
+  base of every G1..G5 address and there is no reload/`mr` of it anywhere in the first half; (b)/(c) are refuted too
+  (points and normals are both r31 + their ViewFrustum offset, not a `Vec*` local or a frame array). Extended pass-3
+  proof, now covering every mechanism read in the source: (1) LCM: with one base pseudo `f`, `(plus f 72)` (A1, A2) and
+  `(plus f 120)` (A1, A2, A5) have identical antloc/comp/transp in every block, so no kill placement PREs P4 A1->A2
+  without PREing P0 A1->A2; with the `latein = delayin` quirk a kill ANYWHERE between A1 and A2 (including inside Q1 or
+  A1 itself) makes A2's occurrence latest = not redundant, so the target's `mr r23,r29`/`mr r3,r23` (P4) forbids kills
+  there, while the fresh else-arm `addi r3,r31,12k; mr r4,r3` (a pseudo Q tied to r3 -- ours deletes Q as fully redundant
+  against the Cross-arg pseudo N_k and emits `mr r3,rR; mr r4,r3`) needs one. (2) cse never joins two groups: the three
+  `bne ELSE` share one label (LABEL_NUSES 3, `cse_end_of_basic_block` follows/skips only NUSES == 1 jumps) and the join
+  label is the target of the err arm's `b`, so `cse_basic_block`'s "keep going past the label" (`--LABEL_NUSES (to) ==
+  to_usage`) never fires. (3) `update_equiv_regs` rematerialises a single-use reaching reg only from a REG_EQUIV note,
+  and cse2's REG_EQUAL `(plus f K)` is not `function_invariant_p` (only `(plus fp K)`/constants are) -- so no
+  "PRE then undo" path exists for pseudo bases. (4) A per-group renewed base is possible only as a REG copy whose
+  source DIES at the copy (the cse canonical rule `make_regs_eqv`: the new reg wins only if its last uid exceeds the old
+  reg's): `f = b` per group canonicalises back to `b` (b lives to the sphere block), a chain `f2 = f1; f3 = f2; ..`
+  keeps `(plus f_k K)` distinct (gen.py f_chain: G2..G5 else arms fresh, no cross-group PRE) but gcse's cprop then
+  propagates `f_k = f_{k-1}` into Q_k/E_k, extends f_{k-1} across A_k and leaves a real `mr` per group; and any
+  `f = &localFull` re-derivation is folded this-based by cse1 in the same ebb (from_plus association, cost tie ->
+  src_folded). (5) `pk = &b->point[4]` written AFTER the second Subtract does become the target-shaped copy `pk = P4`
+  in cse1 (P4 live across the call), but gcse cprop replaces the G2 use by P4 and the copy dies (`mr r3,r29`, no `mr
+  r23,r29`); the same for `pk` before the call (cse folds the arg to `pk`). The target's G2 `mr r3,r23` is scheduled
+  AFTER `addi r5,r1,8` (sched2 LUID/priority tie), i.e. r23 did not die there, yet r23 has no later use -- no stock
+  RTL explains both. Conclusion unchanged: the first-half PRE pattern is not producible from `(plus f K)` RTL with this
+  gcse/cse; the tagged `VADDR` asm forms stay (COMPILER-DIFF: 3).
+- **188 words:** one more tagged form -- G3's first operand `&b->point[5]` through `VADDR` (a block-local `Vec* pa`),
+  because the plain address recurs in G5 (Sub2's first operand) and is PRE'd G3 -> G5 (`addi r3,r31,132; mr r26,r3`,
+  then `mr r3,r26` in G5; the target recomputes). The region G1..G5 now differs from the target only by the P4 copy
+  (`mr r23,r29` missing; ours carries `pk`) and the G2 order it causes.
+- Left (all allocation/association, no structure): the callee-saved cascade of the second half (target `c` r31, `&t3`
+  r29, `&sphere` r18 kept in a register and `&q[2]`/`&q[3]` spilled at 0x6c/0x70; ours spills `&sphere` at 0x74 and
+  keeps `&q[2]` in r14 -> the six PSVECSquareMag arg moves differ), `det = det + det` placement, the centre FP
+  association (ours needs f26, frame 0xf0 vs 0xe8), the dead pool 0x48..0x7c. `.rodata` 0x80 vs 0x48, order OK.

@@ -66,11 +66,14 @@ void VIEW::setFarPlane(f32 z)
 // the circumsphere numerators written with the point differences inline (recomputed from the q
 // copies after the PSVECSquareMag calls).
 // Shape (from the target's asm): block 1 addresses `b->point[k]` inline; `c = &local; *c = localFull;`
-// (c set before the copy loop so cse cannot fold `c + K` to `this + K` after it); block 2 through 14
-// pointer locals p0..p7/n0..n5 assigned in the halving loop's preheader; the halving loop as
-// `px[i * 3] *= 0.5f; py[i * 3] *= 0.5f;` (two bases, one index giv -> lfsx/stfsx); `b = &localFull`
-// re-assigned for the sphere block; q copies field-wise (a struct copy forces `&b->point[k]` into a
-// pseudo that cse folds to `this + K` and gcse then hoists).
+// (c set before the copy loop so cse cannot fold `c + K` to `this + K` after it); block 2 addresses
+// `&c->point[k]`/`&c->normal[k]` inline and the halving loop as plain `c->point[i].x *= 0.5f;
+// c->point[i].y *= 0.5f;` -- gcse's block LCM never delays an insertion through the halving loop's
+// back edge, so every address that first occurs after the loop is redundant there and is inserted
+// at the end of the loop's preheader (the 14 `addi rX,r31,K` before `mtctr`), and the loop's own
+// hoisted `&c->point[0].x` becomes a copy of the PRE'd `&c->point[0]` (`mr r10,r30`); no pointer
+// locals. `b = &localFull` re-assigned for the sphere block; q copies field-wise (a struct copy
+// forces `&b->point[k]` into a pseudo that cse folds to `this + K` and gcse then hoists).
 // Frustum point stores: one `z` variable holds -zn and then -zf (a two-set pseudo, allocated f11 in both
 // blocks), `w` is likewise shared, the far block has its own `h2` (block-local, tied to the dying `t` in
 // f31); each point is stored z, x, y (the far block's `lfs zf` depends on all twelve near stores, so the
@@ -85,20 +88,6 @@ void VIEW::initPerspective(f32 fovy_, f32 aspect_, f32 znear_, f32 zfar_)
     Vec* pb;
     Vec* pk;
     ViewFrustum* c;
-    Vec* p0;
-    Vec* p1;
-    Vec* p2;
-    Vec* p3;
-    Vec* p4;
-    Vec* p5;
-    Vec* p6;
-    Vec* p7;
-    Vec* n0;
-    Vec* n1;
-    Vec* n2;
-    Vec* n3;
-    Vec* n4;
-    Vec* n5;
     f32 t;
     f32 h;
     f32 w;
@@ -174,7 +163,11 @@ void VIEW::initPerspective(f32 fovy_, f32 aspect_, f32 znear_, f32 zfar_)
     VECNormalizeQ(&b->normal[2], &b->normal[2], b, 24, 12);
 
     VADDR(pb, b, 72 + 12 * 1, 3);
-    PSVECSubtract(&b->point[5], pb, &t1);
+    {
+        Vec* pa; // COMPILER-DIFF: 3 (`&point[5]` recurs in G5; a plain address is PRE'd G3 -> G5)
+        VADDR(pa, b, 72 + 12 * 5, 6);
+        PSVECSubtract(pa, pb, &t1);
+    }
     PSVECSubtract(&b->point[2], pb, &t2);
     PSVECCrossProduct(&t1, &t2, &b->normal[3]);
 #line 208 "D:/Bio4/Prog/view.cpp"
@@ -196,59 +189,40 @@ void VIEW::initPerspective(f32 fovy_, f32 aspect_, f32 znear_, f32 zfar_)
 
     c = &local;
     *c = localFull;
-    p0 = &c->point[0];
-    p1 = &c->point[1];
-    p2 = &c->point[2];
-    p3 = &c->point[3];
-    p4 = &c->point[4];
-    p5 = &c->point[5];
-    p6 = &c->point[6];
-    p7 = &c->point[7];
-    n0 = &c->normal[0];
-    n1 = &c->normal[1];
-    n2 = &c->normal[2];
-    n3 = &c->normal[3];
-    n4 = &c->normal[4];
-    n5 = &c->normal[5];
-    {
-        f32* px = &p0->x;
-        f32* py = &p0->y;
-
-        for (i = 0; i < 8; i++) {
-            px[i * 3] *= 0.5f;
-            py[i * 3] *= 0.5f;
-        }
+    for (i = 0; i < 8; i++) {
+        c->point[i].x *= 0.5f;
+        c->point[i].y *= 0.5f;
     }
 #line 236 "D:/Bio4/Prog/view.cpp"
-    PSVECSubtract(p1, p0, &t1);
-    PSVECSubtract(p3, p0, &t3);
-    PSVECCrossProduct(&t1, &t3, n0);
-    VECNormalize(n0, n0);
+    PSVECSubtract(&c->point[1], &c->point[0], &t1);
+    PSVECSubtract(&c->point[3], &c->point[0], &t3);
+    PSVECCrossProduct(&t1, &t3, &c->normal[0]);
+    VECNormalize(&c->normal[0], &c->normal[0]);
 
-    PSVECSubtract(p3, p0, &t1);
-    PSVECSubtract(p4, p0, &t3);
-    PSVECCrossProduct(&t1, &t3, n1);
-    VECNormalize(n1, n1);
+    PSVECSubtract(&c->point[3], &c->point[0], &t1);
+    PSVECSubtract(&c->point[4], &c->point[0], &t3);
+    PSVECCrossProduct(&t1, &t3, &c->normal[1]);
+    VECNormalize(&c->normal[1], &c->normal[1]);
 
-    PSVECSubtract(p4, p0, &t1);
-    PSVECSubtract(p1, p0, &t3);
-    PSVECCrossProduct(&t1, &t3, n2);
-    VECNormalize(n2, n2);
+    PSVECSubtract(&c->point[4], &c->point[0], &t1);
+    PSVECSubtract(&c->point[1], &c->point[0], &t3);
+    PSVECCrossProduct(&t1, &t3, &c->normal[2]);
+    VECNormalize(&c->normal[2], &c->normal[2]);
 
-    PSVECSubtract(p5, p1, &t1);
-    PSVECSubtract(p2, p1, &t3);
-    PSVECCrossProduct(&t1, &t3, n3);
-    VECNormalize(n3, n3);
+    PSVECSubtract(&c->point[5], &c->point[1], &t1);
+    PSVECSubtract(&c->point[2], &c->point[1], &t3);
+    PSVECCrossProduct(&t1, &t3, &c->normal[3]);
+    VECNormalize(&c->normal[3], &c->normal[3]);
 
-    PSVECSubtract(p6, p2, &t1);
-    PSVECSubtract(p3, p2, &t3);
-    PSVECCrossProduct(&t1, &t3, n4);
-    VECNormalize(n4, n4);
+    PSVECSubtract(&c->point[6], &c->point[2], &t1);
+    PSVECSubtract(&c->point[3], &c->point[2], &t3);
+    PSVECCrossProduct(&t1, &t3, &c->normal[4]);
+    VECNormalize(&c->normal[4], &c->normal[4]);
 
-    PSVECSubtract(p7, p4, &t1);
-    PSVECSubtract(p5, p4, &t3);
-    PSVECCrossProduct(&t1, &t3, n5);
-    VECNormalize(n5, n5);
+    PSVECSubtract(&c->point[7], &c->point[4], &t1);
+    PSVECSubtract(&c->point[5], &c->point[4], &t3);
+    PSVECCrossProduct(&t1, &t3, &c->normal[5]);
+    VECNormalize(&c->normal[5], &c->normal[5]);
 
     orientation();
 
