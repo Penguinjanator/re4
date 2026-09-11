@@ -16441,3 +16441,67 @@ HAZARD: wibo's NgcAs writes the `-o` path case-insensitively -- two tryv variant
 - Not iterated this pass: pl_wep (PlSetLockPitch 11, searchLockEm 21, PlWepAutoTrack 36, PlWepLockCtrl 189, PlWepHitCheck2 242;
   .rodata 0x350 vs 0x290), espgen45 (SetWaterWork45 91, Move00 454, TransSub 752), Espgen42 (five functions), em_sub (ten,
   EmYarareDisp 1 word), debug (five), act_btn (disp 17, checkButton 93); roomdata init 7 (the `ofs`/`stage` r26/r27 pair).
+
+### Stage rooms, st2_1 pass 10 (r204 Matching 24/24 -> flipped, st2_1.rel byte-identical: EventChandelier2 4 -> 0 with the `.LC` label lever; r20e initPuzzle 37 -> 0 zero code, 30/32; checkPuzzle 224 mechanisms read, unchanged; 2026-09-11)
+
+- Harness ~/.cache/rooms_a10 (rooms_b9 copies with the paths rewritten, `bucket.py N NAME..` = the gcse bucket model,
+  `fnr.sh MOD/UNIT SYM [OBJ]` = objdump -dr of one function with the reloc names inline into out/fnr_{t,o}.s, plus a
+  `-D`-free debug build of cc1plus in `gcc/` with `getenv("GDBG")` prints in global.c's find_reg/prune_preferences --
+  the fastest way to see WHICH allocno excludes a register: `cp -r tools/sn-gcc/{Makefile,src,obj}`, edit, `make cc1plus`
+  (1 s), run it on the `.i`); deleted at the end.
+- **r204 EventChandelier2 4 -> 0, `.LC` label lever, unit + module flipped (tagged `COMPILER-DIFF: candidate (gcse PRE
+  pseudo numbering)`).** The four loop-hoisted highs Key/ActBtn/"%d"/2^31 tie at global priority 68 (Key 69) and are
+  allocated in PRE-pseudo = gcse-bucket order, bucket = `(7933 + h(name)) % size`, `h = h*129 + c` (bucket.py reproduces
+  every "hash value" of the -dG dump). "%d" is numbered ONCE (in EventChandelier1, shared), each function's 2^31 double is
+  its own label: with our labels LC51/LC52/LC61 the order is right in 1 (207 buckets: ActBtn 20 < 2^31 118 < "%d" 119 ->
+  r19/r18/r17) and wrong in 2 (213: "%d" 5 < ActBtn 50 < 2^31 133; the target has ActBtn r18, "%d" r17, 2^31 r16).
+  Search over (label shift j from EventChandelier1 on, dead labels k in 2, table sizes): j = 21..27 satisfies BOTH
+  functions at the current sizes (1: 20 < 170 < 171; 2: 50 < 51 < 179), j = 20 puts "%d" in ActBtn's bucket (wins only by
+  insertion order); the alternative 5-6 dead sets (217 buckets) + 9 dead labels in 2 costs more statements. Applied: 21
+  dead `f32 lcN = N.5f;` at the top of EventChandelier1 (deleted at cse1, pool entries never output, .rodata/code
+  unchanged; the later functions' labels shift too and stayed identical). j = -12 also satisfies both, i.e. the original
+  TU had ~12 fewer labels before these functions (our 6 unemitted header-string constants are not the whole story).
+  Flip: `setTexRender` stays a placeholder in symbols.txt (r20a's global `setTexRender__Fv` exists in the module; ours is
+  static, the -r link is fine) -- mcmp/unit_info then show 1 word (reloc name) in R204Init and a "missing" setTexRender;
+  judge with `nm -n` (order + offsets identical) and `make_rel.py --verify` (OK).
+- **r20e initPuzzle 37 -> 0, zero code (four levers, no tags).** Mechanism, read with the GDBG cc1plus: the x/y/z copy
+  temps of `pos = c->pos` are GLOBAL allocnos (live from bb 13's loads into bb 14's `q->obj->pos` stores), not local
+  qtys -- the pass-9 fake-lifetime story was wrong. x skipped r0 because `regs_someone_prefers[x]` had r0: the `mulli`
+  temp (`pc*40`, local-alloc'd r9 but still an allocno) inherits `pc`'s r0 full preference through expand_preferences
+  (pc dies at the mulli, no conflict), conflicts with x (x is born while it lives) and ranks BELOW x (2*6/7 = 1.71 vs
+  3*9/11 = 2.45 at loop depth 3 = function + 2 loops; flow weights refs by depth) -> pass 0 excludes r0 for x, z, y.
+  (1) Depth 4 flips the order (3*8/7 = 3.43 > 3*12/11 = 3.27): both layout nests are wrapped in `do { } while (0)`
+  (depth 2 works too, 1.14 > 1.09, but needs a goto outer loop). The loop notes are a sched1 barrier, so what the
+  target issues before `li y,0` must be computed before the do-while and the rest inside: nest 1 `{ u32 tbl = (u32)
+  r20e_initLayout; do { y = 0; R20E_SET_LAYOUT(p, tbl); } while (0); }` (the table address is a plain statement
+  before it -- a loop.c hoist would land after the barrier; a `u32`, not a pointer, keeps `add y,tbl` in the written
+  order; loop.c does NOT hoist out of a do-while(0)), nest 2 `{ R20eWork* w = r20e_work; u32 tbl = ..; int x, y; do
+  { y = 0; R20ePuzzle* q = &w->puzzle; R20E_SET_LAYOUT(q, tbl); } while (0); }` (`lwz r20e_work` before the barrier,
+  `li r8,0` then `addi q,20` after; `y = 0` written BEFORE q so its LUID wins the tie; putting q outside gives `addi`
+  before `li` and swaps the r10/r11 of w and the table high through the local-alloc qty lengths). Putting
+  `last->piece = -1` inside the do-while gives `last` a weighted ref and swaps r18/r19 with the pieceObjId table
+  address; wrapping the whole function shifts the object loop's r22-r24.
+  (2) Latch order `addi c,48; addi cs,48` = source order `c += 3; cs += 3;`; cse's `(set REG0 REG1)` special case
+  (which would swap the lo_sum's dest to the later-mentioned `cs`, pass 9) fires only when the copy DIRECTLY follows
+  `c`'s set, so `x = 0;` sits between `R20eCell* c = ..;` and `R20eCell* cs = c;` (`for (; x < 3; x++)`).
+  (3) Nest 2's `add r4,r8,r11` (y first) needs the table as a non-pointer: the inline `r20e_setLayout(const s8
+  tbl[3][3])` made it pointer-first; nest 2 is the same macro with block-local counters. (4) The `((const s8*) (y +
+  tbl))[x * 3]` index gives the same giv as `tbl[x][y]`.
+- **r20e checkPuzzle 224 (unchanged; mechanisms of the first two regions read, four more listed).** (a) The loop
+  arm's `SceMesSet(1, .., cMes.getWork()->..)`: the target keeps `addi r9,r20,cMes@l; addi r9,r9,4` in the arm with
+  the high PRE'd to bb 0 (`lis r20` after SceEventStart, our gcse does the same: reaching reg at the end of bb 0, the
+  pre-loop occurrence kept); ours then has loop.c move the lo_sum (`move_insn` via its REG_EQUAL symbol, savings 2,
+  life 13 -> 71*2*13 >= 686 insns) and its `+4` to the preheader where combine folds them to `cMes+4@ha/@l`. The
+  life 13 is the stale REGNO_LAST_UID of the inline's `this` (the second `getWork()`'s copy was cse'd and deleted, no
+  reg_scan before loop 1); a `MesWork* w = cMes.getWork()` local gives life 10, still moved. The original's movable
+  had life <= 4 or the loop >= 1847 insns -- not found. (b) Key: the body-top `high(Key)` (life 3, savings 2) is
+  "not desirable" in loop pass 1 (639 < 686) but `combine_movables` matches the end-test's `high(Key)` into it
+  (savings 3) and pass 2 (616 insns) moves it (639 >= 616) -> our `lis r23` in the preheader; the target recomputes
+  both (`lis r9; addi r8,r9,Key@l` at the body top plus the gcse copy `lis r25` for puzzleMove's Key.trg test, and
+  `lis r9; addi r9,r9` at the end test). Needs the two not to match (`!m1->global`, same src) or >= 640 insns at pass
+  2. (c) The frame block: target `lwzu r11,376(r9); lwz r0,4(r9); lwz r10,8(r9)` = x loaded through `(mem (reg c))`
+  (the pass-8 find_best_addr story), ours `addi r11,r9,376; lwz r10,376(r9)`. (d) The four slide loops: `mr r10,r9;
+  mulli r9,r9,48` (the cx value copied before the multiply), `lbz r0,12(r9)` off `p + 376 + k*16` vs our stepping
+  `lbz 0(r9); addi r9,48` giv, `li r3,1; li r4,-1` (state 1 / -1 constants in r3/r4, ours r31/r3), `lwzu r8,328(r9)`
+  for the `to->pos` copy, and the target's temp order (x r8, z r0, y r10; `stw r0,16(r1)` after `addi r11,16`).
+  Not iterated further.

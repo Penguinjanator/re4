@@ -1067,47 +1067,29 @@ static void r20d_checkPuzzle()
     SceEventEnd(0);
 }
 
-// Places the pieces of `tbl` on the board.
-static inline void r20e_setLayout(R20ePuzzle* p, const s8 tbl[3][3])
-{
-    int x;
-    int y;
-
-    for (y = 0; y < 3; y++) {
-        R20eCell* c = &p->cell[0][y];
-        R20eCell* cs = c;
-
-        for (x = 0; x < 3; x++) {
-            s8 pc = tbl[x][y];
-
-            cs->piece = pc;
-            if (pc != -1) {
-                R20ePiece* q = PUZZLE_PIECE(p, pc);
-                Vec pos;
-
-                pos = c->pos;
-                if (q->obj) {
-                    q->obj->pos = pos;
-                }
-            }
-            cs += 3;
-            c += 3;
-        }
-    }
-}
-
 // Places piece `pc` of cell `c`: the Vec temp is the inline's own local (integrate substitutes its
 // frame address, no PRE), while the loops and their counters belong to the caller.  Both layout
 // nests step TWO cell pointers of equal value (`c` for the pos loads, its copy `cs` for the piece
 // store, `mr r7,r11` in the preheader, two `addi ,48` in the latch): with one pointer the target's
-// split cannot be reproduced (25 forms, pass 8).  `cs` must be incremented BEFORE `c` -- cse's
-// `(set REG0 REG1)` swap makes the later-mentioned register the lo_sum's destination, so with `c`
-// mentioned last the copy stays `cs` and the loads keep the original pointer like the target.  The first layout
-// pass in r20e_initPuzzle is this macro over the function's own `x`/`y` (the target's r28 serves as y
-// in both the object loop and the layout loop): with the counter shared, `y + 1` stays a latch biv in
-// the object loop instead of being PRE'd across the inner loop (pl0f BoatControl rule), which is what
-// forms the `y*4`/`y*16` givs and the `subic.` count-down.  The else arm's layout keeps the inline
-// r20e_setLayout (its own counter, caller-saved r8 in the target).
+// split cannot be reproduced (25 forms, pass 8).  The latch order is the source order (`c += 3`
+// first, like the target); cse's `(set REG0 REG1)` special case would then swap the lo_sum's
+// destination to the later-mentioned `cs`, but it only fires when the copy `cs = c` DIRECTLY
+// follows `c`'s set, so the `x = 0` statement sits between the two.  The first layout pass in
+// r20e_initPuzzle is this macro over the function's own `x`/`y` (the target's r28 serves as y in
+// both the object loop and the layout loop): with the counter shared, `y + 1` stays a latch biv in
+// the object loop instead of being PRE'd across the inner loop (pl0f BoatControl rule), which is
+// what forms the `y*4`/`y*16` givs and the `subic.` count-down.  The else arm's layout has its own
+// block-local counters (caller-saved r8 in the target).  The table is a `u32` (not a pointer)
+// computed before the nest: `add y,tbl` keeps the written operand order (a pointer would go first),
+// and the `lis/addi` is a plain statement instead of a loop.c hoist.
+// Both nests are wrapped in `do { } while (0)`: the copy temps x/y/z (3 refs each, flow weights refs
+// by loop depth) and the `mulli` temp (2 refs) are global allocnos; the mulli temp inherits `pc`'s
+// r0 preference (expand_preferences: pc dies at the mulli) and, when it ranks BELOW x, puts r0 into
+// x's `regs_someone_prefers` so pass 0 skips r0 (ours: x r10, z r8, y r7 and the loop pointers shift
+// down one register).  At depth 3 (function + two loops) x = 3*9/11 = 2.45 outranks the temp 2*6/7 =
+// 1.71; the extra loop level makes it 3*12/11 = 3.27 vs 3*8/7 = 3.43 and x takes r0 like the target
+// (y r8, z r10, cs r7).  The do-while's loop notes are a sched1 barrier: everything the target issues
+// before `li y,0` (the table address, `lwz r20e_work`) is computed before it, the rest inside.
 static inline void r20e_placePiece(R20ePuzzle* p, R20eCell* c, R20eCell* cs, s8 pc)
 {
     cs->piece = pc;
@@ -1122,15 +1104,17 @@ static inline void r20e_placePiece(R20ePuzzle* p, R20eCell* c, R20eCell* cs, s8 
     }
 }
 
-#define R20E_SET_LAYOUT(p, tbl)                                    \
-    for (y = 0; y < 3; y++) {                                      \
-        R20eCell* c = &(p)->cell[0][y];                            \
-        R20eCell* cs = c;                                          \
-        for (x = 0; x < 3; x++) {                                  \
-            r20e_placePiece(p, c, cs, (tbl)[x][y]);                \
-            cs += 3;                                               \
-            c += 3;                                                \
-        }                                                          \
+// `y = 0` is the caller's (inside its do-while, before the puzzle pointer of the else arm).
+#define R20E_SET_LAYOUT(p, tbl)                                            \
+    for (; y < 3; y++) {                                                   \
+        R20eCell* c = &(p)->cell[0][y];                                    \
+        x = 0;                                                             \
+        R20eCell* cs = c;                                                  \
+        for (; x < 3; x++) {                                               \
+            r20e_placePiece(p, c, cs, ((const s8*) (y + (tbl)))[x * 3]);   \
+            c += 3;                                                        \
+            cs += 3;                                                       \
+        }                                                                  \
     }
 
 void r20e_initPuzzle()
@@ -1176,13 +1160,29 @@ void r20e_initPuzzle()
     p->cx = 2;
     p->cy = 2;
     last->piece = -1;
-    R20E_SET_LAYOUT(p, r20e_initLayout);
+    {
+        u32 tbl = (u32) r20e_initLayout;
+        do {
+            y = 0;
+            R20E_SET_LAYOUT(p, tbl);
+        } while (0);
+    }
     if (RsfCheck(G_ROOM_ID, 3) == 0) {
         SceAtDataSet_exec(1, 0x12, 0, (TaskFunc) r20d_checkPuzzle, 0, 1);
         SceAtSetEnable(0xD, 0);
         r20e_moveCrestDoor(0, 1);
     } else {
-        r20e_setLayout(&r20e_work->puzzle, r20e_solvedLayout);
+        {
+            R20eWork* w = r20e_work;
+            u32 tbl = (u32) r20e_solvedLayout;
+            int x;
+            int y;
+            do {
+                y = 0;
+                R20ePuzzle* q = &w->puzzle;
+                R20E_SET_LAYOUT(q, tbl);
+            } while (0);
+        }
         if (RsfCheck(G_ROOM_ID, 4) == 0) {
             SceAtDataSet_exec(1, 0x12, 0, (TaskFunc) r20d_checkPuzzle2, 0, 1);
             SceExec(0x12, (TaskFunc) r20e_checkFinalPieceUse, 0, 0, 2, 0);

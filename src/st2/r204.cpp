@@ -772,9 +772,16 @@ struct PlPtr {
 // four loop-hoisted highs Key/ActBtn/"%d"/2^31 -- 30000/len at 434..442 -- away from the target's).
 // COMPILER-DIFF: 12 (regmove operand pick, `rp` below): `addi r4,mdl,0xa0` must be computed from
 // mdl's register before `mr r3,mdl` (the r20d execRoundSwitch "cc"-clobber asm).
-// Left (EventChandelier2, 3 words): the ActBtn / "%d" highs come out r17/r18 swapped -- a priority
-// tie broken by gcse's hash-bucket allocno order; the target's bucket order needs a different `.LC`
-// numbering (our TU creates 6 unemitted header-string constants, LC4/LC10-14) or table size.
+// COMPILER-DIFF: candidate (gcse PRE pseudo numbering) -- the 21 dead `f32 lcN` locals at the top of
+// EventChandelier1 (below): the four loop-hoisted highs Key/ActBtn/"%d"/2^31 tie at global priority 68
+// (Key 69) and are allocated in PRE pseudo order = gcse bucket order, bucket = (7933 + h(name)) % size
+// with h = h*129 + c. "%d" is numbered once (in EventChandelier1, shared by both functions), each
+// function's 2^31 double is its own pool label: with our TU's labels (LC51/LC52/LC61) the order is
+// right in 1 (207 buckets: ActBtn 20 < 2^31 118 < "%d" 119 -> r19/r18/r17) and wrong in 2 (213
+// buckets: "%d" 5 < ActBtn 50 < 2^31 133; target ActBtn r18, "%d" r17, 2^31 r16). Shifting every
+// label from EventChandelier1 on by 21 (LC72/LC73/LC82) gives 1: 20 < 170 < 171 and 2: 50 < 51 < 179
+// (shifts 21..27 all work; 20 puts "%d" in ActBtn's bucket and wins only by insertion order). The
+// dead loads are deleted before gcse and the pool entries never output: .rodata and code unchanged.
 #define CHANDELIER(no, cpos0, crot0, dx0, dz0, dx1, dz1, dx2, dz2, postLoop)                                  \
     {                                                                                                              \
         cPlayer* pl = pPL;                                                                                         \
@@ -893,6 +900,28 @@ struct PlPtr {
 
 static void r204_EventChandelier1()
 {
+    /* COMPILER-DIFF: candidate (gcse PRE pseudo numbering): 21 dead pool labels, see CHANDELIER */
+    f32 lc0 = 1.5f;
+    f32 lc1 = 2.5f;
+    f32 lc2 = 3.5f;
+    f32 lc3 = 4.5f;
+    f32 lc4 = 5.5f;
+    f32 lc5 = 6.5f;
+    f32 lc6 = 7.5f;
+    f32 lc7 = 8.5f;
+    f32 lc8 = 9.5f;
+    f32 lc9 = 10.5f;
+    f32 lc10 = 11.5f;
+    f32 lc11 = 12.5f;
+    f32 lc12 = 13.5f;
+    f32 lc13 = 14.5f;
+    f32 lc14 = 15.5f;
+    f32 lc15 = 16.5f;
+    f32 lc16 = 17.5f;
+    f32 lc17 = 18.5f;
+    f32 lc18 = 19.5f;
+    f32 lc19 = 20.5f;
+    f32 lc20 = 21.5f;
     CHANDELIER(0, r204_chandPos0, r204_chandRot0, 5927.0f, 258.0f, 1964.0f, -606.0f, 926.0f, -647.0f, ;)
 }
 
