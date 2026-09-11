@@ -620,7 +620,9 @@ static void msq_R0_Sequence()
                 } else {
                     step = 1;
                 }
-                w->seq[0].key[cur2].x2 += step;
+                int c = (u8) w->seq[0].key[cur2].x2;  // narrow `+` via an int local: `add step, c`
+
+                w->seq[0].key[cur2].x2 = step + c;
             }
             break;
         case 0:
@@ -797,12 +799,17 @@ static void msq_R0_QuitCk()
         return;
     }
     if (w->joy.trg & 0x100) {
+        // default written FIRST with three identical arms: the case-1 arm cross-jumps into the
+        // default body and its `beq` (now a jump to the next insn) is deleted after flow, leaving
+        // the dead `cmpwi r0,1` the original has
         switch (w->sub3) {
+        default:
+            msqSetMode(3);
+            break;
         case 0:
             msqSetMode(3);
             break;
         case 1:
-        default:
             msqSetMode(3);
             break;
         }
@@ -962,6 +969,8 @@ void msqDisp()
     MotionSeqKey* k;
     s16 cur;
     s16 y0;
+    int cx;  // text column; set to 3 and 48 (two sets: gcse cprop leaves `cx * 8` unfolded after the loops)
+    int j;   // row counter post-incremented in the eprintf argument (the y giv's `+14` lands in the arg block)
 
     eprintf(24, 14, 4, w->col, "MOTION SEQUENCE TOOL");
     if (MSQ->camMode && (pG->flags_51E4 & 0x10)) {
@@ -1056,15 +1065,16 @@ void msqDisp()
         } else {
             eprintf(24, 168, 0, MSQ->col, "SE:ENEMY (Change JOY_SRU)");
         }
-        int cx = 3;
+        cx = 3;
 
         eprintf(24, 196, 0, MSQ->col, "--SEQUENCE INFO--");
         k = &w->seq[0].key[cur];
         eprintf(cx * 8, 210, 0, MSQ->col, "Frame:%4.2f [%03d]",
                 (f32) (k->frame >> 6) + (f32) (k->frame & 0x3F) / 64.0f, cur);
         eprintf(cx * 8, 224, 0, MSQ->col, "Free :0x%02x", k->x3);
+        j = 0;
         for (i = 0; i < 8; i++) {
-            eprintf(cx * 8, 238 + i * 14, 0, MSQ->col, "Free%1d:%s", i, w->seq[0].flagDisp[i] ? "ON" : "--");
+            eprintf(cx * 8, 238 + j++ * 14, 0, MSQ->col, "Free%1d:%s", i, w->seq[0].flagDisp[i] ? "ON" : "--");
         }
         if (k->x2 != 0) {
             eprintf(cx * 8, 350, 0, MSQ->col, "SE   :%02d:0x%02x", k->x2 - 1, k->x2 - 1);
@@ -1074,14 +1084,16 @@ void msqDisp()
         eprintf(184, 350, 0, MSQ->col, "Seq num [%03d/%03d]", cur, m->mot.seqMax);
         eprintf(184, 336, 0, MSQ->col, "Mot num [%03d]", (int) m->mot.maxFrame + 1);
         k = &w->seq[0].copy;
-        eprintf(384, 224, 0, MSQ->col, "--COPY SEQUENCE--");
+        cx = 48;
+        eprintf(cx * 8, 224, 0, MSQ->col, "--COPY SEQUENCE--");
+        j = 0;
         for (i = 0; i < 8; i++) {
-            eprintf(384, 238 + i * 14, 0, MSQ->col, "Free%1d:%s", i, w->seq[0].copyFlagDisp[i] ? "ON" : "--");
+            eprintf(cx * 8, 238 + j++ * 14, 0, MSQ->col, "Free%1d:%s", i, w->seq[0].copyFlagDisp[i] ? "ON" : "--");
         }
         if (k->x2 != 0) {
-            eprintf(384, 350, 0, MSQ->col, "SE   :%02d:0x%02x", k->x2 - 1, k->x2 - 1);
+            eprintf(cx * 8, 350, 0, MSQ->col, "SE   :%02d:0x%02x", k->x2 - 1, k->x2 - 1);
         } else {
-            eprintf(384, 350, 0, MSQ->col, "SE   :--:----");
+            eprintf(cx * 8, 350, 0, MSQ->col, "SE   :--:----");
         }
         eprintf(384, 28, 0, MSQ->col, "  SLL: 1 STEP");
         eprintf(384, 42, 0, MSQ->col, "A+SLL: SKIP");
@@ -1106,21 +1118,25 @@ void msqDisp()
     }
     Draw_floor(500, 20, 0x00202020);
     if (m != NULL && (m->be_flag & 1) && MSQ->mode > 2) {
-        GXColor c1 = {0x80, 0x80, 0x80, 0x40};
-        GXColor c2 = {0x40, 0x40, 0x40, 0x40};
+        u8 k80 = 0x80;
+        u8 k40 = 0x40;
+        GXColor c1 = {k80, 0x80, 0x80, 0x40};
+        GXColor c2 = {k40, 0x40, 0x40, 0x40};
         GXColor c3 = {0, 0, 0, 0x40};
         f32 x;
+        f32 tx;  // the cursor tiles' x: a separate single-set variable (haifa's birthing boost issues its load first)
 
         TprimDraw2D(0);
-        rc.x = 248.0f;
+        tx = 248.0f;
+        rc.x = tx;
         rc.y = 362.0f;
         rc.w = 17.0f;
         rc.h = 73.0f;
         TprimDrawTile2D(&rc, &c1, 0.0f);
         if (w->seq[0].cursor != 0) {
-            rc.x = 248.0f;
-            rc.w = 17.0f;
+            rc.x = tx;
             rc.y = (f32) (w->seq[0].cursor * 5 + 362);
+            rc.w = 17.0f;
             if (w->seq[0].cursor == 9) {
                 rc.h = 28.0f;
             } else {
@@ -1142,39 +1158,36 @@ void msqDisp()
         const f32 xStep = 15.0f;
         for (c = 0; c <= 28; c++) {
             u8 bit = 1;
+            f32 rowY = 369.0f;
 
             rc.x = x;
             rc.h = rowH;
-            rc.y = 369.0f;
+            rc.y = rowY;
             for (r = 0; r < 8; r++) {
-                if (y0 >= 0 && y0 < m->mot.seqMax) {
-                    if (w->seq[0].key[y0].x3 & bit) {
-                        col.r = 0x20;
-                        col.g = 0x80;
-                        col.b = 0x20;
-                        col.a = 0x40;
-                    } else {
-                        col = c2;
-                    }
-                } else {
+                if (y0 < 0 || y0 >= m->mot.seqMax) {
                     col = c3;
+                } else if (w->seq[0].key[y0].x3 & bit) {
+                    col.r = 0x20;
+                    col.g = 0x80;
+                    col.b = 0x20;
+                    col.a = 0x40;
+                } else {
+                    col = c2;
                 }
                 TprimDrawTile2D(&rc, &col, 0.0f);
                 bit <<= 1;
                 rc.y += rowStep;
             }
             rc.h = seH;
-            if (y0 >= 0 && y0 < m->mot.seqMax) {
-                if (w->seq[0].key[y0].x2 != 0) {
-                    col.r = 0x80;
-                    col.g = 0x20;
-                    col.b = 0x20;
-                    col.a = 0x40;
-                } else {
-                    col = c2;
-                }
-            } else {
+            if (y0 < 0 || y0 >= m->mot.seqMax) {
                 col = c3;
+            } else if (w->seq[0].key[y0].x2 != 0) {
+                col.r = 0x80;
+                col.g = 0x20;
+                col.b = 0x20;
+                col.a = 0x40;
+            } else {
+                col = c2;
             }
             TprimDrawTile2D(&rc, &col, 0.0f);
             y0++;

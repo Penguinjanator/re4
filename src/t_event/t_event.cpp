@@ -476,10 +476,10 @@ void ToolEvt::MainPreview(ToolEvt* t)
             t->step++;
         }
         if (t->pJoy0->trg & 0x200) {
-            t->x06 = 0;
             t->mode = 0;
             t->step = 0;
             t->x04 = 0;
+            t->x06 = 0;
         }
         break;
     case 1:
@@ -504,10 +504,10 @@ void ToolEvt::MainPreview(ToolEvt* t)
                 break;
             }
         case 1:
-            t->x06 = 0;
             t->mode = 0;
             t->step = 0;
             t->x04 = 0;
+            t->x06 = 0;
             break;
         }
         break;
@@ -516,14 +516,18 @@ void ToolEvt::MainPreview(ToolEvt* t)
 
         t->EvtTaskSignal(0);
         SceEventStart(0);
-        t->hdr = *(EvtHdrCopy*) t->pEvd;
-        EVTDBG->hdr = *(EvtHdrCopy*) t->pEvd;
+        EvtHdrCopy* h = (EvtHdrCopy*) t->pEvd;
+
+        t->hdr = *h;
+        EvtDebugView* d = EVTDBG;
+
+        d->hdr = *h;
         if (EvtMgr.SetEvt(t->pEvd, (u32*) &ev) == 0) {
             pLog->err(0, 0, "ToolEvt_Main_Preview : failed");
-            t->x06 = 0;
             t->mode = 1;
             t->step = 4;
             t->x04 = 0;
+            t->x06 = 0;
             break;
         }
         t->flags &= ~0x02000000;
@@ -542,10 +546,10 @@ void ToolEvt::MainPreview(ToolEvt* t)
         }
         if (EvtMgr.GetEvt(&EvtMgr.x34, (void**) &ev) == 0) {
             pLog->err(0, 0, "ToolEvt_Main_Preview : failed");
-            t->x06 = 0;
             t->mode = 1;
             t->step = 4;
             t->x04 = 0;
+            t->x06 = 0;
             break;
         }
         if (t->flags & 0x00040000) {
@@ -592,7 +596,9 @@ void ToolEvt::MainPreview(ToolEvt* t)
                     t->flags &= ~0x00200000;
                     t->flags |= 0x02000000;
                     if (t->flags & 0x00400000) {
-                        t->flags &= ~0x00400000;
+                        u32* fp = &t->flags;
+
+                        *fp &= ~0x00400000;
                         pG->debug_mode = 1;
                         ScreenShotEnd();
                     }
@@ -614,7 +620,7 @@ void ToolEvt::MainPreview(ToolEvt* t)
             }
         }
         if ((!(t->flags & 0x40000000) && ((t->pJoy0->on & 0x30000) || (t->pJoy0->trg & 0xE00))) ||
-            (t->flags & 0x20000000) || (t->flags & 0x10000000) || (t->pJoy0->trg & 0x100)) {
+            FlagBit(t->flags, 0x20000000) || FlagBit(t->flags, 0x10000000) || (t->pJoy0->trg & 0x100)) {
             t->flags ^= 0x40000000;
             if (t->flags & 0x20000000) {
                 t->flags |= 0x40000000;
@@ -626,11 +632,14 @@ void ToolEvt::MainPreview(ToolEvt* t)
             t->flags &= ~0x30000000;
             if (t->flags & 0x40000000) {
                 t->EvtTaskSuspend(0);
-                EvtMgr.EvtSndStrStop(&EvtMgr.x34, 1, 0);
-                EvtMgr.EvtSndStrStop(&EvtMgr.x34, 0, 0);
+                EventMgr* m = &EvtMgr;
+                u32* pp = &m->x34;
+
+                m->EvtSndStrStop(pp, 1, 0);
+                m->EvtSndStrStop(pp, 0, 0);
             } else {
                 t->EvtTaskSignal(0);
-                if (!(t->flags & 0x00400000) && !(t->flags & 0x01000000)) {
+                if (!FlagBit(t->flags, 0x00400000) && !FlagBit(t->flags, 0x01000000)) {
                     if (EvtStatusChk(ev, 0x8000) == 0) {
                         ev->status |= 0x10000;
                         EvtDebug.strWait = 60;
@@ -640,8 +649,13 @@ void ToolEvt::MainPreview(ToolEvt* t)
             }
             ev->status &= ~0x8000;
         }
-        ev->status &= ~0x80000000;
-        ev->status &= ~0x40000000;
+        {
+            u32* sp = &ev->status;
+
+            *sp &= ~0x80000000;
+            sp = &ev->status;
+            *sp &= ~0x40000000;
+        }
         pG->flags_64 &= ~0x01000000;
         if (t->flags & 0x40000000) {
             t->RunStop(t, ev);
@@ -655,14 +669,17 @@ void ToolEvt::MainPreview(ToolEvt* t)
         t->EvtTaskSignal(0);
         TaskSleep(2);
         t->EvtTaskSuspend(0);
-        EvtMgr.EvtSndStrStop(&EvtMgr.x34, 1, 1);
-        EvtMgr.EvtSndStrStop(&EvtMgr.x34, 0, 1);
+        EventMgr* m = &EvtMgr;
+        u32* pp = &m->x34;
+
+        m->EvtSndStrStop(pp, 1, 1);
+        m->EvtSndStrStop(pp, 0, 1);
         SceEventEnd(0);
         if (!(t->flags & 0x00080000)) {
-            t->x06 = 0;
             t->mode = 0;
             t->step = 0;
             t->x04 = 0;
+            t->x06 = 0;
         } else {
             t->flags |= 0x80000000;
         }
@@ -954,20 +971,20 @@ int ToolEvt::SubMenuEditFocusLevel(ToolEvt* t, Event* ev, const char* name, f32*
     return 0;
 }
 
-int ToolEvt::SubToolCameraMove(ToolEvt* t)
+int ToolEvt::SubToolCameraMove(ToolEvt* /*t*/)
 {
-    if (t->camMode != 0) {
-        if (t->pJoy0->trg & 0x1000) {
-            t->camMode = 0;
+    if (camMode != 0) {
+        if (pJoy0->trg & 0x1000) {
+            camMode = 0;
             if (!(pG->flags_60 & 0x10000000)) {
                 pG->flags_170 &= ~0x40000000;
             }
         } else {
             CamDbg.move(&pG->Cam, &Joy[0], 0);
-            if (t->camCnt++ & 8) {
+            if (camCnt++ & 8) {
                 eprintf2(0xE, 0x12, 0xAA, 0x18, 6, 0, "CAMERA MODE");
             }
-            if (t->pJoy0->trg & 0x200) {
+            if (pJoy0->trg & 0x200) {
                 CAM_MOTION_FLAGS(CamCtrl.getMotionInfoPtr()) |= 8;
                 pG->flags_170 &= ~0x40000000;
             } else {
@@ -978,9 +995,9 @@ int ToolEvt::SubToolCameraMove(ToolEvt* t)
         }
         return 1;
     }
-    if (t->pJoy0->trg & 0x1000) {
-        t->camMode = 1;
-        t->flags |= 0x20000000;
+    if (pJoy0->trg & 0x1000) {
+        camMode = 1;
+        flags |= 0x20000000;
     }
     return 0;
 }
@@ -1002,13 +1019,13 @@ void ToolEvt::SubToolLightInit(ToolEvt* t, int sw)
     SubToolIn(t, sw, 13);
 }
 
-void ToolEvt::SubToolLightMove(ToolEvt* t)
+void ToolEvt::SubToolLightMove(ToolEvt* /*t*/)
 {
-    cLightTool* lt = t->pLightTool;
+    cLightTool* lt = pLightTool;
 
     if ((u32) lt >= 0x80000000 && (u32) lt <= 0x82FFFFFF) {
         if (lt->move() == 0) {
-            t->SubToolLightInit(t, 0);
+            SubToolLightInit(this, 0);
         }
         View.move();
     }

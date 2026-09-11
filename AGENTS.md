@@ -18855,3 +18855,76 @@ loop printing `LADBG <function> head<uid> b<bb> q<n> reg<r> refs birth death pri
 - Not iterated: option, card, sce_com, db_cam, puzzle, pendulum, esp08/esp18 (the .rodata "vtable slot" rows of esp08/esp18 are
   bytecmp's (name, offset) mapping of a reloc across the .text size difference of Esp08_Trans/Esp18_Trans, not a vtable issue),
   cam_ctrl; motion's six register/size residues (MotionSequenceCtrl f11/f12/f13 rotation, HermiteInterpolation `last` copy).
+
+### Tool RELs, bytes-first pass 17b (Tools/t_motseq 353 -> 202 words: msqDisp 147 -> 4, msq_R0_QuitCk 7 -> 0; t_event/t_event 1095 -> 900: MainPreview 195 -> 0; t_id / t_snd_vol not started; nothing flipped; 2026-09-11)
+
+- Harness ~/.cache/tools_p17b (deleted at the end): tesp8's module-aware scripts with the paths rewritten (`tryv.py MOD/UNIT SYM V.py`
+  with the `headers = {variant: {"hdr.h": [(old, new)]}}` dict for header variants, `sbs.sh`, `mcmp.py`, `order.py`, `dump.sh MOD/UNIT -dX`
+  with an absolute `SRC_OVERRIDE`). Build single objects with `flock build/.ninja.lock ninja <obj>` (the pass-15 unlocked copy-manifest
+  recipe clobbers `.ninja_deps` -- "premature end of file; recovering").
+- **The kept dead `cmpwi` = a conditional jump that jump2 deletes AFTER flow2.** SN's toplev.c runs `find_basic_blocks + life_analysis`
+  (flow2, `-dw` dump) between reload_cse and sched2, and jump2 after sched2; `delete_computation` with `reload_completed &&
+  flag_schedule_insns_after_reload` deletes only the jump. So: a body deleted before flow2 (trivially dead set, flow1-dead set, cse
+  fold, `update_equiv_regs` move, reload_cse noop move) leaves a jump-to-next that flow2's `tidy_fallthru_edge` removes and whose
+  compare life_analysis then deletes (ours); a body that survives flow2 and is removed by jump2 itself (cross-jump into an identical
+  arm, jump threading, `delete_noop_moves`) leaves the compare. msq_R0_QuitCk (7 -> 0, zero code): `switch (w->sub3) { default:
+  msqSetMode(3); break; case 0: msqSetMode(3); break; case 1: msqSetMode(3); break; }` -- default written FIRST with three identical
+  arms: case 1's arm cross-jumps wholesale into the default body, its `beq` becomes jump-to-next, jump2 deletes it and `cmpwi r0,1`
+  stays. The two-arm `case 1: default:` grouping emits no compare on 1 at all; `default` written last or an if/else chain lay the
+  bodies out so that the arms do not merge (9-21 words). The same construction is still open for msq_R0_Sequence's `cmpwi r30,0`
+  after the `if (cur2 > 0) .. else ..` (the then-arm jumps to the compare, so it is a statement after the inner if/else inside `if
+  (cur != cur2)`): dead sets of cur/cur2/m/w, `(s16)` self-casts, `cur2 = cur2 + 0`, re-loads of m/MSQ all vanish before flow2 or
+  keep code (96 words; not closed).
+- **msqDisp (147 -> 4, zero code, six facts):** (1) `int cx;` set to 3 (sequence half) and 48 (copy half) with `cx * 8` at every x
+  argument: a two-set variable is not cprop'd by gcse (single-set regs only), so the pre-loop eprintfs fold in cse1's ebb (`li r3,24`
+  / `li r3,384`), the loop's `cx << 3` is hoisted by loop.c and folded by cse2 in the preheader (`li r23,24`), and the post-loop
+  if/else arms compute `slwi r3,r17,3` (new ebb; in the copy half the arms' occurrence is gcse-PRE'd into a second preheader
+  register `li r25,384` next to loop.c's `li r26,384`). (2) The row y of `eprintf(cx * 8, y, .., i, flag[i] ? "ON" : "--")` is
+  `238 + j++ * 14` with a SEPARATE post-incremented counter `j` (i is the for counter used by `%1d`/`flag[i]`): the ternary argument
+  makes expand_call precompute the arguments, so the giv copy `mr r4,r30` and, after the biv increment of j in the SAME (argument)
+  block, loop.c's giv step `g += 14` sit before the branch, and regmove's optimize_reg_copy_1 rewrites the step as `addi r30,r4,14`
+  off the argument copy. `y += 14` after the call, `for (..; i++, y += 14)`, `int y = yy; yy = y + 14;` and `(yy += 14) - 14` give
+  54-95 words; `flag[i++]` in the argument moves `i++` into the argument block too and passes i+1 (74). (3) `GXColor c1 = {k80, 0x80,
+  0x80, 0x40}` with `u8 k80 = 0x80; u8 k40 = 0x40;` variable FIRST bytes (the rckDrawPointLineNow idiom: `stw 0; stb r0(-128)`
+  instead of the folded `lis 0x8000; stw`); a 3-element initializer + `.a =` store still folds the first byte. (4) `f32 tx = 248.0f`
+  for the two cursor tiles is a SEPARATE single-set variable from the loop's `x = 40.0f` (both end in f31): a single-set pseudo live
+  at the block end gets haifa's birthing boost and its `lfs` issues before the shared 17.0 word `lwz r31`; one `x` set twice loses
+  the slot (10 words). (5) `f32 rowY = 369.0f;` declared INSIDE the outer loop body (block-local, `rc.y = rowY`): loop.c hoists the
+  set into f29 (callee-saved) and the pool order stays `5, 4, 24, 25, 15, 369` -- the same variable declared before the loop puts
+  369.0 before the loop constants in `.rodata` (pool entries are created after loop.c, not at expand), and the literal `rc.y = 369.0f`
+  (load adjacent to its store) is never hoisted. (6) `if (y0 < 0 || y0 >= seqMax) col = c3; else if (..) {..} else col = c2;` (the
+  c3 arm first) and the cursor tile's `rc.y = ..` written BEFORE `rc.w = 17.0f` (the `lbz cursor` then waits only for the x store).
+  Left 4: the preheader order of the two hoisted FPR constants (target `lfs f30 (5.0)` before `lfs f29 (369.0)`; ours the reverse
+  because rowY's set precedes the inner loop's preheader in the outer body) -- no placement of rowY gives both the pool order and
+  the hoist order.
+- **msq_R0_Sequence (97 -> 96): `int c = (u8) w->..x2; w->..x2 = step + c;`** (the pass-15 narrow `+` int-local form: `add r0,r11,r0`).
+- **msq_R0_SeqResize (78, read, not closed):** the target never forwards `w->seq[0].num` through the preceding `sth`: loop 1 is `BFC:
+  sth t; k--; lhz n; i--; blt; lhz k->frame; cmp; ble; t = n - 1; b BFC` with the first `t = n - 1` (`subi r0,r7,1`, NOT merged with
+  `i = num - 1` although both are `(plus A -1)` in one cse path) and the giv init `mr r11,r10` before the label, and the exit
+  `clrlwi r31,r7,16` truncates the int n to the u16 num; loop 2 likewise reloads n (`lhz r9; subi r0,r9,1; mr r7,r9`) and indexes
+  `key[(u16)(n + 1) - 1]` via `clrlslwi r9,r0,16,2`. cse.c facts read for it: a plain `(set tmp:HI (mem:HI))` load IS forwarded
+  through a same-address store (the mem's class holds the stored subreg -> `clrlwi`), while a single-insn `(set n (zero_extend (mem:HI)))`
+  is not (any store removes every non-MEM `in_memory` element, and the bare `(mem:HI)` class does not contain the zero_extend);
+  this compiler expands `int n = w->num` as the two-insn form (COMPONENT_REF into an HI temp), so every u16/int local, `MSQ->`
+  re-read, `--i`/`num--`/while/for/for-step form tried forwards (74-79 words). The form that produces the single-insn load, or a
+  label between the store and the reload at cse1 time, was not found.
+- **t_event MainPreview (195 -> 0, zero code, six facts):** (1) `EvtHdrCopy* h = (EvtHdrCopy*) t->pEvd;` ONE source pointer for both
+  48-byte copies (`t->hdr = *h; d->hdr = *h;`: the target keeps r8 across the first copy, ours re-read `t->pEvd` after its stores)
+  and (2) `EvtDebugView* d = EVTDBG;` a POINTER local for the global destination (`addi r9,r9,EvtDebug@l; addi r9,r9,32` -- the
+  member offset added to the pointer, not folded into the reloc; 100 -> 39 words: the block-copy loop's registers followed).
+  (3) `SubToolCameraMove`/`SubToolLightMove` are NON-static members whose bodies use `this` and ignore the `ToolEvt* t` parameter:
+  the caller's `t->SubToolLightMove(t)` passes t in r3 AND r4 (`mr r3,r31; mr r4,r31`) while the bodies stay byte-identical to the
+  static form (this = r3 = the old t). Rule: a `mr r4,r31` duplicate of `this` at a call whose callee never reads r4 = a non-static
+  member with an unused pointer parameter. (4) `FlagBit(t->flags, A) || FlagBit(t->flags, B)` inline for the two `||` pairs on one
+  lvalue (`andis. 8192; bne; andis. 4096` instead of the folded `andis. 12288`; the `!(f & A) && !(f & B)` pair likewise). (5) The
+  four `mode/step/x04/x06` stores in the order `mode = 0; step = 0; x04 = 0; x06 = 0;` (the ctor's order; x06 first gave x4 first
+  after cross-jumping). (6) `EventMgr* m = &EvtMgr; u32* pp = &m->x34;` declared AFTER the `t->EvtTaskSuspend(0)` call in both the
+  case-3 then-arm and case 4 (`lis r30; addi r30; addi r29,r30,52; mr r3,r30; mr r4,r29` shared by the two EvtSndStrStop calls;
+  the plain `EvtMgr.EvtSndStrStop(&EvtMgr.x34, ..)` re-materialises the symbol address per call). (7) `u32* fp = &t->flags; *fp &=
+  ~0x00400000;` and `u32* sp = &ev->status; *sp &= ~..; sp = &ev->status; *sp &= ~..;` for the stores the `lwz pG` must not be
+  hoisted above: `*(u32*) &t->flags` is folded back to the COMPONENT_REF and `p[i]` (TE_FLG_OFF) is an ARRAY_REF -- both set
+  MEM_IN_STRUCT_P and `fixed_scalar_and_varying_struct_p` lets the fixed-scalar pG load pass; only a pointer VARIABLE deref is a
+  plain INDIRECT_REF MEM (the RsfFlagWord rule, re-read: the pointer must be a named local).
+- t_event SubToolMessInit (212, 0x10a0/0x1074): the missing 11 words are the inlined `cDbgToolMain<T>` constructor's loops (`li r9,99;
+  addi r28,r9,-1; li r29,10; loop: bl memset(p, 0, 16); ...; cmpwi r9,-1`) -- the shared header's ctor (the ToolEspArea/ToolLightAreaMain
+  block of pass 16, owned by tools pass 17a), not this unit. t_id/t_id and t_movie/t_snd_vol were not started this pass.
