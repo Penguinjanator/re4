@@ -170,10 +170,10 @@ void ADXT_ExecHndl(ADXT adxt)
 
 /* the decoder has read the header: size the decode step, set up looping / end handling and
  * program the renderer */
-static void adxt_stat_decinfo(register ADXT adxt)
+static void adxt_stat_decinfo(ADXT adxt)
 {
-	register ADXT p;
-	register void *sjd;
+	ADXT p;
+	void *sjd;
 	Sint32 sfreq;
 	Sint32 nloop;
 	Sint32 blk;
@@ -187,8 +187,8 @@ static void adxt_stat_decinfo(register ADXT adxt)
 	Sint32 oct;
 	Sint32 cent;
 
-	asm { mr p, adxt } // COMPILER-DIFF: M1
-	asm { lwz r29, ADXT_OBJ.sjd(p); mr sjd, r29 } // COMPILER-DIFF: M1
+	p = adxt;
+	sjd = p->sjd;
 	oct = 0;
 	cent = 0;
 	if ((p->mode == 0 || p->mode == 1) && p->stmstart == 1) {

@@ -1616,14 +1616,14 @@ MATCHING.update({
     "lib/mwsfdply.c": True,  # MWSFPLY_SetFlowLimit: MWSFD_SetFlowLimit(mwply, 0.8 * n, n) takes a third argument (CRI pass 9 replaced the r5 pin, which was a missed parameter)
     "lib/sfx_alp.c": True,  # SFXA_Create: constants, the sfxa_work address and the r0 temporaries (also the inlined search's) pinned with hard-register asm (COMPILER-DIFF: M1)
     "lib/mwsfdsfx.c": True,  # CnvFrmInfToSfx: parameter pins r27/r30/r31 + plane-1 loads as asm-defined register locals (COMPILER-DIFF: M1); tag strings named and declared before mwsftag_GetAinfFromSj for the .rodata order (COMPILER-DIFF: M3)
-    "lib/adx_bau.c": False,  # CRI pass 8 (pure-C revert): ADXB_ExecOneAu16 1w (M6: unroller copy 15 `extrwi 8,16` vs `srawi 8`)
-    "lib/adx_stmc.c": False,  # CRI pass 8 (pure-C revert): ADXSTM_Create 4w (M1: derived-IV `addi 0x60` placed before the lbz instead of in the latch, both inlined copies)
+    "lib/adx_bau.c": True,  # CRI pass 10: ADXB_ExecOneAu16 2ch swap through a `Uint16 x` temporary `(x << 8) | (x >> 8)` gives the unroller's 15th copy as `extrwi` (the "M6" was a source shape)
+    "lib/adx_stmc.c": True,  # CRI pass 10: adxstmf_create's search as `(Uint8 *)adxstmf_obj + ofst * sizeof(ADXSTM_OBJ)` with `ofst++` after the test (scaled-index IV stepped in the latch)
     "lib/mpv_cdec.c": True,  # MPVCDEC_IntraBlocks: the six blocks cleared by six calls of a static inline helper storing 32 doubles through a `Float64 **cur` cursor (the second clear base `addi r8, mpv, 0x720` follows; CRI pass 9, shape from mk-deception)
     "lib/sfx_cnv.c": False,  # CRI pass 8 (pure-C revert): SFX_MakeTable 113w (M1: zero re-materialised after the unroller guard, fp-conversion slot/FPR order) + .rodata order (the conversion constant after the E201311 string; M2)
     "lib/sfd_cre.c": False,  # CRI pass 8 (pure-C revert): sfcre_AnalyMpv 18w / AnalyAudio 43w / AnalyMps 28w (M1: inlined-helper temporaries and callee-saved permutations)
     "lib/cri_cvfs.c": False,  # CRI pass 8 (pure-C revert): cvFsGetFileSize 45w / cvFsOpen 106w (-4 bytes) / cvFsAddDev 14w (M1: inlined device-search values, pool base vs loop index, two-definition `mr r0` bounce)
     "lib/mpv_cmc.c": False,  # CRI pass 8 (pure-C revert): MPVCMC_InitMcOiRt 8w / InitObj 17w (M1: separate member-array base `addi r5, r3, 0x124/0x158` folded into the offsets)
-    "lib/adx_baif.c": False,  # CRI pass 8 (pure-C revert): ADXB_ExecOneAiff16 1w (M6 extrwi copy) / AIFF_GetInfo 91w (M1: FORM/size words share the loop registers)
+    "lib/adx_baif.c": False,  # CRI pass 10: 5/6, AIFF_GetInfo 91w (M1: FORM/size words share the loop registers); ExecOneAiff16 fixed by the `Uint16` swap temporary
     "lib/adx_dcd5.c": False,  # CRI pass 9: ADX_DecodeSte4AsSte 118w / Ste4AsMono 167w / Mono4 39w (M1 register ranking only: the original keeps smul in r0 / i in r10 / c1,c2 extended in place; the history locals declared first fixed the AdxQtbl address hoist)
     "lib/sfd_hds.c": False,  # CRI pass 8 (pure-C revert): sfhds_DoProcessHdr 111w / SFHDS_SetHdr 11w (M1: parameters ranked above locals in the target)
     "lib/mwsfdsvr.c": False,  # CRI pass 8 (pure-C revert): mwlSfdSleepDecSvr 24w (+20 bytes: two zero copies -> 5 callee-saved -> stmw) / mwsfd_ExecSvrHndl 15w (M1 sfd/mwply swap) / mwSfdExecDecSvrHndl 12w (pool `lis` above the prologue stores)
@@ -1662,4 +1662,9 @@ MATCHING.update({
 MATCHING.update({
     "lib/dct_fsri.c": True,  # DCT_FsriTransCore: the paired-single kernel's FPRs (c1..c6 constants, 9 temporaries) and the B0TableOrg pointer as `register __vec2x32float__`/pointer variables instead of hard registers (the C paths then share f0/f7 and r5/r7; cnt declared before o); dctfsri_Idx static inline with `int`s, initSparseTbl under `#pragma opt_loop_invariants off` storing through an inline `const Float64 *` helper; B0TableOrg[0] = sqrt(2)
     "lib/mpvabdec.c": True,  # two-word bit reader written out per case (`bitpos += n` before the coefficient stores, refill after); the non-intra first coefficient / skip / AC loop as three static inline helpers under `#pragma inline_max_size`; the escape look-ahead through a fresh `mpvabdec_EscapeCode()` value in NintraBlock/Dc11 and in place in IntraBlock; run/level tables read as `const Sint16 *`
+})
+
+# CRI pass 10 (2026-09-11): declaration-order shapes
+MATCHING.update({
+    "lib/mwsfdfrm.c": True,  # mwl_convFrmInfFromSFD: the ten frame-field copies declared LAST rank r31..r22 above the parameters; pptr declared before usrlen/usrptr (zero code, no pins)
 })

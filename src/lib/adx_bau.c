@@ -145,10 +145,8 @@ void ADXB_ExecOneAu8(ADXB adxb)
 	}
 }
 
-/* COMPILER-DIFF: M6 - the original's unroller spells the 15th of the 16 unrolled 16-bit swaps of the
- * 2ch loop as `extrwi 8,16` (zero-extended) where ours emits `srawi 8` for all 16; no C spelling
- * changes one copy only and the hand-unrolled forms re-rank the 1ch preheader temporaries (M1).
- * Pure C by project decision (CRI pass 8): 1 word (`extrwi r9, r10, 8, 16` vs `srawi r9, r10, 8`). */
+/* The 2ch swap goes through a `Uint16` temporary: the unroller's 15th copy is then `extrwi 8,16`
+ * like the original (the direct `inbuf[i * 2] >> 8` form gives `srawi 8` for all 16 copies). */
 void ADXB_ExecOneAu16(ADXB adxb)
 {
 	Uint16 *inbuf;
@@ -156,6 +154,7 @@ void ADXB_ExecOneAu16(ADXB adxb)
 	Uint16 *out1;
 	Sint32 i;
 	Sint32 n;
+	Uint16 x;
 
 	inbuf = (Uint16 *)adxb->inbuf;
 	if (adxb->stat == ADXB_STAT_DECODE && ADXPD_GetStat(adxb->pd) == 0) {
@@ -171,8 +170,10 @@ void ADXB_ExecOneAu16(ADXB adxb)
 		if (adxb->nch == 2) {
 			out1 = (Uint16 *)adxb->pcmbuf + (adxb->pcmbuf_chofst + adxb->wr_pos);
 			for (i = 0; i < n; i++) {
-				out0[i] = (inbuf[i * 2] >> 8) | (inbuf[i * 2] << 8);
-				out1[i] = (inbuf[i * 2 + 1] >> 8) | (inbuf[i * 2 + 1] << 8);
+				x = inbuf[i * 2];
+				out0[i] = (x << 8) | (x >> 8);
+				x = inbuf[i * 2 + 1];
+				out1[i] = (x << 8) | (x >> 8);
 			}
 		} else {
 			for (i = 0; i < n; i++) {

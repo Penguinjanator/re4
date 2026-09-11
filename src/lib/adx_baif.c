@@ -66,7 +66,7 @@ void ADXB_ExecOneAiff8(ADXB adxb)
 	}
 }
 
-/* COMPILER-DIFF: M6 - the unroller's 15th 16-bit swap copy is `extrwi` in the original (see adx_bau). Pure C by project decision (CRI pass 8). */
+/* the 2ch swap goes through a `Uint16` temporary (see adx_bau ADXB_ExecOneAu16) */
 void ADXB_ExecOneAiff16(ADXB adxb)
 {
 	Uint16 *inbuf;
@@ -74,6 +74,7 @@ void ADXB_ExecOneAiff16(ADXB adxb)
 	Uint16 *out1;
 	Sint32 i;
 	Sint32 n;
+	Uint16 x;
 
 	inbuf = (Uint16 *)adxb->inbuf;
 	if (adxb->stat == ADXB_STAT_DECODE && ADXPD_GetStat(adxb->pd) == 0) {
@@ -89,8 +90,10 @@ void ADXB_ExecOneAiff16(ADXB adxb)
 		if (adxb->nch == 2) {
 			out1 = (Uint16 *)adxb->pcmbuf + (adxb->pcmbuf_chofst + adxb->wr_pos);
 			for (i = 0; i < n; i++) {
-				out0[i] = (inbuf[i * 2] >> 8) | (inbuf[i * 2] << 8);
-				out1[i] = (inbuf[i * 2 + 1] >> 8) | (inbuf[i * 2 + 1] << 8);
+				x = inbuf[i * 2];
+				out0[i] = (x << 8) | (x >> 8);
+				x = inbuf[i * 2 + 1];
+				out1[i] = (x << 8) | (x >> 8);
 			}
 		} else {
 			for (i = 0; i < n; i++) {

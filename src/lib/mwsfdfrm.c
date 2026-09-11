@@ -499,10 +499,25 @@ static Sint32 mwl_convFtypeFromSFD(Sint32 ftype)
 	return ret;
 }
 
-/* M1: the original ranks the ten frame-field locals above the parameters (r31..r22, then frm r21,
- * vfrm r20, mwply r19, time r18, ftype r17, pstruct r16, ...); instruction stream identical. */
+/* Declaration order is the register ranking: the ten frame-field copies declared LAST take
+ * r31..r22 above the parameters (frm r21, vfrm r20, mwply r19), the first-declared locals follow
+ * (time r18, ftype r17, pstruct r16, sfd r15, bufadr r14); pptr must be declared before usrlen
+ * and usrptr for pptr r15 / usrptr r17. */
 void mwl_convFrmInfFromSFD(MWPLY mwply, MWSFFRM_VFRM *vfrm, MWS_FRM *frm)
 {
+	Sint32 time;
+	Sint32 ftype;
+	Sint32 pstruct;
+	void *sfd;
+	Sint32 scale;
+	void *bufadr;
+	Sint32 fps;
+	Sint32 time2;
+	void *pptr;
+	Sint32 usrlen;
+	MWSFFRM_USRDAT *usr;
+	void *noptr;
+	void *usrptr;
 	Sint32 x00;
 	Sint32 x04;
 	Sint32 x08;
@@ -513,19 +528,6 @@ void mwl_convFrmInfFromSFD(MWPLY mwply, MWSFFRM_VFRM *vfrm, MWS_FRM *frm)
 	Sint32 x24;
 	Sint32 x28;
 	Sint32 frmno;
-	Sint32 time;
-	Sint32 ftype;
-	Sint32 pstruct;
-	void *sfd;
-	Sint32 scale;
-	void *bufadr;
-	Sint32 fps;
-	Sint32 time2;
-	void *usrptr;
-	Sint32 usrlen;
-	MWSFFRM_USRDAT *usr;
-	void *noptr;
-	void *pptr;
 
 	sfd = mwply->sfd;
 	bufadr = vfrm->bufadr;

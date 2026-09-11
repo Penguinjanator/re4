@@ -443,10 +443,11 @@ static inline ADXSTM adxstmf_create(SJ sj, Sint32 ofst, Sint32 num, Sint32 rtim)
 	Sint32 i;
 
 	for (i = 0; i < num; i++) {
-		stm = &adxstmf_obj[ofst++];
+		stm = (ADXSTM)((Uint8 *)adxstmf_obj + ofst * sizeof(ADXSTM_OBJ));
 		if (stm->used == 0) {
 			break;
 		}
+		ofst++;
 	}
 	if (i == num) {
 		return NULL;
@@ -474,10 +475,10 @@ static inline ADXSTM adxstmf_create(SJ sj, Sint32 ofst, Sint32 num, Sint32 rtim)
 	return stm;
 }
 
-/* COMPILER-DIFF: M1 - in both inlined adxstmf_create copies the original steps the derived IV
- * (`addi r3, r3, 0x60`) in the loop latch after the `beq`, ours before the `lbz`; the asm
- * `addi o, o, 0x60` form puts it in the latch but swaps the IV/base registers, and hard-register
- * pins of the IV poison r3 for the other temporaries. Pure C by project decision (CRI pass 8). */
+/* adxstmf_create's search: the byte-offset cast form `(Uint8 *)adxstmf_obj + ofst * sizeof(..)` with
+ * `ofst++` after the test keeps the scaled index as the IV (stepped in the latch after the `beq`,
+ * `add r31, base, ofs` per iteration); `&adxstmf_obj[ofst++]` steps before the load and
+ * `&adxstmf_obj[ofst]; ...; ofst++` becomes a pointer IV. */
 ADXSTM ADXSTM_Create(SJ sj, Sint32 mode)
 {
 	if (mode < 0x100) {
