@@ -18646,3 +18646,129 @@ masks string bytes -- only `tools/bytecmp.py` (or `OBJ=... bytecmp.py`) judges s
   11), searchLockEm, PlWepAutoTrack, PlWepLockCtrl (its pool order at .rodata 0x108: target 0.8, 12deg, 1.0, 0.0629, 1.5, 1.2,
   0.1047, 0.0524, 0.9, 1.04, 0.00655, 1.15, 7.0 = the original statement order), PlWepHitCheck2; act_btn; debug's five functions;
   Espgen42 Move00/SetWaterWork/AddWaterPower*; espgen45 TransSub/Move00/SetWaterWork45.
+
+### Tool RELs, t_esp pass 8 (t_esp 196 -> 200/212: Save*FileNoUpdateCallback x5 5 -> 0 zero code; Load/SaveEmTypeUpdateCallback 87/96 -> 2/2, ID_WINDOW ctor 254 -> 157, ToolEspMain 72 -> 38, InitTool 12049 -> 11628; db_widget DB_STRING ctor 11 unchanged; nothing flipped; 2026-09-11)
+
+- Harness ~/.cache/tesp8 (dol21a copies made module-aware: `mcmp.py MOD/UNIT [SYM]` reads `build/G4BE08/<mod>/obj/<unit>.o`
+  and counts `_vt.X` vs `.rodata+N` reloc pairs equal, `tryv.py MOD/UNIT FUNC v.py` compiles with the module cflags + strip_unused/
+  fold_linkonce `--module`, `dump.sh MOD/UNIT -dX` with `-G0 -DREL_MODULE`, `-dw` = the flow2 dump, `ins.py DUMP FUNC [re]` = one
+  line per insn incl. the `insn/i` inlined ones (rtl.py misses those), `qty.py LREG FUNC` = local-alloc births/deaths/priorities
+  in half-insn units). Deleted at the end. 111 OK before and after every edit.
+- **Save*FileNoUpdateCallback x5 (t_esp, 5 -> 0 each, zero code): the dead `cmpwi 0; cmpwi 255` pair is a wrap of the model type
+  whose CLAMPED copy is written back through a THIRD test.** `step = (s16) g_modelType; type = step; if (step < 0) type = 0xFF; if
+  (step > 0xFF) type = 0; if (type != step) step = type;` -- `step` reused for the type (its r11), two independent `if`s (an
+  `else if` leaves a `b` that jump2 inverts into `blt`), and a third test on the clamped copy whose arm is a dead set. Mechanism,
+  read pass by pass: the arms `type = 0xFF/0` are LIVE at flow1 (test 3 reads `type`), so both arm blocks are non-empty at flow2's
+  `find_basic_blocks(cleanup)` and their `bge/ble` survive; test 3's own arm is dead at flow1 and empty at the cleanup, so
+  `tidy_fallthru_edge` deletes its jump, life_analysis deletes its compare, then `type` is dead and the two arm sets go; jump2
+  finds `bge L1; L1:` / `ble L2; L2:` = jumps to the following insn and `delete_computation` deletes only the jump after reload
+  (`reload_completed && flag_schedule_insns_after_reload` short-circuit), so both compares stay. Every dead-set / noop-move / USE /
+  CLOBBER idea is closed by the source: reload deletes ALL bare CLOBBER insns at its end (reload1.c 1179), reload_cse deletes
+  `(set r r)` before flow2 (only a REG_FUNCTION_VALUE_P dest survives as a `(use)`, i.e. non-void functions only), a pseudo live
+  at flow1 cannot die by flow2 unless its use is in a jump that the cleanup removes. Rule: "both compares, no branch" = a
+  test whose result feeds ONE more conditional whose arm is dead.
+- **Load/SaveEmTypeUpdateCallback (87/96 -> 2/2): the group-skip loops read off the target.** (1) `ModelTypeStep`/`GroupSkip` read
+  `g_pKey->` directly (no `k` parameter: a non-const pointer parameter of an inline is copied by integrate.c and the copy `mr r7,r10`
+  then names the rep[RIGHT]/trg[] loads in ours the wrong way; the target's `mr r7,r10` is cse turning the second `g_pKey` load
+  into a copy of the first). (2) the direction keys are `trg[KEY_R]` / `trg[KEY_Z]` (0x7c/0x80), not `rep[KEY_L]/[KEY_R]`.
+  (3) the wrap constant is `MODEL_NAME_NUM` (243) in the tail too (`addi r0,r7,-242` = t + 1 - 243), not 242. (4) both loops
+  keep the last `u16 t = g_modelType` and compute `g_modelType = t + dir` from it (`add r9,r7,r5` with no reload), compare the
+  name bytes through `a0`/`a1` locals (the second loop's `d0` IS `a0`, r6), the second loop is a `do { step; t = load; n = tbl[t];
+  if (a0 != n[0]) break; } while (c1 == n[1])`, `c0 = name[0]; c1 = name[1];` in that order. Left (2): loop 2's fresh
+  `high(g_modelType)` (loop.c-hoisted `lis r12`) belongs to the last `lhz t` in the target and to the loop-top store in ours --
+  cse1's path into the loop top would have to know the outer high (a `b`-entered top / follow_jumps), no plain form found.
+- **ID_WINDOW ctor (254 -> 157): two structural facts.** (a) `DB_NUMERIC2* n` is ONE function-scope variable assigned in four
+  widget blocks: a 4-set/4-death pseudo is not a local-alloc qty, global.c gives it r31 -- local-alloc never hands out r31
+  (`find_free_reg` marks every ELIMINABLE_REGS `from`, i.e. the frame pointer), so a single-block ctor whose target uses r31 has a
+  multi-block/multi-death pseudo; with block-local `n`s ours used r22..r30 and shifted every callee-saved name by one. (b) the
+  `CreateString` widgets are `pa->CreateString(win, "..", &DB_POINT(x, y));` -- the address of a TEMPORARY (cc1plus warns "taking
+  address of temporary", accepts it): the pos stores are then expanded inside the argument evaluation, after the `win`/`pa` loads
+  and the string `lis`, which is the target's `lwz r4; lwz r3; lis r5; stfs f31; addi r5; mr r6; stfs` order in all 13 blocks
+  (a block-local `DB_POINT pos(x, y)` puts both stores first). Applied to all 117 CreateString blocks of the file: InitTool
+  12049 -> 11628 (size 0x9ebc -> 0xa0a4 of 0xa20c), frame unchanged. The numeric blocks (`int sx` + `&pos`) are NOT that form:
+  the target issues their pos stores early and the `win`/`pa` loads before the `sx` frame store; with the temp form the loads
+  stay last (the sx store blocks them), with the local form the loads are late too -- open (157).
+- **ToolEspMain (72 -> 38): `sel = &WIN_SEL(g_pEditActive); if (g_pEditActive == g_pEditWin3 && sel->selX == ..)` for the first
+  two selX tests** (the target's `lwz r11,4(r9); addi r11,r11,148; lwz r0,20(r11)` = a pointer local, a direct expression folds
+  to `lwz r0,168(r9)`); the later PosRand pair keeps ONE shared `sel` across the call (r30) as before. Left: the entry's
+  `g_work/eventNo/eventSNo` store block (the zero `li r11,0` issued before the `stw g_pKey`, the `g_work` high not tied into the
+  `addi r3` argument) and two hoisted-`lis` slots around the `new` calls.
+- **DB_STRING ctor (db_widget, 11, unchanged; the local-alloc arithmetic).** The whole ctor is one block, so all four constants
+  are local qtys and reload never sees them; their names are the qty order `QTY_CMP_PRI = floor(log2 refs)*refs/(death-birth)`
+  (half-insn units, births/deaths in the POST-sched1 order): vt-hi+lo tied 8/12 = 6666 beats LC 2/4 = 5000 and type 2/8 = 2500
+  beats zero 3/22 = 1363; the target needs LC >= vt (LC r9 first, vt r11) and zero >= type (r0, then r9 freed by LC's death).
+  Levers computed: LC life 2 is impossible (issue rate 2 puts `lis vt` in the second slot of the same cycle), vt life >= 16 needs
+  the vptr store >= 8 insns after `lis vt`, zero needs a 4th ref or life <= 12, type needs `li 4` issued at t<=5 and stored last.
+  32 forms tried (member-initializer lists, `int t = 4`/`int z = 0` at the top, chains, orders, `new char[max]`): every one 11
+  (the store block re-sorts to the same schedule). The "unallocated REG_EQUIV" reading of pass 7 is equivalent in effect but has
+  no source lever either. Not closed.
+- Not iterated: AddSeq 197, EspToolMain 40, PartPasteSeqData 46, EditActiveChange 50, MakeSaveSeqData 58, PosActiveChange 62.
+
+### Tool RELs, db_mod pass 1 (t_esp 57 -> 59/75, Tools 45 -> 47/63, 2246 -> 1850 words, .text gap 0xF0 -> 0x2C; dbmodInfoDisp 107 -> 0 and drawOrientation 115 -> 0 zero code; dbmod_motion 212 -> 56, dbmodDispModelName 227 -> 209 (+68 -> +24 bytes); nothing flipped; 2026-09-11)
+
+- Harness ~/.cache/dbmod (deleted): `mbuild.sh MOD SRC OUT` compiles db_mod for either module with the module's own
+  defines (`-DREL_MODULE=t_esp -DTOOLS_ARRAY -DTOOLS_EM_ARRAY` / `-DREL_MODULE=Tools -fno-implement-inlines -DTOOLS_ARRAY`);
+  the OUTPUT MUST BE NAMED `db_mod.o` in its own directory -- ngccc.py derives the module unit for `place_linkonce_module`
+  from `-DREL_MODULE` + the output stem, any other stem loses the 0x3B8 nameless cManager<cEm> block and the ctor order.
+  `mtryv.py FUNC v.py [--apply N] [--mod Tools]` (variants slice the function body out of the file and rewrite it),
+  `msbs.sh MOD SYM [OBJ]`, `mdump.sh MOD -dX`, `mflags.sh MOD FUNC "flags"` (also `CC1DIR=` for a hooked cc1plus,
+  `SRC_OVERRIDE=`), `tree.py build LABEL ENV=1 | cmp LABEL | diff A B` = the WHOLE-TREE harness: every prodg_cc edge of
+  build.ninja compiled with a hooked cc1plus (`~/.cache/dbmod/sngcc`, copy of tools/sn-gcc {Makefile,src,obj}, env-var
+  hooks in gcse.c) in 7 s on 24 threads, bytecmp per unit in 3 s, regressions/fixes as function lists. 111 OK before
+  and after.
+- **dbmodInfoDisp (107 -> 0, zero code): the coordinates are `300 + x * 7` (the 7-pixel eprintf2 font: `x = 0` for the
+  label column, `x = 7` = seven characters over for the values) and `y * 10` with `y` a loop biv (`y = 3; ... y++` at the
+  end of each body), not `300 + x` / `y + i * 10`.** Reading: (1) the target's `li r29,0 .. addi r5,r29,300` and
+  `li r31,49 .. addi r5,r31,300` are NOT unpropagated constants (a `li rA,K; addi rB,rA,C` pair with a single-set `int
+  x = K` is always cprop-folded by both builds: whole-tree `NO_CONSTPROP` regresses 87 functions, so the original's
+  gcse does constant-propagate; `GCSE_SINGLESET` -- skip multi-set pseudos -- regresses 106; `GCSE_NOMERGE` -- one hash
+  entry per set insn -- changes nothing anywhere): they are the loop-invariant `x * 7` hoisted by loop.c into the
+  preheader and folded there by cse2 (`(mult x 7)` is not a form cprop can fold -- validate_replace_rtx_1 only
+  simplifies PLUS/MINUS/extensions -- so the mult survives into the loop, loop.c hoists it, cse2 sees `x = 0` in the
+  preheader ebb and makes it `li`), one pseudo per loop (r29/r31 = two different products, not one variable).
+  Rule: `li rA,K; addi rB,rA,C` where K is a product of a small constant = a hoisted `var * c` with `+ C` left in the
+  loop; look for the font width. (2) the eleven `li rN,30 .. addi rN,rN,10` registers are eleven `y * 10` givs of a
+  SECOND biv `y` (each call site its own single-use giv, loop.c never combines single-use DEST_REG givs), and `y` is
+  eliminated after reduction; the switch is on `i`, so cse's jump-follow knowledge of `i == k` in the case bodies never
+  meets the row expression (a `y + i * 10` spelling is folded to `li r6,30/40/50` in cases 0-2 by cse1's TAKEN paths --
+  our cse1 does follow the `beq` into every case body with a one-use label preceded by a barrier, the original too:
+  Sscrn SsMapInit::move's 5-case switch stores the switch register). The t_camera author's `y++` idiom, same tool team.
+- **drawOrientation (115 -> 0, zero code):** `Vec v[2]; Vec w[2];` (the frame has a/b at 0x8/0x14 and wa/wb at 0x20/0x2c
+  = 12-byte spacing: BLKmode locals get align -1 = 8 bytes and size rounded to 8, so two separate `Vec a, b` cost 16
+  each; an array of two is ONE 24-byte object), `Vec zero = {0.0f, 0.0f, 0.0f};` at the declaration (the memset
+  libcall with `crclr cr1eq` BEFORE the `p == 0` test; the old prototyped `memset(&zero, 0, 12)` had no crclr), and the
+  row-pointer matrix copy `f32 (*d)[4] = m; f32 (*s)[4] = p->mat; i = 3; while (i--) { dp = *d; sp = *s; for (j < 4)
+  *dp++ = *sp++; s++; d++; }` with `d` declared BEFORE `s` (loop.c reduces the `+16` givs in pseudo order: d's step
+  gets r11, s's r10). `v[0] = v[1] = zero` chains stay.
+- **dbmodDispModelName (227 -> 209, 0x604 -> 0x630 of 0x648) and dbmod_motion (212 -> 56, size exact):** (1) the row is
+  the literal `(i + 4) * 14` at every call, no `int row` local: the target's `addi r0,r26,4; mulli r31,r0,14; mr
+  r20,r0` is the header's temp plus gcse's PRE copy of `i + 4` for the k-loops, which recompute `mulli r4,r20,14`
+  (with a `row` variable the mult is computed once and the copy disappears). (2) the `switch (motType) { case 0: case 1:
+  case -1: break; }` the target keeps as `cmpwi 0; beq J; bgt J; cmpwi -1` (no branch after the last compare) is a
+  switch with DEAD sets in two arms and an EMPTY case 1: `case 0: color = 0; break; case 1: break; case -1: color = 2;
+  break;` -- `color` has other uses so the sets survive cse1's delete_trivially_dead_insns, flow1 kills them, jump2
+  deletes the `beq J` of case -1 as a jump-to-next and leaves its compare (the pass-7 Save*FileNo mechanism); the empty
+  case 1 folds `cmpwi 1; beq J; b J` into the `bgt J`. Three plain empty cases delete the whole tree. (3) motion:
+  `if (motNo[k] != -1) { ... }` around the middle of case 1 with ONE `dbmodGetFilenames(); break;` after it (the
+  early-exit copy's `bl; b` tail is never cross-jumped: a call ends the block); the `^` line re-reads
+  `pDbModState.p->sub` at every use (no `k` local: `lbz 6(rN); extsb` after each call) and is spelled `(hs - 1 + (digits
+  - digit) + 25) * 8` (fold makes `add; addi 24; slwi` -- the `25 + hs - 1 + ..` order gives `addi 24` first); `x = 6;`
+  assigned right before the display loop and `nx = 16;` INSIDE the loop body (top): with the sets at the function top
+  gcse PRE hoists `x * 8`/`nx * 8` out of the 2-iteration loop (`slwi r17,r0,3` in the preheader, `mr r3,r17` per use),
+  the target keeps `li r15,6`/`li r19,16` and a `slwi r3,rX,3` at every use; the in-loop `nx = 16` is loop.c-hoisted
+  (not used before set) behind the `i = 0` init, which is the target's `li r27,0 .. li r19,16` order. Left: motion is
+  pure register naming (i r27 vs r28), DispModelName's remaining 24 bytes are the "%s" string high (five uses, each its
+  own `lis` in the target, ours PREs two) and the `[%6s] "null"` arm whose `li r27,0` (the folded `i - 1`) the target
+  schedules before the call so the arm is not cross-jumped with the `--------.---` arm.
+- Not moved (read only): position_usage 10 (the last `y++` kept live: `return y`, trailing `y++`, dead do-while, Back
+  duplicated into the arms -- 10/12/29 words), IKreport 10, GetFilenames 222 (the target's name-table offset is a biv
+  `li r22,929; addi r22,r22,2048` per type copied `mr r27,r22` into the inner loop, `int t = 0` kept live and no `dir =
+  0`: `char* dir;` alone -4 bytes; an explicit `ofs += FILE_NUM` counter 226), locate 475, blend 185, MotionMove 194,
+  p_info 159 (its `x = 6` has the same hoisted `slwi r17` shape as motion had), option 88, light 81, trans 71, scale 64.
+- Compiler-side hypotheses tested whole-tree and REJECTED this pass (harness numbers = regressions / fixes vs the
+  installed compiler; the 2-3 "fixes" in every run are stale ninja objects of units other agents were editing):
+  cprop skipping multi-set pseudos 106 / 0; one SET hash entry per insn (no merging of identical `(set x K)` from
+  different blocks) 0 / 0 -- the em2b/t_scroll "two arms set 0x11" note is not explained by merging; no constant
+  propagation at all 87 / 5 (the five t_esp Save*FileNoUpdateCallback become identical -- their 5 words are cprop's
+  alter_jumps folding of a constant into a conditional jump, a lead for that family); no cprop at all 1617.
+  `-fno-cse-follow-jumps` reproduces InfoDisp's eleven givs but not its x and regresses 8 functions of this unit.

@@ -1222,10 +1222,9 @@ void dbmodDispModelName()
 
     eprintf(5 * 8, 3 * 14, 5, 0, "---- MODEL -----");
     for (i = 2; i >= 0; i--) {
-        int row = i + 4;
-        eprintf(x * 8, row * 14, (i == pDbModState.p->sub) ? 8 : 0, 0, "%s", dbmodModelLabel[i]);
+        eprintf(x * 8, (i + 4) * 14, (i == pDbModState.p->sub) ? 8 : 0, 0, "%s", dbmodModelLabel[i]);
         if (i == pDbModState.p->sub && (pDbModState.p->timer & 0x18)) {
-            eprintf(cx * 8, row * 14, 0x16, 0, ">");
+            eprintf(cx * 8, (i + 4) * 14, 0x16, 0, ">");
         }
         switch (i) {
         case 0:
@@ -1243,8 +1242,12 @@ void dbmodDispModelName()
             eprintf(nx * 8, cx * 14, 0, 0, "[%6s]", pDbModState.p->motDir[0]);
             switch (pDbModState.p->motType[0]) {
             case 0:
+                color = 0;
+                break;
             case 1:
+                break;
             case -1:
+                color = 2;
                 break;
             }
             len = strlen(pDbModState.p->motName[0]) - pDbModState.p->hashOfs[0];
@@ -1258,7 +1261,7 @@ void dbmodDispModelName()
                 } else {
                     color = 0;
                 }
-                eprintf((23 + k) * 8, row * 14, color, 0, "%c", name[k]);
+                eprintf((23 + k) * 8, (i + 4) * 14, color, 0, "%c", name[k]);
                 if (i == pDbModState.p->sub && k == hs - 1 + (pDbModState.p->digits[0] - pDbModState.p->digit)) {
                     eprintf((23 + k) * 8, (i + 5) * 14, 0x16, 0, "^");
                 }
@@ -1266,7 +1269,7 @@ void dbmodDispModelName()
             break;
         case 2:
             for (k = 0; k < 8; k++) {
-                eprintf((14 + k * 3) * 8, row * 14, (k == pDbModState.p->type) ? 0 : 7, 0, "%s", dbmodTypeLabel[k]);
+                eprintf((14 + k * 3) * 8, (i + 4) * 14, (k == pDbModState.p->type) ? 0 : 7, 0, "%s", dbmodTypeLabel[k]);
             }
             break;
         }
@@ -1327,8 +1330,8 @@ static int dbmod_motion()
     int r;
     int old;
     int step, max;
-    int x = 6;
-    int nx = 16;
+    int x;
+    int nx;
     int i, k;
     int color;
     int len, nlen, hs, he;
@@ -1375,51 +1378,49 @@ static int dbmod_motion()
             }
         }
         k = pDbModState.p->sub;
-        if (pDbModState.p->motNo[k] == -1) {
-            dbmodGetFilenames();
-            break;
-        }
-        if (joy->trg & 0x10) {
-            pDbModState.p->motNum[k] = 0;
-            break;
-        }
-        if (joy->on & 0x800) {
-            old = pDbModState.p->motSub[k];
-            if (joy->trg & 0x00080008) {
-                pDbModState.p->motSub[k]++;
-            }
-            if (joy->trg & 0x00040004) {
-                pDbModState.p->motSub[k]--;
-            }
-            pDbModState.p->motSub[k] = LOOP(pDbModState.p->motSub[k], 0, pMotTbl.p->count[3] - 1);
-            if (old != pDbModState.p->motSub[k]) {
+        if (pDbModState.p->motNo[k] != -1) {
+            if (joy->trg & 0x10) {
                 pDbModState.p->motNum[k] = 0;
-                pDbModState.p->digit = 0;
+                break;
             }
-        } else {
-            pDbModState.p->digit = 0;
-            if (joy->on & 0x20) {
-                pDbModState.p->digit = 1;
-            }
-            if (joy->on & 0x40) {
-                pDbModState.p->digit = 2;
-            }
-            pDbModState.p->digit = CLAMP(pDbModState.p->digit, 0, pDbModState.p->digits[k] - 1);
-            step = (int) IPOW(10.0f, pDbModState.p->digit);
-            max = (int) IPOW(10.0f, pDbModState.p->digits[k]) - 1;
-            if (joy->rep2 & 0x00010001) {
-                pDbModState.p->motNum[k] -= step;
-            }
-            if (joy->rep2 & 0x00020002) {
-                pDbModState.p->motNum[k] += step;
-            }
-            if (dbmodLoopNum) {
-                pDbModState.p->motNum[k] = LOOP(pDbModState.p->motNum[k], -1, max);
+            if (joy->on & 0x800) {
+                old = pDbModState.p->motSub[k];
+                if (joy->trg & 0x00080008) {
+                    pDbModState.p->motSub[k]++;
+                }
+                if (joy->trg & 0x00040004) {
+                    pDbModState.p->motSub[k]--;
+                }
+                pDbModState.p->motSub[k] = LOOP(pDbModState.p->motSub[k], 0, pMotTbl.p->count[3] - 1);
+                if (old != pDbModState.p->motSub[k]) {
+                    pDbModState.p->motNum[k] = 0;
+                    pDbModState.p->digit = 0;
+                }
             } else {
-                pDbModState.p->motNum[k] = CLAMP(pDbModState.p->motNum[k], -1, max);
-            }
-            if (pDbModState.p->motNum[k] == -1) {
                 pDbModState.p->digit = 0;
+                if (joy->on & 0x20) {
+                    pDbModState.p->digit = 1;
+                }
+                if (joy->on & 0x40) {
+                    pDbModState.p->digit = 2;
+                }
+                pDbModState.p->digit = CLAMP(pDbModState.p->digit, 0, pDbModState.p->digits[k] - 1);
+                step = (int) IPOW(10.0f, pDbModState.p->digit);
+                max = (int) IPOW(10.0f, pDbModState.p->digits[k]) - 1;
+                if (joy->rep2 & 0x00010001) {
+                    pDbModState.p->motNum[k] -= step;
+                }
+                if (joy->rep2 & 0x00020002) {
+                    pDbModState.p->motNum[k] += step;
+                }
+                if (dbmodLoopNum) {
+                    pDbModState.p->motNum[k] = LOOP(pDbModState.p->motNum[k], -1, max);
+                } else {
+                    pDbModState.p->motNum[k] = CLAMP(pDbModState.p->motNum[k], -1, max);
+                }
+                if (pDbModState.p->motNum[k] == -1) {
+                    pDbModState.p->digit = 0;
+                }
             }
         }
         dbmodGetFilenames();
@@ -1440,25 +1441,30 @@ static int dbmod_motion()
         break;
     }
     eprintf(5 * 8, 3 * 14, 5, 0, "---- MOTION ----");
+    x = 6;
     for (i = 0; i <= 1; i++) {
-        int row = i + 4;
-        eprintf(x * 8, row * 14, (i == pDbModState.p->sub) ? 8 : 0, 0, "%s", dbmodMotionLabel[i]);
+        nx = 16;
+        eprintf(x * 8, (i + 4) * 14, (i == pDbModState.p->sub) ? 8 : 0, 0, "%s", dbmodMotionLabel[i]);
         if (i == pDbModState.p->sub && (pDbModState.p->timer & 0x18)) {
-            eprintf(5 * 8, row * 14, 0x16, 0, ">");
+            eprintf(5 * 8, (i + 4) * 14, 0x16, 0, ">");
         }
         if (pDbModState.p->motNo[i] == -1) {
-            eprintf(nx * 8, row * 14, 0, 0, "[%6s]", "null");
+            eprintf(nx * 8, (i + 4) * 14, 0, 0, "[%6s]", "null");
             continue;
         }
         if (pDbModState.p->motNum[i] == -1) {
-            eprintf(nx * 8, row * 14, 0, 0, "[%6s] --------.---", pDbModState.p->motDir[i]);
+            eprintf(nx * 8, (i + 4) * 14, 0, 0, "[%6s] --------.---", pDbModState.p->motDir[i]);
             continue;
         }
-        eprintf(nx * 8, row * 14, 0, 0, "[%6s]", pDbModState.p->motDir[i]);
+        eprintf(nx * 8, (i + 4) * 14, 0, 0, "[%6s]", pDbModState.p->motDir[i]);
         switch (pDbModState.p->motType[i]) {
         case 0:
+            color = 0;
+            break;
         case 1:
+            break;
         case -1:
+            color = 2;
             break;
         }
         len = strlen(pDbModState.p->motName[i]) - pDbModState.p->hashOfs[i];
@@ -1472,14 +1478,13 @@ static int dbmod_motion()
             } else {
                 color = 0;
             }
-            eprintf((25 + k) * 8, row * 14, color, 0, "%c", name[k]);
+            eprintf((25 + k) * 8, (i + 4) * 14, color, 0, "%c", name[k]);
         }
     }
-    k = pDbModState.p->sub;
-    len = strlen(pDbModState.p->motName[k]) - pDbModState.p->hashOfs[k];
-    nlen = strlen(dbmodSkipPath(pDbModState.p->motName[k]));
+    len = strlen(pDbModState.p->motName[pDbModState.p->sub]) - pDbModState.p->hashOfs[pDbModState.p->sub];
+    nlen = strlen(dbmodSkipPath(pDbModState.p->motName[pDbModState.p->sub]));
     hs = nlen - len;
-    eprintf((25 + hs - 1 + (pDbModState.p->digits[k] - pDbModState.p->digit)) * 8, 6 * 14, 0x16, 0, "^");
+    eprintf((hs - 1 + (pDbModState.p->digits[pDbModState.p->sub] - pDbModState.p->digit) + 25) * 8, 6 * 14, 0x16, 0, "^");
     motion_usage();
     return ret;
 }
@@ -2500,77 +2505,85 @@ static f32 dbmodOrientLen = 800.0f;
 
 void drawOrientation(cParts* p)
 {
-    Vec a, b;
-    Vec wa, wb;
-    Vec zero;
+    Vec v[2];
+    Vec w[2];
+    Vec zero = {0.0f, 0.0f, 0.0f};
     Mtx m;
     int i, j;
 
-    memset(&zero, 0, sizeof(Vec));
     if (p == 0) {
         return;
     }
-    for (i = 0; i < 3; i++) {
-        for (j = 0; j < 4; j++) {
-            m[i][j] = p->mat[i][j];
+    {
+        f32 (*d)[4] = m;
+        f32 (*s)[4] = p->mat;
+        i = 3;
+        while (i--) {
+            f32* dp = *d;
+            f32* sp = *s;
+            for (j = 0; j < 4; j++) {
+                *dp++ = *sp++;
+            }
+            s++;
+            d++;
         }
     }
-    a = b = zero;
-    a.x += dbmodOrientLen * 0.5f;
-    b.x -= dbmodOrientLen * 0.5f;
-    PSMTXMultVec(m, &a, &wa);
-    PSMTXMultVec(m, &b, &wb);
-    Draw_line3d(&wa, &wb, 0xFFFF0000, 0);
-    b = a;
-    b.x -= dbmodOrientLen / 10.0f;
-    b.z += dbmodOrientLen / 10.0f;
-    PSMTXMultVec(m, &a, &wa);
-    PSMTXMultVec(m, &b, &wb);
-    Draw_line3d(&wa, &wb, 0xFFFF0000, 0);
-    b = a;
-    b.x -= dbmodOrientLen / 10.0f;
-    b.z -= dbmodOrientLen / 10.0f;
-    PSMTXMultVec(m, &a, &wa);
-    PSMTXMultVec(m, &b, &wb);
-    Draw_line3d(&wa, &wb, 0xFFFF0000, 0);
+    v[0] = v[1] = zero;
+    v[0].x += dbmodOrientLen * 0.5f;
+    v[1].x -= dbmodOrientLen * 0.5f;
+    PSMTXMultVec(m, &v[0], &w[0]);
+    PSMTXMultVec(m, &v[1], &w[1]);
+    Draw_line3d(&w[0], &w[1], 0xFFFF0000, 0);
+    v[1] = v[0];
+    v[1].x -= dbmodOrientLen / 10.0f;
+    v[1].z += dbmodOrientLen / 10.0f;
+    PSMTXMultVec(m, &v[0], &w[0]);
+    PSMTXMultVec(m, &v[1], &w[1]);
+    Draw_line3d(&w[0], &w[1], 0xFFFF0000, 0);
+    v[1] = v[0];
+    v[1].x -= dbmodOrientLen / 10.0f;
+    v[1].z -= dbmodOrientLen / 10.0f;
+    PSMTXMultVec(m, &v[0], &w[0]);
+    PSMTXMultVec(m, &v[1], &w[1]);
+    Draw_line3d(&w[0], &w[1], 0xFFFF0000, 0);
 
-    a = b = zero;
-    a.y += dbmodOrientLen * 0.5f;
-    b.y -= dbmodOrientLen * 0.5f;
-    PSMTXMultVec(m, &a, &wa);
-    PSMTXMultVec(m, &b, &wb);
-    Draw_line3d(&wa, &wb, 0xFF00FF00, 0);
-    b = a;
-    b.y -= dbmodOrientLen / 10.0f;
-    b.x += dbmodOrientLen / 10.0f;
-    PSMTXMultVec(m, &a, &wa);
-    PSMTXMultVec(m, &b, &wb);
-    Draw_line3d(&wa, &wb, 0xFF00FF00, 0);
-    b = a;
-    b.y -= dbmodOrientLen / 10.0f;
-    b.x -= dbmodOrientLen / 10.0f;
-    PSMTXMultVec(m, &a, &wa);
-    PSMTXMultVec(m, &b, &wb);
-    Draw_line3d(&wa, &wb, 0xFF00FF00, 0);
+    v[0] = v[1] = zero;
+    v[0].y += dbmodOrientLen * 0.5f;
+    v[1].y -= dbmodOrientLen * 0.5f;
+    PSMTXMultVec(m, &v[0], &w[0]);
+    PSMTXMultVec(m, &v[1], &w[1]);
+    Draw_line3d(&w[0], &w[1], 0xFF00FF00, 0);
+    v[1] = v[0];
+    v[1].y -= dbmodOrientLen / 10.0f;
+    v[1].x += dbmodOrientLen / 10.0f;
+    PSMTXMultVec(m, &v[0], &w[0]);
+    PSMTXMultVec(m, &v[1], &w[1]);
+    Draw_line3d(&w[0], &w[1], 0xFF00FF00, 0);
+    v[1] = v[0];
+    v[1].y -= dbmodOrientLen / 10.0f;
+    v[1].x -= dbmodOrientLen / 10.0f;
+    PSMTXMultVec(m, &v[0], &w[0]);
+    PSMTXMultVec(m, &v[1], &w[1]);
+    Draw_line3d(&w[0], &w[1], 0xFF00FF00, 0);
 
-    a = b = zero;
-    a.z += dbmodOrientLen * 0.5f;
-    b.z -= dbmodOrientLen * 0.5f;
-    PSMTXMultVec(m, &a, &wa);
-    PSMTXMultVec(m, &b, &wb);
-    Draw_line3d(&wa, &wb, 0xFF2020FF, 0);
-    b = a;
-    b.z -= dbmodOrientLen / 10.0f;
-    b.x += dbmodOrientLen / 10.0f;
-    PSMTXMultVec(m, &a, &wa);
-    PSMTXMultVec(m, &b, &wb);
-    Draw_line3d(&wa, &wb, 0xFF2020FF, 0);
-    b = a;
-    b.z -= dbmodOrientLen / 10.0f;
-    b.x -= dbmodOrientLen / 10.0f;
-    PSMTXMultVec(m, &a, &wa);
-    PSMTXMultVec(m, &b, &wb);
-    Draw_line3d(&wa, &wb, 0xFF2020FF, 0);
+    v[0] = v[1] = zero;
+    v[0].z += dbmodOrientLen * 0.5f;
+    v[1].z -= dbmodOrientLen * 0.5f;
+    PSMTXMultVec(m, &v[0], &w[0]);
+    PSMTXMultVec(m, &v[1], &w[1]);
+    Draw_line3d(&w[0], &w[1], 0xFF2020FF, 0);
+    v[1] = v[0];
+    v[1].z -= dbmodOrientLen / 10.0f;
+    v[1].x += dbmodOrientLen / 10.0f;
+    PSMTXMultVec(m, &v[0], &w[0]);
+    PSMTXMultVec(m, &v[1], &w[1]);
+    Draw_line3d(&w[0], &w[1], 0xFF2020FF, 0);
+    v[1] = v[0];
+    v[1].z -= dbmodOrientLen / 10.0f;
+    v[1].x -= dbmodOrientLen / 10.0f;
+    PSMTXMultVec(m, &v[0], &w[0]);
+    PSMTXMultVec(m, &v[1], &w[1]);
+    Draw_line3d(&w[0], &w[1], 0xFF2020FF, 0);
 }
 
 static const char* dbmodPinfoType[3] = {"IK    :", "IK_TOE", "IK_ARM"};
@@ -2725,56 +2738,59 @@ void dbmodInfoDisp()
 {
     DB_EM* em = &dbModSlot[pDbModState.p->no];
     int x = 0;
-    int y = 30;
+    int y = 3;
     int i;
 
     for (i = 0; i < 6; i++) {
-        eprintf2(7, 10, 300 + x, y + i * 10, 0, 0, "%s", dbmodInfoLabel[i]);
+        eprintf2(7, 10, 300 + x * 7, y * 10, 0, 0, "%s", dbmodInfoLabel[i]);
+        y++;
     }
-    x = 49;
+    x = 7;
+    y = 3;
     for (i = 0; i <= 5; i++) {
         switch (i) {
         case 0:
-            eprintf2(7, 10, 300 + x, y + i * 10, 0, 0, "%02d", pDbModState.p->no);
+            eprintf2(7, 10, 300 + x * 7, y * 10, 0, 0, "%02d", pDbModState.p->no);
             break;
         case 1:
-            eprintf2(7, 10, 300 + x, y + i * 10, 0, 0, "%s", dbmodSkipPath(pDbModState.p->motName[0]));
+            eprintf2(7, 10, 300 + x * 7, y * 10, 0, 0, "%s", dbmodSkipPath(pDbModState.p->motName[0]));
             break;
         case 2:
-            eprintf2(7, 10, 300 + x, y + i * 10, 0, 0, "%s", dbmodSkipPath(pDbModState.p->motName[0]));
+            eprintf2(7, 10, 300 + x * 7, y * 10, 0, 0, "%s", dbmodSkipPath(pDbModState.p->motName[0]));
             break;
         case 3:
             if (em->mot[0].flags & 1) {
                 if (em->mot[0].flags & 0x10) {
-                    eprintf2(7, 10, 300 + x, y + i * 10, 0, 0, "ON");
+                    eprintf2(7, 10, 300 + x * 7, y * 10, 0, 0, "ON");
                 } else {
-                    eprintf2(7, 10, 300 + x, y + i * 10, 0, 0, "ADD");
+                    eprintf2(7, 10, 300 + x * 7, y * 10, 0, 0, "ADD");
                 }
             } else {
-                eprintf2(7, 10, 300 + x, y + i * 10, 0, 0, "OFF");
+                eprintf2(7, 10, 300 + x * 7, y * 10, 0, 0, "OFF");
             }
             break;
         case 4:
             if (em->mot[0].flags & 4) {
-                eprintf2(7, 10, 300 + x, y + i * 10, 0, 0, "ON");
+                eprintf2(7, 10, 300 + x * 7, y * 10, 0, 0, "ON");
             } else {
-                eprintf2(7, 10, 300 + x, y + i * 10, 0, 0, "OFF");
+                eprintf2(7, 10, 300 + x * 7, y * 10, 0, 0, "OFF");
             }
             break;
         case 5:
             switch (pDbModState.p->playMode) {
             case 0:
-                eprintf2(7, 10, 300 + x, y + i * 10, 0, 0, "PLAY");
+                eprintf2(7, 10, 300 + x * 7, y * 10, 0, 0, "PLAY");
                 break;
             case 1:
-                eprintf2(7, 10, 300 + x, y + i * 10, 0, 0, "STEP");
+                eprintf2(7, 10, 300 + x * 7, y * 10, 0, 0, "STEP");
                 break;
             case 2:
-                eprintf2(7, 10, 300 + x, y + i * 10, 0, 0, "REV");
+                eprintf2(7, 10, 300 + x * 7, y * 10, 0, 0, "REV");
                 break;
             }
             break;
         }
+        y++;
     }
     em->IKreport();
 }
