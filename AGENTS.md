@@ -23414,7 +23414,7 @@ Harness ~/.cache/dol_pz5 (variant copies judged with ~/.cache/kit/variant.sh / r
 - Flip: `MATCHING["game/puzzle.cpp"] = True` (objects.py "puzzle closer" block), `ninja -k 0`, 111 OK. include/puzzle.h
   untouched (item.cpp IDENTICAL).
 
-### DOL final closer: t_bugcheck/pl_wep/act_btn/em_sub (t_bugcheck Matching 7/7 flipped: menuLife 4 -> 0; pl_wep 26 -> 28/29: PlWepLockCtrl 2 -> 0, PlSetLockPitch 11 -> 0, PlWepHitCheck2 242 -> 180; act_btn checkButton 71 -> 18; em_sub 45 -> 48/51: emLineCapsuleCrossCk 14 -> 0, EmYarareContactCk 103 -> 0, EmRackCk 49 -> 0, all three zero code; 111 OK; 2026-09-11)
+### DOL final closer: t_bugcheck/pl_wep/act_btn/em_sub (t_bugcheck Matching 7/7 flipped: menuLife 4 -> 0; pl_wep 26 -> 28/29: PlWepLockCtrl 2 -> 0, PlSetLockPitch 11 -> 0, PlWepHitCheck2 242 -> 180; act_btn checkButton 71 -> 18; em_sub 45 -> 48/51: emLineCapsuleCrossCk 14 -> 0, EmYarareContactCk 103 -> 0, EmRackCk 49 -> 0, all three zero code, GetDropBullet 462 -> 449; 111 OK; 2026-09-11)
 
 - **t_bugcheck menuLife 4 -> 0, tagged (#13 asm pool constant), unit flipped.** The "LIFE" string high is r17 in the target
   although PRE numbers it after "PLAYER"'s (r16) and its live length is longer: `register u32 hiL asm("r17"); asm("lis
@@ -23474,12 +23474,35 @@ Harness ~/.cache/dol_pz5 (variant copies judged with ~/.cache/kit/variant.sh / r
 - **em_sub RandomItemCk 53, OPEN (read with the HK_QTY hook):** the target allocates the second `Rnd()` temp before the
   accumulator chain; ours ranks the chain qty first (local-alloc `floor_log2(refs)*refs*size/(death-birth)`: Q1 5833 vs Q2
   5000). Needs Q1 <= 11 refs or Q2 >= 11 refs or a shorter Q2 span; ~20 expression variants (operand order, temps,
-  inlined RandomHandgunAmmo shapes) keep the order. EmCatchMotionMove 8 (rate/ry non-local, exhausted earlier) and
-  GetDropBullet 462 (jump2 cross-jumps the five `bl Rnd; li 7; lis; li 3; ori; mulhwu` copies as whole blocks where the
-  target shares only `srwi ..; cmplwi 7; ble; li 0` -- the copies' magic-constant registers differ in the target; plus the
-  callee-saved permutation f/r/n/i/id/num) untouched.
+  inlined RandomHandgunAmmo shapes) keep the order. EmCatchMotionMove 8 (rate/ry non-local, exhausted earlier) untouched.
+- **em_sub GetDropBullet 462 -> 449, zero code, and the register permutation read off the lreg/greg dumps (OPEN).** Two
+  shapes applied: the third branch's ammo total is `n` itself (`n = ItemMgr.bulletNumTotal(4); ... if ((u32) n <= 0x3B)
+  goto fallback;` -- the target keeps the total in n's register r31 and `&ItemMgr` in i's r30, i.e. both are dead there;
+  a separate `total` put them in the reverse pair), and the fallback is `*id = 4; *num = 0; if (pG->stage_no > 1) *num =
+  20;` (zero stored first: the two `switch (Rnd() % 3)` sites then share only the final `stw r0,0(num)` with it, as in
+  the target, instead of being cross-jumped into ONE `bl Rnd; %3; switch` block -- an if/else fallback made all three
+  `li r0,0; stw` tails identical). Ours is still 0xb6c vs 0xb7c. The residue is one global-alloc order. Ours
+  (`floor_log2(refs)*refs/len`, lreg line "used R times across L insns"): the six cse-shared `% 10` magic constants
+  (each `lis`+`ori`+2 `mulhwu` across one `bl Rnd`: 5 refs / 16 insns = 25000) > r (26/171 = 24327) > n (59/520 = 22692)
+  > the two 3-call constants (5/20) > i (60/658 = 18237) > `&ItemMgr` (28/666) > id, num > f (2/49). So the constants take
+  r31 wherever they live, r gets r30, n r29, i r28, id r27, num r26, and f ends in r31 by find_reg's pass 0 (r31 already
+  used, no conflict). The target is n r31, i r30, r r29, id r28, num r27, f r26 with the constants in r29/r31 (first free
+  callee-saved at each site: the total in r31 and `&ItemMgr` in r30 are live there), i.e. n AND i rank above r there.
+  n/i are not doubled by update_equiv_regs (their first sets `li 4`/`li 0` carry no REG_EQUAL; every later constant set
+  does, so no_equiv is hit at the first set) and r's 26 uses are identical in both listings; the target needs n and i at
+  >= 64 weighted refs (floor_log2 6) or r's live range >= 229 insns -- neither found. Storing `i`/`n` instead of the
+  literal at the `*id = 4; *num = 0` / `*num = 0` sites (cse knows f == 0 and stores f) shrinks the code (474/463/467).
+  Also read: the case-5 `r <= 0x5E` arm stores `li r0,0` in the target but the known-zero f in ours -- cse's path
+  (follow_jumps / skip_blocks, `PATHLENGTH 10` branches) reaches that block with f == 0 in ours only; a different
+  branch layout of the else-chain, not found.
 - Harness: `~/.cache/dol_tb2/` (tryv/vapply with an `ALL:` prefix for replace-all patterns, dump.sh with an absolute
-  SRC_OVERRIDE, rtl.py, hk.sh + the HK_QTY-hooked cc1plus) deleted at the end of the pass.
+  SRC_OVERRIDE, rtl.py, hk.sh + the HK_QTY-hooked cc1plus; later a minimal tryv.py + sbs.sh next to the kit's
+  `~/.cache/kit/rtl.sh <unit> <src> --out DIR -dl -dg` dumps) deleted at the end of the pass.
+- Stopped on request (16:34). State at the stop: all edits complete and built; `flock ... ninja -k 0` + `dtk shasum -c`
+  = 111 OK after the last em_sub edit; act_btn.cpp changed only in the checkButton header comment (18-word residue
+  re-verified with the kit: 16 branch targets +0x264 vs +0x26c and the extra `li r3,0; blr` at +0x26c). Not verified
+  since the last full check: nothing (AGENTS.md edits only). Next step if resumed: act_btn's second return block
+  (the `(use r3)` cross-jump mismatch) is the only 1-function flip left in these four units.
 
 ### DOL cam_extra/db_cam closer 2 (game/cam_extra 38 -> 43/43 IDENTICAL, unit Matching, all zero code, no tags: CameraBinocular ctor 17 -> 0, CameraPushObject::move 62 -> 0, CameraBinocular::move 79 -> 0, CameraScope::move 91 -> 0, IdBinocular::move 271 -> 0; game/db_cam 11/13: debugCamera::menu 72 -> 30, debugCamera::menuFlag 144 -> 69, both tagged; 111 OK; 2026-09-11)
 
@@ -24029,3 +24052,307 @@ deleted at the end.
   divided by the doubling (`-dS` prints sched1's pre-doubling `register N life shortened/extended from A to B`); 1 pre-reload
   insn in a pseudo's live range = 1 unit (x the equiv multiplier); an `asm` of any kind inside a region with PRE'd expressions
   is not codeless for gcse.
+
+### Tool RELs, t_esp pass 14 (t_esp 208/212: InitTool 8389 -> 2916 words, the 886 spill slots and the whole entry block exact (seg 0: 1850 insns, 3 differ); slot ORDER = 118 dead sets (N 5233), slot SET = the EDIT windows' `pa` register form, the spill-pair cycle r8/r10/r0 and every `lis r6/r8` pool high = reload's spill SET {r0,r6,r8,r9,r10,r11} forced with a tagged asm; IN PROGRESS 2026-09-11)
+
+- Harness ~/.cache/tesp14 (pass-13 style; deleted at the end): `slots.py LISTING [-v]` (`addi rX,r1,C; stw rX,S(r1)` pairs
+  sorted by S, `-v` also the other `stw rX,S(r1)`), `fitn.py SLOTS` (odd N whose bucket order `(13289 + C) % N` is monotone
+  along the slot sequence), `setdead.py FILE N` (rewrites the dead-set block to N sets), `sbs.py T.s O.dis A B` / `segcmp.py
+  T.s O.dis` (per-`bl` segment side-by-side / diff summary), `ins.py DUMP 'InitTool()'` (one line per insn of a dump). Variants
+  through `~/.cache/kit/variant.sh t_esp/t_esp V.cpp --no-diff` (1 s) and `~/.cache/kit/rtl.sh ... -dG`/`-dg` for the table size
+  (`Expression hash table (N buckets, ...)` under `;; Function void t_esp_namespace::InitTool()`) and the reload picks
+  (`Spilling reg R.` lines: `rg 'Spilling reg' | sort | uniq -c` = the function's spill_regs).
+- **Slot order (N arithmetic).** After pass 13 the plain tree had `Expression hash table (5231 buckets, 2354 entries)` and its
+  slot sequence fits N = 5231 (fitn: 1 descent, the wrap), the target's fits 5233/5235 only. N = (n_insns / 2) | 1, so +1 bucket
+  = +2 real insns at gcse: 78 or 80 dead sets -> 5233 (verified in the -dG dump), 82 -> 5235; with the right N the C sequence of
+  the 882 `&pos` slots is exact but every S is 4 bytes low (10433 words: worse than 8389, because every `lwz/stw slot(r1)`
+  moves) -- the slot SET below. The `pa` form removes 36-40 insns (47 `lwz r3,0(r29)` reloads of `e->pa`), so 76 sets -> 5213,
+  80 -> 5215 and **118 sets -> 5233** (v4 of the previous agent had found the same count): 886/886 slots exact in S and C.
+  Rule: every change to InitTool's insn count re-fits N; read it from the dump, never guess (2 insns per bucket).
+- **Slot SET (the 4-byte shift): the EDIT windows keep the ctor argument in a callee-saved register.** Target window 1 (after
+  the `stw r29,g_pEditWin1` `__builtin_new`): `lwz r0,0x237c(r1); lis r9; lwz r28,g_pPrimArray@l(r9); mr r29,r3; stw
+  r0,0x1a7c(r1); li r6,0; stw r6,4(r29); stw r28,0(r29); ... mr r3,r28` for CreateNormalWindow and all 10 CreateNumeric of the
+  row loop, but `lwz r3,0(r29)` (= `e->pa`) for the 5 CreateButton. Ours reloaded `e->pa` everywhere, so the copy pseudo of the
+  0x237c `&pos` took r14 instead of being spilled to 0x1a7c (the target's 11th low-region slot), shifting r14..r20's reloads by
+  one and every later slot by 4. Form (zero code, no tag): `DB_PRIM_ARRAY* pa = e->pa;` right after the `new` (cse forwards the
+  ctor store, so `pa` = the argument pseudo) and `DB_PRIM_ARRAY* pa_ = pa;` in the CreateNormalWindow/CreateNumeric blocks, `pa_
+  = e->pa` kept in the CreateButton blocks (target evidence per call site). 8389 -> 6627 with N = 5233.
+- **Entry block + the per-segment r6/r9 residue = reload's spill SET (reload1.c).** Facts: `order_regs_for_reload` lists per insn
+  the hard regs not in `live_before`/`live_after` (CLOBBERs count: build_insn_chain's live_after includes everything the insn
+  sets) in REG_ALLOC_ORDER r0, r9, r11, r10, r8, r7, r6, r5, r4, r3; `find_reload_regs` takes the first for each reload need and
+  ORs it into the function-wide `used_spill_regs`; `finish_spills` then gives EVERY insn all spill regs not held by live pseudos
+  (`chain->used_spill_regs`), and `allocate_reload_reg` hands them out round-robin from `last_spill_reg` over `spill_regs` in
+  ascending regno order. Ours had spill_regs {r0,r9,r10,r11} (`Spilling reg 9/0/10/11`), the target {r0,r6,r8,r9,r10,r11} (77
+  `lis r6,rodata`, 57 `lis r8,rodata` pool highs are rematerialised REG_EQUIV highs = reloads; ours had 497 `lis r9`). With
+  r8 in the set the entry block's pairs cycle r8/r10/r0 (r9/r11 hold the g_editRowNo/g_editRowWk addresses, r6/r7 the data
+  highs) and the pTexRender store comes first (its high is in r8, so it precedes the first r8 pair); with r6 too, the CreateString
+  segments' `lis r6,H; lfs f0,L(r6)` follow. Verified by forcing: two whole-function REG_EQUIV constants (`u32 k8 = 0x1234; u32
+  k6 = 0x5678;` at the top, 3 refs each so update_equiv_regs neither substitutes nor moves them, no callee-saved reg free ->
+  rematerialised) read by two asms at the END of InitTool with r0,r7,r9,r10,r11 clobbered -> the reloads pick r8 then r6
+  (`Spilling reg 8` x4, `reg 6` x4): 6627 -> 2916, seg 0 1850 insns with 3 differing, tagged `// COMPILER-DIFF: candidate
+  (reload spill set)`. Failed forcing forms: `"r"(0x1234)` (block-local constant, local-alloc gives it r8: no reload), `"m"(global)`
+  (the high pseudo is block-local and allocated). Natural source: some insn of the original needs a reload while r0/r9/r10/r11
+  (and r8/r7) hold live pseudos -- most likely in the EDIT row loop (7-argument CreateNumeric/CreateButton with the double
+  conversion constants live); not found in the box.
+- Residue 2916: per-window segments (+-1..8 insns each: `lis rN,H` register names, `li rX,K` positions, some `lwz rN,slot`
+  callee-saved copies) -- the per-window mechanisms, not touched yet in this pass.
+
+### Tool RELs, db_mod pass 7 (dbmodDispModelName 19 -> 10 words: residue (1) nlen/giv closed with two dead sets tagged `candidate (loop.c insn_count)`; residue (2) is reload's spill-reg round robin; in progress; 2026-09-11)
+
+- Harness /tmp/dbmod7 (deleted at the end): `try.py LABEL OLD NEW ..` (exact-once edits of base.cpp -> ~/.cache/kit/rtl.sh
+  + bytecmp + the `Loop from`/`Insn N: regno` lines of the function), `fn.sh DUMP FUNC`.
+- **Kit extended (persistent, ~/.cache/sngdbg reload1.c, env-gated, byte-identical without the vars):** `RLDSPILL=11,10`
+  adds hard regs to the function-wide spill set at `finish_spills` (oracle for "the target's reload had one more spill
+  reg"); `RLDDBG=1` prints one line per reload register handed out by `allocate_reload_reg` (`insn uid, reload index,
+  hard reg, round-robin index / n_spills, class`).
+- **Residue (1) closed, insn arithmetic (-dL, k-loop `Loop from 440`):** pass 1 had 58 real insns, movables in insn order
+  `"%c"` high (thr 71), `hs - 1` (68, life 6), `i + 5` (65), `"^"` high (62): 62*1*1 >= 58 moved the `"^"` in pass 1
+  (before the giv init `li 184`), so the giv was 14/88 > nlen 9/57 and took r25. Constraint: the `"^"` must fail
+  (thr < count) while `i + 5` still passes (its thr >= count). Two dead sets at the body top: `f = 0;` (constant, set once
+  in the loop, `f` has refs after the loops -> an invariant movable, `global move-insn`, moved FIRST: -3 for every later
+  movable) and `no = k;` (non-invariant, stays, +1). Count 58 + 2 = 60; thresholds `f=0` 71, `"%c"` 68, `hs-1` 65,
+  `i+5` 62 >= 60 moved, `"^"` 59 < 60 not moved; pass 2 (53 real, thr 71) moves the `"^"` after the giv init. Both dead
+  sets are deleted by flow before the live-length update (no REG_LIVE_LENGTH effect: pDbModState/"^" stay tied at 1111,
+  r18/r19 unchanged; nlen r25 / giv r24 now match). Two movable dead sets (`no = 0; f = 0;`) give 60 with `i + 5` at 59
+  < 60 (12 words); dead TESTS are wrong here because their compare survives to jump2 inside the loop and lengthens
+  nlen and the giv equally (needs len_giv/len_nlen > 42/27; 88/57 -> 89/58 goes the wrong way).
+- **Residue (2) read off reload1.c (SN 2.95.3, insn_chain reload):** the `high` pseudos of `"%s"`/`"[%6s]"` are
+  REG_EQUIV-spilled and rematerialised per use by `allocate_reload_reg`, which walks `spill_regs[]` (the function-wide
+  union `used_spill_regs`, ascending hard-reg order) ROUND ROBIN from `last_spill_reg + 1`, skipping regs live at the
+  insn and regs outside the reload class (r0 is not BASE); `last_spill_reg` persists across insns and every CALL_INSN
+  takes an LR (r65) scratch reload, resetting the robin to the LR index. Ours: spill set {r0, r9, LR}; the target's
+  had r11 too. `RLDSPILL=11` reproduces site 1 exactly (insn 99: previous reload = x's `lwz r9,8(r1)` at index 1 ->
+  r11) and leaves sites 3-5 at r9 (previous reload = a call's LR -> r0 -> r9), but site 2 (insn 318, `"[%6s]"` after
+  the `no == -1` bne) still gets r9: its previous reload is the null arm's call (LR). The target therefore had r9
+  busy at 318 (a pseudo in r9 live across the lo_sum: `no` in r9 is the candidate) or one more r9 reload between the
+  null-arm call and 318; r9 busy at a BASE reload is also what puts r11 into the spill set. `char* d = motDir; asm("" :
+  "+r"(d) : "r"(no))` before the eprintf does not do it (the asm is scheduled before the lo_sum, `no` dies early).
+- Stopped by the user at 16:34 with the tree at InitTool 2916 words (built, `ninja` clean for t_esp.o, bytecmp 208/212,
+  nothing flipped, no `ninja -k 0`/shasum re-run after the edit). Edits in src/t_esp/t_esp.cpp only: the 4 CreateEditWindowN
+  helpers (`pa` form), the dead-set block 76 -> 118, `k8`/`k6` + the two end-of-function asms (tagged). First residues after
+  the entry block: seg 3 (`stw r16,0x1a58` vs `stw r11,4(r7)` order, a sched2 tie), seg 25/37/67/100/129 (the EDIT row-loop
+  preheaders: the three pool/bss highs' reload registers rotated, target r8,r6,r10 vs ours r6,r10,r8 = the round-robin phase,
+  i.e. one earlier reload or one live pseudo differs there), seg 162 (the LOAD window: the target hoists `lis r25 g_pPrimArray`,
+  `lis r19/r21/r16/r28 rodata` and `lis r27 bss` into callee-saved registers BEFORE its `__builtin_new`, ours has 6 fewer insns
+  there and the FP/GPR callee-saved names differ from seg 163 on: a global-alloc difference that starts at that window).
+  Verified: the N/slot arithmetic and the spill-set mechanism (dump evidence + word counts); unverified: the natural source
+  form for r6/r8 in spill_regs and the per-window residues.
+
+### DOL em_set/debug closer 2 (em_set Matching 12/12, pure C, asm pairs removed; debug processBarDisp 138 unchanged, mechanism read; 111 OK; 2026-09-11)
+
+Scratch ~/.cache/dol_emset (deleted). Kit extended: `LADBG=1` now also prints `LAFREE <fn> q<N> cls C [born,dead) sugg S used: <hard regs>` from local-alloc.c find_free_reg = the exclusion set of each allocation attempt (fake range first, then the real one).
+- **em_set EmSetFromList2 9 -> 0, EmSetEvent 18 -> 0, zero asm.** (1) EmSetWork's body is a MACRO (`EM_SET_WORK`) in the two straight-line creators: a pool constant expanded in the caller keeps RTX_UNCHANGING_P on its MEM, integrate.c copy_rtx_and_substitute drops it for an inlined body (`if (! map->integrating)`), so the inline's `lfs` loads carry true/anti dependences on every store around them (that was the whole `mr r8,r10`/`lis r11` slot and the oldPos r0/r9 swap). EmSetFromList keeps the inline (macro in the loop: 11 words). A `do { } while (0)` macro adds LOOP_BEG/END notes = sched barriers (`lwz vptr` moved after the stores in the EmSetDist macro form); the EmSetWork one is harmless here. (2) `em->x374 = 1.0e16f` is a caller statement AFTER the plDist2 inline (EmSetDist now computes plDist2 only, all three callers): inside the inline the non-/u constant load has 3 dependents (call, its store, an anti-dep from the 0x370 store) vs fmuls's 2 and wins the sched1 tie by the "independent of the last scheduled insn" class (rank_for_schedule), lands one insn after `fsubs f0,f0,f12`, and local-alloc's fake_birth (birth-2) then sees f12 as live and hands out f10. Statement order alone (x374 after plDist2 in the inline) is 4 words; the inline + caller store is 0.
+- **debug processBarDisp 138, not closed; mechanism of the two-zero shape read.** Target: tile 1's `z0 = 0` is a single-use HImode zero pseudo (`li r0,0` moved next to its `sth` by update_equiv_regs, local qty r0) while tiles 2-6 share `li r17,0`; every other constant (4, 6, 30, 5, 0x80, 0x20, 0xff) IS shared between tile 1 and the rest. In ours one pseudo (r18) serves all six. cse.c make_regs_eqv makes a LATER pseudo the class head (canon for all following stores) only when its REGNO_LAST_UID lies beyond `cse_basic_block_end` (the path's high cuid) and after the head's last use; with `-fcse-skip-blocks` cse_main processes the LONGEST path first (our dump: `Processing block from 2 to 1053` = the whole tile sequence, then 938, 801, ... 165), so no tile pseudo ever qualifies. The target's first path must have ended between tile 2's and tile 6's z0 stores (a label with 2 uses / a block the skip rule refuses). Unverified: which source shape shortens the path. Consequence chain (verified in ours with GDBG): the `12` (reg 228, refs 3 len 274 calls 3, pri 109) is the LAST allocno and takes virgin r14 in pass 1; the target had no register left because y0 (`x0+30`) and x2 do not share r31 there (ours: y0 dies at tile 3's `sth`, issued first as the dying store, before x2's extsh). Tile 6 colour order: the target's `stb g, b, cd, r` is the LUID order of a `r, g, b, cd` source (the 8 dies at g, not r); ours has `g, b, cd, r` in source and emits b, cd, r, g -- rewrite tile 6 as r, g, b, cd (untested).
+
+### DOL db_cam closer 3 (game/db_cam 11/13 unchanged: menu 30, menuFlag 69; stopped by the user mid-pass, no tree edits; 2026-09-11)
+
+- **menu head (`lbz r0; clrlwi r11,r0,24`) is the UNCOMBINED expand form, not a `(u8)` cast.** The C++ front end expands every
+  `int <- u8 member` read as two insns, `(set (reg:QI A) (mem:QI))` + `(set (reg:SI B) (zero_extend A))`, because the
+  `zero_extendqisi2` expander's operand 1 is `gpc_reg_operand` (rs6000.md:630, emit_unop_insn copies the MEM to a QI pseudo);
+  combine merges them into the `lbz rB` (SImode) in ours. Combine only tries (B <- A) through B's LOG_LINK, and flow gives the link to
+  the FIRST use of A after the load; any QI-mode use of A between the load and the extend (a `stb` of A, i.e. `cam_mode = cam_mode;`
+  or a byte store of the same QI pseudo) leaves the load QImode and the `clrlwi` in place. `can_combine_p` also refuses a MEM source
+  when any store sits between (`use_crosses_set_p`: `mem_last_set > cuid`). A `u8 cm` local is PROMOTED (`reg/v:SI`, SUBREG_PROMOTED)
+  and never yields a clrlwi; `int cm` + `(u8) cm` is simplified by nonzero_bits (same block, REG_N_SETS 1). Not verified in code yet.
+- **The tail (`beq -> stw r0`, `lbz r0` shared by the two arms) is gcse PRE, not cse.** cse never follows the `beq` into the tail
+  (target label not preceded by a BARRIER, and the skipped block has labels). 2.95 lcm.c is block-based: `EARLYOUT(b) = ~TRANSP(b) |
+  (EARLYIN - ANTIN)`, so the tail's reload is redundant only when EVERY predecessor is transparent and anticipates it: the original had an
+  empty join block J between the inner `if (cam_mode != 5) {..} else {..}` and the outer if's end (the PRE copy `lbz r0` lands at J's end
+  = 0x1550, entered by the Roll arm's `b` and the 5-arm's fall-through). In ours jump1 merges the two end labels (one label, 3 preds
+  with stores -> LATEIN(T) -> not redundant). What separates the labels in the original is not found (a statement in J would emit code;
+  the PRE'd pseudo is QImode, so the tail's `zero_extend` of it should give a second clrlwi that the target does not have -- OPEN).
+- Variants this pass (harness ~/.cache/dol_dbcam3, deleted): `u8 cm` + `cam_mode = cm` after the if = 38w (SI `lbz r29` + `stb r29`
+  kept); `u8 cm; cam_mode = cm;` at the head = 11w (size 0x334 exact, `beq` lands on the `stw`, `stb r9` kept, no clrlwi); `int cm` +
+  `(u8) cm` casts = 30w (identical to base). The `lwz 4/8(r9)` swap in the campos memcpy and menuFlag's `x + 19` / OFF-colour `c`
+  were not started.
+
+### CRI pass 23 (paused by the user; adx_tsvr 2w / sfh_main 6w / mps_lib 2w unchanged in the tree; mpv_umc OneReadMb 68 -> 56w found in the harness, NOT applied; nothing flipped; 2026-09-11)
+Harness /home/adityas/.cache/cri23/ (deleted): tryv.py/tryumc.py substring variants over ~/.cache/kit/variant.sh, ra.py dumps. No tree file was edited.
+- **mpv_umc `mpvumc_OneReadMb` 68 -> 56w (harness only, verified with variant.sh, not applied):** (1) `mc->src2 = ypitch + yhx + src;` for the LUMA
+  block (B4 identical: the add chain rule is `a + b + c` -> `t = b + c; r = a + t`, so the target's `add r0, yhx, src; add r0, ypitch, r0` needs ypitch
+  first; chroma keeps `src + cpitch + chx`), 68 -> 60; (2) `cpos = ofs[0] + (cvx >> 1) + (cvy >> 1) * cpitch; ypos = ofs[1] + (vx >> 1) + (vy >> 1) *
+  ypitch;` (target `add r29, cvx>>1, mul`), and (3) `vx = mv->vec[0]; vy = mv->vec[1]; ypos = ...;` placed BEFORE `cvx = vx / 2` (the target's
+  `srawi vx>>1`/`srawi vy>>1` are the 3rd/6th instructions after the loads = statement order; `lwz ofs[1]` before `lwz ofs[0]`), with `yhx = (Uint32)vx & 1;`
+  after `fn_y = ...` and `chx = (Uint32)cvx & 1;` after `fn_c = ...` (the cast keeps the frontend from CSE-ing the table index): 60 -> 56w. Left (56):
+  vx r6 / vy r23 / cvx r25 / cvy r24 (target r25/r11/r28/r7): vx is still coloured before the temporaries and vy/cvy after all of them; the ra.py
+  dump of that variant was being read when paused. Variant text: harness u4.py 'a2' (== a1/a5/a6/a7 at 56w; cpos before fn_y 62-67w).
+- **mps_lib `MPS_Create` 2w:** backend-16 (before the post-RA scheduler) already has the target's `li r4, -1; addi r0, r3, @l` order; the post-RA
+  pass swaps them. Not moved by: 9 statement orders, `-1` in a local, a `volatile MPS_OBJ *mps` (all 2w), `#pragma scheduling off` (72w), an
+  `asm { li r4, -1; mr m1, r4 }` pin (9w: `lis r3` cannot cross the asm and the Sint64 fields need `srawi` hi words), an asm lis/addi of the fn address (17w).
+- **adx_tsvr `adxt_nlp_trap_entry` 2w:** the pass-19b 3-pin form reproduced (2w moved to `subi r5, r4, 1` before `mr r3, sji`); the asm `lis` has no
+  latency, so its C consumer is ready one cycle early and outranks the argument move (target: lis latency 1, subi at cycle 2). Not fixed by: `lim = hi - 1`
+  before/after `ofst2 = 0`, the asm at the function top, an `asm { mr r3, sji }` copy (4w), lis+subi inside the asm with r5 pinned (10w), `scheduling off`
+  (108w); zero-code forms (`ofst + ofst1`, temps, `-= -ofst`, volatile view) leave `lha r0`.
+- **sfh_main `SFH_AnlyElemSmpHz` 6w (M4):** backend-14 (before the post-RA peephole) is the target's final code to the instruction except the word
+  register (r4 vs r6); the post-RA peephole then folds to `stwbrx`. It folds even when the swapped value stays live (`return s | 1`: chain AND stwbrx
+  emitted), with asm-defined rlwinm partials, dead asm copies, volatile stores, statement-split ors (7-8w) and 16-bit halves (4w, a different chain).
+  `#pragma peephole off` for the function: 10w (also disables the pre-RA rlwinm/or merge: the C SWAP32 then gives rlwinm x4 + or x3, 14w); a private
+  peephole-off GetElem copy with `hdr[0x198 + i*0x40]` indexing: 38-41w. Left at 6w.
+
+### Tool RELs, t_id pass 4 (STOPPED by the user mid-pass; ToolInterfaceDesign 41 -> 0 via the dead-test lever; nothing else applied; not flipped; 2026-09-11)
+
+- **ToolInterfaceDesign 41 -> 0**: the `while (1)` body had exactly 9 blocks (`;; rgn 0 nr_blocks 9` in `-dS -fsched-verbose-6`), so sched1 formed an interblock region and hoisted `addi r3,toolIdSys`/`li 0`/`li 16`/`li 3,1` above the branches. A dead test with two compares at the body end (`{ IdTool* dead; if (pIdTool->cnt == 0 && pIdTool->mode == 0) dead = 0; }`, tagged `COMPILER-DIFF: dead test`) adds 2 blocks -> 11 > MAX_RGN_BLOCKS -> no region; the set is deleted by flow, both compares by jump2. Verified with variant.sh (0 words, size 0x138); the locked ninja rebuild was NOT run.
+- **toolIdInit 12 (unchanged)**: read off the `-fsched-verbose-9` dump: the 11 stores are one lsu op per cycle from t=4; rank = weight (a store whose source reg dies = 0, else +1; lower first), then LUID. Target order (lang2, cnt, drawSafe, type, x17B, pause, menuY, level, parentNo, menuX, x24) is pure source order, i.e. NO constant dies at its last store; a `"=m"` keep-alive asm after the stores reproduces the sched1 order (source order) but perturbs sched2/allocation (19-20 words); `volatile` view 21, `int zi` for level/x24 17 (cse merges QI/SI zero). Also the target's level store (`stb r7`, the SI zero) precedes the x24 store (`stw r7`), which `w->level = w->x24 = 0` cannot give. Original construct still unknown.
+- **idEditPos 334 (unchanged; structure read, nothing applied)**: (1) subCur cases are in NUMERIC order 0,1,2,3,4,5 (cross-jump leaves `andi.; b` stubs at 1 and 2 and the full body at 5; our 0,1,2,5,3,4 puts the body before case 3); (2) `*pos = d->vtx[N]`'s x word is stored via `d` (`stw r10,0x118(r26)`) and y/z via `pos` -- `d->pos = d->vtx[N]` gives d-based addresses everywhere including the ID_DRAW_GUIDE tail (target keeps `pos` r20 there): try `d->pos.x = d->vtx[N].x; pos->y = ..` or a mixed view; (3) `pos` has a SECOND pseudo in case 1/subCur 0 (`addi r31,r26,0x118` before `bl toolIdCalcVertex`): a block-local `Vec* pos = &d->pos` there; (4) the inner menu loops pass `y + i * 0xE` (target `add r4,r24,r25` with `mr r25,r11` = i*0xE kept), `yy` only for the two outer eprintfs; (5) `y += 0xE` sits after the toolIdCalcVertex call in the target's case 0. Cumulative variant caseorder+d->pos+y+i*0xE: size 0x10c4 (from 0x10ac, target 0x10d4). Tool: a masked mnemonic-level difflib compare of dtk disassemblies (registers/labels/symbols normalised) is far more useful than fdiff for 300-word functions -- worth adding to the kit.
+- idEditColor, toolIdOption, idEditUnit not started.
+
+### DOL Espgen43 closer 2 (SetSandWork 44 -> 0 pure C, unit 10/11; AddSandPower 5 -> 3 read, not applied; stopped by user; 2026-09-11)
+
+- **SetSandWork 44 -> 0, pure C, no tags (applied, locked ninja + bytecmp verified; unit not flipped, 111 not re-run).** The
+  `k++` sits in a different place in each strip half: first half right after the two `*(u16*) d = k` stores (before the first
+  f32 store), second half between the two texcoord groups (after the first TEX_WRAP's four `d++`, before `(f32) i / ny`). Sweep of
+  7 x 7 positions: first half P0/P1 x second half P2/P3/P4 = 0 words, everything else 20-459. Mechanism (GDBG/LADBG + sched dumps):
+  (1) the three outer-loop pool pointers 872/874/876 (LC23/24/25, 5 refs, REG_EQUIV-doubled lens 736/734/730 -> pri 135/136/136,
+  tie by regno) need ONE insn fewer in the outer loop's live range (rest 363 -> lens 734/732/728 -> 136/136/137 -> order 876 r27,
+  872 r12, 874 r24 = target, no `regs_used_so_far` seeding needed); the insn is gcse PRE's `k = k+1` copy in the first half
+  (`734 = k+1` hoisted to block 10, copy in the third-group block, deleted by reload as same-reg): writing `k++` early makes it a
+  plain insn. (2) that copy (prio 40) also took the block's t=1 iu2 slot, so the second conversion's fpmem loadaddr dummy was issued
+  after the first store1 and shared r11 with the xoris temp; without it the dummy issues at t=2, overlaps the xoris temp and gets
+  r10 by local-alloc -> the 0x4330 high (188) cannot take r10 -> r5, and the whole first-half cascade (867 r4, 861 r3, 733 r29, 314
+  r28) follows. The second-half copy must stay (its `734` shared... no: its k+1 pseudo conflicts with the first half's r10 dummy
+  only when both halves are PRE'd through one expression), hence the asymmetric positions.
+- **AddSandPower 5 -> 3 (read, NOT applied):** `Add_power = power;` (plain store, `fixed_scalar_and_varying_struct_p` exempts the
+  `*pos` loads) + `ISet(Height_find, 0)` gives the target's registers exactly (high r10, W8 r11; local-alloc order W8 before high
+  because the loads no longer wait for the stfs), leaving only the `stfs f1, Add_power` sched2 slot (target t1 second slot = prio 7,
+  i.e. the loads DO depend on it in the target). Next: a store form that keeps the load dependence for sched2 but not the sched1
+  cycle-4 load start (e.g. the ISet/FSet order with the reference store first, or a codeless anchor on `pos` after the plain store).
+  Harness ~/.cache/dol_e43 (variant.py-based tryv.sh, kpos.py sweep, private sngdbg with r0-r13 bits in GDBG) deleted.
+
+### DOL option/card closer (option brightness_menu 69 -> 0: one zero-code fix + two pins; retry_load_menu 2 read; card not started; paused by the user 2026-09-11)
+
+- **brightness_menu 69 -> 0 (size +4 gone).** (1) zero code: the second `for` loop gets its own counter `int j` -- a shared `i`
+  across both loops is one pseudo (refs 16/len 180 = 0.355, allocated 3rd -> r29) and pushes 0xff/magic/digits/o down one
+  register each; with its own counter (refs ~6/96) loop 2's `li 2; subic.` lands last, in r25 = target. (2) TAG `register u8 d
+  asm("r9") = DEFAULT; s->brightness = d + MIN_OFS;` in the if-arm: with the sum a plain local qty, D+sum (refs 4/[2,8) =
+  13333) is allocated before MIN (10000) and takes r0; the target needs D in r9 so the two `stb r9,0xa(r10)` tails cross-jump.
+  Pinning the SUM to r9 gives both operands the r9 suggestion and MIN (higher pri) takes it (`add r9,r0,r9`, 39w); pinning D
+  is exact. Join-store spellings (`n = ..; if () n = (u8)(D+MIN); else if () n = D+MAX; pSys->brightness = n`) reload pSys at
+  the join label (74-85w): the store IS in the arms. (3) TAG `register SystemWork* s asm("r10") = pSys` around the clamp:
+  global order pSys (4 refs/18 = 0.444, r11 via pass 0 used-so-far) vs DEFAULT (3/9 = 0.333, r10 virgin); target is the
+  reverse, i.e. pSys with 3 refs or DEFAULT with 4 in the original -- not found (`register int def asm("r11")` is 35w).
+- **retry_load_menu 2w read, not applied:** the target's `lis r30,Cckpt@ha; addi r3,r30,@l; mr r29,r3; bl roomInit; mr r3,r29
+  x3` is a REG_EQUIV `high` left unallocated and rematerialised by reload into the function's spill reg r30 (same r30 as
+  `lis r30,IdSys@ha`/`cMes@ha`), plus a copy of the r3 argument into a pseudo (gcse pre_insert_copies / handle_avail_expr
+  shape). Our `register Cockpit* ck asm("r29") = &Cckpt` gives the high pseudo the r29 suggestion (`(set r29 (lo_sum H))`)
+  so local-alloc allocates it (LADBG b73 `sugg 3 29 -> 29`). Plain `Cckpt.roomInit(); Cckpt.move(); ..` = 4 `addi r3,r30,@l`
+  (H allocated to r30 across the calls, 18w); `Cockpit* ck = &Cckpt; ck->roomInit(); ..` = `addi r30,r30,@l; mr r3,r30 x4`
+  (5w: ck itself takes r30, the copy is not from r3). Next: a form whose first `&Cckpt` is the r3 argument set and whose later
+  uses are in a block the value reaches (gcse copy), with `ck` unpinned so old/o keep r29/r31.
+- controller_menu 82, card saveMain 74 / errorDisp 99: not started.
+- **Status at the stop (2026-09-11 16:34, work paused by the user):** the tree source src/tools/db_mod.cpp is UNCHANGED
+  (the two dead sets `f = 0; no = k;` at the k-loop body top, to be tagged `// COMPILER-DIFF: candidate (loop.c
+  insn_count)`, live only in the harness variant; they take dbmodDispModelName 19 -> 10 words in the variant build,
+  verified by ~/.cache/kit/variant.sh, not by ninja). Residue (2) (r11 vs r9 at insns 99/318, 10 words) is explained
+  (reload round robin + spill set) but no source form found; `RLDSPILL=11` is the oracle for site 1 only. Nothing
+  flipped, config/G4BE08/modules.py untouched, 111 not re-checked. ~/.cache/sngdbg was rebuilt with the two new hooks
+  (cc1plus sha1 1722dd7040bd3f194fe8b4f144ea34d8b3587d08; plain output verified `cmp`-equal to the production object).
+
+### Tool RELs: snd_test/t_camera_data closer 2 (t_movie/snd_test 76 -> 77/77 IDENTICAL, disp_sequencer 28 -> 0 pure C, asm tag removed; NOT flipped — stopped by the user before the modules.py edit; t_camera_data untouched; 2026-09-11)
+
+- **disp_sequencer 28 -> 0, zero code, one structural item replaces the `#13` asm pair:** `int y0; ... y0 = 0x54;` right before the
+  `for (ch ...)` and `y = y0 + 0x54;` after the D diamond (the `asm("li %0,84")`, its keep-alive and `int k` removed). Read off the
+  dumps (`~/.cache/kit/rtl.sh`, `GDBG=1`): the 14 row pointers `seq + 0x31aa..0x327a` and the "%03d" high are gcse PRE/HOIST insertions
+  at the end of the preheader bb in body order (`PRE/HOIST: end of bb 2, insn 789/792/...`), the "%3d" high and `Snd_voice_work` are
+  re-emitted by loop.c AFTER them (the body copy's REG_EQUAL symbol_ref becomes `emit_move_insn` -> fresh high/lo_sum, the PRE high
+  dies). sched1 issues these free fillers ONE per header-eprintf slot in LUID order (`ch = 0`, "%03d", flag, prio, ...); the two
+  spilled row pointers (ch_flag/ch_prio -> `stw 8/0xc(r1)`) are pinned to their sched1 slot by reload's r9 pair, everything else
+  floats in sched2. The target has them one slot later = one more free filler with a LUID below `ch = 0`: the `li y0,84` (single-set
+  constant, REG_EQUIV, deleted by reload as the equiv init and rematerialised as `li r9,84` right before `addi r27,r9,84`). The same
+  pseudo explains the body `addi` (cse cannot fold across the join label; cprop has no simplify step for `(plus reg const)`). Rule: a
+  spilled pair issued N slots off in a call-sequence preheader = N missing/extra free fillers with lower LUIDs, look for a
+  REG_EQUIV constant whose init was deleted.
+- Verified: `python3 tools/bytecmp.py t_movie/snd_test` = IDENTICAL after a locked ninja of snd_test.o. Unverified/not done: the flip
+  (`config/G4BE08/modules.py` MATCHING entry for `t_movie/snd_test.cpp`, `tools/make_rel.py --verify`, `ninja -k 0`, shasum 111 OK).
+- t_camera_data (tcDataExport 142w size 0x538/0x534, tcSetBesideOffset 27w, fn_t_camera_1B8C4 24w) not started.
+
+### CRI pass 24 (stopped by the user before any build; sfd_mps 22/26, cftfx 3/6, adx_sje 14/17 unchanged; no source or objects.py edit; 2026-09-11)
+Only sfd_mps DecodeOneUnit (144w) was analysed, with ra.py + chaitin.py as a library (harness ~/.cache/cri24 deleted). Read off the
+model against the target's registers (ret r31, wk r30, nskip r29, nbyte r28, len r27, data r26, sfd r25, delim r24, mps r23, total r22,
+bufin/dst/scan-counter r21, p r24), all UNVERIFIED by a build:
+- The colouring rule "lowest free among the callee-saved registers already handed out, sorted ASCENDING" explains bufin/dst/n = r21 in
+  both: once r21 is handed (bufin), every later L1 node takes r21 before r23/r26. So the target's scan counter is coloured AFTER bufin,
+  i.e. it is an L1 node (degree <= 28 at its round-1 scan turn; ours @671 sits at exactly 29 = L2) with a vid below bufin's: an OWN local
+  distinct from the syshd `n` (`cnt`), plus the hn-block Bool as a separate own local declared after it (ours reuses `go`, whose
+  range-split @669 has a higher vid and is still alive at the counter's turn). p then colours r24 after r79 (delim's 2nd web) without
+  any data edge (I first misread this as p-data interference).
+- With @671 leaving the round-1 survivors, ret needs +3 permanent neighbours (ours 27 at its round-2 turn), data +1, wk +1: only
+  ghosts (call results copied into a variable: `mr rG, r3; mr var, rG`, rG coalesced into r3) or vreg->vreg coalesced @ret copies
+  qualify. Candidates: the two SFSET_GetCond OBJ results as a kept `void *obj` local (target `mr r22, r3 .. mr r5, r22` = the variable,
+  the coalesced @ret its ghost; +2), and one more not identified (a helper @ret copied into a local, e.g. shdr/GetSeeShdr).
+- IsZero: target `mr r4, data; mtctr psize(r3); lbz; addi p,1; extsb.` = psize as a frontend CSE @temp (`sfd->prm.unit` written twice
+  inline, coloured r3 before the helper's pointer copy r4) and a `Sint8 *p; if (*p++ != 0)` body (`extsb.`, increment before the test).
+Variants file (obj / psz / isz / cnt / ok combinations) was written but never compiled. cftfx and adx_sje not started.
+
+### CRI pass 25 (sfd_adxt 26/28, cri_cvfs 11/13, sfd_tst 10/11 unchanged; stopped by the user after the AdjustSync read; no source or flag edits; 2026-09-11)
+
+- sfd_adxt `sfadxt_AdjustSync` 51w: chaitin.py `--check` is IDENTICAL on our dump (ra.py out, level 2 = @329 wk r31, skipbyte,
+  endflg, skip, nch, params). Target colours read off the listing: level 2 = wk r31, skip r30, skipbyte r29, nch r28, endflg r27
+  (endflg, not astart, must be the r27 before nbyte r26: astart does not touch skip/skipbyte), params r26..r23; level 1: lim r22,
+  frmbyte r21, sfreq r29, astart r27, vstart r22, tim r21, p(@317) r30, ofs(@318) r28, n r21. **The target's sfreq r29 needs an
+  r30-coloured neighbour, and the only r30 nodes are skip/p, so the target's `skip` interferes with sfreq (and astart/vstart/tim):
+  its `li skip,0` sat above the SetStartTime argument moves pre-RA.** In ours `li r43,0` is scheduled one slot below
+  `subf vstart-astart` (skip touches none of them). Putting `skip = 0;` before `SFTIM_SetStartTime(tim, vstart, sfreq);` emits the
+  `li` BEFORE the `bl` (53w, the call is a block boundary the scheduler does not cross) — not the target's shape.
+- Random+hill-climb search over the 12 own-local declaration orders on our graph (with/without skip edges) tops out at 15/18 target
+  colours; the graph itself differs (tim 28 and sfreq 28 neighbours sit exactly at the level edge: with the skip edge both would
+  jump to level 2, so the target's tim/sfreq have >= 1 neighbour fewer — the @ret bounce ghosts r63/r68 or the GetAudioInf temps).
+  Also free: the frame wants `dmy` declared before `vflg` (target vflg 0xc / dmy 0x10, ours swapped) — not applied.
+- cri_cvfs cvFsGetFileSize 45w / cvFsOpen 152w and sfd_tst SFTST_Calc 79w: not started this pass (bytecmp .rodata/.bss `pad` on
+  sfd_tst/cri_cvfs is accepted by bytecmp: the verdict is `IDENTICAL (pad: ...)`, no static needed).
+
+### CRI mwsfdcre pass 4 (stopped early by the user; no source edits; CreateSfd 297w, CalcWorkSfd 4w unchanged; 2026-09-11)
+
+Pool-base ranking mechanism of `mwsfcre_CreateSfd` READ OFF PROBES (ra.py, verified 3 ways, not yet applied):
+- The per-section pool bases (`...data.0`/`...rodata.0`/`...bss.0`) are backend temps created at function entry in the
+  REVERSE of the order in which the body first references each section (probe4: body refs bss, string, data -> created
+  data, rodata, bss = ours; probe5: refs string/rodata table, data, bss -> created bss, data, rodata). Later-created =
+  higher vid = coloured first, so the target's rodata r31 / bss r30 / data r29 means its body references a .rodata
+  object (a string, with `-str readonly`; the unit's only rodata uses in this function are the error strings) BEFORE
+  the first .bss reference, and .data last. Ours references bss first (the CALC_BUFSIZ stores to sib/vib/..).
+- The order is taken from the caller's FINAL (post-inline) body, not the parse order: a static helper holding the bss
+  stores, called first, still puts bss first (probe6 = probe4 order). So the lever is a real rodata reference (an
+  error-string call, e.g. a prm check `if (cprm == NULL) MWSFSVM_Error(...)`, or the CALC_FRMSIZ block with its
+  E206011 string) placed before the CALC_BUFSIZ stores in the target's source, NOT a helper boundary.
+- Pooling itself needs enough objects per section (2 statics do not pool, 9 do; a deferred `ftab` alone does not).
+- The pass-3 "different top set" reading is unnecessary: with rodata's vid above bss's the existing 18-node top group
+  (rfbret spill pick, then 17 in vid order) already gives r31 rodata / r30 bss / r29 data. Still open in the same
+  group: frmret must rank between cwk2 and picusr (a helper local / @temp created between the two inlined Mallocs),
+  and mode > adxibuf_p > adxwk_p > nfrm > height (own-local declaration order or helper locals). chaitin.py --pass 2
+  --check is IDENTICAL on the current dump (r229 = rfbret is the L4 spill pick -> r14, as in the target's `mr r14, r3`).
+- mwPlyCalcWorkSfd 4w not touched. Harness ~/.cache/cri_mws4 (probes 1-6, ra dumps, fdiff captures) deleted.
+
+### CRI SWAR kernels pass 6: 16x16 4p target read (mpv_mcy 4p 136w, H2 225w, V2 225w; mpv_mc 4p 72w, V2 73w, H2 436w — all unchanged; paused before any edit; 2026-09-11)
+Harness ~/.cache/cri_swar6/ (deleted). No source or config edit; 111 not re-run (nothing changed). Read off the `MPVMC16_OneRef4p_TuneC`
+target and ours' dumps (ra.py, 4p base) in the first 20 minutes:
+- Ours already has the target's sum association `p_k = a_k + (((a_{k+1} + b_k) + b_{k+1}) + 2)` and the pack chain (rlwinm p1 base,
+  rlwimi p0, p2, p3): the frontend keeps `p7 = ...` as an own variable (its def is the statement right before the `d[0]` store) and
+  substitutes p0..p6 into the two store statements; AST holds `p7 = (b8 + (b7 + (a7 + a8))) + 2`. The residue is schedule + RA only.
+- Target facts: (1) the loads of pixel pair 9 (`lbz 9(r5)/9(r6)`) are scheduled BEFORE `stw d[0]` and pair 10 after `stw d[1]`; ours
+  never moves a load across a store (checked on ours' a9..a16), so the target's raw order loads pixels 0..9 before the first store.
+  (2) `add a16+b15 .. add a15+..` (d[17]'s p15) sit before `stw 0x40(r3)`: the target's body has NO block split between d[16] and
+  d[17]; ours splits at statement 71 (backend-00 B3 = 112 instructions, the >100 rule of pass 16b) so d[17] cannot interleave.
+  (3) 11 callee-saved (`stmw r21`) vs ours 7 — longer live ranges from the wider schedule. (4) Colours: stride r0 (before the ctr
+  `li r7,0x10` temp), d r3, i r4, s0 r5, s1 r6; 8x8 target is the reverse for stride/ctr (ctr r0, stride r4).
+- 8x8 4p target (72w) schedule is near statement order (loads in address order, a8 before a7, `p0.3` before `p1.1`); the 16x16 one
+  is not height-sorted (b5 loaded 11th, before b3/a4/a0): the scheduler looks windowed over the raw order, not a pure critical-path
+  list scheduler — the raw (source) order of the loads/sums is the lever. Next step: shapes that load 10 pairs before `d[0]`
+  (or compute p8's inner sum there) and keep the body under the 100-instruction split, then chaitin.py for the colours.
+
+### CRI pass 26 (adx_dcd5 ADX_DecodeMono4 39w read off the dumps, nothing changed; adx_baif not started; stopped by the user; 2026-09-11)
+Harness /home/adityas/.cache/cri26/ (deleted). No source/config edit; adx_baif 170w / adx_dcd5 39+118+180w unchanged.
+- **Mono4's 39w are one graph fact, validated with chaitin.py (`--check` IDENTICAL on the base dump):** target L2 colouring
+  order is `@174 smul-ext r0, @176 c2 r8, @177 c1 r7, i r10, l2 r11, l1 r12, sc r31, sadd r30`; ours is `sc-temp r64 r0,
+  @174 r10, .., l1 r11, l2 r12, i r31, sadd r30`. Replaying the model with the ids `i > l2 > l1 > sc > sadd` (sc scanned
+  between i and sadd, i.e. an OWN-LOCAL id, r41..r46) reproduces the target's eight L2 colours exactly. So the original
+  declared the counter before the histories (`i` highest, then `l2`, then `l1`) and its scale value was an own-local
+  node, not the backend temp.
+- Why ours loses the node: `sc = (Sint16)(X)` is `ETYPCON long(ETYPCON short(EADD))` -> backend `extsh r64,r63; mr sc,r64`
+  and copy propagation replaces the single-def `sc` by r64 (backend temp id = top of L2 -> r0). A single conversion
+  (`d = src[0]` = `lbz; extsb d,d`) is emitted straight into the variable. Tried and rejected (variant.sh, 61w each):
+  `Sint16 sc` (holds the unextended value; the frontend hoists `(long)sc` as an @temp r53 and re-extends), reusing `s`
+  for the scale (`s = (Sint16)(..)` is range-split into @temp r49 above the own locals, then propagated the same way).
+  Both also re-hoist `lis AdxQtbl` above the extshs (l1 -> r31 new callee-saved), so the declaration order `i, l2, l1`
+  alone is not enough: the scale node must be fixed first. Open: a spelling whose AST has ONE conversion at the top
+  of `sc = ..` (e.g. a short-typed intermediate that the frontend does not substitute), or a 2-def own local whose
+  copy is coalesced rather than kept as `mr` (the target has no `mr`).
+- Ste4AsSte/AsMono (118/180w, 0x2f0/0x2ec): the same class (c1/c2 in place, one fewer callee-saved) — not dumped this pass.

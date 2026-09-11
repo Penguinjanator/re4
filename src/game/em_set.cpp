@@ -76,56 +76,43 @@ static inline void EmSetWork(cEm* em, EmListData* d, u8 no)
     em->emsetNo = no;
 }
 
-// COMPILER-DIFF: #13 (pool highs of an inlined body) -- in EmSetFromList2/EmSetEvent the original
-// loads the three EmSetWork constants with `lis r9; lfs` / `lis r9; lfs` / `lis r11; lfs` pairs (the
-// highs are not local qtys: they are live across every fpmem loadaddr birth, so the seven loadaddr
-// copies take r10/r8..r3 and &pos/&oldPos fall to r30/r29) and its constant loads carry no
-// anti-dependence on the following stores. A private cc1plus that keeps RTX_UNCHANGING_P on the
-// inlined constant-pool MEMs (integrate.c copy_rtx_and_substitute) gives both functions from the plain
-// EmSetWork inline (74 -> 1, 73 -> 3 words) but regresses 30 constant-store functions elsewhere
-// (cModel/cParts ctors, weapon init), so nothing is installed. Tagged form: the named statics take the
-// pool words' .rodata slots, the asm pairs load them with the highs pinned (r9 twice, r11), and the
-// r11 high is kept live through the `hp` copy so the loadaddr copies avoid r9/r11.
-#define EM_SET_WORK_K(em, d, no)                                                          \
+// The same body as a macro for the two straight-line creators (EmSetFromList2, EmSetEvent). A pool
+// constant expanded in the caller keeps RTX_UNCHANGING_P on its MEM; integrate.c drops it when it
+// copies an inlined body (copy_rtx_and_substitute, `map->integrating`), so the inline's `lfs` loads
+// carry true/anti dependences on every store around them and haifa cannot move them (they end up
+// as `lis; lfs` pairs at the top of the block in the original). The loop in EmSetFromList keeps the
+// inline (the invariants are hoisted differently with the macro: 11 words).
+#define EM_SET_WORK(em, d, no)                                                            \
     do {                                                                                  \
-        static const f32 kx __attribute__((nosda)) = 1000.0f;                             \
-        static const f32 kr __attribute__((nosda)) = 3.1415927f / 16384.0f;               \
-        static const f32 kp __attribute__((nosda)) = 10.0f;                               \
-        register u32 hx asm("r9");                                                        \
-        register u32 hr asm("r11");                                                       \
-        f32 vx, vr, vp;                                                                   \
-        asm("lis %0,%1@ha" : "=r"(hx) : "i"(&kx));                                        \
-        asm("lfs %0,%1@l(%2)" : "=f"(vx) : "i"(&kx), "r"(hx));                            \
-        asm("lis %0,%1@ha" : "=r"(hr) : "i"(&kr));                                        \
-        asm("lfs %0,%1@l(%2)" : "=f"(vr) : "i"(&kr), "r"(hr));                            \
-        asm("lis %0,%1@ha" : "=r"(hx) : "i"(&kp));                                        \
-        asm("lfs %0,%1@l(%2)" : "=f"(vp) : "i"(&kp), "r"(hx));                            \
+        f32 kx = 1000.0f;                                                                 \
+        f32 kr = 3.1415927f / 16384.0f;                                                   \
+        f32 kp = 10.0f;                                                                   \
         (em)->type = (d)->type;                                                           \
         (em)->x38D = (d)->x3;                                                             \
         (em)->flags_3C8 = (d)->flags4;                                                    \
         (em)->x3D0 = (d)->xB;                                                             \
-        (em)->x3CC = (f32) (d)->x1A * vx;                                                 \
-        {                                                                                 \
-            register int hp_ asm("r9") = (d)->hp;                                         \
-            asm("" : "+r"(hp_) : "r"(hr));                                                \
-            (em)->hpMax = (em)->hp = hp_;                                                 \
-        }                                                                                 \
-        (em)->rot.x = (f32) (d)->rot[0] * vr;                                             \
-        (em)->rot.y = (f32) (d)->rot[1] * vr;                                             \
-        (em)->rot.z = (f32) (d)->rot[2] * vr;                                             \
-        (em)->pos.x = (f32) (d)->pos[0] * vp;                                             \
-        (em)->pos.y = (f32) (d)->pos[1] * vp;                                             \
-        (em)->pos.z = (f32) (d)->pos[2] * vp;                                             \
+        (em)->x3CC = (f32) (d)->x1A * kx;                                                 \
+        (em)->hpMax = (em)->hp = (d)->hp;                                                 \
+        (em)->rot.x = (f32) (d)->rot[0] * kr;                                             \
+        (em)->rot.y = (f32) (d)->rot[1] * kr;                                             \
+        (em)->rot.z = (f32) (d)->rot[2] * kr;                                             \
+        (em)->pos.x = (f32) (d)->pos[0] * kp;                                             \
+        (em)->pos.y = (f32) (d)->pos[1] * kp;                                             \
+        (em)->pos.z = (f32) (d)->pos[2] * kp;                                             \
         (em)->oldPos = (em)->pos;                                                         \
         (em)->emsetNo = (no);                                                             \
     } while (0)
 
+// Squared XZ distance to the player. The `x374 = 1e16` reset is a caller statement AFTER this call:
+// inside the inline its pool load loses RTX_UNCHANGING_P (see above) and wins the sched1 tie against
+// the `dz * dz` multiply through the "independent of the last scheduled insn" class (haifa
+// rank_for_schedule), which puts the constant one insn too early and costs it f12 (local-alloc's
+// fake_birth avoids a register that died in the previous insn).
 static inline void EmSetDist(cEm* em)
 {
     f32 dz = pPL->pos.z - em->pos.z;
     f32 dx = pPL->pos.x - em->pos.x;
 
-    em->x374 = 1.0e16f;
     em->plDist2 = dx * dx + dz * dz;
 }
 
@@ -207,6 +194,7 @@ void EmSetFromList()
             d->flags |= 4;
         }
         EmSetDist(em);
+        em->x374 = 1.0e16f;
         em->move();
     }
 }
@@ -244,7 +232,7 @@ cEm* EmSetFromList2(int no, int chkDead)
         pLog->err(0, 0, "EmSetFromList2() Em set failed, Id = %x", d->id);
         return errEm;
     }
-    EM_SET_WORK_K(em, d, no);
+    EM_SET_WORK(em, d, no);
     d->flags |= 2;
     if (d->flags & 4) {
         d->flags |= 8;
@@ -253,6 +241,7 @@ cEm* EmSetFromList2(int no, int chkDead)
         d->flags |= 4;
     }
     EmSetDist(em);
+    em->x374 = 1.0e16f;
     em->move();
     return em;
 }
@@ -270,9 +259,10 @@ cEm* EmSetEvent(EmListData* d)
         pLog->err(0, 0, "EmSetEvent() Em set failed, Id = %x", d->id);
         return errEm;
     }
-    EM_SET_WORK_K(em, d, 0xFF);
+    EM_SET_WORK(em, d, 0xFF);
     d->flags = 7;
     EmSetDist(em);
+    em->x374 = 1.0e16f;
     em->move();
     return em;
 }

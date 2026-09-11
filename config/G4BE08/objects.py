@@ -1862,3 +1862,8 @@ MATCHING.update({
 MATCHING.update({
     "game/sce_com.cpp": True,  # 33/33: SceElevator 232 -> 0 (r225.cpp's SceElevator_r225 shape: SetPosXYZ/FadeSetRGBA inline helpers sharing frame slot 8, the goto-entered up loop, the down loop with its tail inside; residue closed by `register Vec* jp asm("r25")` for &d->jumpPos -- `done` (10 refs / 424 = 106 x4 from two `done = 0` REG_EQUIV doublings, 707) sorts below gcse's &d->pos copy (9/380 = 710) while the target has done r25 / copy r24; COMPILER-DIFF), OpenBoxMain 182 -> 0 zero code (case 0x17 laid out after case 0 in both switches; a per-loop `int i` so the two-frame waits' counters are short pseudos allocated first: r31 before type r30 / o1 r29, id2 and the 30-frame counter reuse r31), SceSetItemEvent 17 -> 0 (the new'd entry is a second variable `ne`; `asm("li %0,0" : "=r"(j))` keeps j undoubled (11 not 22: 61818 > e+6 48000) and a pseudo so expand_mult's `copy + j` stays `add` instead of the pin's `slwi`; COMPILER-DIFF)
 })
+
+# em_set closer (2026-09-11)
+MATCHING.update({
+    "game/em_set.cpp": True,  # 12/12, pure C, no asm/tags (the EM_SET_WORK_K asm pool pairs removed): the EmSetWork body is a MACRO in EmSetFromList2/EmSetEvent (a pool constant expanded in the caller keeps RTX_UNCHANGING_P; integrate.c drops it on an inlined body's MEMs, so the inline's `lfs` loads carried store dependences), and `em->x374 = 1.0e16f` is a caller statement AFTER the plDist2 inline (inside it the constant load wins the sched1 tie against `dz*dz` by the last-scheduled-insn class and local-alloc's fake_birth then denies it f12); EmSetFromList keeps the inline (macro: 11 words)
+})
