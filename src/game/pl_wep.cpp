@@ -225,6 +225,12 @@ u32 PlWepHitCheck2(cModel* plm, Vec* p0, Vec* p1, int type, u32 flag, f32 len)
     u32 n;
     u32 i;
 
+    // The decision tree (root 0xF, left root 7, right root 0x17, compares 3/1/2, 5, 0xB/9/0xD, 0x13/0x11/
+    // 0x15, 0x1F/0x1A/0x19/0x1C, 0x21/0x2D) is the balanced tree over 29 SEPARATE case nodes: every value
+    // has its own body (identical `prio = 1` bodies are only merged by the post-reload cross-jump), so
+    // no two consecutive values share a label; 4/8/0xC share one. OPEN: the target PRE-inserts the
+    // second switch's `cmpwi cr7,type,0x17` into the left-root block, the 4/8/0xC body and the 0xF body
+    // only; ours (block LCM) also inserts into the case-1, 5/6 and `prio = 1` leaves.
     switch (type) {
     case 1:
         if (pG->wep_lv > 6) {
@@ -233,28 +239,86 @@ u32 PlWepHitCheck2(cModel* plm, Vec* p0, Vec* p1, int type, u32 flag, f32 len)
             prio = 2;
         }
         break;
-    case 9:
-    case 0xA:
-        prio = 5;
+    case 2:
+        prio = 1;
         break;
-    case 5:
-    case 6:
-        prio = 3;
+    case 3:
+        prio = 1;
         break;
     case 4:
     case 8:
     case 0xC:
         prio = 1;
         break;
+    case 5:
+        prio = 3;
+        break;
+    case 6:
+        prio = 3;
+        break;
+    case 7:
+        prio = 1;
+        break;
+    case 9:
+        prio = 5;
+        break;
+    case 0xA:
+        prio = 5;
+        break;
+    case 0xB:
+        prio = 1;
+        break;
+    case 0xD:
+        prio = 1;
+        break;
+    case 0xE:
+        prio = 1;
+        break;
     case 0xF:
         prio = 5;
         break;
     case 0x10:
+        prio = 0x14;
+        break;
+    case 0x11:
+        prio = 1;
+        break;
     case 0x12:
+        prio = 0x14;
+        break;
     case 0x13:
+        prio = 0x14;
+        break;
     case 0x14:
+        prio = 0x14;
+        break;
+    case 0x15:
+        prio = 1;
+        break;
     case 0x16:
+        prio = 0x14;
+        break;
     case 0x17:
+        prio = 0x14;
+        break;
+    case 0x19:
+        prio = 1;
+        break;
+    case 0x1A:
+        prio = 1;
+        break;
+    case 0x1C:
+        prio = 1;
+        break;
+    case 0x1F:
+        prio = 1;
+        break;
+    case 0x20:
+        prio = 1;
+        break;
+    case 0x21:
+        prio = 1;
+        break;
     case 0x2D:
         prio = 0x14;
         break;
@@ -317,11 +381,11 @@ u32 PlWepHitCheck2(cModel* plm, Vec* p0, Vec* p1, int type, u32 flag, f32 len)
     if (!(flag & 1)) {
         if (nrm.x != 0.0f || nrm.y != 0.0f || nrm.z != 0.0f) {
             if (GetWaterHeight(&hit, &wh) == 0 || hit.y > wh) {
-                int et = EatGetEffectType(attr);
-
-                EspSetEatEffect(&hit, &nrm, et, type);
+                // nested call: `&nrm` is evaluated into a pseudo before EatGetEffectType (`addi r30,r1,..`
+                // ahead of the bl); the byte-pointer memcpy keeps the pG reload below the Vec stores
+                EspSetEatEffect(&hit, &nrm, EatGetEffectType(attr), type);
                 BitOn(pG->flags_5010, 0x20000000);
-                pG->bell_pos = hit;
+                memcpy((u8*) pG + ((u32) &((GlobalWork*) 0)->bell_pos), &hit, sizeof(Vec));
                 pG->bell_stat = 0;
             }
         }
@@ -329,11 +393,16 @@ u32 PlWepHitCheck2(cModel* plm, Vec* p0, Vec* p1, int type, u32 flag, f32 len)
     if (pl != 0 && !(flag & 1)) {
         if (pl->pWep->pObj != 0) {
             wepSetWaterShot(p0, p1, type);
-            pG->bell_pos = pl->pWep->pObj->wep.marker;
-            if (type == 0xD || (type >= 0x12 && type <= 0x13)) {
+            memcpy((u8*) pG + ((u32) &((GlobalWork*) 0)->bell_pos), &pl->pWep->pObj->wep.marker, sizeof(Vec));
+            switch (type) {
+            case 0xD:
+            case 0x12:
+            case 0x13:
                 pG->bell_stat = 1;
-            } else {
+                break;
+            default:
                 pG->bell_stat = 0;
+                break;
             }
         }
     }
@@ -371,6 +440,9 @@ u32 PlWepHitCheck2(cModel* plm, Vec* p0, Vec* p1, int type, u32 flag, f32 len)
         case 0xF:
         case 0x13:
             GameAddPoint(6);
+            break;
+        case 0xD:
+        case 0xE:
             break;
         }
     }
@@ -943,9 +1015,16 @@ void PlWepLockCtrl(cModel* plm)
 rand:
     tmp = m3r[0];
     PlWepLockRand(pl, moved, &tmp, &pl->x400);
-    m3r[1] = tmp;
-    if (m3r[2] == 0.0f) {
-        m3r[0] = tmp;
+    {
+        // COMPILER-DIFF: candidate (sched LUID): the target issues the 0.0 pool load before the m3r[2]
+        // load (both prio 4, weight 0, so RTL order decides); a laundered local puts the constant's
+        // load first and keeps cse from folding it back into the compare.
+        f32 z = 0.0f;
+        asm("" : "+f"(z));
+        m3r[1] = tmp;
+        if (m3r[2] == z) {
+            m3r[0] = tmp;
+        }
     }
     if ((pG->flags_68 & 0x40000) && lockCtr != 0) {
         PlWepAutoTrack(pl, 1, 0.03f);
@@ -1111,9 +1190,20 @@ void PlSetLockPitch(cModel* plm)
             p += p;
         }
     }
-    pl->pWep->pitch = p;
+    {
+        // COMPILER-DIFF: 13 (value pin): the target's 2/PI high sits in r11 and pWep in r9 -- the
+        // original rematerialises the pool constant's high with a reload register that avoids the
+        // live pWep; local-alloc here hands the shorter-lived high r9 first.
+        register cPlWep* w asm("r9") = pl->pWep;
+        w->pitch = p;
+    }
     p *= 2.0f / PI;
     do {
+        // COMPILER-DIFF: candidate (sched barrier): the first insn after LOOP_BEG is the sched1
+        // barrier. Ours would be the `lis m3r` of the m3r[2] store's address, the target's order
+        // (`lis 0.0; lis m3r; lfs z; addi`) is what the ready list gives when the barrier insn
+        // emits no code.
+        asm("" : : "f"(p));
         m3r[2] = 0.0f;
         m3r[1] = p;
         m3r[0] = m3r[1] * m3r[2] + m3r[1];

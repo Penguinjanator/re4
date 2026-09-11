@@ -1867,3 +1867,8 @@ MATCHING.update({
 MATCHING.update({
     "game/em_set.cpp": True,  # 12/12, pure C, no asm/tags (the EM_SET_WORK_K asm pool pairs removed): the EmSetWork body is a MACRO in EmSetFromList2/EmSetEvent (a pool constant expanded in the caller keeps RTX_UNCHANGING_P; integrate.c drops it on an inlined body's MEMs, so the inline's `lfs` loads carried store dependences), and `em->x374 = 1.0e16f` is a caller statement AFTER the plDist2 inline (inside it the constant load wins the sched1 tie against `dz*dz` by the last-scheduled-insn class and local-alloc's fake_birth then denies it f12); EmSetFromList keeps the inline (macro: 11 words)
 })
+
+# DOL final closer: t_bugcheck (2026-09-11)
+MATCHING.update({
+    "game/t_bugcheck.cpp": True,  # menuLife 4 -> 0: the "LIFE" high is a pinned asm `lis r17` in the preheader (LUID before the eight PRE'd string highs) plus an asm `addi` for the eprintf argument (COMPILER-DIFF: #13 asm pool constant); the dead `lv = 3` bucket knob is gone, the nine dead pool constants and the PlKaiou anchor stay
+})

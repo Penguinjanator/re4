@@ -170,7 +170,7 @@ void cToolBugcheck::menuLife()
         // COMPILER-DIFF: candidate (gcse hash bucket of the .LC label name): the nine hoisted string
         // highs are numbered in expr-hash bucket order of "*.LCn"; the target's r16-r24 order needs
         // this function's labels shifted by 9 (the original TU had more header-inline string
-        // literals before it) and a gcse table size of 183 (the dead `lv = 3` below).
+        // literals before it).
         f32 lc1 = 1.0f;
         f32 lc2 = 2.0f;
         f32 lc3 = 3.0f;
@@ -181,8 +181,12 @@ void cToolBugcheck::menuLife()
         f32 lc8 = 8.0f;
         f32 lc9 = 9.0f;
     }
+    // COMPILER-DIFF: #13 (asm pool constant): the "LIFE" high is allocated before "PLAYER"'s in the
+    // original (r17/r16) although its live length is longer; emitting it as a pinned asm `lis` in the
+    // preheader (LUID before the eight PRE'd highs) leaves the rest at r16, r18-r24 as the target.
+    register u32 hiL asm("r17");
+    asm("lis %0,%1@ha" : "=r"(hiL) : "i"("LIFE"));
     while (1) {
-        lv = 3;  // COMPILER-DIFF: candidate (gcse table size): dead set, +1 pre-gcse insn (183 buckets)
         if (Joy[0].trg & JOY_UP) {
             cur--;
         }
@@ -264,7 +268,11 @@ void cToolBugcheck::menuLife()
             }
             break;
         }
-        eprintf(48, 56, 4, 0, "LIFE");
+        {
+            const char* sL;  // COMPILER-DIFF: #13 (asm pool constant): low half from the pinned high
+            asm("addi %0,%1,%2@l" : "=r"(sL) : "r"(hiL), "i"("LIFE"));
+            eprintf(48, 56, 4, 0, sL);
+        }
         lv = lifeLevel(20, TOOL_HALF(OFS_PL_LIFE_MAX), 1200);
         eprintf(48, 70, 0, 0, "PLAYER:%4d/%4d[%2d]", (s16) TOOL_HALF(OFS_PL_LIFE), (s16) TOOL_HALF(OFS_PL_LIFE_MAX), lv);
         DrawGage(216, 70, 8, 100, (s16) TOOL_HALF(OFS_PL_LIFE), (s16) TOOL_HALF(OFS_PL_LIFE_MAX), -1);
@@ -282,8 +290,7 @@ void cToolBugcheck::menuLife()
         }
         TaskSleep(1);
         // COMPILER-DIFF: tie (global-alloc live length): one more insn in the loop at global-alloc
-        // time makes ">" (the last hoisted high) the only one at priority 47 (r24). LIFE/PLAYER
-        // (r17/r16) still swapped: see AGENTS.md "DOL closer: t_bugcheck/pl_wep/act_btn/em_sub".
+        // time makes ">" (the last hoisted high) the only one at priority 47 (r24).
         asm("" : "=m"(PlKaiou));
     }
 }

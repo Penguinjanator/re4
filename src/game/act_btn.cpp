@@ -133,15 +133,19 @@ void cActionButton::disp(ActBtnWork* w)
 // Every failing test `break`s to the one `return 0` after the switch (a plain `return 0` in a two-way
 // leaf gets its `li r3,0` hoisted into a conditional return by jump1; a jump to the shared block does
 // not), and the `(u64) key & ~mask` test is written in each leaf (jump2 cross-jumps the two `!(flags &
-// 2)` copies into the first one, `mr r10,rX; b`). Left (71 words): case 9/0xA's `return 0` block is a
-// second `li r3,0; blr` (the target shares the final one), the C/D leaves of the `flags & 2` half keep
-// separate copies in the target, the DI pair order of `key`/`key & mask` (r9:r10/r11:r12 vs ours
-// r11:r12/r9:r10) and the dead `andis.` scratch (r0/r9) in cases 3/4.
+// 2)` copies into the first one, `mr r10,rX; b`). The `register u64 key asm("r9")` pin fixes the DI pair
+// order. Left (18 words): the failing tests' `return 0` is a second `li r3,0; blr` block after the shared
+// one (the target has only the shared block: its return block ends `(return)` without the `(use r3)` ours
+// carries, so jump2's return cross-jump fails on the USE/SET code mismatch); 16 branch targets follow.
 int cActionButton::checkButton(ActBtnWork* w)
 {
     u32 on = Key.on & 0x00CF0000;
     u32 trg = Key.trg & 0x00CF0000;
-    u64 key;
+    // COMPILER-DIFF: 13 (value pin): `key` is assigned in several leaves, so it is a global-alloc pseudo
+    // that gets the pair left over after local-alloc gave the `key & ~mask` temp r9:r10; the target has
+    // key in r9:r10 and the temp in r11:r12. With the pair fixed, the `or.` scratch alternates r0/r9 as
+    // in the target, so the C/D leaves stay separate copies (their `or. r9` no longer matches `or. r0`).
+    register u64 key asm("r9");
     u32 flags;
 
     switch (w->btn) {

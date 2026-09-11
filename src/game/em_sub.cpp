@@ -746,7 +746,6 @@ int emLineCapsuleCrossCk(Vec* a, Vec* b, Vec* top, Vec* bottom, f32 r, Vec* hit)
     f32 dxz;
     f32 t;
     f32 h;
-    f32 dd;
 
     PSMTXIdentity(m);
     PSVECSubtract(top, bottom, &d);
@@ -820,9 +819,11 @@ int emLineCapsuleCrossCk(Vec* a, Vec* b, Vec* top, Vec* bottom, f32 r, Vec* hit)
     PSVECSubtract(&la, &g, &d);
     PSVECScale(&d, &d, h / PSVECMag(&d));
     PSVECAdd(&d, &g, &d);
+    // The entry-point distance reuses `dist` (a function-scope pseudo, so its sum schedules ahead of
+    // h's) and is computed first.
+    dist = (la.x - d.x) * (la.x - d.x) + (la.y - d.y) * (la.y - d.y) + (la.z - d.z) * (la.z - d.z);
     h = (la.x - lb.x) * (la.x - lb.x) + (la.y - lb.y) * (la.y - lb.y) + (la.z - lb.z) * (la.z - lb.z);
-    dd = (la.x - d.x) * (la.x - d.x) + (la.y - d.y) * (la.y - d.y) + (la.z - d.z) * (la.z - d.z);
-    if (dd > h || d.y < 0.0f || d.y > len) {
+    if (dist > h || d.y < 0.0f || d.y > len) {
         return 0;
     }
     PSMTXMultVec(m, &d, &la);
@@ -1794,15 +1795,15 @@ EmHitInfo* EmYarareContactCk(cEm* em, Vec* pos, Vec* out, f32 r)
     EmHitInfo* p;
     cModel* parts;
     f32 rr;
-    f32 len;
-    f32 step;
+    f32 len;  // the axis length, then the step (one variable: it lives across the VECNormalize call)
     u32 n;
-    u32 i;
     register s16 hm asm("r5"); // COMPILER-DIFF: #8
 
     // COMPILER-DIFF: #8 -- the original ranks `mr r26,r5` (out) after `fmr f28,f1`, i.e. as if r5
     // did not die at the copy; the HImode read of r5 keeps it live past the copy (AGENTS.md #8).
-    asm("" : "=m"(em->hitInfo.flags) : "r"(hm));
+    // The dummy memory output is a stack local: naming `em->hitInfo.flags` here gave `em` one more
+    // reference than `pos`, which swaps their r23/r24 global-alloc order.
+    asm("" : "=m"(q) : "r"(hm));
     if (em->hp <= 0) {
         return 0;
     }
@@ -1847,15 +1848,19 @@ EmHitInfo* EmYarareContactCk(cEm* em, Vec* pos, Vec* out, f32 r)
         PSVECSubtract(&top, &bottom, &s);
         len = RootSumSquare3(&s);
         n = (u32) (len / (rr + rr)) + 2;
-        step = len / (f32) n;
-        if (step < 0.01f) {
+        len = len / (f32) n;
+        if (len < 0.01f) {
             continue;
         }
 #line 2785
         VECNormalize(&s, &s);
-        PSVECScale(&s, &s, step);
+        PSVECScale(&s, &s, len);
         q = bottom;
-        for (i = 1; i != n; i++) {
+        // n - 1 steps as a post-decrement countdown on `n` itself: combine folds `--n != -1` into the
+        // compare-and-add parallel (`cmpwi 0; addi -1; bne`), and the duplicated entry test becomes
+        // `cmpwi n,1; addi n,-2; beq` in the one register.
+        n--;
+        while (n-- != 0) {
             PSVECAdd(&q, &s, &q);
             if (SphereHitCk(pos, &q, r, rr)) {
                 if (out) {
@@ -2569,11 +2574,11 @@ static void EmSubDead2(f32* p)
 
 // Rack (id 0x45) in the way of `em` moving to `pos` heading `ang`: 0 when one of the rack's
 // corner / edge points falls into the box in front of the position.
-// The x limit is a variable (`xmax`, assigned after `v.z = hz` for the pool order 0.0, 400): as a
-// literal its first compare sits in the block right after the PSMTXMultVec call and gcse PRE gives
-// corners 2-6 a copy of the `lis` while corner 1 keeps its own, so loop.c never combines the six
-// loads. OPEN (49 words): the original hoists `xmax` with the other six constants (f27); ours cannot
-// (set after the `continue` tests = maybe_never, used in the other corners' blocks).
+// The seven compare constants are hoisted by loop.c; 400.0 only in the second loop pass (it is the
+// last preheader load and so the highest-priority FPR, f27). Its corner-1 `lis` has savings 2 x life 2,
+// which is desirable only while at most three earlier movables were moved in that pass (threshold 71,
+// -3 per move, 243 insns): the element address is therefore computed as `off = size * i` first, so
+// `lis EmMgr@ha` lives long enough (5 insns) to be hoisted in pass 1 instead of pass 2.
 int EmRackCk(cEm* em, Vec* pos, f32 ang)
 {
     Vec v;
@@ -2583,7 +2588,7 @@ int EmRackCk(cEm* em, Vec* pos, f32 ang)
     EmRackWork* w;
     f32 hx;
     f32 hz;
-    f32 xmax;
+    u32 off;
 
     PSMTXRotRad(m, 'y', ang);
     TransMatrix(m, pos);
@@ -2591,7 +2596,8 @@ int EmRackCk(cEm* em, Vec* pos, f32 ang)
         PSMTXIdentity(m);
     }
     for (i = 0; i < EmMgr.nArray; i++) {
-        e = (cEm*) ((u8*) EmMgr.pArray + EmMgr.size * i);
+        off = EmMgr.size * i;
+        e = (cEm*) ((u8*) EmMgr.pArray + off);
         if ((e->be_flag & 0x201) != 1) {
             continue;
         }
@@ -2612,10 +2618,9 @@ int EmRackCk(cEm* em, Vec* pos, f32 ang)
         v.x = hx;
         v.y = 0.0f;
         v.z = hz;
-        xmax = 400.0f;
         PSMTXMultVec(e->mat, &v, &v);
         PSMTXMultVec(m, &v, &v);
-        if (v.x < xmax && v.x > -400.0f && v.z < 2000.0f && v.z > 0.0f && v.y < 1000.0f && v.y > -1000.0f) {
+        if (v.x < 400.0f && v.x > -400.0f && v.z < 2000.0f && v.z > 0.0f && v.y < 1000.0f && v.y > -1000.0f) {
             return 0;
         }
         v.x = hx;
@@ -2623,7 +2628,7 @@ int EmRackCk(cEm* em, Vec* pos, f32 ang)
         v.z = -hz;
         PSMTXMultVec(e->mat, &v, &v);
         PSMTXMultVec(m, &v, &v);
-        if (v.x < xmax && v.x > -400.0f && v.z < 2000.0f && v.z > 0.0f && v.y < 1000.0f && v.y > -1000.0f) {
+        if (v.x < 400.0f && v.x > -400.0f && v.z < 2000.0f && v.z > 0.0f && v.y < 1000.0f && v.y > -1000.0f) {
             return 0;
         }
         v.x = -hx;
@@ -2631,7 +2636,7 @@ int EmRackCk(cEm* em, Vec* pos, f32 ang)
         v.z = hz;
         PSMTXMultVec(e->mat, &v, &v);
         PSMTXMultVec(m, &v, &v);
-        if (v.x < xmax && v.x > -400.0f && v.z < 2000.0f && v.z > 0.0f && v.y < 1000.0f && v.y > -1000.0f) {
+        if (v.x < 400.0f && v.x > -400.0f && v.z < 2000.0f && v.z > 0.0f && v.y < 1000.0f && v.y > -1000.0f) {
             return 0;
         }
         v.x = -hx;
@@ -2639,7 +2644,7 @@ int EmRackCk(cEm* em, Vec* pos, f32 ang)
         v.z = -hz;
         PSMTXMultVec(e->mat, &v, &v);
         PSMTXMultVec(m, &v, &v);
-        if (v.x < xmax && v.x > -400.0f && v.z < 2000.0f && v.z > 0.0f && v.y < 1000.0f && v.y > -1000.0f) {
+        if (v.x < 400.0f && v.x > -400.0f && v.z < 2000.0f && v.z > 0.0f && v.y < 1000.0f && v.y > -1000.0f) {
             return 0;
         }
         v.x = 0.0f;
@@ -2647,7 +2652,7 @@ int EmRackCk(cEm* em, Vec* pos, f32 ang)
         v.z = -hz;
         PSMTXMultVec(e->mat, &v, &v);
         PSMTXMultVec(m, &v, &v);
-        if (v.x < xmax && v.x > -400.0f && v.z < 2000.0f && v.z > 0.0f && v.y < 1000.0f && v.y > -1000.0f) {
+        if (v.x < 400.0f && v.x > -400.0f && v.z < 2000.0f && v.z > 0.0f && v.y < 1000.0f && v.y > -1000.0f) {
             return 0;
         }
         v.x = 0.0f;
@@ -2655,7 +2660,7 @@ int EmRackCk(cEm* em, Vec* pos, f32 ang)
         v.z = hz;
         PSMTXMultVec(e->mat, &v, &v);
         PSMTXMultVec(m, &v, &v);
-        if (v.x < xmax && v.x > -400.0f && v.z < 2000.0f && v.z > 0.0f && v.y < 1000.0f && v.y > -1000.0f) {
+        if (v.x < 400.0f && v.x > -400.0f && v.z < 2000.0f && v.z > 0.0f && v.y < 1000.0f && v.y > -1000.0f) {
             return 0;
         }
     }
@@ -2685,9 +2690,8 @@ int GetBulletPoint()
 void GetDropBullet(int* id, int* num)
 {
     int i = 4;
-    int n = 0;
+    int n = 0;  // also holds the handgun ammo total in the third branch (its register: r31 there)
     u8 r;
-    u32 total;
     u32 f;
 
     // The bit test as a variable: the `andis.` result stays (cse later reuses it as the zero stored
@@ -2828,7 +2832,7 @@ void GetDropBullet(int* id, int* num)
         *num = n;
         return;
     } else {
-        total = ItemMgr.bulletNumTotal(4);
+        n = ItemMgr.bulletNumTotal(4);
         r = Rnd() % 100;
         if (r > 0x28) {
             if (pG->x8354 == 1) {
@@ -2849,7 +2853,7 @@ void GetDropBullet(int* id, int* num)
                     }
                 }
             }
-            if (total <= 0x3B) {
+            if ((u32) n <= 0x3B) {
                 goto fallback;
             }
         }
@@ -3025,11 +3029,12 @@ void GetDropBullet(int* id, int* num)
             return;
         }
     fallback:
+        // Zero first, then the conditional 20: the two `Rnd() % 3` sites above then only share the
+        // final `*num` store (as in the original) instead of being cross-jumped into one block.
         *id = 4;
+        *num = 0;
         if (pG->stage_no > 1) {
             *num = 20;
-        } else {
-            *num = 0;
         }
     }
 }
