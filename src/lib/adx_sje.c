@@ -5,7 +5,7 @@
  * Plain `-inline auto` (not deferred): .text follows the source order, the static helpers are
  * defined before their callers. The zero-initialised scalars take their declaration place in
  * .bss; the filter tables follow in first-reference order (the dead table clear helper), the
- * handle table last. Not flagged: six functions differ only in register naming / one scheduling
+ * handle table last. Not flagged: five functions differ only in register naming / one scheduling
  * swap (M1). */
 #include <string.h>
 #include "cri_xpt.h"
@@ -191,7 +191,7 @@ Sint32 adxsje_encode_data(ADXSJE sje);
 Sint32 adxsje_write_end_code(ADXSJE sje);
 static Sint32 adxsje_output_header(ADXSJE sje, SJ sjo);
 static void adxsje_encode_exec(ADXSJE sje);
-void ADXSJE_ExecHndl(ADXSJE sje);
+void ADXSJE_ExecHndl(void *obj);
 
 void ADXSJE_ExecServer(void)
 {
@@ -205,46 +205,68 @@ void ADXSJE_ExecServer(void)
 }
 
 /* header stage: wait for the first sample of every input (the decoder history seed), write the
- * header and program the filter coefficients */
-void ADXSJE_ExecHndl(ADXSJE sje)
+ * header and program the filter coefficients. An inlined helper so that its counters rank above the
+ * loops' stepping pointers (own locals rank below the strength-reduction temporaries); the pointers
+ * are explicit `Uint8 *` copies of the handle stepped by 4/2 (the adx_tsvr ExecHndl idiom: `mr rIV,
+ * sje` + offset loads), declared in the order that colours ch r30, sjo r29, p r28, i r28, p2/p3 r27 */
+static inline void adxsje_header_exec(ADXSJE sje)
 {
-	Sint32 ch;
-	SJ sjo;
 	Sint32 n;
-	SJCK ck;
-	Sint16 c2;
 	Sint16 c1;
+	Sint16 c2;
+	SJCK ck;
 	ADXSJE_PRDFLT *prd;
+	Uint8 *p3;
+	Uint8 *p2;
+	Sint32 i;
+	Uint8 *p;
+	SJ sjo;
+	Sint32 ch;
+
+	sjo = sje->sjo;
+	p = (Uint8 *)sje;
+	p2 = (Uint8 *)sje;
+	for (ch = 0; ch < sje->nch32; ch++) {
+		SJ_GetChunk(*(SJ *)(p + 0x4), SJ_CK_DATA, 2, &ck);
+		if (ck.len == 0) {
+			break;
+		}
+		*(Sint16 *)(p2 + 0x2c8) = *(Sint16 *)(p2 + 0x2cc) = *(Sint16 *)ck.data;
+		SJ_UngetChunk(*(SJ *)(p + 0x4), SJ_CK_DATA, &ck);
+		p += 4;
+		p2 += 2;
+	}
+	if (ch < sje->nch32) {
+		return;
+	}
+	for (ch = 0; ch < sje->nch32; ch++) {
+		sje->hist1[ch] = sje->first[ch];
+		sje->hist2[ch] = sje->first2[ch];
+	}
+	n = adxsje_output_header(sje, sjo);
+	if (n == 0) {
+		return;
+	}
+	sje->nbyte += n;
+	p3 = (Uint8 *)sje;
+	for (i = 0; i < sje->nch32; i++) {
+		prd = *(ADXSJE_PRDFLT **)(p3 + 0x80);
+		ADX_GetCoefficient((Sint16)sje->cutoff, sje->sfreq, &c1, &c2);
+		adxsje_prdflt_set_coef(prd, c1, c2);
+		adxsje_iirflt_set_coef(prd->iir, c1, c2);
+		p3 += 4;
+	}
+	sje->stat = 2;
+}
+
+/* server callback signature: the typed copy of the `void *` object is the kept parameter copy
+ * (sje r31 above every local) */
+void ADXSJE_ExecHndl(void *obj)
+{
+	ADXSJE sje = obj;
 
 	if (sje->stat == 1) {
-		sjo = sje->sjo;
-		for (ch = 0; ch < sje->nch32; ch++) {
-			SJ_GetChunk(sje->sji[ch], SJ_CK_DATA, 2, &ck);
-			if (ck.len == 0) {
-				break;
-			}
-			sje->first2[ch] = sje->first[ch] = *(Sint16 *)ck.data;
-			SJ_UngetChunk(sje->sji[ch], SJ_CK_DATA, &ck);
-		}
-		if (ch < sje->nch32) {
-			return;
-		}
-		for (ch = 0; ch < sje->nch32; ch++) {
-			sje->hist1[ch] = sje->first[ch];
-			sje->hist2[ch] = sje->first2[ch];
-		}
-		n = adxsje_output_header(sje, sjo);
-		if (n == 0) {
-			return;
-		}
-		sje->nbyte += n;
-		for (ch = 0; ch < sje->nch32; ch++) {
-			prd = sje->prd[ch];
-			ADX_GetCoefficient((Sint16)sje->cutoff, sje->sfreq, &c1, &c2);
-			adxsje_prdflt_set_coef(prd, c1, c2);
-			adxsje_iirflt_set_coef(prd->iir, c1, c2);
-		}
-		sje->stat = 2;
+		adxsje_header_exec(sje);
 	} else if (sje->stat == 2) {
 		adxsje_encode_exec(sje);
 	}

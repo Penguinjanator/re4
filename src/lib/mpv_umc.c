@@ -1045,7 +1045,7 @@ void MPVUMC_Backward(MPVUMC_OBJ *mpv)
 	Sint32 ofs[2];
 	MPVUMC_WORK *wk = &mpv->mcwk;
 
-	mpvumc_OneReadMb(mpv, mpv->mcwk.work, ofs, &mpv->ref, &mpv->bwd);
+	mpvumc_OneReadMb(mpv, wk->work, ofs, &mpv->ref, &mpv->bwd);
 	MPVUMC_SET_OUT_BLOCKS(mpv, ofs[0], ofs[1], mpv->out_ypitch);
 	mpvumc_OneMakeMb(wk, (MPVCMC_REF *)&mpv->ccnt_rt, mpv->cbp_code);
 }
@@ -1055,7 +1055,7 @@ void MPVUMC_Forward(MPVUMC_OBJ *mpv)
 	Sint32 ofs[2];
 	MPVUMC_WORK *wk = &mpv->mcwk;
 
-	mpvumc_OneReadMb(mpv, mpv->mcwk.work, ofs, &mpv->out, &mpv->fwd);
+	mpvumc_OneReadMb(mpv, wk->work, ofs, &mpv->out, &mpv->fwd);
 	MPVUMC_SET_OUT_BLOCKS(mpv, ofs[0], ofs[1], mpv->out_ypitch);
 	mpvumc_OneMakeMb(wk, (MPVCMC_REF *)&mpv->ccnt_rt, mpv->cbp_code);
 }

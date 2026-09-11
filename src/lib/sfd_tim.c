@@ -563,6 +563,7 @@ static Bool sftim_ChkStagnant(SFD sfd)
 	SFTIM tim;
 	SFTIM_LIB *lib;
 	Sint32 lim;
+	Sint32 base;
 	Sint32 d;
 	Sint32 unit;
 
@@ -579,7 +580,12 @@ static Bool sftim_ChkStagnant(SFD sfd)
 		unit = lib->vrate;
 		d = tim->vsync - tim->chg_base;
 	} else {
-		d = tim->ext_cnt - tim->chg_base;
+		/* the external clock path loads the count first and subtracts the base in place: the base
+		 * is a second (volatile) read into a local declared before d, so d (declared later =
+		 * coloured first) takes r0 and the base r3 */
+		d = tim->ext_cnt;
+		base = *(volatile Sint32 *)&tim->chg_base;
+		d -= base;
 		unit = tim->ext_unit;
 	}
 	if (d / unit > lim) {

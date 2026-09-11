@@ -2,10 +2,11 @@
  * of ring buffer 0, demultiplexes it through an MPS handle and copies the packet payloads into the
  * video (buf 1), audio (buf 2) and private/user-output (buf 7) buffers or user element stream joints.
  *
- * Status: 20/26 functions identical. sfmps_CopyPrvate, sfmps_CopyPketData, sfmps_ExecServerSub and
- * SFMPS_Create have the target's instruction stream with a different callee-saved/volatile register
- * assignment (M1); sfmps_DecodeOneUnit (93%) still differs in the shape of the "decode this unit"
- * flag computation and a few register choices. */
+ * Status: 22/26 functions identical. sfmps_CopyPrvate, sfmps_CopyPketData and sfmps_ExecServerSub
+ * have the target's instruction stream with a different callee-saved/volatile register assignment
+ * (ExecServerSub: the loop as an inlined helper gives the target's `li ret, 0; mr tot, ret; mr
+ * skiptot, ret` copies but sfd stays below the locals, 51w - not applied); sfmps_DecodeOneUnit (93%)
+ * still differs in the shape of the "decode this unit" flag computation and a few register choices. */
 #include "cri_xpt.h"
 #include "sfd.h"
 #include "mps.h"
@@ -265,6 +266,32 @@ static void sfmps_UpdateNumStm(SFMPS_WORK *wk, MPS_SYSHD *hd)
 	wk->nvid = nvid;
 }
 
+/* the seek-work header fill as an inlined helper: its `w` is created at inlining, before the
+ * nested sfmps_GetSeeShdr's return temporary, so `w` is coloured first (r4) and shdr takes r5 */
+static inline void sfmps_ProcPrepSee(SFD sfd)
+{
+	SFMPS_WORK *w;
+	SFSEE_SHDR *shdr;
+
+	shdr = sfmps_GetSeeShdr(sfd);
+	if (shdr != NULL) {
+		w = SFMPS_WK(sfd);
+		if (w->pts_min2 != INT64_MAX_VAL) {
+			sfd->con.scr_ofst = w->pts_min2 - shdr->pts_min;
+			if (shdr->analyzed == 0) {
+				shdr->ncount = sfd->x924 * 50;
+				shdr->tscale = sfd->x928;
+				shdr->nvid = w->nvid;
+				shdr->naud = w->naud;
+				shdr->scr_base = sfd->con.scr_base;
+				shdr->pts_min = w->pts_min;
+				shdr->stmid_vid = w->first_vid;
+				shdr->stmid_aud = w->first_aud;
+			}
+		}
+	}
+}
+
 static void sfmps_ProcPrep(SFD sfd)
 {
 	MPS mps;
@@ -276,8 +303,6 @@ static void sfmps_ProcPrep(SFD sfd)
 	SFMPS_BUFHN *hn;
 	Sint32 size;
 	Sint32 need;
-	SFSEE_SHDR *shdr;
-	SFMPS_WORK *w;
 
 	sfmps_UpdateNumStm(SFMPS_WK(sfd), &hd);
 	prep1 = SFBUF_GetPrepFlg(sfd, sfd->tr[SFMPS_TR].bufout2);
@@ -329,23 +354,7 @@ static void sfmps_ProcPrep(SFD sfd)
 	    SFBUF_GetWTot(sfd, 1) == 0 && wk->nvid == 0 && SFTRN_GetPrepFlg(sfd, 7) != 0) {
 		SFSET_SetCond(sfd, SFD_COND_VIDEO_ON, 0);
 	}
-	shdr = sfmps_GetSeeShdr(sfd);
-	if (shdr != NULL) {
-		w = SFMPS_WK(sfd);
-		if (w->pts_min2 != INT64_MAX_VAL) {
-			sfd->con.scr_ofst = w->pts_min2 - shdr->pts_min;
-			if (shdr->analyzed == 0) {
-				shdr->ncount = sfd->x924 * 50;
-				shdr->tscale = sfd->x928;
-				shdr->nvid = w->nvid;
-				shdr->naud = w->naud;
-				shdr->scr_base = sfd->con.scr_base;
-				shdr->pts_min = w->pts_min;
-				shdr->stmid_vid = w->first_vid;
-				shdr->stmid_aud = w->first_aud;
-			}
-		}
-	}
+	sfmps_ProcPrepSee(sfd);
 }
 
 /* copies a packet payload into ring buffer `buf`, registering its PTS */
