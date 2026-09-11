@@ -1054,18 +1054,25 @@ public:
         u32 i;
         T* dst;
 
-        cnt = 0;
-        for (i = 0; i < num; i++) {
-            if (IsWorkAlive(&work[i])) {
-                cnt++;
+        {
+            // count loop: a stepped pointer with its OWN counter (an `i` shared with the copy loop below
+            // makes cse canon the entry test to `cmplw i,num`), the pointer assigned before `cnt = 0`
+            T* w = work;
+            u32 j;
+
+            cnt = 0;
+            for (j = 0; j < num; j++, w++) {
+                if (IsWorkAlive(w)) {
+                    cnt++;
+                }
             }
         }
         memclr_asm(mem, sizeof(DbgToolFileHeader));
         mem->num = cnt;
-        dst = (T*) (mem + 1);
         {
             T* src = work; // stepped pointer (an indexed copy source would be `mulli`)
 
+            dst = (T*) (mem + 1);
             for (i = 0; i < num; i++, src++) {
                 if (IsWorkAlive(src)) {
                     *dst = *src;
@@ -1120,6 +1127,9 @@ public:
                    (f32) ((w->h + 2) * 14) + 8.0f, 0.6f, 0.6f, 0.6f, 0.7f);
         w->LocalDisp();
     }
+
+    int GetMode() { return mode; }
+    cDbgEditWindow<T>* GetEdit() { return pEdit; }
 
     // returns 0 when the tool has to quit
     int Update()
@@ -1224,9 +1234,6 @@ public:
                 mode = 0;
             }
             break;
-        case 5:
-            ret = 0;
-            break;
         case 8:
             r = WinUpdate(pExitOk);
             if (r == 0) {
@@ -1236,6 +1243,9 @@ public:
                     mode = 0;
                 }
             }
+            break;
+        case 5: // last arm: its `li ret,0` falls through into the caller's `cmpwi ret,0`
+            ret = 0;
             break;
         }
         return ret;

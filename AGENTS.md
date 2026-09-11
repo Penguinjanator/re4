@@ -1495,7 +1495,7 @@ mark it Matching.
 - OPEN (espgen02 espgen02_Update): three `f32 x = 0.0f` locals share one pool load; cse loads it into
   the variable whose last mention is latest in the insn chain (ours colR, target spdR) — the target
   mentions spdR after colR's `colA *= colR` somewhere we do not reproduce.
-- OPEN (Espgen43 AddSandPower): the `lis/addi Chk_pos` pair and the z-word temp of the 12-byte struct
+- CLOSED 2026-09-12 (see "DOL Espgen43 closer 4"; was OPEN) (Espgen43 AddSandPower): the `lis/addi Chk_pos` pair and the z-word temp of the 12-byte struct
   copy swap r10/r11 (local-alloc priority order); memberwise, memcpy, pointer and statement-order forms
   tried. SetSandWork also has an unidentified 8-byte frame slot and one more callee-saved GPR.
 - `cAtariInfo::init(int,int,int,f32 x7)` `fmr`/`li` order (SetTrolley/SetGondola/SetYagura/SetHeliMissile/
@@ -24673,3 +24673,91 @@ of the side-by-side), `gen.py NAME BODY [PRE]` (base.c with one function body re
 - Verified on the way: loads written as expressions inside the sums are NOT CSE'd across the `d[k]` stores (pixel 4/8 reloaded, h1
   0x25c); an inlined-helper row body puts the loop variables first in the colouring (d r3, s0 r5, s1 r6 as the target, b1 122w) because
   the pixel values become helper locals ranked below the own locals; `register`/block-scope/nested-assignment forms do not move the split.
+
+**ToolEspArea's last 7 words (the ctor block's r28<->r29 local-alloc tie, `lis/addi esp_area_work` refs 4 life 48 vs `li 4` refs 2
+life 12, both pri 1666), 35 min of header variants judged on all four includers with `variant.sh`; nothing applied:**
+- Statement order `rows = nRows; numWork = n; pWork = work;` (and pWork anywhere later) -> t_esp_area 7 -> 2, BUT t_lightarea 4 -> 6,
+  t_event 141 -> 143: the pair flips (work's life is 49 at RA: 1632 < 1666, the constant is allocated first and takes r29), yet the
+  final store order becomes `stw numWork; stw pWork` in all three ctor blocks (the target has pWork first). The pWork/numWork store pair
+  IS LUID-ordered at sched1 and sched2 keeps that order; the pass-"cDbgToolMain ctor boundary" claim that the store order is not
+  LUID-driven only holds for the rows store (its constant is the one hoisted above strlen). So the target had pWork's store before
+  numWork's at sched1 AND work living one insn longer at RA: an RA-time insn inside work's life that emits nothing.
+- Codeless `asm("" : "=m"(top))` anywhere BEFORE the `w = strlen(name)` statement (first statement, after `x = wx`, after `y = wy`,
+  with `"r"(this)`): the register pair flips (e08/e14/e1c identical) but the anchor takes the single free issue slot before `bl
+  strlen` in which sched1 hoisted `li 5` (rows): rows becomes a post-strlen `li r10,5`, the pre-strlen stores reorder, and a global
+  pair r17/r18 (`mr r18,r28; mr r17,r29` at +0x218) swaps -> 15 words; t_lightarea 13, t_event 143. The same anchor AFTER strlen
+  (after `h = 1`, `pName = name`, `rows = nRows`, `pWork = work`) changes nothing: dying stores rank above a weight-0 asm at sched1, so
+  it lands after `stw pWork`, outside work's life. Carrying the rows constant in the anchor (`"r"(nRows)`, with `"=m"(top)` or
+  `"=m"(rows)`) -> 23 words (the constant's refs 3 re-rank it). `asm("" : "=m"(x))`/`"=m"(y)` as the first statement -> no change
+  (dead, the store to the same slot follows).
+- Register launders `asm("" : "+r"(v))` at the ctor top: wx 25, nRows 269 (the constant stops being hoisted anywhere), work 17 (and
+  t_event 228), wy 23, n 30 -- all worse; `"=m"(pWork) : "r"(work)` after the stores 19 (refs 5 raises work's priority).
+- Left: the anchor must occupy an issue slot before `bl strlen` WITHOUT displacing the `li 5` hoist -- i.e. an RA-time insn that
+  sched1 places in the block's first group (the `lis/addi/li` argument setup before `bl __builtin_new`) and that has no memory
+  operand and no register input that re-ranks anything. No such C/asm form found; the caller side (t_esp_area.cpp) cannot help
+  (pins are impossible through the inlined actual; an anchor after the ctor makes the address a global allocno, 226 words).
+  Flip order unchanged: t_esp_area needs IDENTICAL first, t_lightarea's 4 words are its vtable relocs into t_esp_area's copies.
+- **option controller_menu 82 -> 0 (game/option Matching 20/20, 111 OK): three zero-code items + one tag.** (1) the two `for`
+  loops shared `int i` (one pseudo, 34 refs/398, set 4 times -> r30 for both loops); the target has loop-1 `i` in r30 and loop-2
+  in r25: own `int j` for loop 2 (82 -> 56, the brightness_menu rule again). (2) `pSys->flags |= 0x08000000; VibSet(vib_time,
+  vib_level, 0, 4)`: the target loads the two statics AFTER the `stw` (a true dependence); a `pSys->flags` store is
+  MEM_IN_STRUCT_P and alias-disjoint from the fixed scalars, so ours hoisted the loads: `BitOn(pSys->flags, 0x08000000)`
+  (reference view, catalogue row 4). (3) loop 2 compares `cmpw j, o->sub` = `if (j == o->sub)` (loop 1 is `o->sub == i`).
+  (4) residue 49w = one global.c swap: sel (29 refs/338 = 3431) must be allocated before o (42/600 = 3500) to take the virgin
+  r31 (then o r29, base r28, old r30 pass 0, uns r27, 0xFF r26, off r26, j r25 all follow from used-so-far/pass 1); all 42 o
+  refs are visible in the final code (30 depth-0 + 5 loop refs x2 + set) and sel's init must stay in the block before
+  `if (old != o->sub)` (moving it after: sel 316 wins but old takes r31, 26w), so the missing sel ref is not found: tagged
+  `asm("" : : "r"(sel))` after loop 2 (`COMPILER-DIFF: candidate (global.c allocno order)`), 30/340 = 3529 > 3500. A hard pin
+  `register IdUnit* sel asm("r31")` is 351w (the hard reg wrecks sched1 in loop 2).
+
+### DOL Espgen43 closer 4 (AddSandPower 3 -> 0: asm-emitted `stfs` with a hard-register anti-dependence; game/Espgen43 Matching 11/11, `ninja -k 0` clean, dtk shasum 111 OK; 2026-09-12)
+
+- **Applied:** in `AddSandPower`, `Add_power = power;` is now `register u32 anti asm("r11"); asm("stfs %1,%0" : "=m"(Add_power) :
+  "f"(power), "r"(anti));` (tag `COMPILER-DIFF: asm-emitted stfs (sched2 slot)`), the `ISet(Height_find, 0)` reference store and the
+  plain `Chk_pos = *pos` copy unchanged. `MATCHING["game/Espgen43.cpp"] = True` (objects.py `# Espgen43 closer` block). Verified with
+  `variant.sh` (IDENTICAL), locked ninja + bytecmp (11/11), `ninja -k 0`, `dtk shasum -c` = 111 OK. The "closer 3" section named in the
+  task prompt does not exist in this file; its analysis is only in the prompt (restated below).
+- **The residue (3 words) was purely the sched2 slot of the store.** Target block 1: `li r0 | stfs | stw Hf, lis r10 | addi r8, lis r3 |
+  lwz r0, addi r3 | lwz r11 | lwz r9 | stw x3`; ours `li r0, lis r10 | stw Hf, addi r8 | stfs, lis r3 | ...`. Sched2 table (insn numbers
+  of the tree source before the edit): `li` 31 prio 9; `stw Hf` 34 prio 8 (the reference store is not MEM_SCALAR_P, so the three `*pos`
+  loads 47/50/53 depend on it, cost 2); `lis Chk` 40 prio 5 (3 dependents); `addi Chk` 41 prio 4 (3 dependents); `lis fn` 60 prio 4 (2);
+  `stfs` 25 prio 4 with dependents 63 (call) 56 57 only — the `stw rN,4/8(r8)` stores (after reload `[r8+k]` has an unknown base and
+  gets output deps; `stw r0,Chk_pos@l(r10)` is `lo_sum` = symbol base and never conflicts; the loads `[r7+k]` are exempt by
+  `fixed_scalar_and_varying_struct_p`: `mem/f` fixed store vs `mem/s` varying load, in both passes). Ready at t1 = {li 9, lis Chk 5,
+  stfs 4, lis fn 4}: two issue slots -> li + lis Chk. Sched2 LUIDs are the sched1 OUTPUT order (li, lis Chk, stw Hf, addi Chk, lis fn,
+  stfs, W8, addi fn, W0, W4, st0, st8, st4), so at a prio-5 tie `lis Chk` (earlier LUID, 3 dependents) beats the stfs (3 dependents):
+  the target needs **sched2 prio(stfs) >= 6, or 5 with >= 4 dependents**, and (li's prio 9 is not to be tied: more dependents would put
+  the stfs first) prio <= 8.
+- **Sched1 must not move.** The registers (W0 r0, W4 r9, W8 r11, high r10, addi r8) come from local-alloc's qty order
+  `refs/(death-birth)` on the sched1 positions: high born 2 dies 11 (3/9 = .333), addi born 4 dies 13 (3/9, tie by qty number),
+  W8 born 7 dies 12 (2/5 = .4), lis fn born 5 dies 8. The stfs (sched1 prio 3: only the call depends on it) sits at position 6 (t3
+  slot 2, after `lis fn` 60 prio 4). Moving it to t1 shifts the high's birth to 4 (3/7 = .43 > W8 .4: high before W8, wrong); to t2 in
+  place of `addi Chk` gives addi 3/8 > high 3/9 (wrong); to t3 slot 1 moves `lis fn`'s birth (untested). So **sched1 prio(stfs) must
+  stay 3** (prio 4 would win the t3 slot-1 tie against `lis fn` by LUID 25 < 60).
+- **Why the memory-side forms cannot separate the passes** (all measured with variant.sh, tree untouched): a non-volatile asm
+  `"=m"(Add_power)` (form 1) gets exactly the C store's dependences in both passes (the asm's MEM is also `mem/f`; sched_analyze_1
+  treats a SET-with-ASM_OPERANDS dest MEM like any store) = 3 words; the same asm after `ISet` = 3, after the copy = 11 (the r8 stores
+  then depend on it). `asm volatile` (form 3) is a two-way barrier in both passes: everything after it, `stfs | li, lis | stw Hf, addi`
+  = 4 words. `"m"(Height_find)` input before `ISet` (form 4) = anti-dep asm -> `stw Hf` (prio 8 -> asm 9 in sched2 AND 8 in sched1:
+  the asm takes sched1's t1 slot, registers rotate, 7 words); after `ISet` = a true dep `stw Hf` -> asm, the asm is late (3 words,
+  base order). `"m"(Chk_pos.x/.y/.z)` = anti-dep to a Chk_pos store in BOTH passes (their bases are the symbol in both) -> sched1 prio
+  5, 10 words. `"m"(pos->x)` before `ISet` = anti-dep on `stw Hf` (the reference store is not scalar, so not exempt) in both passes,
+  7 words; after `ISet` = true dep, 3 words. `"m"(pG->flags_500C)` (unknown base: a MEM source gives `find_base_value` 0) = may-alias
+  with every store in both passes, 13 words. Rule: alias.c sees the SAME bases in sched1 and sched2 for every MEM the source can
+  name (symbol / `lo_sum` = symbol, argument pointer = ADDRESS(arg) in both, pG load = 0 in both); only the reload-created `[r8+k]`
+  addresses lose their base, and any operand naming them depends on the `addi r8` itself. No memory operand separates the passes.
+- **The lever that does: a hard-register input.** `"r"(anti)` with `register u32 anti asm("r11")` (uninitialised, never set: the RTL
+  is a bare use of hard reg r11). After reload `lwz r11,8(r7)` (W8, prio 5) writes r11, so sched2 adds an anti-dependence asm -> W8
+  (cost 0 clamped to 1): prio(stfs) = 6 -> t1 slot 2 = target; t2 `stw Hf, lis Chk`; t3 `addi Chk` (3 dependents) before `lis fn`
+  (2); loads t4-t6 as before (W8 before W4 by the sched1-order LUID). Before reload W8 writes pseudo 96: no dependence, sched1
+  identical, prio 3, position 6. Local-alloc: the r11 use at position 6 only blocks r11 for qtys spanning it (high r10, addi r8, lis fn
+  r3 are unaffected); W8 is born after it and takes r11 as before. `asm("r9")` (W4 also prio 5) gives the same block-1 order but
+  3 words in BLOCK 0: the uninitialised pin is live from function entry, so block 0's `lwz r9,pG / andi. r9` temporaries move to r11.
+  Pick a register no earlier block uses (r11 is free through block 0 here). r10/r8/r3 pins are excluded a priori: the high/addi/lis-fn
+  qtys span the asm and could not take their register.
+- General lever for the catalogue (GCC row "same block, two independent insns in the other order"): **a pass-selective
+  dependence**: an asm input `"r"(x)` with `register T x asm("rN")` where rN is the register a LATER load/set in the block receives
+  from local-alloc/reload — an anti-dependence that exists only in sched2 (after reload) and leaves sched1, local-alloc and global
+  untouched, raising the asm's sched2 priority by prio(that insn)+1. Choose rN among registers whose qtys are born after the asm.
+- Compiler-side footnote already in this file ("Full-build table"): `-fno-sched-spec` on top of the leaf fix made AddSandPower 5 -> 0
+  in the original-flags search; the tag above is the source-level stand-in, the unit is now Matching either way.

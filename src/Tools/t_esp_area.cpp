@@ -217,11 +217,6 @@ void OptionExec()
 void tEspAreaInit();
 void tEspAreaExit();
 
-// The body reads tool.mode / tool.pEdit through the inlined members' `this` pseudo (`lwz 0x1c(rT)`), not
-// through r1: the original had these as inlined cDbgToolMain getters (header-side); stand-ins here.
-static inline int ToolMode(cDbgToolMain<ESP_AREA>* t) { return t->mode; }
-static inline cDbgEditWindow<ESP_AREA>* ToolEdit(cDbgToolMain<ESP_AREA>* t) { return t->pEdit; }
-
 void ToolEspArea()
 {
     u8 wait = 0;
@@ -277,7 +272,7 @@ void ToolEspArea()
                         col1 = 0xA0FF8080;
                         col2 = 0x60808080;
                     }
-                    if (i == ToolEdit(&tool)->GetCurrentNo()) {
+                    if (i == tool.GetEdit()->GetCurrentNo()) {
                         AreaDataDisp(&w->area, col1, 1, 0);
                         eprintf2(8, 12, (int) scr.x + 8, (int) scr.y + 0x10, 6, 0, "%d", w->areaNo);
                     } else {
@@ -300,15 +295,15 @@ void ToolEspArea()
             if (tool.Update() == 0) {
                 break;
             }
-            if (ToolMode(&tool) == 4) {
+            if (tool.GetMode() == 4) {
                 if (wait == 0) {
                     OptionExec();
                 } else {
                     wait--;
                 }
-            } else if (ToolMode(&tool) == 2) {
+            } else if (tool.GetMode() == 2) {
                 // separate compares: `!= 2 && != 3` would fold into a subi/cmplwi range test
-            } else if (ToolMode(&tool) == 3) {
+            } else if (tool.GetMode() == 3) {
             } else {
                 wait = 1;
             }
