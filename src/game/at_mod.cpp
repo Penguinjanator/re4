@@ -25,11 +25,11 @@ int emLineCubeCrossCk(Vec* a, Vec* b, Mtx m, f32 sx, f32 sy, f32 sz, cAtariInfo*
 // `li 2` after the call). The row pointers step destination first (`d_++; s_++;`): that LUID order
 // gives the target's `addi d; addi s` pairs and keeps the second copy's `sp_ = *s_` a separate
 // register copy (s_ r0, sp_ r9) -- ComnHitCheck is byte-identical with it.
-// ObaLineHitChk (9 words): one PSVECMag call squared (`mag * mag`), tc/s clamped with ternaries (s in
-// place: its temporary is copied back into f30), den anchored in f0. Left: the `&p0` argument after
-// the getPartsPtr call is a fresh `addi r4,r1,8` in the target while our cse folds it into the copy's
-// address pseudo through the `beq` AROUND path (r28 across the call; `-fno-cse-skip-blocks` gives 2
-// words) -- the #12 AROUND form with no loop to anchor a do-while on -- and `mr r3,r27` one slot.
+// ObaLineHitChk (matching): one PSVECMag call squared (`mag * mag`), tc/s clamped with ternaries (s in
+// place: its temporary is copied back into f30), den anchored in f0 (anchor gated by `de * ef` so the
+// hoisted `mr r3,r27` keeps its slot), and the `&p0` argument after the getPartsPtr call emitted as an
+// asm `addi` off r1 (the target's fresh `addi r4,r1,8`; cse folds a C `&p0` into the copy's address
+// pseudo through the `beq` AROUND path).
 #define MTX_COPY(src, dst)               \
     {                                    \
         MtxPtr d_ = (dst);               \
@@ -721,7 +721,15 @@ int ObaLineHitChk(cEm* m, cAtariInfo* info, Vec* a, Vec* b, Vec* hit, Vec* nrm)
         pm = m->getPartsPtr(parts - 1);
     }
     rad = info->rectX * 0.75f;
-    PSMTXMultVec(pm->mat, &p0, &w0);
+    {
+        // COMPILER-DIFF: 12 (cse AROUND path): the target's `&p0` argument is a fresh `addi r4,r1,8`
+        // (the copy's address pseudo dies at the copy); ours folds it into that pseudo across the
+        // getPartsPtr call. An asm-emitted addi off r1 is the one form cse cannot fold.
+        register u32 sp asm("r1");
+        Vec* pp;
+        asm("addi %0,%1,8" : "=r"(pp) : "r"(sp));
+        PSMTXMultVec(pm->mat, pp, &w0);
+    }
     PSMTXMultVec(pm->mat, &p1, &w1);
     PSVECSubtract(&w1, &w0, &d);
     PSVECSubtract(b, a, &e);
@@ -732,8 +740,12 @@ int ObaLineHitChk(cEm* m, cAtariInfo* info, Vec* a, Vec* b, Vec* hit, Vec* nrm)
     ef = PSVECDotProduct(&e, &f);
     de = PSVECDotProduct(&d, &e);
     den = dd * ee - de * de;
-    // COMPILER-DIFF: 13 (FPR naming): den is settled in f0 before the t numerator is formed.
-    asm("" : "+f"(den));
+    // COMPILER-DIFF: 13 (FPR naming): den is settled in f0 before the t numerator is formed. The
+    // `de * ef` input makes the anchor ready one cycle later in sched2 (the product's fmuls, not den,
+    // gates it), so the `mr r3,r27` hoisted argument takes the slot the codeless anchor used to
+    // occupy; the extra `"f"(den)` reference keeps den's local-alloc priority above the product's
+    // (which gained a third reference) so den stays in f0 and the product in f13.
+    asm("" : "+f"(den) : "f"(den), "f"(de * ef));
     t = (ee * df - de * ef) / den;
     s = (de * df - dd * ef) / den;
     tc = t < 0.0f ? 0.0f : (t > 1.0f ? 1.0f : t);

@@ -22542,3 +22542,71 @@ order (declarations unchanged, initialisers moved out)** -- the two preheader lo
 copy incl. `clrrwi r3`); mpv_mc 4p 72w (R1 tie + stride r0 exclusion), V2 73w (cases 1-3 `@N` copy order, pass 2), H2 436w (un-split
 loop webs, pass 2); mpv_mcy 4p 136w / H2 225w / V2 225w (16x16 register pressure: R3 uncoalesced copies + level order of the
 callee-saved set), untouched.
+
+### DOL final closer: at_mod/Espgen43/dvd/em_cloth/sce_at (at_mod Matching 18/18: ObaLineHitChk 9 -> 0; dvd Matching 55/55: DiscChange 7 -> 0 zero code; sce_at Matching 114/114: sceAtGetItem 77 -> 0; em_cloth Em18ClothSet 47 -> 26 (four codeless asms, mechanism read); Espgen43 AddSandPower 5 read to the insn (not applied), SetSandWork 44 untouched; 111 OK; 2026-09-11)
+
+Harness ~/.cache/dol_fin5 (dol14 copies with paths rewritten, deleted at the end). Every flip = bytecmp IDENTICAL + `ninja -k 0` + 111 OK.
+
+- **at_mod ObaLineHitChk 9 -> 0 (two tags, unit Matching).** (1) The `&p0` argument of the first PSMTXMultVec after the
+  getPartsPtr call is an asm-emitted `addi %0,%1,8` off `register u32 sp asm("r1")` (COMPILER-DIFF: 12): cse folds a C `&p0`
+  into the struct copy's address pseudo across the call through the `beq` AROUND path; the asm result is a fresh pseudo cse
+  cannot equate, so the copy's pseudo dies at the copy (r4) and `parts` takes r29 as in the target. A tied launder
+  (`"=r"(a) : "0"(&p0)`) is 13 (cse still equates the input), `asm("addi %0,1,8")` without the r1 operand is 4 (the hard-coded
+  operand changes the sched2 slot). (2) The remaining 2 words were the den anchor's issue slot: `asm("" : "+f"(den))` is
+  ready at t34 in sched2 (den's fmsubs + 1) and takes the second slot next to `fmuls f13` that the hoisted `mr r3,r27`
+  (prio 2) needs; an input `"f"(de * ef)` (the product fmuls issues at t34, so the anchor is ready at t35 where a slot is
+  free) moves it -- but the product's third reference then outranked den in local-alloc (1*3*4/2 = 6 vs den's 2*7*4/10 = 5.6:
+  `QTY_CMP_PRI` = floor_log2(refs)*refs*size/len, ties by qty number) and swapped f0/f13; a second `"f"(den)` input gives den
+  8 refs (6.4) and both stay. Rule read from the source: every dependence INTO an asm insn costs exactly 1 (`insn_cost`:
+  `INSN_CODE (used) < 0` -> LINK_COST_FREE), and anti/output dependences between recognised insns cost 1 too (rs6000_adjust_cost
+  returns 0, `if (ncost <= 1) ncost = 1`); only true dependences carry the unit latency (2 for lsu loads, 17 for fdivs).
+- **dvd DiscChange 7 -> 0, zero code (unit Matching).** The first `pSys->region` read goes through `SysRef(SystemWork*&)`
+  (a reference read: the MEM has neither the struct nor the scalar flag). With the plain global, `lwz r9,pSys` is a fixed
+  scalar exempt from the stack `game[]` template stores (`fixed_scalar_and_varying_struct_p`), so only the word-4 store
+  gates it through the r9 anti-dependence (prio 7 vs 6) and its load ranks first (9); without the exemption all four stores
+  rank 7 and the loads tie at 9, so sched2 keeps the template order (0, 8, c, 4) and S12 lands before S4. The 26a "two graph
+  differences" were this one flag. Same lever as ErrCheck's `IRef(driveStatus)` and mercenaries' pSysS view (the view form
+  gave 14-17 here because it also changes the second read).
+- **sce_at sceAtGetItem 77 -> 0 (one pin + two zero-code changes, unit Matching).** (a) `register u32 money asm("r29")` in
+  case 8 alone takes it 77 -> 11: the it/ItemMgr-high/money global-alloc rotation settles to r31/r30/r29 (pinning `it` to r31
+  is 108, adding an asm-emitted ItemMgr high 179-190: only the case-8 local is a pin that is live in no other allocno's
+  range). (b) `int sel;` without an initializer: cse stores "the newest zero" into `swep_flag = 0` -- the class of const 0 is
+  headed by the last-initialised pseudo -- and with `int sel = 0` declared last that was sel (3 sets, life from the top =
+  288 insns, priority 0.049 below cancel's 0.091, so cancel took r29 and sel r25); the original stores cancel's zero there
+  (its `li r25,0` before the first call), so cancel is the long-lived one and sel takes r29 (2 words left). Declaration
+  order alone does not change it (sel keeps 3 sets whatever the order; the newest-zero pick did not follow declaration
+  order in our tests, so remove the initializer). (c) `put = 1` after `ItemMgr.use(&tmp)` (same as NoModel): the
+  callee-saved `li r23,1` is hoisted above the call with the highest LUID, so `addi r4,&tmp` (prio 3, same as the li) issues
+  first.
+- **em_cloth Em18ClothSet 47 -> 26 (four codeless asms, COMPILER-DIFF: 13; unit not flipped).** What the target's block 0
+  says: (1) the second store group (weight +1 = value still live) is pModel, x40 (0.1), x44 (4), x48, x54 -> 0.1 and 4 are
+  live past their stores; (2) the 0.1 high issues first and its lfs at t2 while the other three pool constants queue (0.1
+  lfs prio 6 in sched2 vs 5 -- in sched2 the pool highs are all lifted to 6 by the r9/r10/r11 anti-dependences of the table
+  highs, so the 0.1 lfs must reach 6 to beat them at t2 and win the tie by LUID); (3) 0.1 gets f11 = the last FPR allocated
+  = the longest life relative to refs, i.e. it lives to the block end. Form: after `c->x44 = 4;` a three-asm chain `u32 k;
+  asm("" : "=r"(k) : "f"(0.1f)); asm("" : "+r"(k)); asm("" : "=m"(*(u16*) &c->x54) : "r"(k));` (lfs -> k -> k -> fake x54
+  half-word store -> x54 store: 3 + 3 = 6; a `"m"(c->x40)` chain through the x40 store instead hoists that store to the top,
+  50 words; the u16 view survives flow's dead-store check because insn_dead_p compares modes) and in the `if (a)` arm
+  `asm("" : "=m"(*(u16*) &c->x4C) : "r"(4), "f"(0.1f))` (deaths outside block 0: no extra dependent for `li 4`, whose place
+  among the li's is LUID order; an in-block `"r"(4)` anchor gave `li 4` three dependents and hoisted it). FPRs, store
+  order and the pool/high order now match. Left (26): the seven table highs. Ours issues `lis` pParts early into r4 and the
+  seventh table (pRate) takes r6 instead of r30, i.e. in our sched1 the c/m copies (`mr r12,r4`/`mr r29,r3`, prio 4 through
+  the anchors' c-based MEM address) are issued before the table highs and free r3/r4; in the target they are issued after
+  (prio 3 = stores + 1). A chain end that does not reference c (small-data `"=m"(em34ClothMax[1])`) loses the x54 gating
+  (57-59). Next lever: a chain end whose MEM is c-based but whose c copy is not lifted -- or move the fake store to the
+  if-arm and gate the x54 store some other way.
+- **Espgen43 AddSandPower (5, not applied; the whole mechanism is now written).** Target regs: W0 r0, W4 r9, W8 r11, Chk_pos
+  high r10, addi r8 = local-alloc order W0 > W4 > W8 > high > addi under `QTY_CMP_PRI` (loads 8/len, high and addi 12/len,
+  lens 2*(death - birth) in block positions, ties to the earlier-born qty). With one lsu op per cycle and `addi r3,
+  AddSandPowerSub@l` (67, prio 3) filling the second slot of the first load cycle, the enumerated feasible sched1 orders are
+  (a) `67 W8 W0 W4 S0 S8 S4` (67 before the loads: needs prio >= 6 or loads ready one cycle later -- a gate that is sched1-only,
+  since in sched2 the loads issue at t4 and every earlier cycle is full), (b) `W8 67 W0 W4 S8 S0 S4` (S8 before S0: S8 needs a
+  successor with cost 1; every memory successor of Chk_pos.z references the addi pseudo and lifts it to 4 refs = 32/len,
+  above every load; a "memory" clobber lifts S0 too), (c) `W0 67 W4 W8 S0 X S4 S8` with `pos` kept alive (`asm("" :
+  "=m"(Height_find) : "r"(pos))` after the copy makes the three loads weight +1 and LUID-ordered) and the store RTL order 0,8,4
+  (the struct copy emits 0,4,8 and the addi's death on S8 makes S8 win the t8 tie by weight -- a scalar u32 copy `a=s[0];
+  b=s[1]; c=s[2]; d[0]=a; d[2]=c; d[1]=b;` gives it): (c) reproduces the target's REGISTERS exactly (all five) but sched2 then
+  issues W4 before W8 (both prio 5, LUID = sched1 order) where the target has W8 first, so the target's sched1 emitted W8
+  before W4 and its allocation came from (a) or (b). Sched2-only asymmetries need a hard-reg dependence (an r11 pin
+  written after S8) whose def cannot be placed after S8 in sched1 without a memory reference. Result 4 words with (c); not
+  applied (the target's shape is (a) or (b), which our graph cannot express). SetSandWork (44) not iterated.

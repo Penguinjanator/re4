@@ -9,11 +9,11 @@
 //    `flags_54` tests share one `msg = -1; cont = 0` body through a goto: the two duplicated arms
 //    were cross-jumped only in jump2, after global alloc, so they counted 2 extra insns in both
 //    ranges. Still off:
-//  - DiscChange (92%): the `game[4]` template copy loads words 0,8,c,4 in the original (ours
-//    0,4,8,c). sched2: our word-4 load ranks first (priority 9: its `stw r9` anti-depends on the
-//    following `lwz r9,pSys`); the target order needs the word-0 store issued before the word-4
-//    load by sched1 (there it ranks 7 vs 8) and non-/u template loads. Declaration order,
-//    `char company[]`, `const char* game[]`, inline-owned/inline-pointer/struct/2-D/volatile tried.
+//  - DiscChange (matching): the `game[4]` template copy loads words 0,8,c,4 because the first
+//    `pSys->region` read goes through a reference (`SysRef`): a MEM without the scalar flag is not
+//    exempt from the preceding stack stores, so all four stores rank equally in sched2 and the
+//    copy keeps its template order (with a plain `pSys` only the word-4 store gated the load via
+//    the r9 anti-dependence and its load ranked first).
 #include "types.h"
 #include "dvd.h"
 
@@ -319,6 +319,10 @@ extern int eprintf_init;
 // Read through a reference: a MEM with neither the struct nor the scalar flag, so the load is
 // not hoisted above the preceding `vsync_cnt = 0` scalar store (ErrCheck).
 static inline s32 IRef(s32& v) { return v; }
+// Same for the first pSys read of DiscChange: without the scalar flag the `lwz r9,pSys` is not
+// exempt from the game[] template stores (fixed_scalar_and_varying_struct_p), so every store
+// ranks 7 in sched2 and the copy issues in template order (0, 8, c, 4) like the original.
+static inline SystemWork* SysRef(SystemWork*& p) { return p; }
 
 // Low memory globals (OSPhysicalToCached(0x00F8) = bus clock); a struct member so the
 // address splits into `lis 0x8000` + displacement.
@@ -1890,7 +1894,7 @@ int cDvd::DiscChange(int disc)
     char company[] = "08";
     const char* game[] = {"G4BJ", "G4BE", "G4BJ", "G4BJ"};
 
-    if (pSys->region == 1) {
+    if (SysRef(pSys)->region == 1) {
         region = 1;
     } else if (SysIsEurope() == 1) {
         region = 2;

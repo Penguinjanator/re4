@@ -1007,10 +1007,13 @@ static void sceAtGetItem(SceAtWork* w_)
     int fh = cMes.getWork()->fontH;
     int ls = cMes.getWork()->lineSpace;
     int y = 0x129 - fh - ls;
+    // `cancel` is the newest zero when `swep_flag = 0` is expanded (sel has no initializer), so
+    // cse stores its r25 there and cancel lives from the top: it then ranks below sel in global
+    // alloc (sel r29, cancel r25, as in the original).
     int cancel = 0;
     int mes = 0;
     int put = 1;
-    int sel = 0;
+    int sel;
     int i;
     ItemInfo info;
     ItemWork tmp;
@@ -1045,7 +1048,9 @@ static void sceAtGetItem(SceAtWork* w_)
         mes = 0;
         break;
     case 8: {
-        u32 money = pG->x4F98;
+        // COMPILER-DIFF: 13 (global-alloc rotation it/ItemMgr/money): money pinned to the
+        // original's r29 settles the other two (it r31, the ItemMgr high r30).
+        register u32 money asm("r29") = pG->x4F98;
 
         put = ItemMgr.get(it->id, it->num);
         if (it->id == 0x73) {
@@ -1187,8 +1192,10 @@ static void sceAtGetItem(SceAtWork* w_)
                     tmp.num = n;
                 }
                 ItemMgr.x12 = 0;
-                put = 1;
+                // `put = 1` after the call (as in sceAtGetItem_NoModel): sched2 hoists the
+                // callee-saved li above the call with the highest LUID, so `addi r4,&tmp` issues first.
                 ItemMgr.use(&tmp);
+                put = 1;
             }
         }
     } else {

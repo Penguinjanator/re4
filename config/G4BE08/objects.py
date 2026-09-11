@@ -1804,3 +1804,10 @@ MATCHING.update({
     "lib/cri_cvfs.c": False,  # CRI pass 19b: 11/13, cvFsGetFileSize 63 -> 45w (`tbl = cvfs_tbl` assigned after the default-device block), cvFsOpen 148 -> 152w (-4 bytes); the inlined cvfs_ResolveDev's tbl still hoisted above the strlen
     "lib/dct_ac.c": True,  # CRI pass 19b: DCT_AcInit 7 -> 0: the inner-loop row/column pointers are own variables declared below the asm .bss pool base (the frontend's range-split copies outranked the base, r29 -> r31), `addi ip, bss, __ArenaHi@l` = the pool-relative `addi 0` with a relocation (a literal 0 becomes `mr` in the backend's constant propagation); ldscript aliases _savefpr_27/_restfpr_27 (COMPILER-DIFF: M2)
 })
+
+# DOL final closer: at_mod/dvd/sce_at (2026-09-11)
+MATCHING.update({
+    "game/at_mod.cpp": True,  # ObaLineHitChk 9 -> 0: the `&p0` argument after getPartsPtr is an asm-emitted `addi %0,r1,8` (cse folds a C `&p0` into the copy address pseudo across the call through the beq AROUND path, COMPILER-DIFF: 12); the den f0 anchor takes `"f"(de * ef)` (ready one cycle later, so the hoisted `mr r3,r27` keeps its slot) plus a second `"f"(den)` reference (keeps den above the product in local-alloc, COMPILER-DIFF: 13)
+    "game/dvd.cpp": True,  # DiscChange 7 -> 0, zero code: the first `pSys->region` read through a reference (`SysRef`, no MEM_SCALAR_P) is gated by all four game[] template stores in sched2, so the copy issues in template order 0,8,c,4
+    "game/sce_at.cpp": True,  # sceAtGetItem 77 -> 0: `register u32 money asm("r29")` in case 8 (COMPILER-DIFF: 13, the it/ItemMgr-high/money rotation settles to r31/r30/r29), `int sel;` without initializer (cancel's zero is then the newest for `swep_flag = 0`, cancel lives from the top and ranks below sel: r29/r25), `put = 1` after `ItemMgr.use(&tmp)` (same as NoModel)
+})
