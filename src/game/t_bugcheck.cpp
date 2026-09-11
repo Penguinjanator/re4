@@ -122,7 +122,16 @@ void cToolBugcheck::menuPosMove()
         PSVECAdd(&pPL->pos, &v, &pPL->pos);
         pl = pPL;
         pl->setPos(&pl->pos);
-        pl->setAng(&pl->rot);
+        {
+            // COMPILER-DIFF: candidate (combine): the `&pl->rot` pseudo must reach sched1 uncombined
+            // (target `addi r4,r30,160; mr r3,r30`). A non-volatile asm that reads it and launders
+            // `pl` is a second use that blocks combine, is issued before the r4 move (so P is tied to
+            // r4) and leaves sched2's dependent counts of the setPos arg moves equal; it is also the
+            // extra loop insn at global-alloc time that orders the 14 hoisted highs r14-r25.
+            Vec* pr = &pl->rot;
+            asm("" : "+r"(pl) : "r"(pr));
+            pl->setAng(pr);
+        }
         {
             // COMPILER-DIFF: candidate (gcse hash bucket of the .LC label name): one more constant
             // pool label before "X:%.0f" gives the target's hoisted-high pseudo order.
@@ -145,10 +154,6 @@ void cToolBugcheck::menuPosMove()
             break;
         }
         TaskSleep(1);
-        // COMPILER-DIFF: tie (global-alloc live length): one more real insn in the loop at global-alloc
-        // time gives the 14 loop-invariant highs the target's r14-r25 order (their priorities are
-        // int(30000 / REG_LIVE_LENGTH) with equal refs).
-        asm("" : "=m"(v.x));
     }
     TOOL_FLAG(OFS_DEBUG_FLG + 8) &= ~8;
     BitOn(TOOL_FLAG(OFS_STOP_FLG), 0x10000000);
@@ -161,7 +166,23 @@ void cToolBugcheck::menuLife()
     int n;
     int lv;
 
+    {
+        // COMPILER-DIFF: candidate (gcse hash bucket of the .LC label name): the nine hoisted string
+        // highs are numbered in expr-hash bucket order of "*.LCn"; the target's r16-r24 order needs
+        // this function's labels shifted by 9 (the original TU had more header-inline string
+        // literals before it) and a gcse table size of 183 (the dead `lv = 3` below).
+        f32 lc1 = 1.0f;
+        f32 lc2 = 2.0f;
+        f32 lc3 = 3.0f;
+        f32 lc4 = 4.0f;
+        f32 lc5 = 5.0f;
+        f32 lc6 = 6.0f;
+        f32 lc7 = 7.0f;
+        f32 lc8 = 8.0f;
+        f32 lc9 = 9.0f;
+    }
     while (1) {
+        lv = 3;  // COMPILER-DIFF: candidate (gcse table size): dead set, +1 pre-gcse insn (183 buckets)
         if (Joy[0].trg & JOY_UP) {
             cur--;
         }
@@ -260,6 +281,10 @@ void cToolBugcheck::menuLife()
             break;
         }
         TaskSleep(1);
+        // COMPILER-DIFF: tie (global-alloc live length): one more insn in the loop at global-alloc
+        // time makes ">" (the last hoisted high) the only one at priority 47 (r24). LIFE/PLAYER
+        // (r17/r16) still swapped: see AGENTS.md "DOL closer: t_bugcheck/pl_wep/act_btn/em_sub".
+        asm("" : "=m"(PlKaiou));
     }
 }
 

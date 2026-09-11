@@ -95,7 +95,9 @@ void cActionButton::disp(ActBtnWork* w)
     s16 sx;
     s16 sy;
     int x;
-    int y;
+    // COMPILER-DIFF: candidate (local-alloc order): `fontH / 2` is computed in the MesSet argument
+    // register r6 in the target; here the third fpmem-address scratch copy (`mr r6,r10`) takes r6 first.
+    register int y asm("r6");
 
     if (w->flags & 0x80) {
         col = 7;

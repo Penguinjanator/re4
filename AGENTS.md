@@ -21763,3 +21763,70 @@ before it was built.
 - Not iterated in t_id: toolIdDrawSafeZone 31 (0x8 short), toolIdPaste 45 (0x4 long), toolIdOption 146 (0x20 short), idEditTrans 176
   (0x4 long), idEditColor 201 (0x1C short), idEditPos 334 (0x28 short), idEditUnit 79, toolIdEdit 58, idEditId 12, toolIdEditDisp 4,
   the three dtors/create/static_init (reloc-by-address artefacts of the .text size gap; they vanish when the sizes match).
+
+### DOL closer: t_bugcheck/pl_wep/act_btn/em_sub (t_bugcheck 5 -> 6/7: menuPosMove 2 -> 0 tagged, menuLife 18 -> 4 tagged; pl_wep 25 -> 26/29: searchLockEm 21 -> 0 tagged, PlWepLockCtrl 24 -> 2 (one zero-code fix + one anchor); act_btn 8 -> 9/10: disp 17 -> 0 (one pin); em_sub unchanged 45/51; nothing flipped; 2026-09-11)
+
+Harness ~/.cache/dol_tb (dol_dbg copies: `tryv.py UNIT SYM v/X.py` = private compile + masked word count per variant, `sbs.sh UNIT SYM
+[OBJ]` (OBJ must be absolute), `dump.sh UNIT -dFLAGS`, `rtl.py DUMP FUNC` (now also parses the `insn:TI` forms of sched2 dumps),
+`lcscan.py BASE ORDER` = (label bump, gcse table) pairs giving a wanted bucket order of nine consecutive `*.LCn` highs), deleted at
+the end. `flock ... ninja -k 0` + shasum = 111 OK after every edit.
+
+- **t_bugcheck menuPosMove 2 -> 0, tagged `candidate (combine)`: `Vec* pr = &pl->rot; asm("" : "+r"(pl) : "r"(pr)); pl->setAng(pr);`
+  and the old `asm("" : "=m"(v.x))` loop-tail anchor REMOVED (the new asm is the extra global-alloc insn).** Read off the sched
+  dumps: the target's `addi r4,r30,160; mr r3,r30` needs the `&pl->rot` pseudo P uncombined AND tied to r4 AND no change in sched2's
+  tie-break for the setPos arg moves (`mr r3,r30; addi r4,r30,148` there is decided by the dependents count: 3 = 3, then LUID).
+  A volatile `asm("" : : "r"(pr))` (no outputs = implicitly volatile) is a full barrier and gives 396 (setPos addi) an extra
+  dependent -> setPos flips (20-25 words); `asm("" : "=m"(v.x) : "r"(pr))` is not a barrier but has no dependents, so sched1
+  issues it after `r4 = P` and P dies at the asm -> `addi r0; mr r4,r0`; `asm("" : "+r"(pr))` keeps P tied but the asm
+  (`r4 = asm(r4)`) is a post-reload dependent of the setPos addi (4 vs 3 -> addi first, 2 words); `asm("" : "=m"(*pr))` does
+  not block combine at all (the address is substituted into the MEM). The `"+r"(pl) : "r"(pr)` form works because the asm's
+  output is `this`: P -> asm -> `r3 = pl'` -> call gives the asm a dependent (it is scheduled before `r4 = P`, so P dies at the
+  move and local-alloc ties it), pl dies at the asm (matching constraint -> same register, no code), and after reload the asm
+  reads r4 and writes r30 -- the setPos addi's dependents stay {403, 398, use} = the mr's. General rule for "block combine of
+  a single-use address pseudo with zero code": the second use must be a NON-volatile asm whose OUTPUT feeds the same call
+  (`"+r"(this)`), never a bare-input asm.
+- **t_bugcheck menuLife 18 -> 4, tagged: nine dead `f32 lcN = N.0f` at the function top (label bump 9), one dead `lv = 3;` at
+  the loop top (gcse table 181 -> 183), one `asm("" : "=m"(PlKaiou))` after `TaskSleep(1)` (+2 REG_LIVE_LENGTH for every
+  loop-invariant pseudo).** Result: ">" r24, ASHLEY..L-TRIG r23..r18 as the target; LIFE/PLAYER r16/r17 swapped (target LIFE
+  r17, PLAYER r16). Measured (lreg dump, the nine highs 416-424): live lengths step 2 PER PREHEADER INSN in insertion order
+  (LIFE 654, PLAYER 652, ASHLEY 650, ..., L-TRIG 640, ">" 638 with the anchor; 652..636 without), priority int(30000/len)
+  (refs 3, floor_log2 1), ties by pseudo number = bucket order. PROOF that the target's order is unreachable from this shape:
+  ">" alone at 47 needs `>` <= 638 and L-TRIG >= 639; LIFE allocated before PLAYER needs both at 46 (LIFE <= 652) or both at
+  45 (PLAYER >= 653, ASHLEY <= 652); with nine ADJACENT insertions (span 16) neither holds (LIFE = `>` + 16 >= 654 -> 45 while
+  PLAYER = 652 -> 46). Consistent models: (a) PLAYER's high inserted BEFORE LIFE's (bitmap_index order = RTL first-occurrence
+  order, so the original had the PLAYER format's address before "LIFE" in RTL -- not the eprintf order the target shows) at L0 =
+  654; (b) LIFE/PLAYER at 45 with one extra preheader insn between L-TRIG's and ">"'s insertion (PRE inserts consecutively, so
+  ">" would have to be loop.c-hoisted = not anticipatable = in a conditional block; the target's ">" eprintf is unconditional);
+  (c) ">" with 4+ refs = its use at loop depth 3 (`do { eprintf(">") } while (0)` gives exactly refs 4 and ">" first, BUT the
+  LOOP_BEG note is a sched1 barrier that adds a dependent to every high's last `lo_sum` use before it -> `addi r7,rX` issued
+  first in all nine eprintf blocks, 38 words). `lcscan.py` (model verified against the 25a/27a (b, T) tables) finds NO (b <= 59,
+  T in 141..299) with ">" first in bucket order, so the "both 46 with ">" numbered lowest" route is closed too. Left at 4.
+- **pl_wep searchLockEm 21 -> 0, tagged: `register cModel* skip asm("r30") = skip_; register f32 range asm("fr30") = range_;`
+  plus `asm("" : : "r"(best));` before `return best;`.** The 21 words were a permutation of best/pos/skip/i/&EmMgr. Facts: (1)
+  `best` and `i` must NOT be pinned: a `register ... asm("rN")` local is a HARD REG in RTL from expand on, and cse's canon_reg never
+  substitutes a hard reg, so the loop-entry `cmplw best,nArray` (the target reuses best's zero for `i = 0`) becomes `cmplw i`.
+  (2) With skip alone pinned the `fmr f30,f1` (range copy) is emitted at its parameter-copy LUID (9) while the pinned copy
+  `r30 = r4` is the declaration's init (LUID 21) -> sched1 orders fmr before mr; pinning range to fr30 too puts both copies in
+  declaration order = the target's `mr r28,r3; mr r30,r4; fmr f30,f1`. (3) best (7 refs / 96 = 1458) vs the hoisted `&EmMgr`
+  pointer (5 refs / 52 = 1923): the extra codeless ref makes best 8 refs (floor_log2 3, 2500) > ptr. FP register names in
+  asm() are `fr30`, not `f30`.
+- **pl_wep PlWepLockCtrl 24 -> 2: (zero code) `if (*(u32*) &Joy[0].sx & 0xFFFF0000)` -- the target reads the u32 at Joy+0
+  (sx/sy bytes) not `Joy[0].on` (`lwz r0,Joy@l(r9)`, reloc Joy+0 vs ours Joy+16); the `lis r28,0x8027` words are m3r@ha with the
+  reloc unpaired by dtk and resolve equal. Tagged `candidate (alias)`: `asm("" : "=m"(repCtr))` at the top of the `x400 > lim`
+  block -- the target reloads `repCtr` (`lfs f12,repCtr@sda21`) in the cross-jumped `rot.y -= spd * sx * repCtr...` else-arm, ours
+  kept the value loaded for the yaw step (a static scalar is exempt from struct stores in our alias.c). Left (2): after
+  PlWepLockRand, `lfs f0,0.0@l(r9)` before `lfs f13,8(r30)` in the target, reversed here: both loads have prio 4 and weight 0
+  (M = the m3rClamp pointer dies at the m3r[2] load because `m3r[1] = tmp` precedes it in RTL), so LUID decides and the compare's
+  left operand is expanded first; `0.0f == m3r[2]` is re-swapped by fold, a `z = 0.0f` variable 3, a block-local `f32* m` with an
+  asm use 31. Not closed.
+- **pl_wep PlSetLockPitch (11, read further):** target after the `do{}while(0)` barrier `lis 0.0` : `lis m3r; lfs z; addi;
+  stfs p; fmadds; stfs z; stfs res` = at t=1 `lis m3r` ranked above `lfs z`, i.e. prio(high m3r) >= prio(lfs z) = 5 -- ours 4 (lo_sum
+  3 -> stores 2). A `volatile f32* m` (10), `asm("" : "+r"(m))` launder of the pointer (11-12: the asm becomes a node between addi
+  and the stores, so fmadds is issued before `stfs p`) and `f32 z` first (11) do not give it; the target's store chain must carry
+  output dependences (`stfs p` prio 4+ = the `m3r[0]` symbol store may-aliases the pointer stores), which needs the pointer's
+  REG_EQUAL/`reg_known_value` to be absent -- not found from source.
+- **act_btn disp 17 -> 0, tagged: `register int y asm("r6");`** (`fontH / 2` is the MesSet r6 argument; the third fpmem-address
+  scratch copy took r6 first here, so y was computed in r11 and the copies landed r8,r7,r6,r30 instead of r8,r7,r30,r11).
+- **em_sub EmCatchMotionMove (8):** the single-block function offers no codeless way to make `rate` a non-local-alloc pseudo
+  (needs REG_N_DEATHS != 1 or a second block; every branch costs code). Not touched. checkButton 71, GetDropBullet 462,
+  EmYarareContactCk 103, RandomItemCk 53, EmRackCk 49, emLineCapsuleCrossCk 14, PlWepHitCheck2 242 not iterated this pass.

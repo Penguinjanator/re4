@@ -679,8 +679,13 @@ cModel* SearchTargetEm(Vec* pos, cModel* skip, f32 range)
     return searchLockEm(pos, skip, range);
 }
 
-cModel* searchLockEm(Vec* pos, cModel* skip, f32 range)
+cModel* searchLockEm(Vec* pos, cModel* skip_, f32 range_)
 {
+    // COMPILER-DIFF: candidate (global-alloc order): skip r30 / range f30 pins; a plain `skip` copy
+    // ranks below `i`/`pos` here (ours r28, target r30). `best`/`i` cannot be pinned: a hard-reg
+    // `best` stops cse from reusing its zero for the loop entry test (`cmplw best,nArray`).
+    register cModel* skip asm("r30") = skip_;
+    register f32 range asm("fr30") = range_;
     cEm* best = 0;
     f32 bestD = 1000000000000.0f;
     u32 i;
@@ -706,6 +711,9 @@ cModel* searchLockEm(Vec* pos, cModel* skip, f32 range)
             best = (cEm*) skip;
         }
     }
+    // COMPILER-DIFF: candidate (global-alloc priority): one more ref of `best` (7 -> 8, floor_log2 2 -> 3)
+    // ranks it above the hoisted `&EmMgr` pointer (target best r27, EmMgr r26).
+    asm("" : : "r"(best));
     return best;
 }
 
@@ -859,7 +867,7 @@ void PlWepLockCtrl(cModel* plm)
         spd2 = spd;
         break;
     }
-    if (Joy[0].on & 0xFFFF0000) {
+    if (*(u32*) &Joy[0].sx & 0xFFFF0000) {  // main stick (sx, sy) deflected
         if (repCtr < 7.0f) {
             repCtr = repCtr + 1.0f;
         }
@@ -913,6 +921,9 @@ void PlWepLockCtrl(cModel* plm)
         }
         pl->x400 += d;
         if (pl->x400 > lim) {
+            // COMPILER-DIFF: candidate (alias): the target reloads repCtr in the shared `rot.y -=`
+            // else-arm below (`lfs f12,repCtr`), ours kept the value loaded for the yaw stick step.
+            asm("" : "=m"(repCtr));
             pl->x400 = lim;
             if (Joy[0].on & 1) {
                 pl->rot.y += 0.039269908f;
