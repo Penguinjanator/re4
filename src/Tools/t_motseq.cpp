@@ -417,54 +417,71 @@ static void msq_R0_SeqResize()
     MsqWork* w = MSQ;
     cModel* m = dbModSlot[0].pModel;
     int max;
-    u16 num;
     int i;
+    MotionSeqKey* k;
 
     if (w->seq[0].reverse & 1) {
         msqSetMode(3);
         return;
     }
-    max = (int) m->mot.maxFrame << 6;
-    num = w->seq[0].num;
-    i = num - 1;
-    if (i >= 0 && w->seq[0].key[i].frame > max) {
-        for (;;) {
-            w->seq[0].num = num - 1;
-            num = w->seq[0].num;
-            i--;
-            if (i < 0) {
-                break;
-            }
-            if (w->seq[0].key[i].frame <= max) {
-                break;
+    max = (int) m->mot.maxFrame;
+    max <<= 6;
+    // Drop the trailing keys past the motion's last frame. `num` is never held in a local: every
+    // read is the u16 field (gcse PRE gives the reload after each store), the decrement sits at the
+    // end of the preheader and of the loop body (jump2 cross-jumps the two `sth`), the exits are
+    // gotos so stmt.c does not rotate the loop, and `k` is recomputed from `i` (loop.c giv copy).
+    i = w->seq[0].num - 1;
+    if (i >= 0) {
+        k = &w->seq[0].key[i];
+        if (k->frame > max) {
+            w->seq[0].num--;
+            for (;;) {
+                i--;
+                if (i < 0) {
+                    goto done;
+                }
+                k = &w->seq[0].key[i];
+                if (k->frame <= max) {
+                    goto done;
+                }
+                w->seq[0].num--;
             }
         }
     }
-    if (num == 0) {
-        MotionSeqKey* k = &w->seq[0].key[0];
-
+done:
+    if (w->seq[0].num == 0) {
+        k = &w->seq[0].key[0];
         k->frame = 0;
         w->seq[0].num = 1;
-        k->x2 = 0;
         k->x3 = 0;
+        k->x2 = 0;
         dbModMotionSetSeqI(0, w, w->seq[0].viewFlag, 0);
         msqSetMode(3);
         return;
     }
-    if (num > 1) {
+    if (w->seq[0].num > 1) {
         int step = w->seq[0].key[1].frame - w->seq[0].key[0].frame;
+        int f;
 
+        k = &w->seq[0].key[w->seq[0].num - 1];
+        f = k->frame;
         if (step > 0) {
-            int f = w->seq[0].key[num - 1].frame + step;
+            f += step;
+            // Goto loop (no loop notes): the shared zero of the two byte stores then has 3 refs
+            // and is allocated after `max` (r5 / r6).
+            if (f <= max && w->seq[0].num - 1 <= 0x3FF) {
+                u8 z = 0;
 
-            while (f <= max && num - 1 <= 0x3FF) {
-                num++;
-                w->seq[0].num = num;
-                w->seq[0].key[num - 1].frame = f;
-                w->seq[0].key[num - 1].x2 = 0;
-                w->seq[0].key[num - 1].x3 = 0;
+            again2:
+                w->seq[0].num++;
+                k = &w->seq[0].key[w->seq[0].num - 1];
+                k->frame = f;
+                k->x3 = z;
+                k->x2 = z;
                 f += step;
-                num = w->seq[0].num;
+                if (f <= max && w->seq[0].num - 1 <= 0x3FF) {
+                    goto again2;
+                }
             }
         }
     }
@@ -694,6 +711,10 @@ static void msq_R0_Sequence()
         w->seq[0].flagDisp[0] = w->seq[0].key[cur2].x3 & 0x01;
         w->seq[0].flagDisp[1] = w->seq[0].key[cur2].x3 & 0x02;
         w->seq[0].flagDisp[2] = w->seq[0].key[cur2].x3 & 0x04;
+        // COMPILER-DIFF: #13 (free sched slot filler): the original's sched1 has one insn between
+        // `stb flagDisp[2]` and `lbz flagDisp[3]`'s load, so the two chains share r0 instead of
+        // alternating r0/r9 (local-alloc's birth-2/death+1 conflict). Codeless, no bytes.
+        asm("" : "=m"(w->seq[0].flagDisp[2]) : "m"(w->seq[0].flagDisp[2]));
         w->seq[0].flagDisp[3] = w->seq[0].key[cur2].x3 & 0x08;
         w->seq[0].flagDisp[4] = w->seq[0].key[cur2].x3 & 0x10;
         w->seq[0].flagDisp[5] = w->seq[0].key[cur2].x3 & 0x20;

@@ -585,11 +585,12 @@ static void data_edit()
 {
     EditTbl* tbl = &work->curTbl[work->cur];
     TblEnt* e;
-    int step = 1;
+    int step;
     int i;
 
     eprintf(0x28, 0x28, 0, 0, "%s", edit_title[work->tblType]);
     eprintf(0x1A0, 0x28, 0, 0, "[DATA %2d]", work->cur);
+    step = 1;
     if (Joy[0].on & 0x400) {
         step = 10;
     }
@@ -632,10 +633,12 @@ static void data_edit()
             tbl->e[work->pt].flag |= 1;
             if (work->pt == tbl->num - 1) {
                 if (tbl->e[work->pt].dist != 100.0f) {
-                    tbl->e[tbl->num].dist = tbl->e[tbl->num - 1].dist + 1.0f;
-                    tbl->e[tbl->num].val = tbl->e[tbl->num - 1].val;
-                    work->curDist = tbl->e[tbl->num].dist;
-                    work->curVal = tbl->e[tbl->num].val;
+                    TblEnt* ne = &tbl->e[tbl->num];
+
+                    ne->dist = ne[-1].dist + 1.0f;
+                    ne->val = ne[-1].val;
+                    work->curDist = ne->dist;
+                    work->curVal = ne->val;
                     work->pt = tbl->num;
                     tbl->num++;
                     work->editMode = 1;
@@ -674,6 +677,8 @@ static void data_edit()
             tbl->scale = 100000.0f;
             break;
         case 100000:
+            tbl->scale = 1000.0f;
+            break;
         default:
             tbl->scale = 1000.0f;
             break;
@@ -697,37 +702,19 @@ static void data_edit()
         } else if (Joy[0].rep & 0x20002) {
             e->dist += (f32) step;
         }
-        if (e->val < val_range[work->tblType][0]) {
-            e->val = val_range[work->tblType][0];
-        } else if (e->val > val_range[work->tblType][1]) {
-            e->val = val_range[work->tblType][1];
-        }
+        e->val = e->val < val_range[work->tblType][0] ? val_range[work->tblType][0]
+                 : e->val > val_range[work->tblType][1] ? val_range[work->tblType][1] : e->val;
         if (work->pt == 0) {
             if (tbl->num == 1) {
-                if (e->dist < 0.0f) {
-                    e->dist = 0.0f;
-                } else if (e->dist > 100.0f) {
-                    e->dist = 100.0f;
-                }
+                e->dist = e->dist < 0.0f ? 0.0f : e->dist > 100.0f ? 100.0f : e->dist;
             } else {
-                if (e->dist < 0.0f) {
-                    e->dist = 0.0f;
-                } else if (e->dist > e[1].dist - 1.0f) {
-                    e->dist = e[1].dist - 1.0f;
-                }
+                e->dist = e->dist < 0.0f ? 0.0f : e->dist > e[1].dist - 1.0f ? e[1].dist - 1.0f : e->dist;
             }
         } else if (work->pt == tbl->num - 1) {
-            if (e->dist < e[-1].dist + 1.0f) {
-                e->dist = e[-1].dist + 1.0f;
-            } else if (e->dist > 100.0f) {
-                e->dist = 100.0f;
-            }
+            e->dist = e->dist < e[-1].dist + 1.0f ? e[-1].dist + 1.0f : e->dist > 100.0f ? 100.0f : e->dist;
         } else {
-            if (e->dist < e[-1].dist + 1.0f) {
-                e->dist = e[-1].dist + 1.0f;
-            } else if (e->dist > e[1].dist - 1.0f) {
-                e->dist = e[1].dist - 1.0f;
-            }
+            e->dist = e->dist < e[-1].dist + 1.0f ? e[-1].dist + 1.0f
+                      : e->dist > e[1].dist - 1.0f ? e[1].dist - 1.0f : e->dist;
         }
     }
     work->curDist = e->dist;
@@ -1400,7 +1387,6 @@ static void combine_tbl_select()
 static void combine_tbl_edit()
 {
     CombSel* sel = &work->sel[work->cur];
-    s8* p;
 
     if (Joy[0].trg & 0x20) {
         work->x29 = 1;
@@ -1414,36 +1400,30 @@ static void combine_tbl_edit()
         switch (work->efxCur[work->x29]) {
         case 0:
             sel->vol[work->x29]--;
-            p = &sel->vol[work->x29];
-            *p = *p < -1 ? -1 : *p > 31 ? 31 : *p;
+            sel->vol[work->x29] = sel->vol[work->x29] < -1 ? -1 : sel->vol[work->x29] > 31 ? 31 : sel->vol[work->x29];
             break;
         case 1:
             sel->pitch[work->x29]--;
-            p = &sel->pitch[work->x29];
-            *p = *p < -1 ? -1 : *p > 31 ? 31 : *p;
+            sel->pitch[work->x29] = sel->pitch[work->x29] < -1 ? -1 : sel->pitch[work->x29] > 31 ? 31 : sel->pitch[work->x29];
             break;
         case 2:
             sel->filter[work->x29]--;
-            p = &sel->filter[work->x29];
-            *p = *p < -1 ? -1 : *p > 31 ? 31 : *p;
+            sel->filter[work->x29] = sel->filter[work->x29] < -1 ? -1 : sel->filter[work->x29] > 31 ? 31 : sel->filter[work->x29];
             break;
         }
     } else if (Joy[0].rep2 & 0x20002) {
         switch (work->efxCur[work->x29]) {
         case 0:
             sel->vol[work->x29]++;
-            p = &sel->vol[work->x29];
-            *p = *p < -1 ? -1 : *p > 31 ? 31 : *p;
+            sel->vol[work->x29] = sel->vol[work->x29] < -1 ? -1 : sel->vol[work->x29] > 31 ? 31 : sel->vol[work->x29];
             break;
         case 1:
             sel->pitch[work->x29]++;
-            p = &sel->pitch[work->x29];
-            *p = *p < -1 ? -1 : *p > 31 ? 31 : *p;
+            sel->pitch[work->x29] = sel->pitch[work->x29] < -1 ? -1 : sel->pitch[work->x29] > 31 ? 31 : sel->pitch[work->x29];
             break;
         case 2:
             sel->filter[work->x29]++;
-            p = &sel->filter[work->x29];
-            *p = *p < -1 ? -1 : *p > 31 ? 31 : *p;
+            sel->filter[work->x29] = sel->filter[work->x29] < -1 ? -1 : sel->filter[work->x29] > 31 ? 31 : sel->filter[work->x29];
             break;
         }
     } else if (Joy[0].trg & 0x100) {
@@ -1456,8 +1436,7 @@ static void combine_tbl_edit()
         work->step = 0;
         work->x6 = 0;
     }
-    p = &work->efxCur[work->x29];
-    *p = *p < 0 ? 0 : *p > 2 ? 2 : *p;
+    work->efxCur[work->x29] = work->efxCur[work->x29] < 0 ? 0 : work->efxCur[work->x29] > 2 ? 2 : work->efxCur[work->x29];
     eprintf(0x12E, 0x15C, 0, 0, "L,R ... STEREO <-> DPL2");
     eprintf(0x12E, 0x17C, 0, 0, "A ..... SET EDIT DATA");
     eprintf(0x12E, 0x18C, 0, 0, "B ..... CANCEL");
@@ -1595,8 +1574,9 @@ static void file_save()
 {
     u8* p;
     u32 ofs;
-    int size;
+    int size = 0;
     int i;
+    int n;
 
     eprintf(0x40, 0x28, 0, 0, "[DATA SAVE]");
     eprintf(0x40, 0x60, 0, 0, "SELECT SAVE FILE");
@@ -1648,13 +1628,17 @@ static void file_save()
         }
         break;
     case 2: {
-        SndRoomHdr* hdr = (SndRoomHdr*) work->fileBuf;
+        SndRoomHdr* hdr;
 
+        p = work->fileBuf;
+        hdr = (SndRoomHdr*) p;
         hdr->efx[0] = work->efx[0];
         hdr->efx[1] = work->efx[1];
         ofs = sizeof(SndRoomHdr);
         for (i = 0; i < 32; i++) {
-            if (work->sel[i].used != 0) {
+            CombSel* s = &work->sel[i];
+
+            if (s->used != 0) {
                 hdr->curve_sel[i] = ofs;
                 ofs += sizeof(CombSel);
             } else {
@@ -1662,60 +1646,75 @@ static void file_save()
             }
         }
         for (i = 0; i < 32; i++) {
-            if (work->vol[i].num != 0) {
+            EditTbl* t = &work->vol[i];
+
+            if (t->num != 0) {
                 hdr->vol_ofs[i] = ofs;
-                ofs += 8 + work->vol[i].num * 8;
+                ofs += 8 + t->num * 8;
             } else {
                 hdr->vol_ofs[i] = 0;
             }
         }
         for (i = 0; i < 32; i++) {
-            if (work->pitch[i].num != 0) {
+            EditTbl* t = &work->pitch[i];
+
+            if (t->num != 0) {
                 hdr->pitch_ofs[i] = ofs;
-                ofs += 8 + work->pitch[i].num * 8;
+                ofs += 8 + t->num * 8;
             } else {
                 hdr->pitch_ofs[i] = 0;
             }
         }
         for (i = 0; i < 32; i++) {
-            if (work->filter[i].num != 0) {
+            EditTbl* t = &work->filter[i];
+
+            if (t->num != 0) {
                 hdr->filter_ofs[i] = ofs;
-                ofs += 8 + work->filter[i].num * 8;
+                ofs += 8 + t->num * 8;
             } else {
                 hdr->filter_ofs[i] = 0;
             }
         }
-        p = work->fileBuf;
-        memcpy(p, hdr, sizeof(SndRoomHdr));
-        p += sizeof(SndRoomHdr);
-        size = sizeof(SndRoomHdr);
+        n = sizeof(SndRoomHdr);
+        memcpy(p, hdr, n);
+        p += n;
+        size = n;
         for (i = 0; i < 32; i++) {
-            if (work->sel[i].used != 0) {
-                memcpy(p, &work->sel[i], sizeof(CombSel));
-                p += sizeof(CombSel);
-                size += sizeof(CombSel);
+            CombSel* s = &work->sel[i];
+
+            if (s->used != 0) {
+                n = sizeof(CombSel);
+                memcpy(p, s, n);
+                p += n;
+                size += n;
             }
         }
         for (i = 0; i < 32; i++) {
-            if (work->vol[i].num != 0) {
-                int n = work->vol[i].num * 8 + 8;
-                memcpy(p, &work->vol[i], n);
+            EditTbl* t = &work->vol[i];
+
+            if (t->num != 0) {
+                n = t->num * 8 + 8;
+                memcpy(p, t, n);
                 size += n;
                 p += n;
             }
         }
         for (i = 0; i < 32; i++) {
-            if (work->pitch[i].num != 0) {
-                int n = work->pitch[i].num * 8 + 8;
-                memcpy(p, &work->pitch[i], n);
+            EditTbl* t = &work->pitch[i];
+
+            if (t->num != 0) {
+                n = t->num * 8 + 8;
+                memcpy(p, t, n);
                 size += n;
                 p += n;
             }
         }
         for (i = 0; i < 32; i++) {
-            if (work->filter[i].num != 0) {
-                int n = work->filter[i].num * 8 + 8;
-                memcpy(p, &work->filter[i], n);
+            EditTbl* t = &work->filter[i];
+
+            if (t->num != 0) {
+                n = t->num * 8 + 8;
+                memcpy(p, t, n);
                 size += n;
                 p += n;
             }
@@ -1772,6 +1771,9 @@ static void file_load()
     case 1:
         if (Joy[0].rep & 0x80008) {
             switch (work->loadCur) {
+            case 0:
+                work->dest ^= 1;
+                break;
             case 1:
                 work->stage++;
                 break;
@@ -1808,9 +1810,7 @@ static void file_load()
         }
         work->loadCur = work->loadCur < 0 ? 0 : work->loadCur > 2 ? 2 : work->loadCur;
         work->stage = work->stage < 0 ? 0 : work->stage > 9 ? 9 : work->stage;
-        if (work->room < 0) {
-            work->room = 0;
-        }
+        work->room = work->room < 0 ? 0 : work->room;
         if (work->dest == 0) {
             sprintf(work->path, "d:/bio4/room/snd/r%d%02x.stb", work->stage, work->room);
         } else {
@@ -1828,11 +1828,13 @@ static void file_load()
         } else if (Joy[0].trg & 0x100) {
             if (work->yesno == 0) {
                 work->sub = 3;
+                work->step = 0;
+                work->x6 = 0;
             } else {
                 work->sub = 1;
+                work->step = 0;
+                work->x6 = 0;
             }
-            work->step = 0;
-            work->x6 = 0;
         } else if (Joy[0].trg & 0x30003) {
             work->yesno ^= 1;
         }
@@ -1875,10 +1877,10 @@ static void file_load()
         work->timer--;
         break;
     }
-    eprintf(0x40, 0x80, (u8) (work->sub == 1 && work->loadCur == 0 ? 6 : 0), 0, "%s",
+    eprintf(0x40, 0x80, (u8) (work->sub == 1 ? (work->loadCur == 0 ? 6 : 0) : 0), 0, "%s",
             work->dest == 0 ? "LOCAL" : "SERVER");
-    eprintf(0x80, 0x80, work->sub == 1 && work->loadCur == 1 ? 6 : 0, 0, "STAGE %2d", work->stage);
-    eprintf(0xD0, 0x80, work->sub == 1 && work->loadCur == 2 ? 6 : 0, 0, "ROOM %02x", work->room);
+    eprintf(0x80, 0x80, work->sub == 1 ? (work->loadCur == 1 ? 6 : 0) : 0, 0, "STAGE %2d", work->stage);
+    eprintf(0xD0, 0x80, work->sub == 1 ? (work->loadCur == 2 ? 6 : 0) : 0, 0, "ROOM %02x", work->room);
     eprintf(0x40, 0xA0, 0, 0, "%s", work->path);
 }
 

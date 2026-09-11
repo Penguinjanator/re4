@@ -20682,3 +20682,151 @@ sce_at sceAtGetItem 91 words with either prototype). `game/puzzle.cpp` added to 
   `case 0:` in the outDir switch is in.
 - General: a target function that uses a pool constant nobody else uses (init's 0.5f) is a missing statement,
   not a missing function; check `rg 'lbl_<rodata>+0x..'` per function before hunting dead code.
+
+### DOL sweep 27a, closest-first (pl_wep 24 -> 25/29: PlWepAutoTrack 24 -> 0 zero code, PlWepLockCtrl 45 -> 24; debug 6 -> 8/11: ProcessTickGet 8 -> 0, debugPadInfoDisp 34 -> 0, both zero code; act_btn checkButton 93 -> 71 zero code; t_bugcheck menuPosMove / menuLife mechanisms sharpened with the hooked compiler; nothing flipped; 2026-09-11)
+
+Harness ~/.cache/dol27a (dol26a copies with the paths rewritten; `census2.sh HDR...` = MARGINAL bodies/labels of every include/*.h over a
+base header set; the private hooked cc1plus's `HK_TSIZE` now takes `func:size[,func:size...]` so two functions of one TU can get
+different gcse table sizes), deleted at the end. Build 111 OK before and after every edit. Espgen42 / espgen45 were being edited by
+another agent during the pass (mtime < 20 min, 14/16 and 17/20 when last checked) and were not touched.
+
+- **Header body census, measured (nb.sh over the current includes: 91 header bodies + 6 own = 97 = `menu.291`; target `menu.990` = 330).**
+  Marginal bodies/labels per header ADDED to t_bugcheck's include set (`census2.sh types.h vec.h atari.h global.h joy.h eprintf.h
+  scheduler.h camera.h model.h player.h t_util.h`): dolphin.h +50/0, ss_pzzl.h +44/+2, ss_main.h +38/+2, db_widget.h +34/+4,
+  dbg_tool.h +25/+12, TexRender.h/light.h/examine.h/espgen.h/em32.h/em2c.h +20 each, dbg_button.h +18/+12, mes.h +17, db_toolbase.h
+  +16/+2, sofdec.h +13/+1, xml.h +12/+24, fade.h +12, cam_motion.h +11, read.h +10, {tv_mode, trans, t_prim, texture, sscrn, shadow,
+  room_tex, os_vi, main_sub, gx_sub, gx, foot_shadow, esp, dbmodule, cloth}.h +9 each, event.h +8/+2, wep_mod.h +7, everything else
+  <= 7. No plausible debug-tool header SET reaches +233 bodies with only +9..10 labels: the same headers had ~3x the inline bodies in
+  the original (debug-build assertion strings explain the extra labels), so the census is a check, not a reconstruction target.
+- **t_bugcheck, the joint constraint verified with the hooked compiler: label bump 9 + menuPosMove T=151 + menuLife T in {179,183,185}
+  leaves menuPosMove 2 and menuLife 10 (T=177: 18); the "b=0 + 19 labels between" solution leaves 2 / 14.** So labels and table sizes
+  are NECESSARY but each function keeps its own code-shape residue: (a) menuPosMove's `addi r4,r30,160; mr r3,r30` = the `&pl->rot`
+  pseudo P was NOT combined into the `r4 = P` move (in ours combine merges it at the r4 move, after `r3 = pl`, and regmove's
+  optimize_reg_copy_1 forwards r3 into the addi because pl dies there; with P uncombined pl dies at `r3 = pl`, sched1 issues `P = pl+160`
+  first by priority and local-alloc ties P to r4). A codeless second use of P (`Vec* pr = &pl->rot; asm("" : : "r"(pr)); pl->setAng(pr)`)
+  reproduces the two insns exactly AND is the "one more insn in the loop at global-alloc time" that the `asm("" : "=m"(v.x))` tag
+  emulates (the surviving `r4 = P` copy is deleted only by reload) -- but the pin shifts the setPos call's order and the 14 highs
+  (20 words), so the natural second use is still unidentified (`Vec* pr`, `&pl->pos + 1`, `cModel&`, inline wrappers with
+  `Vec*`/`Vec&` parameters: a non-readonly formal's copy `V = P` is folded back to P by cse1 and deleted by flow1, so it gives no
+  second use). (b) menuLife's 14/10 = the L0 priority of ">" (25a). Rule: regmove's `optimize_reg_copy_1` on `r3 = pl` needs pl's
+  REG_DEAD on a LATER insn of the block; the target's `addi rArg,rPl,K` BEFORE `mr r3,rPl` means the address pseudo survived combine
+  (>= 2 uses) and pl died at the copy.
+- **pl_wep PlWepAutoTrack 24 -> 0 / PlWepLockCtrl 45 -> 24 (zero code): the m3r target clamp + sync is ONE file-local inline taking the
+  limits as parameters, `static inline void m3rClamp(f32* m, f32 lo, f32 hi) { if (m[1] < lo) m[1] = lo; else if (m[1] > hi) m[1] = hi;
+  if (m[2] == 0.0f) m[0] = m[1]; }` called `m3rClamp(m3r, -1.0f, 1.0f)`.** integrate.c copies every non-readonly formal's actual into a
+  pseudo BEFORE the body (`arg_vals[i] = copy_to_mode_reg` when `! TREE_READONLY (formal)`), so -1.0 and 1.0 load up front into two
+  registers and the two clamp stores stay distinct (`stfs f13,4(r10)` / `stfs f12,4(r10)`, no cross-jump), and the `f32* m` copy of
+  the symbol is the target's `addi r10,r9,m3r@l` base pointer; a plain `m3r[0] = m3r[1]` OUTSIDE the helper keeps the symbol form
+  (`stfs f0,m3r@l(r28)`), the sync inside the helper stores through the pointer (`stfs f0,0(r10)`) -- cse folds `(mem p)` to the
+  symbol only in the ebb where `p = symbol` is visible. Without the trailing sync in the helper (clamp only) both stay 19/35. Rule:
+  two arms that load DIFFERENT pool constants up front and store them without a shared tail = an inline whose constants arrive as
+  parameters. Left in LockCtrl (24): the second `d` block's 0.0/200.0 FPR pair (target zero f12 / 200 f13, ours swapped).
+  PlSetLockPitch (11): the same family -- `static inline m3rSet(f32* m, f32 p, f32 z)` inside the `do {} while (0)` gives the pointer
+  + symbol-store shape (`stfs f1,4(r11); ...; stfs f0,m3r@l(r10)`) but the LOOP_BEG barrier insn is the `m` copy's `lis m3r` where the
+  target's is the `lis 0.0@ha` of the z copy and the target issues `lis m3r` before `lfs z`; parameter orders (m,p,z)/(p,z,m),
+  `f32* const m`, a struct member `set(p, z)` on `(M3R*) m3r`: 11-13 each. Not closed.
+- **debug ProcessTickGet 8 -> 0 (zero code): the else arm stores proc_tick FIRST, `proc_tick[proc_tick_idx + 5] = OSGetTick() - zero_tick;
+  proc_name[proc_tick_idx + 5] = name; proc_tick_idx++;`.** Two independent `stwx` of equal priority: sched1 issues the one with more
+  dying registers first, and the LAST store in RTL order owns the shared index register's REG_DEAD -- so the target's `stwx name` before
+  `stwx tick` means the tick store came first in source (the 23a "statement orders tried" note had kept `t` in a local; both orders
+  with `t` and without give 0 here, the `proc_tick_idx = proc_tick_idx + 1` spelling 7).
+- **debug debugPadInfoDisp 34 -> 0 (zero code): `i * 6 + 10` written at ALL THREE eprintf2 sites (no `x`/`x2` variables).** loop.c
+  reduces the two single-use givs of the if/else arms separately (`li 10` x2 in the preheader, `addi 6` x2 in the latch; combine_givs
+  refuses single-use DEST_REG givs, db_light rule), does NOT reduce the third one (`v->lifetime * threshold * benefit < insn_count`:
+  a short-lived giv in a long loop stays `mulli r5,r31,6; addi r5,r5,10`, the mulli then speculated above the `trg` test by interblock
+  sched1 -- a void function with a loop forms regions), and the arms' `crclr; bl eprintf2` cross-jump. With variables for the first
+  two, the third is reduced too (a third `li 10`/`addi 6`) and the arms do not merge. Rule: a `mulli` of the loop counter inside a
+  loop that also has reduced givs of the same expression = the same expression written at a short-lived site, not a variable.
+- **act_btn checkButton 93 -> 71 (zero code): every failing test `break`s to the one `return 0` after the switch, `return 1` plain, and
+  the `(u64) key & ~mask` test written in each of the four `flags & 0x40` leaves.** A two-way leaf `if (c) return 1; return 0;` (or
+  the negation) gets jump1's set hoist + conditional return (`li r3,1; bnelr` / `li r3,0; beqlr`) and then nothing cross-jumps; a
+  `break` (a jump to a shared label, no set in the arm) keeps `beq RET0; li r3,1; blr` and lets jump2 merge the `return 1` copies into
+  the first leaf's (the target's L3610) -- the non-0x40 half is byte-identical with it. Case 3/4's inner `if ((on & 0xC0000) ==
+  0xC0000) return 0; return 1;` IS the hoisted `li r3,0; beqlr; b ok` form (plain returns there). `case 9: return 0; case 0xA: return
+  0;` are separate compares in the tree because their first insns are sets, not jumps (`group_case_nodes` merges adjacent cases whose
+  labels' first real insn is the same simplejump -- `break; break;` folds to a range). Left (71): those two `return 0`s become a second
+  `li r3,0; blr` block (`li; (return)` cannot cross-jump with the fall-through `li; (use r3); (return)` -- the USE is emitted by
+  expand_value_return for hard-reg returns; how the target shares one block is open), the `flags & 2` half's two leaves (C/D) keep
+  separate `key` tests in the target where ours cross-jumps them, the DImode pairs (target key r9:r10 / mask result r11:r12, ours
+  r11:r12 / r9:r10 = allocation order of two locals), and case 3/4's dead `andis.` scratch r0/r9.
+- **em_sub EmCatchMotionMove (8, read again):** `f64 rate = rate_` (a widened copy) gives the target's rate f29 / rate2 f30 assignment
+  (the extend makes the parm non-tieable) but a double `fmul`; `f64 ry`, `ry0` copy, volatile read, `f64 step`, a second `rate` use:
+  9-62. The `lfs f13,164; fmr f31,f13` copy is not a `float_extend` (the fadds is single) and not a reload copy; still open.
+- Not iterated: em_sub GetDropBullet / EmYarareContactCk / RandomItemCk / EmRackCk / emLineCapsuleCrossCk, pl_wep PlWepHitCheck2 /
+  searchLockEm, debug processBarDisp / ConfigSet / PrimitiveBuffDisp (register naming: `max` r4 vs r3, tile store order), act_btn disp
+  (the four fpmem-address scratch copies `mr rX,r10` land in r8,r7,r30,r11 in the target vs r8,r7,r6,r30 in ours, so `fontH / 2` is
+  tied into r6 there and computed in r11 here -- allocation order, not read further).
+
+### Tool RELs, t_snd_vol/t_motseq closer (Tools/t_motseq Matching 21/21 -> flipped, Tools.rel byte-identical, 111 OK; t_movie/t_snd_vol 940 -> 357 words: combine_tbl_edit 86 -> 0, file_save 276 -> 37, file_load 122 -> 9, data_edit 152 -> 8; combine_tbl_disp 103 and edit_reverb_param 200 untouched; 2026-09-11)
+
+- Harness ~/.cache/tools_sv (tools_p19a copies: `mtryv.py MOD/UNIT SYM V.py [--apply]`, `mdump.sh MOD/UNIT -dX`, `msbs.sh`; plus
+  `fn.py DUMP 'void f()' [regex]` = one function's section of a multi-function RTL dump), deleted at the end. Every edit
+  built under the ninja lock; `ninja -k 0` + shasum = 111 OK before and after the flip.
+- **msq_R0_SeqResize (78 -> 0, zero code) -- how 2.95.3 PRE places a re-loaded field, read off lcm.c.** The target's `mr
+  r7,r0` / `lhz r7,0(r4)` after each `sth` / `clrlwi r31,r7,16` is the gcse reaching register (HImode!) of the load
+  `(mem:HI w)`: `num` is NOT a local (a promoted u16/int local is SImode and `clrlwi` never appears; a HImode multi-set
+  pseudo can only be gcse's). Every read is the field `w->seq[0].num`, `w->seq[0].num--` gives the paradoxical-subreg
+  `(plus (subreg:SI R:HI) -1)` (HI arithmetic via convert.c narrowing + widen_operand), which cse cannot fold into
+  `i = zext(tmp) - 1` (the `n - 1`-folds-into-`i` blocker of pass 18b was the promoted local). PRE rules that decide the
+  shape (lcm.c block-based: latein = delayin for every block but the last; optimal = latein - isoout; redundant = antloc -
+  (latein | isoout); insertion at the END of an optimal block, before its jump): a load at the head of a block that also
+  stores the field is "isolated" (both successors are latest) and is never deleted -- so the store must be the LAST insn of
+  the preheader and of the loop body and the loop head block must be store- and load-free: `w->seq[0].num--; for (;;) {
+  i--; if (i < 0) goto done; k = &w->seq[0].key[i]; if (k->frame <= max) goto done; w->seq[0].num--; }` -- `goto` exits
+  (a `break` within 30 insns makes stmt.c rotate the loop and puts the label before the store), `for(;;)` (loop notes: the
+  `k` giv init `mr r11,r10` comes from loop.c; a goto loop has none). PRE then inserts `R = mem` at the end of the head
+  block (the target's `lhz r7` right after the `sth`), cse2 turns the bottom `num--` load into `R` and the two `sth` tails
+  cross-jump (the label lands on the `sth`). Pass 18b's "cse does not forward the store" mystery was this insertion order.
+- **SeqResize, the rest (all zero code):** (1) `k = &w->seq[0].key[i]` must be computed AFTER the `i >= 0` test (a
+  different block): in the same block combine folds `(ashift i 2) + 4` with `i = tmp - 1` into `tmp << 2` through a
+  split PARALLEL; the ADDR_EXPR form gives `w + (i*4 + 4)` (`slwi; addi 4; lhzx r0,r4,r9`) while the direct
+  `key[i].frame` gives `(w+4) + i*4` (expr.c's BLKmode/alignment special block). (2) `k`'s bb-3 set survives to cse2 only if
+  the pseudo has other uses: `k` is a function-scope pointer also assigned in loop 2 and the `num == 0` block, otherwise
+  cse1's find_best_addr rewrites `(mem k)` to `(mem (plus w 120))` and delete_trivially_dead_insns removes `k` before
+  loop.c's giv init can be cse'd to `mr r11,r10`. (3) loop 2 entry: `k = &key[num - 1]; f = k->frame;` BEFORE `if (step >
+  0)`, `f += step` inside (the `lhzx r8` is issued before the `subf.`). (4) loop 2 as a goto loop with a `u8 z = 0` in the
+  then-block: with loop notes the two byte-store zero has REG_N_REFS 5 (loop depth 2) and beats `max` (7 refs / 54 insns)
+  in global.c's priority (floor_log2(refs)*refs/len), taking r6; without notes it has 3 refs and follows `max` (r5/r6 as
+  the target). (5) `max = m->mot.maxFrame; max <<= 6;` as two statements ties the fix-conversion load to max's register
+  (`lwz r6; slwi r6,r6,6`). Also: `sth r31,4(r4)` for `key[0].frame = 0` is cse's jump equivalence (r31 == 0 after the
+  `bne`), free.
+- **msq_R0_Sequence 15 -> 0, tagged `#13 (free sched slot filler)`:** `asm("" : "=m"(fd[2]) : "m"(fd[2]))` between the
+  flagDisp[2] and flagDisp[3] chains. The `"m"` input makes it a true dependent of `stb flagDisp[2]` (ready one cycle after
+  it), the `"=m"` output a store the next `lbz 7(r11)` must follow, so it is the one insn between `stb 4262` and `lbz 4263`
+  in sched1's order and local-alloc's birth-2/death+1 rule no longer makes the chains conflict (r0/r0 like the target).
+  Variants: `"=m"(fd[2])` alone lands too early (37), `"=m"(fd[3])` 3. In ours `lis r28` fills the t=2 slot and nothing is
+  ready at t=16; what the original had there is unknown (13 sub2 placements were tried in pass 18b).
+- **t_snd_vol combine_tbl_edit 86 -> 0 (zero code):** no `s8* p`: every case is `sel->vol[work->x29]--; sel->vol[work->x29]
+  = sel->vol[work->x29] < -1 ? -1 : sel->vol[work->x29] > 31 ? 31 : sel->vol[work->x29];` (per-field tails, so jump2
+  cross-jumps only the identical `--`/`++` clamp tails of the same field, and the store is `stb 2(r10)` off `sel + x29`),
+  and the final efxCur clamp written on the field (`stbx`), not through a pointer.
+- **file_save 276 -> 37:** (1) memcpy sizes through a variable (`n = sizeof(SndRoomHdr); memcpy(p, hdr, n); p += n; size
+  = n;`, `n = sizeof(CombSel)` in the sel loop): SN's movstrsi inlines every constant size (a 24-byte/iteration loop for
+  0x240, `lwz/stw` pairs for 8), the target's `bl memcpy` + `crclr` is the libcall for a non-constant length; `li r5,8`
+  is cse afterwards. (2) `int size = 0;` at the top: the pseudo is live through the whole function (r27), and cse uses it
+  as the zero of every `sub/step/x6 = 0` store on the paths it reaches (`sth r27`) -- the one-shared-zero of pass 18b. (3)
+  `p = work->fileBuf; hdr = (SndRoomHdr*) p;` in that order (all section pointers `addi rX,r28,N` come off p). (4) The
+  offset and copy loops go through block-local pointers `CombSel* s = &work->sel[i]` / `EditTbl* t = &work->vol[i]`
+  (`lwz work; add r4,r0,r10; lbz 6(r4)`; the second `t->num` read after the `hdr->vol_ofs[i]` store reuses the pointer
+  instead of reloading `work`; `t` is the memcpy source register). Left 37 = register order only (p r29/r28, the
+  hoisted `hdr+0x140/0x1c0/0x240` pointers r4,r3,r31 vs r3,r31,r30, the loop counter r28/r29, the sel-loop `s` r9 vs r4:
+  the target has r9 occupied across the offset loops).
+- **file_load 122 -> 9:** the first loadCur switch also has `case 0: work->dest ^= 1;` (its `cmpwi r0,0; beq; b end`
+  cross-jumps into the second switch's dispatch = the target's `ble +0x180`), the `yesno` branch of case 2 carries the full
+  `sub/step/x6` tail in both arms (jump2 merges them with the `& 0x200` arm), the three colour arguments are NESTED
+  ternaries `work->sub == 1 ? (work->loadCur == k ? 6 : 0) : 0` (inner `temp = 0; if (b) temp = 6` + outer else `temp = 0`
+  = the target's two `li r5,0`), and `work->room = work->room < 0 ? 0 : work->room` (the `beq` skips only the `li`). Left
+  9: the target's `clrlwi r5,r5,24` for the `(u8)` cast of the first colour -- ours drops it (combine's nonzero_bits of the
+  constant-set temp); a `u8` local, u8-typed arms and `(u8)` on the whole expression all fold it. Not found.
+- **data_edit 152 -> 8 (zero code):** `step = 1` AFTER the two eprintfs (r6, not a callee-saved: frame 0x30/stmw r27), `TblEnt*
+  ne = &tbl->e[tbl->num]` for the new-point block (`ne[-1].dist`, `ne->val`, `stfsx f0,r31,r11`), an explicit `case 100000:
+  tbl->scale = 1000.0f; break;` beside the identical default (the dead `cmpw r9,0x186a0` survives), and every clamp as a
+  ternary (`e->val = e->val < lo ? lo : e->val > hi ? hi : e->val;`, the four dist clamps likewise). Left 8: local-alloc
+  gives the editMode temp r8/ne r10 where the target has r7/r8 (the num temp's death and ne's birth are within the
+  birth-2/death+1 window in the target's sched1 order).
+- **combine_tbl_disp 103 (analysed, not applied):** the target's `li r24,0x113; li r25,0x181` / `extsh r3,r24` (ListDraw's
+  s16 x) and `mr r3,r18; mr r4,r21` (eprintf) are `int` variables holding the x/y constants set right before each loop
+  (loop.c-hoisted from the body or declared per branch), 0xA5 stays literal; the y of loop 1 is `int yb = 0x6A + i*0x48`
+  (giv init 0x6a) plus `(i/2)*0x14` in a second statement. Those forms reproduce the visible insns but leave 103 (frame
+  address `mr r15,r22` giv copies for `col[]`/`c[]` = the #3 family, `lis pG@ha` kept inside the i loop, cursorCol
+  address register). edit_reverb_param 200 not started this pass.

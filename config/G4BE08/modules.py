@@ -800,6 +800,7 @@ MATCHING = {
     "Tools/t_rck.cpp": True,
     "Tools/db_light.cpp": True,
     "Tools/t_vib.cpp": True,
+    "Tools/t_motseq.cpp": True,
     "t_sce/t_sce_at.cpp": True,
     "t_sce/t_sce_item.cpp": True,
     "t_sce/db_light.cpp": True,
