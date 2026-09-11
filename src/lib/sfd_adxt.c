@@ -209,26 +209,6 @@ static void sfadxt_PauseOn(SFD sfd)
 	SFTST_Pause(SFADXT_TST(sfd), 1);
 }
 
-/* discard the samples of one video frame and step the time stabiliser */
-static void sfadxt_GoNextFrame(SFD sfd, SFADXT_WORK *wk, ADXT adxt, Sint32 sfreq)
-{
-	Sint32 nsmpl;
-	Sint32 total;
-	Sint32 ncount;
-	Sint32 tscale;
-	SFTST_TIME frm;
-
-	{
-		SFTIM_GetTimeOneFrmVideo(sfd, &ncount, &tscale);
-		nsmpl = UTY_MulDiv(sfreq, ncount, tscale);
-		total = nsmpl + wk->discard;
-		wk->discard = total - ADXT_DiscardSmpl(adxt, total);
-		frm.cnt = nsmpl;
-		frm.unit = sfreq;
-		SFTST_GoNextFrame(SFADXT_TST(sfd), &frm);
-	}
-}
-
 Sint32 SFADXT_Seek(SFD sfd)
 {
 	SFADXT_WORK *wk;
@@ -274,12 +254,18 @@ static Sint32 SFADXT_GetWrite(SFD sfd)
 	return SFLIB_SetErr(sfd, 0xFF000C03);
 }
 
-/* M1: the original has wk r30 / adxt r29 */
+/* the frame step of pause mode 2 is written out here (its `total` ranks below wk as an own local;
+ * tscale declared before ncount for the frame slots) */
 Sint32 SFADXT_Pause(SFD sfd, Sint32 sw)
 {
 	SFADXT_WORK *wk;
 	ADXT adxt;
 	Sint32 sfreq;
+	Sint32 nsmpl;
+	Sint32 total;
+	Sint32 tscale;
+	Sint32 ncount;
+	SFTST_TIME frm;
 
 	wk = SFADXT_WK(sfd);
 	adxt = wk->adxt;
@@ -295,7 +281,13 @@ Sint32 SFADXT_Pause(SFD sfd, Sint32 sw)
 	case 2:
 		if (sfadxt_IsDecoded(adxt)) {
 			sfreq = ADXT_GetSfreq(adxt);
-			sfadxt_GoNextFrame(sfd, wk, adxt, sfreq);
+			SFTIM_GetTimeOneFrmVideo(sfd, &ncount, &tscale);
+			nsmpl = UTY_MulDiv(sfreq, ncount, tscale);
+			total = nsmpl + wk->discard;
+			wk->discard = total - ADXT_DiscardSmpl(adxt, total);
+			frm.cnt = nsmpl;
+			frm.unit = sfreq;
+			SFTST_GoNextFrame(SFADXT_TST(sfd), &frm);
 		}
 		break;
 	}
@@ -473,8 +465,8 @@ static ADXT sfadxt_CreateAdxt(SFADXT_WORK *wk)
 /* M1: the original has wk r30 / adxt r29 */
 Sint32 SFADXT_Create(SFD sfd)
 {
-	ADXT adxt;
 	SFADXT_WORK *wk;
+	ADXT adxt;
 	SJ sj;
 	Sint32 ret;
 	SFAOAP *aoap;

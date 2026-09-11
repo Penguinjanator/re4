@@ -234,31 +234,48 @@ const Char8 *SKG_GetVersion(void)
 	return skg_version;
 }
 
+/* dead-stripped by the linker; the reference keeps skg_dmy's 8 zero bytes in .data */
+void SKG_SetDmy(Sint32 a, Sint32 b)
+{
+	skg_dmy[0] = a;
+	skg_dmy[1] = b;
+}
+
 /* one step of the key chain */
 #define SKG_MIX(k, c) (skg_prim_tbl[((k) * skg_prim_tbl[0x80 + (c)]) % 1024])
 
-/* the three keys of a stream: hex digits of the sample count fed through the prime table */
+/* the three keys of a stream: hex digits of the sample count fed through the prime table. Shapes
+ * (CRI pass 16b): `Sint16 k` (the extsh after the 7th step and on the third seed, where the backend's
+ * 100-instruction block split falls), the keys cleared through the pointers after the init check, the
+ * first two keys stored after the third seed is loaded (the stores land in the third split block) */
 static Sint32 SKG_MakeKey(Sint32 nsmpl, Sint16 *k0, Sint16 *km, Sint16 *ka)
 {
-	Char8 str[12];
-	Sint32 k;
+	Char8 str[16];
+	Sint16 k;
+	Sint16 k0v;
+	Sint16 kmv;
 	Sint32 i;
 
 	sprintf(str, "%08X", nsmpl);
 	if (skg_init_count == 0) {
 		SKG_Init();
 	}
+	*k0 = 0;
+	*km = 0;
+	*ka = 0;
 	k = skg_prim_tbl[0x100];
 	for (i = 0; i < 8; i++) {
 		k = SKG_MIX(k, str[i]);
 	}
-	*k0 = k;
+	k0v = k;
 	k = skg_prim_tbl[0x200];
 	for (i = 0; i < 8; i++) {
 		k = SKG_MIX(k, str[i]);
 	}
-	*km = k;
+	kmv = k;
 	k = skg_prim_tbl[0x300];
+	*k0 = k0v;
+	*km = kmv;
 	for (i = 0; i < 8; i++) {
 		k = SKG_MIX(k, str[i]);
 	}
@@ -269,8 +286,8 @@ static Sint32 SKG_MakeKey(Sint32 nsmpl, Sint16 *k0, Sint16 *km, Sint16 *ka)
 /* ---- ADXB ---- */
 
 static void (*ahxsetextfunc)(void *ahx, Sint16 *key);
-static void (*pl2encodefunc)(ADXB adxb, Sint16 smpl, Sint16 *out);
-static void (*pl2resetfunc)(void);
+static void (*pl2encodefunc)(ADXB adxb, Sint16 smpl, Sint16 *in, Sint16 *out);
+static void (*pl2resetfunc)(ADXB adxb);
 static Sint16 adxb_def_k0;
 static Sint16 adxb_def_km;
 static Sint16 adxb_def_ka;
@@ -282,7 +299,7 @@ void ADXB_SetAhxExtFunc(void (*func)(void *ahx, Sint16 *key))
 	ahxsetextfunc = func;
 }
 
-void ADXB_SetPl2Func(void (*encode)(ADXB adxb, Sint16 smpl, Sint16 *out), void (*reset)(void))
+void ADXB_SetPl2Func(void (*encode)(ADXB adxb, Sint16 smpl, Sint16 *in, Sint16 *out), void (*reset)(ADXB adxb))
 {
 	pl2encodefunc = encode;
 	pl2resetfunc = reset;
@@ -297,8 +314,10 @@ void ADXB_SetDefKey(Sint16 k0, Sint16 km, Sint16 ka)
 
 void ADXB_ExecHndl(ADXB adxb)
 {
-	Sint32 nbyte;
 	Sint32 nsmpl;
+	Sint32 nbyte;
+	Sint32 cur;
+	Sint32 last;
 
 	if (adxb->x98 == ADXB_TYPE_ADX) {
 		ADXB_ExecOneAdx(adxb);
@@ -315,33 +334,44 @@ void ADXB_ExecHndl(ADXB adxb)
 	}
 	if (adxb->cb_func != NULL) {
 		nsmpl = adxb->dec_nsmpl;
-		nbyte = adxb->dec_nbyte - adxb->cb_nbyte;
+		last = adxb->cb_nbyte;
+		cur = adxb->dec_nbyte;
+		nbyte = cur - last;
 		if (nbyte < 0) {
-			nbyte = (0x7FFFFFFF - adxb->cb_nbyte) + adxb->dec_nbyte;
+			nbyte = (0x7FFFFFFF - last) + cur;
 		}
 		adxb->cb_func(adxb->cb_obj, nbyte, adxb->nch * (nsmpl * 2));
 		adxb->cb_nbyte = adxb->dec_nbyte;
 	}
 }
 
+/* the samples decoded past the end of the ring buffer go back to its start */
+static void adxb_CopySmpl(Sint16 *dst, Sint16 *src, Sint32 n)
+{
+	while (n-- > 0) {
+		*dst++ = *src++;
+	}
+}
+
 void ADXB_ExecOneAdx(ADXB adxb)
 {
-	ADXPD_OBJ *pd;
-	Sint32 i;
-	Sint32 n;
-	Sint32 blksmpl;
-	Sint32 ofst;
-	Sint32 rest;
-	Sint32 nsmpl;
-	Sint32 nblk;
+	Sint32 chofst;
+	Sint32 bufsmpl;
 	Sint32 pos;
 	Sint16 *pcm;
-	Sint32 bufsmpl;
-	Sint32 chofst;
+	Sint32 pad;
 	Sint32 nch;
-	Sint32 over;
-	Sint16 *src;
+	Sint32 blksmpl;
+	Sint32 ofst;
+	Sint32 i;
+	Sint32 n;
+	ADXPD_OBJ *pd;
+	Sint32 nsmpl;
+	Sint32 nblk;
+	Sint32 nblk2;
+	Sint32 cnt;
 	Sint16 *dst;
+	Sint16 *src;
 
 	if (adxb->stat == ADXB_STAT_DECODE && ADXPD_GetStat(adxb->pd) == 0) {
 		adxb->getwr_func(adxb->getwr_obj, &adxb->wr_pos, &adxb->wr_nsmpl, &adxb->wr_x70);
@@ -354,11 +384,10 @@ void ADXB_ExecOneAdx(ADXB adxb)
 			if (adxb->xdc != NULL) {
 				pd = (ADXPD_OBJ *)adxb->pd;
 				ADXCRS_Lock();
-				n = 0;
-				for (i = 0; i < pd->nblk * 32; i++) {
+				for (i = 0, n = 0; i < pd->nblk * 32; i++) {
 					src = (Sint16 *)((Uint8 *)pd->out0 + n);
 					dst = (Sint16 *)((Uint8 *)pd->out1 + n);
-					pl2encodefunc(adxb, *src, dst);
+					pl2encodefunc(adxb, *src, src, dst);
 					n += 2;
 				}
 				ADXCRS_Unlock();
@@ -370,36 +399,26 @@ void ADXB_ExecOneAdx(ADXB adxb)
 			bufsmpl = adxb->x40;
 			chofst = adxb->x44;
 			ofst = blksmpl - 1;
-			rest = ofst;
 			ofst += adxb->wr_x70;
-			rest -= ofst % blksmpl;
+			nblk2 = ofst / blksmpl;
+			pad = (blksmpl - 1) - ofst % blksmpl;
 			nblk = ADXPD_GetNumBlk(adxb->pd);
 			nsmpl = (nblk * blksmpl) / adxb->out_nch;
-			if ((ofst / blksmpl) * adxb->out_nch <= nblk) {
-				nsmpl -= rest;
+			if (nblk2 * adxb->out_nch <= nblk) {
+				nsmpl -= pad;
 			}
 			adxb->dec_nsmpl = nsmpl;
 			adxb->dec_nbyte = nblk * nch;
 			pos += nsmpl;
 			if (pos >= bufsmpl) {
-				over = pos - bufsmpl;
+				pos -= bufsmpl;
 				if (adxb->out_nch == 2 || adxb->xdc != NULL) {
-					n = over;
-					dst = pcm;
-					src = pcm + bufsmpl;
-					while (n-- > 0) {
-						*dst++ = *src++;
-					}
-					n = over;
-					dst = pcm + chofst;
-					src = pcm + (chofst + bufsmpl);
-					while (n-- > 0) {
-						*dst++ = *src++;
-					}
+					adxb_CopySmpl(pcm, pcm + bufsmpl, pos);
+					adxb_CopySmpl(pcm + chofst, pcm + (chofst + bufsmpl), pos);
 				} else {
-					n = over;
+					cnt = pos;
 					src = pcm + bufsmpl;
-					while (n-- > 0) {
+					while (cnt-- > 0) {
 						*pcm++ = *src++;
 					}
 				}
@@ -411,55 +430,12 @@ void ADXB_ExecOneAdx(ADXB adxb)
 	}
 }
 
-void ADXB_EvokeDecode(ADXB adxb)
+/* hand the input to the expander: stereo, Pro Logic II or mono */
+static void adxb_EntryDecode(void *obj, Sint32 n)
 {
-	Sint32 blksmpl;
-	Sint32 x70;
-	Sint32 pos;
-	Sint32 bufsmpl;
-	Sint32 insmpl;
-	Sint32 nch;
-	Sint32 wr_nsmpl;
-	Sint32 ofst;
-	Sint32 rest;
-	Sint32 nblk;
-	Sint32 nblk2;
-	Sint32 n;
-	Sint32 free;
-	Sint32 pad;
-	Sint32 mod;
+	ADXB adxb = obj;
 	ADXPD pd;
 
-	blksmpl = adxb->out_fmt;
-	x70 = adxb->wr_x70;
-	pos = adxb->wr_pos;
-	bufsmpl = adxb->pcmbuf_nsmpl;
-	insmpl = adxb->inbuf_nsmpl;
-	nch = adxb->out_nch;
-	wr_nsmpl = adxb->wr_nsmpl;
-	rest = blksmpl - 1;
-	ofst = x70 + rest;
-	nblk = ofst / blksmpl;
-	free = bufsmpl - pos;
-	nblk2 = (blksmpl + free - 1) / blksmpl;
-	mod = ofst - nblk * blksmpl;
-	pad = rest - mod;
-	n = insmpl / nch;
-	if (nblk < nblk2 && pos + nblk2 * blksmpl - pad < bufsmpl) {
-		nblk2++;
-	}
-	if (x70 < wr_nsmpl) {
-		wr_nsmpl += pad;
-	}
-	if (n > wr_nsmpl / blksmpl) {
-		n = wr_nsmpl / blksmpl;
-	}
-	if (n > nblk) {
-		n = nblk;
-	}
-	if (n > nblk2) {
-		n = nblk2;
-	}
 	if (adxb->out_nch == 2) {
 		pd = adxb->pd;
 		ADXPD_EntrySte(pd, adxb->inbuf, n * 2, adxb->pcmbuf + adxb->wr_pos,
@@ -475,6 +451,48 @@ void ADXB_EvokeDecode(ADXB adxb)
 		ADXPD_EntryMono(pd, adxb->inbuf, n, adxb->pcmbuf + adxb->wr_pos, NULL);
 		ADXPD_Start(pd);
 	}
+}
+
+void ADXB_EvokeDecode(ADXB adxb)
+{
+	Sint32 n;
+	Sint32 pad;
+	Sint32 ofst;
+	Sint32 bufsmpl;
+	Sint32 x70;
+	Sint32 nblk;
+	Sint32 wr_nsmpl;
+	Sint32 nblk2;
+	Sint32 pos;
+	Sint32 blksmpl;
+
+	blksmpl = adxb->out_fmt;
+	x70 = adxb->wr_x70;
+	pos = adxb->wr_pos;
+	bufsmpl = adxb->pcmbuf_nsmpl;
+	wr_nsmpl = adxb->wr_nsmpl;
+	n = adxb->inbuf_nsmpl / adxb->out_nch;
+	ofst = blksmpl - 1;
+	ofst += x70;
+	nblk = ofst / blksmpl;
+	pad = (blksmpl - 1) - (ofst - nblk * blksmpl);
+	nblk2 = (blksmpl + (bufsmpl - pos) - 1) / blksmpl;
+	if (nblk < nblk2 && pos + nblk2 * blksmpl - pad < bufsmpl) {
+		nblk2++;
+	}
+	if (x70 < wr_nsmpl) {
+		wr_nsmpl += pad;
+	}
+	if (n > wr_nsmpl / blksmpl) {
+		n = wr_nsmpl / blksmpl;
+	}
+	if (n > nblk) {
+		n = nblk;
+	}
+	if (n > nblk2) {
+		n = nblk2;
+	}
+	adxb_EntryDecode(adxb, n);
 }
 
 Sint32 ADXB_GetDecNumSmpl(ADXB adxb)
@@ -499,7 +517,7 @@ void ADXB_Reset(ADXB adxb)
 void ADXB_Stop(ADXB adxb)
 {
 	if (adxb->xdc != NULL) {
-		pl2resetfunc();
+		pl2resetfunc(adxb);
 	}
 	ADXPD_Stop(adxb->pd);
 	adxb->stat = ADXB_STAT_STOP;
@@ -699,18 +717,44 @@ void ADXB_SetDefPrm(ADXB adxb)
 	adxb->x88 = 0;
 }
 
+/* the decoder key of a stream by its ADX version: none below 4.00, generated from the sample count
+ * from 4.10, the handle's (or the default) key for 4.08 */
+static Sint32 adxb_SetKey(ADXB adxb, Uint8 major, Uint8 minor, Sint32 nsmpl, Sint16 *k0, Sint16 *km, Sint16 *ka)
+{
+	if (major < 4) {
+		*k0 = 0;
+		*km = 0;
+		*ka = 0;
+	} else if (minor >= 0x10) {
+		SKG_MakeKey(nsmpl, k0, km, ka);
+	} else if (minor >= 8) {
+		if (adxb->key[0] == 0 && adxb->key[1] == 0 && adxb->key[2] == 0) {
+			adxb->key[0] = adxb_def_k0;
+			adxb->key[1] = adxb_def_km;
+			adxb->key[2] = adxb_def_ka;
+		}
+		*k0 = adxb->key[0];
+		*km = adxb->key[1];
+		*ka = adxb->key[2];
+	} else {
+		*k0 = 0;
+		*km = 0;
+		*ka = 0;
+	}
+	return 0;
+}
+
 Sint32 ADXB_DecodeHeaderAdx(ADXB adxb, Uint8 *buf, Sint32 bsize)
 {
 	Sint16 hdrlen;
-	Uint8 minor;
 	Uint8 major;
+	Uint8 minor;
 	Sint16 key[4];
 	Sint16 k0;
 	Sint16 km;
 	Sint16 ka;
-	Uint16 cutoff;
-	Uint16 idly;
-	Uint16 idly2;
+	Sint16 idly[2];
+	Sint16 idly2[2];
 	Sint32 err;
 
 	adxb->x02 = 1;
@@ -740,28 +784,8 @@ Sint32 ADXB_DecodeHeaderAdx(ADXB adxb, Uint8 *buf, Sint32 bsize)
 		if (ADX_DecodeInfoExVer(buf, bsize, &major, &minor) < 0) {
 			return 0;
 		}
-		err = 0;
 		key[0] = 0;
-		if (major < 4) {
-			key[1] = 0;
-			key[2] = 0;
-			key[3] = 0;
-		} else if (minor >= 0x10) {
-			err = SKG_MakeKey(adxb->total_nsmpl, &key[1], &key[2], &key[3]);
-		} else if (minor >= 8) {
-			if (adxb->key[0] == 0 && adxb->key[1] == 0 && adxb->key[2] == 0) {
-				adxb->key[0] = adxb_def_k0;
-				adxb->key[1] = adxb_def_km;
-				adxb->key[2] = adxb_def_ka;
-			}
-			key[1] = adxb->key[0];
-			key[2] = adxb->key[1];
-			key[3] = adxb->key[2];
-		} else {
-			key[1] = 0;
-			key[2] = 0;
-			key[3] = 0;
-		}
+		err = adxb_SetKey(adxb, major, minor, adxb->total_nsmpl, &key[1], &key[2], &key[3]);
 		if (err < 0) {
 			return -1;
 		}
@@ -772,27 +796,7 @@ Sint32 ADXB_DecodeHeaderAdx(ADXB adxb, Uint8 *buf, Sint32 bsize)
 		if (ADX_DecodeInfoExVer(buf, bsize, &major, &minor) < 0) {
 			return 0;
 		}
-		err = 0;
-		if (major < 4) {
-			k0 = 0;
-			km = 0;
-			ka = 0;
-		} else if (minor >= 0x10) {
-			err = SKG_MakeKey(adxb->total_nsmpl, &k0, &km, &ka);
-		} else if (minor >= 8) {
-			if (adxb->key[0] == 0 && adxb->key[1] == 0 && adxb->key[2] == 0) {
-				adxb->key[0] = adxb_def_k0;
-				adxb->key[1] = adxb_def_km;
-				adxb->key[2] = adxb_def_ka;
-			}
-			k0 = adxb->key[0];
-			km = adxb->key[1];
-			ka = adxb->key[2];
-		} else {
-			k0 = 0;
-			km = 0;
-			ka = 0;
-		}
+		err = adxb_SetKey(adxb, major, minor, adxb->total_nsmpl, &k0, &km, &ka);
 		if (err < 0) {
 			return -1;
 		}
@@ -800,11 +804,11 @@ Sint32 ADXB_DecodeHeaderAdx(ADXB adxb, Uint8 *buf, Sint32 bsize)
 		if (ADX_DecodeInfoExADPCM2(buf, bsize, (Uint16 *)&adxb->x1c) < 0) {
 			return 0;
 		}
-		if (ADX_DecodeInfoExIdly(buf, bsize, &idly, &idly2) < 0) {
+		if (ADX_DecodeInfoExIdly(buf, bsize, (Uint16 *)idly, (Uint16 *)idly2) < 0) {
 			return 0;
 		}
 		ADXPD_SetCoef(adxb->pd, adxb->sfreq, adxb->x1c);
-		ADXPD_SetDly(adxb->pd, (Sint16 *)&idly, (Sint16 *)&idly2);
+		ADXPD_SetDly(adxb->pd, idly, idly2);
 		ADX_DecodeInfoExLoop(buf, bsize, &adxb->x20, &adxb->x24, &adxb->x26, &adxb->x28, &adxb->x2c, &adxb->x30,
 		                     &adxb->x34);
 		ADX_DecodeInfoAinf(buf, bsize, &adxb->ainf_len, adxb->ainf, &adxb->def_outvol, &adxb->def_pan[0]);
@@ -818,6 +822,12 @@ Sint32 ADXB_DecodeHeaderAdx(ADXB adxb, Uint8 *buf, Sint32 bsize)
 	adxb->pcmbuf_chofst = adxb->x44;
 	adxb->x8c = 0;
 	return hdrlen;
+}
+
+/* dead-stripped by the linker; the literal stays in the .rodata pool after DecodeHeaderAdx's messages */
+const Char8 *ADXB_GetSignature(void)
+{
+	return "CRI-MW";
 }
 
 void ADXB_Destroy(ADXB adxb)

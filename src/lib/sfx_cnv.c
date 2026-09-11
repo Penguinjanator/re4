@@ -22,16 +22,25 @@ void SFX_MakeTblZ16(SFX_OBJ *sfx, SFX_FRM *frm)
 	SFXZ_MakeCnvZTbl(sfx->sfxz, frm->tblsrc, sfx->buf[0]);
 }
 
-/* COMPILER-DIFF: M1 - SFX_MakeTable's LUMI table loop: the original shares one `li r0, 0` between the
- * unroller's guard compare and the 16 zero stores and numbers the eight fp-conversion stack slots /
- * FPRs of the unrolled 1.164f loop differently (constant CSE across the unroller guard, a
- * compiler-build difference; no C spelling or pin reproduces the slot order). Pure C by project
- * decision (CRI pass 8). */
+/* the luminance table: 0 below 16, 1.164 * (Y - 16) up to 235, saturated above */
+static void sfxcnv_MakeLumiTbl(Uint8 *tbl)
+{
+	Sint32 i;
+
+	for (i = 0; i <= 15; i++) {
+		tbl[i] = 0;
+	}
+	for (i = 16; i <= 235; i++) {
+		tbl[i] = (Uint8)(1.164f * (Float32)(i - 16));
+	}
+	for (i = 236; i <= 255; i++) {
+		tbl[i] = 0xFF;
+	}
+}
+
 void SFX_MakeTable(SFX_OBJ *sfx, SFX_FRM *frm, Sint32 type)
 {
 	Bool need;
-	Sint32 i;
-	Uint8 *tbl;
 
 	need = TRUE;
 	if (sfx->tbl_type == SFX_TBL_NONE) {
@@ -83,17 +92,7 @@ void SFX_MakeTable(SFX_OBJ *sfx, SFX_FRM *frm, Sint32 type)
 		CFT_MakeYcc422ColAdjTbl(sfx->buf[0]);
 		break;
 	case SFX_TBL_LUMI:
-		i = 0;
-		tbl = sfx->buf[0];
-		for (; i <= 15; i++) {
-			tbl[i] = 0;
-		}
-		for (i = 16; i <= 235; i++) {
-			tbl[i] = (Uint8)(Sint32)(1.164f * (Float32)(i - 16));
-		}
-		for (i = 236; i <= 255; i++) {
-			tbl[i] = 0xFF;
-		}
+		sfxcnv_MakeLumiTbl(sfx->buf[0]);
 		break;
 	case 0:
 	case SFX_TBL_NONE:

@@ -1622,7 +1622,6 @@ MATCHING.update({
     "lib/adx_bau.c": True,  # CRI pass 10: ADXB_ExecOneAu16 2ch swap through a `Uint16 x` temporary `(x << 8) | (x >> 8)` gives the unroller's 15th copy as `extrwi` (the "M6" was a source shape)
     "lib/adx_stmc.c": True,  # CRI pass 10: adxstmf_create's search as `(Uint8 *)adxstmf_obj + ofst * sizeof(ADXSTM_OBJ)` with `ofst++` after the test (scaled-index IV stepped in the latch)
     "lib/mpv_cdec.c": True,  # MPVCDEC_IntraBlocks: the six blocks cleared by six calls of a static inline helper storing 32 doubles through a `Float64 **cur` cursor (the second clear base `addi r8, mpv, 0x720` follows; CRI pass 9, shape from mk-deception)
-    "lib/sfx_cnv.c": False,  # CRI pass 8 (pure-C revert): SFX_MakeTable 113w (M1: zero re-materialised after the unroller guard, fp-conversion slot/FPR order) + .rodata order (the conversion constant after the E201311 string; M2)
     "lib/sfd_cre.c": False,  # CRI pass 14: sfcre_AnalyMpv 15w (the `ofs + 1` backend temp is coloured after the b4/b7 byte variables in the target, r0, before them in ours, r4 in place of ofs) / AnalyAudio 43w / AnalyMps 28w (inlined-helper temporaries and callee-saved permutations)
     "lib/cri_cvfs.c": False,  # CRI pass 13: 11/13, cvFsGetFileSize 63w / cvFsOpen 240w (-4 bytes) (the inlined cvfs_ResolveDev: pdev above tbl, tbl materialised after strlen); cvFsAddDev fixed by kept devname/getif copies + the inlined cvfs_AddDevTbl helper
     "lib/mpv_cmc.c": False,  # CRI pass 8 (pure-C revert): MPVCMC_InitMcOiRt 8w / InitObj 17w (M1: separate member-array base `addi r5, r3, 0x124/0x158` folded into the offsets)
@@ -1760,4 +1759,9 @@ MATCHING.update({
 # DOL sweep 23b (2026-09-11)
 MATCHING.update({
     "game/emrock.cpp": True,  # emRockDropCamMove: the `up` stores written BEFORE `len` -- after the six len loads the up.x store is the 34th memory insn of the block and sched1's 32-entry pending-list flush lands on it (every later memory insn anti-depends on it, the three pool highs swap r27..r29); zero code
+})
+
+# CRI pass 16b (2026-09-11)
+MATCHING.update({
+    "lib/sfx_cnv.c": True,  # CRI pass 16b: the LUMI table loop is a static helper defined before SFX_MakeTable (its 1.164f literal and int->float constant are created before MakeTable's strings; the inlined helper's `i` shares the zero `li` and takes r4) and the conversion is `(Uint8)(1.164f * ...)` without the (Sint32) cast (the fctiwz slot/FPR order); pure C
 })

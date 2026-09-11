@@ -3871,6 +3871,92 @@ except MPVMC16 H2 case 0's last byte (`lbz s[16]`, not `words[4] >> 24`) and the
 NOT Matching, objects.py untouched); src/lib/mpv_mc.c: header comment only (asm kernels kept, unit IDENTICAL,
 111/111 OK). The 8x8 C candidates were not committed (not identical).
 
+### CRI pass 16b: block splitting, the pass pipeline and the size gaps (sfx_cnv Matching; adx_bsc 31 -> 34/36 + .text/.rodata/.data sizes; sfd_adxt 22 -> 23/28; pure C, no pins; 2026-09-11)
+Harness /home/adityas/.cache/cri16b/ (deleted): `bld.sh lib/unit` (exact ninja command + bytecmp), `fd.py`
+(fdiff without ninja), `tryvar.py lib/unit variants.py FUNC.. [--show L] [--keep L]` (text-replacement variants,
+~0.3 s each), `passes.sh SRC FUNC` (which backend passes the mwcc-debugger recorded for a function), a
+mk-deception clone (its adx_bsc gave two facts: `key_text[16]`, `skg_signature[12] = "CRI-MW"`, and the
+4-argument `pl2encodefunc(decoder, *left, left, right)`). ~/.cache/mwccdbg reused; every claim below was
+read off a dump or a variant build.
+
+**Read off the dumps (verified):**
+- **The backend splits a basic block before a statement once the block holds > 100 instructions** (adx_bsc
+  `ADXB_DecodeHeaderAdx`, backend-00: B18 112 / B19 103 / B20 83 instructions, `:{4000}` flag). The split
+  points are visible in the bytes: a `Sint16` variable whose value crosses the split gets its `extsh` there
+  (`extsh r30, r12` after the 7th key step, `extsh r12, r12` on the third seed: the peephole removes an
+  `extsh` after `lha` only inside a block), a store placed after the split cannot be hoisted above it by the
+  scheduler, and a frontend CSE temp first used after the split is loaded after it (the 8th factor `lbz
+  0x3b(r1)` late). Consequences used: `Sint16 k` for the chain variable (1009 -> 556w), the first two key
+  stores written after `k = skg_prim_tbl[0x300]` (they land in the third block: `extsh; sth k0; mullw; sth
+  km` = the target's fill pattern; two `Sint16` result locals — a third local pushed the helper over the
+  auto-inline size and it stopped being inlined).
+- **`if (helper(..) < 0) return -1;` with a constant-returning inlined helper is folded by the frontend;
+  `err = helper(..); if (err < 0) return -1;` keeps `li r0, 0; cmpwi r0, 0; bge`** — the backend's constant
+  propagation replaces the operand but folds only the eq/ne branch (pass 14b's `!= 0` case). The
+  key-selection if/else chain of DecodeHeaderAdx is `static Sint32 adxb_SetKey(adxb, major, minor, nsmpl,
+  k0, km, ka)` with one `return 0` at the end (arms that `return 0` each give a `li` per arm, V1); its
+  parameters put the `lbz minor` and `lwz total_nsmpl` loads in the first block (the target's hoisted loads).
+  `SKG_MakeKey` clears the three keys through the pointers after the init check (the AHX path's `sth r0`
+  zeros; the non-AHX path promotes them to registers and drops the dead stores).
+- **The backend chooses its pass list per function**: the mwcc-debugger records CSE / constant-propagation /
+  load-deletion for some functions (ADXB_ExecHndl, ADXB_GetOutBps, DecodeHeaderAdx: the "-O4" breakpoint
+  group), loop passes + a POST-regalloc CSE for others (ExecOneAdx: `addi r0, r24, -1` after `addi r23, r24,
+  -1` -> `mr r0, r23`), and none for EvokeDecode / ADXB_Stop / every small probe (13 passes). Probe f12: a
+  reload of the same address in another block (`if (s->d != 0) o = s->d;`) is enough to bring the CSE pass in;
+  a loop, calls, an if/else chain, a switch are not. The target's EvokeDecode has the post-RA CSE copy (`mr
+  r6, r8` = `blksmpl - 1` reused for `pad`), ours never gets the pass — the trigger for that function is
+  unknown (OPEN, 22w left).
+- **EADDASS operand order**: `o += X` emits `add o, o, X` for every leaf/expression rhs tried (load, variable,
+  cast, substituted local, `-= -X`, `= o + X`); only a SUM rhs `o += A + B` emits `add o, A, o; add o, B, o`.
+  `o = X + o` is range-split (a new register, the `rest = o` copy propagated). The target's `add ofst, x70,
+  ofst` with the copy kept (ExecOneAdx 1w, EvokeDecode) is therefore an unsplit two-def `ofst` updated with
+  the rhs first — no C spelling found (30 forms incl. nested assignments, `register`, Uint32, zero terms
+  (folded by the frontend, or kept as a second add when a parameter)).
+- Frame layout of scalars/arrays (DecodeHeaderAdx, 0x60 frame): objects are laid out by SIZE class
+  descending from the top (16-byte `str[16]` x2 in inlining order, 8-byte `key[4]`, 4-byte `idly[2]`/`idly2[2]`,
+  2-byte `hdrlen`, 1-byte `major`/`minor`), within a class in declaration order top-down. `ADXPD_SetDly`'s
+  delays are `Sint16 [2]` arrays (mk-deception's `delay_left[2]`).
+- ExecHndl: `nsmpl` coloured before the subtraction operands = the operands are OWN locals declared after it
+  (`nsmpl, nbyte, cur, last`; `last = cb_nbyte; cur = dec_nbyte;` in that load order), not the frontend's CSE
+  temps of `dec_nbyte - cb_nbyte` (which outrank every own local). `ADXB_Stop`: `pl2resetfunc(adxb)` takes the
+  handle (the `lis r4` skips the live r3).
+- ExecOneAdx / EvokeDecode: `pad = (blksmpl - 1) - ofst % blksmpl` recomputes `blksmpl - 1` (the post-RA CSE
+  makes the `mr r0, r23` copy in ExecOneAdx); `nblk2 = ofst / blksmpl` as a single-use local is substituted
+  past the GetNumBlk call and keeps the `mullw div, nch` operand order; `pos -= bufsmpl` in place (no `over`);
+  the two stereo copies through `static adxb_CopySmpl(dst, src, n)` (dst r4 / src r5), the mono copy written
+  out with `pcm` (the helper's dst copy is not coalesced with the dying pcm); `for (i = 0, n = 0; ..)` for the
+  `li i; li n` order; declaration order chofst, bufsmpl, pos, pcm (level 2: r31..r28 above adxb r27), pad, nch,
+  blksmpl, ofst, i, n, pd (level 1: r26..r23, the loop reusing r23..r25). EvokeDecode's arms in a `void *obj`
+  helper (`ADXB adxb = obj`: the frontend CSE no longer merges the arms' `adxb->wr_pos` with the caller's `pos`
+  — the target reloads them).
+- **sfx_cnv (Matching)**: the LUMI table loop is `static sfxcnv_MakeLumiTbl(Uint8 *tbl)` defined before
+  SFX_MakeTable (its 1.164f literal @206 and the int->float 0x43300000 constant @208 are created before
+  MakeTable's strings @367/@504 — the .rodata order; the inlined helper's `i` is a @temp, so the backend CSE
+  shares the guard's `li r0, 0` with the 16 zero stores and `tbl`/`i` take r3/r4) and the conversion is
+  `(Uint8)(1.164f * (Float32)(i - 16))` WITHOUT the `(Sint32)` cast (the fctiwz FPR/slot order of the 8x
+  unrolled loop; the cast form was the pass-8 "M1"). The same helper does NOT help sfx_zmv's
+  `MakeOrgZ32TblByCCIR` (74 -> 99w; its loop is already cast-free: the target computes the eight `i - k`
+  up front — a different DAG, OPEN).
+- sfd_adxt `SFADXT_Pause` (12 -> 0): the frame step written out in case 2 (`sfadxt_GoNextFrame` removed) so
+  `total` is an own local below `wk` (as a helper local it outranked wk: wk r29 / adxt r30), `tscale` declared
+  before `ncount` (frame 0xc/0x8). `SFADXT_Create` 20w: `adxt` is the inlined `sfadxt_CreateAdxt`'s @ret
+  (r40, above wk r36); written-out forms change the control flow (28w) — OPEN.
+- adx_bsc data: `.data` 8 = an 8-byte zero-initialised static (`skg_dmy[2]`) kept only because a (dead)
+  function references it (strip_unused counts references from dead functions in MWCC units); `.rodata` +0xd =
+  the literal `"CRI-MW"` (@1118 in Bio4.sym, 4-aligned after the two error strings) in a dead function
+  defined after DecodeHeaderAdx (`ADXB_GetSignature`); the target's `...rodata.0_80228808` (0x2d) is our
+  `skg_version` — a name note only.
+- Hazards this pass: `s.index()` on a function NAME finds the prototype first — two source files were
+  duplicated/destroyed by `s[:a] + s[b:]` slices with b < a (restored from the backup / `git show HEAD:`);
+  compiling a 2.29M-line file hangs mwcc (killed). bld.sh's eval swallowed compile errors once (a stale
+  object then reported the previous word count): check `rror` in the output.
+
+**Applied:** sfx_cnv (Matching, 111 OK), adx_bsc 31 -> 34/36 (DecodeHeaderAdx 1009 -> 0, ExecHndl 7 -> 0,
+Stop 2 -> 0, ExecOneAdx 212 -> 1, EvokeDecode 94 -> 22; .text 0x1888 = target, .rodata pad, .data OK),
+sfd_adxt 22 -> 23/28 (Pause 12 -> 0). Not reached: adx_dcd5, cri_cvfs, adx_baif, dct_ac, cftfx (its .text
+order is already the target's; cnvDynamic..UserTable 135w is a structural `mr`-copy shape), sfd_adxt
+ExecServerSub/AdjustSync/SetSpeed/ExcludeHdr.
+
 ## REL modules
 
 The game loads its rooms, enemies, weapons and debug tools as Nintendo REL overlays. `ninja` rebuilds the
@@ -19093,3 +19179,98 @@ the end. 111 OK before and after every edit (the shared `ninja` settled this pas
   three moves fixes init (8), the LookDownEm ctor (4) and the two dtors (1) for free.
 - Not iterated: em_set (10/12: EmSetEvent/EmSetFromList2 73/74, the sweep-8 asm-pool-high family), Espgen43 SetSandWork (44,
   global-alloc rotation of the first strip loop), em_cloth Em18ClothSet (47), the cam_extra moves and CameraBinocular ctor (31).
+
+### CRI paired-single kernels pass 2: MWCC 2.4.7 has no paired-single intrinsics; mpv_umc PpicSkipMb asm -> C, Forward/Backward/BiDirect 0w (11 -> 14/16), OneReadMb 91 -> 72w, Intra 35 -> 16w (2026-09-11)
+Harness /home/adityas/.cache/cri_ps2/ (deleted): `try.sh unit file.c [FUNC]` (CRI-flag compile of any source to a
+scratch object + `bytecmp.py` with `OBJ=`), `tryvar.py unit variants.py FUNC [--base file.c]`, `fd.py unit FUNC [obj]`
+(side-by-side objdump target | ours), `pc.sh file.c` (compile + dtk disasm of a probe); ~/.cache/mwccdbg reused
+(NOTE: tools/fdiff.py ALWAYS rebuilds and reads the tree object -- it ignores `OBJ=`; use bytecmp `<unit> FUNC` or
+fd.py for a variant object).
+
+**The compiler question, settled by probes (do not re-test):**
+- MWCC 2.4.7 build 108 (GC/2.7; also 2.6, and every 3.0a/Wii build we have) has NO paired-single C intrinsics.
+  `__PSQ_L/__PSQ_LU/__PSQ_ST/__PS_ADD/__PS_MERGE00/__PS_SEL...` (any case) compile as implicit `int` functions (`bl`
+  + the 0x4330 int->float conversion); the compiler binary's only `PSQ_*`/`PS_*` strings are the inline assembler's
+  mnemonic table; its builtins are `__abs __fabs __fnabs __frsqrte __alloca __cntlzw __lhbrx __lwbrx __sthbrx
+  __stwbrx __dcbf __dcbt __dcbst __dcbtst __dcbz __mulhw __mulhwu __divw __divwu __fmadd(s) __fmsub(s) __fnmadd(s)
+  __fnmsub(s) __fsel __mffs __fres __setflm __sync __isync __eieio __rlwimi __rlwinm __rlwnm __memcpy __strcpy`
+  (no mtspr/GQR access).
+- `__vec2x32float__` IS a first-class C type with operators: `a + b`, `a - b`, `a * b`, `a * b + c` (ps_add/ps_sub/
+  ps_mul/ps_madd with fp_contract), `*(__vec2x32float__ *)p` loads/stores -- but every load/store is `psq_lx/psq_stx
+  ... 0, qr0` with the offset materialised in a register (`li r0, 8; psq_lx f0, r3, r0, 0, qr0`; never the
+  displacement form, never `psq_lu/psq_stu`, never another GQR), unary minus is an internal compiler error
+  (Operands.c 635), `__fsel`/`__fabs` on it are "illegal operation", and there is no merge/sum/sel spelling. Every
+  kernel here uses quantised GQR3/4/5/7 stores, update forms, ps_merge and ps_sel: NO C spelling exists for them in
+  this compiler. The asm bodies of mpv_umc `mpvumc_BiMakeMb/OneMakeMb/OutputIntra6blk/MPVUMC_SetGqr` (mtspr),
+  cftyp422_ppc `cnvDynamic/cnvStaticYcc420plnToArgb8888` and dct_fsri `DCT_FsriTransCore`/`DCT_FsriSetGqr` are the
+  final source form. (The cftyp422 converters carry compiler fingerprints -- spill slots, a .bss pool base, GQR
+  save/restore, psq_st register saves -- so CRI built that unit with a compiler that had intrinsics; the 3.0a3/3.0a5
+  builds we have make its C functions far worse (0/8), so nothing to switch to.)
+- Inline asm and the compiler: with `#pragma scheduling` ON, asm instructions are scheduled but a C statement never
+  moves INTO an asm block's instruction stream: `do { asm {..stores..} } while (--cnt > 0)` gives the target's `li 4 ..
+  subic. cnt, cnt, 1; bgt` loop shape exactly (`for (cnt = 4; cnt > 0; cnt--)` is fully UNROLLED, 4 copies), but the
+  `subic.` lands after the asm's last store, where dct_fsri's target has it between the last two stores (both
+  loops) -- so its counters/pointer steps stay inside the asm (dct_fsri kept exactly as pass 9 left it, Matching
+  before/after; 111 OK). `for (;;) { asm{}; if (--cnt <= 0) break; src -= 54; dst -= 0x6c; }` gives the target's
+  `subic.; ble; subi; subi; b` tail.
+
+**mpv_umc 11 -> 14/16 (132 -> 88w), pure C, no pins:**
+- `mpvumc_PpicSkipMb` (359 asm lines) is C: `p = ref->cpitch / 8` (doubles per row, `srawi; addze`), `if ((ofs[0] &
+  0x1f) == 0)` the dcbz path, else plain; four/sixteen macro-unrolled steps `__dcbz(d, 0); a = s[0]; __dcbz(d, p * 8);
+  b = s[p]; s += p * 2; d[0] = a; d[p] = b; d += p * 2` (chroma: two rows per step, `s[p]` = `lfdx s, p<<3`, the
+  `p*8`/`p*16` shifts CSE'd once) and `__dcbz(d, 0); a = s[0]; b = s[1]; s += p; d[0] = a; d[1] = b; d += p` (luma),
+  `ofs[0]`/`ofs[1]` re-read per plane (the target reloads them after the stores), `s` assigned BEFORE `d` in every
+  block, declaration order `p, s, d, a, b` (p r9 above d r10; `s, d, .., p` swaps them), and the scheduler ON (the
+  interleaved `slwi` pitch shifts and the last row's swapped `lfd f1; lfd f0` are the scheduler's; the asm
+  transcription had needed `scheduling off`). `__dcbz(base, offset)` emits `dcbz base, rOff` / `dcbz r0, base` for 0.
+  The dead final `s +=`/`d +=` of each block are deleted by the compiler.
+- Forward/Backward/BiDirect 2w -> 0w: the output block pointers are a struct `MPVUMC_OUTBLK { Sint32 ccnt; MPVCMC_REF
+  rt[6]; }` at 0x120 and the wrappers write `ob = &mpv->outblk;` AFTER the OneReadMb call (the block of the stores)
+  and store through `ob->rt[i].p`, passing `ob` to the kernel: add-propagation (same-block rule, pass 14b) folds the
+  stores back to `0x124(mpv)`.. and the `addi r4, r31, 0x120` DEFINITION stays where `ob` is assigned -- before the
+  `mr r3, wk` argument move in the RTL, which is the target's order of the two hoisted argument setups. A one-use
+  `(MPVCMC_REF *)&mpv->ccnt_rt` argument or an `rt` local used only as the argument is propagated into the call (r3
+  first). Rule: to put an address argument's `addi` ABOVE an earlier argument's `mr`, make it a pointer local defined
+  in the stores' block and used by the stores too.
+- `mpvumc_OneReadMb` 91 -> 72w: declaration order = the target's callee-saved order `cpitch r31, ypitch r30, cpos r29,
+  ypos r28, mc r27, fn_c r26, fn_y r25, yhx, chx` then `src, cvy, cvx, vy, vx, mby, mbx, tbl_c, tbl_y, mcflag` (the
+  tail changes the volatile temporaries: 79 -> 72w), and `chx = cvx & 1; yhx = vx & 1; chx &= mcflag; yhx &= mcflag;`
+  (two definitions: the `and`s are emitted before the first call and one callee-saved register fewer -- `stmw r21`
+  like the target; the one-definition `yhx = (vx & 1) & mcflag` is propagated into `src + ypitch + yhx` after the
+  second call with `mcflag` kept in r28 across both calls). Residue 72w = register naming from ONE frontend
+  difference: the target computes the kernel-table index `clrlslwi r12, vx, 31, 2` straight from `vx` and yhx's
+  `clrlwi r24, vx, 31` separately, then `and r24, r24, r8` in place (one node, r24 above chx r23 / rfb r22 / dst r21);
+  ours CSEs `vx & 1` between the index and yhx (`@184`), so yhx's first definition is a temporary and the two-def
+  variable is range-split, coloured below the parameters (r21). `(Uint32)`, `% 2`, `(x << 31) >> 31`, `!= 0`,
+  `(vx & mcflag) & 1`, `vx & (mcflag & 1)`, statement order before/after the table lookups: all still CSE (86-91w).
+- `MPVUMC_Intra` 35 -> 16w via `ob`. Residue (dump-read, exact): the target's yofs is an UNPROPAGATED one-definition
+  node (`slwi r8, r6, 4` mbx16; `mullw r7, r7, r10` y16*yp; `add r7, r8, r7` yofs in place of the dying rB; `lwz r6,
+  0x29c; add r6, r6, r7`), and the mpv copy is coloured first (r5: degree >= 29 in iteration 1). Ours propagates
+  `yofs` into `pln2 + yofs` whatever the spelling (casts, `&pln[yofs]`, operand order, `Uint32`, an inline helper
+  with `yofs` as parameter) and reassociates it to `(y16*yp + pln2) + mbx16` (16w: r6/r7, r8/r9 swapped temporaries);
+  the two-definition `yofs = mbx*16; yofs += y16*yp` keeps it a node but MERGES mbx16 and yofs (one node fewer: mpv
+  28 neighbours, removed in iteration 1, coloured last -> r10, 33w).
+
+**cftyp422_ppc (2/8, unchanged) -- the mechanisms, so nobody re-tries them:**
+- `.rodata 0x88/0x8c` and `cnvStatic` 2w are ONE thing: the target's cnvStatic loads the unit's pooled 255.0f literal
+  (`@494` at .rodata+0x50, shared with the table makers' CLIP255) with `lis r5, @494@ha; lfs f21, @494@l(r5)`; inline
+  asm cannot name a compiler literal, and a named `static const Float32` is placed AFTER the whole literal pool
+  (0x88) even when it is referenced first (the table makers using it instead of `255.0f` also leave it at 0x88). A
+  `register Float32 alp = 255.0f` used as the asm's f21 operand does pick f21 (first free callee-saved FPR below the
+  asm's hard f22..f31) but the address temporary takes r14 (every volatile is poisoned by the asm's hard GPRs ->
+  `stmw r14`) and `#pragma peephole off` (needed by the transcription) leaves `lis; addi; lfs 0(r)` unfolded.
+- `.bss` order (cr_r +4, cr_g +0x404, cb_b +0x804, cb_g +0xc04, y +0x1020, CFT_dummy +0x1420 in the target; ours
+  CFT_dummy +4, y, cb_g, cb_b, cr_r, cr_g) = first-reference order in CODEGEN: asm operand references count
+  (gqr_save is first in both because cnvDynamic's asm names it), a dead `if (0)` reference does not, unreferenced
+  objects follow in declaration order. The target's order is cnvStatic's C referencing the five tables through the
+  gqr_save-based .bss POOL (`addi r9, r3, 0x4 .. addi r11, r3, 0x1020`, no relocations) before Init; our asm
+  transcription reproduces those addi's as immediates, so the tables' first references are Init's. There is no
+  code-free way to reference a symbol from C, and an asm `@ha/@l` reference adds relocations the target lacks.
+  Init's 24w are these pool offsets plus i r5 / cr_g-IV r10 (the target colours `i` before the fifth induction
+  pointer).
+- The table makers' 8/8/9w are prologue interleaving ties (target `lfs; addi cb; lfd; addi cr; lfs; li i; lfs; lis`
+  alternating FP loads and the `tbl + 0x1000/0x2000` bases; ours groups the addi's first) -- LICM/CSE creation
+  order, no shape found. `CFT_Ycc420plnToY84C44` 179w: identical instruction stream, callee-saved permutation (d r26,
+  y0 r27, y1 r25, y2 r23, y3 r12 volatile, yskip r21, dskip r22, hblk r24 in the target); its dump has the second
+  loop's fourteen >= 29-degree values (c, crp0..3, cbp0..3, cbv, crv, ccnt, o1..o3, i) removed one at a time as spill
+  candidates (cost order, not id order) -- not a declaration-order problem, left.
