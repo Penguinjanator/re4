@@ -2714,18 +2714,24 @@ void GetDropBullet(int* id, int* num)
             if (Rnd() % 10 > 5) {
                 n = 0;
             }
+            *id = i;
+            *num = n;
+            return;
         } else if (r <= 0x5E) {
             i = 7;
             n = 3;
             if (Rnd() % 10 > 7) {
                 n = 0;
             }
+            *id = i;
+            *num = n;
+            return;
         } else {
             i = 1;
+            *id = i;
+            *num = n;
+            return;
         }
-        *id = i;
-        *num = n;
-        return;
     } else if (pG->flags_54 & 0x40000000) {
         r = Rnd() % 100;
         switch (pG->x4FB8) {
@@ -2737,6 +2743,10 @@ void GetDropBullet(int* id, int* num)
                 return;
             }
             if (r <= 0x59) {
+            // One copy of the handgun-ammo body: the third branch's `r <= 0x13` arm jumps here (the
+            // original's three `bne` land on this block; a duplicated body is cross-jumped arm by arm
+            // and its head survives).
+            ammo18:
                 i = 0x18;
                 if ((Rnd() & 0xF) != 5) {
                     n = 5;
@@ -2746,32 +2756,45 @@ void GetDropBullet(int* id, int* num)
                 } else {
                     n = 0;
                 }
+                *id = i;
+                *num = n;
+                return;
             } else {
                 i = 1;
                 *id = i;
                 *num = 0;
                 return;
             }
-            break;
         case 2:
             if (r <= 0x1D) {
+                *id = i;
+                *num = n;
+                return;
             } else if (r <= 0x40) {
                 i = 0x20;
                 n = 25;
                 if (Rnd() % 10 > 5) {
                     n = 0;
                 }
+                *id = i;
+                *num = n;
+                return;
             } else if (r <= 0x54) {
                 i = 2;
                 n = 0;
+                *id = i;
+                *num = n;
+                return;
             } else {
                 i = 7;
                 n = 3;
                 if (Rnd() % 10 > 7) {
                     n = 0;
                 }
+                *id = i;
+                *num = n;
+                return;
             }
-            break;
         case 3:
             if (r <= 0x4A) {
                 i = 0x20;
@@ -2779,10 +2802,15 @@ void GetDropBullet(int* id, int* num)
                 if (Rnd() % 10 > 5) {
                     n = 0;
                 }
+                *id = i;
+                *num = n;
+                return;
             } else {
                 i = 1;
+                *id = i;
+                *num = n;
+                return;
             }
-            break;
         case 4:
             if (r <= 0x4A) {
                 i = 0x72;
@@ -2790,13 +2818,20 @@ void GetDropBullet(int* id, int* num)
                 if (Rnd() % 10 > 5) {
                     n = 10;
                 }
+                *id = i;
+                *num = n;
+                return;
             } else {
                 i = 0xE;
+                *id = i;
+                *num = n;
+                return;
             }
-            break;
         case 5:
             if (r <= 0x18) {
-                break;
+                *id = i;
+                *num = n;
+                return;
             }
             if (r <= 0x45) {
                 i = 0;
@@ -2810,10 +2845,13 @@ void GetDropBullet(int* id, int* num)
                 if (Rnd() % 10 > 7) {
                     n = 0;
                 }
+                *id = i;
+                *num = n;
+                return;
             } else if (r <= 0x59) {
                 i = 1;
                 *id = i;
-                *num = n;
+                *num = 0;
                 return;
             } else if (r <= 0x5E) {
                 i = 0xE;
@@ -2826,11 +2864,7 @@ void GetDropBullet(int* id, int* num)
                 *num = 0;
                 return;
             }
-            break;
         }
-        *id = i;
-        *num = n;
-        return;
     } else {
         n = ItemMgr.bulletNumTotal(4);
         r = Rnd() % 100;
@@ -2860,20 +2894,10 @@ void GetDropBullet(int* id, int* num)
         r = Rnd() % 100;
         if (r <= 0x13) {
             if (ItemMgr.num(0x2C) || ItemMgr.num(0x2D) || ItemMgr.num(0x94)) {
-                i = 0x18;
-                if ((Rnd() & 0xF) != 5) {
-                    n = 5;
-                    if (Rnd() % 10 > 4) {
-                        n = 3;
-                    }
-                } else {
-                    n = 0;
-                }
-                *id = i;
-                *num = n;
-                return;
+                goto ammo18;
             }
         }
+
         if ((u32) (r - 0x14) <= 0x13) {
             if (ItemMgr.num(0x2E) || ItemMgr.num(0x2F)) {
                 i = 7;
@@ -3029,12 +3053,19 @@ void GetDropBullet(int* id, int* num)
             return;
         }
     fallback:
-        // Zero first, then the conditional 20: the two `Rnd() % 3` sites above then only share the
-        // final `*num` store (as in the original) instead of being cross-jumped into one block.
+        // `li r0,0; ble; li r0,0x14; stw`: jump.c's post-reload "if (..) x = a; else x = b" hoist, after
+        // the then-arm's store cross-jumped into the else arm's store (a fresh label, so the two
+        // `Rnd() % 3` sites above keep their own `li r0,0`). A plain `*num = 0` else arm is matched
+        // two insns deep by those sites first, which pins their jumps on the else label and blocks the
+        // hoist; the asm-emitted zero (no REG_EQUIV note, hard r0) is compared as a different insn.
+        // COMPILER-DIFF: candidate (jump2 cross-jump order vs the x = a / x = b hoist)
         *id = 4;
-        *num = 0;
         if (pG->stage_no > 1) {
             *num = 20;
+        } else {
+            register int z asm("r0");
+            asm("li %0,0" : "=r"(z));
+            *num = z;
         }
     }
 }

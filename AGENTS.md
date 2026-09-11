@@ -25617,3 +25617,39 @@ Scratch /home/adityas/.cache/tev3/: `hv.sh <dbg_tool.h variant> [t_event src]` j
   Both point at the same thing: in the original the `(y + i) * 14` of the sub-rows is not the head's expression at loop.c time (a
   copy/temp structure different from writing `(y + i) * 14` in every row). `c` reused as the OFF colour (`c = 7 / c = col`) = 117
   words, wrong direction. The `x + 19` second use and the r16..r31 save (one more callee-saved value, `x` in r16) remain OPEN.
+
+### Tool RELs, t_id pass 5 (continued: idEditColor, toolIdOption, idEditUnit, toolIdInit, toolIdEditDisp)
+
+- idEditColor 132 -> 0, pure C. Mechanisms: (a) `const char** tbl3 = onOffName3` as a VARIABLE base for the inner
+  `for (j = 0; j <= 1; j++)` keeps the biv j alive (`cmpwi j,0`, `lwzx`): loop.c `maybe_eliminate_biv` needs a giv with
+  CONSTANT add_val to replace a compare-vs-constant; a symbol base gets the biv eliminated. (b) `u32 ofs = j * 4;` used
+  twice (`*(const char**)(ofs + (u32) tbl3)` and `x + 0x40 + ofs * 8`) gives one giv with two uses -> `lwzx rOfs,rTbl` +
+  `addi rOfs,rOfs,4`. (c) `int x2;` declared at the outer scope (with `step`) gets the earlier pseudo regno -> the earlier
+  reload spill slot; `x1`/`y2` declared in the inner block. (d) `(int) ((f32) yy + 2.8f)` inline instead of `fy = (f32) yy`
+  so `x + 0x40` is hoisted before the 0x4330 int->float constant materialisation (LUID order of the loop invariants).
+  Inner loops `int col = 7; if (..) col = 0;` (not ternary) and `(j != 0) != ((d->x109 >> 2) & 1)` for the on/off compare.
+- toolIdOption 65 -> 12, pure C. Mechanisms: (a) loop.c move_movables threshold `thr * sav * life >= ic` (LOOPDBG prints
+  `[thr sav life ic]`); thr drops by 3 per moved insn, so short-lived single-use invariants stay in pass 1 and move in
+  pass 2 (`-frerun-loop-opt`, smaller ic) -> they land AFTER the giv inits in the preheader. `mx = cx - 1` / `vx = cx +
+  0xC` (cx set before the loop) right before their uses reproduces the target's late `addi` hoists; pre-loop `mx = 0x22;
+  vx = 0x2F` hoisted too early. (b) cse1 ebb rules: a set placed after the if-join label is folded into the switch cases
+  (cse follows a conditional jump when the target label has one use and is preceded by a BARRIER, i.e. case blocks after
+  `b end`), so `sx/r1/r2` go right after the first eprintf, before the `if`. `mx = sx - 0xC` at body top folds to
+  `li 0x110` because sx is known in the same ebb; compute from cx instead. (c) `i == optCur` operand order (not
+  `optCur == i`). (d) `for (i = 0, sx = 0x2E; ...)` for the second loop. Residues (12w): `lbz lang2`/`lbz lang` load
+  order (ours' lang load has an extra dependent, the `stb` in the if-body, so haifa's "more dependents first" schedules
+  it earlier); `optMenuName` giv-init `lis` early (~8w): `simplify_giv_expr` REG case substitutes an invariant movable
+  only when its single_set src is PLUS/MULT/ASHIFT/CONST_INT/SYMBOL_REF or a consec group with REG_EQUAL; the `(lo_sum)`
+  movable is rejected -> add_val = reg -> `mr` merged by combine -> early `lis`. Writing `w->lang != w->lang2` (swapped)
+  adds an `extsb` (shorten_compare asymmetry, `w->lang2 != w->lang` emits none): not a lever.
+- idEditUnit 15w (pre-existing `register JOY* joy asm("r11")` pin kept). Target `stb r10,0x5d` stores the QI editStep
+  LOAD (cse knows load == 2 via record_jump_cond on the paradoxical-subreg compare) while ours stores the SI zero-extended
+  pseudo, which keeps the ext live to the end and shifts r0/r9/r10/r11. `w->grpSw = w->editStep;` reloads editStep
+  (`lbz r0,0x3`) -> 33w, worse. Shape not found.
+- toolIdInit 12w: `lbz r9/li r11,1` register swap and the 11-store block order after `w->lang2 = w->lang` (target: 0x1c,
+  0x5f, 0x17a, 0x17b, 0x5c, 0x18, 0x1e, 0x28, 0x14, 0x24 = source order with `level` before `x24`; ours puts the dying-
+  register stores 0x5f/0x5c first). Not attempted beyond reading.
+- toolIdEditDisp 4w: `li r24,0xc` before/after `cmpwi r0,0` and `addi r7,SYM@l` before/after `li r3,0x128` (sched2 ties).
+  `row = (w->dispTop == 0) ? 0x13 : 0xC;` produces the same code as the if-form here (no lever).
+- mdiff.py note: ours' listings show `beq .text+0x...` for static-function branch targets and `bl .L` for unresolved
+  relocs; mask both before diffing.
