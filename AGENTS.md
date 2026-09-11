@@ -3,6 +3,32 @@
 Goal: C/C++ source that compiles to a byte-identical `main.dol`. The build already reproduces the
 original DOL from split objects; every unit you match replaces one split object with compiled code.
 
+## START HERE — finish mode (2026-09-11)
+
+This file is 19k lines; do NOT read it end to end. Read this block, "Facts you need", "Workflow",
+"Don'ts", then only the sections named in your task prompt plus the latest 2–3 sections of your
+family (find them with `rg -n '^### ' AGENTS.md | tail -60`). Everything else is reference: `rg` it
+when a mechanism name comes up.
+
+Rules of the day:
+- Build: `flock /home/adityas/Projects/re4/build/.ninja.lock ninja <targets>`; never run configure.py
+  by hand; judge with `python3 tools/bytecmp.py <mod>/<unit>` (IDENTICAL or the per-function word
+  list); `python3 tools/fdiff.py <mod>/<unit> <sym>` for the side-by-side.
+- Time box: per function, at most ~20 minutes of zero-code (structural) search — prototypes vs
+  headers, size/order/rodata/vtable gaps, statement/declaration order, inline boundaries, the body
+  census. Then APPLY a tagged form (`// COMPILER-DIFF: <item>`): register pins `register T x asm("rN")`,
+  asm launders/anchors/keep-alives, an asm-emitted single instruction or pool constant, a dead
+  statement. MWCC units: `register` locals, `asm { mr rN, v }` pins, pragmas. Byte identity today
+  beats tag purity; tags can be hunted later. Never a whole-function asm body, never `.s`. The
+  paired-single kernels (dct_fsri, cftyp422_ppc, mpv_umc Bi/OneMakeMb/OutputIntra6blk/SetGqr) stay
+  asm: MWCC 2.4.7 has no paired-single intrinsics, so that is the original form.
+- Several agents may edit ONE FILE at once, each owning a set of FUNCTIONS. Edit only your functions
+  (surgical StrReplace, re-read before each edit). If the unit does not compile because of another
+  agent's half-written function, wait a minute and retry; never revert their code.
+- Flip = bytecmp IDENTICAL + (REL) `python3 tools/make_rel.py --verify` + `MATCHING` flag +
+  `flock ... ninja -k 0` + `build/tools/dtk shasum -c config/G4BE08/build.sha1` = 111 OK.
+- Do not commit. Append your notes as one `### <family> pass N` section at the end.
+
 ## Facts you need
 
 - Compiler: **SN Systems ProDG (GCC 2.95.x)**, not CodeWarrior. Default toolchain `ProDG/3.9.3`,
@@ -19572,3 +19598,77 @@ the word count is noise), `v/*.py` variant files); deleted at the end. Build 111
   live: 431), dead loops `for (i = 0; i < num; i++) pButton[i] = 0` (num just stored: folded by cse1, no boundary; num stored
   before strlen: real loop, 533), -fcheck-new (a real `beq`).
 - t_camera/t_camera_data (tcSetBesideOffset 27, tcDataExport 142) and t_lightarea fn_Tools_30410 (59) not iterated this pass.
+
+### Tool RELs, bytes-first pass 18b (Tools/t_motseq 202 -> 117: msqDisp 4 -> 0, msq_R0_Sequence 96 -> 15; t_movie/t_snd_vol 1635 -> 940: edit_reverb_param 812 -> 200 (0x1018 -> 0x15d8 of 0x15e8), file_save 330 -> 276; t_id/t_id 1206 -> 1176: idEditPos 364 -> 334; t_event untouched; nothing flipped; 2026-09-11)
+
+- Harness ~/.cache/tools_p18b (tools_p18a copies + dol25b order.py/prio.py, deleted at the end). `mtryv.py`/`dump.sh` build-edge regex
+  fixed to `prodg_cc\s+(\S+)` (edges whose `$` continuation leaves several spaces before the source, t_movie/t_snd_vol). 111 OK
+  before and after every edit.
+- **msqDisp (4 -> 0, zero code): the preheader order of two loop.c-hoisted FPR constants is the RTL order of their SETS at
+  loop time.** `move_movables` emits every hoist with `emit_insn_before (.., loop_start)` in movables-list order, and the list is
+  the insn order of the loop body; an inner-loop constant hoisted in the inner pass sits at the inner LOOP_BEG, i.e. AFTER every
+  outer-body statement before that inner loop. So `f32 rowY = 369.0f` (outer body, block-local) was hoisted before the inner
+  loop's 5.0 whatever its placement. The target has 5.0 first because 5.0 was a plain VARIABLE set BEFORE the loop (`f32 rowStep
+  = 5.0f;` instead of `const f32 rowStep`): its set precedes LOOP_BEG in RTL, every loop.c insertion lands after it, and its
+  pool entry is still created at the declaration (pool order 5, 4, 24, 25, 15, 369 unchanged). Rule: an FPR constant loaded in
+  the preheader BEFORE all loop.c hoists = a non-const variable initialised before the loop; hoisted ones follow body order.
+- **msq_R0_Sequence's dead `cmpwi r30,0` (96 -> 15, zero code): the pass-8 third-test form.** `int t = cur2; if (cur != 0) t =
+  cur; if (t != cur2) cur = t;` right after the inner if/else inside `if (cur != cur2)` -- `cur` is dead afterwards, so test 3's
+  arm dies at flow1, flow2 removes test 3 and then `t`, jump2 deletes only test 1's branch after reload: `cmpwi cur,0` stays
+  with no branch (the `dead = 1` arm of the old source was trivially dead and took the compare with it before flow2). Left 15:
+  the flagDisp store block's r0/r9 alternation -- the eight `lbz 7(r11); rlwinm; stb` chains are serialised by the may-alias
+  store->load dependence (cost 2), so consecutive chains conflict through local-alloc's birth-2/death+1 extension and alternate
+  r0/r9; the target has 4262 and 4263 both in r0, i.e. one filler insn between `stb 4262` and `lbz 4263` in ITS sched1 output
+  (t=16 in ours is idle). The only free insns are `lbz cursor`/`extsb`/`addi` (sub2 = cursor + 2) and `lis r28`; every
+  placement/local/shared-temp form of the sub2 statement tried (13 variants, 15-70). Not closed.
+- **msq_R0_SeqResize (78, read further, not closed).** (1) The 2-insn `(set tmp:HI (mem)); (set n (zero_extend tmp))` load form is
+  NOT a C-level choice: the SN rs6000.md `zero_extendhisi2` define_expand takes `gpc_reg_operand`, so `emit_unop_insn` copies
+  every MEM into a HI pseudo (the pass-17b "single-insn zero_extend(mem)" form does not exist before combine). (2) A promoted
+  `u16 num = w->num` is the 3-insn form (`tmpHI; tmp2 = zext; num = tmp2` from store_expr's SUBREG_PROMOTED branch), an `int n =
+  w->num` the 2-insn form straight into n; cse canonicalises `num - 1` to `tmp2 - 1`, so the target's `lhz r0; mr r7,r0; addic.
+  r8,r0,-1` is a promoted u16 (r7) whose copy survived because tmp2 is live at a later use (`addi r0,r7,-1` uses r7 = the
+  variable, i.e. the value was NOT known equal to tmp2 there: a different cse ebb). (3) The loop-1 shape `addi t; mr k; L: sth t;
+  k--; lhz n; i--; blt; lhz frame; cmp; ble; addi t; b L` is gcse PRE of a loop-head `n - 1` (recomputed at the end of the
+  preheader and the latch, head occurrence deleted) -- reproduced structurally by a goto loop with the store before the label
+  and at the bottom (`w->num = n - 1; again: k--; n = w->num; i--; if (i < 0) goto out; if (k->frame <= max) goto out; w->num = n
+  - 1; goto again;`, variants G/G3/H: 70-84) except that ours folds the preheader `n - 1` into `i` (`sth r10`) so jump2 cannot
+  cross-jump the bottom `sth r0` into it. (4) The non-forwarded reload: a label between store and load is excluded (the loop
+  label is at the `sth`), `volatile` reads reproduce the block shape but break msqSeqDelete/msqSeqAdd/msqFrameSizeCk (the field
+  is not volatile), and cse records the store's `(subreg:HI t)` source normally (src_elt != 0), so the mechanism that keeps
+  `lhz r7,0(r4)` after `sth r0,0(r4)` in one block is still unknown. Also observed: loop 2's `lhz r9; addi r0,r9,-1; mr r7,r9`
+  is the same promoted-u16 copy surviving because the `f <= max` jump sits between the copy and tmp2's death (regmove's
+  optimize_reg_copy_1 stops at a JUMP_INSN) -- our source order `num = w->num` before the while test gives it too.
+- **t_snd_vol edit_reverb_param 812 -> 200, size 0x1018 -> 0x15d8 (target 0x15e8): four structural findings.**
+  (1) The 0x5D0 gap was the step switch written ONCE with `fstep = big ? 0.1f : 0.01f`: the target has `if (Joy[0].on & 0x400)
+  { switch (work->efxCur[sel]) {.. -= 0.1f / -= 10 ..} } else { switch (..) {.. -= 0.01f / -= 1 ..} }` per direction and per
+  set = 8 switches (`fsubs` with +0.1/+0.01 constants for the `-` direction, `fadds` for `+`; the switch operand
+  `work->efxCur[sel]` is re-read INSIDE each arm of the `& 0x400` test, not passed in). Written as macros `EFX_SW_DPL2/EFX_SW_ST(op,
+  fs, is)` inside one `static inline efx_param_move(p, sel, dir)` whose constant `sel`/`dir` fold at inline time.
+  (2) `SndVolWork::x29` is `s8` (every `lbz 41; extsb` index/compare in the target; combine_tbl_edit 115 -> 86, combine_tbl_disp
+  104 -> 103 for free) and the `cur` local does not exist (`work->efxCur[work->x29]--` re-reads `work`, a struct-member pointer).
+  (3) **An inlined function's constant-pool loads lose RTX_UNCHANGING_P** (integrate.c copies a MEM whose address is already
+  `lo_sum` through the generic path and clears `/u` when `map->integrating`; only bare `(mem (symbol_ref LC))` is re-created via
+  force_const_mem), so in an inlined clamp `lfs 0.1` true-depends on the preceding `stfs` (base unknown vs symbol) and the store
+  cannot sink below the next field's loads; in the target it does. Clamps written in place (macros `EFX_CLAMP_COMMON/AUX`) keep
+  `mem/u`. Rule: a pool load the target issues BEFORE a store that ours issues after = the code was not inlined from a function.
+  (4) Clamp shapes: float `p->f = p->f < lo ? lo : p->f > hi ? hi : p->f;` (ternary: one store after the join, value in a temp,
+  `fmr f12,f0` copy of the loaded value); int `int v = p->f; int e = (s16) v; int r; if (e >= 0) { r = v; if (e > 0x7F) r = 0x7F; }
+  else r = 0; p->f = r;` -- the ternary result must be a REGISTER target that the condition does not mention (`e`, not `(s16)
+  v`: `safe_from_p` refuses the target otherwise and a promoted `u16 v` goes through the SUBREG_PROMOTED branch with target 0 ->
+  fresh temp + `mr`), `r = v` first so jump.c's else-hoist gives `mr r0,r11` before `cmpwi 127`, and the `>= 0` outer test lays
+  the `li 0` arm last. Left 200: `work`/`p` in r11/r10 (ours r10/r11) through the move region, `lfs f0,8(r10)` before `lfs
+  f13,0(r8)` in the `+` big-step arms, the two `y` chains (target `li r31,128` before the TprimDrawFrameFn call and `mr r4,r31;
+  addi r0,r31,16; extsh r31,r0` per row: `y` is NOT constant-folded although ours folds it through gcse cprop even with `y =
+  0x80` moved before the colour diamond -- the target's `y` set was not available at the first use; mechanism not found), and
+  the stereo panel's `li r7,-1; stw` / `sth` order. `init 1` in the residue line is the `bl` into the next unit's linkonce copy
+  resolved by offset (our .text is 0x10 shorter); it disappears with the size.
+- **t_snd_vol file_save (330 -> 276): `SndRoomHdr* hdr = (SndRoomHdr*) work->fileBuf` declared inside `case 2:` (a function-top
+  initialiser hoists `lwz work; addis; addi` above the six eprintfs).** Left: the target keeps one zero pseudo in r27 (`li
+  r27,0` after the first eprintf) for the `sub/step/x6 = 0` stores of every arm, ours `li r0,0` per arm.
+- **t_id idEditPos (364 -> 334): `case 1:` `case 2:` `case 5:` of the subCur switch each carry their own `if (joy->trg & 0x100) {
+  subStep = 0; editStep++; }` body** (the target tree tests 2, 0, 1 as separate nodes; the grouped label gave a range). Left
+  (.text still 0x28 short): the `*pos = d->vtx[k]` copies store the first word through `d` (`stw r10,280(r26)`) and the rest
+  through `pos`, the `editStep--`/`++` tails cross-jump into different arms (#6 family), toolIdOption (0x594/0x574: the target
+  saves r16..r31 with frame 88 = no locals; ours r17..r31 + an 8-byte spill slot), idEditColor 0x1C, toolIdInit 0xC.
+- t_event/t_event not started: its .text gap (0x7320/0x72f0) is SubToolMessInit's shared `cDbgToolMain<T>` ctor loops (pass 18a)
+  plus CallbackLoad 0xC.
