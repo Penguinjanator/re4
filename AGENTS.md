@@ -25146,3 +25146,45 @@ v*.c / a*.c / e*.c variants. No pins, no pragmas; all edits are declaration orde
   mt_max.hi, mt.lo, MulDiv, out.lo, out.hi, mt.hi (mt.hi LAST, r21); ours colours mt.hi FIRST (r30) and the other eight in the
   target's order. So the single residue of that block is mt.hi's rank: ours has it above the other eight (highest id or a
   higher level), the target below all of them.
+
+### DOL espgen42/45 pass 6 (Espgen42_Move00 118 -> 104w, Espgen45_Move00 160 -> 121w, tagged asm lever in loop B; no flip; 2026-09-12)
+
+- Result: `Espgen42_Move00` 118 -> 104 words, `Espgen45_Move00` 160 -> 121 words, one tagged lever in loop B of both
+  units (`asm("" : "=r"(dead) : "r"(i))` at the body top + `asm("" : : "r"(dead))` after the inner loop; 42 also
+  `asm("" : : "r"(i))` for +1 insn_count). All emit nothing. The 4.0/0.0018 preheader swap and the loop-B FPR names
+  (f20 4.0 outer, f25 0.0018 inner, f21/f22/f23 0.0001/0.04/0.92) now match. Flags untouched.
+- Why the lever works (loop.c move_movables, hooked source 1876/1982/2186): `thr -= 3` per moved insn (inside the consec
+  loop), matched duplicates (`m1->match`) are deleted with NO decrement, and a moved invariant is re-tested in the outer
+  pass against `insn_count * 2` (`moved_once`), which is why inner-preheader constants never re-hoist. Ours: 4.0 tested at
+  thr 47 (47*4 = 188 >= 175 moved). One extra moved single before it -> thr 44: 45 natural 177 > 176 ok; 42 natural 175
+  needs +2 count. The dead set's use must be OUTSIDE the inner loop: used inside, its reg takes r20 and pushes
+  `andi. r20,r0,0xb00` to r19 (113w); used after the inner loop it takes the free r19 and the count is +1 only, so a
+  second input-only asm gives 177 (44*4 = 176 < 177). Consistent with the loop-A finding (42 needs +3 insns there, 45
+  none): 42's original has a 42-only 2-3 insn codeless construct in both loop bodies, plus one extra moved
+  i-dependent single in both units. The real constructs are unknown.
+- scan_loop (loop.c 939-975): in a loop with a call, an invariant set used ONCE whose reg can be substituted into the use
+  is folded and deleted during the scan (counted, never a movable). That is why the gcse PRE copies of the 0x4330 and
+  1.0 highs (`(set 441 (reg 712))`, `(set 611 (reg 711))`) are not in the movable list; a `high` cannot be substituted
+  into `lo_sum` (validate fails) so pool pairs stay movables. Such copies count in the inner scan and are NOTEs before
+  the outer scan.
+- Size gap 0x870 vs 0x86c in 42 = one dead `mr` from reload_cse (reload1.c 8790-9640): each `*floatsidf2_loadaddr`
+  `(set r (unspec [0] 11))` after the first in a block becomes `mr r,rHEAD` (dead, kept); when the dest hard reg already
+  equals rHEAD the set is a noop and is deleted. Loop-B tail block: ours 5 copies (r6/r7/r5/r11/r8 of r10), target 4.
+  The last loadaddr pseudo must get the head's hard reg: local-alloc fake birth/death (+-1 insn) forbids it unless sched1
+  places that loadaddr >= 1 insn after the head's `lfd`. No source form found.
+- Global alloc order for the 42 k/nrm swap (greg dump `;; N regs to allocate:` order + lreg `Register R used U times
+  across L insns`): k = reg 91 (32 refs / 216 insns, floor_log2 5 -> 5*32/216 = 0.74) is allocated before the loop-B
+  `&nrm[k]` pointer (18 refs / 110 insns, 4*18/110 = 0.65) and takes r30; the target orders them the other way. One
+  fewer depth-weighted k ref (31 -> floor_log2 4 -> 0.57) or 4 more nrm-pointer refs would flip it. `k = 0;` before the
+  branches is deleted by flow (no effect); extra `&nrm[k]` asm uses after the call recompute the pointer (+8 bytes,
+  123w); a separate loop-B index variable is far worse (147w). Left open.
+- Rejected (no movable-list change): `noise[NOISE_INDEX(j,i)]` one statement, `hA[k-1]+...` without `c`,
+  `p->pos[k].y` instead of `pv`, `hB[k] = hB[k] + sum - 4.0f*hA[k]`, parenthesised sum, loop-A dead-test operand
+  variants (`i==3`/`j==3` 107w, `k==3` 260w, `nz==3` 270w, `k*4==3` 148w). FP dead asm (`"=f"`) takes an FPR above the
+  constants (125w).
+- Remaining (42, 104w): k r28 vs r30 / loop-B `&nrm[k]` r30 vs r28; loop A `lfsx f0,r8,r9` operand order and
+  bump-index scratch names (r0/r9/r10/r11); loop-B sum chain order; loop-B tail FPR f11/f12 names, `xoris r5 vs r4`,
+  the 5th `mr`. (45, 121w): loop-A FPR names and `mr r29,r10` slot, loop-A scratch names, bump-index names.
+- Harness used (deleted): a 20-line script running `~/.cache/kit/rtl.sh UNIT SRC --out DIR -dL`, then parsing the
+  `.loop` dump for `Loop from A to B: N real insns.` and each `Insn U: regno R (life L), ... moved|not desirable`
+  into one line per loop next to bytecmp's word count; ~1 s per variant. Judge the movable list first, bytes second.

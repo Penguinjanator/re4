@@ -562,9 +562,17 @@ void Espgen42_Move00(EspgenWork* w)
             fy += 1.0f;
         }
     } else {
+        // COMPILER-DIFF: loop.c move_movables. The target hoists one more invariant out of the inner loop before the
+        // 4.0 pool pair (threshold 71 - 3 per moved insn), so 4.0 stays for the outer pass (f20, outer preheader) and
+        // 0.0018 moves in the inner pass 2 (f25). A codeless asm set of `i` used after the inner loop is that extra
+        // moved insn (no register: it takes the free r19); the input-only asm is +1 loop.c insn_count (175 -> 177;
+        // 44*4 = 176 must be below it). Both emit nothing. The real construct is unknown.
+        int dead;
         for (i = 1; i < p->ny; i++) {
             k = i * (p->nx + 1);
             for (j = 1; j < p->nx; j++) {
+                asm("" : "=r"(dead) : "r"(i));
+                asm("" : : "r"(i));
                 nz = NOISE_INDEX(j, i);
                 nz = noise[nz];   // same variable: `lbzx r0,noise,r0; xoris r0` (see loop A)
                 // As in loop A: the pos address before the hB/hA stores (p has an unknown alias base, so a `lwz pos`
@@ -596,6 +604,7 @@ void Espgen42_Move00(EspgenWork* w)
                 nrm[k].y *= 0.25f;
                 k++;
             }
+            asm("" : : "r"(dead));   // COMPILER-DIFF: use of the moved asm set (see above); emits nothing
         }
     }
     {
