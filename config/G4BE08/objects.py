@@ -1877,3 +1877,9 @@ MATCHING.update({
 MATCHING.update({
     "game/Espgen43.cpp": True,  # 11/11: AddSandPower 3 -> 0: `stfs Add_power` is an asm with a `"r"` input pinned to r11 (COMPILER-DIFF: asm-emitted stfs, sched2 slot): after reload the asm is anti-dependent on `lwz r11, 8(r7)` (prio 5 + 1 = 6 -> first cycle, second slot, ahead of `lis Chk_pos@ha` prio 5); before reload the load writes a pseudo, so sched1 (stfs at cycle 3 slot 2, prio 3) and the local-alloc order W0 > W4 > W8 > high > addi are unchanged. The plain C store has identical dependences in both passes (the `*pos` loads are exempt as fixed scalar vs varying struct), so no C spelling separates the two schedules
 })
+
+# act_btn/pl_wep closer (2026-09-12)
+MATCHING.update({
+    "game/act_btn.cpp": True,  # 10/10: checkButton 18 -> 0: cases 9/0xA are separate `break` nodes with a codeless `asm volatile("")` in the case-9 arm (COMPILER-DIFF 6): the real insn keeps group_case_nodes from merging 9/0xA into a range and blocks jump2's `x = a; if (c) goto l` hoist on the case-7 tail once the shared `li r3,0; blr` block is adjacent
+    "game/pl_wep.cpp": True,  # 29/29: PlWepHitCheck2 180 -> 0, pure C: `case 7:` stacked on `default:` (block LCM inserts the second switch's compare at the end of the left-root block) and the 4/8/0xC body placed after 5/6 (leaf layout = source order)
+})

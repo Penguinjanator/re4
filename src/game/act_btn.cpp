@@ -134,9 +134,12 @@ void cActionButton::disp(ActBtnWork* w)
 // leaf gets its `li r3,0` hoisted into a conditional return by jump1; a jump to the shared block does
 // not), and the `(u64) key & ~mask` test is written in each leaf (jump2 cross-jumps the two `!(flags &
 // 2)` copies into the first one, `mr r10,rX; b`). The `register u64 key asm("r9")` pin fixes the DI pair
-// order. Left (18 words): the failing tests' `return 0` is a second `li r3,0; blr` block after the shared
-// one (the target has only the shared block: its return block ends `(return)` without the `(use r3)` ours
-// carries, so jump2's return cross-jump fails on the USE/SET code mismatch); 16 branch targets follow.
+// order. Cases 9/0xA: separate case nodes (the target compares 9 and 0xA individually) that reach the ONE
+// `li r3,0; blr` block; `case 9: return 0; case 0xA: return 0;` gives a second block (its `set r3 0;
+// (return)` cannot cross-jump with the end block, whose `(use r3)` sits between the set and the return),
+// and a `break` pair is grouped into a range node. The case-9 arm ends in a codeless `asm volatile("")`:
+// a real insn in the arm keeps the nodes separate, and it also blocks jump2's `x = a; if (c) goto l;`
+// hoist that turns the case-7 tail into `or.; li r3,1; beqlr` when the `li r3,0` block is adjacent.
 int cActionButton::checkButton(ActBtnWork* w)
 {
     u32 on = Key.on & 0x00CF0000;
@@ -276,9 +279,11 @@ int cActionButton::checkButton(ActBtnWork* w)
         }
         return 1;
     case 9:
-        return 0;
+        // COMPILER-DIFF: 6 (cross-jump): codeless real insn, see the header comment
+        asm volatile("");
+        break;
     case 0xA:
-        return 0;
+        break;
     }
     return 0;
 }

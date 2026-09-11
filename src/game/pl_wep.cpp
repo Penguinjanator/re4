@@ -228,9 +228,11 @@ u32 PlWepHitCheck2(cModel* plm, Vec* p0, Vec* p1, int type, u32 flag, f32 len)
     // The decision tree (root 0xF, left root 7, right root 0x17, compares 3/1/2, 5, 0xB/9/0xD, 0x13/0x11/
     // 0x15, 0x1F/0x1A/0x19/0x1C, 0x21/0x2D) is the balanced tree over 29 SEPARATE case nodes: every value
     // has its own body (identical `prio = 1` bodies are only merged by the post-reload cross-jump), so
-    // no two consecutive values share a label; 4/8/0xC share one. OPEN: the target PRE-inserts the
-    // second switch's `cmpwi cr7,type,0x17` into the left-root block, the 4/8/0xC body and the 0xF body
-    // only; ours (block LCM) also inserts into the case-1, 5/6 and `prio = 1` leaves.
+    // no two consecutive values share a label; 4/8/0xC share one, placed AFTER 5/6 (body layout = source
+    // order). `case 7:` sits on the `default:` body: the 7 leaf is then a block also reached from the right
+    // (> 0xF) subtree where `cmpwi cr7,type,0x17` (the second switch's compare, PRE-shared with the 0x17
+    // root) is already available, so gcse's block LCM cannot delay the compare into it and inserts it at
+    // the end of the left-root block instead of in every left-side leaf.
     switch (type) {
     case 1:
         if (pG->wep_lv > 6) {
@@ -245,18 +247,15 @@ u32 PlWepHitCheck2(cModel* plm, Vec* p0, Vec* p1, int type, u32 flag, f32 len)
     case 3:
         prio = 1;
         break;
-    case 4:
-    case 8:
-    case 0xC:
-        prio = 1;
-        break;
     case 5:
         prio = 3;
         break;
     case 6:
         prio = 3;
         break;
-    case 7:
+    case 4:
+    case 8:
+    case 0xC:
         prio = 1;
         break;
     case 9:
@@ -322,6 +321,7 @@ u32 PlWepHitCheck2(cModel* plm, Vec* p0, Vec* p1, int type, u32 flag, f32 len)
     case 0x2D:
         prio = 0x14;
         break;
+    case 7:
     default:
         prio = 1;
         break;
