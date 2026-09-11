@@ -1811,3 +1811,9 @@ MATCHING.update({
     "game/dvd.cpp": True,  # DiscChange 7 -> 0, zero code: the first `pSys->region` read through a reference (`SysRef`, no MEM_SCALAR_P) is gated by all four game[] template stores in sched2, so the copy issues in template order 0,8,c,4
     "game/sce_at.cpp": True,  # sceAtGetItem 77 -> 0: `register u32 money asm("r29")` in case 8 (COMPILER-DIFF: 13, the it/ItemMgr-high/money rotation settles to r31/r30/r29), `int sel;` without initializer (cancel's zero is then the newest for `swep_flag = 0`, cancel lives from the top and ranks below sel: r29/r25), `put = 1` after `ItemMgr.use(&tmp)` (same as NoModel)
 })
+
+# esp08/esp18 closer (2026-09-11)
+MATCHING.update({
+    "game/esp18.cpp": True,  # Esp18_Trans 14 -> 0: `u32 i` declared before the `oy == zero` test (pseudo 237: gcse's PRE pseudos are numbered in hash-bucket order, so `i + 1` follows fp+0xc0 and the spill slots are 0x234/0x238 as in the target) + one codeless `asm("" : "=m"(inv[0][0]))` in the loop (the hoisted 1.0/0.5 REG_EQUIV constants tie at priority 171, older 0.5 coloured first; COMPILER-DIFF: candidate (loop.c insn_count))
+    "game/esp08.cpp": True,  # Esp08_Trans/TransShimmer 143/143 -> 0 (shared ESP08_TILES macro): codeless `+f` launders on the four first-tile copies (cse1 promotes each copy to canonical and rewrites the mask quad, gcse/cse2 redo it; COMPILER-DIFF: first-tile copy canon), asm-emitted `fdivs` for the first tile's du/dv (the C divides block the fpu for 17 cycles and push the cu+du/cv+dv adds past the second y0 store, so reload inherits the y0 reload the original re-does; COMPILER-DIFF: asm-emitted fdivs), one `=m` keep-alive of y/st1 after the mask quad (f24/f21 global-alloc order), and zero-code statement order u0/dv/v0/du in the double loop's (j == numX-1, i != numY-1) arm (local-alloc f8/f9); .sdata padded to 8 (`asm(".section .sdata; .balign 8")`, the split object is 0x10)
+})

@@ -87,9 +87,17 @@ extern f32 ZFAR;
 // `1.0f / w->rateX`, the original's u0 multiply reuses du's register (`fmadds f20,f0,f30,f13`),
 // i.e. the reciprocal was computed for du first and cse folded u0's copy of it into du.
 // First tile: the original's non-mask quad stores the copies (x, y, ss1, st1) and the mask quad
-// the originals (x0, y0, s1, t1) -- neither cse2's canonicalisation of x0 -> x nor gcse's copy
-// propagation x -> x0 fired there; the codeless asm on `x` reproduces that for x (the
-// mechanism is open, see "DOL esp08/esp18 closer" in AGENTS.md).
+// the originals (x0, y0, s1, t1). Ours links each copy to its original in cse1 (the copy is
+// promoted to canonical: its last use is beyond the ebb and later than the original's), gcse
+// copy-propagates it back and cse2 canonicalises again, so one register serves both quads;
+// the codeless asm after each copy makes it opaque (COMPILER-DIFF: first-tile copy canon).
+// The mask arm's du/dv are asm-emitted fdivs: with C divides the scheduler's non-pipelined
+// divider (fdivs blockage 17) delays the `cu + du` / `cv + dv` adds past the second y0 store,
+// so reload inherits the first y0 reload; the original has the adds right after GXBegin and
+// reloads y0 twice, as if the divides sat in another block (COMPILER-DIFF: asm-emitted fdivs).
+// The `=m` keep-alive after the mask quad keeps y and st1 live through it (global-alloc order
+// y after the double loop's 0x4330 magic, st1 after y1: f24/f21 as the original) without
+// touching ss1/x. See "DOL esp08/esp18 final closer" in AGENTS.md.
 #define ESP08_TILES()                                                                             \
     ds = s1 - s0;                                                                                 \
     dt = t1 - t0;                                                                                 \
@@ -109,23 +117,23 @@ extern f32 ZFAR;
     tileW = sx / w->rateX;                                                                        \
     if (w->ofsX != 0.0f) {                                                                        \
         if (w->ofsY != 0.0f) {                                                                    \
-            x = x0;                                                                               \
-            asm("" : "+f"(x)); /* COMPILER-DIFF: candidate (first-tile copy canon, see esp08 notes) */ \
-            y = y0;                                                                               \
+            x = x0; asm("" : "+f"(x)); /* COMPILER-DIFF: candidate (first-tile copy canon) */  \
+            y = y0; asm("" : "+f"(y));                                                            \
             y1 = y + tileH * w->ofsY;                                                             \
             x1 = x + tileW * w->ofsX;                                                             \
             st0 = t0 + dt * (1.0f - w->ofsY);                                                     \
             ss0 = s0 + ds * (1.0f - w->ofsX);                                                     \
-            st1 = t1;                                                                             \
-            ss1 = s1;                                                                             \
+            st1 = t1; asm("" : "+f"(st1));                                                        \
+            ss1 = s1; asm("" : "+f"(ss1));                                                        \
             if (!ind) {                                                                           \
                 ESP08_QUAD(x, y, x1, y1, ss0, st0, ss1, st1)                                      \
             } else {                                                                              \
                 f32 cu = 0.0f;                                                                    \
                 f32 cv = 0.0f;                                                                    \
-                du = w->ofsX / w->rateX;                                                          \
-                dv = w->ofsY / w->rateY;                                                          \
+                asm("fdivs %0,%1,%2" : "=f"(du) : "f"(w->ofsX), "f"(w->rateX)); /* COMPILER-DIFF: asm-emitted fdivs (first-tile divider blockage) */ \
+                asm("fdivs %0,%1,%2" : "=f"(dv) : "f"(w->ofsY), "f"(w->rateY));                  \
                 ESP08_QUAD2(x0, y0, x1, y1, ss0, st0, s1, t1, cu, cv, cu + du, cv + dv)           \
+                asm("" : "=m"(inv[0][0]) : "f"(y), "f"(st1)); /* COMPILER-DIFF: candidate (keep-alive, global-alloc order) */ \
             }                                                                                     \
         }                                                                                         \
         y = y0 + tileH * w->ofsY;                                                                 \
@@ -226,10 +234,12 @@ extern f32 ZFAR;
                     }                                                                             \
                 } else {                                                                          \
                     if (j == numX - 1) {                                                          \
-                        du = (1.0f - w->ofsX) / w->rateX;                                         \
-                        dv = 1.0f / w->rateY;                                                     \
+                        /* u0, dv, v0, du: local-alloc ranks the ofsX/rateX quotient above the   \
+                           rateX load here (f9/f8) only in this statement order */                \
                         u0 = (f32) j * (1.0f / w->rateX) + w->ofsX / w->rateX;                    \
+                        dv = 1.0f / w->rateY;                                                     \
                         v0 = (f32) i * (1.0f / w->rateY) + w->ofsY / w->rateY;                    \
+                        du = (1.0f - w->ofsX) / w->rateX;                                         \
                     } else {                                                                      \
                         du = 1.0f / w->rateX;                                                     \
                         dv = 1.0f / w->rateY;                                                     \
@@ -775,3 +785,6 @@ int cEsp08::SetFreeWork(EspGenWork* gen, u32* seed)
     }
     return 1;
 }
+
+// The split object's .sdata is 8-aligned and 0x10 bytes (prm1..prm3 + 4 pad).
+asm(".section .sdata; .balign 8");

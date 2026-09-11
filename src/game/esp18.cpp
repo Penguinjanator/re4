@@ -90,7 +90,6 @@ void Esp18_Trans(cEsp18* esp)
     f32 ry;
     f32 mul;
     f32 a;
-    u32 i;
     int copyOk;
     int stages;
     int texGens;
@@ -158,6 +157,11 @@ void Esp18_Trans(cEsp18* esp)
     if (ox == zero) {
         ox = -anm->x0 * 0.5f;
     }
+    // `i` declared here (pseudo 237, not 116): gcse numbers its PRE pseudos in hash-bucket order
+    // and hash(i + 1) = 13259 + regno(i) must land after hash(fp + 0xc0) = 13481 in the
+    // 563-bucket table (regno 223..252), so the by-value fog copy's address gets spill slot
+    // 0x234 and `i + 1` gets 0x238.
+    u32 i;
     if (oy == zero) {
         oy = anm->x2 * 0.5f;
     }
@@ -210,6 +214,10 @@ void Esp18_Trans(cEsp18* esp)
         stages = 0;
         fog.r = fog.g = fog.b = fog.a = 0;
         GXSetFog(0, 0.0f, 0.0f, ZNEAR, ZFAR, fog);
+        // One codeless insn in the loop: the hoisted 1.0/0.5 (REG_EQUIV, live length doubled)
+        // then tie at priority 171 (270000/1570 vs /1574) and the older 0.5 is coloured first
+        // (f18), 1.0 after it (f17); with 819 loop insns ours had 172 vs 171 the other way.
+        asm("" : "=m"(inv[0][0]));  // COMPILER-DIFF: candidate (loop.c insn_count)
         if (esp->flags & 0x1000) {
             if (GetDrawTmpBufType() == 2) {
                 copyOk = 0;
