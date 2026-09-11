@@ -51,9 +51,12 @@ static inline void penWindScale(Vec* wind, f32 rate)
     (((c)->flags & 0x80) ? penClothAtCkBorder(p0, p1, at) : penClothAtCk(p0, p1, at))
 
 // Keep the link end above the floor; a link that landed exactly under its upper neighbour is
-// jittered so the constraint solver gets a direction.
+// jittered so the constraint solver gets a direction. A do-while body: its loop notes put the
+// `w` references inside at loop depth + 1, which is what ranks `w` (r31) above the PRE'd &v
+// pseudo in global-alloc for all three Move functions (PEN_FLOOR_CK2/3 and PEN_FIX are plain
+// blocks: as do-whiles they push `uw` above `w` in Move3).
 #define PEN_FLOOR_CK(m, c, w, i, floorY)                                                  \
-    if (!((c)->flags & 0x100)) {                                                          \
+    do { if (!((c)->flags & 0x100)) {                                                          \
         if ((w)->pos.y < floorY) {                                                        \
             (w)->pos.y = floorY;                                                          \
             if ((c)->pUp[i] < 0xFF) {                                                     \
@@ -64,7 +67,7 @@ static inline void penWindScale(Vec* wind, f32 rate)
                 }                                                                         \
             }                                                                             \
         }                                                                                 \
-    }
+    } } while (0)
 
 // Same with the upper work already known (NULL for a root link).
 #define PEN_FLOOR_CK2(c, w, uw, floorY)                                                   \
@@ -209,9 +212,8 @@ void PenClothMove(cModel* m, PenCloth* c)
     f32 floorY;
     f32 spdLen;
     f32 ang;
-    f32 spdRate;
+    f32 spdRate;   // also the angle limit of the pMax loop: one variable (10 + 10 refs) outranks d for f31
     f32 d;
-    f32 max;
     PenAtWork* at;
     cModel* parts;
     PenParts* w;
@@ -347,11 +349,11 @@ void PenClothMove(cModel* m, PenCloth* c)
                 VECNormalize(&b, &b);
             }
             ang = acosf(PSVECDotProduct(&a, &b));
-            max = c->pMax[i];
-            if (ang > max && ang < PI - 0.01f) {
-                max = ang * 0.2f + max * 0.8f;
+            spdRate = c->pMax[i];
+            if (ang > spdRate && ang < PI - 0.01f) {
+                spdRate = ang * 0.2f + spdRate * 0.8f;
                 PSVECCrossProduct(&a, &b, &v);
-                PSMTXRotAxisRad(mtx, &v, max);
+                PSMTXRotAxisRad(mtx, &v, spdRate);
                 PSMTXMultVecSR(mtx, &a, &w->pos);
                 PSVECScale(&w->pos, &w->pos, d);
                 PSVECAdd(&w->pos, &parts->worldPos, &w->pos);
@@ -420,8 +422,8 @@ void PenClothMove(cModel* m, PenCloth* c)
         uw = 0;
         if (c->pUp[i] < 0xFF) {
             np = penPartsNo(m, c, c->pUp[i]);
-            parts->worldPos = PEN_WORK(np)->pos;
             uw = PEN_WORK(np);
+            parts->worldPos = uw->pos;
         }
         if (!(c->flags & 8)) {
             PSVECSubtract(&w->pos, &parts->worldPos, &v);
@@ -504,15 +506,14 @@ void PenClothMove2(cModel* m, PenCloth* c)
     Vec b;
     f32 floorY;
     f32 ang;
-    f32 spdRate;
+    f32 spdRate;   // also the angle limit of the pMax loop: one variable (10 + 10 refs) outranks d for f31
     f32 d;
-    f32 max;
     PenAtWork* at;
     cModel* parts;
     PenParts* w;
     PenParts* uw;
     cModel* np;   // neighbour parts (one variable for every lookup: r7 in the original)
-    const u8* pp;
+    register const u8* pp asm("r21");   // COMPILER-DIFF: #17 (register pin): pp above i in global-alloc
     u32 i;
     u32 k;
     int hit;
@@ -617,11 +618,11 @@ void PenClothMove2(cModel* m, PenCloth* c)
                 VECNormalize(&b, &b);
             }
             ang = acosf(PSVECDotProduct(&a, &b));
-            max = c->pMax[i];
-            if (ang > max && ang < PI - 0.01f) {
-                max = ang * 0.2f + max * 0.8f;
+            spdRate = c->pMax[i];
+            if (ang > spdRate && ang < PI - 0.01f) {
+                spdRate = ang * 0.2f + spdRate * 0.8f;
                 PSVECCrossProduct(&a, &b, &v);
-                PSMTXRotAxisRad(mtx, &v, max);
+                PSMTXRotAxisRad(mtx, &v, spdRate);
                 PSMTXMultVecSR(mtx, &a, &w->pos);
                 PSVECScale(&w->pos, &w->pos, d);
                 PSVECAdd(&w->pos, &parts->worldPos, &w->pos);
@@ -688,8 +689,8 @@ void PenClothMove2(cModel* m, PenCloth* c)
         uw = 0;
         if (c->pUp[i] < 0xFF) {
             np = penPartsNo(m, c, c->pUp[i]);
-            parts->worldPos = PEN_WORK(np)->pos;
             uw = PEN_WORK(np);
+            parts->worldPos = uw->pos;
         }
         if (!(c->flags & 8)) {
             PSVECSubtract(&w->pos, &parts->worldPos, &v);
@@ -796,9 +797,8 @@ void PenClothMove3(cModel* m, PenCloth* c)
     Vec b;
     f32 floorY;
     f32 ang;
-    f32 spdRate;
+    f32 spdRate;   // also the angle limit of the pMax loop: one variable (10 + 10 refs) outranks d for f31
     f32 d;
-    f32 max;
     PenAtWork* at;
     cModel* parts;
     PenParts* w;
@@ -909,11 +909,11 @@ void PenClothMove3(cModel* m, PenCloth* c)
                 VECNormalize(&b, &b);
             }
             ang = acosf(PSVECDotProduct(&a, &b));
-            max = c->pMax[i];
-            if (ang > max && ang < PI - 0.01f) {
-                max = ang * 0.2f + max * 0.8f;
+            spdRate = c->pMax[i];
+            if (ang > spdRate && ang < PI - 0.01f) {
+                spdRate = ang * 0.2f + spdRate * 0.8f;
                 PSVECCrossProduct(&a, &b, &v);
-                PSMTXRotAxisRad(mtx, &v, max);
+                PSMTXRotAxisRad(mtx, &v, spdRate);
                 PSMTXMultVecSR(mtx, &a, &w->pos);
                 PSVECScale(&w->pos, &w->pos, d);
                 PSVECAdd(&w->pos, &parts->worldPos, &w->pos);
@@ -999,8 +999,8 @@ void PenClothMove3(cModel* m, PenCloth* c)
         uw = 0;
         if (c->pUp[i] < 0xFF) {
             np = penPartsNo(m, c, c->pUp[i]);
-            parts->worldPos = PEN_WORK(np)->pos;
             uw = PEN_WORK(np);
+            parts->worldPos = uw->pos;
         }
         if (!(c->flags & 8)) {
             PSVECSubtract(&w->pos, &parts->worldPos, &v);
@@ -1103,10 +1103,16 @@ static void penClothLinkMove(cModel* parts, PenParts* w, Vec* a, Vec* b, f32 max
 }
 
 // World position of a point given in a parts' space. Inline: the addresses of the frame locals
-// passed through it are set straight into the argument registers (no PRE copies).
+// passed through it are set straight into the argument registers (no PRE copies). The do-while
+// (a macro body in the original) puts a loop note before the call's argument sets: the first of
+// them is a scheduling barrier, so the following call no longer anti-depends on the previous
+// call's `addi r5, r1, 8` through r1 (ours ranked it first by dependant count; the target issues
+// r4, r3, r5) and the &v0/&up/&ax pseudos get the target's callee-saved order.
 static inline void penPartsWorldPos(cModel* p, const Vec* ofs, Vec* out)
 {
-    PSMTXMultVec(p->mat, ofs, out);
+    do {
+        PSMTXMultVec(p->mat, ofs, out);
+    } while (0);
 }
 
 // Build the world space collision volumes of the frame into the locked cache work.
@@ -1388,6 +1394,10 @@ int penClothAtCkBorder(Vec* pos, Vec* up, PenAtWork* wk)
 }
 
 // Push both ends of the link `up`-`pos` out of the volumes, keeping the link parallel.
+// The three-term sums (dot, d1, d0) are two statements each (`x + y; += z`): the partial sum is
+// then the variable's own pseudo (the target's `fmadds f7,..,f7`), which gives dot six refs and
+// the shortest live range, so global-alloc hands out f7/f6/f5/f4/f3 to dot, rr, p1.x/y/z in that
+// order. In the cylinder case l1/l0 are computed before ld (their loads come first), and rr last.
 void penClothAtCkParallel(Vec* pos, Vec* up, PenAtWork* wk)
 {
     Vec p1;
@@ -1433,7 +1443,8 @@ void penClothAtCkParallel(Vec* pos, Vec* up, PenAtWork* wk)
             f32 d0;
 
             rr = a->r * a->r;
-            dot = (a->p0.x - p1.x) * d.x + (a->p0.y - p1.y) * d.y + (a->p0.z - p1.z) * d.z;
+            dot = (a->p0.x - p1.x) * d.x + (a->p0.y - p1.y) * d.y;
+            dot += (a->p0.z - p1.z) * d.z;
             t = dot * invLenSq;
             v.x = nd.x * t + p1.x - a->p0.x;
             v.y = nd.y * t + p1.y - a->p0.y;
@@ -1442,10 +1453,10 @@ void penClothAtCkParallel(Vec* pos, Vec* up, PenAtWork* wk)
             if (push >= rr) {
                 continue;
             }
-            d1 = (a->p0.x - p1.x) * (a->p0.x - p1.x) + (a->p0.y - p1.y) * (a->p0.y - p1.y) +
-                 (a->p0.z - p1.z) * (a->p0.z - p1.z);
-            d0 = (a->p0.x - p0.x) * (a->p0.x - p0.x) + (a->p0.y - p0.y) * (a->p0.y - p0.y) +
-                 (a->p0.z - p0.z) * (a->p0.z - p0.z);
+            d1 = (a->p0.x - p1.x) * (a->p0.x - p1.x) + (a->p0.y - p1.y) * (a->p0.y - p1.y);
+            d1 += (a->p0.z - p1.z) * (a->p0.z - p1.z);
+            d0 = (a->p0.x - p0.x) * (a->p0.x - p0.x) + (a->p0.y - p0.y) * (a->p0.y - p0.y);
+            d0 += (a->p0.z - p0.z) * (a->p0.z - p0.z);
             if (d1 > rr && d0 > rr) {
                 if (dot < 0.0f) {
                     continue;
@@ -1483,16 +1494,16 @@ void penClothAtCkParallel(Vec* pos, Vec* up, PenAtWork* wk)
 
             PSMTXMultVec(a->inv, &p1, &lp1);
             PSMTXMultVec(a->inv, &p0, &lp0);
+            l1 = lp1.x * lp1.x + lp1.z * lp1.z;
+            l0 = lp0.x * lp0.x + lp0.z * lp0.z;
             ld.x = lp0.x - lp1.x;
             ld.y = lp0.y - lp1.y;
             ld.z = lp0.z - lp1.z;
-            l1 = lp1.x * lp1.x + lp1.z * lp1.z;
-            l0 = lp0.x * lp0.x + lp0.z * lp0.z;
             tmp = ld;
             ld.y = 0.0f;
-            rr = a->r * a->r;
             dot = (-lp1.x) * ld.x + (-lp1.z) * ld.z;
             ldSq = ld.x * ld.x + ld.z * ld.z;
+            rr = a->r * a->r;
             if (l1 > rr && l0 > rr) {
                 if (dot < 0.0f) {
                     continue;
