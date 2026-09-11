@@ -469,7 +469,6 @@ void debugCamera::menu(Camera* cam, JOY* joy)
     static Vec target = {0.0f, 0.0f, 0.0f};
     static Vec up = {0.0f, 0.0f, -1.0f};
     int ret;
-    u8* d;
 
     if (mode == 0) {
         return;
@@ -493,6 +492,11 @@ void debugCamera::menu(Camera* cam, JOY* joy)
         timer = 5;
         pG->debug_mode = save_mode;
     }
+    // COMPILER-DIFF: the original keeps the byte in a QImode pseudo and zero-extends it separately
+    // (`lbz r0,24(r31); clrlwi r11,r0,24`), the extension feeding both this compare and the switch;
+    // every promoted form tried (u8/u32 local, local set twice, cast, read hoisted above the
+    // `ret == -1` stores) lets combine fold the load into the extend. The extra `this` reference
+    // also swaps the r30/r31 assignment of `this`/`joy` (30 words).
     if (old_cam_mode != cam_mode) {
         switch (cam_mode) {
         case 0:
@@ -521,12 +525,21 @@ void debugCamera::menu(Camera* cam, JOY* joy)
         } else {
             cameraBak = pG->Cam.param;
             ProjType = 2;
-            d = (u8*) &pG->Cam.param.pos;
-            memcpy(d, &campos, sizeof(Vec));
-            d = (u8*) &pG->Cam.param.at;
-            memcpy(d, &target, sizeof(Vec));
-            d = (u8*) &pG->Cam.up;
-            memcpy(d, &up, sizeof(Vec));
+            // One destination pointer per copy: the three `addi rD,pG,off` bases are distinct
+            // pseudos (r10/r9/r11), so global alloc does not have to give one long-lived `d`
+            // the same register three times.
+            {
+                u8* d0 = (u8*) &pG->Cam.param.pos;
+                memcpy(d0, &campos, sizeof(Vec));
+            }
+            {
+                u8* d1 = (u8*) &pG->Cam.param.at;
+                memcpy(d1, &target, sizeof(Vec));
+            }
+            {
+                u8* d2 = (u8*) &pG->Cam.up;
+                memcpy(d2, &up, sizeof(Vec));
+            }
             FSet(pG->Cam.param.roll, 0.0f);
             CameraSetOrientationUp(&pG->Cam);
             pG->flags_60 |= 0x10000000;
@@ -749,12 +762,16 @@ int debugCamera::menuFlag(JOY* joy)
     x = 30;
     y = 21;
     eprintf(x * 8, (y - 1) * 14, 5, 0, "------ FLAG ------");
+    // `(y + i) * 14` is written out in every row: PRE shares one `y + i` (r25) for the arms, and in
+    // the `case 6` arm cse already knows i == 6, so its `y + 6` becomes the hoisted `li r19,27`.
+    // COMPILER-DIFF: the original also hoists `x + 19` (`li r20,49; slwi r3,r20,3` for the OFF
+    // column) where ours folds it to `li r3,392`; loop.c replaces a single-use invariant with its
+    // constant when the use is close, so the original's `x + 19` pseudo must have a longer
+    // lifetime (a second use); and its OFF colour shares the top row's `c` register (69 words).
     for (i = 0; i < 7; i++) {
         int col = (i == cursor) ? 4 : 0;
         u8 c = col;
-        int yy;
         eprintf(x * 8, (y + i) * 14, c, 0, "%s", menu_str[i]);
-        yy = y + i;
         switch (i) {
         case 0:
         case 3:
@@ -783,22 +800,22 @@ int debugCamera::menuFlag(JOY* joy)
                 c_on = 7;
                 c_off = col;
             }
-            eprintf((x + 15) * 8, yy * 14, c_on, 0, "ON ");
-            eprintf((x + 19) * 8, yy * 14, c_off, 0, "OFF");
+            eprintf((x + 15) * 8, (y + i) * 14, c_on, 0, "ON ");
+            eprintf((x + 19) * 8, (y + i) * 14, c_off, 0, "OFF");
             break;
         }
         case 1:
             for (j = 0; j < 2; j++) {
-                eprintf((x + 15 + j * 5) * 8, yy * 14, (j == key_type) ? col : 7, 0, "%s", key_str[j]);
+                eprintf((x + 15 + j * 5) * 8, (y + i) * 14, (j == key_type) ? col : 7, 0, "%s", key_str[j]);
             }
             break;
         case 2:
             for (j = 0; j < 5; j++) {
-                eprintf((x + 15 + j * 4) * 8, yy * 14, (j == target_type) ? col : 7, 0, "%s", target_str[j]);
+                eprintf((x + 15 + j * 4) * 8, (y + i) * 14, (j == target_type) ? col : 7, 0, "%s", target_str[j]);
             }
             break;
         case 6:
-            eprintf((x + 15) * 8, yy * 14, c, 0, "%02d: %s", cam_mode, mode_str[cam_mode]);
+            eprintf((x + 15) * 8, (y + i) * 14, c, 0, "%02d: %s", cam_mode, mode_str[cam_mode]);
             break;
         }
     }

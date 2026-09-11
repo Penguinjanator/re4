@@ -23480,3 +23480,107 @@ Harness ~/.cache/dol_pz5 (variant copies judged with ~/.cache/kit/variant.sh / r
   callee-saved permutation f/r/n/i/id/num) untouched.
 - Harness: `~/.cache/dol_tb2/` (tryv/vapply with an `ALL:` prefix for replace-all patterns, dump.sh with an absolute
   SRC_OVERRIDE, rtl.py, hk.sh + the HK_QTY-hooked cc1plus) deleted at the end of the pass.
+
+### DOL cam_extra/db_cam closer 2 (game/cam_extra 38 -> 43/43 IDENTICAL, unit Matching, all zero code, no tags: CameraBinocular ctor 17 -> 0, CameraPushObject::move 62 -> 0, CameraBinocular::move 79 -> 0, CameraScope::move 91 -> 0, IdBinocular::move 271 -> 0; game/db_cam 11/13: debugCamera::menu 72 -> 30, debugCamera::menuFlag 144 -> 69, both tagged; 111 OK; 2026-09-11)
+
+- **REG_N_CALLS_CROSSED anchors constant sets (IdBinocular::move).** haifa `sched_analyze_1` gives a SET of a pseudo with
+  `REG_N_CALLS_CROSSED == 0` an anti-dependence on `last_function_call`, so its `li` cannot rise above the preceding
+  call; a call-crossing pseudo's `(set i const)` floats to the block head. To keep `li r30,0` / `li r30,1` below the
+  `unitPtr` calls: `u = IdSys.unitPtr(cnt + 1, ..); <stores>; cnt++;` -- cse turns `cnt++` into a copy of the
+  call-crossing `cnt + 1` temp, `cnt` itself crosses no call, and global.c's `hard_reg_copy_preferences` gives `cnt`
+  the temp's callee-saved r30 (the `mr r30,r30` then vanishes in jump2). Any reuse of the same variable across a call in
+  a later loop breaks it (the count becomes non-zero): give the later loops block-scoped `int k`, and copy `i = cnt` for
+  the trailing `while (i <= 2)` so the entry `cmpwi` waits for the copy. Rejected: `asm volatile("")` / loop notes as
+  barriers (they also block the hoisted `lis IdSys` that the target keeps at the head), `u8` counters (+masking),
+  `else i = 0` (+branch), `do {} while (0)`.
+- **cse MEM_SCALAR_P folding (FRef).** A plain scalar static `f32` read is `mem/s` with MEM_SCALAR_P and survives
+  stores through varying struct pointers in cse's table; `FRef(f32&)` reads lack the flag so each store kills them. To
+  get every reload the target has, ALL reads of the variable must be FRef (a plain first read lets cse fold the FRef
+  ones into it), and an FRef read placed after a may-alias store depends on it in sched1 -- write `u->v0 = FRef(ratio)`
+  before `u->v1 = 1.0f` so the `lfs` issues first.
+- **`&cMes` as a pseudo:** `MessageControl* mc = &cMes; Message* ms = &mc->mes[1];` (after the `setLayout` call)
+  keeps `&cMes` in a register (`addi r27,r28,240`, `mr r3,r28`) because cse's cost of `plus(reg,240)` (2) beats the
+  CONST symbol (8); `&cMes.mes[1]` folds to a `lis/addi` constant.
+- **Frame-offset-0 pointer via inline:** `getColumn(m, c, &dir)` with `dir` the frame-offset-0 local keeps a pointer
+  pseudo (`addi r9,r1,8`, stores through r9) because integrate substitutes the bare virtual frame register; the other
+  plmat reads written directly go via r1.
+- **combine refuses to merge a load into its zero-extend** when the MEM is volatile, when the load's destination has
+  another use, or when a may-alias store sits between (`modified_between_p`).
+- **memcpy destination pointers (db_cam menu 72 -> 30):** three `memcpy(d, ..)` through one `u8* d` make `d` a single
+  `reg/v` pseudo set three times; the target's three bases are distinct registers (r10/r9/r11), i.e. one block-scoped
+  pointer per copy. The priority shift also moved the campos.x load from r30 to r3 and the base pointer to r12 (global's
+  pass 0 skips callee-saved regs not yet in `regs_used_so_far`).
+- **loop.c single-use constant replacement (db_cam menuFlag 144 -> 69):** an invariant `(set t const)` in a loop with
+  calls whose reg has exactly one use is replaced into the use if `validate_replace_rtx` accepts it and no label sits
+  between; otherwise it is a movable moved only when `threshold * savings * lifetime >= insn_count`. `(x + 15)` (many
+  uses, long lifetime) hoists as `li r21,45`; `(y + i)` inside `case 6` becomes `y + 6` via cse's jump equivalence and
+  hoists as `li r19,27` once `yy` is not a variable (write `(y + i) * 14` in every row). Ours still folds the
+  single-use `(x + 19) * 8` to `li r3,392` (the target hoists `li r20,49`); and the target's OFF colour shares the top
+  row's `c` register.
+- **OPEN db_cam menu head:** `lbz r0,24(r31); lwz r9,old; clrlwi r11,r0,24; cmpw r9,r11` -- a QImode pseudo of
+  `cam_mode` zero-extended separately and shared by the `!=` and the `switch`. `u8`/`u32` locals (also set twice, also
+  stored back, hoisted above the `ret == -1` stores), casts, `default:` arms all let combine fold the load into the
+  extend or change the compare to `cmplwi`. `u32 cm` gets 67 words (unsigned compares). The extra `this` reference in
+  the target also flips `this`/`joy` between r30/r31.
+- Harness `~/.cache/dol_cx2/` (mk.sh, sbs.sh with `--all` aligned listing, dump.py, var.py variant runner) deleted at
+  the end of the pass.
+
+### Tool RELs, t_id pass 3 (t_id/t_id 55/69 -> 57/69, 763 -> 615 words, .text gap 0x28 unchanged: idEditId 12 -> 0 (one anchor + dead sets), toolIdEdit 58 -> 0 zero code, idEditUnit 79 -> 15 (dead sets + one pin), toolIdOption 75 -> 65, toolIdInit 16 -> 12; not flipped; 2026-09-11)
+
+Harness `~/.cache/tid3/h.py` (deleted): `build SRC OUT`, `dump SRC OUT -dX` (cpp via wibo + cc1plus by hand), `try FUNC VFILE
+[--loop] [--keep] [--apply]` (VFILE defines `V = {name: [(old, new), ...]}` substring edits of src/t_id/t_id.cpp; `--loop` also
+prints the function's `Loop from ..: N real insns` counts of both loop passes), `sbs SYM [OBJ] [--all]` (objdump side by side,
+relocated immediates masked). `BASE=<variant.cpp>` stacks variants.
+
+**Mechanisms read this pass (GCC 2.95, all confirmed on the dumps).**
+- **local-alloc tie order / FP chains** (idEditId): `(set D (plus C K))` ties D with operand 1 (C) first, then the constant.
+  The target's `fmuls f0; fdivs f0; fadds f13,f0,f13` (result tied to the 0.5 constant, chain in f0) needs C NOT to be a local
+  qty: ONE `f32 s` variable for both dimensions (`s = (f32) size->w; d->sizeX = s; s = (f32) (int) size->h; s = s * 480.0f;
+  s = s / 448.0f; d->sizeY = (f32) (int) (s + 0.5f);`) has two deaths -> global pseudo (f0, also the psq_l result), the
+  `* 480` and `/ 448` are sets of s (a `s * 480.0f / 448.0f` temp ties to the 480 constant instead), the `+ 0.5f` temp ties to
+  the constant and the DF float_extend of the fctiwz input joins that qty (a qty that already contains a DF reg cannot take
+  the SF->DF extend: `usize < qty_size` -> the `fmr f13,f0` of the one-variable forms).
+- **cse's copy swap** (idEditId, idEditUnit): `y += 0xE; yy = y;` -> cse.c "Special handling for (set REG0 REG1) where REG0 is
+  the cheapest" rewrites it into `yy = y + 14; y = yy` when yy's REGNO_LAST_UID is beyond the block and later than y's
+  (make_regs_eqv). The target keeps `addi r25,r25,14` in place and inits yy with a `mr r31,r25` placed AFTER the pass-1
+  hoisted highs: yy is a **giv** (`yy = y + i * 0xE` in the body), its init is emitted by strength_reduce after
+  move_movables pass 1. A dead `y = yy;` after the loop also prevents the swap but leaves the init early.
+- **loop.c move_movables threshold is 71** (`1 * (1 + n_non_fixed_regs)` with calls), minus 3 per moved insn; a `high` used
+  once (savings 1, lifetime 1) is hoisted in pass 1 only while the running threshold >= insn_count. idEditId: ours 61 insns,
+  the target keeps the third high ("%02X") for pass 2 -> insn_count >= 65 at loop time; idEditUnit: pass 2 at 67 insns still
+  hoists ">"/"YES/---" (threshold 71 -> 68 -> 65), the target hoists neither -> >= 72. Both need exactly **+5 insns** at
+  loop.c time, like idEditMark (`col`/`d` dead sets, tagged `COMPILER-DIFF: 3`). Zero-code forms that do NOT add insns:
+  `switch (i)` for the value arm, `if/else` col forms (jump1 normalises them before cse), `y + i * 0xE` in the arm (cse folds
+  it with the jump equivalence), dead statements (cse1's delete_dead_from_cse), `yy` dead sets (they make yy a multi-set biv
+  and break the giv). The original construct is still unknown.
+- **global.c priority tie w vs i** (idEditId): w 19 refs / 175 insns = 4342 vs i 15 / 104 = 4326 (`floor_log2(refs) * refs *
+  10000 / live_length`); the target has i (r30) before w (r29). One extra insn in w's live range flips it: `asm("")` at the end
+  of `case 1` (`COMPILER-DIFF: anchor`); the same asm in the preheader or the case-1 top changes the schedule (5-8 words).
+  `register int i asm("r30")` is worse (54: a hard-reg biv is not reduced). Dead statements do not count (deleted before
+  flow counts).
+- **sched1 store order = REG_WEIGHT** (toolIdEdit, toolIdInit): stores whose source register dies (weight 0) go first in LUID
+  order, then the rest. toolIdEdit's `editMode = 2; editStep = 0; subCur = 0` arm comes out `stb 2; stb 3; stb 11` only from
+  the source order `editMode = 2; subCur = 0; editStep = 0;` (the shared QI zero dies at editStep). toolIdInit's 11-store
+  block cannot be produced by this model with five shared constants (the first six target stores hold four QI-zero stores):
+  the constants must be live after the block there (tested: with the five constants kept live the order becomes source
+  order) -- the later use is not found (call args are hard-reg sets; `IdBufAlloc`'s 1 is SImode).
+- **toolIdEdit 58 -> 0, zero code, four readings**: (1) `else if (w->editSel != 0) { ... } else { idEditNo(...); }` (the
+  idEditNo call is out of line: the then-part falls through); (2) the `trg & 0x100` arm has NO `subCur = 0` (its `b` goes to
+  the function end, not into the 0x800 arm's tail); (3) `editSel` 2 is **idEditSize** and 3 is **idEditPos** (editDispFunc
+  order; our source had them swapped), arms written `case 3` then `case 2`; (4) each of the six arms repeats `r = f(...);
+  if (r == 0) w->editMode = r; w->focus = 0; break;` -- jump2 cross-jumps the identical `mr. r3,r3; bne; stb r3,2; li 0;
+  stb 94` tails, while a shared `goto sub` block gets `cmpwi r3,0` (the copy `r = r3` sits in the arm, combine can only fuse
+  copy + compare in one block). Case 1 is `r = idEditId(...); if (r == 0) w->editMode = r;` (tail shared with case 2's
+  `stb r3,2`), case 2 stores `editMode` before `editStep`.
+- **toolIdInit 16 -> 12**: `w->level = w->x24 = 0;` (level's zero is the SImode one). Left 12: the store order (above) and
+  the 1/lang registers.
+- **idEditUnit 79 -> 15**: giv form + 5 dead `d` sets + `register JOY* joy asm("r11")` (`COMPILER-DIFF: pin`; unpinned joy
+  r10 / editStep value r8, target r11 / r10). Left 15: the `w->editStep` value r10 vs r9 and its `extsb` temp r0 vs r10,
+  three `lbz/stb` pairs r9/r0 swapped.
+- **toolIdOption 75 -> 65**: `sx = 0x2E; r1 = 0xC; r2 = 0xD;` moved INTO the loop body (loop.c hoists the three `li` after
+  `i = 0` and the PRE'd high, as the target). mx/vx must land after r1/r2 (pass-2 position): assigning them in the body top
+  (103), inside their arms (96, cse folds `mx << 3`), or leaving only them outside (65) -- not found. Left also the w/i/col
+  callee-saved permutation (r31/r30/r29 vs r29/r31/r30).
+- ToolInterfaceDesign 41, idEditColor 132, idEditPos 334 untouched (see pass 2 for their mechanisms).
+
+**Flags.** Nothing flipped; t_id/t_id stays False. `ninja -k 0` + shasum = 111 OK after the pass.

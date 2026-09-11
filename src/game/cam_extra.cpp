@@ -310,6 +310,23 @@ void CameraScope::getParam(f32* a, f32* b)
     *b = angle_x;
 }
 
+// Reading a static through a reference (`FRef`) gives a MEM with neither the struct nor the scalar
+// flag: the range loads stay below the reticle stores through the call-result pointers.
+static inline f32 FRef(f32& v) { return v; }
+// Same for a global pointer: the `lwz pPL` then waits for a preceding member store in sched1.
+static inline cPlayer* PlRef(cPlayer*& p) { return p; }
+
+// Matrix column -> vector. The destination is the frame-offset-0 local in both users (`inv` in
+// CameraPushObject::move, `dir` in IdBinocular::move), so its address is the bare virtual frame
+// register and integrate keeps it as a pointer pseudo (`addi r9,r1,8`, stores/loads through r9);
+// the other plmat reads are written directly and go via r1.
+static inline void getColumn(Mtx m, int c, Vec* v)
+{
+    v->x = m[0][c];
+    v->y = m[1][c];
+    v->z = m[2][c];
+}
+
 // Scope zoom clamp as an inline returning the value: one store after the join, the 0.0 register
 // doubling as the result (`fmr f13,f0` / `fmr f13,f12` copies).
 static inline f32 scopeClamp01(f32 v)
@@ -353,7 +370,7 @@ void CameraScope::move()
     Vec yure2;
 
     param.fovy = 45.0f;
-    if (Key.on & 0x1000000000ULL) {
+    if (Key.on & 0x10) { // low word bit 4 (the target masks the low half of the u64)
         f32 sy = (f32) Joy[0].ssy;
         if (sy != 0.0f) {
             zoom = old_zoom + sy * 0.001f;
@@ -374,7 +391,7 @@ void CameraScope::move()
         param.fovy = zoom * (limit - param.fovy) + param.fovy;
     }
     gain = zoom * -0.9f + 1.0f;
-    if (Key.on & 0x1000000000ULL) {
+    if (Key.on & 0x10) {
         if (Joy[0].sx != 0 || (Joy[0].on & 3)) {
             add = gain * (f32) Joy[0].sx * -0.05f * DEG;
             if (Joy[0].on & 1) {
@@ -386,7 +403,7 @@ void CameraScope::move()
             pPL->rot.y += add;
         }
     }
-    if (Key.on & 0x1000000000ULL) {
+    if (Key.on & 0x10) {
         if (Joy[0].sy != 0 || (Joy[0].on & 0xC)) {
             add = gain * (f32) Joy[0].sy * -0.05f * DEG;
             if (Joy[0].on & 8) {
@@ -399,24 +416,29 @@ void CameraScope::move()
                 add = -add;
             }
             ang = angle_x;
-            if (ang + add < angle_min || ang + add > angle_max) {
-                add = limit - ang;
+            if (ang + add < angle_min) {
+                add = angle_min - ang;
+            } else if (ang + add > angle_max) {
+                add = angle_max - ang;
             }
-            angle_x = ang + add;
+            angle_x += add; // `+=`: the sum is tied to the load register, `ang` copied (`fmr f11,f0`)
         }
     }
-    if (sct-- == 0) {
+    {
+        u8 c = sct--; // the old value in a byte local: `clrlwi r0,r9,24` + `addi r9,r9,255`
+        if (c == 0) {
         x_yure_spd = yure_spd * (fRand1_1() * 0.5f + 1.0f);
         y_yure_spd = yure_spd * (fRand1_1() * 0.5f + 1.0f);
         rdir0 = fRand0_1() * rnd_gain2;
         sct = 0x96;
     }
+    }
     rdir = rdir * 0.95f + rdir0 * 0.05f;
     yure.x = COSF(xtime) * rdir;
-    yure.y = COSF(ytime) * (rnd_gain2 - rdir);
-    xtime = LIMIT_ANGLE(xtime + x_yure_spd);
+    yure.y = COSF(FRef(ytime)) * (rnd_gain2 - rdir); // FRef: the static loads wait for the yure stores
+    xtime = LIMIT_ANGLE(FRef(xtime) + FRef(x_yure_spd));
     ytime = LIMIT_ANGLE(ytime + y_yure_spd);
-    if (pastkey != 1 || (Joy[0].on & 0xFFFF0000)) {
+    if (pastkey != 1 || (*(u32*) &Joy[0] & 0xFFFF0000)) { // the first word of Joy[0] (sx/sy bytes), not `on`
         Vec* a = (Vec*) &angle_x;
         PSVECAdd(a, &yure, a);
         yure2 = *a;
@@ -426,10 +448,13 @@ void CameraScope::move()
     PSMTXRotRad(m, 'y', yure2.y);
     PSMTXMultVecSR(m, &dir, &dir);
     PSVECAdd(&pos_ofs, &dir, &ofs);
-    RotMatrix(pPL->mat, &pPL->rot);
-    TransMatrix(pPL->mat, &pPL->pos);
-    ScaleMatrix(pPL->mat, &pPL->scale);
-    PSMTXCopy(pPL->mat, pPL->mat);
+    {
+        cModel* pl = pPL; // held in r30 across the four calls, `&pl->worldMat` in r29
+        RotMatrix(pl->worldMat, &pl->rot);
+        TransMatrix(pl->worldMat, &pl->pos);
+        ScaleMatrix(pl->worldMat, &pl->scale);
+        PSMTXCopy(pl->worldMat, pl->mat);
+    }
     PSMTXMultVec(pPL->mat, &pos_ofs, &param.pos);
     PSMTXMultVec(pPL->mat, &ofs, &param.at);
     CameraSetOrientationZeroRoll(this);
@@ -462,10 +487,6 @@ void IdScope::init(void* type)
         break;
     }
 }
-
-// Reading a static through a reference (`FRef`) gives a MEM with neither the struct nor the scalar
-// flag: the range loads stay below the reticle stores through the call-result pointers.
-static inline f32 FRef(f32& v) { return v; }
 
 void IdScope::move(void* p)
 {
@@ -554,7 +575,8 @@ CameraBinocular::CameraBinocular(Vec* pos, Vec* at, void* a, void* b)
     } else {
         mode = 1;
         cModel* p[2];
-        p[0] = pPL->getPartsPtr(0x20);
+        p[0] = PlRef(pPL)->getPartsPtr(0x20); // the load waits for the `mode` store: the two
+                                              // param addresses go above the call
         p[1] = pPL->getPartsPtr(0x21);
         PSVECAdd(&p[0]->worldPos, &p[1]->worldPos, &c);
         PSVECScale(&c, &c, 0.5f);
@@ -578,13 +600,14 @@ CameraBinocular::CameraBinocular(Vec* pos, Vec* at, void* a, void* b)
         PSMTXMultVec(inv, &param.at, &at_local);
         PSMTXMultVecSR(inv, &this->up, &up_local);
     }
-    x104 = 0.0f;
-    x110 = -1.0471976f;
-    x11C = 1.0471976f;
+    // Store order pinned by the dying-store rule (the last use of each constant is issued first).
     x124 = 0.0f;
     x100 = 0.0f;
+    x104 = 0.0f;
     x10C = -1.0471976f;
+    x110 = -1.0471976f;
     x118 = 1.0471976f;
+    x11C = 1.0471976f;
     id.init(this, id_a, id_b);
     focus.init(-1);
 }
@@ -613,7 +636,6 @@ void CameraBinocular::move()
     f32 gain;
     f32 add;
     f32 ang;
-    Vec axis = {0.0f, 1.0f, 0.0f};
 
     if (mode != 0) {
         param.pos = pos_local;
@@ -628,16 +650,17 @@ void CameraBinocular::move()
             x124 = sy * 0.001f + x124;
         }
     }
-    if (x124 < 0.0f) {
-        x124 = 0.0f;
-    } else if (x124 > 1.0f) {
-        x124 = 1.0f;
-    }
-    if (x124 != 0.0f) {
-        param.fovy = x124 * (zoom_limit - param.fovy) + param.fovy;
+    {
+        // clamped copy kept in a register (`fmr f12`), stored once, reused by the fovy formula
+        f32 zoom = (x124 < 0.0f) ? 0.0f : (x124 > 1.0f) ? 1.0f : x124;
+        x124 = zoom;
+        if (zoom != 0.0f) {
+            param.fovy = zoom * (zoom_limit - param.fovy) + param.fovy;
+        }
     }
     gain = x124 * -0.9f + 1.0f;
     if (Joy[0].sx != 0 || (Joy[0].on & 3)) {
+        Vec axis = {0.0f, 1.0f, 0.0f}; // initialised inside this block (the stores sit below the stb)
         add = gain * (f32) Joy[0].sx * -0.05f * DEG;
         if (Joy[0].on & 1) {
             add = gain * BINO_VEL_Y + add;
@@ -646,7 +669,9 @@ void CameraBinocular::move()
             add = add - gain * BINO_VEL_Y;
         }
         ang = x104;
-        if (ang + add < x110 || ang + add > x11C) {
+        if (ang + add < x110) { // two arms: the `fsubs` tails are cross-jumped, each with its own limit
+            add = x110 - ang;
+        } else if (ang + add > x11C) {
             add = x11C - ang;
         }
         CameraRotAxisPosRad(this, &axis, &param.pos, add);
@@ -664,7 +689,9 @@ void CameraBinocular::move()
             add = -add;
         }
         ang = x100;
-        if (ang + add < x10C || ang + add > x118) {
+        if (ang + add < x10C) {
+            add = x10C - ang;
+        } else if (ang + add > x118) {
             add = x118 - ang;
         }
         CameraTargetRot(this, 'x', add);
@@ -674,11 +701,11 @@ void CameraBinocular::move()
         pos_local = param.pos;
         at_local = param.at;
         up_local = up;
-        PSMTXMultVec(pPL->mat, &pos_local, &param.pos);
+        PSMTXMultVec(PlRef(pPL)->mat, &pos_local, &param.pos); // `lwz pPL` after the three copies
         PSMTXMultVec(pPL->mat, &at_local, &param.at);
         PSMTXMultVecSR(pPL->mat, &up_local, &up);
-        CameraSetOrientationUp(this);
     }
+    CameraSetOrientationUp(this); // unconditional: mode 0 jumps to it
     id.move(this);
     if (old_zoom != x124) {
         focus.move(1);
@@ -751,107 +778,122 @@ void IdBinocular::move(void* p)
     static f32 m = 0.5f;
     static f32 n = 1.0f;
     Vec dir;
-    Vec tbl0;
-    Vec tbl1;
     u8 digit[4];
-    IdUnit* u;
     f32 ang;
     f32 lo;
     f32 hi;
     f32 rate;
+    f32 y;
     int i;
+    int cnt;
     int dist;
 
-    dir.x = cam->mat[0][2];
-    dir.y = cam->mat[1][2];
-    dir.z = cam->mat[2][2];
+    getColumn(cam->mat, 2, &dir);
     ang = (4.712389f - atan2f(-dir.x, -dir.z)) / PI;
-    u = IdSys.unitPtr(0, 0x24);
-    u->u0 = ang;
-    u->u1 = ang + 1.0f;
-    lo = ang - 0.5f;
-    hi = ang + 0.5f;
-    i = 0;
+    {
+        IdUnit* u = IdSys.unitPtr(0, 0x24);
+        u->u0 = ang;
+        u->u1 = ang + 1.0f;
+        lo = ang - 0.5f;
+        hi = ang + 0.5f;
+    }
+    // `cnt` crosses no call: each mark passes `cnt + 1` (a temp the call crosses) and cse turns the
+    // `cnt++` after the stores into a copy of that temp, so sched1 keeps the `li cnt,0/1` below the
+    // unitPtr calls (REG_N_CALLS_CROSSED == 0 anchor) and global gives cnt the temp's r30.
+    cnt = 0;
     if (lo <= 0.0f && hi >= 0.0f) {
-        u = IdSys.unitPtr(1, 0x24);
+        IdUnit* u = IdSys.unitPtr(1, 0x24);
         u->flags |= 8;
         u->no = 3;
         u->flags_7F |= 2;
-        u->scr.x = (0.0f - lo) * (scr3.x - scr1.x) + scr1.x;
-        i = 1;
+        u->scr.x = (0.0f - lo) * (scr2.x - scr1.x) + scr1.x;
+        cnt = 1;
     }
     if (lo <= 0.5f && hi >= 0.5f) {
-        i++;
-        u = IdSys.unitPtr(i, 0x24);
+        IdUnit* u = IdSys.unitPtr(cnt + 1, 0x24);
         u->flags |= 8;
         u->no = 0;
         u->flags_7F |= 2;
-        u->scr.x = (0.5f - lo) * (scr3.x - scr1.x) + scr1.x;
+        u->scr.x = (0.5f - lo) * (scr2.x - scr1.x) + scr1.x;
+        cnt++;
     }
     if (lo <= 1.0f && hi >= 1.0f) {
-        i++;
-        u = IdSys.unitPtr(i, 0x24);
+        IdUnit* u = IdSys.unitPtr(cnt + 1, 0x24);
         u->flags |= 8;
         u->no = 1;
         u->flags_7F |= 2;
-        u->scr.x = (1.0f - lo) * (scr3.x - scr1.x) + scr1.x;
+        u->scr.x = (1.0f - lo) * (scr2.x - scr1.x) + scr1.x;
+        cnt++;
     }
     if (lo <= 1.5f && hi >= 1.5f) {
-        i++;
-        u = IdSys.unitPtr(i, 0x24);
+        IdUnit* u = IdSys.unitPtr(cnt + 1, 0x24);
         u->flags |= 8;
         u->no = 2;
         u->flags_7F |= 2;
-        u->scr.x = (1.5f - lo) * (scr3.x - scr1.x) + scr1.x;
+        u->scr.x = (1.5f - lo) * (scr2.x - scr1.x) + scr1.x;
+        cnt++;
     }
     if (lo <= 2.0f && hi >= 2.0f) {
-        i++;
-        u = IdSys.unitPtr(i, 0x24);
+        IdUnit* u = IdSys.unitPtr(cnt + 1, 0x24);
         u->flags |= 8;
         u->no = 3;
         u->flags_7F |= 2;
-        u->scr.x = (2.0f - lo) * (scr3.x - scr1.x) + scr1.x;
+        u->scr.x = (2.0f - lo) * (scr2.x - scr1.x) + scr1.x;
+        cnt++;
     }
+    // The loop counter is a separate variable copied from cnt (the copy is a no-op after allocation and
+    // delays the entry `cmpwi` one slot behind the hoisted `&digit`); it is reused by the digit loop.
+    i = cnt;
     while (i <= 2) {
         i++;
         IdSys.unitPtr(i, 0x24)->flags &= ~8;
     }
     if (!(pG->flags_500C & 0x1000)) {
-        u = IdSys.unitPtr(0x36, 0x24);
+        IdUnit* u = IdSys.unitPtr(0x36, 0x24);
+        MessageControl* mc;
+        Message* ms;
+        s16 x = (s16) ((u->scr.x + 320.0f) * 0.8f);
+        s16 y = (s16) ((240.0f - u->scr.y) * 0.8f);
         cMes.setLayout(1, 1);
-        cMes.MesSet(1, (s16) ((u->scr.x + 320.0f) * 0.8f), (s16) ((240.0f - u->scr.y) * 0.8f) - cMes.mes[1].fontH / 2, 0x20081, 1, 0, 4);
+        mc = &cMes;
+        ms = &mc->mes[1];
+        mc->MesSet(1, x, (s16) (y - ms->fontH / 2), 0x20081, 1, 0, 4);
         u = IdSys.unitPtr(0x1B, 0x24);
         rate = u->col[3] / 255.0f;
-        cMes.mes[1].color = ((u8) ((f32) (cMes.mes[1].color >> 24) * rate) << 24) |
-                            ((u8) ((f32) ((cMes.mes[1].color >> 16) & 0xFF) * rate) << 16) |
-                            ((u8) ((f32) ((cMes.mes[1].color >> 8) & 0xFF) * rate) << 8) |
-                            (u8) ((f32) (cMes.mes[1].color & 0xFF) * rate);
+        ms->color = ((u8) ((f32) (ms->color >> 24) * rate) << 24) |
+                    ((u8) ((f32) ((ms->color >> 16) & 0xFF) * rate) << 16) |
+                    ((u8) ((f32) ((ms->color >> 8) & 0xFF) * rate) << 8) |
+                    (u8) ((f32) (ms->color & 0xFF) * rate);
     }
     {
         f32 t0[2] = {1.0f, 16.0f};
         f32 t1[2] = {45.0f, 3.0f};
+        int d;
         dist = (int) ((t0[1] - t0[0]) * (cam->param.fovy - t1[0]) / (t1[1] - t1[0]) + t0[0]);
+        d = dist * 10;
         for (i = 0; i < 4; i++) {
-            digit[i] = dist % 10;
-            dist /= 10;
+            digit[i] = d % 10;
+            d /= 10;
         }
-        for (i = 0; i <= 3; i++) {
-            u = IdSys.unitPtr(0x20 + i, 0x24);
+        for (int k = 0; k <= 3; k++) {
+            IdUnit* u = IdSys.unitPtr(0x20 + k, 0x24);
             u->flags_7F |= 2;
-            u->no = digit[i];
+            u->no = digit[k];
         }
         ratio = 1.0f - ((f32) dist - t0[0]) / (t0[1] - t0[0]);
     }
-    u = IdSys.unitPtr(0x35, 0x24);
-    u->v1 = 1.0f;
-    u->v0 = ratio;
-    u->scr = scr35;
-    u->scr.y = u->scr.y - sizeY * ratio * m;
-    u->sizeY = sizeY * (1.0f - ratio) * n;
-    ang = (sizeY * 0.5f * 0.5f + u->scr.y) * 2.0f;
-    for (i = 0; i <= 3; i++) {
-        u = IdSys.unitPtr(5 + i, 0x24);
-        if (ang < u->pos.y) {
+    {
+        IdUnit* u = IdSys.unitPtr(0x35, 0x24);
+        u->v0 = FRef(ratio);
+        u->v1 = 1.0f;
+        u->scr = scr35;
+        u->scr.y = u->scr.y - sizeY * FRef(ratio) * FRef(m);
+        u->sizeY = sizeY * (1.0f - FRef(ratio)) * FRef(n);
+        y = (sizeY * 0.5f * 0.5f + u->scr.y) * 2.0f;
+    }
+    for (int k = 0; k <= 3; k++) {
+        IdUnit* u = IdSys.unitPtr(5 + k, 0x24);
+        if (y < u->pos.y) {
             u->flags &= ~8;
         } else {
             u->flags |= 8;
@@ -902,10 +944,6 @@ CameraPushObject::~CameraPushObject()
     memset(this, 9, 0x200);
 }
 
-// The two VecAngle calls take `&plmat[2]` through an inline: integrate substitutes the frame address
-// into each call (`addi r4,r1,216` per call) instead of gcse holding one PRE'd copy across the call.
-static inline f32 VecAngleI(Vec* a, Vec* b) { return VecAngle(a, b); }
-
 void CameraPushObject::move()
 {
     static f32 default_ofs[8] = {0.0f, 2000.0f, -2000.0f, 0.0f, 800.0f, 800.0f, 0.0f, 45.0f};
@@ -926,17 +964,18 @@ void CameraPushObject::move()
     PSMTXInverse(inv, m);
     plmat[0][0] = inv[0][0]; plmat[0][1] = inv[1][0]; plmat[0][2] = inv[2][0];
     plmat[1][0] = inv[0][1]; plmat[1][1] = inv[1][1]; plmat[1][2] = inv[2][1];
-    plmat[2][0] = inv[0][2]; plmat[2][1] = inv[1][2]; plmat[2][2] = inv[2][2];
+    getColumn(inv, 2, (Vec*) plmat[2]);
     plpos.x = inv[0][3]; plpos.y = inv[1][3]; plpos.z = inv[2][3];
     for (i = 0; i < EmMgr.nArray; i++) {
         e = (cModel*) ((u8*) EmMgr.pArray + EmMgr.size * i);
         if ((e->id == 0x41 || e->id == 0x44 || e->id == 0x46) && (e->be_flag & 0x201) == 1) {
             PSMTXMultVec(m, &e->pos, &em_pos);
-            if (em_pos.z >= 0.0f && PSVECMag(&em_pos) <= 4000.0f) {
+            // negated tests: `blt` / `cror so,eq,gt; bso` (a positive `>=`/`<=` gives cror + bns)
+            if (!(em_pos.z < 0.0f) && !(PSVECMag(&em_pos) >= 4000.0f)) {
                 if (em == 0) {
                     em = e;
                     near_pos = em_pos;
-                } else if (PSVECMag(&em_pos) < PSVECMag(&near_pos)) {
+                } else if (PSVECMag(&em_pos) <= PSVECMag(&near_pos)) {
                     em = e;
                     near_pos = em_pos;
                 }
@@ -956,7 +995,10 @@ void CameraPushObject::move()
             look.y = em->mat[1][2];
             look.z = em->mat[2][2];
         }
-        if (VecAngleI(&look, (Vec*) &plmat[2]) > 0.7853982f && VecAngleI(&look, (Vec*) &plmat[2]) < 2.3561945f) {
+        // one call; `&look` is a plain call argument pseudo that gcse PREs together with `&hit`
+        // (same frame slot) into the head register
+        f32 ang = VecAngle(&look, (Vec*) &plmat[2]);
+        if (ang > 0.7853982f && ang < 2.3561945f) {
             if (near_pos.x > 0.0f) {
                 MtxRotAxisPosRad(rot, &axis, (Vec*) &default_ofs[3], 1.5707964f);
             } else {
