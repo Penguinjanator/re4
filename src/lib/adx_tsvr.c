@@ -1,7 +1,8 @@
 /* CRI ADXT server (adx_tsvr.c): the per-handle state machine run from ADXT_ExecServer, the
  * decoder-information stage and the decoder trap / stream end-of-sector callbacks (looping and
- * linked files). Every function is instruction-identical to the original; the remaining diffs
- * are callee-saved register permutations (M1).
+ * linked files). 5/6 functions byte-identical; adxt_nlp_trap_entry differs in one word (the
+ * `lha ofst` temporary takes r0, the original r4: an r0-coloured neighbour in the original's
+ * interference graph that ours does not have, see AGENTS.md "CRI pass 11").
  * COMPILER-DIFF: M1 -- adxt_trap_entry_lps / adxt_nlp_trap_entry / adxt_stat_decinfo take the
  * asm-defined `register` copy of the adxt parameter (`asm { mr p, adxt }`, coalesced into the
  * prologue mr) so the parameter ranks above the locals (r30/r31) like the original. */
@@ -78,14 +79,20 @@ void adxt_trap_entry_lps(ADXT adxt);
 
 void ADXT_ExecHndl(ADXT adxt)
 {
+	/* register ranking (CRI pass 11): locals get virtual ids in reverse declaration order and are
+	 * coloured highest id first, so the loop-1 values (i, p) must be declared before the loop-2
+	 * values (j, sj, nbyte, p2) and each stepping pointer after its counter */
 	Sint32 nch;
 	Sint32 i;
-	Sint32 ndata;
-	Sint32 nroom;
+	Uint8 *p;
+	Sint32 j;
+	SJ sj;
 	Sint32 nbyte;
 	void *sjd;
 	void *rna;
-	SJ sj;
+	Sint32 ndata;
+	Sint32 nroom;
+	Uint8 *p2;
 	SJCK ck;
 
 	if (adxt == NULL) {
@@ -96,11 +103,13 @@ void ADXT_ExecHndl(ADXT adxt)
 		if (ADXSJD_GetStat(adxt->sjd) == 3) {
 			nch = ADXSJD_GetNumChan(adxt->sjd);
 			adxt_dbg_nch = nch;
+			p = (Uint8 *)adxt;
 			for (i = 0; i < nch; i++) {
-				adxt_dbg_ndt = SJ_GetNumData(adxt->sjo[i], SJ_CK_DATA);
+				adxt_dbg_ndt = SJ_GetNumData(*(SJ *)(p + 0x18), SJ_CK_DATA);
 				if (adxt_dbg_ndt >= 0x40) {
 					break;
 				}
+				p += 4;
 			}
 			if (i == nch) {
 				ADXRNA_SetTransSw(adxt->rna, 0);
@@ -128,11 +137,13 @@ void ADXT_ExecHndl(ADXT adxt)
 		if (ADXSJD_GetStat(adxt->sjd) == 3) {
 			nch = ADXT_GetNumChan(adxt);
 			nbyte = adxt->maxdecsmpl * nch * 2;
-			for (i = 0; i < nch; i++) {
-				sj = adxt->sjo[i];
+			p2 = (Uint8 *)adxt;
+			for (j = 0; j < nch; j++) {
+				sj = *(SJ *)(p2 + 0x18);
 				SJ_GetChunk(sj, SJ_CK_FREE, nbyte, &ck);
 				memset(ck.data, 0, ck.len);
 				SJ_PutChunk(sj, SJ_CK_DATA, &ck);
+				p2 += 4;
 			}
 		}
 	} else if (adxt->stat == ADXT_ISTAT_PLAYEND_WAIT) {

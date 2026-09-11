@@ -183,7 +183,9 @@ Sint32 MPV_MoveChunk(SJ sj, Sint32 id, Sint32 nbyte)
 	return ck.len;
 }
 
-Sint32 MPV_GoNextDelimSj(SJ sj)
+/* MPV_GoNextDelimSj's body: inlined into mpvhdec_NextDelim / MPVHDEC_DecPicture, the public function
+ * is emitted after MPVHDEC_DecPicture (the original's .text order) */
+static Sint32 mpvhdec_GoNextDelim(SJ sj)
 {
 	SJCK ck;
 	SJCK rest;
@@ -238,7 +240,7 @@ static Sint32 mpvhdec_NextDelim(MPV mpv, SJ sj, Sint32 mask)
 		ret = -3;
 	}
 	for (;;) {
-		delim = MPV_GoNextDelimSj(sj);
+		delim = mpvhdec_GoNextDelim(sj);
 		if (delim == 0) {
 			break;
 		}
@@ -275,6 +277,38 @@ Sint32 MPVHDEC_DecPicture(MPV mpv, SJ sj)
 		mpvhdec_DecSlice(mpv, sj);
 	}
 	return 0;
+}
+
+/* the public copy of mpvhdec_GoNextDelim: a real function (its own locals: ck above rest on the
+ * frame), emitted after MPVHDEC_DecPicture like the original */
+Sint32 MPV_GoNextDelimSj(SJ sj)
+{
+	SJCK ck;
+	SJCK rest;
+	Sint32 delim;
+	Uint8 *p;
+
+	for (;;) {
+		SJ_GetChunk(sj, SJ_CK_DATA, 0x7FFFFFFF, &ck);
+		if (ck.len < 4) {
+			SJ_UngetChunk(sj, SJ_CK_DATA, &ck);
+			delim = 0;
+			break;
+		}
+		p = (Uint8 *)MPV_SearchDelim((Sint8 *)ck.data, ck.len, -1);
+		if (p == NULL) {
+			SJ_SplitChunk(&ck, ck.len - 3, &ck, &rest);
+			SJ_PutChunk(sj, SJ_CK_FREE, &ck);
+			SJ_UngetChunk(sj, SJ_CK_DATA, &rest);
+			continue;
+		}
+		delim = MPV_CheckDelim(p);
+		SJ_SplitChunk(&ck, p - ck.data, &ck, &rest);
+		SJ_PutChunk(sj, SJ_CK_FREE, &ck);
+		SJ_UngetChunk(sj, SJ_CK_DATA, &rest);
+		break;
+	}
+	return delim;
 }
 
 /* COMPILER-DIFF: M1 -- `p = &buf[(Uint32)i + 4]` written as an asm add of the register locals: the C form
@@ -341,8 +375,9 @@ Sint32 mpvhdec_AnalyUd(MPV mpv, Uint8 *buf, Sint32 len)
 	ret2 = 0;
 	ret = 0;
 	type = mpv->hdrtype;
-	n = len - 3;
-	for (i = 4; i < n; i++) {
+	/* n has one definition (below): a second one would be range-split into a temporary that ranks
+	 * above type/ret/ret2 (CRI pass 11) */
+	for (i = 4; i < len - 3; i++) {
 		if (MPV_CheckDelim(buf + i) != 0) {
 			break;
 		}
@@ -420,7 +455,7 @@ Sint32 mpvhdec_DecPscSj(register MPV mpv, SJ sj)
 		mpv->bwd.shift = 27 - r_size;
 		mpv->bwd.f = 1 << r_size;
 	}
-	dc11 = mpv->cond[6] != 3;
+	dc11 = (mpv->cond[6] == 3) ? 0 : 1; /* `!= 3` ranks the dc11*20 / type*4 index temporaries the other way (CRI pass 11) */
 	c4 = mpv->cond[4];
 	mpv->intra_blocks = MPVCDEC_IntraBlocks;
 	mpv->nintra_blocks = MPVCDEC_NintraBlocks;
