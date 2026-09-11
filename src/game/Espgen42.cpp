@@ -72,6 +72,8 @@ void EspWaterInit()
 // BY-VALUE Vec parameter: integrate.c copies the argument into a stack temp through an address
 // pseudo (`addi r11,r1,8; stw 4(r11); stw 8(r11)`) that also feeds the PSMTXMultVec arguments
 // (`mr r4,r11`) and dies there; an inline-local `Vec v` gives frame-direct stores and `addi r4,r1,8`.
+// `h = p->hB + k` in each arm: jump2 cross-jumps the `slwi; add` tails, so the add sits in another block
+// than the load and combine cannot fold it into `lfsux` (target: `add r9,r9,r0; lfs f13,0(r9)`).
 static inline void AddWaterPowerCore(EspgenWork* w, Vec v)
 {
     Espgen42Work* p = (Espgen42Work*) w->work;
@@ -136,11 +138,86 @@ static inline void AddWaterPowerCore(EspgenWork* w, Vec v)
         if (k < (u32) (p->nx * p->ny)) {
             f32* h;
             if (pG->flags_51E4 & 1) {
-                h = p->hB;
+                h = p->hB + k;
             } else {
-                h = p->hA;
+                h = p->hA + k;
             }
-            h += k;
+            *h += FGet(Add_power) * pw;
+        }
+    }
+}
+
+// The 0x45 branch is a hand-written second copy, not the same inline: its `pw` assignments go through a
+// temporary (`FSet(pw, 0.8f)` = a f32 parameter), which the loop optimiser hoists as `lfs f11`/`fmr f10,f12`
+// with `fmr f12,fN` in the cases; the 0x42 copy keeps `lfs` in the cases with only the `lis` hoisted.
+static inline void AddWaterPowerCore45(EspgenWork* w, Vec v)
+{
+    Espgen42Work* p = (Espgen42Work*) w->work;
+    u32 x;
+    u32 z;
+    u32 idx;
+    int i;
+
+    PSMTXMultVec(p->inv, &v, &v);
+    if (v.x < (f32) (-p->nx / 2)) {
+        return;
+    }
+    if (v.z < (f32) (-p->ny / 2)) {
+        return;
+    }
+    if (v.x > (f32) (p->nx / 2)) {
+        return;
+    }
+    if (v.z > (f32) (p->ny / 2)) {
+        return;
+    }
+    z = (u32) (v.z + (f32) (p->ny / 2));
+    x = (u32) (v.x + (f32) (p->nx / 2));
+    idx = z * (p->nx + 1) + x;
+    u32 k = 0;
+    f32 pw = 1.0f;
+    if (x <= 1) {
+        return;
+    }
+    if (z <= 1) {
+        return;
+    }
+    if (x >= (u32) (p->nx - 2)) {
+        return;
+    }
+    if (z >= (u32) (p->ny - 2)) {
+        return;
+    }
+    for (i = 0; i < 5; i++) {
+        switch (i) {
+        case 0:
+            k = idx - 1;
+            FSet(pw, 0.8f);
+            break;
+        case 1:
+            k = idx + 1;
+            FSet(pw, 0.8f);
+            break;
+        case 2:
+            k = idx;
+            FSet(pw, 1.0f);
+            break;
+        case 3:
+            k = idx - p->nx;
+            FSet(pw, 0.8f);
+            break;
+        case 4:
+            k = idx + p->nx;
+            FSet(pw, 0.8f);
+            break;
+        }
+        if (k < (u32) (p->nx * p->ny)) {
+            f32* h;
+            if (pG->flags_51E4 & 1) {
+                h = p->hB + k;
+            } else {
+                h = p->hA + k;
+            }
             *h += FGet(Add_power) * pw;
         }
     }
@@ -151,14 +228,14 @@ void AddWaterPowerSub(EspgenWork* w)
     if (w->id == 0x42) {
         AddWaterPowerCore(w, Chk_pos);
     } else if (w->id == 0x45) {
-        AddWaterPowerCore(w, Chk_pos);
+        AddWaterPowerCore45(w, Chk_pos);
     }
 }
 
 void AddWaterPower(Vec* pos, f32 power)
 {
     if (pG->flags_500C & 0x200) {
-        ISet(Height_find, 0);
+        Height_find = 0;
         FSet(Add_power, power * 5.0f);
         Chk_pos = *pos;
         EspgenWork* w = g_pWater;
@@ -171,15 +248,12 @@ void AddWaterPower(Vec* pos, f32 power)
     }
 }
 
-void GetWaterHeightSub(EspgenWork* w)
+// Same shape as AddWaterPowerSub: a by-value Vec inline called once per id; jump2 cross-jumps the
+// two copies into one body (w allocated before p: r30/r29).
+static inline void GetWaterHeightCore(EspgenWork* w, Vec v)
 {
-    Vec v;
-
-    if (w->id != 0x42 && w->id != 0x45) {
-        return;
-    }
     Espgen42Work* p = (Espgen42Work*) w->work;
-    v = Chk_pos;
+
     PSMTXMultVec(p->inv, &v, &v);
     if (v.x < (f32) (-p->nx / 2)) {
         return;
@@ -199,6 +273,15 @@ void GetWaterHeightSub(EspgenWork* w)
         Height_ret = v.y;
     }
     Height_find = 1;
+}
+
+void GetWaterHeightSub(EspgenWork* w)
+{
+    if (w->id == 0x42) {
+        GetWaterHeightCore(w, Chk_pos);
+    } else if (w->id == 0x45) {
+        GetWaterHeightCore(w, Chk_pos);
+    }
 }
 
 void Espgen42SetNoWater(int on)
@@ -344,8 +427,10 @@ int GetWaterCrossPos(Vec* pos, Vec* dir, Vec* out)
     return IGet(Cross_find);
 }
 
-// Bump texture (I8, 8x4 tiles) index of grid point (x, y).
-#define BUMP_INDEX(x, y, w1) (((y) / 4 * 32) * ((w1) >> 3) + ((x) / 8) * 32 + (((y) & 3) << 3) + ((x) & 7))
+// Bump texture (I8, 8x4 tiles) index of grid point (x, y). x/8 before y/4 (the two signed divisions are
+// separate blocks, so their order is the source order) and `(y / 4) << 5`: with `* 32` fold would
+// reassociate the constant onto `(w1) >> 3` and hoist `(w1 >> 3) * 32`; the target keeps `srwi` in the loop.
+#define BUMP_INDEX(x, y, w1) (((x) / 8) * 32 + (((y) / 4) << 5) * ((w1) >> 3) + (((y) & 3) << 3) + ((x) & 7))
 // Noise texture (0xFE) index of grid point (x, y).
 #define NOISE_INDEX(x, y) ((((y) << 6) & 0xB00) + (((x) << 2) & 0xA0) + (((y) & 3) << 3) + ((x) & 7))
 
@@ -364,6 +449,7 @@ void Espgen42_Move00(EspgenWork* w)
     u8 tmp;
     GXTexObj* tex;
     u8* noise;
+    f32* c;
     u32 frame;
     int i;
     int j;
@@ -416,14 +502,17 @@ void Espgen42_Move00(EspgenWork* w)
         }
         f32 fy = 1.0f;
         for (i = 1; i < p->ny; i++) {
-            u32 w1 = nx + 1;
             f32 fx = 1.0f;
-            k = i * w1 + 1;
-            for (j = 1; j < nx; j++) {
+            k = i * (nx + 1) + 1;
+            for (j = 1; j < (int) nx; j++) {
                 tmp = noise[NOISE_INDEX(j, i)];
                 f32 n = PSQ_L_U8(&tmp) - 80.0f;
-                f32* c = &cur[k];
-                f32 sum = c[-1] + c[1] + c[-1 - (int) nx] + c[1 + (int) nx];
+                // `c` is a function-level pointer set twice per iteration (set_in_loop != 1, so loop.c
+                // does not treat it as a giv): the neighbours stay `lfs 4(c)/-4(c)` off `add c = cur + k*4`
+                // and `*(c - nx - 1)` becomes `subf` + `lfs -4` off the hoisted `nx*4`.
+                c = cur;
+                c += k;
+                f32 sum = c[-1] + c[1] + *(c - nx - 1) + *(c + nx + 1);
                 f32 h = damp * sum + cdamp * cur[k];
                 h -= next[k];
                 h = n * 0.0002f + h;
@@ -433,11 +522,12 @@ void Espgen42_Move00(EspgenWork* w)
                 v.x = p->pos[k - 1].y - p->pos[k + 1].y;
                 v.y = 2.0f;
                 v.z = p->pos[k - nx].y - p->pos[k + nx].y;
-                PSVECNormalize(&v, &p->nrm[k]);
-                p->bump[BUMP_INDEX(j, i, w1)] = (u8) (p->nrm[k].x * 255.0f * 2.0f + 128.0f);
-                p->nrm[k].x += (fx - hx) * inx;
-                p->nrm[k].y *= 0.25f;
-                p->nrm[k].z += (fy - hy) * iny;
+                Vec* nrm = p->nrm;   // loaded once before the call and kept across it (`lfsx nrm[k].x`, `4(nrm+k*12)`)
+                PSVECNormalize(&v, &nrm[k]);
+                p->bump[BUMP_INDEX(j, i, nx + 1)] = (u8) (nrm[k].x * 255.0f * 2.0f + 128.0f);
+                nrm[k].x += (fx - hx) * inx;
+                nrm[k].z += (fy - hy) * iny;
+                nrm[k].y *= 0.25f;
                 fx += 1.0f;
                 k++;
             }
@@ -450,7 +540,9 @@ void Espgen42_Move00(EspgenWork* w)
                 int nz = noise[NOISE_INDEX(j, i)];
                 f32* hA = p->hA;
                 f32* hB = p->hB;
-                f32 sum = hA[k - 1] + hA[k + 1] + hA[k - 1 - p->ny] + hA[k + 1 + p->ny];
+                c = hA;
+                c += k;
+                f32 sum = c[-1] + c[1] + *(c - p->ny - 1) + *(c + p->ny + 1);
                 hB[k] += sum - hA[k] * 4.0f;
                 f32 n = (f32) nz - 80.0f;
                 hA[k] += n * 0.0001f + hB[k] * 0.04f;
@@ -459,11 +551,12 @@ void Espgen42_Move00(EspgenWork* w)
                 v.x = p->pos[k - 1].y - p->pos[k + 1].y;
                 v.y = 2.0f;
                 v.z = p->pos[k - p->nx].y - p->pos[k + p->nx].y;
-                PSVECNormalize(&v, &p->nrm[k]);
-                p->bump[BUMP_INDEX(j, i, p->nx + 1)] = (u8) (p->nrm[k].x * 255.0f * 2.0f + 128.0f);
-                p->nrm[k].x += ((f32) j - (f32) (p->nx / 2)) * (1.0f / (f32) p->nx);
-                p->nrm[k].y *= 0.25f;
-                p->nrm[k].z += ((f32) i - (f32) (p->ny / 2)) * (1.0f / (f32) p->ny);
+                Vec* nrm = p->nrm;
+                PSVECNormalize(&v, &nrm[k]);
+                p->bump[BUMP_INDEX(j, i, p->nx + 1)] = (u8) (nrm[k].x * 255.0f * 2.0f + 128.0f);
+                nrm[k].x += ((f32) j - (f32) (p->nx / 2)) * (1.0f / (f32) (int) p->nx);
+                nrm[k].z += ((f32) i - (f32) (p->ny / 2)) * (1.0f / (f32) (int) p->ny);
+                nrm[k].y *= 0.25f;
                 k++;
             }
         }
@@ -818,10 +911,14 @@ EspgenWork* SetWaterWork(EspgenWork* w, Vec* pos, Vec* rot, f32 size, u32 nx, u3
             }
         }
     }
+    // One counter pair for the init loops: `jj` (inner fRand loop, then the two x edges: it crosses the
+    // call, so callee-saved r28) and `i2`/`idx` (fRand rows, `i2 = p->ny` for the far edge, the two y edges).
     fy = 0.0f;
-    for (int i2 = 0; i2 < p->ny + 1; i2++) {
-        int idx = i2 * (p->nx + 1);
-        int jj;
+    int jj;
+    int i2;
+    int idx;
+    for (i2 = 0; i2 < p->ny + 1; i2++) {
+        idx = i2 * (p->nx + 1);
         fx = 0.0f;
         for (jj = 0; jj < p->nx + 1; jj++) {
             p->pos[idx].x = fx - (f32) (int) (p->nx / 2);
@@ -840,28 +937,34 @@ EspgenWork* SetWaterWork(EspgenWork* w, Vec* pos, Vec* rot, f32 size, u32 nx, u3
     {
         static f32 g42_init_y = 0.0f;
         static f32 g42_init_y2 = 0.0f;
-        int base;
-        for (j = 0; j < p->nx + 1; j++) {
-            p->pos[j].y = FGet(g42_init_y);
+        for (jj = 0; jj < p->nx + 1; jj++) {
+            p->pos[jj].y = FGet(g42_init_y);
         }
-        base = p->ny * (p->nx + 1);
-        for (j = 0; j < p->nx + 1; j++) {
-            p->pos[base + j].y = FGet(g42_init_y);
+        i2 = p->ny;
+        idx = i2 * (p->nx + 1);
+        for (jj = 0; jj < p->nx + 1; jj++) {
+            p->pos[idx + jj].y = FGet(g42_init_y);
         }
-        for (int i3 = 0; i3 < p->ny + 1; i3++) {
-            p->pos[i3 * (p->nx + 1)].y = FGet(g42_init_y2);
+        for (i2 = 0; i2 < p->ny + 1; i2++) {
+            p->pos[i2 * (p->nx + 1)].y = FGet(g42_init_y2);
         }
-        for (int i4 = 0; i4 < p->ny + 1; i4++) {
-            p->pos[i4 * (p->nx + 1) + p->nx].y = FGet(g42_init_y2);
+        for (i2 = 0; i2 < p->ny + 1; i2++) {
+            p->pos[i2 * (p->nx + 1) + p->nx].y = FGet(g42_init_y2);
         }
     }
-    n = sizeof(Vec) * (p->nx + 1) * (p->ny + 1);
-    DCStoreRange(p->pos, n);
-    DCStoreRange(p->nrm, n);
+    // Block-local sizes at the tail: local-alloc ties the `nx + 1` temp into them (`addi r30; mullw r30`);
+    // the function-level `n` is only the MEM_ALLOC size.
+    {
+        u32 n2 = sizeof(Vec) * (p->nx + 1) * (p->ny + 1);
+        DCStoreRange(p->pos, n2);
+        DCStoreRange(p->nrm, n2);
+    }
     DCStoreRange(p->bump, sizeof(Vec) * (p->nx + 1) * (p->ny + 1));
-    n = sizeof(f32) * (p->nx + 1) * (p->ny + 1);
-    DCStoreRange(p->hA, n);
-    DCStoreRange(p->hB, n);
+    {
+        u32 n3 = sizeof(f32) * (p->nx + 1) * (p->ny + 1);
+        DCStoreRange(p->hA, n3);
+        DCStoreRange(p->hB, n3);
+    }
     DCStoreRange(p->dl, p->dlSize);
     return w;
 }

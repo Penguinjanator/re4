@@ -100,8 +100,10 @@ void Espgen45_static_init()
 // u8 -> f32 through GQR2 from a stack byte (the compiler only emits psq_l from its own fpmem slot).
 #define PSQ_L_U8(p) ({ f32 f_; asm volatile("psq_l %0,0(%1),1,2" : "=f"(f_) : "b"(p) : "memory"); f_; })
 
-// Bump texture (I8, 8x4 tiles) index of grid point (x, y).
-#define BUMP_INDEX(x, y, w1) (((y) / 4 * 32) * ((w1) >> 3) + ((x) / 8) * 32 + (((y) & 3) << 3) + ((x) & 7))
+// Bump texture (I8, 8x4 tiles) index of grid point (x, y). x/8 before y/4 (the two signed divisions are
+// separate blocks, so their order is the source order) and `(y / 4) << 5`: with `* 32` fold would
+// reassociate the constant onto `(w1) >> 3` and hoist `(w1 >> 3) * 32`; the target keeps `srwi` in the loop.
+#define BUMP_INDEX(x, y, w1) (((x) / 8) * 32 + (((y) / 4) << 5) * ((w1) >> 3) + (((y) & 3) << 3) + ((x) & 7))
 // Noise texture (0xFE) index of grid point (x, y).
 #define NOISE_INDEX(x, y) ((((y) << 6) & 0xB00) + (((x) << 2) & 0xA0) + (((y) & 3) << 3) + ((x) & 7))
 
@@ -119,6 +121,7 @@ void Espgen45_Move00(EspgenWork* w)
     u8 tmp;
     GXTexObj* tex;
     u8* noise;
+    f32* c;
     u32 frame;
     f32 size;
     f32 rate;
@@ -223,25 +226,29 @@ void Espgen45_Move00(EspgenWork* w)
         }
         f32 fy = 1.0f;
         for (i = 1; i < p->ny; i++) {
-            u32 w1 = nx + 1;
             f32 fx = 1.0f;
-            k = i * w1 + 1;
-            for (j = 1; j < nx; j++) {
+            k = i * (nx + 1) + 1;
+            for (j = 1; j < (int) nx; j++) {
                 tmp = noise[NOISE_INDEX(j, i)];
                 f32 n = PSQ_L_U8(&tmp) - 80.0f;
-                f32* c = &cur[k];
-                f32 sum = c[-1] + c[1] + c[-1 - (int) nx] + c[1 + (int) nx];
+                // `c` is a function-level pointer set twice per iteration (set_in_loop != 1, so loop.c
+                // does not treat it as a giv): the neighbours stay `lfs 4(c)/-4(c)` off `add c = cur + k*4`
+                // and `*(c - nx - 1)` becomes `subf` + `lfs -4` off the hoisted `nx*4`.
+                c = cur;
+                c += k;
+                f32 sum = c[-1] + c[1] + *(c - nx - 1) + *(c + nx + 1);
                 next[k] = damp * sum + cdamp * cur[k] - next[k];
                 next[k] = (n * g45_wave_mul + next[k]) * spread;
                 p->pos[k].y = next[k];
                 v.x = p->pos[k - 1].y - p->pos[k + 1].y;
                 v.y = 2.0f;
                 v.z = p->pos[k - nx].y - p->pos[k + nx].y;
-                PSVECScale(&v, &p->nrm[k], 1.0f / 2.3f);
-                p->bump[BUMP_INDEX(j, i, w1)] = (u8) (p->nrm[k].x * 255.0f * 2.0f + 128.0f);
-                p->nrm[k].x += (fx - hx) * inx;
-                p->nrm[k].y *= 0.25f;
-                p->nrm[k].z += (fy - hy) * iny;
+                Vec* nrm = p->nrm;   // loaded once before the call and kept across it (`lfsx nrm[k].x`, `4(nrm+k*12)`)
+                PSVECScale(&v, &nrm[k], 1.0f / 2.3f);
+                p->bump[BUMP_INDEX(j, i, nx + 1)] = (u8) (nrm[k].x * 255.0f * 2.0f + 128.0f);
+                nrm[k].x += (fx - hx) * inx;
+                nrm[k].z += (fy - hy) * iny;
+                nrm[k].y *= 0.25f;
                 fx += 1.0f;
                 k++;
             }
@@ -254,7 +261,9 @@ void Espgen45_Move00(EspgenWork* w)
                 int nz = noise[NOISE_INDEX(j, i)];
                 f32* hA = p->hA;
                 f32* hB = p->hB;
-                f32 sum = hA[k - 1] + hA[k + 1] + hA[k - 1 - p->ny] + hA[k + 1 + p->ny];
+                c = hA;
+                c += k;
+                f32 sum = c[-1] + c[1] + *(c - p->ny - 1) + *(c + p->ny + 1);
                 hB[k] += sum - hA[k] * 4.0f;
                 f32 n = (f32) nz - 80.0f;
                 hA[k] += n * 0.0001f + hB[k] * 0.04f;
@@ -263,11 +272,12 @@ void Espgen45_Move00(EspgenWork* w)
                 v.x = p->pos[k - 1].y - p->pos[k + 1].y;
                 v.y = 2.0f;
                 v.z = p->pos[k - p->nx].y - p->pos[k + p->nx].y;
-                PSVECScale(&v, &p->nrm[k], 1.0f / 2.3f);
-                p->bump[BUMP_INDEX(j, i, p->nx + 1)] = (u8) (p->nrm[k].x * 255.0f * 2.0f + 128.0f);
-                p->nrm[k].x += ((f32) j - (f32) (p->nx / 2)) * (1.0f / (f32) p->nx);
-                p->nrm[k].y *= 0.25f;
-                p->nrm[k].z += ((f32) i - (f32) (p->ny / 2)) * (1.0f / (f32) p->ny);
+                Vec* nrm = p->nrm;
+                PSVECScale(&v, &nrm[k], 1.0f / 2.3f);
+                p->bump[BUMP_INDEX(j, i, p->nx + 1)] = (u8) (nrm[k].x * 255.0f * 2.0f + 128.0f);
+                nrm[k].x += ((f32) j - (f32) (p->nx / 2)) * (1.0f / (f32) (int) p->nx);
+                nrm[k].z += ((f32) i - (f32) (p->ny / 2)) * (1.0f / (f32) (int) p->ny);
+                nrm[k].y *= 0.25f;
                 k++;
             }
         }
@@ -332,6 +342,16 @@ void SetIndMtx_801291F4(Espgen42Work* p)
 #define G45_NY ((f32) (int) p->ny)
 #define G45_NYN ((f32) (-(int) p->ny))
 #define G45_NYU ((f32) p->ny)
+
+// One vertex = one inline with all eight values as parameters, normal first: every value is evaluated
+// before the first FIFO store (one (f32)(-ny) conversion serves the normal z and the position z), and the
+// ny conversion precedes the nx one because the normal arguments come first.
+static inline void Vtx45(f32 nx, f32 ny, f32 nz, f32 x, f32 y, f32 z, f32 s, f32 t)
+{
+    GXPosition3f32(x, y, z);
+    GXNormal3f32(nx, ny, nz);
+    GXTexCoord2f32(s, t);
+}
 
 void Espgen45_TransSub(EspgenWork* w)
 {
@@ -551,8 +571,6 @@ void Espgen45_TransSub(EspgenWork* w)
             f32 inx;
             f32 iny;
             f32 far;
-            f32 nx;
-            f32 nz;
 
             GXClearVtxDesc();
             GXSetVtxDesc(9, 1);
@@ -566,76 +584,52 @@ void Espgen45_TransSub(EspgenWork* w)
             inx = 1.0f / G45_NX * inv_mul;
             iny = 1.0f / G45_NY * inv_mul;
             far = g45_mul / g45_mul2;
-            GXBegin(0x80, 0, 4);
-            nx = (g45_mul2 * 0.0f - hx) * inx;
-            GXPosition3f32(G45_NXHN * g45_mul, 0.0f, G45_NYN * 0.5f * g45_mul);
-            GXNormal3f32(nx, 0.25f, (G45_NYN * g45_mul2 + hy) * iny * far);
-            GXTexCoord2f32(0.0f, 0.0f);
-            nz = (g45_mul2 * 0.0f - hy) * iny;
-            GXPosition3f32(G45_NXH * g45_mul, 0.0f, G45_NYN * 0.5f * g45_mul);
-            GXNormal3f32((G45_NX * g45_mul2 - hx) * inx, 0.25f, (G45_NYN * g45_mul2 + hy) * iny * far);
-            GXTexCoord2f32(1.0f, 0.0f);
-            GXPosition3f32(G45_NXH * g45_mul2, 0.0f, G45_NYN * 0.5f * g45_mul2);
-            GXNormal3f32((G45_NX * g45_mul2 - hx) * inx, 0.25f, nz);
-            GXTexCoord2f32(1.0f, 1.0f);
-            n.x = nx;
-            n.y = 0.25f;
-            n.z = nz;
-            GXPosition3f32(G45_NXHN * g45_mul2, 0.0f, G45_NYN * 0.5f * g45_mul2);
-            GXNormal3f32(n.x, n.y, n.z);
-            GXTexCoord2f32(0.0f, 1.0f);
-            GXBegin(0x80, 0, 4);
-            nz = (g45_mul2 * 0.0f - hy) * iny;
-            GXPosition3f32(G45_NXH * g45_mul2, 0.0f, G45_NYN * 0.5f * g45_mul2);
-            GXNormal3f32((G45_NX * g45_mul2 - hx) * inx, 0.25f, nz);
-            GXTexCoord2f32(0.0f, 0.0f);
-            GXPosition3f32(G45_NXH * g45_mul, 0.0f, G45_NYN * 0.5f * g45_mul);
-            GXNormal3f32((G45_NX * g45_mul2 - hx) * inx * far, 0.25f, nz);
-            GXTexCoord2f32(1.0f, 0.0f);
-            GXPosition3f32(G45_NXH * g45_mul, 0.0f, G45_NYU * 0.5f * g45_mul);
-            GXNormal3f32((G45_NX * g45_mul2 - hx) * inx * far, 0.25f, (G45_NY * g45_mul2 - hy) * iny);
-            GXTexCoord2f32(1.0f, 1.0f);
-            n.x = (G45_NX * g45_mul2 - hx) * inx;
-            n.y = 0.25f;
-            n.z = (G45_NY * g45_mul2 - hy) * iny;
-            GXPosition3f32(G45_NXH * g45_mul2, 0.0f, G45_NYU * 0.5f * g45_mul2);
-            GXNormal3f32(n.x, n.y, n.z);
-            GXTexCoord2f32(0.0f, 1.0f);
-            GXBegin(0x80, 0, 4);
-            nx = (g45_mul2 * 0.0f - hx) * inx;
-            GXPosition3f32(G45_NXHN * g45_mul2, 0.0f, G45_NYU * 0.5f * g45_mul2);
-            GXNormal3f32(nx, 0.25f, (G45_NY * g45_mul2 - hy) * iny);
-            GXTexCoord2f32(0.0f, 1.0f);
-            n.x = nx;
-            GXPosition3f32(G45_NXH * g45_mul2, 0.0f, G45_NYU * 0.5f * g45_mul2);
-            GXNormal3f32((G45_NX * g45_mul2 - hx) * inx, 0.25f, (G45_NY * g45_mul2 - hy) * iny);
-            GXTexCoord2f32(1.0f, 1.0f);
-            GXPosition3f32(G45_NXH * g45_mul, 0.0f, G45_NYU * 0.5f * g45_mul);
-            GXNormal3f32((G45_NX * g45_mul2 - hx) * inx * far, 0.25f, (G45_NY * g45_mul2 - hy) * iny * far);
-            GXTexCoord2f32(1.0f, 0.0f);
-            n.y = 0.25f;
-            n.z = (G45_NY * g45_mul2 - hy) * iny * far;
-            GXPosition3f32(G45_NXHN * g45_mul, 0.0f, G45_NYU * 0.5f * g45_mul);
-            GXNormal3f32(n.x, n.y, n.z);
-            GXTexCoord2f32(0.0f, 0.0f);
-            GXBegin(0x80, 0, 4);
-            nz = (g45_mul2 * 0.0f - hy) * iny;
-            nx = (g45_mul2 * 0.0f - hx) * inx;
-            GXPosition3f32(G45_NXHN * g45_mul, 0.0f, G45_NYN * 0.5f * g45_mul);
-            GXNormal3f32((G45_NXN * g45_mul2 + hx) * inx * far, 0.25f, nz);
-            GXTexCoord2f32(0.0f, 0.0f);
-            GXPosition3f32(G45_NXHN * g45_mul2, 0.0f, G45_NYN * 0.5f * g45_mul2);
-            GXNormal3f32(nx, 0.25f, nz);
-            GXTexCoord2f32(1.0f, 0.0f);
-            GXPosition3f32(G45_NXHN * g45_mul2, 0.0f, G45_NYU * 0.5f * g45_mul2);
-            GXNormal3f32(nx, 0.25f, (G45_NY * g45_mul2 - hy) * iny);
-            GXTexCoord2f32(1.0f, 1.0f);
-            n.x = (G45_NXN * g45_mul2 + hx) * inx * far;
-            n.y = 0.25f;
-            n.z = (G45_NY * g45_mul2 - hy) * iny;
-            GXPosition3f32(G45_NXHN * g45_mul, 0.0f, G45_NYU * 0.5f * g45_mul);
-            GXNormal3f32(n.x, n.y, n.z);
-            GXTexCoord2f32(0.0f, 1.0f);
+            {
+                GXBegin(0x80, 0, 4);
+                f32 nx = (g45_mul2 * 0.0f - hx) * inx;
+                Vtx45(nx, 0.25f, (G45_NYN * g45_mul2 + hy) * iny * far, G45_NXHN * g45_mul, 0.0f, G45_NYN * 0.5f * g45_mul, 0.0f, 0.0f);
+                f32 nz = (g45_mul2 * 0.0f - hy) * iny;
+                Vtx45((G45_NX * g45_mul2 - hx) * inx, 0.25f, (G45_NYN * g45_mul2 + hy) * iny * far, G45_NXH * g45_mul, 0.0f, G45_NYN * 0.5f * g45_mul, 1.0f, 0.0f);
+                Vtx45((G45_NX * g45_mul2 - hx) * inx, 0.25f, nz, G45_NXH * g45_mul2, 0.0f, G45_NYN * 0.5f * g45_mul2, 1.0f, 1.0f);
+                n.x = nx;
+                n.y = 0.25f;
+                n.z = nz;
+                Vtx45(n.x, n.y, n.z, G45_NXHN * g45_mul2, 0.0f, G45_NYN * 0.5f * g45_mul2, 0.0f, 1.0f);
+            }
+            {
+                GXBegin(0x80, 0, 4);
+                f32 nz = (g45_mul2 * 0.0f - hy) * iny;
+                Vtx45((G45_NX * g45_mul2 - hx) * inx, 0.25f, nz, G45_NXH * g45_mul2, 0.0f, G45_NYN * 0.5f * g45_mul2, 0.0f, 0.0f);
+                Vtx45((G45_NX * g45_mul2 - hx) * inx * far, 0.25f, nz, G45_NXH * g45_mul, 0.0f, G45_NYN * 0.5f * g45_mul, 1.0f, 0.0f);
+                Vtx45((G45_NX * g45_mul2 - hx) * inx * far, 0.25f, (G45_NY * g45_mul2 - hy) * iny, G45_NXH * g45_mul, 0.0f, G45_NYU * 0.5f * g45_mul, 1.0f, 1.0f);
+                n.x = (G45_NX * g45_mul2 - hx) * inx;
+                n.y = 0.25f;
+                n.z = (G45_NY * g45_mul2 - hy) * iny;
+                Vtx45(n.x, n.y, n.z, G45_NXH * g45_mul2, 0.0f, G45_NYU * 0.5f * g45_mul2, 0.0f, 1.0f);
+            }
+            {
+                GXBegin(0x80, 0, 4);
+                f32 nx = (g45_mul2 * 0.0f - hx) * inx;
+                Vtx45(nx, 0.25f, (G45_NY * g45_mul2 - hy) * iny, G45_NXHN * g45_mul2, 0.0f, G45_NYU * 0.5f * g45_mul2, 0.0f, 1.0f);
+                n.x = nx;
+                Vtx45((G45_NX * g45_mul2 - hx) * inx, 0.25f, (G45_NY * g45_mul2 - hy) * iny, G45_NXH * g45_mul2, 0.0f, G45_NYU * 0.5f * g45_mul2, 1.0f, 1.0f);
+                Vtx45((G45_NX * g45_mul2 - hx) * inx, 0.25f, (G45_NY * g45_mul2 - hy) * iny * far, G45_NXH * g45_mul, 0.0f, G45_NYU * 0.5f * g45_mul, 1.0f, 0.0f);
+                n.z = (G45_NY * g45_mul2 - hy) * iny * far;
+                n.y = 0.25f;
+                Vtx45(n.x, n.y, n.z, G45_NXHN * g45_mul, 0.0f, G45_NYU * 0.5f * g45_mul, 0.0f, 0.0f);
+            }
+            {
+                GXBegin(0x80, 0, 4);
+                f32 nz = (g45_mul2 * 0.0f - hy) * iny;
+                f32 nx = (g45_mul2 * 0.0f - hx) * inx;
+                Vtx45((G45_NXN * g45_mul2 + hx) * inx * far, 0.25f, nz, G45_NXHN * g45_mul, 0.0f, G45_NYN * 0.5f * g45_mul, 0.0f, 0.0f);
+                Vtx45(nx, 0.25f, nz, G45_NXHN * g45_mul2, 0.0f, G45_NYN * 0.5f * g45_mul2, 1.0f, 0.0f);
+                Vtx45(nx, 0.25f, (G45_NY * g45_mul2 - hy) * iny, G45_NXHN * g45_mul2, 0.0f, G45_NYU * 0.5f * g45_mul2, 1.0f, 1.0f);
+                n.x = (G45_NXN * g45_mul2 + hx) * inx * far;
+                n.y = 0.25f;
+                n.z = (G45_NY * g45_mul2 - hy) * iny;
+                Vtx45(n.x, n.y, n.z, G45_NXHN * g45_mul, 0.0f, G45_NYU * 0.5f * g45_mul, 0.0f, 1.0f);
+            }
         }
         GXClearVtxDesc();
         GXSetVtxDesc(9, 3);
@@ -799,10 +793,14 @@ EspgenWork* SetWaterWork45(EspgenWork* w, Vec* pos, Vec* rot, f32 size, u32 nx, 
             }
         }
     }
+    // One counter pair for the init loops: `jj` (inner fRand loop, then the two x edges: it crosses the
+    // call, so callee-saved r28) and `i2`/`idx` (fRand rows, `i2 = p->ny` for the far edge, the two y edges).
     fy = 0.0f;
-    for (int i2 = 0; i2 < p->ny + 1; i2++) {
-        int idx = i2 * (p->nx + 1);
-        int jj;
+    int jj;
+    int i2;
+    int idx;
+    for (i2 = 0; i2 < p->ny + 1; i2++) {
+        idx = i2 * (p->nx + 1);
         fx = 0.0f;
         for (jj = 0; jj < p->nx + 1; jj++) {
             p->pos[idx].x = fx - (f32) (int) (p->nx / 2);
@@ -825,28 +823,34 @@ EspgenWork* SetWaterWork45(EspgenWork* w, Vec* pos, Vec* rot, f32 size, u32 nx, 
     {
         static f32 g45_init_y = 0.0f;
         static f32 g45_init_y2 = 0.0f;
-        int base;
-        for (j = 0; j < p->nx + 1; j++) {
-            p->pos[j].y = FGet(g45_init_y);
+        for (jj = 0; jj < p->nx + 1; jj++) {
+            p->pos[jj].y = FGet(g45_init_y);
         }
-        base = p->ny * (p->nx + 1);
-        for (j = 0; j < p->nx + 1; j++) {
-            p->pos[base + j].y = FGet(g45_init_y);
+        i2 = p->ny;
+        idx = i2 * (p->nx + 1);
+        for (jj = 0; jj < p->nx + 1; jj++) {
+            p->pos[idx + jj].y = FGet(g45_init_y);
         }
-        for (int i3 = 0; i3 < p->ny + 1; i3++) {
-            p->pos[i3 * (p->nx + 1)].y = FGet(g45_init_y2);
+        for (i2 = 0; i2 < p->ny + 1; i2++) {
+            p->pos[i2 * (p->nx + 1)].y = FGet(g45_init_y2);
         }
-        for (int i4 = 0; i4 < p->ny + 1; i4++) {
-            p->pos[i4 * (p->nx + 1) + p->nx].y = FGet(g45_init_y2);
+        for (i2 = 0; i2 < p->ny + 1; i2++) {
+            p->pos[i2 * (p->nx + 1) + p->nx].y = FGet(g45_init_y2);
         }
     }
-    n = sizeof(Vec) * (p->nx + 1) * (p->ny + 1);
-    DCStoreRange(p->pos, n);
-    DCStoreRange(p->nrm, n);
+    // Block-local sizes at the tail: local-alloc ties the `nx + 1` temp into them (`addi r30; mullw r30`);
+    // the function-level `n` is only the MEM_ALLOC size.
+    {
+        u32 n2 = sizeof(Vec) * (p->nx + 1) * (p->ny + 1);
+        DCStoreRange(p->pos, n2);
+        DCStoreRange(p->nrm, n2);
+    }
     DCStoreRange(p->bump, sizeof(Vec) * (p->nx + 1) * (p->ny + 1));
-    n = sizeof(f32) * (p->nx + 1) * (p->ny + 1);
-    DCStoreRange(p->hA, n);
-    DCStoreRange(p->hB, n);
+    {
+        u32 n3 = sizeof(f32) * (p->nx + 1) * (p->ny + 1);
+        DCStoreRange(p->hA, n3);
+        DCStoreRange(p->hB, n3);
+    }
     DCStoreRange(p->dl, p->dlSize);
     return w;
 }
