@@ -24579,3 +24579,97 @@ Harness ~/.cache/tcam (deleted): `mk.py BASE OUT OLD NEW..` exact-substring vari
 - Not touched: the `k8/k6` spill-set asm (tag stays), Load/SaveEmType, fn_t_esp_3DE4C, dbg_tool.h/db_widget. Tree edits in
   src/t_esp/t_esp.cpp only (window-1 `n` form, 4 `tbl` locals, dead sets 116). Verified: locked ninja of t_esp.o, bytecmp 208/212,
   InitTool 2880. Not run: `ninja -k 0`, make_rel --verify, shasum (nothing flipped).
+
+### CRI pass 28 (cri_cvfs cvFsGetFileSize 45 -> 36w, cvFsOpen 152 (-4 bytes) -> 56w (sizes equal); sfd_adxt AdjustSync 51 -> 47w; sfd_tst SFTST_Calc 79w read, unchanged; no flip; 2026-09-12)
+Harness /home/adityas/.cache/cri28/ (deleted): variant.sh copies, ra.py dumps, `exp.py`/`exp_gfs.py` (chaitin.py replays with edited `g.adj`/`g.order`).
+- **cri_cvfs (structure fixed, ranking left):** the target's `addi tbl,r31,cvfs_tbl` sits AFTER the first search's `bl strlen`, is copied
+  into search 1 and 2 (`mr dev, tbl`) and used in place by search 3. Reached by making the first search's prologue ResolveDev's OWN
+  statements: `name = dev; if (name == NULL) name = cvfs_defdev; len = strlen(name); tbl = cvfs_tbl;` then the loop as a helper
+  `cvfs_FindDev(tbl, name, len)` (`return cvfs_tbl[i].vtbl` keeps the target's `addi r3; lwzx`; `return tbl[i].vtbl` drops 8 bytes).
+  Rejected: `dev = cvfs_tbl` inside the helpers / `cvFsGetDevIf(cvfs_tbl, dev)` as the argument (the parameter is propagated to its
+  single use: the addi lands after the strlen but becomes `dev` itself and the second search recomputes it, 114w); `&cvfs_tbl[0]`,
+  `(CVFS_DEV *)cvfs_tbl`, `cvfs_tbl + 0` do not CSE. The `sprintf(path, "%s:%s", ..)` passes `name` (r26), not `dev`. cvFsOpen's
+  -4 bytes: `void *hn = cvfs_AllocObj(); obj = hn;` keeps the inlined @ret in r3 + `mr r30, r3` (the pass-12 typed-kept-copy rule);
+  the Open call reads `obj->vtbl->Open` twice (target reloads obj->vtbl into r3 for the test and the call).
+  Residue = register ranking, read with chaitin.py on the new dump: (a) target pdev r28 / tbl r27, ours reversed: both L2, tbl is the
+  helper local @1384 (id 48) above the own local pdev (id 33, 28 neighbours at removal) — pdev needs one more L2 neighbour (or tbl a
+  level lower). (b) the two SearchDev copies' `i` and the vtbl chain (ret2 -> ResolveDev vtbl -> caller vtbl, one coalesced node) are
+  r26 in the target = `name`'s register reused, coloured BEFORE r25/r24/r23 are handed out to i1/dev1/len1; ours colours the first
+  search's nodes first (ids r58-60 > r53-56 > r48-51: later call = lower id) so i2/i3/chain get r24. The target's first-search clone
+  therefore has the LOWEST ids of the three (cloned last, e.g. FindDev called from inside another depth-1 static helper) — not tried.
+  AllocObj's loop `i`/`p` r3/r4 swap unchanged.
+- **sfd_adxt AdjustSync:** `dmy` declared before `vflg` = the target frame (vflg 0xc / dmy 0x10), 51 -> 47w. `skip = 0;` before the
+  SetStartTime call still emits the `li` before the `bl` (49w with the frame fix, wrong shape). The remaining 47 are pass 25's fact
+  (target skip interferes with sfreq/astart/vstart/tim; tim/sfreq one neighbour fewer). ExecServerSub 112w not started.
+- **sfd_tst SFTST_Calc 79w, two priority facts (chaitin.py --check IDENTICAL on ours apart from 4 cost lines):**
+  (a) abs region: ours colours diff.lo (backend temp r226, `mr diff, sub` propagated) at L2 before adiff.hi (@119 r96, coalesced with
+  diff.hi) -> diff.lo r23 / diff.hi r25; target diff.hi r23, diff.lo r25, adiff.lo r22 = diff.lo ranked below @119 (the `diff`
+  variable kept, id r46). `diff = ..; adiff = sftst_Abs(diff)` (static helper `if (v < 0) v = -v;`) and the plain two-statement form
+  both move the `mr adiff.lo` above the branch (117w) — the ECONDASS-in-condition form is still the only one with the target's arms.
+  (b) sprintf block: nine mutually interfering values (out.cnt @171 r60/61, mt.cnt @172 r58/59, mt_max @173, hlp.cnt @174, the
+  MulDiv result r403) take r21..r30 in colouring order. Target order: mt.hi, out.hi, out.lo, MulDiv, mt.lo, mt_max.hi/lo, hlp.hi/lo;
+  ours: MulDiv, out, mt.lo, mt_max, hlp, mt.hi last (27 total neighbours = L1 -> r30). With our ids no degree change reproduces it
+  (r403 would need a level below @171 and above @172.lo; mt.hi a level above everything or an id above r403): the target's temp
+  numbering differs (its MulDiv value ranks between out.cnt and mt.cnt, its mt.hi above out.cnt). Also ave.hi r22 / tol.hi r23 in
+  the target = tol.hi (@123 r94, L2) coloured before ave.hi (r45, L3 in ours: 28 at removal after the L2 scan). Frontend note: the
+  argument CSE temps are created in REVERSE argument order (@171 = out.cnt from args 9-11 first, @174 = hlp.cnt last) and
+  `tst->hlp.cnt / tst->hlp.unit` (the __div2i operands) is not CSE'd with @174.
+
+### DOL act_btn/pl_wep/debug closer (act_btn Matching 10/10: checkButton 18 -> 0, tag #6; debug processBarDisp 138 -> 122 in a probe only, two mechanisms read; pl_wep untouched; 111 OK; 2026-09-12)
+
+- **act_btn checkButton 18 -> 0, tagged (#6): `case 9: asm volatile(""); break; case 0xA: break;`.** Read off `-dj/-dJ/-df` dumps
+  and jump.c: (1) every `return K` expands to `set r3 K; use r3; jump return_label`; jump1's "USE before an unconditional jump"
+  transform puts ONE `use r3` before a new label (768) at the function end and redirects all 22 return sites to it, so the
+  after-switch `return 0` becomes the fall-through `set r3 0; L768: use r3` end block. (2) Cases 9/0xA: `return 0` in both arms
+  = separate case nodes (group_case_nodes merges adjacent nodes only when `next_real_insn(label)` is the same insn or both are
+  simple jumps to one label), cross-jumped into one `set r3 0; jump 768` block in jump1; at jump2 it is `set r3 0; (return)` and
+  the RETURN-vs-RETURN cross-jump (`find_cross_jump(insn, target, 2)`: a match of the `set` then a CODE_LABEL before it drops
+  `minimum` to 0) fails because the end block's stream is `use r3` then `set r3 0`: `GET_CODE(p1) != GET_CODE(p2)` on USE/SET.
+  `break` in both arms groups 9/0xA into a range node (59w); `goto fail`/`break` or a dead `flags = 0` keep the nodes separate
+  and share the end block (target shape) but then the case-7 leaf `bne L750; set r3 1; jump 768` is directly followed by `L750:
+  set r3 0` and jump2's `if (...) { x = a; goto l; } x = b;` hoist fires (jump.c ~650: `this_is_simplejump` is computed BEFORE the
+  same iteration turns `jump 768` into `(return)`, so the hoist still runs with `invert_jump(temp, 0)` = `beqlr`): `or.; li
+  r3,1; beqlr` (21w). The target has the leaf-7 `b or_test` then `li r3,0; blr` with no hoist, i.e. a REAL insn separated leaf 7
+  from the end block through jump2 without emitting code: the ASM_INPUT does exactly that (dead sets die at cse1's
+  delete_trivially_dead_insns or flow, before jump2). No zero-code form found: `case 9: return 0; case 0xA: break;` 19w,
+  `default:` placements 15w. Flipped: bytecmp IDENTICAL, `ninja -k 0`, shasum 111 OK.
+- **debug processBarDisp 138, two-zero mechanism VERIFIED in a probe, not applied.** cse pass 1 processes the path `2 ->
+  1053` (the join label of the `if (proc_tick[2] > proc_tick[1])` if/else; the six tile `if`s and `x1 > x2` are AROUND
+  entries, then the backtracking retries `2 -> 938, 801, ...`). Tile 1's zero pseudo 121 is the class head and all six `sth`
+  use it. make_regs_eqv makes a later pseudo P the head iff `uid_cuid[REGNO_LAST_UID(P)] > cse_basic_block_end` (a mention
+  AFTER insn 1053 in the PRE-cse RTL) and later than 121's last use. Probe p4: `s16 zz = 0;` right after `t->z0 = 0` in tile 1
+  (promoted `reg/v:SI`, the HI stores reach it through cse's wider-mode `src_related` route) and `zz` as the third
+  `eprintf2(10, 16, zz, 16, 0, 13, ..)` argument after the join (cse folds that use back to `li r5,0`, so P keeps refs 6 = li +
+  5 stores, len ~496, pri 242 -> between 0xff/4 and 6 = the target's r17): 138 -> 122, size 0x8f4, tile 1 `li r0,0; sth`
+  local, tiles 2-6 share P. Declared BEFORE tile 1's store the variable serves all six (138). The original therefore had a
+  zero-valued s16/int local assigned between tile 1's z0 store and tile 2's, mentioned again after the if/else -- an eprintf2
+  coordinate argument is the natural candidate; which one is unknown. Remaining after p4 (122): (a) `12` in r14 (ours) vs
+  rematerialised `li r0,0xc` at tiles 3 and 6 (target): the target has ONE MORE conflicting callee-saved allocno in the tile
+  range -- x2 (r29) does not share r31 with y0 = `x0+30` (169); ours puts x2 in r31 after y0 dies at tile 3's `sth` (sched1
+  issues that store 2nd in the block, the extsh 20 insns later). Asm `li 12` at both sites gives `stmw r15` (one register
+  unused) = confirmation; the y0/x2 conflict source not found (the arms read the HI copy 170 = r23 in both; `8`/`i` in r31
+  are later). (b) the 4/5/0xff order (pri 282/282/281 ties on len 496/498). Untested still: tile-6 colour order `r, g, b, cd`.
+- Harness ~/.cache/dol_apd/ (tryv.py over variant.sh, rtl dumps) deleted at the end of the pass.
+
+### CRI SWAR kernels pass 7: the >100 block split is exact and unavoidable from C for the 16x16 4p body; target reads for the others (mpv_mcy 4p 136w, H2 225w, V2 225w; mpv_mc 4p 72w, V2 73w, H2 436w — in progress; 2026-09-11)
+Harness ~/.cache/cri_swar7/ (deleted at the end): `try.sh <unit> <variant.c> <FUNC> [--all]` (variant.sh + log), `ours.sh <log>` (the ours column
+of the side-by-side), `gen.py NAME BODY [PRE]` (base.c with one function body replaced), `mkrow.py`/`mkrow3.py` (4p row-body generators),
+`tasm.sh <unit> <FUNC>` (numbered target listing), probe1-8.c (split-rule probes), ra_* dumps.
+- **Block-split rule, probed exactly (probe1-8, backend-00):** the backend starts a new basic block before a statement whenever the
+  current block already holds > 100 PCode instructions (counted as EMITTED: `x = x*3+1` = 2, `x += p[k]` = 2, `(x<<22)&M | y` = 2,
+  a 24-instruction nested statement = 24; 50 two-instruction statements = 100 -> no split, 51 -> split). It fires before assignments,
+  pointer stores and `if` statements alike, inside loops (LOOPWEIGHT 8) and straight-line code, with `#pragma optimization_level 2/3`,
+  `scheduling off`, `peephole off`, every `opt_* off` pragma, inside an inlined helper (the helper's own statements are the boundaries,
+  `inline_max_size`/`inline_max_total_size(100000)` needed to inline a 130-instruction helper), inside a single-line macro body,
+  inside `do { } while (0)`, and with comma-joined stores (`d[16] = X, d[17] = Y;` becomes two ST_EXPRESSIONs). The blocks stay
+  separate through scheduling (B3 120 / B4 28 in backend-08), so nothing crosses the split.
+- **Consequence for MPVMC16_OneRef4p_TuneC:** the target's loop body is ONE block of 124 final instructions (34 lbz, 64 add/addi, 16
+  rlwinm/rlwimi, 4 stw, dcbt, 3 pointer steps, cmpwi, bne — 131+ initial with the 7-op packs) whose `cmpwi i,7` is scheduled among
+  the d[17] pack (127 of 134) and whose p12..p15 sums interleave with the d[16] pack, so no split exists anywhere in it; under the
+  rule above every straight-line C body of that size splits (ours before `d[17]`, B3 = 111). An inner 2- or 4-iteration loop unrolled
+  by the backend would evade the check but cannot give the target's load set (each pixel loaded once, pair 9 before `stw d[0]`, pair
+  10 after `stw d[1]`; a load never passes a store in either direction within a block — q1 probe). Left open: what disabled the check
+  in the original (a flag/pragma of CRI's build, or a statement kind that is not a check point); not a C-shape question in our tree.
+- Verified on the way: loads written as expressions inside the sums are NOT CSE'd across the `d[k]` stores (pixel 4/8 reloaded, h1
+  0x25c); an inlined-helper row body puts the loop variables first in the colouring (d r3, s0 r5, s1 r6 as the target, b1 122w) because
+  the pixel values become helper locals ranked below the own locals; `register`/block-scope/nested-assignment forms do not move the split.

@@ -644,8 +644,8 @@ void sfadxt_AdjustSync(SFD sfd, Uint8 *data, Sint32 len, Sint32 *nbyte)
 	Sint32 frmbyte;
 	Sint32 skipbyte;
 	Sint32 endflg;
+	Sint32 dmy; /* before vflg: frame slots vflg 0xc / dmy 0x10 (CRI pass 28, 51 -> 47w) */
 	Sint32 vflg;
-	Sint32 dmy;
 	Sint32 diff;
 	Sint32 skip;
 	Sint32 vstart;

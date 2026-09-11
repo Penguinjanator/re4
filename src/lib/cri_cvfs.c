@@ -226,14 +226,34 @@ static void cvfs_GetDefDev(Char8 *dev)
 	}
 }
 
+/* the search loop of cvFsGetDevIf with the length computed by the caller (CRI pass 28: the
+ * table base `tbl` is materialised AFTER the first strlen, so the name check + strlen belong
+ * to cvfs_ResolveDev's own body and `tbl = cvfs_tbl` follows them) */
+static CVFS_DEVIF *cvfs_FindDev(CVFS_DEV *tbl, const Char8 *name, Sint32 len)
+{
+	CVFS_DEV *dev;
+	Uint32 i;
+
+	dev = tbl;
+	for (i = 0; i < CVFS_MAX_DEV; i++) {
+		if (strncmp(name, dev->name, len) == 0) {
+			return cvfs_tbl[i].vtbl;
+		}
+		dev++;
+	}
+	return NULL;
+}
+
 /* the device of a split name: the name's device, else the default device (the path is then the
- * whole name); a device asking for it gets the "DEV:path" form. (OPEN: the original computes the
- * device table base once inside the first inlined search and copies it for the later ones; the
- * search helpers' loop registers differ - M1) */
+ * whole name); a device asking for it gets the "DEV:path" form. (OPEN: the search helpers' loop
+ * registers / the vtbl chain differ - M1, register ranking: the target's `i` of the two
+ * SearchDev copies and the vtbl chain take r26 before r25/r24/r23 are handed out) */
 static CVFS_DEVIF *cvfs_ResolveDev(const Char8 *fname, Char8 *dev, Char8 *path)
 {
 	CVFS_DEVIF *vtbl;
 	CVFS_DEV *tbl;
+	const Char8 *name;
+	Sint32 len;
 
 	if (dev[0] == '\0') {
 		cvfs_GetDefDev(dev);
@@ -241,10 +261,15 @@ static CVFS_DEVIF *cvfs_ResolveDev(const Char8 *fname, Char8 *dev, Char8 *path)
 			return NULL;
 		}
 	}
-	tbl = cvfs_tbl; /* materialised after the default-device block (CRI pass 19b: GetFileSize 63 -> 45w, Open 148 -> 152w) */
-	if (cvfs_OptFn(cvFsGetDevIf(tbl, dev), NULL, 100, 0, 0) == 1) {
+	name = dev;
+	if (name == NULL) {
+		name = cvfs_defdev;
+	}
+	len = strlen(name);
+	tbl = cvfs_tbl;
+	if (cvfs_OptFn(cvfs_FindDev(tbl, name, len), NULL, 100, 0, 0) == 1) {
 		strcpy(add_dev_tmp, path);
-		sprintf(path, "%s:%s", dev, add_dev_tmp);
+		sprintf(path, "%s:%s", name, add_dev_tmp); /* the target passes the checked `name` (r26), not `dev` */
 	}
 	vtbl = cvfs_SearchDev(tbl, dev);
 	if (vtbl == NULL) {
@@ -863,6 +888,7 @@ CVFS_OBJ *cvFsOpen(const Char8 *fname, void *dir, Sint32 rw)
 	Char8 *pdev;
 	CVFS_OBJ *obj;
 	CVFS_DEVIF *vtbl;
+	void *hn;
 
 	if (fname == NULL) {
 		cvfs_Error("cvFsOpen #1:illegal file name");
@@ -873,7 +899,8 @@ CVFS_OBJ *cvFsOpen(const Char8 *fname, void *dir, Sint32 rw)
 		cvfs_Error("cvFsOpen #1:illegal file name");
 		return NULL;
 	}
-	obj = cvfs_AllocObj();
+	hn = cvfs_AllocObj(); /* `void *` + typed kept copy: the inlined @ret stays in r3 and `mr r30, r3` survives (CRI pass 28, +4 bytes) */
+	obj = hn;
 	if (obj == NULL) {
 		cvfs_Error("cvFsOpen #3:failed handle alloced");
 		return NULL;
@@ -893,8 +920,8 @@ CVFS_OBJ *cvFsOpen(const Char8 *fname, void *dir, Sint32 rw)
 		cvfs_Error("cvFsOpen #4:device not found");
 		return NULL;
 	}
-	if (vtbl->Open != NULL) {
-		obj->hn = vtbl->Open(path, dir, rw);
+	if (obj->vtbl->Open != NULL) { /* the target reloads obj->vtbl (r3) for the Open call, not `vtbl` */
+		obj->hn = obj->vtbl->Open(path, dir, rw);
 	} else {
 		obj->hn = NULL;
 		obj->vtbl = NULL;
