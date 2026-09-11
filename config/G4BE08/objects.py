@@ -1684,3 +1684,9 @@ MATCHING.update({
     "game/esp12.cpp": True,  # Esp12_Trans: `u32 magic = 0x43300000` in the CommonStateSet block + a "=m" keep-alive after GXBegin (#13: the conversion constant is a 3-ref callee-saved pseudo hoisted to the block top), the Esp16_Trans zero recipe (fr12 pin + dead three-load test), nrm zero stores as three statements, `r*sizeY + (1-r)*sizeX`, `t += tstep` between the two vertices
     "game/esp02.cpp": True,  # esp02Trans_sub: `&d` in the calls and the inlined VECNormalize (no `pd` copy: one fp+232 pseudo, spilled, its uses rewritten frame-direct), `org.x/y/z = 0.0f` as three statements, `nz = 1.0f - nz` in place, `u32 i` (unsigned `addic.; beq` exit); zero code
 })
+
+# DOL sweep 16a (2026-09-11)
+MATCHING.update({
+    "game/obj00.cpp": True,  # FallMove: codeless call-crossing `junk` pseudo (asm def before the hit loop, "=m" use in the fallSpd loop) ranks between `end` and the hoisted `sePlayed = 1` constant and takes r24, so the constant gets r23 (candidate #17); four dead `i = K` sets keep the gcse bucket count
+    "game/t_option.cpp": True,  # tp_pl_flag case 4: codeless asms reading the num() result in r3 (uninitialised `register int asm("r3")`) give the arms' `addi r3,r30,ItemMgr@l` an anti-dependence so the `li` constants issue first (candidate #1)
+})

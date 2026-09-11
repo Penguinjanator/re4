@@ -960,6 +960,10 @@ void emMine_R1_Fall(cEmMine* em)
     em->hp = 0;
     em->setStatus(1);
     floor = EatMgr.getFloor(&em->pos, 600.0f, 100000.0f, 0, 0) + 50.0f;
+    // COMPILER-DIFF: candidate (gcse PRE pseudo numbering): two dead sets (deleted by flow) take the
+    // expression table from 235 to 237 buckets, so `w+48`/`fp+100` (13389) hash below `fp+144` (13433)
+    // and the three PRE'd addresses get the original's spill-slot order (256/260/264).
+    i = 5; i = 6;
     for (i = 0; i < 3; i++) {
         n = &node[i];
         n->spd.x = w->pts[i].x;
@@ -1147,10 +1151,16 @@ void cEmMine::setBomb()
     memcpy((u8*) pG + ((u32) &((GlobalWork*) 0)->bell_pos), &p, sizeof(Vec));
     pG->bell_stat = 1;
     setLost();
-    xFF = 0;   // written first: the target issues `stb ff` before the 1/6 stores
+    // COMPILER-DIFF: candidate #12 (cse wider-mode zero fold): the original stores the known-zero
+    // `hit` register into xFE (ours folds it to the HImode zero pseudo); the launder keeps `hit` as
+    // the store source, the codeless keep-alive after the stores keeps `hit`/`this` from dying at
+    // the xFE store (weight -1 would issue it first; the target has it last, source order).
+    asm("" : "+r"(hit));
+    xFF = 0;
     xFC = 1;
     xFD = 6;
-    xFE = 0;
+    xFE = hit;
+    asm("" : "=m"(hp) : "r"(hit));
 }
 
 void cEmMine::setFall()

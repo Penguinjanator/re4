@@ -215,6 +215,14 @@ void obj00FallMove(cObj00* obj)
             }
         }
     }
+    {
+    // COMPILER-DIFF: candidate #17 (global.c pass 0 regs_used_so_far): a codeless call-crossing
+    // pseudo (3 refs, ranked between the hit-loop `end` and the hoisted `sePlayed = 1` constant)
+    // occupies r24 across the hit loop so the constant takes r23 like the original; the four dead
+    // `i` sets keep the gcse bucket count (spill-slot order of the PRE'd w+32/34/36, fp+136).
+    int junk;
+    asm("" : "=r"(junk) : "m"(node[0].hit));
+    i = 5; i = 6; i = 7; i = 8;
     for (i = 0; i < 3; i++) {
         p = &node[i];
         if (p->hit) {
@@ -235,6 +243,8 @@ void obj00FallMove(cObj00* obj)
         w->fallSpd[i][0] = (s16) (p->spd.x * 10.0f);
         w->fallSpd[i][1] = (s16) (p->spd.y * 10.0f);
         w->fallSpd[i][2] = (s16) (p->spd.z * 10.0f);
+        asm("" : "=m"(pG) : "r"(junk));
+    }
     }
     PSVECSubtract(&node[0].pos, &node[1].pos, &vz);
     PSVECSubtract(&node[2].pos, &node[1].pos, &vx);

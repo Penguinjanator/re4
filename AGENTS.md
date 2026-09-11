@@ -15725,3 +15725,86 @@ the paths rewritten: `tryv.py UNIT SYM v/x.py` (`STRIP=1` for STRIP_UNUSED units
     before the compare where the target has it after `cmpwi`.
   - Not iterated: card, emrock, motion, route_ck, db_cam, pendulum, option, cam_ctrl, emwep EscapeCamMove, the other puzzle
     residues, sce_com SceChapterEnd/SceSetItemEvent/SceUpCutStart/OpenBoxMain/SceElevator, title titleDebugMenu.
+
+### DOL sweep 16a, remaining game units closest-first (obj00, t_option Matching; emmine setBomb 4 -> 0, R1_Fall 8 -> 0 (21/23); mercenaries SetSaveWork 11 -> 10; esp09 PolyTrans mechanism read; 2026-09-11)
+
+Flipped: obj00 (8/8), t_option (22/22); build 111 OK after each. Harness ~/.cache/dol16a (dol15b copies with the paths
+rewritten; `tryv.py UNIT SYM v/x.py`, `sbs.sh UNIT SYM [OBJ]`, `dump.sh UNIT -dX` with `SRC_OVERRIDE`, `fsec.py DUMP FUNC [N]`
+(N = ordinal when the name is a prefix of another function's), `prio.py PRE`, `order.py`); deleted at the end of the pass.
+
+- **A codeless call-crossing pseudo as the "conflict" that pushes a later allocno off its used-so-far register (obj00
+  FallMove 2 -> 0, tagged `candidate #17`).** The hit-loop `sePlayed = 1` constant (3 refs / 82, rank 80) took r24 because
+  the k+1 giv's r24 was the highest free used-so-far register; the target's r23 needs r24 to conflict. `int junk; asm("" :
+  "=r"(junk) : "m"(node[0].hit));` before the hit loop and `asm("" : "=m"(pG) : "r"(junk));` as the last statement of the
+  NEXT loop's body (the fallSpd loop, depth 2 -> refs 1 + 2 = 3, length ~66 -> 0.045) ranks junk between the hit loop's
+  `end` pointer (3/48 = 0.062) and the constant (0.036): junk conflicts with everything live in the hit loop (r25..r31),
+  r24 is free and used-so-far -> junk = r24 (no code), the constant -> r23. Rules read on the way: (a) the def must be a
+  NON-volatile asm with a MEM input: a volatile asm is a barrier whose dependents get `adjust_priority`'s birthing boost
+  (`li one,1`, `mr r26,r0` jumped to the block's first slot: 12 words), and a no-input or register-input asm is PRE'd by
+  gcse into the earliest block (88); (b) refs are weighted by loop depth (flow `REG_N_REFS += loop_depth`), so the use's
+  loop level sets the rank -- a use in the same loop's arm (3 refs / 46) tied with `end` (same refs, `end` born 2 insns
+  later) and the lower pseudo number won r26 (10 words); a use in the block right after the loop is a prio-1 filler with
+  weight -1 (junk dies) that displaces `li r7,0` (6); (c) the two asms are +2 real insns at gcse, 207 -> 209 buckets, which
+  permutes the four spilled `(plus w C)`/`(plus fp C)` PRE pseudos (13258 + REGNO + C: 13373/13375/13377/13425 -> 206/208/1/49
+  instead of 125/127/129/177); four dead `i = K;` sets before the loop (deleted by flow1, counted by gcse) make it 211 and
+  restore the order -- compute the buckets for every candidate N before choosing how many dead sets.
+- **Two dead sets fix a spill-slot permutation alone (emmine R1_Fall 8 -> 0, tagged `candidate (gcse PRE pseudo
+  numbering)`).** Three PRE'd addresses `w+48` (13389), `fp+100` (13389, same bucket, inserted second) and `fp+144` (13433)
+  at 235 buckets hash 229/229/38 (fp+144 first); the target's slot order needs 13389 % N < 13433 % N, i.e. no wrap between
+  them: N = 237 (or 233). `i = 5; i = 6;` after the getFloor call -> 237 buckets, 108/108/152, slots 256/260/264.
+- **An anti-dependence through a hard-register read delays an argument `addi` behind the `li` constants (t_option
+  tp_pl_flag 5 -> 0, tagged `candidate #1 (arg-move order)`).** The arms' `addi r3,r30,ItemMgr@l` has weight 0 (the PRE'd
+  high dies) against the `li r4,254` (+1) and wins the slot in every source form; the target has it after the `li`s in both
+  arms. `{ register int n3 asm("r3"); asm("" : "=m"(PlKaiou) : "r"(n3)); }` at the top of the dump arm reads r3 (the num()
+  result; an uninitialised pinned variable is a plain use of the hard reg, no copy, so `cmpwi r3,0` stays -- `"r"(n)` on an
+  `int n = num()` combines the result copy into `mr. r3,r3`): the addi (writes r3) is anti-dependent on the asm and ready
+  one cycle later; the get arm needs TWO chained asms (`"=m"(PlKaiou)` then `"=m"(PlDbFlag) : "r"(n3), "m"(PlKaiou)`) so the
+  addi waits two cycles behind `li r4; li r5`. The "uncoalesced PRE copy" theory of the earlier passes is dead: any arm copy
+  `rH = r320` carries cse1's REG_EQUAL (high) note and cse2 rematerialises `lis` from it (the num block's `lis r3` is exactly
+  that), so the original's arms had no copy either.
+- **Launder + keep-alive for a known-zero variable stored last (emmine setBomb 4 -> 0, tagged `candidate #12`).** `xFE = hit`
+  is folded by cse to the HImode zero pseudo (wider-mode lookup for a QI constant); `asm("" : "+r"(hit));` before the four
+  byte stores keeps `stb r27`, and `asm("" : "=m"(hp) : "r"(hit));` after them keeps `hit` (and so `this`, whose death
+  moves with it) from dying at the xFE store: with the deaths it has weight -1 and issues first (the base form's `stb
+  r26,254` first), without them all four stores tie at 0 and issue in source order xFF, xFC, xFD, xFE like the target.
+  Keeping only `this` alive (`"r"(this)`) works as well.
+- **Facts read this pass:**
+  - haifa `adjust_priority` is applied only when an insn becomes ready through a resolved dependence, never to the
+    initially-ready list; a volatile asm (or any barrier) at a block's top therefore boosts every single-set pseudo whose
+    dest is live at the block end (`birthing_insn_p`) to `max_priority` -- the mechanism behind "the volatile asm makes
+    the `li` issue first" (pad PadRead).
+  - global.c `find_reg`: pass 0 also skips `regs_someone_prefers` (full preferences of lower-priority conflicting
+    allocnos), and a copy preference (`hard_reg_copy_preferences`, from `(set pseudo hard)`/`(set hard pseudo)` or a
+    local-alloc'd pseudo) of the same class replaces the scan's choice; asm outputs never create preferences
+    (`set_preference` needs a REG/SUBREG or an arithmetic whose first operand is one).
+  - local-alloc ties the result of a commutative insn to operand 1 first, then operand 2 (`combine_regs` in operand
+    order); a tie fails when the operand's pseudo has `reg_qty == -1` (not block-local, or REG_N_DEATHS != 1) or the dest
+    already has a qty. expand_binop moves a commutative operand equal to the target to the FRONT, so `(ior score w)` with
+    dest w cannot be written from source: mercenaries SetSaveWork's `or r0,r7,r0` needs the score chain to be un-tieable
+    (a non-block-local score pseudo) -- not found; a two-set `w` (mode first, then the whole word) gives the mode chain to
+    global alloc and fixes i*12 r10 / pSys r8 (11 -> 10, applied, zero code).
+  - regmove `optimize_reg_copy_1` never folds `pp = p` into `pp = p0` when `p` has a use before its next set: a codeless
+    `asm("" : "=m"(d) : "r"(p))` inside the `if (idx < 0)` wrap arm (2 insns, its own block: no slot effect) keeps both
+    copies reading `p` (esp09 PolyTrans; the `do {} while (0)` of the earlier pass was a sched barrier).
+  - esp09 PolyTrans 48 -> 47 (not applied, `v/e9_3.py` Z2): `pn = &w->pts[idx]` (a replaceable giv: its uses are the
+    Subtract argument and an `asm("mr %0,%1" : "=r"(p) : "r"(pn), "0"(p))` placed BEFORE the argument moves, both before
+    the next jump) gives the target's `mr r3,r25` (arg from new_reg) and `mr r29,r25` (p = new_reg, the asm) with `add
+    r3,r20,r11; mr r29,r3; mr r25,r3` in block 0; `p = pn` as a plain copy makes p a second giv (109). The 47 left are one
+    callee-saved permutation: the target allocates p (r29) and pp (r28) BEFORE esp (r27, 17 refs / 201 = 0.338) and the
+    0.0 high (r26), which no priority of a loop-carried p (13 refs / ~181) or of pp (6 refs / 120: its use is the first==0
+    arm near the body end) reaches -- unexplained; treat as open.
+  - db_menu move (27): the cursor wrap `xori 1; andi.; beq; li r0,1; cmpwi r0,0; li 32; bne; li 33` is the VALUE form of
+    `!(cursor & 1)` (expand_expr TRUTH_NOT = `(x ^ 1) & 1`) fed to a store_flag-less bool materialisation (`tmp = 0; if
+    (!cond) skip; tmp = 1`), and the `andi. r11,r9,1` before the `lbz` re-read is a first `cursor & 1` test folded to the
+    register whose jump was deleted; `bool`/`int` temps, `== 0`, `!`, `(bool)` casts, if/else and two-test forms (16
+    variants, 15-33 words) do not reproduce it. GetGameTime's `addi r3,&h` issued last = a REG_EQUIV `(plus fp 40)` pseudo
+    rematerialised at the argument copy (#13 world; ours allocates it and the addi is at t0).
+  - shadow make_comn_fit_light (2): a dead `(f32)(int) w->x18` before the atan2f call (to make the fpmem loadaddr cross the
+    call) costs 15-45 words (the pool moves for other functions); not the lever.
+  - Espgen43 AddSandPower (5): the 12-byte `Chk_pos = *pos` copy's qtys: target order W0 r0, W4 r9, W8 r11, high r10; ours
+    W0, W4, high r11, W8 r10 (the high's 3 refs / 7 slots outrank the word-8 load's 2 / 3 in ours). Field-wise, pointer,
+    memcpy and local-Vec forms 5-29.
+- Not iterated: dvd DiscChange 7 (mechanism in sweep 13), em_set, at_mod, em_cloth, sce_at, cam_extra, emmine R1_Shot 40
+  (`stb r3,100(r28)` = hitFlag zero from the dying HitCk result and the later stack zeros from `info` (r30, known 0 in the
+  else arm): the original's cse did not carry the HitCk result into the `hitFlag = 1` ebb; a `goto BOMB` shared label
+  between the two setBomb arms does not stop the AROUND path) and R1_ShotArrow 140.
