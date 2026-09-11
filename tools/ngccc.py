@@ -19,6 +19,8 @@ import tempfile
 from pathlib import Path
 from typing import List
 
+WIBO_TIMEOUT = 120  # seconds; a normal cpp/as run takes well under a second
+
 TARGET_DEFS = [
     "-D__GNUC__=2",
     "-D__GNUC_MINOR__=95",
@@ -142,16 +144,29 @@ def main(argv: List[str]) -> int:
 
         rel_module = next((f[len("-DREL_MODULE="):] for f in cpp_flags if f.startswith("-DREL_MODULE=")), None)
 
+        def run(cmd) -> int:
+            """wibo (NgcCpp/NgcAs) occasionally hangs at 0% CPU under load; a hung run never
+            recovers, so kill it after WIBO_TIMEOUT seconds and retry."""
+            if cmd[0] != wrapper:
+                return subprocess.run(cmd, env=env).returncode
+            for attempt in range(3):
+                try:
+                    return subprocess.run(cmd, env=env, timeout=WIBO_TIMEOUT).returncode
+                except subprocess.TimeoutExpired:
+                    print(f"ngccc: {Path(cmd[1]).name} hung for {WIBO_TIMEOUT}s, retry {attempt + 1}/3",
+                          file=sys.stderr)
+            die(f"{Path(cmd[1]).name} hung three times")
+
         def assemble(asm_path: str, obj_path: str) -> int:
             cmd = [wrapper, str(as_exe), *inc_flags, asm_path, "-o", obj_path]
             if verbose:
                 print(" ".join(cmd), file=sys.stderr)
-            return subprocess.run(cmd, env=env).returncode
+            return run(cmd)
 
         for cmd in (cpp_cmd, cc1_cmd, as_cmd):
             if verbose:
                 print(" ".join(cmd), file=sys.stderr)
-            rc = subprocess.run(cmd, env=env).returncode
+            rc = run(cmd)
             if rc != 0:
                 if os.path.exists(out_path):
                     os.remove(out_path)
