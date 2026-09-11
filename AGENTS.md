@@ -25041,3 +25041,9 @@ Continues "### DOL option/card closer 2" above (the retry_load_menu mechanics li
   187w/size 0x800 (too much cross-jumping: the arms' tails then all end in the inlined body), so the liveness must come
   from elsewhere (mesNo read after the helper, or the helper taking mesNo). The `mode = 0` tail question from the previous
   section (r31 shared by mesNo and the `andi.` temp) is the same allocation: fix the mesNo/step swap first.
+- Post-reset probes of the second dead `b` (all 126w, no change): `return FALSE; break;` (unreachable `break` after `return` in the
+  FALSE arm and/or case 4), and case-4 bodies the FRONTEND already deletes before laying out the switch — `{ Sint32 dummy; dummy = 0;
+  break; }`, `mode = 0;`, `mode++;`, `mode = mode;`, `(void)mode;`, `if (mode == 4) break; break;` — all fold back to the forwarded
+  `CASE 4 -> DEFAULT` label. The surviving block in the target therefore carries a statement the frontend KEEPS and the backend
+  removes (pass 16a's IsGopSkip shape: a store to the inline result that repeats the reaching value); with TRUE as the fall-through
+  value of this function that store (`ret = TRUE` with `Bool ret = TRUE` at the top) hoists `li r0, 1` above the tree instead. Open.

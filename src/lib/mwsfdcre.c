@@ -1,12 +1,9 @@
 /* CRI Sofdec MW player: handle creation (mwsfdcre.c)
  *
- * Not Matching (5/10 functions byte-identical, .rodata/.data/.bss identical). Residues:
- * register ranking (base registers r29..r31 of mwsfcre_CreateSfd, the mwply parameter ranked
- * above the pool temp in mwsfcre_MallocCompoWork, lw/vfreq/npool/sfdhn of mwPlyCreateSofdec,
- * mode/bps temps of mwPlyCalcWorkSfd, w16/h16 of mwsfcre_MallocRfb); mwsfcre_CreateSfd: the empty
- * `case 4:` of the inlined IsUseAdxt switch leaves two dead `b` in the original, the pool order of
- * its .rodata/.bss references differs and the `mwsfd_sisjadr` reload is not hoisted over the
- * crepara struct copy; mwsfcre_MallocRfb: `blt fail; bge ok` on one compare. */
+ * Not Matching (8/10 functions byte-identical, .rodata/.data/.bss identical). Residues:
+ * mwsfcre_CreateSfd (126w): the empty `case 4:` of the inlined IsUseAdxt switch leaves a second
+ * dead `b` in the original, and the inlined MallocFrmTbl's nfrm/height/frmtbl-pointer colours
+ * (r19/r20 swapped); mwPlyCalcWorkSfd (4w): the last `add` operand order and the epilogue `lwz r0`. */
 #include "cri_xpt.h"
 #include "sfd.h"
 #include "lsc.h"
@@ -158,27 +155,6 @@ Sint32 vib;                    /* video input buffer */
 Sint32 sib;                    /* system input buffer */
 Sint32 sjb;                    /* file stream joint ring buffer */
 static Uint32 mwsfd_sisjadr;   /* 64-byte aligned start of the stream joint ring buffer */
-
-/* dead: user frame buffers instead of the component work (fixes the .bss order) */
-void mwPlySetFrmBuf(Sint32 num, Sint32 size, void **buf)
-{
-	Sint32 i;
-
-	mwsfdcre_bufnum = num;
-	mwsfdcre_bufsize = size;
-	for (i = 0; i < 16; i++) {
-		mwsfdcre_bufptr[i] = buf[i];
-	}
-	adxibuf = 0;
-	adxwk = 0;
-	tab = 0;
-	rfb = 0;
-	aib = 0;
-	vib = 0;
-	sib = 0;
-	sjb = 0;
-	mwsfd_sisjadr = 0;
-}
 
 /* allocate a component buffer: from the user work when one was given, else through the library's
  * malloc callback; every block is remembered so mwSfdDestroy can free it (dead-stripped, inlined) */
@@ -366,6 +342,31 @@ Sint32 mwsfcre_MallocCompoWork(register MWPLY obj)
 	return 0;
 }
 
+/* dead: user frame buffers instead of the component work. Fixes the .bss order (MWCC lays .bss out in
+ * first-reference order over the TU) and sits AFTER mwsfcre_MallocCompoWork, the first function that
+ * pools .rodata: the per-function pool bases are created in the reverse of the TU-wide order in which
+ * the sections were first POOLED (rodata by MallocCompoWork, bss by this function, data by
+ * mwsfcre_CreateSfd), which is what colours CreateSfd's bases rodata r31 / bss r30 / data r29. */
+void mwPlySetFrmBuf(Sint32 num, Sint32 size, void **buf)
+{
+	Sint32 i;
+
+	mwsfdcre_bufnum = num;
+	mwsfdcre_bufsize = size;
+	for (i = 0; i < 16; i++) {
+		mwsfdcre_bufptr[i] = buf[i];
+	}
+	adxibuf = 0;
+	adxwk = 0;
+	tab = 0;
+	rfb = 0;
+	aib = 0;
+	vib = 0;
+	sib = 0;
+	sjb = 0;
+	mwsfd_sisjadr = 0;
+}
+
 static Bool mwsfcre_IsValidBufFmt(MWSFD_CRPRM *cprm)
 {
 	Bool ret = TRUE;
@@ -418,35 +419,37 @@ static void mwsfcre_InitCompoWork(MWPLY mwply, MWSFD_CRPRM *cprm)
 	}
 
 /* component buffer sizes for a file type: the system / video / audio input buffers, the file
- * stream joint ring buffer and the ADXT buffers */
+ * stream joint ring buffer and the ADXT buffers. mwsfcre_CreateSfd's copy (mode is its own local,
+ * initialised at the declaration = the target's first load): the computed sizes come FIRST in every
+ * arm, so the merged `li 0` of the constant stores gets a higher temp id than the bps chain and is
+ * coloured first (`li r3, 0`, chain r4..). */
 #define MWSFCRE_CALC_BUFSIZ(cprm, mode, sib, vib, aib, sjb, adxibuf, adxwk) \
 	{ \
 		Sint32 nsec = (cprm)->nsec; \
 		Sint32 bps; \
-		mode = (cprm)->mode; \
 		bps = (cprm)->max_bps; \
 		if (nsec <= 0) { \
 			nsec = 1; \
 		} \
 		if (mode == MWSFD_FTYPE_MPV) { \
+			sjb = nsec * (bps / 8 / 0x800 * 0x800); \
 			sib = 0; \
 			vib = 0; \
 			aib = 0; \
 			adxibuf = 0; \
 			adxwk = 0; \
-			sjb = nsec * (bps / 8 / 0x800 * 0x800); \
 		} else if (mode == MWSFD_FTYPE_VONLYSFD) { \
+			sjb = nsec * (bps / 8 / 0x800 * 0x800); \
+			vib = bps / 8 / 0x800 * 0x800 / 2 + 0x800; \
 			sib = 0; \
 			aib = 0; \
 			adxibuf = 0; \
 			adxwk = 0; \
+		} else { \
 			sjb = nsec * (bps / 8 / 0x800 * 0x800); \
 			vib = bps / 8 / 0x800 * 0x800 / 2 + 0x800; \
-		} else { \
 			sib = 0; \
 			aib = 0x5DCC; \
-			sjb = nsec * (bps / 8 / 0x800 * 0x800); \
-			vib = bps / 8 / 0x800 * 0x800 / 2 + 0x800; \
 			adxibuf = 0x5F0C; \
 			adxwk = 0xC1C0; \
 		} \
@@ -787,11 +790,55 @@ static void *mwsfcre_MallocWk(MWPLY mwply, Sint32 wksize)
 	return MWSFD_Malloc(mwply, size);
 }
 
+/* the same wrapper without the local: the constant folds (no `cmpwi size, 0`), but the inner Malloc's
+ * result temp is numbered with the MallocWk ones (inlined helpers are cloned breadth-first: a
+ * two-level result is numbered after every one-level result), so picusr_p > hnwork_p > buf700_p >
+ * fname_p in call order (r25..r22) */
+static void *mwsfcre_MallocX(MWPLY mwply, Sint32 size)
+{
+	return MWSFD_Malloc(mwply, size);
+}
+
+/* the decoded frame buffers: user frame buffers 2.. or one component allocation per frame.
+ * Inlined helper: its `ret` is a temp numbered between the cwk2 and picusr_p Malloc results (r26) */
+static Sint32 mwsfcre_MallocFrmTbl(MWPLY mwply, MWSFD_CRPRM *cprm, void **frmtbl)
+{
+	Sint32 ret = 0;
+	Sint32 nfrm = cprm->max_skip;
+	Sint32 fsize;
+	Sint32 i;
+
+	MWSFCRE_CALC_FRMSIZ(cprm, fsize);
+	if (mwsfdcre_bufnum != 0) {
+		if (mwsfdcre_bufnum < nfrm + 2 || mwsfdcre_bufsize < fsize) {
+			ret = -1;
+		} else {
+			for (i = 0; i < nfrm; i++) {
+				frmtbl[i] = mwsfdcre_bufptr[i + 2];
+				if (frmtbl[i] == NULL) {
+					ret = -1;
+				}
+			}
+		}
+	} else {
+		for (i = 0; i < nfrm; i++) {
+			frmtbl[i] = MWSFD_Malloc(mwply, fsize);
+			if (frmtbl[i] == NULL) {
+				ret = -1;
+			}
+		}
+	}
+	return ret;
+}
+
 /* create the SFD decoder handle of a player: decide the component buffer sizes, allocate them
- * and fill the creation parameters of the file type */
+ * and fill the creation parameters of the file type. Own locals colour in declaration order:
+ * mode r21, adxibuf_p r20, adxwk_p r19, nfrm r18, (width spilled), height r17 */
 static void *mwsfcre_CreateSfd(MWPLY mwply, MWSFD_CRPRM *cprm)
 {
-	Sint32 mode;
+	Sint32 mode = cprm->mode;
+	void *adxibuf_p;
+	void *adxwk_p;
 	Sint32 nfrm = cprm->max_skip;
 	Sint32 width = cprm->max_width;
 	Sint32 height = cprm->max_height;
@@ -805,9 +852,6 @@ static void *mwsfcre_CreateSfd(MWPLY mwply, MWSFD_CRPRM *cprm)
 	Sint32 frmret;
 	Sint32 fsize;
 	Sint32 nfrm2;
-	Sint32 i;
-	void *adxibuf_p;
-	void *adxwk_p;
 	void *picusr_p;
 	void *hnwork_p;
 	void *buf700_p;
@@ -830,28 +874,7 @@ static void *mwsfcre_CreateSfd(MWPLY mwply, MWSFD_CRPRM *cprm)
 	size = sjb + 0x40;
 	cwk2 = MWSFD_Malloc(mwply, size);
 	rfbret = mwsfcre_MallocRfb(mwply, cprm, &rfbbuf);
-	frmret = 0;
-	nfrm2 = cprm->max_skip;
-	MWSFCRE_CALC_FRMSIZ(cprm, fsize);
-	if (mwsfdcre_bufnum != 0) {
-		if (mwsfdcre_bufnum < nfrm2 + 2 || mwsfdcre_bufsize < fsize) {
-			frmret = -1;
-		} else {
-			for (i = 0; i < nfrm2; i++) {
-				frmtbl[i] = mwsfdcre_bufptr[i + 2];
-				if (frmtbl[i] == NULL) {
-					frmret = -1;
-				}
-			}
-		}
-	} else {
-		for (i = 0; i < nfrm2; i++) {
-			frmtbl[i] = MWSFD_Malloc(mwply, fsize);
-			if (frmtbl[i] == NULL) {
-				frmret = -1;
-			}
-		}
-	}
+	frmret = mwsfcre_MallocFrmTbl(mwply, cprm, frmtbl);
 	if (mwsfcre_IsUseAdxt(mode) == TRUE) {
 		size = adxibuf;
 		adxibuf_p = MWSFD_Malloc(mwply, size);
@@ -861,10 +884,10 @@ static void *mwsfcre_CreateSfd(MWPLY mwply, MWSFD_CRPRM *cprm)
 		adxibuf_p = NULL;
 		adxwk_p = NULL;
 	}
-	picusr_p = MWSFD_Malloc(mwply, MWSFD_PICUSR_SIZE);
+	picusr_p = mwsfcre_MallocX(mwply, MWSFD_PICUSR_SIZE);
 	hnwork_p = mwsfcre_MallocWk(mwply, MWSFD_HNWORK_SIZE);
 	buf700_p = mwsfcre_MallocWk(mwply, 0x700);
-	fname_p = MWSFD_Malloc(mwply, MWSFD_FNAME_SIZE);
+	fname_p = mwsfcre_MallocX(mwply, MWSFD_FNAME_SIZE);
 	if (cwk1 == NULL || cwk2 == NULL || rfbret != 0 || frmret != 0 || picusr_p == NULL ||
 	    hnwork_p == NULL || fname_p == NULL || buf700_p == NULL) {
 		MWSFSVM_Error("E2053002: not enough work");
@@ -879,13 +902,17 @@ static void *mwsfcre_CreateSfd(MWPLY mwply, MWSFD_CRPRM *cprm)
 		}
 	}
 	mwsfd_sisjadr = ((Uint32)cwk2 + 0x3F) & ~0x3F;
+	/* h declared before w (h r0, w r3) and the chroma sizes stored first: the mpvpara address temp
+	 * is then created after the adxtpara address and the zero (r6, r4, r5) */
 	{
-		Sint32 w = cprm->max_width;
-		Sint32 h = cprm->max_height;
-		mwsfd_mpvpara.width = w;
-		mwsfd_mpvpara.height = h;
+		Sint32 h;
+		Sint32 w;
+		w = cprm->max_width;
+		h = cprm->max_height;
 		mwsfd_mpvpara.cwidth = (w / 2 + 31) / 32 * 32;
 		mwsfd_mpvpara.cheight = h / 2;
+		mwsfd_mpvpara.width = w;
+		mwsfd_mpvpara.height = h;
 		mwsfd_mpvpara.x10 = 0;
 		mwsfd_mpvpara.max_width = w;
 		mwsfd_mpvpara.max_height = h;
