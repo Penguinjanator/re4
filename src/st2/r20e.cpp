@@ -1074,11 +1074,13 @@ static inline void r20e_setLayout(R20ePuzzle* p, const s8 tbl[3][3])
     int y;
 
     for (y = 0; y < 3; y++) {
+        R20eCell* c = &p->cell[0][y];
+        R20eCell* cs = c;
+
         for (x = 0; x < 3; x++) {
-            R20eCell* c = &p->cell[x][y];
             s8 pc = tbl[x][y];
 
-            c->piece = pc;
+            cs->piece = pc;
             if (pc != -1) {
                 R20ePiece* q = PUZZLE_PIECE(p, pc);
                 Vec pos;
@@ -1088,20 +1090,27 @@ static inline void r20e_setLayout(R20ePuzzle* p, const s8 tbl[3][3])
                     q->obj->pos = pos;
                 }
             }
+            cs += 3;
+            c += 3;
         }
     }
 }
 
-// Places piece `pc` (of cell `c`): the Vec temp is the inline's own local (integrate substitutes its
-// frame address, no PRE), while the loops and their counters belong to the caller.  The first layout
+// Places piece `pc` of cell `c`: the Vec temp is the inline's own local (integrate substitutes its
+// frame address, no PRE), while the loops and their counters belong to the caller.  Both layout
+// nests step TWO cell pointers of equal value (`c` for the pos loads, its copy `cs` for the piece
+// store, `mr r7,r11` in the preheader, two `addi ,48` in the latch): with one pointer the target's
+// split cannot be reproduced (25 forms, pass 8).  `cs` must be incremented BEFORE `c` -- cse's
+// `(set REG0 REG1)` swap makes the later-mentioned register the lo_sum's destination, so with `c`
+// mentioned last the copy stays `cs` and the loads keep the original pointer like the target.  The first layout
 // pass in r20e_initPuzzle is this macro over the function's own `x`/`y` (the target's r28 serves as y
 // in both the object loop and the layout loop): with the counter shared, `y + 1` stays a latch biv in
 // the object loop instead of being PRE'd across the inner loop (pl0f BoatControl rule), which is what
 // forms the `y*4`/`y*16` givs and the `subic.` count-down.  The else arm's layout keeps the inline
 // r20e_setLayout (its own counter, caller-saved r8 in the target).
-static inline void r20e_placePiece(R20ePuzzle* p, R20eCell* c, s8 pc)
+static inline void r20e_placePiece(R20ePuzzle* p, R20eCell* c, R20eCell* cs, s8 pc)
 {
-    c->piece = pc;
+    cs->piece = pc;
     if (pc != -1) {
         R20ePiece* q = PUZZLE_PIECE(p, pc);
         Vec pos;
@@ -1115,8 +1124,12 @@ static inline void r20e_placePiece(R20ePuzzle* p, R20eCell* c, s8 pc)
 
 #define R20E_SET_LAYOUT(p, tbl)                                    \
     for (y = 0; y < 3; y++) {                                      \
+        R20eCell* c = &(p)->cell[0][y];                            \
+        R20eCell* cs = c;                                          \
         for (x = 0; x < 3; x++) {                                  \
-            r20e_placePiece(p, &(p)->cell[x][y], (tbl)[x][y]);     \
+            r20e_placePiece(p, c, cs, (tbl)[x][y]);                \
+            cs += 3;                                               \
+            c += 3;                                                \
         }                                                          \
     }
 

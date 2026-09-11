@@ -498,10 +498,12 @@ static void r204_first_cut()
     r204_first_cut_exit();
 }
 
+static inline int r204_isDead(cEm* em) { return (em->flags_324 & 0xFFFF0000) ? 1 : 0; }
+
 static void r204_nige_check()
 {
     int started = 0;
-    u32 i;
+    cPlayer* pl;
 
     while (1) {
         Vec p1 = {0.0f, 0.0f, -58919.0f};
@@ -514,13 +516,14 @@ static void r204_nige_check()
             if (r204_work.p->cnt == 1) {
                 cEm* em = r204_work.p->em[7].getPtr();
 
-                if (em != 0 && (em->dmg.flags & 0xFFFF0000) != 0) {
+                if (em != 0 && r204_isDead(em)) {
                     started = 1;
                     SndStrReq(r204_work.p->str, 4, 200, 0);
                     r204_work.p->cnt = 0x23;
                 }
             }
-            if (started == 0 && pPL->checkEvent() == 1 && (alive > 3 || (pG->flags_174 & 0x08000000))) {
+            pl = pPL;
+            if (started == 0 && pl->checkEvent() == 1 && (alive > 3 || (pG->flags_174 & 0x08000000))) {
                 if (r204_work.p->cnt == 1) {
                     BitOn(pG->flags_174, 0x08000000);
                     SndStrReq(r204_work.p->str, 4, 200, 0);
@@ -530,9 +533,9 @@ static void r204_nige_check()
                     BitOn(pG->flags_170, 0x10000000);
                     BitOn(pG->flags_58, 0x40000000);
                     PlEndCamera();
-                    pPL->pWep->pObj->setDisp(1, 1);
+                    pl->pWep->pObj->setDisp(1, 1);
                     CamCtrl.CutCall(0xF);
-                    for (i = 0; i <= 10; i++) {
+                    for (u32 i = 0; i <= 10; i++) {
                         r204_work.p->em[i].setNoSuspend(1);
                     }
                     r204_work.p->em[7].setGoto(&pPL->pos, 8);
@@ -551,26 +554,27 @@ static void r204_nige_check()
                         PlEndCamera();
                     }
                     CamCtrl.CutCall(0x10);
-                    for (i = 0; i <= 10; i++) {
+                    for (u32 i = 0; i <= 10; i++) {
                         r204_work.p->em[i].setNoSuspend(1);
                     }
+                    Vec* pa = &ang;
                     if (pPL->pos.x > 0.0f) {
                         ang.x = 0.0f;
-                        ang.y = 1.44f;
+                        pa->y = 1.44f;
                         ang.z = 0.0f;
-                        r204_work.p->em[7].setAng(&ang);
+                        r204_work.p->em[7].setAng(pa);
                     } else {
                         ang.x = 0.0f;
-                        ang.y = -1.84f;
+                        pa->y = -1.84f;
                         ang.z = 0.0f;
-                        r204_work.p->em[7].setAng(&ang);
+                        r204_work.p->em[7].setAng(pa);
                     }
                 }
                 if (r204_work.p->cnt == 0x87 && !(pG->flags_174 & 0x20000000)) {
                     r204_work.p->em[7].setGoto(&p1, 1);
                 }
                 if (r204_work.p->cnt == 0x8C && (pG->flags_174 & 0x08000000)) {
-                    for (i = 0; i <= 10; i++) {
+                    for (u32 i = 0; i <= 10; i++) {
                         r204_work.p->em[i].setNoSuspend(0);
                     }
                     CamCtrl.Comeback(0);
@@ -581,59 +585,61 @@ static void r204_nige_check()
                 }
             }
             if (!(pG->flags_174 & 0x20000000)) {
-                switch (r204_work.p->cnt) {
-                case 0x26:
+                // The switch index is `cnt - 30` (19 nodes, root 0x52 = cnt 0x70): the tree compares
+                // the biased value and combine folds the root's EQ test back onto cnt.
+                switch (r204_work.p->cnt - 30) {
+                case 0x26 - 30:
                     r204_work.p->em[0].setGoto(&p1, 1);
                     break;
-                case 0x31:
+                case 0x31 - 30:
                     r204_work.p->em[2].setGoto(&p3, 1);
                     break;
-                case 0x32:
+                case 0x32 - 30:
                     r204_work.p->em[5].setGoto(&p3, 1);
                     break;
-                case 0x3C:
+                case 0x3C - 30:
                     r204_work.p->em[9].setGoto(&p3, 1);
                     break;
-                case 0x46:
+                case 0x46 - 30:
                     r204_work.p->em[3].setGoto(&p2, 1);
                     break;
-                case 0x50:
+                case 0x50 - 30:
                     r204_work.p->em[10].setGoto(&p2, 1);
                     break;
-                case 0x5F:
+                case 0x5F - 30:
                     r204_work.p->em[1].setGoto(&p2, 1);
                     break;
-                case 0x64:
+                case 0x64 - 30:
                     r204_work.p->em[4].setGoto(&p1, 1);
                     break;
-                case 0x73:
+                case 0x73 - 30:
                     r204_work.p->em[6].setGoto(&p1, 1);
                     break;
-                case 0x8E:
+                case 0x70 - 30:
                     r204_work.p->em[8].setGoto(&p1, 1);
                     break;
-                case 0x6E:
+                case 0x6E - 30:
                     r204_work.p->em[7].setGoto(&p1, 1);
-                case 0x82:
+                case 0x82 - 30:
                     r204_work.p->em[7].setGoto(&p1, 1);
-                case 0x96:
+                case 0x96 - 30:
                     r204_work.p->em[7].setGoto(&p1, 1);
-                case 0xF9:
+                case 0xF9 - 30:
                     r204_work.p->em[2].setGoto(&p1, 1);
                     break;
-                case 0xFA:
+                case 0xFA - 30:
                     r204_work.p->em[5].setGoto(&p1, 1);
                     break;
-                case 0x104:
+                case 0x104 - 30:
                     r204_work.p->em[9].setGoto(&p1, 1);
                     break;
-                case 0x10E:
+                case 0x10E - 30:
                     r204_work.p->em[3].setGoto(&p1, 1);
                     break;
-                case 0x118:
+                case 0x118 - 30:
                     r204_work.p->em[10].setGoto(&p1, 1);
                     break;
-                case 0x127:
+                case 0x127 - 30:
                     r204_work.p->em[1].setGoto(&p1, 1);
                     break;
                 }
@@ -642,7 +648,7 @@ static void r204_nige_check()
                 if (!(pG->flags_174 & 0x20000000)) {
                     int far = 0;
 
-                    for (i = 0; i <= 10; i++) {
+                    for (u32 i = 0; i <= 10; i++) {
                         if (r204_work.p->em[i].getPosZ() < -28000.0f) {
                             far = 1;
                         }
@@ -651,7 +657,7 @@ static void r204_nige_check()
                         SceExec(0x12, (TaskFunc) door5_close, 0, 0, 2, 0);
                     }
                     if (r204_work.p->cnt > 0x12C) {
-                        SmdGetObjPtr(0x39)->pos.y -= 7.0666666f;
+                        FSub(SmdGetObjPtr(0x39)->pos.y, 7.0666666f);
                         if (!(pG->flags_174 & 0x20000000)) {
                             if (SmdGetObjPtr(0x39)->pos.y < 1800.0f) {
                                 SceExec(0x12, (TaskFunc) door5_close, 0, 0, 2, 0);
@@ -663,7 +669,7 @@ static void r204_nige_check()
                 if (!(pG->flags_174 & 0x10000000)) {
                     BitOn(pG->flags_174, 0x10000000);
                     BitOn(pG->flags_174, 0x20000000);
-                    for (i = 0; i <= 10; i++) {
+                    for (u32 i = 0; i <= 10; i++) {
                         r204_work.p->em[i].setGoto(&pPL->pos, 0xC);
                     }
                 }
@@ -751,17 +757,24 @@ struct PlPtr {
 // first wait is a `do {} while (1)` (a `while (1)` gets rotated by jump.c: `b TOP; SLEEP: ..; TOP:`,
 // which loop.c then rejects as "phony" and nothing is hoisted), `frame = 0` right before it (flow nop),
 // the dead `do {} while (0)` after it re-materialises `lis pPL@ha` for the second block, FSet + pPLS
-// reload pPL after each pos store, `Vec* rot` keeps `&crot0` in a callee-saved pointer.
-// COMPILER-DIFF: #13 (asm-emitted high, `rh`/`rot` below): the target's `&crot0` is a two-register
-// `lis r30; addi r25,r30,crot0@l` whose high lives on until after the cpos setup (r30 is then reused
-// for pPL) -- one more callee-saved GPR (stmw r16) and, through the save-area rounding, a frame 8
-// bytes smaller (the "unexplained 8-byte slot" of earlier passes is that rounding, not a local).
-// Ours ties the dying high to the lo_sum (`addi r30,r30`). The asm pair with the pinned high and a
-// codeless keep-alive after PSVECAdd (a "=m" on the dead `m`) reproduces the frame, the save set
-// and the high's death point; the two chandelier functions go 94/96 -> 50/55 words (the mf temp
-// copy `addi r0,mf,-5; mr mf,r0; cmplwi r0` and the r25/r26/r27 high naming are left).
+// reload pPL after each pos store. `if (mf - 5 > 0x41) .. else ..; mf -= 5;` is the target's
+// `subi r0,mf,5; mr mf,r0; cmplwi r0,0x41`: gcse deletes the redundant `mf - 5` at the join and
+// inserts its reaching copy at the END of the compare block (before the branch); a `mf -= 5` before
+// the test is tied by regmove. `BitOn(pl->be_flag, 0x10)` (reference store) keeps the tail's pPL
+// reload below the flag store.
+// COMPILER-DIFF: #13 (asm-emitted high `rh`): the target's `&crot0` is a two-register
+// `lis r30; addi r25,r30,crot0@l` (ours ties the dying high to the lo_sum, `addi r30,r30`) -- one
+// more callee-saved GPR (stmw r16) and, through the save-area rounding, a frame 8 bytes smaller.
+// COMPILER-DIFF: candidate #17 (`rot` r25, `mdl` r30 pins): block 0's local-alloc gives `rot` the
+// first free callee-saved register (r27) ahead of the pG/work highs (target: pG r27, work r26, rot
+// r25), and global-alloc excludes r30 for `mdl` (target r30, ours r28); with rot pinned the `rh`
+// keep-alive of pass 8 is not needed (and its extra insn shifted the truncated priorities of the
+// four loop-hoisted highs Key/ActBtn/"%d"/2^31 -- 30000/len at 434..442 -- away from the target's).
 // COMPILER-DIFF: 12 (regmove operand pick, `rp` below): `addi r4,mdl,0xa0` must be computed from
 // mdl's register before `mr r3,mdl` (the r20d execRoundSwitch "cc"-clobber asm).
+// Left (EventChandelier2, 3 words): the ActBtn / "%d" highs come out r17/r18 swapped -- a priority
+// tie broken by gcse's hash-bucket allocno order; the target's bucket order needs a different `.LC`
+// numbering (our TU creates 6 unemitted header-string constants, LC4/LC10-14) or table size.
 #define CHANDELIER(no, cpos0, crot0, dx0, dz0, dx1, dz1, dx2, dz2, postLoop)                                  \
     {                                                                                                              \
         cPlayer* pl = pPL;                                                                                         \
@@ -774,9 +787,9 @@ struct PlPtr {
         f32 nz;                                                                                                    \
         void* motPl;                                                                                               \
         void* motCh;                                                                                               \
-        cModel* mdl;                                                                                               \
+        register cModel* mdl asm("r30"); /* COMPILER-DIFF: candidate #17 */                                        \
         register u32 rh asm("r30"); /* COMPILER-DIFF: #13 */                                                       \
-        Vec* rot;                                                                                                  \
+        register Vec* rot asm("r25"); /* COMPILER-DIFF: candidate #17 */                                           \
                                                                                                                    \
         asm("lis %0,%1@ha" : "=r"(rh) : "i"(&crot0)); /* COMPILER-DIFF: #13 */                                     \
         asm("addi %0,%1,%2@l" : "=r"(rot) : "r"(rh), "i"(&crot0)); /* COMPILER-DIFF: #13 */                        \
@@ -785,7 +798,6 @@ struct PlPtr {
         low_RotMatrix(m, rot);                                                                                     \
         PSMTXMultVec(m, (Vec*) &r204_chandOfs, &cpos);                                                             \
         PSVECAdd((Vec*) &cpos0, &cpos, &cpos);                                                                     \
-        asm("" : "=m"(m) : "r"(rh)); /* COMPILER-DIFF: #13 */                                                      \
         FSet(pPL->pos.z, cpos.z - (dz0));                                                                          \
         FSet(pPL->pos.x, cpos.x + (dx0));                                                                          \
         mdl = pPLS;                                                                                                \
@@ -817,12 +829,12 @@ struct PlPtr {
             ActBtn.set(0x3E, 5, 0, 0, 2, 1, 0, 0);                                                                 \
             mf = (u32) MotionGetCurrentFrame(MOTION(pPL));                                                         \
             eprintf(0x140, 0x15E, 0, 0, "%d", mf);                                                                 \
-            mf -= 5;                                                                                               \
-            if (mf > 0x41) {                                                                                       \
+            if (mf - 5 > 0x41) {                                                                                   \
                 eprintf(0x20, 0x15E, 0, 0, "OK");                                                                  \
             } else {                                                                                               \
                 eprintf(0x20, 0x15E, 0, 0, "NO");                                                                  \
             }                                                                                                      \
+            mf -= 5;                                                                                               \
             if (Key.trg & 0x00080000) {                                                                            \
                 if (mf > 0x41) {                                                                                   \
                     far = 1;                                                                                       \
@@ -873,7 +885,7 @@ struct PlPtr {
             SceSleep(1);                                                                                           \
         }                                                                                                          \
         pl->dmg.clear();                                                                                           \
-        pl->be_flag |= 0x10;                                                                                       \
+        BitOn(pl->be_flag, 0x10);                                                                                  \
         ((cUnitEventView*) pPL)->endEvent(0);                                                                      \
         ((cUnitEventView*) r204_work.p->chand[no])->endEvent(0);                                                   \
         postLoop                                                                                                   \

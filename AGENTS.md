@@ -3099,6 +3099,97 @@ flipped; every gain is a plain C shape:
   cft* sources exist there (decompiled style, `SfdHandle` naming); only the Tc2Time*D expression was
   informative (see above).
 
+### CRI pass 11: MWCC register-ranking model (adx_tsvr 4 -> 5/6, mpv_hdec 12 -> 13/15 + .text order; 2026-09-11)
+Harness /home/adityas/.cache/cri11/ (deleted): cri10's `bytecmp.py`/`tryvar.py`, `mwcc.sh file.c` (CRI-flag
+compile + objdump of a probe), and **`ra.py lib/unit Func [--src file.c]`** = cadmic's mwcc-debugger
+(github.com/cadmic/mwcc-debugger, run under encounter's retrowin32 `gdb-stub` branch, `cargo build -p
+retrowin32 -F x86-unicorn --profile lto` with `RUSTFLAGS="-C link-arg=-latomic"`; ~3 s per function) on the
+GC/2.6 compiler (2.4.7 build 107, same codegen as our GC/2.7 build 108): it dumps the frontend AST, the
+backend PCode before/after every pass and the GPR/FPR interference graph with the priority list
+(`regalloc-gpr-pass-1-assigned.txt`: virtual id, assigned register, variable name, degree at removal and
+total degree; `-all.txt` adds the neighbour lists and the coalesced aliases). Rebuild it whenever a ranking
+question comes up: reading the dump replaces permutation brute force.
+
+**The allocator (Chaitin colouring, verified on ~40 probes and the open CRI functions):**
+- Every value is a virtual register >= r32. **Ids: the parameters first in order (a=r32, b=r33, ...), then
+  the function's own locals in REVERSE declaration order (last declared = lowest id, first declared =
+  highest), then the locals/parameters of each inlined helper in declaration order (parameter first), then
+  the frontend's named temporaries (`@N`; range-split copies of a variable, hoisted constants, CSE values,
+  strength-reduced induction pointers; created first = highest id) and the backend's temporaries in
+  creation order.** Address-taken/aggregate locals have no id (stack). A variable the frontend
+  copy-propagates away (`p = param` then only `p` used; a call result used once; `t = a; f(t)`) leaves a
+  dead id: the value that survives is the temporary, so a call result stored or used in arithmetic ranks as
+  a temporary (later call = higher), while a call result whose copy bounces (`mr r0,r3; <arg move>; mr
+  r31,r0`) keeps the variable's id and ranks by declaration.
+- **Priority list:** scan ids upward, remove every node whose remaining degree is < the free-colour count
+  (29 GPRs: r1/r2/r13 reserved), push it at the HEAD of the list, decrement its neighbours; repeat the scan
+  until nothing is removable, then remove the cheapest spill candidate and continue. So the list is a
+  series of levels: nodes removed in a later iteration are coloured before every node of an earlier one,
+  and inside a level the highest id is coloured first. A value live across a call has the 12 physical
+  neighbours r0, r1, r3..r12 plus every overlapping value; values coalesced away (`mr` copies, argument
+  moves) stay as neighbours ("ghosts") and inflate the degrees.
+- **Colouring:** highest priority first; a node takes the lowest-numbered free register among r0, r3..r12
+  and the callee-saved registers ALREADY handed out in this function, else a NEW callee-saved register
+  starting at r31 downward. A temporary is therefore "in place" (reuses its dying operand) exactly when
+  that operand's register is the lowest free one; a second block of a function reuses the first block's
+  callee-saved registers from the lowest up (adx_tsvr `ADXT_ExecHndl`: loop 2 gets r27, r28, r29 in
+  colouring order, then a new r26).
+- Consequences that were previously called "M1": parameters rank below every local of the same level
+  (first parameter lowest); the locals of a single level rank by declaration order (first declared highest)
+  — the reverse of pass 10's reading; a frontend temporary outranks every variable of its level (a
+  hoisted `len - 3`, a range-split second definition, an induction pointer); a node with >= 29 neighbours
+  (live across the whole function next to ~17 other values, or fewer with ghosts) jumps to the next level
+  and lands above everything else (mwsfdfrm's ten copies, sfd_hds `id`, mpv_hdec `n`).
+
+**Fixed this pass (pure C):** adx_tsvr `ADXT_ExecHndl` (the two counted loops step a `Uint8 *p`/`p2` copy
+of `adxt` by 4 and read `*(SJ *)(p + 0x18)` — a source pointer initialised from the object gives the
+target's `mr rIV, r31; lwz 0x18(rIV); addi rIV, 4` where a pointer to `adxt->sjo` gives `addi` — with the
+declaration order `nch, i, p, j, sj, nbyte, sjd, rna, ndata, nroom, p2, ck`: loop-1 values before loop-2
+values, each counter before its pointer, `sj` before `nbyte`; a second counter `j` because a reused `i` is
+range-split into a temporary that outranks the loop-1 values). mpv_hdec `mpvhdec_AnalyUd` (`for (i = 4; i <
+len - 3; i++)` and one `n = i` — the pre-loop `n = len - 3` made `n` a two-definition variable whose
+range-split copy jumped to r31 above type/ret/ret2), `mpvhdec_DecPscSj` 3 -> 2w (`dc11 = (cond[6] == 3) ? 0 :
+1` numbers the `dc11*20`/`type*4` index temporaries like the target; `!= 3` swaps them), and the .text order:
+`MPV_GoNextDelimSj` is a `static mpvhdec_GoNextDelim` (inlined into NextDelim/DecPicture) plus the public
+function with the SAME body defined after `MPVHDEC_DecPicture` (a wrapper `return helper(sj)` lays the
+frame out as an inlined block and bounces `delim`, -4 bytes).
+
+**Residues read off the dumps (what the target's graph must have had):**
+- sfh_main readers (`lwz r6` vs the dying base r5 / `r4` in SmpHz): the swapped word's node has exactly one
+  more coloured neighbour in the target than in ours (r5 = `hdr` for the six helper readers, r4 = `id` in
+  SmpHz) — the original build's peephole merged the rlwinm/or chain AFTER register allocation, leaving one
+  partial-result temporary live and coloured; ours merges before allocation (and folds the store to
+  `stwbrx` in the post-allocation peephole = M4). Keeping `hdr` live (`return hdr != NULL`) moves the word
+  to r6 but costs code; same root as M4, 1 word each, accepted.
+- sfd_hds `SFHDS_SetHdr`: `result` has 28 neighbours in ours (one level with p/len -> p r30, len r29,
+  result r28); the target's order (result r30, len r29, p r28) needs `result` at >= 29, i.e. one more ghost.
+  `sfhds_DoProcessHdr`: the range-split vid `id` has 30 neighbours (level 2 -> r31 above fhd/sfh); the
+  target has it in level 1 (r29 below fhd r31 / sfh r30), i.e. <= 28 — dropping the `neg/or/rlwinm` chain
+  of `ftr_eff = (eff != 0)` (`(Bool)eff`) gives the target's registers but loses the chain. Nine ternary
+  temporaries, the picw/pich -1 and the eff loads are its neighbours; no spelling of them (`?:`, `!!`,
+  if/else, a local) changes the count.
+- mpv_hdec `MPV_DecodePicAtrSj`: target `mpv r28 / sj r27` = mpv removed one iteration LATER than sj (its
+  remaining degree stayed >= 29 while sj's dropped); ours removes both in the same iteration (25/24 left).
+  Frame: the nested inlined GoNextDelim/MoveChunk aggregates (NextDelim inside PicAtr) are allocated after
+  the direct inlined copies in ours (second inlining round = lowest offsets, see t7 below) and before them
+  in the target; NextDelim as a macro changes the control flow. `mpvhdec_DecPscSj` 2w: the GET value of
+  `r_size` and `r_size--` are one node in the target (`addi r9, r9, -1`), two in ours (the frontend
+  range-splits the decrement whatever the spelling: `--`, `-= 1`, `= x - 1`, `register`, `Uint32`, via
+  `val`).
+- gcci `gcCiReqRd` (gcci r27 above buf r26 / nsct r25, with the callee-saved temporaries above it): the
+  target removed nsct/buf in iteration 2 and gcci + the four temporaries in iteration 3; ours removes all
+  seven in iteration 2 (remaining degrees 13..25). `gcCiExecServer` (gcci r30 / i r29): the inlined
+  helper's parameter (lowest inlined id) below its local `i`; the target has the pointer above `i`.
+  mwsfdsvr `mwsfd_ExecSvrHndl` (mwply r31 / sfd r30): 21/20 neighbours, one level, param below local in
+  ours; a plain `p = mwply` copy is propagated away (no node), only the asm copy survives. These are the
+  same signature as pass 5's "asm copy of the first parameter" lever: the target's IR kept copies (ghost
+  neighbours) that our frontend propagates away, pushing the parameter into a later level.
+- adx_tsvr `adxt_nlp_trap_entry` (`lha r4` vs `r0`): the load temporary's neighbours are all coloured
+  r3/r26..r31 in ours (r0 lowest free); the target has an r0-coloured neighbour we do not have.
+- Frame layout (probe t6/t7): own aggregates first-declared highest, then block-scoped own aggregates,
+  then inlined helpers' aggregates in inlining order (nested/second-round inlines lowest), independent of
+  code order.
+
 ## REL modules
 
 The game loads its rooms, enemies, weapons and debug tools as Nintendo REL overlays. `ninja` rebuilds the
@@ -15861,3 +15952,65 @@ rewritten; `tryv.py UNIT SYM v/x.py`, `sbs.sh UNIT SYM [OBJ]`, `dump.sh UNIT -dX
   r29, `&sphere` r18 kept in a register and `&q[2]`/`&q[3]` spilled at 0x6c/0x70; ours spills `&sphere` at 0x74 and
   keeps `&q[2]` in r14 -> the six PSVECSquareMag arg moves differ), `det = det + det` placement, the centre FP
   association (ours needs f26, frame 0xf0 vs 0xe8), the dead pool 0x48..0x7c. `.rodata` 0x80 vs 0x48, order OK.
+
+### Stage rooms, st2_1 pass 9 (r204 21 -> 23/24: nige_check 228 -> 0 zero code, EventChandelier1 50 -> 0, EventChandelier2 55 -> 4; r20e initPuzzle 49 -> 37, checkPuzzle untouched; neither flipped; 2026-09-11)
+
+- Harness ~/.cache/rooms_a9 (rooms_b9 copies with the paths rewritten; `order.py MOD/UNIT OBJ` now finds the module split
+  object, `prio.py` parses the `(2)` size marks of `regs to allocate`; deleted at the end).
+- **r204 nige_check 228 -> 0, zero code (four levers).** (1) The switch is `switch (r204_work.p->cnt - 30)` with 19 cases
+  (pass 8's casetree read missed the ROOT: `cmpwi r9,0x70; beq` compares `cnt` itself because combine folds the first
+  EQ compare of the `subi` temp back onto the source register -- LOG_LINK to the first use only, `added_sets_2`
+  keeps the `subi` -- so the tree's root 0x52 = cnt 0x70 is the em[8] arm: our `case 0x8E` was the wrong VALUE, not an
+  extra case; values `cnt - 30` = 8, 0x13, 0x14, 0x1e, 0x28, 0x32, 0x41, 0x46, 0x50, 0x52, 0x55, 0x64, 0x78, 0xdb,
+  0xdc, 0xe6, 0xf0, 0xfa, 0x109, plain-mode balance root = 10th node). (2) `static inline int r204_isDead(cEm* em)
+  { return (em->flags_324 & 0xFFFF0000) ? 1 : 0; }` for the `li r9,1; andis.; bne; li r9,0; cmpwi r9,0` chain (also
+  fixed the r16/r17/r18 naming of the three Vec templates). (3) `cPlayer* pl = pPL;` assigned right before the
+  `if (started == 0 && pl->checkEvent() == 1 ..)` and used again for `pl->pWep->pObj->setDisp(1, 1)` (target `lwz
+  r28,pPL@l` above the `cmpwi r19,0`, `mr r3,r28`, `lwz r9,0x788(r28)`; every other pPL use reloads). (4) Loop
+  counters: each `for` gets its own `u32 i` (the function-scope `i` shared by five loops was one pseudo with 10 sets
+  ranking above every giv -> r30 in every loop; the target has i/giv = r29/r30, r30/r31, r30/r31, r31/r30 (far loop),
+  r29/r30). The last loop's `i` then still took r31 (global pass 0: r29 not yet in `regs_used_so_far` when it was
+  allocated, pass 1 gave the first free register) until the `ang` block got the r102 form `Vec* pa = &ang;` declared
+  AFTER the setNoSuspend loop with `pa->y = K` through the pointer and `setAng(pa)` in both arms (x/z stores direct, y
+  `stfs f0,4(r29)`, `mr r4,r29`): `pa`'s two extra refs (8 -> floor(log2 8)=3) rank it above the last loop's counter,
+  it takes r29 in pass 1 and the counter finds r29 used-so-far. `pa` at the block top costs a `mr` copy (40 words),
+  `setAng(&ang)` with `pa` for the store only gives the PRE'd second pseudo (207). (5) `FSub(SmdGetObjPtr(0x39)->pos.y,
+  7.0666666f)` keeps `lwz pG` below the store (the r20e moveCrestDoor rule).
+- **r204 EventChandelier1 50 -> 0 (two zero-code levers, the pass-8 keep-alive removed, two `candidate #17` pins).**
+  - `if (mf - 5 > 0x41) OK else NO; mf -= 5;` (the decrement AFTER the if/else) is the target's `subi r0,r30,5; mr
+    r30,r0; cmplwi r0,0x41`: gcse deletes the redundant `mf - 5` at the join and inserts the reaching copy `mf = T` at
+    the END of the compare block, i.e. between the compare and its branch, where regmove's optimize_reg_copy_1 cannot
+    see the compare any more (it scans forward from the copy and stops at the JUMP_INSN). Every "copy before compare"
+    spelling (`t = mf - 5; mf = t; if (t > ..)`, `(mf -= 5) > ..`, int/u16 views, an r0-pinned temp, both arms
+    decrementing) is undone by regmove (T dies at the compare -> T replaced by mf -> tie), 43-56 words.
+  - `BitOn(pl->be_flag, 0x10)` in the tail keeps the endEvent `lis pPL@ha; lwz` below the flag store (8 -> 0 with the
+    next item).
+  - `register Vec* rot asm("r25")` and `register cModel* mdl asm("r30")` (tagged `candidate #17`), keep-alive asm
+    dropped. Block 0's local-alloc gives `rot` (3 refs / span 54, PRI 3) a register before the pG and work highs (3 refs
+    / spans 130 and 144, PRI 1) -> rot r27, pG r26, work r25; the target has pG r27, work r26, rot r25, which needs
+    rot's PRI below both (span >= 98) or the highs at 4 refs -- neither has a source form. With rot pinned the pass-8
+    `rh` keep-alive is unnecessary (rot can no longer take the dying high's r30) and its codeless insn was the one
+    real insn that pushed the truncated global priorities (`int(30000/len)`) of the four loop-hoisted highs
+    Key/ActBtn/"%d"/2^31 (len 434/440/438/436 -> 69/68/68/68, Key first, then allocno order) off the target's.
+    `mdl` (2 sets, global rank 1 among the callee-saved pseudos) takes r28 in ours although r30 is free after the
+    high's death (pass-0 exclusion not identified); pinned r30 as the target.
+- **r204 EventChandelier2 55 -> 4 (left): the ActBtn / "%d" highs are r17/r18 swapped.** Same macro, but the second
+  function has a different gcse table (213 buckets vs 207) and pool labels (.LC61 for its 2^31 double), so the
+  priority tie among ActBtn/"%d"/2^31 (all 68) is broken by bucket order "%d"(5) < ActBtn(50) < 2^31(133); the target
+  needs ActBtn < "%d" < 2^31, which no table size 151..321 gives with our `.LC` numbering (model: bucket = (7933 +
+  h(name)) % size, h = h*129 + c over the SYMBOL_REF string, HIGH 119 + SImode 6 + SYMBOL_REF 61 << 7 -- verified
+  against the dump's "hash value" column). Our TU carries 6 unemitted header-string constants (LC4, LC10-14) that
+  the original's include set may not; an asm-emitted `lis r18,ActBtn@ha` pin (r3-pinned `addi` with a "cc" clobber
+  so loop.c does not hoist the lo_sum) names the registers but lands the `lis` in the first free slot (4 words:
+  the PRE insertions' LUIDs are later than any source asm). Not applied.
+- **r20e initPuzzle 49 -> 37, zero code: two stepping cell pointers in both layout nests.** `R20eCell* c = &p->cell[0][y];
+  R20eCell* cs = c;` before the x loop, `cs->piece = pc` through the copy, `pos = c->pos` through the original, `cs += 3;
+  c += 3;` at the body end (the copy's increment FIRST: cse's `(set REG0 REG1)` swap makes the later-mentioned register
+  the lo_sum's destination, so `c` must be mentioned last to stay the loads' pointer). Gives the target's `mr r7,r11`
+  preheader copy, `stb r0,12(r7)`, loads through r11 and both `addi ,48` in the latch. Left 37: the three copy temps'
+  names (target x r0, y r8, z r10 and the y,x,z load order; ours x r10, z r8, y r7 in x,y,z order): local-alloc's
+  fake-lifetime rule (`fake_birth = birth - 2`) refuses r0 to a qty born right after `pc` dies at `mulli r9,r0,40`;
+  sched1 issues `lwz x` in the mulli's cycle. Reading `cObj* o = q->obj` BEFORE the copy moves the stack stores of
+  `pos` below `lwz o` (may-alias through the unknown-base pointer) and gives y r0 (29 words) -- structurally worse;
+  not applied. `Vec* v = &c->pos`, memcpy, `Vec pos = c->pos`, memberwise y,x,z (67): no r0.
+- r20e checkPuzzle 224 not iterated (pass 8's region list stands).
