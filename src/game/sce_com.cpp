@@ -542,13 +542,23 @@ void SceSetItemEvent(int atNo, int itemNo, int flagNo, int cut, void (*func)(int
     for (i = 0; i < 16; i++) {
         e = (SceItemEvent*) ItemEventTbl[i];
         if (e && e->atNo == atNo) {
+            // The slot search: item[0] tested and stored with the folded offset, then a loop entered
+            // by a `goto` INTO its body (a jump into the loop invalidates it for loop.c: no giv for
+            // j*2, `e + 6` recomputed per iteration, and the exit block's guard targets a label of
+            // another loop so find_and_verify_loops leaves `item[0] = itemNo; return` in place).
             j = 0;
-            while (e->item[j] >= 0) {
+            if (e->item[0] >= 0) {
+                goto next;
+            }
+            e->item[0] = itemNo;
+            return;
+            do {
+            next:
                 j++;
                 if (j > 7) {
                     return;
                 }
-            }
+            } while (e->item[j] >= 0);
             e->item[j] = itemNo;
             return;
         }
@@ -688,8 +698,8 @@ void SceChapterEnd()
     ChapterEnd* ce;
     int req;
     int sel;
-    u8 x4F9E;
     u16 room;
+    u8 x4F9E;
     EventMgr* ev = &EvtMgr;
     u32* key = &ev->x34;
 
@@ -726,8 +736,6 @@ void SceChapterEnd()
     Dvd.FileExistCheck(chap_data_name, &len);
     len = len + 0xC;
     len = len + MARGIN;
-    x4F9E = 0;
-    room = 0;
     swap.SwapOut((u32) pG->pRoomArc, len, 0);
     ce = (ChapterEnd*) __builtin_new(sizeof(ChapterEnd));
 #line 994 "D:/Bio4/Prog/sce_com.cpp"
@@ -741,6 +749,11 @@ void SceChapterEnd()
     SceMesSet(0x80, 1, 1, 0x64, 0x150 - cMes.getWork()->lineSpace - cMes.getWork()->fontH - 1);
     Vec plPos;
     Vec plRot;
+    // The two zeros are assigned after the FadeSetW so its `col.end = 0` keeps its own zero pseudo (the
+    // one the U8Set/U16Set stores below reuse, r27); room before x4F9E (sched1 LUID order of the `li`s),
+    // room declared first (the global-alloc tie for r25/r24).
+    room = 0;
+    x4F9E = 0;
     if (SceSys.x78 >= 0) {
         plPos = pPL->pos;
         plRot = pPL->rot;
@@ -750,7 +763,7 @@ void SceChapterEnd()
             pPL->pos.x = SceAtPtr(SceSys.x78)->dstPos.x;
             pPL->pos.y = SceAtPtr(SceSys.x78)->dstPos.y;
             pPL->pos.z = SceAtPtr(SceSys.x78)->dstPos.z;
-            pPL->rot.y = SceAtPtr(SceSys.x78)->dstAngle;
+            FSet(pPL->rot.y, SceAtPtr(SceSys.x78)->dstAngle);  // the pG load of room_id_prev waits for the store
             U16Set(pG->room_id_prev, pG->room_id);
             U8Set(pG->x4FA2, pG->x4F9E);
             U8Set(pG->stage_no, SceAtPtr(SceSys.x78)->dstStage);

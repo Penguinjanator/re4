@@ -2,10 +2,6 @@
 // a three-node rope), throw (axes, scythes, dynamite, grenades) or shoot (arrows, rockets) at the
 // player, with the player's escape routines of the grenade.
 //
-// Not yet byte-identical (.rodata / .data and every section size match): emWep_R1_ShotArrow
-// (EmAtkSetDamagePL/Sub: the `mr r3, part` copy of a dying pseudo is issued last in the original,
-// not first), emWepEscapeCamMove (fovy store scheduled below the pPL load, constant registers),
-// setCloth (the x50 = 0.0 store scheduled before the pointer stores).
 
 #include "atari.h"
 #include "map_obj.h"
@@ -1738,7 +1734,9 @@ void emWepEscapeCamMove(cEmWep* em)
     Vec d;
     f32 len;
 
-    w->cam.param.fovy = g->Cam.param.fovy;
+    // Store through a cast pointer (no MEM_IN_STRUCT_P): the store may alias the `pPL` load below,
+    // which keeps `lwz pPL` after it and ranks the `w` chain above the constant-pool `lis`es.
+    *(f32*) (u8*) &w->cam.param.fovy = g->Cam.param.fovy;
     p0.x = -376.0f;
     p0.y = 575.0f;
     p0.z = -1831.0f;
@@ -2596,7 +2594,6 @@ void cEmWep::setCloth(cModel* owner)
 {
     EmWepWork* w = EMWEP_WK(this);
 
-    w->cloth.x58 = owner;
     w->cloth.num = 10;
     w->cloth.x08 = 0;
     w->cloth.x0C = 0;
@@ -2608,18 +2605,19 @@ void cEmWep::setCloth(cModel* owner)
     w->cloth.x24 = 0;
     w->cloth.x44 = 0;
     w->cloth.flags = 0;
-    w->cloth.x54 = 0;
     w->cloth.pParts = emWepClothP;
     w->cloth.pUp = emWepClothUp;
     w->cloth.pDown = emWepClothDp;
     w->cloth.pMax = emWepClothMax;
     w->cloth.x34 = emWepAt;
+    w->cloth.x58 = owner;
     w->cloth.x38 = 3;
     w->cloth.x3C = 25.0f;
     w->cloth.x40 = 0.6f;
     w->cloth.x48 = 0.0f;
     w->cloth.x4C = 1.0f;
     w->cloth.x50 = 0.0f;
+    w->cloth.x54 = 0;
     PenClothSet(this, &w->cloth, 100.0f);
     w->flags |= 4;
 }

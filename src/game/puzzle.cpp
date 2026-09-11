@@ -117,9 +117,10 @@ u8* searchItemModelData(int id, PieceInfo* tbl)
     }
 }
 
-// OPEN: the original computes the second loop's reversed count before the entry test (`subic.
-// r0,r29,4; ble`) and passes it through CTR (`mtctr r0; mfctr r31`: the count pseudo took the
-// ctrsi pattern's CTR preference); ours keeps `cmpwi; ble; subi` in the preheader.
+// The second loop counts from 0 to `o - 4` (not from 4 to `o`): the runtime bound is computed
+// before the entry test (`addic. r0,r29,-4; ble`), check_dbra_loop reverses the compare-only biv
+// with that count, and the count temp takes the ctrsi pattern's CTR preference (`mtctr r0; mfctr
+// r31`; the loop body's call keeps the biv itself in r31).
 void pzlPiece::orientation(int o)
 {
     int i;
@@ -133,7 +134,7 @@ void pzlPiece::orientation(int o)
         }
     } else {
         mirror(0);
-        for (i = 4; i < o; i++) {
+        for (i = 0; i < o - 4; i++) {
             rotate(0);
         }
     }

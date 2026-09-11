@@ -965,12 +965,13 @@ void titleSub(TitleWork* w)
                             }
                         }
                         // Index form: the eliminable biv gives check_dbra_loop's bct (insert_bct refuses a
-                        // known count below 3); the integer address keeps the pSys reload in the loop.
+                        // known count below 3); the integer address keeps the pSys reload in the loop, and
+                        // `i << 2` (not `i * 4`) keeps the table as the first `stwx` operand.
                         {
                             int i;
                             for (i = 0; i < 2; i++) {
                                 u8* tbl = (u8*) pSys + 0x20;
-                                *(u32*) ((u32) tbl + i * 4) = 0;
+                                *(u32*) ((u32) tbl + (i << 2)) = 0;
                             }
                         }
                     }
@@ -1337,6 +1338,9 @@ int stageSelect(TitleWork* w)
                     IdSys.unitPtr(i * 16 + 0x41 + j, ID_OMAKE)->flags &= ~8;
                 }
             }
+            // A do-while(0) body (a macro in the original): its loop depth weights the two
+            // `save.stage[i].score` reads so the `i * 12` giv outranks `rank` in global-alloc (r28/r27).
+            do {
             if (save.stage[i].score == 0) {
                 for (j = 0; j < 8; j++) {
                     IdSys.unitPtr(i * 16 + 0x80 + j, ID_OMAKE)->flags &= ~8;
@@ -1347,6 +1351,7 @@ int stageSelect(TitleWork* w)
                 u->flags_7F |= 2;
                 IdSetNum(&IdSys, i * 16 + 0x81, ID_OMAKE, save.stage[i].score, 9999999, 7, 0);
             }
+            } while (0);
         }
     }
     return ret;

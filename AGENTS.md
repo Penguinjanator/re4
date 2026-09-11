@@ -17402,3 +17402,148 @@ objdiff.json" seen all morning is other agents' configure.py runs racing on objd
 - Files changed: tools/sn-gcc/patches/shipped-build-temp-flags.patch (new), tools/sn-gcc/build.sh, src/game/esp0a.cpp,
   src/game/esp0e.cpp, config/G4BE08/objects.py (two comments), README.md (one sentence), AGENTS.md; untracked:
   tools/sn-gcc/src/gcc/function.c, tools/sn-gcc/cc1plus, tools/sn-gcc/cc1, build/compilers/ProDG/3.9.3-v1.79/cc1plus, cc1.
+
+### DOL sweep 19b, closest-first (emwep Matching 62/62; title stageSelect 6 -> 0, titleSub 98 -> 1; sce_com SceChapterEnd 17 -> 0, SceSetItemEvent 38 -> 23; puzzle orientation 8 -> 0; 2026-09-11)
+
+Flipped: emwep (62/62, sections and order identical). Harness ~/.cache/dol19b (dol18a copies with the paths rewritten:
+`tryv.py UNIT SYM v/x.py`, `sbs.sh UNIT SYM [OBJ]`, `mcmp.py`, `dump.sh UNIT -dX` with `SRC_OVERRIDE`, `fsec.py`, `rtl.py`,
+`prio.py`, `order.py`), deleted at the end. Another agent replaced cc1plus/cc1 during the pass (the shipped-build-temp-flags
+patch, "0 changed objects"); concurrent `configure.py` runs kept truncating objdiff.json, so `ninja` had to be retried in a loop.
+All forms below are zero-code, untagged.
+
+- **The base register's death rides the LAST store in RTL order; put a zero store there (emwep setCloth 20 -> 0).** The
+  30 `w->cloth.*` stores are issued by sched1 as weight -1, then weight 0 by LUID, then weight +1 by LUID, and sched2 pulls
+  the `r0` zero stores ahead (they have two dependents: the call and the flags RMW's `lwz r0` after it). With `x50 = 0.0f`
+  written last, the 0.0 pseudo AND the base `w` died there (weight -1, issued first, `stfs f13,116` right after the zeros);
+  with `x54 = 0` (an `r0` zero store) written last the base death is absorbed by a store the zero group hides anyway, x48
+  (0.0, no death) lands in the +1 group after the zeros and x50 (0.0 dies) ends the 0 group -- the target's `.. 112, 116, 108`.
+  The FPR names followed: local-alloc's `floor_log2(refs)*refs/len` with the 0.0 dying at the very last store (3/45 = 666)
+  ties 25.0 (2/31 -> 645 loses) and drops below 0.6 (2/30 -> 666 ties, lower qty = 0.0 -- so 0.6 must be shorter: 2/29 = 689
+  with the reordered stores) -> 1.0 f0, 0.6 f13, 0.0 f12, 25.0 f11. Statement order: num, the ten zeros, the five tables,
+  `x58 = owner`, x38, x3C, x40, x48, x4C, x50, `x54 = 0`. The `stw r4,124` (owner) position is the LUID tie among the
+  weight-0 group: after the five `addi` table lows means written after the table stores.
+- **A member store that must precede a fixed-scalar load: `*(f32*)(u8*)&w->cam.param.fovy = v` (emwep emWepEscapeCamMove
+  23 -> 0).** base_alias_check lets an argument-derived pointer alias a symbol (ADDRESS base of VOIDmode vs SYMBOL_REF ->
+  `flag_argument_noalias` 0 -> may alias); only `fixed_scalar_and_varying_struct_p` separates the in-struct store from the
+  `lwz pPL` load. The cast-then-deref store has no MEM_IN_STRUCT_P, so the pPL load depends on it (cost 2) and the store's
+  chain `lwz pG -> lfs fovy -> stfs -> lwz pPL -> addi r3 -> bl` gets priority P+5..P+9 above the six pool `lis` (P+5):
+  `mr r29,r3; addi r31,r29,992` and the fovy load/store issue first, and the FPR names follow. `FSet` folds the address into
+  `this` (`stfs 1356(r30)`, the reference pseudo is `find_best_addr`'d) and computes `w` late; `volatile` also works.
+- **A `do { } while (0)` around the block that reads an array element twice raises the giv's weighted refs (title stageSelect
+  6 -> 0).** `rank` (2*7/54 = .259) beat the `i*12` giv (2*6/51 = .235) for r28; the giv's two `save.stage[i].score` reads
+  inside a do-while(0) count depth+1 (2+3+3 = 8 refs, 3*8/51 = .47) and it is allocated first. Loop notes weight flow's
+  REG_N_REFS even for a non-loop.
+- **`(i << 2)`, not `i * 4`, keeps the table first in `stwx` (title titleSub 98 -> 97).** The strength-reduced giv of `(u32)tbl +
+  i*4` comes out `(plus giv tbl)` (index first); the shift form keeps `(plus tbl giv)` = `stwx r0,r9,r11`.
+- **Late zero assignments keep an inline's constant its own pseudo (sce_com SceChapterEnd 17 -> 0).** With `x4F9E = 0; room =
+  0;` before the FadeSetW, cse folded the inline's `col.end = 0` store onto x4F9E's zero pseudo (giving that `li` the store's
+  priority chain, issued before FileExistCheck) and the U8Set/U16Set zeros of the door block onto the surviving fresh pseudo;
+  the target's early `li r27,0` is the FadeSetW zero itself. Assign the two zeros right before `if (SceSys.x78 >= 0)` (after
+  the FadeSetW; they are reloaded from pG before the door block, so its stores use the FadeSetW zero r27); `room = 0` written
+  before `x4F9E = 0` (sched1 LUID: `li r25` with the `add`, `li r24` after the `stw len`) and `u16 room` declared before
+  `u8 x4F9E` (the r25/r24 tie goes to the lower pseudo). `FSet(pPL->rot.y, ..)` keeps the following `lwz pG` (room_id_prev)
+  below the store.
+- **A slot-search loop entered by a `goto` INTO a do-while body (sce_com SceSetItemEvent 38 -> 23).** Target: item[0]
+  tested/stored with the folded offset (`lha r0,6(r8)`, `sth r30,6(r8)`), then `L1: j++; if (j > 7) return; add j,j; addi
+  e,6; lhax; bge L1; sthx` -- no giv, `e + 6` recomputed per iteration, the peel's store block NOT moved out by
+  find_and_verify_loops. `j = 0; if (e->item[0] >= 0) goto next; e->item[0] = itemNo; return; do { next: j++; if (j > 7)
+  return; } while (e->item[j] >= 0); e->item[j] = itemNo; return;`: the jump into the loop marks it invalid for loop.c (no
+  strength reduction, no invariant hoist), and the guard `bge next` targets a label of another loop number, so the exit
+  block stays (`uid_loop_num[JUMP_LABEL (p)] != this_loop_num`). A goto loop without notes gets the exit block moved after
+  the `pLog->err` barrier (47-59 words); `while`/`for` forms strength-reduce (`lhau`). Left (23): j r9 / j*2 r10 / e+6 r11 in
+  the target vs r10/r11/r9 -- global priorities e+6 (3*8/5) > j*2 (3*8/6) > j (4*17/22) in ours; not found (u32/int j,
+  `++j > 7`, `>= 8`, pointer forms 23-37).
+- **"bct with a runtime count in a loop with a call" is a source form (puzzle pzlPiece::orientation 8 -> 0, sweep 18b's
+  compiler-side verdict overturned).** `for (i = 0; i < o - 4; i++) rotate(0);` (not `for (i = 4; i < o; ...)`): the bound
+  `o - 4` is computed before the entry test (`addic. r0,r29,-4; ble`), check_dbra_loop reverses the compare-only biv with
+  that count and the count temp takes the ctrsi pattern's CTR preference (`mtctr r0; mfctr r31`; the body's call keeps the
+  biv in r31, `addic. r31,-1; bne`). The `mfctr` is the biv init from the CTR-allocated count pseudo, not a final value.
+- Read, not closed (do not retry the listed forms):
+  - title titleDebugMenu (12): case 3's `no = checkRoomNo()` is r31 in the target (`mr. r31,r3`), r3 in ours: `no`'s allocno
+    conflicts with the call-clobbered set in the original (a live range crossing a call) and no visible use makes it; and case
+    5's `s8 room` r31 / dbgPoint temp r30 swap (room 2*7/65 = .215 < temp 3/10 = .3). `int no` shared with room gives per-use
+    `extsb` (fold strips `(s8)(int)(s8 field)`), `s8 no` gives `extsb r3,r3`, `num`/block-scoped/`if ((no = ..) >= 0)` 12-137.
+  - title titleSub (1): `&c1` PRE'd (`addi r28,r1,36` at the arm-C top, `mr r5,r28`) where the target recomputes `addi
+    r5,r1,36` at the FadeSet while `&c0` IS PRE'd (r29). gcse hoists both `(plus fp 32)` and `(plus fp 36)` single occurrences
+    to the arm's entry block (LCM earliest, insertions in bb 49 and 50). A pointer-param inline (`fadeOut(&c0, t)` with
+    `fc[1]`), a BLKmode end-colour struct in the inline (its frame pseudo r117 = fp+K is substituted into the hard-reg arg set
+    but cse then rewrites `r5 = fp+K` back to the cheaper pseudo -> PRE'd), `(u8*)&c0 + 4` (cse related value -> `ori r5,r4,4`),
+    swapped/array/GXColor declarations: 1-164. Facts: integrate's `subst_constants` never substitutes a store's MEM address
+    (SET_DEST), which is why fadeIn's `fc[1].w = 0` stays `stw r9,4(r11)` while its `&fc[1]` arg is `addi r5,r1,36`.
+  - main_mem MemCheckHeapEnd (12): the reload of `d->allocated` for the loop init comes with a volatile read (8 left: `li r3,0`
+    issued at the block top, target after `cmpwi`; d r11/r9 and the mulli r9/r11 names), no zero-code form found. The target's
+    `li r3,0` after the compare = jump.c's else-set hoist done at jump2 (no rescheduling) rather than jump1 -- the `x = b`
+    insn must fail the hoist test before reload (a REG_NOTE other than a matching REG_EQUAL, or not the arm's first insn).
+    MemReplaceHeap (18): blocks 2-4's high/HeapHead r9/r11 (local-alloc: {HeapHead, hd} combined 2*4/8 beats the 2-ref high);
+    `Heap[1..3].handle` constant indices, `&HeapHead[..]`, `HeapHead[h].allocated`, `hd = HeapHead; hd[h]` unchanged.
+  - puzzle pzlBoard::init (4): the zeroing loop's guard `cmpwi r30,0; beq` (count != 0) vs ours `ble`; `if (n) for` gives
+    both tests, unsigned bounds lose the bct, `u8/u16 n` locals 12, do-while 10.
+  - option retry_load_menu (45): `o` (4*29/364 = .319) vs `old`/`i` (3*13/108 = .361) for r31 -- unchanged, not iterated.
+  - Not iterated: card, emrock, motion, route_ck, db_cam, pendulum, esp08, esp18, cam_ctrl, option brightness/controller,
+    puzzle's other 10 (movePiece 535), sce_com OpenBoxMain 182 / SceElevator 232.
+
+### DOL sweep 20a, closest-first (mercenaries Matching 32/32; emmine R1_ShotArrow 140 -> 8 (21/23); db_menu move 27 -> 3; 2026-09-11)
+
+Flipped: mercenaries (32/32, sections equal, order OK; 111 OK). Harness ~/.cache/dol20a (dol19a copies with the paths
+rewritten; `tryv.py UNIT SYM v/x.py`, `sbs.sh UNIT SYM [OBJ]`, `dump.sh UNIT -dX` with ABSOLUTE `SRC_OVERRIDE`, `fsec.py`,
+`prio.py PRE` (`ALL=1` prints the caller-saved allocnos too), `order.py`, plus `cc.sh UNIT` = compile one unit straight
+through tools/ngccc.py + fold_linkonce into build/ and `pninja.sh` = ninja on a private copy of build.ninja without the
+`configure`/SPLIT edges); deleted at the end. HAZARD seen all pass: with three or more agents running `ninja` at once the
+shared regeneration loop never settles (`.ninja_deps` entry for build/G4BE08/config.json goes stale every few seconds:
+"premature end of file; recovering", "manifest 'build.ninja' still dirty after 100 tries") -- `pninja.sh` (configure.py once,
+then `ninja -f private.ninja -k 0`) builds and links everything from the shared `.ninja_log` and the DOL check passes.
+
+- **regclass base/index choice = local-alloc register class: a pointer LOCAL for a table makes the index GENERAL_REGS
+  (mercenaries MercSysGetSaveWork 39 -> 0, zero code).** `u32* tbl = SysRef(pSys)->x10; w = tbl[i];` -- the pointer variable's
+  pseudo carries REG_POINTER (`expand_decl` marks pointer-typed locals), so `record_address_regs` makes it the base of
+  `(plus tbl i4)` and `i*4` the index (GENERAL_REGS -> r0, the first register in REG_ALLOC_ORDER). Written `SysRef(pSys)->x10[i]`
+  neither operand of the `(plus (plus pSys 16) i4)` address is flagged (expr.c marks a component/array address only when it
+  ends up a plain REG; `force_reg` of the `+16` never marks), regclass counts "equal chances" for both, BASE_REGS wins for
+  `i*4` (r8) and the rank-pointer giv init `add rp,i4,save+48` (2 sets, no birthing boost) has no anti-dependence to give
+  it priority in sched2, so it issues at the block end and takes r8; with `i*4` in r0 the `add r12,r0,r29` is anti-dependent
+  on the later `clrlwi r0` chain (priority ~6 vs the leaf's 1), issues second, and the pointer allocno -- allocated after
+  pSys+32 (r8), r (r7), the three bit-index givs (r6/r5/r4) and the 0x80000000 constant (r3) -- gets r12 (pass 0: every
+  call-used register is `regs_used_so_far` from the start, r12 is the LAST general register in REG_ALLOC_ORDER, the
+  callee-saved r26..r13 are skipped as not used so far). The 18a "birthing pseudo" reading was wrong: sched2 on hard regs
+  decides the final slot, not sched1. Rules read: (a) `regs_used_so_far` = regs_ever_live | call_used_regs | local-alloc'd, so
+  r12 is reachable in pass 0 whenever r0..r3 conflict; (b) `set_preference` only records copy preferences when one side is a
+  hard reg or a local-alloc'd pseudo, so two global pseudos linked by a dying copy share a register only by conflict-free
+  allocation order; (c) combine, not regmove, merges `P = i4 + K; new_reg = P` into the giv init when P is single-use (cse2 had
+  rewritten the `rp + 64` end test to `new_reg + 64` first).
+- **db_menu move (27 -> 3, tagged `COMPILER-DIFF: candidate (jump2-only deleted arm)`): identical codeless `"=m"` asms in both
+  arms of `if (t->cursor & 1)` on ONE source line, then `t->cursor = (!(t->cursor & 1) && !(n & 1)) ? n - 2 : n - 1;`.** The
+  dead `andi. r11,r9,1` is the parity test whose arms jump2 cross-jumped (identical `(set (mem cursor) (asm_operands))` insns
+  -> `beq L; b L` -> both jumps deleted, `delete_computation` keeps the compare after sched2), and the asm's memory output is
+  what makes cse re-read cursor (`lbz`) instead of folding it to the stored register (h0's `volatile` read is not needed).
+  Facts: ASM_OPERANDS carries the source line, so two asms on different lines are NOT `rtx_equal_p` (the cross-jump then
+  stops at the asm and leaves `beq L2; b L2`); cse's `cse_end_of_basic_block` follows a condjump into its target when the
+  label has one use and is preceded by a BARRIER (the else arm of any if/else), and after processing that path it rescans
+  from the same start with the branch NOT_TAKEN, so BOTH arms of a plain if/else see the store -- the fresh `lbz` cannot come
+  from a label alone; reload_cse deletes every `(set r r)` and value-redundant copy before flow2, so the arm insn must be one
+  that jump2 removes (cross-jump) -- pins/USE/volatile asms keep the branch. The value form `xori; andi.` of `!(x & 1)` is the
+  C++ front end's `(x & 1) == 0` folded to `(x & 1) ^ 1`, the `li r0,1; cmpwi r0,0; li 32; bne` is combine folding `(n ^ 1) & 1`
+  with `n = 34`'s nonzero_bits into a constant it then cannot fold into the CCmode compare. Left (3): GetGameTime's
+  `addi r3,&h` issued last = the #13 rematerialised REG_EQUIV `(plus fp 40)` (ours allocates it; `int* ph`, `"=m"(h)`,
+  declaration orders unchanged, `asm("" : : "r"(&h))` 31, a second call 52).
+- **emmine emMine_R1_ShotArrow 140 -> 8 (zero code): R1_Shot's 18a shape applied -- a separate water pointer, but BLOCK-SCOPED
+  (`AtEffInfo* wi = EatMgr.getEffInfo(2);` declared inside each water block) and the no-info block's byte stores in the order
+  `xFC = 1; xFD = 2; xFE = 0; xFF = 0`.** One function-scope `wi` for both blocks is a two-set pseudo with 18 refs / 100 =
+  0.720 that outranks `em` (53 refs / 380 = 0.697) in global-alloc and takes r29 (em r28); two single-set block pseudos
+  (~9 refs / ~50) rank below em, so em keeps r29 and both take r28 like the target. (R1_Shot's one `wi` happened to lose to
+  its em, 0.714 vs 0.742.) Left in both functions (8 each, the same block): the no-info `SndCall(1/2, 0x50/0x14, &em->pos,
+  0, 0, em)` argument moves come out r7, r8, r5, r4, r6, r3 in the target (so the `xFD = 2` constant, born while r7/r8 are
+  live, gets r6 and the fifth argument's `li r6,0` follows its store) vs r5, r3, r4, r6, r7, r8 in ours (sched1 ready-list
+  order = weight 0 for `mr r5,&pos` (dying pseudo) then LUID; the target needs `li r7,0`/`mr r8,em` ranked above it -- a
+  death or a priority we cannot see; the two matched SndCall blocks have the ours order in both builds).
+- Read, not closed:
+  - Espgen43 AddSandPower (5): the target's local-alloc order W0 r0, W4 r9, W8 r11, high r10 needs the sched1 order L0, L8, L4
+    (all three word qtys 3 insns long, 2/6 = 0.333 > the Chk_pos high's 3/10, ties by qty number = block-move order); ours
+    issues L8 first because `pos` dies there (weight 0), giving W8 a 4-insn life below the high. Anchors tried: `"=m"`
+    on Chk_pos.x (adds a ref to the high: 9), on `(u8*)&Chk_pos + 2` (adds a ref to the lo_sum, whose death then leaves S8:
+    7), between word-wise stores (9), keep-alives on `pos` (8), all 36 load/store word permutations (4-6), memcpy/pointer
+    forms (5). Needs a lever that delays L8 by one cycle or gives L0 weight 0 without touching the high/lo pseudos.
+  - em_cloth Em34ClothSet1 (9): the Up2/Dp2/Max2 `lis/la` qtys rotate (target Up2 r10, Dp2 r8, Max2 r7); their lives are
+    tied by the interleaved pool `lfs` loads in sched1 (Up2's `lis` is issued before the 1.0 load, Dp2's after). All 120
+    orders of the five table statements and 42 positions of the x3C/x40/x4C constants: 9-14.
+  - dvd DiscChange (7): unchanged (sweep 13 mechanism; the `game[]` template's word-4 load must sit after the word-0 store).
+- Not iterated: em_set, shadow, at_mod, sce_at, cam_extra, Espgen43 SetSandWork (44), em_cloth Em18ClothSet (47).

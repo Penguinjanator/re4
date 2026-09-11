@@ -1711,3 +1711,8 @@ MATCHING.update({
 MATCHING.update({
     "game/esp09.cpp": True,  # PolyTrans: `pn = &w->pts[idx]` giv read by the Subtract argument, `p = pn` as an asm-emitted `mr` (cse canonical), idx-- between the p0/pp copies; two codeless "=m" asms with dead in-loop mentions rank p (17 refs) and pp (14 refs) above esp in global-alloc (candidate: global-alloc priority)
 })
+
+# DOL sweep 19b (2026-09-11)
+MATCHING.update({
+    "game/emwep.cpp": True,  # setCloth: statement order num, zeros, tables, owner, x38, floats (x48 before x50), `x54 = 0` LAST (the base register's death rides the zero store, so no float store is weight -1 and the 0.0 pseudo dies late enough for 0.6 to outrank it in local-alloc); emWepEscapeCamMove: the fovy store through `*(f32*)(u8*)&` (no MEM_IN_STRUCT_P: may alias the `pPL` load, whose chain then ranks `mr r29,r3; addi r31` above the pool `lis`es); zero code
+})
