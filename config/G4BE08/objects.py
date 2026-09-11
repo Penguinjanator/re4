@@ -461,6 +461,7 @@ UNITS = [
     "game/trans_ot.cpp",
     "game/tv_mode.cpp",
     "game/view.cpp",
+    "game/view.cpp",
     "game/xml.cpp",
     "game/yz2code.cpp",
     "game/at_sub2.cpp",
@@ -1689,4 +1690,9 @@ MATCHING.update({
 MATCHING.update({
     "game/obj00.cpp": True,  # FallMove: codeless call-crossing `junk` pseudo (asm def before the hit loop, "=m" use in the fallSpd loop) ranks between `end` and the hoisted `sePlayed = 1` constant and takes r24, so the constant gets r23 (candidate #17); four dead `i = K` sets keep the gcse bucket count
     "game/t_option.cpp": True,  # tp_pl_flag case 4: codeless asms reading the num() result in r3 (uninitialised `register int asm("r3")`) give the arms' `addi r3,r30,ItemMgr@l` an anti-dependence so the `li` constants issue first (candidate #1)
+})
+
+# DOL structural pass 5 (2026-09-11)
+MATCHING.update({
+    "game/view.cpp": True,  # initPerspective: ONE frustum pointer `b` for both halves (the halves' `&b->point/normal[k]` are one gcse expression set: the second half's preheader addi order and the first half's single `&point[4]` PRE follow), `ViewSphere* s = &sphere` for the centre/radius stores (cse's find_best_addr rewrites `(mem s)` to `892(this)`, the rest stay `s`-based, s r18), `/ (2.0f * det)` inline (a fresh call-anchored pseudo), zfar stored before znear; two dead statics carry the .rodata 0x48..0x7f pools (STRIP_UNUSED); zero code
 })

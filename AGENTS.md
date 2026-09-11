@@ -16087,3 +16087,52 @@ rewritten; `tryv.py UNIT SYM v/x.py`, `sbs.sh UNIT SYM [OBJ]`, `dump.sh UNIT -dX
   forward with no label between (a loop's back edge is never followed; the fall-through continues the ebb); the
   `(use (const_int 0))` flow nop is emitted only after a CALL_INSN that ends a block; a codeless `asm("" : "=r"(w) :
   "0"(t))` chained on an asm load restores the 2-cycle latency the asm load lacks (asm producers cost 1).
+
+### DOL structural pass 5 (view flipped: initPerspective 188 -> 0, zero code, the pass-3/4 `VADDR` asm forms removed; `.rodata` dead pool reproduced; 2026-09-11)
+
+- Harness ~/.cache/dol_view5 (dol17 copies with the paths rewritten; deleted at the end). `game/view.cpp` is Matching (7/7,
+  every section byte-identical, order OK, 111 OK); `game/view.cpp` added to STRIP_UNUSED.
+- **The whole first-half "impossible PRE pattern" (passes 3/4) was an artefact of using TWO frustum pointers.** The
+  target's halving-loop preheader lists its 13 `addi rX,r31,K` in the order 72, 108, 120, 12, 84, 24, 132, 96, 36, 144, 48,
+  156, 60 = the order of FIRST OCCURRENCE of `&b->point/normal[k]` in the FIRST half's G1..G5 (reverse argument
+  evaluation: Sub(P3,P0) gives 72 then 108, ...; G0 is this-based). gcse inserts at a block end in expression-index order
+  (`pre_insert` walks `index_map[j]`, `bitmap_index = n_exprs++` at first insertion in `compute_hash_table`'s block/insn
+  scan, `insert_insn_end_bb` appends after the previous insertion), and sched1 keeps that LUID order for the equal-priority
+  addis. So the original computed both halves through ONE pointer variable (`b = &localFull; ... b = &local; *b =
+  localFull; ...; b = &localFull;`): the two halves' addresses are the same `(plus b K)` expressions, the second half's
+  occurrences are redundant after the loop and are inserted in the preheader in the first half's index order, and block
+  LCM over the combined problem (the `b = &local` kill after G5, the loop, the second-half occurrences) is exactly what
+  PREs only `&point[4]` G1 -> G2 (`mr r23,r29`) in the first half while recomputing everything else. Plain C++ everywhere:
+  the `VADDR` asm `addi`s, the `"+r"(b)` transparency kill, `pk`, `pa`, `VECNormalizeQ` are gone. Rule: when two
+  code regions use the same offsets from two pointers and the target's PRE pattern looks unproducible for one region in
+  isolation, make them the SAME pointer variable -- the preheader/hoist ORDER of the second region tells you (it is the
+  first region's first-occurrence order).
+- **Allocation cascade (`&sphere` r18, `&q[2]`/`&q[3]` spilled): `ViewSphere* s = &sphere` for the centre/radius stores
+  and the PSVECDistance argument** (`s->center.x/y/z = ..; s->radius = PSVECDistance(&s->center, &q[0])`). `&sphere`
+  becomes one gcse expression with 5 refs (PRE'd into the copy-loop preheader like the `&q[k]` frame addresses) and
+  outranks `&q[1..3]` in global-alloc; the target's asymmetric `stfs f0,892(r28)` (center.x this-based) vs `stfs
+  f12,8(r18); stfs f30,4(r18); stfs f1,12(r18)` (s-based) is cse2's `find_best_addr`: for a plain REG address `(mem s)` it
+  takes the equivalence-class member with the HIGHER `(COST+1)>>1` when ADDRESS_COST ties (rs6000 ADDRESS_COST is 0) --
+  `(plus this 892)` over the pseudo -- while `(plus s 4)` etc. have no cheaper class member and stay. Reading: a
+  this-based store for offset 0 of a struct whose other fields go through a pointer register = a pointer variable to the
+  struct, not asymmetric source.
+- **`det = det + det` placement + the centre FP allocation (f26 saved, frame 0xf0): write the denominator inline as
+  `/ (2.0f * det)`** (fold gives `det + det`; the three uses cse to one pseudo). A fresh pseudo defined after the six
+  PSVECSquareMag calls does NOT cross a call, so sched_analyze gives it an anti-dependence on the last call (`REG_N_CALLS_
+  CROSSED == 0` rule) and the `fadds` issues after `lfs; fsubs; lfs` in the centre block; `det = det + det` re-sets the
+  call-crossing pseudo, which floats up to right after the FIRST call and shifts the whole centre allocation (f8/f9 swap,
+  one more FPR saved). `f32 det2 = det + det` after the calls is equivalent.
+- **Prologue `stfs f4,16(r28); addi r31; stfs f3,20(r28)`: `zfar = zfar_` written before `znear = znear_`** -- the two
+  dying-argument stores tie in sched1 and issue in LUID order.
+- **Dead pool 0x48..0x7f (`DF 0.0, SF 1.0f, SF 0.0f | SF 0.0f, [pad], DF 0x4330000080000000, SF 2pi, SF 12.0f, DF
+  0x4330000000000000, SF 1/1024, SF pi/2`): two never-called `static` functions after initPerspective** (`viewSphereReset
+  (ViewSphere*, f64 r)`: `if (r > 0.0) sp->radius = 1.0f; sp->x10 = 0.0f;` and `viewSphereRing`: `p->y = 0.0f; a = (f32) div
+  * 6.2831855f / 12.0f; c = (f32) col * 0.0009765625f; ... (a + 1.5707964f)`), unit in STRIP_UNUSED. Pool facts used:
+  per-function pools (`init_const_rtx_hash_table` per function; the same constant in two functions is two entries), entry
+  order = `force_const_mem` order = expand evaluation order (`(f32)(int)` forces the signed DF magic during the
+  conversion's expansion, before the constants of the surrounding expression), per-entry alignment (`ASM_OUTPUT_ALIGN` of
+  the mode size: an SF followed by a DF leaves a 4-byte zero pad), the same value in SF and DF are distinct entries, a
+  duplicate within one pool is impossible -- so 8 zero bytes after a DF 0.0 and an SF 0.0f in one pool means a SECOND
+  function's `0.0f` + pad. A `static` non-inline function is compiled and its pool output even when never referenced.
+- Hazard seen again: a tool edit to config/G4BE08/objects.py vanished within seconds (another agent's stale rewrite);
+  verify with `python3 -c "import ..."` that the set/dict actually contains the unit before running configure.py.
