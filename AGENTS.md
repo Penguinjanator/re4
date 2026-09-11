@@ -22688,3 +22688,55 @@ Harness ~/.cache/dol_fin5 (dol14 copies with paths rewritten, deleted at the end
   register names.
 - Not iterated: dbmod_locate 103 (pass 2's list still applies), the 24/1/1-word `fn_*`/`create`/`loadModel` rows (the .text
   size pairing artefact, gone when the sizes agree).
+
+### DOL puzzle final closer (game/puzzle 46 -> 47/49, 22 -> 16 words; PutInCase 6 -> 0 (three codeless tags: the call-crossing `last`); movePiece 14 and shape 2 unchanged, both mechanisms narrowed to local-alloc priorities; .text size equal; item.cpp IDENTICAL; nothing flipped; 111 OK; 2026-09-11)
+
+Harness ~/.cache/dol_puzzle3 (dump.sh = cpp + cc1plus with `-dj -ds -dS -dR -dg -dl -dG -dL`, try.sh = locked ninja + bytecmp,
+sngcc/ = a private copy of tools/sn-gcc with `fprintf`s in global.c set_preference/prune_preferences; deleted at the end).
+
+- **PutInCase 6 -> 0.** `last` = r31 in the target is an allocno that crosses a call, nothing else: with the register-allocation
+  facts below there is no other way a global allocno skips r0/r9/r11/r10/r8..r3 and lands on the first callee-saved reg. Form
+  (all codeless, tagged): `pzlPiece* p` and `ItemWork* last` at function scope; at `placed:` after `pl->save()`:
+  `last = (ItemWork*) p;` (a plain reg copy of the dead r31 value) + `asm("" : "+r"(p));` (a second set of `p` right after the
+  copy: makes the copy unavailable to gcse's copy propagation; p is dead so flow deletes the asm before combine/global);
+  inside `if (ok)` right after `ItemMgr.get(id, rest)`: `asm("" : "=m"(item.x) : "r"(last));` then `last = ItemMgr.pLast;`.
+  `last` is then live from `placed:` across save/ordering/get -> `allocno_calls_crossed > 0` -> `used1 = call_used_reg_set`
+  -> r31 (first callee-saved in REG_ALLOC_ORDER, p is dead, type is dead); the copy becomes `mr r31,r31` and
+  `reload_cse_regs` deletes it. The ItemMgr `lis r30 ... addi r30,r30,ItemMgr@l` high stays shared because the anchor has an
+  output: an output-less asm is volatile (stmt.c: `noutputs == 0 -> vol = 1`) and cse.c flushes its whole hash table at a
+  volatile ASM_OPERANDS pattern (cse.c ~7719), which recomputed `lis r9,ItemMgr+0x18@ha` after the call (4 words).
+- **Dead ends, with the compiler-source facts (all verified with the hooked build):**
+  - `register T x asm("r31")` (on `last` or on `p`) is unusable pre-reload for a second reason besides alias.c: global.c
+    `global_conflicts` takes hard_regs_live straight from flow, and flow does not keep r31 live when no frame pointer is needed,
+    so the pinned r31 conflicts with nothing -- global gave `pl` r31 on top of the pinned `p` (`lwz r31,0x14(r31)`, 97 words).
+  - The frame-pointer preference does not exist: `last = &item` is `(set last (plus (reg 31) 8))`, set_preference does record
+    a hard_reg_preference for 31 (src format 'e' -> XEXP 0 = fp), but global_alloc ANDs every conflict/preference set with
+    `eliminable_regset` right after global_conflicts ("Likewise for preferences"), so nothing can prefer r31/fp. Also: a use of
+    that pseudo in the same cse path is folded to `(plus fp 8)` (cost 0 < pseudo cost 1, cse.c COST) and reloaded into a
+    scratch (`addi r0,r1,8`); in another path the addi stays (`addi r11,r1,8`).
+  - A plain copy `last = p` followed by the anchor is copy-propagated by gcse (`hash_scan_set` records every reg-reg copy for
+    cprop in this version, no REG_N_SETS == 1 test) -> the anchor reads p, `last` gets r11 again. cprop only propagates into
+    SET/PARALLEL patterns, so a volatile output-less anchor keeps `last` (that is why the 4-word variant had r31) but flushes
+    cse. A tied launder `asm("" : "=r"(last) : "0"(p))` makes regmove satisfy the "0" tie with copies (p -> r30, `mr r23,r30`,
+    90 words); `asm("" : "=r"(last))` alone is expanded through a temp (`(set (reg 269) (asm_operands))` + copy) and gcse/loop
+    hoist the input-less asm above the loops (r19, +1 saved reg, 28 words); `asm("" : "+r"(ok) : "r"(last))` moves `ok`.
+  - Register-allocation facts used: local-alloc.c `find_free_reg` never allocates an eliminable reg (r31 is only ever assigned
+    by global); global find_reg pass 0 uses `used1 | ~regs_used_so_far | regs_someone_prefers` where regs_used_so_far already
+    holds every call-used reg, so a non-call-crossing allocno takes the first free reg in order 0,9,11,10,8..3 unless it
+    conflicts; deaths are processed before sets in global_conflicts (a value born where another dies does not conflict).
+- **movePiece 14 unchanged; the mechanism is now exact.** In bb 85 (`h = (int)(fabsf((f32)(s8) size_y()) - 1.0f)`) three
+  block-local qtys compete for r9: P = `high(1.0f)` (2 refs, `lis` right before its `lfs`: QTY_CMP_PRI = 2/1), A4 = the fix
+  conversion's fpmem loadaddr (3 refs: def, stfd, lwz; sched puts it right after the `lfs`, so 3/7) and A5 = the float
+  conversion's loadaddr (4 refs). Ours: P r9, A4 r11, A5 r9 (`mr r9,r11`), and then `h` (global) conflicts with A5 (r9) and with
+  the compare block's fast-cast loadaddr (r11) -> r10. Target: A4 r9, P r11, A5 r11 (`mr r11,r9`), h r9. With the same insn
+  order P (priority 2.0) can never lose r9 to A4 as a local qty (a 3-ref loadaddr would need a live length <= 1), and P cannot be
+  the PRE'd `high(1.0f)` pseudo (bb 85's exit is not anticipatable: the `outPiece == 1` false path reaches `cursor:` without
+  1.0f; ours inserts at the end of bb 91/111 and the target's `lis r9; lfs f31` at 0x29c4 is that copy; a global P would also
+  need a callee-saved reg). So the target's bb 85 has either a P with more refs / a longer range or an A4 born later, i.e. a
+  different statement than `h = (int)(fabsf(..) - 1.0f); p->y = (f32)(h - 1) + p->cy;` -- not found. Tried this pass:
+  `register int h asm("r9")` (20 words: the pin displaces cur and arm 2), `p->y = p->cy + (f32) h` (16: swaps the fadds
+  operands, the `lfs`/`stw` order in the then-block does not move). The then-block order (`xoris; lfs f13; stw`) is a
+  sched tie, not the operand order.
+- **shape 2 unchanged.** `s8 b = rot[1][0]; asm("" : "+r"(b));` / `int b` + `(s8) b` do put px first in the `mullw` but the
+  extraction of the laundered byte becomes `rlwinm 24; extsb` (SImode sign_extract) instead of `extsh; srawi 8` (the HImode
+  path is taken only when the byte feeds the QImode multiply directly): 5-6 words. The join `ble` and the operand order stay.

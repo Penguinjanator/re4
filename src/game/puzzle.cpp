@@ -1575,6 +1575,8 @@ void pzlPlayer::salvCursor()
 // first order entry, so jump2 cannot cross-jump the peeled head), `max` u16 (shorten_compare gives the
 // unsigned compares); `item` is declared before `info`; each loop has its own counter (the two
 // placement nests share i/j); the fill-up loop is a guarded do-while (`cmpwi nOrder,0; ble`).
+// `last` is r31 in the target = an allocno that crosses a call; the three COMPILER-DIFF lines below
+// give it a codeless def before get() (see AGENTS.md "DOL puzzle final closer").
 int PutInCase(u16 id, u16 num, int type)
 {
     ItemWork item;
@@ -1585,6 +1587,8 @@ int PutInCase(u16 id, u16 num, int type)
     int i;
     int j;
     int ok = 0;
+    pzlPiece* p;
+    ItemWork* last;
 
     itemInfo(id, &info);
     if (info.type == 1 || info.type == 9) {
@@ -1635,7 +1639,7 @@ int PutInCase(u16 id, u16 num, int type)
     pl->appendExtraPiece(&item);
     pl->inHandExtraPiece();
     {
-        pzlPiece* p = pl->extra;
+        p = pl->extra;
         s8 bh = pl->caseBoard->h;
         s8 bw = pl->caseBoard->w;
         for (i = 0; i < bh; i++) {
@@ -1662,6 +1666,8 @@ int PutInCase(u16 id, u16 num, int type)
     }
 placed:
     pl->save();
+    last = (ItemWork*) p; // COMPILER-DIFF: codeless copy of the dead r31 value: `last` then crosses the get() call and takes the first callee-saved reg, r31
+    asm("" : "+r"(p)); // COMPILER-DIFF: makes the copy unavailable to gcse's copy propagation; flow deletes it (p is dead)
     if (ok) {
         u16 rest;
         int n;
@@ -1678,14 +1684,13 @@ placed:
             } while (n < ItemMgr.nOrder);
         }
         ItemMgr.get(id, rest);
-        {
-            ItemWork* last = ItemMgr.pLast;
-            if (last) {
-                last->x = item.x;
-                last->y = item.y;
-                last->orient = item.orient;
-                last->board = item.board;
-            }
+        asm("" : "=m"(item.x) : "r"(last)); // COMPILER-DIFF: keeps the copy live across the call (an output-less asm is volatile and flushes cse's ItemMgr high)
+        last = ItemMgr.pLast;
+        if (last) {
+            last->x = item.x;
+            last->y = item.y;
+            last->orient = item.orient;
+            last->board = item.board;
         }
     }
     pl->quit();
