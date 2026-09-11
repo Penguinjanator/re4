@@ -5,7 +5,7 @@ section	offset	size	unit	scope	name	demangled
 .text	0x00000134	0x158	t_movie/db_light.cpp	global	updateLit__10cLightTool	cLightTool::updateLit
 .text	0x0000028C	0x158	t_movie/db_light.cpp	local	menu__Fv	menu
 .text	0x000003E4	0x40	t_movie/db_light.cpp	local	edit__Fv	edit
-.text	0x00000424	0x188	t_movie/db_light.cpp	local	edit_menu	edit_menu
+.text	0x00000424	0x188	t_movie/db_light.cpp	local	edit_menu__Fv	edit_menu
 .text	0x000005AC	0x2DC	t_movie/db_light.cpp	local	edit_cutsel__Fv	edit_cutsel
 .text	0x00000888	0x364	t_movie/db_light.cpp	local	edit_cutsel_main__Fv	edit_cutsel_main
 .text	0x00000BEC	0x2F0	t_movie/db_light.cpp	local	edit_cutsel_sub__Fv	edit_cutsel_sub

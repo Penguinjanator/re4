@@ -3481,6 +3481,72 @@ every fix was predicted from one dump before the build.
 - objects.py / AGENTS.md were modified by other agents every few minutes this pass; edits were surgical
   single-anchor inserts.
 
+### CRI pass 13b: the frontend's IF and loop shapes read off the branch pairs (mps_lib MPS_Init 48 -> 12w, sfd_buf RingAddWrite/AddRead 68/136 -> 16/22w; no function flipped; pure C; 2026-09-11)
+Harness /home/adityas/.cache/cri13b/ (deleted): cri13's `bld.sh`/`bytecmp.py`/`tryvar.py`/`fd.py` copies
+plus a sparse clone of mk-deception's sfd_tim/mps_lib/sfd_buf/adx_sje/mpv_umc/sfd_mps/adx_bsc/mpv_mcy/
+cft* sources (decompiled style, written-out bodies: no structure information, confirmed again). ~110
+variants, every one predicted from a dump first; the two gains and the four negatives below are all
+frontend facts, not allocator facts.
+
+**Read off the dumps (verified):**
+- **The frontend unrolls counted loops itself** (`frontend-01`: the 8x body, `@216 = num - 8`, the
+  `num > 8` guard, `GOTO @211` into the remainder test) and emits the loop's zero-trip guard as
+  `IFNGOTO @exit (0 < num)`; `do { } while (i < num)` (any spelling, `++i` in the test, an explicit
+  `if (num <= 0) return` guard) and every `for (;;)`/`while (1)`/goto loop with a `break`/`return` exit
+  are NOT unrolled (0xd4-0xe4 bytes instead of 0x144). The unroller works on `for`/`while` only.
+- **The inlined helper's argument expression outranks the unroller's temporaries**: mps_lib
+  `mpslib_ClrHn(MPSLIB_libwork->hn, num_hn)` makes the handle base an argument temporary (`addi r4,
+  r3, 0x10` = coloured before the `num - 8`/pointer copies, which get r6/r7) where a caller local `hn`
+  is coloured last (r7) — with the same `li r5, 0` shared by the three clears and the helper's `i`
+  (pass 12b/10b rule). 48 -> 12w; `lw`-parameter helpers (`hn = lw->hn` inside) are identical.
+- **A parameter copy made for an inlined helper that MODIFIES its parameter is created after all the
+  helper's locals** (@132 above @116..@127 = lowest id, r12): so no helper-parameter form can place a
+  value between two helper locals (sfd_tim `tunit` below).
+- **The frontend's IF lowering is `IFNGOTO @else cond; then; GOTO @join; @else: else`; with an EMPTY
+  then-arm (also `;`, `(void)0`, `(void)x`, a dead store, an empty inline call, `x = x`) it inverts to
+  `IFNGOTO @join !cond`** — the target's `bne body; b end` for sfd_buf's `nbyte == 0` exit is therefore an
+  `if (nbyte == 0) { A } else if (..) { ret = 0; } else { body }` chain whose arm A generated NO code in
+  the original but was not empty at lowering time. `ret = 0` in A gives the chain with one extra `li`
+  (68 -> 16w, 136 -> 22w, same sizes); `do {..break..} while (0)`, `for (;;) {..break;}`, `while (1)`,
+  goto forms and `if (c) break; else if` are all dissolved into the plain `beq end`.
+- **The backend's add-propagation folds `addi ring, hn, K` into every load/store AND into a later
+  `addi tot, ring, 0x20` (addi-into-addi), across blocks and calls**, extending hn's live range into a
+  callee-saved register; casts (`(SFBUF_RING *)&hn->w.u`, `(void *)`, `(Uint8 *)hn + 0x1318`), a
+  `void *` AddTot parameter with a typed local, `volatile` totals, `volatile SFBUF_RING *`, ring-typed
+  AddTot helpers and expression-only forms (`&SFBUF_GET_HN(sfd, n)->w.u.ring`) never stop it. The
+  target's `ring` node (`addi r28, r3, 0x1318`, hn dying in r3) needs a use of `ring` that is not a
+  load/store/addi at add-propagation time (a `mr`/compare/call argument that a LATER pass removes) — not
+  found in C.
+- Frontend constant folding runs after inlining and deletes dead arms completely: `if (flag)` with a
+  constant helper argument, `if (1)`, `sizeof` tests, `switch (0)`, `if (num == num)` all leave no
+  block; a runtime `if (num > 0) { for-loop } else { return; }` in a void helper that also contains the
+  two Init calls reproduces MPS_Init's `b .Lcalls; b .Lreturn` pair and the target's `li r3, 0` return
+  block exactly, but keeps its own `cmpwi; ble` next to the loop guard (40w). The target's dead pair =
+  an if/else whose condition vanished WITHOUT the frontend deleting the else, i.e. a test the backend
+  folded (a two-definition variable compared right after its constant store is NOT folded: 49w).
+
+**Applied:** mps_lib `MPS_Init` (static `mpslib_ClrHn(MPS hn, Sint32 num)` helper, called with
+`MPSLIB_libwork->hn`; 48 -> 12w, the pair + `li r3, 0` block remain), sfd_buf `SFBUF_RingAddWrite/
+AddRead` (the if/else chain; 68 -> 16w, 136 -> 22w: the extra `li ret, 0` and `ring` as a node remain).
+
+**Residues (exact class):**
+- sfd_tim `SFTIM_IsGetFrmTime` 6w: target colouring order ftime, vrate, tunit, tscale, ncount = tunit
+  created between the helper locals vrate (@122) and tscale (@124), i.e. where `adj` is declared. 30
+  forms: helper-local copies of the parameter (plain, `Uint32`/`Sint16`/pointer/cast sources, two-def,
+  block-scoped, killed-after `unit = 0`) are all frontend-propagated or dead-store-eliminated, `tunit + 0`
+  /`(Sint32)(Uint32)tunit` arguments are folded, a modified parameter's copy is created LAST (@132), the
+  written-out body (mk-deception's form) reorders the loads (45-60w). `SFTIM_IsStagnant` 2w: the else
+  arm's left-operand-first load order with the result in r0 needs an r0-blocked `chg_base` temporary;
+  `d = ext_cnt; unit = ext_unit; d -= chg_base` gives the order with d in r3 (5w), `volatile` on the
+  left operand, `-(b - a)`, `a + -b`, statement swaps: 2w.
+- mps_lib `MPS_Init` 12w (above), `MPS_Create` 2w (post-RA `li r4, -1` / `addi r0` tie: 11 statement
+  orders of the -1 stores / `x10 = 2` / `dechd_func` move the pair or cost 4-64w).
+- sfd_buf `SFBUF_RingAddWrite/AddRead` 16w/22w (above); `SetSupplySj`/`DestroySj`/`InitHn` untouched.
+- Not reached this pass: adx_sje/mpv_umc 1-2w ties, sfd_mps, adx_bsc (.data 8 vs 0 + `skg_version`),
+  mpv_mcy, cftyp422_ppc (.bss order), cftfx (deferred-inline order).
+- Build hazard again: `ninja -k 0` from several agents at once loops on the objdiff.json race for 20+
+  minutes (nj.sh retries); compile the unit with `ninja -t commands` (bld.sh) and run the full check once.
+
 ## REL modules
 
 The game loads its rooms, enemies, weapons and debug tools as Nintendo REL overlays. `ninja` rebuilds the
@@ -17627,3 +17693,39 @@ retry in a loop until the target object is newer than its source (`[ x.o -nt x.c
     local-alloc tie behind that.
 - Not iterated: pl_wep searchLockEm/PlWepAutoTrack/PlWepLockCtrl/PlWepHitCheck2 (+ .rodata 0x350 vs 0x290), espgen45,
   Espgen42, em_sub, debug, act_btn, t_bugcheck menu/menuLife.
+
+### Tool RELs, db_light_v2 pass 1 (t_sce/db_light + t_movie/db_light Matching 121/121 -> flipped, both RELs identical, 111 OK; t_movie edit_menu placeholder renamed; 2026-09-11)
+
+- Harness ~/.cache/dbl_v2 (dol21a copies with module-aware paths: `mcmp.py MOD/UNIT` and `order.py MOD/UNIT` pick
+  `build/G4BE08/<mod>/obj/<mod>/<file>.o` as the target, `mtryv.py MOD/UNIT FUNC v.py [--apply N]` compiles a variant of
+  src/tools/db_light_v2.cpp as a module unit (`-G 0 -DREL_MODULE=<mod>`, strip_unused + fold_linkonce `--module`),
+  `msbs.sh MOD/UNIT SYM`, `verify.sh MOD` = private `ngcld -r` link of the module's build.ninja object list with OUR
+  db_light.o in place of the split object + `make_rel.py --verify` + `cmp` against orig/G4BE08/files/Rel/<mod>.rel);
+  deleted at the end. `pninja.sh` (private manifest) was needed again: the shared `ninja` never settled ("manifest
+  'build.ninja' still dirty after 100 tries") with the other agents running.
+- **The unit was already byte-identical; the "114-115/121" and the objdiff percentages (updateLit 98.6%, lightCutWork
+  94.3%, edit_light_select 99.4%, ...) are reloc spellings, not code.** `mcmp.py` gives 120/121 in both modules with the
+  only row `_._5cUnit: 2 words` = the `.rodata+0x1608` (target `lbl_<mod>_rodata_1608`) vs `_vt.5cUnit` reloc-name
+  pairing of the same address (the t_esp pass 4/5 note), and .rodata/.data/.bss equal, order OK. The percentages are the
+  target's `lbl_<mod>_bss_A0` / `lbl_<mod>_rodata_608` data labels against our `LightToolPtr` / `.rodata+0x608`
+  (objdiff compares reloc NAMES; `sync_rel_symbols.py` renames only the placeholders our object references as
+  UNDEFINED names, never a unit's own local statics) -- the Matching t_camera/db_light shows the identical list of
+  percentages. Judge module units with a masked-word compare (mcmp) and `make_rel.py --verify`, never with unit_info's %.
+  No source change was needed: src/tools/db_light_v2.cpp stays the 9-line `#define DB_LIGHT_SET_TOOL_LIGHT` +
+  `#include "db_light.cpp"` wrapper (STRIP_UNUSED build of Tools' object), zero code, no tags of its own.
+- **t_movie `edit_menu` 0% = a duplicate-name placeholder, not a missing or different function.** t_movie has TWO static
+  `edit_menu(void)`: db_light.cpp's (0x424, 0x188) and t_snd_vol.cpp's (0x1A3BC, 0x3A4). The sync gave `edit_menu__Fv`
+  to the t_snd_vol copy first and then refused the db_light one ("keeping (edit_menu__Fv already defined elsewhere)"),
+  so the db_light row kept the generated `edit_menu` and objdiff found no such symbol in our object. dtk accepts duplicate
+  LOCAL names in a module symbols.txt (t_light carries eight: edit__Fv, edit_scale__Fv, load__Fv, save__Fv, ...; st2_0
+  funcAshley2__FP3cEm, st2_3 setTexRender__Fv x3), so the row was renamed BY HAND in
+  config/G4BE08/modules/t_movie/symbols.txt AND sym_map.tsv (column 6; the tool's `rename` will not do it); the next
+  split picked it up (the concurrent agents' regeneration loop re-splits every few seconds; otherwise delete
+  build/G4BE08/config.json). `git diff config/G4BE08/symbols.txt` clean (no DOL renames).
+- Flip: `verify.sh t_sce` / `verify.sh t_movie` -> `make_rel --verify` OK and `cmp` identical BEFORE touching modules.py
+  (the REL is the only judge of ADDR16 scopes: `LightToolPtr` LOCAL in ours = S+A like the target's scope:local label;
+  the module COMMON block comes from db_light.cpp's `.comm common_<REL_MODULE>` asm). `"t_sce/db_light.cpp": True` and
+  `"t_movie/db_light.cpp": True` in MATCHING; `pninja.sh -k 0` links `build/G4BE08/src/{t_sce,t_movie}/db_light.o`,
+  t_sce.rel 32ad15d7.. / t_movie.rel 63a9e15a.. as build.sha1, 111 OK. t_movie's undefined `__pp__t9cVarRange1ZUci`,
+  `__opi__t9cVarRange1ZUc`, `tcCurrentCameraNo__Fv` (stripped in this build, no `--link` list) resolve to the DOL like
+  the original's imports -- the sync's "unresolved (no matching relocation in the split object)" lines are expected.
