@@ -691,13 +691,19 @@ L_80206C54:
  * block) through the half-pel kernels selected by the motion vector; ofs[] receives the
  * macroblock's chroma/luma offsets in the frame. Declaration order = the target's callee-saved
  * order (cpitch r31 .. fn_y r25; the two-definition chx/yhx are computed before the first call).
- * The nested `yhx = (vx = ..) & 1` keeps yhx's `vx & 1` apart from the kernel index (the frontend
- * CSE'd them, range-splitting yhx below the parameters): yhx r24 / chx r23 as the target. OPEN 69w:
- * cvx/vx/vy are level-2 nodes in ours (>= 29 neighbours, coloured r0/r6/r4 before the temporaries)
- * and level-1 in the target (r28/r25/r11, coloured after them). `mby8`/`mby16` as own locals give
- * the target's `mullw r0, mby8, cpitch` operand order (an anonymous `mby * 8` is the second operand;
- * CRI pass 18b, 69 -> 68w); hard pins of vx r25 / vy r11 poison the temporaries the target reuses
- * those registers for (74w). */
+ * The `(Uint32)vx & 1` / `(Uint32)cvx & 1` casts keep yhx/chx apart from the kernel indices (the
+ * frontend CSEs identical expressions): yhx r24 / chx r23 as the target. Statement order = the
+ * target's issue order: `srawi vx>>1`/`srawi vy>>1` are the 3rd/6th instructions after the vector
+ * loads, so ypos is written before `cvx = vx / 2` (with `lwz ofs[1]` before `lwz ofs[0]`); the sums
+ * are `ofs + (v >> 1) + mul` (target `add r29, cvx>>1, mul`); the luma `src2` is `ypitch + yhx + src`
+ * (the add chain rule `a + b + c` -> `t = b + c; r = a + t` puts ypitch first: target `add r0, yhx,
+ * src; add r0, ypitch, r0`). CRI pass 23/27: 68 -> 56w. OPEN 56w: vx r6 / vy r23 / cvx r25 / cvy r24
+ * vs the target's r25 / r11 / r28 / r7 -- vx has 33 neighbours in ours (level 2, coloured before
+ * the temporaries) and < 29 in the target, and vx does not interfere with fn_y there (`clrlwi
+ * yhx` issued before the `lwzx fn_y`); no vid-order permutation of the four reaches the target's
+ * colours in chaitin.py (the graph itself differs). `mby8`/`mby16` as own locals give the target's
+ * `mullw r0, mby8, cpitch` operand order (CRI pass 18b); hard pins of vx r25 / vy r11 poison the
+ * temporaries the target reuses those registers for (74w). */
 void mpvumc_OneReadMb(MPVUMC_OBJ *mpv, Uint8 *dst, Sint32 *ofs, MPVUMC_RFB *rfb, MPV_MV *mv)
 {
 	Sint32 cpitch;
@@ -733,17 +739,18 @@ void mpvumc_OneReadMb(MPVUMC_OBJ *mpv, Uint8 *dst, Sint32 *ofs, MPVUMC_RFB *rfb,
 	ofs[1] = mbx * 16 + mby16 * rfb->ypitch;
 	tbl_y = mpvumc_oneref_y[mcflag];
 	tbl_c = mpvumc_oneref[mcflag];
-	yhx = (vx = mv->vec[0]) & 1;
+	vx = mv->vec[0];
 	vy = mv->vec[1];
+	ypos = ofs[1] + (vx >> 1) + (vy >> 1) * ypitch;
 	cvx = vx / 2;
 	cvy = vy / 2;
 	fn_y = tbl_y[vy & 1][vx & 1];
+	yhx = (Uint32)vx & 1;
 	fn_c = tbl_c[cvy & 1][cvx & 1];
-	chx = cvx & 1;
+	chx = (Uint32)cvx & 1;
 	chx &= mcflag;
 	yhx &= mcflag;
-	cpos = ofs[0] + (cvy >> 1) * cpitch + (cvx >> 1);
-	ypos = ofs[1] + (vy >> 1) * ypitch + (vx >> 1);
+	cpos = ofs[0] + (cvx >> 1) + (cvy >> 1) * cpitch;
 	mc->stride = cpitch;
 	mc->dst = (Uint32 *)dst;
 	src = rfb->pln[0] + cpos;
@@ -759,7 +766,7 @@ void mpvumc_OneReadMb(MPVUMC_OBJ *mpv, Uint8 *dst, Sint32 *ofs, MPVUMC_RFB *rfb,
 	mc->dst = (Uint32 *)(dst + 0x80);
 	src = rfb->pln[2] + ypos;
 	mc->src = src;
-	mc->src2 = src + ypitch + yhx;
+	mc->src2 = ypitch + yhx + src;
 	fn_y(mc);
 }
 
