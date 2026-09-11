@@ -217,6 +217,11 @@ void OptionExec()
 void tEspAreaInit();
 void tEspAreaExit();
 
+// The body reads tool.mode / tool.pEdit through the inlined members' `this` pseudo (`lwz 0x1c(rT)`), not
+// through r1: the original had these as inlined cDbgToolMain getters (header-side); stand-ins here.
+static inline int ToolMode(cDbgToolMain<ESP_AREA>* t) { return t->mode; }
+static inline cDbgEditWindow<ESP_AREA>* ToolEdit(cDbgToolMain<ESP_AREA>* t) { return t->pEdit; }
+
 void ToolEspArea()
 {
     u8 wait = 0;
@@ -258,11 +263,9 @@ void ToolEspArea()
         }
         w = esp_area_work;
         for (i = 0; i < ESP_AREA_MAX; i++, w++) {
-            AreaData* a = &w->area;
-
             if (IsWorkAlive(w)) {
-                AreaGetCenterPos(&pos, a);
-                pos.y = (pos.y + a->u.xz4.h) * 0.5f;
+                AreaGetCenterPos(&pos, &w->area);
+                pos.y = (pos.y + w->area.u.xz4.h) * 0.5f;
                 if (GetScreenPos(pos, &scr) == 1) {
                     u32 col1;
                     u32 col2;
@@ -274,11 +277,11 @@ void ToolEspArea()
                         col1 = 0xA0FF8080;
                         col2 = 0x60808080;
                     }
-                    if (i == tool.pEdit->GetCurrentNo()) {
-                        AreaDataDisp(a, col1, 1, 0);
+                    if (i == ToolEdit(&tool)->GetCurrentNo()) {
+                        AreaDataDisp(&w->area, col1, 1, 0);
                         eprintf2(8, 12, (int) scr.x + 8, (int) scr.y + 0x10, 6, 0, "%d", w->areaNo);
                     } else {
-                        AreaDataDisp(a, col2, 1, 0);
+                        AreaDataDisp(&w->area, col2, 1, 0);
                         eprintf2(8, 12, (int) scr.x + 8, (int) scr.y + 0x10, 0, 0, "%d", w->areaNo);
                     }
                 }
@@ -297,15 +300,15 @@ void ToolEspArea()
             if (tool.Update() == 0) {
                 break;
             }
-            if (tool.mode == 4) {
+            if (ToolMode(&tool) == 4) {
                 if (wait == 0) {
                     OptionExec();
                 } else {
                     wait--;
                 }
-            } else if (tool.mode == 2) {
+            } else if (ToolMode(&tool) == 2) {
                 // separate compares: `!= 2 && != 3` would fold into a subi/cmplwi range test
-            } else if (tool.mode == 3) {
+            } else if (ToolMode(&tool) == 3) {
             } else {
                 wait = 1;
             }

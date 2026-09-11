@@ -353,6 +353,11 @@ void OptionExec()
 void tLightAreaInit();
 void tLightAreaExit();
 
+// The body reads tool.mode / tool.pEdit through the inlined members' `this` pseudo (`lwz 0x1c(rT)`), not
+// through r1: the original had these as inlined cDbgToolMain getters (header-side); stand-ins here.
+static inline int ToolMode(cDbgToolMain<LIGHT_AREA>* t) { return t->mode; }
+static inline cDbgEditWindow<LIGHT_AREA>* ToolEdit(cDbgToolMain<LIGHT_AREA>* t) { return t->pEdit; }
+
 void ToolLightAreaMain()
 {
     // declaration order matters: the first zero-initialised local is the zero register of the tool's
@@ -438,17 +443,15 @@ void ToolLightAreaMain()
             BitOn(pG->flags_68, 0x00800000);
             w = light_area_work;
             for (i = 0; i < LIGHT_AREA_MAX; i++, w++) {
-                AreaData* a = &w->area;
-
-                if (IsWorkAlive(w)) {
-                    AreaGetCenterPos(&pos, a);
-                    pos.y = (pos.y + a->u.xz4.h) * 0.5f;
+                    if (IsWorkAlive(w)) {
+                    AreaGetCenterPos(&pos, &w->area);
+                    pos.y = (pos.y + w->area.u.xz4.h) * 0.5f;
                     if (GetScreenPos(pos, &scr) == 1) {
-                        if (i == tool.pEdit->GetCurrentNo()) {
-                            AreaDataDisp(a, 0xA0FF8080, 0, 0);
+                        if (i == ToolEdit(&tool)->GetCurrentNo()) {
+                            AreaDataDisp(&w->area, 0xA0FF8080, 0, 0);
                             eprintf2(8, 12, (int) scr.x + 8, (int) scr.y + 0x10, 6, 0, "%d", w->lightNoPl);
                         } else {
-                            AreaDataDisp(a, 0x60808080, 1, 0);
+                            AreaDataDisp(&w->area, 0x60808080, 1, 0);
                             eprintf2(8, 12, (int) scr.x + 8, (int) scr.y + 0x10, 0, 0, "%d", w->lightNoPl);
                         }
                     }
@@ -466,15 +469,15 @@ void ToolLightAreaMain()
                 if (tool.Update() == 0) {
                     break;
                 }
-                if (tool.mode == 4) {
+                if (ToolMode(&tool) == 4) {
                     if (wait == 0) {
                         OptionExec();
                     } else {
                         wait--;
                     }
-                } else if (tool.mode == 2) {
+                } else if (ToolMode(&tool) == 2) {
                     // separate compares: `!= 2 && != 3` would fold into a subi/cmplwi range test
-                } else if (tool.mode == 3) {
+                } else if (ToolMode(&tool) == 3) {
                 } else {
                     wait = 1;
                 }

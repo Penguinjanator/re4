@@ -24365,164 +24365,69 @@ Harness ~/.cache/tools_la (deleted): `~/.cache/kit/variant.sh Tools/t_lightarea 
 - **Remaining 80 (read, not tried):** (a) 4 words are the vtable relocs `_vt.20cDbgFileSelectWindow`/`_vt.18cDbgOkCancelWindow` (+0x28c/+0x294/+0x4cc/+0x4dc): the target references t_esp_area's linkonce copy (Tools .rodata 0x39d8/0x3988), ours WEAK and unresolved in Tools.elf falls back to our own copy (0x45d0/0x4580) -- a module-link artefact, resolved only once Tools/t_esp_area (the first definer) is Matching; **t_lightarea cannot flip alone**, make_rel --verify would see the reference to the second copy. (b) `lwz r11,4(r22)` / `lwz r0,0x1c(r22)` (target reads `tool.pEdit`/`tool.mode` through the `&tool` pseudo r22 = r1+8) vs ours `lwz 0xc(r1)`/`0x24(r1)` at the body's direct `tool.pEdit->GetCurrentNo()` (:447) and `tool.mode == 4` (:469); t_esp_area's ToolEspArea has the identical residue at its `tool.mode == 4` (target `lwz r0,0x1c(r23)`, ours `0x24(r1)`) while the following `tool.mode == 2/3` chain (`lwz r0,0x1c(r22)`) and the inlined Update() accesses already go through the pseudo -- so the original's body accesses were inside inlined cDbgToolMain members (`this`), e.g. a mode getter / an edit-current-no getter; header-side, not tried. (c) HEADER: `MakeSaveData` first loop: target `li cnt,0; mr w,work; li i,0; cmplw i,num` = a stepped `T* w = work` assigned BEFORE the loop entry test (ours `&work[i]` is an address giv whose init `mr r31,r24` lands in the preheader after the hoisted `lis`es), in both the inlined case-7 SaveData (+0x1640) and the body's `tool.MakeSaveData` call (+0x1c7c); and the second loop's `src = work` issued before `dst = mem + 1` (target `mr r31,r24; mr r29,r23`, ours reversed: sched1 LUID tie -> put `src = work` textually before `dst = (T*)(mem + 1)`). Not verified (dbg_tool.h not editable in this pass). (d) HEADER: case-5 `li r18,0` laid out last after case 8's `stw r31,0x1c(r22); b end` (the t_event closer's finding (3)); in t_lightarea `ret`'s 1 is also the constant of every KeyCheck `stw r18` store. Not re-tried.
 - t_esp_area (32/38, ToolEspArea 287 + the five template members owned by the header) and t_event (59/69) not started.
 
-### Tool RELs, esp_area/lightarea closer 2 (Tools/t_esp_area ToolEspArea 287 -> 74, size 0x1c50 EXACT, 37/38; Tools/t_lightarea ToolLightAreaMain 121 -> 78, 37/38; two source levers applied, nothing flipped; 2026-09-12)
+### Tool RELs, esp_area/lightarea closer 2 (Tools/t_esp_area ToolEspArea 287 -> 74 applied (37/38, size EXACT), -> 7 with a VERIFIED dbg_tool.h change; Tools/t_lightarea ToolLightAreaMain 121 -> 78 applied, -> 4 (the vtable reloc words only) with the same header; t_event SubToolMessMove 106 -> 84 and db_toolbase IDENTICAL under it; header NOT applied (out of scope), nothing flipped; 2026-09-12)
 
-Harness ~/.cache/tools_ea (variants judged with `~/.cache/kit/variant.sh Tools/<unit> <copy> [FUNC]`, mechanisms read with
-`GDBG=1`/`LADBG=1 CC1DIR=~/.cache/sngdbg` and `~/.cache/kit/rtl.sh`). Applied to src/Tools/t_esp_area.cpp and t_lightarea.cpp only;
-include/dbg_tool.h untouched.
-- **Applied (1): the display loop's `AreaData* a = &w->area;` local removed, `&w->area` / `w->area.u.xz4.h` written at its four
-  uses (both units).** t_lightarea 121 -> 80 as recorded in the previous closer; t_esp_area 287 -> 169 AND its five template
-  members (`cutBuffer`/`fn_Tools_28718`/`LocalUpdate`/`execCopyWindow`/`fn_Tools_2683C`, 24/3/2/2/1 words) went identical: they
-  were never header-owned diffs, only the 4-byte size gap of ToolEspArea (0x1c50 vs 0x1c4c) shifting their relocation targets.
-  The `a` pseudo is a second DEST_REG giv that loop.c combined with the address giv (`mr r29,r30`) across the loop's calls.
-- **Applied (2): `tool.pEdit->GetCurrentNo()` and the three `tool.mode == 4/2/3` reads go through file-local inline getters
+Harness ~/.cache/tools_ea (kept for the header pass; delete when dbg_tool.h is applied): `hv.sh` judges both units with
+`~/.cache/kit/variant.sh` against `inc/dbg_tool.h` (a COPY of include/dbg_tool.h; `h_<unit>.cpp` = the tree source with
+`#include "dbg_tool.h"` rewritten to the copy's absolute path, also for t_event and db_toolbase); `inc/dbg_tool.orig.h`,
+`inc/dbg_tool.v4.h` (the verified header), `inc/dbg_tool.v5.h` (v4 + member getters). Mechanisms read with `GDBG=1`/`LADBG=1
+CC1DIR=~/.cache/sngdbg` and `~/.cache/kit/rtl.sh` (rtl4/, rtl5/). include/dbg_tool.h itself was not edited.
+
+**Applied in the tree (src/Tools/t_esp_area.cpp, src/Tools/t_lightarea.cpp only):**
+- **(1) The display loop's `AreaData* a = &w->area;` local removed; `&w->area` / `w->area.u.xz4.h` at its four uses (both
+  units).** t_lightarea 121 -> 80 as the previous closer measured; t_esp_area 287 -> 169 AND its five "template member" diffs
+  (`cutBuffer`/`fn_Tools_28718`/`LocalUpdate`/`execCopyWindow`/`fn_Tools_2683C`, 24/3/2/2/1 words) vanished: they were never
+  header-owned, only the 4-byte size gap of ToolEspArea (0x1c50 vs 0x1c4c) shifting their relocation targets. The `a` pseudo was a
+  second DEST_REG giv that loop.c combined with the address giv (`mr r29,r30`) across the loop's calls (one callee-saved register).
+- **(2) `tool.pEdit->GetCurrentNo()` and the three `tool.mode == 4/2/3` reads go through file-local inline getters
   `ToolEdit(&tool)` / `ToolMode(&tool)` (`static inline T f(cDbgToolMain<X>* t) { return t->m; }`, both units).** integrate.c
-  copies the `&tool` actual (`(plus fp 8)`) into a pseudo, gcse merges it with the inlined members' `this` pseudo, so the body's
-  reads become `lwz 0x1c(rT)`/`lwz 4(rT)` as in the target (ours read `0x24(r1)`/`0xc(r1)`). ToolEspArea 169 -> 74 (also fixed
-  the r22/r23 swap of the `&tool` pseudo vs the hoisted `lis "  ..."@ha`, i.e. the pseudo's refs), ToolLightAreaMain 80 -> 78.
-  All three mode reads must use the getter: with only `== 4` through it the `== 2/3` chain reloads `0x24(r1)` (+1 word). A
-  function-scope `cDbgToolMain<X>& t = tool;` reference view is WRONG (579 words: `&tool` live from the prologue in r16, frame
-  +8). HEADER-SIDE NEED: the original's cDbgToolMain<T> presumably had inline `GetMode()`/`GetEdit()`-style getters; the
-  file-local helpers are stand-ins to be moved into dbg_tool.h when that header is next edited.
-- **ToolEspArea remaining 74 (all read; none body-side):** (a) r28<->r29 in the inlined CreateEditWindow ctor block (`lis/addi
-  esp_area_work` = target r28, the `li 4`/`li 5` (wx / nRows) constants = target r29): local-alloc block 13 qtys `reg299 work refs 4
-  birth 4 death 52 pri 1666` vs `reg297 li 4 refs 2 birth 14 death 26 pri 1666` — an exact priority TIE broken by qty number (work
-  born first at sched1: its lis->addi->stw chain outranks `li 4`->stw). The target needs work's life one insn longer (>= 49 ->
-  1632 < 1666) or the constant born first; the final insn order is identical in both, so the extra RA-time insn is inside the
-  header's ctor (an insn deleted after local-alloc, or the `do {} while (0)` loop-depth weighting of REG_N_REFS). Not fixable
-  from the body: `esp_area_work` is a bss array (`lis/addi`), unlike t_lightarea's `light_area_work` pointer (`lwz`), which is why
-  t_lightarea has no such diff. (b) r19<->r20: `lis 0x4330` (reg1057 refs 99 len 2840 calls 81 pri 2091, target r19) vs the
-  case-7 MakeSaveData `lis "HALT %s(%d)\n"@ha` (reg945 refs 5 len 48 pri 2083, target r20): 8 apart; the target's `mr w,work`
-  precedes that `lis` (MakeSaveData first-loop shape, header item (c) of the previous closer) which shortens the HALT high's
-  life to 47 -> 2127 > 2091 and flips the pair. Follows from the header fix, no body lever. (c) `mr r31,r24` position (+0x1bd4 vs
-  +0x1bf4) and `mr r31,r24; mr r29,r22` order (+0x1c60) = header (c); (d) case-5 `li r18,0` laid out last (+0x1da0 vs +0x1e2c) =
-  header (d) / t_event finding (3). (e) the 0x4330 stores `stw r19,0x1d8(r1)` x16 are (b).
-- **ToolLightAreaMain remaining 78:** the 4 `_vt.20cDbgFileSelectWindow`/`_vt.18cDbgOkCancelWindow` reloc words (module-link
-  artefact: resolves once t_esp_area is Matching and first in the REL), header (c) in both the inlined case-7 SaveData (+0x21c4..
-  +0x2254) and the body's `tool.MakeSaveData` call (+0x27fc..+0x28d0, where the target's `mr r31,r25` = `w = work` right after
-  `li cnt,0` also renames r24..r28 and adds `addi r29,r27,0x10` before the second loop), header (d) `li r18,0`. No body-side
-  residue left; both units wait on include/dbg_tool.h (getters, MakeSaveData loop shape, case-5 layout, ctor qty tie).
+  copies the `&tool` actual (`(plus fp 8)`) into a pseudo and gcse merges it with the inlined members' `this` pseudo, so the body's
+  reads become `lwz 0x1c(rT)`/`lwz 4(rT)` as in the target (ours read `0x24(r1)`/`0xc(r1)`). ToolEspArea 169 -> 74 (this also
+  fixed the r22<->r23 swap of the `&tool` pseudo against the hoisted `lis "  ..."@ha`: the pseudo's refs), ToolLightAreaMain 80 ->
+  78. All three mode reads must go through the getter (with only `== 4` the `== 2/3` chain reloads `0x24(r1)`, +1 word). A
+  function-scope `cDbgToolMain<X>& t = tool;` reference view is WRONG (579 words: `&tool` live from the prologue in r16, frame +8).
+  VERIFIED equivalent (v5 header): class members `int GetMode() { return mode; }` / `cDbgEditWindow<T>* GetEdit() { return
+  pEdit; }` used as `tool.GetMode()` / `tool.GetEdit()` give the same bytes -- that is the original's form; when dbg_tool.h is
+  edited, add the two getters and delete the file-local stand-ins (they carry a comment saying so).
 
-### Tool RELs, db_mod pass 8 (dbmodDispModelName 19 -> 0; t_esp/db_mod 75/75 and Tools/db_mod 63/63 IDENTICAL, both FLIPPED, make_rel --verify OK, 111 OK; dbmod_motion's `lhax` asm tag and dbmodDispModelName's `+b` tag REMOVED (pure C); one tagged pair of dead sets left; 2026-09-12)
+**VERIFIED header changes (inc/dbg_tool.v4.h; `diff -u include/dbg_tool.h ~/.cache/tools_ea/inc/dbg_tool.v4.h`), judged on all
+four includers -- t_esp_area 74 -> 7, t_lightarea 78 -> 4, t_event/t_event 168 -> 146 words (SubToolMessMove 106 -> 84, CallbackSave
+12 unchanged), Tools/db_toolbase IDENTICAL:**
+- **(H1) `cDbgToolMain<T>::MakeSaveData` count loop as a stepped pointer with its OWN counter, the pointer assigned before `cnt =
+  0`:** `{ T* w = work; u32 j; cnt = 0; for (j = 0; j < num; j++, w++) if (IsWorkAlive(w)) cnt++; }`. Three separate facts, each
+  worth words: (a) the stepped pointer (target `mr w,work` in the preheader; ours `&work[i]` was an address giv initialised after
+  the hoisted `lis`es): t_esp_area 74 -> 52, t_lightarea 78 -> 70. (b) `T* w = work;` BEFORE `cnt = 0;` (sched1 LUID tie between
+  the two preheader sets: target `li cnt,0; mr w,work; li i,0`): -> 51/69. (c) the count loop's counter is NOT the `i` shared with
+  the copy loop: cse.c make_regs_eqv puts the NEW register first in the `0` class only when its last use is later than the class
+  head's (`uid_cuid[REGNO_LAST_UID (new)] > uid_cuid[REGNO_LAST_UID (firstr)]`); with a shared `i` (last use in the copy loop, after
+  `mem->num = cnt`) the entry test canon_regs to `cmplw i,num`, with a loop-local counter it stays `cmplw cnt,num` -- the target's
+  entry test reads the cnt register (`cmplw r27,r25`) and the bottom test the counter (`cmplw r28,r25`). -> 48/49. This also fixed
+  the i/cnt register pair (i had refs 26 len 118 over both loops, pri 8813; cnt refs 10 len 66).
+- **(H2) copy loop: `T* src = work;` declared before `dst = (T*) (mem + 1);`** (both inside the block; target `mr r31,r24; mr
+  r29,r22`, ours reversed: sched1 LUID tie): t_esp_area 48 -> 46, t_lightarea 49 -> 43 (the body-inlined `tool.MakeSaveData` call at
+  +0x27fc..+0x28d0 also resolved: `addi r29,r28,0x10` position and the r24..r28 naming).
+- **(H3) `Update()`: `case 5: ret = 0; break;` moved AFTER case 8 (source order 0,1,2,6,3,7,4,8,5):** t_esp_area 46 -> 7,
+  t_lightarea 43 -> 4, t_event SubToolMessMove 95 -> 84. GCC lays the arms out in source order and the last arm's `li r18,0` falls
+  through into the `cmpwi r18,0` of the caller (`if (tool.Update() == 0) break;`), exactly the target's `stw r31,0x1c(rT); b end;
+  li r18,0; end:`. The "dbg_tool.h Update layout" section rejected this order (SubToolMessMove 175 vs 106) -- that measurement was
+  taken WITHOUT H1/H2; with them it is 84 vs 95. Re-check t_event with H1-H3 together before applying, never H3 alone.
+- Consequence, not a separate change: the r19<->r20 pair in ToolEspArea (`lis 0x4330` reg refs 99 len 2840 pri 2091 vs the
+  case-7 `lis "HALT %s(%d)\n"@ha` refs 5 len 48 pri 2083) flipped with H1 (the HALT high's life shortened by one insn -> 2127).
 
-Harness ~/.cache/dbmod8 (deleted): `try.py LABEL OLD NEW ..` (exact-once edits of a base copy -> variant.sh, `DBG=1` adds
-`CC1DIR=~/.cache/sngdbg RLDDBG=1`), `fn.py DUMP OUT` (cuts the function out of an rtl.sh dump). No kit change.
-- **Applied first (pass-7 finding, verified by locked ninja): the two dead sets `f = 0; no = k;` at the top of the k-loop body,
-  tagged `COMPILER-DIFF: candidate (loop.c insn_count)`: 19 -> 10 in both RELs (nlen r25 / giv r24).** Still needed after the
-  item below (without them: 9 words, `mr r25,r3`/`subf r28,r28,r25` = the nlen/giv swap), so the "^"-hoist residue is a separate
-  mechanism and the tag stays.
-- **Residue (2) closed, ZERO CODE, and it explains the pass-6 `+b`/`lhax` tags: the original passes `no` as a SURPLUS 7th
-  argument to the `"[%6s]"` eprintf** (`eprintf((x + 8) * 8, (y + 1) * 14, 0, 0, "[%6s]", pDbModState.p->motDir[0], no);`,
-  the same in dbmod_motion with `motDir[i], no`). eprintf is variadic, so the extra argument is a bare `(set r9 no)` before
-  the call: (1) local-alloc ties `no` to the dying copy's r9 -> `lha r9,0x62(r8)` / `lhax r9,r9,r11` without any asm (that
-  was the whole "BASE-class pseudo" reading of pass 6: the class was never the point, the r9 argument copy was); (2) `no` is
-  then LIVE at the `(set r7 (lo_sum "[%6s]"))` insn (it dies at the call), so finish_spills removes r9 from that insn's
-  `used_spill_regs`, find_reload_regs must take r11 -> r11 enters the function-wide spill set; the round robin then gives site
-  1 (`"%s"` after x's `lwz r9,8(r1)`) and site 2 r11 exactly as the target, sites 3-5 stay r9 (previous reload = a call's LR);
-  (3) with r11 the `addi r7` loses the anti-dependence on the post-call `lwz r9,pDbModState` and drops from 3 to 2
-  dependents, so sched2 issues it last (LUID tie) = the target's `lis r11; addi r8; slwi; li; li; addi r7` order.
-- **Why every codeless-asm form failed (read off sched1 rank_for_schedule, `!reload_completed`):** after priority the tie is
-  INSN_REG_WEIGHT (smaller first) = +1 per SET of a REG (hard regs too), -1 per REG_DEAD/REG_UNUSED. The lo_sum into r7 is +1;
-  any insn where `no` dies is <= 0 and therefore always scheduled BEFORE the lo_sum, so `no` can never be live at it; a launder
-  of the fmt pointer (`asm("" : "+r"(fmt) : "r"(no))`) does keep `no` live (5 words, both sites r11) but adds a dependent to the
-  lo_sum (priority 10 vs 9) and moves the `addi r7` up. Only an insn emitted AFTER the register-parameter loads with `no` NOT
-  dying qualifies -- the call's own argument USE. Rule: a value that "should" be in an argument register (r3..r10) at a call it
-  is not an argument of, or a reload register that skips a free rN, means the original passed a surplus argument to a variadic
-  callee; check the target's `bl` for live argument registers beyond the format's conversions.
-- reload facts confirmed on the SN source (reload1.c 5442-5617): `allocate_reload_reg` walks `spill_regs[]` from
-  `last_spill_reg + 1` (persisting across insns, `-1` at function start), first pass only regs already used by this insn's
-  reloads, and `last_spill_reg` is updated only when a reg is handed out (output-register reuse via `reload_reg_rtx` does not
-  move it); `choose_reload_regs` starts with `reload_reg_used = ~chain->used_spill_regs`, and finish_spills sets that per insn to
-  the function-wide set minus the hard regs of pseudos live before/after the insn.
-- **Flags.** `config/G4BE08/modules.py` MATCHING: `"t_esp/db_mod.cpp": True`, `"Tools/db_mod.cpp": True` (added next to the
-  db_light entries). `tools/make_rel.py --verify orig/G4BE08/files/Rel/{t_esp,Tools}.rel` both OK; `flock ... ninja -k 0` clean
-  (`111 files OK`); `dtk shasum -c config/G4BE08/build.sha1` = 111 OK. `git diff config/G4BE08/symbols.txt` empty. Left in
-  src/tools/db_mod.cpp: one tagged item (the k-loop dead-set pair).
-
-### CRI pass 27 (mpv_umc OneReadMb 68 -> 56w APPLIED (pure C, the pass-23 `a2` text); adx_tsvr 2w / mps_lib 2w / sfh_main 6w unchanged; nothing flipped; 2026-09-12)
-
-Harness /home/adityas/.cache/cri27/ (deleted): sweep.py = statement-order sweep of the OneReadMb vector block over ~/.cache/kit/variant.sh
-(360 dependency-respecting orders of vx/vy/ypos/cvx/cvy/fn_y/yhx/fn_c/chx/cpos with the two `&= mcflag` last), explore.py = chaitin.py
-replays over vid-order permutations of vx/vy/cvx/cvy. Tree edits: src/lib/mpv_umc.c `mpvumc_OneReadMb` body + comment only.
-- **mpv_umc `mpvumc_OneReadMb` 68 -> 56w applied** (`vx = ..; vy = ..; ypos = ofs[1] + (vx >> 1) + (vy >> 1) * ypitch; cvx = vx / 2; cvy = vy / 2;
-  fn_y = ..; yhx = (Uint32)vx & 1; fn_c = ..; chx = (Uint32)cvx & 1; chx &= mcflag; yhx &= mcflag; cpos = ofs[0] + (cvx >> 1) + (cvy >> 1) * cpitch;`
-  and the luma `mc->src2 = ypitch + yhx + src;`), verified by the locked ninja build + bytecmp (15/16, 56w). The sweep's best is 53w
-  (`A B C D P Y Q F X H M N` = vx vy cvx cvy ypos fn_y cpos fn_c chx yhx masks: cvx lands in r28 = target but vx r11 / vy r9 / cvy r24 and the
-  mbx/mby temporaries move) -- a different mixture, not applied; every order with cpos after fn_c or yhx after chx is 53-57w, cpos before fn_y
-  60-68w. Colouring read off ra.py + `chaitin.py --check` (IDENTICAL on this function): ours vx r40 has 33 neighbours (level 2, coloured 11th,
-  after chx, takes r6 = lowest free scratch), vy/cvx/cvy are level 1 and coloured last (own locals = lowest vids: pop order src, cvy, cvx, vy,
-  mby, mbx after every backend temp), so cvy gets r24 (all scratch + r31..r25 blocked, yhx's r24 free), cvx r25, vy r23. Target vx r25 = fn_y's
-  register: vx is level 1 there AND does not interfere with fn_y, i.e. the pre-RA order has `clrlwi yhx = vx & 1` BEFORE `lwzx fn_y` (target
-  bytes ec8/ecc) while ours schedules `rlwinm r80 = vx & 1` at the block end (right after the fn_y load; the `vx & 1` first def is a backend
-  temp because `yhx &= mcflag` absorbs it into `and yhx, t, mcflag`). Neighbours vx loses in the target (last use ec8): fn_y, fn_c, ofs[1] reload,
-  cvy>>1, its mullw, cvx&1, row_c, (cvy&1)<<3, (cvx&1)<<2 = 9 -> 24 < 29. explore.py: NO permutation of the four vids (each alone to every scan
-  position, or the block in every internal order at every position) reaches the target colours (best 18 of 40 register facts; base 14), so
-  the fix is in the graph (statement structure / schedule), not the declaration order. Not moved by: vx declared between fn_c and fn_y (56w,
-  vx still level 2), the six `&= mcflag` placements (56w). Next: a form whose `vx & 1` is issued before the fn_y load -- e.g. yhx used
-  (read) between its two defs so the first def stays yhx's own (`rlwinm yhx` early as in the target), or the luma index/yhx pair written from
-  one `Sint32 lx = vx & 1` (target: `clrlslwi r12, vx, 31, 2` and `clrlwi r24, vx, 31` both from vx, so not a shared temp).
-- **adx_tsvr `adxt_nlp_trap_entry` 2w (`lha r4` vs r0), unchanged.** Pins re-measured (all with `register SJ sji; register Sint32 ofst1`):
-  1 pin `asm { lha r4, ofst; add ofst1, ofst1, r4 }` 6w (the two earlier r4 temporaries `lis r4, 0x8000` / vtbl `lwz r4, 0(sji)` move to
-  r5/r5/r7: the hard pin blocks r4 for every node); + vtbl pin `asm { lwz r4, SJ_OBJ.vtbl(sji); mr vt, r4 }` 2w (the first lis at r5); + lis pin as
-  `asm { lis r4, 0x8000; subi lim, r4, 1 }` or `asm { lis r4, 0x8000; mr hi, r4 }` + `hi - 1`: 2w moved to `subi r5, r4, 1` scheduled before
-  `mr r3, r29` (target after). The asm's instructions are scheduled INDIVIDUALLY by the post-RA scheduler: `asm { lis r4, 0x8000; mr s3, sji; subi
-  lim, r4, 1 }` with `s3`/`lim` register locals passed as the call's arguments still emits `lis; sth; subi; mr r3` (the coalesced `mr r3` sinks
-  below the subi), also with `ofst2 = 0` moved after/between the asm statements. `#pragma scheduling off` inside a function body has NO effect
-  (function granularity only, see mps_lib below), so the "scheduling off around the statement" lever does not exist. Left at 2w (pure C).
-- **mps_lib `MPS_Create` 2w, unchanged.** Confirmed on the dumps again: backend-16 (after peephole, before the post-RA scheduler) has the target's
-  `li r4,-1; addi r0,r3,@l`; backend-17 swaps them. `#pragma scheduling off` / `on` around the statement pair or around one store inside the body:
-  2w unchanged (pragma ignored mid-function); around the whole function 72w. Post-RA tie class, stop early.
-- **sfh_main `SFH_AnlyElemSmpHz` 6w (M4), unchanged.** Under `#pragma peephole off` with the asm chain (SFH_SWAP32_STORE) the residue is 10w:
-  `clrlwi r9`/`mr r7` order, `lbz 0x18(r6)` x2 (the displacement fold is the peephole's), word/swap registers r0/r4 vs the target's r6/r0.
-  Read: (1) `register Uint32 s;` declared BEFORE `w` gives s r0 (s is coloured first as the higher vid); w then takes r4 (r0 s, r3 elem, r5 val
-  blocked; the target's r6 needs r4 blocked too -- `id` r4 is dead after the type check in both). (2) A private search `for (i < 26) { q = hdr +
-  i*0x40; e = (SFH_ELEM *)(q + 0x180); if (q[0x198] == id) { elem = e; break; } }` (unrolled 2x by the compiler, i kept as the target's dead
-  `addi r7, r7, 1`) emits `lbz r0, 0x198(r8)` without the peephole, but the lbz no longer depends on `addi r6` and is issued before it (target
-  addi first): 11w. A 13-iteration stepping-pointer loop deletes i (35w); `hdr[0x198 + i*0x40]` indexing swaps the cmplw operands (13w); the
-  lbz through `e` restores `lbz 0x18(r6)` (9w). (3) A hard `asm { lwz r6, SFH_ELEM.aud_smphz(elem); mr w, r6 }` pin shifts every scratch
-  register in the function (18w). The plain C spellings all fold to `stwbrx` (`*(volatile Uint32 *)val`, a `Bool ret = TRUE` between the swap
-  and the store, `volatile Uint32 w` (stack round trip, 52w), `Sint32 w`, a byte-offset view of the word, `return w != 0 ? TRUE : TRUE` (the
-  cmplwi is kept, the store still folds)); the statement-split ors give a partially merged chain with the word in r6 (7w: `rlwinm r0, r6,
-  8, 8, 15` = the target's first instruction, then `rlwinm r4; mr r7, r0; rlwimi; srwi; or; or; stw r7`). Left at 6w (C form, stwbrx).
-- **Status:** nothing flipped (mpv_umc 15/16, adx_tsvr 5/6, mps_lib 6/7, sfh_main 35/36); config/G4BE08/objects.py untouched; 111 not re-run.
-
-### DOL Espgen43 closer 3 (AddSandPower 5 -> 3 pure C applied, registers = target, only the `stfs` sched2 slot left; unit 10/11, not flipped; 2026-09-12)
-
-- **Applied:** `Add_power = power;` (plain) + `ISet(Height_find, 0)` + `Chk_pos = *pos` (the closer-2 reading). Locked ninja +
-  bytecmp: AddSandPower 3 words, all registers the target's (high r10, addi r8, W0 r0, W4 r9, W8 r11), `.rodata/.sdata/.bss/.sbss` OK.
-  The 3 words are one sched2 slot: target `li r0; stfs; stw Hf; lis r10; addi r8; lis r3; ...`, ours `li r0; lis r10; stw Hf; addi r8;
-  stfs; lis r3; ...`. Every register and every other slot is right.
-- **Why the plain store is needed (sched1 -> local-alloc):** with `FSet` the pos loads depend on the stfs (reference MEM has no
-  MEM_SCALAR_P, no `fixed_scalar_and_varying_struct_p` exemption), sched1 prio 7 -> t1 = [li, stfs], `lis Chk_pos@ha` slips to
-  position 4 (t2 after the stw), and local-alloc's `QTY_CMP_PRI` (`floor_log2(refs)*refs*size/(death-birth)`) gives high 3 refs/len 7
-  = 1.71 > W8 2 refs/len 5 = 1.6 -> high allocated before W8 -> r11/r10 swapped (5 words). Plain store: stfs sched1 prio 3 -> t1 =
-  [li, lis Chk], high born at position 2 (len 9 = 1.33 < W8 1.6) -> target order W0 (r0) > W4 (r9) > W8 (r11) > high (r10) > addi (r8),
-  i.e. `REG_ALLOC_ORDER` 0, 9, 11, 10, 8 handed out in that order. sched1 positions (v1 = tree): li 1, lis Chk 2, stw Hf 3, addi Chk 4,
-  lis fn 5, stfs 6, W8 7, addi fn 8, W0 9, W4 10, st x 11, st z 12, st y 13, call 14 (z load first because pos dies there: reg weight 0;
-  st x before st z at equal prio/weight -2 by LUID).
-- **The remaining slot (sched2 tie, read off `~/.cache/kit/rtl.sh` -fsched-verbose-9):** sched2 t1 ready = [li (9), lis Chk (5),
-  stfs (4), lis fn (4)], issue rate 2 -> li + lis Chk. The target issues li + stfs, so its stfs is prio >= 5 or = 5 with more dependents
-  (stfs has 4: call + the two r8 stores + X; lis Chk has 3: call, st x, addi). Ours is 4 through a sched2-ONLY output dependence to
-  `stw 8(r8)`/`stw 4(r8)` (prio 3): after reload r8 is an argument register pre-seeded in alias.c's `new_reg_base_value`, so its
-  `(set r8 (lo_sum r10 sym))` is a "second set" -> base 0 -> may alias every symbol store, and `write_dependence_p` calls
-  `fixed_scalar_and_varying_struct_p` with `rtx_addr_varies_p` on a BARE address (no MEM inside -> 0), so the scalar/struct exemption
-  never applies to anti/output deps. Before reload the pseudo's base is the symbol (find_base_value handles LO_SUM/HIGH) -> no dep, so
-  sched1 is unaffected. The same mechanism gives st x (`lo_sum r10`, base known) output deps to the r8 stores (prio 4), so every
-  dependent hung below addi r8 raises lis Chk one more than the stfs: stfs = 1 + P(r8 stores), lis Chk = 2 + P(r8 stores). The only
-  prio-4 insns off that chain are `lis fn`/`addi fn`; a dependence stfs -> lis fn exists only through an asm `lis` reading
-  `"m"(Add_power)`, which is present in sched1 too (prio 5 there, and a sched1 tie stfs/lis Chk is ALWAYS won by the stfs: rank tie-break
-  #2 is INSN_REG_WEIGHT, a store killing f1 is -1, a `lis` is +1) -> lis Chk back at position 4 (v20/v21: 6 words, and the asm lis then
-  outranks addi Chk at t3). A `"=m"(Height_ret)` output on the asm addi (sched2-only out-dep to the r8 stores, prio 4) lifts the stfs
-  to 5 but also the asm lis to 5 > addi Chk 4 (target t3 = addi r8 then lis r3). Codeless anchors after the copy (`"+m"(Add_power)`
-  + `"m"(pos->y)` / `"m"(Chk_pos.y)`) raise the stores, hence lis Chk, uniformly (9 words). Duplicate `Add_power = power` after the copy
-  is NOT deleted by reload_cse here (7-8 words). Statement permutations (both plain, ISet first, copy first, memberwise copy, `Vec v`
-  temp): 10-29 words; the loads must depend on the Height_find store (li r0 prio 8/9 first, loads at t4) and not on the stfs.
-- **What the target must have had:** sched2 prio(stfs) >= 5 with sched1 prio(stfs) <= 4 and lis fn <= 3 dependents. The only
-  sched1/sched2 asymmetries in this block are hard-register effects (unknown-base MEMs through r3..r10 set from lo_sum, or register
-  anti-deps on hard regs); the `stfs f1,Add_power@sda21` reads no GPR and no other FP insn exists, so an anti-dep is impossible, and
-  every unknown-base MEM hangs below addi r8. Open: a form whose Add_power store is not an sda21 scalar MEM (e.g. Add_power inside a
-  small struct with Height_find/Height_ret -- the symbols are separate in .sbss, so not that), or the stfs reached through a
-  register that `lis fn` overwrites. Not closable with the allowed tagged levers (asm lis/addi, codeless anchors) -- each one I
-  tried is documented above with its word count. Left at 3 words, pure C.
-- Harness ~/.cache/dol_e43b (try.sh = statement-block replace + variant.sh, rtl_* dumps) deleted. Unit not flipped (10/11), objects.py
-  untouched, 111 not re-run.
+**Remaining after v4 (read, boxed out):**
+- **ToolEspArea 7 words = r28<->r29 in the inlined CreateEditWindow ctor block** (`lis/addi esp_area_work` target r28, the `li 4`
+  (wx) and `li 5` (nRows) constants target r29). local-alloc block 13 (LADBG): `q0 reg299 work refs 4 birth 4 death 52 pri 1666`
+  vs `q2 reg297 li 4 refs 2 birth 14 death 26 pri 1666` -- an exact priority tie broken by qty number (`qty_compare_1` returns
+  `q1 - q2`); work is q0 because sched1 issues its lis->addi->stw chain first (longer critical path than `li 4`->stw). The target
+  needs work's life >= 49 suids (pri <= 1632) or refs 3, or the constant born first at sched1; the final instruction order is
+  identical in both, so whatever differed was gone by sched2 (an RA-time insn inside the ctor's block, REG_N_REFS weighting from
+  the `do {} while (0)`, or a REG_EQUIV'd constant). Only t_esp_area shows it: its `work` actual is a bss ARRAY (`lis/addi`,
+  refs 4 with the combined high); t_lightarea/t_event pass loaded pointers (`lwz`). Tried and rejected: a codeless
+  `asm("" : : "r"(esp_area_work))` after the ctor (226 words: the address becomes a global allocno); header copies with `pWork =
+  work` before `rows = nRows` (7, byte-identical to v4 -- the store order there is not LUID-driven), `y = wy; x = wx;` (14),
+  `if (nRows > 128) nRows = 128;` (9). Not tried: `register`/asm pins are impossible from the body (integrate copies a hard-reg
+  actual), and the ctor is shared with t_event/t_lightarea whose ctor blocks are already identical.
+- **ToolLightAreaMain 4 words = the `_vt.20cDbgFileSelectWindow`/`_vt.18cDbgOkCancelWindow` relocs** (+0x28c/+0x294/+0x4cc/
+  +0x4dc): the target resolves to t_esp_area's linkonce copy; a module-link artefact that disappears when t_esp_area is Matching
+  and linked first. Flip order therefore stays: t_esp_area first (IDENTICAL needed), then re-run bytecmp on t_lightarea.
+- No body-side residue is left in either unit; both wait on the dbg_tool.h edit (H1-H3 + the getters) and the ctor qty tie.
