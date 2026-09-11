@@ -976,8 +976,9 @@ static const char* onOffName[2] = { "ON", "OFF" };
     Vec b; \
     int i; \
     int sx, sy; \
+    int dx, dy; \
  \
-    p = d->pos; \
+    p = *pos; \
     if (w->gridLv > 3) { \
         Vec g0; \
         Vec g1; \
@@ -1039,7 +1040,9 @@ static const char* onOffName[2] = { "ON", "OFF" };
     Draw_line3d(&a, &b, 0xFFFFFFFF, 0); \
     sx = (int) (p.x * 256.0f / 320.0f + 256.0f); \
     sy = (int) (224.0f - p.y * 224.0f / 240.0f); \
-    eprintf(sx + ((sx > 0x198) ? -0x68 : 8), sy + ((sy > 0x1A4) ? -0x1C : 0xE), 0, 0, "(%3.0f, %3.0f)", d->pos.x, d->pos.y); \
+    dx = (sx > 0x198) ? -0x68 : 8; \
+    dy = (sy > 0x1A4) ? -0x1C : 0xE; \
+    eprintf(sx + dx, sy + dy, 0, 0, "(%3.0f, %3.0f)", pos->x, pos->y); \
 }
 
 int idEditPos(IdTool* w, int x, int y)
@@ -1117,10 +1120,14 @@ int idEditPos(IdTool* w, int x, int y)
 
             toolIdCalcVertex(d);
             for (i = 0; i < 4; i++) {
-                PSVECAdd(&d->vtx[i], pos, &d->vtx[i]);
+                PSVECAdd(&d->vtx[i], &d->pos, &d->vtx[i]);
+            }
+            {
+                int t = d->vtxType;
+
+                a = t & 0xF;
             }
             vt = d->vtxType;
-            a = vt & 0xF;
             if (joy->rep & 0x10001) {
                 a--;
             }
@@ -1131,20 +1138,20 @@ int idEditPos(IdTool* w, int x, int y)
             d->vtxType = (vt & 0xF0) | (a & 0xF);
             switch (d->vtxType & 0xF) {
             case 0:
-                PSVECAdd(&d->vtx[0], &d->vtx[2], pos);
-                PSVECScale(pos, pos, 0.5f);
+                PSVECAdd(&d->vtx[0], &d->vtx[2], &d->pos);
+                PSVECScale(&d->pos, &d->pos, 0.5f);
                 break;
             case 1:
-                *pos = d->vtx[0];
+                d->pos = d->vtx[0];
                 break;
             case 2:
-                *pos = d->vtx[1];
+                d->pos = d->vtx[1];
                 break;
             case 3:
-                *pos = d->vtx[2];
+                d->pos = d->vtx[2];
                 break;
             case 4:
-                *pos = d->vtx[3];
+                d->pos = d->vtx[3];
                 break;
             }
             if (joy->trg & 0x100) {
@@ -1159,12 +1166,6 @@ int idEditPos(IdTool* w, int x, int y)
             }
             break;
         case 2:
-            if (joy->trg & 0x100) {
-                w->subStep = 0;
-                w->editStep++;
-            }
-            break;
-        case 5:
             if (joy->trg & 0x100) {
                 w->subStep = 0;
                 w->editStep++;
@@ -1201,6 +1202,12 @@ int idEditPos(IdTool* w, int x, int y)
                 w->pPath->gridLock = 0;
             }
             break;
+        case 5:
+            if (joy->trg & 0x100) {
+                w->subStep = 0;
+                w->editStep++;
+            }
+            break;
         }
         eprintf(x, y, 5, 0, "POS-MENU");
         y += 0xE;
@@ -1213,19 +1220,36 @@ int idEditPos(IdTool* w, int x, int y)
             switch (i) {
             case 0:
                 for (j = 0; j <= 4; j++) {
-                    eprintf(x + 0x40 + j * 0x18, yy, (j == (d->vtxType & 0xF)) ? 0 : 7, 0, "%s", anchorName[j]);
+                    int col = 7;
+
+                    if (j == (d->vtxType & 0xF)) {
+                        col = 0;
+                    }
+
+                    eprintf(x + 0x40 + j * 0x18, y + i * 0xE, col, 0, "%s", anchorName[j]);
                 }
                 break;
             case 3:
                 for (j = 0; j <= 1; j++) {
-                    eprintf(x + 0x40 + j * 0x20, yy, ((j == 0) == (d->x109 & 1)) ? 0 : 7, 0, "%s", onOffName[j]);
+                    int col;
+                    u32 ofs = j * 4;
+
+                    col = 7;
+                    if ((j == 0) == (d->x109 & 1)) {
+                        col = 0;
+                    }
+                    eprintf(x + 0x40 + ofs * 8, y + i * 0xE, col, 0, "%s", *(const char**)(ofs + (u32) onOffName));
                 }
                 break;
             case 4:
                 for (j = 0; j <= 7; j++) {
-                    u8 col = (j == w->gridLv) ? 0 : 7;
+                    register int col asm("r5"); // COMPILER-DIFF: #17 (col r5 vs r30, local ext pref)
 
-                    eprintf(x + 0x40 + j * 0x18, yy, col, 0, "%02d", (int) IPOW(2.0f, j));
+                    col = 7;
+                    if (j == w->gridLv) {
+                        col = 0;
+                    }
+                    eprintf(x + 0x40 + j * 0x18, y + i * 0xE, (u8) col, 0, "%02d", (int) IPOW(2.0f, j));
                 }
                 break;
             }
@@ -1235,12 +1259,10 @@ int idEditPos(IdTool* w, int x, int y)
         switch (w->subCur) {
         case 1:
             switch (w->subStep) {
-            case 0: {
-                FuncPathData* p = w->pPath->path;
-
-                if (p->n == 0) {
-                    p->n = 1;
-                    p->pos[0] = d->pos;
+            case 0:
+                if (w->pPath->path->n == 0) {
+                    w->pPath->path->n = 1;
+                    w->pPath->path->pos[0] = d->pos;
                     w->pPath->routine = 0;
                     w->pPath->step = 1;
                     w->pPath->path->k = 1;
@@ -1248,10 +1270,11 @@ int idEditPos(IdTool* w, int x, int y)
                 }
                 if (w->parentNo != 0xFF) {
                     Vec t;
+                    Vec* pt = &t;
 
-                    t.x = w->mat[0][3];
-                    t.z = w->mat[2][3];
-                    t.y = w->mat[1][3];
+                    pt->x = w->mat[0][3];
+                    pt->y = w->mat[1][3];
+                    pt->z = w->mat[2][3];
                     w->pPath->ofs.x = t.x;
                     w->pPath->ofs.y = t.y;
                     w->pPath->ofs.z = 0.0f;
@@ -1262,7 +1285,6 @@ int idEditPos(IdTool* w, int x, int y)
                 }
                 w->subStep++;
                 break;
-            }
             case 1:
                 if (DbPath(w->pPath, w->menuX, w->menuY) == 0) {
                     w->editStep = 1;
@@ -1645,6 +1667,8 @@ int idEditColor(IdTool* w, int x, int y)
     int yy;
     int v = 0;
     int step;
+    const char** tbl3;
+    int x2;
 
     switch (w->editStep) {
     case 0: {
@@ -1698,12 +1722,13 @@ int idEditColor(IdTool* w, int x, int y)
             GXColor c2;
             GXColor c3;
             int x1 = x + 0x18;
-            int x2 = x + 0xB0;
-            int y2 = y + 0x38;
+            int y2;
+
+            x2 = x + 0xB0;
+            y2 = y + 0x38;
 
             for (i = 0; i <= 7; i++) {
                 int col;
-                f32 fy;
 
                 yy = y + i * 0xE;
                 *(u32*) &c0 = 0;
@@ -1739,9 +1764,8 @@ int idEditColor(IdTool* w, int x, int y)
                 case 6: c0.b = d->col1[2]; break;
                 case 7: c0.r = d->col1[3]; c0.g = d->col1[3]; c0.b = d->col1[3]; break;
                 }
-                fy = (f32) yy;
-                Draw_tileI(x + 0x40, (int) (fy + 2.8f), (int) (*pc / 255.0f * 100.0f), 8, &c0);
-                Draw_tileI((int) ((f32) (x + 0x40) - 0.8f), (int) (fy + 1.4f), 0x65, 0xB, &c1);
+                Draw_tileI(x + 0x40, (int) ((f32) yy + 2.8f), (int) (*pc / 255.0f * 100.0f), 8, &c0);
+                Draw_tileI((int) ((f32) (x + 0x40) - 0.8f), (int) ((f32) yy + 1.4f), 0x65, 0xB, &c1);
             }
             c2.r = d->col0[0];
             c2.g = d->col0[1];
@@ -1803,12 +1827,16 @@ int idEditColor(IdTool* w, int x, int y)
                 eprintf(x - 8, yy, 0x16, 0, ">");
             }
             if (i == 2) {
+                tbl3 = onOffName3;
                 for (j = 0; j <= 1; j++) {
-                    col = 7;
+                    u32 ofs = j * 4;
+
                     if ((j != 0) != ((d->x109 >> 2) & 1)) {
                         col = 0;
+                    } else {
+                        col = 7;
                     }
-                    eprintf(x + 0x40 + j * 0x20, y + i * 0xE, col, 0, "%s", onOffName3[j]);
+                    eprintf(x + 0x40 + ofs * 8, y + i * 0xE, col, 0, "%s", *(const char**)(ofs + (u32) tbl3));
                 }
             }
         }
@@ -2675,18 +2703,18 @@ static void toolIdOption(IdTool* w)
     cx = 0x23;
     r0 = 0xB;
     eprintf(cx << 3, (r0 - 1) * 0xE, 5, 0, "OPTION");
-    mx = 0x22;
-    vx = 0x2F;
     for (i = 0; i <= 2; i++) {
         int y = (r0 + i) * 0xE;
 
-        // sx/r1/r2 are set in the loop body: loop.c hoists the three `li` after `i = 0` and the
-        // PRE'd high, as the target; mx/vx (target: after r1/r2, pass-2 position) not yet found
+        eprintf(cx << 3, y, (i == optCur) ? 4 : 0, 0, "%s", optMenuName[i]);
+        // sx/r1/r2 after the first eprintf (same ebb as the loop top, before the
+        // if/switch so cse1 does not fold the case constants); mx/vx computed from
+        // cx right before use so they hoist in loop pass 2 (after the giv inits).
         sx = 0x2E;
         r1 = 0xC;
         r2 = 0xD;
-        eprintf(cx << 3, y, (optCur == i) ? 4 : 0, 0, "%s", optMenuName[i]);
-        if (optCur == i && (w->cnt & 0x18)) {
+        if (i == optCur && (w->cnt & 0x18)) {
+            mx = cx - 1;
             eprintf(mx << 3, y, 0x16, 0, ">");
         }
         col = 0;
@@ -2695,6 +2723,7 @@ static void toolIdOption(IdTool* w)
         }
         switch (i) {
         case 0:
+            vx = cx + 0xC;
             eprintf(vx << 3, r0 * 0xE, 0, 0, "%s", langName2[w->lang]);
             break;
         case 1:
@@ -2714,10 +2743,10 @@ static void toolIdOption(IdTool* w)
         }
     }
     if (w->editStep == 2) {
-        int sx = 0x2E;
+        int sx;
 
         col = 0;
-        for (i = 0; i <= 6; i++) {
+        for (i = 0, sx = 0x2E; i <= 6; i++) {
             if (i != w->lang) {
                 eprintf(sx << 3, (r0 - w->lang + i) * 0xE, (u8) col, 0, "-%s-", langName2[i]);
             }

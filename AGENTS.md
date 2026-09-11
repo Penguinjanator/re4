@@ -25648,8 +25648,63 @@ Scratch /home/adityas/.cache/tev3/: `hv.sh <dbg_tool.h variant> [t_event src]` j
   (`lbz r0,0x3`) -> 33w, worse. Shape not found.
 - toolIdInit 12w: `lbz r9/li r11,1` register swap and the 11-store block order after `w->lang2 = w->lang` (target: 0x1c,
   0x5f, 0x17a, 0x17b, 0x5c, 0x18, 0x1e, 0x28, 0x14, 0x24 = source order with `level` before `x24`; ours puts the dying-
-  register stores 0x5f/0x5c first). Not attempted beyond reading.
+  register stores 0x5f/0x5c first). Ours' .sched (sched1) order is 0x179, 0x5f, 0x5c, 0x1e, 0x28, 0x14, 0x1c, 0x17a,
+  0x17b, 0x18, 0x24: the stores whose source pseudo dies (REG_DEAD -> INSN_REG_WEIGHT -1) go first, the shared QI zero
+  (pseudo 167, four uses) and the shared 100 (172) go last. The target is pure source order, i.e. its sched1 saw equal
+  weights for all eleven stores (or a different region); the `1` store (0x5f) is third in the target even though `li
+  r11,1` dies there. No source form tried.
 - toolIdEditDisp 4w: `li r24,0xc` before/after `cmpwi r0,0` and `addi r7,SYM@l` before/after `li r3,0x128` (sched2 ties).
   `row = (w->dispTop == 0) ? 0x13 : 0xC;` produces the same code as the if-form here (no lever).
 - mdiff.py note: ours' listings show `beq .text+0x...` for static-function branch targets and `bl .L` for unresolved
   relocs; mask both before diffing.
+
+### CRI pass 34 (adx_dcd5 Ste4AsSte 118 -> 115w APPLIED, pure C, the target's colouring reproduced in the model except one node; Ste4AsMono 180w / adx_baif AIFF_GetInfo 170w read, unchanged; nothing flipped; 2026-09-12)
+Harness /home/adityas/.cache/cri34/ (deleted): try.sh (variant.sh wrapper), probe.py / probe2.py NAME 'old=>new'.. (edit one function of a
+scratch copy, ra.py dump + bytecmp + side-by-side), explore.py (chaitin.py graph edits: drop a ghost, move a vid, add an edge, clone a node;
+scored against the target's registers), levels.py (the degree of every surviving node after each simplification scan = the level structure).
+Tree edit: src/lib/adx_dcd5.c ADX_DecodeSte4AsSte body + comment only (locked ninja, bytecmp 2/4, 115w, sizes equal). objects.py untouched.
+
+**Applied (Ste4AsSte 118 -> 115w, pass-30's three Mono4 facts carried over):** own locals declared `l2, r2, r1, l1, i, d, dr, Sint16 sc_l,
+Sint16 sc_r, const Sint32 *qtbl, s, t, nblk, key, j, q_l, q_r`; `sc_l = ((s ^ key) & 0x1FFF) + 1; key = sadd + key * smul; *scl = key;
+*scl = *scl & 0x7FFF;` (the Sint16 own local IS the extsh, the key redefinition blocks the hoist substitution); `q_l = qtbl[d & 0xF];
+outl[0] = l2; q_r = qtbl[dr & 0xF]; outr[0] = t;` (table values as the last-declared own locals defined before the stores, `q_l * sc_l`);
+`r2 = t` stays at the END of the body (moved next to t's clamp the copy is coalesced: t and r2 share r27, -4 bytes).
+
+**How the Ste4AsSte target colours (read off the bytes, then replayed in chaitin.py on the v1 dump, `--check` IDENTICAL on ours):**
+- Level structure of ours: scan 1 removes the 72 short temps; survivors then have degrees 25..35 (q_r 25, q_l 26, t 27, d 28, dr 29, r2 29,
+  sc_l/sc_r 30, c-ext 30/31, i 31, l1/r1/l2/nblk/sadd 32, qtbl 33, smul 34, scl 35; the two `>>4` temps 26 after losing 3 — 29 total, so they
+  survive scan 1 only because none of their L1 neighbours has a lower id); scan 2 removes everything but sadd/smul/scl/nblk, scan 3 those.
+  No spill pick. Ours-Mono has 7 levels with nblk a spill PICK (cost 17 = the cheapest cost/degree) — the target's Mono has nblk r18 and smul
+  r19 = nblk picked first, then smul (33/93 = 0.355 beats sadd's 33/91): the target's Mono graph is stuck after nblk's pick where ours frees
+  four nodes.
+- explore.py on v1: (1) dropping the nfrm ghost (r33 -> r4) makes both `>>4` temps 28 -> L1 and puts c2e/c1e in r10/r9 (the target);
+  (2) moving the qtbl address to the own-local position (`const Sint32 *qtbl = AdxQtbl` with two uses is still substituted by the frontend;
+  the address is a backend temp r76 coloured FIRST in L2) gives l2 r31, r2 r30, r1 r29, l1 r28, i r27, d r26, dr r25, sc_l r24, sc_r r23,
+  qtbl r22 = the target; (3) an r2-t edge keeps t off r30. Left: the model hands t r21 / nblk r20, the target has an extra node X on r21
+  before t (r20) and nblk (r19). X needs a new register (adjacent to d, dr, sc_l, sc_r, qtbl, i, l1, r1, r2, l2 = live inside the inner
+  body before the idx computation), must be adjacent to t (or t takes r21) but to none of the target's r21 temps (s1, key2b, d>>4, c1r1,
+  idx_l, c1l2, c1t); q_l/q_r reuse d/dr's r26/r25 only if coloured before r21 is handed. Those constraints leave X live only inside t's
+  clamp: no C value. So an assumption is wrong — most likely the ghost set (the target may keep param copies ours propagates away, or lack
+  the nfrm one) or the pre-RA order. Open; the 3 words gained are the sc/q/qtbl structure.
+- **The nfrm ghost**: the `mr r33, r4` param copy survives to RA because its use `mr r3, r33` (`return nfrm`) blocks the backend's copy
+  propagation (pass 05 propagates r35/r37/r38/r39 = histl/histr/c1/c2 into their loads/extsh but refuses a copy whose use is itself a
+  copy; `return 0` removes the ghost — and r4). `nblk = nfrm >> 1`, `ret = nfrm` (substituted), a K&R definition: no change. The
+  ghost is a neighbour of every loop value (+1 degree everywhere).
+- Negative (do not retry): reversing the addition `((c1*l1 + c2*l2) >> 12) + (d >> 4) * sc_l` gives IDENTICAL PCode (the frontend
+  canonicalises the operand order); K&R-style definition = identical graph; the Ste restructure applied to Ste4AsMono (with `c1 * r2` after
+  `r2 = t` as the target's `mullw r20, r9, r31` shows) is 226w (worse than 180w) — Mono needs its own reading (t is short-lived there,
+  r2 = t right after the clamp, `m` in r21/r20).
+
+**adx_baif AIFF_GetInfo 170w (unchanged) — what the header shape says:** target: ckid = own local r27 (`mr r27, r30; rlwimi r27, r31, 24,
+0, 7`), cksz = own local r28 (`mr r28, r12; rlwimi`), SWAP32(cksz) = a temp r12 computed in the header block, `end = p + (r12 - 4)` in the
+loop preheader (`subi; add`), type = a temp r10 (no mr, substituted into `subis r10, r10, 0x4646` in the block after the FORM check). Ours:
+ckid substituted (temp r10), cksz own local r30 (`mr r30, r28`), the swap = the @temp web r27, `end` = `add r10, r27, r8; subi` (reassociated
+because the swapped web is an own local), type = own local r10 (`mr r10, r12`). The AST (frontend-01) shows the substitution is decided per
+web: ckid's single use is in the same block -> substituted; type's use is behind the FORM `if` (a label between) -> kept. In the target
+ckid is kept and type substituted, i.e. the roles are swapped: something keeps the header ckid (then the FORM `if` has no loads and type
+can cross it). Probes without effect (170w each, identical objects): a dead `ckid = 0` init; `p = buf; ckid = LE32(p); cksz = LE32(p+4);
+p += 12;` and `buf += 8` between the reads (the frontend copy-propagates `p = buf` / range-splits the stepped parameter, so the
+redefinition blocker of SWAR pass 5 does not fire on straight-line code); type read through `ofst` (190w). `ckid = LE32(buf + 8)` reused
+for the type check moves the loads into block 2 (149w, size equal) — the target's type loads are in the header block. Open: the statement
+that keeps the header ckid a variable (a store between its def and the FORM check? the vendor's LE32 macro reading through a local
+pointer that is then stepped inside a loop?).
