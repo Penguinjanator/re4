@@ -14,3 +14,4 @@ __pycache__/
 *.TMP.*
 build.ninja.*.tmp
 objdiff.json.*.tmp
+.ninja_lock
