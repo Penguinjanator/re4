@@ -25236,3 +25236,18 @@ prints the backend-00 block sizes; `cands.py`/`cands2.py` + `run.sh`/`run2.sh` =
   set differs (e.g. the two stores of a half-row in one statement AND the pointer steps/`if` not last). This is the C-shape question the
   next pass has to answer; it is NOT a flag/pragma/compiler-build question (mpv_mcy 4p stays 136w under every candidate — untested
   per-unit because no candidate unsplit the probe; steps 2/3 of the flag plan therefore did not run).
+- adx_sje (14/17 -> 15/17): `adxsje_output_header` 2 -> 0w with `if (sje->key == 0) { v8 = 0; } else { v8 = 8; }` in place
+  of the ternary (still the branchless `cntlzw/extrwi/neg/andc`, but the `li r5, 1` argument now sits one slot earlier = the
+  target; the pass-14b "post-RA tie" had a source form after all — an `if/else` that MWCC if-converts keeps different
+  instruction ids from the `?:`). `adxsje_encode_data` 68 -> 67w: `sji` as a helper local of the inlined read_pcm
+  (`SJ *sji = sje->sji;` inside adxsje_read_pcm, the parameter dropped) colours r24 below cnt r25 = target (a caller own
+  local ranks straight after sje: r28); the caller's `n` is still an own local (r28 now, target r20 below the loop-B IV temps);
+  `n` declared last/first, a `prd->iir` local in loop D (target loads iir right after prd; ours after the scale copies) 68w.
+  `adxsje_write_end_code` 2w stays: put16 site 1's `lha v` is scheduled before `lwz ck.data` in ours; `(Sint16)*(Uint16 *)`,
+  `(Sint16)(Sint32)`, index forms, `-x * -1`, `Uint16` copies (lhz) all keep it or add a word. `#pragma scheduling off` is not
+  a lever for a one-slot swap inside an otherwise identically scheduled 0x230 function (not tried on purpose).
+- Applied this pass (all plain C except the two tags in sfd_mps): sfd_mps DecodeOneUnit 144 -> 13w (M1 pin `asm { mr r31, err;
+  mr ret, r31 }` after the CopyPketData call) / ExecServerSub 59 -> 16w (helper split + M3 `#pragma dont_inline` around
+  SFMPS_ExecServer); cftfx StaticV 60 -> 36w; adx_sje output_header 2 -> 0w, encode_data 68 -> 67w. Flags unchanged (nothing
+  IDENTICAL); objects.py untouched; every applied step rebuilt through the locked ninja and judged with bytecmp
+  (sfd_mps 22/26, cftfx 3/6, adx_sje 15/17). Scratch harness /home/adityas/.cache/cri29 removed at the end of the pass.

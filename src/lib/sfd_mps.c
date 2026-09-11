@@ -758,12 +758,12 @@ static Sint32 sfmps_IsInTerm(SFD sfd)
 }
 
 /* all bytes of a possible padding unit are zero */
-static Bool sfmps_IsZero(Uint8 *data, Sint32 n)
+static Bool sfmps_IsZero(Sint8 *p, Sint32 n)
 {
 	Sint32 i;
 
 	for (i = 0; i < n; i++) {
-		if (data[i] != 0) {
+		if (*p++ != 0) {
 			return FALSE;
 		}
 	}
@@ -775,7 +775,8 @@ Sint32 sfmps_DecodeOneUnit(SFD sfd, Uint8 *data, Sint32 len, Sint32 *nbyte, Sint
 {
 	Sint8 *p;
 	Sint32 delim;
-	Sint32 ret = 0;
+	register Sint32 ret = 0;
+	register Sint32 err;
 	SFMPS_WORK *wk;
 	MPS mps;
 	Sint32 bufin;
@@ -788,9 +789,10 @@ Sint32 sfmps_DecodeOneUnit(SFD sfd, Uint8 *data, Sint32 len, Sint32 *nbyte, Sint
 	SFSEE_SHDR *shdr;
 	Uint8 *dst;
 	Sint32 n;
-	Sint32 psize;
+	Sint32 cnt;
 	SFMPS_BUFHN *hn;
 	Bool go;
+	Bool ok;
 
 	*nskip = *nbyte = delim = 0;
 	wk = SFMPS_WK(sfd);
@@ -873,34 +875,33 @@ no_syshd:
 	} else if (delim == 0) {
 		*nskip = 0;
 		p = (Sint8 *)data;
-		psize = sfd->prm.unit;
-		if (len >= psize + 3 && sfmps_IsZero(data, psize)) {
-			*nskip = psize;
+		if (len >= sfd->prm.unit + 3 && sfmps_IsZero(p, sfd->prm.unit)) {
+			*nskip = sfd->prm.unit;
 		} else {
-			n = 0;
+			cnt = 0;
 			while (len >= 4) {
 				if (MPS_CheckDelim((Uint8 *)p) & (MPS_DELIM_PACK | MPS_DELIM_PKET | MPS_DELIM_END)) {
-					*nskip = n;
+					*nskip = cnt;
 					goto skip_done;
 				}
-				n++;
+				cnt++;
 				p++;
 				len--;
 			}
 			if (len > 0 && len < 4) {
 				hn = SFMPS_BUF_HN(sfd, sfd->tr[SFMPS_TR].bufin);
 				if (hn->w.u.ring.sup.kind == 0 && (hn->w.u.ring.sup.xsize != 0 || hn->w.u.ring.sup.x14 != 0)) {
-					go = FALSE;
+					ok = FALSE;
 				} else if ((Uint32)(p + len) == hn->w.u.ring.sup.ofst + hn->w.u.ring.sup.size) {
-					go = TRUE;
+					ok = TRUE;
 				} else {
-					go = FALSE;
+					ok = FALSE;
 				}
-				if (go) {
-					n += len;
+				if (ok) {
+					cnt += len;
 				}
 			}
-			*nskip = n;
+			*nskip = cnt;
 		}
 	skip_done:
 		*nbyte = *nskip;
@@ -929,7 +930,8 @@ no_syshd:
 	} else {
 		data += hdrlen;
 		len -= hdrlen;
-		ret = sfmps_CopyPketData(sfd, data, len, &copied, &cres);
+		err = sfmps_CopyPketData(sfd, data, len, &copied, &cres);
+		asm { mr r31, err; mr ret, r31 } // COMPILER-DIFF: M1 (ret r31: the target's ret/wk/data survive the second Chaitin round with 3 more permanent neighbours than ours; CRI pass 29)
 		if (cres == 1) {
 			*nbyte = hdrlen + copied;
 		}
@@ -954,27 +956,37 @@ static Sint32 sfmps_GetRead(SFD sfd, Uint8 **data, Sint32 *len, Sint32 *total)
 	return 0;
 }
 
-Sint32 sfmps_ExecServerSub(SFD sfd)
+static Sint32 sfmps_Decode(SFD sfd, Uint8 *data, Sint32 len, Sint32 *nbyte, Sint32 *nskip, Sint32 total)
 {
-	Sint32 nskip, nbyte;
-	Sint32 wcnt, rcnt;
-	Sint32 term1, term2, term3;
-	Sint32 ret;
-	Sint32 tot, skiptot;
-	Sint32 limit;
-	Uint8 *data;
-	Sint32 len, total;
-	MPS mps;
-	Sint32 r;
+	return sfmps_DecodeOneUnit(sfd, data, len, nbyte, nskip, total);
+}
 
-	term1 = SFBUF_GetTermFlg(sfd, sfd->tr[SFMPS_TR].bufout2);
-	term2 = SFBUF_GetTermFlg(sfd, sfd->tr[SFMPS_TR].bufout);
-	term3 = SFBUF_GetTermFlg(sfd, sfd->tr[SFMPS_TR].bufout3);
-	if ((term1 & term2 & term3) == 1) {
-		return 0;
+static Sint32 sfmps_AddRead(SFD sfd, Sint32 nbyte)
+{
+	Sint32 r;
+	Sint32 ret;
+
+	r = SFBUF_RingAddRead(sfd, sfd->tr[SFMPS_TR].bufin, nbyte);
+	ret = 0;
+	if (r != 0) {
+		ret = r;
 	}
-	mps = SFMPS_MPS(sfd);
-	MPS_SetSystemFn(mps, (void *)SFSET_GetCond(sfd, SFD_COND_SYSFN), (void *)SFSET_GetCond(sfd, SFD_COND_SYSOBJ));
+	return ret;
+}
+
+static Sint32 sfmps_ExecServerLoop(SFD sfd)
+{
+	Sint32 wcnt, rcnt;
+	Sint32 nbyte, nskip;
+	Sint32 r;
+	Sint32 limit;
+	Sint32 len;
+	Sint32 ret;
+	Uint8 *data;
+	Sint32 tot;
+	Sint32 total;
+	Sint32 skiptot;
+
 	ret = 0;
 	skiptot = 0;
 	tot = 0;
@@ -984,18 +996,14 @@ Sint32 sfmps_ExecServerSub(SFD sfd)
 		if (ret != 0) {
 			break;
 		}
-		ret = sfmps_DecodeOneUnit(sfd, data, len, &nbyte, &nskip, total);
+		ret = sfmps_Decode(sfd, data, len, &nbyte, &nskip, total);
 		if (ret != 0) {
 			break;
 		}
 		if (nbyte == 0) {
 			break;
 		}
-		r = SFBUF_RingAddRead(sfd, sfd->tr[SFMPS_TR].bufin, nbyte);
-		ret = 0;
-		if (r != 0) {
-			ret = r;
-		}
+		ret = sfmps_AddRead(sfd, nbyte);
 		if (ret != 0) {
 			break;
 		}
@@ -1014,10 +1022,31 @@ Sint32 sfmps_ExecServerSub(SFD sfd)
 	return ret;
 }
 
+Sint32 sfmps_ExecServerSub(SFD sfd)
+{
+	Sint32 term1, term2, term3;
+	MPS mps;
+
+	term1 = SFBUF_GetTermFlg(sfd, sfd->tr[SFMPS_TR].bufout2);
+	term2 = SFBUF_GetTermFlg(sfd, sfd->tr[SFMPS_TR].bufout);
+	term3 = SFBUF_GetTermFlg(sfd, sfd->tr[SFMPS_TR].bufout3);
+	if ((term1 & term2 & term3) == 1) {
+		return 0;
+	}
+	mps = SFMPS_MPS(sfd);
+	MPS_SetSystemFn(mps, (void *)SFSET_GetCond(sfd, SFD_COND_SYSFN), (void *)SFSET_GetCond(sfd, SFD_COND_SYSOBJ));
+	return sfmps_ExecServerLoop(sfd);
+}
+
+/* COMPILER-DIFF: M3 -- sfmps_ExecServerSub's loop lives in the inlined sfmps_ExecServerLoop helper (its locals
+ * are @temps: `li ret,0; mr skiptot,ret; mr tot,ret` shares the entry zero), which makes ExecServerSub small enough
+ * for -inline auto to inline it here; the target keeps the `bl` (CRI pass 29). */
+#pragma dont_inline on
 static Sint32 SFMPS_ExecServer(SFD sfd)
 {
 	return sfmps_ExecServerSub(sfd);
 }
+#pragma dont_inline off
 
 Sint32 SFMPS_Finish(void)
 {

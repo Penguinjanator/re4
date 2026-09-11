@@ -544,7 +544,11 @@ static Sint32 adxsje_output_header(ADXSJE sje, SJ sjo)
 	ADXSJE_WRITE(&v16, 2, 1);
 	v8 = 4;
 	ADXSJE_WRITE(&v8, 1, 1);
-	v8 = (sje->key == 0) ? 0 : 8;
+	if (sje->key == 0) {
+		v8 = 0;
+	} else {
+		v8 = 8;
+	}
 	ADXSJE_WRITE(&v8, 1, 1);
 	v32 = 0;
 	ADXSJE_WRITE(&v32, 4, 1);
@@ -665,11 +669,12 @@ Sint32 adxsje_write_end_code(ADXSJE sje)
 }
 
 /* read n samples per channel into the block buffers; 0 when an input has less than n */
-static Sint32 adxsje_read_pcm(ADXSJE sje, SJ *sji, Sint16 **bufs, Sint32 n)
+static Sint32 adxsje_read_pcm(ADXSJE sje, Sint16 **bufs, Sint32 n)
 {
 	Sint32 cnt = 0;
 	Sint32 ch;
 	SJCK ck;
+	SJ *sji = sje->sji; /* helper local: colours r24 below cnt like the original (own local in the caller: r28) */
 
 	for (ch = 0; ch < sje->nch32; ch++) {
 		cnt = SJ_GetNumData(sji[ch], SJ_CK_DATA) / sizeof(Sint16);
@@ -696,7 +701,6 @@ Sint32 adxsje_encode_data(void *obj)
 	Sint32 nbyte;
 	SJ sjo;
 	ADXSJE sje = obj; /* kept conversion copy: sje r29 above the hoisted address temporaries */
-	SJ *sji;
 	Sint32 n;
 	Sint32 cnt;
 	Sint32 nenc;
@@ -705,7 +709,6 @@ Sint32 adxsje_encode_data(void *obj)
 	ADXSJE_PRDFLT *prd;
 
 	sjo = sje->sjo;
-	sji = sje->sji;
 	nbyte = 0;
 	do {
 		if (SJ_GetNumData(sjo, SJ_CK_FREE) / 18 / sje->nch32 <= 0) {
@@ -717,7 +720,7 @@ Sint32 adxsje_encode_data(void *obj)
 		if (sje->blksmpl < n) {
 			n = sje->blksmpl;
 		}
-		cnt = adxsje_read_pcm(sje, sji, bufs, n);
+		cnt = adxsje_read_pcm(sje, bufs, n);
 		if (cnt == 0) {
 			nenc = 0;
 		} else {

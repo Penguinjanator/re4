@@ -157,12 +157,15 @@ void CFT_Ycc420plnToA256V(CFT_YCC420PLN *src, CFT_ARGBDST *dst, Uint8 *tbl)
 }
 
 /* the same with the luma itself as alpha (four samples read as one word) */
-#define CFT_A256_ROW_STATIC(dst, w)                                                            \
-	(dst)[0] &= (((w) & 0xFF000000) | (((w) >> 8) & 0x0000FF00)) | 0x00FF00FF;               \
-	(dst)[1] &= ((((w) << 16) & 0xFF000000) | (((w) & 0xFF) << 8)) | 0x00FF00FF
+#define CFT_A256_ROW_STATIC(dst, w, t)                                                         \
+	(t) = ((w) & 0xFF000000) | (((w) >> 8) & 0x0000FF00);                                  \
+	(dst)[0] &= (t) | 0x00FF00FF;                                                          \
+	(t) = (((w) << 16) & 0xFF000000) | (((w) & 0xFF) << 8);                                \
+	(dst)[1] &= (t) | 0x00FF00FF
 
-/* (M1: the fourth row's three temporaries - dst word, AR word, GB word - are r12/r11/r31 in the
- * original, ours rotates them; identical instruction stream) */
+/* (M1: the row words go through one reused temporary `t`; its last two webs (the fourth row) are
+ * sunk into their uses and colour r31/r11/r12 instead of the original's r12/r11/r31, and the first
+ * row's `w` takes r31 instead of r30; identical instruction stream) */
 void cnvStaticYcc420plnToA256V(CFT_YCC420PLN *src, CFT_ARGBDST *dst)
 {
 	Sint32 i;
@@ -174,21 +177,22 @@ void cnvStaticYcc420plnToA256V(CFT_YCC420PLN *src, CFT_ARGBDST *dst)
 	Uint32 *d = dst->buf;
 	Uint32 *y = (Uint32 *)src->y;
 	Uint32 w;
+	Uint32 t;
 
 	for (i = 0; i < hblk; i++) {
 		for (j = 0; j < wblk; j++) {
 			w = *y;
 			y += ystep;
-			CFT_A256_ROW_STATIC(d, w);
+			CFT_A256_ROW_STATIC(d, w, t);
 			w = *y;
 			y += ystep;
-			CFT_A256_ROW_STATIC(d + 2, w);
+			CFT_A256_ROW_STATIC(d + 2, w, t);
 			w = *y;
 			y += ystep;
-			CFT_A256_ROW_STATIC(d + 4, w);
+			CFT_A256_ROW_STATIC(d + 4, w, t);
 			w = *y;
 			y += ystep;
-			CFT_A256_ROW_STATIC(d + 6, w);
+			CFT_A256_ROW_STATIC(d + 6, w, t);
 			y -= ystep * 4;
 			y++;
 			d += 16;
