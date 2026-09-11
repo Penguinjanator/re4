@@ -20387,12 +20387,16 @@ move / IdScopeZoomDisp / CameraBinocular are theirs); only CameraAttachedToMotio
 - **Load/SaveEmTypeUpdateCallback (2/2, unchanged; the mechanism sharpened one step).** cse1 can never know the outer
   `high(g_modelType)` at the loop-2 TOP block: `cse_end_of_basic_block` stops at EVERY code label, and follows a conditional
   jump into a 1-use label only when the label is preceded by a BARRIER (cse.c 8602-8640) -- the target's TOP is entered by
-  fall-through from the `lbz r0,1(r8); lis r12; extsb r10,r0` preheader, so its `sth r9,0(r4)` through the OUTER high is a gcse
-  PRE replacement (TOP's occurrence redundant, reaching reg = the outer pseudo after cse2's copy), and the fresh `lis r12` that
-  loop.c hoists is the LAST block's (`lhz t`) occurrence, kept because it is the isolated/latein one. Ours deletes the last
-  block's occurrence and keeps TOP's. The lever is therefore in `pre_lcm`'s isolatedness of the two in-loop occurrences (which
-  depends on the exit-path blocks' antloc), not in cse; the do-while / rotated-while / peeled forms of pass 9 all leave TOP as
-  the kept one. Not closed.
+  fall-through from the `lbz r0,1(r8); lis r12; extsb r10,r0` preheader. Our -dG dump: TOP's `H = high` (insn 232) is the
+  only in-loop occurrence PRE finds ("PRE: redundant insn 232 in bb 25, reaching reg 316"); it becomes the same-block copy
+  `H = 316` (never cprop'd: `find_avail_set` is avin-based) with a `REG_EQUAL (high)` note, loop.c hoists the copy to the
+  preheader and cse2/reload rematerialise it as `lis r12` (HIGH cost 0 < REG 1) -- that is our fresh r12 at the TOP store. The
+  `lhz r9` (bb 27) and `lhz t` (bb 29) blocks are NOT occurrences at gcse time: they already use the outer pseudo 316/96, i.e.
+  cse1 folded them (their labels are 1-use and the `beq`/`ble` into them skip label-free blocks = the `-fcse-skip-blocks`
+  AROUND path from TOP's ebb, which knew the outer high through ... the preheader? open). In the target the roles are swapped:
+  TOP folded, the last `lhz t` block a PRE copy rematerialised as `lis r12`. So the lever is which of TOP / the last block
+  cse1 reaches with the outer high on its path (label uses, barriers, skip-blocks), and the do-while / rotated-while / peeled
+  forms of pass 9 all make TOP the fresh one. Not closed.
 - **InitTool (9684, unchanged; segment census):** with `bl` as the segment separator, 675 of 806 segments differ, but every
   one of the 40 inspected differs only by (a) the spill-slot offsets of the `&pos` reloads (`lwz r0,8624(r1)` vs 8688: our slot
   numbering is 16 slots behind by the 5th widget and the difference varies along the function -- reload assigns slots in

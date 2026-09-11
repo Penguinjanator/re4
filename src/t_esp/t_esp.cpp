@@ -53,7 +53,7 @@ void EspToolUpdate(DB_KEYBORD* k, u8 no);
 void CoreEstSet(u8 no);
 void SeqSet(EspSeqData* head, u8 mode);
 void sp_sphere(EspSeqData* head, void* seq);
-void sp_ctrl01_trans();
+void sp_ctrl01_trans(void* seq);
 void sp_3dgrid_trans(EspSeqData* head, void* seq);
 void sp_path_trans(EspSeqData* head, void* seq);
 void sp_path_trans2(EspSeqData* head, void* seq);
@@ -157,10 +157,10 @@ struct TOOL_SEQ {
     u8 genId;       // 0x109
     u8 x10A;        // 0x10A
     u8 x10B;        // 0x10B
-    s8 x10C;        // 0x10C
-    s8 x10D;        // 0x10D
-    s8 x10E;        // 0x10E
-    s8 x10F;        // 0x10F
+    union {
+        struct { s8 x10C, x10D, x10E, x10F; };  // 0x10C
+        s8 inter[4];
+    };
     s16 x110[4];    // 0x110
     Vec scale;      // 0x118
     s8 x124[4];     // 0x124
@@ -292,9 +292,10 @@ static u8 g_seqFlgWk[256];
 static u8* g_pSeqFlg;
 struct SeqFlgPtr { u8* p; }; // struct view of g_pSeqFlg (a load that stays below preceding stores)
 struct PageView { int v; };  // struct view of g_page (an in-struct load conflicts with the loop's stores through `rec`/`head`: not hoisted)
+struct SeqPtrView { TOOL_SEQ* p; };  // struct view of g_pEditSeq/g_pEditSeq2 (the pointer load may alias a record store: reloaded after it)
 static int g_seqFlgNum[4];
 static int g_page;
-static int g_editTop;
+static u32 g_editTop;  // unsigned: `g_editTop + 5 <= SEQ_TBL_LAST` is a cmplwi
 static int g_editCursor;
 static int g_curSeq;
 static int g_fileMenu;
@@ -683,19 +684,19 @@ static void EditActiveChange_callback(DB_WINDOW* w, DB_PRIMITIVE* p, DB_KEYBORD*
             prevWin = 0;
             nextWin = 0;
             if (k->rep[KEY_L]) {
-                if (sel->selX != 0) {
+                if (sel->selX == 0) {
+                    if (w != g_pEditWin1->win) prevWin = 1;
+                } else {
                     sel->SetSelX(0);
                     p = sel->GetActivePrimitive();
-                } else if (w != g_pEditWin1->win) {
-                    prevWin = 1;
                 }
             }
             if (k->rep[KEY_R]) {
-                if (sel->selX != sel->w - 1) {
+                if (sel->selX == sel->w - 1) {
+                    if (w != g_pEditWin4->win) nextWin = 1;
+                } else {
                     sel->SetSelX(sel->w - 1);
                     p = sel->GetActivePrimitive();
-                } else if (w != g_pEditWin4->win) {
-                    nextWin = 1;
                 }
             }
             if (k->rep[KEY_LEFT] || prevWin) {
@@ -751,9 +752,12 @@ static void EditActiveChange_callback(DB_WINDOW* w, DB_PRIMITIVE* p, DB_KEYBORD*
             }
             if (moved) {
                 int n = g_curSeq + dir;
-                if (g_pEditTbl[n].stat & 1) {
+                // the row offset in a local: `(plus tbl ofs)` keeps the table base first in the lbzx
+                // (`g_pEditTbl[n]` is expanded mult-first, `lbzx r0,r9,r10`)
+                u32 ofs = n * sizeof(TOOL_SEQ);
+                if (((TOOL_SEQ*) ((u32) g_pEditTbl + ofs))->stat & 1) {
                     if (selOn) {
-                        if (!(g_pSeqFlg[n] & 1)) {
+                        if ((g_pSeqFlg[n] & 1) == 0) {
                             g_pSeqFlg[n] |= 1;
                             g_seqFlgNum[g_page]++;
                         }
@@ -3305,33 +3309,42 @@ static inline int SelXIs(DB_ACTIVE_SELECT* s, int v) { return s->selX == v; }
 
 static void PosActiveChange_callback(DB_WINDOW* w, DB_PRIMITIVE* p, DB_KEYBORD* k)
 {
-    DB_ACTIVE_SELECT* sel = &w->sel;
+    DB_ACTIVE_SELECT* sel;
     DB_PRIMITIVE* old = p;
 
-    sel->SetActivePrimitive(p);
+    // `&w->sel` straight into the argument register (a hard-register set gcse never records), the pointer
+    // local taken AFTER the pos block: the join recomputes `addi r9,w,148` and copies it (`mr r29,r9`)
+    w->sel.SetActivePrimitive(p);
     if (k->on[KEY_X] && k->trg[KEY_Y]) {
-        TOOL_SEQ* seq = g_pEditSeq;
-        if (IS_SCREEN_PARENT(seq)) {
-            seq->pos.x = 256.0f;
-            g_pEditSeq->pos.y = 224.0f;
-            g_pEditSeq->pos.z = 0.0f;
+        // g_pEditSeq through the struct view: each pos store may alias the pointer, so it is reloaded per store
+#define EDIT_SEQ_V (((SeqPtrView*) &g_pEditSeq)->p)
+        if (IS_SCREEN_PARENT(EDIT_SEQ_V)) {
+            EDIT_SEQ_V->pos.x = 256.0f;
+            EDIT_SEQ_V->pos.y = 224.0f;
+            EDIT_SEQ_V->pos.z = 0.0f;
         } else {
-            DB_GetCamFrontPos(1500.0f, &seq->pos.x, &seq->pos.y, &seq->pos.z);
+            DB_GetCamFrontPos(1500.0f, &EDIT_SEQ_V->pos.x, &EDIT_SEQ_V->pos.y, &EDIT_SEQ_V->pos.z);
         }
+#undef EDIT_SEQ_V
     }
+    // the arms call `w->sel.SetActive*()` directly: each is a fresh `&w->sel` occurrence in its own cse ebb, so gcse
+    // PREs them into the reaching register R at the end of this block (`addi r9,w,148; lwz 24(r9); mr r29,r9`:
+    // cse2 turns the inserted `R = E` into a copy of `sel`, which dies there); with `sel->` everywhere the join's
+    // occurrence is isolated and no copy exists (`addi r29,r29,148`)
+    sel = &w->sel;
     if (sel->selY == 0) {
-        if (k->stickDown == 0 && k->rep[KEY_DOWN]) p = sel->SetActiveDown();
-        if (k->stickUp == 0 && k->rep[KEY_UP]) p = sel->SetActiveUp();
+        if (k->stickDown == 0 && k->rep[KEY_DOWN]) p = w->sel.SetActiveDown();
+        if (k->stickUp == 0 && k->rep[KEY_UP]) p = w->sel.SetActiveUp();
         if (k->on[KEY_X]) {
-            if (k->stickLeft == 0 && k->rep[KEY_LEFT]) p = sel->SetActiveLeft();
-            if (k->stickRight == 0 && k->rep[KEY_RIGHT]) p = sel->SetActiveRight();
+            if (k->stickLeft == 0 && k->rep[KEY_LEFT]) p = w->sel.SetActiveLeft();
+            if (k->stickRight == 0 && k->rep[KEY_RIGHT]) p = w->sel.SetActiveRight();
         }
     } else {
-        if (k->rep[KEY_DOWN]) p = sel->SetActiveDown();
-        if (k->rep[KEY_UP]) p = sel->SetActiveUp();
+        if (k->rep[KEY_DOWN]) p = w->sel.SetActiveDown();
+        if (k->rep[KEY_UP]) p = w->sel.SetActiveUp();
         if (k->on[KEY_X]) {
-            if (k->rep[KEY_LEFT]) p = sel->SetActiveLeft();
-            if (k->rep[KEY_RIGHT]) p = sel->SetActiveRight();
+            if (k->rep[KEY_LEFT]) p = w->sel.SetActiveLeft();
+            if (k->rep[KEY_RIGHT]) p = w->sel.SetActiveRight();
         } else {
             if (k->on[KEY_A]) {
                 if (k->on[KEY_L]) {
@@ -3362,7 +3375,7 @@ static void PosActiveChange_callback(DB_WINDOW* w, DB_PRIMITIVE* p, DB_KEYBORD* 
             }
         }
         if (k->trg[KEY_4]) {
-            p = sel->SetActiveNext();
+            p = w->sel.SetActiveNext();
             if (old != p) k->chr = 0;
         }
         if (k->on[KEY_X] && k->trg[KEY_A]) p->OnCalcMsg(DB_CALC_DEFAULT);
@@ -5075,7 +5088,7 @@ void PartPasteSeqData(TOOL_SEQ* dst, u32 flags, TOOL_SEQ* src)
         dst->scale = src->scale;
         for (i = 0; i < 4; i++) {
             dst->path[i] = src->path[i];
-            (&dst->x10C)[i] = (&src->x10C)[i];
+            dst->inter[i] = src->inter[i];
             dst->x110[i] = src->x110[i];
             dst->x124[i] = src->x124[i];
             dst->x128[i] = src->x128[i];
@@ -5276,31 +5289,33 @@ void MakeExecSeqData(EspSeqData* head, TOOL_SEQ* tbl, u32 nGroup, u32 nSeq)
     }
 }
 
+// the per-group record counts as an array member: an ARRAY_REF keeps the base first in the address (`lhzx r9,head,i2`);
+// pointer arithmetic (`((u16*) head)[i]`) is expanded with EXPAND_SUM, which puts the index product first
+struct SeqCountView { u16 n[1]; };
 int MakeSaveSeqData(EspSeqData* head, TOOL_SEQ* tbl, u32 nGroup, u32 nSeq)
 {
+    TOOL_SEQ* t;   // before j: the lower pseudo makes loop.c reduce `t + 300` ahead of `j + 1` (r31 / r4)
     u32 i, j;
     int size;
     u16* num = (u16*) head;
-    TOOL_SEQ* rec = (TOOL_SEQ*) head->rec;
+    TOOL_SEQ* rec;
     for (i = 0; i < nGroup; i++) num[i] = 0;
     head->pad_24[0] = 0x10;
     size = 0x30;
+    rec = (TOOL_SEQ*) head->rec; // after the clearing loop and `size`: `li r3,48; addi rec,head,48`
     for (i = 0; i < nGroup; i++) {
-        TOOL_SEQ* t = &tbl[i * nSeq];
+        t = &tbl[nSeq * i];
         for (j = 0; j < nSeq; j++, t++) {
             if (t->stat & 1) {
-                size += sizeof(TOOL_SEQ);
                 *rec++ = *t;
-                num[i]++;
+                ((SeqCountView*) head)->n[i]++;
+                size += sizeof(TOOL_SEQ); // LAST in the body: with the increment first `head` outranks `size` in global.c and takes r3
             }
         }
     }
     return size;
 }
 
-// the per-group record counts as an array member: an ARRAY_REF keeps the base first in the address (`lhzx r9,head,i2`);
-// pointer arithmetic (`((u16*) head)[i]`) is expanded with EXPAND_SUM, which puts the index product first
-struct SeqCountView { u16 n[1]; };
 void MakeLoadSeqData(EspSeqData* head, TOOL_SEQ* tbl, u32 nGroup, u32 nSeq)
 {
     u32 i, j;
@@ -5461,20 +5476,27 @@ static inline void FClamp(f32& v, f32 lo, f32 hi)
     if (tbl->field > (hi)) tbl->field = (hi);
 // (the clamped colour paths skip the `no++`: the original's flag indices are off by one after a
 // saturated colour add)
+// the saturating colour add: the flag is read once into `f` and tested in EVERY arm of the clamp chain, the
+// imm/add choice is a nested if in the final else with ONE shared `no++`.  jump1's thread_jumps sends the
+// first `f != 0` branch straight to the imm store (`bne Limm`), cse folds the fall-through tests (f == 0
+// known: the 0 arm stores the flag register `stb r6`), and jump2 cross-jumps the imm arm's store into the add
+// arm's (`lbz; b Lst; add; Lst: stb; addi`).  With `no++` inside each arm the tail is `addi; stb` after
+// sched2 and the 255 arm's store merges into it as well (197 words).  The saturated paths skip `no++`
+// (original bug, reproduced).
 #define ADD_COLOR(field)                                                           \
-    if (g_immFlg[no] == 0) {                                                       \
-        f32 v = (f32) tbl->field + (f32) (s8) delta->field;                        \
-        if (v > 255.0f) {                                                          \
+    {                                                                              \
+        u8 f = g_immFlg[no];                                                       \
+        f32 v;                                                                     \
+        if (f == 0) v = (f32) tbl->field + (f32) (s8) delta->field;                \
+        if (f == 0 && v > 255.0f) {                                                \
             tbl->field = 255;                                                      \
-        } else if (v < 0.0f) {                                                     \
+        } else if (f == 0 && v < 0.0f) {                                           \
             tbl->field = 0;                                                        \
         } else {                                                                   \
-            tbl->field = tbl->field + delta->field;                                \
+            if (f) tbl->field = imm->field;                                        \
+            else tbl->field = tbl->field + delta->field;                           \
             no++;                                                                  \
         }                                                                          \
-    } else {                                                                       \
-        tbl->field = imm->field;                                                   \
-        no++;                                                                      \
     }
 
 void AddSeq(TOOL_SEQ* tbl, TOOL_SEQ* delta, TOOL_SEQ* imm)
@@ -5616,23 +5638,24 @@ void AddEditData()
 
 void EspToolMain()
 {
-    DB_MOUSE mouse;
-    DB_KEYBORD key;
     u32 i;
 
     if (g_initDone == 0) {
+        // constant-store blocks are issued dying-store first (sched1 weight), then in source order: the store
+        // orders of this function's three blocks are read back from the target that way (lightTool before
+        // modelLoad: the zero's last use is modelLoad; dataChanged before fileMenu below)
         g_initDone = 1;
+        g_lightTool = 0;
         g_modelLoad = 0;
         g_fovy = 45.0f;
-        g_lightTool = 0;
         InitTool();
         if (DB_isGetComeEventTool() == 1) {
             sprintf(g_filePath, "%sroom/effect/est/R%1x%02xs%02x_%02x.EST", g_dir, DB_GetStageNo(), DB_GetRoomNo(), g_eventNo, g_eventSNo);
             LoadData(g_filePath, g_pSeqHead);
             MakeLoadSeqData(g_pSeqHead, &g_seqTbl[0][0], 4, 64);
+            g_dataChanged = 1;
             g_fileMenu = 3;
             g_motionCam = 1;
-            g_dataChanged = 1;
             DB_SetMotionCam(1);
         }
         return;
@@ -5651,9 +5674,9 @@ void EspToolMain()
     }
     g_curSeq = g_editTop + g_editCursor;
     *g_pEditSeq = g_pEditTbl[g_curSeq];
-    memclr_asm(g_pEditSeq2, sizeof(TOOL_SEQ));
-    mouse = *g_pMouse;
-    key = *g_pKey;
+    memclr_asm(((SeqPtrView*) &g_pEditSeq2)->p, sizeof(TOOL_SEQ));
+    DB_MOUSE mouse = *g_pMouse;
+    DB_KEYBORD key = *g_pKey;
     g_pPrimArray->Update(&mouse, &key);
     if (g_dataChanged == 0) AddEditData();
     g_dataChanged = 0;
@@ -5693,13 +5716,16 @@ void ToolEspMain()
     g_pPrimArray = new DB_PRIM_ARRAY;
     g_pMouse = new DB_MOUSE;
     g_pKey = new DB_KEYBORD;
-    g_work = 1;
+    // store orders read back from the target (dying-store first, then source order): eventNo, eventSNo, work
+    // gives `stb SNo; stw work; stb eNo`; the three zero stores below are issued in source order and their
+    // order also fixes the gcse PRE order of the loop's `lis lightTool` / `lis camMode` (first-occurrence order)
     g_eventNo = 0;
     g_eventSNo = 0;
+    g_work = 1;
     EspToolInit(&g_work, &g_eventNo, &g_eventSNo);
-    g_camMode = 0;
     g_lightTool = 0;
     g_exitReq = 0;
+    g_camMode = 0;
     do {
         if (g_lightTool) {
             int ret = LightToolExec();
@@ -5771,20 +5797,24 @@ void ToolEspMain()
         {
             DB_ACTIVE_SELECT* sel;
             if (g_pEditSeq->id == 0xE || g_pEditSeq->id == 0x4A || g_pEditSeq->id == 0x45) {
-                sel = &WIN_SEL(g_pEditActive);
-                if (g_pEditActive == g_pEditWin3 && sel->selX == 0) sp_sphere(g_pSeqHead, g_pEditSeq);
+                DB_ACTIVE_SELECT* s = &WIN_SEL(g_pEditActive);
+                if (g_pEditActive == g_pEditWin3 && s->selX == 0) sp_sphere(g_pSeqHead, g_pEditSeq);
             }
             if (g_pEditSeq->genId == 1 || g_pEditSeq->id == 0xE) {
-                sel = &WIN_SEL(g_pEditActive);
-                if (g_pEditActive == g_pEditWin3 && sel->selX == 2) sp_ctrl01_trans();
+                DB_ACTIVE_SELECT* s = &WIN_SEL(g_pEditActive);
+                if (g_pEditActive == g_pEditWin3 && s->selX == 2) sp_ctrl01_trans(g_pEditSeq);
             }
             if (g_pEditSeq->flags & 1) sp_3dgrid_trans(g_pSeqHead, g_pEditSeq);
             if (g_pEditSeq->id == 6) sp_path_trans(g_pSeqHead, g_pEditSeq);
             if (g_pEditSeq->genId == 2) sp_path_trans2(g_pSeqHead, g_pEditSeq);
-            sel = &WIN_SEL(g_pIdWin);
-            if (g_pIdWin->win->select && sel->selX == 0 && sel->selY == 3) sp_tex_trans(g_pEditSeq->tex);
-            sel = &WIN_SEL(g_pColorWin);
-            if (g_pColorWin->win->select && sel->selX == 2 && sel->selY == 3) sp_tex_trans(g_pEditSeq->maskTex);
+            {
+                DB_ACTIVE_SELECT* s = &WIN_SEL(g_pIdWin);
+                if (g_pIdWin->win->select && s->selX == 0 && s->selY == 3) sp_tex_trans(g_pEditSeq->tex);
+            }
+            {
+                DB_ACTIVE_SELECT* s = &WIN_SEL(g_pColorWin);
+                if (g_pColorWin->win->select && s->selX == 2 && s->selY == 3) sp_tex_trans(g_pEditSeq->maskTex);
+            }
             if (g_pEditSeq->id == 0x14) sp_nobigenkai_trans(g_pSeqHead, g_pEditSeq);
             sel = &WIN_SEL(g_pEditActive);
             if (g_pEditActive == g_pEditWin1 && sel->selX == 4) sp_PosRand_trans(g_pSeqHead, g_pEditSeq);
@@ -5801,9 +5831,9 @@ void ToolEspMain()
         TaskSleep(1);
     } while (g_exitReq == 0);
 
-    g_modelLoad = 0;
     g_initDone = 0;
     g_lightTool = 0;
+    g_modelLoad = 0;
     delete g_pMenuWin;
     delete g_pExitWin;
     delete g_pEditWin1;
