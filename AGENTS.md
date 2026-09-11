@@ -21953,3 +21953,68 @@ the `regs to allocate` list + `Register dispositions`). Both units still 4/5 and
 - **r0_RailBehind 3 unchanged:** the asm-laundered pointer form (`Vec* pAt = &cam.param.at; asm("" : "+r"(pAt));` x3 at the
   VecLinearCombination call) costs 123 words / +0xc; not applied. Still the #3 fresh-`addi`-at-a-mixed-int/float-call residue.
 - Not touched: the two 1-word `create` diffs (offset artefacts of the HermiteExport size gap).
+
+### DOL puzzle closer pass 2 (game/puzzle 46/49 unchanged; movePiece 57 -> 14 and .text size gap closed (0xCA4 -> 0xCA8 = the target size); shape 2, PutInCase 6 not closed; nothing flipped; 2026-09-11)
+
+Harness ~/.cache/dol_puz2 (dump.py = the unit's cpp+cc1plus with RTL dumps, try.sh = locked ninja + bytecmp; deleted).
+Unit judge: 46/49, 22 words, all sections equal, .text size equal; item.cpp IDENTICAL (header untouched).
+
+- **movePiece 57 -> 14, the missing insn found (zero code except one launder).** (1) `case 0: break;` in the
+  `wallDir` switch too: the target's `ble` lands on the outDir switch's `cmpwi r0,0` because BOTH switches have
+  the case-0 test and jump2 cross-jumps the identical lower halves (`cmpwi 0; beq END; cmpwi 1; beq L1; b END`);
+  without it ours cross-jumped only from `cmpwi 1`. Adding the two insns to `dir`'s live range flipped the
+  dir/0x43300000-magic allocation order (r28/r27) until the other residues below restored the priorities.
+  (2) The `vy > cur->h` / `fy > cur->h` compares convert the MEMBER (`(f32) cur->h`: the raw `lbz` byte goes
+  to the psq_l `stb`, cse folds the second load) while the stores use the `int h`; `(f32)(s8) h` stores the
+  extended register's low byte instead (`extsb` before the `stb`, 2 words). (3) The board swap loads
+  `caseBoard` before `cur`: `pzlBoard* cb = caseBoard;` declared before `f32 ny = 0.0f` (used for both the
+  compare and `cur = cb`). (4) Arm 1: `h = (int) (fabsf(..) - 1.0f); p->y = (f32) (h - 1) + p->cy;` -- the
+  fix result goes into the two-set variable `h` (not local-alloc tie-able), so the `- 1` is a fresh temp in
+  r0 (`subi r0,r9,1`); the expression form ties the minus to the dying fix pseudo (`subi r9,r9,1`).
+  (5) Arm 2: `p->y = (f32) ((s8) edge - (p->size_y() - 1)) + p->cy;` -- fold's `associate` rewrites
+  `A - (B - C)` into `(A + C) - B` (`addi; subf`), whereas `(s8) edge + 1 - size_y()` is split the other way
+  (`VAR - (ARG1 - CON)` = `subi r3,r3,1; subf`). The missing 4 bytes were the `extsb r30,r30` re-extension of
+  `edge` after the size_y call: combine's `get_last_value` only refuses a multi-set pseudo's value across a
+  CODE_LABEL (`label_tick`), and the def `edge = cur->h` is in the fall-through predecessor, so every
+  spelling folds the `(s8)` (also with `h`/`edge` sharing the fix set: `reg_sign_bit_copies` is not what
+  decides it). Applied `asm("" : "+r"(edge)); // COMPILER-DIFF` before the statement -> extsb present, size
+  equal. Left (14 words, all register names): arm 1's `h` is r9 in the target and r10 in ours (with the
+  -1.0f pool high r11 vs r9 and the dead `mr` copy reversed), and the `(s8) edge` extension is written into
+  edge's own r30 in the target (`extsb r30,r30; addi r30,r30,1; subf r0,r3,r30`) -- the extended value and
+  the `+ 1` are the global allocno `edge` itself there, and the minus does not tie to r3 (the call value used
+  as the hard reg). `int sy = p->size_y(); edge = (s8) edge; edge += 1; p->y = (f32)(edge - sy) + p->cy`
+  gives the r30 dests but puts extsb/addi before the call and ties the subf to sy (17 words). Not found: a
+  spelling that keeps the extension after the call with `edge` as its destination.
+- **shape 2 unchanged; both residues understood, neither closed.** (a) Byte-2 product operand order
+  (`mullw r0,r28,r0`): the byte-2 extraction (`extsh; srawi 8` = the HImode path of extract_fixed_bit_field)
+  returns a REG:QI via `convert_to_mode` (the other three come back as SUBREG:QI), so expand_binop's
+  `op1 REG && op0 != REG` swap puts it first whichever way the product is written. The target has px first,
+  which needs `(s8) px` expanded INTO a QI target register (`convert_move (target, ..)`): that only happens
+  when the enclosing QI PLUS has a REG:QI target, i.e. a non-promoted QI pseudo = a COND_EXPR/MIN_EXPR
+  `assign_temp (type, 0, 0, 1)` temp (verified: `(s8)(sum <? 127)` gives `mullw r7,r7,r0` with px first,
+  plus the compare junk). A `?:` with the sum in an arm and no other code was not found; the int-multiply form
+  (`px * rot[1][0]`) gives `rlwinm 8; extsb` (combine merges the sign_extend into the extraction), the
+  `s8 b = rot[1][0]` local gets swapped back by combine's "complex expression first" canonicalisation.
+  (b) The `o` join: target `subi r0,r9,4` (QI arithmetic on the raw lbz byte) then `extsb r0,r0` executed on
+  BOTH paths (`ble` lands on the extsb), else value = the compare's extension in r0. `s8 o = (orient > 3) ?
+  orient - 4 : orient;` gives exactly the QI COND temp (convert.c pushes the narrowing into the arms) but
+  the promoted store's extsb is folded into the fast-cast `stb` (the float's operand becomes the temp),
+  and the singleton form `temp = orient; if (..) temp = ..` puts the temp in the lbz register (r9) -- the
+  target's temp is r0 and its else value is the sign-extended P, i.e. a `(subreg:QI P)`-valued else arm
+  that no plain spelling produces (int-typed else arms get stripped by get_unwidened, `int t = orient`
+  copies give an `mr`). With `asm("" : "+r"(o))` after the ?: the structure and registers match but the
+  `stb` moves ahead of the `lis` (the asm sits in the extsb->stb dependency, 5 words). Kept the 2-word
+  `o = orient; if (o > 3) o = orient - 4;` (equal to the pass-1 if/else).
+- **PutInCase 6 unchanged.** `last` = r31 needs a call-crossing allocno (or a conflict with every call-used
+  reg). `ItemWork* last = 0` at function scope + `if (last)` after the block keeps the `li` (r19, +1 saved
+  reg, 67 words); the `asm("r31")` pin is unusable here because r31 is FRAME_POINTER_REGNUM before
+  reload: alias.c sees the `item.x` frame slots and the `last->x` stores as the same base register with
+  disjoint offsets, so sched hoists the four `lbz` above the `stb`s (7 words). No use of `last` after
+  `quit()`/`delete` is possible without extending its life onto the !ok path (live from entry -> conflicts
+  with `type` in r31). Open: which source shape gives a pointer loaded after `get()` a call-crossing life.
+- Facts checked in the compiler source this pass: expand_binop swap rule (optabs.c 840), extract_fixed_bit_field
+  narrowest-mode HImode path (expmed.c 1663), convert_modes' `GET_CODE (x) == REG` requirement for gen_lowpart
+  (expr.c 1429: a SUBREG input always copies to a fresh REG), COND_EXPR `assign_temp (type, 0, 0, 1)` (expr.c
+  7654) vs store_expr's COND special case (BLKmode targets only, expr.c 3655), convert.c pushing narrowing into
+  COND arms (385), fold `associate` (fold-const.c 4846-4899), combine `label_tick`/`get_last_value`, cse's
+  SUBREG fold excluding SIGN_EXTEND equivalents (cse.c 5249), rs6000 REG_ALLOC_ORDER (0, 9, 11, 10, 8..3, 31..).

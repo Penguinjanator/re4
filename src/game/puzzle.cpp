@@ -372,10 +372,12 @@ int pzlPiece::shape(int px, int py)
     int rx;
     int ry;
 
-    if (orient > 3) {
+    // Left (1 word): the target's `ble` lands ON the join `extsb` (a QI ?: temp extended once after
+    // the join, else value = the compare's extension in r0); no if/else or ?: spelling found gives
+    // that without an asm launder, which costs the stb/lis schedule. See AGENTS.md "puzzle closer pass 2".
+    o = orient;
+    if (o > 3) {
         o = orient - 4;
-    } else {
-        o = orient;
     }
     ang = (f32) o * -3.1415927f * 0.5f;
     rot[0][0] = cosf(ang);
@@ -1269,7 +1271,13 @@ pzlPiece* pzlPlayer::cmbPiece(pzlBoard* b)
 // (`xori; subfic; adde`); the board swap writes `ny` (0.0f on the impossible third path, the step
 // is the -2.0f constant); `edge` and `step` are ints converted with the double trick; the
 // `size_y < 0` clamp adds `cur->h` implicitly (int -> float, magic) where the compare casts (psq_l);
-// the `dir` shuffle is a two-case switch.
+// the `dir` shuffle is a two-case switch. Pass 2: both dir switches have `case 0:` (their lower
+// halves cross-jump), the compares convert the member `cur->h` directly (raw byte to psq_l) while
+// the stores use the int, `caseBoard` goes through a local before the swap (load order), arm 1's
+// `h` takes the fix result (`h = (int)(...)`, then `h - 1`: the fix is a two-set variable, the
+// minus a fresh r0 temp), arm 2 is `(s8)edge - (size_y - 1)` (fold gives `(edge + 1) - size_y`;
+// the (s8) re-extension needs the launder below). Left (14 words): register names in arm 1 (h r9
+// vs r10, the -1.0f pool high r11 vs r9) and the `(s8)edge` dest (r30 = edge in the target).
 int pzlPlayer::movePiece()
 {
     pzlPiece* p = hand;
@@ -1348,6 +1356,9 @@ int pzlPlayer::movePiece()
                 dir = 0;
                 if (wall) {
                     switch (cur->wallDir) {
+                    case 0:
+                        dir = 0;
+                        break;
                     case 1:
                         dir = 1;
                         break;
@@ -1382,12 +1393,13 @@ int pzlPlayer::movePiece()
                 if (dir == 1 || dir == 2) {
                     int edge;
                     f32 fy;
+                    pzlBoard* cb = caseBoard;
                     f32 ny = 0.0f;
-                    if (cur == caseBoard) {
+                    if (cur == cb) {
                         cur = spaceBoard;
                         ny = p->y - -2.0f;
                     } else if (cur == spaceBoard) {
-                        cur = caseBoard;
+                        cur = cb;
                         ny = p->y + -2.0f;
                     }
                     p->y = ny;
@@ -1410,18 +1422,20 @@ int pzlPlayer::movePiece()
                     if (p->size_y() < 0) {
                         f32 vy = p->ver0_y();
                         int h = cur->h;
-                        if (vy > (f32) (s8) h) {
+                        if (vy > (f32) cur->h) {
                             p->y = (f32) h + p->cy;
                         }
                         fy = p->ver0_y() + (f32) (p->size_y() + 1);
                         if (fy < -1.0f) {
-                            p->y = (f32) ((int) (fabsf((f32) (s8) p->size_y()) - 1.0f) - 1) + p->cy;
+                            h = (int) (fabsf((f32) (s8) p->size_y()) - 1.0f);
+                            p->y = (f32) (h - 1) + p->cy;
                         }
                     } else {
                         fy = p->ver0_y() + (f32) (p->size_y() - 1);
                         edge = cur->h;
-                        if (fy > (f32) (s8) edge) {
-                            p->y = (f32) ((s8) edge + 1 - p->size_y()) + p->cy;
+                        if (fy > (f32) cur->h) {
+                            asm("" : "+r"(edge)); // COMPILER-DIFF: the target re-extends edge after size_y (extsb r30,r30); ours proves it sign-extended
+                            p->y = (f32) ((s8) edge - (p->size_y() - 1)) + p->cy;
                         }
                         if (p->ver0_y() < -1.0f) {
                             p->y = p->cy + -1.0f;
