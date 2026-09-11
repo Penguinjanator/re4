@@ -3700,16 +3700,24 @@ int SceAtCheckSystemItemSet(u32 id, int* outId, int* outNum, Vec* pos, Vec* rot)
         d.xB = 0;
         EmSetEvent(&d);
         goto fail;
+    // The fail tail is written out in both RandomItemCk arms: jump2 first cross-jumps each copy into
+    // the `fail:` block (fall-through candidate) and only then finds the 0x1002 arm's `b fail` equal
+    // to the 0x1001 arm's, so the 0x1001 copy of `bl; cmpwi; beq; b` survives (a shared `goto fail`
+    // makes the 0x1001 arm the scanned one and keeps the 0x1002 copy).
     case 0x1001:
-        if (RandomItemCk(0x10, outId, outNum, 0) == 1) {
-            break;
+        if (RandomItemCk(0x10, outId, outNum, 0) != 1) {
+            *outId = 0xFFFF;
+            *outNum = 0;
+            return 0;
         }
-        goto fail;
+        break;
     case 0x1002:
-        if (RandomItemCk(0x10, outId, outNum, 1) == 1) {
-            break;
+        if (RandomItemCk(0x10, outId, outNum, 1) != 1) {
+            *outId = 0xFFFF;
+            *outNum = 0;
+            return 0;
         }
-        goto fail;
+        break;
     case 0x1003:
         // The switches run on the result variables (the case-5 `num = 5` of 0x1004 folds into the
         // switch register, 0x1005's arms load straight into `no`).

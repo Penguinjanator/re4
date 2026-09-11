@@ -884,15 +884,17 @@ void MakeSoftShadow(ShadowMng* mng)
     static f32 fc = 1.0f;
     static int fd = 2;
     f32 z = 65530.0f;
+    f32 zero0 = 0.0f;
     f32 zero;
     f32 alpha;
     ShadowLightWork* w;
     int a;
 
     SetNoScissor();
-    // Assigned after the first call: a declaration initialiser is loaded before it and changes the
-    // callee-saved FPR order of z/alpha (target: z f29, alpha f30).
-    zero = 0.0f;
+    // Two zero variables: the pool 0.0 is a declaration initialiser (f28, loaded before SetNoScissor,
+    // live through the whole function) and the argument variable is a copy of it, assigned here and
+    // again at the top of the else arm (`fmr f31,f28` twice; a second cse ebb keeps the second copy).
+    zero = zero0;
     SoftShadowGetEFB(mng, 0.5f, 1.0f, 1);
     a = 0xFF;
     alpha = (f32) (u8) a;
@@ -909,6 +911,7 @@ void MakeSoftShadow(ShadowMng* mng)
         SoftShadowGetEFB(mng, 1.0f, 2.0f, 1);
         SoftShadowGXDrawF(mng, zero, zero, z, 2, zero, zero, alpha, 0.25f);
     } else {
+        zero = zero0;
         SoftShadowGetEFB(mng, 1.0f, 2.0f, 1);
         SoftShadowGXDrawF(mng, zero, zero, z, 2, zero, zero, alpha, 0.5f);
     }

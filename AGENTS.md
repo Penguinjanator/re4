@@ -18928,3 +18928,88 @@ loop printing `LADBG <function> head<uid> b<bb> q<n> reg<r> refs birth death pri
 - t_event SubToolMessInit (212, 0x10a0/0x1074): the missing 11 words are the inlined `cDbgToolMain<T>` constructor's loops (`li r9,99;
   addi r28,r9,-1; li r29,10; loop: bl memset(p, 0, 16); ...; cmpwi r9,-1`) -- the shared header's ctor (the ToolEspArea/ToolLightAreaMain
   block of pass 16, owned by tools pass 17a), not this unit. t_id/t_id and t_movie/t_snd_vol were not started this pass.
+
+### DOL sweep 24a, closest-first (shadow MakeSoftShadow 24 -> 0 zero code (34/36); at_mod ComnHitCheck 22 -> 0 zero code (17/18, .text size now +16 only); sce_at order + size fixed with STRIP_UNUSED and SceAtCheckSystemItemSet 10 -> 0 zero code (112/114); dvd, Espgen43, em_cloth, em_set, cam_extra unchanged; nothing flipped; 2026-09-11)
+
+Harness ~/.cache/dol24a (dol23a copies with the paths rewritten: `tryv.py UNIT SYM v/x.py` (`STRIP=1` env runs strip_unused
+like the build does), `sbs.sh UNIT SYM [OBJ]`, `dump.sh UNIT -dX` with `SRC_OVERRIDE`, `mcmp.py`, `order.py`, `prio.py`), deleted at
+the end. 111 OK before and after every edit (the shared `ninja` settled this pass).
+
+- **Two zero variables, the argument one re-assigned in the else arm (shadow MakeSoftShadow 24 -> 0, zero code, frame 56 -> 64 =
+  the 4th callee-saved FPR).** The target's `lfs f28,0.0` before SetNoScissor with `fmr f31,f28` right after it AND again at the top
+  of the `soft <= 1` arm is `f32 zero0 = 0.0f;` (declaration initialiser: pool load hoisted above the call, callee-saved f28 for the
+  whole function) plus `f32 zero; SetNoScissor(); zero = zero0; ... else { zero = zero0; ... }` -- every GXDraw argument is `zero`.
+  cse keeps the first copy (both pseudos stay live: zero0 is read again in the else arm) and the else arm is a separate cse ebb (the
+  taken `ble` arm of a label with one use is only followed when the label is preceded by a BARRIER -- it is, but the copy there
+  reads zero0 whose class in that ebb has no other register, so the copy stays). A single `zero = 0.0f` after the call (the old
+  form) loads straight into f31 and has no second copy. Read the rule: a `fmr fA,fB` from a pool-loaded callee-saved FPR that
+  recurs at an arm top is a SOURCE copy of a constant variable, not cse/PRE. ShdInit's 1 word was the pool offset shift of this.
+- **Row-pointer step order in a matrix-copy macro (at_mod ComnHitCheck 22 -> 0, zero code): `d_++; s_++;` (destination first).**
+  The two `addi rD,16 / addi rS,16` pairs come out in that LUID order and, with it, the second copy's `sp_ = *s_` stays a separate
+  register copy (target s_ r0, sp_ r9): the loop-carried `s_` pseudo and `sp_` are both global and global.c's copy preference ties
+  them only when `sp_` is allocated first; the increment order changes the allocno order. Left in the unit: ObaLineHitChk 73 (ours
+  16 bytes larger): t/s/den are f31/f30/f0 in the target and f0/f13/f31 in ours -- the target computes `den = dd*ee - de*de`
+  BEFORE the t numerator (`ee` dies at the numerator's fmsubs and hands it f31), ours issues the numerator's `fmuls de*ef` first
+  (weight: `de`/`ef` dying) so `ee` dies at den's fmsubs. The s clamp then loads 0.0 and 1.0 into f0 and jump2 cross-jumps the two
+  `fmr sc,f0` arms (`blt` straight into the 1.0 arm's fmr). Forms tried this pass (73 unless noted): `de*de` as a variable, both
+  numerators as variables (66), `s` before `t`, commuted products (59: t/s registers move but not den), `ee * dd`. The register
+  set needs `de` and `ef` NOT to die at `de*ef` in sched1 -- i.e. another later use of `ef` or of `de` before the s numerator.
+- **sce_at: `game/sce_at.cpp` was missing from STRIP_UNUSED (objects.py) although its source already carried the dead
+  `sceAtFarCheck` with the comment saying so** -- that was the whole ORDER issue and the .text size gap (0x8e8c vs 0x8e54 = the 56
+  byte body). Check STRIP_UNUSED before reading an "extra function" order diff.
+- **Which arm's `bl; cmpwi; beq; b` copy survives jump2's cross-jump is decided by what the arms jumped to at jump2 ENTRY
+  (sce_at SceAtCheckSystemItemSet 10 -> 0, zero code): write the fail tail out in both RandomItemCk arms (`if (RandomItemCk(..) !=
+  1) { *outId = 0xFFFF; *outNum = 0; return 0; } break;`).** jump2 scans forward; the scanned jump's own tail is the one deleted, so
+  with a shared `goto fail` the 0x1001 arm (earlier) finds the 0x1002 arm's identical tail in `fail`'s jump_chain and loses its copy
+  (ours). With the fail block duplicated, the 0x1001 arm's `b RET` is first cross-jumped into the real `fail:` block (fall-through
+  candidate, 6 insns) and becomes `beq OK; b FAIL`; at that moment the 0x1002 arm still ends in its own copy + `b RET`, so nothing
+  matches; then the 0x1002 arm gets the same treatment and its re-examined `b FAIL` finds the 0x1001 tail in the chain -> the 0x1002
+  copy is deleted and jumps to a label before the 0x1001 arm's `bl` = the target. General #6 rule: an arm whose copy SURVIVES was
+  the CANDIDATE, i.e. the later arm's jump had to be redirected first (a duplicated tail, a `return` copy, a `(use r3)`), so look
+  for duplicated tails in the surviving arm's siblings. Left: sceAtGetItem 98 / sceAtGetItem_NoModel 12 -- NoModel's `n = it->num`
+  is r0 in the target because its `sth n,tmp.num` is issued BEFORE the fresh `li r0,0` of `ItemMgr.x12 = 0` (the #12 asm-li) in
+  sched1, so `n` and the zero do not overlap; ours issues the `li` first (prio 4 vs the sth's 3) and `n` falls to r9. `put = 1`
+  before the zero, `tmp.num` written directly, `ItemMgr.x12 = put - 1` / `= cancel`: 12-31.
+- **dvd DiscChange (7, unchanged; the 22a graph reading confirmed and narrowed once more).** Every load of the 16-byte `game[]`
+  template is `mem/s/u` and every store `mem/s`; in sched2 the lbz `pSys->region` (r9 loaded from memory, base 0) depends on all six
+  frame stores and `lwz r9,pSys` is `mem/f`. Our sched1 issues L12, L4, L8 (weight: the template pointer dies at L12) and the
+  target's final L8, L12, S0, L4, S8, S12, S4 needs BOTH a sched1 output with L4 after S0 (a non-/u L4 through hard r10 would then
+  true-depend on S0 in sched2) AND S4 without the +1 of the `lwz r9,pSys` anti-dependence -- the second is impossible while
+  S4's source register is r9 and the pSys load follows in the same block; so the original had a block boundary (a label) between
+  the template copy and the region test, or the pSys load in another register. Forms this pass: `game` before `company` (44),
+  `u32 region`, region assigned after the arrays, `id`/`cb` after the arrays (67), `u8 disc` local (9), `const char* g =
+  game[region]`, a `SystemWork* s = pSys` local (17), `asm volatile("" : : "m"(game), "m"(company))` (64): none.
+- **Espgen43 AddSandPower (5, unchanged; the two forms and their passes are now fully separated).** `FSet(Add_power, power)` (flagless
+  reference store) gates the three `*pos` loads in BOTH schedulers (prio 7 in sched1, so it takes t=1's second slot next to
+  `li r0,0` and the Chk_pos high is born one slot late -> high before W8 in local-alloc: the 5 words); `Add_power = power` (plain
+  scalar store) is exempted from the varying-struct loads by `fixed_scalar_and_varying_struct_p` in BOTH passes (sched1 order and
+  the target's allocation come out exactly; in sched2 the stfs then has prio 4 and loses t=1 to `lis Chk_pos` (5): 3 words). The
+  exemption tests the RAW addresses (`XEXP (mem, 0)`, not canon_rtx) with `rtx_varies_p`, whose REG case exempts only
+  frame/arg/pic pointers, so a scalar STACK slot is fixed in sched1 (`fp`) and varying in sched2 (`r1`); a symbol store is fixed in
+  both. `base_alias_check` returns 1 for a symbol vs an argument-register base (`flag_argument_noalias` 0), 0 only for two symbols
+  or a Pmode ADDRESS. `find_base_value` has a LO_SUM case, `find_base_term` too (pointer-flag operand first), so `stw
+  r0,Chk_pos@l(r10)` is always a known symbol base and never output-depends on the sda21 stfs; S4/S8 through r8 are unknown in
+  sched2 because r8 is an argument register re-set (`record_set` conflict). So the target's sched2 stfs (prio >= 5) needs a MEM
+  relation that does not exist in sched1: the only candidates are a scalar stack temporary (fixed/varying flip) or a store whose
+  RTL is created by reload. Also tried: plain Height_find (11-24), volatile (5), `f32*`/`Vec*` locals (5/3), member-wise and
+  `u32` copies in all 6 orders (9-10), a `Vec v = *pos` temp (29), `Vec& src` (5), copy-first (24).
+- **shadow make_comn_fit/parallel_light (2+2, unchanged; the local-alloc numbers read).** Block 19 sched1 output: loadaddr r224
+  born at slot 2 (t4, prio 12) and dying at the `lfd` (slot 15): QTY_CMP_PRI = floor_log2(4)*4*4/(2*13) = 1.23; the 1.0 high born
+  at slot 6 (t6, second iu2 slot, prio 5) and dying at its `lfs` (slot 10): 1*2*4/(2*4) = 1.0 -> loadaddr r11, 1.0 r10. The target
+  (1.0 r11, loadaddr r10) needs the 1.0 high allocated first: its `lfs` one LSU slot earlier (t8 instead of t9, where ours issues
+  the `stfs fov` first) or the `lis` one slot later (t7+), while still overlapping the magic-double high (dies slot 7, r9). Clamp
+  spellings (`f32 fov` local, `!(fov >= 1.0f)` (10), `(s32)(u8)`, `int x18` local, `f32 one`, `FSet(fov, 1.0f)`) all 2.
+- **em_cloth Em34ClothSet1 (9, unchanged; the qty lives read).** sched1 issues the six table highs one per cycle in statement order
+  behind the four pool highs (prio 5 > 4) and the stores in statement order from t15 (dying stores first, the shared r0 zero
+  stores last): lives Up2 26, Dp2 25, Max2 25 -> Dp2 r10, Max2 r8, Up2 r7. The target (Up2 r10, Dp2 r8, Max2 r7 = equal lives,
+  qty-number ties) needs one more prio >= 4 iu2 insn issued before Up2's `lis` (t3-t5) with no other change: the 100.0 call
+  constant as a local before pUp (26: its `lfs` moves up and the pool reorders) is not it.
+- **cam_extra (32/43, read): the .rodata 0x310/0x308 and the -8 vtable shift are pool CONTENT of the unmatched moves, not layout:**
+  FocusAnimation::move lacks `0.5f` and `100000.0f` (its `_filter0a_flag` arm in the target is 0x30 bytes longer and does an extra
+  conversion), one move lacks `0.05f` after `3c8efa35`, IdBinocular::move has an extra `1.0f` before `3f490fdb`. FocusAnimation::
+  move's else arm: the target stores a FRESH `li r0,0` into filter0a_mask_alpha after Filter01SetParam (frame 16, no r31) while ours
+  stores the loaded `_filter0a_flag` register (known 0 in the `beq` arm, kept in r31 across the call: frame 32) -- the target's else
+  arm did not inherit the flag's jump equivalence (its label had two uses or was not preceded by a barrier). Fixing the pools of the
+  three moves fixes init (8), the LookDownEm ctor (4) and the two dtors (1) for free.
+- Not iterated: em_set (10/12: EmSetEvent/EmSetFromList2 73/74, the sweep-8 asm-pool-high family), Espgen43 SetSandWork (44,
+  global-alloc rotation of the first strip loop), em_cloth Em18ClothSet (47), the cam_extra moves and CameraBinocular ctor (31).

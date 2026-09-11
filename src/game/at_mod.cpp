@@ -22,8 +22,9 @@ int emLineCubeCrossCk(Vec* a, Vec* b, Mtx m, f32 sx, f32 sy, f32 sz, cAtariInfo*
 // Matrix copy written out as loops. The row counter is a do-while starting at 2 (`i_-- != 0`): the
 // original's counter of ComnHitCheck's first copy is live across the getPartsPtr call (callee-saved
 // r30), which a `while (i_--)` from 3 cannot give (cse folds the peeled test and re-materialises
-// `li 2` after the call). Left in ComnHitCheck (22 words): the second copy's `sp_ = *s_` is a
-// separate copy in the target (s_ in r0, sp_ r9) and two sched positions in the first copy.
+// `li 2` after the call). The row pointers step destination first (`d_++; s_++;`): that LUID order
+// gives the target's `addi d; addi s` pairs and keeps the second copy's `sp_ = *s_` a separate
+// register copy (s_ r0, sp_ r9) -- ComnHitCheck is byte-identical with it.
 // ObaLineHitChk (73 words): t/s/den are f31/f30/f0 in the target (ours f0/f13/f31), so its s clamp
 // loads both 0.0 and 1.0 into f0 and cross-jumps the `sc = 0` arm into the `sc = 1` fmr (`blt`).
 #define MTX_COPY(src, dst)               \
@@ -40,8 +41,8 @@ int emLineCubeCrossCk(Vec* a, Vec* b, Mtx m, f32 sx, f32 sy, f32 sz, cAtariInfo*
             for (j_ = 0; j_ < 4; j_++) { \
                 *dp_++ = *sp_++;         \
             }                            \
-            s_++;                        \
             d_++;                        \
+            s_++;                        \
         } while (i_-- != 0);             \
     }
 
