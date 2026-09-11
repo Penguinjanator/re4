@@ -141,10 +141,10 @@ static void toolIdInit(IdTool* w)
     w->x17B = 0;
     w->pause = 0;
     w->menuY = 100;
-    w->level = 0;
+    // level's zero is the SImode one (stb from the x24 word register): a chained assignment
+    w->level = w->x24 = 0;
     w->parentNo = 0xFF;
     w->menuX = 100;
-    w->x24 = 0;
     toolIdClipboardClear();
     w->useCnt = toolIdClipboardCount(0xFF, 1);
     w->empCnt = toolIdClipboardCount(0xFF, 2);
@@ -493,51 +493,74 @@ static void toolIdEdit(IdTool* w)
                 d->level = w->level;
                 break;
             }
-        } else if (w->editSel == 0) {
-            idEditNo(w, w->menuX, w->menuY);
-        } else {
+        } else if (w->editSel != 0) {
             if (toolIdCountSelected() != 0 && !(d->be_flag & 0x80)) {
                 break;
             }
             if (joy->trg & 0x100) {
                 w->editMode = 1;
                 w->editStep = 0;
-                w->subCur = 0;
                 break;
             }
+        } else {
+            idEditNo(w, w->menuX, w->menuY);
         }
         if (joy->trg & 0x800) {
             w->editMode = 2;
-            w->editStep = 0;
             w->subCur = 0;
+            w->editStep = 0;
         }
         break;
     case 1:
         toolIdSubMenuPosition(w);
+        // editSel 2 is the size editor and 3 the position editor (editDispFunc order), written as
+        // case 3 then case 2 (arm layout); each arm repeats the `if (r == 0) editMode = r; focus = 0`
+        // tail (jump2 cross-jumps the six identical `mr. r3,r3` tails; a shared `goto sub` block
+        // gets a plain `cmpwi r3,0`)
         switch (w->editSel) {
         case 1:
-            if (idEditId(w, w->menuX, w->menuY) == 0) {
-                w->editMode = 0;
+            r = idEditId(w, w->menuX, w->menuY);
+            if (r == 0) {
+                w->editMode = r;
             }
             break;
-        case 2:
-            r = idEditPos(w, w->menuX, w->menuY);
-            goto sub;
         case 3:
+            r = idEditPos(w, w->menuX, w->menuY);
+            if (r == 0) {
+                w->editMode = r;
+            }
+            w->focus = 0;
+            break;
+        case 2:
             r = idEditSize(w, w->menuX, w->menuY);
-            goto sub;
+            if (r == 0) {
+                w->editMode = r;
+            }
+            w->focus = 0;
+            break;
         case 4:
             r = idEditColor(w, w->menuX, w->menuY);
-            goto sub;
+            if (r == 0) {
+                w->editMode = r;
+            }
+            w->focus = 0;
+            break;
         case 5:
             r = idEditRot(w, w->menuX, w->menuY);
-            goto sub;
+            if (r == 0) {
+                w->editMode = r;
+            }
+            w->focus = 0;
+            break;
         case 6:
             r = idEditTrans(w, w->menuX, w->menuY);
-            goto sub;
+            if (r == 0) {
+                w->editMode = r;
+            }
+            w->focus = 0;
+            break;
         case 7:
             r = idEditMark(w, w->menuX, w->menuY);
-        sub:
             if (r == 0) {
                 w->editMode = r;
             }
@@ -551,8 +574,8 @@ static void toolIdEdit(IdTool* w)
     case 2:
         r = idEditUnit(w, w->menuX, w->menuY);
         if (r == 0) {
-            w->editStep = r;
             w->editMode = r;
+            w->editStep = r;
         }
         break;
     }
@@ -563,7 +586,9 @@ static const char* unitMenuName[4] = { "Copy", "Cut", "Paste", "Grp." };
 
 int idEditUnit(IdTool* w, int x, int y)
 {
-    JOY* joy = &Joy[0];
+    // the target has joy in r11 and the `w->editStep` value in r10; unpinned, global.c gives them
+    // r10/r8 (r8 does not conflict with the editStep value in our local allocation)
+    register JOY* joy asm("r11") = &Joy[0]; // COMPILER-DIFF: pin
     int ret = 1;
     ID_DATA* d;
     int i;
@@ -661,8 +686,9 @@ int idEditUnit(IdTool* w, int x, int y)
     }
     eprintf(x, y, 5, 0, "NO-MENU");
     y += 0xE;
-    yy = y;
-    for (i = 0; i < 4; i++, yy += 0xE) {
+    for (i = 0; i < 4; i++) {
+        // giv form (`yy = y; ... yy += 0xE` gets cse's copy swap `yy = y + 14; y = yy`)
+        yy = y + i * 0xE;
         eprintf(x, yy, (w->subCur == i) ? 4 : 0, 0, "%s", unitMenuName[i]);
         if (w->subCur == i && (w->cnt & 0x18)) {
             eprintf(x - 8, yy, 0x16, 0, ">");
@@ -674,6 +700,13 @@ int idEditUnit(IdTool* w, int x, int y)
                 eprintf(x + 0x50, y + 0x38, 0, 0, "---/NO-");
             }
         }
+        // as idEditMark/idEditId: 5 more insns at loop.c time (pass 2: 67 -> 72 > threshold 71 keeps
+        // the ">" and "YES/---" highs inside the loop, as the target)
+        d = (ID_DATA*) 0; // COMPILER-DIFF: 3 (loop.c insn_count, dead sets)
+        d = (ID_DATA*) 4;
+        d = (ID_DATA*) 0;
+        d = (ID_DATA*) 4;
+        d = (ID_DATA*) 0;
     }
     return ret;
 }
@@ -867,27 +900,38 @@ int idEditId(IdTool* w, int x, int y)
             struct { TexAnm* p; } anm;
 
             if (IdGetAnmAddr(d->texId, &anm.p) == 1) {
-                d->sizeX = (f32) ((TexAnmSize*) anm.p)->w;
-                {
-                    f32 h = (f32) (int) ((TexAnmSize*) anm.p)->h;
-                    h = h * 480.0f / 448.0f;
-                    h += 0.5f;
-                    d->sizeY = (f32) (int) h;
-                }
+                // ONE f32 variable for both dimensions: `s` then has two deaths (the sizeX store and
+                // the `+ 0.5f`), so it is a global pseudo (f0) and the rounding temp ties to the 0.5
+                // constant (`fadds f13,f0,f13`); the `* 480` and `/ 448` are sets of s (no temp tied
+                // to the 480 constant)
+                f32 s;
+
+                s = (f32) ((TexAnmSize*) anm.p)->w;
+                d->sizeX = s;
+                s = (f32) (int) ((TexAnmSize*) anm.p)->h;
+                s = s * 480.0f;
+                s = s / 448.0f;
+                d->sizeY = (f32) (int) (s + 0.5f);
             }
         }
         if (joy->trg & 0x200) {
             ret = 0;
         }
+        // +1 insn while w is live: w (19 refs / 175) is allocated ahead of i (15 / 104) by 4342 vs
+        // 4326 global.c priority units; the original has i (r30) before w (r29)
+        asm(""); // COMPILER-DIFF: anchor
         break;
     }
     }
     eprintf(x, y, 5, 0, "ID-MENU");
     y += 0xE;
-    yy = y;
-    for (i = 0; i <= 0; i++, yy += 0xE) {
+    for (i = 0; i <= 0; i++) {
         int col;
 
+        // giv form: the `mr r31,r25` init is emitted by strength_reduce after the pass-1 hoists
+        // ("%s", ">") and before the pass-2 hoist ("%02X"); `yy = y; ... yy += 0xE` puts the copy
+        // first and cse swaps it into `yy = y + 14; y = yy`
+        yy = y + i * 0xE;
         eprintf(x, yy, (w->subCur == i) ? 4 : 0, 0, "%s", idMenuName[i]);
         if (w->subCur == i && (w->cnt & 0x18)) {
             eprintf(x - 8, yy, 0x16, 0, ">");
@@ -899,6 +943,13 @@ int idEditId(IdTool* w, int x, int y)
         if (i == 0) {
             eprintf(x + 0x20, y, col, 0, "%02X", d->texId);
         }
+        // as idEditMark: the original loop has 5 more insns at loop.c time (61 -> 66 > threshold 65
+        // keeps the "%02X" high for pass 2)
+        col = 7; // COMPILER-DIFF: 3 (loop.c pass-1 insn_count, dead sets)
+        col = 6;
+        col = 7;
+        col = 6;
+        col = 7;
     }
     return ret;
 }
@@ -2615,14 +2666,16 @@ static void toolIdOption(IdTool* w)
     cx = 0x23;
     r0 = 0xB;
     eprintf(cx << 3, (r0 - 1) * 0xE, 5, 0, "OPTION");
-    sx = 0x2E;
-    r1 = 0xC;
-    r2 = 0xD;
     mx = 0x22;
     vx = 0x2F;
     for (i = 0; i <= 2; i++) {
         int y = (r0 + i) * 0xE;
 
+        // sx/r1/r2 are set in the loop body: loop.c hoists the three `li` after `i = 0` and the
+        // PRE'd high, as the target; mx/vx (target: after r1/r2, pass-2 position) not yet found
+        sx = 0x2E;
+        r1 = 0xC;
+        r2 = 0xD;
         eprintf(cx << 3, y, (optCur == i) ? 4 : 0, 0, "%s", optMenuName[i]);
         if (optCur == i && (w->cnt & 0x18)) {
             eprintf(mx << 3, y, 0x16, 0, ">");
