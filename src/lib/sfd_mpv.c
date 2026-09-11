@@ -4,10 +4,14 @@
  *
  * Compiled with `-inline auto,deferred` (CRI_CFLAG_OVERRIDES): the file is written in the reverse
  * of the DOL's .text order, .bss is the reverse of the declaration order, and the static helpers
- * are `static inline` (deferred emits every static that is not forced). Not Matching: 15/38
- * functions byte-identical, .rodata/.bss identical; the time-code arithmetic (sfmpv_DoReformTc,
- * sfmpv_Concat, sfmpv_Pts2Tc), sfmpv_ChkBufSiz's buffer split loop and sfmpv_DecodeOneUnit still
- * differ in statement shape, sfmpv_ChkFatal is auto-inlined into SFMPV_Init (M3). */
+ * are `static inline` (deferred emits every static that is not forced). Not Matching: 21/38
+ * functions byte-identical, .rodata/.bss identical. Residues: register ranking (a parameter ranked
+ * above the pool temp in SFMPV_Destroy / SFMPV_Create, geometry temps of sfmpv_ChkBufSiz /
+ * sfmpv_SetFrmPara, arithmetic temps of sfmpv_Concat / sfmpv_DoReformTc / sfmpv_Pts2Tc), the
+ * 64-bit arithmetic of sfmpv_DecodePicAtr, the ECOND copy `mr r31,r0` of sfmpv_GoDdelim, the
+ * address-taken slot order of sfmpv_ExecServerSub, and sfmpv_Pts2Tc's three .rodata tables that
+ * the original addresses with separate lis/addi pairs while deferred codegen pools them
+ * (`#pragma pool_data off` around the function reproduces it; not applied). */
 #include "cri_xpt.h"
 #include "sfd.h"
 #include "mpv.h"
@@ -24,6 +28,22 @@
 #define SFMPV_DLM_GOP 0x08
 #define SFMPV_DLM_SEQ 0x40
 #define SFMPV_DLM_END 0x80
+
+/* repeated-field record of the time work (sfd.h SFTIM rfld[64]) */
+typedef struct {
+	Sint16 rpt;                /* 0x00 repeat_first_field count of the picture */
+	Sint16 acc;                /* 0x02 accumulated repeated fields */
+} SFMPV_RFLD;
+
+/* picture user data work of the handle (SFMPV_WORK picusr_buf .. picusr[], 0x94 bytes) */
+typedef struct {
+	void *buf;                 /* 0x00 */
+	Sint32 num;                /* 0x04 */
+	Sint32 siz;                /* 0x08 */
+	Uint8 *dat;                /* 0x0C */
+	Sint32 len;                /* 0x10 */
+	SFMPV_PICUSR slot[SFMPV_FRM_NUM]; /* 0x14 */
+} SFMPV_PICUSRWK;
 
 /* frame parameter block handed to MPV_DecodeFrmSj (mpv.h MPV_FRM, 0x30 bytes) */
 typedef struct {
@@ -79,8 +99,7 @@ typedef struct {
 	Sint32 x44;
 	Sint32 pstruct;            /* 0x48 */
 	Sint32 x4c;
-	Sint32 pts_hi;             /* 0x50 */
-	Sint32 pts_lo;             /* 0x54 */
+	Sint64 pts;                /* 0x50 */
 	Sint32 x58;
 	Sint32 x5c;
 	Sint32 x60;
@@ -225,16 +244,17 @@ static inline Bool sfmpv_IsEmptySkip(SFD sfd, Sint32 ptype, SJCK *ck);
 static inline Bool sfmpv_IsCondSkip(SFD sfd, Sint32 ptype);
 static inline Bool sfmpv_IsSeekSkip(SFD sfd);
 static Sint32 SFMPV_Create(SFD sfd);
-static inline Sint32 sfmpv_ChkPara(void);
+static inline Sint32 sfmpv_ChkPara(SFMPV_PARA *para);
 static Sint32 SFMPV_GetWrite(SFD sfd);
 static inline Sint32 sfmpv_SeekVhdr(SFD sfd, Sint32 *flg);
 static inline Sint32 sfmpv_ChkRingSpace(SFD sfd);
-static inline Sint32 sfmpv_SkipEndcode(SFD sfd, SJ sj);
-static inline void sfmpv_SetPicUsrBuf(SFD sfd, void *buf, Sint32 num, Sint32 siz);
+static inline void sfmpv_SkipEndcode(SFD sfd, SJ sj);
+static inline Sint32 sfmpv_SetPicUsrBuf(SFD sfd, void *buf, Sint32 num, Sint32 siz);
 static inline void sfmpv_SetFrmTime(SFD sfd, SFMPV_FRM *frm);
-static inline void sfmpv_InitFrm(SFMPV_FRM *frm, void *buf);
+static inline void sfmpv_InitFrm(SFMPV_FRM *frm, void **pbuf);
 static inline Sint32 sfmpv_CalcFrmSiz(Sint32 width, Sint32 height);
 static inline void sfmpv_CalcYccPlane(void *buf, Sint32 width, Sint32 height, SFMPV_PLANE *plane);
+static inline void sfmpv_SetPlane(void *buf, Sint32 ywidth, Sint32 cwidth, Sint32 ysize, Sint32 csize, SFMPV_PLANE *plane);
 static inline Sint32 sfmpv_DlmOfst(SFBUF_RINF *inf, Sint8 *p);
 static inline Sint8 *sfmpv_BsearchDlm(SFBUF_RINF *inf, Sint32 mask, Sint32 *code);
 static inline Sint8 *sfmpv_SearchDlm(SFBUF_RINF *inf, Sint32 mask, Sint32 *code);
@@ -317,8 +337,8 @@ Sint32 SFD_SetMpvCond(SFD sfd, Sint32 id, Sint32 val)
 Sint32 SFMPV_SaveCond(SFD sfd, Sint32 *tbl, Sint32 size)
 {
 	MPV hn = SFMPV_WK(sfd)->mpv;
-	Uint32 n;
 	Sint32 i;
+	Sint32 n;
 
 	if (hn == NULL) {
 		return 0;
@@ -348,8 +368,7 @@ Sint32 SFD_SetPicUsrBuf(SFD sfd, void *buf, Sint32 num, Sint32 siz)
 	if (SFLIB_CheckHn(sfd) != 0) {
 		return SFLIB_SetErr(NULL, 0xFF000185);
 	}
-	sfmpv_SetPicUsrBuf(sfd, buf, num, siz);
-	return 0;
+	return sfmpv_SetPicUsrBuf(sfd, buf, num, siz);
 }
 
 Sint32 SFMPV_Init(void)
@@ -412,15 +431,15 @@ Sint32 sfmpv_ExecServerSub(SFD sfd)
 	MPV hn;
 	SFTIM tim = SFD_TIM(sfd);
 	Sint32 ret;
-	Sint32 size;
 	Sint32 done;
-	Sint32 code;
 	Sint32 flag;
+	Sint32 code;
+	Sint32 size;
 	Sint32 used;
-	SJCK ck;
-	SJ sj;
-	Sint32 wcnt;
 	Sint32 rcnt;
+	Sint32 wcnt;
+	SJ sj;
+	SJCK ck;
 	Sint32 bufout;
 	Sint32 bufin;
 	Sint32 n;
@@ -440,7 +459,7 @@ Sint32 sfmpv_ExecServerSub(SFD sfd)
 		hn = mpv->mpv;
 		ck.data = (void *)SFSET_GetCond(sfd, 0x5D);
 		ck.len = SFSET_GetCond(sfd, 0x5E);
-		if (ck.data != NULL && ck.len != 0 && mpv->dlmmask == (SFMPV_DLM_END | SFMPV_DLM_SEQ)) {
+		if (ck.data != NULL && (Uint32)ck.len != 0 && mpv->dlmmask == (SFMPV_DLM_END | SFMPV_DLM_SEQ)) {
 			if (MPV_DecodePicAtr(hn, &ck, &used) == 0) {
 				mpv->picstat = 2;
 				mpv->dlmmask = SFMPV_DLM_END | SFMPV_DLM_SEQ | SFMPV_DLM_GOP;
@@ -489,22 +508,21 @@ Sint32 sfmpv_ExecServerSub(SFD sfd)
 static inline Bool sfmpv_IsPrepared(SFD sfd)
 {
 	Sint32 n;
+	Sint32 nfrm;
 
 	if (SFMPVF_IsTermDec(sfd)) {
 		return TRUE;
 	}
 	n = sfd->cond[0x17];
+	nfrm = sfd->prm.x2c;
 	if (n == -1) {
-		n = sfd->prm.x2c;
+		n = nfrm;
 	}
-	if (sfd->prm.x2c < n) {
-		n = sfd->prm.x2c;
+	if (nfrm < n) {
+		n = nfrm;
 	}
-	if (SFMPVF_GetNumFrm(sfd) >= n) {
-		if (sfmpv_IsEnoughData(sfd)) {
-			return TRUE;
-		}
-		return FALSE;
+	if (SFMPVF_GetNumFrm(sfd) >= n && sfmpv_IsEnoughData(sfd)) {
+		return TRUE;
 	}
 	return FALSE;
 }
@@ -552,6 +570,7 @@ Sint32 sfmpv_GetActiveSize(SFD sfd, Sint32 *size, Sint32 *code, Sint32 *flag)
 	Uint8 *end;
 	Sint32 dummy;
 	Sint32 ret;
+	Sint32 n;
 
 	*size = 0;
 	*code = 0;
@@ -566,11 +585,11 @@ Sint32 sfmpv_GetActiveSize(SFD sfd, Sint32 *size, Sint32 *code, Sint32 *flag)
 	dcode = 0;
 	p = sfmpv_SearchDlm(&inf, SFMPV_DLM_END | SFMPV_DLM_SEQ | SFMPV_DLM_GOP | SFMPV_DLM_PIC | SFMPV_DLM_SLICE, &dcode);
 	if (p != (Sint8 *)inf.ck1.data) {
-		if (p == NULL) {
-			*size = inf.ck1.len + inf.ck2.len - 3;
-			*size = (*size < 0) ? 0 : *size;
-		} else {
+		if (p != NULL) {
 			*size = sfmpv_DlmOfst(&inf, p);
+		} else {
+			n = inf.ck1.len + inf.ck2.len - 3;
+			*size = (n < 0) ? 0 : n;
 		}
 		if (*size > 0) {
 			*flag = 1;
@@ -595,8 +614,8 @@ Sint32 sfmpv_GetActiveSize(SFD sfd, Sint32 *size, Sint32 *code, Sint32 *flag)
 			dlmend = end;
 			p = sfmpv_BsearchDlm(&inf, SFMPV_DLM_END | SFMPV_DLM_SEQ | SFMPV_DLM_GOP | SFMPV_DLM_PIC, &dummy);
 			dlm = (Uint8 *)p;
+			SFBUF_RingSetDlm(sfd, bufin, (Uint8 *)p, dlmend);
 		}
-		SFBUF_RingSetDlm(sfd, bufin, dlm, dlmend);
 	}
 	if (dlm == NULL) {
 		return sfmpv_ChkRingSpace(sfd);
@@ -671,59 +690,88 @@ Bool sfmpv_NeedSafeDlmRefresh(SFBUF_RINF *inf, Sint32 code, Uint8 *dlm)
 	switch (dcode) {
 	case SFMPV_DLM_SEQ:
 	case SFMPV_DLM_END:
-		return FALSE;
+		break;
 	case SFMPV_DLM_GOP:
 		if ((code & SFMPV_DLM_SEQ) == 0) {
-			return FALSE;
+			break;
 		}
 		p = sfmpv_SearchDlm(inf, SFMPV_DLM_GOP, &dummy);
-		if (p == NULL) {
+		if (p == NULL || (Uint8 *)p == dlm) {
 			return TRUE;
 		}
-		if ((Uint8 *)p != dlm) {
-			return FALSE;
-		}
-		return TRUE;
+		break;
 	case SFMPV_DLM_PIC:
 		if ((code & (SFMPV_DLM_SEQ | SFMPV_DLM_GOP)) == 0) {
-			return FALSE;
+			break;
 		}
 		p = sfmpv_SearchDlm(inf, SFMPV_DLM_PIC, &dummy);
-		if (p == NULL) {
+		if (p == NULL || (Uint8 *)p == dlm) {
 			return TRUE;
 		}
-		if ((Uint8 *)p != dlm) {
-			return FALSE;
-		}
-		return TRUE;
+		break;
 	default:
 		return TRUE;
 	}
+	return FALSE;
+}
+
+/* skip the picture at the read position (the decoder parses it without output) */
+static inline Sint32 sfmpv_SkipPic(SFD sfd, SJ sj)
+{
+	SFMPV_WORK *wk = SFMPV_WK(sfd);
+	SFTIM tim = SFD_TIM(sfd);
+	SFTIM_TTU *ttu3 = &tim->ttu3;
+	SFTIM_TTU *vstart = &tim->vstart;
+	MPV hn; /* declared after ttu3/vstart: scanned after them, 27 neighbours left = level 1 (r25) */
+	Sint32 flow;
+	Sint32 ret;
+	Sint32 err;
+
+	hn = wk->mpv;
+
+	if (ttu3->val < tim->vofst.val) {
+		*vstart = *ttu3;
+	}
+	flow = SJRBF_GetFlowCnt(sj, 0, 1);
+	ret = MPV_SkipFrmSj(hn, sj);
+	flow = SJRBF_GetFlowCnt(sj, 0, 1) - flow;
+	err = sfmpv_ChkDecRet(sfd, ret, flow, 0xFF000F07);
+	sfmpv_AddRtot(sfd, flow);
+	switch (err) {
+	case 0:
+		if (((MPV_PICATR *)wk->picatr)->x58 == 0) {
+			wk->skipret = 1;
+		}
+		SFPLY_AddSkipPic(sfd, 1, ((MPV_PICATR *)wk->picatr)->pic_type);
+		err = 0;
+		break;
+	}
+	return err;
 }
 
 /* decode one start-code-delimited unit at the read position */
 Sint32 sfmpv_DecodeOneUnit(SFD sfd, Sint32 size, Sint32 code, Sint32 flag, Sint32 *done)
 {
-	SFMPV_WORK *mpv = SFMPV_WK(sfd);
-	SFTIM tim = SFD_TIM(sfd);
-	SJ sj;
+	/* ret and tot declared before mpv: coloured before it (ret r30, tot r31, mpv r29) */
 	Sint32 ret;
+	SFTIM_TTU *tot;
+	SFMPV_WORK *mpv;
+	SFTIM tim = SFD_TIM(sfd);
+	Sint32 bufin;
+	SJ sj;
 	Sint32 res;
 	SJCK ck;
 	SFBUF_RINF rinf;
 	SFBUF_RINF rinf2;
-	SFMPV_WORK *wk;
-	MPV hn;
-	Sint32 flow;
-	Sint32 skipret;
-	Sint32 err;
 
 	*done = 0;
+	mpv = SFMPV_WK(sfd);
+	bufin = SFMPV_BUFIN(sfd);
 	sfd->plyinf.raw[9] = 0;
 	if (mpv->dlmmask != (SFMPV_DLM_END | SFMPV_DLM_SEQ | SFMPV_DLM_GOP | SFMPV_DLM_PIC) || mpv->dlmwait == 0) {
 		code &= SFMPV_DLM_END | SFMPV_DLM_SEQ | SFMPV_DLM_GOP | SFMPV_DLM_PIC;
 	}
-	ret = SFBUF_RingGetSj(sfd, SFMPV_BUFIN(sfd), &sj);
+	ret = SFBUF_RingGetSj(sfd, bufin, &sj);
 	if (ret != 0) {
 		return 0;
 	}
@@ -734,35 +782,27 @@ Sint32 sfmpv_DecodeOneUnit(SFD sfd, Sint32 size, Sint32 code, Sint32 flag, Sint3
 		SFMPVF_SetGopStat(sfd, 1);
 	}
 	if (code == SFMPV_DLM_END) {
+		Sint32 n = SFMPV_BUFIN(sfd); /* loaded before the test (not substituted across the branch) */
+		tot = &tim->tot;
 		if (sfd->tr[SFMPV_TR].x20 < 0) {
-			sfd->tr[SFMPV_TR].x20 = SFBUF_GetRTot(sfd, SFMPV_BUFIN(sfd)) + 4;
+			sfd->tr[SFMPV_TR].x20 = SFBUF_GetRTot(sfd, n) + 4;
 		}
-		if (tim->tot.val < 0) {
-			tim->tot = tim->ttu1;
+		if (tot->val < 0) {
+			*tot = tim->ttu1;
 		}
 	}
 	if (code == SFMPV_DLM_END && SFCON_IsEndcodeSkip(sfd) != 0) {
 		if (sfmpv_Concat(sfd, sj) == 0) {
 			*done = 1;
 		}
-		return ret;
-	}
-	if (code == SFMPV_DLM_END && SFCON_IsVideoEndcodeSkip(sfd) != 0) {
+	} else if (code == SFMPV_DLM_END && SFCON_IsVideoEndcodeSkip(sfd) != 0) {
 		sfmpv_SkipEndcode(sfd, sj);
 		*done = 1;
-		return ret;
-	}
-	if (flag == 0) {
-		if (sfmpv_IsTerm(sfd, size, code)) {
-			SFMPVF_TermDec(sfd);
-			return ret;
-		}
-	}
-	if (flag == 0 && size <= 4) {
+	} else if (flag == 0 && sfmpv_IsTerm(sfd, size, code)) {
+		SFMPVF_TermDec(sfd);
+	} else if (flag == 0 && size <= 4) {
 		sfd->plyinf.raw[9] = 1;
-		return ret;
-	}
-	if (code & (SFMPV_DLM_SEQ | SFMPV_DLM_GOP | SFMPV_DLM_PIC)) {
+	} else if (code & (SFMPV_DLM_SEQ | SFMPV_DLM_GOP | SFMPV_DLM_PIC)) {
 		if (SFBUF_RingGetRead(sfd, SFMPV_BUFIN(sfd), &rinf) != 0) {
 			ck.data = NULL;
 			ck.len = 0;
@@ -776,9 +816,10 @@ Sint32 sfmpv_DecodeOneUnit(SFD sfd, Sint32 size, Sint32 code, Sint32 flag, Sint3
 		if (res == 0) {
 			if (code & mpv->dlmmask) {
 				mpv->dlmmask = SFMPV_DLM_END | SFMPV_DLM_SEQ | SFMPV_DLM_GOP | SFMPV_DLM_PIC;
-				mpv->dlmwait = 1;
 			}
-		} else if (code == SFMPV_DLM_SEQ && res == -2) {
+			mpv->dlmwait = 1;
+		}
+		if (code == SFMPV_DLM_SEQ && res == -2) {
 			mpv->dlmmask = SFMPV_DLM_END | SFMPV_DLM_SEQ;
 		}
 		*done = 1;
@@ -790,24 +831,7 @@ Sint32 sfmpv_DecodeOneUnit(SFD sfd, Sint32 size, Sint32 code, Sint32 flag, Sint3
 			ck = rinf2.ck1;
 		}
 		if (sfmpv_IsSkip(sfd, &ck)) {
-			wk = SFMPV_WK(sfd);
-			if (tim->ttu3.val < tim->vofst.val) {
-				tim->vstart = tim->ttu3;
-			}
-			hn = wk->mpv;
-			flow = SJRBF_GetFlowCnt(sj, 0, 1);
-			skipret = MPV_SkipFrmSj(hn, sj);
-			flow = SJRBF_GetFlowCnt(sj, 0, 1) - flow;
-			err = sfmpv_ChkDecRet(sfd, skipret, flow, 0xFF000F07);
-			sfmpv_AddRtot(sfd, flow);
-			if (err == 0) {
-				if (((MPV_PICATR *)wk->picatr)->x58 == 0) {
-					wk->skipret = 1;
-				}
-				SFPLY_AddSkipPic(sfd, 1, ((MPV_PICATR *)wk->picatr)->pic_type);
-				err = 0;
-			}
-			ret = err;
+			ret = sfmpv_SkipPic(sfd, sj);
 			if (ret == 0) {
 				*done = 1;
 			}
@@ -840,7 +864,9 @@ Sint32 sfmpv_Concat(SFD sfd, SJ sj)
 	SFMPV_WORK *mpv = SFMPV_WK(sfd);
 	SFTIM tim = SFD_TIM(sfd);
 	Sint32 t;
+	Sint32 type;
 	Sint32 rnd;
+	Sint32 field;
 	Sint32 fld;
 	Sint32 f;
 	Sint32 sec_tot;
@@ -849,41 +875,45 @@ Sint32 sfmpv_Concat(SFD sfd, SJ sj)
 	Sint32 min;
 	Sint32 hour;
 	SFTIM_TC tc;
-	Sint32 ncount;
 	Sint32 tscale;
-	Sint32 smpl;
+	Sint32 ncount;
 	Sint32 unit;
+	Sint32 smpl;
 	Sint32 ret;
+	Sint32 tunit;
 
 	if (SFSET_GetCond(sfd, 6) == 0) {
-		if (tim->ttu1.valid == 0) {
+		SFTIM_TTU *ttu1 = &tim->ttu1;
+		SFTIM_TTU *ttu0 = &tim->ttu0;
+		if (ttu1->valid == 0) {
 			t = 0;
 		} else {
-			rnd = sfmpv_fps_round[tim->ttu1.tc.type];
-			fld = tim->ttu1.tc.x1c + tim->ttu1.tc.field;
-			f = tim->ttu1.tc.frm + tim->ttu1.tc.frm2 + 1;
+			type = ttu1->tc.type;
+			rnd = sfmpv_fps_round[type];
+			fld = ttu1->tc.x1c + ttu1->tc.field;
+			f = ttu1->tc.frm + ttu1->tc.frm2 + 1;
 			f += fld / 2;
+			field = fld % 2;
 			sec_tot = f / rnd;
 			frm = f % rnd;
-			sec = tim->ttu1.tc.sec + sec_tot;
-			min = tim->ttu1.tc.min + sec / 60;
+			sec = ttu1->tc.sec + sec_tot;
+			min = ttu1->tc.min + sec / 60;
 			sec = sec % 60;
-			hour = tim->ttu1.tc.hour + min / 60;
+			hour = ttu1->tc.hour + min / 60;
 			min = min % 60;
-			if (tim->ttu1.tc.drop != 0 && sec == 0 && min % 10 != 0 && (frm == 0 || frm == 1)) {
+			if (ttu1->tc.drop != 0 && sec == 0 && min % 10 != 0 && (frm == 0 || frm == 1)) {
 				frm = 2;
 			}
-			tc.type = tim->ttu1.tc.type;
-			tc.drop = tim->ttu1.tc.drop;
+			tc.type = type;
+			tc.drop = ttu1->tc.drop;
 			tc.hour = hour;
 			tc.min = min;
 			tc.sec = sec;
 			tc.frm = frm;
-			tc.x1c = 0;
-			tc.field = (Sint16)(fld % 2);
+			tc.field = (Sint16)field;
 			tc.frm2 = 0;
 			SFTIM_Tc2Time(&tc, &ncount, &tscale);
-			t = ncount - tim->ttu0.val;
+			t = ncount - ttu0->val;
 		}
 	} else {
 		if (((const SFD_TR_IF **)sfd->prm.x00)[3] != &SFD_tr_ad_adxt) {
@@ -893,27 +923,30 @@ Sint32 sfmpv_Concat(SFD sfd, SJ sj)
 			t = -1;
 			goto chk;
 		}
+		tunit = tim->ttu0.unit;
 		tim->x1f0 += smpl;
-		t = UTY_MulDiv(tim->x1f0, tim->ttu0.unit, unit) - tim->ctime;
+		t = UTY_MulDiv(tim->x1f0, tunit, unit) - tim->ctime;
 		if (t < 0) {
 			t = 0;
 		}
 	}
 chk:
 	if (t < 0) {
-		return -1;
+		ret = -1;
+	} else {
+		if (t > 0) {
+			SFCON_UpdateConcatTime(sfd, t);
+			mpv->nconcat++;
+		}
+		SFTIM_InitTtu(&tim->ttu0, 0x7FFFFFFF);
+		SFTIM_InitTtu(&tim->ttu1, -1);
+		mpv->dlmmask = SFMPV_DLM_END | SFMPV_DLM_SEQ;
+		ret = 0;
 	}
-	if (t > 0) {
-		SFCON_UpdateConcatTime(sfd, t);
-	}
-	mpv->nconcat++;
-	SFTIM_InitTtu(&tim->ttu0, 0x7FFFFFFF);
-	SFTIM_InitTtu(&tim->ttu1, -1);
-	mpv->dlmmask = SFMPV_DLM_END | SFMPV_DLM_SEQ;
-	ret = sfmpv_SkipEndcode(sfd, sj);
 	if (ret == -1) {
 		return -1;
 	}
+	sfmpv_SkipEndcode(sfd, sj);
 	return 0;
 }
 
@@ -1178,17 +1211,18 @@ Sint32 sfmpv_DecodePicAtr(SFD sfd, SJCK *ck, SJ sj, Sint32 mask, Sint32 *result)
 /* repeat_first_field accounting: the field offset of each picture of the GOP */
 static void sfmpv_CalcRepeatField(SFD sfd, MPV_PICATR *atr, Sint32 newgop)
 {
+	SFMPV_FRM *ref;
 	SFMPV_WORK *mpv = SFMPV_WK(sfd);
 	SFTIM tim = SFD_TIM(sfd);
+	SFMPV_RFLD *rfld = (SFMPV_RFLD *)tim->rfld;
 	Sint32 i;
 	Sint32 idx;
 	Sint32 t;
 	Sint32 last;
 	Sint32 cur;
 	Sint32 j;
-	SFMPV_FRM *ref;
-	Sint32 ncount;
 	Sint32 tscale;
+	Sint32 ncount;
 
 	tim->tc.type = atr->frame_rate;
 	tim->tc.drop = atr->tc_drop;
@@ -1201,9 +1235,9 @@ static void sfmpv_CalcRepeatField(SFD sfd, MPV_PICATR *atr, Sint32 newgop)
 	tim->tc.field = 0;
 	if (newgop != 0) {
 		for (i = 0; i < 64; i++) {
-			tim->rfld[i].rpt = -1;
+			rfld[i].rpt = -1;
 		}
-		tim->rfld[0].acc = -1;
+		rfld[0].acc = -1;
 	} else if (atr->pic_type == 1 || atr->pic_type == 2) {
 		ref = mpv->ref[1];
 		cur = atr->temp_ref;
@@ -1212,31 +1246,31 @@ static void sfmpv_CalcRepeatField(SFD sfd, MPV_PICATR *atr, Sint32 newgop)
 			cur += 0x400;
 		}
 		for (t = last + 1; t < cur; t++) {
-			tim->rfld[t % 64].rpt = -1;
+			rfld[t % 64].rpt = -1;
 		}
 	}
 	idx = atr->temp_ref % 64;
-	tim->rfld[idx].rpt = tim->tc.x1c;
+	rfld[idx].rpt = tim->tc.x1c;
 	if (newgop != 0) {
-		tim->rfld[idx].acc = 0;
-	} else if (atr->temp_ref == 0 && tim->rfld[0].acc == -1) {
-		tim->rfld[0].acc = 0;
+		rfld[idx].acc = 0;
+	} else if (atr->temp_ref == 0 && rfld[0].acc == -1) {
+		rfld[0].acc = 0;
 	} else {
 		for (i = 0; i < 64; i++) {
 			j = (idx - i + 63) % 64;
-			if (tim->rfld[j].rpt != -1) {
-				tim->rfld[idx].acc = tim->rfld[j].rpt + tim->rfld[j].acc;
+			if (rfld[j].rpt != -1) {
+				rfld[idx].acc = rfld[j].rpt + rfld[j].acc;
 				break;
 			}
 		}
 	}
-	tim->tc.field = tim->rfld[idx].acc;
-	if (atr->pic_type == 3 && tim->rfld[idx].rpt != 0) {
+	tim->tc.field = rfld[idx].acc;
+	if (atr->pic_type == 3 && rfld[idx].rpt != 0) {
 		/* a repeated field of a B picture delays the backward reference */
+		j = mpv->ref[1]->tmpref % 64;
+		rfld[j].acc = rfld[idx].rpt + rfld[idx].acc;
+		mpv->ref[1]->ttu.tc.field = rfld[j].acc;
 		ref = mpv->ref[1];
-		j = ref->tmpref % 64;
-		tim->rfld[j].acc = tim->rfld[idx].rpt + tim->rfld[idx].acc;
-		ref->ttu.tc.field = tim->rfld[j].acc;
 		SFTIM_Tc2Time(&ref->ttu.tc, &ncount, &tscale);
 		ref->ttu.val = ncount - tim->ttu0.val;
 		ref->ttu.unit = tscale;
@@ -1244,26 +1278,27 @@ static void sfmpv_CalcRepeatField(SFD sfd, MPV_PICATR *atr, Sint32 newgop)
 		if (tim->ttu1.val <= ref->ttu.val) {
 			tim->ttu1 = ref->ttu;
 		}
-		sfmpv_SetFrmTime(sfd, ref);
+		sfmpv_SetFrmTime(sfd, mpv->ref[1]);
 	}
 }
 
 /* time code of the picture: from its PTS, or the previous picture's advanced by one frame */
 void sfmpv_DoReformTc(SFD sfd, MPV_PICATR *atr, Sint64 pts, Sint32 newgop)
 {
-	SFTIM tim = SFD_TIM(sfd);
 	Sint32 prate = atr->frame_rate;
 	Sint32 drop = atr->tc_drop;
 	Sint32 tmpref = atr->temp_ref;
+	SFTIM tim = SFD_TIM(sfd);
+	Sint32 type;
 	Sint32 rnd;
-	Sint32 fld;
-	Sint32 n;
 	Sint32 f;
-	Sint32 sec_tot;
-	Sint32 frm;
+	Sint32 fld;
+	Sint32 hour;
 	Sint32 sec;
 	Sint32 min;
-	Sint32 hour;
+	Sint32 sec_tot;
+	Sint32 frm;
+	Sint32 field;
 
 	if (newgop != 0 && pts >= 0) {
 		sfmpv_Pts2Tc(pts, prate, drop, tmpref, &tim->tc);
@@ -1277,10 +1312,12 @@ void sfmpv_DoReformTc(SFD sfd, MPV_PICATR *atr, Sint64 pts, Sint32 newgop)
 			tim->tc.frm = 0;
 		}
 	} else if (newgop != 0) {
-		rnd = sfmpv_fps_round[tim->ttu1.tc.type];
+		type = tim->ttu1.tc.type;
+		rnd = sfmpv_fps_round[type];
 		fld = tim->ttu1.tc.x1c + tim->ttu1.tc.field;
 		f = tim->ttu1.tc.frm + tim->ttu1.tc.frm2 + 1;
 		f += fld / 2;
+		field = fld % 2;
 		sec_tot = f / rnd;
 		frm = f % rnd;
 		sec = tim->ttu1.tc.sec + sec_tot;
@@ -1291,13 +1328,13 @@ void sfmpv_DoReformTc(SFD sfd, MPV_PICATR *atr, Sint64 pts, Sint32 newgop)
 		if (tim->ttu1.tc.drop != 0 && sec == 0 && min % 10 != 0 && (frm == 0 || frm == 1)) {
 			frm = 2;
 		}
-		tim->tc.type = tim->ttu1.tc.type;
+		tim->tc.type = type;
 		tim->tc.drop = tim->ttu1.tc.drop;
 		tim->tc.hour = hour;
 		tim->tc.min = min;
 		tim->tc.sec = sec;
 		tim->tc.frm = frm;
-		tim->tc.field = (Sint16)(fld % 2);
+		tim->tc.field = (Sint16)field;
 		tim->rfld[0].acc = tim->tc.field;
 		tim->rfld[tmpref].acc = tim->tc.field;
 	} else {
@@ -1315,6 +1352,7 @@ void sfmpv_Pts2Tc(Sint64 pts, Sint32 prate, Sint32 drop, Sint32 tmpref, SFTIM_TC
 {
 	Sint32 rate = SFTIM_prate[prate];
 	Sint32 rnd = sfmpv_fps_round[prate];
+	Sint32 m;
 	Sint64 n;
 	Sint32 fno;
 	Sint32 hour;
@@ -1328,8 +1366,9 @@ void sfmpv_Pts2Tc(Sint64 pts, Sint32 prate, Sint32 drop, Sint32 tmpref, SFTIM_TC
 	const Sint32 *tbl;
 
 	n = UTY_MulDivRound64(pts, (Sint64)(rate * 2), 90000000);
-	tc->field = (Sint16)(n & 1);
-	fno = (Sint32)(n >> 1) - tmpref;
+	m = (Sint32)n;
+	tc->field = (Sint16)(m & 1);
+	fno = (m >> 1) - tmpref;
 	fno = (fno > 0) ? fno : 0;
 	tc->type = prate;
 	tc->drop = drop;
@@ -1386,43 +1425,66 @@ Sint32 sfmpv_ChkBufSiz(SFD sfd, SFMPV_STMINF *inf, Sint32 bitrate, Sint32 vbvsiz
 	Sint32 n;
 	Sint32 n2;
 	Sint32 i;
+	Sint32 nfrm;
+	Uint8 *tabuf;
+	Uint8 *rfbuf;
+	Sint32 width;
+	Sint32 height;
+	Sint32 w16;
+	Sint32 h16;
+	Sint32 ywidth;
+	Sint32 cwidth;
+	Sint32 ysize;
+	Sint32 csize;
+	SFMPV_FRM *frm = mpv->frm;
 
-	fsize = sfmpv_CalcFrmSiz(inf->width, inf->height);
+	width = inf->width;
+	height = inf->height;
+	w16 = (width + 15) / 16 * 16;
+	h16 = (height + 15) / 16 * 16;
+	ywidth = (w16 + 31) / 32 * 32;
+	cwidth = (w16 / 2 + 31) / 32 * 32;
+	ysize = h16 * ywidth;
+	csize = (h16 / 2) * cwidth;
+	fsize = ysize + csize * 2 + 0x20;
 	fsize2 = sfmpv_CalcFrmSiz(mpv->para.width, mpv->para.height);
 	if (fsize * 2 > fsize2 * 2) {
 		return SFLIB_SetErr(sfd, 0xFF000F17);
 	}
-	if (mpv->para.x20 == 0) {
-		n = mpv->para.nfrm;
+	nfrm = mpv->para.nfrm;
+	tabuf = (Uint8 *)mpv->para.x20;
+	if (tabuf == NULL) {
+		n = nfrm;
 	} else {
-		tot = mpv->para.nfrm * fsize2;
+		tot = nfrm * fsize2;
 		acc = fsize;
 		for (n = 1; n <= SFMPV_FRM_NUM; n++) {
 			if (acc > tot) {
+				n--;
 				break;
 			}
 			acc += fsize;
 		}
-		n--;
-		if (n < mpv->para.nfrm) {
+		if (n < nfrm) {
 			return SFLIB_SetErr(sfd, 0xFF000F17);
 		}
-		mpv->rfb_adr[0] = (void *)mpv->para.x10;
-		mpv->rfb_adr[1] = (Uint8 *)mpv->rfb_adr[0] + fsize;
+		rfbuf = (Uint8 *)mpv->para.x10;
+		mpv->rfb_adr[0] = rfbuf;
+		mpv->rfb_adr[1] = rfbuf + fsize;
 		for (i = 0; i < n; i++) {
-			mpv->ta_adr[i] = (Uint8 *)mpv->para.x20 + i * fsize;
+			mpv->ta_adr[i] = tabuf + i * fsize;
 		}
 	}
-	sfmpv_CalcYccPlane(mpv->rfb_adr[0], inf->width, inf->height, &mpv->rfbuf[0]);
-	sfmpv_CalcYccPlane(mpv->rfb_adr[1], inf->width, inf->height, &mpv->rfbuf[1]);
+	sfmpv_SetPlane(mpv->rfb_adr[0], ywidth, cwidth, ysize, csize, &mpv->rfbuf[0]);
+	sfmpv_SetPlane(mpv->rfb_adr[1], ywidth, cwidth, ysize, csize, &mpv->rfbuf[1]);
 	if (sfd->prm.x38 == 3) {
 		n2 = (n < SFMPV_FRM_NUM - 2) ? n : SFMPV_FRM_NUM - 2;
 		mpv->nfrm = n2 + 2;
 		for (i = 0; i < 2; i++) {
-			sfmpv_InitFrm(&mpv->frm[i], mpv->rfb_adr[i]);
+			sfmpv_InitFrm(&frm[i], &mpv->rfb_adr[i]);
 		}
 		for (i = 0; i < n2; i++) {
-			sfmpv_InitFrm(&mpv->frm[i + 2], mpv->ta_adr[i]);
+			sfmpv_InitFrm(frm + 2 + i, &mpv->ta_adr[i]);
 		}
 		mpv->ref[0] = SFMPVF_AllocFrm(sfd);
 		mpv->ref[1] = SFMPVF_AllocFrm(sfd);
@@ -1430,10 +1492,47 @@ Sint32 sfmpv_ChkBufSiz(SFD sfd, SFMPV_STMINF *inf, Sint32 bitrate, Sint32 vbvsiz
 		n2 = (n < SFMPV_FRM_NUM) ? n : SFMPV_FRM_NUM;
 		mpv->nfrm = n2;
 		for (i = 0; i < n2; i++) {
-			sfmpv_InitFrm(&mpv->frm[i], mpv->ta_adr[i]);
+			sfmpv_InitFrm(&frm[i], &mpv->ta_adr[i]);
 		}
 	}
 	return 0;
+}
+
+/* decode state after the skip decision of a picture */
+static inline void sfmpv_UpdatePicStat(SFD sfd, MPV_PICATR *atr, Sint32 skip)
+{
+	SFMPV_WORK *wk = SFMPV_WK(sfd);
+	MPV hn = wk->mpv;
+	Sint32 st;
+	Sint32 flg1;
+	Sint32 flg2;
+
+	st = wk->picstat;
+	if (wk->newgop != 0) {
+		MPV_GetLinkFlg(hn, &flg1, &flg2);
+		if (flg1 == 1) {
+			st = 5;
+		} else {
+			if (SFD_TIM(sfd)->vofst.valid == 0 && SFSET_GetCond(sfd, 0x49) == 1) {
+				flg2 = 1;
+			}
+			if (flg2 == 1) {
+				st = 2;
+			}
+		}
+	}
+	if (skip == 1) {
+		if (atr->pic_type == 1 || atr->pic_type == 2) {
+			st = 2;
+		}
+	} else {
+		if (st == 2) {
+			st = 3;
+		} else if (st == 3) {
+			st = 5;
+		}
+	}
+	wk->picstat = st;
 }
 
 Sint32 sfmpv_IsSkip(SFD sfd, SJCK *ck)
@@ -1442,10 +1541,6 @@ Sint32 sfmpv_IsSkip(SFD sfd, SJCK *ck)
 	MPV_PICATR *atr = (MPV_PICATR *)mpv->picatr;
 	Sint32 ptype;
 	Sint32 skip;
-	SFMPV_WORK *wk;
-	Sint32 st;
-	Sint32 flg1;
-	Sint32 flg2;
 
 	if (SFSET_GetCond(sfd, 0x2F) == 1) {
 		return 1;
@@ -1470,34 +1565,7 @@ Sint32 sfmpv_IsSkip(SFD sfd, SJCK *ck)
 	} else {
 		skip = 0;
 	}
-	/* decode state */
-	wk = SFMPV_WK(sfd);
-	st = wk->picstat;
-	if (wk->newgop != 0) {
-		MPV_GetLinkFlg(wk->mpv, &flg1, &flg2);
-		if (flg1 == 1) {
-			st = 5;
-		} else {
-			if (SFD_TIM(sfd)->vofst.valid == 0 && SFSET_GetCond(sfd, 0x49) == 1) {
-				flg2 = 1;
-			}
-			if (flg2 == 1) {
-				st = 2;
-			}
-		}
-	}
-	if (skip == 1) {
-		if (atr->pic_type == 1 || atr->pic_type == 2) {
-			st = 2;
-		}
-	} else {
-		if (st == 2) {
-			st = 3;
-		} else if (st == 3) {
-			st = 5;
-		}
-	}
-	wk->picstat = st;
+	sfmpv_UpdatePicStat(sfd, atr, skip);
 	return skip;
 }
 
@@ -1505,12 +1573,12 @@ Sint32 sfmpv_IsSkip(SFD sfd, SJCK *ck)
 static inline Bool sfmpv_IsLateSkip(SFD sfd, Sint32 ptype)
 {
 	SFMPV_WORK *mpv = SFMPV_WK(sfd);
-	SFTIM tim = SFD_TIM(sfd);
 	Sint32 t;
 	Sint32 unit;
 	Sint32 cur;
 	Sint32 curunit;
 	SFMPV_ISSKIPFN fn;
+	SFTIM tim = SFD_TIM(sfd);
 
 	if (tim->vofst.valid == 0) {
 		t = 0;
@@ -1536,7 +1604,7 @@ static inline Bool sfmpv_IsLateSkip(SFD sfd, Sint32 ptype)
 		return FALSE;
 	}
 	t = t - unit * sfd->cond[0x2A] / sfd->cond[0x2B];
-	if (UTY_CmpTime(cur, curunit, t, unit) == 0) {
+	if (UTY_CmpTime(cur, curunit, t, unit) != 0) {
 		return FALSE;
 	}
 	mpv->nskip++;
@@ -1547,9 +1615,12 @@ static inline Bool sfmpv_IsLateSkip(SFD sfd, Sint32 ptype)
 static inline Bool sfmpv_IsGopSkip(SFD sfd, Sint32 ptype)
 {
 	SFMPV_WORK *mpv = SFMPV_WK(sfd);
+	/* a volatile read keeps `stat` a helper local ranked below `ret` (ret r0, stat r3); a plain
+	 * `switch (mpv->picstat)` makes the load a backend temporary coloured before ret */
+	Sint32 stat = *(volatile Sint32 *)&mpv->picstat;
 	Bool ret = FALSE;
 
-	switch (mpv->picstat) {
+	switch (stat) {
 	case 2:
 		if (ptype == 2 || ptype == 3) {
 			ret = TRUE;
@@ -1561,6 +1632,9 @@ static inline Bool sfmpv_IsGopSkip(SFD sfd, Sint32 ptype)
 		}
 		break;
 	case 4:
+		ret = FALSE;
+		break;
+	case 5:
 		break;
 	default:
 		break;
@@ -1574,7 +1648,7 @@ static inline Bool sfmpv_IsEmptySkip(SFD sfd, Sint32 ptype, SJCK *ck)
 	SFMPV_STMINF *inf = (SFMPV_STMINF *)&sfd->x90c;
 	Sint32 ret;
 
-	if (SFSET_GetCond(sfd, 7) == 0) {
+	if (SFSET_GetCond(sfd, 7) != 0) {
 		return FALSE;
 	}
 	if (ptype == 3) {
@@ -1612,27 +1686,77 @@ static inline Bool sfmpv_IsCondSkip(SFD sfd, Sint32 ptype)
 	default:
 		return TRUE;
 	}
-	if (v != 0) {
-		return FALSE;
+	if (v == 0) {
+		return TRUE;
 	}
-	return TRUE;
+	return FALSE;
 }
 
 /* a seek target lies beyond this picture */
 static inline Bool sfmpv_IsSeekSkip(SFD sfd)
 {
 	SFTIM tim = SFD_TIM(sfd);
+	SFTIM_TTU *ttu3 = &tim->ttu3;
+	SFTIM_TTU *vofst = &tim->vofst;
 
 	if (sfd->see.req.pos < 0) {
 		return FALSE;
 	}
-	if (tim->vofst.valid == 0) {
+	if (vofst->valid != 0) {
 		return FALSE;
 	}
-	if (UTY_CmpTime(sfd->see.req.pos, sfd->see.req.x08, tim->ttu3.val, tim->ttu3.unit) == 0) {
+	if (UTY_CmpTime(sfd->see.req.pos, sfd->see.req.x08, ttu3->val, ttu3->unit) != 0) {
 		return FALSE;
 	}
 	return TRUE;
+}
+
+/* the video offset time: the time code of the first decoded picture */
+static inline void sfmpv_SetVofst(SFD sfd)
+{
+	SFTIM tim = SFD_TIM(sfd);
+	SFTIM_TTU *ttu0 = &tim->ttu0;
+	SFTIM_TTU *vofst = &tim->vofst;
+	SFTIM_TC tc;
+	Sint32 ncount;
+	Sint32 tscale;
+	Sint32 flag;
+
+	if (vofst->valid == 0) {
+		SFTIM_TTU *ttu3 = &tim->ttu3;
+		tc = ttu3->tc;
+		flag = 0;
+		switch (SFMPV_WK(sfd)->picstat) {
+		case 2:
+			flag = 1;
+			break;
+		case 3:
+			flag = 1;
+			break;
+		case 4:
+			flag = 0;
+			break;
+		case 5:
+			break;
+		default:
+			break;
+		}
+		if (flag == 0 && sfd->cond[4] != 0) {
+			tc.frm2 = 0;
+		}
+		SFTIM_Tc2Time(&tc, &ncount, &tscale);
+		vofst->tc = tc;
+		vofst->val = ncount - ttu0->val;
+		vofst->unit = tscale;
+		vofst->valid = 1;
+	}
+}
+
+/* the time of a decoded frame: the current picture time */
+static inline void sfmpv_SetFrmTtu(SFD sfd, SFMPV_FRM *frm)
+{
+	frm->ttu = SFD_TIM(sfd)->ttu3;
+	sfmpv_SetFrmTime(sfd, frm);
 }
 
 Sint32 sfmpv_DecodeFrm(SFD sfd, SJ sj)
@@ -1641,14 +1765,10 @@ Sint32 sfmpv_DecodeFrm(SFD sfd, SJ sj)
 	MPV hn = mpv->mpv;
 	MPV_PICATR *atr = (MPV_PICATR *)mpv->picatr;
 	SFTIM tim = SFD_TIM(sfd);
-	Sint32 ncount;
-	Sint32 tscale;
-	SFMPV_FRM *frm;
-	SFTIM_TC tc;
 	SFMPV_MPVFRM mfrm;
+	SFMPV_FRM *frm;
 	Sint32 ndct0;
 	Sint32 nbyte0;
-	Sint32 flag;
 	Sint64 t0;
 	Sint32 flow;
 	Sint32 ret;
@@ -1659,7 +1779,12 @@ Sint32 sfmpv_DecodeFrm(SFD sfd, SJ sj)
 		return 0;
 	}
 	if (sfd->prm.x38 == 3) {
-		switch (atr->pic_type) {
+		switch (((MPV_PICATR *)mpv->picatr)->pic_type) {
+		case 1:
+		default:
+			ndct0 = 0;
+			nbyte0 = 0;
+			break;
 		case 2:
 			ndct0 = mpv->ref[0]->ndct;
 			nbyte0 = mpv->ref[0]->nbyte;
@@ -1667,10 +1792,6 @@ Sint32 sfmpv_DecodeFrm(SFD sfd, SJ sj)
 		case 3:
 			ndct0 = mpv->ref[0]->ndct + mpv->ref[1]->ndct;
 			nbyte0 = mpv->ref[0]->nbyte + mpv->ref[1]->nbyte;
-			break;
-		default:
-			ndct0 = 0;
-			nbyte0 = 0;
 			break;
 		}
 	} else {
@@ -1680,30 +1801,7 @@ Sint32 sfmpv_DecodeFrm(SFD sfd, SJ sj)
 	slot = frm->picusr;
 	memcpy(slot->buf, mpv->picusr_dat, mpv->picusr_len);
 	slot->len = mpv->picusr_len;
-	if (tim->vofst.valid == 0) {
-		tc = tim->ttu3.tc;
-		flag = 0;
-		switch (SFMPV_WK(sfd)->picstat) {
-		case 2:
-			flag = 1;
-			break;
-		case 3:
-			flag = 1;
-			break;
-		case 4:
-			break;
-		default:
-			break;
-		}
-		if (flag == 0 && sfd->cond[4] != 0) {
-			tc.frm2 = 0;
-		}
-		SFTIM_Tc2Time(&tc, &ncount, &tscale);
-		tim->vofst.tc = tc;
-		tim->vofst.val = ncount - tim->ttu0.val;
-		tim->vofst.unit = tscale;
-		tim->vofst.valid = 1;
-	}
+	sfmpv_SetVofst(sfd);
 	t0 = UTY_GetTmr();
 	flow = SJRBF_GetFlowCnt(sj, 0, 1);
 	ret = MPV_DecodeFrmSj(hn, sj, &mfrm);
@@ -1719,12 +1817,11 @@ Sint32 sfmpv_DecodeFrm(SFD sfd, SJ sj)
 	}
 	if (flow > 0) {
 		SFMPVF_SetGopStat(sfd, 0);
-		frm->ttu = tim->ttu3;
-		sfmpv_SetFrmTime(sfd, frm);
+		sfmpv_SetFrmTtu(sfd, frm);
 		frm->gopno = mpv->nconcat;
 		frm->ndct = mfrm.nfrm + ndct0 + mpv->tmpref_adj;
 		frm->nbyte = mfrm.nbyte + nbyte0;
-		if (sfd->prm.x38 != 3 && mpv->pendfrm == NULL) {
+		if (atr->x38 != 3 && mpv->pendfrm == NULL) {
 			mpv->pendfrm = frm;
 		} else {
 			mpv->pendfrm = NULL;
@@ -1780,8 +1877,8 @@ Sint32 sfmpv_SetFrmPara(SFD sfd, MPV_PICATR *atr, SFMPV_MPVFRM *mfrm, SFMPV_FRM 
 			mpv->ref[0] = mpv->ref[1];
 			mpv->ref[1] = *pfrm;
 		}
-		w = atr->width;
 		h = atr->height;
+		w = atr->width;
 		w16 = (w + 15) / 16 * 16;
 		ywidth = (w16 + 31) / 32 * 32;
 		cwidth = (w16 / 2 + 31) / 32 * 32;
@@ -1821,11 +1918,12 @@ Sint32 sfmpv_GoDdelim(SFD sfd, SJ sj, Sint32 mask)
 {
 	SFBUF_RINF inf;
 	Sint8 *p;
-	Sint32 n;
+	register Sint32 n; // COMPILER-DIFF: pin
+	register Sint32 t; // COMPILER-DIFF: pin
 	Sint32 code;
 	Sint32 found;
 	Sint32 i;
-	Uint8 *q;
+	Sint32 rest;
 
 	if (SFBUF_RingGetRead(sfd, SFMPV_BUFIN(sfd), &inf) != 0) {
 		return 0;
@@ -1835,21 +1933,30 @@ Sint32 sfmpv_GoDdelim(SFD sfd, SJ sj, Sint32 mask)
 	}
 	p = sfmpv_SearchDlm(&inf, mask, &code);
 	if (p == NULL) {
-		n = inf.ck1.len + inf.ck2.len - 3;
-		n = (n > 0) ? n : 0;
+		rest = inf.ck1.len + inf.ck2.len;
+		rest = rest - 3;
+		/* the original copies the branchless max out of a temporary (`and r0; mr n, r0`); every C
+		 * spelling renames the temporary into n (28 forms) */
+		t = (rest > 0) ? rest : 0;
+		asm { mr n, t } // COMPILER-DIFF: pin
+	} else if ((Uint8 *)inf.ck1.data <= (Uint8 *)p && (Uint8 *)p < (Uint8 *)inf.ck1.data + inf.ck1.len) {
+		/* sfmpv_DlmOfst written out: its inlined return value would be a second copy into n, and
+		 * only one of the two copies coalesces */
+		n = p - (Sint8 *)inf.ck1.data;
+	} else if ((Uint8 *)inf.ck2.data <= (Uint8 *)p && (Uint8 *)p < (Uint8 *)inf.ck2.data + inf.ck2.len) {
+		n = inf.ck1.len + (p - (Sint8 *)inf.ck2.data);
 	} else {
-		n = sfmpv_DlmOfst(&inf, p);
+		n = 0;
 	}
 	SFBUF_RingAddRead(sfd, SFMPV_BUFIN(sfd), n);
 	/* skipped data other than zero stuffing counts as a stream error */
 	found = 0;
-	q = inf.ck1.data;
-	for (i = 0; i < ((n < 3) ? n : 3); i++, q++) {
+	for (i = 0; i < ((n < 3) ? n : 3); i++) {
 		Uint8 *r;
-		if (i >= inf.ck1.len) {
-			r = (Uint8 *)inf.ck2.data + (i - inf.ck1.len);
+		if (i < inf.ck1.len) {
+			r = (Uint8 *)inf.ck1.data + i;
 		} else {
-			r = q;
+			r = (Uint8 *)inf.ck2.data + (i - inf.ck1.len);
 		}
 		if (*(Sint8 *)r != 0) {
 			found = 1;
@@ -1867,14 +1974,16 @@ static Sint32 SFMPV_Create(SFD sfd)
 {
 	SFMPV_WORK *mpv;
 	MPV hn;
+	Sint32 ret;
 
 	if (SFSET_GetCond(sfd, 5) == 0) {
 		return 0;
 	}
 	mpv = &sfd->mpv;
 	sfd->tr[SFMPV_TR].hn = mpv;
-	if (sfmpv_InitInf(sfd, mpv) != 0) {
-		return sfmpv_InitInf(sfd, mpv);
+	ret = sfmpv_InitInf(sfd, mpv);
+	if (ret != 0) {
+		return ret;
 	}
 	hn = MPV_Create();
 	if (hn == NULL) {
@@ -1894,12 +2003,25 @@ static Sint32 SFMPV_Create(SFD sfd)
 	return 0;
 }
 
+/* the frame records of a fresh handle. `frm` stepped in the `for` increment (a source IV, not a
+ * strength-reduced `&frm[i]`) puts its `addi 0xe0` before the counter compare in the latch and the
+ * `ta_adr` pointer's `addi 4` after it. */
+static inline void sfmpv_InitFrmTbl(SFMPV_WORK *mpv)
+{
+	SFMPV_FRM *frm = mpv->frm;
+	Sint32 i;
+
+	for (i = 0; i < SFMPV_FRM_NUM; i++, frm++) {
+		sfmpv_InitFrm(frm, &mpv->ta_adr[i]);
+	}
+}
+
 Sint32 sfmpv_InitInf(SFD sfd, SFMPV_WORK *mpv)
 {
-	Sint32 i;
-	SFMPV_FRM *frm;
+	int i;
+	int j;
 
-	if (sfmpv_ChkPara() != 0) {
+	if (sfmpv_ChkPara(&sfmpv_para) != 0) {
 		return SFLIB_SetErr(NULL, 0xFF000F15);
 	}
 	mpv->para = sfmpv_para;
@@ -1919,10 +2041,7 @@ Sint32 sfmpv_InitInf(SFD sfd, SFMPV_WORK *mpv)
 	mpv->skipret = 0;
 	mpv->dlmwait = 0;
 	mpv->tmpref_adj = 0;
-	for (i = 0; i < SFMPV_FRM_NUM; i++) {
-		frm = &mpv->frm[i];
-		sfmpv_InitFrm(frm, mpv->ta_adr[i]);
-	}
+	sfmpv_InitFrmTbl(mpv);
 	mpv->nskip = 0;
 	mpv->nconcat = 0;
 	UTY_MemsetDword(mpv->picatr, 0xFFFFFFFF, 0x20);
@@ -1944,35 +2063,33 @@ Sint32 sfmpv_InitInf(SFD sfd, SFMPV_WORK *mpv)
 		mpv->picusr[i].buf = NULL;
 		mpv->picusr[i].len = 0;
 	}
-	for (i = 0; i < SFMPV_FRM_NUM; i++) {
-		mpv->frm[i].picusr = &mpv->picusr[i];
+	for (j = 0; j < SFMPV_FRM_NUM; j++) {
+		mpv->frm[j].picusr = &mpv->picusr[j];
 	}
 	return 0;
 }
 
-/* buffers the creation parameters supplied */
-static inline Sint32 sfmpv_ChkPara(void)
+/* buffers the creation parameters supplied. `para` as the helper's parameter (a node ranked below
+ * the frontend temporaries: r4, the reference-table pointer r3) and the two reference buffers
+ * tested in a counted loop (fully unrolled by the frontend, its induction pointer materialised
+ * before the first load: `addi r3; lwz 0(r3); .. lwz 4(r3)`). */
+static inline Sint32 sfmpv_ChkPara(SFMPV_PARA *para)
 {
-	SFMPV_PARA *para = &sfmpv_para;
 	Sint32 i;
 
-	if (para->nfrm > 0) {
-		if (para->nfrm > SFMPV_FRM_NUM) {
-			return -1;
+	if (para->nfrm <= 0 || para->nfrm > SFMPV_FRM_NUM) {
+		return -1;
+	}
+	if ((Uint32)para->x10 == 0 || (Uint32)para->x20 == 0) {
+		for (i = 0; i < 2; i++) {
+			if (sfmpv_rfb_adr_tbl[i] == NULL) {
+				return -1;
+			}
 		}
-	}
-	if (para->x10 != 0 && para->x20 != 0) {
-		return 0;
-	}
-	if (sfmpv_rfb_adr_tbl[0] == NULL) {
-		return -1;
-	}
-	if (sfmpv_rfb_adr_tbl[1] == NULL) {
-		return -1;
-	}
-	for (i = 0; i < para->nfrm; i++) {
-		if (sfmpv_ta_adr_tbl[i] == NULL) {
-			return -1;
+		for (i = 0; i < para->nfrm; i++) {
+			if (sfmpv_ta_adr_tbl[i] == NULL) {
+				return -1;
+			}
 		}
 	}
 	return 0;
@@ -1993,8 +2110,9 @@ void sfmpv_ErrFn(void *obj, Sint32 code)
 }
 
 /* the buffers survive in the file statics for the next creation */
-Sint32 SFMPV_Destroy(SFD sfd)
+Sint32 SFMPV_Destroy(SFD obj)
 {
+	SFD sfd = (SFD)(SFD_OBJ *)obj;
 	SFMPV_WORK *mpv = SFMPV_WK(sfd);
 	MPV hn = mpv->mpv;
 
@@ -2107,8 +2225,7 @@ void sfmpv_SetFrmInf(SFD sfd, SFMPV_FRM *frm, SFMPV_VINF **inf)
 	} else {
 		(*inf)->pstruct = 1;
 	}
-	(*inf)->pts_hi = (Sint32)(frm->pts >> 32);
-	(*inf)->pts_lo = (Sint32)frm->pts;
+	(*inf)->pts = frm->pts;
 	(*inf)->x58 = frm->pa_x90[0];
 	(*inf)->x5c = frm->pa_x90[1];
 	(*inf)->x60 = frm->pa_x9c[1];
@@ -2179,12 +2296,13 @@ static inline Sint32 sfmpv_SeekVhdr(SFD sfd, Sint32 *flg)
 	SFMPV_WORK *mpv = SFMPV_WK(sfd);
 	SFSEE_WORK *wk = sfd->see.wk;
 	SFSEE_VHDR *vhdr;
+	MPV hn;
 	SJCK ck;
 	Sint32 used;
 
 	if (wk == NULL) {
 		vhdr = NULL;
-	} else if (mpv->nconcat <= 0) {
+	} else if (mpv->nconcat > 0) {
 		vhdr = NULL;
 	} else {
 		vhdr = (SFSEE_VHDR *)&wk->a1hdr;
@@ -2195,10 +2313,11 @@ static inline Sint32 sfmpv_SeekVhdr(SFD sfd, Sint32 *flg)
 	if (vhdr->analyzed == 0) {
 		return 0;
 	}
+	hn = mpv->mpv;
 	SFD_TIM(sfd)->ttu0 = vhdr->ttu;
 	ck.data = vhdr->raw;
 	ck.len = vhdr->rawlen;
-	if (MPV_DecodePicAtr(mpv->mpv, &ck, &used) != 0) {
+	if (MPV_DecodePicAtr(hn, &ck, &used) != 0) {
 		return SFLIB_SetErr(sfd, 0xFF000F1B);
 	}
 	*flg = 1;
@@ -2217,58 +2336,61 @@ static inline Sint32 sfmpv_ChkRingSpace(SFD sfd)
 }
 
 /* skip the sequence end codes at the read position */
-static inline Sint32 sfmpv_SkipEndcode(SFD sfd, SJ sj)
+static inline void sfmpv_SkipEndcode(SFD sfd, SJ sj)
 {
 	SJCK ck;
 
 	for (;;) {
 		SJ_GetChunk(sj, 1, 4, &ck);
-		if (ck.len != 4 || MPV_CheckDelim(ck.data) != SFMPV_DLM_END) {
-			SJ_UngetChunk(sj, 1, &ck);
+		if (ck.len != 4) {
+			break;
+		}
+		if (MPV_CheckDelim(ck.data) != SFMPV_DLM_END) {
 			break;
 		}
 		SJ_PutChunk(sj, 0, &ck);
 		sfmpv_AddRtot(sfd, 4);
 	}
-	return 0;
+	SJ_UngetChunk(sj, 1, &ck);
 }
 
 /* the picture user data buffers: one slot per decoded frame after the decoder's own */
-static inline void sfmpv_SetPicUsrBuf(SFD sfd, void *buf, Sint32 num, Sint32 siz)
+static inline Sint32 sfmpv_SetPicUsrBuf(SFD sfd, void *buf, Sint32 num, Sint32 siz)
 {
-	SFMPV_WORK *mpv = SFMPV_WK(sfd);
-	Sint32 i;
+	SFMPV_PICUSRWK *pu = (SFMPV_PICUSRWK *)&SFMPV_WK(sfd)->picusr_buf;
+	int i;
 	Sint32 n;
 	Uint8 *p;
+	Sint32 j;
 
 	if (buf == NULL || num == 0 || siz == 0) {
-		mpv->picusr_buf = NULL;
-		mpv->picusr_num = 0;
-		mpv->picusr_siz = 0;
-		mpv->picusr_dat = NULL;
-		mpv->picusr_len = 0;
+		pu->buf = NULL;
+		pu->num = 0;
+		pu->siz = 0;
+		pu->dat = NULL;
+		pu->len = 0;
 		for (i = 0; i < SFMPV_FRM_NUM; i++) {
-			mpv->picusr[i].buf = NULL;
-			mpv->picusr[i].len = 0;
+			pu->slot[i].buf = NULL;
+			pu->slot[i].len = 0;
 		}
-		return;
+		return 0;
 	}
 	if (num < sfd->prm.x2c + 3) {
-		SFLIB_SetErr(sfd, 0xFF000F1D);
-		return;
+		return SFLIB_SetErr(sfd, 0xFF000F1D);
 	}
-	mpv->picusr_buf = buf;
-	mpv->picusr_num = num;
-	mpv->picusr_siz = siz;
-	mpv->picusr_dat = buf;
-	mpv->picusr_len = 0;
+	pu->buf = buf;
+	pu->num = num;
+	pu->siz = siz;
+	pu->dat = buf;
+	pu->len = 0;
 	p = (Uint8 *)buf + siz;
 	n = num - 1;
-	for (i = 0; i < ((n < SFMPV_FRM_NUM) ? n : SFMPV_FRM_NUM); i++) {
-		mpv->picusr[i].buf = p;
-		mpv->picusr[i].len = 0;
+	for (j = 0; j < ((n < SFMPV_FRM_NUM) ? n : SFMPV_FRM_NUM); j++) {
+		pu->slot[j].buf = p;
+		pu->slot[j].len = 0;
 		p += siz;
 	}
+	return 0;
 }
 
 /* display time of a frame from its time code relative to the video start */
@@ -2286,12 +2408,12 @@ static inline void sfmpv_SetFrmTime(SFD sfd, SFMPV_FRM *frm)
 	}
 }
 
-static inline void sfmpv_InitFrm(SFMPV_FRM *frm, void *buf)
+static inline void sfmpv_InitFrm(SFMPV_FRM *frm, void **pbuf)
 {
 	frm->stat = SFMPV_FRM_FREE;
 	frm->lock = 0;
 	SFTIM_InitTtu(&frm->ttu, 0);
-	frm->buf = buf;
+	frm->buf = *pbuf;
 	frm->ftime = 0;
 	frm->tunit = 1;
 	frm->ndct = 0;
@@ -2313,14 +2435,28 @@ static inline Sint32 sfmpv_CalcFrmSiz(Sint32 width, Sint32 height)
 	return ysize + csize * 2 + 0x20;
 }
 
-/* plane addresses of a YCC 4:2:0 frame buffer: 16-aligned picture, 32-byte rows */
+/* plane addresses of a frame buffer from its row and plane sizes */
+static inline void sfmpv_SetPlane(void *buf, Sint32 ywidth, Sint32 cwidth, Sint32 ysize, Sint32 csize, SFMPV_PLANE *plane)
+{
+	plane->ywidth = (Sint16)ywidth;
+	plane->cwidth = (Sint16)cwidth;
+	plane->y = buf;
+	plane->cb = (Uint8 *)plane->y + ysize;
+	plane->cr = (Uint8 *)plane->cb + csize;
+}
+
+/* plane addresses of a YCC 4:2:0 frame buffer: 16-aligned picture, 32-byte rows. Declaration order
+ * h16, cwidth, ywidth = colouring order ywidth (in place, r5), cwidth (r7), h16 (r8); the
+ * assignments keep the evaluation order ywidth, cwidth. */
 static inline void sfmpv_CalcYccPlane(void *buf, Sint32 width, Sint32 height, SFMPV_PLANE *plane)
 {
 	Sint32 w16 = (width + 15) / 16 * 16;
-	Sint32 ywidth = (w16 + 31) / 32 * 32;
-	Sint32 cwidth = (w16 / 2 + 31) / 32 * 32;
 	Sint32 h16;
+	Sint32 cwidth;
+	Sint32 ywidth;
 
+	ywidth = (w16 + 31) / 32 * 32;
+	cwidth = (w16 / 2 + 31) / 32 * 32;
 	plane->ywidth = (Sint16)ywidth;
 	plane->cwidth = (Sint16)cwidth;
 	plane->y = buf;
@@ -2332,10 +2468,10 @@ static inline void sfmpv_CalcYccPlane(void *buf, Sint32 width, Sint32 height, SF
 /* byte offset of a position inside the readable data (0 when it is in neither chunk) */
 static inline Sint32 sfmpv_DlmOfst(SFBUF_RINF *inf, Sint8 *p)
 {
-	if ((Uint8 *)p >= (Uint8 *)inf->ck1.data && (Uint8 *)p < (Uint8 *)inf->ck1.data + inf->ck1.len) {
+	if ((Uint8 *)inf->ck1.data <= (Uint8 *)p && (Uint8 *)p < (Uint8 *)inf->ck1.data + inf->ck1.len) {
 		return p - (Sint8 *)inf->ck1.data;
 	}
-	if ((Uint8 *)p >= (Uint8 *)inf->ck2.data && (Uint8 *)p < (Uint8 *)inf->ck2.data + inf->ck2.len) {
+	if ((Uint8 *)inf->ck2.data <= (Uint8 *)p && (Uint8 *)p < (Uint8 *)inf->ck2.data + inf->ck2.len) {
 		return inf->ck1.len + (p - (Sint8 *)inf->ck2.data);
 	}
 	return 0;
@@ -2349,6 +2485,7 @@ static inline Sint8 *sfmpv_BsearchDlm(SFBUF_RINF *inf, Sint32 mask, Sint32 *code
 	Sint32 n1;
 	Sint32 n2;
 	Sint32 i;
+	Sint32 c;
 
 	if (inf->ck2.len != 0) {
 		p = MPV_BsearchDelim((Sint8 *)inf->ck2.data + inf->ck2.len, inf->ck2.len, mask);
@@ -2361,18 +2498,19 @@ static inline Sint8 *sfmpv_BsearchDlm(SFBUF_RINF *inf, Sint32 mask, Sint32 *code
 		memcpy(tmp, (Uint8 *)inf->ck1.data + inf->ck1.len - n1, n1);
 		memcpy(tmp + n1, inf->ck2.data, n2);
 		for (i = 0; i < n1 + n2 - 3; i++) {
-			if (MPV_CheckDelim(&tmp[i]) & mask) {
-				*code = MPV_CheckDelim(&tmp[i]);
+			c = MPV_CheckDelim(&tmp[i]);
+			if (c & mask) {
+				*code = c;
 				return (Sint8 *)inf->ck1.data + inf->ck1.len - n1 + i;
 			}
 		}
 	}
 	p = MPV_BsearchDelim((Sint8 *)inf->ck1.data + inf->ck1.len, inf->ck1.len, mask);
-	if (p == NULL) {
-		return NULL;
+	if (p != NULL) {
+		*code = MPV_CheckDelim(p);
+		return p;
 	}
-	*code = MPV_CheckDelim(p);
-	return p;
+	return NULL;
 }
 
 /* start code search over the two chunks of the ring buffer; `code` receives MPV_CheckDelim of it */
@@ -2383,6 +2521,7 @@ static inline Sint8 *sfmpv_SearchDlm(SFBUF_RINF *inf, Sint32 mask, Sint32 *code)
 	Sint32 n1;
 	Sint32 n2;
 	Sint32 i;
+	Sint32 c;
 
 	p = MPV_SearchDelim((Sint8 *)inf->ck1.data, inf->ck1.len, mask);
 	if (p != NULL) {
@@ -2397,17 +2536,18 @@ static inline Sint8 *sfmpv_SearchDlm(SFBUF_RINF *inf, Sint32 mask, Sint32 *code)
 	memcpy(tmp, (Uint8 *)inf->ck1.data + inf->ck1.len - n1, n1);
 	memcpy(tmp + n1, inf->ck2.data, n2);
 	for (i = 0; i < n1 + n2 - 3; i++) {
-		if (MPV_CheckDelim(&tmp[i]) & mask) {
-			*code = MPV_CheckDelim(&tmp[i]);
+		c = MPV_CheckDelim(&tmp[i]);
+		if (c & mask) {
+			*code = c;
 			return (Sint8 *)inf->ck1.data + inf->ck1.len - n1 + i;
 		}
 	}
 	p = MPV_SearchDelim((Sint8 *)inf->ck2.data, inf->ck2.len, mask);
-	if (p == NULL) {
-		return NULL;
+	if (p != NULL) {
+		*code = MPV_CheckDelim(p);
+		return p;
 	}
-	*code = MPV_CheckDelim(p);
-	return p;
+	return NULL;
 }
 
 /* account the bytes the decoder took from the input ring */

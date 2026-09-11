@@ -1,13 +1,12 @@
 /* CRI Sofdec MW player: handle creation (mwsfdcre.c)
  *
- * Not Matching (3/10 functions byte-identical, .rodata/.data/.bss identical). Residues:
- * M1 register ranking everywhere (base registers r29..r31 of mwsfcre_CreateSfd, callee-saved
- * order of mwPlyCalcWorkCprmSfd / MallocCompoWork, volatile numbering of the CALC_BUFSIZ block);
- * mwPlyCreateSofdec: the inlined mwSfdDestroy keeps a parameter copy `mr r30,r29` per error exit
- * that our inliner substitutes (7 x 4 bytes); mwsfcre_CreateSfd: the `size < 0` check of the
- * 0x4000 / 0x700 MWSFD_Malloc calls survives in the original (constant in a register), the empty
- * `case 4:` of the IsUseAdxt switch leaves a dead `b`, and the `mwsfd_sisjadr` reload is not hoisted
- * over the crepara struct copy; mwsfcre_MallocRfb: `blt fail; bge ok` on one compare. */
+ * Not Matching (5/10 functions byte-identical, .rodata/.data/.bss identical). Residues:
+ * register ranking (base registers r29..r31 of mwsfcre_CreateSfd, the mwply parameter ranked
+ * above the pool temp in mwsfcre_MallocCompoWork, lw/vfreq/npool/sfdhn of mwPlyCreateSofdec,
+ * mode/bps temps of mwPlyCalcWorkSfd, w16/h16 of mwsfcre_MallocRfb); mwsfcre_CreateSfd: the empty
+ * `case 4:` of the inlined IsUseAdxt switch leaves two dead `b` in the original, the pool order of
+ * its .rodata/.bss references differs and the `mwsfd_sisjadr` reload is not hoisted over the
+ * crepara struct copy; mwsfcre_MallocRfb: `blt fail; bge ok` on one compare. */
 #include "cri_xpt.h"
 #include "sfd.h"
 #include "lsc.h"
@@ -314,8 +313,10 @@ void MWSFCRE_DestroySfd(MWPLY mwply)
 	mwply->ifc = &mwsfd_if;
 }
 
-void mwSfdDestroy(MWPLY mwply)
+void mwSfdDestroy(MWPLY obj)
 {
+	MWPLY mwply = (MWPLY)(MWPLY_OBJ *)obj;
+
 	if (mwply == NULL) {
 		return;
 	}
@@ -508,6 +509,9 @@ static Bool mwsfcre_IsUseAdxt(Sint32 mode)
 MWPLY mwPlyCreateSofdec(MWSFD_CRPRM *cprm)
 {
 	MWSFD_LIBWORK *lw;
+	Sint32 vfreq;
+	Sint32 npool;
+	void *sfdhn;
 	MWPLY mwply;
 	void *sfd;
 	Sint32 sibsiz;
@@ -521,9 +525,6 @@ MWPLY mwPlyCreateSofdec(MWSFD_CRPRM *cprm)
 	Sint32 nfrm;
 	Float32 ftime;
 	Sint32 mode;
-	void *sfdhn;
-	Sint32 npool;
-	Sint32 vfreq;
 
 	if (cprm == NULL) {
 		MWSFSVM_Error("E1122612 mwPlyCreateSofdec : cprm is NULL.");
@@ -592,8 +593,8 @@ MWPLY mwPlyCreateSofdec(MWSFD_CRPRM *cprm)
 		return NULL;
 	}
 	mwply->ifc = &mwsfd_if;
-	mwply->x3c = 1;
 	mwply->x5c = sjbsiz;
+	mwply->x3c = 1;
 	mwply->dec_svr_flg = 0;
 	mwply->stat = MWSFD_STAT_STOP;
 	mwply->compo_fix = cprm->compo;
@@ -719,6 +720,13 @@ static Sint32 mwsfcre_CnvBufFmt(Sint32 buffmt)
 	return fmt;
 }
 
+static void *mwsfcre_MallocWk(MWPLY mwply, Sint32 wksize)
+{
+	Sint32 size = wksize;
+
+	return MWSFD_Malloc(mwply, size);
+}
+
 /* create the SFD decoder handle of a player: decide the component buffer sizes, allocate them
  * and fill the creation parameters of the file type */
 static void *mwsfcre_CreateSfd(MWPLY mwply, MWSFD_CRPRM *cprm)
@@ -794,10 +802,8 @@ static void *mwsfcre_CreateSfd(MWPLY mwply, MWSFD_CRPRM *cprm)
 		adxwk_p = NULL;
 	}
 	picusr_p = MWSFD_Malloc(mwply, MWSFD_PICUSR_SIZE);
-	size = MWSFD_HNWORK_SIZE;
-	hnwork_p = MWSFD_Malloc(mwply, size);
-	size = 0x700;
-	buf700_p = MWSFD_Malloc(mwply, size);
+	hnwork_p = mwsfcre_MallocWk(mwply, MWSFD_HNWORK_SIZE);
+	buf700_p = mwsfcre_MallocWk(mwply, 0x700);
 	fname_p = MWSFD_Malloc(mwply, MWSFD_FNAME_SIZE);
 	if (cwk1 == NULL || cwk2 == NULL || rfbret != 0 || frmret != 0 || picusr_p == NULL ||
 	    hnwork_p == NULL || fname_p == NULL || buf700_p == NULL) {
@@ -965,6 +971,16 @@ void MWSFCRE_SetSupplySj(MWPLY mwply)
 	}
 }
 
+static Sint32 mwsfcre_CalcWorkSfx(MWSFD_CRPRM *cprm)
+{
+	Sint32 size = MWSFSFX_CalcHnWorkSiz(cprm->max_width, cprm->max_height);
+
+	if (MWSFTAG_IsUseAinfSj(cprm) == TRUE) {
+		size += MWSFD_AINFSJ_BSIZE;
+	}
+	return size;
+}
+
 Sint32 mwPlyCalcWorkCprmSfd(MWSFD_CRPRM *cprm)
 {
 	Sint32 sfdsiz;
@@ -975,10 +991,7 @@ Sint32 mwPlyCalcWorkCprmSfd(MWSFD_CRPRM *cprm)
 		return 0;
 	}
 	sfdsiz = mwPlyCalcWorkSfd(cprm);
-	sfxsiz = MWSFSFX_CalcHnWorkSiz(cprm->max_width, cprm->max_height);
-	if (MWSFTAG_IsUseAinfSj(cprm) == TRUE) {
-		sfxsiz += MWSFD_AINFSJ_BSIZE;
-	}
+	sfxsiz = mwsfcre_CalcWorkSfx(cprm);
 	return sfdsiz + sfxsiz;
 }
 

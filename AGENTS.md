@@ -4068,6 +4068,83 @@ mask variables: 225 -> 300w (not applied; its association differs — check its 
 x0/x1 swapped, no `mr`); 8x8 1p (asm origin, not reachable from C); 16x16 V2 225w (R2 as above), 16x16 4p
 136w / H2 225w / 1p 61w untouched this pass.
 
+### CRI pass 16a: size gaps first — inlining thresholds, helper-local compares, 32-bit views of Sint64 (mwsfdcre 3 -> 5/10; sfd_mpv 15 -> 24/38; no unit flipped; pure C, no pins; 2026-09-11)
+Harness /home/adityas/.cache/cri16a/ (deleted): `bld.sh`, `fd.py`, `tryvar.py` as in pass 15 (`--only LABEL`
+added; `--fdiff` writes `scratch/<label>.fdiff` with `--all -n 5000`), `mwcc.sh file.c [unit]` probe compiles,
+mk-deception (https://github.com/ShulkMaster/mk-deception, `src/libmwsfdg/crimw/dev/sofdec/src/**`, all its
+sofdec units NonMatching) used as a SHAPE reference only. Method: align each function region by region with
+fdiff, explain every size gap before touching registers. Another agent (`~/.cache/cri_mpv_small`) started on
+sfd_mpv's DecodeOneUnit/SkipPic at 11:14 from this pass's file; the DecodeOneUnit and IsSkip flips (-> 25/38)
+are its declaration-order edits, not this pass's. InitInf (5w, a register permutation) flipped identical
+when only Concat/SkipEndcode changed (K1 variant) — small colouring residues can move with unrelated edits
+(an allocation-order tiebreak in the colourer), so judge them on the real build only.
+
+**Mechanisms (each verified by a variant build):**
+- **The frontend does not constant-propagate an inlined helper's local**: `static void *MallocWk(MWPLY p,
+  Sint32 wksize) { Sint32 size = wksize; return MWSFD_Malloc(p, size); }` called with 0x4000 keeps the
+  target's `li r3, 0x4000; cmpwi r3, 0; bge` (mwsfdcre CreateSfd 389 -> 303w, size 0xe70/0xe68). Only the
+  wrapper-with-local and struct-member forms work; a helper `const`, a top-level init, a multi-def local are
+  folded. Same class: a non-offset-0 struct member is opaque to the folder (offset-0 member folds).
+- **Auto-inlining is size-based with a hard threshold**: sfd_mpv GoDdelim in the pass-15 spelling
+  (`Sint32 rest; rest = ck1.len + ck2.len; rest = rest - 3; n = rest; n = (n > 0) ? n : 0;` + per-byte
+  `Uint8 *r` loop) sits just above it and stays a call in DecodeOneUnit like the target; `int rest` +
+  `n = (rest > 0) ? rest : 0` drops below and it is inlined (DecodeOneUnit +0x25c). The threshold is the
+  size gap of DecodeOneUnit (377 -> 9w, then identical with the SkipEndcode shape below).
+- `int` loop counters fully unroll constant-trip loops with NO zero-trip guard; `Sint32` counters keep
+  `li; cmpwi 0x10; bge` (InitInf picusr loops 207 -> 5w).
+- An ECOND assigned to a variable of a different type (unsigned -> Sint32) keeps a copy `mr n, r0`
+  (GoDdelim, open: 1w).
+- **The switch compare tree includes labels whose bodies were emptied/forwarded**: `case 4: ret = FALSE;
+  break; case 5: break;` -> `cmpwi 4; beq end; bge end; ...; b end; b end` (IsGopSkip; the backend chains the
+  `beq`). A helper returning `Sint32` with `return 0` on the clear path shares the stores' zero register r3
+  (SetPicUsrBuf 64 -> 6w).
+- A `Sint64` struct field store loads both halves once (`(*inf)->pts = frm->pts`, SetFrmInf identical);
+  **a 32-bit view of a 64-bit result is a cast local**: Pts2Tc `m = (Sint32)n; tc->field = m & 1;
+  fno = (m >> 1) - tmpref` gives the target's `clrlwi/srawi` on the low word (ours had 64-bit and/shift).
+- **`fld % 2` shares the sign temp of `fld / 2` only when computed in the same block**: `field = fld % 2;`
+  right after `f += fld / 2;` (before the drop-frame if) gives the target's early `clrlwi/xor/subf`
+  (DoReformTc 120 -> 75w, Concat 128 -> 90w); a `type` local (`type = ttu1->tc.type; rnd =
+  sfmpv_fps_round[type]; ... tc.type = type`) keeps it in a proper volatile (target r8) instead of r0.
+- Concat's tail: `if (t < 0) { ret = -1; } else { if (t > 0) { UpdateConcatTime; nconcat++; } InitTtu x2;
+  dlmmask = 0xC0; ret = 0; } if (ret == -1) return -1; SkipEndcode; return 0;` = target `li r3, -1; b chk`
+  / `li r3, 0; chk: cmpwi r3, -1` (nconcat++ is inside `t > 0` — semantics differ from pass 15's spelling);
+  SkipEndcode as `for (;;) { Get; if (len != 4) break; if (CheckDelim != END) break; Put; AddRtot; }
+  Unget;` removes two dead `b`; `tunit = tim->ttu0.unit;` read before `tim->x1f0 += smpl` hoists the load
+  over the store; `tc.frm2 = 0` (word at +0x18) and no `tc.x1c = 0`; Tc2Time/ReadTotSmplQue out-params
+  declared `tscale, ncount, unit, smpl` (later-declared address-taken scalar = lower slot).
+- `void mwSfdDestroy(MWPLY obj) { MWPLY mwply = (MWPLY)(MWPLY_OBJ *)obj; ... }` = the 7 inlined
+  `mr r30, r29` of CreateSofdec (551 -> 139w, size 0x1078 matched; pass-12 kept-copy rule).
+- A struct-copy address kept in a register needs a pointer local with >= 2 uses (`tot`, DecodeOneUnit END
+  block); a `void **pbuf` parameter makes the buffer load happen after `SFTIM_InitTtu` (InitFrm); `frm =
+  mpv->frm` + `frm + 2 + i` strength-reduces ChkBufSiz's second InitFrm loop (463 -> 191w, size matched).
+- ExecServerSub: `(Uint32)ck.len != 0` = target `cmplwi`; the address-taken scalar slots follow first-use,
+  not declaration (24 permutations of ck/sj/wcnt/rcnt never match; 28 -> 22w).
+- **Pooling residue (open, recorded):** Pts2Tc's three .rodata tables are addressed with separate lis/addi
+  pairs in the target while deferred codegen pools them (`...rodata.0` base + 0x38/0x5c/0x7c). Probes:
+  `static const`, struct-typed tables, `extern` first + definition after the function, `#pragma pool_data
+  off` around the DEFINITIONS all pool under `-inline auto,deferred`; the same extern-first/define-after
+  file WITHOUT deferred does not pool (lis/addi per table = target); `#pragma pool_data off/on` around the
+  FUNCTION reproduces the target's shape (81w left: `addi r0; mr r9, r0` ECOND copies) but is a pin — not
+  applied. So the original's Pts2Tc was compiled with the tables not yet defined (or non-deferred); the rest
+  of the unit needs deferred (.text order, later helpers inlined). Concat/DoReformTc reference one table
+  and show no pool either way.
+- **The compare of `if (t < 0) .. if (t > 0)` is CSE'd across the arms in ours** (one `cmpwi` + `bge` +
+  `ble`); the target keeps two `cmpwi r4, 0`. Helper split (`ret = ConcatSub(sfd, t)`), `ret = -1; if (t >=
+  0)`, `t != 0` do not block it (open, 1w).
+
+**Residues (exact class):** mwsfdcre — MallocCompoWork (69w) mwply parameter ranked above the pool temp;
+CreateSofdec (97w) lw–vfreq interference (target vfreq r25 / sfdhn r24 / npool r23, 9 callee-saved) + picusr
+nskip/buf swap + mode/bps temp swap; CreateSfd (303w) pool order of .rodata/.bss references, register
+permutation, two dead `b` of the inlined IsUseAdxt (emptied arm needs a dominating `li` + a case-5-like
+label; the A4 form gives the tree but hoists `li r0, 1`); MallocRfb (32w) `blt fail; bge ok` + w16/h16 swap;
+CalcWorkSfd (30w) mode/bps order. sfd_mpv — Destroy/Create parameter vs pool-temp rank; ExecServerSub slot
+order + mpv/bufin colours; DecodeFrm (55w) single-use `ttu3` struct-copy source folded, AddDecPic arg
+schedule; ChkBufSiz (191w) geometry register order, nfrm load slot, `frm` folded into the IV init; Seek (28w)
+ck.data address colour; SetFrmPara (27w) geometry temps; GoDdelim ECOND copy; Pts2Tc (96w) pool + `tbl`
+colour; DoReformTc (75w) / Concat (90w) arithmetic-block permutation (declaration sweeps of the six block
+locals are flat at 75/90) + the un-CSE'd compare; DecodePicAtr (454w, +8) 64-bit ECONDs kept in registers
+in the target (`beq; b; mr; mr` pairs) where ours stores/reloads through `mpv->xe78`, untouched.
+
 ## REL modules
 
 The game loads its rooms, enemies, weapons and debug tools as Nintendo REL overlays. `ninja` rebuilds the
