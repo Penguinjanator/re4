@@ -24431,3 +24431,151 @@ four includers -- t_esp_area 74 -> 7, t_lightarea 78 -> 4, t_event/t_event 168 -
   +0x4dc): the target resolves to t_esp_area's linkonce copy; a module-link artefact that disappears when t_esp_area is Matching
   and linked first. Flip order therefore stays: t_esp_area first (IDENTICAL needed), then re-run bytecmp on t_lightarea.
 - No body-side residue is left in either unit; both wait on the dbg_tool.h edit (H1-H3 + the getters) and the ctor qty tie.
+
+### DOL option/card closer 2 (option retry_load_menu 2 -> 0 zero code, pin removed; in progress 2026-09-12)
+
+- **option retry_load_menu 2 -> 0, zero code, the r29 pin removed.** The target's `lis r30,Cckpt@ha; addi r3,r30,@l; mr r29,r3;
+  bl roomInit; mr r3,r29 x3` is NOT a REG_EQUIV rematerialisation and not a gcse copy: it is `Cckpt.roomInit(); Cckpt.move();
+  Cockpit* ck = &Cckpt; ck->life.fix(1); ck->lifeMeterDisp(0);`. Mechanics (lreg/LADBG on the variants): (1) a call argument
+  `&Cckpt` is `(set r3 (lo_sum H sym))` with a HARD dest (rs6000 CONST_COSTS = 0, so expand_call never copies it to a pseudo) ->
+  never a gcse candidate; (2) cse prefers ANY register holding the value over the `lo_sum` (n9: `Cckpt.move()` after a pinned
+  `ck` became `mr r3,r29`), so a `lo_sum H` survives cse only after a call clobbered r3 and before `ck` exists; (3) `Cockpit* ck
+  = &Cckpt` right after `Cckpt.roomInit()` (n2, 4w) is sched1-hoisted above the call and reload_cse turns its `addi` into
+  `mr ck,r3`, but H dies at ck's insn, so local-alloc combine_regs TIES ck to H's qty (LADBG `q0 reg293 refs 7` = 3+4) and ck
+  inherits r30; with a `register ck asm("r29")` pin the dying H gets the r29 suggestion instead (the tree's 2w: `lis r29`).
+  (4) `Cckpt.move()` between them keeps a `lo_sum H` alive across the roomInit call: H crosses a call (-> r30, first callee-saved
+  after the excluded r31), dies at move's insn (only an r3 suggestion), ck is born while r30 is busy -> r29, and reload_cse
+  rewrites ck's `addi` to `mr r29,r3` and move's `addi` to `mr r3,r29`. Rule: `addi r3,rH,@l; mr rK,r3; bl; mr r3,rK ..` with rH
+  callee-saved = one more plain `Obj.method()` after the first call, the pointer variable declared after it.
+
+### Tool RELs, dbg_tool.h H1-H3 (header APPLIED: MakeSaveData count/copy loops + Update() case 5 last + GetMode()/GetEdit(); Tools/t_esp_area 74 -> 7, Tools/t_lightarea 78 -> 4, t_event/t_event 163 -> 141, db_toolbase IDENTICAL in Tools and t_event; 111 OK; nothing flipped yet; 2026-09-12)
+
+include/dbg_tool.h now carries the "esp_area/lightarea closer 2" verified changes (v5 of ~/.cache/tools_ea, harness deleted):
+- H1 `cDbgToolMain<T>::MakeSaveData` count loop = `{ T* w = work; u32 j; cnt = 0; for (j = 0; j < num; j++, w++) if (IsWorkAlive(w)) cnt++; }`.
+- H2 copy loop: `T* src = work;` declared, then `dst = (T*) (mem + 1);` inside the same block.
+- H3 `Update()` arms in source order 0,1,2,6,3,7,4,8,5 (case 5 last: its `li ret,0` falls through into the caller's `cmpwi`).
+- `int GetMode()` / `cDbgEditWindow<T>* GetEdit()` members; the file-local `ToolMode(&tool)`/`ToolEdit(&tool)` stand-ins in
+  src/Tools/t_esp_area.cpp and src/Tools/t_lightarea.cpp are gone, the bodies use `tool.GetMode()`/`tool.GetEdit()` (byte-equal).
+- ninja does not track the header: after a dbg_tool.h edit `/bin/rm build/G4BE08/src/Tools/*.o build/G4BE08/src/t_*/*.o` first.
+  Includers are exactly Tools/{t_esp_area,t_lightarea,db_toolbase} and t_event/{t_event,db_toolbase}.
+- Pre-checked with variant.sh against the CURRENT t_event source (the t_event agent had moved on since closer 2: 163 in-tree,
+  141 under the header) before the tree edit; the tree build reproduced every variant number.
+
+### CRI mwsfdcre pass 5 (CreateSfd 297 -> 247w in the tree with a zero-code lever: the pool-base order is a TU-wide rule; IN PROGRESS 2026-09-12)
+Harness /home/adityas/.cache/cri_mws5/ (deleted at the end): `pools.sh SRC [FUNC..]` (unit flags, no strip, per-function pool
+`lis/addi` prologue), `gen.py PERM..` (one probe function per PERM, `b`/`r`/`d` = 6 refs of .bss/.rodata-strings/.data in that body
+order; runs ra.py and prints the creation order from backend-00), ra.py/chaitin.py dumps under `ra_*`.
+- **Pool-base creation order = the REVERSE of a TU-WIDE list, built in the order in which the sections were first POOLED by the
+  functions compiled so far (definition order), a new section appended when the current function first references it (body
+  first-reference order within that function).** Verified with 6 single-function permutations (creation = exact reverse of the body
+  order) and 6 two-function TUs (`f0` refs d,b then `f1` refs b,r,d -> f1 creates r,b,d; `f0` r,d,b -> f1 b,d,r; `f0` with ONE bss/
+  string/data reference (not pooled) registers nothing). Pass 4's "reverse first-reference order" holds only for the first pooling
+  function of the TU. Later-created = higher vid = coloured first (r31). Pooling of a section needs several references in the
+  function (1 ref: direct `lis/addi`; 6 refs: pooled; threshold not measured).
+- **mwsfdcre: ours had `mwPlySetFrmBuf` (dead, keeps the .bss first-reference order) as the FIRST function -> it pooled .bss first ->
+  L = [bss, rodata (MallocCompoWork), data (CreateSfd)] -> CreateSfd bases data r29 / rodata r30 / bss r31. The target's rodata r31 /
+  bss r30 / data r29 = L [rodata, bss, data]: no function before mwsfcre_MallocCompoWork pooled .bss.** Zero-code fix applied:
+  mwPlySetFrmBuf moved after mwsfcre_MallocCompoWork (it is stripped, so .text is unchanged; .bss layout unchanged because it is
+  still the first function to reference bufnum/bufsize/bufptr/adxibuf/..). CreateSfd 297 -> 247w, 8/10 unchanged. **.bss is laid
+  out in TU first-reference order** (verified: without mwPlySetFrmBuf the layout becomes sib, vib, aib, adxibuf, adxwk, sjb, bufnum,
+  rfb, tab, bufsize, bufptr, sisjadr = CreateSfd's body order).
+- Target register map of CreateSfd (read off the listing, corrects pass 3's guess): L5 group rodata r31, bss r30, data r29, cwk1 r28,
+  cwk2 r27, frmret r26, picusr_p r25, hnwork_p r24, buf700_p r23, fname_p r22, mode r21, adxibuf_p r20, adxwk_p r19, nfrm r18,
+  height r17, cprm r16, mwply r15, rfbret r14 (L4 spill pick); L2: block-1 width2 r20 / height2 r19, block-2 nfrm2 r19, width2 r22,
+  height2 r20, fsize r22, frmtbl ptr r20, i r23.
+
+### Tool RELs, t_camera_data/db_widget closer (t_camera_data 14 -> 15/17: tcDataExport 142 -> 193 words but size 0x538 EXACT and the nameless cManager<cLight> block identical; tcSetBesideOffset 27 / db_widget DB_STRING ctor 7 unchanged; nothing flipped; 111 OK; 2026-09-12)
+
+Harness ~/.cache/tcam (deleted): `mk.py BASE OUT OLD NEW..` exact-substring variants + `ins.py DUMP FUNC [regex]` (one line per insn of an
+`rtl.sh` dump) on top of the kit. Only src/t_camera/t_camera_data.cpp edited (tcDataExport); no config edit.
+- **tcDataExport: the 4 missing bytes are ONE reused pointer variable.** The target's `addi r31,r29,0x10` before memclr, `mr r25,r31`
+  in the block after strncpy (r25 = rec for the area computation and the last loop) and loop 2's fovy pointer in the same r31
+  (`add r31,r5,r0; stfs f0,0(r31); addi r31,r31,4; mr r5,r31`) are one multi-set pseudo: set at the top from `buf + 0x10`,
+  copied into `rec` (the copy is kept because the pseudo is born in block 0 and used in loop 2, so it is a global allocno and
+  local-alloc cannot tie it), then reused as the fovy writer. Its refs 17 / len 52 give pri 13076 (GDBG), above buf's 3105, and
+  it crosses the two calls, so it is the FIRST pass-1 allocno (r31) -- the whole-function permutation of the earlier notes
+  ("buf r29 vs r31") starts there. Form applied: `f32* fovy = (f32*) (buf + 0x10);` at the top, `rec = (CameraAreaRec*) fovy;`
+  after the header stores, the block-local `f32* fovy` of loop 2 removed (variant.sh: size 0x534 -> 0x538 exact, .text 0x1600,
+  the nameless 0x3B8 block's 24 branch-reloc words become identical because its address is right again). A plain `u8* p` + `rec = p`
+  without the reuse folds back into one pseudo (142, size short): the reuse is the fact, the type is not.
+- **tcDataExport remaining 193 words, all allocation (read off GDBG / the listings, not closed):**
+  (a) callee-saved order: target pTc-high r30 BEFORE buf r29; ours buf r30 (pass 1 after r31) then the block-0 pTc high r29. The
+  block-0 pTc high (refs 4 len 54 calls 1, pri 1481) can only precede buf if buf's priority is below 1481, i.e. buf with <= 15
+  weighted refs (ours 25: 3 hdr stores, 2 strncpy args, memclr, the 4 loop-2 `- buf`, loop-4/5 preheader subfs, `d - buf`,
+  the depth-2 `cc - buf`, size). Offsets through `(u8*) hdr` do not help (cse merges hdr into buf, buf is the class head). Not found:
+  which ten buf refs the original did not have (a helper computing the offsets? a second base pointer that stays a separate
+  pseudo because it dies later than buf?).
+  (b) loop 2 `mr r6,r5` (pp = pos) kept in the target, tied in ours (pos takes pp's r6 by copy preference; r6 is free in the
+  loop header/latch where pos lives). Placing `pp = pos` before the `switch` keeps a copy (cse cannot cross the join label) but
+  the target's copy sits AFTER the switch next to its uses (174 words, size +4). `d->pos`/`at` written from `pos` instead of `pp`
+  change nothing (cse canonicalises to pos, the older head). So in the target r6 was excluded for pos: a conflicting allocno in r6
+  during the header/latch, or `regs_someone_prefers`; not identified.
+  (c) target cd (the tcCdat row pointer) r3 with the `+0x32c` giv base r4 and roll r5; ours cd r29 (pass 1: every caller-saved
+  reg is busy in the body), giv base r3, roll r4, fovy r5. Follows from (a)/(b) and from loop 4's `i`: ours splits `i+1` into a
+  new pseudo (`addi r6,r5,1` at the body top + `mr r5,r6` at the latch, loop.c makes three copies `352 = 95 + 1`, one per path
+  into the increment), the target increments in place (`addi r6,r6,1`). `i++` as the last body statement instead of the for
+  header turns the row address into a giv (`subi/addi` pair, 192 words, size +8): wrong. Loop 5's `i++` inside the body is in
+  place in both. Why loop 4's for-header increment is split in ours and not in the target is the next thing to read (jump/loop
+  dumps: uids 1189/1192/1198).
+- **tcSetBesideOffset 27 (read only, unchanged):** GDBG order is 157 (`i+1` of loop 2, refs 4 len 24, pri 3333) -> pass 1 r3 (pass 0
+  skips r3 through `regs_someone_prefers`: c = `mr r28,r3` prefers r3 and ranks below at 2891; pass 1 ignores smpref and r3 is the
+  first non-conflicting register in REG_ALLOC_ORDER 0,9,11,10,8,7,6,5,4,3,31..), then 209 (n*4, 3292) -> pass 1 r3 and
+  207 (n*12+0x18c, 3214) -> pass 1 r31; 157 and 209 share r3 (different loops). Target: 207 r3, 209 r31, 157 r31. The order that
+  gives it with no other change is 207 > 209 > 157 (207 pass 1 r3, 209 pass 1 r31, 157 pass 0 r31), i.e. 157's priority below
+  3214 (len >= 25) AND 207 before 209 (the 84/82 live-length tie of the earlier notes). Alternatively 157 first with a hard r3
+  conflict, but every r3 clobber inside loop 2 also hits c (live everywhere) and removes c's preference. No pin possible: 207/209
+  are loop.c givs, 157 is loop.c's increment copy. Left.
+- **db_widget DB_STRING ctor 7 (unchanged, pin kept):** member-initialiser forms (`: str(0), len(0)`, `.., max(max_)`, all seven
+  members), `str = NULL; len = 0;` as statements, `asm("li %0,0" : "=r"(zero))` with either store order (11 = the unpinned
+  local-alloc naming of pass 12), the same with an `"r"(max_)` input (13). `ninja -t targets | rg db_widget` lists only
+  build/G4BE08/src/t_esp/db_widget.o: src/t_esp/db_widget.cpp is built once, no second copy to keep identical. `fn_t_esp_2671C`
+  = name-only (target name vs our nameless 0x3B8 block at .text+0x3628), not a code difference.
+- fn_t_camera_1B8C4 is the nameless cManager<cLight> linkonce block (light.h); its 24 "words" were the branch relocs naming
+  `<nameless@0x1244>` because tcDataExport was 4 bytes short. Gone with the size.
+
+### Tool RELs, t_esp pass 15 (t_esp 208/212: InitTool 2916 -> 2880 words, two zero-code items: the EDIT row-loop preheaders (segs 37/67/100, `num[3]` nameTbl + the `tbl` table pointer) exact, dead sets 118 -> 116 (N 5235); the LOAD/MODEL window region read (sched1 call-crossing + 3 more callee-saved highs/FP constants in the target), not closed; nothing flipped; Load/SaveEmType 2/2 and fn_t_esp_3DE4C 24 untouched; 2026-09-12)
+
+- Harness ~/.cache/tesp15 (kept for the next pass, delete when InitTool is closed): `seg.py T.s O.s [summary|A [B]]` = per-`bl`
+  segment compare of two dtk listings (symbols/labels/`bl` targets normalised; `summary` = one line per differing segment with
+  insn counts and a difflib distance, `A B` = side-by-side), `cmpv.sh V.cpp [N]` = variant.sh --no-diff + dtk disasm + seg summary
+  in ~/.cache/tesp15/o_<V>/ (3.5 s). T.s = the target's InitTool from build/G4BE08/t_esp/asm/t_esp/t_esp.s. Read segment
+  counts and the summary head, never whole listings: the per-segment view is what made the two items below obvious.
+- **Window-1 row loop `num[3]->nameNum/nameTbl` (seg 37, 2916 -> 2903).** Target `lwz r9,0xc(r30)` once for both stores, ours reloaded
+  `num[3]` after the `nameNum` store (a MEM_IN_STRUCT store may alias the `num[3]` pointer slot). Form: `DB_NUMERIC* n = num[3];
+  n->nameTbl = ..; n->nameNum = 256;` (the same `n` form every other window already used); the store order in the target is nameNum
+  (0xc4) then nameTbl (0xc0) = sched1 LUID tie, which the source order nameTbl-then-nameNum gives (the reverse gave the reverse).
+- **EDIT windows 2-4 row-loop preheaders (segs 67/100/129, 2903 -> 2880 with the dead-set refit).** Target `lis r9,g_editNum@ha;
+  addi r9,r9,g_editNum@l; addi r30,r9,0x30` = the `num` giv initialised as `P + 0x30` where P is a pseudo holding `&g_editNum`,
+  REG_EQUIV sym, spilled and rematerialised by reload into r9. Ours `lis r11; addi r30,r11,g_editNum+0x30@l`: `&g_editNum[i][12]`
+  goes through get_inner_reference (bitpos 384, offset `i*172`) and `plus_constant((plus sym mult), 48)` folds the constant into
+  the symbol (expr.c); `g_editNum[i] + 12` folds the same way (the tree fold reassociates `(A + &g) + 48` via split_tree, the
+  ADDR_EXPR is TREE_CONSTANT). Unfolded forms that FAIL in InitTool: `num = g_editNum[i]; num += 12` (2-set `num` is no giv:
+  `add r30,r11,r30` per preheader, 8165w), `row = g_editNum[i]; num = row + 12` (row a giv, num derived from it, 8444w), absolute
+  indices `num = g_editNum[i]; num[12..21]` (the loop-body `lo_sum g_editNum` has life 1 -> loop.c "move-insn savings 1 not
+  desirable" against 302 insns, so `num` is not a giv; in window 1 the same lo_sum has life 38 because cse's find_best_addr
+  rewrote the offset-0 `num[0]` address to `(plus mult lo_sum)`, so it IS hoisted there; 3114w). Form that works (zero code, all
+  four windows): `DB_NUMERIC* (*tbl)[43] = g_editNum;` right before the `for (i..)` and `num = &tbl[i][12]` (`tbl[i]` for window
+  1): `tbl` is a pseudo set in the preheader block, cse does not fold it into the loop body's `(plus (plus tbl mult) 48)`, loop.c
+  makes `num` a giv with add_val `tbl + 48`, update_equiv_regs gives `tbl` REG_EQUIV sym -> rematerialised at the giv init.
+  Segments 67 and 100 are exact, 129 has one FPR name left (f16/f18). The 4 extra `tbl` sets moved N 5235 -> 5237 (one slot 4
+  bytes low from 0x2054 on, 7969w); 116 dead sets = 5235 again (the tree's base N was 5235, not the 5233 written in pass 14: both
+  fit the slot order). Rule confirmed: after any InitTool insn-count change, read N from `-dG` and refit with the dead sets.
+- **Seg 25 (window 1 preheader, 22 lines) = the reload round-robin phase, not closed.** Target picks r8 (lfd `LC1533` high), r6
+  (`&g_editRowNo` high), r10 (lfs high); ours r6, r8, r10. RLDDBG prints only the lfd's address reload (insn 1355 -> r6, rr 1/7,
+  previous reload = a call's LR r65, r0 busy with 0x4330); the two `high` operand reloads of the REG_EQUIV `(high sym)` pseudos
+  (insns 1380/1360) are NOT printed by the hook, i.e. they get their register outside allocate_reload_reg's success path
+  (choose_reload_regs inheritance/equiv or find_reloads' dummy-reload path); extend the RLDDBG hook to those paths before reading
+  the phase again. The target order needs the lfs (1360) before the addi (1380) in the RTL order or r10 busy at 1380.
+- **Segs 162-163 (MODEL window `new`, "LOAD window region"), read, not changed.** The target issues 6 callee-saved highs (`lis
+  r25 g_pPrimArray, r19, r21, r16, r28, r27`) between `li r3,8` and the `bl __builtin_new`; ours' sched1 order already has 2 of
+  them before the call (`r26 g_pPrimArray`, `r17 LC713`, greg dump insns 4642/4726 before call 4637) and sched2 moves them after
+  it (a callee-saved hard reg has no dependence on the previous call in sched_analyze_1: only call_used regs get the
+  last_function_call anti-dep; pseudos need REG_N_CALLS_CROSSED > 0, haifa-sched.c). The scratch highs (`lis r11/r10/r9/r4`) carry
+  `REG_DEP_ANTI` on the call in both. The target also has 3 more callee-saved highs (11 vs our 8 around this window) and copies
+  3 pool constants into f21/f20/f19 (`fmr`) = 3 FP values live across the following calls that ours reloads; the register names
+  from seg 163 on follow from those extra live values (global.c order), so find the 3 highs / 3 FP constants first (candidates:
+  the DB_POINT constants shared by the MODEL/LOAD/SAVE windows, e.g. 8.0f/72.0f/4.0f, and the highs of `g_pLoadWin`-family
+  symbols or the CreateString label strings), then the sched2 position of the pre-call `lis`es.
+- Not touched: the `k8/k6` spill-set asm (tag stays), Load/SaveEmType, fn_t_esp_3DE4C, dbg_tool.h/db_widget. Tree edits in
+  src/t_esp/t_esp.cpp only (window-1 `n` form, 4 `tbl` locals, dead sets 116). Verified: locked ninja of t_esp.o, bytecmp 208/212,
+  InitTool 2880. Not run: `ninja -k 0`, make_rel --verify, shasum (nothing flipped).

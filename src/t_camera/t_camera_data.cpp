@@ -43,8 +43,12 @@ void tcGetFileName(char* path, int no, int flag)
 int tcDataExport(u8* buf)
 {
     CameraDataHeader* hdr = (CameraDataHeader*) buf;
-    CameraAreaRec* rec = (CameraAreaRec*) (buf + 0x10);
+    CameraAreaRec* rec;
     CameraAreaRec* r;
+    // the target's `addi r31,buf,0x10` + `mr r25,r31` after the header stores and its loop-2 fovy
+    // pointer in the same r31: one work pointer set at the top, copied into rec, reused as fovy
+    // (a multi-set pseudo crossing the two calls -> the first callee-saved allocno, size exact)
+    f32* fovy = (f32*) (buf + 0x10);
     CameraAreaInfo* area;
     CameraCut* cut;
     CameraLerp* lerp;
@@ -69,6 +73,7 @@ int tcDataExport(u8* buf)
     hdr->numCut = pTc->cdatNum;
     hdr->numArea = pTc->adatNum;
     hdr->numLerp = pTc->ldatNum;
+    rec = (CameraAreaRec*) fovy;
     area = (CameraAreaInfo*) (rec + hdr->numArea);
     cut = (CameraCut*) (area + hdr->numArea);
     lerp = (CameraLerp*) (cut + hdr->numCut);
@@ -107,7 +112,6 @@ int tcDataExport(u8* buf)
                 Vec* pp;
                 Vec* at;
                 f32* roll;
-                f32* fovy;
                 d->x0 = cd->enable;
                 d->camera_no = cd->cam_no;
                 d->type = cd->type;
