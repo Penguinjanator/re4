@@ -16930,3 +16930,72 @@ compile + `ninja <unit>.o` + `cmp` with the pre-edit copy).
   agents within the last 20 min -- were mid-edit and not byte-identical. That regression is not this pass's: all 5 edited units
   (em2c, cam_qfps, esp_app, ss_pzzl, r20d) are byte-identical to their pre-edit .o (verified by private compile + `cmp`).
 - Files changed: src/em2c/em2c.cpp, src/game/cam_qfps.cpp, src/game/esp_app.cpp, src/Sscrn/ss_pzzl.cpp, src/st2/r20d.cpp.
+
+### Structural tag hunt (2026-09-11)
+
+Harness ~/.cache/taghunt (dol19a copies with the paths rewritten; `h.py NCCDIR LABEL` = rebuild every `prodg_cc*` unit of
+build.ninja with the cc1plus/cc1 in NCCDIR into `tree/LABEL/` (the real cflags and post_build, `$python` expanded, ~10 s for
+734 units) and compare base vs variant per function (mcmp masked compare) against the split objects -> `reg_LABEL.txt` /
+`fix_LABEL.txt`; `sngcc*/` = copies of tools/sn-gcc with one-line function.c edits, `make ./cc1plus` in the copy; deleted at
+the end). No source file was changed in this pass; 111 files OK before and after (the `ninja` "FAILED build.ninja
+objdiff.json" seen all morning is other agents' configure.py runs racing on objdiff.json, not a build failure).
+
+- **Family A, "polymorphic copy vptr temp" (esp0a x4, esp0e; 31 tag lines): the structure IS the plain `*p = *esp`, and the
+  one thing that differs is a MEM flag the original compiler does not set.** Read off the tree with gdb on cc1plus
+  (`break emit_block_move` / `save_noncopied_parts`, `debug_tree` of the expand_expr_stmt argument): the statement is a bare
+  `MODIFY_EXPR` (cp/call.c build_over_call's trivial-assign shortcut; TYPE_HAS_COMPLEX_ASSIGN_REF is not set for `has_virtual`,
+  so `operator=` is bitwise), and expr.c's `case MODIFY_EXPR` runs `save_noncopied_parts` because cp/class.c gives every class
+  with a vfield `TYPE_NONCOPIED_PARTS = (vtable, vfield)`: `assign_temp (vptr type, keep 0, memory_required 1)` (the slot at
+  frame offset 0 = `8(r1)`, freed after the statement and reused by the next copy -- the `stw r0,8(r1)` of every copy in
+  the target), `store_expr` of `p->vptr` into it, the block move (SN's 24-byte `expand_block_move` loop, ONE temp pseudo),
+  then `expand_assignment (p->vptr, RTL_EXPR temp)` = the `lwz r0,8(r1); stw r0,0xf4(p)` restore. Stock GCC 2.95, nothing
+  SN-specific, no source construct involved. The reload floats above the tail copy stores in ours only because stock
+  `assign_temp` does `MEM_SET_IN_STRUCT_P (tmp, AGGREGATE_TYPE_P (type))`, which for the pointer-typed temp SETS
+  `MEM_SCALAR_P` (`mem/f`), and alias.c `fixed_scalar_and_varying_struct_p` then exempts the fixed scalar read from the
+  `mem/s` stores through the stepping pointer. (Side fact that misled the audit: `assign_stack_temp_for_type` reuses the
+  slot's rtx object, so a later `volatile u32 vt` declared in the same function retroactively turns the earlier compiler
+  temp into `mem/v/f` -- the `.rtl` dump flags of a compiler temp are not its own.)
+  - Source forms tried with the installed compiler, all DIFF (Esp0a_Trans words): `*base = *esp` 18, `base[0] = esp[0]` 18,
+    `*base = *(const cEsp*) esp` 18, `cEsp& d = *base; d = *esp` 30, `cEsp* d = base; *d = *esp` 30, `*(cEsp0a*) base = *esp`
+    31, `static inline EspCopy(d, s) { *d = *s; }` 63, volatile-qualified source/dest = compile errors (the implicit
+    `operator=` is not volatile). There is no C++ spelling: the dest MEM of an aggregate INDIRECT_REF is always
+    MEM_IN_STRUCT_P (expr.c 6323) and the temp is always the compiler's. The tagged form stays the only pure-C emulation
+    with the installed compiler.
+  - **Compiler-build finding, verified whole-tree (nothing installed, decision for the owner).** function.c edited so that
+    non-aggregate stack temps and parameter slots get NEITHER flag (`if (AGGREGATE_TYPE_P (type)) MEM_SET_IN_STRUCT_P (tmp,
+    1);` in `assign_temp`, and `if (aggregate) MEM_SET_IN_STRUCT_P (stack_parm / DECL_RTL (parm), 1);` at the five
+    `assign_parms` sites, function.c lines 1172, 4546, 4688, 4745, 4802, 5062 of the v1.79 drop; 6 one-line changes, build
+    ~1 min): **0 regressions over the 18239 functions identical today, 7 newly identical with the sources as they are**:
+    objRobo TaskSwitchFront / TaskSwitchBack / R0WalkBridge (the sweep-17 "REG_EQUIV x4 / lis combine" residues), sce_com
+    SceChapterEnd (17 words in sweep 18b), t_se_at seAtAreaEdit / seAtAreaEdit_EditMenu / seAtDataSave. With it, esp0a with all
+    four copies written `*base = *esp; *e.p = *base; *base = *this; *p = *base;` (memcpy declaration gone) is 6/6 identical
+    and esp0e with `PSMTXIdentity(m); *p = *esp;` is 8/8 identical, i.e. the whole family's 31 tag lines become removable.
+    The `assign_temp`-only edit alone is 0 regressions / 6 fixes (esp0a/esp0e plain both identical too); adding the parm
+    slots gives SceChapterEnd; widening further to `put_reg_into_stack` (1740), `expand_decl`'s 3023, 4907, 5104, 6189
+    regresses item `combine` (a #17-pinned function) for no extra fix -- so the shipped compiler's function.c differs from
+    v1.79 exactly at assign_temp + assign_parms, consistent with the snd note "address-taken parm slots without
+    MEM_SCALAR_P" (SndBgmTblSet, RefU16 lever) and the "scalar frame MEM" issue-slot filler of esp_app EffAreaUpdate. If
+    adopted (tools/sn-gcc/patches, rebuild, re-verify 111): remove the esp0a/esp0e volatile-memcpy blocks, then re-test
+    every `RefU16`/parm-slot lever and the objRobo/sce_com/t_se_at residues' tags. Not adopted here: a compiler change is
+    a project decision and other agents were building concurrently.
+- **Family C, #17 `register int pin asm("rN")` used-so-far pins (event GetMod r27; also pad, ss_item, r203, r22c,
+  t_sce_item): no structure found.** GetMod without the pins: nm r31, type r30, wkNo r29, this r28, mod r27 by the stock
+  priority order (this 3 refs / 27 insns = 0.111, mod 3 / 49 = 0.061); the target has this r27 / mod r28, which pass 0 gives
+  only when r27 is `regs_used_so_far` and free during `this`'s range. Nothing in the target's code occupies r27 in the err
+  block or the tail, so it is not a live value; `regs_ever_live` from a hard-register mention or a local-alloc'd
+  call-crossing qty are the remaining candidates, neither visible in the bytes. Natural spellings tried (`ret =` in both
+  arms, `this->datTbl`, a `DatTbl* tbl` local (22), `mod[0] = 0`, `return ret`) all leave 6 words. The pin stays.
+- **Family B (#13 keep-alive after a call / dying-store order) and F (dead tests as loop.c insn counts): read, not
+  solved.** esp04 move10's y-loop (`register f32 s asm("fr0")` + `"=m"` keep-alive of `y`): the target hoists BOTH the
+  step (`fmr f0,f11`, a copy of the `-sizeY` compare's load) and the bound `lim - sizeX` (`fmr f11,f13`, the if's
+  own `fsubs`) and enters the loop without its own test (cse folded `v = y` into the if's jump equivalence), while the
+  x-loop above it keeps `fsubs` inside the loop and duplicates the entry test -- the two halves were not written the same
+  way in the original, and no call or debug statement follows that could be the keep-alive. cam_qfps init (r7/r8/r10
+  constants = "reload spill registers", eleven stores in source order) and esp_app EspDrawLaserLine (`lis r11` for the
+  0.8 pool, `stb r29` = the `andi.` zero substituted on the fall-through path) are register-allocation shapes, not
+  structure; esp0e/esp45 HideCheck's "+3 insns" dead test has no debug-statement candidate (the loop body has no
+  call, `p` is a memory struct so a dead `p.z` store would survive). All tags left in place.
+- Method note: the gdb route (`gdb -batch` on the static i386 cc1plus, `break emit_block_move`, `frame N; info frame`
+  for the CFA, `call (void)debug_tree(*(int*)CFA)`, `watch *(unsigned char*)(rtx+3)` for MEM flag bits) locates the
+  expander of a puzzling RTL shape in minutes; the flags byte of an rtx is at offset 3 (code:16, mode:8, then
+  jump/call/unchanging/volatil/in_struct/used/integrated/frame_related from bit 0).
