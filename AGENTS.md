@@ -43,6 +43,33 @@ Draw_line3d_local_222, Esp11_SetParam, EspStrip_draw_poly, Light02/05/06_Move we
 diff is therefore never "compiler version": keep looking for a source form. The DOL has no compiler
 string; its GCCI is "Ver.1.09 Build Oct 8 2004".
 
+**Installed compiler patch (2026-09-11): `tools/sn-gcc/patches/shipped-build-temp-flags.patch`**, applied by
+build.sh after linux-host.patch (also applied to the live untracked `tools/sn-gcc/src/gcc/function.c`). Six
+one-line edits in gcc/function.c: `assign_temp` (line ~1172) and the five `assign_parms` parameter-slot
+sites (~4546/4688/4745/4802/5062) set `MEM_IN_STRUCT_P` only for aggregate types and no longer set
+`MEM_SCALAR_P` on non-aggregate stack temps / parm slots, so alias.c `fixed_scalar_and_varying_struct_p`
+no longer exempts a compiler temp's reload from struct stores through a varying pointer. Evidence (harness
+~/.cache/ccpatch, deleted; `h.py build NCCDIR LABEL` = every prodg_cc unit of build.ninja with the given
+cc1plus/cc1, `h.py cmp base new` = masked per-function compare against the split objects): 763 units,
+19119 functions identical before, **0 regressions and 0 changed objects** with the tree's sources; esp0a with
+its four polymorphic copies written plainly (`*base = *esp; *e.p = *base; *base = *this; *p = *base;`) 6/6
+and esp0e with `*p = *esp` 8/8 identical (4/6 and 7/8 with the unpatched compiler) -- both units are now pure
+C. Widening to `put_reg_into_stack` (1740) regresses item `combine`, so the edit stops at assign_temp +
+assign_parms. The tag hunt's "+7 newly identical" (objRobo x3, sce_com SceChapterEnd, t_se_at x3) did NOT
+reproduce with the same edit against the committed sources (HEAD objRobo stays 16/19 with either compiler;
+39 saved objRobo variants all byte-identical between the two compilers): those were concurrent source edits
+by the owning agents between that run's base and variant builds. sha1 of the installed binaries: cc1plus
+95ebed456cf1153736a3b03a4c05db9051c7dd8b -> 457337da552aa68676ea47f7d5c171d2e57038c8, cc1
+65dae09ba6f31d245d6e4b45714ce5da34d3d419 -> f1cd07489d77fb41b3722f80c961d0cf756800be (tools/sn-gcc/cc1plus,
+cc1 and build/compilers/ProDG/3.9.3-v1.79/ are the same files; `make -C tools/sn-gcc all` rebuilds them from
+the patched src/, `./build.sh` from the drop applies both patches). The ninja prodg_cc rule depends on the two
+binaries, so a compiler swap rebuilds all 763 units by itself; 111 files OK after the swap. What the patch
+does NOT change (representatives tested by removing the workaround with the new compiler, all still needed):
+snd SndCall `RefU16(blk)/(no)` (60 words without; address-taken register parms go through put_reg_into_stack,
+not assign_parms), objRobo `GRef(pG)`/`FRef` (global scalar MEMs from make_decl_rtl), esp_app EffAreaUpdate
+`"=m"(*(u32*) &pos)` filler (user local, expand_decl), trans SelfShadowSetup `ISet` reference stores, shadow
+`FRef` unit-static reads. Only the "polymorphic copy vptr temp" family was an assign_temp effect.
+
 
 ### Known compiler-build differences (v1.79 source vs the original build)
 
@@ -3356,6 +3383,91 @@ bodies), sfd_tim `sftim_Tc2Time59D/29D/23D` (`f = chain + (tc->frm + tc->frm2)`)
   half-written objdiff.json and `main.dol: FAILED` appeared from another agent's DOL flip (game/
   cam_qfps.cpp) while all three units here are still `False`; use the unit's exact compile command
   (`ninja -t commands <obj>`) when the manifest regeneration is racing.
+
+### CRI pass 13: two-level helpers and per-site locals (gcci Matching; mpv_hdec 13 -> 14/15, sfd_hds 9 -> 10/11, cri_cvfs 10 -> 11/13; pure C, no pins; 2026-09-11)
+Harness /home/adityas/.cache/cri13/ (deleted): cri12b's `bytecmp.py`/`tryvar.py`, `fd.py lib/unit Func [--src
+file.c] [--all]` (side-by-side target/ours via `dtk elf disasm`, labels and reloc symbols normalised, no
+ninja), `bld.sh lib/unit` (the unit's exact ninja command + bytecmp; `ninja <obj>` regenerated build.ninja in
+a loop and failed on other agents' half-written objdiff.json every time this pass). ~/.cache/mwccdbg reused;
+every fix was predicted from one dump before the build.
+
+**Fixed (model prediction -> result):**
+- gcci `gcCiReqRd` 1w -> 0: `tbl[i].sctlen * (over / tbl[i].sctlen)` (target `mullw r3, r4, r3`; pass 10's
+  note). `gcCiExecServer` 33w -> 0 in two steps read off the ids: (1) the counter `i` must rank BELOW the
+  frontend's induction pointer @433 in ExecServer but ABOVE it in ReqRd (i r30 / pointer r29 there) — an
+  inlined helper's local ranks above the later strength-reduction temp, an OWN local below it, so
+  gcCiExecServer got its own loop (10w); (2) the CANCELED `over = DVDGetTransferredSize()` is a range-split
+  copy @439 that outranks the own locals (r28) while the target colours it after `over`/`p`/`nbyte` (r27):
+  the loop body became a per-handle `static inline gcci_ExecOne(GCCI ci)` with `over, nbyte, p` declared in
+  that order — inlined locals are created at inlining, i.e. BEFORE the split copy, so the copy ranks below
+  them and takes over's r27 in both callers; a separate CANCELED variable bounces (`mr r0, r3`, +4). The
+  table loop is written twice (`gcci_ExecServer(tbl)` for ReqRd, gcCiExecServer's own `for`) = the
+  parent's "two helpers" guess. Case order in the switch is code order (swapping CANCELED/END: 66w).
+- mpv_hdec `mpvhdec_DecPscSj` 8w -> 0: `mpv->fwd.r_size = --r_size;` — a statement `r_size--` after the
+  3-arm GET join is forward-substituted as `r_size + -1` into its three uses (backend CSE temp r9 next to
+  the raw value r7); the pre-decrement inside the store expression stays an in-place update (`srwi r9;
+  subi r9, r9, 1`). `--r_size;`, `-= 1`, `+= -1`, a 4th use, `x = r_size - 1` forms all substitute.
+- mpv_hdec `MPV_DecodePicAtrSj` 226w -> 21 rows (0x74c size): (a) frame: inlined aggregates are laid out by
+  inlining ROUND (round 1 = calls in the function body, round 2 = calls inside inlined bodies; within a
+  round in @ order), own aggregates above all; the EXT/UD case bodies as `static inline mpvhdec_SkipExt/
+  SkipUd(mpv, sj)` (GetChunk + SETPOS + skip + `MPV_GoNextDelimSj`) make their `rest` round-1 objects and
+  their GoNextDelim chunks round-2 ones AFTER NextDelim's nested GoNextDelim/MoveChunk = target order
+  [ck, ck2][rest, rest][NextDelim's ck/rest/ck][EXT's][UD's]; (b) `MPVBIT_BYTEPTR(q); q += 12;` (its -8
+  plus the 4 start-code bytes) keeps the target's `(ptr + n) + 4` association — `(Uint8 *)ptr + ((bitpos +
+  7) >> 3) + 4` and the two-statement/parenthesised forms are reassociated to `ptr + (n + 4)`; (c) `MPV mpv
+  = (MPV)(MPV_OBJ *)hn` (pass 12's kept-copy prediction): mpv r28 above sj r27, the `mr r3, r28` argument
+  moves after calls keep it. Helper locals `bitpos, ptr, q, rest` in that order.
+- sfd_hds `sfhds_DoProcessHdr` 111w -> 0 (the parent's reading, exactly): the vid-section `fhd->vid.x =
+  (SFH_Anly..(sfh, id, &v) == 0) ? -1 : v;` sites rewritten `if (..) v_x = -1; else v_x = v; fhd->vid.x =
+  v_x;` with a DISTINCT own local per site (10 locals; identical code). Each `?:` join value was a frontend
+  temporary with a higher id than the range-split `id` copy @151 (scanned after it, so @151 met 30 live
+  neighbours and stayed for iteration 2 with fhd/sfh -> r31); as own locals they are scanned and removed
+  first, @151 drops below 29 in iteration 1 and colours with ver (r29), fhd r31 / sfh r30. All 25 sites
+  converted also give 0w; a shared `t` is range-split into temps again (pass 12).
+- cri_cvfs `cvFsAddDev` 32w -> 0 in three kept-copy/helper steps: `name = (Char8 *)(void *)devname` (argument
+  moves after calls keep it; declared first: devname r29 above the table entry r28, 32 -> 28w); the search
+  + registration as `static CVFS_DEVIF *cvfs_AddDevTbl(Char8 *devname, void *vt)` with `CVFS_DEVIF *vtbl =
+  vt` and `return vtbl` on the found path, called `vtbl = cvfs_AddDevTbl(name, getif())`: the `return` on
+  the found path is the `beq add; b check` exit and the typed copy of the `void *` parameter takes getif's
+  result directly (`mr r28, r3`; `vtbl = getif()` in the caller bounces through r0 whatever the helper,
+  +4 bytes) (28 -> 5w); `fn = (CVFS_GETIFFN)(void *)getif` orders the prologue's two pool `lis` (rodata
+  `lis r5; addi r30, r5` then the bss `lis r5` — with the plain parameter both `lis` are hoisted together
+  into r6/r5) (5 -> 0w). Helper locals `dev, i` (i r3 / dev r4 in the unrolled scan).
+
+**Residues (exact class, forms tried):**
+- adx_tsvr `adxt_nlp_trap_entry` `lha r4` (2w, 5/6 stays): T = @56 with neighbours r1, r3 (n2 = the
+  coalesced `?:` copies), ofst1, n1, sfd/sji/p, ofst2v; it is the RB operand of `add` (no r0 base
+  constraint), nothing r0-coloured is live between the `bl` and the `add` in the target's bytes, so the
+  extra edge is not derivable; 15 more spellings (`ofst + ofst1`, `(Sint32)`/`(Uint32)`/`Sint16`
+  temporaries, statement order, volatile read, Sint16 ofst1/ofst2v, ternary n2, `-= -ofst`) all r0.
+- mpv_hdec `MPV_DecodePicAtrSj` 21 rows (+4 bytes): both in the skip helpers. EXT: ptr r4 / bitpos r7 in the
+  target, ours ptr r7 / bitpos r4 — ours sinks the single-use `bitpos` def into `q`'s computation (a
+  temporary coloured before the locals), the target has bitpos as a variable. UD: the target computes
+  `ptr` AND `bitpos` before `mpvhdec_AnalyUd` (r26/r29 live across the call) and reloads `ck.data` after
+  it; ours sinks bitpos past the call and keeps `data` (r25) instead. Probes p1..p4 (probe files deleted):
+  only a conditional branch right after the call (`if (f(..) < 0) return;`, an inlined wrapper with an
+  early return) or a second def BEFORE the call anchors the def; `register`, `Uint32`, blocks, do/while(0),
+  `for(;;){..;break;}`, `switch (f())`, `r = f()`, `if (f()) {}`, a `q = ck.data` variable redefined after
+  the call, `bitpos += 7` after the call, self-assignment, `(Uint8*)ptr + (bitpos>>3)` as the argument
+  (+4) all sink. The frontend CSEs the three `mpv->ck.data` reads into @565 first, which is what makes the
+  sink legal; the target's IR must have kept a memory operand or a branch there.
+- sfd_hds `SFHDS_SetHdr` 11w: target result r30 > len r29 > p r28 > sfd r27 = the parameter order of the
+  inlined `sfhds_SetHdrPkt(sfd, p, len, result)`, i.e. its three parameter copies kept as nodes (sfh, the
+  nested IsSfdHeader local, above them); ours propagates them (result 28 neighbours, one level, p > len >
+  result by id). `void *` parameters with typed locals (propagated: p/len only feed `subi/addi`
+  arguments, result a store — no argument move), parameter order, `len` declared before `p` (15w),
+  `data -= 6; size += 6` on the parameters (62w) do not keep them.
+- cri_cvfs `cvFsGetFileSize` 63w / `cvFsOpen` 240w (-4): the inlined `cvfs_ResolveDev`: target `pdev`
+  (own local, r28) coloured before ResolveDev's `tbl` (@1358, r27) although tbl has the higher id — pdev
+  needs 29 at its iteration-2 scan (ours 28/55 vs tbl 26/46); target materialises `tbl = cvfs_tbl` after
+  GetDevIf's `strlen` and copies `dev = tbl` (`mr r24, r27`); assigning `tbl` just before the GetDevIf
+  call gives 45w but cvFsOpen 259w (not applied); GetDevIf declaration orders: no change.
+- sfd_cre `sfcre_AnalyMpv` 15w: target colouring order b4 r4, b7 r5, ofs r6, b6 r7, b8..b11 r8..r11, b5 r6
+  (b5 last = a two-use variable, b7 second = a variable between b4 and ofs; `ofs + 1` fresh in r0); ours
+  has b7 as the temporary @128 coloured first (r5) and ofs first among the variables (r4, in-place
+  `addi`). 8 declaration orders / Sint32-Uint32 b7 / picrate_code types: 15-24w.
+- objects.py / AGENTS.md were modified by other agents every few minutes this pass; edits were surgical
+  single-anchor inserts.
 
 ## REL modules
 
@@ -16925,6 +17037,10 @@ compile + `ninja <unit>.o` + `cmp` with the pre-edit copy).
   Total 363 code+comment lines, 113 code-bearing tested, 5 sites (7 tag lines) removed. Every remaining tag is a confirmed
   source lever for a stock-compiler difference (#1/#2/#3/#4/#12/#13/#17) or a resolved source-form lever (#5/#6/#8/#9) -- none is
   removable until a later SN compiler build turns up; treat them as permanent per the audit-1 note.
+  UPDATE 2026-09-11: cand "polymorphic copy vptr temp" 31 -> 31/0 -- removed with the installed
+  shipped-build-temp-flags compiler patch (see "Compiler"; esp0a/esp0e plain `*p = *q`, byte-identical). Every other group
+  unchanged: the patch touches only assign_temp/assign_parms slots, and the five representative removals of the
+  "fixed scalar" comment family (snd RefU16, objRobo GRef/FRef, esp_app filler, trans ISet, shadow FRef) all still DIFF.
 - **DOL/REL state:** the 111-check was 111 OK at the start of this pass; at the end main.dol was FAILED because emwep.cpp
   (SetWeapon 99.80%) and id_sys.cpp (IDSystem::move 98.70%) -- both in the skip list, both Matching=True, both edited by other
   agents within the last 20 min -- were mid-edit and not byte-identical. That regression is not this pass's: all 5 edited units
@@ -17254,3 +17370,35 @@ objdiff.json" seen all morning is other agents' configure.py runs racing on objd
   the `ble`). position_usage: the target's `li r30,43` sits INSIDE the join block after `mulli r4,r31,14` (not a
   cross-jumped tail), and its first `y++` is issued above the first tail eprintf while ours stays behind the call
   (the later `y++`s hoist in both).
+
+### Compiler patch adopted: shipped-build-temp-flags (esp0a/esp0e pure C; 2026-09-11)
+
+- Project decision (orchestrator): the tag-hunt finding is installed as `tools/sn-gcc/patches/shipped-build-temp-flags.patch`
+  (header = the evidence), applied by build.sh after linux-host.patch and to the live tools/sn-gcc/src; `make` in tools/sn-gcc
+  rebuilt cc1plus/cc1 (byte-identical to the harness pair built in ~/.cache/ccpatch, deleted at the end); installed atomically
+  (tmp file + `mv`) into build/compilers/ProDG/3.9.3-v1.79/. sha1 before/after: cc1plus 95ebed45..d8 -> 457337da..c8, cc1
+  65dae09b..19 -> f1cd0748..be (full hashes in "Compiler"). The patch applies cleanly to the drop's function.c
+  (`patch --dry-run` on the CRLF->LF NGC_GNU_SRC copy; the patched result equals the harness copy).
+- Whole-tree comparison (763 prodg_cc units, 19119 functions identical with the old compiler): 0 regressions, 0 changed
+  objects. Sensitivity check of the harness: the wider put_reg_into_stack edit shows the known item `combine` regression
+  (3 changed objects, 1 regression), as in the tag hunt.
+- The tag hunt's "+7 newly identical" (objRobo TaskSwitchFront/Back/R0WalkBridge, sce_com SceChapterEnd, t_se_at x3) does not
+  reproduce: HEAD objRobo is 16/19 (9/9/21 words) with both compilers, the working tree's pinned objRobo is 19/19 with both,
+  the pins removed 17/19 (12/12) with both, and all 39 objRobo variants left in ~/.cache/dol19a/out are byte-identical between
+  the two compilers. Those seven were the owning agents' source edits landing between the tag hunt's base and variant builds.
+  The whole-tree "0 changed objects" also says why: every previously affected site already carried a source workaround.
+- Rebuild: `ninja` regenerating build.ninja raced other agents' objdiff.json writes as usual; `cp build.ninja X && ninja -f X
+  -k 0` rebuilt the 763 NGCCC units (the prodg_cc rule depends on the cc1plus/cc1 paths, so the mtime change alone triggers
+  the rebuild); `dtk shasum -c` 111 files OK.
+- esp0a.cpp / esp0e.cpp: the memcpy-through-u8*-locals + `volatile u32 vt` recipe and its 31 `// COMPILER-DIFF: candidate
+  (polymorphic copy vptr temp)` lines replaced by the plain assignments; `extern "C" memcpy` declarations gone; both units 6/6
+  and 8/8 byte-identical (mcmp) and Matching; objects.py comments updated (surgical, own lines only). objRobo was already
+  19/19 and flagged by its owner (pins, #17); sce_com 30/33 and t_se_at 18/20 unchanged (not flipped).
+- Representative workaround removals with the new compiler (all still needed, none removed): snd SndCall RefU16(blk)/(no)
+  0 -> 60 words (RefU32 alone 0 -> 7); objRobo GRef(pG)/FRef 19/19 -> 17/19; esp_app EffAreaUpdate `"=m"` filler 0 -> 2;
+  trans SelfShadowSetup ISet x3 0 -> 12; shadow make_comn_parallel_light FRef 2 -> 10. Their MEMs come from make_decl_rtl
+  (globals/statics), expand_decl (user locals) and put_reg_into_stack (address-taken register parms), none of which the patch
+  touches. Only the polymorphic-copy family was an assign_temp effect.
+- Files changed: tools/sn-gcc/patches/shipped-build-temp-flags.patch (new), tools/sn-gcc/build.sh, src/game/esp0a.cpp,
+  src/game/esp0e.cpp, config/G4BE08/objects.py (two comments), README.md (one sentence), AGENTS.md; untracked:
+  tools/sn-gcc/src/gcc/function.c, tools/sn-gcc/cc1plus, tools/sn-gcc/cc1, build/compilers/ProDG/3.9.3-v1.79/cc1plus, cc1.

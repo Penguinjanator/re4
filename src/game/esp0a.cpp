@@ -3,7 +3,6 @@
 #include "math_sub.h"
 #include "esp.h"
 
-extern "C" void* memcpy(void*, const void*, unsigned int);
 
 struct Esp0aWork {
     u8 type;   // 0x00 0: spawner (copies itself 50 times), 1: rim-lit sprite
@@ -97,32 +96,12 @@ void Esp0a_Trans(cEsp0a* esp)
         u32 i = 0;
 
         if (PullEsp(&base, 0)) {
-            {
-                volatile u32 vt;  // COMPILER-DIFF: candidate (polymorphic copy vptr temp)
-                u8* d = (u8*) base;  // COMPILER-DIFF: candidate (polymorphic copy vptr temp)
-
-                vt = *(u32*) (d + 0xF4);  // COMPILER-DIFF: candidate (polymorphic copy vptr temp)
-                {
-                    u8* s = (u8*) esp;  // COMPILER-DIFF: candidate (polymorphic copy vptr temp)
-                    memcpy(d, s, sizeof(cEsp));  // COMPILER-DIFF: candidate (polymorphic copy vptr temp)
-                }
-                *(u32*) ((u8*) base + 0xF4) = vt;  // COMPILER-DIFF: candidate (polymorphic copy vptr temp)
-            }
+            *base = *esp;
             base->id = 0;
             for (; i < 50; i++) {
                 if (PullEsp(&e.p, 0)) {
                     Vec wpos;
-                    {
-                        volatile u32 vt;  // COMPILER-DIFF: candidate (polymorphic copy vptr temp)
-                        u8* d = (u8*) e.p;  // COMPILER-DIFF: candidate (polymorphic copy vptr temp)
-
-                        vt = *(u32*) (d + 0xF4);  // COMPILER-DIFF: candidate (polymorphic copy vptr temp)
-                        {
-                            u8* s = (u8*) base;  // COMPILER-DIFF: candidate (polymorphic copy vptr temp)
-                            memcpy(d, s, sizeof(cEsp));  // COMPILER-DIFF: candidate (polymorphic copy vptr temp)
-                        }
-                        *(u32*) ((u8*) e.p + 0xF4) = vt;  // COMPILER-DIFF: candidate (polymorphic copy vptr temp)
-                    }
+                    *e.p = *base;
                     int ot = 8;
                     e.p->spd.x = e.p->spd.y = e.p->spd.z = 0.0f;
                     e.p->scaleSpd = 0.0f;
@@ -177,31 +156,11 @@ int cEsp0a::SetFreeWork(EspGenWork* gen, u32* seed)
         u32 i = 0;
 
         if (PullEsp(&base, 0)) {
-            {
-                volatile u32 vt;  // COMPILER-DIFF: candidate (polymorphic copy vptr temp)
-                u8* d = (u8*) base;  // COMPILER-DIFF: candidate (polymorphic copy vptr temp)
-
-                vt = *(u32*) (d + 0xF4);  // COMPILER-DIFF: candidate (polymorphic copy vptr temp)
-                {
-                    u8* s = (u8*) this;  // COMPILER-DIFF: candidate (polymorphic copy vptr temp)
-                    memcpy(d, s, sizeof(cEsp));  // COMPILER-DIFF: candidate (polymorphic copy vptr temp)
-                }
-                *(u32*) ((u8*) base + 0xF4) = vt;  // COMPILER-DIFF: candidate (polymorphic copy vptr temp)
-            }
+            *base = *this;
             base->id = 0;
             for (; i < 50; i++) {
                 if (PullEsp(&p, 0)) {
-                    {
-                        volatile u32 vt;  // COMPILER-DIFF: candidate (polymorphic copy vptr temp)
-                        u8* d = (u8*) p;  // COMPILER-DIFF: candidate (polymorphic copy vptr temp)
-
-                        vt = *(u32*) (d + 0xF4);  // COMPILER-DIFF: candidate (polymorphic copy vptr temp)
-                        {
-                            u8* s = (u8*) base;  // COMPILER-DIFF: candidate (polymorphic copy vptr temp)
-                            memcpy(d, s, sizeof(cEsp));  // COMPILER-DIFF: candidate (polymorphic copy vptr temp)
-                        }
-                        *(u32*) ((u8*) p + 0xF4) = vt;  // COMPILER-DIFF: candidate (polymorphic copy vptr temp)
-                    }
+                    *p = *base;
                     p->spd.x = p->spd.y = p->spd.z = 0.0f;
                     p->scaleSpd = 0.0f;
                     p->colRSpd = 1.0f;

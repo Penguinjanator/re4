@@ -1639,7 +1639,7 @@ MATCHING.update({
 
 # DOL sweep 13 (2026-09-10)
 MATCHING.update({
-    "game/esp0e.cpp": True,  # Esp0e_Trans: polymorphic `*p = *esp` written as memcpy through u8* locals + a volatile frame temp for the vptr (the temp reload then waits for the block-move stores); stores `id, pModel, partsNo, life`
+    "game/esp0e.cpp": True,  # Esp0e_Trans: plain polymorphic `*p = *esp` (pure C since the shipped-build-temp-flags compiler patch, 2026-09-11); stores `id, pModel, partsNo, life`
     "game/pad.cpp": True,  # PadRead: `register int dead asm("r16")` set by a volatile asm `li` (#17/#13): the hoist keeps r17, the li is the block's first insn
 })
 
@@ -1673,7 +1673,7 @@ MATCHING.update({
 # DOL sweep 15b (2026-09-11)
 MATCHING.update({
     "game/sscrn.cpp": True,  # SubScreenExit: `u32 clear = 0` before cMes.roomInit() feeds a local FadeSetBlackOut inline (the zero stays a loop-body pseudo, not combined with the `type`/`flags` zero and hoisted), `type = 0; flags = 0` separate, BitSet/BitOff reference stores, `area_no != -1` polarity; OpeSetOpenTerm: codeless asm past z's death (tie, x 216 -> 217); the 12-byte .text pad is lib/ppcdown.s's `.balign 32`
-    "game/esp0a.cpp": True,  # Esp0a_Trans/SetFreeWork: the four polymorphic `*p = *q` copies as the esp0e memcpy-through-u8*-locals + volatile vptr temp recipe (COMPILER-DIFF candidate), `colRSpd..scaleCnt` as separate statements (a reload of e.p per store), `int ot = 8` local before the parent test (callee-saved r29 across PSMTXMultVec), pEffParentWorld read through an inline reference
+    "game/esp0a.cpp": True,  # Esp0a_Trans/SetFreeWork: the four polymorphic `*p = *q` copies written plainly (pure C since the shipped-build-temp-flags compiler patch, 2026-09-11), `colRSpd..scaleCnt` as separate statements (a reload of e.p per store), `int ot = 8` local before the parent test (callee-saved r29 across PSMTXMultVec), pEffParentWorld read through an inline reference
     "game/mes.cpp": True,  # Message::move/WidthCk: a codeless asm between `code = getCharCode()` and its `== 0` test (input-only use in move, `+r` launder in WidthCk) stops combine from fusing the call-result copy and the compare into `mr.` (COMPILER-DIFF candidate)
     "lib/crt0.c": True,  # data-only libsn crt0 half: the two 32-byte message buffers, the version words, `LinkFiddle = {__mod2i, 0}` (the code is lib/__start.s)
     "lib/crtbegin.c": True,  # .ctor/.dtor -1 list heads (`__CTOR_LIST__`/`__DTOR_LIST__` with section attributes)

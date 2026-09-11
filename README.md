@@ -33,6 +33,10 @@ Building
 
 Compilers (ProDG and CodeWarrior) and tools (decomp-toolkit, objdiff, wibo) are downloaded
 automatically. `ninja` prints `main.dol: OK` when the linked output matches.
+The ProDG compiler proper (`cc1plus`/`cc1`) is a native Linux build of SN Systems' GPL source drop
+(GCC 2.95.3 "SN BUILD v1.79"), built by `tools/sn-gcc/build.sh` with two patches: `linux-host.patch`
+(host config) and `shipped-build-temp-flags.patch` (a reconstructed behaviour of the compiler build the
+game shipped with; see the patch header and AGENTS.md "Compiler").
 
 Layout
 ------
