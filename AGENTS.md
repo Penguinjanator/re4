@@ -3723,6 +3723,74 @@ mpv_umc `MPVUMC_Forward`/`MPVUMC_Backward` (2w each), sfd_mps `sfmps_ProcPrep` (
   producing no .o under load from other agents' builds); the third run and the sha check passed with
   nothing flipped.
 
+### CRI pass 15: dead compares, helper-local arms, add-propagation's real blocker (sfd_mpv 14 -> 15/38; no unit flipped; pure C; 2026-09-11)
+Harness /home/adityas/.cache/cri15/ (deleted): `bld.sh lib/unit` (exact ninja command + bytecmp), `tryvar.py
+lib/unit variants.py [Func..] [--fdiff Sym] [--keep LABEL]` (text-replacement variants compiled into a scratch
+dir and copied over the unit's object for bytecmp; `fd.py` = tools/fdiff.py without its `ninja` step, which
+otherwise rebuilds the real object over the variant), ~/.cache/mwccdbg reused. Every claim below was read off
+a dump or a variant build.
+
+**Read off the dumps / variants (verified):**
+- **A compare without a branch = an IF whose branch targets the next instruction.** The frontend keeps
+  `IFGOTO L; <L>: RETURN` when the arm is a `return` at the END of a void function (`if (c) return;` last in
+  the body), and the backend deletes the jump-to-next but never a `cmp`. In a value-returning function every
+  spelling with equal return values (`if (c) return 0; return 0;`, `if (c) ret = 0; else ret = 0;`, `?: 0 : 0`)
+  becomes an ECOND lowered branchless (`cntlzw/extrwi/neg/andc`), a bare `return;` gives `beqlr; li r3, 0`,
+  goto-to-next-label / empty arms / `(void)x` / dead locals / an empty inlined call are all deleted by the
+  frontend. **The C form is the pass-14b helper-local rule**: `static Sint32 sub(SFD sfd) { Sint32 ret = 0;
+  if (SFMPV_WK(sfd) == NULL) { ret = 0; } return ret; }` + `SFMPV_Stop = return sub(sfd)`: the arm's `ret = 0`
+  is a @temp `li`, the backend CSE rewrites it into a copy of the entry zero, coalescing empties the arm and
+  the branch to the join is dropped — sfd_mpv `SFMPV_Stop` = target `lwz; li r3, 0; cmplwi r0, 0; blr` (0w,
+  15/38; as an OWN local the arm's `li` stays and gives the 1w `bnelr` form; pass 9/10 forms explained).
+- **Add-propagation's block rule (14b) is not the mechanism**: mpv_cmc `MPVCMC_InitMcOiRt`'s `addi oi, r32,
+  0x124` sits in B2 with `mr r32, r3` in B1 and its stores in B4 (after the ccnt diamond) — folded anyway.
+  What blocks the fold is a non-load/store use of `oi`: `if (oi == NULL) return;` gives the target's registers
+  with the `cmplwi; beq` left (2w, +8 bytes); `if ((void *)oi == (void *)mpv) return;` (last statement) leaves
+  only the dead `cmplw r5, r3` (1w, +4). A multi-def `oi` (`oi = mpv->oi_rt` in both arms: 2 addi, 14w;
+  do-while stepping: real loop), `volatile`, a `static` getter, `oi` after the if, `pc + 1` derivation, dead
+  `oi = NULL`, `#pragma opt_propagation/opt_common_subs/opt_lifetimes/opt_loop_invariants/opt_strength_red
+  off`, `optimization_level 3` do nothing (`peephole off` turns the ECOND into if/else arms: 12w). The
+  target's `work` pointer in InitObj (`addi r4, r31, 0xd00` before the cmpwi) is the same class (an address
+  value defined before the diamond and not folded). Same open class as sfd_buf's `ring`.
+- **The stwbrx fold does not depend on the word's register**: an asm `lwz r6` pin of the word + the merged
+  chain under peephole ON still folds (`stwbrx r6, r0, r4`). **The post-RA peephole does NOT merge
+  `rlwinm t, w; or s, s, t` pairs** even when adjacent with `w` intact and `t` dead (asm-spelled unmerged
+  chain, peephole on: the first `or` merged pre-RA via `mr + rlwimi`, the other two stayed `or`). So the
+  target's merged chain was merged PRE-RA like ours (peephole-forward: `or r47, r45, r46` -> `mr r47, r46;
+  rlwimi r47, w, ..` with the dead `rlwinm r43..r45` kept until RA and NOT in the interference graph), and the
+  word's r6 (readers) / r6 with r4 skipped (SmpHz) means ONE more node coloured r5 / r4 in the target's graph
+  — hdr / id dead in ours at the load, a dead partial-result temp would fit both. Pairwise `(a|b)|(c|d)` and
+  `s = c|d; *val = a|b|s` give the word r6 with one `or` left (4w); `s |= term` statements (any order),
+  `s = s | term`, `+`/`^` chains: the pre-RA scheduler hoists the rlwinm's above the ors and the LAST term is
+  computed in place into the word's register, so two `or`s remain (8w). M4 stays as it is (asm chain +
+  `#pragma peephole off`, 1w x6).
+- sfd_hds `SFHDS_SetHdr` (11w): the target order result r30 > len r29 > p r28 > sfd r27 IS the parameter
+  order result(r36) > size(r35) > data(r34) > sfd(r32) — `data -= 6; size += 6; ... data -= 2; size += 2`
+  gives exactly that order but every node gains 2 neighbours (29-30: the second start code's bytes 2/3 are
+  no longer CSE'd with the first's p[0]/p[1] because the loads fold through r5/r34 instead of one `p`),
+  so all four jump to level 2 above sfh (result r31 .. sfd r28, 62w). A modified-parameter copy in the inlined
+  SetHdrPkt (`*result++ = ..`) is created at @227, BEFORE the nested IsSfdHeader's @228..@231 (13b's "after
+  the helper's locals" = before nested inlines), and the dead `addi` is deleted by add-propagation after
+  copy-propagation has already folded the copy. `res = result; result = NULL;` (frontend deletes the dead
+  redefinition and propagates the copy), a ChkPkt helper returning `result`/NULL (a 2-def @ret, compares
+  the pointer): not the target.
+- sfd_cre `sfcre_AnalyMpv` (15w): the whole residue is ONE interference: pre-RA ours schedules `rlwinm
+  r50 (b7>>4&0xF); addi r49 (ofs+1); cmpi r50` so r49 and r50 interfere (r50 -> r0, r49 -> r4 in place of
+  ofs, b4 -> r6); the target has `extrwi.` before `addi r0, r6, 1` (no interference: both r0, b4 r4, b5 the
+  dying ofs's r6). Statement order (size update first/last, before the loads, `size = size - ofs - 1` is
+  reassociated to `ofs + 1`), `size -= ofs; size--` (25w), `1 + ofs`, `(p + 1) - data`, picrate_code before
+  the test, `(b7 & 0xF0)`, 20 declaration orders x 4 b7 types (b5 last gives b5 r11: the register order of the
+  bytes follows from ofs+1's colour alone) all keep the addi before the cmpi. The scheduler's tie-break here
+  is not source order (the loads come first in the IR and are scheduled after the addi).
+- sfd_tst `SFTST_Calc` (79w): comma forms of the anchor (`(diff = ..), (diff < 0) ? ..`, comma inside the
+  condition) are split into statements by the frontend and sink again (100w); `if ((diff = ..) < 0)` arms
+  117w; `-(diff = diff)` 100w. Not moved.
+- adx_tsvr `adxt_nlp_trap_entry` 2w: not touched (passes 11-14 exhausted the r0/r4 question).
+
+**Applied:** sfd_mpv `SFMPV_Stop` -> `sfmpv_StopSub` helper (0w). Nothing flipped; sfd_hds, sfd_cre, mpv_cmc,
+sfh_main, sfd_tst sources unchanged. Not reached: sfx_zmv, adx_baif, sfx_cnv, cri_cvfs, dct_ac, sfd_adxt,
+mwsfdcre, the other sfd_mpv functions.
+
 ## REL modules
 
 The game loads its rooms, enemies, weapons and debug tools as Nintendo REL overlays. `ninja` rebuilds the

@@ -4,7 +4,7 @@
  *
  * Compiled with `-inline auto,deferred` (CRI_CFLAG_OVERRIDES): the file is written in the reverse
  * of the DOL's .text order, .bss is the reverse of the declaration order, and the static helpers
- * are `static inline` (deferred emits every static that is not forced). Not Matching: 13/38
+ * are `static inline` (deferred emits every static that is not forced). Not Matching: 15/38
  * functions byte-identical, .rodata/.bss identical; the time-code arithmetic (sfmpv_DoReformTc,
  * sfmpv_Concat, sfmpv_Pts2Tc), sfmpv_ChkBufSiz's buffer split loop and sfmpv_DecodeOneUnit still
  * differ in statement shape, sfmpv_ChkFatal is auto-inlined into SFMPV_Init (M3). */
@@ -2024,7 +2024,9 @@ Sint32 SFMPV_Start(SFD sfd)
 	return 0;
 }
 
-Sint32 SFMPV_Stop(SFD sfd)
+/* the arm's `ret = 0` is a helper local: the backend CSE turns its `li` into a copy of the entry zero,
+ * the arm empties and the branch to the next instruction is dropped (target: `li r3, 0; cmplwi; blr`) */
+static Sint32 sfmpv_StopSub(SFD sfd)
 {
 	Sint32 ret;
 
@@ -2033,6 +2035,11 @@ Sint32 SFMPV_Stop(SFD sfd)
 		ret = 0;
 	}
 	return ret;
+}
+
+Sint32 SFMPV_Stop(SFD sfd)
+{
+	return sfmpv_StopSub(sfd);
 }
 
 Sint32 SFMPV_Pause(SFD sfd)
