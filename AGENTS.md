@@ -21830,3 +21830,126 @@ the end. `flock ... ninja -k 0` + shasum = 111 OK after every edit.
 - **em_sub EmCatchMotionMove (8):** the single-block function offers no codeless way to make `rate` a non-local-alloc pseudo
   (needs REG_N_DEATHS != 1 or a second block; every branch costs code). Not touched. checkButton 71, GetDropBullet 462,
   EmYarareContactCk 103, RandomItemCk 53, EmRackCk 49, emLineCapsuleCrossCk 14, PlWepHitCheck2 242 not iterated this pass.
+
+### DOL esp08/esp18 closer pass 2 (esp18 Esp18_Trans 85 -> 14, zero code, two new user-variable levers; esp08 mechanism read to the cse2 path choice, unchanged at 143/143; nothing flipped; 2026-09-11)
+
+Harness ~/.cache/dol_esp2 (deleted): `try.sh UNIT` = flock'd ninja + bytecmp; `dump.sh UNIT` (LAB=name, SRC=file) = CPP.exe +
+cc1plus by hand with `-dj -ds -dS -dR -dg -dl -dG -dL -fsched-verbose-9` into d_UNIT_LAB/ (ngccc.py writes the .i to a temp
+dir, so `-d` flags through it give nothing); `alloc.py LREG GREG FUNC` = global-alloc order (refs/len/calls/result reg from
+the `regs to allocate` list + `Register dispositions`). Both units still 4/5 and 4/6; `ninja -k 0` + shasum 111 OK.
+
+- **esp18 Esp18_Trans 85 -> 19: the hoisted `1`/0x4330 tie is broken by the ALLOCNO NUMBER, so give the `1` an old pseudo.**
+  `allocno_compare` (global.c) returns `v1 - v2` on equal priority and allocnos are numbered in regno order; loop.c's
+  `combine_movables` makes the FIRST movable of a constant group (list = loop scan order) the group's register, so with
+  literal `1`s the group's pseudo is the GXInitTexObjCI stack-arg temp (766 > magic 460, created at the copy block's
+  u32->f32 conversion). A function-level `u32 tlutName;` assigned `tlutName = 1;` inside the mask block and passed to
+  GXInitTexObjCI/GXLoadTlut is a user var (regno < 460) set once in the loop: it heads the group (the four GXNormal3s8
+  `1`s match into it), keeps the same preheader position (LUID unchanged: `li r14,1` at the same slot), ties at 211 and
+  wins r14; the magic is rematerialised `lis r0,0x4330` x5 as in the original. GXLoadTlut's arg folds back to `li r4,1`
+  (cse). The value pin `register int one asm("r14") = 1` does NOT work here (136/174 words): through GXNormal3s8's s8
+  parameter the hard register is sign-extended into a fresh pseudo (`extsb r22,r14`, one more callee-saved register,
+  r15's `&Screen` spilled), and storing `(s8) one` directly re-derives the GXWGFifo high (whole allocation shifts).
+- **esp18 19 -> 14: the `fmr f13,f0` conversion temp took f1 through an inherited preference; a loop-local `ofs` fixes it.**
+  `f32 ofs = 0.0f` at the top is cse1'd into C_MTXOrtho's zero args (`fmr f1,f31`), which gives `ofs` (109) an f1
+  preference (set_preference on `(set f1 (reg 109))`); global.c `expand_preferences` merges preferences along single_sets
+  whose dying operand does not conflict with the dest, and `ofs` dies in the height conversion's `fsubs 526 = 519 - 109`
+  -> 526 -> `fmr` 528 (float_extend) -> 529/535: 528 prefers f1 and takes it (pass 0 tries preferences first). With a
+  loop-body `f32 ofs = 56.0f;` (shadowing) the loop's ofs is a second pseudo with no f1 preference -> f13/f12 as the
+  original. The outer `ofs` then needs a real reference or the front end drops its initialiser (no `lfs f31, 0.0` at the
+  top, C_MTXOrtho loads the pool directly, 95 words): `C_MTXOrtho(proj, ofs, 448.0f, ofs, 512.0f, ofs, -100.0f)`. Two
+  pseudos, both f31 (non-overlapping), exactly the target's `lfs f31,0.0` / `fmr f1,f31` / `lfs f31,56.0` shape.
+- **Left (14), both allocation-only and both point at a slightly different RTL insn count in the original:**
+  (a) 1.0/0.5 in f18/f17 vs f17/f18: refs 9 each, ours 1.0 len 1568 (pri 172) vs 0.5 len 1572 (171): 1.0 is hoisted
+  in loop pass 2 (pass 1: `(T-3k)*savings*life = (72-21)*4*4 = 816 < 819` real insns -- T = 1+n_non_fixed_regs = 72,
+  k = 7 moves before it, misses by 3 insns; `threshold -= 3` per move, loop.c move_movables) and its high+load pair is
+  re-emitted from the REG_EQUAL constant (`move_insn`), so its load sits one lsu slot after 0.5's in the preheader (the
+  sched1 trace: highs c1/c2 by LUID, loads c3/c4). Every order the target's final preheader admits (0.5's high and load
+  before 1.0's) gives 1.0 the shorter range with our lengths; the original must have 1.0 at pri <= 171 and >= 167 (below
+  0.5, above ang's 166) -- e.g. 8 more insns in the loop at flow time (tie at 170/170, 0.5 older wins) or a pass-1 hoist
+  whose load has no in-block high. A codeless fifth use `asm("" : "=m"(fog.r) : "f"(0.5f))` gives refs 11 = pri 209
+  and f20 (too high, 14 words either way); rejected. `1.0f + X` is folded to `X + 1.0f` (fold swaps a REAL_CST arg0), so
+  the first-use order inside `mul` cannot be changed from source.
+  (b) spill slots 0x234/0x238 of `i+1` (gcse PRE pseudo) vs `fp+0xc0` (gcse PRE pseudo of the by-value GXSetFog/
+  GXSetChanMatColor copy): slots are assigned in regno order and gcse numbers its pseudos in HASH BUCKET order
+  (`pre_delete` walks the expression table): hash(plus (reg i) 1) = 13259 + regno(i), hash(plus fp 0xc0) = 13481,
+  table size = n_insns/2|1 = 563 here -> buckets 426 vs 532. The target's order needs bucket(i+1) > bucket(fp+0xc0):
+  regno(i) in 223..252 with our table size, or a table of <= 561 buckets (2-5 fewer insns at gcse time). Not a source
+  lever we found (declaring `i` in the for-init gives regno ~340 -> bucket 87, wrong side).
+- **esp08 Esp08_Trans/TransShimmer 143/143, mechanism of the first-tile copies read exactly (not fixed):** in cse1 the
+  quads are as written; gcse COPY-PROPs the copies back to the originals in BOTH quads (y->y0, ss1->s1, st1->t1; x is
+  blocked by the launder); cse2 then canonicalises the originals to the copies in the ebb that contains the copies --
+  and that ebb FOLLOWS the `bne cr4` (ind test, label used once, `-fcse-follow-jumps`) into the MASK quad, while the
+  non-mask fall-through is re-scanned as a fresh ebb (NOT_TAKEN retry, empty table) and keeps whatever gcse left. So
+  ours = mask quad with copies, non-mask quad as written; target = mask quad with originals (y0 reloaded twice from
+  0xc4, s1/t1 in f16/f15), non-mask with copies. The copies are canonical because `make_regs_eqv` promotes the later
+  pseudo when its REGNO_LAST_UID is larger (`x = x1`/`y = y1` at the last loop's end: uids 4267/4284 vs x0/y0's 3452/
+  3410) and it lives beyond the ebb. The target therefore either did not follow the bne (path length / label uses --
+  none differ in the final asm) or had the originals canonical AND no gcse copy-prop into the non-mask quad (a copy is
+  unavailable only if src or dest is set later in its block). No zero-code form found in the time; pins cannot change
+  which VALUE is stored, so the pin suggestion does not apply to the 2-insn `lfs f0,0xc4` residue. Launder kept.
+
+### DOL cam_ctrl closer pass 2 (76 -> 79/84: area_hit_pN 118 -> 0, area_hit_p3 76 -> 0, areaHitCheck 81 -> 0, all zero code; HermiteExport 192 -> 142 (size still -0x10), cameraHitCheck 116 -> 125 (structure fixed, allocation shifted), r0_RailBehind 3 unchanged; .rodata IDENTICAL; .text -0x10 = HermiteExport only; nothing flipped; 2026-09-11)
+
+- Harness ~/.cache/dol_camc2 (deleted): `mk.sh SRC OUT.o` (the build.ninja prodg_cc command + fold_linkonce + strip_unused),
+  `try.sh SRC [FUNC]` (compile + `OBJ= tools/bytecmp.py`), `dis.sh SRC SYM`, `dump.sh SRC -dflags` (CPP.exe + cc1plus by hand,
+  dumps under dumps/), `rtl.py DUMP 'int fn'` (one line per insn), `sbs.py OURS.o SYM` (difflib side-by-side of one function
+  against the split object; fdiff cannot take OBJ=), `perm.py TEMPLATE FUNC` with `/*@P name*/ ... /*@E*/` statement blocks
+  (all permutations of one block, same-named blocks permuted together). ~0.3 s per variant.
+- **area_hit_pN 118 -> 0, zero code (four mechanisms):**
+  (1) `a0 = 1.0f;` as a NAMED local before the loop: the literal `1.0f * b` / `1.0f == a` / `1.0f - a` is folded by fold
+  (`real_onep`), while a variable loaded from the pool in bb 0 is unknown to cse inside the loop (the loop header starts a new
+  ebb, cprop only propagates CONST_INT/REG) -> `fmsubs f0,f5,f13,f0`, `fmadds f0,f5,f9,f6`, `fcmpu f5,f12`, and the pool order
+  100/1.0/0.0 (the .rodata 2 words). Rule: an `fmsubs/fmadds` whose one factor is a pool constant living in a register across
+  the loop = a named float variable, not a literal.
+  (2) `for (i = 0; i < area->num; i++)` with `(i + 1) % area->num` in the body and NO `n` local: the three `area->num` loads and
+  the two `i + 1` are gcse PRE'd, giving the target's reaching copies `mr r3,r10` / `mr r6,r9` in bb 0 and the latch
+  `mr r11,r6; mr r10,r3; cmpw` (a local `n` gives one load and no copies). Rule: `mr rA,rB` right after a load plus `mr rB,rA`
+  at the loop latch = the same member read in the loop test/body and before the loop.
+  (3) **`Vec* pt[2]; pt[0] = pi; pt[1] = pj;` -- an 8-byte pointer array is ONE DImode pseudo (r7:r8, `mr r7,r11; mr r8,r11`
+  right after the .z loads), and every read `pt[0]->x` first copies the SUBREG half into a fresh register (`mr r9,r7; lfs
+  f11,0(r9)`) because combine does not substitute through a subreg (same family as the getPartsPtr pair in cam_extra).** The
+  arms `if (dx > 0) { xmin = pt[0]->x; xmax = pt[1]->x; fx = 0; } else { xmin = pt[1]->x; xmax = pt[0]->x; fx = 1; }` then
+  cross-jump their identical `lfs f10,0(r11)` tails into the join. Two plain pointer locals `pa = pi; pb = pj` are folded by
+  combine (`lfs 0(r7)`), a copy kept alive by asm reproduces the shape but is a tag. Also `pi = &area->points[i]` pointer locals
+  (base-first `lfsx f10,r4,r11`); `area->points[i].x` array expressions are mult-first (`lfsx f9,r11,r4`).
+  (4) `if (!(xi >= xmin && xi < xmax)) continue;` (one `&&` per arm): the second test keeps `blt Lz; b Lcont` (jump-to-jump
+  threaded first) where two separate `if (!(..)) continue;` give the inverted `bge Lcont; b Lz`. And `pz = pos->z; c = pos->x -
+  pz;` puts the z load first in RTL (the only 2-word residue left after the rest).
+- **area_hit_p3 76 -> 0, zero code:** (1) `if (c0.y > 0.0f || c1.y < 0.0f) return 0;` -- the shared `li r3,0; b END` block
+  starts with a LABEL, so loop.c's `find_and_verify_loops` exit-block move (a conditional jump around `li; b END` inside a loop
+  is moved before the loop) does not fire, the block stays inside the loop after the `bge` and jump2 cross-jumps the two ENTRY
+  returns into it (`blt/bso .L_A00`). With two separate `return 0` inside the loop both blocks are moved out and merge into the
+  entry copy (ours before). Rule: a `return 0` block inside a loop that is the cross-jump SURVIVOR of the function = one `||`
+  condition, not two ifs. (2) `i0 = i + i + 1; i0 %= n;` -- two sets of `i0` make it a non-giv (loop.c needs REG_N_SETS == 1),
+  so `add r11,r31,r31; addi r11,r11,1` stays in the loop instead of the `li r31,1; addi r31,r31,2` biv. (3) `n1 = n - 1;` as
+  its own statement: `(i0 + n - 1) % n` and `(i0 + (n - 1)) % n` are both reassociated by fold's split_tree into `(i0 - 1) + n`;
+  only a variable keeps `subi r7,r10,1; add r7,r11,r7`.
+- **areaHitCheck 81 -> 0, zero code, store order only (perm.py):** reset arms `camera_no = -1; area_no = -1; x691 = -1;
+  state = 0xA;` and the end block `area_no = -1; x691 = -1; camera_no = -1; area_rec = NULL; state = 0xA;` -- `state = 0xA`
+  LAST keeps its `li r9,0xa` live across the following `flags_2C & 0x10` test, so local-alloc's pass 0 (first free register in
+  REG_ALLOC_ORDER r0, r9, r11, r10 that is already used) gives the `andi.` r10 instead of r9; in the `d == NULL` arm that makes
+  the block differ from the version arm's by one register, jump2 merges only from the `beq` on, and the un-merged 11 words are
+  the +0x2c size gap. Rule: a cross-jump that stops one insn short of a full merge = a scratch register decided by which
+  constant is still live = statement order.
+- **HermiteExport 192 -> 142 (size -0x10 open):** the PARAMETER is the running pointer (`int HermiteExport(CameraCut* cut, u8*
+  p) { u8* buf = p; ..`): the param pseudo stays canonical in cse, so `p += 2; *p++ = 4` keeps `(set p (plus p 2))` and combine
+  forms `sth r9,0(r5); stbu r0,2(r5); addi r5,r5,1` (with `u8* p = buf` the copy is folded to `stb 2(r26); addi r3,r26,3`).
+  `v1 = cut->fovy[k1]; v = ..; v0 = ..; v1 *= DEG; v *= DEG; v0 *= DEG;` gives the in-place `fmuls f9,f9,f6` (one pseudo set
+  twice) instead of load-temp + mul. OPEN: (a) the switch hoists only `cmpwi cr7,i,0` in the target (ours also i==2/i==3 into
+  cr6/cr7): loop.c move_movables' `savings * lifetime >= insn_count` threshold with the target's bigger k-loop; (b) the pad loop
+  `mr r8,r9; li r0,0; L: stb; addic. r8,r8,-1; addi r5,1; bne L` = check_dbra_loop's NE reversal WITHOUT the ctr: `for (n = 0;
+  n < pad; n++)`, `for (n = pad; n != 0; n--)`, `for (n = pad; n > 0; n--)`, `while (pad > 0) {..pad--;}`, `for (n = pad;
+  n--;)`, u32/s8/u8/s16/u16 counters all give `mtctr/bdnz` or `subic./bgt` (insert_bct's runtime case is `#if 0`, so the bdnz
+  comes from combine forming the ctr pattern; why the target's counter stayed a GPR is unknown); (c) `cut` in r31 and `&tmp` in
+  r4 with per-EXPORT copies `mr r12,r4; mr r9,r4` (ours: one `mr r29,r10`) -- the three `u8* s_ = (u8*)&tmp` copies of the
+  macro stay separate in the target; (d) cases 2/3 compute `k*4, k0*4, k1*4` in that order and load k1, k, k0.
+- **cameraHitCheck 116 -> 125 (structure fixed, allocation open):** `cAtariInfo atBuf; cAtariInfo& at = atBuf; at =
+  pSubEm->atari;` -- the target reads and writes `at` through a pointer register (`lha r4,0x18(r29)`, `lfs/stfs 0x4(r29)`,
+  `mr r4,r29` for the PSMTXMultVec arg) with `mr r29,r30` right after the `addi r30,r1,0x98` that feeds the ctor call and then
+  becomes the struct-copy destination biv; a plain local is frame-direct (`lha r4,0xb0(r1)`). The remaining words are the
+  callee-saved assignment shift (r29/r31 for pos/nrm) and the #3 family: the target computes `addi r6,r1,0x28; addi r7,r1,0x58`
+  for the SatMgr.hitCheck arguments right before the call with the PRE copies `mr r21,r6; mr r19,r7` after them, ours hoists
+  `addi r30,r1,40` to the top of bb 0 (r30 callee-saved across two calls) -- same residue as r0_RailBehind.
+- **r0_RailBehind 3 unchanged:** the asm-laundered pointer form (`Vec* pAt = &cam.param.at; asm("" : "+r"(pAt));` x3 at the
+  VecLinearCombination call) costs 123 words / +0xc; not applied. Still the #3 fresh-`addi`-at-a-mixed-int/float-call residue.
+- Not touched: the two 1-word `create` diffs (offset artefacts of the HermiteExport size gap).

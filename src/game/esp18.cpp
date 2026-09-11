@@ -95,6 +95,7 @@ void Esp18_Trans(cEsp18* esp)
     int stages;
     int texGens;
     void* buf;
+    u32 tlutName;
 
     if (!esp->ChannelSet()) {
         return;
@@ -111,7 +112,7 @@ void Esp18_Trans(cEsp18* esp)
         PSMTXIdentity(esp->mat);
         low_RotMatrix(esp->mat, &esp->rot);
         TransMatrix(esp->mat, &esp->pos);
-        C_MTXOrtho(proj, 0.0f, 448.0f, 0.0f, 512.0f, 0.0f, -100.0f);
+        C_MTXOrtho(proj, ofs, 448.0f, ofs, 512.0f, ofs, -100.0f);
         GXSetProjection(proj, 1);
     } else if (!(esp->flags & 1)) {
         Vec p;
@@ -217,7 +218,10 @@ void Esp18_Trans(cEsp18* esp)
         } else {
             buf = GetDrawTmpBufAddr(1);
         }
-        ofs = 56.0f;
+        // A loop-local `ofs`: the function-level one (0.0f, the C_MTXOrtho zero) is copied into f1
+        // there, and that f1 preference would otherwise follow `ofs` into the height conversion's
+        // fmr temp (expand_preferences merges along the dying operands: 109 -> 526 -> 528).
+        f32 ofs = 56.0f;
         if (pG->flags_5010 & 0x08000000) {
             ofs = 0.0f;
         }
@@ -328,9 +332,13 @@ void Esp18_Trans(cEsp18* esp)
                 TEXHeader* th = td->textureHeader;
 
                 if (th->format == 8 || th->format == 9) {
-                    GXInitTexObjCI(pTex, th->data, th->width, th->height, th->format, 0, 0, 0, 1);
+                    // A function-level variable heads loop.c's hoisted `1` group (stack arg + the four
+                    // GXNormal3s8 bytes): it ties with the hoisted 0x4330 magic at priority 211 and the
+                    // older pseudo wins r14 (the magic is then rematerialised `lis r0,0x4330` per use).
+                    tlutName = 1;
+                    GXInitTexObjCI(pTex, th->data, th->width, th->height, th->format, 0, 0, 0, tlutName);
                     GXInitTlutObj(pTlut, td->CLUTHeader->data, td->CLUTHeader->format, td->CLUTHeader->numEntries);
-                    GXLoadTlut(pTlut, 1);
+                    GXLoadTlut(pTlut, tlutName);
                 } else {
                     GXInitTexObj(pTex, th->data, th->width, th->height, th->format, 0, 0, 0);
                 }
