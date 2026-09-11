@@ -534,12 +534,15 @@ void MPVMC16_OneRef1p_TuneC(MPVMC *mc)
 	}
 	case 1:
 	case 5: {
-		Sint32 stride = mc->stride;
+		Sint32 stride;
 		Sint32 i;
-		Uint32 *d = mc->dst;
+		Uint32 *d;
 		Uint8 *p = s;
 		Uint32 w0, w1, w2, w3, b;
 
+		/* dst before stride: the two preheader loads are scheduled in statement order */
+		d = mc->dst;
+		stride = mc->stride;
 		for (i = 0; i < 16; i++) {
 			__dcbt(p, stride);
 			w1 = *(Uint32 *)(p + 3);
@@ -561,12 +564,14 @@ void MPVMC16_OneRef1p_TuneC(MPVMC *mc)
 	}
 	case 3:
 	case 7: {
-		Sint32 stride = mc->stride;
+		Sint32 stride;
 		Sint32 i;
-		Uint32 *d = mc->dst;
+		Uint32 *d;
 		Uint8 *p = s;
 		Uint32 w0, w1, w2, w3, w4;
 
+		d = mc->dst;
+		stride = mc->stride;
 		for (i = 0; i < 16; i++) {
 			__dcbt(p, stride);
 			w1 = *(Uint32 *)(p + 1);

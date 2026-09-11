@@ -22483,3 +22483,62 @@ compiles), deleted at the end. 111 OK before and after every edit.
   lwz t` issue-order triple before the CreateEditWindow ctor.
 - .rodata reloc "diffs" (`_._t18cDbgButtonTemplate.. +0` vs `NoButtonUpdate_callback+0xc0`) and `__7ToolEvt`'s 1 word are the
   nameless template tail shifting with our .text size (+0x10); they go with the sizes.
+
+### CRI SWAR kernels pass 3: mpv_mcy 16x16 1p 61 -> 57w (pure C); the 1p target's loop temporaries are coloured in ASCENDING statement order (ours descending) and its hoisted pitch has a late backend id; nothing flipped (2026-09-11)
+Harness /home/adityas/.cache/cri_swar3/ (deleted): `try.py lib/unit file.c [Func..] [--sbs Func] [--all]` (unit flags compile of a
+scratch copy, strip_unused, bytecmp with OBJ=, side-by-side `dtk elf disasm`; `OPT=`/`XFLAGS=` env for flag sweeps), ~/.cache/mwccdbg
+`ra.py`/`rasum.py` for the graphs (dumps ra_1p, ra_v1, ra_v6, ra_v7, ra_4p, ra_v2_8). Units owned: lib/mpv_mc (4p 72, V2 73, H2 436,
+1p asm) and lib/mpv_mcy (1p 61 -> 57, 4p 136, H2 225, V2 225). 111 OK before and after; no MATCHING change.
+
+**Applied (pure C, zero code): mpv_mcy `MPVMC16_OneRef1p_TuneC` cases 1/5 and 3/7 assign `d = mc->dst; stride = mc->stride;` in that
+order (declarations unchanged, initialisers moved out)** -- the two preheader loads are scheduled in statement order (target `lwz r7,
+0x18(r3)` before `lwz r5, 0x20(r3)`), 61 -> 57w, size still exact.
+
+**Read off the target / the dumps (verified):**
+- **The 1p target colours the pack temporaries in ascending statement order; ours colours them in descending id (= reverse creation)
+  order.** Case 1/5 target: `w1>>24` r0, `w2>>24` r3, `w3>>24` r4, the `b` copy r0, the `w0` load r4; case 3/7 the same cycle r0, r3, r4,
+  r0 with `w0` r4; case 2/6 `w0>>16` r0, `h0` r4, `w2>>16` r5, `w1>>16` r4, the `h1` copy r0, pitch r3. Working every lowest-free
+  assignment backwards against the (identical) schedule: the target needs `w2>>24` coloured before `w3>>24` (1/5, 3/7) and `w0>>16`
+  before `w1>>16` before `w2>>16` (2/6), i.e. d[0]'s temp first, d[16]'s last, with the single-use first-word load (`w0`/`h0`, propagated
+  into d[0]'s expression in ours) coloured after the temps. Ours (dump ra_1p: ids h0 138 < w0>>16 140 < w1>>16 143 < w2>>16 146 <
+  h1-copy 149; colouring 149, 146, 143, 140, 138) gives the mirror image, and the 8x8 V2 case 0 (identical) confirms descending-id
+  colouring for our compiler. So the target's temps were CREATED in the reverse order, or are frontend `@N` temps (created first =
+  highest id = coloured first). Not reproduced by: statement order d[0], d[16], d[1], d[17] or fully reversed (the pre-RA scheduler keeps
+  stores in statement order, so the stores move too: 69/94w), the packs in variables x3..x0 computed in reverse then stored in order
+  (single-use variables are sunk to the stores; only x3 survives because its expression holds the `p[15]` load, which cannot cross the
+  stores: 91w; `#pragma opt_propagation off` changes the schedule: 104w), inline loads CSE'd across the four packs (100w), an inlined
+  `St4(d, x0, x1, x2, x3)` store helper (57w, arguments sunk), `__rlwimi(w >> 24, w', 8, 0, 23)` on all four rows (the intrinsic is
+  scheduled differently and forces a frame: 143w) or on d[16] alone (57w), `Uint8 hi = w3 >> 24` / `(Uint8)(w3 >> 24)` (folded), a
+  function-scope word set (range-split `@N` copies outrank the case locals: 148w), do/while, while, a hand 2-row body with its own `j`
+  (84/57/97w), `-proc 750/603e/604e/7400/7450`, `-O3,p`/`-O4`/`-O4,s`, `-opt (no)schedule/(no)peephole`, `optimization_level 1..3`,
+  `opt_common_subs/strength_reduction/lifetimes/dead_assignments/unroll_count/vectorize_loops` (57-345w). Two-definition pack
+  VARIABLES (`x0 = w1 >> 24; x0 |= w0 << 8;` / `x0 = (w0 << 8) | x0;` / `x0 = __rlwimi(x0, w0, 8, 0, 23)`, declared `x0..x3` first so
+  that descending-id colouring = statement order) would give the target's priority order, but the or->rlwimi merge then takes the
+  `slwi` as its base (`slwi; rlwimi .., 8, 24, 31`, 87-110w) and the loads reorder -- the target's `srwi` base needs the one-expression
+  `(w0 << 8) | (w1 >> 24)`. OPEN: what creates the pack temporaries of a row in reverse (or as frontend temps) while leaving the
+  schedule and the stores as they are.
+- **`#pragma opt_loop_invariants off` moves invariant hoisting from the frontend to a backend pass ("loop-code-motion" replaces
+  "loop-transforms" in the dump), and the hoisted value is a BACKEND temp with the id of its position in the loop body.** With
+  `p += (Uint32)stride & ~1;` in the case-2/6 loop and the pragma, the `rlwinm` is created at the end of the body (id 147, above the
+  body's temps 135-146), hoisted to the preheader, and coloured before them: `clrrwi r3, r4, 1` = the target's register (ours as a
+  variable or as the frontend's hoisted `@278`: r5, coloured after the temps). So the target's pitch has the priority of a LATE backend
+  temp -- the original's frontend did not hoist that expression. Not applied (the temps' order above still costs the same 57 words and
+  the pragma is function-wide); a level-2 explanation is excluded (pitch has 16 neighbours; r0 would be free for it).
+- **Pins are not usable in these kernels**: every candidate register (r0, r3, r4, r5) is reused by other values of the same function
+  (mc r3 in every case prologue, stride r4, the count r0), and a hard pin poisons the register function-wide (pass 18b).
+- 8x8 4p (72w) reread: the divergence is the R1 tie at `addi p0+2` vs `add a2+b1` after `lbz b2` (both ready, ours picks the longer
+  chain), not the registers -- the target's level-2 loop values a2/a3/a4/a5 sit in r31/r28/r29/r30 because the short-lived b0/b1/b2/a0/a1
+  were coloured before them, which needs the target's tighter live ranges (ours: a2 32 / a3 47 / a4 42 / a5 33 / b5 30 / a6 50 / a7 35
+  neighbours, all level 2 with r6-r11). `-proc` variants and `#pragma peephole off` do not give the target's order. The stride r0
+  exclusion (target `li r0, 8` count first, stride r4 with `dcbt r6, r4` = stride in rB) is still unexplained: stride is a level-2 local
+  above s0/s1/d (declaration order gives the rest of the prologue), and only an rA use (addi/D-form/dcbt rA) excludes r0.
+- 16x16 H2: the target's average IS the mask-variable association (`add sh, m2; add wa, ·`, case 0 at 0xc4-0xcc), as in V2; with
+  `MPVMC16_AVG2V` + `Uint32 m1, m2` locals the association matches but the case-0 schedule moves (the target issues `lwz w3` and the
+  `w3 >> 24` shift before the first `rlwimi`; ours after) and `a3 = (w3 << 8) | w4` keeps the target's uncoalesced `mr r8, r20` copy
+  (R3) where ours coalesces: 225 -> 300w, not applied.
+- Harness hazard: `python3 try.py ... | grep` inside `for v in a b` loops -- zsh parses `== $v` as a command; quote the echo string.
+
+**Residues (exact class):** mpv_mcy 1p 57w = the ascending temp order above (cases 1/5, 3/7: 9 words per unrolled copy; 2/6: 10 per
+copy incl. `clrrwi r3`); mpv_mc 4p 72w (R1 tie + stride r0 exclusion), V2 73w (cases 1-3 `@N` copy order, pass 2), H2 436w (un-split
+loop webs, pass 2); mpv_mcy 4p 136w / H2 225w / V2 225w (16x16 register pressure: R3 uncoalesced copies + level order of the
+callee-saved set), untouched.
