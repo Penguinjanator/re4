@@ -164,25 +164,30 @@ extern "C" void Esp16_Trans(cEsp16* esp)
     GXSetBlendMode(esp->xA4, esp->xA5, esp->xA6, esp->xA7);
     esp->CommonStateSet();
     // The original sets t through an intermediate the copy never absorbed (`lfs f12, 0.0; fmr
-    // f29, f12`); every pseudo form is folded into a direct load by cse/combine. The zero is a
-    // pinned f12 kept alive into the next block by a codeless asm (before PSMTXIdentity, chained
-    // on `esp->mat` so it does not take `li r17,0`'s issue slot): combine cannot merge the load
-    // into the copy, and t/tw/2^52 then allocate f29/f28/f30 like the target (15 -> 8 words;
-    // left: the target issues `lis; lfs 0.0` before `lbz partsNo`).
+    // f29, f12`) and its block ends right after the zero load: `lbz partsNo`, the 1.0 high, the
+    // copy and `lfs 1.0` are scheduled as a second block (`lis; lfs f12 | lbz; lis; fmr; lfs`).
+    // The dead test below is that block boundary (compare/branch gone at flow/jump2; sched1 and
+    // sched2 both run with the blocks split); with the boundary combine cannot merge the load
+    // into the copy either, so no keep-alive is needed, and the zero dying at the copy ranks
+    // `fmr` above `lfs 1.0`. The pinned f12 is the register the original's zero took. The test's
+    // three loads (three short local qtys: r0, r9, r11 before the zero high's qty) put the high
+    // in r10 like the target; a one-load compare leaves it r9.
     z = 0.0f;                   // COMPILER-DIFF: #13
-    t = z;
-    tw = 1.0f;
     // Dead in the original too: only its 0x43300000 constant survives, shared through the cse
     // path by both `(f32) w->nPt` conversions below (`lis r31, 0x4330` right after
     // CameraCurrentProjection, `stw r31` in both arms). A signed conversion: the arms reload
-    // their unsigned magic double separately. Which expression it was is unknown; `t` is still
-    // set through a copy of the 0.0 pool load in the target (`lfs f12; fmr f29, f12`).
+    // their unsigned magic double separately. Which expression it was is unknown. It must stay
+    // in the first block so its constant is hoisted to the top.
     rate = (f32)(int)n;
+    if (esp->cnt + w->nPt + esp->anmNo == 99) { // COMPILER-DIFF: candidate (sched block split)
+        t = z;
+    }
+    t = z;
+    tw = 1.0f;
     if ((s8)esp->partsNo >= -8 && (s8)esp->partsNo <= -3) {
         pLog->err(0, 0, "ESP_16 : Parent is screen.");
         return;
     }
-    asm("" : "=m"(esp->rotSpd) : "f"(z), "r"(esp->mat)); // COMPILER-DIFF: #13 (keep-alive)
     PSMTXIdentity(esp->mat);
     RotMatrix(esp->mat, &esp->rot);
     PSMTXConcat(pG->Cam.viewMat, esp->mat, esp->mat);

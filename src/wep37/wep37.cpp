@@ -5,8 +5,7 @@
 
 cObjWep* equipWeapon(cPlayer* pl);
 
-// Motion table stores through a reference: the original reloads pG after every one.
-static inline void PSet(void*& d, void* v) { d = v; }
+// Motion table stores go through wep_mod.h's PSet: the original reloads pG after every one.
 
 static void Wep37_init(cModel* m)
 {

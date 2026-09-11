@@ -264,7 +264,7 @@ void Esp09_PolyTrans(cEsp09* esp, u8 r, u8 g, u8 b, u8 a)
     Vec* p;
     Vec* p0;
     Vec* pp;
-    Vec* pn;
+    Vec* s;
     int idx = w->idx;
     s8 n1 = w->n - 1;
     int i = 0;
@@ -275,18 +275,20 @@ void Esp09_PolyTrans(cEsp09* esp, u8 r, u8 g, u8 b, u8 a)
 
     esp->scale = 1.0f;
     spd = esp->scaleSpd;
-    p = &w->pts[idx];
-    pn = p;
+    // The next point is recomputed from idx: loop.c strength-reduces it as a giv of the biv idx
+    // (`addi -12` after idx--, `add r25,r14,r20` after the wrap, `mr r29,r25` at the set) and its
+    // preheader init folds to the block-0 temporary `s` (kept as cse's head by the dead trailing
+    // `p = s`). Left: the `p0 = p; pp = p` pair (ours folds pp = p0), s in r0 (target r3).
+    s = &w->pts[idx];
+    p = s;
     for (i = 0; i < n1; i++) {
         p0 = p;
         pp = p;
-        pn--;
         idx--;
         if (idx < 0) {
-            pn = &w->pts[n1];
             idx = n1;
         }
-        p = pn;
+        p = &w->pts[idx];
         rate = (f32)i / (f32)n1;
         half = (rate * esp->sizeY + (1.0f - rate) * esp->sizeX) * 0.1f;
         PSVECSubtract(p, p0, &d);
@@ -324,7 +326,7 @@ void Esp09_PolyTrans(cEsp09* esp, u8 r, u8 g, u8 b, u8 a)
         PSVECAdd(p, &q[1], &v[2]);
         Esp09_StripDrawPoly(esp, i, v, r, g, b, &a);
     }
-    p = pn;  // dead: a later mention of p keeps it (not pn) as cse's canonical register in the loop
+    p = s;  // dead: keeps s as cse's canonical register (the giv init copies from s, not p)
 }
 
 void Esp09_StripDrawPoly(cEsp09* esp, int no, Vec* v, u8 r, u8 g, u8 b, u8* a)

@@ -1438,9 +1438,8 @@ void drawBoundingBox(Mtx m, ModelBound* bound)
     Vec v[8];
     Vec q[4];
     Vec* c;
-    Vec* d;
-    Vec* end = &v[7];
     int i;
+    u32 j;
     f32 sx = bound->size.x;
     f32 sy = bound->size.y;
     f32 sz = bound->size.z;
@@ -1461,14 +1460,13 @@ void drawBoundingBox(Mtx m, ModelBound* bound)
     VecSet(c, -sx, sy, sz);
     c++;
     VecSet(c, sx, sy, sz);
-    d = v;
-    do {
-        PSVECAdd(d, &bound->center, d);
-        d++;
-    } while (d <= end);
-    // Dead: a later mention of `c` keeps it (not `end`) as cse's canonical register for the last
-    // corner (`mr r9,r31; stfs ..(r9)`), which also settles the sx/sy FPR order.
-    c = d; // COMPILER-DIFF: candidate (cse canonical register)
+    // A counted loop: loop.c's giv init for `&v[j]` is emitted in the preheader after gcse's
+    // `&q[k]` insertions (LUID order decides the sched2 slot of `mr r30,r24`) and the eliminated biv
+    // compares the stepped pointer against `&v[7]` (`cmplw; ble`), which the do-while form with an
+    // explicit end pointer gave as well but with the copy issued before the addis.
+    for (j = 0; j < 8; j++) {
+        PSVECAdd(&v[j], &bound->center, &v[j]);
+    }
     PSMTXMultVecArray(m, v, v, 8);
     for (i = 0; i < 6; i++) {
         q[0] = v[ptbl[i][0]];

@@ -1651,3 +1651,9 @@ MATCHING.update({
 MATCHING.update({
     "game/item.cpp": True,  # set_stage2: LV_SET macro sets the EX nibble first (the all-zero mask chain then folds in combine, whose dead loads leave the USE insns that make `mr r3,this` the loop-note barrier); init: `li r3,32` as an asm-li with a dying input (#13); trigger: r9 pin + launder for the u16 mask (#2)
 })
+
+# DOL sweep 15 (2026-09-11)
+MATCHING.update({
+    "game/model.cpp": True,  # drawBoundingBox: counted `for (j < 8) PSVECAdd(&v[j], ..)` loop (giv init after the gcse insertions, biv-eliminated `cmplw; ble`) instead of the do-while pointer loop; zero code
+    "game/esp16.cpp": True,  # Esp16_Trans: dead three-load test after the 0.0 load splits the block at sched (COMPILER-DIFF candidate, sched block split) + the #13 fr12 pin; keep-alive asm dropped
+})

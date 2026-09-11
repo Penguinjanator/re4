@@ -14655,3 +14655,77 @@ em29_3c and pointed at `~/.cache/dol14/<PRE>_lreg.txt` / `<PRE>_greg.txt`). Buil
   0x4330000080000000 (signed int->f32 magic at 0x60), 2*pi, 12.0f, 0x4330000000000000 (unsigned magic at 0x70), 1/1024,
   pi/2 -- the pool of a never-called static emitted after initPerspective's pool (0.5, pi, 180, 0.0f at 0x38); needs a
   STRIP_UNUSED entry and constant-order experiments (`const f32` locals at the top control the order); not written.
+
+### DOL sweep 15, remaining game units closest-first (model, esp16 Matching; esp09 PolyTrans 64 -> 48; obj00 2, t_option 5, mercenaries SetSaveWork 11 unchanged; 2026-09-11)
+
+Flipped: model (100/100), esp16 (6/6: `Esp16_Create`'s "2 words" is mcmp's `.rodata+N` vs `_vt.6cEsp16` reloc-name pairing,
+`objdump -dr` and the section bytes are identical). Harness ~/.cache/dol15 (dol14 copies with the paths rewritten; `prio.py PRE`
+reads `<PRE>_lreg.txt`/`<PRE>_greg.txt` cut with `fsec.py`; `dump.sh` names its output by the unit basename even under
+`SRC_OVERRIDE`, so dump a variant right before reading it). Build 111 OK after each flip.
+
+- **Counted loop instead of a pointer do-while puts the loop pointer's init after gcse's insertions (model drawBoundingBox 15 -> 0,
+  zero code; the `end` pointer and the `c = d` dead mention are gone).** `for (j = 0; j < 8; j++) PSVECAdd(&v[j], &bound->center,
+  &v[j])` with `u32 j`: the pointer is a giv whose init (`mr r30,r24` = the PRE'd `fp+8`) is emitted by loop.c in the preheader,
+  i.e. AFTER the four `&q[k]` PRE insertions at the end of block 0, so in sched2's LUID order the copy issues after the addis
+  (the do-while's `d = v` was a block-0 insn with a lower LUID and issued before them); biv elimination gives the target's
+  `cmplw giv,&v[7]; ble` (`int j` gives `cmpw`), and cse2 rebases the eighth VecSet on the same `&v[7]` pseudo, so `end` is not
+  needed. Read on the way (both superseded by the loop form, keep for the next tie): (a) the `m` (2 refs / 43) vs `&q[0]` (2 /
+  43) live-length tie was 43 because both copies' preheader positions tied; writing the body's first copy through a pointer
+  (`Vec* p = q; *p = v[..]`) puts `&q[0]`'s loop.c hoist before the v-base hoist, its copy issues in the call's cycle and the
+  length drops to 41; (b) the PRE pseudos of `(plus fp C)` are numbered by gcse bucket `(13289 + C) % N` (13258 + REGNO 31 + C,
+  N = (real insns at gcse / 2) | 1, here 131 -> 65: offsets 104/116/128/140 -> 3/15/27/39); with 67 buckets (132..135 insns,
+  e.g. one dead frame store `v[0].x = sx` before the first VecSet, deleted by flow after gcse) `&q[0]` wraps to 60 and is
+  numbered after `&q[1]`/`&q[2]`, which is the target's allocation order at equal lengths (14 -> 5 words).
+- **Recomputing the next point from the index is a strength-reduced giv (esp09 Esp09_PolyTrans 64 -> 48).** `idx` is a verified
+  biv (`idx--` plus the invariant reset `idx = n1`: a set to an invariant REG counts as a mult-0 increment), so `p =
+  &w->pts[idx]` inside the loop is a giv (mult 12, add `w+16`): loop.c emits its init in the PREHEADER as `idx0*12 + w + 16`,
+  which cse2 folds to the block-0 temporary (`mr r25,r3` = the "copy among the hoists" the earlier passes could not place),
+  `addi r25,r25,-12` after `idx--`, `add r25,r14,r20` (`n1*12+16`, hoisted, plus w) in the reset arm, and the non-replaceable
+  giv (p is read at the loop top before its set) keeps `p = new_reg` (`mr r29,r25`). The block-0 temporary stays cse's head only
+  with a dead trailing `p = s;` (a dead pseudo copy survives `delete_trivially_dead_insns` because p has other uses and is
+  deleted by flow, so it counts for cse1/cse2 canonical choice AND makes loop.c see the giv "used after the loop"). Left (48):
+  `p0 = p; pp = p;` -- ours folds `pp = p0` (regmove optimize_reg_copy_1: p dies at the second copy), the target reads p twice,
+  so its p was live past both copies; the temporary gets r0 (GENERAL, first in REG_ALLOC_ORDER) where the target has r3; and
+  `PSVECSubtract(p, ..)` reads p (cse2 head) where the target reads new_reg. Forms tried: guarded do-while (149+, changes the
+  loop), `pn` as the giv variable (both `pn` and `p = pn` become givs combined into one new_reg, neither replaceable: 66-117),
+  `pn`/`s` trailing mentions.
+- **A block boundary between a constant load and its copy: dead test as a sched-time block split (esp16 Esp16_Trans 8 -> 0,
+  unit Matching; tagged `COMPILER-DIFF: candidate (sched block split)`, the fr12 pin keeps its #13 tag, the keep-alive asm is
+  gone).** The target's `lis; lfs f12 (0.0) | lbz partsNo; lis; fmr f29,f12; lfs f28 (1.0); addi; ..` is two blocks scheduled
+  separately (in one block the lbz chain, prio 6, always issues in the call's next cycle). `z = 0.0f; rate = (f32)(int) n;
+  if (esp->cnt + w->nPt + esp->anmNo == 99) { t = z; } t = z; tw = 1.0f;`: the compare/branch exist through sched1 and sched2
+  (blocks split) and vanish at flow/jump2 (dead store, jump to the next insn); combine cannot merge the load into the copy across
+  the boundary, so no keep-alive is needed and the zero dying at the copy gives `fmr` weight 0 (issued before `lfs 1.0`). The
+  dead `rate` conversion must move BEFORE the test: its 0x43300000 constant is hoisted to the function top only from the first
+  block (21 words otherwise). The three loads of the compare are three short local qtys taking r0/r9/r11 ahead of the zero's
+  high qty, which then gets the target's r10 (a one-load compare leaves it r9: 2 words). A `do {} while (0)` is not a
+  substitute: the insn after the loop notes gets TRUE dependences on every earlier set (cost = their latency), delaying the
+  whole tail by two cycles.
+- Facts read this pass:
+  - `duplicate_loop_exit_test` copies the exit code immediately before LOOP_BEG; loop.c's `move_movables`/giv inits are
+    emitted before LOOP_BEG too, so the preheader block consists ONLY of loop.c output (plus the deleted `b TEST`): a copy that
+    the target has "among the hoists" is a movable, a giv init or a biv-elimination temp, never a source statement.
+  - loop.c `basic_induction_var`: `(set biv (reg inv))`/constant is a valid biv increment (mult 0); `(set biv (plus a b))` with
+    neither operand the biv is not, so `pn = &w->pts[n1]` written out kills pn as a biv while `idx = n1` keeps idx one.
+  - `record_giv` replaceable needs REGNO_FIRST_UID == the giv insn (a variable also set before the loop is never replaceable),
+    last use inside the loop, and under `not_every_iteration` the last use before the next jump/label.
+  - global.c `find_reg` applies `hard_reg_copy_preferences`/`hard_reg_preferences` (copies to/from hard regs or local-alloc'd
+    pseudos) after the REG_ALLOC_ORDER scan: a preferred free register of the same class replaces the scan's choice.
+  - haifa ISSUE_RATE is 2 on the 750 model with one LSU: a block whose stream shows `lis; lfs; lbz` had the lbz not ready in the
+    lis's cycle.
+- Open after this pass (forms tried, do not retry):
+  - obj00 FallMove (2): the hit-loop `one` (pseudo 224, 3 refs / 82 doubled, rank 80) takes r24 because r24 (the k+1 giv, dead
+    at `mr r9,r24`) is the first free used-so-far register; the target's r23 needs r24 to CONFLICT (no allocation order gives
+    r23 otherwise: pass 0 fails for every earlier order and pass 1 returns r24). A two-set `int one` (set before the k loop and
+    again inside the hit loop) makes one allocno that conflicts with r24 and takes r23, but the second set is not movable when
+    placed in the `if (p->hit)` arm (conditional set of a global reg; `li` stays in the loop, 15) and at the body top it is
+    hoisted first (23); `k <= 29`, `k != 30`, `int k`, store after the call, a pointer loop: 2-189.
+  - t_option tp_pl_flag (5): the target's `li r4,254; addi r3,r30,0` is the schedule of `mr rX,r30 (PRE copy); li r4; addi
+    r3,rX` with the copy coalesced away, i.e. its gcse cprop did not propagate the PRE copy into the arm; pointer/reference
+    locals for ItemMgr in case 4 (181), per-arm pointer assignments (5), inverted test (9).
+  - mercenaries MercSysSetSaveWork (11): local-alloc qty order in the outer body (target mode chain r0, i*12 r10, pSys r8,
+    score chain r7; ours score r0, i*12 r8, pSys r7, mode r10); ior operand orders and u32 locals 11-22. GetSaveWork (39) not
+    iterated.
+  - Not iterated: emmine (setBomb 4, R1_Fall 8, R1_Shot 40, R1_ShotArrow 140), db_menu move 27, cam_extra, esp04/12/18/02/08,
+    dvd, shadow, em_set, sce_at, cam_ctrl, Espgen43, at_mod, em_cloth, emwep, emrock, puzzle, motion, card, cam_qfps, main_mem,
+    title, sce_com, db_cam, route_ck, pendulum, option.
