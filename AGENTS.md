@@ -4987,6 +4987,16 @@ target) stays unresolved and `make_rel` then fails with "undefined symbol".
 - Never run `git stash`, `git checkout -- <file>`, `git reset` or anything else that rewrites the shared
   working tree: other agents are editing it at the same time.
 
+- Never conclude "compiler-side difference". Every such verdict in this project has been overturned
+  (#1, #3, #5, #6, #7, #8, #9, #13, M1, M5, M6, the ss_term eof order, the view initPerspective PRE
+  pattern "proven impossible" in pass 3 and reproduced in pure C++ in pass 5). When an RTL-level proof says
+  the target is unreachable from the current source, the proof is right about the SOURCE SHAPE, not about
+  the compiler: the original had a different structure — one shared pointer instead of two, an inline
+  boundary elsewhere, an argument expression instead of a variable, a wrong constant or case value, a
+  missing parameter, a different declaration order. Read the target for the structural signal (hoist
+  order, which addresses recur, which values live across calls) and rewrite the shape. Tagged asm forms
+  are a stopgap, to be removed when the structure is found.
+
 - Never edit `build/`, `build.ninja`, `objdiff.json`, or `config/G4BE08/splits.txt` by hand. The same goes
   for `config/G4BE08/modules/<mod>/splits.txt`: change unit boundaries in `config/G4BE08/modules.py` and
   re-run `tools/gen_rel_config.py`.
