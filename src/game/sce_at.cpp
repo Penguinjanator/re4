@@ -1180,15 +1180,11 @@ static void sceAtGetItem(SceAtWork* w)
                 tmp.id = it->id;
                 if (n == 0) {
                     itemInfo(it->id, &info);
-                    n = info.x3;
+                    tmp.num = info.x3;
+                } else {
+                    tmp.num = n;
                 }
-                tmp.num = n;
-                {
-                    int z;
-
-                    asm("li %0,0" : "=r"(z)); // COMPILER-DIFF: candidate #12 (fallthrough-arm form)
-                    ItemMgr.x12 = z;
-                }
+                ItemMgr.x12 = 0;
                 put = 1;
                 ItemMgr.use(&tmp);
             }
@@ -1414,15 +1410,11 @@ static void sceAtGetItem_NoModel(SceAtWork* w)
                 tmp.id = it->id;
                 if (n == 0) {
                     itemInfo(it->id, &info);
-                    n = info.x3;
+                    tmp.num = info.x3;
+                } else {
+                    tmp.num = n;
                 }
-                tmp.num = n;
-                {
-                    int z;
-
-                    asm("li %0,0" : "=r"(z)); // COMPILER-DIFF: candidate #12 (fallthrough-arm form)
-                    ItemMgr.x12 = z;
-                }
+                ItemMgr.x12 = 0;
                 put = 1;
                 ItemMgr.use(&tmp);
             }
