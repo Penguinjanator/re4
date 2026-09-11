@@ -372,8 +372,13 @@ void cObjRobo::R0WalkBridge(cObjRobo* robo)
     case 0:
         v.x = BridgeStartX;
         v.y = robo->pos.y;
-        v.z = -16560.0f;
-        robo->setPos(&v);
+        {
+            // `&v` as a pointer local after the x/y stores: the z store goes through the pointer
+            // (`stfs f0,8(r11)`) and setPos gets `mr r4,r11` instead of a fresh `addi r4,r1,136`.
+            Vec* pv = &v;
+            pv->z = -16560.0f;
+            robo->setPos(pv);
+        }
         EstSet((int) robo, -1, 0, 0, 1, 7, 1, 3, 0, 0);
         MotionSetCore(robo, &robo->pMotion, ROOM_ARC_PTR(pG->pRoomArc, 0x25), (int) ROOM_ARC_PTR(pG->pRoomArc, 0x26), 0, 5, 0);
         for (i = 0; i < 6; i++) {

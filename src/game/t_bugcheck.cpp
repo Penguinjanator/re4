@@ -123,6 +123,11 @@ void cToolBugcheck::menuPosMove()
         pl = pPL;
         pl->setPos(&pl->pos);
         pl->setAng(&pl->rot);
+        {
+            // COMPILER-DIFF: candidate (gcse hash bucket of the .LC label name): one more constant
+            // pool label before "X:%.0f" gives the target's hoisted-high pseudo order.
+            f32 lc0 = 1.0f;
+        }
         eprintf(32, 56, 0, 0, "X:%.0f", pPL->pos.x);
         eprintf(32, 70, 0, 0, "Y:%.0f", pPL->pos.y);
         eprintf(32, 84, 0, 0, "Z:%.0f", pPL->pos.z);
@@ -140,6 +145,10 @@ void cToolBugcheck::menuPosMove()
             break;
         }
         TaskSleep(1);
+        // COMPILER-DIFF: tie (global-alloc live length): one more real insn in the loop at global-alloc
+        // time gives the 14 loop-invariant highs the target's r14-r25 order (their priorities are
+        // int(30000 / REG_LIVE_LENGTH) with equal refs).
+        asm("" : "=m"(v.x));
     }
     TOOL_FLAG(OFS_DEBUG_FLG + 8) &= ~8;
     BitOn(TOOL_FLAG(OFS_STOP_FLG), 0x10000000);

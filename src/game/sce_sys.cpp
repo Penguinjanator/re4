@@ -38,6 +38,10 @@ int SceAtItemFlgCk(int no);  // game/sce_at.cpp (C++ overload set)
 
 #line 34 "D:/Bio4/Prog/sce_sys.cpp"
 
+// Reference store of a SceSys byte: the inline's `&member` reaches the MEM as a CONST address and folds
+// into `stb rX,SceSys+N@l(rH)` (SceSetEventCancel's first store); a plain `SceSys.x = v` legitimises
+// `&SceSys` into a lo_sum pseudo first and stores through `N(rP)`.
+static inline void U8SetI(u8& d, int v) { d = v; }
 // Event flag words at pG->flags_174, indexed by flag number; as an inline the base stays a pointer
 // register (lwzx/stwx) instead of folding into the displacement.
 static inline u32* eventFlags()
@@ -62,25 +66,33 @@ void ScenarioInit()
 void ScenarioRoomInit()
 {
     cSceSys* s = &SceSys;
+    int zero;
+    // COMPILER-DIFF: #13 (dying-store shape): the word zero is opaque to cse so the six byte zeros below
+    // keep their own QImode pseudo, and the keep-alive after the last store stops sched1 from hoisting
+    // the two dying zero stores (x76, x70) above the others. Left: the target issues `li -1; li 1;
+    // li 0(QI)` where ours ranks the QI zero's li first (6 dependents).
+    asm("li %0,0" : "=r"(zero));
 
-    s->eventCancel = 0;
-    s->x6D = 0;
-    s->x6C = 0;
-    s->x6E = 0;
-    s->x6F = 0;
-    s->x70 = 0;
     s->sndFlag = 1;
     s->cancelFlagNo = -1;
-    s->pause = 0;
-    s->x8 = 0;
-    s->xC = 0;
-    s->x10 = 0;
-    s->x14 = 0;
-    s->cancelFunc = 0;
-    s->cancelArg = 0;
-    s->x134 = 0;
-    s->x75 = 0;
-    s->x76 = 0;
+    s->pause = zero;
+    s->x8 = zero;
+    s->xC = zero;
+    s->x10 = zero;
+    s->x14 = zero;
+    s->cancelFunc = (TaskFunc) zero;
+    s->cancelArg = zero;
+    s->x134 = (ScePrim*) zero;
+    s->x75 = zero;
+    s->x76 = zero;
+    u8 zq = 0;
+    s->eventCancel = zq;
+    s->x6D = zq;
+    s->x6C = zq;
+    s->x6E = zq;
+    s->x6F = zq;
+    s->x70 = zq;
+    asm volatile("" : : "r"(zero), "r"(zq));  // COMPILER-DIFF: #13 (keep-alive)
     pGS->flags_51BC &= ~0x80;
     ScenarioTaskAllOff();
     SceInitItemEvent();
@@ -533,17 +545,25 @@ void SceSetEventCancel(int on, TaskFunc func, int arg, int flagNo, int sndFlag)
     if (on != 1) {
         on = 0;
     }
-    SceSys.eventCancel = on;
+    U8SetI(SceSys.eventCancel, on);
     SceCTask()->cancel = on;
     if (flagNo >= 0) {
         no = flagNo;
         eventFlags()[no >> 5] &= ~(0x80000000 >> (no & 31));
     }
-    s = &SceSys;
-    s->sndFlag = sndFlag;
-    s->cancelFunc = func;
-    s->cancelArg = arg;
-    s->cancelFlagNo = flagNo;
+    // COMPILER-DIFF: 12 (AROUND form): the loop notes end cse1's path from the skipped `if` block, so
+    // the tail's `&SceSys` is a fresh lis/addi instead of `eventCancel's address - 113`.
+    do { } while (0);
+    SceSys.cancelFunc = func;
+    SceSys.cancelArg = arg;
+    SceSys.cancelFlagNo = flagNo;
+    SceSys.sndFlag = sndFlag;
+    {
+        // COMPILER-DIFF: candidate #17 (global.c pass 0 regs_used_so_far): r30 used-so-far makes `on`
+        // take r30 in pass 0 and flagNo r31 (stock priorities give on r31, flagNo r30).
+        register int pin asm("r30");
+        asm volatile("" : "=r"(pin));
+    }
 }
 
 int scenarioCheckEventCancel()

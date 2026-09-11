@@ -268,10 +268,14 @@ void cRoomData::linkRelData(u16 room)
     if (checkRoomRange(stage, no) != 1) {
         return;
     }
-    x1C = Room_data_tbl[stage].tbl[no].rel_no;
-    if (x1C == 0) {
+    // The target stores x1C only after the zero test (`sth` behind the `beq`). Left: the promoted
+    // value reaches the compare and the DvdRead argument as `clrlwi r3,r0,16` in the target, ours
+    // folds the extension (`mr`) and compares the halfword register (#2 family).
+    u16 rel = Room_data_tbl[stage].tbl[no].rel_no;
+    if (rel == 0) {
         return;
     }
+    x1C = rel;
 #line 484
     id = DvdRead(x1C, 0, 0, 0, 0, 0x104, __FILE__, __LINE__);
     while ((ret = Dvd.ReadCheck(id, 0, 0, (void**) &pModule)) != 1) {

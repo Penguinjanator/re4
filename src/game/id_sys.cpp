@@ -80,18 +80,21 @@ void IDSystem::free()
 
 int IDSystem::setCk(u8 type)
 {
-    u8 no = type;
-    return IdBitChk(ck, no);
+    register int raw asm("r4");  // COMPILER-DIFF: #2 (the original masks the incoming u8 at the entry)
+    u8 t = raw;
+    return IdBitChk(ck, t);
 }
 
 void IDSystem::dispSw(u8 type, int sw)
 {
+    register int r4v asm("r4");  // COMPILER-DIFF: #2 (the original masks the u8 at each use)
+    int raw = r4v;
     switch (sw) {
     case 1:
-        IdBitOff(disp, type);
+        IdBitOff(disp, (u8) raw);
         break;
     case 0:
-        IdBitOn(disp, type);
+        IdBitOn(disp, (u8) raw);
         break;
     }
 }
@@ -165,11 +168,13 @@ void IDSystem::unitParent(IdUnit* parent, IdUnit* child)
 IdUnit* IDSystem::unitPtr(u8 id, u8 type)
 {
     static IdUnit tmpId;
+    register int r5v asm("r5");  // COMPILER-DIFF: #2 (the original masks the u8 at the use)
+    int raw = r5v;
     int i;
     IdUnit* u = pUnit;
 
     for (i = 0; i < num; i++, u++) {
-        if (u->flags != 0xFF && u->id == id && u->type == type) {
+        if (u->flags != 0xFF && id == u->id && (u8) raw == u->type) {
             return u;
         }
     }
@@ -205,9 +210,11 @@ void IDSystem::set(void* data, u8 id, u8 type, u8 ot, u8 prio, u8 mode)
     IdUnit* u;
     IdUnit* c;
     u32 a;
+    register int r6v asm("r6");  // COMPILER-DIFF: #2 (the original masks the u8 at the use)
+    int raw = r6v;
 
     setCk(type);
-    IdBitOn(ck, type);
+    IdBitOn(ck, (u8) raw);
 
     ver = (int) (f32) strtod((char*) data, 0);
     sysVer = (int) (f32) strtod("2.00", 0);
@@ -287,11 +294,11 @@ void IDSystem::set(void* data, u8 id, u8 type, u8 ot, u8 prio, u8 mode)
                         a += (u32) data;
                     }
                     u->curve[3] = (Hermite1*) a;
+                    c = 0;
                     if ((s32) pG->flags_60 >= 0) {
                         u->flags |= 0xD;
                     }
                     u->flags |= 0x2;
-                    c = 0;
                     if (p1->parentNo != 0xFF) {
                         for (j = 0; j < num; j++) {
                             c = &pUnit[j];
@@ -389,11 +396,11 @@ void IDSystem::set(void* data, u8 id, u8 type, u8 ot, u8 prio, u8 mode)
                         a += (u32) data;
                     }
                     u->curve[3] = (Hermite1*) a;
+                    c = 0;
                     if ((s32) pG->flags_60 >= 0) {
                         u->flags |= 0xD;
                     }
                     u->flags |= 0x2;
-                    c = 0;
                     if (p2->parentNo != 0xFF) {
                         for (j = 0; j < num; j++) {
                             c = &pUnit[j];
@@ -439,6 +446,8 @@ void IDSystem::set(void* data, u8 id, u8 type, u8 ot, u8 prio, u8 mode)
 
 void IDSystem::kill(u8 id, u8 type)
 {
+    register int r5v asm("r5");  // COMPILER-DIFF: #2 (the original masks the u8 at each use)
+    int raw = r5v;
     int i;
     IdUnit* u = pUnit;
 
@@ -446,17 +455,17 @@ void IDSystem::kill(u8 id, u8 type)
         if (u->flags == 0xFF) {
             continue;
         }
-        if (type == 0xFF) {
+        if (raw == 0xFF) {
             unitPush(u);
-        } else if (u->type == type) {
+        } else if ((u8) raw == u->type) {
             if (id == 0xFF) {
                 unitPush(u);
-            } else if (u->id == id) {
+            } else if (id == u->id) {
                 unitPush(u);
             }
         }
     }
-    IdBitOff(ck, type);
+    IdBitOff(ck, (u8) raw);
 }
 
 void IDSystem::stop()

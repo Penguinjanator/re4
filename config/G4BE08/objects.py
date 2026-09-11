@@ -760,7 +760,7 @@ MATCHING = {
     "lib/_umoddi3.c": True,
     "lib/_pure.c": True,
     "lib/_exit.c": True,
-    "lib/_eh.c": False,  # functions match; the dead-stripped exception runtime left 16 bytes of .bss we cannot attribute
+    "lib/_eh.c": True,  # functions match; the 16 .bss bytes are the remainders of the dead-stripped runtime's statics (three _register_malloc hook words appended)
     "lib/__main.c": True,
     "lib/tors.c": True,
     "lib/__ppc_eabi_init.c": True,
@@ -1700,4 +1700,9 @@ MATCHING.update({
 # DOL sweep 18b (2026-09-11)
 MATCHING.update({
     "game/cam_qfps.cpp": True,  # move: the frustum copy loop counts with `j` (one allocno with the Draw_line3d loop's j: crosses the PSMTXMultVec calls -> callee-saved r29, sched2 hoists `j = nj` above the call), tail stores roll, fovy, reset last; setAreaData(CameraCut*): `p = &ofs[i][j]` before the flags test (cse rewrites the first store to `stwx r3,r28` = j-giv + outer i*132 giv), `for (j..; j++, k++)`; zero code
+})
+
+# DOL sweep 17 (2026-09-11)
+MATCHING.update({
+    "lib/builtin-delete.c": True,  # strings of SN's dead-stripped libstdc++ operator new/delete stubs (static bodies, LIBSN_UNITS strip)
 })
