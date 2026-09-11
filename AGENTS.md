@@ -15552,3 +15552,70 @@ Build 111 OK after every flip (sscrn, esp0a, mes, lib/crt0, lib/crtbegin).
   target has a dead `mr r3,r28` (&v) before each `bl tcGetFloor` and allocates `&v` before the pos giv -- an expansion
   difference (block-move argument setup?), not iterated. tvibModeFrameDisp/tvibListVibDraw/tvibEditFrameDisp,
   seAtAreaEdit_EditMenu (two zero pseudos r7/r8 swapped), tcToolCameraMove, tcEdit_select not iterated.
+
+### Tool RELs, t_esp pass 4 (db_light 132 -> 134/136 in t_esp, 131 -> 133/135 in Tools, 130 -> 132/134 in t_camera/t_light/t_event: draw_light_graph 22 -> 0, editColor 120 -> 0; edit_light_parent 17 and printEditTable 183 left; db_mod/db_widget/t_esp unchanged; nothing flipped; 2026-09-11)
+
+- Harness ~/.cache/tesp4 (tools_p13 copies with the paths rewritten: `mtryv.py MOD/UNIT FUNC v.py [--asm NAME]`, `msbs.sh`,
+  `mdump.sh MOD/UNIT -dX` with an ABSOLUTE `SRC_OVERRIDE`, `fsec.py`, `mcmp.py`, `order.py`, `prio.py`). Iterate db_light on
+  `t_camera/db_light` (plain source, no wrapper) and re-check the five modules with the ninja objects: the harness build
+  puts `blackTemplate` at .rodata 0x15E5 instead of 0x1630 (a `.rodata+N` reloc-target "2 words" on every local-symbol
+  reference that the real build does not have). mcmp's `_._5cUnit / __t8cVarLoop1ZUcRCUcN21 / _._10cLightTool: 2 words` in
+  t_camera/t_light/t_event/t_esp are the `.rodata+5640` vs `_vt.5cUnit` reloc-name pairing, not code. Build 111 OK after
+  every edit.
+- **draw_light_graph (22 -> 0, tagged `COMPILER-DIFF: 2 + #17`): `register int col5 asm("r5"); col5 = 0; if (v > 0.04f)
+  col5 = 6; eprintf(.., (u8) col5, ..)`** replaces the `int c = col; asm("" : "+r"(c))` launder. The target's colour lives
+  in r5 (`li r5,0 / li r5,6 / clrlwi r27,r5,24 / mr r5,r27`): in ours the zero-extension's dest (local qty, crosses the
+  func_attn call -> r27) gives `col` a non-copy `hard_reg_preferences` bit for r27 (global.c `set_preference` strips the
+  ZERO_EXTEND and records dest's hard reg for the src pseudo), and find_reg takes a free preferred register over the
+  REG_ALLOC_ORDER scan, so col/c coalesce into r27. The pin gives r5 and the `(u8)` cast of the int pin the mask; the
+  `%1.6f` block's `li r5,0` position follows. A plain `u8 col` argument (no launder) has no mask (12 words, #2 as ever).
+- **editColor (120 -> 0): (1) by-value swatch argument = the target's reused 4-byte temp at frame offset 0 (tagged
+  `COMPILER-DIFF: candidate #18 (by-value aggregate view)`).** `void DrawTileV(int, int, int, int, GXColor) asm("DrawTile__
+  FiiiiP7GXColor")`: under the V4 ABI an aggregate is passed by invisible reference, so calls.c copies the argument into
+  `assign_stack_temp (SImode, 4, keep=0)` (calls.c:1039) -- freed at the statement end and reused by every later call, and,
+  being the first stack object, at `fp+0` = `addi r7,r1,8` recomputed per call (the frame-offset-0 rule) with `stw r24,8(r1)`
+  / `lwz r0,12(r1); stw r0,8(r1)` copies; `c` is the ADDRESSOF pseudo purged into the next slot (12). The real DrawTile
+  takes a pointer (mangled `P7GXColor`), so the copy in the original came from something else; every plain form fails:
+  `GXColor tmp; tmp = c; DrawTile(&tmp)` purges `c` first (`c.g = 0` is `(mem (plus (addressof c) 1))`, forced at
+  purge_addressof before the `&tmp` precompute copy; purge runs after cse1, before gcse) and PREs `&tmp` (r28 + `mr r7,r28`);
+  the GXColorW BLKmode inline local shares one slot but is 8 bytes (`assign_stack_temp` rounds BLKmode to BIGGEST_ALIGNMENT:
+  frame +8, c at 16); an inlined by-value parameter is `assign_stack_temp (mode, 4, keep=1)` per call (integrate.c:1514,
+  never freed: +0x20); `{ }` blocks around the inlined calls do not free them either. **(2) `FSet(r, r + step * 10.0f)` (and
+  g, b, a) in the JOY_RIGHT arms:** the target reloads `pTool->joy.rep` for the JOY_LEFT test after the arm, i.e. cse's AROUND
+  path (`beq` over the arm) lost the load -- a store to the static `r` is a fixed scalar and does not invalidate the struct
+  load, a reference store (neither flag) does. The `li r23,255` hoisted constant, the `y*14` temporaries and the callee-saved
+  permutation all followed from (1).
+- **edit_light_parent (17, unchanged; mechanism exact):** the target's `addi r10,r9,101` is the `(id >> 16) + 101` temp NOT
+  tied to the dying shift result (local-alloc `combine_regs`), so the temp takes r10 by the fake-lifetime rule (born right
+  after r9 dies), `n` (global, live across the arm) loses r10 to it and falls to r8 (REG_ALLOC_ORDER 0, 9, 11, 10, 8), and
+  the remainder chain reuses r9. Ours ties (same RTL: `(set t (plus hi 101))`, hi dying, both block-local). Tried: `n + hi +
+  1` (cse associates to 101 either way), function-scope `hi` set in both arms (global, no conflict with the tied temp ->
+  identical bytes), function-scope `t` (79: t global takes r11, the case-1/case-2 `or; stw` cross-jump breaks), block-local
+  `t`, `u32 id` local, `u16 lo/hi` locals (58), `volatile` read (23), `asm("addi")` (17), an asm keep-alive of hi (44), pins
+  `t` r10 (52: hi takes r10 through the hard-reg suggestion) and hi r9 + t r10 (54: the remainder chain moves to r10).
+- **printEditTable (183, unchanged; read):** `asm("li %0,10" : "=r"(x))` with literal `7 * 8` / `10 * 8` reproduces the
+  x chain (the target's `x = 10` is opaque to gcse cprop: `x + 1` at the "P" join is not folded, `10 * 8` in the same
+  block is), but the callee-saved shift stays (219): the target has a SECOND `y` copy (`mr r26,r23` for the "P" column, `mr
+  r29,r23` for the rest: 18 callee-saved registers, ours 17) and two `high("%s")` pseudos (r17 PRE'd for P/S/parent, a fresh
+  `lis r27` for E/O/E: the basic_menu fresh-lis/r27 cse1-path family). A `y0`/`y` split inside the row inline is merged by
+  cse (219). The DrawTileV form in printEditRow gives 175 with the frame +16 (col forced at expand time here).
+- **db_widget DB_NUMERIC ctor (2, exact):** `fmr f1,f31` (SetDefault's 0.0) one slot later than the target: sched2 ranks the
+  `this`-based stores prio 5 (a TRUE dependence on the call's `(mem (symbol_ref SetDefault))` through the
+  `ADDRESS (VOIDmode, r3)` base of `mr r30,r3` -- the plmove10 sched2-alias family) above the fmr's 4; the target's stores are
+  prio 4 (anti only) and tie with the fmr on sched1's LUID. Compiler-side (alias.c after reload); the #13 asm stays.
+- **db_widget DB_STRING ctor (11):** statement order of `max / colour chain / type / str / len` does not move a word
+  (7 orders); the difference is the vptr store issued after the four `stfs` and the `type` store early (`li r9,4`,
+  `li r0,0` swapped) -- a sched1 rank question not iterated further.
+- **t_esp Save*FileNoUpdateCallback x5 (5 each, mechanism now exact, flow.c not jump.c):** flow1 deletes the dead `type =
+  0xFF / 0` sets; flow2's `find_basic_blocks (.., do_cleanup=1)` -> `delete_unreachable_blocks` -> `tidy_fallthru_edge`
+  deletes the `ble L2` whose only successor is the next block, and life_analysis then deletes `cmpwi 255` (cr0 dead); the
+  first `bge L1; b L2; L1:` block keeps two successors, survives flow2 and jump2's jump-around-jump + jump-to-following
+  deletion keeps its compare (`delete_computation` does not reach it), which is why ours keeps ONE compare and the original
+  -- whose flow2 has no fallthru tidy -- keeps BOTH. Nothing survives flow2 in the arm yet vanishes at jump2 except a no-op
+  move carrying a REG_EQUAL note (flow's `noop_move_p` skips those, jump2's `delete_noop_moves` does not), and cse creates
+  `(set X X)` + REG_EQUAL only for a known constant -- no source form found. Tagged `register int type11 asm("r11"); type =
+  g_modelType; type11 = type;` (regmove folds the copy into `lha r11`) gives the target's `lha r11; cmpwi r11,0` (5 -> 3
+  words, not applied: not identical). `"cc"`-clobber / codeless-input asms in the arms keep the branches (7-8); a pinned
+  `t = type` copy in the arms is hoisted by jump.c when both arms match and conflicts with `type` otherwise (9-15).
+- Not iterated: db_mod (position_usage 34, IKreport 10, the rest), db_widget DB_WINDOW ctor (14), t_esp MakeLoadSeqData (9)
+  and the larger residues.

@@ -316,6 +316,11 @@ static void option();
 static void quit();
 void printEditTable();
 void DrawTile(int x, int y, int w, int h, GXColor* color);
+// COMPILER-DIFF: candidate #18 (by-value aggregate view): under the V4 ABI a by-value GXColor is passed
+// by invisible reference, so the caller copies it into a keep-0 stack temp (calls.c) that every call of
+// the statement sequence reuses and passes its address in r7 -- the editColor shape. The real DrawTile
+// takes a pointer (mangled P7GXColor); an inlined by-value wrapper allocates one keep-1 temp per call.
+void DrawTileV(int x, int y, int w, int h, GXColor color) asm("DrawTile__FiiiiP7GXColor");
 int LitLoadWork(cDbLit* lit, int no);
 int LitSaveWork(cDbLit* lit, int no);
 int editColor(int x, int y, GXColor* col);
@@ -2928,7 +2933,6 @@ void draw_light_graph(cLight* l)
     f32 x;
     f32 t;
     f32 v;
-    u8 col;
     u32 lcol;
 
     if (l->x1C != 0.0f) {
@@ -3001,14 +3005,15 @@ void draw_light_graph(cLight* l)
     }
     eprintf((int) x0, (int) y0 + 8, 0, pTool->color, "%1.6f", func_attn(l, 1.0f));
     v = func_attn(l, w0 * scale);
-    col = 0;
-    if (v > 0.04f) {
-        col = 6;
-    }
     {
-        int c = col;
-        asm("" : "+r"(c));  // COMPILER-DIFF: 2 (the original zero-extends the u8 for the int argument)
-        eprintf((int) x0 + 0xE6, (int) y0 + 8, (u8) c, pTool->color, "%3.6f", func_attn(l, w0 * scale));
+        // COMPILER-DIFF: 2 + #17: the original's colour lives in r5 (a copy preference ours never gets)
+        // and is zero-extended for the int argument before the nested call; the pin gives both.
+        register int col5 asm("r5");
+        col5 = 0;
+        if (v > 0.04f) {
+            col5 = 6;
+        }
+        eprintf((int) x0 + 0xE6, (int) y0 + 8, (u8) col5, pTool->color, "%3.6f", func_attn(l, w0 * scale));
     }
 }
 // Parallel light: the direction is edited as two angles (static `ang`: x = pitch, y = yaw, z unused),
@@ -5100,7 +5105,6 @@ int editColor(int x, int y, GXColor* col)
     int ret = 1;
     f32 step;
     int link;
-    GXColor tmp;
     GXColor c;
 
     switch (state) {
@@ -5121,46 +5125,39 @@ int editColor(int x, int y, GXColor* col)
     link = pTool->joy.on & JOY_Y;
     pTool->printCursor(x - 1, y + pTool->cursor);
     eprintf(x << 3, y * 14, 0, pTool->color, "R %3d", col->r);
-    // the original copies the deferred .rodata template into a register once (`lwz r24`) and
-    // stores that word into `tmp` before each DrawTile; a `{0,0,0,0}` initializer folds to `li 0`
+    // the original copies the deferred .rodata template into a register once (`lwz r24`) and stores
+    // that word into the swatch argument's copy temp before each DrawTile (a `{0,0,0,0}` initializer
+    // folds to `li 0`); the by-value DrawTileV view gives the one reused 4-byte temp at frame offset 0
+    // (its address is a fresh `addi r7,r1,8` per call) with `c` purged into the slot after it.
     GXColor black = blackTemplate;
     c.r = 0xFF;
     c.g = 0;
     c.b = 0;
-    tmp = black;
-    DrawTile(((x + 6) << 3), y * 14 + 4, 0x80, 6, &tmp);
-    tmp = c;
-    DrawTile(((x + 6) << 3), y * 14 + 4, col->r >> 1, 6, &tmp);
+    DrawTileV(((x + 6) << 3), y * 14 + 4, 0x80, 6, black);
+    DrawTileV(((x + 6) << 3), y * 14 + 4, col->r >> 1, 6, c);
     y++;
     eprintf(x << 3, y * 14, 0, pTool->color, "G %3d", col->g);
     c.r = 0;
     c.g = 0xFF;
     c.b = 0;
-    tmp = black;
-    DrawTile(((x + 6) << 3), y * 14 + 4, 0x80, 6, &tmp);
-    tmp = c;
-    DrawTile(((x + 6) << 3), y * 14 + 4, col->g >> 1, 6, &tmp);
+    DrawTileV(((x + 6) << 3), y * 14 + 4, 0x80, 6, black);
+    DrawTileV(((x + 6) << 3), y * 14 + 4, col->g >> 1, 6, c);
     y++;
     eprintf(x << 3, y * 14, 0, pTool->color, "B %3d", col->b);
     c.r = 0;
     c.g = 0;
     c.b = 0xFF;
-    tmp = black;
-    DrawTile(((x + 6) << 3), y * 14 + 4, 0x80, 6, &tmp);
-    tmp = c;
-    DrawTile(((x + 6) << 3), y * 14 + 4, col->b >> 1, 6, &tmp);
+    DrawTileV(((x + 6) << 3), y * 14 + 4, 0x80, 6, black);
+    DrawTileV(((x + 6) << 3), y * 14 + 4, col->b >> 1, 6, c);
     y++;
     eprintf(x << 3, y * 14, 0, pTool->color, "A %1.1f", (f32) col->a * 0.0078125f);
     c.r = 200;
     c.g = 200;
     c.b = 200;
-    tmp = black;
-    DrawTile(((x + 6) << 3), y * 14 + 4, 0x80, 6, &tmp);
-    tmp = c;
-    DrawTile(((x + 6) << 3), y * 14 + 4, col->a >> 1, 6, &tmp);
+    DrawTileV(((x + 6) << 3), y * 14 + 4, 0x80, 6, black);
+    DrawTileV(((x + 6) << 3), y * 14 + 4, col->a >> 1, 6, c);
     y += 2;
-    tmp = *col;
-    DrawTile(((x + 8) << 3), y * 14, 0x2A, 0x2A, &tmp);
+    DrawTileV(((x + 8) << 3), y * 14, 0x2A, 0x2A, *col);
     if (link) {
         eprintf(x << 3, y * 14, 0, pTool->color, "LINK");
     }
@@ -5170,9 +5167,9 @@ int editColor(int x, int y, GXColor* col)
     }
     if (link) {
         if (pTool->joy.rep & JOY_RIGHT) {
-            r += step * 10.0f;
-            g += step * 10.0f;
-            b += step * 10.0f;
+            FSet(r, r + step * 10.0f);
+            FSet(g, g + step * 10.0f);
+            FSet(b, b + step * 10.0f);
         }
         if (pTool->joy.rep & JOY_LEFT) {
             r -= step * 10.0f;
@@ -5201,7 +5198,7 @@ int editColor(int x, int y, GXColor* col)
         switch (pTool->cursor) {
         case 0:
             if (pTool->joy.rep & JOY_RIGHT) {
-                r += step * 10.0f;
+                FSet(r, r + step * 10.0f);
             }
             if (pTool->joy.rep & JOY_LEFT) {
                 r -= step * 10.0f;
@@ -5215,7 +5212,7 @@ int editColor(int x, int y, GXColor* col)
             break;
         case 1:
             if (pTool->joy.rep & JOY_RIGHT) {
-                g += step * 10.0f;
+                FSet(g, g + step * 10.0f);
             }
             if (pTool->joy.rep & JOY_LEFT) {
                 g -= step * 10.0f;
@@ -5229,7 +5226,7 @@ int editColor(int x, int y, GXColor* col)
             break;
         case 2:
             if (pTool->joy.rep & JOY_RIGHT) {
-                b += step * 10.0f;
+                FSet(b, b + step * 10.0f);
             }
             if (pTool->joy.rep & JOY_LEFT) {
                 b -= step * 10.0f;
@@ -5243,7 +5240,7 @@ int editColor(int x, int y, GXColor* col)
             break;
         case 3:
             if (pTool->joy.rep & JOY_RIGHT) {
-                a += step * 10.0f;
+                FSet(a, a + step * 10.0f);
             }
             if (pTool->joy.rep & JOY_LEFT) {
                 a -= step * 10.0f;
