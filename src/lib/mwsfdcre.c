@@ -1,9 +1,9 @@
 /* CRI Sofdec MW player: handle creation (mwsfdcre.c)
  *
  * Not Matching (8/10 functions byte-identical, .rodata/.data/.bss identical). Residues:
- * mwsfcre_CreateSfd (126w): the empty `case 4:` of the inlined IsUseAdxt switch leaves a second
- * dead `b` in the original, and the inlined MallocFrmTbl's nfrm/height/frmtbl-pointer colours
- * (r19/r20 swapped); mwPlyCalcWorkSfd (4w): the last `add` operand order and the epilogue `lwz r0`. */
+ * mwsfcre_CreateSfd (115w, all branch offsets): the `case 4:` of the inlined IsUseAdxt switch leaves
+ * a second dead `b` in the original (a case-4-first block whose statement the backend deleted);
+ * mwPlyCalcWorkSfd (4w): the last `add` operand order and the unmerged epilogue `lwz r0`. */
 #include "cri_xpt.h"
 #include "sfd.h"
 #include "lsc.h"
@@ -804,11 +804,21 @@ static void *mwsfcre_MallocX(MWPLY mwply, Sint32 size)
 static Sint32 mwsfcre_MallocFrmTbl(MWPLY mwply, MWSFD_CRPRM *cprm, void **frmtbl)
 {
 	Sint32 ret = 0;
+	Sint32 height;
+	Sint32 width;
 	Sint32 nfrm = cprm->max_skip;
 	Sint32 fsize;
 	Sint32 i;
 
-	MWSFCRE_CALC_FRMSIZ(cprm, fsize);
+	/* the size macro expanded by hand so height/width are declared BEFORE nfrm: inlined-helper
+	 * locals take ids in declaration order and the L2 nodes colour by descending id, so nfrm
+	 * (declared after height) takes r19 and height r20 (the macro's block locals came after nfrm) */
+	width = cprm->max_width;
+	height = cprm->max_height;
+	if (cprm->buffmt >= 4 || cprm->buffmt < 0) {
+		MWSFSVM_Error("E206011: MwsfdCrePrm: illigal buffmt.");
+	}
+	fsize = mwsfcre_CalcYccSize(width, height);
 	if (mwsfdcre_bufnum != 0) {
 		if (mwsfdcre_bufnum < nfrm + 2 || mwsfdcre_bufsize < fsize) {
 			ret = -1;

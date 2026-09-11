@@ -25529,3 +25529,41 @@ Scratch /home/adityas/.cache/tev3/: `hv.sh <dbg_tool.h variant> [t_event src]` j
   but the join label before the store is OLD -> chained -> the `% 3` sites merge into one block (124/133). u8/u16 m: the
   frontend promotes to SImode, no mode mismatch. Open: a source form whose else-arm `li r0,0` is NOT adjacent-identical
   to the `% 3` sites' `li r0,0` at jump2 entry (or whose sites are processed after T1), see the next section.
+- **Residue (2), the second dead `b` of both inlined IsUseAdxt switches (`b T; b T; li r0,0; b end; li r0,1`), still open; the mechanism is
+  now pinned down to one missing statement.** Facts read off ra.py dumps of a 20-line probe TU (`probe/pr2.sh`): (a) the `case 4:` label is
+  forwarded to DEFAULT at PARSE time (frontend-00 already has `CASE 0x4: L@19 = DEFAULT`) whenever the label is followed directly by the
+  `break`; any expression statement between them (`mode;`, `(void)mode;`, `if (mode == 4) {}`, an empty nested `switch`) blocks the parse-time
+  forwarding, but frontend-01 (`ast-after-optimizations`) deletes every side-effect-free expression and forwards the label again; an empty
+  `asm { }` is dropped at parse. Defs of locals/parameters without a live use are deleted by frontend-01 too, iteratively (`x = mode + 1;
+  y = x + 1;` both go). (b) The dead block's `b` targets the after-switch `li r0,1` (not `end`), and it is laid out BEFORE the FALSE arm:
+  so the source order is `case 4: <stmt>; break;` FIRST, then `case MPV: case VONLYSFD: return FALSE;`, `default: break;`, `return TRUE;`
+  (with case 4 last, a kept statement would sit right before the after-switch code and fall through without a `b`). (c) The statement
+  must survive frontend-01 (a def with a live use, a call or a memory access) and be deleted by the BACKEND; the backend deletes (probe G:
+  `Bool ret = FALSE; .. case 4: ret = FALSE;` leaves exactly a dead `b`) a `li` whose value already sits in the same variable on the
+  dominating path (the CSE pass, backend-06 in the probe), a redundant `cmpi` against a dominating compare of the same register (the
+  `(mode == 4) ? TRUE : TRUE` probe reuses the tree's cr0), `mr` copies (copy-prop) and folded `addi`s; it does NOT CSE loads across a
+  call (`mode = p->mode` after `call()` is reloaded) and has no branch-condition constant inference (`case 4: mode = 4;` in a caller-side
+  macro emits `li r21, 4`). Inside a one-parameter helper the only value available before the tree is `mode` itself, and every copy of it
+  (`m = mode` top + `case 4: m = mode`, with or without a later read) is merged by the frontend. Tried this pass, all 115w or worse: bodies
+  A-K/M (`case 4: default: break;` first, `Bool ret` FALSE/TRUE inits with `ret = TRUE` arms — the TRUE init hoists `li r0,1` above the tree,
+  `return TRUE` in case 4 = `li; b` kept, `ret = TRUE` after the switch = dead def deleted by the frontend, `Sint32 x` dead-def and
+  self-copy forms, `return mode == 4`/`?:` forms = setcc code, `if (mode == 4) break;`, `for (;;) break;`, `do {} while (0)`, the
+  caller-side macro with `mode = 4`). What is left to find: a statement about a value that is available in a register at BOTH inline sites
+  without a `li` before the tree — i.e. the helper very likely received more than `mode` (a second parameter or a pointer whose target the
+  backend can prove redundant), or the original build's CSE knew something ours does not. No tag applied (an asm-emitted `b` is not allowed).
+- **mwPlyCalcWorkSfd 4w, mechanism read, not closed.** The two symptoms are one structural fact: in ours the post-RA peephole (backend
+  "after-peephole") hoists the epilogue's `lmw; lwz r0; mtlr` out of the return block B16 into the fall-through predecessor B15 (B16 has a
+  single predecessor), and the final scheduler then moves `lwz r0` up to the slot after the last r0 use (`add r3, r0, r25`); in the target
+  the epilogue stayed in its own block (`lmw; lwz r0; mtlr` after the last add) — a second predecessor of the return label does exactly
+  that (probe e1: `if (cprm == NULL) return 0;` at the top gives the target's epilogue order, plus its own 4 instructions), and so would
+  the last `add` itself living in the return block (its `add; lmw` pair issues in one cycle, `lwz` next). The target's `add r3, r29, r3`
+  (sib as rA, result in size's dying register) is a NEW temp `sib + size`, not `size += sib`; but every `sibsiz + size` spelling
+  (`return sibsiz + size`, `size = sibsiz + size`, `total = sibsiz; total += size`, `sibsiz += size`, a `static Sint32 AddSib(sib, size)`
+  helper, `size = size + FNAME; return sibsiz + size`, `size2 = size; size = sibsiz + size2`) lets the frontend substitute the single-use
+  `size` chain into the expression and canonicalise the constant outward (`add r3, r0, r29; addi r3, r3, 0x4800`, and the CWS_BUFSIZ zero
+  temps re-rank when the chain is rebuilt: 13w); only the compound `size += sibsiz` (EASSADD) keeps the chain and gives `add r3, r3, r29`.
+  Not found: a form where the chain's last def is not substitutable (two uses / a block boundary the frontend keeps) — `goto end; end:`,
+  an unused label, `if (0) return 0;`, `for (;;) { ..; return size; }`, `return size; return 0;` are all folded to the base. `#pragma
+  peephole off` around the function is wrong elsewhere (`extrwi` -> `srwi`, the pool `addi`). Left at 4w.
+- Flags: `lib/mwsfdcre.c` stays False (8/10, CreateSfd 115w + CalcWorkSfd 4w); objects.py untouched; the tree object rebuilt through the
+  locked ninja (bytecmp 8/10). Harness /home/adityas/.cache/cri_mws6 deleted.
