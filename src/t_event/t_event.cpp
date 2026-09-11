@@ -129,14 +129,14 @@ static inline long XmlStrToLong(const char* s)
 }
 
 // Reads the xml file into `d`: 0 when it is missing or too big.
-static inline int EvtReadXml(const char* name, XmlNodeData* d, char* tmp, char* buf)
+// `size` is HDRead's result: the read itself is in the array owner (EvtMessRead), so HDRead's buffer
+// argument is a fresh `addi r4,r1,N` (no pseudo equivalent to the address exists yet in that ebb).
+static inline int EvtReadXml(const char* name, XmlNodeData* d, char* tmp, char* buf, u32 size)
 {
     XmlSimple xml;
     char* cur;
-    u32 size;
     int i;
 
-    size = HDRead(name, buf);
     buf[size] = 0;
     if (size > XML_BUF_SIZE - 1) {
         pLog->err(0, 0, "ReadXml : FileSize over [%d]", size);
@@ -199,12 +199,14 @@ static inline void EvtMessRead(EventMessageData* m, const char* path)
     XmlNodeData d;
     char tmp[0x80];
     char buf[XML_BUF_SIZE];
+    u32 size;
     int i;
 
     XmlNodeDataClear(&d);
     m->num = 0;
     memset(m, 0, sizeof(m->elem));
-    if (EvtReadXml(path, &d, tmp, buf) == 0) {
+    size = HDRead(path, buf);
+    if (EvtReadXml(path, &d, tmp, buf, size) == 0) {
         pLog->err(0, 0, "ReadData : File Not Found [%s]", path);
         return;
     }
@@ -1234,6 +1236,10 @@ void ToolEvt::SubToolMessMove(ToolEvt* t, Event* ev)
                     for (j = no - 1; j >= 0 && (p = &m->elem[j])->messNo == -1; j--) {
                         cnt++;
                     }
+                    // COMPILER-DIFF: candidate (loop.c biv elimination): the original keeps j as the
+                    // counter (`subic. rJ,rJ,1; blt`) where ours eliminated it into a pointer compare;
+                    // a post-loop use keeps the biv. Its giv inits (`e - 24`, `e - 8`) are still open.
+                    asm("" : : "r"(j));
                     ev->MesSet(p->messNo, 0, 100, EVT_MES_Y);
                     for (j = 0; j < cnt; j++) {
                         cMes.Move();
@@ -1425,7 +1431,10 @@ void CallbackTimerUpdate(int no, EventMessageData::MessElem* w, cDbgButtonTempla
 }
 
 // Writes the node records of `d` as the message xml into buf and saves it as `name`.
-static inline int EvtWriteXml(const char* name, XmlNodeData* d, char* tmp, char* buf)
+// Returns the write cursor; the HDWrite is in the array owner (EvtMessWrite): its `cur - buf` forces
+// the buffer address into a pseudo right before the call, which cse then uses for the r4 argument
+// (`mr r4,r14`), where a `buf` parameter would be substituted into a fresh `addi`.
+static inline char* EvtWriteXml(XmlNodeData* d, char* tmp, char* buf)
 {
     XmlSimple xml;
     char* cur;
@@ -1462,8 +1471,7 @@ static inline int EvtWriteXml(const char* name, XmlNodeData* d, char* tmp, char*
         XmlElemEnd(&xml, &cur, cur, "Node");
     }
     xml.SetXmlEnd((int*) &cur, cur);
-    HDWrite(name, buf, cur - buf);
-    return 1;
+    return cur;
 }
 
 // The message list to its xml file (path built by the caller).
@@ -1472,6 +1480,7 @@ static inline void EvtMessWrite(EventMessageData* m, const char* path)
     XmlNodeData d;
     char tmp[0x80];
     char buf[XML_BUF_SIZE];
+    char* cur;
     EventMessageData::MessElem* e;
     int i;
 
@@ -1488,7 +1497,8 @@ static inline void EvtMessWrite(EventMessageData* m, const char* path)
             d.num++;
         }
     }
-    EvtWriteXml(path, &d, tmp, buf);
+    cur = EvtWriteXml(&d, tmp, buf);
+    HDWrite(path, buf, cur - buf);
 }
 
 int CallbackSave(void* arg)

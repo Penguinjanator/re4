@@ -24615,7 +24615,7 @@ Harness /home/adityas/.cache/cri28/ (deleted): variant.sh copies, ra.py dumps, `
   argument CSE temps are created in REVERSE argument order (@171 = out.cnt from args 9-11 first, @174 = hlp.cnt last) and
   `tst->hlp.cnt / tst->hlp.unit` (the __div2i operands) is not CSE'd with @174.
 
-### DOL act_btn/pl_wep/debug closer (act_btn Matching 10/10: checkButton 18 -> 0, tag #6; debug processBarDisp 138 -> 122 in a probe only, two mechanisms read; pl_wep untouched; 111 OK; 2026-09-12)
+### DOL act_btn/pl_wep/debug closer (act_btn Matching 10/10: checkButton 18 -> 0, tag #6; pl_wep Matching 29/29: PlWepHitCheck2 180 -> 0, pure C; debug processBarDisp 138 -> 122 in a probe only, two mechanisms read; 111 OK; 2026-09-12)
 
 - **act_btn checkButton 18 -> 0, tagged (#6): `case 9: asm volatile(""); break; case 0xA: break;`.** Read off `-dj/-dJ/-df` dumps
   and jump.c: (1) every `return K` expands to `set r3 K; use r3; jump return_label`; jump1's "USE before an unconditional jump"
@@ -24649,6 +24649,17 @@ Harness /home/adityas/.cache/cri28/ (deleted): variant.sh copies, ra.py dumps, `
   issues that store 2nd in the block, the extsh 20 insns later). Asm `li 12` at both sites gives `stmw r15` (one register
   unused) = confirmation; the y0/x2 conflict source not found (the arms read the HI copy 170 = r23 in both; `8`/`i` in r31
   are later). (b) the 4/5/0xff order (pri 282/282/281 ties on len 496/498). Untested still: tile-6 colour order `r, g, b, cd`.
+- **pl_wep PlWepHitCheck2 180 -> 0, pure C, two source facts.** (1) `case 7:` is stacked on `default: prio = 1;` (no own
+  body): the 7 leaf is then the default block, which the > 0xF subtree also reaches with `cmpwi cr7,type,0x17` (the 0x17 root's
+  compare, PRE-shared with the second `switch (type)`) already available, so gcse's block LCM cannot delay the compare into that
+  successor and inserts it at the END of the left-root block (`cmpwi 7; cmpwi cr7,0x17; beq; bgt`, the target's shape) instead
+  of into every left-side leaf (ours: 16 `PRE/HOIST: end of bb` insertions for expression 9, bb 8/20/42-55, and `type` with 3 more
+  refs took r31 ahead of `part`). 180 -> 9 words, size exact, `type` r29 / `part` r31 as in the target. Stacking case 2 or 0xE
+  on default instead: 141w / 185w (7 is the left root's own leaf; a leaf deeper in the subtree only removes one insertion).
+  (2) the 4/8/0xC body is placed AFTER the 5/6 bodies (leaf layout = source order: target `li r5,3` then `li r5,1; cmpwi cr7`).
+  `case 5: case 6: prio = 3;` as one range node breaks the tree (53w); the separate 5 and 6 bodies stay. Flipped: bytecmp
+  IDENTICAL, `ninja -k 0`, shasum 111 OK. Rule: a leaf that PRE should NOT reach on its own is a body shared with `default`
+  (or with a case from the other subtree) -- read the target's insertion points (`cmpwi crN` copies) against the tree.
 - Harness ~/.cache/dol_apd/ (tryv.py over variant.sh, rtl dumps) deleted at the end of the pass.
 
 ### CRI SWAR kernels pass 7: the >100 block split is exact and unavoidable from C for the 16x16 4p body; target reads for the others (mpv_mcy 4p 136w, H2 225w, V2 225w; mpv_mc 4p 72w, V2 73w, H2 436w — in progress; 2026-09-11)
@@ -24761,3 +24772,53 @@ life 12, both pri 1666), 35 min of header variants judged on all four includers 
   untouched, raising the asm's sched2 priority by prio(that insn)+1. Choose rN among registers whose qtys are born after the asm.
 - Compiler-side footnote already in this file ("Full-build table"): `-fno-sched-spec` on top of the leaf fix made AddSandPower 5 -> 0
   in the original-flags search; the tag above is the source-level stand-in, the unit is now Matching either way.
+
+### Tool RELs, t_event closer 2 (t_event/t_event 168 -> 129 words, 59 -> 60/69: CallbackLoad 1 -> 0, CallbackSave 12 -> 9, SubToolMessInit 16 -> 15 (6 real + 9 tail-shift artefacts), SubToolMessMove 106 -> 72; nothing flipped; 2026-09-12)
+Harness ~/.cache/tev2 (deleted): variants judged with `~/.cache/kit/variant.sh t_event/t_event <v.cpp> FUNC`, dumps with
+`~/.cache/kit/rtl.sh ... -dj -ds -dL`, allocation order with `GDBG=1 CC1DIR=~/.cache/sngdbg`. Every finding below was verified on a
+variant before the tree edit; the tree object rebuilt under the lock; modules.py untouched (unit not identical).
+
+- **HDRead's buffer word (CallbackLoad 1 -> 0, SubToolMessInit 16 -> 15): the read is in the ARRAY OWNER, not in the parser
+  inline.** `EvtMessRead(m, path) { d; tmp; buf; u32 size; XmlNodeDataClear(&d); m->num = 0; memset(m); size = HDRead(path, buf);
+  if (EvtReadXml(path, &d, tmp, buf, size) == 0) ..}` with `EvtReadXml(name, d, tmp, buf, size) { buf[size] = 0; if (size >
+  XML_BUF_SIZE - 1) ..; if (size == 0) ..; cur = buf; ..}`. Mechanism (read in integrate.c/cse.c): a `buf` PARAMETER of an inline
+  gets a CONST_AGE_PARM equivalence to `(plus vsv N)` and `subst_constants` rewrites the call-argument set to `(set r4 (plus fp N))`,
+  which cse1 folds back to the parameter pseudo when the copy is in the same ebb (`mr r4,r27`); the owner's own `HDRead(path, buf)`
+  emits `(set r4 (plus fp N))` with NO equivalent pseudo yet (the `buf` pseudo r27 is created later, by the parser inline's parameter
+  copy, and PRE'd to bb 0 in both) -> `addi r4,r1,18000` = the target. `size` as an extra inline parameter changes nothing else
+  (the limit literal still materialises after the call).
+- **HDWrite's buffer word (CallbackSave 12 -> 9, the reverse symptom): the write is in the array owner too, with `cur - buf` computed
+  THERE.** `EvtWriteXml(d, tmp, buf)` returns `cur`; `EvtMessWrite: cur = EvtWriteXml(&d, tmp, buf); HDWrite(path, buf, cur - buf);`.
+  `cur - buf` forces `(plus fp N)` into a pseudo right before the argument loads (expand_binop operand), cse1 rewrites the r4 set as
+  a copy of it (`mr r4,r14`), and reload_cse then swaps the lower-numbered r4 into the subtraction (`subf r5,r4,r5`); the inline
+  parameter form keeps `(minus cur (reg buf))` (substitution invalid there) and a fresh `addi r4` for the argument.
+- **Back-search loop of SubToolMessMove (106 -> 72, TAGGED `candidate (loop.c biv elimination)`):** the target keeps `j` as the counter
+  (`subic. r11,r31,1; blt` entry, `subic. r11,r11,1; blt` in the loop) while ours eliminated the biv into a pointer compare (`-dL`:
+  "Biv 1667 initialized at insn 2769: initial value is complex ... biv 1667 was eliminated"). `asm("" : : "r"(j))` after the loop
+  keeps it. Still open in that loop (~15 words): the target's giv inits are `subi r3,r29,0x18` (e - 24) and `mr r9,r29; subi r9,r9,8`
+  (e - 8) and its `mulli r27,r31,0x18` (no*24) lives in a callee-saved register across IsWorkAlive, i.e. loop.c emitted the giv
+  initial values as `no*24 + m - 24` (expand_mult_add distributing a `(plus no -1)` initial value) and cse2 folded `no*24 + m` into
+  `e`. Ours emits them from the peeled copy (`mr r11,r10`). valid_initial_value_p accepts only REG/CONSTANT, so the biv's init
+  must have been a register whose product cse2 did NOT share with the peeled `mulli`; `for (j = no; j > 0 && (p = &m->elem[j -
+  1])->messNo == -1; j--)` (75 words) reproduces the callee-saved `mulli` and the `e - 24` peeled address but tests `mr.; ble` on j
+  instead of `subic.; blt` on j-1 (the giv `j - 1` is folded into `j*24 - 24` by cse1 before loop.c sees it, so it cannot replace
+  the biv in the compare). `while` / body-assignment spellings: 84. Not closed.
+- **CallbackSave's five `add r3,r3,r27` (target) vs `add r3,r27,r3` (ours) for `d.node[d.num].s[X]`:** the RTL at expansion is
+  `(plus (reg 91) (reg mult))` (reg 91 = the inline's frame-base pseudo, `d` at offset 0 of EvtMessWrite's frame), the target has the
+  mult first. Tried without effect: `(d.node + d.num)->s[X]`, `d.num[d.node]`, `&..[0]`, `(u32) d.num`, a `XmlNode* n = d.node`
+  base (42, worse). expand_binop swaps only for `op1 REG && op0 !REG` or `target == op1`; combine's 3-insn split would reorder but
+  fails with the `lwz` of d.num as i1. Not found (5 words). The remaining 4 words are the clear loop's PRE pair (`i-1` / `n+176`,
+  pseudos 275/279 at global priority 6666, allocated by allocno order = gcse bucket order; CallbackLoad has the target's order,
+  CallbackSave and SubToolMessInit the reverse) -- the `.LC`/pseudo-count lever of the catalogue row 2, not applied.
+- **mesCnt block of SubToolMessMove (still open, ~20 words), mechanism read this pass:** gcse cprop scans only SET_SRC
+  (`find_used_regs`: `case SET: x = SET_SRC (x)`), never a store's address, and `(set (mem) (const_int 0))` is invalid, so a
+  `no = 0` pseudo used in store ADDRESSES inside the loop survives cprop, its `(ashift no 2)` becomes `(set T 0)` (hoisted), and cse2
+  in the preheader makes T and the stored zero copies of `no` -> `stwx r27,r30,r27` (`no` as index AND value). The loads
+  `mesCnt[no+1]`/`mesCnt[no]` in the eprintfs fold their index (same ebb as `no = 0`) but keep the PRE'd `&mesCnt[1]` / `&mesCnt[0]`
+  pseudos as bases (`lwz r8,0(r28)`, `lwzu r8,0xc0(r30)`). What is NOT explained: the third store `stw r31,4(r26)` (mesCnt[no+2]
+  rebased on `&mesCnt[1]` with the index folded) while the first two keep the index register; ours folds all three.
+- **Header-side (include/dbg_tool.h, not edited):** with `case 5: ret = 0;` last in `cDbgToolMain<T>::Update()` (current header) our
+  build still emits the arm as `li r20,0; b end` after case 4 (+0x830) where the target has `li r20,0` at the region end (+0x8c0)
+  falling into the caller's `cmpwi r20,0`; jump optimisation moves the one-insn arm. Needs a header experiment (`default:` arm, or the
+  arm ending differently); it costs SubToolMessMove 2 words + ~8 branch-target words. The inlined WinUpdate/copy-loop region
+  (+0x654..0x7d0: `li rX,0` / `mr r28,r23` order, r25-r29 permutation) is header-owned too.
