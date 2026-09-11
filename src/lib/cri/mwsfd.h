@@ -214,7 +214,7 @@ struct MWPLY_OBJ {
 	SJ sji;                    /* 0x1D0 input stream joint of the current play */
 	SJ file_sj;                /* 0x1D4 stream joint fed by the file stream */
 	Sint32 x1d8;
-	Sint32 flow_nsct;          /* 0x1DC (MWSFPLY_SetFlowLimit: 80% of it) */
+	Sint32 flow_nsct;          /* 0x1DC (MWSFPLY_SetFlowLimit: 80% of it as the minimum, all as the maximum) */
 	Sint32 x1e0;
 	Sint32 x1e4;               /* 0x1E4 (2 at mwSfdStartSj) */
 	Sint32 x1e8;

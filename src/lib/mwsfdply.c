@@ -15,7 +15,7 @@ extern Sint32 SFD_Pause(void *sfd, Sint32 sw);
 extern Sint32 SFD_GetCond(void *sfd, Sint32 id, Sint32 *val);
 extern Sint32 SFD_GetPaStat(void *sfd);
 extern Sint32 MWSFD_GetPauseBdr(void);
-extern void MWSFD_SetFlowLimit(MWPLY mwply, Sint32 nsct);
+extern void MWSFD_SetFlowLimit(MWPLY mwply, Sint32 min_nsct, Sint32 max_nsct);
 extern void mwlSfdSleepDecSvr(MWPLY mwply);
 extern void mwPlyLinkStm(MWPLY mwply, Sint32 sw);
 extern Sint32 MWSFCRE_ResetSfdHn(MWPLY mwply);
@@ -132,14 +132,12 @@ void mwPlyChkSupply(MWPLY mwply)
 	}
 }
 
-/* COMPILER-DIFF: M1 - the original numbers the temporaries r5 (value) / r6, r7 (constants), ours
- * r4 / r5, r6: the flow_nsct load is a hard-register asm pin (the `mr` is coalesced away). */
-void MWSFPLY_SetFlowLimit(register MWPLY mwply)
+/* the stream flow limits: 80% of the handle's sector count as the minimum, all of it as the maximum */
+void MWSFPLY_SetFlowLimit(MWPLY mwply)
 {
-	register Sint32 n; // COMPILER-DIFF: M1
+	Sint32 n = mwply->flow_nsct;
 
-	asm { lwz r5, MWPLY_OBJ.flow_nsct(mwply); mr n, r5 } // COMPILER-DIFF: M1
-	MWSFD_SetFlowLimit(mwply, (Sint32)(0.8 * n));
+	MWSFD_SetFlowLimit(mwply, (Sint32)(0.8 * n), n);
 }
 
 /* dead */

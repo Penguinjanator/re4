@@ -27,8 +27,9 @@ typedef struct {
 
 /* paired-single constants: C4 (x2), C6/C2 ... and the +-0.5 rounding pair for ps_sel */
 Float32 B0TableOrg[12] = {
-	0.70710677f, 0.70710677f, 2.6131258f, 2.6131258f, 1.0823922f, 1.0823922f,
-	0.76536685f, 0.76536685f, 0.5f, 0.5f, -0.5f, -0.5f,
+	1.4142135381698608f, 1.4142135381698608f, 2.613126039505005f, 2.613126039505005f,
+	1.0823922157287598f, 1.0823922157287598f, 0.7653668522834778f, 0.7653668522834778f,
+	0.5f, 0.5f, -0.5f, -0.5f,
 };
 
 Float32 PreIDCT[64][64];
@@ -48,8 +49,13 @@ void DCT_FsriTransCore(DCT_PA *pa, Sint32 cbp)
 	register Uint8 *work;
 	register Float32 *src;
 	register Uint8 *dst;
-	register Sint16 *o;
 	register Sint32 cnt;
+	register Sint16 *o;
+	register Float32 *p;
+	/* the kernel's paired-single registers: the constants c1..c6 (loop-invariant) and the
+	 * temporaries, all allocated by the compiler (no hard register in the asm: the C paths share
+	 * f0/f7 and r5/r7 with them) */
+	register __vec2x32float__ x0, c1, c2, c3, c4, c5, c6, x7, x8, x9, x10, x11, x12, x13, x31;
 	Sint32 i;
 	int k;
 	Float32 dc;
@@ -57,16 +63,14 @@ void DCT_FsriTransCore(DCT_PA *pa, Sint32 cbp)
 	Uint32 *out;
 
 	work = pa->work;
+	p = B0TableOrg;
 	asm {
-		lis r5, B0TableOrg@ha
-		addi r5, r5, B0TableOrg@l
-		mr r7, r5
-		psq_lu f1, 0x0(r7), 0, 0
-		psq_lu f2, 0x8(r7), 0, 0
-		psq_lu f3, 0x8(r7), 0, 0
-		psq_lu f4, 0x8(r7), 0, 0
-		psq_lu f5, 0x8(r7), 0, 0
-		psq_lu f6, 0x8(r7), 0, 0
+		psq_lu c1, 0x0(p), 0, 0
+		psq_lu c2, 0x8(p), 0, 0
+		psq_lu c3, 0x8(p), 0, 0
+		psq_lu c4, 0x8(p), 0, 0
+		psq_lu c5, 0x8(p), 0, 0
+		psq_lu c6, 0x8(p), 0, 0
 	}
 	blk = pa->blk;
 	tbl = pa->tbl;
@@ -86,143 +90,143 @@ void DCT_FsriTransCore(DCT_PA *pa, Sint32 cbp)
 					*--out = n;
 				}
 			} else {
+				o = tbl[0];
 				asm {
-		lwz o, 0x0(tbl)
 		subi src, blk, 0x8
 		subi dst, work, 0x8
 		li cnt, 0x4
 L_80215114:
-		psq_lu f0, 0x8(src), 0, 0
-		psq_lu f7, 0x8(src), 0, 0
-		psq_lu f8, 0x8(src), 0, 0
-		psq_lu f9, 0x8(src), 0, 0
-		psq_lu f10, 0x8(src), 0, 0
-		psq_lu f11, 0x8(src), 0, 0
-		psq_lu f12, 0x8(src), 0, 0
-		psq_lu f13, 0x8(src), 0, 0
-		ps_sub f31, f8, f12
-		ps_add f12, f8, f12
-		ps_sub f8, f0, f10
-		ps_mul f31, f31, f1
-		ps_add f10, f0, f10
-		ps_sub f31, f31, f12
-		ps_sub f0, f10, f12
-		ps_add f12, f10, f12
-		ps_sub f10, f8, f31
-		ps_add f31, f8, f31
-		ps_sub f8, f11, f9
-		ps_add f9, f11, f9
-		ps_sub f11, f7, f13
-		ps_add f13, f7, f13
-		ps_sub f7, f13, f9
-		ps_add f9, f13, f9
-		ps_sub f13, f8, f11
-		ps_mul f11, f11, f3
-		ps_mul f8, f8, f2
-		ps_mul f13, f13, f4
-		ps_mul f7, f7, f1
-		ps_sub f11, f11, f13
-		ps_sub f8, f8, f13
-		ps_sub f13, f12, f9
-		ps_sub f11, f11, f9
-		ps_add f9, f12, f9
-		ps_sub f7, f7, f11
-		ps_sub f12, f31, f11
-		ps_add f11, f31, f11
-		ps_sub f8, f8, f7
-		ps_sub f31, f0, f8
-		ps_add f8, f0, f8
-		ps_sub f0, f10, f7
-		ps_add f7, f10, f7
-		ps_merge00 f10, f9, f11
-		psq_stu f10, 0x8(dst), 0, 0
-		ps_merge00 f10, f7, f8
-		psq_stu f10, 0x8(dst), 0, 0
-		ps_merge00 f10, f31, f0
-		psq_stu f10, 0x8(dst), 0, 0
-		ps_merge00 f10, f12, f13
-		psq_stu f10, 0x8(dst), 0, 0
-		ps_merge11 f10, f9, f11
-		psq_stu f10, 0x8(dst), 0, 0
-		ps_merge11 f10, f7, f8
-		psq_stu f10, 0x8(dst), 0, 0
-		ps_merge11 f10, f31, f0
-		psq_stu f10, 0x8(dst), 0, 0
-		ps_merge11 f10, f12, f13
+		psq_lu x0, 0x8(src), 0, 0
+		psq_lu x7, 0x8(src), 0, 0
+		psq_lu x8, 0x8(src), 0, 0
+		psq_lu x9, 0x8(src), 0, 0
+		psq_lu x10, 0x8(src), 0, 0
+		psq_lu x11, 0x8(src), 0, 0
+		psq_lu x12, 0x8(src), 0, 0
+		psq_lu x13, 0x8(src), 0, 0
+		ps_sub x31, x8, x12
+		ps_add x12, x8, x12
+		ps_sub x8, x0, x10
+		ps_mul x31, x31, c1
+		ps_add x10, x0, x10
+		ps_sub x31, x31, x12
+		ps_sub x0, x10, x12
+		ps_add x12, x10, x12
+		ps_sub x10, x8, x31
+		ps_add x31, x8, x31
+		ps_sub x8, x11, x9
+		ps_add x9, x11, x9
+		ps_sub x11, x7, x13
+		ps_add x13, x7, x13
+		ps_sub x7, x13, x9
+		ps_add x9, x13, x9
+		ps_sub x13, x8, x11
+		ps_mul x11, x11, c3
+		ps_mul x8, x8, c2
+		ps_mul x13, x13, c4
+		ps_mul x7, x7, c1
+		ps_sub x11, x11, x13
+		ps_sub x8, x8, x13
+		ps_sub x13, x12, x9
+		ps_sub x11, x11, x9
+		ps_add x9, x12, x9
+		ps_sub x7, x7, x11
+		ps_sub x12, x31, x11
+		ps_add x11, x31, x11
+		ps_sub x8, x8, x7
+		ps_sub x31, x0, x8
+		ps_add x8, x0, x8
+		ps_sub x0, x10, x7
+		ps_add x7, x10, x7
+		ps_merge00 x10, x9, x11
+		psq_stu x10, 0x8(dst), 0, 0
+		ps_merge00 x10, x7, x8
+		psq_stu x10, 0x8(dst), 0, 0
+		ps_merge00 x10, x31, x0
+		psq_stu x10, 0x8(dst), 0, 0
+		ps_merge00 x10, x12, x13
+		psq_stu x10, 0x8(dst), 0, 0
+		ps_merge11 x10, x9, x11
+		psq_stu x10, 0x8(dst), 0, 0
+		ps_merge11 x10, x7, x8
+		psq_stu x10, 0x8(dst), 0, 0
+		ps_merge11 x10, x31, x0
+		psq_stu x10, 0x8(dst), 0, 0
+		ps_merge11 x10, x12, x13
 		subic. cnt, cnt, 0x1
-		psq_stu f10, 0x8(dst), 0, 0
+		psq_stu x10, 0x8(dst), 0, 0
 		bgt L_80215114
 		mr dst, o
 		mr src, work
 		li cnt, 0x4
 L_80215210:
-		psq_lu f0, 0x0(src), 0, 0
-		psq_lu f11, 0x20(src), 0, 0
-		psq_lu f12, 0x20(src), 0, 0
-		psq_lu f9, 0x20(src), 0, 0
-		psq_lu f31, 0x20(src), 0, 0
-		psq_lu f8, 0x20(src), 0, 0
-		psq_lu f13, 0x20(src), 0, 0
-		psq_lu f7, 0x20(src), 0, 0
-		ps_sub f10, f12, f13
-		ps_add f13, f12, f13
-		ps_sub f12, f0, f31
-		ps_mul f10, f10, f1
-		ps_add f31, f0, f31
-		ps_sub f10, f10, f13
-		ps_sub f0, f31, f13
-		ps_add f13, f31, f13
-		ps_sub f31, f12, f10
-		ps_add f10, f12, f10
-		ps_sub f12, f8, f9
-		ps_add f9, f8, f9
-		ps_sub f8, f11, f7
-		ps_add f7, f11, f7
-		ps_sub f11, f7, f9
-		ps_add f9, f7, f9
-		ps_sub f7, f12, f8
-		ps_mul f8, f8, f3
-		ps_mul f12, f12, f2
-		ps_mul f7, f7, f4
-		ps_mul f11, f11, f1
-		ps_sub f8, f8, f7
-		ps_sub f12, f12, f7
-		ps_sub f7, f13, f9
-		ps_sub f8, f8, f9
-		ps_add f9, f13, f9
-		ps_sub f11, f11, f8
-		ps_sub f13, f10, f8
-		ps_add f8, f10, f8
-		ps_sub f12, f12, f11
-		ps_sub f10, f0, f12
-		ps_add f12, f0, f12
-		ps_sub f0, f31, f11
-		ps_add f11, f31, f11
-		ps_sel f31, f9, f5, f6
-		ps_add f9, f9, f31
-		ps_sel f31, f8, f5, f6
-		ps_add f8, f8, f31
-		ps_sel f31, f11, f5, f6
-		ps_add f11, f11, f31
-		psq_stu f9, 0x0(dst), 0, 7
-		ps_sel f31, f12, f5, f6
-		ps_add f12, f12, f31
-		psq_stu f8, 0x10(dst), 0, 7
-		ps_sel f31, f10, f5, f6
-		psq_stu f11, 0x10(dst), 0, 7
-		ps_add f10, f10, f31
-		psq_stu f12, 0x10(dst), 0, 7
-		ps_sel f31, f0, f5, f6
-		ps_add f0, f0, f31
-		ps_sel f31, f13, f5, f6
-		psq_stu f10, 0x10(dst), 0, 7
-		ps_add f13, f13, f31
-		psq_stu f0, 0x10(dst), 0, 7
-		ps_sel f31, f7, f5, f6
-		psq_stu f13, 0x10(dst), 0, 7
-		ps_add f7, f7, f31
+		psq_lu x0, 0x0(src), 0, 0
+		psq_lu x11, 0x20(src), 0, 0
+		psq_lu x12, 0x20(src), 0, 0
+		psq_lu x9, 0x20(src), 0, 0
+		psq_lu x31, 0x20(src), 0, 0
+		psq_lu x8, 0x20(src), 0, 0
+		psq_lu x13, 0x20(src), 0, 0
+		psq_lu x7, 0x20(src), 0, 0
+		ps_sub x10, x12, x13
+		ps_add x13, x12, x13
+		ps_sub x12, x0, x31
+		ps_mul x10, x10, c1
+		ps_add x31, x0, x31
+		ps_sub x10, x10, x13
+		ps_sub x0, x31, x13
+		ps_add x13, x31, x13
+		ps_sub x31, x12, x10
+		ps_add x10, x12, x10
+		ps_sub x12, x8, x9
+		ps_add x9, x8, x9
+		ps_sub x8, x11, x7
+		ps_add x7, x11, x7
+		ps_sub x11, x7, x9
+		ps_add x9, x7, x9
+		ps_sub x7, x12, x8
+		ps_mul x8, x8, c3
+		ps_mul x12, x12, c2
+		ps_mul x7, x7, c4
+		ps_mul x11, x11, c1
+		ps_sub x8, x8, x7
+		ps_sub x12, x12, x7
+		ps_sub x7, x13, x9
+		ps_sub x8, x8, x9
+		ps_add x9, x13, x9
+		ps_sub x11, x11, x8
+		ps_sub x13, x10, x8
+		ps_add x8, x10, x8
+		ps_sub x12, x12, x11
+		ps_sub x10, x0, x12
+		ps_add x12, x0, x12
+		ps_sub x0, x31, x11
+		ps_add x11, x31, x11
+		ps_sel x31, x9, c5, c6
+		ps_add x9, x9, x31
+		ps_sel x31, x8, c5, c6
+		ps_add x8, x8, x31
+		ps_sel x31, x11, c5, c6
+		ps_add x11, x11, x31
+		psq_stu x9, 0x0(dst), 0, 7
+		ps_sel x31, x12, c5, c6
+		ps_add x12, x12, x31
+		psq_stu x8, 0x10(dst), 0, 7
+		ps_sel x31, x10, c5, c6
+		psq_stu x11, 0x10(dst), 0, 7
+		ps_add x10, x10, x31
+		psq_stu x12, 0x10(dst), 0, 7
+		ps_sel x31, x0, c5, c6
+		ps_add x0, x0, x31
+		ps_sel x31, x13, c5, c6
+		psq_stu x10, 0x10(dst), 0, 7
+		ps_add x13, x13, x31
+		psq_stu x0, 0x10(dst), 0, 7
+		ps_sel x31, x7, c5, c6
+		psq_stu x13, 0x10(dst), 0, 7
+		ps_add x7, x7, x31
 		subic. cnt, cnt, 0x1
-		psq_stu f7, 0x10(dst), 0, 7
+		psq_stu x7, 0x10(dst), 0, 7
 		ble done
 		subi src, src, 0xd8
 		subi dst, dst, 0x6c
@@ -239,21 +243,19 @@ L_80215210:
 }
 
 /* interleaved position of coefficient i: two 8-entry rows become one 16-entry row */
-static Sint32 dctfsri_Idx(Sint32 i)
+static inline int dctfsri_Idx(int i)
 {
-	Sint32 q;
-	Sint32 r;
-	Sint32 n;
+	int q = i / 8;
+	int r = i % 8;
+	int n;
 
-	q = i / 8;
-	r = i % 8;
 	if (q % 2 == 0) {
-		n = r * 2;
+		r *= 2;
 	} else {
-		n = r * 2 + 1;
 		q--;
+		r = r * 2 + 1;
 	}
-	n += q * 8;
+	n = r + q * 8;
 	if (n < 0 || n >= 256) {
 		for (;;) {
 		}
@@ -261,12 +263,17 @@ static Sint32 dctfsri_Idx(Sint32 i)
 	return n;
 }
 
-void DCT_FsriInitScanTbl(Sint8 *seq, Sint8 *scan)
+static inline void dctfsri_SetPreIdct(int n, int k, const Float64 *v)
 {
-	Sint32 i;
+	PreIDCT[dctfsri_Idx(n)][k] = (Float32)*v;
+}
+
+void DCT_FsriInitScanTbl(const Sint8 *seq, Sint8 *scan)
+{
+	int i;
 
 	for (i = 0; i < 64; i++) {
-		scan[i] = dctfsri_Idx(seq[i]);
+		scan[i] = (Sint8)dctfsri_Idx(seq[i]);
 	}
 }
 
@@ -289,16 +296,18 @@ void DCT_FsriSetGqr(void)
 	}
 }
 
+/* the scan row is recomputed for every coefficient store */
+#pragma opt_loop_invariants off
 void initSparseTbl(void)
 {
 	Float64 in[64];
 	Float64 out[64];
-	Sint32 n;
-	Sint32 k;
+	int n;
 
 	memset(PreIDCT, 0, sizeof(PreIDCT));
 	DCT_AcInit();
 	for (n = 0; n < 64; n++) {
+		int k;
 		for (k = 0; k < 64; k++) {
 			if (k == n) {
 				in[k] = 1.0 / sfsd_scale_tbl[k];
@@ -308,10 +317,11 @@ void initSparseTbl(void)
 		}
 		DCT_AcIdctDouble(in, out);
 		for (k = 0; k < 64; k++) {
-			PreIDCT[dctfsri_Idx(n)][k] = (Float32)out[k];
+			dctfsri_SetPreIdct(n, k, &out[k]);
 		}
 	}
 }
+#pragma opt_loop_invariants on
 
 void DCT_FsriInitPa(DCT_PA *pa)
 {
@@ -320,7 +330,7 @@ void DCT_FsriInitPa(DCT_PA *pa)
 
 void DCT_FsriInitScaleTbl(Float32 *tbl)
 {
-	Sint32 i;
+	int i;
 
 	for (i = 0; i < 64; i++) {
 		tbl[dctfsri_Idx(i)] = (Float32)sfsd_scale_tbl[i];

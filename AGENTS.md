@@ -2881,6 +2881,108 @@ compiler-identification work should reproduce:
   TblByCCIR` 77w: the 8x unrolled 1.164f loop's slot/FPR order, as sfx_cnv (the .rodata order here
   is already the target's).
 
+### CRI pass 9: mk-deception shapes (mpvabdec, mpv_cdec, dct_fsri, adx_dcd Matching; mwsfdply pin -> parameter; 2026-09-11)
+Harness /home/adityas/.cache/cri9/ (deleted): `bytecmp.py lib/unit` = every section of our object vs the
+split object (sizes, bytes with relocation fields masked, reloc offsets/types, symbol order; trailing
+alignment padding tolerated), `bytecmp.py --funcs` = per-function byte identity, `trysrc.py unit file.c
+[--noinc -i DIR]` = compile any source (e.g. the mk-deception unit) with the unit's flags against our
+split object, `tryvar.py unit variants.py Func...` = `(old, new)` text replacements per variant. Reference:
+github.com/ShulkMaster/mk-deception (the same CRI libraries one release earlier, GC/2.7). Their units
+compiled against OUR split objects: every function the research pass listed is identical, every other
+function is worse than ours (10 units screened: cri_cvfs 10/13, mpv_cmc 2/4, adx_baif 3/6, sfd_hds 8/11,
+mwsfdsvr 9/12, sfd_tst 10/11, sfx_zmv 6/8, adx_stmc 16/19, adx_dcd5 1/4, adx_bau 4/7 — the same
+functions fail there, so the pass-8 "M1" list has no missed semantics that their sources reveal).
+- **mpvabdec 0/3 -> 3/3 (Matching): M5 was a source shape.** The bit reader is written out per look-ahead
+  case: `prm->idx = zz[ofs]; bitpos += n; <store>; zz += ofs; if (bitpos >= 32) {bitpos -= 32; bbuf =
+  nbuf << bitpos; nbuf = *ptr++;} else bbuf = bbuf << n;` (length added BEFORE the coefficient
+  stores, refill after; `ofs` = run + 1 as a zigzag index, the second coefficient `zz[ofs2]` relative to
+  the un-advanced pointer; the EOB cases do not advance `zz`). The long-code cases consume the shifted
+  look-ahead INTO the sign (`code >>= 33 - len; code &= 1; prm->sign = code`), the escape reads
+  `(Uint16)(bits >> 11) >> 2`, `(Sint8)((Uint32)level >> 8)` for the run, `hi = level * 2; level = hi |
+  (Uint8)(bits >> 5)` for the 16-bit level, the 11..17-bit tables are `((const Sint16 *)tbl)[(idx & ~1U)
+  >> 1]` with `idx & 1` the sign, `mpv->rl_8[idx]` is read twice (`rl = tbl[idx]; prm->run =
+  (Uint8)tbl[idx]`). Shapes that MATTER: the escape case of NintraBlock/Dc11 shifts the look-ahead into
+  a fresh value through a `static inline Uint32 mpvabdec_EscapeCode(Uint32 code) { return code << 1; }`
+  (a block-local `Uint32 esc = code << 1` matches Nintra but renumbers Dc11's `packed` r29 -> r12;
+  IntraBlock shifts `code` in place); the loop's `code`/`x` are block-local in Nintra/Intra (declared in
+  the block around the loop) and function-level in Dc11 (declaring them in the loop too shadows and
+  renumbers 3139 words); NintraBlock is `32 x blk[i] = 0.0` + three `static inline` helpers under
+  `#pragma inline_max_size(100000)` / `inline_max_total_size(100000)`: `mpvabdec_NintraFirst(mpv, prm,
+  bbuf0, nbuf, bitpos)` (the first-coefficient switch, `default:` = the rl_8 table), `bbuf =
+  mpvabdec_NintraSkipFirst(bbuf0, prm->len, &bitpos, &nbuf, &ptr)` (out-parameters), `return
+  mpvabdec_NintraAc(mpv, prm, bbuf, nbuf, bitpos, ptr)` (store + AC loop + save + result), themselves
+  called from a fourth inline `mpvabdec_NintraDecode` that loads `bitpos, bbuf0, nbuf, ptr` in that order.
+  Dc11 keeps `bbuf0` (the loaded window) separate from `bbuf` and refills from `bbuf0` after the DC
+  read; IntraBlock's 16-bit DC peek is `dcv = bbuf >> 16; if (bitpos > 16) dcv |= nbuf >> (48 - bitpos)`
+  with the sign fix `sbit = 1U << (dc - 1); if (!(dcv & sbit)) dcv += 1 - (Sint32)(sbit * 2); dc =
+  (Sint32)dcv * 8`. Field types at the use sites: `(const Sint16 *)mpv->bitmsk_tbl`, `(const Float32 *)
+  mpv->scale_tbl`, `(const Uint8 *)prm->dctbl`, `const Sint8 *zz`. Intra/non-intra differ only in
+  `MPVABDEC_LEVEL(level)` (`level * 2` vs `level * 2 + 1`, `#undef`/redefine between the functions).
+- **mwsfdply: the pass-6 r5 pin was a missed parameter.** `MWSFD_SetFlowLimit(mwply, (Sint32)(0.8 * n),
+  n)` (min, max); the local `extern` in mwsfdply.c had two parameters. Lesson for the other "which
+  argument register" residues: check the callee's real signature first (mwsfdset.c had the third
+  parameter all along).
+- **mpv_cdec MPVCDEC_IntraBlocks (Matching): the 192-store clear is six calls of `static inline void
+  mpvcdec_ClearBlk(Float64 **cur)` with 32 `*(*cur)++ = 0.0;`** on a block-local `Float64 *cur =
+  mpv->blk[0]` — the second base `addi r8, mpv, 0x720` and the store order follow from the cursor
+  (loop, macro and per-block-pointer forms never produced it).
+- **dct_fsri 5/9 -> 9/9 (Matching).** (a) `DCT_FsriTransCore`: the paired-single kernel's registers are
+  `register __vec2x32float__` variables (six constants `c1..c6` loaded through a C pointer `p =
+  B0TableOrg` with `psq_lu cN, 8(p)`, nine temporaries) and `src/dst/cnt/o` register locals — NO hard
+  register in the asm. With hard `f0..f13/f31` and `r5/r7` in the asm our compiler poisons them for the
+  whole function (the DC-fill path's `dc`/temporaries went to f29/f30 = two extra FPR saves, pa's fields
+  to r8..r10); with variables the C paths share f0/f7 and r5/r7 with the kernel (target). `cnt` must
+  be declared before `o` (else o r0 / cnt r9 swap). `__vec2x32float__` register variables are accepted
+  by 2.4.7 as psq_l/ps_* operands (a `register` pointer is required for the base). The variable
+  allocation order is first-definition order f0, f1.. for volatiles and the 15th value spills to f31
+  (the first callee-saved), which is exactly the target's register set. (b) `dctfsri_Idx` is `static
+  inline` with `int` arithmetic (`r *= 2` / `q--; r = r * 2 + 1; n = r + q * 8`); `initSparseTbl` under
+  `#pragma opt_loop_invariants off` (the scan row is recomputed per store) storing through `static
+  inline dctfsri_SetPreIdct(int n, int k, const Float64 *v)`; `DCT_FsriInitScanTbl(const Sint8 *seq, ..)`
+  with an `int` counter and a `(Sint8)` cast. (c) `.data`: `B0TableOrg[0..1]` is sqrt(2)
+  (1.4142135381698608f, not 1/sqrt(2)) and the literals need their full float digits
+  (2.613126039505005f; `2.6131258f` rounds to a different word).
+- **mwsfdcre `MWSFCRE_ResetSfdHn` (3 -> 4/10):** the picture-user-buffer block written out with the
+  function's own locals declared ABOVE the handle (`pu, nskip, usize, buf, sfd` then `sfd = mwply->sfd`):
+  the macro form (block-scoped locals after `void *sfd = ..`) ranks sfd r30 instead of r28. The other
+  seven functions are worse in mk-deception too.
+- **sfd_mpv 12 -> 15/38:** `sfmpv_ChkFatal` needed the missing `return` on the first `SFLIB_SetErr` (the
+  `li r0, 0x80; cmpwi r0, 0x80` sizeof checks are kept at -O4, no optimization_level pragma) and
+  `#pragma dont_inline on/off` around it (COMPILER-DIFF: M3 — deferred inlining inlines it into
+  SFMPV_Init, the target calls it); `SFMPV_Init` loops forever (`for (;;) {}`) when ChkFatal fails and
+  compares MPV_Init's result with **0xFF03FF05** (`addis r0, r3, 0xfd; cmplwi 0xff05`; ours had
+  0xFF02FF05 and mk-deception 0xFFFDFF05 — read the constant off the `addis`), ternary error code;
+  `SFD_SetMpvCond(NULL, id, val)` calls `MPV_SetCond(NULL, ..)` (sets the decoder default) instead of
+  returning 0. Residues: `SFMPV_Stop` (target `lwz; li r3, 0; cmplwi r0, 0; blr` — a compare with no
+  branch; `if (wk == NULL) return 0; return 0;` gives flag arithmetic, `ret = 0; if (..) ret = 0;
+  return ret;` gives `cmplwi; bnelr; li; blr` (1w, kept), goto/break/switch/empty-if forms drop the
+  compare), `SFD_CalcYccPlane` 5w (ywidth computed in place r5 vs a fresh r8, seven declaration orders
+  tried, M1).
+- **adx_dcd 9 -> 10/10 (Matching): `#pragma pool_data off` before `ADX_GetCoefficient`** (tagged M2;
+  the unit has no .bss pool). The same pragma over-shoots everywhere else, measured: dct_ac
+  `DCT_AcInit` 244 -> 264 bytes (loses the `dctac_i_const` .bss pool), sfd_adxt `SFADXT_SetSpeed` 42w
+  -> 27w but 0xbc -> 0xc0 bytes, sfd_mpv `sfmpv_Pts2Tc` 0x1e4 -> 0x1f0 (global-table pool), sfx_cnv
+  `SFX_MakeTable` 0x47c -> 0x47c but 194w and .rodata unchanged (its .bss pool). Those four stay M2.
+- **adx_dcd5 (1/4): the "M5" was register ranking**, not shift forwarding: with the history locals
+  declared first (`l1, l2, [r1, r2,] i, j, ...`) the `AdxQtbl` address goes straight into r28 after the
+  `stmw` (target) instead of a hoisted `lis r11` above the `extsh`s; Mono4 54 -> 39w. The rest: the
+  original keeps `smul` extended into r0 and `i` in r10 (volatile registers for locals of a leaf
+  function) while ours extends smul in place and gives `i` a callee-saved register; c1/c2 in place
+  (r9/r10) in the stereo decoders vs copies in ours (one more callee-saved). Operand order of the
+  products (`AdxQtbl[d & 0xF] * sc`, `c2 * l1 + c1 * t`) does not change the code.
+- **adx_baif `AIFF_GetInfo` 127w:** the target builds the FORM word and the size word 3 bytes in a
+  temporary, copies (`mr r27, r30` / `mr r28, r12`) and merges byte 3 into the copy — the
+  two-definition copy pattern; a stepping-`p` header (`ckid = LE32(p); p += 4; ...`, mk-deception's
+  shape), `end = p + cksz - 4` (subi-then-add as the target, -1w, kept), static inline rd32/sw32 helpers
+  (worse: 148w) do not produce the copies. M1.
+- **M6 (adx_bau/adx_baif `ExecOne*16` copy 15):** mk-deception's loop shape (`left[i] = input[i*2] *
+  256` indexed form) is 59 words off against our target; no shape information there.
+- GC/2.7 made sfd_tst `SFTST_Create` identical (sfd_tst is 10/11, `SFTST_Calc` 83w M1 remains).
+- Hazard: `ninja <target> -t clean` cleans EVERYTHING ninja built (all objects, RELs, build/tools binaries
+  — `-t clean` ignores the target list); a full rebuild then exposed that wep00/34-37 did not compile at
+  HEAD (`PSet` redefined in wep_mod.h, stale objects had masked it; fixed by another agent meanwhile).
+  Never pass `-t clean`; delete the one object file instead.
+
 ## REL modules
 
 The game loads its rooms, enemies, weapons and debug tools as Nintendo REL overlays. `ninja` rebuilds the

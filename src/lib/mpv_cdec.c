@@ -7,15 +7,42 @@ void DCT_FsriTrans6Blk(Sint8 *cbp);
 
 #define MPVCDEC_NBLK 6
 
-/* clear one 8x8 block (0x100 bytes) with 8-byte stores; fully unrolled (an `int` counter: with a
- * `Sint32`/long counter MWCC keeps the `cmpwi 0x20; bge` entry guard and reloads the 0.0) */
-#define mpvcdec_ClearBlk(blk)                     \
-	{                                             \
-		int i;                                    \
-		for (i = 0; i < 32; i++) {                \
-			(blk)[i] = 0.0;                       \
-		}                                         \
-	}
+/* clear one 8x8 block (0x100 bytes) with 32 8-byte stores through a stepping cursor */
+static inline void mpvcdec_ClearBlk(Float64 **cur)
+{
+	*(*cur)++ = 0.0;
+	*(*cur)++ = 0.0;
+	*(*cur)++ = 0.0;
+	*(*cur)++ = 0.0;
+	*(*cur)++ = 0.0;
+	*(*cur)++ = 0.0;
+	*(*cur)++ = 0.0;
+	*(*cur)++ = 0.0;
+	*(*cur)++ = 0.0;
+	*(*cur)++ = 0.0;
+	*(*cur)++ = 0.0;
+	*(*cur)++ = 0.0;
+	*(*cur)++ = 0.0;
+	*(*cur)++ = 0.0;
+	*(*cur)++ = 0.0;
+	*(*cur)++ = 0.0;
+	*(*cur)++ = 0.0;
+	*(*cur)++ = 0.0;
+	*(*cur)++ = 0.0;
+	*(*cur)++ = 0.0;
+	*(*cur)++ = 0.0;
+	*(*cur)++ = 0.0;
+	*(*cur)++ = 0.0;
+	*(*cur)++ = 0.0;
+	*(*cur)++ = 0.0;
+	*(*cur)++ = 0.0;
+	*(*cur)++ = 0.0;
+	*(*cur)++ = 0.0;
+	*(*cur)++ = 0.0;
+	*(*cur)++ = 0.0;
+	*(*cur)++ = 0.0;
+	*(*cur)++ = 0.0;
+}
 
 Sint32 MPVCDEC_NintraBlocks(MPV mpv)
 {
@@ -42,21 +69,20 @@ Sint32 MPVCDEC_NintraBlocks(MPV mpv)
 	return 0;
 }
 
-/* COMPILER-DIFF: M1 - the original clears the six blocks with 192 unrolled stores, 83 through the
- * parameter register and the rest through a second base `mpv + 0x720` computed in the prologue;
- * ours switches to the r31 copy at store 64 (loop forms) or hoists the prm/cbp address block 12
- * instructions earlier (pinned forms). Pure C by project decision (CRI pass 8). */
 Sint32 MPVCDEC_IntraBlocks(MPV mpv)
 {
 	MPV_BLKPRM *prm;
 	Sint8 *cbp;
 
-	mpvcdec_ClearBlk(mpv->blk[0]);
-	mpvcdec_ClearBlk(mpv->blk[1]);
-	mpvcdec_ClearBlk(mpv->blk[2]);
-	mpvcdec_ClearBlk(mpv->blk[3]);
-	mpvcdec_ClearBlk(mpv->blk[4]);
-	mpvcdec_ClearBlk(mpv->blk[5]);
+	{
+		Float64 *cur = mpv->blk[0];
+		mpvcdec_ClearBlk(&cur);
+		mpvcdec_ClearBlk(&cur);
+		mpvcdec_ClearBlk(&cur);
+		mpvcdec_ClearBlk(&cur);
+		mpvcdec_ClearBlk(&cur);
+		mpvcdec_ClearBlk(&cur);
+	}
 	prm = &mpv->blkprm;
 	cbp = mpv->cbp;
 	prm->qscale = mpv->qscale;

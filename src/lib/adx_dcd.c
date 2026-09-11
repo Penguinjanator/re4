@@ -327,10 +327,11 @@ Sint32 ADX_ScanInfoCode(Uint8 *data, Sint32 len, Sint16 *ofst)
 }
 
 /* prediction coefficients (12-bit fixed point) of a high-pass with the given cut-off.
- * COMPILER-DIFF: M2 - the original loads the nine float literals unpooled and three of them
- * (2.0, 3.0, 1.0f) through a materialised address (`lis; addi r5; lfd f9, 0(r5)`); our 2.4.7
- * pools them through a `...rodata.0` base (>= 3 distinct .rodata objects) and its peephole folds
- * any `addi`/`lfd` pair. Pure C by project decision (CRI pass 8); the residue is the pool base. */
+ * COMPILER-DIFF: M2 - the original does not count float literals first created by the function
+ * towards the >= 3 pool-member threshold and loads the nine literals unpooled; our 2.4.7 counts
+ * them and addresses them through a `...rodata.0` base. `pool_data off` switches the pool off for
+ * this function (the unit has no .bss pool that would be lost). */
+#pragma pool_data off // COMPILER-DIFF: M2
 void ADX_GetCoefficient(Sint32 cutoff, Sint32 sfreq, Sint16 *c1, Sint16 *c2)
 {
 	Float32 z;

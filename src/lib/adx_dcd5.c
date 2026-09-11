@@ -32,17 +32,19 @@ Sint32 ADX_DecodeSte4(Sint8 *src, Sint32 nfrm, Sint16 *outl, Sint16 *histl, Sint
 	return ADX_DecodeSte4AsMono(src, nfrm, outl, histl, outr, histr, c1, c2, scl, smul, sadd);
 }
 
-/* COMPILER-DIFF: M5/M1 - shift forwarding and register numbering of the 4-bit decode loop (see mpvabdec's M5 note). Pure C by project decision (CRI pass 8). */
+/* COMPILER-DIFF: M1 - register ranking of the 4-bit decode loop: the original keeps c1/c2 extended
+ * in place (r9/r10) and one fewer callee-saved register; ours copies them (pass 9: the history
+ * locals declared first put the AdxQtbl address directly into its register, as the original). */
 Sint32 ADX_DecodeSte4AsSte(Sint8 *src, Sint32 nfrm, Sint16 *outl, Sint16 *histl, Sint16 *outr, Sint16 *histr,
                            Sint16 c1, Sint16 c2, Sint16 *scl, Sint16 smul, Sint16 sadd)
 {
-	Sint32 nblk;
-	Sint32 i;
-	Sint32 j;
 	Sint32 l1;
 	Sint32 l2;
 	Sint32 r1;
 	Sint32 r2;
+	Sint32 nblk;
+	Sint32 i;
+	Sint32 j;
 	Sint32 s;
 	Sint32 key;
 	Sint32 sc_l;
@@ -103,17 +105,17 @@ Sint32 ADX_DecodeSte4AsSte(Sint8 *src, Sint32 nfrm, Sint16 *outl, Sint16 *histl,
 	return nfrm;
 }
 
-/* COMPILER-DIFF: M5/M1 - as ADX_DecodeSte4AsSte. Pure C by project decision (CRI pass 8). */
+/* COMPILER-DIFF: M1 - as ADX_DecodeSte4AsSte */
 Sint32 ADX_DecodeSte4AsMono(Sint8 *src, Sint32 nfrm, Sint16 *outl, Sint16 *histl, Sint16 *outr, Sint16 *histr,
                             Sint16 c1, Sint16 c2, Sint16 *scl, Sint16 smul, Sint16 sadd)
 {
-	Sint32 nblk;
-	Sint32 i;
-	Sint32 j;
 	Sint32 l1;
 	Sint32 l2;
 	Sint32 r1;
 	Sint32 r2;
+	Sint32 nblk;
+	Sint32 i;
+	Sint32 j;
 	Sint32 s;
 	Sint32 key;
 	Sint32 sc_l;
@@ -179,14 +181,15 @@ Sint32 ADX_DecodeSte4AsMono(Sint8 *src, Sint32 nfrm, Sint16 *outl, Sint16 *histl
 	return nfrm;
 }
 
-/* COMPILER-DIFF: M5/M1 - as ADX_DecodeSte4AsSte. Pure C by project decision (CRI pass 8). */
+/* COMPILER-DIFF: M1 - as ADX_DecodeSte4AsSte (the original keeps smul in r0 and i in r10, ours
+ * smul in place and i callee-saved; the pass-8 "M5" here was only this ranking) */
 Sint32 ADX_DecodeMono4(Sint8 *src, Sint32 nfrm, Sint16 *out, Sint16 *hist, Sint16 c1, Sint16 c2, Sint16 *scl,
                        Sint16 smul, Sint16 sadd)
 {
-	Sint32 i;
-	Sint32 j;
 	Sint32 l1;
 	Sint32 l2;
+	Sint32 i;
+	Sint32 j;
 	Sint32 s;
 	Sint32 key;
 	Sint32 sc;

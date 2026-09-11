@@ -292,17 +292,19 @@ void SFD_CalcYccPlane(void *buf, Sint32 width, Sint32 height, SFMPV_PLANE *plane
 	sfmpv_CalcYccPlane(buf, width, height, plane);
 }
 
+/* a NULL handle sets the decoder's default (MPV_SetCond(NULL, ..)) */
 Sint32 SFD_SetMpvCond(SFD sfd, Sint32 id, Sint32 val)
 {
 	MPV hn;
 
 	if (sfd == NULL) {
-		return 0;
+		hn = NULL;
+	} else {
+		if (SFLIB_CheckHn(sfd) != 0) {
+			return SFLIB_SetErr(NULL, 0xFF000181);
+		}
+		hn = SFMPV_WK(sfd)->mpv;
 	}
-	if (SFLIB_CheckHn(sfd) != 0) {
-		return SFLIB_SetErr(NULL, 0xFF000181);
-	}
-	hn = SFMPV_WK(sfd)->mpv;
 	if (id == 5) {
 		val = 0;
 	}
@@ -356,11 +358,12 @@ Sint32 SFMPV_Init(void)
 
 	ret = sfmpv_ChkFatal();
 	if (ret != 0) {
-		return ret;
+		for (;;) {
+		}
 	}
 	ret = MPV_Init(8, sfmpv_work);
 	if (ret != 0) {
-		return SFLIB_SetErr(NULL, (ret == (Sint32)0xFF02FF05) ? 0xFF000F13 : 0xFF000F01);
+		return SFLIB_SetErr(NULL, (ret == (Sint32)0xFF03FF05) ? 0xFF000F13 : 0xFF000F01);
 	}
 	memset(&sfmpv_para, 0, sizeof(sfmpv_para));
 	memset(sfmpv_rfb_adr_tbl, 0, sizeof(sfmpv_rfb_adr_tbl));
@@ -369,7 +372,10 @@ Sint32 SFMPV_Init(void)
 	return 0;
 }
 
-/* layout assumptions of the driver */
+/* layout assumptions of the driver: CRI's compile-time check idiom (cmptime.c; the sizeof compares
+ * are kept). COMPILER-DIFF: M3 - the original keeps it out of line (`bl sfmpv_ChkFatal`), ours
+ * auto-inlines it into SFMPV_Init under `-inline auto,deferred`. */
+#pragma dont_inline on // COMPILER-DIFF: M3
 static Sint32 sfmpv_ChkFatal(void)
 {
 	Sint32 sz1 = sizeof(MPV_PICATR);
@@ -377,7 +383,7 @@ static Sint32 sfmpv_ChkFatal(void)
 	Sint32 sz3 = sizeof(Sint32);
 
 	if (sz1 != 0x80) {
-		SFLIB_SetErr(NULL, 0xFF000F19);
+		return SFLIB_SetErr(NULL, 0xFF000F19);
 	}
 	if (sz2 > 0x204) {
 		return SFLIB_SetErr(NULL, 0xFF000F1A);
@@ -387,6 +393,7 @@ static Sint32 sfmpv_ChkFatal(void)
 	}
 	return 0;
 }
+#pragma dont_inline off // COMPILER-DIFF: M3
 
 Sint32 SFMPV_Finish(void)
 {
@@ -2019,10 +2026,13 @@ Sint32 SFMPV_Start(SFD sfd)
 
 Sint32 SFMPV_Stop(SFD sfd)
 {
+	Sint32 ret;
+
+	ret = 0;
 	if (SFMPV_WK(sfd) == NULL) {
-		return 0;
+		ret = 0;
 	}
-	return 0;
+	return ret;
 }
 
 Sint32 SFMPV_Pause(SFD sfd)

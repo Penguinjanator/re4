@@ -647,8 +647,13 @@ MWPLY mwPlyCreateSofdec(MWSFD_CRPRM *cprm)
 
 Sint32 MWSFCRE_ResetSfdHn(MWPLY mwply)
 {
-	void *sfd = mwply->sfd;
+	MWSFD_PICUSR *pu;
+	Sint32 nskip;
+	Sint32 usize;
+	void *buf;
+	void *sfd;
 
+	sfd = mwply->sfd;
 	if (SFD_Stop(sfd) != 0) {
 		MWSFSVM_Error("E0203261: MWSFCRE_ResetSfdHn: SFD_Stop() failed.");
 		return -1;
@@ -658,7 +663,21 @@ Sint32 MWSFCRE_ResetSfdHn(MWPLY mwply)
 		MWSFSVM_Error("E0203262: MWSFCRE_ResetSfdHn: SFD_SetErrFn() failed.");
 		return -1;
 	}
-	MWSFCRE_ATTACH_PICUSRBUF(mwply);
+	/* the picture user data buffer again (MWSFCRE_ATTACH_PICUSRBUF written out: the locals are
+	 * the function's own, declared above the handle) */
+	pu = mwply->picusr_ptr;
+	if (pu == NULL) {
+		MWSFSVM_Error("E02120501: Internal Error: mwsfcre_AttachPicUsrBuf().");
+	} else {
+		nskip = mwply->prm.max_skip;
+		usize = pu->usize;
+		buf = pu->buf;
+		if (pu->bsize < (nskip + 3) * usize) {
+			MWSFSVM_Error("E02120502: mwsfcre_AttachPicUsrBuf(): usrdatbuf is short.");
+		} else if (MWSFD_GetUsePicUsr() == 1) {
+			SFD_SetPicUsrBuf(mwply->sfd, buf, nskip + 3, usize);
+		}
+	}
 	return 0;
 }
 

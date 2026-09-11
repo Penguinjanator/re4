@@ -1609,22 +1609,22 @@ MATCHING.update({
 # CRI pass 6 (2026-09-10)
 MATCHING.update({
     "lib/adx_sjd.c": True,  # adxsjd_decode_prep: `asm { lwz r5, ck.len; mr len, r5 }` pins the post-call single-use length to r5 (hard-register asm pin, COMPILER-DIFF: M1)
-    "lib/adx_dcd.c": False,  # CRI pass 8 (pure-C revert): ADX_GetCoefficient 81w (M2: pooled literals, `...rodata.0` base r31 pushes c1/c2 down, FP renumbering of the inlined sqrt copies)
+    "lib/adx_dcd.c": True,  # ADX_GetCoefficient: `#pragma pool_data off` before the function (COMPILER-DIFF: M2 - the original does not count the function's own float literals towards the pool threshold; CRI pass 9)
     "lib/dct_ac.c": False,  # CRI pass 8 (pure-C revert): DCT_AcInit 37w (M2: pooled literals + `...bss.0` base for dctac_version_dummy, one more callee-saved register)
     "lib/sfd_see.c": True,  # SFSEE_ExecServer: hard-register asm pins for the inlined wk/req (r29/r30) and the CalcByteRate wk reload (r29) (COMPILER-DIFF: M1)
     "lib/sfd_pts.c": True,  # SFPTS_ReadPtsQue: eight hard-register asm pins (hn/-1 r7, rd r12, idx r4, st r3, cnt-i r3, &ent[idx] r3) (COMPILER-DIFF: M1)
-    "lib/mwsfdply.c": True,  # MWSFPLY_SetFlowLimit: flow_nsct load pinned to r5 (COMPILER-DIFF: M1)
+    "lib/mwsfdply.c": True,  # MWSFPLY_SetFlowLimit: MWSFD_SetFlowLimit(mwply, 0.8 * n, n) takes a third argument (CRI pass 9 replaced the r5 pin, which was a missed parameter)
     "lib/sfx_alp.c": True,  # SFXA_Create: constants, the sfxa_work address and the r0 temporaries (also the inlined search's) pinned with hard-register asm (COMPILER-DIFF: M1)
     "lib/mwsfdsfx.c": True,  # CnvFrmInfToSfx: parameter pins r27/r30/r31 + plane-1 loads as asm-defined register locals (COMPILER-DIFF: M1); tag strings named and declared before mwsftag_GetAinfFromSj for the .rodata order (COMPILER-DIFF: M3)
     "lib/adx_bau.c": False,  # CRI pass 8 (pure-C revert): ADXB_ExecOneAu16 1w (M6: unroller copy 15 `extrwi 8,16` vs `srawi 8`)
     "lib/adx_stmc.c": False,  # CRI pass 8 (pure-C revert): ADXSTM_Create 4w (M1: derived-IV `addi 0x60` placed before the lbz instead of in the latch, both inlined copies)
-    "lib/mpv_cdec.c": False,  # CRI pass 8 (pure-C revert): MPVCDEC_IntraBlocks 200 rows / -4 bytes (M1: no second clear base `addi r8, mpv, 0x720`; ours switches to the r31 copy at store 64)
+    "lib/mpv_cdec.c": True,  # MPVCDEC_IntraBlocks: the six blocks cleared by six calls of a static inline helper storing 32 doubles through a `Float64 **cur` cursor (the second clear base `addi r8, mpv, 0x720` follows; CRI pass 9, shape from mk-deception)
     "lib/sfx_cnv.c": False,  # CRI pass 8 (pure-C revert): SFX_MakeTable 113w (M1: zero re-materialised after the unroller guard, fp-conversion slot/FPR order) + .rodata order (the conversion constant after the E201311 string; M2)
     "lib/sfd_cre.c": False,  # CRI pass 8 (pure-C revert): sfcre_AnalyMpv 18w / AnalyAudio 43w / AnalyMps 28w (M1: inlined-helper temporaries and callee-saved permutations)
     "lib/cri_cvfs.c": False,  # CRI pass 8 (pure-C revert): cvFsGetFileSize 45w / cvFsOpen 106w (-4 bytes) / cvFsAddDev 14w (M1: inlined device-search values, pool base vs loop index, two-definition `mr r0` bounce)
     "lib/mpv_cmc.c": False,  # CRI pass 8 (pure-C revert): MPVCMC_InitMcOiRt 8w / InitObj 17w (M1: separate member-array base `addi r5, r3, 0x124/0x158` folded into the offsets)
     "lib/adx_baif.c": False,  # CRI pass 8 (pure-C revert): ADXB_ExecOneAiff16 1w (M6 extrwi copy) / AIFF_GetInfo 91w (M1: FORM/size words share the loop registers)
-    "lib/adx_dcd5.c": False,  # CRI pass 8 (pure-C revert): ADX_DecodeSte4AsSte 118w / Ste4AsMono 142w / Mono4 54w (M5 shift forwarding + M1 numbering; AdxQtbl address hoisted above the extsh)
+    "lib/adx_dcd5.c": False,  # CRI pass 9: ADX_DecodeSte4AsSte 118w / Ste4AsMono 167w / Mono4 39w (M1 register ranking only: the original keeps smul in r0 / i in r10 / c1,c2 extended in place; the history locals declared first fixed the AdxQtbl address hoist)
     "lib/sfd_hds.c": False,  # CRI pass 8 (pure-C revert): sfhds_DoProcessHdr 111w / SFHDS_SetHdr 11w (M1: parameters ranked above locals in the target)
     "lib/mwsfdsvr.c": False,  # CRI pass 8 (pure-C revert): mwlSfdSleepDecSvr 24w (+20 bytes: two zero copies -> 5 callee-saved -> stmw) / mwsfd_ExecSvrHndl 15w (M1 sfd/mwply swap) / mwSfdExecDecSvrHndl 12w (pool `lis` above the prologue stores)
     "lib/sfd_tst.c": False,  # CRI pass 8 (pure-C revert): SFTST_Calc 83w (M1: 64-bit abs diamond sunk to the compare) / SFTST_Create 4w (`lwz sftst_debout_buf` scheduling); .rodata order kept by the named strings
@@ -1647,13 +1647,19 @@ MATCHING.update({
     "lib/mpv_dec.c": True,  # MPVDEC_END: ck.data as an asm-defined `register` local so q stays in r4 and the load takes r8 (COMPILER-DIFF: M1); `(Uint8)val` skip lengths (zero-code)
 })
 
+# DOL sweep 15 (2026-09-11)
+MATCHING.update({
+    "game/model.cpp": True,  # drawBoundingBox: counted `for (j < 8) PSVECAdd(&v[j], ..)` loop (giv init after the gcse insertions, biv-eliminated `cmplw; ble`) instead of the do-while pointer loop; zero code
+    "game/esp16.cpp": True,  # Esp16_Trans: dead three-load test after the 0.0 load splits the block at sched (COMPILER-DIFF candidate, sched block split) + the #13 fr12 pin; keep-alive asm dropped
+})
+
 # DOL structural pass 2 (2026-09-11)
 MATCHING.update({
     "game/item.cpp": True,  # set_stage2: LV_SET macro sets the EX nibble first (the all-zero mask chain then folds in combine, whose dead loads leave the USE insns that make `mr r3,this` the loop-note barrier); init: `li r3,32` as an asm-li with a dying input (#13); trigger: r9 pin + launder for the u16 mask (#2)
 })
 
-# DOL sweep 15 (2026-09-11)
+# CRI pass 9 (2026-09-11): shapes verified against mk-deception's copy of the same CRI libraries
 MATCHING.update({
-    "game/model.cpp": True,  # drawBoundingBox: counted `for (j < 8) PSVECAdd(&v[j], ..)` loop (giv init after the gcse insertions, biv-eliminated `cmplw; ble`) instead of the do-while pointer loop; zero code
-    "game/esp16.cpp": True,  # Esp16_Trans: dead three-load test after the 0.0 load splits the block at sched (COMPILER-DIFF candidate, sched block split) + the #13 fr12 pin; keep-alive asm dropped
+    "lib/dct_fsri.c": True,  # DCT_FsriTransCore: the paired-single kernel's FPRs (c1..c6 constants, 9 temporaries) and the B0TableOrg pointer as `register __vec2x32float__`/pointer variables instead of hard registers (the C paths then share f0/f7 and r5/r7; cnt declared before o); dctfsri_Idx static inline with `int`s, initSparseTbl under `#pragma opt_loop_invariants off` storing through an inline `const Float64 *` helper; B0TableOrg[0] = sqrt(2)
+    "lib/mpvabdec.c": True,  # two-word bit reader written out per case (`bitpos += n` before the coefficient stores, refill after); the non-intra first coefficient / skip / AC loop as three static inline helpers under `#pragma inline_max_size`; the escape look-ahead through a fresh `mpvabdec_EscapeCode()` value in NintraBlock/Dc11 and in place in IntraBlock; run/level tables read as `const Sint16 *`
 })
