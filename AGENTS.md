@@ -25474,3 +25474,58 @@ Scratch /home/adityas/.cache/tev3/: `hv.sh <dbg_tool.h variant> [t_event src]` j
   W(y) <= W(z): the base dies at neither (a later use) or each load has its own dying base pseudo. Struct assignment
   `pG->Cam.param.pos = campos;` / direct `memcpy(&pG->Cam.param.pos, ..)` = 46 words (allocation elsewhere changes); `(u8*) &campos`
   cast = no change.
+- **Loop-5 cascade root**: i (reg 96) skips r6 because loop-5 `d` (reg 285, refs 11 len 61 pri 5409, order 146) holds r6
+  and conflicts with i (`i = 0` is scheduled before `fp = pos`, so i also conflicts with pos (91) - that is why pos then
+  takes r6 = pp's register and the target's `mr r6, r5` disappears in ours). Target loop 5: d r7, found r5 (ours found
+  292 pri 5921 -> r7 first, then d -> r6). Fixing item (b) and (c) both reduce to giving i r6, i.e. to the loop-5
+  found/d order or their conflict sets. `~/.cache/tcam2/gorder_base.txt` = full GORDER of the current source;
+  `rtl_base/greg_exp.txt` has the `;; N conflicts:` lists (pseudo numbers match GORDER).
+- **tcSetBesideOffset (27w)**: loop-1 givs n*12 (reg 207, refs 9 len 84) and n*4 (reg 209, refs 9 len 82) allocate
+  209 -> r3 then 207 -> r31; target is the reverse. The 2-insn length gap is the giv-init order in the preheader
+  (haifa LL segs: 207 b22:3 b0:2, 209 b23:2 b0:1, identical 8+2+1+25+4 inside the loop): loop.c emits `li 207,0x18c`
+  before `li 209,0`. Init order = bl->giv list order (reverse discovery = statement order pos/at before roll/fovy);
+  swapping the statements would swap the store order in the body (target stores pos/at first), so no source lever;
+  no pin possible (loop.c pseudos). Loop-2 register shuffle (r3/r12 bases, r4/r5 pointers, r6 vs r7 for n*12+0x54) is
+  downstream of the same r3/r31 choice.
+- **DB_STRING ctor (7w)**: whole ctor is ONE sched1 region (calls do not split it); all stores between the base-ctor
+  call and `new` have prio 12, so the order is rank_for_schedule's tie chain: INSN_REG_WEIGHT (+1 per SET, -1 per
+  REG_DEAD/UNUSED note, lower first) -> class vs last scheduled insn -> dependents count -> LUID. Pinned r0 zero: the
+  stores carry anti links to the later calls (deps `129 101 95 79` vs `129 79` for the stfs), so they win the
+  dependents tie and issue early (7 words). Pseudo zero (d6/d7 = `u32 zero = 0` block or plain `str = 0; len = 0;`):
+  the stores go last as in the target but local-alloc gives zero r11 and the type constant r0 (zero qty pri 1363,
+  birth 20 death 42, because sched1 hoists its `li` to the top; type qty pri 5000) -> 11 words. The target needs the
+  zero's `li` to stay late in sched1 (short qty, pri > 5000 -> r0) AND the stores without extra dep links: not found.
+  Reordering `len = zero; str = zero` (d4) or moving the zero block before the float stores (d5): 7 words unchanged.
+
+### DOL em_sub closer (GetDropBullet 449 -> 108 -> 16 words, zero code; RandomItemCk 53 / EmCatchMotionMove 8 untouched; in progress 2026-09-12)
+
+- **GetDropBullet 449 -> 108 (reapplied): every arm stores `*id = i; *num = n; return;` itself** (first branch, the
+  switch arms, case 2's four arms, case 3's two arms, case 5's arms; the case-5 `r <= 0x59` arm stores `*num = 0`).
+  jump2 cross-jumps the duplicated `stw; stw; b` tails away (code shape unchanged) but flow counts them as references, so
+  global.c's order becomes n > the `% 10` constants > r > i > id > num = the target's n r31, i r30, r r29, id r28, num r27,
+  f r26. Steps: switch stores 449 -> 268, case-5 literal 0 -> 267, first-branch stores -> 256, case 2 -> 125, case 3 -> 108.
+- **108 -> 16: the third branch's `r <= 0x13` 0x2C/0x2D/0x94 body is `goto ammo18;` to a label INSIDE case 0's
+  `r <= 0x59` arm** (`ammo18: i = 0x18; if ((Rnd() & 0xF) != 5) {..} else n = 0; *id = i; *num = n; return;`). The target
+  has the three `bne` go straight to case 0's `bl Rnd; li r30,0x18; clrlwi; cmpwi 5; beq` block. A duplicated body cannot
+  get there: jump2 (stream order, `while (changed)`) first cross-jumps BOTH of the copy's arms into other arms' tails
+  (A_T -> A_C0 via the `stw` label chain, the zero arm -> the 0x2E/0x2F arm's `li r31,0; stw; stw`), leaving the head
+  `cmpwi 5; bne A_C0; b L900` whose jumps no longer equal case 0's `beq L900` + fall-through, so find_cross_jump stops
+  at the heads (ours 108). The `goto` is the one-copy form: no cross-jump needed, bytes identical, register order unchanged.
+- **Fallback (16 words left), mechanism read, not closed.** Target: `li r0,4; stw; lwz pG; lbz r0; cmplwi r0,1; li r0,0;
+  ble Lst; li r0,0x14; Lst: stw r0,0(num)`; the two `switch (Rnd() % 3)` sites end `stw r30,0(r28); li r0,0; b Lst` (own
+  zero, only the store shared) and the case-5 literal-0 arms `li r30,K; li r0,0; stw r30; b Lst`. This is jump.c T1
+  ("if (..) x = a; else x = b" -> `x = b; if (..) x = a`, x = b emitted right before the branch, after the compare; sched2
+  keeps `li r0,0` there through the r0 anti-dependence) applied in JUMP2 (post-reload, hard r0 in both arms) to
+  `ble Lelse; li r0,20; b Lst; Lelse: li r0,0; Lst: stw` after the then-arm's `stw; b end` cross-jumped 1 insn into the
+  else arm's store (Lst = NEW label, UID >= max_jump_chain, so jumps redirected to it are never chained -> the two `% 3`
+  sites stay separate). Verified with a probe (the `% 3` sites storing 1 instead of 0): then-first `if (stage_no > 1)
+  *num = 20; else *num = 0;` gives the exact target fallback. With the real sites (`stw r30; li r0,0; stw r0; b end`,
+  earlier in the stream) their `b end` matches TWO insns of the else arm (`li r0,0; stw`) in pass 1 -> they jump to
+  Lelse (existing label) -> LABEL_NUSES(Lelse) = 3 -> T1's `nuses` walk hits a simplejump and fails -> T2 fires instead
+  (`x = a; if (..) goto l; x = b`) = `li r0,0x14; bgt Lst; li r0,0` (ours 125/92). else-first (`<= 1`) gives T1 on the
+  20 -> the same wrong shape (110/77). Register-variable forms (`if (c) m = 20; else m = 0; *num = m`, also `u32 m =
+  pG->stage_no; if (m > 1) ..`) fire T1 in JUMP1 -> sched1 hoists `set m 0` to the block top (2 IUs, ready at t=1) ->
+  m conflicts with the r0 temps -> r11 (165); the `m = stage_no` form keeps `li r0,0` after the compare (exact fallback)
+  but the join label before the store is OLD -> chained -> the `% 3` sites merge into one block (124/133). u8/u16 m: the
+  frontend promotes to SImode, no mode mismatch. Open: a source form whose else-arm `li r0,0` is NOT adjacent-identical
+  to the `% 3` sites' `li r0,0` at jump2 entry (or whose sites are processed after T1), see the next section.
