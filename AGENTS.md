@@ -348,14 +348,16 @@ the trick for pulling in SDK headers under ProDG.
 python3 tools/unit_info.py game/foo            # functions, sizes, demangled names, current match %
 sed -n '/^\.fn NAME/,/^\.endfn/p' build/G4BE08/asm/game/foo.s   # asm for one function
 # write src/game/foo.cpp (or .c for the newlib/C units), then:
-ninja build/G4BE08/src/game/foo.o              # compile (errors are printed)
+flock build/.ninja.lock ninja build/G4BE08/src/game/foo.o   # compile (errors are printed); always under the lock
 python3 tools/sync_symbols.py build/G4BE08/src/game/foo.o   # renames placeholder symbols to the mangled names
-python3 configure.py && ninja                  # rebuild, refresh report (must still say main.dol OK)
+flock build/.ninja.lock ninja                  # rebuild, refresh report (must still say main.dol OK); ninja reruns configure itself
 python3 tools/fdiff.py game/foo <mangled_symbol>   # side-by-side diff of one function (only differing lines; --all for everything)
+python3 tools/bytecmp.py game/foo                  # THE judge: every section byte-compared with relocs resolved by address;
+                                                   # `... game/foo FUNC` = word diff of one function. objdiff %s are reloc-NAME artefacts.
 ```
 
-Repeat until every function in the unit is 100%. Then set `MATCHING["game/foo.cpp"] = True` in
-`config/G4BE08/objects.py` (create the dict if missing), run `python3 configure.py && ninja`, and
+Repeat until `tools/bytecmp.py` says IDENTICAL (unit_info's 100% is neither necessary nor sufficient). Then set
+`MATCHING["game/foo.cpp"] = True` in `config/G4BE08/objects.py` (create the dict if missing), run `flock build/.ninja.lock ninja`, and
 confirm the SHA-1 check still passes (`ninja` prints `build/G4BE08/main.dol: OK`). If the link fails
 after linking a unit, its data/rodata layout differs from the original: fix the source, do not
 mark it Matching.
