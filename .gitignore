@@ -12,5 +12,5 @@ __pycache__/
 
 # ProDG compiler temp files
 *.TMP.*
-build.ninja.tmp
-objdiff.json.tmp
+build.ninja.*.tmp
+objdiff.json.*.tmp
