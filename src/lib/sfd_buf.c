@@ -144,8 +144,8 @@ void SFBUF_SetPrepFlg(SFD sfd, Sint32 n, Sint32 flg)
 
 Sint32 SFBUF_VfrmAddRead(SFD sfd, Sint32 n, void *frm)
 {
-	SFBUF_HN *hn = SFBUF_GET_HN(sfd, n);
 	Sint32 ret = 0;
+	SFBUF_HN *hn = SFBUF_GET_HN(sfd, n);
 
 	if (hn->w.used == 0) {
 		ret = SFTRN_CallTrtTrif(sfd, hn->w.in_tr, 0xC, (Sint32)frm, 0);

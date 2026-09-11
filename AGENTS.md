@@ -3049,6 +3049,56 @@ permutations of 5 locals (120) or two 4-variable groups (576) are cheap.
   above `i` (r28) in every declaration order / loop form; a source pointer gives `addi` instead of the
   folded `lwz 0x18(rIV)`.
 
+### CRI pass 10b (sfd_tim 30 -> 34/39, sfd_mps 20 -> 21/26, sfd_buf 17 -> 18/26; pure C, no pins; 2026-09-11)
+Harness /home/adityas/.cache/cri10b/ (deleted; cri10's `bytecmp.py --funcs` / `tryvar.py` copies). Nothing
+flipped; every gain is a plain C shape:
+- **Two-level inline structure for a public function inlined into another**: sfd_tim
+  `SFTIM_IsGetFrmTimeTunit` has a DIRECT early return (`li r3, 1; b epilogue` for the `cond[14]` test) while
+  every other exit goes through the result variable (`li r5; mr r3, r5`), and `SFTIM_IsGetFrmTime` has the
+  same test through r5. That is: the `static inline` body helper WITHOUT the test, `Tunit = if (test) return
+  TRUE; return helper(..)`, and `IsGetFrmTime = if (!frm) return FALSE; return SFTIM_IsGetFrmTimeTunit(sfd,
+  frm->inf.raw[3], frm->inf.raw[4])` — the now-small public Tunit is auto-inlined (100% / 6w from 119w/124w).
+  A big public body is never auto-inlined (`-inline all`, `inline_max_size`, `always_inline`; the
+  `inline_max_auto_size` pragma is "illegal" in 2.4.7) and `inline` on a public function drops its out-of-line
+  copy, so the two-level split is the only C form. The reload of `tim->vcnt` before `UTY_CmpTime` (pass 2
+  blamed register pressure) is a real second read: `cnt = *(volatile Sint32 *)&tim->vcnt;` into the existing
+  `cnt` local in the else block (the volatile read straight in the argument list ranks the value into r5 and
+  copies `tunit` away; through the local it takes r0 / r5 like the target). Residue 6w: `tunit` r10 / `vrate`
+  r9 swapped in the inlined copy only (wrapper locals, `register`, 11 helper declaration orders, arg order).
+- **`frm = tc->frm + tc->frm2` as a local before the big product sum** (sftim_Tc2Time23N/29N/59N, 100%):
+  the inline `(tc->frm + tc->frm2) * 1000` term computes `sec * rate` in place and the sum in fresh
+  registers; the local makes the target's `mulli` into the freed `tc` register and the running sum in r4.
+  Term order in the sum is already the target's (first addend added last); no other spelling moved it.
+- **Result variable declared before the handle pointer** (sfd_buf `SFBUF_VfrmAddRead`, 100%): `Sint32 ret =
+  0; SFBUF_HN *hn = ..;` gives ret the freed `n` register r4 and hn r6; hn-first gives the reverse.
+- **Zero-copy loop counter = the clear loop in a `static` helper** (sfd_mps `SFMPS_Create`, 100%): the
+  target's `li r5, 0; mr r6, r5` for `i = 0` is the inlined `sfmps_ClrOutSj(wk)` (`int i` loop over the 68
+  `outsj` slots) copying the caller's NULL; `Sint32 i` in the helper loses the unroll shape (+8 bytes), and
+  `i` must not remain declared in Create.
+- Not moved (forms tried, exact class): sfd_tim `sftim_Tc2Time*D` 8w x3 (M1: target `addi r7, r7, 20756`
+  const in place / `mullw r7` into the const register / `frm` r12 not the dying `tc` r4; mk-deception's
+  one-expression `(frm + hour*.. + sec*24 + frm2) * 1000` gives the target's REGISTERS but flattens the add
+  chain — hour term added last overall — and every split (`f = chain; f += frm2; f = frm + f`, parentheses,
+  casts, inline helper for the chain, 20 forms) either keeps the chain order with our registers or the
+  registers with the flat chain), `SFTIM_IsStagnant` 1w (else arm `lwz ext_cnt` before `lwz chg_base`: the
+  one-expression `a - b` loads the right operand first, the two-statement form loads left first but turns
+  `d` into an r3 variable; 25 forms), `SFTIM_IsGetFrmTime` 6w (above). adx_sje `adxsje_output_header` 1w
+  (`li r5, 1` argument scheduled one slot earlier around the branchless `(key == 0) ? 0 : 8`; 9 spellings
+  incl. `if` forms which add branches), `adxsje_write_end_code` 1w (inlined `adxsje_put16` loads `ck.data`
+  before `*(Sint16 *)src`; pointer local, `Uint16`, index, `memcpy` (a call), `Sint16 *` parameter — all
+  keep the value load first). mps_lib `mpslib_SetErr(NULL, ..)` inline site (5 functions): target `lwz r5,
+  MPSLIB_libwork@l(r4); addi r4, r3, 0x103` (lw in a fresh register, the code constant in the dying `lis`
+  register) vs ours `addi r4, r4, @l; lwz r4, 0(r4); addi r0` — 14 helper forms (direct global access,
+  split helpers, two-definition `lw`/`code`, `register`, volatile global, `Uint32` code, `MPSLIB_WORK **`)
+  are byte-identical to each other; M1. sfd_buf `SFBUF_RingGetDataSiz` 4w (`mr r5, r4` zero copy for
+  `len2 = 0`: inline zero helper, len-first declarations, the body as an inline helper with out-params —
+  none copies). sfd_mps `sfmps_ProcPrep` 7w (`shdr` of the inlined `sfmps_GetSeeShdr` in r5 above the
+  `see.wk` r4, ours in place; helper result-variable forms, `w` before/after). mpv_umc `MPVUMC_BiDirect` 2w
+  (`addi r4, &ccnt_rt` scheduled before `lwz ofs[0]; mr r3, wk`; local ref/cbp, direct `&mpv->mcwk`).
+- mk-deception shapes for these units: sfd_buf/sfd_tim/mps_lib/adx_sje/sfd_mps/mpv_umc/mpv_mcy/adx_bsc/
+  cft* sources exist there (decompiled style, `SfdHandle` naming); only the Tc2Time*D expression was
+  informative (see above).
+
 ## REL modules
 
 The game loads its rooms, enemies, weapons and debug tools as Nintendo REL overlays. `ninja` rebuilds the

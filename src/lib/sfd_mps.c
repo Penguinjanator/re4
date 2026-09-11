@@ -205,11 +205,19 @@ void sfmps_ErrFn(void *obj, Sint32 code)
 	SFLIB_SetErr(obj, code);
 }
 
+static void sfmps_ClrOutSj(SFMPS_WORK *wk)
+{
+	int i;
+
+	for (i = 0; i < SFMPS_OUTSJ_NUM; i++) {
+		wk->outsj[i] = NULL;
+	}
+}
+
 Sint32 SFMPS_Create(SFD sfd)
 {
 	SFMPS_WORK *wk = &sfd->mps;
 	MPS mps;
-	int i;
 
 	sfd->tr[SFMPS_TR].hn = wk;
 	wk->mps = NULL;
@@ -225,9 +233,7 @@ Sint32 SFMPS_Create(SFD sfd)
 	wk->cur_vid = -1;
 	wk->cur_aud = -1;
 	wk->endcode = 0;
-	for (i = 0; i < SFMPS_OUTSJ_NUM; i++) {
-		wk->outsj[i] = NULL;
-	}
+	sfmps_ClrOutSj(wk);
 	wk->outfn = NULL;
 	wk->outobj = NULL;
 	wk->skip = -1;

@@ -94,9 +94,6 @@ static inline Bool sftim_IsGetFrmTime(SFD sfd, Sint32 ftime, Sint32 tunit)
 	Bool ret;
 
 	tim = SFD_TIM(sfd);
-	if (sfd->cond[14] != 0) {
-		return TRUE;
-	}
 	lib = SFTIM_LIBWK;
 	tscale = tim->cur_unit;
 	adj = sfd->cond[44];
@@ -107,10 +104,14 @@ static inline Bool sftim_IsGetFrmTime(SFD sfd, Sint32 ftime, Sint32 tunit)
 		} else if (tim->vcnt < 0) {
 			tim->vcnt = 0;
 			ret = TRUE;
-		} else if (UTY_CmpTime(ftime, tunit, tim->vcnt, lib->vrate) != 0) {
-			ret = TRUE;
 		} else {
-			ret = FALSE;
+			/* the original re-reads vcnt after the sign test (a second load in both callers) */
+			cnt = *(volatile Sint32 *)&tim->vcnt;
+			if (UTY_CmpTime(ftime, tunit, cnt, lib->vrate) != 0) {
+				ret = TRUE;
+			} else {
+				ret = FALSE;
+			}
 		}
 	} else {
 		vrate = lib->vrate;
@@ -158,22 +159,22 @@ static inline Bool sftim_IsGetFrmTime(SFD sfd, Sint32 ftime, Sint32 tunit)
 	return ret;
 }
 
+/* the force flag is tested here, not in the helper: this function returns TRUE directly while
+ * SFTIM_IsGetFrmTime (which inlines it) goes through the result variable */
 Bool SFTIM_IsGetFrmTimeTunit(SFD sfd, Sint32 ftime, Sint32 tunit)
 {
+	if (sfd->cond[14] != 0) {
+		return TRUE;
+	}
 	return sftim_IsGetFrmTime(sfd, ftime, tunit);
 }
 
 Bool SFTIM_IsGetFrmTime(SFD sfd, SFD_VFRM *frm)
 {
-	Sint32 ftime;
-	Sint32 tunit;
-
 	if (frm == NULL) {
 		return FALSE;
 	}
-	tunit = frm->inf.raw[4];
-	ftime = frm->inf.raw[3];
-	return sftim_IsGetFrmTime(sfd, ftime, tunit);
+	return SFTIM_IsGetFrmTimeTunit(sfd, frm->inf.raw[3], frm->inf.raw[4]);
 }
 
 Sint32 SFD_GetFps(SFD sfd, Sint32 *fps)
@@ -269,21 +270,30 @@ void sftim_Tc2Time23D(Sint32 prate, SFTIM_TC *tc, Sint32 *ncount, Sint32 *tscale
 
 static void sftim_Tc2Time59N(Sint32 prate, SFTIM_TC *tc, Sint32 *ncount, Sint32 *tscale)
 {
-	*ncount = tc->min * (60000 * 60) + tc->hour * (60000 * 3600) + tc->sec * 60000 + (tc->frm + tc->frm2) * 1000 + tc->field * 500;
+	Sint32 frm;
+
+	frm = tc->frm + tc->frm2;
+	*ncount = tc->min * (60000 * 60) + tc->hour * (60000 * 3600) + tc->sec * 60000 + frm * 1000 + tc->field * 500;
 	*tscale = 60000;
 	*tscale = prate;
 }
 
 static void sftim_Tc2Time29N(Sint32 prate, SFTIM_TC *tc, Sint32 *ncount, Sint32 *tscale)
 {
-	*ncount = tc->min * (30000 * 60) + tc->hour * (30000 * 3600) + tc->sec * 30000 + (tc->frm + tc->frm2) * 1000 + tc->field * 500;
+	Sint32 frm;
+
+	frm = tc->frm + tc->frm2;
+	*ncount = tc->min * (30000 * 60) + tc->hour * (30000 * 3600) + tc->sec * 30000 + frm * 1000 + tc->field * 500;
 	*tscale = 30000;
 	*tscale = prate;
 }
 
 void sftim_Tc2Time23N(Sint32 prate, SFTIM_TC *tc, Sint32 *ncount, Sint32 *tscale)
 {
-	*ncount = tc->min * (24000 * 60) + tc->hour * (24000 * 3600) + tc->sec * 24000 + (tc->frm + tc->frm2) * 1000 + tc->field * 500;
+	Sint32 frm;
+
+	frm = tc->frm + tc->frm2;
+	*ncount = tc->min * (24000 * 60) + tc->hour * (24000 * 3600) + tc->sec * 24000 + frm * 1000 + tc->field * 500;
 	*tscale = 24000;
 	*tscale = prate;
 }
