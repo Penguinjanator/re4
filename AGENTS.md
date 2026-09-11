@@ -23381,3 +23381,102 @@ expr.c's NOP_EXPR expansion; deleted at the end).
   NOP_EXPR is expanded with a target, which needs the QI multiply itself to have a REG target: the sum is reached through
   the `(int)(QI plus)` NOP which always passes NULL_RTX (COND_EXPR / SAVE_EXPR temps would, none is natural here). An
   asm-emitted `mullw` (22-29 words) destroys the mult latency schedule. Left as is.
+
+### DOL puzzle pass 5 (game/puzzle 48 -> 49/49 IDENTICAL, unit Matching; shape 1 -> 0 with a one-byte struct wrapper for px (zero code, tagged); item.cpp IDENTICAL; 111 OK; 2026-09-11)
+
+Harness ~/.cache/dol_pz5 (variant copies judged with ~/.cache/kit/variant.sh / rtl.sh -dj; deleted at the end).
+
+- **shape 1 -> 0.** The last word `mullw r0,r28,r0` (px first) vs ours `mullw r0,r0,r28` is closed by
+  `struct { s8 v; } w; w.v = px;` and `w.v * rot[0][0]` / `w.v * rot[1][0]` in both rows (the `(s8) py` terms
+  unchanged). Mechanism: explow.c promote_mode only PROMOTE_MODEs INTEGER/ENUMERAL/BOOLEAN/CHAR/REAL/OFFSET types,
+  so a RECORD_TYPE local of one s8 is an unpromoted `reg/v:QI` pseudo (expand_decl); `w.v = px` is
+  store_bit_field's lsb-in-register path (`(set (reg/v:QI 92) (subreg:QI px))`, no extension), and `w.v` in the
+  QImode multiply is extract_bit_field's "subword value in the least significant part of the register" path
+  (expmed.c: bitpos adjusted to 24, `mode1 == GET_MODE (op0)` -> `return op0`), i.e. a REG:QI operand. With op0
+  REG and op1 REG (byte 2's fresh QI copy) expand_binop's commutative swap (optabs.c ~840: swap iff op1 is REG
+  and op0 is not) does not fire; both operands then widen to paradoxical `(subreg:SI (reg:QI))` (widen_operand,
+  no_extend for smul) and the recursive widened expand_binop (optabs.c 988) sees two SUBREGs, no swap either.
+  cse folds `(subreg:SI (reg:QI w))` back to px exactly as it folds the force_reg temps of the other three
+  operands (fold_rtx SUBREG: paradoxical subreg whose inner reg is equivalent to `(subreg:QI (reg:SI))` of the
+  wanted mode -> the inner SI reg), so the copy insn dies: no instruction, no register, no frame change.
+- Why the other spellings fail (measured, all reverted): `px * (int) rot[1][0]` / mixed casts per term: convert.c
+  convert_to_integer MULT_EXPR (line ~290) narrows only if `outprec >= TYPE_PRECISION (arg0)` for BOTH
+  get_unwidened operands; an int px keeps that term an SImode multiply, so byte 2 is extracted `srwi 8; extsb`
+  (2 words). `(s8)(px & 0xff)`: the BIT_AND is narrowed to QI (trunc1) and `& (s8) 0xff` folds away -> the same
+  `(subreg:QI px)` (1 word, unchanged). `int xpx = px; (s8) xpx`: the copy pseudo is an SI REG, its `(subreg:QI)`
+  is still not a REG (1 word, unchanged). `register s8 x = px` / `s8 x = px` (pass-5 data point a): the promoted
+  var expands to `(subreg:QI (reg:SI x))` with SUBREG_PROMOTED_VAR_P; the first swap fires (byte first), but
+  widen_operand turns the promoted subreg into the plain `(reg:SI x)` while the byte becomes a paradoxical SUBREG,
+  and the recursive widened expand_binop swaps BACK -> x first -- correct order, but x carries a real `extsb`
+  (r10) and shifts the allocation (15 words). `struct { s8 x; s8 y; } v` for both parms: an HImode struct reg, byte
+  0 is not the lsb byte, so both extractions become shifts + `or`/`clrlwi` packing (68 words). `((s16*) rot)[1]`
+  / `*(s8*)((u8*) rot + 2)` put rot in memory (pass 4: 45 words).
+- Flip: `MATCHING["game/puzzle.cpp"] = True` (objects.py "puzzle closer" block), `ninja -k 0`, 111 OK. include/puzzle.h
+  untouched (item.cpp IDENTICAL).
+
+### DOL final closer: t_bugcheck/pl_wep/act_btn/em_sub (t_bugcheck Matching 7/7 flipped: menuLife 4 -> 0; pl_wep 26 -> 28/29: PlWepLockCtrl 2 -> 0, PlSetLockPitch 11 -> 0, PlWepHitCheck2 242 -> 180; act_btn checkButton 71 -> 18; em_sub 45 -> 48/51: emLineCapsuleCrossCk 14 -> 0, EmYarareContactCk 103 -> 0, EmRackCk 49 -> 0, all three zero code; 111 OK; 2026-09-11)
+
+- **t_bugcheck menuLife 4 -> 0, tagged (#13 asm pool constant), unit flipped.** The "LIFE" string high is r17 in the target
+  although PRE numbers it after "PLAYER"'s (r16) and its live length is longer: `register u32 hiL asm("r17"); asm("lis
+  %0,%1@ha" : "=r"(hiL) : "i"("LIFE"))` in the preheader (LUID before the eight PRE'd highs) and `asm("addi %0,%1,%2@l" :
+  "=r"(sL) : "r"(hiL), "i"("LIFE"))` at the eprintf. The dead `lv = 3` gcse-bucket knob is gone; the nine dead `f32 lcN`
+  pool constants (label bump) and the `asm("" : "=m"(PlKaiou))` live-length anchor stay.
+- **pl_wep PlSetLockPitch 11 -> 0, tagged:** `f32 z = 0.0f; asm("" : "+f"(z)); if (m3r[2] == z)` (FPR launder: the 0.0 pool
+  load issues before the m3r[2] load, both sched prio 4 / weight 0, and cse cannot fold the constant back into the compare),
+  `register cPlWep* w asm("r9") = pl->pWep; w->pitch = p` (value pin: the target rematerialises the 2/PI high in r11 with
+  pWep live in r9; local-alloc hands the shorter-lived high r9 first), and a codeless `asm("" : : "f"(p))` as the first insn
+  after LOOP_BEG (the sched1 barrier insn emits no code, so the ready list gives `lis 0.0; lis m3r; lfs z; addi`).
+  PlWepLockCtrl 2 -> 0: `asm("" : "=m"(repCtr))` (alias anchor: the target reloads repCtr in the shared `rot.y -=` arm).
+- **pl_wep PlWepHitCheck2 242 -> 180, zero code, OPEN:** the `switch (type)` is 29 SEPARATE case nodes (every value its own
+  `prio = K; break;` body -- identical bodies are merged only by the post-reload cross-jump, so no two consecutive values
+  share a label and the balanced tree is the target's: root 0xF, left root 7, right root 0x17); `pG->bell_pos = hit` as a
+  byte-pointer `memcpy((u8*) pG + offsetof, &hit, sizeof(Vec))` (keeps the pG reload below the Vec stores); the nested call
+  `EspSetEatEffect(&hit, &nrm, EatGetEffectType(attr), type)` (`&nrm` is evaluated into a pseudo before the inner call:
+  `addi r30,r1,..` ahead of the `bl`); the 0xD/0x12/0x13 test as a switch with `default:`. Residue: gcse PRE places the
+  second switch's `cmpwi cr7,type,0x17` into the left-root block, the 4/8/0xC body and the 0xF body only in the target; our
+  block-LCM also inserts into the case-1, 5/6 and `prio = 1` leaves.
+- **act_btn checkButton 71 -> 18, tagged (13 value pin):** `register u64 key asm("r9")`. `key` is assigned in several leaves
+  (global-alloc pseudo) and got the DI pair left after local-alloc gave the `key & ~mask` temp r9:r10; with the pair fixed
+  the `or.` scratch alternates r0/r9 as in the target and the C/D leaves stay separate copies. Residue (18): case 9/0xA's
+  `return 0` is a second `li r3,0; blr`. Read with the -dJ dump: both blocks are `set r3 0; (return)`, but the natural end
+  has `(use r3)` between the set and the return (expand_function_end's return-value USE) and the case block has none;
+  find_cross_jump compares the USE against the SET and stops (`GET_CODE (p1) != GET_CODE (p2)`), so the two returns never
+  cross-jump. The `jump return_label` is turned into `(return)` before the unconditional-jump cross-jump gets a chance
+  (next_active_insn skips the USE, so the label "references the end of the function"). `case 9: case 0xA: break;`,
+  `case 9: case 0xA: return 0;` and `default:` forms change the case tree (9/10 grouped into a range: group_case_nodes merges
+  adjacent nodes whose labels are followed by the same insn or by simple jumps to one label) -> 59 words; `case 9: flags =
+  0; break;` (a dead set keeps the nodes separate, flow deletes it) shares the final block but the case-5/6/7 `or.` test
+  is then laid out before it as `or.; li r3,1; beqlr` (21 words). Left at 18.
+- **em_sub emLineCapsuleCrossCk 14 -> 0, zero code:** the entry-point distance reuses `dist` (a function-scope pseudo, so
+  its sum is scheduled ahead of `h`'s) and is computed before `h`; the unused `dd` is gone.
+- **em_sub EmYarareContactCk 103 -> 0, zero code, three findings.** (1) `n--; while (n-- != 0)` in place of `for (i = 1; i
+  < n; i++)`: fold turns `n-- != 0` into `--n != -1`, combine merges `n = n-1; cmp n,-1` into the rs6000 compare-and-add
+  parallel (`cmpwi 0; addi -1; bne`), and duplicate_loop_exit_test's copy at the entry becomes `cmpwi n,1; addi n,-2; beq`
+  in the one register -- the target's loop shape. (2) The #8 hook's dummy memory output must be a stack local (`asm("" :
+  "=m"(q) : "r"(hm))`): naming `em->hitInfo.flags` gave `em` one more reference than `pos` and swapped their r23/r24 order.
+  (3) `len = len / (f32) n` -- ONE variable for the axis length and the step: it lives across the VECNormalize call, so
+  global alloc gives it f30 with `fmr f30,f1` right after RootSumSquare3 (with a separate `step`, `len` is a call-free
+  pseudo and global find_reg's pass 0 hands it the used-so-far f1: `fdivs f30,f1,f0`, and the `lis/lfd` pair reorders).
+- **em_sub EmRackCk 49 -> 0, zero code -- loop.c's two passes, the movable threshold and `-3 per move`.** Seven compare
+  constants are hoisted; 400.0 is the LAST preheader load (pass 2), so its pseudo has the shortest live length and the
+  highest priority of the seven (f27; the others colour in reverse preheader order f26..f21). Mechanics: `threshold =
+  (loop_has_call ? 1 : 2) * (1 + n_non_fixed_regs)` = 71 here (77 hard regs minus r1/r2/r13/MQ/AP/cr5/FPMEM), a movable is
+  desirable when `threshold * savings * lifetime >= insn_count`, and `threshold -= 3` after EVERY move (move_movables).
+  The literal `400.0f` in the six `if`s (not an `xmax` variable: a user reg set once and used in six blocks is never movable
+  in the maybe_never region) gives corner 1 a `lis` movable with savings 2 x life 2 (forced by its lfs) and corners 2-6
+  lfs's that `match` it (const_double src via REG_EQUAL; their `high` is PRE-shared and not movable). Pass 1 (311 insns):
+  4*65 < 311, stays; pass 2 (243 insns): only if at most three movables were moved before it, 4*(71-9) = 248 >= 243, while
+  the `&EmMgr` high + lo_sum + 25e6 high + lfs make four (4*59 = 236). Fix: `off = EmMgr.size * i; e = (cEm*) ((u8*)
+  EmMgr.pArray + off)` -- the `lis EmMgr@ha` now lives 5 insns (its last use, the pArray load, follows the multiply) and
+  5*71 = 355 >= 311 hoists it in pass 1, leaving three pass-2 moves before 400.0. Same code otherwise. Diagnostics: the
+  `.loop` dump prints `Insn N: regno R (life L), [move-insn] savings S  moved to / not desirable / not safe` per movable
+  BEFORE the function's `;; Function` header (both passes in order), and `Loop from A to B: N real insns.`
+- **em_sub RandomItemCk 53, OPEN (read with the HK_QTY hook):** the target allocates the second `Rnd()` temp before the
+  accumulator chain; ours ranks the chain qty first (local-alloc `floor_log2(refs)*refs*size/(death-birth)`: Q1 5833 vs Q2
+  5000). Needs Q1 <= 11 refs or Q2 >= 11 refs or a shorter Q2 span; ~20 expression variants (operand order, temps,
+  inlined RandomHandgunAmmo shapes) keep the order. EmCatchMotionMove 8 (rate/ry non-local, exhausted earlier) and
+  GetDropBullet 462 (jump2 cross-jumps the five `bl Rnd; li 7; lis; li 3; ori; mulhwu` copies as whole blocks where the
+  target shares only `srwi ..; cmplwi 7; ble; li 0` -- the copies' magic-constant registers differ in the target; plus the
+  callee-saved permutation f/r/n/i/id/num) untouched.
+- Harness: `~/.cache/dol_tb2/` (tryv/vapply with an `ALL:` prefix for replace-all patterns, dump.sh with an absolute
+  SRC_OVERRIDE, rtl.py, hk.sh + the HK_QTY-hooked cc1plus) deleted at the end of the pass.

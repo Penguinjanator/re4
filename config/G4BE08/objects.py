@@ -1832,3 +1832,8 @@ MATCHING.update({
 MATCHING.update({
     "game/em_cloth.cpp": True,  # Em18ClothSet 26 -> 0, pure C (the four codeless asms removed): the `if (a)` arm repeats `c->x40 = 0.1f; c->x44 = 4;` -- real uses for flow/sched1/regalloc (0.1 and 4 live across the branch: f11, callee-saved r28; the store weights and the 0.1 lfs priority follow), deleted by reload_cse_regs as no-op stores (reload_cse_noop_set_p: the MEM already holds the register) before sched2
 })
+
+# puzzle closer (2026-09-11)
+MATCHING.update({
+    "game/puzzle.cpp": True,  # 49/49: shape 1 -> 0 (pass 5): px enters the QImode multiplies as a one-byte `struct { s8 v; } w` -- a RECORD_TYPE local is not PROMOTE_MODEd, so `w.v` expands to an unpromoted REG:QI and expand_binop's "op1 REG, op0 not" commutative swap no longer fires for byte 2 of rot (the HImode extraction copied into a fresh QI REG); cse folds `(subreg:SI w)` to px, no instruction added; COMPILER-DIFF). movePiece/PutInCase/shape join per passes 1-4.
+})

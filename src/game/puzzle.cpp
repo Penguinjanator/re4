@@ -372,6 +372,14 @@ int pzlPiece::shape(int px, int py)
     s8 s;
     int rx;
     int ry;
+    // COMPILER-DIFF: px as a one-byte struct. A RECORD_TYPE local is not PROMOTE_MODEd, so `w` is
+    // an unpromoted QImode pseudo and `w.v` expands to that REG (extract_bit_field's lsb-subreg
+    // path returns op0 itself); `(s8) px` expands to `(subreg:QI px)`, and expand_binop swaps a
+    // commutative multiply whenever op1 is a REG and op0 is not -- byte 2 of `rot` is such a REG
+    // (the HImode extraction is copied into a fresh QI pseudo), which put `px` second in that one
+    // `mullw`. cse folds the paradoxical `(subreg:SI w)` back to px (like the force_reg temps of
+    // the other operands), so the copy is dead and no instruction is added (pass 5).
+    struct { s8 v; } w;
 
     // The join `extsb r0,r0` is the promoted store of `o` from the int `oi` on both paths: the
     // compare's extension IS `oi` (r0), the else arm copies it into `o` (extsb of r0 -> r0), so the
@@ -388,8 +396,9 @@ int pzlPiece::shape(int px, int py)
     rot[0][1] = -s;
     rot[1][0] = sinf(ang);
     rot[1][1] = cosf(ang);
-    rx = (s8) ((s8) px * rot[0][0] + (s8) py * rot[0][1]);
-    ry = (s8) ((s8) px * rot[1][0] + (s8) py * rot[1][1]);
+    w.v = px;
+    rx = (s8) (w.v * rot[0][0] + (s8) py * rot[0][1]);
+    ry = (s8) (w.v * rot[1][0] + (s8) py * rot[1][1]);
     switch (orient) {
     case 4:
     case 5:
