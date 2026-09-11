@@ -330,12 +330,17 @@ void mwSfdDestroy(MWPLY obj)
 }
 
 /* SFX handle work and additional-information stream joint buffer */
-Sint32 mwsfcre_MallocCompoWork(MWPLY mwply)
+/* COMPILER-DIFF: M1 - the original ranks mwply (r31) above the .rodata pool base (r30); every plain
+ * form (parameter, `void *` kept copy, declaration orders) colours the pool first. Hard-register pin. */
+Sint32 mwsfcre_MallocCompoWork(register MWPLY obj)
 {
-	MWSFD_CRPRM *prm = &mwply->prm;
+	register MWPLY mwply; // COMPILER-DIFF: M1 (r31)
+	MWSFD_CRPRM *prm;
 	Sint32 size;
 	void *wk;
 
+	asm { mr r31, obj; mr mwply, r31 } // COMPILER-DIFF: M1
+	prm = &mwply->prm;
 	size = MWSFSFX_CalcHnWorkSiz(prm->max_width, prm->max_height);
 	wk = MWSFD_Malloc(mwply, size);
 	if (wk == NULL) {
@@ -470,12 +475,18 @@ static void mwsfcre_InitCompoWork(MWPLY mwply, MWSFD_CRPRM *cprm)
 	}
 
 /* one YCC 4:2:0 frame: 16-aligned dimensions, 32-byte rows, 32 bytes of slack */
+/* h16 declared before w16: w16 (higher inlined-local id) coloured first (w16 r10 / h16 r11) */
 static Sint32 mwsfcre_CalcYccSize(Sint32 width, Sint32 height)
 {
-	Sint32 w16 = (width + 15) / 16 * 16;
-	Sint32 h16 = (height + 15) / 16 * 16;
-	Sint32 ysize = h16 * ((w16 + 31) / 32 * 32);
-	Sint32 csize = (h16 / 2) * ((w16 / 2 + 31) / 32 * 32);
+	Sint32 h16;
+	Sint32 w16;
+	Sint32 ysize;
+	Sint32 csize;
+
+	w16 = (width + 15) / 16 * 16;
+	h16 = (height + 15) / 16 * 16;
+	ysize = h16 * ((w16 + 31) / 32 * 32);
+	csize = (h16 / 2) * ((w16 / 2 + 31) / 32 * 32);
 
 	return ysize + csize * 2 + 0x20;
 }
@@ -915,7 +926,8 @@ Sint32 mwsfcre_MallocRfb(MWPLY mwply, MWSFD_CRPRM *cprm, MWSFD_RFB *rfb)
 
 	fsize = mwsfcre_CalcYccSize(cprm->max_width, cprm->max_height);
 	if (mwsfdcre_bufnum != 0) {
-		if (mwsfdcre_bufnum < 2 || mwsfdcre_bufsize < fsize) {
+		/* the size test is written twice (a macro in the original): `blt fail; bge ok` off one compare */
+		if (mwsfdcre_bufnum < 2 || mwsfdcre_bufsize < fsize || mwsfdcre_bufsize < fsize) {
 			rfb->buf[0] = NULL;
 			rfb->buf[1] = NULL;
 			ret = -1;
@@ -996,6 +1008,42 @@ Sint32 mwPlyCalcWorkCprmSfd(MWSFD_CRPRM *cprm)
 }
 
 /* component work needed by mwsfcre_CreateSfd */
+/* mwPlyCalcWorkSfd's copy of the size macro: `mode` is a block local declared after bps (bps r0,
+ * mode r4 = the target's colouring; a function-level mode is coloured first). */
+#define CWS_BUFSIZ(cprm, sib, vib, aib, sjb, adxibuf, adxwk) \
+	{ \
+		Sint32 nsec = (cprm)->nsec; \
+		Sint32 bps; \
+		Sint32 mode; \
+		mode = (cprm)->mode; \
+		bps = (cprm)->max_bps; \
+		if (nsec <= 0) { \
+			nsec = 1; \
+		} \
+		if (mode == MWSFD_FTYPE_MPV) { \
+			sib = 0; \
+			vib = 0; \
+			aib = 0; \
+			adxibuf = 0; \
+			adxwk = 0; \
+			sjb = nsec * (bps / 8 / 0x800 * 0x800); \
+		} else if (mode == MWSFD_FTYPE_VONLYSFD) { \
+			sib = 0; \
+			aib = 0; \
+			adxibuf = 0; \
+			adxwk = 0; \
+			sjb = nsec * (bps / 8 / 0x800 * 0x800); \
+			vib = bps / 8 / 0x800 * 0x800 / 2 + 0x800; \
+		} else { \
+			sib = 0; \
+			aib = 0x5DCC; \
+			sjb = nsec * (bps / 8 / 0x800 * 0x800); \
+			vib = bps / 8 / 0x800 * 0x800 / 2 + 0x800; \
+			adxibuf = 0x5F0C; \
+			adxwk = 0xC1C0; \
+		} \
+	}
+
 Sint32 mwPlyCalcWorkSfd(MWSFD_CRPRM *cprm)
 {
 	Sint32 nfrm2;
@@ -1008,10 +1056,9 @@ Sint32 mwPlyCalcWorkSfd(MWSFD_CRPRM *cprm)
 	Sint32 rfbsiz;
 	Sint32 tabsiz;
 	Sint32 fsize;
-	Sint32 mode;
 	Sint32 size;
 
-	MWSFCRE_CALC_BUFSIZ(cprm, mode, sibsiz, vibsiz, aibsiz, sjbsiz, adxibsiz, adxwksiz);
+	CWS_BUFSIZ(cprm, sibsiz, vibsiz, aibsiz, sjbsiz, adxibsiz, adxwksiz);
 	if (mwsfdcre_bufnum != 0) {
 		rfbsiz = 0;
 		tabsiz = 0;
@@ -1033,6 +1080,5 @@ Sint32 mwPlyCalcWorkSfd(MWSFD_CRPRM *cprm)
 	size += MWSFD_HNWORK_SIZE;
 	size += 0x700;
 	size += MWSFD_FNAME_SIZE;
-	size += sibsiz;
-	return size;
+	return sibsiz + size;
 }

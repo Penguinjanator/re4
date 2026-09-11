@@ -20958,3 +20958,173 @@ deleted at the end. 111 OK before and after.
   arms gives 76-80 (worse); the exact statement placement is open. option retry_load_menu 45 = one swap: `o` (29 refs/len 364 =
   0.319) must outrank `old = o->sub` (13/108 = 0.361) to take r31; brightness_menu 69, controller_menu 82, errorDisp 99 (-24
   bytes), OpenBoxMain 182, SceElevator 232, MotionGetPosition/SetCore/Move/Hokan not iterated.
+
+### DOL espgen42/45 closer (Espgen42 11 -> 14/16: GetWaterHeightSub 7 -> 0, AddWaterPower 26 -> 0, AddWaterPowerSub 72 -> 0 (size closed), SetWaterWork 73 -> 39, Move00 444 -> 326 (size 0x894 -> 0x86c = target); espgen45 17 -> 18/20: TransSub 752 -> 0 (size 0x1bd0 -> 0x1b40 = target), SetWaterWork45 91 -> 25, Move00 454 -> 252 (0xa7c -> 0xa50, target 0xa54); nothing flipped; 111 OK; 2026-09-11)
+
+Harness ~/.cache/dol_espg (dol26a copies with the paths rewritten; `tryv.py UNIT SYM v/x.py`, `sbs.sh UNIT SYM [ABS_OBJ]`,
+`dump.sh UNIT -dX` with `SRC_OVERRIDE`, `mcmp.py`), deleted at the end. All forms below are zero-code (no tags); the two
+units are edited in parallel, every form applies to both.
+- **GetWaterHeightSub (7 -> 0, zero code): the same shape as AddWaterPowerSub -- a by-value `Vec` inline
+  (`GetWaterHeightCore(EspgenWork* w, Vec v)`) called once per id, `if (w->id == 0x42) Core(w, Chk_pos); else if (w->id == 0x45)
+  Core(w, Chk_pos);`; jump2 cross-jumps the two copies into one body.** That gives the target's w (r30) before p (r29): the
+  single-call forms (`if (id != 0x42 && id != 0x45) return;` + inline, or `if (a || b)`) keep 7 words (p wins the priority
+  2*5/77 vs 1*3/22). Sweep 23a's "w >= 6 refs or p live length >= 24" is met through the copy structure, not the declarations.
+- **AddWaterPower (26 -> 0): plain `Height_find = 0;` instead of `ISet(Height_find, 0)`.** The reference store's flagless MEM
+  gated the `*pos` loads (true dependence on a possibly-aliasing store), which gave the `li r0,0` chain priority 5 > `lwz
+  g_pWater` 4 in sched1 and a shorter live range for `w`; with the plain store `w` (4 refs/19+) loses to `pos` (4/18) and pos
+  keeps r3 (`mr r3,r7` before the call). ISet is still needed in GetWaterHeight (matched).
+- **AddWaterPowerSub (72 -> 0, 0x60c -> 0x600): the 0x45 branch is a hand-written second copy, not the same inline.** Its `pw`
+  assignments go through a temporary -- `FSet(pw, 0.8f)` (global.h) i.e. an f32 parameter -- so `tmp = [LC]; pw = tmp` and
+  loop.c hoists the pool loads (`lfs f11 = 0.8`, `fmr f10,f12` for the 1.0 already in f12) with `fmr f12,fN` in the cases; the
+  0x42 copy keeps `pw = 0.8f` = `(set pw (mem LC))` directly (set_in_loop 5, not movable, only the `lis` hoisted: r6/r5). Two
+  inline copies of one function are byte-identical in our build (tested), so the original had two bodies. Second finding, both
+  copies: `h = p->hB + k;` / `h = p->hA + k;` in the if/else arms (not `h = p->hB; ... h += k;` after the join): jump2
+  cross-jumps the `slwi; add` tails so the add sits in another block than the load and combine cannot form `lfsux`
+  (target `add r9,r9,r0; lfs f13,0(r9); ...; stfs 0(r9)`). This also fixed the k/idx register swap (idx r7, k r8).
+- **SetWaterWork / SetWaterWork45 (73 -> 39 / 91 -> 25), three structural forms:** (1) the tail sizes are block-local
+  (`{ u32 n2 = 12*(nx+1)*(ny+1); DCStoreRange(pos, n2); DCStoreRange(nrm, n2); }` and a second `n3` block for hA/hB): the
+  target ties the `nx + 1` temp into the size register (`lhz r30; addi r30,r30,1; mullw r30,r30,r9`), which local-alloc only
+  does for a block-local qty; the function-level `n` is only the MEM_ALLOC size. (2) The two x-edge init loops use the
+  fRand inner counter `jj` (function-level `int jj`): it crosses the fRand1_1 call so it is callee-saved (r28) -- a
+  for-scoped `int j` gives r11/r10, `j` (the dl counter, r29) gives r29. (3) The y-edge loops reuse the fRand row counter `i2`,
+  and the far x edge is `i2 = p->ny; idx = i2 * (p->nx + 1); pos[idx + jj]` with `idx` the fRand row index made function-level
+  (target `lhz r7,110` into the counter register, `mullw r8` into idx's). Remaining 39/25: i2 r7 vs r10 (42 only; in 45 i2 is
+  callee-saved r28 because `(f32) i2` is used in the inner loop) and idx r8 vs r0 -- sched1 issues the entry-test `cmpw jj,nx+1`
+  before `mullw idx = i2*(nx+1)` in ours (equal priority 2; the cmp has weight 0 because `nx+1` dies there, the mullw +1), the
+  target issues the mullw first, so r0 (nx+1) is live across idx's birth and idx cannot take r0. `jj <= p->nx`, `for (jj = 0,
+  idx = ...)`, `int w1 = nx+1` bound, `u32 i2`, `i2 = 0` at the top: 39-104. Pins `register int i2 asm("r7")` 107, `idx
+  asm("r8")` 146 (the i2+1 rederivation breaks) -- not applied.
+- **Move00 (42: 444 -> 326 with the size gap closed, 45: 454 -> 252), five forms, all also in the mode==1 loop:**
+  (a) the `+0x28` was register pressure: one spill of `w1 = nx + 1` (`stw r7,96(r1)` / `lwz`) and an 8-byte spill slot in the
+  frame, caused by ours reducing `c = &cur[k]` and both neighbour rows into stepping pointers while the target keeps only the
+  `k*4`/`k*12` givs (sweep 23a's OPEN item). Form: `c` is a FUNCTION-LEVEL `f32* c;` set twice per iteration, `c = cur; c += k;`
+  -- `set_in_loop[c] == 2`, so loop.c never records c as a giv; the neighbours are plain `4(c)`/`-4(c)` off `add c = cur +
+  k4` (k*4 stays a reduced giv), and `*(c - nx - 1) + *(c + nx + 1)` (not `c[-1 - (int) nx]`, which folds to `(~nx) << 2` as a
+  separate invariant) gives the target's hoisted `slwi r20 = nx*4` with `subf; lfs -4` / `add; lfs 4`. A block-local `f32*
+  c = &cur[k]` is a DEST_REG giv with the highest combine statistic (28 vs k*4's 22) and gets reduced; direct `cur[k-1]` etc.
+  reduce three pointers. (b) `Vec* nrm = p->nrm;` before the PSVECNormalize/PSVECScale call, used for the argument and the
+  three updates: the target keeps p->nrm across the call (`lwz r28,128(r29)` before `bl`, `lfsx f0,r28,r31`, `4(r30)`/`8(r30)`
+  with r30 = &nrm[k] from the argument); `p->nrm[k]` reloads it three times. (c) `nrm[k].x += ..; nrm[k].z += ..; nrm[k].y *=
+  0.25f;` -- z before y (target stores z then y). (d) BUMP_INDEX = `((x)/8)*32 + (((y)/4) << 5) * ((w1) >> 3) + (((y)&3)<<3) +
+  ((x)&7)`: x/8 before y/4 (the two signed divisions are separate blocks, so the source order is the block order), and the y
+  term as `<< 5`: with `* 32`, fold's `associate` moves the constant onto `(w1 >> 3)` and `(w1>>3)*32` is hoisted
+  (`rlwinm r16`), while the target keeps `rlwinm r9,r0,3,0,26; srwi r0,r15,3; mullw` in the loop. (e) `w1` is not a variable:
+  `k = i * (nx + 1) + 1` and `BUMP_INDEX(j, i, nx + 1)` -- the in-loop `nx + 1` is a second pseudo (cse does not cross the loop
+  label), PRE replaces it by a copy, loop pass 1 hoists the copy and pass 2 finds `>> 3` "not desirable" (life 1, savings 1:
+  71 < insn_count), so `srwi` stays in the loop; with a user `w1` the shift is PRE-hoisted. Also `j < (int) nx` (target
+  `cmpw`) and the mode==1 loop's `(1.0f / (f32) (int) p->nx)` / `ny` (double trick, not psq_l: this was the last 9 insns of the
+  42 size gap). Remaining 326/252 words are register names only (p r28 vs r29 because ours allocates the k*12 giv (26 refs/99)
+  before p (72/486); i r24 vs r23; f17 = 0.25 in the target vs ours f26: the target hoists the 0.25 pool load out of the OUTER
+  loop into its preheader (low priority, last FPR), ours only out of the inner one -- the inner-loop movable lands after the
+  inner entry test where the outer scan sees maybe_never). `f32 q = 0.25f` variables move the constant in the pool (.rodata
+  differs), `/= 4.0f`, `y = y * 0.25f`, do-while inner loop, separate B counters, pins on p/i: 312-381, not applied. In 45 the
+  target additionally keeps `lis/lfs 255.0` inside inner loop A (ours hoists it: our loop is 127 real insns at loop time, the
+  pair needs `71 * 2 * life >= insn_count`, so the original loop A had >= 143 insns before cse2/combine -- some construct that
+  expands larger and folds later; unknown).
+- **Espgen45_TransSub (752 -> 0, +0x90 closed; zero code): the vertex block emits each vertex through ONE inline with all eight
+  values as parameters, normal first: `Vtx45(nx, ny, nz, x, y, z, s, t) { GXPosition3f32(x,y,z); GXNormal3f32(nx,ny,nz);
+  GXTexCoord2f32(s,t); }`.** Separate GXPosition3f32/GXNormal3f32 calls put the position's volatile FIFO stores between the
+  `(f32)(-ny)` conversion for z and the one for the normal's z, and the volatile store to the absolute GXWGFifo aliases `p->ny`
+  (symbol base vs register base), so ours reloaded/reconverted (51 `lhz` vs 36, +2 double tricks = the 36 extra insns). With
+  the 8-argument inline every value is computed before the first store; the normal-first order makes the ny conversion precede
+  the nx one (the fpmem slot serialises the conversions in RTL order): 584 -> 76. The rest: `nx`/`nz` are per-quad block
+  locals (`{ GXBegin(..); f32 nx = ..; Vtx45(..); }` -- one variable spanning the four quads is a global pseudo, f6/f7; per-quad
+  locals tie into the fmsubs temps, f7/f9/f11), a reconstruction slip (quad 3 vertex 3's normal x had a stray `* far`), and
+  `n.z = ..; n.y = 0.25f;` order in quad 3 (the `n.y` frame store is independent of the `lhz nx`, so its LUID decides the
+  schedule).
+- Flags: the AddWaterPowerSub 0x45 body duplicates the 0x42 core with `FSet(pw, ..)` in the cases (the code is otherwise the
+  same; a second hand-written copy in the original is the only explanation that fits the different hoisting). Espgen42.cpp and
+  espgen45.cpp now share every Move00/SetWaterWork form; when one changes, port to the other.
+
+### CRI mwsfdcre/sfd_mpv big closer: sfd_mpv 25 -> 33/38 (Pts2Tc, DoReformTc, Concat, DecodeFrm flipped; DecodePicAtr 454 -> 197w, ChkBufSiz 191 -> 181w), mwsfdcre 5 -> 7/10 (MallocRfb, MallocCompoWork flipped; CalcWorkSfd 30 -> 15w; 2026-09-11)
+Harness /home/adityas/.cache/cri_mpv_big/ (deleted): cri17b's `bld.sh`/`fd.py`/`tryvar.py`/`mwcc.sh` (paths
+repointed), variant files `v_*.py`, ra dumps under `ra_*`. Concurrent with `~/.cache/cri_mpv_small` (the small
+sfd_mpv functions; its GoDdelim/Seek/SetFrmPara flips appear in the counts above). Method as in 16a: align region by
+region with fdiff, explain the SIZE gap first (frame, callee-saved count, dead `b`), then the colouring. No pins in
+sfd_mpv; one hard-register pin in mwsfdcre (MallocCompoWork) and Pts2Tc's `pool_data off` (both tagged).
+
+**Mechanisms (each verified by a variant build):**
+- **`x op= e` keeps one node, `x = x op e` after a use is range-split.** DoReformTc/Concat's time-code arithmetic:
+  `hour = ttu1.hour; min = ..; sec = ..; sec += f / rnd; f %= rnd; min += sec / 60; sec %= 60; hour += min / 60;
+  min %= 60;` gives the target's in-place chain (sec r5 / min r6 / hour r7 defined AT THE LOAD, >= 29 neighbours ->
+  coloured before the temporaries); `sec = A; min = B + sec / 60; sec = sec % 60` splits `sec` into `@N` (a fourth
+  callee-saved register, DoReformTc r28). The frame count is `f` itself (`f %= rnd`, the `f == 0 || f == 1` test
+  and `f = 2` on the same node -> `subf r4, r29, r4` in place); a separate `frm = f % rnd` local (21 neighbours,
+  level 1) lands after the `lis 0x6666` temporaries. Declaration order in the arm `rnd, field, f, sec, min, hour,
+  type` then `tim, tmpref, fld` (type r8 > tim r9 > tmpref r10 = type/tim/tmpref declared AFTER the arm locals).
+- **The empty `else { return; }`** at the end of a void function's arm (`if (wk == NULL) {stores} else { return; }`)
+  is the second `b end` of DoReformTc (pass 15's kept jump); nothing else (`return;` inside the arm, `!= NULL`
+  early return) produces two consecutive `b end`.
+- **Constant-known paths are jump-threaded past later tests** (the frontend knows the value on the path): Concat's
+  `t = 0` (ttu1 invalid) and the Tc2Time path jump straight to `if (t > 0)` and skip `if (t < 0)`; the target's two
+  `cmpwi r4, 0` are therefore two separate `if`s in different regions: `} else { ...; if (t < 0) t = 0; neg: if (t
+  < 0) { ret = -1; goto chk; } } if (t > 0) {...} InitTtu x2; ret = 0; chk: if (ret == -1) return -1;` with the
+  ReadTotSmplQue failure `t = -1; goto neg;` (CRI uses gotos: sfd_mps, sfd_cre, adx_sje). Same mechanism in
+  DecodePicAtr's reform block: `flag = 0; if (d > 0 && ngop && !x57) { if (newgop == 0) goto chk; ...flag...; if
+  (flag == 0) goto chk; } SetCond(0x34, 1); reform = 1; chk:` -- the three failing conditions jump INTO the SetCond
+  (semantics differ from the old decomp: an unusable GOP time code forces reform mode), and `reform` stays live
+  (`mr. r17, r3`) because it is only redefined on one path. `flag`'s `if (t1 > t2 && t1 < t2 + unit * k)` is `k =
+  unit * GetCond(0x35); if (t1 <= t2) flag = 1; else if (t1 >= t2 + k) flag = 1; else flag = 0;` (two `li r5, 1`,
+  the multiply before the first compare).
+- **A call placed outside an `if` whose arm ends the block**: DecodeFrm's `SFPLY_AddDecPic(sfd, 1, atr->pic_type)`
+  is AFTER `if (mpv->pendfrm == NULL) {...}` (the target's `bne` lands on the `lwz r5, pic_type`; the old decomp
+  had it inside). Struct-copy source kept in a register = a function-scope pointer (`SFTIM_TTU *ttu3 = &tim->ttu3`
+  declared after `flag` so ttu3 r4 / flag r5) -- pass 16a's `tot` rule, block scope is not enough. `void **pbuf`
+  parameter (SetPlane) keeps the buffer load after the two `sth` (a load through a pointer parameter is not hoisted
+  over the plane stores).
+- **Pts2Tc** (identical, tagged): `#pragma pool_data off/on` around the function (M2, see 16a), `tbl = (rate ==
+  29970) ? conv_29_97 : conv_59_94` (the if-form keeps `addi r0; mr r9, r0` ECOND copies), `rnd` declared before
+  `rate` (fps_round's `lis` first), `fno = (m >> 1) - tmpref` before `tc->field = m & 1`, and `hour` declared LAST:
+  as the lowest id it is scanned before its lower-degree neighbours are removed (34 - 3 params >= 29 -> level 2 ->
+  r0); with `tbl, rem, fno, min, ten, sec, frm, sec_tot, min_tot` before it in that order (min r8 before ten r9).
+- **64-bit results kept in registers** (DecodePicAtr): `t = pts - (Sint64)tmpref * 90000000 / prate; t = (t > 0)
+  ? t : 0; tim->x150 = t;` and `d = (d > 0) ? d : 0` give the target's `beq; b; mr lo, rZ; mr hi, rZ` (the `?:`
+  on a Sint64 lowers to the inverted branch pair with the clamp copying the compare's zero register); `if (!(d >
+  0)) d = 0;` gives `bne; li; li`. `tmpref`/`prate` are loaded BEFORE the origin test (unconditional in the
+  target). `wk->pts_ofst += wk->pts_max + 1` = `add; addi` (the `= a + b + 1` spelling is reassociated to `b + 1`).
+- **Frame layout of DecodePicAtr**: the two Tc2Time out-parameter pairs are distinct variables (`ncount0/tscale0`
+  for ttu0, `ncount/tscale` for ttu3: two more slots, frame 0xe0 -> 0xf0), and both the aggregates and the
+  address-taken scalars are declared in the REVERSE of the natural order (first declared = highest slot): `tc2,
+  tc3, tc, ent` (0x88/0x68/0x48/0x38) and `tscale0, ncount0, tscale, ncount, delay_byte, delay, vbvsiz, bitrate,
+  unit, t2, t1` (0x30 .. 0x8). Pointer locals `ttu0 = &tim->ttu0` (assigned BEFORE its valid test -> `addi r17`
+  before the `lwz`), `ttu1b/ttu3` for the picture time and the `*ttu1b = *ttu3` copy; `bufin = SFMPV_BUFIN(sfd)`
+  (Sint32) hoists the `lwz 0x1fc0` above `if (p != NULL)`; `raw = vhdr->raw` (MEM_Copy's r3 also bases the rawlen
+  store), `n = 0x200; if (len < 0x200) n = len;` (ECOND with the constant first); `br = bitrate` after the vbvsiz
+  block (r19 across the vhdr block) and fresh copies `br = bitrate; vb = vbvsiz;` right before the `inf->` stores
+  (one load each, reused as the ChkBufSiz arguments). `ret = MPV_GetPicAtr(); *result = ret; if (ret != 0)`.
+- **mwsfdcre**: `mwsfdcre_bufnum < 2 || mwsfdcre_bufsize < fsize || mwsfdcre_bufsize < fsize` (the size test
+  written twice -- a macro in the original) = the target's `blt fail; bge ok` off one compare (MallocRfb identical
+  with it). CalcYccSize: `Sint32 h16; Sint32 w16;` declared in that order with the assignments after (w16 = the
+  higher inlined-local id -> coloured first: w16 r10 / h16 r11 in MallocRfb, r6/r7 in CalcWorkSfd/CreateSfd).
+  CalcWorkSfd: `mode` is a block local of its own copy of the size macro, declared AFTER `bps` (bps r0, mode r4; a
+  function-level `mode` is coloured first whatever its position). MallocCompoWork: **hard-register pin** `register
+  MWPLY mwply; asm { mr r31, obj; mr mwply, r31 }` (COMPILER-DIFF M1) -- the parameter, a `void *` kept copy, and
+  every declaration order colour the .rodata pool base first (pool r31 / mwply r28); `register` + `asm { mr mwply,
+  obj }` alone does not rank it either.
+
+**Residues (exact class, all read off fdiff):**
+- sfd_mpv DecodePicAtr 197w (size -4): one extra callee-saved (ours r16-r31, target r17-r31): the target colours
+  `mask` r26 right after hn (level 3?) where ours has it at r21 after wk/prate/tmpref/d; the -1 inits are four `li`
+  in the target (pts lo/hi, d lo/hi) vs ours `li r25; mr r26, r25` for the range-split `@d = -1` copy (the split
+  copy's halves are CSE'd into a copy, pts's are not); `flag`'s zero shares the 64-bit compare's `li r5, 0` in the
+  target (flag = r5; ours `li r0` + `li r5`: the Sint32 0 and the Sint64 0 are not merged) and its valid test is
+  `bne ARM; b END` (an empty-else layout: `if (valid == 0) { flag = 0 (no code) } else {...}`) -- every spelling
+  (`== 0 {} else`, `!`, switch, goto, `flag = flag`) normalises to `beq END`. ChkBufSiz 181w: the target loads
+  `nfrm` (`lwz r11, 0x20(mpv)`) in the early slot where ours places `frm = mpv->frm` (`addi r30`) and its `frm`
+  later; the IR position of either assignment does not move the scheduler (nfrm as initialiser / statement / after
+  the geometry / repeated expression, frm late: all 181), a hard pin `asm { lwz r11, SFMPV_WORK.para.nfrm(mpv) }`
+  places the load but the geometry colours and the loop IVs (i r23 / frm r24 / rfb r25 vs ours r25/r23/r24) stay
+  (226w). ExecServerSub 17 / Destroy 6 / Create 8: the other agent's functions.
+- mwsfdcre CalcWorkSfd 15w: the size chain -- target `add r3 = vib + aib; addi r0 = +0x20; add r3 = +sjb; addi r0
+  = +0x840; add r0 += rfb/tab/adxib (in place); add r3 = +adxwk; addi r3 += 0x4800; add r3 = sib + r3` = two
+  alternating nodes; every spelling (13 `+=`, one expression, `size = size + c`, two variables, parenthesised
+  groups, `return sibsiz + size`) collapses into one node with the constants reassociated (`addi r6, r27, 0x860`),
+  and rfbsiz/tabsiz get r0/r4 (target r4/r5) because that single node is r3. Also `width/height` load order in
+  the FRMSIZ macro (target width first; swapping the declarations costs 2w elsewhere). CreateSofdec 97w: the target
+  has 9 callee-saved (npool r23 / sfdhn r24 / vfreq r25, lw r30 not reused) and 12 more frame bytes (an 8-byte
+  local at 0x20 never accessed); npool/vfreq load order, declaration orders and early loads do not change it; the
+  seven inlined mwSfdDestroy FreeAll loops then take r23-r25 instead of r27-r29. CreateSfd 297w: pool bases r30/r31
+  swapped (target rodata r31 / bss r30 / data r29; ours bss r31 / rodata r30) -- the pool temporaries are created at
+  the function start in a fixed order (data, rodata, bss in ours: `lis r120/r122/r124` in the initial code) that an
+  early rodata reference does not change; the extra `b` of the inlined IsUseAdxt (`case 4: break; default: break;`
+  gives one; `return TRUE` per case, a `ret` local, `ret = TRUE` init: 2 more words or worse); the rest is colouring.
