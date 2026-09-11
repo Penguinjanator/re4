@@ -1,13 +1,17 @@
 /* CRI Sofdec MPEG video: "unified" motion compensation front end (mpv_umc.c). Macroblocks are
  * built from the reference frame planes through the 8x8 (chroma) / 16x16 (luma) one-reference
  * kernels of mpv_mc.c / mpv_mcy.c and merged with the IDCT output into the word-packed output
- * frame; skipped macroblocks are copied from the reference. The paired-single merge kernels
- * (`mpvumc_PpicSkipMb`, `mpvumc_BiMakeMb`, `mpvumc_OneMakeMb`, `mpvumc_OutputIntra6blk`) are
- * transcribed as inline assembly (no C form reproduced them; the paired-single ones need the
- * scheduler ON to reproduce two swapped adjacent instructions, PpicSkipMb needs it off).
+ * frame; skipped macroblocks are copied from the reference (`mpvumc_PpicSkipMb`: C, unrolled
+ * double copies with `__dcbz`). The paired-single merge kernels (`mpvumc_BiMakeMb`,
+ * `mpvumc_OneMakeMb`, `mpvumc_OutputIntra6blk`) and the GQR setup are inline assembly: MWCC 2.4.7
+ * has no paired-single intrinsics (its `__vec2x32float__` operators emit only psq_lx/psq_stx
+ * through GQR0 and ps_add/sub/mul/madd; no quantised GQR, update forms, merges, ps_sel or mtspr),
+ * so their asm bodies stay (they need the scheduler ON for two swapped adjacent instructions).
+ * The wrappers set the output block pointers through `ob = &mpv->outblk` (assigned AFTER the read
+ * call, in the block of the stores: add-propagation folds the stores to `mpv` offsets and the
+ * `addi r4` definition stays where `ob` is assigned, before the `mr r3, wk` argument move).
  * OPEN: mpvumc_OneReadMb (the kernel selection by the motion vector) keeps the same operations
- * but a different schedule/registers; the Forward/Backward/BiDirect/Intra wrappers differ in the
- * argument register choices (M1). */
+ * but a different schedule/registers; MPVUMC_Intra differs in the temporaries' registers (16w). */
 #include "cri_xpt.h"
 #include "mpv.h"
 
@@ -27,14 +31,19 @@ typedef struct {
 	Uint8 *work2;              /* 0x0C the second prediction */
 } MPVUMC_WORK;
 
+/* the output blocks of the current macroblock: the coded count and the six block pointers */
+typedef struct {
+	Sint32 ccnt;               /* 0x00 */
+	MPVCMC_REF rt[6];          /* 0x04 */
+} MPVUMC_OUTBLK;
+
 typedef struct {
 	Uint8 pad0[0x40];
 	Uint8 *clip_base;          /* 0x040 */
 	Uint8 pad44[0xCC - 0x44];
 	Uint8 pad_mc[0x44];        /* 0x0CC MPVMC (its 0x44 kernel fields) */
 	MPVUMC_WORK mcwk;          /* 0x110 */
-	Sint32 ccnt_rt;            /* 0x120 */
-	MPVCMC_REF oi_rt[6];       /* 0x124 */
+	MPVUMC_OUTBLK outblk;      /* 0x120 */
 	Uint8 pad154[0x19C - 0x154];
 	Sint32 mcflag;             /* 0x19C cond[3] */
 	Uint8 pad1a0[0x1D0 - 0x1A0];
@@ -81,10 +90,10 @@ MPVUMC_MCFUNC mpvumc_oneref_y[2][2][2];
 static MPVUMC_MCFUNC mpvumc_oneref[2][2][2];
 
 void mpvumc_PpicSkipMb(Sint32 *ofs, MPVUMC_RFB *out, MPVUMC_RFB *ref);
-void mpvumc_BiMakeMb(MPVUMC_WORK *wk, MPVCMC_REF *oi_rt, Sint32 cbp);
-void mpvumc_OneMakeMb(MPVUMC_WORK *wk, MPVCMC_REF *oi_rt, Sint32 cbp);
+void mpvumc_BiMakeMb(MPVUMC_WORK *wk, MPVUMC_OUTBLK *ob, Sint32 cbp);
+void mpvumc_OneMakeMb(MPVUMC_WORK *wk, MPVUMC_OUTBLK *ob, Sint32 cbp);
 void mpvumc_OneReadMb(MPVUMC_OBJ *mpv, Uint8 *dst, Sint32 *ofs, MPVUMC_RFB *rfb, MPV_MV *mv);
-void mpvumc_OutputIntra6blk(Uint8 *blk, MPVCMC_REF *oi_rt, Uint8 *clip);
+void mpvumc_OutputIntra6blk(Uint8 *blk, MPVUMC_OUTBLK *ob, Uint8 *clip);
 
 /* B picture: `n` skipped macroblocks repeat the previous macroblock's prediction */
 void MPVUMC_BpicSkipped(MPVUMC_OBJ *mpv, Sint32 n)
@@ -112,371 +121,93 @@ void MPVUMC_BpicSkipped(MPVUMC_OBJ *mpv, Sint32 n)
 	}
 }
 
-#pragma scheduling off
-/* copy the macroblock at ofs[] (chroma, luma) from the reference to the output frame */
+/* two chroma rows (one double each) / one luma row (two doubles), with and without the cache-line clear */
+#define MPVUMC_CPY_C2Z(d, s, p)   __dcbz(d, 0); a = s[0]; __dcbz(d, (p) * 8); b = s[p]; s += (p) * 2; d[0] = a; d[p] = b; d += (p) * 2
+#define MPVUMC_CPY_C2(d, s, p)    a = s[0]; b = s[p]; s += (p) * 2; d[0] = a; d[p] = b; d += (p) * 2
+#define MPVUMC_CPY_YZ(d, s, p)    __dcbz(d, 0); a = s[0]; b = s[1]; s += (p); d[0] = a; d[1] = b; d += (p)
+#define MPVUMC_CPY_Y(d, s, p)     a = s[0]; b = s[1]; s += (p); d[0] = a; d[1] = b; d += (p)
+
+/* copy the macroblock at ofs[] (chroma, luma) from the reference to the output frame, two chroma rows /
+ * one luma row per step, with the cache-line clear when the offset is 32-byte aligned (`p` = the
+ * pitch in doubles, declared first: p r9 above d r10; `s` assigned before `d`; ofs[] re-read per
+ * plane; the scheduler ON interleaves the pitch shifts and swaps the last row's two loads) */
 void mpvumc_PpicSkipMb(Sint32 *ofs, MPVUMC_RFB *out, MPVUMC_RFB *ref)
 {
-	asm {
-		lwz r7, 0x0(r3)
-		lha r6, 0xc(r5)
-		clrlwi. r0, r7, 27
-		srawi r0, r6, 3
-		addze r9, r0
-		bne L_8020607C
-		lwz r0, 0x0(r5)
-		lwz r6, 0x0(r4)
-		add r10, r0, r7
-		add r6, r6, r7
-		dcbz r0, r10
-		slwi r7, r9, 3
-		lfd f0, 0x0(r6)
-		dcbz r10, r7
-		slwi r8, r9, 4
-		lfdx f1, r6, r7
-		add r6, r6, r8
-		stfd f0, 0x0(r10)
-		stfdx f1, r10, r7
-		add r10, r10, r8
-		dcbz r0, r10
-		lfd f0, 0x0(r6)
-		dcbz r10, r7
-		lfdx f1, r6, r7
-		add r6, r6, r8
-		stfd f0, 0x0(r10)
-		stfdx f1, r10, r7
-		add r10, r10, r8
-		dcbz r0, r10
-		lfd f0, 0x0(r6)
-		dcbz r10, r7
-		lfdx f1, r6, r7
-		add r6, r6, r8
-		stfd f0, 0x0(r10)
-		stfdx f1, r10, r7
-		add r10, r10, r8
-		dcbz r0, r10
-		lfd f0, 0x0(r6)
-		dcbz r10, r7
-		lfdx f1, r6, r7
-		stfd f0, 0x0(r10)
-		stfdx f1, r10, r7
-		lwz r6, 0x4(r4)
-		lwz r9, 0x0(r3)
-		lwz r0, 0x4(r5)
-		add r6, r6, r9
-		add r9, r0, r9
-		dcbz r0, r9
-		lfd f0, 0x0(r6)
-		dcbz r9, r7
-		lfdx f1, r6, r7
-		add r6, r6, r8
-		stfd f0, 0x0(r9)
-		stfdx f1, r9, r7
-		add r9, r9, r8
-		dcbz r0, r9
-		lfd f0, 0x0(r6)
-		dcbz r9, r7
-		lfdx f1, r6, r7
-		add r6, r6, r8
-		stfd f0, 0x0(r9)
-		stfdx f1, r9, r7
-		add r9, r9, r8
-		dcbz r0, r9
-		lfd f0, 0x0(r6)
-		dcbz r9, r7
-		lfdx f1, r6, r7
-		add r6, r6, r8
-		stfd f0, 0x0(r9)
-		stfdx f1, r9, r7
-		add r9, r9, r8
-		dcbz r0, r9
-		lfd f0, 0x0(r6)
-		dcbz r9, r7
-		lfdx f1, r6, r7
-		stfd f0, 0x0(r9)
-		stfdx f1, r9, r7
-		b L_80206158
-L_8020607C:
-		lwz r6, 0x0(r4)
-		slwi r8, r9, 3
-		lwz r0, 0x0(r5)
-		slwi r9, r9, 4
-		add r6, r6, r7
-		lfd f0, 0x0(r6)
-		add r7, r0, r7
-		lfdx f1, r6, r8
-		add r6, r6, r9
-		stfd f0, 0x0(r7)
-		stfdx f1, r7, r8
-		add r7, r7, r9
-		lfd f0, 0x0(r6)
-		lfdx f1, r6, r8
-		add r6, r6, r9
-		stfd f0, 0x0(r7)
-		stfdx f1, r7, r8
-		add r7, r7, r9
-		lfd f0, 0x0(r6)
-		lfdx f1, r6, r8
-		add r6, r6, r9
-		stfd f0, 0x0(r7)
-		stfdx f1, r7, r8
-		add r7, r7, r9
-		lfd f0, 0x0(r6)
-		lfdx f1, r6, r8
-		stfd f0, 0x0(r7)
-		stfdx f1, r7, r8
-		lwz r6, 0x4(r4)
-		lwz r7, 0x0(r3)
-		lwz r0, 0x4(r5)
-		add r6, r6, r7
-		lfd f0, 0x0(r6)
-		add r7, r0, r7
-		lfdx f1, r6, r8
-		add r6, r6, r9
-		stfd f0, 0x0(r7)
-		stfdx f1, r7, r8
-		add r7, r7, r9
-		lfd f0, 0x0(r6)
-		lfdx f1, r6, r8
-		add r6, r6, r9
-		stfd f0, 0x0(r7)
-		stfdx f1, r7, r8
-		add r7, r7, r9
-		lfd f0, 0x0(r6)
-		lfdx f1, r6, r8
-		add r6, r6, r9
-		stfd f0, 0x0(r7)
-		stfdx f1, r7, r8
-		add r7, r7, r9
-		lfdx f1, r6, r8
-		lfd f0, 0x0(r6)
-		stfd f0, 0x0(r7)
-		stfdx f1, r7, r8
-L_80206158:
-		lwz r6, 0x4(r3)
-		lha r3, 0xe(r5)
-		clrlwi. r0, r6, 27
-		srawi r0, r3, 3
-		addze r7, r0
-		bne L_80206340
-		lwz r3, 0x8(r4)
-		lwz r0, 0x8(r5)
-		add r3, r3, r6
-		add r4, r0, r6
-		dcbz r0, r4
-		slwi r0, r7, 3
-		lfd f0, 0x0(r3)
-		lfd f1, 0x8(r3)
-		add r3, r3, r0
-		stfd f0, 0x0(r4)
-		stfd f1, 0x8(r4)
-		add r4, r4, r0
-		dcbz r0, r4
-		lfd f0, 0x0(r3)
-		lfd f1, 0x8(r3)
-		add r3, r3, r0
-		stfd f0, 0x0(r4)
-		stfd f1, 0x8(r4)
-		add r4, r4, r0
-		dcbz r0, r4
-		lfd f0, 0x0(r3)
-		lfd f1, 0x8(r3)
-		add r3, r3, r0
-		stfd f0, 0x0(r4)
-		stfd f1, 0x8(r4)
-		add r4, r4, r0
-		dcbz r0, r4
-		lfd f0, 0x0(r3)
-		lfd f1, 0x8(r3)
-		add r3, r3, r0
-		stfd f0, 0x0(r4)
-		stfd f1, 0x8(r4)
-		add r4, r4, r0
-		dcbz r0, r4
-		lfd f0, 0x0(r3)
-		lfd f1, 0x8(r3)
-		add r3, r3, r0
-		stfd f0, 0x0(r4)
-		stfd f1, 0x8(r4)
-		add r4, r4, r0
-		dcbz r0, r4
-		lfd f0, 0x0(r3)
-		lfd f1, 0x8(r3)
-		add r3, r3, r0
-		stfd f0, 0x0(r4)
-		stfd f1, 0x8(r4)
-		add r4, r4, r0
-		dcbz r0, r4
-		lfd f0, 0x0(r3)
-		lfd f1, 0x8(r3)
-		add r3, r3, r0
-		stfd f0, 0x0(r4)
-		stfd f1, 0x8(r4)
-		add r4, r4, r0
-		dcbz r0, r4
-		lfd f0, 0x0(r3)
-		lfd f1, 0x8(r3)
-		add r3, r3, r0
-		stfd f0, 0x0(r4)
-		stfd f1, 0x8(r4)
-		add r4, r4, r0
-		dcbz r0, r4
-		lfd f0, 0x0(r3)
-		lfd f1, 0x8(r3)
-		add r3, r3, r0
-		stfd f0, 0x0(r4)
-		stfd f1, 0x8(r4)
-		add r4, r4, r0
-		dcbz r0, r4
-		lfd f0, 0x0(r3)
-		lfd f1, 0x8(r3)
-		add r3, r3, r0
-		stfd f0, 0x0(r4)
-		stfd f1, 0x8(r4)
-		add r4, r4, r0
-		dcbz r0, r4
-		lfd f0, 0x0(r3)
-		lfd f1, 0x8(r3)
-		add r3, r3, r0
-		stfd f0, 0x0(r4)
-		stfd f1, 0x8(r4)
-		add r4, r4, r0
-		dcbz r0, r4
-		lfd f0, 0x0(r3)
-		lfd f1, 0x8(r3)
-		add r3, r3, r0
-		stfd f0, 0x0(r4)
-		stfd f1, 0x8(r4)
-		add r4, r4, r0
-		dcbz r0, r4
-		lfd f0, 0x0(r3)
-		lfd f1, 0x8(r3)
-		add r3, r3, r0
-		stfd f0, 0x0(r4)
-		stfd f1, 0x8(r4)
-		add r4, r4, r0
-		dcbz r0, r4
-		lfd f0, 0x0(r3)
-		lfd f1, 0x8(r3)
-		add r3, r3, r0
-		stfd f0, 0x0(r4)
-		stfd f1, 0x8(r4)
-		add r4, r4, r0
-		dcbz r0, r4
-		lfd f0, 0x0(r3)
-		lfd f1, 0x8(r3)
-		add r3, r3, r0
-		stfd f0, 0x0(r4)
-		stfd f1, 0x8(r4)
-		add r4, r4, r0
-		dcbz r0, r4
-		lfd f1, 0x8(r3)
-		lfd f0, 0x0(r3)
-		stfd f0, 0x0(r4)
-		stfd f1, 0x8(r4)
-		blr
-L_80206340:
-		lwz r3, 0x8(r4)
-		slwi r4, r7, 3
-		lwz r0, 0x8(r5)
-		add r3, r3, r6
-		lfd f0, 0x0(r3)
-		add r5, r0, r6
-		lfd f1, 0x8(r3)
-		add r3, r3, r4
-		stfd f0, 0x0(r5)
-		stfd f1, 0x8(r5)
-		add r5, r5, r4
-		lfd f0, 0x0(r3)
-		lfd f1, 0x8(r3)
-		add r3, r3, r4
-		stfd f0, 0x0(r5)
-		stfd f1, 0x8(r5)
-		add r5, r5, r4
-		lfd f0, 0x0(r3)
-		lfd f1, 0x8(r3)
-		add r3, r3, r4
-		stfd f0, 0x0(r5)
-		stfd f1, 0x8(r5)
-		add r5, r5, r4
-		lfd f0, 0x0(r3)
-		lfd f1, 0x8(r3)
-		add r3, r3, r4
-		stfd f0, 0x0(r5)
-		stfd f1, 0x8(r5)
-		add r5, r5, r4
-		lfd f0, 0x0(r3)
-		lfd f1, 0x8(r3)
-		add r3, r3, r4
-		stfd f0, 0x0(r5)
-		stfd f1, 0x8(r5)
-		add r5, r5, r4
-		lfd f0, 0x0(r3)
-		lfd f1, 0x8(r3)
-		add r3, r3, r4
-		stfd f0, 0x0(r5)
-		stfd f1, 0x8(r5)
-		add r5, r5, r4
-		lfd f0, 0x0(r3)
-		lfd f1, 0x8(r3)
-		add r3, r3, r4
-		stfd f0, 0x0(r5)
-		stfd f1, 0x8(r5)
-		add r5, r5, r4
-		lfd f0, 0x0(r3)
-		lfd f1, 0x8(r3)
-		add r3, r3, r4
-		stfd f0, 0x0(r5)
-		stfd f1, 0x8(r5)
-		add r5, r5, r4
-		lfd f0, 0x0(r3)
-		lfd f1, 0x8(r3)
-		add r3, r3, r4
-		stfd f0, 0x0(r5)
-		stfd f1, 0x8(r5)
-		add r5, r5, r4
-		lfd f0, 0x0(r3)
-		lfd f1, 0x8(r3)
-		add r3, r3, r4
-		stfd f0, 0x0(r5)
-		stfd f1, 0x8(r5)
-		add r5, r5, r4
-		lfd f0, 0x0(r3)
-		lfd f1, 0x8(r3)
-		add r3, r3, r4
-		stfd f0, 0x0(r5)
-		stfd f1, 0x8(r5)
-		add r5, r5, r4
-		lfd f0, 0x0(r3)
-		lfd f1, 0x8(r3)
-		add r3, r3, r4
-		stfd f0, 0x0(r5)
-		stfd f1, 0x8(r5)
-		add r5, r5, r4
-		lfd f0, 0x0(r3)
-		lfd f1, 0x8(r3)
-		add r3, r3, r4
-		stfd f0, 0x0(r5)
-		stfd f1, 0x8(r5)
-		add r5, r5, r4
-		lfd f0, 0x0(r3)
-		lfd f1, 0x8(r3)
-		add r3, r3, r4
-		stfd f0, 0x0(r5)
-		stfd f1, 0x8(r5)
-		add r5, r5, r4
-		lfd f0, 0x0(r3)
-		lfd f1, 0x8(r3)
-		add r3, r3, r4
-		stfd f0, 0x0(r5)
-		stfd f1, 0x8(r5)
-		add r5, r5, r4
-		lfd f1, 0x8(r3)
-		lfd f0, 0x0(r3)
-		stfd f0, 0x0(r5)
-		stfd f1, 0x8(r5)
+	Sint32 p;
+	Float64 *s;
+	Float64 *d;
+	Float64 a;
+	Float64 b;
+
+	p = ref->cpitch / 8;
+	if ((ofs[0] & 0x1f) == 0) {
+		s = (Float64 *)(out->pln[0] + ofs[0]);
+		d = (Float64 *)(ref->pln[0] + ofs[0]);
+		MPVUMC_CPY_C2Z(d, s, p);
+		MPVUMC_CPY_C2Z(d, s, p);
+		MPVUMC_CPY_C2Z(d, s, p);
+		MPVUMC_CPY_C2Z(d, s, p);
+		s = (Float64 *)(out->pln[1] + ofs[0]);
+		d = (Float64 *)(ref->pln[1] + ofs[0]);
+		MPVUMC_CPY_C2Z(d, s, p);
+		MPVUMC_CPY_C2Z(d, s, p);
+		MPVUMC_CPY_C2Z(d, s, p);
+		MPVUMC_CPY_C2Z(d, s, p);
+	} else {
+		s = (Float64 *)(out->pln[0] + ofs[0]);
+		d = (Float64 *)(ref->pln[0] + ofs[0]);
+		MPVUMC_CPY_C2(d, s, p);
+		MPVUMC_CPY_C2(d, s, p);
+		MPVUMC_CPY_C2(d, s, p);
+		MPVUMC_CPY_C2(d, s, p);
+		s = (Float64 *)(out->pln[1] + ofs[0]);
+		d = (Float64 *)(ref->pln[1] + ofs[0]);
+		MPVUMC_CPY_C2(d, s, p);
+		MPVUMC_CPY_C2(d, s, p);
+		MPVUMC_CPY_C2(d, s, p);
+		MPVUMC_CPY_C2(d, s, p);
+	}
+	p = ref->ypitch / 8;
+	if ((ofs[1] & 0x1f) == 0) {
+		s = (Float64 *)(out->pln[2] + ofs[1]);
+		d = (Float64 *)(ref->pln[2] + ofs[1]);
+		MPVUMC_CPY_YZ(d, s, p);
+		MPVUMC_CPY_YZ(d, s, p);
+		MPVUMC_CPY_YZ(d, s, p);
+		MPVUMC_CPY_YZ(d, s, p);
+		MPVUMC_CPY_YZ(d, s, p);
+		MPVUMC_CPY_YZ(d, s, p);
+		MPVUMC_CPY_YZ(d, s, p);
+		MPVUMC_CPY_YZ(d, s, p);
+		MPVUMC_CPY_YZ(d, s, p);
+		MPVUMC_CPY_YZ(d, s, p);
+		MPVUMC_CPY_YZ(d, s, p);
+		MPVUMC_CPY_YZ(d, s, p);
+		MPVUMC_CPY_YZ(d, s, p);
+		MPVUMC_CPY_YZ(d, s, p);
+		MPVUMC_CPY_YZ(d, s, p);
+		MPVUMC_CPY_YZ(d, s, p);
+	} else {
+		s = (Float64 *)(out->pln[2] + ofs[1]);
+		d = (Float64 *)(ref->pln[2] + ofs[1]);
+		MPVUMC_CPY_Y(d, s, p);
+		MPVUMC_CPY_Y(d, s, p);
+		MPVUMC_CPY_Y(d, s, p);
+		MPVUMC_CPY_Y(d, s, p);
+		MPVUMC_CPY_Y(d, s, p);
+		MPVUMC_CPY_Y(d, s, p);
+		MPVUMC_CPY_Y(d, s, p);
+		MPVUMC_CPY_Y(d, s, p);
+		MPVUMC_CPY_Y(d, s, p);
+		MPVUMC_CPY_Y(d, s, p);
+		MPVUMC_CPY_Y(d, s, p);
+		MPVUMC_CPY_Y(d, s, p);
+		MPVUMC_CPY_Y(d, s, p);
+		MPVUMC_CPY_Y(d, s, p);
+		MPVUMC_CPY_Y(d, s, p);
+		MPVUMC_CPY_Y(d, s, p);
 	}
 }
-#pragma scheduling on
 
 /* P picture: `n` skipped macroblocks are copied from the reference frame */
 void MPVUMC_PpicSkipped(MPVUMC_OBJ *mpv, Sint32 n)
@@ -515,7 +246,7 @@ void MPVUMC_PpicSkipped(MPVUMC_OBJ *mpv, Sint32 n)
 }
 
 /* average the two predictions in oi[] with the IDCT blocks into the output blocks oi_rt[] */
-void mpvumc_BiMakeMb(MPVUMC_WORK *wk, MPVCMC_REF *oi_rt, Sint32 cbp)
+void mpvumc_BiMakeMb(MPVUMC_WORK *wk, MPVUMC_OUTBLK *ob, Sint32 cbp)
 {
 	asm {
 		lis r6, mpvumc_ps_one@ha
@@ -784,7 +515,7 @@ L_802069D8:
 }
 
 /* add the IDCT blocks to the prediction in oi[] into the output blocks oi_rt[] */
-void mpvumc_OneMakeMb(MPVUMC_WORK *wk, MPVCMC_REF *oi_rt, Sint32 cbp)
+void mpvumc_OneMakeMb(MPVUMC_WORK *wk, MPVUMC_OUTBLK *ob, Sint32 cbp)
 {
 	asm {
 		lwz r6, 0x4(r3)
@@ -958,28 +689,32 @@ L_80206C54:
 
 /* one reference's prediction of the macroblock into dst (two 8x8 chroma blocks, one 16x16 luma
  * block) through the half-pel kernels selected by the motion vector; ofs[] receives the
- * macroblock's chroma/luma offsets in the frame */
+ * macroblock's chroma/luma offsets in the frame. Declaration order = the target's callee-saved
+ * order (cpitch r31 .. fn_y r25; the two-definition chx/yhx are computed before the first call).
+ * OPEN 72w: the target's `vx & 1` of yhx is not CSE'd with the kernel index (yhx one node in
+ * r24 above chx r23 / rfb r22 / dst r21); ours shares it and range-splits yhx below the
+ * parameters (r21). */
 void mpvumc_OneReadMb(MPVUMC_OBJ *mpv, Uint8 *dst, Sint32 *ofs, MPVUMC_RFB *rfb, MPV_MV *mv)
 {
-	MPVMC *mc = (MPVMC *)mpv->pad_mc;
-	MPVUMC_MCFUNC (*tbl_y)[2];
-	MPVUMC_MCFUNC (*tbl_c)[2];
-	MPVUMC_MCFUNC fn_y;
-	MPVUMC_MCFUNC fn_c;
-	Sint32 mcflag;
 	Sint32 cpitch;
 	Sint32 ypitch;
-	Sint32 mbx;
-	Sint32 mby;
-	Sint32 vx;
-	Sint32 vy;
-	Sint32 cvx;
-	Sint32 cvy;
 	Sint32 cpos;
 	Sint32 ypos;
-	Sint32 chx;
+	MPVMC *mc = (MPVMC *)mpv->pad_mc;
+	MPVUMC_MCFUNC fn_c;
+	MPVUMC_MCFUNC fn_y;
 	Sint32 yhx;
+	Sint32 chx;
 	Uint8 *src;
+	Sint32 cvy;
+	Sint32 cvx;
+	Sint32 vy;
+	Sint32 vx;
+	Sint32 mby;
+	Sint32 mbx;
+	MPVUMC_MCFUNC (*tbl_c)[2];
+	MPVUMC_MCFUNC (*tbl_y)[2];
+	Sint32 mcflag;
 
 	mby = mpv->mb_y;
 	cpitch = rfb->cpitch;
@@ -996,8 +731,10 @@ void mpvumc_OneReadMb(MPVUMC_OBJ *mpv, Uint8 *dst, Sint32 *ofs, MPVUMC_RFB *rfb,
 	cvy = vy / 2;
 	fn_y = tbl_y[vy & 1][vx & 1];
 	fn_c = tbl_c[cvy & 1][cvx & 1];
-	chx = (cvx & 1) & mcflag;
-	yhx = (vx & 1) & mcflag;
+	chx = cvx & 1;
+	yhx = vx & 1;
+	chx &= mcflag;
+	yhx &= mcflag;
 	cpos = ofs[0] + (cvy >> 1) * cpitch + (cvx >> 1);
 	ypos = ofs[1] + (vy >> 1) * ypitch + (vx >> 1);
 	mc->stride = cpitch;
@@ -1020,49 +757,55 @@ void mpvumc_OneReadMb(MPVUMC_OBJ *mpv, Uint8 *dst, Sint32 *ofs, MPVUMC_RFB *rfb,
 }
 
 /* the output block pointers of the current macroblock (two chroma blocks, four luma blocks) */
-#define MPVUMC_SET_OUT_BLOCKS(mpv, cofs, yofs, ypitch)                                         \
-	(mpv)->oi_rt[0].p = (mpv)->out_pln[0] + (cofs);                                        \
-	(mpv)->oi_rt[1].p = (mpv)->out_pln[1] + (cofs);                                        \
-	(mpv)->oi_rt[2].p = (mpv)->out_pln[2] + (yofs);                                        \
-	(mpv)->oi_rt[3].p = (Uint8 *)(mpv)->oi_rt[2].p + 8;                                    \
-	(mpv)->oi_rt[4].p = (Uint8 *)(mpv)->oi_rt[2].p + (ypitch) * 8;                         \
-	(mpv)->oi_rt[5].p = (Uint8 *)(mpv)->oi_rt[4].p + 8
+#define MPVUMC_SET_OUT_BLOCKS(mpv, ob, cofs, yofs, ypitch)                                     \
+	(ob)->rt[0].p = (mpv)->out_pln[0] + (cofs);                                            \
+	(ob)->rt[1].p = (mpv)->out_pln[1] + (cofs);                                            \
+	(ob)->rt[2].p = (mpv)->out_pln[2] + (yofs);                                            \
+	(ob)->rt[3].p = (Uint8 *)(ob)->rt[2].p + 8;                                            \
+	(ob)->rt[4].p = (Uint8 *)(ob)->rt[2].p + (ypitch) * 8;                                 \
+	(ob)->rt[5].p = (Uint8 *)(ob)->rt[4].p + 8
 
 void MPVUMC_BiDirect(MPVUMC_OBJ *mpv)
 {
 	Sint32 ofs[2];
 	MPVUMC_RFB *out = &mpv->out;
 	MPVUMC_WORK *wk = &mpv->mcwk;
+	MPVUMC_OUTBLK *ob;
 
 	mpvumc_OneReadMb(mpv, mpv->mcwk.work, ofs, out, &mpv->fwd);
 	mpvumc_OneReadMb(mpv, wk->work2, ofs, out + 1, &mpv->bwd);
-	MPVUMC_SET_OUT_BLOCKS(mpv, ofs[0], ofs[1], mpv->out_ypitch);
-	mpvumc_BiMakeMb(wk, (MPVCMC_REF *)&mpv->ccnt_rt, mpv->cbp_code);
+	ob = &mpv->outblk;
+	MPVUMC_SET_OUT_BLOCKS(mpv, ob, ofs[0], ofs[1], mpv->out_ypitch);
+	mpvumc_BiMakeMb(wk, ob, mpv->cbp_code);
 }
 
 void MPVUMC_Backward(MPVUMC_OBJ *mpv)
 {
 	Sint32 ofs[2];
 	MPVUMC_WORK *wk = &mpv->mcwk;
+	MPVUMC_OUTBLK *ob;
 
 	mpvumc_OneReadMb(mpv, wk->work, ofs, &mpv->ref, &mpv->bwd);
-	MPVUMC_SET_OUT_BLOCKS(mpv, ofs[0], ofs[1], mpv->out_ypitch);
-	mpvumc_OneMakeMb(wk, (MPVCMC_REF *)&mpv->ccnt_rt, mpv->cbp_code);
+	ob = &mpv->outblk;
+	MPVUMC_SET_OUT_BLOCKS(mpv, ob, ofs[0], ofs[1], mpv->out_ypitch);
+	mpvumc_OneMakeMb(wk, ob, mpv->cbp_code);
 }
 
 void MPVUMC_Forward(MPVUMC_OBJ *mpv)
 {
 	Sint32 ofs[2];
 	MPVUMC_WORK *wk = &mpv->mcwk;
+	MPVUMC_OUTBLK *ob;
 
 	mpvumc_OneReadMb(mpv, wk->work, ofs, &mpv->out, &mpv->fwd);
-	MPVUMC_SET_OUT_BLOCKS(mpv, ofs[0], ofs[1], mpv->out_ypitch);
-	mpvumc_OneMakeMb(wk, (MPVCMC_REF *)&mpv->ccnt_rt, mpv->cbp_code);
+	ob = &mpv->outblk;
+	MPVUMC_SET_OUT_BLOCKS(mpv, ob, ofs[0], ofs[1], mpv->out_ypitch);
+	mpvumc_OneMakeMb(wk, ob, mpv->cbp_code);
 }
 
 /* clip the six IDCT blocks of an intra macroblock into the output blocks oi_rt[] (`addi r5, 0, 6`
  * instead of `li`: the inline assembler hoists an `li` above the preceding independent `addi`) */
-void mpvumc_OutputIntra6blk(Uint8 *blk, MPVCMC_REF *oi_rt, Uint8 *clip)
+void mpvumc_OutputIntra6blk(Uint8 *blk, MPVUMC_OUTBLK *ob, Uint8 *clip)
 {
 	asm {
 		addi r4, r4, 0x4
@@ -1174,14 +917,16 @@ void MPVUMC_Intra(MPVUMC_OBJ *mpv)
 	Sint32 ypitch;
 	Sint32 y8;
 	Sint32 y16;
+	MPVUMC_OUTBLK *ob;
 
 	y8 = mpv->mb_y * 8;
 	y16 = mpv->mb_y * 16;
 	cofs = mpv->mb_x * 8 + y8 * mpv->out_cpitch;
 	ypitch = mpv->out_ypitch;
 	yofs = mpv->mb_x * 16 + y16 * ypitch;
-	MPVUMC_SET_OUT_BLOCKS(mpv, cofs, yofs, ypitch);
-	mpvumc_OutputIntra6blk(mpv->mcbuf, (MPVCMC_REF *)&mpv->ccnt_rt, mpv->clip_base);
+	ob = &mpv->outblk;
+	MPVUMC_SET_OUT_BLOCKS(mpv, ob, cofs, yofs, ypitch);
+	mpvumc_OutputIntra6blk(mpv->mcbuf, ob, mpv->clip_base);
 }
 
 /* GQR3: 8-bit unsigned loads/stores, GQR4: 16-bit signed (scale 0), GQR5: 8-bit unsigned with

@@ -445,6 +445,12 @@ static void seAtAreaEdit_DataInput()
     int n;
     int num;
 
+    // `num = 6` HERE, not at the loop: cse1's ebb from the arms' join does not know it, so the name loop's
+    // entry test `0 < num` survives gcse (the (u8) col mask is then not anticipated at the loop entry and stays
+    // in the body); gcse's cprop gives the compare its 6 and cse2 folds the test away. `v` is one
+    // function-scope variable for every case (it conflicts with the kept Joy pointer r9 of cases 1-4, so
+    // case 0's `lwz v` lands in r11 too); `n` is per-arm (ties to the dying v without a `mr`).
+    num = 6;
     if (pW->input == 0) {
         if (Joy[0].trg & JOY_DOWN) {
             pW->inputCursor++;
@@ -453,10 +459,18 @@ static void seAtAreaEdit_DataInput()
             pW->inputCursor--;
             pW->flagCursor = 0;
         }
-        if (pW->inputCursor >= 0) {
-            if (pW->inputCursor > 5) pW->inputCursor = 5;
-        } else {
-            pW->inputCursor = 0;
+        // cursor clamps: one pointer local, one store at the join. The store then shares the sched2 block with
+        // `col = 0` (anti-dependence on the pointer's r9 ranks the store above the next `lis r9`, and `li col,0`
+        // fills the second issue slot before it); the two-store form cross-jumps the stores behind a label.
+        {
+            SeAtWork* w = pW;
+            int c = w->inputCursor;
+            if (c >= 0) {
+                if (c > 5) c = 5;
+            } else {
+                c = 0;
+            }
+            w->inputCursor = c;
         }
         col = 0;
         if (pW->frame & 0x18) {
@@ -469,9 +483,6 @@ static void seAtAreaEdit_DataInput()
     // int col + (u8) casts: the original masks the colour at every eprintf (`clrlwi r5,col,24`; the tail's
     // first mask is PRE-shared as `mr col,r5`), a promoted u8 would pass unmasked. The name loops use the
     // `j * 16` giv (init `li 0` issued last in the preheader, after gcse's inserts).
-    // COMPILER-DIFF: 3 (gcse PRE hoists the (u8) col extension out of the name loop; the target keeps it in the body)
-    asm("" : "+r"(col));
-    num = 6;
     for (j = 0; j < num; j++) {
         eprintf(pW->x, pW->y + j * 16, (u8) col, 0, "%s", seAtInputName[j]);
     }
@@ -492,7 +503,7 @@ static void seAtAreaEdit_DataInput()
         if (pW->step == 0) {
             // cases 1-4 clamp through per-arm `v`/`n` locals (block-local qtys: n ties to the dying v,
             // `ori r11,r11,0x8000` without the `mr`); case 0 keeps the function-scope pair (`mr r0,r11`)
-            int v, n;
+            int n;
             v = pCur->se_no;
             SEAT_STEP(v);
             if (v >= 0) {
@@ -508,7 +519,7 @@ static void seAtAreaEdit_DataInput()
     case 2:
         switch (pW->step) {
         case 0: {
-            int v, n;
+            int n;
             pW->input = 0;
             v = pCur->interval;
             SEAT_STEP(v);
@@ -534,17 +545,22 @@ static void seAtAreaEdit_DataInput()
             }
             if (Joy[0].trg & JOY_DOWN) pW->rndCursor++;
             else if (Joy[0].trg & JOY_UP) pW->rndCursor--;
-            if (pW->rndCursor >= 0) {
-                if (pW->rndCursor > 1) pW->rndCursor = 1;
-            } else {
-                pW->rndCursor = 0;
+            {
+                SeAtWork* w = pW;
+                int c = w->rndCursor;
+                if (c >= 0) {
+                    if (c > 1) c = 1;
+                } else {
+                    c = 0;
+                }
+                w->rndCursor = c;
             }
             if (pW->frame & 0x18) {
                 eprintf(0x30, 0xF0 + pW->rndCursor * 16, 0, 0, ">");
             }
             switch (pW->rndCursor) {
             case 0: {
-                int v, n;
+                int n;
                 v = pCur->rnd_base;
                 SEAT_STEP(v);
                 if (v >= 0) {
@@ -558,7 +574,7 @@ static void seAtAreaEdit_DataInput()
                 break;
             }
             case 1: {
-                int v, n;
+                int n;
                 v = pCur->rnd_range;
                 SEAT_STEP(v);
                 if (v > 0) {
@@ -579,7 +595,7 @@ static void seAtAreaEdit_DataInput()
         }
         break;
     case 3: {
-        int v, n;
+        int n;
         v = pCur->wait;
         SEAT_STEP(v);
         if (v >= 0) {
@@ -593,7 +609,7 @@ static void seAtAreaEdit_DataInput()
         break;
     }
     case 4: {
-        int v, n;
+        int n;
         v = pCur->repeat;
         SEAT_STEP(v);
         if (v >= -1) {
@@ -611,10 +627,15 @@ static void seAtAreaEdit_DataInput()
         y = pW->y + 0x50;
         if (Joy[0].rep & REP_RIGHT) pW->flagCursor--;
         if (Joy[0].rep & REP_LEFT) pW->flagCursor++;
-        if (pW->flagCursor >= 0) {
-            if (pW->flagCursor > 15) pW->flagCursor = 15;
-        } else {
-            pW->flagCursor = 0;
+        {
+            SeAtWork* w = pW;
+            int c = w->flagCursor;
+            if (c >= 0) {
+                if (c > 15) c = 15;
+            } else {
+                c = 0;
+            }
+            w->flagCursor = c;
         }
         for (i = 0; i < 16; i++) {
             eprintf(x + i * 8, y, (pW->flagCursor == 15 - i) ? 4 : 0, 0, "%d", (pCur->flags2 >> (15 - i)) & 1);

@@ -763,6 +763,7 @@ MATCHING = {
     "t_movie/t_prim.cpp": True,
     "t_movie/t_movie.cpp": True,
     "t_movie/db_light.cpp": True,
+    "t_movie/t_se_at.cpp": True,
     "t_event/db_filelist.cpp": True,
     "t_sce/db_filelist.cpp": True,
     "t_id/db_path.cpp": True,

@@ -1195,6 +1195,10 @@ u32 GetWepTargetList(Vec* box, Vec* pos, WepTarget* list, u32 max, int flag)
                 worst = j;
             }
         }
+        // The replacement stores are written in BOTH arms (jump2 cross-jumps them into one tail):
+        // with a single tail after the join, the tail's `worst * 8` is a gcse recomputation whose
+        // copy from the first `slwi` survives as `mr r10,r0` (the first `slwi` is block-local and
+        // local-alloc gives it r0, which the `stwx` index cannot use).
         wp = WEP_LIST(worst);
         if (wp->part->dist <= 250000.0f) {
             if (part->dist > 250000.0f) {
@@ -1203,15 +1207,17 @@ u32 GetWepTargetList(Vec* box, Vec* pos, WepTarget* list, u32 max, int flag)
             if (wp->part->rad < part->rad) {
                 continue;
             }
+            wp->part = part;
+            WEP_LIST(worst)->em = em;
         } else {
             if (part->dist <= 250000.0f) {
                 if (wp->part->dist < part->dist) {
                     continue;
                 }
             }
+            wp->part = part;
+            WEP_LIST(worst)->em = em;
         }
-        wp->part = part;
-        WEP_LIST(worst)->em = em;
         } while (++i < EmMgr.nArray);
     }
     return cnt;
@@ -1237,7 +1243,7 @@ u32 GetWepTargetList2(Vec* p0, Vec* p1, WepTarget* list, u32 max, Vec* hit, Vec*
     EmHitInfo* bestPart;
     EmHitInfo* part;
     cModel* parts;
-    cEm* em2;
+    cEm* em;  // one variable for both scans and the sort swap (r31 throughout); `i` is the sort's outer counter too
     EmHitInfo* part2;
 
     mask = 0;
@@ -1273,7 +1279,7 @@ u32 GetWepTargetList2(Vec* p0, Vec* p1, WepTarget* list, u32 max, Vec* hit, Vec*
     i = 0;
     if (i < (int) EmMgr.nArray) {
         do {
-        cEm* em = emWork(i);
+        em = emWork(i);
 
         if ((em->be_flag & 0x201) != 1) {
             continue;
@@ -1335,7 +1341,7 @@ u32 GetWepTargetList2(Vec* p0, Vec* p1, WepTarget* list, u32 max, Vec* hit, Vec*
     i = 0;
     if (i < (int) EmMgr.nArray) {
         do {
-        cEm* em = emWork(i);
+        em = emWork(i);
 
         if (!(em->be_flag & 1)) {
             continue;
@@ -1424,15 +1430,15 @@ u32 GetWepTargetList2(Vec* p0, Vec* p1, WepTarget* list, u32 max, Vec* hit, Vec*
         }
         } while (++i < (int) EmMgr.nArray);
     }
-    for (k = 0; k < (int) cnt - 1; k++) {
-        for (j = k + 1; j < (int) cnt; j++) {
-            if (list[k].part->rad > list[j].part->rad) {
-                em2 = list[k].em;
-                part2 = list[k].part;
-                list[k].part = list[j].part;
-                list[k].em = list[j].em;
+    for (i = 0; i < (int) cnt - 1; i++) {
+        for (j = i + 1; j < (int) cnt; j++) {
+            if (list[i].part->rad > list[j].part->rad) {
+                em = list[i].em;
+                part2 = list[i].part;
+                list[i].part = list[j].part;
+                list[i].em = list[j].em;
                 list[j].part = part2;
-                list[j].em = em2;
+                list[j].em = em;
             }
         }
     }
@@ -1467,7 +1473,7 @@ int GetWepTargetListBomb(Vec* pos, f32 r, WepTarget* list, int max, int type, in
     f32 r2;
     EmHitInfo* part;
     cModel* parts;
-    cEm* em2;
+    cEm* em;  // one variable for the scan and the sort swap (r24 in both loops)
     EmHitInfo* part2;
 
     switch (type) {
@@ -1484,7 +1490,7 @@ int GetWepTargetListBomb(Vec* pos, f32 r, WepTarget* list, int max, int type, in
     i = 0;
     if (i < (int) EmMgr.nArray) {
         do {
-        cEm* em = emWork(i);
+        em = emWork(i);
 
         if (!(em->be_flag & 1)) {
             continue;
@@ -1609,12 +1615,12 @@ int GetWepTargetListBomb(Vec* pos, f32 r, WepTarget* list, int max, int type, in
     for (i = 0; i < cnt - 1; i++) {
         for (j = i + 1; j < cnt; j++) {
             if (list[i].part->rad > list[j].part->rad) {
-                em2 = list[i].em;
+                em = list[i].em;
                 part2 = list[i].part;
                 list[i].part = list[j].part;
                 list[i].em = list[j].em;
                 list[j].part = part2;
-                list[j].em = em2;
+                list[j].em = em;
             }
         }
     }
@@ -2691,12 +2697,11 @@ void GetDropBullet(int* id, int* num)
         r = Rnd() % 100;
         if (r <= 0x27) {
             *id = i;
-            if (Rnd() % 10 <= 6) {
-                n = 10;
+            if (Rnd() % 10 > 6) {
+                *num = 15;
             } else {
-                n = 15;
+                *num = 10;
             }
-            *num = n;
             return;
         }
         if (r <= 0x59) {
@@ -2714,6 +2719,9 @@ void GetDropBullet(int* id, int* num)
         } else {
             i = 1;
         }
+        *id = i;
+        *num = n;
+        return;
     } else if (pG->flags_54 & 0x40000000) {
         r = Rnd() % 100;
         switch (pG->x4FB8) {
@@ -2726,13 +2734,13 @@ void GetDropBullet(int* id, int* num)
             }
             if (r <= 0x59) {
                 i = 0x18;
-                if ((Rnd() & 0xF) == 5) {
-                    n = 0;
-                } else {
+                if ((Rnd() & 0xF) != 5) {
                     n = 5;
                     if (Rnd() % 10 > 4) {
                         n = 3;
                     }
+                } else {
+                    n = 0;
                 }
             } else {
                 i = 1;
@@ -2788,8 +2796,8 @@ void GetDropBullet(int* id, int* num)
             }
             if (r <= 0x45) {
                 i = 0;
-                *id = i;
                 n = (Rnd() % 10 <= 7) ? 2 : 0;
+                *id = i;
                 *num = n;
             }
             if (r <= 0x4F) {
@@ -2816,6 +2824,9 @@ void GetDropBullet(int* id, int* num)
             }
             break;
         }
+        *id = i;
+        *num = n;
+        return;
     } else {
         total = ItemMgr.bulletNumTotal(4);
         r = Rnd() % 100;
@@ -2824,15 +2835,17 @@ void GetDropBullet(int* id, int* num)
                 if (ItemMgr.num(0x2C) || ItemMgr.num(0x2D) || ItemMgr.num(0x94)) {
                     if (Rnd() % 10 > 4) {
                         i = 0x18;
-                        if ((Rnd() & 0xF) == 5) {
-                            n = 0;
-                        } else {
+                        if ((Rnd() & 0xF) != 5) {
                             n = 5;
                             if (Rnd() % 10 > 4) {
                                 n = 3;
                             }
+                        } else {
+                            n = 0;
                         }
-                        goto set;
+                        *id = i;
+                        *num = n;
+                        return;
                     }
                 }
             }
@@ -2844,15 +2857,17 @@ void GetDropBullet(int* id, int* num)
         if (r <= 0x13) {
             if (ItemMgr.num(0x2C) || ItemMgr.num(0x2D) || ItemMgr.num(0x94)) {
                 i = 0x18;
-                if ((Rnd() & 0xF) == 5) {
-                    n = 0;
-                } else {
+                if ((Rnd() & 0xF) != 5) {
                     n = 5;
                     if (Rnd() % 10 > 4) {
                         n = 3;
                     }
+                } else {
+                    n = 0;
                 }
-                goto set;
+                *id = i;
+                *num = n;
+                return;
             }
         }
         if ((u32) (r - 0x14) <= 0x13) {
@@ -2862,7 +2877,9 @@ void GetDropBullet(int* id, int* num)
                 if (Rnd() % 10 > 7) {
                     n = 0;
                 }
-                goto set;
+                *id = i;
+                *num = n;
+                return;
             }
         }
         if ((u32) (r - 0x28) <= 0x13) {
@@ -2873,40 +2890,48 @@ void GetDropBullet(int* id, int* num)
                 if (Rnd() % 10 > 5) {
                     n = 0;
                 }
-                goto set;
+                *id = i;
+                *num = n;
+                return;
             }
         }
         if ((u32) (r - 0x3C) <= 0x13) {
             if (ItemMgr.num(0x37)) {
                 if (Rnd() % 10 > 1) {
-                    *id = 0x1A;
-                    *num = (Rnd() % 10 <= 7) ? 2 : 0;
+                    i = 0x1A;
+                    n = (Rnd() % 10 <= 7) ? 2 : 0;
+                    *id = i;
+                    *num = n;
                     return;
                 }
             }
             if (ItemMgr.num(0x29) || ItemMgr.num(0x2A) || ItemMgr.num(0x2B)) {
-                *id = 0;
-                *num = (Rnd() % 10 <= 7) ? 2 : 0;
+                i = 0;
+                n = (Rnd() % 10 <= 7) ? 2 : 0;
+                *id = i;
+                *num = n;
                 return;
             }
         }
         if ((u32) (r - 0x50) <= 9) {
             if (ItemMgr.num(0x36) || ItemMgr.num(0xAB)) {
-                *id = 0x46;
-                *num = (Rnd() % 10 <= 7) ? 2 : 0;
+                i = 0x46;
+                n = (Rnd() % 10 <= 7) ? 2 : 0;
+                *id = i;
+                *num = n;
                 return;
             }
         }
         if ((u32) (r - 0x5A) <= 9) {
             switch (Rnd() % 3) {
+            default:
+                i = 1;
+                break;
             case 1:
                 i = 2;
                 break;
             case 2:
                 i = 0xE;
-                break;
-            default:
-                i = 1;
                 break;
             }
             *id = i;
@@ -2916,15 +2941,17 @@ void GetDropBullet(int* id, int* num)
         if (ItemMgr.num(0x2C) || ItemMgr.num(0x2D) || ItemMgr.num(0x94)) {
             if (Rnd() % 10 > 2) {
                 i = 0x18;
-                if ((Rnd() & 0xF) == 5) {
-                    n = 0;
-                } else {
+                if ((Rnd() & 0xF) != 5) {
                     n = 5;
                     if (Rnd() % 10 > 4) {
                         n = 3;
                     }
+                } else {
+                    n = 0;
                 }
-                goto set;
+                *id = i;
+                *num = n;
+                return;
             }
         }
         if (ItemMgr.num(0x30) || ItemMgr.num(0x31) || ItemMgr.num(0x32) || ItemMgr.num(0x32) || ItemMgr.num(0x33) ||
@@ -2935,7 +2962,9 @@ void GetDropBullet(int* id, int* num)
                 if (Rnd() % 10 > 5) {
                     n = 0;
                 }
-                goto set;
+                *id = i;
+                *num = n;
+                return;
             }
         }
         if (ItemMgr.num(0x2E) || ItemMgr.num(0x2F)) {
@@ -2945,42 +2974,50 @@ void GetDropBullet(int* id, int* num)
                 if (Rnd() % 10 > 7) {
                     n = 0;
                 }
-                goto set;
+                *id = i;
+                *num = n;
+                return;
             }
         }
         if (ItemMgr.num(0x36)) {
             if (Rnd() % 10 > 4) {
-                *id = 0x46;
-                *num = (Rnd() % 10 <= 7) ? 4 : 0;
+                i = 0x46;
+                n = (Rnd() % 10 <= 7) ? 4 : 0;
+                *id = i;
+                *num = n;
                 return;
             }
         }
         if (ItemMgr.num(0x29) || ItemMgr.num(0x2A) || ItemMgr.num(0x2B) || ItemMgr.num(0x37)) {
             if (ItemMgr.num(0x37)) {
                 if (Rnd() % 10 > 4) {
-                    *id = 0x1A;
-                    *num = (Rnd() % 10 <= 7) ? 2 : 0;
+                    i = 0x1A;
+                    n = (Rnd() % 10 <= 7) ? 2 : 0;
+                    *id = i;
+                    *num = n;
                     return;
                 }
             }
             if (ItemMgr.num(0x29) || ItemMgr.num(0x2A) || ItemMgr.num(0x2B)) {
                 if (Rnd() % 10 > 4) {
-                    *id = 0;
-                    *num = (Rnd() % 10 <= 7) ? 2 : 0;
+                    i = 0;
+                    n = (Rnd() % 10 <= 7) ? 2 : 0;
+                    *id = i;
+                    *num = n;
                     return;
                 }
             }
         }
         if (Rnd() % 10 > 7) {
             switch (Rnd() % 3) {
+            default:
+                i = 1;
+                break;
             case 1:
                 i = 2;
                 break;
             case 2:
                 i = 0xE;
-                break;
-            default:
-                i = 1;
                 break;
             }
             *id = i;
@@ -2994,11 +3031,7 @@ void GetDropBullet(int* id, int* num)
         } else {
             *num = 0;
         }
-        return;
     }
-set:
-    *id = i;
-    *num = n;
 }
 
 // Healing score of the inventory: herbs and sprays, the first aid spray counting double.

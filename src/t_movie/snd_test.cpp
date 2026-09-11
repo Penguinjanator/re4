@@ -1337,13 +1337,14 @@ void disp_str_status(SndTestWork* w, int x, int y)
     }
 }
 
-// sequencer voices playing MIDI channel `ch`; the voice array's address is read from a .rodata word
-// (a const pointer object emitted after the "%3d" format the call passes before it)
-static inline int seq_note_count(int ch)
+// sequencer voices playing MIDI channel `ch`. `work` is a reference to the caller's `const` pointer
+// local: taking the address of a folded const scalar (`&voices`, DECL_RTL never made) forces its
+// initializer into the constant pool (expr.c ADDR_EXPR -> force_const_mem), which is the `.4byte
+// Snd_voice_work` word at the end of disp_sequencer's pool that the loop preheader reads with
+// `lis; addi; lwz 0()`.
+static inline int seq_note_count(int ch, SND_VOICE_WORK* const& work)
 {
-    // Original: the Snd_voice_work address pseudo is spilled and reloaded from a constant-pool
-    // word (lis/addi/lwz 0) at the end of this function's pool; our reload rematerialises it.
-    SND_VOICE_WORK* vw = Snd_voice_work;
+    SND_VOICE_WORK* vw = work;
     int notes = 0;
     int i;
 
@@ -1382,12 +1383,13 @@ void disp_sequencer()
     eprintf(0x18, 0x118, 0, 1, "AUX B    :");
     for (ch = 0; ch < 16; ch++) {
         int x = 0x70 + ch * 0x18;
+        SND_VOICE_WORK* const voices = Snd_voice_work;
 
         eprintf2(6, 13, x, 0x54, 0, 1, "%03d", ch);
         if (seq->ch_flag[ch] & 1) {
             eprintf2(6, 13, x, 0x54, 4, 1, "D");
         }
-        eprintf2(6, 13, x, 0x62, 0, 1, "%3d", seq_note_count(ch));
+        eprintf2(6, 13, x, 0x62, 0, 1, "%3d", seq_note_count(ch, voices));
         eprintf2(6, 13, x, 0x70, 0, 1, "%3d", seq->ch_prio[ch]);
         eprintf2(6, 13, x, 0x7E, 0, 1, "%3d", seq->ch_prog[ch] + 1);
         eprintf2(6, 13, x, 0x8C, 0, 1, "%3d", (s8) seq->ch_vol[ch]);

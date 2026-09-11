@@ -19274,3 +19274,301 @@ fd.py for a variant object).
   y0 r27, y1 r25, y2 r23, y3 r12 volatile, yskip r21, dskip r22, hblk r24 in the target); its dump has the second
   loop's fourteen >= 29-degree values (c, crp0..3, cbp0..3, cbv, crv, ccnt, o1..o3, i) removed one at a time as spill
   candidates (cost order, not id order) -- not a declaration-order problem, left.
+
+### Tool RELs, t_esp pass 9 (t_esp 200 -> 201/212: ID_WINDOW ctor 157 -> 0 zero code; InitTool 11629 -> 9684 words with the frame now EXACT (0x2930) and .text 0x9ebc -> 0xa124 of 0xa20c; Load/SaveEmType 2/2 loop body reproduced, entry left; db_widget DB_STRING ctor 11 untouched; nothing flipped; 2026-09-11)
+
+- Harness ~/.cache/tesp9 (deleted): `mk.sh MOD/UNIT SRC OUTDIR` = compile with the module cflags + strip_unused/fold_linkonce
+  into `OUTDIR/<stem>.o` (the stem must be the unit's, ngccc.py derives the linkonce unit from it), `tryv.py MOD/UNIT FUNC v.py
+  [--apply NAME]` (variants may carry a header copy: `{'src': [...], 'hdr': {...}}`), `dump.sh MOD/UNIT -dX`, `ins.py DUMP FUNC
+  [re]` (one line per insn), `mini.sh FILE.cpp -dX` (standalone snippets against the real headers, the fastest way to read a
+  frontend/expand shape), `olist.sh OBJ FUNC OUT` (objdump with the relocation symbols folded into the insn lines) +
+  `segcmp.py T.s O.s [N] [norm]` (InitTool split at every `bl __builtin_new` = one segment per window ctor; per-segment line
+  counts and skeleton diffs; N prints one segment's diff), `xform.py IN OUT A B` (the widget-block rewrite below). 111 OK
+  before and after every edit; judged with tools/bytecmp.py.
+- **Numeric/button widget blocks (ID_WINDOW ctor 157 -> 0, zero code; applied to all 223 blocks of the file): the block reads
+  `pa`/`win` into locals BEFORE the `pos`/`sx` locals**: `{ DB_PRIM_ARRAY* pa_ = pa; DB_WINDOW* win_ = win; DB_POINT pos(x, y);
+  int sx = N; pa_->CreateNumeric2(win_, ..., &pos, &sx, sy, flg); }`. Mechanism: the target issues `lwz r4,4(r30); addi r9,r1,N;
+  lwz r3,0(r30); mr r7,r9; stfs pos.x; ...; stw sx` -- the two member loads first, the pos stores after them, `sx` last. The
+  loads are first only when they are PSEUDO loads with an `mr r4,P` arg copy (prio call+3 = lwz 2 + mr 1) instead of direct
+  `(set r4 (mem))` arg loads (prio call+2, and `addi &pos` with three dependents wins the tie). `expand_call` never
+  precomputes them (`preserve_subexpressions_p` copies only MEMs with rtx_cost > 2, and `(mem r82)` costs 2); it is COMBINE that
+  merges `P = mem; r4 = P` into the direct load, and combine refuses when a memory STORE lies between the load and the copy.
+  So: the CreateString form `&DB_POINT(x, y)` (pass 8) works because the temp's stores sit between the loads and the copies
+  in RTL; for the numerics the pos/sx locals must be initialised AFTER the pa/win reads -> locals for pa/win declared first
+  (the pos stores keep their early LUID and are issued right after the loads, the way the target has them; the temp form
+  `&DB_POINT(..)` puts them last: 165). `int sx` may also be written `&(sx = 0)` inside the argument list (146 on one block)
+  but the locals form is the natural one. The rule in one line: when a call's argument loads are issued first in the
+  target while ours issues the address/store chain first, the loads were pseudos -- put a memory store between the load
+  and the call (declare the loaded values in locals before the stored ones).
+- **InitTool frame 0x2C08 -> 0x2930 = target (zero code): the EDIT_WINDOW ctor must not carry a dead page body.** The
+  ctor was `EDIT_WINDOW(p, no) { pa = p; win = NULL; if (no == 0) { ...page-1 widgets... } page = no; }` inlined four
+  times: integrate.c allocates the inlined function's WHOLE frame (`DECL_FRAME_SIZE`, here 0x100) in the caller as soon as
+  the copied body mentions the virtual frame pointer -- a `for` loop body's address-taken `pos`/`sx` locals are real slots
+  at save-for-inline time (block-scoped locals outside a loop are `addressof` pseudos and cost nothing) -- and the dead
+  `if (1 == 0)` body still gets the 0x100 block, three times (the 256-byte jumps in ours' pos-slot sequence at every
+  EDIT2/3/4 window). The target also stores NO `page` member anywhere in InitTool (the object is 0xC bytes, `li r3,0xc`
+  before `__builtin_new`, but offset 8 is never written). Form: `EDIT_WINDOW(DB_PRIM_ARRAY* p) { pa = p; win = NULL; }` plus
+  `static inline void CreateEditWindow1..4(EDIT_WINDOW* e, DB_PRIM_ARRAY* p)` written in MEMBER style: `e->win =
+  p->CreateNormalWindow(..)` (`mr r0,r3; stw r0,4(r29)`), `e->win->SetCloseCallback(..)` (forwarded, r3 direct),
+  `e->win->SetActiveChangeCallback(..)` (reloaded after the call, `lwz r3,4(r29)`), and every widget block `pa_ = e->pa;
+  win_ = e->win;` (the target reloads `lwz r3,0(r29)`/`lwz r4,4(r29)` per block; a local `DB_WINDOW* win` gives a register).
+  After this the pos/sx slot sequence of all 566 widgets is identical to the target's (only store ORDER differs inside a
+  few window blocks) and .text is 0xe4 short (57 insns: the target has 4 more `mr`, 18 fewer spill reloads).
+- **InitTool residue read (segcmp): every window segment still differs by schedule/allocation, not structure.** The window
+  block `{ DB_POINT pos(x, y); f32 w; f32 h; u32 flg; win = pa->CreateNormalWindow(..) }` is issued by the target as `lwz p =
+  g_pPrimArray (first, before mr r30,r3); stw win = NULL; li flg; stw pa = p; lis str; stfs pos.x; addi; lwz &pos(spill);
+  mr r3,p; lwz &flg; lwz &h; stfs pos.y; lwz &w; lwz &pos; stfs w; stfs h; stw flg` (member stores at the top, frame stores
+  at the bottom) while ours has the member stores at the bottom and pos.x third; a `pa_ = pa` local in the window block
+  moves the `lwz g_pPrimArray` first in a mini test but the real order depends on the spilled `&pos` reloads -- not
+  closed. The entry block is ~850 `addi rX,r1,N; stw rX,0x20xx(r1)` spill pairs (846 target / 857 ours) interleaved with
+  the flag stores; its order follows the spill-slot assignment of the whole function and cannot be read until the windows
+  align. Applied anyway (pure C, the widget-block style): `DB_PRIM_ARRAY* pa_ = pa;` as the first statement of all 41
+  window blocks -- cse folds it to the parameter (no RTL change in the block itself) but the 41 extra uids shift gcse's
+  hash-table size (`max_uid/4|1`) and with it the PRE `lis` placements and spill slots: 11465 -> 9684 words, .text -4.
+  Read this as "the original InitTool has MORE RTL than ours" (the spill-slot-rotation rule), not as a form.
+- **Load/SaveEmTypeUpdateCallback (2/2, mechanism closed to the loop ENTRY).** Writing loop 2 as a rotated while
+  (`while (a0 == (n = tbl[t = load])[0] && c1 == n[1]) { step; }` after a peeled first `step`) reproduces the loop body
+  EXACTLY -- `lis r12` hoisted into the preheader for the load, `sth r9,0(r4)` through the outer high at the top: cse1
+  follows the bottom `beq TOP` into the TOP block (preceded by a BARRIER, NUSES 1) knowing the TEST block's high, gcse's
+  redundant-copy then sits in the load's block (kept: same-block copies are never cprop'd; `find_avail_set` is avin-based)
+  and loop.c hoists it -- but the target enters the loop at TOP by fall-through with no `b TEST`. A peeled `step` before
+  the loop is what a while form needs and jump2 would cross-jump it into TOP (the tails are register-identical up to the
+  TOP label), except that cse1 KNOWS `dir == -1` there (`record_jump_equiv` of the `bne cr7` guard, whose compare is only
+  hoisted by gcse later) and folds the peeled `t + dir` into `addi r0,r7,-1` (25 words). The do-while / for(;;) / goto /
+  `while (dir == -1)` / `do {} while (a && b)` / duplicated-exit-test (`while (a0 == n[0] && c1 == n[1]) { step; load }`,
+  whose dup test folds away) forms all give the pass-8 shape (2). What is still missing: a form where TOP is preceded by a
+  BARRIER at cse1 time without a `dir`-known peel (or where the peel is computed in an ebb that does not know `dir`).
+  Facts read: `duplicate_loop_exit_test` copies the exit code (< 20 insns, no calls/labels) with its `beq NEW` intact and a
+  `b END; barrier` after it; cse's "keep on going past the label" (cse_basic_block 9028) needs the label's remaining uses
+  to be exactly the jump it just made unconditional; scan_loop marks a loop "phony" (no hoisting at all) when the first
+  insn after LOOP_BEG is a non-jump insn -- gcse's PRE of the `cmpwi cr7,r5,-1` guard before the loop-1 entry `b` is what
+  makes loop 1 phony in both builds (its load's `lis r9` stays inside).
+- Not iterated: ToolEspMain 38, EspToolMain 40, PartPasteSeqData 46, EditActiveChange 50, MakeSaveSeqData 58,
+  PosActiveChange 62, AddSeq 197; db_widget DB_STRING ctor 11 (pass 8's arithmetic stands).
+
+### Tool RELs, db_mod pass 2 (t_esp 59 -> 61/75, Tools 47 -> 49/63, 1850 -> 929 words in both, .text gap 0x2C -> 0x3C ours shorter; dbmod_light 81 -> 0 and dbmod_option 88 -> 0 zero code; dbmod_scale 64 -> 2, dbmodGetFilenames 222 -> 17 (size exact), dbmodDispModelName 209 -> 100 (size exact), dbmod_locate 475 -> 103; nothing flipped; 2026-09-11)
+
+- Harness ~/.cache/dbmod2 (deleted): `mbuild.sh MOD SRC OUTDIR` (module cflags + strip_unused/fold_linkonce `--module`, output
+  `OUTDIR/db_mod.o` as pass 1 requires), `mtryv.py FUNC v.py [--mod MOD] [--apply NAME]` (variants = substring edits of
+  src/tools/db_mod.cpp, judged with `OBJ= tools/bytecmp.py MOD/db_mod`), `mrel.py MOD SYM [OBJ]` = side-by-side disassembly
+  with FUNCTION-RELATIVE branch targets and reloc names on both sides (the target's REL14 fields are resolved from the
+  `SYM+0x..` reloc line, ours from the `.text+0x..` one), `mdump.sh MOD -dX` (`-G0`, module defines). 111 OK before and after.
+  Every fix below is zero-code (no tag, no asm); the unit is still not identical, both module flags stay False.
+- **Highlight colour: the selected row's `eprintf` colour is 4 in every page function, not 8** (`rlwinm r5,r5,0,29,29` =
+  bit 4 vs our `28,28` = 8: the `(i == sub) ? 8 : 0` labels of DispModelName/motion/locate/blend/scale/light/option/p_info
+  and motion's hash-digit colour were all wrong by one bit; -1..-2 words each, read the rlwinm mask before anything else).
+- **`x = 6; y = 4;` assigned right AFTER the title eprintf (before the display loop), `int x; int y;` uninitialised at the
+  top: dbmod_light 81 -> 0, dbmod_option 88 -> 0, dbmod_scale 64 -> 2.** Pass 1's motion lever generalised: with the sets at
+  the declarations gcse PREs `x * 8` out of the loop (`li r0,6; slwi r27,r0,3` in the preheader, `mr r3,r27` per use);
+  set two statements later the target's `li r21,6; li r22,4` land after the title call and every use is `slwi r3,r21,3` /
+  `mulli r4,r22,14`. Does NOT help blend (185 -> 291) or p_info (159 -> 173): their x/y are used before the title.
+  scale's last 2 words: the preheader order `li r30,56 (giv init); li r24,5 (x-1)` vs ours `li 5; li 56` on the
+  single-iteration `for (i = 0; i <= 0; i++)` -- declaration/assignment order variants do not move it.
+- **dbmodDispModelName 209 -> 100 (0x630 -> 0x648, exact):**
+  (1) the `^` cursor test is `k == hs + (digits[0] - digit - 1)`: fold's `associate` turns `hs - 1 + (a - b)` into `hs +
+  ((a - b) - 1)` (split_tree of MINUS(hs,1) gives var hs / con -1, "VAR +- (ARG1 +- CON)"), but `hs + ((a - b) - 1)`
+  splits arg1 (var a-b, con -1) and returns `PLUS(fold(hs + -1), a - b)` WITHOUT re-folding -- so `hs - 1` is a separate
+  invariant, loop.c hoists it (`addi r22,r28,-1` in the k preheader) and the loop does `subf; add r0,r22,r0; cmpw`.
+  That extra callee-saved pseudo (19 candidates for 18 regs) is what spills the `"%s"` high: the target's five per-use
+  `lis rX,"%s"@ha` (all the same .LC, verified on the relocs) are reload's REG_EQUIV rematerialisation of the PRE'd
+  high(LC) pseudo that lost global-alloc, not five expressions. Rule: N per-use `lis` of ONE .LC in a function that uses
+  all of r14-r31 = the high was spilled; find the missing callee-saved value instead of splitting the string.
+  (2) case 2's colour is the statement form `if (k == type) color = 0; else color = 7;` through the function's `color`
+  (`li r30,7; bne; li r30,0`); the ternary as an argument gives `li r5,0; beq; li r5,7`. (3) the m_stat switch is
+  written `case 3: color = 0; case 2: color = 2; case 1: color = 7;` -- with case 3 FIRST its body follows the compare
+  tree, jump1's jump-around-jump makes `cmpwi 3; bne end; L3:` and jump2 cross-jumps the body into the else arm's
+  `li r30,0`, leaving `bne end; b Lelse`; our 1,2,3 order gives `beq Lelse; b end`. (4) `name = dbmodSkipPath(...)` in
+  the bin/tex loops through the SAME `char* name` used in the hash loop: a 3-set pseudo is global-alloc'd (`mr r29,r3;
+  ... mr r8,r29`), the direct argument was tied to r8 (`mr r8,r3`), +8 bytes. Left: pure register naming (i r26/r24,
+  k r31/r27, the "%6s" spill register r11 vs r9 = reload's round-robin after x's `lwz r9,8(r1)`).
+- **dbmodGetFilenames 222 -> 17 (0x778 -> 0x78c, exact):**
+  (1) the bin/tex name table is `char name[2][FILE_NUM][NAME_LEN]` (0x3A1; `name[0]` = bin, `name[1]` = tex; the same for
+  `locName[2][..]` at 0x1C47) indexed `name[i][k]`: `(p + 929) + i*2048` is folded by `associate` into `p + (i*2048 +
+  929)`, then `+ k*128` stays outside, so the RTL is `t = i*2048 + 929` (one insn chain, a giv of the outer biv reduced
+  to `li r22,929; addi r22,r22,2048` with the `mr r27,r22` copy in the inner preheader) and `add p,t; add ,k*128`; our
+  `binName[type * FILE_NUM + k]` made `k*128 + (i*2048 + 929)` one giv. (2) The outer counter is `i` and the inner `k` in
+  ALL loops of the function (the two bin/tex loops, the FILE_NUM loop with its digit loop, the locate loops, the final
+  copy loop): `i + 1` is then NOT PRE'd across the inner loops (the pl0f/R209Main rule) -- the mechanism is lcm's
+  isolatedness: `isoin[K] = latein[K] | (isoout[K] - antloc[K])` ignores transparency, so the next loop's `i = 0` kill
+  block passes the isolation of that loop's header (earliest + anticipated = latein) back to the previous latch, and
+  `redundant = antloc - (latein | isoout)` keeps the increment in place (a biv again). With a private `type` counter the
+  latch was the only occurrence, delayin stopped at the inner header, and `type + 1` was inserted before the inner
+  loop (`addi r27,r29,1 .. mr r29,r27`, no biv, no giv). Rule: a function whose LAST outer loop has its increment
+  PRE'd (locate) but earlier ones keep the biv = one counter variable shared by all the outer loops.
+  (3) `pDbModState.p->motFileNum = i = 0;` (the store's zero IS the counter register `stb r26,320`). (4) `no =
+  mottblUnitNum(unit[t], name[t]); q = mottblUnitPtr(unit[t], no);` as two statements with `s16 no` (the nested call
+  precomputed the outer `unit[t]` load before the inner call and cse shared it; the target reloads it after the call).
+  (5) the locate header walks `q`, the locate loop `p` outer / `q` inner (mirrors the first section); the two strchr
+  results go through a `char* c` that is never live across a call (`mr. r3,r3`: global.c's hard-reg preference for a
+  pseudo copied from r3 with no conflicting life). Left: {pNo,dir} vs {biv,pMotTbl-high} callee-saved permutation
+  (all four `log2(7)*7/148-150` in allocno order; the target ranks the temporaries first, no source lever found among
+  declaration orders/zero inits).
+- **dbmod_locate 475 -> 103 (0x11fc -> 0x11cc, now 16 bytes SHORT):**
+  (1) `Vec ab[2]` for the two axis-line Vecs (12-byte spacing, pass-1 drawOrientation rule; frame 256 -> 248).
+  (2) **`pax = &ax` is assigned INSIDE the loop's `if (no == em->no)` block right after RotMatrix, not before the loop:**
+  before the loop it is anticipated on every path, gcse PREs `(plus fp 24)` with the step-1/sub-2 arm's `&ax` and
+  inserts `addi r26,r1,24` at 20 arm exits (80 bytes; the "#3" frame-address family); inside the conditional block it
+  is not anticipated at the arms, loop.c hoists the single set to the preheader (the target's `addi r10,r1,24` there),
+  and the pseudo -- no REG_EQUAL note on a `(set p (plus fp N))` insn, so no REG_EQUIV -- is spilled to a stack slot
+  (`stw r10,148(r1)`, `lwz r3,148(r1)` at the three call uses) instead of being rematerialised. The column stores are
+  `ax.x = m[0][0]` etc. directly (24/28/32(r1)), not through pax. (3) `Vec* pos = &em->pos;` as case 0's first
+  statement (`addi r31,r24,8`; `pos->x` becomes `8(r24)` by find_best_addr, y/z stay `4/8(r31)`, `PSVECAdd(pos, &v,
+  pos)`), stores written `z, y, x`. (4) case 4 is `if (pEm) { .. } else { parentParts = 0; }` (the zero-store arm
+  after the body). (5) the row is a second counter `for (i = 0, y = 4; i <= 4; i++, y++)` with the literal `y * 14`
+  at every use: the first eprintf computes it into the argument (`mulli r4,r30,14`) and gcse's PRE copy `mr r31,r4`
+  serves all later uses; `int row = y * 14` gives `mulli r31; mr r4,r31` and the literal `(i + 4) * 14` recomputes
+  `mulli` in the k loops (two-level expression, the copy is of `i + 4` only). Left (103): `li r11,6; slwi r3,r11,3`
+  / `li r11,16` / `li r10,25` per-use x constants that ours folds (`x = 6` in the body is cse-folded, before the loop
+  PRE'd -- open), register names, and the case-1 `deg` schedule.
+- **position_usage 10 (mechanism confirmed, not closed): `int position_usage(..) { ..; return y; }` gives the target's
+  `addi r31,r31,1 .. addi r4,r31,-1; mulli` for the last pair (8 words, +4 bytes for the `mr r3,r31`)** -- combine folds
+  `y++; (y - 1) * 14` only when y dies at the use; the original had y live past the last eprintf without returning it in
+  r3 (the callers pass one argument). `for (;;) {..; break;}`, `if (mode >= 0)` around the last call: 10 / 26.
+- Not iterated: IKreport 10 (pass 7 mechanism), dbmod_motion 54, dbmod_trans 71 (target saves r22-r31, ours r24-r31; the
+  case-0 transMode derivation `andi. 1; beq; andi. 16` differs), dbmod_blend 184, dbmod_p_info 158, dbModMotionMove 194.
+  `create__t8cManager1Z3cEmi 1` / `loadModel 1` / `fn_*_1BF24 24` are layout-pairing artefacts that vanish when the
+  .text size matches (they disappeared while DispModelName/GetFilenames were exact and locate still +32).
+
+### DOL sweep 25a, closest-first (em_sub 42 -> 45/51: GetWepTargetList 20 -> 0, GetWepTargetListBomb 32 -> 0, GetWepTargetList2 35 -> 0, GetDropBullet 492 -> 462 (structural diff 214 -> 51 lines); pl_wep .rodata identical, PlWepLockCtrl 189 -> 45, PlWepAutoTrack 36 -> 24; t_bugcheck / EmCatchMotionMove mechanisms read with a hooked private cc1plus; nothing flipped; 2026-09-11)
+
+Harness ~/.cache/dol25a (dol24a copies with the paths rewritten, plus `hk.sh UNIT FUNC...` = compile with the PRIVATE hooked
+cc1plus in ~/.cache/dol25a/sngcc (copy of dol23b's tree + `local-alloc.c` synced; env `HK_LCBUMP=func:n` bumps const_labelno by n
+before expanding func (hook in `init_function_start`; a bump in rest_of_compilation is too late, labels are consumed at
+expansion), `HK_TSIZE=func:n` overrides gcse's expr_hash_table_size, `HK_NOLOCAL=func:r1,r2` makes pseudos non-local for
+local-alloc; DIAGNOSIS ONLY, nothing installed), `hkv.py` (tryv under the hooked compiler + the pre-gcse insn count),
+`ninsn.py DUMP [FUNC]` (real insns per function in a dump and n/2|1), `lc.sh hdr...` / `nb.sh hdr...` (.LC labels and
+function BODIES a header set consumes), `fnasm.py OBJ SYM` (one function with local labels), `shape.py UNIT SYM OBJ...` /
+`mdiff.py` (masked structural distance: differing lines with registers masked -- the right metric for layout work, where
+the word count is noise), `v/*.py` variant files); deleted at the end. Build 111 OK before and after every flag.
+
+- **Local-static name numbers are a census of the original TU's function bodies: `menu.990` (target) vs `menu.291` (ours) =
+  var_labelno = 3 per FUNCTION BODY parsed (`__FUNCTION__`, `__PRETTY_FUNCTION__`, `__func__` are block-scope statics declared
+  in every body; make_decl_rtl numbers non-public non-toplevel decls).** t_bugcheck's original TU parsed 330 bodies before
+  menu()'s statics, ours 97; every DOL unit shows the same 2-3x ratio (sym_map `name.N` vs our .o: t_flag 504/36, dbmodule
+  738/270, pl_debug 924/330, debug 1260/285, cam_ctrl 1110/399, event 2631/633, ...): the original headers carried hundreds of
+  inline bodies we do not have. Consequences: (a) the ~9-17 extra `.LC` labels the t_bugcheck model needs are string literals
+  inside those inline bodies (labels are consumed at parse time even when never emitted) -- not reconstructible from our
+  headers (nb.sh: dolphin.h +50 bodies/0 labels, db_widget.h +34/+4, dbg_tool.h +25/+12, xml.h +12/+24, event.h +8/+2,
+  light/map_obj/widget/card +1 label each); (b) the number is a cheap check of "which headers did the original include" when
+  two candidate header sets differ a lot in bodies; (c) it never changes bytes by itself.
+- **t_bugcheck menuLife 18 / menuPosMove 2, the full (label bump b, gcse table T) scan with the hooked compiler:** menuPosMove's
+  high order is right (2 words left = the addi/mr) at b=0 with T in {141..147, 153..157}, b=3 T149, b=9 T151, b=10 T in
+  {141..145,155,157}, b=20 and b=30 with ANY T (labels 37-45 / 47-55 share a tens digit, so the `*.LCn` hash order equals
+  insertion order); menuLife's bucket order is right (14 words left = the L0 priority) at b=9 T not in {175,181,187}, b=14
+  T187, b=17 T175, b=19 T in {173,179..185,189}, b=29 T in {177,181}. With the 3 fixed labels between (0.4f, 2^52, 0.5f)
+  the only joint solutions are b=9 with menuPosMove T=151 (+8..11 pre-gcse insns) and menuLife T in {177,179,183,185}, or
+  menuPosMove b=0 plus 9 or 19 extra labels between the two functions' strings (19: menuLife T=181 unchanged). menuLife's
+  n_insns is 362 (T=181 for n in [360,363]; count = insn/jump_insn/call_insn in the .cse dump, plus purge_addressof's
+  insertions for address-taken locals: menuPosMove 282 -> 294). L0: the nine highs have REG_LIVE_LENGTH 652,650,...,636 (step
+  2 per PRE insertion); ">" must be <= 638 and L-TRIG >= 639 -> exactly one more post-sched1 insn in the loop in the original
+  (a duplicated tail jump2 merges, a no-op move reload deletes). Natural menuLife rewrites (clamp forms, `lv += 1`, if/else
+  for the ternary store, `1200 + ROUND`) change code (43-104) or leave T=181. Not closed; pure label padding is the pad9 form.
+- **em_sub EmCatchMotionMove (8): `HK_NOLOCAL` proves the target = `rate` NOT a local-alloc candidate (2 words left: the
+  target's `lfs f13,164; fmr f31,f13` = the `ry = load` copy survived combine, i.e. load and copy in different blocks or L
+  had another use).** With rate non-local, local-alloc no longer ties `step` to the dying rate (`fmuls f13` untied, rate2 f30,
+  rate f29 = the target). Sources of non-locality tried without effect: `ry`/`step` block-scoped, `f32 turn` local, no `step`,
+  `ry + step` into the store, `if (ret) ret = 1`, `while(1){..break;}` (30), `switch (ret) {default:}`, `f32* pry` view,
+  `LIMIT_ANGLE(ry)`. Left at 8.
+- **GetWepTargetList 20 -> 0 (zero code): the replacement stores `wp->part = part; WEP_LIST(worst)->em = em;` written in BOTH
+  arms of the dist diamond.** With one tail after the join, the tail's `worst * 8` is a gcse recomputation (`R = worst<<3` at
+  the end of the block after the j loop, cse2 turns it into `R = P1`); P1 (the first `slwi`) is block-local and local-alloc
+  gives it r0, R needs a base register for the `stwx` -> `mr r10,r0` survives. Duplicated into the arms, jump2 cross-jumps
+  the identical stores back into one tail, but each arm's `worst * 8` is cse'd to P1 in its own ebb, so P1 is global and
+  gets r9 (`slwi r9; add r10,r9,r31; ...; stw r3,4(r10); stwx r29,r9,r31`). Rule: a `mr rX,r0` feeding an `stwx`/`lwzx` index
+  after an if/else = write the consumer into both arms.
+- **GetWepTargetListBomb 32 -> 0 / GetWepTargetList2 35 -> 0 (zero code): ONE `cEm* em` for the scan loop(s) and the sort
+  swap (the target's `lwzx r24,r8,r26` in the sort uses the scan's em register), and in List2 the sort's outer counter is `i`
+  (the target's `li r30,0` reuses the scan counter).** Ours had a block-scoped `cEm* em = emWork(i)` plus `em2` -> em2 short
+  and r9, and the shared register shifts (`addi r5,r27,1` vs r4, `mr r3/r4`) follow from the freed registers. In List2 all
+  THREE loops (bestPart scan, list scan, sort) share `em` -- the two-loop form still swapped i/em (r30/r31, 49 words).
+- **GetDropBullet 492 -> 462 words, masked structural diff 214 -> 51 lines, .text 0xb24 -> 0xb10 (target 0xb7c); read off the
+  target layout:** (1) NO shared `set:` label -- every result site writes `*id = i; *num = n; return;` itself (the f-branch
+  and the flags_54 switch end with the same three statements); jump2 cross-jumps the identical tails and the surviving copy is
+  the LAST in layout order = the second 0x2E/0x2F block's, which is why the target's `set` code sits at 0x904 between two
+  halves of the else branch and the function ends with the fallback block (`Lb64: stw r0,0(r27)` before the epilogue -- the
+  `li r0,K; stw r0` tails of `*num = 0/20/10/15` all merge into it). (2) The `(Rnd() & 0xF)` test is `!= 5` with the `n = 5;
+  if (Rnd() % 10 > 4) n = 3;` arm first and `n = 0` in the else: with `== 5 { n = 0 } else {...}` jump1 hoists `li n,0` above
+  the compare and the `beq` goes straight to set; the target's `beq L900` lands on the shared `li r31,0; set` tail. (3) The
+  `*id = K; *num = (Rnd() % 10 <= 7) ? 2 : 0; return;` sites are `i = K; n = ...; *id = i; *num = n; return;` (the `*id`
+  store follows the Rnd call, K in i's callee-saved r30). (4) `switch (Rnd() % 3)` has `default:` first (default body laid out
+  first). (5) The first branch is `if (Rnd() % 10 > 6) *num = 15; else *num = 10;` -- stores in both arms with 15 in the
+  THEN arm: jump2 cross-jumps `stw r0,0(r27); epilogue` into Lb64 and then hoists the else's `li r0,15` above the branch
+  (`cmplwi 6; li r0,15; bgt Lb64; li r0,10; b Lb64`); through `n` the value is r29 and hoisted above the call (sched1's "a
+  set of a pseudo with REG_N_CALLS_CROSSED == 0 gets an anti-dependence on the preceding call" keeps a fresh temp below the
+  call, but a fresh temp is then hoisted into the mulhwu chain and gets r9). Left (51 lines): the target keeps EVERY `bl Rnd;
+  li r30,7; lis; li r31,3; ori; mulhwu` copy of the `i = 7; n = 3` block (five of them) and only shares `L8e8: srwi ...
+  cmplwi 7; ble set; li r31,0`, likewise the `i = 0x20; n = 25` copies share only `ble set; li r31,0`; ours merges whole blocks
+  including the call -- the #6 survivor/boundary question (tools/xjump.py on the -dR dump is the next step); the case-5
+  `r <= 0x59` site stores the known zero `f` (`stw r26`) where ours jumps to the `stw r31` tail (cse's AROUND path carries
+  n == 0 there in the original); the `x8354 == 1` block's 0x18 tail (`bne L178` into case 0's copy).
+- **pl_wep .rodata 0x350 IDENTICAL (was 17 words at 0x108 + 5 at 0x178): pool order = expansion order of first use, and dead
+  initialisers count.** PlWepLockCtrl (189 -> 45): `default:` written FIRST in the `switch (pG->wep_no)` (the target lays the
+  default body out first), `lim` assigned before `spd` in every case (`lim = ..; spd = ..; spd2 = spd;`), the 0x16/0x17/0x29
+  group also has `case 0x19:` (the target's compare tree has `cmpwi r0,25`; without it the tree starts at 16 instead of 19),
+  and a dead `f32 lim = 0.8f;` initialiser (0.8 heads the pool although its only live use is case 7's `spd = 0.8f` -- the
+  init is deleted by flow but its constant was forced into the pool at expansion; `spd = 0.8f` as the init is NOT deleted
+  and loads at the top). PlWepAutoTrack (36 -> 24): `f32 na = 0.20943952f;` at function scope (dead init; 12deg before 400.0f
+  at 0x178). Left in LockCtrl (45): the `m3r[1]` clamp loads -1.0 and 1.0 up front into f13/f12 with two distinct stores
+  (ours shares f13 and cross-jumps the stores) and every m3r access goes through one `addi r10,r9,m3r@l` pointer.
+- Not iterated: em_sub emLineCapsuleCrossCk 14 (the h/dd distance sums: the target computes dd's final fmadds before h's and
+  h's x-term after dd's; `swap`, `SQ()`, locals, `dist2` inline, association, y-first: 14-71), EmRackCk, RandomItemCk,
+  EmYarareContactCk; pl_wep PlSetLockPitch, searchLockEm, PlWepHitCheck2; act_btn; debug; Espgen42; espgen45.
+
+### Tool RELs, bytes-first pass 18a (t_movie/t_se_at Matching 20/20 -> flipped, t_movie.rel byte-identical, 111 OK; t_movie/snd_test 53 -> 70/77 with .rodata/.data byte-identical; t_esp_area/t_lightarea CreateEditWindow boundary reproduced by a dead test, not applied; 2026-09-11)
+
+- Harness ~/.cache/tools_p18a (deleted at the end): tools_p17b copies with `mtryv.py MOD/UNIT FUNC V.py [--apply NAME] [--src ABS]
+  [--all]` (cflags/post_build parsed from build.ninja -- the build edge's first line can be `prodg_cc $`-continued, and post_build
+  uses `$python`; `grep -v warning` exits 1 when nothing matched, so chain the post_build with `; true &&`, not `&&`), env
+  `INC=dir` for header-copy experiments, and `dump.sh MOD/UNIT -dX` reading the module defines/-G0/-fno-implement-inlines from
+  build.ninja (`INC=dir` prepends an include dir there too).
+- **seAtAreaEdit_DataInput (t_se_at, 17 -> 0, zero code, three pieces; the pass-17a `asm("" : "+r"(col))` tag is gone):**
+  (1) `num = 6;` at the FUNCTION TOP, not at the loop. cse1's ebb from the first-half join label does not know it (the ebb from
+  block 0 dies at the inputCursor clamp's 2-use label), so the name loop's rotated entry test `b TEST; ...; TEST: cmplw i,num;
+  blt` survives to gcse; with a real exit edge before the body the `(zero_extend (subreg:QI col))` of the body is NOT
+  anticipated at the loop entry (antin[P] = 0 -> earlyin[body] = 1 -> latein[body] = 1: the body is its own optimal point) and
+  the mask stays `clrlwi r5,r29,24` in the body; gcse's cprop then puts the 6 into the compare (`num = 6` is the single
+  reaching set) and cse2 folds `0 < 6` away (i = 0 is in its ebb), so no entry test remains. Rule: a loop-body extension the
+  target keeps in the body = the loop's trip count came from a variable defined in another ebb (gcse cprop, not cse1, folds it).
+  (2) cursor clamps through a pointer local with ONE store at the join (`SeAtWork* w = pW; int c = w->inputCursor; if (c >= 0) {
+  if (c > 5) c = 5; } else c = 0; w->inputCursor = c;`, same for rndCursor/flagCursor): the store then shares the sched2 block
+  with `col = 0` and the following `lis pW@ha` -- the store's anti-dependence on the pointer's r9 ranks it (8) above the `lis`
+  (7), and `li col,0` (2) fills the second issue slot of the same cycle: `stb r0,34(r9); li r29,0; lis r9`. The two-store form
+  (each arm stores) cross-jumps the stores behind a label, so `col = 0` starts the next block and sched2 puts the `lis` first
+  (pass 17a's "birthing boost" reading was wrong: adjust_priority runs only for insns that become ready through a dependence).
+  The same form moves case 5's `mr r29,r27` before its `stw` (the flagCursor clamp).
+  (3) case 0's `v` in r11: `v` is ONE function-scope variable for all six value clamps (`n` per-arm as in pass 16). The shared
+  pseudo conflicts with the kept `addi r9,r9,Joy@l` pointer of cases 1-4, so global-alloc skips r9 in case 0 too (with a per-case
+  `v`, case 0's v takes the dying pCur's r9). Per-arm `n` keeps the tie (`cmpw r11,r0; li r11,0; ori`) in cases 1-4 and the
+  `mr r0,r11` copy in case 0 / rnd_range.
+- **snd_test disp_sequencer's `.4byte Snd_voice_work` pool word (.rodata 0x1000 -> 0x1004 and the 23 shifted .data pointers are
+  ONE fix; 17 functions flipped to identical): `SND_VOICE_WORK* const voices = Snd_voice_work;` (a const local in the loop body)
+  passed to `seq_note_count(int ch, SND_VOICE_WORK* const& work)`.** Mechanism: the const scalar is folded everywhere and never
+  gets a DECL_RTL; the reference binding takes its address, and expr.c's ADDR_EXPR case with a CONSTANT_P operand calls
+  `force_const_mem` -- a per-function POOL entry (output after the function's strings, hence after "%3d"), read back through the
+  reference as `(mem (reg))` = `lis; addi; lwz r9,0(r11)` in the loop preheader. Rejected (17a + this pass): `static T* const`
+  (folded), `static const` arrays/structs (folded, or emitted at the inline's definition = .rodata 0x610, too early), a
+  reference bound directly to the array (`seq_note_count(ch, Snd_voice_work)`: a TARGET_EXPR temp, stack slot, folded),
+  `&(T* const&) Snd_voice_work` (folded), `static T* const p; T* const* pp = &p; *pp` (the word appears but as a static at the
+  inline's position, 125 words). disp_sequencer itself stays 64 (frame-spilled `addi rX,r28,K` argument pointers, `0x54+0x54`,
+  `ch+1` -- unchanged). test_play_or_stop's `lhz r4,32(r31)` re-read after `Snd_test_get_str_name`: a `name` local for the
+  inner call gives 21 (worse); not the form.
+- **ToolEspArea / ToolLightAreaMain CreateEditWindow (438/393, read; mechanism reproduced, not applied).** The boundary sits
+  INSIDE the inlined cDbgEditWindow ctor between `pCur = 0` and `pTop = 0` (t_event's SubToolMessInit shows the same split:
+  `stw r0,0x264 (pCur); lis; lis; cmpwi r31,0; stw 0x27c (pSetWorkNo); stw 0x268 (pTop) ...`), i.e. the construct is in the
+  header, and it is the same spot pass 16's `do {} while (0)` sched-region split emulates (and cDbgWindow::Init's second one
+  in db_toolbase.h). A dead test there in a header copy (`if (pTop) i = 0;` / `if (pButton[0]) i = 0;`, INC= experiment)
+  gives EXACTLY the target's control structure: `cmpwi r31,0` PRE'd to the end of the pTop..pSetWorkNo block, `mfcr r29` /
+  `mtcrf 128,r29; bne` after the AddButton loop, the stores 764,744,748,752,756,760 interleaved with the loop's `lis`/`addi`/
+  `li i,0`, jump2 deleting the load+compare+jump (438 -> 427). What is left is register naming: the zero pseudo now spans two
+  blocks (cse1 skips the dead-test block, so both halves canonicalise to one zero), becomes a global allocno and lands in r8
+  after local-alloc gives the `1` constant r0; the target has zero r0 / one r9 / rows-5 r29 (hoisted above strlen) / n-32 r11
+  (after strlen) = a BLOCK-LOCAL zero, i.e. in the original the boundary was gone before local-alloc but present at gcse and
+  at sched1 (loop notes give the sched barrier; the CFG boundary must fold by the post-cse2 jump pass). No cse1-unfoldable,
+  cse2-foldable test exists in that ebb (all ctor operands are constants known to cse1; `w` (strlen) and this-memory are
+  unknown to both), so the construct is still unidentified: candidates are a loop whose exit test gcse's cprop makes constant
+  (the t_se_at `num` mechanism inside the ctor), which needs a value defined in another ebb -- none is reachable from a
+  header ctor whose actuals are literals in t_esp_area/t_lightarea and variables in t_event. Do not retry: `if (this == 0)
+  <dead>` (E's occurrence lands in the pre-boundary block: `stw 740; cmpwi | lis; lis`), `if (w == 0) <dead>` (w's r3 stays
+  live: 431), dead loops `for (i = 0; i < num; i++) pButton[i] = 0` (num just stored: folded by cse1, no boundary; num stored
+  before strlen: real loop, 533), -fcheck-new (a real `beq`).
+- t_camera/t_camera_data (tcSetBesideOffset 27, tcDataExport 142) and t_lightarea fn_Tools_30410 (59) not iterated this pass.

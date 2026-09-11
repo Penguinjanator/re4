@@ -494,51 +494,68 @@ public:
         pa = p;
         win = NULL;
         {
+            DB_PRIM_ARRAY* pa_ = pa;
             DB_POINT pos(16.0f, 40.0f);
             f32 w = 72.0f;
             f32 h = 144.0f;
             u32 flg = DB_WIN_KEY_NO_CLOSE;
-            win = pa->CreateNormalWindow("  Menu", &pos, &w, &h, &flg);
+            win = pa_->CreateNormalWindow("  Menu", &pos, &w, &h, &flg);
         }
         {
+            DB_PRIM_ARRAY* pa_ = pa;
+            DB_WINDOW* win_ = win;
             DB_POINT pos(4.0f, 0.0f);
             int sx = 0;
-            pa->CreateButton(win, "  Edit  ", &pos, MenuEditCallback, &sx, 0);
+            pa_->CreateButton(win_, "  Edit  ", &pos, MenuEditCallback, &sx, 0);
         }
         {
+            DB_PRIM_ARRAY* pa_ = pa;
+            DB_WINDOW* win_ = win;
             DB_POINT pos(4.0f, 16.0f);
             int sx = 0;
-            pa->CreateButton(win, "  Model ", &pos, MenuModelCallback, &sx, 1);
+            pa_->CreateButton(win_, "  Model ", &pos, MenuModelCallback, &sx, 1);
         }
         {
+            DB_PRIM_ARRAY* pa_ = pa;
+            DB_WINDOW* win_ = win;
             DB_POINT pos(4.0f, 32.0f);
             int sx = 0;
-            pa->CreateButton(win, "  Load  ", &pos, MenuLoadCallback, &sx, 2);
+            pa_->CreateButton(win_, "  Load  ", &pos, MenuLoadCallback, &sx, 2);
         }
         {
+            DB_PRIM_ARRAY* pa_ = pa;
+            DB_WINDOW* win_ = win;
             DB_POINT pos(4.0f, 48.0f);
             int sx = 0;
-            pa->CreateButton(win, "  Save  ", &pos, MenuSaveCallback, &sx, 3);
+            pa_->CreateButton(win_, "  Save  ", &pos, MenuSaveCallback, &sx, 3);
         }
         {
+            DB_PRIM_ARRAY* pa_ = pa;
+            DB_WINDOW* win_ = win;
             DB_POINT pos(4.0f, 64.0f);
             int sx = 0;
-            pa->CreateButton(win, " Option ", &pos, MenuOptionCallback, &sx, 4);
+            pa_->CreateButton(win_, " Option ", &pos, MenuOptionCallback, &sx, 4);
         }
         {
+            DB_PRIM_ARRAY* pa_ = pa;
+            DB_WINDOW* win_ = win;
             DB_POINT pos(4.0f, 80.0f);
             int sx = 0;
-            pa->CreateButton(win, "  Light ", &pos, MenuLightCallback, &sx, 5);
+            pa_->CreateButton(win_, "  Light ", &pos, MenuLightCallback, &sx, 5);
         }
         {
+            DB_PRIM_ARRAY* pa_ = pa;
+            DB_WINDOW* win_ = win;
             DB_POINT pos(4.0f, 96.0f);
             int sx = 0;
-            pa->CreateButton(win, " DataSet", &pos, MenuDataSetCallback, &sx, 6);
+            pa_->CreateButton(win_, " DataSet", &pos, MenuDataSetCallback, &sx, 6);
         }
         {
+            DB_PRIM_ARRAY* pa_ = pa;
+            DB_WINDOW* win_ = win;
             DB_POINT pos(4.0f, 112.0f);
             int sx = 0;
-            g_pMenuExitButton = pa->CreateButton(win, "  Exit  ", &pos, MenuExitCallback, &sx, 7);
+            g_pMenuExitButton = pa_->CreateButton(win_, "  Exit  ", &pos, MenuExitCallback, &sx, 7);
         }
         win->SetUpdateCallback(MenuUpdateCallback);
     }
@@ -568,22 +585,27 @@ public:
         pa = p;
         win = NULL;
         {
+            DB_PRIM_ARRAY* pa_ = pa;
             DB_POINT pos(96.0f, 180.0f);
             f32 w = 320.0f;
             f32 h = 80.0f;
             u32 flg = DB_WIN_KEY_ESC_CLOSE;
-            win = pa->CreateNormalWindow("               Exit OK?", &pos, &w, &h, &flg);
+            win = pa_->CreateNormalWindow("               Exit OK?", &pos, &w, &h, &flg);
         }
         win->SetCloseCallback(ExitClose_callback);
         {
+            DB_PRIM_ARRAY* pa_ = pa;
+            DB_WINDOW* win_ = win;
             DB_POINT pos(112.0f, 40.0f);
             int sx = 0;
-            pa->CreateButton(win, "[OK]", &pos, ExitOkCallback, &sx, 0);
+            pa_->CreateButton(win_, "[OK]", &pos, ExitOkCallback, &sx, 0);
         }
         {
+            DB_PRIM_ARRAY* pa_ = pa;
+            DB_WINDOW* win_ = win;
             DB_POINT pos(162.0f, 40.0f);
             int sx = 1;
-            pa->CreateButton(win, "[CANCEL]", &pos, ExitCancelCallback, &sx, 0);
+            pa_->CreateButton(win_, "[CANCEL]", &pos, ExitCancelCallback, &sx, 0);
         }
         win->active = 0;
     }
@@ -831,136 +853,173 @@ static void EditClose_callback(DB_WINDOW*)
 class EDIT_WINDOW : public TOOL_WINDOW {
 public:
     int page;
-    EDIT_WINDOW(DB_PRIM_ARRAY* p, int no) {
-        u32 i;
+    EDIT_WINDOW(DB_PRIM_ARRAY* p) {
         pa = p;
         win = NULL;
-        if (no == 0) {
-            {
-                DB_POINT pos(0.0f, 368.0f);
-                f32 w = 512.0f;
-                f32 h = 96.0f;
-                u32 flg = DB_WIN_KEY_ESC_CLOSE;
-                win = p->CreateNormalWindow("   No TIM ID PR ====POSITION====== ===SIZE==== ===SPEED====   ", &pos, &w, &h, &flg);
-            }
-            win->SetCloseCallback(EditClose_callback);
-            win->SetActiveChangeCallback((DB_WINDOW_CALLBACK) EditActiveChange_callback);
-            {
-                DB_POINT pos(4.0f, -16.0f);
-                int sx = -1;
-                p->CreateButton(win, "<<", &pos, EditPagePrevCallback, &sx, -1);
-            }
-            {
-                DB_POINT pos(480.0f, -16.0f);
-                int sx = -1;
-                p->CreateButton(win, ">>", &pos, EditPageNextCallback, &sx, -1);
-            }
-            for (i = 0; i < 5; i++) {
-                DB_NUMERIC** num = g_editNum[i];
-                {
-                    DB_POINT pos(16.0f, EDIT_ROW_Y(i));
-                    int sx = 0;
-                    num[0] = p->CreateNumeric(win, &g_editRowNo[i], &pos, &sx, i, DB_NUM_FLAG_LOCK);
-                    num[0]->SetKeta(3);
-                    num[0]->SetOnHitCallback(OnNo_Callback);
-                }
-                {
-                    DB_POINT pos(48.0f, EDIT_ROW_Y(i));
-                    int sx = 1;
-                    num[1] = p->CreateNumeric(win, &g_pEditRow[i]->time, &pos, &sx, i, DB_NUM_FLAG_LOCK);
-                    num[1]->SetKeta(3);
-                    num[1]->SetOnHitCallback(OnTime_Callback);
-                }
-                {
-                    DB_POINT pos(80.0f, EDIT_ROW_Y(i));
-                    int sx = 2;
-                    num[2] = p->CreateNumeric(win, &g_pEditRow[i]->tex, &pos, &sx, i, DB_NUM_FLAG_LOCK | DB_NUM_FLAG_HEX);
-                    num[2]->SetKeta(2);
-                    num[2]->SetOnHitCallback(OnId_Callback);
-                }
-                {
-                    DB_POINT pos(104.0f, EDIT_ROW_Y(i));
-                    int sx = 3;
-                    num[3] = p->CreateNumeric(win, &g_pEditRow[i]->parts, &pos, &sx, i, DB_NUM_FLAG_LOCK | DB_NUM_FLAG_HEX);
-                    num[3]->SetKeta(2);
-                    num[3]->SetOnHitCallback(OnParent_Callback);
-                    num[3]->nameNum = 256;
-                    num[3]->nameTbl = g_partsNameTbl;
-                }
-                {
-                    DB_POINT pos(128.0f, EDIT_ROW_Y(i));
-                    int sx = -1;
-                    num[4] = p->CreateNumeric(win, &g_pEditRow[i]->pos.x, &pos, &sx, -1, DB_NUM_FLAG_NO_SELECT);
-                    num[4]->SetKeta(6);
-                    num[4]->SetKetaFloat(0);
-                }
-                {
-                    DB_POINT pos(176.0f, EDIT_ROW_Y(i));
-                    int sx = -1;
-                    num[5] = p->CreateNumeric(win, &g_pEditRow[i]->pos.y, &pos, &sx, -1, DB_NUM_FLAG_NO_SELECT);
-                    num[5]->SetKeta(6);
-                    num[5]->SetKetaFloat(0);
-                }
-                {
-                    DB_POINT pos(224.0f, EDIT_ROW_Y(i));
-                    int sx = -1;
-                    num[6] = p->CreateNumeric(win, &g_pEditRow[i]->pos.z, &pos, &sx, -1, DB_NUM_FLAG_NO_SELECT);
-                    num[6]->SetKeta(6);
-                    num[6]->SetKetaFloat(0);
-                }
-                {
-                    DB_POINT pos(272.0f, EDIT_ROW_Y(i));
-                    int sx = -1;
-                    num[7] = p->CreateNumeric(win, &g_pEditRow[i]->w, &pos, &sx, -1, DB_NUM_FLAG_NO_SELECT);
-                    num[7]->SetKeta(6);
-                    num[7]->SetKetaFloat(0);
-                }
-                {
-                    DB_POINT pos(324.0f, EDIT_ROW_Y(i));
-                    int sx = -1;
-                    num[8] = p->CreateNumeric(win, &g_pEditRow[i]->h, &pos, &sx, -1, DB_NUM_FLAG_NO_SELECT);
-                    num[8]->SetKeta(6);
-                    num[8]->SetKetaFloat(0);
-                }
-                {
-                    DB_POINT pos(372.0f, EDIT_ROW_Y(i));
-                    int sx = -1;
-                    num[9] = p->CreateNumeric(win, &g_pEditRow[i]->speed.x, &pos, &sx, -1, DB_NUM_FLAG_NO_SELECT);
-                    num[9]->SetKeta(6);
-                }
-                {
-                    DB_POINT pos(420.0f, EDIT_ROW_Y(i));
-                    int sx = -1;
-                    num[10] = p->CreateNumeric(win, &g_pEditRow[i]->speed.y, &pos, &sx, -1, DB_NUM_FLAG_NO_SELECT);
-                    num[10]->SetKeta(6);
-                }
-                {
-                    DB_POINT pos(468.0f, EDIT_ROW_Y(i));
-                    int sx = -1;
-                    num[11] = p->CreateNumeric(win, &g_pEditRow[i]->speed.z, &pos, &sx, -1, DB_NUM_FLAG_NO_SELECT);
-                    num[11]->SetKeta(6);
-                }
-                {
-                    DB_POINT pos(130.0f, EDIT_ROW_Y(i));
-                    int sx = 4;
-                    pa->CreateButton(win, "                  ", &pos, OnPos_Callback, &sx, i);
-                }
-                {
-                    DB_POINT pos(282.0f, EDIT_ROW_Y(i));
-                    int sx = 5;
-                    pa->CreateButton(win, "           ", &pos, OnSize_Callback, &sx, i);
-                }
-                {
-                    DB_POINT pos(374.0f, EDIT_ROW_Y(i));
-                    int sx = 6;
-                    pa->CreateButton(win, "                 ", &pos, OnSpeed_Callback, &sx, i);
-                }
-            }
-            win->active = 0;
-        }
-        page = no;
     }
 };
+
+// the four pages of the sequence table: the widgets are created by these helpers on the constructed window
+static inline void CreateEditWindow1(EDIT_WINDOW* e, DB_PRIM_ARRAY* p)
+{
+    u32 i;
+    {
+        DB_PRIM_ARRAY* pa_ = p;
+        DB_POINT pos(0.0f, 368.0f);
+        f32 w = 512.0f;
+        f32 h = 96.0f;
+        u32 flg = DB_WIN_KEY_ESC_CLOSE;
+        e->win = pa_->CreateNormalWindow("   No TIM ID PR ====POSITION====== ===SIZE==== ===SPEED====   ", &pos, &w, &h, &flg);
+    }
+    e->win->SetCloseCallback(EditClose_callback);
+    e->win->SetActiveChangeCallback((DB_WINDOW_CALLBACK) EditActiveChange_callback);
+    {
+        DB_PRIM_ARRAY* pa_ = e->pa;
+        DB_WINDOW* win_ = e->win;
+        DB_POINT pos(4.0f, -16.0f);
+        int sx = -1;
+        pa_->CreateButton(win_, "<<", &pos, EditPagePrevCallback, &sx, -1);
+    }
+    {
+        DB_PRIM_ARRAY* pa_ = e->pa;
+        DB_WINDOW* win_ = e->win;
+        DB_POINT pos(480.0f, -16.0f);
+        int sx = -1;
+        pa_->CreateButton(win_, ">>", &pos, EditPageNextCallback, &sx, -1);
+    }
+    for (i = 0; i < 5; i++) {
+        DB_NUMERIC** num = g_editNum[i];
+        {
+            DB_PRIM_ARRAY* pa_ = e->pa;
+            DB_WINDOW* win_ = e->win;
+            DB_POINT pos(16.0f, EDIT_ROW_Y(i));
+            int sx = 0;
+            num[0] = pa_->CreateNumeric(win_, &g_editRowNo[i], &pos, &sx, i, DB_NUM_FLAG_LOCK);
+            num[0]->SetKeta(3);
+            num[0]->SetOnHitCallback(OnNo_Callback);
+        }
+        {
+            DB_PRIM_ARRAY* pa_ = e->pa;
+            DB_WINDOW* win_ = e->win;
+            DB_POINT pos(48.0f, EDIT_ROW_Y(i));
+            int sx = 1;
+            num[1] = pa_->CreateNumeric(win_, &g_pEditRow[i]->time, &pos, &sx, i, DB_NUM_FLAG_LOCK);
+            num[1]->SetKeta(3);
+            num[1]->SetOnHitCallback(OnTime_Callback);
+        }
+        {
+            DB_PRIM_ARRAY* pa_ = e->pa;
+            DB_WINDOW* win_ = e->win;
+            DB_POINT pos(80.0f, EDIT_ROW_Y(i));
+            int sx = 2;
+            num[2] = pa_->CreateNumeric(win_, &g_pEditRow[i]->tex, &pos, &sx, i, DB_NUM_FLAG_LOCK | DB_NUM_FLAG_HEX);
+            num[2]->SetKeta(2);
+            num[2]->SetOnHitCallback(OnId_Callback);
+        }
+        {
+            DB_PRIM_ARRAY* pa_ = e->pa;
+            DB_WINDOW* win_ = e->win;
+            DB_POINT pos(104.0f, EDIT_ROW_Y(i));
+            int sx = 3;
+            num[3] = pa_->CreateNumeric(win_, &g_pEditRow[i]->parts, &pos, &sx, i, DB_NUM_FLAG_LOCK | DB_NUM_FLAG_HEX);
+            num[3]->SetKeta(2);
+            num[3]->SetOnHitCallback(OnParent_Callback);
+            num[3]->nameNum = 256;
+            num[3]->nameTbl = g_partsNameTbl;
+        }
+        {
+            DB_PRIM_ARRAY* pa_ = e->pa;
+            DB_WINDOW* win_ = e->win;
+            DB_POINT pos(128.0f, EDIT_ROW_Y(i));
+            int sx = -1;
+            num[4] = pa_->CreateNumeric(win_, &g_pEditRow[i]->pos.x, &pos, &sx, -1, DB_NUM_FLAG_NO_SELECT);
+            num[4]->SetKeta(6);
+            num[4]->SetKetaFloat(0);
+        }
+        {
+            DB_PRIM_ARRAY* pa_ = e->pa;
+            DB_WINDOW* win_ = e->win;
+            DB_POINT pos(176.0f, EDIT_ROW_Y(i));
+            int sx = -1;
+            num[5] = pa_->CreateNumeric(win_, &g_pEditRow[i]->pos.y, &pos, &sx, -1, DB_NUM_FLAG_NO_SELECT);
+            num[5]->SetKeta(6);
+            num[5]->SetKetaFloat(0);
+        }
+        {
+            DB_PRIM_ARRAY* pa_ = e->pa;
+            DB_WINDOW* win_ = e->win;
+            DB_POINT pos(224.0f, EDIT_ROW_Y(i));
+            int sx = -1;
+            num[6] = pa_->CreateNumeric(win_, &g_pEditRow[i]->pos.z, &pos, &sx, -1, DB_NUM_FLAG_NO_SELECT);
+            num[6]->SetKeta(6);
+            num[6]->SetKetaFloat(0);
+        }
+        {
+            DB_PRIM_ARRAY* pa_ = e->pa;
+            DB_WINDOW* win_ = e->win;
+            DB_POINT pos(272.0f, EDIT_ROW_Y(i));
+            int sx = -1;
+            num[7] = pa_->CreateNumeric(win_, &g_pEditRow[i]->w, &pos, &sx, -1, DB_NUM_FLAG_NO_SELECT);
+            num[7]->SetKeta(6);
+            num[7]->SetKetaFloat(0);
+        }
+        {
+            DB_PRIM_ARRAY* pa_ = e->pa;
+            DB_WINDOW* win_ = e->win;
+            DB_POINT pos(324.0f, EDIT_ROW_Y(i));
+            int sx = -1;
+            num[8] = pa_->CreateNumeric(win_, &g_pEditRow[i]->h, &pos, &sx, -1, DB_NUM_FLAG_NO_SELECT);
+            num[8]->SetKeta(6);
+            num[8]->SetKetaFloat(0);
+        }
+        {
+            DB_PRIM_ARRAY* pa_ = e->pa;
+            DB_WINDOW* win_ = e->win;
+            DB_POINT pos(372.0f, EDIT_ROW_Y(i));
+            int sx = -1;
+            num[9] = pa_->CreateNumeric(win_, &g_pEditRow[i]->speed.x, &pos, &sx, -1, DB_NUM_FLAG_NO_SELECT);
+            num[9]->SetKeta(6);
+        }
+        {
+            DB_PRIM_ARRAY* pa_ = e->pa;
+            DB_WINDOW* win_ = e->win;
+            DB_POINT pos(420.0f, EDIT_ROW_Y(i));
+            int sx = -1;
+            num[10] = pa_->CreateNumeric(win_, &g_pEditRow[i]->speed.y, &pos, &sx, -1, DB_NUM_FLAG_NO_SELECT);
+            num[10]->SetKeta(6);
+        }
+        {
+            DB_PRIM_ARRAY* pa_ = e->pa;
+            DB_WINDOW* win_ = e->win;
+            DB_POINT pos(468.0f, EDIT_ROW_Y(i));
+            int sx = -1;
+            num[11] = pa_->CreateNumeric(win_, &g_pEditRow[i]->speed.z, &pos, &sx, -1, DB_NUM_FLAG_NO_SELECT);
+            num[11]->SetKeta(6);
+        }
+        {
+            DB_PRIM_ARRAY* pa_ = e->pa;
+            DB_WINDOW* win_ = e->win;
+            DB_POINT pos(130.0f, EDIT_ROW_Y(i));
+            int sx = 4;
+            pa_->CreateButton(win_, "                  ", &pos, OnPos_Callback, &sx, i);
+        }
+        {
+            DB_PRIM_ARRAY* pa_ = e->pa;
+            DB_WINDOW* win_ = e->win;
+            DB_POINT pos(282.0f, EDIT_ROW_Y(i));
+            int sx = 5;
+            pa_->CreateButton(win_, "           ", &pos, OnSize_Callback, &sx, i);
+        }
+        {
+            DB_PRIM_ARRAY* pa_ = e->pa;
+            DB_WINDOW* win_ = e->win;
+            DB_POINT pos(374.0f, EDIT_ROW_Y(i));
+            int sx = 6;
+            pa_->CreateButton(win_, "                 ", &pos, OnSpeed_Callback, &sx, i);
+        }
+    }
+    e->win->active = 0;
+}
 
 /* ------------------------------------------------------------------------- Edit window 2 (colour) */
 
@@ -1069,315 +1128,396 @@ static void OnWorkSp3_Callback(DB_PRIMITIVE*)
     OpenEditWindow((TOOL_WINDOW*) g_pWorkSp3Win);
 }
 
-// pages 2..4 of the sequence table
 static inline void CreateEditWindow2(EDIT_WINDOW* e, DB_PRIM_ARRAY* p)
 {
     u32 i;
-    DB_WINDOW* win;
     {
+        DB_PRIM_ARRAY* pa_ = p;
         DB_POINT pos(0.0f, 368.0f);
         f32 w = 512.0f;
         f32 h = 96.0f;
         u32 flg = DB_WIN_KEY_ESC_CLOSE;
-        e->win = win = p->CreateNormalWindow("   No ==COLOR= BLND FL LIF RT AS ======ROTATE======  ", &pos, &w, &h, &flg);
+        e->win = pa_->CreateNormalWindow("   No ==COLOR= BLND FL LIF RT AS ======ROTATE======  ", &pos, &w, &h, &flg);
     }
-    win->SetCloseCallback(EditClose_callback);
-    win->SetActiveChangeCallback((DB_WINDOW_CALLBACK) EditActiveChange_callback);
+    e->win->SetCloseCallback(EditClose_callback);
+    e->win->SetActiveChangeCallback((DB_WINDOW_CALLBACK) EditActiveChange_callback);
     {
+        DB_PRIM_ARRAY* pa_ = e->pa;
+        DB_WINDOW* win_ = e->win;
         DB_POINT pos(4.0f, -16.0f);
         int sx = -1;
-        p->CreateButton(win, "<<", &pos, EditPagePrevCallback, &sx, -1);
+        pa_->CreateButton(win_, "<<", &pos, EditPagePrevCallback, &sx, -1);
     }
     {
+        DB_PRIM_ARRAY* pa_ = e->pa;
+        DB_WINDOW* win_ = e->win;
         DB_POINT pos(480.0f, -16.0f);
         int sx = -1;
-        p->CreateButton(win, ">>", &pos, EditPageNextCallback, &sx, -1);
+        pa_->CreateButton(win_, ">>", &pos, EditPageNextCallback, &sx, -1);
     }
     for (i = 0; i < 5; i++) {
         DB_NUMERIC** num = &g_editNum[i][12];
         {
+            DB_PRIM_ARRAY* pa_ = e->pa;
+            DB_WINDOW* win_ = e->win;
             DB_POINT pos(16.0f, EDIT_ROW_Y(i));
             int sx = -1;
-            num[0] = p->CreateNumeric(win, &g_editRowNo[i], &pos, &sx, -1, DB_NUM_FLAG_NO_SELECT);
+            num[0] = pa_->CreateNumeric(win_, &g_editRowNo[i], &pos, &sx, -1, DB_NUM_FLAG_NO_SELECT);
             num[0]->SetKeta(3);
         }
         {
+            DB_PRIM_ARRAY* pa_ = e->pa;
+            DB_WINDOW* win_ = e->win;
             DB_POINT pos(48.0f, EDIT_ROW_Y(i));
             int sx = 0;
-            num[1] = p->CreateNumeric(win, (u32*) &g_pEditRow[i]->r, &pos, &sx, i, DB_NUM_FLAG_LOCK | DB_NUM_FLAG_HEX);
+            num[1] = pa_->CreateNumeric(win_, (u32*) &g_pEditRow[i]->r, &pos, &sx, i, DB_NUM_FLAG_LOCK | DB_NUM_FLAG_HEX);
             num[1]->SetKeta(8);
             num[1]->SetOnHitCallback(OnColor_Callback);
         }
         {
+            DB_PRIM_ARRAY* pa_ = e->pa;
+            DB_WINDOW* win_ = e->win;
             DB_POINT pos(120.0f, EDIT_ROW_Y(i));
             int sx = 1;
-            num[2] = p->CreateNumeric(win, &g_pEditRow[i]->blend, &pos, &sx, i, DB_NUM_FLAG_LOCK | DB_NUM_FLAG_HEX);
+            num[2] = pa_->CreateNumeric(win_, &g_pEditRow[i]->blend, &pos, &sx, i, DB_NUM_FLAG_LOCK | DB_NUM_FLAG_HEX);
             num[2]->SetKeta(4);
             num[2]->SetOnHitCallback(OnBlend_Callback);
         }
         {
+            DB_PRIM_ARRAY* pa_ = e->pa;
+            DB_WINDOW* win_ = e->win;
             DB_POINT pos(160.0f, EDIT_ROW_Y(i));
             int sx = 2;
-            num[3] = p->CreateNumeric(win, &g_pEditRow[i]->flags, &pos, &sx, i, DB_NUM_FLAG_LOCK | DB_NUM_FLAG_HEX);
+            num[3] = pa_->CreateNumeric(win_, &g_pEditRow[i]->flags, &pos, &sx, i, DB_NUM_FLAG_LOCK | DB_NUM_FLAG_HEX);
             num[3]->SetKeta(2);
             num[3]->SetOnHitCallback(OnToolFlg_Callback);
         }
         {
+            DB_PRIM_ARRAY* pa_ = e->pa;
+            DB_WINDOW* win_ = e->win;
             DB_POINT pos(184.0f, EDIT_ROW_Y(i));
             int sx = 3;
-            num[4] = p->CreateNumeric(win, &g_pEditRow[i]->life, &pos, &sx, i, DB_NUM_FLAG_LOCK);
+            num[4] = pa_->CreateNumeric(win_, &g_pEditRow[i]->life, &pos, &sx, i, DB_NUM_FLAG_LOCK);
             num[4]->SetKeta(3);
             num[4]->SetOnHitCallback(OnLifeMax_Callback);
         }
         {
+            DB_PRIM_ARRAY* pa_ = e->pa;
+            DB_WINDOW* win_ = e->win;
             DB_POINT pos(208.0f, EDIT_ROW_Y(i));
             int sx = 4;
-            num[5] = p->CreateNumeric(win, &g_pEditRow[i]->release, &pos, &sx, i, DB_NUM_FLAG_LOCK);
+            num[5] = pa_->CreateNumeric(win_, &g_pEditRow[i]->release, &pos, &sx, i, DB_NUM_FLAG_LOCK);
             num[5]->SetKeta(3);
             num[5]->SetOnHitCallback(OnReleaseTime_Callback);
         }
         {
+            DB_PRIM_ARRAY* pa_ = e->pa;
+            DB_WINDOW* win_ = e->win;
             DB_POINT pos(236.0f, EDIT_ROW_Y(i));
             int sx = 5;
-            num[6] = p->CreateNumeric(win, &g_pEditRow[i]->anmRate, &pos, &sx, i, DB_NUM_FLAG_LOCK);
+            num[6] = pa_->CreateNumeric(win_, &g_pEditRow[i]->anmRate, &pos, &sx, i, DB_NUM_FLAG_LOCK);
             num[6]->SetKeta(3);
             num[6]->SetOnHitCallback(OnAnmRate_Callback);
         }
         {
+            DB_PRIM_ARRAY* pa_ = e->pa;
+            DB_WINDOW* win_ = e->win;
             DB_POINT pos(272.0f, EDIT_ROW_Y(i));
             int sx = -1;
-            num[7] = p->CreateNumeric(win, &g_pEditRow[i]->rot.x, &pos, &sx, -1, DB_NUM_FLAG_NO_SELECT);
+            num[7] = pa_->CreateNumeric(win_, &g_pEditRow[i]->rot.x, &pos, &sx, -1, DB_NUM_FLAG_NO_SELECT);
             num[7]->SetKeta(5);
         }
         {
+            DB_PRIM_ARRAY* pa_ = e->pa;
+            DB_WINDOW* win_ = e->win;
             DB_POINT pos(316.0f, EDIT_ROW_Y(i));
             int sx = -1;
-            num[8] = p->CreateNumeric(win, &g_pEditRow[i]->rot.y, &pos, &sx, -1, DB_NUM_FLAG_NO_SELECT);
+            num[8] = pa_->CreateNumeric(win_, &g_pEditRow[i]->rot.y, &pos, &sx, -1, DB_NUM_FLAG_NO_SELECT);
             num[8]->SetKeta(5);
         }
         {
+            DB_PRIM_ARRAY* pa_ = e->pa;
+            DB_WINDOW* win_ = e->win;
             DB_POINT pos(368.0f, EDIT_ROW_Y(i));
             int sx = -1;
-            num[9] = p->CreateNumeric(win, &g_pEditRow[i]->rot.z, &pos, &sx, -1, DB_NUM_FLAG_NO_SELECT);
+            num[9] = pa_->CreateNumeric(win_, &g_pEditRow[i]->rot.z, &pos, &sx, -1, DB_NUM_FLAG_NO_SELECT);
             num[9]->SetKeta(5);
         }
         {
+            DB_PRIM_ARRAY* pa_ = e->pa;
+            DB_WINDOW* win_ = e->win;
             DB_POINT pos(272.0f, EDIT_ROW_Y(i));
             int sx = 6;
-            e->pa->CreateButton(win, "                 ", &pos, OnAng_Callback, &sx, i);
+            pa_->CreateButton(win_, "                 ", &pos, OnAng_Callback, &sx, i);
         }
     }
-    win->active = 0;
+    e->win->active = 0;
 }
 
 static inline void CreateEditWindow3(EDIT_WINDOW* e, DB_PRIM_ARRAY* p)
 {
     u32 i;
-    DB_WINDOW* win;
     {
+        DB_PRIM_ARRAY* pa_ = p;
         DB_POINT pos(0.0f, 368.0f);
         f32 w = 512.0f;
         f32 h = 96.0f;
         u32 flg = DB_WIN_KEY_ESC_CLOSE;
-        e->win = win = p->CreateNormalWindow("   No  ======VEC0======  ======VEC1======  ======VEC2======", &pos, &w, &h, &flg);
+        e->win = pa_->CreateNormalWindow("   No  ======VEC0======  ======VEC1======  ======VEC2======", &pos, &w, &h, &flg);
     }
-    win->SetCloseCallback(EditClose_callback);
-    win->SetActiveChangeCallback((DB_WINDOW_CALLBACK) EditActiveChange_callback);
+    e->win->SetCloseCallback(EditClose_callback);
+    e->win->SetActiveChangeCallback((DB_WINDOW_CALLBACK) EditActiveChange_callback);
     {
+        DB_PRIM_ARRAY* pa_ = e->pa;
+        DB_WINDOW* win_ = e->win;
         DB_POINT pos(4.0f, -16.0f);
         int sx = -1;
-        p->CreateButton(win, "<<", &pos, EditPagePrevCallback, &sx, -1);
+        pa_->CreateButton(win_, "<<", &pos, EditPagePrevCallback, &sx, -1);
     }
     {
+        DB_PRIM_ARRAY* pa_ = e->pa;
+        DB_WINDOW* win_ = e->win;
         DB_POINT pos(480.0f, -16.0f);
         int sx = -1;
-        p->CreateButton(win, ">>", &pos, EditPageNextCallback, &sx, -1);
+        pa_->CreateButton(win_, ">>", &pos, EditPageNextCallback, &sx, -1);
     }
     for (i = 0; i < 5; i++) {
         DB_NUMERIC** num = &g_editNum[i][22];
         {
+            DB_PRIM_ARRAY* pa_ = e->pa;
+            DB_WINDOW* win_ = e->win;
             DB_POINT pos(16.0f, EDIT_ROW_Y(i));
             int sx = -1;
-            num[0] = p->CreateNumeric(win, &g_editRowNo[i], &pos, &sx, -1, DB_NUM_FLAG_NO_SELECT);
+            num[0] = pa_->CreateNumeric(win_, &g_editRowNo[i], &pos, &sx, -1, DB_NUM_FLAG_NO_SELECT);
             num[0]->SetKeta(3);
         }
         {
+            DB_PRIM_ARRAY* pa_ = e->pa;
+            DB_WINDOW* win_ = e->win;
             DB_POINT pos(48.0f, EDIT_ROW_Y(i));
             int sx = -1;
-            num[1] = p->CreateNumeric(win, &g_pEditRow[i]->vec0.x, &pos, &sx, -1, DB_NUM_FLAG_NO_SELECT);
+            num[1] = pa_->CreateNumeric(win_, &g_pEditRow[i]->vec0.x, &pos, &sx, -1, DB_NUM_FLAG_NO_SELECT);
             num[1]->SetKeta(5);
         }
         {
+            DB_PRIM_ARRAY* pa_ = e->pa;
+            DB_WINDOW* win_ = e->win;
             DB_POINT pos(96.0f, EDIT_ROW_Y(i));
             int sx = -1;
-            num[2] = p->CreateNumeric(win, &g_pEditRow[i]->vec0.y, &pos, &sx, -1, DB_NUM_FLAG_NO_SELECT);
+            num[2] = pa_->CreateNumeric(win_, &g_pEditRow[i]->vec0.y, &pos, &sx, -1, DB_NUM_FLAG_NO_SELECT);
             num[2]->SetKeta(5);
         }
         {
+            DB_PRIM_ARRAY* pa_ = e->pa;
+            DB_WINDOW* win_ = e->win;
             DB_POINT pos(144.0f, EDIT_ROW_Y(i));
             int sx = -1;
-            num[3] = p->CreateNumeric(win, &g_pEditRow[i]->vec0.z, &pos, &sx, -1, DB_NUM_FLAG_NO_SELECT);
+            num[3] = pa_->CreateNumeric(win_, &g_pEditRow[i]->vec0.z, &pos, &sx, -1, DB_NUM_FLAG_NO_SELECT);
             num[3]->SetKeta(5);
         }
         {
+            DB_PRIM_ARRAY* pa_ = e->pa;
+            DB_WINDOW* win_ = e->win;
             DB_POINT pos(192.0f, EDIT_ROW_Y(i));
             int sx = -1;
-            num[4] = p->CreateNumeric(win, &g_pEditRow[i]->vec1.x, &pos, &sx, -1, DB_NUM_FLAG_NO_SELECT);
+            num[4] = pa_->CreateNumeric(win_, &g_pEditRow[i]->vec1.x, &pos, &sx, -1, DB_NUM_FLAG_NO_SELECT);
             num[4]->SetKeta(5);
         }
         {
+            DB_PRIM_ARRAY* pa_ = e->pa;
+            DB_WINDOW* win_ = e->win;
             DB_POINT pos(240.0f, EDIT_ROW_Y(i));
             int sx = -1;
-            num[5] = p->CreateNumeric(win, &g_pEditRow[i]->vec1.y, &pos, &sx, -1, DB_NUM_FLAG_NO_SELECT);
+            num[5] = pa_->CreateNumeric(win_, &g_pEditRow[i]->vec1.y, &pos, &sx, -1, DB_NUM_FLAG_NO_SELECT);
             num[5]->SetKeta(5);
         }
         {
+            DB_PRIM_ARRAY* pa_ = e->pa;
+            DB_WINDOW* win_ = e->win;
             DB_POINT pos(288.0f, EDIT_ROW_Y(i));
             int sx = -1;
-            num[6] = p->CreateNumeric(win, &g_pEditRow[i]->vec1.z, &pos, &sx, -1, DB_NUM_FLAG_NO_SELECT);
+            num[6] = pa_->CreateNumeric(win_, &g_pEditRow[i]->vec1.z, &pos, &sx, -1, DB_NUM_FLAG_NO_SELECT);
             num[6]->SetKeta(5);
         }
         {
+            DB_PRIM_ARRAY* pa_ = e->pa;
+            DB_WINDOW* win_ = e->win;
             DB_POINT pos(336.0f, EDIT_ROW_Y(i));
             int sx = -1;
-            num[7] = p->CreateNumeric(win, &g_pEditRow[i]->vec2.x, &pos, &sx, -1, DB_NUM_FLAG_NO_SELECT);
+            num[7] = pa_->CreateNumeric(win_, &g_pEditRow[i]->vec2.x, &pos, &sx, -1, DB_NUM_FLAG_NO_SELECT);
             num[7]->SetKeta(5);
         }
         {
+            DB_PRIM_ARRAY* pa_ = e->pa;
+            DB_WINDOW* win_ = e->win;
             DB_POINT pos(384.0f, EDIT_ROW_Y(i));
             int sx = -1;
-            num[8] = p->CreateNumeric(win, &g_pEditRow[i]->vec2.y, &pos, &sx, -1, DB_NUM_FLAG_NO_SELECT);
+            num[8] = pa_->CreateNumeric(win_, &g_pEditRow[i]->vec2.y, &pos, &sx, -1, DB_NUM_FLAG_NO_SELECT);
             num[8]->SetKeta(5);
         }
         {
+            DB_PRIM_ARRAY* pa_ = e->pa;
+            DB_WINDOW* win_ = e->win;
             DB_POINT pos(428.0f, EDIT_ROW_Y(i));
             int sx = -1;
-            num[9] = p->CreateNumeric(win, &g_pEditRow[i]->vec2.z, &pos, &sx, -1, DB_NUM_FLAG_NO_SELECT);
+            num[9] = pa_->CreateNumeric(win_, &g_pEditRow[i]->vec2.z, &pos, &sx, -1, DB_NUM_FLAG_NO_SELECT);
             num[9]->SetKeta(5);
         }
         {
+            DB_PRIM_ARRAY* pa_ = e->pa;
+            DB_WINDOW* win_ = e->win;
             DB_POINT pos(48.0f, EDIT_ROW_Y(i));
             int sx = 0;
-            e->pa->CreateButton(win, "                 ", &pos, OnVec0_Callback, &sx, i);
+            pa_->CreateButton(win_, "                 ", &pos, OnVec0_Callback, &sx, i);
         }
         {
+            DB_PRIM_ARRAY* pa_ = e->pa;
+            DB_WINDOW* win_ = e->win;
             DB_POINT pos(192.0f, EDIT_ROW_Y(i));
             int sx = 1;
-            e->pa->CreateButton(win, "                 ", &pos, OnVec1_Callback, &sx, i);
+            pa_->CreateButton(win_, "                 ", &pos, OnVec1_Callback, &sx, i);
         }
         {
+            DB_PRIM_ARRAY* pa_ = e->pa;
+            DB_WINDOW* win_ = e->win;
             DB_POINT pos(336.0f, EDIT_ROW_Y(i));
             int sx = 2;
-            e->pa->CreateButton(win, "                 ", &pos, OnVec2_Callback, &sx, i);
+            pa_->CreateButton(win_, "                 ", &pos, OnVec2_Callback, &sx, i);
         }
     }
-    win->active = 0;
+    e->win->active = 0;
 }
 
 static inline void CreateEditWindow4(EDIT_WINDOW* e, DB_PRIM_ARRAY* p)
 {
     u32 i;
-    DB_WINDOW* win;
     {
+        DB_PRIM_ARRAY* pa_ = p;
         DB_POINT pos(0.0f, 368.0f);
         f32 w = 512.0f;
         f32 h = 96.0f;
         u32 flg = DB_WIN_KEY_ESC_CLOSE;
-        e->win = win = p->CreateNormalWindow("   No WK0 WK1 WK2 WK3  WK4  WK5  WK6  SP0 SP1 SP2 SP3", &pos, &w, &h, &flg);
+        e->win = pa_->CreateNormalWindow("   No WK0 WK1 WK2 WK3  WK4  WK5  WK6  SP0 SP1 SP2 SP3", &pos, &w, &h, &flg);
     }
-    win->SetCloseCallback(EditClose_callback);
-    win->SetActiveChangeCallback((DB_WINDOW_CALLBACK) EditActiveChange_callback);
+    e->win->SetCloseCallback(EditClose_callback);
+    e->win->SetActiveChangeCallback((DB_WINDOW_CALLBACK) EditActiveChange_callback);
     {
+        DB_PRIM_ARRAY* pa_ = e->pa;
+        DB_WINDOW* win_ = e->win;
         DB_POINT pos(4.0f, -16.0f);
         int sx = -1;
-        p->CreateButton(win, "<<", &pos, EditPagePrevCallback, &sx, -1);
+        pa_->CreateButton(win_, "<<", &pos, EditPagePrevCallback, &sx, -1);
     }
     {
+        DB_PRIM_ARRAY* pa_ = e->pa;
+        DB_WINDOW* win_ = e->win;
         DB_POINT pos(480.0f, -16.0f);
         int sx = -1;
-        p->CreateButton(win, ">>", &pos, EditPageNextCallback, &sx, -1);
+        pa_->CreateButton(win_, ">>", &pos, EditPageNextCallback, &sx, -1);
     }
     for (i = 0; i < 5; i++) {
         DB_NUMERIC** num = &g_editNum[i][32];
         {
+            DB_PRIM_ARRAY* pa_ = e->pa;
+            DB_WINDOW* win_ = e->win;
             DB_POINT pos(48.0f, EDIT_ROW_Y(i));
             int sx = 0;
-            num[0] = p->CreateNumeric(win, (s8*) &g_pEditRow[i]->work[0], &pos, &sx, i, DB_NUM_FLAG_LOCK);
+            num[0] = pa_->CreateNumeric(win_, (s8*) &g_pEditRow[i]->work[0], &pos, &sx, i, DB_NUM_FLAG_LOCK);
             num[0]->SetKeta(3);
             num[0]->SetOnHitCallback(OnWork0_Callback);
         }
         {
+            DB_PRIM_ARRAY* pa_ = e->pa;
+            DB_WINDOW* win_ = e->win;
             DB_POINT pos(80.0f, EDIT_ROW_Y(i));
             int sx = 1;
-            num[1] = p->CreateNumeric(win, (s8*) &g_pEditRow[i]->work[1], &pos, &sx, i, DB_NUM_FLAG_LOCK);
+            num[1] = pa_->CreateNumeric(win_, (s8*) &g_pEditRow[i]->work[1], &pos, &sx, i, DB_NUM_FLAG_LOCK);
             num[1]->SetKeta(3);
             num[1]->SetOnHitCallback(OnWork1_Callback);
         }
         {
+            DB_PRIM_ARRAY* pa_ = e->pa;
+            DB_WINDOW* win_ = e->win;
             DB_POINT pos(112.0f, EDIT_ROW_Y(i));
             int sx = 2;
-            num[2] = p->CreateNumeric(win, (s8*) &g_pEditRow[i]->work[2], &pos, &sx, i, DB_NUM_FLAG_LOCK);
+            num[2] = pa_->CreateNumeric(win_, (s8*) &g_pEditRow[i]->work[2], &pos, &sx, i, DB_NUM_FLAG_LOCK);
             num[2]->SetKeta(3);
             num[2]->SetOnHitCallback(OnWork2_Callback);
         }
         {
+            DB_PRIM_ARRAY* pa_ = e->pa;
+            DB_WINDOW* win_ = e->win;
             DB_POINT pos(144.0f, EDIT_ROW_Y(i));
             int sx = 3;
-            num[3] = p->CreateNumeric(win, (s8*) &g_pEditRow[i]->work[3], &pos, &sx, i, DB_NUM_FLAG_LOCK);
+            num[3] = pa_->CreateNumeric(win_, (s8*) &g_pEditRow[i]->work[3], &pos, &sx, i, DB_NUM_FLAG_LOCK);
             num[3]->SetKeta(3);
             num[3]->SetOnHitCallback(OnWork3_Callback);
         }
         {
+            DB_PRIM_ARRAY* pa_ = e->pa;
+            DB_WINDOW* win_ = e->win;
             DB_POINT pos(176.0f, EDIT_ROW_Y(i));
             int sx = 4;
-            num[4] = p->CreateNumeric(win, (s32*) &g_pEditRow[i]->work4, &pos, &sx, i, DB_NUM_FLAG_LOCK);
+            num[4] = pa_->CreateNumeric(win_, (s32*) &g_pEditRow[i]->work4, &pos, &sx, i, DB_NUM_FLAG_LOCK);
             num[4]->SetKeta(4);
             num[4]->SetOnHitCallback(OnWork4_Callback);
         }
         {
+            DB_PRIM_ARRAY* pa_ = e->pa;
+            DB_WINDOW* win_ = e->win;
             DB_POINT pos(216.0f, EDIT_ROW_Y(i));
             int sx = 5;
-            num[5] = p->CreateNumeric(win, (s32*) &g_pEditRow[i]->work5, &pos, &sx, i, DB_NUM_FLAG_LOCK);
+            num[5] = pa_->CreateNumeric(win_, (s32*) &g_pEditRow[i]->work5, &pos, &sx, i, DB_NUM_FLAG_LOCK);
             num[5]->SetKeta(4);
             num[5]->SetOnHitCallback(OnWork5_Callback);
         }
         {
+            DB_PRIM_ARRAY* pa_ = e->pa;
+            DB_WINDOW* win_ = e->win;
             DB_POINT pos(256.0f, EDIT_ROW_Y(i));
             int sx = 6;
-            num[6] = p->CreateNumeric(win, (s32*) &g_pEditRow[i]->work6, &pos, &sx, i, DB_NUM_FLAG_LOCK);
+            num[6] = pa_->CreateNumeric(win_, (s32*) &g_pEditRow[i]->work6, &pos, &sx, i, DB_NUM_FLAG_LOCK);
             num[6]->SetKeta(4);
             num[6]->SetOnHitCallback(OnWork6_Callback);
         }
         {
+            DB_PRIM_ARRAY* pa_ = e->pa;
+            DB_WINDOW* win_ = e->win;
             DB_POINT pos(304.0f, EDIT_ROW_Y(i));
             int sx = 7;
-            num[7] = p->CreateNumeric(win, &g_pEditRow[i]->sp[0], &pos, &sx, i, DB_NUM_FLAG_LOCK);
+            num[7] = pa_->CreateNumeric(win_, &g_pEditRow[i]->sp[0], &pos, &sx, i, DB_NUM_FLAG_LOCK);
             num[7]->SetKeta(3);
             num[7]->SetOnHitCallback(OnWorkSp0_Callback);
         }
         {
+            DB_PRIM_ARRAY* pa_ = e->pa;
+            DB_WINDOW* win_ = e->win;
             DB_POINT pos(336.0f, EDIT_ROW_Y(i));
             int sx = 8;
-            num[8] = p->CreateNumeric(win, &g_pEditRow[i]->sp[1], &pos, &sx, i, DB_NUM_FLAG_LOCK);
+            num[8] = pa_->CreateNumeric(win_, &g_pEditRow[i]->sp[1], &pos, &sx, i, DB_NUM_FLAG_LOCK);
             num[8]->SetKeta(3);
             num[8]->SetOnHitCallback(OnWorkSp1_Callback);
         }
         {
+            DB_PRIM_ARRAY* pa_ = e->pa;
+            DB_WINDOW* win_ = e->win;
             DB_POINT pos(368.0f, EDIT_ROW_Y(i));
             int sx = 9;
-            num[9] = p->CreateNumeric(win, &g_pEditRow[i]->sp[2], &pos, &sx, i, DB_NUM_FLAG_LOCK);
+            num[9] = pa_->CreateNumeric(win_, &g_pEditRow[i]->sp[2], &pos, &sx, i, DB_NUM_FLAG_LOCK);
             num[9]->SetKeta(3);
             num[9]->SetOnHitCallback(OnWorkSp2_Callback);
         }
         {
+            DB_PRIM_ARRAY* pa_ = e->pa;
+            DB_WINDOW* win_ = e->win;
             DB_POINT pos(400.0f, EDIT_ROW_Y(i));
             int sx = 10;
-            num[10] = p->CreateNumeric(win, &g_pEditRow[i]->sp[3], &pos, &sx, i, DB_NUM_FLAG_LOCK);
+            num[10] = pa_->CreateNumeric(win_, &g_pEditRow[i]->sp[3], &pos, &sx, i, DB_NUM_FLAG_LOCK);
             num[10]->SetKeta(3);
             num[10]->SetOnHitCallback(OnWorkSp3_Callback);
         }
     }
-    win->active = 0;
+    e->win->active = 0;
 }
 
 /* ------------------------------------------------------------------------- Model window */
@@ -1423,11 +1563,12 @@ public:
         pa = p;
         win = NULL;
         {
+            DB_PRIM_ARRAY* pa_ = pa;
             DB_POINT pos(164.0f, 144.0f);
             f32 w = 168.0f;
             f32 h = 128.0f;
             u32 flg = DB_WIN_KEY_ESC_CLOSE;
-            win = pa->CreateNormalWindow("  Load Model", &pos, &w, &h, &flg);
+            win = pa_->CreateNormalWindow("  Load Model", &pos, &w, &h, &flg);
         }
         win->sel.keyMode = 1;
         win->SetCloseCallback(ModelClose_callback);
@@ -1439,19 +1580,25 @@ public:
             pa->CreateString(win, "    ", &pos)->SetUpdateCallback(ModelNameUpdateCallback);
         }
         {
+            DB_PRIM_ARRAY* pa_ = pa;
+            DB_WINDOW* win_ = win;
             DB_POINT pos(72.0f, 40.0f);
             int sx = 0;
-            pa->CreateButton(win, "    ", &pos, NULL, &sx, 0)->SetUpdateCallback(ModelTypeUpdateCallback);
+            pa_->CreateButton(win_, "    ", &pos, NULL, &sx, 0)->SetUpdateCallback(ModelTypeUpdateCallback);
         }
         {
+            DB_PRIM_ARRAY* pa_ = pa;
+            DB_WINDOW* win_ = win;
             DB_POINT pos(72.0f, 56.0f);
             int sx = 0;
-            pa->CreateNumeric(win, &g_modelNo, &pos, &sx, 1, DB_NUM_FLAG_HEX | DB_NUM_FLAG_NO_FLOAT_MSG | DB_NUM_FLAG_LOOP)->SetKeta(2);
+            pa_->CreateNumeric(win_, &g_modelNo, &pos, &sx, 1, DB_NUM_FLAG_HEX | DB_NUM_FLAG_NO_FLOAT_MSG | DB_NUM_FLAG_LOOP)->SetKeta(2);
         }
         {
+            DB_PRIM_ARRAY* pa_ = pa;
+            DB_WINDOW* win_ = win;
             DB_POINT pos(72.0f, 80.0f);
             int sx = 0;
-            pa->CreateButton(win, "[LOAD]", &pos, ModelLoadCallback, &sx, 0);
+            pa_->CreateButton(win_, "[LOAD]", &pos, ModelLoadCallback, &sx, 0);
         }
         win->active = 0;
     }
@@ -1535,37 +1682,48 @@ public:
         pa = p;
         win = NULL;
         {
+            DB_PRIM_ARRAY* pa_ = pa;
             DB_POINT pos(48.0f, 80.0f);
             f32 w = 72.0f;
             f32 h = 112.0f;
             u32 flg = DB_WIN_KEY_ESC_CLOSE;
-            win = pa->CreateNormalWindow("  Load", &pos, &w, &h, &flg);
+            win = pa_->CreateNormalWindow("  Load", &pos, &w, &h, &flg);
         }
         win->SetCloseCallback(LoadClose_callback);
         {
+            DB_PRIM_ARRAY* pa_ = pa;
+            DB_WINDOW* win_ = win;
             DB_POINT pos(4.0f, 8.0f);
             int sx = 0;
-            pa->CreateButton(win, "  Enemy ", &pos, LoadLoadEmCallback, &sx, 0);
+            pa_->CreateButton(win_, "  Enemy ", &pos, LoadLoadEmCallback, &sx, 0);
         }
         {
+            DB_PRIM_ARRAY* pa_ = pa;
+            DB_WINDOW* win_ = win;
             DB_POINT pos(4.0f, 24.0f);
             int sx = 0;
-            pa->CreateButton(win, "  Room  ", &pos, LoadLoadRoomCallback, &sx, 1);
+            pa_->CreateButton(win_, "  Room  ", &pos, LoadLoadRoomCallback, &sx, 1);
         }
         {
+            DB_PRIM_ARRAY* pa_ = pa;
+            DB_WINDOW* win_ = win;
             DB_POINT pos(4.0f, 40.0f);
             int sx = 0;
-            pa->CreateButton(win, "  SST   ", &pos, LoadLoadSstCallback, &sx, 2);
+            pa_->CreateButton(win_, "  SST   ", &pos, LoadLoadSstCallback, &sx, 2);
         }
         {
+            DB_PRIM_ARRAY* pa_ = pa;
+            DB_WINDOW* win_ = win;
             DB_POINT pos(4.0f, 56.0f);
             int sx = 0;
-            pa->CreateButton(win, "  EVENT ", &pos, LoadLoadEventCallback, &sx, 3);
+            pa_->CreateButton(win_, "  EVENT ", &pos, LoadLoadEventCallback, &sx, 3);
         }
         {
+            DB_PRIM_ARRAY* pa_ = pa;
+            DB_WINDOW* win_ = win;
             DB_POINT pos(4.0f, 76.0f);
             int sx = 0;
-            g_pLoadDirButton = pa->CreateButton(win, "[Server]", &pos, SetDirCallback, &sx, 4);
+            g_pLoadDirButton = pa_->CreateButton(win_, "[Server]", &pos, SetDirCallback, &sx, 4);
         }
         win->active = 0;
     }
@@ -1677,11 +1835,12 @@ public:
         pa = p;
         win = NULL;
         {
+            DB_PRIM_ARRAY* pa_ = pa;
             DB_POINT pos(164.0f, 144.0f);
             f32 w = 168.0f;
             f32 h = 128.0f;
             u32 flg = DB_WIN_KEY_ESC_CLOSE;
-            win = pa->CreateNormalWindow("  Load Enemy", &pos, &w, &h, &flg);
+            win = pa_->CreateNormalWindow("  Load Enemy", &pos, &w, &h, &flg);
         }
         win->sel.keyMode = 1;
         win->SetCloseCallback(LoadNowClose_callback);
@@ -1693,19 +1852,25 @@ public:
             pa->CreateString(win, "    ", &pos)->SetUpdateCallback(LoadEmNameUpdateCallback);
         }
         {
+            DB_PRIM_ARRAY* pa_ = pa;
+            DB_WINDOW* win_ = win;
             DB_POINT pos(72.0f, 40.0f);
             int sx = 0;
-            pa->CreateButton(win, "    ", &pos, NULL, &sx, 0)->SetUpdateCallback(LoadEmTypeUpdateCallback);
+            pa_->CreateButton(win_, "    ", &pos, NULL, &sx, 0)->SetUpdateCallback(LoadEmTypeUpdateCallback);
         }
         {
+            DB_PRIM_ARRAY* pa_ = pa;
+            DB_WINDOW* win_ = win;
             DB_POINT pos(72.0f, 56.0f);
             int sx = 0;
-            pa->CreateNumeric(win, &g_emFileNo, &pos, &sx, 1, DB_NUM_FLAG_HEX | DB_NUM_FLAG_NO_FLOAT_MSG | DB_NUM_FLAG_LOOP)->SetKeta(2);
+            pa_->CreateNumeric(win_, &g_emFileNo, &pos, &sx, 1, DB_NUM_FLAG_HEX | DB_NUM_FLAG_NO_FLOAT_MSG | DB_NUM_FLAG_LOOP)->SetKeta(2);
         }
         {
+            DB_PRIM_ARRAY* pa_ = pa;
+            DB_WINDOW* win_ = win;
             DB_POINT pos(72.0f, 80.0f);
             int sx = 0;
-            pa->CreateButton(win, "[LOAD]", &pos, LoadLoadCallback, &sx, 0);
+            pa_->CreateButton(win_, "[LOAD]", &pos, LoadLoadCallback, &sx, 0);
         }
         win->active = 0;
     }
@@ -1732,11 +1897,12 @@ public:
         pa = p;
         win = NULL;
         {
+            DB_PRIM_ARRAY* pa_ = pa;
             DB_POINT pos(164.0f, 144.0f);
             f32 w = 168.0f;
             f32 h = 128.0f;
             u32 flg = DB_WIN_KEY_ESC_CLOSE;
-            win = pa->CreateNormalWindow("  Load Room", &pos, &w, &h, &flg);
+            win = pa_->CreateNormalWindow("  Load Room", &pos, &w, &h, &flg);
         }
         win->sel.keyMode = 1;
         win->SetCloseCallback(LoadNowClose_callback);
@@ -1747,14 +1913,18 @@ public:
             pa->CreateString(win, "    ", &pos)->SetUpdateCallback(LoadRoomNameUpdateCallback);
         }
         {
+            DB_PRIM_ARRAY* pa_ = pa;
+            DB_WINDOW* win_ = win;
             DB_POINT pos(72.0f, 56.0f);
             int sx = 0;
-            pa->CreateNumeric(win, &g_roomFileNo, &pos, &sx, 0, DB_NUM_FLAG_HEX | DB_NUM_FLAG_NO_FLOAT_MSG | DB_NUM_FLAG_LOOP)->SetKeta(2);
+            pa_->CreateNumeric(win_, &g_roomFileNo, &pos, &sx, 0, DB_NUM_FLAG_HEX | DB_NUM_FLAG_NO_FLOAT_MSG | DB_NUM_FLAG_LOOP)->SetKeta(2);
         }
         {
+            DB_PRIM_ARRAY* pa_ = pa;
+            DB_WINDOW* win_ = win;
             DB_POINT pos(72.0f, 80.0f);
             int sx = 0;
-            pa->CreateButton(win, "[Load]", &pos, LoadLoadCallback, &sx, 0);
+            pa_->CreateButton(win_, "[Load]", &pos, LoadLoadCallback, &sx, 0);
         }
         win->active = 0;
     }
@@ -1781,11 +1951,12 @@ public:
         pa = p;
         win = NULL;
         {
+            DB_PRIM_ARRAY* pa_ = pa;
             DB_POINT pos(164.0f, 144.0f);
             f32 w = 168.0f;
             f32 h = 128.0f;
             u32 flg = DB_WIN_KEY_ESC_CLOSE;
-            win = pa->CreateNormalWindow("  Load SST", &pos, &w, &h, &flg);
+            win = pa_->CreateNormalWindow("  Load SST", &pos, &w, &h, &flg);
         }
         win->sel.keyMode = 1;
         win->SetCloseCallback(LoadNowClose_callback);
@@ -1796,14 +1967,18 @@ public:
             pa->CreateString(win, "    ", &pos)->SetUpdateCallback(LoadSstNameUpdateCallback);
         }
         {
+            DB_PRIM_ARRAY* pa_ = pa;
+            DB_WINDOW* win_ = win;
             DB_POINT pos(72.0f, 56.0f);
             int sx = 0;
-            pa->CreateNumeric(win, &g_sstFileNo, &pos, &sx, 0, DB_NUM_FLAG_HEX | DB_NUM_FLAG_NO_FLOAT_MSG | DB_NUM_FLAG_LOOP)->SetKeta(2);
+            pa_->CreateNumeric(win_, &g_sstFileNo, &pos, &sx, 0, DB_NUM_FLAG_HEX | DB_NUM_FLAG_NO_FLOAT_MSG | DB_NUM_FLAG_LOOP)->SetKeta(2);
         }
         {
+            DB_PRIM_ARRAY* pa_ = pa;
+            DB_WINDOW* win_ = win;
             DB_POINT pos(72.0f, 80.0f);
             int sx = 0;
-            pa->CreateButton(win, "[Load]", &pos, LoadLoadCallback, &sx, 0);
+            pa_->CreateButton(win_, "[Load]", &pos, LoadLoadCallback, &sx, 0);
         }
         win->active = 0;
     }
@@ -1830,11 +2005,12 @@ public:
         pa = p;
         win = NULL;
         {
+            DB_PRIM_ARRAY* pa_ = pa;
             DB_POINT pos(164.0f, 144.0f);
             f32 w = 192.0f;
             f32 h = 128.0f;
             u32 flg = DB_WIN_KEY_ESC_CLOSE;
-            win = pa->CreateNormalWindow("     Load EVENT", &pos, &w, &h, &flg);
+            win = pa_->CreateNormalWindow("     Load EVENT", &pos, &w, &h, &flg);
         }
         win->sel.keyMode = 1;
         win->SetCloseCallback(LoadNowClose_callback);
@@ -1846,19 +2022,25 @@ public:
             pa->CreateString(win, "    ", &pos)->SetUpdateCallback(LoadEventNameUpdateCallback);
         }
         {
+            DB_PRIM_ARRAY* pa_ = pa;
+            DB_WINDOW* win_ = win;
             DB_POINT pos(72.0f, 40.0f);
             int sx = 0;
-            pa->CreateNumeric(win, &g_eventNo, &pos, &sx, 0, DB_NUM_FLAG_HEX | DB_NUM_FLAG_NO_FLOAT_MSG | DB_NUM_FLAG_LOOP)->SetKeta(2);
+            pa_->CreateNumeric(win_, &g_eventNo, &pos, &sx, 0, DB_NUM_FLAG_HEX | DB_NUM_FLAG_NO_FLOAT_MSG | DB_NUM_FLAG_LOOP)->SetKeta(2);
         }
         {
+            DB_PRIM_ARRAY* pa_ = pa;
+            DB_WINDOW* win_ = win;
             DB_POINT pos(72.0f, 56.0f);
             int sx = 0;
-            pa->CreateNumeric(win, &g_eventSNo, &pos, &sx, 1, DB_NUM_FLAG_HEX | DB_NUM_FLAG_NO_FLOAT_MSG | DB_NUM_FLAG_LOOP)->SetKeta(2);
+            pa_->CreateNumeric(win_, &g_eventSNo, &pos, &sx, 1, DB_NUM_FLAG_HEX | DB_NUM_FLAG_NO_FLOAT_MSG | DB_NUM_FLAG_LOOP)->SetKeta(2);
         }
         {
+            DB_PRIM_ARRAY* pa_ = pa;
+            DB_WINDOW* win_ = win;
             DB_POINT pos(72.0f, 80.0f);
             int sx = 0;
-            pa->CreateButton(win, "[Load]", &pos, LoadLoadCallback, &sx, 0);
+            pa_->CreateButton(win_, "[Load]", &pos, LoadLoadCallback, &sx, 0);
         }
         win->active = 0;
     }
@@ -1899,11 +2081,12 @@ public:
         pa = p;
         win = NULL;
         {
+            DB_PRIM_ARRAY* pa_ = pa;
             DB_POINT pos(24.0f, 180.0f);
             f32 w = 480.0f;
             f32 h = 80.0f;
             u32 flg = DB_WIN_KEY_ESC_CLOSE;
-            win = pa->CreateNormalWindow("                         Load OK?", &pos, &w, &h, &flg);
+            win = pa_->CreateNormalWindow("                         Load OK?", &pos, &w, &h, &flg);
         }
         win->SetCloseCallback(LoadCheckClose_callback);
         {
@@ -1911,14 +2094,18 @@ public:
             pa->CreateString(win, "    ", &pos)->SetUpdateCallback(LoadCheckNameUpdateCallback);
         }
         {
+            DB_PRIM_ARRAY* pa_ = pa;
+            DB_WINDOW* win_ = win;
             DB_POINT pos(192.0f, 40.0f);
             int sx = 0;
-            pa->CreateButton(win, "[OK]", &pos, LoadCheckOkCallback, &sx, 0);
+            pa_->CreateButton(win_, "[OK]", &pos, LoadCheckOkCallback, &sx, 0);
         }
         {
+            DB_PRIM_ARRAY* pa_ = pa;
+            DB_WINDOW* win_ = win;
             DB_POINT pos(242.0f, 40.0f);
             int sx = 1;
-            pa->CreateButton(win, "[CANCEL]", &pos, LoadCheckCancelCallback, &sx, 0);
+            pa_->CreateButton(win_, "[CANCEL]", &pos, LoadCheckCancelCallback, &sx, 0);
         }
         win->active = 0;
     }
@@ -1974,37 +2161,48 @@ public:
         pa = p;
         win = NULL;
         {
+            DB_PRIM_ARRAY* pa_ = pa;
             DB_POINT pos(48.0f, 80.0f);
             f32 w = 72.0f;
             f32 h = 112.0f;
             u32 flg = DB_WIN_KEY_ESC_CLOSE;
-            win = pa->CreateNormalWindow("  Save", &pos, &w, &h, &flg);
+            win = pa_->CreateNormalWindow("  Save", &pos, &w, &h, &flg);
         }
         win->SetCloseCallback(SaveClose_callback);
         {
+            DB_PRIM_ARRAY* pa_ = pa;
+            DB_WINDOW* win_ = win;
             DB_POINT pos(4.0f, 8.0f);
             int sx = 0;
-            pa->CreateButton(win, "  Model ", &pos, SaveSaveEmCallback, &sx, 0);
+            pa_->CreateButton(win_, "  Model ", &pos, SaveSaveEmCallback, &sx, 0);
         }
         {
+            DB_PRIM_ARRAY* pa_ = pa;
+            DB_WINDOW* win_ = win;
             DB_POINT pos(4.0f, 24.0f);
             int sx = 0;
-            pa->CreateButton(win, "  Room  ", &pos, SaveSaveRoomCallback, &sx, 1);
+            pa_->CreateButton(win_, "  Room  ", &pos, SaveSaveRoomCallback, &sx, 1);
         }
         {
+            DB_PRIM_ARRAY* pa_ = pa;
+            DB_WINDOW* win_ = win;
             DB_POINT pos(4.0f, 40.0f);
             int sx = 0;
-            pa->CreateButton(win, "  SST   ", &pos, SaveSaveSstCallback, &sx, 2);
+            pa_->CreateButton(win_, "  SST   ", &pos, SaveSaveSstCallback, &sx, 2);
         }
         {
+            DB_PRIM_ARRAY* pa_ = pa;
+            DB_WINDOW* win_ = win;
             DB_POINT pos(4.0f, 56.0f);
             int sx = 0;
-            pa->CreateButton(win, "  EVENT ", &pos, SaveSaveEventCallback, &sx, 3);
+            pa_->CreateButton(win_, "  EVENT ", &pos, SaveSaveEventCallback, &sx, 3);
         }
         {
+            DB_PRIM_ARRAY* pa_ = pa;
+            DB_WINDOW* win_ = win;
             DB_POINT pos(4.0f, 76.0f);
             int sx = 0;
-            g_pSaveDirButton = pa->CreateButton(win, "[Server]", &pos, SetDirCallback, &sx, 4);
+            g_pSaveDirButton = pa_->CreateButton(win_, "[Server]", &pos, SetDirCallback, &sx, 4);
         }
         win->active = 0;
     }
@@ -2084,11 +2282,12 @@ public:
         pa = p;
         win = NULL;
         {
+            DB_PRIM_ARRAY* pa_ = pa;
             DB_POINT pos(164.0f, 144.0f);
             f32 w = 168.0f;
             f32 h = 128.0f;
             u32 flg = DB_WIN_KEY_ESC_CLOSE;
-            win = pa->CreateNormalWindow("  Save Enemy", &pos, &w, &h, &flg);
+            win = pa_->CreateNormalWindow("  Save Enemy", &pos, &w, &h, &flg);
         }
         win->sel.keyMode = 1;
         win->SetCloseCallback(SaveNowClose_callback);
@@ -2100,19 +2299,25 @@ public:
             pa->CreateString(win, "    ", &pos)->SetUpdateCallback(SaveEmNameUpdateCallback);
         }
         {
+            DB_PRIM_ARRAY* pa_ = pa;
+            DB_WINDOW* win_ = win;
             DB_POINT pos(72.0f, 40.0f);
             int sx = 0;
-            pa->CreateButton(win, "    ", &pos, NULL, &sx, 0)->SetUpdateCallback(SaveEmTypeUpdateCallback);
+            pa_->CreateButton(win_, "    ", &pos, NULL, &sx, 0)->SetUpdateCallback(SaveEmTypeUpdateCallback);
         }
         {
+            DB_PRIM_ARRAY* pa_ = pa;
+            DB_WINDOW* win_ = win;
             DB_POINT pos(72.0f, 56.0f);
             int sx = 0;
-            pa->CreateButton(win, "  ", &pos, NULL, &sx, 0)->SetUpdateCallback(SaveEmFileNoUpdateCallback);
+            pa_->CreateButton(win_, "  ", &pos, NULL, &sx, 0)->SetUpdateCallback(SaveEmFileNoUpdateCallback);
         }
         {
+            DB_PRIM_ARRAY* pa_ = pa;
+            DB_WINDOW* win_ = win;
             DB_POINT pos(72.0f, 80.0f);
             int sx = 0;
-            pa->CreateButton(win, "[SAVE]", &pos, SaveSaveCallback, &sx, 0);
+            pa_->CreateButton(win_, "[SAVE]", &pos, SaveSaveCallback, &sx, 0);
         }
         win->active = 0;
     }
@@ -2146,11 +2351,12 @@ public:
         pa = p;
         win = NULL;
         {
+            DB_PRIM_ARRAY* pa_ = pa;
             DB_POINT pos(164.0f, 144.0f);
             f32 w = 168.0f;
             f32 h = 128.0f;
             u32 flg = DB_WIN_KEY_ESC_CLOSE;
-            win = pa->CreateNormalWindow("  Save Room", &pos, &w, &h, &flg);
+            win = pa_->CreateNormalWindow("  Save Room", &pos, &w, &h, &flg);
         }
         win->sel.keyMode = 1;
         win->SetCloseCallback(SaveNowClose_callback);
@@ -2161,14 +2367,18 @@ public:
             pa->CreateString(win, "    ", &pos)->SetUpdateCallback(SaveRoomNameUpdateCallback);
         }
         {
+            DB_PRIM_ARRAY* pa_ = pa;
+            DB_WINDOW* win_ = win;
             DB_POINT pos(72.0f, 56.0f);
             int sx = 0;
-            pa->CreateButton(win, "  ", &pos, NULL, &sx, 0)->SetUpdateCallback(SaveRoomFileNoUpdateCallback);
+            pa_->CreateButton(win_, "  ", &pos, NULL, &sx, 0)->SetUpdateCallback(SaveRoomFileNoUpdateCallback);
         }
         {
+            DB_PRIM_ARRAY* pa_ = pa;
+            DB_WINDOW* win_ = win;
             DB_POINT pos(72.0f, 80.0f);
             int sx = 0;
-            pa->CreateButton(win, "[SAVE]", &pos, SaveSaveCallback, &sx, 0);
+            pa_->CreateButton(win_, "[SAVE]", &pos, SaveSaveCallback, &sx, 0);
         }
         win->active = 0;
     }
@@ -2202,11 +2412,12 @@ public:
         pa = p;
         win = NULL;
         {
+            DB_PRIM_ARRAY* pa_ = pa;
             DB_POINT pos(164.0f, 144.0f);
             f32 w = 168.0f;
             f32 h = 128.0f;
             u32 flg = DB_WIN_KEY_ESC_CLOSE;
-            win = pa->CreateNormalWindow("  Save SST", &pos, &w, &h, &flg);
+            win = pa_->CreateNormalWindow("  Save SST", &pos, &w, &h, &flg);
         }
         win->sel.keyMode = 1;
         win->SetCloseCallback(SaveNowClose_callback);
@@ -2217,14 +2428,18 @@ public:
             pa->CreateString(win, "    ", &pos)->SetUpdateCallback(SaveSstNameUpdateCallback);
         }
         {
+            DB_PRIM_ARRAY* pa_ = pa;
+            DB_WINDOW* win_ = win;
             DB_POINT pos(72.0f, 56.0f);
             int sx = 0;
-            pa->CreateButton(win, "  ", &pos, NULL, &sx, 0)->SetUpdateCallback(SaveSstFileNoUpdateCallback);
+            pa_->CreateButton(win_, "  ", &pos, NULL, &sx, 0)->SetUpdateCallback(SaveSstFileNoUpdateCallback);
         }
         {
+            DB_PRIM_ARRAY* pa_ = pa;
+            DB_WINDOW* win_ = win;
             DB_POINT pos(72.0f, 80.0f);
             int sx = 0;
-            pa->CreateButton(win, "[SAVE]", &pos, SaveSaveCallback, &sx, 0);
+            pa_->CreateButton(win_, "[SAVE]", &pos, SaveSaveCallback, &sx, 0);
         }
         win->active = 0;
     }
@@ -2266,11 +2481,12 @@ public:
         pa = p;
         win = NULL;
         {
+            DB_PRIM_ARRAY* pa_ = pa;
             DB_POINT pos(164.0f, 144.0f);
             f32 w = 192.0f;
             f32 h = 128.0f;
             u32 flg = DB_WIN_KEY_ESC_CLOSE;
-            win = pa->CreateNormalWindow("     Save EVENT", &pos, &w, &h, &flg);
+            win = pa_->CreateNormalWindow("     Save EVENT", &pos, &w, &h, &flg);
         }
         win->sel.keyMode = 1;
         win->SetCloseCallback(SaveNowClose_callback);
@@ -2282,19 +2498,25 @@ public:
             pa->CreateString(win, "    ", &pos)->SetUpdateCallback(SaveEventNameUpdateCallback);
         }
         {
+            DB_PRIM_ARRAY* pa_ = pa;
+            DB_WINDOW* win_ = win;
             DB_POINT pos(72.0f, 40.0f);
             int sx = 0;
-            pa->CreateButton(win, "  ", &pos, NULL, &sx, 0)->SetUpdateCallback(SaveEventSNoUpdateCallback);
+            pa_->CreateButton(win_, "  ", &pos, NULL, &sx, 0)->SetUpdateCallback(SaveEventSNoUpdateCallback);
         }
         {
+            DB_PRIM_ARRAY* pa_ = pa;
+            DB_WINDOW* win_ = win;
             DB_POINT pos(72.0f, 56.0f);
             int sx = 0;
-            pa->CreateButton(win, "  ", &pos, NULL, &sx, 0)->SetUpdateCallback(SaveEventFileNoUpdateCallback);
+            pa_->CreateButton(win_, "  ", &pos, NULL, &sx, 0)->SetUpdateCallback(SaveEventFileNoUpdateCallback);
         }
         {
+            DB_PRIM_ARRAY* pa_ = pa;
+            DB_WINDOW* win_ = win;
             DB_POINT pos(72.0f, 80.0f);
             int sx = 0;
-            pa->CreateButton(win, "[SAVE]", &pos, SaveSaveCallback, &sx, 0);
+            pa_->CreateButton(win_, "[SAVE]", &pos, SaveSaveCallback, &sx, 0);
         }
         win->active = 0;
     }
@@ -2335,11 +2557,12 @@ public:
         pa = p;
         win = NULL;
         {
+            DB_PRIM_ARRAY* pa_ = pa;
             DB_POINT pos(24.0f, 180.0f);
             f32 w = 480.0f;
             f32 h = 80.0f;
             u32 flg = DB_WIN_KEY_ESC_CLOSE;
-            win = pa->CreateNormalWindow("                         Save OK?", &pos, &w, &h, &flg);
+            win = pa_->CreateNormalWindow("                         Save OK?", &pos, &w, &h, &flg);
         }
         win->SetCloseCallback(SaveCheckClose_callback);
         {
@@ -2347,14 +2570,18 @@ public:
             pa->CreateString(win, "    ", &pos)->SetUpdateCallback(SaveCheckNameUpdateCallback);
         }
         {
+            DB_PRIM_ARRAY* pa_ = pa;
+            DB_WINDOW* win_ = win;
             DB_POINT pos(192.0f, 40.0f);
             int sx = 0;
-            pa->CreateButton(win, "[OK]", &pos, SaveCheckOkCallback, &sx, 0);
+            pa_->CreateButton(win_, "[OK]", &pos, SaveCheckOkCallback, &sx, 0);
         }
         {
+            DB_PRIM_ARRAY* pa_ = pa;
+            DB_WINDOW* win_ = win;
             DB_POINT pos(242.0f, 40.0f);
             int sx = 1;
-            pa->CreateButton(win, "[CANCEL]", &pos, SaveCheckCancelCallback, &sx, 0);
+            pa_->CreateButton(win_, "[CANCEL]", &pos, SaveCheckCancelCallback, &sx, 0);
         }
         win->active = 0;
     }
@@ -2471,11 +2698,12 @@ public:
         pa = p;
         win = NULL;
         {
+            DB_PRIM_ARRAY* pa_ = pa;
             DB_POINT pos(64.0f, 64.0f);
             f32 w = 128.0f;
             f32 h = 256.0f;
             u32 flg = DB_WIN_KEY_ESC_CLOSE;
-            win = pa->CreateNormalWindow(" Option", &pos, &w, &h, &flg);
+            win = pa_->CreateNormalWindow(" Option", &pos, &w, &h, &flg);
         }
         win->sel.keyMode = 1;
         win->SetCloseCallback(OptionClose_callback);
@@ -2494,83 +2722,111 @@ public:
         pa->CreateString(win, "CINESCO:", &DB_POINT(16.0f, 200.0f));
         pa->CreateString(win, "MT_CAM:", &DB_POINT(16.0f, 216.0f));
         {
+            DB_PRIM_ARRAY* pa_ = pa;
+            DB_WINDOW* win_ = win;
             DB_POINT pos(88.0f, 8.0f);
             int sx = 0;
-            pa->CreateButton(win, " ON", &pos, OptionGridHitCallback, &sx, 0)->SetUpdateCallback(OptionGridUpdateCallback);
+            pa_->CreateButton(win_, " ON", &pos, OptionGridHitCallback, &sx, 0)->SetUpdateCallback(OptionGridUpdateCallback);
         }
         {
+            DB_PRIM_ARRAY* pa_ = pa;
+            DB_WINDOW* win_ = win;
             DB_POINT pos(88.0f, 24.0f);
             int sx = 0;
-            pa->CreateButton(win, "TOOL", &pos, OptionWorkHitCallback, &sx, 1)->SetUpdateCallback(OptionWorkUpdateCallback);
+            pa_->CreateButton(win_, "TOOL", &pos, OptionWorkHitCallback, &sx, 1)->SetUpdateCallback(OptionWorkUpdateCallback);
         }
         {
+            DB_PRIM_ARRAY* pa_ = pa;
+            DB_WINDOW* win_ = win;
             DB_POINT pos(88.0f, 40.0f);
             int sx = 0;
-            pa->CreateButton(win, "TOOL", &pos, OptionWorkEmHitCallback, &sx, 2)->SetUpdateCallback(OptionWorkEmUpdateCallback);
+            pa_->CreateButton(win_, "TOOL", &pos, OptionWorkEmHitCallback, &sx, 2)->SetUpdateCallback(OptionWorkEmUpdateCallback);
         }
         {
+            DB_PRIM_ARRAY* pa_ = pa;
+            DB_WINDOW* win_ = win;
             DB_POINT pos(88.0f, 56.0f);
             int sx = 0;
-            pa->CreateButton(win, " ON", &pos, OptionFogHitCallback, &sx, 3)->SetUpdateCallback(OptionFogUpdateCallback);
+            pa_->CreateButton(win_, " ON", &pos, OptionFogHitCallback, &sx, 3)->SetUpdateCallback(OptionFogUpdateCallback);
         }
         {
+            DB_PRIM_ARRAY* pa_ = pa;
+            DB_WINDOW* win_ = win;
             DB_POINT pos(88.0f, 72.0f);
             int sx = 0;
-            DB_NUMERIC* n = pa->CreateNumeric(win, &g_filter, &pos, &sx, 4, DB_NUM_FLAG_NO_FLOAT_MSG);
+            DB_NUMERIC* n = pa_->CreateNumeric(win_, &g_filter, &pos, &sx, 4, DB_NUM_FLAG_NO_FLOAT_MSG);
             n->nameNum = 0x10;
             n->max = 16.0f;
             n->nameTbl = g_blendNameTbl;
         }
         {
+            DB_PRIM_ARRAY* pa_ = pa;
+            DB_WINDOW* win_ = win;
             DB_POINT pos(88.0f, 88.0f);
             int sx = 0;
-            pa->CreateNumeric(win, &g_bgR, &pos, &sx, 5, DB_NUM_FLAG_NO_FLOAT_MSG)->SetKeta(3);
+            pa_->CreateNumeric(win_, &g_bgR, &pos, &sx, 5, DB_NUM_FLAG_NO_FLOAT_MSG)->SetKeta(3);
         }
         {
+            DB_PRIM_ARRAY* pa_ = pa;
+            DB_WINDOW* win_ = win;
             DB_POINT pos(88.0f, 104.0f);
             int sx = 0;
-            pa->CreateNumeric(win, &g_bgG, &pos, &sx, 6, DB_NUM_FLAG_NO_FLOAT_MSG)->SetKeta(3);
+            pa_->CreateNumeric(win_, &g_bgG, &pos, &sx, 6, DB_NUM_FLAG_NO_FLOAT_MSG)->SetKeta(3);
         }
         {
+            DB_PRIM_ARRAY* pa_ = pa;
+            DB_WINDOW* win_ = win;
             DB_POINT pos(88.0f, 120.0f);
             int sx = 0;
-            pa->CreateNumeric(win, &g_bgB, &pos, &sx, 7, DB_NUM_FLAG_NO_FLOAT_MSG)->SetKeta(3);
+            pa_->CreateNumeric(win_, &g_bgB, &pos, &sx, 7, DB_NUM_FLAG_NO_FLOAT_MSG)->SetKeta(3);
         }
         {
+            DB_PRIM_ARRAY* pa_ = pa;
+            DB_WINDOW* win_ = win;
             DB_POINT pos(88.0f, 136.0f);
             int sx = 0;
-            pa->CreateButton(win, " ON", &pos, OptionEvCamHitCallback, &sx, 8)->SetUpdateCallback(OptionEvCamUpdateCallback);
+            pa_->CreateButton(win_, " ON", &pos, OptionEvCamHitCallback, &sx, 8)->SetUpdateCallback(OptionEvCamUpdateCallback);
         }
         {
+            DB_PRIM_ARRAY* pa_ = pa;
+            DB_WINDOW* win_ = win;
             DB_POINT pos(88.0f, 152.0f);
             int sx = 0;
-            DB_NUMERIC* n = pa->CreateNumeric(win, &g_roomCam, &pos, &sx, 9, DB_NUM_FLAG_NO_FLOAT_MSG);
+            DB_NUMERIC* n = pa_->CreateNumeric(win_, &g_roomCam, &pos, &sx, 9, DB_NUM_FLAG_NO_FLOAT_MSG);
             n->nameNum = 0x40;
             n->max = 64.0f;
             n->nameTbl = g_filterNameTbl;
         }
         {
+            DB_PRIM_ARRAY* pa_ = pa;
+            DB_WINDOW* win_ = win;
             DB_POINT pos(88.0f, 168.0f);
             int sx = 0;
-            pa->CreateButton(win, "OFF", &pos, OptionMod_skHitCallback, &sx, 10)->SetUpdateCallback(OptionMod_skUpdateCallback);
+            pa_->CreateButton(win_, "OFF", &pos, OptionMod_skHitCallback, &sx, 10)->SetUpdateCallback(OptionMod_skUpdateCallback);
         }
         {
+            DB_PRIM_ARRAY* pa_ = pa;
+            DB_WINDOW* win_ = win;
             DB_POINT pos(88.0f, 184.0f);
             int sx = 0;
-            DB_NUMERIC* n = pa->CreateNumeric(win, &g_render, &pos, &sx, 11, DB_NUM_FLAG_NO_FLOAT_MSG);
+            DB_NUMERIC* n = pa_->CreateNumeric(win_, &g_render, &pos, &sx, 11, DB_NUM_FLAG_NO_FLOAT_MSG);
             n->nameNum = 9;
             n->max = 7.0f;
             n->nameTbl = g_renderNameTbl;
         }
         {
+            DB_PRIM_ARRAY* pa_ = pa;
+            DB_WINDOW* win_ = win;
             DB_POINT pos(88.0f, 200.0f);
             int sx = 0;
-            pa->CreateButton(win, "OFF", &pos, OptionCinescoHitCallback, &sx, 12)->SetUpdateCallback(OptionCinescoUpdateCallback);
+            pa_->CreateButton(win_, "OFF", &pos, OptionCinescoHitCallback, &sx, 12)->SetUpdateCallback(OptionCinescoUpdateCallback);
         }
         {
+            DB_PRIM_ARRAY* pa_ = pa;
+            DB_WINDOW* win_ = win;
             DB_POINT pos(88.0f, 216.0f);
             int sx = 0;
-            pa->CreateButton(win, "OFF", &pos, OptionMotionCamHitCallback, &sx, 13)->SetUpdateCallback(OptionMotionCamUpdateCallback);
+            pa_->CreateButton(win_, "OFF", &pos, OptionMotionCamHitCallback, &sx, 13)->SetUpdateCallback(OptionMotionCamUpdateCallback);
         }
         win->active = 0;
     }
@@ -2597,24 +2853,29 @@ public:
         pa = p;
         win = NULL;
         {
+            DB_PRIM_ARRAY* pa_ = pa;
             DB_POINT pos(164.0f, 144.0f);
             f32 w = 168.0f;
             f32 h = 128.0f;
             u32 flg = DB_WIN_KEY_ESC_CLOSE;
-            win = pa->CreateNormalWindow("  Data Set", &pos, &w, &h, &flg);
+            win = pa_->CreateNormalWindow("  Data Set", &pos, &w, &h, &flg);
         }
         win->sel.keyMode = 1;
         win->SetCloseCallback(DataSetClose_callback);
         pa->CreateString(win, "  No  :", &DB_POINT(8.0f, 56.0f));
         {
+            DB_PRIM_ARRAY* pa_ = pa;
+            DB_WINDOW* win_ = win;
             DB_POINT pos(72.0f, 56.0f);
             int sx = 0;
-            pa->CreateNumeric(win, &g_dataSetNo, &pos, &sx, 0, DB_NUM_FLAG_HEX | DB_NUM_FLAG_NO_FLOAT_MSG | DB_NUM_FLAG_LOOP)->SetKeta(2);
+            pa_->CreateNumeric(win_, &g_dataSetNo, &pos, &sx, 0, DB_NUM_FLAG_HEX | DB_NUM_FLAG_NO_FLOAT_MSG | DB_NUM_FLAG_LOOP)->SetKeta(2);
         }
         {
+            DB_PRIM_ARRAY* pa_ = pa;
+            DB_WINDOW* win_ = win;
             DB_POINT pos(72.0f, 80.0f);
             int sx = 0;
-            pa->CreateButton(win, "[Load]", &pos, DataSetLoadCallback, &sx, 0);
+            pa_->CreateButton(win_, "[Load]", &pos, DataSetLoadCallback, &sx, 0);
         }
         win->active = 0;
     }
@@ -2633,19 +2894,22 @@ public:
         pa = p;
         win = NULL;
         {
+            DB_PRIM_ARRAY* pa_ = pa;
             DB_POINT pos(48.0f, 280.0f);
             f32 w = 104.0f;
             f32 h = 50.0f;
             u32 flg = DB_WIN_KEY_ESC_CLOSE;
-            win = pa->CreateNormalWindow(" Time", &pos, &w, &h, &flg);
+            win = pa_->CreateNormalWindow(" Time", &pos, &w, &h, &flg);
         }
         win->sel.keyMode = 1;
         win->SetCloseCallback(ControlClose_callback);
         pa->CreateString(win, "Time:", &DB_POINT(5.0f, 8.0f));
         {
+            DB_PRIM_ARRAY* pa_ = pa;
+            DB_WINDOW* win_ = win;
             DB_POINT pos(48.0f, 8.0f);
             int sx = 0;
-            pa->CreateNumeric2(win, &g_pEditSeq->time, &g_pEditSeq2->time, &pos, &sx, 0, DB_NUM_FLAG_NO_FLOAT_MSG);
+            pa_->CreateNumeric2(win_, &g_pEditSeq->time, &g_pEditSeq2->time, &pos, &sx, 0, DB_NUM_FLAG_NO_FLOAT_MSG);
         }
         win->active = 0;
     }
@@ -2738,11 +3002,12 @@ public:
         pa = p;
         win = NULL;
         {
+            DB_PRIM_ARRAY* pa_ = pa;
             DB_POINT pos(80.0f, 264.0f);
             f32 w = 320.0f;
             f32 h = 98.0f;
             u32 flg = DB_WIN_KEY_ESC_CLOSE;
-            win = pa->CreateNormalWindow(" ID", &pos, &w, &h, &flg);
+            win = pa_->CreateNormalWindow(" ID", &pos, &w, &h, &flg);
         }
         win->sel.keyMode = 1;
         win->SetCloseCallback(ControlClose_callback);
@@ -2761,88 +3026,118 @@ public:
         pa->CreateString(win, "D_inter:", &DB_POINT(204.0f, 48.0f));
         {
             static const char* kindName[] = { "Esp ", "Ctrl" };
+            DB_PRIM_ARRAY* pa_ = pa;
+            DB_WINDOW* win_ = win;
             DB_POINT pos(64.0f, 0.0f);
             int sx = 0;
-            n = pa->CreateNumeric2(win, &g_pEditSeq->type, &g_pEditSeq2->type, &pos, &sx, 0, DB_NUM_FLAG_HEX | DB_NUM_FLAG_NO_FLOAT_MSG | DB_NUM_FLAG_LOOP);
+            n = pa_->CreateNumeric2(win_, &g_pEditSeq->type, &g_pEditSeq2->type, &pos, &sx, 0, DB_NUM_FLAG_HEX | DB_NUM_FLAG_NO_FLOAT_MSG | DB_NUM_FLAG_LOOP);
             n->SetKeta(2);
             n->nameNum = 2;
             n->nameTbl = kindName;
         }
         {
+            DB_PRIM_ARRAY* pa_ = pa;
+            DB_WINDOW* win_ = win;
             DB_POINT pos(64.0f, 16.0f);
             int sx = 0;
-            pa->CreateNumeric2(win, &g_pEditSeq->id, &g_pEditSeq2->id, &pos, &sx, 1, DB_NUM_FLAG_HEX | DB_NUM_FLAG_NO_FLOAT_MSG | DB_NUM_FLAG_LOOP)->SetKeta(2);
+            pa_->CreateNumeric2(win_, &g_pEditSeq->id, &g_pEditSeq2->id, &pos, &sx, 1, DB_NUM_FLAG_HEX | DB_NUM_FLAG_NO_FLOAT_MSG | DB_NUM_FLAG_LOOP)->SetKeta(2);
         }
         {
+            DB_PRIM_ARRAY* pa_ = pa;
+            DB_WINDOW* win_ = win;
             DB_POINT pos(64.0f, 32.0f);
             int sx = 0;
-            n = pa->CreateNumeric2(win, &g_pEditSeq->genId, &g_pEditSeq2->genId, &pos, &sx, 2, DB_NUM_FLAG_HEX | DB_NUM_FLAG_NO_FLOAT_MSG | DB_NUM_FLAG_LOOP);
+            n = pa_->CreateNumeric2(win_, &g_pEditSeq->genId, &g_pEditSeq2->genId, &pos, &sx, 2, DB_NUM_FLAG_HEX | DB_NUM_FLAG_NO_FLOAT_MSG | DB_NUM_FLAG_LOOP);
             n->SetKeta(2);
             n->SetUpdateCallback(IdEspgenIdCallback);
         }
         {
+            DB_PRIM_ARRAY* pa_ = pa;
+            DB_WINDOW* win_ = win;
             DB_POINT pos(64.0f, 48.0f);
             int sx = 0;
-            pa->CreateNumeric2(win, &g_pEditSeq->tex, &g_pEditSeq2->tex, &pos, &sx, 3, DB_NUM_FLAG_HEX | DB_NUM_FLAG_NO_FLOAT_MSG | DB_NUM_FLAG_LOOP)->SetKeta(2);
+            pa_->CreateNumeric2(win_, &g_pEditSeq->tex, &g_pEditSeq2->tex, &pos, &sx, 3, DB_NUM_FLAG_HEX | DB_NUM_FLAG_NO_FLOAT_MSG | DB_NUM_FLAG_LOOP)->SetKeta(2);
         }
         {
+            DB_PRIM_ARRAY* pa_ = pa;
+            DB_WINDOW* win_ = win;
             DB_POINT pos(160.0f, 0.0f);
             int sx = 1;
-            n = pa->CreateNumeric2(win, &g_pEditSeq->x110[0], &g_pEditSeq2->x110[0], &pos, &sx, 0, DB_NUM_FLAG_NO_FLOAT_MSG);
+            n = pa_->CreateNumeric2(win_, &g_pEditSeq->x110[0], &g_pEditSeq2->x110[0], &pos, &sx, 0, DB_NUM_FLAG_NO_FLOAT_MSG);
             n->SetKeta(4);
             n->SetUpdateCallback(IdEspgenLifeCallback);
         }
         {
+            DB_PRIM_ARRAY* pa_ = pa;
+            DB_WINDOW* win_ = win;
             DB_POINT pos(160.0f, 16.0f);
             int sx = 1;
-            pa->CreateNumeric2(win, &g_pEditSeq->x10C, &g_pEditSeq2->x10C, &pos, &sx, 1, DB_NUM_FLAG_NO_FLOAT_MSG)->SetUpdateCallback(IdEspgenInterCallback);
+            pa_->CreateNumeric2(win_, &g_pEditSeq->x10C, &g_pEditSeq2->x10C, &pos, &sx, 1, DB_NUM_FLAG_NO_FLOAT_MSG)->SetUpdateCallback(IdEspgenInterCallback);
         }
         {
+            DB_PRIM_ARRAY* pa_ = pa;
+            DB_WINDOW* win_ = win;
             DB_POINT pos(168.0f, 32.0f);
             int sx = 1;
-            pa->CreateNumeric2(win, &g_pEditSeq->x128[0], &g_pEditSeq2->x128[0], &pos, &sx, 2, DB_NUM_FLAG_NO_FLOAT_MSG)->SetUpdateCallback(IdEspgenInt_Callback);
+            pa_->CreateNumeric2(win_, &g_pEditSeq->x128[0], &g_pEditSeq2->x128[0], &pos, &sx, 2, DB_NUM_FLAG_NO_FLOAT_MSG)->SetUpdateCallback(IdEspgenInt_Callback);
         }
         {
+            DB_PRIM_ARRAY* pa_ = pa;
+            DB_WINDOW* win_ = win;
             DB_POINT pos(160.0f, 48.0f);
             int sx = 1;
-            pa->CreateNumeric2(win, &g_pEditSeq->x10D, &g_pEditSeq2->x10D, &pos, &sx, 3, DB_NUM_FLAG_NO_FLOAT_MSG)->SetUpdateCallback(IdEspgenNumCallback);
+            pa_->CreateNumeric2(win_, &g_pEditSeq->x10D, &g_pEditSeq2->x10D, &pos, &sx, 3, DB_NUM_FLAG_NO_FLOAT_MSG)->SetUpdateCallback(IdEspgenNumCallback);
         }
         {
+            DB_PRIM_ARRAY* pa_ = pa;
+            DB_WINDOW* win_ = win;
             DB_POINT pos(168.0f, 64.0f);
             int sx = 1;
-            pa->CreateNumeric2(win, &g_pEditSeq->x10B, &g_pEditSeq2->x10B, &pos, &sx, 4, DB_NUM_FLAG_NO_FLOAT_MSG)->SetUpdateCallback(IdEspgenFlgCallback);
+            pa_->CreateNumeric2(win_, &g_pEditSeq->x10B, &g_pEditSeq2->x10B, &pos, &sx, 4, DB_NUM_FLAG_NO_FLOAT_MSG)->SetUpdateCallback(IdEspgenFlgCallback);
         }
         {
+            DB_PRIM_ARRAY* pa_ = pa;
+            DB_WINDOW* win_ = win;
             DB_POINT pos(268.0f, 0.0f);
             int sx = 2;
-            pa->CreateNumeric2(win, &g_pEditSeq->x124[0], &g_pEditSeq2->x124[0], &pos, &sx, 0, DB_NUM_FLAG_NO_FLOAT_MSG)->SetUpdateCallback(IdEspgenD_Callback);
+            pa_->CreateNumeric2(win_, &g_pEditSeq->x124[0], &g_pEditSeq2->x124[0], &pos, &sx, 0, DB_NUM_FLAG_NO_FLOAT_MSG)->SetUpdateCallback(IdEspgenD_Callback);
         }
         {
+            DB_PRIM_ARRAY* pa_ = pa;
+            DB_WINDOW* win_ = win;
             DB_POINT pos(268.0f, 16.0f);
             int sx = 2;
-            pa->CreateNumeric2(win, &g_pEditSeq->x124[1], &g_pEditSeq2->x124[1], &pos, &sx, 1, DB_NUM_FLAG_NO_FLOAT_MSG)->SetUpdateCallback(IdEspgenD_Callback);
+            pa_->CreateNumeric2(win_, &g_pEditSeq->x124[1], &g_pEditSeq2->x124[1], &pos, &sx, 1, DB_NUM_FLAG_NO_FLOAT_MSG)->SetUpdateCallback(IdEspgenD_Callback);
         }
         {
+            DB_PRIM_ARRAY* pa_ = pa;
+            DB_WINDOW* win_ = win;
             DB_POINT pos(268.0f, 32.0f);
             int sx = 2;
-            pa->CreateNumeric2(win, &g_pEditSeq->x124[2], &g_pEditSeq2->x124[2], &pos, &sx, 2, DB_NUM_FLAG_NO_FLOAT_MSG)->SetUpdateCallback(IdEspgenD_Callback);
+            pa_->CreateNumeric2(win_, &g_pEditSeq->x124[2], &g_pEditSeq2->x124[2], &pos, &sx, 2, DB_NUM_FLAG_NO_FLOAT_MSG)->SetUpdateCallback(IdEspgenD_Callback);
         }
         {
+            DB_PRIM_ARRAY* pa_ = pa;
+            DB_WINDOW* win_ = win;
             DB_POINT pos(268.0f, 48.0f);
             int sx = 2;
-            pa->CreateNumeric2(win, &g_pEditSeq->x124[3], &g_pEditSeq2->x124[3], &pos, &sx, 3, DB_NUM_FLAG_NO_FLOAT_MSG)->SetUpdateCallback(IdEspgenD_Callback);
+            pa_->CreateNumeric2(win_, &g_pEditSeq->x124[3], &g_pEditSeq2->x124[3], &pos, &sx, 3, DB_NUM_FLAG_NO_FLOAT_MSG)->SetUpdateCallback(IdEspgenD_Callback);
         }
         {
+            DB_PRIM_ARRAY* pa_ = pa;
+            DB_WINDOW* win_ = win;
             DB_POINT pos(228.0f, 64.0f);
             int sx = 2;
-            n = pa->CreateNumeric2(win, &g_pEditSeq->x10E, &g_pEditSeq2->x10E, &pos, &sx, 4, DB_NUM_FLAG_HEX | DB_NUM_FLAG_NO_FLOAT_MSG | DB_NUM_FLAG_LOOP);
+            n = pa_->CreateNumeric2(win_, &g_pEditSeq->x10E, &g_pEditSeq2->x10E, &pos, &sx, 4, DB_NUM_FLAG_HEX | DB_NUM_FLAG_NO_FLOAT_MSG | DB_NUM_FLAG_LOOP);
             n->SetUpdateCallback(IdEspgenFlgCallback);
             n->SetKeta(2);
         }
         {
+            DB_PRIM_ARRAY* pa_ = pa;
+            DB_WINDOW* win_ = win;
             DB_POINT pos(260.0f, 64.0f);
             int sx = 3;
-            pa->CreateButton(win, "[Path]", &pos, IdPathSetCallback, &sx, 4);
+            pa_->CreateButton(win_, "[Path]", &pos, IdPathSetCallback, &sx, 4);
         }
         win->active = 0;
     }
@@ -2861,11 +3156,12 @@ public:
         pa = p;
         win = NULL;
         {
+            DB_PRIM_ARRAY* pa_ = pa;
             DB_POINT pos(80.0f, 280.0f);
             f32 w = 320.0f;
             f32 h = 82.0f;
             u32 flg = DB_WIN_KEY_ESC_CLOSE;
-            win = pa->CreateNormalWindow(" PATH", &pos, &w, &h, &flg);
+            win = pa_->CreateNormalWindow(" PATH", &pos, &w, &h, &flg);
         }
         win->sel.keyMode = 1;
         win->SetCloseCallback(PathClose_callback);
@@ -2880,54 +3176,74 @@ public:
         pa->CreateString(win, "Rot Y:", &DB_POINT(232.0f, 16.0f));
         pa->CreateString(win, "Flg  :", &DB_POINT(232.0f, 32.0f));
         {
+            DB_PRIM_ARRAY* pa_ = pa;
+            DB_WINDOW* win_ = win;
             DB_POINT pos(72.0f, 0.0f);
             int sx = 0;
-            pa->CreateNumeric2(win, &g_pEditSeq->path[0], &g_pEditSeq2->path[0], &pos, &sx, 0, DB_NUM_FLAG_NO_FLOAT_MSG);
+            pa_->CreateNumeric2(win_, &g_pEditSeq->path[0], &g_pEditSeq2->path[0], &pos, &sx, 0, DB_NUM_FLAG_NO_FLOAT_MSG);
         }
         {
+            DB_PRIM_ARRAY* pa_ = pa;
+            DB_WINDOW* win_ = win;
             DB_POINT pos(72.0f, 16.0f);
             int sx = 0;
-            pa->CreateNumeric2(win, &g_pEditSeq->path[1], &g_pEditSeq2->path[1], &pos, &sx, 1, DB_NUM_FLAG_NO_FLOAT_MSG);
+            pa_->CreateNumeric2(win_, &g_pEditSeq->path[1], &g_pEditSeq2->path[1], &pos, &sx, 1, DB_NUM_FLAG_NO_FLOAT_MSG);
         }
         {
+            DB_PRIM_ARRAY* pa_ = pa;
+            DB_WINDOW* win_ = win;
             DB_POINT pos(72.0f, 32.0f);
             int sx = 0;
-            pa->CreateNumeric2(win, &g_pEditSeq->path[2], &g_pEditSeq2->path[2], &pos, &sx, 2, DB_NUM_FLAG_NO_FLOAT_MSG);
+            pa_->CreateNumeric2(win_, &g_pEditSeq->path[2], &g_pEditSeq2->path[2], &pos, &sx, 2, DB_NUM_FLAG_NO_FLOAT_MSG);
         }
         {
+            DB_PRIM_ARRAY* pa_ = pa;
+            DB_WINDOW* win_ = win;
             DB_POINT pos(72.0f, 48.0f);
             int sx = 0;
-            pa->CreateNumeric2(win, &g_pEditSeq->path[3], &g_pEditSeq2->path[3], &pos, &sx, 3, DB_NUM_FLAG_NO_FLOAT_MSG);
+            pa_->CreateNumeric2(win_, &g_pEditSeq->path[3], &g_pEditSeq2->path[3], &pos, &sx, 3, DB_NUM_FLAG_NO_FLOAT_MSG);
         }
         {
+            DB_PRIM_ARRAY* pa_ = pa;
+            DB_WINDOW* win_ = win;
             DB_POINT pos(172.0f, 0.0f);
             int sx = 1;
-            pa->CreateNumeric2(win, &g_pEditSeq->scale.x, &g_pEditSeq2->scale.x, &pos, &sx, 0, DB_NUM_FLAG_NO_FLOAT_MSG)->SetKeta(6);
+            pa_->CreateNumeric2(win_, &g_pEditSeq->scale.x, &g_pEditSeq2->scale.x, &pos, &sx, 0, DB_NUM_FLAG_NO_FLOAT_MSG)->SetKeta(6);
         }
         {
+            DB_PRIM_ARRAY* pa_ = pa;
+            DB_WINDOW* win_ = win;
             DB_POINT pos(172.0f, 16.0f);
             int sx = 1;
-            pa->CreateNumeric2(win, &g_pEditSeq->scale.y, &g_pEditSeq2->scale.y, &pos, &sx, 1, DB_NUM_FLAG_NO_FLOAT_MSG)->SetKeta(6);
+            pa_->CreateNumeric2(win_, &g_pEditSeq->scale.y, &g_pEditSeq2->scale.y, &pos, &sx, 1, DB_NUM_FLAG_NO_FLOAT_MSG)->SetKeta(6);
         }
         {
+            DB_PRIM_ARRAY* pa_ = pa;
+            DB_WINDOW* win_ = win;
             DB_POINT pos(172.0f, 32.0f);
             int sx = 1;
-            pa->CreateNumeric2(win, &g_pEditSeq->scale.z, &g_pEditSeq2->scale.z, &pos, &sx, 2, DB_NUM_FLAG_NO_FLOAT_MSG)->SetKeta(6);
+            pa_->CreateNumeric2(win_, &g_pEditSeq->scale.z, &g_pEditSeq2->scale.z, &pos, &sx, 2, DB_NUM_FLAG_NO_FLOAT_MSG)->SetKeta(6);
         }
         {
+            DB_PRIM_ARRAY* pa_ = pa;
+            DB_WINDOW* win_ = win;
             DB_POINT pos(284.0f, 0.0f);
             int sx = 2;
-            pa->CreateNumeric2(win, &g_pEditSeq->x128[1], &g_pEditSeq2->x128[1], &pos, &sx, 0, DB_NUM_FLAG_NO_FLOAT_MSG);
+            pa_->CreateNumeric2(win_, &g_pEditSeq->x128[1], &g_pEditSeq2->x128[1], &pos, &sx, 0, DB_NUM_FLAG_NO_FLOAT_MSG);
         }
         {
+            DB_PRIM_ARRAY* pa_ = pa;
+            DB_WINDOW* win_ = win;
             DB_POINT pos(284.0f, 16.0f);
             int sx = 2;
-            pa->CreateNumeric2(win, &g_pEditSeq->x128[2], &g_pEditSeq2->x128[2], &pos, &sx, 1, DB_NUM_FLAG_NO_FLOAT_MSG);
+            pa_->CreateNumeric2(win_, &g_pEditSeq->x128[2], &g_pEditSeq2->x128[2], &pos, &sx, 1, DB_NUM_FLAG_NO_FLOAT_MSG);
         }
         {
+            DB_PRIM_ARRAY* pa_ = pa;
+            DB_WINDOW* win_ = win;
             DB_POINT pos(284.0f, 32.0f);
             int sx = 2;
-            pa->CreateNumeric2(win, &g_pEditSeq->x128[3], &g_pEditSeq2->x128[3], &pos, &sx, 2, DB_NUM_FLAG_NO_FLOAT_MSG);
+            pa_->CreateNumeric2(win_, &g_pEditSeq->x128[3], &g_pEditSeq2->x128[3], &pos, &sx, 2, DB_NUM_FLAG_NO_FLOAT_MSG);
         }
         win->active = 0;
     }
@@ -2941,30 +3257,37 @@ public:
         pa = p;
         win = NULL;
         {
+            DB_PRIM_ARRAY* pa_ = pa;
             DB_POINT pos(104.0f, 264.0f);
             f32 w = 200.0f;
             f32 h = 66.0f;
             u32 flg = DB_WIN_KEY_ESC_CLOSE;
-            win = pa->CreateNormalWindow(" Parent", &pos, &w, &h, &flg);
+            win = pa_->CreateNormalWindow(" Parent", &pos, &w, &h, &flg);
         }
         win->sel.keyMode = 1;
         win->SetCloseCallback(ControlClose_callback);
         pa->CreateString(win, "Parent:", &DB_POINT(5.0f, 8.0f));
         pa->CreateString(win, "Parts :", &DB_POINT(5.0f, 24.0f));
         {
+            DB_PRIM_ARRAY* pa_ = pa;
+            DB_WINDOW* win_ = win;
             DB_POINT pos(64.0f, 8.0f);
             int sx = 0;
-            pa->CreateNumeric2(win, &g_pEditSeq->parent, &g_pEditSeq2->parent, &pos, &sx, 0, DB_NUM_FLAG_NO_FLOAT_MSG | DB_NUM_FLAG_LOOP)->SetKeta(2);
+            pa_->CreateNumeric2(win_, &g_pEditSeq->parent, &g_pEditSeq2->parent, &pos, &sx, 0, DB_NUM_FLAG_NO_FLOAT_MSG | DB_NUM_FLAG_LOOP)->SetKeta(2);
         }
         {
+            DB_PRIM_ARRAY* pa_ = pa;
+            DB_WINDOW* win_ = win;
             DB_POINT pos(112.0f, 24.0f);
             int sx = 1;
-            pa->CreateNumeric2(win, &g_pEditSeq->parts, &g_pEditSeq2->parts, &pos, &sx, 1, DB_NUM_FLAG_NO_FLOAT_MSG | DB_NUM_FLAG_LOOP)->SetKeta(3);
+            pa_->CreateNumeric2(win_, &g_pEditSeq->parts, &g_pEditSeq2->parts, &pos, &sx, 1, DB_NUM_FLAG_NO_FLOAT_MSG | DB_NUM_FLAG_LOOP)->SetKeta(3);
         }
         {
+            DB_PRIM_ARRAY* pa_ = pa;
+            DB_WINDOW* win_ = win;
             DB_POINT pos(64.0f, 24.0f);
             int sx = 0;
-            DB_NUMERIC2* n = pa->CreateNumeric2(win, &g_pEditSeq->parts, &g_pEditSeq2->parts, &pos, &sx, 1, DB_NUM_FLAG_HEX | DB_NUM_FLAG_NO_FLOAT_MSG | DB_NUM_FLAG_LOOP);
+            DB_NUMERIC2* n = pa_->CreateNumeric2(win_, &g_pEditSeq->parts, &g_pEditSeq2->parts, &pos, &sx, 1, DB_NUM_FLAG_HEX | DB_NUM_FLAG_NO_FLOAT_MSG | DB_NUM_FLAG_LOOP);
             n->SetKeta(2);
             n->nameNum = 256;
             n->nameTbl = g_parentNameTbl;
@@ -3109,11 +3432,12 @@ public:
         pa = p;
         win = NULL;
         {
+            DB_PRIM_ARRAY* pa_ = pa;
             DB_POINT pos(288.0f, 280.0f);
             f32 w = 196.0f;
             f32 h = 82.0f;
             u32 flg = DB_WIN_KEY_ESC_CLOSE;
-            win = pa->CreateNormalWindow("POSITION     RAND", &pos, &w, &h, &flg);
+            win = pa_->CreateNormalWindow("POSITION     RAND", &pos, &w, &h, &flg);
         }
         win->sel.keyMode = 1;
         win->SetCloseCallback(ControlClose_callback);
@@ -3125,54 +3449,70 @@ public:
         pa->CreateString(win, "Y:", &DB_POINT(112.0f, 32.0f));
         pa->CreateString(win, "Z:", &DB_POINT(112.0f, 48.0f));
         {
+            DB_PRIM_ARRAY* pa_ = pa;
+            DB_WINDOW* win_ = win;
             DB_POINT pos(21.0f, 0.0f);
             int sx = 0;
-            pa->CreateButton(win, "[Stick]", &pos, NULL, &sx, 0)->SetUpdateCallback(PosStickPosUpdateCallback);
+            pa_->CreateButton(win_, "[Stick]", &pos, NULL, &sx, 0)->SetUpdateCallback(PosStickPosUpdateCallback);
         }
         {
+            DB_PRIM_ARRAY* pa_ = pa;
+            DB_WINDOW* win_ = win;
             DB_POINT pos(128.0f, 0.0f);
             int sx = 1;
-            pa->CreateButton(win, "[Stick]", &pos, NULL, &sx, 0)->SetUpdateCallback(PosStickRPosUpdateCallback);
+            pa_->CreateButton(win_, "[Stick]", &pos, NULL, &sx, 0)->SetUpdateCallback(PosStickRPosUpdateCallback);
         }
         {
+            DB_PRIM_ARRAY* pa_ = pa;
+            DB_WINDOW* win_ = win;
             DB_POINT pos(24.0f, 16.0f);
             int sx = 0;
-            g_pPosNumX = pa->CreateNumeric2(win, &g_pEditSeq->pos.x, &g_pEditSeq2->pos.x, &pos, &sx, 1, 0);
+            g_pPosNumX = pa_->CreateNumeric2(win_, &g_pEditSeq->pos.x, &g_pEditSeq2->pos.x, &pos, &sx, 1, 0);
             g_pPosNumX->SetKeta(8);
             POS_MINMAX(g_pPosNumX);
         }
         {
+            DB_PRIM_ARRAY* pa_ = pa;
+            DB_WINDOW* win_ = win;
             DB_POINT pos(24.0f, 32.0f);
             int sx = 0;
-            g_pPosNumY = pa->CreateNumeric2(win, &g_pEditSeq->pos.y, &g_pEditSeq2->pos.y, &pos, &sx, 2, 0);
+            g_pPosNumY = pa_->CreateNumeric2(win_, &g_pEditSeq->pos.y, &g_pEditSeq2->pos.y, &pos, &sx, 2, 0);
             g_pPosNumY->SetKeta(8);
             POS_MINMAX(g_pPosNumY);
         }
         {
+            DB_PRIM_ARRAY* pa_ = pa;
+            DB_WINDOW* win_ = win;
             DB_POINT pos(24.0f, 48.0f);
             int sx = 0;
-            g_pPosNumZ = pa->CreateNumeric2(win, &g_pEditSeq->pos.z, &g_pEditSeq2->pos.z, &pos, &sx, 3, 0);
+            g_pPosNumZ = pa_->CreateNumeric2(win_, &g_pEditSeq->pos.z, &g_pEditSeq2->pos.z, &pos, &sx, 3, 0);
             g_pPosNumZ->SetKeta(8);
             POS_MINMAX(g_pPosNumZ);
         }
         {
+            DB_PRIM_ARRAY* pa_ = pa;
+            DB_WINDOW* win_ = win;
             DB_POINT pos(128.0f, 16.0f);
             int sx = 1;
-            g_pRPosNumX = pa->CreateNumeric2(win, &g_pEditSeq->rpos.x, &g_pEditSeq2->rpos.x, &pos, &sx, 1, 0);
+            g_pRPosNumX = pa_->CreateNumeric2(win_, &g_pEditSeq->rpos.x, &g_pEditSeq2->rpos.x, &pos, &sx, 1, 0);
             g_pRPosNumX->SetKeta(7);
             POS_MINMAX(g_pRPosNumX);
         }
         {
+            DB_PRIM_ARRAY* pa_ = pa;
+            DB_WINDOW* win_ = win;
             DB_POINT pos(128.0f, 32.0f);
             int sx = 1;
-            g_pRPosNumY = pa->CreateNumeric2(win, &g_pEditSeq->rpos.y, &g_pEditSeq2->rpos.y, &pos, &sx, 2, 0);
+            g_pRPosNumY = pa_->CreateNumeric2(win_, &g_pEditSeq->rpos.y, &g_pEditSeq2->rpos.y, &pos, &sx, 2, 0);
             g_pRPosNumY->SetKeta(7);
             POS_MINMAX(g_pRPosNumY);
         }
         {
+            DB_PRIM_ARRAY* pa_ = pa;
+            DB_WINDOW* win_ = win;
             DB_POINT pos(128.0f, 48.0f);
             int sx = 1;
-            g_pRPosNumZ = pa->CreateNumeric2(win, &g_pEditSeq->rpos.z, &g_pEditSeq2->rpos.z, &pos, &sx, 3, 0);
+            g_pRPosNumZ = pa_->CreateNumeric2(win_, &g_pEditSeq->rpos.z, &g_pEditSeq2->rpos.z, &pos, &sx, 3, 0);
             g_pRPosNumZ->SetKeta(7);
             POS_MINMAX(g_pRPosNumZ);
         }
@@ -3236,11 +3576,12 @@ public:
         pa = p;
         win = NULL;
         {
+            DB_PRIM_ARRAY* pa_ = pa;
             DB_POINT pos(214.0f, 280.0f);
             f32 w = 256.0f;
             f32 h = 82.0f;
             u32 flg = DB_WIN_KEY_ESC_CLOSE;
-            win = pa->CreateNormalWindow(" Size", &pos, &w, &h, &flg);
+            win = pa_->CreateNormalWindow(" Size", &pos, &w, &h, &flg);
         }
         win->sel.keyMode = 1;
         win->SetCloseCallback(ControlClose_callback);
@@ -3251,41 +3592,53 @@ public:
         pa->CreateString(win, "Str_Frm:", &DB_POINT(140.0f, 32.0f));
         pa->CreateString(win, "R_Size :", &DB_POINT(140.0f, 48.0f));
         {
+            DB_PRIM_ARRAY* pa_ = pa;
+            DB_WINDOW* win_ = win;
             DB_POINT pos(64.0f, 0.0f);
             int sx = 0;
-            pa->CreateButton(win, "[ W+H ]", &pos, NULL, &sx, 0)->SetUpdateCallback(SizeWpHUpdate_callback);
+            pa_->CreateButton(win_, "[ W+H ]", &pos, NULL, &sx, 0)->SetUpdateCallback(SizeWpHUpdate_callback);
         }
         {
+            DB_PRIM_ARRAY* pa_ = pa;
+            DB_WINDOW* win_ = win;
             DB_POINT pos(56.0f, 48.0f);
             int sx = 0;
-            pa->CreateButton(win, "[Set same]", &pos, SizeSetsameCallback, &sx, 3);
+            pa_->CreateButton(win_, "[Set same]", &pos, SizeSetsameCallback, &sx, 3);
         }
         {
+            DB_PRIM_ARRAY* pa_ = pa;
+            DB_WINDOW* win_ = win;
             DB_POINT pos(64.0f, 16.0f);
             int sx = 0;
-            g_pSizeNumW = pa->CreateNumeric2(win, &g_pEditSeq->w, &g_pEditSeq2->w, &pos, &sx, 1, 0);
+            g_pSizeNumW = pa_->CreateNumeric2(win_, &g_pEditSeq->w, &g_pEditSeq2->w, &pos, &sx, 1, 0);
             g_pSizeNumW->SetKeta(6);
             g_pSizeNumW->SetDefault(200.0f);
         }
         {
+            DB_PRIM_ARRAY* pa_ = pa;
+            DB_WINDOW* win_ = win;
             DB_POINT pos(64.0f, 32.0f);
             int sx = 0;
-            g_pSizeNumH = pa->CreateNumeric2(win, &g_pEditSeq->h, &g_pEditSeq2->h, &pos, &sx, 2, 0);
+            g_pSizeNumH = pa_->CreateNumeric2(win_, &g_pEditSeq->h, &g_pEditSeq2->h, &pos, &sx, 2, 0);
             g_pSizeNumH->SetKeta(6);
             g_pSizeNumH->SetDefault(200.0f);
         }
         {
+            DB_PRIM_ARRAY* pa_ = pa;
+            DB_WINDOW* win_ = win;
             DB_POINT pos(204.0f, 0.0f);
             int sx = 1;
-            DB_NUMERIC2* n = pa->CreateNumeric2(win, &g_pEditSeq->plus, &g_pEditSeq2->plus, &pos, &sx, 0, 0);
+            DB_NUMERIC2* n = pa_->CreateNumeric2(win_, &g_pEditSeq->plus, &g_pEditSeq2->plus, &pos, &sx, 0, 0);
             n->SetKeta(6);
             n->SetKetaFloat(3);
             n->unit = 0.01f;
         }
         {
+            DB_PRIM_ARRAY* pa_ = pa;
+            DB_WINDOW* win_ = win;
             DB_POINT pos(204.0f, 16.0f);
             int sx = 1;
-            DB_NUMERIC2* n = pa->CreateNumeric2(win, &g_pEditSeq->dplus, &g_pEditSeq2->dplus, &pos, &sx, 1, 0);
+            DB_NUMERIC2* n = pa_->CreateNumeric2(win_, &g_pEditSeq->dplus, &g_pEditSeq2->dplus, &pos, &sx, 1, 0);
             n->SetKeta(6);
             n->SetKetaFloat(3);
             n->min = 0.0f;
@@ -3294,14 +3647,18 @@ public:
             n->unit = 0.01f;
         }
         {
+            DB_PRIM_ARRAY* pa_ = pa;
+            DB_WINDOW* win_ = win;
             DB_POINT pos(204.0f, 32.0f);
             int sx = 1;
-            pa->CreateNumeric2(win, &g_pEditSeq->strFrm, &g_pEditSeq2->strFrm, &pos, &sx, 2, 0)->SetKeta(6);
+            pa_->CreateNumeric2(win_, &g_pEditSeq->strFrm, &g_pEditSeq2->strFrm, &pos, &sx, 2, 0)->SetKeta(6);
         }
         {
+            DB_PRIM_ARRAY* pa_ = pa;
+            DB_WINDOW* win_ = win;
             DB_POINT pos(204.0f, 48.0f);
             int sx = 1;
-            pa->CreateNumeric2(win, &g_pEditSeq->rsize, &g_pEditSeq2->rsize, &pos, &sx, 3, 0)->SetKeta(6);
+            pa_->CreateNumeric2(win_, &g_pEditSeq->rsize, &g_pEditSeq2->rsize, &pos, &sx, 3, 0)->SetKeta(6);
         }
         win->active = 0;
     }
@@ -3315,11 +3672,12 @@ public:
         pa = p;
         win = NULL;
         {
+            DB_PRIM_ARRAY* pa_ = pa;
             DB_POINT pos(144.0f, 280.0f);
             f32 w = 350.0f;
             f32 h = 82.0f;
             u32 flg = DB_WIN_KEY_ESC_CLOSE;
-            win = pa->CreateNormalWindow("SPEED       ACCELE    RND_SPEED RND_ACCELE", &pos, &w, &h, &flg);
+            win = pa_->CreateNormalWindow("SPEED       ACCELE    RND_SPEED RND_ACCELE", &pos, &w, &h, &flg);
         }
         win->sel.keyMode = 1;
         win->SetCloseCallback(ControlClose_callback);
@@ -3337,24 +3695,32 @@ public:
         pa->CreateString(win, "Y:", &DB_POINT(255.0f, 16.0f));
         pa->CreateString(win, "Z:", &DB_POINT(255.0f, 32.0f));
         {
+            DB_PRIM_ARRAY* pa_ = pa;
+            DB_WINDOW* win_ = win;
             DB_POINT pos(24.0f, 0.0f);
             int sx = 0;
-            pa->CreateNumeric2(win, &g_pEditSeq->speed.x, &g_pEditSeq2->speed.x, &pos, &sx, 0, 0)->SetKeta(6);
+            pa_->CreateNumeric2(win_, &g_pEditSeq->speed.x, &g_pEditSeq2->speed.x, &pos, &sx, 0, 0)->SetKeta(6);
         }
         {
+            DB_PRIM_ARRAY* pa_ = pa;
+            DB_WINDOW* win_ = win;
             DB_POINT pos(24.0f, 16.0f);
             int sx = 0;
-            pa->CreateNumeric2(win, &g_pEditSeq->speed.y, &g_pEditSeq2->speed.y, &pos, &sx, 1, 0)->SetKeta(6);
+            pa_->CreateNumeric2(win_, &g_pEditSeq->speed.y, &g_pEditSeq2->speed.y, &pos, &sx, 1, 0)->SetKeta(6);
         }
         {
+            DB_PRIM_ARRAY* pa_ = pa;
+            DB_WINDOW* win_ = win;
             DB_POINT pos(24.0f, 32.0f);
             int sx = 0;
-            pa->CreateNumeric2(win, &g_pEditSeq->speed.z, &g_pEditSeq2->speed.z, &pos, &sx, 2, 0)->SetKeta(6);
+            pa_->CreateNumeric2(win_, &g_pEditSeq->speed.z, &g_pEditSeq2->speed.z, &pos, &sx, 2, 0)->SetKeta(6);
         }
         {
+            DB_PRIM_ARRAY* pa_ = pa;
+            DB_WINDOW* win_ = win;
             DB_POINT pos(32.0f, 48.0f);
             int sx = 0;
-            DB_NUMERIC2* n = pa->CreateNumeric2(win, &g_pEditSeq->x30, &g_pEditSeq2->x30, &pos, &sx, 3, 0);
+            DB_NUMERIC2* n = pa_->CreateNumeric2(win_, &g_pEditSeq->x30, &g_pEditSeq2->x30, &pos, &sx, 3, 0);
             n->SetKeta(5);
             n->SetKetaFloat(3);
             n->max = 2.0f;
@@ -3363,64 +3729,82 @@ public:
             n->unit = 0.01f;
         }
         {
+            DB_PRIM_ARRAY* pa_ = pa;
+            DB_WINDOW* win_ = win;
             DB_POINT pos(114.0f, 0.0f);
             int sx = 1;
-            DB_NUMERIC2* n = pa->CreateNumeric2(win, &g_pEditSeq->accel.x, &g_pEditSeq2->accel.x, &pos, &sx, 0, 0);
+            DB_NUMERIC2* n = pa_->CreateNumeric2(win_, &g_pEditSeq->accel.x, &g_pEditSeq2->accel.x, &pos, &sx, 0, 0);
             n->SetKeta(6);
             n->SetKetaFloat(2);
             n->unit = 0.1f;
         }
         {
+            DB_PRIM_ARRAY* pa_ = pa;
+            DB_WINDOW* win_ = win;
             DB_POINT pos(114.0f, 16.0f);
             int sx = 1;
-            DB_NUMERIC2* n = pa->CreateNumeric2(win, &g_pEditSeq->accel.y, &g_pEditSeq2->accel.y, &pos, &sx, 1, 0);
+            DB_NUMERIC2* n = pa_->CreateNumeric2(win_, &g_pEditSeq->accel.y, &g_pEditSeq2->accel.y, &pos, &sx, 1, 0);
             n->SetKeta(6);
             n->SetKetaFloat(2);
             n->unit = 0.1f;
         }
         {
+            DB_PRIM_ARRAY* pa_ = pa;
+            DB_WINDOW* win_ = win;
             DB_POINT pos(114.0f, 32.0f);
             int sx = 1;
-            DB_NUMERIC2* n = pa->CreateNumeric2(win, &g_pEditSeq->accel.z, &g_pEditSeq2->accel.z, &pos, &sx, 2, 0);
+            DB_NUMERIC2* n = pa_->CreateNumeric2(win_, &g_pEditSeq->accel.z, &g_pEditSeq2->accel.z, &pos, &sx, 2, 0);
             n->SetKeta(6);
             n->SetKetaFloat(2);
             n->unit = 0.1f;
         }
         {
+            DB_PRIM_ARRAY* pa_ = pa;
+            DB_WINDOW* win_ = win;
             DB_POINT pos(194.0f, 0.0f);
             int sx = 2;
-            pa->CreateNumeric2(win, &g_pEditSeq->rspeed.x, &g_pEditSeq2->rspeed.x, &pos, &sx, 0, 0)->SetKeta(6);
+            pa_->CreateNumeric2(win_, &g_pEditSeq->rspeed.x, &g_pEditSeq2->rspeed.x, &pos, &sx, 0, 0)->SetKeta(6);
         }
         {
+            DB_PRIM_ARRAY* pa_ = pa;
+            DB_WINDOW* win_ = win;
             DB_POINT pos(194.0f, 16.0f);
             int sx = 2;
-            pa->CreateNumeric2(win, &g_pEditSeq->rspeed.y, &g_pEditSeq2->rspeed.y, &pos, &sx, 1, 0)->SetKeta(6);
+            pa_->CreateNumeric2(win_, &g_pEditSeq->rspeed.y, &g_pEditSeq2->rspeed.y, &pos, &sx, 1, 0)->SetKeta(6);
         }
         {
+            DB_PRIM_ARRAY* pa_ = pa;
+            DB_WINDOW* win_ = win;
             DB_POINT pos(194.0f, 32.0f);
             int sx = 2;
-            pa->CreateNumeric2(win, &g_pEditSeq->rspeed.z, &g_pEditSeq2->rspeed.z, &pos, &sx, 2, 0)->SetKeta(6);
+            pa_->CreateNumeric2(win_, &g_pEditSeq->rspeed.z, &g_pEditSeq2->rspeed.z, &pos, &sx, 2, 0)->SetKeta(6);
         }
         {
+            DB_PRIM_ARRAY* pa_ = pa;
+            DB_WINDOW* win_ = win;
             DB_POINT pos(274.0f, 0.0f);
             int sx = 3;
-            DB_NUMERIC2* n = pa->CreateNumeric2(win, &g_pEditSeq->raccel.x, &g_pEditSeq2->raccel.x, &pos, &sx, 0, 0);
+            DB_NUMERIC2* n = pa_->CreateNumeric2(win_, &g_pEditSeq->raccel.x, &g_pEditSeq2->raccel.x, &pos, &sx, 0, 0);
             n->SetKeta(6);
             n->SetKetaFloat(2);
             n->unit = 0.1f;
         }
         {
+            DB_PRIM_ARRAY* pa_ = pa;
+            DB_WINDOW* win_ = win;
             DB_POINT pos(274.0f, 16.0f);
             int sx = 3;
-            DB_NUMERIC2* n = pa->CreateNumeric2(win, &g_pEditSeq->raccel.y, &g_pEditSeq2->raccel.y, &pos, &sx, 1, 0);
+            DB_NUMERIC2* n = pa_->CreateNumeric2(win_, &g_pEditSeq->raccel.y, &g_pEditSeq2->raccel.y, &pos, &sx, 1, 0);
             n->SetKeta(6);
             n->SetKetaFloat(2);
             n->unit = 0.1f;
         }
         {
+            DB_PRIM_ARRAY* pa_ = pa;
+            DB_WINDOW* win_ = win;
             DB_POINT pos(274.0f, 32.0f);
             int sx = 3;
-            DB_NUMERIC2* n = pa->CreateNumeric2(win, &g_pEditSeq->raccel.z, &g_pEditSeq2->raccel.z, &pos, &sx, 2, 0);
+            DB_NUMERIC2* n = pa_->CreateNumeric2(win_, &g_pEditSeq->raccel.z, &g_pEditSeq2->raccel.z, &pos, &sx, 2, 0);
             n->SetKeta(6);
             n->SetKetaFloat(2);
             n->unit = 0.1f;
@@ -3483,11 +3867,12 @@ public:
         pa = p;
         win = NULL;
         {
+            DB_PRIM_ARRAY* pa_ = pa;
             DB_POINT pos(32.0f, 280.0f);
             f32 w = 448.0f;
             f32 h = 82.0f;
             u32 flg = DB_WIN_KEY_ESC_CLOSE;
-            win = pa->CreateNormalWindow(" RGBA          D_RGBA", &pos, &w, &h, &flg);
+            win = pa_->CreateNormalWindow(" RGBA          D_RGBA", &pos, &w, &h, &flg);
         }
         win->sel.keyMode = 1;
         win->SetCloseCallback(ControlClose_callback);
@@ -3509,29 +3894,39 @@ public:
         pa->CreateString(win, "in :", &DB_POINT(288.0f, 48.0f));
         pa->CreateString(win, "out:", &DB_POINT(352.0f, 48.0f));
         {
+            DB_PRIM_ARRAY* pa_ = pa;
+            DB_WINDOW* win_ = win;
             DB_POINT pos(68.0f, 0.0f);
             int sx = 0;
-            pa->CreateNumeric2(win, &g_pEditSeq->r, &g_pEditSeq2->r, &pos, &sx, 0, 0);
+            pa_->CreateNumeric2(win_, &g_pEditSeq->r, &g_pEditSeq2->r, &pos, &sx, 0, 0);
         }
         {
+            DB_PRIM_ARRAY* pa_ = pa;
+            DB_WINDOW* win_ = win;
             DB_POINT pos(68.0f, 16.0f);
             int sx = 0;
-            pa->CreateNumeric2(win, &g_pEditSeq->g, &g_pEditSeq2->g, &pos, &sx, 1, 0);
+            pa_->CreateNumeric2(win_, &g_pEditSeq->g, &g_pEditSeq2->g, &pos, &sx, 1, 0);
         }
         {
+            DB_PRIM_ARRAY* pa_ = pa;
+            DB_WINDOW* win_ = win;
             DB_POINT pos(68.0f, 32.0f);
             int sx = 0;
-            pa->CreateNumeric2(win, &g_pEditSeq->b, &g_pEditSeq2->b, &pos, &sx, 2, 0);
+            pa_->CreateNumeric2(win_, &g_pEditSeq->b, &g_pEditSeq2->b, &pos, &sx, 2, 0);
         }
         {
+            DB_PRIM_ARRAY* pa_ = pa;
+            DB_WINDOW* win_ = win;
             DB_POINT pos(68.0f, 48.0f);
             int sx = 0;
-            pa->CreateNumeric2(win, &g_pEditSeq->a, &g_pEditSeq2->a, &pos, &sx, 3, 0);
+            pa_->CreateNumeric2(win_, &g_pEditSeq->a, &g_pEditSeq2->a, &pos, &sx, 3, 0);
         }
         {
+            DB_PRIM_ARRAY* pa_ = pa;
+            DB_WINDOW* win_ = win;
             DB_POINT pos(124.0f, 0.0f);
             int sx = 1;
-            DB_NUMERIC2* n = pa->CreateNumeric2(win, &g_pEditSeq->dr, &g_pEditSeq2->dr, &pos, &sx, 0, 0);
+            DB_NUMERIC2* n = pa_->CreateNumeric2(win_, &g_pEditSeq->dr, &g_pEditSeq2->dr, &pos, &sx, 0, 0);
             n->SetKeta(5);
             n->SetKetaFloat(3);
             n->min = 0.0f;
@@ -3540,9 +3935,11 @@ public:
             n->unit = 0.01f;
         }
         {
+            DB_PRIM_ARRAY* pa_ = pa;
+            DB_WINDOW* win_ = win;
             DB_POINT pos(124.0f, 16.0f);
             int sx = 1;
-            DB_NUMERIC2* n = pa->CreateNumeric2(win, &g_pEditSeq->dg, &g_pEditSeq2->dg, &pos, &sx, 1, 0);
+            DB_NUMERIC2* n = pa_->CreateNumeric2(win_, &g_pEditSeq->dg, &g_pEditSeq2->dg, &pos, &sx, 1, 0);
             n->SetKeta(5);
             n->SetKetaFloat(3);
             n->max = 1.0f;
@@ -3551,9 +3948,11 @@ public:
             n->unit = 0.01f;
         }
         {
+            DB_PRIM_ARRAY* pa_ = pa;
+            DB_WINDOW* win_ = win;
             DB_POINT pos(124.0f, 32.0f);
             int sx = 1;
-            DB_NUMERIC2* n = pa->CreateNumeric2(win, &g_pEditSeq->db, &g_pEditSeq2->db, &pos, &sx, 2, 0);
+            DB_NUMERIC2* n = pa_->CreateNumeric2(win_, &g_pEditSeq->db, &g_pEditSeq2->db, &pos, &sx, 2, 0);
             n->SetKeta(5);
             n->SetKetaFloat(3);
             n->max = 1.0f;
@@ -3562,9 +3961,11 @@ public:
             n->unit = 0.01f;
         }
         {
+            DB_PRIM_ARRAY* pa_ = pa;
+            DB_WINDOW* win_ = win;
             DB_POINT pos(124.0f, 48.0f);
             int sx = 1;
-            DB_NUMERIC2* n = pa->CreateNumeric2(win, &g_pEditSeq->da, &g_pEditSeq2->da, &pos, &sx, 3, 0);
+            DB_NUMERIC2* n = pa_->CreateNumeric2(win_, &g_pEditSeq->da, &g_pEditSeq2->da, &pos, &sx, 3, 0);
             n->SetKeta(5);
             n->SetKetaFloat(3);
             n->max = 1.0f;
@@ -3573,49 +3974,67 @@ public:
             n->unit = 0.01f;
         }
         {
+            DB_PRIM_ARRAY* pa_ = pa;
+            DB_WINDOW* win_ = win;
             DB_POINT pos(238.0f, 0.0f);
             int sx = 2;
-            pa->CreateNumeric2(win, &g_pEditSeq->xB2, &g_pEditSeq2->xB2, &pos, &sx, 0, 0)->SetKeta(4);
+            pa_->CreateNumeric2(win_, &g_pEditSeq->xB2, &g_pEditSeq2->xB2, &pos, &sx, 0, 0)->SetKeta(4);
         }
         {
+            DB_PRIM_ARRAY* pa_ = pa;
+            DB_WINDOW* win_ = win;
             DB_POINT pos(238.0f, 16.0f);
             int sx = 2;
-            pa->CreateNumeric2(win, &g_pEditSeq->xB0, &g_pEditSeq2->xB0, &pos, &sx, 1, 0)->SetKeta(4);
+            pa_->CreateNumeric2(win_, &g_pEditSeq->xB0, &g_pEditSeq2->xB0, &pos, &sx, 1, 0)->SetKeta(4);
         }
         {
+            DB_PRIM_ARRAY* pa_ = pa;
+            DB_WINDOW* win_ = win;
             DB_POINT pos(254.0f, 32.0f);
             int sx = 2;
-            pa->CreateButton(win, " ON", &pos, ColorMaskUseCallback, &sx, 2)->SetUpdateCallback(ColorMaskUseUpdateCallback);
+            pa_->CreateButton(win_, " ON", &pos, ColorMaskUseCallback, &sx, 2)->SetUpdateCallback(ColorMaskUseUpdateCallback);
         }
         {
+            DB_PRIM_ARRAY* pa_ = pa;
+            DB_WINDOW* win_ = win;
             DB_POINT pos(254.0f, 48.0f);
             int sx = 2;
-            pa->CreateNumeric2(win, &g_pEditSeq->maskTex, &g_pEditSeq2->maskTex, &pos, &sx, 3, DB_NUM_FLAG_HEX | DB_NUM_FLAG_NO_FLOAT_MSG | DB_NUM_FLAG_LOOP)->SetKeta(2);
+            pa_->CreateNumeric2(win_, &g_pEditSeq->maskTex, &g_pEditSeq2->maskTex, &pos, &sx, 3, DB_NUM_FLAG_HEX | DB_NUM_FLAG_NO_FLOAT_MSG | DB_NUM_FLAG_LOOP)->SetKeta(2);
         }
         {
+            DB_PRIM_ARRAY* pa_ = pa;
+            DB_WINDOW* win_ = win;
             DB_POINT pos(368.0f, 0.0f);
             int sx = 3;
-            pa->CreateButton(win, "NONE", &pos, ColorSimTypeCallback, &sx, 0)->SetUpdateCallback(ColorSimTypeUpdateCallback);
+            pa_->CreateButton(win_, "NONE", &pos, ColorSimTypeCallback, &sx, 0)->SetUpdateCallback(ColorSimTypeUpdateCallback);
         }
         {
+            DB_PRIM_ARRAY* pa_ = pa;
+            DB_WINDOW* win_ = win;
             DB_POINT pos(368.0f, 16.0f);
             int sx = 3;
-            pa->CreateNumeric2(win, &g_pEditSeq->simPow, &g_pEditSeq2->simPow, &pos, &sx, 1, 0)->SetKeta(3);
+            pa_->CreateNumeric2(win_, &g_pEditSeq->simPow, &g_pEditSeq2->simPow, &pos, &sx, 1, 0)->SetKeta(3);
         }
         {
+            DB_PRIM_ARRAY* pa_ = pa;
+            DB_WINDOW* win_ = win;
             DB_POINT pos(368.0f, 32.0f);
             int sx = 3;
-            pa->CreateButton(win, " ON", &pos, ShimmerLightCallback, &sx, 2)->SetUpdateCallback(ShimmerLightUpdateCallback);
+            pa_->CreateButton(win_, " ON", &pos, ShimmerLightCallback, &sx, 2)->SetUpdateCallback(ShimmerLightUpdateCallback);
         }
         {
+            DB_PRIM_ARRAY* pa_ = pa;
+            DB_WINDOW* win_ = win;
             DB_POINT pos(320.0f, 48.0f);
             int sx = 3;
-            pa->CreateNumeric2(win, &g_pEditSeq->simIn, &g_pEditSeq2->simIn, &pos, &sx, 3, 0);
+            pa_->CreateNumeric2(win_, &g_pEditSeq->simIn, &g_pEditSeq2->simIn, &pos, &sx, 3, 0);
         }
         {
+            DB_PRIM_ARRAY* pa_ = pa;
+            DB_WINDOW* win_ = win;
             DB_POINT pos(384.0f, 48.0f);
             int sx = 4;
-            pa->CreateNumeric2(win, &g_pEditSeq->simOut, &g_pEditSeq2->simOut, &pos, &sx, 3, 0);
+            pa_->CreateNumeric2(win_, &g_pEditSeq->simOut, &g_pEditSeq2->simOut, &pos, &sx, 3, 0);
         }
         win->active = 0;
         win->SetDrawCallback(ColorDraw_callback);
@@ -3630,19 +4049,22 @@ public:
         pa = p;
         win = NULL;
         {
+            DB_PRIM_ARRAY* pa_ = pa;
             DB_POINT pos(104.0f, 280.0f);
             f32 w = 96.0f;
             f32 h = 50.0f;
             u32 flg = DB_WIN_KEY_ESC_CLOSE;
-            win = pa->CreateNormalWindow(" Blend", &pos, &w, &h, &flg);
+            win = pa_->CreateNormalWindow(" Blend", &pos, &w, &h, &flg);
         }
         win->sel.keyMode = 1;
         win->SetCloseCallback(ControlClose_callback);
         pa->CreateString(win, "Blend :", &DB_POINT(5.0f, 8.0f));
         {
+            DB_PRIM_ARRAY* pa_ = pa;
+            DB_WINDOW* win_ = win;
             DB_POINT pos(64.0f, 8.0f);
             int sx = 0;
-            pa->CreateNumeric2(win, &g_pEditSeq->blend, &g_pEditSeq2->blend, &pos, &sx, 0, DB_NUM_FLAG_HEX | DB_NUM_FLAG_NO_FLOAT_MSG | DB_NUM_FLAG_LOOP)->SetKeta(2);
+            pa_->CreateNumeric2(win_, &g_pEditSeq->blend, &g_pEditSeq2->blend, &pos, &sx, 0, DB_NUM_FLAG_HEX | DB_NUM_FLAG_NO_FLOAT_MSG | DB_NUM_FLAG_LOOP)->SetKeta(2);
         }
         win->active = 0;
     }
@@ -3713,31 +4135,38 @@ public:
         pa = p;
         win = NULL;
         {
+            DB_PRIM_ARRAY* pa_ = pa;
             DB_POINT pos(160.0f, 168.0f);
             f32 w = 240.0f;
             f32 h = 194.0f;
             u32 flg = DB_WIN_KEY_ESC_CLOSE;
-            win = pa->CreateNormalWindow(" Flag", &pos, &w, &h, &flg);
+            win = pa_->CreateNormalWindow(" Flag", &pos, &w, &h, &flg);
         }
         win->SetCloseCallback(ControlClose_callback);
 #define FLAG_BUTTON(x, y, str, name, sx_, sy)                                                  \
         {                                                                                     \
+            DB_PRIM_ARRAY* pa_ = pa; \
+            DB_WINDOW* win_ = win; \
             DB_POINT pos(x, y);                                                               \
             int sx = sx_;                                                                     \
-            pa->CreateButton(win, str, &pos, name##Callback, &sx, sy)->SetUpdateCallback(name##UpdateCallback); \
+            pa_->CreateButton(win_, str, &pos, name##Callback, &sx, sy)->SetUpdateCallback(name##UpdateCallback); \
         }
         FLAG_BUTTON(4.0f, 0.0f, " 3D          ", Flg3D, 0, 0)
         FLAG_BUTTON(4.0f, 16.0f, " FlipX       ", FlgFlipX, 0, 1)
         FLAG_BUTTON(4.0f, 32.0f, " FlipY       ", FlgFlipY, 0, 2)
         {
+            DB_PRIM_ARRAY* pa_ = pa;
+            DB_WINDOW* win_ = win;
             DB_POINT pos(4.0f, 48.0f);
             int sx = 0;
-            pa->CreateButton(win, " Flip RndX   ", &pos, FlgFlipRXPosCallback, &sx, 3)->SetUpdateCallback(FlgFlipRXUpdateCallback);
+            pa_->CreateButton(win_, " Flip RndX   ", &pos, FlgFlipRXPosCallback, &sx, 3)->SetUpdateCallback(FlgFlipRXUpdateCallback);
         }
         {
+            DB_PRIM_ARRAY* pa_ = pa;
+            DB_WINDOW* win_ = win;
             DB_POINT pos(4.0f, 64.0f);
             int sx = 0;
-            pa->CreateButton(win, " Flip RndY   ", &pos, FlgFlipRYPosCallback, &sx, 4)->SetUpdateCallback(FlgFlipRYUpdateCallback);
+            pa_->CreateButton(win_, " Flip RndY   ", &pos, FlgFlipRYPosCallback, &sx, 4)->SetUpdateCallback(FlgFlipRYUpdateCallback);
         }
         FLAG_BUTTON(4.0f, 80.0f, " NULL mode   ", FlgNullPos, 0, 5)
         FLAG_BUTTON(4.0f, 96.0f, " Light ON    ", FlgLight, 0, 6)
@@ -3768,19 +4197,22 @@ public:
         pa = p;
         win = NULL;
         {
+            DB_PRIM_ARRAY* pa_ = pa;
             DB_POINT pos(184.0f, 280.0f);
             f32 w = 104.0f;
             f32 h = 50.0f;
             u32 flg = DB_WIN_KEY_ESC_CLOSE;
-            win = pa->CreateNormalWindow(" Life Time", &pos, &w, &h, &flg);
+            win = pa_->CreateNormalWindow(" Life Time", &pos, &w, &h, &flg);
         }
         win->sel.keyMode = 1;
         win->SetCloseCallback(ControlClose_callback);
         pa->CreateString(win, "Life:", &DB_POINT(5.0f, 8.0f));
         {
+            DB_PRIM_ARRAY* pa_ = pa;
+            DB_WINDOW* win_ = win;
             DB_POINT pos(48.0f, 8.0f);
             int sx = 0;
-            pa->CreateNumeric2(win, &g_pEditSeq->life, &g_pEditSeq2->life, &pos, &sx, 0, DB_NUM_FLAG_NO_FLOAT_MSG);
+            pa_->CreateNumeric2(win_, &g_pEditSeq->life, &g_pEditSeq2->life, &pos, &sx, 0, DB_NUM_FLAG_NO_FLOAT_MSG);
         }
         win->active = 0;
     }
@@ -3792,19 +4224,22 @@ public:
         pa = p;
         win = NULL;
         {
+            DB_PRIM_ARRAY* pa_ = pa;
             DB_POINT pos(216.0f, 280.0f);
             f32 w = 128.0f;
             f32 h = 50.0f;
             u32 flg = DB_WIN_KEY_ESC_CLOSE;
-            win = pa->CreateNormalWindow(" RT", &pos, &w, &h, &flg);
+            win = pa_->CreateNormalWindow(" RT", &pos, &w, &h, &flg);
         }
         win->sel.keyMode = 1;
         win->SetCloseCallback(ControlClose_callback);
         pa->CreateString(win, "Release:", &DB_POINT(5.0f, 8.0f));
         {
+            DB_PRIM_ARRAY* pa_ = pa;
+            DB_WINDOW* win_ = win;
             DB_POINT pos(72.0f, 8.0f);
             int sx = 0;
-            pa->CreateNumeric2(win, &g_pEditSeq->release, &g_pEditSeq2->release, &pos, &sx, 0, DB_NUM_FLAG_NO_FLOAT_MSG | DB_NUM_FLAG_LOOP);
+            pa_->CreateNumeric2(win_, &g_pEditSeq->release, &g_pEditSeq2->release, &pos, &sx, 0, DB_NUM_FLAG_NO_FLOAT_MSG | DB_NUM_FLAG_LOOP);
         }
         win->active = 0;
     }
@@ -3816,19 +4251,22 @@ public:
         pa = p;
         win = NULL;
         {
+            DB_PRIM_ARRAY* pa_ = pa;
             DB_POINT pos(240.0f, 280.0f);
             f32 w = 128.0f;
             f32 h = 50.0f;
             u32 flg = DB_WIN_KEY_ESC_CLOSE;
-            win = pa->CreateNormalWindow(" Anmation rate", &pos, &w, &h, &flg);
+            win = pa_->CreateNormalWindow(" Anmation rate", &pos, &w, &h, &flg);
         }
         win->sel.keyMode = 1;
         win->SetCloseCallback(ControlClose_callback);
         pa->CreateString(win, "AnmRate :", &DB_POINT(5.0f, 8.0f));
         {
+            DB_PRIM_ARRAY* pa_ = pa;
+            DB_WINDOW* win_ = win;
             DB_POINT pos(80.0f, 8.0f);
             int sx = 0;
-            pa->CreateNumeric2(win, &g_pEditSeq->anmRate, &g_pEditSeq2->anmRate, &pos, &sx, 0, DB_NUM_FLAG_NO_FLOAT_MSG);
+            pa_->CreateNumeric2(win_, &g_pEditSeq->anmRate, &g_pEditSeq2->anmRate, &pos, &sx, 0, DB_NUM_FLAG_NO_FLOAT_MSG);
         }
         win->active = 0;
     }
@@ -3846,11 +4284,12 @@ public:
         pa = p;
         win = NULL;
         {
+            DB_PRIM_ARRAY* pa_ = pa;
             DB_POINT pos(144.0f, 280.0f);
             f32 w = 350.0f;
             f32 h = 82.0f;
             u32 flg = DB_WIN_KEY_ESC_CLOSE;
-            win = pa->CreateNormalWindow("ROTATE      ACCELE    RND_ROT   RND_ACCELE", &pos, &w, &h, &flg);
+            win = pa_->CreateNormalWindow("ROTATE      ACCELE    RND_ROT   RND_ACCELE", &pos, &w, &h, &flg);
         }
         win->sel.keyMode = 1;
         win->SetCloseCallback(ControlClose_callback);
@@ -3867,72 +4306,92 @@ public:
         pa->CreateString(win, "Y:", &DB_POINT(255.0f, 16.0f));
         pa->CreateString(win, "Z:", &DB_POINT(255.0f, 32.0f));
         {
+            DB_PRIM_ARRAY* pa_ = pa;
+            DB_WINDOW* win_ = win;
             DB_POINT pos(24.0f, 0.0f);
             int sx = 0;
-            DB_NUMERIC2* n = pa->CreateNumeric2(win, &g_pEditSeq->rot.x, &g_pEditSeq2->rot.x, &pos, &sx, 0, 0);
+            DB_NUMERIC2* n = pa_->CreateNumeric2(win_, &g_pEditSeq->rot.x, &g_pEditSeq2->rot.x, &pos, &sx, 0, 0);
             n->SetKeta(5);
             ROT_MINMAX(n);
         }
         {
+            DB_PRIM_ARRAY* pa_ = pa;
+            DB_WINDOW* win_ = win;
             DB_POINT pos(24.0f, 16.0f);
             int sx = 0;
-            DB_NUMERIC2* n = pa->CreateNumeric2(win, &g_pEditSeq->rot.y, &g_pEditSeq2->rot.y, &pos, &sx, 1, 0);
+            DB_NUMERIC2* n = pa_->CreateNumeric2(win_, &g_pEditSeq->rot.y, &g_pEditSeq2->rot.y, &pos, &sx, 1, 0);
             n->SetKeta(5);
             ROT_MINMAX(n);
         }
         {
+            DB_PRIM_ARRAY* pa_ = pa;
+            DB_WINDOW* win_ = win;
             DB_POINT pos(24.0f, 32.0f);
             int sx = 0;
-            DB_NUMERIC2* n = pa->CreateNumeric2(win, &g_pEditSeq->rot.z, &g_pEditSeq2->rot.z, &pos, &sx, 2, 0);
+            DB_NUMERIC2* n = pa_->CreateNumeric2(win_, &g_pEditSeq->rot.z, &g_pEditSeq2->rot.z, &pos, &sx, 2, 0);
             n->SetKeta(5);
             ROT_MINMAX(n);
         }
         {
+            DB_PRIM_ARRAY* pa_ = pa;
+            DB_WINDOW* win_ = win;
             DB_POINT pos(114.0f, 0.0f);
             int sx = 1;
-            DB_NUMERIC2* n = pa->CreateNumeric2(win, &g_pEditSeq->rotSpd.x, &g_pEditSeq2->rotSpd.x, &pos, &sx, 0, 0);
+            DB_NUMERIC2* n = pa_->CreateNumeric2(win_, &g_pEditSeq->rotSpd.x, &g_pEditSeq2->rotSpd.x, &pos, &sx, 0, 0);
             n->SetKeta(5);
             ROT_MINMAX(n);
         }
         {
+            DB_PRIM_ARRAY* pa_ = pa;
+            DB_WINDOW* win_ = win;
             DB_POINT pos(114.0f, 16.0f);
             int sx = 1;
-            DB_NUMERIC2* n = pa->CreateNumeric2(win, &g_pEditSeq->rotSpd.y, &g_pEditSeq2->rotSpd.y, &pos, &sx, 1, 0);
+            DB_NUMERIC2* n = pa_->CreateNumeric2(win_, &g_pEditSeq->rotSpd.y, &g_pEditSeq2->rotSpd.y, &pos, &sx, 1, 0);
             n->SetKeta(5);
             ROT_MINMAX(n);
         }
         {
+            DB_PRIM_ARRAY* pa_ = pa;
+            DB_WINDOW* win_ = win;
             DB_POINT pos(114.0f, 32.0f);
             int sx = 1;
-            DB_NUMERIC2* n = pa->CreateNumeric2(win, &g_pEditSeq->rotSpd.z, &g_pEditSeq2->rotSpd.z, &pos, &sx, 2, 0);
+            DB_NUMERIC2* n = pa_->CreateNumeric2(win_, &g_pEditSeq->rotSpd.z, &g_pEditSeq2->rotSpd.z, &pos, &sx, 2, 0);
             n->SetKeta(5);
             ROT_MINMAX(n);
         }
         {
+            DB_PRIM_ARRAY* pa_ = pa;
+            DB_WINDOW* win_ = win;
             DB_POINT pos(194.0f, 0.0f);
             int sx = 2;
-            DB_NUMERIC2* n = pa->CreateNumeric2(win, &g_pEditSeq->rrot.x, &g_pEditSeq2->rrot.x, &pos, &sx, 0, 0);
+            DB_NUMERIC2* n = pa_->CreateNumeric2(win_, &g_pEditSeq->rrot.x, &g_pEditSeq2->rrot.x, &pos, &sx, 0, 0);
             n->SetKeta(5);
             ROT_MINMAX(n);
         }
         {
+            DB_PRIM_ARRAY* pa_ = pa;
+            DB_WINDOW* win_ = win;
             DB_POINT pos(194.0f, 16.0f);
             int sx = 2;
-            DB_NUMERIC2* n = pa->CreateNumeric2(win, &g_pEditSeq->rrot.y, &g_pEditSeq2->rrot.y, &pos, &sx, 1, 0);
+            DB_NUMERIC2* n = pa_->CreateNumeric2(win_, &g_pEditSeq->rrot.y, &g_pEditSeq2->rrot.y, &pos, &sx, 1, 0);
             n->SetKeta(5);
             ROT_MINMAX(n);
         }
         {
+            DB_PRIM_ARRAY* pa_ = pa;
+            DB_WINDOW* win_ = win;
             DB_POINT pos(194.0f, 32.0f);
             int sx = 2;
-            DB_NUMERIC2* n = pa->CreateNumeric2(win, &g_pEditSeq->rrot.z, &g_pEditSeq2->rrot.z, &pos, &sx, 2, 0);
+            DB_NUMERIC2* n = pa_->CreateNumeric2(win_, &g_pEditSeq->rrot.z, &g_pEditSeq2->rrot.z, &pos, &sx, 2, 0);
             n->SetKeta(5);
             ROT_MINMAX(n);
         }
         {
+            DB_PRIM_ARRAY* pa_ = pa;
+            DB_WINDOW* win_ = win;
             DB_POINT pos(274.0f, 0.0f);
             int sx = 3;
-            DB_NUMERIC2* n = pa->CreateNumeric2(win, &g_pEditSeq->rrotSpd.x, &g_pEditSeq2->rrotSpd.x, &pos, &sx, 0, 0);
+            DB_NUMERIC2* n = pa_->CreateNumeric2(win_, &g_pEditSeq->rrotSpd.x, &g_pEditSeq2->rrotSpd.x, &pos, &sx, 0, 0);
             n->SetKeta(5);
             n->SetKetaFloat(2);
             n->max = 10.0f;
@@ -3940,9 +4399,11 @@ public:
             n->unit = 0.1f;
         }
         {
+            DB_PRIM_ARRAY* pa_ = pa;
+            DB_WINDOW* win_ = win;
             DB_POINT pos(274.0f, 16.0f);
             int sx = 3;
-            DB_NUMERIC2* n = pa->CreateNumeric2(win, &g_pEditSeq->rrotSpd.y, &g_pEditSeq2->rrotSpd.y, &pos, &sx, 1, 0);
+            DB_NUMERIC2* n = pa_->CreateNumeric2(win_, &g_pEditSeq->rrotSpd.y, &g_pEditSeq2->rrotSpd.y, &pos, &sx, 1, 0);
             n->SetKeta(5);
             n->SetKetaFloat(2);
             n->unit = 0.1f;
@@ -3950,9 +4411,11 @@ public:
             n->min = -10.0f;
         }
         {
+            DB_PRIM_ARRAY* pa_ = pa;
+            DB_WINDOW* win_ = win;
             DB_POINT pos(274.0f, 32.0f);
             int sx = 3;
-            DB_NUMERIC2* n = pa->CreateNumeric2(win, &g_pEditSeq->rrotSpd.z, &g_pEditSeq2->rrotSpd.z, &pos, &sx, 2, 0);
+            DB_NUMERIC2* n = pa_->CreateNumeric2(win_, &g_pEditSeq->rrotSpd.z, &g_pEditSeq2->rrotSpd.z, &pos, &sx, 2, 0);
             n->SetKeta(5);
             n->SetKetaFloat(2);
             n->unit = 0.1f;
@@ -3972,11 +4435,12 @@ public:
             pa = p;                                                                                      \
             win = NULL;                                                                                  \
             {                                                                                            \
+                DB_PRIM_ARRAY* pa_ = pa; \
                 DB_POINT pos(x0, 280.0f);                                                                \
                 f32 w = 128.0f;                                                                          \
                 f32 h = 82.0f;                                                                           \
                 u32 flg = DB_WIN_KEY_ESC_CLOSE;                                                          \
-                win = pa->CreateNormalWindow(title, &pos, &w, &h, &flg);                                 \
+                win = pa_->CreateNormalWindow(title, &pos, &w, &h, &flg);                                 \
             }                                                                                            \
             win->sel.keyMode = 1;                                                                        \
             win->SetCloseCallback(ControlClose_callback);                                                \
@@ -3993,19 +4457,25 @@ public:
                 pa->CreateString(win, "Z:", &pos);                                                       \
             }                                                                                            \
             {                                                                                            \
+                DB_PRIM_ARRAY* pa_ = pa; \
+                DB_WINDOW* win_ = win; \
                 DB_POINT pos(24.0f, 0.0f);                                                               \
                 int sx = 0;                                                                              \
-                pa->CreateNumeric2(win, &g_pEditSeq->member.x, &g_pEditSeq2->member.x, &pos, &sx, 0, 0); \
+                pa_->CreateNumeric2(win_, &g_pEditSeq->member.x, &g_pEditSeq2->member.x, &pos, &sx, 0, 0); \
             }                                                                                            \
             {                                                                                            \
+                DB_PRIM_ARRAY* pa_ = pa; \
+                DB_WINDOW* win_ = win; \
                 DB_POINT pos(24.0f, 16.0f);                                                              \
                 int sx = 0;                                                                              \
-                pa->CreateNumeric2(win, &g_pEditSeq->member.y, &g_pEditSeq2->member.y, &pos, &sx, 1, 0); \
+                pa_->CreateNumeric2(win_, &g_pEditSeq->member.y, &g_pEditSeq2->member.y, &pos, &sx, 1, 0); \
             }                                                                                            \
             {                                                                                            \
+                DB_PRIM_ARRAY* pa_ = pa; \
+                DB_WINDOW* win_ = win; \
                 DB_POINT pos(24.0f, 32.0f);                                                              \
                 int sx = 0;                                                                              \
-                pa->CreateNumeric2(win, &g_pEditSeq->member.z, &g_pEditSeq2->member.z, &pos, &sx, 2, 0); \
+                pa_->CreateNumeric2(win_, &g_pEditSeq->member.z, &g_pEditSeq2->member.z, &pos, &sx, 2, 0); \
             }                                                                                            \
             win->active = 0;                                                                             \
         }                                                                                                \
@@ -4060,11 +4530,12 @@ static void SubBasePosCallback(DB_PRIMITIVE*)
             pa = p;                                                                                      \
             win = NULL;                                                                                  \
             {                                                                                            \
+                DB_PRIM_ARRAY* pa_ = pa; \
                 DB_POINT pos(344.0f, 280.0f);                                                            \
                 f32 w = 104.0f;                                                                          \
                 f32 h = 82.0f;                                                                           \
                 u32 flg = DB_WIN_KEY_ESC_CLOSE;                                                          \
-                win = pa->CreateNormalWindow(title, &pos, &w, &h, &flg);                                 \
+                win = pa_->CreateNormalWindow(title, &pos, &w, &h, &flg);                                 \
             }                                                                                            \
             win->sel.keyMode = 1;                                                                        \
             win->SetCloseCallback(ControlClose_callback);                                                \
@@ -4077,19 +4548,25 @@ static void SubBasePosCallback(DB_PRIMITIVE*)
                 pa->CreateString(win, "  Hex:", &pos);                                                   \
             }                                                                                            \
             {                                                                                            \
+                DB_PRIM_ARRAY* pa_ = pa; \
+                DB_WINDOW* win_ = win; \
                 DB_POINT pos(64.0f, 8.0f);                                                               \
                 int sx = 0;                                                                              \
-                pa->CreateNumeric2(win, &g_pEditSeq->member, &g_pEditSeq2->member, &pos, &sx, 0, DB_NUM_FLAG_NO_FLOAT_MSG); \
+                pa_->CreateNumeric2(win_, &g_pEditSeq->member, &g_pEditSeq2->member, &pos, &sx, 0, DB_NUM_FLAG_NO_FLOAT_MSG); \
             }                                                                                            \
             {                                                                                            \
+                DB_PRIM_ARRAY* pa_ = pa; \
+                DB_WINDOW* win_ = win; \
                 DB_POINT pos(56.0f, 24.0f);                                                              \
                 int sx = 0;                                                                              \
-                pa->CreateNumeric2(win, (s8*) &g_pEditSeq->member, (s8*) &g_pEditSeq2->member, &pos, &sx, 1, DB_NUM_FLAG_NO_FLOAT_MSG); \
+                pa_->CreateNumeric2(win_, (s8*) &g_pEditSeq->member, (s8*) &g_pEditSeq2->member, &pos, &sx, 1, DB_NUM_FLAG_NO_FLOAT_MSG); \
             }                                                                                            \
             {                                                                                            \
+                DB_PRIM_ARRAY* pa_ = pa; \
+                DB_WINDOW* win_ = win; \
                 DB_POINT pos(56.0f, 40.0f);                                                              \
                 int sx = 0;                                                                              \
-                pa->CreateNumeric2(win, (s8*) &g_pEditSeq->member, (s8*) &g_pEditSeq2->member, &pos, &sx, 2, DB_NUM_FLAG_HEX | DB_NUM_FLAG_NO_LIMIT | DB_NUM_FLAG_NO_FLOAT_MSG | DB_NUM_FLAG_SIGNED_VIEW); \
+                pa_->CreateNumeric2(win_, (s8*) &g_pEditSeq->member, (s8*) &g_pEditSeq2->member, &pos, &sx, 2, DB_NUM_FLAG_HEX | DB_NUM_FLAG_NO_LIMIT | DB_NUM_FLAG_NO_FLOAT_MSG | DB_NUM_FLAG_SIGNED_VIEW); \
             }                                                                                            \
             win->active = 0;                                                                             \
         }                                                                                                \
@@ -4102,11 +4579,12 @@ static void SubBasePosCallback(DB_PRIMITIVE*)
             pa = p;                                                                                      \
             win = NULL;                                                                                  \
             {                                                                                            \
+                DB_PRIM_ARRAY* pa_ = pa; \
                 DB_POINT pos(344.0f, 280.0f);                                                            \
                 f32 w = 104.0f;                                                                          \
                 f32 h = 82.0f;                                                                           \
                 u32 flg = DB_WIN_KEY_ESC_CLOSE;                                                          \
-                win = pa->CreateNormalWindow(title, &pos, &w, &h, &flg);                                 \
+                win = pa_->CreateNormalWindow(title, &pos, &w, &h, &flg);                                 \
             }                                                                                            \
             win->sel.keyMode = 1;                                                                        \
             win->SetCloseCallback(ControlClose_callback);                                                \
@@ -4119,19 +4597,25 @@ static void SubBasePosCallback(DB_PRIMITIVE*)
                 pa->CreateString(win, "  Hex:", &pos);                                                   \
             }                                                                                            \
             {                                                                                            \
+                DB_PRIM_ARRAY* pa_ = pa; \
+                DB_WINDOW* win_ = win; \
                 DB_POINT pos(64.0f, 8.0f);                                                               \
                 int sx = 0;                                                                              \
-                pa->CreateNumeric2(win, &g_pEditSeq->member, &g_pEditSeq2->member, &pos, &sx, 0, DB_NUM_FLAG_NO_FLOAT_MSG); \
+                pa_->CreateNumeric2(win_, &g_pEditSeq->member, &g_pEditSeq2->member, &pos, &sx, 0, DB_NUM_FLAG_NO_FLOAT_MSG); \
             }                                                                                            \
             {                                                                                            \
+                DB_PRIM_ARRAY* pa_ = pa; \
+                DB_WINDOW* win_ = win; \
                 DB_POINT pos(56.0f, 24.0f);                                                              \
                 int sx = 0;                                                                              \
-                pa->CreateNumeric2(win, (s8*) &g_pEditSeq->member, (s8*) &g_pEditSeq2->member, &pos, &sx, 1, DB_NUM_FLAG_NO_FLOAT_MSG); \
+                pa_->CreateNumeric2(win_, (s8*) &g_pEditSeq->member, (s8*) &g_pEditSeq2->member, &pos, &sx, 1, DB_NUM_FLAG_NO_FLOAT_MSG); \
             }                                                                                            \
             {                                                                                            \
+                DB_PRIM_ARRAY* pa_ = pa; \
+                DB_WINDOW* win_ = win; \
                 DB_POINT pos(56.0f, 40.0f);                                                              \
                 int sx = 0;                                                                              \
-                pa->CreateNumeric2(win, &g_pEditSeq->member, &g_pEditSeq2->member, &pos, &sx, 2, DB_NUM_FLAG_HEX | DB_NUM_FLAG_NO_LIMIT | DB_NUM_FLAG_NO_FLOAT_MSG | DB_NUM_FLAG_SIGNED_VIEW); \
+                pa_->CreateNumeric2(win_, &g_pEditSeq->member, &g_pEditSeq2->member, &pos, &sx, 2, DB_NUM_FLAG_HEX | DB_NUM_FLAG_NO_LIMIT | DB_NUM_FLAG_NO_FLOAT_MSG | DB_NUM_FLAG_SIGNED_VIEW); \
             }                                                                                            \
             win->active = 0;                                                                             \
         }                                                                                                \
@@ -4144,11 +4628,12 @@ static void SubBasePosCallback(DB_PRIMITIVE*)
             pa = p;                                                                                      \
             win = NULL;                                                                                  \
             {                                                                                            \
+                DB_PRIM_ARRAY* pa_ = pa; \
                 DB_POINT pos(344.0f, 280.0f);                                                            \
                 f32 w = 164.0f;                                                                          \
                 f32 h = 50.0f;                                                                           \
                 u32 flg = DB_WIN_KEY_ESC_CLOSE;                                                          \
-                win = pa->CreateNormalWindow(title, &pos, &w, &h, &flg);                                 \
+                win = pa_->CreateNormalWindow(title, &pos, &w, &h, &flg);                                 \
             }                                                                                            \
             win->sel.keyMode = 1;                                                                        \
             win->SetCloseCallback(ControlClose_callback);                                                \
@@ -4157,9 +4642,11 @@ static void SubBasePosCallback(DB_PRIMITIVE*)
                 pa->CreateString(win, label, &pos);                                                      \
             }                                                                                            \
             {                                                                                            \
+                DB_PRIM_ARRAY* pa_ = pa; \
+                DB_WINDOW* win_ = win; \
                 DB_POINT pos(56.0f, 8.0f);                                                               \
                 int sx = 0;                                                                              \
-                pa->CreateNumeric2(win, (s32*) &g_pEditSeq->member, (s32*) &g_pEditSeq2->member, &pos, &sx, 0, DB_NUM_FLAG_NO_FLOAT_MSG); \
+                pa_->CreateNumeric2(win_, (s32*) &g_pEditSeq->member, (s32*) &g_pEditSeq2->member, &pos, &sx, 0, DB_NUM_FLAG_NO_FLOAT_MSG); \
             }                                                                                            \
             win->active = 0;                                                                             \
         }                                                                                                \
@@ -4183,38 +4670,49 @@ public:
         pa = p;
         win = NULL;
         {
+            DB_PRIM_ARRAY* pa_ = pa;
             DB_POINT pos(32.0f, 40.0f);
             f32 w = 80.0f;
             f32 h = 96.0f;
             u32 flg = DB_WIN_KEY_ESC_CLOSE;
-            win = pa->CreateNormalWindow("  Sub ", &pos, &w, &h, &flg);
+            win = pa_->CreateNormalWindow("  Sub ", &pos, &w, &h, &flg);
         }
         win->sel.keyMode = 1;
         win->SetCloseCallback(ControlClose_callback);
         {
+            DB_PRIM_ARRAY* pa_ = pa;
+            DB_WINDOW* win_ = win;
             DB_POINT pos(4.0f, 0.0f);
             int sx = 0;
-            pa->CreateButton(win, "  Copy   ", &pos, SubCopyCallback, &sx, 0);
+            pa_->CreateButton(win_, "  Copy   ", &pos, SubCopyCallback, &sx, 0);
         }
         {
+            DB_PRIM_ARRAY* pa_ = pa;
+            DB_WINDOW* win_ = win;
             DB_POINT pos(4.0f, 16.0f);
             int sx = 0;
-            pa->CreateButton(win, "  Cut    ", &pos, SubCutCallback, &sx, 1);
+            pa_->CreateButton(win_, "  Cut    ", &pos, SubCutCallback, &sx, 1);
         }
         {
+            DB_PRIM_ARRAY* pa_ = pa;
+            DB_WINDOW* win_ = win;
             DB_POINT pos(4.0f, 32.0f);
             int sx = 0;
-            pa->CreateButton(win, "  Paste  ", &pos, SubPasteCallback, &sx, 2);
+            pa_->CreateButton(win_, "  Paste  ", &pos, SubPasteCallback, &sx, 2);
         }
         {
+            DB_PRIM_ARRAY* pa_ = pa;
+            DB_WINDOW* win_ = win;
             DB_POINT pos(4.0f, 48.0f);
             int sx = 0;
-            pa->CreateButton(win, "PartPaste", &pos, SubPartPasteCallback, &sx, 3);
+            pa_->CreateButton(win_, "PartPaste", &pos, SubPartPasteCallback, &sx, 3);
         }
         {
+            DB_PRIM_ARRAY* pa_ = pa;
+            DB_WINDOW* win_ = win;
             DB_POINT pos(4.0f, 64.0f);
             int sx = 0;
-            pa->CreateButton(win, " BasePos ", &pos, SubBasePosCallback, &sx, 4);
+            pa_->CreateButton(win_, " BasePos ", &pos, SubBasePosCallback, &sx, 4);
         }
         win->active = 0;
     }
@@ -4236,11 +4734,12 @@ public:
         pa = p;
         win = NULL;
         {
+            DB_PRIM_ARRAY* pa_ = pa;
             DB_POINT pos(64.0f, 264.0f);
             f32 w = 256.0f;
             f32 h = 96.0f;
             u32 flg = DB_WIN_KEY_ESC_CLOSE;
-            win = pa->CreateNormalWindow("  BasePos", &pos, &w, &h, &flg);
+            win = pa_->CreateNormalWindow("  BasePos", &pos, &w, &h, &flg);
         }
         win->sel.keyMode = 1;
         win->SetCloseCallback(ControlClose_callback);
@@ -4253,57 +4752,73 @@ public:
         pa->CreateString(win, " Z :", &DB_POINT(95.0f, 32.0f));
         pa->CreateString(win, "ANG:", &DB_POINT(95.0f, 48.0f));
         {
+            DB_PRIM_ARRAY* pa_ = pa;
+            DB_WINDOW* win_ = win;
             DB_POINT pos(68.0f, 0.0f);
             int sx = 0;
-            DB_NUMERIC* n = pa->CreateNumeric(win, (u32*) &g_page, &pos, &sx, 0, DB_NUM_FLAG_NO_FLOAT_MSG);
+            DB_NUMERIC* n = pa_->CreateNumeric(win_, (u32*) &g_page, &pos, &sx, 0, DB_NUM_FLAG_NO_FLOAT_MSG);
             n->max = 3.0f;
             n->SetKeta(3);
         }
         {
+            DB_PRIM_ARRAY* pa_ = pa;
+            DB_WINDOW* win_ = win;
             DB_POINT pos(74.0f, 16.0f);
             int sx = 0;
-            DB_NUMERIC* n = pa->CreateNumeric(win, &g_pSeqHead->parts, &pos, &sx, 1, DB_NUM_FLAG_HEX | DB_NUM_FLAG_NO_FLOAT_MSG | DB_NUM_FLAG_LOOP);
+            DB_NUMERIC* n = pa_->CreateNumeric(win_, &g_pSeqHead->parts, &pos, &sx, 1, DB_NUM_FLAG_HEX | DB_NUM_FLAG_NO_FLOAT_MSG | DB_NUM_FLAG_LOOP);
             n->SetKeta(2);
             n->nameNum = 256;
             n->nameTbl = g_partsNameTbl;
         }
         {
+            DB_PRIM_ARRAY* pa_ = pa;
+            DB_WINDOW* win_ = win;
             DB_POINT pos(82.0f, 32.0f);
             int sx = 0;
-            pa->CreateNumeric(win, &g_pSeqHead->flags, &pos, &sx, 2, DB_NUM_FLAG_NO_FLOAT_MSG)->SetKeta(1);
+            pa_->CreateNumeric(win_, &g_pSeqHead->flags, &pos, &sx, 2, DB_NUM_FLAG_NO_FLOAT_MSG)->SetKeta(1);
         }
         {
+            DB_PRIM_ARRAY* pa_ = pa;
+            DB_WINDOW* win_ = win;
             DB_POINT pos(68.0f, 48.0f);
             int sx = 0;
-            DB_NUMERIC* n = pa->CreateNumeric(win, (u32*) &db_modelNo, &pos, &sx, 3, DB_NUM_FLAG_NO_FLOAT_MSG);
+            DB_NUMERIC* n = pa_->CreateNumeric(win_, (u32*) &db_modelNo, &pos, &sx, 3, DB_NUM_FLAG_NO_FLOAT_MSG);
             n->max = 7.0f;
             n->SetKeta(2);
         }
         {
+            DB_PRIM_ARRAY* pa_ = pa;
+            DB_WINDOW* win_ = win;
             DB_POINT pos(144.0f, 0.0f);
             int sx = 1;
-            DB_NUMERIC* n = pa->CreateNumeric(win, &g_pSeqHead->pos.x, &pos, &sx, 0, 0);
+            DB_NUMERIC* n = pa_->CreateNumeric(win_, &g_pSeqHead->pos.x, &pos, &sx, 0, 0);
             n->SetUpdateCallback(BasePosPosUpdate_callback);
             POS_MINMAX(n);
         }
         {
+            DB_PRIM_ARRAY* pa_ = pa;
+            DB_WINDOW* win_ = win;
             DB_POINT pos(144.0f, 16.0f);
             int sx = 1;
-            DB_NUMERIC* n = pa->CreateNumeric(win, &g_pSeqHead->pos.y, &pos, &sx, 1, 0);
+            DB_NUMERIC* n = pa_->CreateNumeric(win_, &g_pSeqHead->pos.y, &pos, &sx, 1, 0);
             n->SetUpdateCallback(BasePosPosUpdate_callback);
             POS_MINMAX(n);
         }
         {
+            DB_PRIM_ARRAY* pa_ = pa;
+            DB_WINDOW* win_ = win;
             DB_POINT pos(144.0f, 32.0f);
             int sx = 1;
-            DB_NUMERIC* n = pa->CreateNumeric(win, &g_pSeqHead->pos.z, &pos, &sx, 2, 0);
+            DB_NUMERIC* n = pa_->CreateNumeric(win_, &g_pSeqHead->pos.z, &pos, &sx, 2, 0);
             n->SetUpdateCallback(BasePosPosUpdate_callback);
             POS_MINMAX(n);
         }
         {
+            DB_PRIM_ARRAY* pa_ = pa;
+            DB_WINDOW* win_ = win;
             DB_POINT pos(144.0f, 48.0f);
             int sx = 1;
-            DB_NUMERIC* n = pa->CreateNumeric(win, &g_pSeqHead->rot.y, &pos, &sx, 3, 0);
+            DB_NUMERIC* n = pa_->CreateNumeric(win_, &g_pSeqHead->rot.y, &pos, &sx, 3, 0);
             ROT_MINMAX(n);
         }
         win->active = 0;
@@ -4427,12 +4942,13 @@ void InitTool()
     pa = g_pPrimArray;
     g_pMenuWin = new MENU_WINDOW(g_pPrimArray);
     g_pExitWin = new EXIT_WINDOW(g_pPrimArray);
-    g_pEditWin1 = new EDIT_WINDOW(g_pPrimArray, 0);
-    g_pEditWin2 = new EDIT_WINDOW(g_pPrimArray, 1);
+    g_pEditWin1 = new EDIT_WINDOW(g_pPrimArray);
+    CreateEditWindow1((EDIT_WINDOW*) g_pEditWin1, g_pPrimArray);
+    g_pEditWin2 = new EDIT_WINDOW(g_pPrimArray);
     CreateEditWindow2((EDIT_WINDOW*) g_pEditWin2, g_pPrimArray);
-    g_pEditWin3 = new EDIT_WINDOW(g_pPrimArray, 2);
+    g_pEditWin3 = new EDIT_WINDOW(g_pPrimArray);
     CreateEditWindow3((EDIT_WINDOW*) g_pEditWin3, g_pPrimArray);
-    g_pEditWin4 = new EDIT_WINDOW(g_pPrimArray, 3);
+    g_pEditWin4 = new EDIT_WINDOW(g_pPrimArray);
     CreateEditWindow4((EDIT_WINDOW*) g_pEditWin4, g_pPrimArray);
     g_pEditActive = g_pEditWin1;
     g_pModelWin = new MODEL_WINDOW(g_pPrimArray);

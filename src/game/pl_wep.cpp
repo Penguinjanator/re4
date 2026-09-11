@@ -782,7 +782,10 @@ void PlWepLockCtrl(cModel* plm)
 {
     static f32 repCtr = 0.0f;
     cPlayer* pl = (cPlayer*) plm;
-    f32 lim;
+    // Pool order (target 0x108: 0.8, 12deg, 1.0, ...): a dead 0.8f initialiser expanded before the
+    // switch, `default:` written first, `lim` assigned before `spd` in every case, and the 0x16 group
+    // includes 0x19 (the compare tree's `cmpwi r0,25`).
+    f32 lim = 0.8f;
     f32 spd;
     f32 spd2;
     f32 d;
@@ -790,24 +793,29 @@ void PlWepLockCtrl(cModel* plm)
     f32 tmp;
 
     switch (pG->wep_no) {
+    default:
+        lim = 0.20943952f;
+        spd = 1.0f;
+        spd2 = spd;
+        break;
     case 4:
         lim = 0.062831853f;
         spd = 1.5f;
         spd2 = 1.2f;
         break;
     case 7:
-        spd = 0.8f;
         lim = 0.10471976f;
+        spd = 0.8f;
         spd2 = spd;
         break;
     case 8:
-        spd = 0.9f;
         lim = 0.052359879f;
+        spd = 0.9f;
         spd2 = spd;
         break;
     case 0x21:
-        spd = 1.04f;
         lim = 0.10471976f;
+        spd = 1.04f;
         spd2 = spd;
         break;
     case 0xB:
@@ -815,38 +823,34 @@ void PlWepLockCtrl(cModel* plm)
     case 0x1B:
     case 0x1D:
     case 0x27:
-        spd = 1.15f;
         lim = 0.0065449847f;
+        spd = 1.15f;
         spd2 = spd;
         break;
     case 0xE:
     case 0x13:
         if (pG->wep_type == 0) {
-            spd = 1.0f;
             lim = 0.20943952f;
+            spd = 1.0f;
             spd2 = spd;
             break;
         }
     case 0x16:
     case 0x17:
+    case 0x19:
     case 0x29:
         lim = 0.0065449847f;
         spd = 1.2f;
         spd2 = 1.5f;
         break;
     case 0x10:
-        spd = 1.2f;
         lim = 0.10471976f;
+        spd = 1.2f;
         spd2 = spd;
         break;
     case 0xD:
-        spd = 1.0f;
         lim = 0.0065449847f;
-        spd2 = spd;
-        break;
-    default:
         spd = 1.0f;
-        lim = 0.20943952f;
         spd2 = spd;
         break;
     }
@@ -992,6 +996,7 @@ void PlWepAutoTrack(cModel* plm, int mode, f32 rate)
     f32 dist;
     f32 d;
     f32 e;
+    f32 na = 0.20943952f;  // function-scope, dead initialiser: puts 12deg before 400.0f in the pool (target 0x178)
     register s16 hm asm("r4"); // COMPILER-DIFF: #8
 
     // COMPILER-DIFF: #8 -- the original ranks `mr r29,r4` (mode) after `fmr f31,f1`, i.e. as if r4
@@ -1014,8 +1019,7 @@ void PlWepAutoTrack(cModel* plm, int mode, f32 rate)
             d = -0.52359879f;
         }
         if (mode != 0) {
-            f32 na = pl->x400 + d;
-
+            na = pl->x400 + d;
             if (na <= 0.20943952f && na >= -0.20943952f) {
                 pl->x400 = na;
             } else if (pl->x400 + d > 0.20943952f) {
